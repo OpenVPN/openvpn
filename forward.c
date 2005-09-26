@@ -252,7 +252,7 @@ send_control_channel_string (struct context *c, const char *str, int msglevel)
 static void
 check_add_routes_action (struct context *c, const bool errors)
 {
-  do_route (&c->options, c->c1.route_list, c->c1.tuntap, c->c1.plugins, c->c2.es);
+  do_route (&c->options, c->c1.route_list, c->c1.tuntap, c->plugins, c->c2.es);
   update_time ();
   event_timeout_clear (&c->c2.route_wakeup);
   event_timeout_clear (&c->c2.route_wakeup_expire);
@@ -615,6 +615,7 @@ read_incoming_link (struct context *c)
 
   c->c2.buf = c->c2.buffers->read_link_buf;
   ASSERT (buf_init (&c->c2.buf, FRAME_HEADROOM_ADJ (&c->c2.frame, FRAME_HEADROOM_MARKER_READ_LINK)));
+
   status = link_socket_read (c->c2.link_socket, &c->c2.buf, MAX_RW_SIZE_LINK (&c->c2.frame), &c->c2.from);
 
   if (socket_connection_reset (c->c2.link_socket, status))
@@ -766,6 +767,16 @@ process_incoming_link (struct context *c)
       if (c->options.comp_lzo)
 	lzo_decompress (&c->c2.buf, c->c2.buffers->lzo_decompress_buf, &c->c2.lzo_compwork, &c->c2.frame);
 #endif
+
+#ifdef PACKET_TRUNCATION_CHECK
+      //if (c->c2.buf.len > 1) --c->c2.buf.len; // JYFIXME
+      ipv4_packet_size_verify (BPTR (&c->c2.buf),
+			       BLEN (&c->c2.buf),
+			       TUNNEL_TYPE (c->c1.tuntap),
+			       "POST_DECRYPT",
+			       &c->c2.n_trunc_post_decrypt);
+#endif
+
       /*
        * Set our "official" outgoing address, since
        * if buf.len is non-zero, we know the packet
@@ -840,6 +851,14 @@ read_incoming_tun (struct context *c)
   c->c2.buf.len = read_tun (c->c1.tuntap, BPTR (&c->c2.buf), MAX_RW_SIZE_TUN (&c->c2.frame));
 #endif
 
+#ifdef PACKET_TRUNCATION_CHECK
+  ipv4_packet_size_verify (BPTR (&c->c2.buf),
+			   BLEN (&c->c2.buf),
+			   TUNNEL_TYPE (c->c1.tuntap),
+			   "READ_TUN",
+			   &c->c2.n_trunc_tun_read);
+#endif
+
   /* Was TUN/TAP interface stopped? */
   if (tuntap_stop (c->c2.buf.len))
     {
@@ -889,6 +908,16 @@ process_incoming_tun (struct context *c)
        * us to examine the IPv4 header.
        */
       process_ipv4_header (c, PIPV4_PASSTOS|PIPV4_MSSFIX, &c->c2.buf);
+
+#ifdef PACKET_TRUNCATION_CHECK
+      //if (c->c2.buf.len > 1) --c->c2.buf.len; // JYFIXME
+      ipv4_packet_size_verify (BPTR (&c->c2.buf),
+			       BLEN (&c->c2.buf),
+			       TUNNEL_TYPE (c->c1.tuntap),
+			       "PRE_ENCRYPT",
+			       &c->c2.n_trunc_pre_encrypt);
+#endif
+
       encrypt_sign (c, true);
     }
   else
@@ -1071,7 +1100,7 @@ process_outgoing_tun (struct context *c)
    * The --mssfix option requires
    * us to examine the IPv4 header.
    */
-  process_ipv4_header (c, PIPV4_MSSFIX, &c->c2.to_tun);
+  process_ipv4_header (c, PIPV4_MSSFIX|PIPV4_OUTGOING, &c->c2.to_tun);
 
   if (c->c2.to_tun.len <= MAX_RW_SIZE_TUN (&c->c2.frame))
     {
@@ -1088,6 +1117,14 @@ process_outgoing_tun (struct context *c)
 	   BLEN (&c->c2.to_tun),
 	   format_hex (BPTR (&c->c2.to_tun), BLEN (&c->c2.to_tun), 80, &gc),
 	   MD5SUM (BPTR (&c->c2.to_tun), BLEN (&c->c2.to_tun), &gc));
+
+#ifdef PACKET_TRUNCATION_CHECK
+      ipv4_packet_size_verify (BPTR (&c->c2.to_tun),
+			       BLEN (&c->c2.to_tun),
+			       TUNNEL_TYPE (c->c1.tuntap),
+			       "WRITE_TUN",
+			       &c->c2.n_trunc_tun_write);
+#endif
 
 #ifdef TUN_PASS_BUFFER
       size = write_tun_buffered (c->c1.tuntap, &c->c2.to_tun);

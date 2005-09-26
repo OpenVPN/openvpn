@@ -77,6 +77,16 @@ print_opt_route (const in_addr_t network, const in_addr_t netmask, struct gc_are
 }
 
 static const char *
+print_opt_topology (const int topology, struct gc_arena *gc)
+{
+  struct buffer out = alloc_buf_gc (128, gc);
+
+  buf_printf (&out, "topology %s", print_topology (topology));
+
+  return BSTR (&out);
+}
+
+static const char *
 print_str_int (const char *str, const int i, struct gc_arena *gc)
 {
   struct buffer out = alloc_buf_gc (128, gc);
@@ -132,19 +142,23 @@ helper_client_server (struct options *o)
    *
    * mode server
    * tls-server
+   * push "topology [topology]"
    *
-   * if tun:
-   *   ifconfig 10.8.0.1 10.8.0.2 
-   *   ifconfig-pool 10.8.0.4 10.8.0.251
+   * if tun AND (topology == net30 OR topology == p2p):
+   *   ifconfig 10.8.0.1 10.8.0.2
+   *   if !nopool: 
+   *     ifconfig-pool 10.8.0.4 10.8.0.251
    *   route 10.8.0.0 255.255.255.0
    *   if client-to-client:
    *     push "route 10.8.0.0 255.255.255.0"
-   *   else if !linear-addr:
+   *   else if topology == net30:
    *     push "route 10.8.0.1"
    *
-   * if tap:
+   * if tap OR (tun AND topology == subnet):
    *   ifconfig 10.8.0.1 255.255.255.0
-   *   ifconfig-pool 10.8.0.2 10.8.0.254 255.255.255.0
+   *   ifconfig-pool-constraint 10.8.0.0 255.255.255.0
+   *   if !nopool: 
+   *     ifconfig-pool 10.8.0.2 10.8.0.254 255.255.255.0
    *   push "route-gateway 10.8.0.1"
    */
 
@@ -152,6 +166,7 @@ helper_client_server (struct options *o)
    * Get tun/tap/null device type
    */
   const int dev = dev_type_enum (o->dev, o->dev_type);
+  const int topology = o->topology;
 
   if (o->server_defined)
     {
@@ -197,16 +212,44 @@ helper_client_server (struct options *o)
 
 	  o->mode = MODE_SERVER;
 	  o->tls_server = true;
-	  o->ifconfig_local = print_in_addr_t (o->server_network + 1, 0, &o->gc);
-	  o->ifconfig_remote_netmask = print_in_addr_t (o->server_network + 2, 0, &o->gc);
-	  o->ifconfig_pool_defined = true;
-	  o->ifconfig_pool_start = o->server_network + 4;
-	  o->ifconfig_pool_end = (o->server_network | ~o->server_netmask) - pool_end_reserve;
-	  helper_add_route (o->server_network, o->server_netmask, o);
-	  if (o->enable_c2c)
-	    push_option (o, print_opt_route (o->server_network, o->server_netmask, &o->gc), M_USAGE);
-	  else if (!o->ifconfig_pool_linear)
-	    push_option (o, print_opt_route (o->server_network + 1, 0, &o->gc), M_USAGE);
+
+	  if (topology == TOP_NET30 || topology == TOP_P2P)
+	    {
+	      o->ifconfig_local = print_in_addr_t (o->server_network + 1, 0, &o->gc);
+	      o->ifconfig_remote_netmask = print_in_addr_t (o->server_network + 2, 0, &o->gc);
+
+	      if (!(o->server_flags & SF_NOPOOL))
+		{
+		  o->ifconfig_pool_defined = true;
+		  o->ifconfig_pool_start = o->server_network + 4;
+		  o->ifconfig_pool_end = (o->server_network | ~o->server_netmask) - pool_end_reserve;
+		}
+
+	      helper_add_route (o->server_network, o->server_netmask, o);
+	      if (o->enable_c2c)
+		push_option (o, print_opt_route (o->server_network, o->server_netmask, &o->gc), M_USAGE);
+	      else if (topology == TOP_NET30)
+		push_option (o, print_opt_route (o->server_network + 1, 0, &o->gc), M_USAGE);
+	    }
+	  else if (topology == TOP_SUBNET)
+	    {
+	      o->ifconfig_local = print_in_addr_t (o->server_network + 1, 0, &o->gc);
+	      o->ifconfig_remote_netmask = print_in_addr_t (o->server_netmask, 0, &o->gc);
+
+	      if (!(o->server_flags & SF_NOPOOL))
+		{
+		  o->ifconfig_pool_defined = true;
+		  o->ifconfig_pool_start = o->server_network + 2;
+		  o->ifconfig_pool_end = (o->server_network | ~o->server_netmask) - 2;
+		  o->ifconfig_pool_netmask = o->server_netmask;
+		}
+
+	      push_option (o, print_opt_route_gateway (o->server_network + 1, &o->gc), M_USAGE);
+	    }
+	  else
+	    ASSERT (0);
+
+	  push_option (o, print_opt_topology (topology, &o->gc), M_USAGE);
 	}
       else if (dev == DEV_TYPE_TAP)
 	{
@@ -218,15 +261,28 @@ helper_client_server (struct options *o)
 	  o->tls_server = true;
 	  o->ifconfig_local = print_in_addr_t (o->server_network + 1, 0, &o->gc);
 	  o->ifconfig_remote_netmask = print_in_addr_t (o->server_netmask, 0, &o->gc);
-	  o->ifconfig_pool_defined = true;
-	  o->ifconfig_pool_start = o->server_network + 2;
-	  o->ifconfig_pool_end = (o->server_network | ~o->server_netmask) - 1;
-	  o->ifconfig_pool_netmask = o->server_netmask;
+
+	  if (!(o->server_flags & SF_NOPOOL))
+	    {
+	      o->ifconfig_pool_defined = true;
+	      o->ifconfig_pool_start = o->server_network + 2;
+	      o->ifconfig_pool_end = (o->server_network | ~o->server_netmask) - 1;
+	      o->ifconfig_pool_netmask = o->server_netmask;
+	    }
+
 	  push_option (o, print_opt_route_gateway (o->server_network + 1, &o->gc), M_USAGE);
 	}
       else
 	{
 	  ASSERT (0);
+	}
+
+      /* set push-ifconfig-constraint directive */
+      if ((dev == DEV_TYPE_TAP || topology == TOP_SUBNET))
+	{
+	  o->push_ifconfig_constraint_defined = true;
+	  o->push_ifconfig_constraint_network = o->server_network;
+	  o->push_ifconfig_constraint_netmask = o->server_netmask;
 	}
 
       if (o->proto == PROTO_TCPv4)

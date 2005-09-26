@@ -92,8 +92,8 @@ TapExtension, *TapExtensionPointer;
 typedef struct _TapPacket
    {
 #   define TAP_PACKET_SIZE(data_size) (sizeof (TapPacket) + (data_size))
-#   define TP_POINT_TO_POINT 0x80000000
-#   define TP_SIZE_MASK      (~TP_POINT_TO_POINT)
+#   define TP_TUN 0x80000000
+#   define TP_SIZE_MASK      (~TP_TUN)
     ULONG m_SizeFlags;
     UCHAR m_Data []; // m_Data must be the last struct member
    }
@@ -107,6 +107,9 @@ typedef struct _TapAdapter
   BOOLEAN m_InterfaceIsRunning;
   NDIS_HANDLE m_MiniportAdapterHandle;
   LONG m_Rx, m_Tx, m_RxErr, m_TxErr;
+#if PACKET_TRUNCATION_CHECK
+  LONG m_RxTrunc, m_TxTrunc;
+#endif
   NDIS_MEDIUM m_Medium;
   ULONG m_Lookahead;
   ULONG m_MTU;
@@ -123,9 +126,10 @@ typedef struct _TapAdapter
   char m_DeviceState;
 
   // Info for point-to-point mode
-  BOOLEAN m_PointToPoint;
+  BOOLEAN m_tun;
   IPADDR m_localIP;
-  IPADDR m_remoteIP;
+  IPADDR m_remoteNetwork;
+  IPADDR m_remoteNetmask;
   ETH_HEADER m_TapToUser;
   ETH_HEADER m_UserToTap;
   MACADDR m_MAC_Broadcast;

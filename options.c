@@ -64,7 +64,7 @@ const char title_string[] =
 #endif
 #endif
 #ifdef USE_LZO
-  " [LZO]"
+  " [LZO" LZO_VERSION_NUM "]"
 #endif
 #if EPOLL
   " [EPOLL]"
@@ -129,6 +129,7 @@ static const char usage_message[] =
   "                  does not begin with \"tun\" or \"tap\".\n"
   "--dev-node node : Explicitly set the device node rather than using\n"
   "                  /dev/net/tun, /dev/tun, /dev/tap, etc.\n"
+  "--topology t    : Set --dev tun topology: 'net30', 'p2p', or 'subnet'.\n"
   "--tun-ipv6      : Build tun link capable of forwarding IPv6 traffic.\n"
   "--ifconfig l rn : TUN: configure device to use IP address l as a local\n"
   "                  endpoint and rn as a remote endpoint.  l & rn should be\n"
@@ -159,7 +160,9 @@ static const char usage_message[] =
   "                  VPN.  Add 'local' flag if both " PACKAGE_NAME " servers are directly\n"
   "                  connected via a common subnet, such as with WiFi.\n"
   "                  Add 'def1' flag to set default route using using 0.0.0.0/1\n"
-  "                  and 128.0.0.0/1 rather than 0.0.0.0/0.\n"
+  "                  and 128.0.0.0/1 rather than 0.0.0.0/0.  Add 'bypass-dhcp'\n"
+  "                  flag to add a direct route to DHCP server, bypassing tunnel.\n"
+  "                  Add 'bypass-dns' flag to similarly bypass tunnel for DNS.\n"
   "--setenv name value : Set a custom environmental variable to pass to script.\n"
   "--shaper n      : Restrict output to peer to n bytes per second.\n"
   "--keepalive n m : Helper option for setting timeouts in server mode.  Send\n"
@@ -496,6 +499,8 @@ static const char usage_message[] =
   "--show-adapters : Show all TAP-Win32 adapters.\n"
   "--show-net      : Show " PACKAGE_NAME "'s view of routing table and net adapter list.\n"
   "--show-valid-subnets : Show valid subnets for --dev tun emulation.\n"
+  "--allow-nonadmin [TAP-adapter] : Allow " PACKAGE_NAME " running without admin privileges\n"
+  "                                 to access TAP adapter.\n"
 #endif
   "\n"
   "Generate a random key (only for non-TLS static key encryption mode):\n"
@@ -526,6 +531,7 @@ init_options (struct options *o)
   CLEAR (*o);
   gc_init (&o->gc);
   o->mode = MODE_POINT_TO_POINT;
+  o->topology = TOP_NET30;
   o->proto = PROTO_UDPv4;
   o->connect_retry_seconds = 5;
   o->local_port = o->remote_port = OPENVPN_PORT;
@@ -793,7 +799,6 @@ show_p2mp_parms (const struct options *o)
   msg (D_SHOW_PARMS, "  ifconfig_pool_netmask = %s", print_in_addr_t (o->ifconfig_pool_netmask, 0, &gc));
   SHOW_STR (ifconfig_pool_persist_filename);
   SHOW_INT (ifconfig_pool_persist_refresh_freq);
-  SHOW_BOOL (ifconfig_pool_linear);
   SHOW_INT (n_bcast_buf);
   SHOW_INT (tcp_queue_limit);
   SHOW_INT (real_hash_size);
@@ -959,6 +964,7 @@ show_settings (const struct options *o)
   SHOW_STR (dev);
   SHOW_STR (dev_type);
   SHOW_STR (dev_node);
+  SHOW_INT (topology);
   SHOW_BOOL (tun_ipv6);
   SHOW_STR (ifconfig_local);
   SHOW_STR (ifconfig_remote_netmask);
@@ -1066,6 +1072,7 @@ show_settings (const struct options *o)
   SHOW_INT (route_delay);
   SHOW_INT (route_delay_window);
   SHOW_BOOL (route_delay_defined);
+  SHOW_BOOL (route_nopull);
   if (o->routes)
     print_route_options (o->routes, D_SHOW_PARMS);
 
@@ -1463,13 +1470,13 @@ options_postprocess (struct options *options, bool first_time)
 	msg (M_USAGE, "--mode server currently only supports --proto udp or --proto tcp-server");
       if (options->proto != PROTO_UDPv4 && (options->cf_max || options->cf_per))
 	msg (M_USAGE, "--connect-freq only works with --mode server --proto udp.  Try --max-clients instead.");
-      if (dev != DEV_TYPE_TAP && options->ifconfig_pool_netmask)
+      if (!(dev == DEV_TYPE_TAP || (dev == DEV_TYPE_TUN && options->topology == TOP_SUBNET)) && options->ifconfig_pool_netmask)
 	msg (M_USAGE, "The third parameter to --ifconfig-pool (netmask) is only valid in --dev tap mode");
 #ifdef ENABLE_OCC
       if (options->explicit_exit_notification)
 	msg (M_USAGE, "--explicit-exit-notify cannot be used with --mode server");
 #endif
-      if (options->routes && options->routes->redirect_default_gateway)
+      if (options->routes && (options->routes->flags & RG_ENABLE))
 	msg (M_USAGE, "--redirect-gateway cannot be used with --mode server (however --push \"redirect-gateway\" is fine)");
       if (options->route_delay_defined)
 	msg (M_USAGE, "--route-delay cannot be used with --mode server");
@@ -1525,8 +1532,6 @@ options_postprocess (struct options *options, bool first_time)
 	msg (M_USAGE, "--username-as-common-name requires --mode server");
       if (options->auth_user_pass_verify_script)
 	msg (M_USAGE, "--auth-user-pass-verify requires --mode server");
-      if (options->ifconfig_pool_linear)
-	msg (M_USAGE, "--ifconfig-pool-linear requires --mode server");
     }
 #endif /* P2MP_SERVER */
 
@@ -1804,6 +1809,7 @@ options_string (const struct options *o,
     {
       tt = init_tun (o->dev,
 		     o->dev_type,
+		     o->topology,
 		     o->ifconfig_local,
 		     o->ifconfig_remote_netmask,
 		     (in_addr_t)0,
@@ -2117,6 +2123,44 @@ foreign_option (struct options *o, char *argv[], int len, struct env_set *es)
     }
 }
 
+/*
+ * parse/print topology coding
+ */
+
+int
+parse_topology (const char *str, const int msglevel)
+{
+  if (streq (str, "net30"))
+    return TOP_NET30;
+  else if (streq (str, "p2p"))
+    return TOP_P2P;
+  else if (streq (str, "subnet"))
+    return TOP_SUBNET;
+  else
+    {
+      msg (msglevel, "--topology must be net30, p2p, or subnet");
+      return TOP_UNDEF;
+    }
+}
+
+const char *
+print_topology (const int topology)
+{
+  switch (topology)
+    {
+    case TOP_UNDEF:
+      return "undef";
+    case TOP_NET30:
+      return "net30";
+    case TOP_P2P:
+      return "p2p";
+    case TOP_SUBNET:
+      return "subnet";
+    default:
+      return "unknown";
+    }
+}
+
 #if P2MP
 
 /*
@@ -2405,6 +2449,13 @@ parse_line (const char *line,
     return ret;
 }
 
+static void
+bypass_doubledash (char **p)
+{
+  if (strlen (*p) >= 3 && !strncmp (*p, "--", 2))
+    *p += 2;
+}
+
 static int
 add_option (struct options *options,
 	    int i,
@@ -2432,6 +2483,7 @@ read_config_file (struct options *options,
   FILE *fp;
   int line_num;
   char line[OPTION_LINE_SIZE];
+  char *p[MAX_PARMS];
 
   ++level;
   if (level <= max_recursive_levels)
@@ -2442,13 +2494,11 @@ read_config_file (struct options *options,
 	  line_num = 0;
 	  while (fgets(line, sizeof (line), fp))
 	    {
-	      char *p[MAX_PARMS];
 	      CLEAR (p);
 	      ++line_num;
 	      if (parse_line (line, p, SIZE (p), file, line_num, msglevel, &options->gc))
 		{
-		  if (strlen (p[0]) >= 3 && !strncmp (p[0], "--", 2))
-		    p[0] += 2;
+		  bypass_doubledash (&p[0]);
 		  add_option (options, 0, p, file, line_num, level, msglevel, permission_mask, option_types_found, es);
 		}
 	    }
@@ -2462,6 +2512,34 @@ read_config_file (struct options *options,
   else
     {
       msg (msglevel, "In %s:%d: Maximum recursive include levels exceeded in include attempt of file %s -- probably you have a configuration file that tries to include itself.", top_file, top_line, file);
+    }
+}
+
+static void
+read_config_string (struct options *options,
+		    const char *config,
+		    const int msglevel,
+		    const unsigned int permission_mask,
+		    unsigned int *option_types_found,
+		    struct env_set *es)
+{
+  const char *file = "[CONFIG-STRING]";
+  char line[OPTION_LINE_SIZE];
+  struct buffer multiline;
+  int line_num = 0;
+
+  buf_set_read (&multiline, (uint8_t*)config, strlen (config));
+
+  while (buf_parse (&multiline, '\n', line, sizeof (line)))
+    {
+      char *p[MAX_PARMS];
+      CLEAR (p);
+      ++line_num;
+      if (parse_line (line, p, SIZE (p), file, line_num, msglevel, &options->gc))
+	{
+	  bypass_doubledash (&p[0]);
+	  add_option (options, 0, p, NULL, line_num, 0, msglevel, permission_mask, option_types_found, es);
+	}
     }
 }
 
@@ -2564,6 +2642,20 @@ options_server_import (struct options *o,
 		    option_types_found,
 		    es);
 }
+
+#ifdef ENABLE_PLUGIN
+
+void options_plugin_import (struct options *options,
+			    const char *config,
+			    const int msglevel,
+			    const unsigned int permission_mask,
+			    unsigned int *option_types_found,
+			    struct env_set *es)
+{
+  read_config_string (options, config, msglevel, permission_mask, option_types_found, es);
+}
+
+#endif
 
 #if P2MP
 
@@ -2682,10 +2774,12 @@ add_option (struct options *options,
 
       read_config_file (options, p[1], level, file, line, msglevel, permission_mask, option_types_found, es);
     }
-  else if (streq (p[0], "echo"))
+  else if (streq (p[0], "echo") || streq (p[0], "parameter"))
     {
       struct buffer string = alloc_buf_gc (OPTION_PARM_SIZE, &gc);
       int j;
+      const bool pull_mode = BOOL_CAST (permission_mask & OPT_P_PULL_MODE);
+
       VERIFY_PERMISSION (OPT_P_ECHO);
 
       for (j = 1; j < MAX_PARMS; ++j)
@@ -2697,10 +2791,12 @@ add_option (struct options *options,
 	    buf_printf (&string, " ");
 	  buf_printf (&string, "%s", p[j]);
 	}
-      msg (M_INFO, "ECHO:%s", BSTR (&string));
+      msg (M_INFO, "%s:%s",
+	   pull_mode ? "ECHO-PULL" : "ECHO",
+	   BSTR (&string));
 #ifdef ENABLE_MANAGEMENT
       if (management)
-	management_echo (management, BSTR (&string));
+	management_echo (management, BSTR (&string), pull_mode);
 #endif
     }
 #ifdef ENABLE_MANAGEMENT
@@ -2754,7 +2850,7 @@ add_option (struct options *options,
   else if (streq (p[0], "plugin") && p[1])
     {
       ++i;
-      VERIFY_PERMISSION (OPT_P_SCRIPT);
+      VERIFY_PERMISSION (OPT_P_PLUGIN);
       if (p[2])
 	++i;
       if (!no_more_than_n_args (msglevel, p, 3, NM_QUOTE_HINT))
@@ -2801,6 +2897,12 @@ add_option (struct options *options,
       ++i;
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->dev_node = p[1];
+    }
+  else if (streq (p[0], "topology") && p[1])
+    {
+      ++i;
+      VERIFY_PERMISSION (OPT_P_UP);
+      options->topology = parse_topology (p[1], msglevel);
     }
   else if (streq (p[0], "tun-ipv6"))
     {
@@ -3502,12 +3604,12 @@ add_option (struct options *options,
   else if (streq (p[0], "route-gateway") && p[1])
     {
       ++i;
-      VERIFY_PERMISSION (OPT_P_ROUTE);
+      VERIFY_PERMISSION (OPT_P_ROUTE_EXTRAS);
       options->route_default_gateway = p[1];      
     }
   else if (streq (p[0], "route-delay"))
     {
-      VERIFY_PERMISSION (OPT_P_ROUTE);
+      VERIFY_PERMISSION (OPT_P_ROUTE_EXTRAS);
       options->route_delay_defined = true;
       if (p[1])
 	{
@@ -3537,6 +3639,11 @@ add_option (struct options *options,
       VERIFY_PERMISSION (OPT_P_SCRIPT);
       options->route_noexec = true;
     }
+  else if (streq (p[0], "route-nopull"))
+    {
+      VERIFY_PERMISSION (OPT_P_GENERAL);
+      options->route_nopull = true;
+    }
   else if (streq (p[0], "redirect-gateway"))
     {
       int j;
@@ -3546,16 +3653,20 @@ add_option (struct options *options,
 	{
 	  ++i;
 	  if (streq (p[j], "local"))
-	    options->routes->redirect_local = true;
+	    options->routes->flags |= RG_LOCAL;
 	  else if (streq (p[j], "def1"))
-	    options->routes->redirect_def1 = true;
+	    options->routes->flags |= RG_DEF1;
+	  else if (streq (p[j], "bypass-dhcp"))
+	    options->routes->flags |= RG_BYPASS_DHCP;
+	  else if (streq (p[j], "bypass-dns"))
+	    options->routes->flags |= RG_BYPASS_DNS;
 	  else
 	    {
 	      msg (msglevel, "unknown --redirect-gateway flag: %s", p[j]);
 	      goto err;
 	    }
 	}
-      options->routes->redirect_default_gateway = true;
+      options->routes->flags |= RG_ENABLE;
     }
   else if (streq (p[0], "setenv") && p[1] && p[2])
     {
@@ -3602,6 +3713,18 @@ add_option (struct options *options,
       options->server_defined = true;
       options->server_network = network;
       options->server_netmask = netmask;
+
+      if (p[3])
+	{
+	  ++i;
+	  if (streq (p[3], "nopool"))
+	    options->server_flags |= SF_NOPOOL;
+	  else
+	    {
+	      msg (msglevel, "error parsing --server: %s is not a recognized flag", p[3]);
+	      goto err;
+	    }
+	}
     }
   else if (streq (p[0], "server-bridge") && p[1] && p[2] && p[3] && p[4])
     {
@@ -3690,7 +3813,7 @@ add_option (struct options *options,
   else if (streq (p[0], "ifconfig-pool-linear"))
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
-      options->ifconfig_pool_linear = true;
+      options->topology = TOP_P2P;
     }
   else if (streq (p[0], "hash-size") && p[1] && p[2])
     {
@@ -3886,6 +4009,26 @@ add_option (struct options *options,
 	  goto err;
 	}
     }
+  else if (streq (p[0], "ifconfig-push-constraint") && p[1] && p[2])
+    {
+      in_addr_t network, netmask;
+
+      i += 2;
+      VERIFY_PERMISSION (OPT_P_GENERAL);
+      network = getaddr (GETADDR_HOST_ORDER|GETADDR_RESOLVE, p[1], 0, NULL, NULL);
+      netmask = getaddr (GETADDR_HOST_ORDER, p[2], 0, NULL, NULL);
+      if (network && netmask)
+	{
+	  options->push_ifconfig_constraint_defined = true;
+	  options->push_ifconfig_constraint_network = network;
+	  options->push_ifconfig_constraint_netmask = netmask;
+	}
+      else
+	{
+	  msg (msglevel, "cannot parse --ifconfig-push-constraint addresses");
+	  goto err;
+	}
+    }
   else if (streq (p[0], "disable"))
     {
       VERIFY_PERMISSION (OPT_P_INSTANCE);
@@ -3925,7 +4068,7 @@ add_option (struct options *options,
   else if (streq (p[0], "route-method") && p[1])
     {
       ++i;
-      VERIFY_PERMISSION (OPT_P_ROUTE);
+      VERIFY_PERMISSION (OPT_P_ROUTE_EXTRAS);
       if (streq (p[1], "ipapi"))
 	options->route_method = ROUTE_METHOD_IPAPI;
       else if (streq (p[1], "exe"))
@@ -4117,6 +4260,14 @@ add_option (struct options *options,
 	  options->exit_event_initial_state = (atoi(p[2]) != 0);
 	}
     }
+  else if (streq (p[0], "allow-nonadmin"))
+    {
+      VERIFY_PERMISSION (OPT_P_GENERAL);
+      if (p[1])
+	++i;
+      tap_allow_nonadmin_access (p[1]);
+      openvpn_exit (OPENVPN_EXIT_STATUS_GOOD); /* exit point */
+    }
   else if (streq (p[0], "user") && p[1])
     {
       ++i;
@@ -4153,7 +4304,7 @@ add_option (struct options *options,
   else if (streq (p[0], "route-method") && p[1]) /* ignore when pushed to non-Windows OS */
     {
       ++i;
-      VERIFY_PERMISSION (OPT_P_ROUTE);
+      VERIFY_PERMISSION (OPT_P_ROUTE_EXTRAS);
     }
 #endif
 #if PASSTOS_CAPABILITY

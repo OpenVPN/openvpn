@@ -35,7 +35,7 @@
 
 #include "misc.h"
 
-#define MAX_PLUGINS 32
+#define MAX_PLUGINS 16
 
 struct plugin_option {
   const char *so_pathname;
@@ -50,22 +50,49 @@ struct plugin_option_list {
 struct plugin {
   const char *so_pathname;
   unsigned int plugin_type_mask;
+
 #if defined(USE_LIBDL)
   void *handle;
 #elif defined(USE_LOAD_LIBRARY)
   HMODULE module;
 #endif
-  openvpn_plugin_open_v1 open;
-  openvpn_plugin_func_v1 func;
+
+  openvpn_plugin_open_v1 open1;
+  openvpn_plugin_open_v2 open2;
+  openvpn_plugin_func_v1 func1;
+  openvpn_plugin_func_v2 func2;
   openvpn_plugin_close_v1 close;
   openvpn_plugin_abort_v1 abort;
+  openvpn_plugin_min_version_required_v1 min_version_required;
+  openvpn_plugin_client_constructor_v1 client_constructor;
+  openvpn_plugin_client_destructor_v1 client_destructor;
 
   openvpn_plugin_handle_t plugin_handle;
 };
 
-struct plugin_list {
+struct plugin_per_client
+{
+  bool initialized;
+  void *per_client_context[MAX_PLUGINS];
+};
+
+struct plugin_common
+{
   int n;
   struct plugin plugins[MAX_PLUGINS];
+};
+
+struct plugin_list
+{
+  struct plugin_per_client per_client;
+  struct plugin_common *common;
+  bool common_owned;
+};
+
+struct plugin_return
+{
+  int n;
+  struct openvpn_plugin_string_list *list[MAX_PLUGINS];
 };
 
 struct plugin_option_list *plugin_option_list_new (struct gc_arena *gc);
@@ -75,14 +102,56 @@ bool plugin_option_list_add (struct plugin_option_list *list, const char *so_pat
 void plugin_option_list_print (const struct plugin_option_list *list, int msglevel);
 #endif
 
-struct plugin_list *plugin_list_open (const struct plugin_option_list *list, const struct env_set *es);
-int plugin_call (const struct plugin_list *pl, const int type, const char *args, struct env_set *es);
+struct plugin_list *plugin_list_open (const struct plugin_option_list *list,
+				      struct plugin_return *pr,
+				      const struct env_set *es);
+
+struct plugin_list *plugin_list_inherit (const struct plugin_list *src);
+
+int plugin_call (const struct plugin_list *pl,
+		 const int type,
+		 const char *args,
+		 struct plugin_return *pr,
+		 struct env_set *es);
+
 void plugin_list_close (struct plugin_list *pl);
 bool plugin_defined (const struct plugin_list *pl, const int type);
+
+void plugin_return_get_column (const struct plugin_return *src,
+			       struct plugin_return *dest,
+			       const char *colname);
+
+void plugin_return_free (struct plugin_return *pr);
+
+#ifdef ENABLE_DEBUG
+void plugin_return_print (const int msglevel, const char *prefix, const struct plugin_return *pr);
+#endif
+
+static inline int
+plugin_n (const struct plugin_list *pl)
+{
+  if (pl && pl->common)
+    return pl->common->n;
+  else
+    return 0;
+}
+
+static inline bool
+plugin_return_defined (const struct plugin_return *pr)
+{
+  return pr->n >= 0;
+}
+
+static inline void
+plugin_return_init (struct plugin_return *pr)
+{
+  pr->n = 0;
+}
 
 #else
 
 struct plugin_list { int dummy; };
+struct plugin_return { int dummy; };
 
 static inline bool
 plugin_defined (const struct plugin_list *pl, const int type)
@@ -91,7 +160,11 @@ plugin_defined (const struct plugin_list *pl, const int type)
 }
 
 static inline int
-plugin_call (const struct plugin_list *pl, const int type, const char *args, struct env_set *es)
+plugin_call (const struct plugin_list *pl,
+	     const int type,
+	     const char *args,
+	     struct plugin_return *pr,
+	     struct env_set *es)
 {
   return 0;
 }

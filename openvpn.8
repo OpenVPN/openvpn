@@ -94,6 +94,7 @@ openvpn \- secure IP tunnel daemon.
 .in +4
 .ti -4
 .B openvpn
+[\ \fB\-\-allow\-nonadmin\fR\ \fI[TAP\-adapter]\fR\ ]
 [\ \fB\-\-askpass\fR\ \fI[file]\fR\ ]
 [\ \fB\-\-auth\-nocache\fR\ ]
 [\ \fB\-\-auth\-retry\fR\ \fItype\fR\ ]
@@ -209,7 +210,7 @@ openvpn \- secure IP tunnel daemon.
 [\ \fB\-\-push\-reset\fR\ ]
 [\ \fB\-\-push\fR\ \fI"option"\fR\ ]
 [\ \fB\-\-rcvbuf\fR\ \fIsize\fR\ ]
-[\ \fB\-\-redirect\-gateway\fR\ \fI["local"]\ ["def1"]\fR\ ]
+[\ \fB\-\-redirect\-gateway\fR\ \fIflags...\fR\ ]
 [\ \fB\-\-remap\-usr1\fR\ \fIsignal\fR\ ]
 [\ \fB\-\-remote\-random\fR\ ]
 [\ \fB\-\-remote\fR\ \fIhost\ [port]\fR\ ]
@@ -261,6 +262,7 @@ openvpn \- secure IP tunnel daemon.
 [\ \fB\-\-tls\-timeout\fR\ \fIn\fR\ ]
 [\ \fB\-\-tls\-verify\fR\ \fIcmd\fR\ ]
 [\ \fB\-\-tmp\-dir\fR\ \fIdir\fR\ ]
+[\ \fB\-\-topology\fR\ \fImode\fR\ ]
 [\ \fB\-\-tran\-window\fR\ \fIn\fR\ ]
 [\ \fB\-\-tun\-ipv6\fR\ ]
 [\ \fB\-\-tun\-mtu\-extra\fR\ \fIn\fR\ ]
@@ -732,9 +734,9 @@ or tap devices on both ends.  You cannot mix them, as they
 represent different underlying protocols.
 
 .B tun
-devices encapsulate IPv4 while
+devices encapsulate IPv4 or IPv6 while
 .B tap
-devices encapsulate ethernet 802.3.
+devices encapsulate Ethernet 802.3.
 .\"*********************************************************
 .TP
 .B --dev-type device-type
@@ -750,6 +752,60 @@ does not begin with
 .B tun
 or
 .B tap.
+.\"*********************************************************
+.TP
+.B --topology mode
+Configure virtual addressing topology when running in
+.B --dev tun
+mode.  This directive has no meaning in
+.B --dev tap
+mode, which always uses a
+.B subnet
+topology.
+
+If you set this directive on the server, the
+.B --server
+and
+.B --server-bridge
+directives will automatically push your chosen topology setting to clients
+as well.  This directive can also be manually pushed to clients.  Like the
+.B --dev
+directive, this directive must always be compatible between client and server.
+
+.B mode
+can be one of:
+
+.B net30 --
+Use a point-to-point topology, by allocating one /30 subnet per client.
+This is designed to allow point-to-point semantics when some
+or all of the connecting clients might be Windows systems.  This is the
+default on OpenVPN 2.0.
+
+.B p2p --
+Use a point-to-point topology where the remote endpoint of the client's
+tun interface always points to the local endpoint of the server's tun interface.
+This mode allocates a single IP address per connecting client.
+Only use
+when none of the connecting clients are Windows systems.  This mode
+is functionally equivalent to the
+.B --ifconfig-pool-linear
+directive which is available in OpenVPN 2.0 and is now deprecated.
+
+.B subnet --
+Use a subnet rather than a point-to-point topology by
+configuring the tun interface with a local IP address and subnet mask,
+similar to the topology used in
+.B --dev tap
+and ethernet bridging mode.
+This mode allocates a single IP address per connecting client and works on
+Windows as well.  Only available when server and clients are OpenVPN 2.1 or
+higher, or OpenVPN 2.0.x which has been manually patched with the
+.B --topology
+directive code.  When used on Windows, requires version 8.2 or higher
+of the TAP-Win32 driver.  When used on *nix, requires that the tun
+driver supports an
+.BR ifconfig (8)
+command which sets a subnet instead of a remote endpoint IP address.
 .\"*********************************************************
 .TP
 .B --tun-ipv6
@@ -996,7 +1052,7 @@ Don't add or remove routes automatically.  Instead pass routes to
 script using environmental variables.
 .\"*********************************************************
 .TP
-.B --redirect-gateway ["local"] ["def1"]
+.B --redirect-gateway flags...
 (Experimental) Automatically execute routing commands to cause all outgoing IP traffic
 to be redirected over the VPN.
 
@@ -1025,6 +1081,9 @@ is specified).
 When the tunnel is torn down, all of the above steps are reversed so
 that the original default route is restored.
 
+Option flags:
+
+.B local --
 Add the
 .B local
 flag if both OpenVPN servers are directly connected via a common subnet,
@@ -1034,12 +1093,23 @@ flag will cause step
 .B 1
 above to be omitted.
 
-Add the
-.B def1
-flag to override
+.B def1 --
+Use this flag to override
 the default gateway by using 0.0.0.0/1 and 128.0.0.0/1
 rather than 0.0.0.0/0.  This has the benefit of overriding
 but not wiping out the original default gateway. 
+
+.B bypass-dhcp --
+Add a direct route to the DHCP server (if it is non-local) which
+bypasses the tunnel
+(Available on Windows clients, may not be available
+on non-Windows clients).
+
+.B bypass-dns --
+Add a direct route to the DNS server(s) (if they are non-local) which
+bypasses the tunnel
+(Available on Windows clients, may not be available
+on non-Windows clients).
 
 Using the def1 flag is highly recommended, and is currently
 planned to become the default by OpenVPN 2.1.
@@ -2153,17 +2223,18 @@ expands as follows:
 .sp
  mode server
  tls-server
+ push "topology [topology]"
 
- if dev tun:
+ if dev tun AND (topology == net30 OR topology == p2p):
    ifconfig 10.8.0.1 10.8.0.2 
    ifconfig-pool 10.8.0.4 10.8.0.251
    route 10.8.0.0 255.255.255.0
    if client-to-client:
      push "route 10.8.0.0 255.255.255.0"
-   else
+   else if topology == net30:
      push "route 10.8.0.1"
 
- if dev tap:
+ if dev tap OR (dev tun AND topology == subnet):
    ifconfig 10.8.0.1 255.255.255.0
    ifconfig-pool 10.8.0.2 10.8.0.254 255.255.255.0
    push "route-gateway 10.8.0.1"
@@ -2346,6 +2417,10 @@ directive to
 allocate individual TUN interface addresses for
 clients rather than /30 subnets.  NOTE:  This option
 is incompatible with Windows clients.
+
+This option is deprecated, and should be replaced with
+.B --topology p2p
+which is functionally equivalent.
 .\"*********************************************************
 .TP
 .B --ifconfig-push local remote-netmask
@@ -4134,6 +4209,21 @@ Show available TAP-Win32 adapters which can be selected using the
 option.  On non-Windows systems, the
 .BR ifconfig (8)
 command provides similar functionality.
+.\"*********************************************************
+.TP
+.B --allow-nonadmin [TAP-adapter]
+(Standalone)
+Set
+.B TAP-adapter
+to allow access from non-administrative accounts.  If
+.B TAP-adapter
+is omitted, all TAP adapters on the system will be configured to allow
+non-admin access.
+The non-admin access setting will only persist for the length of time that
+the TAP-Win32 device object and driver remain loaded, and will need
+to be re-enabled after a reboot, or if the driver is unloaded
+and reloaded.
+This directive can only be used by an administrator.
 .\"*********************************************************
 .TP
 .B --show-valid-subnets

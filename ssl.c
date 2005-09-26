@@ -533,7 +533,7 @@ verify_callback (int preverify_ok, X509_STORE_CTX * ctx)
 		  ctx->error_depth,
 		  subject);
 
-      ret = plugin_call (opt->plugins, OPENVPN_PLUGIN_TLS_VERIFY, command, opt->es);
+      ret = plugin_call (opt->plugins, OPENVPN_PLUGIN_TLS_VERIFY, command, NULL, opt->es);
 
       if (!ret)
 	{
@@ -2384,7 +2384,7 @@ verify_user_pass_plugin (struct tls_session *session, const struct user_pass *up
       setenv_untrusted (session);
 
       /* call command */
-      retval = plugin_call (session->opt->plugins, OPENVPN_PLUGIN_AUTH_USER_PASS_VERIFY, NULL, session->opt->es);
+      retval = plugin_call (session->opt->plugins, OPENVPN_PLUGIN_AUTH_USER_PASS_VERIFY, NULL, NULL, session->opt->es);
 
       if (!retval)
 	ret = true;

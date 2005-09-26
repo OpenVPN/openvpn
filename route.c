@@ -46,6 +46,45 @@
 static void add_route (struct route *r, const struct tuntap *tt, unsigned int flags, const struct env_set *es);
 static void delete_route (const struct route *r, const struct tuntap *tt, unsigned int flags, const struct env_set *es);
 static bool get_default_gateway (in_addr_t *ret);
+static void get_bypass_addresses (struct route_bypass *rb, const unsigned int flags);
+
+#ifdef ENABLE_DEBUG
+
+static void
+print_bypass_addresses (const struct route_bypass *rb)
+{
+  struct gc_arena gc = gc_new ();
+  int i;
+  for (i = 0; i < rb->n_bypass; ++i)
+    {
+      msg (D_ROUTE_DEBUG, "ROUTE DEBUG: bypass_host_route[%d]=%s",
+	   i,
+	   print_in_addr_t (rb->bypass[i], 0, &gc));
+    }
+  gc_free (&gc);
+}
+
+#endif
+
+static bool
+add_bypass_address (struct route_bypass *rb, const in_addr_t a)
+{
+  int i;
+  for (i = 0; i < rb->n_bypass; ++i)
+    {
+      if (a == rb->bypass[i]) /* avoid duplicates */
+	return true;
+    }
+  if (rb->n_bypass < N_ROUTE_BYPASS)
+    {
+      rb->bypass[rb->n_bypass++] = a;
+      return true;
+    }
+  else
+    {
+      return false;
+    }
+}
 
 struct route_option_list *
 new_route_option_list (struct gc_arena *a)
@@ -287,9 +326,12 @@ init_route_list (struct route_list *rl,
 		 in_addr_t remote_host,
 		 struct env_set *es)
 {
+  struct gc_arena gc = gc_new ();
   bool ret = true;
 
   clear_route_list (rl);
+
+  rl->flags = opt->flags;
 
   if (remote_host)
     {
@@ -301,10 +343,16 @@ init_route_list (struct route_list *rl,
   if (rl->spec.net_gateway_defined)
     {
       setenv_route_addr (es, "net_gateway", rl->spec.net_gateway, -1);
+      dmsg (D_ROUTE_DEBUG, "ROUTE DEBUG: default_gateway=%s", print_in_addr_t (rl->spec.net_gateway, 0, &gc));
     }
-  rl->redirect_default_gateway = opt->redirect_default_gateway;
-  rl->redirect_local = opt->redirect_local;
-  rl->redirect_def1 = opt->redirect_def1;
+
+  if (rl->flags & RG_ENABLE)
+    {
+      get_bypass_addresses (&rl->spec.bypass, rl->flags);
+#ifdef ENABLE_DEBUG
+      print_bypass_addresses (&rl->spec.bypass);
+#endif
+    }
 
   if (is_route_parm_defined (remote_endpoint))
     {
@@ -348,6 +396,7 @@ init_route_list (struct route_list *rl,
     rl->n = j;
   }
 
+  gc_free (&gc);
   return ret;
 }
 
@@ -386,11 +435,51 @@ del_route3 (in_addr_t network,
 }
 
 static void
+add_bypass_routes (struct route_bypass *rb,
+		   in_addr_t gateway,
+		   const struct tuntap *tt,
+		   unsigned int flags,
+		   const struct env_set *es)
+{
+  int i;
+  for (i = 0; i < rb->n_bypass; ++i)
+    {
+      if (rb->bypass[i] != gateway)
+	add_route3 (rb->bypass[i],
+		    ~0,
+		    gateway,
+		    tt,
+		    flags,
+		    es);
+    }
+}
+
+static void
+del_bypass_routes (struct route_bypass *rb,
+		   in_addr_t gateway,
+		   const struct tuntap *tt,
+		   unsigned int flags,
+		   const struct env_set *es)
+{
+  int i;
+  for (i = 0; i < rb->n_bypass; ++i)
+    {
+      if (rb->bypass[i] != gateway)
+	del_route3 (rb->bypass[i],
+		    ~0,
+		    gateway,
+		    tt,
+		    flags,
+		    es);
+    }
+}
+
+static void
 redirect_default_route_to_vpn (struct route_list *rl, const struct tuntap *tt, unsigned int flags, const struct env_set *es)
 {
   const char err[] = "NOTE: unable to redirect default gateway --";
 
-  if (rl->redirect_default_gateway)
+  if (rl->flags & RG_ENABLE)
     {
       if (!rl->spec.remote_endpoint_defined)
 	{
@@ -407,7 +496,7 @@ redirect_default_route_to_vpn (struct route_list *rl, const struct tuntap *tt, u
       else
 	{
 	  /* route remote host to original default gateway */
-	  if (!rl->redirect_local)
+	  if (!(rl->flags & RG_LOCAL))
 	    add_route3 (rl->spec.remote_host,
 			~0,
 			rl->spec.net_gateway,
@@ -415,7 +504,10 @@ redirect_default_route_to_vpn (struct route_list *rl, const struct tuntap *tt, u
 			flags,
 			es);
 
-	  if (rl->redirect_def1)
+	  /* route DHCP/DNS server traffic through original default gateway */
+	  add_bypass_routes (&rl->spec.bypass, rl->spec.net_gateway, tt, flags, es);
+
+	  if (rl->flags & RG_DEF1)
 	    {
 	      /* add new default route (1st component) */
 	      add_route3 (0x00000000,
@@ -464,7 +556,7 @@ undo_redirect_default_route_to_vpn (struct route_list *rl, const struct tuntap *
   if (rl->did_redirect_default_gateway)
     {
       /* delete remote host route */
-      if (!rl->redirect_local)
+      if (!(rl->flags & RG_LOCAL))
 	del_route3 (rl->spec.remote_host,
 		    ~0,
 		    rl->spec.net_gateway,
@@ -472,7 +564,10 @@ undo_redirect_default_route_to_vpn (struct route_list *rl, const struct tuntap *
 		    flags,
 		    es);
 
-      if (rl->redirect_def1)
+      /* delete special DHCP/DNS bypass route */
+      del_bypass_routes (&rl->spec.bypass, rl->spec.net_gateway, tt, flags, es);
+
+      if (rl->flags & RG_DEF1)
 	{
 	  /* delete default route (1st component) */
 	  del_route3 (0x00000000,
@@ -585,9 +680,9 @@ print_route_options (const struct route_option_list *rol,
 		     int level)
 {
   int i;
-  if (rol->redirect_default_gateway)
+  if (rol->flags & RG_ENABLE)
     msg (level, "  [redirect_default_gateway local=%d]",
-	 rol->redirect_local);
+	 (rol->flags & RG_LOCAL) != 0);
   for (i = 0; i < rol->n; ++i)
     print_route_option (&rol->routes[i], level);
 }
@@ -987,7 +1082,7 @@ test_routes (const struct route_list *rl, const struct tuntap *tt)
 	  for (i = 0; i < rl->n; ++i)
 	    test_route_helper (&ret, &count, &good, &ambig, adapters, rl->routes[i].gateway);
 
-	  if (rl->redirect_default_gateway && rl->spec.remote_endpoint_defined)
+	  if ((rl->flags & RG_ENABLE) && rl->spec.remote_endpoint_defined)
 	    test_route_helper (&ret, &count, &good, &ambig, adapters, rl->spec.remote_endpoint);
 	}
     }
@@ -1004,40 +1099,55 @@ test_routes (const struct route_list *rl, const struct tuntap *tt)
   return ret;
 }
 
+static const MIB_IPFORWARDROW *
+get_default_gateway_row (const MIB_IPFORWARDTABLE *routes)
+{
+  DWORD lowest_index = ~0;
+  const MIB_IPFORWARDROW *ret = NULL;
+  int i;
+
+  if (routes)
+    {
+      for (i = 0; i < routes->dwNumEntries; ++i)
+	{
+	  const MIB_IPFORWARDROW *row = &routes->table[i];
+	  const in_addr_t net = ntohl (row->dwForwardDest);
+	  const in_addr_t mask = ntohl (row->dwForwardMask);
+	  const DWORD index = row->dwForwardIfIndex;
+
+#if 0
+	  msg (M_INFO, "route[%d] %s %s %s",
+	       i,
+	       print_in_addr_t ((in_addr_t) net, 0, &gc),
+	       print_in_addr_t ((in_addr_t) mask, 0, &gc),
+	       print_in_addr_t ((in_addr_t) gw, 0, &gc));
+#endif
+
+	  if (!net && !mask && index < lowest_index)
+	    {
+	      ret = row;
+	      lowest_index = index;
+	    }
+	}
+    }
+  return ret;
+}
+
 static bool
 get_default_gateway (in_addr_t *ret)
 {
   struct gc_arena gc = gc_new ();
   bool ret_bool = false;
-  int i;
+
   const MIB_IPFORWARDTABLE *routes = get_windows_routing_table (&gc);
+  const MIB_IPFORWARDROW *row = get_default_gateway_row (routes);
 
-  if (!routes)
-    goto done;
-
-  for (i = 0; i < routes->dwNumEntries; ++i)
+  if (row)
     {
-      const MIB_IPFORWARDROW *row = &routes->table[i];
-      const in_addr_t net = ntohl (row->dwForwardDest);
-      const in_addr_t mask = ntohl (row->dwForwardMask);
-      const in_addr_t gw = ntohl (row->dwForwardNextHop);
-
-#if 0
-      msg (M_INFO, "route[%d] %s %s %s",
-	   i,
-	   print_in_addr_t ((in_addr_t) net, 0, &gc),
-	   print_in_addr_t ((in_addr_t) mask, 0, &gc),
-	   print_in_addr_t ((in_addr_t) gw, 0, &gc));
-#endif
-      if (!net && !mask)
-	{
-	  *ret = gw;
-	  ret_bool = true;
-	  break;
-	}
+      *ret = ntohl (row->dwForwardNextHop);
+      ret_bool = true;
     }
-  
- done:
+
   gc_free (&gc);
   return ret_bool;
 }
@@ -1774,3 +1884,74 @@ netmask_to_netbits (const in_addr_t network, const in_addr_t netmask, int *netbi
     }
   return false;
 }
+
+/*
+ * get_bypass_addresses() is used by the redirect-gateway bypass-x
+ * functions to build a route bypass to selected DHCP/DNS servers,
+ * so that outgoing packets to these servers don't end up in the tunnel.
+ */
+
+#if defined(WIN32)
+
+static void
+add_host_route_if_nonlocal (struct route_bypass *rb, const in_addr_t addr, const IP_ADAPTER_INFO *dgi)
+{
+  if (!is_ip_in_adapter_subnet (dgi, addr, NULL))
+    add_bypass_address (rb, addr);
+}
+
+static void
+add_host_route_array (struct route_bypass *rb, const IP_ADAPTER_INFO *dgi, const IP_ADDR_STRING *iplist)
+{
+  while (iplist)
+    {
+      bool succeed = false;
+      const in_addr_t ip = getaddr (GETADDR_HOST_ORDER, iplist->IpAddress.String, 0, &succeed, NULL);
+      if (succeed)
+	{
+	  add_host_route_if_nonlocal (rb, ip, dgi);
+	}
+      iplist = iplist->Next;
+    }
+}
+
+static void
+get_bypass_addresses (struct route_bypass *rb, const unsigned int flags)
+{
+  struct gc_arena gc = gc_new ();
+  bool ret_bool = false;
+
+  /* get full routing table */
+  const MIB_IPFORWARDTABLE *routes = get_windows_routing_table (&gc);
+
+  /* get the route which represents the default gateway */
+  const MIB_IPFORWARDROW *row = get_default_gateway_row (routes);
+
+  if (row)
+    {
+      /* get the adapter which the default gateway is associated with */
+      const IP_ADAPTER_INFO *dgi = get_adapter_info (row->dwForwardIfIndex, &gc);
+
+      /* get extra adapter info, such as DNS addresses */
+      const IP_PER_ADAPTER_INFO *pai = get_per_adapter_info (row->dwForwardIfIndex, &gc);
+
+      /* Bypass DHCP server address */
+      if ((flags & RG_BYPASS_DHCP) && dgi && dgi->DhcpEnabled)
+	add_host_route_array (rb, dgi, &dgi->DhcpServer);
+
+      /* Bypass DNS server addresses */
+      if ((flags & RG_BYPASS_DNS) && pai)
+	add_host_route_array (rb, dgi, &pai->DnsServerList);
+    }
+
+  gc_free (&gc);
+}
+
+#else
+
+static void
+get_bypass_addresses (struct route_bypass *rb, const unsigned int flags)
+{
+}
+
+#endif

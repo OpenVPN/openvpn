@@ -146,6 +146,12 @@ main (int argc, char *argv[])
 	  /* parse command line options, and read configuration file */
 	  parse_argv (&c.options, argc, argv, M_USAGE, OPT_P_DEFAULT, NULL, c.es);
 
+#ifdef ENABLE_PLUGIN
+	  /* plugins may contribute options configuration */
+	  init_verb_mute (&c, IVM_LEVEL_1);
+	  open_plugins (&c, true);
+#endif
+
 	  /* init verbosity and mute levels */
 	  init_verb_mute (&c, IVM_LEVEL_1);
 

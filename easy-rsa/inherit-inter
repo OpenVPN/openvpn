@@ -1,0 +1,39 @@
+#!/bin/bash
+
+# Build a new PKI which is rooted on an intermediate certificate generated
+# by ./build-inter or ./pkitool --inter from a parent PKI.  The new PKI should
+# have independent vars settings, and must use a different KEY_DIR directory
+# from the parent.  This tool can be used to generate arbitrary depth
+# certificate chains.
+#
+# To build an intermediate CA, follow the same steps for a regular PKI but
+# replace ./build-key or ./pkitool --initca with this script.
+
+# The EXPORT_CA file will contain the CA certificate chain and should be
+# referenced by the OpenVPN "ca" directive in config files.  The ca.crt file
+# will only contain the local intermediate CA -- it's needed by the easy-rsa
+# scripts but not by OpenVPN directly.
+EXPORT_CA="export-ca.crt"
+
+if [ $# -ne 2 ]; then
+    echo "usage: $0 <parent-key-dir> <common-name>"
+    echo "parent-key-dir: the KEY_DIR directory of the parent PKI"
+    echo "common-name: the common name of the intermediate certificate in the parent PKI"
+    exit 1;
+fi
+
+if [ "$KEY_DIR" ]; then
+    cp "$1/$2.crt" "$KEY_DIR/ca.crt"
+    cp "$1/$2.key" "$KEY_DIR/ca.key"
+
+    if [ -e "$1/$EXPORT_CA" ]; then
+	PARENT_CA="$1/$EXPORT_CA"
+    else
+	PARENT_CA="$1/ca.crt"
+    fi
+    cp "$PARENT_CA" "$KEY_DIR/$EXPORT_CA"
+    cat "$KEY_DIR/ca.crt" >> "$KEY_DIR/$EXPORT_CA"
+else
+    echo 'Please source the vars script first (i.e. "source ./vars")'
+    echo 'Make sure you have edited it to reflect your configuration.'
+fi

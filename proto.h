@@ -25,6 +25,7 @@
 #ifndef PROTO_H
 #define PROTO_H
 
+#include "common.h"
 #include "buffer.h"
 
 /*
@@ -34,6 +35,13 @@
 #define DEV_TYPE_NULL  1
 #define DEV_TYPE_TUN   2    /* point-to-point IP tunnel */
 #define DEV_TYPE_TAP   3    /* ethernet (802.3) tunnel */
+
+/* TUN topologies */
+
+#define TOP_UNDEF   0
+#define TOP_NET30   1
+#define TOP_P2P     2
+#define TOP_SUBNET  3
 
 /*
  * IP and Ethernet protocol structs.  For portability,
@@ -159,5 +167,14 @@ struct openvpn_tcphdr {
  * buffer offset to start of IP header.
  */
 bool is_ipv4 (int tunnel_type, struct buffer *buf);
+
+#ifdef PACKET_TRUNCATION_CHECK
+void ipv4_packet_size_verify (const uint8_t *data,
+			      const int size,
+			      const int tunnel_type,
+			      const char
+			      *prefix,
+			      counter_type *errors);
+#endif
 
 #endif

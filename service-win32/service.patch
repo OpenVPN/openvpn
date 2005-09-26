@@ -1,5 +1,5 @@
---- service.c.orig	Sat Jan 15 17:39:20 2005
-+++ service.c	Sun Feb 20 11:28:30 2005
+--- service.c.orig	Mon Sep  5 14:38:41 2005
++++ service.c	Tue Sep  6 13:58:52 2005
 @@ -16,6 +16,7 @@
    service_main(DWORD dwArgc, LPTSTR *lpszArgv);
    CmdInstallService();
@@ -29,7 +29,7 @@
  {
     SERVICE_TABLE_ENTRY dispatchTable[] =
     {
-@@ -77,12 +79,16 @@
+@@ -77,11 +79,15 @@
     {
        if ( _stricmp( "install", argv[1]+1 ) == 0 )
        {
@@ -40,14 +40,13 @@
        {
 -         CmdRemoveService();
 +         return CmdRemoveService();
-       }
++      }
 +	  else if ( _stricmp( "start", argv[1]+1 ) == 0)
 +	  {
 +		  return CmdStartService();
-+	  }
+       }
        else if ( _stricmp( "debug", argv[1]+1 ) == 0 )
        {
-          bDebug = TRUE;
 @@ -92,7 +98,7 @@
        {
           goto dispatch;
@@ -98,9 +97,8 @@
  
     if ( !bDebug )
     {
--      dwErr = GetLastError();
 +     if (flags & MSG_FLAGS_SYS_CODE)
-+       dwErr = GetLastError();
+       dwErr = GetLastError();
 +     else
 +       dwErr = 0;
  
@@ -163,40 +161,16 @@
     }
  
     schSCManager = OpenSCManager(
-@@ -366,19 +384,19 @@
-    if ( schSCManager )
-    {
-       schService = CreateService(
--                                schSCManager,               // SCManager database
--                                TEXT(SZSERVICENAME),        // name of service
--                                TEXT(SZSERVICEDISPLAYNAME), // name to display
--                                SERVICE_QUERY_STATUS,         // desired access
--                                SERVICE_WIN32_OWN_PROCESS,  // service type
+@@ -371,7 +389,7 @@
+                                 TEXT(SZSERVICEDISPLAYNAME), // name to display
+                                 SERVICE_QUERY_STATUS,         // desired access
+                                 SERVICE_WIN32_OWN_PROCESS,  // service type
 -                                SERVICE_DEMAND_START,       // start type
--                                SERVICE_ERROR_NORMAL,       // error control type
--                                szPath,                     // service's binary
--                                NULL,                       // no load ordering group
--                                NULL,                       // no tag identifier
--                                TEXT(SZDEPENDENCIES),       // dependencies
--                                NULL,                       // LocalSystem account
--                                NULL);                      // no password
-+                                schSCManager,                // SCManager database
-+                                TEXT(SZSERVICENAME),         // name of service
-+                                TEXT(SZSERVICEDISPLAYNAME),  // name to display
-+                                SERVICE_QUERY_STATUS,        // desired access
-+                                SERVICE_WIN32_OWN_PROCESS,   // service type
 +				SERVICE_DEMAND_START,        // start type -- alternative: SERVICE_AUTO_START
-+                                SERVICE_ERROR_NORMAL,        // error control type
-+                                szPath,                      // service's binary
-+                                NULL,                        // no load ordering group
-+                                NULL,                        // no tag identifier
-+                                TEXT(SZDEPENDENCIES),        // dependencies
-+                                NULL,                        // LocalSystem account
-+                                NULL);                       // no password
- 
-       if ( schService )
-       {
-@@ -388,15 +406,78 @@
+                                 SERVICE_ERROR_NORMAL,       // error control type
+                                 szPath,                     // service's binary
+                                 NULL,                       // no load ordering group
+@@ -388,16 +406,79 @@
        else
        {
           _tprintf(TEXT("CreateService failed - %s\n"), GetLastErrorText(szErr, 256));
@@ -206,9 +180,8 @@
        CloseServiceHandle(schSCManager);
     }
     else
--      _tprintf(TEXT("OpenSCManager failed - %s\n"), GetLastErrorText(szErr,256));
 +     {
-+       _tprintf(TEXT("OpenSCManager failed - %s\n"), GetLastErrorText(szErr,256));
+       _tprintf(TEXT("OpenSCManager failed - %s\n"), GetLastErrorText(szErr,256));
 +       ret = 1;
 +     }
 +   return ret;
@@ -233,7 +206,7 @@
 +
 +  SC_HANDLE schSCManager;
 +  SC_HANDLE schService;
-+
+ 
  
 +    // Open a handle to the SC Manager database. 
 +    schSCManager = OpenSCManager( 
@@ -273,9 +246,10 @@
 +    CloseServiceHandle(schSCManager);
 +    return ret;
 +}
- 
++
  //
  //  FUNCTION: CmdRemoveService()
+ //
 @@ -407,15 +488,17 @@
  //    none
  //
@@ -300,9 +274,8 @@
              if ( ssStatus.dwCurrentState == SERVICE_STOPPED )
                 _tprintf(TEXT("\n%s stopped.\n"), TEXT(SZSERVICEDISPLAYNAME) );
              else
--               _tprintf(TEXT("\n%s failed to stop.\n"), TEXT(SZSERVICEDISPLAYNAME) );
 +	      {
-+		_tprintf(TEXT("\n%s failed to stop.\n"), TEXT(SZSERVICEDISPLAYNAME) );
+                _tprintf(TEXT("\n%s failed to stop.\n"), TEXT(SZSERVICEDISPLAYNAME) );
 +		ret = 1;
 +	      }
  
@@ -312,9 +285,8 @@
           if ( DeleteService(schService) )
              _tprintf(TEXT("%s removed.\n"), TEXT(SZSERVICEDISPLAYNAME) );
           else
--            _tprintf(TEXT("DeleteService failed - %s\n"), GetLastErrorText(szErr,256));
 +	   {
-+	     _tprintf(TEXT("DeleteService failed - %s\n"), GetLastErrorText(szErr,256));
+             _tprintf(TEXT("DeleteService failed - %s\n"), GetLastErrorText(szErr,256));
 +	     ret = 1;
 +	   }
  
@@ -322,18 +294,16 @@
           CloseServiceHandle(schService);
        }
        else
--         _tprintf(TEXT("OpenService failed - %s\n"), GetLastErrorText(szErr,256));
 +	{
-+	  _tprintf(TEXT("OpenService failed - %s\n"), GetLastErrorText(szErr,256));
+          _tprintf(TEXT("OpenService failed - %s\n"), GetLastErrorText(szErr,256));
 +	  ret = 1;
 +	}
  
        CloseServiceHandle(schSCManager);
     }
     else
--      _tprintf(TEXT("OpenSCManager failed - %s\n"), GetLastErrorText(szErr,256));
 +     {
-+       _tprintf(TEXT("OpenSCManager failed - %s\n"), GetLastErrorText(szErr,256));
+       _tprintf(TEXT("OpenSCManager failed - %s\n"), GetLastErrorText(szErr,256));
 +       ret = 1;
 +     }
 +   return ret;
@@ -349,8 +319,8 @@
     }
  
     if ( lpszTemp )
---- service.h.orig	Sat Jan 15 17:39:20 2005
-+++ service.h	Mon Feb  7 17:24:04 2005
+--- service.h.orig	Mon Sep  5 14:38:41 2005
++++ service.h	Tue Sep  6 13:58:59 2005
 @@ -62,13 +62,13 @@
  //// todo: change to desired strings
  ////
@@ -365,7 +335,7 @@
 +#define SZSERVICEDISPLAYNAME "OpenVPN Service"
  // list of service dependencies - "dep1\0dep2\0\0"
 -#define SZDEPENDENCIES       ""
-+#define SZDEPENDENCIES       "TAP0801\0\0"
++#define SZDEPENDENCIES       "TAP0801\0Dhcp\0\0"
  //////////////////////////////////////////////////////////////////////////////
  
  

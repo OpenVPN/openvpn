@@ -1,0 +1,29 @@
+#!/bin/sh
+
+# revoke a certificate, regenerate CRL,
+# and verify revocation
+
+CRL=crl.pem
+RT=revoke-test.pem
+
+if test $# -ne 1; then
+        echo "usage: revoke-full <name>";
+        exit 1
+fi
+
+if test $KEY_DIR; then
+       cd $KEY_DIR
+       rm -f $RT
+
+       # revoke key and generate a new CRL
+       openssl ca -revoke $1.crt -config $KEY_CONFIG
+
+       # generate a new CRL
+       openssl ca -gencrl -out $CRL -config $KEY_CONFIG
+       cat ca.crt $CRL >$RT
+    
+       # verify the revocation
+       openssl verify -CAfile $RT -crl_check $1.crt
+else
+       echo you must define KEY_DIR
+fi

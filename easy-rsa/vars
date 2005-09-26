@@ -12,12 +12,12 @@
 # This variable should point to
 # the top level of the easy-rsa
 # tree.
-export D=`pwd`
+export EASY_RSA="`pwd`"
 
 # This variable should point to
 # the openssl.cnf file included
 # with easy-rsa.
-export KEY_CONFIG=$D/openssl.cnf
+export KEY_CONFIG="$EASY_RSA/openssl.cnf"
 
 # Edit this variable to point to
 # your soon-to-be-created key
@@ -27,10 +27,10 @@ export KEY_CONFIG=$D/openssl.cnf
 # a rm -rf on this directory
 # so make sure you define
 # it correctly!
-export KEY_DIR=$D/keys
+export KEY_DIR="$EASY_RSA/keys"
 
 # Issue rm -rf warning
-echo NOTE: when you run ./clean-all, I will be doing a rm -rf on $KEY_DIR
+echo NOTE: If you run ./clean-all, I will be doing a rm -rf on $KEY_DIR
 
 # Increase this to 2048 if you
 # are paranoid.  This will slow
@@ -39,11 +39,17 @@ echo NOTE: when you run ./clean-all, I will be doing a rm -rf on $KEY_DIR
 # generation process.
 export KEY_SIZE=1024
 
+# In how many days should the root CA key expire?
+export CA_EXPIRE=3650
+
+# In how many days should certificates expire?
+export KEY_EXPIRE=3650
+
 # These are the default values for fields
 # which will be placed in the certificate.
 # Don't leave any of these fields blank.
-export KEY_COUNTRY=KG
-export KEY_PROVINCE=NA
-export KEY_CITY=BISHKEK
-export KEY_ORG="OpenVPN-TEST"
+export KEY_COUNTRY="US"
+export KEY_PROVINCE="CA"
+export KEY_CITY="SanFrancisco"
+export KEY_ORG="Fort-Funston"
 export KEY_EMAIL="me@myhost.mydomain"

@@ -1,29 +1,39 @@
-#!/bin/sh
+#!/bin/bash
 
 # revoke a certificate, regenerate CRL,
 # and verify revocation
 
-CRL=crl.pem
-RT=revoke-test.pem
+CRL="crl.pem"
+RT="revoke-test.pem"
 
-if test $# -ne 1; then
-        echo "usage: revoke-full <name>";
-        exit 1
+if [ $# -ne 1 ]; then
+    echo "usage: revoke-full <common-name>";
+    exit 1
 fi
 
-if test $KEY_DIR; then
-       cd $KEY_DIR
-       rm -f $RT
+if [ "$KEY_DIR" ]; then
+    cd "$KEY_DIR"
+    rm -f "$RT"
 
-       # revoke key and generate a new CRL
-       openssl ca -revoke $1.crt -config $KEY_CONFIG
+    # set defaults
+    export KEY_CN=""
+    export KEY_OU=""
 
-       # generate a new CRL
-       openssl ca -gencrl -out $CRL -config $KEY_CONFIG
-       cat ca.crt $CRL >$RT
+    # revoke key and generate a new CRL
+    openssl ca -revoke "$1.crt" -config "$KEY_CONFIG"
+
+    # generate a new CRL -- try to be compatible with
+    # intermediate PKIs
+    openssl ca -gencrl -out "$CRL" -config "$KEY_CONFIG"
+    if [ -e export-ca.crt ]; then
+	cat export-ca.crt "$CRL" >"$RT"
+    else
+	cat ca.crt "$CRL" >"$RT"
+    fi
     
-       # verify the revocation
-       openssl verify -CAfile $RT -crl_check $1.crt
+    # verify the revocation
+    openssl verify -CAfile "$RT" -crl_check "$1.crt"
 else
-       echo you must define KEY_DIR
+    echo 'Please source the vars script first (i.e. "source ./vars")'
+    echo 'Make sure you have edited it to reflect your configuration.'
 fi

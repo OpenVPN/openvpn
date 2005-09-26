@@ -1,12 +1,11 @@
-#!/bin/sh
+#!/bin/bash
 
-#
 # Build Diffie-Hellman parameters for the server side
 # of an SSL/TLS connection.
-#
 
-if test $KEY_DIR; then
+if [ -d $KEY_DIR ] && [ $KEY_SIZE ]; then
     openssl dhparam -out ${KEY_DIR}/dh${KEY_SIZE}.pem ${KEY_SIZE}
 else
-    echo you must define KEY_DIR
+    echo 'Please source the vars script first (i.e. "source ./vars")'
+    echo 'Make sure you have edited it to reflect your configuration.'
 fi

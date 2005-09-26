@@ -206,7 +206,7 @@ run_up_down (const char *command,
 		  ifconfig_local, ifconfig_remote,
 		  context);
 
-      if (plugin_call (plugins, plugin_type, BSTR (&cmd), es))
+      if (plugin_call (plugins, plugin_type, BSTR (&cmd), NULL, es))
 	msg (M_FATAL, "ERROR: up/down plugin call failed");
     }
 

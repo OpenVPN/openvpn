@@ -260,6 +260,9 @@ typedef unsigned long in_addr_t;
 /* Use LZO compression library */
 #define USE_LZO 1
 
+/* LZO version number */
+#define LZO_VERSION_NUM "1"
+
 /* Use OpenSSL SSL library */
 #define USE_SSL 1
 

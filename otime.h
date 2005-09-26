@@ -60,7 +60,7 @@ static inline void
 update_time (void)
 {
   const time_t real_time = time (NULL);
-  if (real_time != now)
+  if (real_time > now)
     now = real_time;
 }
 

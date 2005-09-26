@@ -123,6 +123,7 @@ struct options
   const char *dev;
   const char *dev_type;
   const char *dev_node;
+  int topology; /* one of the TOP_x values from proto.h */
   const char *ifconfig_local;
   const char *ifconfig_remote_netmask;
   bool ifconfig_noexec;
@@ -239,6 +240,7 @@ struct options
   int route_delay_window;
   bool route_delay_defined;
   struct route_option_list *routes;
+  bool route_nopull;
 
 #ifdef ENABLE_HTTP_PROXY
   struct http_proxy_options *http_proxy_options;
@@ -283,6 +285,9 @@ struct options
   in_addr_t server_network;
   in_addr_t server_netmask;
 
+# define SF_NOPOOL (1<<0)
+  unsigned int server_flags;
+
   bool server_bridge_defined;
   in_addr_t server_bridge_ip;
   in_addr_t server_bridge_netmask;
@@ -296,7 +301,6 @@ struct options
   in_addr_t ifconfig_pool_netmask;
   const char *ifconfig_pool_persist_filename;
   int ifconfig_pool_persist_refresh_freq;
-  bool ifconfig_pool_linear;
   int real_hash_size;
   int virtual_hash_size;
   const char *client_connect_script;
@@ -312,6 +316,9 @@ struct options
   bool push_ifconfig_defined;
   in_addr_t push_ifconfig_local;
   in_addr_t push_ifconfig_remote_netmask;
+  bool push_ifconfig_constraint_defined;
+  in_addr_t push_ifconfig_constraint_network;
+  in_addr_t push_ifconfig_constraint_netmask;
   bool enable_c2c;
   bool duplicate_cn;
   int cf_max;
@@ -437,8 +444,11 @@ struct options
 #define OPT_P_EXPLICIT_NOTIFY (1<<19)
 #define OPT_P_ECHO            (1<<20)
 #define OPT_P_INHERIT         (1<<21)
+#define OPT_P_ROUTE_EXTRAS    (1<<22)
+#define OPT_P_PULL_MODE       (1<<23)
+#define OPT_P_PLUGIN          (1<<24)
 
-#define OPT_P_DEFAULT   (~OPT_P_INSTANCE)
+#define OPT_P_DEFAULT   (~(OPT_P_INSTANCE|OPT_P_PULL_MODE))
 
 #if P2MP
 #define PULL_DEFINED(opt) ((opt)->pull)
@@ -546,6 +556,13 @@ int parse_line (const char *line,
 		struct gc_arena *gc);
 
 /*
+ * parse/print topology coding
+ */
+
+int parse_topology (const char *str, const int msglevel);
+const char *print_topology (const int topology);
+
+/*
  * Manage auth-retry variable
  */
 
@@ -558,6 +575,17 @@ int parse_line (const char *line,
 int auth_retry_get (void);
 bool auth_retry_set (const int msglevel, const char *option);
 const char *auth_retry_print (void);
+
+#endif
+
+#ifdef ENABLE_PLUGIN
+
+void options_plugin_import (struct options *options,
+			    const char *config,
+			    const int msglevel,
+			    const unsigned int permission_mask,
+			    unsigned int *option_types_found,
+			    struct env_set *es);
 
 #endif
 

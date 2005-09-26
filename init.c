@@ -543,7 +543,7 @@ do_init_route_list (const struct options *options,
   const char *gw = NULL;
   int dev = dev_type_enum (options->dev, options->dev_type);
 
-  if (dev == DEV_TYPE_TUN)
+  if (dev == DEV_TYPE_TUN && (options->topology == TOP_NET30 || options->topology == TOP_P2P))
     gw = options->ifconfig_remote_netmask;
   if (options->route_default_gateway)
     gw = options->route_default_gateway;
@@ -626,7 +626,7 @@ do_route (const struct options *options,
 
   if (plugin_defined (plugins, OPENVPN_PLUGIN_ROUTE_UP))
     {
-      if (plugin_call (plugins, OPENVPN_PLUGIN_ROUTE_UP, NULL, es))
+      if (plugin_call (plugins, OPENVPN_PLUGIN_ROUTE_UP, NULL, NULL, es))
 	msg (M_WARN, "WARNING: route-up plugin call failed");
     }
 
@@ -676,6 +676,7 @@ do_init_tun (struct context *c)
 {
   c->c1.tuntap = init_tun (c->options.dev,
 			   c->options.dev_type,
+			   c->options.topology,
 			   c->options.ifconfig_local,
 			   c->options.ifconfig_remote_netmask,
 			   addr_host (&c->c1.link_socket_addr.local),
@@ -712,7 +713,7 @@ do_open_tun (struct context *c)
       do_alloc_route_list (c);
 
       /* parse and resolve the route option list */
-      if (c->c1.route_list && c->c2.link_socket)
+      if (c->options.routes && c->c1.route_list && c->c2.link_socket)
 	do_init_route_list (&c->options, c->c1.route_list, &c->c2.link_socket->info, false, c->c2.es);
 
       /* do ifconfig */
@@ -741,7 +742,7 @@ do_open_tun (struct context *c)
 
       /* run the up script */
       run_up_down (c->options.up_script,
-		   c->c1.plugins,
+		   c->plugins,
 		   OPENVPN_PLUGIN_UP,
 		   c->c1.tuntap->actual_name,
 		   TUN_MTU_SIZE (&c->c2.frame),
@@ -755,7 +756,7 @@ do_open_tun (struct context *c)
 
       /* possibly add routes */
       if (!c->options.route_delay_defined)
-	do_route (&c->options, c->c1.route_list, c->c1.tuntap, c->c1.plugins, c->c2.es);
+	do_route (&c->options, c->c1.route_list, c->c1.tuntap, c->plugins, c->c2.es);
 
       /*
        * Did tun/tap driver give us an MTU?
@@ -775,7 +776,7 @@ do_open_tun (struct context *c)
       /* run the up script if user specified --up-restart */
       if (c->options.up_restart)
 	run_up_down (c->options.up_script,
-		     c->c1.plugins,
+		     c->plugins,
 		     OPENVPN_PLUGIN_UP,
 		     c->c1.tuntap->actual_name,
 		     TUN_MTU_SIZE (&c->c2.frame),
@@ -836,7 +837,7 @@ do_close_tun (struct context *c, bool force)
 	  /* Run the down script -- note that it will run at reduced
 	     privilege if, for example, "--user nobody" was used. */
 	  run_up_down (c->options.down_script,
-		       c->c1.plugins,
+		       c->plugins,
 		       OPENVPN_PLUGIN_DOWN,
 		       tuntap_actual,
 		       TUN_MTU_SIZE (&c->c2.frame),
@@ -858,7 +859,7 @@ do_close_tun (struct context *c, bool force)
 	  /* run the down script on this restart if --up-restart was specified */
 	  if (c->options.up_restart)
 	    run_up_down (c->options.down_script,
-			 c->c1.plugins,
+			 c->plugins,
 			 OPENVPN_PLUGIN_DOWN,
 			 tuntap_actual,
 			 TUN_MTU_SIZE (&c->c2.frame),
@@ -946,18 +947,25 @@ do_up (struct context *c, bool pulled_options, unsigned int option_types_found)
  * These are the option categories which will be accepted by pull.
  */
 unsigned int
-pull_permission_mask (void)
+pull_permission_mask (const struct context *c)
 {
-  return (  OPT_P_UP
-	  | OPT_P_ROUTE
-	  | OPT_P_IPWIN32
-	  | OPT_P_SETENV
-	  | OPT_P_SHAPER
-	  | OPT_P_TIMER
-	  | OPT_P_PERSIST
-	  | OPT_P_MESSAGES
-	  | OPT_P_EXPLICIT_NOTIFY
-	  | OPT_P_ECHO);
+  unsigned int flags =
+      OPT_P_UP
+    | OPT_P_ROUTE_EXTRAS
+    | OPT_P_IPWIN32
+    | OPT_P_SETENV
+    | OPT_P_SHAPER
+    | OPT_P_TIMER
+    | OPT_P_PERSIST
+    | OPT_P_MESSAGES
+    | OPT_P_EXPLICIT_NOTIFY
+    | OPT_P_ECHO
+    | OPT_P_PULL_MODE;
+
+  if (!c->options.route_nopull)
+    flags |= OPT_P_ROUTE;
+
+  return flags;
 }
 
 /*
@@ -1002,6 +1010,8 @@ do_deferred_options (struct context *c, const unsigned int found)
     msg (D_PUSH, "OPTIONS IMPORT: --ifconfig/up options modified");
   if (found & OPT_P_ROUTE)
     msg (D_PUSH, "OPTIONS IMPORT: route options modified");
+  if (found & OPT_P_ROUTE_EXTRAS)
+    msg (D_PUSH, "OPTIONS IMPORT: route-related options modified");
   if (found & OPT_P_IPWIN32)
     msg (D_PUSH, "OPTIONS IMPORT: --ip-win32 and/or --dhcp-option options modified");
   if (found & OPT_P_SETENV)
@@ -1367,7 +1377,7 @@ do_init_crypto_tls (struct context *c, const unsigned int flags)
   to.gremlin = c->options.gremlin;
 #endif
 
-  to.plugins = c->c1.plugins;
+  to.plugins = c->plugins;
 
 #if P2MP_SERVER
   to.auth_user_pass_verify_script = options->auth_user_pass_verify_script;
@@ -1724,7 +1734,7 @@ do_init_socket_1 (struct context *c, int mode)
 			   c->options.inetd,
 			   &c->c1.link_socket_addr,
 			   c->options.ipchange,
-			   c->c1.plugins,
+			   c->plugins,
 			   c->options.resolve_retry_seconds,
 			   c->options.connect_retry_seconds,
 			   c->options.mtu_discover_type,
@@ -2094,31 +2104,67 @@ do_signal_on_tls_errors (struct context *c)
 #endif
 }
 
-
-static void
-do_open_plugins (struct context *c)
-{
 #ifdef ENABLE_PLUGIN
-  if (c->options.plugin_list && !c->c1.plugins)
+
+void
+open_plugins (struct context *c, const bool import_options)
+{
+  if (c->options.plugin_list && !c->plugins)
     {
-      c->c1.plugins = plugin_list_open (c->options.plugin_list, c->c2.es);
-      c->c1.plugins_owned = true;
+      if (import_options)
+	{
+	  struct plugin_return pr, config;
+	  plugin_return_init (&pr);
+	  c->plugins = plugin_list_open (c->options.plugin_list, &pr, c->c2.es);
+	  c->plugins_owned = true;
+	  plugin_return_get_column (&pr, &config, "config");
+	  if (plugin_return_defined (&config))
+	    {
+	      int i;
+	      for (i = 0; i < config.n; ++i)
+		{
+		  unsigned int option_types_found = 0;
+		  if (config.list[i] && config.list[i]->value)
+		    options_plugin_import (&c->options,
+					   config.list[i]->value,
+					   D_IMPORT_ERRORS|M_OPTERR,
+					   OPT_P_DEFAULT & ~OPT_P_PLUGIN,
+					   &option_types_found,
+					   c->es);
+		}
+	    }
+	  plugin_return_free (&pr);
+	}
+      else
+	{
+	  c->plugins = plugin_list_open (c->options.plugin_list, NULL, c->c2.es);
+	  c->plugins_owned = true;
+	}
     }
-#endif
 }
 
 static void
 do_close_plugins (struct context *c)
 {
-#ifdef ENABLE_PLUGIN
-  if (c->c1.plugins && c->c1.plugins_owned && !(c->sig->signal_received == SIGUSR1))
+  if (c->plugins && c->plugins_owned && !(c->sig->signal_received == SIGUSR1))
     {
-      plugin_list_close (c->c1.plugins);
-      c->c1.plugins = NULL;
-      c->c1.plugins_owned = false;
+      plugin_list_close (c->plugins);
+      c->plugins = NULL;
+      c->plugins_owned = false;
     }
-#endif
 }
+
+static void
+do_inherit_plugins (struct context *c, const struct context *src)
+{
+  if (!c->plugins && src->plugins)
+    {
+      c->plugins = plugin_list_inherit (src->plugins);
+      c->plugins_owned = true;
+    }
+}
+
+#endif
 
 #ifdef ENABLE_MANAGEMENT
 
@@ -2299,9 +2345,11 @@ init_instance (struct context *c, const struct env_set *env, const unsigned int 
   if (env)
     do_inherit_env (c, env);
 
+#ifdef ENABLE_PLUGIN
   /* initialize plugins */
   if (c->mode == CM_P2P || c->mode == CM_TOP)
-    do_open_plugins (c);
+    open_plugins (c, false);
+#endif
 
   /* should we enable fast I/O? */
   if (c->mode == CM_P2P || c->mode == CM_TOP)
@@ -2467,8 +2515,10 @@ close_instance (struct context *c)
 	/* close TUN/TAP device */
 	do_close_tun (c, false);
 
+#ifdef ENABLE_PLUGIN
 	/* call plugin close functions and unload */
 	do_close_plugins (c);
+#endif
 
 	/* close packet-id persistance file */
 	do_close_packet_id (c);
@@ -2538,8 +2588,10 @@ inherit_context_child (struct context *dest,
       dest->c2.accept_from = src->c2.link_socket;
     }
 
+#ifdef ENABLE_PLUGIN
   /* inherit plugins */
-  dest->c1.plugins = src->c1.plugins;
+  do_inherit_plugins (dest, src);
+#endif
 
   /* context init */
   init_instance (dest, src->c2.es, CC_USR1_TO_HUP | CC_GC_FREE);
@@ -2589,15 +2641,21 @@ inherit_context_top (struct context *dest,
   gc_detach (&dest->gc);
   gc_detach (&dest->c2.gc);
 
+  /* detach plugins */
+  dest->plugins_owned = false;
+
 #if defined(USE_CRYPTO) && defined(USE_SSL)
   dest->c2.tls_multi = NULL;
 #endif
 
+  /* detach c1 ownership */
   dest->c1.tuntap_owned = false;
   dest->c1.status_output_owned = false;
 #if P2MP_SERVER
   dest->c1.ifconfig_pool_persist_owned = false;
 #endif
+
+  /* detach c2 ownership */
   dest->c2.event_set_owned = false;
   dest->c2.link_socket_owned = false;
   dest->c2.buffers_owned = false;
@@ -2715,7 +2773,7 @@ do_test_crypto (const struct options *o)
       /* print version number */
       msg (M_INFO, "%s", title_string);
 
-     context_clear (&c);
+      context_clear (&c);
       c.options = *o;
       options_detach (&c.options);
       c.first_time = true;

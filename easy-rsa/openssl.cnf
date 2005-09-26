@@ -1,3 +1,5 @@
+# For use with easy-rsa version 2.0
+
 #
 # OpenSSL example configuration file.
 # This is mostly being used for generation of certificate requests.
@@ -60,7 +62,7 @@ preserve	= no			# keep passed DN ordering
 # A few difference way of specifying how similar the request should look
 # For type CA, the listed attributes must be the same, and the optional
 # and supplied fields are just that :-)
-policy		= policy_match
+policy		= policy_anything
 
 # For the CA policy
 [ policy_match ]
@@ -135,6 +137,10 @@ commonName_max			= 64
 emailAddress			= Email Address
 emailAddress_default		= $ENV::KEY_EMAIL
 emailAddress_max		= 40
+
+# JY -- added for batch mode
+organizationalUnitName_default = $ENV::KEY_OU
+commonName_default = $ENV::KEY_CN
 
 # SET-ex3			= SET extension number 3
 

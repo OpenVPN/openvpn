@@ -89,6 +89,7 @@ void output_list_advance (struct output_list *ol, int n);
 union log_entry_union {
   unsigned int msg_flags;
   int state;
+  int intval;
 };
 
 struct log_entry
@@ -110,6 +111,8 @@ struct log_entry
 
 #define LOG_PRINT_CRLF         (1<<7)
 #define LOG_FATAL_NOTIFY       (1<<8)
+
+#define LOG_PRINT_INTVAL       (1<<9)
 
 const char *log_entry_print (const struct log_entry *e, unsigned int flags, struct gc_arena *gc);
 
@@ -327,7 +330,7 @@ void management_set_state (struct management *man,
  * The management object keeps track of OpenVPN --echo
  * parameters.
  */
-void management_echo (struct management *man, const char *string);
+void management_echo (struct management *man, const char *string, const bool pull);
 
 /*
  * OpenVPN calls here to indicate a password failure

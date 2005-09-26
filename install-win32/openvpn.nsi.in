@@ -10,7 +10,7 @@
 !include "MUI.nsh"
 !include "setpath.nsi"
 
-!define HOME "c:\src\openvpn"
+!define HOME ".."
 !define BIN "${HOME}\bin"
 
 !define PRODUCT_NAME "OpenVPN"

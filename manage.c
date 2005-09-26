@@ -43,6 +43,14 @@
 
 #include "memdbg.h"
 
+#define MANAGEMENT_ECHO_PULL_INFO 0 // JYFIXME
+
+#if MANAGEMENT_ECHO_PULL_INFO
+#define MANAGEMENT_ECHO_FLAGS LOG_PRINT_INTVAL
+#else
+#define MANAGEMENT_ECHO_FLAGS 0
+#endif
+
 struct management *management; /* GLOBAL */
 
 /* static forward declarations */
@@ -429,7 +437,7 @@ man_echo (struct management *man, const char *parm)
 	       "echo",
 	       man->persist.echo,
 	       &man->connection.echo_realtime,
-	       LOG_PRINT_INT_DATE);
+	       LOG_PRINT_INT_DATE|MANAGEMENT_ECHO_FLAGS);
 }
 
 static void
@@ -1361,7 +1369,7 @@ management_set_state (struct management *man,
 }
 
 void
-management_echo (struct management *man, const char *string)
+management_echo (struct management *man, const char *string, const bool pull)
 {
   if (man->persist.echo)
     {
@@ -1372,13 +1380,13 @@ management_echo (struct management *man, const char *string)
       update_time ();
       CLEAR (e);
       e.timestamp = now;
-      e.u.msg_flags = 0;
       e.string = string;
-      
+      e.u.intval = BOOL_CAST (pull);
+
       log_history_add (man->persist.echo, &e);
 
       if (man->connection.echo_realtime)
-	out = log_entry_print (&e, LOG_PRINT_INT_DATE|LOG_PRINT_ECHO_PREFIX|LOG_PRINT_CRLF, &gc);
+	out = log_entry_print (&e, LOG_PRINT_INT_DATE|LOG_PRINT_ECHO_PREFIX|LOG_PRINT_CRLF|MANAGEMENT_ECHO_FLAGS, &gc);
 
       if (out)
 	man_output_list_push (man, out);
@@ -2028,6 +2036,8 @@ log_entry_print (const struct log_entry *e, unsigned int flags, struct gc_arena 
     buf_printf (&out, "%s,", msg_flags_string (e->u.msg_flags, gc));
   if (flags & LOG_PRINT_STATE)
     buf_printf (&out, "%s,", man_state_name (e->u.state));
+  if (flags & LOG_PRINT_INTVAL)
+    buf_printf (&out, "%d,", e->u.intval);
   if (e->string)
     buf_printf (&out, "%s", e->string);
   if (flags & LOG_PRINT_LOCAL_IP)

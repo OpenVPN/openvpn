@@ -25,7 +25,7 @@ dnl Process this file with autoconf to produce a configure script.
 
 AC_PREREQ(2.50)
 
-AC_INIT([OpenVPN], [2.0.3_rc1], [openvpn-users@lists.sourceforge.net], [openvpn])
+AC_INIT([OpenVPN], [2.1_beta1], [openvpn-users@lists.sourceforge.net], [openvpn])
 AM_CONFIG_HEADER(config.h)
 AC_CONFIG_SRCDIR(syshead.h)
 
@@ -489,6 +489,7 @@ if test "$LZO" = "yes"; then
           [
 	    OPENVPN_ADD_LIBS(-l$i)
 	    AC_DEFINE(USE_LZO, 1, [Use LZO compression library])
+	    AC_DEFINE_UNQUOTED(LZO_VERSION_NUM, "$LZO_H", [LZO version number])
 	    havelzolib=1
 	  ]
         )

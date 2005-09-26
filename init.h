@@ -77,7 +77,7 @@ void do_up (struct context *c,
 	    bool pulled_options,
 	    unsigned int option_types_found);
 
-unsigned int pull_permission_mask (void);
+unsigned int pull_permission_mask (const struct context *c);
 
 const char *format_common_name (struct context *c, struct gc_arena *gc);
 
@@ -116,5 +116,9 @@ void management_show_net_callback (void *arg, const int msglevel);
 
 void init_management_callback_p2p (struct context *c);
 void uninit_management_callback (void);
+
+#ifdef ENABLE_PLUGIN
+void open_plugins (struct context *c, const bool import_options);
+#endif
 
 #endif

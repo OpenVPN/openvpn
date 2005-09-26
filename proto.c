@@ -31,6 +31,7 @@
 #include "syshead.h"
 
 #include "proto.h"
+#include "error.h"
 
 #include "memdbg.h"
 
@@ -72,3 +73,56 @@ is_ipv4 (int tunnel_type, struct buffer *buf)
   else
     return false;
 }
+
+#ifdef PACKET_TRUNCATION_CHECK
+
+void
+ipv4_packet_size_verify (const uint8_t *data,
+			 const int size,
+			 const int tunnel_type,
+			 const char *prefix,
+			 counter_type *errors)
+{
+  if (size > 0)
+    {
+      struct buffer buf;
+
+      buf_set_read (&buf, data, size);
+
+      if (is_ipv4 (tunnel_type, &buf))
+	{
+	  const struct openvpn_iphdr *pip;
+	  int hlen;
+	  int totlen;
+	  const char *msgstr = "PACKET SIZE INFO";
+	  unsigned int msglevel = D_PACKET_TRUNC_DEBUG;
+
+	  if (BLEN (&buf) < (int) sizeof (struct openvpn_iphdr))
+	    return;
+  
+	  verify_align_4 (&buf);
+	  pip = (struct openvpn_iphdr *) BPTR (&buf);
+	  
+	  hlen = OPENVPN_IPH_GET_LEN (pip->version_len);
+	  totlen = ntohs (pip->tot_len);
+	  
+	  if (BLEN (&buf) != totlen)
+	    {
+	      msgstr = "PACKET TRUNCATION ERROR";
+	      msglevel = D_PACKET_TRUNC_ERR;
+	      if (errors)
+		++(*errors);
+	    }
+
+	  msg (msglevel, "%s %s: size=%d totlen=%d hlen=%d errcount=" counter_format,
+	       msgstr,
+	       prefix,
+	       BLEN (&buf),
+	       totlen,
+	       hlen,
+	       errors ? *errors : (counter_type)0);
+	}
+    }
+}
+
+#endif

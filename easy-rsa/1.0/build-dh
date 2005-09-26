@@ -1,0 +1,12 @@
+#!/bin/sh
+
+#
+# Build Diffie-Hellman parameters for the server side
+# of an SSL/TLS connection.
+#
+
+if test $KEY_DIR; then
+    openssl dhparam -out ${KEY_DIR}/dh${KEY_SIZE}.pem ${KEY_SIZE}
+else
+    echo you must define KEY_DIR
+fi

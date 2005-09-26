@@ -48,6 +48,13 @@
  */
 #define ROUTE_DELETE_FIRST  2
 
+struct route_bypass
+{
+# define N_ROUTE_BYPASS 8
+  int n_bypass;
+  in_addr_t bypass[N_ROUTE_BYPASS];
+};
+
 struct route_special_addr
 {
   in_addr_t remote_endpoint;
@@ -56,6 +63,7 @@ struct route_special_addr
   bool net_gateway_defined;
   in_addr_t remote_host;
   bool remote_host_defined;
+  struct route_bypass bypass;
 };
 
 struct route_option {
@@ -65,11 +73,16 @@ struct route_option {
   const char *metric;
 };
 
+/* redirect-gateway flags */
+#define RG_ENABLE         (1<<0)
+#define RG_LOCAL          (1<<1)
+#define RG_DEF1           (1<<2)
+#define RG_BYPASS_DHCP    (1<<3)
+#define RG_BYPASS_DNS     (1<<4)
+
 struct route_option_list {
   int n;
-  bool redirect_default_gateway;
-  bool redirect_local;
-  bool redirect_def1;
+  unsigned int flags;
   struct route_option routes[MAX_ROUTES];
 };
 
@@ -86,11 +99,8 @@ struct route {
 struct route_list {
   bool routes_added;
   struct route_special_addr spec;
-  bool redirect_default_gateway;
-  bool redirect_local;
-  bool redirect_def1;
+  unsigned int flags;
   bool did_redirect_default_gateway;
-
   int n;
   struct route routes[MAX_ROUTES];
 };

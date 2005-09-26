@@ -99,6 +99,7 @@
 #define D_DHCP_OPT           LOGLEV(4, 53, 0)        /* show DHCP options binary string */
 #define D_OSBUF              LOGLEV(4, 54, 0)        /* show socket/tun/tap buffer sizes */
 #define D_MBUF               LOGLEV(4, 55, 0)        /* mbuf.[ch] routines */
+#define D_PACKET_TRUNC_ERR   LOGLEV(4, 56, 0)        /* PACKET_TRUNCATION_CHECK */
 
 #define D_LOG_RW             LOGLEV(5, 0,  0)        /* Print 'R' or 'W' to stdout for read/write */
 
@@ -127,6 +128,7 @@
 #define D_PLUGIN_DEBUG       LOGLEV(7, 70, M_DEBUG)  /* show verbose plugin calls */
 #define D_SOCKET_DEBUG       LOGLEV(7, 70, M_DEBUG)  /* show socket.[ch] debugging info */
 #define D_ALIGN_DEBUG        LOGLEV(7, 70, M_DEBUG)  /* show verbose struct alignment info */
+#define D_PACKET_TRUNC_DEBUG LOGLEV(7, 70, M_DEBUG)  /* PACKET_TRUNCATION_CHECK verbose */
 
 #define D_HANDSHAKE_VERBOSE  LOGLEV(8, 70, M_DEBUG)  /* show detailed description of each handshake */
 #define D_TLS_DEBUG_MED      LOGLEV(8, 70, M_DEBUG)  /* limited info from tls_session routines */

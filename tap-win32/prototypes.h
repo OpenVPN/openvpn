@@ -160,7 +160,8 @@ BOOLEAN ProcessARP
     TapAdapterPointer p_Adapter,
     const PARP_PACKET src,
     const IPADDR adapter_ip,
-    const IPADDR ip,
+    const IPADDR ip_network,
+    const IPADDR ip_netmask,
     const MACADDR mac
    );
 
@@ -177,11 +178,42 @@ VOID InjectPacket
     const unsigned int len
    );
 
-VOID CheckIfDhcpAndPointToPointMode
+VOID CheckIfDhcpAndTunMode
    (
     TapAdapterPointer p_Adapter
    );
 
 VOID HookDispatchFunctions();
+
+#if ENABLE_NONADMIN
+
+typedef struct _SECURITY_DESCRIPTOR {
+  unsigned char opaque[20];
+} SECURITY_DESCRIPTOR;
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+ZwSetSecurityObject (
+  IN HANDLE  Handle,
+  IN SECURITY_INFORMATION  SecurityInformation,
+  IN PSECURITY_DESCRIPTOR  SecurityDescriptor);
+
+VOID AllowNonAdmin (TapExtensionPointer p_Extension);
+
+#endif
+
+#if PACKET_TRUNCATION_CHECK
+
+VOID IPv4PacketSizeVerify
+   (
+    const UCHAR *data,
+    ULONG length,
+    BOOLEAN tun,
+    const char *prefix,
+    LONG *counter
+   );
+
+#endif
 
 #endif

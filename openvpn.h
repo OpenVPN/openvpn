@@ -156,10 +156,6 @@ struct context_1
   struct socks_proxy_info *socks_proxy;
 #endif
 
-  /* shared object plugins */
-  struct plugin_list *plugins;
-  bool plugins_owned;
-  
 #if P2MP
 
 #if P2MP_SERVER
@@ -237,6 +233,12 @@ struct context_2
   counter_type link_read_bytes;
   counter_type link_read_bytes_auth;
   counter_type link_write_bytes;
+#ifdef PACKET_TRUNCATION_CHECK
+  counter_type n_trunc_tun_read;
+  counter_type n_trunc_tun_write;
+  counter_type n_trunc_pre_encrypt;
+  counter_type n_trunc_post_decrypt;
+#endif
 
   /*
    * Timer objects for ping and inactivity
@@ -447,6 +449,10 @@ struct context
   /* signal info */
   struct signal_info *sig;
 
+  /* shared object plugins */
+  struct plugin_list *plugins;
+  bool plugins_owned;
+  
   /* level 1 context is preserved for
      SIGUSR1 restarts, but initialized
      for SIGHUP restarts */
