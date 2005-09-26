@@ -1,0 +1,76 @@
+#!/bin/bash
+
+# Copyright (c) 2005 by OpenVPN Solutions LLC
+# Licensed under the GPL version 2
+
+# First version by Jesse Adelman
+# someone at boldandbusted dink com
+# http://www.boldandbusted.com/
+
+# PURPOSE: This script automatically removes the /etc/resolv.conf entries previously
+# set by the companion script "client.up".
+
+# INSTALL NOTES:
+# Place this in /etc/openvpn/client.down
+# Then, add the following to your /etc/openvpn/<clientconfig>.conf:
+#   client
+#   pull dhcp-options
+#   up /etc/openvpn/client.up
+#   down /etc/openvpn/client.down
+# Next, "chmod a+x /etc/openvpn/client.down"
+
+# USAGE NOTES:
+# Note that this script is best served with the companion "client.up"
+# script.
+
+# Only tested on Gentoo Linux 2005.0 with OpenVPN 2.0
+# It should work with any GNU/Linux with /etc/resolv.conf
+
+# This runs with the context of the OpenVPN UID/GID 
+# at the time of execution. This generally means that
+# the client "up" script will run fine, but the "down" script
+# will require the use of the OpenVPN "down-root" plugin
+# which is in the plugins/ directory of the OpenVPN source tree
+
+# A horrid work around, from a security perspective,
+# is to run OpenVPN as root. THIS IS NOT RECOMMENDED. You have
+# been WARNED.
+
+# init variables
+
+i=1
+j=1
+unset fopt
+unset dns
+unset opt
+
+# Convert ENVs to an array
+
+while fopt=foreign_option_$i; [ -n "${!fopt}" ]; do
+{
+	opt[i-1]=${!fopt}
+	case ${opt[i-1]} in
+		*DOMAIN* ) domain=`echo ${opt[i-1]} | \
+				sed -e 's/dhcp-option DOMAIN //g'` ;;
+		*DNS*    ) dns[j-1]=`echo ${opt[i-1]} | \
+				sed -e 's/dhcp-option DNS //g'`
+			       let j++ ;;
+	esac
+	let i++
+}
+done
+
+# Now, do the work
+
+if [ -n "${dns[*]}" ]; then
+	for i in "${dns[@]}"; do
+		sed -i -e "/nameserver ${i}/D" /etc/resolv.conf || die
+	done
+fi
+
+if [ -n "${domain}" ]; then
+	sed -i -e "/search ${domain}/D" /etc/resolv.conf || die
+fi
+
+# all done...
+exit 0

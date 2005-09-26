@@ -1,0 +1,74 @@
+openvpn-auth-pam
+
+SYNOPSIS
+
+The openvpn-auth-pam module implements username/password
+authentication via PAM, and essentially allows any authentication
+method supported by PAM (such as LDAP, RADIUS, or Linux Shadow
+passwords) to be used with OpenVPN.  While PAM supports
+username/password authentication, this can be combined with X509
+certificates to provide two indepedent levels of authentication.
+
+This module uses a split privilege execution model which will
+function even if you drop openvpn daemon privileges using the user,
+group, or chroot directives.
+
+BUILD
+
+To build openvpn-auth-pam, you will need to have the pam-devel
+package installed.
+
+Build with the "make" command.  The module will be named
+openvpn-auth-pam.so
+
+USAGE
+
+To use this plugin module, add to your OpenVPN config file:
+
+  plugin openvpn-auth-pam.so service-type
+
+The required service-type parameter corresponds to
+the PAM service definition file usually found
+in /etc/pam.d.
+
+This plugin also supports the usage of a list of name/value
+pairs to answer PAM module queries.
+
+For example:
+
+  plugin openvpn-auth-pam.so "login login USERNAME password PASSWORD"
+
+tells auth-pam to (a) use the "login" PAM module, (b) answer a
+"login" query with the username given by the OpenVPN client, and
+(c) answer a "password" query with the password given by the
+OpenVPN client.  This provides flexibility in dealing with the different
+types of query strings which different PAM modules might generate.
+For example, suppose you were using a PAM module called
+"test" which queried for "name" rather than "login":
+
+  plugin openvpn-auth-pam.so "test name USERNAME password PASSWORD"
+
+While "USERNAME" and "PASSWORD" are special strings which substitute
+to client-supplied values, it is also possible to name literal values
+to use as PAM module query responses.  For example, suppose that the
+login module queried for a third parameter, "domain" which
+is to be answered with the constant value "mydomain.com":
+
+  plugin openvpn-auth-pam.so "login login USERNAME password PASSWORD domain mydomain.com"
+
+The following OpenVPN directives can also influence
+the operation of this plugin:
+
+  client-cert-not-required
+  username-as-common-name
+
+Run OpenVPN with --verb 7 or higher to get debugging output from
+this plugin, including the list of queries presented by the
+underlying PAM module.  This is a useful debugging tool to figure
+out which queries a given PAM module is making, so that you can
+craft the appropriate plugin directive to answer it.
+
+CAVEATS
+
+This module will only work on *nix systems which support PAM,
+not Windows.

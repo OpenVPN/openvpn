@@ -1,0 +1,436 @@
+OpenVPN Management Interface Notes
+----------------------------------
+
+The OpenVPN Management interface allows OpenVPN to
+be administratively controlled from an external program via
+a TCP socket.
+
+The interface has been specifically designed for GUI developers
+and those who would like to programmatically or remotely control
+an OpenVPN daemon.
+
+The management interface is implemented using a client/server TCP
+connection, where OpenVPN will listen on a provided IP address
+and port for incoming management client connections.
+
+The management protocol is currently cleartext without an explicit
+security layer.  For this reason, it is recommended that the
+management interface either listen on localhost (127.0.0.1)
+or on the local VPN address.  It's possible to remotely connect
+to the management interface over the VPN itself, though some
+capabilities will be limited in this mode, such as the ability
+to provide private key passwords.
+
+Future versions of the management interface may allow out-of-band
+connections (i.e. not over the VPN) and secured with SSL/TLS.
+
+The management interface is enabled in the OpenVPN
+configuration file using the following directives:
+
+--management
+--management-query-passwords
+--management-log-cache
+
+See the man page for documentation on these directives.
+
+Once OpenVPN has started with the management layer enabled,
+you can telnet to the management port (make sure to use
+a telnet client which understands "raw" mode).
+
+Once connected to the management port, you can use
+the "help" command to list all commands.
+
+COMMAND -- echo
+---------------
+
+The echo capability is used to allow GUI-specific
+parameters to be either embedded in the OpenVPN config file
+or pushed to an OpenVPN client from a server.
+
+Command examples:
+
+  echo on      -- turn on real-time notification of echo messages
+  echo all     -- print the current echo history list
+  echo off     -- turn off real-time notification of echo messages
+  echo on all  -- atomically enable real-time notification,
+                  plus show any messages in history buffer
+
+For example, suppose you are developing a OpenVPN GUI and
+you want to give the OpenVPN server the ability to ask
+the GUI to forget any saved passwords.
+
+In the OpenVPN server config file, add:
+
+  push "echo forget-passwords"
+
+When the OpenVPN client receives its pulled list of directives
+from the server, the "echo forget-passwords" directive will
+be in the list, and it will cause the management interface
+to save the "forget-passwords" string in its list of echo
+parameters.
+
+The management client can use "echo all" to output the full
+list of echoed parameters, "echo on" to turn on real-time
+notification of echoed parameters via the ">ECHO:" prefix,
+or "echo off" to turn off real-time notification.
+
+When the GUI connects to the OpenVPN management socket, it
+can issue an "echo all" command, which would produce output
+like this:
+
+  1101519562,forget-passwords
+  END
+
+Essentially the echo command allowed us to pass parameters from
+the OpenVPN server to the OpenVPN client, and then to the
+management client (such as a GUI).  The large integer is the
+unix date/time when the echo parameter was received.
+
+If the management client had issued the command "echo on",
+it would have enabled real-time notifications of echo
+parameters.  In this case, our "forget-passwords" message
+would be output like this:
+
+  >ECHO:1101519562,forget-passwords
+
+Like the log command, the echo command can atomically show
+history while simultaneously activating real-time updates:
+
+  echo on all
+
+The size of the echo buffer is currently hardcoded to 100
+messages.
+
+COMMAND -- exit, quit
+---------------------
+
+Close the managment session, and resume listening on the
+management port for connections from other clients. Currently,
+the OpenVPN daemon can at most support a single management client
+any one time.
+
+COMMAND -- help
+---------------
+
+Print a summary of commands.
+
+COMMAND -- hold
+---------------
+
+The hold command can be used to manipulate the hold flag,
+or release OpenVPN from a hold state.
+
+If the hold flag is set on initial startup or
+restart, OpenVPN will hibernate prior to initializing
+the tunnel until the management interface receives
+a "hold release" command.
+
+The --management-hold directive of OpenVPN can be used
+to start OpenVPN with the hold flag set.
+
+The hold flag setting is persistent and will not
+be reset by restarts.
+
+OpenVPN will indicate that it is in a hold state by
+sending a real-time notification to the management
+client:
+
+  >HOLD:Waiting for hold release
+
+Command examples:
+
+  hold         -- show current hold flag, 0=off, 1=on.
+  hold on      -- turn on hold flag so that future restarts
+                  will hold.
+  hold off     -- turn off hold flag so that future restarts will
+                  not hold.
+  hold release -- leave hold state and start OpenVPN, but
+                  do not alter the current hold flag setting.
+
+COMMAND -- kill
+---------------
+
+In server mode, kill a particlar client instance.
+
+Command examples:
+
+  kill Test-Client -- kill the client instance having a
+                      common name of "Test-Client".
+  kill 1.2.3.4:4000 -- kill the client instance having a
+                       source address and port of 1.2.3.4:4000
+
+Use the "status" command to see which clients are connected.
+
+COMMAND -- log
+--------------
+
+Show the OpenVPN log file.  Only the most recent n lines
+of the log file are cached by the management interface, where
+n is controlled by the OpenVPN --management-log-cache directive.
+
+Command examples:
+
+  log on     -- Enable real-time output of log messages.
+  log all    -- Show currently cached log file history.
+  log on all -- Atomically show all currently cached log file
+                history then enable real-time notification of
+                new log file messages.
+  log off    -- Turn off real-time notification of log messages.
+  log 20     -- Show the most recent 20 lines of log file history.
+
+Real-time notification format:
+
+Real-time log messages begin with the ">LOG:" prefix followed
+by the following comma-separated fields:
+
+  (a) unix integer date/time,
+  (b) zero or more message flags in a single string:
+      I -- informational
+      F -- fatal error
+      N -- non-fatal error
+      W -- warning
+      D -- debug, and
+  (c) message text.
+
+COMMAND -- mute
+---------------
+
+Change the OpenVPN --mute parameter.  The mute parameter is
+used to silence repeating messages of the same message
+category.
+
+Command examples:
+
+  mute 40 -- change the mute parameter to 40
+  mute    -- show the current mute setting
+
+COMMAND -- net
+--------------
+
+(Windows Only) Produce output equivalent to the OpenVPN
+--show-net directive.  The output includes OpenVPN's view
+of the system network adapter list and routing table based
+on information returned by the Windows IP helper API.
+
+COMMAND -- password and username
+--------------------------------
+
+  The password command is used to pass passwords to OpenVPN.
+
+  If OpenVPN is run with the --management-query-passwords
+  directive, it will query the management interface for RSA
+  private key passwords and the --auth-user-pass
+  username/password.
+
+  When OpenVPN needs a password from the management interface,
+  it will produce a real-time ">PASSWORD:" message.
+
+  Example 1:
+
+    >PASSWORD:Need 'Private Key' password
+
+  OpenVPN is indicating that it needs a password of type
+  "Private Key".
+
+  The management client should respond to this query as follows:
+
+    password "Private Key" foo
+
+  Example 2:
+
+    >PASSWORD:Need 'Auth' username/password
+
+  OpenVPN needs a --auth-user-pass password.  The management
+  client should respond:
+
+    username "Auth" foo
+    password "Auth" bar
+
+  The username/password itself can be in quotes, and special
+  characters such as double quote or backslash must be escaped,
+  for example,
+
+    password "Private Key" "foo\"bar"
+
+  The escaping rules are the same as for the config file.
+  See the "Command Parsing" section below for more info.
+
+  The PASSWORD real-time message type can also be used to
+  indicate password or other types of authentication failure:
+
+  Example 3: The private key password is incorrect and OpenVPN
+  is exiting:
+
+    >PASSWORD:Verification Failed: 'Private Key'
+
+  Example 4: The --auth-user-pass username/password failed,
+  and OpenVPN is exiting:
+
+    >PASSWORD:Verification Failed: 'Auth'
+
+COMMAND -- signal
+-----------------
+
+The signal command will send a signal to the OpenVPN daemon.
+The signal can be one of SIGHUP, SIGTERM, SIGUSR1, or SIGUSR2.
+
+Command example:
+
+  signal SIGUSR1 -- send a SIGUSR1 signal to daemon
+
+COMMAND -- state
+----------------
+
+Show the current OpenVPN state, show state history, or
+enable real-time notification of state changes.
+
+These are the OpenVPN states:
+
+CONNECTING    -- OpenVPN's initial state.
+WAIT          -- (Client only) Waiting for initial response
+                 from server.
+AUTH          -- (Client only) Authenticating with server.
+GET_CONFIG    -- (Client only) Downloading configuration options
+                 from server.
+ASSIGN_IP     -- Assigning IP address to virtual network
+                 interface.
+ADD_ROUTES    -- Adding routes to system.
+CONNECTED     -- Initialization Sequence Completed.
+RECONNECTING  -- A restart has occurred.
+EXITING       -- A graceful exit is in progress.
+
+Command examples:
+
+  state        -- Print current OpenVPN state.
+  state on     -- Enable real-time notification of state changes.
+  state off    -- Disable real-time notification of state changes.
+  state all    -- Print current state history.
+  state 3      -- Print the 3 most recent state transitions.
+  state on all -- Atomically show state history while at the
+                  same time enable real-time state notification
+		  of future state transitions.
+
+The output format consists of 4 comma-separated parameters: 
+  (a) the integer unix date/time,
+  (b) the state name,
+  (c) optional descriptive string (used mostly on RECONNECTING
+      and EXITING to show the reason for the disconnect), and
+  (d) optional TUN/TAP local IP address (shown for ASSIGN_IP
+      and CONNECTED).
+
+Real-time state notifications will have a ">STATE:" prefix
+prepended to them.
+
+COMMAND -- status
+-----------------
+
+Show current daemon status information, in the same format as
+that produced by the OpenVPN --status directive.
+
+Command examples:
+
+status   -- Show status information using the default status
+            format version.
+
+status 2 -- Show status information using status format version 2.
+
+COMMAND -- username
+-------------------
+
+See the "password" section above.
+
+COMMAND -- verb
+---------------
+
+Change the OpenVPN --verb parameter.  The verb parameter
+controls the output verbosity, and may range from 0 (no output)
+to 15 (maximum output).  See the OpenVPN man page for additional
+info on verbosity levels.
+
+Command examples:
+
+  verb 4  -- change the verb parameter to 4
+  mute    -- show the current verb setting
+
+COMMAND -- version
+------------------
+
+Show the current OpenVPN and Management Interface versions.
+
+
+COMMAND -- auth-retry
+---------------------
+
+Set the --auth-retry setting to control how OpenVPN responds to
+username/password authentication errors.  See the manual page
+for more info.
+
+Command examples:
+
+  auth-retry interact -- Don't exit when bad username/passwords are entered.
+                         Query for new input and retry.
+
+OUTPUT FORMAT
+-------------
+
+(1) Command success/failure indicated by "SUCCESS: [text]" or
+    "ERROR: [text]".
+
+(2) For commands which print multiple lines of output,
+    the last line will be "END".
+
+(3) Real-time messages will be in the form ">[source]:[text]",
+    where source is "ECHO", "FATAL", "HOLD", "INFO", "LOG",
+    "PASSWORD", or "STATE".
+
+REAL-TIME MESSAGE FORMAT
+------------------------
+
+The OpenVPN management interface produces two kinds of
+output: (a) output from a command, or (b) asynchronous,
+real-time output which can be generated at any time.
+
+Real-time messages start with a '>' character in the first
+column and are immediately followed by a type keyword
+indicating the type of real-time message.  The following
+types are currently defined:
+
+ECHO     -- Echo messages as controlled by the "echo" command.
+
+FATAL    -- A fatal error which is output to the log file just
+            prior to OpenVPN exiting.
+
+HOLD     -- Used to indicate that OpenVPN is in a holding state
+            and will not start until it receives a
+            "hold release" command.
+
+INFO     -- Informational messages such as the welcome message.
+
+LOG      -- Log message output as controlled by the "log" command.
+
+PASSWORD -- Used to tell the management client that OpenVPN
+            needs a password, also to indicate password
+            verification failure.
+
+STATE    -- Shows the current OpenVPN state, as controlled
+            by the "state" command.
+
+Command Parsing
+---------------
+
+OpenVPN uses the same command line lexical analyzer as is used
+by the OpenVPN config file parser.
+
+Whitespace is a parameter separator.
+
+Double  quotation characters ("") can be used to enclose
+parameters containing whitespace
+
+Backslash-based shell escaping is performed, using the following
+mappings
+
+\\       Maps to a single backslash character (\).
+\"       Pass a literal doublequote character ("), don't
+         interpret it as enclosing a parameter.
+\[SPACE] Pass a literal space or tab character, don't
+         interpret it as a parameter delimiter.

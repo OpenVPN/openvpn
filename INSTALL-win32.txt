@@ -1,0 +1,3 @@
+OpenVPN on Windows Notes can be found here:
+
+http://openvpn.net/INSTALL-win32.html

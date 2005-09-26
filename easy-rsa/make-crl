@@ -1,0 +1,18 @@
+#!/bin/sh
+
+#
+# generate a CRL
+#
+#
+
+if test $# -ne 1; then
+        echo "usage: make-crl <crlfile.pem>";
+        exit 1
+fi
+
+if test $KEY_DIR; then
+       cd $KEY_DIR && \
+       openssl ca -gencrl -out $1 -config $KEY_CONFIG
+else
+       echo you must define KEY_DIR
+fi

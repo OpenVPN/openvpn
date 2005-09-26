@@ -1,0 +1,47 @@
+OpenVPN Plugins
+---------------
+
+Starting with OpenVPN 2.0-beta17, compiled plugin modules are
+supported on any *nix OS which includes libdl or on Windows.
+One or more modules may be loaded into OpenVPN using
+the --plugin directive, and each plugin module is capable of
+intercepting any of the script callbacks which OpenVPN supports:
+
+(1) up
+(2) down
+(3) route-up
+(4) ipchange
+(5) tls-verify
+(6) auth-user-pass-verify
+(7) client-connect
+(8) client-disconnect
+(9) learn-address
+
+See the openvpn-plugin.h file in the top-level directory of the
+OpenVPN source distribution for more detailed information
+on the plugin interface.
+
+Included Plugins
+----------------
+
+auth-pam -- Authenticate using PAM and a split privilege
+            execution model which functions even if
+            root privileges or the execution environment
+            have been altered with --user/--group/--chroot.
+            Tested on Linux only.
+
+down-root -- Enable the running of down scripts with root privileges
+             even if --user/--group/--chroot have been used
+             to drop root privileges or change the execution
+             environment.  Not applicable on Windows.
+
+examples -- A simple example that demonstrates a portable
+            plugin, i.e. one which can be built for *nix
+            or Windows from the same source.
+
+Building Plugins
+----------------
+
+cd to the top-level directory of a plugin, and use the
+"make" command to build it.  The examples plugin is
+built using a build script, not a makefile.

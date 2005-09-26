@@ -1,0 +1,18 @@
+#!/bin/sh
+
+#
+# list revoked certificates
+#
+#
+
+if test $# -ne 1; then
+        echo "usage: list-crl <crlfile.pem>";
+        exit 1
+fi
+
+if test $KEY_DIR; then
+       cd $KEY_DIR && \
+       openssl crl -text -noout -in $1
+else
+       echo you must define KEY_DIR
+fi
