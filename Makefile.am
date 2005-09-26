@@ -125,4 +125,4 @@ EXTRA_DIST = \
         management
 
 dist-hook:
-	cd $(distdir) && for i in $(EXTRA_DIST) ; do find $$i -name CVS -type d -prune -exec rm -r '{}' ';' ; rm -f `find $$i -type f | grep -E '(^|\/)\.?\#|\~$$|\.s?o$$'` ; done
+	cd $(distdir) && for i in $(EXTRA_DIST) ; do find $$i -name .svn -type d -prune -exec rm -r '{}' ';' ; rm -f `find $$i -type f | grep -E '(^|\/)\.?\#|\~$$|\.s?o$$'` ; done
