@@ -7,7 +7,7 @@ NOTE: THESE KEYS ARE FOR TESTING PURPOSES ONLY.
       DON'T USE THEM FOR ANY REAL WORK BECAUSE
       THEY ARE TOTALLY INSECURE!
 
-tmp-ca.{crt,key} -- sample CA key/cert
+ca.{crt,key}     -- sample CA key/cert
 client.{crt,key} -- sample client key/cert
 server.{crt,key} -- sample server key/cert (nsCertType=server)
 pass.{crt,key}   -- sample client key/cert with password-encrypted key

@@ -17,7 +17,7 @@ dev null
 verb 3
 reneg-sec 10
 tls-client
-ca sample-keys/tmp-ca.crt
+ca sample-keys/ca.crt
 key sample-keys/client.key
 cert sample-keys/client.crt
 cipher DES-EDE3-CBC

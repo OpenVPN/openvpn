@@ -3363,15 +3363,15 @@ certificate.  This file can have multiple
 certificates in .pem format, concatenated together.  You can construct your own
 certificate authority certificate and private key by using a command such as:
 
-.B openssl req -nodes -new -x509 -keyout tmp-ca.key -out tmp-ca.crt
+.B openssl req -nodes -new -x509 -keyout ca.key -out ca.crt
 
 Then edit your openssl.cnf file and edit the
 .B certificate
 variable to point to your new root certificate
-.B tmp-ca.crt.
+.B ca.crt.
 
 For testing purposes only, the OpenVPN distribution includes a sample
-CA certificate (tmp-ca.crt).
+CA certificate (ca.crt).
 Of course you should never use
 the test certificates and test keys distributed with OpenVPN in a
 production environment, since by virtue of the fact that
@@ -5001,9 +5001,9 @@ Diffie Hellman parameters (see above where
 .B --dh
 is discussed for more info).  You can also use the
 included test files client.crt, client.key,
-server.crt, server.key and tmp-ca.crt.
+server.crt, server.key and ca.crt.
 The .crt files are certificates/public-keys, the .key
-files are private keys, and tmp-ca.crt is a certification
+files are private keys, and ca.crt is a certification
 authority who has signed both
 client.crt and server.crt.  For Diffie Hellman
 parameters you can use the included file dh1024.pem.
@@ -5011,11 +5011,11 @@ parameters you can use the included file dh1024.pem.
 .LP
 On may:
 .IP
-.B openvpn --remote june.kg --dev tun1 --ifconfig 10.4.0.1 10.4.0.2 --tls-client --ca tmp-ca.crt --cert client.crt --key client.key --reneg-sec 60 --verb 5
+.B openvpn --remote june.kg --dev tun1 --ifconfig 10.4.0.1 10.4.0.2 --tls-client --ca ca.crt --cert client.crt --key client.key --reneg-sec 60 --verb 5
 .LP
 On june:
 .IP
-.B openvpn --remote may.kg --dev tun1 --ifconfig 10.4.0.2 10.4.0.1 --tls-server --dh dh1024.pem --ca tmp-ca.crt --cert server.crt --key server.key --reneg-sec 60 --verb 5
+.B openvpn --remote may.kg --dev tun1 --ifconfig 10.4.0.2 10.4.0.1 --tls-server --dh dh1024.pem --ca ca.crt --cert server.crt --key server.key --reneg-sec 60 --verb 5
 .LP
 Now verify the tunnel is working by pinging across the tunnel.
 .LP
