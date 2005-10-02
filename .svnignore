@@ -30,3 +30,7 @@ config-win32.h
 install-sh
 autom4te*.cache
 .deps
+*.tar.gz
+*.exe
+*.asc
+*.zip
