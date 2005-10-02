@@ -22,6 +22,9 @@
  *  59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
+#ifndef OPENVPN_LZO_H
+#define OPENVPN_LZO_H
+
 #ifdef USE_LZO
 
 #ifdef LZO_HEADER_DIR
@@ -36,6 +39,11 @@
 #include "mtu.h"
 #include "common.h"
 #include "status.h"
+
+/* LZO flags */
+#define LZO_SELECTED   (1<<0)
+#define LZO_ON         (1<<1)
+#define LZO_ADAPTIVE   (1<<2)  
 
 /*
  * Use LZO compress routine lzo1x_1_15_compress which is described
@@ -74,7 +82,6 @@
 				 retest for n seconds */
 
 struct lzo_adaptive_compress {
-  bool enabled;
   bool compress_state;
   time_t next;
   int n_total;
@@ -90,6 +97,8 @@ struct lzo_compress_workspace
   lzo_voidp wmem;
   int wmem_size;
   struct lzo_adaptive_compress ac;
+  unsigned int flags;
+  bool defined;
 
   /* statistics */
   counter_type pre_decompress;
@@ -100,9 +109,11 @@ struct lzo_compress_workspace
 
 void lzo_adjust_frame_parameters(struct frame *frame);
 
-void lzo_compress_init (struct lzo_compress_workspace *lzowork, bool adaptive);
+void lzo_compress_init (struct lzo_compress_workspace *lzowork, unsigned int flags);
 
 void lzo_compress_uninit (struct lzo_compress_workspace *lzowork);
+
+void lzo_modify_flags (struct lzo_compress_workspace *lzowork, unsigned int flags);
 
 void lzo_compress (struct buffer *buf, struct buffer work,
 		   struct lzo_compress_workspace *lzowork,
@@ -114,4 +125,12 @@ void lzo_decompress (struct buffer *buf, struct buffer work,
 
 void lzo_print_stats (const struct lzo_compress_workspace *lzo_compwork, struct status_output *so);
 
+static inline bool
+lzo_defined (const struct lzo_compress_workspace *lzowork)
+{
+  return lzowork->defined;
+}
+
+
 #endif /* USE_LZO */
+#endif

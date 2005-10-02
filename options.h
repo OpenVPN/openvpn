@@ -39,6 +39,7 @@
 #include "plugin.h"
 #include "manage.h"
 #include "proxy.h"
+#include "lzo.h"
 
 /*
  * Maximum number of parameters associated with an option,
@@ -224,8 +225,8 @@ struct options
   bool fast_io;
 
 #ifdef USE_LZO
-  bool comp_lzo;
-  bool comp_lzo_adaptive;
+  /* LZO_x flags from lzo.h */
+  unsigned int lzo;
 #endif
 
   /* buffer sizes */

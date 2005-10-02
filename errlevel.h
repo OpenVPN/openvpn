@@ -115,7 +115,7 @@
 #define D_PID_DEBUG_LOW      LOGLEV(7, 70, M_DEBUG)  /* show low-freq packet-id debugging info */
 #define D_MULTI_DEBUG        LOGLEV(7, 70, M_DEBUG)  /* show medium-freq multi debugging info */
 #define D_MSS                LOGLEV(7, 70, M_DEBUG)  /* show MSS adjustments */
-#define D_COMP_LOW           LOGLEV(7, 70, M_DEBUG)  /* show adaptive compression state changes */
+#define D_COMP_LOW           LOGLEV(3, 70, M_DEBUG)  /* show adaptive compression state changes JYFIXME */
 #define D_REMOTE_LIST        LOGLEV(7, 70, M_DEBUG)  /* show --remote list */
 #define D_SCRIPT             LOGLEV(7, 70, M_DEBUG)  /* show parms & env vars passed to scripts */
 #define D_SHOW_NET           LOGLEV(7, 70, M_DEBUG)  /* show routing table and adapter list */
@@ -142,7 +142,7 @@
 
 #define D_TLS_DEBUG          LOGLEV(9, 70, M_DEBUG)  /* show detailed info from TLS routines */
 #define D_CRYPTO_DEBUG       LOGLEV(9, 70, M_DEBUG)  /* show detailed info from crypto.c routines */
-#define D_COMP               LOGLEV(9, 70, M_DEBUG)  /* show compression info */
+#define D_COMP               LOGLEV(4, 70, M_DEBUG)  /* show compression info JYFIXME */
 #define D_READ_WRITE         LOGLEV(9, 70, M_DEBUG)  /* show all tun/tcp/udp reads/writes/opens */
 #define D_PACKET_CONTENT     LOGLEV(9, 70, M_DEBUG)  /* show before/after encryption packet content */
 #define D_TLS_NO_SEND_KEY    LOGLEV(9, 70, M_DEBUG)  /* show when no data channel send-key exists */

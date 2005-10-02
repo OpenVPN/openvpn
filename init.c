@@ -956,6 +956,7 @@ pull_permission_mask (const struct context *c)
     | OPT_P_SETENV
     | OPT_P_SHAPER
     | OPT_P_TIMER
+    | OPT_P_COMP
     | OPT_P_PERSIST
     | OPT_P_MESSAGES
     | OPT_P_EXPLICIT_NOTIFY
@@ -995,6 +996,17 @@ do_deferred_options (struct context *c, const unsigned int found)
 	}
       else
 	msg (D_PUSH, "OPTIONS IMPORT: explicit notify parm(s) modified");
+    }
+#endif
+
+#ifdef USE_LZO
+  if (found & OPT_P_COMP)
+    {
+      if (lzo_defined (&c->c2.lzo_compwork))
+	{
+	  msg (D_PUSH, "OPTIONS IMPORT: LZO parms modified");
+	  lzo_modify_flags (&c->c2.lzo_compwork, c->options.lzo);
+	}
     }
 #endif
 
@@ -1474,7 +1486,7 @@ do_init_frame (struct context *c)
   /*
    * Initialize LZO compression library.
    */
-  if (c->options.comp_lzo)
+  if (c->options.lzo & LZO_SELECTED)
     {
       lzo_adjust_frame_parameters (&c->c2.frame);
 
@@ -1493,7 +1505,7 @@ do_init_frame (struct context *c)
       lzo_adjust_frame_parameters (&c->c2.frame_fragment_omit);	/* omit LZO frame delta from final frame_fragment */
 #endif
     }
-#endif
+#endif /* USE_LZO */
 
 #ifdef ENABLE_SOCKS
   /*
@@ -2404,8 +2416,8 @@ init_instance (struct context *c, const struct env_set *env, const unsigned int 
 
 #ifdef USE_LZO
   /* initialize LZO compression library. */
-  if (options->comp_lzo && (c->mode == CM_P2P || child))
-    lzo_compress_init (&c->c2.lzo_compwork, options->comp_lzo_adaptive);
+  if ((options->lzo & LZO_SELECTED) && (c->mode == CM_P2P || child))
+    lzo_compress_init (&c->c2.lzo_compwork, options->lzo);
 #endif
 
   /* initialize MTU variables */
@@ -2496,7 +2508,7 @@ close_instance (struct context *c)
 	do_close_check_if_restart_permitted (c);
 
 #ifdef USE_LZO
-	if (c->options.comp_lzo)
+	if (lzo_defined (&c->c2.lzo_compwork))
 	  lzo_compress_uninit (&c->c2.lzo_compwork);
 #endif
 

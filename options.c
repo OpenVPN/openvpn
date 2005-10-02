@@ -560,9 +560,6 @@ init_options (struct options *o)
   o->rcvbuf = 65536;
   o->sndbuf = 65536;
 #endif
-#ifdef USE_LZO
-  o->comp_lzo_adaptive = true;
-#endif
 #ifdef TARGET_LINUX
   o->tuntap_options.txqueuelen = 100;
 #endif
@@ -1062,8 +1059,7 @@ show_settings (const struct options *o)
   SHOW_BOOL (fast_io);
 
 #ifdef USE_LZO
-  SHOW_BOOL (comp_lzo);
-  SHOW_BOOL (comp_lzo_adaptive);
+  SHOW_INT (lzo);
 #endif
 
   SHOW_STR (route_script);
@@ -1833,7 +1829,7 @@ options_string (const struct options *o,
     }
 
 #ifdef USE_LZO
-  if (o->comp_lzo)
+  if (o->lzo & LZO_SELECTED)
     buf_printf (&out, ",comp-lzo");
 #endif
 
@@ -4318,12 +4314,28 @@ add_option (struct options *options,
   else if (streq (p[0], "comp-lzo"))
     {
       VERIFY_PERMISSION (OPT_P_COMP);
-      options->comp_lzo = true;
+      if (p[1])
+	{
+	  ++i;
+	  if (streq (p[1], "yes"))
+	    options->lzo = LZO_SELECTED|LZO_ON;
+	  else if (streq (p[1], "no"))
+	    options->lzo = LZO_SELECTED;
+	  else if (streq (p[1], "adaptive"))
+	    options->lzo = LZO_SELECTED|LZO_ON|LZO_ADAPTIVE;
+	  else
+	    {
+	      msg (msglevel, "bad comp-lzo option: %s -- must be 'yes', 'no', or 'adaptive'", p[1]);
+	      goto err;
+	    }
+	}
+      else
+	options->lzo = LZO_SELECTED|LZO_ON|LZO_ADAPTIVE;
     }
   else if (streq (p[0], "comp-noadapt"))
     {
       VERIFY_PERMISSION (OPT_P_COMP);
-      options->comp_lzo_adaptive = false;
+      options->lzo &= ~LZO_ADAPTIVE;
     }
 #endif /* USE_LZO */
 #ifdef USE_CRYPTO

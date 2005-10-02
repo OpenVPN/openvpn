@@ -239,7 +239,7 @@ print_status (const struct context *c, struct status_output *so)
   status_printf (so, "TCP/UDP write bytes," counter_format, c->c2.link_write_bytes);
   status_printf (so, "Auth read bytes," counter_format, c->c2.link_read_bytes_auth);
 #ifdef USE_LZO
-  if (c->options.comp_lzo)
+  if (lzo_defined (&c->c2.lzo_compwork))
     lzo_print_stats (&c->c2.lzo_compwork, so);
 #endif
 #ifdef PACKET_TRUNCATION_CHECK

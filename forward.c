@@ -397,7 +397,7 @@ encrypt_sign (struct context *c, bool comp_frag)
     {
 #ifdef USE_LZO
       /* Compress the packet. */
-      if (c->options.comp_lzo)
+      if (lzo_defined (&c->c2.lzo_compwork))
 	lzo_compress (&c->c2.buf, b->lzo_compress_buf, &c->c2.lzo_compwork, &c->c2.frame);
 #endif
 #ifdef ENABLE_FRAGMENT
@@ -764,7 +764,7 @@ process_incoming_link (struct context *c)
 
 #ifdef USE_LZO
       /* decompress the incoming packet */
-      if (c->options.comp_lzo)
+      if (lzo_defined (&c->c2.lzo_compwork))
 	lzo_decompress (&c->c2.buf, c->c2.buffers->lzo_decompress_buf, &c->c2.lzo_compwork, &c->c2.frame);
 #endif
 

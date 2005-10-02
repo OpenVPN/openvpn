@@ -44,9 +44,6 @@ lzo_adaptive_compress_test (struct lzo_adaptive_compress *ac)
   const bool save = ac->compress_state;
   const time_t local_now = now;
 
-  if (!ac->enabled)
-    return true;
-
   if (!ac->compress_state)
     {
       if (local_now >= ac->next)
@@ -84,11 +81,8 @@ lzo_adaptive_compress_test (struct lzo_adaptive_compress *ac)
 inline static void
 lzo_adaptive_compress_data (struct lzo_adaptive_compress *ac, int n_total, int n_comp)
 {
-  if (ac->enabled)
-    {
-      ac->n_total += n_total;
-      ac->n_comp += n_comp;
-    }
+  ac->n_total += n_total;
+  ac->n_comp += n_comp;
 }
 
 void lzo_adjust_frame_parameters (struct frame *frame)
@@ -102,18 +96,19 @@ void lzo_adjust_frame_parameters (struct frame *frame)
 }
 
 void
-lzo_compress_init (struct lzo_compress_workspace *lzowork, bool adaptive)
+lzo_compress_init (struct lzo_compress_workspace *lzowork, unsigned int flags)
 {
   CLEAR (*lzowork);
 
   lzowork->wmem_size = LZO_WORKSPACE;
-  lzowork->ac.enabled = adaptive;
+  lzowork->flags = flags;
 
   if (lzo_init () != LZO_E_OK)
     msg (M_FATAL, "Cannot initialize LZO compression library");
   lzowork->wmem = (lzo_voidp) lzo_malloc (lzowork->wmem_size);
   check_malloc_return (lzowork->wmem);
   msg (M_INFO, "LZO compression initialized");
+  lzowork->defined = true;
 }
 
 void
@@ -121,9 +116,24 @@ lzo_compress_uninit (struct lzo_compress_workspace *lzowork)
 {
   if (lzowork)
     {
+      ASSERT (lzowork->defined);
       lzo_free (lzowork->wmem);
       lzowork->wmem = NULL;
+      lzowork->defined = false;
     }
+}
+
+static inline bool
+lzo_compression_enabled (struct lzo_compress_workspace *lzowork)
+{
+  if ((lzowork->flags & (LZO_SELECTED|LZO_ON)) == (LZO_SELECTED|LZO_ON))
+    {
+      if (lzowork->flags & LZO_ADAPTIVE)
+	return lzo_adaptive_compress_test (&lzowork->ac);
+      else
+	return true;
+    }
+  return false;
 }
 
 /* Magic numbers to tell our peer if we compressed or not */
@@ -139,6 +149,8 @@ lzo_compress (struct buffer *buf, struct buffer work,
   int err;
   bool compressed = false;
 
+  ASSERT (lzowork->defined);
+
   if (buf->len <= 0)
     return;
 
@@ -146,7 +158,7 @@ lzo_compress (struct buffer *buf, struct buffer work,
    * In order to attempt compression, length must be at least COMPRESS_THRESHOLD,
    * and our adaptive level must give the OK.
    */
-  if (buf->len >= COMPRESS_THRESHOLD && lzo_adaptive_compress_test (&lzowork->ac))
+  if (buf->len >= COMPRESS_THRESHOLD && lzo_compression_enabled (lzowork))
     {
       ASSERT (buf_init (&work, FRAME_HEADROOM (frame)));
       ASSERT (buf_safe (&work, LZO_EXTRA_BUFFER (PAYLOAD_SIZE (frame))));
@@ -169,7 +181,8 @@ lzo_compress (struct buffer *buf, struct buffer work,
       lzowork->post_compress += work.len;
 
       /* tell adaptive level about our success or lack thereof in getting any size reduction */
-      lzo_adaptive_compress_data(&lzowork->ac, buf->len, work.len);
+      if (lzowork->flags & LZO_ADAPTIVE)
+	lzo_adaptive_compress_data (&lzowork->ac, buf->len, work.len);
     }
 
   /* did compression save us anything ? */
@@ -194,6 +207,8 @@ lzo_decompress (struct buffer *buf, struct buffer work,
   lzo_uint zlen = EXPANDED_SIZE (frame);
   uint8_t c;		/* flag indicating whether or not our peer compressed */
   int err;
+
+  ASSERT (lzowork->defined);
 
   if (buf->len <= 0)
     return;
@@ -235,11 +250,20 @@ lzo_decompress (struct buffer *buf, struct buffer work,
     }
 }
 
+void
+lzo_modify_flags (struct lzo_compress_workspace *lzowork, unsigned int flags)
+{
+  ASSERT (lzowork->defined);
+  lzowork->flags = flags;
+}
+
 /*
  * Print statistics
  */
 void lzo_print_stats (const struct lzo_compress_workspace *lzo_compwork, struct status_output *so)
 {
+  ASSERT (lzo_compwork->defined);
+
   status_printf (so, "pre-compress bytes," counter_format, lzo_compwork->pre_compress);
   status_printf (so, "post-compress bytes," counter_format, lzo_compwork->post_compress);
   status_printf (so, "pre-decompress bytes," counter_format, lzo_compwork->pre_decompress);
