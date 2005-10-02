@@ -3,16 +3,13 @@ Copyright (C) 2002-2005 OpenVPN Solutions LLC <info@openvpn.net>
 
 $Id$
 
-2005.10.01 -- Version 2.1-beta2
+2005.10.01 -- Version 2.1-beta1
 
 * Made LZO setting pushable.
 * Renamed sample-keys/tmp-ca.crt to ca.crt.
 * Fixed bug where remove_iroutes_from_push_route_list
   was missing routes if those routes had
   an implied netmask (by omission) of 255.255.255.255. 
-
-2005.09.26 -- Version 2.1-beta1
-
 * Merged with 2.0.3-rc1
 * easy-rsa/2.0 moved to easy-rsa
 * old easy-rsa moved to easy-rsa/1.0
