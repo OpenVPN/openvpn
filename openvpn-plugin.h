@@ -290,6 +290,30 @@ OPENVPN_PLUGIN_DEF void OPENVPN_PLUGIN_FUNC(openvpn_plugin_client_destructor_v1)
      (openvpn_plugin_handle_t handle, void *per_client_context);
 
 /*
+ * FUNCTION: openvpn_plugin_select_initialization_point_v1
+ *
+ * Several different points exist in OpenVPN's initialization sequence where
+ * the openvpn_plugin_open function can be called.  While the default is
+ * OPENVPN_PLUGIN_INIT_PRE_DAEMON, this function can be used to select a
+ * different initialization point.  For example, if your plugin needs to
+ * return configuration parameters to OpenVPN, use
+ * OPENVPN_PLUGIN_INIT_PRE_CONFIG_PARSE.
+ *
+ * REQUIRED: NO
+ * 
+ * RETURN VALUE:
+ *
+ * An OPENVPN_PLUGIN_INIT_x value.
+ */
+#define OPENVPN_PLUGIN_INIT_PRE_CONFIG_PARSE 1
+#define OPENVPN_PLUGIN_INIT_PRE_DAEMON       2 /* default */
+#define OPENVPN_PLUGIN_INIT_POST_DAEMON      3
+#define OPENVPN_PLUGIN_INIT_POST_UID_CHANGE  4
+
+OPENVPN_PLUGIN_DEF int OPENVPN_PLUGIN_FUNC(openvpn_plugin_select_initialization_point_v1)
+     (void);
+
+/*
  * FUNCTION: openvpn_plugin_min_version_required_v1
  *
  * This function is called by OpenVPN to query the minimum

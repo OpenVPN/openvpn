@@ -48,7 +48,7 @@
 
 #include "openvpn-plugin.h"
 
-#define DEBUG(verb) ((verb) >= 7)
+#define DEBUG(verb) ((verb) >= 4)
 
 /* Command codes for foreground -> background communication */
 #define COMMAND_VERIFY 0
@@ -206,6 +206,8 @@ send_string (int fd, const char *string)
     return -1;
 }
 
+#ifdef DO_DAEMONIZE
+
 /*
  * Daemonize if "daemon" env var is true.
  * Preserve stderr across daemonization if
@@ -232,6 +234,8 @@ daemonize (const char *envp[])
 	}
     }
 }
+
+#endif
 
 /*
  * Close most of parent's fds.
@@ -405,8 +409,10 @@ openvpn_plugin_open_v1 (unsigned int *type_mask, const char *argv[], const char 
       /* Ignore most signals (the parent will receive them) */
       set_signals ();
 
+#ifdef DO_DAEMONIZE
       /* Daemonize if --daemon option is set. */
       daemonize (envp);
+#endif
 
       /* execute the event loop */
       pam_server (fd[1], argv[1], context->verb, &name_value_list);

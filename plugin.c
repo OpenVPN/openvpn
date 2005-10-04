@@ -176,13 +176,9 @@ dll_resolve_symbol (HMODULE module, void **dest, const char *symbol, const char 
 #endif
 
 static void
-plugin_init_item (struct plugin *p,
-		  const struct plugin_option *o,
-		  struct openvpn_plugin_string_list **retlist,
-		  const char **envp)
+plugin_init_item (struct plugin *p, const struct plugin_option *o)
 {
   struct gc_arena gc = gc_new ();
-  const char **argv = make_arg_array (o->so_pathname, o->args, &gc);
   p->so_pathname = o->so_pathname;
   p->plugin_type_mask = plugin_supported_types ();
 
@@ -210,18 +206,16 @@ plugin_init_item (struct plugin *p,
   PLUGIN_SYM (func2, "openvpn_plugin_func_v2", 0);
   PLUGIN_SYM (close, "openvpn_plugin_close_v1", PLUGIN_SYMBOL_REQUIRED);
   PLUGIN_SYM (abort, "openvpn_plugin_abort_v1", 0);
-  PLUGIN_SYM (min_version_required, "openvpn_plugin_min_version_required_v1", 0);
   PLUGIN_SYM (client_constructor, "openvpn_plugin_client_constructor_v1", 0);
   PLUGIN_SYM (client_destructor, "openvpn_plugin_client_destructor_v1", 0);
+  PLUGIN_SYM (min_version_required, "openvpn_plugin_min_version_required_v1", 0);
+  PLUGIN_SYM (initialization_point, "openvpn_plugin_select_initialization_point_v1", 0);
 
   if (!p->open1 && !p->open2)
     msg (M_FATAL, "PLUGIN: symbol openvpn_plugin_open_vX is undefined in plugin: %s", p->so_pathname);
 
   if (!p->func1 && !p->func2)
     msg (M_FATAL, "PLUGIN: symbol openvpn_plugin_func_vX is undefined in plugin: %s", p->so_pathname);
-
-  dmsg (D_PLUGIN_DEBUG, "PLUGIN_INIT: PRE");
-  plugin_show_args_env (D_PLUGIN_DEBUG, argv, envp);
 
   /*
    * Verify that we are sufficiently up-to-date to handle the plugin
@@ -236,36 +230,65 @@ plugin_init_item (struct plugin *p,
 	     p->so_pathname);
     }
 
+  if (p->initialization_point)
+    p->requested_initialization_point = (*p->initialization_point)();
+  else
+    p->requested_initialization_point = OPENVPN_PLUGIN_INIT_PRE_DAEMON;
+
+  p->initialized = true;
+
+  gc_free (&gc);
+}
+
+static void
+plugin_open_item (struct plugin *p,
+		  const struct plugin_option *o,
+		  struct openvpn_plugin_string_list **retlist,
+		  const char **envp,
+		  const int init_point)
+{
+  ASSERT (p->initialized);
+
+  /* clear return list */
   if (retlist)
     *retlist = NULL;
 
-  /*
-   * Call the plugin initialization
-   */
-  if (p->open2)
-    p->plugin_handle = (*p->open2)(&p->plugin_type_mask, argv, envp, retlist);
-  else if (p->open1)
-    p->plugin_handle = (*p->open1)(&p->plugin_type_mask, argv, envp);
-  else
-    ASSERT (0);
+  if (!p->plugin_handle && init_point == p->requested_initialization_point)
+    {
+      struct gc_arena gc = gc_new ();
+      const char **argv = make_arg_array (o->so_pathname, o->args, &gc);
 
-  msg (D_PLUGIN, "PLUGIN_INIT: POST %s '%s' intercepted=%s %s",
-       p->so_pathname,
-       o->args ? o->args : "[NULL]",
-       plugin_mask_string (p->plugin_type_mask, &gc),
-       (retlist && *retlist) ? "[RETLIST]" : "");
+      dmsg (D_PLUGIN_DEBUG, "PLUGIN_INIT: PRE");
+      plugin_show_args_env (D_PLUGIN_DEBUG, argv, envp);
 
-  if ((p->plugin_type_mask | plugin_supported_types()) != plugin_supported_types())
-    msg (M_FATAL, "PLUGIN_INIT: plugin %s expressed interest in unsupported plugin types: [want=0x%08x, have=0x%08x]",
-	 p->so_pathname,
-	 p->plugin_type_mask,
-	 plugin_supported_types());
+      /*
+       * Call the plugin initialization
+       */
+      if (p->open2)
+	p->plugin_handle = (*p->open2)(&p->plugin_type_mask, argv, envp, retlist);
+      else if (p->open1)
+	p->plugin_handle = (*p->open1)(&p->plugin_type_mask, argv, envp);
+      else
+	ASSERT (0);
 
-  if (p->plugin_handle == NULL)
-    msg (M_FATAL, "PLUGIN_INIT: plugin initialization function failed: %s",
-	 p->so_pathname);
+      msg (D_PLUGIN, "PLUGIN_INIT: POST %s '%s' intercepted=%s %s",
+	   p->so_pathname,
+	   o->args ? o->args : "[NULL]",
+	   plugin_mask_string (p->plugin_type_mask, &gc),
+	   (retlist && *retlist) ? "[RETLIST]" : "");
+      
+      if ((p->plugin_type_mask | plugin_supported_types()) != plugin_supported_types())
+	msg (M_FATAL, "PLUGIN_INIT: plugin %s expressed interest in unsupported plugin types: [want=0x%08x, have=0x%08x]",
+	     p->so_pathname,
+	     p->plugin_type_mask,
+	     plugin_supported_types());
 
-  gc_free (&gc);
+      if (p->plugin_handle == NULL)
+	msg (M_FATAL, "PLUGIN_INIT: plugin initialization function failed: %s",
+	     p->so_pathname);
+
+      gc_free (&gc);
+    }
 }
 
 static int
@@ -278,16 +301,17 @@ plugin_call_item (const struct plugin *p,
 {
   int status = OPENVPN_PLUGIN_FUNC_SUCCESS;
 
-  if (p->plugin_type_mask & OPENVPN_PLUGIN_MASK (type))
+  /* clear return list */
+  if (retlist)
+    *retlist = NULL;
+
+  if (p->plugin_handle && (p->plugin_type_mask & OPENVPN_PLUGIN_MASK (type)))
     {
       struct gc_arena gc = gc_new ();
       const char **argv = make_arg_array (p->so_pathname, args, &gc);
 
       dmsg (D_PLUGIN_DEBUG, "PLUGIN_CALL: PRE type=%s", plugin_type_name (type));
       plugin_show_args_env (D_PLUGIN_DEBUG, argv, envp);
-
-      if (retlist)
-	*retlist = NULL;
 
       /*
        * Call the plugin work function
@@ -316,22 +340,28 @@ plugin_call_item (const struct plugin *p,
 }
 
 static void
-plugin_close_item (const struct plugin *p)
+plugin_close_item (struct plugin *p)
 {
-  msg (D_PLUGIN, "PLUGIN_CLOSE: %s", p->so_pathname);
+  if (p->initialized)
+    {
+      msg (D_PLUGIN, "PLUGIN_CLOSE: %s", p->so_pathname);
 
-  /*
-   * Call the plugin close function
-   */
-  (*p->close)(p->plugin_handle);
+      /*
+       * Call the plugin close function
+       */
+      if (p->plugin_handle)
+	(*p->close)(p->plugin_handle);
 
 #if defined(USE_LIBDL)
-  if (dlclose (p->handle))
-    msg (M_WARN, "PLUGIN_CLOSE: dlclose() failed on plugin: %s", p->so_pathname);
+      if (dlclose (p->handle))
+	msg (M_WARN, "PLUGIN_CLOSE: dlclose() failed on plugin: %s", p->so_pathname);
 #elif defined(USE_LOAD_LIBRARY)
-  if (!FreeLibrary (p->module))
-    msg (M_WARN, "PLUGIN_CLOSE: FreeLibrary() failed on plugin: %s", p->so_pathname);
+      if (!FreeLibrary (p->module))
+	msg (M_WARN, "PLUGIN_CLOSE: FreeLibrary() failed on plugin: %s", p->so_pathname);
 #endif
+
+      p->initialized = false;
+    }
 }
 
 static void
@@ -345,7 +375,9 @@ plugin_abort_item (const struct plugin *p)
 }
 
 static void
-plugin_per_client_init (const struct plugin_common *pc, struct plugin_per_client *cli)
+plugin_per_client_init (const struct plugin_common *pc,
+			struct plugin_per_client *cli,
+			const int init_point)
 {
   const int n = pc->n;
   int i;
@@ -354,31 +386,28 @@ plugin_per_client_init (const struct plugin_common *pc, struct plugin_per_client
   for (i = 0; i < n; ++i)
     {
       const struct plugin *p = &pc->plugins[i];
-      
-      if (p->client_constructor)
+      if (p->plugin_handle
+	  && (init_point < 0 || init_point == p->requested_initialization_point)
+	  && p->client_constructor)
 	cli->per_client_context[i] = (*p->client_constructor)(p->plugin_handle);
     }
-  cli->initialized = true;
 }
 
 static void
 plugin_per_client_destroy (const struct plugin_common *pc, struct plugin_per_client *cli)
 {
-  if (cli->initialized)
+  const int n = pc->n;
+  int i;
+
+  for (i = 0; i < n; ++i)
     {
-      const int n = pc->n;
-      int i;
+      const struct plugin *p = &pc->plugins[i];
+      void *cc = cli->per_client_context[i];
 
-      for (i = 0; i < n; ++i)
-	{
-	  const struct plugin *p = &pc->plugins[i];
-	  void *cc = cli->per_client_context[i];
-
-	  if (p->client_destructor && cc)
-	    (*p->client_destructor)(p->plugin_handle, cc);
-	}
-      CLEAR (*cli);
+      if (p->client_destructor && cc)
+	(*p->client_destructor)(p->plugin_handle, cc);
     }
+  CLEAR (*cli);
 }
 
 struct plugin_list *
@@ -388,42 +417,58 @@ plugin_list_inherit (const struct plugin_list *src)
   ALLOC_OBJ_CLEAR (pl, struct plugin_list);
   pl->common = src->common;
   ASSERT (pl->common);
-  plugin_per_client_init (pl->common, &pl->per_client);
+  plugin_per_client_init (pl->common, &pl->per_client, -1);
   return pl;
 }
 
 static struct plugin_common *
-plugin_common_open (const struct plugin_option_list *list,
+plugin_common_init (const struct plugin_option_list *list)
+{
+  int i;
+  struct plugin_common *pc;
+
+  ALLOC_OBJ_CLEAR (pc, struct plugin_common);
+
+  for (i = 0; i < list->n; ++i)
+    {
+      plugin_init_item (&pc->plugins[i],
+			&list->plugins[i]);
+      pc->n = i + 1;
+    }
+
+  static_plugin_common = pc;
+  return pc;
+}
+
+static void
+plugin_common_open (struct plugin_common *pc,
+		    const struct plugin_option_list *list,
 		    struct plugin_return *pr,
-		    const struct env_set *es)
+		    const struct env_set *es,
+		    const int init_point)
 {
   struct gc_arena gc = gc_new ();
   int i;
-  struct plugin_common *pc;
   const char **envp;
-
-  ALLOC_OBJ_CLEAR (pc, struct plugin_common);
 
   envp = make_env_array (es, &gc);
 
   if (pr)
     plugin_return_init (pr);
 
-  for (i = 0; i < list->n; ++i)
+  for (i = 0; i < pc->n; ++i)
     {
-      plugin_init_item (&pc->plugins[i],
+      plugin_open_item (&pc->plugins[i],
 			&list->plugins[i],
 			pr ? &pr->list[i] : NULL,
-			envp);
-      pc->n = i + 1;
+			envp,
+			init_point);
     }
 
   if (pr)
     pr->n = i;
 
   gc_free (&gc);
-  static_plugin_common = pc;
-  return pc;
 }
 
 static void
@@ -441,16 +486,24 @@ plugin_common_close (struct plugin_common *pc)
 }
 
 struct plugin_list *
-plugin_list_open (const struct plugin_option_list *list,
-		  struct plugin_return *pr,
-		  const struct env_set *es)
+plugin_list_init (const struct plugin_option_list *list)
 {
   struct plugin_list *pl;
   ALLOC_OBJ_CLEAR (pl, struct plugin_list);
-  pl->common = plugin_common_open (list, pr, es);
+  pl->common = plugin_common_init (list);
   pl->common_owned = true;
-  plugin_per_client_init (pl->common, &pl->per_client);
   return pl;
+}
+
+void
+plugin_list_open (struct plugin_list *pl,
+		  const struct plugin_option_list *list,
+		  struct plugin_return *pr,
+		  const struct env_set *es,
+		  const int init_point)
+{
+  plugin_common_open (pl->common, list, pr, es, init_point);
+  plugin_per_client_init (pl->common, &pl->per_client, init_point);
 }
 
 int
@@ -479,8 +532,7 @@ plugin_call (const struct plugin_list *pl,
       for (i = 0; i < n; ++i)
 	{
 	  if (!plugin_call_item (&pl->common->plugins[i],
-				 pl->per_client.initialized
-				   ? pl->per_client.per_client_context[i] : NULL,
+				 pl->per_client.per_client_context[i],
 				 type,
 				 args,
 				 pr ? &pr->list[i] : NULL,
@@ -508,7 +560,6 @@ plugin_list_close (struct plugin_list *pl)
 {
   if (pl)
     {
-
       if (pl->common)
 	{
 	  plugin_per_client_destroy (pl->common, &pl->per_client);

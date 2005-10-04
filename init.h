@@ -118,7 +118,8 @@ void init_management_callback_p2p (struct context *c);
 void uninit_management_callback (void);
 
 #ifdef ENABLE_PLUGIN
-void open_plugins (struct context *c, const bool import_options);
+void init_plugins (struct context *c);
+void open_plugins (struct context *c, const bool import_options, int init_point);
 #endif
 
 #endif

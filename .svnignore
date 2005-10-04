@@ -34,3 +34,4 @@ autom4te*.cache
 *.exe
 *.asc
 *.zip
+*.so

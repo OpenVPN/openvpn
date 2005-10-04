@@ -2119,16 +2119,25 @@ do_signal_on_tls_errors (struct context *c)
 #ifdef ENABLE_PLUGIN
 
 void
-open_plugins (struct context *c, const bool import_options)
+init_plugins (struct context *c)
 {
   if (c->options.plugin_list && !c->plugins)
+    {
+      c->plugins = plugin_list_init (c->options.plugin_list);
+      c->plugins_owned = true;
+    }
+}
+
+void
+open_plugins (struct context *c, const bool import_options, int init_point)
+{
+  if (c->plugins && c->plugins_owned)
     {
       if (import_options)
 	{
 	  struct plugin_return pr, config;
 	  plugin_return_init (&pr);
-	  c->plugins = plugin_list_open (c->options.plugin_list, &pr, c->c2.es);
-	  c->plugins_owned = true;
+	  plugin_list_open (c->plugins, c->options.plugin_list, &pr, c->c2.es, init_point);
 	  plugin_return_get_column (&pr, &config, "config");
 	  if (plugin_return_defined (&config))
 	    {
@@ -2149,8 +2158,7 @@ open_plugins (struct context *c, const bool import_options)
 	}
       else
 	{
-	  c->plugins = plugin_list_open (c->options.plugin_list, NULL, c->c2.es);
-	  c->plugins_owned = true;
+	  plugin_list_open (c->plugins, c->options.plugin_list, NULL, c->c2.es, init_point);
 	}
     }
 }
@@ -2360,7 +2368,7 @@ init_instance (struct context *c, const struct env_set *env, const unsigned int 
 #ifdef ENABLE_PLUGIN
   /* initialize plugins */
   if (c->mode == CM_P2P || c->mode == CM_TOP)
-    open_plugins (c, false);
+    open_plugins (c, false, OPENVPN_PLUGIN_INIT_PRE_DAEMON);
 #endif
 
   /* should we enable fast I/O? */
@@ -2464,6 +2472,12 @@ init_instance (struct context *c, const struct env_set *env, const unsigned int 
   /* do one-time inits, and possibily become a daemon here */
   do_init_first_time (c);
 
+#ifdef ENABLE_PLUGIN
+  /* initialize plugins */
+  if (c->mode == CM_P2P || c->mode == CM_TOP)
+    open_plugins (c, false, OPENVPN_PLUGIN_INIT_POST_DAEMON);
+#endif
+
   /*
    * Actually do UID/GID downgrade, and chroot, if requested.
    * May be delayed by --client, --pull, or --up-delay.
@@ -2477,6 +2491,12 @@ init_instance (struct context *c, const struct env_set *env, const unsigned int 
   /* initialize timers */
   if (c->mode == CM_P2P || child)
     do_init_timers (c, false);
+
+#ifdef ENABLE_PLUGIN
+  /* initialize plugins */
+  if (c->mode == CM_P2P || c->mode == CM_TOP)
+    open_plugins (c, false, OPENVPN_PLUGIN_INIT_POST_UID_CHANGE);
+#endif
 
   /* Check for signals */
   if (IS_SIG (c))

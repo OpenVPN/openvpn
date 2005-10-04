@@ -48,8 +48,10 @@ struct plugin_option_list {
 };
 
 struct plugin {
+  bool initialized;
   const char *so_pathname;
   unsigned int plugin_type_mask;
+  int requested_initialization_point;
 
 #if defined(USE_LIBDL)
   void *handle;
@@ -63,16 +65,17 @@ struct plugin {
   openvpn_plugin_func_v2 func2;
   openvpn_plugin_close_v1 close;
   openvpn_plugin_abort_v1 abort;
-  openvpn_plugin_min_version_required_v1 min_version_required;
   openvpn_plugin_client_constructor_v1 client_constructor;
   openvpn_plugin_client_destructor_v1 client_destructor;
+  openvpn_plugin_min_version_required_v1 min_version_required;
+  openvpn_plugin_select_initialization_point_v1 initialization_point;
 
   openvpn_plugin_handle_t plugin_handle;
 };
 
 struct plugin_per_client
 {
-  bool initialized;
+  //bool initialized; JYFIXME
   void *per_client_context[MAX_PLUGINS];
 };
 
@@ -102,9 +105,13 @@ bool plugin_option_list_add (struct plugin_option_list *list, const char *so_pat
 void plugin_option_list_print (const struct plugin_option_list *list, int msglevel);
 #endif
 
-struct plugin_list *plugin_list_open (const struct plugin_option_list *list,
-				      struct plugin_return *pr,
-				      const struct env_set *es);
+struct plugin_list *plugin_list_init (const struct plugin_option_list *list);
+
+void plugin_list_open (struct plugin_list *pl,
+		       const struct plugin_option_list *list,
+		       struct plugin_return *pr,
+		       const struct env_set *es,
+		       const int init_point);
 
 struct plugin_list *plugin_list_inherit (const struct plugin_list *src);
 

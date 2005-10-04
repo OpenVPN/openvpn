@@ -149,7 +149,8 @@ main (int argc, char *argv[])
 #ifdef ENABLE_PLUGIN
 	  /* plugins may contribute options configuration */
 	  init_verb_mute (&c, IVM_LEVEL_1);
-	  open_plugins (&c, true);
+	  init_plugins (&c);
+	  open_plugins (&c, true, OPENVPN_PLUGIN_INIT_PRE_CONFIG_PARSE);
 #endif
 
 	  /* init verbosity and mute levels */
