@@ -114,7 +114,7 @@ openvpn \- secure IP tunnel daemon.
 [\ \fB\-\-client\-disconnect\fR\ ]
 [\ \fB\-\-client\-to\-client\fR\ ]
 [\ \fB\-\-client\fR\ ]
-[\ \fB\-\-comp\-lzo\fR\ ]
+[\ \fB\-\-comp\-lzo\fR\ \fI[mode]\fR\ ]
 [\ \fB\-\-comp\-noadapt\fR\ ]
 [\ \fB\-\-config\fR\ \fIfile\fR\ ]
 [\ \fB\-\-connect\-freq\fR\ \fIn\ sec\fR\ ]
@@ -245,6 +245,7 @@ openvpn \- secure IP tunnel daemon.
 [\ \fB\-\-show\-valid\-subnets\fR\ ]
 [\ \fB\-\-single\-session\fR\ ]
 [\ \fB\-\-sndbuf\fR\ \fIsize\fR\ ]
+[\ \fB\-\-socket\-flags\fR\ \fI[flags,\ ...]\fR\ ]
 [\ \fB\-\-socks\-proxy\-retry\fR\ ]
 [\ \fB\-\-socks\-proxy\fR\ \fIserver\ [port]\fR\ ]
 [\ \fB\-\-status\fR\ \fIfile\ [n]\fR\ ]
@@ -1309,6 +1310,15 @@ Set the TCP/UDP socket receive buffer size.
 Currently defaults to 65536 bytes.
 .\"*********************************************************
 .TP
+.B --socket-flags [flags, ...]
+Set one or more of the following socket flags:
+
+.B TCP_NODELAY --
+Optimize latency in TCP mode tunnels.
+
+This directive is pushable.
+.\"*********************************************************
+.TP
 .B --txqueuelen n
 (Linux only) Set the TX queue length on the TUN/TAP interface.
 Currently defaults to 100.
@@ -2089,9 +2099,45 @@ consecutive messages in the same category.  This is useful to
 limit repetitive logging of similar message types.
 .\"*********************************************************
 .TP
-.B --comp-lzo
+.B --comp-lzo [mode]
 Use fast LZO compression -- may add up to 1 byte per
 packet for incompressible data.
+.B mode
+may be "yes", "no", or "adaptive" (default).
+
+In a server mode setup, it is possible to selectively turn
+compression on or off for individual clients.
+
+First, make sure the client-side config file enables selective
+compression by having at least one
+.B --comp-lzo
+directive, such as
+.B --comp-lzo no.
+This will turn off compression by default,
+but allow a future directive push from the server to
+dynamically change the
+on/off/adaptive setting.
+
+Next in a
+.B --client-config-dir
+file, specify the compression setting for the client,
+for example:
+
+.RS
+.ft 3
+.nf
+.sp
+comp-lzo yes
+push "comp-lzo yes"
+.ft
+.LP
+.RE
+.fi
+
+The first line sets the
+.B comp-lzo
+setting for the server
+side of the link, the second sets the client side.
 .\"*********************************************************
 .TP
 .B --comp-noadapt
@@ -2341,7 +2387,10 @@ This is a partial list of options which can currently be pushed:
 .B --ip-win32, --dhcp-option,
 .B --inactive, --ping, --ping-exit, --ping-restart,
 .B --setenv,
-.B --persist-key, --persist-tun, --echo
+.B --persist-key, --persist-tun, --echo,
+.B --comp-lzo,
+.B --socket-flags,
+.B --sndbuf, --rcvbuf
 .\"*********************************************************
 .TP
 .B --push-reset

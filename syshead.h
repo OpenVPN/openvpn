@@ -181,6 +181,10 @@
 #include <linux/errqueue.h>
 #endif
 
+#ifdef HAVE_NETINET_TCP_H
+#include <netinet/tcp.h>
+#endif
+
 #endif /* TARGET_LINUX */
 
 #ifdef TARGET_SOLARIS

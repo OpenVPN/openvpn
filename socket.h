@@ -180,6 +180,9 @@ struct link_socket
 
   bool did_resolve_remote;
 
+# define SF_TCP_NODELAY (1<<0)
+  unsigned int sockflags;
+
   /* for stream sockets */
   struct stream_buf stream_buf;
   struct buffer stream_buf_data;
@@ -276,7 +279,8 @@ link_socket_init_phase1 (struct link_socket *sock,
 			 int connect_retry_seconds,
 			 int mtu_discover_type,
 			 int rcvbuf,
-			 int sndbuf);
+			 int sndbuf,
+			 unsigned int sockflags);
 
 void link_socket_init_phase2 (struct link_socket *sock,
 			      const struct frame *frame,
@@ -334,6 +338,9 @@ void link_socket_bad_outgoing_addr (void);
 void setenv_trusted (struct env_set *es, const struct link_socket_info *info);
 
 void remote_list_randomize (struct remote_list *l);
+
+bool link_socket_update_flags (struct link_socket *ls, unsigned int sockflags);
+void link_socket_update_buffer_sizes (struct link_socket *ls, int rcvbuf, int sndbuf);
 
 /*
  * Low-level functions

@@ -953,6 +953,8 @@ pull_permission_mask (const struct context *c)
       OPT_P_UP
     | OPT_P_ROUTE_EXTRAS
     | OPT_P_IPWIN32
+    | OPT_P_SOCKBUF
+    | OPT_P_SOCKFLAGS
     | OPT_P_SETENV
     | OPT_P_SHAPER
     | OPT_P_TIMER
@@ -1014,6 +1016,18 @@ do_deferred_options (struct context *c, const unsigned int found)
     {
       msg (D_PUSH, "OPTIONS IMPORT: traffic shaper enabled");
       do_init_traffic_shaper (c);
+    }
+
+  if (found & OPT_P_SOCKBUF)
+    {
+      msg (D_PUSH, "OPTIONS IMPORT: --sndbuf/--rcvbuf options modified");
+      link_socket_update_buffer_sizes (c->c2.link_socket, c->options.rcvbuf, c->options.sndbuf);
+    }
+
+  if (found & OPT_P_SOCKFLAGS)
+    {
+      msg (D_PUSH, "OPTIONS IMPORT: --socket-flags option modified");
+      link_socket_update_flags (c->c2.link_socket, c->options.sockflags);
     }
 
   if (found & OPT_P_PERSIST)
@@ -1751,7 +1765,8 @@ do_init_socket_1 (struct context *c, int mode)
 			   c->options.connect_retry_seconds,
 			   c->options.mtu_discover_type,
 			   c->options.rcvbuf,
-			   c->options.sndbuf);
+			   c->options.sndbuf,
+			   c->options.sockflags);
 }
 
 /*

@@ -3,6 +3,12 @@ Copyright (C) 2002-2005 OpenVPN Solutions LLC <info@openvpn.net>
 
 $Id$
 
+2005.10.13 -- Version 2.1-beta2
+
+* Added --socket-flags directive with TCP_NODELAY
+  flag (pushable).
+* Made --sndbuf and --rcvbuf pushable.
+
 2005.10.01 -- Version 2.1-beta1
 
 * Made LZO setting pushable.

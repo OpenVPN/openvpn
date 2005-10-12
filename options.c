@@ -206,6 +206,7 @@ static const char usage_message[] =
   "                  or --fragment max value, whichever is lower.\n"
   "--sndbuf size   : Set the TCP/UDP send buffer size.\n"
   "--rcvbuf size   : Set the TCP/UDP receive buffer size.\n"
+  "--socket-flags f: Set socket flags, currently 'TCP_NODELAY' supported.\n"
   "--txqueuelen n  : Set the tun/tap TX queue length to n (Linux only).\n"
   "--mlock         : Disable Paging -- ensures key material and tunnel\n"
   "                  data will never be written to disk.\n"
@@ -1044,6 +1045,7 @@ show_settings (const struct options *o)
 #endif
   SHOW_INT (rcvbuf);
   SHOW_INT (sndbuf);
+  SHOW_INT (sockflags);
 
 #ifdef ENABLE_HTTP_PROXY
   if (o->http_proxy_options)
@@ -3270,14 +3272,27 @@ add_option (struct options *options,
   else if (streq (p[0], "rcvbuf") && p[1])
     {
       ++i;
-      VERIFY_PERMISSION (OPT_P_GENERAL);
+      VERIFY_PERMISSION (OPT_P_SOCKBUF);
       options->rcvbuf = positive_atoi (p[1]);
     }
   else if (streq (p[0], "sndbuf") && p[1])
     {
       ++i;
-      VERIFY_PERMISSION (OPT_P_GENERAL);
+      VERIFY_PERMISSION (OPT_P_SOCKBUF);
       options->sndbuf = positive_atoi (p[1]);
+    }
+  else if (streq (p[0], "socket-flags"))
+    {
+      int j;
+      VERIFY_PERMISSION (OPT_P_SOCKFLAGS);
+      for (j = 1; j < MAX_PARMS && p[j]; ++j)
+	{
+	  ++i;
+	  if (streq (p[j], "TCP_NODELAY"))
+	    options->sockflags |= SF_TCP_NODELAY;
+	  else
+	    msg (msglevel, "unknown socket flag: %s", p[j]);	    
+	}
     }
   else if (streq (p[0], "txqueuelen") && p[1])
     {

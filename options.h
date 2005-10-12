@@ -233,6 +233,9 @@ struct options
   int rcvbuf;
   int sndbuf;
 
+  /* socket flags */
+  unsigned int sockflags;
+
   /* route management */
   const char *route_script;
   const char *route_default_gateway;
@@ -448,6 +451,8 @@ struct options
 #define OPT_P_ROUTE_EXTRAS    (1<<22)
 #define OPT_P_PULL_MODE       (1<<23)
 #define OPT_P_PLUGIN          (1<<24)
+#define OPT_P_SOCKBUF         (1<<25)
+#define OPT_P_SOCKFLAGS       (1<<26)
 
 #define OPT_P_DEFAULT   (~(OPT_P_INSTANCE|OPT_P_PULL_MODE))
 

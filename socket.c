@@ -332,6 +332,59 @@ socket_set_buffers (int fd, const struct socket_buffer_size *sbs)
 }
 
 /*
+ * Set other socket options
+ */
+
+static bool
+socket_set_tcp_nodelay (int sd, int state)
+{
+#if defined(HAVE_SETSOCKOPT) && defined(IPPROTO_TCP) && defined(TCP_NODELAY)
+  if (setsockopt (sd, IPPROTO_TCP, TCP_NODELAY, (void *) &state, sizeof (state)) != 0)
+    {
+      msg (M_WARN, "NOTE: setsockopt TCP_NODELAY=%d failed", state);
+      return false;
+    }
+  else
+    {
+      dmsg (D_OSBUF, "Socket flags: TCP_NODELAY=%d succeeded", state);
+      return true;
+    }
+#else
+  msg (M_WARN, "NOTE: setsockopt TCP_NODELAY=%d failed (No kernel support)", state);
+  return false;
+#endif
+}
+
+static bool
+socket_set_flags (int sd, unsigned int sockflags)
+{
+  if (sockflags & SF_TCP_NODELAY)
+    return socket_set_tcp_nodelay (sd, 1);
+  else
+    return true;
+}
+
+bool
+link_socket_update_flags (struct link_socket *ls, unsigned int sockflags)
+{
+  if (ls && socket_defined (ls->sd))
+    return socket_set_flags (ls->sd, ls->sockflags = sockflags);
+  else
+    return false;
+}
+
+void
+link_socket_update_buffer_sizes (struct link_socket *ls, int rcvbuf, int sndbuf)
+{
+  if (ls && socket_defined (ls->sd))
+    {
+      ls->socket_buffer_sizes.sndbuf = sndbuf;
+      ls->socket_buffer_sizes.rcvbuf = rcvbuf;
+      socket_set_buffers (ls->sd, &ls->socket_buffer_sizes);
+    }
+}
+
+/*
  * Remote list code allows clients to specify a list of
  * potential remote server addresses.
  */
@@ -893,7 +946,8 @@ link_socket_init_phase1 (struct link_socket *sock,
 			 int connect_retry_seconds,
 			 int mtu_discover_type,
 			 int rcvbuf,
-			 int sndbuf)
+			 int sndbuf,
+			 unsigned int sockflags)
 {
   const char *remote_host;
   int remote_port;
@@ -928,6 +982,8 @@ link_socket_init_phase1 (struct link_socket *sock,
 
   sock->socket_buffer_sizes.rcvbuf = rcvbuf;
   sock->socket_buffer_sizes.sndbuf = sndbuf;
+
+  sock->sockflags = sockflags;
 
   sock->info.proto = proto;
   sock->info.remote_float = remote_float;
@@ -1187,6 +1243,9 @@ link_socket_init_phase2 (struct link_socket *sock,
 
   /* set socket buffers based on --sndbuf and --rcvbuf options */
   socket_set_buffers (sock->sd, &sock->socket_buffer_sizes);
+
+  /* set misc socket parameters */
+  socket_set_flags (sock->sd, sock->sockflags);
 
   /* set socket to non-blocking mode */
   set_nonblock (sock->sd);
