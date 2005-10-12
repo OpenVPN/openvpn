@@ -35,3 +35,6 @@ autom4te*.cache
 *.asc
 *.zip
 *.so
+*.merge-left.*
+*.merge-right.*
+*.working
