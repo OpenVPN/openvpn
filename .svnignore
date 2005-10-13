@@ -38,3 +38,4 @@ autom4te*.cache
 *.merge-left.*
 *.merge-right.*
 *.working
+*.orig
