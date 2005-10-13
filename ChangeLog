@@ -3,6 +3,15 @@ Copyright (C) 2002-2005 OpenVPN Solutions LLC <info@openvpn.net>
 
 $Id$
 
+2005.10.xx -- Version 2.1-beta3
+
+* NOTE TO PACKAGE MAINTAINERS: Moved "plugin"
+  directory to "plugins".  This is
+  to work around a strange problem with the
+  "make dist" target in the automake-generated
+  makefile, where the target tries to do a
+  rather bogus "gcc -g -O2 -I. plugin.c -o plugin".
+
 2005.10.13 -- Version 2.1-beta2
 
 * Added --socket-flags directive with TCP_NODELAY

@@ -101,13 +101,13 @@ and portability to most major OS platforms.
 %__strip %{name}
 
 # Build down-root plugin
-pushd plugin/down-root
+pushd plugins/down-root
 %__make
 popd
 
 # Build auth-pam plugin
 %if %{build_auth_pam}
-pushd plugin/auth-pam
+pushd plugins/auth-pam
 %__make
 popd
 %endif
@@ -151,16 +151,16 @@ popd
 # Install the plugins
 #
 
-%__mkdir_p %{buildroot}%{_datadir}/%{name}/plugin/lib
+%__mkdir_p %{buildroot}%{_datadir}/%{name}/plugins/lib
 
 for pi in auth-pam down-root; do
-  %__mv -f plugin/$pi/README plugin/README.$pi
-  if [ -e plugin/$pi/openvpn-$pi.so ]; then
-    %__install -c -m 755 plugin/$pi/openvpn-$pi.so %{buildroot}%{_datadir}/openvpn/plugin/lib/openvpn-$pi.so
+  %__mv -f plugins/$pi/README plugins/README.$pi
+  if [ -e plugins/$pi/openvpn-$pi.so ]; then
+    %__install -c -m 755 plugins/$pi/openvpn-$pi.so %{buildroot}%{_datadir}/openvpn/plugins/lib/openvpn-$pi.so
   fi
 done
 
-%__mv -f plugin/README plugin/README.plugins
+%__mv -f plugins/README plugins/README.plugins
 
 #
 # Clean section
@@ -220,9 +220,13 @@ fi
 %endif
 
 # Install extra %doc stuff
-%doc contrib/ easy-rsa/ management/ sample-*/ plugin/README.*
+%doc contrib/ easy-rsa/ management/ sample-*/ plugins/README.*
 
 %changelog
+
+* Mon Oct 13 2005 James Yonan
+- Renamed plugin directory to plugins to
+  work around automake issue.
 
 * Mon Aug 2 2005 James Yonan
 - Fixed build problem with --define 'without_pam 1'

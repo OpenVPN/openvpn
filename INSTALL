@@ -60,6 +60,18 @@ OPTIONAL (for developers only):
 
 *************************************************************************
 
+CHECK OUT SOURCE FROM SUBVERSION REPOSITORY:
+
+  Check out stable version:
+
+    svn checkout http://svn.openvpn.net/projects/openvpn/trunk/openvpn openvpn
+
+  Check out beta21 branch:
+
+    svn checkout http://svn.openvpn.net/projects/openvpn/branches/BETA21/openvpn openvpn
+
+*************************************************************************
+
 BUILD COMMANDS FROM TARBALL:
 
 	./configure
@@ -68,7 +80,7 @@ BUILD COMMANDS FROM TARBALL:
 
 *************************************************************************
 
-BUILD COMMANDS FROM CVS:
+BUILD COMMANDS FROM SUBVERSION REPOSITORY CHECKOUT:
 
 	autoreconf -i -v
 	./configure
@@ -77,7 +89,7 @@ BUILD COMMANDS FROM CVS:
 
 *************************************************************************
 
-BUILD A TARBALL FROM CVS:
+BUILD A TARBALL FROM SUBVERSION REPOSITORY CHECKOUT:
 
 	autoreconf -i -v
 	./configure

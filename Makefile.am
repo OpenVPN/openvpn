@@ -121,7 +121,7 @@ EXTRA_DIST = \
 	service-win32 \
 	contrib \
 	debug \
-	plugin \
+	plugins \
         management
 
 dist-hook:
