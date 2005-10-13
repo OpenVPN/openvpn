@@ -377,6 +377,13 @@ struct options
   const char *tls_remote;
   const char *crl_file;
   int ns_cert_type; /* set to 0, NS_SSL_SERVER, or NS_SSL_CLIENT */
+  const char *pkcs11_providers[MAX_PARMS];
+  const char *pkcs11_sign_mode[MAX_PARMS];
+  const char *pkcs11_slot_type;
+  const char *pkcs11_slot;
+  const char *pkcs11_id_type;
+  const char *pkcs11_id;
+  bool pkcs11_protected_authentication;
 #ifdef WIN32
   const char *cryptoapi_cert;
 #endif

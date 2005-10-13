@@ -38,6 +38,7 @@
 #include "otime.h"
 #include "pool.h"
 #include "gremlin.h"
+#include "pkcs11.h"
 
 #include "memdbg.h"
 
@@ -110,6 +111,14 @@ context_init_1 (struct context *c)
   /* Certificate password input */
   if (c->options.key_pass_file)
     pem_password_setup (c->options.key_pass_file);
+
+#if defined(ENABLE_PKCS11)
+  {
+    int i;
+    for (i=0;i<MAX_PARMS && c->options.pkcs11_providers[i] != NULL;i++)
+     add_pkcs11 (c->options.pkcs11_providers[i], c->options.pkcs11_sign_mode[i]);
+  }
+#endif
 #endif
   
 #if P2MP
@@ -223,6 +232,12 @@ uninit_static (void)
 
 #ifdef USE_CRYPTO
   free_ssl_lib ();
+
+#ifdef USE_SSL
+#ifdef ENABLE_PKCS11
+  free_pkcs11 ();
+#endif
+#endif
 #endif
 
 #if defined(MEASURE_TLS_HANDSHAKE_STATS) && defined(USE_CRYPTO) && defined(USE_SSL)

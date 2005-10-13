@@ -3,8 +3,9 @@ Copyright (C) 2002-2005 OpenVPN Solutions LLC <info@openvpn.net>
 
 $Id$
 
-2005.10.xx -- Version 2.1-beta3
+2005.10.14 -- Version 2.1-beta3
 
+* Added PKCS#11 support (Alon Bar-Lev).
 * NOTE TO PACKAGE MAINTAINERS: Moved "plugin"
   directory to "plugins".  This is
   to work around a strange problem with the

@@ -74,6 +74,9 @@ typedef unsigned long in_addr_t;
 /* Enable management server capability */
 #define ENABLE_MANAGEMENT 1
 
+/* Enable PKCS#11 support */
+#define ENABLE_PKCS11 1
+
 /* Enable HTTP proxy support */
 #define ENABLE_HTTP_PROXY 1
 

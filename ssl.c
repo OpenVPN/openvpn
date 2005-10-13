@@ -52,6 +52,7 @@
 #include "perf.h"
 #include "status.h"
 #include "gremlin.h"
+#include "pkcs11.h"
 
 #ifdef WIN32
 #include "cryptoapi.h"
@@ -846,6 +847,26 @@ init_ssl (const struct options *options)
   else
     {
       /* Use seperate PEM files for key, cert and CA certs */
+
+#ifdef ENABLE_PKCS11
+      if (options->pkcs11_providers[0])
+       {
+	char password[256];
+	password[0] = '\0';
+	if (
+		!options->pkcs11_protected_authentication &&
+		options->key_pass_file
+	) {
+	  pem_password_callback (password, sizeof(password) - 1, 0, NULL);
+	}
+
+        /* Load Certificate and Private Key */
+	if (!SSL_CTX_use_pkcs11 (ctx, options->pkcs11_slot_type, options->pkcs11_slot, options->pkcs11_id_type, options->pkcs11_id, password, options->pkcs11_protected_authentication))
+	  msg (M_SSLERR, "Cannot load certificate \"%s:%s\" from slot \"%s:%s\" using PKCS#11 interface",
+               options->pkcs11_id_type, options->pkcs11_id, options->pkcs11_slot_type, options->pkcs11_slot);
+       }
+      else
+#endif
 
 #ifdef WIN32
       if (options->cryptoapi_cert)

@@ -11,11 +11,11 @@ H=/c/src
 
 # Output NSIS-ready tree here (will be deleted
 # if already exists).
-OUT=$H/openvpn-build
+OUT=$H/21
 
 # Source distribution is here.  Can be the top
 # level directory of exploded tarball.
-IN=/y/openvpn/20/openvpn
+IN=/y/openvpn/21/openvpn
 
 # Already built OpenSSL tree.
 SSL=$H/openssl-0.9.7g
@@ -54,9 +54,11 @@ gcc -O2 $SCRIPTS/u2d.c -o $U2D
 echo BUILD output dir from source
 rm -rf $OUT
 mkdir $OUT
+mkdir $OUT/pkcs11
 
 cp $IN/*.[ch] $OUT
 rm -f $OUT/config.h
+cp $IN/pkcs11/*.h $OUT/pkcs11
 
 if [ $MISC ]; then
   cp $MISC/*.* $OUT

@@ -202,6 +202,13 @@ openvpn \- secure IP tunnel daemon.
 [\ \fB\-\-ping\-restart\fR\ \fIn\fR\ ]
 [\ \fB\-\-ping\-timer\-rem\fR\ ]
 [\ \fB\-\-ping\fR\ \fIn\fR\ ]
+[\ \fB\-\-pkcs11\-providers\fR\ \fIprovider...\fR\ ]
+[\ \fB\-\-pkcs11\-sign\-mode\fR\ \fImode...\fR\ ]
+[\ \fB\-\-pkcs11\-slot\-type\fR\ \fItype\fR\ ]
+[\ \fB\-\-pkcs11\-slot\fR\ \fIname\fR\ ]
+[\ \fB\-\-pkcs11\-id\-type\fR\ \fItype\fR\ ]
+[\ \fB\-\-pkcs11\-id\fR\ \fIname\fR\ ]
+[\ \fB\-\-pkcs11\-protected\-authentication\fR\ ]
 [\ \fB\-\-pkcs12\fR\ \fIfile\fR\ ]
 [\ \fB\-\-plugin\fR\ \fImodule\-pathname\ init\-string\fR\ ]
 [\ \fB\-\-port\fR\ \fIport\fR\ ]
@@ -239,6 +246,8 @@ openvpn \- secure IP tunnel daemon.
 [\ \fB\-\-show\-ciphers\fR\ ]
 [\ \fB\-\-show\-digests\fR\ ]
 [\ \fB\-\-show\-engines\fR\ ]
+[\ \fB\-\-show\-pkcs11\-slots\fR\ \fIprovider\fR\ ]
+[\ \fB\-\-show\-pkcs11\-objects\fR\ \fIprovider\ slot\fR\ ]
 [\ \fB\-\-show\-net\-up\fR\ ]
 [\ \fB\-\-show\-net\fR\ ]
 [\ \fB\-\-show\-tls\fR\ ]
@@ -3513,6 +3522,73 @@ and
 .B --key.
 .\"*********************************************************
 .TP
+.B --pkcs11-providers provider...
+Specify a RSA Security Inc. PKCS #11 Cryptographic Token Interface (Cryptoki) providers
+to load.
+This option can be used instead of
+.B --cert, --key,
+and
+.B --pkcs12.
+.\"*********************************************************
+.TP
+.B --pkcs11-sign-mode mode...
+Specify which method to use in order to sign data. A different mode can be specified
+for each provider. Mode can be one of the following:
+
+.B 'auto'
+(default) -- Try to determind automatically.
+.br
+.B 'recover'
+-- Use SignRecover.
+.br
+.B 'sign'
+-- Use Sign.
+.br
+.\"*********************************************************
+.TP
+.B --pkcs11-slot-type type
+Specify how to locate the correct slot. Type can be one of the following:
+
+.B 'id'
+-- Locate the slot by a numeric id. The format is [provider:]id, for example, slot 2 of provider 1
+is encoded as 1:2. If you have only one provider you can omit the provider number.
+The provider number is set by the order specified in the --pkcs11-providers option.
+.br
+.B 'name'
+-- Locate the slot by its name.
+.br
+.B 'label'
+-- Locate the slot by the label of the token that reside within.
+.br
+.\"*********************************************************
+.TP
+.B --pkcs11-slot name
+Specify a name of the slot to search for.
+.\"*********************************************************
+.TP
+.B --pkcs11-id-type type
+Specify how to locate the correct objects. Type can be one of the following:
+
+.B 'id'
+-- Locate by the id attribte, name should be hex encoded string.
+.br
+.B 'label'
+-- Locate by the label attribute, name should be string.
+.br
+.B 'subject'
+-- Locate by certificate subject attribute, name should be string.
+.br
+.\"*********************************************************
+.TP
+.B --pkcs11-id name
+Specify a name of the object to search for.
+.\"*********************************************************
+.TP
+.B --pkcs11-protected-authentication
+Use PKCS#11 protected authentication path, useful for biometric and external
+keypad devices.
+.\"*********************************************************
+.TP
 .B --cryptoapicert select-string
 Load the certificate and private key from the
 Windows Certificate System Store (Windows Only).
@@ -4305,6 +4381,18 @@ must be the middle two addresses of a /30 subnet (netmask 255.255.255.252).
 (Standalone)
 Show OpenVPN's view of the system routing table and network
 adapter list.
+.\"*********************************************************
+.SS PKCS#11 Standalone Options:
+.\"*********************************************************
+.TP
+.B --show-pkcs11-slots provider
+(Standalone)
+Show PKCS#11 provider slot list.
+.\"*********************************************************
+.TP
+.B --show-pkcs11-objects provider slot
+(Standalone)
+Show PKCS#11 token object list.
 .\"*********************************************************
 .SH SCRIPTING AND ENVIRONMENTAL VARIABLES
 OpenVPN exports a series

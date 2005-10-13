@@ -25,7 +25,7 @@ dnl Process this file with autoconf to produce a configure script.
 
 AC_PREREQ(2.50)
 
-AC_INIT([OpenVPN], [2.1_beta2], [openvpn-users@lists.sourceforge.net], [openvpn])
+AC_INIT([OpenVPN], [2.1_beta3], [openvpn-users@lists.sourceforge.net], [openvpn])
 AM_CONFIG_HEADER(config.h)
 AC_CONFIG_SRCDIR(syshead.h)
 
@@ -69,6 +69,12 @@ AC_ARG_ENABLE(management,
    [  --disable-management    Disable management server support],
    [MANAGEMENT="$enableval"],
    [MANAGEMENT="yes"]
+)
+
+AC_ARG_ENABLE(pkcs11,
+   [  --disable-pkcs11        Disable pkcs11 support],
+   [PKCS11="$enableval"],
+   [PKCS11="yes"]
 )
 
 AC_ARG_ENABLE(socks,
@@ -582,6 +588,11 @@ fi
 dnl enable management server capability
 if test "$MANAGEMENT" = "yes"; then
    AC_DEFINE(ENABLE_MANAGEMENT, 1, [Enable management server capability])
+fi
+
+dnl enable pkcs11 capability
+if test "$PKCS11" = "yes"; then
+   AC_DEFINE(ENABLE_PKCS11, 1, [Enable PKCS#11 capability])
 fi
 
 dnl enable socks 
