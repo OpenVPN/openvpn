@@ -207,7 +207,6 @@ static const char usage_message[] =
   "                  or --fragment max value, whichever is lower.\n"
   "--sndbuf size   : Set the TCP/UDP send buffer size.\n"
   "--rcvbuf size   : Set the TCP/UDP receive buffer size.\n"
-  "--socket-flags f: Set socket flags, currently 'TCP_NODELAY' supported.\n"
   "--txqueuelen n  : Set the tun/tap TX queue length to n (Linux only).\n"
   "--mlock         : Disable Paging -- ensures key material and tunnel\n"
   "                  data will never be written to disk.\n"

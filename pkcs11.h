@@ -25,6 +25,8 @@
 #ifndef OPENVPN_PKCS11_H
 #define OPENVPN_PKCS11_H
 
+#if defined(USE_CRYPTO) && defined(USE_SSL) && defined(ENABLE_PKCS11)
+
 int
 SSL_CTX_use_pkcs11 (
 	SSL_CTX * const ssl_ctx,
@@ -60,5 +62,7 @@ show_pkcs11_objects (
 	const char * const slot,
 	const char * const pin
 );
+
+#endif
 
 #endif

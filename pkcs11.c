@@ -1068,8 +1068,8 @@ pkcs11_createSession (
 
 	if (rv == CKR_OK) {
 		pkcs11_session->fLoginFailed = false;
-		pkcs11_session->key = -1;
-		pkcs11_session->session = -1;
+		pkcs11_session->key = (CK_OBJECT_HANDLE)-1;
+		pkcs11_session->session = (CK_SESSION_HANDLE)-1;
 
 		if (!strcmp (szSlotType, "id")) {
 			rv = _pkcs11_getSlotById (pkcs11_session, szSlot);
@@ -1210,11 +1210,11 @@ pkcs11_logout (
 ) {
 	ASSERT (pkcs11_session!=NULL);
 
-	if (pkcs11_session->session != (unsigned int)-1) {
+	if (pkcs11_session->session != (CK_SESSION_HANDLE)-1) {
 		pkcs11_session->provider->f->C_Logout (pkcs11_session->session);
 		pkcs11_session->provider->f->C_CloseSession (pkcs11_session->session);
-		pkcs11_session->key = -1;
-		pkcs11_session->session = -1;
+		pkcs11_session->key = (CK_OBJECT_HANDLE)-1;
+		pkcs11_session->session = (CK_SESSION_HANDLE)-1;
 	}
 
 	return CKR_OK;
