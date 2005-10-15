@@ -368,6 +368,7 @@ struct options
   bool tls_server;
   bool tls_client;
   const char *ca_file;
+  const char *ca_path;
   const char *dh_file;
   const char *cert_file;
   const char *priv_key_file;

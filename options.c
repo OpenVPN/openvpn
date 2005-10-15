@@ -398,6 +398,13 @@ static const char usage_message[] =
   "                  number, such as 1 (default), 2, etc.\n"
   "--ca file       : Certificate authority file in .pem format containing\n"
   "                  root certificate.\n"
+  "--capath dir    : A directory of trusted certificates (CAs"
+#if OPENSSL_VERSION_NUMBER >= 0x00907000L
+  " and CRLs).\n"
+#else
+  ").\n"
+  "                  WARNING: no support of CRL available with this version.\n"
+#endif
   "--dh file       : File containing Diffie Hellman parameters\n"
   "                  in .pem format (for --tls-server only).\n"
   "                  Use \"openssl dhparam -out dh1024.pem 1024\" to generate.\n"
@@ -1139,6 +1146,7 @@ show_settings (const struct options *o)
   SHOW_BOOL (tls_client);
   SHOW_INT (key_method);
   SHOW_STR (ca_file);
+  SHOW_STR (ca_path);
   SHOW_STR (dh_file);
   SHOW_STR (cert_file);
   SHOW_STR (priv_key_file);
@@ -1671,7 +1679,8 @@ options_postprocess (struct options *options, bool first_time)
 #ifdef WIN32
       if (options->cryptoapi_cert)
 	{
-          notnull (options->ca_file, "CA file (--ca)");
+	  if ((!(options->ca_file)) && (!(options->ca_path)))
+	    msg(M_USAGE, "You must define CA file (--ca) or CA path (--capath)");
           if (options->cert_file)
 	    msg(M_USAGE, "Parameter --cert cannot be used when --cryptoapicert is also specified.");
           if (options->priv_key_file)
@@ -1683,6 +1692,8 @@ options_postprocess (struct options *options, bool first_time)
 #endif
       if (options->pkcs12_file)
         {
+          if (options->ca_path)
+	    msg(M_USAGE, "Parameter --capath cannot be used when --pkcs12 is also specified.");
           if (options->cert_file)
 	    msg(M_USAGE, "Parameter --cert cannot be used when --pkcs12 is also specified.");
           if (options->priv_key_file)
@@ -1690,7 +1701,8 @@ options_postprocess (struct options *options, bool first_time)
         }
       else
         {
-          notnull (options->ca_file, "CA file (--ca) or PKCS#12 file (--pkcs12)");
+	  if ((!(options->ca_file)) && (!(options->ca_path)))
+	    msg(M_USAGE, "You must define CA file (--ca) or CA path (--capath)");
 	  if (pull)
 	    {
 	      const int sum = (options->cert_file != NULL) + (options->priv_key_file != NULL);
@@ -1727,6 +1739,7 @@ options_postprocess (struct options *options, bool first_time)
       const char err[] = "Parameter %s can only be specified in TLS-mode, i.e. where --tls-server or --tls-client is also specified.";
 
       MUST_BE_UNDEF (ca_file);
+      MUST_BE_UNDEF (ca_path);
       MUST_BE_UNDEF (dh_file);
       MUST_BE_UNDEF (cert_file);
       MUST_BE_UNDEF (priv_key_file);
@@ -4645,6 +4658,12 @@ add_option (struct options *options,
       ++i;
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->ca_file = p[1];
+    }
+  else if (streq (p[0], "capath") && p[1])
+    {
+      ++i;
+      VERIFY_PERMISSION (OPT_P_GENERAL);
+      options->ca_path = p[1];
     }
   else if (streq (p[0], "dh") && p[1])
     {

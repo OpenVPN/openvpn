@@ -914,12 +914,32 @@ init_ssl (const struct options *options)
   if (options->ca_file)
     {
       /* Load CA file for verifying peer supplied certificate */
-      ASSERT (options->ca_file);
-      if (!SSL_CTX_load_verify_locations (ctx, options->ca_file, NULL))
-        msg (M_SSLERR, "Cannot load CA certificate file %s (SSL_CTX_load_verify_locations)", options->ca_file);
+      ASSERT (options->ca_file || options->ca_path);
+      if (!SSL_CTX_load_verify_locations (ctx, options->ca_file, options->ca_path))
+        msg (M_SSLERR, "Cannot load CA certificate file %s path %s (SSL_CTX_load_verify_locations)", options->ca_file, options->ca_path);
+
+      /* Set a store for certs (CA & CRL) with a lookup on the "capath" hash directory */
+      if (options->ca_path) {
+        X509_STORE *store = SSL_CTX_get_cert_store(ctx);
+
+        if (store) {
+          X509_LOOKUP *lookup = X509_STORE_add_lookup(store, X509_LOOKUP_hash_dir());
+	  if (!X509_LOOKUP_add_dir(lookup, options->ca_path, X509_FILETYPE_PEM))
+            X509_LOOKUP_add_dir(lookup, NULL, X509_FILETYPE_DEFAULT);
+	  else
+	    msg(M_WARN, "WARNING: experimental option --capath %s", options->ca_path);
+#if OPENSSL_VERSION_NUMBER >= 0x00907000L
+          X509_STORE_set_flags(store, X509_V_FLAG_CRL_CHECK | X509_V_FLAG_CRL_CHECK_ALL);
+#else
+#warn This version of OpenSSL cannot handle CRL files in capath 
+          msg(M_WARN, "WARNING: this version of OpenSSL cannot handle CRL files in capath");
+#endif
+	} else
+          msg(M_SSLERR, "Cannot get certificate store (SSL_CTX_get_cert_store)");
+      }
 
       /* Load names of CAs from file and use it as a client CA list */
-      {
+      if (options->ca_file) {
         STACK_OF(X509_NAME) *cert_names;
         cert_names = SSL_load_client_CA_file (options->ca_file);
         if (!cert_names)

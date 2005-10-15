@@ -10,6 +10,7 @@ $Id$
   used at the same time as --pkcs12, the CA certificate is loaded
   from the file specified by --ca regardless if the pkcs12 file
   contains a CA cert or not (Mathias Sundman).
+* Merged --capath patch (Thomas Noel).
 * NOTE TO PACKAGE MAINTAINERS: Moved "plugin"
   directory to "plugins".  This is
   to work around a strange problem with the
