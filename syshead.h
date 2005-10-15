@@ -310,6 +310,15 @@
 #endif
 
 /*
+ * Does this platform support linux-style IP_PKTINFO?
+ */
+#if defined(ENABLE_MULTIHOME) && defined(HAVE_IN_PKTINFO) && defined(IP_PKTINFO) && defined(HAVE_MSGHDR) && defined(HAVE_CMSGHDR) && defined(HAVE_IOVEC) && defined(CMSG_FIRSTHDR) && defined(CMSG_NXTHDR) && defined(HAVE_RECVMSG) && defined(HAVE_SENDMSG)
+#define ENABLE_IP_PKTINFO 1
+#else
+#define ENABLE_IP_PKTINFO 0
+#endif
+
+/*
  * Disable ESEC
  */
 #if 0

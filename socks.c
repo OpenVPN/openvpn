@@ -148,7 +148,8 @@ socks_handshake (socket_descriptor_t sd, volatile int *signal_received)
 }
 
 static bool
-recv_socks_reply (socket_descriptor_t sd, struct sockaddr_in *addr,
+recv_socks_reply (socket_descriptor_t sd,
+		  struct openvpn_sockaddr *addr,
 		  volatile int *signal_received)
 {
   char atyp = '\0';
@@ -159,9 +160,9 @@ recv_socks_reply (socket_descriptor_t sd, struct sockaddr_in *addr,
 
   if (addr != NULL)
     {
-      addr->sin_family = AF_INET;
-      addr->sin_addr.s_addr = htonl (INADDR_ANY);
-      addr->sin_port = htons (0);
+      addr->sa.sin_family = AF_INET;
+      addr->sa.sin_addr.s_addr = htonl (INADDR_ANY);
+      addr->sa.sin_port = htons (0);
     }
 
   while (len < 4 + alen + 2)
@@ -248,8 +249,8 @@ recv_socks_reply (socket_descriptor_t sd, struct sockaddr_in *addr,
   /* ATYP == 1 (IP V4 address) */
   if (atyp == '\x01' && addr != NULL)
     {
-      memcpy (&addr->sin_addr, buf + 4, sizeof (addr->sin_addr));
-      memcpy (&addr->sin_port, buf + 8, sizeof (addr->sin_port));
+      memcpy (&addr->sa.sin_addr, buf + 4, sizeof (addr->sa.sin_addr));
+      memcpy (&addr->sa.sin_port, buf + 8, sizeof (addr->sa.sin_port));
     }
 
 
@@ -310,7 +311,7 @@ void
 establish_socks_proxy_udpassoc (struct socks_proxy_info *p,
 			        socket_descriptor_t ctrl_sd, /* already open to proxy */
 				socket_descriptor_t udp_sd,
-				struct sockaddr_in *relay_addr,
+				struct openvpn_sockaddr *relay_addr,
 			        volatile int *signal_received)
 {
   if (!socks_handshake (ctrl_sd, signal_received))
@@ -352,7 +353,7 @@ establish_socks_proxy_udpassoc (struct socks_proxy_info *p,
  */
 void
 socks_process_incoming_udp (struct buffer *buf,
-			    struct sockaddr_in *from)
+			    struct link_socket_actual *from)
 {
   int atyp;
 
@@ -367,8 +368,8 @@ socks_process_incoming_udp (struct buffer *buf,
   if (atyp != 1)		/* ATYP == 1 (IP V4) */
     goto error;
 
-  buf_read (buf, &from->sin_addr, sizeof (from->sin_addr));
-  buf_read (buf, &from->sin_port, sizeof (from->sin_port));
+  buf_read (buf, &from->dest.sa.sin_addr, sizeof (from->dest.sa.sin_addr));
+  buf_read (buf, &from->dest.sa.sin_port, sizeof (from->dest.sa.sin_port));
 
   return;
 
@@ -385,7 +386,7 @@ socks_process_incoming_udp (struct buffer *buf,
  */
 int
 socks_process_outgoing_udp (struct buffer *buf,
-			    struct sockaddr_in *to)
+			    const struct link_socket_actual *to)
 {
   /* 
    * Get a 10 byte subset buffer prepended to buf --
@@ -400,8 +401,8 @@ socks_process_outgoing_udp (struct buffer *buf,
   buf_write_u16 (&head, 0);	/* RSV = 0 */
   buf_write_u8 (&head, 0);	/* FRAG = 0 */
   buf_write_u8 (&head, '\x01'); /* ATYP = 1 (IP V4) */
-  buf_write (&head, &to->sin_addr, sizeof (to->sin_addr));
-  buf_write (&head, &to->sin_port, sizeof (to->sin_port));
+  buf_write (&head, &to->dest.sa.sin_addr, sizeof (to->dest.sa.sin_addr));
+  buf_write (&head, &to->dest.sa.sin_port, sizeof (to->dest.sa.sin_port));
 
   return 10;
 }

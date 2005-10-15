@@ -37,7 +37,7 @@ check_ping_restart (struct context *c)
       && event_timeout_trigger (&c->c2.ping_rec_interval,
 				&c->c2.timeval,
 				(!c->options.ping_timer_remote
-				 || addr_defined (&c->c1.link_socket_addr.actual))
+				 || link_socket_actual_defined (&c->c1.link_socket_addr.actual))
 				? ETT_DEFAULT : 15))
     check_ping_restart_dowork (c);
 }

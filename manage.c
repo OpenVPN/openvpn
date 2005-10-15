@@ -770,13 +770,16 @@ static void
 man_accept (struct management *man)
 {
   struct gc_arena gc = gc_new ();
+  struct link_socket_actual act;
 
   /*
    * Accept the TCP client.
    */
-  man->connection.sd_cli = socket_do_accept (man->connection.sd_top, &man->connection.remote, false);
+  man->connection.sd_cli = socket_do_accept (man->connection.sd_top, &act, false);
   if (socket_defined (man->connection.sd_cli))
     {
+      man->connection.remote = act.dest;
+
       if (socket_defined (man->connection.sd_top))
 	{
 #ifdef WIN32
@@ -1145,9 +1148,9 @@ man_settings_init (struct man_settings *ms,
       /*
        * Initialize socket address
        */
-      ms->local.sin_family = AF_INET;
-      ms->local.sin_addr.s_addr = 0;
-      ms->local.sin_port = htons (port);
+      ms->local.sa.sin_family = AF_INET;
+      ms->local.sa.sin_addr.s_addr = 0;
+      ms->local.sa.sin_port = htons (port);
 
       /*
        * Run management over tunnel, or
@@ -1159,7 +1162,7 @@ man_settings_init (struct man_settings *ms,
 	}
       else
 	{
-	  ms->local.sin_addr.s_addr = getaddr
+	  ms->local.sa.sin_addr.s_addr = getaddr
 	    (GETADDR_RESOLVE|GETADDR_WARN_ON_SIGNAL|GETADDR_FATAL, addr, 0, NULL, NULL);
 	}
       
@@ -1406,7 +1409,7 @@ management_post_tunnel_open (struct management *man, const in_addr_t tun_local_i
       && man->connection.state == MS_INITIAL)
     {
       /* listen on our local TUN/TAP IP address */
-      man->settings.local.sin_addr.s_addr = htonl (tun_local_ip);
+      man->settings.local.sa.sin_addr.s_addr = htonl (tun_local_ip);
       man_connection_init (man);
     }
 

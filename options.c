@@ -175,6 +175,9 @@ static const char usage_message[] =
   "--ping-timer-rem: Run the --ping-exit/--ping-restart timer only if we have a\n"
   "                  remote address.\n"
   "--ping n        : Ping remote once every n seconds over TCP/UDP port.\n"
+#if ENABLE_IP_PKTINFO
+  "--multihome     : Configure a multi-homed UDP server.\n"
+#endif
   "--fast-io       : (experimental) Optimize TUN/TAP/UDP writes.\n"
   "--remap-usr1 s  : On SIGUSR1 signals, remap signal (s='SIGHUP' or 'SIGTERM').\n"
   "--persist-tun   : Keep tun/tap device open across SIGUSR1 or --ping-restart.\n"
@@ -3281,6 +3284,13 @@ add_option (struct options *options,
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->mlock = true;
     }
+#if ENABLE_IP_PKTINFO
+  else if (streq (p[0], "multihome"))
+    {
+      VERIFY_PERMISSION (OPT_P_GENERAL);
+      options->sockflags |= SF_USE_IP_PKTINFO;
+    }
+#endif
   else if (streq (p[0], "verb") && p[1])
     {
       ++i;

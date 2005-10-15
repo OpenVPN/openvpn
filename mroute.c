@@ -168,28 +168,29 @@ mroute_extract_addr_from_packet (struct mroute_addr *src,
 }
 
 /*
- * Translate a struct sockaddr_in (saddr)
+ * Translate a struct openvpn_sockaddr (osaddr)
  * to a struct mroute_addr (addr).
  */
-bool
-mroute_extract_sockaddr_in (struct mroute_addr *addr, const struct sockaddr_in *saddr, bool use_port)
+bool mroute_extract_openvpn_sockaddr (struct mroute_addr *addr,
+				      const struct openvpn_sockaddr *osaddr,
+				      bool use_port)
 {
-  if (saddr->sin_family == AF_INET)
+  if (osaddr->sa.sin_family == AF_INET)
     {
       if (use_port)
 	{
 	  addr->type = MR_ADDR_IPV4 | MR_WITH_PORT;
 	  addr->netbits = 0;
 	  addr->len = 6;
-	  memcpy (addr->addr, &saddr->sin_addr.s_addr, 4);
-	  memcpy (addr->addr + 4, &saddr->sin_port, 2);
+	  memcpy (addr->addr, &osaddr->sa.sin_addr.s_addr, 4);
+	  memcpy (addr->addr + 4, &osaddr->sa.sin_port, 2);
 	}
       else
 	{
 	  addr->type = MR_ADDR_IPV4;
 	  addr->netbits = 0;
 	  addr->len = 4;
-	  memcpy (addr->addr, &saddr->sin_addr.s_addr, 4);
+	  memcpy (addr->addr, &osaddr->sa.sin_addr.s_addr, 4);
 	}
       return true;
     }

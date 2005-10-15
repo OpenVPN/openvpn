@@ -982,13 +982,13 @@ multi_learn_in_addr_t (struct multi_context *m,
 		       in_addr_t a,
 		       int netbits) /* -1 if host route, otherwise # of network bits in address */
 {
-  struct sockaddr_in remote_si;
+  struct openvpn_sockaddr remote_si;
   struct mroute_addr addr;
 
   CLEAR (remote_si);
-  remote_si.sin_family = AF_INET;
-  remote_si.sin_addr.s_addr = htonl (a);
-  ASSERT (mroute_extract_sockaddr_in (&addr, &remote_si, false));
+  remote_si.sa.sin_family = AF_INET;
+  remote_si.sa.sin_addr.s_addr = htonl (a);
+  ASSERT (mroute_extract_openvpn_sockaddr (&addr, &remote_si, false));
 
   if (netbits >= 0)
     {
@@ -2180,15 +2180,15 @@ management_callback_kill_by_addr (void *arg, const in_addr_t addr, const int por
   struct multi_context *m = (struct multi_context *) arg;
   struct hash_iterator hi;
   struct hash_element *he;
-  struct sockaddr_in saddr;
+  struct openvpn_sockaddr saddr;
   struct mroute_addr maddr;
   int count = 0;
 
   CLEAR (saddr);
-  saddr.sin_family = AF_INET;
-  saddr.sin_addr.s_addr = htonl (addr);
-  saddr.sin_port = htons (port);
-  if (mroute_extract_sockaddr_in (&maddr, &saddr, true))
+  saddr.sa.sin_family = AF_INET;
+  saddr.sa.sin_addr.s_addr = htonl (addr);
+  saddr.sa.sin_port = htons (port);
+  if (mroute_extract_openvpn_sockaddr (&maddr, &saddr, true))
     {
       hash_iterator_init (m->iter, &hi, true);
       while ((he = hash_iterator_next (&hi)))

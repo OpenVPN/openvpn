@@ -571,12 +571,12 @@ socks_postprocess_incoming_link (struct context *c)
 
 static inline void
 socks_preprocess_outgoing_link (struct context *c,
-				struct sockaddr_in **to_addr,
+				struct link_socket_actual **to_addr,
 				int *size_delta)
 {
   if (c->c2.link_socket->socks_proxy && c->c2.link_socket->info.proto == PROTO_UDPv4)
     {
-      *size_delta += socks_process_outgoing_udp (&c->c2.to_link, &c->c2.to_link_addr);
+      *size_delta += socks_process_outgoing_udp (&c->c2.to_link, c->c2.to_link_addr);
       *to_addr = &c->c2.link_socket->socks_relay;
     }
 }
@@ -616,7 +616,10 @@ read_incoming_link (struct context *c)
   c->c2.buf = c->c2.buffers->read_link_buf;
   ASSERT (buf_init (&c->c2.buf, FRAME_HEADROOM_ADJ (&c->c2.frame, FRAME_HEADROOM_MARKER_READ_LINK)));
 
-  status = link_socket_read (c->c2.link_socket, &c->c2.buf, MAX_RW_SIZE_LINK (&c->c2.frame), &c->c2.from);
+  status = link_socket_read (c->c2.link_socket,
+			     &c->c2.buf,
+			     MAX_RW_SIZE_LINK (&c->c2.frame),
+			     &c->c2.from);
 
   if (socket_connection_reset (c->c2.link_socket, status))
     {
@@ -687,7 +690,7 @@ process_incoming_link (struct context *c)
   msg (D_LINK_RW, "%s READ [%d] from %s: %s",
        proto2ascii (lsi->proto, true),
        BLEN (&c->c2.buf),
-       print_sockaddr (&c->c2.from, &gc),
+       print_link_socket_actual (&c->c2.from, &gc),
        PROTO_DUMP (&c->c2.buf, &gc));
 
   /*
@@ -985,7 +988,7 @@ process_outgoing_link (struct context *c)
        * packet to remote over the TCP/UDP port.
        */
       int size = 0;
-      ASSERT (addr_defined (&c->c2.to_link_addr));
+      ASSERT (link_socket_actual_defined (c->c2.to_link_addr));
 
 #ifdef ENABLE_DEBUG
       /* In gremlin-test mode, we may choose to drop this packet */
@@ -1020,12 +1023,12 @@ process_outgoing_link (struct context *c)
 	  msg (D_LINK_RW, "%s WRITE [%d] to %s: %s",
 	       proto2ascii (c->c2.link_socket->info.proto, true),
 	       BLEN (&c->c2.to_link),
-	       print_sockaddr (&c->c2.to_link_addr, &gc),
+	       print_link_socket_actual (c->c2.to_link_addr, &gc),
 	       PROTO_DUMP (&c->c2.to_link, &gc));
 
 	  /* Packet send complexified by possible Socks5 usage */
 	  {
-	    struct sockaddr_in *to_addr = &c->c2.to_link_addr;
+	    struct link_socket_actual *to_addr = c->c2.to_link_addr;
 #ifdef ENABLE_SOCKS
 	    int size_delta = 0;
 #endif
@@ -1035,7 +1038,9 @@ process_outgoing_link (struct context *c)
 	    socks_preprocess_outgoing_link (c, &to_addr, &size_delta);
 #endif
 	    /* Send packet */
-	    size = link_socket_write (c->c2.link_socket, &c->c2.to_link, to_addr);
+	    size = link_socket_write (c->c2.link_socket,
+				      &c->c2.to_link,
+				      to_addr);
 
 #ifdef ENABLE_SOCKS
 	    /* Undo effect of prepend */
@@ -1059,7 +1064,7 @@ process_outgoing_link (struct context *c)
 	  if (size != BLEN (&c->c2.to_link))
 	    msg (D_LINK_ERRORS,
 		 "TCP/UDP packet was truncated/expanded on write to %s (tried=%d,actual=%d)",
-		 print_sockaddr (&c->c2.to_link_addr, &gc),
+		 print_link_socket_actual (c->c2.to_link_addr, &gc),
 		 BLEN (&c->c2.to_link),
 		 size);
 	}
@@ -1068,7 +1073,7 @@ process_outgoing_link (struct context *c)
     {
       if (c->c2.to_link.len > 0)
 	msg (D_LINK_ERRORS, "TCP/UDP packet too large on write to %s (tried=%d,max=%d)",
-	     print_sockaddr (&c->c2.to_link_addr, &gc),
+	     print_link_socket_actual (c->c2.to_link_addr, &gc),
 	     c->c2.to_link.len,
 	     EXPANDED_SIZE (&c->c2.frame));
     }

@@ -205,8 +205,8 @@ struct context_2
   struct link_socket_info *link_socket_info;
   const struct link_socket *accept_from; /* possibly do accept() on a parent link_socket */
 
-  struct sockaddr_in to_link_addr;	 /* IP address of remote */
-  struct sockaddr_in from;               /* address of incoming datagram */
+  struct link_socket_actual *to_link_addr;	/* IP address of remote */
+  struct link_socket_actual from;               /* address of incoming datagram */
 
   /* MTU frame parameters */
   struct frame frame;

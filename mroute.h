@@ -94,9 +94,11 @@ unsigned int mroute_extract_addr_from_packet (struct mroute_addr *src,
 					      struct buffer *buf,
 					      int tunnel_type);
 
-bool mroute_extract_sockaddr_in (struct mroute_addr *addr,
-				 const struct sockaddr_in *saddr,
-				 bool use_port);
+struct openvpn_sockaddr;
+
+bool mroute_extract_openvpn_sockaddr (struct mroute_addr *addr,
+				      const struct openvpn_sockaddr *osaddr,
+				      bool use_port);
 
 bool mroute_learnable_address (const struct mroute_addr *addr);
 

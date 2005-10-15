@@ -51,7 +51,7 @@ multi_get_create_instance_udp (struct multi_context *m)
   struct multi_instance *mi = NULL;
   struct hash *hash = m->hash;
 
-  if (mroute_extract_sockaddr_in (&real, &m->top.c2.from, true))
+  if (mroute_extract_openvpn_sockaddr (&real, &m->top.c2.from.dest, true))
     {
       struct hash_element *he;
       const uint32_t hv = hash_value (hash, &real);

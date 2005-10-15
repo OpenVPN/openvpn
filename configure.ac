@@ -95,6 +95,12 @@ AC_ARG_ENABLE(fragment,
    [FRAGMENT="yes"]
 )
 
+AC_ARG_ENABLE(multihome,
+   [  --disable-multihome     Disable multi-homed UDP server support (--multihome)],
+   [MULTIHOME="$enableval"],
+   [MULTIHOME="yes"]
+)
+
 AC_ARG_ENABLE(debug,
    [  --disable-debug         Disable debugging support (disable gremlin and verb 7+ messages)],
    [DEBUG="$enableval"],
@@ -342,6 +348,11 @@ AC_CHECK_TYPE(
 	[AC_DEFINE(HAVE_CMSGHDR, 1, [struct cmsghdr needed for extended socket error support])],
 	[],
 	[#include "syshead.h"])
+AC_CHECK_TYPE(
+	[struct in_pktinfo],
+	[AC_DEFINE(HAVE_IN_PKTINFO, 1, [struct in_pktinfo needed for IP_PKTINFO support])],
+	[],
+	[#include "syshead.h"])
 
 AC_CHECK_SIZEOF(unsigned int)
 AC_CHECK_SIZEOF(unsigned long)
@@ -367,7 +378,7 @@ AC_CHECK_FUNCS(daemon chroot getpwnam setuid nice system getpid dup dup2 dnl
 	       getpass strerror syslog openlog mlockall getgrnam setgid dnl
 	       setgroups stat flock readv writev setsockopt getsockopt dnl
 	       setsid chdir gettimeofday putenv getpeername unlink dnl
-               poll chsize ftruncate)
+               poll chsize ftruncate sendmsg recvmsg)
 AC_CACHE_SAVE
 
 dnl Required library functions
@@ -603,6 +614,11 @@ fi
 dnl enable HTTP proxy
 if test "$HTTP_PROXY" = "yes"; then
    AC_DEFINE(ENABLE_HTTP_PROXY, 1, [Enable HTTP proxy support])
+fi
+
+dnl compile --multihome option
+if test "$MULTIHOME" = "yes"; then
+   AC_DEFINE(ENABLE_MULTIHOME, 1, [Enable multi-homed UDP server capability])
 fi
 
 dnl enable debugging
