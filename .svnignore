@@ -39,3 +39,4 @@ autom4te*.cache
 *.merge-right.*
 *.working
 *.orig
+*.rej
