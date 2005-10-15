@@ -12,6 +12,7 @@ $Id$
   contains a CA cert or not (Mathias Sundman).
 * Merged --capath patch (Thomas Noel).
 * Merged --multihome patch.
+* Added --bind option for TCP client connections (Ewan Bhamrah Harley).
 * NOTE TO PACKAGE MAINTAINERS: Moved "plugin" directory to "plugins".
   This is to work around a strange problem with the "make dist"
   target in the automake-generated makefile, where the target tries to

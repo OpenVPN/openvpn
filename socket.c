@@ -686,7 +686,25 @@ socket_listen_accept (socket_descriptor_t sd,
 }
 
 static void
+socket_bind (socket_descriptor_t sd,
+             struct openvpn_sockaddr *local)
+{
+  struct gc_arena gc = gc_new ();
+
+  if (bind (sd, (struct sockaddr *) &local->sa, sizeof (local->sa)))
+    {
+      const int errnum = openvpn_errno_socket ();
+      msg (M_FATAL, "TCP/UDP: Socket bind failed on local address %s: %s",
+           print_sockaddr (local, &gc),
+           strerror_ts (errnum, &gc));
+    }
+  gc_free (&gc);
+}
+
+static void
 socket_connect (socket_descriptor_t *sd,
+                struct openvpn_sockaddr *local,
+                bool bind_local,
 		struct openvpn_sockaddr *remote,
 		struct remote_list *remote_list,
 		const char *remote_dynamic,
@@ -727,6 +745,8 @@ socket_connect (socket_descriptor_t *sd,
 	}
 
       *sd = create_socket_tcp ();
+      if (bind_local)
+        socket_bind (*sd, local);
       update_remote (remote_dynamic, remote, remote_changed);
     }
 
@@ -796,14 +816,12 @@ resolve_bind_local (struct link_socket *sock)
   /* bind to local address/port */
   if (sock->bind_local)
     {
-      if (bind (sock->sd, (struct sockaddr *) &sock->info.lsa->local.sa,
-		sizeof (sock->info.lsa->local.sa)))
-	{
-	  const int errnum = openvpn_errno_socket ();
-	  msg (M_FATAL, "TCP/UDP: Socket bind failed on local address %s: %s",
-	       print_sockaddr (&sock->info.lsa->local, &gc),
-	       strerror_ts (errnum, &gc));
-	}
+#ifdef ENABLE_SOCKS
+      if (sock->socks_proxy && sock->info.proto == PROTO_UDPv4)
+          socket_bind (sock->ctrl_sd, &sock->info.lsa->local);
+      else
+#endif
+          socket_bind (sock->sd, &sock->info.lsa->local);
     }
   gc_free (&gc);
 }
@@ -1070,10 +1088,6 @@ link_socket_init_phase1 (struct link_socket *sock,
       else
 	sock->bind_local = true;
     }
-  else if (sock->info.proto == PROTO_TCPv4_CLIENT)
-    {
-      sock->bind_local = false;
-    }
 
   /* were we started by inetd or xinetd? */
   if (sock->inetd)
@@ -1176,6 +1190,8 @@ link_socket_init_phase2 (struct link_socket *sock,
       else if (sock->info.proto == PROTO_TCPv4_CLIENT)
 	{
 	  socket_connect (&sock->sd,
+                          &sock->info.lsa->local,
+                          sock->bind_local,
 			  &sock->info.lsa->actual.dest,
 			  sock->remote_list,
 			  remote_dynamic,
@@ -1214,6 +1230,8 @@ link_socket_init_phase2 (struct link_socket *sock,
       else if (sock->info.proto == PROTO_UDPv4 && sock->socks_proxy)
 	{
 	  socket_connect (&sock->ctrl_sd,
+                          &sock->info.lsa->local,
+                          sock->bind_local,
 			  &sock->info.lsa->actual.dest,
 			  NULL,
 			  remote_dynamic,

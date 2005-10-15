@@ -87,7 +87,7 @@ static const char usage_message[] =
   "--version       : Show copyright and version information.\n"
   "\n"
   "Tunnel Options:\n"
-  "--local host    : Local host name or ip address.\n"
+  "--local host    : Local host name or ip address. Implies --bind.\n"
   "--remote host [port] : Remote host name or ip address.\n"
   "--remote-random : If multiple --remote options specified, choose one randomly.\n"
   "--mode m        : Major mode, m = 'p2p' (default, point-to-point) or 'server'.\n"
@@ -121,8 +121,17 @@ static const char usage_message[] =
   "--ipchange cmd  : Execute shell command cmd on remote ip address initial\n"
   "                  setting or change -- execute as: cmd ip-address port#\n"
   "--port port     : TCP/UDP port # for both local and remote.\n"
-  "--lport port    : TCP/UDP port # for local (default=%d).\n"
+  "--lport port    : TCP/UDP port # for local (default=%d). Implies --bind.\n"
   "--rport port    : TCP/UDP port # for remote (default=%d).\n"
+  "--bind          : Bind to local address and port. (This is the default unless\n"
+  "                  --proto tcp-client"
+#ifdef ENABLE_HTTP_PROXY
+                   " or --http-proxy"
+#endif
+#ifdef ENABLE_SOCKS
+                   " or --socks-proxy"
+#endif
+                   " is used).\n"
   "--nobind        : Do not bind to local address and port.\n"
   "--dev tunX|tapX : tun/tap device (X can be omitted for dynamic device.\n"
   "--dev-type dt   : Which device type are we using? (dt = tun or tap) Use\n"
@@ -688,6 +697,20 @@ setenv_settings (struct env_set *es, const struct options *o)
 	  setenv_int (es, remote_port_string, o->remote_list->array[i].port);
 	}
     }
+#ifdef ENABLE_HTTP_PROXY
+    if (o->http_proxy_options)
+      {
+        setenv_str (es, "http_proxy_server", o->http_proxy_options->server);
+        setenv_int (es, "http_proxy_port", o->http_proxy_options->port);
+      }
+#endif
+#ifdef ENABLE_SOCKS
+    if(o->socks_proxy_server)
+      {
+        setenv_str (es, "socks_proxy_server", o->socks_proxy_server);
+        setenv_int (es, "socks_proxy_port", o->socks_proxy_port);
+      }
+#endif
 }
 
 static in_addr_t
@@ -997,6 +1020,7 @@ show_settings (const struct options *o)
   SHOW_INT (remote_port);
   SHOW_BOOL (remote_float);
   SHOW_STR (ipchange);
+  SHOW_BOOL (bind_defined);
   SHOW_BOOL (bind_local);
   SHOW_STR (dev);
   SHOW_STR (dev_type);
@@ -1395,11 +1419,28 @@ options_postprocess (struct options *options, bool first_time)
   if (string_defined_equal (options->ifconfig_local, options->ifconfig_remote_netmask))
     msg (M_USAGE, "local and remote/netmask --ifconfig addresses must be different");
 
+  if (options->bind_defined && !options->bind_local)
+    msg (M_USAGE, "--bind and --nobind can't be used together");
+
+  if (options->local && !options->bind_local)
+    msg (M_USAGE, "--local and --nobind don't make sense when used together");
+
   if (options->local_port_defined && !options->bind_local)
     msg (M_USAGE, "--lport and --nobind don't make sense when used together");
 
   if (!options->remote_list && !options->bind_local)
     msg (M_USAGE, "--nobind doesn't make sense unless used with --remote");
+
+  if (options->proto == PROTO_TCPv4_CLIENT && !options->local && !options->local_port_defined && !options->bind_defined)
+    options->bind_local = false;
+
+#ifdef ENABLE_SOCKS
+  if (options->proto == PROTO_UDPv4 && options->socks_proxy_server && !options->local && !options->local_port_defined && !options->bind_defined)
+    options->bind_local = false;
+#endif
+
+  if (!options->bind_local)
+    options->local_port = 0;
 
   /*
    * Check for consistency of management options
@@ -3520,6 +3561,11 @@ add_option (struct options *options,
 	}
       options->port_option_used = true;
       options->remote_port = port;
+    }
+  else if (streq (p[0], "bind"))
+    {
+      VERIFY_PERMISSION (OPT_P_GENERAL);
+      options->bind_defined = true;
     }
   else if (streq (p[0], "nobind"))
     {

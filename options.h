@@ -120,6 +120,7 @@ struct options
   struct remote_list *remote_list;
   bool remote_random;
   const char *ipchange;
+  bool bind_defined;
   bool bind_local;
   const char *dev;
   const char *dev_type;

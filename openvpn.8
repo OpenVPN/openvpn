@@ -190,6 +190,7 @@ openvpn \- secure IP tunnel daemon.
 [\ \fB\-\-nice\fR\ \fIn\fR\ ]
 [\ \fB\-\-no\-iv\fR\ ]
 [\ \fB\-\-no\-replay\fR\ ]
+[\ \fB\-\-bind\fR\ ]
 [\ \fB\-\-nobind\fR\ ]
 [\ \fB\-\-ns\-cert\-type\fR\ \fIclient|server\fR\ ]
 [\ \fB\-\-passtos\fR\ ]
@@ -443,7 +444,7 @@ server capability.
 .\"*********************************************************
 .TP
 .B --local host
-Local host name or IP address.
+Local host name or IP address for bind.
 If specified, OpenVPN will bind to this address only.
 If unspecified, OpenVPN will bind to all interfaces.
 .\"*********************************************************
@@ -727,11 +728,21 @@ Previous versions used port 5000 as the default.
 .\"*********************************************************
 .TP
 .B --lport port
-TCP/UDP port number for local.
+TCP/UDP port number for bind.
 .\"*********************************************************
 .TP
 .B --rport port
 TCP/UDP port number for remote.
+.\"*********************************************************
+.TP
+.B --bind
+Bind to local address and port. This is the default unless any of 
+.B --proto tcp-client
+,
+.B --http-proxy
+or
+.B --socks-proxy
+are used.
 .\"*********************************************************
 .TP
 .B --nobind
