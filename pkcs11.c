@@ -119,8 +119,8 @@ static
 void
 _fixupFixedString (
 	IN const char * const szSource,
-	OUT char * const szTarget,			// MUST BE >= nLength+1
-	IN const int nLength				// FIXED STRING LENGTH
+	OUT char * const szTarget,			/* MUST BE >= nLength+1 */
+	IN const int nLength				/* FIXED STRING LENGTH */
 );
 static
 void
@@ -273,8 +273,8 @@ static
 void
 _fixupFixedString (
 	IN const char * const szSource,
-	OUT char * const szTarget,			// MUST BE >= nLength+1
-	IN const int nLength				// FIXED STRING LENGTH
+	OUT char * const szTarget,			/* MUST BE >= nLength+1 */
+	IN const int nLength				/* FIXED STRING LENGTH */
 ) {
 	char *p;
 
@@ -1865,7 +1865,7 @@ SSL_CTX_use_pkcs11 (
 		RSA_set_method (rsa, openssl_pkcs11_get_rsa_method (rsa));
 		rsa->flags |= RSA_FLAG_SIGN_VER;
 
-		// it will be freed when rsa usage count will be zero
+		/* it will be freed when rsa usage count will be zero */
 		fShouldFreeOpenSSLSession = false;
 	}
 	

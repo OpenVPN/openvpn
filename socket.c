@@ -620,7 +620,7 @@ socket_listen_accept (socket_descriptor_t sd,
 		      volatile int *signal_received)
 {
   struct gc_arena gc = gc_new ();
-  //struct openvpn_sockaddr *remote = &act->dest;
+  /* struct openvpn_sockaddr *remote = &act->dest; */
   struct openvpn_sockaddr remote_verify = act->dest;
   int new_sd = SOCKET_UNDEFINED;
 

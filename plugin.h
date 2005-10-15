@@ -75,7 +75,7 @@ struct plugin {
 
 struct plugin_per_client
 {
-  //bool initialized; JYFIXME
+  /* bool initialized; JYFIXME */
   void *per_client_context[MAX_PLUGINS];
 };
 

@@ -772,7 +772,7 @@ process_incoming_link (struct context *c)
 #endif
 
 #ifdef PACKET_TRUNCATION_CHECK
-      //if (c->c2.buf.len > 1) --c->c2.buf.len; // JYFIXME
+      /* if (c->c2.buf.len > 1) --c->c2.buf.len; JYFIXME */
       ipv4_packet_size_verify (BPTR (&c->c2.buf),
 			       BLEN (&c->c2.buf),
 			       TUNNEL_TYPE (c->c1.tuntap),
@@ -913,7 +913,7 @@ process_incoming_tun (struct context *c)
       process_ipv4_header (c, PIPV4_PASSTOS|PIPV4_MSSFIX, &c->c2.buf);
 
 #ifdef PACKET_TRUNCATION_CHECK
-      //if (c->c2.buf.len > 1) --c->c2.buf.len; // JYFIXME
+      /* if (c->c2.buf.len > 1) --c->c2.buf.len; JYFIXME */
       ipv4_packet_size_verify (BPTR (&c->c2.buf),
 			       BLEN (&c->c2.buf),
 			       TUNNEL_TYPE (c->c1.tuntap),
