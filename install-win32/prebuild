@@ -54,11 +54,11 @@ gcc -O2 $SCRIPTS/u2d.c -o $U2D
 echo BUILD output dir from source
 rm -rf $OUT
 mkdir $OUT
-mkdir $OUT/pkcs11
+mkdir $OUT/pkcs11-headers
 
 cp $IN/*.[ch] $OUT
 rm -f $OUT/config.h
-cp $IN/pkcs11/*.h $OUT/pkcs11
+cp $IN/pkcs11-headers/*.h $OUT/pkcs11-headers
 
 if [ $MISC ]; then
   cp $MISC/*.* $OUT

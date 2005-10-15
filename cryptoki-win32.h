@@ -59,7 +59,7 @@
 #define NULL_PTR 0
 #endif
 
-#include "pkcs11/pkcs11.h"
+#include "pkcs11-headers/pkcs11.h"
 
 #pragma pack(pop, cryptoki)
 

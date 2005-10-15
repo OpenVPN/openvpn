@@ -34,9 +34,10 @@
 #include "config.h"
 #endif
 
-#if defined(USE_CRYPTO) && defined(USE_SSL) && defined(ENABLE_PKCS11)
-
 #include "syshead.h"
+
+#if defined(ENABLE_PKCS11)
+
 #include "error.h"
 #include "misc.h"
 #include "ssl.h"

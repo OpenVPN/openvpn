@@ -466,7 +466,7 @@ fi
 dnl
 dnl Check for dlopen -- first try libc then libdl.
 dnl
-if test "$PLUGINS" = "yes"; then
+if test "$PLUGINS" = "yes" || test "$PKCS11" = "yes"; then
    AC_CHECKING([for libdl Library and Header files])
    AC_CHECK_HEADER(dlfcn.h,
         [AC_CHECK_FUNC(dlopen,
@@ -603,7 +603,7 @@ fi
 
 dnl enable pkcs11 capability
 if test "$PKCS11" = "yes"; then
-   AC_DEFINE(ENABLE_PKCS11, 1, [Enable PKCS#11 capability])
+   AC_DEFINE(USE_PKCS11, 1, [Enable PKCS11 capability])
 fi
 
 dnl enable socks 

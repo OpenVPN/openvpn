@@ -65,7 +65,7 @@ openvpn_SOURCES = \
 	multi.c multi.h \
         ntlm.c ntlm.h \
 	occ.c occ.h occ-inline.h \
-	pkcs11.c pkcs11.h \
+	pkcs11.c pkcs11.h cryptoki.h \
 	openvpn.c openvpn.h \
 	openvpn-plugin.h \
 	options.c options.h \
@@ -123,7 +123,9 @@ EXTRA_DIST = \
 	contrib \
 	debug \
 	plugins \
-        management
+        management \
+        pkcs11-headers \
+	cryptoki-win32.h
 
 dist-hook:
 	cd $(distdir) && for i in $(EXTRA_DIST) ; do find $$i -name .svn -type d -prune -exec rm -rf '{}' ';' ; rm -f `find $$i -type f | grep -E '(^|\/)\.?\#|\~$$|\.s?o$$'` ; done

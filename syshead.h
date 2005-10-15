@@ -436,6 +436,13 @@ socket_defined (const socket_descriptor_t sd)
 #endif
 
 /*
+ * Do we have PKCS11 capability?
+ */
+#if defined(USE_PKCS11) && defined(USE_CRYPTO) && defined(USE_SSL)
+#define ENABLE_PKCS11
+#endif
+
+/*
  * Is poll available on this platform?
  */
 #if defined(HAVE_POLL) && defined(HAVE_SYS_POLL_H)
