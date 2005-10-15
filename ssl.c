@@ -833,14 +833,17 @@ init_ssl (const struct options *options)
         msg (M_SSLERR, "Private key does not match the certificate");
 
       /* Set Certificate Verification chain */
-      if (ca && sk_num(ca))
+      if (!options->ca_file)
         {
-          for (i = 0; i < sk_X509_num(ca); i++)
+          if (ca && sk_num(ca))
             {
-	      if (!X509_STORE_add_cert(ctx->cert_store,sk_X509_value(ca, i)))
-                 msg (M_SSLERR, "Cannot add certificate to certificate chain (X509_STORE_add_cert)");
-              if (!SSL_CTX_add_client_CA(ctx, sk_X509_value(ca, i)))
-                msg (M_SSLERR, "Cannot add certificate to client CA list (SSL_CTX_add_client_CA)");
+              for (i = 0; i < sk_X509_num(ca); i++)
+                {
+	          if (!X509_STORE_add_cert(ctx->cert_store,sk_X509_value(ca, i)))
+                    msg (M_SSLERR, "Cannot add certificate to certificate chain (X509_STORE_add_cert)");
+                  if (!SSL_CTX_add_client_CA(ctx, sk_X509_value(ca, i)))
+                    msg (M_SSLERR, "Cannot add certificate to client CA list (SSL_CTX_add_client_CA)");
+                }
             }
         }
     }
@@ -906,7 +909,10 @@ init_ssl (const struct options *options)
 		msg (M_SSLERR, "Private key does not match the certificate");
 	    }
 	}
+    }
 
+  if (options->ca_file)
+    {
       /* Load CA file for verifying peer supplied certificate */
       ASSERT (options->ca_file);
       if (!SSL_CTX_load_verify_locations (ctx, options->ca_file, NULL))
@@ -920,9 +926,8 @@ init_ssl (const struct options *options)
           msg (M_SSLERR, "Cannot load CA certificate file %s (SSL_load_client_CA_file)", options->ca_file);
         SSL_CTX_set_client_CA_list (ctx, cert_names);
       }
-
     }
-  
+
   /* Enable the use of certificate chains */
   if (using_cert_file)
     {

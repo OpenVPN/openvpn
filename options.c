@@ -405,7 +405,7 @@ static const char usage_message[] =
   "                  by a Certificate Authority in --ca file.\n"
   "--key file      : Local private key in .pem format.\n"
   "--pkcs12 file   : PKCS#12 file containing local private key, local certificate\n"
-  "                  and root CA certificate.\n"
+  "                  and optionally the root CA certificate.\n"
 #ifdef ENABLE_PKCS11
   "--pkcs11-providers provider ... : PKCS#11 provider to load.\n"
   "--pkcs11-sign-mode mode ... : PKCS#11 signature method.\n"
@@ -1683,8 +1683,6 @@ options_postprocess (struct options *options, bool first_time)
 #endif
       if (options->pkcs12_file)
         {
-          if (options->ca_file)
-	    msg(M_USAGE, "Parameter --ca cannot be used when --pkcs12 is also specified.");
           if (options->cert_file)
 	    msg(M_USAGE, "Parameter --cert cannot be used when --pkcs12 is also specified.");
           if (options->priv_key_file)
