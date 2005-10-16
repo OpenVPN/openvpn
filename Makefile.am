@@ -33,6 +33,8 @@ nodist_openvpn_SOURCES = config.h
 TESTS = t_lpback.sh t_cltsrv.sh
 dist_noinst_SCRIPTS = $(TESTS)
 
+.PHONY: plugin
+
 openvpn_SOURCES = \
         base64.c base64.h \
 	basic.h \

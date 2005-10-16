@@ -3,10 +3,13 @@ Copyright (C) 2002-2005 OpenVPN Solutions LLC <info@openvpn.net>
 
 $Id$
 
-2005.10.xx -- Version 2.1-beta4
+2005.10.17 -- Version 2.1-beta4
 
 * Fixed bug introduced in 2.1-beta3 where management
   socket bind would fail.
+* Added ".PHONY: plugin" to Makefile.am, reverted
+  location of "plugin" directory (thanks to
+  Matthias Andree for figuring this out).
 	
 2005.10.16 -- Version 2.1-beta3
 
@@ -74,8 +77,8 @@ $Id$
 * Extended the plugin interface to allow plugins to declare
   per-client constructor and destructor functions, to make
   it simpler for plugins to maintain per-client state.
-	
-2005.09.25 -- Version 2.0.3-rc1
+
+2005.09.25 -- Version 2.0.3-rc1	
 
 * openvpn_plugin_abort_v1 function wasn't being properly
   registered on Windows.
