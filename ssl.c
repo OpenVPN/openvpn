@@ -911,7 +911,7 @@ init_ssl (const struct options *options)
 	}
     }
 
-  if (options->ca_file)
+  if (options->ca_file || options->ca_path)
     {
       /* Load CA file for verifying peer supplied certificate */
       ASSERT (options->ca_file || options->ca_path);

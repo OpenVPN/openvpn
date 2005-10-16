@@ -7,6 +7,7 @@ $Id$
 
 * Fixed bug introduced in 2.1-beta3 where management
   socket bind would fail.
+* --capath fix in ssl.c (Zhuang Yuyao).
 * Added ".PHONY: plugin" to Makefile.am, reverted
   location of "plugin" directory (thanks to
   Matthias Andree for figuring this out).
