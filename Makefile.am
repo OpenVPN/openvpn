@@ -122,7 +122,7 @@ EXTRA_DIST = \
 	service-win32 \
 	contrib \
 	debug \
-	plugins \
+	plugin \
         management \
         pkcs11-headers \
 	cryptoki-win32.h
