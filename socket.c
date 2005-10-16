@@ -685,16 +685,18 @@ socket_listen_accept (socket_descriptor_t sd,
   return new_sd;
 }
 
-static void
+void
 socket_bind (socket_descriptor_t sd,
-             struct openvpn_sockaddr *local)
+             struct openvpn_sockaddr *local,
+	     const char *prefix)
 {
   struct gc_arena gc = gc_new ();
 
   if (bind (sd, (struct sockaddr *) &local->sa, sizeof (local->sa)))
     {
       const int errnum = openvpn_errno_socket ();
-      msg (M_FATAL, "TCP/UDP: Socket bind failed on local address %s: %s",
+      msg (M_FATAL, "%s: Socket bind failed on local address %s: %s",
+	   prefix,
            print_sockaddr (local, &gc),
            strerror_ts (errnum, &gc));
     }
@@ -746,7 +748,7 @@ socket_connect (socket_descriptor_t *sd,
 
       *sd = create_socket_tcp ();
       if (bind_local)
-        socket_bind (*sd, local);
+        socket_bind (*sd, local, "TCP Client");
       update_remote (remote_dynamic, remote, remote_changed);
     }
 
@@ -818,10 +820,10 @@ resolve_bind_local (struct link_socket *sock)
     {
 #ifdef ENABLE_SOCKS
       if (sock->socks_proxy && sock->info.proto == PROTO_UDPv4)
-          socket_bind (sock->ctrl_sd, &sock->info.lsa->local);
+          socket_bind (sock->ctrl_sd, &sock->info.lsa->local, "SOCKS");
       else
 #endif
-          socket_bind (sock->sd, &sock->info.lsa->local);
+          socket_bind (sock->sd, &sock->info.lsa->local, "TCP/UDP");
     }
   gc_free (&gc);
 }

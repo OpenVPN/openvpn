@@ -840,9 +840,7 @@ man_listen (struct management *man)
       /*
        * Bind socket
        */
-      if (bind (man->connection.sd_top, (struct sockaddr *) &man->settings.local, sizeof (man->settings.local)))
-	msg (M_SOCKERR, "MANAGEMENT: Cannot bind TCP socket on %s",
-	     print_sockaddr (&man->settings.local, &gc));
+      socket_bind (man->connection.sd_top, &man->settings.local, "MANAGEMENT");
 
       /*
        * Listen for connection
