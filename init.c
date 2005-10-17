@@ -1860,7 +1860,7 @@ do_compute_occ_strings (struct context *c)
 static void
 do_init_first_time (struct context *c)
 {
-  if (c->first_time && !c->c2.did_we_daemonize)
+  if (c->first_time && !c->did_we_daemonize)
     {
       /* get user and/or group that we want to setuid/setgid to */
       c->c2.uid_gid_specified =
@@ -1871,10 +1871,10 @@ do_init_first_time (struct context *c)
       get_pid_file (c->options.writepid, &c->c2.pid_state);
 
       /* become a daemon if --daemon */
-      c->c2.did_we_daemonize = possibly_become_daemon (&c->options, c->first_time);
+      c->did_we_daemonize = possibly_become_daemon (&c->options, c->first_time);
 
       /* should we disable paging? */
-      if (c->options.mlock && c->c2.did_we_daemonize)
+      if (c->options.mlock && c->did_we_daemonize)
 	do_mlockall (true);	/* call again in case we daemonized */
 
       /* save process ID in a file */

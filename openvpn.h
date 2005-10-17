@@ -346,9 +346,6 @@ struct context_2
   struct user_state user_state;
   struct group_state group_state;
 
-  /* temporary variable */
-  bool did_we_daemonize;
-
   /* should we print R|W|r|w to console on packet transfers? */
   bool log_rw;
 
@@ -453,6 +450,9 @@ struct context
   struct plugin_list *plugins;
   bool plugins_owned;
   
+  /* set to true after we daemonize */
+  bool did_we_daemonize;
+
   /* level 1 context is preserved for
      SIGUSR1 restarts, but initialized
      for SIGHUP restarts */
