@@ -385,6 +385,7 @@ struct options
   const char *pkcs11_slot;
   const char *pkcs11_id_type;
   const char *pkcs11_id;
+  int pkcs11_pin_cache_period;
   bool pkcs11_protected_authentication;
 #ifdef WIN32
   const char *cryptoapi_cert;

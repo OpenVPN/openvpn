@@ -29,16 +29,16 @@
 
 #include <openssl/ssl.h>
 
-int
-SSL_CTX_use_pkcs11 (
-	SSL_CTX * const ssl_ctx,
-	const char * const pkcs11_slot_type,
-	const char * const pkcs11_slot,
-	const char * const pkcs11_id_type,
-	const char * const pkcs11_id,
-	const char * const pin,
-	const bool pkcs11_protected_authentication
+void
+init_pkcs11 (
+	const int nPINCachePeriod
 );
+
+void
+free_pkcs11 ();
+
+void
+fork_fix_pkcs11 ();
 
 void
 add_pkcs11 (
@@ -46,8 +46,15 @@ add_pkcs11 (
 	const char * const sign_mode
 );
 
-void
-free_pkcs11 ();
+int
+SSL_CTX_use_pkcs11 (
+	SSL_CTX * const ssl_ctx,
+	const char * const pkcs11_slot_type,
+	const char * const pkcs11_slot,
+	const char * const pkcs11_id_type,
+	const char * const pkcs11_id,
+	const bool pkcs11_protected_authentication
+);
 
 void
 show_pkcs11_slots (
@@ -65,6 +72,6 @@ show_pkcs11_objects (
 	const char * const pin
 );
 
-#endif
+#endif			/* ENABLE_PKCS11 */
 
-#endif
+#endif			/* OPENVPN_PKCS11_H */

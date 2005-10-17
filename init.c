@@ -111,14 +111,15 @@ context_init_1 (struct context *c)
   /* Certificate password input */
   if (c->options.key_pass_file)
     pem_password_setup (c->options.key_pass_file);
+#endif
 
 #if defined(ENABLE_PKCS11)
   {
     int i;
+    init_pkcs11 (c->options.pkcs11_pin_cache_period);
     for (i=0;i<MAX_PARMS && c->options.pkcs11_providers[i] != NULL;i++)
      add_pkcs11 (c->options.pkcs11_providers[i], c->options.pkcs11_sign_mode[i]);
   }
-#endif
 #endif
   
 #if P2MP
@@ -232,12 +233,10 @@ uninit_static (void)
 
 #ifdef USE_CRYPTO
   free_ssl_lib ();
+#endif
 
-#ifdef USE_SSL
 #ifdef ENABLE_PKCS11
   free_pkcs11 ();
-#endif
-#endif
 #endif
 
 #if defined(MEASURE_TLS_HANDSHAKE_STATS) && defined(USE_CRYPTO) && defined(USE_SSL)
@@ -375,6 +374,11 @@ possibly_become_daemon (const struct options *options, const bool first_time)
 	msg (M_ERR, "daemon() failed");
       if (options->log)
 	set_std_files_to_null (true);
+
+#if defined(ENABLE_PKCS11)
+      fork_fix_pkcs11 ();
+#endif
+
       ret = true;
     }
   return ret;

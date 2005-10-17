@@ -425,24 +425,6 @@ static const char usage_message[] =
   "--key file      : Local private key in .pem format.\n"
   "--pkcs12 file   : PKCS#12 file containing local private key, local certificate\n"
   "                  and optionally the root CA certificate.\n"
-#ifdef ENABLE_PKCS11
-  "--pkcs11-providers provider ... : PKCS#11 provider to load.\n"
-  "--pkcs11-sign-mode mode ... : PKCS#11 signature method.\n"
-  "                              auto    : Try  to determind automatically (default).\n"
-  "                              recover : Use SignRecover.\n"
-  "                              sign    : Use Sign.\n"
-  "--pkcs11-slot-type method   : Slot locate method:\n"
-  "                              id      : By slot id (numeric [prov#:]slot#).\n"
-  "                              name    : By slot name.\n"
-  "                              label   : By the card label that resides in slot.\n"
-  "--pkcs11-slot name          : The slot name.\n"
-  "--pkcs11-id-type method     : Certificate and key locate method:\n"
-  "                              id      : By the object id (hex format).\n"
-  "                              label   : By the object label (string).\n"
-  "                              subject : By certificate subject (String).\n"
-  "--pkcs11-id name            : The object name.\n"
-  "--pkcs11-protected-authentication : Use PKCS#11 protected authentication path.\n"
-#endif
 #ifdef WIN32
   "--cryptoapicert select-string : Load the certificate and private key from the\n"
   "                  Windows Certificate System Store.\n"
@@ -479,7 +461,29 @@ static const char usage_message[] =
   "--ns-cert-type t: Require that peer certificate was signed with an explicit\n"
   "                  nsCertType designation t = 'client' | 'server'.\n"
 #endif				/* USE_SSL */
+#ifdef ENABLE_PKCS11
   "\n"
+  "PKCS#11 Options:\n"
+  "--pkcs11-providers provider ... : PKCS#11 provider to load.\n"
+  "--pkcs11-sign-mode mode ... : PKCS#11 signature method.\n"
+  "                              auto    : Try  to determind automatically (default).\n"
+  "                              recover : Use SignRecover.\n"
+  "                              sign    : Use Sign.\n"
+  "--pkcs11-slot-type method   : Slot locate method:\n"
+  "                              id      : By slot id (numeric [prov#:]slot#).\n"
+  "                              name    : By slot name.\n"
+  "                              label   : By the card label that resides in slot.\n"
+  "--pkcs11-slot name          : The slot name.\n"
+  "--pkcs11-id-type method     : Certificate and key locate method:\n"
+  "                              id      : By the object id (hex format).\n"
+  "                              label   : By the object label (string).\n"
+  "                              subject : By certificate subject (String).\n"
+  "--pkcs11-id name            : The object name.\n"
+  "--pkcs11-pin-cache seconds  : Number of seconds to cache PIN. The default is -1\n"
+  "                              cache until token removed.\n"
+  "--pkcs11-protected-authentication : Use PKCS#11 protected authentication path.\n"
+#endif			/* ENABLE_PKCS11 */
+ "\n"
   "SSL Library information:\n"
   "--show-ciphers  : Show cipher algorithms to use with --cipher option.\n"
   "--show-digests  : Show message digest algorithms to use with --auth option.\n"
@@ -554,14 +558,12 @@ static const char usage_message[] =
   "--dev tunX|tapX : tun/tap device\n"
   "--dev-type dt   : Device type.  See tunnel options above for details.\n"
 #endif
-#ifdef USE_SSL
 #ifdef ENABLE_PKCS11
   "\n"
-  "PKCS#11 specific:\n"
+  "PKCS#11 standalone options:\n"
   "--show-pkcs11-slots provider        : Show PKCS#11 provider available slots.\n"
   "--show-pkcs11-objects provider slot : Show PKCS#11 token objects.\n" 
-#endif
-#endif
+#endif				/* ENABLE_PKCS11 */
  ;
 
 #endif /* !ENABLE_SMALL */
@@ -646,11 +648,12 @@ init_options (struct options *o)
   o->renegotiate_seconds = 3600;
   o->handshake_window = 60;
   o->transition_window = 3600;
+#endif
+#endif
 #ifdef ENABLE_PKCS11
+  o->pkcs11_pin_cache_period = -1;
   o->pkcs11_protected_authentication = false;
-#endif
-#endif
-#endif
+#endif			/* ENABLE_PKCS11 */
 }
 
 void
@@ -1178,23 +1181,6 @@ show_settings (const struct options *o)
   SHOW_STR (cert_file);
   SHOW_STR (priv_key_file);
   SHOW_STR (pkcs12_file);
-#ifdef ENABLE_PKCS11
-  {
-    int i;
-    for (i=0;i<MAX_PARMS && o->pkcs11_providers[i] != NULL;i++)
-      SHOW_PARM (pkcs11_providers, o->pkcs11_providers[i], "%s");
-  }
-  {
-    int i;
-    for (i=0;i<MAX_PARMS && o->pkcs11_sign_mode[i] != NULL;i++)
-      SHOW_PARM (pkcs11_sign_mode, o->pkcs11_sign_mode[i], "%s");
-  }
-  SHOW_STR (pkcs11_slot_type);
-  SHOW_STR (pkcs11_slot);
-  SHOW_STR (pkcs11_id_type);
-  SHOW_STR (pkcs11_id);
-  SHOW_BOOL (pkcs11_protected_authentication);
-#endif
 #ifdef WIN32
   SHOW_STR (cryptoapi_cert);
 #endif
@@ -1219,6 +1205,25 @@ show_settings (const struct options *o)
   SHOW_STR (tls_auth_file);
 #endif
 #endif
+
+#ifdef ENABLE_PKCS11
+  {
+    int i;
+    for (i=0;i<MAX_PARMS && o->pkcs11_providers[i] != NULL;i++)
+      SHOW_PARM (pkcs11_providers, o->pkcs11_providers[i], "%s");
+  }
+  {
+    int i;
+    for (i=0;i<MAX_PARMS && o->pkcs11_sign_mode[i] != NULL;i++)
+      SHOW_PARM (pkcs11_sign_mode, o->pkcs11_sign_mode[i], "%s");
+  }
+  SHOW_STR (pkcs11_slot_type);
+  SHOW_STR (pkcs11_slot);
+  SHOW_STR (pkcs11_id_type);
+  SHOW_STR (pkcs11_id);
+  SHOW_INT (pkcs11_pin_cache_period);
+  SHOW_BOOL (pkcs11_protected_authentication);
+#endif			/* ENABLE_PKCS11 */
 
 #if P2MP
   show_p2mp_parms (o);
@@ -1701,11 +1706,6 @@ options_postprocess (struct options *options, bool first_time)
 	  msg(M_USAGE, "Parameter --pkcs11-id-type value is invalid.");
 
 	notnull (options->pkcs11_id, "PKCS#11 id (--pkcs11-id)");
-
-	if (options->pkcs11_protected_authentication && options->key_pass_file != NULL)
-	  msg(M_USAGE, "Parameter --askpass cannot be used when --pkcs11-protected-authentication is also specified.");
-	if (!options->pkcs11_protected_authentication && options->key_pass_file == NULL)
-	  msg (M_USAGE, "Please specify one of --askpass or --pkcs11-protected-autentication options.");
 
 	if (options->cert_file)
 	  msg(M_USAGE, "Parameter --cert cannot be used when --pkcs11-provider is also specified.");
@@ -4733,83 +4733,6 @@ add_option (struct options *options,
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->cert_file = p[1];
     }
-#ifdef ENABLE_PKCS11
-  else if (streq (p[0], "show-pkcs11-slots") && p[1])
-    {
-      char *module =  p[i++];
-      VERIFY_PERMISSION (OPT_P_GENERAL);
-      show_pkcs11_slots (M_INFO|M_NOPREFIX, M_WARN|M_NOPREFIX, module);
-      openvpn_exit (OPENVPN_EXIT_STATUS_GOOD); /* exit point */
-    }
-  else if (streq (p[0], "show-pkcs11-objects") && p[1] && p[2])
-    {
-      char *provider =  p[i++];
-      char *slot = p[i++];
-      struct gc_arena gc = gc_new ();
-      struct buffer pass_prompt = alloc_buf_gc (128, &gc);
-      char pin[256];
-
-      VERIFY_PERMISSION (OPT_P_GENERAL);
-
-      buf_printf (&pass_prompt, "PIN:");
-
-      if (!get_console_input (BSTR (&pass_prompt), false, pin, sizeof (pin)))
-        msg (M_FATAL, "Cannot read password from stdin");
-      
-      gc_free (&gc);
-      
-      show_pkcs11_objects (M_INFO|M_NOPREFIX, M_WARN|M_NOPREFIX, provider, slot, pin);
-      openvpn_exit (OPENVPN_EXIT_STATUS_GOOD); /* exit point */
-    }
-  else if (streq (p[0], "pkcs11-providers") && p[1])
-    {
-      int j;
-      
-      VERIFY_PERMISSION (OPT_P_GENERAL);
-
-      for (j = 1; j < MAX_PARMS && p[j] != NULL; ++j, ++i)
-      	options->pkcs11_providers[j-1] = p[j];
-    }
-  else if (streq (p[0], "pkcs11-sign-mode") && p[1])
-    {
-      int j;
-      
-      VERIFY_PERMISSION (OPT_P_GENERAL);
-
-      for (j = 1; j < MAX_PARMS && p[j] != NULL; ++j, ++i)
-      	options->pkcs11_sign_mode[j-1] = p[j];
-    }
-  else if (streq (p[0], "pkcs11-slot-type") && p[1])
-    {
-      ++i;
-      VERIFY_PERMISSION (OPT_P_GENERAL);
-      options->pkcs11_slot_type = p[1];
-    }
-  else if (streq (p[0], "pkcs11-slot") && p[1])
-    {
-      ++i;
-      VERIFY_PERMISSION (OPT_P_GENERAL);
-      options->pkcs11_slot = p[1];
-    }
-  else if (streq (p[0], "pkcs11-id-type") && p[1])
-    {
-      ++i;
-      VERIFY_PERMISSION (OPT_P_GENERAL);
-      options->pkcs11_id_type = p[1];
-    }
-  else if (streq (p[0], "pkcs11-id") && p[1])
-    {
-      ++i;
-      VERIFY_PERMISSION (OPT_P_GENERAL);
-      options->pkcs11_id = p[1];
-    }
-  else if (streq (p[0], "pkcs11-protected-authentication"))
-    {
-      ++i;
-      VERIFY_PERMISSION (OPT_P_GENERAL);
-      options->pkcs11_protected_authentication = true;
-    }
-#endif
 #ifdef WIN32
   else if (streq (p[0], "cryptoapicert") && p[1])
     {
@@ -4968,6 +4891,89 @@ add_option (struct options *options,
     }
 #endif /* USE_SSL */
 #endif /* USE_CRYPTO */
+#ifdef ENABLE_PKCS11
+  else if (streq (p[0], "show-pkcs11-slots") && p[1])
+    {
+      char *module =  p[i++];
+      VERIFY_PERMISSION (OPT_P_GENERAL);
+      show_pkcs11_slots (M_INFO|M_NOPREFIX, M_WARN|M_NOPREFIX, module);
+      openvpn_exit (OPENVPN_EXIT_STATUS_GOOD); /* exit point */
+    }
+  else if (streq (p[0], "show-pkcs11-objects") && p[1] && p[2])
+    {
+      char *provider =  p[i++];
+      char *slot = p[i++];
+      struct gc_arena gc = gc_new ();
+      struct buffer pass_prompt = alloc_buf_gc (128, &gc);
+      char pin[256];
+
+      VERIFY_PERMISSION (OPT_P_GENERAL);
+
+      buf_printf (&pass_prompt, "PIN:");
+
+      if (!get_console_input (BSTR (&pass_prompt), false, pin, sizeof (pin)))
+        msg (M_FATAL, "Cannot read password from stdin");
+      
+      gc_free (&gc);
+      
+      show_pkcs11_objects (M_INFO|M_NOPREFIX, M_WARN|M_NOPREFIX, provider, slot, pin);
+      openvpn_exit (OPENVPN_EXIT_STATUS_GOOD); /* exit point */
+    }
+  else if (streq (p[0], "pkcs11-providers") && p[1])
+    {
+      int j;
+      
+      VERIFY_PERMISSION (OPT_P_GENERAL);
+
+      for (j = 1; j < MAX_PARMS && p[j] != NULL; ++j, ++i)
+      	options->pkcs11_providers[j-1] = p[j];
+    }
+  else if (streq (p[0], "pkcs11-sign-mode") && p[1])
+    {
+      int j;
+      
+      VERIFY_PERMISSION (OPT_P_GENERAL);
+
+      for (j = 1; j < MAX_PARMS && p[j] != NULL; ++j, ++i)
+      	options->pkcs11_sign_mode[j-1] = p[j];
+    }
+  else if (streq (p[0], "pkcs11-slot-type") && p[1])
+    {
+      ++i;
+      VERIFY_PERMISSION (OPT_P_GENERAL);
+      options->pkcs11_slot_type = p[1];
+    }
+  else if (streq (p[0], "pkcs11-slot") && p[1])
+    {
+      ++i;
+      VERIFY_PERMISSION (OPT_P_GENERAL);
+      options->pkcs11_slot = p[1];
+    }
+  else if (streq (p[0], "pkcs11-id-type") && p[1])
+    {
+      ++i;
+      VERIFY_PERMISSION (OPT_P_GENERAL);
+      options->pkcs11_id_type = p[1];
+    }
+  else if (streq (p[0], "pkcs11-id") && p[1])
+    {
+      ++i;
+      VERIFY_PERMISSION (OPT_P_GENERAL);
+      options->pkcs11_id = p[1];
+    }
+   else if (streq (p[0], "pkcs11-pin-cache") && p[1])
+    {
+      ++i;
+      VERIFY_PERMISSION (OPT_P_GENERAL);
+      options->pkcs11_pin_cache_period = atoi (p[1]);
+    }
+  else if (streq (p[0], "pkcs11-protected-authentication"))
+    {
+      ++i;
+      VERIFY_PERMISSION (OPT_P_GENERAL);
+      options->pkcs11_protected_authentication = true;
+    }
+#endif
 #ifdef TUNSETPERSIST
   else if (streq (p[0], "rmtun"))
     {
