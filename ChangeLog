@@ -3,10 +3,6 @@ Copyright (C) 2002-2005 OpenVPN Solutions LLC <info@openvpn.net>
 
 $Id$
 
-2005.10.xx -- Version 2.1-beta5
-
-* More PKCS#11 additions/changes (Alon Bar-Lev).
-
 2005.10.17 -- Version 2.1-beta4
 
 * Fixed bug introduced in 2.1-beta3 where management

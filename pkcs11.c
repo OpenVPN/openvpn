@@ -1465,18 +1465,18 @@ static
 CK_RV
 pkcs11_forkFixup () {
 
-	pkcs11_provider_t current;
+	if (pkcs11_data != NULL && pkcs11_data->fInitialized) {
 
-	ASSERT (pkcs11_data!=NULL);
-	ASSERT (pkcs11_data->fInitialized);
+		pkcs11_provider_t current;
 
-	for (
-		current = pkcs11_data->providers;
-		current != NULL;
-		current = current->next
-	) {
-		if (current->fEnabled) {
-			current->f->C_Initialize (NULL);
+		for (
+			current = pkcs11_data->providers;
+			current != NULL;
+			current = current->next
+		) {
+			if (current->fEnabled) {
+				current->f->C_Initialize (NULL);
+			}
 		}
 	}
 

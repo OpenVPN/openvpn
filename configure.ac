@@ -25,7 +25,7 @@ dnl Process this file with autoconf to produce a configure script.
 
 AC_PREREQ(2.50)
 
-AC_INIT([OpenVPN], [2.1_beta5], [openvpn-users@lists.sourceforge.net], [openvpn])
+AC_INIT([OpenVPN], [2.1_beta4], [openvpn-users@lists.sourceforge.net], [openvpn])
 AM_CONFIG_HEADER(config.h)
 AC_CONFIG_SRCDIR(syshead.h)
 
@@ -386,7 +386,7 @@ AC_FUNC_MEMCMP
 
 AC_CHECK_FUNCS(socket recv recvfrom send sendto listen dnl
 	       accept connect bind select gethostbyname dnl
-               inet_ntoa time ctime memset vsnprintf, [],
+               inet_ntoa time ctime memset vsnprintf strdup, [],
 	       [AC_MSG_ERROR([Required library function not found])])
 
 dnl
