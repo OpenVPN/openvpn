@@ -209,6 +209,7 @@ openvpn \- secure IP tunnel daemon.
 [\ \fB\-\-pkcs11\-slot\fR\ \fIname\fR\ ]
 [\ \fB\-\-pkcs11\-id\-type\fR\ \fItype\fR\ ]
 [\ \fB\-\-pkcs11\-id\fR\ \fIname\fR\ ]
+[\ \fB\-\-pkcs11\-pin\-cache\fR\ \fIseconds\fR\ ]
 [\ \fB\-\-pkcs11\-protected\-authentication\fR\ ]
 [\ \fB\-\-pkcs12\fR\ \fIfile\fR\ ]
 [\ \fB\-\-plugin\fR\ \fImodule\-pathname\ init\-string\fR\ ]
@@ -3583,6 +3584,10 @@ Specify how to locate the correct objects. Type can be one of the following:
 .TP
 .B --pkcs11-id name
 Specify a name of the object to search for.
+.\"*********************************************************
+.TP
+.B --pkcs11-pin-cache seconds
+Specify how many seconds the PIN can be cached, the default is until the token is removed.
 .\"*********************************************************
 .TP
 .B --pkcs11-protected-authentication
