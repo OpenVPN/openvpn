@@ -1289,8 +1289,17 @@ multi_connection_established (struct multi_context *m, struct multi_instance *mi
     {
       struct gc_arena gc = gc_new ();
       unsigned int option_types_found = 0;
+
       const unsigned int option_permissions_mask =
-	OPT_P_INSTANCE|OPT_P_INHERIT|OPT_P_PUSH|OPT_P_TIMER|OPT_P_CONFIG|OPT_P_ECHO|OPT_P_COMP;
+	  OPT_P_INSTANCE
+	| OPT_P_INHERIT
+	| OPT_P_PUSH
+	| OPT_P_TIMER
+	| OPT_P_CONFIG
+	| OPT_P_ECHO
+	| OPT_P_COMP
+	| OPT_P_SOCKFLAGS;
+
       int cc_succeeded = true; /* client connect script status */
       int cc_succeeded_count = 0;
 
