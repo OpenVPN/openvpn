@@ -6,6 +6,11 @@ $Id$
 2005.10.xx -- Version 2.1-beta5
 
 * More PKCS#11 additions/changes (Alon Bar-Lev).
+* Fixed double fork issue that occurs when --management-hold
+  is used.
+* Moved TUN/TAP read/write log messages from --verb 8 to 6.
+* Warn when multiple clients having the same common name or
+  username usurp each other when --duplicate-cn is not used.
 
 2005.10.17 -- Version 2.1-beta4
 

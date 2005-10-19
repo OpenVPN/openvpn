@@ -104,6 +104,7 @@
 #define D_LOG_RW             LOGLEV(5, 0,  0)        /* Print 'R' or 'W' to stdout for read/write */
 
 #define D_LINK_RW            LOGLEV(6, 60, M_DEBUG)  /* show TCP/UDP reads/writes (terse) */
+#define D_TUN_RW             LOGLEV(6, 60, M_DEBUG)  /* show TUN/TAP reads/writes */
 #define D_TAP_WIN32_DEBUG    LOGLEV(6, 60, M_DEBUG)  /* show TAP-Win32 driver debug info */
 
 #define D_SHOW_KEYS          LOGLEV(7, 70, M_DEBUG)  /* show data channel encryption keys */
@@ -138,7 +139,6 @@
 #define D_GREMLIN_VERBOSE    LOGLEV(8, 70, M_DEBUG)  /* show verbose info from gremlin module */
 #define D_REL_DEBUG          LOGLEV(8, 70, M_DEBUG)  /* show detailed info from reliable routines */
 #define D_EVENT_WAIT         LOGLEV(8, 70, M_DEBUG)  /* show detailed info from event waits */
-#define D_TUN_RW             LOGLEV(8, 70, M_DEBUG)  /* show TUN/TAP reads/writes */
 #define D_MULTI_TCP          LOGLEV(8, 70, M_DEBUG)  /* show debug info from mtcp.c */
 
 #define D_TLS_DEBUG          LOGLEV(9, 70, M_DEBUG)  /* show detailed info from TLS routines */

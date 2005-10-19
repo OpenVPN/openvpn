@@ -1045,6 +1045,7 @@ multi_delete_dup (struct multi_context *m, struct multi_instance *new_mi)
 	{
 	  struct hash_iterator hi;
 	  struct hash_element *he;
+	  int count = 0;
 
 	  hash_iterator_init (m->iter, &hi, true);
 	  while ((he = hash_iterator_next (&hi)))
@@ -1058,10 +1059,14 @@ multi_delete_dup (struct multi_context *m, struct multi_instance *new_mi)
 		      mi->did_iter = false;
 		      multi_close_instance (m, mi, false);
 		      hash_iterator_delete_element (&hi);
+		      ++count;
 		    }
 		}
 	    }
 	  hash_iterator_free (&hi);
+
+	  if (count)
+	    msg (D_MULTI_LOW, "MULTI: new connection by client '%s' will cause previous active sessions by this client to be dropped.  Remember to use the --duplicate-cn option if you want multiple clients using the same certificate or username to concurrently connect.", new_cn);
 	}
     }
 }

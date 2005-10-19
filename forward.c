@@ -899,10 +899,7 @@ process_incoming_tun (struct context *c)
 #endif
 
   /* Show packet content */
-  dmsg (D_TUN_RW, "TUN READ [%d]: %s md5=%s",
-       BLEN (&c->c2.buf),
-       format_hex (BPTR (&c->c2.buf), BLEN (&c->c2.buf), 80, &gc),
-       MD5SUM (BPTR (&c->c2.buf), BLEN (&c->c2.buf), &gc));
+  dmsg (D_TUN_RW, "TUN READ [%d]", BLEN (&c->c2.buf));
 
   if (c->c2.buf.len > 0)
     {
@@ -1118,10 +1115,7 @@ process_outgoing_tun (struct context *c)
       if (c->c2.log_rw)
 	fprintf (stderr, "w");
 #endif
-      dmsg (D_TUN_RW, "TUN WRITE [%d]: %s md5=%s",
-	   BLEN (&c->c2.to_tun),
-	   format_hex (BPTR (&c->c2.to_tun), BLEN (&c->c2.to_tun), 80, &gc),
-	   MD5SUM (BPTR (&c->c2.to_tun), BLEN (&c->c2.to_tun), &gc));
+      dmsg (D_TUN_RW, "TUN WRITE [%d]", BLEN (&c->c2.to_tun));
 
 #ifdef PACKET_TRUNCATION_CHECK
       ipv4_packet_size_verify (BPTR (&c->c2.to_tun),
