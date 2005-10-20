@@ -11,6 +11,13 @@ $Id$
 * Moved TUN/TAP read/write log messages from --verb 8 to 6.
 * Warn when multiple clients having the same common name or
   username usurp each other when --duplicate-cn is not used.
+* Modified Windows and Linux versions of get_default_gateway
+  to return the route with the smallest metric
+  if multiple 0.0.0.0/0.0.0.0 entries are present.
+* Added ">NEED-OK" alert and "ok" command to management
+  interface to provide a general interface for sending
+  alerts to the end-user.  Used by the PKCS#11 code
+  to send Token Insertion Requests to the user.
 
 2005.10.17 -- Version 2.1-beta4
 
