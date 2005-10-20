@@ -370,6 +370,28 @@ Command examples:
   auth-retry interact -- Don't exit when bad username/passwords are entered.
                          Query for new input and retry.
 
+COMMAND -- needok  (OpenVPN 2.1 or higher)
+--------------------------------------
+
+Confirm a ">NEED-OK" real-time notification, normally used by
+OpenVPN to block while waiting for a specific user action.
+
+Example:
+
+  OpenVPN needs the user to insert a cryptographic token,
+  so it sends a real-time notification:
+
+    >NEED-OK:Need 'token-insertion-request' confirmation MSG:Please insert your cryptographic token
+
+  The management client, if it is a GUI, can flash a dialog
+  box containing the text after the "MSG:" marker to the user.
+  When the user acknowledges the dialog box,
+  the management client can issue this command:
+
+     needok token-insertion-request ok
+  or
+     needok token-insertion-request cancel
+
 OUTPUT FORMAT
 -------------
 
@@ -381,7 +403,7 @@ OUTPUT FORMAT
 
 (3) Real-time messages will be in the form ">[source]:[text]",
     where source is "ECHO", "FATAL", "HOLD", "INFO", "LOG",
-    "PASSWORD", or "STATE".
+    "NEED-OK", "PASSWORD", or "STATE".
 
 REAL-TIME MESSAGE FORMAT
 ------------------------
@@ -408,6 +430,10 @@ INFO     -- Informational messages such as the welcome message.
 
 LOG      -- Log message output as controlled by the "log" command.
 
+NEED-OK  -- OpenVPN needs the end user to do something, such as
+            insert a cryptographic token.  The "needok" command can
+            be used to tell OpenVPN to continue.
+
 PASSWORD -- Used to tell the management client that OpenVPN
             needs a password, also to indicate password
             verification failure.
@@ -418,16 +444,16 @@ STATE    -- Shows the current OpenVPN state, as controlled
 Command Parsing
 ---------------
 
-OpenVPN uses the same command line lexical analyzer as is used
-by the OpenVPN config file parser.
+The management interface uses the same command line lexical analyzer
+as is used by the OpenVPN config file parser.
 
 Whitespace is a parameter separator.
 
 Double  quotation characters ("") can be used to enclose
-parameters containing whitespace
+parameters containing whitespace.
 
 Backslash-based shell escaping is performed, using the following
-mappings
+mappings:
 
 \\       Maps to a single backslash character (\).
 \"       Pass a literal doublequote character ("), don't

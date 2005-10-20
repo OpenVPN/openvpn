@@ -122,6 +122,20 @@ context_init_1 (struct context *c)
   }
 #endif
 
+#if 0 /* JYFIXME -- test get_user_pass with GET_USER_PASS_NEED_OK flag */
+ {
+   /*
+    * In the management interface, you can okay the request by entering "needok token-insertion-request ok"
+    */
+   struct user_pass up;
+   CLEAR (up);
+   strcpy (up.username, "Please insert your cryptographic token"); /* put the high-level message in up.username */
+   get_user_pass (&up, NULL, "token-insertion-request", GET_USER_PASS_MANAGEMENT|GET_USER_PASS_NEED_OK);
+   msg (M_INFO, "RET:%s", up.password); /* will return the third argument to management interface
+                                           'needok' command, usually 'ok' or 'cancel'. */
+ }
+#endif
+
 #if P2MP
   /* Auth user/pass input */
   if (c->options.auth_user_pass_file)

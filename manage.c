@@ -74,8 +74,9 @@ man_help ()
   msg (M_CLIENT, "log [on|off] [N|all]   : Turn on/off realtime log display");
   msg (M_CLIENT, "                         + show last N lines or 'all' for entire history.");
   msg (M_CLIENT, "mute [n]               : Set log mute level to n, or show level if n is absent.");
+  msg (M_CLIENT, "needok type action     : Enter confirmation for NEED-OK request of 'type',");
+  msg (M_CLIENT, "                         where action = 'ok' or 'cancel'.");
   msg (M_CLIENT, "net                    : (Windows only) Show network info and routing table.");
-  msg (M_CLIENT, "ok type                : Enter confirmation for NEED-OK request.");
   msg (M_CLIENT, "password type p        : Enter password p for a queried OpenVPN password.");
   msg (M_CLIENT, "signal s               : Send signal s to daemon,");
   msg (M_CLIENT, "                         s = SIGHUP|SIGTERM|SIGUSR1|SIGUSR2.");
@@ -527,10 +528,10 @@ man_query_password (struct management *man, const char *type, const char *string
 }
 
 static void
-man_query_need_ok (struct management *man, const char *type)
+man_query_need_ok (struct management *man, const char *type, const char *action)
 {
   const bool needed = ((man->connection.up_query_mode == UP_QUERY_NEED_OK) && man->connection.up_query_type);
-  man_query_user_pass (man, type, "ok", needed, "ok-confirmation", man->connection.up_query.password, USER_PASS_LEN);
+  man_query_user_pass (man, type, action, needed, "needok-confirmation", man->connection.up_query.password, USER_PASS_LEN);
 }
 
 static void
@@ -721,10 +722,10 @@ man_dispatch_command (struct management *man, struct status_output *so, const ch
       if (man_need (man, p, 2, 0))
 	man_query_password (man, p[1], p[2]);
     }
-  else if (streq (p[0], "ok"))
+  else if (streq (p[0], "needok"))
     {
-      if (man_need (man, p, 1, 0))
-	man_query_need_ok (man, p[1]);
+      if (man_need (man, p, 2, 0))
+	man_query_need_ok (man, p[1], p[2]);
     }
   else if (streq (p[0], "net"))
     {
@@ -1788,6 +1789,9 @@ management_query_user_pass (struct management *man,
 		  prefix,
 		  type,
 		  alert_type);
+
+      if (flags & GET_USER_PASS_NEED_OK)
+	buf_printf (&alert_msg, " MSG:%s", up->username);
 
       man_wait_for_client_connection (man, &signal_received, 0, MWCC_PASSWORD_WAIT);
       if (signal_received)

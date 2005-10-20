@@ -1178,38 +1178,42 @@ get_user_pass (struct user_pass *up,
       else
 #endif
       /*
+       * Get NEED_OK confirmation from the console
+       */
+      if (flags & GET_USER_PASS_NEED_OK)
+	{
+	  struct buffer user_prompt = alloc_buf_gc (128, &gc);
+
+	  buf_printf (&user_prompt, "NEED-OK|%s|%s:", prefix, up->username);
+	  
+	  if (!get_console_input (BSTR (&user_prompt), true, up->password, USER_PASS_LEN))
+	    msg (M_FATAL, "ERROR: could not read %s ok-confirmation from stdin", prefix);
+	  
+	  if (!strlen (up->password))
+	    strcpy (up->password, "ok");
+	}
+	  
+      /*
        * Get username/password from standard input?
        */
-      if (from_stdin || (flags & GET_USER_PASS_NEED_OK))
+      else if (from_stdin)
 	{
 	  struct buffer user_prompt = alloc_buf_gc (128, &gc);
 	  struct buffer pass_prompt = alloc_buf_gc (128, &gc);
 
-	  if (flags & GET_USER_PASS_NEED_OK)
-	    {
-	      buf_printf (&pass_prompt, "NEED-OK:%s:", prefix);
-	    }
-	  else
-	    {
-	      buf_printf (&user_prompt, "Enter %s Username:", prefix);
-	      buf_printf (&pass_prompt, "Enter %s Password:", prefix);
+	  buf_printf (&user_prompt, "Enter %s Username:", prefix);
+	  buf_printf (&pass_prompt, "Enter %s Password:", prefix);
 
-	      if (!(flags & GET_USER_PASS_PASSWORD_ONLY))
-		{
-		  if (!get_console_input (BSTR (&user_prompt), true, up->username, USER_PASS_LEN))
-		    msg (M_FATAL, "ERROR: could not read %s username from stdin", prefix);
-		  if (strlen (up->username) == 0)
-		    msg (M_FATAL, "ERROR: %s username is empty", prefix);
-		}
+	  if (!(flags & GET_USER_PASS_PASSWORD_ONLY))
+	    {
+	      if (!get_console_input (BSTR (&user_prompt), true, up->username, USER_PASS_LEN))
+		msg (M_FATAL, "ERROR: could not read %s username from stdin", prefix);
+	      if (strlen (up->username) == 0)
+		msg (M_FATAL, "ERROR: %s username is empty", prefix);
 	    }
 
 	  if (!get_console_input (BSTR (&pass_prompt), false, up->password, USER_PASS_LEN))
-	    msg (M_FATAL, "ERROR: could not not read %s %s from stdin",
-		 prefix,
-		 (flags & GET_USER_PASS_NEED_OK) ? "ok-confirmation" : "password");
-
-	  if (flags & GET_USER_PASS_NEED_OK)
-	    strcpy (up->password, "ok");
+	    msg (M_FATAL, "ERROR: could not not read %s password from stdin", prefix);
 	}
       else
 	{
