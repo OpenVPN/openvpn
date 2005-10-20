@@ -112,7 +112,7 @@ extern int x_msg_line_num;
  *
  * A mute level of 0 is always printed.
  */
-#define MUTE_LEVEL_SHIFT 16
+#define MUTE_LEVEL_SHIFT 24
 #define MUTE_LEVEL_MASK 0xFF
 
 #define ENCODE_MUTE_LEVEL(mute_level) (((mute_level) & MUTE_LEVEL_MASK) << MUTE_LEVEL_SHIFT)
