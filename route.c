@@ -1102,9 +1102,11 @@ test_routes (const struct route_list *rl, const struct tuntap *tt)
 static const MIB_IPFORWARDROW *
 get_default_gateway_row (const MIB_IPFORWARDTABLE *routes)
 {
-  DWORD lowest_index = ~0;
+  struct gc_arena gc = gc_new ();
+  DWORD lowest_metric = ~0;
   const MIB_IPFORWARDROW *ret = NULL;
   int i;
+  int best = -1;
 
   if (routes)
     {
@@ -1114,22 +1116,27 @@ get_default_gateway_row (const MIB_IPFORWARDTABLE *routes)
 	  const in_addr_t net = ntohl (row->dwForwardDest);
 	  const in_addr_t mask = ntohl (row->dwForwardMask);
 	  const DWORD index = row->dwForwardIfIndex;
+	  const DWORD metric = row->dwForwardMetric1;
 
-#if 0
-	  msg (M_INFO, "route[%d] %s %s %s",
-	       i,
-	       print_in_addr_t ((in_addr_t) net, 0, &gc),
-	       print_in_addr_t ((in_addr_t) mask, 0, &gc),
-	       print_in_addr_t ((in_addr_t) gw, 0, &gc));
-#endif
+	  dmsg (D_ROUTE_DEBUG, "GDGR: route[%d] %s/%s i=%d m=%d",
+		i,
+		print_in_addr_t ((in_addr_t) net, 0, &gc),
+		print_in_addr_t ((in_addr_t) mask, 0, &gc),
+		(int)index,
+		(int)metric);
 
-	  if (!net && !mask && index < lowest_index)
+	  if (!net && !mask && metric < lowest_metric)
 	    {
 	      ret = row;
-	      lowest_index = index;
+	      lowest_metric = metric;
+	      best = i;
 	    }
 	}
     }
+
+  dmsg (D_ROUTE_DEBUG, "GDGR: best=%d lm=%u", best, (unsigned int)lowest_metric);
+
+  gc_free (&gc);
   return ret;
 }
 
