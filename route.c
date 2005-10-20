@@ -1347,6 +1347,9 @@ get_default_gateway (in_addr_t *ret)
     {
       char line[256];
       int count = 0;
+      int best_count = 0;
+      unsigned int lowest_metric = ~0;
+      in_addr_t best_gw = 0;
       while (fgets (line, sizeof (line), fp) != NULL)
 	{
 	  if (count)
@@ -1354,33 +1357,44 @@ get_default_gateway (in_addr_t *ret)
 	      unsigned int net_x = 0;
 	      unsigned int mask_x = 0;
 	      unsigned int gw_x = 0;
-	      const int np = sscanf (line, "%*s\t%x\t%x\t%*s\t%*s\t%*s\t%*s\t%x",
+	      unsigned int metric = 0;
+	      const int np = sscanf (line, "%*s\t%x\t%x\t%*s\t%*s\t%*s\t%d\t%x",
 				     &net_x,
 				     &gw_x,
+				     &metric,
 				     &mask_x);
-	      if (np == 3)
+	      if (np == 4)
 		{
 		  const in_addr_t net = ntohl (net_x);
 		  const in_addr_t mask = ntohl (mask_x);
 		  const in_addr_t gw = ntohl (gw_x);
-#if 0
-		  msg (M_INFO, "route %s %s %s",
-		       print_in_addr_t ((in_addr_t) net, 0, &gc),
-		       print_in_addr_t ((in_addr_t) mask, 0, &gc),
-		       print_in_addr_t ((in_addr_t) gw, 0, &gc));
-#endif
-		  if (!net && !mask)
+
+		  dmsg (D_ROUTE_DEBUG, "GDG: route[%d] %s/%s/%s m=%u",
+			count,
+			print_in_addr_t ((in_addr_t) net, 0, &gc),
+			print_in_addr_t ((in_addr_t) mask, 0, &gc),
+			print_in_addr_t ((in_addr_t) gw, 0, &gc),
+			metric);
+
+		  if (!net && !mask && metric < lowest_metric)
 		    {
-		      fclose (fp);
-		      *ret = gw;
-		      gc_free (&gc);
-		      return true;
+		      best_gw = gw;
+		      lowest_metric = metric;
+		      best_count = count;
 		    }
 		}
 	    }
 	  ++count;
 	}
       fclose (fp);
+
+      if (best_gw)
+	*ret = best_gw;
+
+      dmsg (D_ROUTE_DEBUG, "GDG: best=%s[%d] lm=%u",
+	    print_in_addr_t ((in_addr_t) best_gw, 0, &gc),
+	    best_count,
+	    (unsigned int)lowest_metric);
     }
 
   gc_free (&gc);
