@@ -18,6 +18,8 @@ $Id$
   interface to provide a general interface for sending
   alerts to the end-user.  Used by the PKCS#11 code
   to send Token Insertion Requests to the user.
+* Added actual remote address used to the ">STATE" alert
+  in the management interface (Rolf Fokkens).
 
 2005.10.17 -- Version 2.1-beta4
 

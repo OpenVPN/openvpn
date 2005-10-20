@@ -314,9 +314,10 @@ The output format consists of 4 comma-separated parameters:
   (a) the integer unix date/time,
   (b) the state name,
   (c) optional descriptive string (used mostly on RECONNECTING
-      and EXITING to show the reason for the disconnect), and
+      and EXITING to show the reason for the disconnect),
   (d) optional TUN/TAP local IP address (shown for ASSIGN_IP
-      and CONNECTED).
+      and CONNECTED), and
+  (e) optional address of remote server (OpenVPN 2.1 or higher).
 
 Real-time state notifications will have a ">STATE:" prefix
 prepended to them.

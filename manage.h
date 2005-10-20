@@ -97,6 +97,7 @@ struct log_entry
   time_t timestamp;
   const char *string;
   in_addr_t local_ip;
+  in_addr_t remote_ip;
   union log_entry_union u;
 };
 
@@ -113,6 +114,8 @@ struct log_entry
 #define LOG_FATAL_NOTIFY       (1<<8)
 
 #define LOG_PRINT_INTVAL       (1<<9)
+
+#define LOG_PRINT_REMOTE_IP    (1<<10)
 
 const char *log_entry_print (const struct log_entry *e, unsigned int flags, struct gc_arena *gc);
 
@@ -325,7 +328,8 @@ management_query_user_pass_enabled (const struct management *man)
 void management_set_state (struct management *man,
 			   const int state,
 			   const char *detail,
-			   const in_addr_t tun_local_ip);
+			   const in_addr_t tun_local_ip,
+			   const in_addr_t tun_remote_ip);
 
 /*
  * The management object keeps track of OpenVPN --echo

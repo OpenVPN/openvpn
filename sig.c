@@ -167,6 +167,7 @@ signal_restart_status (const struct signal_info *si)
 	management_set_state (management,
 			      state,
 			      si->signal_text ? si->signal_text : signal_name (si->signal_received, true),
+			      (in_addr_t)0,
 			      (in_addr_t)0);
     }
 #endif

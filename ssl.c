@@ -2878,6 +2878,7 @@ tls_process (struct tls_multi *multi,
 		      management_set_state (management,
 					    OPENVPN_STATE_WAIT,
 					    NULL,
+					    0,
 					    0);
 		    }
 #endif
@@ -3562,6 +3563,7 @@ tls_pre_decrypt (struct tls_multi *multi,
 		      management_set_state (management,
 					    OPENVPN_STATE_AUTH,
 					    NULL,
+					    0,
 					    0);
 		    }
 #endif

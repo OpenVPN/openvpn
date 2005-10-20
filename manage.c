@@ -451,7 +451,8 @@ man_state (struct management *man, const char *parm)
 	       "state",
 	       man->persist.state,
 	       &man->connection.state_realtime,
-	       LOG_PRINT_INT_DATE|LOG_PRINT_STATE|LOG_PRINT_LOCAL_IP);
+	       LOG_PRINT_INT_DATE|LOG_PRINT_STATE|
+	       LOG_PRINT_LOCAL_IP|LOG_PRINT_REMOTE_IP);
 }
 
 static void
@@ -1357,7 +1358,8 @@ void
 management_set_state (struct management *man,
 		      const int state,
 		      const char *detail,
-		      const in_addr_t tun_local_ip)
+		      const in_addr_t tun_local_ip,
+		      const in_addr_t tun_remote_ip)
 {
   if (man->persist.state && (!man->settings.server || state < OPENVPN_STATE_CLIENT_BASE))
     {
@@ -1371,6 +1373,7 @@ management_set_state (struct management *man,
       e.u.state = state;
       e.string = detail;
       e.local_ip = tun_local_ip;
+      e.remote_ip = tun_remote_ip;
       
       log_history_add (man->persist.state, &e);
 
@@ -1379,6 +1382,7 @@ management_set_state (struct management *man,
 			       |   LOG_PRINT_INT_DATE
                                |   LOG_PRINT_STATE
 			       |   LOG_PRINT_LOCAL_IP
+			       |   LOG_PRINT_REMOTE_IP
                                |   LOG_PRINT_CRLF, &gc);
 
       if (out)
@@ -2087,6 +2091,8 @@ log_entry_print (const struct log_entry *e, unsigned int flags, struct gc_arena 
     buf_printf (&out, "%s", e->string);
   if (flags & LOG_PRINT_LOCAL_IP)
     buf_printf (&out, ",%s", print_in_addr_t (e->local_ip, IA_EMPTY_IF_UNDEF, gc));
+  if (flags & LOG_PRINT_REMOTE_IP)
+    buf_printf (&out, ",%s", print_in_addr_t (e->remote_ip, IA_EMPTY_IF_UNDEF, gc));
   if (flags & LOG_PRINT_CRLF)
     buf_printf (&out, "\r\n");
   return BSTR (&out);

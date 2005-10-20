@@ -546,7 +546,8 @@ do_ifconfig (struct tuntap *tt,
       management_set_state (management,
 			    OPENVPN_STATE_ASSIGN_IP,
 			    NULL,
-			    tt->local);
+			    tt->local,
+			    0);
     }
 #endif
 

@@ -627,15 +627,18 @@ initialization_sequence_completed (struct context *c, const unsigned int flags)
   if (management)
     {
       in_addr_t tun_local = 0;
+      in_addr_t tun_remote = 0; /* FKS */
       const char *detail = "SUCCESS";
       if (c->c1.tuntap)
 	tun_local = c->c1.tuntap->local;
+      tun_remote = htonl (c->c1.link_socket_addr.actual.dest.sa.sin_addr.s_addr);
       if (flags & ISC_ERRORS)
 	detail = "ERROR";
       management_set_state (management,
 			    OPENVPN_STATE_CONNECTED,
 			    detail,
-			    tun_local);
+			    tun_local,
+			    tun_remote);
       if (tun_local)
 	management_post_tunnel_open (management, tun_local);
     }
@@ -2304,6 +2307,7 @@ open_management (struct context *c)
 	      management_set_state (management,
 				    OPENVPN_STATE_CONNECTING,
 				    NULL,
+				    (in_addr_t)0,
 				    (in_addr_t)0);
 	    }
 
