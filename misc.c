@@ -1155,7 +1155,6 @@ get_console_input (const char *prompt, const bool echo, char *input, const int c
 void
 get_user_pass (struct user_pass *up,
 	       const char *auth_file,
-	       const bool password_only,
 	       const char *prefix,
 	       const unsigned int flags)
 {
@@ -1173,32 +1172,44 @@ get_user_pass (struct user_pass *up,
 	  && ((auth_file && streq (auth_file, "management")) || (from_stdin && (flags & GET_USER_PASS_MANAGEMENT)))
 	  && management_query_user_pass_enabled (management))
 	{
-	  if (!management_query_user_pass (management, up, prefix, password_only))
-	    msg (M_FATAL, "ERROR: could not read %s username/password from management interface", prefix);
+	  if (!management_query_user_pass (management, up, prefix, flags))
+	    msg (M_FATAL, "ERROR: could not read %s username/password/ok from management interface", prefix);
 	}
       else
 #endif
       /*
        * Get username/password from standard input?
        */
-      if (from_stdin)
+      if (from_stdin || (flags & GET_USER_PASS_NEED_OK))
 	{
 	  struct buffer user_prompt = alloc_buf_gc (128, &gc);
 	  struct buffer pass_prompt = alloc_buf_gc (128, &gc);
 
-	  buf_printf (&user_prompt, "Enter %s Username:", prefix);
-	  buf_printf (&pass_prompt, "Enter %s Password:", prefix);
-
-	  if (!password_only)
+	  if (flags & GET_USER_PASS_NEED_OK)
 	    {
-	      if (!get_console_input (BSTR (&user_prompt), true, up->username, USER_PASS_LEN))
-		msg (M_FATAL, "ERROR: could not read %s username from stdin", prefix);
-	      if (strlen (up->username) == 0)
-		msg (M_FATAL, "ERROR: %s username is empty", prefix);
+	      buf_printf (&pass_prompt, "NEED-OK:%s:", prefix);
+	    }
+	  else
+	    {
+	      buf_printf (&user_prompt, "Enter %s Username:", prefix);
+	      buf_printf (&pass_prompt, "Enter %s Password:", prefix);
+
+	      if (!(flags & GET_USER_PASS_PASSWORD_ONLY))
+		{
+		  if (!get_console_input (BSTR (&user_prompt), true, up->username, USER_PASS_LEN))
+		    msg (M_FATAL, "ERROR: could not read %s username from stdin", prefix);
+		  if (strlen (up->username) == 0)
+		    msg (M_FATAL, "ERROR: %s username is empty", prefix);
+		}
 	    }
 
 	  if (!get_console_input (BSTR (&pass_prompt), false, up->password, USER_PASS_LEN))
-	    msg (M_FATAL, "ERROR: could not not read %s password from stdin", prefix);
+	    msg (M_FATAL, "ERROR: could not not read %s %s from stdin",
+		 prefix,
+		 (flags & GET_USER_PASS_NEED_OK) ? "ok-confirmation" : "password");
+
+	  if (flags & GET_USER_PASS_NEED_OK)
+	    strcpy (up->password, "ok");
 	}
       else
 	{
@@ -1222,7 +1233,7 @@ get_user_pass (struct user_pass *up,
 	  if (!fp)
 	    msg (M_ERR, "Error opening '%s' auth file: %s", prefix, auth_file);
 
-	  if (password_only)
+	  if (flags & GET_USER_PASS_PASSWORD_ONLY)
 	    {
 	      if (fgets (up->password, USER_PASS_LEN, fp) == NULL)
 		msg (M_FATAL, "Error reading password from %s authfile: %s",
@@ -1243,7 +1254,7 @@ get_user_pass (struct user_pass *up,
 	  chomp (up->username);
 	  chomp (up->password);
       
-	  if (!password_only && strlen (up->username) == 0)
+	  if (!(flags & GET_USER_PASS_PASSWORD_ONLY) && strlen (up->username) == 0)
 	    msg (M_FATAL, "ERROR: username from %s authfile '%s' is empty", prefix, auth_file);
 	}
 

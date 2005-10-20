@@ -116,12 +116,12 @@ context_init_1 (struct context *c)
 #if defined(ENABLE_PKCS11)
   {
     int i;
-    init_pkcs11 (c->options.pkcs11_pin_cache_period);
+    pkcs11_initialize (c->options.pkcs11_pin_cache_period);
     for (i=0;i<MAX_PARMS && c->options.pkcs11_providers[i] != NULL;i++)
-     add_pkcs11 (c->options.pkcs11_providers[i], c->options.pkcs11_sign_mode[i]);
+     pkcs11_addProvider (c->options.pkcs11_providers[i], c->options.pkcs11_sign_mode[i]);
   }
 #endif
-  
+
 #if P2MP
   /* Auth user/pass input */
   if (c->options.auth_user_pass_file)
@@ -236,7 +236,7 @@ uninit_static (void)
 #endif
 
 #ifdef ENABLE_PKCS11
-  free_pkcs11 ();
+  pkcs11_terminate ();
 #endif
 
 #if defined(MEASURE_TLS_HANDSHAKE_STATS) && defined(USE_CRYPTO) && defined(USE_SSL)
@@ -376,7 +376,7 @@ possibly_become_daemon (const struct options *options, const bool first_time)
 	set_std_files_to_null (true);
 
 #if defined(ENABLE_PKCS11)
-      fork_fix_pkcs11 ();
+      pkcs11_forkFixup ();
 #endif
 
       ret = true;

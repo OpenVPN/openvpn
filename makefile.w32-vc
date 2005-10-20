@@ -81,7 +81,7 @@ HEADERS = \
 	ntlm.h \
 	occ-inline.h \
 	occ.h \
-	pkcs11.h \
+	pkcs11.h pkcs11-helper.h cryptoki.h \
         openvpn.h \
 	openvpn-plugin.h \
 	options.h \
@@ -136,7 +136,7 @@ OBJS =  base64.obj \
 	multi.obj \
 	ntlm.obj \
 	occ.obj \
-	pkcs11.obj \
+	pkcs11.obj pkcs11-helper.obj \
         openvpn.obj \
 	options.obj \
 	otime.obj \

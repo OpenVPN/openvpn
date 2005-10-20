@@ -4896,7 +4896,7 @@ add_option (struct options *options,
     {
       char *module =  p[i++];
       VERIFY_PERMISSION (OPT_P_GENERAL);
-      show_pkcs11_slots (M_INFO|M_NOPREFIX, M_WARN|M_NOPREFIX, module);
+      show_pkcs11_slots (module);
       openvpn_exit (OPENVPN_EXIT_STATUS_GOOD); /* exit point */
     }
   else if (streq (p[0], "show-pkcs11-objects") && p[1] && p[2])
@@ -4916,7 +4916,7 @@ add_option (struct options *options,
       
       gc_free (&gc);
       
-      show_pkcs11_objects (M_INFO|M_NOPREFIX, M_WARN|M_NOPREFIX, provider, slot, pin);
+      show_pkcs11_objects (provider, slot, pin);
       openvpn_exit (OPENVPN_EXIT_STATUS_GOOD); /* exit point */
     }
   else if (streq (p[0], "pkcs11-providers") && p[1])

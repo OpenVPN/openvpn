@@ -229,12 +229,16 @@ struct user_pass
 
 bool get_console_input (const char *prompt, const bool echo, char *input, const int capacity);
 
-#define GET_USER_PASS_MANAGEMENT  (1<<0)
-#define GET_USER_PASS_SENSITIVE   (1<<1)
+/*
+ * Flags for get_user_pass and management_query_user_pass
+ */
+#define GET_USER_PASS_MANAGEMENT    (1<<0)
+#define GET_USER_PASS_SENSITIVE     (1<<1)
+#define GET_USER_PASS_PASSWORD_ONLY (1<<2)
+#define GET_USER_PASS_NEED_OK       (1<<3)
 
 void get_user_pass (struct user_pass *up,
 		    const char *auth_file,
-		    const bool password_only,
 		    const char *prefix,
 		    const unsigned int flags);
 

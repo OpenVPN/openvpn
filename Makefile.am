@@ -67,7 +67,7 @@ openvpn_SOURCES = \
 	multi.c multi.h \
         ntlm.c ntlm.h \
 	occ.c occ.h occ-inline.h \
-	pkcs11.c pkcs11.h cryptoki.h \
+	pkcs11.c pkcs11.h pkcs11-helper.c pkcs11-helper.h pkcs11-helper-config.h cryptoki.h \
 	openvpn.c openvpn.h \
 	openvpn-plugin.h \
 	options.c options.h \

@@ -300,26 +300,29 @@ void x_msg (const unsigned int flags, const char *format, ...)
 
 	  if ((flags & M_NOPREFIX) || suppress_timestamps)
 	    {
-	      fprintf (fp, "%s%s%s\n",
+	      fprintf (fp, "%s%s%s%s",
 		       prefix,
 		       prefix_sep,
-		       m1);
+		       m1,
+		       (flags&M_NOLF) ? "" : "\n");
 	    }
 	  else
 	    {
 #ifdef USE_PTHREAD
-	      fprintf (fp, "%s [%d] %s%s%s\n",
+	      fprintf (fp, "%s [%d] %s%s%s%s",
 		       time_string (0, 0, show_usec, &gc),
 		       (int) openvpn_thread_self (),
 		       prefix,
 		       prefix_sep,
-		       m1);
+		       m1,
+		       (flags&M_NOLF) ? "" : "\n");
 #else
-	      fprintf (fp, "%s %s%s%s\n",
+	      fprintf (fp, "%s %s%s%s%s",
 		       time_string (0, 0, show_usec, &gc),
 		       prefix,
 		       prefix_sep,
-		       m1);
+		       m1,
+		       (flags&M_NOLF) ? "" : "\n");
 #endif
 	    }
 	  fflush(fp);

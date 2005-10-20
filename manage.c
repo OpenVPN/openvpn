@@ -39,6 +39,7 @@
 #include "event.h"
 #include "otime.h"
 #include "integer.h"
+#include "misc.h"
 #include "manage.h"
 
 #include "memdbg.h"
@@ -74,6 +75,7 @@ man_help ()
   msg (M_CLIENT, "                         + show last N lines or 'all' for entire history.");
   msg (M_CLIENT, "mute [n]               : Set log mute level to n, or show level if n is absent.");
   msg (M_CLIENT, "net                    : (Windows only) Show network info and routing table.");
+  msg (M_CLIENT, "ok type                : Enter confirmation for NEED-OK request.");
   msg (M_CLIENT, "password type p        : Enter password p for a queried OpenVPN password.");
   msg (M_CLIENT, "signal s               : Send signal s to daemon,");
   msg (M_CLIENT, "                         s = SIGHUP|SIGTERM|SIGUSR1|SIGUSR2.");
@@ -467,6 +469,10 @@ man_up_finalize (struct management *man)
       if (strlen (man->connection.up_query.password))
 	man->connection.up_query.defined = true;
       break;
+    case UP_QUERY_NEED_OK:
+      if (strlen (man->connection.up_query.password))
+	man->connection.up_query.defined = true;
+      break;
     default:
       ASSERT (0);
     }
@@ -518,6 +524,13 @@ man_query_password (struct management *man, const char *type, const char *string
 			|| man->connection.up_query_mode == UP_QUERY_PASS)
 		       && man->connection.up_query_type);
   man_query_user_pass (man, type, string, needed, "password", man->connection.up_query.password, USER_PASS_LEN);
+}
+
+static void
+man_query_need_ok (struct management *man, const char *type)
+{
+  const bool needed = ((man->connection.up_query_mode == UP_QUERY_NEED_OK) && man->connection.up_query_type);
+  man_query_user_pass (man, type, "ok", needed, "ok-confirmation", man->connection.up_query.password, USER_PASS_LEN);
 }
 
 static void
@@ -707,6 +720,11 @@ man_dispatch_command (struct management *man, struct status_output *so, const ch
     {
       if (man_need (man, p, 2, 0))
 	man_query_password (man, p[1], p[2]);
+    }
+  else if (streq (p[0], "ok"))
+    {
+      if (man_need (man, p, 1, 0))
+	man_query_need_ok (man, p[1]);
     }
   else if (streq (p[0], "net"))
     {
@@ -1130,7 +1148,7 @@ man_settings_init (struct man_settings *ms,
        * Get username/password
        */
       if (pass_file)
-	get_user_pass (&ms->up, pass_file, true, "Management", 0);
+	get_user_pass (&ms->up, pass_file, "Management", GET_USER_PASS_PASSWORD_ONLY);
 
       /*
        * Should OpenVPN query the management layer for
@@ -1728,7 +1746,7 @@ bool
 management_query_user_pass (struct management *man,
 			    struct user_pass *up,
 			    const char *type,
-			    const bool password_only)
+			    const unsigned int flags)
 {
   struct gc_arena gc = gc_new ();
   bool ret = false;
@@ -1738,6 +1756,9 @@ management_query_user_pass (struct management *man,
       volatile int signal_received = 0;
       const bool standalone_disabled_save = man->persist.standalone_disabled;
       struct buffer alert_msg = alloc_buf_gc (128, &gc);
+      const char *alert_type = NULL;
+      const char *prefix = NULL;
+      unsigned int up_query_mode = 0;
 
       ret = true;
       man->persist.standalone_disabled = false; /* This is so M_CLIENT messages will be correctly passed through msg() */
@@ -1745,9 +1766,28 @@ management_query_user_pass (struct management *man,
 
       CLEAR (man->connection.up_query);
 
-      buf_printf (&alert_msg, ">PASSWORD:Need '%s' %s",
+      if (flags & GET_USER_PASS_NEED_OK)
+	{
+	  up_query_mode = UP_QUERY_NEED_OK;
+	  prefix= "NEED-OK";
+	  alert_type = "confirmation";
+	}
+      else if (flags & GET_USER_PASS_PASSWORD_ONLY)
+	{
+	  up_query_mode = UP_QUERY_PASS;
+	  prefix = "PASSWORD";
+	  alert_type = "password";
+	}
+      else
+	{
+	  up_query_mode = UP_QUERY_USER_PASS;
+	  prefix = "PASSWORD";
+	  alert_type = "username/password";
+	}
+      buf_printf (&alert_msg, ">%s:Need '%s' %s",
+		  prefix,
 		  type,
-		  password_only ? "password" : "username/password");
+		  alert_type);
 
       man_wait_for_client_connection (man, &signal_received, 0, MWCC_PASSWORD_WAIT);
       if (signal_received)
@@ -1759,7 +1799,7 @@ management_query_user_pass (struct management *man,
 	  msg (M_CLIENT, "%s", man->persist.special_state_msg);
 
 	  /* tell command line parser which info we need */
-	  man->connection.up_query_mode = password_only ? UP_QUERY_PASS : UP_QUERY_USER_PASS;
+	  man->connection.up_query_mode = up_query_mode;
 	  man->connection.up_query_type = type;
 
 	  /* run command processing event loop until we get our username/password */

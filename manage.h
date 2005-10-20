@@ -203,6 +203,7 @@ struct man_settings {
 #define UP_QUERY_DISABLED  0
 #define UP_QUERY_USER_PASS 1
 #define UP_QUERY_PASS      2
+#define UP_QUERY_NEED_OK   3
 
 /* states */
 #define MS_INITIAL          0  /* all sockets are closed */
@@ -282,7 +283,7 @@ void management_set_callback (struct management *man,
 
 void management_clear_callback (struct management *man);
 
-bool management_query_user_pass (struct management *man, struct user_pass *up, const char *type, const bool password_only);
+bool management_query_user_pass (struct management *man, struct user_pass *up, const char *type, const unsigned int flags);
 
 bool management_would_hold (struct management *man);
 bool management_hold (struct management *man);

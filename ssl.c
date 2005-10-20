@@ -266,7 +266,7 @@ void
 pem_password_setup (const char *auth_file)
 {
   if (!strlen (passbuf.password))
-    get_user_pass (&passbuf, auth_file, true, UP_TYPE_PRIVATE_KEY, GET_USER_PASS_MANAGEMENT|GET_USER_PASS_SENSITIVE);
+    get_user_pass (&passbuf, auth_file, UP_TYPE_PRIVATE_KEY, GET_USER_PASS_MANAGEMENT|GET_USER_PASS_SENSITIVE|GET_USER_PASS_PASSWORD_ONLY);
 }
 
 int
@@ -296,7 +296,7 @@ auth_user_pass_setup (const char *auth_file)
 {
   auth_user_pass_enabled = true;
   if (!auth_user_pass.defined)
-    get_user_pass (&auth_user_pass, auth_file, false, UP_TYPE_AUTH, GET_USER_PASS_MANAGEMENT|GET_USER_PASS_SENSITIVE);
+    get_user_pass (&auth_user_pass, auth_file, UP_TYPE_AUTH, GET_USER_PASS_MANAGEMENT|GET_USER_PASS_SENSITIVE);
 }
 
 /*

@@ -280,7 +280,6 @@ new_http_proxy (const struct http_proxy_options *o,
     {
       get_user_pass (&static_proxy_user_pass,
 		     o->auth_file,
-		     false,
 		     "HTTP Proxy",
 		     GET_USER_PASS_MANAGEMENT);
       p->up = static_proxy_user_pass;

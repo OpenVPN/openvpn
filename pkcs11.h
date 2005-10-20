@@ -30,18 +30,18 @@
 #include <openssl/ssl.h>
 
 void
-init_pkcs11 (
+pkcs11_initialize (
 	const int nPINCachePeriod
 );
 
 void
-free_pkcs11 ();
+pkcs11_terminate ();
 
 void
-fork_fix_pkcs11 ();
+pkcs11_forkFixup ();
 
 void
-add_pkcs11 (
+pkcs11_addProvider (
 	const char * const provider,
 	const char * const sign_mode
 );
@@ -58,15 +58,11 @@ SSL_CTX_use_pkcs11 (
 
 void
 show_pkcs11_slots (
-	const int msglev,
-	const int warnlev,
 	const char * const provider
 );
 
 void
 show_pkcs11_objects (
-	const int msglev,
-	const int warnlev,
 	const char * const provider,
 	const char * const slot,
 	const char * const pin

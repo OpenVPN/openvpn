@@ -97,6 +97,7 @@ extern int x_msg_line_num;
 #define M_USAGE_SMALL     (1<<13)        /* fatal options error, call usage_small */
 #define M_MSG_VIRT_OUT    (1<<14)        /* output message through msg_status_output callback */
 #define M_OPTERR          (1<<15)        /* print "Options error:" prefix */
+#define M_NOLF            (1<<16)        /* don't print new line */
 
 /* flag combinations which are frequently used */
 #define M_ERR     (M_FATAL | M_ERRNO)
