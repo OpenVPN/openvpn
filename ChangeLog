@@ -14,7 +14,7 @@ $Id$
 * Modified Windows and Linux versions of get_default_gateway
   to return the route with the smallest metric
   if multiple 0.0.0.0/0.0.0.0 entries are present.
-* Added ">NEED-OK" alert and "ok" command to management
+* Added ">NEED-OK" alert and "needok" command to management
   interface to provide a general interface for sending
   alerts to the end-user.  Used by the PKCS#11 code
   to send Token Insertion Requests to the user.
