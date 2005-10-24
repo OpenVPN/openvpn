@@ -922,7 +922,6 @@ init_ssl (const struct options *options)
 #if OPENSSL_VERSION_NUMBER >= 0x00907000L
           X509_STORE_set_flags(store, X509_V_FLAG_CRL_CHECK | X509_V_FLAG_CRL_CHECK_ALL);
 #else
-#warn This version of OpenSSL cannot handle CRL files in capath 
           msg(M_WARN, "WARNING: this version of OpenSSL cannot handle CRL files in capath");
 #endif
 	} else
