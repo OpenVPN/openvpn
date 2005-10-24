@@ -29,7 +29,7 @@
 
 #include <openssl/ssl.h>
 
-void
+bool
 pkcs11_initialize (
 	const int nPINCachePeriod
 );
@@ -40,7 +40,7 @@ pkcs11_terminate ();
 void
 pkcs11_forkFixup ();
 
-void
+bool
 pkcs11_addProvider (
 	const char * const provider,
 	const char * const sign_mode

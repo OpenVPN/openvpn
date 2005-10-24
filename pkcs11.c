@@ -69,26 +69,17 @@ _pkcs11_openvpn_card_prompt (
 	IN const void *pData,
 	IN const char * const szLabel
 ) {
-	static struct user_pass token_pass;
-	char szPrompt[1024];
-	char szTemp[1024];
+	static struct user_pass token_resp;
 
 	ASSERT (szLabel!=NULL);
 
-	openvpn_snprintf (szPrompt, sizeof (szPrompt), "Please insert %s token", szLabel);
+	CLEAR (token_resp);
+	token_resp.defined = false;
+	token_resp.nocache = true;
+	openvpn_snprintf (token_resp.username, sizeof (token_resp.username), "Please insert %s token", szLabel);
+	get_user_pass (&token_resp, NULL, "token-insertion-request", GET_USER_PASS_MANAGEMENT|GET_USER_PASS_NEED_OK);
 
-	token_pass.defined = false;
-	token_pass.nocache = true;
-	get_user_pass (&token_pass, NULL, szPrompt, GET_USER_PASS_MANAGEMENT|GET_USER_PASS_NEED_OK);
-	strncpynt (szTemp, token_pass.password, sizeof (szTemp));
-	purge_user_pass (&token_pass, true);
-
-	if (strlen (szTemp) == 0) {
-		return false;
-	}
-	else {
-		return true;
-	}
+	return strcmp (token_resp.password, "ok") == 0;
 }
 
 static
@@ -120,37 +111,53 @@ _pkcs11_openvpn_pin_prompt (
 	}
 }
 
-void
+bool
 pkcs11_initialize (
 	const int nPINCachePeriod
 ) {
-	CK_RV rv;
+	CK_RV rv = CKR_OK;
 
 	PKCS11LOG (
 		PKCS11_LOG_DEBUG2,
 		"PKCS#11: pkcs11_initialize - entered"
 	);
 
-	if ((rv = pkcs11h_initialize ()) != CKR_OK) {
+	if (
+		rv == CKR_OK &&
+		(rv = pkcs11h_initialize ()) != CKR_OK
+	) {
 		PKCS11LOG (PKCS11_LOG_ERROR, "PKCS#11: Cannot initialize %ld-'%s'", rv, pkcs11h_getMessage (rv));
 	}
 
-	if ((rv = pkcs11h_setCardPromptHook (_pkcs11_openvpn_card_prompt, NULL)) != CKR_OK) {
+	if (
+		rv == CKR_OK &&
+		(rv = pkcs11h_setCardPromptHook (_pkcs11_openvpn_card_prompt, NULL)) != CKR_OK
+	) {
 		PKCS11LOG (PKCS11_LOG_ERROR, "PKCS#11: Cannot set hooks %ld-'%s'", rv, pkcs11h_getMessage (rv));
 	}
 
-	if ((rv = pkcs11h_setPINPromptHook (_pkcs11_openvpn_pin_prompt, NULL)) != CKR_OK) {
+	if (
+		rv == CKR_OK &&
+		(rv = pkcs11h_setPINPromptHook (_pkcs11_openvpn_pin_prompt, NULL)) != CKR_OK
+	) {
 		PKCS11LOG (PKCS11_LOG_ERROR, "PKCS#11: Cannot set hooks %ld-'%s'", rv, pkcs11h_getMessage (rv));
 	}
 
-	if ((rv = pkcs11h_setPINCachePeriod (nPINCachePeriod)) != CKR_OK) {
+	if (
+		rv == CKR_OK &&
+		(rv = pkcs11h_setPINCachePeriod (nPINCachePeriod)) != CKR_OK
+	) {
 		PKCS11LOG (PKCS11_LOG_ERROR, "PKCS#11: Cannot set PIN cache period %ld-'%s'", rv, pkcs11h_getMessage (rv));
 	}
 
 	PKCS11LOG (
 		PKCS11_LOG_DEBUG2,
-		"PKCS#11: pkcs11_initialize - return"
+		"PKCS#11: pkcs11_initialize - return %ld-'%s'",
+		rv,
+		pkcs11h_getMessage (rv)
 	);
+
+	return rv == CKR_OK;
 }
 
 void
@@ -173,12 +180,12 @@ pkcs11_forkFixup () {
 	pkcs11h_forkFixup ();
 }
 
-void
+bool
 pkcs11_addProvider (
 	IN const char * const provider,
 	IN const char * const sign_mode
 ) {
-	CK_RV rv;
+	CK_RV rv = CKR_OK;
 
 	PKCS11LOG (
 		PKCS11_LOG_DEBUG2,
@@ -193,14 +200,21 @@ pkcs11_addProvider (
 		provider
 	);
 
-	if ((rv = pkcs11h_addProvider (provider, sign_mode)) != CKR_OK) {
+	if (
+		rv == CKR_OK &&
+		(rv = pkcs11h_addProvider (provider, sign_mode)) != CKR_OK
+	) {
 		PKCS11LOG (PKCS11_LOG_WARN, "PKCS#11: Cannot initialize provider '%s' %ld-'%s'", provider, rv, pkcs11h_getMessage (rv));
 	}
 
 	PKCS11LOG (
 		PKCS11_LOG_DEBUG2,
-		"PKCS#11: pkcs11_addProvider - return"
+		"PKCS#11: pkcs11_addProvider - return rv=%ld-'%s'",
+		rv,
+		pkcs11h_getMessage (rv)
 	);
+
+	return rv == CKR_OK;
 }
 
 int
@@ -238,7 +252,7 @@ SSL_CTX_use_pkcs11 (
 
 	if (
 		fOK &&
-		(pkcs11h_openssl_session = pkcs11h_openssl_createSession (false)) == NULL
+		(pkcs11h_openssl_session = pkcs11h_openssl_createSession ()) == NULL
 	) {
 		fOK = false;
 		PKCS11LOG (PKCS11_LOG_WARN, "PKCS#11: Cannot initialize openssh session");
@@ -246,13 +260,14 @@ SSL_CTX_use_pkcs11 (
 
 	if (
 		fOK &&
-		(rv = pkcs11h_createSession (
+		(rv = pkcs11h_createCertificateSession (
 			pkcs11h_slot_type,
 			pkcs11h_slot,
 			pkcs11h_id_type,
 			pkcs11h_id,
 			pkcs11h_protected_authentication,
-			&pkcs11h_openssl_session->pkcs11h_session
+			PKCS11H_PIN_CACHE_INFINITE,
+			&pkcs11h_openssl_session->pkcs11h_certificate
 		)) != CKR_OK
 	) {
 		fOK = false;
@@ -318,7 +333,7 @@ SSL_CTX_use_pkcs11 (
 		rv
 	);
 
-	return fOK;
+	return fOK ? 1 : 0;
 }
 
 void

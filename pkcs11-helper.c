@@ -81,55 +81,6 @@ _hexToBinary (
 	IN OUT size_t * const target_size
 );
 static
-CK_RV
-_pkcs11h_getSlotById (
-	IN const pkcs11h_session_t pkcs11h_session,
-	IN const char * const szSlot
-);
-static
-CK_RV
-_pkcs11h_getSlotByName (
-	IN const pkcs11h_session_t pkcs11h_session,
-	IN const char * const szName
-);
-static
-CK_RV
-_pkcs11h_getSlotByLabel (
-	IN const pkcs11h_session_t pkcs11h_session,
-	IN const char * const szLabel
-);
-static
-CK_RV
-_pkcs11h_getObjectById (
-	IN const pkcs11h_session_t pkcs11h_session,
-	IN const CK_OBJECT_CLASS class,
-	IN const unsigned char * const id,
-	IN const size_t id_size,
-	OUT CK_OBJECT_HANDLE * const handle
-);
-static
-CK_RV
-_pkcs11h_setSessionTokenInfo (
-	IN const pkcs11h_session_t pkcs11h_session
-);
-static
-CK_RV
-_pkcs11h_resetSlot (
-	IN const pkcs11h_session_t pkcs11h_session
-);
-static
-CK_RV
-_pkcs11h_loadCertificate (
-	IN const pkcs11h_session_t pkcs11h_session,
-	IN const char * const szIdType,
-	IN const char * const szId
-);
-static
-CK_RV
-_pkcs11h_loadKeyProperties (
-	IN const pkcs11h_session_t pkcs11h_session
-);
-static
 bool
 _isBetterCertificate (
 	IN const unsigned char * const pCurrent,
@@ -139,28 +90,93 @@ _isBetterCertificate (
 );
 static
 CK_RV
+_pkcs11h_getSlotById (
+	IN const char * const szSlot,
+	OUT pkcs11h_provider_t * const provider,
+	OUT CK_SLOT_ID * const slot
+);
+static
+CK_RV
+_pkcs11h_getSlotByName (
+	IN const char * const szName,
+	OUT pkcs11h_provider_t * const provider,
+	OUT CK_SLOT_ID * const slot
+);
+static
+CK_RV
+_pkcs11h_getSlotByLabel (
+	IN const char * const szLabel,
+	OUT pkcs11h_provider_t * const provider,
+	OUT CK_SLOT_ID * const slot
+);
+static
+CK_RV
+_pkcs11h_getSlot (
+	IN const char * const szSlotType,
+	IN const char * const szSlot,
+	OUT pkcs11h_provider_t * const provider,
+	OUT CK_SLOT_ID * const slot
+);
+static
+CK_RV
+_pkcs11h_getSession (
+	IN const char * const szSlotType,
+	IN const char * const szSlot,
+	IN const bool fProtectedAuthentication,
+	IN const int nPINCachePeriod,
+	OUT pkcs11h_session_t * const session
+);
+static
+CK_RV
+_pkcs11h_releaseSession (
+	IN const pkcs11h_session_t session
+);
+static
+CK_RV
+_pkcs11h_resetSession (
+	IN const pkcs11h_session_t session,
+	OUT CK_SLOT_ID * const slot
+);
+static
+CK_RV
+_pkcs11h_getObjectById (
+	IN const pkcs11h_session_t pkcs11h_certificate,
+	IN const CK_OBJECT_CLASS class,
+	IN const unsigned char * const id,
+	IN const size_t id_size,
+	OUT CK_OBJECT_HANDLE * const handle
+);
+static
+CK_RV
 _pkcs11h_validateSession (
-	IN const pkcs11h_session_t pkcs11h_session
+	IN const pkcs11h_session_t session
 );
 static
 CK_RV
 _pkcs11h_login (
-	IN const pkcs11h_session_t pkcs11h_session
+	IN const pkcs11h_session_t session
 );
 static
 CK_RV
 _pkcs11h_logout (
-	IN const pkcs11h_session_t pkcs11h_session
+	IN const pkcs11h_session_t session
 );
 static
-int
-_pkcs11h_openssl_sign (
-	IN int type,
-	IN const unsigned char *m,
-	IN unsigned int m_len,
-	OUT unsigned char *sigret,
-	OUT unsigned int *siglen,
-	IN OUT const RSA *rsa
+CK_RV
+_pkcs11h_setCertificateSession_Certificate (
+	IN const pkcs11h_certificate_t pkcs11h_certificate,
+	IN const char * const szIdType,
+	IN const char * const szId
+);
+static
+CK_RV
+_pkcs11h_resetCertificateSession (
+	IN const pkcs11h_certificate_t pkcs11h_certificate
+);
+static
+CK_RV
+_pkcs11h_setCertificateSession_Key (
+	IN const pkcs11h_certificate_t pkcs11h_certificate
 );
 
 /*==========================================
@@ -174,7 +190,7 @@ _pkcs11h_openssl_finish (
 );
 static
 int
-_pkcs11h_openssl_priv_dec (
+_pkcs11h_openssl_dec (
 	IN int flen,
 	IN const unsigned char *from,
 	OUT unsigned char *to,
@@ -183,12 +199,13 @@ _pkcs11h_openssl_priv_dec (
 );
 static
 int
-_pkcs11h_openssl_priv_enc (
-	IN int flen,
-	IN const unsigned char *from,
-	OUT unsigned char *to,
-	IN OUT RSA *rsa,
-	IN int padding
+_pkcs11h_openssl_sign (
+	IN int type,
+	IN const unsigned char *m,
+	IN unsigned int m_len,
+	OUT unsigned char *sigret,
+	OUT unsigned int *siglen,
+	IN OUT const RSA *rsa
 );
 static
 pkcs11h_openssl_session_t
@@ -196,8 +213,8 @@ _pkcs11h_openssl_get_pkcs11h_openssl_session (
 	IN OUT const RSA *rsa
 );  
 static
-pkcs11h_session_t
-_pkcs11h_openssl_get_pkcs11h_session (
+pkcs11h_certificate_t
+_pkcs11h_openssl_get_pkcs11h_certificate (
 	IN OUT const RSA *rsa
 );  
 
@@ -290,7 +307,7 @@ _isBetterCertificate (
 	char szNotBeforeCurrent[1024], szNotBeforeNew[1024];
 	bool fBetter = false;
 
-	PKCS11LOG (
+	PKCS11DLOG (
 		PKCS11_LOG_DEBUG2,
 		"PKCS#11: _isBetterCertificate entry pCurrent=%p, nCurrentSize=%u, pNew=%p, nNewSize=%u",
 		pCurrent,
@@ -354,7 +371,7 @@ _isBetterCertificate (
 		fBetter = strcmp (szNotBeforeCurrent, szNotBeforeNew) < 0;
 	}
 
-	PKCS11LOG (
+	PKCS11DLOG (
 		PKCS11_LOG_DEBUG2,
 		"PKCS#11: _isBetterCertificate return fBetter=%d",
 		fBetter ? 1 : 0
@@ -370,23 +387,24 @@ _isBetterCertificate (
 static
 CK_RV
 _pkcs11h_getSlotById (
-	IN const pkcs11h_session_t pkcs11h_session,
-	IN const char * const szSlot
+	IN const char * const szSlot,
+	OUT pkcs11h_provider_t * const provider,
+	OUT CK_SLOT_ID * const slot
 ) {
-	pkcs11h_provider_t provider;
-	CK_RV rv = CKR_OK;
 	int provider_number;
 	int slot_number;
-	int i;
+	CK_RV rv = CKR_OK;
 
-	PKCS11ASSERT (pkcs11h_session!=NULL);
 	PKCS11ASSERT (szSlot!=NULL);
+	PKCS11ASSERT (provider!=NULL);
+	PKCS11ASSERT (slot!=NULL);
 
-	PKCS11LOG (
+	PKCS11DLOG (
 		PKCS11_LOG_DEBUG2,
-		"PKCS#11: _pkcs11h_getSlotById entry pkcs11h_session=%p, szSlot=%s",
-		(void *)pkcs11h_session,
-		szSlot
+		"PKCS#11: _pkcs11h_getSlotById entry szSlot=%s, provider=%p, slot=%p",
+		szSlot,
+		(void *)provider,
+		(void *)slot
 	);
 
 	if (rv == CKR_OK) {
@@ -400,40 +418,35 @@ _pkcs11h_getSlotById (
 	}
 	
 	if (rv == CKR_OK) {
+		pkcs11h_provider_t current_provider;
+		int i;
+
 		for (
-			i=0, provider=pkcs11h_data->providers;
+			i=0, current_provider=pkcs11h_data->providers;
 			(
 				i < provider_number &&
-				provider != NULL &&
+				current_provider != NULL &&
 				rv == CKR_OK
 			);
-			i++, provider = provider->next
+			i++, current_provider = current_provider->next
 		);
 	
 		if (
-			provider == NULL ||
+			current_provider == NULL ||
 			(
-				provider != NULL &&
-				!provider->fEnabled
+				current_provider != NULL &&
+				!current_provider->fEnabled
 			)
 		) {
 			rv = CKR_SLOT_ID_INVALID;
 		}
-	}
-	
-	if (rv == CKR_OK) {
-		pkcs11h_session->provider = provider;
-		pkcs11h_session->slot = slot_number;
-	
-		PKCS11LOG (
-			PKCS11_LOG_DEBUG1,
-			"PKCS#11: slot selected %s-%ld",
-			pkcs11h_session->provider->szName,
-			pkcs11h_session->slot
-		);
+		else {
+			*provider = current_provider;
+			*slot = slot_number;
+		}
 	}
 
-	PKCS11LOG (
+	PKCS11DLOG (
 		PKCS11_LOG_DEBUG2,
 		"PKCS#11: _pkcs11h_getSlotById return rv=%ld-'%s'",
 		rv,
@@ -446,42 +459,45 @@ _pkcs11h_getSlotById (
 static
 CK_RV
 _pkcs11h_getSlotByName (
-	IN const pkcs11h_session_t pkcs11h_session,
-	IN const char * const szName
+	IN const char * const szName,
+	OUT pkcs11h_provider_t * const provider,
+	OUT CK_SLOT_ID * const slot
 ) {
 	CK_RV rv = CKR_OK;
 
-	pkcs11h_provider_t provider;
+	pkcs11h_provider_t current_provider;
 	bool fFound = false;
 
-	PKCS11ASSERT (pkcs11h_session!=NULL);
 	PKCS11ASSERT (szName!=NULL);
+	PKCS11ASSERT (provider!=NULL);
+	PKCS11ASSERT (slot!=NULL);
 
-	PKCS11LOG (
+	PKCS11DLOG (
 		PKCS11_LOG_DEBUG2,
-		"PKCS#11: _pkcs11h_getSlotByName entry pkcs11h_session=%p, szName=%s",
-		(void *)pkcs11h_session,
-		szName
+		"PKCS#11: _pkcs11h_getSlotByName entry szName=%s, provider=%p, slot=%p",
+		szName,
+		(void *)provider,
+		(void *)slot
 	);
 
 	for (
-		provider = pkcs11h_data->providers;
+		current_provider = pkcs11h_data->providers;
 		(
-			provider != NULL &&
+			current_provider != NULL &&
 			!fFound
 		);
-		provider = provider->next
+		current_provider = current_provider->next
 	) {
 		CK_SLOT_ID slots[1024];
 		CK_ULONG slotnum;
 
-		if (!provider->fEnabled) {
+		if (!current_provider->fEnabled) {
 			continue;
 		}
 
 		slotnum = sizeof (slots) / sizeof (CK_SLOT_ID);
 		if (
-			(rv = provider->f->C_GetSlotList (
+			(rv = current_provider->f->C_GetSlotList (
 				TRUE,
 				slots,
 				&slotnum
@@ -493,7 +509,7 @@ _pkcs11h_getSlotByName (
 				CK_SLOT_INFO info;
 
 				if (
-					(rv = provider->f->C_GetSlotInfo (
+					(rv = current_provider->f->C_GetSlotInfo (
 						slots[s],
 						&info
 					)) == CKR_OK
@@ -508,22 +524,15 @@ _pkcs11h_getSlotByName (
 
 					if (!strcmp (szCurrentName, szName)) {
 						fFound = true;
-						pkcs11h_session->provider = provider;
-						pkcs11h_session->slot = slots[s];
-					
-						PKCS11LOG (
-							PKCS11_LOG_DEBUG1,
-							"PKCS#11: slot selected %s-%ld",
-							pkcs11h_session->provider->szName,
-							pkcs11h_session->slot
-						);
+						*provider = current_provider;
+						*slot = slots[s];
 					}
 				}
 			}
 		}
 	}
 
-	PKCS11LOG (
+	PKCS11DLOG (
 		PKCS11_LOG_DEBUG2,
 		"PKCS#11: _pkcs11h_getSlotByName return fFound=%d-'%s'",
 		fFound ? 1 : 0,
@@ -536,42 +545,45 @@ _pkcs11h_getSlotByName (
 static
 CK_RV
 _pkcs11h_getSlotByLabel (
-	IN const pkcs11h_session_t pkcs11h_session,
-	IN const char * const szLabel
+	IN const char * const szLabel,
+	OUT pkcs11h_provider_t * const provider,
+	OUT CK_SLOT_ID * const slot
 ) {
 	CK_RV rv;
 
-	pkcs11h_provider_t provider;
+	pkcs11h_provider_t current_provider;
 	bool fFound = false;
 
-	PKCS11ASSERT (pkcs11h_session!=NULL);
 	PKCS11ASSERT (szLabel!=NULL);
+	PKCS11ASSERT (provider!=NULL);
+	PKCS11ASSERT (slot!=NULL);
 
-	PKCS11LOG (
+	PKCS11DLOG (
 		PKCS11_LOG_DEBUG2,
-		"_PKCS#11: pkcs11h_getSlotByLabel entry pkcs11h_session=%p, szName=%s",
-		(void *)pkcs11h_session,
-		szLabel
+		"_PKCS#11: pkcs11h_getSlotByLabel entry szLabel=%s, provider=%p, slot=%p",
+		szLabel,
+		(void *)provider,
+		(void *)slot
 	);
 
 	for (
-		provider = pkcs11h_data->providers;
+		current_provider = pkcs11h_data->providers;
 		(
-			provider != NULL &&
+			current_provider != NULL &&
 			!fFound
 		);
-		provider = provider->next
+		current_provider = current_provider->next
 	) {
 		CK_SLOT_ID slots[1024];
 		CK_ULONG slotnum;
 
-		if (!provider->fEnabled) {
+		if (!current_provider->fEnabled) {
 			continue;
 		}
 
 		slotnum = sizeof (slots) / sizeof (CK_SLOT_ID);
 		if (
-			(rv = provider->f->C_GetSlotList (
+			(rv = current_provider->f->C_GetSlotList (
 				TRUE,
 				slots,
 				&slotnum
@@ -583,7 +595,7 @@ _pkcs11h_getSlotByLabel (
 				CK_TOKEN_INFO info;
 
 				if (
-					(rv = provider->f->C_GetTokenInfo (
+					(rv = current_provider->f->C_GetTokenInfo (
 						slots[s],
 						&info
 					)) == CKR_OK
@@ -598,22 +610,15 @@ _pkcs11h_getSlotByLabel (
 
 					if (!strcmp (szCurrentLabel, szLabel)) {
 						fFound = true;
-						pkcs11h_session->provider = provider;
-						pkcs11h_session->slot = slots[s];
-					
-						PKCS11LOG (
-							PKCS11_LOG_DEBUG1,
-							"PKCS#11: slot selected %s-%ld",
-							pkcs11h_session->provider->szName,
-							pkcs11h_session->slot
-						);
+						*provider = current_provider;
+						*slot = slots[s];
 					}
 				}
 			}
 		}
 	}
 
-	PKCS11LOG (
+	PKCS11DLOG (
 		PKCS11_LOG_DEBUG2,
 		"PKCS#11: _pkcs11h_getSlotByLabel return fFound=%d",
 		fFound ? 1 : 0
@@ -624,42 +629,56 @@ _pkcs11h_getSlotByLabel (
 
 static
 CK_RV
-_pkcs11h_setSessionTokenInfo (
-	IN const pkcs11h_session_t pkcs11h_session
+_pkcs11h_getSlot (
+	IN const char * const szSlotType,
+	IN const char * const szSlot,
+	OUT pkcs11h_provider_t * const provider,
+	OUT CK_SLOT_ID * const slot
 ) {
-	CK_TOKEN_INFO info;
-	CK_RV rv;
+	CK_RV rv = CKR_OK;
 
-	PKCS11ASSERT (pkcs11h_session!=NULL);
+	PKCS11ASSERT (szSlotType!=NULL);
+	PKCS11ASSERT (szSlot!=NULL);
+	PKCS11ASSERT (provider!=NULL);
+	PKCS11ASSERT (slot!=NULL);
 
-	PKCS11LOG (
+	PKCS11DLOG (
 		PKCS11_LOG_DEBUG2,
-		"PKCS#11: _pkcs11h_setSessionTokenInfo entry pkcs11h_session=%p",
-		(void *)pkcs11h_session
+		"PKCS#11: _pkcs11h_getSlot entry szSlotType=%s, szSlot=%s, provider=%p, slot=%p",
+		szSlotType,
+		szSlot,
+		(void *)provider,
+		(void *)slot
 	);
 
-	if (
-		(rv = pkcs11h_session->provider->f->C_GetTokenInfo (
-			pkcs11h_session->slot,
-			&info
-		)) == CKR_OK
-	) {
-		_pkcs11h_fixupFixedString (
-			(char *)info.label,
-			pkcs11h_session->szLabel,
-			sizeof (info.label)
-		);
-		
-		memmove (
-			pkcs11h_session->serialNumber,
-			info.serialNumber,
-			sizeof (pkcs11h_session->serialNumber)
+	if (!strcmp (szSlotType, "id")) {
+		rv = _pkcs11h_getSlotById (
+			szSlot,
+			provider,
+			slot
 		);
 	}
+	else if (!strcmp (szSlotType, "name")) {
+		rv = _pkcs11h_getSlotByName (
+			szSlot,
+			provider,
+			slot
+		);
+	}
+	else if (!strcmp (szSlotType, "label")) {
+		rv = _pkcs11h_getSlotByLabel (
+			szSlot,
+			provider,
+			slot
+		);
+	}
+	else {
+		rv = CKR_ARGUMENTS_BAD;
+	}
 
-	PKCS11LOG (
+	PKCS11DLOG (
 		PKCS11_LOG_DEBUG2,
-		"PKCS#11: _pkcs11h_setSessionTokenInfo return rv=%ld-'%s'",
+		"PKCS#11: _pkcs11h_getSlot return rv=%ld-'%s'",
 		rv,
 		pkcs11h_getMessage (rv)
 	);
@@ -669,8 +688,216 @@ _pkcs11h_setSessionTokenInfo (
 
 static
 CK_RV
-_pkcs11h_resetSlot (
-	IN const pkcs11h_session_t pkcs11h_session
+_pkcs11h_getSession (
+	IN const char * const szSlotType,
+	IN const char * const szSlot,
+	IN const bool fProtectedAuthentication,
+	IN const int nPINCachePeriod,
+	OUT pkcs11h_session_t * const session
+) {
+	CK_TOKEN_INFO info;
+	CK_SLOT_ID slot = (CK_SLOT_ID)-1;
+	CK_RV rv = CKR_OK;
+
+	pkcs11h_provider_t provider = NULL;
+
+	PKCS11ASSERT (szSlotType!=NULL);
+	PKCS11ASSERT (szSlot!=NULL);
+	PKCS11ASSERT (session!=NULL);
+
+	PKCS11DLOG (
+		PKCS11_LOG_DEBUG2,
+		"PKCS#11: _pkcs11h_getSession entry szSlotType=%s, szSlot=%s, fProtectedAuthentication=%d, nPINCachePeriod=%d, session=%p",
+		szSlotType,
+		szSlot,
+		fProtectedAuthentication ? 1 : 0,
+		nPINCachePeriod,
+		(void *)session
+	);
+
+	if (rv == CKR_OK) {
+		do {
+			rv = _pkcs11h_getSlot (
+				szSlotType,
+				szSlot,
+				&provider,
+				&slot
+			);
+
+			if (rv == CKR_SLOT_ID_INVALID) {
+				char szLabel[1024];
+				strcpy (szLabel, "SLOT(");
+				strncat (szLabel, szSlotType, sizeof (szLabel)-1);
+				strncat (szLabel, "=", sizeof (szLabel)-1);
+				strncat (szLabel, szSlot, sizeof (szLabel)-1);
+				strncat (szLabel, ")", sizeof (szLabel)-1);
+				szLabel[sizeof (szLabel)-1] = 0;
+				PKCS11DLOG (
+					PKCS11_LOG_DEBUG1,
+					"Calling card_prompt hook for %s",
+					szLabel
+				);
+				if (
+					!pkcs11h_data->hooks->card_prompt (
+						pkcs11h_data->hooks->card_prompt_data,
+						szLabel
+					)
+				) {
+					rv = CKR_CANCEL;
+				}
+				PKCS11DLOG (
+					PKCS11_LOG_DEBUG1,
+					"card_prompt returned rv=%ld",
+					rv
+				);
+			}
+		} while (rv == CKR_SLOT_ID_INVALID);
+	}
+
+	if (rv == CKR_OK) {
+		rv = provider->f->C_GetTokenInfo (
+			slot,
+			&info
+		);
+	}
+
+	if (rv == CKR_OK) {
+		pkcs11h_session_t current_session;
+
+		for (
+			current_session = pkcs11h_data->sessions, *session=NULL;
+			current_session != NULL && *session == NULL;
+			current_session = current_session->next
+		) {
+			if (
+				current_session->provider == provider &&
+				!memcmp (
+					current_session->serialNumber,
+					info.serialNumber,
+					sizeof (current_session->serialNumber)
+				)
+			) {
+				*session = current_session;
+			}
+		}
+	}
+
+	if (rv == CKR_OK) {
+		if (*session == NULL) {
+			
+			if (
+				rv == CKR_OK &&
+				(*session = (pkcs11h_session_t)malloc (
+					sizeof (struct pkcs11h_session_s)
+				)) == NULL
+			) {
+				rv = CKR_HOST_MEMORY;
+			}
+
+			if (rv == CKR_OK) {
+				memset (*session, 0, sizeof (struct pkcs11h_session_s));
+
+				(*session)->nReferenceCount = 1;
+				(*session)->fProtectedAuthentication = fProtectedAuthentication;
+				(*session)->hSession = (CK_SESSION_HANDLE)-1;
+				
+				(*session)->provider = provider;
+
+				if (nPINCachePeriod == PKCS11H_PIN_CACHE_INFINITE) {
+					(*session)->nPINCachePeriod = pkcs11h_data->nPINCachePeriod;
+				}
+				else {
+					(*session)->nPINCachePeriod = nPINCachePeriod;
+				}
+
+				provider = NULL;
+				
+				_pkcs11h_fixupFixedString (
+					(char *)info.label,
+					(*session)->szLabel,
+					sizeof (info.label)
+				);
+		
+				memmove (
+					(*session)->serialNumber,
+					info.serialNumber,
+					sizeof (info.serialNumber)
+				);
+
+				(*session)->next = pkcs11h_data->sessions;
+				pkcs11h_data->sessions = *session;
+			}
+		}
+		else {
+			(*session)->nReferenceCount++;
+			if (nPINCachePeriod != PKCS11H_PIN_CACHE_INFINITE) {
+				if ((*session)->nPINCachePeriod != PKCS11H_PIN_CACHE_INFINITE) {
+					if ((*session)->nPINCachePeriod > nPINCachePeriod) {
+						(*session)->timePINExpire = (
+							(*session)->timePINExpire -
+							(time_t)(*session)->nPINCachePeriod +
+							(time_t)nPINCachePeriod
+						);
+						(*session)->nPINCachePeriod = nPINCachePeriod;
+					}
+				}
+				else {
+					(*session)->timePINExpire = (
+						time (NULL) +
+						(time_t)nPINCachePeriod
+					);
+					(*session)->nPINCachePeriod = nPINCachePeriod;
+				}
+				rv = _pkcs11h_validateSession (*session);
+			}	
+		}
+	}
+
+	PKCS11DLOG (
+		PKCS11_LOG_DEBUG2,
+		"PKCS#11: _pkcs11h_getSession return rv=%ld-'%s'",
+		rv,
+		pkcs11h_getMessage (rv)
+	);
+
+	return rv;
+}
+
+static
+CK_RV
+_pkcs11h_releaseSession (
+	IN const pkcs11h_session_t session
+) {
+	PKCS11ASSERT (session!=NULL);
+	PKCS11ASSERT (session->nReferenceCount>=0);
+
+	PKCS11DLOG (
+		PKCS11_LOG_DEBUG2,
+		"PKCS#11: _pkcs11h_releaseSession session=%p",
+		(void *)session
+	);
+
+	/*
+	 * Never logout for now
+	 */
+	
+	if (session->nReferenceCount > 0) {
+		session->nReferenceCount--;
+	}
+
+	PKCS11DLOG (
+		PKCS11_LOG_DEBUG2,
+		"PKCS#11: _pkcs11h_releaseSession return"
+	);
+
+	return CKR_OK;
+}
+
+static
+CK_RV
+_pkcs11h_resetSession (
+	IN const pkcs11h_session_t session,
+	OUT CK_SLOT_ID * const slot
 ) {
 	CK_SLOT_ID slots[1024];
 	CK_ULONG slotnum;
@@ -678,18 +905,20 @@ _pkcs11h_resetSlot (
 	bool fFound = false;
 	bool fCancel = false;
 
-	PKCS11ASSERT (pkcs11h_session!=NULL);
+	PKCS11ASSERT (session!=NULL);
+	PKCS11ASSERT (slot!=NULL);
 
-	PKCS11LOG (
+	PKCS11DLOG (
 		PKCS11_LOG_DEBUG2,
-		"PKCS#11: _pkcs11h_resetSlot entry pkcs11h_session=%p",
-		(void *)pkcs11h_session
+		"PKCS#11: _pkcs11h_resetSession entry session=%p, slot=%p",
+		(void *)session,
+		(void *)slot
 	);
 
 	do {
 		slotnum = sizeof (slots) / sizeof (CK_SLOT_ID);
 		if (
-			(rv = pkcs11h_session->provider->f->C_GetSlotList (
+			(rv = session->provider->f->C_GetSlotList (
 				TRUE,
 				slots,
 				&slotnum
@@ -701,36 +930,48 @@ _pkcs11h_resetSlot (
 				CK_TOKEN_INFO info;
 
 				if (
-					(rv = pkcs11h_session->provider->f->C_GetTokenInfo (
+					(rv = session->provider->f->C_GetTokenInfo (
 						slots[s],
 						&info
 					)) == CKR_OK
 				) {
 					if (
 						!memcmp (
-							pkcs11h_session->serialNumber,
+							session->serialNumber,
 							info.serialNumber,
-							sizeof (pkcs11h_session->serialNumber)
+							sizeof (session->serialNumber)
 						)
 					) {
-						pkcs11h_session->slot = slots[s];
+						*slot = slots[s];
 						fFound = true;
 					}
 				}
 			}
 		}
 
-		if (!fFound) {
+		if (!fFound) {	
+			PKCS11DLOG (
+				PKCS11_LOG_DEBUG1,
+				"Calling card_prompt hook for %s",
+				session->szLabel
+			);
+	
 			fCancel = !pkcs11h_data->hooks->card_prompt (
 				pkcs11h_data->hooks->card_prompt_data,
-				pkcs11h_session->szLabel
+				session->szLabel
+			);
+
+			PKCS11DLOG (
+				PKCS11_LOG_DEBUG1,
+				"card_prompt returned %d",
+				fCancel ? 1 : 0
 			);
 		}
 	} while (!fFound && !fCancel);
 
-	PKCS11LOG (
+	PKCS11DLOG (
 		PKCS11_LOG_DEBUG2,
-		"PKCS#11: _pkcs11h_resetSlot return fFound=%d",
+		"PKCS#11: _pkcs11h_resetSession return fFound=%d",
 		fFound ? 1 : 0
 	);
 
@@ -740,7 +981,7 @@ _pkcs11h_resetSlot (
 static
 CK_RV
 _pkcs11h_getObjectById (
-	IN const pkcs11h_session_t pkcs11h_session,
+	IN const pkcs11h_session_t session,
 	IN const CK_OBJECT_CLASS class,
 	IN const unsigned char * const id,
 	IN const size_t id_size,
@@ -754,14 +995,14 @@ _pkcs11h_getObjectById (
 		{CKA_ID, (void *)id, id_size}
 	};
 	
-	PKCS11ASSERT (pkcs11h_session!=NULL);
+	PKCS11ASSERT (session!=NULL);
 	PKCS11ASSERT (id!=NULL);
 	PKCS11ASSERT (handle!=NULL);
 
-	PKCS11LOG (
+	PKCS11DLOG (
 		PKCS11_LOG_DEBUG2,
-		"PKCS#11: _pkcs11h_getObjectById entry pkcs11h_session=%p, class=%ld, id=%p, id_size=%u, handle=%p",
-		(void *)pkcs11h_session,
+		"PKCS#11: _pkcs11h_getObjectById entry session=%p, class=%ld, id=%p, id_size=%u, handle=%p",
+		(void *)session,
 		class,
 		id,
 		id_size,
@@ -769,16 +1010,16 @@ _pkcs11h_getObjectById (
 	);
 
 	if (rv == CKR_OK) {
-		rv = pkcs11h_session->provider->f->C_FindObjectsInit (
-			pkcs11h_session->session,
+		rv = session->provider->f->C_FindObjectsInit (
+			session->hSession,
 			filter,
 			sizeof (filter) / sizeof (CK_ATTRIBUTE)
 		);
 	}
 
 	if (rv == CKR_OK) {
-		rv = pkcs11h_session->provider->f->C_FindObjects (
-			pkcs11h_session->session,
+		rv = session->provider->f->C_FindObjects (
+			session->hSession,
 			handle,
 			1,
 			&count
@@ -792,11 +1033,9 @@ _pkcs11h_getObjectById (
 		rv = CKR_FUNCTION_REJECTED;
 	}
 
-	pkcs11h_session->provider->f->C_FindObjectsFinal (
-		pkcs11h_session->session
-	);
+	session->provider->f->C_FindObjectsFinal (session->hSession);
 
-	PKCS11LOG (
+	PKCS11DLOG (
 		PKCS11_LOG_DEBUG2,
 		"PKCS#11: _pkcs11h_getObjectById return rv=%ld-'%s'",
 		rv,
@@ -808,8 +1047,184 @@ _pkcs11h_getObjectById (
 
 static
 CK_RV
-_pkcs11h_loadCertificate (
-	IN const pkcs11h_session_t pkcs11h_session,
+_pkcs11h_validateSession (
+	IN const pkcs11h_session_t session
+) {
+	PKCS11DLOG (
+		PKCS11_LOG_DEBUG2,
+		"PKCS#11: _pkcs11h_validateSession entry session=%p",
+		(void *)session
+	);
+
+	if (
+		session->timePINExpire != (time_t)0 &&
+		session->timePINExpire < time (NULL)
+	) {
+		_pkcs11h_logout (session);
+	}
+
+	PKCS11DLOG (
+		PKCS11_LOG_DEBUG2,
+		"PKCS#11: _pkcs11h_validateSession return"
+	);
+
+	return CKR_OK;
+}
+
+static
+CK_RV
+_pkcs11h_login (
+	IN const pkcs11h_session_t session
+) {
+	CK_SLOT_ID slot = (CK_SLOT_ID)-1;
+	CK_RV rv = CKR_OK;
+
+	PKCS11ASSERT (session!=NULL);
+
+	PKCS11DLOG (
+		PKCS11_LOG_DEBUG2,
+		"PKCS#11: _pkcs11h_login entry session=%p",
+		(void *)session
+	);
+
+	_pkcs11h_logout (session);
+
+	if (rv == CKR_OK) {
+		rv = _pkcs11h_resetSession (session, &slot);
+	}
+
+	if (rv == CKR_OK) {
+		rv = session->provider->f->C_OpenSession (
+			slot,
+			CKF_SERIAL_SESSION,
+			NULL_PTR,
+			NULL_PTR,
+			&session->hSession
+		);
+	}
+
+	if (rv == CKR_OK) {
+		int nRetryCount = 0;
+		do {
+			CK_UTF8CHAR_PTR utfPIN = NULL;
+			CK_ULONG lPINLength = 0;
+			char szPIN[1024];
+
+			/*
+			 * Assume OK for next iteration
+			 */
+			rv = CKR_OK;
+
+			if (
+				rv == CKR_OK &&
+				!session->fProtectedAuthentication
+			) {
+				PKCS11DLOG (
+					PKCS11_LOG_DEBUG1,
+					"Calling pin_prompt hook for %s",
+					session->szLabel
+				);
+	
+				if (
+					!pkcs11h_data->hooks->pin_prompt (
+						pkcs11h_data->hooks->pin_prompt_data,
+						session->szLabel,
+						szPIN,
+						sizeof (szPIN)
+					)
+				) {
+					rv = CKR_FUNCTION_FAILED;
+				}
+				else {
+					utfPIN = (CK_UTF8CHAR_PTR)szPIN;
+					lPINLength = strlen (szPIN);
+				}
+
+				PKCS11DLOG (
+					PKCS11_LOG_DEBUG1,
+					"pin_prompt hook return rv=%ld",
+					rv
+				);
+	
+			}
+
+			if (session->nPINCachePeriod == PKCS11H_PIN_CACHE_INFINITE) {
+				session->timePINExpire = 0;
+			}
+			else {
+				session->timePINExpire = (
+					time (NULL) +
+					(time_t)session->nPINCachePeriod
+				);
+			}
+			if (
+				rv == CKR_OK &&
+				(rv = session->provider->f->C_Login (
+					session->hSession,
+					CKU_USER,
+					utfPIN,
+					lPINLength
+				)) != CKR_OK
+			) {
+				if (rv == CKR_USER_ALREADY_LOGGED_IN) {
+					rv = CKR_OK;
+				}
+			}
+
+			/*
+			 * Clean PIN buffer
+			 */
+			memset (szPIN, 0, sizeof (szPIN));
+		} while (
+			++nRetryCount < 3 &&
+			(
+				rv == CKR_PIN_INCORRECT ||
+				rv == CKR_PIN_INVALID
+			)
+		);
+	}
+
+	PKCS11DLOG (
+		PKCS11_LOG_DEBUG2,
+		"PKCS#11: _pkcs11h_login return rv=%ld-'%s'",
+		rv,
+		pkcs11h_getMessage (rv)
+	);
+
+	return rv;
+}
+
+static
+CK_RV
+_pkcs11h_logout (
+	IN const pkcs11h_session_t session
+) {
+	PKCS11ASSERT (session!=NULL);
+
+	PKCS11DLOG (
+		PKCS11_LOG_DEBUG2,
+		"PKCS#11: _pkcs11h_logout entry session=%p",
+		(void *)session
+	);
+
+	if (session->hSession != (CK_SESSION_HANDLE)-1) {
+		session->provider->f->C_Logout (session->hSession);
+		session->provider->f->C_CloseSession (session->hSession);
+		session->hSession = (CK_SESSION_HANDLE)-1;
+	}
+
+	PKCS11DLOG (
+		PKCS11_LOG_DEBUG2,
+		"PKCS#11: _pkcs11h_logout return"
+	);
+
+	return CKR_OK;
+}
+
+static
+CK_RV
+_pkcs11h_setCertificateSession_Certificate (
+	IN const pkcs11h_certificate_t pkcs11h_certificate,
 	IN const char * const szIdType,
 	IN const char * const szId
 ) {
@@ -829,14 +1244,14 @@ _pkcs11h_loadCertificate (
 		{0, cert_filter_by, 0}
 	};
 
-	PKCS11ASSERT (pkcs11h_session!=NULL);
+	PKCS11ASSERT (pkcs11h_certificate!=NULL);
 	PKCS11ASSERT (szIdType!=NULL);
 	PKCS11ASSERT (szId!=NULL);
 
-	PKCS11LOG (
+	PKCS11DLOG (
 		PKCS11_LOG_DEBUG2,
-		"PKCS#11: _pkcs11h_loadCertificate entry pkcs11h_session=%p, szIdType=%s, szId=%s",
-		(void *)pkcs11h_session,
+		"PKCS#11: _pkcs11h_setCertificateSession_Certificate entry pkcs11h_certificate=%p, szIdType=%s, szId=%s",
+		(void *)pkcs11h_certificate,
 		szIdType,
 		szId
 	);
@@ -875,8 +1290,8 @@ _pkcs11h_loadCertificate (
 	}
 	
 	if (rv == CKR_OK) {
-		rv = pkcs11h_session->provider->f->C_FindObjectsInit (
-			pkcs11h_session->session,
+		rv = pkcs11h_certificate->session->provider->f->C_FindObjectsInit (
+			pkcs11h_certificate->session->hSession,
 			cert_filter,
 			sizeof (cert_filter) / sizeof (CK_ATTRIBUTE)
 		);
@@ -884,8 +1299,8 @@ _pkcs11h_loadCertificate (
 
 	if (rv == CKR_OK) {
 		while (
-			(rv = pkcs11h_session->provider->f->C_FindObjects (
-				pkcs11h_session->session,
+			(rv = pkcs11h_certificate->session->provider->f->C_FindObjects (
+				pkcs11h_certificate->session->hSession,
 				objects,
 				sizeof (objects) / sizeof (CK_OBJECT_HANDLE),
 				&objects_found
@@ -903,8 +1318,8 @@ _pkcs11h_loadCertificate (
 				};
 		
 				if (
-					pkcs11h_session->provider->f->C_GetAttributeValue (
-						pkcs11h_session->session,
+					pkcs11h_certificate->session->provider->f->C_GetAttributeValue (
+						pkcs11h_certificate->session->hSession,
 						objects[i],
 						attrs,
 						sizeof (attrs) / sizeof (CK_ATTRIBUTE)
@@ -968,8 +1383,8 @@ _pkcs11h_loadCertificate (
 			}
 		}
 	
-		pkcs11h_session->provider->f->C_FindObjectsFinal (
-			pkcs11h_session->session
+		pkcs11h_certificate->session->provider->f->C_FindObjectsFinal (
+			pkcs11h_certificate->session->hSession
 		);
 		rv = CKR_OK;
 	}
@@ -983,39 +1398,37 @@ _pkcs11h_loadCertificate (
 
 	if (
 		rv == CKR_OK &&
-		(pkcs11h_session->certificate = (unsigned char *)malloc (selected_certificate_size)) == NULL
+		(pkcs11h_certificate->certificate_id = (unsigned char *)malloc (selected_id_size)) == NULL
 	) {
 		rv = CKR_HOST_MEMORY;
 	}
-	
+
+	if ( /* should be last on none failure */
+		rv == CKR_OK &&
+		(pkcs11h_certificate->certificate = (unsigned char *)malloc (selected_certificate_size)) == NULL
+	) {
+		rv = CKR_HOST_MEMORY;
+	}
+
 	if (rv == CKR_OK) {
-		pkcs11h_session->certificate_size = selected_certificate_size;
+		pkcs11h_certificate->certificate_size = selected_certificate_size;
 		memmove (
-			pkcs11h_session->certificate,
+			pkcs11h_certificate->certificate,
 			selected_certificate,
 			selected_certificate_size
 		);
-	}
-	
-	if (
-		rv == CKR_OK &&
-		(pkcs11h_session->certificate_id = (unsigned char *)malloc (selected_id_size)) == NULL
-	) {
-		rv = CKR_HOST_MEMORY;
-	}
-	
-	if (rv == CKR_OK) {
-		pkcs11h_session->certificate_id_size = selected_id_size;
+
+		pkcs11h_certificate->certificate_id_size = selected_id_size;
 		memmove (
-			pkcs11h_session->certificate_id,
+			pkcs11h_certificate->certificate_id,
 			selected_id,
 			selected_id_size
 		);
 	}
 	
-	PKCS11LOG (
+	PKCS11DLOG (
 		PKCS11_LOG_DEBUG2,
-		"PKCS#11: _pkcs11h_loadCertificate return rv=%ld-'%s'",
+		"PKCS#11: _pkcs11h_setCertificateSession_Certificate return rv=%ld-'%s'",
 		rv,
 		pkcs11h_getMessage (rv)
 	);
@@ -1023,12 +1436,47 @@ _pkcs11h_loadCertificate (
 	return rv;
 }
 
+CK_RV
+_pkcs11h_resetCertificateSession (
+	IN const pkcs11h_certificate_t pkcs11h_certificate
+) {
+	CK_RV rv = CKR_OK;
+	
+	PKCS11DLOG (
+		PKCS11_LOG_DEBUG2,
+		"PKCS#11: pkcs11h_resetCertificateSession entry pkcs11h_certificate=%p",
+		(void *)pkcs11h_certificate
+	);
+
+	if (rv == CKR_OK) {
+		rv = _pkcs11h_login (
+			pkcs11h_certificate->session
+		);
+	}
+
+	if (rv == CKR_OK) {
+		rv = _pkcs11h_getObjectById (
+			pkcs11h_certificate->session,
+			CKO_PRIVATE_KEY,
+			pkcs11h_certificate->certificate_id,
+			pkcs11h_certificate->certificate_id_size,
+			&pkcs11h_certificate->hKey
+		);
+	}
+
+	PKCS11DLOG (
+		PKCS11_LOG_DEBUG2,
+		"PKCS#11: pkcs11h_freeCertificateSession return"
+	);
+
+	return CKR_OK;
+}
+
 static
 CK_RV
-_pkcs11h_loadKeyProperties (
-	IN const pkcs11h_session_t pkcs11h_session
+_pkcs11h_setCertificateSession_Key (
+	IN const pkcs11h_certificate_t pkcs11h_certificate
 ) {
-	CK_OBJECT_HANDLE key;
 	CK_RV rv = CKR_OK;
 
 	CK_BBOOL key_attrs_sign_recover;
@@ -1038,240 +1486,68 @@ _pkcs11h_loadKeyProperties (
 		{CKA_SIGN_RECOVER, &key_attrs_sign, sizeof (key_attrs_sign)}
 	};
 
-	PKCS11ASSERT (pkcs11h_session!=NULL);
+	PKCS11ASSERT (pkcs11h_certificate!=NULL);
 
-	PKCS11LOG (
+	PKCS11DLOG (
 		PKCS11_LOG_DEBUG2,
-		"PKCS#11: _pkcs11h_loadKeyProperties entry pkcs11h_session=%p",
-		(void *)pkcs11h_session
+		"PKCS#11: _pkcs11h_setCertificateSession_Key entry pkcs11h_certificate=%p",
+		(void *)pkcs11h_certificate
 	);
 
-	if (!strcmp (pkcs11h_session->provider->szSignMode, "recover")) {
-		pkcs11h_session->fKeySignRecover = true;
+	if (rv == CKR_OK) {
+		rv = _pkcs11h_getObjectById (
+			pkcs11h_certificate->session,
+			CKO_PRIVATE_KEY,
+			pkcs11h_certificate->certificate_id,
+			pkcs11h_certificate->certificate_id_size,
+			&pkcs11h_certificate->hKey
+		);
 	}
-	else if (!strcmp (pkcs11h_session->provider->szSignMode, "sign")) {
-		pkcs11h_session->fKeySignRecover = false;
+
+	if (!strcmp (pkcs11h_certificate->session->provider->szSignMode, "recover")) {
+		pkcs11h_certificate->signmode = pkcs11h_signmode_recover;
+	}
+	else if (!strcmp (pkcs11h_certificate->session->provider->szSignMode, "sign")) {
+		pkcs11h_certificate->signmode = pkcs11h_signmode_sign;
 	}
 	else {
 		if (rv == CKR_OK) {
-			rv = _pkcs11h_getObjectById (
-				pkcs11h_session,
-				CKO_PRIVATE_KEY,
-				pkcs11h_session->certificate_id,
-				pkcs11h_session->certificate_id_size,
-				&key
-			);
-		}
-
-		if (rv == CKR_OK) {
-			rv = pkcs11h_session->provider->f->C_GetAttributeValue (
-				pkcs11h_session->session,
-				key,
+			rv = pkcs11h_certificate->session->provider->f->C_GetAttributeValue (
+				pkcs11h_certificate->session->hSession,
+				pkcs11h_certificate->hKey,
 				key_attrs,
 				sizeof (key_attrs) / sizeof (CK_ATTRIBUTE)
 			);
 		}
 		
 		if (rv == CKR_OK) {
-			if (key_attrs_sign_recover != CK_FALSE) {
-				pkcs11h_session->fKeySignRecover = true;
+			if (key_attrs_sign != CK_FALSE) {
+				pkcs11h_certificate->signmode = pkcs11h_signmode_sign;
 			}
-			else if (key_attrs_sign != CK_FALSE) {
-				pkcs11h_session->fKeySignRecover = false;
+			else if (key_attrs_sign_recover != CK_FALSE) {
+				pkcs11h_certificate->signmode = pkcs11h_signmode_recover;
 			}
 			else {
 				rv = CKR_KEY_TYPE_INCONSISTENT;
 			}
+
+			PKCS11DLOG (
+				PKCS11_LOG_DEBUG1,
+				"PKCS#11: Signature mode selected: %d",
+				pkcs11h_certificate->signmode
+			);
 		}
 	}
 	
-	PKCS11LOG (
+	PKCS11DLOG (
 		PKCS11_LOG_DEBUG2,
-		"PKCS#11: _pkcs11h_loadKeyProperties return rv=%ld-'%s'",
+		"PKCS#11: _pkcs11h_setCertificateSession_Key return rv=%ld-'%s'",
 		rv,
 		pkcs11h_getMessage (rv)
 	);
 
 	return rv;
 }
-
-static
-CK_RV
-_pkcs11h_validateSession (
-	IN const pkcs11h_session_t pkcs11h_session
-) {
-	PKCS11LOG (
-		PKCS11_LOG_DEBUG2,
-		"PKCS#11: _pkcs11h_validateSession entry pkcs11h_session=%p",
-		(void *)pkcs11h_session
-	);
-
-	if (
-		pkcs11h_session->timePINExpire != (time_t)0 &&
-		pkcs11h_session->timePINExpire < time (NULL)
-	) {
-		_pkcs11h_logout (pkcs11h_session);
-	}
-
-	PKCS11LOG (
-		PKCS11_LOG_DEBUG2,
-		"PKCS#11: _pkcs11h_validateSession return"
-	);
-
-	return CKR_OK;
-}
-
-static
-CK_RV
-_pkcs11h_login (
-	IN const pkcs11h_session_t pkcs11h_session
-) {
-	CK_RV rv = CKR_OK;
-
-
-	PKCS11ASSERT (pkcs11h_session!=NULL);
-
-	PKCS11LOG (
-		PKCS11_LOG_DEBUG2,
-		"PKCS#11: _pkcs11h_login entry pkcs11h_session=%p",
-		(void *)pkcs11h_session
-	);
-
-	_pkcs11h_logout (pkcs11h_session);
-
-	if (rv == CKR_OK) {
-		rv = _pkcs11h_resetSlot (pkcs11h_session);
-	}
-
-	if (rv == CKR_OK) {
-		rv = pkcs11h_session->provider->f->C_OpenSession (
-			pkcs11h_session->slot,
-			CKF_SERIAL_SESSION,
-			NULL_PTR,
-			NULL_PTR,
-			&pkcs11h_session->session
-		);
-	}
-
-	if (rv == CKR_OK) {
-		int nRetryCount = 0;
-		do {
-			CK_UTF8CHAR_PTR utfPIN = NULL;
-			CK_ULONG lPINLength = 0;
-			char szPIN[1024];
-
-			/*
-			 * Assume OK for next iteration
-			 */
-			rv = CKR_OK;
-
-			if (
-				rv == CKR_OK &&
-				!pkcs11h_session->fProtectedAuthentication
-			) {
-				if (
-					!pkcs11h_data->hooks->pin_prompt (
-						pkcs11h_data->hooks->pin_prompt_data,
-						pkcs11h_session->szLabel,
-						szPIN,
-						sizeof (szPIN)
-					)
-				) {
-					rv = CKR_FUNCTION_FAILED;
-				}
-				else {
-					utfPIN = (CK_UTF8CHAR_PTR)szPIN;
-					lPINLength = strlen (szPIN);
-				}
-			}
-
-			if (pkcs11h_data->nPINCachePeriod == -1) {
-				pkcs11h_session->timePINExpire = 0;
-			}
-			else {
-				pkcs11h_session->timePINExpire = (
-					time (NULL) +
-					(time_t)pkcs11h_data->nPINCachePeriod
-				);
-			}
-			if (
-				rv == CKR_OK &&
-				(rv = pkcs11h_session->provider->f->C_Login (
-					pkcs11h_session->session,
-					CKU_USER,
-					utfPIN,
-					lPINLength
-				)) != CKR_OK
-			) {
-				if (rv == CKR_USER_ALREADY_LOGGED_IN) {
-					rv = CKR_OK;
-				}
-			}
-
-			/*
-			 * Clean PIN buffer
-			 */
-			memset (szPIN, 0, sizeof (szPIN));
-		} while (
-			++nRetryCount < 3 &&
-			(
-				rv == CKR_PIN_INCORRECT ||
-				rv == CKR_PIN_INVALID
-			)
-		);
-	}
-
-	if (
-		rv == CKR_OK &&
-		pkcs11h_session->certificate_id != NULL
-	) {
-		rv = _pkcs11h_getObjectById (
-			pkcs11h_session,
-			CKO_PRIVATE_KEY,
-			pkcs11h_session->certificate_id,
-			pkcs11h_session->certificate_id_size,
-			&pkcs11h_session->key
-		);
-	}
-
-	PKCS11LOG (
-		PKCS11_LOG_DEBUG2,
-		"PKCS#11: _pkcs11h_login return rv=%ld-'%s'",
-		rv,
-		pkcs11h_getMessage (rv)
-	);
-
-	return rv;
-}
-
-static
-CK_RV
-_pkcs11h_logout (
-	IN const pkcs11h_session_t pkcs11h_session
-) {
-	PKCS11ASSERT (pkcs11h_session!=NULL);
-
-	PKCS11LOG (
-		PKCS11_LOG_DEBUG2,
-		"PKCS#11: _pkcs11h_logout entry pkcs11h_session=%p",
-		(void *)pkcs11h_session
-	);
-
-	if (pkcs11h_session->session != (CK_SESSION_HANDLE)-1) {
-		pkcs11h_session->provider->f->C_Logout (pkcs11h_session->session);
-		pkcs11h_session->provider->f->C_CloseSession (pkcs11h_session->session);
-		pkcs11h_session->key = (CK_OBJECT_HANDLE)-1;
-		pkcs11h_session->session = (CK_SESSION_HANDLE)-1;
-	}
-
-	PKCS11LOG (
-		PKCS11_LOG_DEBUG2,
-		"PKCS#11: _pkcs11h_logout return"
-	);
-
-	return CKR_OK;
-}
-
 
 /*=======================================
  * Simplified PKCS#11 functions
@@ -1283,7 +1559,7 @@ _pkcs11h_hooks_card_prompt_default (
 	IN const void * pData,
 	IN const char * const szLabel
 ) {
-	PKCS11LOG (
+	PKCS11DLOG (
 		PKCS11_LOG_DEBUG2,
 		"PKCS#11: _pkcs11h_hooks_card_prompt_default pData=%p, szLabel=%s",
 		pData,
@@ -1301,7 +1577,7 @@ _pkcs11h_hooks_pin_prompt_default (
 	OUT char * const szPIN,
 	IN const size_t nMaxPIN
 ) {
-	PKCS11LOG (
+	PKCS11DLOG (
 		PKCS11_LOG_DEBUG2,
 		"PKCS#11: _pkcs11h_hooks_pin_prompt_default pData=%p, szLabel=%s",
 		pData,
@@ -1316,7 +1592,7 @@ pkcs11h_initialize () {
 
 	CK_RV rv = CKR_OK;
 
-	PKCS11LOG (
+	PKCS11DLOG (
 		PKCS11_LOG_DEBUG2,
 		"PKCS#11: pkcs11h_initialize entry"
 	);
@@ -1345,13 +1621,13 @@ pkcs11h_initialize () {
 		memset (pkcs11h_data->hooks, 0, sizeof (struct pkcs11h_hooks_s));
 	
 		pkcs11h_data->fInitialized = true;
-		pkcs11h_data->nPINCachePeriod = -1;
+		pkcs11h_data->nPINCachePeriod = PKCS11H_PIN_CACHE_INFINITE;
 	
 		pkcs11h_setCardPromptHook (_pkcs11h_hooks_card_prompt_default, NULL);
 		pkcs11h_setPINPromptHook (_pkcs11h_hooks_pin_prompt_default, NULL);
 	}
 	
-	PKCS11LOG (
+	PKCS11DLOG (
 		PKCS11_LOG_DEBUG2,
 		"PKCS#11: pkcs11h_initialize return rv=%ld-'%s'",
 		rv,
@@ -1364,24 +1640,47 @@ pkcs11h_initialize () {
 CK_RV
 pkcs11h_terminate () {
 
-	PKCS11LOG (
+	PKCS11DLOG (
 		PKCS11_LOG_DEBUG2,
 		"PKCS#11: pkcs11h_terminate entry"
 	);
 
 	if (pkcs11h_data != NULL) {
-		pkcs11h_provider_t last = NULL;
+		pkcs11h_provider_t p_last = NULL;
+		pkcs11h_session_t s_last = NULL;
+
+		for (
+			;
+			pkcs11h_data->sessions != NULL;
+			pkcs11h_data->sessions = pkcs11h_data->sessions->next
+		) {
+			if (s_last != NULL) {
+				free (s_last);
+			}
+			s_last = pkcs11h_data->sessions;
+			
+			_pkcs11h_logout (pkcs11h_data->sessions);
+		}
+
+		if (s_last != NULL) {
+			free (s_last);
+		}
 
 		for (
 			;
 			pkcs11h_data->providers != NULL;
 			pkcs11h_data->providers = pkcs11h_data->providers->next
 		) {
-			if (last != NULL) {
-				free (last);
+			if (p_last != NULL) {
+				free (p_last);
 			}
-			last = pkcs11h_data->providers;
+			p_last = pkcs11h_data->providers;
 		
+			if (pkcs11h_data->providers->szName != NULL) {
+				free (pkcs11h_data->providers->szName);
+				pkcs11h_data->providers->szName = NULL;
+			}
+
 			if (pkcs11h_data->providers->szSignMode != NULL) {
 				free (pkcs11h_data->providers->szSignMode);
 				pkcs11h_data->providers->szSignMode = NULL;
@@ -1406,8 +1705,8 @@ pkcs11h_terminate () {
 			}
 		}
 
-		if (last != NULL) {
-			free (last);
+		if (p_last != NULL) {
+			free (p_last);
 		}
 
 		if (pkcs11h_data->hooks != NULL) {
@@ -1419,7 +1718,7 @@ pkcs11h_terminate () {
 		pkcs11h_data = NULL;
 	}
 
-	PKCS11LOG (
+	PKCS11DLOG (
 		PKCS11_LOG_DEBUG2,
 		"PKCS#11: pkcs11h_terminate return"
 	);
@@ -1480,7 +1779,7 @@ pkcs11h_addProvider (
 	PKCS11ASSERT (pkcs11h_data->fInitialized);
 	PKCS11ASSERT (szProvider!=NULL);
 
-	PKCS11LOG (
+	PKCS11DLOG (
 		PKCS11_LOG_DEBUG2,
 		"PKCS#11: pkcs11h_addProvider entry pid=%d, szProvider=%s, szSignMode=%s",
 #if defined(WIN32)
@@ -1585,7 +1884,7 @@ pkcs11h_addProvider (
 		}
 	}
 
-	PKCS11LOG (
+	PKCS11DLOG (
 		PKCS11_LOG_DEBUG2,
 		"PKCS#11: pkcs11h_addProvider return rv=%ld-'%s'",
 		rv,
@@ -1598,7 +1897,7 @@ pkcs11h_addProvider (
 CK_RV
 pkcs11h_forkFixup () {
 
-	PKCS11LOG (
+	PKCS11DLOG (
 		PKCS11_LOG_DEBUG2,
 		"PKCS#11: pkcs11h_forkFixup entry pid=%d",
 #if defined(WIN32)
@@ -1623,25 +1922,29 @@ pkcs11h_forkFixup () {
 		}
 	}
 
-	PKCS11LOG (
+	PKCS11DLOG (
 		PKCS11_LOG_DEBUG2,
 		"PKCS#11: pkcs11h_forkFixup return"
 	);
 
 	return CKR_OK;
 }
-	
+
 CK_RV
-pkcs11h_createSession (
+pkcs11h_createCertificateSession (
 	IN const char * const szSlotType,
 	IN const char * const szSlot,
 	IN const char * const szIdType,
 	IN const char * const szId,
 	IN const bool fProtectedAuthentication,
-	OUT pkcs11h_session_t * const p_pkcs11h_session
+	IN const int nPINCachePeriod,
+	OUT pkcs11h_certificate_t * const p_pkcs11h_certificate
 ) {
-	pkcs11h_session_t pkcs11h_session;
+	pkcs11h_certificate_t pkcs11h_certificate;
 	CK_RV rv = CKR_OK;
+
+	bool fOpSuccess = false;
+	bool fLogonRetry = false;
 
 	PKCS11ASSERT (pkcs11h_data!=NULL);
 	PKCS11ASSERT (pkcs11h_data->fInitialized);
@@ -1649,108 +1952,80 @@ pkcs11h_createSession (
 	PKCS11ASSERT (szSlot!=NULL);
 	PKCS11ASSERT (szIdType!=NULL);
 	PKCS11ASSERT (szId!=NULL);
-	PKCS11ASSERT (p_pkcs11h_session!=NULL);
+	PKCS11ASSERT (p_pkcs11h_certificate!=NULL);
 
-	PKCS11LOG (
+	PKCS11DLOG (
 		PKCS11_LOG_DEBUG2,
-		"PKCS#11: pkcs11h_createSession entry szSlotType=%s, szSlot=%s, szIdType=%s, szId=%s, fProtectedAuthentication=%d, p_pkcs11h_session=%p",
+		"PKCS#11: pkcs11h_createSession entry szSlotType=%s, szSlot=%s, szIdType=%s, szId=%s, fProtectedAuthentication=%d, p_pkcs11h_certificate=%p",
 		szSlotType,
 		szSlot,
 		szIdType,
 		szId,
 		fProtectedAuthentication ? 1 : 0,
-		(void *)p_pkcs11h_session
+		(void *)p_pkcs11h_certificate
 	);
 
 	if (
 		rv == CKR_OK &&
-		(pkcs11h_session = (pkcs11h_session_t)malloc (sizeof (struct pkcs11h_session_s))) == NULL
+		(pkcs11h_certificate = (pkcs11h_certificate_t)malloc (sizeof (struct pkcs11h_certificate_s))) == NULL
 	) {
 		rv = CKR_HOST_MEMORY;
 	}
 
 	if (rv == CKR_OK) {
-		*p_pkcs11h_session = pkcs11h_session;
-		memset (pkcs11h_session, 0, sizeof (struct pkcs11h_session_s));
+		*p_pkcs11h_certificate = pkcs11h_certificate;
+		memset (pkcs11h_certificate, 0, sizeof (struct pkcs11h_certificate_s));
 	}
 	
 	if (rv == CKR_OK) {
-		pkcs11h_session->key = (CK_OBJECT_HANDLE)-1;
-		pkcs11h_session->session = (CK_SESSION_HANDLE)-1;
-		pkcs11h_session->fProtectedAuthentication = fProtectedAuthentication;
+		pkcs11h_certificate->hKey = (CK_OBJECT_HANDLE)-1;
 	}
 
 	if (rv == CKR_OK) {
-		bool fCancel = false;
+		rv = _pkcs11h_getSession (
+			szSlotType,
+			szSlot,
+			fProtectedAuthentication,
+			nPINCachePeriod,
+			&pkcs11h_certificate->session
+		);
+	}
 
-		do {
-			if (!strcmp (szSlotType, "id")) {
-				rv = _pkcs11h_getSlotById (pkcs11h_session, szSlot);
-			}
-			else if (!strcmp (szSlotType, "name")) {
-				rv = _pkcs11h_getSlotByName (pkcs11h_session, szSlot);
-			}
-			else if (!strcmp (szSlotType, "label")) {
-				rv = _pkcs11h_getSlotByLabel (pkcs11h_session, szSlot);
-			}
-			else {
-				rv = CKR_ARGUMENTS_BAD;
-			}
-
-			if (rv == CKR_SLOT_ID_INVALID) {
-				char szLabel[1024];
-				strcpy (szLabel, "SLOT(");
-				strncat (szLabel, szSlotType, sizeof (szLabel)-1);
-				strncat (szLabel, "=", sizeof (szLabel)-1);
-				strncat (szLabel, szSlot, sizeof (szLabel)-1);
-				strncat (szLabel, ")", sizeof (szLabel)-1);
-				szLabel[sizeof (szLabel)-1] = 0;
-				fCancel = !pkcs11h_data->hooks->card_prompt (
-					pkcs11h_data->hooks->card_prompt_data,
-					szLabel
+	fOpSuccess = false;
+	fLogonRetry = false;
+	while (rv == CKR_OK && !fOpSuccess) {
+		if (rv == CKR_OK) {
+			/*
+			 * Don't repeat this if succeeded in
+			 * unauthenticated session
+			 */
+			if (pkcs11h_certificate->certificate == NULL) {
+				rv = _pkcs11h_setCertificateSession_Certificate (
+					pkcs11h_certificate,
+					szIdType,
+					szId
 				);
 			}
-		} while (rv == CKR_SLOT_ID_INVALID && !fCancel);
-	}
+		}
 
-	if (rv == CKR_OK) {
-		rv = _pkcs11h_setSessionTokenInfo (pkcs11h_session);
-	}
-
-	if (rv == CKR_OK) {
-		rv = _pkcs11h_login (
-			pkcs11h_session
-		);
-	}
-
-	if (rv == CKR_OK) {
-		rv = _pkcs11h_loadCertificate (
-			pkcs11h_session,
-			szIdType,
-			szId
-		);
-	}
-
-	if (rv == CKR_OK) {
-		rv = _pkcs11h_loadKeyProperties (
-			pkcs11h_session
-		);
-	}
+		if (rv == CKR_OK) {
+			rv = _pkcs11h_setCertificateSession_Key (
+				pkcs11h_certificate
+			);
+		}
 	
-	/*
-	 * Complete missing login process
-	 */
-	if (rv == CKR_OK) {
-		rv = _pkcs11h_getObjectById (
-			pkcs11h_session,
-			CKO_PRIVATE_KEY,
-			pkcs11h_session->certificate_id,
-			pkcs11h_session->certificate_id_size,
-			&pkcs11h_session->key
-		);
+		if (rv == CKR_OK) {
+			fOpSuccess = true;
+		}
+		else {
+			if (!fLogonRetry) {
+				fLogonRetry = true;
+				rv = _pkcs11h_login (pkcs11h_certificate->session);
+			}
+		}
 	}
 
-	PKCS11LOG (
+	PKCS11DLOG (
 		PKCS11_LOG_DEBUG2,
 		"PKCS#11: pkcs11h_createSession return rv=%ld-'%s'",
 		rv,
@@ -1761,34 +2036,32 @@ pkcs11h_createSession (
 }
 
 CK_RV
-pkcs11h_freeSession (
-	IN const pkcs11h_session_t pkcs11h_session
+pkcs11h_freeCertificateSession (
+	IN const pkcs11h_certificate_t pkcs11h_certificate
 ) {
-	PKCS11ASSERT (pkcs11h_data!=NULL);
-	PKCS11ASSERT (pkcs11h_data->fInitialized);
-
-	PKCS11LOG (
+	PKCS11DLOG (
 		PKCS11_LOG_DEBUG2,
-		"PKCS#11: pkcs11h_freeSession entry pkcs11h_session=%p",
-		(void *)pkcs11h_session
+		"PKCS#11: pkcs11h_freeCertificateSession entry pkcs11h_certificate=%p",
+		(void *)pkcs11h_certificate
 	);
 
-	if (pkcs11h_session != NULL) {
-		_pkcs11h_logout (pkcs11h_session);
-
-		if (pkcs11h_session->certificate != NULL) {
-			free (pkcs11h_session->certificate);
+	if (pkcs11h_certificate != NULL) {
+		if (pkcs11h_certificate->session != NULL) {
+			_pkcs11h_releaseSession (pkcs11h_certificate->session);
 		}
-		if (pkcs11h_session->certificate_id != NULL) {
-			free (pkcs11h_session->certificate_id);
+		if (pkcs11h_certificate->certificate != NULL) {
+			free (pkcs11h_certificate->certificate);
+		}
+		if (pkcs11h_certificate->certificate_id != NULL) {
+			free (pkcs11h_certificate->certificate_id);
 		}
 
-		free (pkcs11h_session);
+		free (pkcs11h_certificate);
 	}
 
-	PKCS11LOG (
+	PKCS11DLOG (
 		PKCS11_LOG_DEBUG2,
-		"PKCS#11: pkcs11h_freeSession return"
+		"PKCS#11: pkcs11h_freeCertificateSession return"
 	);
 
 	return CKR_OK;
@@ -1796,7 +2069,7 @@ pkcs11h_freeSession (
 
 CK_RV
 pkcs11h_sign (
-	IN const pkcs11h_session_t pkcs11h_session,
+	IN const pkcs11h_certificate_t pkcs11h_certificate,
 	IN const CK_MECHANISM_TYPE mech_type,
 	IN const unsigned char * const source,
 	IN const size_t source_size,
@@ -1813,14 +2086,14 @@ pkcs11h_sign (
 
 	PKCS11ASSERT (pkcs11h_data!=NULL);
 	PKCS11ASSERT (pkcs11h_data->fInitialized);
-	PKCS11ASSERT (pkcs11h_session!=NULL);
+	PKCS11ASSERT (pkcs11h_certificate!=NULL);
 	PKCS11ASSERT (source!=NULL);
 	PKCS11ASSERT (target_size!=NULL);
 
-	PKCS11LOG (
+	PKCS11DLOG (
 		PKCS11_LOG_DEBUG2,
-		"PKCS#11: pkcs11h_sign entry pkcs11h_session=%p, mech_type=%ld, source=%p, source_size=%u, target=%p, target_size=%p",
-		(void *)pkcs11h_session,
+		"PKCS#11: pkcs11h_sign entry pkcs11h_certificate=%p, mech_type=%ld, source=%p, source_size=%u, target=%p, target_size=%p",
+		(void *)pkcs11h_certificate,
 		mech_type,
 		source,
 		source_size,
@@ -1829,14 +2102,14 @@ pkcs11h_sign (
 	);
 
 	if (rv == CKR_OK) {
-		rv = _pkcs11h_validateSession (pkcs11h_session);
+		rv = _pkcs11h_validateSession (pkcs11h_certificate->session);
 	}
 
 	while (rv == CKR_OK && !fOpSuccess) {
-		rv = pkcs11h_session->provider->f->C_SignInit (
-			pkcs11h_session->session,
+		rv = pkcs11h_certificate->session->provider->f->C_SignInit (
+			pkcs11h_certificate->session->hSession,
 			&mech,
-			pkcs11h_session->key
+			pkcs11h_certificate->hKey
 		);
 
 		if (rv == CKR_OK) {
@@ -1844,16 +2117,22 @@ pkcs11h_sign (
 		}
 		else {
 			if (!fLogonRetry) {
+				PKCS11DLOG (
+					PKCS11_LOG_DEBUG1,
+					"PKCS#11: Private key operation failed rv=%ld-'%s'",
+					rv,
+					pkcs11h_getMessage (rv)
+				);
 				fLogonRetry = true;
-				rv = _pkcs11h_login (pkcs11h_session);
+				rv = _pkcs11h_resetCertificateSession (pkcs11h_certificate);
 			}
 		}
 	}
 
 	if (rv == CKR_OK) {
 		CK_ULONG size = *target_size;
-		rv = pkcs11h_session->provider->f->C_Sign (
-			pkcs11h_session->session,
+		rv = pkcs11h_certificate->session->provider->f->C_Sign (
+			pkcs11h_certificate->session->hSession,
 			(CK_BYTE_PTR)source,
 			source_size,
 			(CK_BYTE_PTR)target,
@@ -1863,7 +2142,7 @@ pkcs11h_sign (
 		*target_size = (int)size;
 	}
 
-	PKCS11LOG (
+	PKCS11DLOG (
 		PKCS11_LOG_DEBUG2,
 		"PKCS#11: pkcs11h_sign return rv=%ld-'%s'",
 		rv,
@@ -1875,7 +2154,7 @@ pkcs11h_sign (
 
 CK_RV
 pkcs11h_signRecover (
-	IN const pkcs11h_session_t pkcs11h_session,
+	IN const pkcs11h_certificate_t pkcs11h_certificate,
 	IN const CK_MECHANISM_TYPE mech_type,
 	IN const unsigned char * const source,
 	IN const size_t source_size,
@@ -1891,14 +2170,14 @@ pkcs11h_signRecover (
 
 	PKCS11ASSERT (pkcs11h_data!=NULL);
 	PKCS11ASSERT (pkcs11h_data->fInitialized);
-	PKCS11ASSERT (pkcs11h_session!=NULL);
+	PKCS11ASSERT (pkcs11h_certificate!=NULL);
 	PKCS11ASSERT (source!=NULL);
 	PKCS11ASSERT (target_size!=NULL);
 
-	PKCS11LOG (
+	PKCS11DLOG (
 		PKCS11_LOG_DEBUG2,
-		"PKCS#11: pkcs11h_signRecover entry pkcs11h_session=%p, mech_type=%ld, source=%p, source_size=%u, target=%p, target_size=%p",
-		(void *)pkcs11h_session,
+		"PKCS#11: pkcs11h_signRecover entry pkcs11h_certificate=%p, mech_type=%ld, source=%p, source_size=%u, target=%p, target_size=%p",
+		(void *)pkcs11h_certificate,
 		mech_type,
 		source,
 		source_size,
@@ -1907,14 +2186,14 @@ pkcs11h_signRecover (
 	);
 
 	if (rv == CKR_OK) {
-		rv = _pkcs11h_validateSession (pkcs11h_session);
+		rv = _pkcs11h_validateSession (pkcs11h_certificate->session);
 	}
 
 	while (rv == CKR_OK && !fOpSuccess) {
-		rv = pkcs11h_session->provider->f->C_SignRecoverInit (
-			pkcs11h_session->session,
+		rv = pkcs11h_certificate->session->provider->f->C_SignRecoverInit (
+			pkcs11h_certificate->session->hSession,
 			&mech,
-			pkcs11h_session->key
+			pkcs11h_certificate->hKey
 		);
 
 		if (rv == CKR_OK) {
@@ -1922,16 +2201,22 @@ pkcs11h_signRecover (
 		}
 		else {
 			if (!fLogonRetry) {
+				PKCS11DLOG (
+					PKCS11_LOG_DEBUG1,
+					"PKCS#11: Private key operation failed rv=%ld-'%s'",
+					rv,
+					pkcs11h_getMessage (rv)
+				);
 				fLogonRetry = true;
-				rv = _pkcs11h_login (pkcs11h_session);
+				rv = _pkcs11h_resetCertificateSession (pkcs11h_certificate);
 			}
 		}
 	}
 
 	if (rv == CKR_OK) {
 		CK_ULONG size = *target_size;
-		rv = pkcs11h_session->provider->f->C_SignRecover (
-			pkcs11h_session->session,
+		rv = pkcs11h_certificate->session->provider->f->C_SignRecover (
+			pkcs11h_certificate->session->hSession,
 			(CK_BYTE_PTR)source,
 			source_size,
 			(CK_BYTE_PTR)target,
@@ -1941,7 +2226,7 @@ pkcs11h_signRecover (
 		*target_size = (int)size;
 	}
 
-	PKCS11LOG (
+	PKCS11DLOG (
 		PKCS11_LOG_DEBUG2,
 		"PKCS#11: pkcs11h_signRecover return rv=%ld-'%s'",
 		rv,
@@ -1953,7 +2238,7 @@ pkcs11h_signRecover (
 
 CK_RV
 pkcs11h_decrypt (
-	IN const pkcs11h_session_t pkcs11h_session,
+	IN const pkcs11h_certificate_t pkcs11h_certificate,
 	IN const CK_MECHANISM_TYPE mech_type,
 	IN const unsigned char * const source,
 	IN const size_t source_size,
@@ -1970,14 +2255,14 @@ pkcs11h_decrypt (
 
 	PKCS11ASSERT (pkcs11h_data!=NULL);
 	PKCS11ASSERT (pkcs11h_data->fInitialized);
-	PKCS11ASSERT (pkcs11h_session!=NULL);
+	PKCS11ASSERT (pkcs11h_certificate!=NULL);
 	PKCS11ASSERT (source!=NULL);
 	PKCS11ASSERT (target_size!=NULL);
 
-	PKCS11LOG (
+	PKCS11DLOG (
 		PKCS11_LOG_DEBUG2,
-		"PKCS#11: pkcs11h_decrypt entry pkcs11h_session=%p, mech_type=%ld, source=%p, source_size=%u, target=%p, target_size=%p",
-		(void *)pkcs11h_session,
+		"PKCS#11: pkcs11h_decrypt entry pkcs11h_certificate=%p, mech_type=%ld, source=%p, source_size=%u, target=%p, target_size=%p",
+		(void *)pkcs11h_certificate,
 		mech_type,
 		source,
 		source_size,
@@ -1986,14 +2271,14 @@ pkcs11h_decrypt (
 	);
 
 	if (rv != CKR_OK) {
-		rv = _pkcs11h_validateSession (pkcs11h_session);
+		rv = _pkcs11h_validateSession (pkcs11h_certificate->session);
 	}
 
 	while (rv == CKR_OK && !fOpSuccess) {
-		rv = pkcs11h_session->provider->f->C_DecryptInit (
-			pkcs11h_session->session,
+		rv = pkcs11h_certificate->session->provider->f->C_DecryptInit (
+			pkcs11h_certificate->session->hSession,
 			&mech,
-			pkcs11h_session->key
+			pkcs11h_certificate->hKey
 		);
 
 		if (rv == CKR_OK) {
@@ -2001,16 +2286,22 @@ pkcs11h_decrypt (
 		}
 		else {
 			if (!fLogonRetry) {
+				PKCS11DLOG (
+					PKCS11_LOG_DEBUG1,
+					"PKCS#11: Private key operation failed rv=%ld-'%s'",
+					rv,
+					pkcs11h_getMessage (rv)
+				);
 				fLogonRetry = true;
-				rv = _pkcs11h_login (pkcs11h_session);
+				rv = _pkcs11h_resetCertificateSession (pkcs11h_certificate);
 			}
 		}
 	}
 
 	if (rv == CKR_OK) {
 		size = *target_size;
-		rv = pkcs11h_session->provider->f->C_Decrypt (
-			pkcs11h_session->session,
+		rv = pkcs11h_certificate->session->provider->f->C_Decrypt (
+			pkcs11h_certificate->session->hSession,
 			(CK_BYTE_PTR)source,
 			source_size,
 			(CK_BYTE_PTR)target,
@@ -2020,7 +2311,7 @@ pkcs11h_decrypt (
 		*target_size = (int)size;
 	}
 
-	PKCS11LOG (
+	PKCS11DLOG (
 		PKCS11_LOG_DEBUG2,
 		"PKCS#11: pkcs11h_decrypt return rv=%ld-'%s'",
 		rv,
@@ -2032,7 +2323,7 @@ pkcs11h_decrypt (
 
 CK_RV
 pkcs11h_getCertificate (
-	IN const pkcs11h_session_t pkcs11h_session,
+	IN const pkcs11h_certificate_t pkcs11h_certificate,
 	OUT unsigned char * const certificate,
 	IN OUT size_t * const certificate_size
 ) {
@@ -2042,30 +2333,39 @@ pkcs11h_getCertificate (
 	PKCS11ASSERT (pkcs11h_data->fInitialized);
 	PKCS11ASSERT (certificate_size!=NULL);
 
-	PKCS11LOG (
+	PKCS11DLOG (
 		PKCS11_LOG_DEBUG2,
-		"PKCS#11: pkcs11h_getCertificate entry pkcs11h_session=%p, certificate=%p, certificate_size=%p",
-		(void *)pkcs11h_session,
+		"PKCS#11: pkcs11h_getCertificate entry pkcs11h_certificate=%p, certificate=%p, certificate_size=%p",
+		(void *)pkcs11h_certificate,
 		certificate,
 		(void *)certificate_size
 	);
 
-	*certificate_size = pkcs11h_session->certificate_size;
+	if (
+		rv == CKR_OK &&
+		pkcs11h_certificate->certificate == NULL
+	) {
+		rv = CKR_FUNCTION_REJECTED;
+	}
+
+	if (rv == CKR_OK) {
+		*certificate_size = pkcs11h_certificate->certificate_size;
+	}
 
 	if (certificate != NULL) {
 		if (
 			rv == CKR_OK &&
-			*certificate_size > pkcs11h_session->certificate_size
+			*certificate_size > pkcs11h_certificate->certificate_size
 		) {
 			rv = CKR_BUFFER_TOO_SMALL;
 		}
 	
 		if (rv == CKR_OK) {
-			memmove (certificate, pkcs11h_session->certificate, *certificate_size);	
+			memmove (certificate, pkcs11h_certificate->certificate, *certificate_size);	
 		}
 	}
 
-	PKCS11LOG (
+	PKCS11DLOG (
 		PKCS11_LOG_DEBUG2,
 		"PKCS#11: pkcs11h_getCertificate return rv=%ld-'%s'",
 		rv,
@@ -2189,48 +2489,34 @@ _pkcs11h_openssl_get_pkcs11h_openssl_session (
 }
 
 static
-pkcs11h_session_t
-_pkcs11h_openssl_get_pkcs11h_session (
+pkcs11h_certificate_t
+_pkcs11h_openssl_get_pkcs11h_certificate (
 	IN OUT const RSA *rsa
 ) {
-	pkcs11h_openssl_session_t session;
+	pkcs11h_openssl_session_t session = _pkcs11h_openssl_get_pkcs11h_openssl_session (rsa);
 	
-	PKCS11ASSERT (rsa!=NULL);
-	session = (pkcs11h_openssl_session_t)RSA_get_app_data (rsa);
 	PKCS11ASSERT (session!=NULL);
-	PKCS11ASSERT (session->pkcs11h_session!=NULL);
+	PKCS11ASSERT (session->pkcs11h_certificate!=NULL);
 
-	return session->pkcs11h_session;
+	return session->pkcs11h_certificate;
 }
 
 static
 int
-_pkcs11h_openssl_priv_enc (
+_pkcs11h_openssl_dec (
 	IN int flen,
 	IN const unsigned char *from,
 	OUT unsigned char *to,
 	IN OUT RSA *rsa,
 	IN int padding
 ) {
-	PKCS11LOG (PKCS11_LOG_WARN, "PKCS#11: Private key encryption not supported");
-	return -1;
-}
+	PKCS11ASSERT (from!=NULL);
+	PKCS11ASSERT (to!=NULL);
+	PKCS11ASSERT (rsa!=NULL);
 
-static
-int
-_pkcs11h_openssl_priv_dec (
-	IN int flen,
-	IN const unsigned char *from,
-	OUT unsigned char *to,
-	IN OUT RSA *rsa,
-	IN int padding
-) {
-	pkcs11h_session_t pkcs11h_session = _pkcs11h_openssl_get_pkcs11h_session (rsa);
-	CK_RV rv = CKR_OK;
-
-	PKCS11LOG (
+	PKCS11DLOG (
 		PKCS11_LOG_DEBUG2,
-		"PKCS#11: _pkcs11h_openssl_priv_dec entered - flen=%d, from=%p, to=%p, rsa=%p, padding=%d",
+		"PKCS#11: _pkcs11h_openssl_dec entered - flen=%d, from=%p, to=%p, rsa=%p, padding=%d",
 		flen,
 		from,
 		to,
@@ -2238,41 +2524,19 @@ _pkcs11h_openssl_priv_dec (
 		padding
 	);
 
-	PKCS11ASSERT (from!=NULL);
-	PKCS11ASSERT (to!=NULL);
-
 	PKCS11LOG (
-		PKCS11_LOG_DEBUG1,	
-		"PKCS#11: Performing decryption using private key"
+		PKCS11_LOG_ERROR,
+		"PKCS#11: Private key decryption is not supported"
 	);
 
-	if (padding != RSA_PKCS1_PADDING) {
-		rv = CKR_ARGUMENTS_BAD;
-	}
-
-	if (
-		rv == CKR_OK &&
-		(rv = pkcs11h_decrypt (
-			pkcs11h_session,
-			CKM_RSA_PKCS,
-			from,
-			flen,
-			to,
-			(size_t *)&flen
-		)) != CKR_OK
-	) {
-		PKCS11LOG (PKCS11_LOG_WARN, "PKCS#11: Cannot decrypt using private key %ld:'%s'", rv, pkcs11h_getMessage (rv));
-	}
-
-	PKCS11LOG (
+	PKCS11DLOG (
 		PKCS11_LOG_DEBUG2,
-		"PKCS#11: _pkcs11h_openssl_priv_dec - return rv=%ld-'%s'",
-		rv,
-		pkcs11h_getMessage (rv)
+		"PKCS#11: _pkcs11h_openssl_dec return"
 	);
-	
-	return rv == CKR_OK ? 1 : -1; 
+
+	return -1;
 }
+
 
 static
 int
@@ -2284,8 +2548,7 @@ _pkcs11h_openssl_sign (
 	OUT unsigned int *siglen,
 	IN OUT const RSA *rsa
 ) {
-	pkcs11h_openssl_session_t pkcs11h_openssl_session = _pkcs11h_openssl_get_pkcs11h_openssl_session (rsa);
-	pkcs11h_session_t pkcs11h_session = _pkcs11h_openssl_get_pkcs11h_session (rsa);
+	pkcs11h_certificate_t pkcs11h_certificate = _pkcs11h_openssl_get_pkcs11h_certificate (rsa);
 	CK_RV rv = CKR_OK;
 
 	int myrsa_size = 0;
@@ -2293,8 +2556,12 @@ _pkcs11h_openssl_sign (
 	unsigned char *enc_alloc = NULL;
 	unsigned char *enc;
 	int enc_len = 0;
-	
-	PKCS11LOG (
+
+	PKCS11ASSERT (m!=NULL);
+	PKCS11ASSERT (sigret!=NULL);
+	PKCS11ASSERT (siglen!=NULL);
+
+	PKCS11DLOG (
 		PKCS11_LOG_DEBUG2,
 		"PKCS#11: _pkcs11h_openssl_sign entered - type=%d, m=%p, m_len=%u, signret=%p, signlen=%p, rsa=%p",
 		type,
@@ -2305,15 +2572,17 @@ _pkcs11h_openssl_sign (
 		(void *)rsa
 	);
 
-	PKCS11ASSERT (m!=NULL);
-	PKCS11ASSERT (sigret!=NULL);
-	PKCS11ASSERT (siglen!=NULL);
-
 	if (rv == CKR_OK) {
 		myrsa_size=RSA_size(rsa);
 	}
 
-	if (pkcs11h_openssl_session->fShouldPadSign) {
+	if (type == NID_md5_sha1) {
+		if (rv == CKR_OK) {
+			enc = (unsigned char *)m;
+			enc_len = m_len;
+		}
+	}
+	else {
 		X509_SIG sig;
 		ASN1_TYPE parameter;
 		X509_ALGOR algor;
@@ -2362,62 +2631,62 @@ _pkcs11h_openssl_sign (
 			rv = CKR_FUNCTION_FAILED;
 		}
 	
-		if (
-			rv == CKR_OK &&
-			enc_len > (myrsa_size-RSA_PKCS1_PADDING_SIZE)
-		) {
-			rv = CKR_KEY_SIZE_RANGE;
-		}
-	
 		if (rv == CKR_OK) {
 			unsigned char *p=enc;
 			i2d_X509_SIG(&sig,&p);
 		}
 	}
-	else {
-		if (rv == CKR_OK) {
-			enc = (unsigned char *)m;
-			enc_len = m_len;
-		}
+
+	if (
+		rv == CKR_OK &&
+		enc_len > (myrsa_size-RSA_PKCS1_PADDING_SIZE)
+	) {
+		rv = CKR_KEY_SIZE_RANGE;
 	}
 
-	PKCS11LOG (
+	PKCS11DLOG (
 		PKCS11_LOG_DEBUG1,
 		"PKCS#11: Performing signature"
 	);
 
 	*siglen = myrsa_size;
 
-	if (pkcs11h_session->fKeySignRecover) {
-		if (
-			(rv = pkcs11h_signRecover (
-				pkcs11h_session,
-				CKM_RSA_PKCS,
-				enc,
-				enc_len,
-				sigret,
-				siglen
-			)) != CKR_OK
-		) {
-			PKCS11LOG (PKCS11_LOG_WARN, "PKCS#11: Cannot perform signature-recover %ld:'%s'", rv, pkcs11h_getMessage (rv));
-		}
-	}
-	else {
-		if (
-			(rv = pkcs11h_sign (
-				pkcs11h_session,
-				CKM_RSA_PKCS,
-				enc,
-				enc_len,
-				sigret,
-				siglen
-			)) != CKR_OK
-		) {
-			PKCS11LOG (PKCS11_LOG_WARN, "PKCS#11: Cannot perform signature %ld:'%s'", rv, pkcs11h_getMessage (rv));
-		}
+	switch (pkcs11h_certificate->signmode) {
+		case pkcs11h_signmode_sign:
+			if (
+				(rv = pkcs11h_sign (
+					pkcs11h_certificate,
+					CKM_RSA_PKCS,
+					enc,
+					enc_len,
+					sigret,
+					siglen
+				)) != CKR_OK
+			) {
+				PKCS11LOG (PKCS11_LOG_WARN, "PKCS#11: Cannot perform signature %ld:'%s'", rv, pkcs11h_getMessage (rv));
+			}
+		break;
+		case pkcs11h_signmode_recover:
+			if (
+				(rv = pkcs11h_signRecover (
+					pkcs11h_certificate,
+					CKM_RSA_PKCS,
+					enc,
+					enc_len,
+					sigret,
+					siglen
+				)) != CKR_OK
+			) {
+				PKCS11LOG (PKCS11_LOG_WARN, "PKCS#11: Cannot perform signature-recover %ld:'%s'", rv, pkcs11h_getMessage (rv));
+			}
+		break;
+		default:
+			rv = CKR_FUNCTION_REJECTED;
+			PKCS11LOG (PKCS11_LOG_WARN, "PKCS#11: Invalid signature mode");
+		break;
 	}
 	
-	PKCS11LOG (
+	PKCS11DLOG (
 		PKCS11_LOG_DEBUG2,
 		"PKCS#11: _pkcs11h_openssl_sign - return rv=%ld-'%s'",
 		rv,
@@ -2438,7 +2707,7 @@ _pkcs11h_openssl_finish (
 ) {
 	pkcs11h_openssl_session_t pkcs11h_openssl_session = _pkcs11h_openssl_get_pkcs11h_openssl_session (rsa);
 
-	PKCS11LOG (
+	PKCS11DLOG (
 		PKCS11_LOG_DEBUG2,
 		"PKCS#11: _pkcs11h_openssl_finish - entered rsa=%p",
 		(void *)rsa
@@ -2468,7 +2737,7 @@ _pkcs11h_openssl_finish (
 
 	pkcs11h_openssl_freeSession (pkcs11h_openssl_session);
 
-	PKCS11LOG (
+	PKCS11DLOG (
 		PKCS11_LOG_DEBUG2,
 		"PKCS#11: _pkcs11h_openssl_finish - return"
 	);
@@ -2477,16 +2746,13 @@ _pkcs11h_openssl_finish (
 }
 
 pkcs11h_openssl_session_t
-pkcs11h_openssl_createSession (
-	IN const bool fShouldPadSign
-) {
+pkcs11h_openssl_createSession () {
 	pkcs11h_openssl_session_t pkcs11h_openssl_session = NULL;
 	bool fOK = true;
 
-	PKCS11LOG (
+	PKCS11DLOG (
 		PKCS11_LOG_DEBUG2,
-		"PKCS#11: pkcs11h_openssl_createSession - entry fShouldPadSign=%d",
-		fShouldPadSign ? 1 : 0
+		"PKCS#11: pkcs11h_openssl_createSession - entry"
 	);
 
 	if (
@@ -2502,7 +2768,6 @@ pkcs11h_openssl_createSession (
 	}
 
 	if (fOK) {
-		pkcs11h_openssl_session->fShouldPadSign = fShouldPadSign;
 		pkcs11h_openssl_session->nReferenceCount = 1;
 	}
 
@@ -2511,7 +2776,7 @@ pkcs11h_openssl_createSession (
 		pkcs11h_openssl_session = NULL;
 	}
 	
-	PKCS11LOG (
+	PKCS11DLOG (
 		PKCS11_LOG_DEBUG2,
 		"PKCS#11: pkcs11h_openssl_createSession - return pkcs11h_openssl_session=%p",
 		(void *)pkcs11h_openssl_session
@@ -2527,7 +2792,7 @@ pkcs11h_openssl_freeSession (
 	PKCS11ASSERT (pkcs11h_openssl_session!=NULL);
 	PKCS11ASSERT (pkcs11h_openssl_session->nReferenceCount>0);
 	
-	PKCS11LOG (
+	PKCS11DLOG (
 		PKCS11_LOG_DEBUG2,
 		"PKCS#11: pkcs11h_openssl_freeSession - entry pkcs11h_openssl_session=%p, count=%d",
 		(void *)pkcs11h_openssl_session,
@@ -2541,15 +2806,15 @@ pkcs11h_openssl_freeSession (
 			X509_free (pkcs11h_openssl_session->x509);
 			pkcs11h_openssl_session->x509 = NULL;
 		}
-		if (pkcs11h_openssl_session->pkcs11h_session != NULL) {
-			pkcs11h_freeSession (pkcs11h_openssl_session->pkcs11h_session);
-			pkcs11h_openssl_session->pkcs11h_session = NULL;
+		if (pkcs11h_openssl_session->pkcs11h_certificate != NULL) {
+			pkcs11h_freeCertificateSession (pkcs11h_openssl_session->pkcs11h_certificate);
+			pkcs11h_openssl_session->pkcs11h_certificate = NULL;
 		}
 		
 		free (pkcs11h_openssl_session);
 	}
 
-	PKCS11LOG (
+	PKCS11DLOG (
 		PKCS11_LOG_DEBUG2,
 		"PKCS#11: pkcs11h_openssl_freeSession - return"
 	);
@@ -2572,7 +2837,7 @@ pkcs11h_openssl_getRSA (
 	PKCS11ASSERT (pkcs11h_openssl_session!=NULL);
 	PKCS11ASSERT (!pkcs11h_openssl_session->fInitialized);
 
-	PKCS11LOG (
+	PKCS11DLOG (
 		PKCS11_LOG_DEBUG2,
 		"PKCS#11: pkcs11h_openssl_getRSA - entry pkcs11h_openssl_session=%p",
 		(void *)pkcs11h_openssl_session
@@ -2590,7 +2855,7 @@ pkcs11h_openssl_getRSA (
 	if (
 		fOK &&
 		(rv = pkcs11h_getCertificate (
-			pkcs11h_openssl_session->pkcs11h_session,
+			pkcs11h_openssl_session->pkcs11h_certificate,
 			certificate,
 			&certificate_size
 		)) != CKR_OK
@@ -2640,8 +2905,7 @@ pkcs11h_openssl_getRSA (
 		pkcs11h_openssl_session->orig_finish = def->finish;
 
 		pkcs11h_openssl_session->smart_rsa.name = "pkcs11";
-		pkcs11h_openssl_session->smart_rsa.rsa_priv_enc = _pkcs11h_openssl_priv_enc;
-		pkcs11h_openssl_session->smart_rsa.rsa_priv_dec = _pkcs11h_openssl_priv_dec;
+		pkcs11h_openssl_session->smart_rsa.rsa_priv_dec = _pkcs11h_openssl_dec;
 		pkcs11h_openssl_session->smart_rsa.rsa_sign = _pkcs11h_openssl_sign;
 		pkcs11h_openssl_session->smart_rsa.finish = _pkcs11h_openssl_finish;
 		pkcs11h_openssl_session->smart_rsa.flags  = RSA_METHOD_FLAG_NO_CHECK | RSA_FLAG_EXT_PKEY;
@@ -2690,7 +2954,7 @@ pkcs11h_openssl_getRSA (
 		x509 = NULL;
 	}
 	
-	PKCS11LOG (
+	PKCS11DLOG (
 		PKCS11_LOG_DEBUG2,
 		"PKCS#11: pkcs11h_openssl_getRSA - return rsa=%p",
 		(void *)rsa
@@ -2707,7 +2971,7 @@ pkcs11h_openssl_getX509 (
 	
 	PKCS11ASSERT (pkcs11h_openssl_session!=NULL);
 
-	PKCS11LOG (
+	PKCS11DLOG (
 		PKCS11_LOG_DEBUG2,
 		"PKCS#11: pkcs11h_openssl_getX509 - entry pkcs11h_openssl_session=%p",
 		(void *)pkcs11h_openssl_session
@@ -2717,7 +2981,7 @@ pkcs11h_openssl_getX509 (
 		x509 = X509_dup (pkcs11h_openssl_session->x509);
 	}
 	
-	PKCS11LOG (
+	PKCS11DLOG (
 		PKCS11_LOG_DEBUG2,
 		"PKCS#11: pkcs11h_openssl_getX509 - return x509=%p",
 		(void *)x509

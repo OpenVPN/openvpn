@@ -39,7 +39,8 @@
 
 #include "pkcs11-helper-config.h"
 
-#define PKCS11H_MAX_ATTRIBUTE_SIZE (10*1024)
+#define PKCS11H_MAX_ATTRIBUTE_SIZE	(10*1024)
+#define PKCS11H_PIN_CACHE_INFINITE	-1
 
 typedef void (*pkcs11h_output_print_t)(
 	IN const void *pData,
@@ -85,6 +86,9 @@ typedef struct pkcs11h_provider_s {
 } *pkcs11h_provider_t;
 
 typedef struct pkcs11h_session_s {
+	struct pkcs11h_session_s *next;
+
+	int nReferenceCount;
 
 	pkcs11h_provider_t provider;
 
@@ -92,36 +96,49 @@ typedef struct pkcs11h_session_s {
 
 	char szLabel[sizeof (((CK_TOKEN_INFO *)NULL)->label)+1];
 	CK_CHAR serialNumber[sizeof (((CK_TOKEN_INFO *)NULL)->serialNumber)];
-	
+
+	CK_SESSION_HANDLE hSession;
+
+	int nPINCachePeriod;
+	time_t timePINExpire;
+} *pkcs11h_session_t;
+
+typedef struct pkcs11h_certificate_s {
+
+	pkcs11h_session_t session;
+
 	unsigned char *certificate;
 	size_t certificate_size;
 	unsigned char *certificate_id;
 	size_t certificate_id_size;
 
-	CK_SLOT_ID slot;
-	bool fKeySignRecover;
+	enum {
+		pkcs11h_signmode_none = 0,
+		pkcs11h_signmode_sign,
+		pkcs11h_signmode_recover
+	} signmode;
 
-	CK_SESSION_HANDLE session;
-	CK_OBJECT_HANDLE key;
-
-	time_t timePINExpire;
-} *pkcs11h_session_t;
+	CK_OBJECT_HANDLE hKey;
+} *pkcs11h_certificate_t;
 
 typedef struct pkcs11h_data_s {
 	bool fInitialized;
 	int nPINCachePeriod;
+
 	pkcs11h_provider_t providers;
+	pkcs11h_session_t sessions;
 	pkcs11h_hooks_t hooks;
+
+	CK_SESSION_HANDLE session;
 } *pkcs11h_data_t;
 
 typedef struct pkcs11h_openssl_session_s {
 	int nReferenceCount;
 	bool fInitialized;
-	bool fShouldPadSign;
 	X509 *x509;
 	RSA_METHOD smart_rsa;
 	int (*orig_finish)(RSA *rsa);
-	pkcs11h_session_t pkcs11h_session;
+	pkcs11h_certificate_t pkcs11h_certificate;
 } *pkcs11h_openssl_session_t;
 
 CK_RV
@@ -157,23 +174,24 @@ CK_RV
 pkcs11h_forkFixup ();
 
 CK_RV
-pkcs11h_createSession (
+pkcs11h_createCertificateSession (
 	IN const char * const szSlotType,
 	IN const char * const szSlot,
 	IN const char * const szIdType,
 	IN const char * const szId,
 	IN const bool fProtectedAuthentication,
-	OUT pkcs11h_session_t * const pkcs11h_session
+	IN const int nPINCachePeriod,
+	OUT pkcs11h_certificate_t * const pkcs11h_certificate
 );
 
 CK_RV
-pkcs11h_freeSession (
-	IN const pkcs11h_session_t pkcs11h_session
+pkcs11h_freeCertificateSession (
+	IN const pkcs11h_certificate_t pkcs11h_certificate
 );
 
 CK_RV
 pkcs11h_sign (
-	IN const pkcs11h_session_t pkcs11h_session,
+	IN const pkcs11h_certificate_t pkcs11h_certificate,
 	IN const CK_MECHANISM_TYPE mech_type,
 	IN const unsigned char * const source,
 	IN const size_t source_size,
@@ -183,7 +201,7 @@ pkcs11h_sign (
 
 CK_RV
 pkcs11h_signRecover (
-	IN const pkcs11h_session_t pkcs11h_session,
+	IN const pkcs11h_certificate_t pkcs11h_certificate,
 	IN const CK_MECHANISM_TYPE mech_type,
 	IN const unsigned char * const source,
 	IN const size_t source_size,
@@ -193,7 +211,7 @@ pkcs11h_signRecover (
 
 CK_RV
 pkcs11h_decrypt (
-	IN const pkcs11h_session_t pkcs11h_session,
+	IN const pkcs11h_certificate_t pkcs11h_certificate,
 	IN const CK_MECHANISM_TYPE mech_type,
 	IN const unsigned char * const source,
 	IN const size_t source_size,
@@ -203,7 +221,7 @@ pkcs11h_decrypt (
 
 CK_RV
 pkcs11h_getCertificate (
-	IN const pkcs11h_session_t pkcs11h_session,
+	IN const pkcs11h_certificate_t pkcs11h_certificate,
 	OUT unsigned char * const certificate,
 	IN OUT size_t * const certificate_size
 );
@@ -214,9 +232,7 @@ pkcs11h_getMessage (
 );
 
 pkcs11h_openssl_session_t
-pkcs11h_openssl_createSession (
-	IN const bool fShouldPadSign
-);
+pkcs11h_openssl_createSession ();
 
 void
 pkcs11h_openssl_freeSession (
