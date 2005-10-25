@@ -43,12 +43,6 @@
 
 #ifdef PKCS11H_ENABLE_HELPER
 
-#if defined(WIN32)
-#include "cryptoki-win32.h"
-#else
-#include "cryptoki.h"
-#endif
-
 #include "error.h"
 #include "misc.h"
 #include "ssl.h"
@@ -61,6 +55,8 @@
 #define PKCS11_LOG_INFO		M_INFO
 #define PKCS11_LOG_WARN		M_WARN
 #define PKCS11_LOG_ERROR	M_FATAL
+
+#undef PKCS11_USE_CYGWIN
 
 #if !defined(false)
 #define false 0
@@ -80,6 +76,12 @@
 #define PKCS11_PRM_SLOT_ID	"--pkcs11-slot"
 #define PKCS11_PRM_OBJ_TYPE	"--pkcs11-id-type"
 #define PKCS11_PRM_OBJ_ID	"--pkcs11-id"
+
+#if defined(WIN32) || defined(PKCS11_USE_CYGWIN)
+#include "cryptoki-win32.h"
+#else
+#include "cryptoki.h"
+#endif
 
 #endif		/* PKCS11H_ENABLE_HELPER */
 #endif		/* __PKCS11_HELPER_CONFIG_H */

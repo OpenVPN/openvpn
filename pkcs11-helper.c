@@ -38,12 +38,6 @@
 
 #if defined(PKCS11H_ENABLE_HELPER)
 
-#if defined(WIN32)
-#include "cryptoki-win32.h"
-#else
-#include "cryptoki.h"
-#endif
-
 #include "pkcs11-helper.h"
 
 /*===========================================
@@ -1773,6 +1767,11 @@ pkcs11h_addProvider (
 ) {
 	pkcs11h_provider_t provider = NULL;
 	CK_C_GetFunctionList gfl = NULL;
+#if defined(WIN32)
+	int mypid = 0;
+#else
+	pid_t mypid = getpid ();
+#endif
 	CK_RV rv = CKR_OK;
 
 	PKCS11ASSERT (pkcs11h_data!=NULL);
@@ -1782,11 +1781,7 @@ pkcs11h_addProvider (
 	PKCS11DLOG (
 		PKCS11_LOG_DEBUG2,
 		"PKCS#11: pkcs11h_addProvider entry pid=%d, szProvider=%s, szSignMode=%s",
-#if defined(WIN32)
-		0,
-#else
-		getpid (),
-#endif		
+		mypid,
 		szProvider,
 		szSignMode
 	);
@@ -1896,15 +1891,16 @@ pkcs11h_addProvider (
 
 CK_RV
 pkcs11h_forkFixup () {
+#if defined(WIN32)
+	int mypid = 0;
+#else
+	pid_t mypid = getpid ();
+#endif
 
 	PKCS11DLOG (
 		PKCS11_LOG_DEBUG2,
 		"PKCS#11: pkcs11h_forkFixup entry pid=%d",
-#if defined(WIN32)
-		0
-#else
-		getpid ()
-#endif		
+		mypid
 	);
 
 	if (pkcs11h_data != NULL && pkcs11h_data->fInitialized) {
@@ -1940,7 +1936,7 @@ pkcs11h_createCertificateSession (
 	IN const int nPINCachePeriod,
 	OUT pkcs11h_certificate_t * const p_pkcs11h_certificate
 ) {
-	pkcs11h_certificate_t pkcs11h_certificate;
+	pkcs11h_certificate_t pkcs11h_certificate = NULL;
 	CK_RV rv = CKR_OK;
 
 	bool fOpSuccess = false;
@@ -2554,7 +2550,7 @@ _pkcs11h_openssl_sign (
 	int myrsa_size = 0;
 	
 	unsigned char *enc_alloc = NULL;
-	unsigned char *enc;
+	unsigned char *enc = NULL;
 	int enc_len = 0;
 
 	PKCS11ASSERT (m!=NULL);
