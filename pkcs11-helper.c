@@ -44,6 +44,12 @@
  * Constants
  */
 
+#if OPENSSL_VERSION_NUMBER < 0x00908000L
+typedef unsigned char *pkcs11_openssl_d2i_t;
+#else
+typedef const unsigned char *pkcs11_openssl_d2i_t;
+#endif
+
 #if OPENSSL_VERSION_NUMBER < 0x00907000L && defined(CRYPTO_LOCK_ENGINE)
 # define RSA_get_default_method RSA_get_default_openssl_method
 #else
@@ -182,6 +188,27 @@ int
 _pkcs11h_openssl_finish (
 	IN OUT RSA *rsa
 );
+#if OPENSSL_VERSION_NUMBER < 0x00907000L
+static
+int
+_pkcs11h_openssl_dec (
+	IN int flen,
+	IN unsigned char *from,
+	OUT unsigned char *to,
+	IN OUT RSA *rsa,
+	IN int padding
+);
+static
+int
+_pkcs11h_openssl_sign (
+	IN int type,
+	IN unsigned char *m,
+	IN unsigned int m_len,
+	OUT unsigned char *sigret,
+	OUT unsigned int *siglen,
+	IN OUT RSA *rsa
+);
+#else
 static
 int
 _pkcs11h_openssl_dec (
@@ -201,6 +228,7 @@ _pkcs11h_openssl_sign (
 	OUT unsigned int *siglen,
 	IN OUT const RSA *rsa
 );
+#endif
 static
 pkcs11h_openssl_session_t
 _pkcs11h_openssl_get_pkcs11h_openssl_session (
@@ -328,13 +356,13 @@ _isBetterCertificate (
 		x509New = X509_new ();
 
 		if (x509Current != NULL && x509New != NULL) {
-			const unsigned char *p1, *p2;
+			pkcs11_openssl_d2i_t d2i1, d2i2;
 
-			p1 = pCurrent;
-			p2 = pNew;
+			d2i1 = (pkcs11_openssl_d2i_t)pCurrent;
+			d2i2 = (pkcs11_openssl_d2i_t)pNew;
 			if (
-				d2i_X509 (&x509Current, (unsigned char **)&p1, nCurrentSize) &&
-				d2i_X509 (&x509New, (unsigned char **)&p2, nNewSize)
+				d2i_X509 (&x509Current, &d2i1, nCurrentSize) &&
+				d2i_X509 (&x509New, &d2i2, nNewSize)
 			) {
 				ASN1_TIME *notBeforeCurrent = X509_get_notBefore (x509Current);
 				ASN1_TIME *notBeforeNew = X509_get_notBefore (x509New);
@@ -1324,12 +1352,12 @@ _pkcs11h_setCertificateSession_Certificate (
 					if (!strcmp (szIdType, "subject")) {
 						X509 *x509 = NULL;
 						char szSubject[1024];
-						unsigned char *p;
+						pkcs11_openssl_d2i_t d2i1;
 	
 						x509 = X509_new ();
 	
-						p = attrs_value;
-						if (d2i_X509 (&x509, &p, attrs[1].ulValueLen)) {
+						d2i1 = (pkcs11_openssl_d2i_t)attrs_value;
+						if (d2i_X509 (&x509, &d2i1, attrs[1].ulValueLen)) {
 							X509_NAME_oneline (
 								X509_get_subject_name (x509),
 								szSubject,
@@ -2478,7 +2506,11 @@ _pkcs11h_openssl_get_pkcs11h_openssl_session (
 	pkcs11h_openssl_session_t session;
 		
 	PKCS11ASSERT (rsa!=NULL);
+#if OPENSSL_VERSION_NUMBER < 0x00907000L
+	session = (pkcs11h_openssl_session_t)RSA_get_app_data ((RSA *)rsa);
+#else
 	session = (pkcs11h_openssl_session_t)RSA_get_app_data (rsa);
+#endif
 	PKCS11ASSERT (session!=NULL);
 
 	return session;
@@ -2497,6 +2529,17 @@ _pkcs11h_openssl_get_pkcs11h_certificate (
 	return session->pkcs11h_certificate;
 }
 
+#if OPENSSL_VERSION_NUMBER < 0x00907000L
+static
+int
+_pkcs11h_openssl_dec (
+	IN int flen,
+	IN unsigned char *from,
+	OUT unsigned char *to,
+	IN OUT RSA *rsa,
+	IN int padding
+) {
+#else
 static
 int
 _pkcs11h_openssl_dec (
@@ -2506,6 +2549,7 @@ _pkcs11h_openssl_dec (
 	IN OUT RSA *rsa,
 	IN int padding
 ) {
+#endif
 	PKCS11ASSERT (from!=NULL);
 	PKCS11ASSERT (to!=NULL);
 	PKCS11ASSERT (rsa!=NULL);
@@ -2533,7 +2577,18 @@ _pkcs11h_openssl_dec (
 	return -1;
 }
 
-
+#if OPENSSL_VERSION_NUMBER < 0x00907000L
+static
+int
+_pkcs11h_openssl_sign (
+	IN int type,
+	IN unsigned char *m,
+	IN unsigned int m_len,
+	OUT unsigned char *sigret,
+	OUT unsigned int *siglen,
+	IN OUT RSA *rsa
+) {
+#else
 static
 int
 _pkcs11h_openssl_sign (
@@ -2544,6 +2599,7 @@ _pkcs11h_openssl_sign (
 	OUT unsigned int *siglen,
 	IN OUT const RSA *rsa
 ) {
+#endif
 	pkcs11h_certificate_t pkcs11h_certificate = _pkcs11h_openssl_get_pkcs11h_certificate (rsa);
 	CK_RV rv = CKR_OK;
 
@@ -2827,7 +2883,7 @@ pkcs11h_openssl_getRSA (
 
 	unsigned char certificate[10*1024];
 	size_t certificate_size;
-	unsigned char *p;
+	pkcs11_openssl_d2i_t d2i1 = NULL;
 	bool fOK = true;
 
 	PKCS11ASSERT (pkcs11h_openssl_session!=NULL);
@@ -2860,10 +2916,10 @@ pkcs11h_openssl_getRSA (
 		PKCS11LOG (PKCS11_LOG_WARN, "PKCS#11: Cannot read X.509 certificate from token %ld-'%s'", rv, pkcs11h_getMessage (rv));
 	}
 
-	p = certificate;
+	d2i1 = (pkcs11_openssl_d2i_t)certificate;
 	if (
 		fOK &&
-		!d2i_X509 (&x509, &p, certificate_size)
+		!d2i_X509 (&x509, &d2i1, certificate_size)
 	) {
 		fOK = false;
 		PKCS11LOG (PKCS11_LOG_WARN, "PKCS#11: Unable to parse X.509 certificate");
@@ -3380,10 +3436,8 @@ pkcs11h_standalone_dump_objects (
 									my_output (pData, "Cannot create x509 context\n");
 								}
 								else {
-									unsigned char *p;
-		
-									p = certificate;
-									if (d2i_X509 (&x509, &p, attrs_cert[0].ulValueLen)) {
+									pkcs11_openssl_d2i_t d2i1 = (pkcs11_openssl_d2i_t)certificate;
+									if (d2i_X509 (&x509, &d2i1, attrs_cert[0].ulValueLen)) {
 		
 										ASN1_TIME *notBefore = X509_get_notBefore (x509);
 										if (notBefore != NULL && notBefore->length < (int) sizeof (szNotBefore) - 1) {
