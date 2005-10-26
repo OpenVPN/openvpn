@@ -610,9 +610,9 @@ read_incoming_link (struct context *c)
    */
   int status;
 
-  perf_push (PERF_READ_IN_LINK);
+  /*ASSERT (!c->c2.to_tun.len);*/
 
-  ASSERT (!c->c2.to_tun.len);
+  perf_push (PERF_READ_IN_LINK);
 
   c->c2.buf = c->c2.buffers->read_link_buf;
   ASSERT (buf_init (&c->c2.buf, FRAME_HEADROOM_ADJ (&c->c2.frame, FRAME_HEADROOM_MARKER_READ_LINK)));
@@ -839,12 +839,12 @@ process_incoming_link (struct context *c)
 void
 read_incoming_tun (struct context *c)
 {
-  perf_push (PERF_READ_IN_TUN);
-
   /*
    * Setup for read() call on TUN/TAP device.
    */
-  ASSERT (!c->c2.to_link.len);
+  /*ASSERT (!c->c2.to_link.len);*/
+
+  perf_push (PERF_READ_IN_TUN);
 
   c->c2.buf = c->c2.buffers->read_tun_buf;
 #ifdef TUN_PASS_BUFFER
@@ -1091,13 +1091,14 @@ process_outgoing_tun (struct context *c)
 {
   struct gc_arena gc = gc_new ();
 
-  perf_push (PERF_PROC_OUT_TUN);
-
   /*
    * Set up for write() call to TUN/TAP
    * device.
    */
-  ASSERT (c->c2.to_tun.len > 0);
+  if (c->c2.to_tun.len <= 0)
+    return;
+
+  perf_push (PERF_PROC_OUT_TUN);
 
   /*
    * The --mssfix option requires

@@ -1728,7 +1728,8 @@ multi_process_incoming_link (struct multi_context *m, struct multi_instance *ins
   struct multi_instance *mi;
   bool ret = true;
 
-  ASSERT (!m->pending);
+  if (m->pending)
+    return true;
 
   if (!instance)
     {
@@ -1882,7 +1883,8 @@ multi_process_incoming_tun (struct multi_context *m, const unsigned int mpp_flag
       printf ("TUN -> TCP/UDP [%d]\n", BLEN (&m->top.c2.buf));
 #endif
 
-      ASSERT (!m->pending);
+      if (m->pending)
+	return true;
 
       /* 
        * Route an incoming tun/tap packet to

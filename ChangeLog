@@ -5,7 +5,12 @@ $Id$
 
 2005.10.xx -- Version 2.1-beta5
 
+* Fix attempt of assertion at multi.c:1586 (note that
+  this precise line number will vary across different
+  versions of OpenVPN).
 * More PKCS#11 additions/changes (Alon Bar-Lev).
+* Added ".PHONY: plugin" to Makefile.am to work around
+  "make dist" issue.
 * Fixed double fork issue that occurs when --management-hold
   is used.
 * Moved TUN/TAP read/write log messages from --verb 8 to 6.
