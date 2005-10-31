@@ -40,6 +40,10 @@
 
 #ifdef WIN32
 
+/* time constants for --ip-win32 adaptive */
+#define IPW32_SET_ADAPTIVE_DELAY_WINDOW 300
+#define IPW32_SET_ADAPTIVE_TRY_NETSH    20
+
 struct tuntap_options {
   /* --ip-win32 options */
   bool ip_win32_defined;
@@ -48,7 +52,8 @@ struct tuntap_options {
 # define IPW32_SET_NETSH        1  /* "--ip-win32 netsh" */
 # define IPW32_SET_IPAPI        2  /* "--ip-win32 ipapi" */
 # define IPW32_SET_DHCP_MASQ    3  /* "--ip-win32 dynamic" */
-# define IPW32_SET_N            4
+# define IPW32_SET_ADAPTIVE     4  /* "--ip-win32 adaptive" */
+# define IPW32_SET_N            5
   int ip_win32_type;
 
   /* --ip-win32 dynamic options */
@@ -155,6 +160,8 @@ struct tuntap
   /* Windows adapter index for TAP-Win32 adapter,
      ~0 if undefined */
   DWORD adapter_index;
+
+  int standby_iter;
 #else
   int fd;   /* file descriptor for TUN/TAP dev */
 #endif
@@ -318,11 +325,12 @@ void tun_show_debug (struct tuntap *tt);
 bool dhcp_release (const struct tuntap *tt);
 bool dhcp_renew (const struct tuntap *tt);
 
+void tun_standby_init (struct tuntap *tt);
+void tun_standby (struct tuntap *tt);
+
 int tun_read_queue (struct tuntap *tt, int maxsize);
 int tun_write_queue (struct tuntap *tt, struct buffer *buf);
 int tun_finalize (HANDLE h, struct overlapped_io *io, struct buffer *buf);
-
-const char *get_netsh_id (const char *dev_node, struct gc_arena *gc);
 
 static inline bool
 tuntap_stop (int status)
@@ -377,6 +385,16 @@ static inline bool
 tuntap_stop (int status)
 {
   return false;
+}
+
+static inline void
+tun_standby_init (struct tuntap *tt)
+{
+}
+
+static inline void
+tun_standby (struct tuntap *tt)
+{
 }
 
 #endif

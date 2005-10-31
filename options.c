@@ -612,7 +612,7 @@ init_options (struct options *o)
   o->tuntap_options.txqueuelen = 100;
 #endif
 #ifdef WIN32
-  o->tuntap_options.ip_win32_type = IPW32_SET_DHCP_MASQ;
+  o->tuntap_options.ip_win32_type = IPW32_SET_ADAPTIVE;
   o->tuntap_options.dhcp_lease_time = 31536000; /* one year */
   o->tuntap_options.dhcp_masq_offset = 0;       /* use network address as internal DHCP server address */
   o->route_method = ROUTE_METHOD_IPAPI;
@@ -1469,9 +1469,10 @@ options_postprocess (struct options *options, bool first_time)
 	  && !(pull || (options->ifconfig_local && options->ifconfig_remote_netmask)))
 	msg (M_USAGE, "On Windows, --ip-win32 doesn't make sense unless --ifconfig is also used");
 
-      if (options->tuntap_options.dhcp_options &&
-	  options->tuntap_options.ip_win32_type != IPW32_SET_DHCP_MASQ)
-	msg (M_USAGE, "--dhcp-options requires --ip-win32 dynamic");
+      if (options->tuntap_options.dhcp_options
+	  && options->tuntap_options.ip_win32_type != IPW32_SET_DHCP_MASQ
+	  && options->tuntap_options.ip_win32_type != IPW32_SET_ADAPTIVE)
+	msg (M_USAGE, "--dhcp-options requires --ip-win32 dynamic or adaptive");
 
       if ((dev == DEV_TYPE_TUN || dev == DEV_TYPE_TAP) && !options->route_delay_defined)
 	{
@@ -4279,6 +4280,9 @@ add_option (struct options *options,
 	       ipset2ascii_all (&gc));
 	  goto err;
 	}
+
+      if (index == IPW32_SET_ADAPTIVE)
+	options->route_delay_window = IPW32_SET_ADAPTIVE_DELAY_WINDOW;
 
       if (index == IPW32_SET_DHCP_MASQ)
 	{

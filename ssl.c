@@ -315,9 +315,7 @@ ssl_set_auth_nocache (void)
 void
 ssl_purge_auth (void)
 {
-#if 1 /* JYFIXME -- todo: bad private key should trigger a signal, then this code can be included */
   purge_user_pass (&passbuf, true);
-#endif
   purge_user_pass (&auth_user_pass, true);
 }
 

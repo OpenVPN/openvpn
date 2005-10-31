@@ -1372,3 +1372,33 @@ openvpn_sleep (const int n)
 #endif
   sleep (n);
 }
+
+/*
+ * Configure PATH.  On Windows, sometimes PATH is not set correctly
+ * by default.
+ */
+void
+configure_path (void)
+{
+#ifdef WIN32
+  FILE *fp;
+  fp = fopen ("c:\\windows\\system32\\route.exe", "rb");
+  if (fp)
+    {
+      const int bufsiz = 512;
+      struct gc_arena gc = gc_new ();
+      struct buffer oldpath = alloc_buf_gc (bufsiz, &gc);
+      struct buffer newpath = alloc_buf_gc (bufsiz, &gc);
+      DWORD status;
+      fclose (fp);
+      status = GetEnvironmentVariable ("PATH", BPTR(&oldpath), (DWORD)BCAP(&oldpath));
+      if (status > 0)
+	{
+	  buf_printf (&newpath, "C:\\WINDOWS;C:\\WINDOWS\\System32\\Wbem;%s", BSTR(&oldpath));
+	  SetEnvironmentVariable ("PATH", BSTR(&newpath));
+	  /*printf ("PATH: %s\n", BSTR(&newpath));*/
+	}
+      gc_free (&gc);
+    }
+#endif
+}

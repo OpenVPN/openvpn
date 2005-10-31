@@ -92,5 +92,5 @@ check_ping_send_dowork (struct context *c)
    * encrypt, sign, etc.
    */
   encrypt_sign (c, true);
-  dmsg (D_PACKET_CONTENT, "SENT PING");  
+  dmsg (D_PING, "SENT PING");
 } 

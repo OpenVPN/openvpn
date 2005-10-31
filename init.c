@@ -122,7 +122,7 @@ context_init_1 (struct context *c)
   }
 #endif
 
-#if 0 /* JYFIXME -- test get_user_pass with GET_USER_PASS_NEED_OK flag */
+#if 0 /* test get_user_pass with GET_USER_PASS_NEED_OK flag */
  {
    /*
     * In the management interface, you can okay the request by entering "needok token-insertion-request ok"
@@ -175,6 +175,8 @@ context_gc_free (struct context *c)
 bool
 init_static (void)
 {
+  configure_path ();
+
 #if defined(USE_CRYPTO) && defined(DMALLOC)
   openssl_dmalloc_init ();
 #endif
@@ -964,6 +966,8 @@ do_up (struct context *c, bool pulled_options, unsigned int option_types_found)
 	    {
 	      event_timeout_init (&c->c2.route_wakeup, c->options.route_delay, now);
 	      event_timeout_init (&c->c2.route_wakeup_expire, c->options.route_delay + c->options.route_delay_window, now);
+	      if (c->c1.tuntap)
+		tun_standby_init (c->c1.tuntap);
 	    }
 	  else
 	    {

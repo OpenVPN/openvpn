@@ -257,4 +257,6 @@ const char *safe_print (const char *str, struct gc_arena *gc);
  */
 void openvpn_sleep (const int n);
 
+void configure_path (void);
+
 #endif

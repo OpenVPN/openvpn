@@ -274,8 +274,12 @@ check_add_routes_dowork (struct context *c)
   else
     {
       msg (D_ROUTE, "Route: Waiting for TUN/TAP interface to come up...");
+      if (c->c1.tuntap)
+	tun_standby (c->c1.tuntap);
+      update_time ();
       if (c->c2.route_wakeup.n != 1)
 	event_timeout_init (&c->c2.route_wakeup, 1, now);
+      event_timeout_reset (&c->c2.ping_rec_interval);
     }
 }
 
@@ -773,7 +777,7 @@ process_incoming_link (struct context *c)
 #endif
 
 #ifdef PACKET_TRUNCATION_CHECK
-      /* if (c->c2.buf.len > 1) --c->c2.buf.len; JYFIXME */
+      /* if (c->c2.buf.len > 1) --c->c2.buf.len; */
       ipv4_packet_size_verify (BPTR (&c->c2.buf),
 			       BLEN (&c->c2.buf),
 			       TUNNEL_TYPE (c->c1.tuntap),
@@ -807,7 +811,7 @@ process_incoming_link (struct context *c)
       /* Did we just receive an openvpn ping packet? */
       if (is_ping_msg (&c->c2.buf))
 	{
-	  dmsg (D_PACKET_CONTENT, "RECEIVED PING PACKET");
+	  dmsg (D_PING, "RECEIVED PING PACKET");
 	  c->c2.buf.len = 0; /* drop packet */
 	}
 
@@ -911,7 +915,7 @@ process_incoming_tun (struct context *c)
       process_ipv4_header (c, PIPV4_PASSTOS|PIPV4_MSSFIX, &c->c2.buf);
 
 #ifdef PACKET_TRUNCATION_CHECK
-      /* if (c->c2.buf.len > 1) --c->c2.buf.len; JYFIXME */
+      /* if (c->c2.buf.len > 1) --c->c2.buf.len; */
       ipv4_packet_size_verify (BPTR (&c->c2.buf),
 			       BLEN (&c->c2.buf),
 			       TUNNEL_TYPE (c->c1.tuntap),

@@ -47,6 +47,22 @@
 
 #include "memdbg.h"
 
+#ifdef WIN32
+
+#define NI_TEST_FIRST  (1<<0)
+#define NI_IP_NETMASK  (1<<1)
+#define NI_OPTIONS     (1<<2)
+
+static void netsh_ifconfig (const struct tuntap_options *to,
+			    const char *flex_name,
+			    const in_addr_t ip,
+			    const in_addr_t netmask,
+			    unsigned int flags);
+
+static const char *netsh_get_id (const char *dev_node, struct gc_arena *gc);
+
+#endif
+
 #ifdef TARGET_SOLARIS
 static void solaris_error_close (struct tuntap *tt, const struct env_set *es, const char *actual);
 #endif
@@ -125,7 +141,7 @@ guess_tuntap_dev (const char *dev,
   const int dt = dev_type_enum (dev, dev_type);
   if (dt == DEV_TYPE_TUN || dt == DEV_TYPE_TAP)
     {
-      return get_netsh_id (dev_node, gc);
+      return netsh_get_id (dev_node, gc);
     }
 #endif
 
@@ -768,8 +784,6 @@ do_ifconfig (struct tuntap *tt,
 
 #elif defined (WIN32)
       {
-	const char *netmask;
-
 	/*
 	 * Make sure that both ifconfig addresses are part of the
 	 * same .252 subnet.
@@ -778,36 +792,30 @@ do_ifconfig (struct tuntap *tt,
 	  {
 	    verify_255_255_255_252 (tt->local, tt->remote_netmask);
 	    tt->adapter_netmask = ~3;
-	    netmask = print_in_addr_t (tt->adapter_netmask, 0, &gc);
 	  }
 	else
 	  {
-	    netmask = ifconfig_remote_netmask;
 	    tt->adapter_netmask = tt->remote_netmask;
 	  }
 
-	/* example: netsh interface ip set address my-tap static 10.3.0.1 255.255.255.0 */
-	openvpn_snprintf (command_line, sizeof (command_line),
-			  "netsh interface ip set address \"%s\" static %s %s",
-			  actual,
-			  ifconfig_local,
-			  netmask);
-	
 	switch (tt->options.ip_win32_type)
 	  {
 	  case IPW32_SET_MANUAL:
 	    msg (M_INFO, "******** NOTE:  Please manually set the IP/netmask of '%s' to %s/%s (if it is not already set)",
 		 actual,
 		 ifconfig_local,
-		 netmask);
+		 print_in_addr_t (tt->adapter_netmask, 0, &gc));
 	    break;
 	  case IPW32_SET_NETSH:
 	    if (!strcmp (actual, "NULL"))
 	      msg (M_FATAL, "Error: When using --ip-win32 netsh, if you have more than one TAP-Win32 adapter, you must also specify --dev-node");
-	    netcmd_semaphore_lock ();
-	    msg (M_INFO, "%s", command_line);
-	    system_check (command_line, es, S_FATAL, "ERROR: netsh command failed");
-	    netcmd_semaphore_release ();
+
+	    netsh_ifconfig (&tt->options,
+			    actual,
+			    tt->local,
+			    tt->adapter_netmask,
+			    NI_IP_NETMASK|NI_OPTIONS);
+
 	    break;
 	  }
 	tt->did_ifconfig = true;
@@ -2262,7 +2270,7 @@ get_unspecified_device_guid (const int device_number,
       if (act)
 	buf_printf (&actual, "%s", act);
       else
-	buf_printf (&actual, "NULL");
+	buf_printf (&actual, "%s", tap_reg->guid);
     }
 
   /* Save GUID for return value */
@@ -2305,7 +2313,7 @@ get_device_guid (const char *name,
       if (act)
 	buf_printf (&actual, "%s", act);
       else
-	buf_printf (&actual, "NULL");
+	buf_printf (&actual, "%s", name);
       return BSTR (&ret);
     }
 
@@ -2321,39 +2329,6 @@ get_device_guid (const char *name,
   }
 
   return NULL;
-}
-
-/*
- * Return a TAP name for netsh commands.
- */
-const char *
-get_netsh_id (const char *dev_node, struct gc_arena *gc)
-{
-  const struct tap_reg *tap_reg = get_tap_reg (gc);
-  const struct panel_reg *panel_reg = get_panel_reg (gc);
-  struct buffer actual = alloc_buf_gc (256, gc);
-  const char *guid;
-
-  at_least_one_tap_win32 (tap_reg);
-
-  if (dev_node)
-    {
-      guid = get_device_guid (dev_node, BPTR (&actual), BCAP (&actual), tap_reg, panel_reg, gc);
-    }
-  else
-    {
-      guid = get_unspecified_device_guid (0, BPTR (&actual), BCAP (&actual), tap_reg, panel_reg, gc);
-
-      if (get_unspecified_device_guid (1, NULL, 0, tap_reg, panel_reg, gc)) /* ambiguous if more than one TAP-Win32 adapter */
-	guid = NULL;
-    }
-
-  if (!guid)
-    return "NULL";         /* not found */
-  else if (strcmp (BPTR (&actual), "NULL"))
-    return BPTR (&actual); /* control panel name */
-  else
-    return guid;           /* no control panel name, return GUID instead */
 }
 
 /*
@@ -2394,22 +2369,25 @@ get_per_adapter_info (const DWORD index, struct gc_arena *gc)
   IP_PER_ADAPTER_INFO *pi = NULL;
   DWORD status;
 
-  if ((status = GetPerAdapterInfo (index, NULL, &size)) != ERROR_BUFFER_OVERFLOW)
+  if (index != ~0)
     {
-      msg (M_INFO, "GetPerAdapterInfo #1 failed (status=%u) : %s",
-	   (unsigned int)status,
-	   strerror_win32 (status, gc));
-    }
-  else
-    {
-      pi = (PIP_PER_ADAPTER_INFO) gc_malloc (size, false, gc);
-      if ((status = GetPerAdapterInfo ((ULONG)index, pi, &size)) == ERROR_SUCCESS)
-	return pi;
-      else
+      if ((status = GetPerAdapterInfo (index, NULL, &size)) != ERROR_BUFFER_OVERFLOW)
 	{
-	  msg (M_INFO, "GetPerAdapterInfo #2 failed (status=%u) : %s",
+	  msg (M_INFO, "GetPerAdapterInfo #1 failed (status=%u) : %s",
 	       (unsigned int)status,
 	       strerror_win32 (status, gc));
+	}
+      else
+	{
+	  pi = (PIP_PER_ADAPTER_INFO) gc_malloc (size, false, gc);
+	  if ((status = GetPerAdapterInfo ((ULONG)index, pi, &size)) == ERROR_SUCCESS)
+	    return pi;
+	  else
+	    {
+	      msg (M_INFO, "GetPerAdapterInfo #2 failed (status=%u) : %s",
+		   (unsigned int)status,
+		   strerror_win32 (status, gc));
+	    }
 	}
     }
   return pi;
@@ -2547,6 +2525,20 @@ get_adapter_ip_netmask (const IP_ADAPTER_INFO *ai, const int n, in_addr_t *ip, i
   return ret;
 }
 
+static bool
+test_adapter_ip_netmask (const IP_ADAPTER_INFO *ai, const in_addr_t ip, const in_addr_t netmask)
+{
+  if (ai)
+    {
+      in_addr_t ip_adapter = 0;
+      in_addr_t netmask_adapter = 0;
+      const bool status = get_adapter_ip_netmask (ai, 0, &ip_adapter, &netmask_adapter);
+      return (status && ip_adapter == ip && netmask_adapter == netmask);
+    }
+  else
+    return false;
+}
+
 const IP_ADAPTER_INFO *
 get_tun_adapter (const struct tuntap *tt, const IP_ADAPTER_INFO *list)
 {
@@ -2675,16 +2667,28 @@ adapter_index_of_ip (const IP_ADAPTER_INFO *list, const in_addr_t ip, int *count
  * Given an adapter index, return true if the adapter
  * is DHCP disabled.
  */
-static bool
-dhcp_disabled (DWORD index)
+
+#define DHCP_STATUS_UNDEF     0
+#define DHCP_STATUS_ENABLED   1
+#define DHCP_STATUS_DISABLED  2
+
+static int
+dhcp_status (DWORD index)
 {
   struct gc_arena gc = gc_new ();
-  const IP_ADAPTER_INFO *ai = get_adapter_info (index, &gc);
-  bool ret = false;
+  int ret = DHCP_STATUS_UNDEF;
+  if (index != ~0)
+    {
+      const IP_ADAPTER_INFO *ai = get_adapter_info (index, &gc);
 
-  if (ai && !ai->DhcpEnabled)
-    ret = true;
-
+      if (ai)
+	{
+	  if (ai->DhcpEnabled)
+	    ret = DHCP_STATUS_ENABLED;
+	  else
+	    ret = DHCP_STATUS_DISABLED;
+	}
+    }
   gc_free (&gc);
   return ret;
 }
@@ -2733,28 +2737,75 @@ delete_temp_addresses (DWORD index)
  * Get interface index for use with IP Helper API functions.
  */
 static DWORD
-get_interface_index (const char *guid)
+get_adapter_index_method_1 (const char *guid)
 {
   struct gc_arena gc = gc_new ();
-  ULONG index;
+  ULONG index = ~0;
   DWORD status;
   wchar_t wbuf[256];
   snwprintf (wbuf, SIZE (wbuf), L"\\DEVICE\\TCPIP_%S", guid);
   wbuf [SIZE(wbuf) - 1] = 0;
   if ((status = GetAdapterIndex (wbuf, &index)) != NO_ERROR)
+    index = ~0;
+  gc_free (&gc);
+  return index;
+}
+
+static DWORD
+get_adapter_index_method_2 (const char *guid)
+{
+  struct gc_arena gc = gc_new ();
+  DWORD index = ~0;
+
+  const IP_ADAPTER_INFO *list = get_adapter_info_list (&gc);
+
+  while (list)
     {
-      msg (M_INFO, "NOTE: could not get adapter index for %S, status=%u : %s",
-	   wbuf,
-	   (unsigned int)status,
-	   strerror_win32 (status, &gc));
-      gc_free (&gc);
-      return (DWORD)~0;
+      if (!strcmp (guid, list->AdapterName))
+	{
+	  index = list->Index;
+	  break;
+	}
+      list = list->Next;
     }
-  else
+
+  gc_free (&gc);
+  return index;
+}
+
+static DWORD
+get_adapter_index (const char *guid)
+{
+  DWORD index;
+  index = get_adapter_index_method_1 (guid);
+  if (index == ~0)
+    index = get_adapter_index_method_2 (guid);
+  if (index == ~0)
+    msg (M_INFO, "NOTE: could not get adapter index for %s", guid);
+  return index;
+}
+
+static DWORD
+get_adapter_index_flexible (const char *name) /* actual name or GUID */
+{
+  struct gc_arena gc = gc_new ();
+  DWORD index;
+  index = get_adapter_index_method_1 (name);
+  if (index == ~0)
+    index = get_adapter_index_method_2 (name);
+  if (index == ~0)
     {
-      gc_free (&gc);
-      return index;
+      const struct tap_reg *tap_reg = get_tap_reg (&gc);
+      const struct panel_reg *panel_reg = get_panel_reg (&gc);
+      const char *guid = name_to_guid (name, tap_reg, panel_reg);
+      index = get_adapter_index_method_1 (guid);
+      if (index == ~0)
+	index = get_adapter_index_method_2 (guid);
     }
+  if (index == ~0)
+    msg (M_INFO, "NOTE: could not get adapter index for name/GUID '%s'", name);
+  gc_free (&gc);
+  return index;
 }
 
 /*
@@ -2869,7 +2920,7 @@ tap_allow_nonadmin_access (const char *dev_node)
   const struct panel_reg *panel_reg = get_panel_reg (&gc);
   const char *device_guid = NULL;
   HANDLE hand;
-  char guid_buffer[256];
+  char actual_buffer[256];
   char device_path[256];
 
   at_least_one_tap_win32 (tap_reg);
@@ -2877,7 +2928,7 @@ tap_allow_nonadmin_access (const char *dev_node)
   if (dev_node)
     {
       /* Get the device GUID for the device specified with --dev-node. */
-      device_guid = get_device_guid (dev_node, guid_buffer, sizeof (guid_buffer), tap_reg, panel_reg, &gc);
+      device_guid = get_device_guid (dev_node, actual_buffer, sizeof (actual_buffer), tap_reg, panel_reg, &gc);
 
       if (!device_guid)
 	msg (M_FATAL, "TAP-Win32 adapter '%s' not found", dev_node);
@@ -2912,8 +2963,8 @@ tap_allow_nonadmin_access (const char *dev_node)
       while (true)
 	{
 	  device_guid = get_unspecified_device_guid (device_number, 
-						     guid_buffer, 
-						     sizeof (guid_buffer),
+						     actual_buffer, 
+						     sizeof (actual_buffer),
 						     tap_reg,
 						     panel_reg,
 						     &gc);
@@ -3008,6 +3059,149 @@ dhcp_renew (const struct tuntap *tt)
 }
 
 /*
+ * netsh functions
+ */
+
+static void
+netsh_command (const char *cmd, int n)
+{
+  int i;
+  for (i = 0; i < n; ++i)
+    {
+      bool status;
+      netcmd_semaphore_lock ();
+      msg (M_INFO, "NETSH: %s", cmd);
+      status = system_check (cmd, NULL, 0, "ERROR: netsh command failed");
+      netcmd_semaphore_release ();
+      if (status)
+	return;
+      openvpn_sleep (5);
+    }
+  msg (M_FATAL, "NETSH: command failed");
+}
+
+static void
+netsh_ifconfig (const struct tuntap_options *to,
+		const char *flex_name,
+		const in_addr_t ip,
+		const in_addr_t netmask,
+		unsigned int flags)
+{
+  struct gc_arena gc = gc_new ();
+  struct buffer out = alloc_buf_gc (256, &gc);
+  const IP_ADAPTER_INFO *ai = NULL;
+  const IP_PER_ADAPTER_INFO *pai = NULL;
+
+  if (flags & NI_TEST_FIRST)
+    {
+      const IP_ADAPTER_INFO *list = get_adapter_info_list (&gc);
+      const int index = get_adapter_index_flexible (flex_name);
+      ai = get_adapter (list, index);
+      pai = get_per_adapter_info (index, &gc);
+    }
+
+  if (flags & NI_IP_NETMASK)
+    {
+      if (test_adapter_ip_netmask (ai, ip, netmask))
+	{
+	  msg (M_INFO, "NETSH: \"%s\" %s/%s [already set]",
+	       flex_name,
+	       print_in_addr_t (ip, 0, &gc),
+	       print_in_addr_t (netmask, 0, &gc));
+	}
+      else
+	{
+	  /* example: netsh interface ip set address my-tap static 10.3.0.1 255.255.255.0 */
+	  buf_init (&out, 0);
+	  buf_printf (&out,
+		      "netsh interface ip set address \"%s\" static %s %s",
+		      flex_name,
+		      print_in_addr_t (ip, 0, &gc),
+		      print_in_addr_t (netmask, 0, &gc));
+
+	  netsh_command (BSTR(&out), 4);
+	}
+    }
+
+  gc_free (&gc);
+}
+
+static void
+netsh_enable_dhcp (const struct tuntap_options *to,
+		   const char *actual_name)
+{
+  struct gc_arena gc = gc_new ();
+  struct buffer out = alloc_buf_gc (256, &gc);
+
+  /* example: netsh interface ip set address my-tap dhcp */
+  buf_printf (&out,
+	      "netsh interface ip set address \"%s\" dhcp",
+	      actual_name);
+
+  netsh_command (BSTR(&out), 4);
+
+  gc_free (&gc);
+}
+
+/*
+ * Return a TAP name for netsh commands.
+ */
+static const char *
+netsh_get_id (const char *dev_node, struct gc_arena *gc)
+{
+  const struct tap_reg *tap_reg = get_tap_reg (gc);
+  const struct panel_reg *panel_reg = get_panel_reg (gc);
+  struct buffer actual = alloc_buf_gc (256, gc);
+  const char *guid;
+
+  at_least_one_tap_win32 (tap_reg);
+
+  if (dev_node)
+    {
+      guid = get_device_guid (dev_node, BPTR (&actual), BCAP (&actual), tap_reg, panel_reg, gc);
+    }
+  else
+    {
+      guid = get_unspecified_device_guid (0, BPTR (&actual), BCAP (&actual), tap_reg, panel_reg, gc);
+
+      if (get_unspecified_device_guid (1, NULL, 0, tap_reg, panel_reg, gc)) /* ambiguous if more than one TAP-Win32 adapter */
+	guid = NULL;
+    }
+
+  if (!guid)
+    return "NULL";         /* not found */
+  else if (strcmp (BPTR (&actual), "NULL"))
+    return BPTR (&actual); /* control panel name */
+  else
+    return guid;           /* no control panel name, return GUID instead */
+}
+
+/*
+ * Called iteratively on TAP-Win32 wait-for-initialization polling loop
+ */
+void
+tun_standby_init (struct tuntap *tt)
+{
+  tt->standby_iter = 0;
+}
+
+void
+tun_standby (struct tuntap *tt)
+{
+  ++tt->standby_iter;
+  if (tt->options.ip_win32_type == IPW32_SET_ADAPTIVE
+      && tt->standby_iter % IPW32_SET_ADAPTIVE_TRY_NETSH == 0)
+    {
+      msg (M_INFO, "NOTE: --ip-win32 dynamic failed, now trying --ip-win32 netsh (this may take some time)");
+      netsh_ifconfig (&tt->options,
+		      tt->actual_name,
+		      tt->local,
+		      tt->adapter_netmask,
+		      NI_TEST_FIRST|NI_IP_NETMASK|NI_OPTIONS);
+    }
+}
+
+/*
  * Convert DHCP options from the command line / config file
  * into a raw DHCP-format options string.
  */
@@ -3091,6 +3285,8 @@ open_tun (const char *dev, const char *dev_type, const char *dev_node, bool ipv6
   char device_path[256];
   const char *device_guid = NULL;
   DWORD len;
+  bool dhcp_masq = false;
+  bool dhcp_masq_post = false;
 
   /*netcmd_semaphore_lock ();*/
 
@@ -3117,14 +3313,14 @@ open_tun (const char *dev, const char *dev_type, const char *dev_node, bool ipv6
   {
     const struct tap_reg *tap_reg = get_tap_reg (&gc);
     const struct panel_reg *panel_reg = get_panel_reg (&gc);
-    char guid_buffer[256];
+    char actual_buffer[256];
 
     at_least_one_tap_win32 (tap_reg);
 
     if (dev_node)
       {
         /* Get the device GUID for the device specified with --dev-node. */
-        device_guid = get_device_guid (dev_node, guid_buffer, sizeof (guid_buffer), tap_reg, panel_reg, &gc);
+        device_guid = get_device_guid (dev_node, actual_buffer, sizeof (actual_buffer), tap_reg, panel_reg, &gc);
 
 	if (!device_guid)
 	  msg (M_FATAL, "TAP-Win32 adapter '%s' not found", dev_node);
@@ -3156,8 +3352,8 @@ open_tun (const char *dev, const char *dev_type, const char *dev_node, bool ipv6
         while (true)
           {
             device_guid = get_unspecified_device_guid (device_number, 
-						       guid_buffer, 
-						       sizeof (guid_buffer),
+						       actual_buffer, 
+						       sizeof (actual_buffer),
 						       tap_reg,
 						       panel_reg,
 						       &gc);
@@ -3192,10 +3388,11 @@ open_tun (const char *dev, const char *dev_type, const char *dev_node, bool ipv6
 
     /* translate high-level device name into a device instance
        GUID using the registry */
-    tt->actual_name = string_alloc (guid_buffer, NULL);
+    tt->actual_name = string_alloc (actual_buffer, NULL);
   }
 
   msg (M_INFO, "TAP-WIN32 device [%s] opened: %s", tt->actual_name, device_path);
+  tt->adapter_index = get_adapter_index (device_guid);
 
   /* get driver version info */
   {
@@ -3229,6 +3426,42 @@ open_tun (const char *dev, const char *dev_type, const char *dev_node, bool ipv6
 	msg (D_MTU_INFO, "TAP-Win32 MTU=%d", (int) mtu);
       }
   }
+
+  /*
+   * Preliminaries for setting TAP-Win32 adapter TCP/IP
+   * properties via --ip-win32 dynamic or --ip-win32 adaptive.
+   */
+  if (tt->did_ifconfig_setup)
+    {
+      if (tt->options.ip_win32_type == IPW32_SET_DHCP_MASQ)
+	{
+	  /*
+	   * If adapter is set to non-DHCP, set to DHCP mode.
+	   */
+	  if (dhcp_status (tt->adapter_index) == DHCP_STATUS_DISABLED)
+	    netsh_enable_dhcp (&tt->options, tt->actual_name);
+	  dhcp_masq = true;
+	  dhcp_masq_post = true;
+	}
+      else if (tt->options.ip_win32_type == IPW32_SET_ADAPTIVE)
+	{
+	  /*
+	   * If adapter is set to non-DHCP, use netsh right away.
+	   */
+	  if (dhcp_status (tt->adapter_index) != DHCP_STATUS_ENABLED)
+	    {
+	      netsh_ifconfig (&tt->options,
+			      tt->actual_name,
+			      tt->local,
+			      tt->adapter_netmask,
+			      NI_TEST_FIRST|NI_IP_NETMASK|NI_OPTIONS);
+	    }
+	  else
+	    {
+	      dhcp_masq = true;
+	    }
+	}
+    }
 
   /* set point-to-point mode if TUN device */
 
@@ -3273,7 +3506,7 @@ open_tun (const char *dev, const char *dev_type, const char *dev_node, bool ipv6
 
   /* should we tell the TAP-Win32 driver to masquerade as a DHCP server as a means
      of setting the adapter address? */
-  if (tt->did_ifconfig_setup && tt->options.ip_win32_type == IPW32_SET_DHCP_MASQ)
+  if (dhcp_masq)
     {
       uint32_t ep[4];
 
@@ -3320,6 +3553,7 @@ open_tun (const char *dev, const char *dev_type, const char *dev_node, bool ipv6
 
       ASSERT (ep[3] > 0);
 
+#if 1 /* TAP_IOCTL_CONFIG_DHCP_MASQ -- disable to simulate bad DHCP negotiation */
       if (!DeviceIoControl (tt->hand, TAP_IOCTL_CONFIG_DHCP_MASQ,
 			    ep, sizeof (ep),
 			    ep, sizeof (ep), &len, NULL))
@@ -3332,6 +3566,7 @@ open_tun (const char *dev, const char *dev_type, const char *dev_node, bool ipv6
 	   print_in_addr_t (ep[2], IA_NET_ORDER, &gc),
 	   ep[3]
 	   );
+#endif
 
       /* user-supplied DHCP options capability */
       if (tt->options.dhcp_options)
@@ -3368,8 +3603,7 @@ open_tun (const char *dev, const char *dev_type, const char *dev_node, bool ipv6
 
   /* possibly use IP Helper API to set IP address on adapter */
   {
-    DWORD index = get_interface_index (device_guid);
-    tt->adapter_index = index;
+    const DWORD index = tt->adapter_index;
     
     /* flush arp cache */
     if (index != (DWORD)~0)
@@ -3393,10 +3627,10 @@ open_tun (const char *dev, const char *dev_type, const char *dev_node, bool ipv6
      * make sure the TCP/IP properties for the adapter are
      * set correctly.
      */
-    if (tt->did_ifconfig_setup && tt->options.ip_win32_type == IPW32_SET_DHCP_MASQ)
+    if (dhcp_masq_post)
       {
 	/* check dhcp enable status */
-	if (dhcp_disabled (index))
+	if (dhcp_status (index) == DHCP_STATUS_DISABLED)
 	  msg (M_WARN, "WARNING: You have selected '--ip-win32 dynamic', which will not work unless the TAP-Win32 TCP/IP properties are set to 'Obtain an IP address automatically'");
 
 	/* force an explicit DHCP lease renewal on TAP adapter? */
@@ -3420,7 +3654,7 @@ open_tun (const char *dev, const char *dev_type, const char *dev_node, bool ipv6
 	  }
 
 	/* check dhcp enable status */
-	if (dhcp_disabled (index))
+	if (dhcp_status (index) == DHCP_STATUS_DISABLED)
 	  msg (M_WARN, "NOTE: You have selected (explicitly or by default) '--ip-win32 ipapi', which has a better chance of working correctly if the TAP-Win32 TCP/IP properties are set to 'Obtain an IP address automatically'");
 
 	/* delete previously added IP addresses which were not
@@ -3556,7 +3790,8 @@ static const struct ipset_names ipset_names[] = {
   {"manual"},
   {"netsh"},
   {"ipapi"},
-  {"dynamic"}
+  {"dynamic"},
+  {"adaptive"}
 };
 
 int
