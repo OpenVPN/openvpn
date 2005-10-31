@@ -18,7 +18,7 @@ $Id$
   push a maliciously crafted options string to the client,
   and (c) the client indicates its willingness to accept
   pushed options from the server by having "pull" or
-  "client" in its configuration file.
+  "client" in its configuration file (Credit: Vade79).
 * Security fix (merged from 2.0.3) -- Potential DoS vulnerability
   on the server in TCP mode.  If the TCP server accept() call
   returns an error status, the resulting exception handler
