@@ -2682,7 +2682,7 @@ inherit_context_child (struct context *dest,
 #endif
 
   /* context init */
-  init_instance (dest, src->c2.es, CC_USR1_TO_HUP | CC_GC_FREE);
+  init_instance (dest, src->c2.es, CC_NO_CLOSE | CC_USR1_TO_HUP);
   if (IS_SIG (dest))
     return;
 
@@ -2756,6 +2756,9 @@ inherit_context_top (struct context *dest,
 void
 close_context (struct context *c, int sig, unsigned int flags)
 {
+  ASSERT (c);
+  ASSERT (c->sig);
+
   if (sig >= 0)
     c->sig->signal_received = sig;
 
@@ -2766,7 +2769,8 @@ close_context (struct context *c, int sig, unsigned int flags)
 	c->sig->signal_received = SIGHUP;
     }
 
-  close_instance (c);
+  if (!(flags & CC_NO_CLOSE))
+    close_instance (c);
 
   if (flags & CC_GC_FREE)
     context_gc_free (c);

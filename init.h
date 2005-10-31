@@ -94,6 +94,8 @@ void inherit_context_top (struct context *dest,
 #define CC_GC_FREE          (1<<0)
 #define CC_USR1_TO_HUP      (1<<1)
 #define CC_HARD_USR1_TO_HUP (1<<2)
+#define CC_NO_CLOSE         (1<<3)
+
 void close_context (struct context *c, int sig, unsigned int flags);
 
 struct context_buffers *init_context_buffers (const struct frame *frame);

@@ -577,10 +577,10 @@ multi_create_instance (struct multi_context *m, const struct mroute_addr *real)
       generate_prefix (mi);
     }
 
+  mi->did_open_context = true;
   inherit_context_child (&mi->context, &m->top);
   if (IS_SIG (&mi->context))
     goto err;
-  mi->did_open_context = true;
 
   mi->context.c2.context_auth = CAS_PENDING;
 

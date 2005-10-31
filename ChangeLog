@@ -5,6 +5,25 @@ $Id$
 
 2005.10.xx -- Version 2.1-beta5
 
+* Security fix -- Affects non-Windows OpenVPN clients of
+  version 2.0 or higher which connect to a malicious or
+  compromised server.  A format string vulnerability
+  in the foreign_option function in options.c could
+  potentially allow a malicious or compromised server
+  to execute arbitrary code on the client.  Only
+  non-Windows clients are affected.  The vulnerability
+  only exists if (a) the client's TLS negotiation with
+  the server succeeds, (b) the server is malicious or
+  has been compromised such that it is configured to
+  push a maliciously crafted options string to the client,
+  and (c) the client indicates its willingness to accept
+  pushed options from the server by having "pull" or
+  "client" in its configuration file.
+* Security fix -- Potential DoS vulnerability on the
+  server in TCP mode.  If the TCP server accept() call
+  returns an error status, the resulting exception handler
+  may attempt to indirect through a NULL pointer, causing
+  a segfault.  Affects all OpenVPN 2.0 versions.
 * Fix attempt of assertion at multi.c:1586 (note that
   this precise line number will vary across different
   versions of OpenVPN).

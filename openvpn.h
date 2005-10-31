@@ -398,10 +398,11 @@ struct context_2
   in_addr_t push_ifconfig_remote_netmask;
 
   /* client authentication state */
-# define CAS_SUCCEEDED 0
-# define CAS_PENDING   1
-# define CAS_FAILED    2
-# define CAS_PARTIAL   3 /* at least one client-connect script/plugin
+# define CAS_UNDEF     0
+# define CAS_SUCCEEDED 1
+# define CAS_PENDING   2
+# define CAS_FAILED    3
+# define CAS_PARTIAL   4 /* at least one client-connect script/plugin
 			    succeeded while a later one in the chain failed */
   int context_auth;
 #endif
