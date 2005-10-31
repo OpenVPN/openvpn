@@ -264,7 +264,10 @@ typedef unsigned long in_addr_t;
 #define USE_LZO 1
 
 /* LZO version number */
-#define LZO_VERSION_NUM "1"
+#define LZO_VERSION_NUM "2"
+
+/* Use lzo/ directory prefix for LZO header files (for LZO 2.0) */
+#define LZO_HEADER_DIR 1
 
 /* Use OpenSSL SSL library */
 #define USE_SSL 1

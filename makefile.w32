@@ -35,8 +35,8 @@
 # Change these to point to your OpenSSL, LZO, and
 # (optionally) dmalloc top-level directories.
 
-OPENSSL = /c/src/openssl-0.9.7g
-LZO = /c/src/lzo-1.08
+OPENSSL = /c/src/openssl-0.9.7i
+LZO = /c/src/lzo-2.02
 DMALLOC = /c/src/dmalloc-5.4.2
 
 #########################################################
@@ -49,7 +49,7 @@ INCLUDE_DIRS = -I${OPENSSL}/include -I${LZO}/include
 
 INCLUDE_DIRS_DMALLOC = ${INCLUDE_DIRS} -I${DMALLOC}
 
-LIBS = -llzo -lcrypt32 -lws2_32 -lgdi32 -liphlpapi -lwinmm
+LIBS = -llzo2 -lcrypt32 -lws2_32 -lgdi32 -liphlpapi -lwinmm
 
 LIBS_DMALLOC = ${LIBS} -ldmalloc
 
