@@ -2474,7 +2474,7 @@ init_instance (struct context *c, const struct env_set *env, const unsigned int 
     else if (child)
       crypto_flags = CF_INIT_TLS_MULTI;
     do_init_crypto (c, crypto_flags);
-    if (IS_SIG (c))
+    if (IS_SIG (c) && !child)
       goto sig;
   }
 

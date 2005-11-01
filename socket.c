@@ -1115,8 +1115,15 @@ link_socket_init_phase2 (struct link_socket *sock,
   struct gc_arena gc = gc_new ();
   const char *remote_dynamic = NULL;
   bool remote_changed = false;
+  int sig_save = 0;
 
   ASSERT (sock);
+
+  if (signal_received && *signal_received)
+    {
+      sig_save = *signal_received;
+      *signal_received = 0;
+    }
 
   /* initialize buffers */
   socket_frame_init (frame, sock);
@@ -1321,6 +1328,11 @@ link_socket_init_phase2 (struct link_socket *sock,
 				    &gc));
 
  done:
+  if (sig_save && signal_received)
+    {
+      if (!*signal_received)
+	*signal_received = sig_save;
+    }
   gc_free (&gc);
 }
 

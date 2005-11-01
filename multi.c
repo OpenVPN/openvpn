@@ -413,7 +413,8 @@ static void
 multi_client_disconnect_script (struct multi_context *m,
 				struct multi_instance *mi)
 {
-  if (mi->context.c2.context_auth == CAS_SUCCEEDED || mi->context.c2.context_auth == CAS_PARTIAL)
+  if ((mi->context.c2.context_auth == CAS_SUCCEEDED && mi->connection_established_flag)
+      || mi->context.c2.context_auth == CAS_PARTIAL)
     {
       multi_client_disconnect_setenv (m, mi);
 
