@@ -53,7 +53,8 @@ SSL_CTX_use_pkcs11 (
 	const char * const pkcs11_slot,
 	const char * const pkcs11_id_type,
 	const char * const pkcs11_id,
-	const bool pkcs11_protected_authentication
+	const bool pkcs11_protected_authentication,
+	const bool pkcs11_cert_private
 );
 
 void

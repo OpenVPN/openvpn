@@ -482,6 +482,8 @@ static const char usage_message[] =
   "--pkcs11-pin-cache seconds  : Number of seconds to cache PIN. The default is -1\n"
   "                              cache until token removed.\n"
   "--pkcs11-protected-authentication : Use PKCS#11 protected authentication path.\n"
+  "--pkcs11-cert-private       : Set if login should be performed before\n"
+  "                              certificate can be accessed.\n"
 #endif			/* ENABLE_PKCS11 */
  "\n"
   "SSL Library information:\n"
@@ -653,6 +655,7 @@ init_options (struct options *o)
 #ifdef ENABLE_PKCS11
   o->pkcs11_pin_cache_period = -1;
   o->pkcs11_protected_authentication = false;
+  o->pkcs11_cert_private = false;
 #endif			/* ENABLE_PKCS11 */
 }
 
@@ -1223,6 +1226,7 @@ show_settings (const struct options *o)
   SHOW_STR (pkcs11_id);
   SHOW_INT (pkcs11_pin_cache_period);
   SHOW_BOOL (pkcs11_protected_authentication);
+  SHOW_BOOL (pkcs11_cert_private);
 #endif			/* ENABLE_PKCS11 */
 
 #if P2MP
@@ -4976,6 +4980,12 @@ add_option (struct options *options,
       ++i;
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->pkcs11_protected_authentication = true;
+    }
+  else if (streq (p[0], "pkcs11-cert-private"))
+    {
+      ++i;
+      VERIFY_PERMISSION (OPT_P_GENERAL);
+      options->pkcs11_cert_private = true;
     }
 #endif
 #ifdef TUNSETPERSIST

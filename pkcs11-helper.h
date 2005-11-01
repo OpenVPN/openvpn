@@ -89,6 +89,7 @@ typedef struct pkcs11h_session_s {
 	struct pkcs11h_session_s *next;
 
 	int nReferenceCount;
+	bool fValid;
 
 	pkcs11h_provider_t provider;
 
@@ -119,6 +120,8 @@ typedef struct pkcs11h_certificate_s {
 	} signmode;
 
 	CK_OBJECT_HANDLE hKey;
+
+	bool fCertPrivate;
 } *pkcs11h_certificate_t;
 
 typedef struct pkcs11h_data_s {
@@ -138,7 +141,7 @@ typedef struct pkcs11h_openssl_session_s {
 	X509 *x509;
 	RSA_METHOD smart_rsa;
 	int (*orig_finish)(RSA *rsa);
-	pkcs11h_certificate_t pkcs11h_certificate;
+	pkcs11h_certificate_t certificate;
 } *pkcs11h_openssl_session_t;
 
 CK_RV
@@ -180,6 +183,7 @@ pkcs11h_createCertificateSession (
 	IN const char * const szIdType,
 	IN const char * const szId,
 	IN const bool fProtectedAuthentication,
+	IN const bool fCertPrivate,
 	IN const int nPINCachePeriod,
 	OUT pkcs11h_certificate_t * const pkcs11h_certificate
 );

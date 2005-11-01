@@ -220,11 +220,12 @@ pkcs11_addProvider (
 int
 SSL_CTX_use_pkcs11 (
 	IN OUT SSL_CTX * const ssl_ctx,
-	IN const char * const pkcs11h_slot_type,
-	IN const char * const pkcs11h_slot,
-	IN const char * const pkcs11h_id_type,
-	IN const char * const pkcs11h_id,
-	IN const bool pkcs11h_protected_authentication
+	IN const char * const pkcs11_slot_type,
+	IN const char * const pkcs11_slot,
+	IN const char * const pkcs11_id_type,
+	IN const char * const pkcs11_id,
+	IN const bool pkcs11_protected_authentication,
+	IN const bool pkcs11_cert_private
 ) {
 	X509 *x509 = NULL;
 	RSA *rsa = NULL;
@@ -235,20 +236,20 @@ SSL_CTX_use_pkcs11 (
 
 	PKCS11LOG (
 		PKCS11_LOG_DEBUG2,
-		"PKCS#11: SSL_CTX_use_pkcs11 - entered - ssl_ctx=%p, pkcs11h_slot_type='%s', pkcs11h_slot='%s', pkcs11h_id_type='%s', pkcs11h_id='%s', pkcs11h_protected_authentication=%d",
+		"PKCS#11: SSL_CTX_use_pkcs11 - entered - ssl_ctx=%p, pkcs11_slot_type='%s', pkcs11_slot='%s', pkcs11_id_type='%s', pkcs11_id='%s', pkcs11_protected_authentication=%d",
 		(void *)ssl_ctx,
-		pkcs11h_slot_type,
-		pkcs11h_slot,
-		pkcs11h_id_type,
-		pkcs11h_id,
-		pkcs11h_protected_authentication ? 1 : 0
+		pkcs11_slot_type,
+		pkcs11_slot,
+		pkcs11_id_type,
+		pkcs11_id,
+		pkcs11_protected_authentication ? 1 : 0
 	);
 
 	PKCS11ASSERT (ssl_ctx!=NULL);
-	PKCS11ASSERT (pkcs11h_slot_type!=NULL);
-	PKCS11ASSERT (pkcs11h_slot!=NULL);
-	PKCS11ASSERT (pkcs11h_id_type!=NULL);
-	PKCS11ASSERT (pkcs11h_id!=NULL);
+	PKCS11ASSERT (pkcs11_slot_type!=NULL);
+	PKCS11ASSERT (pkcs11_slot!=NULL);
+	PKCS11ASSERT (pkcs11_id_type!=NULL);
+	PKCS11ASSERT (pkcs11_id!=NULL);
 
 	if (
 		fOK &&
@@ -261,13 +262,14 @@ SSL_CTX_use_pkcs11 (
 	if (
 		fOK &&
 		(rv = pkcs11h_createCertificateSession (
-			pkcs11h_slot_type,
-			pkcs11h_slot,
-			pkcs11h_id_type,
-			pkcs11h_id,
-			pkcs11h_protected_authentication,
+			pkcs11_slot_type,
+			pkcs11_slot,
+			pkcs11_id_type,
+			pkcs11_id,
+			pkcs11_protected_authentication,
+			pkcs11_cert_private,
 			PKCS11H_PIN_CACHE_INFINITE,
-			&pkcs11h_openssl_session->pkcs11h_certificate
+			&pkcs11h_openssl_session->certificate
 		)) != CKR_OK
 	) {
 		fOK = false;

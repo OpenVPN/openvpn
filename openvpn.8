@@ -211,6 +211,7 @@ openvpn \- secure IP tunnel daemon.
 [\ \fB\-\-pkcs11\-id\fR\ \fIname\fR\ ]
 [\ \fB\-\-pkcs11\-pin\-cache\fR\ \fIseconds\fR\ ]
 [\ \fB\-\-pkcs11\-protected\-authentication\fR\ ]
+[\ \fB\-\-pkcs11\-cert\-private\fR\ ]
 [\ \fB\-\-pkcs12\fR\ \fIfile\fR\ ]
 [\ \fB\-\-plugin\fR\ \fImodule\-pathname\ init\-string\fR\ ]
 [\ \fB\-\-port\fR\ \fIport\fR\ ]
@@ -3593,6 +3594,10 @@ Specify how many seconds the PIN can be cached, the default is until the token i
 .B --pkcs11-protected-authentication
 Use PKCS#11 protected authentication path, useful for biometric and external
 keypad devices.
+.\"*********************************************************
+.TP
+.B --pkcs11-cert-private
+Set if access to certificate object should be performed after login.
 .\"*********************************************************
 .TP
 .B --cryptoapicert select-string
