@@ -92,7 +92,7 @@ cat $IN/COPYING $IN/COPYRIGHT.GPL | $U2D >$OUT/install-win32/license.txt
 $U2D <$IN/sample-config-files/client.conf >$OUT/install-win32/client.ovpn
 $U2D <$IN/sample-config-files/server.conf >$OUT/install-win32/server.ovpn
 cp $IN/install-win32/sample.ovpn $OUT/install-win32
-$U2D <$IN/easy-rsa/openssl.cnf >$OUT/install-win32/openssl.cnf.sample
+$U2D <$IN/easy-rsa/1.0/openssl.cnf >$OUT/install-win32/openssl.cnf.sample
 
 echo BUILD tap-win32
 
