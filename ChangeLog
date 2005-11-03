@@ -12,6 +12,7 @@ $Id$
   be compatible with 2.0.x distribution.
 * Documented --route-nopull.
 * Documented --ip-win32 adaptive.
+* Windows build now linked with LZO2.
 	
 2005.11.01 -- Version 2.1-beta6
 
