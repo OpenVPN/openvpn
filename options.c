@@ -165,6 +165,8 @@ static const char usage_message[] =
   "--route-up cmd  : Execute shell cmd after routes are added.\n"
   "--route-noexec  : Don't add routes automatically.  Instead pass routes to\n"
   "                  --route-up script using environmental variables.\n"
+  "--route-nopull  : When used with --client or --pull, accept options pushed\n"
+  "                  by server EXCEPT for routes.\n"
   "--redirect-gateway [flags]: (Experimental) Automatically execute routing\n"
   "                  commands to redirect all outgoing IP traffic through the\n"
   "                  VPN.  Add 'local' flag if both " PACKAGE_NAME " servers are directly\n"

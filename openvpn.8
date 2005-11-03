@@ -235,6 +235,7 @@ openvpn \- secure IP tunnel daemon.
 [\ \fB\-\-route\-gateway\fR\ \fIgw\fR\ ]
 [\ \fB\-\-route\-method\fR\ \fIm\fR\ ]
 [\ \fB\-\-route\-noexec\fR\ ]
+[\ \fB\-\-route\-nopull\fR\ ]
 [\ \fB\-\-route\-up\fR\ \fIcmd\fR\ ]
 [\ \fB\-\-route\fR\ \fInetwork\ [netmask]\ [gateway]\ [metric]\fR\ ]
 [\ \fB\-\-rport\fR\ \fIport\fR\ ]
@@ -1085,6 +1086,19 @@ can be a shell command with multiple arguments.
 Don't add or remove routes automatically.  Instead pass routes to
 .B --route-up
 script using environmental variables.
+.\"*********************************************************
+.TP
+.B --route-nopull
+When used with
+.B --client
+or
+.B --pull,
+accept options pushed by server EXCEPT for routes.
+
+When used on the client, this option effectively bars the
+server from adding routes to the client's routing table,
+however note that this option still allows the server
+to set the TCP/IP properties of the client's TUN/TAP interface.
 .\"*********************************************************
 .TP
 .B --redirect-gateway flags...

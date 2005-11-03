@@ -10,6 +10,7 @@ $Id$
   on Linux clients to fail.
 * Moved easy-rsa 2.0 scripts to easy-rsa/2.0 to
   be compatible with 2.0.x distribution.
+* Documented --route-nopull.
 
 2005.11.01 -- Version 2.1-beta6
 
