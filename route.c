@@ -347,6 +347,10 @@ init_route_list (struct route_list *rl,
       setenv_route_addr (es, "net_gateway", rl->spec.net_gateway, -1);
       dmsg (D_ROUTE_DEBUG, "ROUTE DEBUG: default_gateway=%s", print_in_addr_t (rl->spec.net_gateway, 0, &gc));
     }
+  else
+    {
+      dmsg (D_ROUTE_DEBUG, "ROUTE DEBUG: default_gateway=UNDEF");
+    }
 
   if (rl->flags & RG_ENABLE)
     {
@@ -1342,9 +1346,10 @@ show_routes (int msglev)
 #elif defined(TARGET_LINUX)
 
 static bool
-get_default_gateway (in_addr_t *ret)
+get_default_gateway (in_addr_t *gateway)
 {
   struct gc_arena gc = gc_new ();
+  bool ret = false;
   FILE *fp = fopen ("/proc/net/route", "r");
   if (fp)
     {
@@ -1392,7 +1397,10 @@ get_default_gateway (in_addr_t *ret)
       fclose (fp);
 
       if (best_gw)
-	*ret = best_gw;
+	{
+	  *gateway = best_gw;
+	  ret = true;
+	}
 
       dmsg (D_ROUTE_DEBUG, "GDG: best=%s[%d] lm=%u",
 	    print_in_addr_t ((in_addr_t) best_gw, 0, &gc),
@@ -1401,7 +1409,7 @@ get_default_gateway (in_addr_t *ret)
     }
 
   gc_free (&gc);
-  return false;
+  return ret;
 }
 
 #elif defined(TARGET_FREEBSD)

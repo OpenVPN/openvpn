@@ -5,6 +5,9 @@ $Id$
 
 2005.11.xx -- Version 2.1-beta7
 
+* Fixed bug in Linux get_default_gateway function
+  introduced in 2.0.4, which would cause redirect-gateway
+  on Linux clients to fail.
 * Moved easy-rsa 2.0 scripts to easy-rsa/2.0 to
   be compatible with 2.0.x distribution.
 

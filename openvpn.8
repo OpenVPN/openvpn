@@ -2949,7 +2949,21 @@ of OpenVPN's client mode.  This directive is equivalent to:
 This option must be used on a client which is connecting
 to a multi-client server.  It indicates to OpenVPN that it
 should accept options pushed by the server, provided they
-are part of the legal set of pushable options.
+are part of the legal set of pushable options (note that the
+.B --pull
+option is implied by
+.B --client
+).
+
+In particular,
+.B --pull
+allows the server to push routes to the client, so you should
+not use
+.B --pull
+or
+.B --client
+in situations where you don't trust the server to have control
+over the client's routing table.
 .\"*********************************************************
 .TP
 .B --auth-user-pass [up]
