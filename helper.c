@@ -253,7 +253,7 @@ helper_client_server (struct options *o)
 	}
       else if (dev == DEV_TYPE_TAP)
 	{
-	  if (netbits >= 30)
+	  if (netbits > 30)
 	    msg (M_USAGE, "--server directive when used with --dev tap must define a subnet of %s or lower",
 		 print_netmask (30, &gc));
 

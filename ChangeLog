@@ -5,6 +5,9 @@ $Id$
 
 2005.11.xx -- Version 2.1-beta7
 
+* Fixed bug where --server directive in --dev tap mode
+  claimed that it would support subnets of /30 or less
+  but actually would only accept /29 or less.
 * Fixed bug in Linux get_default_gateway function
   introduced in 2.0.4, which would cause redirect-gateway
   on Linux clients to fail.
