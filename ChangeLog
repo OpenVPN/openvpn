@@ -5,6 +5,8 @@ $Id$
 
 2005.11.xx -- Version 2.1-beta7
 
+* Allow blank passwords to be passed via the management
+  interface.
 * Fixed bug where --server directive in --dev tap mode
   claimed that it would support subnets of /30 or less
   but actually would only accept /29 or less.

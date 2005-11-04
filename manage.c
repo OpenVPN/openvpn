@@ -52,6 +52,9 @@
 #define MANAGEMENT_ECHO_FLAGS 0
 #endif
 
+/* tag for blank username/password */
+static const char blank_up[] = "[[BLANK]]";
+
 struct management *management; /* GLOBAL */
 
 /* static forward declarations */
@@ -525,6 +528,8 @@ man_query_password (struct management *man, const char *type, const char *string
   const bool needed = ((man->connection.up_query_mode == UP_QUERY_USER_PASS
 			|| man->connection.up_query_mode == UP_QUERY_PASS)
 		       && man->connection.up_query_type);
+  if (!string[0]) /* allow blank passwords to be passed through using the blank_up tag */
+    string = blank_up;
   man_query_user_pass (man, type, string, needed, "password", man->connection.up_query.password, USER_PASS_LEN);
 }
 
@@ -1827,6 +1832,10 @@ management_query_user_pass (struct management *man,
       man->connection.up_query_type = NULL;
       man->persist.standalone_disabled = standalone_disabled_save;
       man->persist.special_state_msg = NULL;
+
+      /* pass through blank passwords */
+      if (!strcmp (man->connection.up_query.password, blank_up))
+	CLEAR (man->connection.up_query.password);
 
       /*
        * Transfer u/p to return object, zero any record
