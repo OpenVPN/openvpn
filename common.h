@@ -28,7 +28,7 @@
 /*
  * Statistics counters.
  */
-typedef unsigned long counter_type;
+typedef unsigned long long int counter_type;
 
 /*
  * Time intervals
@@ -43,7 +43,7 @@ typedef int interval_t;
 /*
  * Printf formats for special types
  */
-#define counter_format          "%lu"
+#define counter_format          "%llu"
 #define ptr_format              "0x%08lx"
 #define time_format             "%lu"
 #define fragment_header_format  "0x%08x"

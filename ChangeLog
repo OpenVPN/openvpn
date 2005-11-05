@@ -7,9 +7,12 @@ $Id$
 
 * Allow blank passwords to be passed via the management
   interface.
+* Fixed bug where "make check" inside a FreeBSD "jail"
+  would never complete (Matthias Andree).
 * Fixed bug where --server directive in --dev tap mode
   claimed that it would support subnets of /30 or less
   but actually would only accept /29 or less.
+* Extend byte counters to 64 bits (M. van Cuijk).
 * Fixed bug in Linux get_default_gateway function
   introduced in 2.0.4, which would cause redirect-gateway
   on Linux clients to fail.

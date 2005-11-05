@@ -404,8 +404,8 @@ multi_client_disconnect_setenv (struct multi_context *m,
   setenv_trusted (mi->context.c2.es, get_link_socket_info (&mi->context));
 
   /* setenv stats */
-  setenv_int (mi->context.c2.es, "bytes_received", mi->context.c2.link_read_bytes);
-  setenv_int (mi->context.c2.es, "bytes_sent", mi->context.c2.link_write_bytes);
+  setenv_counter (mi->context.c2.es, "bytes_received", mi->context.c2.link_read_bytes);
+  setenv_counter (mi->context.c2.es, "bytes_sent", mi->context.c2.link_write_bytes);
 
 }
 

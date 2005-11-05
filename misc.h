@@ -158,6 +158,7 @@ void setenv_str_ex (struct env_set *es,
 		    const unsigned int value_exclude,
 		    const char value_replace);
 
+void setenv_counter (struct env_set *es, const char *name, counter_type value);
 void setenv_int (struct env_set *es, const char *name, int value);
 void setenv_str (struct env_set *es, const char *name, const char *value);
 void setenv_del (struct env_set *es, const char *name);

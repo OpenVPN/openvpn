@@ -19,11 +19,13 @@
 # 02110-1301, USA.
 
 set -e
-trap "rm -f key.$$ log.$$ ; false" 1 2 3 15
+trap "rm -f key.$$ log.$$ ; trap 0 ; exit 77" 1 2 15
+trap "rm -f key.$$ log.$$ ; exit 1" 0 3
 ./openvpn --genkey --secret key.$$
 set +e
 ( ./openvpn --test-crypto --secret key.$$ ) >log.$$ 2>&1
 e=$?
 if [ $e != 0 ] ; then cat log.$$ ; fi
-rm key.$$
+rm key.$$ log.$$
+trap 0
 exit $e

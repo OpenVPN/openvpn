@@ -843,6 +843,14 @@ manage_env (char *str)
 /* add/modify/delete environmental strings */
 
 void
+setenv_counter (struct env_set *es, const char *name, counter_type value)
+{
+  char buf[64];
+  openvpn_snprintf (buf, sizeof(buf), counter_format, value);
+  setenv_str (es, name, buf);
+}
+
+void
 setenv_int (struct env_set *es, const char *name, int value)
 {
   char buf[64];

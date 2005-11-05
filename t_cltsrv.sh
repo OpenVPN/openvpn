@@ -20,19 +20,33 @@
 
 set -e
 echo "the following test will run about two minutes..." >&2
-trap "rm -f log.$$ ; false" 1 2 3 15
+trap "rm -f log.$$ log.$$.signal ; trap 0 ; exit 77" 1 2 15
+trap "rm -f log.$$ log.$$.signal ; exit 1" 0 3
+addopts=
+case `uname -s` in
+    FreeBSD)
+    # FreeBSD jails map the outgoing IP to the jail IP - we need to
+    # allow the real IP unless we want the test to run forever.
+    if test `sysctl -n security.jail.jailed` != 0 ; then
+	addopts="--float"
+    fi
+    ;;
+esac
 set +e
 (
-./openvpn --cd "${srcdir}" --config sample-config-files/loopback-server &
-./openvpn --cd "${srcdir}" --config sample-config-files/loopback-client
-) >log.$$ 2>&1
+./openvpn --cd "${srcdir}" ${addopts} --down 'echo "srv:${signal}" >&3 ; : #' --tls-exit --ping-exit 180 --config sample-config-files/loopback-server &
+./openvpn --cd "${srcdir}" ${addopts} --down 'echo "clt:${signal}" >&3 ; : #' --tls-exit --ping-exit 180 --config sample-config-files/loopback-client
+) 3>log.$$.signal >log.$$ 2>&1
 e1=$?
 wait $!
 e2=$?
+grep -v ":inactive$" log.$$.signal >/dev/null && { cat log.$$.signal ; echo ; cat log.$$ ; exit 1 ; }
+
 set -e
 
 if [ $e1 != 0 ] || [ $e2 != 0 ] ; then
     cat log.$$
     exit 1
 fi
-rm log.$$
+rm log.$$ log.$$.signal
+trap 0

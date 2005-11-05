@@ -161,13 +161,16 @@ check_send_occ_req_dowork (struct context *c)
 	 * Give up.
 	 */
 	msg (D_SHOW_OCC,
-	     "NOTE: failed to obtain options consistency info from peer -- this could occur if the remote peer is running a version of "
+	     "NOTE: failed to obtain options consistency info from peer -- "
+	     "this could occur if the remote peer is running a version of "
 	     PACKAGE_NAME
 	     " before 1.5-beta8 or if there is a network connectivity problem, and will not necessarily prevent "
 	     PACKAGE_NAME
-	     " from running (%u bytes received from peer, %u bytes authenticated data channel traffic) -- you can disable the options consistency check with --disable-occ.",
-	     (unsigned int) c->c2.link_read_bytes,
-	     (unsigned int) c->c2.link_read_bytes_auth);
+             " from running (" counter_format " bytes received from peer, " counter_format
+	     " bytes authenticated data channel traffic) -- you can disable the options consistency "
+	     "check with --disable-occ.",
+             c->c2.link_read_bytes,
+             c->c2.link_read_bytes_auth);
       event_timeout_clear (&c->c2.occ_interval);
     }
   else

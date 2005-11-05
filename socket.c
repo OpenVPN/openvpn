@@ -587,6 +587,15 @@ socket_do_accept (socket_descriptor_t sd,
       new_sd = accept (sd, (struct sockaddr *) &act->dest.sa, &remote_len);
     }
 
+#if 0 /* For debugging only, test the effect of accept() failures */
+ {
+   static int foo = 0;
+   ++foo;
+   if (foo & 1)
+     new_sd = -1;
+ }
+#endif
+
   if (!socket_defined (new_sd))
     {
       msg (D_LINK_ERRORS | M_ERRNO_SOCK, "TCP: accept(%d) failed", sd);
