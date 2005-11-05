@@ -114,7 +114,7 @@ context_init_1 (struct context *c)
 #endif
 
 #if defined(ENABLE_PKCS11)
-  {
+  if (c->first_time) {
     int i;
     pkcs11_initialize (c->options.pkcs11_pin_cache_period);
     for (i=0;i<MAX_PARMS && c->options.pkcs11_providers[i] != NULL;i++)
