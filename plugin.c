@@ -622,6 +622,7 @@ openvpn_plugin_string_list_item_free (struct openvpn_plugin_string_list *l)
   if (l)
     {
       free (l->name);
+      string_clear (l->value);
       free (l->value);
       free (l);
     }

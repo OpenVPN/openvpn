@@ -82,6 +82,10 @@ struct options_pre_pull
 
 #endif
 
+#if ENABLE_INLINE_FILES
+#define INLINE_FILE_TAG "[[INLINE]]"
+#endif
+
 /* Command line options */
 struct options
 {
@@ -378,6 +382,14 @@ struct options
   const char *tls_verify;
   const char *tls_remote;
   const char *crl_file;
+
+#if ENABLE_INLINE_FILES
+  const char *ca_file_inline;
+  const char *cert_file_inline;
+  char *priv_key_file_inline;
+  const char *dh_file_inline;
+#endif
+
   int ns_cert_type; /* set to 0, NS_SSL_SERVER, or NS_SSL_CLIENT */
   const char *pkcs11_providers[MAX_PARMS];
   const char *pkcs11_sign_mode[MAX_PARMS];

@@ -83,7 +83,7 @@ void free_buf (struct buffer *buf);
 
 bool buf_assign (struct buffer *dest, const struct buffer *src);
 
-
+void string_clear (char *str);
 
 /* for dmalloc debugging */
 

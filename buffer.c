@@ -461,6 +461,20 @@ string_alloc (const char *str, struct gc_arena *gc)
 }
 
 /*
+ * Erase all characters in a string
+ */
+void
+string_clear (char *str)
+{
+  if (str)
+    {
+      const int len = strlen (str);
+      if (len > 0)
+	memset (str, 0, len);
+    }
+}
+
+/*
  * Allocate a string inside a buffer
  */
 struct buffer

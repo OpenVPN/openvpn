@@ -1365,6 +1365,14 @@ do_init_crypto_tls_c1 (struct context *c)
 			       &c->c1.ks.tls_auth_key,
 			       options->tls_auth_file,
 			       options->key_direction);
+
+#if ENABLE_INLINE_FILES
+      if (options->priv_key_file_inline)
+	{
+	  string_clear (c->options.priv_key_file_inline);
+	  c->options.priv_key_file_inline = NULL;
+	}
+#endif
     }
   else
     {

@@ -466,4 +466,10 @@ socket_defined (const socket_descriptor_t sd)
 #define EPOLL 0
 #endif
 
+/*
+ * Should we allow ca/cert/key files to be
+ * included inline, in the configuration file?
+ */
+#define ENABLE_INLINE_FILES 1
+
 #endif

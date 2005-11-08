@@ -734,6 +734,170 @@ info_callback (INFO_CALLBACK_SSL_CONST SSL * s, int where, int ret)
     }
 }
 
+#if ENABLE_INLINE_FILES
+
+static int
+use_inline_load_verify_locations (SSL_CTX *ctx, const char *ca_string)
+{
+  X509_STORE *store = NULL;
+  X509* cert = NULL;
+  BIO *in = NULL;
+  int ret = 0;
+
+  in = BIO_new_mem_buf ((char *)ca_string, -1);
+  if (!in)
+    goto err;
+
+  for (;;)
+    {
+      if (!PEM_read_bio_X509 (in, &cert, 0, NULL))
+	{
+	  ret = 1;
+	  break;
+	}
+      if (!cert)
+	break;
+
+      store = SSL_CTX_get_cert_store (ctx);
+      if (!store)
+	break;
+
+      if (!X509_STORE_add_cert (store, cert))
+	break;
+
+      if (cert)
+	{
+	  X509_free (cert);
+	  cert = NULL;
+	}
+    }
+
+ err:
+  if (cert)
+    X509_free (cert);
+  if (in)
+    BIO_free (in);
+  return ret;  
+}
+
+static int
+xname_cmp(const X509_NAME * const *a, const X509_NAME * const *b)
+{
+  return(X509_NAME_cmp(*a,*b));
+}
+
+static STACK_OF(X509_NAME) *
+use_inline_load_client_CA_file (SSL_CTX *ctx, const char *ca_string)
+{
+  BIO *in = NULL;
+  X509 *x = NULL;
+  X509_NAME *xn = NULL;
+  STACK_OF(X509_NAME) *ret = NULL, *sk;
+
+  sk=sk_X509_NAME_new(xname_cmp);
+
+  in = BIO_new_mem_buf ((char *)ca_string, -1);
+  if (!in)
+    goto err;
+
+  if ((sk == NULL) || (in == NULL))
+    goto err;
+	
+  for (;;)
+    {
+      if (PEM_read_bio_X509(in,&x,NULL,NULL) == NULL)
+	break;
+      if (ret == NULL)
+	{
+	  ret = sk_X509_NAME_new_null();
+	  if (ret == NULL)
+	    goto err;
+	}
+      if ((xn=X509_get_subject_name(x)) == NULL) goto err;
+      /* check for duplicates */
+      xn=X509_NAME_dup(xn);
+      if (xn == NULL) goto err;
+      if (sk_X509_NAME_find(sk,xn) >= 0)
+	X509_NAME_free(xn);
+      else
+	{
+	  sk_X509_NAME_push(sk,xn);
+	  sk_X509_NAME_push(ret,xn);
+	}
+    }
+
+  if (0)
+    {
+    err:
+      if (ret != NULL) sk_X509_NAME_pop_free(ret,X509_NAME_free);
+      ret=NULL;
+    }
+  if (sk != NULL) sk_X509_NAME_free(sk);
+  if (in != NULL) BIO_free(in);
+  if (x != NULL) X509_free(x);
+  if (ret != NULL)
+    ERR_clear_error();
+  return(ret);
+}
+
+static int
+use_inline_certificate_file (SSL_CTX *ctx, const char *cert_string)
+{
+  BIO *in = NULL;
+  X509 *x = NULL;
+  int ret = 0;
+
+  in = BIO_new_mem_buf ((char *)cert_string, -1);
+  if (!in)
+    goto end;
+
+  x = PEM_read_bio_X509 (in,
+			 NULL,
+			 ctx->default_passwd_callback,
+			 ctx->default_passwd_callback_userdata);
+  if (!x)
+    goto end;
+
+  ret = SSL_CTX_use_certificate(ctx, x);
+
+ end:
+  if (x)
+    X509_free (x);
+  if (in)
+    BIO_free (in);
+  return ret;
+}
+
+static int
+use_inline_PrivateKey_file (SSL_CTX *ctx, const char *key_string)
+{
+  BIO *in = NULL;
+  EVP_PKEY *pkey = NULL;
+  int ret = 0;
+
+  in = BIO_new_mem_buf ((char *)key_string, -1);
+  if (!in)
+    goto end;
+
+  pkey = PEM_read_bio_PrivateKey (in,
+				  NULL,
+				  ctx->default_passwd_callback,
+				  ctx->default_passwd_callback_userdata);
+  if (!pkey)
+    goto end;
+
+  ret = SSL_CTX_use_PrivateKey (ctx, pkey);
+
+ end:
+  if (pkey)
+    EVP_PKEY_free (pkey);
+  if (in)
+    BIO_free (in);
+  return ret;
+}
+
+#endif
+
 /*
  * Initialize SSL context.
  * All files are in PEM format.
@@ -756,9 +920,20 @@ init_ssl (const struct options *options)
 
       SSL_CTX_set_tmp_rsa_callback (ctx, tmp_rsa_cb);
 
-      /* Get Diffie Hellman Parameters */
-      if (!(bio = BIO_new_file (options->dh_file, "r")))
-	msg (M_SSLERR, "Cannot open %s for DH parameters", options->dh_file);
+#if ENABLE_INLINE_FILES
+      if (!strcmp (options->dh_file, INLINE_FILE_TAG) && options->dh_file_inline)
+	{
+	  if (!(bio = BIO_new_mem_buf ((char *)options->dh_file_inline, -1)))
+	    msg (M_SSLERR, "Cannot open memory BIO for inline DH parameters");
+	}
+      else
+#endif
+	{
+	  /* Get Diffie Hellman Parameters */
+	  if (!(bio = BIO_new_file (options->dh_file, "r")))
+	    msg (M_SSLERR, "Cannot open %s for DH parameters", options->dh_file);
+	}
+
       dh = PEM_read_bio_DHparams (bio, NULL, NULL, NULL);
       BIO_free (bio);
       if (!dh)
@@ -874,15 +1049,37 @@ init_ssl (const struct options *options)
 	  /* Load Certificate */
 	  if (options->cert_file)
 	    {
-	      using_cert_file = true;
-	      if (!SSL_CTX_use_certificate_file (ctx, options->cert_file, SSL_FILETYPE_PEM))
-		msg (M_SSLERR, "Cannot load certificate file %s", options->cert_file);
+#if ENABLE_INLINE_FILES
+	      if (!strcmp (options->cert_file, INLINE_FILE_TAG) && options->cert_file_inline)
+		{
+		  if (!use_inline_certificate_file (ctx, options->cert_file_inline))
+		    msg (M_SSLERR, "Cannot load inline certificate file");
+		}
+	      else
+#endif
+		{
+		  if (!SSL_CTX_use_certificate_file (ctx, options->cert_file, SSL_FILETYPE_PEM))
+		    msg (M_SSLERR, "Cannot load certificate file %s", options->cert_file);
+		  using_cert_file = true;
+		}
 	    }
 
 	  /* Load Private Key */
 	  if (options->priv_key_file)
 	    {
-	      if (!SSL_CTX_use_PrivateKey_file (ctx, options->priv_key_file, SSL_FILETYPE_PEM))
+	      int status;
+	      
+#if ENABLE_INLINE_FILES
+	      if (!strcmp (options->priv_key_file, INLINE_FILE_TAG) && options->priv_key_file_inline)
+		{
+		  status = use_inline_PrivateKey_file (ctx, options->priv_key_file_inline);
+		}
+	      else
+#endif
+	      {
+		status = SSL_CTX_use_PrivateKey_file (ctx, options->priv_key_file, SSL_FILETYPE_PEM);
+	      }
+	      if (!status)
 		{
 #ifdef ENABLE_MANAGEMENT
 		  if (management && (ERR_GET_REASON (ERR_peek_error()) == EVP_R_BAD_DECRYPT))
@@ -902,34 +1099,57 @@ init_ssl (const struct options *options)
 
   if (options->ca_file || options->ca_path)
     {
-      /* Load CA file for verifying peer supplied certificate */
-      ASSERT (options->ca_file || options->ca_path);
-      if (!SSL_CTX_load_verify_locations (ctx, options->ca_file, options->ca_path))
-        msg (M_SSLERR, "Cannot load CA certificate file %s path %s (SSL_CTX_load_verify_locations)", options->ca_file, options->ca_path);
+      int status;
+
+#if ENABLE_INLINE_FILES
+      if (!strcmp (options->ca_file, INLINE_FILE_TAG) && options->ca_file_inline)
+	{
+	  status = use_inline_load_verify_locations (ctx, options->ca_file_inline);
+	}
+      else
+#endif
+	{
+	  /* Load CA file for verifying peer supplied certificate */
+	  status = SSL_CTX_load_verify_locations (ctx, options->ca_file, options->ca_path);
+	}
+      
+      if (!status)
+	msg (M_SSLERR, "Cannot load CA certificate file %s path %s (SSL_CTX_load_verify_locations)", options->ca_file, options->ca_path);
 
       /* Set a store for certs (CA & CRL) with a lookup on the "capath" hash directory */
       if (options->ca_path) {
         X509_STORE *store = SSL_CTX_get_cert_store(ctx);
 
-        if (store) {
-          X509_LOOKUP *lookup = X509_STORE_add_lookup(store, X509_LOOKUP_hash_dir());
-	  if (!X509_LOOKUP_add_dir(lookup, options->ca_path, X509_FILETYPE_PEM))
-            X509_LOOKUP_add_dir(lookup, NULL, X509_FILETYPE_DEFAULT);
-	  else
-	    msg(M_WARN, "WARNING: experimental option --capath %s", options->ca_path);
+        if (store)
+	  {
+	    X509_LOOKUP *lookup = X509_STORE_add_lookup(store, X509_LOOKUP_hash_dir());
+	    if (!X509_LOOKUP_add_dir(lookup, options->ca_path, X509_FILETYPE_PEM))
+	      X509_LOOKUP_add_dir(lookup, NULL, X509_FILETYPE_DEFAULT);
+	    else
+	      msg(M_WARN, "WARNING: experimental option --capath %s", options->ca_path);
 #if OPENSSL_VERSION_NUMBER >= 0x00907000L
-          X509_STORE_set_flags(store, X509_V_FLAG_CRL_CHECK | X509_V_FLAG_CRL_CHECK_ALL);
+	    X509_STORE_set_flags(store, X509_V_FLAG_CRL_CHECK | X509_V_FLAG_CRL_CHECK_ALL);
 #else
-          msg(M_WARN, "WARNING: this version of OpenSSL cannot handle CRL files in capath");
+	    msg(M_WARN, "WARNING: this version of OpenSSL cannot handle CRL files in capath");
 #endif
-	} else
+	  }
+	else
           msg(M_SSLERR, "Cannot get certificate store (SSL_CTX_get_cert_store)");
       }
 
       /* Load names of CAs from file and use it as a client CA list */
       if (options->ca_file) {
-        STACK_OF(X509_NAME) *cert_names;
-        cert_names = SSL_load_client_CA_file (options->ca_file);
+        STACK_OF(X509_NAME) *cert_names = NULL;
+#if ENABLE_INLINE_FILES
+	if (!strcmp (options->ca_file, INLINE_FILE_TAG) && options->ca_file_inline)
+	  {
+	    cert_names = use_inline_load_client_CA_file (ctx, options->ca_file_inline);
+	  }
+	else
+#endif
+	  {
+	    cert_names = SSL_load_client_CA_file (options->ca_file);
+	  }
         if (!cert_names)
           msg (M_SSLERR, "Cannot load CA certificate file %s (SSL_load_client_CA_file)", options->ca_file);
         SSL_CTX_set_client_CA_list (ctx, cert_names);

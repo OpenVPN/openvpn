@@ -2622,6 +2622,102 @@ bypass_doubledash (char **p)
     *p += 2;
 }
 
+#if ENABLE_INLINE_FILES
+
+struct in_src {
+# define IS_TYPE_FP 1
+# define IS_TYPE_BUF 2
+  int type;
+  union {
+    FILE *fp;
+    struct buffer *multiline;
+  } u;
+};
+
+static bool
+in_src_get (const struct in_src *is, char *line, const int size)
+{
+  if (is->type == IS_TYPE_FP)
+    {
+      return BOOL_CAST (fgets (line, size, is->u.fp));
+    }
+  else if (is->type == IS_TYPE_BUF)
+    {
+      bool status = buf_parse (is->u.multiline, '\n', line, size);
+      if ((int) strlen (line) + 1 < size)
+	strcat (line, "\n");
+      return status;
+    }
+  else
+    {
+      ASSERT (0);
+      return false;
+    }
+}
+
+static char *
+read_inline_file (struct in_src *is, const char *close_tag, struct gc_arena *gc)
+{
+  char line[OPTION_LINE_SIZE];
+  struct buffer buf = alloc_buf (10000);
+  char *ret;
+  while (in_src_get (is, line, sizeof (line)))
+    {
+      if (!strncmp (line, close_tag, strlen (close_tag)))
+	break;
+      buf_printf (&buf, line);
+    }
+  ret = string_alloc (BSTR (&buf), gc);
+  buf_clear (&buf);
+  free_buf (&buf);
+  CLEAR (line);
+  return ret;
+}
+
+static bool
+check_inline_file (struct in_src *is, char *p[], struct gc_arena *gc)
+{
+  bool ret = false;
+  if (p[0] && !p[1])
+    {
+      char *arg = p[0];
+      if (arg[0] == '<' && arg[strlen(arg)-1] == '>')
+	{
+	  struct buffer close_tag;
+	  arg[strlen(arg)-1] = '\0';
+	  p[0] = string_alloc (arg+1, gc);
+	  p[1] = string_alloc (INLINE_FILE_TAG, gc);
+	  close_tag = alloc_buf (strlen(p[0]) + 4);
+	  buf_printf (&close_tag, "</%s>", p[0]);
+	  p[2] = read_inline_file (is, BSTR (&close_tag), gc);
+	  p[3] = NULL;
+	  free_buf (&close_tag);
+	  ret = true;
+	}
+    }
+  return ret;
+}
+
+static bool
+check_inline_file_via_fp (FILE *fp, char *p[], struct gc_arena *gc)
+{
+  struct in_src is;
+  is.type = IS_TYPE_FP;
+  is.u.fp = fp;
+  return check_inline_file (&is, p, gc);
+}
+
+static bool
+check_inline_file_via_buf (struct buffer *multiline, char *p[], struct gc_arena *gc)
+{
+  struct in_src is;
+  is.type = IS_TYPE_BUF;
+  is.u.multiline = multiline;
+  return check_inline_file (&is, p, gc);
+}
+
+#endif
+
 static int
 add_option (struct options *options,
 	    int i,
@@ -2665,6 +2761,9 @@ read_config_file (struct options *options,
 	      if (parse_line (line, p, SIZE (p), file, line_num, msglevel, &options->gc))
 		{
 		  bypass_doubledash (&p[0]);
+#if ENABLE_INLINE_FILES
+		  check_inline_file_via_fp (fp, p, &options->gc);
+#endif
 		  add_option (options, 0, p, file, line_num, level, msglevel, permission_mask, option_types_found, es);
 		}
 	    }
@@ -2679,6 +2778,8 @@ read_config_file (struct options *options,
     {
       msg (msglevel, "In %s:%d: Maximum recursive include levels exceeded in include attempt of file %s -- probably you have a configuration file that tries to include itself.", top_file, top_line, file);
     }
+  CLEAR (line);
+  CLEAR (p);
 }
 
 static void
@@ -2704,9 +2805,14 @@ read_config_string (struct options *options,
       if (parse_line (line, p, SIZE (p), file, line_num, msglevel, &options->gc))
 	{
 	  bypass_doubledash (&p[0]);
+#if ENABLE_INLINE_FILES
+	  check_inline_file_via_buf (&multiline, p, &options->gc);
+#endif
 	  add_option (options, 0, p, NULL, line_num, 0, msglevel, permission_mask, option_types_found, es);
 	}
+      CLEAR (p);
     }
+  CLEAR (line);
 }
 
 void
@@ -4724,6 +4830,13 @@ add_option (struct options *options,
       ++i;
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->ca_file = p[1];
+#if ENABLE_INLINE_FILES
+      if (streq (p[1], INLINE_FILE_TAG) && p[2])
+	{
+	  ++i;
+	  options->ca_file_inline = p[2];
+	}
+#endif
     }
   else if (streq (p[0], "capath") && p[1])
     {
@@ -4736,12 +4849,26 @@ add_option (struct options *options,
       ++i;
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->dh_file = p[1];
+#if ENABLE_INLINE_FILES
+      if (streq (p[1], INLINE_FILE_TAG) && p[2])
+	{
+	  ++i;
+	  options->dh_file_inline = p[2];
+	}
+#endif
     }
   else if (streq (p[0], "cert") && p[1])
     {
       ++i;
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->cert_file = p[1];
+#if ENABLE_INLINE_FILES
+      if (streq (p[1], INLINE_FILE_TAG) && p[2])
+	{
+	  ++i;
+	  options->cert_file_inline = p[2];
+	}
+#endif
     }
 #ifdef WIN32
   else if (streq (p[0], "cryptoapicert") && p[1])
@@ -4756,6 +4883,13 @@ add_option (struct options *options,
       ++i;
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->priv_key_file = p[1];
+#if ENABLE_INLINE_FILES
+      if (streq (p[1], INLINE_FILE_TAG) && p[2])
+	{
+	  ++i;
+	  options->priv_key_file_inline = p[2];
+	}
+#endif
     }
   else if (streq (p[0], "pkcs12") && p[1])
     {
