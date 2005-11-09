@@ -84,6 +84,10 @@ void free_buf (struct buffer *buf);
 bool buf_assign (struct buffer *dest, const struct buffer *src);
 
 void string_clear (char *str);
+int string_array_len (const char **array);
+
+#define PA_BRACKET (1<<0)
+char *print_argv (const char **p, struct gc_arena *gc, const unsigned int flags);
 
 /* for dmalloc debugging */
 
@@ -220,6 +224,7 @@ void buf_rmtail (struct buffer *buf, uint8_t remove);
  * non-buffer string functions
  */
 void chomp (char *str);
+const char *skip_leading_whitespace (const char *str);
 void string_null_terminate (char *str, int len, int capacity);
 
 /*

@@ -51,6 +51,7 @@ void receive_auth_failed (struct context *c, const struct buffer *buffer);
 #if P2MP_SERVER
 
 void push_option (struct options *o, const char *opt, int msglevel);
+void push_options (struct options *o, char **p, int msglevel, struct gc_arena *gc);
 
 void push_reset (struct options *o);
 

@@ -127,13 +127,14 @@ plugin_option_list_new (struct gc_arena *gc)
 }
 
 bool
-plugin_option_list_add (struct plugin_option_list *list, const char *so_pathname, const char *args)
+plugin_option_list_add (struct plugin_option_list *list, char **p, struct gc_arena *gc)
 {
   if (list->n < MAX_PLUGINS)
     {
       struct plugin_option *o = &list->plugins[list->n++];
-      o->so_pathname = so_pathname;
-      o->args = args;
+      o->argv = make_extended_arg_array (p, gc);
+      if (o->argv[0])
+	o->so_pathname = o->argv[0];
       return true;
     }
   else
@@ -145,11 +146,15 @@ void
 plugin_option_list_print (const struct plugin_option_list *list, int msglevel)
 {
   int i;
+  struct gc_arena gc = gc_new ();
+
   for (i = 0; i < list->n; ++i)
     {
       const struct plugin_option *o = &list->plugins[i];
-      msg (msglevel, "  plugin[%d] %s '%s'", i, o->so_pathname, o->args);
+      msg (msglevel, "  plugin[%d] %s '%s'", i, o->so_pathname, print_argv (o->argv, &gc, PA_BRACKET));
     }
+
+  gc_free (&gc);
 }
 #endif
 
@@ -256,24 +261,23 @@ plugin_open_item (struct plugin *p,
   if (!p->plugin_handle && init_point == p->requested_initialization_point)
     {
       struct gc_arena gc = gc_new ();
-      const char **argv = make_arg_array (o->so_pathname, o->args, &gc);
 
       dmsg (D_PLUGIN_DEBUG, "PLUGIN_INIT: PRE");
-      plugin_show_args_env (D_PLUGIN_DEBUG, argv, envp);
+      plugin_show_args_env (D_PLUGIN_DEBUG, o->argv, envp);
 
       /*
        * Call the plugin initialization
        */
       if (p->open2)
-	p->plugin_handle = (*p->open2)(&p->plugin_type_mask, argv, envp, retlist);
+	p->plugin_handle = (*p->open2)(&p->plugin_type_mask, o->argv, envp, retlist);
       else if (p->open1)
-	p->plugin_handle = (*p->open1)(&p->plugin_type_mask, argv, envp);
+	p->plugin_handle = (*p->open1)(&p->plugin_type_mask, o->argv, envp);
       else
 	ASSERT (0);
 
       msg (D_PLUGIN, "PLUGIN_INIT: POST %s '%s' intercepted=%s %s",
 	   p->so_pathname,
-	   o->args ? o->args : "[NULL]",
+	   print_argv (o->argv, &gc, PA_BRACKET),
 	   plugin_mask_string (p->plugin_type_mask, &gc),
 	   (retlist && *retlist) ? "[RETLIST]" : "");
       

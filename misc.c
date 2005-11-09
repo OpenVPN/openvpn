@@ -1368,6 +1368,73 @@ make_arg_array (const char *first, const char *parms, struct gc_arena *gc)
   return (const char **)ret;
 }
 
+#if ENABLE_INLINE_FILES
+static const char **
+make_inline_array (const char *str, struct gc_arena *gc)
+{
+  char line[OPTION_LINE_SIZE];
+  struct buffer buf;
+  int len = 0;
+  char **ret = NULL;
+  int i = 0;
+
+  buf_set_read (&buf, str, strlen (str));
+  while (buf_parse (&buf, '\n', line, sizeof (line)))
+    ++len;
+
+  /* alloc return array */
+  ALLOC_ARRAY_CLEAR_GC (ret, char *, len + 1, gc);
+
+  buf_set_read (&buf, str, strlen(str));
+  while (buf_parse (&buf, '\n', line, sizeof (line)))
+    {
+      chomp (line);
+      ASSERT (i < len);
+      ret[i] = string_alloc (skip_leading_whitespace (line), gc);
+      ++i;
+    }  
+  ASSERT (i <= len);
+  ret[i] = NULL;
+  return (const char **)ret;
+}
+#endif
+
+static const char **
+make_arg_copy (char **p, struct gc_arena *gc)
+{
+  char **ret = NULL;
+  const int len = string_array_len ((const char **)p);
+  const int max_parms = len + 1;
+  int i;
+
+  /* alloc return array */
+  ALLOC_ARRAY_CLEAR_GC (ret, char *, max_parms, gc);
+
+  for (i = 0; i < len; ++i)
+    ret[i] = p[i];
+
+  return (const char **)ret;
+}
+
+const char **
+make_extended_arg_array (char **p, struct gc_arena *gc)
+{
+  const int argc = string_array_len ((const char **)p);
+#if ENABLE_INLINE_FILES
+  if (!strcmp (p[0], INLINE_FILE_TAG) && argc == 2)
+    return make_inline_array (p[1], gc);
+  else
+#endif
+  if (argc == 0)
+    return make_arg_array (NULL, NULL, gc);
+  else if (argc == 1)
+    return make_arg_array (p[0], NULL, gc);
+  else if (argc == 2)
+    return make_arg_array (p[0], p[1], gc);
+  else
+    return make_arg_copy (p, gc);
+}
+
 void
 openvpn_sleep (const int n)
 {
