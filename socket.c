@@ -721,9 +721,11 @@ socket_connect (socket_descriptor_t *sd,
 		const char *remote_dynamic,
 		bool *remote_changed,
 		const int connect_retry_seconds,
+		const int connect_retry_max,
 		volatile int *signal_received)
 {
   struct gc_arena gc = gc_new ();
+  int retry = 0;
 
   msg (M_INFO, "Attempting to establish TCP connection with %s", 
        print_sockaddr (remote, &gc));
@@ -731,6 +733,9 @@ socket_connect (socket_descriptor_t *sd,
     {
       const int status = connect (*sd, (struct sockaddr *) &remote->sa,
 				  sizeof (remote->sa));
+
+      if (connect_retry_max != 0 && retry++ >= connect_retry_max)
+	*signal_received = SIGUSR1;
 
       get_signal (signal_received);
       if (*signal_received)
@@ -987,6 +992,7 @@ link_socket_init_phase1 (struct link_socket *sock,
 			 const struct plugin_list *plugins,
 			 int resolve_retry_seconds,
 			 int connect_retry_seconds,
+			 int connect_retry_max,
 			 int mtu_discover_type,
 			 int rcvbuf,
 			 int sndbuf,
@@ -1017,6 +1023,7 @@ link_socket_init_phase1 (struct link_socket *sock,
   sock->inetd = inetd;
   sock->resolve_retry_seconds = resolve_retry_seconds;
   sock->connect_retry_seconds = connect_retry_seconds;
+  sock->connect_retry_max = connect_retry_max;
   sock->mtu_discover_type = mtu_discover_type;
 
 #ifdef ENABLE_DEBUG
@@ -1215,6 +1222,7 @@ link_socket_init_phase2 (struct link_socket *sock,
 			  remote_dynamic,
 			  &remote_changed,
 			  sock->connect_retry_seconds,
+			  sock->connect_retry_max,
 			  signal_received);
 
 	  if (*signal_received)
@@ -1255,6 +1263,7 @@ link_socket_init_phase2 (struct link_socket *sock,
 			  remote_dynamic,
 			  &remote_changed,
 			  sock->connect_retry_seconds,
+			  sock->connect_retry_max,
 			  signal_received);
 
 	  if (*signal_received)

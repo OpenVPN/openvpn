@@ -1811,6 +1811,7 @@ do_init_socket_1 (struct context *c, int mode)
 			   c->plugins,
 			   c->options.resolve_retry_seconds,
 			   c->options.connect_retry_seconds,
+			   c->options.connect_retry_max,
 			   c->options.mtu_discover_type,
 			   c->options.rcvbuf,
 			   c->options.sndbuf,
@@ -2371,6 +2372,14 @@ init_instance_handle_signals (struct context *c, const struct env_set *env, cons
   pre_init_signal_catch ();
   init_instance (c, env, flags);
   post_init_signal_catch ();
+
+  /*
+   * This is done so that signals thrown during
+   * initialization can bring us back to
+   * a management hold.
+   */
+  if (IS_SIG (c))
+    uninit_management_callback ();  
 }
 
 /*

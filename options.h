@@ -147,6 +147,7 @@ struct options
   /* Protocol type (PROTO_UDP or PROTO_TCP) */
   int proto;
   int connect_retry_seconds;
+  int connect_retry_max;
   bool connect_retry_defined;
 
   /* Advanced MTU negotiation and datagram fragmentation options */

@@ -119,6 +119,7 @@ openvpn \- secure IP tunnel daemon.
 [\ \fB\-\-config\fR\ \fIfile\fR\ ]
 [\ \fB\-\-connect\-freq\fR\ \fIn\ sec\fR\ ]
 [\ \fB\-\-connect\-retry\fR\ \fIn\fR\ ]
+[\ \fB\-\-connect\-retry\-max\fR\ \fIn\fR\ ]
 [\ \fB\-\-crl\-verify\fR\ \fIcrl\fR\ ]
 [\ \fB\-\-cryptoapicert\fR\ \fIselect\-string\fR\ ]
 [\ \fB\-\-daemon\fR\ \fI[progname]\fR\ ]
@@ -553,7 +554,9 @@ started with
 will attempt to connect, and if that fails, will sleep for 5
 seconds (adjustable via the
 .B --connect-retry
-option) and try again.  Both TCP client and server will simulate
+option) and try again infinite or up to N retries (adjustable via the
+.B --connect-retry-max
+option).  Both TCP client and server will simulate
 a SIGUSR1 restart signal if either side resets the connection.
 
 OpenVPN is designed to operate optimally over UDP, but TCP capability is provided
@@ -580,6 +583,15 @@ take
 as the
 number of seconds to wait
 between connection retries (default=5).
+.\"*********************************************************
+.TP
+.B --connect-retry-max n
+For
+.B --proto tcp-client,
+take
+.B n
+as the
+number of retries of connection attempt (default=infinite).
 .\"*********************************************************
 .TP
 .B --http-proxy server port [authfile] [auth-method]

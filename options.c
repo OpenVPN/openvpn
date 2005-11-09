@@ -95,6 +95,7 @@ static const char usage_message[] =
   "                  p = udp (default), tcp-server, or tcp-client\n"
   "--connect-retry n : For --proto tcp-client, number of seconds to wait\n"
   "                  between connection retries (default=%d).\n"
+  "--connect-retry-max n : Maximum connection attempt retries, default infinite.\n"
 #ifdef ENABLE_HTTP_PROXY
   "--http-proxy s p [up] [auth] : Connect to remote host through an HTTP proxy at\n"
   "                  address s and port p.  If proxy authentication is required,\n"
@@ -586,6 +587,7 @@ init_options (struct options *o)
   o->topology = TOP_NET30;
   o->proto = PROTO_UDPv4;
   o->connect_retry_seconds = 5;
+  o->connect_retry_max = 0;
   o->local_port = o->remote_port = OPENVPN_PORT;
   o->verbosity = 1;
   o->status_file_update_freq = 60;
@@ -1086,6 +1088,7 @@ show_settings (const struct options *o)
 
   SHOW_INT (resolve_retry_seconds);
   SHOW_INT (connect_retry_seconds);
+  SHOW_INT (connect_retry_max);
 
   SHOW_STR (username);
   SHOW_STR (groupname);
@@ -3217,6 +3220,11 @@ add_option (struct options *options,
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->connect_retry_seconds = positive_atoi (p[1]);
       options->connect_retry_defined = true;
+    }
+  else if (streq (p[0], "connect-retry-max") && p[1])
+    {
+      VERIFY_PERMISSION (OPT_P_GENERAL);
+      options->connect_retry_max = positive_atoi (p[1]);
     }
   else if (streq (p[0], "ipchange") && p[1])
     {
