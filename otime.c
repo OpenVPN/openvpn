@@ -35,6 +35,7 @@
 #include "memdbg.h"
 
 volatile time_t now; /* GLOBAL */
+unsigned int now_adj = 0; /* GLOBAL */
 
 /* 
  * Return a numerical string describing a struct timeval.

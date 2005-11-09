@@ -55,13 +55,16 @@ const char *tv_string (const struct timeval *tv, struct gc_arena *gc);
 const char *tv_string_abs (const struct timeval *tv, struct gc_arena *gc);
 
 extern volatile time_t now; /* updated frequently to time(NULL) */
+extern unsigned int now_adj;
 
 static inline void
 update_time (void)
 {
-  const time_t real_time = time (NULL);
+  const time_t real_time = time (NULL) + now_adj;
   if (real_time > now)
     now = real_time;
+  else if (real_time < now)
+    now_adj += (now - real_time);
 }
 
 static inline void
