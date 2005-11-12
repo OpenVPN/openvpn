@@ -1445,6 +1445,8 @@ do_init_crypto_tls (struct context *c, const unsigned int flags)
   to.verify_x509name = options->tls_remote;
   to.crl_file = options->crl_file;
   to.ns_cert_type = options->ns_cert_type;
+  memmove (to.remote_cert_ku, options->remote_cert_ku, sizeof (to.remote_cert_ku));
+  to.remote_cert_eku = options->remote_cert_eku;
   to.es = c->c2.es;
 
 #ifdef ENABLE_DEBUG

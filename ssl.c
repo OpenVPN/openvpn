@@ -389,6 +389,91 @@ set_common_name (struct tls_session *session, const char *common_name)
     }
 }
 
+#if OPENSSL_VERSION_NUMBER >= 0x00907000L
+
+bool verify_cert_eku (X509 *x509, const char * const expected_oid) {
+
+	EXTENDED_KEY_USAGE *eku = NULL;
+	bool fFound = false;
+
+	if ((eku = (EXTENDED_KEY_USAGE *)X509_get_ext_d2i (x509, NID_ext_key_usage, NULL, NULL)) == NULL) {
+		msg (D_HANDSHAKE, "Certificate does not have extended key usage extension");
+	}
+	else {
+		int i;
+
+		msg (D_HANDSHAKE, "Validating certificate extended key usage");
+		for(i = 0; !fFound && i < sk_ASN1_OBJECT_num (eku); i++) {
+			ASN1_OBJECT *oid = sk_ASN1_OBJECT_value (eku, i);
+			char szOid[1024];
+
+			if (!fFound && OBJ_obj2txt (szOid, sizeof (szOid), oid, 0) != -1) {
+				msg (D_HANDSHAKE, "++ Certificate has EKU (str) %s, expects %s", szOid, expected_oid);
+				if (!strcmp (expected_oid, szOid)) {
+					fFound = true;
+				}
+			}
+			if (!fFound && OBJ_obj2txt (szOid, sizeof (szOid), oid, 1) != -1) {
+				msg (D_HANDSHAKE, "++ Certificate has EKU (oid) %s, expects %s", szOid, expected_oid);
+				if (!strcmp (expected_oid, szOid)) {
+					fFound = true;
+				}
+			}
+		}
+	}
+
+	if (eku != NULL) {
+		sk_ASN1_OBJECT_pop_free (eku, ASN1_OBJECT_free);
+	}
+
+	return fFound;
+}
+
+bool verify_cert_ku (X509 *x509, const unsigned * const expected_ku, int expected_len) {
+
+	ASN1_BIT_STRING *ku = NULL;
+	bool fFound = false;
+
+	if ((ku = (ASN1_BIT_STRING *)X509_get_ext_d2i (x509, NID_key_usage, NULL, NULL)) == NULL) {
+		msg (D_HANDSHAKE, "Certificate does not have key usage extension");
+	}
+	else {
+		unsigned nku = 0;
+		int i;
+		for (i=0;i<8;i++) {
+			if (ASN1_BIT_STRING_get_bit (ku, i)) {
+				nku |= 1<<(7-i);
+			}
+		}
+
+		/*
+		 * Fixup if no LSB bits
+		 */
+		if ((nku & 0xff) == 0) {
+			nku >>= 8;
+		}
+
+		msg (D_HANDSHAKE, "Validating certificate key usage");
+		for (i=0;!fFound && i<expected_len;i++) {
+			if (expected_ku[i] != 0) {
+				msg (D_HANDSHAKE, "++ Certificate has key usage  %04x, expects %04x", nku, expected_ku[i]);
+
+				if (nku == expected_ku[i]) {
+					fFound = true;
+				}
+			}
+		}
+	}
+
+	if (ku != NULL) {
+		ASN1_BIT_STRING_free (ku);
+	}
+
+	return fFound;
+}
+
+#endif	/* OPENSSL_VERSION_NUMBER */
+
 /*
  * nsCertType checking
  */
@@ -505,6 +590,38 @@ verify_callback (int preverify_ok, X509_STORE_CTX * ctx)
 	  goto err;		/* Reject connection */
 	}
     }
+
+#if OPENSSL_VERSION_NUMBER >= 0x00907000L
+
+  /* verify certificate ku */
+  if (opt->remote_cert_ku[0] != 0 &&  ctx->error_depth == 0)
+    {
+      if (verify_cert_ku (ctx->current_cert, opt->remote_cert_ku, MAX_PARMS))
+	{
+	  msg (D_HANDSHAKE, "VERIFY KU OK");
+	}
+        else
+        {
+	  msg (D_HANDSHAKE, "VERIFY KU ERROR");
+          goto err;		/* Reject connection */
+	}
+    }
+
+  /* verify certificate eku */
+  if (opt->remote_cert_eku != NULL && ctx->error_depth == 0)
+    {
+      if (verify_cert_eku (ctx->current_cert, opt->remote_cert_eku))
+        {
+	  msg (D_HANDSHAKE, "VERIFY EKU OK");
+	}
+      else
+	{
+	  msg (D_HANDSHAKE, "VERIFY EKU ERROR");
+          goto err;		/* Reject connection */
+	}
+    }
+
+#endif	/* OPENSSL_VERSION_NUMBER */
 
   /* verify X509 name or common name against --tls-remote */
   if (opt->verify_x509name && strlen (opt->verify_x509name) > 0 && ctx->error_depth == 0)

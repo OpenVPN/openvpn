@@ -410,6 +410,8 @@ struct tls_options
   const char *verify_x509name;
   const char *crl_file;
   int ns_cert_type;
+  unsigned remote_cert_ku[MAX_PARMS];
+  const char *remote_cert_eku;
 
   /* allow openvpn config info to be
      passed over control channel */

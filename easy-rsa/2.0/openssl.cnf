@@ -207,6 +207,8 @@ nsCertType			= server
 nsComment			= "OpenSSL Generated Server Certificate"
 subjectKeyIdentifier=hash
 authorityKeyIdentifier=keyid,issuer:always
+extendedKeyUsage=serverAuth
+keyUsage = digitalSignature, keyEncipherment
 
 [ v3_req ]
 

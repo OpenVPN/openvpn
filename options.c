@@ -463,6 +463,17 @@ static const char usage_message[] =
   "                  of verification.\n"
   "--ns-cert-type t: Require that peer certificate was signed with an explicit\n"
   "                  nsCertType designation t = 'client' | 'server'.\n"
+#if OPENSSL_VERSION_NUMBER >= 0x00907000L
+  "--remote-cert-ku v ... : Require that the peer certificate was signed with\n"
+  "                  explicit key usage, you can specify more than one value.\n"
+  "                  value should be given in hex format.\n"
+  "--remote-cert-eku oid : Require that the peer certificate was signed with\n"
+  "                  explicit extended key usage. Extended key usage can be encoded\n"
+  "                  as on object identifier or OpenSSL string representation.\n"
+  "--remote-cert-tls t: Require that peer certificate was signed with explicit\n"
+  "                  key usage and extended key usage based on TLS rules.\n"
+  "                  t = 'client | 'server'.\n"
+#endif				/* OPENSSL_VERSION_NUMBER */
 #endif				/* USE_SSL */
 #ifdef ENABLE_PKCS11
   "\n"
@@ -1197,6 +1208,12 @@ show_settings (const struct options *o)
   SHOW_STR (tls_remote);
   SHOW_STR (crl_file);
   SHOW_INT (ns_cert_type);
+  {
+    int i;
+    for (i=0;i<MAX_PARMS;i++)
+      SHOW_INT (remote_cert_ku[i]);
+  }
+  SHOW_STR (remote_cert_eku);
 
   SHOW_INT (tls_timeout);
 
@@ -1813,6 +1830,8 @@ options_postprocess (struct options *options, bool first_time)
       MUST_BE_UNDEF (crl_file);
       MUST_BE_UNDEF (key_method);
       MUST_BE_UNDEF (ns_cert_type);
+      MUST_BE_UNDEF (remote_cert_ku[0]);
+      MUST_BE_UNDEF (remote_cert_eku);
 #ifdef ENABLE_PKCS11
       MUST_BE_UNDEF (pkcs11_providers[0]);
       MUST_BE_UNDEF (pkcs11_sign_mode[0]);
@@ -4786,6 +4805,45 @@ add_option (struct options *options,
 	  goto err;
 	}
     }
+#if OPENSSL_VERSION_NUMBER >= 0x00907000L
+  else if (streq (p[0], "remote-cert-ku"))
+    {
+      int j;
+
+      VERIFY_PERMISSION (OPT_P_GENERAL);
+
+      for (j = 1; j < MAX_PARMS && p[j] != NULL; ++j)
+	sscanf (p[j], "%x", &(options->remote_cert_ku[j-1]));
+    }
+  else if (streq (p[0], "remote-cert-eku") && p[1])
+    {
+      VERIFY_PERMISSION (OPT_P_GENERAL);
+      options->remote_cert_eku = p[1];
+    }
+  else if (streq (p[0], "remote-cert-tls") && p[1])
+    {
+      VERIFY_PERMISSION (OPT_P_GENERAL);
+
+      if (streq (p[1], "server"))
+	{
+	  options->remote_cert_ku[0] = 0xa0;
+	  options->remote_cert_ku[1] = 0x08;
+	  options->remote_cert_eku = "TLS Web Server Authentication";
+	}
+      else if (streq (p[1], "client"))
+	{
+	  options->remote_cert_ku[0] = 0x80;
+	  options->remote_cert_ku[1] = 0x08;
+	  options->remote_cert_ku[2] = 0x88;
+	  options->remote_cert_eku = "TLS Web Client Authentication";
+	}
+      else
+	{
+	  msg (msglevel, "--remote-cert-tls must be 'client' or 'server'");
+	  goto err;
+	}
+    }
+#endif	/* OPENSSL_VERSION_NUMBER */
   else if (streq (p[0], "tls-timeout") && p[1])
     {
       VERIFY_PERMISSION (OPT_P_TLS_PARMS);

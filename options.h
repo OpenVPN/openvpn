@@ -392,6 +392,8 @@ struct options
 #endif
 
   int ns_cert_type; /* set to 0, NS_SSL_SERVER, or NS_SSL_CLIENT */
+  unsigned remote_cert_ku[MAX_PARMS];
+  const char *remote_cert_eku;
   const char *pkcs11_providers[MAX_PARMS];
   const char *pkcs11_sign_mode[MAX_PARMS];
   const char *pkcs11_slot_type;

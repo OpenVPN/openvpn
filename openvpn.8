@@ -225,6 +225,9 @@ openvpn \- secure IP tunnel daemon.
 [\ \fB\-\-remap\-usr1\fR\ \fIsignal\fR\ ]
 [\ \fB\-\-remote\-random\fR\ ]
 [\ \fB\-\-remote\fR\ \fIhost\ [port]\fR\ ]
+[\ \fB\-\-remote\-cert\-ku\ \fIv...\fR\ ]
+[\ \fB\-\-remote\-cert\-eku\ \fIoid\fR\ ]
+[\ \fB\-\-remote\-cert\-tls\ \fIt\fR\ ]
 [\ \fB\-\-reneg\-bytes\fR\ \fIn\fR\ ]
 [\ \fB\-\-reneg\-pkts\fR\ \fIn\fR\ ]
 [\ \fB\-\-reneg\-sec\fR\ \fIn\fR\ ]
@@ -4040,6 +4043,58 @@ attempts to connect to another client by impersonating the server.
 The attack is easily prevented by having clients verify
 the server certificate using any one of
 .B --ns-cert-type, --tls-remote,
+or
+.B --tls-verify.
+.\"*********************************************************
+.TP
+.B --remote-cert-ku v...
+Require that peer certificate was signed with an explicit
+.B key usage.
+
+This is useful security option for clients, to ensure that
+the host they connect with is a designated server.
+
+The key usage should be encoded in hex, more than one key
+usage can be specified.
+.\"*********************************************************
+.TP
+.B --remote-cert-eku oid
+Require that peer certificate was signed with an explicit
+.B extended key usage.
+
+This is useful security option for clients, to ensure that
+the host they connect with is a designated server.
+
+The extended key usage should be encoded in oid notation, or
+OpenSSL symbolic representation.
+.\"*********************************************************
+.TP
+.B --remote-cert-tls client|server
+Require that peer certificate was signed with an explicit
+.B key usage
+and
+.B extended key usage
+based on TLS rules.
+
+This is a useful security option for clients, to ensure that
+the host they connect with is a designated server.
+
+The
+.B --remote-cert-tls client
+option is equivalent to
+.B --remote-cert-ku 80 08 88 --remote-cert-eku \fB"TLS Web Client Authentication" 
+
+The
+.B --remote-cert-tls server
+option is equivalent to
+.B --remote-cert-ku a0 08 --remote-cert-eku \fB"TLS Web Server Authentication"
+
+This is an important security precaution to protect against
+a man-in-the-middle attack where an authorized client
+attempts to connect to another client by impersonating the server.
+The attack is easily prevented by having clients verify
+the server certificate using any one of
+.B --remote-cert-tls, --tls-remote,
 or
 .B --tls-verify.
 .\"*********************************************************
