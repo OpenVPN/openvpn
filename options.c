@@ -629,7 +629,7 @@ init_options (struct options *o)
   o->tuntap_options.txqueuelen = 100;
 #endif
 #ifdef WIN32
-  o->tuntap_options.ip_win32_type = IPW32_SET_ADAPTIVE;
+  o->tuntap_options.ip_win32_type = IPW32_SET_DHCP_MASQ;
   o->tuntap_options.dhcp_lease_time = 31536000; /* one year */
   o->tuntap_options.dhcp_masq_offset = 0;       /* use network address as internal DHCP server address */
   o->route_method = ROUTE_METHOD_IPAPI;
