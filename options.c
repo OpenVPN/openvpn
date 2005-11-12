@@ -469,7 +469,7 @@ static const char usage_message[] =
   "                  value should be given in hex format.\n"
   "--remote-cert-eku oid : Require that the peer certificate was signed with\n"
   "                  explicit extended key usage. Extended key usage can be encoded\n"
-  "                  as on object identifier or OpenSSL string representation.\n"
+  "                  as an object identifier or OpenSSL string representation.\n"
   "--remote-cert-tls t: Require that peer certificate was signed with explicit\n"
   "                  key usage and extended key usage based on TLS rules.\n"
   "                  t = 'client | 'server'.\n"
