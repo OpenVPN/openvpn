@@ -34,7 +34,54 @@
 
 #include "memdbg.h"
 
-volatile time_t now; /* GLOBAL */
+time_t now = 0;            /* GLOBAL */
+
+#if TIME_BACKTRACK_PROTECTION
+
+static time_t now_adj = 0; /* GLOBAL */
+
+/*
+ * Try to filter out time instability caused by the system
+ * clock backtracking or jumping forward.
+ */
+
+void
+update_now (const time_t system_time)
+{
+  const int threshold = 86400; /* threshold at which to dampen forward jumps */
+  time_t real_time = system_time + now_adj;
+  if (real_time > now)
+    {
+      const time_t overshoot = real_time - now - 1;
+      if (overshoot > threshold && now_adj >= overshoot)
+        {
+          now_adj -= overshoot;
+          real_time -= overshoot;
+        }
+      now = real_time;
+    }
+  else if (real_time < now)
+    {
+      now_adj += (now - real_time);
+    }
+}
+
+#ifdef HAVE_GETTIMEOFDAY
+
+time_t now_usec = 0;       /* GLOBAL */
+
+void
+update_now_usec (struct timeval *tv)
+{
+  const time_t last = now;
+  update_now (tv->tv_sec);
+  if (now > last || tv->tv_usec > now_usec)
+    now_usec = tv->tv_usec;
+}
+
+#endif
+
+#endif
 
 /* 
  * Return a numerical string describing a struct timeval.

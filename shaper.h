@@ -109,7 +109,7 @@ shaper_delay (struct shaper* s)
 
   if (tv_defined (&s->wakeup))
     {
-      ASSERT (!gettimeofday (&tv, NULL));
+      ASSERT (!openvpn_gettimeofday (&tv, NULL));
       delay = tv_subtract (&s->wakeup, &tv, SHAPER_MAX_TIMEOUT);
 #ifdef SHAPER_DEBUG
       dmsg (D_SHAPER_DEBUG, "SHAPER shaper_delay delay=%d", delay);
@@ -143,7 +143,7 @@ shaper_wrote_bytes (struct shaper* s, int nbytes)
 
   if (tv.tv_usec)
     {
-      ASSERT (!gettimeofday (&s->wakeup, NULL));
+      ASSERT (!openvpn_gettimeofday (&s->wakeup, NULL));
       tv_add (&s->wakeup, &tv);
 
 #ifdef SHAPER_DEBUG

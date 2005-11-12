@@ -472,4 +472,10 @@ socket_defined (const socket_descriptor_t sd)
  */
 #define ENABLE_INLINE_FILES 1
 
+/*
+ * Reduce sensitivity to system clock instability
+ * and backtracks.
+ */
+#define TIME_BACKTRACK_PROTECTION 1
+
 #endif

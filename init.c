@@ -2160,9 +2160,11 @@ do_setup_fast_io (struct context *c)
 	msg (M_INFO, "NOTE: --fast-io is disabled since we are not using UDP");
       else
 	{
+#ifdef HAVE_GETTIMEOFDAY
 	  if (c->options.shaper)
 	    msg (M_INFO, "NOTE: --fast-io is disabled since we are using --shaper");
 	  else
+#endif
 	    {
 	      c->c2.fast_io = true;
 	    }

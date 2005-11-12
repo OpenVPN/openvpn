@@ -1667,7 +1667,7 @@ multi_process_post (struct multi_context *m, struct multi_instance *mi, const un
       if (!IS_SIG (&mi->context))
 	{
 	  /* calculate an absolute wakeup time */
-	  ASSERT (!gettimeofday (&mi->wakeup, NULL));
+	  ASSERT (!openvpn_gettimeofday (&mi->wakeup, NULL));
 	  tv_add (&mi->wakeup, &mi->context.c2.timeval);
 
 	  /* tell scheduler to wake us up at some point in the future */

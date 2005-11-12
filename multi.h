@@ -376,7 +376,7 @@ multi_get_timeout (struct multi_context *m, struct timeval *dest)
   m->earliest_wakeup = (struct multi_instance *) schedule_get_earliest_wakeup (m->schedule, &tv);
   if (m->earliest_wakeup)
     {
-      ASSERT (!gettimeofday (&current, NULL));
+      ASSERT (!openvpn_gettimeofday (&current, NULL));
       tv_delta (dest, &current, &tv);
       if (dest->tv_sec >= REAP_MAX_WAKEUP)
 	{

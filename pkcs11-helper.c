@@ -870,7 +870,7 @@ _pkcs11h_getSession (
 				}
 				else {
 					(*session)->timePINExpire = (
-						time (NULL) +
+						openvpn_time (NULL) +
 						(time_t)nPINCachePeriod
 					);
 					(*session)->nPINCachePeriod = nPINCachePeriod;
@@ -1095,7 +1095,7 @@ _pkcs11h_validateSession (
 
 	if (
 		session->timePINExpire != (time_t)0 &&
-		session->timePINExpire < time (NULL)
+		session->timePINExpire < openvpn_time (NULL)
 	) {
 		_pkcs11h_logout (session);
 	}
@@ -1195,7 +1195,7 @@ _pkcs11h_login (
 				}
 				else {
 					session->timePINExpire = (
-						time (NULL) +
+						openvpn_time (NULL) +
 						(time_t)session->nPINCachePeriod
 					);
 				}

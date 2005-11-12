@@ -213,13 +213,13 @@ static inline void
 usec_timer_start (struct usec_timer *obj)
 {
   CLEAR (*obj);
-  gettimeofday (&obj->start, NULL);
+  openvpn_gettimeofday (&obj->start, NULL);
 }
 
 static inline void
 usec_timer_end (struct usec_timer *obj)
 {
-  gettimeofday (&obj->end, NULL);
+  openvpn_gettimeofday (&obj->end, NULL);
 }
 
 #endif /* HAVE_GETTIMEOFDAY */

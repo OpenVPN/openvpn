@@ -54,7 +54,39 @@ const char* time_string (time_t t, int usec, bool show_usec, struct gc_arena *gc
 const char *tv_string (const struct timeval *tv, struct gc_arena *gc);
 const char *tv_string_abs (const struct timeval *tv, struct gc_arena *gc);
 
-extern volatile time_t now; /* updated frequently to time(NULL) */
+extern time_t now; /* updated frequently to time(NULL) */
+
+#if TIME_BACKTRACK_PROTECTION
+
+void update_now (const time_t system_time);
+
+static inline void
+update_time (void)
+{
+  update_now (time (NULL));
+}
+
+#ifdef HAVE_GETTIMEOFDAY
+
+extern time_t now_usec;
+void update_now_usec (struct timeval *tv);
+
+static inline int
+openvpn_gettimeofday (struct timeval *tv, void *tz)
+{
+  const int status = gettimeofday (tv, tz);
+  if (!status)
+    {
+      update_now_usec (tv);
+      tv->tv_sec = now;
+      tv->tv_usec = now_usec;
+    }
+  return status;
+}
+
+#endif
+
+#else
 
 static inline void
 update_time (void)
@@ -62,6 +94,27 @@ update_time (void)
   const time_t real_time = time (NULL);
   if (real_time != now)
     now = real_time;
+}
+
+#ifdef HAVE_GETTIMEOFDAY
+
+static inline int
+openvpn_gettimeofday (struct timeval *tv, void *tz)
+{
+  return gettimeofday (tv, tz);
+}
+
+#endif
+
+#endif
+
+static inline time_t
+openvpn_time (time_t *t)
+{
+  update_time ();
+  if (t)
+    *t = now;
+  return now;
 }
 
 static inline void
