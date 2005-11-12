@@ -586,7 +586,7 @@ _pkcs11h_getSlotByLabel (
 
 	PKCS11DLOG (
 		PKCS11_LOG_DEBUG2,
-		"_PKCS#11: pkcs11h_getSlotByLabel entry szLabel=%s, provider=%p, slot=%p",
+		"PKCS#11: _pkcs11h_getSlotByLabel entry szLabel=%s, provider=%p, slot=%p",
 		szLabel,
 		(void *)provider,
 		(void *)slot
@@ -760,7 +760,7 @@ _pkcs11h_getSession (
 				szLabel[sizeof (szLabel)-1] = 0;
 				PKCS11DLOG (
 					PKCS11_LOG_DEBUG1,
-					"Calling card_prompt hook for %s",
+					"PKCS#11: Calling card_prompt hook for %s",
 					szLabel
 				);
 				if (
@@ -773,7 +773,7 @@ _pkcs11h_getSession (
 				}
 				PKCS11DLOG (
 					PKCS11_LOG_DEBUG1,
-					"card_prompt returned rv=%ld",
+					"PKCS#11: card_prompt returned rv=%ld",
 					rv
 				);
 			}
@@ -870,7 +870,7 @@ _pkcs11h_getSession (
 				}
 				else {
 					(*session)->timePINExpire = (
-						openvpn_time (NULL) +
+						PKCS11_TIME (NULL) +
 						(time_t)nPINCachePeriod
 					);
 					(*session)->nPINCachePeriod = nPINCachePeriod;
@@ -979,7 +979,7 @@ _pkcs11h_resetSession (
 		if (!fFound) {	
 			PKCS11DLOG (
 				PKCS11_LOG_DEBUG1,
-				"Calling card_prompt hook for %s",
+				"PKCS#11: Calling card_prompt hook for %s",
 				session->szLabel
 			);
 	
@@ -990,7 +990,7 @@ _pkcs11h_resetSession (
 
 			PKCS11DLOG (
 				PKCS11_LOG_DEBUG1,
-				"card_prompt returned %d",
+				"PKCS#11: card_prompt returned %d",
 				fCancel ? 1 : 0
 			);
 		}
@@ -1095,7 +1095,7 @@ _pkcs11h_validateSession (
 
 	if (
 		session->timePINExpire != (time_t)0 &&
-		session->timePINExpire < openvpn_time (NULL)
+		session->timePINExpire < PKCS11_TIME (NULL)
 	) {
 		_pkcs11h_logout (session);
 	}
@@ -1163,7 +1163,7 @@ _pkcs11h_login (
 				) {
 					PKCS11DLOG (
 						PKCS11_LOG_DEBUG1,
-						"Calling pin_prompt hook for %s",
+						"PKCS#11: Calling pin_prompt hook for %s",
 						session->szLabel
 					);
 	
@@ -1184,7 +1184,7 @@ _pkcs11h_login (
 
 					PKCS11DLOG (
 						PKCS11_LOG_DEBUG1,
-						"pin_prompt hook return rv=%ld",
+						"PKCS#11: pin_prompt hook return rv=%ld",
 						rv
 					);
 	
@@ -1195,7 +1195,7 @@ _pkcs11h_login (
 				}
 				else {
 					session->timePINExpire = (
-						openvpn_time (NULL) +
+						PKCS11_TIME (NULL) +
 						(time_t)session->nPINCachePeriod
 					);
 				}

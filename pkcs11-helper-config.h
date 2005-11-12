@@ -77,6 +77,8 @@
 #define PKCS11_PRM_OBJ_TYPE	"--pkcs11-id-type"
 #define PKCS11_PRM_OBJ_ID	"--pkcs11-id"
 
+#define PKCS11_TIME	openvpn_time
+
 #if defined(WIN32) || defined(PKCS11_USE_CYGWIN)
 #include "cryptoki-win32.h"
 #else
