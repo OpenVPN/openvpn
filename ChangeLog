@@ -3,7 +3,7 @@ Copyright (C) 2002-2005 OpenVPN Solutions LLC <info@openvpn.net>
 
 $Id$
 
-2005.11.xx -- Version 2.1-beta7
+2005.11.12 -- Version 2.1-beta7
 
 * Allow blank passwords to be passed via the management
   interface.
@@ -22,6 +22,29 @@ $Id$
 * Documented --route-nopull.
 * Documented --ip-win32 adaptive.
 * Windows build now linked with LZO2.
+* Allow ca, cert, key, and dh files to be specified
+  inline via XML-like syntax without needing to
+  reference an explicit file.
+  For example:
+  <ca>
+	data here...
+  </ca>
+* Allow plugin and push directives to have multi-line
+  parameter lists such as:
+  <plugin>
+    my-plugin.so
+    parm1
+    parm2
+  </plugin>
+* Added connect-retry-max option (Alon Bar-Lev).
+* Fixed problems where signals thrown during initialization
+  were not returning to a management-hold state.
+* Added a backtrack-hardened system time algorithm.
+* Added --remote-cert-ku, --remote-cert-eku, and
+  --remote-cert-tls options for verifying certificate
+  attributes (Alon Bar-Lev).
+* For Windows, reverted --ip-win32 default back to "dynamic".
+  To use new adaptive mode, set explicitly.
 	
 2005.11.01 -- Version 2.1-beta6
 
