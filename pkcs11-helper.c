@@ -302,7 +302,9 @@ _hexToBinary (
 
 			if ((i%2) == 1) {
 				unsigned v;
-				sscanf (buf, "%x", &v);
+				if (sscanf (buf, "%x", &v) != 1) {
+					v = 0;
+				}
 				target[*target_size] = v & 0xff;
 				(*target_size)++;
 			}
@@ -374,6 +376,7 @@ _isBetterCertificate (
 				if (
 					notBeforeCurrent != NULL &&
 					notBeforeNew != NULL &&
+					X509_cmp_current_time (notBeforeNew) > 0 &&
 					notBeforeCurrent->length < (int) sizeof (szNotBeforeCurrent) - 1 &&
 					notBeforeNew->length < (int) sizeof (szNotBeforeNew) - 1
 				) {
@@ -439,7 +442,9 @@ _pkcs11h_getSlotById (
 			slot_number = atoi (szSlot);
 		}
 		else {
-			sscanf (szSlot, "%d:%d", &provider_number, &slot_number);
+			if (sscanf (szSlot, "%d:%d", &provider_number, &slot_number) != 2) {
+				rv = CKR_FUNCTION_FAILED;
+			}
 		}
 	}
 	
@@ -753,10 +758,10 @@ _pkcs11h_getSession (
 			if (rv == CKR_SLOT_ID_INVALID) {
 				char szLabel[1024];
 				strcpy (szLabel, "SLOT(");
-				strncat (szLabel, szSlotType, sizeof (szLabel)-1);
-				strncat (szLabel, "=", sizeof (szLabel)-1);
-				strncat (szLabel, szSlot, sizeof (szLabel)-1);
-				strncat (szLabel, ")", sizeof (szLabel)-1);
+				strncat (szLabel, szSlotType, sizeof (szLabel)-1-strlen (szLabel));
+				strncat (szLabel, "=", sizeof (szLabel)-1-strlen (szLabel));
+				strncat (szLabel, szSlot, sizeof (szLabel)-1-strlen (szLabel));
+				strncat (szLabel, ")", sizeof (szLabel)-1-strlen (szLabel));
 				szLabel[sizeof (szLabel)-1] = 0;
 				PKCS11DLOG (
 					PKCS11_LOG_DEBUG1,
