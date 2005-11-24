@@ -4082,12 +4082,14 @@ the host they connect to is a designated server.
 The
 .B --remote-cert-tls client
 option is equivalent to
-.B --remote-cert-ku 80 08 88 --remote-cert-eku \fB"TLS Web Client Authentication" 
+.B
+--remote-cert-ku 80 08 88 --remote-cert-eku "TLS Web Client Authentication"
 
 The
 .B --remote-cert-tls server
 option is equivalent to
-.B --remote-cert-ku a0 08 --remote-cert-eku \fB"TLS Web Server Authentication"
+.B
+--remote-cert-ku a0 08 --remote-cert-eku "TLS Web Server Authentication"
 
 This is an important security precaution to protect against
 a man-in-the-middle attack where an authorized client
