@@ -2383,7 +2383,10 @@ init_instance_handle_signals (struct context *c, const struct env_set *env, cons
    * a management hold.
    */
   if (IS_SIG (c))
-    uninit_management_callback ();  
+    {
+      remap_signal (c);
+      uninit_management_callback ();  
+    }
 }
 
 /*
