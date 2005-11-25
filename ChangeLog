@@ -7,7 +7,10 @@ $Id$
 
 * --remap-usr1 will now also remap signals thrown during
   initialization.
-
+* Added --connect-timeout option to control the timeout
+  on TCP client connection attempts (doesn't work on all
+  OSes).  This patch also makes OpenVPN signalable during
+  TCP connection attempts.
 2005.11.12 -- Version 2.1-beta7
 
 * Allow blank passwords to be passed via the management

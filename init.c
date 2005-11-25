@@ -1673,7 +1673,11 @@ do_option_warnings (struct context *c)
       && !(o->ns_cert_type & NS_SSL_SERVER))
     msg (M_WARN, "WARNING: No server certificate verification method has been enabled.  See http://openvpn.net/howto.html#mitm for more info.");
 #endif
+#endif
 
+#ifndef CONNECT_NONBLOCK
+  if (o->connect_timeout_defined)
+    msg (M_WARN, "NOTE: --connect-timeout option is not supported on this OS");
 #endif
 }
 
@@ -1813,6 +1817,7 @@ do_init_socket_1 (struct context *c, int mode)
 			   c->plugins,
 			   c->options.resolve_retry_seconds,
 			   c->options.connect_retry_seconds,
+			   c->options.connect_timeout,
 			   c->options.connect_retry_max,
 			   c->options.mtu_discover_type,
 			   c->options.rcvbuf,

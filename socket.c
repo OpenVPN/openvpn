@@ -712,6 +712,79 @@ socket_bind (socket_descriptor_t sd,
   gc_free (&gc);
 }
 
+static int
+openvpn_connect (socket_descriptor_t sd,
+		 struct openvpn_sockaddr *remote,
+		 int connect_timeout,
+		 volatile int *signal_received)
+{
+  int status = 0;
+
+#ifdef CONNECT_NONBLOCK
+  set_nonblock (sd);
+  status = connect (sd, (struct sockaddr *) &remote->sa, sizeof (remote->sa));
+  if (status)
+    status = openvpn_errno_socket ();
+  if (status == EINPROGRESS)
+    {
+      while (true)
+	{
+	  fd_set writes;
+	  struct timeval tv;
+
+	  FD_ZERO (&writes);
+	  FD_SET (sd, &writes);
+	  tv.tv_sec = 0;
+	  tv.tv_usec = 0;
+
+	  status = select (sd + 1, NULL, &writes, NULL, &tv);
+
+	  get_signal (signal_received);
+	  if (*signal_received)
+	    {
+	      status = 0;
+	      break;
+	    }
+	  if (status < 0)
+	    {
+	      status = openvpn_errno_socket ();
+	      break;
+	    }
+	  if (status <= 0)
+	    {
+	      if (--connect_timeout < 0)
+		{
+		  status = ETIMEDOUT;
+		  break;
+		}
+	      openvpn_sleep (1);
+	      continue;
+	    }
+
+	  /* got it */
+	  {
+	    int val = 0;
+	    socklen_t len;
+
+	    len = sizeof (val);
+	    if (getsockopt (sd, SOL_SOCKET, SO_ERROR, (void *) &val, &len) == 0
+		&& len == sizeof (val))
+	      status = val;
+	    else
+	      status = openvpn_errno_socket ();
+	    break;
+	  }
+	}
+    }
+#else
+  status = connect (sd, (struct sockaddr *) &remote->sa, sizeof (remote->sa));
+  if (status)
+    status = openvpn_errno_socket ();
+#endif
+
+  return status;
+}
+
 static void
 socket_connect (socket_descriptor_t *sd,
                 struct openvpn_sockaddr *local,
@@ -721,18 +794,24 @@ socket_connect (socket_descriptor_t *sd,
 		const char *remote_dynamic,
 		bool *remote_changed,
 		const int connect_retry_seconds,
+		const int connect_timeout,
 		const int connect_retry_max,
 		volatile int *signal_received)
 {
   struct gc_arena gc = gc_new ();
   int retry = 0;
 
+#ifdef CONNECT_NONBLOCK
+  msg (M_INFO, "Attempting to establish TCP connection with %s [nonblock]", 
+       print_sockaddr (remote, &gc));
+#else
   msg (M_INFO, "Attempting to establish TCP connection with %s", 
        print_sockaddr (remote, &gc));
+#endif
+
   while (true)
     {
-      const int status = connect (*sd, (struct sockaddr *) &remote->sa,
-				  sizeof (remote->sa));
+      const int status = openvpn_connect (*sd, remote, connect_timeout, signal_received);
 
       if (connect_retry_max != 0 && retry++ >= connect_retry_max)
 	*signal_received = SIGUSR1;
@@ -744,10 +823,11 @@ socket_connect (socket_descriptor_t *sd,
       if (!status)
 	break;
 
-      msg (D_LINK_ERRORS | M_ERRNO_SOCK,
-	   "TCP: connect to %s failed, will try again in %d seconds",
+      msg (D_LINK_ERRORS,
+	   "TCP: connect to %s failed, will try again in %d seconds: %s",
 	   print_sockaddr (remote, &gc),
-	   connect_retry_seconds);
+	   connect_retry_seconds,
+	   strerror_ts (status, &gc));
 
       openvpn_close_socket (*sd);
       openvpn_sleep (connect_retry_seconds);
@@ -992,6 +1072,7 @@ link_socket_init_phase1 (struct link_socket *sock,
 			 const struct plugin_list *plugins,
 			 int resolve_retry_seconds,
 			 int connect_retry_seconds,
+			 int connect_timeout,
 			 int connect_retry_max,
 			 int mtu_discover_type,
 			 int rcvbuf,
@@ -1023,6 +1104,7 @@ link_socket_init_phase1 (struct link_socket *sock,
   sock->inetd = inetd;
   sock->resolve_retry_seconds = resolve_retry_seconds;
   sock->connect_retry_seconds = connect_retry_seconds;
+  sock->connect_timeout = connect_timeout;
   sock->connect_retry_max = connect_retry_max;
   sock->mtu_discover_type = mtu_discover_type;
 
@@ -1222,6 +1304,7 @@ link_socket_init_phase2 (struct link_socket *sock,
 			  remote_dynamic,
 			  &remote_changed,
 			  sock->connect_retry_seconds,
+			  sock->connect_timeout,
 			  sock->connect_retry_max,
 			  signal_received);
 
@@ -1263,6 +1346,7 @@ link_socket_init_phase2 (struct link_socket *sock,
 			  remote_dynamic,
 			  &remote_changed,
 			  sock->connect_retry_seconds,
+			  sock->connect_timeout,
 			  sock->connect_retry_max,
 			  signal_received);
 

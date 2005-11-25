@@ -478,4 +478,11 @@ socket_defined (const socket_descriptor_t sd)
  */
 #define TIME_BACKTRACK_PROTECTION 1
 
+/*
+ * Is non-blocking connect() supported?
+ */
+#if defined(HAVE_GETSOCKOPT) && defined(SOL_SOCKET) && defined(SO_ERROR) && defined(EINPROGRESS) && defined(ETIMEDOUT)
+#define CONNECT_NONBLOCK
+#endif
+
 #endif

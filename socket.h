@@ -189,6 +189,7 @@ struct link_socket
 
   int resolve_retry_seconds;
   int connect_retry_seconds;
+  int connect_timeout;
   int connect_retry_max;
   int mtu_discover_type;
 
@@ -300,6 +301,7 @@ link_socket_init_phase1 (struct link_socket *sock,
 			 const struct plugin_list *plugins,
 			 int resolve_retry_seconds,
 			 int connect_retry_seconds,
+			 int connect_timeout,
 			 int connect_retry_max,
 			 int mtu_discover_type,
 			 int rcvbuf,

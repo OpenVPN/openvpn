@@ -94,7 +94,8 @@ static const char usage_message[] =
   "--proto p       : Use protocol p for communicating with peer.\n"
   "                  p = udp (default), tcp-server, or tcp-client\n"
   "--connect-retry n : For --proto tcp-client, number of seconds to wait\n"
-  "                  between connection retries (default=%d).\n"
+  "                    between connection retries (default=%d).\n"
+  "--connect-timeout n : For --proto tcp-client, connection timeout (in seconds).\n"
   "--connect-retry-max n : Maximum connection attempt retries, default infinite.\n"
 #ifdef ENABLE_HTTP_PROXY
   "--http-proxy s p [up] [auth] : Connect to remote host through an HTTP proxy at\n"
@@ -598,6 +599,7 @@ init_options (struct options *o)
   o->topology = TOP_NET30;
   o->proto = PROTO_UDPv4;
   o->connect_retry_seconds = 5;
+  o->connect_timeout = 10;
   o->connect_retry_max = 0;
   o->local_port = o->remote_port = OPENVPN_PORT;
   o->verbosity = 1;
@@ -1099,6 +1101,7 @@ show_settings (const struct options *o)
 
   SHOW_INT (resolve_retry_seconds);
   SHOW_INT (connect_retry_seconds);
+  SHOW_INT (connect_timeout);
   SHOW_INT (connect_retry_max);
 
   SHOW_STR (username);
@@ -1380,6 +1383,9 @@ options_postprocess (struct options *options, bool first_time)
 
   if (options->connect_retry_defined && options->proto != PROTO_TCPv4_CLIENT)
     msg (M_USAGE, "--connect-retry doesn't make sense unless also used with --proto tcp-client");
+
+  if (options->connect_timeout_defined && options->proto != PROTO_TCPv4_CLIENT)
+    msg (M_USAGE, "--connect-timeout doesn't make sense unless also used with --proto tcp-client");
 
   /*
    * Sanity check on MTU parameters
@@ -3239,6 +3245,12 @@ add_option (struct options *options,
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->connect_retry_seconds = positive_atoi (p[1]);
       options->connect_retry_defined = true;
+    }
+  else if (streq (p[0], "connect-timeout") && p[1])
+    {
+      VERIFY_PERMISSION (OPT_P_GENERAL);
+      options->connect_timeout = positive_atoi (p[1]);
+      options->connect_timeout_defined = true;
     }
   else if (streq (p[0], "connect-retry-max") && p[1])
     {

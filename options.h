@@ -149,6 +149,8 @@ struct options
   int connect_retry_seconds;
   int connect_retry_max;
   bool connect_retry_defined;
+  int connect_timeout;
+  bool connect_timeout_defined;
 
   /* Advanced MTU negotiation and datagram fragmentation options */
   int mtu_discover_type; /* used if OS supports setting Path MTU discovery options on socket */
