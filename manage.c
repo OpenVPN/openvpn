@@ -1601,7 +1601,7 @@ management_io (struct management *man)
 
 #endif
 
-inline bool
+static inline bool
 man_standalone_ok (const struct management *man)
 {
   return !man->settings.management_over_tunnel && man->connection.state != MS_INITIAL;

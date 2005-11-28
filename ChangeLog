@@ -11,6 +11,12 @@ $Id$
   on TCP client connection attempts (doesn't work on all
   OSes).  This patch also makes OpenVPN signalable during
   TCP connection attempts.
+* Fixed bug in acinclude.m4 where capability of compiler
+  to handle zero-length arrays in structs is tested
+  (David Stipp).
+* Fixed typo in manage.c where inline function declaration
+  was declared without the "static" keyword (David Stipp).
+
 2005.11.12 -- Version 2.1-beta7
 
 * Allow blank passwords to be passed via the management
@@ -22,6 +28,9 @@ $Id$
   but actually would only accept /29 or less.
 * Extend byte counters to 64 bits (M. van Cuijk).
 * PKCS#11 fixes (Alon Bar-Lev).
+
+2005.11.02 -- Version 2.0.5
+
 * Fixed bug in Linux get_default_gateway function
   introduced in 2.0.4, which would cause redirect-gateway
   on Linux clients to fail.

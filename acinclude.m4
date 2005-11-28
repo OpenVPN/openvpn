@@ -19,13 +19,13 @@ AC_DEFUN([AX_EMPTY_ARRAY], [
   AC_MSG_RESULT([checking for C compiler empty array support])
   AC_COMPILE_IFELSE(
     [
-        struct { int foo; int bar[0]; } mystruct;
+        struct { int foo; int bar[[0]]; } mystruct;
     ], [
         AC_DEFINE_UNQUOTED(EMPTY_ARRAY_SIZE, 0, [Dimension to use for empty array declaration])
     ], [
         AC_COMPILE_IFELSE(
 	    [
-	        struct { int foo; int bar[]; } mystruct;
+	        struct { int foo; int bar[[]]; } mystruct;
 	    ], [
                 AC_DEFINE_UNQUOTED(EMPTY_ARRAY_SIZE,, [Dimension to use for empty array declaration])
 	    ], [

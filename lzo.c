@@ -78,7 +78,7 @@ lzo_adaptive_compress_test (struct lzo_adaptive_compress *ac)
   return !ac->compress_state;
 }
 
-inline static void
+static inline void
 lzo_adaptive_compress_data (struct lzo_adaptive_compress *ac, int n_total, int n_comp)
 {
   ac->n_total += n_total;
