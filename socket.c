@@ -811,10 +811,9 @@ socket_connect (socket_descriptor_t *sd,
 
   while (true)
     {
-      const int status = openvpn_connect (*sd, remote, connect_timeout, signal_received);
+      int status;
 
-      if (connect_retry_max != 0 && retry++ >= connect_retry_max)
-	*signal_received = SIGUSR1;
+      status = openvpn_connect (*sd, remote, connect_timeout, signal_received);
 
       get_signal (signal_received);
       if (*signal_received)
@@ -830,7 +829,19 @@ socket_connect (socket_descriptor_t *sd,
 	   strerror_ts (status, &gc));
 
       openvpn_close_socket (*sd);
+      *sd = SOCKET_UNDEFINED;
+
+      if (connect_retry_max > 0 && ++retry >= connect_retry_max)
+	{
+	  *signal_received = SIGUSR1;
+	  goto done;
+	}
+
       openvpn_sleep (connect_retry_seconds);
+
+      get_signal (signal_received);
+      if (*signal_received)
+	goto done;
 
       if (remote_list)
 	{
