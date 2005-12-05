@@ -396,6 +396,8 @@ struct options
   int ns_cert_type; /* set to 0, NS_SSL_SERVER, or NS_SSL_CLIENT */
   unsigned remote_cert_ku[MAX_PARMS];
   const char *remote_cert_eku;
+
+#ifdef ENABLE_PKCS11
   const char *pkcs11_providers[MAX_PARMS];
   const char *pkcs11_sign_mode[MAX_PARMS];
   const char *pkcs11_slot_type;
@@ -405,6 +407,8 @@ struct options
   int pkcs11_pin_cache_period;
   bool pkcs11_protected_authentication;
   bool pkcs11_cert_private;
+#endif
+
 #ifdef WIN32
   const char *cryptoapi_cert;
 #endif
