@@ -16,6 +16,7 @@ $Id$
   (David Stipp).
 * Fixed typo in manage.c where inline function declaration
   was declared without the "static" keyword (David Stipp).
+* Patch to support --topology subnet on Mac OS X (Mathias Sundman).
 
 2005.11.12 -- Version 2.1-beta7
 

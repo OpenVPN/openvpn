@@ -118,6 +118,8 @@ struct route_option_list *new_route_option_list (struct gc_arena *a);
 
 struct route_list *new_route_list (struct gc_arena *a);
 
+void add_route (struct route *r, const struct tuntap *tt, unsigned int flags, const struct env_set *es);
+
 void add_route_to_option_list (struct route_option_list *l,
 			       const char *network,
 			       const char *netmask,

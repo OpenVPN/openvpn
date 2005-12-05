@@ -44,6 +44,7 @@
 #include "misc.h"
 #include "socket.h"
 #include "manage.h"
+#include "route.h"
 
 #include "memdbg.h"
 
@@ -746,17 +747,40 @@ do_ifconfig (struct tuntap *tt,
 			  tun_mtu
 			  );
       else
-	openvpn_snprintf (command_line, sizeof (command_line),
-			  IFCONFIG_PATH " %s %s netmask %s mtu %d up",
-			  actual,
-			  ifconfig_local,
-			  ifconfig_remote_netmask,
-			  tun_mtu
-			  );
-
+        {
+          if (tt->topology == TOP_SUBNET)
+    	    openvpn_snprintf (command_line, sizeof (command_line),
+			      IFCONFIG_PATH " %s %s %s netmask %s mtu %d up",
+			      actual,
+			      ifconfig_local,
+			      ifconfig_local,
+			      ifconfig_remote_netmask,
+			      tun_mtu
+			      );
+	  else
+    	    openvpn_snprintf (command_line, sizeof (command_line),
+			      IFCONFIG_PATH " %s %s netmask %s mtu %d up",
+			      actual,
+			      ifconfig_local,
+			      ifconfig_remote_netmask,
+			      tun_mtu
+			      );
+	}
       msg (M_INFO, "%s", command_line);
       system_check (command_line, es, S_FATAL, "Mac OS X ifconfig failed");
       tt->did_ifconfig = true;
+
+      /* Add a network route for the local tun interface */
+      if (!tun && tt->topology == TOP_SUBNET)
+	{
+	  struct route r;
+	  CLEAR (r);
+	  r.defined = true;
+	  r.network = tt->local & tt->remote_netmask;
+	  r.netmask = tt->remote_netmask;
+	  r.gateway = tt->local;
+	  add_route (&r, tt, 0, es);
+	}
 
 #elif defined(TARGET_FREEBSD)
 

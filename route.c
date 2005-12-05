@@ -45,7 +45,6 @@
 
 #include "memdbg.h"
 
-static void add_route (struct route *r, const struct tuntap *tt, unsigned int flags, const struct env_set *es);
 static void delete_route (const struct route *r, const struct tuntap *tt, unsigned int flags, const struct env_set *es);
 static bool get_default_gateway (in_addr_t *ret);
 static void get_bypass_addresses (struct route_bypass *rb, const unsigned int flags);
@@ -741,7 +740,7 @@ setenv_routes (struct env_set *es, const struct route_list *rl)
     setenv_route (es, &rl->routes[i], i + 1);
 }
 
-static void
+void
 add_route (struct route *r, const struct tuntap *tt, unsigned int flags, const struct env_set *es)
 {
   struct gc_arena gc;
