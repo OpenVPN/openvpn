@@ -1378,14 +1378,14 @@ make_inline_array (const char *str, struct gc_arena *gc)
   char **ret = NULL;
   int i = 0;
 
-  buf_set_read (&buf, str, strlen (str));
+  buf_set_read (&buf, (const uint8_t *) str, strlen (str));
   while (buf_parse (&buf, '\n', line, sizeof (line)))
     ++len;
 
   /* alloc return array */
   ALLOC_ARRAY_CLEAR_GC (ret, char *, len + 1, gc);
 
-  buf_set_read (&buf, str, strlen(str));
+  buf_set_read (&buf, (const uint8_t *) str, strlen(str));
   while (buf_parse (&buf, '\n', line, sizeof (line)))
     {
       chomp (line);
