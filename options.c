@@ -4538,9 +4538,26 @@ add_option (struct options *options,
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->show_engines = true;
     }
+  else if (streq (p[0], "key-direction") && p[1])
+    {
+      int key_direction;
+
+      key_direction = ascii2keydirection (msglevel, p[1]);
+      if (key_direction >= 0)
+	options->key_direction = key_direction;
+      else
+	goto err;
+    }
   else if (streq (p[0], "secret") && p[1])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
+#if ENABLE_INLINE_FILES
+      if (streq (p[1], INLINE_FILE_TAG) && p[2])
+	{
+	  options->shared_secret_file_inline = p[2];
+	}
+      else
+#endif
       if (p[2])
 	{
 	  int key_direction;
@@ -4889,6 +4906,13 @@ add_option (struct options *options,
   else if (streq (p[0], "tls-auth") && p[1])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
+#if ENABLE_INLINE_FILES
+      if (streq (p[1], INLINE_FILE_TAG) && p[2])
+	{
+	  options->tls_auth_file_inline = p[2];
+	}
+      else
+#endif
       if (p[2])
 	{
 	  int key_direction;

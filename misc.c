@@ -433,15 +433,20 @@ void
 warn_if_group_others_accessible (const char* filename)
 {
 #ifdef HAVE_STAT
-  struct stat st;
-  if (stat (filename, &st))
+#if ENABLE_INLINE_FILES
+  if (strcmp (filename, INLINE_FILE_TAG))
+#endif
     {
-      msg (M_WARN | M_ERRNO, "WARNING: cannot stat file '%s'", filename);
-    }
-  else
-    {
-      if (st.st_mode & (S_IRWXG|S_IRWXO))
-	msg (M_WARN, "WARNING: file '%s' is group or others accessible", filename);
+      struct stat st;
+      if (stat (filename, &st))
+	{
+	  msg (M_WARN | M_ERRNO, "WARNING: cannot stat file '%s'", filename);
+	}
+      else
+	{
+	  if (st.st_mode & (S_IRWXG|S_IRWXO))
+	    msg (M_WARN, "WARNING: file '%s' is group or others accessible", filename);
+	}
     }
 #endif
 }

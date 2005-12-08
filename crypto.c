@@ -905,11 +905,12 @@ test_crypto (const struct crypto_options *co, struct frame* frame)
 }
 
 #ifdef USE_SSL
+
 void
 get_tls_handshake_key (const struct key_type *key_type,
 		       struct key_ctx_bi *ctx,
 		       const char *passphrase_file,
-		       bool key_direction)
+		       const unsigned int flags)
 {
   if (passphrase_file && key_type->hmac_length)
     {
@@ -921,40 +922,55 @@ get_tls_handshake_key (const struct key_type *key_type,
       kt.cipher_length = 0;
       kt.cipher = NULL;
 
-      /* first try to parse as an OpenVPN static key file */
-      read_key_file (&key2, passphrase_file, false);
-
-      /* succeeded? */
-      if (key2.n == 2)
+#if ENABLE_INLINE_FILES
+      if (flags & GHK_INLINE)
 	{
-	  msg (M_INFO,
-	       "Control Channel Authentication: using '%s' as a " PACKAGE_NAME " static key file",
-	       passphrase_file);
+	  /* key was specified inline, key text is in passphrase_file */
+	  read_key_file (&key2, passphrase_file, RKF_INLINE|RKF_MUST_SUCCEED);
+
+	  /* succeeded? */
+	  if (key2.n == 2)
+	    msg (M_INFO, "Control Channel Authentication: tls-auth using INLINE static key file");
+	  else
+	    msg (M_FATAL, "INLINE tls-auth file lacks the requisite 2 keys");
 	}
       else
-	{
-	  int hash_size;
+#endif
+      {
+	/* first try to parse as an OpenVPN static key file */
+	read_key_file (&key2, passphrase_file, 0);
 
-	  CLEAR (key2);
+	/* succeeded? */
+	if (key2.n == 2)
+	  {
+	    msg (M_INFO,
+		 "Control Channel Authentication: using '%s' as a " PACKAGE_NAME " static key file",
+		 passphrase_file);
+	  }
+	else
+	  {
+	    int hash_size;
 
-	  /* failed, now try to get hash from a freeform file */
-	  hash_size = read_passphrase_hash (passphrase_file,
-					    kt.digest,
-					    key2.keys[0].hmac,
-					    MAX_HMAC_KEY_LENGTH);
-	  ASSERT (hash_size == kt.hmac_length);
+	    CLEAR (key2);
 
-	  /* suceeded */
-	  key2.n = 1;
+	    /* failed, now try to get hash from a freeform file */
+	    hash_size = read_passphrase_hash (passphrase_file,
+					      kt.digest,
+					      key2.keys[0].hmac,
+					      MAX_HMAC_KEY_LENGTH);
+	    ASSERT (hash_size == kt.hmac_length);
 
-	  msg (M_INFO,
-	       "Control Channel Authentication: using '%s' as a free-form passphrase file",
-	       passphrase_file);
-	}
+	    /* suceeded */
+	    key2.n = 1;
 
+	    msg (M_INFO,
+		 "Control Channel Authentication: using '%s' as a free-form passphrase file",
+		 passphrase_file);
+	  }
+      }
       /* handle key direction */
 
-      key_direction_state_init (&kds, key_direction);
+      key_direction_state_init (&kds, BOOL_CAST (flags & GHK_KEY_DIR));
       must_have_n_keys (passphrase_file, "tls-auth", &key2, kds.need_keys);
 
       /* initialize hmac key in both directions */
@@ -984,13 +1000,15 @@ static const char unprintable_char_fmt[] =
   "Non-Hex, unprintable character (0x%02x) found at line %d in key file '%s' (%d/%d/%d bytes found/min/max)";
 
 /* read key from file */
+
 void
-read_key_file (struct key2 *key2, const char *filename, bool must_succeed)
+read_key_file (struct key2 *key2, const char *file, const unsigned int flags)
 {
   struct gc_arena gc = gc_new ();
-  struct buffer in = alloc_buf_gc (64, &gc);
+  struct buffer in;
   int fd, size;
   uint8_t hex_byte[3] = {0, 0, 0};
+  const char *error_filename = file;
 
   /* parse info */
   int hb_index = 0;
@@ -1019,95 +1037,110 @@ read_key_file (struct key2 *key2, const char *filename, bool must_succeed)
 
   CLEAR (*key2);
 
-  fd = open (filename, O_RDONLY);
-  if (fd == -1)
-    msg (M_ERR, "Cannot open file key file '%s'", filename);
-
-  while ((size = read (fd, in.data, in.capacity)))
+  /*
+   * Key can be provided as a filename in 'file' or if RKF_INLINE
+   * is set, the actual key data itself in ascii form.
+   */
+#if ENABLE_INLINE_FILES
+  if (flags & RKF_INLINE) /* 'file' is a string containing ascii representation of key */
     {
-      const char *cp = (char *)in.data;
-      while (size)
-	{
-	  const char c = *cp;
-
-#if 0
-	  msg (M_INFO, "char='%c' s=%d ln=%d li=%d m=%d c=%d",
-	       c, state, line_num, line_index, match, count);
+      size = strlen (file) + 1;
+      buf_set_read (&in, (const uint8_t *)file, size);
+      error_filename = INLINE_FILE_TAG;
+    }
+  else /* 'file' is a filename which refers to a file containing the ascii key */
 #endif
-
-	  if (c == '\n')
-	    {
-	      line_index = match = 0;
-	      ++line_num;	      
-	    }
-	  else
-	    {
-	      /* first char of new line */
-	      if (!line_index)
-		{
-		  /* first char of line after header line? */
-		  if (state == PARSE_HEAD)
-		    state = PARSE_DATA;
-
-		  /* first char of footer */
-		  if ((state == PARSE_DATA || state == PARSE_DATA_COMPLETE) && c == '-')
-		    state = PARSE_FOOT;
-		}
-
-	      /* compare read chars with header line */
-	      if (state == PARSE_INITIAL)
-		{
-		  if (line_index < hlen && c == static_key_head[line_index])
-		    {
-		      if (++match == hlen)
-			state = PARSE_HEAD;
-		    }
-		}
-
-	      /* compare read chars with footer line */
-	      if (state == PARSE_FOOT)
-		{
-		  if (line_index < flen && c == static_key_foot[line_index])
-		    {
-		      if (++match == flen)
-			state = PARSE_FINISHED;
-		    }
-		}
-
-	      /* reading key */
-	      if (state == PARSE_DATA)
-		{
-		  if (isxdigit(c))
-		    {
-		      ASSERT (hb_index >= 0 && hb_index < 2);
-		      hex_byte[hb_index++] = c;
-		      if (hb_index == 2)
-			{
-			  unsigned int u;
-			  ASSERT(sscanf((const char *)hex_byte, "%x", &u) == 1);
-			  *out++ = u;
-			  hb_index = 0;
-			  if (++count == keylen)
-			    state = PARSE_DATA_COMPLETE;
-			}
-		    }
-		  else if (isspace(c))
-		    ;
-		  else
-		    {
-		      msg (M_FATAL,
-			   (isprint (c) ? printable_char_fmt : unprintable_char_fmt),
-			   c, line_num, filename, count, onekeylen, keylen);
-		    }
-		}
-	      ++line_index;
-	    }
-	  ++cp;
-	  --size;
-	}
+    {
+      in = alloc_buf_gc (2048, &gc);
+      fd = open (file, O_RDONLY);
+      if (fd == -1)
+	msg (M_ERR, "Cannot open file key file '%s'", file);
+      size = read (fd, in.data, in.capacity);
+      if (size == in.capacity)
+	msg (M_FATAL, "Key file ('%s') can be a maximum of %d bytes", file, (int)in.capacity);
+      close (fd);
     }
 
-  close (fd);
+  const char *cp = (char *)in.data;
+  while (size)
+    {
+      const char c = *cp;
+
+#if 0
+      msg (M_INFO, "char='%c' s=%d ln=%d li=%d m=%d c=%d",
+	   c, state, line_num, line_index, match, count);
+#endif
+
+      if (c == '\n')
+	{
+	  line_index = match = 0;
+	  ++line_num;	      
+	}
+      else
+	{
+	  /* first char of new line */
+	  if (!line_index)
+	    {
+	      /* first char of line after header line? */
+	      if (state == PARSE_HEAD)
+		state = PARSE_DATA;
+
+	      /* first char of footer */
+	      if ((state == PARSE_DATA || state == PARSE_DATA_COMPLETE) && c == '-')
+		state = PARSE_FOOT;
+	    }
+
+	  /* compare read chars with header line */
+	  if (state == PARSE_INITIAL)
+	    {
+	      if (line_index < hlen && c == static_key_head[line_index])
+		{
+		  if (++match == hlen)
+		    state = PARSE_HEAD;
+		}
+	    }
+
+	  /* compare read chars with footer line */
+	  if (state == PARSE_FOOT)
+	    {
+	      if (line_index < flen && c == static_key_foot[line_index])
+		{
+		  if (++match == flen)
+		    state = PARSE_FINISHED;
+		}
+	    }
+
+	  /* reading key */
+	  if (state == PARSE_DATA)
+	    {
+	      if (isxdigit(c))
+		{
+		  ASSERT (hb_index >= 0 && hb_index < 2);
+		  hex_byte[hb_index++] = c;
+		  if (hb_index == 2)
+		    {
+		      unsigned int u;
+		      ASSERT(sscanf((const char *)hex_byte, "%x", &u) == 1);
+		      *out++ = u;
+		      hb_index = 0;
+		      if (++count == keylen)
+			state = PARSE_DATA_COMPLETE;
+		    }
+		}
+	      else if (isspace(c))
+		;
+	      else
+		{
+		  msg (M_FATAL,
+		       (isprint (c) ? printable_char_fmt : unprintable_char_fmt),
+		       c, line_num, error_filename, count, onekeylen, keylen);
+		}
+	    }
+	  ++line_index;
+	}
+      ++cp;
+      --size;
+    }
 
   /*
    * Normally we will read either 1 or 2 keys from file.
@@ -1116,22 +1149,22 @@ read_key_file (struct key2 *key2, const char *filename, bool must_succeed)
 
   ASSERT (key2->n >= 0 && key2->n <= (int) SIZE (key2->keys));
 
-  if (must_succeed)
+  if (flags & RKF_MUST_SUCCEED)
     {
       if (!key2->n)
 	msg (M_FATAL, "Insufficient key material or header text not found found in file '%s' (%d/%d/%d bytes found/min/max)",
-	     filename, count, onekeylen, keylen);
+	     error_filename, count, onekeylen, keylen);
 
       if (state != PARSE_FINISHED)
 	msg (M_FATAL, "Footer text not found in file '%s' (%d/%d/%d bytes found/min/max)",
-	     filename, count, onekeylen, keylen);
+	     error_filename, count, onekeylen, keylen);
     }
 
   /* zero file read buffer */
   buf_clear (&in);
 
   if (key2->n)
-    warn_if_group_others_accessible (filename);
+    warn_if_group_others_accessible (error_filename);
 
 #if 0
   /* DEBUGGING */

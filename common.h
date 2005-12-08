@@ -64,4 +64,12 @@ typedef unsigned long ptr_type;
  */
 #define TLS_CHANNEL_BUF_SIZE 1024
 
+/*
+ * A sort of pseudo-filename for data provided inline within
+ * the configuration file.
+ */
+#if ENABLE_INLINE_FILES
+#define INLINE_FILE_TAG "[[INLINE]]"
+#endif
+
 #endif

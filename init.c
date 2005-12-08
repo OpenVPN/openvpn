@@ -1276,7 +1276,19 @@ do_init_crypto_static (struct context *c, const unsigned int flags)
 		     options->test_crypto, true);
 
       /* Read cipher and hmac keys from shared secret file */
-      read_key_file (&key2, options->shared_secret_file, true);
+      {
+	unsigned int rkf_flags = RKF_MUST_SUCCEED;
+	const char *rkf_file = options->shared_secret_file;
+
+#if ENABLE_INLINE_FILES
+	if (options->shared_secret_file_inline)
+	  {
+	    rkf_file = options->shared_secret_file_inline;
+	    rkf_flags |= RKF_INLINE;
+	  }
+#endif
+	read_key_file (&key2, rkf_file, rkf_flags);
+      }
 
       /* Check for and fix highly unlikely key problems */
       verify_fix_key2 (&key2, &c->c1.ks.key_type,
@@ -1361,10 +1373,22 @@ do_init_crypto_tls_c1 (struct context *c)
 
       /* TLS handshake authentication (--tls-auth) */
       if (options->tls_auth_file)
-	get_tls_handshake_key (&c->c1.ks.key_type,
-			       &c->c1.ks.tls_auth_key,
-			       options->tls_auth_file,
-			       options->key_direction);
+	{
+	  unsigned int flags = options->key_direction ? GHK_KEY_DIR : 0;
+	  const char *file = options->tls_auth_file;
+
+#if ENABLE_INLINE_FILES
+	  if (options->tls_auth_file_inline)
+	    {
+	      flags |= GHK_INLINE;
+	      file = options->tls_auth_file_inline;
+	    }
+#endif
+	  get_tls_handshake_key (&c->c1.ks.key_type,
+				 &c->c1.ks.tls_auth_key,
+				 file,
+				 flags);
+	}
 
 #if ENABLE_INLINE_FILES
       if (options->priv_key_file_inline)

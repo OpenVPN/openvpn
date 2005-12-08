@@ -82,10 +82,6 @@ struct options_pre_pull
 
 #endif
 
-#if ENABLE_INLINE_FILES
-#define INLINE_FILE_TAG "[[INLINE]]"
-#endif
-
 /* Command line options */
 struct options
 {
@@ -356,6 +352,9 @@ struct options
 #ifdef USE_CRYPTO
   /* Cipher parms */
   const char *shared_secret_file;
+#if ENABLE_INLINE_FILES
+  const char *shared_secret_file_inline;
+#endif
   int key_direction;
   bool ciphername_defined;
   const char *ciphername;
@@ -433,6 +432,9 @@ struct options
 
   /* Special authentication MAC for TLS control channel */
   const char *tls_auth_file;		/* shared secret */
+#if ENABLE_INLINE_FILES
+  const char *tls_auth_file_inline;
+#endif
 
   /* Allow only one session */
   bool single_session;

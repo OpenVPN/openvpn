@@ -270,7 +270,9 @@ void init_key_type (struct key_type *kt, const char *ciphername,
 		    bool authname_defined, int keysize,
 		    bool cfb_ofb_allowed, bool warn);
 
-void read_key_file (struct key2 *key2, const char *filename, bool must_succeed);
+#define RKF_MUST_SUCCEED (1<<0)
+#define RKF_INLINE       (1<<1)
+void read_key_file (struct key2 *key2, const char *file, const unsigned int flags);
 
 int write_key_file (const int nkeys, const char *filename);
 
@@ -367,10 +369,12 @@ void openssl_dmalloc_init (void);
 
 #ifdef USE_SSL
 
+#define GHK_KEY_DIR (1<<0)
+#define GHK_INLINE  (1<<1)
 void get_tls_handshake_key (const struct key_type *key_type,
 			    struct key_ctx_bi *ctx,
 			    const char *passphrase_file,
-			    bool key_direction);
+			    const unsigned int flags);
 
 #else
 
