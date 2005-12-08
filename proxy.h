@@ -67,5 +67,7 @@ void establish_http_proxy_passthru (struct http_proxy_info *p,
 uint8_t *make_base64_string2 (const uint8_t *str, int str_len, struct gc_arena *gc);
 uint8_t *make_base64_string (const uint8_t *str, struct gc_arena *gc);
 
+bool get_http_proxy_settings (struct http_proxy_options *p, char **err, struct gc_arena *gc);
+
 #endif
 #endif

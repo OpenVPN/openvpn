@@ -429,7 +429,7 @@ socket_defined (const socket_descriptor_t sd)
 /*
  * Should we include NTLM proxy functionality
  */
-#if defined(USE_CRYPTO) && defined (ENABLE_HTTP_PROXY)
+#if defined(USE_CRYPTO) && defined(ENABLE_HTTP_PROXY)
 #define NTLM 1
 #else
 #define NTLM 0

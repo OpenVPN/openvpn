@@ -969,7 +969,7 @@ show_remote_list (const struct remote_list *l)
 }
 #endif
 
-#if defined(ENABLE_HTTP_PROXY) && defined (ENABLE_DEBUG)
+#if defined(ENABLE_HTTP_PROXY) && defined(ENABLE_DEBUG)
 static void
 show_http_proxy_options (const struct http_proxy_options *o)
 {
@@ -3676,23 +3676,58 @@ add_option (struct options *options,
       options->proto = proto;
     }
 #ifdef ENABLE_HTTP_PROXY
-  else if (streq (p[0], "http-proxy") && p[1] && p[2])
+  else if (streq (p[0], "http-proxy") && p[1])
     {
-      int port;
       struct http_proxy_options *ho;
 
       VERIFY_PERMISSION (OPT_P_GENERAL);
-      port = atoi (p[2]);
-      if (!legal_ipv4_port (port))
+
+      if (streq (p[1], "auto"))
 	{
-	  msg (msglevel, "Bad http-proxy port number: %s", p[2]);
-	  goto err;
+	  struct http_proxy_options hpo;
+	  bool status;
+	  char *error = NULL;
+
+	  p[4] = p[3];
+	  p[3] = p[2];
+	  p[1] = p[2] = NULL;
+	  CLEAR (hpo);
+	  
+	  status = get_http_proxy_settings (&hpo, &error, &options->gc);
+	  if (status)
+	    {
+	      ho = init_http_options_if_undefined (options);
+	      ho->server = hpo.server;
+	      ho->port = hpo.port;
+	    }
+	  else
+	    {
+	      if (error)
+		msg (M_WARN, "http-proxy auto error: %s", error);
+	      goto err;
+	    }
+	}
+      else
+	{
+	  int port;
+	  if (!p[2])
+	    {
+	      msg (msglevel, "http-proxy port number not defined");
+	      goto err;
+	    }
+	  port = atoi (p[2]);
+	  if (!legal_ipv4_port (port))
+	    {
+	      msg (msglevel, "Bad http-proxy port number: %s", p[2]);
+	      goto err;
+	    }
+
+	  ho = init_http_options_if_undefined (options);
+
+	  ho->server = p[1];
+	  ho->port = port;
 	}
 
-      ho = init_http_options_if_undefined (options);
-
-      ho->server = p[1];
-      ho->port = port;
       if (p[3])
 	{
 	  ho->auth_method_string = "basic";
@@ -3743,6 +3778,29 @@ add_option (struct options *options,
 	  msg (msglevel, "Bad http-proxy-option or missing parameter: '%s'", p[1]);
 	}
     }
+  else if (streq (p[0], "show-http-proxy-settings"))
+    {
+      struct http_proxy_options po;
+      bool status;
+      char *error = NULL;
+
+      VERIFY_PERMISSION (OPT_P_GENERAL);
+      CLEAR (po);
+      status = get_http_proxy_settings (&po, &error, &options->gc);
+      if (status)
+	{
+	  msg (M_INFO|M_NOPREFIX, "Server: %s", po.server);
+	  msg (M_INFO|M_NOPREFIX, "Port: %d", po.port);
+	}
+      else
+	{
+	  if (error)
+	    msg (msglevel, "Proxy error: %s", error);
+	  else
+	    msg (msglevel, "Proxy settings are undefined");
+	}
+      openvpn_exit (OPENVPN_EXIT_STATUS_GOOD); /* exit point */
+    }  
 #endif
 #ifdef ENABLE_SOCKS
   else if (streq (p[0], "socks-proxy") && p[1])

@@ -40,7 +40,61 @@
 #include "proxy.h"
 #include "ntlm.h"
 
+#ifdef WIN32
+#include "ieproxy.h"
+#endif
+
 #include "memdbg.h"
+
+#ifdef WIN32
+
+bool
+get_http_proxy_settings (struct http_proxy_options *p, char **err, struct gc_arena *gc)
+{
+  bool ret = false;
+  const char *result;
+
+  p->server = NULL;
+  p->port = 0;
+  getIeHttpProxyError = NULL;
+  if (err)
+    *err = NULL;
+
+  result = getIeHttpProxy ();
+  if (result)
+    {
+      char addr_str[128];
+      char port_str[16];
+      struct buffer in;
+      buf_set_read (&in, (const uint8_t *)result, strlen (result));
+      if (buf_parse (&in, ':', addr_str, sizeof (addr_str))
+	  && buf_parse (&in, ':', port_str, sizeof (port_str)))
+	{
+	  p->server = string_alloc (addr_str, gc);
+	  p->port = atoi (port_str);
+	  ret = true;
+	}
+      free ((void *)result);
+    }
+  else if (getIeHttpProxyError)
+    {
+      if (err)
+	*err = string_alloc (getIeHttpProxyError, gc);
+    }
+  return ret;
+}
+
+#else
+
+bool
+get_http_proxy_settings (struct http_proxy_options *p, char **err, struct gc_arena *gc)
+{
+  if (err)
+    *err = string_alloc ("HTTP proxy detection not supported on this OS", gc);
+  return false;
+}
+
+#endif
 
 /* cached proxy username/password */
 static struct user_pass static_proxy_user_pass;

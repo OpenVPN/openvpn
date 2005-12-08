@@ -49,7 +49,7 @@ INCLUDE_DIRS = -I${OPENSSL}/include -I${LZO}/include
 
 INCLUDE_DIRS_DMALLOC = ${INCLUDE_DIRS} -I${DMALLOC}
 
-LIBS = -llzo2 -lcrypt32 -lws2_32 -lgdi32 -liphlpapi -lwinmm
+LIBS = -llzo2 -lcrypt32 -lWinInet -lws2_32 -lgdi32 -liphlpapi -lwinmm
 
 LIBS_DMALLOC = ${LIBS} -ldmalloc
 
@@ -78,6 +78,7 @@ HEADERS = \
 	fragment.h \
         gremlin.h \
 	helper.h \
+	ieproxy.h \
 	init.h \
 	integer.h \
 	interval.h \
@@ -136,6 +137,7 @@ OBJS =  base64.o \
         fragment.o \
 	gremlin.o \
 	helper.o \
+	ieproxy.o \
 	init.o \
 	interval.o \
         list.o \

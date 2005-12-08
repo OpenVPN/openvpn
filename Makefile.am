@@ -127,7 +127,8 @@ EXTRA_DIST = \
 	plugin \
         management \
         pkcs11-headers \
-	cryptoki-win32.h
+	cryptoki-win32.h \
+	ieproxy.c ieproxy.h
 
 dist-hook:
 	cd $(distdir) && for i in $(EXTRA_DIST) ; do find $$i -name .svn -type d -prune -exec rm -rf '{}' ';' ; rm -f `find $$i -type f | grep -E '(^|\/)\.?\#|\~$$|\.s?o$$'` ; done
