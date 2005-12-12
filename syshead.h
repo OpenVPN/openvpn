@@ -266,6 +266,7 @@
 
 #ifdef WIN32
 #include <iphlpapi.h>
+#include <WinInet.h>
 #endif
 
 #ifdef HAVE_SYS_MMAN_H
@@ -433,6 +434,13 @@ socket_defined (const socket_descriptor_t sd)
 #define NTLM 1
 #else
 #define NTLM 0
+#endif
+
+/*
+ * Should we include code common to all proxy methods?
+ */
+#if defined(ENABLE_HTTP_PROXY) || defined(ENABLE_SOCKS)
+#define GENERAL_PROXY_SUPPORT
 #endif
 
 /*

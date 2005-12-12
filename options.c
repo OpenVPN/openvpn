@@ -97,12 +97,18 @@ static const char usage_message[] =
   "                    between connection retries (default=%d).\n"
   "--connect-timeout n : For --proto tcp-client, connection timeout (in seconds).\n"
   "--connect-retry-max n : Maximum connection attempt retries, default infinite.\n"
+#ifdef GENERAL_PROXY_SUPPORT
+  "--auto-proxy    : Try to sense proxy settings (or lack thereof) automatically.\n"
+#endif
 #ifdef ENABLE_HTTP_PROXY
-  "--http-proxy s p [up] [auth] : Connect to remote host through an HTTP proxy at\n"
-  "                  address s and port p.  If proxy authentication is required,\n"
+  "--http-proxy s p [up] [auth] : Connect to remote host\n"
+  "                  through an HTTP proxy at address s and port p.\n"
+  "                  If proxy authentication is required,\n"
   "                  up is a file containing username/password on 2 lines, or\n"
   "                  'stdin' to prompt from console.  Add auth='ntlm' if\n"
   "                  the proxy requires NTLM authentication.\n"
+  "--http-proxy s p 'auto': Like the above directive, but automatically determine\n"
+  "                         auth method and query for username/password if needed.\n"
   "--http-proxy-retry     : Retry indefinitely on HTTP proxy errors.\n"
   "--http-proxy-timeout n : Proxy timeout in seconds, default=5.\n"
   "--http-proxy-option type [parm] : Set extended HTTP proxy options.\n"
@@ -1537,8 +1543,8 @@ options_postprocess (struct options *options, bool first_time)
     msg (M_USAGE, "--remote MUST be used in TCP Client mode");
 
 #ifdef ENABLE_HTTP_PROXY
-  if (options->http_proxy_options && options->proto != PROTO_TCPv4_CLIENT)
-    msg (M_USAGE, "--http-proxy MUST be used in TCP Client mode (i.e. --proto tcp-client)");
+  if ((options->http_proxy_options || options->auto_proxy_info) && options->proto != PROTO_TCPv4_CLIENT)
+    msg (M_USAGE, "--http-proxy or --auto-proxy MUST be used in TCP Client mode (i.e. --proto tcp-client)");
 #endif
 
 #if defined(ENABLE_HTTP_PROXY) && defined(ENABLE_SOCKS)
@@ -3675,6 +3681,38 @@ add_option (struct options *options,
 	}
       options->proto = proto;
     }
+#ifdef GENERAL_PROXY_SUPPORT
+  else if (streq (p[0], "auto-proxy"))
+    {
+      char *error = NULL;
+
+      VERIFY_PERMISSION (OPT_P_GENERAL);
+      options->auto_proxy_info = get_proxy_settings (&error, &options->gc);
+      if (error)
+	msg (M_WARN, "PROXY: %s", error);
+    }
+  else if (streq (p[0], "show-proxy-settings"))
+    {
+      struct auto_proxy_info *pi;
+      char *error = NULL;
+
+      VERIFY_PERMISSION (OPT_P_GENERAL);
+      pi = get_proxy_settings (&error, &options->gc);
+      if (pi)
+	{
+	  msg (M_INFO|M_NOPREFIX, "HTTP Server: %s", np(pi->http.server));
+	  msg (M_INFO|M_NOPREFIX, "HTTP Port: %d", pi->http.port);
+	  msg (M_INFO|M_NOPREFIX, "SOCKS Server: %s", np(pi->socks.server));
+	  msg (M_INFO|M_NOPREFIX, "SOCKS Port: %d", pi->socks.port);
+	}
+      if (error)
+	msg (msglevel, "Proxy error: %s", error);
+#ifdef WIN32
+      show_win_proxy_settings (M_INFO|M_NOPREFIX);
+#endif
+      openvpn_exit (OPENVPN_EXIT_STATUS_GOOD); /* exit point */
+    }
+#endif /* GENERAL_PROXY_SUPPORT */
 #ifdef ENABLE_HTTP_PROXY
   else if (streq (p[0], "http-proxy") && p[1])
     {
@@ -3682,60 +3720,39 @@ add_option (struct options *options,
 
       VERIFY_PERMISSION (OPT_P_GENERAL);
 
-      if (streq (p[1], "auto"))
-	{
-	  struct http_proxy_options hpo;
-	  bool status;
-	  char *error = NULL;
-
-	  p[4] = p[3];
-	  p[3] = p[2];
-	  p[1] = p[2] = NULL;
-	  CLEAR (hpo);
-	  
-	  status = get_http_proxy_settings (&hpo, &error, &options->gc);
-	  if (status)
-	    {
-	      ho = init_http_options_if_undefined (options);
-	      ho->server = hpo.server;
-	      ho->port = hpo.port;
-	    }
-	  else
-	    {
-	      if (error)
-		msg (M_WARN, "http-proxy auto error: %s", error);
-	      goto err;
-	    }
-	}
-      else
-	{
-	  int port;
-	  if (!p[2])
-	    {
-	      msg (msglevel, "http-proxy port number not defined");
-	      goto err;
-	    }
-	  port = atoi (p[2]);
-	  if (!legal_ipv4_port (port))
-	    {
-	      msg (msglevel, "Bad http-proxy port number: %s", p[2]);
-	      goto err;
-	    }
-
-	  ho = init_http_options_if_undefined (options);
-
-	  ho->server = p[1];
-	  ho->port = port;
-	}
+      {
+	int port;
+	if (!p[2])
+	  {
+	    msg (msglevel, "http-proxy port number not defined");
+	    goto err;
+	  }
+	port = atoi (p[2]);
+	if (!legal_ipv4_port (port))
+	  {
+	    msg (msglevel, "Bad http-proxy port number: %s", p[2]);
+	    goto err;
+	  }
+	
+	ho = init_http_options_if_undefined (options);
+	
+	ho->server = p[1];
+	ho->port = port;
+      }
 
       if (p[3])
 	{
-	  ho->auth_method_string = "basic";
-	  ho->auth_file = p[3];
-
-	  if (p[4])
+	  if (streq (p[3], "auto"))
+	    ho->auth_retry = true;
+	  else
 	    {
-	      ho->auth_method_string = p[4];
+	      ho->auth_method_string = "basic";
+	      ho->auth_file = p[3];
+
+	      if (p[4])
+		{
+		  ho->auth_method_string = p[4];
+		}
 	    }
 	}
       else
@@ -3778,29 +3795,6 @@ add_option (struct options *options,
 	  msg (msglevel, "Bad http-proxy-option or missing parameter: '%s'", p[1]);
 	}
     }
-  else if (streq (p[0], "show-http-proxy-settings"))
-    {
-      struct http_proxy_options po;
-      bool status;
-      char *error = NULL;
-
-      VERIFY_PERMISSION (OPT_P_GENERAL);
-      CLEAR (po);
-      status = get_http_proxy_settings (&po, &error, &options->gc);
-      if (status)
-	{
-	  msg (M_INFO|M_NOPREFIX, "Server: %s", po.server);
-	  msg (M_INFO|M_NOPREFIX, "Port: %d", po.port);
-	}
-      else
-	{
-	  if (error)
-	    msg (msglevel, "Proxy error: %s", error);
-	  else
-	    msg (msglevel, "Proxy settings are undefined");
-	}
-      openvpn_exit (OPENVPN_EXIT_STATUS_GOOD); /* exit point */
-    }  
 #endif
 #ifdef ENABLE_SOCKS
   else if (streq (p[0], "socks-proxy") && p[1])

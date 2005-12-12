@@ -101,6 +101,7 @@ openvpn \- secure IP tunnel daemon.
 [\ \fB\-\-auth\-user\-pass\-verify\fR\ \fIscript\fR\ ]
 [\ \fB\-\-auth\-user\-pass\fR\ \fIup\fR\ ]
 [\ \fB\-\-auth\fR\ \fIalg\fR\ ]
+[\ \fB\-\-auto\-proxy\fR\ ]
 [\ \fB\-\-bcast\-buffers\fR\ \fIn\fR\ ]
 [\ \fB\-\-ca\fR\ \fIfile\fR\ ]
 [\ \fB\-\-ccd\-exclusive\fR\ ]
@@ -597,7 +598,19 @@ as the
 number of retries of connection attempt (default=infinite).
 .\"*********************************************************
 .TP
-.B --http-proxy server port [authfile] [auth-method]
+.B --auto-proxy
+Try to sense HTTP or SOCKS proxy settings automatically.
+If no settings are present, a direct connection will be attempted.
+If both HTTP and SOCKS settings are present, HTTP will be preferred.
+If the HTTP proxy server requires a password, it will be queried from
+stdin or the management interface.  If the underlying OS doesn't support an API for
+returning proxy settings, a direct connection will be attempted.
+Currently, only Windows clients support this option via the
+InternetQueryOption API.
+This option exists in OpenVPN 2.1 or higher.
+.\"*********************************************************
+.TP
+.B --http-proxy server port [authfile|'auto'] [auth-method]
 Connect to remote host through an HTTP proxy at address
 .B server
 and port
@@ -608,7 +621,15 @@ is a file containing a username and password on 2 lines, or
 "stdin" to prompt from console.
 
 .B auth-method
-should be one of "none", "basic", or "ntlm". 
+should be one of "none", "basic", or "ntlm".
+
+The
+.B auto
+flag causes OpenVPN to automatically determine the
+.B auth-method
+and query stdin or the management interface for
+username/password credentials, if required.  This flag
+exists on OpenVPN 2.1 or higher.
 .\"*********************************************************
 .TP
 .B --http-proxy-retry
@@ -857,6 +878,8 @@ of the TAP-Win32 driver.  When used on *nix, requires that the tun
 driver supports an
 .BR ifconfig (8)
 command which sets a subnet instead of a remote endpoint IP address.
+
+This option exists in OpenVPN 2.1 or higher.
 .\"*********************************************************
 .TP
 .B --tun-ipv6
@@ -1175,8 +1198,7 @@ bypasses the tunnel
 (Available on Windows clients, may not be available
 on non-Windows clients).
 
-Using the def1 flag is highly recommended, and is currently
-planned to become the default by OpenVPN 2.1.
+Using the def1 flag is highly recommended.
 .\"*********************************************************
 .TP
 .B --link-mtu n

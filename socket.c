@@ -1307,44 +1307,57 @@ link_socket_init_phase2 (struct link_socket *sock,
 	}
       else if (sock->info.proto == PROTO_TCPv4_CLIENT)
 	{
-	  socket_connect (&sock->sd,
-                          &sock->info.lsa->local,
-                          sock->bind_local,
-			  &sock->info.lsa->actual.dest,
-			  sock->remote_list,
-			  remote_dynamic,
-			  &remote_changed,
-			  sock->connect_retry_seconds,
-			  sock->connect_timeout,
-			  sock->connect_retry_max,
-			  signal_received);
 
-	  if (*signal_received)
-	    goto done;
+#ifdef GENERAL_PROXY_SUPPORT
+	  bool proxy_retry = false;
+#else
+	  const bool proxy_retry = false;
+#endif
+	  do {
+	    socket_connect (&sock->sd,
+			    &sock->info.lsa->local,
+			    sock->bind_local,
+			    &sock->info.lsa->actual.dest,
+			    sock->remote_list,
+			    remote_dynamic,
+			    &remote_changed,
+			    sock->connect_retry_seconds,
+			    sock->connect_timeout,
+			    sock->connect_retry_max,
+			    signal_received);
 
-	  if (false)
-	    ;
+	    if (*signal_received)
+	      goto done;
+
+	    if (false)
+	      ;
 #ifdef ENABLE_HTTP_PROXY
-	  else if (sock->http_proxy)
-	    {
-	      establish_http_proxy_passthru (sock->http_proxy,
-					     sock->sd,
-					     sock->proxy_dest_host,
-					     sock->proxy_dest_port,
-					     &sock->stream_buf.residual,
-					     signal_received);
-	    }
+	    else if (sock->http_proxy)
+	      {
+		proxy_retry = establish_http_proxy_passthru (sock->http_proxy,
+							     sock->sd,
+							     sock->proxy_dest_host,
+							     sock->proxy_dest_port,
+							     &sock->stream_buf.residual,
+							     signal_received);
+	      }
 #endif
 #ifdef ENABLE_SOCKS
-	  else if (sock->socks_proxy)
-	    {
-	      establish_socks_proxy_passthru (sock->socks_proxy,
-					      sock->sd,
-					      sock->proxy_dest_host,
-					      sock->proxy_dest_port,
-					      signal_received);
-	    }
+	    else if (sock->socks_proxy)
+	      {
+		establish_socks_proxy_passthru (sock->socks_proxy,
+						sock->sd,
+						sock->proxy_dest_host,
+						sock->proxy_dest_port,
+						signal_received);
+	      }
 #endif
+	    if (proxy_retry)
+	      {
+		openvpn_close_socket (sock->sd);
+		sock->sd = create_socket_tcp ();
+	      }
+	  } while (proxy_retry);
 	}
 #ifdef ENABLE_SOCKS
       else if (sock->info.proto == PROTO_UDPv4 && sock->socks_proxy)
@@ -1386,7 +1399,7 @@ link_socket_init_phase2 (struct link_socket *sock,
 	    goto done;
 	}
 #endif
-      
+
       if (*signal_received)
 	goto done;
 

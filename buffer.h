@@ -553,8 +553,9 @@ xor (uint8_t *dest, const uint8_t *src, int len)
 }
 
 /*
- * Classify and mutate strings based on character types.
+ * Print a string which might be NULL
  */
+const char *np (const char *str);
 
 /*#define CHARACTER_CLASS_DEBUG*/
 

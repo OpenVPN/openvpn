@@ -50,6 +50,7 @@ void socks_adjust_frame_parameters (struct frame *frame, int proto);
 struct socks_proxy_info *new_socks_proxy (const char *server,
 					  int port,
 					  bool retry,
+					  struct auto_proxy_info *auto_proxy_info,
 					  struct gc_arena *gc);
 
 void establish_socks_proxy_passthru (struct socks_proxy_info *p,

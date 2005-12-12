@@ -25,10 +25,34 @@
 #ifndef PROXY_H
 #define PROXY_H
 
-#ifdef ENABLE_HTTP_PROXY
-
 #include "buffer.h"
 #include "misc.h"
+
+#ifdef GENERAL_PROXY_SUPPORT
+
+/*
+ * Return value for get_proxy_settings to automatically
+ * determine proxy information.
+ */
+struct auto_proxy_info_entry {
+  char *server;
+  int port;
+};
+
+struct auto_proxy_info {
+  struct auto_proxy_info_entry http;
+  struct auto_proxy_info_entry socks;
+};
+
+struct auto_proxy_info *get_proxy_settings (char **err, struct gc_arena *gc);
+
+#ifdef WIN32
+void show_win_proxy_settings (const int msglevel);
+#endif /* WIN32 */
+
+#endif /* GENERAL_PROXY_SUPPORT */
+
+#ifdef ENABLE_HTTP_PROXY
 
 /* HTTP CONNECT authentication methods */
 #define HTTP_AUTH_NONE  0
@@ -41,6 +65,7 @@ struct http_proxy_options {
   int port;
   bool retry;
   int timeout;
+  bool auth_retry;
   const char *auth_method_string;
   const char *auth_file;
   const char *http_version;
@@ -55,9 +80,10 @@ struct http_proxy_info {
 };
 
 struct http_proxy_info *new_http_proxy (const struct http_proxy_options *o,
+					struct auto_proxy_info *auto_proxy_info,
 					struct gc_arena *gc);
 
-void establish_http_proxy_passthru (struct http_proxy_info *p,
+bool establish_http_proxy_passthru (struct http_proxy_info *p,
 				    socket_descriptor_t sd, /* already open to proxy */
 				    const char *host,       /* openvpn server remote */
 				    const int port,         /* openvpn server port */
@@ -67,7 +93,6 @@ void establish_http_proxy_passthru (struct http_proxy_info *p,
 uint8_t *make_base64_string2 (const uint8_t *str, int str_len, struct gc_arena *gc);
 uint8_t *make_base64_string (const uint8_t *str, struct gc_arena *gc);
 
-bool get_http_proxy_settings (struct http_proxy_options *p, char **err, struct gc_arena *gc);
+#endif /* ENABLE_HTTP_PROXY */
 
-#endif
-#endif
+#endif /* PROXY_H */

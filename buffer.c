@@ -621,6 +621,18 @@ buf_parse (struct buffer *buf, const int delim, char *line, const int size)
 }
 
 /*
+ * Print a string which might be NULL
+ */
+const char *
+np (const char *str)
+{
+  if (str)
+    return str;
+  else
+    return "[NULL]";
+}
+
+/*
  * Classify and mutate strings based on character types.
  */
 

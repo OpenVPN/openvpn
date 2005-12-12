@@ -31,12 +31,10 @@
  * SUCH DAMAGE.
  */
 
-/* $KTH: base64.h,v 1.2 1999/12/02 16:58:45 joda Exp $ */
-
 #ifndef _BASE64_H_
 #define _BASE64_H_
 
-#if NTLM
+#ifdef ENABLE_HTTP_PROXY
 
 int base64_encode(const void *data, int size, char **str);
 int base64_decode(const char *str, void *data);

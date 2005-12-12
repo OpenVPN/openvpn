@@ -78,7 +78,6 @@ HEADERS = \
 	fragment.h \
         gremlin.h \
 	helper.h \
-	ieproxy.h \
 	init.h \
 	integer.h \
 	interval.h \
@@ -137,7 +136,6 @@ OBJS =  base64.o \
         fragment.o \
 	gremlin.o \
 	helper.o \
-	ieproxy.o \
 	init.o \
 	interval.o \
         list.o \

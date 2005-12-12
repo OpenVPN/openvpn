@@ -3,7 +3,7 @@ Copyright (C) 2002-2005 OpenVPN Solutions LLC <info@openvpn.net>
 
 $Id$
 
-2005.11.xx -- Version 2.1-beta8
+2005.12.xx -- Version 2.1-beta8
 
 * --remap-usr1 will now also remap signals thrown during
   initialization.
@@ -17,6 +17,8 @@ $Id$
 * Fixed typo in manage.c where inline function declaration
   was declared without the "static" keyword (David Stipp).
 * Patch to support --topology subnet on Mac OS X (Mathias Sundman).
+* Added --auto-proxy directive to auto-detect HTTP or SOCKS
+  proxy settings (currently Windows only).
 
 2005.11.12 -- Version 2.1-beta7
 
@@ -29,7 +31,8 @@ $Id$
   but actually would only accept /29 or less.
 * Extend byte counters to 64 bits (M. van Cuijk).
 * PKCS#11 fixes (Alon Bar-Lev).
-
+* Removed redundant base64 code.
+	
 2005.11.02 -- Version 2.0.5
 
 * Fixed bug in Linux get_default_gateway function

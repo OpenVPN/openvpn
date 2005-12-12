@@ -39,7 +39,7 @@
 
 #include "syshead.h"
 
-#if NTLM
+#ifdef ENABLE_HTTP_PROXY
 
 #include "base64.h"
 
@@ -47,16 +47,6 @@
 
 static char base64_chars[] = 
     "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-
-static int 
-pos(char c)
-{
-    char *p;
-    for (p = base64_chars; *p; p++)
-	if (*p == c)
-	    return p - base64_chars;
-    return -1;
-}
 
 int 
 base64_encode(const void *data, int size, char **str)
@@ -94,6 +84,18 @@ base64_encode(const void *data, int size, char **str)
     *p = 0;
     *str = s;
     return strlen(s);
+}
+
+#if NTLM
+
+static int 
+pos(char c)
+{
+    char *p;
+    for (p = base64_chars; *p; p++)
+	if (*p == c)
+	    return p - base64_chars;
+    return -1;
 }
 
 #define DECODE_ERROR 0xffffffff
@@ -140,6 +142,8 @@ base64_decode(const char *str, void *data)
     }
     return q - (unsigned char *) data;
 }
+
+#endif /* NTLM */
 
 #else
 static void dummy(void) {}

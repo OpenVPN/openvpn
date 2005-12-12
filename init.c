@@ -102,6 +102,12 @@ init_remote_list (struct context *c)
 void
 context_init_1 (struct context *c)
 {
+#ifdef ENABLE_HTTP_PROXY
+  bool did_http = false;
+#else
+  const bool did_http = false;
+#endif
+
   context_clear_1 (c);
 
   packet_id_persist_init (&c->c1.pid_persist);
@@ -145,20 +151,24 @@ context_init_1 (struct context *c)
 #endif
 
 #ifdef ENABLE_HTTP_PROXY
-  if (c->options.http_proxy_options)
+  if (c->options.http_proxy_options || c->options.auto_proxy_info)
     {
       /* Possible HTTP proxy user/pass input */
       c->c1.http_proxy = new_http_proxy (c->options.http_proxy_options,
+					 c->options.auto_proxy_info,
 					 &c->gc);
+      if (c->c1.http_proxy)
+	did_http = true;
     }
 #endif
 
 #ifdef ENABLE_SOCKS
-  if (c->options.socks_proxy_server)
+  if (!did_http && (c->options.socks_proxy_server || c->options.auto_proxy_info))
     {
       c->c1.socks_proxy = new_socks_proxy (c->options.socks_proxy_server,
 					   c->options.socks_proxy_port,
 					   c->options.socks_proxy_retry,
+					   c->options.auto_proxy_info,
 					   &c->gc);
     }
 #endif

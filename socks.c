@@ -60,10 +60,25 @@ struct socks_proxy_info *
 new_socks_proxy (const char *server,
 		 int port,
 		 bool retry,
+		 struct auto_proxy_info *auto_proxy_info,
 		 struct gc_arena *gc)
 {
   struct socks_proxy_info *p;
+
+  if (auto_proxy_info)
+    {
+      if (!server)
+	{
+	  if (!auto_proxy_info->socks.server)
+	    return NULL;
+
+	  server = auto_proxy_info->socks.server;
+	  port = auto_proxy_info->socks.port;
+	}
+    }
+
   ALLOC_OBJ_CLEAR_GC (p, struct socks_proxy_info, gc);
+
   ASSERT (server);
   ASSERT (legal_ipv4_port (port));
 

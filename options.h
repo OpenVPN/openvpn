@@ -250,6 +250,10 @@ struct options
   struct route_option_list *routes;
   bool route_nopull;
 
+#ifdef GENERAL_PROXY_SUPPORT
+  struct auto_proxy_info *auto_proxy_info;
+#endif
+
 #ifdef ENABLE_HTTP_PROXY
   struct http_proxy_options *http_proxy_options;
 #endif
