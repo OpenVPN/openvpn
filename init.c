@@ -1674,8 +1674,13 @@ do_option_warnings (struct context *c)
   if (o->ping_send_timeout && !o->ping_rec_timeout)
     msg (M_WARN, "WARNING: --ping should normally be used with --ping-restart or --ping-exit");
 
-  if ((o->username || o->groupname || o->chroot_dir) && (!o->persist_tun || !o->persist_key))
-    msg (M_WARN, "WARNING: you are using user/group/chroot without persist-key/persist-tun -- this may cause restarts to fail");
+  if (o->username || o->groupname || o->chroot_dir)
+   {
+    if (!o->persist_tun)
+     msg (M_WARN, "WARNING: you are using user/group/chroot without persist-tun -- this may cause restarts to fail");
+    if (!o->persist_key && !o->pkcs11_id)
+     msg (M_WARN, "WARNING: you are using user/group/chroot without persist-key -- this may cause restarts to fail");
+   }
 
 #if P2MP
   if (o->pull && o->ifconfig_local && c->first_time)
