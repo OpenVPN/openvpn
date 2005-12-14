@@ -302,6 +302,7 @@ check_inactivity_timeout_dowork (struct context *c)
 void
 schedule_exit (struct context *c, const int n_seconds)
 {
+  tls_set_single_session (c->c2.tls_multi);
   update_time ();
   reset_coarse_timers (c);
   event_timeout_init (&c->c2.scheduled_exit, n_seconds, now);

@@ -99,6 +99,25 @@ init_remote_list (struct context *c)
     }
 }
 
+/*
+ * Query for private key and auth-user-pass username/passwords
+ */
+static void
+init_query_passwords (struct context *c)
+{
+#if defined(USE_CRYPTO) && defined(USE_SSL)
+  /* Certificate password input */
+  if (c->options.key_pass_file)
+    pem_password_setup (c->options.key_pass_file);
+#endif
+  
+#if P2MP
+  /* Auth user/pass input */
+  if (c->options.auth_user_pass_file)
+    auth_user_pass_setup (c->options.auth_user_pass_file);
+#endif
+}
+
 void
 context_init_1 (struct context *c)
 {
@@ -113,11 +132,7 @@ context_init_1 (struct context *c)
   packet_id_persist_init (&c->c1.pid_persist);
   init_remote_list (c);
 
-#if defined(USE_CRYPTO) && defined(USE_SSL)
-  /* Certificate password input */
-  if (c->options.key_pass_file)
-    pem_password_setup (c->options.key_pass_file);
-#endif
+  init_query_passwords (c);
 
 #if defined(ENABLE_PKCS11)
   if (c->first_time) {
@@ -140,14 +155,6 @@ context_init_1 (struct context *c)
    msg (M_INFO, "RET:%s", up.password); /* will return the third argument to management interface
                                            'needok' command, usually 'ok' or 'cancel'. */
  }
-#endif
-
-#if P2MP
-  /* Auth user/pass input */
-  if (c->options.auth_user_pass_file)
-    {
-      auth_user_pass_setup (c->options.auth_user_pass_file);
-    }
 #endif
 
 #ifdef ENABLE_HTTP_PROXY
@@ -417,8 +424,9 @@ static void
 do_uid_gid_chroot (struct context *c, bool no_delay)
 {
   static const char why_not[] = "will be delayed because of --client, --pull, or --up-delay";
+  struct context_0 *c0 = c->c0;
 
-  if (c->first_time && !c->c2.uid_gid_set)
+  if (c->first_time && c0 && !c0->uid_gid_set)
     {
       /* chroot if requested */
       if (c->options.chroot_dir)
@@ -432,11 +440,11 @@ do_uid_gid_chroot (struct context *c, bool no_delay)
       /* set user and/or group that we want to setuid/setgid to */
       if (no_delay)
 	{
-	  set_group (&c->c2.group_state);
-	  set_user (&c->c2.user_state);
-	  c->c2.uid_gid_set = true;
+	  set_group (&c0->group_state);
+	  set_user (&c0->user_state);
+	  c0->uid_gid_set = true;
 	}
-      else if (c->c2.uid_gid_specified)
+      else if (c0->uid_gid_specified)
 	{
 	  msg (M_INFO, "NOTE: UID/GID downgrade %s", why_not);
 	}
@@ -1104,7 +1112,7 @@ do_hold (struct context *c)
   if (management)
     {
       /* if c is defined, daemonize before hold */
-      if (c && c->options.daemon && management_would_hold (management))
+      if (c && c->options.daemon && management_should_daemonize (management))
 	do_init_first_time (c);
 
       /* block until management hold is released */
@@ -1937,15 +1945,20 @@ do_compute_occ_strings (struct context *c)
 static void
 do_init_first_time (struct context *c)
 {
-  if (c->first_time && !c->did_we_daemonize)
+  if (c->first_time && !c->did_we_daemonize && !c->c0)
     {
+      struct context_0 *c0;
+
+      ALLOC_OBJ_CLEAR_GC (c->c0, struct context_0, &c->gc);
+      c0 = c->c0;
+      
       /* get user and/or group that we want to setuid/setgid to */
-      c->c2.uid_gid_specified =
-	get_group (c->options.groupname, &c->c2.group_state) |
-	get_user (c->options.username, &c->c2.user_state);
+      c0->uid_gid_specified =
+	get_group (c->options.groupname, &c0->group_state) |
+	get_user (c->options.username, &c0->user_state);
 
       /* get --writepid file descriptor */
-      get_pid_file (c->options.writepid, &c->c2.pid_state);
+      get_pid_file (c->options.writepid, &c0->pid_state);
 
       /* become a daemon if --daemon */
       c->did_we_daemonize = possibly_become_daemon (&c->options, c->first_time);
@@ -1955,7 +1968,7 @@ do_init_first_time (struct context *c)
 	do_mlockall (true);	/* call again in case we daemonized */
 
       /* save process ID in a file */
-      write_pid (&c->c2.pid_state);
+      write_pid (&c0->pid_state);
 
       /* should we change scheduling priority? */
       set_nice (c->options.nice);
@@ -2475,6 +2488,12 @@ init_instance (struct context *c, const struct env_set *env, const unsigned int 
 	goto sig;
     }
 
+#if P2MP
+  /* get passwords if undefined */
+  if (auth_retry_get () == AR_INTERACT)
+    init_query_passwords (c);
+#endif
+
   /* initialize context level 2 --verb/--mute parms */
   init_verb_mute (c, IVM_LEVEL_2);
 
@@ -2714,8 +2733,6 @@ inherit_context_child (struct context *dest,
       ASSERT (0);
     }
 
-  dest->first_time = false;
-
   dest->gc = gc_new ();
 
   ALLOC_OBJ_CLEAR_GC (dest->sig, struct signal_info, &dest->gc);
@@ -2793,6 +2810,7 @@ inherit_context_top (struct context *dest,
   dest->mode = CM_TOP_CLONE; 
 
   dest->first_time = false;
+  dest->c0 = NULL;
 
   options_detach (&dest->options);
   gc_detach (&dest->gc);

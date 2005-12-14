@@ -68,6 +68,8 @@ struct ifconfig_pool *ifconfig_pool_init (int type, in_addr_t start, in_addr_t e
 
 void ifconfig_pool_free (struct ifconfig_pool *pool);
 
+bool ifconfig_pool_verify_range (const int msglevel, const in_addr_t start, const in_addr_t end);
+
 ifconfig_pool_handle ifconfig_pool_acquire (struct ifconfig_pool *pool, in_addr_t *local, in_addr_t *remote, const char *common_name);
 
 bool ifconfig_pool_release (struct ifconfig_pool* pool, ifconfig_pool_handle hand, const bool hard);

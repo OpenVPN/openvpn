@@ -1863,6 +1863,16 @@ management_would_hold (struct management *man)
 }
 
 /*
+ * Return true if (from the management interface's perspective) OpenVPN should
+ * daemonize.
+ */
+bool
+management_should_daemonize (struct management *man)
+{
+  return management_would_hold (man) || man->settings.up_query_passwords;
+}
+
+/*
  * If the hold flag is enabled, hibernate until a management client releases the hold.
  * Return true if the caller should not sleep for an additional time interval.
  */

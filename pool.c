@@ -109,6 +109,33 @@ ifconfig_pool_find (struct ifconfig_pool *pool, const char *common_name)
   return -1;
 }
 
+/*
+ * Verify start/end range
+ */
+bool
+ifconfig_pool_verify_range (const int msglevel, const in_addr_t start, const in_addr_t end)
+{
+  struct gc_arena gc = gc_new ();
+  bool ret = true;
+
+  if (start > end)
+    {
+      msg (msglevel, "--ifconfig-pool start IP [%s] is greater than end IP [%s]",
+	   print_in_addr_t (start, 0, &gc),
+	   print_in_addr_t (end, 0, &gc));
+      ret = false;
+    }
+  if (end - start >= IFCONFIG_POOL_MAX)
+    {
+      msg (msglevel, "--ifconfig-pool address range is too large [%s -> %s].  Current maximum is %d addresses, as defined by IFCONFIG_POOL_MAX variable.",
+	   print_in_addr_t (start, 0, &gc),
+	   print_in_addr_t (end, 0, &gc),
+	   IFCONFIG_POOL_MAX);
+      ret = false;
+    }
+  gc_free (&gc);
+  return ret;
+}
 
 struct ifconfig_pool *
 ifconfig_pool_init (int type, in_addr_t start, in_addr_t end, const bool duplicate_cn)

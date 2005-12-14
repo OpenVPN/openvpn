@@ -117,6 +117,23 @@ struct context_buffers
   struct buffer read_tun_buf;
 };
 
+/* 
+ * level 0 context contains data related to
+ * once-per OpenVPN instantiation events
+ * such as daemonization.
+ */
+struct context_0
+{
+  /* workspace for get_pid_file/write_pid */
+  struct pid_state pid_state;
+
+  /* workspace for --user/--group */
+  bool uid_gid_specified;
+  bool uid_gid_set;
+  struct user_state user_state;
+  struct group_state group_state;
+};
+
 /*
  * Contains the persist-across-restart OpenVPN tunnel instance state.
  * Reset only for SIGHUP restarts.
@@ -337,15 +354,6 @@ struct context_2
    */
   bool ipv4_tun;
 
-  /* workspace for get_pid_file/write_pid */
-  struct pid_state pid_state;
-
-  /* workspace for --user/--group */
-  bool uid_gid_specified;
-  bool uid_gid_set;
-  struct user_state user_state;
-  struct group_state group_state;
-
   /* should we print R|W|r|w to console on packet transfers? */
   bool log_rw;
 
@@ -452,6 +460,11 @@ struct context
   
   /* set to true after we daemonize */
   bool did_we_daemonize;
+
+  /* level 0 context contains data related to
+     once-per OpenVPN instantiation events
+     such as daemonization */
+  struct context_0 *c0;
 
   /* level 1 context is preserved for
      SIGUSR1 restarts, but initialized

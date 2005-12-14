@@ -663,6 +663,13 @@ tls_test_payload_len (const struct tls_multi *multi)
   return 0;
 }
 
+static inline void
+tls_set_single_session (struct tls_multi *multi)
+{
+  if (multi)
+    multi->opt.single_session = true;
+}
+
 /*
  * protocol_dump() flags
  */

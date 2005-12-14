@@ -288,6 +288,7 @@ void management_clear_callback (struct management *man);
 
 bool management_query_user_pass (struct management *man, struct user_pass *up, const char *type, const unsigned int flags);
 
+bool management_should_daemonize (struct management *man);
 bool management_would_hold (struct management *man);
 bool management_hold (struct management *man);
 

@@ -3886,7 +3886,7 @@ tls_pre_decrypt (struct tls_multi *multi,
 		  if (multi->opt.single_session && multi->n_sessions)
 		    {
 		      msg (D_TLS_ERRORS,
-			   "TLS Error: Cannot accept new session request from %s due to --single-session [1]",
+			   "TLS Error: Cannot accept new session request from %s due to session context expire or --single-session [1]",
 			   print_link_socket_actual (from, &gc));
 		      goto error;
 		    }
@@ -3929,7 +3929,7 @@ tls_pre_decrypt (struct tls_multi *multi,
 	      if (multi->opt.single_session)
 		{
 		  msg (D_TLS_ERRORS,
-		       "TLS Error: Cannot accept new session request from %s due to --single-session [2]",
+		       "TLS Error: Cannot accept new session request from %s due to session context expire or --single-session [2]",
 		       print_link_socket_actual (from, &gc));
 		  goto error;
 		}

@@ -223,6 +223,7 @@ helper_client_server (struct options *o)
 		  o->ifconfig_pool_defined = true;
 		  o->ifconfig_pool_start = o->server_network + 4;
 		  o->ifconfig_pool_end = (o->server_network | ~o->server_netmask) - pool_end_reserve;
+		  ifconfig_pool_verify_range (M_USAGE, o->ifconfig_pool_start, o->ifconfig_pool_end);
 		}
 
 	      helper_add_route (o->server_network, o->server_netmask, o);
@@ -241,6 +242,7 @@ helper_client_server (struct options *o)
 		  o->ifconfig_pool_defined = true;
 		  o->ifconfig_pool_start = o->server_network + 2;
 		  o->ifconfig_pool_end = (o->server_network | ~o->server_netmask) - 2;
+		  ifconfig_pool_verify_range (M_USAGE, o->ifconfig_pool_start, o->ifconfig_pool_end);
 		  o->ifconfig_pool_netmask = o->server_netmask;
 		}
 
@@ -267,6 +269,7 @@ helper_client_server (struct options *o)
 	      o->ifconfig_pool_defined = true;
 	      o->ifconfig_pool_start = o->server_network + 2;
 	      o->ifconfig_pool_end = (o->server_network | ~o->server_netmask) - 1;
+	      ifconfig_pool_verify_range (M_USAGE, o->ifconfig_pool_start, o->ifconfig_pool_end);
 	      o->ifconfig_pool_netmask = o->server_netmask;
 	    }
 
@@ -325,6 +328,7 @@ helper_client_server (struct options *o)
       o->ifconfig_pool_defined = true;
       o->ifconfig_pool_start = o->server_bridge_pool_start;
       o->ifconfig_pool_end = o->server_bridge_pool_end;
+      ifconfig_pool_verify_range (M_USAGE, o->ifconfig_pool_start, o->ifconfig_pool_end);
       o->ifconfig_pool_netmask = o->server_bridge_netmask;
       push_option (o, print_opt_route_gateway (o->server_bridge_ip, &o->gc), M_USAGE);
 

@@ -19,6 +19,19 @@ $Id$
 * Patch to support --topology subnet on Mac OS X (Mathias Sundman).
 * Added --auto-proxy directive to auto-detect HTTP or SOCKS
   proxy settings (currently Windows only).
+* Removed redundant base64 code.
+* Better sanity checking of --server and --server-bridge
+  IP pool ranges, so as not to hit the assertion at
+  pool.c:119 (2.0.5).
+* Fixed bug where --daemon and --management-query-passwords
+  used together would cause OpenVPN to block prior to
+  daemonization.
+* Fixed client/server race condition which could occur
+  when --auth-retry interact is set and the initially
+  provided auth-user-pass credentials are incorrect,
+  forcing a username/password re-query.
+* Fixed bug where if --daemon and --management-hold are
+  used together, --user or --group options would be ignored.
 
 2005.11.12 -- Version 2.1-beta7
 
@@ -30,9 +43,7 @@ $Id$
   claimed that it would support subnets of /30 or less
   but actually would only accept /29 or less.
 * Extend byte counters to 64 bits (M. van Cuijk).
-* PKCS#11 fixes (Alon Bar-Lev).
-* Removed redundant base64 code.
-	
+
 2005.11.02 -- Version 2.0.5
 
 * Fixed bug in Linux get_default_gateway function
