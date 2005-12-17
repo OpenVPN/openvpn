@@ -1465,19 +1465,31 @@ configure_path (void)
   fp = fopen ("c:\\windows\\system32\\route.exe", "rb");
   if (fp)
     {
-      const int bufsiz = 512;
+      const int bufsiz = 4096;
       struct gc_arena gc = gc_new ();
       struct buffer oldpath = alloc_buf_gc (bufsiz, &gc);
       struct buffer newpath = alloc_buf_gc (bufsiz, &gc);
+      const char* delim = ";";
       DWORD status;
       fclose (fp);
       status = GetEnvironmentVariable ("PATH", BPTR(&oldpath), (DWORD)BCAP(&oldpath));
-      if (status > 0)
+#if 0
+      status = 0;
+#endif
+      if (!status)
 	{
-	  buf_printf (&newpath, "C:\\WINDOWS;C:\\WINDOWS\\System32\\Wbem;%s", BSTR(&oldpath));
-	  SetEnvironmentVariable ("PATH", BSTR(&newpath));
-	  /*printf ("PATH: %s\n", BSTR(&newpath));*/
+	  *BPTR(&oldpath) = '\0';
+	  delim = "";
 	}
+      buf_printf (&newpath, "C:\\WINDOWS\\System32;C:\\WINDOWS;C:\\WINDOWS\\System32\\Wbem%s%s",
+		  delim,
+		  BSTR(&oldpath));
+      SetEnvironmentVariable ("PATH", BSTR(&newpath));
+#if 0
+      status = GetEnvironmentVariable ("PATH", BPTR(&oldpath), (DWORD)BCAP(&oldpath));
+      if (status > 0)
+	printf ("PATH: %s\n", BSTR(&oldpath));
+#endif
       gc_free (&gc);
     }
 #endif
