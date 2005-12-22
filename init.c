@@ -75,8 +75,10 @@ void
 context_clear_all_except_first_time (struct context *c)
 {
   const bool first_time_save = c->first_time;
+  const struct context_persist cpsave = c->persist;
   context_clear (c);
   c->first_time = first_time_save;
+  c->persist = cpsave;
 }
 
 /*
@@ -630,11 +632,15 @@ initialization_sequence_completed (struct context *c, const unsigned int flags)
 
   /* Test if errors */
   if (flags & ISC_ERRORS)
+    {
 #ifdef WIN32
-    msg (M_INFO, "%s With Errors ( see http://openvpn.net/faq.html#dhcpclientserv )", message);
+      show_routes (M_INFO|M_NOPREFIX);
+      show_adapters (M_INFO|M_NOPREFIX);
+      msg (M_INFO, "%s With Errors ( see http://openvpn.net/faq.html#dhcpclientserv )", message);
 #else
-    msg (M_INFO, "%s With Errors", message);
+      msg (M_INFO, "%s With Errors", message);
 #endif
+    }
   else
     msg (M_INFO, "%s", message);
 
@@ -1164,6 +1170,10 @@ socket_restart_pause (struct context *c)
   if (auth_retry_get () == AR_NOINTERACT)
     sec = 10;
 #endif
+
+  if (c->persist.restart_sleep_seconds > 0 && c->persist.restart_sleep_seconds > sec)
+    sec = c->persist.restart_sleep_seconds;
+  c->persist.restart_sleep_seconds = 0;
 
   if (do_hold (NULL))
     sec = 0;

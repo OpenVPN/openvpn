@@ -326,7 +326,7 @@ bool dhcp_release (const struct tuntap *tt);
 bool dhcp_renew (const struct tuntap *tt);
 
 void tun_standby_init (struct tuntap *tt);
-void tun_standby (struct tuntap *tt);
+bool tun_standby (struct tuntap *tt);
 
 int tun_read_queue (struct tuntap *tt, int maxsize);
 int tun_write_queue (struct tuntap *tt, struct buffer *buf);
@@ -392,9 +392,10 @@ tun_standby_init (struct tuntap *tt)
 {
 }
 
-static inline void
+static inline bool
 tun_standby (struct tuntap *tt)
 {
+  return true;
 }
 
 #endif

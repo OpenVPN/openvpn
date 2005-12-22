@@ -50,6 +50,8 @@
 
 #ifdef WIN32
 
+/* #define SIMULATE_DHCP_FAILED */       /* JYFIXME -- simulate bad DHCP negotiation */
+
 #define NI_TEST_FIRST  (1<<0)
 #define NI_IP_NETMASK  (1<<1)
 #define NI_OPTIONS     (1<<2)
@@ -3093,15 +3095,173 @@ netsh_command (const char *cmd, int n)
   for (i = 0; i < n; ++i)
     {
       bool status;
+      openvpn_sleep (1);
       netcmd_semaphore_lock ();
       msg (M_INFO, "NETSH: %s", cmd);
       status = system_check (cmd, NULL, 0, "ERROR: netsh command failed");
       netcmd_semaphore_release ();
       if (status)
 	return;
-      openvpn_sleep (5);
+      openvpn_sleep (4);
     }
   msg (M_FATAL, "NETSH: command failed");
+}
+
+void
+ip_addr_string_to_array (in_addr_t *dest, int *dest_len, const IP_ADDR_STRING *src)
+{
+  int i = 0;
+  while (src)
+    {
+      const unsigned int getaddr_flags = GETADDR_HOST_ORDER;
+      const char *ip_str = src->IpAddress.String;
+      in_addr_t ip = 0;
+      bool succeed = false;
+
+      if (i >= *dest_len)
+	break;
+      if (!ip_str || !strlen (ip_str))
+	break;
+
+      ip = getaddr (getaddr_flags, ip_str, 0, &succeed, NULL);
+      if (!succeed)
+	break;
+      dest[i++] = ip;
+
+      src = src->Next;
+    }
+  *dest_len = i;
+
+#if 0
+ {
+   struct gc_arena gc = gc_new ();
+   msg (M_INFO, "ip_addr_string_to_array [%d]", *dest_len);
+   for (i = 0; i < *dest_len; ++i)
+     {
+       msg (M_INFO, "%s", print_in_addr_t (dest[i], 0, &gc));
+     }
+   gc_free (&gc);
+ }
+#endif
+}
+
+static bool
+ip_addr_one_to_one (const in_addr_t *a1, const int a1len, const IP_ADDR_STRING *ias)
+{
+  in_addr_t a2[8];
+  int a2len = SIZE(a2);
+  int i;
+
+  ip_addr_string_to_array (a2, &a2len, ias);
+  /*msg (M_INFO, "a1len=%d a2len=%d", a1len, a2len);*/
+  if (a1len != a2len)
+    return false;
+
+  for (i = 0; i < a1len; ++i)
+    {
+      if (a1[i] != a2[i])
+	return false;
+    }
+  return true;
+}
+
+static bool
+ip_addr_member_of (const in_addr_t addr, const IP_ADDR_STRING *ias)
+{
+  in_addr_t aa[8];
+  int len = SIZE(aa);
+  int i;
+
+  ip_addr_string_to_array (aa, &len, ias);
+  for (i = 0; i < len; ++i)
+    {
+      if (addr == aa[i])
+	return true;
+    }
+  return false;
+}
+
+static void
+netsh_ifconfig_options (const char *type,
+			const in_addr_t *addr_list,
+			const int addr_len,
+			const IP_ADDR_STRING *current,
+			const char *flex_name,
+			const bool test_first)
+{
+  struct gc_arena gc = gc_new ();
+  struct buffer out = alloc_buf_gc (256, &gc);
+  bool delete_first = false;
+
+  /* first check if we should delete existing DNS/WINS settings from TAP interface */
+  if (test_first)
+    {
+      if (!ip_addr_one_to_one (addr_list, addr_len, current))
+	delete_first = true;
+    }
+  else
+    delete_first = true;
+  
+  /* delete existing DNS/WINS settings from TAP interface */
+  if (delete_first)
+    {
+      buf_init (&out, 0);
+      buf_printf (&out, "netsh interface ip delete %s \"%s\" all",
+		  type,
+		  flex_name);
+      netsh_command (BSTR(&out), 2);
+    }
+
+  /* add new DNS/WINS settings to TAP interface */
+  {
+    int count = 0;
+    int i;
+    for (i = 0; i < addr_len; ++i)
+      {
+	if (delete_first || !test_first || !ip_addr_member_of (addr_list[i], current))
+	  {
+	    const char *fmt = count ?
+	        "netsh interface ip add %s \"%s\" %s"
+	      : "netsh interface ip set %s \"%s\" static %s";
+
+	    buf_init (&out, 0);
+	    buf_printf (&out, fmt,
+			type,
+			flex_name,
+			print_in_addr_t (addr_list[i], 0, &gc));
+	    netsh_command (BSTR(&out), 2);
+	  
+	    ++count;
+	  }
+	else
+	  {
+	    msg (M_INFO, "NETSH: \"%s\" %s %s [already set]",
+		 flex_name,
+		 type,
+		 print_in_addr_t (addr_list[i], 0, &gc));
+	  }
+      }
+  }
+
+  gc_free (&gc);
+}
+
+static void
+init_ip_addr_string2 (IP_ADDR_STRING *dest, const IP_ADDR_STRING *src1, const IP_ADDR_STRING *src2)
+{
+  CLEAR (dest[0]);
+  CLEAR (dest[1]);
+  if (src1)
+    {
+      dest[0] = *src1;
+      dest[0].Next = NULL;
+    }
+  if (src2)
+    {
+      dest[1] = *src2;
+      dest[0].Next = &dest[1];
+      dest[1].Next = NULL;
+    }
 }
 
 static void
@@ -3109,7 +3269,7 @@ netsh_ifconfig (const struct tuntap_options *to,
 		const char *flex_name,
 		const in_addr_t ip,
 		const in_addr_t netmask,
-		unsigned int flags)
+		const unsigned int flags)
 {
   struct gc_arena gc = gc_new ();
   struct buffer out = alloc_buf_gc (256, &gc);
@@ -3147,6 +3307,30 @@ netsh_ifconfig (const struct tuntap_options *to,
 	}
     }
 
+  /* set WINS/DNS options */
+  if (flags & NI_OPTIONS)
+    {
+      IP_ADDR_STRING wins[2];
+      CLEAR (wins[0]);
+      CLEAR (wins[1]);
+
+      netsh_ifconfig_options ("dns",
+			      to->dns,
+			      to->dns_len,
+			      pai ? &pai->DnsServerList : NULL,
+			      flex_name,
+			      BOOL_CAST (flags & NI_TEST_FIRST));
+      if (ai && ai->HaveWins)
+	init_ip_addr_string2 (wins, &ai->PrimaryWinsServer, &ai->SecondaryWinsServer);
+
+      netsh_ifconfig_options ("wins",
+			      to->wins,
+			      to->wins_len,
+			      ai ? wins : NULL,
+			      flex_name,
+			      BOOL_CAST (flags & NI_TEST_FIRST));
+    }
+  
   gc_free (&gc);
 }
 
@@ -3209,20 +3393,28 @@ tun_standby_init (struct tuntap *tt)
   tt->standby_iter = 0;
 }
 
-void
+bool
 tun_standby (struct tuntap *tt)
 {
+  bool ret = true;
   ++tt->standby_iter;
-  if (tt->options.ip_win32_type == IPW32_SET_ADAPTIVE
-      && tt->standby_iter % IPW32_SET_ADAPTIVE_TRY_NETSH == 0)
+  if (tt->options.ip_win32_type == IPW32_SET_ADAPTIVE)
     {
-      msg (M_INFO, "NOTE: --ip-win32 dynamic failed, now trying --ip-win32 netsh (this may take some time)");
-      netsh_ifconfig (&tt->options,
-		      tt->actual_name,
-		      tt->local,
-		      tt->adapter_netmask,
-		      NI_TEST_FIRST|NI_IP_NETMASK|NI_OPTIONS);
+      if (tt->standby_iter == IPW32_SET_ADAPTIVE_TRY_NETSH)
+	{
+	  msg (M_INFO, "NOTE: now trying netsh (this may take some time)");
+	  netsh_ifconfig (&tt->options,
+			  tt->actual_name,
+			  tt->local,
+			  tt->adapter_netmask,
+			  NI_TEST_FIRST|NI_IP_NETMASK|NI_OPTIONS);
+	}
+      else if (tt->standby_iter >= IPW32_SET_ADAPTIVE_TRY_NETSH*2)
+	{
+	  ret = false;
+	}
     }
+  return ret;
 }
 
 /*
@@ -3577,7 +3769,7 @@ open_tun (const char *dev, const char *dev_type, const char *dev_node, bool ipv6
 
       ASSERT (ep[3] > 0);
 
-#if 1 /* TAP_IOCTL_CONFIG_DHCP_MASQ -- disable to simulate bad DHCP negotiation */
+#ifndef SIMULATE_DHCP_FAILED /* this code is disabled to simulate bad DHCP negotiation */
       if (!DeviceIoControl (tt->hand, TAP_IOCTL_CONFIG_DHCP_MASQ,
 			    ep, sizeof (ep),
 			    ep, sizeof (ep), &len, NULL))
@@ -3590,7 +3782,6 @@ open_tun (const char *dev, const char *dev_type, const char *dev_node, bool ipv6
 	   print_in_addr_t (ep[2], IA_NET_ORDER, &gc),
 	   ep[3]
 	   );
-#endif
 
       /* user-supplied DHCP options capability */
       if (tt->options.dhcp_options)
@@ -3604,6 +3795,7 @@ open_tun (const char *dev, const char *dev_type, const char *dev_node, bool ipv6
 	    msg (M_FATAL, "ERROR: The TAP-Win32 driver rejected a TAP_IOCTL_CONFIG_DHCP_SET_OPT DeviceIoControl call");
 	  free_buf (&buf);
 	}
+#endif
     }
 
   /* set driver media status to 'connected' */

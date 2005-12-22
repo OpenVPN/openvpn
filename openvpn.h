@@ -117,6 +117,14 @@ struct context_buffers
   struct buffer read_tun_buf;
 };
 
+/*
+ * always-persistent context variables
+ */
+struct context_persist
+{
+  int restart_sleep_seconds;
+};
+
 /* 
  * level 0 context contains data related to
  * once-per OpenVPN instantiation events
@@ -460,6 +468,9 @@ struct context
   
   /* set to true after we daemonize */
   bool did_we_daemonize;
+
+  /* persistent across SIGHUP */
+  struct context_persist persist;
 
   /* level 0 context contains data related to
      once-per OpenVPN instantiation events

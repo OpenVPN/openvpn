@@ -275,7 +275,18 @@ check_add_routes_dowork (struct context *c)
     {
       msg (D_ROUTE, "Route: Waiting for TUN/TAP interface to come up...");
       if (c->c1.tuntap)
-	tun_standby (c->c1.tuntap);
+	{
+	  if (!tun_standby (c->c1.tuntap))
+	    {
+	      c->sig->signal_received = SIGHUP;
+	      c->sig->signal_text = "ip-fail";
+	      c->persist.restart_sleep_seconds = 10;
+#ifdef WIN32
+	      show_routes (M_INFO|M_NOPREFIX);
+	      show_adapters (M_INFO|M_NOPREFIX);
+#endif
+	    }
+	}
       update_time ();
       if (c->c2.route_wakeup.n != 1)
 	event_timeout_init (&c->c2.route_wakeup, 1, now);
