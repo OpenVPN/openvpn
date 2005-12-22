@@ -4347,8 +4347,12 @@ Which method
 .B m
 to use for adding routes on Windows?
 
+.B adaptive
+(default) -- Try IP helper API first.  If that fails, fall
+back to the route.exe shell command.
+.br
 .B ipapi
-(default) -- Use IP helper API.
+-- Use IP helper API.
 .br
 .B exe
 -- Call the route.exe shell command.
@@ -4357,7 +4361,9 @@ to use for adding routes on Windows?
 .B --dhcp-option type [parm]
 Set extended TAP-Win32 TCP/IP properties, must
 be used with
-.B --ip-win32 dynamic.
+.B --ip-win32 dynamic
+or
+.B --ip-win32 adaptive.
 This option can be used to set additional TCP/IP properties
 on the TAP-Win32 adapter, and is particularly useful for
 configuring an OpenVPN client to access a Samba server
