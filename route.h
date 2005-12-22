@@ -38,15 +38,16 @@
 /*
  * Windows route methods
  */
-#define ROUTE_METHOD_IPAPI  0  /* use IP helper API */
-#define ROUTE_METHOD_EXE    1  /* use route.exe */
-#define ROUTE_METHOD_MASK   1
+#define ROUTE_METHOD_ADAPTIVE  0  /* try IP helper first then route.exe */
+#define ROUTE_METHOD_IPAPI     1  /* use IP helper API */
+#define ROUTE_METHOD_EXE       2  /* use route.exe */
+#define ROUTE_METHOD_MASK      3
 #endif
 
 /*
  * Route add flags (must stay clear of ROUTE_METHOD bits)
  */
-#define ROUTE_DELETE_FIRST  2
+#define ROUTE_DELETE_FIRST  4
 
 struct route_bypass
 {

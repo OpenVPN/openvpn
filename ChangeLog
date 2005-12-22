@@ -36,6 +36,10 @@ $Id$
 * --ip-win32 netsh (or --ip-win32 adaptive when in netsh
   mode) can now set DNS/WINS addresses on the TAP-Win32
   adapter.
+* Added new option --route-method adaptive (Win32)
+  which tries IP helper API first, then falls back to
+  route.exe.
+* Made --route-method adaptive the default.
 	
 2005.11.12 -- Version 2.1-beta7
 

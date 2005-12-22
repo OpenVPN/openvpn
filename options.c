@@ -644,7 +644,7 @@ init_options (struct options *o)
 #endif
   o->tuntap_options.dhcp_lease_time = 31536000; /* one year */
   o->tuntap_options.dhcp_masq_offset = 0;       /* use network address as internal DHCP server address */
-  o->route_method = ROUTE_METHOD_IPAPI;
+  o->route_method = ROUTE_METHOD_ADAPTIVE;
 #endif
 #ifdef USE_PTHREAD
   o->n_threads = 1;
@@ -4318,13 +4318,15 @@ add_option (struct options *options,
   else if (streq (p[0], "route-method") && p[1])
     {
       VERIFY_PERMISSION (OPT_P_ROUTE_EXTRAS);
-      if (streq (p[1], "ipapi"))
+      if (streq (p[1], "adaptive"))
+	options->route_method = ROUTE_METHOD_ADAPTIVE;
+      else if (streq (p[1], "ipapi"))
 	options->route_method = ROUTE_METHOD_IPAPI;
       else if (streq (p[1], "exe"))
 	options->route_method = ROUTE_METHOD_EXE;
       else
 	{
-	  msg (msglevel, "--route method must be 'ipapi' or 'exe'");
+	  msg (msglevel, "--route method must be 'adaptive', 'ipapi', or 'exe'");
 	  goto err;
 	}
     }

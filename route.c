@@ -22,8 +22,6 @@
  *  59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-/* JYFIXME WIN32 todo: add adaptive route-method */
-
 /*
  * Support routines for adding/deleting network routes.
  */
@@ -812,6 +810,18 @@ add_route (struct route *r, const struct tuntap *tt, unsigned int flags, const s
       status = system_check (BSTR (&buf), es, 0, "ERROR: Windows route add command failed");
       netcmd_semaphore_release ();
     }
+  else if ((flags & ROUTE_METHOD_MASK) == ROUTE_METHOD_ADAPTIVE)
+    {
+      status = add_route_ipapi (r, tt);
+      msg (D_ROUTE, "Route addition via IPAPI %s [adaptive]", status ? "succeeded" : "failed");
+      if (!status)
+	{
+	  msg (D_ROUTE, "Route addition fallback to route.exe");
+	  netcmd_semaphore_lock ();
+	  status = system_check (BSTR (&buf), es, 0, "ERROR: Windows route add command failed [adaptive]");
+	  netcmd_semaphore_release ();
+	}
+    }
   else
     {
       ASSERT (0);
@@ -948,6 +958,18 @@ delete_route (const struct route *r, const struct tuntap *tt, unsigned int flags
       netcmd_semaphore_lock ();
       system_check (BSTR (&buf), es, 0, "ERROR: Windows route delete command failed");
       netcmd_semaphore_release ();
+    }
+  else if ((flags & ROUTE_METHOD_MASK) == ROUTE_METHOD_ADAPTIVE)
+    {
+      const bool status = del_route_ipapi (r, tt);
+      msg (D_ROUTE, "Route deletion via IPAPI %s [adaptive]", status ? "succeeded" : "failed");
+      if (!status)
+	{
+	  msg (D_ROUTE, "Route deletion fallback to route.exe");
+	  netcmd_semaphore_lock ();
+	  system_check (BSTR (&buf), es, 0, "ERROR: Windows route delete command failed [adaptive]");
+	  netcmd_semaphore_release ();
+	}
     }
   else
     {
