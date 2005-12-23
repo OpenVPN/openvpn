@@ -1696,7 +1696,11 @@ do_option_warnings (struct context *c)
    {
     if (!o->persist_tun)
      msg (M_WARN, "WARNING: you are using user/group/chroot without persist-tun -- this may cause restarts to fail");
-    if (!o->persist_key && !o->pkcs11_id)
+    if (!o->persist_key
+#ifdef ENABLE_PKCS11
+	&& !o->pkcs11_id
+#endif
+	)
      msg (M_WARN, "WARNING: you are using user/group/chroot without persist-key -- this may cause restarts to fail");
    }
 
