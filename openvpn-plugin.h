@@ -38,7 +38,8 @@
 #define OPENVPN_PLUGIN_CLIENT_DISCONNECT     7
 #define OPENVPN_PLUGIN_LEARN_ADDRESS         8
 #define OPENVPN_PLUGIN_CLIENT_CONNECT_V2     9
-#define OPENVPN_PLUGIN_N                     10
+#define OPENVPN_PLUGIN_TLS_FINAL             10
+#define OPENVPN_PLUGIN_N                     11
 
 /*
  * Build a mask out of a set of plug-in types.

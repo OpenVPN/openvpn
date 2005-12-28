@@ -87,6 +87,8 @@ plugin_type_name (const int type)
       return "PLUGIN_CLIENT_DISCONNECT";
     case OPENVPN_PLUGIN_LEARN_ADDRESS:
       return "PLUGIN_LEARN_ADDRESS";
+    case OPENVPN_PLUGIN_TLS_FINAL:
+      return "PLUGIN_TLS_FINAL";
     default:
       return "PLUGIN_???";
     }

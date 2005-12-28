@@ -3087,7 +3087,17 @@ key_method_2_read (struct buffer *buf, struct tls_multi *multi, struct tls_sessi
   buf_clear (buf);
 
   /*
-   * generate tunnel keys if client
+   * Call OPENVPN_PLUGIN_TLS_FINAL plugin if defined, for final
+   * veto opportunity over authentication decision.
+   */
+  if (ks->authenticated && plugin_defined (session->opt->plugins, OPENVPN_PLUGIN_TLS_FINAL))
+    {
+      if (plugin_call (session->opt->plugins, OPENVPN_PLUGIN_TLS_FINAL, NULL, NULL, session->opt->es))
+	ks->authenticated = false;
+    }
+
+  /*
+   * Generate tunnel keys if client
    */
   if (!session->opt->server)
     {
