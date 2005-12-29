@@ -191,6 +191,14 @@ TUN/TAP Driver Configuration:
   http://vtun.sourceforge.net/tun/
   and follow the installation instructions.
 
+  If you use OpenVPN on Linux 2.2 or 2.4 or Solaris, you may be
+  suffering from a bug which causes connections to hang under heavy load.
+  The symptoms are very similar to the MTU problems discussed frequently
+  in the OpenVPN mailing lists. But it turns out that this bug is not caused by
+  MTU problems. It's a bug in the tun/tap driver.  A patch is provided here:
+
+  http://openvpn.net/patch/tun-sb.patch
+
 * Solaris
 
   For 64 bit, I used the tun-1.1.tar.gz source and compiled it.
