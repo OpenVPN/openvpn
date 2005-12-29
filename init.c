@@ -1402,7 +1402,7 @@ do_init_crypto_tls_c1 (struct context *c)
       /* TLS handshake authentication (--tls-auth) */
       if (options->tls_auth_file)
 	{
-	  unsigned int flags = options->key_direction ? GHK_KEY_DIR : 0;
+	  unsigned int flags = 0;
 	  const char *file = options->tls_auth_file;
 
 #if ENABLE_INLINE_FILES
@@ -1415,6 +1415,7 @@ do_init_crypto_tls_c1 (struct context *c)
 	  get_tls_handshake_key (&c->c1.ks.key_type,
 				 &c->c1.ks.tls_auth_key,
 				 file,
+				 options->key_direction,
 				 flags);
 	}
 

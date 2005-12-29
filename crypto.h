@@ -369,11 +369,11 @@ void openssl_dmalloc_init (void);
 
 #ifdef USE_SSL
 
-#define GHK_KEY_DIR (1<<0)
-#define GHK_INLINE  (1<<1)
+#define GHK_INLINE  (1<<0)
 void get_tls_handshake_key (const struct key_type *key_type,
 			    struct key_ctx_bi *ctx,
 			    const char *passphrase_file,
+			    const int key_direction,
 			    const unsigned int flags);
 
 #else

@@ -910,6 +910,7 @@ void
 get_tls_handshake_key (const struct key_type *key_type,
 		       struct key_ctx_bi *ctx,
 		       const char *passphrase_file,
+		       const int key_direction,
 		       const unsigned int flags)
 {
   if (passphrase_file && key_type->hmac_length)
@@ -970,7 +971,7 @@ get_tls_handshake_key (const struct key_type *key_type,
       }
       /* handle key direction */
 
-      key_direction_state_init (&kds, BOOL_CAST (flags & GHK_KEY_DIR));
+      key_direction_state_init (&kds, key_direction);
       must_have_n_keys (passphrase_file, "tls-auth", &key2, kds.need_keys);
 
       /* initialize hmac key in both directions */
