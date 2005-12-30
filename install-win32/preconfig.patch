@@ -1,0 +1,76 @@
+--- openvpn.nsi	2005-12-27 19:34:10.000000000 -0700
++++ planet.nsi	2005-12-29 16:00:41.253252888 -0700
+@@ -19,11 +19,19 @@
+ !define TAP "tap0801"
+ !define TAPDRV "${TAP}.sys"
+ 
++# PRECONFIG
++
+ ; something like "-DBG2"
+-!define OUTFILE_LABEL ""
++!define OUTFILE_LABEL "-PC"
+ 
+ ; something like "DEBUG2"
+-!define TITLE_LABEL ""
++!define TITLE_LABEL "Planet"
++
++!define PRECONFIG_DIR "..\..\preconfig"
++!define GUI_EXE "openvpn-gui-1.0.3.exe"
++!define CONFIG_FILE "planet.ovpn"
++ 
++# END PRECONFIG
+ 
+ ; Default service settings
+ !define SERV_CONFIG_DIR   "$INSTDIR\config"
+@@ -188,6 +196,10 @@
+ 
+   File "${HOME}\openvpn.exe"
+ 
++# PRECONFIG
++  File "${PRECONFIG_DIR}\${GUI_EXE}"
++# END PRECONFIG
++
+ SectionEnd
+ 
+ Section "OpenVPN RSA Certificate Management Scripts" SecOpenVPNEasyRSA
+@@ -222,6 +234,10 @@
+ 
+   SetOutPath "$INSTDIR\config"
+ 
++# PRECONFIG
++  File "${PRECONFIG_DIR}\${CONFIG_FILE}"
++# END PRECONFIG
++
+   FileOpen $R0 "$INSTDIR\config\README.txt" w
+   FileWrite $R0 "This directory should contain OpenVPN configuration files$\r$\n"
+   FileWrite $R0 "each having an extension of .${SERV_CONFIG_EXT}$\r$\n"
+@@ -422,8 +438,16 @@
+     !insertmacro WriteRegStringIfUndef HKCR "OpenVPNFile\shell\run" "" "Start OpenVPN on this config file"
+     !insertmacro WriteRegStringIfUndef HKCR "OpenVPNFile\shell\run\command" "" '"$INSTDIR\bin\openvpn.exe" --pause-exit --config "%1"'
+ 
+-    ; Create start menu shortcuts to addtap.bat and deltapall.bat
+  noass:
++
++# PRECONFIG
++    ; Create GUI shortcut
++    IfFileExists "$INSTDIR\bin\${GUI_EXE}" "" nogui
++      CreateShortCut "$SMPROGRAMS\OpenVPN\OpenVPN GUI.lnk" "$INSTDIR\bin\${GUI_EXE}" ""
++ nogui:
++# END PRECONFIG
++
++    ; Create start menu shortcuts to addtap.bat and deltapall.bat
+     IfFileExists "$INSTDIR\bin\addtap.bat" "" trydeltap
+       CreateShortCut "$SMPROGRAMS\OpenVPN\Add a new TAP-Win32 virtual ethernet adapter.lnk" "$INSTDIR\bin\addtap.bat" ""
+ 
+@@ -513,6 +537,11 @@
+ 
+   RMDir /r $SMPROGRAMS\OpenVPN
+ 
++# PRECONFIG
++  Delete "$INSTDIR\config\${CONFIG_FILE}"
++  Delete "$INSTDIR\bin\${GUI_EXE}"
++# END PRECONFIG
++
+   Delete "$INSTDIR\bin\openvpn.exe"
+   Delete "$INSTDIR\bin\openvpnserv.exe"
+   Delete "$INSTDIR\bin\libeay32.dll"
