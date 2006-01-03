@@ -3,7 +3,7 @@ Copyright (C) 2002-2005 OpenVPN Solutions LLC <info@openvpn.net>
 
 $Id$
 
-2005.12.xx -- Version 2.1-beta8
+2006.01.03 -- Version 2.1-beta8
 
 * --remap-usr1 will now also remap signals thrown during
   initialization.
