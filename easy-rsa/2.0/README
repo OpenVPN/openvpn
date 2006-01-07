@@ -47,6 +47,20 @@ Release Notes for easy-rsa-2.0
 * This release only affects the Linux/Unix version of easy-rsa.
   The Windows version (written to use the Windows shell) is unchanged.
 
+* Use the revoke-full script to revoke a certificate, and generate
+  (or update) the crl.pem file in the keys directory (as set by the
+  vars script).  Then use "crl-verify crl.pem" in your OpenVPN server
+  config file, so that OpenVPN can reject any connections coming from
+  clients which present a revoked certificate.  Usage for the script is:
+
+    revoke-full <common-name>
+
+  Note this this procedure is primarily designed to revoke client
+  certificates. You could theoretically use this method to revoke
+  server certificates as well, but then you would need to propagate
+  the crl.pem file to all clients as well, and have them include
+  "crl-verify crl.pem" in their configuration files.
+
 INSTALL easy-rsa
 
 1. Edit vars.

@@ -1012,6 +1012,7 @@ read_key_file (struct key2 *key2, const char *file, const unsigned int flags)
   const char *error_filename = file;
 
   /* parse info */
+  const char *cp;
   int hb_index = 0;
   int line_num = 1;
   int line_index = 0;
@@ -1062,7 +1063,7 @@ read_key_file (struct key2 *key2, const char *file, const unsigned int flags)
       close (fd);
     }
 
-  const char *cp = (char *)in.data;
+  cp = (char *)in.data;
   while (size)
     {
       const char c = *cp;

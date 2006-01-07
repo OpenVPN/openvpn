@@ -24,7 +24,7 @@ LZO = \src\lzo-1.08.vc
 
 INCLUDE_DIRS = -I$(OPENSSL)/include -I$(LZO)/include
 
-LIBS = lzo.lib ws2_32.lib crypt32.lib iphlpapi.lib winmm.lib gdi32.lib advapi32.lib
+LIBS = lzo.lib ws2_32.lib crypt32.lib iphlpapi.lib winmm.lib gdi32.lib advapi32.lib wininet.lib
 
 LIB_DIRS = -LIBPATH:$(OPENSSL)\out -LIBPATH:$(LZO)
 
