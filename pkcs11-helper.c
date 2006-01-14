@@ -316,6 +316,59 @@ _hexToBinary (
 }
 
 static
+void
+_isBetterCertificate_getExpiration (
+	IN const unsigned char * const pCertificate,
+	IN const size_t nCertificateSize,
+	OUT char * const szNotBefore,
+	IN const int nNotBeforeSize
+) {
+	/*
+	 * This function compare the notBefore
+	 * and select the most recent certificate
+	 * it does not deal with timezones...
+	 * When openssl will have ASN1_TIME compare function
+	 * it should be used.
+	 */
+
+	X509 *x509 = NULL;
+
+	PKCS11ASSERT (pCertificate!=NULL);
+	PKCS11ASSERT (szNotBefore!=NULL);
+	PKCS11ASSERT (nNotBeforeSize>0);
+
+	szNotBefore[0] = '\0';
+
+	x509 = X509_new ();
+
+	if (x509 != NULL) {
+		pkcs11_openssl_d2i_t d2i = (pkcs11_openssl_d2i_t)pCertificate;
+
+		if (
+			d2i_X509 (&x509, &d2i, nCertificateSize)
+		) {
+			ASN1_TIME *notBefore = X509_get_notBefore (x509);
+			ASN1_TIME *notAfter = X509_get_notAfter (x509);
+
+			if (
+				notBefore != NULL &&
+				X509_cmp_current_time (notBefore) <= 0 &&
+				X509_cmp_current_time (notAfter) >= 0 &&
+				notBefore->length < nNotBeforeSize - 1
+			) {
+				memmove (szNotBefore, notBefore->data, notBefore->length);
+				szNotBefore[notBefore->length] = '\0';
+			}
+		}
+	}
+
+	if (x509 != NULL) {
+		X509_free (x509);
+		x509 = NULL;
+	}
+}
+
+static
 bool
 _isBetterCertificate (
 	IN const unsigned char * const pCurrent,
@@ -331,8 +384,6 @@ _isBetterCertificate (
 	 * it should be used.
 	 */
 
-	X509 *x509Current = NULL, *x509New = NULL;
-	char szNotBeforeCurrent[1024], szNotBeforeNew[1024];
 	bool fBetter = false;
 
 	PKCS11DLOG (
@@ -352,50 +403,27 @@ _isBetterCertificate (
 		fBetter = true;
 	}
 	else {
-		PKCS11ASSERT (pCurrent!=NULL);
-		PKCS11ASSERT (pNew!=NULL);
+		char szNotBeforeCurrent[1024], szNotBeforeNew[1024];
 
-		szNotBeforeCurrent[0] = '\0';
-		szNotBeforeNew[0] = '\0';
+		_isBetterCertificate_getExpiration (
+			pCurrent,
+			nCurrentSize,
+			szNotBeforeCurrent,
+			sizeof (szNotBeforeCurrent)
+		);
+		_isBetterCertificate_getExpiration (
+			pNew,
+			nNewSize,
+			szNotBeforeNew,
+			sizeof (szNotBeforeNew)
+		);
 
-		x509Current = X509_new ();
-		x509New = X509_new ();
-
-		if (x509Current != NULL && x509New != NULL) {
-			pkcs11_openssl_d2i_t d2i1, d2i2;
-
-			d2i1 = (pkcs11_openssl_d2i_t)pCurrent;
-			d2i2 = (pkcs11_openssl_d2i_t)pNew;
-			if (
-				d2i_X509 (&x509Current, &d2i1, nCurrentSize) &&
-				d2i_X509 (&x509New, &d2i2, nNewSize)
-			) {
-				ASN1_TIME *notBeforeCurrent = X509_get_notBefore (x509Current);
-				ASN1_TIME *notBeforeNew = X509_get_notBefore (x509New);
-
-				if (
-					notBeforeCurrent != NULL &&
-					notBeforeNew != NULL &&
-					X509_cmp_current_time (notBeforeNew) > 0 &&
-					notBeforeCurrent->length < (int) sizeof (szNotBeforeCurrent) - 1 &&
-					notBeforeNew->length < (int) sizeof (szNotBeforeNew) - 1
-				) {
-					memmove (szNotBeforeCurrent, notBeforeCurrent->data, notBeforeCurrent->length);
-					szNotBeforeCurrent[notBeforeCurrent->length] = '\0';
-					memmove (szNotBeforeNew, notBeforeNew->data, notBeforeNew->length);
-					szNotBeforeNew[notBeforeNew->length] = '\0';
-				}
-			}
-		}
-
-		if (x509Current != NULL) {
-			X509_free (x509Current);
-			x509Current = NULL;
-		}
-		if (x509New != NULL) {
-			X509_free (x509New);
-			x509New = NULL;
-		}
+		PKCS11DLOG (
+			PKCS11_LOG_DEBUG2,
+			"PKCS#11: _isBetterCertificate szNotBeforeCurrent=%s, szNotBeforeNew=%s",
+			szNotBeforeCurrent,
+			szNotBeforeNew
+		);
 
 		fBetter = strcmp (szNotBeforeCurrent, szNotBeforeNew) < 0;
 	}
@@ -1276,8 +1304,6 @@ _pkcs11h_setCertificateSession_Certificate (
 	IN const char * const szIdType,
 	IN const char * const szId
 ) {
-	CK_OBJECT_HANDLE objects[10];
-	CK_ULONG objects_found;
 	CK_RV rv = CKR_OK;
 
 	unsigned char selected_id[PKCS11H_MAX_ATTRIBUTE_SIZE];
@@ -1291,6 +1317,7 @@ _pkcs11h_setCertificateSession_Certificate (
 		{CKA_CLASS, &cert_filter_class, sizeof (cert_filter_class)},
 		{0, cert_filter_by, 0}
 	};
+	int cert_filter_num = 1;
 
 	PKCS11ASSERT (pkcs11h_certificate!=NULL);
 	PKCS11ASSERT (szIdType!=NULL);
@@ -1317,6 +1344,7 @@ _pkcs11h_setCertificateSession_Certificate (
 				szId,
 				cert_filter[1].ulValueLen
 			);
+			cert_filter_num++;
 		}
 		else if (!strcmp (szIdType, "id")) {
 			size_t s = sizeof (cert_filter_by);
@@ -1328,6 +1356,7 @@ _pkcs11h_setCertificateSession_Certificate (
 				&s
 			);
 			cert_filter[1].ulValueLen = s;
+			cert_filter_num++;
 		}
 		else if (!strcmp (szIdType, "subject")) {
 			memmove (&cert_filter[1], &cert_filter[0], sizeof (CK_ATTRIBUTE));
@@ -1341,11 +1370,15 @@ _pkcs11h_setCertificateSession_Certificate (
 		rv = pkcs11h_certificate->session->provider->f->C_FindObjectsInit (
 			pkcs11h_certificate->session->hSession,
 			cert_filter,
-			sizeof (cert_filter) / sizeof (CK_ATTRIBUTE)
+			cert_filter_num
 		);
 	}
 
 	if (rv == CKR_OK) {
+		CK_OBJECT_HANDLE objects[10];
+		CK_ULONG objects_found;
+		CK_OBJECT_HANDLE oLast = PKCS11H_INVALID_OBJECT_HANDLE;
+
 		while (
 			(rv = pkcs11h_certificate->session->provider->f->C_FindObjects (
 				pkcs11h_certificate->session->hSession,
@@ -1356,6 +1389,22 @@ _pkcs11h_setCertificateSession_Certificate (
 			objects_found > 0
 		) { 
 			CK_ULONG i;
+
+			/*
+			 * Begin workaround
+			 *
+			 * Workaround iKey bug
+			 * It returns the same objects over and over
+			 */
+			if (oLast == objects[0]) {
+				PKCS11LOG (
+					PKCS11_LOG_WARN,
+					"PKCS#11: Bad PKCS#11 C_FindObjects implementation detected, workaround applied"
+				);
+				break;
+			}
+			oLast = objects[0];
+			/* End workaround */
 			
 			for (i=0;i<objects_found;i++) {
 				unsigned char attrs_id[PKCS11H_MAX_ATTRIBUTE_SIZE];
