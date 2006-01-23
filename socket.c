@@ -712,7 +712,7 @@ socket_bind (socket_descriptor_t sd,
   gc_free (&gc);
 }
 
-static int
+int
 openvpn_connect (socket_descriptor_t sd,
 		 struct openvpn_sockaddr *remote,
 		 int connect_timeout,
@@ -785,7 +785,7 @@ openvpn_connect (socket_descriptor_t sd,
   return status;
 }
 
-static void
+void
 socket_connect (socket_descriptor_t *sd,
                 struct openvpn_sockaddr *local,
                 bool bind_local,

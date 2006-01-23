@@ -2392,7 +2392,8 @@ open_management (struct context *c)
 			       c->options.management_log_history_cache,
 			       c->options.management_echo_buffer_size,
 			       c->options.management_state_buffer_size,
-			       c->options.management_hold))
+			       c->options.management_hold,
+			       c->options.management_client))
 	    {
 	      management_set_state (management,
 				    OPENVPN_STATE_CONNECTING,

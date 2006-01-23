@@ -49,6 +49,7 @@ int parse_signal (const char *signame);
 const char *signal_name (const int sig, const bool upper);
 const char *signal_description (const int signum, const char *sigtext);
 void throw_signal (const int signum);
+void throw_signal_soft (const int signum, const char *signal_text);
 
 void pre_init_signal_catch (void);
 void post_init_signal_catch (void);

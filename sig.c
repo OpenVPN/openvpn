@@ -100,6 +100,14 @@ throw_signal (const int signum)
   siginfo_static.hard = true;
 }
 
+void
+throw_signal_soft (const int signum, const char *signal_text)
+{
+  siginfo_static.signal_received = signum;
+  siginfo_static.hard = false;
+  siginfo_static.signal_text = signal_text;
+}
+
 static void
 signal_reset (struct signal_info *si)
 {

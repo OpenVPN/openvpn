@@ -59,7 +59,7 @@ struct management *management; /* GLOBAL */
 
 /* static forward declarations */
 static void man_output_standalone (struct management *man, volatile int *signal_received);
-static void man_reset_client_socket (struct management *man, const bool listen);
+static void man_reset_client_socket (struct management *man, const bool exiting);
 
 static void
 man_help ()
@@ -259,7 +259,7 @@ virtual_output_callback_func (void *arg, const unsigned int flags, const char *s
 	      if (out)
 		{
 		  man_output_list_push (man, out);
-		  man_reset_client_socket (man, false);
+		  man_reset_client_socket (man, true);
 		}
 	    }
 	}
@@ -792,9 +792,48 @@ man_stop_ne32 (struct management *man)
 #endif
 
 static void
-man_accept (struct management *man)
+man_connection_settings_reset (struct management *man)
+{
+  man->connection.state_realtime = false;
+  man->connection.log_realtime = false;
+  man->connection.echo_realtime = false;
+  man->connection.password_verified = false;
+  man->connection.password_tries = 0;
+  man->connection.halt = false;
+  man->connection.state = MS_CC_WAIT_WRITE;
+}
+
+static void
+man_new_connection_post (struct management *man, const char *description)
 {
   struct gc_arena gc = gc_new ();
+
+  set_nonblock (man->connection.sd_cli);
+  set_cloexec (man->connection.sd_cli);
+
+  man_connection_settings_reset (man);
+
+#ifdef WIN32
+  man_start_ne32 (man);
+#endif
+
+  msg (D_MANAGEMENT, "MANAGEMENT: %s %s",
+       description,
+       print_sockaddr (&man->settings.local, &gc));
+
+  output_list_reset (man->connection.out);
+
+  if (!man_password_needed (man))
+    man_welcome (man);
+  man_prompt (man);
+  man_update_io_state (man);
+
+  gc_free (&gc);
+}
+
+static void
+man_accept (struct management *man)
+{
   struct link_socket_actual act;
 
   /*
@@ -812,36 +851,8 @@ man_accept (struct management *man)
 #endif
 	}
 
-      /*
-       * Set misc socket properties
-       */
-      set_nonblock (man->connection.sd_cli);
-      set_cloexec (man->connection.sd_cli);
-
-      man->connection.state_realtime = false;
-      man->connection.log_realtime = false;
-      man->connection.echo_realtime = false;
-      man->connection.password_verified = false;
-      man->connection.password_tries = 0;
-      man->connection.halt = false;
-      man->connection.state = MS_CC_WAIT_WRITE;
-
-#ifdef WIN32
-      man_start_ne32 (man);
-#endif
-
-      msg (D_MANAGEMENT, "MANAGEMENT: Client connected from %s",
-	   print_sockaddr (&man->settings.local, &gc));
-
-      output_list_reset (man->connection.out);
-
-      if (!man_password_needed (man))
-	man_welcome (man);
-      man_prompt (man);
-      man_update_io_state (man);
+      man_new_connection_post (man, "Client connected from");
     }
-
-  gc_free (&gc);
 }
 
 static void
@@ -891,7 +902,49 @@ man_listen (struct management *man)
 }
 
 static void
-man_reset_client_socket (struct management *man, const bool listen)
+man_connect (struct management *man)
+{
+  struct gc_arena gc = gc_new ();
+  int status;
+  int signal_received = 0;
+
+  /*
+   * Initialize state
+   */
+  man->connection.state = MS_INITIAL;
+  man->connection.sd_top = SOCKET_UNDEFINED;
+
+  man->connection.sd_cli = create_socket_tcp ();
+
+  status = openvpn_connect (man->connection.sd_cli,
+			    &man->settings.local,
+			    5,
+			    &signal_received);
+
+  if (signal_received)
+    {
+      throw_signal (signal_received);
+      goto done;
+    }
+
+  if (status)
+    {
+      msg (D_LINK_ERRORS,
+	   "MANAGEMENT: connect to %s failed: %s",
+	   print_sockaddr (&man->settings.local, &gc),
+	   strerror_ts (status, &gc));
+      throw_signal_soft (SIGTERM, "management-connect-failed");
+      goto done;
+    }
+
+  man_new_connection_post (man, "Connected to management server at");
+
+ done:
+  gc_free (&gc);
+}
+
+static void
+man_reset_client_socket (struct management *man, const bool exiting)
 {
   if (socket_defined (man->connection.sd_cli))
     {
@@ -900,11 +953,17 @@ man_reset_client_socket (struct management *man, const bool listen)
       man_stop_ne32 (man);
 #endif
       man_close_socket (man, man->connection.sd_cli);
+      man->connection.sd_cli = SOCKET_UNDEFINED;
       command_line_reset (man->connection.in);
       output_list_reset (man->connection.out);
     }
-  if (listen)
-    man_listen (man);
+  if (!exiting)
+    {
+      if (man->settings.connect_as_client)
+	throw_signal_soft (SIGTERM, "management-exit");
+      else
+	man_listen (man);
+    }
 }
 
 static void
@@ -978,7 +1037,7 @@ man_read (struct management *man)
   len = recv (man->connection.sd_cli, buf, sizeof (buf), MSG_NOSIGNAL);
   if (len == 0)
     {
-      man_reset_client_socket (man, true);
+      man_reset_client_socket (man, false);
     }
   else if (len > 0)
     {
@@ -1012,7 +1071,7 @@ man_read (struct management *man)
        */
       if (man->connection.halt)
 	{
-	  man_reset_client_socket (man, true);
+	  man_reset_client_socket (man, false);
 	  len = 0;
 	}
       else
@@ -1025,7 +1084,7 @@ man_read (struct management *man)
   else /* len < 0 */
     {
       if (man_io_error (man, "recv"))
-	man_reset_client_socket (man, true);
+	man_reset_client_socket (man, false);
     }
   return len;
 }
@@ -1048,7 +1107,7 @@ man_write (struct management *man)
       else if (sent < 0)
 	{
 	  if (man_io_error (man, "send"))
-	    man_reset_client_socket (man, true);
+	    man_reset_client_socket (man, false);
 	}
     }
 
@@ -1139,7 +1198,8 @@ man_settings_init (struct man_settings *ms,
 		   const int log_history_cache,
 		   const int echo_buffer_size,
 		   const int state_buffer_size,
-		   const bool hold)
+		   const bool hold,
+		   const bool connect_as_client)
 {
   if (!ms->defined)
     {
@@ -1169,6 +1229,12 @@ man_settings_init (struct man_settings *ms,
       ms->hold = hold;
 
       /*
+       * Should OpenVPN connect to management interface as a client
+       * rather than a server?
+       */
+      ms->connect_as_client = connect_as_client;
+
+      /*
        * Initialize socket address
        */
       ms->local.sa.sin_family = AF_INET;
@@ -1179,7 +1245,7 @@ man_settings_init (struct man_settings *ms,
        * Run management over tunnel, or
        * separate channel?
        */
-      if (streq (addr, "tunnel"))
+      if (streq (addr, "tunnel") && !connect_as_client)
 	{
 	  ms->management_over_tunnel = true;
 	}
@@ -1237,9 +1303,12 @@ man_connection_init (struct management *man)
       }
 
       /*
-       * Listen on socket
+       * Listen/connect socket
        */
-      man_listen (man);
+      if (man->settings.connect_as_client)
+	man_connect (man);
+      else
+	man_listen (man);
     }
 }
 
@@ -1290,7 +1359,8 @@ management_open (struct management *man,
 		 const int log_history_cache,
 		 const int echo_buffer_size,
 		 const int state_buffer_size,
-		 const bool hold)
+		 const bool hold,
+		 const bool connect_as_client)
 {
   bool ret = false;
 
@@ -1307,7 +1377,8 @@ management_open (struct management *man,
 		     log_history_cache,
 		     echo_buffer_size,
 		     state_buffer_size,
-		     hold);
+		     hold,
+		     connect_as_client);
 
   /*
    * The log is initially sized to MANAGEMENT_LOG_HISTORY_INITIAL_SIZE,
@@ -1510,7 +1581,7 @@ management_io (struct management *man)
 
       if (net_events & FD_CLOSE)
 	{
-	  man_reset_client_socket (man, true);
+	  man_reset_client_socket (man, false);
 	}
       else
 	{

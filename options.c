@@ -299,6 +299,8 @@ static const char usage_message[] =
   "--management ip port [pass] : Enable a TCP server on ip:port to handle\n"
   "                  management functions.  pass is a password file\n"
   "                  or 'stdin' to prompt from console.\n"
+  "--management-client : Management interface will connect as a TCP client to\n"
+  "                      ip/port rather than listen as a TCP server.\n"
   "--management-query-passwords : Query management channel for private key\n"
   "                  and auth-user-pass passwords.\n"
   "--management-hold : Start " PACKAGE_NAME " in a hibernating state, until a client\n"
@@ -1181,6 +1183,7 @@ show_settings (const struct options *o)
   SHOW_INT (management_echo_buffer_size);
   SHOW_BOOL (management_query_passwords);
   SHOW_BOOL (management_hold);
+  SHOW_BOOL (management_client);
 #endif
 #ifdef ENABLE_PLUGIN
   if (o->plugin_list)
@@ -1495,7 +1498,7 @@ options_postprocess (struct options *options, bool first_time)
    */
 #ifdef ENABLE_MANAGEMENT
   if (!options->management_addr &&
-      (options->management_query_passwords || options->management_hold
+      (options->management_query_passwords || options->management_hold || options->management_client
        || options->management_log_history_cache != defaults.management_log_history_cache))
     msg (M_USAGE, "--management is not specified, however one or more options which modify the behavior of --management were specified");
 #endif
@@ -3121,6 +3124,11 @@ add_option (struct options *options,
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->management_hold = true;
+    }
+  else if (streq (p[0], "management-client"))
+    {
+      VERIFY_PERMISSION (OPT_P_GENERAL);
+      options->management_client = true;
     }
   else if (streq (p[0], "management-log-cache") && p[1])
     {

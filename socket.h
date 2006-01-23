@@ -272,6 +272,11 @@ void socket_bind (socket_descriptor_t sd,
 		  struct openvpn_sockaddr *local,
 		  const char *prefix);
 
+int openvpn_connect (socket_descriptor_t sd,
+		     struct openvpn_sockaddr *remote,
+		     int connect_timeout,
+		     volatile int *signal_received);
+
 /*
  * Initialize link_socket object.
  */

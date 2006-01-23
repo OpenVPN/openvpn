@@ -200,6 +200,7 @@ struct man_settings {
   int state_buffer_size;
   bool server;
   bool hold;
+  bool connect_as_client;
 };
 
 /* up_query modes */
@@ -265,7 +266,8 @@ bool management_open (struct management *man,
 		      const int log_history_cache,
 		      const int echo_buffer_size,
 		      const int state_buffer_size,
-		      const bool hold);
+		      const bool hold,
+		      const bool connect_as_client);
 
 
 void management_close (struct management *man);
