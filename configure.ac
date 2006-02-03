@@ -378,7 +378,7 @@ AC_CHECK_FUNCS(daemon chroot getpwnam setuid nice system getpid dup dup2 dnl
 	       getpass strerror syslog openlog mlockall getgrnam setgid dnl
 	       setgroups stat flock readv writev setsockopt getsockopt dnl
 	       setsid chdir gettimeofday putenv getpeername unlink dnl
-               poll chsize ftruncate sendmsg recvmsg)
+               poll chsize ftruncate sendmsg recvmsg getsockname)
 AC_CACHE_SAVE
 
 dnl Required library functions

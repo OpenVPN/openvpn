@@ -195,6 +195,10 @@ FILE *msg_fp(void);
 
 void assert_failed (const char *filename, int line);
 
+#ifdef ENABLE_DEBUG
+void crash (void); // force a segfault (debugging only)
+#endif
+
 /* Inline functions */
 
 static inline bool

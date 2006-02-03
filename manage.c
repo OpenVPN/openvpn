@@ -187,7 +187,10 @@ man_output_list_push (struct management *man, const char *str)
 	output_list_push (man->connection.out, (const unsigned char *) str);
       man_update_io_state (man);
       if (!man->persist.standalone_disabled)
-	man_output_standalone (man, NULL);
+	{
+	  volatile int signal_received = 0;
+	  man_output_standalone (man, &signal_received);
+	}
     }
 }
 
@@ -792,6 +795,46 @@ man_stop_ne32 (struct management *man)
 #endif
 
 static void
+man_record_peer_info (struct management *man)
+{
+  struct gc_arena gc = gc_new ();
+  if (man->settings.write_peer_info_file)
+    {
+      bool success = false;
+#ifdef HAVE_GETSOCKNAME
+      if (socket_defined (man->connection.sd_cli))
+	{
+	  struct sockaddr_in addr;
+	  socklen_t addrlen = sizeof (addr);
+	  int status;
+
+	  CLEAR (addr);
+	  status = getsockname (man->connection.sd_cli, (struct sockaddr *)&addr, &addrlen);
+	  if (!status && addrlen == sizeof (addr))
+	    {
+	      const in_addr_t a = ntohl (addr.sin_addr.s_addr);
+	      const int p = ntohs (addr.sin_port);
+	      FILE *fp = fopen (man->settings.write_peer_info_file, "w");
+	      if (fp)
+		{
+		  fprintf (fp, "%s\n%d\n", print_in_addr_t (a, 0, &gc), p);
+		  if (!fclose (fp))
+		    success = true;
+		}
+	    }
+	}
+#endif
+      if (!success)
+	{
+	  msg (D_MANAGEMENT, "MANAGEMENT: failed to write peer info to file %s",
+	       man->settings.write_peer_info_file);
+	  throw_signal_soft (SIGTERM, "management-connect-failed");
+	}
+    }
+  gc_free (&gc);
+}
+
+static void
 man_connection_settings_reset (struct management *man)
 {
   man->connection.state_realtime = false;
@@ -937,6 +980,7 @@ man_connect (struct management *man)
       goto done;
     }
 
+  man_record_peer_info (man);
   man_new_connection_post (man, "Connected to management server at");
 
  done:
@@ -960,7 +1004,10 @@ man_reset_client_socket (struct management *man, const bool exiting)
   if (!exiting)
     {
       if (man->settings.connect_as_client)
-	throw_signal_soft (SIGTERM, "management-exit");
+	{
+	  msg (D_MANAGEMENT, "MANAGEMENT: Triggering management exit");
+	  throw_signal_soft (SIGTERM, "management-exit");
+	}
       else
 	man_listen (man);
     }
@@ -1199,7 +1246,8 @@ man_settings_init (struct man_settings *ms,
 		   const int echo_buffer_size,
 		   const int state_buffer_size,
 		   const bool hold,
-		   const bool connect_as_client)
+		   const bool connect_as_client,
+		   const char *write_peer_info_file)
 {
   if (!ms->defined)
     {
@@ -1233,6 +1281,7 @@ man_settings_init (struct man_settings *ms,
        * rather than a server?
        */
       ms->connect_as_client = connect_as_client;
+      ms->write_peer_info_file = string_alloc (write_peer_info_file, NULL);
 
       /*
        * Initialize socket address
@@ -1269,6 +1318,7 @@ man_settings_init (struct man_settings *ms,
 static void
 man_settings_close (struct man_settings *ms)
 {
+  free (ms->write_peer_info_file);
   CLEAR (*ms);
 }
 
@@ -1360,7 +1410,8 @@ management_open (struct management *man,
 		 const int echo_buffer_size,
 		 const int state_buffer_size,
 		 const bool hold,
-		 const bool connect_as_client)
+		 const bool connect_as_client,
+		 const char *write_peer_info_file)
 {
   bool ret = false;
 
@@ -1378,7 +1429,8 @@ management_open (struct management *man,
 		     echo_buffer_size,
 		     state_buffer_size,
 		     hold,
-		     connect_as_client);
+		     connect_as_client,
+		     write_peer_info_file);
 
   /*
    * The log is initially sized to MANAGEMENT_LOG_HISTORY_INITIAL_SIZE,
@@ -1678,6 +1730,18 @@ man_standalone_ok (const struct management *man)
   return !man->settings.management_over_tunnel && man->connection.state != MS_INITIAL;
 }
 
+static bool
+man_check_for_signals (volatile int *signal_received)
+{
+  if (signal_received)
+    {
+      get_signal (signal_received);
+      if (*signal_received)
+	return true;
+    }
+  return false;
+}
+
 /*
  * Wait for socket I/O when outside primary event loop
  */
@@ -1696,16 +1760,17 @@ man_block (struct management *man, volatile int *signal_received, const time_t e
 	  management_socket_set (man, man->connection.es, NULL, NULL);
 	  tv.tv_usec = 0;
 	  tv.tv_sec = 1;
+	  if (man_check_for_signals (signal_received))
+	    {
+	      status = -1;
+	      break;
+	    }
 	  status = event_wait (man->connection.es, &tv, &esr, 1);
 	  update_time ();
-	  if (signal_received)
+	  if (man_check_for_signals (signal_received))
 	    {
-	      get_signal (signal_received);
-	      if (*signal_received)
-		{
-		  status = -1;
-		  break;
-		}
+	      status = -1;
+	      break;
 	    }
 	  /* set SIGINT signal if expiration time exceeded */
 	  if (expire && now >= expire)

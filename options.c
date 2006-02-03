@@ -1184,6 +1184,7 @@ show_settings (const struct options *o)
   SHOW_BOOL (management_query_passwords);
   SHOW_BOOL (management_hold);
   SHOW_BOOL (management_client);
+  SHOW_STR (management_write_peer_info_file);
 #endif
 #ifdef ENABLE_PLUGIN
   if (o->plugin_list)
@@ -1498,7 +1499,8 @@ options_postprocess (struct options *options, bool first_time)
    */
 #ifdef ENABLE_MANAGEMENT
   if (!options->management_addr &&
-      (options->management_query_passwords || options->management_hold || options->management_client
+      (options->management_query_passwords || options->management_hold
+       || options->management_client || options->management_write_peer_info_file
        || options->management_log_history_cache != defaults.management_log_history_cache))
     msg (M_USAGE, "--management is not specified, however one or more options which modify the behavior of --management were specified");
 #endif
@@ -3129,6 +3131,7 @@ add_option (struct options *options,
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->management_client = true;
+      options->management_write_peer_info_file = p[1];
     }
   else if (streq (p[0], "management-log-cache") && p[1])
     {

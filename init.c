@@ -2393,7 +2393,8 @@ open_management (struct context *c)
 			       c->options.management_echo_buffer_size,
 			       c->options.management_state_buffer_size,
 			       c->options.management_hold,
-			       c->options.management_client))
+			       c->options.management_client,
+			       c->options.management_write_peer_info_file))
 	    {
 	      management_set_state (management,
 				    OPENVPN_STATE_CONNECTING,
@@ -2665,7 +2666,8 @@ init_instance (struct context *c, const struct env_set *env, const unsigned int 
   return;
 
  sig:
-  c->sig->signal_text = "init_instance";
+  if (!c->sig->signal_text)
+    c->sig->signal_text = "init_instance";
   close_context (c, -1, flags);
   return;
 }

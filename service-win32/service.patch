@@ -1,5 +1,5 @@
---- service.c.orig	Mon Sep  5 14:38:41 2005
-+++ service.c	Tue Sep  6 13:58:52 2005
+--- service.c.orig	Mon Jan 30 10:03:35 2006
++++ service.c	Mon Jan 30 10:16:33 2006
 @@ -16,6 +16,7 @@
    service_main(DWORD dwArgc, LPTSTR *lpszArgv);
    CmdInstallService();
@@ -221,9 +221,9 @@
 +
 +    schService = OpenService( 
 +        schSCManager,          // SCM database 
-+        "MeetrixService",     // service name
++        SZSERVICENAME,         // service name
 +        SERVICE_ALL_ACCESS); 
-+ 
++
 +    if (schService == NULL) {
 +      _tprintf(TEXT("OpenService failed - %s\n"), GetLastErrorText(szErr,256));
 +       ret = 1;
@@ -319,8 +319,8 @@
     }
  
     if ( lpszTemp )
---- service.h.orig	Mon Sep  5 14:38:41 2005
-+++ service.h	Tue Sep  6 13:58:59 2005
+--- service.h.orig	Mon Jan 30 10:03:35 2006
++++ service.h	Mon Jan 30 10:03:35 2006
 @@ -62,13 +62,13 @@
  //// todo: change to desired strings
  ////
