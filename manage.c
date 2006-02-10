@@ -67,6 +67,7 @@ man_help ()
   msg (M_CLIENT, "Management Interface for %s", title_string);
   msg (M_CLIENT, "Commands:");
   msg (M_CLIENT, "auth-retry t           : Auth failure retry mode (none,interact,nointeract).");
+  msg (M_CLIENT, "bytecount n            : Show bytes in/out, update every n secs (0=off).");
   msg (M_CLIENT, "echo [on|off] [N|all]  : Like log, but only show messages in echo buffer.");
   msg (M_CLIENT, "exit|quit              : Close management session.");
   msg (M_CLIENT, "help                   : Print this message.");
@@ -298,6 +299,24 @@ man_status (struct management *man, const int version, struct status_output *so)
     {
       msg (M_CLIENT, "ERROR: The 'status' command is not supported by the current daemon mode");
     }
+}
+
+static void
+man_bytecount (struct management *man, const int update_seconds)
+{
+  man->connection.bytecount_update_seconds = update_seconds;
+}
+
+void
+man_bytecount_output (struct management *man)
+{
+  char in[32];
+  char out[32];
+  /* do in a roundabout way to work around possible mingw or mingw-glibc bug */
+  openvpn_snprintf (in, sizeof (in), counter_format, man->persist.bytes_in);
+  openvpn_snprintf (out, sizeof (out), counter_format, man->persist.bytes_out);
+  msg (M_CLIENT, ">BYTECOUNT:%s,%s", in, out);
+  man->connection.bytecount_last_update = now;
 }
 
 static void
@@ -744,6 +763,11 @@ man_dispatch_command (struct management *man, struct status_output *so, const ch
     {
       man_hold (man, p[1]);
     }
+  else if (streq (p[0], "bytecount"))
+    {
+      if (man_need (man, p, 1, 0))
+	man_bytecount (man, atoi(p[1]));
+    }
 #if 1
   else if (streq (p[0], "test"))
     {
@@ -840,6 +864,7 @@ man_connection_settings_reset (struct management *man)
   man->connection.state_realtime = false;
   man->connection.log_realtime = false;
   man->connection.echo_realtime = false;
+  man->connection.bytecount_update_seconds = 0;
   man->connection.password_verified = false;
   man->connection.password_tries = 0;
   man->connection.halt = false;

@@ -686,6 +686,10 @@ process_incoming_link (struct context *c)
     {
       c->c2.link_read_bytes += c->c2.buf.len;
       c->c2.original_recv_size = c->c2.buf.len;
+#ifdef ENABLE_MANAGEMENT
+      if (management)
+	management_bytes_in (management, c->c2.buf.len);
+#endif
     }
   else
     c->c2.original_recv_size = 0;
@@ -1066,6 +1070,10 @@ process_outgoing_link (struct context *c)
 	    {
 	      c->c2.max_send_size_local = max_int (size, c->c2.max_send_size_local);
 	      c->c2.link_write_bytes += size;
+#ifdef ENABLE_MANAGEMENT
+	      if (management)
+		management_bytes_out (management, size);
+#endif
 	    }
 	}
 

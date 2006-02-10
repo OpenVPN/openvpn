@@ -187,6 +187,9 @@ struct man_persist {
   bool hold_release;
 
   const char *special_state_msg;
+
+  counter_type bytes_in;
+  counter_type bytes_out;
 };
 
 struct man_settings {
@@ -239,6 +242,8 @@ struct man_connection {
   bool state_realtime;
   bool log_realtime;
   bool echo_realtime;
+  int bytecount_update_seconds;
+  time_t bytecount_last_update;
 
   const char *up_query_type;
   int up_query_mode;
@@ -346,6 +351,35 @@ void management_echo (struct management *man, const char *string, const bool pul
  */
 
 void management_auth_failure (struct management *man, const char *type);
+
+/*
+ * These functions drive the bytecount in/out counters.
+ */
+
+void man_bytecount_output (struct management *man);
+
+static inline void
+man_bytecount_possible_output (struct management *man)
+{
+  if (man->connection.bytecount_update_seconds > 0
+      && now >= man->connection.bytecount_last_update
+      + man->connection.bytecount_update_seconds)
+    man_bytecount_output (man);
+}
+
+static inline void
+management_bytes_out (struct management *man, const int size)
+{
+  man->persist.bytes_out += size;
+  man_bytecount_possible_output (man);
+}
+
+static inline void
+management_bytes_in (struct management *man, const int size)
+{
+  man->persist.bytes_in += size;
+  man_bytecount_possible_output (man);
+}
 
 #endif
 

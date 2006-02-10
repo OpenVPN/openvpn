@@ -3,11 +3,12 @@ Copyright (C) 2002-2005 OpenVPN Solutions LLC <info@openvpn.net>
 
 $Id$
 
-2006.01.xx -- Version 2.1-beta9
+2006.xx.xx -- Version 2.1-beta9
 
 * Added --management-client option to connect as a client
   to management GUI app rather than be connected to as a
   server.
+* Added "bytecount" command to management interface.
 
 2006.01.03 -- Version 2.1-beta8
 
