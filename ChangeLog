@@ -11,6 +11,7 @@ $Id$
   to management GUI app rather than be connected to as a
   server.
 * Added "bytecount" command to management interface.
+* --remote-cert-tls fixes (Alon Bar-Lev).
 
 2006.01.03 -- Version 2.1-beta8
 
