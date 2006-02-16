@@ -96,6 +96,7 @@ struct reliable
   interval_t initial_timeout;
   packet_id_type packet_id;
   int offset;
+  bool hold; /* don't xmit until reliable_schedule_now is called */
   struct reliable_entry array[RELIABLE_CAPACITY];
 };
 
@@ -108,7 +109,7 @@ reliable_set_timeout (struct reliable *rel, interval_t timeout)
   rel->initial_timeout = timeout;
 }
 
-void reliable_init (struct reliable *rel, int buf_size, int offset, int array_size);
+void reliable_init (struct reliable *rel, int buf_size, int offset, int array_size, bool hold);
 
 void reliable_free (struct reliable *rel);
 

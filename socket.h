@@ -130,6 +130,12 @@ struct stream_buf
 
   bool error;  /* if true, fatal TCP error has occurred,
 		  requiring that connection be restarted */
+#if PORT_SHARE
+# define PS_DISABLED 0
+# define PS_ENABLED  1
+# define PS_FOREIGN  2
+  int port_share_state;
+#endif
 };
 
 /*
@@ -539,6 +545,29 @@ link_socket_actual_match (const struct link_socket_actual *a1, const struct link
 {
   return addr_port_match (&a1->dest, &a2->dest);
 }
+
+#if PORT_SHARE
+
+static inline bool
+socket_foreign_protocol_detected (const struct link_socket *sock)
+{
+  return link_socket_connection_oriented (sock)
+    && sock->stream_buf.port_share_state == PS_FOREIGN;
+}
+
+static inline const struct buffer *
+socket_foreign_protocol_head (const struct link_socket *sock)
+{
+  return &sock->stream_buf.buf;
+}
+
+static inline int
+socket_foreign_protocol_sd (const struct link_socket *sock)
+{
+  return sock->sd;
+}
+
+#endif
 
 static inline bool
 socket_connection_reset (const struct link_socket *sock, int status)

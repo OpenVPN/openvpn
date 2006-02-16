@@ -221,12 +221,13 @@ reliable_ack_print (struct buffer *buf, bool verbose, struct gc_arena *gc)
  */
 
 void
-reliable_init (struct reliable *rel, int buf_size, int offset, int array_size)
+reliable_init (struct reliable *rel, int buf_size, int offset, int array_size, bool hold)
 {
   int i;
 
   CLEAR (*rel);
   ASSERT (array_size > 0 && array_size <= RELIABLE_CAPACITY);
+  rel->hold = hold;
   rel->size = array_size;
   rel->offset = offset;
   for (i = 0; i < rel->size; ++i)
@@ -465,7 +466,7 @@ reliable_can_send (const struct reliable *rel)
        reliable_print_ids (rel, &gc));
 
   gc_free (&gc);
-  return n_current > 0;
+  return n_current > 0 && !rel->hold;
 }
 
 /* return a unique point-in-time to trigger retry */
@@ -530,6 +531,7 @@ reliable_schedule_now (struct reliable *rel)
 {
   int i;
   dmsg (D_REL_DEBUG, "ACK reliable_schedule_now");
+  rel->hold = false;
   for (i = 0; i < rel->size; ++i)
     {
       struct reliable_entry *e = &rel->array[i];

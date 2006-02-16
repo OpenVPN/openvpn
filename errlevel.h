@@ -93,6 +93,7 @@
 #define D_SCHED_EXIT         LOGLEV(3, 42, 0)        /* show arming of scheduled exit */
 #define D_ROUTE_QUOTA        LOGLEV(3, 43, 0)        /* show route quota exceeded messages */
 #define D_OSBUF              LOGLEV(3, 44, 0)        /* show socket/tun/tap buffer sizes */
+#define D_PS_PROXY           LOGLEV(3, 45, 0)        /* messages related to --port-share option */
 
 #define D_SHOW_PARMS         LOGLEV(4, 50, 0)        /* show all parameters on program initiation */
 #define D_SHOW_OCC           LOGLEV(4, 51, 0)        /* show options compatibility string */
@@ -132,6 +133,7 @@
 #define D_ALIGN_DEBUG        LOGLEV(7, 70, M_DEBUG)  /* show verbose struct alignment info */
 #define D_PACKET_TRUNC_DEBUG LOGLEV(7, 70, M_DEBUG)  /* PACKET_TRUNCATION_CHECK verbose */
 #define D_PING               LOGLEV(7, 70, M_DEBUG)  /* PING send/receive messages */
+#define D_PS_PROXY_DEBUG     LOGLEV(7, 70, M_DEBUG)  /* port share proxy debug */
 
 #define D_HANDSHAKE_VERBOSE  LOGLEV(8, 70, M_DEBUG)  /* show detailed description of each handshake */
 #define D_TLS_DEBUG_MED      LOGLEV(8, 70, M_DEBUG)  /* limited info from tls_session routines */

@@ -1,6 +1,6 @@
 /*
  *  OpenVPN -- An application to securely tunnel IP networks
- *             over a single UDP port, with support for SSL/TLS-based
+ *             over a single TCP/UDP port, with support for SSL/TLS-based
  *             session authentication and key exchange,
  *             packet encryption, packet authentication, and
  *             packet compression.
@@ -22,57 +22,36 @@
  *  59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#ifdef WIN32
-#include "config-win32.h"
-#else
-#include "config.h"
+#ifndef PS_H
+#define PS_H
+
+#if PORT_SHARE
+
+#include "basic.h"
+#include "buffer.h"
+#include "ssl.h"
+
+typedef void (*post_fork_cleanup_func_t)(void *arg);
+
+struct port_share {
+  /* Foreground's socket to background process */
+  socket_descriptor_t foreground_fd;
+
+  /* Process ID of background process */
+  pid_t background_pid;
+};
+
+extern struct port_share *port_share;
+
+struct port_share *port_share_open (const char *host,
+				    const int port);
+
+void port_share_close (struct port_share *ps);
+void port_share_abort (struct port_share *ps);
+
+bool is_openvpn_protocol (const struct buffer *buf);
+
+void port_share_redirect (struct port_share *ps, const struct buffer *head, socket_descriptor_t sd);
+
 #endif
-
-#include "syshead.h"
-
-#include "fdmisc.h"
-#include "error.h"
-
-#include "memdbg.h"
-
-/* Set a file descriptor to non-blocking */
-bool
-set_nonblock_action (int fd)
-{
-#ifdef WIN32
-  u_long arg = 1;
-  if (ioctlsocket (fd, FIONBIO, &arg))
-    return false;
-#else
-  if (fcntl (fd, F_SETFL, O_NONBLOCK) < 0)
-    return false;
 #endif
-  return true;
-}
-
-/* Set a file descriptor to not be passed across execs */
-bool
-set_cloexec_action (int fd)
-{
-#ifndef WIN32
-  if (fcntl (fd, F_SETFD, FD_CLOEXEC) < 0)
-    return false;
-#endif
-  return true;
-}
-
-/* Set a file descriptor to non-blocking */
-void
-set_nonblock (int fd)
-{
-  if (!set_nonblock_action (fd))
-    msg (M_SOCKERR, "Set socket to non-blocking mode failed");
-}
-
-/* Set a file descriptor to not be passed across execs */
-void
-set_cloexec (int fd)
-{
-  if (!set_cloexec_action (fd))
-    msg (M_ERR, "Set FD_CLOEXEC flag on file descriptor failed");
-}

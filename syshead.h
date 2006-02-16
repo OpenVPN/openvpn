@@ -396,6 +396,15 @@ socket_defined (const socket_descriptor_t sd)
 #endif
 
 /*
+ * HTTPS port sharing capability
+ */
+#if defined(ENABLE_PORT_SHARE) && P2MP_SERVER && defined(SCM_RIGHTS) && defined(HAVE_MSGHDR) && defined(HAVE_CMSGHDR) && defined(HAVE_IOVEC) && defined(CMSG_FIRSTHDR) && defined(CMSG_NXTHDR) && defined(HAVE_RECVMSG) && defined(HAVE_SENDMSG)
+#define PORT_SHARE 1
+#else
+#define PORT_SHARE 0
+#endif
+
+/*
  * Do we have a plug-in capability?
  */
 #if defined(USE_LIBDL) || defined(USE_LOAD_LIBRARY)

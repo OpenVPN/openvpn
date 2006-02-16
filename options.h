@@ -344,6 +344,10 @@ struct options
   bool username_as_common_name;
   const char *auth_user_pass_verify_script;
   bool auth_user_pass_verify_script_via_file;
+#if PORT_SHARE
+  char *port_share_host;
+  int port_share_port;
+#endif
 #endif
 
   bool client;

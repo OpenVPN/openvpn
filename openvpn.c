@@ -192,7 +192,7 @@ main (int argc, char *argv[])
 	  if (!open_management (&c))
 	    break;
 #endif
-	  
+
 	  /* set certain options as environmental variables */
 	  setenv_settings (c.es, &c.options);
 

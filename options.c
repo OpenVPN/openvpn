@@ -363,6 +363,10 @@ static const char usage_message[] =
   "--connect-freq n s : Allow a maximum of n new connections per s seconds.\n"
   "--max-clients n : Allow a maximum of n simultaneously connected clients.\n"
   "--max-routes-per-client n : Allow a maximum of n internal routes per client.\n"
+#if PORT_SHARE
+  "--port-share host port : When run in TCP mode, proxy incoming HTTPS sessions\n"
+  "                  to a web server at host:port.\n"
+#endif
 #endif
   "\n"
   "Client options (when connecting to a multi-client server):\n"
@@ -918,6 +922,10 @@ show_p2mp_parms (const struct options *o)
   SHOW_BOOL (username_as_common_name)
   SHOW_STR (auth_user_pass_verify_script);
   SHOW_BOOL (auth_user_pass_verify_script_via_file);
+#if PORT_SHARE
+  SHOW_STR (port_share_host);
+  SHOW_INT (port_share_port);
+#endif
 #endif /* P2MP_SERVER */
 
   SHOW_BOOL (client);
@@ -1594,6 +1602,10 @@ options_postprocess (struct options *options, bool first_time)
 	msg (M_USAGE, "--pull cannot be used with --mode server");
       if (!(options->proto == PROTO_UDPv4 || options->proto == PROTO_TCPv4_SERVER))
 	msg (M_USAGE, "--mode server currently only supports --proto udp or --proto tcp-server");
+#if PORT_SHARE
+      if ((options->port_share_host || options->port_share_port) && options->proto != PROTO_TCPv4_SERVER)
+	msg (M_USAGE, "--port-share only works in TCP server mode (--proto tcp-server)");
+#endif
       if (!options->tls_server)
 	msg (M_USAGE, "--mode server requires --tls-server");
       if (options->remote_list)
@@ -1682,6 +1694,11 @@ options_postprocess (struct options *options, bool first_time)
 	msg (M_USAGE, "--username-as-common-name requires --mode server");
       if (options->auth_user_pass_verify_script)
 	msg (M_USAGE, "--auth-user-pass-verify requires --mode server");
+#if PORT_SHARE
+      if (options->port_share_host || options->port_share_port)
+	msg (M_USAGE, "--port-share requires TCP server mode (--mode server --proto tcp-server)");
+#endif
+
     }
 #endif /* P2MP_SERVER */
 
@@ -4234,6 +4251,23 @@ add_option (struct options *options,
 	msg (msglevel, "--tcp-queue-limit parameter must be > 0");
       options->tcp_queue_limit = tcp_queue_limit;
     }
+#if PORT_SHARE
+  else if (streq (p[0], "port-share") && p[1] && p[2])
+    {
+      int port;
+
+      VERIFY_PERMISSION (OPT_P_GENERAL);
+      port = atoi (p[2]);
+      if (!legal_ipv4_port (port))
+	{
+	  msg (msglevel, "port number associated with --port-share directive is out of range");
+	  goto err;
+	}
+
+      options->port_share_host = p[1];
+      options->port_share_port = port;
+    }
+#endif
   else if (streq (p[0], "client-to-client"))
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);

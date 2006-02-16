@@ -217,6 +217,7 @@ openvpn \- secure IP tunnel daemon.
 [\ \fB\-\-pkcs12\fR\ \fIfile\fR\ ]
 [\ \fB\-\-plugin\fR\ \fImodule\-pathname\ init\-string\fR\ ]
 [\ \fB\-\-port\fR\ \fIport\fR\ ]
+[\ \fB\-\-port\-share\fR\ \fIhost\ port\fR\ ]
 [\ \fB\-\-proto\fR\ \fIp\fR\ ]
 [\ \fB\-\-pull\fR\ ]
 [\ \fB\-\-push\-reset\fR\ ]
@@ -2970,6 +2971,23 @@ For
 authentication, use
 the authenticated username as the common name,
 rather than the common name from the client cert.
+.\"*********************************************************
+.TP
+.B --port-share host port
+When run in TCP server mode, share the OpenVPN port with
+another application, such as an HTTPS server.  If OpenVPN
+senses a connection to its port which is using a non-OpenVPN
+protocol, it will proxy the connection to the server at
+.B host:port.
+Currently only designed to work with HTTPS,
+though it would be theoretically possible to extend to
+other protocols such as ssh.
+
+Currently only implemented
+on Linux, though porting to BSDs should be straightforward.
+The reason for the non-portability is that the current implementation
+uses sendmsg and recvmsg for passing file descriptors between
+processes.
 .\"*********************************************************
 .SS Client Mode
 Use client mode when connecting to an OpenVPN server

@@ -33,9 +33,9 @@
  * rwflags passed to event_ctl and returned by
  * struct event_set_return.
  */
+#define EVENT_UNDEF    4
 #define EVENT_READ     (1<<0)
 #define EVENT_WRITE    (1<<1)
-
 /*
  * Initialization flags passed to event_set_init
  */
@@ -98,7 +98,8 @@ struct event_set *event_set_init (int *maxevents, unsigned int flags);
 static inline void
 event_free (struct event_set *es)
 {
-  (*es->func.free)(es);
+  if (es)
+    (*es->func.free)(es);
 }
 
 static inline void

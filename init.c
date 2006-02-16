@@ -39,6 +39,7 @@
 #include "pool.h"
 #include "gremlin.h"
 #include "pkcs11.h"
+#include "ps.h"
 
 #include "memdbg.h"
 
@@ -191,6 +192,32 @@ context_gc_free (struct context *c)
   gc_free (&c->gc);
 }
 
+#if PORT_SHARE
+
+static void
+close_port_share (void)
+{
+  if (port_share)
+    {
+      port_share_close (port_share);
+      port_share = NULL;
+    }
+}
+
+static void
+init_port_share (struct context *c)
+{
+  if (!port_share && (c->options.port_share_host && c->options.port_share_port))
+    {
+      port_share = port_share_open (c->options.port_share_host,
+				    c->options.port_share_port);
+      if (port_share == NULL)
+	msg (M_FATAL, "Fatal error: Port sharing failed");
+    }
+}
+
+#endif
+
 bool
 init_static (void)
 {
@@ -272,6 +299,10 @@ uninit_static (void)
 
 #ifdef ENABLE_PKCS11
   pkcs11_terminate ();
+#endif
+
+#if PORT_SHARE
+  close_port_share ();
 #endif
 
 #if defined(MEASURE_TLS_HANDSHAKE_STATS) && defined(USE_CRYPTO) && defined(USE_SSL)
@@ -1490,6 +1521,11 @@ do_init_crypto_tls (struct context *c, const unsigned int flags)
   to.renegotiate_seconds = options->renegotiate_seconds;
   to.single_session = options->single_session;
 
+  /* should we not xmit any packets until we get an initial
+     response from client? */
+  if (to.server && options->proto == PROTO_TCPv4_SERVER)
+    to.xmit_hold = true;
+
 #ifdef ENABLE_OCC
   to.disable_occ = !options->occ;
 #endif
@@ -2659,6 +2695,12 @@ init_instance (struct context *c, const struct env_set *env, const unsigned int 
     open_plugins (c, false, OPENVPN_PLUGIN_INIT_POST_UID_CHANGE);
 #endif
 
+#if PORT_SHARE
+  /* share OpenVPN port with foreign (such as HTTPS) server */
+  if (c->first_time && (c->mode == CM_P2P || c->mode == CM_TOP))
+    init_port_share (c);
+#endif
+	  
   /* Check for signals */
   if (IS_SIG (c))
     goto sig;

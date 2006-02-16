@@ -384,6 +384,9 @@ struct tls_options
   /* true if we are a TLS server, client otherwise */
   bool server;
 
+  /* if true, don't xmit until first packet from peer is received */
+  bool xmit_hold;
+
 #ifdef ENABLE_OCC
   /* local and remote options strings
      that must match between client and server */

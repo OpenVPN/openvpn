@@ -25,7 +25,7 @@ dnl Process this file with autoconf to produce a configure script.
 
 AC_PREREQ(2.50)
 
-AC_INIT([OpenVPN], [2.1_beta8b], [openvpn-users@lists.sourceforge.net], [openvpn])
+AC_INIT([OpenVPN], [2.1_beta8c], [openvpn-users@lists.sourceforge.net], [openvpn])
 AM_CONFIG_HEADER(config.h)
 AC_CONFIG_SRCDIR(syshead.h)
 
@@ -99,6 +99,12 @@ AC_ARG_ENABLE(multihome,
    [  --disable-multihome     Disable multi-homed UDP server support (--multihome)],
    [MULTIHOME="$enableval"],
    [MULTIHOME="yes"]
+)
+
+AC_ARG_ENABLE(port-share,
+   [  --disable-port-share    Disable TCP server port-share support (--port-share)],
+   [PORT_SHARE="$enableval"],
+   [PORT_SHARE="yes"]
 )
 
 AC_ARG_ENABLE(debug,
@@ -634,6 +640,11 @@ fi
 dnl enable --fragment
 if test "$FRAGMENT" = "yes"; then
    AC_DEFINE(ENABLE_FRAGMENT, 1, [Enable internal fragmentation support])
+fi
+
+dnl enable --port-share
+if test "$PORT_SHARE" = "yes"; then
+   AC_DEFINE(ENABLE_PORT_SHARE, 1, [Enable TCP Server port sharing])
 fi
 
 dnl enable strict compiler warnings

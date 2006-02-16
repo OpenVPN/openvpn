@@ -41,6 +41,7 @@
 #include "perf.h"
 #include "status.h"
 #include "integer.h"
+#include "ps.h"
 
 #ifdef USE_CRYPTO
 #include <openssl/err.h>
@@ -87,6 +88,15 @@ static char *pgmname_syslog;  /* GLOBAL */
 
 /* If non-null, messages should be written here (used for debugging only) */
 static FILE *msgfp;         /* GLOBAL */
+
+/* If true, we forked from main OpenVPN process */
+static bool forked;         /* GLOBAL */
+
+void
+msg_forked (void)
+{
+  forked = true;
+}
 
 bool
 set_debug_level (const int level, const unsigned int flags)
@@ -270,21 +280,22 @@ void x_msg (const unsigned int flags, const char *format, ...)
     prefix_sep = prefix = "";
 
   /* virtual output capability used to copy output to management subsystem */
-  {
-    const struct virtual_output *vo = msg_get_virtual_output ();
-    if (vo)
-      {
-	openvpn_snprintf (m2, ERR_BUF_SIZE, "%s%s%s",
-			  prefix,
-			  prefix_sep,
-			  m1);
-	virtual_output_print (vo, flags, m2);
-      }
-  }
+  if (!forked)
+    {
+      const struct virtual_output *vo = msg_get_virtual_output ();
+      if (vo)
+	{
+	  openvpn_snprintf (m2, ERR_BUF_SIZE, "%s%s%s",
+			    prefix,
+			    prefix_sep,
+			    m1);
+	  virtual_output_print (vo, flags, m2);
+	}
+    }
 
   if (!(flags & M_MSG_VIRT_OUT))
     {
-      if (use_syslog && !std_redir)
+      if (use_syslog && !std_redir && !forked)
 	{
 #if SYSLOG_CAPABILITY
 	  syslog (level, "%s%s%s",
@@ -672,6 +683,11 @@ openvpn_exit (const int status)
 
 #ifdef ENABLE_PLUGIN
   plugin_abort ();
+#endif
+
+#if PORT_SHARE
+  if (port_share)
+    port_share_abort (port_share);
 #endif
 
 #ifdef ABORT_ON_ERROR

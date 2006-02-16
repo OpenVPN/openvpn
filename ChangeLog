@@ -3,8 +3,10 @@ Copyright (C) 2002-2005 OpenVPN Solutions LLC <info@openvpn.net>
 
 $Id$
 
-2006.xx.xx -- Version 2.1-beta9
+2006.02.16 -- Version 2.1-beta9
 
+* Added --port-share option for allowing OpenVPN and HTTPS
+  server to share the same port number.
 * Added --management-client option to connect as a client
   to management GUI app rather than be connected to as a
   server.

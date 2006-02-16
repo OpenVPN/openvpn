@@ -22,5 +22,10 @@
  *  59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
+#include "basic.h"
+
+bool set_nonblock_action (int fd);
+bool set_cloexec_action (int fd);
+
 void set_nonblock (int fd);
 void set_cloexec (int fd);

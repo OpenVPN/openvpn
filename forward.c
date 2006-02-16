@@ -36,6 +36,7 @@
 #include "gremlin.h"
 #include "mss.h"
 #include "event.h"
+#include "ps.h"
 
 #include "memdbg.h"
 
@@ -640,18 +641,31 @@ read_incoming_link (struct context *c)
 
   if (socket_connection_reset (c->c2.link_socket, status))
     {
-      /* received a disconnect from a connection-oriented protocol */
-      if (c->options.inetd)
+#if PORT_SHARE
+      if (port_share && socket_foreign_protocol_detected (c->c2.link_socket))
 	{
+	  const struct buffer *fbuf = socket_foreign_protocol_head (c->c2.link_socket);
+	  const int sd = socket_foreign_protocol_sd (c->c2.link_socket);
+	  port_share_redirect (port_share, fbuf, sd);
 	  c->sig->signal_received = SIGTERM;
-	  msg (D_STREAM_ERRORS, "Connection reset, inetd/xinetd exit [%d]", status);
+	  c->sig->signal_text = "port-share-redirect";
 	}
       else
-	{
-	  c->sig->signal_received = SIGUSR1; /* SOFT-SIGUSR1 -- TCP connection reset */
-	  msg (D_STREAM_ERRORS, "Connection reset, restarting [%d]", status);
-	}
-      c->sig->signal_text = "connection-reset";
+#endif
+      {
+	/* received a disconnect from a connection-oriented protocol */
+	if (c->options.inetd)
+	  {
+	    c->sig->signal_received = SIGTERM;
+	    msg (D_STREAM_ERRORS, "Connection reset, inetd/xinetd exit [%d]", status);
+	  }
+	else
+	  {
+	    c->sig->signal_received = SIGUSR1; /* SOFT-SIGUSR1 -- TCP connection reset */
+	    msg (D_STREAM_ERRORS, "Connection reset, restarting [%d]", status);
+	  }
+	c->sig->signal_text = "connection-reset";
+      }
       perf_pop ();
       return;
     }

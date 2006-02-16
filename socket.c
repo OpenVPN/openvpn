@@ -36,6 +36,7 @@
 #include "misc.h"
 #include "gremlin.h"
 #include "plugin.h"
+#include "ps.h"
 
 #include "memdbg.h"
 
@@ -739,11 +740,14 @@ openvpn_connect (socket_descriptor_t sd,
 
 	  status = select (sd + 1, NULL, &writes, NULL, &tv);
 
-	  get_signal (signal_received);
-	  if (*signal_received)
+	  if (signal_received)
 	    {
-	      status = 0;
-	      break;
+	      get_signal (signal_received);
+	      if (*signal_received)
+		{
+		  status = 0;
+		  break;
+		}
 	    }
 	  if (status < 0)
 	    {
@@ -1666,6 +1670,9 @@ stream_buf_init (struct stream_buf *sb,
   sb->buf_init.len = 0;
   sb->residual = alloc_buf (sb->maxlen);
   sb->error = false;
+#if PORT_SHARE
+  sb->port_share_state = PS_ENABLED;
+#endif
   stream_buf_reset (sb);
 
   dmsg (D_STREAM_DEBUG, "STREAM: INIT maxlen=%d", sb->maxlen);
@@ -1735,6 +1742,22 @@ stream_buf_added (struct stream_buf *sb,
   if (sb->len < 0 && sb->buf.len >= (int) sizeof (packet_size_type))
     {
       packet_size_type net_size;
+
+#if PORT_SHARE
+      if (sb->port_share_state == PS_ENABLED)
+	{
+	  if (!is_openvpn_protocol (&sb->buf))
+	    {
+	      msg (D_STREAM_ERRORS, "Non-OpenVPN protocol detected");
+	      sb->port_share_state = PS_FOREIGN;
+	      sb->error = true;
+	      return false;
+	    }
+	  else
+	    sb->port_share_state = PS_DISABLED;
+	}
+#endif
+
       ASSERT (buf_read (&sb->buf, &net_size, sizeof (net_size)));
       sb->len = ntohps (net_size);
 

@@ -196,7 +196,7 @@ FILE *msg_fp(void);
 void assert_failed (const char *filename, int line);
 
 #ifdef ENABLE_DEBUG
-void crash (void); // force a segfault (debugging only)
+void crash (void); /* force a segfault (debugging only) */
 #endif
 
 /* Inline functions */
@@ -206,6 +206,9 @@ check_debug_level (unsigned int level)
 {
   return (level & M_DEBUG_LEVEL) <= x_debug_level;
 }
+
+/* Call if we forked */
+void msg_forked (void);
 
 /* syslog output */
 
