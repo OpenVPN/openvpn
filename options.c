@@ -484,8 +484,8 @@ static const char usage_message[] =
   "                  explicit extended key usage. Extended key usage can be encoded\n"
   "                  as an object identifier or OpenSSL string representation.\n"
   "--remote-cert-tls t: Require that peer certificate was signed with explicit\n"
-  "                  key usage and extended key usage based on TLS rules.\n"
-  "                  t = 'client | 'server'.\n"
+  "                  key usage and extended key usage based on RFC3280 TLS rules.\n"
+  "                  t = 'client' | 'server'.\n"
 #endif				/* OPENSSL_VERSION_NUMBER */
 #endif				/* USE_SSL */
 #ifdef ENABLE_PKCS11
@@ -4951,7 +4951,7 @@ add_option (struct options *options,
       if (streq (p[1], "server"))
 	{
 	  options->remote_cert_ku[0] = 0xa0;
-	  options->remote_cert_ku[1] = 0x08;
+	  options->remote_cert_ku[1] = 0x88;
 	  options->remote_cert_eku = "TLS Web Server Authentication";
 	}
       else if (streq (p[1], "client"))

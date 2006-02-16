@@ -4114,7 +4114,7 @@ Require that peer certificate was signed with an explicit
 .B key usage
 and
 .B extended key usage
-based on TLS rules.
+based on RFC3280 TLS rules.
 
 This is a useful security option for clients, to ensure that
 the host they connect to is a designated server.
@@ -4125,11 +4125,15 @@ option is equivalent to
 .B
 --remote-cert-ku 80 08 88 --remote-cert-eku "TLS Web Client Authentication"
 
+The key usage is digitalSignature and/or keyAgreement.
+
 The
 .B --remote-cert-tls server
 option is equivalent to
 .B
---remote-cert-ku a0 08 --remote-cert-eku "TLS Web Server Authentication"
+--remote-cert-ku a0 88 --remote-cert-eku "TLS Web Server Authentication"
+
+The key usage is digitalSignature and ( keyEncipherment or keyAgreement ).
 
 This is an important security precaution to protect against
 a man-in-the-middle attack where an authorized client
