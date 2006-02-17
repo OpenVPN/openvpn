@@ -207,6 +207,7 @@ struct link_socket
 
 # define SF_USE_IP_PKTINFO (1<<0)
 # define SF_TCP_NODELAY (1<<1)
+# define SF_PORT_SHARE (1<<2)
   unsigned int sockflags;
 
   /* for stream sockets */
@@ -658,7 +659,11 @@ link_socket_set_outgoing_addr (const struct buffer *buf,
  * such as TCP.
  */
 
-void stream_buf_init (struct stream_buf *sb, struct buffer *buf);
+void stream_buf_init (struct stream_buf *sb,
+		      struct buffer *buf,
+		      const unsigned int sockflags,
+		      const int proto);
+
 void stream_buf_close (struct stream_buf* sb);
 bool stream_buf_added (struct stream_buf *sb, int length_added);
 

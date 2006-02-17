@@ -3,6 +3,10 @@ Copyright (C) 2002-2005 OpenVPN Solutions LLC <info@openvpn.net>
 
 $Id$
 
+2006.02.17 -- Version 2.1-beta10
+
+* Fixed --port-share breakage introduced in 2.1-beta9.
+
 2006.02.16 -- Version 2.1-beta9
 
 * Added --port-share option for allowing OpenVPN and HTTPS

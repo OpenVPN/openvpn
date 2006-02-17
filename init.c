@@ -1890,8 +1890,15 @@ do_link_socket_new (struct context *c)
  * bind the TCP/UDP socket
  */
 static void
-do_init_socket_1 (struct context *c, int mode)
+do_init_socket_1 (struct context *c, const int mode)
 {
+  unsigned int sockflags = c->options.sockflags;
+
+#if PORT_SHARE
+  if (c->options.port_share_host && c->options.port_share_port)
+    sockflags |= SF_PORT_SHARE;
+#endif
+
   link_socket_init_phase1 (c->c2.link_socket,
 			   c->options.local,
 			   c->c1.remote_list,
@@ -1921,7 +1928,7 @@ do_init_socket_1 (struct context *c, int mode)
 			   c->options.mtu_discover_type,
 			   c->options.rcvbuf,
 			   c->options.sndbuf,
-			   c->options.sockflags);
+			   sockflags);
 }
 
 /*

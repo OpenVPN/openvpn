@@ -884,13 +884,20 @@ socket_frame_init (const struct frame *frame, struct link_socket *sock)
   if (link_socket_connection_oriented (sock))
     {
 #ifdef WIN32
-      stream_buf_init (&sock->stream_buf, &sock->reads.buf_init);
+      stream_buf_init (&sock->stream_buf,
+		       &sock->reads.buf_init,
+		       sock->sockflags,
+		       sock->info.proto);
 #else
       alloc_buf_sock_tun (&sock->stream_buf_data,
 			  frame,
 			  false,
 			  FRAME_HEADROOM_MARKER_READ_STREAM);
-      stream_buf_init (&sock->stream_buf, &sock->stream_buf_data);
+
+      stream_buf_init (&sock->stream_buf,
+		       &sock->stream_buf_data,
+		       sock->sockflags,
+		       sock->info.proto);
 #endif
     }
 }
@@ -1663,7 +1670,9 @@ stream_buf_reset (struct stream_buf *sb)
 
 void
 stream_buf_init (struct stream_buf *sb,
-		 struct buffer *buf)
+		 struct buffer *buf,
+		 const unsigned int sockflags,
+		 const int proto)
 {
   sb->buf_init = *buf;
   sb->maxlen = sb->buf_init.len;
@@ -1671,7 +1680,9 @@ stream_buf_init (struct stream_buf *sb,
   sb->residual = alloc_buf (sb->maxlen);
   sb->error = false;
 #if PORT_SHARE
-  sb->port_share_state = PS_ENABLED;
+  sb->port_share_state = ((sockflags & SF_PORT_SHARE) && (proto == PROTO_TCPv4_SERVER))
+    ? PS_ENABLED
+    : PS_DISABLED;
 #endif
   stream_buf_reset (sb);
 
@@ -1748,7 +1759,7 @@ stream_buf_added (struct stream_buf *sb,
 	{
 	  if (!is_openvpn_protocol (&sb->buf))
 	    {
-	      msg (D_STREAM_ERRORS, "Non-OpenVPN protocol detected");
+	      msg (D_STREAM_ERRORS, "Non-OpenVPN client protocol detected");
 	      sb->port_share_state = PS_FOREIGN;
 	      sb->error = true;
 	      return false;
