@@ -238,6 +238,19 @@ pc_list_len (struct proxy_connection *pc)
   return count;
 }
 
+static void
+proxy_entry_close_sd (struct proxy_connection *pc, struct event_set *es)
+{
+  if (pc->defined && socket_defined (pc->sd))
+    {
+      dmsg (D_PS_PROXY_DEBUG, "PORT SHARE PROXY: delete sd=%d", pc->sd);
+      if (es)
+	event_del (es, pc->sd);
+      openvpn_close_socket (pc->sd);
+      pc->sd = SOCKET_UNDEFINED;
+    }
+}
+
 /*
  * Mark a proxy entry and its counterpart for close.
  */
@@ -247,18 +260,10 @@ proxy_entry_mark_for_close (struct proxy_connection *pc, struct event_set *es)
   if (pc->defined)
     {
       struct proxy_connection *cp = pc->counterpart;
-      dmsg (D_PS_PROXY_DEBUG, "PORT SHARE PROXY: delete sd=%d", pc->sd);
-      if (socket_defined (pc->sd))
-	{
-	  if (es)
-	    event_del (es, pc->sd);
-	  openvpn_close_socket (pc->sd);
-	  pc->sd = SOCKET_UNDEFINED;
-	}
+      proxy_entry_close_sd (pc, es);
       free_buf (&pc->buf);
       pc->buffer_initial = false;
       pc->rwflags = 0;
-      pc->counterpart = NULL;
       pc->defined = false;
       if (cp && cp->defined && cp->counterpart == pc)
 	proxy_entry_mark_for_close (cp, es);
@@ -327,7 +332,7 @@ sock_addr_set (struct openvpn_sockaddr *osaddr,
 static inline void
 proxy_connection_io_requeue (struct proxy_connection *pc, const int rwflags_new, struct event_set *es)
 {
-  if (pc->rwflags != rwflags_new)
+  if (socket_defined (pc->sd) && pc->rwflags != rwflags_new)
     {
       event_ctl (es, pc->sd, rwflags_new, (void*)pc);
       pc->rwflags = rwflags_new;
@@ -489,67 +494,120 @@ control_message_from_parent (const socket_descriptor_t sd_control,
   return ret;
 }
 
-/* proxy_connection_io_xfer return values */
+/*
+ * Return values for proxy_connection_io functions
+ */
 
-#define IOSTAT_EAGAIN_ON_READ   0
-#define IOSTAT_EAGAIN_ON_WRITE  1
-#define IOSTAT_ERROR            2
+#define IOSTAT_UNDEF            0
+#define IOSTAT_EAGAIN_ON_READ   1 /* recv returned EAGAIN */
+#define IOSTAT_EAGAIN_ON_WRITE  2 /* send returned EAGAIN */
+#define IOSTAT_READ_ERROR       3 /* the other end of our read socket (pc) was closed */
+#define IOSTAT_WRITE_ERROR      4 /* the other end of our write socket (pc->counterpart) was closed */
+#define IOSTAT_BOTH_CLOSED      5 /* both sockets are closed, preventing action */
+#define IOSTAT_HALF_CLOSED_1    6 /* one socket is closed, preventing action */
+#define IOSTAT_HALF_CLOSED_2    7 /* one socket is closed, preventing action */
+#define IOSTAT_GOOD             8 /* nothing to report */
+#define IOSTAT_ASYMFLUSH        9 /* pc socket is closed, flushed send data to pc->counterpart socket */
+
+static int
+proxy_connection_io_recv (struct proxy_connection *pc)
+{
+  /* recv data from socket */
+  ssize_t status = recv (pc->sd, BPTR(&pc->buf), BCAP(&pc->buf), MSG_NOSIGNAL);
+  if (status == -1)
+    {
+      return (errno == EAGAIN) ? IOSTAT_EAGAIN_ON_READ : IOSTAT_READ_ERROR;
+    }
+  else
+    {
+      if (!status)
+	return IOSTAT_READ_ERROR;
+      pc->buf.len = status;
+    }
+  return IOSTAT_GOOD;
+}
+
+static int
+proxy_connection_io_send (struct proxy_connection *pc)
+{
+  if ((get_random() % 4096) == 0) // JYFIXME
+    {
+      /* send data to counterpart socket */
+      ssize_t status = send (pc->counterpart->sd, BPTR(&pc->buf), BLEN(&pc->buf), MSG_NOSIGNAL);
+      if (status == -1)
+	{
+	  const int e = errno;
+	  return (e == EAGAIN) ? IOSTAT_EAGAIN_ON_WRITE : IOSTAT_WRITE_ERROR;
+	}
+      else
+	{
+	  if (status != pc->buf.len)
+	    return IOSTAT_WRITE_ERROR;
+	  pc->buf.len = 0;
+	}
+
+      /* realloc send buffer after initial send */
+      if (pc->buffer_initial)
+	{
+	  free_buf (&pc->buf);
+	  pc->buf = alloc_buf (PROXY_CONNECTION_BUFFER_SIZE);
+	  pc->buffer_initial = false;
+	}
+      return IOSTAT_GOOD;
+    }
+  return IOSTAT_EAGAIN_ON_WRITE;
+}
 
 /*
  * Forward data from pc to pc->counterpart.
- * Return values:
- *
- * IOSTAT_EAGAIN_ON_READ -- recv returned EAGAIN
- * IOSTAT_EAGAIN_ON_WRITE -- send return EAGAIN
- * IOSTAT_ERROR -- the other end of one of our sockets was closed
  */
+
 static int
 proxy_connection_io_xfer (struct proxy_connection *pc)
 {
-  while (true)
+  const bool sd_defined = (pc->defined && socket_defined (pc->sd));
+  const bool sd_counterpart_defined = (pc->counterpart->defined && socket_defined (pc->counterpart->sd));
+
+  if (sd_defined && sd_counterpart_defined)
     {
-      if (!BLEN (&pc->buf))
+      while (true)
 	{
-	  /* recv data from socket */
-	  ssize_t status = recv (pc->sd, BPTR(&pc->buf), BCAP(&pc->buf), MSG_NOSIGNAL);
-	  if (status == -1)
+	  if (!BLEN (&pc->buf))
 	    {
-	      return (errno == EAGAIN) ? IOSTAT_EAGAIN_ON_READ : IOSTAT_ERROR;
-	    }
-	  else
-	    {
-	      if (!status)
-		return IOSTAT_ERROR;
-	      pc->buf.len = status;
-	    }
-	}
-
-      if (BLEN (&pc->buf))
-	{
-	  /* send data to counterpart socket */
-	  ssize_t status = send (pc->counterpart->sd, BPTR(&pc->buf), BLEN(&pc->buf), MSG_NOSIGNAL);
-	  if (status == -1)
-	    {
-	      const int e = errno;
-	      return (e == EAGAIN) ? IOSTAT_EAGAIN_ON_WRITE : IOSTAT_ERROR;
-	    }
-	  else
-	    {
-	      if (status != pc->buf.len)
-		return IOSTAT_ERROR;
-	      pc->buf.len = 0;
+	      const int status = proxy_connection_io_recv (pc);
+	      if (status != IOSTAT_GOOD)
+		return status;
 	    }
 
-	  /* successful send */
-	  if (pc->buffer_initial)
+	  if (BLEN (&pc->buf))
 	    {
-	      free_buf (&pc->buf);
-	      pc->buf = alloc_buf (PROXY_CONNECTION_BUFFER_SIZE);
-	      pc->buffer_initial = false;
+	      const int status = proxy_connection_io_send (pc);
+	      if (status != IOSTAT_GOOD)
+		return status;
 	    }
 	}
     }
-  return IOSTAT_ERROR;
+  else if (!sd_defined && sd_counterpart_defined)
+    {
+      if (BLEN (&pc->buf))
+	{
+	  /*
+	   * One side of the connection has been closed, but the other side is open
+	   * and still has pending output which must be sent before closure.
+	   */
+	  const int status = proxy_connection_io_send (pc);
+	  dmsg (D_PS_PROXY_DEBUG, "PORT SHARE PROXY: asymmetric flush on sd=%d status=%d",
+		pc->counterpart->sd, status);
+	  return (status == IOSTAT_EAGAIN_ON_WRITE) ? IOSTAT_EAGAIN_ON_WRITE : IOSTAT_ASYMFLUSH;
+	}
+      else
+	return IOSTAT_HALF_CLOSED_1;
+    }
+  else if (sd_defined && !sd_counterpart_defined)
+    {
+      return IOSTAT_HALF_CLOSED_2;
+    }
+  return IOSTAT_BOTH_CLOSED;
 }
 
 /*
@@ -560,16 +618,45 @@ proxy_connection_io_status (const int status, int *rwflags_pc, int *rwflags_cp)
 {
   switch (status)
     {
-	case IOSTAT_EAGAIN_ON_READ:
-	  *rwflags_pc |= EVENT_READ;
-	  *rwflags_cp &= ~EVENT_WRITE;
-	  return true;
-	case IOSTAT_EAGAIN_ON_WRITE:
-	  *rwflags_pc &= ~EVENT_READ;
-	  *rwflags_cp |= EVENT_WRITE;
-	  return true;
-	default:
-	  return false;
+    case IOSTAT_EAGAIN_ON_READ:
+      *rwflags_pc |= EVENT_READ;
+      *rwflags_cp &= ~EVENT_WRITE;
+      return true;
+    case IOSTAT_EAGAIN_ON_WRITE:
+      *rwflags_pc &= ~EVENT_READ;
+      *rwflags_cp |= EVENT_WRITE;
+      return true;
+    default:
+      return false;
+    }
+}
+
+static void
+proxy_connection_close (struct proxy_connection *pc, struct event_set *es)
+{
+  if (BLEN (&pc->buf) && pc->counterpart && socket_defined (pc->counterpart->sd))
+    proxy_entry_close_sd (pc, es);          /* close one side of the connection (pc) */
+  else
+    proxy_entry_mark_for_close (pc, es);    /* close both sides of the connection */
+}
+
+static void
+proxy_connection_exception (struct proxy_connection *pc, const int status, struct event_set *es)
+{
+  dmsg (D_PS_PROXY_DEBUG, "PORT SHARE PROXY: proxy_connection_exception, status=%d", status);
+  switch (status)
+    {
+    case IOSTAT_READ_ERROR:
+      proxy_connection_close (pc, es);
+      break;
+    case IOSTAT_WRITE_ERROR:
+      proxy_connection_close (pc->counterpart, es);
+      break;
+    case IOSTAT_ASYMFLUSH:
+      proxy_entry_mark_for_close (pc, es); /* close both sides of the connection */
+      break;
+    default:
+      break;
     }
 }
 
@@ -577,36 +664,29 @@ proxy_connection_io_status (const int status, int *rwflags_pc, int *rwflags_cp)
  * Dispatch function for forwarding data between the two socket fds involved
  * in the proxied connection.
  */
-static bool
+static void
 proxy_connection_io_dispatch (struct proxy_connection *pc,
 			      const int rwflags,
 			      struct event_set *es)
 {
   struct proxy_connection *cp = pc->counterpart;
-  int status;
   int rwflags_pc = pc->rwflags;
   int rwflags_cp = cp->rwflags;
 
   if (rwflags & EVENT_READ)
     {
-      status = proxy_connection_io_xfer (pc);
+      const int status = proxy_connection_io_xfer (pc);
       if (!proxy_connection_io_status (status, &rwflags_pc, &rwflags_cp))
-	goto bad;
+	proxy_connection_exception (pc, status, es);
     }
   if (rwflags & EVENT_WRITE)
     {
-      status = proxy_connection_io_xfer (cp);
+      const int status = proxy_connection_io_xfer (cp);
       if (!proxy_connection_io_status (status, &rwflags_cp, &rwflags_pc))
-	goto bad;
+	proxy_connection_exception (pc, status, es);
     }
   proxy_connection_io_requeue (pc, rwflags_pc, es);
   proxy_connection_io_requeue (cp, rwflags_cp, es);
-
-  return true;
-
- bad:
-  proxy_entry_mark_for_close (pc, es);
-  return false;
 }
 
 /*

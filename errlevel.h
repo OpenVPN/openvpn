@@ -133,7 +133,7 @@
 #define D_ALIGN_DEBUG        LOGLEV(7, 70, M_DEBUG)  /* show verbose struct alignment info */
 #define D_PACKET_TRUNC_DEBUG LOGLEV(7, 70, M_DEBUG)  /* PACKET_TRUNCATION_CHECK verbose */
 #define D_PING               LOGLEV(7, 70, M_DEBUG)  /* PING send/receive messages */
-#define D_PS_PROXY_DEBUG     LOGLEV(7, 70, M_DEBUG)  /* port share proxy debug */
+#define D_PS_PROXY_DEBUG     LOGLEV(4, 70, M_DEBUG)  /* JYFIXME port share proxy debug */
 
 #define D_HANDSHAKE_VERBOSE  LOGLEV(8, 70, M_DEBUG)  /* show detailed description of each handshake */
 #define D_TLS_DEBUG_MED      LOGLEV(8, 70, M_DEBUG)  /* limited info from tls_session routines */
