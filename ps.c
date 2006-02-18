@@ -81,7 +81,7 @@ headc (const struct buffer *buf)
 }
 #endif
 
-static void
+static inline void
 close_socket_if_defined (const socket_descriptor_t sd)
 {
   if (socket_defined (sd))
@@ -154,6 +154,13 @@ send_control (const socket_descriptor_t fd, int code)
     return -1;
 }
 
+/*
+ * Send a command (char), data (head), and a file descriptor (sd_send) to a local process
+ * over unix socket sd.  Unfortunately, there's no portable way to send file descriptors
+ * to other processes, so this code, as well as its analog (control_message_from_parent below),
+ * is Linux-specific. This function runs in the context of the main process and is used to
+ * send commands, data, and file descriptors to the background process.
+ */
 static void
 port_share_sendmsg (const socket_descriptor_t sd,
 		    const char command,
@@ -231,7 +238,9 @@ pc_list_len (struct proxy_connection *pc)
   return count;
 }
 
-/* mark a proxy entry and its counterpart for close */
+/*
+ * Mark a proxy entry and its counterpart for close.
+ */
 static void
 proxy_entry_mark_for_close (struct proxy_connection *pc, struct event_set *es)
 {
@@ -256,6 +265,10 @@ proxy_entry_mark_for_close (struct proxy_connection *pc, struct event_set *es)
     }
 }
 
+/*
+ * Run through the proxy entry list and delete all entries marked
+ * for close.
+ */
 static void
 proxy_list_housekeeping (struct proxy_connection **list)
 {
@@ -282,6 +295,9 @@ proxy_list_housekeeping (struct proxy_connection **list)
     }
 }
 
+/*
+ * Cleanup function, on proxy process exit.
+ */
 static void
 proxy_list_close (struct proxy_connection **list)
 {
@@ -318,6 +334,13 @@ proxy_connection_io_requeue (struct proxy_connection *pc, const int rwflags_new,
     }
 }
 
+/*
+ * Create a new pair of proxy_connection entries, one for each
+ * socket file descriptor involved in the proxy.  We are given
+ * the client fd, and we should derive our own server fd by connecting
+ * to the server given by server_addr/server_port.  Return true
+ * on success and false on failure to connect to server.
+ */
 static bool
 proxy_entry_new (struct proxy_connection **list,
 		 struct event_set *es,
@@ -381,6 +404,12 @@ proxy_entry_new (struct proxy_connection **list,
   return true;
 }
 
+/*
+ * This function runs in the context of the background proxy process.
+ * Receive a control message from the parent (sent by the port_share_sendmsg
+ * function above) and act on it.  Return false if the proxy process should
+ * exit, true otherwise.
+ */
 static bool
 control_message_from_parent (const socket_descriptor_t sd_control,
 			     struct proxy_connection **list,
@@ -466,7 +495,14 @@ control_message_from_parent (const socket_descriptor_t sd_control,
 #define IOSTAT_EAGAIN_ON_WRITE  1
 #define IOSTAT_ERROR            2
 
-/* forward data from pc to pc->counterpart */
+/*
+ * Forward data from pc to pc->counterpart.
+ * Return values:
+ *
+ * IOSTAT_EAGAIN_ON_READ -- recv returned EAGAIN
+ * IOSTAT_EAGAIN_ON_WRITE -- send return EAGAIN
+ * IOSTAT_ERROR -- the other end of one of our sockets was closed
+ */
 static int
 proxy_connection_io_xfer (struct proxy_connection *pc)
 {
@@ -516,6 +552,9 @@ proxy_connection_io_xfer (struct proxy_connection *pc)
   return IOSTAT_ERROR;
 }
 
+/*
+ * Decide how the receipt of an EAGAIN status should affect our next IO queueing.
+ */
 static inline bool
 proxy_connection_io_status (const int status, int *rwflags_pc, int *rwflags_cp)
 {
@@ -534,6 +573,10 @@ proxy_connection_io_status (const int status, int *rwflags_pc, int *rwflags_cp)
     }
 }
 
+/*
+ * Dispatch function for forwarding data between the two socket fds involved
+ * in the proxied connection.
+ */
 static bool
 proxy_connection_io_dispatch (struct proxy_connection *pc,
 			      const int rwflags,
@@ -566,6 +609,9 @@ proxy_connection_io_dispatch (struct proxy_connection *pc,
   return false;
 }
 
+/*
+ * This is the main function for the port share proxy background process.
+ */
 static void
 port_share_proxy (const in_addr_t hostaddr, const int port, const socket_descriptor_t sd_control)
 {
@@ -629,6 +675,10 @@ port_share_proxy (const in_addr_t hostaddr, const int port, const socket_descrip
   msg (D_PS_PROXY, "PORT SHARE PROXY: proxy exiting");
 }
 
+/*
+ * Called from the main OpenVPN process to enable the port
+ * share proxy.
+ */
 struct port_share *
 port_share_open (const char *host, const int port)
 {
@@ -754,6 +804,11 @@ port_share_abort (struct port_share *ps)
     }
 }
 
+/*
+ * Given either the first 2 or 3 bytes of an initial client -> server
+ * data payload, return true if the protocol is that of an OpenVPN
+ * client attempting to connect with an OpenVPN server.
+ */
 bool
 is_openvpn_protocol (const struct buffer *buf)
 {
@@ -773,6 +828,11 @@ is_openvpn_protocol (const struct buffer *buf)
     return true;
 }
 
+/*
+ * Called from the foreground process.  Send a message to the background process that it
+ * should proxy the TCP client on sd to the host/port defined in the initial port_share_open
+ * call.
+ */
 void
 port_share_redirect (struct port_share *ps, const struct buffer *head, socket_descriptor_t sd)
 {
