@@ -62,8 +62,10 @@ struct port_share *port_share = NULL; /* GLOBAL */
 #define IOSTAT_WRITE_ERROR      3 /* the other end of our write socket (pc->counterpart) was closed */
 #define IOSTAT_GOOD             4 /* nothing to report */
 
-/* A foreign (non-OpenVPN) connection we are proxying,
-   usually HTTPS */
+/*
+ * A foreign (non-OpenVPN) connection we are proxying,
+ * usually HTTPS
+ */
 struct proxy_connection {
   bool defined;
   struct proxy_connection *next;
@@ -188,7 +190,7 @@ port_share_sendmsg (const socket_descriptor_t sd,
       ssize_t status;
 
       dmsg (D_PS_PROXY_DEBUG, "PORT SHARE: sendmsg sd=%d len=%d",
-	    sd_send,
+	    (int)sd_send,
 	    head ? BLEN(head) : -1);
 
       CLEAR (mesg);
@@ -253,7 +255,7 @@ proxy_entry_close_sd (struct proxy_connection *pc, struct event_set *es)
 {
   if (pc->defined && socket_defined (pc->sd))
     {
-      dmsg (D_PS_PROXY_DEBUG, "PORT SHARE PROXY: delete sd=%d", pc->sd);
+      dmsg (D_PS_PROXY_DEBUG, "PORT SHARE PROXY: delete sd=%d", (int)pc->sd);
       if (es)
 	event_del (es, pc->sd);
       openvpn_close_socket (pc->sd);
@@ -344,7 +346,7 @@ proxy_connection_io_requeue (struct proxy_connection *pc, const int rwflags_new,
 {
   if (socket_defined (pc->sd) && pc->rwflags != rwflags_new)
     {
-      /*dmsg (D_PS_PROXY_DEBUG, "PORT SHARE PROXY: requeue[%d] rwflags=%d", pc->sd, rwflags_new);*/
+      /*dmsg (D_PS_PROXY_DEBUG, "PORT SHARE PROXY: requeue[%d] rwflags=%d", (int)pc->sd, rwflags_new);*/
       event_ctl (es, pc->sd, rwflags_new, (void*)pc);
       pc->rwflags = rwflags_new;
     }
@@ -411,7 +413,7 @@ proxy_entry_new (struct proxy_connection **list,
   /* add to list */
   *list = pc;
   
-  dmsg (D_PS_PROXY_DEBUG, "PORT SHARE PROXY: NEW CONNECTION [c=%d s=%d]", sd_client, sd_server);
+  dmsg (D_PS_PROXY_DEBUG, "PORT SHARE PROXY: NEW CONNECTION [c=%d s=%d]", (int)sd_client, (int)sd_server);
 
   /* set initial i/o states */
   proxy_connection_io_requeue (pc, EVENT_READ, es);
@@ -474,7 +476,7 @@ control_message_from_parent (const socket_descriptor_t sd_control,
       else
 	{
 	  const socket_descriptor_t received_fd = *((socket_descriptor_t*)CMSG_DATA(h));
-	  dmsg (D_PS_PROXY_DEBUG, "PORT SHARE PROXY: RECEIVED sd=%d", received_fd);
+	  dmsg (D_PS_PROXY_DEBUG, "PORT SHARE PROXY: RECEIVED sd=%d", (int)received_fd);
 
 	  if (status >= 2 && command == COMMAND_REDIRECT)
 	    {
@@ -526,39 +528,39 @@ proxy_connection_io_recv (struct proxy_connection *pc)
 static int
 proxy_connection_io_send (struct proxy_connection *pc, int *bytes_sent)
 {
-      const socket_descriptor_t sd = pc->counterpart->sd;
-      const int status = send (sd, BPTR(&pc->buf), BLEN(&pc->buf), MSG_NOSIGNAL);
+  const socket_descriptor_t sd = pc->counterpart->sd;
+  const int status = send (sd, BPTR(&pc->buf), BLEN(&pc->buf), MSG_NOSIGNAL);
 
-      if (status < 0)
+  if (status < 0)
+    {
+      const int e = errno;
+      return (e == EAGAIN) ? IOSTAT_EAGAIN_ON_WRITE : IOSTAT_WRITE_ERROR;
+    }
+  else
+    {
+      *bytes_sent += status;
+      if (status != pc->buf.len)
 	{
-	  const int e = errno;
-	  return (e == EAGAIN) ? IOSTAT_EAGAIN_ON_WRITE : IOSTAT_WRITE_ERROR;
+	  dmsg (D_PS_PROXY_DEBUG, "PORT SHARE PROXY: partial write[%d], tried=%d got=%d", (int)sd, pc->buf.len, status);
+	  buf_advance (&pc->buf, status);
+	  return IOSTAT_EAGAIN_ON_WRITE;
 	}
       else
 	{
-	  *bytes_sent += status;
-	  if (status != pc->buf.len)
-	    {
-	      dmsg (D_PS_PROXY_DEBUG, "PORT SHARE PROXY: partial write[%d], tried=%d got=%d", (int)sd, pc->buf.len, status);
-	      buf_advance (&pc->buf, status);
-	      return IOSTAT_EAGAIN_ON_WRITE;
-	    }
-	  else
-	    {
-	      /*dmsg (D_PS_PROXY_DEBUG, "PORT SHARE PROXY: wrote[%d] %d", (int)sd, status);*/
-	      pc->buf.len = 0;
-	      pc->buf.offset = 0;
-	    }
+	  /*dmsg (D_PS_PROXY_DEBUG, "PORT SHARE PROXY: wrote[%d] %d", (int)sd, status);*/
+	  pc->buf.len = 0;
+	  pc->buf.offset = 0;
 	}
+    }
 
-      /* realloc send buffer after initial send */
-      if (pc->buffer_initial)
-	{
-	  free_buf (&pc->buf);
-	  pc->buf = alloc_buf (PROXY_CONNECTION_BUFFER_SIZE);
-	  pc->buffer_initial = false;
-	}
-      return IOSTAT_GOOD;
+  /* realloc send buffer after initial send */
+  if (pc->buffer_initial)
+    {
+      free_buf (&pc->buf);
+      pc->buf = alloc_buf (PROXY_CONNECTION_BUFFER_SIZE);
+      pc->buffer_initial = false;
+    }
+  return IOSTAT_GOOD;
 }
 
 /*
