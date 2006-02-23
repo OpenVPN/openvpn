@@ -43,8 +43,6 @@
 #include "pkcs11-helper.h"
 #include "pkcs11.h"
 
-#define snprintf openvpn_snprintf
-
 static
 void
 _pkcs11_openvpn_print (

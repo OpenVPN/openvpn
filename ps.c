@@ -856,7 +856,7 @@ port_share_abort (struct port_share *ps)
 bool
 is_openvpn_protocol (const struct buffer *buf)
 {
-  const unsigned char *p = BSTR (buf);
+  const unsigned char *p = (const unsigned char *) BSTR (buf);
   const int len = BLEN (buf);
   if (len >= 3)
     {
