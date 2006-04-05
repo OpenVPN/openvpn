@@ -409,13 +409,13 @@ struct options
 #ifdef ENABLE_PKCS11
   const char *pkcs11_providers[MAX_PARMS];
   const char *pkcs11_sign_mode[MAX_PARMS];
+  bool pkcs11_protected_authentication[MAX_PARMS];
+  bool pkcs11_cert_private[MAX_PARMS];
+  int pkcs11_pin_cache_period;
   const char *pkcs11_slot_type;
   const char *pkcs11_slot;
   const char *pkcs11_id_type;
   const char *pkcs11_id;
-  int pkcs11_pin_cache_period;
-  bool pkcs11_protected_authentication;
-  bool pkcs11_cert_private;
 #endif
 
 #ifdef WIN32

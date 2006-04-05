@@ -22,10 +22,10 @@
 *  59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
-#ifndef __PKCS11_HELPER_CONFIG_H
-#define __PKCS11_HELPER_CONFIG_H
+#ifndef __PKCS11H_HELPER_CONFIG_H
+#define __PKCS11H_HELPER_CONFIG_H
 
-#if!defined(PKCS11H_NO_NEED_INCLUDE_CONFIG)
+#if !defined(PKCS11H_NO_NEED_INCLUDE_CONFIG)
 
 #if defined(WIN32)
 #include "config-win32.h"
@@ -38,32 +38,25 @@
 #endif /* PKCS11H_NO_NEED_INCLUDE_CONFIG */
 
 #ifdef ENABLE_PKCS11
-#define PKCS11H_ENABLE_HELPER
+#define ENABLE_PKCS11H_HELPER
 #endif
 
-#ifdef PKCS11H_ENABLE_HELPER
+#ifdef ENABLE_PKCS11H_HELPER
 
 #include "error.h"
 #include "misc.h"
 #include "ssl.h"
 
-#define PKCS11ASSERT		ASSERT
-#define PKCS11LOG		msg
-#define PKCS11DLOG		dmsg
-#define PKCS11_LOG_DEBUG2	D_PKCS11_DEBUG
-#define PKCS11_LOG_DEBUG1	D_SHOW_PKCS11
-#define PKCS11_LOG_INFO		M_INFO
-#define PKCS11_LOG_WARN		M_WARN
-#define PKCS11_LOG_ERROR	M_FATAL
+#undef PKCS11H_USE_CYGWIN	/* cygwin is not supported in openvpn */
 
-#undef PKCS11_USE_CYGWIN
+#if !defined(FALSE)
+#define FALSE false
+#endif
+#if !defined(TRUE)
+#define TRUE true
+#endif
 
-#if !defined(false)
-#define false 0
-#endif
-#if !defined(true)
-#define true (!false)
-#endif
+typedef bool PKCS11H_BOOL;
 
 #if !defined(IN)
 #define IN
@@ -72,18 +65,34 @@
 #define OUT
 #endif
 
-#define PKCS11_PRM_SLOT_TYPE	"--pkcs11-slot-type"
-#define PKCS11_PRM_SLOT_ID	"--pkcs11-slot"
-#define PKCS11_PRM_OBJ_TYPE	"--pkcs11-id-type"
-#define PKCS11_PRM_OBJ_ID	"--pkcs11-id"
+#ifdef ENABLE_DEBUG
+#define ENABLE_PKCS11H_DEBUG
+#endif
+#ifdef USE_PTHREAD
+#define ENABLE_PKCS11H_THREADING
+#endif
+#undef  ENABLE_PKCS11H_TOKEN
+#undef  ENABLE_PKCS11H_DATA
+#define ENABLE_PKCS11H_CERTIFICATE
+#define ENABLE_PKCS11H_LOCATE
+#undef  ENABLE_PKCS11H_ENUM
+#undef  ENABLE_PKCS11H_SLOTEVENT
+#define ENABLE_PKCS11H_OPENSSL
+#define ENABLE_PKCS11H_STANDALONE
 
-#define PKCS11_TIME	openvpn_time
+#define PKCS11H_PRM_SLOT_TYPE	"--pkcs11-slot-type"
+#define PKCS11H_PRM_SLOT_ID	"--pkcs11-slot"
+#define PKCS11H_PRM_OBJ_TYPE	"--pkcs11-id-type"
+#define PKCS11H_PRM_OBJ_ID	"--pkcs11-id"
 
-#if defined(WIN32) || defined(PKCS11_USE_CYGWIN)
+#define PKCS11H_ASSERT		ASSERT
+#define PKCS11H_TIME		openvpn_time
+
+#if defined(WIN32) || defined(PKCS11H_USE_CYGWIN)
 #include "cryptoki-win32.h"
 #else
 #include "cryptoki.h"
 #endif
 
-#endif		/* PKCS11H_ENABLE_HELPER */
-#endif		/* __PKCS11_HELPER_CONFIG_H */
+#endif		/* PKCS11_ENABLE_HELPER */
+#endif		/* __PKCS11H_HELPER_CONFIG_H */

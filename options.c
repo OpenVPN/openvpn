@@ -492,12 +492,19 @@ static const char usage_message[] =
   "\n"
   "PKCS#11 Options:\n"
   "--pkcs11-providers provider ... : PKCS#11 provider to load.\n"
+  "--pkcs11-protected-authentication [0|1] ... : Use PKCS#11 protected authentication\n"
+  "                              path. Set for each provider.\n"
   "--pkcs11-sign-mode mode ... : PKCS#11 signature method.\n"
   "                              auto    : Try  to determind automatically (default).\n"
-  "                              recover : Use SignRecover.\n"
   "                              sign    : Use Sign.\n"
+  "                              recover : Use SignRecover.\n"
+  "                              any     : Use Sign and then SignRecover.\n"
+  "--pkcs11-cert-private [0|1] ... : Set if login should be performed before\n"
+  "                              certificate can be accessed. Set for each provider.\n"
+  "--pkcs11-pin-cache seconds  : Number of seconds to cache PIN. The default is -1\n"
+  "                              cache until token is removed.\n"
   "--pkcs11-slot-type method   : Slot locate method:\n"
-  "                              id      : By slot id (numeric [prov#:]slot#).\n"
+  "                              id      : By slot id (numeric [prov:]slot#).\n"
   "                              name    : By slot name.\n"
   "                              label   : By the card label that resides in slot.\n"
   "--pkcs11-slot name          : The slot name.\n"
@@ -506,11 +513,6 @@ static const char usage_message[] =
   "                              label   : By the object label (string).\n"
   "                              subject : By certificate subject (String).\n"
   "--pkcs11-id name            : The object name.\n"
-  "--pkcs11-pin-cache seconds  : Number of seconds to cache PIN. The default is -1\n"
-  "                              cache until token removed.\n"
-  "--pkcs11-protected-authentication : Use PKCS#11 protected authentication path.\n"
-  "--pkcs11-cert-private       : Set if login should be performed before\n"
-  "                              certificate can be accessed.\n"
 #endif			/* ENABLE_PKCS11 */
  "\n"
   "SSL Library information:\n"
@@ -688,8 +690,6 @@ init_options (struct options *o)
 #endif
 #ifdef ENABLE_PKCS11
   o->pkcs11_pin_cache_period = -1;
-  o->pkcs11_protected_authentication = false;
-  o->pkcs11_cert_private = false;
 #endif			/* ENABLE_PKCS11 */
 }
 
@@ -1265,16 +1265,24 @@ show_settings (const struct options *o)
   }
   {
     int i;
+    for (i=0;i<MAX_PARMS;i++)
+      SHOW_PARM (pkcs11_protected_authentication, o->pkcs11_protected_authentication[i] ? "ENABLED" : "DISABLED", "%s");
+  }
+  {
+    int i;
     for (i=0;i<MAX_PARMS && o->pkcs11_sign_mode[i] != NULL;i++)
       SHOW_PARM (pkcs11_sign_mode, o->pkcs11_sign_mode[i], "%s");
   }
+  {
+    int i;
+    for (i=0;i<MAX_PARMS;i++)
+      SHOW_PARM (pkcs11_cert_private, o->pkcs11_cert_private[i] ? "ENABLED" : "DISABLED", "%s");
+  }
+  SHOW_INT (pkcs11_pin_cache_period);
   SHOW_STR (pkcs11_slot_type);
   SHOW_STR (pkcs11_slot);
   SHOW_STR (pkcs11_id_type);
   SHOW_STR (pkcs11_id);
-  SHOW_INT (pkcs11_pin_cache_period);
-  SHOW_BOOL (pkcs11_protected_authentication);
-  SHOW_BOOL (pkcs11_cert_private);
 #endif			/* ENABLE_PKCS11 */
 
 #if P2MP
@@ -5080,6 +5088,15 @@ add_option (struct options *options,
       for (j = 1; j < MAX_PARMS && p[j] != NULL; ++j)
       	options->pkcs11_providers[j-1] = p[j];
     }
+  else if (streq (p[0], "pkcs11-protected-authentication"))
+    {
+      int j;
+
+      VERIFY_PERMISSION (OPT_P_GENERAL);
+
+      for (j = 1; j < MAX_PARMS && p[j] != NULL; ++j)
+        options->pkcs11_protected_authentication[j-1] = atoi (p[j]) != 0 ? 1 : 0;
+    }
   else if (streq (p[0], "pkcs11-sign-mode") && p[1])
     {
       int j;
@@ -5088,6 +5105,20 @@ add_option (struct options *options,
 
       for (j = 1; j < MAX_PARMS && p[j] != NULL; ++j)
       	options->pkcs11_sign_mode[j-1] = p[j];
+    }
+  else if (streq (p[0], "pkcs11-cert-private"))
+    {
+      int j;
+
+      VERIFY_PERMISSION (OPT_P_GENERAL);
+
+      for (j = 1; j < MAX_PARMS && p[j] != NULL; ++j)
+        options->pkcs11_cert_private[j-1] = atoi (p[j]) != 0 ? 1 : 0;
+    }
+   else if (streq (p[0], "pkcs11-pin-cache") && p[1])
+    {
+      VERIFY_PERMISSION (OPT_P_GENERAL);
+      options->pkcs11_pin_cache_period = atoi (p[1]);
     }
   else if (streq (p[0], "pkcs11-slot-type") && p[1])
     {
@@ -5108,21 +5139,6 @@ add_option (struct options *options,
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->pkcs11_id = p[1];
-    }
-   else if (streq (p[0], "pkcs11-pin-cache") && p[1])
-    {
-      VERIFY_PERMISSION (OPT_P_GENERAL);
-      options->pkcs11_pin_cache_period = atoi (p[1]);
-    }
-  else if (streq (p[0], "pkcs11-protected-authentication"))
-    {
-      VERIFY_PERMISSION (OPT_P_GENERAL);
-      options->pkcs11_protected_authentication = true;
-    }
-  else if (streq (p[0], "pkcs11-cert-private"))
-    {
-      VERIFY_PERMISSION (OPT_P_GENERAL);
-      options->pkcs11_cert_private = true;
     }
 #endif
 #ifdef TUNSETPERSIST

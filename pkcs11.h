@@ -31,6 +31,7 @@
 
 bool
 pkcs11_initialize (
+	const bool fProtectedAuthentication,
 	const int nPINCachePeriod
 );
 
@@ -43,7 +44,9 @@ pkcs11_forkFixup ();
 bool
 pkcs11_addProvider (
 	const char * const provider,
-	const char * const sign_mode
+	const bool fProtectedAuthentication,
+	const char * const sign_mode,
+	const bool fCertIsPrivate
 );
 
 int
@@ -52,9 +55,7 @@ SSL_CTX_use_pkcs11 (
 	const char * const pkcs11_slot_type,
 	const char * const pkcs11_slot,
 	const char * const pkcs11_id_type,
-	const char * const pkcs11_id,
-	const bool pkcs11_protected_authentication,
-	const bool pkcs11_cert_private
+	const char * const pkcs11_id
 );
 
 void
@@ -71,4 +72,4 @@ show_pkcs11_objects (
 
 #endif			/* ENABLE_PKCS11 */
 
-#endif			/* OPENVPN_PKCS11_H */
+#endif			/* OPENVPN_PKCS11H_H */

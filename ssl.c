@@ -1145,7 +1145,7 @@ init_ssl (const struct options *options)
       if (options->pkcs11_providers[0])
        {
         /* Load Certificate and Private Key */
-	if (!SSL_CTX_use_pkcs11 (ctx, options->pkcs11_slot_type, options->pkcs11_slot, options->pkcs11_id_type, options->pkcs11_id, options->pkcs11_protected_authentication, options->pkcs11_cert_private))
+	if (!SSL_CTX_use_pkcs11 (ctx, options->pkcs11_slot_type, options->pkcs11_slot, options->pkcs11_id_type, options->pkcs11_id))
 	  msg (M_SSLERR, "Cannot load certificate \"%s:%s\" from slot \"%s:%s\" using PKCS#11 interface",
                options->pkcs11_id_type, options->pkcs11_id, options->pkcs11_slot_type, options->pkcs11_slot);
        }
