@@ -251,6 +251,7 @@ openvpn \- secure IP tunnel daemon.
 [\ \fB\-\-server\fR\ \fInetwork\ netmask\fR\ ]
 [\ \fB\-\-service\fR\ \fIexit\-event\ [0|1]\fR\ ]
 [\ \fB\-\-setenv\fR\ \fIname\ value\fR\ ]
+[\ \fB\-\-setenv\-safe\fR\ \fIname\ value\fR\ ]
 [\ \fB\-\-shaper\fR\ \fIn\fR\ ]
 [\ \fB\-\-show\-adapters\fR\ ]
 [\ \fB\-\-show\-ciphers\fR\ ]
@@ -1810,6 +1811,17 @@ option documentation.
 Set a custom environmental variable
 .B name=value
 to pass to script.
+.\"*********************************************************
+.TP
+.B --setenv-safe name value
+Set a custom environmental variable
+.B OPENVPN_name=value
+to pass to script.
+
+This directive is designed to be pushed by the server to clients,
+and the prepending of "OPENVPN_" to the environmental variable
+is a safety precaution to prevent a LD_PRELOAD style attack
+from a malicious or compromised server.
 .\"*********************************************************
 .TP
 .B --disable-occ
