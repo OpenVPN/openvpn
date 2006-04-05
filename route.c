@@ -936,6 +936,8 @@ delete_route (const struct route *r, const struct tuntap *tt, unsigned int flags
 	      network,
 	      netmask);
 #endif /*CONFIG_FEATURE_IPROUTE*/
+  if (r->metric_defined)
+    buf_printf (&buf, " metric %d", r->metric);
   msg (D_ROUTE, "%s", BSTR (&buf));
   system_check (BSTR (&buf), es, 0, "ERROR: Linux route delete command failed");
 

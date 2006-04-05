@@ -720,7 +720,19 @@ do_ifconfig (struct tuntap *tt,
 			  tun_mtu
 			  );
       else
-	no_tap_ifconfig ();
+      /*
+       * NetBSD has distinct tun and tap devices
+       * so we don't need the "link0" extra parameter to specify we want to do 
+       * tunneling at the ethernet level
+       */
+		openvpn_snprintf (command_line, sizeof (command_line),
+			  IFCONFIG_PATH " %s %s netmask %s mtu %d broadcast %s",
+			  actual,
+			  ifconfig_local,
+			  ifconfig_remote_netmask,
+			  tun_mtu,
+			  ifconfig_broadcast
+			  );
       msg (M_INFO, "%s", command_line);
       system_check (command_line, es, S_FATAL, "NetBSD ifconfig failed");
       tt->did_ifconfig = true;
