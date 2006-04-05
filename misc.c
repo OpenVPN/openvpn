@@ -870,6 +870,14 @@ setenv_str (struct env_set *es, const char *name, const char *value)
 }
 
 void
+setenv_str_safe (struct env_set *es, const char *name, const char *value)
+{
+  char buf[64];
+  openvpn_snprintf (buf, sizeof(buf), "OPENVPN_%s", name);
+  setenv_str (es, buf, value);
+}
+
+void
 setenv_del (struct env_set *es, const char *name)
 {
   ASSERT (name);
