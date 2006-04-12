@@ -19,7 +19,8 @@ $Id$
   the attacker, and (e) the attacker has at least some level of
   pre-existing control over files on the client (this might be
   accomplished by having the server respond to a client web request
-  with a specially crafted file).
+  with a specially crafted file).  Credit: Hendrik Weimer.
+  CVE-2006-1629.
 
   The fix is to disallow "setenv" to be pushed to clients from
   the server, and to add a new directive "setenv-safe" which is
