@@ -3,6 +3,12 @@ Copyright (C) 2002-2005 OpenVPN Solutions LLC <info@openvpn.net>
 
 $Id$
 
+2006.04.12 -- Version 2.1-beta13
+
+* Code added in 2.1-beta7 and 2.0.6-rc1 to extend byte counters
+  to 64 bits caused a bug in the Windows version which has now
+  been fixed.  The bug could cause intermittent crashes.
+	
 2006.04.05 -- Version 2.1-beta12
 
 * Security Vulnerability -- An OpenVPN client connecting to a
