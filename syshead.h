@@ -380,6 +380,11 @@ socket_defined (const socket_descriptor_t sd)
 }
 
 /*
+ * Should statistics counters be 64 bits?
+ */
+#define USE_64_BIT_COUNTERS
+
+/*
  * Do we have point-to-multipoint capability?
  */
 

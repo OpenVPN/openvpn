@@ -26,9 +26,19 @@
 #define COMMON_H
 
 /*
- * Statistics counters.
+ * Statistics counters and associated printf formats.
  */
-typedef unsigned long long int counter_type;
+#ifdef USE_64_BIT_COUNTERS
+  typedef unsigned long long int counter_type;
+# ifdef WIN32
+#  define counter_format  "%I64u"
+# else
+#  define counter_format  "%llu"
+# endif
+#else
+  typedef unsigned int counter_type;
+# define counter_format   "%u"
+#endif
 
 /*
  * Time intervals
@@ -43,7 +53,6 @@ typedef int interval_t;
 /*
  * Printf formats for special types
  */
-#define counter_format          "%llu"
 #define ptr_format              "0x%08lx"
 #define time_format             "%lu"
 #define fragment_header_format  "0x%08x"
