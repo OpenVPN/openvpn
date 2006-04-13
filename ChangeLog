@@ -3,6 +3,14 @@ Copyright (C) 2002-2005 OpenVPN Solutions LLC <info@openvpn.net>
 
 $Id$
 
+2006.04.13 -- Version 2.1-beta14
+
+* Fixed Windows server bug in time backtrack handling code which
+  could cause TLS negotiation failures on legitimate clients.
+* Rewrote gettimeofday function for Windows to be
+  simpler and more efficient.
+* Merged PKCS#11 extensions to easy-rsa/2.0  (Alon Bar-Lev).
+	
 2006.04.12 -- Version 2.1-beta13
 
 * Code added in 2.1-beta7 and 2.0.6-rc1 to extend byte counters
