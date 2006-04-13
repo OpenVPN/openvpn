@@ -7,9 +7,14 @@ $Id$
 
 * Fixed Windows server bug in time backtrack handling code which
   could cause TLS negotiation failures on legitimate clients.
+	
 * Rewrote gettimeofday function for Windows to be
   simpler and more efficient.
+	
 * Merged PKCS#11 extensions to easy-rsa/2.0  (Alon Bar-Lev).
+
+* Added --route-metric option to set a default route metric
+  for --route (Roy Marples).
 	
 2006.04.12 -- Version 2.1-beta13
 

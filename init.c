@@ -634,15 +634,19 @@ do_init_route_list (const struct options *options,
 {
   const char *gw = NULL;
   int dev = dev_type_enum (options->dev, options->dev_type);
+  int metric = 0;
 
   if (dev == DEV_TYPE_TUN && (options->topology == TOP_NET30 || options->topology == TOP_P2P))
     gw = options->ifconfig_remote_netmask;
   if (options->route_default_gateway)
     gw = options->route_default_gateway;
+  if (options->route_default_metric)
+    metric = options->route_default_metric;
 
   if (!init_route_list (route_list,
 			options->routes,
 			gw,
+			metric,
 			link_socket_current_remote (link_socket_info),
 			es))
     {

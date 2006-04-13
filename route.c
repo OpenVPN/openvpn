@@ -276,10 +276,10 @@ init_route (struct route *r,
 	}
       r->metric_defined = true;
     }
-  else
+  else if (spec->default_metric_defined)
     {
-      r->metric = 0;
-      r->metric_defined = false;
+      r->metric = spec->default_metric;
+      r->metric_defined = true;
     }
 
   r->defined = true;
@@ -322,6 +322,7 @@ bool
 init_route_list (struct route_list *rl,
 		 const struct route_option_list *opt,
 		 const char *remote_endpoint,
+		 int default_metric,
 		 in_addr_t remote_host,
 		 struct env_set *es)
 {
@@ -336,6 +337,12 @@ init_route_list (struct route_list *rl,
     {
       rl->spec.remote_host = remote_host;
       rl->spec.remote_host_defined = true;
+    }
+
+  if (default_metric)
+    {
+      rl->spec.default_metric = default_metric;
+      rl->spec.default_metric_defined = true;
     }
 
   rl->spec.net_gateway_defined = get_default_gateway (&rl->spec.net_gateway);

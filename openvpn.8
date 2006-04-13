@@ -240,6 +240,7 @@ openvpn \- secure IP tunnel daemon.
 [\ \fB\-\-route\-delay\fR\ \fI[n]\ [w]\fR\ ]
 [\ \fB\-\-route\-gateway\fR\ \fIgw\fR\ ]
 [\ \fB\-\-route\-method\fR\ \fIm\fR\ ]
+[\ \fB\-\-route\-metric\fR\ \fIm\fR\ ]
 [\ \fB\-\-route\-noexec\fR\ ]
 [\ \fB\-\-route\-nopull\fR\ ]
 [\ \fB\-\-route\-up\fR\ \fIcmd\fR\ ]
@@ -1037,6 +1038,11 @@ when
 .B --dev tun
 is specified.
 
+.B metric
+default -- taken from
+.B --route-metric
+otherwise 0.
+
 The default can be specified by leaving an option blank or setting
 it to "default".
 
@@ -1071,6 +1077,12 @@ address if OpenVPN is being run in client mode, and is undefined in server mode.
 .B --route-gateway gw
 Specify a default gateway
 .B gw
+for use with
+.B --route.
+.TP
+.B --route-metric m
+Specify a default metric
+.B m
 for use with
 .B --route.
 .\"*********************************************************

@@ -65,6 +65,8 @@ struct route_special_addr
   in_addr_t remote_host;
   bool remote_host_defined;
   struct route_bypass bypass;
+  int default_metric;
+  bool default_metric_defined;
 };
 
 struct route_option {
@@ -132,6 +134,7 @@ void clear_route_list (struct route_list *rl);
 bool init_route_list (struct route_list *rl,
 		      const struct route_option_list *opt,
 		      const char *remote_endpoint,
+		      int default_metric,
 		      in_addr_t remote_host,
 		      struct env_set *es);
 

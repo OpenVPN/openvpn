@@ -166,6 +166,7 @@ static const char usage_message[] =
   "                  gateway default: taken from --route-gateway or --ifconfig\n"
   "                  Specify default by leaving blank or setting to \"nil\".\n"
   "--route-gateway gw : Specify a default gateway for use with --route.\n"
+  "--route-metric m : Specify a default metric for use with --route.\n"
   "--route-delay n [w] : Delay n seconds after connection initiation before\n"
   "                  adding routes (may be 0).  If not specified, routes will\n"
   "                  be added immediately after tun/tap open.  On Windows, wait\n"
@@ -1175,6 +1176,7 @@ show_settings (const struct options *o)
 
   SHOW_STR (route_script);
   SHOW_STR (route_default_gateway);
+  SHOW_INT (route_default_metric);
   SHOW_BOOL (route_noexec);
   SHOW_INT (route_delay);
   SHOW_INT (route_delay_window);
@@ -3937,6 +3939,11 @@ add_option (struct options *options,
     {
       VERIFY_PERMISSION (OPT_P_ROUTE_EXTRAS);
       options->route_default_gateway = p[1];      
+    }
+  else if (streq (p[0], "route-metric") && p[1])
+    {
+      VERIFY_PERMISSION (OPT_P_ROUTE);
+      options->route_default_metric = positive_atoi (p[1]);
     }
   else if (streq (p[0], "route-delay"))
     {
