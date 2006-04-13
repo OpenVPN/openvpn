@@ -286,6 +286,11 @@ init_static (void)
   return false;
 #endif
 
+#ifdef TIME_TEST
+  time_test ();
+  return false;
+#endif
+
   return true;
 }
 

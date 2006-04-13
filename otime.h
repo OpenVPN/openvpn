@@ -56,44 +56,23 @@ const char *tv_string_abs (const struct timeval *tv, struct gc_arena *gc);
 
 extern time_t now; /* updated frequently to time(NULL) */
 
-#if TIME_BACKTRACK_PROTECTION
-
-void update_now (const time_t system_time);
+void time_test (void);
 
 static inline void
 update_time (void)
 {
-  update_now (time (NULL));
-}
-
-#ifdef HAVE_GETTIMEOFDAY
-
-extern time_t now_usec;
-void update_now_usec (struct timeval *tv);
-
-static inline int
-openvpn_gettimeofday (struct timeval *tv, void *tz)
-{
-  const int status = gettimeofday (tv, tz);
-  if (!status)
+#if defined(WIN32) && defined(HAVE_GETTIMEOFDAY)
+  struct timeval tv;
+  if (!gettimeofday (&tv, NULL))
     {
-      update_now_usec (tv);
-      tv->tv_sec = now;
-      tv->tv_usec = now_usec;
+      if (tv.tv_sec != now)
+	now = tv.tv_sec;
     }
-  return status;
-}
-
-#endif
-
 #else
-
-static inline void
-update_time (void)
-{
   const time_t real_time = time (NULL);
   if (real_time != now)
     now = real_time;
+#endif
 }
 
 #ifdef HAVE_GETTIMEOFDAY
@@ -103,8 +82,6 @@ openvpn_gettimeofday (struct timeval *tv, void *tz)
 {
   return gettimeofday (tv, tz);
 }
-
-#endif
 
 #endif
 
