@@ -6,7 +6,7 @@ CRL="${1:-crl.pem}"
 
 if [ "$KEY_DIR" ]; then
     cd "$KEY_DIR" && \
-	openssl crl -text -noout -in "$CRL"
+	$OPENSSL crl -text -noout -in "$CRL"
 else
     echo 'Please source the vars script first (i.e. "source ./vars")'
     echo 'Make sure you have edited it to reflect your configuration.'

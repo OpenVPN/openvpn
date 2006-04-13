@@ -20,11 +20,11 @@ if [ "$KEY_DIR" ]; then
     export KEY_OU=""
 
     # revoke key and generate a new CRL
-    openssl ca -revoke "$1.crt" -config "$KEY_CONFIG"
+    $OPENSSL ca -revoke "$1.crt" -config "$KEY_CONFIG"
 
     # generate a new CRL -- try to be compatible with
     # intermediate PKIs
-    openssl ca -gencrl -out "$CRL" -config "$KEY_CONFIG"
+    $OPENSSL ca -gencrl -out "$CRL" -config "$KEY_CONFIG"
     if [ -e export-ca.crt ]; then
 	cat export-ca.crt "$CRL" >"$RT"
     else
@@ -32,7 +32,7 @@ if [ "$KEY_DIR" ]; then
     fi
     
     # verify the revocation
-    openssl verify -CAfile "$RT" -crl_check "$1.crt"
+    $OPENSSL verify -CAfile "$RT" -crl_check "$1.crt"
 else
     echo 'Please source the vars script first (i.e. "source ./vars")'
     echo 'Make sure you have edited it to reflect your configuration.'

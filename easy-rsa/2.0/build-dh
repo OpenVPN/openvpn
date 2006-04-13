@@ -4,7 +4,7 @@
 # of an SSL/TLS connection.
 
 if [ -d $KEY_DIR ] && [ $KEY_SIZE ]; then
-    openssl dhparam -out ${KEY_DIR}/dh${KEY_SIZE}.pem ${KEY_SIZE}
+    $OPENSSL dhparam -out ${KEY_DIR}/dh${KEY_SIZE}.pem ${KEY_SIZE}
 else
     echo 'Please source the vars script first (i.e. "source ./vars")'
     echo 'Make sure you have edited it to reflect your configuration.'

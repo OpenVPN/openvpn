@@ -14,10 +14,19 @@
 # tree.
 export EASY_RSA="`pwd`"
 
+#
+# This variable should point to
+# the requested executables
+#
+export OPENSSL="openssl"
+export PKCS11TOOL="pkcs11-tool"
+export GREP="grep"
+
+
 # This variable should point to
 # the openssl.cnf file included
 # with easy-rsa.
-export KEY_CONFIG="$EASY_RSA/openssl.cnf"
+export KEY_CONFIG=`$EASY_RSA/whichopensslcnf $EASY_RSA`
 
 # Edit this variable to point to
 # your soon-to-be-created key

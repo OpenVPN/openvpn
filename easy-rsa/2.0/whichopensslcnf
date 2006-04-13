@@ -1,0 +1,13 @@
+#!/bin/sh
+
+if [ "$OPENSSL" ]; then
+	if $OPENSSL version | grep 0.9.6 > /dev/null; then
+		echo "$1/openssl-0.9.6.cnf"
+	else
+		echo "$1/openssl.cnf"
+	fi
+else
+	echo "$1/openssl.cnf"
+fi
+
+exit 0

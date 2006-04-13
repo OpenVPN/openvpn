@@ -61,6 +61,8 @@ Release Notes for easy-rsa-2.0
   the crl.pem file to all clients as well, and have them include
   "crl-verify crl.pem" in their configuration files.
 
+* PKCS#11 support was added.
+
 INSTALL easy-rsa
 
 1. Edit vars.
@@ -80,9 +82,17 @@ INSTALL easy-rsa
    must be compatible across both peers
    participating in a secure SSL/TLS
    connection.
-5  . vars
-6. ./clean-all
-7. As you create certificates, keys, and
+5. (Optional) If you intend to use PKCS#11,
+   install openssl >= 0.9.7, install the 
+   following components from www.opensc.org:
+   - opensc >= 0.10.0
+   - engine_pkcs11 >= 0.1.3
+   Update the openssl.cnf to load the engine:
+   - Uncomment pkcs11 under engine_section.
+   - Validate path at dynamic_path under pkcs11_section.
+6. . vars
+7. ./clean-all
+8. As you create certificates, keys, and
    certificate signing requests, understand that
    only .key files should be kept confidential.
    .crt and .csr files can be sent over insecure
@@ -96,21 +106,30 @@ server, make sure to enforce some kind of server certificate
 verification by clients.  There are currently four different ways
 of accomplishing this, listed in the order of preference:
 
-(1) Build your server certificates with the build-key-server
-    script, or using the --server option to pkitool.
-    This will designate the certificate as a
-    server-only certificate by setting nsCertType=server.
+(1) Build your server certificates with specific key usage and
+    extended key usage. The RFC3280 determine that the following
+    attributes should be provided for TLS connections:
+
+    Mode      Key usage	                         Extended key usage
+    ---------------------------------------------------------------------------
+    Client    digitalSignature	                 TLS Web Client Authentication
+              keyAgreement
+              digitalSignature, keyAgreement
+	      
+    Server    digitalSignature, keyEncipherment  TLS Web Server Authentication
+              digitalSignature, keyAgreement
+
     Now add the following line to your client configuration:
       
-    ns-cert-type server
+    remote-cert-tls server
 
     This will block clients from connecting to any
-    server which lacks the nsCertType=server designation
+    server which lacks the required extension designation
     in its certificate, even if the certificate has been
     signed by the CA which is cited in the OpenVPN configuration
     file (--ca directive).
 
-(2) Use the --tls-remote directive on the client to
+(3) Use the --tls-remote directive on the client to
     accept/reject the server connection based on the common
     name of the server certificate.
 
@@ -134,6 +153,8 @@ pkitool 2.0
 Usage: pkitool [options...] [common-name]
 Options:
   --batch    : batch mode (default)
+  --keysize  : Set keysize
+      size   : size (default=1024)
   --interact : interactive mode
   --server   : build server cert
   --initca   : build root CA
@@ -141,13 +162,29 @@ Options:
   --pass     : encrypt private key with password
   --csr      : only generate a CSR, do not sign
   --sign     : sign an existing CSR
-  --pkcs12   : generate a combined pkcs12 file
+  --pkcs12   : generate a combined PKCS#12 file
+  --pkcs11   : generate certificate on PKCS#11 token
+      lib    : PKCS#11 library
+      slot   : PKCS#11 slot
+      id     : PKCS#11 object id (hex string)
+      label  : PKCS#11 object label
+Standalone options:
+  --pkcs11-slots   : list PKCS#11 slots
+      lib    : PKCS#11 library
+  --pkcs11-objects : list PKCS#11 token objects
+      lib    : PKCS#11 library
+      slot   : PKCS#11 slot
+  --pkcs11-init    : initialize PKCS#11 token DANGEROUS!!!
+      lib    : PKCS#11 library
+      slot   : PKCS#11 slot
+      label  : PKCS#11 token label
 Notes:
   Please edit the vars script to reflect your configuration,
   then source it with "source ./vars".
   Next, to start with a fresh PKI configuration and to delete any
   previous certificates and keys, run "./clean-all".
   Finally, you can run this tool (pkitool) to build certificates/keys.
+  In order to use PKCS#11 interface you must have opensc-0.10.0 or higher.
 Generated files and corresponding OpenVPN directives:
 (Files will be placed in the $KEY_DIR directory, defined in ./vars)
   ca.crt     -> root certificate (--ca)
@@ -162,11 +199,13 @@ Examples:
   pkitool --server server1  -> Build "server1" certificate/key
   pkitool client1           -> Build "client1" certificate/key
   pkitool --pass client2    -> Build password-protected "client2" certificate/key
-  pkitool --pkcs12 client3  -> Build "client3" certificate/key in PKCS #12 format
+  pkitool --pkcs12 client3  -> Build "client3" certificate/key in PKCS#12 format
   pkitool --csr client4     -> Build "client4" CSR to be signed by another CA
   pkitool --sign client4    -> Sign "client4" CSR
   pkitool --inter interca   -> Build an intermediate key-signing certificate/key
                                Also see ./inherit-inter script.
+  pkitool --pkcs11 /usr/lib/pkcs11/lib1 0 010203 "client5 id" client5
+                              -> Build "client5" certificate/key in PKCS#11 token
 Typical usage for initial PKI setup.  Build myserver, client1, and client2 cert/keys.
 Protect client2 key with a password.  Build DH parms.  Generated files in ./keys :
   [edit vars with your site-specific info]
