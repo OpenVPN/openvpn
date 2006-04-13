@@ -58,6 +58,40 @@ extern time_t now; /* updated frequently to time(NULL) */
 
 void time_test (void);
 
+#if TIME_BACKTRACK_PROTECTION && defined(HAVE_GETTIMEOFDAY)
+
+void update_now (const time_t system_time);
+
+extern time_t now_usec;
+void update_now_usec (struct timeval *tv);
+
+static inline int
+openvpn_gettimeofday (struct timeval *tv, void *tz)
+{
+  const int status = gettimeofday (tv, tz);
+  if (!status)
+    {
+      update_now_usec (tv);
+      tv->tv_sec = now;
+      tv->tv_usec = now_usec;
+    }
+  return status;
+}
+
+static inline void
+update_time (void)
+{
+#ifdef WIN32
+  /* on WIN32, gettimeofday is faster than time(NULL) */
+  struct timeval tv;
+  openvpn_gettimeofday (&tv, NULL);
+#else
+  update_now (time (NULL));
+#endif
+}
+
+#else /* !(TIME_BACKTRACK_PROTECTION && defined(HAVE_GETTIMEOFDAY)) */
+
 static inline void
 update_time (void)
 {
@@ -84,6 +118,8 @@ openvpn_gettimeofday (struct timeval *tv, void *tz)
 }
 
 #endif
+
+#endif /* TIME_BACKTRACK_PROTECTION && defined(HAVE_GETTIMEOFDAY) */
 
 static inline time_t
 openvpn_time (time_t *t)

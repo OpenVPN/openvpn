@@ -36,11 +36,47 @@
 
 time_t now = 0;            /* GLOBAL */
 
-#ifdef HAVE_GETTIMEOFDAY
+#if TIME_BACKTRACK_PROTECTION && defined(HAVE_GETTIMEOFDAY)
 
+static time_t now_adj = 0; /* GLOBAL */
 time_t now_usec = 0;       /* GLOBAL */
 
-#endif
+/*
+ * Try to filter out time instability caused by the system
+ * clock backtracking or jumping forward.
+ */
+
+void
+update_now (const time_t system_time)
+{
+  const int forward_threshold = 86400; /* threshold at which to dampen forward jumps */
+  const int backward_trigger  = 10;    /* backward jump must be >= this many seconds before we adjust */
+  time_t real_time = system_time + now_adj;
+
+  if (real_time > now)
+    {
+      const time_t overshoot = real_time - now - 1;
+      if (overshoot > forward_threshold && now_adj >= overshoot)
+        {
+          now_adj -= overshoot;
+          real_time -= overshoot;
+        }
+      now = real_time;
+    }
+  else if (real_time < now - backward_trigger)
+    now_adj += (now - real_time);
+}
+
+void
+update_now_usec (struct timeval *tv)
+{
+  const time_t last = now;
+  update_now (tv->tv_sec);
+  if (now > last || (now == last && tv->tv_usec > now_usec))
+    now_usec = tv->tv_usec;
+}
+
+#endif /* TIME_BACKTRACK_PROTECTION && defined(HAVE_GETTIMEOFDAY) */
 
 /* 
  * Return a numerical string describing a struct timeval.
@@ -167,6 +203,11 @@ gettimeofday_calibrate (void)
   gtc_last = gtc;
 }
 
+/*
+ * Rewritten by JY for OpenVPN 2.1, after I realized that
+ * QueryPerformanceCounter takes nearly 2 orders of magnitude
+ * more processor cycles than GetTickCount.
+ */
 int
 gettimeofday (struct timeval *tv, void *tz)
 {
@@ -176,6 +217,7 @@ gettimeofday (struct timeval *tv, void *tz)
   unsigned int msec;
   const int backtrack_hold_seconds = 10;
 
+  /* recalibrate at the dreaded 49.7 day mark */
   if (!gtc_base || gtc < gtc_last)
     gettimeofday_calibrate ();
   gtc_last = gtc;
@@ -193,6 +235,9 @@ gettimeofday (struct timeval *tv, void *tz)
     }
   else if (sec < last_sec)
     {
+      /* We try to dampen out backtracks of less than backtrack_hold_seconds.
+	 Larger backtracks will be passed through and dealt with by the
+	 TIME_BACKTRACK_PROTECTION code (if enabled) */
       if (sec > last_sec - backtrack_hold_seconds)
 	{
 	  sec = last_sec;

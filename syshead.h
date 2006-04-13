@@ -498,7 +498,7 @@ socket_defined (const socket_descriptor_t sd)
  * Reduce sensitivity to system clock instability
  * and backtracks.
  */
-//#define TIME_BACKTRACK_PROTECTION 1 // JYFIXME
+#define TIME_BACKTRACK_PROTECTION 1
 
 /*
  * Is non-blocking connect() supported?
