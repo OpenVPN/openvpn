@@ -15,7 +15,10 @@ $Id$
 
 * Added --route-metric option to set a default route metric
   for --route (Roy Marples).
-	
+
+* Added --lladdr option to specify the link layer (MAC) address
+  for the tap interface on non-Windows platforms (Roy Marples).
+
 2006.04.12 -- Version 2.1-beta13
 
 * Code added in 2.1-beta7 and 2.0.6-rc1 to extend byte counters

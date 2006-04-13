@@ -125,6 +125,7 @@ struct options
   const char *dev;
   const char *dev_type;
   const char *dev_node;
+  const char *lladdr;
   int topology; /* one of the TOP_x values from proto.h */
   const char *ifconfig_local;
   const char *ifconfig_remote_netmask;

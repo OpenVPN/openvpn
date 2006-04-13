@@ -50,6 +50,7 @@ openvpn_SOURCES = \
 	fragment.c fragment.h \
 	gremlin.c gremlin.h \
 	helper.c helper.h \
+	lladdr.c lladdr.h \
 	init.c init.h \
 	integer.h \
         interval.c interval.h \

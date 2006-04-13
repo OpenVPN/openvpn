@@ -82,6 +82,7 @@ HEADERS = \
 	integer.h \
 	interval.h \
 	list.h \
+	lladdr.h \
 	lzo.h \
 	manage.h \
 	mbuf.h \
@@ -139,6 +140,7 @@ OBJS =  base64.o \
 	init.o \
 	interval.o \
         list.o \
+	lladdr.o \
 	lzo.o \
 	manage.o \
 	mbuf.o \

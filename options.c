@@ -147,6 +147,7 @@ static const char usage_message[] =
   "                  does not begin with \"tun\" or \"tap\".\n"
   "--dev-node node : Explicitly set the device node rather than using\n"
   "                  /dev/net/tun, /dev/tun, /dev/tap, etc.\n"
+  "--lladdr hw     : Set the link layer address of the tap device.\n"
   "--topology t    : Set --dev tun topology: 'net30', 'p2p', or 'subnet'.\n"
   "--tun-ipv6      : Build tun link capable of forwarding IPv6 traffic.\n"
   "--ifconfig l rn : TUN: configure device to use IP address l as a local\n"
@@ -1070,6 +1071,7 @@ show_settings (const struct options *o)
   SHOW_STR (dev);
   SHOW_STR (dev_type);
   SHOW_STR (dev_node);
+  SHOW_STR (lladdr);
   SHOW_INT (topology);
   SHOW_BOOL (tun_ipv6);
   SHOW_STR (ifconfig_local);
@@ -1403,6 +1405,10 @@ options_postprocess (struct options *options, bool first_time)
   if (options->inetd == INETD_NOWAIT && dev != DEV_TYPE_TAP)
     msg (M_USAGE, "--inetd nowait only makes sense in --dev tap mode");
 
+
+  if (options->lladdr && dev != DEV_TYPE_TAP)
+    msg (M_USAGE, "--lladdr can only be used in --dev tap mode");
+ 
   /*
    * In forking TCP server mode, you don't need to ifconfig
    * the tap device (the assumption is that it will be bridged).
@@ -3216,6 +3222,11 @@ add_option (struct options *options,
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->dev_node = p[1];
+    }
+  else if (streq (p[0], "lladdr") && p[1])
+    {
+      VERIFY_PERMISSION (OPT_P_UP);
+      options->lladdr = p[1];
     }
   else if (streq (p[0], "topology") && p[1])
     {

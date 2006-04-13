@@ -40,6 +40,7 @@
 #include "gremlin.h"
 #include "pkcs11.h"
 #include "ps.h"
+#include "lladdr.h"
 
 #include "memdbg.h"
 
@@ -425,6 +426,8 @@ do_persist_tuntap (const struct options *options)
 	     "options --mktun or --rmtun should only be used together with --dev");
       tuncfg (options->dev, options->dev_type, options->dev_node,
 	      options->tun_ipv6, options->persist_mode);
+      if (options->persist_mode && options->lladdr)
+        set_lladdr(options->dev, options->lladdr, NULL);
       return true;
     }
 #endif
@@ -835,6 +838,10 @@ do_open_tun (struct context *c)
       /* open the tun device */
       open_tun (c->options.dev, c->options.dev_type, c->options.dev_node,
 		c->options.tun_ipv6, c->c1.tuntap);
+
+      /* set the hardware address */
+      if (c->options.lladdr)
+	  set_lladdr(c->c1.tuntap->actual_name, c->options.lladdr, c->c2.es);
 
       /* do ifconfig */
       if (!c->options.ifconfig_noexec

@@ -70,6 +70,7 @@ openvpn \- secure IP tunnel daemon.
 [\ \fB\-\-dev\fR\ \fItunX\ |\ tapX\fR\ ]
 [\ \fB\-\-dev\-type\fR\ \fIdevice\-type\fR\ ]
 [\ \fB\-\-dev\-node\fR\ \fInode\fR\ ]
+[\ \fB\-\-lladdr\fR\ \fIaddress\fR\ ]
 .in -4
 .ti +4
 .hy
@@ -918,6 +919,10 @@ to enumerate all available TAP-Win32
 adapters and will show both the network
 connections control panel name and the GUID for
 each TAP-Win32 adapter.
+.TP
+.B --lladdr address
+Specify the link layer address, more commonly known as the MAC address.
+Only applied to TAP devices.
 .\"*********************************************************
 .TP
 .B --ifconfig l rn
