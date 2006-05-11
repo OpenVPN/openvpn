@@ -332,7 +332,7 @@ $Id$
   the OpenSSL error queue is not properly flushed, which can result in
   another unrelated client instance on the server seeing the error and
   responding to it, resulting in disconnection of the unrelated client
-  (CAN-2005-2532).
+  (CAN-2005-2532).  Credit: Mike Ireton.
 * Security Fix -- DoS attack against server by authenticated client.
   A malicious client in "dev tap" ethernet bridging mode could
   theoretically flood the server with packets appearing to come from
