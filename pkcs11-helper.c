@@ -2,6 +2,28 @@
  * Copyright (c) 2005-2006 Alon Bar-Lev <alon.barlev@gmail.com>
  * All rights reserved.
  *
+ * This software is available to you under a choice of one of two
+ * licenses.  You may choose to be licensed under the terms of the GNU
+ * General Public License (GPL) Version 2, or the OpenIB.org BSD license.
+ *
+ * GNU General Public License (GPL) Version 2
+ * ===========================================
+ *  This program is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License version 2
+ *  as published by the Free Software Foundation.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program (see the file COPYING[.GPL2] included with this
+ *  distribution); if not, write to the Free Software Foundation, Inc.,
+ *  59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *
+ * OpenIB.org BSD license
+ * =======================
  * Redistribution and use in source and binary forms, with or without modifi-
  * cation, are permitted provided that the following conditions are met:
  *
@@ -53,6 +75,12 @@
 #   define BROKEN_OPENSSL_ENGINE
 #  endif
 # endif
+#endif
+
+#if OPENSSL_VERSION_NUMBER < 0x00907000L
+#if !defined(RSA_PKCS1_PADDING_SIZE)
+#define RSA_PKCS1_PADDING_SIZE 11
+#endif
 #endif
 
 #define PKCS11H_INVALID_SLOT_ID		((CK_SLOT_ID)-1)
@@ -2415,6 +2443,9 @@ _pkcs11h_getObjectAttributes (
 			if (attrs[i].ulValueLen == (CK_ULONG)-1) {
 				rv = CKR_ATTRIBUTE_VALUE_INVALID;
 			}
+			else if (attrs[i].ulValueLen == 0) {
+				attrs[i].pValue = NULL;
+			}
 			else {
 				rv = _pkcs11h_malloc (
 					(void *)&attrs[i].pValue,
@@ -2890,7 +2921,7 @@ _pkcs11h_releaseSession (
 
 	PKCS11H_DEBUG (
 		PKCS11H_LOG_DEBUG2,
-		"PKCS#11: _pkcs11h_releaseSession session=%p",
+		"PKCS#11: _pkcs11h_releaseSession entry session=%p",
 		(void *)session
 	);
 
@@ -6831,6 +6862,10 @@ pkcs11h_locate_certificate (
 
 		if (!strcmp (szIdType, "id")) {
 			certificate_id->attrCKA_ID_size = strlen (szId)/2;
+
+			if (certificate_id->attrCKA_ID_size == 0) {
+				rv = CKR_FUNCTION_FAILED;
+			}
 
 			if (
 				rv == CKR_OK &&

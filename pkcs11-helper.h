@@ -2,6 +2,28 @@
  * Copyright (c) 2005-2006 Alon Bar-Lev <alon.barlev@gmail.com>
  * All rights reserved.
  *
+ * This software is available to you under a choice of one of two
+ * licenses.  You may choose to be licensed under the terms of the GNU
+ * General Public License (GPL) Version 2, or the OpenIB.org BSD license.
+ *
+ * GNU General Public License (GPL) Version 2
+ * ===========================================
+ *  This program is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License version 2
+ *  as published by the Free Software Foundation.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program (see the file COPYING[.GPL2] included with this
+ *  distribution); if not, write to the Free Software Foundation, Inc.,
+ *  59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *
+ * OpenIB.org BSD license
+ * =======================
  * Redistribution and use in source and binary forms, with or without modifi-
  * cation, are permitted provided that the following conditions are met:
  *
@@ -78,7 +100,7 @@ typedef void (*pkcs11h_output_print_t)(
 	IN const char * const szFormat,
 	IN ...
 )
-#ifdef __GNUC__
+#if __GNUC__ > 2
     __attribute__ ((format (printf, 2, 3)))
 #endif
  ;
