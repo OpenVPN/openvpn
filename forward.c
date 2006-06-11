@@ -1104,6 +1104,9 @@ process_outgoing_link (struct context *c)
 		 BLEN (&c->c2.to_link),
 		 size);
 	}
+
+      /* indicate activity regarding --inactive parameter */
+      register_activity (c, size);
     }
   else
     {
@@ -1185,6 +1188,9 @@ process_outgoing_tun (struct context *c)
 		 c->c1.tuntap->actual_name,
 		 BLEN (&c->c2.to_tun),
 		 size);
+
+	  /* indicate activity regarding --inactive parameter */
+	  register_activity (c, size);
 	}
     }
   else
@@ -1197,13 +1203,6 @@ process_outgoing_tun (struct context *c)
 	   c->c2.to_tun.len,
 	   MAX_RW_SIZE_TUN (&c->c2.frame));
     }
-
-  /*
-   * Putting the --inactive timeout reset here, ensures that we will timeout
-   * if the remote goes away, even if we are trying to send data to the
-   * remote and failing.
-   */
-  register_activity (c);
 
   buf_reset (&c->c2.to_tun);
 

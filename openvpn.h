@@ -270,9 +270,12 @@ struct context_2
    * timeout features.
    */
   struct event_timeout wait_for_connect;
-  struct event_timeout inactivity_interval;
   struct event_timeout ping_send_interval;
   struct event_timeout ping_rec_interval;
+
+  /* --inactive */
+  struct event_timeout inactivity_interval;
+  int inactivity_bytes;
 
 #ifdef ENABLE_OCC
   /* the option strings must match across peers */

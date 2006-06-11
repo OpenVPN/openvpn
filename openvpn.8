@@ -160,7 +160,7 @@ openvpn \- secure IP tunnel daemon.
 [\ \fB\-\-ifconfig\-pool\fR\ \fIstart\-IP\ end\-IP\ [netmask]\fR\ ]
 [\ \fB\-\-ifconfig\-push\fR\ \fIlocal\ remote\-netmask\fR\ ]
 [\ \fB\-\-ifconfig\fR\ \fIl\ rn\fR\ ]
-[\ \fB\-\-inactive\fR\ \fIn\fR\ ]
+[\ \fB\-\-inactive\fR\ \fIn\ [bytes]\fR\ ]
 [\ \fB\-\-inetd\fR\ \fI[wait|nowait]\ [progname]\fR\ ]
 [\ \fB\-\-ip\-win32\fR\ \fImethod\fR\ ]
 [\ \fB\-\-ipchange\fR\ \fIcmd\fR\ ]
@@ -1442,11 +1442,18 @@ OpenVPN allows
 to be between 100 bytes/sec and 100 Mbytes/sec.
 .\"*********************************************************
 .TP
-.B --inactive n
-(Experimental) Causes OpenVPN to exit after
+.B --inactive n [bytes]
+Causes OpenVPN to exit after
 .B n
 seconds of inactivity on the TUN/TAP device.  The time length
 of inactivity is measured since the last incoming tunnel packet.
+
+If the optional
+.B bytes
+parameter is included,
+exit after n seconds of activity on tun/tap device
+produces a combined in/out byte count that is less than
+.B bytes.
 .\"*********************************************************
 .TP
 .B --ping n

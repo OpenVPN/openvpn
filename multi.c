@@ -1801,7 +1801,7 @@ multi_process_incoming_link (struct multi_context *m, struct multi_instance *ins
 		      if (mi)
 			{
 			  multi_unicast (m, &c->c2.to_tun, mi);
-			  register_activity (c);
+			  register_activity (c, BLEN(&c->c2.to_tun));
 			  c->c2.to_tun.len = 0;
 			}
 		    }
@@ -1834,7 +1834,7 @@ multi_process_incoming_link (struct multi_context *m, struct multi_instance *ins
 			      if (mi)
 				{
 				  multi_unicast (m, &c->c2.to_tun, mi);
-				  register_activity (c);
+				  register_activity (c, BLEN(&c->c2.to_tun));
 				  c->c2.to_tun.len = 0;
 				}
 			    }

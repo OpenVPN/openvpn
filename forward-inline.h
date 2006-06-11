@@ -224,10 +224,17 @@ get_link_socket_info (struct context *c)
 }
 
 static inline void
-register_activity (struct context *c)
+register_activity (struct context *c, const int size)
 {
   if (c->options.inactivity_timeout)
-    event_timeout_reset (&c->c2.inactivity_interval);
+    {
+      c->c2.inactivity_bytes += size;
+      if (c->c2.inactivity_bytes >= c->options.inactivity_minimum_bytes)
+	{
+	  c->c2.inactivity_bytes = 0;
+	  event_timeout_reset (&c->c2.inactivity_interval);
+	}
+    }
 }
 
 /*

@@ -190,7 +190,8 @@ static const char usage_message[] =
   "--keepalive n m : Helper option for setting timeouts in server mode.  Send\n"
   "                  ping once every n seconds, restart if ping not received\n"
   "                  for m seconds.\n"
-  "--inactive n    : Exit after n seconds of inactivity on tun/tap device.\n"
+  "--inactive n [bytes] : Exit after n seconds of activity on tun/tap device\n"
+  "                  produces a combined in/out byte count < bytes.\n"
   "--ping-exit n   : Exit if n seconds pass without reception of remote ping.\n"
   "--ping-restart n: Restart if n seconds pass without reception of remote ping.\n"
   "--ping-timer-rem: Run the --ping-exit/--ping-restart timer only if we have a\n"
@@ -3720,6 +3721,8 @@ add_option (struct options *options,
     {
       VERIFY_PERMISSION (OPT_P_TIMER);
       options->inactivity_timeout = positive_atoi (p[1]);
+      if (p[2])
+	options->inactivity_minimum_bytes = positive_atoi (p[2]);
     }
   else if (streq (p[0], "proto") && p[1])
     {
