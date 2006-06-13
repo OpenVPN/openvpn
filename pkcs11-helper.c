@@ -56,6 +56,15 @@
  *
  */
 
+/*
+ * Changelog
+ *
+ * 2006.05.14
+ * 	- (alonbl) First stable release.
+ * 	- (alonbl) Release 01.00.
+ *
+ */
+
 #include "pkcs11-helper-config.h"
 
 #if defined(ENABLE_PKCS11H_HELPER)
@@ -268,7 +277,7 @@ struct pkcs11h_data_s {
 	} hooks;
 
 	PKCS11H_BOOL fProtectedAuthentication;
-	int nMaxLoginRetries;
+	unsigned nMaxLoginRetries;
 
 #if defined(ENABLE_PKCS11H_THREADING)
 	pkcs11h_mutex_t mutexGlobal;
@@ -517,7 +526,8 @@ static
 PKCS11H_BOOL
 _pkcs11h_hooks_default_token_prompt (
 	IN const void * pData,
-	IN const pkcs11h_token_id_t token
+	IN const pkcs11h_token_id_t token,
+	IN const unsigned retry
 );
 
 static
@@ -525,6 +535,7 @@ PKCS11H_BOOL
 _pkcs11h_hooks_default_pin_prompt (
 	IN const void * pData,
 	IN const pkcs11h_token_id_t token,
+	IN const unsigned retry,
 	OUT char * const szPIN,
 	IN const size_t nMaxPIN
 );
@@ -1189,7 +1200,7 @@ pkcs11h_setPINCachePeriod (
 
 CK_RV
 pkcs11h_setMaxLoginRetries (
-	IN const int nMaxLoginRetries
+	IN const unsigned nMaxLoginRetries
 ) {
 	PKCS11H_ASSERT (s_pkcs11h_data!=NULL);
 	PKCS11H_ASSERT (s_pkcs11h_data->fInitialized);
@@ -2974,6 +2985,8 @@ _pkcs11h_resetSession (
 
 	CK_RV rv = CKR_OK;
 
+	unsigned nRetry = 0;
+
 	PKCS11H_ASSERT (session!=NULL);
 	PKCS11H_ASSERT (p_slot!=NULL);
 
@@ -3147,7 +3160,8 @@ _pkcs11h_resetSession (
 				if (
 					!s_pkcs11h_data->hooks.token_prompt (
 						s_pkcs11h_data->hooks.token_prompt_data,
-						session->token_id
+						session->token_id,
+						nRetry++
 					)
 				) {
 					rv = CKR_CANCEL;
@@ -3387,7 +3401,7 @@ _pkcs11h_login (
 		)
 	) {
 		PKCS11H_BOOL fSuccessLogin = FALSE;
-		int nRetryCount = 0;
+		unsigned nRetryCount = 0;
 
 		if ((maskPrompt & PKCS11H_PROMPT_MASK_ALLOW_PIN_PROMPT) == 0) {
 			rv = CKR_USER_NOT_LOGGED_IN;
@@ -3401,7 +3415,7 @@ _pkcs11h_login (
 		while (
 			rv == CKR_OK &&
 			!fSuccessLogin &&
-			nRetryCount++ < s_pkcs11h_data->nMaxLoginRetries 
+			nRetryCount < s_pkcs11h_data->nMaxLoginRetries 
 		) {
 			CK_UTF8CHAR_PTR utfPIN = NULL;
 			CK_ULONG lPINLength = 0;
@@ -3425,6 +3439,7 @@ _pkcs11h_login (
 					!s_pkcs11h_data->hooks.pin_prompt (
 						s_pkcs11h_data->hooks.pin_prompt_data,
 						session->token_id,
+						nRetryCount,
 						szPIN,
 						sizeof (szPIN)
 					)
@@ -3441,17 +3456,18 @@ _pkcs11h_login (
 					"PKCS#11: pin_prompt hook return rv=%ld",
 					rv
 				);
-
 			}
 
-			if (session->nPINCachePeriod == PKCS11H_PIN_CACHE_INFINITE) {
-				session->timePINExpire = 0;
-			}
-			else {
-				session->timePINExpire = (
-					PKCS11H_TIME (NULL) +
-					(time_t)session->nPINCachePeriod
-				);
+			if (rv == CKR_OK) {
+				if (session->nPINCachePeriod == PKCS11H_PIN_CACHE_INFINITE) {
+					session->timePINExpire = 0;
+				}
+				else {
+					session->timePINExpire = (
+						PKCS11H_TIME (NULL) +
+						(time_t)session->nPINCachePeriod
+					);
+				}
 			}
 
 			if (
@@ -3486,6 +3502,15 @@ _pkcs11h_login (
 				 */
 				rv = CKR_OK;
 			}
+
+			nRetryCount++;
+		}
+
+		/*
+		 * Retry limit
+		 */
+		if (!fSuccessLogin && rv == CKR_OK) {
+			rv = CKR_PIN_INCORRECT;
 		}
 	}
 
@@ -3579,11 +3604,13 @@ static
 PKCS11H_BOOL
 _pkcs11h_hooks_default_token_prompt (
 	IN const void * pData,
-	IN const pkcs11h_token_id_t token
+	IN const pkcs11h_token_id_t token,
+	IN const unsigned retry
 ) {
 	PKCS11H_ASSERT (token!=NULL);
 
 	(void)pData;
+	(void)retry;
 
 	PKCS11H_DEBUG (
 		PKCS11H_LOG_DEBUG2,
@@ -3600,12 +3627,14 @@ PKCS11H_BOOL
 _pkcs11h_hooks_default_pin_prompt (
 	IN const void * pData,
 	IN const pkcs11h_token_id_t token,
+	IN const unsigned retry,
 	OUT char * const szPIN,
 	IN const size_t nMaxPIN
 ) {
 	PKCS11H_ASSERT (token!=NULL);
 
 	(void)pData;
+	(void)retry;
 	(void)szPIN;
 	(void)nMaxPIN;
 
@@ -5034,7 +5063,7 @@ _pkcs11h_certificate_private_op (
 
 	PKCS11H_DEBUG (
 		PKCS11H_LOG_DEBUG2,
-		"PKCS#11: pkcs11h_certificate_private_op entry certificate=%p, op=%d, mech_type=%ld, source=%p, source_size=%u, target=%p, p_target_size=%p",
+		"PKCS#11: _pkcs11h_certificate_private_op entry certificate=%p, op=%d, mech_type=%ld, source=%p, source_size=%u, target=%p, p_target_size=%p",
 		(void *)certificate,
 		op,
 		mech_type,
@@ -5181,7 +5210,7 @@ _pkcs11h_certificate_private_op (
 
 	PKCS11H_DEBUG (
 		PKCS11H_LOG_DEBUG2,
-		"PKCS#11: pkcs11h_certificate_private_op return rv=%ld-'%s', *p_target_size=%d",
+		"PKCS#11: _pkcs11h_certificate_private_op return rv=%ld-'%s', *p_target_size=%d",
 		rv,
 		pkcs11h_getMessage (rv),
 		*p_target_size
@@ -5532,7 +5561,7 @@ pkcs11h_certificate_signAny (
 		}
 	}
 
-	if (!fSigned) {
+	if (rv == CKR_OK && !fSigned) {
 		rv = CKR_FUNCTION_FAILED;
 	}
 	
@@ -6313,6 +6342,8 @@ pkcs11h_locate_token (
 	
 	CK_RV rv = CKR_OK;
 
+	unsigned nRetry = 0;
+
 	PKCS11H_ASSERT (s_pkcs11h_data!=NULL);
 	PKCS11H_ASSERT (s_pkcs11h_data->fInitialized);
 	PKCS11H_ASSERT (szSlotType!=NULL);
@@ -6403,7 +6434,8 @@ pkcs11h_locate_token (
 			if (
 				!s_pkcs11h_data->hooks.token_prompt (
 					s_pkcs11h_data->hooks.token_prompt_data,
-					dummy_token_id
+					dummy_token_id,
+					nRetry++
 				)
 			) {
 				rv = CKR_CANCEL;
@@ -9297,11 +9329,20 @@ PKCS11H_BOOL
 _pkcs11h_standalone_dump_objects_pin_prompt (
 	IN const void *pData,
 	IN const pkcs11h_token_id_t token,
+	IN const unsigned retry,
 	OUT char * const szPIN,
 	IN const size_t nMaxPIN
 ) {
-	strncpy (szPIN, (char *)pData, nMaxPIN);
-	return TRUE;
+	/*
+	 * Don't lock card
+	 */
+	if (retry == 0) {
+		strncpy (szPIN, (char *)pData, nMaxPIN);
+		return TRUE;
+	}
+	else {
+		return FALSE;
+	}
 }
 
 void
@@ -9686,8 +9727,8 @@ pkcs11h_standalone_dump_objects (
 					CK_BBOOL sign_recover = CK_FALSE;
 					CK_BBOOL sign = CK_FALSE;
 					CK_ATTRIBUTE attrs_key[] = {
-						{CKA_SIGN, &sign_recover, sizeof (sign_recover)},
-						{CKA_SIGN_RECOVER, &sign, sizeof (sign)}
+						{CKA_SIGN, &sign, sizeof (sign)},
+						{CKA_SIGN_RECOVER, &sign_recover, sizeof (sign_recover)}
 					};
 					CK_ATTRIBUTE attrs_key_common[] = {
 						{CKA_ID, NULL, 0},

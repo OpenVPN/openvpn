@@ -24,7 +24,7 @@ LZO = \src\lzo-1.08.vc
 
 INCLUDE_DIRS = -I$(OPENSSL)/include -I$(LZO)/include
 
-LIBS = lzo.lib ws2_32.lib crypt32.lib iphlpapi.lib winmm.lib gdi32.lib advapi32.lib wininet.lib
+LIBS = lzo.lib ws2_32.lib crypt32.lib iphlpapi.lib winmm.lib user32.lib advapi32.lib wininet.lib
 
 LIB_DIRS = -LIBPATH:$(OPENSSL)\out -LIBPATH:$(LZO)
 
@@ -108,6 +108,7 @@ HEADERS = \
 	syshead.h \
         thread.h \
 	tun.h \
+	lladdr.h \
 	win32.h
 
 OBJS =  base64.obj \
@@ -160,6 +161,7 @@ OBJS =  base64.obj \
 	status.obj \
 	thread.obj \
 	tun.obj \
+	lladdr.obj \
 	win32.obj
 
 dynamic : $(OBJS)

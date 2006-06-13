@@ -151,12 +151,14 @@ typedef void (*pkcs11h_hook_slotevent_t)(
 
 typedef PKCS11H_BOOL (*pkcs11h_hook_token_prompt_t)(
 	IN const void *pData,
-	IN const pkcs11h_token_id_t token
+	IN const pkcs11h_token_id_t token,
+	IN const unsigned retry
 );
 
 typedef PKCS11H_BOOL (*pkcs11h_hook_pin_prompt_t)(
 	IN const void *pData,
 	IN const pkcs11h_token_id_t token,
+	IN const unsigned retry,
 	OUT char * const szPIN,
 	IN const size_t nMaxPIN
 );
@@ -357,7 +359,7 @@ pkcs11h_setPINCachePeriod (
  */
 CK_RV
 pkcs11h_setMaxLoginRetries (
-	IN const int nMaxLoginRetries
+	IN const unsigned nMaxLoginRetries
 );
 
 /*

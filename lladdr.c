@@ -16,6 +16,7 @@ int set_lladdr(const char *ifname, const char *lladdr,
 		const struct env_set *es)
 {
   char cmd[256];
+  int r;
 
   if (!ifname || !lladdr)
     return -1;
@@ -51,7 +52,7 @@ int set_lladdr(const char *ifname, const char *lladdr,
       return -1;
 #endif
 
-  int r = system_check (cmd, es, M_WARN, "ERROR: Unable to set link layer address.");
+  r = system_check (cmd, es, M_WARN, "ERROR: Unable to set link layer address.");
   if (r)
     msg (M_INFO, "TUN/TAP link layer address set to %s", lladdr);
   return r;

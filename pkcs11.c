@@ -149,10 +149,12 @@ static
 bool
 _pkcs11_openvpn_token_prompt (
 	IN const void *pData,
-	IN const pkcs11h_token_id_t token
+	IN const pkcs11h_token_id_t token,
+	IN const unsigned retry
 ) {
 	static struct user_pass token_resp;
 
+	(void)retry;
 	ASSERT (token!=NULL);
 
 	CLEAR (token_resp);
@@ -179,12 +181,14 @@ bool
 _pkcs11_openvpn_pin_prompt (
 	IN const void *pData,
 	IN const pkcs11h_token_id_t token,
+	IN const unsigned retry,
 	OUT char * const szPIN,
 	IN const size_t nMaxPIN
 ) {
 	static struct user_pass token_pass;
 	char szPrompt[1024];
 
+	(void)retry;
 	ASSERT (token!=NULL);
 
 	openvpn_snprintf (szPrompt, sizeof (szPrompt), "%s token", token->label);
