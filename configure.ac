@@ -25,7 +25,7 @@ dnl Process this file with autoconf to produce a configure script.
 
 AC_PREREQ(2.50)
 
-AC_INIT([OpenVPN], [2.1_beta14a], [openvpn-users@lists.sourceforge.net], [openvpn])
+AC_INIT([OpenVPN], [2.1_beta14b], [openvpn-users@lists.sourceforge.net], [openvpn])
 AM_CONFIG_HEADER(config.h)
 AC_CONFIG_SRCDIR(syshead.h)
 
@@ -288,7 +288,7 @@ AC_CHECK_HEADERS(sys/time.h sys/socket.h sys/ioctl.h sys/stat.h dnl
 		 netinet/in.h netinet/in_systm.h netinet/ip.h dnl
 		 netinet/if_ether.h netinet/tcp.h resolv.h arpa/inet.h dnl
 		 netdb.h sys/uio.h linux/if_tun.h linux/sockios.h dnl
-		 linux/types.h sys/poll.h sys/epoll.h dnl
+		 linux/types.h sys/poll.h sys/epoll.h err.h dnl
 )
 AC_CHECK_HEADERS(linux/errqueue.h,,,
 	[#ifdef HAVE_LINUX_TYPES_H

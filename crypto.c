@@ -1012,7 +1012,7 @@ read_key_file (struct key2 *key2, const char *file, const unsigned int flags)
   const char *error_filename = file;
 
   /* parse info */
-  const char *cp;
+  const unsigned char *cp;
   int hb_index = 0;
   int line_num = 1;
   int line_index = 0;
@@ -1063,10 +1063,10 @@ read_key_file (struct key2 *key2, const char *file, const unsigned int flags)
       close (fd);
     }
 
-  cp = (char *)in.data;
+  cp = (unsigned char *)in.data;
   while (size)
     {
-      const char c = *cp;
+      const unsigned char c = *cp;
 
 #if 0
       msg (M_INFO, "char='%c' s=%d ln=%d li=%d m=%d c=%d",

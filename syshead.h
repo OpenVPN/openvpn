@@ -105,6 +105,10 @@
 #include <errno.h>
 #endif
 
+#ifdef HAVE_ERR_H
+#include <err.h>
+#endif
+
 #ifdef HAVE_SYSLOG_H
 #include <syslog.h>
 #endif

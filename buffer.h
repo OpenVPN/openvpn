@@ -183,9 +183,9 @@ strncpynt (char *dest, const char *src, size_t maxlen)
 
 /* return true if string contains at least one numerical digit */
 static inline bool
-has_digit (const char* src)
+has_digit (const unsigned char* src)
 {
-  char c;
+  unsigned char c;
   while ((c = *src++))
     {
       if (isdigit(c))
@@ -595,7 +595,7 @@ const char *np (const char *str);
 #define CC_NAME               (CC_ALNUM|CC_UNDERBAR)
 #define CC_CRLF               (CC_CR|CC_NEWLINE)
 
-bool char_class (const char c, const unsigned int flags);
+bool char_class (const unsigned char c, const unsigned int flags);
 bool string_class (const char *str, const unsigned int inclusive, const unsigned int exclusive);
 bool string_mod (char *str, const unsigned int inclusive, const unsigned int exclusive, const char replace);
 

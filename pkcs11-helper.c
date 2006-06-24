@@ -6506,7 +6506,7 @@ _pkcs11h_locate_hexToBinary (
 	*p_target_size = 0;
 
 	while (*p != '\0' && *p_target_size < target_max_size) {
-		if (isxdigit (*p)) {
+		if (isxdigit ((unsigned char)*p)) {
 			buf[i%2] = *p;
 
 			if ((i%2) == 1) {

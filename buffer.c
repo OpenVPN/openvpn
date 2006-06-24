@@ -637,7 +637,7 @@ np (const char *str)
  */
 
 bool
-char_class (const char c, const unsigned int flags)
+char_class (const unsigned char c, const unsigned int flags)
 {
   if (!flags)
     return false;

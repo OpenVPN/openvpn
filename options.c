@@ -2554,7 +2554,7 @@ positive_atoi (const char *str)
 }
 
 static inline bool
-space (char c)
+space (unsigned char c)
 {
   return c == '\0' || isspace (c);
 }

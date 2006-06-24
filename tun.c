@@ -942,7 +942,7 @@ open_tun_generic (const char *dev, const char *dev_type, const char *dev_node,
 	   * explicit unit number.  Try opening /dev/[dev]n
 	   * where n = [0, 255].
 	   */
-	  if (dynamic && !has_digit(dev))
+	  if (dynamic && !has_digit((unsigned char *)dev))
 	    {
 	      int i;
 	      for (i = 0; i < 256; ++i)
