@@ -76,12 +76,6 @@ struct proxy_connection {
   int sd;
 };
 
-/* used for passing fds between processes */
-union fdmsg {
-  struct cmsghdr h;
-  char buf[CMSG_SPACE(sizeof(socket_descriptor_t))];
-};
-
 #if 0
 static const char *
 headc (const struct buffer *buf)
@@ -166,6 +160,12 @@ send_control (const socket_descriptor_t fd, int code)
     return -1;
 }
 
+static int
+cmsg_size ()
+{
+  return CMSG_SPACE(sizeof(socket_descriptor_t));
+}
+
 /*
  * Send a command (char), data (head), and a file descriptor (sd_send) to a local process
  * over unix socket sd.  Unfortunately, there's no portable way to send file descriptors
@@ -182,7 +182,6 @@ port_share_sendmsg (const socket_descriptor_t sd,
   if (socket_defined (sd))
     {
       struct msghdr mesg;
-      union fdmsg cmsg;
       struct cmsghdr* h;
       struct iovec iov[2];
       socket_descriptor_t sd_null[2] = { SOCKET_UNDEFINED, SOCKET_UNDEFINED };
@@ -210,8 +209,9 @@ port_share_sendmsg (const socket_descriptor_t sd,
 
       mesg.msg_iov = iov;
 
-      mesg.msg_control = cmsg.buf;
-      mesg.msg_controllen = sizeof (union fdmsg);
+      mesg.msg_controllen = cmsg_size ();
+      mesg.msg_control = (char *) malloc (mesg.msg_controllen);
+      check_malloc_return (mesg.msg_control);
       mesg.msg_flags = 0;
 
       h = CMSG_FIRSTHDR(&mesg);
@@ -235,6 +235,7 @@ port_share_sendmsg (const socket_descriptor_t sd,
 
       close_socket_if_defined (sd_null[0]);
       close_socket_if_defined (sd_null[1]);
+      free (mesg.msg_control);
     }
 }
 
@@ -437,7 +438,6 @@ control_message_from_parent (const socket_descriptor_t sd_control,
 {
   struct buffer buf = alloc_buf (PROXY_CONNECTION_BUFFER_SIZE);
   struct msghdr mesg;
-  union fdmsg cmsg;
   struct cmsghdr* h;
   struct iovec iov[2];
   char command = 0;
@@ -453,8 +453,9 @@ control_message_from_parent (const socket_descriptor_t sd_control,
   mesg.msg_iov = iov;
   mesg.msg_iovlen = 2;
 
-  mesg.msg_control = cmsg.buf;
-  mesg.msg_controllen = sizeof (union fdmsg);
+  mesg.msg_controllen = cmsg_size ();
+  mesg.msg_control = (char *) malloc (mesg.msg_controllen);
+  check_malloc_return (mesg.msg_control);
   mesg.msg_flags = 0;
 
   h = CMSG_FIRSTHDR(&mesg);
@@ -503,6 +504,7 @@ control_message_from_parent (const socket_descriptor_t sd_control,
 	    }
 	}
     }
+  free (mesg.msg_control);
   free_buf (&buf);
   return ret;
 }
