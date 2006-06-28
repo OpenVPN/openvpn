@@ -266,6 +266,10 @@
 #include <net/if_tun.h>
 #endif
 
+#ifdef HAVE_NETINET_TCP_H
+#include <netinet/tcp.h>
+#endif
+
 #endif /* TARGET_NETBSD */
 
 #ifdef WIN32
