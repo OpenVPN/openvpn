@@ -117,6 +117,8 @@ struct log_entry
 
 #define LOG_PRINT_REMOTE_IP    (1<<10)
 
+#define LOG_ECHO_TO_LOG        (1<<11)
+
 const char *log_entry_print (const struct log_entry *e, unsigned int flags, struct gc_arena *gc);
 
 struct log_history
@@ -331,6 +333,8 @@ management_query_user_pass_enabled (const struct management *man)
 #define OPENVPN_STATE_WAIT          7  /* Waiting for initial response from server */
 #define OPENVPN_STATE_AUTH          8  /* Authenticating with server */
 #define OPENVPN_STATE_GET_CONFIG    9  /* Downloading configuration from server */
+#define OPENVPN_STATE_RESOLVE       10 /* DNS lookup */
+#define OPENVPN_STATE_TCP_CONNECT   11 /* Connecting to TCP server */
 
 #define OPENVPN_STATE_CLIENT_BASE   7  /* Base index of client-only states */
 

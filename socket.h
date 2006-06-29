@@ -424,6 +424,7 @@ socket_descriptor_t socket_do_accept (socket_descriptor_t sd,
 #define GETADDR_WARN_ON_SIGNAL        (1<<5)
 #define GETADDR_MSG_VIRT_OUT          (1<<6)
 #define GETADDR_TRY_ONCE              (1<<7)
+#define GETADDR_UPDATE_MANAGEMENT_STATE (1<<8)
 
 in_addr_t getaddr (unsigned int flags,
 		   const char *hostname,

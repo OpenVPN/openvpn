@@ -37,6 +37,7 @@
 #include "gremlin.h"
 #include "plugin.h"
 #include "ps.h"
+#include "manage.h"
 
 #include "memdbg.h"
 
@@ -111,6 +112,18 @@ getaddr (unsigned int flags,
 	  msg (msglevel, "RESOLVE: Cannot parse IP address: %s", hostname);
 	  goto done;
 	}
+
+#ifdef ENABLE_MANAGEMENT
+      if (flags & GETADDR_UPDATE_MANAGEMENT_STATE)
+	{
+	  if (management)
+	    management_set_state (management,
+				  OPENVPN_STATE_RESOLVE,
+				  NULL,
+				  (in_addr_t)0,
+				  (in_addr_t)0);
+	}
+#endif
 
       /*
        * Resolve hostname
@@ -243,7 +256,7 @@ update_remote (const char* host,
   if (host && addr)
     {
       const in_addr_t new_addr = getaddr (
-					  GETADDR_RESOLVE,
+					  GETADDR_RESOLVE|GETADDR_UPDATE_MANAGEMENT_STATE,
 					  host,
 					  1,
 					  NULL,
@@ -817,6 +830,15 @@ socket_connect (socket_descriptor_t *sd,
     {
       int status;
 
+#ifdef ENABLE_MANAGEMENT
+      if (management)
+	management_set_state (management,
+			      OPENVPN_STATE_TCP_CONNECT,
+			      NULL,
+			      (in_addr_t)0,
+			      (in_addr_t)0);
+#endif
+
       status = openvpn_connect (*sd, remote, connect_timeout, signal_received);
 
       get_signal (signal_received);
@@ -962,13 +984,12 @@ resolve_remote (struct link_socket *sock,
 
 	  if (sock->remote_host)
 	    {
-	      unsigned int flags = 0;
+	      unsigned int flags = GETADDR_RESOLVE|GETADDR_UPDATE_MANAGEMENT_STATE;
 	      int retry = 0;
 	      bool status = false;
 
 	      if (remote_list_len (sock->remote_list) > 1 && sock->resolve_retry_seconds == RESOLV_RETRY_INFINITE)
 		{
-		  flags = GETADDR_RESOLVE;
 		  if (phase == 2)
 		    flags |= (GETADDR_TRY_ONCE | GETADDR_FATAL);
 		  retry = 0;
@@ -977,12 +998,11 @@ resolve_remote (struct link_socket *sock,
 		{
 		  if (sock->resolve_retry_seconds)
 		    {
-		      flags = GETADDR_RESOLVE;
 		      retry = 0;
 		    }
 		  else
 		    {
-		      flags = GETADDR_RESOLVE | GETADDR_FATAL | GETADDR_MENTION_RESOLVE_RETRY;
+		      flags |= (GETADDR_FATAL | GETADDR_MENTION_RESOLVE_RETRY);
 		      retry = 0;
 		    }
 		}
@@ -990,7 +1010,7 @@ resolve_remote (struct link_socket *sock,
 		{
 		  if (sock->resolve_retry_seconds)
 		    {
-		      flags = GETADDR_RESOLVE | GETADDR_FATAL;
+		      flags |= GETADDR_FATAL;
 		      retry = sock->resolve_retry_seconds;
 		    }
 		  else

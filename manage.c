@@ -118,6 +118,10 @@ man_state_name (const int state)
       return "RECONNECTING";
     case OPENVPN_STATE_EXITING:
       return "EXITING";
+    case OPENVPN_STATE_RESOLVE:
+      return "RESOLVE";
+    case OPENVPN_STATE_TCP_CONNECT:
+      return "TCP_CONNECT";
     default:
       return "?";
     }
@@ -1536,7 +1540,8 @@ management_set_state (struct management *man,
                                |   LOG_PRINT_STATE
 			       |   LOG_PRINT_LOCAL_IP
 			       |   LOG_PRINT_REMOTE_IP
-                               |   LOG_PRINT_CRLF, &gc);
+                               |   LOG_PRINT_CRLF
+			       |   LOG_ECHO_TO_LOG, &gc);
 
       if (out)
 	man_output_list_push (man, out);
@@ -2273,6 +2278,8 @@ log_entry_print (const struct log_entry *e, unsigned int flags, struct gc_arena 
     buf_printf (&out, ",%s", print_in_addr_t (e->local_ip, IA_EMPTY_IF_UNDEF, gc));
   if (flags & LOG_PRINT_REMOTE_IP)
     buf_printf (&out, ",%s", print_in_addr_t (e->remote_ip, IA_EMPTY_IF_UNDEF, gc));
+  if (flags & LOG_ECHO_TO_LOG)
+    msg (D_MANAGEMENT, "MANAGEMENT: %s", BSTR (&out));
   if (flags & LOG_PRINT_CRLF)
     buf_printf (&out, "\r\n");
   return BSTR (&out);
