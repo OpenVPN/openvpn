@@ -59,6 +59,10 @@
 /*
  * Changelog
  *
+ * 2006.06.26
+ * 	- (alonbl) Fix handling mutiple providers.
+ * 	- (alonbl) Release 01.01.
+ *
  * 2006.05.14
  * 	- (alonbl) First stable release.
  * 	- (alonbl) Release 01.00.
@@ -2366,6 +2370,13 @@ _pkcs11h_getSlotList (
 	*pSlotList = NULL;
 	*pulCount = 0;
 
+	if (
+		rv == CKR_OK &&
+		!provider->fEnabled
+	) {
+		rv = CKR_CRYPTOKI_NOT_INITIALIZED;
+	}
+
 	if (rv == CKR_OK) {
 		rv = provider->f->C_GetSlotList (
 			tokenPresent,
@@ -3032,17 +3043,14 @@ _pkcs11h_resetSession (
 			CK_SLOT_ID slot_index;
 
 			/*
-			 * Skip disabled providers
 			 * Skip all other providers,
 			 * if one was set in the past
 			 */
-			if (session->provider != NULL) {
-				if (!session->provider->fEnabled) {
-					continue;
-				}
-				if (session->provider != current_provider) {
-					continue;
-				}
+			if (
+				session->provider != NULL &&
+				session->provider != current_provider
+			) {
+				rv = CKR_CANCEL;
 			}
 		
 			if (rv == CKR_OK) {
@@ -6067,7 +6075,7 @@ _pkcs11h_locate_getTokenIdBySlotName (
 		CK_SLOT_ID slot_index;
 
 		if (!current_provider->fEnabled) {
-			continue;
+			rv = CKR_CRYPTOKI_NOT_INITIALIZED;
 		}
 
 		if (rv == CKR_OK) {
@@ -6214,7 +6222,7 @@ _pkcs11h_locate_getTokenIdByLabel (
 		CK_SLOT_ID slot_index;
 
 		if (!current_provider->fEnabled) {
-			continue;
+			rv = CKR_CRYPTOKI_NOT_INITIALIZED;
 		}
 
 		if (rv == CKR_OK) {
@@ -7083,7 +7091,7 @@ pkcs11h_enum_getTokenIds (
 		CK_SLOT_ID slot_index;
 
 		if (!current_provider->fEnabled) {
-			continue;
+			rv = CKR_CRYPTOKI_NOT_INITIALIZED;
 		}
 
 		if (rv == CKR_OK) {
@@ -8062,7 +8070,7 @@ pkcs11h_enum_getCertificateIds (
 		CK_SLOT_ID slot_index;
 
 		if (!current_provider->fEnabled) {
-			continue;
+			rv = CKR_CRYPTOKI_NOT_INITIALIZED;
 		}
 
 		if (rv == CKR_OK) {
