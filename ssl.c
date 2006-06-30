@@ -1795,7 +1795,7 @@ key_state_init (struct tls_session *session, struct key_state *ks)
   ks->ack_write_buf = alloc_buf (BUF_SIZE (&session->opt->frame));
   reliable_init (ks->send_reliable, BUF_SIZE (&session->opt->frame),
 		 FRAME_HEADROOM (&session->opt->frame), TLS_RELIABLE_N_SEND_BUFFERS,
-		 session->opt->xmit_hold);
+		 ks->key_id ? false : session->opt->xmit_hold);
   reliable_init (ks->rec_reliable, BUF_SIZE (&session->opt->frame),
 		 FRAME_HEADROOM (&session->opt->frame), TLS_RELIABLE_N_REC_BUFFERS,
 		 false);
