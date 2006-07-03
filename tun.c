@@ -377,7 +377,7 @@ is_tun_p2p (const struct tuntap *tt)
   else if (tt->type == DEV_TYPE_TUN)
     tun = true;
   else
-    ASSERT (0); /* should have been caught in init_tun */
+    ASSERT (0); /* should have been caught in init_tun ... JYFIXME -- was hit */
 
   return tun;
 }
