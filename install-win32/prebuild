@@ -18,7 +18,7 @@ OUT=$H/21
 IN=/y/openvpn/21/openvpn
 
 # Already built OpenSSL tree.
-SSL=$H/openssl-0.9.7i
+SSL=$H/openssl-0.9.7k
 
 # Already built LZO tree.
 LZO=$H/lzo-2.02
