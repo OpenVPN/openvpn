@@ -22,4 +22,4 @@ key sample-keys/client.key
 cert sample-keys/client.crt
 cipher DES-EDE3-CBC
 ping 1
-inactive 120
+inactive 120 10000000
