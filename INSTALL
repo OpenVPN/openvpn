@@ -302,3 +302,28 @@ CAVEATS & BUGS:
   IV for OFB and CFB modes.  This is not an issue if you are
   using CBC cipher mode (the default), or if you are using OFB or CFB
   cipher mode with SSL/TLS authentication.
+
+******************************************************************************
+
+Subject: [Openvpn-users] Re: Windows XP 64 bit
+From: Hypherion
+Date: Thu, 14 Apr 2005 07:01:17 +0000 (UTC)
+
+Well I managed to build a Windows XP 64 bit driver myself and it's working
+great, I can connect to my server again :)
+
+I had to use the WinDDK for Windows 2003 Service Pack 1 and just built the
+driver in the Windows 2003 AMD64 environment.  I had to comment out the
+MAPINFO:FIXUPS directive in the SOURCES file. 
+ 
+Then I copied and renamed (devcon.exe/tapinstall.exe) from
+C:\WINDDK\3790.1830\tools\devcon\amd64. 
+ 
+I had to edit the file OemWin2k.inf and change the Manufactured + Product
+Section to:
+
+[Manufacturer]
+   %Provider% = tap0801, NTamd64
+
+[tap0801.NTamd64]
+   %DeviceDescription% = tap0801.ndi, tap0801

@@ -8,7 +8,7 @@
  *  Copyright (C) Damion K. Wilson, 2003, and is released under the
  *  GPL version 2 (see below).
  *
- *  All other source code is Copyright (C) 2002-2005 OpenVPN Solutions LLC,
+ *  All other source code is Copyright (C) 2002-2006 OpenVPN Solutions LLC,
  *  and is released under the GPL version 2 (see below).
  *
  *  This program is free software; you can redistribute it and/or modify
@@ -364,19 +364,6 @@ NDIS_STATUS AdapterCreate
 				       AdapterHalt);
   l_Adapter->m_RegisteredAdapterShutdownHandler = TRUE;
 
-  //====================================
-  // Allocate and construct adapter name
-  //====================================
-
-  if (RtlUnicodeStringToAnsiString (
-       &l_Adapter->m_NameAnsi,
-       &((PNDIS_MINIPORT_BLOCK) p_AdapterHandle)->MiniportName,
-       TRUE) != STATUS_SUCCESS)
-    {
-      AdapterFreeResources (l_Adapter);
-      return NDIS_STATUS_RESOURCES;
-    }
-
   //============================================
   // Get parameters from registry which were set
   // in the adapter advanced properties dialog.
@@ -392,8 +379,66 @@ NDIS_STATUS AdapterCreate
     l_Adapter->m_MediaState = FALSE;
 
     NdisOpenConfiguration (&status, &configHandle, p_ConfigurationHandle);
-    if (status == NDIS_STATUS_SUCCESS)
+    if (status != NDIS_STATUS_SUCCESS)
       {
+	  DEBUGP (("[TAP] Couldn't open adapter registry\n"));
+	  AdapterFreeResources (l_Adapter);
+	  return status;
+      }
+
+    //====================================
+    // Allocate and construct adapter name
+    //====================================
+    {
+      NDIS_STRING key = NDIS_STRING_CONST("MiniportName");
+      NdisReadConfiguration (&status, &parm, configHandle, &key, NdisParameterString);
+      if (status == NDIS_STATUS_SUCCESS)
+	{
+	  if (parm->ParameterType == NdisParameterString)
+	    {
+	      DEBUGP (("[TAP] NdisReadConfiguration (MiniportName=%s)\n", parm->ParameterData.StringData.Buffer));
+
+	      if (RtlUnicodeStringToAnsiString (
+			&l_Adapter->m_NameAnsi,
+			&parm->ParameterData.StringData,
+			TRUE) != STATUS_SUCCESS)
+		{
+		  DEBUGP (("[TAP] RtlUnicodeStringToAnsiString MiniportName failed\n"));
+		  status = NDIS_STATUS_RESOURCES;
+		}
+	    }
+	} else {
+	  /* "MiniportName" is available only XP and above.  Not on Windows 2000. */
+	  NDIS_STRING key = NDIS_STRING_CONST("NdisVersion");
+	  NdisReadConfiguration (&status, &parm, configHandle, &key, NdisParameterInteger);
+	  if (status == NDIS_STATUS_SUCCESS)
+	    {
+	      if (parm->ParameterData.IntegerData == 0x50000)
+		{
+		  /* Fallback for Windows 2000 with NDIS version 5.00.00
+		     Don't use this on Vista, 'NDIS_MINIPORT_BLOCK' was changed! */
+		  DEBUGP (("[TAP] NdisReadConfiguration NdisVersion (Int=%X)\n", parm->ParameterData.IntegerData));
+		  if (RtlUnicodeStringToAnsiString (
+			&l_Adapter->m_NameAnsi,
+			&((PNDIS_MINIPORT_BLOCK) p_AdapterHandle)->MiniportName,
+			TRUE) != STATUS_SUCCESS)
+		    {
+		      DEBUGP (("[TAP] RtlUnicodeStringToAnsiString MiniportName (W2K) failed\n"));
+		      status = NDIS_STATUS_RESOURCES;
+		    }
+		}
+	    }
+	}
+    }
+
+    /* Can't continue without name (see macro 'NAME') */
+    if (status != NDIS_STATUS_SUCCESS || !l_Adapter->m_NameAnsi.Buffer)
+      {
+	NdisCloseConfiguration (configHandle);
+	AdapterFreeResources (l_Adapter);
+	return NDIS_STATUS_RESOURCES;
+      }
+
 	/* Read MTU setting from registry */
 	{
 	  NDIS_STRING key = NDIS_STRING_CONST("MTU");
@@ -470,7 +515,6 @@ NDIS_STATUS AdapterCreate
 	}
 
 	NdisCloseConfiguration (configHandle);
-      }
 
     DEBUGP (("[%s] MTU=%d\n", NAME (l_Adapter), l_Adapter->m_MTU));
   }

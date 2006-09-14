@@ -266,8 +266,6 @@ SectionEnd
 Section "TAP-Win32 Virtual Ethernet Adapter" SecTAP
 
   SetOverwrite on
-  SetOutPath "$INSTDIR\bin"
-  File "${BIN}\ti3790\tapinstall.exe"
 
   FileOpen $R0 "$INSTDIR\bin\addtap.bat" w
   FileWrite $R0 "rem Add a new TAP-Win32 virtual ethernet adapter$\r$\n"
@@ -282,9 +280,36 @@ Section "TAP-Win32 Virtual Ethernet Adapter" SecTAP
   FileWrite $R0 "pause$\r$\n"
   FileClose $R0
 
+  ; Check if we are running on a 64 bit system.
+  System::Call "kernel32::GetCurrentProcess() i .s"
+  System::Call "kernel32::IsWow64Process(i s, *i .r0)"
+  IntCmp $0 0 tap-32bit
+
+; tap-64bit:
+
+  DetailPrint "We are running on a 64-bit system."
+
+  SetOutPath "$INSTDIR\bin"
+  File "${BIN}\ti3790-amd64\tapinstall.exe"
+
+  SetOutPath "$INSTDIR\driver"
+  File "${HOME}\tap-win32\amd64\OemWin2k.inf"
+  File "${HOME}\tap-win32\amd64\${TAPDRV}"
+
+  goto tapend
+
+tap-32bit:
+
+  DetailPrint "We are running on a 32-bit system."
+
+  SetOutPath "$INSTDIR\bin"
+  File "${BIN}\ti3790-i386\tapinstall.exe"
+
   SetOutPath "$INSTDIR\driver"
   File "${HOME}\tap-win32\i386\OemWin2k.inf"
   File "${HOME}\tap-win32\i386\${TAPDRV}"
+
+  tapend:
 
 SectionEnd
 

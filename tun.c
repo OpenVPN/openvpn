@@ -3659,8 +3659,7 @@ open_tun (const char *dev, const char *dev_type, const char *dev_node, bool ipv6
 	     (info[2] ? "(DEBUG)" : ""));
 
       }
-    if ( !(info[0] > TAP_WIN32_MIN_MAJOR
-	   || (info[0] == TAP_WIN32_MIN_MAJOR && info[1] >= TAP_WIN32_MIN_MINOR)) )
+    if (!(info[0] == TAP_WIN32_MIN_MAJOR && info[1] >= TAP_WIN32_MIN_MINOR))
       msg (M_FATAL, "ERROR:  This version of " PACKAGE_NAME " requires a TAP-Win32 driver that is at least version %d.%d -- If you recently upgraded your " PACKAGE_NAME " distribution, a reboot is probably required at this point to get Windows to see the new driver.",
 	   TAP_WIN32_MIN_MAJOR,
 	   TAP_WIN32_MIN_MINOR);

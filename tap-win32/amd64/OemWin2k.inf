@@ -61,9 +61,9 @@
 ;                      Manufacturer + Product Section (Done)
 ;----------------------------------------------------------------
 [Manufacturer]
-   %Provider% = tap0801
+   %Provider% = tap0801, NTamd64
 
-[tap0801]
+[tap0801.NTamd64]
    %DeviceDescription% = tap0801.ndi, tap0801
 
 ;---------------------------------------------------------------

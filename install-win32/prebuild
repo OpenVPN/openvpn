@@ -30,7 +30,8 @@ DMALLOC=$H/dmalloc-5.4.2
 
 # TAP binaries should be here: tap0801.sys and tapinstall.exe
 # These must be built with MS DDK.
-TAPBIN=$H/tapbin-21
+TAPBIN=$H/tapbin-0804
+TAPBIN64=$H/tapbin64-0804
 
 # u2d.c should exist here.
 SCRIPTS=$IN/install-win32
@@ -94,7 +95,7 @@ $U2D <$IN/sample-config-files/server.conf >$OUT/install-win32/server.ovpn
 cp $IN/install-win32/sample.ovpn $OUT/install-win32
 $U2D <$IN/easy-rsa/1.0/openssl.cnf >$OUT/install-win32/openssl.cnf.sample
 
-echo BUILD tap-win32
+echo BUILD tap-win32 for x86 and amd64
 
 mkdir $OUT/tap-win32
 cp $IN/tap-win32/*.[ch] $OUT/tap-win32
@@ -105,11 +106,17 @@ cp $IN/tap-win32/SOURCES $OUT/tap-win32
 mkdir $OUT/tap-win32/i386
 cp $IN/tap-win32/i386/OemWin2k.inf $OUT/tap-win32/i386
 cp $IN/tap-win32/i386/tap.cat $OUT/tap-win32/i386
-
 cp $TAPBIN/tap0801.sys $OUT/tap-win32/i386
 
-mkdir $OUT/bin/ti3790
-cp $TAPBIN/tapinstall.exe $OUT/bin/ti3790
+mkdir $OUT/tap-win32/amd64
+cp $IN/tap-win32/amd64/OemWin2k.inf $OUT/tap-win32/amd64
+cp $IN/tap-win32/amd64/tap.cat $OUT/tap-win32/amd64
+cp $TAPBIN64/tap0801.sys $OUT/tap-win32/amd64
+
+mkdir $OUT/bin/ti3790-i386
+cp $TAPBIN/tapinstall.exe $OUT/bin/ti3790-i386
+mkdir $OUT/bin/ti3790-amd64
+cp $TAPBIN64/tapinstall.exe $OUT/bin/ti3790-amd64
 
 echo BUILD service-win32
 
