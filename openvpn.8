@@ -1401,6 +1401,23 @@ Set the TCP/UDP socket receive buffer size.
 Currently defaults to 65536 bytes.
 .\"*********************************************************
 .TP
+.B --socket-flags flags...
+Apply the given flags to the OpenVPN transport socket.
+Currently, only
+.B TCP_NODELAY
+is supported.
+
+The
+.B TCP_NODELAY
+socket flag is useful in TCP mode, and causes the kernel
+to send tunnel packets immediately over the TCP connection without
+trying to group several smaller packets into a larger packet.
+This can result in a considerably improvement in latency.
+
+This option is pushable from server to client, and should be used
+on both client and server for maximum effect.
+.\"*********************************************************
+.TP
 .B --txqueuelen n
 (Linux only) Set the TX queue length on the TUN/TAP interface.
 Currently defaults to 100.
