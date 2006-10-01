@@ -3,7 +3,10 @@ Copyright (C) 2002-2005 OpenVPN Solutions LLC <info@openvpn.net>
 
 $Id$
 
-2006.09.xx -- Version 2.1-beta16
+2006.10.01 -- Version 2.1-beta16
+
+* Windows installer updated with OpenSSL 0.9.7l DLLs to fix
+  published vulnerabilities.
 
 * Fixed TAP-Win32 bug that caused BSOD on Windows Vista
   (Henry Nestler).
