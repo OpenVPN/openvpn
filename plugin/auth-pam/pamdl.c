@@ -10,7 +10,6 @@
 #include <stdio.h>
 #include <dlfcn.h>
 #include <security/pam_appl.h>
-#include <security/_pam_macros.h>
 
 #include "pamdl.h"
 
@@ -74,7 +73,7 @@ int pam_set_item(pam_handle_t *pamh, int item_type, const void *item)
     return real_pam_set_item(pamh, item_type, item);
 }
 
-int pam_get_item(const pam_handle_t *pamh, int item_type, const void **item)
+int pam_get_item(pam_handle_t *pamh, int item_type, const void **item)
 {
     int (*real_pam_get_item)(const pam_handle_t *, int, const void **);
     RESOLVE_PAM_FUNCTION(pam_get_item, int,

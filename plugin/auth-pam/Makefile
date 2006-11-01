@@ -4,7 +4,7 @@
 
 # If PAM modules are not linked against libpam.so, set DLOPEN_PAM to 1. This
 # must be done on SUSE 9.1, at least.
-DLOPEN_PAM=1
+DLOPEN_PAM=0
 
 ifeq ($(DLOPEN_PAM),1)
 	LIBPAM=-ldl
