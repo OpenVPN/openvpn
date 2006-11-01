@@ -447,6 +447,7 @@ possibly_become_daemon (const struct options *options, const bool first_time)
       ASSERT (!options->inetd);
       if (daemon (options->cd_dir != NULL, options->log) < 0)
 	msg (M_ERR, "daemon() failed");
+      restore_signal_state ();
       if (options->log)
 	set_std_files_to_null (true);
 

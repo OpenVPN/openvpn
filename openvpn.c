@@ -107,6 +107,8 @@ main (int argc, char *argv[])
   return 1;
 #endif
 
+  pre_init_signal_catch ();
+
   CLEAR (c);
 
   /* signify first time for components which can

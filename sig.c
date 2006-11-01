@@ -202,13 +202,23 @@ signal_handler_exit (const int signum)
 
 #endif
 
+/* set handlers for unix signals */
+
+#ifdef HAVE_SIGNAL_H
+#define SM_UNDEF     0
+#define SM_PRE_INIT  1
+#define SM_POST_INIT 2
+static int signal_mode; /* GLOBAL */
+#endif
+
 void
 pre_init_signal_catch (void)
 {
 #ifdef HAVE_SIGNAL_H
+  signal_mode = SM_PRE_INIT;
   signal (SIGINT, signal_handler);
   signal (SIGTERM, signal_handler);
-  signal (SIGHUP, signal_handler);
+  signal (SIGHUP, SIG_IGN);
   signal (SIGUSR1, SIG_IGN);
   signal (SIGUSR2, SIG_IGN);
   signal (SIGPIPE, SIG_IGN);
@@ -219,6 +229,7 @@ void
 post_init_signal_catch (void)
 {
 #ifdef HAVE_SIGNAL_H
+  signal_mode = SM_POST_INIT;
   signal (SIGINT, signal_handler);
   signal (SIGTERM, signal_handler);
   signal (SIGHUP, signal_handler);
@@ -226,6 +237,18 @@ post_init_signal_catch (void)
   signal (SIGUSR2, signal_handler);
   signal (SIGPIPE, SIG_IGN);
 #endif /* HAVE_SIGNAL_H */
+}
+
+/* called after daemonization to retain signal settings */
+void
+restore_signal_state (void)
+{
+#ifdef HAVE_SIGNAL_H
+  if (signal_mode == SM_PRE_INIT)
+    pre_init_signal_catch ();
+  else if (signal_mode == SM_POST_INIT)
+    post_init_signal_catch ();
+#endif
 }
 
 /*
