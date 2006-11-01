@@ -482,6 +482,7 @@ create_socket_tcp (void)
   if ((sd = socket (PF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0)
     msg (M_SOCKERR, "Cannot create TCP socket");
 
+#ifndef WIN32 /* using SO_REUSEADDR on Windows will cause bind to succeed on port conflicts! */
   /* set SO_REUSEADDR on socket */
   {
     int on = 1;
@@ -489,6 +490,7 @@ create_socket_tcp (void)
 		    (void *) &on, sizeof (on)) < 0)
       msg (M_SOCKERR, "TCP: Cannot setsockopt SO_REUSEADDR on TCP socket");
   }
+#endif
 
 #if 0
   /* set socket linger options */
