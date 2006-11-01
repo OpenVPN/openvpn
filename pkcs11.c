@@ -166,14 +166,20 @@ _pkcs11_openvpn_token_prompt (
 		"Please insert %s token",
 		token->label
 	);
-	get_user_pass (
-		&token_resp,
-		NULL,
-		"token-insertion-request",
-		GET_USER_PASS_MANAGEMENT|GET_USER_PASS_NEED_OK
-	);
 
-	return strcmp (token_resp.password, "ok") == 0;
+	if (
+		!get_user_pass (
+			&token_resp,
+			NULL,
+			"token-insertion-request",
+			GET_USER_PASS_MANAGEMENT|GET_USER_PASS_NEED_OK|GET_USER_PASS_NOFATAL
+		)
+	) {
+		return false;
+	}
+	else {
+		return strcmp (token_resp.password, "ok") == 0;
+	}
 }
 
 static
@@ -195,15 +201,27 @@ _pkcs11_openvpn_pin_prompt (
 
 	token_pass.defined = false;
 	token_pass.nocache = true;
-	get_user_pass (&token_pass, NULL, szPrompt, GET_USER_PASS_MANAGEMENT|GET_USER_PASS_PASSWORD_ONLY);
-	strncpynt (szPIN, token_pass.password, nMaxPIN);
-	purge_user_pass (&token_pass, true);
 
-	if (strlen (szPIN) == 0) {
+	if (
+		!get_user_pass (
+			&token_pass,
+			NULL,
+			szPrompt,
+			GET_USER_PASS_MANAGEMENT|GET_USER_PASS_PASSWORD_ONLY|GET_USER_PASS_NOFATAL
+		)
+	) {
 		return false;
 	}
 	else {
-		return true;
+		strncpynt (szPIN, token_pass.password, nMaxPIN);
+		purge_user_pass (&token_pass, true);
+
+		if (strlen (szPIN) == 0) {
+			return false;
+		}
+		else {
+			return true;
+		}
 	}
 }
 

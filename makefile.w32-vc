@@ -24,17 +24,18 @@ LZO = \src\lzo-1.08.vc
 
 INCLUDE_DIRS = -I$(OPENSSL)/include -I$(LZO)/include
 
-LIBS = lzo.lib ws2_32.lib crypt32.lib iphlpapi.lib winmm.lib user32.lib advapi32.lib wininet.lib
+LIBS = lzo.lib ws2_32.lib crypt32.lib iphlpapi.lib winmm.lib user32.lib gdi32.lib advapi32.lib wininet.lib
 
 LIB_DIRS = -LIBPATH:$(OPENSSL)\out -LIBPATH:$(LZO)
 
 EXE = openvpn.exe
 
 CPP=cl.exe
+CPP_ARG_COMMON=/nologo /W3 /G5 /O2 -DWIN32 -DWIN32_LEAN_AND_MEAN -D_CONSOLE -D_MBCS -D_CRT_SECURE_NO_DEPRECATE $(INCLUDE_DIRS) /FD /c
 # release:
-CPP_PROJ=/nologo /MD /W3 /G5 /O2 -DNDEBUG -DWIN32 -DWIN32_LEAN_AND_MEAN -D_CONSOLE -D_MBCS $(INCLUDE_DIRS) /FD /c
+CPP_PROJ=$(CPP_ARG_COMMON) /MD -DNDEBUG
 # debug:
-#CPP_PROJ=/nologo /MDd /W3 /G5 /Zi /Od -D_DEBUG -DWIN32 -DWIN32_LEAN_AND_MEAN -D_CONSOLE -D_MBCS $(INCLUDE_DIRS) /FD /c
+#CPP_PROJ=$(CPP_ARG_COMMON) /MDd /Zi /Od -D_DEBUG
 
 LINK32=link.exe
 # release:

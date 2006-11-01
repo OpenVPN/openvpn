@@ -3,6 +3,14 @@ Copyright (C) 2002-2005 OpenVPN Solutions LLC <info@openvpn.net>
 
 $Id$
 
+2006.10.31 -- Version 2.1_rc1
+
+* Support recovery (return to hold) from signal at
+  management password prompt.
+
+* Added workaround for OpenSC PKCS#11 bug#108
+  (Alon Bar-Lev).
+
 2006.10.01 -- Version 2.1-beta16
 
 * Windows installer updated with OpenSSL 0.9.7l DLLs to fix
@@ -30,22 +38,26 @@ $Id$
   a blockage of tunnel packets and later time-out and
   restart the connection.
 
-* pkcs11 changes: 
-  1. Modified ssl.c to not FATAL and return to init.c
-     so auth-retry will work.
-  2. Modifed pkcs11-helper.c to fix some problem with
-     multiple providers.
-  3. Updated makefile.w32-vc to include lladdr.*, updated
-     linkage libraries.
-  4. Modified lladdr.c to be compiled under visual C.
-  5. Added retry counter to PKCS#11 PIN hook.
-  6. Modified PKCS#11 PIN retry loop to return correct error
-     code when PIN is incorrect.
-  7. Fix handling (ignoring) zero sized attributes.
-  8. Fix gcc-2 issues.
-  9. Fix openssl 0.9.6 (first version) issues.
-  10. easy-rsa Makefile (install) is now available so that
-      distribs will be able to install it safely.
+* easy-rsa update (Alon Bar-Lev)
+  Makefile (install) is now available so that
+  distribs will be able to install it safely.
+
+* PKCS#11 changes: (Alon Bar-Lev) 
+  - Modified ssl.c to not FATAL and return to init.c
+    so auth-retry will work.
+  - Modifed pkcs11-helper.c to fix some problem with
+    multiple providers.
+  - Added retry counter to PKCS#11 PIN hook.
+  - Modified PKCS#11 PIN retry loop to return correct error
+    code when PIN is incorrect.
+  - Fix handling (ignoring) zero sized attributes.
+  - Fix gcc-2 issues.
+  - Fix openssl 0.9.6 (first version) issues.
+
+* Minor fixes of lladdr (Alon Bar-Lev)
+  Updated makefile.w32-vc to include lladdr.*, updated
+  linkage libraries.
+  Modified lladdr.c to be compiled under visual C.
 
 * Added two new management states:
    OPENVPN_STATE_RESOLVE      -- DNS lookup

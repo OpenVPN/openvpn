@@ -1173,7 +1173,7 @@ get_console_input (const char *prompt, const bool echo, char *input, const int c
  * Get and store a username/password
  */
 
-void
+bool
 get_user_pass (struct user_pass *up,
 	       const char *auth_file,
 	       const char *prefix,
@@ -1194,7 +1194,12 @@ get_user_pass (struct user_pass *up,
 	  && management_query_user_pass_enabled (management))
 	{
 	  if (!management_query_user_pass (management, up, prefix, flags))
-	    msg (M_FATAL, "ERROR: could not read %s username/password/ok from management interface", prefix);
+	    {
+	      if ((flags & GET_USER_PASS_NOFATAL) != 0)
+		return false;
+	      else
+		msg (M_FATAL, "ERROR: could not read %s username/password/ok from management interface", prefix);
+	    }
 	}
       else
 #endif
@@ -1294,6 +1299,8 @@ get_user_pass (struct user_pass *up,
 #endif
 
   gc_free (&gc);
+
+  return true;
 }
 
 void

@@ -239,8 +239,9 @@ bool get_console_input (const char *prompt, const bool echo, char *input, const 
 #define GET_USER_PASS_SENSITIVE     (1<<1)
 #define GET_USER_PASS_PASSWORD_ONLY (1<<2)
 #define GET_USER_PASS_NEED_OK       (1<<3)
+#define GET_USER_PASS_NOFATAL       (1<<4)
 
-void get_user_pass (struct user_pass *up,
+bool get_user_pass (struct user_pass *up,
 		    const char *auth_file,
 		    const char *prefix,
 		    const unsigned int flags);
