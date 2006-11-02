@@ -613,7 +613,7 @@ AdapterFreeResources (TapAdapterPointer p_Adapter)
     NdisMDeregisterAdapterShutdownHandler (p_Adapter->m_MiniportAdapterHandle);
 
   if (p_Adapter->m_MCLockAllocated)
-    NdisFreeSpinLock (&l_Adapter->m_MCLock);
+    NdisFreeSpinLock (&p_Adapter->m_MCLock);
 }
 
 VOID
