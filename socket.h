@@ -454,11 +454,7 @@ int proto_remote (int proto, bool remote);
 #define IPv4_TCP_HEADER_SIZE              40
 #define IPv6_UDP_HEADER_SIZE              40
 
-static const int proto_overhead[] = { /* indexed by PROTO_x */
-  IPv4_UDP_HEADER_SIZE,
-  IPv4_TCP_HEADER_SIZE,
-  IPv4_TCP_HEADER_SIZE
-};
+extern const int proto_overhead[];
 
 static inline int
 datagram_overhead (int proto)

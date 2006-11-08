@@ -41,6 +41,13 @@
 
 #include "memdbg.h"
 
+const int proto_overhead[] = { /* indexed by PROTO_x */
+  IPv4_UDP_HEADER_SIZE,
+  IPv4_TCP_HEADER_SIZE,
+  IPv4_TCP_HEADER_SIZE,
+  IPv4_TCP_HEADER_SIZE
+};
+
 /*
  * Functions related to the translation of DNS names to IP addresses.
  */
