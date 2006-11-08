@@ -864,6 +864,14 @@ setenv_int (struct env_set *es, const char *name, int value)
 }
 
 void
+setenv_unsigned (struct env_set *es, const char *name, unsigned int value)
+{
+  char buf[64];
+  openvpn_snprintf (buf, sizeof(buf), "%u", value);
+  setenv_str (es, name, buf);
+}
+
+void
 setenv_str (struct env_set *es, const char *name, const char *value)
 {
   setenv_str_ex (es, name, value, CC_NAME, 0, 0, CC_PRINT, 0, 0);

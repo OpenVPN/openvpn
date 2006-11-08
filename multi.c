@@ -407,6 +407,9 @@ multi_client_disconnect_setenv (struct multi_context *m,
   setenv_counter (mi->context.c2.es, "bytes_received", mi->context.c2.link_read_bytes);
   setenv_counter (mi->context.c2.es, "bytes_sent", mi->context.c2.link_write_bytes);
 
+  /* setenv connection duration */
+  const unsigned int duration = (unsigned int) now - mi->created;
+  setenv_unsigned (mi->context.c2.es, "time_duration", duration);
 }
 
 static void
@@ -1274,6 +1277,31 @@ multi_client_connect_post_plugin (struct multi_context *m,
 
 #endif
 
+static void
+multi_client_connect_setenv (struct multi_context *m,
+			     struct multi_instance *mi)
+{
+  struct gc_arena gc = gc_new ();
+
+  /* setenv incoming cert common name for script */
+  setenv_str (mi->context.c2.es, "common_name", tls_common_name (mi->context.c2.tls_multi, true));
+
+  /* setenv client real IP address */
+  setenv_trusted (mi->context.c2.es, get_link_socket_info (&mi->context));
+
+  /* setenv client virtual IP address */
+  multi_set_virtual_addr_env (m, mi);
+
+  /* setenv connection time */
+  {
+    const char *created_ascii = time_string (mi->created, 0, false, &gc);
+    setenv_str (mi->context.c2.es, "time_ascii", created_ascii);
+    setenv_unsigned (mi->context.c2.es, "time_unix", (unsigned int)mi->created);
+  }
+
+  gc_free (&gc);
+}
+
 /*
  * Called as soon as the SSL/TLS connection authenticates.
  *
@@ -1365,14 +1393,8 @@ multi_connection_established (struct multi_context *m, struct multi_instance *mi
        */
       multi_select_virtual_addr (m, mi);
 
-      /* setenv incoming cert common name for script */
-      setenv_str (mi->context.c2.es, "common_name", tls_common_name (mi->context.c2.tls_multi, true));
-
-      /* setenv client real IP address */
-      setenv_trusted (mi->context.c2.es, get_link_socket_info (&mi->context));
-
-      /* setenv client virtual IP address */
-      multi_set_virtual_addr_env (m, mi);
+      /* do --client-connect setenvs */
+      multi_client_connect_setenv (m, mi);
 
 #ifdef ENABLE_PLUGIN
       /*

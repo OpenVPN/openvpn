@@ -5080,6 +5080,30 @@ or
 (unknown signal).  This variable is set just prior to down script execution.
 .\"*********************************************************
 .TP
+.B time_ascii
+Client connection timestamp, formatted as a human-readable
+time string.
+Set prior to execution of the
+.B --client-connect
+script.
+.\"*********************************************************
+.TP
+.B time_duration
+The duration (in seconds) of the client session which is now
+disconnecting.
+Set prior to execution of the
+.B --client-disconnect
+script.
+.\"*********************************************************
+.TP
+.B time_unix
+Client connection timestamp, formatted as a unix integer
+date/time value.
+Set prior to execution of the
+.B --client-connect
+script.
+.\"*********************************************************
+.TP
 .B tls_id_{n}
 A series of certificate fields from the remote peer,
 where
