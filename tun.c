@@ -1163,13 +1163,14 @@ open_tun (const char *dev, const char *dev_type, const char *dev_node, bool ipv6
 #ifdef TUNSETPERSIST
 
 void
-tuncfg (const char *dev, const char *dev_type, const char *dev_node, bool ipv6, int persist_mode)
+tuncfg (const char *dev, const char *dev_type, const char *dev_node, bool ipv6, int persist_mode, const struct tuntap_options *options)
 {
   struct tuntap *tt;
 
   ALLOC_OBJ (tt, struct tuntap);
   clear_tuntap (tt);
   tt->type = dev_type_enum (dev, dev_type);
+  tt->options = *options;
   open_tun (dev, dev_type, dev_node, ipv6, tt);
   if (ioctl (tt->fd, TUNSETPERSIST, persist_mode) < 0)
     msg (M_ERR, "Cannot ioctl TUNSETPERSIST(%d) %s", persist_mode, dev);
