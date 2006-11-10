@@ -62,7 +62,7 @@ static void netsh_ifconfig (const struct tuntap_options *to,
 			    const in_addr_t netmask,
 			    unsigned int flags);
 
-static const char *netsh_get_id (const char *dev_node, const bool force_guid, struct gc_arena *gc);
+static const char *netsh_get_id (const char *dev_node, struct gc_arena *gc);
 
 #endif
 
@@ -144,7 +144,7 @@ guess_tuntap_dev (const char *dev,
   const int dt = dev_type_enum (dev, dev_type);
   if (dt == DEV_TYPE_TUN || dt == DEV_TYPE_TAP)
     {
-      return netsh_get_id (dev_node, false, gc);
+      return netsh_get_id (dev_node, gc);
     }
 #endif
 
@@ -3391,7 +3391,7 @@ netsh_enable_dhcp (const struct tuntap_options *to,
  * Return a TAP name for netsh commands.
  */
 static const char *
-netsh_get_id (const char *dev_node, const bool force_guid, struct gc_arena *gc)
+netsh_get_id (const char *dev_node, struct gc_arena *gc)
 {
   const struct tap_reg *tap_reg = get_tap_reg (gc);
   const struct panel_reg *panel_reg = get_panel_reg (gc);
@@ -3414,45 +3414,11 @@ netsh_get_id (const char *dev_node, const bool force_guid, struct gc_arena *gc)
 
   if (!guid)
     return "NULL";         /* not found */
-  else if (!force_guid && strcmp (BPTR (&actual), "NULL"))
+  else if (strcmp (BPTR (&actual), "NULL"))
     return BPTR (&actual); /* control panel name */
   else
     return guid;           /* no control panel name, return GUID instead */
 }
-
-#ifdef AUTO_USERID
-
-static const char *
-debrace (const char *str, struct gc_arena *gc)
-{
-  char *s = string_alloc (str, gc);
-  int l;
-  if (*s == '{')
-    ++s;
-  l = strlen (s);
-  if (l > 0)
-    {
-      char *e = s + (l - 1);
-      if (*e == '}')
-	*e = '\0';
-    }
-  return s;
-}
-
-void
-get_auto_userid (char *username, const int capacity)
-{
-  struct gc_arena gc = gc_new ();
-  const char *nid = netsh_get_id (NULL, true, &gc);
-  if (nid && strcmp (nid, "NULL") && strlen (nid) > 3)
-    {
-      const char *nid1 = debrace (nid, &gc);
-      openvpn_snprintf (username, capacity, "W%s", nid1);
-    }
-  gc_free (&gc);
-}
-
-#endif
 
 /*
  * Called iteratively on TAP-Win32 wait-for-initialization polling loop

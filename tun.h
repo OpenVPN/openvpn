@@ -332,8 +332,6 @@ int tun_read_queue (struct tuntap *tt, int maxsize);
 int tun_write_queue (struct tuntap *tt, struct buffer *buf);
 int tun_finalize (HANDLE h, struct overlapped_io *io, struct buffer *buf);
 
-void get_auto_userid (char *username, const int capacity);
-
 static inline bool
 tuntap_stop (int status)
 {

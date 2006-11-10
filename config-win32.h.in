@@ -65,9 +65,6 @@ typedef unsigned long in_addr_t;
 /* Allow --askpass and --auth-user-pass passwords to be read from a file */
 /* #undef ENABLE_PASSWORD_SAVE */
 
-/* Enable AUTO_USERID feature */
-/* #define AUTO_USERID */
-
 /* Enable client/server capability */
 #define ENABLE_CLIENT_SERVER 1
 

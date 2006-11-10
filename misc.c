@@ -1285,11 +1285,6 @@ get_user_pass (struct user_pass *up,
 		msg (M_FATAL, "Error reading username and password (must be on two consecutive lines) from %s authfile: %s",
 		     prefix,
 		     auth_file);
-
-#if defined(AUTO_USERID) && defined(WIN32)
-	      if (!strncmp (up->username, "AUTO_USERID", 11))
-		get_auto_userid (up->username, USER_PASS_LEN);
-#endif
 	    }
       
 	  fclose (fp);
