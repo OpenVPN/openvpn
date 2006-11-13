@@ -1225,6 +1225,7 @@ socket_restart_pause (struct context *c)
     sec = c->persist.restart_sleep_seconds;
   c->persist.restart_sleep_seconds = 0;
 
+  /* do managment hold on context restart, i.e. second, third, fourth, etc. initialization */
   if (do_hold (NULL))
     sec = 0;
 
@@ -1244,7 +1245,7 @@ do_startup_pause (struct context *c)
   if (!c->first_time)
     socket_restart_pause (c);
   else
-    do_hold (NULL);
+    do_hold (NULL); /* do management hold on first context initialization */
 }
 
 /*
@@ -2456,7 +2457,8 @@ open_management (struct context *c)
 			       c->options.management_state_buffer_size,
 			       c->options.management_hold,
 			       c->options.management_client,
-			       c->options.management_write_peer_info_file))
+			       c->options.management_write_peer_info_file,
+			       c->options.remap_sigusr1))
 	    {
 	      management_set_state (management,
 				    OPENVPN_STATE_CONNECTING,
@@ -2465,7 +2467,7 @@ open_management (struct context *c)
 				    (in_addr_t)0);
 	    }
 
-	  /* possible wait */
+	  /* initial management hold, called early, before first context initialization */
 	  do_hold (c);
 	  if (IS_SIG (c))
 	    {

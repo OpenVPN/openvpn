@@ -207,6 +207,12 @@ struct man_settings {
   bool hold;
   bool connect_as_client;
   char *write_peer_info_file;
+
+/* flags for handling the management interface "signal" command */
+# define MANSIG_IGNORE_USR1_HUP  (1<<0)
+# define MANSIG_MAP_USR1_TO_HUP  (1<<1)
+# define MANSIG_MAP_USR1_TO_TERM (1<<2)
+  unsigned int mansig;
 };
 
 /* up_query modes */
@@ -276,7 +282,8 @@ bool management_open (struct management *man,
 		      const int state_buffer_size,
 		      const bool hold,
 		      const bool connect_as_client,
-		      const char *write_peer_info_file);
+		      const char *write_peer_info_file,
+		      const int remap_sigusr1);
 
 void management_close (struct management *man);
 

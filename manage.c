@@ -277,14 +277,49 @@ virtual_output_callback_func (void *arg, const unsigned int flags, const char *s
     }
 }
 
+/*
+ * Given a signal, return the signal with possible remapping applied,
+ * or -1 if the signal should be ignored.
+ */
+static int
+man_mod_signal (const struct management *man, const int signum)
+{
+  const unsigned int flags = man->settings.mansig;
+  int s = signum;
+  if (s == SIGUSR1)
+    {
+      if (flags & MANSIG_MAP_USR1_TO_HUP)
+	s = SIGHUP;
+      if (flags & MANSIG_MAP_USR1_TO_TERM)
+	s = SIGTERM;
+    }
+  if (flags & MANSIG_IGNORE_USR1_HUP)
+    {
+      if (s == SIGHUP || s == SIGUSR1)
+	s = -1;
+    }
+  return s;
+}
+
 static void
 man_signal (struct management *man, const char *name)
 {
   const int sig = parse_signal (name);
   if (sig >= 0)
     {
-      throw_signal (sig);
-      msg (M_CLIENT, "SUCCESS: signal %s thrown", signal_name (sig, true));
+      const int sig_mod = man_mod_signal (man, sig);
+      if (sig_mod >= 0)
+	{
+	  throw_signal (sig_mod);
+	  msg (M_CLIENT, "SUCCESS: signal %s thrown", signal_name (sig_mod, true));
+	}
+      else
+	{
+	  if (man->persist.special_state_msg)
+	    msg (M_CLIENT, "%s", man->persist.special_state_msg);
+	  else
+	    msg (M_CLIENT, "ERROR: signal '%s' is currently ignored", name);
+	}
     }
   else
     {
@@ -1276,7 +1311,8 @@ man_settings_init (struct man_settings *ms,
 		   const int state_buffer_size,
 		   const bool hold,
 		   const bool connect_as_client,
-		   const char *write_peer_info_file)
+		   const char *write_peer_info_file,
+		   const int remap_sigusr1)
 {
   if (!ms->defined)
     {
@@ -1339,6 +1375,14 @@ man_settings_init (struct man_settings *ms,
       ms->log_history_cache = log_history_cache;
       ms->echo_buffer_size = echo_buffer_size;
       ms->state_buffer_size = state_buffer_size;
+
+      /*
+       * Set remap sigusr1 flags
+       */
+      if (remap_sigusr1 == SIGHUP)
+	ms->mansig |= MANSIG_MAP_USR1_TO_HUP;
+      else if (remap_sigusr1 == SIGTERM)
+	ms->mansig |= MANSIG_MAP_USR1_TO_TERM;
 
       ms->defined = true;
     }
@@ -1440,7 +1484,8 @@ management_open (struct management *man,
 		 const int state_buffer_size,
 		 const bool hold,
 		 const bool connect_as_client,
-		 const char *write_peer_info_file)
+		 const char *write_peer_info_file,
+		 const int remap_sigusr1)
 {
   bool ret = false;
 
@@ -1459,7 +1504,8 @@ management_open (struct management *man,
 		     state_buffer_size,
 		     hold,
 		     connect_as_client,
-		     write_peer_info_file);
+		     write_peer_info_file,
+		     remap_sigusr1);
 
   /*
    * The log is initially sized to MANAGEMENT_LOG_HISTORY_INITIAL_SIZE,
@@ -2052,6 +2098,7 @@ management_hold (struct management *man)
 
       man->persist.standalone_disabled = false; /* This is so M_CLIENT messages will be correctly passed through msg() */
       man->persist.special_state_msg = NULL;
+      man->settings.mansig |= MANSIG_IGNORE_USR1_HUP;
 
       man_wait_for_client_connection (man, &signal_received, 0, MWCC_HOLD_WAIT);
 
@@ -2072,6 +2119,7 @@ management_hold (struct management *man)
       /* revert state */
       man->persist.standalone_disabled = standalone_disabled_save;
       man->persist.special_state_msg = NULL;
+      man->settings.mansig &= ~MANSIG_IGNORE_USR1_HUP;
 
       return true;
     }

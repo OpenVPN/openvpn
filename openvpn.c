@@ -107,8 +107,6 @@ main (int argc, char *argv[])
   return 1;
 #endif
 
-  pre_init_signal_catch ();
-
   CLEAR (c);
 
   /* signify first time for components which can
@@ -124,6 +122,9 @@ main (int argc, char *argv[])
        */
       do
 	{
+	  /* enter pre-initialization mode with regard to signal handling */
+	  pre_init_signal_catch ();
+
 	  /* zero context struct but leave first_time member alone */
 	  context_clear_all_except_first_time (&c);
 
