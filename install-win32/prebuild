@@ -31,7 +31,8 @@ DMALLOC=$H/dmalloc-5.4.2
 # TAP binaries should be here: tap0801.sys and tapinstall.exe
 # These must be built with MS DDK.
 TAPBIN=$H/tapbin-0804
-TAPBIN64=$H/tapbin64-0804
+TAPBIN64=$H/tapbin64-0801
+#TAPBIN64=$H/tapbin64-0804
 
 # u2d.c should exist here.
 SCRIPTS=$IN/install-win32
@@ -109,7 +110,8 @@ cp $IN/tap-win32/i386/tap.cat $OUT/tap-win32/i386
 cp $TAPBIN/tap0801.sys $OUT/tap-win32/i386
 
 mkdir $OUT/tap-win32/amd64
-cp $IN/tap-win32/amd64/OemWin2k.inf $OUT/tap-win32/amd64
+cp $TAPBIN64/OemWin2k.inf $OUT/tap-win32/amd64
+#cp $IN/tap-win32/amd64/OemWin2k.inf $OUT/tap-win32/amd64
 cp $IN/tap-win32/amd64/tap.cat $OUT/tap-win32/amd64
 cp $TAPBIN64/tap0801.sys $OUT/tap-win32/amd64
 
