@@ -515,4 +515,13 @@ socket_defined (const socket_descriptor_t sd)
 #define CONNECT_NONBLOCK
 #endif
 
+/*
+ * Do we have the capability to support the AUTO_USERID feature? 
+ */
+#if defined(ENABLE_AUTO_USERID)
+#define AUTO_USERID 1
+#else
+#define AUTO_USERID 0
+#endif
+
 #endif

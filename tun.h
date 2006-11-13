@@ -308,6 +308,7 @@ const IP_ADAPTER_INFO *get_tun_adapter (const struct tuntap *tt, const IP_ADAPTE
 
 const IP_ADAPTER_INFO *get_adapter_info (DWORD index, struct gc_arena *gc);
 const IP_PER_ADAPTER_INFO *get_per_adapter_info (const DWORD index, struct gc_arena *gc);
+const IP_ADAPTER_INFO *get_adapter (const IP_ADAPTER_INFO *ai, DWORD index);
 
 bool is_adapter_up (const struct tuntap *tt, const IP_ADAPTER_INFO *list);
 bool is_ip_in_adapter_subnet (const IP_ADAPTER_INFO *ai, const in_addr_t ip, in_addr_t *highest_netmask);

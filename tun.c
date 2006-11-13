@@ -2505,7 +2505,7 @@ get_interface_info (DWORD index, struct gc_arena *gc)
  * IP_ADAPTER_INFO structure for that adapter.
  */
 
-static const IP_ADAPTER_INFO *
+const IP_ADAPTER_INFO *
 get_adapter (const IP_ADAPTER_INFO *ai, DWORD index)
 {
   if (ai && index != (DWORD)~0)

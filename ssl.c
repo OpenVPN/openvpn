@@ -296,7 +296,13 @@ auth_user_pass_setup (const char *auth_file)
 {
   auth_user_pass_enabled = true;
   if (!auth_user_pass.defined)
-    get_user_pass (&auth_user_pass, auth_file, UP_TYPE_AUTH, GET_USER_PASS_MANAGEMENT|GET_USER_PASS_SENSITIVE);
+    {
+#if AUTO_USERID
+      get_user_pass_auto_userid (&auth_user_pass);
+#else
+      get_user_pass (&auth_user_pass, auth_file, UP_TYPE_AUTH, GET_USER_PASS_MANAGEMENT|GET_USER_PASS_SENSITIVE);
+#endif
+    }
 }
 
 /*

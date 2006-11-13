@@ -39,6 +39,8 @@
 #include "plugin.h"
 #include "options.h"
 #include "manage.h"
+#include "crypto.h"
+#include "route.h"
 
 #include "memdbg.h"
 
@@ -1310,6 +1312,64 @@ get_user_pass (struct user_pass *up,
 
   return true;
 }
+
+#if AUTO_USERID
+
+static const char *
+get_platform_prefix (void)
+{
+#if defined(TARGET_LINUX)
+  return "L";
+#elif defined(TARGET_SOLARIS)
+  return "S";
+#elif defined(TARGET_OPENBSD)
+  return "O";
+#elif defined(TARGET_DARWIN)
+  return "M";
+#elif defined(TARGET_NETBSD)
+  return "N";
+#elif defined(TARGET_FREEBSD)
+  return "F";
+#elif defined(WIN32)
+  return "W";
+#else
+  return "X";
+#endif
+}
+
+void
+get_user_pass_auto_userid (struct user_pass *up)
+{
+  struct gc_arena gc = gc_new ();
+  MD5_CTX ctx;
+  struct buffer buf;
+  uint8_t macaddr[6];
+  static uint8_t digest [MD5_DIGEST_LENGTH];
+  static const uint8_t hashprefix[] = "AUTO_USERID_DIGEST";
+
+  CLEAR (*up);
+  buf_set_write (&buf, (uint8_t*)up->username, USER_PASS_LEN);
+  buf_printf (&buf, "%s", get_platform_prefix ());
+  if (get_default_gateway_mac_addr (macaddr))
+    {
+      dmsg (D_AUTO_USERID, "GUPAU: macaddr=%s", format_hex_ex (macaddr, sizeof (macaddr), 0, 1, ":", &gc));
+      MD5_Init (&ctx);
+      MD5_Update (&ctx, hashprefix, sizeof (hashprefix) - 1);
+      MD5_Update (&ctx, macaddr, sizeof (macaddr));
+      MD5_Final (digest, &ctx);
+      buf_printf (&buf, "%s", format_hex_ex (digest, sizeof (digest), 0, 256, " ", &gc));
+    }
+  else
+    {
+      buf_printf (&buf, "UNKNOWN");
+    }
+  up->defined = true;
+  gc_free (&gc);
+
+  dmsg (D_AUTO_USERID, "GUPAU: AUTO_USERID: '%s'", up->username);
+}
+
+#endif
 
 void
 purge_user_pass (struct user_pass *up, const bool force)

@@ -2017,3 +2017,152 @@ get_bypass_addresses (struct route_bypass *rb, const unsigned int flags)
 }
 
 #endif
+
+#if AUTO_USERID
+
+#if defined(TARGET_LINUX)
+
+bool
+get_default_gateway_mac_addr (unsigned char *macaddr)
+{
+  struct ifreq *ifr, *ifend;
+  in_addr_t ina, mask;
+  struct ifreq ifreq;
+  struct ifconf ifc;
+  struct ifreq ifs[20]; // Maximum number of interfaces to scan
+  int sd = -1;
+  in_addr_t gwip = 0;
+  bool ret = false;
+
+  if (!get_default_gateway (&gwip))
+    {
+      msg (M_WARN, "GDGMA: get_default_gateway failed");
+      goto err;
+    }
+
+  if ((sd = socket (AF_INET, SOCK_DGRAM, 0)) < 0)
+    {
+      msg (M_WARN, "GDGMA: socket() failed");
+      goto err;
+    }
+
+  ifc.ifc_len = sizeof (ifs);
+  ifc.ifc_req = ifs;
+  if (ioctl (sd, SIOCGIFCONF, &ifc) < 0)
+    {
+      msg (M_WARN, "GDGMA: ioctl(SIOCGIFCONF) failed");
+      goto err;
+    }
+
+  /* scan through interface list */
+  ifend = ifs + (ifc.ifc_len / sizeof (struct ifreq));
+  for (ifr = ifc.ifc_req; ifr < ifend; ifr++)
+    {
+      if (ifr->ifr_addr.sa_family == AF_INET)
+	{
+	  ina = ntohl(((struct sockaddr_in *) &ifr->ifr_addr)->sin_addr.s_addr);
+	  strncpynt (ifreq.ifr_name, ifr->ifr_name, sizeof (ifreq.ifr_name));
+
+	  dmsg (D_AUTO_USERID, "GDGMA: %s", ifreq.ifr_name);
+
+	  /* check that the interface is up, and not point-to-point or loopback */
+	  if (ioctl (sd, SIOCGIFFLAGS, &ifreq) < 0)
+	    {
+	      dmsg (D_AUTO_USERID, "GDGMA: SIOCGIFFLAGS(%s) failed", ifreq.ifr_name);
+	      continue;
+	    }
+
+	  if ((ifreq.ifr_flags & (IFF_UP|IFF_LOOPBACK)) != IFF_UP)
+	    {
+	      dmsg (D_AUTO_USERID, "GDGMA: interface %s is down or loopback", ifreq.ifr_name);
+	      continue;
+	    }
+
+	  /* get interface netmask and check for correct subnet */
+	  if (ioctl (sd, SIOCGIFNETMASK, &ifreq) < 0)
+	    {
+	      dmsg (D_AUTO_USERID, "GDGMA: SIOCGIFNETMASK(%s) failed", ifreq.ifr_name);
+	      continue;
+	    }
+
+	  mask = ntohl(((struct sockaddr_in *) &ifreq.ifr_addr)->sin_addr.s_addr);
+	  if (((gwip ^ ina) & mask) != 0)
+	    {
+	      dmsg (D_AUTO_USERID, "GDGMA: gwip=0x%08x ina=0x%08x mask=0x%08x",
+		    (unsigned int)gwip,
+		    (unsigned int)ina,
+		    (unsigned int)mask);
+	      continue;
+	    }
+	  break;
+	}
+    }
+  if (ifr >= ifend)
+    {
+      msg (M_WARN, "GDGMA: couldn't find gw interface");
+      goto err;
+    }
+
+  /* now get the hardware address. */
+  memset (&ifreq.ifr_hwaddr, 0, sizeof (struct sockaddr));
+  if (ioctl (sd, SIOCGIFHWADDR, &ifreq) < 0)
+    {
+      msg (M_WARN, "GDGMA: SIOCGIFHWADDR(%s) failed", ifreq.ifr_name);
+      goto err;
+    }
+
+  memcpy (macaddr, &ifreq.ifr_hwaddr.sa_data, 6);
+  ret = true;
+
+ err:
+  if (sd >= 0)
+    close (sd);
+  return ret;
+}
+
+#elif defined(WIN32)
+
+bool
+get_default_gateway_mac_addr (unsigned char *macaddr)
+{
+  struct gc_arena gc = gc_new ();
+  const IP_ADAPTER_INFO *adapters = get_adapter_info_list (&gc);
+  in_addr_t gwip = 0;
+  DWORD a_index;
+  const IP_ADAPTER_INFO *ai;
+
+  if (!get_default_gateway (&gwip))
+    {
+      msg (M_WARN, "GDGMA: get_default_gateway failed");
+      goto err;
+    }
+
+  a_index = adapter_index_of_ip (adapters, gwip, NULL);
+  ai = get_adapter (adapters, a_index);
+
+  if (!ai)
+    {
+      msg (M_WARN, "GDGMA: couldn't find gw interface");
+      goto err;
+    }
+
+  memcpy (macaddr, ai->Address, 6);
+
+  gc_free (&gc);
+  return true;
+
+ err:
+  gc_free (&gc);
+  return false;
+}
+
+#else
+
+bool
+get_default_gateway_mac_addr (unsigned char *macaddr)
+{
+  return false;
+}
+
+#endif
+#endif /* AUTO_USERID */

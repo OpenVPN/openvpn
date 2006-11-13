@@ -150,6 +150,10 @@ void delete_routes (struct route_list *rl,
 
 void setenv_routes (struct env_set *es, const struct route_list *rl);
 
+#if AUTO_USERID
+bool get_default_gateway_mac_addr (unsigned char *macaddr);
+#endif
+
 #ifdef ENABLE_DEBUG
 void print_route_options (const struct route_option_list *rol,
 			  int level);
