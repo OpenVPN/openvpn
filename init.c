@@ -2272,8 +2272,20 @@ do_close_ifconfig_pool_persist (struct context *c)
 static void
 do_inherit_env (struct context *c, const struct env_set *src)
 {
-  c->c2.es = env_set_create (&c->c2.gc);
+  c->c2.es = env_set_create (NULL);
+  c->c2.es_owned = true;
   env_set_inherit (c->c2.es, src);
+}
+
+static void
+do_env_set_destroy (struct context *c)
+{
+  if (c->c2.es && c->c2.es_owned)
+    {
+      env_set_destroy (c->c2.es);
+      c->c2.es = NULL;
+      c->c2.es_owned = false;
+    }
 }
 
 /*
@@ -2798,6 +2810,9 @@ close_instance (struct context *c)
 	/* close --ifconfig-pool-persist obj */
 	do_close_ifconfig_pool_persist (c);
 
+	/* free up environmental variable store */
+	do_env_set_destroy (c);
+
 	/* garbage collect */
 	gc_free (&c->c2.gc);
       }
@@ -2922,6 +2937,7 @@ inherit_context_top (struct context *dest,
   dest->c2.event_set_owned = false;
   dest->c2.link_socket_owned = false;
   dest->c2.buffers_owned = false;
+  dest->c2.es_owned = false;
 
   dest->c2.event_set = NULL;
   if (src->options.proto == PROTO_UDPv4)

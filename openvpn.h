@@ -403,6 +403,7 @@ struct context_2
 
   /* environmental variables to pass to scripts */
   struct env_set *es;
+  bool es_owned;
 
   /* don't wait for TUN/TAP/UDP to be ready to accept write */
   bool fast_io;

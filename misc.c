@@ -690,13 +690,13 @@ add_env_item (char *str, const bool do_alloc, struct env_item **list, struct gc_
 static bool
 env_set_del_nolock (struct env_set *es, const char *str)
 {
-  return remove_env_item (str, false, &es->list);
+  return remove_env_item (str, es->gc == NULL, &es->list);
 }
 
 static void
 env_set_add_nolock (struct env_set *es, const char *str)
 {
-  remove_env_item (str, false, &es->list);  
+  remove_env_item (str, es->gc == NULL, &es->list);  
   add_env_item ((char *)str, true, &es->list, es->gc);
 }
 
@@ -704,13 +704,31 @@ struct env_set *
 env_set_create (struct gc_arena *gc)
 {
   struct env_set *es;
-  ASSERT (gc);
   mutex_lock_static (L_ENV_SET);
   ALLOC_OBJ_CLEAR_GC (es, struct env_set, gc);
   es->list = NULL;
   es->gc = gc;
   mutex_unlock_static (L_ENV_SET);
   return es;
+}
+
+void
+env_set_destroy (struct env_set *es)
+{
+  mutex_lock_static (L_ENV_SET);
+  if (es && es->gc == NULL)
+    {
+      struct env_item *e = es->list;
+      while (e)
+	{
+	  struct env_item *next = e->next;
+	  free (e->string);
+	  free (e);
+	  e = next;
+	}
+      free (es);
+    }
+  mutex_unlock_static (L_ENV_SET);
 }
 
 bool

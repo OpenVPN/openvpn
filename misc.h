@@ -168,6 +168,7 @@ void setenv_del (struct env_set *es, const char *name);
 /* struct env_set functions */
 
 struct env_set *env_set_create (struct gc_arena *gc);
+void env_set_destroy (struct env_set *es);
 bool env_set_del (struct env_set *es, const char *str);
 void env_set_add (struct env_set *es, const char *str);
 
