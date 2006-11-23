@@ -4,307 +4,119 @@
 # in OpenSSL.
 
 {
-   test1
+   cond_BN
    Memcheck:Cond
    fun:BN_*
 }
 
 {
-   test2
+   value4_BN
    Memcheck:Value4
    fun:BN_*
 }
 
 {
-   test3
+   cond_bn
    Memcheck:Cond
    fun:bn_*
 }
 
 {
-   test4
+   value4_bn
    Memcheck:Value4
    fun:bn_*
 }
 
 {
-   test5
-   Memcheck:Cond
-   fun:getrn
-}
-
-{
-   test6
-   Memcheck:Value4
-   fun:getrn
-}
-
-{
-   test7
-   Memcheck:Value4
-   fun:lh_retrieve
-}
-
-{
-   test8
-   Memcheck:Cond
-   fun:lh_retrieve
-}
-
-{
-   test10
-   Memcheck:Cond
-   fun:RSA_verify
-}
-
-{
-   test11
-   Memcheck:Value4
-   fun:RSA_verify
-}
-
-{
-   test12
-   Memcheck:Value4
-   fun:AES_set_encrypt_key
-}
-
-{
-   test13
-   Memcheck:Value4
-   fun:AES_set_decrypt_key
-}
-
-{
-   test14
-   Memcheck:Value4
-   fun:AES_decrypt
-}
-
-{
-   test15
-   Memcheck:Value4
-   fun:BF_encrypt
-}
-
-{
-   test16
-   Memcheck:Cond
-   fun:tls1_enc
-}
-
-{
-   test17
-   Memcheck:Value4
-   fun:tls1_enc
-}
-
-{
-   test18
-   Memcheck:Cond
-   fun:ssl3_read_bytes
-}
-
-{
-   test19
+   cond_SHA1_Update
    Memcheck:Cond
    fun:SHA1_Update
 }
 
 {
-   test20
+   value4_SHA1_Update
    Memcheck:Value4
    fun:SHA1_Update
 }
 
 {
-   test21
+   cond_ssl3_read_bytes
    Memcheck:Cond
-   fun:SHA1_Final
-}
-
-{
-   test22
-   Memcheck:Value4
-   fun:SHA1_Final
-}
-
-{
-   test23
-   Memcheck:Value4
    fun:ssl3_read_bytes
 }
 
 {
-   test24
+   cond_crypto
    Memcheck:Cond
-   fun:ssl3_get_message
+   obj:/lib/libcrypto.so.*
 }
 
 {
-   test25
+   value4_crypto
+   Memcheck:Value4
+   obj:/lib/libcrypto.so.*
+}
+
+{
+   cond_ssl
    Memcheck:Cond
+   obj:/lib/libssl.so.*
+}
+
+{
+   value4_ssl
+   Memcheck:Value4
+   obj:/lib/libssl.so.*
+}
+
+{
+   addr4_AES_cbc_encrypt
+   Memcheck:Addr4
+   fun:AES_cbc_encrypt
+}
+
+{
+   cond_memcpy_ssl3_read_bytes
+   Memcheck:Cond
+   fun:memcpy
+   fun:ssl3_read_bytes
+}
+
+{
+   value4_memcpy_ssl3_read_bytes
+   Memcheck:Value4
+   fun:memcpy
+   fun:ssl3_read_bytes
+}
+
+{
+   cond_memset_BUF_MEM_grow_clean
+   Memcheck:Cond
+   fun:memset
    fun:BUF_MEM_grow_clean
 }
 
 {
-   test26
-   Memcheck:Cond
-   fun:memcpy
-   fun:ssl3_read_bytes
-}
-
-{
-   test27
-   Memcheck:Value4
-   fun:memcpy
-   fun:ssl3_read_bytes
-}
-
-{
-   test28
-   Memcheck:Cond
-   fun:MD5_Update
-}
-
-{
-   test29
-   Memcheck:Value4
-   fun:MD5_Update
-}
-
-{
-   test30
-   Memcheck:Cond
-   fun:ssl3_get_finished
-}
-
-{
-   test31
-   Memcheck:Value4
-   fun:ssl3_get_finished
-}
-
-{
-   test32
-   Memcheck:Cond
-   fun:MD5_Final
-}
-
-{
-   test33
-   Memcheck:Value4
-   fun:MD5_Final
-}
-
-{
-   test34
-   Memcheck:Value4
-   fun:AES_encrypt
-}
-
-{
-   test35
-   Memcheck:Cond
-   fun:sha1_block_asm_data_order
-}
-
-{
-   test36
-   Memcheck:Cond
-   fun:ssl3_read
-}
-
-{
-   test37
-   Memcheck:Cond
-   fun:SSL_get_error
-}
-
-{
-   test38
-   Memcheck:Cond
-   fun:BIO_read
-}
-
-{
-   test39
+   value4_memset_BUF_MEM_grow_clean
    Memcheck:Value4
    fun:memset
+   fun:BUF_MEM_grow_clean
 }
 
 {
-   test40
-   Memcheck:Cond
-   fun:ssl_read
-}
-
-{
-   test41
-   Memcheck:Cond
-   fun:memset
-}
-
-{
-   test42
-   Memcheck:Cond
-   fun:ssl3_read_internal
-}
-
-{
-   test43
-   Memcheck:Cond
-   fun:ssl3_get_cert_verify
-}
-
-{
-   test44
+   SSL_get_ex_new_index
    Memcheck:Leak
    fun:malloc
-   fun:gc_malloc
-   fun:alloc_buf_gc
-   fun:construct_name_value
-}
-
-{
-   test45
-   Memcheck:Leak
-   fun:malloc
-   fun:default_malloc_ex
-}
-
-{
-   test46
-   Memcheck:Leak
-   fun:malloc
-   fun:gc_malloc
-   fun:add_env_item
-   fun:manage_env
-}
-
-{
-   test47
-   Memcheck:Cond
-   fun:lzo1x_1_15_compress
-}
-
-{
-   test48
-   Memcheck:Value4
-   fun:DES_set_key_unchecked
-}
-
-{
-   test49
-   Memcheck:Value4
-   fun:DES_encrypt2
-}
-
-{
-   test50
-   Memcheck:Leak
-   fun:malloc
-   fun:_IO_getdelim
-   fun:getline
-   fun:getpass
+   obj:/lib/libcrypto.so.*
+   fun:CRYPTO_malloc
+   fun:lh_new
+   obj:/lib/libcrypto.so.*
+   obj:/lib/libcrypto.so.*
+   obj:/lib/libcrypto.so.*
+   fun:CRYPTO_get_ex_new_index
+   fun:SSL_get_ex_new_index
+   fun:ssl_set_mydata_index
+   fun:init_ssl_lib
+   fun:init_static
+   fun:main
 }
