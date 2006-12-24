@@ -3860,6 +3860,19 @@ packets sent and received (disabled by default).
 Renegotiate data channel key after
 .B n
 seconds (default=3600).
+
+When using dual-factor authentication, note that this default value may
+cause the end user to be challenged to reauthorize once per hour.
+
+Also, keep in mind that this option can be used on both the client and server,
+and whichever uses the lower value will be the one to trigger the renegotiation.
+A common mistake is to set
+.B --reneg-sec
+to a higher value on either the client or server, while the other side of the connection
+is still using the default value of 3600 seconds, meaning that the renegotiation will
+still occur once per 3600 seconds.  The solution is to increase --reneg-sec on both the
+client and server, or set it to 0 on one side of the connection (to disable), and to
+your chosen value on the other side.
 .\"*********************************************************
 .TP
 .B --hand-window n
