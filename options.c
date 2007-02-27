@@ -1550,7 +1550,7 @@ options_postprocess (struct options *options, bool first_time)
       if ((dev == DEV_TYPE_TUN || dev == DEV_TYPE_TAP) && !options->route_delay_defined)
 	{
 	  options->route_delay_defined = true;
-	  options->route_delay = 0;
+	  options->route_delay = 5; /* Vista sometimes has a race without this */
 	}
 
       if (options->ifconfig_noexec)
