@@ -9,6 +9,7 @@
 
 !include "MUI.nsh"
 !include "setpath.nsi"
+!include "GetWindowsVersion.nsi"
 
 !define HOME ".."
 !define BIN "${HOME}\bin"
@@ -16,7 +17,7 @@
 !define PRODUCT_NAME "OpenVPN"
 !define VERSION "@VERSION@" # AUTO_VERSION
 
-!define TAP "tap0801"
+!define TAP "tap0901"
 !define TAPDRV "${TAP}.sys"
 
 ; something like "-DBG2"
@@ -168,6 +169,8 @@ FunctionEnd
 
 Function .onInit
   ClearErrors
+
+# Verify that user has admin privs
   UserInfo::GetName
   IfErrors ok
   Pop $R0
@@ -177,6 +180,35 @@ Function .onInit
     Messagebox MB_OK "Administrator privileges required to install OpenVPN [$R0/$R1]"
     Abort
   ok:
+
+  Call GetWindowsVersion
+  Pop $1
+  StrCmp $1 "2000" goodwinver
+  StrCmp $1 "XP" goodwinver
+  StrCmp $1 "2003" goodwinver
+  StrCmp $1 "VISTA" goodwinver
+
+  Messagebox MB_OK "Sorry, OpenVPN does not currently support Windows $1"
+  Abort
+
+goodwinver:
+  System::Call "kernel32::GetCurrentProcess() i .s"
+  System::Call "kernel32::IsWow64Process(i s, *i .r0)"
+  IntCmp $0 0 init32bits
+
+  ; we are running on 64-bit windows
+  StrCmp $1 "VISTA" vista64bummer
+
+  Messagebox MB_OK "Sorry, OpenVPN doesn't currently support 64-bit Windows."
+  Abort
+
+vista64bummer:
+
+  Messagebox MB_OK "Sorry, OpenVPN doesn't currently support 64-bit Vista because Microsoft doesn't allow the installation of 64 bit unsigned drivers."
+  Abort
+
+init32bits:
+
 FunctionEnd
 
 !define SF_SELECTED 1
@@ -290,13 +322,15 @@ Section "TAP-Win32 Virtual Ethernet Adapter" SecTAP
   DetailPrint "We are running on a 64-bit system."
 
   SetOutPath "$INSTDIR\bin"
-  File "${BIN}\ti3790-amd64\tapinstall.exe"
+
+;  File "${BIN}\ti3790-amd64\tapinstall.exe"
 
   SetOutPath "$INSTDIR\driver"
-  File "${HOME}\tap-win32\amd64\OemWin2k.inf"
-  File "${HOME}\tap-win32\amd64\${TAPDRV}"
 
-  goto tapend
+;  File "${HOME}\tap-win32\amd64\OemWin2k.inf"
+;  File "${HOME}\tap-win32\amd64\${TAPDRV}"
+
+goto tapend
 
 tap-32bit:
 
@@ -382,12 +416,10 @@ Section -post
 
  tapinstall:
     DetailPrint "TAP-Win32 REMOVE OLD TAP"
-    nsExec::ExecToLog '"$INSTDIR\bin\tapinstall.exe" remove TAP'
+
+    nsExec::ExecToLog '"$INSTDIR\bin\tapinstall.exe" remove TAP0801'
     Pop $R0 # return value/error/timeout
-    DetailPrint "tapinstall remove TAP returned: $R0"
-    nsExec::ExecToLog '"$INSTDIR\bin\tapinstall.exe" remove TAPDEV'
-    Pop $R0 # return value/error/timeout
-    DetailPrint "tapinstall remove TAPDEV returned: $R0"
+    DetailPrint "tapinstall remove TAP0801 returned: $R0"
 
     DetailPrint "TAP-Win32 INSTALL (${TAP})"
     nsExec::ExecToLog '"$INSTDIR\bin\tapinstall.exe" install "$INSTDIR\driver\OemWin2k.inf" ${TAP}'

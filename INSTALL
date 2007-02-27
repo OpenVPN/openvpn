@@ -323,7 +323,7 @@ I had to edit the file OemWin2k.inf and change the Manufactured + Product
 Section to:
 
 [Manufacturer]
-   %Provider% = tap0801, NTamd64
+   %Provider% = tap0901, NTamd64
 
-[tap0801.NTamd64]
-   %DeviceDescription% = tap0801.ndi, tap0801
+[tap0901.NTamd64]
+   %DeviceDescription% = tap0901.ndi, tap0901

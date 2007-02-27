@@ -335,7 +335,7 @@
 +#define SZSERVICEDISPLAYNAME "OpenVPN Service"
  // list of service dependencies - "dep1\0dep2\0\0"
 -#define SZDEPENDENCIES       ""
-+#define SZDEPENDENCIES       "TAP0801\0Dhcp\0\0"
++#define SZDEPENDENCIES       "TAP0901\0Dhcp\0\0"
  //////////////////////////////////////////////////////////////////////////////
  
  

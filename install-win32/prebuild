@@ -28,11 +28,10 @@ LZO=$H/lzo-2.02
 # dmalloc.
 DMALLOC=$H/dmalloc-5.4.2
 
-# TAP binaries should be here: tap0801.sys and tapinstall.exe
+# TAP binaries should be here: tap0901.sys and tapinstall.exe
 # These must be built with MS DDK.
-TAPBIN=$H/tapbin-0804
-TAPBIN64=$H/tapbin64-0801
-#TAPBIN64=$H/tapbin64-0804
+TAPBIN=$H/tapbin-0901
+#TAPBIN64=$H/tapbin64-0901
 
 # u2d.c should exist here.
 SCRIPTS=$IN/install-win32
@@ -86,6 +85,7 @@ mkdir $OUT/install-win32
 
 cp $IN/install-win32/openvpn.nsi $OUT/install-win32
 cp $IN/install-win32/setpath.nsi $OUT/install-win32
+cp $IN/install-win32/GetWindowsVersion.nsi $OUT/install-win32
 cp $IN/images/install-whirl.bmp $OUT/install-win32
 cp $IN/images/openvpn.ico $OUT/install-win32
 cp $IN/INSTALL-win32.txt $OUT/install-win32
@@ -107,18 +107,17 @@ cp $IN/tap-win32/SOURCES $OUT/tap-win32
 mkdir $OUT/tap-win32/i386
 cp $IN/tap-win32/i386/OemWin2k.inf $OUT/tap-win32/i386
 cp $IN/tap-win32/i386/tap.cat $OUT/tap-win32/i386
-cp $TAPBIN/tap0801.sys $OUT/tap-win32/i386
+cp $TAPBIN/tap0901.sys $OUT/tap-win32/i386
 
-mkdir $OUT/tap-win32/amd64
-cp $TAPBIN64/OemWin2k.inf $OUT/tap-win32/amd64
-#cp $IN/tap-win32/amd64/OemWin2k.inf $OUT/tap-win32/amd64
-cp $IN/tap-win32/amd64/tap.cat $OUT/tap-win32/amd64
-cp $TAPBIN64/tap0801.sys $OUT/tap-win32/amd64
+#mkdir $OUT/tap-win32/amd64
+#cp $TAPBIN64/OemWin2k.inf $OUT/tap-win32/amd64
+#cp $IN/tap-win32/amd64/tap.cat $OUT/tap-win32/amd64
+#cp $TAPBIN64/tap0901.sys $OUT/tap-win32/amd64
 
 mkdir $OUT/bin/ti3790-i386
 cp $TAPBIN/tapinstall.exe $OUT/bin/ti3790-i386
-mkdir $OUT/bin/ti3790-amd64
-cp $TAPBIN64/tapinstall.exe $OUT/bin/ti3790-amd64
+#mkdir $OUT/bin/ti3790-amd64
+#cp $TAPBIN64/tapinstall.exe $OUT/bin/ti3790-amd64
 
 echo BUILD service-win32
 
@@ -133,7 +132,11 @@ cp $OUT/service-win32/service.h $OUT/service-win32/service.h.orig
 cp $OUT/service-win32/service.c $OUT/service-win32/service.c.orig
 
 pushd $OUT/service-win32
-patch <service.patch
+
+# Vista security theatre
+cp `which patch` p.exe
+
+./p <service.patch
 popd
 
 echo BUILD easy-rsa

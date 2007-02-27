@@ -59,7 +59,7 @@ typedef unsigned long in_addr_t;
  *
  * The TAP-Win32 version number is defined in tap-win32/SOURCES
  */
-#define TAP_WIN32_MIN_MAJOR 8
+#define TAP_WIN32_MIN_MAJOR 9
 #define TAP_WIN32_MIN_MINOR 1
 
 /* Allow --askpass and --auth-user-pass passwords to be read from a file */

@@ -30,7 +30,7 @@
 //                        Product and Version public settings
 //====================================================================
 
-#define PRODUCT_STRING "TAP-Win32 Adapter V8"
+#define PRODUCT_STRING "TAP-Win32 Adapter V9"
 
 #define TAP_NDIS_MAJOR_VERSION 5
 #define TAP_NDIS_MINOR_VERSION 0
