@@ -649,7 +649,7 @@ init_options (struct options *o)
   o->tuntap_options.txqueuelen = 100;
 #endif
 #ifdef WIN32
-#if 1
+#if 0
   o->tuntap_options.ip_win32_type = IPW32_SET_ADAPTIVE;
 #else
   o->tuntap_options.ip_win32_type = IPW32_SET_DHCP_MASQ;
