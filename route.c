@@ -1279,16 +1279,34 @@ add_route_ipapi (const struct route *r, const struct tuntap *tt)
 	ret = true;
       else
 	{
-	  /* failed, try a different forward type (--redirect-gateway over RRAS seems to need this) */
-	  fr.dwForwardType = 3;  /* the next hop is the final dest */
+	  /* failed, try increasing the metric to work around Vista issue */
+	  const unsigned int forward_metric_limit = 2048; /* iteratively retry higher metrics up to this limit */
 
-	  status = CreateIpForwardEntry (&fr);
+	  for ( ; fr.dwForwardMetric1 <= forward_metric_limit; ++fr.dwForwardMetric1)
+	    {
+	      /* try a different forward type=3 ("the next hop is the final dest") in addition to 4.
+		 --redirect-gateway over RRAS seems to need this. */
+	      for (fr.dwForwardType = 4; fr.dwForwardType >= 3; --fr.dwForwardType)
+		{
+		  status = CreateIpForwardEntry (&fr);
+		  if (status == NO_ERROR)
+		    {
+		      msg (D_ROUTE, "ROUTE: CreateIpForwardEntry succeeded with dwForwardMetric1=%u and dwForwardType=%u",
+			   (unsigned int)fr.dwForwardMetric1,
+			   (unsigned int)fr.dwForwardType);
+		      ret = true;
+		      goto doublebreak;
+		    }
+		  else if (status != ERROR_BAD_ARGUMENTS)
+		    goto doublebreak;
+		}
+	    }
 
-	  if (status == NO_ERROR)
-	    ret = true;
-	  else
-	    msg (M_WARN, "ROUTE: route addition failed using CreateIpForwardEntry: %s [if_index=%u]",
+	doublebreak:
+	  if (status != NO_ERROR)
+	    msg (M_WARN, "ROUTE: route addition failed using CreateIpForwardEntry: %s [status=%u if_index=%u]",
 		 strerror_win32 (status, &gc),
+		 (unsigned int)status,
 		 (unsigned int)if_index);
 	}
     }
