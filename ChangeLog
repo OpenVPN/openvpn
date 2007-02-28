@@ -3,6 +3,69 @@ Copyright (C) 2002-2005 OpenVPN Solutions LLC <info@openvpn.net>
 
 $Id$
 
+2007.02.27 -- Version 2.1_rc2
+
+* auth-pam change:  link with -lpam rather
+  than dlopen (Roy Marples).
+
+* Prevent SIGUSR1 or SIGHUP from causing program
+  exit from initial management hold.
+
+* SO_REUSEADDR should not be set on Windows TCP sockets
+  because it will cause bind to succeed on port conflicts.
+
+* Added time_ascii, time_duration, and time_unix
+  environmental variables for plugins and callback
+  scripts.
+
+* Fixed issue where OpenVPN does not apply the --txqueuelen option
+  to persistent interfaces made with --mktun (Roy Marples).
+
+* Attempt at rational signal handling when in the
+  management hold state.  During management hold, ignore
+  SIGUSR1/SIGHUP signals thrown with the "signal" command.
+  Also, "signal" command will now apply remapping as
+  specified with the --remap-usr1 option.
+  When a signal entered using the "signal" command from a management
+  hold is ignored, output: >HOLD:Waiting for hold release
+
+* Fixed issue where struct env_set methods that
+  change the value of an existing name=value pair
+  would delay the freeing of the memory held by
+  the previous name=value pair until the underlying
+  client instance object is closed.
+  This could cause a server that handles long-term
+  client connections, resulting in many periodic calls
+  to verify_callback, to needlessly grow the env_set
+  memory allocation until the underlying client instance
+  object is closed.
+
+* Renamed TAP-Win32 driver from tap0801.sys to tap0901.sys
+  to reflect the fact that Vista has blacklisted the tap0801.sys
+  file name due to previous compatibility issues which have now
+  been resolved.  TAP-Win32 major/minor version number is now 9/1.
+
+* Windows installer will delete a previously installed
+  tap0801.sys TAP driver before installing tap0901.sys.
+
+* Added code to Windows installer to fail gracefully on 64 bit
+  installs until 64-bit TAP driver issues can be resolved.
+
+* Added code to Windows installer to fail gracefully on
+  versions of Windows which are not explicitly supported.
+
+* The Windows version will now use a default route-delay
+  of 5 seconds to deal with an apparent routing table race
+  condition on Vista.
+
+* Worked around an incompatibility in the Windows Vista
+  version of CreateIpForwardEntry as described in
+  http://www.nynaeve.net/?p=59
+  This issue would cause route additions using the
+  IP Helper API to fail on Vista.
+
+* On Windows, revert to "ip-win32 dynamic" as the default.
+
 2006.10.31 -- Version 2.1_rc1
 
 * Support recovery (return to hold) from signal at
