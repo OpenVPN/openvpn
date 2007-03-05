@@ -199,13 +199,13 @@ goodwinver:
   ; we are running on 64-bit windows
   StrCmp $1 "VISTA" vista64bummer
 
-  Messagebox MB_OK "Sorry, OpenVPN doesn't currently support 64-bit Windows."
-  Abort
+#  Messagebox MB_OK "Sorry, OpenVPN doesn't currently support 64-bit Windows."
+#  Abort
 
 vista64bummer:
 
-  Messagebox MB_OK "Sorry, OpenVPN doesn't currently support 64-bit Vista because Microsoft doesn't allow the installation of 64 bit unsigned drivers."
-  Abort
+#  Messagebox MB_OK "Sorry, OpenVPN doesn't currently support 64-bit Vista because Microsoft doesn't allow the installation of 64 bit unsigned drivers."
+#  Abort
 
 init32bits:
 
@@ -323,12 +323,12 @@ Section "TAP-Win32 Virtual Ethernet Adapter" SecTAP
 
   SetOutPath "$INSTDIR\bin"
 
-;  File "${BIN}\ti3790-amd64\tapinstall.exe"
+  File "${BIN}\ti3790-amd64\tapinstall.exe"
 
   SetOutPath "$INSTDIR\driver"
 
-;  File "${HOME}\tap-win32\amd64\OemWin2k.inf"
-;  File "${HOME}\tap-win32\amd64\${TAPDRV}"
+  File "${HOME}\tap-win32\amd64\OemWin2k.inf"
+  File "${HOME}\tap-win32\amd64\${TAPDRV}"
 
 goto tapend
 
