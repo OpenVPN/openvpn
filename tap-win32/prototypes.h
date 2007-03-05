@@ -187,8 +187,25 @@ VOID HookDispatchFunctions();
 
 #if ENABLE_NONADMIN
 
+/*
+ * Better solution for use on Vista DDK, but possibly not compatible with
+ * earlier DDKs:
+ *
+ * Eliminate the definition of SECURITY_DESCRIPTOR (and even ZwSetSecurityObject),
+ * and at the top of tapdrv.c change:
+ *
+ * #include <ndis.h>
+ * #include <ntstrsafe.h>
+ * #include <ntddk.h>
+ *
+ * To
+ *
+ * #include <ntifs.h>
+ * #include <ndis.h>
+ * #include <ntstrsafe.h>
+ */
 typedef struct _SECURITY_DESCRIPTOR {
-  unsigned char opaque[20];
+  unsigned char opaque[64];
 } SECURITY_DESCRIPTOR;
 
 NTSYSAPI
