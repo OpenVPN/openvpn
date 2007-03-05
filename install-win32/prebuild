@@ -105,8 +105,8 @@ cp $IN/tap-win32/MAKEFILE $OUT/tap-win32
 cp $IN/tap-win32/SOURCES $OUT/tap-win32
 
 mkdir $OUT/tap-win32/i386
-cp $IN/tap-win32/i386/OemWin2k.inf $OUT/tap-win32/i386
-cp $IN/tap-win32/i386/tap.cat $OUT/tap-win32/i386
+cp $TAPBIN/OemWin2k.inf $OUT/tap-win32/i386
+cp $TAPBIN/tap.cat $OUT/tap-win32/i386
 cp $TAPBIN/tap0901.sys $OUT/tap-win32/i386
 
 #mkdir $OUT/tap-win32/amd64

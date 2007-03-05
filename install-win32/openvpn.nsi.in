@@ -341,6 +341,7 @@ tap-32bit:
 
   SetOutPath "$INSTDIR\driver"
   File "${HOME}\tap-win32\i386\OemWin2k.inf"
+  File "${HOME}\tap-win32\i386\tap.cat"
   File "${HOME}\tap-win32\i386\${TAPDRV}"
 
   tapend:
@@ -584,6 +585,7 @@ Section "Uninstall"
   Delete "$INSTDIR\log\README.txt"
 
   Delete "$INSTDIR\driver\OemWin2k.inf"
+  Delete "$INSTDIR\driver\tap.cat"
   Delete "$INSTDIR\driver\${TAPDRV}"
 
   Delete "$INSTDIR\bin\openssl.exe"
