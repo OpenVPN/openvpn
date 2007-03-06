@@ -38,6 +38,6 @@ cd $SIGN
 
 TS="http://timestamp.verisign.com/scripts/timstamp.dll"
 echo '******************' SIGN .cat FILE for x86
-./signcode -spc mycredentials.spc -v myprivatekey.pvk -n "OpenVPN TAP-Win32 Driver" -t $TS `perl $c/install-win32/dosname.pl $x86/tap.cat`
+./signcode -spc mycredentials.spc -v myprivatekey.pvk -a sha1 -n "OpenVPN TAP-Win32 Driver" -t $TS `perl $c/install-win32/dosname.pl $x86/tap.cat`
 echo '******************' SIGN .cat FILE for x64
-./signcode -spc mycredentials.spc -v myprivatekey.pvk -n "OpenVPN TAP-Win64 Driver" -t $TS `perl $c/install-win32/dosname.pl $x64/tap.cat`
+./signcode -spc mycredentials.spc -v myprivatekey.pvk -a sha1 -n "OpenVPN TAP-Win64 Driver" -t $TS `perl $c/install-win32/dosname.pl $x64/tap.cat`

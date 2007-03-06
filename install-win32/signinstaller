@@ -1,0 +1,16 @@
+#!/bin/sh
+
+# Sign the installer
+
+SIGN=../sign
+
+c=`pwd`
+cd install-win32
+ls openvpn*.exe 2>/dev/null || exit 1
+exe=`pwd`/`ls -t openvpn*.exe | head -n 1`
+cd $c
+cd $SIGN
+
+TS="http://timestamp.verisign.com/scripts/timstamp.dll"
+echo '******************' SIGN OpenVPN INSTALLER
+./signcode -spc mycredentials.spc -v myprivatekey.pvk -a sha1 -n "OpenVPN Installer" -t $TS `perl $c/install-win32/dosname.pl $exe`
