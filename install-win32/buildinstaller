@@ -1,0 +1,6 @@
+#!/bin/sh
+
+# build the installer
+
+cd install-win32
+'/c/Program Files/NSIS/makensis' openvpn.nsi
