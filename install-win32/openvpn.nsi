@@ -7,6 +7,7 @@
 
 ; OpenVPN install script for Windows, using NSIS
 
+!include "version.nsi"
 !include "MUI.nsh"
 !include "setpath.nsi"
 !include "GetWindowsVersion.nsi"
@@ -15,7 +16,7 @@
 !define BIN "${HOME}\bin"
 
 !define PRODUCT_NAME "OpenVPN"
-!define VERSION "@VERSION@" # AUTO_VERSION
+!define VERSION "${PRODUCT_VERSION}"
 
 !define TAP "tap0901"
 !define TAPDRV "${TAP}.sys"

@@ -672,4 +672,4 @@ if test "$PASSWORD_SAVE" = "yes"; then
    AC_DEFINE(ENABLE_PASSWORD_SAVE, 1, [Allow --askpass and --auth-user-pass passwords to be read from a file])
 fi
 
-AC_OUTPUT(Makefile openvpn.spec config-win32.h install-win32/openvpn.nsi)
+AC_OUTPUT(Makefile openvpn.spec)

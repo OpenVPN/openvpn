@@ -35,7 +35,10 @@
 # Change these to point to your OpenSSL, LZO, and
 # (optionally) dmalloc top-level directories.
 
-OPENSSL = /c/src/openssl-0.9.7i
+# Make sure to define OPENSSL_VERSION as an environmental
+# variable before calling make.
+OPENSSL = /c/src/openssl-${OPENSSL_VERSION}
+
 LZO = /c/src/lzo-2.02
 DMALLOC = /c/src/dmalloc-5.4.2
 

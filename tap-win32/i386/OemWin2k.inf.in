@@ -51,7 +51,7 @@
 
 ; This version number should match the version
 ; number given in SOURCES.
-   DriverVer=03/05/2007,9.00.00.0002
+   DriverVer=@@PRODUCT_TAP_RELDATE@@,@@PRODUCT_TAP_MAJOR_VER@@.00.00.@@PRODUCT_TAP_MINOR_VER@@
 
 [Strings]
    DeviceDescription = "TAP-Win32 Adapter V9"
@@ -61,9 +61,9 @@
 ;                      Manufacturer + Product Section (Done)
 ;----------------------------------------------------------------
 [Manufacturer]
-   %Provider% = tap0901, NTamd64
+   %Provider% = tap0901
 
-[tap0901.NTamd64]
+[tap0901]
    %DeviceDescription% = tap0901.ndi, tap0901
 
 ;---------------------------------------------------------------

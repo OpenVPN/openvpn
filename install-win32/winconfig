@@ -1,0 +1,27 @@
+#!/bin/sh
+
+# prepare files for building on Windows
+# run from top directory: install-win32/winconfig
+
+c=`pwd`
+
+rm -rf autodefs
+mkdir autodefs
+
+TRAN="perl install-win32/nsitran.pl"
+VER=install-win32/version.nsi
+MACRO="perl install-win32/macro.pl $HSV"
+PATCH="/tmp/p.exe"
+
+cp `which patch` $PATCH
+
+$TRAN  c <$VER >autodefs/nsidefs.h
+$TRAN sh <$VER >autodefs/nsidefs.sh
+
+$MACRO $VER <tap-win32/SOURCES.in >tap-win32/SOURCES
+$MACRO $VER <tap-win32/i386/OemWin2k.inf.in >tap-win32/i386/OemWin2k.inf
+rm -rf tap-win32/amd64
+mkdir tap-win32/amd64
+cp tap-win32/i386/OemWin2k.inf tap-win32/amd64
+cd tap-win32/amd64
+$PATCH <../inf64.patch
