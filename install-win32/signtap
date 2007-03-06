@@ -1,0 +1,43 @@
+#!/bin/sh
+
+# Sign the x86 and x64 versions of the TAP driver
+
+SIGN=../sign
+INF2CAT=../inf2cat
+
+c=`pwd`
+
+# copy driver files into tap-win32/dist
+cd tap-win32
+rm -rf dist
+mkdir dist
+cd dist
+mkdir i386
+mkdir amd64
+cd i386
+x86=`pwd`
+cd ../amd64
+x64=`pwd`
+cd ../..
+cp i386/OemWin2k.inf $x86
+cp i386/*.sys $x86
+cp amd64/OemWin2k.inf $x64
+cp amd64/*.sys $x64
+cd $c
+
+cd $INF2CAT
+
+echo '******************' BUILD .cat FILE for x86
+cmd //c "inf2cat /driver:`perl $c/install-win32/dosname.pl $x86` /os:2000,XP_X86,Server2003_X86,Vista_X86"
+
+echo '******************' BUILD .cat FILE for x64
+cmd //c "inf2cat /driver:`perl $c/install-win32/dosname.pl $x64` /os:XP_X64,Server2003_X64,Vista_X64"
+
+cd $c
+cd $SIGN
+
+TS="http://timestamp.verisign.com/scripts/timstamp.dll"
+echo '******************' SIGN .cat FILE for x86
+./signcode -spc mycredentials.spc -v myprivatekey.pvk -n "OpenVPN TAP-Win32 Driver" -t $TS `perl $c/install-win32/dosname.pl $x86/tap.cat`
+echo '******************' SIGN .cat FILE for x64
+./signcode -spc mycredentials.spc -v myprivatekey.pvk -n "OpenVPN TAP-Win64 Driver" -t $TS `perl $c/install-win32/dosname.pl $x64/tap.cat`
