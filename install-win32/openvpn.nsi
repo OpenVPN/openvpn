@@ -67,10 +67,10 @@
   !define MUI_FINISHPAGE_NOAUTOCLOSE
   !define MUI_FINISHPAGE_SHOWREADME_NOTCHECKED
   !define MUI_ABORTWARNING
-  !define MUI_ICON "${HOME}\install-win32\openvpn.ico"
-  !define MUI_UNICON "${HOME}\install-win32\openvpn.ico"
+  !define MUI_ICON "${HOME}\images\openvpn.ico"
+  !define MUI_UNICON "${HOME}\images\openvpn.ico"
   !define MUI_HEADERIMAGE
-  !define MUI_HEADERIMAGE_BITMAP "${HOME}\install-win32\install-whirl.bmp"
+  !define MUI_HEADERIMAGE_BITMAP "${HOME}\images\install-whirl.bmp"
   !define MUI_UNFINISHPAGE_NOAUTOCLOSE
 
   !insertmacro MUI_PAGE_WELCOME
@@ -117,7 +117,7 @@
   ;Things that need to be extracted on first (keep these lines before any File command!)
   ;Only useful for BZIP2 compression
   
-  ReserveFile "${HOME}\install-win32\install-whirl.bmp"
+  ReserveFile "${HOME}\images\install-whirl.bmp"
 
 ;--------------------------------
 ;Macros
@@ -219,7 +219,7 @@ Section "OpenVPN User-Space Components" SecOpenVPNUserSpace
   SetOverwrite on
   SetOutPath "$INSTDIR\bin"
 
-  File "${HOME}\openvpn.exe"
+  File "${BIN}\openvpn.exe"
 
 SectionEnd
 
@@ -251,7 +251,7 @@ Section "OpenVPN Service" SecService
   SetOverwrite on
 
   SetOutPath "$INSTDIR\bin"
-  File "${HOME}\service-win32\openvpnserv.exe"
+  File "${BIN}\openvpnserv.exe"
 
   SetOutPath "$INSTDIR\config"
 
@@ -324,12 +324,12 @@ Section "TAP-Win32 Virtual Ethernet Adapter" SecTAP
 
   SetOutPath "$INSTDIR\bin"
 
-  File "${BIN}\ti3790-amd64\tapinstall.exe"
+  File "${BIN}\tapinstall\amd64\tapinstall.exe"
 
   SetOutPath "$INSTDIR\driver"
 
-  File "${HOME}\tap-win32\amd64\OemWin2k.inf"
-  File "${HOME}\tap-win32\amd64\${TAPDRV}"
+  File "${BIN}\driver\amd64\OemWin2k.inf"
+  File "${BIN}\driver\amd64\${TAPDRV}"
 
 goto tapend
 
@@ -338,12 +338,12 @@ tap-32bit:
   DetailPrint "We are running on a 32-bit system."
 
   SetOutPath "$INSTDIR\bin"
-  File "${BIN}\ti3790-i386\tapinstall.exe"
+  File "${BIN}\tapinstall\i386\tapinstall.exe"
 
   SetOutPath "$INSTDIR\driver"
-  File "${HOME}\tap-win32\i386\OemWin2k.inf"
-  File "${HOME}\tap-win32\i386\tap.cat"
-  File "${HOME}\tap-win32\i386\${TAPDRV}"
+  File "${BIN}\driver\i386\OemWin2k.inf"
+  File "${BIN}\driver\i386\tap.cat"
+  File "${BIN}\driver\i386\${TAPDRV}"
 
   tapend:
 
@@ -467,7 +467,7 @@ Section -post
   SetOutPath $INSTDIR
   File "${HOME}\install-win32\INSTALL-win32.txt"
   File "${HOME}\install-win32\license.txt"
-  File "${HOME}\install-win32\openvpn.ico"
+  File "${HOME}\images\openvpn.ico"
 
   ; Create file association if requested
   SectionGetFlags ${SecFileAssociation} $R0

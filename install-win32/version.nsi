@@ -10,3 +10,6 @@
 
 ; Service template files service.[ch] (get from Platform SDK)
 !define SVC_TEMPLATE "../svc-template"
+
+; DDK Version
+!define DDKVER 3790
