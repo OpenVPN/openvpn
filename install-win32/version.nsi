@@ -7,3 +7,6 @@
 !define PRODUCT_TAP_MAJOR_VER       9
 !define PRODUCT_TAP_MINOR_VER       2
 !define PRODUCT_TAP_RELDATE         "03/05/2007"
+
+; Service template files service.[ch] (get from Platform SDK)
+!define SVC_TEMPLATE "../svc-template"
