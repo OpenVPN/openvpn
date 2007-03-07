@@ -1,15 +1,15 @@
 /*
- *  TAP-Win32 -- A kernel driver to provide virtual tap device
- *               functionality on Windows.  Originally derived
- *               from the CIPE-Win32 project by Damion K. Wilson,
- *               with extensive modifications by James Yonan.
+ *  TAP-Win32/TAP-Win64 -- A kernel driver to provide virtual tap
+ *                         device functionality on Windows.
  *
- *  All source code which derives from the CIPE-Win32 project is
- *  Copyright (C) Damion K. Wilson, 2003, and is released under the
- *  GPL version 2 (see below).
+ *  This code was inspired by the CIPE-Win32 driver by Damion K. Wilson.
  *
- *  All other source code is Copyright (C) 2002-2005 OpenVPN Solutions LLC,
- *  and is released under the GPL version 2 (see below).
+ *  This source code is Copyright (C) 2002-2007 OpenVPN Solutions LLC,
+ *  and is released under the GPL version 2 (see below), however due
+ *  to the extra costs of supporting Windows Vista, OpenVPN Solutions
+ *  LLC reserves the right to change the terms of the TAP-Win32/TAP-Win64
+ *  license for versions 9.1 and higher prior to the official release of
+ *  OpenVPN 2.1.
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2

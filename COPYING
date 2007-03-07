@@ -45,12 +45,18 @@ LZO license:
  
   Markus F.X.J. Oberhumer
 
-TAP-Win32 Driver license:
--------------------------
+TAP-Win32/TAP-Win64 Driver license:
+-----------------------------------
 
-  The TAP-Win32 driver is derived from the CIPE-Win32
-  kernel driver, Copyright (C) Damion K. Wilson,
-  and is licensed under the GPL.
+  This device driver was inspired by the CIPE-Win32 driver by
+  Damion K. Wilson.
+
+  The source and object code of the TAP-Win32/TAP-Win64 driver
+  is Copyright (C) 2002-2007 OpenVPN Solutions LLC, and is released under
+  the GPL version 2 (see below), however due to the extra costs of
+  supporting Windows Vista, OpenVPN Solutions LLC reserves the right to
+  change the terms of the TAP-Win32/TAP-Win64 license for versions 9.1
+  and higher prior to the official release of OpenVPN 2.1.
 
 Windows DDK Samples:
 --------------------
