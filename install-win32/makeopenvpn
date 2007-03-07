@@ -1,0 +1,16 @@
+#!/bin/sh
+
+# get version.nsi definitions
+. autodefs/nsidefs.sh
+
+# build OpenVPN binary
+[ "$MAKE_CLEAN" = "yes" ] && make -f makefile.w32 clean
+make -f makefile.w32 -j $MAKE_JOBS
+
+# build OpenVPN service (openvpnserv.exe)
+if [ -n "$SVC_TEMPLATE" ] ; then
+    cd service-win32
+    [ "$MAKE_CLEAN" = "yes" ] && make clean
+    make -j $MAKE_JOBS
+    cd ..
+fi

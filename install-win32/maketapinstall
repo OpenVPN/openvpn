@@ -1,21 +1,23 @@
 #!/bin/sh
 
 # Build the x86 and x64 versions of the tapinstall tool
-# Requires the Windows DDK
-
-TISRC=../tapinstall
+# Requires the Windows DDK.
+# TISRC should be set to directory containing
+# tapinstall source code.
 
 # get version.nsi definitions
 . autodefs/nsidefs.sh
 
-rm -rf tapinstall
-cp -a $TISRC tapinstall
+if [ -z "$DRVBINSRC" ] ; then
+    rm -rf tapinstall
+    cp -a "$TISRC" tapinstall
 
-cd tapinstall
-t=`pwd`
-cd ..
+    cd tapinstall
+    t=`pwd`
+    cd ..
 
-for mode in "fre WNET" "fre AMD64 WNET"; do
-  echo '**********' build TAPINSTALL $mode
-  cmd //c "C:\\WINDDK\\$DDKVER\\bin\\setenv.bat C:\\WINDDK\\$DDKVER $mode && cd `perl install-win32/dosname.pl $t` && build -cef"
-done
+    for mode in "fre WNET" "fre AMD64 WNET"; do
+	echo '**********' build TAPINSTALL $mode
+	cmd //c "C:\\WINDDK\\$DDKVER\\bin\\setenv.bat C:\\WINDDK\\$DDKVER $mode && cd `perl install-win32/dosname.pl $t` && build -cef"
+    done
+fi

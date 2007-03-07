@@ -34,31 +34,29 @@
 #########################################################
 # Change these to point to your OpenSSL, LZO, and
 # (optionally) dmalloc top-level directories.
-
-# Make sure to define OPENSSL_VERSION as an environmental
-# variable before calling make.
-OPENSSL = /c/src/openssl-${OPENSSL_VERSION}
-
-LZO = /c/src/lzo-2.02
-DMALLOC = /c/src/dmalloc-5.4.2
-
+# Normally set as environmental variables before calling
+# make.
+#
+#OPENSSL_DIR = 
+#LZO_DIR = 
+#DMALLOC_DIR = 
 #########################################################
 
 CC = gcc -g -O2 -Wall -Wno-unused-function -Wno-unused-variable -mno-cygwin
 
 CC_DMALLOC = gcc -g -O2 -Wall -Wno-unused-function -Wno-unused-variable -mno-cygwin -fno-inline -DDMALLOC
 
-INCLUDE_DIRS = -I${OPENSSL}/include -I${LZO}/include
+INCLUDE_DIRS = -I${OPENSSL_DIR}/include -I${LZO_DIR}/include
 
-INCLUDE_DIRS_DMALLOC = ${INCLUDE_DIRS} -I${DMALLOC}
+INCLUDE_DIRS_DMALLOC = ${INCLUDE_DIRS} -I${DMALLOC_DIR}
 
 LIBS = -llzo2 -lcrypt32 -lWinInet -lws2_32 -lgdi32 -liphlpapi -lwinmm
 
 LIBS_DMALLOC = ${LIBS} -ldmalloc
 
-LIB_DIRS = -L${OPENSSL}/out -L${LZO}
+LIB_DIRS = -L${OPENSSL_DIR}/out -L${LZO_DIR}
 
-LIB_DIRS_DMALLOC = ${LIB_DIRS} -L${DMALLOC}
+LIB_DIRS_DMALLOC = ${LIB_DIRS} -L${DMALLOC_DIR}
 
 EXE = openvpn.exe
 

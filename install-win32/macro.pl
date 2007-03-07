@@ -1,3 +1,10 @@
+# Simple macro processor.
+
+# Macros are defined in a control file that follows
+# NSIS format such as version.nsi.  Stdin is then
+# copied to stdout, and any occurrence of @@MACRO@@ is
+# substituted.
+
 die "usage: macro.pl <control-file>" if (@ARGV < 1);
 ($control_file) = @ARGV;
 

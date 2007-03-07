@@ -10,22 +10,22 @@ mkdir autodefs
 
 TRAN="perl install-win32/nsitran.pl"
 VER=install-win32/version.nsi
-MACRO="perl install-win32/macro.pl $HSV"
-PATCH="/tmp/p.exe"
+MACRO="perl install-win32/macro.pl $VER"
 
 # silly vista security theatre
+PATCH="/tmp/p.exe"
 cp `which patch` $PATCH
 
 # translate version.nsi to C and sh
 $TRAN  c <$VER >autodefs/nsidefs.h
 $TRAN sh <$VER >autodefs/nsidefs.sh
 
-# get version.nsi definitions
+# load version.nsi definitions
 . autodefs/nsidefs.sh
 
 # configure tap driver sources
-$MACRO $VER <tap-win32/SOURCES.in >tap-win32/SOURCES
-$MACRO $VER <tap-win32/i386/OemWin2k.inf.in >tap-win32/i386/OemWin2k.inf
+$MACRO <tap-win32/SOURCES.in >tap-win32/SOURCES
+$MACRO <tap-win32/i386/OemWin2k.inf.in >tap-win32/i386/OemWin2k.inf
 rm -rf tap-win32/amd64
 mkdir tap-win32/amd64
 cp tap-win32/i386/OemWin2k.inf tap-win32/amd64
@@ -33,12 +33,14 @@ cd tap-win32/amd64
 $PATCH <../inf64.patch
 
 # configure service
-cd $c
-cp $SVC_TEMPLATE/service.[ch] service-win32
-cd service-win32
-cp service.c service.c.orig
-cp service.h service.h.orig
-$PATCH <service.patch
+if [ -n "$SVC_TEMPLATE" ] ; then
+    cd $c
+    cp $SVC_TEMPLATE/service.[ch] service-win32
+    cd service-win32
+    cp service.c service.c.orig
+    cp service.h service.h.orig
+    $PATCH <service.patch
+fi
 
 # build license file
 cd $c

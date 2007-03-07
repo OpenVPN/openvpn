@@ -6,11 +6,13 @@
 # get version.nsi definitions
 . autodefs/nsidefs.sh
 
-cd tap-win32
-t=`pwd`
-cd ..
+if [ -z "$DRVBINSRC" ] ; then
+    cd tap-win32
+    t=`pwd`
+    cd ..
 
-for mode in "fre WNET" "fre AMD64 WNET"; do
-  echo '**********' build TAP $mode
-  cmd //c "C:\\WINDDK\\$DDKVER\\bin\\setenv.bat C:\\WINDDK\\$DDKVER $mode && cd `perl install-win32/dosname.pl $t` && build -cef"
-done
+    for mode in "fre WNET" "fre AMD64 WNET"; do
+	echo '**********' build TAP $mode
+	cmd //c "C:\\WINDDK\\$DDKVER\\bin\\setenv.bat C:\\WINDDK\\$DDKVER $mode && cd `perl install-win32/dosname.pl $t` && build -cef"
+    done
+fi

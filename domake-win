@@ -1,17 +1,11 @@
 #!/bin/sh
 
 install-win32/winconfig
-
-# get version.nsi definitions
-. autodefs/nsidefs.sh
-
-make -f makefile.w32 -j 2
-cd service-win32
-make -j 2
-cd ..
+install-win32/makeopenvpn
 install-win32/maketapinstall
 install-win32/maketap
 install-win32/signtap
 install-win32/makebin
 install-win32/buildinstaller
 install-win32/signinstaller
+install-win32/copyinstaller

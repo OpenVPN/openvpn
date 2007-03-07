@@ -1,0 +1,13 @@
+#!/bin/sh
+
+# copy the installer
+
+# load version.nsi definitions
+. autodefs/nsidefs.sh
+
+if [ -n "$INSTALLER_DEST" ] ; then
+    cd install-win32
+    ls openvpn*.exe 2>/dev/null || exit 1
+    exe=`ls -t openvpn*.exe | head -n 1`
+    cp $exe $INSTALLER_DEST
+fi
