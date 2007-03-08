@@ -31,9 +31,9 @@ if [ -z "$DRVBINSRC" ] ; then
     # Get tapinstall
     mkdir bin/tapinstall
     mkdir bin/tapinstall/i386
-    mkdir bin/tapinstall/amd64
     cp tapinstall/objfre_wnet_x86/i386/tapinstall.exe bin/tapinstall/i386
-    cp tapinstall/objfre_wnet_amd64/amd64/tapinstall.exe bin/tapinstall/amd64
+    #mkdir bin/tapinstall/amd64
+    #cp tapinstall/objfre_wnet_amd64/amd64/tapinstall.exe bin/tapinstall/amd64
 else
     cp -a $DRVBINSRC/driver bin/driver
     cp -a $DRVBINSRC/tapinstall bin/tapinstall
