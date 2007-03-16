@@ -322,9 +322,13 @@ Section "TAP-Win32 Virtual Ethernet Adapter" SecTAP
 
   DetailPrint "We are running on a 64-bit system."
 
+  SetOutPath "$INSTDIR\bin"
+
+  File "${BIN}\tapinstall\amd64\tapinstall.exe"
+
   SetOutPath "$INSTDIR\driver"
+
   File "${BIN}\driver\amd64\OemWin2k.inf"
-  File "${BIN}\driver\amd64\tap.cat"
   File "${BIN}\driver\amd64\${TAPDRV}"
 
 goto tapend
@@ -333,16 +337,15 @@ tap-32bit:
 
   DetailPrint "We are running on a 32-bit system."
 
+  SetOutPath "$INSTDIR\bin"
+  File "${BIN}\tapinstall\i386\tapinstall.exe"
+
   SetOutPath "$INSTDIR\driver"
   File "${BIN}\driver\i386\OemWin2k.inf"
   File "${BIN}\driver\i386\tap.cat"
   File "${BIN}\driver\i386\${TAPDRV}"
 
-tapend:
-
-  ; Use x86 tapinstall for both x86 and x64
-  SetOutPath "$INSTDIR\bin"
-  File "${BIN}\tapinstall\i386\tapinstall.exe"
+  tapend:
 
 SectionEnd
 

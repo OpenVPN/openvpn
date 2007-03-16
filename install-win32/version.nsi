@@ -1,7 +1,7 @@
 # Version numbers, settings, and dependencies
 # for Windows OpenVPN installer.
 
-!define PRODUCT_VERSION "2.1_rc2e"
+!define PRODUCT_VERSION "2.1_rc2c"
 
 # Copy installer to this directory when finished.
 # If undefined, don't copy installer after generation.
