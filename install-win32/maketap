@@ -6,13 +6,23 @@
 # get version.nsi definitions
 . autodefs/nsidefs.sh
 
+amdtarget=""
+if [ -z "$TAP_BIN_AMD64" ]; then
+    amdtarget="fre AMD64 WNET"
+fi
+
 if [ -z "$DRVBINSRC" ] ; then
     cd tap-win32
     t=`pwd`
     cd ..
 
-    for mode in "fre WNET" "fre AMD64 WNET"; do
+    for mode in "fre WNET" "$amdtarget"; do
 	echo '**********' build TAP $mode
 	cmd //c "C:\\WINDDK\\$DDKVER\\bin\\setenv.bat C:\\WINDDK\\$DDKVER $mode && cd `perl install-win32/dosname.pl $t` && build -cef"
     done
+fi
+
+if [ -n "$TAP_BIN_AMD64" ]; then
+    mkdir -p $t/amd64
+    cp "$TAP_BIN_AMD64" $t/amd64
 fi
