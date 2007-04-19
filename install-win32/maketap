@@ -8,7 +8,7 @@
 
 amdtarget=""
 if [ -z "$TAP_BIN_AMD64" ]; then
-    amdtarget="fre AMD64 WLH"
+    amdtarget="fre AMD64 WNET"
 fi
 
 if [ -z "$DRVBINSRC" ] ; then

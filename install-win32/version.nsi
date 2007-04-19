@@ -1,15 +1,11 @@
 # Version numbers, settings, and dependencies
 # for Windows OpenVPN installer.
 
-!define PRODUCT_VERSION "2.1_rc2d"
+!define PRODUCT_VERSION "2.1_rc2e"
 
 # For now, use prebuilt AMD64 tap/tapinstall
 #!define TAP_BIN_AMD64 "../amd64/tap/tap0901.sys"
 #!define TI_BIN_AMD64  "../amd64/tapinstall/tapinstall.exe"
-
-# Copy installer to this directory when finished.
-# If undefined, don't copy installer after generation.
-!define INSTALLER_DEST	"/y"
 
 # Prebuilt libraries.  DMALLOC is optional.
 !define OPENSSL_DIR	"../openssl-0.9.7l"
