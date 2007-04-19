@@ -1,5 +1,8 @@
 #!/bin/sh
 
+# make without signing:
+#  SIGNCODE="null" ./domake-win
+
 install-win32/winconfig
 install-win32/makeopenvpn
 install-win32/maketapinstall

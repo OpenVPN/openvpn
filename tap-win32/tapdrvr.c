@@ -39,6 +39,11 @@
 // TAP_IOCTL_CONFIG_TUN ioctl.
 //======================================================
 
+#include "../../autodefs/nsidefs.h"
+#ifndef DDKVER
+#error DDKVER must be defined to the DDK Version as in c:\WinDDK\[DDKVER]\...
+#endif
+
 #define NDIS_MINIPORT_DRIVER
 #define BINARY_COMPATIBLE 0
 #define NDIS50_MINIPORT 1
@@ -65,9 +70,15 @@
 //========================================================
 #define ENABLE_NONADMIN 1         // JYFIXME
 
+#if DDKVER < 5600
 #include <ndis.h>
 #include <ntstrsafe.h>
 #include <ntddk.h>
+#else
+#include <ntifs.h>
+#include <ndis.h>
+#include <ntstrsafe.h>
+#endif
 
 #include "lock.h"
 #include "constants.h"
@@ -408,6 +419,7 @@ NDIS_STATUS AdapterCreate
 		}
 	    }
 	} else {
+#if DDKVER < 5600
 	  /* "MiniportName" is available only XP and above.  Not on Windows 2000. */
 	  NDIS_STRING key = NDIS_STRING_CONST("NdisVersion");
 	  NdisReadConfiguration (&status, &parm, configHandle, &key, NdisParameterInteger);
@@ -428,7 +440,8 @@ NDIS_STATUS AdapterCreate
 		    }
 		}
 	    }
-	}
+#endif
+      }
     }
 
     /* Can't continue without name (see macro 'NAME') */

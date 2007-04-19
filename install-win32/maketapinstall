@@ -15,7 +15,7 @@ fi
 
 amdtarget=""
 if [ -z "$TI_BIN_AMD64" ]; then
-    amdtarget="fre AMD64 WNET"
+    amdtarget="fre AMD64 WLH"
 fi
 
 if [ -z "$DRVBINSRC" ] ; then
@@ -26,7 +26,7 @@ if [ -z "$DRVBINSRC" ] ; then
     t=`pwd`
     cd ..
 
-    for mode in "fre WNET" "$amdtarget"; do
+    for mode in "w2k f" "$amdtarget"; do
 	if [ -n "$mode" ]; then
 	    echo '**********' build TAPINSTALL $mode
 	    cmd //c "C:\\WINDDK\\$DDKVER\\bin\\setenv.bat C:\\WINDDK\\$DDKVER $mode && cd `perl install-win32/dosname.pl $t` && build -cef"
@@ -38,3 +38,5 @@ if [ -n "$TI_BIN_AMD64" ]; then
     mkdir -p $t/objfre_wnet_amd64/amd64
     cp "$TI_BIN_AMD64" $t/objfre_wnet_amd64/amd64
 fi
+
+title openvpn &>/dev/null

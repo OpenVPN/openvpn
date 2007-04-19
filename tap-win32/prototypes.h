@@ -187,6 +187,7 @@ VOID HookDispatchFunctions();
 
 #if ENABLE_NONADMIN
 
+#if DDKVER < 5600
 /*
  * Better solution for use on Vista DDK, but possibly not compatible with
  * earlier DDKs:
@@ -215,6 +216,8 @@ ZwSetSecurityObject (
   IN HANDLE  Handle,
   IN SECURITY_INFORMATION  SecurityInformation,
   IN PSECURITY_DESCRIPTOR  SecurityDescriptor);
+
+#endif
 
 VOID AllowNonAdmin (TapExtensionPointer p_Extension);
 

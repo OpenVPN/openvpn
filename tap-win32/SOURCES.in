@@ -17,13 +17,6 @@ C_DEFINES=
 C_DEFINES=$(C_DEFINES) -DTAP_DRIVER_MAJOR_VERSION=@@PRODUCT_TAP_MAJOR_VER@@
 C_DEFINES=$(C_DEFINES) -DTAP_DRIVER_MINOR_VERSION=@@PRODUCT_TAP_MINOR_VER@@
 
-# Use 00:FF:XX:XX:XX:XX format MAC addresses where
-# the Xs are random (like Linux tap driver).
-#
-# Don't allow TAP device to be opened by more than one process
-# at a time.
-C_DEFINES=$(C_DEFINES)
-
 # Produce the same symbolic information for both free & checked builds.
 # This will allow us to perform full source-level debugging on both
 # builds without affecting the free build's performance.
@@ -63,8 +56,8 @@ MSC_OPTIMIZATION=/Od /Oi /Fc
 LINKER_FLAGS=$(LINKER_FLAGS) /MAP /MAPINFO:EXPORTS /MAPINFO:LINES
 
 # Generate a browser information file for use in IDE development
-BROWSER_INFO=1
-BROWSERFILE=$(TARGETNAME).BSC -n
+#BROWSER_INFO=1
+#BROWSERFILE=$(TARGETNAME).BSC -n
 
 # Abort compilation on warnings.
 MSC_WARNING_LEVEL=/W3 /WX

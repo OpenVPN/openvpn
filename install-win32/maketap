@@ -8,7 +8,7 @@
 
 amdtarget=""
 if [ -z "$TAP_BIN_AMD64" ]; then
-    amdtarget="fre AMD64 WNET"
+    amdtarget="fre AMD64 WLH"
 fi
 
 if [ -z "$DRVBINSRC" ] ; then
@@ -16,7 +16,7 @@ if [ -z "$DRVBINSRC" ] ; then
     t=`pwd`
     cd ..
 
-    for mode in "fre WNET" "$amdtarget"; do
+    for mode in "w2k f" "$amdtarget"; do
 	echo '**********' build TAP $mode
 	cmd //c "C:\\WINDDK\\$DDKVER\\bin\\setenv.bat C:\\WINDDK\\$DDKVER $mode && cd `perl install-win32/dosname.pl $t` && build -cef"
     done
@@ -26,3 +26,5 @@ if [ -n "$TAP_BIN_AMD64" ]; then
     mkdir -p $t/amd64
     cp "$TAP_BIN_AMD64" $t/amd64
 fi
+
+title openvpn &>/dev/null

@@ -1,11 +1,11 @@
 # Version numbers, settings, and dependencies
 # for Windows OpenVPN installer.
 
-!define PRODUCT_VERSION "2.1_rc2c"
+!define PRODUCT_VERSION "2.1_rc2d"
 
 # For now, use prebuilt AMD64 tap/tapinstall
-!define TAP_BIN_AMD64 "../amd64/tap/tap0901.sys"
-!define TI_BIN_AMD64  "../amd64/tapinstall/tapinstall.exe"
+#!define TAP_BIN_AMD64 "../amd64/tap/tap0901.sys"
+#!define TI_BIN_AMD64  "../amd64/tapinstall/tapinstall.exe"
 
 # Copy installer to this directory when finished.
 # If undefined, don't copy installer after generation.
@@ -32,8 +32,8 @@
 
 # TAP Adapter parameters.
 !define PRODUCT_TAP_MAJOR_VER       9
-!define PRODUCT_TAP_MINOR_VER       2
-!define PRODUCT_TAP_RELDATE         "03/05/2007"
+!define PRODUCT_TAP_MINOR_VER       3
+!define PRODUCT_TAP_RELDATE         "04/18/2007"
 
 # Service template files service.[ch] (get from Platform SDK).
 # If undefined, don't build openvpnserv.exe
@@ -42,7 +42,7 @@
 # DDK Version.
 # DDK distribution is assumed to be in C:\WINDDK\${DDKVER}
 # Not needed if DRVBINSRC is defined.
-!define DDKVER	"3790"
+!define DDKVER	5600
 
 # Code Signing.
 # This directory should contain signcode.exe + key files.
