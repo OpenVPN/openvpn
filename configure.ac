@@ -284,12 +284,44 @@ AC_CHECK_HEADERS(sys/time.h sys/socket.h sys/ioctl.h sys/stat.h dnl
 		 sys/mman.h fcntl.h sys/file.h stdlib.h stdint.h dnl
 		 stdarg.h unistd.h signal.h stdio.h string.h dnl
 		 strings.h ctype.h errno.h syslog.h pwd.h grp.h dnl
-		 net/if_tun.h net/if.h stropts.h sys/sockio.h dnl
-		 netinet/in.h netinet/in_systm.h netinet/ip.h dnl
-		 netinet/if_ether.h netinet/tcp.h resolv.h arpa/inet.h dnl
+		 net/if_tun.h stropts.h sys/sockio.h dnl
+		 netinet/in.h netinet/in_systm.h dnl
+		 netinet/tcp.h arpa/inet.h dnl
 		 netdb.h sys/uio.h linux/if_tun.h linux/sockios.h dnl
 		 linux/types.h sys/poll.h sys/epoll.h err.h dnl
 )
+AC_CHECK_HEADERS(net/if.h,,,
+		 [#ifdef HAVE_SYS_SOCKET_H 
+		  # include <sys/socket.h>
+		  #endif
+		 ])
+AC_CHECK_HEADERS(netinet/ip.h,,,
+		 [#ifdef HAVE_SYS_TYPES_H
+		  # include <sys/types.h>
+		  #endif
+		  #ifdef HAVE_NETINET_IN_H
+		  # include <netinet/in.h>
+		  #endif
+		  #ifdef HAVE_NETINET_IN_SYSTM_H
+		  # include <netinet/in_systm.h>
+		  #endif
+		 ])
+AC_CHECK_HEADERS(netinet/if_ether.h,,,
+		 [#ifdef HAVE_SYS_TYPES_H
+		  # include <sys/types.h>
+		  #endif
+		  #ifdef HAVE_SYS_SOCKET_H
+		  # include <sys/socket.h>
+		  #endif
+		  #ifdef HAVE_NETINET_IN_H
+		  # include <netinet/in.h>
+		  #endif
+		 ])
+AC_CHECK_HEADERS(resolv.h,,,
+		 [#ifdef HAVE_NETINET_IN_H 
+		  # include <netinet/in.h>
+		  #endif
+		 ])
 AC_CHECK_HEADERS(linux/errqueue.h,,,
 	[#ifdef HAVE_LINUX_TYPES_H
 	 # include <linux/types.h>
