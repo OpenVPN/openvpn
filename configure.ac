@@ -25,7 +25,8 @@ dnl Process this file with autoconf to produce a configure script.
 
 AC_PREREQ(2.50)
 
-AC_INIT([OpenVPN], [2.1_rc2b], [openvpn-users@lists.sourceforge.net], [openvpn])
+m4_include(version.m4)
+AC_INIT([OpenVPN], [OPENVPN_VERSION], [openvpn-users@lists.sourceforge.net], [openvpn])
 AM_CONFIG_HEADER(config.h)
 AC_CONFIG_SRCDIR(syshead.h)
 
