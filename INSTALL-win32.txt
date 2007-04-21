@@ -1,3 +1,20 @@
-OpenVPN on Windows Notes can be found here:
+OpenVPN 2.1 Client Quickstart for Windows
+-----------------------------------------
 
-http://openvpn.net/INSTALL-win32.html
+The OpenVPN Client requires a configuration file
+and key/certificate files.  You should obtain
+these and save them to \Program Files\OpenVPN\config.
+
+To start OpenVPN, first run the OpenVPN GUI by double
+clicking the desktop icon.  Note that on Windows Vista,
+you will probably need to run the OpenVPN GUI with
+administrator privileges, so that it can add routes to
+the routing table that are pulled from the OpenVPN server.
+You can do this by right clicking on the OpenVPN GUI
+desktop icon, and selecting "Run as administrator".
+
+The OpenVPN GUI is a system-tray applet, so an icon for the
+GUI will appear in the lower-right corner of the screen.
+Right click on the system tray icon, and a menu should appear
+showing the names of your OpenVPN configuration files, and
+giving you the option to connect.
