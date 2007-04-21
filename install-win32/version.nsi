@@ -1,7 +1,12 @@
 # Version numbers, settings, and dependencies
 # for Windows OpenVPN installer.
 
-!define PRODUCT_VERSION "2.1_rc2e"
+!define PRODUCT_VERSION "2.1_rc2f"
+
+# Include the OpenVPN GUI exe in the installer.
+# May be undefined.
+!define OPENVPN_GUI_DIR "../openvpn-gui"
+!define OPENVPN_GUI     "openvpn-gui-1.0.3.exe"
 
 # For now, use prebuilt AMD64 tap/tapinstall
 #!define TAP_BIN_AMD64 "../amd64/tap/tap0901.sys"

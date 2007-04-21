@@ -95,6 +95,10 @@
 
   LangString DESC_SecOpenVPNUserSpace ${LANG_ENGLISH} "Install OpenVPN user-space components, including openvpn.exe."
 
+!ifdef OPENVPN_GUI
+  LangString DESC_SecOpenVPNGUI ${LANG_ENGLISH} "Install OpenVPN GUI by Mathias Sundman"
+!endif
+
   LangString DESC_SecOpenVPNEasyRSA ${LANG_ENGLISH} "Install OpenVPN RSA scripts for X509 certificate management."
 
   LangString DESC_SecOpenSSLDLLs ${LANG_ENGLISH} "Install OpenSSL DLLs locally (may be omitted if DLLs are already installed globally)."
@@ -222,6 +226,17 @@ Section "OpenVPN User-Space Components" SecOpenVPNUserSpace
   File "${BIN}\openvpn.exe"
 
 SectionEnd
+
+!ifdef OPENVPN_GUI
+Section "OpenVPN GUI" SecOpenVPNGUI
+
+  SetOverwrite on
+  SetOutPath "$INSTDIR\bin"
+
+  File "${HOME}\${OPENVPN_GUI_DIR}\${OPENVPN_GUI}"
+
+SectionEnd
+!endif
 
 Section "OpenVPN RSA Certificate Management Scripts" SecOpenVPNEasyRSA
 
@@ -481,8 +496,16 @@ Section -post
     !insertmacro WriteRegStringIfUndef HKCR "OpenVPNFile\shell\run" "" "Start OpenVPN on this config file"
     !insertmacro WriteRegStringIfUndef HKCR "OpenVPNFile\shell\run\command" "" '"$INSTDIR\bin\openvpn.exe" --pause-exit --config "%1"'
 
-    ; Create start menu shortcuts to addtap.bat and deltapall.bat
+    ; Create start menu and desktop shortcuts to OpenVPN GUI
  noass:
+  !ifdef OPENVPN_GUI
+    IfFileExists "$INSTDIR\bin\${OPENVPN_GUI}" "" tryaddtap
+      CreateShortCut "$SMPROGRAMS\OpenVPN\OpenVPN GUI.lnk" "$INSTDIR\bin\${OPENVPN_GUI}" ""
+      CreateShortcut "$DESKTOP\OpenVPN GUI.lnk" "$INSTDIR\bin\${OPENVPN_GUI}"
+  !endif
+
+    ; Create start menu shortcuts to addtap.bat and deltapall.bat
+ tryaddtap:
     IfFileExists "$INSTDIR\bin\addtap.bat" "" trydeltap
       CreateShortCut "$SMPROGRAMS\OpenVPN\Add a new TAP-Win32 virtual ethernet adapter.lnk" "$INSTDIR\bin\addtap.bat" ""
 
@@ -528,6 +551,9 @@ SectionEnd
 
 !insertmacro MUI_FUNCTION_DESCRIPTION_BEGIN
   !insertmacro MUI_DESCRIPTION_TEXT ${SecOpenVPNUserSpace} $(DESC_SecOpenVPNUserSpace)
+  !ifdef OPENVPN_GUI
+    !insertmacro MUI_DESCRIPTION_TEXT ${SecOpenVPNGUI} $(DESC_SecOpenVPNGUI)
+  !endif
   !insertmacro MUI_DESCRIPTION_TEXT ${SecOpenVPNEasyRSA} $(DESC_SecOpenVPNEasyRSA)
   !insertmacro MUI_DESCRIPTION_TEXT ${SecTAP} $(DESC_SecTAP)
   !insertmacro MUI_DESCRIPTION_TEXT ${SecOpenSSLUtilities} $(DESC_SecOpenSSLUtilities)
@@ -573,6 +599,9 @@ Section "Uninstall"
   RMDir /r $SMPROGRAMS\OpenVPN
 
   Delete "$INSTDIR\bin\openvpn.exe"
+  !ifdef OPENVPN_GUI
+    Delete "$INSTDIR\bin\${OPENVPN_GUI}"
+  !endif
   Delete "$INSTDIR\bin\openvpnserv.exe"
   Delete "$INSTDIR\bin\libeay32.dll"
   Delete "$INSTDIR\bin\libssl32.dll"
