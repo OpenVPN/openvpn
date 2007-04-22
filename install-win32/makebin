@@ -3,7 +3,7 @@
 # Assemble binaries into bin
 
 # get version.nsi definitions
-. autodefs/nsidefs.sh
+. autodefs/defs.sh
 
 rm -rf bin
 mkdir bin

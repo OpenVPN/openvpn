@@ -8,20 +8,20 @@ c=`pwd`
 rm -rf autodefs
 mkdir autodefs
 
-TRAN="perl install-win32/nsitran.pl"
-VER=install-win32/version.nsi
-MACRO="perl install-win32/macro.pl $VER"
+MACRO="perl install-win32/macro.pl autodefs/defs.in"
 
 # silly vista security theatre
 PATCH="/tmp/p.exe"
 cp `which patch` $PATCH
 
-# translate version.nsi to C and sh
-$TRAN  c <$VER >autodefs/nsidefs.h
-$TRAN sh <$VER >autodefs/nsidefs.sh
+# build multi-grammar definition files
+perl install-win32/m4todef.pl <version.m4 >autodefs/version.in
+for g in "h" "sh" "nsi" "in" ; do
+    perl install-win32/trans.pl $g install-win32/settings.in >autodefs/defs.$g
+done
 
-# load version.nsi definitions
-. autodefs/nsidefs.sh
+# load sh definitions
+. autodefs/defs.sh
 
 # configure tap driver sources
 $MACRO <tap-win32/SOURCES.in >tap-win32/SOURCES

@@ -39,7 +39,7 @@
 // TAP_IOCTL_CONFIG_TUN ioctl.
 //======================================================
 
-#include "../../autodefs/nsidefs.h"
+#include "../../autodefs/defs.h"
 #ifndef DDKVER
 #error DDKVER must be defined to the DDK Version as in c:\WinDDK\[DDKVER]\...
 #endif

@@ -1,33 +1,50 @@
+#!/usr/bin/perl
+
 # Simple macro processor.
 
 # Macros are defined in a control file that follows
-# NSIS format such as version.nsi.  Stdin is then
-# copied to stdout, and any occurrence of @@MACRO@@ is
-# substituted.
+# a simple definition-based grammar as documented in the
+# trans script.  Stdin is then copied to stdout, and any
+# occurrence of @@MACRO@@ is substituted.  Macros can also
+# be specified on the command line.
 
-die "usage: macro.pl <control-file>" if (@ARGV < 1);
-($control_file) = @ARGV;
-
-open(CONTROL, "< $control_file") or die "cannot open $control_file";
+die "usage: macro [-O<openquote>] [-C<closequote>] [-Dname=var ...] [control-file ...] " if (@ARGV < 1);
 
 %Parms = ();
+$open_quote = "@@";
+$close_quote = "@@";
 
-while (<CONTROL>) {
-  chomp;
-  if (/^!define\s+(\w+)\s+['"]?(.+?)['"]?\s*$/) {
-    $Parms{$1} = $2
-  }
+while ($arg=shift(@ARGV)) {
+    if ($arg =~ /^-/) {
+	if ($arg =~ /^-D(\w+)=(.*)$/) {
+	    $Parms{$1} = $2
+	} elsif ($arg =~ /-O(.*)$/) {
+	  $open_quote = $1;
+	} elsif ($arg =~ /-C(.*)$/) {
+	  $close_quote = $1;
+	} else {
+	    die "unrecognized option: $arg";
+	}
+    } else {
+	open(CONTROL, "< $arg") or die "cannot open $arg";
+	while (<CONTROL>) {
+	    chomp;
+	    if (/^define\s+(\w+)\s+['"]?(.+?)['"]?\s*$/) {
+                $Parms{$1} = $2
+            }
+        }
+    }
 }
 
 while (<STDIN>) {
   s{
-    @@
+    \Q$open_quote\E
     \s*
     (
       \w+
     )
     \s*
-    @@
+    \Q$close_quote\E
   }{
     $Parms{$1}
    }xge;

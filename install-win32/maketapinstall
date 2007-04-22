@@ -6,7 +6,7 @@
 # tapinstall source code.
 
 # get version.nsi definitions
-. autodefs/nsidefs.sh
+. autodefs/defs.sh
 
 if ! [ -d "$TISRC" ] ; then
     echo "$TISRC" NOT INSTALLED
@@ -39,4 +39,4 @@ if [ -n "$TI_BIN_AMD64" ]; then
     cp "$TI_BIN_AMD64" $t/objfre_wnet_amd64/amd64
 fi
 
-title openvpn &>/dev/null
+title openvpn-build &>/dev/null

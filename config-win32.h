@@ -35,7 +35,7 @@
 
 #include <windows.h>
 #include <winsock2.h>
-#include "autodefs/nsidefs.h"
+#include "autodefs/defs.h"
 
 #define sleep(x) Sleep((x)*1000)
 
@@ -228,7 +228,7 @@ typedef unsigned long in_addr_t;
 #define PACKAGE_TARNAME "openvpn"
 
 /* Define to the version of this package. */
-#define PACKAGE_VERSION "PRODUCT_VERSION"
+#define PACKAGE_VERSION PRODUCT_VERSION
 
 /* Define to the full name and version of this package. */
 #ifdef DEBUG_LABEL

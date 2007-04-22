@@ -1,7 +1,7 @@
 #!/bin/sh
 
 # get version.nsi definitions
-. autodefs/nsidefs.sh
+. autodefs/defs.sh
 
 # build OpenVPN binary
 [ "$MAKE_CLEAN" = "yes" ] && make -f makefile.w32 clean

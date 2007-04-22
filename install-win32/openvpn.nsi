@@ -7,12 +7,13 @@
 
 ; OpenVPN install script for Windows, using NSIS
 
-!include "version.nsi"
+!define HOME ".."
+
+!include "${HOME}\autodefs\defs.nsi"
 !include "MUI.nsh"
 !include "setpath.nsi"
 !include "GetWindowsVersion.nsi"
 
-!define HOME ".."
 !define BIN "${HOME}\bin"
 
 !define PRODUCT_NAME "OpenVPN"

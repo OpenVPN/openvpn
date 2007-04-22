@@ -4,7 +4,7 @@
 # Requires the Windows DDK
 
 # get version.nsi definitions
-. autodefs/nsidefs.sh
+. autodefs/defs.sh
 
 amdtarget=""
 if [ -z "$TAP_BIN_AMD64" ]; then
@@ -27,4 +27,4 @@ if [ -n "$TAP_BIN_AMD64" ]; then
     cp "$TAP_BIN_AMD64" $t/amd64
 fi
 
-title openvpn &>/dev/null
+title openvpn-build &>/dev/null

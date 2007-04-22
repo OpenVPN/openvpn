@@ -1,7 +1,15 @@
 #!/bin/sh
 
+# This is the master OpenVPN build script for Windows.
+# See top-devel definitions in install-win32/version.nsi
+#
+# Example usage:
+#
 # make without signing:
 #  SIGNCODE="null" ./domake-win
+#
+# write installer to desktop
+#  INSTALLER_DEST="/c/Documents and Settings/James/Desktop" ./domake-win
 
 install-win32/winconfig
 install-win32/makeopenvpn

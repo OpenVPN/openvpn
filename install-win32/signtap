@@ -8,7 +8,7 @@
 c=`pwd`
 
 # load version.nsi definitions
-. autodefs/nsidefs.sh
+. autodefs/defs.sh
 
 if [ -z "$DRVBINSRC" ] ; then
     # copy driver files into tap-win32/dist

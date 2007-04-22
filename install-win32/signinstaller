@@ -6,7 +6,7 @@
 c=`pwd`
 
 # load version.nsi definitions
-. autodefs/nsidefs.sh
+. autodefs/defs.sh
 
 if [ -n "$SIGNCODE" ] ; then
 
