@@ -10,7 +10,11 @@ $Id$
   enforcement is disabled.
 	
 * The Windows Installer and TAP driver are now signed by
-  OpenVPN Solutions LLC.
+  OpenVPN Solutions LLC (in addition to the usual GnuPG
+  signatures).
+
+* Added OpenVPN GUI (Mathias Sundman version) as install
+  option in Windows installer.
 
 * Clean up configure on FreeBSD for recent autotool versions
   that require that all .h files have to be compiled.
