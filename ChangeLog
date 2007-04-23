@@ -3,6 +3,26 @@ Copyright (C) 2002-2005 OpenVPN Solutions LLC <info@openvpn.net>
 
 $Id$
 
+2007.04.22 -- Version 2.1_rc3
+
+* Additional fixes to TAP driver for Windows x64.  Driver
+  now runs successfully on Vista x64 if driver signing
+  enforcement is disabled.
+	
+* The Windows Installer and TAP driver are now signed by
+  OpenVPN Solutions LLC.
+
+* Clean up configure on FreeBSD for recent autotool versions
+  that require that all .h files have to be compiled.
+  Also, FreeBSD install does not support GNU long options
+  which the Makefile in easy-rsa/2.0 uses (not checked the
+  others as we don't install those on Gentoo) (Roy Marples).
+
+* Added additional scripts to easy-rsa/Windows for working
+  with password-protected keys; also add -extensions server
+  option when generating server cert via
+  build-key-server-pass.bat (Daniel Zauft).
+	
 2007.02.27 -- Version 2.1_rc2
 
 * auth-pam change:  link with -lpam rather
