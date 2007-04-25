@@ -606,10 +606,12 @@ Section "Uninstall"
 
   RMDir /r $SMPROGRAMS\${PRODUCT_NAME}
 
-  Delete "$INSTDIR\bin\${PRODUCT_UNIX_NAME}.exe"
   !ifdef OPENVPN_GUI_DEFINED
     Delete "$INSTDIR\bin\${OPENVPN_GUI}"
+    Delete "$DESKTOP\${PRODUCT_NAME} GUI.lnk"
   !endif
+
+  Delete "$INSTDIR\bin\${PRODUCT_UNIX_NAME}.exe"
   Delete "$INSTDIR\bin\${PRODUCT_UNIX_NAME}serv.exe"
   Delete "$INSTDIR\bin\libeay32.dll"
   Delete "$INSTDIR\bin\libssl32.dll"

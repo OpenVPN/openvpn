@@ -22,6 +22,10 @@ if [ -z "$DRVBINSRC" ] ; then
     rm -rf tapinstall
     cp -a "$TISRC" tapinstall
 
+    if [ -e tapinstall/sources.in ]; then
+	perl install-win32/ifdef.pl autodefs/defs.in <tapinstall/sources.in >tapinstall/sources
+    fi
+
     cd tapinstall
     t=`pwd`
     cd ..

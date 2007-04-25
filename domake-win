@@ -2,9 +2,10 @@
 
 # This is the master OpenVPN build script for Windows.
 # This script will build OpenVPN, the TAP driver, and
-# the installer from source.
+# the installer from source, targeting x86 on Windows
+# 2000 and higher, and x64 on Windows 2003 and higher.
 #
-# See top-devel build configuration in install-win32/version.nsi
+# See top-level build configuration in install-win32/settings.in
 #
 # Prerequisite installs:
 #
@@ -13,7 +14,12 @@
 # msysDTK   -- for perl
 # NSIS      -- for building installer
 # svn       -- for checking out source code (or TortoiseSVN)
-# Windows Driver Kit Vista RC1 (5600) -- for building TAP driver + tapinstall
+# Windows Driver Kit, Vista RC1 (5600) -- for building TAP driver + tapinstall
+#
+# Required libraries (must be prebuilt)
+#
+# OpenSSL   -- define OPENSSL_DIR in settings.in
+# LZO       -- define LZO_DIR in settings.in
 #
 # Required source code not included in OpenVPN SVN repository
 # because of MS licensing restrictions:
