@@ -3,6 +3,15 @@ Copyright (C) 2002-2005 OpenVPN Solutions LLC <info@openvpn.net>
 
 $Id$
 
+2007.04.25 -- Version 2.1_rc4
+
+* Worked out remaining issues with TAP driver signing
+  on Vista x64.  OpenVPN will now run on Vista x64
+  with driver signing enforcement enabled.
+
+* Fixed 64-bit portability bug in time_string function
+  (Thomas Habets).
+
 2007.04.22 -- Version 2.1_rc3
 
 * Additional fixes to TAP driver for Windows x64.  Driver
