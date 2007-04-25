@@ -130,7 +130,8 @@ time_string (time_t t, int usec, bool show_usec, struct gc_arena *gc)
     }
 
   mutex_lock_static (L_CTIME);
-  buf_printf (&out, "%s", ctime ((const time_t *)&tv.tv_sec));
+  t = tv.tv_sec;
+  buf_printf (&out, "%s", ctime(&t));
   mutex_unlock_static (L_CTIME);
   buf_rmtail (&out, '\n');
 
