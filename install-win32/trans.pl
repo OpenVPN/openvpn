@@ -7,9 +7,9 @@
 # Input grammar:
 #   (1) comments having ';' or '#' as the first char in the line
 #   (2) a blank line
-#   (3) include "file"
-#   (4) define foo bar
-#   (5) define foo "bar"
+#   (3) !include "file"
+#   (4) !define foo bar
+#   (5) !define foo "bar"
 #
 # Environmental variables can be used to override a setting.
 # The special value "null" causes the variable to be undefined.
@@ -25,6 +25,7 @@ sub comment {
 sub define {
   my ($name, $value) = @_;
   if ($mode eq "sh") {
+    $value="true" if !$value;
     print "[ -z \"\$$name\" ] && export $name=$value\n";
     print "[ \"\$$name\" = \"$nulltag\" ] && unset $name\n";
   } else {
@@ -34,13 +35,12 @@ sub define {
     }
     if ($value ne $nulltag) {
       print "#define $name $value\n" if ($mode =~ /^(c|h)$/);
-      print "!define $name $value\n" if ($mode eq "nsi");
-      print "define $name $value\n" if ($mode eq "in");
+      print "!define $name $value\n" if ($mode =~ /^(nsi|in)$/);
       print "var $name=$value;\n" if ($mode eq "js");
     } else {
       print "//#undef $name\n" if ($mode =~ /^(c|h)$/);
       print "#!undef $name\n" if ($mode eq "nsi");
-      print ";undef $name\n" if ($mode eq "in");
+      print ";!undef $name\n" if ($mode eq "in");
       print "//undef $name\n" if ($mode eq "js");
     }
   }
@@ -60,9 +60,9 @@ sub include_file {
 	print "\n";
       } elsif (/^[#;](.*)$/) {
 	comment ($1);
-      } elsif (/^define\s+(\w+)\s+(.+)$/) {
+      } elsif (/^!define\s+(\w+)(?:\s+(.*?))?\s*$/) {
 	define ($1, $2);
-      } elsif (/^include\s+"(.+)"/) {
+      } elsif (/^!include\s+"(.+)"$/) {
 	include_file ($1);
       } else {
 	die "can't parse this line: $_\n";

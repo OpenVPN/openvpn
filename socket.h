@@ -80,14 +80,14 @@ typedef uint16_t packet_size_type;
 /* OpenVPN sockaddr struct */
 struct openvpn_sockaddr
 {
-  int dummy; /* JYFIXME -- add offset to force a bug if sa not explicitly dereferenced */
+  /*int dummy;*/ /* add offset to force a bug if sa not explicitly dereferenced */
   struct sockaddr_in sa;
 };
 
 /* actual address of remote, based on source address of received packets */
 struct link_socket_actual
 {
-  int dummy; /* JYFIXME -- add offset to force a bug if dest not explicitly dereferenced */
+  /*int dummy;*/ /* add offset to force a bug if dest not explicitly dereferenced */
   struct openvpn_sockaddr dest;
 #if ENABLE_IP_PKTINFO
   struct in_pktinfo pi;

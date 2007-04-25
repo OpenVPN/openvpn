@@ -1,22 +1,16 @@
 #!/bin/sh
 
-# Sign the installer
-# SIGNCODE should point to directory with signcode.exe and keys
+# Sign the installer.
 
 c=`pwd`
 
 # load version.nsi definitions
 . autodefs/defs.sh
 
-if [ -n "$SIGNCODE" ] ; then
-
+if [ -d "$SIGNTOOL" ]; then
     cd install-win32
-    ls openvpn*.exe 2>/dev/null || exit 1
-    exe=`pwd`/`ls -t openvpn*.exe | head -n 1`
+    ls *.exe 2>/dev/null || exit 1
+    export TARGET_EXE=$(pwd)/$(ls -t *.exe | head -n 1)
     cd $c
-    cd "$SIGNCODE"
-
-    TS="http://timestamp.verisign.com/scripts/timstamp.dll"
-    echo '******************' SIGNCODE OpenVPN INSTALLER
-    ./signcode -spc mycredentials.spc -v myprivatekey.pvk -a sha1 -n "OpenVPN Installer" -t $TS `perl $c/install-win32/dosname.pl $exe`
+    $SIGNTOOL/signexe
 fi

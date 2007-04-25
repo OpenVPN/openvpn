@@ -9,6 +9,7 @@ rm -rf autodefs
 mkdir autodefs
 
 MACRO="perl install-win32/macro.pl autodefs/defs.in"
+IFDEF="perl install-win32/ifdef.pl"
 
 # silly vista security theatre
 PATCH="/tmp/p.exe"
@@ -24,13 +25,11 @@ done
 . autodefs/defs.sh
 
 # configure tap driver sources
-$MACRO <tap-win32/SOURCES.in >tap-win32/SOURCES
-$MACRO <tap-win32/i386/OemWin2k.inf.in >tap-win32/i386/OemWin2k.inf
 rm -rf tap-win32/amd64
 mkdir tap-win32/amd64
-cp tap-win32/i386/OemWin2k.inf tap-win32/amd64
-cd tap-win32/amd64
-$PATCH <../inf64.patch
+$MACRO <tap-win32/SOURCES.in >tap-win32/SOURCES
+$MACRO <tap-win32/i386/OemWin2k.inf.in | $IFDEF >tap-win32/i386/OemWin2k.inf
+$MACRO <tap-win32/i386/OemWin2k.inf.in | $IFDEF -DAMD64 >tap-win32/amd64/OemWin2k.inf
 
 # configure service
 if [ -n "$SVC_TEMPLATE" ] ; then
@@ -47,7 +46,11 @@ cd $c
 cat COPYING COPYRIGHT.GPL >install-win32/license.txt
 
 # copy sample configuration files and docs
-cp sample-config-files/client.conf install-win32/client.ovpn
-cp sample-config-files/server.conf install-win32/server.ovpn
-cp easy-rsa/1.0/openssl.cnf install-win32/openssl.cnf.sample
+s=samples
+rm -rf $s
+mkdir $s
+cp sample-config-files/client.conf $s/client.$PRODUCT_FILE_EXT
+cp sample-config-files/server.conf $s/server.$PRODUCT_FILE_EXT
+cp install-win32/sample.ovpn $s/sample.$PRODUCT_FILE_EXT
+cp easy-rsa/1.0/openssl.cnf $s/openssl.cnf.sample
 cp INSTALL-win32.txt install-win32

@@ -96,7 +96,7 @@ MyDebugPrint (const unsigned char* format, ...)
 	      va_end (args);
 
 	      if (status == STATUS_SUCCESS)
-		g_Debug.out = end - g_Debug.text;
+		g_Debug.out = (unsigned int) (end - g_Debug.text);
 	      else
 		g_Debug.error = TRUE;
 	    }

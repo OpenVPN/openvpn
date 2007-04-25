@@ -748,7 +748,7 @@ get_proxy_settings (char **err, struct gc_arena *gc)
   if (err)
     *err = string_alloc ("PROXY: automatic detection not supported on this OS", gc);
   return NULL;
-#else /* JYFIXME, test --auto-proxy feature */
+#else /* test --auto-proxy feature */
   struct auto_proxy_info *pi;
   ALLOC_OBJ_CLEAR_GC (pi, struct auto_proxy_info, gc);
   pi->http.server = "10.10.0.2";

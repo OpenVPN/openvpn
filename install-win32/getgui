@@ -1,0 +1,21 @@
+#!/bin/sh
+
+# Get and sign the OpenVPN GUI
+
+c=`pwd`
+
+# load version.nsi definitions
+. autodefs/defs.sh
+
+GUI="$OPENVPN_GUI_DIR/$OPENVPN_GUI"
+
+if [ -e "$GUI" ]; then
+    cp $GUI bin
+    echo '!define OPENVPN_GUI_DEFINED' >autodefs/guidefs.nsi
+    if [ -d "$SIGNTOOL" ]; then
+	export TARGET_EXE="bin/$OPENVPN_GUI"
+	$SIGNTOOL/signexe
+    fi
+else
+    cat /dev/null >autodefs/guidefs.nsi
+fi

@@ -58,7 +58,7 @@ LIB_DIRS = -L${OPENSSL_DIR}/out -L${LZO_DIR}
 
 LIB_DIRS_DMALLOC = ${LIB_DIRS} -L${DMALLOC_DIR}
 
-EXE = openvpn.exe
+EXE = ${PRODUCT_UNIX_NAME}.exe
 
 HEADERS = \
 	base64.h \

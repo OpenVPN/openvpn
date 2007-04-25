@@ -53,7 +53,9 @@ typedef unsigned long in_addr_t;
 /*#define DEBUG_LABEL "DEBUG1"*/
 
 /* Should we print debug info from driver? */
-/*#define TAP_WIN32_DEBUG*/
+#ifdef PRODUCT_TAP_DEBUG
+#define TAP_WIN32_DEBUG
+#endif
 
 /*
  * Minimum TAP-Win32 version number expected by userspace
@@ -62,9 +64,6 @@ typedef unsigned long in_addr_t;
  */
 #define TAP_WIN32_MIN_MAJOR 9
 #define TAP_WIN32_MIN_MINOR 1
-
-/* Allow --askpass and --auth-user-pass passwords to be read from a file */
-/* #undef ENABLE_PASSWORD_SAVE */
 
 /* Enable client/server capability */
 #define ENABLE_CLIENT_SERVER 1
@@ -216,25 +215,25 @@ typedef unsigned long in_addr_t;
 #define HAVE_GETPASS 1
 
 /* Name of package */
-#define PACKAGE "openvpn"
+#define PACKAGE PRODUCT_UNIX_NAME
 
 /* Define to the address where bug reports for this package should be sent. */
-#define PACKAGE_BUGREPORT "openvpn-users@lists.sourceforge.net"
+//#define PACKAGE_BUGREPORT "openvpn-users@lists.sourceforge.net"
 
 /* Define to the full name of this package. */
-#define PACKAGE_NAME "OpenVPN"
+#define PACKAGE_NAME PRODUCT_NAME
 
 /* Define to the one symbol short name of this package. */
-#define PACKAGE_TARNAME "openvpn"
+#define PACKAGE_TARNAME PACKAGE
 
 /* Define to the version of this package. */
 #define PACKAGE_VERSION PRODUCT_VERSION
 
 /* Define to the full name and version of this package. */
 #ifdef DEBUG_LABEL
-#define PACKAGE_STRING "OpenVPN " PACKAGE_VERSION " " DEBUG_LABEL
+#define PACKAGE_STRING PACKAGE_NAME " " PACKAGE_VERSION " " DEBUG_LABEL
 #else
-#define PACKAGE_STRING "OpenVPN " PACKAGE_VERSION
+#define PACKAGE_STRING PACKAGE_NAME " " PACKAGE_VERSION
 #endif
 
 /* Define as the return type of signal handlers (`int' or `void'). */

@@ -2,58 +2,70 @@
 # for Windows OpenVPN installer.
 
 # Get the OpenVPN version number
-include "autodefs/version.in"
+!include "autodefs/version.in"
+
+# Branding
+!define PRODUCT_NAME      "OpenVPN"
+!define PRODUCT_UNIX_NAME "openvpn"
+!define PRODUCT_FILE_EXT  "ovpn"
+
+# Allow --askpass and --auth-user-pass passwords to be read from a file
+;!define ENABLE_PASSWORD_SAVE
 
 # Include the OpenVPN GUI exe in the installer.
 # May be undefined.
-define OPENVPN_GUI_DIR "../openvpn-gui"
-define OPENVPN_GUI     "openvpn-gui-1.0.3.exe"
+!define OPENVPN_GUI_DIR "../openvpn-gui"
+!define OPENVPN_GUI     "openvpn-gui-1.0.3.exe"
 
 # Prebuilt libraries.  DMALLOC is optional.
-define OPENSSL_DIR	"../openssl-0.9.7l"
-define LZO_DIR		"../lzo-2.02"
-define DMALLOC_DIR	"../dmalloc-5.4.2"
+!define OPENSSL_DIR	"../openssl-0.9.7l"
+!define LZO_DIR		"../lzo-2.02"
+!define DMALLOC_DIR	"../dmalloc-5.4.2"
 
 # Write TAP driver and tapinstall.exe to this directory,
 # to use as prebuilt binaries for future builds.  May
 # be undefined.
-;define DRVBINDEST "../tapbin"
+;!define DRVBINDEST "../tapbin"
 
 # Don't build TAP driver and tapinstall.exe -- instead get
 # them as prebuilt binaries from this directory.  May be
 # undefined.
-;define DRVBINSRC  "../tapbin"
+;!define DRVBINSRC  "../tapbin"
 
 # tapinstall.exe source code.
 # Not needed if DRVBINSRC is defined.
-define TISRC	"../tapinstall"
+!define TISRC	"../tapinstall"
 
 # TAP Adapter parameters.
-define PRODUCT_TAP_MAJOR_VER       9
-define PRODUCT_TAP_MINOR_VER       3
-define PRODUCT_TAP_RELDATE         "04/18/2007"
+!define PRODUCT_TAP_DEVICE_DESCRIPTION  "TAP-Win32 Adapter V9"
+!define PRODUCT_TAP_PROVIDER            "TAP-Win32 Provider V9"
+!define PRODUCT_TAP_ID		        "tap0901"
+!define PRODUCT_TAP_MAJOR_VER           9
+!define PRODUCT_TAP_MINOR_VER           3
+!define PRODUCT_TAP_RELDATE             "04/18/2007"
+
+; visible=0x81  hidden=0x89
+!define PRODUCT_TAP_CHARACTERISTICS     0x81
+
+# Build debugging version of TAP driver
+;!define PRODUCT_TAP_DEBUG
 
 # Service template files service.[ch] (get from Platform SDK).
 # If undefined, don't build openvpnserv.exe
-define SVC_TEMPLATE "../svc-template"
+!define SVC_TEMPLATE "../svc-template"
 
 # DDK Version.
 # DDK distribution is assumed to be in C:\WINDDK\${DDKVER}
-# Not needed if DRVBINSRC is defined.
-define DDKVER	5600
+!define DDKVER	5600
 
 # Code Signing.
 # This directory should contain signcode.exe + key files.
 # If undefined, don't sign any files.
-define SIGNCODE "../sign"
-
-# INF2CAT should point to the MS inf2cat distribution.
-# inf2cat is used for driver signing.
-# If undefined, don't sign any files.
-define INF2CAT	"../inf2cat"
+!define SIGNTOOL        "../signtool"
+!define PRODUCT_SIGN_CN "openvpn"
 
 # -j parameter passed to make
-define MAKE_JOBS 2
+!define MAKE_JOBS 2
 
 # do a make clean before make
-define MAKE_CLEAN "yes"
+!define MAKE_CLEAN "yes"

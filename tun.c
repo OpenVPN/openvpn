@@ -50,7 +50,7 @@
 
 #ifdef WIN32
 
-/* #define SIMULATE_DHCP_FAILED */       /* JYFIXME -- simulate bad DHCP negotiation */
+/* #define SIMULATE_DHCP_FAILED */       /* simulate bad DHCP negotiation */
 
 #define NI_TEST_FIRST  (1<<0)
 #define NI_IP_NETMASK  (1<<1)

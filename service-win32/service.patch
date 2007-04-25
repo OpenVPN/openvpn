@@ -1,5 +1,5 @@
---- service.c.orig	Mon Jan 30 10:03:35 2006
-+++ service.c	Mon Jan 30 10:16:33 2006
+--- service.c.orig	Tue Apr 24 14:49:30 2007
++++ service.c	Tue Apr 24 12:20:08 2007
 @@ -16,6 +16,7 @@
    service_main(DWORD dwArgc, LPTSTR *lpszArgv);
    CmdInstallService();
@@ -319,27 +319,33 @@
     }
  
     if ( lpszTemp )
---- service.h.orig	Mon Jan 30 10:03:35 2006
-+++ service.h	Mon Jan 30 10:03:35 2006
-@@ -62,13 +62,13 @@
+--- service.h.orig	Tue Apr 24 14:49:30 2007
++++ service.h	Tue Apr 24 11:58:48 2007
+@@ -57,18 +57,19 @@
+ extern "C" {
+ #endif
+ 
++#include "../autodefs/defs.h"
+ 
+ //////////////////////////////////////////////////////////////////////////////
  //// todo: change to desired strings
  ////
  // name of the executable
 -#define SZAPPNAME            "Simple"
-+#define SZAPPNAME            "openvpnserv"
++#define SZAPPNAME            PRODUCT_UNIX_NAME "serv"
  // internal name of the service
 -#define SZSERVICENAME        "SimpleService"
-+#define SZSERVICENAME        "OpenVPNService"
++#define SZSERVICENAME        PRODUCT_NAME "Service"
  // displayed name of the service
 -#define SZSERVICEDISPLAYNAME "Simple Service"
-+#define SZSERVICEDISPLAYNAME "OpenVPN Service"
++#define SZSERVICEDISPLAYNAME PRODUCT_NAME " Service"
  // list of service dependencies - "dep1\0dep2\0\0"
 -#define SZDEPENDENCIES       ""
-+#define SZDEPENDENCIES       "TAP0901\0Dhcp\0\0"
++#define SZDEPENDENCIES       PRODUCT_TAP_ID "\0Dhcp\0\0"
  //////////////////////////////////////////////////////////////////////////////
  
  
-@@ -126,7 +126,10 @@
+@@ -126,7 +127,10 @@
  //  RETURN VALUE:
  //    none
  //

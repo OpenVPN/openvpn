@@ -8,7 +8,7 @@ while (<STDIN>) {
   if (/^\s*$/) {
     print "\n";
   } elsif (/^define\((\w+),\[(.*?)\]\)/) {
-    print "define $1 \"$2\"\n";
+    print "!define $1 \"$2\"\n";
   } elsif (/^dnl(.*)$/) {
     print "#$1\n";
   }

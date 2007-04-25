@@ -32,6 +32,8 @@
 // common to both.
 //===============================================
 
+#include "../autodefs/defs.h"
+
 //=============
 // TAP IOCTLs
 //=============
@@ -79,4 +81,4 @@
 // simultaneously.
 //=========================================================
 
-#define TAP_COMPONENT_ID "tap0901"
+#define TAP_COMPONENT_ID PRODUCT_TAP_ID

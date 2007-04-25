@@ -6,25 +6,52 @@
 # get version.nsi definitions
 . autodefs/defs.sh
 
-amdtarget=""
-if [ -z "$TAP_BIN_AMD64" ]; then
+if [ -n "$PRODUCT_TAP_DEBUG" ] ; then
+    w2ktarget="w2k c"
+    amdtarget="chk AMD64 WNET"
+else
+    w2ktarget="w2k f"
     amdtarget="fre AMD64 WNET"
 fi
 
 if [ -z "$DRVBINSRC" ] ; then
+    if [ -n "$TAP_BIN_AMD64" ]; then
+	amdtarget=""
+    fi
+
     cd tap-win32
     t=`pwd`
     cd ..
 
-    for mode in "w2k f" "$amdtarget"; do
+    for mode in "$w2ktarget" "$amdtarget"; do
 	echo '**********' build TAP $mode
 	cmd //c "C:\\WINDDK\\$DDKVER\\bin\\setenv.bat C:\\WINDDK\\$DDKVER $mode && cd `perl install-win32/dosname.pl $t` && build -cef"
     done
-fi
 
-if [ -n "$TAP_BIN_AMD64" ]; then
-    mkdir -p $t/amd64
-    cp "$TAP_BIN_AMD64" $t/amd64
-fi
+    title openvpn-build &>/dev/null
 
-title openvpn-build &>/dev/null
+    if [ -n "$TAP_BIN_AMD64" ]; then
+	mkdir -p $t/amd64
+	cp "$TAP_BIN_AMD64" $t/amd64
+    fi
+
+    # copy driver files into tap-win32/dist
+    cd tap-win32
+    rm -rf dist
+    mkdir dist
+    cd dist
+    mkdir i386
+    mkdir amd64
+    cd i386
+    x86=`pwd`
+    cd ../amd64
+    x64=`pwd`
+    cd ../..
+    cp i386/OemWin2k.inf $x86
+    cp i386/*.sys $x86
+    cp amd64/OemWin2k.inf $x64
+    cp amd64/*.sys $x64
+    out="TAP driver catalog file is undefined";
+    echo "$out" >$x86/$PRODUCT_TAP_ID.cat
+    echo "$out" >$x64/$PRODUCT_TAP_ID.cat
+fi

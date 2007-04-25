@@ -9,12 +9,12 @@ rm -rf bin
 mkdir bin
 
 # Get OpenVPN executable
-cp openvpn.exe bin
-strip bin/openvpn.exe
+cp $PRODUCT_UNIX_NAME.exe bin
+strip bin/$PRODUCT_UNIX_NAME.exe
 
 # Get OpenVPN service
-cp service-win32/openvpnserv.exe bin
-strip bin/openvpnserv.exe
+cp service-win32/${PRODUCT_UNIX_NAME}serv.exe bin
+strip bin/${PRODUCT_UNIX_NAME}serv.exe
 
 # Get OpenSSL binaries
 for f in libeay32.dll libssl32.dll openssl.exe ; do

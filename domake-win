@@ -1,14 +1,34 @@
 #!/bin/sh
 
 # This is the master OpenVPN build script for Windows.
-# See top-devel definitions in install-win32/version.nsi
+# This script will build OpenVPN, the TAP driver, and
+# the installer from source.
+#
+# See top-devel build configuration in install-win32/version.nsi
+#
+# Prerequisite installs:
+#
+# MinGW     -- for GNU C compiler
+# MSYS      -- for bash
+# msysDTK   -- for perl
+# NSIS      -- for building installer
+# svn       -- for checking out source code (or TortoiseSVN)
+# Windows Driver Kit Vista RC1 (5600) -- for building TAP driver + tapinstall
+#
+# Required source code not included in OpenVPN SVN repository
+# because of MS licensing restrictions:
+#
+# ../tapinstall -- This is based on 'devcon' which is found in the
+#                  Windows Driver Kit (formerly known as DDK).
+#                  Copy the 'devcon' source tree to ../tapinstall
+#                  Edit 'sources' and modify TARGETNAME=tapinstall
+#
+# ../svc-template -- This directory should contain service.[ch]
+#                    from the MS Platform SDK.
 #
 # Example usage:
 #
-# make without signing:
-#  SIGNCODE="null" ./domake-win
-#
-# write installer to desktop
+# build everything, then write installer to desktop
 #  INSTALLER_DEST="/c/Documents and Settings/James/Desktop" ./domake-win
 
 install-win32/winconfig
@@ -17,6 +37,7 @@ install-win32/maketapinstall
 install-win32/maketap
 install-win32/signtap
 install-win32/makebin
+install-win32/getgui
 install-win32/buildinstaller
 install-win32/signinstaller
 install-win32/copyinstaller

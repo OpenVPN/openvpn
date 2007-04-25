@@ -5,7 +5,7 @@
 # applying service.patch to the Platform
 # SDK service sample.
 
-EXE = openvpnserv.exe
+EXE = ${PRODUCT_UNIX_NAME}serv.exe
 
 HEADERS = service.h
 

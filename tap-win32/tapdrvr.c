@@ -58,7 +58,7 @@
 //========================================================
 // Check for truncated IPv4 packets, log errors if found.
 //========================================================
-#define PACKET_TRUNCATION_CHECK 1 // JYFIXME
+#define PACKET_TRUNCATION_CHECK 0
 
 //========================================================
 // EXPERIMENTAL -- Configure TAP device object to be
@@ -68,7 +68,7 @@
 // Duplicates the functionality of OpenVPN's
 // --allow-nonadmin directive.
 //========================================================
-#define ENABLE_NONADMIN 1         // JYFIXME
+#define ENABLE_NONADMIN 1
 
 #if DDKVER < 5600
 #include <ndis.h>
@@ -1413,7 +1413,8 @@ AdapterTransmit (IN NDIS_HANDLE p_AdapterContext,
 		 IN UINT p_Flags)
 {
   TapAdapterPointer l_Adapter = (TapAdapterPointer) p_AdapterContext;
-  ULONG l_Index = 0, l_BufferLength = 0, l_PacketLength = 0;
+  ULONG l_Index = 0, l_PacketLength = 0;
+  UINT l_BufferLength = 0;
   PIRP l_IRP;
   TapPacketPointer l_PacketBuffer;
   PNDIS_BUFFER l_NDIS_Buffer;
