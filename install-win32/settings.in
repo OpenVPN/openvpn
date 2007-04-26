@@ -62,7 +62,6 @@
 !define DDKVER	5600
 
 # Code Signing.
-# This directory should contain signcode.exe + key files.
 # If undefined, don't sign any files.
 !define SIGNTOOL        "../signtool"
 !define PRODUCT_SIGN_CN "openvpn"

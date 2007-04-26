@@ -21,6 +21,9 @@
 # OpenSSL   -- define OPENSSL_DIR in settings.in
 # LZO       -- define LZO_DIR in settings.in
 #
+# Optional OpenVPN GUI binary (prebuilt)
+#           -- define OPENVPN_GUI_DIR and OPENVPN_GUI in settings.in
+#
 # Required source code not included in OpenVPN SVN repository
 # because of MS licensing restrictions:
 #
