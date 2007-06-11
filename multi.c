@@ -408,8 +408,10 @@ multi_client_disconnect_setenv (struct multi_context *m,
   setenv_counter (mi->context.c2.es, "bytes_sent", mi->context.c2.link_write_bytes);
 
   /* setenv connection duration */
-  const unsigned int duration = (unsigned int) now - mi->created;
-  setenv_unsigned (mi->context.c2.es, "time_duration", duration);
+  {
+    const unsigned int duration = (unsigned int) now - mi->created;
+    setenv_unsigned (mi->context.c2.es, "time_duration", duration);
+  }
 }
 
 static void
