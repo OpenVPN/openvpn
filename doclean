@@ -11,6 +11,6 @@
 #        make
 #        make install
 
-rm -f *.o openvpn config.cache configure Makefile Makefile.in stamp-h* config.guess config.sub depcomp missing mkinstalldirs config.log config.status config.h config.h.in aclocal.m4 openvpn.spec config-win32.h install-sh install-win32/openvpn.nsi
+rm -f *.o openvpn config.cache configure Makefile Makefile.in stamp-h* config.guess config.sub depcomp missing mkinstalldirs config.log config.status config.h config.h.in aclocal.m4 openvpn.spec install-sh
 
 rm -rf autom4te*.cache .deps
