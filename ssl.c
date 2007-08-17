@@ -298,7 +298,7 @@ auth_user_pass_setup (const char *auth_file)
   if (!auth_user_pass.defined)
     {
 #if AUTO_USERID
-      get_user_pass_auto_userid (&auth_user_pass);
+      get_user_pass_auto_userid (&auth_user_pass, auth_file);
 #else
       get_user_pass (&auth_user_pass, auth_file, UP_TYPE_AUTH, GET_USER_PASS_MANAGEMENT|GET_USER_PASS_SENSITIVE);
 #endif

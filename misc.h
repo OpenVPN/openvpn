@@ -266,7 +266,7 @@ void openvpn_sleep (const int n);
 void configure_path (void);
 
 #if AUTO_USERID
-void get_user_pass_auto_userid (struct user_pass *up);
+void get_user_pass_auto_userid (struct user_pass *up, const char *tag);
 #endif
 
 #endif
