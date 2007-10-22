@@ -110,6 +110,8 @@
 
   LangString DESC_SecOpenSSLDLLs ${LANG_ENGLISH} "Install OpenSSL DLLs locally (may be omitted if DLLs are already installed globally)."
 
+  LangString DESC_SecPKCS11LDLLs ${LANG_ENGLISH} "Install PKCS#11 helper DLLs locally (may be omitted if DLLs are already installed globally)."
+
   LangString DESC_SecTAP ${LANG_ENGLISH} "Install/Upgrade the TAP-Win32 virtual device driver.  Will not interfere with CIPE."
 
   LangString DESC_SecService ${LANG_ENGLISH} "Install the ${PRODUCT_NAME} service wrapper (${PRODUCT_UNIX_NAME}serv.exe)"
@@ -315,6 +317,14 @@ Section "OpenSSL Utilities" SecOpenSSLUtilities
   SetOverwrite on
   SetOutPath "$INSTDIR\bin"
   File "${BIN}\openssl.exe"
+
+SectionEnd
+
+Section "PKCS#11 DLLs" SecPKCS11DLLs
+
+  SetOverwrite on
+  SetOutPath "$INSTDIR\bin"
+  File "${BIN}\libpkcs11-helper-1.dll"
 
 SectionEnd
 
@@ -566,6 +576,7 @@ SectionEnd
   !insertmacro MUI_DESCRIPTION_TEXT ${SecTAP} $(DESC_SecTAP)
   !insertmacro MUI_DESCRIPTION_TEXT ${SecOpenSSLUtilities} $(DESC_SecOpenSSLUtilities)
   !insertmacro MUI_DESCRIPTION_TEXT ${SecOpenSSLDLLs} $(DESC_SecOpenSSLDLLs)
+  !insertmacro MUI_DESCRIPTION_TEXT ${SecPKCS11DLLs} $(DESC_SecPKCS11DLLs)
   !insertmacro MUI_DESCRIPTION_TEXT ${SecAddPath} $(DESC_SecAddPath)
   !insertmacro MUI_DESCRIPTION_TEXT ${SecAddShortcuts} $(DESC_SecAddShortcuts)
   !insertmacro MUI_DESCRIPTION_TEXT ${SecService} $(DESC_SecService)
@@ -615,6 +626,7 @@ Section "Uninstall"
   Delete "$INSTDIR\bin\${PRODUCT_UNIX_NAME}serv.exe"
   Delete "$INSTDIR\bin\libeay32.dll"
   Delete "$INSTDIR\bin\libssl32.dll"
+  Delete "$INSTDIR\bin\libpkcs11-helper-1.dll"
   Delete "$INSTDIR\bin\tapinstall.exe"
   Delete "$INSTDIR\bin\addtap.bat"
   Delete "$INSTDIR\bin\deltapall.bat"

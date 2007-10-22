@@ -45,29 +45,23 @@ bool
 pkcs11_addProvider (
 	const char * const provider,
 	const bool fProtectedAuthentication,
-	const char * const sign_mode,
+	const unsigned private_mode,
 	const bool fCertIsPrivate
 );
 
 int
+pkcs11_logout();
+
+int
 SSL_CTX_use_pkcs11 (
 	SSL_CTX * const ssl_ctx,
-	const char * const pkcs11_slot_type,
-	const char * const pkcs11_slot,
-	const char * const pkcs11_id_type,
 	const char * const pkcs11_id
 );
 
 void
-show_pkcs11_slots (
-	const char * const provider
-);
-
-void
-show_pkcs11_objects (
+show_pkcs11_ids (
 	const char * const provider,
-	const char * const slot,
-	const char * const pin
+	bool cert_private
 );
 
 #endif			/* ENABLE_PKCS11 */

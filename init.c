@@ -144,7 +144,7 @@ context_init_1 (struct context *c)
     pkcs11_initialize (true, c->options.pkcs11_pin_cache_period);
     for (i=0;i<MAX_PARMS && c->options.pkcs11_providers[i] != NULL;i++)
      pkcs11_addProvider (c->options.pkcs11_providers[i], c->options.pkcs11_protected_authentication[i],
-       c->options.pkcs11_sign_mode[i], c->options.pkcs11_cert_private[i]);
+       c->options.pkcs11_private_mode[i], c->options.pkcs11_cert_private[i]);
   }
 #endif
 

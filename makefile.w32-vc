@@ -22,11 +22,13 @@ OPENSSL_DYNAMIC = libeay32.lib ssleay32.lib
 
 LZO = \src\lzo-1.08.vc
 
-INCLUDE_DIRS = -I$(OPENSSL)/include -I$(LZO)/include
+PKCS11_HELPER = \src\pkcs11-helper-1.02
 
-LIBS = lzo.lib ws2_32.lib crypt32.lib iphlpapi.lib winmm.lib user32.lib gdi32.lib advapi32.lib wininet.lib
+INCLUDE_DIRS = -I$(OPENSSL)/include -I$(LZO)/include -I$(PKCS11_HELPER)/include
 
-LIB_DIRS = -LIBPATH:$(OPENSSL)\out -LIBPATH:$(LZO)
+LIBS = lzo.lib libpkcs11-helper-1.lib ws2_32.lib crypt32.lib iphlpapi.lib winmm.lib user32.lib gdi32.lib advapi32.lib wininet.lib
+
+LIB_DIRS = -LIBPATH:$(OPENSSL)\out -LIBPATH:$(LZO) -LIBPATH:$(PKCS11_HELPER)\lib
 
 EXE = openvpn.exe
 
@@ -82,7 +84,7 @@ HEADERS = \
 	ntlm.h \
 	occ-inline.h \
 	occ.h \
-	pkcs11.h pkcs11-helper.h cryptoki.h \
+	pkcs11.h \
         openvpn.h \
 	openvpn-plugin.h \
 	options.h \
@@ -138,7 +140,7 @@ OBJS =  base64.obj \
 	multi.obj \
 	ntlm.obj \
 	occ.obj \
-	pkcs11.obj pkcs11-helper.obj \
+	pkcs11.obj \
         openvpn.obj \
 	options.obj \
 	otime.obj \

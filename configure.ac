@@ -505,7 +505,7 @@ fi
 dnl
 dnl Check for dlopen -- first try libc then libdl.
 dnl
-if test "$PLUGINS" = "yes" || test "$PKCS11" = "yes"; then
+if test "$PLUGINS" = "yes"; then
    AC_CHECKING([for libdl Library and Header files])
    AC_CHECK_HEADER(dlfcn.h,
         [AC_CHECK_FUNC(dlopen,
@@ -625,6 +625,21 @@ dnl
    fi
 fi
 
+dnl enable pkcs11 capability
+if test "$PKCS11" = "yes"; then
+   AC_CHECKING([for pkcs11-helper Library and Header files])
+   AC_CHECK_HEADER(pkcs11-helper-1.0/pkcs11h-core.h,
+	[AC_CHECK_LIB(pkcs11-helper, pkcs11h_initialize,
+	    [
+		   AC_DEFINE(USE_PKCS11, 1, [Enable PKCS11 capability])
+		   OPENVPN_ADD_LIBS(-lpkcs11-helper)
+	    ],
+	    [AC_MSG_RESULT([pkcs11-helper library not found.])]
+	)],
+	[AC_MSG_RESULT([pkcs11-helper headers not found.])]
+   )
+fi
+
 dnl enable multi-client mode
 if test "$MULTI" = "yes"; then
    AC_DEFINE(ENABLE_CLIENT_SERVER, 1, [Enable client/server capability])
@@ -638,11 +653,6 @@ fi
 dnl enable management server capability
 if test "$MANAGEMENT" = "yes"; then
    AC_DEFINE(ENABLE_MANAGEMENT, 1, [Enable management server capability])
-fi
-
-dnl enable pkcs11 capability
-if test "$PKCS11" = "yes"; then
-   AC_DEFINE(USE_PKCS11, 1, [Enable PKCS11 capability])
 fi
 
 dnl enable socks 

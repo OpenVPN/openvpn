@@ -22,12 +22,6 @@
  *  59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-/*
- * The routines in this file deal with providing private key cryptography
- * using RSA Security Inc. PKCS #11 Cryptographic Token Interface (Cryptoki).
- *
- */
-
 #if defined(WIN32)
 #include "config-win32.h"
 #else
@@ -38,15 +32,54 @@
 
 #if defined(ENABLE_PKCS11)
 
-#define PKCS11H_NO_NEED_INCLUDE_CONFIG
-
-#include "pkcs11-helper.h"
+#include <pkcs11-helper-1.0/pkcs11h-certificate.h>
+#include <pkcs11-helper-1.0/pkcs11h-openssl.h>
+#include "basic.h"
+#include "error.h"
+#include "manage.h"
 #include "pkcs11.h"
+
+static
+time_t
+__mytime (void) {
+	return openvpn_time (NULL);
+}
+
+#if !defined(_WIN32)
+static
+int
+__mygettimeofday (struct timeval *tv) {
+	return gettimeofday (tv, NULL);
+}
+#endif
+
+static
+void
+__mysleep (const unsigned long usec) {
+#if defined(_WIN32)
+	Sleep (usec/1000);
+#else
+	usleep (usec);
+#endif
+}
+
+
+static pkcs11h_engine_system_t s_pkcs11h_sys_engine = {
+	malloc,
+	free,
+	__mytime,
+	__mysleep,
+#if defined(_WIN32)
+	NULL
+#else
+	__mygettimeofday
+#endif
+};
 
 static
 unsigned
 _pkcs11_msg_pkcs112openvpn (
-	IN const unsigned flags
+	const unsigned flags
 ) {
 	unsigned openvpn_flags;
 
@@ -81,7 +114,7 @@ _pkcs11_msg_pkcs112openvpn (
 static
 unsigned
 _pkcs11_msg_openvpn2pkcs11 (
-	IN const unsigned flags
+	const unsigned flags
 ) {
 	unsigned pkcs11_flags;
 
@@ -113,29 +146,11 @@ _pkcs11_msg_openvpn2pkcs11 (
 
 static
 void
-_pkcs11_openvpn_print (
-	IN const void *pData,
-	IN const char * const szFormat,
-	IN ...
-) {
-	char Buffer[10*1024];
-	va_list args;
-	
-	va_start (args, szFormat);
-	vsnprintf (Buffer, sizeof (Buffer), szFormat, args);
-	va_end (args);
-	Buffer[sizeof (Buffer)-1] = 0;
-	
-	msg (M_INFO|M_NOPREFIX|M_NOLF, "%s", Buffer);
-}
-
-static
-void
 _pkcs11_openvpn_log (
-	IN const void *pData,
-	IN unsigned flags,
-	IN const char * const szFormat,
-	IN va_list args
+	void * const global_data,
+	unsigned flags,
+	const char * const szFormat,
+	va_list args
 ) {
 	char Buffer[10*1024];
 	
@@ -146,15 +161,19 @@ _pkcs11_openvpn_log (
 }
 
 static
-bool
+PKCS11H_BOOL
 _pkcs11_openvpn_token_prompt (
-	IN const void *pData,
-	IN const pkcs11h_token_id_t token,
-	IN const unsigned retry
+	void * const global_data,
+	void * const user_data,
+	const pkcs11h_token_id_t token,
+	const unsigned retry
 ) {
 	static struct user_pass token_resp;
 
+	(void)global_data;
+	(void)user_data;
 	(void)retry;
+
 	ASSERT (token!=NULL);
 
 	CLEAR (token_resp);
@@ -185,38 +204,42 @@ _pkcs11_openvpn_token_prompt (
 static
 bool
 _pkcs11_openvpn_pin_prompt (
-	IN const void *pData,
-	IN const pkcs11h_token_id_t token,
-	IN const unsigned retry,
-	OUT char * const szPIN,
-	IN const size_t nMaxPIN
+	void * const global_data,
+	void * const user_data,
+	const pkcs11h_token_id_t token,
+	const unsigned retry,
+	char * const pin,
+	const size_t pin_max
 ) {
 	static struct user_pass token_pass;
-	char szPrompt[1024];
+	char prompt[1024];
 
+	(void)global_data;
+	(void)user_data;
 	(void)retry;
+
 	ASSERT (token!=NULL);
 
-	openvpn_snprintf (szPrompt, sizeof (szPrompt), "%s token", token->label);
+	openvpn_snprintf (prompt, sizeof (prompt), "%s token", token->label);
 
 	token_pass.defined = false;
 	token_pass.nocache = true;
-
+	
 	if (
 		!get_user_pass (
 			&token_pass,
 			NULL,
-			szPrompt,
+			prompt,
 			GET_USER_PASS_MANAGEMENT|GET_USER_PASS_PASSWORD_ONLY|GET_USER_PASS_NOFATAL
 		)
 	) {
 		return false;
 	}
 	else {
-		strncpynt (szPIN, token_pass.password, nMaxPIN);
+		strncpynt (pin, token_pass.password, pin_max);
 		purge_user_pass (&token_pass, true);
 
-		if (strlen (szPIN) == 0) {
+		if (strlen (pin) == 0) {
 			return false;
 		}
 		else {
@@ -227,62 +250,61 @@ _pkcs11_openvpn_pin_prompt (
 
 bool
 pkcs11_initialize (
-	IN const bool fProtectedAuthentication,
-	IN const int nPINCachePeriod
+	const bool protected_auth,
+	const int nPINCachePeriod
 ) {
-	CK_RV rv = CKR_OK;
+	CK_RV rv = CKR_FUNCTION_FAILED;
 
 	dmsg (
 		D_PKCS11_DEBUG,
 		"PKCS#11: pkcs11_initialize - entered"
 	);
 
-	if (
-		rv == CKR_OK &&
-		(rv = pkcs11h_initialize ()) != CKR_OK
-	) {
+	if ((rv = pkcs11h_engine_setSystem (&s_pkcs11h_sys_engine)) != CKR_OK) {
+		msg (M_FATAL, "PKCS#11: Cannot initialize system engine %ld-'%s'", rv, pkcs11h_getMessage (rv));
+		goto cleanup;
+	}
+
+	if ((rv = pkcs11h_initialize ()) != CKR_OK) {
 		msg (M_FATAL, "PKCS#11: Cannot initialize %ld-'%s'", rv, pkcs11h_getMessage (rv));
+		goto cleanup;
 	}
 
-	if (
-		rv == CKR_OK &&
-		(rv = pkcs11h_setLogHook (_pkcs11_openvpn_log, NULL)) != CKR_OK
-	) {
+	if ((rv = pkcs11h_setLogHook (_pkcs11_openvpn_log, NULL)) != CKR_OK) {
 		msg (M_FATAL, "PKCS#11: Cannot set hooks %ld-'%s'", rv, pkcs11h_getMessage (rv));
+		goto cleanup;
 	}
 
-	if (rv == CKR_OK) {
-		pkcs11h_setLogLevel (_pkcs11_msg_openvpn2pkcs11 (get_debug_level ()));
+	pkcs11h_setLogLevel (_pkcs11_msg_openvpn2pkcs11 (get_debug_level ()));
+
+	if ((rv = pkcs11h_setForkMode (TRUE)) != CKR_OK) {
+		msg (M_FATAL, "PKCS#11: Cannot set fork mode %ld-'%s'", rv, pkcs11h_getMessage (rv));
+		goto cleanup;
 	}
 
-	if (
-		rv == CKR_OK &&
-		(rv = pkcs11h_setTokenPromptHook (_pkcs11_openvpn_token_prompt, NULL)) != CKR_OK
-	) {
+	if ((rv = pkcs11h_setTokenPromptHook (_pkcs11_openvpn_token_prompt, NULL)) != CKR_OK) {
 		msg (M_FATAL, "PKCS#11: Cannot set hooks %ld-'%s'", rv, pkcs11h_getMessage (rv));
+		goto cleanup;
 	}
 
-	if (
-		rv == CKR_OK &&
-		(rv = pkcs11h_setPINPromptHook (_pkcs11_openvpn_pin_prompt, NULL)) != CKR_OK
-	) {
+	if ((rv = pkcs11h_setPINPromptHook (_pkcs11_openvpn_pin_prompt, NULL)) != CKR_OK) {
 		msg (M_FATAL, "PKCS#11: Cannot set hooks %ld-'%s'", rv, pkcs11h_getMessage (rv));
+		goto cleanup;
 	}
 
-	if (
-		rv == CKR_OK &&
-		(rv = pkcs11h_setProtectedAuthentication (fProtectedAuthentication)) != CKR_OK
-	) {
+	if ((rv = pkcs11h_setProtectedAuthentication (protected_auth)) != CKR_OK) {
 		msg (M_FATAL, "PKCS#11: Cannot set protected authentication mode %ld-'%s'", rv, pkcs11h_getMessage (rv));
+		goto cleanup;
 	}
 
-	if (
-		rv == CKR_OK &&
-		(rv = pkcs11h_setPINCachePeriod (nPINCachePeriod)) != CKR_OK
-	) {
-		msg (M_FATAL, "PKCS#11: Cannot set PIN cache period %ld-'%s'", rv, pkcs11h_getMessage (rv));
+	if ((rv = pkcs11h_setPINCachePeriod (nPINCachePeriod)) != CKR_OK) {
+		msg (M_FATAL, "PKCS#11: Cannot set Pcache period %ld-'%s'", rv, pkcs11h_getMessage (rv));
+		goto cleanup;
 	}
 
+	rv = CKR_OK;
+
+cleanup:
 	dmsg (
 		D_PKCS11_DEBUG,
 		"PKCS#11: pkcs11_initialize - return %ld-'%s'",
@@ -315,23 +337,20 @@ pkcs11_forkFixup () {
 
 bool
 pkcs11_addProvider (
-	IN const char * const provider,
-	IN const bool fProtectedAuthentication,
-	IN const char * const sign_mode,
-	IN const bool fCertIsPrivate
+	const char * const provider,
+	const bool protected_auth,
+	const unsigned private_mode,
+	const bool cert_private
 ) {
-	unsigned maskSignMode = 0;
-
 	CK_RV rv = CKR_OK;
 
 	ASSERT (provider!=NULL);
-	/*ASSERT (sign_mode!=NULL); NULL is default */
 
 	dmsg (
 		D_PKCS11_DEBUG,
-		"PKCS#11: pkcs11_addProvider - entered - provider='%s', sign_mode='%s'",
+		"PKCS#11: pkcs11_addProvider - entered - provider='%s', private_mode=%08x",
 		provider,
-		sign_mode == NULL ? "default" : sign_mode
+		private_mode
 	);
 
 	msg (
@@ -340,38 +359,15 @@ pkcs11_addProvider (
 		provider
 	);
 
-	if (rv == CKR_OK) {
-		if (sign_mode == NULL || !strcmp (sign_mode, "auto")) {
-			maskSignMode = 0;
-		}
-		else if (!strcmp (sign_mode, "sign")) {
-			maskSignMode = PKCS11H_SIGNMODE_MASK_SIGN;
-		}
-		else if (!strcmp (sign_mode, "recover")) {
-			maskSignMode = PKCS11H_SIGNMODE_MASK_RECOVER;
-		}
-		else if (!strcmp (sign_mode, "any")) {
-			maskSignMode = (
-				PKCS11H_SIGNMODE_MASK_SIGN |
-				PKCS11H_SIGNMODE_MASK_RECOVER
-			);
-		}
-		else {
-			msg (M_FATAL, "PKCS#11: Invalid sign mode '%s'", sign_mode);
-			rv = CKR_ARGUMENTS_BAD;
-		}
-	}
-
 	if (
-		rv == CKR_OK &&
 		(rv = pkcs11h_addProvider (
 			provider,
 			provider,
-			fProtectedAuthentication,
-			maskSignMode,
+			protected_auth,
+			private_mode,
 			PKCS11H_SLOTEVENT_METHOD_AUTO,
 			0,
-			fCertIsPrivate
+			cert_private
 		)) != CKR_OK
 	) {
 		msg (M_WARN, "PKCS#11: Cannot initialize provider '%s' %ld-'%s'", provider, rv, pkcs11h_getMessage (rv));
@@ -388,12 +384,14 @@ pkcs11_addProvider (
 }
 
 int
+pkcs11_logout() {
+	return pkcs11h_logout () == CKR_OK;
+}
+
+int
 SSL_CTX_use_pkcs11 (
-	IN OUT SSL_CTX * const ssl_ctx,
-	IN const char * const pkcs11_slot_type,
-	IN const char * const pkcs11_slot,
-	IN const char * const pkcs11_id_type,
-	IN const char * const pkcs11_id
+	SSL_CTX * const ssl_ctx,
+	const char * const pkcs11_id
 ) {
 	X509 *x509 = NULL;
 	RSA *rsa = NULL;
@@ -402,103 +400,74 @@ SSL_CTX_use_pkcs11 (
 	pkcs11h_openssl_session_t openssl_session = NULL;
 	CK_RV rv = CKR_OK;
 
-	bool fOK = true;
+	bool ok = false;
 
 	ASSERT (ssl_ctx!=NULL);
-	ASSERT (pkcs11_slot_type!=NULL);
-	ASSERT (pkcs11_slot!=NULL);
-	ASSERT (pkcs11_id_type!=NULL);
 	ASSERT (pkcs11_id!=NULL);
 
 	dmsg (
 		D_PKCS11_DEBUG,
-		"PKCS#11: SSL_CTX_use_pkcs11 - entered - ssl_ctx=%p, pkcs11_slot_type='%s', pkcs11_slot='%s', pkcs11_id_type='%s', pkcs11_id='%s'",
+		"PKCS#11: SSL_CTX_use_pkcs11 - entered - ssl_ctx=%p, pkcs11_id='%s'",
 		(void *)ssl_ctx,
-		pkcs11_slot_type,
-		pkcs11_slot,
-		pkcs11_id_type,
 		pkcs11_id
 	);
 
-	ASSERT (ssl_ctx!=NULL);
-	ASSERT (pkcs11_slot_type!=NULL);
-	ASSERT (pkcs11_slot!=NULL);
-	ASSERT (pkcs11_id_type!=NULL);
-	ASSERT (pkcs11_id!=NULL);
-
 	if (
-		fOK &&
-		(rv = pkcs11h_locate_certificate (
-			pkcs11_slot_type,
-			pkcs11_slot,
-			pkcs11_id_type,
-			pkcs11_id,
-			&certificate_id
+		(rv = pkcs11h_certificate_deserializeCertificateId (
+			&certificate_id,
+			pkcs11_id
 		)) != CKR_OK
 	) {
-		fOK = false;
-		msg (M_WARN, "PKCS#11: Cannot set parameters %ld-'%s'", rv, pkcs11h_getMessage (rv));
+		msg (M_WARN, "PKCS#11: Cannot deserialize id %ld-'%s'", rv, pkcs11h_getMessage (rv));
+		goto cleanup;
 	}
 
 	if (
-		fOK &&
 		(rv = pkcs11h_certificate_create (
 			certificate_id,
+			NULL,
+			PKCS11H_PROMPT_MASK_ALLOW_ALL,
 			PKCS11H_PIN_CACHE_INFINITE,
 			&certificate
 		)) != CKR_OK
 	) {
-		fOK = false;
 		msg (M_WARN, "PKCS#11: Cannot get certificate %ld-'%s'", rv, pkcs11h_getMessage (rv));
+		goto cleanup;
 	}
 
-	if (
-		fOK &&
-		(openssl_session = pkcs11h_openssl_createSession (certificate)) == NULL
-	) {
-		fOK = false;
+	if ((openssl_session = pkcs11h_openssl_createSession (certificate)) == NULL	) {
 		msg (M_WARN, "PKCS#11: Cannot initialize openssl session");
+		goto cleanup;
 	}
 
-	if (fOK) {
-		/*
-		 * Will be released by openssl_session
-		 */
-		certificate = NULL;
-	}
+	/*
+	 * Will be released by openssl_session
+	 */
+	certificate = NULL;
 
-	if (
-		fOK &&
-		(rsa = pkcs11h_openssl_getRSA (openssl_session)) == NULL
-	) {
-		fOK = false;
+	if ((rsa = pkcs11h_openssl_session_getRSA (openssl_session)) == NULL) {
 		msg (M_WARN, "PKCS#11: Unable get rsa object");
+		goto cleanup;
 	}
 
-	if (
-		fOK &&
-		(x509 = pkcs11h_openssl_getX509 (openssl_session)) == NULL
-	) {
-		fOK = false;
+	if ((x509 = pkcs11h_openssl_session_getX509 (openssl_session)) == NULL) {
 		msg (M_WARN, "PKCS#11: Unable get certificate object");
+		goto cleanup;
 	}
 
-	if (
-		fOK &&
-		!SSL_CTX_use_RSAPrivateKey (ssl_ctx, rsa)
-	) {
-		fOK = false;
+	if (!SSL_CTX_use_RSAPrivateKey (ssl_ctx, rsa)) {
 		msg (M_WARN, "PKCS#11: Cannot set private key for openssl");
+		goto cleanup;
 	}
 
-	if (
-		fOK &&
-		!SSL_CTX_use_certificate (ssl_ctx, x509)
-	) {
-		fOK = false;
+	if (!SSL_CTX_use_certificate (ssl_ctx, x509)) {
 		msg (M_WARN, "PKCS#11: Cannot set certificate for openssl");
+		goto cleanup;
 	}
 
+	ok = true;
+
+cleanup:
 	/*
 	 * openssl objects have reference
 	 * count, so release them
@@ -515,12 +484,12 @@ SSL_CTX_use_pkcs11 (
 	}
 
 	if (certificate != NULL) {
-		pkcs11h_freeCertificate (certificate);
+		pkcs11h_certificate_freeCertificate (certificate);
 		certificate = NULL;
 	}
 
 	if (certificate_id != NULL) {
-		pkcs11h_freeCertificateId (certificate_id);
+		pkcs11h_certificate_freeCertificateId (certificate_id);
 		certificate_id = NULL;
 	}
 	
@@ -531,38 +500,233 @@ SSL_CTX_use_pkcs11 (
 
 	dmsg (
 		D_PKCS11_DEBUG,
-		"PKCS#11: SSL_CTX_use_pkcs11 - return fOK=%d, rv=%ld",
-		fOK ? 1 : 0,
+		"PKCS#11: SSL_CTX_use_pkcs11 - return ok=%d, rv=%ld",
+		ok ? 1 : 0,
 		rv
 	);
 
-	return fOK ? 1 : 0;
+	return ok ? 1 : 0;
 }
 
-void
-show_pkcs11_slots (
-	const char * const provider
+static
+bool
+_pkcs11_openvpn_show_pkcs11_ids_pin_prompt (
+	void * const global_data,
+	void * const user_data,
+	const pkcs11h_token_id_t token,
+	const unsigned retry,
+	char * const pin,
+	const size_t pin_max
 ) {
-	pkcs11h_standalone_dump_slots (
-		_pkcs11_openvpn_print,
-		NULL,
-		provider
-	);
+	struct gc_arena gc = gc_new ();
+	struct buffer pass_prompt = alloc_buf_gc (128, &gc);
+
+	(void)global_data;
+	(void)user_data;
+	(void)retry;
+
+	ASSERT (token!=NULL);
+
+	buf_printf (&pass_prompt, "Please enter '%s' token PIN or 'cancel': ", token->display);
+
+	if (!get_console_input (BSTR (&pass_prompt), false, pin, pin_max)) {
+		msg (M_FATAL, "Cannot read password from stdin");
+	}
+
+	gc_free (&gc);
+
+	if (!strcmp (pin, "cancel")) {
+		return FALSE;
+	}
+	else {
+		return TRUE;
+	}
 }
 
 void
-show_pkcs11_objects (
+show_pkcs11_ids (
 	const char * const provider,
-	const char * const slot,
-	const char * const pin
+	bool cert_private
 ) {
-	pkcs11h_standalone_dump_objects (
-		_pkcs11_openvpn_print,
-		NULL,
-		provider,
-		slot,
-		pin
+	pkcs11h_certificate_id_list_t user_certificates = NULL;
+	pkcs11h_certificate_id_list_t current = NULL;
+	CK_RV rv = CKR_FUNCTION_FAILED;
+
+	if ((rv = pkcs11h_initialize ()) != CKR_OK) {
+		msg (M_FATAL, "PKCS#11: Cannot initialize %ld-'%s'", rv, pkcs11h_getMessage (rv));
+		goto cleanup;
+	}
+
+	if ((rv = pkcs11h_setLogHook (_pkcs11_openvpn_log, NULL)) != CKR_OK) {
+		msg (M_FATAL, "PKCS#11: Cannot set hooks %ld-'%s'", rv, pkcs11h_getMessage (rv));
+		goto cleanup;
+	}
+
+	pkcs11h_setLogLevel (_pkcs11_msg_openvpn2pkcs11 (get_debug_level ()));
+
+	if ((rv = pkcs11h_setProtectedAuthentication (TRUE)) != CKR_OK) {
+		msg (M_FATAL, "PKCS#11: Cannot set protected authentication %ld-'%s'", rv, pkcs11h_getMessage (rv));
+		goto cleanup;
+	}
+
+	if ((rv = pkcs11h_setPINPromptHook (_pkcs11_openvpn_show_pkcs11_ids_pin_prompt, NULL)) != CKR_OK) {
+		msg (M_FATAL, "PKCS#11: Cannot set PIN hook %ld-'%s'", rv, pkcs11h_getMessage (rv));
+		goto cleanup;
+	}
+
+	if (
+		(rv = pkcs11h_addProvider (
+			provider,
+			provider,
+			TRUE,
+			0,
+			FALSE,
+			0,
+			cert_private ? TRUE : FALSE
+		)) != CKR_OK
+	) {
+		msg (M_FATAL, "PKCS#11: Cannot add provider '%s' %ld-'%s'", provider, rv, pkcs11h_getMessage (rv));
+		goto cleanup;
+	}
+
+	if (
+		(rv = pkcs11h_certificate_enumCertificateIds (
+			PKCS11H_ENUM_METHOD_CACHE_EXIST,
+			NULL,
+			PKCS11H_PROMPT_MASK_ALLOW_ALL,
+			NULL,
+			&user_certificates
+		)) != CKR_OK
+	) {
+		msg (M_FATAL, "PKCS#11: Cannot enumerate certificates %ld-'%s'", rv, pkcs11h_getMessage (rv));
+		goto cleanup;
+	}
+
+	msg (
+		M_INFO|M_NOPREFIX|M_NOLF,
+		(
+			"\n"
+			"The following objects are available for use.\n"
+			"Each object shown below may be used as parameter to\n"
+			"--pkcs11-id option please remember to use single quote mark.\n"
+		)
 	);
+	for (current = user_certificates;current != NULL; current = current->next) {
+		pkcs11h_certificate_t certificate = NULL;
+		X509 *x509 = NULL;
+		BIO *bio = NULL;
+		char dn[1024] = {0};
+		char serial[1024] = {0};
+		char *ser = NULL;
+		size_t ser_len = 0;
+		int n;
+
+		if (
+			(rv = pkcs11h_certificate_serializeCertificateId (
+				NULL,
+				&ser_len,
+				current->certificate_id
+			)) != CKR_OK
+		) {
+			msg (M_FATAL, "PKCS#11: Cannot serialize certificate %ld-'%s'", rv, pkcs11h_getMessage (rv));
+			goto cleanup1;
+		}
+
+		if (
+			rv == CKR_OK &&
+			(ser = (char *)malloc (ser_len)) == NULL
+		) {
+			msg (M_FATAL, "PKCS#11: Cannot allocate memory");
+			goto cleanup1;
+		}
+
+		if (
+			(rv = pkcs11h_certificate_serializeCertificateId (
+				ser,
+				&ser_len,
+				current->certificate_id
+			)) != CKR_OK
+		) {
+			msg (M_FATAL, "PKCS#11: Cannot serialize certificate %ld-'%s'", rv, pkcs11h_getMessage (rv));
+			goto cleanup1;
+		}
+
+		if (
+			(rv = pkcs11h_certificate_create (
+				current->certificate_id,
+				NULL,
+				PKCS11H_PROMPT_MASK_ALLOW_ALL,
+				PKCS11H_PIN_CACHE_INFINITE,
+				&certificate
+			))
+		) {
+			msg (M_FATAL, "PKCS#11: Cannot create certificate %ld-'%s'", rv, pkcs11h_getMessage (rv));
+			goto cleanup1;
+		}
+
+		if ((x509 = pkcs11h_openssl_getX509 (certificate)) == NULL) {
+			msg (M_FATAL, "PKCS#11: Cannot get X509");
+			goto cleanup1;
+		}
+
+		X509_NAME_oneline (
+			X509_get_subject_name (x509),
+			dn,
+			sizeof (dn)
+		);
+
+		if ((bio = BIO_new (BIO_s_mem ())) == NULL) {
+			msg (M_FATAL, "PKCS#11: Cannot create BIO");
+			goto cleanup1;
+		}
+
+		i2a_ASN1_INTEGER(bio, X509_get_serialNumber (x509));
+		n = BIO_read (bio, serial, sizeof (serial)-1);
+		if (n<0) {
+			serial[0] = '\x0';
+		}
+		else {
+			serial[n] = 0;
+		}
+
+		msg (
+			M_INFO|M_NOPREFIX|M_NOLF,
+			(
+				"\n"
+				"Certificate\n"
+				"       DN:             %s\n"
+				"       Serial:         %s\n"
+				"       Serialized id:  %s\n"
+			),
+			dn,
+			serial,
+			ser
+		);
+
+	cleanup1:
+		if (x509 != NULL) {
+			X509_free (x509);
+			x509 = NULL;
+		}
+
+		if (certificate != NULL) {
+			pkcs11h_certificate_freeCertificate (certificate);
+			certificate = NULL;
+		}
+
+		if (ser != NULL) {
+			free (ser);
+			ser = NULL;
+		}
+	}
+
+cleanup:
+	if (user_certificates != NULL) {
+		pkcs11h_certificate_freeCertificateIdList (user_certificates);
+		user_certificates = NULL;
+	}
+
+	pkcs11h_terminate ();
 }
 
 #else

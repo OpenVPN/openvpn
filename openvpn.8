@@ -209,13 +209,10 @@ openvpn \- secure IP tunnel daemon.
 [\ \fB\-\-ping\fR\ \fIn\fR\ ]
 [\ \fB\-\-pkcs11\-cert\-private\fR\ \fI[0|1]...\fR\ ]
 [\ \fB\-\-pkcs11\-id\fR\ \fIname\fR\ ]
-[\ \fB\-\-pkcs11\-id\-type\fR\ \fItype\fR\ ]
 [\ \fB\-\-pkcs11\-pin\-cache\fR\ \fIseconds\fR\ ]
+[\ \fB\-\-pkcs11\-private\-mode\fR\ \fImode...\fR\ ]
 [\ \fB\-\-pkcs11\-protected\-authentication\fR\ \fI[0|1]...\fR\ ]
 [\ \fB\-\-pkcs11\-providers\fR\ \fIprovider...\fR\ ]
-[\ \fB\-\-pkcs11\-sign\-mode\fR\ \fImode...\fR\ ]
-[\ \fB\-\-pkcs11\-slot\fR\ \fIname\fR\ ]
-[\ \fB\-\-pkcs11\-slot\-type\fR\ \fItype\fR\ ]
 [\ \fB\-\-pkcs12\fR\ \fIfile\fR\ ]
 [\ \fB\-\-plugin\fR\ \fImodule\-pathname\ init\-string\fR\ ]
 [\ \fB\-\-port\fR\ \fIport\fR\ ]
@@ -260,8 +257,7 @@ openvpn \- secure IP tunnel daemon.
 [\ \fB\-\-show\-ciphers\fR\ ]
 [\ \fB\-\-show\-digests\fR\ ]
 [\ \fB\-\-show\-engines\fR\ ]
-[\ \fB\-\-show\-pkcs11\-objects\fR\ \fIprovider\ slot\fR\ ]
-[\ \fB\-\-show\-pkcs11\-slots\fR\ \fIprovider\fR\ ]
+[\ \fB\-\-show\-pkcs11\-ids\fR\ \fIprovider\ [cert_private]\fR\ ]
 [\ \fB\-\-show\-net\-up\fR\ ]
 [\ \fB\-\-show\-net\fR\ ]
 [\ \fB\-\-show\-tls\fR\ ]
@@ -3671,21 +3667,10 @@ Every provider has its own setting.
 .\"*********************************************************
 .TP
 .B --pkcs11-id name
-Specify a name of the object to search for.
-.\"*********************************************************
-.TP
-.B --pkcs11-id-type type
-Specify how to locate the correct objects. Type can be one of the following:
-
-.B 'id'
--- Locate by the id attribte, name should be hex encoded string.
-.br
-.B 'label'
--- Locate by the label attribute, name should be string.
-.br
-.B 'subject'
--- Locate by certificate subject attribute, name should be string.
-.br
+Specify the serialized certificate id to be used. The id can be gotten
+by the standalone
+.B --show-pkcs11-ids
+option.
 .\"*********************************************************
 .TP
 .B --pkcs11-pin-cache seconds
@@ -3707,43 +3692,25 @@ and
 .B --pkcs12.
 .\"*********************************************************
 .TP
-.B --pkcs11-sign-mode mode...
-Specify which method to use in order to sign data. A different mode can be specified
-for each provider. Mode can be one of the following:
+.B --pkcs11-private-mode mode...
+Specify which method to use in order to perform private key operations.
+A different mode can be specified for each provider.
+Mode is encoded as hex number, and can be a mask one of the following:
 
-.B 'auto'
+.B 0
 (default) -- Try to determind automatically.
 .br
-.B 'sign'
--- Use Sign.
+.B 1
+-- Use sign.
 .br
-.B 'recover'
--- Use SignRecover.
+.B 2
+-- Use sign recover.
 .br
-.B 'any'
--- Use Sign and if not supported use SignRecover.
+.B 4
+-- Use decrypt.
 .br
-.\"*********************************************************
-.TP
-.B --pkcs11-slot name
-Specify a name of the slot to search for.
-.\"*********************************************************
-.TP
-.B --pkcs11-slot-type type
-Specify how to locate the correct slot. Type can be one of the following:
-
-.B 'id'
--- Locate the slot by a numeric id. The format is [provider:]id, for example, slot 2 of provider a.so 
-should be encoded as a.so:2. If you have only one provider you can omit the provider name.
-The provider name is set by the name specified in the
-.B --pkcs11-providers
-option.
-.br
-.B 'name'
--- Locate the slot by its name.
-.br
-.B 'label'
--- Locate the slot by the label of the token that reside within.
+.B 8
+-- Use unwrap.
 .br
 .\"*********************************************************
 .TP
@@ -4649,14 +4616,13 @@ adapter list.
 .SS PKCS#11 Standalone Options:
 .\"*********************************************************
 .TP
-.B --show-pkcs11-slots provider
+.B --show-pkcs11-ids provider [cert_private]
 (Standalone)
-Show PKCS#11 provider slot list.
-.\"*********************************************************
-.TP
-.B --show-pkcs11-objects provider slot
-(Standalone)
-Show PKCS#11 token object list.
+Show PKCS#11 token object list. Specify cert_private as 1
+if certificates are stored as private objects.
+
+.B --verb
+option can be used BEFORE this option to produce debugging information.
 .\"*********************************************************
 .SH SCRIPTING AND ENVIRONMENTAL VARIABLES
 OpenVPN exports a series

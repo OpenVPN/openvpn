@@ -40,21 +40,23 @@
 #OPENSSL_DIR = 
 #LZO_DIR = 
 #DMALLOC_DIR = 
+#PKCS11_HELPER_DIR =
+
 #########################################################
 
 CC = gcc -g -O2 -Wall -Wno-unused-function -Wno-unused-variable -mno-cygwin
 
 CC_DMALLOC = gcc -g -O2 -Wall -Wno-unused-function -Wno-unused-variable -mno-cygwin -fno-inline -DDMALLOC
 
-INCLUDE_DIRS = -I${OPENSSL_DIR}/include -I${LZO_DIR}/include
+INCLUDE_DIRS = -I${OPENSSL_DIR}/include -I${LZO_DIR}/include -I${PKCS11_HELPER_DIR}/include
 
 INCLUDE_DIRS_DMALLOC = ${INCLUDE_DIRS} -I${DMALLOC_DIR}
 
-LIBS = -llzo2 -lcrypt32 -lWinInet -lws2_32 -lgdi32 -liphlpapi -lwinmm
+LIBS = -llzo2 -lcrypt32 -lWinInet -lws2_32 -lgdi32 -liphlpapi -lwinmm -lpkcs11-helper
 
 LIBS_DMALLOC = ${LIBS} -ldmalloc
 
-LIB_DIRS = -L${OPENSSL_DIR}/out -L${LZO_DIR}
+LIB_DIRS = -L${OPENSSL_DIR}/out -L${LZO_DIR} -L${PKCS11_HELPER_DIR}/lib
 
 LIB_DIRS_DMALLOC = ${LIB_DIRS} -L${DMALLOC_DIR}
 
@@ -98,7 +100,7 @@ HEADERS = \
 	ntlm.h \
 	occ-inline.h \
 	occ.h \
-	pkcs11.h pkcs11-helper.h cryptoki.h \
+	pkcs11.h \
         openvpn.h \
 	openvpn-plugin.h \
 	options.h \
@@ -154,7 +156,7 @@ OBJS =  base64.o \
 	multi.o \
 	ntlm.o \
 	occ.o \
-	pkcs11.o pkcs11-helper.o \
+	pkcs11.o \
         openvpn.o \
 	options.o \
 	otime.o \

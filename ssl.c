@@ -321,6 +321,9 @@ ssl_set_auth_nocache (void)
 void
 ssl_purge_auth (void)
 {
+#ifdef USE_PKCS11
+  pkcs11_logout ();
+#endif
   purge_user_pass (&passbuf, true);
   purge_user_pass (&auth_user_pass, true);
 }
@@ -1151,10 +1154,9 @@ init_ssl (const struct options *options)
       if (options->pkcs11_providers[0])
         {
          /* Load Certificate and Private Key */
-	 if (!SSL_CTX_use_pkcs11 (ctx, options->pkcs11_slot_type, options->pkcs11_slot, options->pkcs11_id_type, options->pkcs11_id))
+	 if (!SSL_CTX_use_pkcs11 (ctx, options->pkcs11_id))
 	   {
-	     msg (M_WARN, "Cannot load certificate \"%s:%s\" from slot \"%s:%s\" using PKCS#11 interface",
-               options->pkcs11_id_type, options->pkcs11_id, options->pkcs11_slot_type, options->pkcs11_slot);
+	     msg (M_WARN, "Cannot load certificate \"%s\" using PKCS#11 interface", options->pkcs11_id);
 	     goto err;
 	   }
         }
