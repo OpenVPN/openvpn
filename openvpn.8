@@ -380,13 +380,14 @@ can be removed, and the command can be given as
 Note that
 configuration files can be nested to a reasonable depth.
 
-Double quotation characters ("") can be used
-to enclose single parameters containing whitespace,
+Double quotation or single quotation characters ("", '')
+can be used to enclose single parameters containing whitespace,
 and "#" or ";" characters in the first column
 can be used to denote comments.
 
 Note that OpenVPN 2.0 and higher performs backslash-based shell
-escaping, so the following mappings should be observed:
+escaping for characters not in single quotations,
+so the following mappings should be observed:
 
 .RS
 .ft 3

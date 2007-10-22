@@ -2577,6 +2577,7 @@ parse_line (const char *line,
   const int STATE_READING_QUOTED_PARM = 1;
   const int STATE_READING_UNQUOTED_PARM = 2;
   const int STATE_DONE = 3;
+  const int STATE_READING_SQUOTED_PARM = 4;
 
   const char *error_prefix = "";
 
@@ -2599,7 +2600,7 @@ parse_line (const char *line,
       in = *c;
       out = 0;
 
-      if (!backslash && in == '\\')
+      if (!backslash && in == '\\' && state != STATE_READING_SQUOTED_PARM)
 	{
 	  backslash = true;
 	}
@@ -2613,6 +2614,8 @@ parse_line (const char *line,
 		    break;
 		  if (!backslash && in == '\"')
 		    state = STATE_READING_QUOTED_PARM;
+		  else if (!backslash && in == '\'')
+		    state = STATE_READING_SQUOTED_PARM;
 		  else
 		    {
 		      out = in;
@@ -2633,6 +2636,13 @@ parse_line (const char *line,
 		state = STATE_DONE;
 	      else
 		out = in;
+	    }
+	  else if (state == STATE_READING_SQUOTED_PARM)
+	    {
+	      if (in == '\'')
+	        state = STATE_DONE;
+	      else
+	        out = in;
 	    }
 	  if (state == STATE_DONE)
 	    {
@@ -2679,6 +2689,11 @@ parse_line (const char *line,
   if (state == STATE_READING_QUOTED_PARM)
     {
       msg (msglevel, "%sOptions error: No closing quotation (\") in %s:%d", error_prefix, file, line_num);
+      return 0;
+    }
+  if (state == STATE_READING_SQUOTED_PARM)
+    {
+      msg (msglevel, "%sOptions error: No closing single quotation (\') in %s:%d", error_prefix, file, line_num);
       return 0;
     }
   if (state != STATE_INITIAL)
