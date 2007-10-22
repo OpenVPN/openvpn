@@ -178,6 +178,7 @@ openvpn \- secure IP tunnel daemon.
 [\ \fB\-\-lport\fR\ \fIport\fR\ ]
 [\ \fB\-\-management\-hold\fR\ ]
 [\ \fB\-\-management\-log\-cache\fR\ \fIn\fR\ ]
+[\ \fB\-\-management\-signal\fR\ ]
 [\ \fB\-\-management\-query\-passwords\fR\ ]
 [\ \fB\-\-management\fR\ \fIIP\ port\ [pw\-file]\fR\ ]
 [\ \fB\-\-max\-clients\fR\ \fIn\fR\ ]
@@ -2325,6 +2326,12 @@ of the management interface explicitly starts it
 with the
 .B hold release
 command.
+.\"*********************************************************
+.TP
+.B --management-signal
+Send SIGUSR1 signal to OpenVPN if management session disconnects.
+This is useful when you wish to disconnect an OpenVPN session on
+user logoff.
 .\"*********************************************************
 .TP
 .B --management-log-cache n

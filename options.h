@@ -283,6 +283,7 @@ struct options
   int management_state_buffer_size;
   bool management_query_passwords;
   bool management_hold;
+  bool management_signal;
   bool management_client;
   const char *management_write_peer_info_file;
 #endif
