@@ -40,6 +40,7 @@
 #include "otime.h"
 #include "integer.h"
 #include "misc.h"
+#include "ssl.h"
 #include "manage.h"
 
 #include "memdbg.h"
@@ -70,6 +71,7 @@ man_help ()
   msg (M_CLIENT, "bytecount n            : Show bytes in/out, update every n secs (0=off).");
   msg (M_CLIENT, "echo [on|off] [N|all]  : Like log, but only show messages in echo buffer.");
   msg (M_CLIENT, "exit|quit              : Close management session.");
+  msg (M_CLIENT, "forget-passwords       : Forget passwords entered so far.");
   msg (M_CLIENT, "help                   : Print this message.");
   msg (M_CLIENT, "hold [on|off|release]  : Set/show hold flag to on/off state, or"); 
   msg (M_CLIENT, "                         release current hold and start tunnel."); 
@@ -602,6 +604,13 @@ man_query_need_ok (struct management *man, const char *type, const char *action)
 }
 
 static void
+man_forget_passwords (struct management *man)
+{
+  ssl_purge_auth ();
+  msg (M_CLIENT, "SUCCESS: Passwords were forgotten");
+}
+
+static void
 man_net (struct management *man)
 {
   if (man->persist.callback.show_net)
@@ -788,6 +797,10 @@ man_dispatch_command (struct management *man, struct status_output *so, const ch
     {
       if (man_need (man, p, 2, 0))
 	man_query_password (man, p[1], p[2]);
+    }
+  else if (streq (p[0], "forget-passwords"))
+    {
+      man_forget_passwords (man);
     }
   else if (streq (p[0], "needok"))
     {
