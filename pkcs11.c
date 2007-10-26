@@ -202,7 +202,7 @@ _pkcs11_openvpn_token_prompt (
 }
 
 static
-bool
+PKCS11H_BOOL
 _pkcs11_openvpn_pin_prompt (
 	void * const global_data,
 	void * const user_data,
