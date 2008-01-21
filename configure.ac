@@ -134,7 +134,7 @@ AC_ARG_ENABLE(password-save,
 
 AC_ARG_ENABLE(iproute2,
    [  --enable-iproute2       Enable support for iproute2],
-   AC_DEFINE(CONFIG_FEATURE_IPROUTE, 1, [enable iproute2 support])   
+   test $enableval = "yes" && AC_DEFINE(CONFIG_FEATURE_IPROUTE, 1, [enable iproute2 support])   
 )
 
 AC_ARG_ENABLE(strict,
