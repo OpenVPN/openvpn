@@ -1230,7 +1230,7 @@ init_ssl (const struct options *options)
       int status;
 
 #if ENABLE_INLINE_FILES
-      if (!strcmp (options->ca_file, INLINE_FILE_TAG) && options->ca_file_inline)
+      if (options->ca_file && !strcmp (options->ca_file, INLINE_FILE_TAG) && options->ca_file_inline)
 	{
 	  status = use_inline_load_verify_locations (ctx, options->ca_file_inline);
 	}
