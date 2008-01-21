@@ -378,6 +378,51 @@ extract_x509_field (const char *x509, const char *field_name, char *out, int siz
     }
 }
 
+/*
+ * Extract a field from an X509 subject name.
+ *
+ * Example:
+ *
+ * /C=US/ST=CO/L=Denver/O=ORG/CN=First-CN/CN=Test-CA/Email=jim@yonan.net
+ *
+ * The common name is 'Test-CA'
+ */
+static void
+extract_x509_field_ssl (X509_NAME *x509, const char *field_name, char *out, int size)
+{
+  int lastpos = -1;
+  int tmp = -1;
+  X509_NAME_ENTRY *x509ne = 0;
+  ASN1_STRING *asn1 = 0;
+  unsigned char *buf = 0;
+  int nid = OBJ_txt2nid(field_name);
+
+  ASSERT (size > 0);
+  *out = '\0';
+  do {
+    lastpos = tmp;
+    tmp = X509_NAME_get_index_by_NID(x509, nid, lastpos);
+  } while (tmp > 0);
+
+  /* Nothing found */
+  if (lastpos == -1)
+    return;
+
+  x509ne = X509_NAME_get_entry(x509, lastpos);
+  if (!x509ne)
+    return;
+
+  asn1 = X509_NAME_ENTRY_get_data(x509ne);
+  if (!asn1)
+    return;
+  tmp = ASN1_STRING_to_UTF8(&buf, asn1);
+  if (tmp <= 0)
+    return;
+
+  strncpynt(out, (char *)buf, size);
+  OPENSSL_free(buf);
+}
+
 static void
 setenv_untrusted (struct tls_session *session)
 {
@@ -538,7 +583,8 @@ verify_callback (int preverify_ok, X509_STORE_CTX * ctx)
   string_mod (subject, X509_NAME_CHAR_CLASS, 0, '_');
 
   /* extract the common name */
-  extract_x509_field (subject, "CN", common_name, TLS_CN_LEN);
+  extract_x509_field_ssl (X509_get_subject_name (ctx->current_cert), "CN", common_name, TLS_CN_LEN);
+  //extract_x509_field (subject, "CN", common_name, TLS_CN_LEN);
   string_mod (common_name, COMMON_NAME_CHAR_CLASS, 0, '_');
 
 #if 0 /* print some debugging info */
