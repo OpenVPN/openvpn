@@ -191,7 +191,26 @@ plugin_init_item (struct plugin *p, const struct plugin_option *o)
 
 #if defined(USE_LIBDL)
 
-  p->handle = dlopen (p->so_pathname, RTLD_NOW);
+  p->handle = NULL;
+#if defined(PLUGIN_LIBDIR)
+  if (!strrchr(p->so_pathname, '/'))
+    {
+      char full[PATH_MAX];
+
+      openvpn_snprintf (full, sizeof(full), "%s/%s", PLUGIN_LIBDIR, p->so_pathname);
+      p->handle = dlopen (full, RTLD_NOW);
+#if defined(ENABLE_PLUGIN_SEARCH)
+      if (!p->handle)
+	{
+	  p->handle = dlopen (p->so_pathname, RTLD_NOW);
+	}
+#endif
+    }
+  else
+#endif
+    {
+      p->handle = dlopen (p->so_pathname, RTLD_NOW);
+    }
   if (!p->handle)
     msg (M_ERR, "PLUGIN_INIT: could not load plugin shared object %s: %s", p->so_pathname, dlerror());
 
