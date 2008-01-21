@@ -26,6 +26,8 @@
 #define CRYPTO_H
 #ifdef USE_CRYPTO
 
+#define ALLOW_NON_CBC_CIPHERS
+
 /*
  * Does our OpenSSL library support crypto hardware acceleration?
  */
