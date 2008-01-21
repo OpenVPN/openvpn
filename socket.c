@@ -863,6 +863,8 @@ socket_connect (socket_descriptor_t *sd,
 	   connect_retry_seconds,
 	   strerror_ts (status, &gc));
 
+      gc_reset (&gc);
+
       openvpn_close_socket (*sd);
       *sd = SOCKET_UNDEFINED;
 
