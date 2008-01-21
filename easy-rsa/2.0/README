@@ -2,7 +2,9 @@ EASY-RSA Version 2.0-rc1
 
 This is a small RSA key management package, based on the openssl
 command line tool, that can be found in the easy-rsa subdirectory
-of the OpenVPN distribution.
+of the OpenVPN distribution.  While this tool is primary concerned
+with key management for the SSL VPN application space, it can also
+be used for building web certificates.
 
 These are reference notes.  For step-by-step instructions, see the
 HOWTO:
@@ -62,6 +64,12 @@ Release Notes for easy-rsa-2.0
   "crl-verify crl.pem" in their configuration files.
 
 * PKCS#11 support was added.
+
+* For those interested in using this tool to generate web certificates,
+  A variant of the easy-rsa package that allows the creation of multi-domain
+  certificates with subjectAltName can be obtained from here:
+
+  http://www.bisente.com/proyectos/easy-rsa-subjectaltname/
 
 INSTALL easy-rsa
 
