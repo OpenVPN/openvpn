@@ -555,7 +555,7 @@ ep_wait (struct event_set *es, const struct timeval *tv, struct event_set_return
       for (i = 0; i < stat; ++i)
 	{
 	  esr->rwflags = 0;
-	  if (ev->events & (EPOLLIN|EPOLLPRI|EPOLLERR))
+	  if (ev->events & (EPOLLIN|EPOLLPRI|EPOLLERR|EPOLLHUP))
 	    esr->rwflags |= EVENT_READ;
 	  if (ev->events & EPOLLOUT)
 	    esr->rwflags |= EVENT_WRITE;
