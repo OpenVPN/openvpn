@@ -777,7 +777,8 @@ add_route (struct route *r, const struct tuntap *tt, unsigned int flags, const s
 
 #if defined(TARGET_LINUX)
 #ifdef CONFIG_FEATURE_IPROUTE
-  buf_printf (&buf, IPROUTE_PATH " route add %s/%d via %s",
+  buf_printf (&buf, "%s route add %s/%d via %s",
+  	      iproute_path,
 	      network,
 	      count_netmask_bits(netmask),
 	      gateway);
@@ -934,7 +935,8 @@ delete_route (const struct route *r, const struct tuntap *tt, unsigned int flags
 
 #if defined(TARGET_LINUX)
 #ifdef CONFIG_FEATURE_IPROUTE
-  buf_printf (&buf, IPROUTE_PATH " route del %s/%d",
+  buf_printf (&buf, "%s route del %s/%d",
+  	      iproute_path,
 	      network,
 	      count_netmask_bits(netmask));
 #else

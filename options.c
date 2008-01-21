@@ -156,6 +156,9 @@ static const char usage_message[] =
   "--lladdr hw     : Set the link layer address of the tap device.\n"
   "--topology t    : Set --dev tun topology: 'net30', 'p2p', or 'subnet'.\n"
   "--tun-ipv6      : Build tun link capable of forwarding IPv6 traffic.\n"
+#ifdef CONFIG_FEATURE_IPROUTE
+  "--iproute cmd   : Use this command instead of default " IPROUTE_PATH ".\n"
+#endif
   "--ifconfig l rn : TUN: configure device to use IP address l as a local\n"
   "                  endpoint and rn as a remote endpoint.  l & rn should be\n"
   "                  swapped on the other peer.  l & rn must be private\n"
@@ -591,6 +594,8 @@ static const char usage_message[] =
   "--rmtun         : Remove a persistent tunnel.\n"
   "--dev tunX|tapX : tun/tap device\n"
   "--dev-type dt   : Device type.  See tunnel options above for details.\n"
+  "--user user     : User to set privilege to.\n"
+  "--group group   : Group to set privilege to.\n"
 #endif
 #ifdef ENABLE_PKCS11
   "\n"
@@ -3225,6 +3230,13 @@ add_option (struct options *options,
       VERIFY_PERMISSION (OPT_P_UP);
       options->tun_ipv6 = true;
     }
+#ifdef CONFIG_FEATURE_IPROUTE
+  else if (streq (p[0], "iproute") && p[1])
+    {
+      VERIFY_PERMISSION (OPT_P_UP);
+      iproute_path = p[1];
+    }
+#endif
   else if (streq (p[0], "ifconfig") && p[1] && p[2])
     {
       VERIFY_PERMISSION (OPT_P_UP);

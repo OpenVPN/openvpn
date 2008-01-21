@@ -204,7 +204,8 @@ int write_tun (struct tuntap* tt, uint8_t *buf, int len);
 int read_tun (struct tuntap* tt, uint8_t *buf, int len);
 
 void tuncfg (const char *dev, const char *dev_type, const char *dev_node,
-	     bool ipv6, int persist_mode, const struct tuntap_options *options);
+	     bool ipv6, int persist_mode, const char *username,
+	     const char *groupname, const struct tuntap_options *options);
 
 const char *guess_tuntap_dev (const char *dev,
 			      const char *dev_type,

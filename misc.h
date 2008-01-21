@@ -269,4 +269,11 @@ void configure_path (void);
 void get_user_pass_auto_userid (struct user_pass *up, const char *tag);
 #endif
 
+/*
+ * /sbin/ip path, may be overridden
+ */
+#ifdef CONFIG_FEATURE_IPROUTE
+extern const char *iproute_path;
+#endif
+
 #endif

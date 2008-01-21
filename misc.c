@@ -44,6 +44,10 @@
 
 #include "memdbg.h"
 
+#ifdef CONFIG_FEATURE_IPROUTE
+const char *iproute_path = IPROUTE_PATH;
+#endif
+
 /* Redefine the top level directory of the filesystem
    to restrict access to files for security */
 void

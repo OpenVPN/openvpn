@@ -71,6 +71,8 @@ openvpn \- secure IP tunnel daemon.
 [\ \fB\-\-dev\-type\fR\ \fIdevice\-type\fR\ ]
 [\ \fB\-\-dev\-node\fR\ \fInode\fR\ ]
 [\ \fB\-\-lladdr\fR\ \fIaddress\fR\ ]
+[\ \fB\-\-user\fR\ \fIuser\fR\ ]
+[\ \fB\-\-group\fR\ \fIgroup\fR\ ]
 .in -4
 .ti +4
 .hy
@@ -164,6 +166,7 @@ openvpn \- secure IP tunnel daemon.
 [\ \fB\-\-inetd\fR\ \fI[wait|nowait]\ [progname]\fR\ ]
 [\ \fB\-\-ip\-win32\fR\ \fImethod\fR\ ]
 [\ \fB\-\-ipchange\fR\ \fIcmd\fR\ ]
+[\ \fB\-\-iproute\fR\ \fIcmd\fR\ ]
 [\ \fB\-\-iroute\fR\ \fInetwork\ [netmask]\fR\ ]
 [\ \fB\-\-keepalive\fR\ \fIn\ m\fR\ ]
 [\ \fB\-\-key\-method\fR\ \fIm\fR\ ]
@@ -921,6 +924,11 @@ each TAP-Win32 adapter.
 .B --lladdr address
 Specify the link layer address, more commonly known as the MAC address.
 Only applied to TAP devices.
+.\"*********************************************************
+.TP
+.B --iproute cmd
+Set alternate command to execute instead of default iproute2 command.
+May be used in order to execute OpenVPN in unprivileged environment.
 .\"*********************************************************
 .TP
 .B --ifconfig l rn
@@ -4305,6 +4313,14 @@ Remove a persistent tunnel.
 .TP
 .B --dev tunX | tapX
 TUN/TAP device
+.\"*********************************************************
+.TP
+.B --user user
+Optional user to be owner of this tunnel.
+.\"*********************************************************
+.TP
+.B --group group
+Optional group to be owner of this tunnel.
 .\"*********************************************************
 .SS Windows-Specific Options:
 .\"*********************************************************
