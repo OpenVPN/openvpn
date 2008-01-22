@@ -14,7 +14,7 @@
 # msysDTK   -- for perl
 # NSIS      -- for building installer
 # svn       -- for checking out source code (or TortoiseSVN)
-# Windows Driver Kit, Vista RC1 (5600) -- for building TAP driver + tapinstall
+# Windows Driver Kit (6001_17121_HyperV_WDK.iso) -- for building TAP driver + tapinstall
 #
 # Required libraries (must be prebuilt)
 #

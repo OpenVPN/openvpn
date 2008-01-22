@@ -1,0 +1,2 @@
+# DDKs <= 5600 use "AMD64", later use "x64"
+x64_tag=x64

@@ -13,9 +13,12 @@ if ! [ -d "$TISRC" ] ; then
     exit 1
 fi
 
+# common declarations for all DDK build targets
+. install-win32/ddk-common
+
 amdtarget=""
 if [ -z "$TI_BIN_AMD64" ]; then
-    amdtarget="fre AMD64 WNET"
+    amdtarget="fre $x64_tag WNET"
 fi
 
 if [ -z "$DRVBINSRC" ] ; then

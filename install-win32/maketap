@@ -6,12 +6,15 @@
 # get version.nsi definitions
 . autodefs/defs.sh
 
+# common declarations for all DDK build targets
+. install-win32/ddk-common
+
 if [ -n "$PRODUCT_TAP_DEBUG" ] ; then
     w2ktarget="w2k c"
-    amdtarget="chk AMD64 WNET"
+    amdtarget="chk $x64_tag WNET"
 else
     w2ktarget="w2k f"
-    amdtarget="fre AMD64 WNET"
+    amdtarget="fre $x64_tag WNET"
 fi
 
 if [ -z "$DRVBINSRC" ] ; then

@@ -60,7 +60,8 @@
 
 # DDK Version.
 # DDK distribution is assumed to be in C:\WINDDK\${DDKVER}
-!define DDKVER	5600
+!define DDKVER	     6001.17121
+!define DDKVER_MAJOR 6001
 
 # Code Signing.
 # If undefined, don't sign any files.

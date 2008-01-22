@@ -40,8 +40,8 @@
 //======================================================
 
 #include "../../autodefs/defs.h"
-#ifndef DDKVER
-#error DDKVER must be defined to the DDK Version as in c:\WinDDK\[DDKVER]\...
+#ifndef DDKVER_MAJOR
+#error DDKVER_MAJOR must be defined as the major number of the DDK Version
 #endif
 
 #define NDIS_MINIPORT_DRIVER
@@ -70,7 +70,7 @@
 //========================================================
 #define ENABLE_NONADMIN 1
 
-#if DDKVER < 5600
+#if DDKVER_MAJOR < 5600
 #include <ndis.h>
 #include <ntstrsafe.h>
 #include <ntddk.h>
@@ -419,7 +419,7 @@ NDIS_STATUS AdapterCreate
 		}
 	    }
 	} else {
-#if DDKVER < 5600
+#if DDKVER_MAJOR < 5600
 	  /* "MiniportName" is available only XP and above.  Not on Windows 2000. */
 	  NDIS_STRING key = NDIS_STRING_CONST("NdisVersion");
 	  NdisReadConfiguration (&status, &parm, configHandle, &key, NdisParameterInteger);
