@@ -7,6 +7,16 @@ as published by the Free Software Foundation.
 
 *************************************************************************
 
+QUICK START:
+
+  Unix:
+    ./configure && make && make-install
+
+  Windows:
+    ./domake-win (see comments in the script for more info)
+
+*************************************************************************
+
 To download OpenVPN, go to:
 
 	http://openvpn.net/download.html

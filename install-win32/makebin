@@ -22,6 +22,12 @@ for f in libeay32.dll libssl32.dll openssl.exe ; do
   strip bin/$f
 done
 
+# Get PKCS11 libraries
+for f in libpkcs11-helper-1.dll ; do
+    cp $PKCS11_HELPER_DIR/bin/$f bin
+    strip bin/$f
+done
+
 # $DRVBINSRC, if defined, points to prebuilt TAP driver and
 # tapinstall.exe.
 if [ -z "$DRVBINSRC" ] ; then

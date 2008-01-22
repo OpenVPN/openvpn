@@ -1,7 +1,32 @@
-diff -wur /y/openssl/openssl-0.9.7l/ms/mw.bat openssl-0.9.7l-modified/ms/mw.bat
---- /y/openssl/openssl-0.9.7l/ms/mw.bat	Sat Feb 22 10:02:45 2003
-+++ openssl-0.9.7l-modified/ms/mw.bat	Sun Oct  1 04:24:02 2006
-@@ -11,7 +11,9 @@
+[in msys bash window]
+cd /c/src/openssl-0.9.7m
+patch -p1 <../21/install-win32/openssl.patch
+
+[open command prompt window]
+cd \src\openssl-0.9.7m
+ms\mw
+
+diff -wur openssl-0.9.7m.orig/ms/mw.bat openssl-0.9.7m/ms/mw.bat
+--- openssl-0.9.7m.orig/ms/mw.bat	Sat Feb 22 11:02:46 2003
++++ openssl-0.9.7m/ms/mw.bat	Mon Jan 21 23:12:34 2008
+@@ -1,17 +1,23 @@
+ @rem OpenSSL with Mingw32
+ @rem --------------------
+ 
++@rem Include MinGW, MSYS, and ActiveState Perl in path
++set PATH=c:\perl\bin;c:\MinGW\bin;c:\msys\1.0\bin;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem
++
+ @rem Makefile
+ perl util\mkfiles.pl >MINFO
+-perl util\mk1mf.pl Mingw32 >ms\mingw32.mak
++perl util\mk1mf.pl no-idea no-mdc2 no-rc5 Mingw32 >ms\mingw32.mak
++
+ @rem DLL definition files
+-perl util\mkdef.pl 32 libeay >ms\libeay32.def
++perl util\mkdef.pl no-idea no-mdc2 no-rc5 32 libeay >ms\libeay32.def
+ if errorlevel 1 goto end
+-perl util\mkdef.pl 32 ssleay >ms\ssleay32.def
++perl util\mkdef.pl no-idea no-mdc2 no-rc5 32 ssleay >ms\ssleay32.def
  if errorlevel 1 goto end
  
  @rem Build the libraries
@@ -12,7 +37,7 @@ diff -wur /y/openssl/openssl-0.9.7l/ms/mw.bat openssl-0.9.7l-modified/ms/mw.bat
  if errorlevel 1 goto end
  
  @rem Generate the DLLs and input libraries
-@@ -20,6 +22,9 @@
+@@ -20,7 +26,9 @@
  dllwrap --dllname libssl32.dll --output-lib out/libssl32.a --def ms/ssleay32.def out/libssl.a out/libeay32.a
  if errorlevel 1 goto end
  
@@ -22,9 +47,10 @@ diff -wur /y/openssl/openssl-0.9.7l/ms/mw.bat openssl-0.9.7l-modified/ms/mw.bat
  echo Done compiling OpenSSL
  
  :end
-diff -wur /y/openssl/openssl-0.9.7l/util/pl/Mingw32.pl openssl-0.9.7l-modified/util/pl/Mingw32.pl
---- /y/openssl/openssl-0.9.7l/util/pl/Mingw32.pl	Sun May 16 22:28:31 2004
-+++ openssl-0.9.7l-modified/util/pl/Mingw32.pl	Sun Oct  1 04:54:04 2006
+-
+diff -wur openssl-0.9.7m.orig/util/pl/Mingw32.pl openssl-0.9.7m/util/pl/Mingw32.pl
+--- openssl-0.9.7m.orig/util/pl/Mingw32.pl	Sun May 16 23:28:32 2004
++++ openssl-0.9.7m/util/pl/Mingw32.pl	Mon Jan 21 17:52:36 2008
 @@ -99,10 +99,10 @@
  	$n=&bname($target);
  	$ret.="$target: $files $dep_libs\n";

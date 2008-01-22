@@ -18,9 +18,10 @@
 !define OPENVPN_GUI     "openvpn-gui-1.0.3.exe"
 
 # Prebuilt libraries.  DMALLOC is optional.
-!define OPENSSL_DIR	"../openssl-0.9.7l"
-!define LZO_DIR		"../lzo-2.02"
-!define DMALLOC_DIR	"../dmalloc-5.4.2"
+!define OPENSSL_DIR	  "../openssl-0.9.7m"
+!define LZO_DIR		  "../lzo-2.02"
+!define PKCS11_HELPER_DIR "../pkcs11-helper/usr/local"
+!define DMALLOC_DIR	  "../dmalloc-5.4.2"
 
 # Write TAP driver and tapinstall.exe to this directory,
 # to use as prebuilt binaries for future builds.  May

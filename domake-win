@@ -18,8 +18,9 @@
 #
 # Required libraries (must be prebuilt)
 #
-# OpenSSL   -- define OPENSSL_DIR in settings.in
-# LZO       -- define LZO_DIR in settings.in
+# OpenSSL       -- define OPENSSL_DIR in settings.in
+# LZO           -- define LZO_DIR in settings.in
+# PKCS11-HELPER -- define PKCS11_HELPER_DIR
 #
 # Optional OpenVPN GUI binary (prebuilt)
 #           -- define OPENVPN_GUI_DIR and OPENVPN_GUI in settings.in
