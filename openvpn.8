@@ -179,6 +179,7 @@ openvpn \- secure IP tunnel daemon.
 [\ \fB\-\-log\fR\ \fIfile\fR\ ]
 [\ \fB\-\-suppress-timestamps\fR\ ]
 [\ \fB\-\-lport\fR\ \fIport\fR\ ]
+[\ \fB\-\-management\-forget\-disconnect\fR\ ]
 [\ \fB\-\-management\-hold\fR\ ]
 [\ \fB\-\-management\-log\-cache\fR\ \fIn\fR\ ]
 [\ \fB\-\-management\-signal\fR\ ]
@@ -2323,6 +2324,15 @@ Query management channel for private key password and
 username/password.  Only query the management channel
 for inputs which ordinarily would have been queried from the
 console.
+.\"*********************************************************
+.TP
+.B --management-forget-disconnect
+Make OpenVPN forget passwords when management session
+disconnects.
+
+This directive does not affect the
+.B --http-proxy
+username/password.  It is always cached.
 .\"*********************************************************
 .TP
 .B --management-hold

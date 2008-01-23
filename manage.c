@@ -1080,6 +1080,9 @@ man_reset_client_socket (struct management *man, const bool exiting)
     }
   if (!exiting)
     {
+      if (man->settings.management_forget_disconnect)
+	 ssl_purge_auth ();
+
       if (man->settings.signal_on_disconnect) {
       	  int mysig = man_mod_signal (man, SIGUSR1);
 	  if (mysig >= 0)
@@ -1333,6 +1336,7 @@ man_settings_init (struct man_settings *ms,
 		   const int state_buffer_size,
 		   const bool hold,
 		   const bool signal_on_disconnect,
+		   const bool management_forget_disconnect,
 		   const bool connect_as_client,
 		   const char *write_peer_info_file,
 		   const int remap_sigusr1)
@@ -1369,6 +1373,12 @@ man_settings_init (struct man_settings *ms,
        * disconnects?
        */
       ms->signal_on_disconnect = signal_on_disconnect;
+
+      /*
+       * Should OpenVPN forget passwords when managmenet
+       * session disconnects?
+       */
+      ms->management_forget_disconnect = management_forget_disconnect;
 
       /*
        * Should OpenVPN connect to management interface as a client
@@ -1513,6 +1523,7 @@ management_open (struct management *man,
 		 const int state_buffer_size,
 		 const bool hold,
 		 const bool signal_on_disconnect,
+		 const bool management_forget_disconnect,
 		 const bool connect_as_client,
 		 const char *write_peer_info_file,
 		 const int remap_sigusr1)
@@ -1534,6 +1545,7 @@ management_open (struct management *man,
 		     state_buffer_size,
 		     hold,
 		     signal_on_disconnect,
+		     management_forget_disconnect,
 		     connect_as_client,
 		     write_peer_info_file,
 		     remap_sigusr1);

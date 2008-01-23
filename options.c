@@ -318,6 +318,8 @@ static const char usage_message[] =
   "--management-hold : Start " PACKAGE_NAME " in a hibernating state, until a client\n"
   "                    of the management interface explicitly starts it.\n"
   "--management-signal : Issue SIGUSR1 when management disconnect event occurs.\n"
+  "--management-forget-disconnect : Forget passwords when management disconnect\n"
+  "                                 event occurs.\n"
   "--management-log-cache n : Cache n lines of log file history for usage\n"
   "                  by the management channel.\n"
 #endif
@@ -1202,6 +1204,7 @@ show_settings (const struct options *o)
   SHOW_BOOL (management_hold);
   SHOW_BOOL (management_client);
   SHOW_BOOL (management_signal);
+  SHOW_BOOL (management_forget_disconnect);
   SHOW_STR (management_write_peer_info_file);
 #endif
 #ifdef ENABLE_PLUGIN
@@ -1527,7 +1530,8 @@ options_postprocess (struct options *options, bool first_time)
 #ifdef ENABLE_MANAGEMENT
   if (!options->management_addr &&
       (options->management_query_passwords || options->management_hold || options->management_signal
-       || options->management_client || options->management_write_peer_info_file
+       || options->management_forget_disconnect || options->management_client
+       || options->management_write_peer_info_file
        || options->management_log_history_cache != defaults.management_log_history_cache))
     msg (M_USAGE, "--management is not specified, however one or more options which modify the behavior of --management were specified");
 #endif
@@ -3151,6 +3155,11 @@ add_option (struct options *options,
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->management_signal = true;
+    }
+  else if (streq (p[0], "management-forget-disconnect"))
+    {
+      VERIFY_PERMISSION (OPT_P_GENERAL);
+      options->management_forget_disconnect = true;
     }
   else if (streq (p[0], "management-client"))
     {

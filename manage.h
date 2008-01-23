@@ -206,6 +206,7 @@ struct man_settings {
   bool server;
   bool hold;
   bool signal_on_disconnect;
+  bool management_forget_disconnect;
   bool connect_as_client;
   char *write_peer_info_file;
 
@@ -283,6 +284,7 @@ bool management_open (struct management *man,
 		      const int state_buffer_size,
 		      const bool hold,
 		      const bool signal_on_disconnect,
+		      const bool management_forget_disconnect,
 		      const bool connect_as_client,
 		      const char *write_peer_info_file,
 		      const int remap_sigusr1);

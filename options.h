@@ -284,6 +284,7 @@ struct options
   bool management_query_passwords;
   bool management_hold;
   bool management_signal;
+  bool management_forget_disconnect;
   bool management_client;
   const char *management_write_peer_info_file;
 #endif
