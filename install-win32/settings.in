@@ -75,10 +75,10 @@
 !define MAKE_CLEAN "yes"
 
 ; DEBUGGING -- set to something like "-DBG2"
-!define OUTFILE_LABEL "-T2"
+!define OUTFILE_LABEL "-T4"
 
 ; DEBUGGING -- set to something like "DEBUG2"
-!define TITLE_LABEL "TEST2"
+!define TITLE_LABEL "TEST4"
 
 # include a sample configuration file and key
 !define SAMPCONF_DIR   "test-key"

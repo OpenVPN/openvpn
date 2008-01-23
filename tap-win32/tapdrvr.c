@@ -288,12 +288,12 @@ TapDriverUnload (IN PDRIVER_OBJECT p_DriverObject)
 //                            Adapter Initialization
 //==========================================================
 NDIS_STATUS AdapterCreate
-  (OUT PNDIS_STATUS p_ErrorStatus,
-   OUT PUINT p_MediaIndex,
-   IN PNDIS_MEDIUM p_Media,
-   IN UINT p_MediaCount,
-   IN NDIS_HANDLE p_AdapterHandle,
-   IN NDIS_HANDLE p_ConfigurationHandle)
+(OUT PNDIS_STATUS p_ErrorStatus,
+ OUT PUINT p_MediaIndex,
+ IN PNDIS_MEDIUM p_Media,
+ IN UINT p_MediaCount,
+ IN NDIS_HANDLE p_AdapterHandle,
+ IN NDIS_HANDLE p_ConfigurationHandle)
 {
   TapAdapterPointer l_Adapter = NULL;
 
@@ -305,6 +305,8 @@ NDIS_STATUS AdapterCreate
 #if ENABLE_NONADMIN
   BOOLEAN enable_non_admin = FALSE;
 #endif
+
+  DEBUGP (("[TAP] AdapterCreate called\n"));
 
   //====================================
   // Make sure adapter type is supported
@@ -392,56 +394,63 @@ NDIS_STATUS AdapterCreate
     NdisOpenConfiguration (&status, &configHandle, p_ConfigurationHandle);
     if (status != NDIS_STATUS_SUCCESS)
       {
-	  DEBUGP (("[TAP] Couldn't open adapter registry\n"));
-	  AdapterFreeResources (l_Adapter);
-	  return status;
+	DEBUGP (("[TAP] Couldn't open adapter registry\n"));
+	AdapterFreeResources (l_Adapter);
+	return status;
       }
 
     //====================================
     // Allocate and construct adapter name
     //====================================
     {
-      NDIS_STRING key = NDIS_STRING_CONST("MiniportName");
-      NdisReadConfiguration (&status, &parm, configHandle, &key, NdisParameterString);
+      
+      NDIS_STRING mkey = NDIS_STRING_CONST("MiniportName");
+      NDIS_STRING vkey = NDIS_STRING_CONST("NdisVersion");
+      NDIS_STATUS vstatus;
+      NDIS_CONFIGURATION_PARAMETER *vparm;
+
+      NdisReadConfiguration (&vstatus, &vparm, configHandle, &vkey, NdisParameterInteger);
+      if (vstatus == NDIS_STATUS_SUCCESS)
+	DEBUGP (("[TAP] NdisReadConfiguration NdisVersion=%X\n", vparm->ParameterData.IntegerData));
+
+      NdisReadConfiguration (&status, &parm, configHandle, &mkey, NdisParameterString);
       if (status == NDIS_STATUS_SUCCESS)
 	{
 	  if (parm->ParameterType == NdisParameterString)
 	    {
-	      DEBUGP (("[TAP] NdisReadConfiguration (MiniportName=%s)\n", parm->ParameterData.StringData.Buffer));
+	      DEBUGP (("[TAP] NdisReadConfiguration (MiniportName=%S)\n", parm->ParameterData.StringData.Buffer));
 
 	      if (RtlUnicodeStringToAnsiString (
-			&l_Adapter->m_NameAnsi,
-			&parm->ParameterData.StringData,
-			TRUE) != STATUS_SUCCESS)
+						&l_Adapter->m_NameAnsi,
+						&parm->ParameterData.StringData,
+						TRUE) != STATUS_SUCCESS)
 		{
-		  DEBUGP (("[TAP] RtlUnicodeStringToAnsiString MiniportName failed\n"));
+		  DEBUGP (("[TAP] MiniportName failed\n"));
 		  status = NDIS_STATUS_RESOURCES;
 		}
 	    }
-	} else {
-#if DDKVER_MAJOR < 5600
+	}
+      else
+	{
 	  /* "MiniportName" is available only XP and above.  Not on Windows 2000. */
-	  NDIS_STRING key = NDIS_STRING_CONST("NdisVersion");
-	  NdisReadConfiguration (&status, &parm, configHandle, &key, NdisParameterInteger);
-	  if (status == NDIS_STATUS_SUCCESS)
+	  if (vstatus == NDIS_STATUS_SUCCESS && vparm->ParameterData.IntegerData == 0x50000)
 	    {
-	      if (parm->ParameterData.IntegerData == 0x50000)
+	      /* Fallback for Windows 2000 with NDIS version 5.00.00
+		 Don't use this on Vista, 'NDIS_MINIPORT_BLOCK' was changed! */
+	      if (RtlUnicodeStringToAnsiString (&l_Adapter->m_NameAnsi,
+						&((struct WIN2K_NDIS_MINIPORT_BLOCK *) p_AdapterHandle)->MiniportName,
+						TRUE) != STATUS_SUCCESS)
 		{
-		  /* Fallback for Windows 2000 with NDIS version 5.00.00
-		     Don't use this on Vista, 'NDIS_MINIPORT_BLOCK' was changed! */
-		  DEBUGP (("[TAP] NdisReadConfiguration NdisVersion (Int=%X)\n", parm->ParameterData.IntegerData));
-		  if (RtlUnicodeStringToAnsiString (
-			&l_Adapter->m_NameAnsi,
-			&((PNDIS_MINIPORT_BLOCK) p_AdapterHandle)->MiniportName,
-			TRUE) != STATUS_SUCCESS)
-		    {
-		      DEBUGP (("[TAP] RtlUnicodeStringToAnsiString MiniportName (W2K) failed\n"));
-		      status = NDIS_STATUS_RESOURCES;
-		    }
+		  DEBUGP (("[TAP] MiniportName (W2K) failed\n"));
+		  status = NDIS_STATUS_RESOURCES;
+		}
+	      else
+		{
+		  DEBUGP (("[TAP] MiniportName (W2K) succeeded: %s\n", l_Adapter->m_NameAnsi.Buffer));
+		  status = NDIS_STATUS_SUCCESS;
 		}
 	    }
-#endif
-      }
+	}
     }
 
     /* Can't continue without name (see macro 'NAME') */
@@ -449,85 +458,86 @@ NDIS_STATUS AdapterCreate
       {
 	NdisCloseConfiguration (configHandle);
 	AdapterFreeResources (l_Adapter);
+	DEBUGP (("[TAP] failed to get miniport name\n"));
 	return NDIS_STATUS_RESOURCES;
       }
 
-	/* Read MTU setting from registry */
+    /* Read MTU setting from registry */
+    {
+      NDIS_STRING key = NDIS_STRING_CONST("MTU");
+      NdisReadConfiguration (&status, &parm, configHandle,
+			     &key, NdisParameterInteger);
+      if (status == NDIS_STATUS_SUCCESS)
 	{
-	  NDIS_STRING key = NDIS_STRING_CONST("MTU");
-	  NdisReadConfiguration (&status, &parm, configHandle,
-				 &key, NdisParameterInteger);
-	  if (status == NDIS_STATUS_SUCCESS)
+	  if (parm->ParameterType == NdisParameterInteger)
 	    {
-	      if (parm->ParameterType == NdisParameterInteger)
-		{
-		  int mtu = parm->ParameterData.IntegerData;
-		  if (mtu < MINIMUM_MTU)
-		    mtu = MINIMUM_MTU;
-		  if (mtu > MAXIMUM_MTU)
-		    mtu = MAXIMUM_MTU;
-		  l_Adapter->m_MTU = mtu;
-		}
+	      int mtu = parm->ParameterData.IntegerData;
+	      if (mtu < MINIMUM_MTU)
+		mtu = MINIMUM_MTU;
+	      if (mtu > MAXIMUM_MTU)
+		mtu = MAXIMUM_MTU;
+	      l_Adapter->m_MTU = mtu;
 	    }
 	}
+    }
 
-	/* Read Media Status setting from registry */
+    /* Read Media Status setting from registry */
+    {
+      NDIS_STRING key = NDIS_STRING_CONST("MediaStatus");
+      NdisReadConfiguration (&status, &parm, configHandle,
+			     &key, NdisParameterInteger);
+      if (status == NDIS_STATUS_SUCCESS)
 	{
-	  NDIS_STRING key = NDIS_STRING_CONST("MediaStatus");
-	  NdisReadConfiguration (&status, &parm, configHandle,
-				 &key, NdisParameterInteger);
-	  if (status == NDIS_STATUS_SUCCESS)
+	  if (parm->ParameterType == NdisParameterInteger)
 	    {
-	      if (parm->ParameterType == NdisParameterInteger)
+	      if (parm->ParameterData.IntegerData)
 		{
-		  if (parm->ParameterData.IntegerData)
-		    {
-		      l_Adapter->m_MediaStateAlwaysConnected = TRUE;
-		      l_Adapter->m_MediaState = TRUE;
-		    }
+		  l_Adapter->m_MediaStateAlwaysConnected = TRUE;
+		  l_Adapter->m_MediaState = TRUE;
 		}
 	    }
 	}
+    }
 
 #if ENABLE_NONADMIN
-	/* Read AllowNonAdmin setting from registry */
+    /* Read AllowNonAdmin setting from registry */
+    {
+      NDIS_STRING key = NDIS_STRING_CONST("AllowNonAdmin");
+      NdisReadConfiguration (&status, &parm, configHandle,
+			     &key, NdisParameterInteger);
+      if (status == NDIS_STATUS_SUCCESS)
 	{
-	  NDIS_STRING key = NDIS_STRING_CONST("AllowNonAdmin");
-	  NdisReadConfiguration (&status, &parm, configHandle,
-				 &key, NdisParameterInteger);
-	  if (status == NDIS_STATUS_SUCCESS)
+	  if (parm->ParameterType == NdisParameterInteger)
 	    {
-	      if (parm->ParameterType == NdisParameterInteger)
+	      if (parm->ParameterData.IntegerData)
 		{
-		  if (parm->ParameterData.IntegerData)
-		    {
-			enable_non_admin = TRUE;
-		    }
+		  enable_non_admin = TRUE;
 		}
 	    }
 	}
+    }
 #endif
 
-	/* Read optional MAC setting from registry */
+    /* Read optional MAC setting from registry */
+    {
+      NDIS_STRING key = NDIS_STRING_CONST("MAC");
+      ANSI_STRING mac_string;
+      NdisReadConfiguration (&status, &parm, configHandle,
+			     &key, NdisParameterString);
+      if (status == NDIS_STATUS_SUCCESS)
 	{
-	  NDIS_STRING key = NDIS_STRING_CONST("MAC");
-	  ANSI_STRING mac_string;
-	  NdisReadConfiguration (&status, &parm, configHandle,
-				 &key, NdisParameterString);
-	  if (status == NDIS_STATUS_SUCCESS)
+	  if (parm->ParameterType == NdisParameterString)
 	    {
-	      if (parm->ParameterType == NdisParameterString)
+	      if (RtlUnicodeStringToAnsiString (&mac_string, &parm->ParameterData.StringData, TRUE) == STATUS_SUCCESS)
 		{
-		  if (RtlUnicodeStringToAnsiString (&mac_string, &parm->ParameterData.StringData, TRUE) == STATUS_SUCCESS)
-		    {
-		      l_MacFromRegistry = ParseMAC (l_Adapter->m_MAC, mac_string.Buffer);
-		      RtlFreeAnsiString (&mac_string);
-		    }
+		  l_MacFromRegistry = ParseMAC (l_Adapter->m_MAC, mac_string.Buffer);
+		  RtlFreeAnsiString (&mac_string);
 		}
 	    }
 	}
+    }
 
-	NdisCloseConfiguration (configHandle);
+    NdisCloseConfiguration (configHandle);
 
     DEBUGP (("[%s] MTU=%d\n", NAME (l_Adapter), l_Adapter->m_MTU));
   }
@@ -540,9 +550,9 @@ NDIS_STATUS AdapterCreate
     GenerateRandomMac (l_Adapter->m_MAC, NAME (l_Adapter));
 
   DEBUGP (("[%s] Using MAC %x:%x:%x:%x:%x:%x\n",
-	    NAME (l_Adapter),
-	    l_Adapter->m_MAC[0], l_Adapter->m_MAC[1], l_Adapter->m_MAC[2],
-	    l_Adapter->m_MAC[3], l_Adapter->m_MAC[4], l_Adapter->m_MAC[5]));
+	   NAME (l_Adapter),
+	   l_Adapter->m_MAC[0], l_Adapter->m_MAC[1], l_Adapter->m_MAC[2],
+	   l_Adapter->m_MAC[3], l_Adapter->m_MAC[4], l_Adapter->m_MAC[5]));
 
   //==================
   // Set broadcast MAC
@@ -562,6 +572,7 @@ NDIS_STATUS AdapterCreate
     if (tap_status != NDIS_STATUS_SUCCESS)
       {
 	AdapterFreeResources (l_Adapter);
+	DEBUGP (("[TAP] CreateTapDevice failed\n"));
 	return tap_status;
       }
   }
@@ -571,6 +582,7 @@ NDIS_STATUS AdapterCreate
       NOTE_ERROR ();
       TapDeviceFreeResources (&l_Adapter->m_Extension);
       AdapterFreeResources (l_Adapter);
+      DEBUGP (("[TAP] AddAdapterToInstanceList failed\n"));
       return NDIS_STATUS_RESOURCES;
     }
 
