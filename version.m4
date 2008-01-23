@@ -1,2 +1,2 @@
 dnl define the OpenVPN version
-define(PRODUCT_VERSION,[2.1_rc4a])
+define(PRODUCT_VERSION,[2.1_rc5])

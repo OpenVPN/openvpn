@@ -189,6 +189,10 @@ Function .onInit
     Abort
   ok:
 
+# Delete previous start menu
+  RMDir /r $SMPROGRAMS\${PRODUCT_NAME}
+
+# Check windows version
   Call GetWindowsVersion
   Pop $1
   StrCmp $1 "2000" goodwinver
@@ -392,10 +396,11 @@ Section "Add Shortcuts to Start Menu" SecAddShortcuts
 
   SetOverwrite on
   CreateDirectory "$SMPROGRAMS\${PRODUCT_NAME}"
-  WriteINIStr "$SMPROGRAMS\${PRODUCT_NAME}\${PRODUCT_NAME} Windows Notes.url" "InternetShortcut" "URL" "http://openvpn.net/INSTALL-win32.html"
-  WriteINIStr "$SMPROGRAMS\${PRODUCT_NAME}\${PRODUCT_NAME} Manual Page.url" "InternetShortcut" "URL" "http://openvpn.net/man.html"
-  WriteINIStr "$SMPROGRAMS\${PRODUCT_NAME}\${PRODUCT_NAME} HOWTO.url" "InternetShortcut" "URL" "http://openvpn.net/howto.html"
-  WriteINIStr "$SMPROGRAMS\${PRODUCT_NAME}\${PRODUCT_NAME} Web Site.url" "InternetShortcut" "URL" "http://openvpn.net/"
+  CreateDirectory "$SMPROGRAMS\${PRODUCT_NAME}\Documentation"
+  WriteINIStr "$SMPROGRAMS\${PRODUCT_NAME}\Documentation\${PRODUCT_NAME} Windows Notes.url" "InternetShortcut" "URL" "http://openvpn.net/INSTALL-win32.html"
+  WriteINIStr "$SMPROGRAMS\${PRODUCT_NAME}\Documentation\${PRODUCT_NAME} Manual Page.url" "InternetShortcut" "URL" "http://openvpn.net/man.html"
+  WriteINIStr "$SMPROGRAMS\${PRODUCT_NAME}\Documentation\${PRODUCT_NAME} HOWTO.url" "InternetShortcut" "URL" "http://openvpn.net/howto.html"
+  WriteINIStr "$SMPROGRAMS\${PRODUCT_NAME}\Documentation\${PRODUCT_NAME} Web Site.url" "InternetShortcut" "URL" "http://openvpn.net/"
   CreateShortCut "$SMPROGRAMS\${PRODUCT_NAME}\Uninstall ${PRODUCT_NAME}.lnk" "$INSTDIR\Uninstall.exe"
 
 SectionEnd
@@ -497,19 +502,19 @@ Section -post
   File "${HOME}\images\${PRODUCT_ICON}"
 
   ; store sample config files
-!ifdef SAMPCONF_DIR
-  SetOverwrite on
-  SetOutPath "$INSTDIR\config"
-!ifdef SAMPCONF_CONF
-  File "${HOME}\..\${SAMPCONF_DIR}\${SAMPCONF_CONF}"
-!endif
-!ifdef SAMPCONF_P12
-  File "${HOME}\..\${SAMPCONF_DIR}\${SAMPCONF_P12}"
-!endif
-!ifdef SAMPCONF_TA
-  File "${HOME}\..\${SAMPCONF_DIR}\${SAMPCONF_TA}"
-!endif
-!endif
+  !ifdef SAMPCONF_DIR
+    SetOverwrite on
+    SetOutPath "$INSTDIR\config"
+  !ifdef SAMPCONF_CONF
+    File "${HOME}\..\${SAMPCONF_DIR}\${SAMPCONF_CONF}"
+  !endif
+  !ifdef SAMPCONF_P12
+    File "${HOME}\..\${SAMPCONF_DIR}\${SAMPCONF_P12}"
+  !endif
+  !ifdef SAMPCONF_TA
+    File "${HOME}\..\${SAMPCONF_DIR}\${SAMPCONF_TA}"
+  !endif
+  !endif
 
   ; Create file association if requested
   SectionGetFlags ${SecFileAssociation} $R0
@@ -523,8 +528,12 @@ Section -post
     WriteRegStr HKCR "${PRODUCT_NAME}File\shell\run" "" "Start ${PRODUCT_NAME} on this config file"
     WriteRegStr HKCR "${PRODUCT_NAME}File\shell\run\command" "" '"$INSTDIR\bin\${PRODUCT_UNIX_NAME}.exe" --pause-exit --config "%1"'
 
-    ; Create start menu and desktop shortcuts to OpenVPN GUI
+  ; Create start menu folders
  noass:
+  CreateDirectory "$SMPROGRAMS\${PRODUCT_NAME}\Utilities"
+  CreateDirectory "$SMPROGRAMS\${PRODUCT_NAME}\Shortcuts"
+
+    ; Create start menu and desktop shortcuts to OpenVPN GUI
   !ifdef OPENVPN_GUI_DEFINED
     IfFileExists "$INSTDIR\bin\${OPENVPN_GUI}" "" tryaddtap
       CreateShortCut "$SMPROGRAMS\${PRODUCT_NAME}\${PRODUCT_NAME} GUI.lnk" "$INSTDIR\bin\${OPENVPN_GUI}" ""
@@ -534,29 +543,29 @@ Section -post
     ; Create start menu shortcuts to addtap.bat and deltapall.bat
  tryaddtap:
     IfFileExists "$INSTDIR\bin\addtap.bat" "" trydeltap
-      CreateShortCut "$SMPROGRAMS\${PRODUCT_NAME}\Add a new TAP-Win32 virtual ethernet adapter.lnk" "$INSTDIR\bin\addtap.bat" ""
+      CreateShortCut "$SMPROGRAMS\${PRODUCT_NAME}\Utilities\Add a new TAP-Win32 virtual ethernet adapter.lnk" "$INSTDIR\bin\addtap.bat" ""
 
  trydeltap:
     IfFileExists "$INSTDIR\bin\deltapall.bat" "" config_shortcut
-      CreateShortCut "$SMPROGRAMS\${PRODUCT_NAME}\Delete ALL TAP-Win32 virtual ethernet adapters.lnk" "$INSTDIR\bin\deltapall.bat" ""
+      CreateShortCut "$SMPROGRAMS\${PRODUCT_NAME}\Utilities\Delete ALL TAP-Win32 virtual ethernet adapters.lnk" "$INSTDIR\bin\deltapall.bat" ""
 
     ; Create start menu shortcuts for config and log directories
  config_shortcut:
     IfFileExists "$INSTDIR\config" "" log_shortcut
-      CreateShortCut "$SMPROGRAMS\${PRODUCT_NAME}\${PRODUCT_NAME} configuration file directory.lnk" "$INSTDIR\config" ""
+      CreateShortCut "$SMPROGRAMS\${PRODUCT_NAME}\Shortcuts\${PRODUCT_NAME} configuration file directory.lnk" "$INSTDIR\config" ""
 
  log_shortcut:
     IfFileExists "$INSTDIR\log" "" samp_shortcut
-      CreateShortCut "$SMPROGRAMS\${PRODUCT_NAME}\${PRODUCT_NAME} log file directory.lnk" "$INSTDIR\log" ""
+      CreateShortCut "$SMPROGRAMS\${PRODUCT_NAME}\Shortcuts\${PRODUCT_NAME} log file directory.lnk" "$INSTDIR\log" ""
 
  samp_shortcut:
     IfFileExists "$INSTDIR\sample-config" "" genkey_shortcut
-      CreateShortCut "$SMPROGRAMS\${PRODUCT_NAME}\${PRODUCT_NAME} Sample Configuration Files.lnk" "$INSTDIR\sample-config" ""
+      CreateShortCut "$SMPROGRAMS\${PRODUCT_NAME}\Shortcuts\${PRODUCT_NAME} Sample Configuration Files.lnk" "$INSTDIR\sample-config" ""
 
  genkey_shortcut:
     IfFileExists "$INSTDIR\bin\${PRODUCT_UNIX_NAME}.exe" "" noshortcuts
       IfFileExists "$INSTDIR\config" "" noshortcuts
-        CreateShortCut "$SMPROGRAMS\${PRODUCT_NAME}\Generate a static ${PRODUCT_NAME} key.lnk" "$INSTDIR\bin\${PRODUCT_UNIX_NAME}.exe" '--pause-exit --verb 3 --genkey --secret "$INSTDIR\config\key.txt"' "$INSTDIR\${PRODUCT_ICON}" 0
+        CreateShortCut "$SMPROGRAMS\${PRODUCT_NAME}\Utilities\Generate a static ${PRODUCT_NAME} key.lnk" "$INSTDIR\bin\${PRODUCT_UNIX_NAME}.exe" '--pause-exit --verb 3 --genkey --secret "$INSTDIR\config\key.txt"' "$INSTDIR\${PRODUCT_ICON}" 0
 
  noshortcuts:
   ; Create uninstaller
@@ -626,6 +635,19 @@ Section "Uninstall"
 
   RMDir /r $SMPROGRAMS\${PRODUCT_NAME}
 
+  ; delete sample config files
+  !ifdef SAMPCONF_DIR
+  !ifdef SAMPCONF_CONF
+    Delete "$INSTDIR\config\${SAMPCONF_CONF}"
+  !endif
+  !ifdef SAMPCONF_P12
+    Delete "$INSTDIR\config\${SAMPCONF_P12}"
+  !endif
+  !ifdef SAMPCONF_TA
+    Delete "$INSTDIR\config\${SAMPCONF_TA}"
+  !endif
+  !endif
+
   !ifdef OPENVPN_GUI_DEFINED
     Delete "$INSTDIR\bin\${OPENVPN_GUI}"
     Delete "$DESKTOP\${PRODUCT_NAME} GUI.lnk"
@@ -674,9 +696,11 @@ Section "Uninstall"
   Delete "$INSTDIR\sample-config\*.${PRODUCT_FILE_EXT}"
 
   RMDir "$INSTDIR\bin"
+  RMDir "$INSTDIR\config"
   RMDir "$INSTDIR\driver"
   RMDir "$INSTDIR\easy-rsa"
   RMDir "$INSTDIR\sample-config"
+  RMDir /r "$INSTDIR\log"
   RMDir "$INSTDIR"
 
   !insertmacro DelRegKeyIfUnchanged HKCR ".${SERV_CONFIG_EXT}" "${PRODUCT_NAME}File"
