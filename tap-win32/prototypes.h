@@ -219,15 +219,15 @@ ZwSetSecurityObject (
 
 #endif
 
+VOID AllowNonAdmin (TapExtensionPointer p_Extension);
+
+#endif
+
 struct WIN2K_NDIS_MINIPORT_BLOCK
 {
   unsigned char  opaque[16];
   UNICODE_STRING MiniportName;       // how mini-port refers to us
 };
-
-VOID AllowNonAdmin (TapExtensionPointer p_Extension);
-
-#endif
 
 #if PACKET_TRUNCATION_CHECK
 
