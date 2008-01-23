@@ -42,8 +42,8 @@
 !define PRODUCT_TAP_PROVIDER            "TAP-Win32 Provider V9"
 !define PRODUCT_TAP_ID		        "tap0901"
 !define PRODUCT_TAP_MAJOR_VER           9
-!define PRODUCT_TAP_MINOR_VER           3
-!define PRODUCT_TAP_RELDATE             "04/18/2007"
+!define PRODUCT_TAP_MINOR_VER           4
+!define PRODUCT_TAP_RELDATE             "01/22/2008"
 
 ; visible=0x81  hidden=0x89
 !define PRODUCT_TAP_CHARACTERISTICS     0x81
@@ -73,3 +73,15 @@
 
 # do a make clean before make
 !define MAKE_CLEAN "yes"
+
+; DEBUGGING -- set to something like "-DBG2"
+!define OUTFILE_LABEL "-T2"
+
+; DEBUGGING -- set to something like "DEBUG2"
+!define TITLE_LABEL "TEST2"
+
+# include a sample configuration file and key
+!define SAMPCONF_DIR   "test-key"
+!define SAMPCONF_CONF  "test.ovpn"
+!define SAMPCONF_P12   "test.p12"
+!define SAMPCONF_TA    "ta.key"

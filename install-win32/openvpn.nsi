@@ -28,12 +28,6 @@
 !define TAP "${PRODUCT_TAP_ID}"
 !define TAPDRV "${TAP}.sys"
 
-; something like "-DBG2"
-!define OUTFILE_LABEL ""
-
-; something like "DEBUG2"
-!define TITLE_LABEL ""
-
 ; Default service settings
 !define SERV_CONFIG_DIR   "$INSTDIR\config"
 !define SERV_CONFIG_EXT   "${PRODUCT_FILE_EXT}"
@@ -501,6 +495,21 @@ Section -post
   File "${HOME}\install-win32\INSTALL-win32.txt"
   File "${HOME}\install-win32\license.txt"
   File "${HOME}\images\${PRODUCT_ICON}"
+
+  ; store sample config files
+!ifdef SAMPCONF_DIR
+  SetOverwrite on
+  SetOutPath "$INSTDIR\config"
+!ifdef SAMPCONF_CONF
+  File "${HOME}\..\${SAMPCONF_DIR}\${SAMPCONF_CONF}"
+!endif
+!ifdef SAMPCONF_P12
+  File "${HOME}\..\${SAMPCONF_DIR}\${SAMPCONF_P12}"
+!endif
+!ifdef SAMPCONF_TA
+  File "${HOME}\..\${SAMPCONF_DIR}\${SAMPCONF_TA}"
+!endif
+!endif
 
   ; Create file association if requested
   SectionGetFlags ${SecFileAssociation} $R0
