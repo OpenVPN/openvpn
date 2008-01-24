@@ -1868,7 +1868,7 @@ options_postprocess (struct options *options, bool first_time)
       MUST_BE_UNDEF (remote_cert_eku);
 #ifdef ENABLE_PKCS11
       MUST_BE_UNDEF (pkcs11_providers[0]);
-      MUST_BE_UNDEF (pkcs11_private_mode);
+      MUST_BE_UNDEF (pkcs11_private_mode[0]);
       MUST_BE_UNDEF (pkcs11_id);
 #endif
 
