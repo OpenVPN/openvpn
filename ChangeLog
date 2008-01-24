@@ -3,6 +3,13 @@ Copyright (C) 2002-2005 OpenVPN Solutions LLC <info@openvpn.net>
 
 $Id$
 
+2008.01.24 -- Version 2.1_rc6
+
+* Fixed options checking bug introduced in rc5 where legitimate configuration
+  files might elicit the error: "Options error: Parameter pkcs11_private_mode
+  can only be specified in TLS-mode, i.e. where --tls-server or --tls-client
+  is also specified."
+	
 2008.01.23 -- Version 2.1_rc5
 
 * Fixed Win2K TAP driver bug that was introduced by Vista fixes,
