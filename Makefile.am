@@ -127,7 +127,11 @@ EXTRA_DIST = \
 	contrib \
 	debug \
 	plugin \
-        management
+        management \
+	images \
+	ieproxy.c \
+	ieproxy.h \
+	domake-win
 
 dist-hook:
 	cd $(distdir) && for i in $(EXTRA_DIST) ; do find $$i -name .svn -type d -prune -exec rm -rf '{}' ';' ; rm -f `find $$i -type f | grep -E '(^|\/)\.?\#|\~$$|\.s?o$$'` ; done
