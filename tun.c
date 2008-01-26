@@ -1221,17 +1221,24 @@ close_tun (struct tuntap *tt)
   if (tt)
     {
 #ifdef CONFIG_FEATURE_IPROUTE
-	char command_line[256];
-	/*
-	 * Flush IP configuration for the device
-	 */
-	openvpn_snprintf (command_line, sizeof (command_line),
-			  "%s addr flush dev %s",
+	if (tt->type != DEV_TYPE_NULL && tt->did_ifconfig)
+	  {
+	    char command_line[256];
+	    struct gc_arena gc = gc_new ();
+
+	    openvpn_snprintf (command_line, sizeof (command_line),
+			  "%s addr del dev %s local %s peer %s",
 			  iproute_path,
-			  tt->actual_name
+			  tt->actual_name,
+			  print_in_addr_t (tt->local, 0, &gc),
+			  print_in_addr_t (tt->remote_netmask, 0, &gc)
 			  );
-	msg (M_INFO, "%s", command_line);
-	system_check (command_line, NULL, S_FATAL, "Linux ip flush failed");
+
+	    msg (M_INFO, "%s", command_line);
+	    system_check (command_line, NULL, S_FATAL, "Linux ip addr del failed");
+
+	    gc_free (&gc);
+	  }
 #endif
       close_tun_generic (tt);
       free (tt);
