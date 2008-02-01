@@ -23,16 +23,6 @@
 !define PKCS11_HELPER_DIR "../pkcs11-helper/usr/local"
 !define DMALLOC_DIR	  "../dmalloc-5.4.2"
 
-# Write TAP driver and tapinstall.exe to this directory,
-# to use as prebuilt binaries for future builds.  May
-# be undefined.
-;!define DRVBINDEST "../tapbin"
-
-# Don't build TAP driver and tapinstall.exe -- instead get
-# them as prebuilt binaries from this directory.  May be
-# undefined.
-;!define DRVBINSRC  "../tapbin"
-
 # tapinstall.exe source code.
 # Not needed if DRVBINSRC is defined.
 !define TISRC	"../tapinstall"
@@ -71,8 +61,13 @@
 # -j parameter passed to make
 !define MAKE_JOBS 2
 
-# do a make clean before make
-!define MAKE_CLEAN "yes"
+# output directory for built binaries
+# and other generated files
+!define GENOUT "gen"
+
+# delete GENOUT directory before starting
+# set to "yes" or "no"
+!define CLEAN "yes"
 
 ; DEBUGGING -- set to something like "-DBG2"
 !define OUTFILE_LABEL ""

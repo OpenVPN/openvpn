@@ -1,0 +1,20 @@
+#!/bin/sh
+
+# get version.nsi definitions
+. autodefs/defs.sh
+
+mkdir -p $GENOUT/text &>/dev/null
+
+# build license file
+cat COPYING COPYRIGHT.GPL >$GENOUT/text/license.txt
+
+# copy install file
+cp INSTALL-win32.txt $GENOUT/text/install-win32.txt
+
+# copy sample configuration files and docs
+s=$GENOUT/samples
+mkdir -p $s &>/dev/null
+cp sample-config-files/client.conf $s/client.$PRODUCT_FILE_EXT
+cp sample-config-files/server.conf $s/server.$PRODUCT_FILE_EXT
+cp install-win32/sample.ovpn $s/sample.$PRODUCT_FILE_EXT
+cp easy-rsa/1.0/openssl.cnf $s/openssl.cnf.sample

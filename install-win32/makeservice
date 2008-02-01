@@ -1,0 +1,30 @@
+#!/bin/sh
+
+# get version.nsi definitions
+. autodefs/defs.sh
+
+# build OpenVPN service (openvpnserv.exe)
+if [ -d "$SVC_TEMPLATE" ] ; then
+    # silly vista security theatre
+    PATCH="/tmp/p.exe"
+    cp `which patch` $PATCH
+
+    # build service sources
+    cp $SVC_TEMPLATE/service.[ch] service-win32
+    cd service-win32
+    cp service.c service.c.orig
+    cp service.h service.h.orig
+    $PATCH <service.patch
+
+    # compile/link
+    [ "$CLEAN" = "yes" ] && make clean
+    make -j $MAKE_JOBS
+    cd ..
+
+    # copy service to GENOUT/bin
+    mkdir $GENOUT/bin &>/dev/null
+    cp service-win32/${PRODUCT_UNIX_NAME}serv.exe $GENOUT/bin
+    strip $GENOUT/bin/${PRODUCT_UNIX_NAME}serv.exe
+else
+    echo OpenVPN service template directory $SVC_TEMPLATE NOT FOUND
+fi

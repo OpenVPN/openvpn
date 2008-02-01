@@ -8,6 +8,8 @@
 # get version.nsi definitions
 . autodefs/defs.sh
 
+if [ -d "/c/WINDDK/$DDKVER" ] ; then
+
 if ! [ -d "$TISRC" ] ; then
     echo "$TISRC" NOT INSTALLED
     exit 1
@@ -46,4 +48,30 @@ if [ -n "$TI_BIN_AMD64" ]; then
     cp "$TI_BIN_AMD64" $t/objfre_wnet_amd64/amd64
 fi
 
+# $DRVBINSRC, if defined, points to prebuilt TAP driver and
+# tapinstall.exe.
+if [ -z "$DRVBINSRC" ] ; then
+    # Get tapinstall
+    mkdir -p $GENOUT/tapinstall/i386 &>/dev/null
+    mkdir -p $GENOUT/tapinstall/amd64 &>/dev/null
+    cp tapinstall/objfre_w2k_x86/i386/tapinstall.exe $GENOUT/tapinstall/i386
+    cp tapinstall/objfre_wnet_amd64/amd64/tapinstall.exe $GENOUT/tapinstall/amd64
+else
+    mkdir $GENOUT &>/dev/null
+    cp -a $DRVBINSRC/tapinstall $GENOUT/tapinstall
+fi
+
+# $DRVBINDEST, if defined, points to a destination directory
+# where TAP driver and tapinstall.exe will be saved, to be used
+# as a $DRVBINSRC in future builds.
+if [ -n "$DRVBINDEST" ] ; then
+    mkdir $DRVBINDEST &>/dev/null
+    cp -a $GENOUT/driver $DRVBINDEST
+    cp -a $GENOUT/tapinstall $DRVBINDEST
+fi
+
 title openvpn-build &>/dev/null
+
+else
+    echo Not building tapinstall -- DDK version $DDKVER NOT INSTALLED
+fi

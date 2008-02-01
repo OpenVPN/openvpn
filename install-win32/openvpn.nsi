@@ -15,7 +15,9 @@
 !include "setpath.nsi"
 !include "GetWindowsVersion.nsi"
 
-!define BIN "${HOME}\bin"
+!define GEN "${HOME}\${GENOUT}"
+!define BIN "${GEN}\bin"
+!define LIB "${GEN}\lib"
 
 !define PRODUCT_ICON "icon.ico"
 
@@ -75,7 +77,7 @@
   !define MUI_UNFINISHPAGE_NOAUTOCLOSE
 
   !insertmacro MUI_PAGE_WELCOME
-  !insertmacro MUI_PAGE_LICENSE "${HOME}\install-win32\license.txt"
+  !insertmacro MUI_PAGE_LICENSE "${GEN}\text\license.txt"
   !insertmacro MUI_PAGE_COMPONENTS
   !insertmacro MUI_PAGE_DIRECTORY
   !insertmacro MUI_PAGE_INSTFILES
@@ -250,7 +252,7 @@ Section "${PRODUCT_NAME} RSA Certificate Management Scripts" SecOpenVPNEasyRSA
   SetOverwrite on
   SetOutPath "$INSTDIR\easy-rsa"
 
-  File "${HOME}\samples\openssl.cnf.sample"
+  File "${GEN}\samples\openssl.cnf.sample"
   File "${HOME}\easy-rsa\Windows\vars.bat.sample"
 
   File "${HOME}\easy-rsa\Windows\init-config.bat"
@@ -286,9 +288,9 @@ Section "${PRODUCT_NAME} Service" SecService
   FileClose $R0
 
   SetOutPath "$INSTDIR\sample-config"
-  File "${HOME}\samples\sample.${SERV_CONFIG_EXT}"
-  File "${HOME}\samples\client.${SERV_CONFIG_EXT}"
-  File "${HOME}\samples\server.${SERV_CONFIG_EXT}"
+  File "${GEN}\samples\sample.${SERV_CONFIG_EXT}"
+  File "${GEN}\samples\client.${SERV_CONFIG_EXT}"
+  File "${GEN}\samples\server.${SERV_CONFIG_EXT}"
 
   CreateDirectory "$INSTDIR\log"
   FileOpen $R0 "$INSTDIR\log\README.txt" w
@@ -305,8 +307,8 @@ Section "OpenSSL DLLs" SecOpenSSLDLLs
 
   SetOverwrite on
   SetOutPath "$INSTDIR\bin"
-  File "${BIN}\libeay32.dll"
-  File "${BIN}\libssl32.dll"
+  File "${LIB}\libeay32.dll"
+  File "${LIB}\libssl32.dll"
 
 SectionEnd
 
@@ -322,7 +324,7 @@ Section "PKCS#11 DLLs" SecPKCS11DLLs
 
   SetOverwrite on
   SetOutPath "$INSTDIR\bin"
-  File "${BIN}\libpkcs11-helper-1.dll"
+  File "${LIB}\libpkcs11-helper-1.dll"
 
 SectionEnd
 
@@ -354,13 +356,13 @@ Section "TAP-Win32 Virtual Ethernet Adapter" SecTAP
 
   SetOutPath "$INSTDIR\bin"
 
-  File "${BIN}\tapinstall\amd64\tapinstall.exe"
+  File "${GEN}\tapinstall\amd64\tapinstall.exe"
 
   SetOutPath "$INSTDIR\driver"
 
-  File "${BIN}\driver\amd64\OemWin2k.inf"
-  File "${BIN}\driver\amd64\${PRODUCT_TAP_ID}.cat"
-  File "${BIN}\driver\amd64\${TAPDRV}"
+  File "${GEN}\driver\amd64\OemWin2k.inf"
+  File "${GEN}\driver\amd64\${PRODUCT_TAP_ID}.cat"
+  File "${GEN}\driver\amd64\${TAPDRV}"
 
 goto tapend
 
@@ -369,12 +371,12 @@ tap-32bit:
   DetailPrint "We are running on a 32-bit system."
 
   SetOutPath "$INSTDIR\bin"
-  File "${BIN}\tapinstall\i386\tapinstall.exe"
+  File "${GEN}\tapinstall\i386\tapinstall.exe"
 
   SetOutPath "$INSTDIR\driver"
-  File "${BIN}\driver\i386\OemWin2k.inf"
-  File "${BIN}\driver\i386\${PRODUCT_TAP_ID}.cat"
-  File "${BIN}\driver\i386\${TAPDRV}"
+  File "${GEN}\driver\i386\OemWin2k.inf"
+  File "${GEN}\driver\i386\${PRODUCT_TAP_ID}.cat"
+  File "${GEN}\driver\i386\${TAPDRV}"
 
   tapend:
 
@@ -497,8 +499,8 @@ Section -post
   ; Store README, license, icon
   SetOverwrite on
   SetOutPath $INSTDIR
-  File "${HOME}\install-win32\INSTALL-win32.txt"
-  File "${HOME}\install-win32\license.txt"
+  File "${GEN}\text\INSTALL-win32.txt"
+  File "${GEN}\text\license.txt"
   File "${HOME}\images\${PRODUCT_ICON}"
 
   ; store sample config files

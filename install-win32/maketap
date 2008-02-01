@@ -6,8 +6,19 @@
 # get version.nsi definitions
 . autodefs/defs.sh
 
+if [ -d "/c/WINDDK/$DDKVER" ] ; then
+
 # common declarations for all DDK build targets
 . install-win32/ddk-common
+
+# configure tap driver sources
+MACRO="perl install-win32/macro.pl autodefs/defs.in"
+IFDEF="perl install-win32/ifdef.pl"
+rm -rf tap-win32/amd64
+mkdir tap-win32/amd64
+$MACRO <tap-win32/SOURCES.in >tap-win32/SOURCES
+$MACRO <tap-win32/i386/OemWin2k.inf.in | $IFDEF >tap-win32/i386/OemWin2k.inf
+$MACRO <tap-win32/i386/OemWin2k.inf.in | $IFDEF -DAMD64 >tap-win32/amd64/OemWin2k.inf
 
 if [ -n "$PRODUCT_TAP_DEBUG" ] ; then
     w2ktarget="w2k c"
@@ -57,4 +68,33 @@ if [ -z "$DRVBINSRC" ] ; then
     out="TAP driver catalog file is undefined";
     echo "$out" >$x86/$PRODUCT_TAP_ID.cat
     echo "$out" >$x64/$PRODUCT_TAP_ID.cat
+    cd ..
+fi
+
+# $DRVBINSRC, if defined, points to prebuilt TAP driver and
+# tapinstall.exe.
+mkdir $GENOUT &>/dev/null
+rm -rf $GENOUT/driver
+if [ -z "$DRVBINSRC" ] ; then
+    # Get TAP drivers
+    cp -a tap-win32/dist $GENOUT/driver
+
+    # Sign TAP drivers
+    if [ -d "$SIGNTOOL" ]; then
+	$SIGNTOOL/signtap
+    fi
+else
+    cp -a $DRVBINSRC/driver $GENOUT/driver
+fi
+
+# $DRVBINDEST, if defined, points to a destination directory
+# where TAP driver and tapinstall.exe will be saved, to be used
+# as a $DRVBINSRC in future builds.
+if [ -n "$DRVBINDEST" ] ; then
+    mkdir $DRVBINDEST &>/dev/null
+    cp -a $GENOUT/driver $DRVBINDEST
+fi
+
+else
+    echo Not building TAP driver -- DDK version $DDKVER NOT INSTALLED
 fi

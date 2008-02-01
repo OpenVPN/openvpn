@@ -3,17 +3,8 @@
 # prepare files for building on Windows
 # run from top directory: install-win32/winconfig
 
-c=`pwd`
-
 rm -rf autodefs
 mkdir autodefs
-
-MACRO="perl install-win32/macro.pl autodefs/defs.in"
-IFDEF="perl install-win32/ifdef.pl"
-
-# silly vista security theatre
-PATCH="/tmp/p.exe"
-cp `which patch` $PATCH
 
 # build multi-grammar definition files
 perl install-win32/m4todef.pl <version.m4 >autodefs/version.in
@@ -21,36 +12,4 @@ for g in "h" "sh" "nsi" "in" ; do
     perl install-win32/trans.pl $g install-win32/settings.in >autodefs/defs.$g
 done
 
-# load sh definitions
-. autodefs/defs.sh
-
-# configure tap driver sources
-rm -rf tap-win32/amd64
-mkdir tap-win32/amd64
-$MACRO <tap-win32/SOURCES.in >tap-win32/SOURCES
-$MACRO <tap-win32/i386/OemWin2k.inf.in | $IFDEF >tap-win32/i386/OemWin2k.inf
-$MACRO <tap-win32/i386/OemWin2k.inf.in | $IFDEF -DAMD64 >tap-win32/amd64/OemWin2k.inf
-
-# configure service
-if [ -n "$SVC_TEMPLATE" ] ; then
-    cd $c
-    cp $SVC_TEMPLATE/service.[ch] service-win32
-    cd service-win32
-    cp service.c service.c.orig
-    cp service.h service.h.orig
-    $PATCH <service.patch
-fi
-
-# build license file
-cd $c
-cat COPYING COPYRIGHT.GPL >install-win32/license.txt
-
-# copy sample configuration files and docs
-s=samples
-rm -rf $s
-mkdir $s
-cp sample-config-files/client.conf $s/client.$PRODUCT_FILE_EXT
-cp sample-config-files/server.conf $s/server.$PRODUCT_FILE_EXT
-cp install-win32/sample.ovpn $s/sample.$PRODUCT_FILE_EXT
-cp easy-rsa/1.0/openssl.cnf $s/openssl.cnf.sample
-cp INSTALL-win32.txt install-win32
+cat /dev/null >autodefs/guidefs.nsi

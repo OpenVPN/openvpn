@@ -35,19 +35,48 @@
 #
 # ../svc-template -- This directory should contain service.[ch]
 #                    from the MS Platform SDK.
-#
-# Example usage:
-#
-# build everything, then write installer to desktop
-#  INSTALLER_DEST="/c/Documents and Settings/James/Desktop" ./domake-win
 
+# Note that all variables referenced here such as GENOUT and CLEAN
+# are defined in install-win32/settings.in
+
+# First build the autodefs directory, with C, sh, and NSIS versions
+# of global settings, using install-win32/settings.in as source.
+# These settings will then drive the rest of the build process. 
 install-win32/winconfig
+
+# Delete the GENOUT directory if CLEAN="yes"
+install-win32/doclean
+
+# Each of the scripts below build, get, and/or possibly sign a different
+# OpenVPN component, placing the generated files in GENOUT.  Each of these
+# steps is fully indepedent, and can be executed in any order or omitted.
+# The exception is the last script which gathers together all files from
+# GENOUT and build the installer.
+
+# Make the OpenVPN user-space component (openvpn.exe)
 install-win32/makeopenvpn
-install-win32/maketapinstall
+
+# Make the OpenVPN service
+install-win32/makeservice
+
+# Make the OpenVPN TAP driver
 install-win32/maketap
-install-win32/signtap
-install-win32/makebin
+
+# Make the tapinstall utility, used to install the TAP driver
+install-win32/maketapinstall
+
+# Get the OpenSSL libraries from a pre-build OpenSSL tree
+install-win32/getopenssl
+
+# Get the PKCS-11 helper library from a pre-built OpenSSL tree
+install-win32/getpkcs11helper
+
+# Get the OpenVPN GUI (must be prebuilt)
 install-win32/getgui
+
+# Produce the license text, install README, and sample config files
+install-win32/maketext
+
+# This final step builds the OpenVPN installer using generated
+# files from GENOUT
 install-win32/buildinstaller
-install-win32/signinstaller
-install-win32/copyinstaller

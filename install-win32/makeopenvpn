@@ -4,13 +4,10 @@
 . autodefs/defs.sh
 
 # build OpenVPN binary
-[ "$MAKE_CLEAN" = "yes" ] && make -f makefile.w32 clean
+[ "$CLEAN" = "yes" ] && make -f makefile.w32 clean
 make -f makefile.w32 -j $MAKE_JOBS
 
-# build OpenVPN service (openvpnserv.exe)
-if [ -n "$SVC_TEMPLATE" ] ; then
-    cd service-win32
-    [ "$MAKE_CLEAN" = "yes" ] && make clean
-    make -j $MAKE_JOBS
-    cd ..
-fi
+# copy OpenVPN executable to GENOUT/bin
+mkdir -p $GENOUT/bin &>/dev/null
+cp $PRODUCT_UNIX_NAME.exe $GENOUT/bin
+strip $GENOUT/bin/$PRODUCT_UNIX_NAME.exe
