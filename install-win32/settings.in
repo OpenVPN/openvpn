@@ -23,6 +23,11 @@
 !define PKCS11_HELPER_DIR "../pkcs11-helper/usr/local"
 !define DMALLOC_DIR	  "../dmalloc-5.4.2"
 
+# Optional directory of prebuilt OpenVPN binary components,
+# to be used as a source when build-from-scratch prerequisites
+# are not met.
+!define GENOUT_PREBUILT  "../gen-prebuilt"
+
 # tapinstall.exe source code.
 # Not needed if DRVBINSRC is defined.
 !define TISRC	"../tapinstall"

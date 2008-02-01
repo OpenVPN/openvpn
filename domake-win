@@ -4,17 +4,25 @@
 # This script will build OpenVPN, the TAP driver, and
 # the installer from source, targeting x86 on Windows
 # 2000 and higher, and x64 on Windows 2003 and higher.
+# For quick start options, see pre-built notes below.
 #
-# See top-level build configuration in install-win32/settings.in
+# See top-level build configuration and settings in:
 #
-# Prerequisite installs:
+#   install-win32/settings.in
+#
+# Mandatory prerequisites:
 #
 # MinGW     -- for GNU C compiler
 # MSYS      -- for bash
 # msysDTK   -- for perl
 # NSIS      -- for building installer
+#
+# The following additional prerequisites may be omitted
+# when building in pre-built mode (see note below). 
+
 # svn       -- for checking out source code (or TortoiseSVN)
-# Windows Driver Kit (6001_17121_HyperV_WDK.iso) -- for building TAP driver + tapinstall
+# Windows Driver Kit (6001_17121_HyperV_WDK.iso) -- for building
+#    TAP driver + tapinstall
 #
 # Required libraries (must be prebuilt)
 #
@@ -36,10 +44,47 @@
 # ../svc-template -- This directory should contain service.[ch]
 #                    from the MS Platform SDK.
 
-# Note that all variables referenced here such as GENOUT and CLEAN
-# are defined in install-win32/settings.in
+# Note that all variables referenced here such as GENOUT,
+# GENOUT_PREBUILT, and CLEAN are defined in install-win32/settings.in
 
-# First build the autodefs directory, with C, sh, and NSIS versions
+# SPECIAL NOTES ON PRE-BUILT MODE
+#   Setting up a complete tool chain to build OpenVPN and all
+#   dependencies on Windows can be an onerous task, so the capability
+#   is provided to reference a directory of pre-built components during
+#   the build process.  This would allow you, for example, to build an
+#   OpenVPN installer with custom edits to install-win32/settings.in,
+#   but then avoid needing to build all other components (such as OpenSSL,
+#   LZO, Pkcs11-helper, TAP driver windows service, etc.).  The procedure
+#   is as follows. First Download and expand the pre-built binaries from:
+#
+#     http://openvpn.net/beta/windows-devel/ (choose the most recent .tbz file)
+#
+#   After expanding the .tbz file, cd to the top level directory and
+#   expand an OpenVPN source distribution taken from either the subversion
+#   repository or a source .tar.gz file.  It's best to use an OpenVPN source
+#   version that is the same or slightly later than the pre-built binaries
+#   file.  So now you have a directory containing something that looks like
+#   this:
+#
+#   gen-prebuilt     -> from prebuilt .tbz file
+#   lzo-2.02         -> from prebuilt .tbz file
+#   openssl-0.9.7m   -> from prebuilt .tbz file
+#   pkcs11-helper    -> from prebuilt .tbz file
+#   openvpn-2.1_rc7a.tar.gz  -> downloaded from openvpn.net
+#   openvpn-2.1_rc7a -> directory expanded from above file
+#
+#   Now cd to your expanded source tree (openvpn-2.1_rc7a in the
+#   example above), make edits to install-win32/settings.in (or even
+#   patch the OpenVPN source code directly), and run this script:
+#
+#       ./domake-win
+#
+#   If everything runs correctly, you should have a custom installer
+#   written to ./gen/install
+
+
+
+# First build the autodefs directory, containing C, sh, and NSIS versions
 # of global settings, using install-win32/settings.in as source.
 # These settings will then drive the rest of the build process. 
 install-win32/winconfig
@@ -47,11 +92,15 @@ install-win32/winconfig
 # Delete the GENOUT directory if CLEAN="yes"
 install-win32/doclean
 
+# Load a pre-built GENOUT directory if GENOUT_PREBUILT is defined
+# and the GENOUT directory is non-existing
+install-win32/getprebuilt
+
 # Each of the scripts below build, get, and/or possibly sign a different
 # OpenVPN component, placing the generated files in GENOUT.  Each of these
 # steps is fully indepedent, and can be executed in any order or omitted.
 # The exception is the last script which gathers together all files from
-# GENOUT and build the installer.
+# GENOUT and builds the installer.
 
 # Make the OpenVPN user-space component (openvpn.exe)
 install-win32/makeopenvpn

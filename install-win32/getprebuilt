@@ -1,0 +1,10 @@
+#!/bin/sh
+
+# get version.nsi definitions
+. autodefs/defs.sh
+
+# Get PKCS11-helper libraries
+if [ -d "$GENOUT_PREBUILT" ] && ! [ -d "$GENOUT" ]; then
+    echo LOADING prebuilt binaries from $GENOUT_PREBUILT
+    cp -a $GENOUT_PREBUILT $GENOUT
+fi
