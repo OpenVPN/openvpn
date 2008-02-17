@@ -2858,13 +2858,13 @@ buffers for broadcast datagrams (default=256).
 .\"*********************************************************
 .TP
 .B --tcp-queue-limit n
-Maximum number of queued TCP output packets (default=64).
+Maximum number of output packets queued before TCP (default=64).
 
 When OpenVPN is tunneling data from a TUN/TAP device to a
 remote client over a TCP connection, it is possible that the TUN/TAP device
 might produce data at a faster rate than the TCP connection
-can support.  When the number of queued TCP output packets reaches
-this limit for a given client connection,
+can support.  When the number of output packets queued before sending to
+the TCP socket reaches this limit for a given client connection,
 OpenVPN will start to drop outgoing packets directed
 at this client.
 .\"*********************************************************
