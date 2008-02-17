@@ -344,6 +344,8 @@ tmp_rsa_cb (SSL * s, int is_export, int keylength)
   return (rsa_tmp);
 }
 
+#ifdef USE_OLD_EXTRACT_X509_FIELD
+
 /*
  * Extract a field from an X509 subject name.
  *
@@ -377,6 +379,8 @@ extract_x509_field (const char *x509, const char *field_name, char *out, int siz
 	}
     }
 }
+
+#else
 
 /*
  * Extract a field from an X509 subject name.
@@ -422,6 +426,8 @@ extract_x509_field_ssl (X509_NAME *x509, const char *field_name, char *out, int 
   strncpynt(out, (char *)buf, size);
   OPENSSL_free(buf);
 }
+
+#endif
 
 static void
 setenv_untrusted (struct tls_session *session)
@@ -583,8 +589,12 @@ verify_callback (int preverify_ok, X509_STORE_CTX * ctx)
   string_mod (subject, X509_NAME_CHAR_CLASS, 0, '_');
 
   /* extract the common name */
+#ifdef USE_OLD_EXTRACT_X509_FIELD
+  extract_x509_field (subject, "CN", common_name, TLS_CN_LEN);
+#else
   extract_x509_field_ssl (X509_get_subject_name (ctx->current_cert), "CN", common_name, TLS_CN_LEN);
-  //extract_x509_field (subject, "CN", common_name, TLS_CN_LEN);
+#endif
+
   string_mod (common_name, COMMON_NAME_CHAR_CLASS, 0, '_');
 
 #if 0 /* print some debugging info */
