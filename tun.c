@@ -1220,26 +1220,44 @@ close_tun (struct tuntap *tt)
 {
   if (tt)
     {
-#ifdef CONFIG_FEATURE_IPROUTE
 	if (tt->type != DEV_TYPE_NULL && tt->did_ifconfig)
 	  {
 	    char command_line[256];
 	    struct gc_arena gc = gc_new ();
 
+#ifdef CONFIG_FEATURE_IPROUTE
+	    if (is_tun_p2p (tt))
+	      {
+		openvpn_snprintf (command_line, sizeof (command_line),
+			"%s addr del dev %s local %s peer %s",
+			iproute_path,
+			tt->actual_name,
+			print_in_addr_t (tt->local, 0, &gc),
+			print_in_addr_t (tt->remote_netmask, 0, &gc)
+			);
+	      }
+	    else
+	      {
+		openvpn_snprintf (command_line, sizeof (command_line),
+			"%s addr del dev %s %s/%d",
+			iproute_path,
+			tt->actual_name,
+			print_in_addr_t (tt->local, 0, &gc),
+			count_netmask_bits(print_in_addr_t (tt->remote_netmask, 0, &gc))
+			);
+	      }
+#else
 	    openvpn_snprintf (command_line, sizeof (command_line),
-			  "%s addr del dev %s local %s peer %s",
-			  iproute_path,
-			  tt->actual_name,
-			  print_in_addr_t (tt->local, 0, &gc),
-			  print_in_addr_t (tt->remote_netmask, 0, &gc)
-			  );
+			IFCONFIG_PATH "%s addr 0.0.0.0",
+			tt->actual_name
+			);
+#endif
 
 	    msg (M_INFO, "%s", command_line);
 	    system_check (command_line, NULL, S_FATAL, "Linux ip addr del failed");
 
 	    gc_free (&gc);
 	  }
-#endif
       close_tun_generic (tt);
       free (tt);
     }
