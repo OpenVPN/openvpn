@@ -73,5 +73,5 @@ fi
 title openvpn-build &>/dev/null
 
 else
-    echo Not building tapinstall -- DDK version $DDKVER NOT INSTALLED
+    echo Not building tapinstall -- DDK version $DDKVER NOT BUILT
 fi

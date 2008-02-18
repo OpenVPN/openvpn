@@ -26,5 +26,5 @@ if [ -d "$SVC_TEMPLATE" ] ; then
     cp service-win32/${PRODUCT_UNIX_NAME}serv.exe $GENOUT/bin
     strip $GENOUT/bin/${PRODUCT_UNIX_NAME}serv.exe
 else
-    echo OpenVPN service template directory $SVC_TEMPLATE NOT FOUND
+    echo OpenVPN service not built -- template directory $SVC_TEMPLATE NOT FOUND
 fi

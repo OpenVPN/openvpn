@@ -51,13 +51,16 @@
 #   Setting up a complete tool chain to build OpenVPN and all
 #   dependencies on Windows can be an onerous task, so the capability
 #   is provided to reference a directory of pre-built components during
-#   the build process.  This would allow you, for example, to build an
-#   OpenVPN installer with custom edits to install-win32/settings.in,
-#   but then avoid needing to build all other components (such as OpenSSL,
-#   LZO, Pkcs11-helper, TAP driver windows service, etc.).  The procedure
-#   is as follows. First Download and expand the pre-built binaries from:
+#   the build process.  When dependencies are missing to build a given
+#   component (such as the TAP driver), the build script will auto-detect
+#   this and use the pre-built version instead.  This would allow you, for
+#   example, to build an OpenVPN installer with custom edits to
+#   install-win32/settings.in, but then avoid needing to build all other
+#   components (such as OpenSSL, LZO, Pkcs11-helper, TAP driver windows
+#   service, etc.).  The procedure is as follows. First Download and expand
+#   the pre-built binaries from:
 #
-#     http://openvpn.net/beta/windows-devel/ (choose the most recent .tbz file)
+#     https://secure.openvpn.net/devel/ (choose the most recent -prebuilt .tbz file)
 #
 #   After expanding the .tbz file, cd to the top level directory and
 #   expand an OpenVPN source distribution taken from either the subversion

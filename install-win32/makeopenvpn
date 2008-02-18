@@ -3,7 +3,7 @@
 # get version.nsi definitions
 . autodefs/defs.sh
 
-if [ -d "$OPENSSL_DIR" ] && [ -d "$LZO_DIR" ] && [ -d "$PKCS11_HELPER_DIR" ]; then
+if gcc --version &>/dev/null && [ -d "$OPENSSL_DIR" ] && [ -d "$LZO_DIR" ] && [ -d "$PKCS11_HELPER_DIR" ]; then
     # build OpenVPN binary
     [ "$CLEAN" = "yes" ] && make -f makefile.w32 clean
     make -f makefile.w32 -j $MAKE_JOBS
@@ -13,5 +13,5 @@ if [ -d "$OPENSSL_DIR" ] && [ -d "$LZO_DIR" ] && [ -d "$PKCS11_HELPER_DIR" ]; th
     cp $PRODUCT_UNIX_NAME.exe $GENOUT/bin
     strip $GENOUT/bin/$PRODUCT_UNIX_NAME.exe
 else
-    echo DID NOT BUILD openvpn.exe because one or more of OPENSSL_DIR, LZO_DIR, or PKCS11_HELPER_DIR directories were missing
+    echo DID NOT BUILD openvpn.exe because one or more of gcc, OPENSSL_DIR, LZO_DIR, or PKCS11_HELPER_DIR directories were missing
 fi
