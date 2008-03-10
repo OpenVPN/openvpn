@@ -11,7 +11,9 @@ if gcc --version &>/dev/null && [ -d "$OPENSSL_DIR" ] && [ -d "$LZO_DIR" ] && [ 
     # copy OpenVPN executable to GENOUT/bin
     mkdir -p $GENOUT/bin &>/dev/null
     cp $PRODUCT_UNIX_NAME.exe $GENOUT/bin
-    strip $GENOUT/bin/$PRODUCT_UNIX_NAME.exe
+    if [ -z "$NO_STRIP" ]; then
+	strip $GENOUT/bin/$PRODUCT_UNIX_NAME.exe
+    fi
 else
     echo DID NOT BUILD openvpn.exe because one or more of gcc, OPENSSL_DIR, LZO_DIR, or PKCS11_HELPER_DIR directories were missing
 fi

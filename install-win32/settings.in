@@ -17,6 +17,10 @@
 !define OPENVPN_GUI_DIR "../openvpn-gui"
 !define OPENVPN_GUI     "openvpn-gui-1.0.3.exe"
 
+# Include the OpenVPN XML-based GUI exe in the installer.
+# May be undefined.
+!define OPENVPN_XGUI_DIR "../ovpnxml"
+
 # Prebuilt libraries.  DMALLOC is optional.
 !define OPENSSL_DIR	  "../openssl-0.9.7m"
 !define LZO_DIR		  "../lzo-2.02"
@@ -74,6 +78,9 @@
 # set to "yes" or "no"
 !define CLEAN "yes"
 
+# Don't strip executables and DLLs
+;!define NO_STRIP
+
 ; DEBUGGING -- set to something like "-DBG2"
 !define OUTFILE_LABEL ""
 
@@ -82,6 +89,6 @@
 
 # include a sample configuration file and key
 ;!define SAMPCONF_DIR   "test-key"
-;!define SAMPCONF_CONF  "test.ovpn"
-;!define SAMPCONF_P12   "test.p12"
-;!define SAMPCONF_TA    "ta.key"
+!define SAMPCONF_CONF  "test.ovpn"
+!define SAMPCONF_P12   "test.p12"
+!define SAMPCONF_TA    "ta.key"

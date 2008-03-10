@@ -9,7 +9,9 @@ if [ -d "$OPENSSL_DIR" ] ; then
     mkdir -p $GENOUT/bin &>/dev/null    
     for f in libeay32.dll libssl32.dll openssl.exe ; do
 	cp $OPENSSL_DIR/$f $GENOUT/lib
-	strip $GENOUT/lib/$f
+        if [ -z "$NO_STRIP" ]; then
+	    strip $GENOUT/lib/$f
+	fi
     done
     mv $GENOUT/lib/openssl.exe $GENOUT/bin
 else

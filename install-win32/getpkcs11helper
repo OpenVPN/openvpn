@@ -8,7 +8,9 @@ if [ -d "$PKCS11_HELPER_DIR" ] ; then
     mkdir -p $GENOUT/lib &>/dev/null    
     for f in libpkcs11-helper-1.dll ; do
 	cp $PKCS11_HELPER_DIR/bin/$f $GENOUT/lib
-	strip $GENOUT/lib/$f
+        if [ -z "$NO_STRIP" ]; then
+	    strip $GENOUT/lib/$f
+	fi
     done
 else
     echo PKCS11-helper DIR $PKCS11_HELPER_DIR NOT FOUND
