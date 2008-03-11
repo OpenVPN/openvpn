@@ -47,9 +47,6 @@
 ; visible=0x81  hidden=0x89
 !define PRODUCT_TAP_CHARACTERISTICS     0x81
 
-# hide tap warning
-;!define PRODUCT_TAP_HIDE_WARN
-
 # Build debugging version of TAP driver
 ;!define PRODUCT_TAP_DEBUG
 

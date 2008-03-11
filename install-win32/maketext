@@ -9,7 +9,7 @@ mkdir -p $GENOUT/text &>/dev/null
 cat COPYING COPYRIGHT.GPL >$GENOUT/text/license.txt
 
 # copy install file
-cp INSTALL-win32.txt $GENOUT/text/install-win32.txt
+cp INSTALL-win32.txt $GENOUT/text/INSTALL-win32.txt
 
 # copy sample configuration files and docs
 s=$GENOUT/samples

@@ -64,7 +64,8 @@
 !define XGUI_XMLSERV  ovpn-xmlserv.exe
 !define XGUI_HTDOCS   htdocs
 
-!define XGUI_AJAX_GUI_NAME "${PRODUCT_NAME} Ajax GUI"
+!define XGUI_AJAX_GUI_NAME       "${PRODUCT_NAME} Ajax GUI"
+!define XGUI_TRANSITION_GUI_NAME "${PRODUCT_NAME} Transitional GUI"
 
 ;--------------------------------
 ;Configuration
@@ -94,9 +95,13 @@
   !define MUI_COMPONENTSPAGE_TEXT_TOP "Select the components to install/upgrade.  Stop any ${PRODUCT_NAME} processes or the ${PRODUCT_NAME} service if it is running.  All DLLs are installed locally."
 
   !define MUI_COMPONENTSPAGE_SMALLDESC
-  !define MUI_FINISHPAGE_SHOWREADME "$INSTDIR\INSTALL-win32.txt"
+  !ifdef USE_XGUI
+    !define MUI_FINISHPAGE_SHOWREADME "http://openvpn.net/"
+    !define MUI_FINISHPAGE_SHOWREADME_NOTCHECKED
+  !else
+    !define MUI_FINISHPAGE_SHOWREADME "$INSTDIR\INSTALL-win32.txt"
+  !endif
   !define MUI_FINISHPAGE_NOAUTOCLOSE
-#  !define MUI_FINISHPAGE_SHOWREADME_NOTCHECKED
   !define MUI_ABORTWARNING
   !define MUI_ICON "${HOME}\images\${PRODUCT_ICON}"
   !define MUI_UNICON "${HOME}\images\${PRODUCT_ICON}"
@@ -488,7 +493,9 @@ Section -post
   ; Store README, license, icon
   SetOverwrite on
   SetOutPath $INSTDIR
-  File "${GEN}\text\INSTALL-win32.txt"
+  !ifndef USE_XGUI
+    File "${GEN}\text\INSTALL-win32.txt"
+  !endif
   File "${GEN}\text\license.txt"
   File "${HOME}\images\${PRODUCT_ICON}"
 
@@ -629,8 +636,8 @@ Section -post
  tryaddxgui:
   !ifdef USE_XGUI
     IfFileExists "$INSTDIR\bin\${XGUI_EXE}" "" tryaddtray
-      CreateShortCut "$SMPROGRAMS\${PRODUCT_NAME}\${PRODUCT_NAME} GUI.lnk" "$INSTDIR\bin\${XGUI_EXE}" ""
-      CreateShortcut "$DESKTOP\${PRODUCT_NAME} GUI.lnk" "$INSTDIR\bin\${XGUI_EXE}"
+      CreateShortCut "$SMPROGRAMS\${PRODUCT_NAME}\${XGUI_TRANSITION_GUI_NAME}.lnk" "$INSTDIR\bin\${XGUI_EXE}" ""
+#      CreateShortcut "$DESKTOP\${XGUI_TRANSITION_GUI_NAME}.lnk" "$INSTDIR\bin\${XGUI_EXE}"
  tryaddtray:
     IfFileExists "$INSTDIR\bin\${XGUI_TRAY}" "" tryaddtap
       CreateShortCut "$SMPROGRAMS\${PRODUCT_NAME}\${XGUI_AJAX_GUI_NAME}.lnk" "$INSTDIR\bin\${XGUI_EXE}" ""
@@ -719,18 +726,18 @@ FunctionEnd
 
 Section "Uninstall"
 
-  ; Stop OpenVPN if currently running
-  DetailPrint "Service REMOVE"
-  nsExec::ExecToLog '"$INSTDIR\bin\${PRODUCT_UNIX_NAME}serv.exe" -remove'
-  Pop $R0 # return value/error/timeout
-
 !ifdef USE_XGUI
   DetailPrint "XML Service REMOVE"
   nsExec::ExecToLog '"$INSTDIR\bin\${XGUI_XMLSERV}" -remove'
   Pop $R0 # return value/error/timeout
 !endif
 
-  Sleep 2000
+  ; Stop OpenVPN if currently running
+  DetailPrint "Service REMOVE"
+  nsExec::ExecToLog '"$INSTDIR\bin\${PRODUCT_UNIX_NAME}serv.exe" -remove'
+  Pop $R0 # return value/error/timeout
+
+  Sleep 3000
 
   DetailPrint "TAP REMOVE"
   nsExec::ExecToLog '"$INSTDIR\bin\tapinstall.exe" remove ${TAP}'
@@ -766,7 +773,7 @@ Section "Uninstall"
     Delete "$INSTDIR\bin\${XGUI_XMLSERV}"
     RMDir /r "$INSTDIR\${XGUI_HTDOCS}"
     Delete "$DESKTOP\${XGUI_AJAX_GUI_NAME}.lnk"
-    Delete "$DESKTOP\${PRODUCT_NAME} GUI.lnk"
+    Delete "$DESKTOP\${XGUI_TRANSITION_GUI_NAME}.lnk"
   !endif
 
   Delete "$INSTDIR\bin\${PRODUCT_UNIX_NAME}.exe"
