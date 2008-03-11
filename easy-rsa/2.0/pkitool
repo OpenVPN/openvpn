@@ -118,6 +118,11 @@ usage()
     echo "  ./$PROGNAME client-new"
 }
 
+# Set tool defaults
+[ -n "$OPENSSL" ] || export OPENSSL="openssl"
+[ -n "$PKCS11TOOL" ] || export PKCS11TOOL="pkcs11-tool"
+[ -n "$GREP" ] || export GREP="grep"
+
 # Set defaults
 DO_REQ="1"
 REQ_EXT=""
