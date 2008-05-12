@@ -26,12 +26,6 @@
  * Support routines for adding/deleting network routes.
  */
 
-#ifdef WIN32
-#include "config-win32.h"
-#else
-#include "config.h"
-#endif
-
 #include "syshead.h"
 
 #include "common.h"
@@ -871,6 +865,23 @@ add_route (struct route *r, const struct tuntap *tt, unsigned int flags, const s
   msg (D_ROUTE, "%s", BSTR (&buf));
   status = system_check (BSTR (&buf), es, 0, "ERROR: FreeBSD route add command failed");
 
+#elif defined(TARGET_DRAGONFLY)
+
+  buf_printf (&buf, ROUTE_PATH " add");
+
+#if 0
+  if (r->metric_defined)
+    buf_printf (&buf, " -rtt %d", r->metric);
+#endif
+
+  buf_printf (&buf, " -net %s %s %s",
+	      network,
+	      gateway,
+	      netmask);
+
+  msg (D_ROUTE, "%s", BSTR (&buf));
+  status = system_check (BSTR (&buf), es, 0, "ERROR: DragonFly route add command failed");
+
 #elif defined(TARGET_DARWIN)
 
   buf_printf (&buf, ROUTE_PATH " add");
@@ -1006,6 +1017,16 @@ delete_route (const struct route *r, const struct tuntap *tt, unsigned int flags
 
   msg (D_ROUTE, "%s", BSTR (&buf));
   system_check (BSTR (&buf), es, 0, "ERROR: FreeBSD route delete command failed");
+
+#elif defined(TARGET_DRAGONFLY)
+
+  buf_printf (&buf, ROUTE_PATH " delete -net %s %s %s",
+	      network,
+	      gateway,
+	      netmask);
+
+  msg (D_ROUTE, "%s", BSTR (&buf));
+  system_check (BSTR (&buf), es, 0, "ERROR: DragonFly route delete command failed");
 
 #elif defined(TARGET_DARWIN)
 
@@ -1462,7 +1483,7 @@ get_default_gateway (in_addr_t *gateway)
   return ret;
 }
 
-#elif defined(TARGET_FREEBSD)
+#elif defined(TARGET_FREEBSD)||defined(TARGET_DRAGONFLY)
 
 #include <sys/types.h>
 #include <sys/socket.h>

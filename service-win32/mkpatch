@@ -1,4 +1,0 @@
-# build service.[ch] patch against original
-# SDK sample
-diff -ub service.c.orig service.c | u2d >service.patch
-diff -ub service.h.orig service.h | u2d >>service.patch

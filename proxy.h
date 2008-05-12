@@ -59,6 +59,7 @@ void show_win_proxy_settings (const int msglevel);
 #define HTTP_AUTH_BASIC 1
 #define HTTP_AUTH_NTLM  2
 #define HTTP_AUTH_N     3
+#define HTTP_AUTH_NTLM2 4
 
 struct http_proxy_options {
   const char *server;

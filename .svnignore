@@ -3,6 +3,7 @@
 *.patch
 *.diff
 *.tmp
+*.html
 tmp*
 log*
 files

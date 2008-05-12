@@ -30,15 +30,9 @@
  * over the same TCP/UDP port.
  */
 
-#ifdef WIN32
-#include "config-win32.h"
-#else
-#include "config.h"
-#endif
+#include "syshead.h"
 
 #if defined(USE_CRYPTO) && defined(USE_SSL)
-
-#include "syshead.h"
 
 #include "ssl.h"
 #include "error.h"
@@ -1210,7 +1204,7 @@ init_ssl (const struct options *options)
       if (options->pkcs11_providers[0])
         {
          /* Load Certificate and Private Key */
-	 if (!SSL_CTX_use_pkcs11 (ctx, options->pkcs11_id))
+	 if (!SSL_CTX_use_pkcs11 (ctx, options->pkcs11_id_management, options->pkcs11_id))
 	   {
 	     msg (M_WARN, "Cannot load certificate \"%s\" using PKCS#11 interface", options->pkcs11_id);
 	     goto err;

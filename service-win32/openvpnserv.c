@@ -33,6 +33,11 @@
  * This code is designed to be built with the mingw compiler.
  */
 
+#ifdef _MSC_VER
+#include "config-win32.h"
+#else
+#include "config.h"
+#endif
 #include <windows.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -65,13 +70,13 @@ struct security_attributes
  * Control Manager which will cause an asynchronous call
  * of ServiceStop below.
  */
-#define EXIT_EVENT_NAME PRODUCT_UNIX_NAME "_exit_1"
+#define EXIT_EVENT_NAME PACKAGE "_exit_1"
 
 /*
  * Which registry key in HKLM should
  * we get config info from?
  */
-#define REG_KEY "SOFTWARE\\" PRODUCT_NAME
+#define REG_KEY "SOFTWARE\\" PACKAGE_NAME
 
 static HANDLE exit_event = NULL;
 
@@ -398,7 +403,7 @@ VOID ServiceStart (DWORD dwArgc, LPTSTR *lpszArgv)
 	  mysnprintf (log_path, "%s\\%s", log_dir, log_file);
 
 	  /* construct command line */
-	  mysnprintf (command_line, PRODUCT_UNIX_NAME " --service %s 1 --config \"%s\"",
+	  mysnprintf (command_line, PACKAGE " --service %s 1 --config \"%s\"",
 		      EXIT_EVENT_NAME,
 		      find_obj.cFileName);
 
@@ -406,7 +411,7 @@ VOID ServiceStart (DWORD dwArgc, LPTSTR *lpszArgv)
 	     be inherited. */
 	  if (!init_security_attributes_allow_all (&sa))
 	    {
-	      MSG (M_SYSERR, "InitializeSecurityDescriptor start_" PRODUCT_UNIX_NAME " failed");
+	      MSG (M_SYSERR, "InitializeSecurityDescriptor start_" PACKAGE " failed");
 	      goto finish;
 	    }
 

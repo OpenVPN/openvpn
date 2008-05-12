@@ -17,7 +17,11 @@
  *  59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#include <WinInet.h>
+#include "syshead.h"
+
+#ifdef WIN32
+
+#include <wininet.h>
 #include <malloc.h>
 
 LPCTSTR getIeHttpProxyError=NULL;
@@ -135,3 +139,7 @@ LPCTSTR getIeHttpProxy()
     return(NULL);
   }
 }
+
+#else
+static void dummy (void) {}
+#endif				/* WIN32 */

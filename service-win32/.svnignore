@@ -1,0 +1,8 @@
+*.exe
+*.obj
+*.o
+.deps
+Makefile.in
+Makefile
+service.h
+service.c

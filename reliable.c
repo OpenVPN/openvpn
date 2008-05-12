@@ -27,15 +27,9 @@
  * so that SSL/TLS can be run over UDP.
  */
 
-#ifdef WIN32
-#include "config-win32.h"
-#else
-#include "config.h"
-#endif
+#include "syshead.h"
 
 #if defined(USE_CRYPTO) && defined(USE_SSL)
-
-#include "syshead.h"
 
 #include "buffer.h"
 #include "error.h"

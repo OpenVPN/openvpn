@@ -62,8 +62,9 @@ typedef unsigned long in_addr_t;
  *
  * The TAP-Win32 version number is defined in tap-win32/SOURCES
  */
-#define TAP_WIN32_MIN_MAJOR 9
-#define TAP_WIN32_MIN_MINOR 1
+#define TAP_ID @TAP_ID@
+#define TAP_WIN32_MIN_MAJOR @TAP_WIN32_MIN_MAJOR@
+#define TAP_WIN32_MIN_MINOR @TAP_WIN32_MIN_MINOR@
 
 /* Enable client/server capability */
 #define ENABLE_CLIENT_SERVER 1
@@ -215,19 +216,19 @@ typedef unsigned long in_addr_t;
 #define HAVE_GETPASS 1
 
 /* Name of package */
-#define PACKAGE PRODUCT_UNIX_NAME
+#define PACKAGE @PACKAGE@
 
 /* Define to the address where bug reports for this package should be sent. */
 //#define PACKAGE_BUGREPORT "openvpn-users@lists.sourceforge.net"
 
 /* Define to the full name of this package. */
-#define PACKAGE_NAME PRODUCT_NAME
+#define PACKAGE_NAME @PACKAGE_NAME@
 
 /* Define to the one symbol short name of this package. */
-#define PACKAGE_TARNAME PACKAGE
+#define PACKAGE_TARNAME @PACKAGE_TARNAME@
 
 /* Define to the version of this package. */
-#define PACKAGE_VERSION PRODUCT_VERSION
+#define PACKAGE_VERSION @PACKAGE_VERSION@
 
 /* Define to the full name and version of this package. */
 #ifdef DEBUG_LABEL
@@ -318,4 +319,8 @@ typedef unsigned long in_addr_t;
 #define S_IWUSR 0
 typedef int intptr_t;
 #undef S_NORMAL
+/* Visual Studio 2005 supports vararg macros */
+#if _MSC_VER >= 1400
+#define HAVE_CPP_VARARG_MACRO_ISO 1
+#endif
 #endif

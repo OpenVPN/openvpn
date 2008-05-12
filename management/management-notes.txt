@@ -382,7 +382,7 @@ Command examples:
                          Query for new input and retry.
 
 COMMAND -- needok  (OpenVPN 2.1 or higher)
---------------------------------------
+------------------------------------------
 
 Confirm a ">NEED-OK" real-time notification, normally used by
 OpenVPN to block while waiting for a specific user action.
@@ -402,6 +402,47 @@ Example:
      needok token-insertion-request ok
   or
      needok token-insertion-request cancel
+
+COMMAND -- needstr  (OpenVPN 2.1 or higher)
+-------------------------------------------
+
+Confirm a ">NEED-STR" real-time notification, normally used by
+OpenVPN to block while waiting for a specific user input.
+
+Example:
+
+  OpenVPN needs the user to specify some input, so it sends a
+  real-time notification:
+
+    >NEED-STR:Need 'name' input MSG:Please specify your name
+
+  The management client, if it is a GUI, can flash a dialog
+  box containing the text after the "MSG:" marker to the user.
+  When the user acknowledges the dialog box,
+  the management client can issue this command:
+
+     needstr name "John"
+
+COMMAND -- pkcs11-id-count  (OpenVPN 2.1 or higher)
+---------------------------------------------------
+
+Retrieve available number of certificates.
+
+Example:
+
+     pkcs11-id-count
+     >PKCS11ID-COUNT:5
+
+COMMAND -- pkcs11-id-get  (OpenVPN 2.1 or higher)
+-------------------------------------------------
+
+Retrieve certificate by index, the ID string should be provided
+as PKCS#11 identity, the blob is BASE64 encoded certificate.
+
+Example:
+
+     pkcs11-id-get 1
+     PKCS11ID-ENTRY:'1', ID:'<snip>', BLOB:'<snip>'
 
 OUTPUT FORMAT
 -------------
@@ -445,6 +486,10 @@ NEED-OK  -- OpenVPN needs the end user to do something, such as
             insert a cryptographic token.  The "needok" command can
             be used to tell OpenVPN to continue.
 
+NEED-STR -- OpenVPN needs information from end, such as
+            a certificate to use.  The "needstr" command can
+            be used to tell OpenVPN to continue.
+
 PASSWORD -- Used to tell the management client that OpenVPN
             needs a password, also to indicate password
             verification failure.
@@ -460,11 +505,11 @@ as is used by the OpenVPN config file parser.
 
 Whitespace is a parameter separator.
 
-Double  quotation characters ("") can be used to enclose
-parameters containing whitespace.
+Double quotation or single quotation characters ("", '') can be used
+to enclose parameters containing whitespace.
 
 Backslash-based shell escaping is performed, using the following
-mappings:
+mappings, when not in single quotations:
 
 \\       Maps to a single backslash character (\).
 \"       Pass a literal doublequote character ("), don't

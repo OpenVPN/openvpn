@@ -30,6 +30,39 @@ AC_INIT([OpenVPN], [PRODUCT_VERSION], [openvpn-users@lists.sourceforge.net], [op
 AM_CONFIG_HEADER(config.h)
 AC_CONFIG_SRCDIR(syshead.h)
 
+dnl Guess host type.
+AC_CANONICAL_HOST
+AC_CANONICAL_SYSTEM
+AM_INIT_AUTOMAKE(openvpn, [$PACKAGE_VERSION])
+
+AC_ARG_WITH(cygwin-native,
+	[  --with-cygwin-native              Compile native win32],
+	[CYGWIN_NATIVE="${withval}"],
+	[CYGWIN_NATIVE="no"]
+)
+
+WIN32="no"
+CYGWIN="no"
+case "${host}" in
+	*-mingw32*)
+		WIN32="yes"
+		cross_compiling="yes"
+	;;
+	*-cygwin*)
+		AC_MSG_CHECKING([cygwin mode to use])
+		if test "${CYGWIN_NATIVE}" = "yes"; then
+			AC_MSG_RESULT([Using native win32])
+			CFLAGS="${CFLAGS} -mno-cygwin"
+			CYGWIN="yes"
+			WIN32="yes"
+		else
+			AC_MSG_RESULT([Using cygwin])
+		fi
+	;;
+	*)
+	;;
+esac
+
 AC_ARG_ENABLE(lzo,
    [  --disable-lzo           Disable LZO compression support],
    [LZO="$enableval"],
@@ -183,6 +216,17 @@ AC_ARG_WITH(lzo-lib,
    [LDFLAGS="$LDFLAGS -L$withval"] 
 )
 
+AC_ARG_WITH(pkcs11-helper-headers,
+   [  --with-pkcs11-helper-headers=DIR pkcs11-helper Include files location],
+   [PKCS11_HELPER_HDR_DIR="$withval"]
+   [CPPFLAGS="$CPPFLAGS -I$withval"] 
+)
+
+AC_ARG_WITH(pkcs11-helper-lib,
+   [  --with-pkcs11-helper-lib=DIR     pkcs11-helper Library location],
+   [LDFLAGS="$LDFLAGS -L$withval"] 
+)
+
 AC_ARG_WITH(ifconfig-path,
    [  --with-ifconfig-path=PATH   Path to ifconfig tool],
    [IFCONFIG="$withval"],
@@ -209,11 +253,6 @@ AC_ARG_WITH(mem-check,
    [  --with-mem-check=TYPE  Build with debug memory checking, TYPE = dmalloc or valgrind],
    [MEMCHECK="$withval"]
 )
-
-dnl Guess host type.
-AC_CANONICAL_HOST
-AC_CANONICAL_SYSTEM
-AM_INIT_AUTOMAKE(openvpn, [$PACKAGE_VERSION])
 
 dnl fix search path, to allow compilers to find syshead.h
 CPPFLAGS="$CPPFLAGS -I${srcdir}"
@@ -250,10 +289,16 @@ case "$target" in
 	CPPFLAGS="$CPPFLAGS -no-cpp-precomp"
 	;;
 *mingw*)
-	AC_MSG_RESULT([WARNING: configure support for mingw is incomplete])
-	AC_MSG_RESULT([WARNING: use makefile.w32 instead])
+	AC_DEFINE(TARGET_WIN32, 1, [Are we running WIN32?])
 	OPENVPN_ADD_LIBS(-lgdi32)
-	OPENVPN_ADD_LIBS(-lwsock32)
+	OPENVPN_ADD_LIBS(-lws2_32)
+	OPENVPN_ADD_LIBS(-lwininet)
+	OPENVPN_ADD_LIBS(-lcrypt32)
+	OPENVPN_ADD_LIBS(-liphlpapi)
+	OPENVPN_ADD_LIBS(-lwinmm)
+	;;
+*dragonfly*)
+	AC_DEFINE(TARGET_DRAGONFLY, 1, [Are we running on DragonFlyBSD?])
 	;;
 	
 esac
@@ -262,6 +307,12 @@ dnl Checks for programs.
 AC_PROG_CC
 AC_PROG_INSTALL
 AC_PROG_GCC_TRADITIONAL
+
+if test "${WIN32}" = "yes"; then
+	AC_ARG_VAR([MAN2HTML], [man2html utility])
+	AC_CHECK_PROGS([MAN2HTML], [man2html])
+	test -z "${MAN2HTML}" && AC_MSG_ERROR([man2html is required for win32])
+fi
 
 dnl Checks for header files.
 AC_HEADER_STDC
@@ -274,29 +325,36 @@ AC_TYPE_OFF_T
 AC_TYPE_PID_T
 AC_TYPE_SIZE_T
 AC_TYPE_UID_T
+TYPE_SOCKLEN_T
 AC_HEADER_TIME
 AX_CPP_VARARG_MACRO_ISO
 AX_CPP_VARARG_MACRO_GCC
 AX_EMPTY_ARRAY
 
 dnl Check for more header files.
-AC_HEADER_SYS_WAIT
-AC_CHECK_HEADERS(sys/time.h sys/socket.h sys/ioctl.h sys/stat.h dnl
+AC_CHECK_HEADERS(fcntl.h stdlib.h dnl
+		 stdarg.h stdio.h string.h dnl
+		 strings.h ctype.h errno.h dnl
+)
+
+if test "${WIN32}" != "yes"; then
+   AC_HEADER_SYS_WAIT
+   AC_CHECK_HEADERS(sys/time.h sys/socket.h sys/ioctl.h sys/stat.h dnl
 		 sys/mman.h fcntl.h sys/file.h stdlib.h stdint.h dnl
 		 stdarg.h unistd.h signal.h stdio.h string.h dnl
 		 strings.h ctype.h errno.h syslog.h pwd.h grp.h dnl
-		 net/if_tun.h stropts.h sys/sockio.h dnl
+		 net/if_tun.h net/tun/if_tun.h stropts.h sys/sockio.h dnl
 		 netinet/in.h netinet/in_systm.h dnl
 		 netinet/tcp.h arpa/inet.h dnl
 		 netdb.h sys/uio.h linux/if_tun.h linux/sockios.h dnl
 		 linux/types.h sys/poll.h sys/epoll.h err.h dnl
-)
-AC_CHECK_HEADERS(net/if.h,,,
+   )
+   AC_CHECK_HEADERS(net/if.h,,,
 		 [#ifdef HAVE_SYS_SOCKET_H 
 		  # include <sys/socket.h>
 		  #endif
 		 ])
-AC_CHECK_HEADERS(netinet/ip.h,,,
+   AC_CHECK_HEADERS(netinet/ip.h,,,
 		 [#ifdef HAVE_SYS_TYPES_H
 		  # include <sys/types.h>
 		  #endif
@@ -307,7 +365,7 @@ AC_CHECK_HEADERS(netinet/ip.h,,,
 		  # include <netinet/in_systm.h>
 		  #endif
 		 ])
-AC_CHECK_HEADERS(netinet/if_ether.h,,,
+   AC_CHECK_HEADERS(netinet/if_ether.h,,,
 		 [#ifdef HAVE_SYS_TYPES_H
 		  # include <sys/types.h>
 		  #endif
@@ -318,16 +376,18 @@ AC_CHECK_HEADERS(netinet/if_ether.h,,,
 		  # include <netinet/in.h>
 		  #endif
 		 ])
-AC_CHECK_HEADERS(resolv.h,,,
+   AC_CHECK_HEADERS(resolv.h,,,
 		 [#ifdef HAVE_NETINET_IN_H 
 		  # include <netinet/in.h>
 		  #endif
 		 ])
-AC_CHECK_HEADERS(linux/errqueue.h,,,
+   AC_CHECK_HEADERS(linux/errqueue.h,,,
 	[#ifdef HAVE_LINUX_TYPES_H
 	 # include <linux/types.h>
 	 #endif
 	])
+fi
+
 AC_CACHE_SAVE
 
 dnl check that in_addr_t is defined
@@ -398,35 +458,59 @@ AC_CHECK_SIZEOF(unsigned long)
 
 AC_CACHE_SAVE
 
-dnl check for other types
-TYPE_SOCKLEN_T
-AC_TYPE_SIGNAL
-
-dnl Check for libsocket
-AC_SEARCH_LIBS(socket, socket)
-
-dnl Check for libnsl
-AC_SEARCH_LIBS(inet_ntoa, nsl)
-
-dnl Check for libresolv
-AC_SEARCH_LIBS(gethostbyname, resolv nsl)
-
-dnl optional library functions
-AC_FUNC_FORK
 AC_CHECK_FUNCS(daemon chroot getpwnam setuid nice system getpid dup dup2 dnl
 	       getpass strerror syslog openlog mlockall getgrnam setgid dnl
 	       setgroups stat flock readv writev setsockopt getsockopt dnl
-	       setsid chdir gettimeofday putenv getpeername unlink dnl
-               poll chsize ftruncate sendmsg recvmsg getsockname)
+	       setsid chdir putenv getpeername unlink dnl
+	       poll chsize ftruncate sendmsg recvmsg getsockname)
 AC_CACHE_SAVE
+
+if test "${WIN32}" = "yes"; then
+
+	AC_DEFINE([HAVE_GETTIMEOFDAY], [1], [We fake gettimeofday for win32 at otime.c])
+
+else
+
+	dnl check for other types
+	AC_TYPE_SIGNAL
+
+	dnl Check for libsocket
+	AC_SEARCH_LIBS(socket, socket)
+
+	dnl Check for libnsl
+	AC_SEARCH_LIBS(inet_ntoa, nsl)
+
+	dnl Check for libresolv
+	AC_SEARCH_LIBS(gethostbyname, resolv nsl)
+
+	dnl optional library functions
+	AC_FUNC_FORK
+
+	AC_CHECK_FUNCS(gettimeofday)
+
+	AC_CHECK_FUNCS(socket recv recvfrom send sendto listen dnl
+		       accept connect bind select gethostbyname dnl
+		       inet_ntoa time ctime memset vsnprintf strdup, [],
+		       [AC_MSG_ERROR([Required library function not found])])
+
+fi
 
 dnl Required library functions
 AC_FUNC_MEMCMP
 
-AC_CHECK_FUNCS(socket recv recvfrom send sendto listen dnl
-	       accept connect bind select gethostbyname dnl
-               inet_ntoa time ctime memset vsnprintf strdup, [],
-	       [AC_MSG_ERROR([Required library function not found])])
+dnl
+dnl Check for res_init
+dnl
+AC_TRY_LINK([
+    #include <resolv.h>
+  ], [
+    res_init ();
+  ], [
+    AC_MSG_RESULT([res_init DEFINED])
+    AC_DEFINE([HAVE_RES_INIT], 1, [Indicates if res_init is available])
+  ], [
+    AC_MSG_RESULT([res_init UNDEFINED])
+  ])
 
 dnl
 dnl check libraries
@@ -505,21 +589,23 @@ fi
 dnl
 dnl Check for dlopen -- first try libc then libdl.
 dnl
-if test "$PLUGINS" = "yes"; then
-   AC_CHECKING([for libdl Library and Header files])
-   AC_CHECK_HEADER(dlfcn.h,
-        [AC_CHECK_FUNC(dlopen,
-            [AC_DEFINE(USE_LIBDL, 1, [Use libdl for dynamic library loading])],
-            [AC_CHECK_LIB(dl, dlopen,
-	        [
-                   OPENVPN_ADD_LIBS(-ldl)
-	           AC_DEFINE(USE_LIBDL, 1, [Use libdl for dynamic library loading])
-	        ],
-	        [AC_MSG_RESULT([libdl library not found.])]
-	    )],
-        )],
-        [AC_MSG_RESULT([libdl headers not found.])]
-   )
+if test "${WIN32}" != "yes"; then
+   if test "$PLUGINS" = "yes"; then
+      AC_CHECKING([for libdl Library and Header files])
+      AC_CHECK_HEADER(dlfcn.h,
+           [AC_CHECK_FUNC(dlopen,
+               [AC_DEFINE(USE_LIBDL, 1, [Use libdl for dynamic library loading])],
+               [AC_CHECK_LIB(dl, dlopen,
+	           [
+                      OPENVPN_ADD_LIBS(-ldl)
+	              AC_DEFINE(USE_LIBDL, 1, [Use libdl for dynamic library loading])
+	           ],
+	           [AC_MSG_RESULT([libdl library not found.])]
+	       )],
+           )],
+           [AC_MSG_RESULT([libdl headers not found.])]
+      )
+   fi
 fi
 
 dnl
@@ -572,7 +658,7 @@ if test "$CRYPTO" = "yes"; then
 		   AC_CHECKING([that OpenSSL Library is at least version 0.9.6])
 		   AC_EGREP_CPP(yes,
 		     [
-		       #include "openssl/evp.h"
+		       #include <openssl/evp.h>
 		       #if SSLEAY_VERSION_NUMBER >= 0x00906000L
 		         yes
 		       #endif
@@ -692,7 +778,7 @@ fi
 
 dnl enable strict compiler warnings
 if test "$STRICT" = "yes"; then
-   CFLAGS="$CFLAGS -Wall -Wpointer-arith -Wsign-compare -Wno-unused-parameter -Wno-unused-function"
+   CFLAGS="$CFLAGS -Wall -Wno-unused-parameter -Wno-unused-function"
 fi
 
 dnl enable pedantic compiler warnings
@@ -715,4 +801,37 @@ if test "$PASSWORD_SAVE" = "yes"; then
    AC_DEFINE(ENABLE_PASSWORD_SAVE, 1, [Allow --askpass and --auth-user-pass passwords to be read from a file])
 fi
 
-AC_OUTPUT(Makefile openvpn.spec)
+TAP_ID="PRODUCT_TAP_ID"
+TAP_WIN32_MIN_MAJOR="PRODUCT_TAP_WIN32_MIN_MAJOR"
+TAP_WIN32_MIN_MINOR="PRODUCT_TAP_WIN32_MIN_MINOR"
+AC_DEFINE_UNQUOTED(TAP_ID, "${TAP_ID}", [The TAP-Win32 id defined in tap-win32/SOURCES])
+AC_DEFINE_UNQUOTED(TAP_WIN32_MIN_MAJOR, ${TAP_WIN32_MIN_MAJOR}, [The TAP-Win32 version number is defined in tap-win32/SOURCES])
+AC_DEFINE_UNQUOTED(TAP_WIN32_MIN_MINOR, ${TAP_WIN32_MIN_MINOR}, [The TAP-Win32 version number is defined in tap-win32/SOURCES])
+AC_SUBST(TAP_ID)
+AC_SUBST(TAP_WIN32_MIN_MAJOR)
+AC_SUBST(TAP_WIN32_MIN_MINOR)
+
+win32datadir="\${datadir}/${PACKAGE}-win32"
+AC_SUBST(win32datadir)
+AM_CONDITIONAL(WIN32, test "${WIN32}" = "yes")
+
+# workaround for <autoconf-2.60
+if test -z "${docdir}"; then
+	docdir="\$(datarootdir)/doc/\$(PACKAGE_NAME)"
+	AC_SUBST([docdir])
+fi
+if test -z "${htmldir}"; then
+	htmldir="\$(docdir)"
+	AC_SUBST([htmldir])
+fi
+# end workaround
+
+AC_OUTPUT([
+	Makefile
+	openvpn.spec
+	config-win32.h
+	images/Makefile
+	service-win32/Makefile
+	install-win32/Makefile
+	install-win32/settings
+])

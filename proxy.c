@@ -22,12 +22,6 @@
  *  59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#ifdef WIN32
-#include "config-win32.h"
-#else
-#include "config.h"
-#endif
-
 #include "syshead.h"
 
 #include "common.h"
@@ -294,19 +288,21 @@ new_http_proxy (const struct http_proxy_options *o,
 	p->auth_method = HTTP_AUTH_BASIC;
       else if (!strcmp (o->auth_method_string, "ntlm"))
 	p->auth_method = HTTP_AUTH_NTLM;
+      else if (!strcmp (o->auth_method_string, "ntlm2"))
+	p->auth_method = HTTP_AUTH_NTLM2;
       else
-	msg (M_FATAL, "ERROR: unknown HTTP authentication method: '%s' -- only the 'none', 'basic', or 'ntlm' methods are currently supported",
+	msg (M_FATAL, "ERROR: unknown HTTP authentication method: '%s' -- only the 'none', 'basic', 'ntlm', or 'ntlm2' methods are currently supported",
 	     o->auth_method_string);
     }
 
-  /* only basic and NTLM authentication supported so far */
-  if (p->auth_method == HTTP_AUTH_BASIC || p->auth_method == HTTP_AUTH_NTLM)
+  /* only basic and NTLM/NTLMv2 authentication supported so far */
+  if (p->auth_method == HTTP_AUTH_BASIC || p->auth_method == HTTP_AUTH_NTLM || p->auth_method == HTTP_AUTH_NTLM2)
     {
       get_user_pass_http (p, true);
     }
 
 #if !NTLM
-  if (p->auth_method == HTTP_AUTH_NTLM)
+  if (p->auth_method == HTTP_AUTH_NTLM || p->auth_method == HTTP_AUTH_NTLM2)
     msg (M_FATAL, "Sorry, this version of " PACKAGE_NAME " was built without NTLM Proxy support.");
 #endif
 
@@ -374,6 +370,12 @@ establish_http_proxy_passthru (struct http_proxy_info *p,
 
 #if NTLM
     case HTTP_AUTH_NTLM:
+    case HTTP_AUTH_NTLM2:
+      /* keep-alive connection */
+      openvpn_snprintf (buf, sizeof(buf), "Proxy-Connection: Keep-Alive");
+      if (!send_line_crlf (sd, buf))
+	goto error;
+
       openvpn_snprintf (buf, sizeof(buf), "Proxy-Authorization: NTLM %s",
 			ntlm_phase_1 (p, &gc));
       msg (D_PROXY, "Attempting NTLM Proxy-Authorization phase 1");
@@ -411,7 +413,7 @@ establish_http_proxy_passthru (struct http_proxy_info *p,
       msg (D_PROXY, "Proxy requires authentication");
 
       /* check for NTLM */
-      if (p->auth_method == HTTP_AUTH_NTLM)
+      if (p->auth_method == HTTP_AUTH_NTLM || p->auth_method == HTTP_AUTH_NTLM2)
         {
 #if NTLM
           /* look for the phase 2 response */
@@ -456,6 +458,12 @@ establish_http_proxy_passthru (struct http_proxy_info *p,
           if (!send_line_crlf (sd, buf))
             goto error;
 
+          /* keep-alive connection */
+          openvpn_snprintf (buf, sizeof(buf), "Proxy-Connection: Keep-Alive");
+          if (!send_line_crlf (sd, buf))
+            goto error;
+
+          
           /* send HOST etc, */
           openvpn_sleep (1);
           openvpn_snprintf (buf, sizeof(buf), "Host: %s", host);

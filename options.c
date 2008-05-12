@@ -27,12 +27,6 @@
  *   (Christof Meerwald, http://cmeerw.org)
  */
 
-#ifdef WIN32
-#include "config-win32.h"
-#else
-#include "config.h"
-#endif
-
 #include "syshead.h"
 
 #include "buffer.h"
@@ -516,10 +510,11 @@ static const char usage_message[] =
   "                              4       : Use Decrypt.\n"
   "                              8       : Use Unwrap.\n"
   "--pkcs11-cert-private [0|1] ... : Set if login should be performed before\n"
-  "                              certificate can be accessed. Set for each provider.\n"
-  "--pkcs11-pin-cache seconds  : Number of seconds to cache PIN. The default is -1\n"
-  "                              cache until token is removed.\n"
-  "--pkcs11-id serialized-id   : Identity to use, get using standalone --show-pkcs11-ids\n"
+  "                                  certificate can be accessed. Set for each provider.\n"
+  "--pkcs11-pin-cache seconds      : Number of seconds to cache PIN. The default is -1\n"
+  "                                  cache until token is removed.\n"
+  "--pkcs11-id-management          : Acquire identity from management interface.\n"
+  "--pkcs11-id serialized-id 'id'  : Identity to use, get using standalone --show-pkcs11-ids\n"
 #endif			/* ENABLE_PKCS11 */
  "\n"
   "SSL Library information:\n"
@@ -1293,6 +1288,7 @@ show_settings (const struct options *o)
   }
   SHOW_INT (pkcs11_pin_cache_period);
   SHOW_STR (pkcs11_id);
+  SHOW_BOOL (pkcs11_id_management);
 #endif			/* ENABLE_PKCS11 */
 
 #if P2MP
@@ -1766,8 +1762,11 @@ options_postprocess (struct options *options, bool first_time)
       if (options->pkcs11_providers[0])
        {
         notnull (options->ca_file, "CA file (--ca)");
-	notnull (options->pkcs11_id, "PKCS#11 id (--pkcs11-id)");
 
+	if (options->pkcs11_id_management && options->pkcs11_id != NULL)
+	  msg(M_USAGE, "Parameter --pkcs11-id cannot be used when --pkcs11-id-management is also specified.");
+	if (!options->pkcs11_id_management && options->pkcs11_id == NULL)
+	  msg(M_USAGE, "Parameter --pkcs11-id or --pkcs11-id-management should be specified.");
 	if (options->cert_file)
 	  msg(M_USAGE, "Parameter --cert cannot be used when --pkcs11-provider is also specified.");
 	if (options->priv_key_file)
@@ -1870,6 +1869,7 @@ options_postprocess (struct options *options, bool first_time)
       MUST_BE_UNDEF (pkcs11_providers[0]);
       MUST_BE_UNDEF (pkcs11_private_mode[0]);
       MUST_BE_UNDEF (pkcs11_id);
+      MUST_BE_UNDEF (pkcs11_id_management);
 #endif
 
       if (pull)
@@ -5136,6 +5136,11 @@ add_option (struct options *options,
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->pkcs11_id = p[1];
+    }
+  else if (streq (p[0], "pkcs11-id-management"))
+    {
+      VERIFY_PERMISSION (OPT_P_GENERAL);
+      options->pkcs11_id_management = true;
     }
 #endif
 #ifdef TUNSETPERSIST

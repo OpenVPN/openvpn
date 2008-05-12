@@ -419,6 +419,7 @@ struct options
   bool pkcs11_cert_private[MAX_PARMS];
   int pkcs11_pin_cache_period;
   const char *pkcs11_id;
+  bool pkcs11_id_management;
 #endif
 
 #ifdef WIN32

@@ -222,6 +222,7 @@ struct man_settings {
 #define UP_QUERY_USER_PASS 1
 #define UP_QUERY_PASS      2
 #define UP_QUERY_NEED_OK   3
+#define UP_QUERY_NEED_STR  4
 
 /* states */
 #define MS_INITIAL          0  /* all sockets are closed */

@@ -96,10 +96,19 @@ AC_DEFUN([TYPE_SOCKLEN_T],
          for arg2 in "struct sockaddr" void; do
             for t in int size_t unsigned long "unsigned long"; do
                AC_TRY_COMPILE([
+                  #ifdef _WIN32
+                  #include <windows.h>
+                  #define PREFIX1 WINSOCK_API_LINKAGE
+                  #define PREFIX2 PASCAL
+                  #else
                   #include <sys/types.h>
                   #include <sys/socket.h>
+                  #define PREFIX1
+                  #define PREFIX2
+                  #define SOCKET int
+                  #endif
 
-                  int getpeername (int, $arg2 *, $t *);
+                  PREFIX1 int PREFIX2 getpeername (SOCKET, $arg2 *, $t *);
                ],[
                   $t len;
                   getpeername(0,0,&len);

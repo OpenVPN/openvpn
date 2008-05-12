@@ -22,12 +22,6 @@
  *  59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#ifdef WIN32
-#include "config-win32.h"
-#else
-#include "config.h"
-#endif
-
 #include "syshead.h"
 
 #ifdef ENABLE_MANAGEMENT
@@ -44,6 +38,10 @@
 #include "manage.h"
 
 #include "memdbg.h"
+
+#ifdef ENABLE_PKCS11
+#include "pkcs11.h"
+#endif
 
 #define MANAGEMENT_ECHO_PULL_INFO 0
 
@@ -82,8 +80,14 @@ man_help ()
   msg (M_CLIENT, "mute [n]               : Set log mute level to n, or show level if n is absent.");
   msg (M_CLIENT, "needok type action     : Enter confirmation for NEED-OK request of 'type',");
   msg (M_CLIENT, "                         where action = 'ok' or 'cancel'.");
+  msg (M_CLIENT, "needstr type action    : Enter confirmation for NEED-STR request of 'type',");
+  msg (M_CLIENT, "                         where action is reply string.");
   msg (M_CLIENT, "net                    : (Windows only) Show network info and routing table.");
   msg (M_CLIENT, "password type p        : Enter password p for a queried OpenVPN password.");
+#ifdef ENABLE_PKCS11
+  msg (M_CLIENT, "pkcs11-id-count        : Get number of available PKCS#11 identities.");
+  msg (M_CLIENT, "pkcs11-id-get index    : Get PKCS#11 identity at index.");
+#endif
   msg (M_CLIENT, "signal s               : Send signal s to daemon,");
   msg (M_CLIENT, "                         s = SIGHUP|SIGTERM|SIGUSR1|SIGUSR2.");
   msg (M_CLIENT, "state [on|off] [N|all] : Like log, but show state history.");
@@ -541,6 +545,10 @@ man_up_finalize (struct management *man)
       if (strlen (man->connection.up_query.password))
 	man->connection.up_query.defined = true;
       break;
+    case UP_QUERY_NEED_STR:
+      if (strlen (man->connection.up_query.password))
+	man->connection.up_query.defined = true;
+      break;
     default:
       ASSERT (0);
     }
@@ -604,6 +612,13 @@ man_query_need_ok (struct management *man, const char *type, const char *action)
 }
 
 static void
+man_query_need_str (struct management *man, const char *type, const char *action)
+{
+  const bool needed = ((man->connection.up_query_mode == UP_QUERY_NEED_STR) && man->connection.up_query_type);
+  man_query_user_pass (man, type, action, needed, "needstr-string", man->connection.up_query.password, USER_PASS_LEN);
+}
+
+static void
 man_forget_passwords (struct management *man)
 {
   ssl_purge_auth ();
@@ -622,6 +637,33 @@ man_net (struct management *man)
       msg (M_CLIENT, "ERROR: The 'net' command is not supported by the current daemon mode");
     }
 }
+
+#ifdef ENABLE_PKCS11
+
+static void
+man_pkcs11_id_count (struct management *man)
+{
+  msg (M_CLIENT, ">PKCS11ID-COUNT:%d", pkcs11_management_id_count ());
+}
+
+static void
+man_pkcs11_id_get (struct management *man, const int index)
+{
+  char *id = NULL;
+  char *base64 = NULL;
+
+  if (pkcs11_management_id_get (index, &id, &base64))
+    msg (M_CLIENT, ">PKCS11ID-ENTRY:'%d', ID:'%s', BLOB:'%s'", index, id, base64);
+  else
+    msg (M_CLIENT, ">PKCS11ID-ENTRY:'%d'", index);
+
+  if (id != NULL)
+    free (id);
+  if (base64 != NULL)
+    free (base64);
+}
+
+#endif
 
 static void
 man_hold (struct management *man, const char *cmd)
@@ -807,6 +849,11 @@ man_dispatch_command (struct management *man, struct status_output *so, const ch
       if (man_need (man, p, 2, 0))
 	man_query_need_ok (man, p[1], p[2]);
     }
+  else if (streq (p[0], "needstr"))
+    {
+      if (man_need (man, p, 2, 0))
+	man_query_need_str (man, p[1], p[2]);
+    }
   else if (streq (p[0], "net"))
     {
       man_net (man);
@@ -820,6 +867,17 @@ man_dispatch_command (struct management *man, struct status_output *so, const ch
       if (man_need (man, p, 1, 0))
 	man_bytecount (man, atoi(p[1]));
     }
+#ifdef ENABLE_PKCS11
+  else if (streq (p[0], "pkcs11-id-count"))
+    {
+      man_pkcs11_id_count (man);
+    }
+  else if (streq (p[0], "pkcs11-id-get"))
+    {
+      if (man_need (man, p, 1, 0))
+	man_pkcs11_id_get (man, atoi(p[1]));
+    }
+#endif
 #if 1
   else if (streq (p[0], "test"))
     {
@@ -2037,6 +2095,12 @@ management_query_user_pass (struct management *man,
 	  prefix= "NEED-OK";
 	  alert_type = "confirmation";
 	}
+      else if (flags & GET_USER_PASS_NEED_STR)
+        {
+	  up_query_mode = UP_QUERY_NEED_STR;
+	  prefix= "NEED-STR";
+	  alert_type = "string";
+	}
       else if (flags & GET_USER_PASS_PASSWORD_ONLY)
 	{
 	  up_query_mode = UP_QUERY_PASS;
@@ -2054,7 +2118,7 @@ management_query_user_pass (struct management *man,
 		  type,
 		  alert_type);
 
-      if (flags & GET_USER_PASS_NEED_OK)
+      if (flags & (GET_USER_PASS_NEED_OK | GET_USER_PASS_NEED_STR))
 	buf_printf (&alert_msg, " MSG:%s", up->username);
 
       man_wait_for_client_connection (man, &signal_received, 0, MWCC_PASSWORD_WAIT);

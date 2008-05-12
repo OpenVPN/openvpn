@@ -32,7 +32,15 @@
 // common to both.
 //===============================================
 
-#include "../autodefs/defs.h"
+#if defined(HAVE_CONFIG_H)
+#include "config.h"
+#else
+#if defined(_MSC_VER) && !defined(TAP_DRIVER_MAJOR_VERSION)
+#include "config-win32.h"
+#else
+#include "../config.h"
+#endif
+#endif
 
 //=============
 // TAP IOCTLs
@@ -81,4 +89,4 @@
 // simultaneously.
 //=========================================================
 
-#define TAP_COMPONENT_ID PRODUCT_TAP_ID
+#define TAP_COMPONENT_ID TAP_ID

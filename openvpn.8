@@ -213,6 +213,7 @@ openvpn \- secure IP tunnel daemon.
 [\ \fB\-\-ping\fR\ \fIn\fR\ ]
 [\ \fB\-\-pkcs11\-cert\-private\fR\ \fI[0|1]...\fR\ ]
 [\ \fB\-\-pkcs11\-id\fR\ \fIname\fR\ ]
+[\ \fB\-\-pkcs11\-id\-management\fR\ ]
 [\ \fB\-\-pkcs11\-pin\-cache\fR\ \fIseconds\fR\ ]
 [\ \fB\-\-pkcs11\-private\-mode\fR\ \fImode...\fR\ ]
 [\ \fB\-\-pkcs11\-protected\-authentication\fR\ \fI[0|1]...\fR\ ]
@@ -3689,6 +3690,13 @@ Specify the serialized certificate id to be used. The id can be gotten
 by the standalone
 .B --show-pkcs11-ids
 option.
+.\"*********************************************************
+.TP
+.B --pkcs11-id-management
+Acquire PKCS#11 id from management interface. In this case a NEED-STR 'pkcs11-id-request'
+real-time message will be triggered, application may use pkcs11-id-count command to
+retrieve available number of certificates, and pkcs11-id-get command to retrieve certificate
+id and certificate body.
 .\"*********************************************************
 .TP
 .B --pkcs11-pin-cache seconds

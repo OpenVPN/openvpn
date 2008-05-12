@@ -22,12 +22,6 @@
  *  59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#if defined(WIN32)
-#include "config-win32.h"
-#else
-#include "config.h"
-#endif
-
 #include "syshead.h"
 
 #if defined(ENABLE_PKCS11)
@@ -37,6 +31,7 @@
 #include "basic.h"
 #include "error.h"
 #include "manage.h"
+#include "base64.h"
 #include "pkcs11.h"
 
 static
@@ -168,7 +163,7 @@ _pkcs11_openvpn_token_prompt (
 	const pkcs11h_token_id_t token,
 	const unsigned retry
 ) {
-	static struct user_pass token_resp;
+	struct user_pass token_resp;
 
 	(void)global_data;
 	(void)user_data;
@@ -211,7 +206,7 @@ _pkcs11_openvpn_pin_prompt (
 	char * const pin,
 	const size_t pin_max
 ) {
-	static struct user_pass token_pass;
+	struct user_pass token_pass;
 	char prompt[1024];
 
 	(void)global_data;
@@ -389,8 +384,224 @@ pkcs11_logout() {
 }
 
 int
+pkcs11_management_id_count () {
+	pkcs11h_certificate_id_list_t id_list = NULL;
+	pkcs11h_certificate_id_list_t t = NULL;
+	CK_RV rv = CKR_OK;
+	int count = 0;
+
+	dmsg (
+		D_PKCS11_DEBUG,
+		"PKCS#11: pkcs11_management_id_count - entered"
+	);
+
+	if (
+		(rv = pkcs11h_certificate_enumCertificateIds (
+			PKCS11H_ENUM_METHOD_CACHE_EXIST,
+			NULL,
+			PKCS11H_PROMPT_MASK_ALLOW_ALL,
+			NULL,
+			&id_list
+		)) != CKR_OK
+	) {
+		msg (M_WARN, "PKCS#11: Cannot get certificate list %ld-'%s'", rv, pkcs11h_getMessage (rv));
+		goto cleanup;
+	}
+
+	for (count = 0, t = id_list; t != NULL; t = t->next) {
+		count++;
+	}
+
+cleanup:
+
+	if (id_list != NULL) {
+		pkcs11h_certificate_freeCertificateIdList (id_list);
+		id_list = NULL;
+	}
+
+	dmsg (
+		D_PKCS11_DEBUG,
+		"PKCS#11: pkcs11_management_id_count - return count=%d",
+		count
+	);
+
+	return count;
+}
+
+bool
+pkcs11_management_id_get (
+	const int index,
+	char ** id,
+	char **base64
+) {
+	pkcs11h_certificate_id_list_t id_list = NULL;
+	pkcs11h_certificate_id_list_t entry = NULL;
+	pkcs11h_certificate_id_t certificate_id = NULL;
+	pkcs11h_certificate_t certificate = NULL;
+	CK_RV rv = CKR_OK;
+	char *certificate_blob = NULL;
+	size_t certificate_blob_size = 0;
+	size_t max;
+	char *internal_id = NULL;
+	char *internal_base64 = NULL;
+	int count = 0;
+	bool success = false;
+
+	ASSERT (id!=NULL);
+	ASSERT (base64!=NULL);
+
+	dmsg (
+		D_PKCS11_DEBUG,
+		"PKCS#11: pkcs11_management_id_get - entered index=%d",
+		index
+	);
+
+	*id = NULL;
+	*base64 = NULL;
+
+	if (
+		(rv = pkcs11h_certificate_enumCertificateIds (
+			PKCS11H_ENUM_METHOD_CACHE_EXIST,
+			NULL,
+			PKCS11H_PROMPT_MASK_ALLOW_ALL,
+			NULL,
+			&id_list
+		)) != CKR_OK
+	) {
+		msg (M_WARN, "PKCS#11: Cannot get certificate list %ld-'%s'", rv, pkcs11h_getMessage (rv));
+		goto cleanup;
+	}
+
+	entry = id_list;
+	count = 0;
+	while (entry != NULL && count != index) {
+		count++;
+		entry = entry->next;
+	}
+
+	if (entry == NULL) {
+		dmsg (
+			D_PKCS11_DEBUG,
+			"PKCS#11: pkcs11_management_id_get - no certificate at index=%d",
+			index
+		);
+		goto cleanup;
+	}
+
+	if (
+		(rv = pkcs11h_certificate_serializeCertificateId (
+			NULL,
+			&max,
+			entry->certificate_id
+		)) != CKR_OK
+	) {
+		msg (M_WARN, "PKCS#11: Cannot serialize certificate id %ld-'%s'", rv, pkcs11h_getMessage (rv));
+		goto cleanup;
+	}
+
+	if ((internal_id = (char *)malloc (max)) == NULL) {
+		msg (M_FATAL, "PKCS#11: Cannot allocate memory");
+		goto cleanup;
+	}
+
+	if (
+		(rv = pkcs11h_certificate_serializeCertificateId (
+			internal_id,
+			&max,
+			entry->certificate_id
+		)) != CKR_OK
+	) {
+		msg (M_WARN, "PKCS#11: Cannot serialize certificate id %ld-'%s'", rv, pkcs11h_getMessage (rv));
+		goto cleanup;
+	}
+
+	if (
+		(rv = pkcs11h_certificate_create (
+			entry->certificate_id,
+			NULL,
+			PKCS11H_PROMPT_MASK_ALLOW_ALL,
+			PKCS11H_PIN_CACHE_INFINITE,
+			&certificate
+		)) != CKR_OK
+	) {
+		msg (M_WARN, "PKCS#11: Cannot get certificate %ld-'%s'", rv, pkcs11h_getMessage (rv));
+		goto cleanup;
+	}
+
+	if (
+		(rv = pkcs11h_certificate_getCertificateBlob (
+			certificate,
+			NULL,
+			&certificate_blob_size
+		)) != CKR_OK
+	) {
+		msg (M_WARN, "PKCS#11: Cannot get certificate blob %ld-'%s'", rv, pkcs11h_getMessage (rv));
+		goto cleanup;
+	}
+
+	if ((certificate_blob = (char *)malloc (certificate_blob_size)) == NULL) {
+		msg (M_FATAL, "PKCS#11: Cannot allocate memory");
+		goto cleanup;
+	}
+
+	if (
+		(rv = pkcs11h_certificate_getCertificateBlob (
+			certificate,
+			certificate_blob,
+			&certificate_blob_size
+		)) != CKR_OK
+	) {
+		msg (M_WARN, "PKCS#11: Cannot get certificate blob %ld-'%s'", rv, pkcs11h_getMessage (rv));
+		goto cleanup;
+	}
+
+	if (base64_encode (certificate_blob, certificate_blob_size, &internal_base64) == -1) {
+		msg (M_WARN, "PKCS#11: Cannot encode certificate");
+		goto cleanup;
+	}
+
+	*id = internal_id;
+	internal_id = NULL;
+	*base64 = internal_base64;
+	internal_base64 = NULL;
+	success = true;
+	
+cleanup:
+
+	if (id_list != NULL) {
+		pkcs11h_certificate_freeCertificateIdList (id_list);
+		id_list = NULL;
+	}
+
+	if (internal_id != NULL) {
+		free (internal_id);
+		internal_id = NULL;
+	}
+
+	if (internal_base64 != NULL) {
+		free (internal_base64);
+		internal_base64 = NULL;
+	}
+
+	if (certificate_blob != NULL) {
+		free (certificate_blob);
+		certificate_blob = NULL;
+	}
+
+	dmsg (
+		D_PKCS11_DEBUG,
+		"PKCS#11: pkcs11_management_id_get - return success=%d, id='%s'",
+		success ? 1 : 0,
+		*id
+	);
+
+	return success;
+}
+
+int
 SSL_CTX_use_pkcs11 (
 	SSL_CTX * const ssl_ctx,
+	bool pkcs11_id_management,
 	const char * const pkcs11_id
 ) {
 	X509 *x509 = NULL;
@@ -403,23 +614,60 @@ SSL_CTX_use_pkcs11 (
 	bool ok = false;
 
 	ASSERT (ssl_ctx!=NULL);
-	ASSERT (pkcs11_id!=NULL);
+	ASSERT (pkcs11_id_management || pkcs11_id!=NULL);
 
 	dmsg (
 		D_PKCS11_DEBUG,
-		"PKCS#11: SSL_CTX_use_pkcs11 - entered - ssl_ctx=%p, pkcs11_id='%s'",
+		"PKCS#11: SSL_CTX_use_pkcs11 - entered - ssl_ctx=%p, pkcs11_id_management=%d, pkcs11_id='%s'",
 		(void *)ssl_ctx,
+		pkcs11_id_management ? 1 : 0,
 		pkcs11_id
 	);
 
-	if (
-		(rv = pkcs11h_certificate_deserializeCertificateId (
-			&certificate_id,
-			pkcs11_id
-		)) != CKR_OK
-	) {
-		msg (M_WARN, "PKCS#11: Cannot deserialize id %ld-'%s'", rv, pkcs11h_getMessage (rv));
-		goto cleanup;
+	if (pkcs11_id_management) {
+		struct user_pass id_resp;
+
+		CLEAR (id_resp);
+
+		id_resp.defined = false;
+		id_resp.nocache = true;
+		openvpn_snprintf (
+			id_resp.username,
+			sizeof (id_resp.username),
+			"Please specify PKCS#11 id to use"
+		);
+
+		if (
+			!get_user_pass (
+				&id_resp,
+				NULL,
+				"pkcs11-id-request",
+				GET_USER_PASS_MANAGEMENT|GET_USER_PASS_NEED_STR|GET_USER_PASS_NOFATAL
+			)
+		) {
+			goto cleanup;
+		}
+
+		if (
+			(rv = pkcs11h_certificate_deserializeCertificateId (
+				&certificate_id,
+				id_resp.password
+			)) != CKR_OK
+		) {
+			msg (M_WARN, "PKCS#11: Cannot deserialize id %ld-'%s'", rv, pkcs11h_getMessage (rv));
+			goto cleanup;
+		}
+	}
+	else {
+		if (
+			(rv = pkcs11h_certificate_deserializeCertificateId (
+				&certificate_id,
+				pkcs11_id
+			)) != CKR_OK
+		) {
+			msg (M_WARN, "PKCS#11: Cannot deserialize id %ld-'%s'", rv, pkcs11h_getMessage (rv));
+			goto cleanup;
+		}
 	}
 
 	if (

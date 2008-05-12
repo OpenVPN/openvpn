@@ -1,1 +1,5 @@
 openvpn.nsi
+settings
+Makefile
+Makefile.in
+tmp

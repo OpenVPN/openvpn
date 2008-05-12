@@ -6,8 +6,14 @@
 # 2000 and higher, and x64 on Windows 2003 and higher.
 # For quick start options, see pre-built notes below.
 #
+# Note that if you are only looking to build the
+# openvpn user-space binaries (openvpn.exe
+# and openvpnserv.exe) you can use the
+# provided autoconf/automake build environment.
+#
 # See top-level build configuration and settings in:
 #
+#   version.m4
 #   install-win32/settings.in
 #
 # Mandatory prerequisites:
@@ -105,11 +111,8 @@ install-win32/getprebuilt
 # The exception is the last script which gathers together all files from
 # GENOUT and builds the installer.
 
-# Make the OpenVPN user-space component (openvpn.exe)
+# Make the OpenVPN user-space components (OpenVPN and service)
 install-win32/makeopenvpn
-
-# Make the OpenVPN service
-install-win32/makeservice
 
 # Make the OpenVPN TAP driver
 install-win32/maketap

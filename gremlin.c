@@ -27,12 +27,6 @@
  * network outages when the --gremlin option is used.
  */
 
-#ifdef WIN32
-#include "config-win32.h"
-#else
-#include "config.h"
-#endif
-
 #include "syshead.h"
 
 #ifdef ENABLE_DEBUG

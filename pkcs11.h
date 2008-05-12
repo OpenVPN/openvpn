@@ -53,8 +53,19 @@ int
 pkcs11_logout();
 
 int
+pkcs11_management_id_count ();
+
+bool
+pkcs11_management_id_get (
+	const int index,
+	char ** id,
+	char **base64
+);
+
+int
 SSL_CTX_use_pkcs11 (
 	SSL_CTX * const ssl_ctx,
+	bool pkcs11_id_management,
 	const char * const pkcs11_id
 );
 

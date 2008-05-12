@@ -2,12 +2,6 @@
  * Support routine for configuring link layer address 
  */
 
-#ifdef WIN32
-#include "config-win32.h"
-#else
-#include "config.h"
-#endif
-
 #include "syshead.h"
 #include "error.h"
 #include "misc.h"

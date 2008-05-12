@@ -25,6 +25,28 @@
 #ifndef SYSHEAD_H
 #define SYSHEAD_H
 
+/*
+ * Only include if not during configure
+ */
+#ifndef PACKAGE_NAME
+#ifdef _MSC_VER
+#include "config-win32.h"
+#else
+#include "config.h"
+#endif
+#endif
+
+#if defined(_WIN32) && !defined(WIN32)
+#define WIN32
+#endif
+
+#ifdef WIN32
+#include <windows.h>
+#define sleep(x) Sleep((x)*1000)
+#define random rand
+#define srandom srand
+#endif
+
 #ifdef HAVE_SYS_TYPES_H
 #include <sys/types.h>
 #endif
@@ -131,6 +153,10 @@
 
 #ifdef HAVE_NETINET_IN_H
 #include <netinet/in.h>
+#endif
+
+#ifdef HAVE_RESOLV_H
+#include <resolv.h>
 #endif
 
 #ifdef HAVE_SYS_POLL_H
@@ -272,9 +298,29 @@
 
 #endif /* TARGET_NETBSD */
 
+#ifdef TARGET_DRAGONFLY
+
+#ifdef HAVE_SYS_UIO_H
+#include <sys/uio.h>
+#endif
+
+#ifdef HAVE_NETINET_IN_SYSTM_H
+#include <netinet/in_systm.h>
+#endif
+
+#ifdef HAVE_NETINET_IP_H
+#include <netinet/ip.h>
+#endif
+
+#ifdef HAVE_NET_TUN_IF_TUN_H
+#include <net/tun/if_tun.h>
+#endif
+
+#endif /* TARGET_DRAGONFLY */
+
 #ifdef WIN32
 #include <iphlpapi.h>
-#include <WinInet.h>
+#include <wininet.h>
 #endif
 
 #ifdef HAVE_SYS_MMAN_H

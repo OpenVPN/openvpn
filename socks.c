@@ -29,15 +29,9 @@
  * see RFC 1928, only supports "no authentication"
  */
 
-#ifdef WIN32
-#include "config-win32.h"
-#else
-#include "config.h"
-#endif
+#include "syshead.h"
 
 #ifdef ENABLE_SOCKS
-
-#include "syshead.h"
 
 #include "common.h"
 #include "misc.h"

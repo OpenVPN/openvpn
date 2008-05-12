@@ -22,15 +22,9 @@
  *  59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#ifdef WIN32
-#include "config-win32.h"
-#else
-#include "config.h"
-#endif
+#include "syshead.h"
 
 #ifdef USE_LZO
-
-#include "syshead.h"
 
 #include "lzo.h"
 #include "error.h"

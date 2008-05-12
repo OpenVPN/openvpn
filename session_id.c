@@ -31,15 +31,9 @@
  * it is called the key_id and is currently 2 bits long.
  */
 
-#ifdef WIN32
-#include "config-win32.h"
-#else
-#include "config.h"
-#endif
+#include "syshead.h"
 
 #if defined(USE_CRYPTO) && defined(USE_SSL)
-
-#include "syshead.h"
 
 #include "error.h"
 #include "common.h"

@@ -19,12 +19,12 @@
 
 # Include the OpenVPN XML-based GUI exe in the installer.
 # May be undefined.
-!define OPENVPN_XGUI_DIR "../ovpnxml"
+;!define OPENVPN_XGUI_DIR "../ovpnxml"
 
 # Prebuilt libraries.  DMALLOC is optional.
 !define OPENSSL_DIR	  "../openssl-0.9.7m"
 !define LZO_DIR		  "../lzo-2.02"
-!define PKCS11_HELPER_DIR "../pkcs11-helper/usr/local"
+!define PKCS11_HELPER_DIR "../pkcs11-helper"
 !define DMALLOC_DIR	  "../dmalloc-5.4.2"
 
 # Optional directory of prebuilt OpenVPN binary components,
@@ -36,10 +36,10 @@
 # Not needed if DRVBINSRC is defined.
 !define TISRC	"../tapinstall"
 
-# TAP Adapter parameters.
+# TAP Adapter parameters.  Note that PRODUCT_TAP_ID is
+# defined in version.m4.
 !define PRODUCT_TAP_DEVICE_DESCRIPTION  "TAP-Win32 Adapter V9"
 !define PRODUCT_TAP_PROVIDER            "TAP-Win32 Provider V9"
-!define PRODUCT_TAP_ID		        "tap0901"
 !define PRODUCT_TAP_MAJOR_VER           9
 !define PRODUCT_TAP_MINOR_VER           4
 !define PRODUCT_TAP_RELDATE             "01/22/2008"
@@ -49,10 +49,6 @@
 
 # Build debugging version of TAP driver
 ;!define PRODUCT_TAP_DEBUG
-
-# Service template files service.[ch] (get from Platform SDK).
-# If undefined, don't build openvpnserv.exe
-!define SVC_TEMPLATE "../svc-template"
 
 # DDK Version.
 # DDK distribution is assumed to be in C:\WINDDK\${DDKVER}

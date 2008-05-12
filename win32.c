@@ -26,12 +26,10 @@
  * Win32-specific OpenVPN code, targetted at the mingw
  * development environment.
  */
+#include "syshead.h"
 
 #ifdef WIN32
 
-#include "config-win32.h"
-
-#include "syshead.h"
 #include "buffer.h"
 #include "error.h"
 #include "mtu.h"

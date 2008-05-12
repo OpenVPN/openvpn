@@ -31,15 +31,9 @@
  * to IPSec.
  */
 
-#ifdef WIN32
-#include "config-win32.h"
-#else
-#include "config.h"
-#endif
+#include "syshead.h"
 
 #ifdef USE_CRYPTO
-
-#include "syshead.h"
 
 #include "packet_id.h"
 #include "misc.h"

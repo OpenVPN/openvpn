@@ -22,12 +22,6 @@
  *  59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#ifdef WIN32
-#include "config-win32.h"
-#else
-#include "config.h"
-#endif
-
 #include "syshead.h"
 
 #include "buffer.h"
@@ -206,7 +200,7 @@ run_up_down (const char *command,
       ASSERT (arg);
 
       buf_printf (&cmd,
-		  "%s %d %d %s %s %s",
+		  "\"%s\" %d %d %s %s %s",
 		  arg,
 		  tun_mtu, link_mtu,
 		  ifconfig_local, ifconfig_remote,
@@ -225,7 +219,7 @@ run_up_down (const char *command,
       setenv_str (es, "script_type", script_type);
 
       buf_printf (&cmd,
-		  "%s %s %d %d %s %s %s",
+		  "%s \"%s\" %d %d %s %s %s",
 		  command,
 		  arg,
 		  tun_mtu, link_mtu,
@@ -438,6 +432,7 @@ openvpn_system (const char *command, const struct env_set *es, unsigned int flag
 void
 warn_if_group_others_accessible (const char* filename)
 {
+#ifndef WIN32
 #ifdef HAVE_STAT
 #if ENABLE_INLINE_FILES
   if (strcmp (filename, INLINE_FILE_TAG))
@@ -454,6 +449,7 @@ warn_if_group_others_accessible (const char* filename)
 	    msg (M_WARN, "WARNING: file '%s' is group or others accessible", filename);
 	}
     }
+#endif
 #endif
 }
 
@@ -1230,7 +1226,7 @@ get_user_pass (struct user_pass *up,
 	      if ((flags & GET_USER_PASS_NOFATAL) != 0)
 		return false;
 	      else
-		msg (M_FATAL, "ERROR: could not read %s username/password/ok from management interface", prefix);
+		msg (M_FATAL, "ERROR: could not read %s username/password/ok/string from management interface", prefix);
 	    }
 	}
       else

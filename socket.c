@@ -22,12 +22,6 @@
  *  59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#ifdef WIN32
-#include "config-win32.h"
-#else
-#include "config.h"
-#endif
-
 #include "syshead.h"
 
 #include "socket.h"
@@ -138,6 +132,9 @@ getaddr (unsigned int flags,
       while (true)
 	{
 	  /* try hostname lookup */
+#if defined(HAVE_RES_INIT)
+	  res_init ();
+#endif
 	  h = gethostbyname (hostname);
 
 	  if (signal_received)
@@ -2121,11 +2118,13 @@ link_socket_read_tcp (struct link_socket *sock,
 
 #if ENABLE_IP_PKTINFO
 
+#pragma pack(1) /* needed to keep structure size consistent for 32 vs. 64-bit architectures */
 struct openvpn_pktinfo
 {
   struct cmsghdr cmsghdr;
   struct in_pktinfo in_pktinfo;
 };
+#pragma pack()
 
 static socklen_t
 link_socket_read_udp_posix_recvmsg (struct link_socket *sock,
