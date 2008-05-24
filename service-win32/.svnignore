@@ -1,8 +1,4 @@
-*.exe
-*.obj
 *.o
-.deps
 Makefile.in
+.deps
 Makefile
-service.h
-service.c

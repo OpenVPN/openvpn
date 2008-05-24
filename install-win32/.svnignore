@@ -1,5 +1,4 @@
-openvpn.nsi
+*.o
+Makefile.in
 settings
 Makefile
-Makefile.in
-tmp
