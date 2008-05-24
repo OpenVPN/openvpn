@@ -83,12 +83,18 @@ check_tls_dowork (struct context *c)
 
   if (interval_test (&c->c2.tmp_int))
     {
-      if (tls_multi_process
-	  (c->c2.tls_multi, &c->c2.to_link, &c->c2.to_link_addr,
-	   get_link_socket_info (c), &wakeup))
+      const int tmp_status = tls_multi_process
+	(c->c2.tls_multi, &c->c2.to_link, &c->c2.to_link_addr,
+	 get_link_socket_info (c), &wakeup);
+      if (tmp_status == TLSMP_ACTIVE)
 	{
 	  update_time ();
 	  interval_action (&c->c2.tmp_int);
+	}
+      else if (tmp_status == TLSMP_KILL)
+	{
+	  c->sig->signal_received = SIGTERM;
+	  c->sig->signal_text = "auth-control-exit";
 	}
 
       interval_future_trigger (&c->c2.tmp_int, wakeup);

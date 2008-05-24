@@ -347,7 +347,7 @@ plugin_call_item (const struct plugin *p,
 	   plugin_type_name (type),
 	   status);
 
-      if (status != OPENVPN_PLUGIN_FUNC_SUCCESS)
+      if (status == OPENVPN_PLUGIN_FUNC_ERROR)
 	msg (M_WARN, "PLUGIN_CALL: plugin function %s failed with status %d: %s",
 	     plugin_type_name (type),
 	     status,
@@ -541,7 +541,8 @@ plugin_call (const struct plugin_list *pl,
       int i;
       const char **envp;
       const int n = plugin_n (pl);
-      int count = 0;
+      bool error = false;
+      bool deferred = false;
       
       mutex_lock_static (L_PLUGIN);
 
@@ -550,13 +551,16 @@ plugin_call (const struct plugin_list *pl,
 
       for (i = 0; i < n; ++i)
 	{
-	  if (!plugin_call_item (&pl->common->plugins[i],
-				 pl->per_client.per_client_context[i],
-				 type,
-				 args,
-				 pr ? &pr->list[i] : NULL,
-				 envp))
-	    ++count;
+	  const int status = plugin_call_item (&pl->common->plugins[i],
+					       pl->per_client.per_client_context[i],
+					       type,
+					       args,
+					       pr ? &pr->list[i] : NULL,
+					       envp);
+	  if (status == OPENVPN_PLUGIN_FUNC_ERROR)
+	    error = true;
+	  else if (status == OPENVPN_PLUGIN_FUNC_DEFERRED)
+	    deferred = true;
 	}
 
       if (pr)
@@ -566,12 +570,13 @@ plugin_call (const struct plugin_list *pl,
 
       gc_free (&gc);
 
-      return count == n ? 0 : 1; /* if any one plugin in the chain failed, return failure (1) */
+      if (error)
+	return OPENVPN_PLUGIN_FUNC_ERROR;
+      else if (deferred)
+	return OPENVPN_PLUGIN_FUNC_DEFERRED;
     }
-  else
-    {
-      return 0;
-    }
+
+  return OPENVPN_PLUGIN_FUNC_SUCCESS;
 }
 
 void

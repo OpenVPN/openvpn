@@ -206,7 +206,7 @@ run_up_down (const char *command,
 		  ifconfig_local, ifconfig_remote,
 		  context);
 
-      if (plugin_call (plugins, plugin_type, BSTR (&cmd), NULL, es))
+      if (plugin_call (plugins, plugin_type, BSTR (&cmd), NULL, es) != OPENVPN_PLUGIN_FUNC_SUCCESS)
 	msg (M_FATAL, "ERROR: up/down plugin call failed");
     }
 
@@ -1053,7 +1053,7 @@ test_file (const char *filename)
 
 /* create a temporary filename in directory */
 const char *
-create_temp_filename (const char *directory, struct gc_arena *gc)
+create_temp_filename (const char *directory, const char *prefix, struct gc_arena *gc)
 {
   static unsigned int counter;
   struct buffer fname = alloc_buf_gc (256, gc);
@@ -1062,9 +1062,11 @@ create_temp_filename (const char *directory, struct gc_arena *gc)
   ++counter;
   mutex_unlock_static (L_CREATE_TEMP);
 
-  buf_printf (&fname, PACKAGE "_%u_%u.tmp",
+  buf_printf (&fname, PACKAGE "_%s_%u_%u_%u.tmp",
+	      prefix,
 	      openvpn_getpid (),
-	      counter);
+	      counter,
+	      (unsigned int)now);
 
   return gen_path (directory, BSTR (&fname), gc);
 }

@@ -104,19 +104,13 @@
 }
 
 {
-   SSL_get_ex_new_index
-   Memcheck:Leak
-   fun:malloc
-   obj:/lib/libcrypto.so.*
-   fun:CRYPTO_malloc
-   fun:lh_new
-   obj:/lib/libcrypto.so.*
-   obj:/lib/libcrypto.so.*
-   obj:/lib/libcrypto.so.*
-   fun:CRYPTO_get_ex_new_index
-   fun:SSL_get_ex_new_index
-   fun:ssl_set_mydata_index
-   fun:init_ssl_lib
-   fun:init_static
-   fun:main
+   <insert a suppression name here>
+   Memcheck:Addr8
+   obj:/lib/ld-2.5.so
+}
+
+{
+   <insert a suppression name here>
+   Memcheck:Cond
+   obj:/lib/ld-2.5.so
 }

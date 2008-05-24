@@ -70,10 +70,11 @@ receive_auth_failed (struct context *c, const struct buffer *buffer)
 /*
  * Send auth failed message from server to client.
  */
-bool
+void
 send_auth_failed (struct context *c)
 {
-  return send_control_channel_string (c, "AUTH_FAILED", D_PUSH);
+  schedule_exit (c, c->options.scheduled_exit_interval);
+  send_control_channel_string (c, "AUTH_FAILED", D_PUSH);
 }
 #endif
 
@@ -200,10 +201,9 @@ process_incoming_push_msg (struct context *c,
 #if P2MP_SERVER
   if (buf_string_compare_advance (&buf, "PUSH_REQUEST"))
     {
-      if (!tls_authenticated (c->c2.tls_multi) || c->c2.context_auth == CAS_FAILED)
+      if (tls_authentication_status (c->c2.tls_multi, 0) == TLS_AUTHENTICATION_FAILED || c->c2.context_auth == CAS_FAILED)
 	{
 	  send_auth_failed (c);
-	  schedule_exit (c, c->options.scheduled_exit_interval);
 	  ret = PUSH_MSG_AUTH_FAILURE;
 	}
       else if (!c->c2.push_reply_deferred && c->c2.context_auth == CAS_SUCCEEDED)

@@ -1,0 +1,2 @@
+#!/bin/bash
+valgrind --tool=memcheck --error-limit=no --suppressions=debug/valgrind-suppress --gen-suppressions=all --leak-check=yes --num-callers=32 $*

@@ -57,6 +57,7 @@ typedef void *openvpn_plugin_handle_t;
  */
 #define OPENVPN_PLUGIN_FUNC_SUCCESS  0
 #define OPENVPN_PLUGIN_FUNC_ERROR    1
+#define OPENVPN_PLUGIN_FUNC_DEFERRED 2
 
 /*
  * For Windows (needs to be modified for MSVC)
@@ -202,6 +203,28 @@ OPENVPN_PLUGIN_DEF openvpn_plugin_handle_t OPENVPN_PLUGIN_FUNC(openvpn_plugin_op
  * RETURN VALUE
  *
  * OPENVPN_PLUGIN_FUNC_SUCCESS on success, OPENVPN_PLUGIN_FUNC_ERROR on failure
+ *
+ * In addition, OPENVPN_PLUGIN_FUNC_DEFERRED may be returned by
+ * OPENVPN_PLUGIN_AUTH_USER_PASS_VERIFY.  This enables asynchronous
+ * authentication where the plugin (or one of its agents) may indicate
+ * authentication success/failure some number of seconds after the return
+ * of the OPENVPN_PLUGIN_AUTH_USER_PASS_VERIFY handler by writing a single
+ * char to the file named by auth_control_file in the environmental variable
+ * list (envp).
+ *
+ * first char of auth_control_file:
+ * '0' -- indicates auth failure
+ * '1' -- indicates auth success
+ * '2' -- indicates that the client should be immediately killed
+ *
+ * The auth_control file will be polled for the life of the key state
+ * it is associated with, and any change in the file will
+ * impact the client's current authentication state.
+ *
+ * OpenVPN will delete the auth_control_file after it goes out of scope.
+ *
+ * See plugin/defer/simple.c for an example on using asynchronous
+ * authentication.
  */
 OPENVPN_PLUGIN_DEF int OPENVPN_PLUGIN_FUNC(openvpn_plugin_func_v2)
      (openvpn_plugin_handle_t handle,

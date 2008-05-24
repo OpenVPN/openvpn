@@ -1,0 +1,18 @@
+#
+# Build an OpenVPN plugin module on Windows/MinGW.
+# The argument should be the base name of the C source file
+# (without the .c).
+#
+
+# This directory is where we will look for openvpn-plugin.h
+INCLUDE="-I.."
+
+CC_FLAGS="-O2 -Wall"
+
+gcc -DBUILD_DLL $CC_FLAGS $INCLUDE -c $1.c
+gcc --disable-stdcall-fixup -mdll -DBUILD_DLL -o junk.tmp -Wl,--base-file,base.tmp $1.o
+rm junk.tmp
+dlltool --dllname $1.dll --base-file base.tmp --output-exp temp.exp --input-def $1.def
+rm base.tmp
+gcc --enable-stdcall-fixup -mdll -DBUILD_DLL -o $1.dll $1.o -Wl,temp.exp
+rm temp.exp

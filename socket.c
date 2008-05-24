@@ -1592,7 +1592,7 @@ link_socket_connection_initiated (const struct buffer *buf,
   if (plugin_defined (info->plugins, OPENVPN_PLUGIN_IPCHANGE))
     {
       const char *addr_ascii = print_sockaddr_ex (&info->lsa->actual.dest, " ", PS_SHOW_PORT, &gc);
-      if (plugin_call (info->plugins, OPENVPN_PLUGIN_IPCHANGE, addr_ascii, NULL, es))
+      if (plugin_call (info->plugins, OPENVPN_PLUGIN_IPCHANGE, addr_ascii, NULL, es) != OPENVPN_PLUGIN_FUNC_SUCCESS)
 	msg (M_WARN, "WARNING: ipchange plugin call failed");
     }
 

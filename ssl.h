@@ -271,6 +271,9 @@
    communication pipe to the main thread to be ready to accept writes. */
 #define TLS_MULTI_THREAD_SEND_TIMEOUT 5
 
+/* Interval that tls_multi_process should call tls_authentication_status */
+#define TLS_MULTI_AUTH_STATUS_INTERVAL 10
+
 /*
  * Buffer sizes (also see mtu.h).
  */
@@ -367,6 +370,11 @@ struct key_state
    * If bad username/password, TLS connection will come up but 'authenticated' will be false.
    */
   bool authenticated;
+
+  /* If auth_deferred is true, authentication is being deferred */
+  char *auth_control_file;
+  bool auth_deferred;
+  time_t auth_deferred_expire;
 };
 
 /*
@@ -561,6 +569,9 @@ struct tls_multi
    */
   char *locked_cn;
 
+  /* Time of last call to tls_authentication_status */
+  time_t tas_last;
+
   /*
    * Our session objects.
    */
@@ -599,11 +610,14 @@ void tls_multi_init_set_options(struct tls_multi* multi,
 				const char *local,
 				const char *remote);
 
-bool tls_multi_process (struct tls_multi *multi,
-			struct buffer *to_link,
-			struct link_socket_actual **to_link_addr,
-			struct link_socket_info *to_link_socket_info,
-			interval_t *wakeup);
+#define TLSMP_INACTIVE 0
+#define TLSMP_ACTIVE   1
+#define TLSMP_KILL     2
+int tls_multi_process (struct tls_multi *multi,
+		       struct buffer *to_link,
+		       struct link_socket_actual **to_link_addr,
+		       struct link_socket_info *to_link_socket_info,
+		       interval_t *wakeup);
 
 void tls_multi_free (struct tls_multi *multi, bool clear);
 
@@ -647,7 +661,11 @@ const char *tls_common_name (struct tls_multi* multi, bool null);
 void tls_set_common_name (struct tls_multi *multi, const char *common_name);
 void tls_lock_common_name (struct tls_multi *multi);
 
-bool tls_authenticated (struct tls_multi *multi);
+#define TLS_AUTHENTICATION_SUCCEEDED  0
+#define TLS_AUTHENTICATION_FAILED     1
+#define TLS_AUTHENTICATION_DEFERRED   2
+#define TLS_AUTHENTICATION_UNDEFINED  3
+int tls_authentication_status (struct tls_multi *multi, const int latency);
 void tls_deauthenticate (struct tls_multi *multi);
 
 /*

@@ -82,7 +82,7 @@ learn_address_script (const struct multi_context *m,
       if (mi)
 	buf_printf (&cmd, " \"%s\"", tls_common_name (mi->context.c2.tls_multi, false));
 
-      if (plugin_call (plugins, OPENVPN_PLUGIN_LEARN_ADDRESS, BSTR (&cmd), NULL, es))
+      if (plugin_call (plugins, OPENVPN_PLUGIN_LEARN_ADDRESS, BSTR (&cmd), NULL, es) != OPENVPN_PLUGIN_FUNC_SUCCESS)
 	{
 	  msg (M_WARN, "WARNING: learn-address plugin call failed");
 	  ret = false;
@@ -419,7 +419,7 @@ multi_client_disconnect_script (struct multi_context *m,
 
       if (plugin_defined (mi->context.plugins, OPENVPN_PLUGIN_CLIENT_DISCONNECT))
 	{
-	  if (plugin_call (mi->context.plugins, OPENVPN_PLUGIN_CLIENT_DISCONNECT, NULL, NULL, mi->context.c2.es))
+	  if (plugin_call (mi->context.plugins, OPENVPN_PLUGIN_CLIENT_DISCONNECT, NULL, NULL, mi->context.c2.es) != OPENVPN_PLUGIN_FUNC_SUCCESS)
 	    msg (M_WARN, "WARNING: client-disconnect plugin call failed");
 	}
 
@@ -1310,7 +1310,7 @@ multi_client_connect_setenv (struct multi_context *m,
 static void
 multi_connection_established (struct multi_context *m, struct multi_instance *mi)
 {
-  if (tls_authenticated (mi->context.c2.tls_multi))
+  if (tls_authentication_status (mi->context.c2.tls_multi, 0) == TLS_AUTHENTICATION_SUCCEEDED)
     {
       struct gc_arena gc = gc_new ();
       unsigned int option_types_found = 0;
@@ -1400,11 +1400,11 @@ multi_connection_established (struct multi_context *m, struct multi_instance *mi
       /* deprecated callback, use a file for passing back return info */
       if (plugin_defined (mi->context.plugins, OPENVPN_PLUGIN_CLIENT_CONNECT))
 	{
-	  const char *dc_file = create_temp_filename (mi->context.options.tmp_dir, &gc);
+	  const char *dc_file = create_temp_filename (mi->context.options.tmp_dir, "cc", &gc);
 
 	  delete_file (dc_file);
 
-	  if (plugin_call (mi->context.plugins, OPENVPN_PLUGIN_CLIENT_CONNECT, dc_file, NULL, mi->context.c2.es))
+	  if (plugin_call (mi->context.plugins, OPENVPN_PLUGIN_CLIENT_CONNECT, dc_file, NULL, mi->context.c2.es) != OPENVPN_PLUGIN_FUNC_SUCCESS)
 	    {
 	      msg (M_WARN, "WARNING: client-connect plugin call failed");
 	      cc_succeeded = false;
@@ -1423,7 +1423,7 @@ multi_connection_established (struct multi_context *m, struct multi_instance *mi
 
 	  plugin_return_init (&pr);
 
-	  if (plugin_call (mi->context.plugins, OPENVPN_PLUGIN_CLIENT_CONNECT_V2, NULL, &pr, mi->context.c2.es))
+	  if (plugin_call (mi->context.plugins, OPENVPN_PLUGIN_CLIENT_CONNECT_V2, NULL, &pr, mi->context.c2.es) != OPENVPN_PLUGIN_FUNC_SUCCESS)
 	    {
 	      msg (M_WARN, "WARNING: client-connect-v2 plugin call failed");
 	      cc_succeeded = false;
@@ -1448,7 +1448,7 @@ multi_connection_established (struct multi_context *m, struct multi_instance *mi
 
 	  setenv_str (mi->context.c2.es, "script_type", "client-connect");
 
-	  dc_file = create_temp_filename (mi->context.options.tmp_dir, &gc);
+	  dc_file = create_temp_filename (mi->context.options.tmp_dir, "cc", &gc);
 
 	  delete_file (dc_file);
 
