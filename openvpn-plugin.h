@@ -27,6 +27,61 @@
 /*
  * Plug-in types.  These types correspond to the set of script callbacks
  * supported by OpenVPN.
+ *
+ * This is the general call sequence to expect when running in server mode:
+ *
+ * Initial Server Startup:
+ *
+ * FUNC: openvpn_plugin_open_v1
+ * FUNC: openvpn_plugin_client_constructor_v1 (this is the top-level "generic"
+ *                                             client template)
+ * FUNC: openvpn_plugin_func_v1 OPENVPN_PLUGIN_UP
+ * FUNC: openvpn_plugin_func_v1 OPENVPN_PLUGIN_ROUTE_UP
+ *
+ * New Client Connection:
+ *
+ * FUNC: openvpn_plugin_client_constructor_v1
+ * FUNC: openvpn_plugin_func_v1 OPENVPN_PLUGIN_VERIFY (called once for every cert
+ *                                                     in the server chain)
+ * FUNC: openvpn_plugin_func_v1 OPENVPN_PLUGIN_AUTH_USER_PASS_TLS_VERIFY
+ * FUNC: openvpn_plugin_func_v1 OPENVPN_PLUGIN_TLS_FINAL
+ * FUNC: openvpn_plugin_func_v1 OPENVPN_PLUGIN_IPCHANGE
+ *
+ * [If OPENVPN_PLUGIN_AUTH_USER_PASS_TLS_VERIFY returned OPENVPN_PLUGIN_FUNC_DEFERRED,
+ * we don't proceed until authentication is verified via auth_control_file]
+ *
+ * FUNC: openvpn_plugin_func_v1 OPENVPN_PLUGIN_CLIENT_CONNECT_V2
+ * FUNC: openvpn_plugin_func_v1 OPENVPN_PLUGIN_LEARN_ADDRESS
+ * 
+ * [Client session ensues]
+ *
+ * For each "TLS soft reset", according to reneg-sec option (or similar):
+ *
+ * FUNC: openvpn_plugin_func_v1 OPENVPN_PLUGIN_VERIFY (called once for every cert
+ *                                                     in the server chain)
+ * FUNC: openvpn_plugin_func_v1 OPENVPN_PLUGIN_AUTH_USER_PASS_TLS_VERIFY
+ * FUNC: openvpn_plugin_func_v1 OPENVPN_PLUGIN_TLS_FINAL
+ * 
+ * [If OPENVPN_PLUGIN_AUTH_USER_PASS_TLS_VERIFY returned OPENVPN_PLUGIN_FUNC_DEFERRED,
+ * we expect that authentication is verified via auth_control_file within
+ * the number of seconds defined by the "hand-window" option.  Data channel traffic
+ * will continue to flow uninterrupted during this period.]
+ *
+ * [Client session continues]
+ *
+ * FUNC: openvpn_plugin_func_v1 OPENVPN_PLUGIN_CLIENT_DISCONNECT
+ * FUNC: openvpn_plugin_client_constructor_v1
+ *
+ * [ some time may pass ]
+ *
+ * FUNC: openvpn_plugin_func_v1 OPENVPN_PLUGIN_LEARN_ADDRESS (this coincides with a
+ *                                                            lazy free of initial
+ *                                                            learned addr object)
+ * Server Shutdown:
+ *
+ * FUNC: openvpn_plugin_func_v1 OPENVPN_PLUGIN_DOWN
+ * FUNC: openvpn_plugin_client_destructor_v1 (top-level "generic" client)
+ * FUNC: openvpn_plugin_close_v1
  */
 #define OPENVPN_PLUGIN_UP                    0
 #define OPENVPN_PLUGIN_DOWN                  1

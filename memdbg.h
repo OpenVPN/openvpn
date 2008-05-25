@@ -47,6 +47,8 @@
 
 #include "valgrind/memcheck.h"
 
+#define VALGRIND_MAKE_READABLE(addr, len)
+
 #else
 
 #define VALGRIND_MAKE_READABLE(addr, len)

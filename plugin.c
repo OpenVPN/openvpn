@@ -401,7 +401,6 @@ plugin_per_client_init (const struct plugin_common *pc,
   const int n = pc->n;
   int i;
 
-  CLEAR (*cli);
   for (i = 0; i < n; ++i)
     {
       const struct plugin *p = &pc->plugins[i];

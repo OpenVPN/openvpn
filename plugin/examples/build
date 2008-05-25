@@ -8,7 +8,7 @@
 # This directory is where we will look for openvpn-plugin.h
 INCLUDE="-I../.."
 
-CC_FLAGS="-O2 -Wall"
+CC_FLAGS="-O2 -Wall -g"
 
 gcc $CC_FLAGS -fPIC -c $INCLUDE $1.c && \
-gcc -fPIC -shared -Wl,-soname,$1.so -o $1.so $1.o -lc
+gcc $CC_FLAGS -fPIC -shared -Wl,-soname,$1.so -o $1.so $1.o -lc
