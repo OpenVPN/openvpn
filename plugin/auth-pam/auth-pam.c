@@ -715,8 +715,14 @@ pam_server (int fd, const char *service, int verb, const struct name_value_list 
 	    }
 
 	  if (DEBUG (verb))
-	    fprintf (stderr, "AUTH-PAM: BACKGROUND: USER/PASS: %s/%s\n",
-		     up.username, up.password);
+	    {
+#if 0
+	      fprintf (stderr, "AUTH-PAM: BACKGROUND: USER/PASS: %s/%s\n",
+		       up.username, up.password);
+#else
+	      fprintf (stderr, "AUTH-PAM: BACKGROUND: USER: %s\n", up.username);
+#endif
+	    }
 
 	  if (pam_auth (service, &up)) /* Succeeded */
 	    {
