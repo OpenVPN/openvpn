@@ -401,7 +401,7 @@ extract_x509_field_ssl (X509_NAME *x509, const char *field_name, char *out, int 
   do {
     lastpos = tmp;
     tmp = X509_NAME_get_index_by_NID(x509, nid, lastpos);
-  } while (tmp > 0);
+  } while (tmp > -1);
 
   /* Nothing found */
   if (lastpos == -1)
