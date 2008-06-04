@@ -114,3 +114,17 @@
    Memcheck:Cond
    obj:/lib/ld-2.5.so
 }
+
+{
+   <insert a suppression name here>
+   Memcheck:Leak
+   fun:malloc
+   fun:CRYPTO_malloc
+   fun:sk_new
+   obj:/usr/lib/libssl.so.0.9.8
+   fun:SSL_COMP_get_compression_methods
+   fun:SSL_library_init
+   fun:init_ssl_lib
+   fun:init_static
+   fun:main
+}

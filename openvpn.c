@@ -130,7 +130,7 @@ main (int argc, char *argv[])
 	  gc_init (&c.gc);
 
 	  /* initialize environmental variable store */
-	  c.es = env_set_create (&c.gc);
+	  c.es = env_set_create (NULL);
 
 #ifdef ENABLE_MANAGEMENT
 	  /* initialize management subsystem */
@@ -232,6 +232,8 @@ main (int argc, char *argv[])
     }
 
   context_gc_free (&c);
+
+  env_set_destroy (c.es);
 
 #ifdef ENABLE_MANAGEMENT
   /* close management interface */
