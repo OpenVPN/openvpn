@@ -492,6 +492,10 @@ process_coarse_timers (struct context *c)
   check_push_request (c);
 #endif
 
+#ifdef ENABLE_PF
+  pf_check_reload (c);
+#endif
+
   /* process --route options */
   check_add_routes (c);
 

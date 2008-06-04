@@ -57,7 +57,7 @@ struct hash_element
 struct hash_bucket
 {
   MUTEX_DEFINE (mutex);
-  struct hash_element * volatile list;
+  struct hash_element *list;
 };
 
 struct hash
@@ -72,6 +72,7 @@ struct hash
 };
 
 struct hash *hash_init (const int n_buckets,
+			const uint32_t iv,
 			uint32_t (*hash_function)(const void *key, uint32_t iv),
 			bool (*compare_function)(const void *key1, const void *key2));
 

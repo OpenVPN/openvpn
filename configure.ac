@@ -520,7 +520,7 @@ dnl Checking for a working epoll
 AC_CHECKING([for working epoll implementation])
 OLDLDFLAGS="$LDFLAGS"
 LDFLAGS="$LDFLAGS -Wl,--fatal-warnings"
-AC_CHECK_FUNCS(epoll_create, AC_DEFINE([HAVE_EPOLL_CREATE], 1, []))
+AC_CHECK_FUNC(epoll_create, AC_DEFINE(HAVE_EPOLL_CREATE, 1, [epoll_create function is defined]))
 LDFLAGS="$OLDLDFLAGS"
 
 dnl
@@ -605,6 +605,24 @@ if test "${WIN32}" != "yes"; then
            )],
            [AC_MSG_RESULT([libdl headers not found.])]
       )
+   fi
+fi
+
+dnl
+dnl Check if LoadLibrary exists on Windows
+dnl
+if test "${WIN32}" == "yes"; then
+   if test "$PLUGINS" = "yes"; then
+	AC_TRY_LINK([
+	    #include <windows.h>
+	  ], [
+	    LoadLibrary (NULL);
+	  ], [
+	    AC_MSG_RESULT([LoadLibrary DEFINED])
+	    AC_DEFINE(USE_LOAD_LIBRARY, 1, [Use LoadLibrary to load DLLs on Windows])
+	  ], [
+	    AC_MSG_RESULT([LoadLibrary UNDEFINED])
+	  ])
    fi
 fi
 

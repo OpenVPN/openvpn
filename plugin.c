@@ -83,6 +83,8 @@ plugin_type_name (const int type)
       return "PLUGIN_LEARN_ADDRESS";
     case OPENVPN_PLUGIN_TLS_FINAL:
       return "PLUGIN_TLS_FINAL";
+    case OPENVPN_PLUGIN_ENABLE_PF:
+      return "OPENVPN_PLUGIN_ENABLE_PF";
     default:
       return "PLUGIN_???";
     }
@@ -540,6 +542,7 @@ plugin_call (const struct plugin_list *pl,
       int i;
       const char **envp;
       const int n = plugin_n (pl);
+      bool success = false;
       bool error = false;
       bool deferred = false;
       
@@ -556,10 +559,18 @@ plugin_call (const struct plugin_list *pl,
 					       args,
 					       pr ? &pr->list[i] : NULL,
 					       envp);
-	  if (status == OPENVPN_PLUGIN_FUNC_ERROR)
-	    error = true;
-	  else if (status == OPENVPN_PLUGIN_FUNC_DEFERRED)
-	    deferred = true;
+	  switch (status)
+	    {
+	    case OPENVPN_PLUGIN_FUNC_SUCCESS:
+	      success = true;
+	      break;
+	    case OPENVPN_PLUGIN_FUNC_DEFERRED:
+	      deferred = true;
+	      break;
+	    default:
+	      error = true;
+	      break;
+	    }
 	}
 
       if (pr)
@@ -569,7 +580,9 @@ plugin_call (const struct plugin_list *pl,
 
       gc_free (&gc);
 
-      if (error)
+      if (type == OPENVPN_PLUGIN_ENABLE_PF && success)
+	return OPENVPN_PLUGIN_FUNC_SUCCESS;
+      else if (error)
 	return OPENVPN_PLUGIN_FUNC_ERROR;
       else if (deferred)
 	return OPENVPN_PLUGIN_FUNC_DEFERRED;

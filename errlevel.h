@@ -94,6 +94,7 @@
 #define D_ROUTE_QUOTA        LOGLEV(3, 43, 0)        /* show route quota exceeded messages */
 #define D_OSBUF              LOGLEV(3, 44, 0)        /* show socket/tun/tap buffer sizes */
 #define D_PS_PROXY           LOGLEV(3, 45, 0)        /* messages related to --port-share option */
+#define D_PF                 LOGLEV(3, 46, 0)        /* messages related to packet filter */
 
 #define D_SHOW_PARMS         LOGLEV(4, 50, 0)        /* show all parameters on program initiation */
 #define D_SHOW_OCC           LOGLEV(4, 51, 0)        /* show options compatibility string */

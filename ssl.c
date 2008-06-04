@@ -47,6 +47,7 @@
 #include "status.h"
 #include "gremlin.h"
 #include "pkcs11.h"
+#include "list.h"
 
 #ifdef WIN32
 #include "cryptoapi.h"
@@ -436,10 +437,22 @@ set_common_name (struct tls_session *session, const char *common_name)
     {
       free (session->common_name);
       session->common_name = NULL;
+#ifdef ENABLE_PF
+      session->common_name_hashval = 0;
+#endif
     }
   if (common_name)
     {
       session->common_name = string_alloc (common_name, NULL);
+#ifdef ENABLE_PF
+      {
+	const uint32_t len = (uint32_t) strlen (common_name);
+	if (len)
+	  session->common_name_hashval = hash_func ((const uint8_t*)common_name, len+1, 0);
+	else
+	  session->common_name_hashval = 0;
+      }
+#endif
     }
 }
 
@@ -825,7 +838,7 @@ tls_set_common_name (struct tls_multi *multi, const char *common_name)
 }
 
 const char *
-tls_common_name (struct tls_multi *multi, bool null)
+tls_common_name (const struct tls_multi *multi, const bool null)
 {
   const char *ret = NULL;
   if (multi)
@@ -845,6 +858,8 @@ tls_lock_common_name (struct tls_multi *multi)
   if (cn && !multi->locked_cn)
     multi->locked_cn = string_alloc (cn, NULL);
 }
+
+#ifdef ENABLE_DEF_AUTH
 
 /*
  * auth_control_file functions
@@ -876,33 +891,36 @@ key_state_gen_auth_control_file (struct key_state *ks, const struct tls_options 
 }
 
 /* key_state_test_auth_control_file return values */
-#define ACF_SUCCEEDED 0
-#define ACF_FAILED    1
-#define ACF_KILL      2
-#define ACF_UNDEFINED 3
-#define ACF_DISABLED  4
+#define ACF_UNDEFINED 0
+#define ACF_SUCCEEDED 1
+#define ACF_DISABLED  2
+#define ACF_FAILED    3
 static int
-key_state_test_auth_control_file (const struct key_state *ks)
+key_state_test_auth_control_file (struct key_state *ks)
 {
-  int ret = ACF_DISABLED;
   if (ks && ks->auth_control_file)
     {
-      ret = ACF_UNDEFINED;
-      FILE *fp = fopen (ks->auth_control_file, "r");
-      if (fp)
+      int ret = ks->auth_control_status;
+      if (ret == ACF_UNDEFINED)
 	{
-	  int c = fgetc (fp);
-	  if (c == '1')
-	    ret = ACF_SUCCEEDED;
-	  else if (c == '0')
-	    ret = ACF_FAILED;
-	  else if (c == '2')
-	    ret = ACF_KILL;
-	  fclose (fp);
+	  FILE *fp = fopen (ks->auth_control_file, "r");
+	  if (fp)
+	    {
+	      const int c = fgetc (fp);
+	      if (c == '1')
+		ret = ACF_SUCCEEDED;
+	      else if (c == '0')
+		ret = ACF_FAILED;
+	      fclose (fp);
+	      ks->auth_control_status = ret;
+	    }
 	}
+      return ret;
     }
-  return ret;
+  return ACF_DISABLED;
 }
+
+#endif
 
 /*
  * Return current session authentication state.  Return
@@ -914,12 +932,13 @@ tls_authentication_status (struct tls_multi *multi, const int latency)
 {
   bool deferred = false;
   bool success = false;
-  bool kill = false;
   bool active = false;
 
+#ifdef ENABLE_DEF_AUTH
   if (latency && multi->tas_last && multi->tas_last + latency >= now)
     return TLS_AUTHENTICATION_UNDEFINED;
   multi->tas_last = now;
+#endif
 
   if (multi)
     {
@@ -932,6 +951,7 @@ tls_authentication_status (struct tls_multi *multi, const int latency)
 	      active = true;
 	      if (ks->authenticated)
 		{
+#ifdef ENABLE_DEF_AUTH
 		  switch (key_state_test_auth_control_file (ks))
 		    {
 		    case ACF_SUCCEEDED:
@@ -946,25 +966,22 @@ tls_authentication_status (struct tls_multi *multi, const int latency)
 		    case ACF_FAILED:
 		      ks->authenticated = false;
 		      break;
-		    case ACF_KILL:
-		      kill = true;
-		      ks->authenticated = false;
-		      break;
 		    default:
 		      ASSERT (0);
 		    }
+#else
+		  success = true;
+#endif
 		}
 	    }
 	}
     }
 
 #if 0
-  dmsg (D_TLS_ERRORS, "TAS: a=%d k=%d s=%d d=%d", active, kill, success, deferred);
+  dmsg (D_TLS_ERRORS, "TAS: a=%d s=%d d=%d", active, success, deferred);
 #endif
 
-  if (kill)
-    return TLS_AUTHENTICATION_FAILED;
-  else if (success)
+  if (success)
     return TLS_AUTHENTICATION_SUCCEEDED;
   else if (!active || deferred)
     return TLS_AUTHENTICATION_DEFERRED;
@@ -2001,7 +2018,9 @@ key_state_free (struct key_state *ks, bool clear)
 
   packet_id_free (&ks->packet_id);
 
+#ifdef ENABLE_DEF_AUTH
   key_state_rm_auth_control_file (ks);
+#endif
 
   if (clear)
     CLEAR (*ks);
@@ -2914,15 +2933,19 @@ verify_user_pass_plugin (struct tls_session *session, const struct user_pass *up
       /* setenv client real IP address */
       setenv_untrusted (session);
 
+#ifdef ENABLE_DEF_AUTH
       /* generate filename for deferred auth control file */
       key_state_gen_auth_control_file (ks, session->opt);
+#endif
 
       /* call command */
       retval = plugin_call (session->opt->plugins, OPENVPN_PLUGIN_AUTH_USER_PASS_VERIFY, NULL, NULL, session->opt->es);
 
+#ifdef ENABLE_DEF_AUTH
       /* purge auth control filename (and file itself) for non-deferred returns */
       if (retval != OPENVPN_PLUGIN_FUNC_DEFERRED)
 	key_state_rm_auth_control_file (ks);
+#endif
 
       setenv_del (session->opt->es, "password");
       setenv_str (session->opt->es, "username", up->username);
@@ -3178,11 +3201,17 @@ key_method_2_read (struct buffer *buf, struct tls_multi *multi, struct tls_sessi
 	s2 = verify_user_pass_script (session, up);
       
       /* auth succeeded? */
-      if ((s1 == OPENVPN_PLUGIN_FUNC_SUCCESS || s1 == OPENVPN_PLUGIN_FUNC_DEFERRED) && s2)
+      if ((s1 == OPENVPN_PLUGIN_FUNC_SUCCESS
+#ifdef ENABLE_DEF_AUTH
+	   || s1 == OPENVPN_PLUGIN_FUNC_DEFERRED
+#endif
+	   ) && s2)
 	{
 	  ks->authenticated = true;
+#ifdef ENABLE_DEF_AUTH
 	  if (s1 == OPENVPN_PLUGIN_FUNC_DEFERRED)
 	    ks->auth_deferred = true;
+#endif
 	  if (session->opt->username_as_common_name)
 	    set_common_name (session, up->username);
 	  msg (D_HANDSHAKE, "TLS: Username/Password authentication %s for username '%s' %s",
@@ -3923,7 +3952,9 @@ tls_pre_decrypt (struct tls_multi *multi,
 	      if (DECRYPT_KEY_ENABLED (multi, ks)
 		  && key_id == ks->key_id
 		  && ks->authenticated
+#ifdef ENABLE_DEF_AUTH
 		  && !ks->auth_deferred
+#endif
 		  && link_socket_actual_match (from, &ks->remote_addr))
 		{
 		  /* return appropriate data channel decrypt key in opt */
@@ -3950,7 +3981,11 @@ tls_pre_decrypt (struct tls_multi *multi,
 			key_id,
 			ks->key_id,
 			ks->authenticated,
+#ifdef ENABLE_DEF_AUTH
 			ks->auth_deferred,
+#else
+			-1,
+#endif
 			link_socket_actual_match (from, &ks->remote_addr));
 		}
 #endif
@@ -3959,7 +3994,7 @@ tls_pre_decrypt (struct tls_multi *multi,
 	  msg (D_TLS_ERRORS,
 	       "TLS Error: local/remote TLS keys are out of sync: %s [%d]",
 	       print_link_socket_actual (from, &gc), key_id);
-	  goto error;
+	  goto error_lite;
 	}
       else			  /* control channel packet */
 	{
@@ -4312,8 +4347,9 @@ tls_pre_decrypt (struct tls_multi *multi,
   return ret;
 
  error:
-  ERR_clear_error ();
   ++multi->n_soft_errors;
+ error_lite:
+  ERR_clear_error ();
   goto done;
 }
 
@@ -4443,7 +4479,9 @@ tls_pre_encrypt (struct tls_multi *multi,
 	  struct key_state *ks = multi->key_scan[i];
 	  if (ks->state >= S_ACTIVE
 	      && ks->authenticated
+#ifdef ENABLE_DEF_AUTH
 	      && !ks->auth_deferred
+#endif
 	      && (!ks->key_id || now >= ks->auth_deferred_expire))
 	    {
 	      opt->key_ctx_bi = &ks->key;

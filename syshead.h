@@ -471,6 +471,20 @@ socket_defined (const socket_descriptor_t sd)
 #endif
 
 /*
+ * Enable deferred authentication
+ */
+#if defined(ENABLE_PLUGIN) && P2MP_SERVER
+#define ENABLE_DEF_AUTH
+#endif
+
+/*
+ * Enable packet filter
+ */
+#if defined(ENABLE_PLUGIN) && P2MP_SERVER && defined(HAVE_STAT)
+#define ENABLE_PF
+#endif
+
+/*
  * Do we have pthread capability?
  */
 #ifdef USE_PTHREAD

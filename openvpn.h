@@ -46,6 +46,7 @@
 #include "pool.h"
 #include "plugin.h"
 #include "manage.h"
+#include "pf.h"
 
 /*
  * Our global key schedules, packaged thusly
@@ -430,7 +431,11 @@ struct context_2
   const char *pulled_options_string;
 
   struct event_timeout scheduled_exit;
+#endif
 
+  /* packet filter */
+#ifdef ENABLE_PF
+  struct pf_context pf;
 #endif
 };
 

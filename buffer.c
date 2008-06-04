@@ -424,6 +424,15 @@ string_null_terminate (char *str, int len, int capacity)
 void
 chomp (char *str)
 {
+  rm_trailing_chars (str, "\r\n");
+}
+
+/*
+ * Remove trailing chars
+ */
+void
+rm_trailing_chars (char *str, const char *what_to_delete)
+{
   bool modified;
   do {
     const int len = strlen (str);
@@ -431,7 +440,7 @@ chomp (char *str)
     if (len > 0)
       {
 	char *cp = str + (len - 1);
-	if (*cp == '\n' || *cp == '\r')
+	if (strchr (what_to_delete, *cp) != NULL)
 	  {
 	    *cp = '\0';
 	    modified = true;

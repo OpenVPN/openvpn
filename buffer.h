@@ -137,6 +137,13 @@ buf_reset (struct buffer *buf)
   buf->data = NULL;
 }
 
+static inline void
+buf_reset_len (struct buffer *buf)
+{
+  buf->len = 0;
+  buf->offset = 0;
+}
+
 static inline bool
 buf_init_dowork (struct buffer *buf, int offset)
 {
@@ -224,6 +231,7 @@ void buf_rmtail (struct buffer *buf, uint8_t remove);
  * non-buffer string functions
  */
 void chomp (char *str);
+void rm_trailing_chars (char *str, const char *what_to_delete);
 const char *skip_leading_whitespace (const char *str);
 void string_null_terminate (char *str, int len, int capacity);
 

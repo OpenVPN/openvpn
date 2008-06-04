@@ -4023,15 +4023,15 @@ add_option (struct options *options,
 	}
       options->routes->flags |= RG_ENABLE;
     }
-  else if (streq (p[0], "setenv") && p[1] && p[2])
+  else if (streq (p[0], "setenv") && p[1])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
-      setenv_str (es, p[1], p[2]);
+      setenv_str (es, p[1], p[2] ? p[2] : "");
     }
-  else if (streq (p[0], "setenv-safe") && p[1] && p[2])
+  else if (streq (p[0], "setenv-safe") && p[1])
     {
       VERIFY_PERMISSION (OPT_P_SETENV);
-      setenv_str_safe (es, p[1], p[2]);
+      setenv_str_safe (es, p[1], p[2] ? p[2] : "");
     }
   else if (streq (p[0], "mssfix"))
     {

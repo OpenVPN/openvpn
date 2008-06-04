@@ -2737,6 +2737,11 @@ init_instance (struct context *c, const struct env_set *env, const unsigned int 
     init_port_share (c);
 #endif
 	  
+#ifdef ENABLE_PF
+  if (child)
+    pf_init_context (c);
+#endif
+
   /* Check for signals */
   if (IS_SIG (c))
     goto sig;
@@ -2786,6 +2791,10 @@ close_instance (struct context *c)
 
 	/* close TUN/TAP device */
 	do_close_tun (c, false);
+
+#ifdef ENABLE_PF
+	pf_destroy_context (&c->c2.pf);
+#endif
 
 #ifdef ENABLE_PLUGIN
 	/* call plugin close functions and unload */

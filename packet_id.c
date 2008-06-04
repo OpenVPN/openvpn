@@ -209,12 +209,12 @@ packet_id_test (const struct packet_id_rec *p,
     {
       /*
        * In non-backtrack mode, all sequence number series must
-       * begin at 1 and must increment linearly without gaps.
+       * begin at some number n > 0 and must increment linearly without gaps.
        *
        * This mode is used with TCP.
        */
       if (pin->time == p->time)
-	return pin->id == p->id + 1;
+	return !p->id || pin->id == p->id + 1;
       else if (pin->time < p->time) /* if time goes back, reject */
 	return false;
       else                          /* time moved forward */

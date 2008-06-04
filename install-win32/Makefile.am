@@ -25,8 +25,32 @@
 MAINTAINERCLEANFILES = $(srcdir)/Makefile.in
 
 dist_noinst_DATA = \
+	GetWindowsVersion.nsi \
+	build-pkcs11-helper.sh \
+	buildinstaller \
+	buildopensslpath.bat \
+	ddk-common \
+	doclean \
+	dosname.pl \
+	getgui \
+	getopenssl \
+	getpkcs11helper \
+	getprebuilt \
+	getxgui \
+	ifdef.pl \
+	m4todef.pl \
+	macro.pl \
+	makeopenvpn \
+	maketap \
+	maketapinstall \
+	maketext \
+	openssl.patch \
 	openvpn.nsi \
-	setpath.nsi
+	setpath.nsi \
+	settings.in \
+	trans.pl \
+	u2d.c \
+	winconfig
 
 if WIN32
 

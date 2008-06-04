@@ -229,6 +229,7 @@ multi_init (struct multi_context *m, struct context *t, bool tcp_mode, int threa
    * which is seen on the TCP/UDP socket.
    */
   m->hash = hash_init (t->options.real_hash_size,
+		       get_random (),
 		       mroute_addr_hash_function,
 		       mroute_addr_compare_function);
 
@@ -237,6 +238,7 @@ multi_init (struct multi_context *m, struct context *t, bool tcp_mode, int threa
    * which client to route a packet to. 
    */
   m->vhash = hash_init (t->options.virtual_hash_size,
+			get_random (),
 			mroute_addr_hash_function,
 			mroute_addr_compare_function);
 
@@ -246,6 +248,7 @@ multi_init (struct multi_context *m, struct context *t, bool tcp_mode, int threa
    * for fast iteration through the list.
    */
   m->iter = hash_init (1,
+		       get_random (),
 		       mroute_addr_hash_function,
 		       mroute_addr_compare_function);
 
@@ -1818,12 +1821,29 @@ multi_process_incoming_link (struct multi_context *m, struct multi_instance *ins
 		      /* if dest addr is a known client, route to it */
 		      if (mi)
 			{
-			  multi_unicast (m, &c->c2.to_tun, mi);
-			  register_activity (c, BLEN(&c->c2.to_tun));
+#ifdef ENABLE_PF
+			  if (!pf_c2c_test (c, &mi->context))
+			    {
+			      msg (D_PF, "PF: client -> [%s] packet dropped by packet filter",
+				   np (mi->msg_prefix));
+			    }
+			  else
+#endif
+			    {
+			      multi_unicast (m, &c->c2.to_tun, mi);
+			      register_activity (c, BLEN(&c->c2.to_tun));
+			    }
 			  c->c2.to_tun.len = 0;
 			}
 		    }
 		}
+#ifdef ENABLE_PF
+	      else if (!pf_addr_test (c, &dest))
+		{
+		  msg (D_PF, "PF: client -> [%s] packet dropped by packet filter",
+		       mroute_addr_print (&dest, &gc));
+		}
+#endif
 	    }
 	  else if (TUNNEL_TYPE (m->top.c1.tuntap) == DEV_TYPE_TAP)
 	    {
@@ -1936,17 +1956,28 @@ multi_process_incoming_tun (struct multi_context *m, const unsigned int mpp_flag
 		  
 		  set_prefix (m->pending);
 
-		  if (multi_output_queue_ready (m, m->pending))
+#ifdef ENABLE_PF
+		  if (!pf_addr_test (c, &src))
 		    {
-		      /* transfer packet pointer from top-level context buffer to instance */
-		      c->c2.buf = m->top.c2.buf;
+		      msg (D_PF, "PF: [%s] -> client packet dropped by packet filter",
+			   mroute_addr_print (&src, &gc));
+		      buf_reset_len (&c->c2.buf);
 		    }
 		  else
-		    {
-		      /* drop packet */
-		      msg (D_MULTI_DROPPED, "MULTI: packet dropped due to output saturation (multi_process_incoming_tun)");
-		      buf_clear (&c->c2.buf);
-		    }
+#endif
+		  {
+		    if (multi_output_queue_ready (m, m->pending))
+		      {
+			/* transfer packet pointer from top-level context buffer to instance */
+			c->c2.buf = m->top.c2.buf;
+		      }
+		    else
+		      {
+			/* drop packet */
+			msg (D_MULTI_DROPPED, "MULTI: packet dropped due to output saturation (multi_process_incoming_tun)");
+			buf_reset_len (&c->c2.buf);
+		      }
+		  }
 	      
 		  /* encrypt in instance context */
 		  process_incoming_tun (c);

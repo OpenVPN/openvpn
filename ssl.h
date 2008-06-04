@@ -370,11 +370,15 @@ struct key_state
    * If bad username/password, TLS connection will come up but 'authenticated' will be false.
    */
   bool authenticated;
-
-  /* If auth_deferred is true, authentication is being deferred */
-  char *auth_control_file;
-  bool auth_deferred;
   time_t auth_deferred_expire;
+
+#ifdef ENABLE_DEF_AUTH
+  /* If auth_deferred is true, authentication is being deferred */
+  bool auth_deferred;
+  time_t acf_last_mod;
+  char *auth_control_file;
+  int auth_control_status;
+#endif
 };
 
 /*
@@ -498,6 +502,11 @@ struct tls_session
   int verify_maxlevel;
 
   char *common_name;
+
+#ifdef ENABLE_PF
+  uint32_t common_name_hashval;
+#endif
+
   bool verified;                /* true if peer certificate was verified against CA */
 
   /* not-yet-authenticated incoming client */
@@ -569,8 +578,10 @@ struct tls_multi
    */
   char *locked_cn;
 
+#ifdef ENABLE_DEF_AUTH
   /* Time of last call to tls_authentication_status */
   time_t tas_last;
+#endif
 
   /*
    * Our session objects.
@@ -657,7 +668,7 @@ bool tls_send_payload (struct tls_multi *multi,
 bool tls_rec_payload (struct tls_multi *multi,
 		      struct buffer *buf);
 
-const char *tls_common_name (struct tls_multi* multi, bool null);
+const char *tls_common_name (const struct tls_multi* multi, const bool null);
 void tls_set_common_name (struct tls_multi *multi, const char *common_name);
 void tls_lock_common_name (struct tls_multi *multi);
 
@@ -671,6 +682,17 @@ void tls_deauthenticate (struct tls_multi *multi);
 /*
  * inline functions
  */
+
+static inline bool
+tls_test_auth_deferred_interval (const struct tls_multi *multi)
+{
+  if (multi)
+    {
+      const struct key_state *ks = &multi->session[TM_ACTIVE].key[KS_PRIMARY];
+      return now < ks->auth_deferred_expire;
+    }
+  return false;
+}
 
 static inline int
 tls_test_payload_len (const struct tls_multi *multi)
@@ -690,6 +712,26 @@ tls_set_single_session (struct tls_multi *multi)
   if (multi)
     multi->opt.single_session = true;
 }
+
+#ifdef ENABLE_PF
+
+static inline bool
+tls_common_name_hash (const struct tls_multi *multi, const char **cn, uint32_t *cn_hash)
+{
+  if (multi)
+    {
+      const struct tls_session *s = &multi->session[TM_ACTIVE];
+      if (s->common_name && s->common_name[0] != '\0')
+	{
+	  *cn = s->common_name;
+	  *cn_hash = s->common_name_hashval;
+	  return true;
+	}
+    }
+  return false;
+}
+
+#endif
 
 /*
  * protocol_dump() flags

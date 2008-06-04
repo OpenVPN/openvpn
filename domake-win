@@ -11,6 +11,9 @@
 # and openvpnserv.exe) you can use the
 # provided autoconf/automake build environment.
 #
+# If you are building from an expanded .tar.gz file,
+# make sure to run "./doclean" before "./domake-win".
+#
 # See top-level build configuration and settings in:
 #
 #   version.m4

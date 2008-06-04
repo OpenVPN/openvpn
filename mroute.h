@@ -163,5 +163,14 @@ mroute_extract_in_addr_t (struct mroute_addr *dest, const in_addr_t src)
   *(in_addr_t*)dest->addr = htonl (src);
 }
 
+static inline in_addr_t
+in_addr_t_from_mroute_addr (const struct mroute_addr *addr)
+{
+  if (addr->type == MR_ADDR_IPV4 && addr->netbits == 0 && addr->len == 4)
+    return ntohl(*(in_addr_t*)addr->addr);
+  else
+    return 0;
+}
+
 #endif /* P2MP_SERVER */
 #endif /* MROUTE_H */
