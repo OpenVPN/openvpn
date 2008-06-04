@@ -25,10 +25,10 @@
 MAINTAINERCLEANFILES = $(srcdir)/Makefile.in
 
 dist_noinst_DATA = \
+	openssl \
 	GetWindowsVersion.nsi \
 	build-pkcs11-helper.sh \
 	buildinstaller \
-	buildopensslpath.bat \
 	ddk-common \
 	doclean \
 	dosname.pl \
@@ -44,7 +44,6 @@ dist_noinst_DATA = \
 	maketap \
 	maketapinstall \
 	maketext \
-	openssl.patch \
 	openvpn.nsi \
 	setpath.nsi \
 	settings.in \

@@ -1,0 +1,67 @@
+diff -urw tmp/openssl-0.9.8h/crypto/pqueue/pqueue.c openssl-0.9.8h/crypto/pqueue/pqueue.c
+--- tmp/openssl-0.9.8h/crypto/pqueue/pqueue.c	Tue Jun 28 06:53:34 2005
++++ openssl-0.9.8h/crypto/pqueue/pqueue.c	Wed Jun  4 02:52:42 2008
+@@ -199,10 +199,10 @@
+ 	return found;
+ 	}
+ 
+-#if PQ_64BIT_IS_INTEGER
+ void
+ pqueue_print(pqueue_s *pq)
+ 	{
++#if PQ_64BIT_IS_INTEGER
+ 	pitem *item = pq->items;
+ 
+ 	while(item != NULL)
+@@ -210,8 +210,8 @@
+ 		printf("item\t" PQ_64BIT_PRINT "\n", item->priority);
+ 		item = item->next;
+ 		}
+-	}
+ #endif
++	}
+ 
+ pitem *
+ pqueue_iterator(pqueue_s *pq)
+diff -urw tmp/openssl-0.9.8h/ms/mw.bat openssl-0.9.8h/ms/mw.bat
+--- tmp/openssl-0.9.8h/ms/mw.bat	Sat Feb 22 11:00:10 2003
++++ openssl-0.9.8h/ms/mw.bat	Wed Jun  4 02:56:54 2008
+@@ -1,17 +1,23 @@
+ @rem OpenSSL with Mingw32
+ @rem --------------------
+ 
++@rem Include MinGW, MSYS, and ActiveState Perl in path
++set PATH=c:\bin;C:\Perl\bin\;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;c:\MinGW\bin;c:\msys\1.0\bin
++
+ @rem Makefile
+ perl util\mkfiles.pl >MINFO
+-perl util\mk1mf.pl Mingw32 >ms\mingw32.mak
++perl util\mk1mf.pl no-idea no-mdc2 no-rc5 Mingw32 >ms\mingw32.mak
++
+ @rem DLL definition files
+-perl util\mkdef.pl 32 libeay >ms\libeay32.def
++perl util\mkdef.pl no-idea no-mdc2 no-rc5 32 libeay >ms\libeay32.def
+ if errorlevel 1 goto end
+-perl util\mkdef.pl 32 ssleay >ms\ssleay32.def
++perl util\mkdef.pl no-idea no-mdc2 no-rc5 32 ssleay >ms\ssleay32.def
+ if errorlevel 1 goto end
+ 
+ @rem Build the libraries
+-make -f ms/mingw32.mak
++
++@rem JY added --win32
++make --win32 -f ms/mingw32.mak
+ if errorlevel 1 goto end
+ 
+ @rem Generate the DLLs and input libraries
+@@ -20,7 +26,9 @@
+ dllwrap --dllname libssl32.dll --output-lib out/libssl32.a --def ms/ssleay32.def out/libssl.a out/libeay32.a
+ if errorlevel 1 goto end
+ 
++@rem JY added openssl.exe linked to DLL
++gcc -o openssl  tmp\verify.o tmp\asn1pars.o tmp\req.o tmp\dgst.o tmp\dh.o tmp\dhparam.o tmp\enc.o tmp\passwd.o tmp\gendh.o tmp\errstr.o tmp\ca.o tmp\pkcs7.o tmp\crl2p7.o tmp\crl.o tmp\rsa.o tmp\rsautl.o tmp\dsa.o tmp\dsaparam.o tmp\x509.o tmp\genrsa.o tmp\gendsa.o tmp\s_server.o tmp\s_client.o tmp\speed.o tmp\s_time.o tmp\apps.o tmp\s_cb.o tmp\s_socket.o tmp\app_rand.o tmp\version.o tmp\sess_id.o tmp\ciphers.o tmp\nseq.o tmp\pkcs12.o tmp\pkcs8.o tmp\spkac.o tmp\smime.o tmp\rand.o tmp\engine.o tmp\ocsp.o tmp\prime.o tmp\openssl.o -leay32 -lssl32 -L. -lwsock32 -lgdi32
++
+ echo Done compiling OpenSSL
+ 
+ :end
+-
