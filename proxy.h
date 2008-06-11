@@ -80,9 +80,10 @@ struct http_proxy_info {
   struct user_pass up;
 };
 
-struct http_proxy_info *new_http_proxy (const struct http_proxy_options *o,
-					struct auto_proxy_info *auto_proxy_info,
-					struct gc_arena *gc);
+struct http_proxy_info *http_proxy_new (const struct http_proxy_options *o,
+					struct auto_proxy_info *auto_proxy_info);
+
+void http_proxy_close (struct http_proxy_info *hp);
 
 bool establish_http_proxy_passthru (struct http_proxy_info *p,
 				    socket_descriptor_t sd, /* already open to proxy */

@@ -466,17 +466,26 @@ If specified, OpenVPN will bind to this address only.
 If unspecified, OpenVPN will bind to all interfaces.
 .\"*********************************************************
 .TP
-.B --remote host [port]
+.B --remote host [port] [proto]
 Remote host name or IP address.  On the client, multiple
 .B --remote
 options may be specified for redundancy, each referring
-to a different OpenVPN server.
+to a different OpenVPN server.  Specifying multiple
+.B --remote
+options for this purpose is a special case of the more
+general connection-profile feature.  See the
+.B <connection>
+documentation below.
 
 The OpenVPN client will try to connect to a server at
 .B host:port
 in the order specified by the list of
 .B --remote
 options.
+
+.B proto
+indicates the protocol to use when connecting with the
+remote, and may be "tcp" or "udp".
 
 The client will move on to the next host in the list,
 in the event of connection failure.
@@ -527,10 +536,124 @@ chosen, providing a sort of basic load-balancing and
 failover capability.
 .\"*********************************************************
 .TP
+.B <connection>
+Define a client connection
+profile.  Client connection profiles are groups of OpenVPN options that
+describe how to connect to a given OpenVPN server.  Client connection
+profiles are specified within an OpenVPN configuration file, and
+each profile is bracketed by
+.B <connection>
+and
+.B </connection>.
+
+An OpenVPN client will try each connection profile sequentially
+until it achieves a successful connection.  
+
+.B --remote-random
+can be used to initially "scramble" the connection
+list.
+
+Here is an example of connection profile usage:
+
+.RS
+.ft 3
+.nf
+.sp
+client
+dev tun
+
+<connection>
+remote 198.19.34.56 1194 udp
+</connection>
+
+<connection>
+remote 198.19.34.56 443 tcp
+</connection>
+
+<connection>
+remote 198.19.34.56 443 tcp
+http-proxy 192.168.0.8 8080
+http-proxy-retry
+</connection>
+
+<connection>
+remote 198.19.36.99 443 tcp
+http-proxy 192.168.0.8 8080
+http-proxy-retry
+</connection>
+
+persist-key
+persist-tun
+pkcs12 client.p12
+ns-cert-type server
+verb 3
+.ft
+.LP
+.RE
+.fi
+
+First we try to connect to a server at 198.19.34.56:1194 using UDP.
+If that fails, we then try to connect to 198.19.34.56:443 using TCP.
+If that also fails, then try connecting through an HTTP proxy at 
+192.168.0.8:8080 to 198.19.34.56:443 using TCP.  Finally, try to
+connect through the same proxy to a server at 198.19.36.99:443
+using TCP.
+
+The following OpenVPN options may be used inside of
+a
+.B <connection>
+block:
+
+.B bind,
+.B connect-retry,
+.B connect-retry-max,
+.B connect-timeout,
+.B float,
+.B http-proxy,
+.B http-proxy-option,
+.B http-proxy-retry,
+.B http-proxy-timeout,
+.B local,
+.B lport,
+.B nobind,
+.B port,
+.B proto,
+.B remote,
+.B rport,
+.B socks-proxy, and
+.B socks-proxy-retry.
+
+A defaulting mechanism exists for specifying options to apply to
+all
+.B <connection>
+profiles.  If any of the above options (with the exception of
+.B remote
+) appear outside of a
+.B <connection>
+block, but in a configuration file which has one or more
+.B <connection>
+blocks, the option setting will be used as a default for
+.B <connection>
+blocks which follow it in the configuration file.
+
+For example, suppose the
+.B nobind
+option were placed in the sample configuration file above, near
+the top of the file, before the first
+.B <connection>
+block.  The effect would be as if
+.B nobind
+were declared in all
+.B <connection>
+blocks below it.
+
+.\"*********************************************************
+.TP
 .B --remote-random
 When multiple
 .B --remote
-address/ports are specified, initially randomize the order of the list
+address/ports are specified, or if connection profiles are being
+used, initially randomize the order of the list
 as a kind of basic load-balancing measure.
 .\"*********************************************************
 .TP

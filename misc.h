@@ -165,6 +165,9 @@ void setenv_str (struct env_set *es, const char *name, const char *value);
 void setenv_str_safe (struct env_set *es, const char *name, const char *value);
 void setenv_del (struct env_set *es, const char *name);
 
+void setenv_int_i (struct env_set *es, const char *name, const int value, const int i);
+void setenv_str_i (struct env_set *es, const char *name, const char *value, const int i);
+
 /* struct env_set functions */
 
 struct env_set *env_set_create (struct gc_arena *gc);

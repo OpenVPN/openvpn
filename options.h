@@ -82,10 +82,65 @@ struct options_pre_pull
 
 #endif
 
+struct connection_entry
+{
+  int proto;
+  int local_port;
+  bool local_port_defined;
+  int remote_port;
+  bool port_option_used;
+  const char *local;
+  const char *remote;
+  bool remote_float;
+  bool bind_defined;
+  bool bind_local;
+  int connect_retry_seconds;
+  bool connect_retry_defined;
+  int connect_retry_max;
+  int connect_timeout;
+  bool connect_timeout_defined;
+#ifdef ENABLE_HTTP_PROXY
+  struct http_proxy_options *http_proxy_options;
+#endif  
+#ifdef ENABLE_SOCKS
+  const char *socks_proxy_server;
+  int socks_proxy_port;
+  bool socks_proxy_retry;
+#endif
+};
+
+struct remote_entry
+{
+  const char *remote;
+  int remote_port;
+  int proto;
+};
+
+#ifdef ENABLE_CONNECTION
+
+#define CONNECTION_LIST_SIZE 64
+
+struct connection_list
+{
+  int len;
+  int current;
+  bool no_advance;
+  struct connection_entry *array[CONNECTION_LIST_SIZE];
+};
+
+struct remote_list
+{
+  int len;
+  struct remote_entry *array[CONNECTION_LIST_SIZE];
+};
+
+#endif
+
 /* Command line options */
 struct options
 {
   struct gc_arena gc;
+  bool gc_owned;
 
   /* first config file */
   const char *config;
@@ -111,17 +166,19 @@ struct options
 #endif
 
   /* Networking parms */
-  const char *local;
-  int local_port;
-  bool local_port_defined;
-  int remote_port;
-  bool port_option_used;
-  bool remote_float;
+  struct connection_entry ce;
+
+#ifdef ENABLE_CONNECTION
+  struct connection_list *connection_list;
   struct remote_list *remote_list;
+#endif
+
+#ifdef GENERAL_PROXY_SUPPORT
+  struct auto_proxy_info *auto_proxy_info;
+#endif
+
   bool remote_random;
   const char *ipchange;
-  bool bind_defined;
-  bool bind_local;
   const char *dev;
   const char *dev_type;
   const char *dev_node;
@@ -140,14 +197,6 @@ struct options
   int link_mtu;          /* MTU of device over which tunnel packets pass via TCP/UDP */
   bool tun_mtu_defined;  /* true if user overriding parm with command line option */
   bool link_mtu_defined; /* true if user overriding parm with command line option */
-
-  /* Protocol type (PROTO_UDP or PROTO_TCP) */
-  int proto;
-  int connect_retry_seconds;
-  int connect_retry_max;
-  bool connect_retry_defined;
-  int connect_timeout;
-  bool connect_timeout_defined;
 
   /* Advanced MTU negotiation and datagram fragmentation options */
   int mtu_discover_type; /* used if OS supports setting Path MTU discovery options on socket */
@@ -253,21 +302,6 @@ struct options
   bool route_delay_defined;
   struct route_option_list *routes;
   bool route_nopull;
-
-#ifdef GENERAL_PROXY_SUPPORT
-  struct auto_proxy_info *auto_proxy_info;
-#endif
-
-#ifdef ENABLE_HTTP_PROXY
-  struct http_proxy_options *http_proxy_options;
-#endif
-
-#ifdef ENABLE_SOCKS
-  /* socks proxy */
-  const char *socks_proxy_server;
-  int socks_proxy_port;
-  bool socks_proxy_retry;
-#endif
 
 #ifdef ENABLE_OCC
   /* Enable options consistency check between peers */
@@ -499,6 +533,7 @@ struct options
 #define OPT_P_PLUGIN          (1<<24)
 #define OPT_P_SOCKBUF         (1<<25)
 #define OPT_P_SOCKFLAGS       (1<<26)
+#define OPT_P_CONNECTION      (1<<27)
 
 #define OPT_P_DEFAULT   (~(OPT_P_INSTANCE|OPT_P_PULL_MODE))
 
@@ -553,7 +588,7 @@ void notnull (const char *arg, const char *description);
 
 void usage_small (void);
 
-void init_options (struct options *o);
+void init_options (struct options *o, const bool init_gc);
 void uninit_options (struct options *o);
 
 void setenv_settings (struct env_set *es, const struct options *o);
@@ -578,7 +613,7 @@ void options_warning (char *actual, const char *expected);
 
 #endif
 
-void options_postprocess (struct options *options, bool first_time);
+void options_postprocess (struct options *options);
 
 void pre_pull_save (struct options *o);
 void pre_pull_restore (struct options *o);
@@ -642,5 +677,27 @@ void options_string_import (struct options *options,
 			    const unsigned int permission_mask,
 			    unsigned int *option_types_found,
 			    struct env_set *es);
+
+/*
+ * inline functions
+ */
+static inline bool
+connection_list_defined (const struct options *o)
+{
+#ifdef ENABLE_CONNECTION
+  return o->connection_list != NULL;
+#else
+  return false;
+#endif
+}
+
+static inline void
+connection_list_set_no_advance (struct options *o)
+{
+#ifdef ENABLE_CONNECTION
+  if (o->connection_list)
+    o->connection_list->no_advance = true;
+#endif
+}
 
 #endif

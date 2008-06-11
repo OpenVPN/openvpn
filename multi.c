@@ -2619,7 +2619,7 @@ tunnel_server (struct context *top)
 {
   ASSERT (top->options.mode == MODE_SERVER);
 
-  switch (top->options.proto) {
+  switch (top->options.ce.proto) {
   case PROTO_UDPv4:
     tunnel_server_udp (top);
     break;

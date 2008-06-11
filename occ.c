@@ -149,7 +149,7 @@ check_send_occ_req_dowork (struct context *c)
 {
   if (++c->c2.occ_n_tries >= OCC_N_TRIES)
     {
-      if (c->options.remote_list)
+      if (c->options.ce.remote)
 	/*
 	 * No OCC_REPLY from peer after repeated attempts.
 	 * Give up.
@@ -369,7 +369,7 @@ process_received_occ_msg (struct context *c)
 	       c->c2.max_send_size_remote,
 	       c->c2.max_recv_size_local);
 	  if (!c->options.fragment
-	      && c->options.proto == PROTO_UDPv4
+	      && c->options.ce.proto == PROTO_UDPv4
 	      && c->c2.max_send_size_local > TUN_MTU_MIN
 	      && (c->c2.max_recv_size_remote < c->c2.max_send_size_local
 		  || c->c2.max_recv_size_local < c->c2.max_send_size_remote))

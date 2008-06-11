@@ -605,4 +605,11 @@ socket_defined (const socket_descriptor_t sd)
 #define AUTO_USERID 0
 #endif
 
+/*
+ * Support "connection" directive
+ */
+#if ENABLE_INLINE_FILES
+#define ENABLE_CONNECTION 1
+#endif
+
 #endif

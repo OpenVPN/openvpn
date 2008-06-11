@@ -281,9 +281,6 @@ helper_client_server (struct options *o)
 	  o->push_ifconfig_constraint_network = o->server_network;
 	  o->push_ifconfig_constraint_netmask = o->server_netmask;
 	}
-
-      if (o->proto == PROTO_TCPv4)
-	o->proto = PROTO_TCPv4_SERVER;
     }
 
   /*
@@ -325,9 +322,6 @@ helper_client_server (struct options *o)
       ifconfig_pool_verify_range (M_USAGE, o->ifconfig_pool_start, o->ifconfig_pool_end);
       o->ifconfig_pool_netmask = o->server_bridge_netmask;
       push_option (o, print_opt_route_gateway (o->server_bridge_ip, &o->gc), M_USAGE);
-
-      if (o->proto == PROTO_TCPv4)
-	o->proto = PROTO_TCPv4_SERVER;
     }
   else
 #endif /* P2MP_SERVER */
@@ -349,15 +343,9 @@ helper_client_server (struct options *o)
 
       o->pull = true;
       o->tls_client = true;
-
-      if (o->proto == PROTO_TCPv4)
-	o->proto = PROTO_TCPv4_CLIENT;
     }
 
 #endif /* P2MP */
-
-  if (o->proto == PROTO_TCPv4)
-    msg (M_USAGE, "--proto tcp is ambiguous in this context.  Please specify --proto tcp-server or --proto tcp-client");
 
   gc_free (&gc);
 }

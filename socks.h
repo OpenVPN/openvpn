@@ -47,11 +47,12 @@ struct socks_proxy_info {
 
 void socks_adjust_frame_parameters (struct frame *frame, int proto);
 
-struct socks_proxy_info *new_socks_proxy (const char *server,
+struct socks_proxy_info *socks_proxy_new (const char *server,
 					  int port,
 					  bool retry,
-					  struct auto_proxy_info *auto_proxy_info,
-					  struct gc_arena *gc);
+					  struct auto_proxy_info *auto_proxy_info);
+
+void socks_proxy_close (struct socks_proxy_info *sp);
 
 void establish_socks_proxy_passthru (struct socks_proxy_info *p,
 				     socket_descriptor_t sd, /* already open to proxy */

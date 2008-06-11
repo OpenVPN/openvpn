@@ -619,21 +619,25 @@ static const char usage_message[] =
  * will be set to 0.
  */
 void
-init_options (struct options *o)
+init_options (struct options *o, const bool init_gc)
 {
   CLEAR (*o);
-  gc_init (&o->gc);
+  if (init_gc)
+    {
+      gc_init (&o->gc);
+      o->gc_owned = true;
+    }
   o->mode = MODE_POINT_TO_POINT;
   o->topology = TOP_NET30;
-  o->proto = PROTO_UDPv4;
-  o->connect_retry_seconds = 5;
-  o->connect_timeout = 10;
-  o->connect_retry_max = 0;
-  o->local_port = o->remote_port = OPENVPN_PORT;
+  o->ce.proto = PROTO_UDPv4;
+  o->ce.connect_retry_seconds = 5;
+  o->ce.connect_timeout = 10;
+  o->ce.connect_retry_max = 0;
+  o->ce.local_port = o->ce.remote_port = OPENVPN_PORT;
   o->verbosity = 1;
   o->status_file_update_freq = 60;
   o->status_file_version = 1;
-  o->bind_local = true;
+  o->ce.bind_local = true;
   o->tun_mtu = TUN_MTU_DEFAULT;
   o->link_mtu = LINK_MTU_DEFAULT;
   o->mtu_discover_type = -1;
@@ -709,7 +713,8 @@ init_options (struct options *o)
 void
 uninit_options (struct options *o)
 {
-  gc_free (&o->gc);
+  if (o->gc_owned)
+    gc_free (&o->gc);
 }
 
 #ifdef ENABLE_DEBUG
@@ -724,46 +729,50 @@ uninit_options (struct options *o)
 #endif
 
 void
+setenv_connection_entry (struct env_set *es,
+			 const struct connection_entry *e,
+			 const int i)
+{
+  setenv_str_i (es, "proto", proto2ascii (e->proto, false), i);
+  setenv_str_i (es, "local", e->local, i);
+  setenv_int_i (es, "local_port", e->local_port, i);
+  setenv_str_i (es, "remote", e->local, i);
+  setenv_int_i (es, "remote_port", e->local_port, i);
+
+#ifdef ENABLE_HTTP_PROXY
+  if (e->http_proxy_options)
+    {
+      setenv_str_i (es, "http_proxy_server", e->http_proxy_options->server, i);
+      setenv_int_i (es, "http_proxy_port", e->http_proxy_options->port, i);
+    }
+#endif
+#ifdef ENABLE_SOCKS
+  if (e->socks_proxy_server)
+    {
+      setenv_str_i (es, "socks_proxy_server", e->socks_proxy_server, i);
+      setenv_int_i (es, "socks_proxy_port", e->socks_proxy_port, i);
+    }
+#endif
+}
+
+void
 setenv_settings (struct env_set *es, const struct options *o)
 {
   setenv_str (es, "config", o->config);
-  setenv_str (es, "proto", proto2ascii (o->proto, false));
-  setenv_str (es, "local", o->local);
-  setenv_int (es, "local_port", o->local_port);
   setenv_int (es, "verb", o->verbosity);
   setenv_int (es, "daemon", o->daemon);
   setenv_int (es, "daemon_log_redirect", o->log);
 
-  if (o->remote_list)
+#ifdef ENABLE_CONNECTION
+  if (o->connection_list)
     {
       int i;
-
-      for (i = 0; i < o->remote_list->len; ++i)
-	{
-	  char remote_string[64];
-	  char remote_port_string[64];
-
-	  openvpn_snprintf (remote_string, sizeof (remote_string), "remote_%d", i+1);
-	  openvpn_snprintf (remote_port_string, sizeof (remote_port_string), "remote_port_%d", i+1);
-
-	  setenv_str (es, remote_string,      o->remote_list->array[i].hostname);
-	  setenv_int (es, remote_port_string, o->remote_list->array[i].port);
-	}
+      for (i = 0; i < o->connection_list->len; ++i)
+	setenv_connection_entry (es, o->connection_list->array[i], i+1);
     }
-#ifdef ENABLE_HTTP_PROXY
-    if (o->http_proxy_options)
-      {
-        setenv_str (es, "http_proxy_server", o->http_proxy_options->server);
-        setenv_int (es, "http_proxy_port", o->http_proxy_options->port);
-      }
+  else
 #endif
-#ifdef ENABLE_SOCKS
-    if(o->socks_proxy_server)
-      {
-        setenv_str (es, "socks_proxy_server", o->socks_proxy_server);
-        setenv_int (es, "socks_proxy_port", o->socks_proxy_port);
-      }
-#endif
+    setenv_connection_entry (es, &o->ce, 1);
 }
 
 static in_addr_t
@@ -816,7 +825,7 @@ is_persist_option (const struct options *o)
 bool
 is_stateful_restart (const struct options *o)
 {
-  return is_persist_option (o) || (o->remote_list && o->remote_list->len > 1);
+  return is_persist_option (o) || connection_list_defined (o);
 }
 
 #ifdef WIN32
@@ -983,26 +992,6 @@ option_iroute (struct options *o,
 #endif /* P2MP_SERVER */
 #endif /* P2MP */
 
-#ifdef ENABLE_DEBUG
-static void
-show_remote_list (const struct remote_list *l)
-{
-  if (l)
-    {
-      int i;
-      for (i = 0; i < l->len; ++i)
-	{
-	  msg (D_SHOW_PARMS, "  remote_list[%d] = {'%s', %d}",
-	       i, l->array[i].hostname, l->array[i].port);
-	}
-    }
-  else
-    {
-      msg (D_SHOW_PARMS, "  remote_list = NULL");
-    }
-}
-#endif
-
 #if defined(ENABLE_HTTP_PROXY) && defined(ENABLE_DEBUG)
 static void
 show_http_proxy_options (const struct http_proxy_options *o)
@@ -1042,6 +1031,55 @@ rol_check_alloc (struct options *options)
     options->routes = new_route_option_list (&options->gc);
 }
 
+#ifdef ENABLE_DEBUG
+static void
+show_connection_entry (const struct connection_entry *o)
+{
+  msg (D_SHOW_PARMS, "  proto = %s", proto2ascii (o->proto, false));
+  SHOW_STR (local);
+  SHOW_INT (local_port);
+  SHOW_STR (remote);
+  SHOW_INT (remote_port);
+  SHOW_BOOL (remote_float);
+  SHOW_BOOL (bind_defined);
+  SHOW_BOOL (bind_local);
+  SHOW_INT (connect_retry_seconds);
+  SHOW_INT (connect_timeout);
+  SHOW_INT (connect_retry_max);
+
+#ifdef ENABLE_HTTP_PROXY
+  if (o->http_proxy_options)
+    show_http_proxy_options (o->http_proxy_options);
+#endif
+#ifdef ENABLE_SOCKS
+  SHOW_STR (socks_proxy_server);
+  SHOW_INT (socks_proxy_port);
+  SHOW_BOOL (socks_proxy_retry);
+#endif
+}
+
+static void
+show_connection_entries (const struct options *o)
+{
+  msg (D_SHOW_PARMS, "Connection profiles [default]:");
+  show_connection_entry (&o->ce);
+#ifdef ENABLE_CONNECTION
+ if (o->connection_list)
+   {
+     const struct connection_list *l = o->connection_list;
+     int i;
+     for (i = 0; i < l->len; ++i)
+       {
+	 msg (D_SHOW_PARMS, "Connection profiles [%d]:", i);
+	 show_connection_entry (l->array[i]);
+       }
+   }
+#endif
+  msg (D_SHOW_PARMS, "Connection profiles END");
+}
+
+#endif
+
 void
 show_settings (const struct options *o)
 {
@@ -1068,17 +1106,11 @@ show_settings (const struct options *o)
 #endif
 #endif
 
-  SHOW_INT (proto);
-  SHOW_STR (local);
-  show_remote_list (o->remote_list);
+  show_connection_entries (o);
+
   SHOW_BOOL (remote_random);
 
-  SHOW_INT (local_port);
-  SHOW_INT (remote_port);
-  SHOW_BOOL (remote_float);
   SHOW_STR (ipchange);
-  SHOW_BOOL (bind_defined);
-  SHOW_BOOL (bind_local);
   SHOW_STR (dev);
   SHOW_STR (dev_type);
   SHOW_STR (dev_node);
@@ -1135,9 +1167,6 @@ show_settings (const struct options *o)
 #endif
 
   SHOW_INT (resolve_retry_seconds);
-  SHOW_INT (connect_retry_seconds);
-  SHOW_INT (connect_timeout);
-  SHOW_INT (connect_retry_max);
 
   SHOW_STR (username);
   SHOW_STR (groupname);
@@ -1169,17 +1198,6 @@ show_settings (const struct options *o)
   SHOW_INT (rcvbuf);
   SHOW_INT (sndbuf);
   SHOW_INT (sockflags);
-
-#ifdef ENABLE_HTTP_PROXY
-  if (o->http_proxy_options)
-    show_http_proxy_options (o->http_proxy_options);
-#endif
-
-#ifdef ENABLE_SOCKS
-  SHOW_STR (socks_proxy_server);
-  SHOW_INT (socks_proxy_port);
-  SHOW_BOOL (socks_proxy_retry);
-#endif
 
   SHOW_BOOL (fast_io);
 
@@ -1318,32 +1336,89 @@ show_settings (const struct options *o)
 struct http_proxy_options *
 init_http_options_if_undefined (struct options *o)
 {
-  if (!o->http_proxy_options)
+  if (!o->ce.http_proxy_options)
     {
-      ALLOC_OBJ_CLEAR_GC (o->http_proxy_options, struct http_proxy_options, &o->gc);
+      ALLOC_OBJ_CLEAR_GC (o->ce.http_proxy_options, struct http_proxy_options, &o->gc);
       /* http proxy defaults */
-      o->http_proxy_options->timeout = 5;
-      o->http_proxy_options->http_version = "1.0";
+      o->ce.http_proxy_options->timeout = 5;
+      o->ce.http_proxy_options->http_version = "1.0";
     }
-  return o->http_proxy_options;
+  return o->ce.http_proxy_options;
 }
 
 #endif
 
-/*
- * Sanity check on options.
- * Also set some options based on other
- * options.
- */
+#if ENABLE_CONNECTION
+
+static struct connection_list *
+alloc_connection_list_if_undef (struct options *options)
+{
+  if (!options->connection_list)
+    ALLOC_OBJ_CLEAR_GC (options->connection_list, struct connection_list, &options->gc);
+  return options->connection_list;
+}
+
+static struct connection_entry *
+alloc_connection_entry (struct options *options, const int msglevel)
+{
+  struct connection_list *l = alloc_connection_list_if_undef (options);
+  struct connection_entry *e;
+
+  if (l->len >= CONNECTION_LIST_SIZE)
+    {
+      msg (msglevel, "Maximum number of 'connection' options (%d) exceeded", CONNECTION_LIST_SIZE);
+      return NULL;
+    }
+  ALLOC_OBJ_GC (e, struct connection_entry, &options->gc);
+  l->array[l->len++] = e;
+  return e;
+}
+
+static struct remote_list *
+alloc_remote_list_if_undef (struct options *options)
+{
+  if (!options->remote_list)
+    ALLOC_OBJ_CLEAR_GC (options->remote_list, struct remote_list, &options->gc);
+  return options->remote_list;
+}
+
+static struct remote_entry *
+alloc_remote_entry (struct options *options, const int msglevel)
+{
+  struct remote_list *l = alloc_remote_list_if_undef (options);
+  struct remote_entry *e;
+
+  if (l->len >= CONNECTION_LIST_SIZE)
+    {
+      msg (msglevel, "Maximum number of 'remote' options (%d) exceeded", CONNECTION_LIST_SIZE);
+      return NULL;
+    }
+  ALLOC_OBJ_GC (e, struct remote_entry, &options->gc);
+  l->array[l->len++] = e;
+  return e;
+}
+
+#endif
+
 void
-options_postprocess (struct options *options, bool first_time)
+connection_entry_load_re (struct connection_entry *ce, const struct remote_entry *re)
+{
+  if (re->remote)
+    ce->remote = re->remote;
+  if (re->remote_port >= 0)
+    ce->remote_port = re->remote_port;
+  if (re->proto >= 0)
+    ce->proto = re->proto;
+}
+
+static void
+options_postprocess_verify_ce (const struct options *options, const struct connection_entry *ce)
 {
   struct options defaults;
   int dev = DEV_TYPE_UNDEF;
-  int i;
   bool pull = false;
 
-  init_options (&defaults);
+  init_options (&defaults, true);
 
 #ifdef USE_CRYPTO
   if (options->test_crypto)
@@ -1360,31 +1435,11 @@ options_postprocess (struct options *options, bool first_time)
   dev = dev_type_enum (options->dev, options->dev_type);
 
   /*
-   * Fill in default port number for --remote list
+   * If "proto tcp" is specified, make sure we know whether it is
+   * tcp-client or tcp-server.
    */
-  if (options->remote_list)
-    {
-      for (i = 0; i < options->remote_list->len; ++i)
-	{
-	  struct remote_entry *e = &options->remote_list->array[i];
-	  if (e->port < 0)
-	    e->port = options->remote_port;
-	}
-    }
-
-  /*
-   * If --mssfix is supplied without a parameter, default
-   * it to --fragment value, if --fragment is specified.
-   */
-  if (options->mssfix_default)
-    {
-#ifdef ENABLE_FRAGMENT
-      if (options->fragment)
-	options->mssfix = options->fragment;
-#else
-      msg (M_USAGE, "--mssfix must specify a parameter");
-#endif      
-    }
+  if (ce->proto == PROTO_TCPv4)
+    msg (M_USAGE, "--proto tcp is ambiguous in this context.  Please specify --proto tcp-server or --proto tcp-client");
 
   /*
    * Sanity check on daemon/inetd modes
@@ -1393,13 +1448,13 @@ options_postprocess (struct options *options, bool first_time)
   if (options->daemon && options->inetd)
     msg (M_USAGE, "only one of --daemon or --inetd may be specified");
 
-  if (options->inetd && (options->local || options->remote_list))
+  if (options->inetd && (ce->local || ce->remote))
     msg (M_USAGE, "--local or --remote cannot be used with --inetd");
 
-  if (options->inetd && options->proto == PROTO_TCPv4_CLIENT)
+  if (options->inetd && ce->proto == PROTO_TCPv4_CLIENT)
     msg (M_USAGE, "--proto tcp-client cannot be used with --inetd");
 
-  if (options->inetd == INETD_NOWAIT && options->proto != PROTO_TCPv4_SERVER)
+  if (options->inetd == INETD_NOWAIT && ce->proto != PROTO_TCPv4_SERVER)
     msg (M_USAGE, "--inetd nowait can only be used with --proto tcp-server");
 
   if (options->inetd == INETD_NOWAIT
@@ -1417,20 +1472,13 @@ options_postprocess (struct options *options, bool first_time)
     msg (M_USAGE, "--lladdr can only be used in --dev tap mode");
  
   /*
-   * In forking TCP server mode, you don't need to ifconfig
-   * the tap device (the assumption is that it will be bridged).
-   */
-  if (options->inetd == INETD_NOWAIT)
-    options->ifconfig_noexec = true;
-
-  /*
    * Sanity check on TCP mode options
    */
 
-  if (options->connect_retry_defined && options->proto != PROTO_TCPv4_CLIENT)
+  if (ce->connect_retry_defined && ce->proto != PROTO_TCPv4_CLIENT)
     msg (M_USAGE, "--connect-retry doesn't make sense unless also used with --proto tcp-client");
 
-  if (options->connect_timeout_defined && options->proto != PROTO_TCPv4_CLIENT)
+  if (ce->connect_timeout_defined && ce->proto != PROTO_TCPv4_CLIENT)
     msg (M_USAGE, "--connect-timeout doesn't make sense unless also used with --proto tcp-client");
 
   /*
@@ -1440,31 +1488,9 @@ options_postprocess (struct options *options, bool first_time)
     msg (M_USAGE, "only one of --tun-mtu or --link-mtu may be defined (note that --ifconfig implies --link-mtu %d)", LINK_MTU_DEFAULT);
 
 #ifdef ENABLE_OCC
-  if (options->proto != PROTO_UDPv4 && options->mtu_test)
+  if (ce->proto != PROTO_UDPv4 && options->mtu_test)
     msg (M_USAGE, "--mtu-test only makes sense with --proto udp");
 #endif
-
-  /*
-   * Set MTU defaults
-   */
-  {
-    if (!options->tun_mtu_defined && !options->link_mtu_defined)
-      {
-	options->tun_mtu_defined = true;
-      }
-    if ((dev == DEV_TYPE_TAP) && !options->tun_mtu_extra_defined)
-      {
-	options->tun_mtu_extra_defined = true;
-	options->tun_mtu_extra = TAP_MTU_EXTRA_DEFAULT;
-      }
-  }
-
-  /*
-   * Process helper-type options which map to other, more complex
-   * sequences of options.
-   */
-  helper_client_server (options);
-  helper_keepalive (options);
 
   /* will we be pulling options from server? */
 #if P2MP
@@ -1475,55 +1501,32 @@ options_postprocess (struct options *options, bool first_time)
    * Sanity check on --local, --remote, and --ifconfig
    */
 
-  if (options->remote_list)
-    {
-      int i;
-      struct remote_list *l = options->remote_list;
+  if (string_defined_equal (ce->local, ce->remote)
+      && ce->local_port == ce->remote_port)
+    msg (M_USAGE, "--remote and --local addresses are the same");
+  
+  if (string_defined_equal (ce->remote, options->ifconfig_local)
+      || string_defined_equal (ce->remote, options->ifconfig_remote_netmask))
+    msg (M_USAGE, "--local and --remote addresses must be distinct from --ifconfig addresses");
 
-      for (i = 0; i < l->len; ++i)
-	{
-	  const char *remote = l->array[i].hostname;
-	  const int remote_port = l->array[i].port;
-
-	  if (string_defined_equal (options->local, remote)
-	      && options->local_port == remote_port)
-	    msg (M_USAGE, "--remote and --local addresses are the same");
-	
-	  if (string_defined_equal (remote, options->ifconfig_local)
-	      || string_defined_equal (remote, options->ifconfig_remote_netmask))
-	    msg (M_USAGE, "--local and --remote addresses must be distinct from --ifconfig addresses");
-	}
-    }
-
-  if (string_defined_equal (options->local, options->ifconfig_local)
-      || string_defined_equal (options->local, options->ifconfig_remote_netmask))
+  if (string_defined_equal (ce->local, options->ifconfig_local)
+      || string_defined_equal (ce->local, options->ifconfig_remote_netmask))
     msg (M_USAGE, "--local addresses must be distinct from --ifconfig addresses");
 
   if (string_defined_equal (options->ifconfig_local, options->ifconfig_remote_netmask))
     msg (M_USAGE, "local and remote/netmask --ifconfig addresses must be different");
 
-  if (options->bind_defined && !options->bind_local)
+  if (ce->bind_defined && !ce->bind_local)
     msg (M_USAGE, "--bind and --nobind can't be used together");
 
-  if (options->local && !options->bind_local)
+  if (ce->local && !ce->bind_local)
     msg (M_USAGE, "--local and --nobind don't make sense when used together");
 
-  if (options->local_port_defined && !options->bind_local)
+  if (ce->local_port_defined && !ce->bind_local)
     msg (M_USAGE, "--lport and --nobind don't make sense when used together");
 
-  if (!options->remote_list && !options->bind_local)
+  if (!ce->remote && !ce->bind_local)
     msg (M_USAGE, "--nobind doesn't make sense unless used with --remote");
-
-  if (options->proto == PROTO_TCPv4_CLIENT && !options->local && !options->local_port_defined && !options->bind_defined)
-    options->bind_local = false;
-
-#ifdef ENABLE_SOCKS
-  if (options->proto == PROTO_UDPv4 && options->socks_proxy_server && !options->local && !options->local_port_defined && !options->bind_defined)
-    options->bind_local = false;
-#endif
-
-  if (!options->bind_local)
-    options->local_port = 0;
 
   /*
    * Check for consistency of management options
@@ -1552,18 +1555,6 @@ options_postprocess (struct options *options, bool first_time)
 	  && options->tuntap_options.ip_win32_type != IPW32_SET_DHCP_MASQ
 	  && options->tuntap_options.ip_win32_type != IPW32_SET_ADAPTIVE)
 	msg (M_USAGE, "--dhcp-options requires --ip-win32 dynamic or adaptive");
-
-      if ((dev == DEV_TYPE_TUN || dev == DEV_TYPE_TAP) && !options->route_delay_defined)
-	{
-	  options->route_delay_defined = true;
-	  options->route_delay = 5; /* Vista sometimes has a race without this */
-	}
-
-      if (options->ifconfig_noexec)
-	{
-	  options->tuntap_options.ip_win32_type = IPW32_SET_MANUAL;
-	  options->ifconfig_noexec = false;
-	}
 #endif
 
   /*
@@ -1571,34 +1562,34 @@ options_postprocess (struct options *options, bool first_time)
    */
 
 #ifdef ENABLE_FRAGMENT
-  if (options->proto != PROTO_UDPv4 && options->fragment)
+  if (ce->proto != PROTO_UDPv4 && options->fragment)
     msg (M_USAGE, "--fragment can only be used with --proto udp");
 #endif
 
 #ifdef ENABLE_OCC
-  if (options->proto != PROTO_UDPv4 && options->explicit_exit_notification)
+  if (ce->proto != PROTO_UDPv4 && options->explicit_exit_notification)
     msg (M_USAGE, "--explicit-exit-notify can only be used with --proto udp");
 #endif
 
-  if (!options->remote_list && options->proto == PROTO_TCPv4_CLIENT)
+  if (!ce->remote && ce->proto == PROTO_TCPv4_CLIENT)
     msg (M_USAGE, "--remote MUST be used in TCP Client mode");
 
 #ifdef ENABLE_HTTP_PROXY
-  if ((options->http_proxy_options || options->auto_proxy_info) && options->proto != PROTO_TCPv4_CLIENT)
+  if ((ce->http_proxy_options || options->auto_proxy_info) && ce->proto != PROTO_TCPv4_CLIENT)
     msg (M_USAGE, "--http-proxy or --auto-proxy MUST be used in TCP Client mode (i.e. --proto tcp-client)");
 #endif
 
 #if defined(ENABLE_HTTP_PROXY) && defined(ENABLE_SOCKS)
-  if (options->http_proxy_options && options->socks_proxy_server)
+  if (ce->http_proxy_options && ce->socks_proxy_server)
     msg (M_USAGE, "--http-proxy can not be used together with --socks-proxy");
 #endif
 
 #ifdef ENABLE_SOCKS
-  if (options->socks_proxy_server && options->proto == PROTO_TCPv4_SERVER)
+  if (ce->socks_proxy_server && ce->proto == PROTO_TCPv4_SERVER)
     msg (M_USAGE, "--socks-proxy can not be used in TCP Server mode");
 #endif
 
-  if (options->proto == PROTO_TCPv4_SERVER && remote_list_len (options->remote_list) > 1)
+  if (ce->proto == PROTO_TCPv4_SERVER && connection_list_defined (options))
     msg (M_USAGE, "TCP server mode allows at most one --remote address");
 
 #if P2MP_SERVER
@@ -1608,40 +1599,33 @@ options_postprocess (struct options *options, bool first_time)
    */
   if (options->mode == MODE_SERVER)
     {
-#ifdef WIN32
-      /*
-       * We need to explicitly set --tap-sleep because
-       * we do not schedule event timers in the top-level context.
-       */
-      options->tuntap_options.tap_sleep = 10;
-      if (options->route_delay_defined && options->route_delay)
-	options->tuntap_options.tap_sleep = options->route_delay;	
-      options->route_delay_defined = false;
-#endif
-
       if (!(dev == DEV_TYPE_TUN || dev == DEV_TYPE_TAP))
 	msg (M_USAGE, "--mode server only works with --dev tun or --dev tap");
       if (options->pull)
 	msg (M_USAGE, "--pull cannot be used with --mode server");
-      if (!(options->proto == PROTO_UDPv4 || options->proto == PROTO_TCPv4_SERVER))
+      if (!(ce->proto == PROTO_UDPv4 || ce->proto == PROTO_TCPv4_SERVER))
 	msg (M_USAGE, "--mode server currently only supports --proto udp or --proto tcp-server");
 #if PORT_SHARE
-      if ((options->port_share_host || options->port_share_port) && options->proto != PROTO_TCPv4_SERVER)
+      if ((options->port_share_host || options->port_share_port) && ce->proto != PROTO_TCPv4_SERVER)
 	msg (M_USAGE, "--port-share only works in TCP server mode (--proto tcp-server)");
 #endif
       if (!options->tls_server)
 	msg (M_USAGE, "--mode server requires --tls-server");
-      if (options->remote_list)
+      if (ce->remote)
 	msg (M_USAGE, "--remote cannot be used with --mode server");
-      if (!options->bind_local)
+      if (!ce->bind_local)
 	msg (M_USAGE, "--nobind cannot be used with --mode server");
 #ifdef ENABLE_HTTP_PROXY
-      if (options->http_proxy_options)
+      if (ce->http_proxy_options)
 	msg (M_USAGE, "--http-proxy cannot be used with --mode server");
 #endif
 #ifdef ENABLE_SOCKS
-      if (options->socks_proxy_server)
+      if (ce->socks_proxy_server)
 	msg (M_USAGE, "--socks-proxy cannot be used with --mode server");
+#endif
+#ifdef ENABLE_CONNECTION
+      if (options->connection_list)
+	msg (M_USAGE, "<connection> cannot be used with --mode server");
 #endif
       if (options->tun_ipv6)
 	msg (M_USAGE, "--tun-ipv6 cannot be used with --mode server");
@@ -1651,9 +1635,9 @@ options_postprocess (struct options *options, bool first_time)
 	msg (M_USAGE, "--inetd cannot be used with --mode server");
       if (options->ipchange)
 	msg (M_USAGE, "--ipchange cannot be used with --mode server (use --client-connect instead)");
-      if (!(options->proto == PROTO_UDPv4 || options->proto == PROTO_TCPv4_SERVER))
+      if (!(ce->proto == PROTO_UDPv4 || ce->proto == PROTO_TCPv4_SERVER))
 	msg (M_USAGE, "--mode server currently only supports --proto udp or --proto tcp-server");
-      if (options->proto != PROTO_UDPv4 && (options->cf_max || options->cf_per))
+      if (ce->proto != PROTO_UDPv4 && (options->cf_max || options->cf_per))
 	msg (M_USAGE, "--connect-freq only works with --mode server --proto udp.  Try --max-clients instead.");
       if (!(dev == DEV_TYPE_TAP || (dev == DEV_TYPE_TUN && options->topology == TOP_SUBNET)) && options->ifconfig_pool_netmask)
 	msg (M_USAGE, "The third parameter to --ifconfig-pool (netmask) is only valid in --dev tap mode");
@@ -1733,7 +1717,7 @@ options_postprocess (struct options *options, bool first_time)
   /*
    * Check consistency of replay options
    */
-  if ((options->proto != PROTO_UDPv4)
+  if ((ce->proto != PROTO_UDPv4)
       && (options->replay_window != defaults.replay_window
 	  || options->replay_time != defaults.replay_time))
     msg (M_USAGE, "--replay-window only makes sense with --proto udp");
@@ -1742,13 +1726,6 @@ options_postprocess (struct options *options, bool first_time)
       && (options->replay_window != defaults.replay_window
 	  || options->replay_time != defaults.replay_time))
     msg (M_USAGE, "--replay-window doesn't make sense when replay protection is disabled with --no-replay");
-
-  /* 
-   * Don't use replay window for TCP mode (i.e. require that packets
-   * be strictly in sequence).
-   */
-  if (link_socket_proto_connection_oriented (options->proto))
-    options->replay_window = options->replay_time = 0;
 
   /*
    * SSL/TLS mode sanity checks.
@@ -1887,28 +1864,209 @@ options_postprocess (struct options *options, bool first_time)
 #endif /* USE_SSL */
 
 #if P2MP
-  /*
-   * In pull mode, we usually import --ping/--ping-restart parameters from
-   * the server.  However we should also set an initial default --ping-restart
-   * for the period of time before we pull the --ping-restart parameter
-   * from the server.
-   */
-  if (options->pull
-      && options->ping_rec_timeout_action == PING_UNDEF
-      && options->proto == PROTO_UDPv4)
-    {
-      options->ping_rec_timeout = PRE_PULL_INITIAL_PING_RESTART;
-      options->ping_rec_timeout_action = PING_RESTART;
-    }
-
   if (options->auth_user_pass_file && !options->pull)
     msg (M_USAGE, "--auth-user-pass requires --pull");
+#endif
 
+  uninit_options (&defaults);
+}
+
+static void
+options_postprocess_mutate_ce (struct options *o, struct connection_entry *ce)
+{
+#if P2MP_SERVER
+  if (o->server_defined || o->server_bridge_defined)
+    {
+      if (ce->proto == PROTO_TCPv4)
+	ce->proto = PROTO_TCPv4_SERVER;
+    }
+#endif
+#if P2MP
+  if (o->client)
+    {
+      if (ce->proto == PROTO_TCPv4)
+	ce->proto = PROTO_TCPv4_CLIENT;
+    }
+#endif
+
+  if (ce->proto == PROTO_TCPv4_CLIENT && !ce->local && !ce->local_port_defined && !ce->bind_defined)
+    ce->bind_local = false;
+
+#ifdef ENABLE_SOCKS
+  if (ce->proto == PROTO_UDPv4 && ce->socks_proxy_server && !ce->local && !ce->local_port_defined && !ce->bind_defined)
+    ce->bind_local = false;
+#endif
+
+  if (!ce->bind_local)
+    ce->local_port = 0;
+}
+
+static void
+options_postprocess_mutate_invariant (struct options *options)
+{
+  const int dev = dev_type_enum (options->dev, options->dev_type);
+
+  /*
+   * If --mssfix is supplied without a parameter, default
+   * it to --fragment value, if --fragment is specified.
+   */
+  if (options->mssfix_default)
+    {
+#ifdef ENABLE_FRAGMENT
+      if (options->fragment)
+	options->mssfix = options->fragment;
+#else
+      msg (M_USAGE, "--mssfix must specify a parameter");
+#endif      
+    }
+
+  /*
+   * In forking TCP server mode, you don't need to ifconfig
+   * the tap device (the assumption is that it will be bridged).
+   */
+  if (options->inetd == INETD_NOWAIT)
+    options->ifconfig_noexec = true;
+
+  /*
+   * Set MTU defaults
+   */
+  {
+    if (!options->tun_mtu_defined && !options->link_mtu_defined)
+      {
+	options->tun_mtu_defined = true;
+      }
+    if ((dev == DEV_TYPE_TAP) && !options->tun_mtu_extra_defined)
+      {
+	options->tun_mtu_extra_defined = true;
+	options->tun_mtu_extra = TAP_MTU_EXTRA_DEFAULT;
+      }
+  }
+
+#ifdef WIN32
+  if ((dev == DEV_TYPE_TUN || dev == DEV_TYPE_TAP) && !options->route_delay_defined)
+    {
+      if (options->mode == MODE_POINT_TO_POINT)
+	{
+	  options->route_delay_defined = true;
+	  options->route_delay = 5; /* Vista sometimes has a race without this */
+	}
+    }
+
+  if (options->ifconfig_noexec)
+    {
+      options->tuntap_options.ip_win32_type = IPW32_SET_MANUAL;
+      options->ifconfig_noexec = false;
+    }
+#endif
+
+#if P2MP_SERVER
+  /*
+   * Check consistency of --mode server options.
+   */
+  if (options->mode == MODE_SERVER)
+    {
+#ifdef WIN32
+      /*
+       * We need to explicitly set --tap-sleep because
+       * we do not schedule event timers in the top-level context.
+       */
+      options->tuntap_options.tap_sleep = 10;
+      if (options->route_delay_defined && options->route_delay)
+	options->tuntap_options.tap_sleep = options->route_delay;	
+      options->route_delay_defined = false;
+#endif
+    }
+#endif
+}
+
+static void
+options_postprocess_verify (const struct options *o)
+{
+#ifdef ENABLE_CONNECTION
+  if (o->connection_list)
+    {
+      int i;
+      for (i = 0; i < o->connection_list->len; ++i)
+	options_postprocess_verify_ce (o, o->connection_list->array[i]);
+    }
+  else
+#endif
+    options_postprocess_verify_ce (o, &o->ce);
+}
+
+static void
+options_postprocess_mutate (struct options *o)
+{
+  /*
+   * Process helper-type options which map to other, more complex
+   * sequences of options.
+   */
+  helper_client_server (o);
+  helper_keepalive (o);
+
+  options_postprocess_mutate_invariant (o);
+
+#ifdef ENABLE_CONNECTION
+  if (o->remote_list && !o->connection_list)
+    {
+      /*
+       * For compatibility with 2.0.x, map multiple --remote options
+       * into connection list (connection lists added in 2.1).
+       */
+      if (o->remote_list->len > 1)
+	{
+	  const struct remote_list *rl = o->remote_list;
+	  int i;
+	  for (i = 0; i < rl->len; ++i)
+	    {
+	      const struct remote_entry *re = rl->array[i];
+	      struct connection_entry ce = o->ce;
+	      struct connection_entry *ace;
+
+	      ASSERT (re->remote);
+	      connection_entry_load_re (&ce, re);
+	      ace = alloc_connection_entry (o, M_USAGE);
+	      ASSERT (ace);
+	      *ace = ce;
+	    }
+	}
+      else if (o->remote_list->len == 1) /* one --remote option specfied */
+	{
+	  connection_entry_load_re (&o->ce, o->remote_list->array[0]);
+	}
+      else
+	{
+	  ASSERT (0);
+	}
+    }
+  if (o->connection_list)
+    {
+      int i;
+      for (i = 0; i < o->connection_list->len; ++i)
+	options_postprocess_mutate_ce (o, o->connection_list->array[i]);
+    }
+  else
+#endif
+    options_postprocess_mutate_ce (o, &o->ce);  
+
+#if P2MP
   /*
    * Save certain parms before modifying options via --pull
    */
-  pre_pull_save (options);
+  pre_pull_save (o);
 #endif
+}
+
+/*
+ * Sanity check on options.
+ * Also set some options based on other
+ * options.
+ */
+void
+options_postprocess (struct options *options)
+{
+  options_postprocess_mutate (options);
+  options_postprocess_verify (options);
 }
 
 #if P2MP
@@ -2023,7 +2181,7 @@ options_string (const struct options *o,
   buf_printf (&out, ",dev-type %s", dev_type_string (o->dev, o->dev_type));
   buf_printf (&out, ",link-mtu %d", EXPANDED_SIZE (frame));
   buf_printf (&out, ",tun-mtu %d", PAYLOAD_SIZE (frame));
-  buf_printf (&out, ",proto %s", proto2ascii (proto_remote (o->proto, remote), true));
+  buf_printf (&out, ",proto %s", proto2ascii (proto_remote (o->ce.proto, remote), true));
   if (o->tun_ipv6)
     buf_printf (&out, ",tun-ipv6");
 
@@ -2451,13 +2609,13 @@ usage (void)
 #else
 
   struct options o;
-  init_options (&o);
+  init_options (&o, true);
 
 #if defined(USE_CRYPTO) && defined(USE_SSL)
   fprintf (fp, usage_message,
 	   title_string,
-	   o.connect_retry_seconds,
-	   o.local_port, o.remote_port,
+	   o.ce.connect_retry_seconds,
+	   o.ce.local_port, o.ce.remote_port,
 	   TUN_MTU_DEFAULT, TAP_MTU_EXTRA_DEFAULT,
 	   o.verbosity,
 	   o.authname, o.ciphername,
@@ -2467,8 +2625,8 @@ usage (void)
 #elif defined(USE_CRYPTO)
   fprintf (fp, usage_message,
 	   title_string,
-	   o.connect_retry_seconds,
-	   o.local_port, o.remote_port,
+	   o.ce.connect_retry_seconds,
+	   o.ce.local_port, o.ce.remote_port,
 	   TUN_MTU_DEFAULT, TAP_MTU_EXTRA_DEFAULT,
 	   o.verbosity,
 	   o.authname, o.ciphername,
@@ -2476,8 +2634,8 @@ usage (void)
 #else
   fprintf (fp, usage_message,
 	   title_string,
-	   o.connect_retry_seconds,
-	   o.local_port, o.remote_port,
+	   o.ce.connect_retry_seconds,
+	   o.ce.local_port, o.ce.remote_port,
 	   TUN_MTU_DEFAULT, TAP_MTU_EXTRA_DEFAULT,
 	   o.verbosity);
 #endif
@@ -2857,14 +3015,14 @@ read_config_file (struct options *options,
 }
 
 static void
-read_config_string (struct options *options,
+read_config_string (const char *prefix,
+		    struct options *options,
 		    const char *config,
 		    const int msglevel,
 		    const unsigned int permission_mask,
 		    unsigned int *option_types_found,
 		    struct env_set *es)
 {
-  const char *file = "[CONFIG-STRING]";
   char line[OPTION_LINE_SIZE];
   struct buffer multiline;
   int line_num = 0;
@@ -2876,7 +3034,7 @@ read_config_string (struct options *options,
       char *p[MAX_PARMS];
       CLEAR (p);
       ++line_num;
-      if (parse_line (line, p, SIZE (p), file, line_num, msglevel, &options->gc))
+      if (parse_line (line, p, SIZE (p), prefix, line_num, msglevel, &options->gc))
 	{
 	  bypass_doubledash (&p[0]);
 #if ENABLE_INLINE_FILES
@@ -2997,7 +3155,7 @@ void options_string_import (struct options *options,
 			    unsigned int *option_types_found,
 			    struct env_set *es)
 {
-  read_config_string (options, config, msglevel, permission_mask, option_types_found, es);
+  read_config_string ("[CONFIG-STRING]", options, config, msglevel, permission_mask, option_types_found, es);
 }
 
 #if P2MP
@@ -3281,41 +3439,82 @@ add_option (struct options *options,
     }
   else if (streq (p[0], "local") && p[1])
     {
-      VERIFY_PERMISSION (OPT_P_GENERAL);
-      options->local = p[1];
+      VERIFY_PERMISSION (OPT_P_GENERAL|OPT_P_CONNECTION);
+      options->ce.local = p[1];
     }
   else if (streq (p[0], "remote-random"))
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->remote_random = true;
     }
-  else if (streq (p[0], "remote") && p[1])
+#if ENABLE_CONNECTION
+  else if (streq (p[0], "connection") && p[1])
     {
-      struct remote_list *l;
-      struct remote_entry e;
-
       VERIFY_PERMISSION (OPT_P_GENERAL);
-      if (!options->remote_list)
-	ALLOC_OBJ_CLEAR_GC (options->remote_list, struct remote_list, &options->gc);
-      l = options->remote_list;
-      if (l->len >= REMOTE_LIST_SIZE)
+      if (streq (p[1], INLINE_FILE_TAG) && p[2])
 	{
-	  msg (msglevel, "Maximum number of --remote options (%d) exceeded", REMOTE_LIST_SIZE);
-	  goto err;
-	}
-      e.hostname = p[1];
-      if (p[2])
-	{
-	  e.port = atoi (p[2]);
-	  if (!legal_ipv4_port (e.port))
+	  struct options sub;
+	  struct connection_entry *e;
+
+	  init_options (&sub, true);
+	  sub.ce = options->ce;
+	  read_config_string ("[CONNECTION-OPTIONS]", &sub, p[2], msglevel, OPT_P_CONNECTION, option_types_found, es);
+	  if (!sub.ce.remote)
 	    {
-	      msg (msglevel, "port number associated with host %s is out of range", e.hostname);
+	      msg (msglevel, "Each 'connection' block must contain exactly one 'remote' directive");
 	      goto err;
 	    }
+
+	  e = alloc_connection_entry (options, msglevel);
+	  if (!e)
+	    goto err;
+	  *e = sub.ce;
+	  gc_transfer (&options->gc, &sub.gc);
+	  uninit_options (&sub);
 	}
-      else
-	e.port = -1;
-      l->array[l->len++] = e;
+    }
+#endif
+  else if (streq (p[0], "remote") && p[1])
+    {
+      struct remote_entry re;
+      re.remote = NULL;
+      re.remote_port = re.proto = -1;
+
+      VERIFY_PERMISSION (OPT_P_GENERAL|OPT_P_CONNECTION);
+      re.remote = p[1];
+      if (p[2])
+	{
+	  const int port = atoi (p[2]);
+	  if (!legal_ipv4_port (port))
+	    {
+	      msg (msglevel, "remote: port number associated with host %s is out of range", p[1]);
+	      goto err;
+	    }
+	  re.remote_port = port;
+	  if (p[3])
+	    {
+	      const int proto = ascii2proto (p[3]);
+	      if (proto < 0)
+		{
+		  msg (msglevel, "remote: bad protocol associated with host %s: '%s'", p[1], p[3]);
+		  goto err;
+		}
+	      re.proto = proto;
+	    }
+	}
+#ifdef ENABLE_CONNECTION
+      if (permission_mask & OPT_P_GENERAL)
+	{
+	  struct remote_entry *e = alloc_remote_entry (options, msglevel);
+	  if (!e)
+	    goto err;
+	  *e = re;
+	}
+      else if (permission_mask & OPT_P_CONNECTION)
+#endif
+	{
+	  connection_entry_load_re (&options->ce, &re);
+	}
     }
   else if (streq (p[0], "resolv-retry") && p[1])
     {
@@ -3327,20 +3526,20 @@ add_option (struct options *options,
     }
   else if (streq (p[0], "connect-retry") && p[1])
     {
-      VERIFY_PERMISSION (OPT_P_GENERAL);
-      options->connect_retry_seconds = positive_atoi (p[1]);
-      options->connect_retry_defined = true;
+      VERIFY_PERMISSION (OPT_P_GENERAL|OPT_P_CONNECTION);
+      options->ce.connect_retry_seconds = positive_atoi (p[1]);
+      options->ce.connect_retry_defined = true;
     }
   else if (streq (p[0], "connect-timeout") && p[1])
     {
-      VERIFY_PERMISSION (OPT_P_GENERAL);
-      options->connect_timeout = positive_atoi (p[1]);
-      options->connect_timeout_defined = true;
+      VERIFY_PERMISSION (OPT_P_GENERAL|OPT_P_CONNECTION);
+      options->ce.connect_timeout = positive_atoi (p[1]);
+      options->ce.connect_timeout_defined = true;
     }
   else if (streq (p[0], "connect-retry-max") && p[1])
     {
-      VERIFY_PERMISSION (OPT_P_GENERAL);
-      options->connect_retry_max = positive_atoi (p[1]);
+      VERIFY_PERMISSION (OPT_P_GENERAL|OPT_P_CONNECTION);
+      options->ce.connect_retry_max = positive_atoi (p[1]);
     }
   else if (streq (p[0], "ipchange") && p[1])
     {
@@ -3351,8 +3550,8 @@ add_option (struct options *options,
     }
   else if (streq (p[0], "float"))
     {
-      VERIFY_PERMISSION (OPT_P_GENERAL);
-      options->remote_float = true;
+      VERIFY_PERMISSION (OPT_P_GENERAL|OPT_P_CONNECTION);
+      options->ce.remote_float = true;
     }
 #ifdef ENABLE_DEBUG
   else if (streq (p[0], "gremlin") && p[1])
@@ -3687,54 +3886,54 @@ add_option (struct options *options,
     {
       int port;
 
-      VERIFY_PERMISSION (OPT_P_GENERAL);
+      VERIFY_PERMISSION (OPT_P_GENERAL|OPT_P_CONNECTION);
       port = atoi (p[1]);
       if (!legal_ipv4_port (port))
 	{
 	  msg (msglevel, "Bad port number: %s", p[1]);
 	  goto err;
 	}
-      options->port_option_used = true;
-      options->local_port = options->remote_port = port;
+      options->ce.port_option_used = true;
+      options->ce.local_port = options->ce.remote_port = port;
     }
   else if (streq (p[0], "lport") && p[1])
     {
       int port;
 
-      VERIFY_PERMISSION (OPT_P_GENERAL);
+      VERIFY_PERMISSION (OPT_P_GENERAL|OPT_P_CONNECTION);
       port = atoi (p[1]);
       if (!legal_ipv4_port (port))
 	{
 	  msg (msglevel, "Bad local port number: %s", p[1]);
 	  goto err;
 	}
-      options->local_port_defined = true;
-      options->port_option_used = true;
-      options->local_port = port;
+      options->ce.local_port_defined = true;
+      options->ce.port_option_used = true;
+      options->ce.local_port = port;
     }
   else if (streq (p[0], "rport") && p[1])
     {
       int port;
 
-      VERIFY_PERMISSION (OPT_P_GENERAL);
+      VERIFY_PERMISSION (OPT_P_GENERAL|OPT_P_CONNECTION);
       port = atoi (p[1]);
       if (!legal_ipv4_port (port))
 	{
 	  msg (msglevel, "Bad remote port number: %s", p[1]);
 	  goto err;
 	}
-      options->port_option_used = true;
-      options->remote_port = port;
+      options->ce.port_option_used = true;
+      options->ce.remote_port = port;
     }
   else if (streq (p[0], "bind"))
     {
-      VERIFY_PERMISSION (OPT_P_GENERAL);
-      options->bind_defined = true;
+      VERIFY_PERMISSION (OPT_P_GENERAL|OPT_P_CONNECTION);
+      options->ce.bind_defined = true;
     }
   else if (streq (p[0], "nobind"))
     {
-      VERIFY_PERMISSION (OPT_P_GENERAL);
-      options->bind_local = false;
+      VERIFY_PERMISSION (OPT_P_GENERAL|OPT_P_CONNECTION);
+      options->ce.bind_local = false;
     }
   else if (streq (p[0], "fast-io"))
     {
@@ -3751,7 +3950,7 @@ add_option (struct options *options,
   else if (streq (p[0], "proto") && p[1])
     {
       int proto;
-      VERIFY_PERMISSION (OPT_P_GENERAL);
+      VERIFY_PERMISSION (OPT_P_GENERAL|OPT_P_CONNECTION);
       proto = ascii2proto (p[1]);
       if (proto < 0)
 	{
@@ -3760,7 +3959,7 @@ add_option (struct options *options,
 	       proto2ascii_all (&gc));
 	  goto err;
 	}
-      options->proto = proto;
+      options->ce.proto = proto;
     }
 #ifdef GENERAL_PROXY_SUPPORT
   else if (streq (p[0], "auto-proxy"))
@@ -3799,7 +3998,7 @@ add_option (struct options *options,
     {
       struct http_proxy_options *ho;
 
-      VERIFY_PERMISSION (OPT_P_GENERAL);
+      VERIFY_PERMISSION (OPT_P_GENERAL|OPT_P_CONNECTION);
 
       {
 	int port;
@@ -3844,7 +4043,7 @@ add_option (struct options *options,
   else if (streq (p[0], "http-proxy-retry"))
     {
       struct http_proxy_options *ho;
-      VERIFY_PERMISSION (OPT_P_GENERAL);
+      VERIFY_PERMISSION (OPT_P_GENERAL|OPT_P_CONNECTION);
       ho = init_http_options_if_undefined (options);
       ho->retry = true;
     }
@@ -3852,7 +4051,7 @@ add_option (struct options *options,
     {
       struct http_proxy_options *ho;
 
-      VERIFY_PERMISSION (OPT_P_GENERAL);
+      VERIFY_PERMISSION (OPT_P_GENERAL|OPT_P_CONNECTION);
       ho = init_http_options_if_undefined (options);
       ho->timeout = positive_atoi (p[1]);
     }
@@ -3860,7 +4059,7 @@ add_option (struct options *options,
     {
       struct http_proxy_options *ho;
 
-      VERIFY_PERMISSION (OPT_P_GENERAL);
+      VERIFY_PERMISSION (OPT_P_GENERAL|OPT_P_CONNECTION);
       ho = init_http_options_if_undefined (options);
 
       if (streq (p[1], "VERSION") && p[2])
@@ -3880,7 +4079,7 @@ add_option (struct options *options,
 #ifdef ENABLE_SOCKS
   else if (streq (p[0], "socks-proxy") && p[1])
     {
-      VERIFY_PERMISSION (OPT_P_GENERAL);
+      VERIFY_PERMISSION (OPT_P_GENERAL|OPT_P_CONNECTION);
 
       if (p[2])
 	{
@@ -3891,18 +4090,18 @@ add_option (struct options *options,
 	      msg (msglevel, "Bad socks-proxy port number: %s", p[2]);
 	      goto err;
 	    }
-          options->socks_proxy_port = port;
+          options->ce.socks_proxy_port = port;
 	}
       else
 	{
-	  options->socks_proxy_port = 1080;
+	  options->ce.socks_proxy_port = 1080;
 	}
-      options->socks_proxy_server = p[1];
+      options->ce.socks_proxy_server = p[1];
     }
   else if (streq (p[0], "socks-proxy-retry"))
     {
-      VERIFY_PERMISSION (OPT_P_GENERAL);
-      options->socks_proxy_retry = true;
+      VERIFY_PERMISSION (OPT_P_GENERAL|OPT_P_CONNECTION);
+      options->ce.socks_proxy_retry = true;
     }
 #endif
   else if (streq (p[0], "keepalive") && p[1] && p[2])

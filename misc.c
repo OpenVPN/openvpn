@@ -940,6 +940,7 @@ setenv_str_ex (struct env_set *es,
 	{
 	  const char *str = construct_name_value (name_tmp, val_tmp, &gc);
 	  env_set_add (es, str);
+	  /*msg (M_INFO, "SETENV_ES '%s'", str);*/
 	}
       else
 	env_set_del (es, name_tmp);
@@ -971,6 +972,38 @@ setenv_str_ex (struct env_set *es,
 #endif
     }
 
+  gc_free (&gc);
+}
+
+/*
+ * Setenv functions that append an integer index to the name
+ */
+static const char *
+setenv_format_indexed_name (const char *name, const int i, struct gc_arena *gc)
+{
+  struct buffer out = alloc_buf_gc (strlen (name) + 16, gc);
+  if (i >= 0)
+    buf_printf (&out, "%s_%d", name, i);
+  else
+    buf_printf (&out, "%s", name);
+  return BSTR (&out);
+}
+
+void
+setenv_int_i (struct env_set *es, const char *name, const int value, const int i)
+{
+  struct gc_arena gc = gc_new ();
+  const char *name_str = setenv_format_indexed_name (name, i, &gc);
+  setenv_int (es, name_str, value);
+  gc_free (&gc);
+}
+
+void
+setenv_str_i (struct env_set *es, const char *name, const char *value, const int i)
+{
+  struct gc_arena gc = gc_new ();
+  const char *name_str = setenv_format_indexed_name (name, i, &gc);
+  setenv_str (es, name_str, value);
   gc_free (&gc);
 }
 

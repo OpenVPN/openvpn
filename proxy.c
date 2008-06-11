@@ -229,9 +229,8 @@ get_user_pass_http (struct http_proxy_info *p, const bool force)
 }
 
 struct http_proxy_info *
-new_http_proxy (const struct http_proxy_options *o,
-		struct auto_proxy_info *auto_proxy_info,
-		struct gc_arena *gc)
+http_proxy_new (const struct http_proxy_options *o,
+		struct auto_proxy_info *auto_proxy_info)
 {
   struct http_proxy_info *p;
   struct http_proxy_options opt;
@@ -275,7 +274,7 @@ new_http_proxy (const struct http_proxy_options *o,
 
   ASSERT (legal_ipv4_port (o->port));
 
-  ALLOC_OBJ_CLEAR_GC (p, struct http_proxy_info, gc);
+  ALLOC_OBJ_CLEAR (p, struct http_proxy_info);
   p->options = *o;
 
   /* parse authentication method */
@@ -308,6 +307,12 @@ new_http_proxy (const struct http_proxy_options *o,
 
   p->defined = true;
   return p;
+}
+
+void
+http_proxy_close (struct http_proxy_info *hp)
+{
+  free (hp);
 }
 
 bool

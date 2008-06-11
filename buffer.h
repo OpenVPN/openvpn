@@ -632,6 +632,8 @@ void character_class_debug (void);
  * char ptrs to malloced strings.
  */
 
+void gc_transfer (struct gc_arena *dest, struct gc_arena *src);
+
 void x_gc_free (struct gc_arena *a);
 
 static inline void

@@ -47,22 +47,6 @@
  */
 #define RESOLV_RETRY_INFINITE 1000000000
 
-#define REMOTE_LIST_SIZE 64
-
-struct remote_entry
-{
-  const char *hostname;
-  int port;
-};
-
-struct remote_list
-{
-  int len;
-  int current;
-  bool no_advance;
-  struct remote_entry array[REMOTE_LIST_SIZE];
-};
-
 /* 
  * packet_size_type is used to communicate packet size
  * over the wire when stream oriented protocols are
@@ -175,8 +159,9 @@ struct link_socket
   /* used for long-term queueing of pre-accepted socket listen */
   bool listen_persistent_queued;
 
-  /* set on initial call to init phase 1 */
-  struct remote_list *remote_list;
+  /* Does config file contain any <connection> ... </connection> blocks? */
+  bool connection_profiles_defined;
+
   const char *remote_host;
   int remote_port;
   const char *local_host;
@@ -290,9 +275,11 @@ int openvpn_connect (socket_descriptor_t sd,
 
 void
 link_socket_init_phase1 (struct link_socket *sock,
+			 const bool connection_profiles_defined,
 			 const char *local_host,
-			 struct remote_list *remote_list,
 			 int local_port,
+			 const char *remote_host,
+			 int remote_port,
 			 int proto,
 			 int mode,
 			 const struct link_socket *accept_from,
@@ -391,8 +378,6 @@ void link_socket_bad_outgoing_addr (void);
 
 void setenv_trusted (struct env_set *es, const struct link_socket_info *info);
 
-void remote_list_randomize (struct remote_list *l);
-
 bool link_socket_update_flags (struct link_socket *ls, unsigned int sockflags);
 void link_socket_update_buffer_sizes (struct link_socket *ls, int rcvbuf, int sndbuf);
 
@@ -466,15 +451,6 @@ datagram_overhead (int proto)
 /*
  * Misc inline functions
  */
-
-static inline int
-remote_list_len (const struct remote_list *rl)
-{
-  if (rl)
-    return rl->len;
-  else
-    return 0;
-}
 
 static inline bool
 legal_ipv4_port (int port)

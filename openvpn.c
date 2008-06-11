@@ -138,7 +138,7 @@ main (int argc, char *argv[])
 #endif
 
 	  /* initialize options to default state */
-	  init_options (&c.options);
+	  init_options (&c.options, true);
 
 	  /* parse command line options, and read configuration file */
 	  parse_argv (&c.options, argc, argv, M_USAGE, OPT_P_DEFAULT, NULL, c.es);
@@ -169,7 +169,7 @@ main (int argc, char *argv[])
 	    break;
 
 	  /* sanity check on options */
-	  options_postprocess (&c.options, c.first_time);
+	  options_postprocess (&c.options);
 
 	  /* show all option settings */
 	  show_settings (&c.options);

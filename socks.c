@@ -51,11 +51,10 @@ socks_adjust_frame_parameters (struct frame *frame, int proto)
 }
 
 struct socks_proxy_info *
-new_socks_proxy (const char *server,
+socks_proxy_new (const char *server,
 		 int port,
 		 bool retry,
-		 struct auto_proxy_info *auto_proxy_info,
-		 struct gc_arena *gc)
+		 struct auto_proxy_info *auto_proxy_info)
 {
   struct socks_proxy_info *p;
 
@@ -71,7 +70,7 @@ new_socks_proxy (const char *server,
 	}
     }
 
-  ALLOC_OBJ_CLEAR_GC (p, struct socks_proxy_info, gc);
+  ALLOC_OBJ_CLEAR (p, struct socks_proxy_info);
 
   ASSERT (server);
   ASSERT (legal_ipv4_port (port));
@@ -82,6 +81,12 @@ new_socks_proxy (const char *server,
   p->defined = true;
 
   return p;
+}
+
+void
+socks_proxy_close (struct socks_proxy_info *sp)
+{
+  free (sp);
 }
 
 static bool

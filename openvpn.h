@@ -158,9 +158,6 @@ struct context_1
   /* persist crypto sequence number to/from file */
   struct packet_id_persist pid_persist;
 
-  /* array of remote addresses */
-  struct remote_list *remote_list;
-
   /* TUN/TAP interface */
   struct tuntap *tuntap;
   bool tuntap_owned;
@@ -175,11 +172,13 @@ struct context_1
 #ifdef ENABLE_HTTP_PROXY
   /* HTTP proxy object */
   struct http_proxy_info *http_proxy;
+  bool http_proxy_owned;
 #endif
 
 #ifdef ENABLE_SOCKS
   /* SOCKS proxy object */
   struct socks_proxy_info *socks_proxy;
+  bool socks_proxy_owned;
 #endif
 
 #if P2MP

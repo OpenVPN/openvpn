@@ -78,23 +78,100 @@ context_clear_all_except_first_time (struct context *c)
 }
 
 /*
- * Initialize and possibly randomize remote list.
+ * Should be called after options->ce is modified at the top
+ * of a SIGUSR1 restart.
  */
 static void
-init_remote_list (struct context *c)
+update_options_ce_post (struct options *options)
 {
-  c->c1.remote_list = NULL;
-
-  if (c->options.remote_list)
+#if P2MP
+  /*
+   * In pull mode, we usually import --ping/--ping-restart parameters from
+   * the server.  However we should also set an initial default --ping-restart
+   * for the period of time before we pull the --ping-restart parameter
+   * from the server.
+   */
+  if (options->pull
+      && options->ping_rec_timeout_action == PING_UNDEF
+      && options->ce.proto == PROTO_UDPv4)
     {
-      struct remote_list *l;
-      ALLOC_OBJ_GC (c->c1.remote_list, struct remote_list, &c->gc);
-      l = c->c1.remote_list;
-      *l = *c->options.remote_list;
+      options->ping_rec_timeout = PRE_PULL_INITIAL_PING_RESTART;
+      options->ping_rec_timeout_action = PING_RESTART;
+    }
+#endif
+#ifdef USE_CRYPTO
+  /* 
+   * Don't use replay window for TCP mode (i.e. require that packets be strictly in sequence).
+   */
+  if (link_socket_proto_connection_oriented (options->ce.proto))
+    options->replay_window = options->replay_time = 0;
+#endif
+}
+
+/*
+ * Initialize and possibly randomize connection list.
+ */
+static void
+init_connection_list (struct context *c)
+{
+#ifdef ENABLE_CONNECTION
+  struct connection_list *l = c->options.connection_list;
+  if (l)
+    {
       l->current = -1;
       if (c->options.remote_random)
-	remote_list_randomize (l);
+	{
+	  int i;
+	  for (i = 0; i < l->len; ++i)
+	    {
+	      const int j = get_random () % l->len;
+	      if (i != j)
+		{
+		  struct connection_entry *tmp;
+		  tmp = l->array[i];
+		  l->array[i] = l->array[j];
+		  l->array[j] = tmp;
+		}
+	    }
+	}
     }
+#endif
+}
+
+/*
+ * Increment to next connection entry
+ */
+static void
+next_connection_entry (struct context *c)
+{
+#ifdef ENABLE_CONNECTION
+  struct connection_list *l = c->options.connection_list;
+  if (l)
+    {
+      if (l->no_advance && l->current >= 0)
+	{
+	  l->no_advance = false;
+	}
+      else
+	{
+	  int i;
+	  if (++l->current >= l->len)
+	    l->current = 0;
+
+	  dmsg (D_CONNECTION_LIST, "CONNECTION_LIST len=%d current=%d",
+		l->len, l->current);
+	  for (i = 0; i < l->len; ++i)
+	    {
+	      dmsg (D_CONNECTION_LIST, "[%d] %s:%d",
+		    i,
+		    l->array[i]->remote,
+		    l->array[i]->remote_port);
+	    }
+	}
+      c->options.ce = *l->array[l->current];
+    }
+#endif
+  update_options_ce_post (&c->options);
 }
 
 /*
@@ -116,8 +193,41 @@ init_query_passwords (struct context *c)
 #endif
 }
 
-void
-context_init_1 (struct context *c)
+/*
+ * Initialize/Uninitialize HTTP or SOCKS proxy
+ */
+
+#ifdef GENERAL_PROXY_SUPPORT
+
+static int
+proxy_scope (struct context *c)
+{
+  return connection_list_defined (&c->options) ? 2 : 1;
+}
+
+static void
+uninit_proxy_dowork (struct context *c)
+{
+#ifdef ENABLE_HTTP_PROXY
+  if (c->c1.http_proxy_owned && c->c1.http_proxy)
+    {
+      http_proxy_close (c->c1.http_proxy);
+      c->c1.http_proxy = NULL;
+      c->c1.http_proxy_owned = false;
+    }
+#endif
+#ifdef ENABLE_SOCKS
+  if (c->c1.socks_proxy_owned && c->c1.socks_proxy)
+    {
+      socks_proxy_close (c->c1.socks_proxy);
+      c->c1.socks_proxy = NULL;
+      c->c1.socks_proxy_owned = false;
+    }
+#endif
+}
+
+static void
+init_proxy_dowork (struct context *c)
 {
 #ifdef ENABLE_HTTP_PROXY
   bool did_http = false;
@@ -125,10 +235,73 @@ context_init_1 (struct context *c)
   const bool did_http = false;
 #endif
 
+  uninit_proxy_dowork (c);
+
+#ifdef ENABLE_HTTP_PROXY
+  if (c->options.ce.http_proxy_options || c->options.auto_proxy_info)
+    {
+      /* Possible HTTP proxy user/pass input */
+      c->c1.http_proxy = http_proxy_new (c->options.ce.http_proxy_options,
+					 c->options.auto_proxy_info);
+      if (c->c1.http_proxy)
+	{
+	  did_http = true;
+	  c->c1.http_proxy_owned = true;
+	}
+    }
+#endif
+
+#ifdef ENABLE_SOCKS
+  if (!did_http && (c->options.ce.socks_proxy_server || c->options.auto_proxy_info))
+    {
+      c->c1.socks_proxy = socks_proxy_new (c->options.ce.socks_proxy_server,
+					   c->options.ce.socks_proxy_port,
+					   c->options.ce.socks_proxy_retry,
+					   c->options.auto_proxy_info);
+      if (c->c1.socks_proxy)
+	{
+	  c->c1.socks_proxy_owned = true;
+	}
+    }
+#endif
+}
+
+static void
+init_proxy (struct context *c, const int scope)
+{
+  if (scope == proxy_scope (c))
+    init_proxy_dowork (c);
+}
+
+static void
+uninit_proxy (struct context *c)
+{
+  if (c->sig->signal_received != SIGUSR1 || proxy_scope (c) == 2)
+    uninit_proxy_dowork (c);
+}
+
+#else
+
+static inline void
+init_proxy (struct context *c, const int scope)
+{
+}
+
+static inline void
+uninit_proxy (struct context *c, const int scope)
+{
+}
+
+#endif
+
+void
+context_init_1 (struct context *c)
+{
   context_clear_1 (c);
 
   packet_id_persist_init (&c->c1.pid_persist);
-  init_remote_list (c);
+
+  init_connection_list (c);
 
   init_query_passwords (c);
 
@@ -156,28 +329,8 @@ context_init_1 (struct context *c)
  }
 #endif
 
-#ifdef ENABLE_HTTP_PROXY
-  if (c->options.http_proxy_options || c->options.auto_proxy_info)
-    {
-      /* Possible HTTP proxy user/pass input */
-      c->c1.http_proxy = new_http_proxy (c->options.http_proxy_options,
-					 c->options.auto_proxy_info,
-					 &c->gc);
-      if (c->c1.http_proxy)
-	did_http = true;
-    }
-#endif
-
-#ifdef ENABLE_SOCKS
-  if (!did_http && (c->options.socks_proxy_server || c->options.auto_proxy_info))
-    {
-      c->c1.socks_proxy = new_socks_proxy (c->options.socks_proxy_server,
-					   c->options.socks_proxy_port,
-					   c->options.socks_proxy_retry,
-					   c->options.auto_proxy_info,
-					   &c->gc);
-    }
-#endif
+  /* initialize HTTP or SOCKS proxy object at scope level 1 */
+  init_proxy (c, 1);
 }
 
 void
@@ -407,7 +560,7 @@ do_persist_tuntap (const struct options *options)
     {
       /* sanity check on options for --mktun or --rmtun */
       notnull (options->dev, "TUN/TAP device (--dev)");
-      if (options->remote_list || options->ifconfig_local
+      if (options->ce.remote || options->ifconfig_local
 	  || options->ifconfig_remote_netmask
 #ifdef USE_CRYPTO
 	  || options->shared_secret_file
@@ -684,9 +837,9 @@ initialization_sequence_completed (struct context *c, const unsigned int flags)
   else
     msg (M_INFO, "%s", message);
 
-  /* Flag remote_list that we initialized */
-  if ((flags & (ISC_ERRORS|ISC_SERVER)) == 0 && c->c1.remote_list && c->c1.remote_list->len > 1)
-    c->c1.remote_list->no_advance = true;
+  /* Flag connection_list that we initialized */
+  if ((flags & (ISC_ERRORS|ISC_SERVER)) == 0 && connection_list_defined (&c->options))
+    connection_list_set_no_advance (&c->options);
 
 #ifdef ENABLE_MANAGEMENT
   /* Tell management interface that we initialized */
@@ -1099,7 +1252,7 @@ do_deferred_options (struct context *c, const unsigned int found)
 #ifdef ENABLE_OCC
   if (found & OPT_P_EXPLICIT_NOTIFY)
     {
-      if (c->options.proto != PROTO_UDPv4 && c->options.explicit_exit_notification)
+      if (c->options.ce.proto != PROTO_UDPv4 && c->options.explicit_exit_notification)
 	{
 	  msg (D_PUSH, "OPTIONS IMPORT: --explicit-exit-notify can only be used with --proto udp");
 	  c->options.explicit_exit_notification = 0;
@@ -1183,25 +1336,25 @@ socket_restart_pause (struct context *c)
   int sec = 2;
 
 #ifdef ENABLE_HTTP_PROXY
-  if (c->options.http_proxy_options)
+  if (c->options.ce.http_proxy_options)
     proxy = true;
 #endif
 #ifdef ENABLE_SOCKS
-  if (c->options.socks_proxy_server)
+  if (c->options.ce.socks_proxy_server)
     proxy = true;
 #endif
 
-  switch (c->options.proto)
+  switch (c->options.ce.proto)
     {
     case PROTO_UDPv4:
       if (proxy)
-	sec = c->options.connect_retry_seconds;
+	sec = c->options.ce.connect_retry_seconds;
       break;
     case PROTO_TCPv4_SERVER:
       sec = 1;
       break;
     case PROTO_TCPv4_CLIENT:
-      sec = c->options.connect_retry_seconds;
+      sec = c->options.ce.connect_retry_seconds;
       break;
     }
 
@@ -1537,7 +1690,7 @@ do_init_crypto_tls (struct context *c, const unsigned int flags)
 
   /* should we not xmit any packets until we get an initial
      response from client? */
-  if (to.server && options->proto == PROTO_TCPv4_SERVER)
+  if (to.server && options->ce.proto == PROTO_TCPv4_SERVER)
     to.xmit_hold = true;
 
 #ifdef ENABLE_OCC
@@ -1584,7 +1737,7 @@ do_init_crypto_tls (struct context *c, const unsigned int flags)
 
   /* If we are running over TCP, allow for
      length prefix */
-  socket_adjust_frame_parameters (&to.frame, options->proto);
+  socket_adjust_frame_parameters (&to.frame, options->ce.proto);
 
   /*
    * Initialize OpenVPN's master TLS-mode object.
@@ -1682,8 +1835,8 @@ do_init_frame (struct context *c)
   /*
    * Adjust frame size for UDP Socks support.
    */
-  if (c->options.socks_proxy_server)
-    socks_adjust_frame_parameters (&c->c2.frame, c->options.proto);
+  if (c->options.ce.socks_proxy_server)
+    socks_adjust_frame_parameters (&c->c2.frame, c->options.ce.proto);
 #endif
 
   /*
@@ -1697,7 +1850,7 @@ do_init_frame (struct context *c)
    * (Since TCP is a stream protocol, we need to insert
    * a packet length uint16_t in the buffer.)
    */
-  socket_adjust_frame_parameters (&c->c2.frame, c->options.proto);
+  socket_adjust_frame_parameters (&c->c2.frame, c->options.ce.proto);
 
   /*
    * Fill in the blanks in the frame parameters structure,
@@ -1739,7 +1892,7 @@ do_option_warnings (struct context *c)
   const struct options *o = &c->options;
 
 #if 1 /* JYFIXME -- port warning */
-  if (!o->port_option_used && (o->local_port == OPENVPN_PORT && o->remote_port == OPENVPN_PORT))
+  if (!o->ce.port_option_used && (o->ce.local_port == OPENVPN_PORT && o->ce.remote_port == OPENVPN_PORT))
     msg (M_WARN, "IMPORTANT: OpenVPN's default port number is now %d, based on an official port number assignment by IANA.  OpenVPN 2.0-beta16 and earlier used 5000 as the default port.",
 	 OPENVPN_PORT);
 #endif
@@ -1793,7 +1946,7 @@ do_option_warnings (struct context *c)
 #endif
 
 #ifndef CONNECT_NONBLOCK
-  if (o->connect_timeout_defined)
+  if (o->ce.connect_timeout_defined)
     msg (M_WARN, "NOTE: --connect-timeout option is not supported on this OS");
 #endif
 }
@@ -1918,10 +2071,12 @@ do_init_socket_1 (struct context *c, const int mode)
 #endif
 
   link_socket_init_phase1 (c->c2.link_socket,
-			   c->options.local,
-			   c->c1.remote_list,
-			   c->options.local_port,
-			   c->options.proto,
+			   connection_list_defined (&c->options),
+			   c->options.ce.local,
+			   c->options.ce.local_port,
+			   c->options.ce.remote,
+			   c->options.ce.remote_port,
+			   c->options.ce.proto,
 			   mode,
 			   c->c2.accept_from,
 #ifdef ENABLE_HTTP_PROXY
@@ -1933,16 +2088,16 @@ do_init_socket_1 (struct context *c, const int mode)
 #ifdef ENABLE_DEBUG
 			   c->options.gremlin,
 #endif
-			   c->options.bind_local,
-			   c->options.remote_float,
+			   c->options.ce.bind_local,
+			   c->options.ce.remote_float,
 			   c->options.inetd,
 			   &c->c1.link_socket_addr,
 			   c->options.ipchange,
 			   c->plugins,
 			   c->options.resolve_retry_seconds,
-			   c->options.connect_retry_seconds,
-			   c->options.connect_timeout,
-			   c->options.connect_retry_max,
+			   c->options.ce.connect_retry_seconds,
+			   c->options.ce.connect_timeout,
+			   c->options.ce.connect_retry_max,
 			   c->options.mtu_discover_type,
 			   c->options.rcvbuf,
 			   c->options.sndbuf,
@@ -2302,7 +2457,7 @@ do_setup_fast_io (struct context *c)
 #ifdef WIN32
       msg (M_INFO, "NOTE: --fast-io is disabled since we are running on Windows");
 #else
-      if (c->options.proto != PROTO_UDPv4)
+      if (c->options.ce.proto != PROTO_UDPv4)
 	msg (M_INFO, "NOTE: --fast-io is disabled since we are not using UDP");
       else
 	{
@@ -2556,10 +2711,13 @@ init_instance (struct context *c, const struct env_set *env, const unsigned int 
   c->sig->signal_text = NULL;
   c->sig->hard = false;
 
+  /* map in current connection entry */
+  next_connection_entry (c);
+
   /* link_socket_mode allows CM_CHILD_TCP
      instances to inherit acceptable fds
      from a top-level parent */
-  if (c->options.proto == PROTO_TCPv4_SERVER)
+  if (c->options.ce.proto == PROTO_TCPv4_SERVER)
     {
       if (c->mode == CM_TOP)
 	link_socket_mode = LS_MODE_TCP_LISTEN;
@@ -2632,6 +2790,9 @@ init_instance (struct context *c, const struct env_set *env, const unsigned int 
     do_event_set_init (c, SHAPER_DEFINED (&c->options));
   else if (c->mode == CM_CHILD_TCP)
     do_event_set_init (c, false);
+
+  /* initialize HTTP or SOCKS proxy object at scope level 2 */
+  init_proxy (c, 2);
 
   /* allocate our socket object */
   if (c->mode == CM_P2P || c->mode == CM_TOP || c->mode == CM_CHILD_TCP)
@@ -2825,6 +2986,9 @@ close_instance (struct context *c)
 	/* free up environmental variable store */
 	do_env_set_destroy (c);
 
+	/* close HTTP or SOCKS proxy */
+	uninit_proxy (c);
+
 	/* garbage collect */
 	gc_free (&c->c2.gc);
       }
@@ -2836,7 +3000,7 @@ inherit_context_child (struct context *dest,
 {
   CLEAR (*dest);
 
-  switch (src->options.proto)
+  switch (src->options.ce.proto)
     {
     case PROTO_UDPv4:
       dest->mode = CM_CHILD_UDP;
@@ -2952,7 +3116,7 @@ inherit_context_top (struct context *dest,
   dest->c2.es_owned = false;
 
   dest->c2.event_set = NULL;
-  if (src->options.proto == PROTO_UDPv4)
+  if (src->options.ce.proto == PROTO_UDPv4)
     do_event_set_init (dest, false);
 }
 

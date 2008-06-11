@@ -356,7 +356,7 @@ check_fragment_dowork (struct context *c)
   if (lsi->mtu_changed && c->c2.ipv4_tun)
     {
       frame_adjust_path_mtu (&c->c2.frame_fragment, c->c2.link_socket->mtu,
-			     c->options.proto);
+			     c->options.ce.proto);
       lsi->mtu_changed = false;
     }
 
@@ -1038,7 +1038,7 @@ process_outgoing_link (struct context *c)
 #ifdef HAVE_GETTIMEOFDAY
 	  if (c->options.shaper)
 	    shaper_wrote_bytes (&c->c2.shaper, BLEN (&c->c2.to_link)
-				+ datagram_overhead (c->options.proto));
+				+ datagram_overhead (c->options.ce.proto));
 #endif
 	  /*
 	   * Let the pinger know that we sent a packet.

@@ -120,7 +120,7 @@
 #define D_MULTI_DEBUG        LOGLEV(7, 70, M_DEBUG)  /* show medium-freq multi debugging info */
 #define D_MSS                LOGLEV(7, 70, M_DEBUG)  /* show MSS adjustments */
 #define D_COMP_LOW           LOGLEV(7, 70, M_DEBUG)  /* show adaptive compression state changes */
-#define D_REMOTE_LIST        LOGLEV(7, 70, M_DEBUG)  /* show --remote list */
+#define D_CONNECTION_LIST    LOGLEV(7, 70, M_DEBUG)  /* show <connection> list info */
 #define D_SCRIPT             LOGLEV(7, 70, M_DEBUG)  /* show parms & env vars passed to scripts */
 #define D_SHOW_NET           LOGLEV(7, 70, M_DEBUG)  /* show routing table and adapter list */
 #define D_ROUTE_DEBUG        LOGLEV(7, 70, M_DEBUG)  /* show verbose route.[ch] output */
