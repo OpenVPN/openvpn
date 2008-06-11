@@ -76,87 +76,144 @@ mroute_learnable_address (const struct mroute_addr *addr)
   return not_all_zeros && not_all_ones && !is_mac_mcast_maddr (addr);
 }
 
-/*
- * Given a raw packet in buf, return the src and dest
- * addresses of the packet.
- */
-unsigned int
-mroute_extract_addr_from_packet (struct mroute_addr *src,
-				 struct mroute_addr *dest,
-				 struct buffer *buf,
-				 int tunnel_type)
+static inline void
+mroute_get_in_addr_t (struct mroute_addr *ma, const in_addr_t src, unsigned int mask)
+{
+  if (ma)
+    {
+      ma->type = MR_ADDR_IPV4 | mask;
+      ma->netbits = 0;
+      ma->len = 4;
+      *(in_addr_t*)ma->addr = src;
+    }
+}
+
+static inline bool
+mroute_is_mcast (const in_addr_t addr)
+{
+  return ((addr & htonl(IP_MCAST_SUBNET_MASK)) == htonl(IP_MCAST_NETWORK));
+}
+
+#ifdef ENABLE_PF
+
+static unsigned int
+mroute_extract_addr_arp (struct mroute_addr *src,
+			 struct mroute_addr *dest,
+			 const struct buffer *buf)
 {
   unsigned int ret = 0;
-  verify_align_4 (buf);
-  if (tunnel_type == DEV_TYPE_TUN)
+  if (BLEN (buf) >= (int) sizeof (struct openvpn_arp))
     {
-      if (BLEN (buf) >= 1)
+      const struct openvpn_arp *arp = (const struct openvpn_arp *) BPTR (buf);
+      if (arp->mac_addr_type == htons(0x0001)
+	  && arp->proto_addr_type == htons(0x0800)
+	  && arp->mac_addr_size == 0x06
+	  && arp->proto_addr_size == 0x04)
 	{
-	  switch (OPENVPN_IPH_GET_VER (*BPTR(buf)))
-	    {
-	    case 4:
-	      if (BLEN (buf) >= (int) sizeof (struct openvpn_iphdr))
-		{
-		  const struct openvpn_iphdr *ip = (const struct openvpn_iphdr *) BPTR (buf);
-		  if (src)
-		    {
-		      src->type = MR_ADDR_IPV4;
-		      src->netbits = 0;
-		      src->len = 4;
-		      memcpy (src->addr, &ip->saddr, 4);
-		    }
-		  if (dest)
-		    {
-		      dest->type = MR_ADDR_IPV4;
-		      dest->netbits = 0;
-		      dest->len = 4;
-		      memcpy (dest->addr, &ip->daddr, 4);
+	  mroute_get_in_addr_t (src, arp->ip_src, MR_ARP);
+	  mroute_get_in_addr_t (dest, arp->ip_dest, MR_ARP);
 
-		      /* mcast address? */
-		      if ((ip->daddr & htonl(IP_MCAST_SUBNET_MASK)) == htonl(IP_MCAST_NETWORK))
-			ret |= MROUTE_EXTRACT_MCAST;
+	  /* multicast packet? */
+	  if (mroute_is_mcast (arp->ip_dest))
+	    ret |= MROUTE_EXTRACT_MCAST;
 
-		      /* IGMP message? */
-		      if (ip->protocol == OPENVPN_IPPROTO_IGMP)
-			ret |= MROUTE_EXTRACT_IGMP;
-		    }
-		  ret |= MROUTE_EXTRACT_SUCCEEDED;
-		}
-	      break;
-	    case 6:
-	      {
-		msg (M_WARN, "Need IPv6 code in mroute_extract_addr_from_packet"); 
-		break;
-	      }
-	    }
-	}
-    }
-  else if (tunnel_type == DEV_TYPE_TAP)
-    {
-      if (BLEN (buf) >= (int) sizeof (struct openvpn_ethhdr))
-	{
-	  const struct openvpn_ethhdr *eth = (const struct openvpn_ethhdr *) BPTR (buf);
-	  if (src)
-	    {
-	      src->type = MR_ADDR_ETHER;
-	      src->netbits = 0;
-	      src->len = 6;
-	      memcpy (src->addr, eth->source, 6);
-	    }
-	  if (dest)
-	    {
-	      dest->type = MR_ADDR_ETHER;
-	      dest->netbits = 0;
-	      dest->len = 6;
-	      memcpy (dest->addr, eth->dest, 6);
-
-	      /* ethernet broadcast/multicast packet? */
-	      if (is_mac_mcast_addr (eth->dest))
-		ret |= MROUTE_EXTRACT_BCAST;
-	    }
-	  
 	  ret |= MROUTE_EXTRACT_SUCCEEDED;
 	}
+    }
+  return ret;
+}
+
+#endif
+
+unsigned int
+mroute_extract_addr_ipv4 (struct mroute_addr *src,
+			  struct mroute_addr *dest,
+			  const struct buffer *buf)
+{
+  unsigned int ret = 0;
+  if (BLEN (buf) >= 1)
+    {
+      switch (OPENVPN_IPH_GET_VER (*BPTR(buf)))
+	{
+	case 4:
+	  if (BLEN (buf) >= (int) sizeof (struct openvpn_iphdr))
+	    {
+	      const struct openvpn_iphdr *ip = (const struct openvpn_iphdr *) BPTR (buf);
+
+	      mroute_get_in_addr_t (src, ip->saddr, 0);
+	      mroute_get_in_addr_t (dest, ip->daddr, 0);
+
+	      /* multicast packet? */
+	      if (mroute_is_mcast (ip->daddr))
+		ret |= MROUTE_EXTRACT_MCAST;
+
+	      /* IGMP message? */
+	      if (ip->protocol == OPENVPN_IPPROTO_IGMP)
+		ret |= MROUTE_EXTRACT_IGMP;
+
+	      ret |= MROUTE_EXTRACT_SUCCEEDED;
+	    }
+	  break;
+	case 6:
+	  {
+	    msg (M_WARN, "Need IPv6 code in mroute_extract_addr_from_packet"); 
+	    break;
+	  }
+	}
+    }
+  return ret;
+}
+
+unsigned int
+mroute_extract_addr_ether (struct mroute_addr *src,
+			   struct mroute_addr *dest,
+			   struct mroute_addr *esrc,
+			   struct mroute_addr *edest,
+			   const struct buffer *buf)
+{
+  unsigned int ret = 0;
+  if (BLEN (buf) >= (int) sizeof (struct openvpn_ethhdr))
+    {
+      const struct openvpn_ethhdr *eth = (const struct openvpn_ethhdr *) BPTR (buf);
+      if (src)
+	{
+	  src->type = MR_ADDR_ETHER;
+	  src->netbits = 0;
+	  src->len = 6;
+	  memcpy (src->addr, eth->source, 6);
+	}
+      if (dest)
+	{
+	  dest->type = MR_ADDR_ETHER;
+	  dest->netbits = 0;
+	  dest->len = 6;
+	  memcpy (dest->addr, eth->dest, 6);
+
+	  /* ethernet broadcast/multicast packet? */
+	  if (is_mac_mcast_addr (eth->dest))
+	    ret |= MROUTE_EXTRACT_BCAST;
+	}
+	  
+      ret |= MROUTE_EXTRACT_SUCCEEDED;
+
+#ifdef ENABLE_PF
+      if (esrc || edest)
+	{
+	  struct buffer b = *buf;
+	  if (buf_advance (&b, sizeof (struct openvpn_ethhdr)))
+	    {
+	      switch (ntohs (eth->proto))
+		{
+		case OPENVPN_ETH_P_IPV4:
+		  ret |= (mroute_extract_addr_ipv4 (esrc, edest, &b) << MROUTE_SEC_SHIFT);
+		  break;
+		case OPENVPN_ETH_P_ARP:
+		  ret |= (mroute_extract_addr_arp (esrc, edest, &b) << MROUTE_SEC_SHIFT);
+		  break;
+		}
+	    }
+	}
+#endif
     }
   return ret;
 }
@@ -229,6 +286,14 @@ const char *
 mroute_addr_print (const struct mroute_addr *ma,
 		   struct gc_arena *gc)
 {
+  return mroute_addr_print_ex (ma, MAPF_IA_EMPTY_IF_UNDEF, gc);
+}
+
+const char *
+mroute_addr_print_ex (const struct mroute_addr *ma,
+		      const unsigned int flags,
+		      struct gc_arena *gc)
+{
   struct buffer out = alloc_buf_gc (64, gc);
   if (ma)
     {
@@ -249,9 +314,19 @@ mroute_addr_print (const struct mroute_addr *ma,
 	    addr = buf_read_u32 (&buf, &status);
 	    if (status)
 	      {
-		buf_printf (&out, "%s", print_in_addr_t (addr, IA_EMPTY_IF_UNDEF, gc));
+		if ((flags & MAPF_SHOW_ARP) && (maddr.type & MR_ARP))
+		  buf_printf (&out, "ARP/");
+		buf_printf (&out, "%s", print_in_addr_t (addr, (flags & MAPF_IA_EMPTY_IF_UNDEF) ? IA_EMPTY_IF_UNDEF : 0, gc));
 		if (maddr.type & MR_WITH_NETBITS)
-		  buf_printf (&out, "/%d", maddr.netbits);
+		  {
+		    if (flags & MAPF_SUBNET)
+		      {
+			const in_addr_t netmask = netbits_to_netmask (maddr.netbits);
+			buf_printf (&out, "/%s", print_in_addr_t (netmask, 0, gc));
+		      }
+		    else
+		      buf_printf (&out, "/%d", maddr.netbits);
+		  }
 	      }
 	    if (maddr.type & MR_WITH_PORT)
 	      {

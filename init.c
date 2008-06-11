@@ -1558,6 +1558,10 @@ do_init_crypto_tls (struct context *c, const unsigned int flags)
 
   to.plugins = c->plugins;
 
+#ifdef MANAGEMENT_DEF_AUTH
+  to.mda_context = &c->c2.mda_context;
+#endif
+
 #if P2MP_SERVER
   to.auth_user_pass_verify_script = options->auth_user_pass_verify_script;
   to.auth_user_pass_verify_script_via_file = options->auth_user_pass_verify_script_via_file;
@@ -2356,7 +2360,7 @@ open_plugins (struct context *c, const bool import_options, int init_point)
 		{
 		  unsigned int option_types_found = 0;
 		  if (config.list[i] && config.list[i]->value)
-		    options_plugin_import (&c->options,
+		    options_string_import (&c->options,
 					   config.list[i]->value,
 					   D_IMPORT_ERRORS|M_OPTERR,
 					   OPT_P_DEFAULT & ~OPT_P_PLUGIN,
@@ -2452,21 +2456,19 @@ open_management (struct context *c)
     {
       if (c->options.management_addr)
 	{
+	  unsigned int flags = c->options.management_flags;
+	  if (c->options.mode == MODE_SERVER)
+	    flags |= MF_SERVER;
 	  if (management_open (management,
 			       c->options.management_addr,
 			       c->options.management_port,
 			       c->options.management_user_pass,
-			       c->options.mode == MODE_SERVER,
-			       c->options.management_query_passwords,
 			       c->options.management_log_history_cache,
 			       c->options.management_echo_buffer_size,
 			       c->options.management_state_buffer_size,
-			       c->options.management_hold,
-			       c->options.management_signal,
-			       c->options.management_forget_disconnect,
-			       c->options.management_client,
 			       c->options.management_write_peer_info_file,
-			       c->options.remap_sigusr1))
+			       c->options.remap_sigusr1,
+			       flags))
 	    {
 	      management_set_state (management,
 				    OPENVPN_STATE_CONNECTING,
@@ -2791,6 +2793,11 @@ close_instance (struct context *c)
 
 	/* close TUN/TAP device */
 	do_close_tun (c, false);
+
+#ifdef MANAGEMENT_DEF_AUTH
+	if (management)
+	  management_notify_client_close (management, &c->c2.mda_context, NULL);
+#endif
 
 #ifdef ENABLE_PF
 	pf_destroy_context (&c->c2.pf);

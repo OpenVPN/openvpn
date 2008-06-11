@@ -77,6 +77,10 @@ struct multi_instance {
   bool did_open_context;
   bool did_real_hash;
   bool did_iter;
+#ifdef MANAGEMENT_DEF_AUTH
+  bool did_cid_hash;
+  struct buffer_list *cc_config;
+#endif
   bool connection_established_flag;
   bool did_iroutes;
 
@@ -111,6 +115,11 @@ struct multi_context {
   int tcp_queue_limit;
   int status_file_version;
 
+#ifdef MANAGEMENT_DEF_AUTH
+  struct hash *cid_hash;
+  unsigned long cid_counter;
+#endif
+
   struct multi_instance *pending;
   struct multi_instance *earliest_wakeup;
   struct multi_instance **mpp_touched;
@@ -142,10 +151,6 @@ struct multi_route
 void tunnel_server (struct context *top);
 
 const char *multi_instance_string (const struct multi_instance *mi, bool null, struct gc_arena *gc);
-
-void multi_bcast (struct multi_context *m,
-		  const struct buffer *buf,
-		  struct multi_instance *omit);
 
 /*
  * Called by mtcp.c, mudp.c, or other (to be written) protocol drivers

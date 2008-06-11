@@ -281,12 +281,10 @@ struct options
   int management_log_history_cache;
   int management_echo_buffer_size;
   int management_state_buffer_size;
-  bool management_query_passwords;
-  bool management_hold;
-  bool management_signal;
-  bool management_forget_disconnect;
-  bool management_client;
   const char *management_write_peer_info_file;
+
+  /* Mask of MF_ values of manage.h */
+  unsigned int management_flags;
 #endif
 
 #ifdef ENABLE_PLUGIN
@@ -537,6 +535,12 @@ struct options
 #define PLUGIN_OPTION_LIST(opt) (NULL)
 #endif
 
+#ifdef MANAGEMENT_DEF_AUTH
+#define MAN_CLIENT_AUTH_ENABLED(opt) ((opt)->management_flags & MF_CLIENT_AUTH)
+#else
+#define MAN_CLIENT_AUTH_ENABLED(opt) (false)
+#endif
+
 void parse_argv (struct options *options,
 		 const int argc,
 		 char *argv[],
@@ -632,15 +636,11 @@ const char *auth_retry_print (void);
 
 #endif
 
-#ifdef ENABLE_PLUGIN
-
-void options_plugin_import (struct options *options,
+void options_string_import (struct options *options,
 			    const char *config,
 			    const int msglevel,
 			    const unsigned int permission_mask,
 			    unsigned int *option_types_found,
 			    struct env_set *es);
-
-#endif
 
 #endif

@@ -30,7 +30,7 @@
 #include "list.h"
 #include "mroute.h"
 
-#define PF_DEBUG 0
+#define PF_MAX_LINE_LEN 256
 
 struct context;
 
@@ -73,30 +73,29 @@ struct pf_set {
 };
 
 struct pf_context {
+  bool enabled;
+  struct pf_set *pfs;
+#ifdef PLUGIN_PF
   char *filename;
   time_t file_last_mod;
   unsigned int n_check_reload;
   struct event_timeout reload;
-  struct pf_set *pfs;
+#endif
 };
 
 void pf_init_context (struct context *c);
 
 void pf_destroy_context (struct pf_context *pfc);
 
+#ifdef PLUGIN_PF
 void pf_check_reload (struct context *c);
+#endif
 
-bool pf_c2c_test (const struct context *src, const struct context *dest);
+#ifdef MANAGEMENT_PF
+bool pf_load_from_buffer_list (struct context *c, const struct buffer_list *config);
+#endif
 
-bool pf_addr_test (const struct context *src, const struct mroute_addr *dest);
-
-static inline bool
-pf_kill_test (const struct pf_set *pfs)
-{
-  return pfs->kill;
-}
-
-#if PF_DEBUG >= 1
+#ifdef ENABLE_DEBUG
 void pf_context_print (const struct pf_context *pfc, const char *prefix, const int lev);
 #endif
 

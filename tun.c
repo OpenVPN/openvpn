@@ -1248,7 +1248,7 @@ close_tun (struct tuntap *tt)
 #endif
 
 	    msg (M_INFO, "%s", command_line);
-	    system_check (command_line, NULL, S_FATAL, "Linux ip addr del failed");
+	    system_check (command_line, NULL, 0, "Linux ip addr del failed");
 
 	    gc_free (&gc);
 	  }

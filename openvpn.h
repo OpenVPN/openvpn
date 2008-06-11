@@ -437,6 +437,10 @@ struct context_2
 #ifdef ENABLE_PF
   struct pf_context pf;
 #endif
+
+#ifdef MANAGEMENT_DEF_AUTH
+  struct man_def_auth_context mda_context;
+#endif
 };
 
 /*

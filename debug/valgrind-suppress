@@ -1,118 +1,411 @@
-# Valgrind suppressions file for OpenVPN.
-#
-# Mostly deal with uninitialized data warnings
-# in OpenSSL.
-
 {
-   cond_BN
-   Memcheck:Cond
-   fun:BN_*
-}
-
-{
-   value4_BN
-   Memcheck:Value4
-   fun:BN_*
-}
-
-{
-   cond_bn
-   Memcheck:Cond
-   fun:bn_*
-}
-
-{
-   value4_bn
-   Memcheck:Value4
-   fun:bn_*
-}
-
-{
-   cond_SHA1_Update
-   Memcheck:Cond
-   fun:SHA1_Update
-}
-
-{
-   value4_SHA1_Update
-   Memcheck:Value4
-   fun:SHA1_Update
-}
-
-{
-   cond_ssl3_read_bytes
-   Memcheck:Cond
-   fun:ssl3_read_bytes
-}
-
-{
-   cond_crypto
-   Memcheck:Cond
-   obj:/lib/libcrypto.so.*
-}
-
-{
-   value4_crypto
-   Memcheck:Value4
-   obj:/lib/libcrypto.so.*
-}
-
-{
-   cond_ssl
-   Memcheck:Cond
-   obj:/lib/libssl.so.*
-}
-
-{
-   value4_ssl
-   Memcheck:Value4
-   obj:/lib/libssl.so.*
-}
-
-{
-   addr4_AES_cbc_encrypt
-   Memcheck:Addr4
-   fun:AES_cbc_encrypt
-}
-
-{
-   cond_memcpy_ssl3_read_bytes
-   Memcheck:Cond
-   fun:memcpy
-   fun:ssl3_read_bytes
-}
-
-{
-   value4_memcpy_ssl3_read_bytes
-   Memcheck:Value4
-   fun:memcpy
-   fun:ssl3_read_bytes
-}
-
-{
-   cond_memset_BUF_MEM_grow_clean
-   Memcheck:Cond
-   fun:memset
-   fun:BUF_MEM_grow_clean
-}
-
-{
-   value4_memset_BUF_MEM_grow_clean
-   Memcheck:Value4
-   fun:memset
-   fun:BUF_MEM_grow_clean
+   <insert a suppression name here>
+   Memcheck:Addr8
+   obj:/lib/ld-2.5.so
+   obj:/lib/ld-2.5.so
+   obj:/lib/ld-2.5.so
+   obj:/lib/ld-2.5.so
+   obj:/lib/ld-2.5.so
+   obj:/lib/ld-2.5.so
+   obj:/lib/ld-2.5.so
+   obj:/lib/ld-2.5.so
+   obj:/lib/ld-2.5.so
+   obj:/lib/ld-2.5.so
+   obj:/lib/libc-2.5.so
+   obj:/lib/ld-2.5.so
+   fun:__libc_dlopen_mode
+   fun:__nss_lookup_function
+   obj:/lib/libc-2.5.so
+   fun:getgrnam_r
+   fun:getgrnam
+   fun:get_group
+   fun:do_init_first_time
+   fun:init_instance
+   fun:init_instance_handle_signals
+   fun:tunnel_server_tcp
+   fun:main
 }
 
 {
    <insert a suppression name here>
    Memcheck:Addr8
    obj:/lib/ld-2.5.so
+   obj:/lib/ld-2.5.so
+   obj:/lib/ld-2.5.so
+   obj:/lib/ld-2.5.so
+   obj:/lib/ld-2.5.so
+   obj:/lib/ld-2.5.so
+   obj:/lib/ld-2.5.so
+   obj:/lib/libc-2.5.so
+   obj:/lib/ld-2.5.so
+   fun:__libc_dlopen_mode
+   fun:__nss_lookup_function
+   fun:__nss_next
+   fun:gethostbyname_r
+   fun:gethostbyname
+   fun:getaddr
+   fun:resolve_remote
+   fun:link_socket_init_phase1
+   fun:init_instance
+   fun:init_instance_handle_signals
+   fun:main
+}
+
+{
+   <insert a suppression name here>
+   Memcheck:Addr8
+   obj:/lib/ld-2.5.so
+   obj:/lib/ld-2.5.so
+   obj:/lib/ld-2.5.so
+   obj:/lib/ld-2.5.so
+   obj:/lib/ld-2.5.so
+   obj:/lib/ld-2.5.so
+   obj:/lib/ld-2.5.so
+   obj:/lib/libc-2.5.so
+   obj:/lib/ld-2.5.so
+   fun:__libc_dlopen_mode
+   fun:__nss_lookup_function
+   obj:/lib/libc-2.5.so
+   fun:gethostbyname_r
+   fun:gethostbyname
+   fun:getaddr
+   fun:resolve_remote
+   fun:link_socket_init_phase1
+   fun:init_instance
+   fun:init_instance_handle_signals
+   fun:main
+}
+
+{
+   <insert a suppression name here>
+   Memcheck:Addr8
+   obj:/lib/ld-2.5.so
+   obj:/lib/ld-2.5.so
+   obj:/lib/ld-2.5.so
+   obj:/lib/ld-2.5.so
+   obj:/lib/ld-2.5.so
+   obj:/lib/ld-2.5.so
+   obj:/lib/ld-2.5.so
+   obj:/lib/libdl-2.5.so
+   obj:/lib/ld-2.5.so
+   obj:/lib/libdl-2.5.so
+   fun:dlopen
+   fun:plugin_list_init
+   fun:init_plugins
+   fun:main
+}
+
+{
+   <insert a suppression name here>
+   Memcheck:Addr8
+   obj:/lib/ld-2.5.so
+   obj:/lib/ld-2.5.so
+   obj:/lib/ld-2.5.so
+   obj:/lib/ld-2.5.so
+   obj:/lib/ld-2.5.so
+   obj:/lib/ld-2.5.so
+   obj:/lib/libdl-2.5.so
+   obj:/lib/ld-2.5.so
+   obj:/lib/libdl-2.5.so
+   fun:dlopen
+   fun:plugin_list_init
+   fun:init_plugins
+   fun:main
+}
+
+{
+   <insert a suppression name here>
+   Memcheck:Addr8
+   obj:/lib/ld-2.5.so
+   obj:/lib/ld-2.5.so
+   obj:/lib/ld-2.5.so
+   obj:/lib/ld-2.5.so
+   obj:/lib/libc-2.5.so
+   obj:/lib/libdl-2.5.so
+   obj:/lib/ld-2.5.so
+   obj:/lib/libdl-2.5.so
+   fun:dlsym
+   fun:libdl_resolve_symbol
+   fun:plugin_list_init
+   fun:init_plugins
+   fun:main
+}
+
+{
+   <insert a suppression name here>
+   Memcheck:Addr8
+   obj:/lib/ld-2.5.so
+   obj:/lib/ld-2.5.so
+   obj:/lib/ld-2.5.so
+   obj:/lib/ld-2.5.so
+   obj:/lib/libdl-2.5.so
+   obj:/lib/ld-2.5.so
+   obj:/lib/libdl-2.5.so
+   fun:dlopen
+   fun:plugin_list_init
+   fun:init_plugins
+   fun:main
 }
 
 {
    <insert a suppression name here>
    Memcheck:Cond
    obj:/lib/ld-2.5.so
+   obj:/lib/ld-2.5.so
+   obj:/lib/ld-2.5.so
+   obj:/lib/ld-2.5.so
+   obj:/lib/ld-2.5.so
+   obj:*
+   obj:*
+   obj:*
+}
+
+{
+   <insert a suppression name here>
+   Memcheck:Cond
+   obj:/lib/ld-2.5.so
+   obj:/lib/ld-2.5.so
+   obj:/lib/ld-2.5.so
+   obj:/lib/ld-2.5.so
+   obj:/lib/ld-2.5.so
+   obj:/lib/ld-2.5.so
+   obj:/lib/ld-2.5.so
+   obj:/lib/libc-2.5.so
+   obj:/lib/ld-2.5.so
+   fun:__libc_dlopen_mode
+   fun:__nss_lookup_function
+   fun:__nss_next
+   fun:gethostbyname_r
+   fun:gethostbyname
+   fun:getaddr
+   fun:resolve_remote
+   fun:link_socket_init_phase1
+   fun:init_instance
+   fun:init_instance_handle_signals
+   fun:main
+}
+
+{
+   <insert a suppression name here>
+   Memcheck:Cond
+   obj:/lib/ld-2.5.so
+   obj:/lib/ld-2.5.so
+   obj:/lib/ld-2.5.so
+   obj:/lib/ld-2.5.so
+   obj:/lib/ld-2.5.so
+   obj:/lib/ld-2.5.so
+   obj:/lib/ld-2.5.so
+   obj:/lib/libc-2.5.so
+   obj:/lib/ld-2.5.so
+   fun:__libc_dlopen_mode
+   fun:__nss_lookup_function
+   obj:/lib/libc-2.5.so
+   fun:getgrnam_r
+   fun:getgrnam
+   fun:get_group
+   fun:do_init_first_time
+   fun:init_instance
+   fun:init_instance_handle_signals
+   fun:tunnel_server_tcp
+   fun:main
+}
+
+{
+   <insert a suppression name here>
+   Memcheck:Cond
+   obj:/lib/ld-2.5.so
+   obj:/lib/ld-2.5.so
+   obj:/lib/ld-2.5.so
+   obj:/lib/ld-2.5.so
+   obj:/lib/ld-2.5.so
+   obj:/lib/ld-2.5.so
+   obj:/lib/ld-2.5.so
+   obj:/lib/libc-2.5.so
+   obj:/lib/ld-2.5.so
+   fun:__libc_dlopen_mode
+   fun:__nss_lookup_function
+   obj:/lib/libc-2.5.so
+   fun:gethostbyname_r
+   fun:gethostbyname
+   fun:getaddr
+   fun:resolve_remote
+   fun:link_socket_init_phase1
+   fun:init_instance
+   fun:init_instance_handle_signals
+   fun:main
+}
+
+{
+   <insert a suppression name here>
+   Memcheck:Cond
+   obj:/lib/ld-2.5.so
+   obj:/lib/ld-2.5.so
+   obj:/lib/ld-2.5.so
+   obj:/lib/ld-2.5.so
+   obj:/lib/ld-2.5.so
+   obj:/lib/libc-2.5.so
+   obj:/lib/ld-2.5.so
+   fun:__libc_dlopen_mode
+   fun:__nss_lookup_function
+   fun:__nss_next
+   fun:gethostbyname_r
+   fun:gethostbyname
+   fun:getaddr
+   fun:resolve_remote
+   fun:link_socket_init_phase1
+   fun:init_instance
+   fun:init_instance_handle_signals
+   fun:main
+}
+
+{
+   <insert a suppression name here>
+   Memcheck:Cond
+   obj:/lib/ld-2.5.so
+   obj:/lib/ld-2.5.so
+   obj:/lib/ld-2.5.so
+   obj:/lib/ld-2.5.so
+   obj:/lib/ld-2.5.so
+   obj:/lib/libc-2.5.so
+   obj:/lib/ld-2.5.so
+   fun:__libc_dlopen_mode
+   fun:__nss_lookup_function
+   obj:/lib/libc-2.5.so
+   fun:getgrnam_r
+   fun:getgrnam
+   fun:get_group
+   fun:do_init_first_time
+   fun:init_instance
+   fun:init_instance_handle_signals
+   fun:tunnel_server_tcp
+   fun:main
+}
+
+{
+   <insert a suppression name here>
+   Memcheck:Cond
+   obj:/lib/ld-2.5.so
+   obj:/lib/ld-2.5.so
+   obj:/lib/ld-2.5.so
+   obj:/lib/ld-2.5.so
+   obj:/lib/ld-2.5.so
+   obj:/lib/libc-2.5.so
+   obj:/lib/ld-2.5.so
+   fun:__libc_dlopen_mode
+   fun:__nss_lookup_function
+   obj:/lib/libc-2.5.so
+   fun:gethostbyname_r
+   fun:gethostbyname
+   fun:getaddr
+   fun:resolve_remote
+   fun:link_socket_init_phase1
+   fun:init_instance
+   fun:init_instance_handle_signals
+   fun:main
+}
+
+{
+   <insert a suppression name here>
+   Memcheck:Cond
+   obj:/lib/ld-2.5.so
+   obj:/lib/ld-2.5.so
+   obj:/lib/ld-2.5.so
+   obj:/lib/ld-2.5.so
+   obj:/lib/libc-2.5.so
+   obj:/lib/ld-2.5.so
+   fun:__libc_dlopen_mode
+   fun:__nss_lookup_function
+   fun:__nss_next
+   fun:gethostbyname_r
+   fun:gethostbyname
+   fun:getaddr
+   fun:resolve_remote
+   fun:link_socket_init_phase1
+   fun:init_instance
+   fun:init_instance_handle_signals
+   fun:main
+}
+
+{
+   <insert a suppression name here>
+   Memcheck:Cond
+   obj:/lib/ld-2.5.so
+   obj:/lib/ld-2.5.so
+   obj:/lib/ld-2.5.so
+   obj:/lib/ld-2.5.so
+   obj:/lib/libc-2.5.so
+   obj:/lib/ld-2.5.so
+   fun:__libc_dlopen_mode
+   fun:__nss_lookup_function
+   obj:/lib/libc-2.5.so
+   fun:getgrnam_r
+   fun:getgrnam
+   fun:get_group
+   fun:do_init_first_time
+   fun:init_instance
+   fun:init_instance_handle_signals
+   fun:tunnel_server_tcp
+   fun:main
+}
+
+{
+   <insert a suppression name here>
+   Memcheck:Cond
+   obj:/lib/ld-2.5.so
+   obj:/lib/ld-2.5.so
+   obj:/lib/ld-2.5.so
+   obj:/lib/ld-2.5.so
+   obj:/lib/libc-2.5.so
+   obj:/lib/ld-2.5.so
+   fun:__libc_dlopen_mode
+   fun:__nss_lookup_function
+   obj:/lib/libc-2.5.so
+   fun:getgrnam_r
+   fun:getgrnam
+   fun:get_group
+   fun:do_init_first_time
+   fun:init_instance
+   fun:init_instance_handle_signals
+   fun:tunnel_server_udp
+   fun:main
+}
+
+{
+   <insert a suppression name here>
+   Memcheck:Cond
+   obj:/lib/ld-2.5.so
+   obj:/lib/ld-2.5.so
+   obj:/lib/ld-2.5.so
+   obj:/lib/ld-2.5.so
+   obj:/lib/libc-2.5.so
+   obj:/lib/ld-2.5.so
+   fun:__libc_dlopen_mode
+   fun:__nss_lookup_function
+   obj:/lib/libc-2.5.so
+   fun:gethostbyname_r
+   fun:gethostbyname
+   fun:getaddr
+   fun:resolve_remote
+   fun:link_socket_init_phase1
+   fun:init_instance
+   fun:init_instance_handle_signals
+   fun:main
+}
+
+{
+   <insert a suppression name here>
+   Memcheck:Cond
+   obj:/lib/ld-2.5.so
+   obj:/lib/ld-2.5.so
+   obj:/lib/ld-2.5.so
+   obj:/lib/ld-2.5.so
+   obj:/lib/libdl-2.5.so
+   obj:/lib/ld-2.5.so
+   obj:/lib/libdl-2.5.so
+   fun:dlopen
+   fun:plugin_list_init
+   fun:init_plugins
+   fun:main
 }
 
 {
@@ -128,3 +421,172 @@
    fun:init_static
    fun:main
 }
+
+{
+   <insert a suppression name here>
+   Memcheck:Leak
+   fun:malloc
+   fun:__nss_lookup_function
+   obj:*
+   obj:*
+   fun:getgrnam_r
+   fun:getgrnam
+   fun:get_group
+   fun:do_init_first_time
+   fun:init_instance
+   fun:init_instance_handle_signals
+   fun:main
+}
+
+{
+   <insert a suppression name here>
+   Memcheck:Leak
+   fun:malloc
+   fun:__nss_lookup_function
+   obj:*
+   obj:*
+   fun:getgrnam_r
+   fun:getgrnam
+   fun:get_group
+   fun:do_init_first_time
+   fun:init_instance
+   fun:init_instance_handle_signals
+   fun:tunnel_server_tcp
+   fun:main
+}
+
+{
+   <insert a suppression name here>
+   Memcheck:Leak
+   fun:malloc
+   fun:__nss_lookup_function
+   obj:*
+   obj:*
+   fun:getgrnam_r
+   fun:getgrnam
+   fun:get_group
+   fun:do_init_first_time
+   fun:init_instance
+   fun:init_instance_handle_signals
+   fun:tunnel_server_udp
+   fun:main
+}
+
+{
+   <insert a suppression name here>
+   Memcheck:Leak
+   fun:malloc
+   fun:getdelim
+   fun:getpass
+   fun:get_console_input
+   fun:get_user_pass
+   fun:context_init_1
+   fun:main
+}
+
+{
+   <insert a suppression name here>
+   Memcheck:Leak
+   fun:malloc
+   fun:tsearch
+   fun:__nss_lookup_function
+   obj:*
+   obj:*
+   fun:getgrnam_r
+   fun:getgrnam
+   fun:get_group
+   fun:do_init_first_time
+   fun:init_instance
+   fun:init_instance_handle_signals
+   fun:main
+}
+
+{
+   <insert a suppression name here>
+   Memcheck:Leak
+   fun:malloc
+   fun:tsearch
+   fun:__nss_lookup_function
+   obj:*
+   obj:*
+   fun:getgrnam_r
+   fun:getgrnam
+   fun:get_group
+   fun:do_init_first_time
+   fun:init_instance
+   fun:init_instance_handle_signals
+   fun:tunnel_server_tcp
+   fun:main
+}
+
+{
+   <insert a suppression name here>
+   Memcheck:Leak
+   fun:malloc
+   fun:tsearch
+   fun:__nss_lookup_function
+   obj:*
+   obj:*
+   fun:getgrnam_r
+   fun:getgrnam
+   fun:get_group
+   fun:do_init_first_time
+   fun:init_instance
+   fun:init_instance_handle_signals
+   fun:tunnel_server_udp
+   fun:main
+}
+
+{
+   <insert a suppression name here>
+   Memcheck:Leak
+   fun:malloc
+   obj:/lib/libc-2.5.so
+   fun:__nss_database_lookup
+   obj:*
+   obj:*
+   fun:getgrnam_r
+   fun:getgrnam
+   fun:get_group
+   fun:do_init_first_time
+   fun:init_instance
+   fun:init_instance_handle_signals
+   fun:main
+}
+
+{
+   <insert a suppression name here>
+   Memcheck:Leak
+   fun:malloc
+   obj:/lib/libc-2.5.so
+   fun:__nss_database_lookup
+   obj:*
+   obj:*
+   fun:getgrnam_r
+   fun:getgrnam
+   fun:get_group
+   fun:do_init_first_time
+   fun:init_instance
+   fun:init_instance_handle_signals
+   fun:tunnel_server_tcp
+   fun:main
+}
+
+{
+   <insert a suppression name here>
+   Memcheck:Leak
+   fun:malloc
+   obj:/lib/libc-2.5.so
+   fun:__nss_database_lookup
+   obj:*
+   obj:*
+   fun:getgrnam_r
+   fun:getgrnam
+   fun:get_group
+   fun:do_init_first_time
+   fun:init_instance
+   fun:init_instance_handle_signals
+   fun:tunnel_server_udp
+   fun:main
+}
+

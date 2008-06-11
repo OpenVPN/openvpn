@@ -179,6 +179,8 @@ openvpn \- secure IP tunnel daemon.
 [\ \fB\-\-log\fR\ \fIfile\fR\ ]
 [\ \fB\-\-suppress-timestamps\fR\ ]
 [\ \fB\-\-lport\fR\ \fIport\fR\ ]
+[\ \fB\-\-management\-client\-auth\fR\ ]
+[\ \fB\-\-management\-client\-pf\fR\ ]
 [\ \fB\-\-management\-forget\-disconnect\fR\ ]
 [\ \fB\-\-management\-hold\fR\ ]
 [\ \fB\-\-management\-log\-cache\fR\ \fIn\fR\ ]
@@ -2355,6 +2357,19 @@ Cache the most recent
 .B n
 lines of log file history for usage
 by the management channel.
+.\"*********************************************************
+.TP
+.B --management-client-auth
+Gives management interface client the responsibility
+to authenticate clients after their client certificate
+has been verified.  See management-notes.txt in OpenVPN
+distribution for detailed notes.
+.\"*********************************************************
+.TP
+.B --management-client-pf
+Management interface clients must specify a packet
+filter file for each connecting client.  See management-notes.txt
+in OpenVPN distribution for detailed notes.
 .\"*********************************************************
 .TP
 .B --plugin module-pathname [init-string]

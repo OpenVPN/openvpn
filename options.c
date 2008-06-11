@@ -316,6 +316,15 @@ static const char usage_message[] =
   "                                 event occurs.\n"
   "--management-log-cache n : Cache n lines of log file history for usage\n"
   "                  by the management channel.\n"
+#ifdef MANAGEMENT_DEF_AUTH
+  "--management-client-auth : gives management interface client the responsibility\n"
+  "                           to authenticate clients after their client certificate\n"
+  "			      has been verified.\n"
+#endif
+#ifdef MANAGEMENT_PF
+  "--management-client-pf : management interface clients must specify a packet\n"
+  "                         filter file for each connecting client.\n"
+#endif
 #endif
 #ifdef ENABLE_PLUGIN
   "--plugin m [str]: Load plug-in module m passing str as an argument\n"
@@ -1195,12 +1204,8 @@ show_settings (const struct options *o)
   SHOW_STR (management_user_pass);
   SHOW_INT (management_log_history_cache);
   SHOW_INT (management_echo_buffer_size);
-  SHOW_BOOL (management_query_passwords);
-  SHOW_BOOL (management_hold);
-  SHOW_BOOL (management_client);
-  SHOW_BOOL (management_signal);
-  SHOW_BOOL (management_forget_disconnect);
   SHOW_STR (management_write_peer_info_file);
+  SHOW_INT (management_flags);
 #endif
 #ifdef ENABLE_PLUGIN
   if (o->plugin_list)
@@ -1525,8 +1530,7 @@ options_postprocess (struct options *options, bool first_time)
    */
 #ifdef ENABLE_MANAGEMENT
   if (!options->management_addr &&
-      (options->management_query_passwords || options->management_hold || options->management_signal
-       || options->management_forget_disconnect || options->management_client
+      (options->management_flags
        || options->management_write_peer_info_file
        || options->management_log_history_cache != defaults.management_log_history_cache))
     msg (M_USAGE, "--management is not specified, however one or more options which modify the behavior of --management were specified");
@@ -1672,12 +1676,15 @@ options_postprocess (struct options *options, bool first_time)
       if (options->key_method != 2)
 	msg (M_USAGE, "--mode server requires --key-method 2");
 
-      if (PLUGIN_OPTION_LIST (options) == NULL)
 	{
-	  if (options->client_cert_not_required && !options->auth_user_pass_verify_script)
-	    msg (M_USAGE, "--client-cert-not-required must be used with an --auth-user-pass-verify script");
-	  if (options->username_as_common_name && !options->auth_user_pass_verify_script)
-	    msg (M_USAGE, "--username-as-common-name must be used with an --auth-user-pass-verify script");
+	  const bool ccnr = (options->auth_user_pass_verify_script
+			     || PLUGIN_OPTION_LIST (options)
+			     || MAN_CLIENT_AUTH_ENABLED (options));
+	  const char *postfix = "must be used with --management-client-auth, an --auth-user-pass-verify script, or plugin";
+	  if (options->client_cert_not_required && !ccnr)
+	    msg (M_USAGE, "--client-cert-not-required %s", postfix);
+	  if (options->username_as_common_name && !ccnr)
+	    msg (M_USAGE, "--username-as-common-name %s", postfix);
 	}
     }
   else
@@ -2983,9 +2990,7 @@ options_server_import (struct options *o,
 		    es);
 }
 
-#ifdef ENABLE_PLUGIN
-
-void options_plugin_import (struct options *options,
+void options_string_import (struct options *options,
 			    const char *config,
 			    const int msglevel,
 			    const unsigned int permission_mask,
@@ -2994,8 +2999,6 @@ void options_plugin_import (struct options *options,
 {
   read_config_string (options, config, msglevel, permission_mask, option_types_found, es);
 }
-
-#endif
 
 #if P2MP
 
@@ -3144,29 +3147,43 @@ add_option (struct options *options,
   else if (streq (p[0], "management-query-passwords"))
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
-      options->management_query_passwords = true;
+      options->management_flags |= MF_QUERY_PASSWORDS;
     }
   else if (streq (p[0], "management-hold"))
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
-      options->management_hold = true;
+      options->management_flags |= MF_HOLD;
     }
   else if (streq (p[0], "management-signal"))
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
-      options->management_signal = true;
+      options->management_flags |= MF_SIGNAL;
     }
   else if (streq (p[0], "management-forget-disconnect"))
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
-      options->management_forget_disconnect = true;
+      options->management_flags |= MF_FORGET_DISCONNECT;
     }
   else if (streq (p[0], "management-client"))
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
-      options->management_client = true;
+      options->management_flags |= MF_CONNECT_AS_CLIENT;
       options->management_write_peer_info_file = p[1];
     }
+#ifdef MANAGEMENT_DEF_AUTH
+  else if (streq (p[0], "management-client-auth"))
+    {
+      VERIFY_PERMISSION (OPT_P_GENERAL);
+      options->management_flags |= MF_CLIENT_AUTH;
+    }
+#endif
+#ifdef MANAGEMENT_PF
+  else if (streq (p[0], "management-client-pf"))
+    {
+      VERIFY_PERMISSION (OPT_P_GENERAL);
+      options->management_flags |= (MF_CLIENT_PF | MF_CLIENT_AUTH);
+    }
+#endif
   else if (streq (p[0], "management-log-cache") && p[1])
     {
       int cache;

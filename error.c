@@ -268,7 +268,10 @@ void x_msg (const unsigned int flags, const char *format, ...)
 #endif
 
   /* set up client prefix */
-  prefix = msg_get_prefix ();
+  if (flags & M_NOIPREFIX)
+    prefix = NULL;
+  else
+    prefix = msg_get_prefix ();
   prefix_sep = " ";
   if (!prefix)
     prefix_sep = prefix = "";

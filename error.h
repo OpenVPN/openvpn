@@ -102,13 +102,14 @@ extern int x_msg_line_num;
 #define M_MSG_VIRT_OUT    (1<<14)        /* output message through msg_status_output callback */
 #define M_OPTERR          (1<<15)        /* print "Options error:" prefix */
 #define M_NOLF            (1<<16)        /* don't print new line */
+#define M_NOIPREFIX       (1<<17)        /* don't print instance prefix */
 
 /* flag combinations which are frequently used */
 #define M_ERR     (M_FATAL | M_ERRNO)
 #define M_SOCKERR (M_FATAL | M_ERRNO_SOCK)
 #define M_SSLERR  (M_FATAL | M_SSL)
 #define M_USAGE   (M_USAGE_SMALL | M_NOPREFIX | M_OPTERR)
-#define M_CLIENT  (M_MSG_VIRT_OUT|M_NOMUTE)
+#define M_CLIENT  (M_MSG_VIRT_OUT | M_NOMUTE | M_NOIPREFIX)
 
 /*
  * Mute levels are designed to avoid large numbers of
@@ -126,6 +127,11 @@ extern int x_msg_line_num;
  * log_level:  verbosity level n (--verb n) must be >= log_level to print.
  * mute_level: don't print more than n (--mute n) consecutive messages at
  *             a given mute level, or if 0 disable muting and print everything.
+ *
+ * Mask map:
+ * Bits 0-3:   log level
+ * Bits 4-23:  M_x flags
+ * Bits 24-31: mute level
  */
 #define LOGLEV(log_level, mute_level, other) ((log_level) | ENCODE_MUTE_LEVEL(mute_level) | other)
 

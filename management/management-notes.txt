@@ -25,13 +25,12 @@ Future versions of the management interface may allow out-of-band
 connections (i.e. not over the VPN) and secured with SSL/TLS.
 
 The management interface is enabled in the OpenVPN
-configuration file using the following directives:
+configuration file using the following directive:
 
 --management
---management-query-passwords
---management-log-cache
 
-See the man page for documentation on these directives.
+See the man page for documentation on this and related
+directives.
 
 Once OpenVPN has started with the management layer enabled,
 you can telnet to the management port (make sure to use
@@ -444,6 +443,199 @@ Example:
      pkcs11-id-get 1
      PKCS11ID-ENTRY:'1', ID:'<snip>', BLOB:'<snip>'
 
+COMMAND -- client-auth  (OpenVPN 2.1 or higher)
+-----------------------------------------------
+
+Authorize a ">CLIENT:CONNECT" or ">CLIENT:REAUTH" request and specify
+"client-connect" configuration directives in a subsequent text block.
+
+The OpenVPN server should have been started with the
+--management-client-auth directive so that it will ask the management
+interface to approve client connections.
+
+
+  client-auth {CID} {KID}
+  line_1
+  line_2
+  ...
+  line_n
+  END
+
+CID,KID -- client ID and Key ID.  See documentation for ">CLIENT:"
+notification for more info.
+
+line_1 to line_n -- client-connect configuration text block, as would be
+returned by a --client-connect script.  The text block may be null, with
+"END" immediately following the "client-auth" line (using a null text
+block is equivalent to using the client-auth-nt command).
+
+A client-connect configuration text block contains OpenVPN directives
+that will be applied to the client instance object representing a newly
+connected client.
+
+COMMAND -- client-auth-nt  (OpenVPN 2.1 or higher)
+--------------------------------------------------
+
+Authorize a ">CLIENT:CONNECT" or ">CLIENT:REAUTH" request without specifying
+client-connect configuration text.
+
+The OpenVPN server should have been started with the
+--management-client-auth directive so that it will ask the management
+interface to approve client connections.
+
+  client-auth-nt {CID} {KID}
+
+CID,KID -- client ID and Key ID.  See documentation for ">CLIENT:"
+notification for more info.
+
+COMMAND -- client-deny  (OpenVPN 2.1 or higher)
+-----------------------------------------------
+
+Deny a ">CLIENT:CONNECT" or ">CLIENT:REAUTH" request.
+
+  client-deny {CID} {KID} "reason-text"
+
+CID,KID -- client ID and Key ID.  See documentation for ">CLIENT:"
+notification for more info.
+
+reason-text: a human-readable message explaining why the authentication
+request was denied.  This message will be output to the OpenVPN log
+file or syslog.
+
+Note that client-deny denies a specific Key ID (pertaining to a
+TLS renegotiation).  A client-deny command issued in response to
+an initial TLS key negotiation (notified by ">CLIENT:CONNECT") will
+terminate the client session after returning "AUTH-FAILED" to the client.
+On the other hand, a client-deny command issued in response to
+a TLS renegotiation (">CLIENT:REAUTH") will invalidate the renegotiated
+key, however the TLS session associated with the currently active
+key will continue to live for up to --tran-window seconds before
+expiration.
+
+To immediately kill a client session, use "client-kill".
+
+COMMAND -- client-kill  (OpenVPN 2.1 or higher)
+-----------------------------------------------
+
+Immediately kill a client instance by CID.
+
+  client-kill {CID}
+
+CID -- client ID.  See documentation for ">CLIENT:" notification for more
+info.
+
+COMMAND -- client-pf  (OpenVPN 2.1 or higher)
+---------------------------------------------
+
+Push a packet filter file to a specific client.
+
+The OpenVPN server should have been started with the
+--management-client-pf directive so that it will require that
+VPN tunnel packets sent or received by client instances must
+conform to that client's packet filter configuration.
+
+  client-pf {CID}
+  line_1
+  line_2
+  ...
+  line_n
+  END
+
+CID -- client ID.  See documentation for ">CLIENT:" notification for
+more info.
+
+line_1 to line_n -- the packet filter configuration file for this
+client.
+
+Packet filter file grammar:
+
+ [CLIENTS DROP|ACCEPT]
+ {+|-}common_name1
+ {+|-}common_name2
+ . . .
+ [SUBNETS DROP|ACCEPT]
+ {+|-}subnet1
+ {+|-}subnet2
+ . . .
+ [END]
+
+ Subnet: IP-ADDRESS | IP-ADDRESS/NUM_NETWORK_BITS | "unknown"
+
+ CLIENTS refers to the set of clients (by their common-name) which
+ this instance is allowed ('+') to connect to, or is excluded ('-')
+ from connecting to.  Note that in the case of client-to-client
+ connections, such communication must be allowed by the packet filter
+ configuration files of both clients AND the --client-to-client
+ directive must have been specified in the OpenVPN server config.
+
+ SUBNETS refers to IP addresses or IP address subnets which this
+ client instance may connect to ('+') or is excluded ('-') from
+ connecting to, and applies to IPv4 and ARP packets.  The special
+ "unknown" tag refers to packets of unknown type, i.e. a packet that
+ is not IPv4 or ARP.
+
+ DROP or ACCEPT defines default policy when there is no explicit match
+ for a common-name or subnet.  The [END] tag must exist.
+
+ Notes:
+
+ * The SUBNETS section currently only supports IPv4 addresses and
+   subnets.
+
+ * A given client or subnet rule applies to both incoming and
+   outgoing packets.
+
+ * The CLIENTS list is order-invariant.  Because the list is stored
+   as a hash-table, the order of the list does not affect its function.
+
+ * The SUBNETS table is scanned sequentially, and the first item to
+   match is chosen.  Therefore the SUBNETS table is NOT order-invariant.
+
+ * No client-to-client communication is allowed unless the
+   --client-to-client configuration directive is enabled AND
+   the CLIENTS list of BOTH clients allows the communication.
+
+Example packet filter spec, as transmitted to the management interface:
+
+ client-pf 42
+ [CLIENTS ACCEPT]
+ -accounting
+ -enigma
+ [SUBNETS DROP]
+ -10.46.79.9
+ +10.0.0.0/8
+ [END]
+ END
+
+The above example sets the packet filter policy for the client
+identified by CID=42.  This client may connect to all other clients
+except those having a common name of "accounting" or "enigma".
+The client may only interact with external IP addresses in the
+10.0.0.0/8 subnet, however access to 10.46.79.9 is specifically
+excluded.
+
+Another example packet filter spec, as transmitted to the
+management interface:
+
+ client-pf 99
+ [CLIENTS DENY]
+ +public
+ [SUBNETS ACCEPT]
+ +10.10.0.1
+ -10.0.0.0/8
+ -unknown
+ [END]
+ END
+
+The above example sets the packet filter policy for the client
+identified by CID=99.  This client may not connect to any other
+clients except those having a common name of "public".  It may
+interact with any external IP address except those in the
+10.0.0.0/8 netblock.  However interaction with one address in
+the 10.0.0.0/8 netblock is allowed: 10.10.0.1.  Also, the client
+may not interact with external IP addresses using an "unknown"
+protocol (i.e. one that is not IPv4 or ARP).
+
 OUTPUT FORMAT
 -------------
 
@@ -454,7 +646,7 @@ OUTPUT FORMAT
     the last line will be "END".
 
 (3) Real-time messages will be in the form ">[source]:[text]",
-    where source is "ECHO", "FATAL", "HOLD", "INFO", "LOG",
+    where source is "CLIENT", "ECHO", "FATAL", "HOLD", "INFO", "LOG",
     "NEED-OK", "PASSWORD", or "STATE".
 
 REAL-TIME MESSAGE FORMAT
@@ -468,6 +660,12 @@ Real-time messages start with a '>' character in the first
 column and are immediately followed by a type keyword
 indicating the type of real-time message.  The following
 types are currently defined:
+
+CLIENT   -- Notification of client connections and disconnections
+            on an OpenVPN server.  Enabled when OpenVPN is started
+            with the --management-client-auth option.  CLIENT
+            notifications may be multi-line.  See "The CLIENT
+            notification" section below for detailed info.
 
 ECHO     -- Echo messages as controlled by the "echo" command.
 
@@ -496,6 +694,60 @@ PASSWORD -- Used to tell the management client that OpenVPN
 
 STATE    -- Shows the current OpenVPN state, as controlled
             by the "state" command.
+
+The CLIENT notification
+-----------------------
+
+The ">CLIENT:" notification is enabled by the --management-client-auth
+OpenVPN configuration directive that gives the management interface client
+the responsibility to authenticate OpenVPN clients after their client
+certificate has been verified.  CLIENT notifications may be multi-line, and
+the sequentiality of a given CLIENT notification, its associated environmental
+variables, and the terminating ">CLIENT:ENV,END" line are guaranteed to be
+atomic.
+
+CLIENT notification types:
+
+(1) Notify new client connection ("CONNECT") or existing client TLS session
+    renegotiation ("REAUTH").  Information about the client is provided
+    by a list of environmental variables which are documented in the OpenVPN
+    man page.  The environmental variables passed are equivalent to those
+    that would be passed to an --auth-user-pass-verify script.
+
+    >CLIENT:CONNECT|REAUTH,{CID},{KID}
+    >CLIENT:ENV,name1=val1
+    >CLIENT:ENV,name2=val2
+    >CLIENT:ENV,...
+    >CLIENT:ENV,END
+
+(2) Notify existing client disconnection.  The environmental variables passed
+    are equivalent to those that would be passed to a --client-disconnect
+    script.
+
+    >CLIENT:DISCONNECT,{CID}
+    >CLIENT:ENV,name1=val1
+    >CLIENT:ENV,name2=val2
+    >CLIENT:ENV,...
+    >CLIENT:ENV,END
+
+(3) Notify that a particular virtual address or subnet
+    is now associated with a specific client.
+
+    >CLIENT:ADDRESS,{CID},{ADDR},{PRI}
+
+Variables:
+
+CID --  Client ID, numerical ID for each connecting client, sequence = 0,1,2,...
+KID --  Key ID, numerical ID for the key associated with a given client TLS session,
+        sequence = 0,1,2,...
+PRI --  Primary (1) or Secondary (0) VPN address/subnet.  All clients have at least
+        one primary IP address.  Secondary address/subnets are associated with
+        client-specific "iroute" directives.
+ADDR -- IPv4 address/subnet in the form 1.2.3.4 or 1.2.3.0/255.255.255.0
+
+In the unlikely scenario of an extremely long-running OpenVPN server,
+CID and KID should be assumed to recycle to 0 after (2^32)-1, however this
+recycling behavior is guaranteed to be collision-free.
 
 Command Parsing
 ---------------

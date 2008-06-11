@@ -860,6 +860,26 @@ tls_lock_common_name (struct tls_multi *multi)
 }
 
 #ifdef ENABLE_DEF_AUTH
+/* key_state_test_auth_control_file return values,
+   NOTE: acf_merge indexing depends on these values */
+#define ACF_UNDEFINED 0
+#define ACF_SUCCEEDED 1
+#define ACF_DISABLED  2
+#define ACF_FAILED    3
+#endif
+
+#ifdef MANAGEMENT_DEF_AUTH
+static inline unsigned int
+man_def_auth_test (const struct key_state *ks)
+{
+  if (management_enable_def_auth (management))
+    return ks->mda_status;
+  else
+    return ACF_DISABLED;
+}
+#endif
+
+#ifdef PLUGIN_DEF_AUTH
 
 /*
  * auth_control_file functions
@@ -890,17 +910,12 @@ key_state_gen_auth_control_file (struct key_state *ks, const struct tls_options 
   gc_free (&gc);					  
 }
 
-/* key_state_test_auth_control_file return values */
-#define ACF_UNDEFINED 0
-#define ACF_SUCCEEDED 1
-#define ACF_DISABLED  2
-#define ACF_FAILED    3
-static int
+static unsigned int
 key_state_test_auth_control_file (struct key_state *ks)
 {
   if (ks && ks->auth_control_file)
     {
-      int ret = ks->auth_control_status;
+      unsigned int ret = ks->auth_control_status;
       if (ret == ACF_UNDEFINED)
 	{
 	  FILE *fp = fopen (ks->auth_control_file, "r");
@@ -935,14 +950,37 @@ tls_authentication_status (struct tls_multi *multi, const int latency)
   bool active = false;
 
 #ifdef ENABLE_DEF_AUTH
-  if (latency && multi->tas_last && multi->tas_last + latency >= now)
-    return TLS_AUTHENTICATION_UNDEFINED;
-  multi->tas_last = now;
+  static const unsigned char acf_merge[] =
+    {
+      ACF_UNDEFINED, /* s1=ACF_UNDEFINED s2=ACF_UNDEFINED */
+      ACF_UNDEFINED, /* s1=ACF_UNDEFINED s2=ACF_SUCCEEDED */
+      ACF_UNDEFINED, /* s1=ACF_UNDEFINED s2=ACF_DISABLED */
+      ACF_FAILED,    /* s1=ACF_UNDEFINED s2=ACF_FAILED */
+      ACF_UNDEFINED, /* s1=ACF_SUCCEEDED s2=ACF_UNDEFINED */
+      ACF_SUCCEEDED, /* s1=ACF_SUCCEEDED s2=ACF_SUCCEEDED */
+      ACF_SUCCEEDED, /* s1=ACF_SUCCEEDED s2=ACF_DISABLED */
+      ACF_FAILED,    /* s1=ACF_SUCCEEDED s2=ACF_FAILED */
+      ACF_UNDEFINED, /* s1=ACF_DISABLED  s2=ACF_UNDEFINED */
+      ACF_SUCCEEDED, /* s1=ACF_DISABLED  s2=ACF_SUCCEEDED */
+      ACF_DISABLED,  /* s1=ACF_DISABLED  s2=ACF_DISABLED */
+      ACF_FAILED,    /* s1=ACF_DISABLED  s2=ACF_FAILED */
+      ACF_FAILED,    /* s1=ACF_FAILED    s2=ACF_UNDEFINED */
+      ACF_FAILED,    /* s1=ACF_FAILED    s2=ACF_SUCCEEDED */
+      ACF_FAILED,    /* s1=ACF_FAILED    s2=ACF_DISABLED */
+      ACF_FAILED     /* s1=ACF_FAILED    s2=ACF_FAILED */
+    };
 #endif
 
   if (multi)
     {
       int i;
+
+#ifdef ENABLE_DEF_AUTH
+      if (latency && multi->tas_last && multi->tas_last + latency >= now)
+	return TLS_AUTHENTICATION_UNDEFINED;
+      multi->tas_last = now;
+#endif
+
       for (i = 0; i < KEY_SCAN_SIZE; ++i)
 	{
 	  struct key_state *ks = multi->key_scan[i];
@@ -952,7 +990,16 @@ tls_authentication_status (struct tls_multi *multi, const int latency)
 	      if (ks->authenticated)
 		{
 #ifdef ENABLE_DEF_AUTH
-		  switch (key_state_test_auth_control_file (ks))
+		  unsigned int s1 = ACF_DISABLED;
+		  unsigned int s2 = ACF_DISABLED;
+#ifdef PLUGIN_DEF_AUTH
+		  s1 = key_state_test_auth_control_file (ks); 
+#endif
+#ifdef MANAGEMENT_DEF_AUTH
+		  s2 = man_def_auth_test (ks);
+#endif
+		  ASSERT (s1 < 4 && s2 < 4);
+		  switch (acf_merge[(s1<<2) + s2])
 		    {
 		    case ACF_SUCCEEDED:
 		    case ACF_DISABLED:
@@ -988,6 +1035,28 @@ tls_authentication_status (struct tls_multi *multi, const int latency)
   else
     return TLS_AUTHENTICATION_FAILED;
 }
+
+#ifdef MANAGEMENT_DEF_AUTH
+bool
+tls_authenticate_key (struct tls_multi *multi, const unsigned int mda_key_id, const bool auth)
+{
+  bool ret = false;
+  if (multi)
+    {
+      int i;
+      for (i = 0; i < KEY_SCAN_SIZE; ++i)
+	{
+	  struct key_state *ks = multi->key_scan[i];
+	  if (ks->mda_key_id == mda_key_id)
+	    {
+	      ks->mda_status = auth ? ACF_SUCCEEDED : ACF_FAILED;
+	      ret = true;
+	    }
+	}
+    }
+  return ret;
+}
+#endif
 
 void
 tls_deauthenticate (struct tls_multi *multi)
@@ -1458,7 +1527,7 @@ init_ssl (const struct options *options)
 #if P2MP_SERVER
   if (options->client_cert_not_required)
     {
-      msg (M_WARN, "WARNING: This configuration may accept clients which do not present a certificate");
+      msg (M_WARN, "WARNING: POTENTIALLY DANGEROUS OPTION --client-cert-not-required may accept clients which do not present a certificate");
     }
   else
 #endif
@@ -1976,6 +2045,10 @@ key_state_init (struct tls_session *session, struct key_state *ks)
   packet_id_init (&ks->packet_id,
 		  session->opt->replay_window,
 		  session->opt->replay_time);
+
+#ifdef MANAGEMENT_DEF_AUTH
+  ks->mda_key_id = session->opt->mda_context->mda_key_id_counter++;
+#endif
 }
 
 static void
@@ -2018,7 +2091,7 @@ key_state_free (struct key_state *ks, bool clear)
 
   packet_id_free (&ks->packet_id);
 
-#ifdef ENABLE_DEF_AUTH
+#ifdef PLUGIN_DEF_AUTH
   key_state_rm_auth_control_file (ks);
 #endif
 
@@ -2933,7 +3006,7 @@ verify_user_pass_plugin (struct tls_session *session, const struct user_pass *up
       /* setenv client real IP address */
       setenv_untrusted (session);
 
-#ifdef ENABLE_DEF_AUTH
+#ifdef PLUGIN_DEF_AUTH
       /* generate filename for deferred auth control file */
       key_state_gen_auth_control_file (ks, session->opt);
 #endif
@@ -2941,7 +3014,7 @@ verify_user_pass_plugin (struct tls_session *session, const struct user_pass *up
       /* call command */
       retval = plugin_call (session->opt->plugins, OPENVPN_PLUGIN_AUTH_USER_PASS_VERIFY, NULL, NULL, session->opt->es);
 
-#ifdef ENABLE_DEF_AUTH
+#ifdef PLUGIN_DEF_AUTH
       /* purge auth control filename (and file itself) for non-deferred returns */
       if (retval != OPENVPN_PLUGIN_FUNC_DEFERRED)
 	key_state_rm_auth_control_file (ks);
@@ -2952,11 +3025,55 @@ verify_user_pass_plugin (struct tls_session *session, const struct user_pass *up
     }
   else
     {
-      msg (D_TLS_ERRORS, "TLS Auth Error: peer provided a blank username");
+      msg (D_TLS_ERRORS, "TLS Auth Error (verify_user_pass_plugin): peer provided a blank username");
     }
 
   return retval;
 }
+
+/*
+ * MANAGEMENT_DEF_AUTH internal ssl.c status codes
+ */
+#define KMDA_ERROR   0
+#define KMDA_SUCCESS 1
+#define KMDA_UNDEF   2
+#define KMDA_DEF     3
+
+#ifdef MANAGEMENT_DEF_AUTH
+static int
+verify_user_pass_management (struct tls_session *session, const struct user_pass *up, const char *raw_username)
+{
+  int retval = KMDA_ERROR;
+
+  /* Is username defined? */
+  if (strlen (up->username))
+    {
+      /* set username/password in private env space */
+      setenv_str (session->opt->es, "username", raw_username);
+      setenv_str (session->opt->es, "password", up->password);
+
+      /* setenv incoming cert common name for script */
+      setenv_str (session->opt->es, "common_name", session->common_name);
+
+      /* setenv client real IP address */
+      setenv_untrusted (session);
+
+      if (management)
+	management_notify_client_needing_auth (management, ks->mda_key_id, session->opt->mda_context, session->opt->es);
+
+      setenv_del (session->opt->es, "password");
+      setenv_str (session->opt->es, "username", up->username);
+
+      retval = KMDA_SUCCESS;
+    }
+  else
+    {
+      msg (D_TLS_ERRORS, "TLS Auth Error (verify_user_pass_management): peer provided a blank username");
+    }
+
+  return retval;
+}
+#endif
 
 /*
  * Handle the reading and writing of key data to and from
@@ -3134,6 +3251,13 @@ key_method_2_read (struct buffer *buf, struct tls_multi *multi, struct tls_sessi
   char *options;
   struct user_pass *up;
 
+  bool man_def_auth = KMDA_UNDEF;
+
+#ifdef MANAGEMENT_DEF_AUTH
+  if (management_enable_def_auth (management))
+    man_def_auth = KMDA_DEF;
+#endif
+
   ASSERT (session->opt->key_method == 2);
 
   /* allocate temporary objects */
@@ -3169,7 +3293,8 @@ key_method_2_read (struct buffer *buf, struct tls_multi *multi, struct tls_sessi
   /* should we check username/password? */
   ks->authenticated = false;
   if (session->opt->auth_user_pass_verify_script
-      || plugin_defined (session->opt->plugins, OPENVPN_PLUGIN_AUTH_USER_PASS_VERIFY))
+      || plugin_defined (session->opt->plugins, OPENVPN_PLUGIN_AUTH_USER_PASS_VERIFY)
+      || man_def_auth == KMDA_DEF)
     {
       int s1 = OPENVPN_PLUGIN_FUNC_SUCCESS;
       bool s2 = true;
@@ -3195,6 +3320,10 @@ key_method_2_read (struct buffer *buf, struct tls_multi *multi, struct tls_sessi
       string_mod (up->password, CC_PRINT, CC_CRLF, '_');
 
       /* call plugin(s) and/or script */
+#ifdef MANAGEMENT_DEF_AUTH
+      if (man_def_auth == KMDA_DEF)
+	man_def_auth = verify_user_pass_management (session, up, raw_username);
+#endif
       if (plugin_defined (session->opt->plugins, OPENVPN_PLUGIN_AUTH_USER_PASS_VERIFY))
 	s1 = verify_user_pass_plugin (session, up, raw_username);
       if (session->opt->auth_user_pass_verify_script)
@@ -3202,16 +3331,21 @@ key_method_2_read (struct buffer *buf, struct tls_multi *multi, struct tls_sessi
       
       /* auth succeeded? */
       if ((s1 == OPENVPN_PLUGIN_FUNC_SUCCESS
-#ifdef ENABLE_DEF_AUTH
+#ifdef PLUGIN_DEF_AUTH
 	   || s1 == OPENVPN_PLUGIN_FUNC_DEFERRED
 #endif
-	   ) && s2)
+	   ) && s2 && man_def_auth != KMDA_ERROR)
 	{
 	  ks->authenticated = true;
-#ifdef ENABLE_DEF_AUTH
+#ifdef PLUGIN_DEF_AUTH
 	  if (s1 == OPENVPN_PLUGIN_FUNC_DEFERRED)
 	    ks->auth_deferred = true;
 #endif
+#ifdef MANAGEMENT_DEF_AUTH
+	  if (man_def_auth != KMDA_UNDEF)
+	    ks->auth_deferred = true;
+#endif
+	    
 	  if (session->opt->username_as_common_name)
 	    set_common_name (session, up->username);
 	  msg (D_HANDSHAKE, "TLS: Username/Password authentication %s for username '%s' %s",

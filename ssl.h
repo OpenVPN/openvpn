@@ -375,9 +375,15 @@ struct key_state
 #ifdef ENABLE_DEF_AUTH
   /* If auth_deferred is true, authentication is being deferred */
   bool auth_deferred;
+#ifdef MANAGEMENT_DEF_AUTH
+  unsigned int mda_key_id;
+  unsigned int mda_status;
+#endif
+#ifdef PLUGIN_DEF_AUTH
+  unsigned int auth_control_status;
   time_t acf_last_mod;
   char *auth_control_file;
-  int auth_control_status;
+#endif
 #endif
 };
 
@@ -458,6 +464,10 @@ struct tls_options
   /* instance-wide environment variable set */
   struct env_set *es;
   const struct plugin_list *plugins;
+
+#ifdef MANAGEMENT_DEF_AUTH
+  struct man_def_auth_context *mda_context;
+#endif
 
   /* --gremlin bits */
   int gremlin;
@@ -678,6 +688,10 @@ void tls_lock_common_name (struct tls_multi *multi);
 #define TLS_AUTHENTICATION_UNDEFINED  3
 int tls_authentication_status (struct tls_multi *multi, const int latency);
 void tls_deauthenticate (struct tls_multi *multi);
+
+#ifdef MANAGEMENT_DEF_AUTH
+bool tls_authenticate_key (struct tls_multi *multi, const unsigned int mda_key_id, const bool auth);
+#endif
 
 /*
  * inline functions

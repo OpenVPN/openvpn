@@ -471,17 +471,38 @@ socket_defined (const socket_descriptor_t sd)
 #endif
 
 /*
- * Enable deferred authentication
+ * Enable deferred authentication?
  */
-#if defined(ENABLE_PLUGIN) && P2MP_SERVER
+#define CONFIGURE_DEF_AUTH /* this should be set by autoconf and config.h */
+#if defined(CONFIGURE_DEF_AUTH) && defined(P2MP_SERVER) && defined(ENABLE_PLUGIN)
+#define PLUGIN_DEF_AUTH
+#endif
+#if defined(CONFIGURE_DEF_AUTH) && defined(P2MP_SERVER) && defined(ENABLE_MANAGEMENT)
+#define MANAGEMENT_DEF_AUTH
+#endif
+#if defined(PLUGIN_DEF_AUTH) || defined(MANAGEMENT_DEF_AUTH)
 #define ENABLE_DEF_AUTH
 #endif
 
 /*
- * Enable packet filter
+ * Enable packet filter?
  */
-#if defined(ENABLE_PLUGIN) && P2MP_SERVER && defined(HAVE_STAT)
+#define CONFIGURE_PF /* this should be set by autoconf and config.h */
+#if defined(CONFIGURE_PF) && defined(P2MP_SERVER) && defined(ENABLE_PLUGIN) && defined(HAVE_STAT)
+#define PLUGIN_PF
+#endif
+#if defined(CONFIGURE_PF) && defined(P2MP_SERVER) && defined(MANAGEMENT_DEF_AUTH)
+#define MANAGEMENT_PF
+#endif
+#if defined(PLUGIN_PF) || defined(MANAGEMENT_PF)
 #define ENABLE_PF
+#endif
+
+/*
+ * Don't compile the struct buffer_list code unless something needs it
+ */
+#if defined(ENABLE_MANAGEMENT) || defined(ENABLE_PF)
+#define ENABLE_BUFFER_LIST
 #endif
 
 /*

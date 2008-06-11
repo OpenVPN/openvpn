@@ -32,6 +32,8 @@
 
 #include "memdbg.h"
 
+#include "pf-inline.h"
+
 static void
 pf_destroy (struct pf_set *pfs)
 {
@@ -64,7 +66,7 @@ pf_destroy (struct pf_set *pfs)
 }
 
 static bool
-add_client (const char *line, const char *fn, const int line_num, struct pf_cn_elem ***next, const bool exclude)
+add_client (const char *line, const char *prefix, const int line_num, struct pf_cn_elem ***next, const bool exclude)
 {
   struct pf_cn_elem *e;
   ALLOC_OBJ_CLEAR (e, struct pf_cn_elem);
@@ -76,34 +78,44 @@ add_client (const char *line, const char *fn, const int line_num, struct pf_cn_e
 }
 
 static bool
-add_subnet (const char *line, const char *fn, const int line_num, struct pf_subnet ***next, const bool exclude)
+add_subnet (const char *line, const char *prefix, const int line_num, struct pf_subnet ***next, const bool exclude)
 {
   struct in_addr network;
   in_addr_t netmask = 0;
-  int netbits = 32;
-  char *div = strchr (line, '/');
 
-  if (div)
+  if (strcmp (line, "unknown"))
     {
-      *div++ = '\0';
-      if (sscanf (div, "%d", &netbits) != 1)
+      int netbits = 32;
+      char *div = strchr (line, '/');
+
+      if (div)
 	{
-	  msg (D_PF, "PF: %s/%d: bad '/n' subnet specifier: '%s'", fn, line_num, div);
+	  *div++ = '\0';
+	  if (sscanf (div, "%d", &netbits) != 1)
+	    {
+	      msg (D_PF_INFO, "PF: %s/%d: bad '/n' subnet specifier: '%s'", prefix, line_num, div);
+	      return false;
+	    }
+	  if (netbits < 0 || netbits > 32)
+	    {
+	      msg (D_PF_INFO, "PF: %s/%d: bad '/n' subnet specifier: must be between 0 and 32: '%s'", prefix, line_num, div);
+	      return false;
+	    }
+	}
+
+      if (openvpn_inet_aton (line, &network) != OIA_IP)
+	{
+	  msg (D_PF_INFO, "PF: %s/%d: bad network address: '%s'", prefix, line_num, line);
 	  return false;
 	}
-      if (netbits < 0 || netbits > 32)
-	{
-	  msg (D_PF, "PF: %s/%d: bad '/n' subnet specifier: must be between 0 and 32: '%s'", fn, line_num, div);
-	  return false;
-	}
+      netmask = netbits_to_netmask (netbits);
     }
-
-  if (openvpn_inet_aton (line, &network) != OIA_IP)
+  else
     {
-      msg (D_PF, "PF: %s/%d: bad network address: '%s'", fn, line_num, line);
-      return false;
+      /* match special "unknown" tag for addresses unrecognized by mroute */
+      network.s_addr = htonl(0);
+      netmask = ~0;
     }
-  netmask = netbits_to_netmask (netbits);
 
   {
     struct pf_subnet *e;
@@ -130,7 +142,7 @@ cn_compare_function (const void *key1, const void *key2)
 }
 
 static bool
-genhash (struct pf_cn_set *cns, const char *fn, const int n_clients)
+genhash (struct pf_cn_set *cns, const char *prefix, const int n_clients)
 {
   struct pf_cn_elem *e;
   bool status = true;
@@ -143,7 +155,7 @@ genhash (struct pf_cn_set *cns, const char *fn, const int n_clients)
     {
       if (!hash_add (cns->hash_table, e->rule.cn, &e->rule, false))
 	{
-	  msg (D_PF, "PF: %s: duplicate common name in [clients] section: '%s'", fn, e->rule.cn);
+	  msg (D_PF_INFO, "PF: %s: duplicate common name in [clients] section: '%s'", prefix, e->rule.cn);
 	  status = false;
 	}
     }
@@ -152,7 +164,7 @@ genhash (struct pf_cn_set *cns, const char *fn, const int n_clients)
 }
 
 static struct pf_set *
-pf_init (const char *fn)
+pf_init (const struct buffer_list *bl, const char *prefix, const bool allow_kill)
 {
 # define MODE_UNDEF   0
 # define MODE_CLIENTS 1
@@ -163,18 +175,19 @@ pf_init (const char *fn)
   int n_subnets = 0;
   int n_errors = 0;
   struct pf_set *pfs = NULL;
-  char line[256];
+  char line[PF_MAX_LINE_LEN];
 
   ALLOC_OBJ_CLEAR (pfs, struct pf_set);
-  FILE *fp = fopen (fn, "r");
-  if (fp)
+  if (bl)
     {
       struct pf_cn_elem **cl = &pfs->cns.list;
       struct pf_subnet **sl = &pfs->sns.list;
+      struct buffer_entry *be;
 
-      while (fgets (line, sizeof (line), fp) != NULL)
+      for (be = bl->head; be != NULL; be = be->next)
 	{
 	  ++line_num;
+	  strncpynt (line, BSTR(&be->buf), sizeof(line));
 	  rm_trailing_chars (line, "\r\n\t ");
 	  if (line[0] == '\0' || line[0] == '#')
 	    ;
@@ -184,19 +197,19 @@ pf_init (const char *fn)
 
 	      if (line[1] =='\0')
 		{
-		  msg (D_PF, "PF: %s/%d: no data after +/-: '%s'", fn, line_num, line);
+		  msg (D_PF_INFO, "PF: %s/%d: no data after +/-: '%s'", prefix, line_num, line);
 		  ++n_errors;
 		}
 	      else if (mode == MODE_CLIENTS)
 		{
-		  if (add_client (&line[1], fn, line_num, &cl, exclude))
+		  if (add_client (&line[1], prefix, line_num, &cl, exclude))
 		    ++n_clients;
 		  else
 		    ++n_errors;
 		}
 	      else if (mode == MODE_SUBNETS)
 		{
-		  if (add_subnet (&line[1], fn, line_num, &sl, exclude))
+		  if (add_subnet (&line[1], prefix, line_num, &sl, exclude))
 		    ++n_subnets;
 		  else
 		    ++n_errors;
@@ -232,41 +245,40 @@ pf_init (const char *fn)
 		}
 	      else if (!strcasecmp (line, "[end]"))
 		goto done;
-	      else if (!strcasecmp (line, "[kill]"))
+	      else if (allow_kill && !strcasecmp (line, "[kill]"))
 		goto kill;
 	      else
 		{
 		  mode = MODE_UNDEF;
-		  msg (D_PF, "PF: %s/%d unknown tag: '%s'", fn, line_num, line);
+		  msg (D_PF_INFO, "PF: %s/%d unknown tag: '%s'", prefix, line_num, line);
 		  ++n_errors;
 		}
 	    }
 	  else
 	    {
-	      msg (D_PF, "PF: %s/%d line must begin with '+', '-', or '[' : '%s'", fn, line_num, line);
+	      msg (D_PF_INFO, "PF: %s/%d line must begin with '+', '-', or '[' : '%s'", prefix, line_num, line);
 	      ++n_errors;
 	    }
 	}
       ++n_errors;
-      msg (D_PF, "PF: %s: missing [end]", fn);
+      msg (D_PF_INFO, "PF: %s: missing [end]", prefix);
     }
   else
     {
-      msg (D_PF|M_ERRNO, "PF: %s: cannot open", fn);
+      msg (D_PF_INFO, "PF: %s: cannot open", prefix);
       ++n_errors;
     }
 
  done:
-  if (fp)
+  if (bl)
     {
-      fclose (fp);
       if (!n_errors)
 	{
-	  if (!genhash (&pfs->cns, fn, n_clients))
+	  if (!genhash (&pfs->cns, prefix, n_clients))
 	    ++n_errors;
 	}
       if (n_errors)
-	msg (D_PF, "PF: %s rejected due to %d error(s)", fn, n_errors);
+	msg (D_PF_INFO, "PF: %s rejected due to %d error(s)", prefix, n_errors);
     }
   if (n_errors)
     {
@@ -276,15 +288,32 @@ pf_init (const char *fn)
   return pfs;
   
  kill:
-  if (fp)
-    fclose (fp);
   pf_destroy (pfs);
   ALLOC_OBJ_CLEAR (pfs, struct pf_set);
   pfs->kill = true;
   return pfs;
 }
 
-#if PF_DEBUG >= 1
+#ifdef PLUGIN_PF
+static struct pf_set *
+pf_init_from_file (const char *fn)
+{
+  struct buffer_list *bl = buffer_list_file (fn, PF_MAX_LINE_LEN);
+  if (bl)
+    {
+      struct pf_set *pfs = pf_init (bl, fn, true);
+      buffer_list_free (bl);
+      return pfs;
+    }
+  else
+    {
+      msg (D_PF_INFO|M_ERRNO, "PF: %s: cannot open", fn);
+      return NULL;
+    }
+}
+#endif
+
+#ifdef ENABLE_DEBUG
 
 static const char *
 drop_accept (const bool accept)
@@ -292,31 +321,46 @@ drop_accept (const bool accept)
   return accept ? "ACCEPT" : "DROP"; 
 }
 
-#endif
-
-#if PF_DEBUG >= 2
+static const char *
+pct_name (const int type)
+{
+  switch (type)
+    {
+    case PCT_SRC:
+      return "SRC";
+    case PCT_DEST:
+      return "DEST";
+    default:
+      return "???";
+    }
+}
 
 static void
 pf_cn_test_print (const char *prefix,
+		  const int type,
+		  const char *prefix2,
 		  const char *cn,
 		  const bool allow,
 		  const struct pf_cn *rule)
 {
   if (rule)
     {
-      msg (D_PF, "PF: %s %s %s rule=[%s %s]",
-	   prefix, cn, drop_accept (allow),
+      dmsg (D_PF_DEBUG, "PF: %s/%s/%s %s %s rule=[%s %s]",
+	   prefix, prefix2, pct_name (type),
+	   cn, drop_accept (allow),
 	   rule->cn, drop_accept (!rule->exclude));
     }
   else
     {
-      msg (D_PF, "PF: %s %s %s",
-	   prefix, cn, drop_accept (allow));
+      dmsg (D_PF_DEBUG, "PF: %s/%s/%s %s %s",
+	   prefix, prefix2, pct_name (type),
+	   cn, drop_accept (allow));
     }
 }
 
 static void
 pf_addr_test_print (const char *prefix,
+		    const char *prefix2,
 		    const struct context *src,
 		    const struct mroute_addr *dest,
 		    const bool allow,
@@ -325,10 +369,11 @@ pf_addr_test_print (const char *prefix,
   struct gc_arena gc = gc_new ();
   if (rule)
     {
-      msg (D_PF, "PF: %s %s %s %s rule=[%s/%s %s]",
+      dmsg (D_PF_DEBUG, "PF: %s/%s %s %s %s rule=[%s/%s %s]",
 	   prefix,
+	   prefix2,
 	   tls_common_name (src->c2.tls_multi, false),
-	   mroute_addr_print (dest, &gc),
+	   mroute_addr_print_ex (dest, MAPF_SHOW_ARP, &gc),
 	   drop_accept (allow),
 	   print_in_addr_t (rule->network, 0, &gc),
 	   print_in_addr_t (rule->netmask, 0, &gc),
@@ -336,10 +381,11 @@ pf_addr_test_print (const char *prefix,
     }
   else
     {
-      msg (D_PF, "PF: %s %s %s %s",
+      dmsg (D_PF_DEBUG, "PF: %s/%s %s %s %s",
 	   prefix,
+	   prefix2,
 	   tls_common_name (src->c2.tls_multi, false),
-	   mroute_addr_print (dest, &gc),
+	   mroute_addr_print_ex (dest, MAPF_SHOW_ARP, &gc),
 	   drop_accept (allow));
     }
   gc_free (&gc);
@@ -357,8 +403,8 @@ lookup_cn_rule (struct hash *h, const char *cn, const uint32_t cn_hash)
     return NULL;
 }
 
-static inline bool
-cn_test (struct pf_set *pfs, const struct tls_multi *tm)
+bool
+pf_cn_test (struct pf_set *pfs, const struct tls_multi *tm, const int type, const char *prefix)
 {
   if (!pfs->kill)
     {
@@ -369,8 +415,9 @@ cn_test (struct pf_set *pfs, const struct tls_multi *tm)
 	  const struct pf_cn *rule = lookup_cn_rule (pfs->cns.hash_table, cn, cn_hash);
 	  if (rule)
 	    {
-#if PF_DEBUG >= 2
-	      pf_cn_test_print ("PF_CN_MATCH", cn, !rule->exclude, rule);
+#ifdef ENABLE_DEBUG
+	      if (check_debug_level (D_PF_DEBUG))
+		pf_cn_test_print ("PF_CN_MATCH", type, prefix, cn, !rule->exclude, rule);
 #endif
 	      if (!rule->exclude)
 		return true;
@@ -379,8 +426,9 @@ cn_test (struct pf_set *pfs, const struct tls_multi *tm)
 	    }
 	  else
 	    {
-#if PF_DEBUG >= 2
-	      pf_cn_test_print ("PF_CN_DEFAULT", cn, pfs->cns.default_allow, NULL);
+#ifdef ENABLE_DEBUG
+	      if (check_debug_level (D_PF_DEBUG))
+		pf_cn_test_print ("PF_CN_DEFAULT", type, prefix, cn, pfs->cns.default_allow, NULL);
 #endif
 	      if (pfs->cns.default_allow)
 		return true;
@@ -389,59 +437,50 @@ cn_test (struct pf_set *pfs, const struct tls_multi *tm)
 	    }
 	}
     }
-#if PF_DEBUG >= 2
-  pf_cn_test_print ("PF_CN_FAULT", tls_common_name (tm, false), false, NULL);
+#ifdef ENABLE_DEBUG
+  if (check_debug_level (D_PF_DEBUG))
+    pf_cn_test_print ("PF_CN_FAULT", type, prefix, tls_common_name (tm, false), false, NULL);
 #endif
   return false;
 }
 
 bool
-pf_c2c_test (const struct context *src, const struct context *dest)
+pf_addr_test_dowork (const struct context *src, const struct mroute_addr *dest, const char *prefix)
 {
-  return  (!src->c2.pf.filename  || cn_test (src->c2.pf.pfs,  dest->c2.tls_multi))
-       && (!dest->c2.pf.filename || cn_test (dest->c2.pf.pfs, src->c2.tls_multi));
-}
-
-bool
-pf_addr_test (const struct context *src, const struct mroute_addr *dest)
-{
-  if (src->c2.pf.filename)
+  struct pf_set *pfs = src->c2.pf.pfs;
+  if (pfs && !pfs->kill)
     {
-      struct pf_set *pfs = src->c2.pf.pfs;
-      if (pfs && !pfs->kill)
+      const in_addr_t addr = in_addr_t_from_mroute_addr (dest);
+      const struct pf_subnet *se = pfs->sns.list;
+      while (se)
 	{
-	  const in_addr_t addr = in_addr_t_from_mroute_addr (dest);
-	  const struct pf_subnet *se = pfs->sns.list;
-	  while (se)
+	  if ((addr & se->rule.netmask) == se->rule.network)
 	    {
-	      if ((addr & se->rule.netmask) == se->rule.network)
-		{
-#if PF_DEBUG >= 2
-		  pf_addr_test_print ("PF_ADDR_MATCH", src, dest, !se->rule.exclude, &se->rule);
+#ifdef ENABLE_DEBUG
+	      if (check_debug_level (D_PF_DEBUG))
+		pf_addr_test_print ("PF_ADDR_MATCH", prefix, src, dest, !se->rule.exclude, &se->rule);
 #endif
-		  return !se->rule.exclude;
-		}
-	      se = se->next;
+	      return !se->rule.exclude;
 	    }
-#if PF_DEBUG >= 2
-	  pf_addr_test_print ("PF_ADDR_DEFAULT", src, dest, pfs->sns.default_allow, NULL);
-#endif
-	  return pfs->sns.default_allow;
+	  se = se->next;
 	}
-      else
-	{
-#if PF_DEBUG >= 2
-	  pf_addr_test_print ("PF_ADDR_FAULT", src, dest, false, NULL);
+#ifdef ENABLE_DEBUG
+      if (check_debug_level (D_PF_DEBUG))
+	pf_addr_test_print ("PF_ADDR_DEFAULT", prefix, src, dest, pfs->sns.default_allow, NULL);
 #endif
-	  return false;
-	}
+      return pfs->sns.default_allow;
     }
   else
     {
-      return true;
+#ifdef ENABLE_DEBUG
+      if (check_debug_level (D_PF_DEBUG))
+	pf_addr_test_print ("PF_ADDR_FAULT", prefix, src, dest, false, NULL);
+#endif
+      return false;
     }
 }
 
+#ifdef PLUGIN_PF
 void
 pf_check_reload (struct context *c)
 {
@@ -450,14 +489,16 @@ pf_check_reload (struct context *c)
   const int wakeup_transition = 60;
   bool reloaded = false;
 
-  if (c->c2.pf.filename && event_timeout_trigger (&c->c2.pf.reload, &c->c2.timeval, ETT_DEFAULT))
+  if (c->c2.pf.enabled
+      && c->c2.pf.filename
+      && event_timeout_trigger (&c->c2.pf.reload, &c->c2.timeval, ETT_DEFAULT))
     {
       struct stat s;
       if (!stat (c->c2.pf.filename, &s))
 	{
 	  if (s.st_mtime > c->c2.pf.file_last_mod)
 	    {
-	      struct pf_set *pfs = pf_init (c->c2.pf.filename);
+	      struct pf_set *pfs = pf_init_from_file (c->c2.pf.filename);
 	      if (pfs)
 		{
 		  if (c->c2.pf.pfs)
@@ -482,16 +523,35 @@ pf_check_reload (struct context *c)
 	c->c2.pf.n_check_reload++;
       }
     }
-#if PF_DEBUG >= 1
-  if (reloaded)
-    pf_context_print (&c->c2.pf, "pf_check_reload", M_INFO);
+#ifdef ENABLE_DEBUG
+  if (reloaded && check_debug_level (D_PF_DEBUG))
+    pf_context_print (&c->c2.pf, "pf_check_reload", D_PF_DEBUG);
 #endif
 }
+#endif
+
+#ifdef MANAGEMENT_PF
+bool
+pf_load_from_buffer_list (struct context *c, const struct buffer_list *config)
+{
+  struct pf_set *pfs = pf_init (config, "[SERVER-PF]", false);
+  if (pfs)
+    {
+      if (c->c2.pf.pfs)
+	pf_destroy (c->c2.pf.pfs);
+      c->c2.pf.pfs = pfs;
+      return true;
+    }
+  else
+    return false;
+}
+#endif
 
 void
 pf_init_context (struct context *c)
 {
   struct gc_arena gc = gc_new ();
+#ifdef PLUGIN_PF
   if (plugin_defined (c->plugins, OPENVPN_PLUGIN_ENABLE_PF))
     {
       const char *pf_file = create_temp_filename (c->options.tmp_dir, "pf", &gc);
@@ -502,8 +562,10 @@ pf_init_context (struct context *c)
 	{
 	  event_timeout_init (&c->c2.pf.reload, 1, now);
 	  c->c2.pf.filename = string_alloc (pf_file, NULL);
-#if PF_DEBUG >= 1
-	  pf_context_print (&c->c2.pf, "pf_init_context", M_INFO);
+	  c->c2.pf.enabled = true;
+#ifdef ENABLE_DEBUG
+	  if (check_debug_level (D_PF_DEBUG))
+	    pf_context_print (&c->c2.pf, "pf_init_context#1", D_PF_DEBUG);
 #endif
 	}
       else
@@ -511,22 +573,35 @@ pf_init_context (struct context *c)
 	  msg (M_WARN, "WARNING: OPENVPN_PLUGIN_ENABLE_PF disabled");
 	}
     }
+#endif
+#ifdef MANAGEMENT_PF
+  if (!c->c2.pf.enabled && management_enable_pf (management))
+    {
+      c->c2.pf.enabled = true;
+#ifdef ENABLE_DEBUG
+      if (check_debug_level (D_PF_DEBUG))
+	pf_context_print (&c->c2.pf, "pf_init_context#2", D_PF_DEBUG);
+#endif
+    }
+#endif
   gc_free (&gc);
 }
 
 void
 pf_destroy_context (struct pf_context *pfc)
 {
+#ifdef PLUGIN_PF
   if (pfc->filename)
     {
       delete_file (pfc->filename);
       free (pfc->filename);
     }
+#endif
   if (pfc->pfs)
     pf_destroy (pfc->pfs);
 }
 
-#if PF_DEBUG >= 1
+#ifdef ENABLE_DEBUG
 
 static void
 pf_subnet_set_print (const struct pf_subnet_set *s, const int lev)
@@ -613,10 +688,13 @@ pf_context_print (const struct pf_context *pfc, const char *prefix, const int le
   msg (lev, "----- %s : struct pf_context -----", prefix);
   if (pfc)
     {
+      msg (lev, "enabled=%d", pfc->enabled);
+#ifdef PLUGIN_PF
       msg (lev, "filename='%s'", np(pfc->filename));
       msg (lev, "file_last_mod=%u", (unsigned int)pfc->file_last_mod);
       msg (lev, "n_check_reload=%u", pfc->n_check_reload);
       msg (lev, "reload=[%d,%u,%u]", pfc->reload.defined, pfc->reload.n, (unsigned int)pfc->reload.last);
+#endif
       pf_set_print (pfc->pfs, lev);
     }
   msg (lev, "--------------------");

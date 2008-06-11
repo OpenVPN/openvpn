@@ -28,6 +28,8 @@
 #include "common.h"
 #include "buffer.h"
 
+#pragma pack(1)
+
 /*
  * Tunnel types
  */
@@ -60,6 +62,24 @@ struct openvpn_ethhdr
 # define OPENVPN_ETH_P_IPV6   0x86DD  /* IPv6 protocol */
 # define OPENVPN_ETH_P_ARP    0x0806  /* ARP protocol */
   uint16_t proto;                     /* packet type ID field */
+};
+
+struct openvpn_arp {
+# define ARP_MAC_ADDR_TYPE 0x0001
+  uint16_t mac_addr_type;       // 0x0001
+
+  uint16_t proto_addr_type;     // 0x0800
+  uint8_t  mac_addr_size;       // 0x06
+  uint8_t  proto_addr_size;     // 0x04
+
+# define ARP_REQUEST 0x0001
+# define ARP_REPLY   0x0002
+  uint16_t arp_command;         // 0x0001 for ARP request, 0x0002 for ARP reply
+
+  uint8_t   mac_src[OPENVPN_ETH_ALEN];
+  in_addr_t ip_src;
+  uint8_t   mac_dest[OPENVPN_ETH_ALEN];
+  in_addr_t ip_dest;
 };
 
 struct openvpn_iphdr {
@@ -128,6 +148,8 @@ struct openvpn_tcphdr {
 #define	OPENVPN_TCPOPT_NOP     1
 #define	OPENVPN_TCPOPT_MAXSEG  2
 #define OPENVPN_TCPOLEN_MAXSEG 4
+
+#pragma pack()
 
 /*
  * The following macro is used to update an

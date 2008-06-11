@@ -723,4 +723,38 @@ check_malloc_return (void *p)
     out_of_memory ();
 }
 
+/*
+ * Manage lists of buffers
+ */
+
+#ifdef ENABLE_BUFFER_LIST
+
+struct buffer_entry
+{
+  struct buffer buf;
+  struct buffer_entry *next;
+};
+
+struct buffer_list
+{
+  struct buffer_entry *head; /* next item to pop/peek */
+  struct buffer_entry *tail; /* last item pushed */
+  int size;                  /* current number of entries */
+  int max_size;              /* maximum size list should grow to */
+};
+
+struct buffer_list *buffer_list_new (const int max_size);
+void buffer_list_free (struct buffer_list *ol);
+
+bool buffer_list_defined (const struct buffer_list *ol);
+void buffer_list_reset (struct buffer_list *ol);
+
+void buffer_list_push (struct buffer_list *ol, const unsigned char *str);
+const struct buffer *buffer_list_peek (struct buffer_list *ol);
+void buffer_list_advance (struct buffer_list *ol, int n);
+
+struct buffer_list *buffer_list_file (const char *fn, int max_line_len);
+
+#endif
+
 #endif /* BUFFER_H */
