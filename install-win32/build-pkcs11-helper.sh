@@ -1,5 +1,5 @@
 F=pkcs11-helper-1.05
-OPENSSL_DIR=`pwd`/openssl-0.9.7m
+OPENSSL_DIR=`pwd`/openssl-0.9.8h
 
 PKCS11_HELPER_DIR=`pwd`/pkcs11-helper
 rm -rf $PKCS11_HELPER_DIR
@@ -12,7 +12,6 @@ tar xfj $tbz
 cd $F
 ./configure \
 	MAN2HTML=true \
-	ac_cv_type_size_t=no \
 	--disable-crypto-engine-gnutls \
         --disable-crypto-engine-nss \
         PKG_CONFIG=true \
@@ -21,3 +20,5 @@ cd $F
 
 make
 make install DESTDIR="${PKCS11_HELPER_DIR}"
+
+# ./configure doesn't need this any more: ac_cv_type_size_t=no

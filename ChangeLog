@@ -1,7 +1,75 @@
 OpenVPN
-Copyright (C) 2002-2005 OpenVPN Solutions LLC <info@openvpn.net>
+Copyright (C) 2002-2008 OpenVPN Solutions LLC <info@openvpn.net>
 
 $Id$
+
+2008.06.11 -- Version 2.1_rc8
+
+* Added client authentication and packet filtering capability
+  to management interface.  In addition, allow OpenVPN plugins
+  to take advantage of deferred authentication and packet
+  filtering capability.
+
+* Added support for client-side connection profiles.
+
+* Fixed unbounded memory growth bug in environmental variable
+  code that could have caused long-running OpenVPN sessions
+  with many TLS renegotiations to incrementally
+  increase memory usage over time.
+
+* Windows release now packages openssl-0.9.8h.
+
+* Build system changes -- allow building on Windows using
+  autoconf/automake scripts (Alon Bar-Lev).
+
+* Changes to Windows build system to make it easier to do
+  partial builds, with a reduced set of prerequisites,
+  where only a subset of OpenVPN installer
+  components are built.  See ./domake-win comments.
+
+* Cleanup IP address for persistence interfaces for tap and also
+  using ifconfig, gentoo#209055 (Alon Bar-Lev).
+
+* Fall back to old version of extract_x509_field for OpenSSL 0.9.6.
+
+* Clarified tcp-queue-limit man page entry (Matti Linnanvuori).
+
+* Added new OpenVPN icon and installer graphic.
+
+* Minor pkitool changes.
+
+* Added --pkcs11-id-management option, which will cause OpenVPN to
+  query the management interface via the new NEED-STR asynchronous
+  notification query to get additional PKCS#11 options (Alon Bar-Lev).
+
+* Added NEED-STR management interface asynchronous query and
+  "needstr" management interface command to respond to the query
+  (Alon Bar-Lev).
+
+* Added Dragonfly BSD support (Francis-Gudin).
+
+* Quote device names before passing to up/down script (Josh Cepek).
+
+* Bracketed struct openvpn_pktinfo with #pragma pack(1) to
+  prevent structure padding from causing an incorrect length
+  to be returned by sizeof (struct openvpn_pktinfo) on 64-bit
+  platforms.
+
+* On systems that support res_init, always call it
+  before calling gethostbyname to ensure that
+  resolver configuration state is current.
+
+* Added NTLMv2 proxy support (Miroslav Zajic).
+
+* Fixed an issue in extract_x509_field_ssl where the extraction
+  would fail on the first field of the subject name, such as
+  the common name in:  /CN=foo/emailAddress=foo@bar.com
+
+* Made "Linux ip addr del failed" error nonfatal.
+
+* Amplified --client-cert-not-required warning.
+
+* Added #pragma pack to proto.h.
 
 2008.01.29 -- Version 2.1_rc7
 
