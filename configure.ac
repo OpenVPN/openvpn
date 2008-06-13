@@ -611,7 +611,7 @@ fi
 dnl
 dnl Check if LoadLibrary exists on Windows
 dnl
-if test "${WIN32}" == "yes"; then
+if test "${WIN32}" = "yes"; then
    if test "$PLUGINS" = "yes"; then
 	AC_TRY_LINK([
 	    #include <windows.h>
@@ -683,7 +683,11 @@ if test "$CRYPTO" = "yes"; then
 		     ],
 		     [
                        AC_DEFINE(USE_CRYPTO, 1, [Use OpenSSL crypto library])
-                       OPENVPN_ADD_LIBS(-lcrypto)
+                       if test "${WIN32}" = "yes"; then
+                         OPENVPN_ADD_LIBS(-leay32)
+                       else
+                         OPENVPN_ADD_LIBS(-lcrypto)
+                       fi
                        AC_CHECK_FUNCS(EVP_CIPHER_CTX_set_key_length)
 
 		       dnl check for OpenSSL crypto acceleration capability
@@ -725,7 +729,11 @@ dnl
 	   [AC_MSG_ERROR([OpenSSL SSL headers not found.])]
       )
       AC_DEFINE(USE_SSL, 1, [Use OpenSSL SSL library])
-      OPENVPN_ADD_LIBS(-lssl)
+      if test "${WIN32}" = "yes"; then
+        OPENVPN_ADD_LIBS(-lssl32)
+      else
+        OPENVPN_ADD_LIBS(-lssl)
+      fi
    fi
 fi
 

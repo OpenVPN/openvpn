@@ -1,4 +1,4 @@
-F=pkcs11-helper-1.05
+F=pkcs11-helper-1.06-beta1
 OPENSSL_DIR=`pwd`/openssl-0.9.8h
 
 PKCS11_HELPER_DIR=`pwd`/pkcs11-helper
@@ -16,7 +16,7 @@ cd $F
         --disable-crypto-engine-nss \
         PKG_CONFIG=true \
         OPENSSL_CFLAGS="-I${OPENSSL_DIR}/include" \
-        OPENSSL_LIBS="-L${OPENSSL_DIR}/out -lcrypto"
+        OPENSSL_LIBS="-L${OPENSSL_DIR}/out -leay32"
 
 make
 make install DESTDIR="${PKCS11_HELPER_DIR}"
