@@ -43,6 +43,8 @@
 
 /* basic buffer class for OpenVPN */
 
+#define BUF_MAX (1<<20) /* maximum allowed size of struct buffer offset and len */
+
 struct buffer
 {
   int capacity;	   /* size of buffer allocated by malloc */
@@ -147,7 +149,10 @@ buf_reset_len (struct buffer *buf)
 static inline bool
 buf_init_dowork (struct buffer *buf, int offset)
 {
-  if (offset < 0 || offset > buf->capacity || buf->data == NULL)
+  if (unlikely (offset < 0)
+      || unlikely (offset > buf->capacity)
+      || unlikely (offset > BUF_MAX)
+      || unlikely (buf->data == NULL))
     return false;
   buf->len = 0;
   buf->offset = offset;
@@ -174,6 +179,8 @@ buf_set_write (struct buffer *buf, uint8_t *data, int size)
 static inline void
 buf_set_read (struct buffer *buf, const uint8_t *data, int size)
 {
+  if (unlikely(size > BUF_MAX))
+    size = 0;
   buf->len = buf->capacity = size;
   buf->offset = 0;
   buf->data = (uint8_t *)data;
@@ -283,32 +290,50 @@ struct buffer buf_sub (struct buffer *buf, int size, bool prepend);
 static inline bool
 buf_safe (const struct buffer *buf, int len)
 {
-  return len >= 0 && buf->offset + buf->len + len <= buf->capacity;
+  if (unlikely(buf->offset > BUF_MAX) || unlikely(buf->len) > BUF_MAX || unlikely(len > BUF_MAX))
+    return false;
+  else
+    return likely(len >= 0) && likely(buf->offset + buf->len + len <= buf->capacity);
 }
 
 static inline bool
 buf_safe_bidir (const struct buffer *buf, int len)
 {
-  const int newlen = buf->len + len;
-  return newlen >= 0 && buf->offset + newlen <= buf->capacity;
+  if (unlikely(buf->offset > BUF_MAX) || unlikely(buf->len) > BUF_MAX || unlikely(len > BUF_MAX))
+    return false;
+  else
+    {
+      const int newlen = buf->len + len;
+      return likely(newlen >= 0) && likely(buf->offset + newlen <= buf->capacity);
+    }
 }
 
 static inline int
 buf_forward_capacity (const struct buffer *buf)
 {
-  int ret = buf->capacity - (buf->offset + buf->len);
-  if (ret < 0)
-    ret = 0;
-  return ret;
+  if (unlikely(buf->offset > BUF_MAX) || unlikely(buf->len) > BUF_MAX)
+    return 0;
+  else
+    {
+      int ret = buf->capacity - (buf->offset + buf->len);
+      if (ret < 0)
+	ret = 0;
+      return ret;
+    }
 }
 
 static inline int
 buf_forward_capacity_total (const struct buffer *buf)
 {
-  int ret = buf->capacity - buf->offset;
-  if (ret < 0)
-    ret = 0;
-  return ret;
+  if (unlikely(buf->offset > BUF_MAX))
+    return 0;
+  else
+    {
+      int ret = buf->capacity - buf->offset;
+      if (ret < 0)
+	ret = 0;
+      return ret;
+    }
 }
 
 static inline int
@@ -320,7 +345,7 @@ buf_reverse_capacity (const struct buffer *buf)
 static inline bool
 buf_inc_len (struct buffer *buf, int inc)
 {
-  if (!buf_safe_bidir (buf, inc))
+  if (unlikely(!buf_safe_bidir (buf, inc)))
     return false;
   buf->len += inc;
   return true;
@@ -334,7 +359,11 @@ buf_inc_len (struct buffer *buf, int inc)
 static inline uint8_t *
 buf_prepend (struct buffer *buf, int size)
 {
-  if (size < 0 || size > buf->offset)
+  if (unlikely(size < 0)
+      || unlikely(size > buf->offset)
+      || unlikely(size > BUF_MAX)
+      || unlikely(buf->offset > BUF_MAX)
+      || unlikely(buf->len > BUF_MAX))
     return NULL;
   buf->offset -= size;
   buf->len += size;
@@ -344,7 +373,11 @@ buf_prepend (struct buffer *buf, int size)
 static inline bool
 buf_advance (struct buffer *buf, int size)
 {
-  if (size < 0 || buf->len < size)
+  if (unlikely(size < 0)
+      || unlikely(buf->len < size)
+      || unlikely(size > BUF_MAX)
+      || unlikely(buf->offset > BUF_MAX)
+      || unlikely(buf->len > BUF_MAX))
     return false;
   buf->offset += size;
   buf->len -= size;
@@ -448,11 +481,15 @@ buf_copy_range (struct buffer *dest,
 		int src_index,
 		int src_len)
 {
-  if (src_index < 0
-      || src_len < 0
-      || src_index + src_len > src->len
-      || dest_index < 0
-      || dest->offset + dest_index + src_len > dest->capacity)
+  if (unlikely(src_index < 0)
+      || unlikely(src_len < 0)
+      || unlikely(src_index > BUF_MAX)
+      || unlikely(src_len > BUF_MAX)
+      || unlikely(dest->offset > BUF_MAX)
+      || unlikely(dest_index > BUF_MAX)
+      || unlikely(src_index + src_len > src->len)
+      || unlikely(dest_index < 0)
+      || unlikely(dest->offset + dest_index + src_len > dest->capacity))
     return false;
   memcpy (dest->data + dest->offset + dest_index, src->data + src->offset + src_index, src_len);
   if (dest_index + src_len > dest->len)

@@ -54,6 +54,7 @@ alloc_buf_gc (size_t size, struct gc_arena *gc)
 #endif
 {
   struct buffer buf;
+  ASSERT (size <= BUF_MAX);
   buf.capacity = (int)size;
   buf.offset = 0;
   buf.len = 0;
