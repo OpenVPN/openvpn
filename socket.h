@@ -42,6 +42,11 @@
 #define OPENVPN_PORT 1194
 
 /*
+ * Maximum size passed passed to setsockopt SNDBUF/RCVBUF
+ */
+#define SOCKET_SND_RCV_BUF_MAX 1000000
+
+/*
  * Number of seconds that "resolv-retry infinite"
  * represents.
  */
