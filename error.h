@@ -142,7 +142,7 @@ extern int x_msg_line_num;
 
 bool dont_mute (unsigned int flags); /* check muting filter */
 
-#define MSG_TEST(flags) (((((unsigned int)flags) & M_DEBUG_LEVEL) <= x_debug_level) && dont_mute (flags))
+#define MSG_TEST(flags) (unlikely((((unsigned int)flags) & M_DEBUG_LEVEL) <= x_debug_level) && dont_mute (flags))
 
 #if defined(HAVE_CPP_VARARG_MACRO_ISO) && !defined(__LCLINT__)
 # define HAVE_VARARG_MACROS
