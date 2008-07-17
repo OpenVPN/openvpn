@@ -29,6 +29,7 @@
 #include "event.h"
 #include "socket.h"
 #include "fdmisc.h"
+#include "crypto.h"
 #include "ps.h"
 
 #include "memdbg.h"
@@ -790,6 +791,9 @@ port_share_open (const char *host, const int port)
 
       /* no blocking on control channel back to parent */
       set_nonblock (fd[1]);
+
+      /* initialize prng */
+      prng_init ();
 
       /* execute the event loop */
       port_share_proxy (hostaddr, port, fd[1]);
