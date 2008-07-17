@@ -35,6 +35,7 @@
 #include "manage.h"
 #include "crypto.h"
 #include "route.h"
+#include "win32.h"
 
 #include "memdbg.h"
 
@@ -1114,7 +1115,11 @@ gen_path (const char *directory, const char *filename, struct gc_arena *gc)
 
   if (safe_filename
       && strcmp (safe_filename, ".")
-      && strcmp (safe_filename, ".."))
+      && strcmp (safe_filename, "..")
+#ifdef WIN32
+      && win_safe_filename (safe_filename)
+#endif
+      )
     {
       struct buffer out = alloc_buf_gc (256, gc);
       char dirsep[2];

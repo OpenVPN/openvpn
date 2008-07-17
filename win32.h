@@ -247,5 +247,8 @@ char *getpass (const char *prompt);
 /* Set Win32 security attributes structure to allow all access */
 bool init_security_attributes_allow_all (struct security_attributes *obj);
 
+/* return true if filename is safe to be used on Windows */
+bool win_safe_filename (const char *fn);
+
 #endif
 #endif
