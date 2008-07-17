@@ -339,44 +339,6 @@ tmp_rsa_cb (SSL * s, int is_export, int keylength)
   return (rsa_tmp);
 }
 
-#ifdef USE_OLD_EXTRACT_X509_FIELD
-
-/*
- * Extract a field from an X509 subject name.
- *
- * Example:
- *
- * /C=US/ST=CO/L=Denver/O=ORG/CN=Test-CA/Email=jim@yonan.net
- *
- * The common name is 'Test-CA'
- */
-static void
-extract_x509_field (const char *x509, const char *field_name, char *out, int size)
-{
-  char field_buf[256];
-  struct buffer x509_buf;
-
-  ASSERT (size > 0);
-  *out = '\0';
-  buf_set_read (&x509_buf, (uint8_t *)x509, strlen (x509));
-  while (buf_parse (&x509_buf, '/', field_buf, sizeof (field_buf)))
-    {
-      struct buffer component_buf;
-      char field_name_buf[64];
-      char field_value_buf[256];
-      buf_set_read (&component_buf, (const uint8_t *) field_buf, strlen (field_buf));
-      buf_parse (&component_buf, '=', field_name_buf, sizeof (field_name_buf));
-      buf_parse (&component_buf, '=', field_value_buf, sizeof (field_value_buf));
-      if (!strcmp (field_name_buf, field_name))
-	{
-	  strncpynt (out, field_value_buf, size);
-	  break;
-	}
-    }
-}
-
-#else
-
 /*
  * Extract a field from an X509 subject name.
  *
@@ -421,8 +383,6 @@ extract_x509_field_ssl (X509_NAME *x509, const char *field_name, char *out, int 
   strncpynt(out, (char *)buf, size);
   OPENSSL_free(buf);
 }
-
-#endif
 
 static void
 setenv_untrusted (struct tls_session *session)
