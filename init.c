@@ -1912,6 +1912,9 @@ do_option_warnings (struct context *c)
      msg (M_WARN, "WARNING: you are using user/group/chroot without persist-key -- this may cause restarts to fail");
    }
 
+  if (o->chroot_dir && !(o->username && o->groupname))
+    msg (M_WARN, "WARNING: you are using chroot without specifying user and group -- this may cause the chroot jail to be insecure");
+
 #if P2MP
   if (o->pull && o->ifconfig_local && c->first_time)
     msg (M_WARN, "WARNING: using --pull/--client and --ifconfig together is probably not what you want");
