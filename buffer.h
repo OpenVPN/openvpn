@@ -88,6 +88,8 @@ bool buf_assign (struct buffer *dest, const struct buffer *src);
 void string_clear (char *str);
 int string_array_len (const char **array);
 
+size_t array_mult_safe (const size_t m1, const size_t m2);
+
 #define PA_BRACKET (1<<0)
 char *print_argv (const char **p, struct gc_arena *gc, const unsigned int flags);
 
@@ -725,23 +727,23 @@ void out_of_memory (void);
 
 #define ALLOC_ARRAY(dptr, type, n) \
 { \
-  check_malloc_return ((dptr) = (type *) malloc (sizeof (type) * (n))); \
+  check_malloc_return ((dptr) = (type *) malloc (array_mult_safe (sizeof (type), (n)))); \
 }
 
 #define ALLOC_ARRAY_GC(dptr, type, n, gc) \
 { \
-  (dptr) = (type *) gc_malloc (sizeof (type) * (n), false, (gc)); \
+  (dptr) = (type *) gc_malloc (array_mult_safe (sizeof (type), (n)), false, (gc)); \
 }
 
 #define ALLOC_ARRAY_CLEAR(dptr, type, n) \
 { \
   ALLOC_ARRAY (dptr, type, n); \
-  memset ((dptr), 0, (sizeof(type) * (n))); \
+  memset ((dptr), 0, (array_mult_safe (sizeof(type), (n)))); \
 }
 
 #define ALLOC_ARRAY_CLEAR_GC(dptr, type, n, gc) \
 { \
-  (dptr) = (type *) gc_malloc (sizeof (type) * (n), true, (gc)); \
+  (dptr) = (type *) gc_malloc (array_mult_safe (sizeof (type), (n)), true, (gc)); \
 }
 
 #define ALLOC_OBJ_GC(dptr, type, gc) \

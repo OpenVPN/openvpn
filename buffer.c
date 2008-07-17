@@ -32,6 +32,16 @@
 
 #include "memdbg.h"
 
+size_t
+array_mult_safe (const size_t m1, const size_t m2)
+{
+  const unsigned long long limit = 0xFFFFFFFF;
+  unsigned long long res = (unsigned long long)m1 * (unsigned long long)m2;
+  if (unlikely(m1 > limit) || unlikely(m2 > limit) || unlikely(res > limit))
+    msg (M_FATAL, "attemped allocation of excessively large array");
+  return (size_t) res;
+}
+
 struct buffer
 #ifdef DMALLOC
 alloc_buf_debug (size_t size, const char *file, int line)
