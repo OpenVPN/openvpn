@@ -770,7 +770,8 @@ env_set_print (int msglevel, const struct env_set *es)
 
 	  while (e)
 	    {
-	      msg (msglevel, "ENV [%d] '%s'", i, e->string);
+	      if (env_safe_to_print (e->string))
+		msg (msglevel, "ENV [%d] '%s'", i, e->string);
 	      ++i;
 	      e = e->next;
 	    }
@@ -1452,6 +1453,16 @@ const char *
 safe_print (const char *str, struct gc_arena *gc)
 {
   return string_mod_const (str, CC_PRINT, CC_CRLF, '.', gc);
+}
+
+bool
+env_safe_to_print (const char *str)
+{
+#ifndef UNSAFE_DEBUG
+  if (strncmp (str, "password", 8) == 0)
+    return false;
+#endif
+  return true;
 }
 
 /* Make arrays of strings */

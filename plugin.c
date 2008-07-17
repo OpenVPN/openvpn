@@ -43,7 +43,10 @@ plugin_show_string_array (int msglevel, const char *name, const char *array[])
 {
   int i;
   for (i = 0; array[i]; ++i)
-    msg (msglevel, "%s[%d] = '%s'", name, i, array[i]);
+    {
+      if (env_safe_to_print (array[i]))
+	msg (msglevel, "%s[%d] = '%s'", name, i, array[i]);
+    }
 }
 
 static void

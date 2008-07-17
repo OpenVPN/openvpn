@@ -265,6 +265,9 @@ void purge_user_pass (struct user_pass *up, const bool force);
  */
 const char *safe_print (const char *str, struct gc_arena *gc);
 
+/* returns true if environmental variable safe to print to log */
+bool env_safe_to_print (const char *str);
+
 /*
  * A sleep function that services the management layer for n
  * seconds rather than doing nothing.
