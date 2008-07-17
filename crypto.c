@@ -1052,13 +1052,15 @@ read_key_file (struct key2 *key2, const char *file, const unsigned int flags)
       if (fd == -1)
 	msg (M_ERR, "Cannot open file key file '%s'", file);
       size = read (fd, in.data, in.capacity);
+      if (size < 0)
+	msg (M_FATAL, "Read error on key file ('%s')", file);
       if (size == in.capacity)
 	msg (M_FATAL, "Key file ('%s') can be a maximum of %d bytes", file, (int)in.capacity);
       close (fd);
     }
 
   cp = (unsigned char *)in.data;
-  while (size)
+  while (size > 0)
     {
       const unsigned char c = *cp;
 
