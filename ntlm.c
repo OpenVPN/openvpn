@@ -88,8 +88,8 @@ gen_hmac_md5 (const char* data, int data_len, const char* key, int key_len,char 
 
 	HMAC_CTX c;
 	HMAC_Init (&c, key, key_len, EVP_md5());
-	HMAC_Update (&c, data, data_len);
-	HMAC_Final (&c, result, &len);
+	HMAC_Update (&c, (const unsigned char *)data, data_len);
+	HMAC_Final (&c, (unsigned char *)result, &len);
 	HMAC_CTX_cleanup(&c);
 }
 
@@ -215,6 +215,8 @@ ntlm_phase_3 (const struct http_proxy_info *p, const char *phase_2, struct gc_ar
 
 	bool ntlmv2_enabled = (p->auth_method == HTTP_AUTH_NTLM2);
 
+  CLEAR (buf2);
+
   ASSERT (strlen (p->up.username) > 0);
   ASSERT (strlen (p->up.password) > 0);
 	
@@ -241,6 +243,9 @@ ntlm_phase_3 (const struct http_proxy_info *p, const char *phase_2, struct gc_ar
   memset (md4_hash + 16, 0, 5);
 
   ret_val = base64_decode( phase_2, (void *)buf2);
+  if (ret_val < 0)
+    return NULL;
+
   /* we can be sure that phase_2 is less than 128
    * therefore buf2 needs to be (3/4 * 128) */
 
@@ -253,7 +258,7 @@ ntlm_phase_3 (const struct http_proxy_info *p, const char *phase_2, struct gc_ar
 	if (ntlmv2_enabled){ /* Generate NTLMv2 response */
 		
 		/* NTLMv2 hash */
-		my_strupr(strcpy(userdomain, username));
+	        my_strupr((unsigned char *)strcpy(userdomain, username));
 		if (strlen(username) + strlen(domain) < sizeof(userdomain))
 			strcat(userdomain, domain);
 		else
@@ -266,8 +271,8 @@ ntlm_phase_3 (const struct http_proxy_info *p, const char *phase_2, struct gc_ar
 		ntlmv2_blob[0x00]=1;                        /* Signature */
 		ntlmv2_blob[0x01]=1;                        /* Signature */
 		ntlmv2_blob[0x04]=0;                        /* Reserved */
-		gen_timestamp(&ntlmv2_blob[0x08]);          /* 64-bit Timestamp */
-		gen_nonce(&ntlmv2_blob[0x10]);              /* 64-bit Client Nonce */
+		gen_timestamp((unsigned char *)&ntlmv2_blob[0x08]);          /* 64-bit Timestamp */
+		gen_nonce((unsigned char *)&ntlmv2_blob[0x10]);              /* 64-bit Client Nonce */
 		ntlmv2_blob[0x18]=0;                        /* Unknown, zero should work */
 
 		/* Add target information block to the blob */
@@ -313,7 +318,7 @@ ntlm_phase_3 (const struct http_proxy_info *p, const char *phase_2, struct gc_ar
 	
 	memset (phase3, 0, sizeof (phase3)); /* clear reply */
 
-	strcpy (phase3, "NTLMSSP\0"); /* signature */
+	strcpy ((char *)phase3, "NTLMSSP\0"); /* signature */
 	phase3[8] = 3; /* type 3 */
 
 	if (ntlmv2_enabled){ /* NTLMv2 response */

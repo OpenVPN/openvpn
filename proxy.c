@@ -476,9 +476,17 @@ establish_http_proxy_passthru (struct http_proxy_info *p,
           if (!send_line_crlf (sd, buf))
             goto error;
 
-          openvpn_snprintf (buf, sizeof(buf), "Proxy-Authorization: NTLM %s",
-			    ntlm_phase_3 (p, buf2, &gc));
           msg (D_PROXY, "Attempting NTLM Proxy-Authorization phase 3");
+	  {
+	    const char *np3 = ntlm_phase_3 (p, buf2, &gc);
+	    if (!np3)
+	      {
+		msg (D_PROXY, "NTLM Proxy-Authorization phase 3 failed: received corrupted data from proxy server");
+		goto error;
+	      }
+	    openvpn_snprintf (buf, sizeof(buf), "Proxy-Authorization: NTLM %s", np3);
+	  }
+
           msg (D_PROXY, "Send to HTTP proxy: '%s'", buf);
           openvpn_sleep (1);
           if (!send_line_crlf (sd, buf))
