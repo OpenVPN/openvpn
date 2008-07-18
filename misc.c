@@ -1086,6 +1086,8 @@ test_file (const char *filename)
   return ret;
 }
 
+#ifdef USE_CRYPTO
+
 /* create a temporary filename in directory */
 const char *
 create_temp_filename (const char *directory, const char *prefix, struct gc_arena *gc)
@@ -1097,14 +1099,19 @@ create_temp_filename (const char *directory, const char *prefix, struct gc_arena
   ++counter;
   mutex_unlock_static (L_CREATE_TEMP);
 
-  buf_printf (&fname, PACKAGE "_%s_%u_%u_%u.tmp",
-	      prefix,
-	      openvpn_getpid (),
-	      counter,
-	      (unsigned int)now);
+  {
+    uint8_t rndbytes[16];
+    const char *rndstr;
+
+    prng_bytes (rndbytes, sizeof (rndbytes));
+    rndstr = format_hex_ex (rndbytes, sizeof (rndbytes), 40, 0, NULL, gc);
+    buf_printf (&fname, PACKAGE "_%s_%s.tmp", prefix, rndstr);
+  }
 
   return gen_path (directory, BSTR (&fname), gc);
 }
+
+#endif
 
 /*
  * Put a directory and filename together.
