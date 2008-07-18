@@ -630,8 +630,10 @@ man_query_need_str (struct management *man, const char *type, const char *action
 static void
 man_forget_passwords (struct management *man)
 {
+#if defined(USE_CRYPTO) && defined(USE_SSL)
   ssl_purge_auth ();
   msg (M_CLIENT, "SUCCESS: Passwords were forgotten");
+#endif
 }
 
 static void
@@ -1375,9 +1377,10 @@ man_reset_client_socket (struct management *man, const bool exiting)
     }
   if (!exiting)
     {
+#if defined(USE_CRYPTO) && defined(USE_SSL)
       if (man->settings.flags & MF_FORGET_DISCONNECT)
-	 ssl_purge_auth ();
-
+	ssl_purge_auth ();
+#endif
       if (man->settings.flags & MF_SIGNAL) {
       	  int mysig = man_mod_signal (man, SIGUSR1);
 	  if (mysig >= 0)
