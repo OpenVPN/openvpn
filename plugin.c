@@ -185,6 +185,8 @@ static void
 plugin_init_item (struct plugin *p, const struct plugin_option *o)
 {
   struct gc_arena gc = gc_new ();
+  bool rel = false;
+
   p->so_pathname = o->so_pathname;
   p->plugin_type_mask = plugin_supported_types ();
 
@@ -192,7 +194,7 @@ plugin_init_item (struct plugin *p, const struct plugin_option *o)
 
   p->handle = NULL;
 #if defined(PLUGIN_LIBDIR)
-  if (!strrchr(p->so_pathname, '/'))
+  if (!absolute_pathname (p->so_pathname))
     {
       char full[PATH_MAX];
 
@@ -201,6 +203,7 @@ plugin_init_item (struct plugin *p, const struct plugin_option *o)
 #if defined(ENABLE_PLUGIN_SEARCH)
       if (!p->handle)
 	{
+	  rel = true;
 	  p->handle = dlopen (p->so_pathname, RTLD_NOW);
 	}
 #endif
@@ -208,6 +211,7 @@ plugin_init_item (struct plugin *p, const struct plugin_option *o)
   else
 #endif
     {
+      rel = !absolute_pathname (p->so_pathname);
       p->handle = dlopen (p->so_pathname, RTLD_NOW);
     }
   if (!p->handle)
@@ -217,6 +221,7 @@ plugin_init_item (struct plugin *p, const struct plugin_option *o)
 
 #elif defined(USE_LOAD_LIBRARY)
 
+  rel = !absolute_pathname (p->so_pathname);
   p->module = LoadLibrary (p->so_pathname);
   if (!p->module)
     msg (M_ERR, "PLUGIN_INIT: could not load plugin DLL: %s", p->so_pathname);
@@ -259,6 +264,9 @@ plugin_init_item (struct plugin *p, const struct plugin_option *o)
     p->requested_initialization_point = (*p->initialization_point)();
   else
     p->requested_initialization_point = OPENVPN_PLUGIN_INIT_PRE_DAEMON;
+
+  if (rel)
+    msg (M_WARN, "WARNING: plugin '%s' specified by a relative pathname -- using an absolute pathname would be more secure", p->so_pathname);
 
   p->initialized = true;
 

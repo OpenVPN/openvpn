@@ -1159,6 +1159,22 @@ delete_file (const char *filename)
 #endif
 }
 
+bool
+absolute_pathname (const char *pathname)
+{
+  if (pathname)
+    {
+      const int c = pathname[0];
+#ifdef WIN32
+      return c == '\\' || (isalpha(c) && pathname[1] == ':' && pathname[2] == '\\');
+#else
+      return c == '/';
+#endif
+    }
+  else
+    return false;
+}
+
 /*
  * Return the next largest power of 2
  * or u if u is a power of 2.
