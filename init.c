@@ -439,6 +439,19 @@ init_static (void)
   return false;
 #endif
 
+#if 0
+  {
+    struct gc_arena gc = gc_new ();
+    const char *fn = gen_path ("foo",
+			       "bar",
+			       &gc);
+    printf ("%s\n", fn);
+    gc_free (&gc);
+  }
+
+  return false;
+#endif
+
   return true;
 }
 
