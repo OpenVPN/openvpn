@@ -2898,7 +2898,7 @@ read_inline_file (struct in_src *is, const char *close_tag, struct gc_arena *gc)
     {
       if (!strncmp (line, close_tag, strlen (close_tag)))
 	break;
-      buf_printf (&buf, line);
+      buf_printf (&buf, "%s", line);
     }
   ret = string_alloc (BSTR (&buf), gc);
   buf_clear (&buf);
