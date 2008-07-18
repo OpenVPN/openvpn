@@ -2033,12 +2033,7 @@ tun_finalize (
     }
 
   if (buf)
-    {
-      if (ret < 0)
-	buf->len = 0;
-      else
-	buf->len = ret;
-    }
+    buf->len = ret;
   return ret;
 }
 
