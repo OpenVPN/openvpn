@@ -439,7 +439,7 @@ init_static (void)
   return false;
 #endif
 
-#if 0
+#ifdef GEN_PATH_TEST
   {
     struct gc_arena gc = gc_new ();
     const char *fn = gen_path ("foo",
@@ -448,7 +448,20 @@ init_static (void)
     printf ("%s\n", fn);
     gc_free (&gc);
   }
+  return false;
+#endif
 
+#ifdef STATUS_PRINTF_TEST
+  {
+    struct gc_arena gc = gc_new ();
+    const char *tmp_file = create_temp_filename ("/tmp", "foo", &gc);
+    struct status_output *so = status_open (tmp_file, 0, -1, NULL, STATUS_OUTPUT_WRITE);
+    status_printf (so, "%s", "foo");
+    status_printf (so, "%s", "bar");
+    if (!status_close (so))
+      msg (M_WARN, "STATUS_PRINTF_TEST: %s: write error", tmp_file);
+    gc_free (&gc);
+  }
   return false;
 #endif
 

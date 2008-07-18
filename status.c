@@ -212,7 +212,7 @@ status_close (struct status_output *so)
   return ret;
 }
 
-#define STATUS_PRINTF_MAXLEN 256
+#define STATUS_PRINTF_MAXLEN 512
 
 void
 status_printf (struct status_output *so, const char *format, ...)
@@ -221,28 +221,32 @@ status_printf (struct status_output *so, const char *format, ...)
     {
       char buf[STATUS_PRINTF_MAXLEN+2]; /* leave extra bytes for CR, LF */
       va_list arglist;
+      int stat;
 
       va_start (arglist, format);
-      vsnprintf (buf, STATUS_PRINTF_MAXLEN, format, arglist);
+      stat = vsnprintf (buf, STATUS_PRINTF_MAXLEN, format, arglist);
       va_end (arglist);
       buf[STATUS_PRINTF_MAXLEN - 1] = 0;
 
-      if (so->msglevel >= 0)
+      if (stat < 0 || stat >= STATUS_PRINTF_MAXLEN)
+	so->errors = true;
+
+      if (so->msglevel >= 0 && !so->errors)
 	msg (so->msglevel, "%s", buf);
 
-      if (so->fd >= 0)
+      if (so->fd >= 0 && !so->errors)
 	{
 	  int len;
 	  strcat (buf, "\n");
 	  len = strlen (buf);
 	  if (len > 0)
 	    {
-	      if (write (so->fd, buf, len) < 0)
+	      if (write (so->fd, buf, len) != len)
 		so->errors = true;
 	    }
 	}
 
-      if (so->vout)
+      if (so->vout && !so->errors)
 	{
 	  chomp (buf);
 	  (*so->vout->func) (so->vout->arg, so->vout->flags_default, buf);
