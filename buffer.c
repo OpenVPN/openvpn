@@ -182,9 +182,10 @@ buf_sub (struct buffer *buf, int size, bool prepend)
 /*
  * printf append to a buffer with overflow check
  */
-void
+bool
 buf_printf (struct buffer *buf, const char *format, ...)
 {
+  int ret = false;
   if (buf_defined (buf))
     {
       va_list arglist;
@@ -193,13 +194,17 @@ buf_printf (struct buffer *buf, const char *format, ...)
 
       if (cap > 0)
 	{
+	  int stat;
 	  va_start (arglist, format);
-	  vsnprintf ((char *)ptr, cap, format, arglist);
+	  stat = vsnprintf ((char *)ptr, cap, format, arglist);
 	  va_end (arglist);
 	  *(buf->data + buf->capacity - 1) = 0; /* windows vsnprintf needs this */
 	  buf->len += (int) strlen ((char *)ptr);
+	  if (stat >= 0 && stat < cap)
+	    ret = true;
 	}
     }
+  return ret;
 }
 
 /*

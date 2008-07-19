@@ -206,7 +206,7 @@ has_digit (const unsigned char* src)
 /*
  * printf append to a buffer with overflow check
  */
-void buf_printf (struct buffer *buf, const char *format, ...)
+bool buf_printf (struct buffer *buf, const char *format, ...)
 #ifdef __GNUC__
     __attribute__ ((format (printf, 2, 3)))
 #endif
