@@ -347,8 +347,11 @@ tmp_rsa_cb (SSL * s, int is_export, int keylength)
  * /C=US/ST=CO/L=Denver/O=ORG/CN=First-CN/CN=Test-CA/Email=jim@yonan.net
  *
  * The common name is 'Test-CA'
+ *
+ * Return true on success, false on error (insufficient buffer size in 'out'
+ * to contain result is grounds for error).
  */
-static void
+static bool
 extract_x509_field_ssl (X509_NAME *x509, const char *field_name, char *out, int size)
 {
   int lastpos = -1;
@@ -367,21 +370,26 @@ extract_x509_field_ssl (X509_NAME *x509, const char *field_name, char *out, int 
 
   /* Nothing found */
   if (lastpos == -1)
-    return;
+    return false;
 
   x509ne = X509_NAME_get_entry(x509, lastpos);
   if (!x509ne)
-    return;
+    return false;
 
   asn1 = X509_NAME_ENTRY_get_data(x509ne);
   if (!asn1)
-    return;
+    return false;
   tmp = ASN1_STRING_to_UTF8(&buf, asn1);
   if (tmp <= 0)
-    return;
+    return false;
 
   strncpynt(out, (char *)buf, size);
-  OPENSSL_free(buf);
+
+  {
+    const bool ret = (strlen ((char *)buf) < size);
+    OPENSSL_free (buf);
+    return ret;
+  }
 }
 
 static void
@@ -529,7 +537,7 @@ print_nsCertType (int type)
 static int
 verify_callback (int preverify_ok, X509_STORE_CTX * ctx)
 {
-  char subject[256];
+  char *subject = NULL;
   char envname[64];
   char common_name[TLS_CN_LEN];
   SSL *ssl;
@@ -548,22 +556,28 @@ verify_callback (int preverify_ok, X509_STORE_CTX * ctx)
   session->verified = false;
 
   /* get the X509 name */
-  X509_NAME_oneline (X509_get_subject_name (ctx->current_cert), subject,
-		     sizeof (subject));
-  subject[sizeof (subject) - 1] = '\0';
+  subject = X509_NAME_oneline (X509_get_subject_name (ctx->current_cert), NULL, 0);
+  if (!subject)
+    {
+      msg (D_TLS_ERRORS, "VERIFY ERROR: depth=%d, could not extract X509 subject string from certificate", ctx->error_depth);
+      goto err;
+    }
 
   /* enforce character class restrictions in X509 name */
   string_mod (subject, X509_NAME_CHAR_CLASS, 0, '_');
   string_replace_leading (subject, '-', '_');
 
-  msg (M_INFO, "X509: '%s'", subject); // JYFIXME
-
   /* extract the common name */
-#ifdef USE_OLD_EXTRACT_X509_FIELD
-  extract_x509_field (subject, "CN", common_name, TLS_CN_LEN);
-#else
-  extract_x509_field_ssl (X509_get_subject_name (ctx->current_cert), "CN", common_name, TLS_CN_LEN);
-#endif
+  if (!extract_x509_field_ssl (X509_get_subject_name (ctx->current_cert), "CN", common_name, TLS_CN_LEN))
+    {
+      if (!ctx->error_depth)
+	{
+	  msg (D_TLS_ERRORS, "VERIFY ERROR: could not extract Common Name from X509 subject string ('%s') -- note that the Common Name length is limited to %d characters",
+	       subject,
+	       TLS_CN_LEN);
+	  goto err;
+	}
+    }
 
   string_mod (common_name, COMMON_NAME_CHAR_CLASS, 0, '_');
 
@@ -786,10 +800,12 @@ verify_callback (int preverify_ok, X509_STORE_CTX * ctx)
   msg (D_HANDSHAKE, "VERIFY OK: depth=%d, %s", ctx->error_depth, subject);
 
   session->verified = true;
+  free (subject);
   return 1;			/* Accept connection */
 
  err:
   ERR_clear_error ();
+  free (subject);
   return 0;                     /* Reject connection */
 }
 
@@ -3291,7 +3307,14 @@ key_method_2_read (struct buffer *buf, struct tls_multi *multi, struct tls_sessi
 	s1 = verify_user_pass_plugin (session, up, raw_username);
       if (session->opt->auth_user_pass_verify_script)
 	s2 = verify_user_pass_script (session, up);
-      
+
+      /* check sizing of username if it will become our common name */
+      if (session->opt->username_as_common_name && strlen (up->username) >= TLS_CN_LEN)
+	{
+	  msg (D_TLS_ERRORS, "TLS Auth Error: --username-as-common name specified and username is longer than the maximum permitted Common Name length of %d characters", TLS_CN_LEN);
+	  s1 = OPENVPN_PLUGIN_FUNC_ERROR;
+	}
+
       /* auth succeeded? */
       if ((s1 == OPENVPN_PLUGIN_FUNC_SUCCESS
 #ifdef PLUGIN_DEF_AUTH
@@ -4782,25 +4805,6 @@ print_data:
 done:
   return BSTR (&out);
 }
-
-#ifdef EXTRACT_X509_FIELD_TEST
-
-void
-extract_x509_field_test (void)
-{
-  char line[8];
-  char field[4];
-  static const char field_name[] = "CN";
-
-  while (fgets (line, sizeof (line), stdin))
-    {
-      chomp (line);
-      extract_x509_field (line, field_name, field, sizeof (field));
-      printf ("CN: '%s'\n", field);
-    }
-}
-
-#endif
 
 #else
 static void dummy(void) {}
