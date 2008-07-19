@@ -804,6 +804,20 @@ string_mod_const (const char *str,
     return NULL;
 }
 
+void
+string_replace_leading (char *str, const char match, const char replace)
+{
+  ASSERT (match != '\0');
+  while (*str)
+    {
+      if (*str == match)
+	*str = replace;
+      else
+	break;
+      ++str;
+    }
+}
+
 #ifdef CHARACTER_CLASS_DEBUG
 
 #define CC_INCLUDE    (CC_PRINT)

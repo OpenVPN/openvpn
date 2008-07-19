@@ -615,6 +615,8 @@ const char *string_mod_const (const char *str,
 			      const char replace,
 			      struct gc_arena *gc);
 
+void string_replace_leading (char *str, const char match, const char replace);
+
 #ifdef CHARACTER_CLASS_DEBUG
 void character_class_debug (void);
 #endif

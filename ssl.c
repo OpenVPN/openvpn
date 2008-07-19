@@ -554,6 +554,9 @@ verify_callback (int preverify_ok, X509_STORE_CTX * ctx)
 
   /* enforce character class restrictions in X509 name */
   string_mod (subject, X509_NAME_CHAR_CLASS, 0, '_');
+  string_replace_leading (subject, '-', '_');
+
+  msg (M_INFO, "X509: '%s'", subject); // JYFIXME
 
   /* extract the common name */
 #ifdef USE_OLD_EXTRACT_X509_FIELD
