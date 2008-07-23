@@ -465,6 +465,14 @@ init_static (void)
   return false;
 #endif
 
+#ifdef ARGV_TEST
+  {
+    void argv_test (void);
+    argv_test ();
+    return false;
+  }
+#endif
+
   return true;
 }
 

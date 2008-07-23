@@ -227,6 +227,230 @@ int openvpn_snprintf(char *str, size_t size, const char *format, ...)
 }
 
 /*
+ * A printf-like function (that only recognizes a subset of standard printf
+ * format operators) that prints arguments to an argv list instead
+ * of a standard string.  This is used to build up argv arrays for passing
+ * to execve.
+ */
+
+void
+argv_init (struct argv *a)
+{
+  a->argc = 0;
+  a->argv = NULL;
+}
+
+void
+argv_reset (struct argv *a)
+{
+  size_t i;
+  for (i = 0; i < a->argc; ++i)
+    free (a->argv[i]);
+  free (a->argv);
+  a->argc = 0;
+  a->argv = NULL;
+}
+
+size_t
+argv_argc (const char *format)
+{
+  char *term;
+  const char *f = format;
+  size_t argc = 0;
+
+  while ((term = argv_term (&f)) != NULL) 
+    {
+      ++argc;
+      free (term);
+    }
+  return argc;
+}
+
+char *
+argv_term (const char **f)
+{
+  const char *p = *f;
+  const char *term = NULL;
+  size_t termlen = 0;
+
+  if (*p == '\0')
+    return NULL;
+
+  while (true)
+    {
+      const int c = *p;
+      if (c == '\0')
+	break;
+      if (term)
+	{
+	  if (!isspace (c))
+	    ++termlen;
+	  else
+	    break;
+	}
+      else
+	{
+	  if (!isspace (c))
+	    {
+	      term = p;
+	      termlen = 1;
+	    }
+	}
+      ++p;
+    }
+  *f = p;
+
+  if (term)
+    {
+      char *ret;
+      ASSERT (termlen > 0);
+      ret = malloc (termlen + 1);
+      check_malloc_return (ret);
+      memcpy (ret, term, termlen);
+      ret[termlen] = '\0';
+      return ret;
+    }
+  else
+    return NULL;
+}
+
+const char *
+argv_str (const struct argv *a, struct gc_arena *gc, const unsigned int flags)
+{
+  if (a->argv)
+    return print_argv ((const char **)a->argv, gc, flags);
+  else
+    return "";
+}
+
+void
+argv_printf (struct argv *a, const char *format, ...)
+{
+  va_list arglist;
+  va_start (arglist, format);
+  argv_printf_arglist (a, format, 0, arglist);
+  va_end (arglist);
+ }
+
+void
+argv_printf_cat (struct argv *a, const char *format, ...)
+{
+  va_list arglist;
+  va_start (arglist, format);
+  argv_printf_arglist (a, format, APA_CAT, arglist);
+  va_end (arglist);
+}
+
+void
+argv_printf_arglist (struct argv *a, const char *format, const unsigned int flags, va_list arglist)
+{
+  char *term;
+  const char *f = format;
+  size_t argc = 0;
+
+  if (flags & APA_CAT)
+    {
+      char **old_argv = a->argv;
+      size_t i;
+      argc = a->argc;
+      a->argc += argv_argc (format);
+      ALLOC_ARRAY_CLEAR (a->argv, char *, a->argc + 1);
+      for (i = 0; i < argc; ++i)
+	a->argv[i] = old_argv[i];
+      free (old_argv);
+    }
+  else
+    {
+      argv_reset (a);
+      a->argc = argv_argc (format);
+      ALLOC_ARRAY_CLEAR (a->argv, char *, a->argc + 1);
+    }
+
+  while ((term = argv_term (&f)) != NULL) 
+    {
+      ASSERT (argc < a->argc);
+      if (term[0] == '%')
+	{
+	  if (!strcmp (term, "%s"))
+	    {
+	      a->argv[argc++] = string_alloc (va_arg (arglist, char *), NULL);
+	    }
+	  else if (!strcmp (term, "%d"))
+	    {
+	      char numstr[64];
+	      openvpn_snprintf (numstr, sizeof (numstr), "%d", va_arg (arglist, int));
+	      a->argv[argc++] = string_alloc (numstr, NULL);
+	    }
+	  else if (!strcmp (term, "%u"))
+	    {
+	      char numstr[64];
+	      openvpn_snprintf (numstr, sizeof (numstr), "%u", va_arg (arglist, unsigned int));
+	      a->argv[argc++] = string_alloc (numstr, NULL);
+	    }
+	  else
+	    ASSERT (0);
+	  free (term);
+	}
+      else
+	{
+	  a->argv[argc++] = term;
+	}
+    }
+  ASSERT (argc == a->argc);
+}
+
+#ifdef ARGV_TEST
+void
+argv_test (void)
+{
+  struct gc_arena gc = gc_new ();
+  char line[512];
+  const char *s;
+
+  struct argv a;
+  argv_init (&a);
+  argv_printf (&a, "this is a %s test of int %d unsigned %u", "FOO", -69, 42);
+  s = argv_str (&a, &gc, PA_BRACKET);
+  argv_reset (&a);
+  printf ("%s\n", s);
+
+  argv_init (&a);
+  argv_printf (&a, "foo bar %d", 99);
+  s = argv_str (&a, &gc, PA_BRACKET);
+  argv_reset (&a);
+  printf ("%s\n", s);
+
+  argv_init (&a);
+  s = argv_str (&a, &gc, PA_BRACKET);
+  argv_reset (&a);
+  printf ("%s\n", s);
+
+  argv_init (&a);
+  argv_printf (&a, "foo bar %d", 99);
+  argv_printf_cat (&a, "bar %d foo", 42);
+  argv_printf_cat (&a, "cool %s %d u", "frood", 4);
+  s = argv_str (&a, &gc, PA_BRACKET);
+  argv_reset (&a);
+  printf ("%s\n", s);
+
+  while (fgets (line, sizeof(line), stdin) != NULL)
+    {
+      char *term;
+      const char *f = line;
+      int i = 0;
+
+      while ((term = argv_term (&f)) != NULL) 
+	{
+	  printf ("[%d] '%s'\n", i, term);
+	  ++i;
+	  free (term);
+	}
+    }
+  gc_free (&gc);
+}
+#endif
+
+/*
  * write a string to the end of a buffer that was
  * truncated by buf_printf
  */
