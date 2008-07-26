@@ -78,7 +78,9 @@ static bool use_syslog;     /* GLOBAL */
 static bool suppress_timestamps; /* GLOBAL */
 
 /* The program name passed to syslog */
+#if SYSLOG_CAPABILITY
 static char *pgmname_syslog;  /* GLOBAL */
+#endif
 
 /* If non-null, messages should be written here (used for debugging only) */
 static FILE *msgfp;         /* GLOBAL */

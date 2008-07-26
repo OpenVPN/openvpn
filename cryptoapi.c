@@ -369,7 +369,7 @@ int SSL_CTX_use_CryptoAPI_certificate(SSL_CTX *ssl_ctx, const char *cert_prop)
     }
 
     /* cert_context->pbCertEncoded is the cert X509 DER encoded. */
-    cert = d2i_X509(NULL, (unsigned char **) &cd->cert_context->pbCertEncoded,
+    cert = d2i_X509(NULL, (const unsigned char **) &cd->cert_context->pbCertEncoded,
 		    cd->cert_context->cbCertEncoded);
     if (cert == NULL) {
 	SSLerr(SSL_F_SSL_CTX_USE_CERTIFICATE_FILE, ERR_R_ASN1_LIB);

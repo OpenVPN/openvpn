@@ -774,7 +774,6 @@ getpass (const char *prompt)
 static bool
 cmp_prefix (const char *str, const bool n, const char *pre)
 {
-  const size_t len = strlen (pre);
   size_t i = 0;
 
   if (!str)

@@ -2041,7 +2041,7 @@ static void
 get_bypass_addresses (struct route_bypass *rb, const unsigned int flags)
 {
   struct gc_arena gc = gc_new ();
-  bool ret_bool = false;
+  /*bool ret_bool = false;*/
 
   /* get full routing table */
   const MIB_IPFORWARDTABLE *routes = get_windows_routing_table (&gc);
