@@ -139,41 +139,63 @@ get_special_addr (const struct route_special_addr *spec,
 		  in_addr_t *out,
 		  bool *status)
 {
-  *status = true;
+  if (status)
+    *status = true;
   if (!strcmp (string, "vpn_gateway"))
     {
-      if (spec->remote_endpoint_defined)
-	*out = spec->remote_endpoint;
-      else
+      if (spec)
 	{
-	  msg (M_INFO, PACKAGE_NAME " ROUTE: vpn_gateway undefined");
-	  *status = false;
+	  if (spec->remote_endpoint_defined)
+	    *out = spec->remote_endpoint;
+	  else
+	    {
+	      msg (M_INFO, PACKAGE_NAME " ROUTE: vpn_gateway undefined");
+	      if (status)
+		*status = false;
+	    }
 	}
       return true;
     }
   else if (!strcmp (string, "net_gateway"))
     {
-      if (spec->net_gateway_defined)
-	*out = spec->net_gateway;
-      else
+      if (spec)
 	{
-	  msg (M_INFO, PACKAGE_NAME " ROUTE: net_gateway undefined -- unable to get default gateway from system");
-	  *status = false;
+	  if (spec->net_gateway_defined)
+	    *out = spec->net_gateway;
+	  else
+	    {
+	      msg (M_INFO, PACKAGE_NAME " ROUTE: net_gateway undefined -- unable to get default gateway from system");
+	      if (status)
+		*status = false;
+	    }
 	}
       return true;
     }
   else if (!strcmp (string, "remote_host"))
     {
-      if (spec->remote_host_defined)
-	*out = spec->remote_host;
-      else
+      if (spec)
 	{
-	  msg (M_INFO, PACKAGE_NAME " ROUTE: remote_host undefined");
-	  *status = false;
+	  if (spec->remote_host_defined)
+	    *out = spec->remote_host;
+	  else
+	    {
+	      msg (M_INFO, PACKAGE_NAME " ROUTE: remote_host undefined");
+	      if (status)
+		*status = false;
+	    }
 	}
       return true;
     }
   return false;
+}
+
+bool
+is_special_addr (const char *addr_str)
+{
+  if (addr_str)
+    return get_special_addr (NULL, addr_str, NULL, NULL);
+  else
+    return false;
 }
 
 static bool

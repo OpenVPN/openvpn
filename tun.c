@@ -3643,17 +3643,21 @@ tun_standby (struct tuntap *tt)
  */
 
 static void
-write_dhcp_u8 (struct buffer *buf, const int type, const int data)
+write_dhcp_u8 (struct buffer *buf, const int type, const int data, bool *error)
 {
   if (!buf_safe (buf, 3))
-    msg (M_FATAL, "write_dhcp_u8: buffer overflow building DHCP options");
+    {
+      *error = true;
+      msg (M_WARN, "write_dhcp_u8: buffer overflow building DHCP options");
+      return;
+    }
   buf_write_u8 (buf, type);
   buf_write_u8 (buf, 1);
   buf_write_u8 (buf, data);
 }
 
 static void
-write_dhcp_u32_array (struct buffer *buf, const int type, const uint32_t *data, const unsigned int len)
+write_dhcp_u32_array (struct buffer *buf, const int type, const uint32_t *data, const unsigned int len, bool *error)
 {
   if (len > 0)
     {
@@ -3661,9 +3665,17 @@ write_dhcp_u32_array (struct buffer *buf, const int type, const uint32_t *data, 
       const int size = len * sizeof (uint32_t);
 
       if (!buf_safe (buf, 2 + size))
-	msg (M_FATAL, "write_dhcp_u32_array: buffer overflow building DHCP options");
+	{
+	  *error = true;
+	  msg (M_WARN, "write_dhcp_u32_array: buffer overflow building DHCP options");
+	  return;
+	}
       if (size < 1 || size > 255)
-	msg (M_FATAL, "write_dhcp_u32_array: size (%d) must be > 0 and <= 255", size);
+	{
+	  *error = true;
+	  msg (M_WARN, "write_dhcp_u32_array: size (%d) must be > 0 and <= 255", size);
+	  return;
+	}
       buf_write_u8 (buf, type);
       buf_write_u8 (buf, size);
       for (i = 0; i < len; ++i)
@@ -3672,46 +3684,61 @@ write_dhcp_u32_array (struct buffer *buf, const int type, const uint32_t *data, 
 }
 
 static void
-write_dhcp_str (struct buffer *buf, const int type, const char *str)
+write_dhcp_str (struct buffer *buf, const int type, const char *str, bool *error)
 {
   const int len = strlen (str);
   if (!buf_safe (buf, 2 + len))
-    msg (M_FATAL, "write_dhcp_str: buffer overflow building DHCP options");
+    {
+      *error = true;
+      msg (M_WARN, "write_dhcp_str: buffer overflow building DHCP options");
+      return;
+    }
   if (len < 1 || len > 255)
-    msg (M_FATAL, "write_dhcp_str: string '%s' must be > 0 bytes and <= 255 bytes", str);
+    {
+      *error = true;
+      msg (M_WARN, "write_dhcp_str: string '%s' must be > 0 bytes and <= 255 bytes", str);
+      return;
+    }
   buf_write_u8 (buf, type);
   buf_write_u8 (buf, len);
   buf_write (buf, str, len);
 }
 
-static void
+static bool
 build_dhcp_options_string (struct buffer *buf, const struct tuntap_options *o)
 {
+  bool error = false;
   if (o->domain)
-    write_dhcp_str (buf, 15, o->domain);
+    write_dhcp_str (buf, 15, o->domain, &error);
 
   if (o->netbios_scope)
-    write_dhcp_str (buf, 47, o->netbios_scope);
+    write_dhcp_str (buf, 47, o->netbios_scope, &error);
 
   if (o->netbios_node_type)
-    write_dhcp_u8 (buf, 46, o->netbios_node_type);
+    write_dhcp_u8 (buf, 46, o->netbios_node_type, &error);
 
-  write_dhcp_u32_array (buf, 6, (uint32_t*)o->dns, o->dns_len);
-  write_dhcp_u32_array (buf, 44, (uint32_t*)o->wins, o->wins_len);
-  write_dhcp_u32_array (buf, 42, (uint32_t*)o->ntp, o->ntp_len);
-  write_dhcp_u32_array (buf, 45, (uint32_t*)o->nbdd, o->nbdd_len);
+  write_dhcp_u32_array (buf, 6, (uint32_t*)o->dns, o->dns_len, &error);
+  write_dhcp_u32_array (buf, 44, (uint32_t*)o->wins, o->wins_len, &error);
+  write_dhcp_u32_array (buf, 42, (uint32_t*)o->ntp, o->ntp_len, &error);
+  write_dhcp_u32_array (buf, 45, (uint32_t*)o->nbdd, o->nbdd_len, &error);
 
   /* the MS DHCP server option 'Disable Netbios-over-TCP/IP
      is implemented as vendor option 001, value 002.
      A value of 001 means 'leave NBT alone' which is the default */
   if (o->disable_nbt)
   {
-    buf_write_u8 (buf, 43);
+    if (!buf_safe (buf, 8))
+      {
+	msg (M_WARN, "build_dhcp_options_string: buffer overflow building DHCP options");
+	return false;
+      }
+    buf_write_u8 (buf,  43);
     buf_write_u8 (buf,  6);  /* total length field */
     buf_write_u8 (buf,  0x001);
     buf_write_u8 (buf,  4);  /* length of the vendor specified field */
     buf_write_u32 (buf, 0x002);
   }
+  return !error;
 }
 
 void
@@ -4006,12 +4033,16 @@ open_tun (const char *dev, const char *dev_type, const char *dev_node, bool ipv6
       if (tt->options.dhcp_options)
 	{
 	  struct buffer buf = alloc_buf (256);
-	  build_dhcp_options_string (&buf, &tt->options);
-	  msg (D_DHCP_OPT, "DHCP option string: %s", format_hex (BPTR (&buf), BLEN (&buf), 0, &gc));
-	  if (!DeviceIoControl (tt->hand, TAP_IOCTL_CONFIG_DHCP_SET_OPT,
-				BPTR (&buf), BLEN (&buf),
-				BPTR (&buf), BLEN (&buf), &len, NULL))
-	    msg (M_FATAL, "ERROR: The TAP-Win32 driver rejected a TAP_IOCTL_CONFIG_DHCP_SET_OPT DeviceIoControl call");
+	  if (build_dhcp_options_string (&buf, &tt->options))
+	    {
+	      msg (D_DHCP_OPT, "DHCP option string: %s", format_hex (BPTR (&buf), BLEN (&buf), 0, &gc));
+	      if (!DeviceIoControl (tt->hand, TAP_IOCTL_CONFIG_DHCP_SET_OPT,
+				    BPTR (&buf), BLEN (&buf),
+				    BPTR (&buf), BLEN (&buf), &len, NULL))
+		msg (M_FATAL, "ERROR: The TAP-Win32 driver rejected a TAP_IOCTL_CONFIG_DHCP_SET_OPT DeviceIoControl call");
+	    }
+	  else
+	    msg (M_WARN, "DHCP option string not set due to error");
 	  free_buf (&buf);
 	}
 #endif

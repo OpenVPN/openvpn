@@ -40,7 +40,7 @@
 #include "memdbg.h"
 
 #ifdef CONFIG_FEATURE_IPROUTE
-const char *iproute_path = IPROUTE_PATH;
+const char *iproute_path = IPROUTE_PATH; /* GLOBAL */
 #endif
 
 /* contains an SSEC_x value defined in misc.h */
@@ -913,9 +913,13 @@ setenv_str (struct env_set *es, const char *name, const char *value)
 void
 setenv_str_safe (struct env_set *es, const char *name, const char *value)
 {
-  char buf[64];
-  openvpn_snprintf (buf, sizeof(buf), "OPENVPN_%s", name);
-  setenv_str (es, buf, value);
+  uint8_t b[64];
+  struct buffer buf;
+  buf_set_write (&buf, b, sizeof (b));
+  if (buf_printf (&buf, "OPENVPN_%s", name))
+    setenv_str (es, BSTR(&buf), value);
+  else
+    msg (M_WARN, "setenv_str_safe: name overflow");
 }
 
 void

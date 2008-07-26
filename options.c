@@ -890,10 +890,17 @@ dhcp_option_address_parse (const char *name, const char *parm, in_addr_t *array,
     }
   else
     {
-      bool error = false;
-      const in_addr_t addr = get_ip_addr (parm, msglevel, &error);
-      if (!error)
-	array[(*len)++] = addr;
+      if (ip_addr_dotted_quad_safe (parm))
+	{
+	  bool error = false;
+	  const in_addr_t addr = get_ip_addr (parm, msglevel, &error);
+	  if (!error)
+	    array[(*len)++] = addr;
+	}
+      else
+	{
+	  msg (msglevel, "dhcp-option parameter %s '%s' must be an IP address", name, parm);
+	}
     }
 }
 
@@ -2495,20 +2502,24 @@ foreign_option (struct options *o, char *argv[], int len, struct env_set *es)
       struct buffer value = alloc_buf_gc (OPTION_PARM_SIZE, &gc);
       int i;
       bool first = true;
+      bool good = true;
 
-      buf_printf (&name, "foreign_option_%d", o->foreign_option_index + 1);
+      good &= buf_printf (&name, "foreign_option_%d", o->foreign_option_index + 1);
       ++o->foreign_option_index;
       for (i = 0; i < len; ++i)
 	{
 	  if (argv[i])
 	    {
 	      if (!first)
-		buf_printf (&value, " ");
-	      buf_printf (&value, "%s", argv[i]);
+		good &= buf_printf (&value, " ");
+	      good &= buf_printf (&value, "%s", argv[i]);
 	      first = false;
 	    }
 	}
-      setenv_str (es, BSTR(&name), BSTR(&value));
+      if (good)
+	setenv_str (es, BSTR(&name), BSTR(&value));
+      else
+	msg (M_WARN, "foreign_option: name/value overflow");
       gc_free (&gc);
     }
 }
@@ -3238,6 +3249,7 @@ add_option (struct options *options,
 {
   struct gc_arena gc = gc_new ();
   ASSERT (MAX_PARMS >= 5);
+  const bool pull_mode = BOOL_CAST (permission_mask & OPT_P_PULL_MODE);
 
   if (!file)
     {
@@ -3264,11 +3276,18 @@ add_option (struct options *options,
 
       read_config_file (options, p[1], level, file, line, msglevel, permission_mask, option_types_found, es);
     }
+#if 0
+  else if (streq (p[0], "foreign-option") && p[1])
+    {
+      VERIFY_PERMISSION (OPT_P_IPWIN32);
+      foreign_option (options, p, 3, es);
+    }
+#endif
   else if (streq (p[0], "echo") || streq (p[0], "parameter"))
     {
       struct buffer string = alloc_buf_gc (OPTION_PARM_SIZE, &gc);
       int j;
-      const bool pull_mode = BOOL_CAST (permission_mask & OPT_P_PULL_MODE);
+      bool good = true;
 
       VERIFY_PERMISSION (OPT_P_ECHO);
 
@@ -3277,16 +3296,21 @@ add_option (struct options *options,
 	  if (!p[j])
 	    break;
 	  if (j > 1)
-	    buf_printf (&string, " ");
-	  buf_printf (&string, "%s", p[j]);
+	    good &= buf_printf (&string, " ");
+	  good &= buf_printf (&string, "%s", p[j]);
 	}
-      msg (M_INFO, "%s:%s",
-	   pull_mode ? "ECHO-PULL" : "ECHO",
-	   BSTR (&string));
+      if (good)
+	{
+	  msg (M_INFO, "%s:%s",
+	       pull_mode ? "ECHO-PULL" : "ECHO",
+	       BSTR (&string));
 #ifdef ENABLE_MANAGEMENT
-      if (management)
-	management_echo (management, BSTR (&string), pull_mode);
+	  if (management)
+	    management_echo (management, BSTR (&string), pull_mode);
 #endif
+	}
+      else
+	msg (M_WARN, "echo/parameter option overflow");
     }
 #ifdef ENABLE_MANAGEMENT
   else if (streq (p[0], "management") && p[1] && p[2])
@@ -3408,7 +3432,13 @@ add_option (struct options *options,
   else if (streq (p[0], "lladdr") && p[1])
     {
       VERIFY_PERMISSION (OPT_P_UP);
-      options->lladdr = p[1];
+      if (ip_addr_dotted_quad_safe (p[1]))
+	options->lladdr = p[1];
+      else
+	{
+	  msg (msglevel, "lladdr parm '%s' must be an IP address", p[1]);
+	  goto err;
+	}
     }
   else if (streq (p[0], "topology") && p[1])
     {
@@ -3423,15 +3453,23 @@ add_option (struct options *options,
 #ifdef CONFIG_FEATURE_IPROUTE
   else if (streq (p[0], "iproute") && p[1])
     {
-      VERIFY_PERMISSION (OPT_P_UP);
+      VERIFY_PERMISSION (OPT_P_GENERAL);
       iproute_path = p[1];
     }
 #endif
   else if (streq (p[0], "ifconfig") && p[1] && p[2])
     {
       VERIFY_PERMISSION (OPT_P_UP);
-      options->ifconfig_local = p[1];
-      options->ifconfig_remote_netmask = p[2];
+      if (ip_addr_dotted_quad_safe (p[1]) && ip_addr_dotted_quad_safe (p[2]))
+	{
+	  options->ifconfig_local = p[1];
+	  options->ifconfig_remote_netmask = p[2];
+	}
+      else
+	{
+	  msg (msglevel, "ifconfig parms '%s' and '%s' must be IP addresses", p[1], p[2]);
+	  goto err;
+	}
     }
   else if (streq (p[0], "ifconfig-noexec"))
     {
@@ -4176,12 +4214,38 @@ add_option (struct options *options,
     {
       VERIFY_PERMISSION (OPT_P_ROUTE);
       rol_check_alloc (options);
+      if (pull_mode)
+	{
+	  if (!ip_addr_dotted_quad_safe (p[1]) && !is_special_addr (p[1]))
+	    {
+	      msg (msglevel, "route parameter network/IP '%s' is not an IP address", p[1]);
+	      goto err;
+	    }
+	  if (p[2] && !ip_addr_dotted_quad_safe (p[2]))
+	    {
+	      msg (msglevel, "route parameter netmask '%s' is not an IP address", p[2]);
+	      goto err;
+	    }
+	  if (p[3] && !ip_addr_dotted_quad_safe (p[3]) && !is_special_addr (p[3]))
+	    {
+	      msg (msglevel, "route parameter gateway '%s' is not an IP address", p[3]);
+	      goto err;
+	    }
+	}
       add_route_to_option_list (options->routes, p[1], p[2], p[3], p[4]);
     }
   else if (streq (p[0], "route-gateway") && p[1])
     {
       VERIFY_PERMISSION (OPT_P_ROUTE_EXTRAS);
-      options->route_default_gateway = p[1];      
+      if (ip_addr_dotted_quad_safe (p[1]) || is_special_addr (p[1]))
+	{
+	  options->route_default_gateway = p[1];
+	}
+      else
+	{
+	  msg (msglevel, "route-gateway parm '%s' must be an IP address", p[1]);
+	  goto err;
+	}
     }
   else if (streq (p[0], "route-metric") && p[1])
     {

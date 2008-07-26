@@ -252,6 +252,48 @@ openvpn_inet_aton (const char *dotted_quad, struct in_addr *addr)
     return OIA_HOSTNAME; /* probably a hostname */
 }
 
+bool
+ip_addr_dotted_quad_safe (const char *dotted_quad)
+{
+  /* verify non-NULL */
+  if (!dotted_quad)
+    return false;
+
+  /* verify length is within limits */
+  if (strlen (dotted_quad) > 15)
+    return false;
+
+  /* verify that all chars are either numeric or '.' and that no numeric
+     substring is greater than 3 chars */
+  {
+    int nnum = 0;
+    const char *p = dotted_quad;
+    int c;
+
+    while ((c = *p++))
+      {
+	if (c >= '0' && c <= '9')
+	  {
+	    ++nnum;
+	    if (nnum > 3)
+	      return false;
+	  }
+	else if (c == '.')
+	  {
+	    nnum = 0;
+	  }
+	else
+	  return false;
+      }
+  }
+
+  /* verify that string will convert to IP address */
+  {
+    struct in_addr a;
+    return openvpn_inet_aton (dotted_quad, &a) == OIA_IP;
+  }
+}
+
 static void
 update_remote (const char* host,
 	       struct openvpn_sockaddr *addr,

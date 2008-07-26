@@ -396,6 +396,7 @@ void link_socket_update_buffer_sizes (struct link_socket *ls, int rcvbuf, int sn
 #define OIA_IP         1
 #define OIA_ERROR     -1
 int openvpn_inet_aton (const char *dotted_quad, struct in_addr *addr);
+bool ip_addr_dotted_quad_safe (const char *dotted_quad);
 
 socket_descriptor_t create_socket_tcp (void);
 
