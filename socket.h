@@ -325,6 +325,7 @@ void link_socket_close (struct link_socket *sock);
 #define PS_SHOW_PORT_IF_DEFINED (1<<0)
 #define PS_SHOW_PORT            (1<<1)
 #define PS_SHOW_PKTINFO         (1<<2)
+#define PS_DONT_SHOW_ADDR       (1<<3)
 
 const char *print_sockaddr_ex (const struct openvpn_sockaddr *addr,
 			       const char* separator,

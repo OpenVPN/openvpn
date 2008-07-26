@@ -544,6 +544,7 @@ verify_callback (int preverify_ok, X509_STORE_CTX * ctx)
   struct tls_session *session;
   const struct tls_options *opt;
   const int max_depth = 8;
+  struct argv argv = argv_new ();
 
   /* get the tls_session pointer */
   ssl = X509_STORE_CTX_get_ex_data (ctx, SSL_get_ex_data_X509_STORE_CTX_idx());
@@ -689,16 +690,13 @@ verify_callback (int preverify_ok, X509_STORE_CTX * ctx)
   /* call --tls-verify plug-in(s) */
   if (plugin_defined (opt->plugins, OPENVPN_PLUGIN_TLS_VERIFY))
     {
-      char command[256];
-      struct buffer out;
       int ret;
 
-      buf_set_write (&out, (uint8_t*)command, sizeof (command));
-      buf_printf (&out, "%d %s",
-		  ctx->error_depth,
-		  subject);
+      argv_printf (&argv, "%d %s",
+		   ctx->error_depth,
+		   subject);
 
-      ret = plugin_call (opt->plugins, OPENVPN_PLUGIN_TLS_VERIFY, command, NULL, opt->es);
+      ret = plugin_call (opt->plugins, OPENVPN_PLUGIN_TLS_VERIFY, &argv, NULL, opt->es);
 
       if (ret == OPENVPN_PLUGIN_FUNC_SUCCESS)
 	{
@@ -716,19 +714,16 @@ verify_callback (int preverify_ok, X509_STORE_CTX * ctx)
   /* run --tls-verify script */
   if (opt->verify_command)
     {
-      char command[256];
-      struct buffer out;
       int ret;
 
       setenv_str (opt->es, "script_type", "tls-verify");
 
-      buf_set_write (&out, (uint8_t*)command, sizeof (command));
-      buf_printf (&out, "%s %d %s",
-		  opt->verify_command,
-		  ctx->error_depth,
-		  subject);
-      dmsg (D_TLS_DEBUG, "TLS: executing verify command: %s", command);
-      ret = openvpn_system (command, opt->es, S_SCRIPT);
+      argv_printf (&argv, "%s %d %s",
+		   opt->verify_command,
+		   ctx->error_depth,
+		   subject);
+      argv_msg_prefix (D_TLS_DEBUG, &argv, "TLS: executing verify command");
+      ret = openvpn_execve (&argv, opt->es, S_SCRIPT);
 
       if (system_ok (ret))
 	{
@@ -738,7 +733,7 @@ verify_callback (int preverify_ok, X509_STORE_CTX * ctx)
       else
 	{
 	  if (!system_executed (ret))
-	    msg (M_ERR, "Verify command failed to execute: %s", command);
+	    argv_msg_prefix (M_ERR, &argv, "Verify command failed to execute");
 	  msg (D_HANDSHAKE, "VERIFY SCRIPT ERROR: depth=%d, %s",
 	       ctx->error_depth, subject);
 	  goto err;		/* Reject connection */
@@ -801,11 +796,13 @@ verify_callback (int preverify_ok, X509_STORE_CTX * ctx)
 
   session->verified = true;
   free (subject);
+  argv_reset (&argv);
   return 1;			/* Accept connection */
 
  err:
   ERR_clear_error ();
   free (subject);
+  argv_reset (&argv);
   return 0;                     /* Reject connection */
 }
 
@@ -2901,7 +2898,7 @@ static bool
 verify_user_pass_script (struct tls_session *session, const struct user_pass *up)
 {
   struct gc_arena gc = gc_new ();
-  struct buffer cmd = alloc_buf_gc (256, &gc);
+  struct argv argv = argv_new ();
   const char *tmp_file = "";
   int retval;
   bool ret = false;
@@ -2940,16 +2937,16 @@ verify_user_pass_script (struct tls_session *session, const struct user_pass *up
       setenv_untrusted (session);
 
       /* format command line */
-      buf_printf (&cmd, "%s %s", session->opt->auth_user_pass_verify_script, tmp_file);
+      argv_printf (&argv, "%s %s", session->opt->auth_user_pass_verify_script, tmp_file);
       
       /* call command */
-      retval = openvpn_system (BSTR (&cmd), session->opt->es, S_SCRIPT);
+      retval = openvpn_execve (&argv, session->opt->es, S_SCRIPT);
 
       /* test return status of command */
       if (system_ok (retval))
 	ret = true;
       else if (!system_executed (retval))
-	msg (D_TLS_ERRORS, "TLS Auth Error: user-pass-verify script failed to execute: %s", BSTR (&cmd));
+	argv_msg_prefix (D_TLS_ERRORS, &argv, "TLS Auth Error: user-pass-verify script failed to execute");
 	  
       if (!session->opt->auth_user_pass_verify_script_via_file)
 	setenv_del (session->opt->es, "password");
@@ -2963,6 +2960,7 @@ verify_user_pass_script (struct tls_session *session, const struct user_pass *up
   if (strlen (tmp_file) > 0)
     delete_file (tmp_file);
 
+  argv_reset (&argv);
   gc_free (&gc);
   return ret;
 }

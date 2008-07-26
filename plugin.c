@@ -327,7 +327,7 @@ static int
 plugin_call_item (const struct plugin *p,
 		  void *per_client_context,
 		  const int type,
-		  const char *args,
+		  const struct argv *av,
 		  struct openvpn_plugin_string_list **retlist,
 		  const char **envp)
 {
@@ -340,18 +340,18 @@ plugin_call_item (const struct plugin *p,
   if (p->plugin_handle && (p->plugin_type_mask & OPENVPN_PLUGIN_MASK (type)))
     {
       struct gc_arena gc = gc_new ();
-      const char **argv = make_arg_array (p->so_pathname, args, &gc);
+      struct argv a = argv_insert_head (av, p->so_pathname);
 
       dmsg (D_PLUGIN_DEBUG, "PLUGIN_CALL: PRE type=%s", plugin_type_name (type));
-      plugin_show_args_env (D_PLUGIN_DEBUG, argv, envp);
+      plugin_show_args_env (D_PLUGIN_DEBUG, (const char **)a.argv, envp);
 
       /*
        * Call the plugin work function
        */
       if (p->func2)
-	status = (*p->func2)(p->plugin_handle, type, argv, envp, per_client_context, retlist);
+	status = (*p->func2)(p->plugin_handle, type, (const char **)a.argv, envp, per_client_context, retlist);
       else if (p->func1)
-	status = (*p->func1)(p->plugin_handle, type, argv, envp);
+	status = (*p->func1)(p->plugin_handle, type, (const char **)a.argv, envp);
       else
 	ASSERT (0);
 
@@ -366,6 +366,7 @@ plugin_call_item (const struct plugin *p,
 	     status,
 	     p->so_pathname);
 
+      argv_reset (&a);
       gc_free (&gc);
     }
   return status;
@@ -482,7 +483,7 @@ plugin_common_open (struct plugin_common *pc,
   int i;
   const char **envp;
 
-  envp = make_env_array (es, &gc);
+  envp = make_env_array (es, false, &gc);
 
   if (pr)
     plugin_return_init (pr);
@@ -540,7 +541,7 @@ plugin_list_open (struct plugin_list *pl,
 int
 plugin_call (const struct plugin_list *pl,
 	     const int type,
-	     const char *args,
+	     const struct argv *av,
 	     struct plugin_return *pr,
 	     struct env_set *es)
 {
@@ -560,14 +561,14 @@ plugin_call (const struct plugin_list *pl,
       mutex_lock_static (L_PLUGIN);
 
       setenv_del (es, "script_type");
-      envp = make_env_array (es, &gc);
+      envp = make_env_array (es, false, &gc);
 
       for (i = 0; i < n; ++i)
 	{
 	  const int status = plugin_call_item (&pl->common->plugins[i],
 					       pl->per_client.per_client_context[i],
 					       type,
-					       args,
+					       av,
 					       pr ? &pr->list[i] : NULL,
 					       envp);
 	  switch (status)

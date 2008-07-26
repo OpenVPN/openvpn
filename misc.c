@@ -43,6 +43,9 @@
 const char *iproute_path = IPROUTE_PATH;
 #endif
 
+/* contains an SSEC_x value defined in misc.h */
+int script_security = SSEC_BUILT_IN; /* GLOBAL */
+
 /* Redefine the top level directory of the filesystem
    to restrict access to files for security */
 void
@@ -196,38 +199,36 @@ run_up_down (const char *command,
 
   if (plugin_defined (plugins, plugin_type))
     {
-      struct buffer cmd = alloc_buf_gc (256, &gc);
-
+      struct argv argv = argv_new ();
       ASSERT (arg);
+      argv_printf (&argv,
+		   "%s %d %d %s %s %s",
+		   arg,
+		   tun_mtu, link_mtu,
+		   ifconfig_local, ifconfig_remote,
+		   context);
 
-      buf_printf (&cmd,
-		  "\"%s\" %d %d %s %s %s",
-		  arg,
-		  tun_mtu, link_mtu,
-		  ifconfig_local, ifconfig_remote,
-		  context);
-
-      if (plugin_call (plugins, plugin_type, BSTR (&cmd), NULL, es) != OPENVPN_PLUGIN_FUNC_SUCCESS)
+      if (plugin_call (plugins, plugin_type, &argv, NULL, es) != OPENVPN_PLUGIN_FUNC_SUCCESS)
 	msg (M_FATAL, "ERROR: up/down plugin call failed");
+
+      argv_reset (&argv);
     }
 
   if (command)
     {
-      struct buffer cmd = alloc_buf_gc (256, &gc);
-
+      struct argv argv = argv_new ();
       ASSERT (arg);
-
       setenv_str (es, "script_type", script_type);
-
-      buf_printf (&cmd,
-		  "%s \"%s\" %d %d %s %s %s",
+      argv_printf (&argv,
+		  "%s %s %d %d %s %s %s",
 		  command,
 		  arg,
 		  tun_mtu, link_mtu,
 		  ifconfig_local, ifconfig_remote,
 		  context);
-      msg (M_INFO, "%s", BSTR (&cmd));
-      system_check (BSTR (&cmd), es, S_SCRIPT|S_FATAL, "script failed");
+      argv_msg (M_INFO, &argv);
+      openvpn_execve_check (&argv, es, S_SCRIPT|S_FATAL, "script failed");
+      argv_reset (&argv);
     }
 
   gc_free (&gc);
@@ -375,59 +376,6 @@ save_inetd_socket_descriptor (void)
 }
 
 /*
- * Wrapper around the system() call.
- */
-int
-openvpn_system (const char *command, const struct env_set *es, unsigned int flags)
-{
-#ifdef HAVE_SYSTEM
-  int ret;
-
-  /*
-   * We need to bracket this code by mutex because system() doesn't
-   * accept an environment list, so we have to use the process-wide
-   * list which is shared between all threads.
-   */
-  mutex_lock_static (L_SYSTEM);
-  perf_push (PERF_SCRIPT);
-
-  /*
-   * add env_set to environment.
-   */
-  if (flags & S_SCRIPT)
-    env_set_add_to_environment (es);
-
-
-  /* debugging */
-  dmsg (D_SCRIPT, "SYSTEM[%u] '%s'", flags, command);
-  if (flags & S_SCRIPT)
-    env_set_print (D_SCRIPT, es);
-
-  /*
-   * execute the command
-   */
-  ret = system (command);
-
-  /* debugging */
-  dmsg (D_SCRIPT, "SYSTEM return=%u", ret);
-
-  /*
-   * remove env_set from environment
-   */
-  if (flags & S_SCRIPT)
-    env_set_remove_from_environment (es);
-
-  perf_pop ();
-  mutex_unlock_static (L_SYSTEM);
-  return ret;
-
-#else
-  msg (M_FATAL, "Sorry but I can't execute the shell command '%s' because this operating system doesn't appear to support the system() call", command);
-  return -1; /* NOTREACHED */
-#endif
-}
-
-/*
  * Warn if a given file is group/others accessible.
  */
 void
@@ -489,35 +437,35 @@ system_error_message (int stat, struct gc_arena *gc)
   struct buffer out = alloc_buf_gc (256, gc);
 #ifdef WIN32
   if (stat == -1)
-    buf_printf (&out, "shell command did not execute -- ");
-  buf_printf (&out, "system() returned error code %d", stat);
+    buf_printf (&out, "external program did not execute -- ");
+  buf_printf (&out, "returned error code %d", stat);
 #else
   if (stat == -1)
-    buf_printf (&out, "shell command fork failed");
+    buf_printf (&out, "external program fork failed");
   else if (!WIFEXITED (stat))
-    buf_printf (&out, "shell command did not exit normally");
+    buf_printf (&out, "external program did not exit normally");
   else
     {
       const int cmd_ret = WEXITSTATUS (stat);
       if (!cmd_ret)
-	buf_printf (&out, "shell command exited normally");
+	buf_printf (&out, "external program exited normally");
       else if (cmd_ret == 127)
-	buf_printf (&out, "could not execute shell command");
+	buf_printf (&out, "could not execute external program");
       else
-	buf_printf (&out, "shell command exited with error status: %d", cmd_ret);
+	buf_printf (&out, "external program exited with error status: %d", cmd_ret);
     }
 #endif
   return (const char *)out.data;
 }
 
 /*
- * Run system(), exiting on error.
+ * Wrapper around openvpn_execve
  */
 bool
-system_check (const char *command, const struct env_set *es, unsigned int flags, const char *error_message)
+openvpn_execve_check (const struct argv *a, const struct env_set *es, const unsigned int flags, const char *error_message)
 {
   struct gc_arena gc = gc_new ();
-  const int stat = openvpn_system (command, es, flags);
+  const int stat = openvpn_execve (a, es, flags);
   int ret = false;
 
   if (system_ok (stat))
@@ -532,6 +480,69 @@ system_check (const char *command, const struct env_set *es, unsigned int flags,
   gc_free (&gc);
   return ret;
 }
+
+bool
+openvpn_execve_allowed (const unsigned int flags)
+{
+  if (flags & S_SCRIPT)
+    return script_security >= SSEC_SCRIPTS;
+  else
+    return script_security >= SSEC_BUILT_IN;
+}
+
+#ifndef WIN32
+/*
+ * Run execve() inside a fork().  Designed to replicate the semantics of system() but
+ * in a safer way that doesn't require the invocation of a shell or the risks
+ * assocated with formatting and parsing a command line.
+ */
+int
+openvpn_execve (const struct argv *a, const struct env_set *es, const unsigned int flags)
+{
+  struct gc_arena gc = gc_new ();
+  int ret = -1;
+
+  if (a && a->argv[0])
+    {
+#if defined(ENABLE_EXECVE)
+      if (openvpn_execve_allowed (flags))
+	{
+	  const char *cmd = a->argv[0];
+	  char *const *argv = a->argv;
+	  char *const *envp = (char *const *)make_env_array (es, true, &gc);
+	  pid_t pid;
+
+	  pid = fork ();
+	  if (pid == (pid_t)0) /* child side */
+	    {
+	      execve (cmd, argv, envp);
+	      exit (127);
+	    }
+	  else if (pid < (pid_t)0) /* fork failed */
+	    ;
+	  else /* parent side */
+	    {
+	      if (waitpid (pid, &ret, 0) != pid)
+		ret = -1;
+	    }
+	}
+      else
+	{
+	  msg (M_WARN, "openvpn_execve: external program may not be called due to setting of --script-security level");
+	}
+#else
+      msg (M_WARN, "openvpn_execve: execve function not available");
+#endif
+    }
+  else
+    {
+      msg (M_WARN, "openvpn_execve: called with empty argv");
+    }
+
+  gc_free (&gc);
+  return ret;
+}
+#endif
 
 /*
  * Initialize random number seed.  random() is only used
@@ -1479,11 +1490,23 @@ safe_print (const char *str, struct gc_arena *gc)
   return string_mod_const (str, CC_PRINT, CC_CRLF, '.', gc);
 }
 
+static bool
+is_password_env_var (const char *str)
+{
+  return (strncmp (str, "password", 8) == 0);
+}
+
+bool
+env_allowed (const char *str)
+{
+  return (script_security >= SSEC_PW_ENV || !is_password_env_var (str));
+}
+
 bool
 env_safe_to_print (const char *str)
 {
 #ifndef UNSAFE_DEBUG
-  if (strncmp (str, "password", 8) == 0)
+  if (is_password_env_var (str))
     return false;
 #endif
   return true;
@@ -1492,7 +1515,9 @@ env_safe_to_print (const char *str)
 /* Make arrays of strings */
 
 const char **
-make_env_array (const struct env_set *es, struct gc_arena *gc)
+make_env_array (const struct env_set *es,
+		const bool check_allowed,
+		struct gc_arena *gc)
 {
   char **ret = NULL;
   struct env_item *e = NULL;
@@ -1511,12 +1536,14 @@ make_env_array (const struct env_set *es, struct gc_arena *gc)
   /* fill return array */
   if (es)
     {
-      e = es->list;
-      for (i = 0; i < n; ++i)
+      i = 0;
+      for (e = es->list; e != NULL; e = e->next)
 	{
-	  ASSERT (e);
-	  ret[i] = e->string;
-	  e = e->next;
+	  if (!check_allowed || env_allowed (e->string))
+	    {
+	      ASSERT (i < n);
+	      ret[i++] = e->string;
+	    }
 	}
     }
 
@@ -1631,6 +1658,7 @@ openvpn_sleep (const int n)
   sleep (n);
 }
 
+#if 0
 /*
  * Configure PATH.  On Windows, sometimes PATH is not set correctly
  * by default.
@@ -1672,3 +1700,72 @@ configure_path (void)
     }
 #endif
 }
+#endif
+
+#ifdef ARGV_TEST
+void
+argv_test (void)
+{
+  struct gc_arena gc = gc_new ();
+  char line[512];
+  const char *s;
+
+  struct argv a;
+  argv_init (&a);
+
+#ifdef WIN32
+  argv_printf (&a, "%s foo bar %s", "c:\\src\\test\\jyargs.exe", "foo bar");
+  //argv_printf (&a, "%s %s %s", "c:\\src\\test files\\batargs.bat", "foo", "bar");  
+#else
+  argv_printf (&a, "./myechox foo bar");
+#endif
+
+  argv_msg_prefix (M_INFO, &a, "ARGV");
+  openvpn_execve_check (&a, NULL, 0, "command failed");
+
+  argv_printf (&a, "this is a %s test of int %d unsigned %u", "FOO", -69, 42);
+  s = argv_str (&a, &gc, PA_BRACKET);
+  printf ("%s\n", s);
+
+  {
+    struct argv b = argv_insert_head (&a, "MARK");
+    s = argv_str (&b, &gc, PA_BRACKET);
+    argv_reset (&b);
+    printf ("%s\n", s);
+  }
+
+  argv_printf (&a, "foo bar %d", 99);
+  s = argv_str (&a, &gc, PA_BRACKET);
+  argv_reset (&a);
+  printf ("%s\n", s);
+
+  s = argv_str (&a, &gc, PA_BRACKET);
+  argv_reset (&a);
+  printf ("%s\n", s);
+
+  argv_printf (&a, "foo bar %d", 99);
+  argv_printf_cat (&a, "bar %d foo", 42);
+  argv_printf_cat (&a, "cool %s %d u %s/%d end", "frood", 4, "hello", 7);
+  s = argv_str (&a, &gc, PA_BRACKET);
+  printf ("%s\n", s);
+
+#if 0
+  while (fgets (line, sizeof(line), stdin) != NULL)
+    {
+      char *term;
+      const char *f = line;
+      int i = 0;
+
+      while ((term = argv_term (&f)) != NULL) 
+	{
+	  printf ("[%d] '%s'\n", i, term);
+	  ++i;
+	  free (term);
+	}
+    }
+#endif
+
+  argv_reset (&a);
+  gc_free (&gc);
+}
+#endif

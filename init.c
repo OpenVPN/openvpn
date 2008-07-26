@@ -370,7 +370,7 @@ init_port_share (struct context *c)
 bool
 init_static (void)
 {
-  configure_path ();
+  /* configure_path (); */
 
 #if defined(USE_CRYPTO) && defined(DMALLOC)
   openssl_dmalloc_init ();
@@ -921,8 +921,11 @@ do_route (const struct options *options,
 
   if (options->route_script)
     {
+      struct argv argv = argv_new ();
       setenv_str (es, "script_type", "route-up");
-      system_check (options->route_script, es, S_SCRIPT, "Route script failed");
+      argv_printf (&argv, "%s", options->route_script);
+      openvpn_execve_check (&argv, es, S_SCRIPT, "Route script failed");
+      argv_reset (&argv);
     }
 
 #ifdef WIN32

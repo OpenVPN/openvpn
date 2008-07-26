@@ -34,6 +34,7 @@
 #include "misc.h"
 #include "socket.h"
 #include "manage.h"
+#include "win32.h"
 
 #include "memdbg.h"
 
@@ -743,7 +744,7 @@ void
 add_route (struct route *r, const struct tuntap *tt, unsigned int flags, const struct env_set *es)
 {
   struct gc_arena gc;
-  struct buffer buf;
+  struct argv argv;
   const char *network;
   const char *netmask;
   const char *gateway;
@@ -753,7 +754,7 @@ add_route (struct route *r, const struct tuntap *tt, unsigned int flags, const s
     return;
 
   gc_init (&gc);
-  buf = alloc_buf_gc (256, &gc);
+  argv_init (&argv);
 
   network = print_in_addr_t (r->network, 0, &gc);
   netmask = print_in_addr_t (r->netmask, 0, &gc);
@@ -771,35 +772,38 @@ add_route (struct route *r, const struct tuntap *tt, unsigned int flags, const s
 
 #if defined(TARGET_LINUX)
 #ifdef CONFIG_FEATURE_IPROUTE
-  buf_printf (&buf, "%s route add %s/%d via %s",
+  argv_printf (&argv, "%s route add %s/%d via %s",
   	      iproute_path,
 	      network,
 	      count_netmask_bits(netmask),
 	      gateway);
   if (r->metric_defined)
-    buf_printf (&buf, " metric %d", r->metric);
+    argv_printf_cat (&argv, "metric %d", r->metric);
 
 #else
-  buf_printf (&buf, ROUTE_PATH " add -net %s netmask %s gw %s",
+  argv_printf (&argv, "%s add -net %s netmask %s gw %s",
+		ROUTE_PATH,
 	      network,
 	      netmask,
 	      gateway);
   if (r->metric_defined)
-    buf_printf (&buf, " metric %d", r->metric);
+    argv_printf_cat (&argv, "metric %d", r->metric);
 #endif  /*CONFIG_FEATURE_IPROUTE*/
-  msg (D_ROUTE, "%s", BSTR (&buf));
-  status = system_check (BSTR (&buf), es, 0, "ERROR: Linux route add command failed");
+  argv_msg (D_ROUTE, &argv);
+  status = openvpn_execve_check (&argv, es, 0, "ERROR: Linux route add command failed");
 
 #elif defined (WIN32)
 
-  buf_printf (&buf, ROUTE_PATH " ADD %s MASK %s %s",
-	      network,
-	      netmask,
-	      gateway);
+  argv_printf (&argv, "%s%s ADD %s MASK %s %s",
+	       get_win_sys_path(),
+	       WIN_ROUTE_PATH_SUFFIX,
+	       network,
+	       netmask,
+	       gateway);
   if (r->metric_defined)
-    buf_printf (&buf, " METRIC %d", r->metric);
+    argv_printf_cat (&argv, "METRIC %d", r->metric);
 
-  msg (D_ROUTE, "%s", BSTR (&buf));
+  argv_msg (D_ROUTE, &argv);
 
   if ((flags & ROUTE_METHOD_MASK) == ROUTE_METHOD_IPAPI)
     {
@@ -809,7 +813,7 @@ add_route (struct route *r, const struct tuntap *tt, unsigned int flags, const s
   else if ((flags & ROUTE_METHOD_MASK) == ROUTE_METHOD_EXE)
     {
       netcmd_semaphore_lock ();
-      status = system_check (BSTR (&buf), es, 0, "ERROR: Windows route add command failed");
+      status = openvpn_execve_check (&argv, es, 0, "ERROR: Windows route add command failed");
       netcmd_semaphore_release ();
     }
   else if ((flags & ROUTE_METHOD_MASK) == ROUTE_METHOD_ADAPTIVE)
@@ -820,7 +824,7 @@ add_route (struct route *r, const struct tuntap *tt, unsigned int flags, const s
 	{
 	  msg (D_ROUTE, "Route addition fallback to route.exe");
 	  netcmd_semaphore_lock ();
-	  status = system_check (BSTR (&buf), es, 0, "ERROR: Windows route add command failed [adaptive]");
+	  status = openvpn_execve_check (&argv, es, 0, "ERROR: Windows route add command failed [adaptive]");
 	  netcmd_semaphore_release ();
 	}
     }
@@ -833,88 +837,93 @@ add_route (struct route *r, const struct tuntap *tt, unsigned int flags, const s
 
   /* example: route add 192.0.2.32 -netmask 255.255.255.224 somegateway */
 
-  buf_printf (&buf, ROUTE_PATH " add");
+  argv_printf (&argv, "%s add",
+		ROUTE_PATH);
 
 #if 0
   if (r->metric_defined)
-    buf_printf (&buf, " -rtt %d", r->metric);
+    argv_printf_cat (&argv, "-rtt %d", r->metric);
 #endif
 
-  buf_printf (&buf, " %s -netmask %s %s",
+  argv_printf_cat (&argv, "%s -netmask %s %s",
 	      network,
 	      netmask,
 	      gateway);
 
-  msg (D_ROUTE, "%s", BSTR (&buf));
-  status = system_check (BSTR (&buf), es, 0, "ERROR: Solaris route add command failed");
+  argv_msg (D_ROUTE, &argv);
+  status = openvpn_execve_check (&argv, es, 0, "ERROR: Solaris route add command failed");
 
 #elif defined(TARGET_FREEBSD)
 
-  buf_printf (&buf, ROUTE_PATH " add");
+  argv_printf (&argv, "%s add",
+		ROUTE_PATH);
 
 #if 0
   if (r->metric_defined)
-    buf_printf (&buf, " -rtt %d", r->metric);
+    argv_printf_cat (&argv, "-rtt %d", r->metric);
 #endif
 
-  buf_printf (&buf, " -net %s %s %s",
+  argv_printf_cat (&argv, "-net %s %s %s",
 	      network,
 	      gateway,
 	      netmask);
 
-  msg (D_ROUTE, "%s", BSTR (&buf));
-  status = system_check (BSTR (&buf), es, 0, "ERROR: FreeBSD route add command failed");
+  argv_msg (D_ROUTE, &argv);
+  status = openvpn_execve_check (&argv, es, 0, "ERROR: FreeBSD route add command failed");
 
 #elif defined(TARGET_DRAGONFLY)
 
-  buf_printf (&buf, ROUTE_PATH " add");
+  argv_printf (&argv, "%s add",
+		ROUTE_PATH);
 
 #if 0
   if (r->metric_defined)
-    buf_printf (&buf, " -rtt %d", r->metric);
+    argv_printf_cat (&argv, "-rtt %d", r->metric);
 #endif
 
-  buf_printf (&buf, " -net %s %s %s",
+  argv_printf_cat (&argv, "-net %s %s %s",
 	      network,
 	      gateway,
 	      netmask);
 
-  msg (D_ROUTE, "%s", BSTR (&buf));
-  status = system_check (BSTR (&buf), es, 0, "ERROR: DragonFly route add command failed");
+  argv_msg (D_ROUTE, &argv);
+  status = openvpn_execve_check (&argv, es, 0, "ERROR: DragonFly route add command failed");
 
 #elif defined(TARGET_DARWIN)
 
-  buf_printf (&buf, ROUTE_PATH " add");
+  argv_printf (&argv, "%s add",
+		ROUTE_PATH);
 
 #if 0
   if (r->metric_defined)
-    buf_printf (&buf, " -rtt %d", r->metric);
+    argv_printf_cat (&argv, "-rtt %d", r->metric);
 #endif
 
-  buf_printf (&buf, " -net %s %s %s",
+  argv_printf_cat (&argv, "-net %s %s %s",
               network,
               gateway,
               netmask);
 
-  msg (D_ROUTE, "%s", BSTR (&buf));
-  status = system_check (BSTR (&buf), es, 0, "ERROR: OS X route add command failed");
+  argv_msg (D_ROUTE, &argv);
+  status = openvpn_execve_check (&argv, es, 0, "ERROR: OS X route add command failed");
 
 #elif defined(TARGET_OPENBSD) || defined(TARGET_NETBSD)
 
-  buf_printf (&buf, ROUTE_PATH " add");
+  argv_printf (&argv, "%s add",
+		ROUTE_PATH);
 
 #if 0
   if (r->metric_defined)
-    buf_printf (&buf, " -rtt %d", r->metric);
+    argv_printf_cat (&argv, "-rtt %d", r->metric);
 #endif
 
-  buf_printf (&buf, " -net %s %s -netmask %s",
+  argv_printf_cat (&argv, "-net %s %s -netmask %s",
 	      network,
 	      gateway,
 	      netmask);
 
-  msg (D_ROUTE, "%s", BSTR (&buf));
-  status = system_check (BSTR (&buf), es, 0, "ERROR: OpenBSD/NetBSD route add command failed");
+  argv_msg (D_ROUTE, &argv);
+  status = openvpn_execve_check (&argv, es, 0, "ERROR: OpenBSD/NetBSD route add command failed");
 
 #else
   msg (M_FATAL, "Sorry, but I don't know how to do 'route' commands on this operating system.  Try putting your routes in a --route-up script");
@@ -922,6 +931,7 @@ add_route (struct route *r, const struct tuntap *tt, unsigned int flags, const s
 
  done:
   r->defined = status;
+  argv_reset (&argv);
   gc_free (&gc);
 }
 
@@ -929,7 +939,7 @@ static void
 delete_route (const struct route *r, const struct tuntap *tt, unsigned int flags, const struct env_set *es)
 {
   struct gc_arena gc;
-  struct buffer buf;
+  struct argv argv;
   const char *network;
   const char *netmask;
   const char *gateway;
@@ -938,37 +948,40 @@ delete_route (const struct route *r, const struct tuntap *tt, unsigned int flags
     return;
 
   gc_init (&gc);
+  argv_init (&argv);
 
-  buf = alloc_buf_gc (256, &gc);
   network = print_in_addr_t (r->network, 0, &gc);
   netmask = print_in_addr_t (r->netmask, 0, &gc);
   gateway = print_in_addr_t (r->gateway, 0, &gc);
 
 #if defined(TARGET_LINUX)
 #ifdef CONFIG_FEATURE_IPROUTE
-  buf_printf (&buf, "%s route del %s/%d",
+  argv_printf (&argv, "%s route del %s/%d",
   	      iproute_path,
 	      network,
 	      count_netmask_bits(netmask));
 #else
 
-  buf_printf (&buf, ROUTE_PATH " del -net %s netmask %s",
+  argv_printf (&argv, "%s del -net %s netmask %s",
+		ROUTE_PATH,
 	      network,
 	      netmask);
 #endif /*CONFIG_FEATURE_IPROUTE*/
   if (r->metric_defined)
-    buf_printf (&buf, " metric %d", r->metric);
-  msg (D_ROUTE, "%s", BSTR (&buf));
-  system_check (BSTR (&buf), es, 0, "ERROR: Linux route delete command failed");
+    argv_printf_cat (&argv, "metric %d", r->metric);
+  argv_msg (D_ROUTE, &argv);
+  openvpn_execve_check (&argv, es, 0, "ERROR: Linux route delete command failed");
 
 #elif defined (WIN32)
   
-  buf_printf (&buf, ROUTE_PATH " DELETE %s MASK %s %s",
-	      network,
-              netmask,
-              gateway);
+  argv_printf (&argv, "%s%s DELETE %s MASK %s %s",
+	       get_win_sys_path(),
+	       WIN_ROUTE_PATH_SUFFIX,
+	       network,
+	       netmask,
+	       gateway);
 
-  msg (D_ROUTE, "%s", BSTR (&buf));
+  argv_msg (D_ROUTE, &argv);
 
   if ((flags & ROUTE_METHOD_MASK) == ROUTE_METHOD_IPAPI)
     {
@@ -978,7 +991,7 @@ delete_route (const struct route *r, const struct tuntap *tt, unsigned int flags
   else if ((flags & ROUTE_METHOD_MASK) == ROUTE_METHOD_EXE)
     {
       netcmd_semaphore_lock ();
-      system_check (BSTR (&buf), es, 0, "ERROR: Windows route delete command failed");
+      openvpn_execve_check (&argv, es, 0, "ERROR: Windows route delete command failed");
       netcmd_semaphore_release ();
     }
   else if ((flags & ROUTE_METHOD_MASK) == ROUTE_METHOD_ADAPTIVE)
@@ -989,7 +1002,7 @@ delete_route (const struct route *r, const struct tuntap *tt, unsigned int flags
 	{
 	  msg (D_ROUTE, "Route deletion fallback to route.exe");
 	  netcmd_semaphore_lock ();
-	  system_check (BSTR (&buf), es, 0, "ERROR: Windows route delete command failed [adaptive]");
+	  openvpn_execve_check (&argv, es, 0, "ERROR: Windows route delete command failed [adaptive]");
 	  netcmd_semaphore_release ();
 	}
     }
@@ -1000,58 +1013,64 @@ delete_route (const struct route *r, const struct tuntap *tt, unsigned int flags
 
 #elif defined (TARGET_SOLARIS)
 
-  buf_printf (&buf, ROUTE_PATH " delete %s -netmask %s %s",
+  argv_printf (&argv, "%s delete %s -netmask %s %s",
+		ROUTE_PATH,
 	      network,
 	      netmask,
 	      gateway);
 
-  msg (D_ROUTE, "%s", BSTR (&buf));
-  system_check (BSTR (&buf), es, 0, "ERROR: Solaris route delete command failed");
+  argv_msg (D_ROUTE, &argv);
+  openvpn_execve_check (&argv, es, 0, "ERROR: Solaris route delete command failed");
 
 #elif defined(TARGET_FREEBSD)
 
-  buf_printf (&buf, ROUTE_PATH " delete -net %s %s %s",
+  argv_printf (&argv, "%s delete -net %s %s %s",
+		ROUTE_PATH,
 	      network,
 	      gateway,
 	      netmask);
 
-  msg (D_ROUTE, "%s", BSTR (&buf));
-  system_check (BSTR (&buf), es, 0, "ERROR: FreeBSD route delete command failed");
+  argv_msg (D_ROUTE, &argv);
+  openvpn_execve_check (&argv, es, 0, "ERROR: FreeBSD route delete command failed");
 
 #elif defined(TARGET_DRAGONFLY)
 
-  buf_printf (&buf, ROUTE_PATH " delete -net %s %s %s",
+  argv_printf (&argv, "%s delete -net %s %s %s",
+		ROUTE_PATH,
 	      network,
 	      gateway,
 	      netmask);
 
-  msg (D_ROUTE, "%s", BSTR (&buf));
-  system_check (BSTR (&buf), es, 0, "ERROR: DragonFly route delete command failed");
+  argv_msg (D_ROUTE, &argv);
+  openvpn_execve_check (&argv, es, 0, "ERROR: DragonFly route delete command failed");
 
 #elif defined(TARGET_DARWIN)
 
-  buf_printf (&buf, ROUTE_PATH " delete -net %s %s %s",
+  argv_printf (&argv, "%s delete -net %s %s %s",
+		ROUTE_PATH,
               network,
               gateway,
               netmask);
 
-  msg (D_ROUTE, "%s", BSTR (&buf));
-  system_check (BSTR (&buf), es, 0, "ERROR: OS X route delete command failed");
+  argv_msg (D_ROUTE, &argv);
+  openvpn_execve_check (&argv, es, 0, "ERROR: OS X route delete command failed");
 
 #elif defined(TARGET_OPENBSD) || defined(TARGET_NETBSD)
 
-  buf_printf (&buf, ROUTE_PATH " delete -net %s %s -netmask %s",
+  argv_printf (&argv, "%s delete -net %s %s -netmask %s",
+		ROUTE_PATH,
 	      network,
 	      gateway,
 	      netmask);
 
-  msg (D_ROUTE, "%s", BSTR (&buf));
-  system_check (BSTR (&buf), es, 0, "ERROR: OpenBSD/NetBSD route delete command failed");
+  argv_msg (D_ROUTE, &argv);
+  openvpn_execve_check (&argv, es, 0, "ERROR: OpenBSD/NetBSD route delete command failed");
 
 #else
   msg (M_FATAL, "Sorry, but I don't know how to do 'route' commands on this operating system.  Try putting your routes in a --route-up script");
 #endif
 
+  argv_reset (&argv);
   gc_free (&gc);
 }
 

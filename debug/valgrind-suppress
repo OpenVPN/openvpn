@@ -399,6 +399,24 @@
    obj:/lib/ld-2.5.so
    obj:/lib/ld-2.5.so
    obj:/lib/ld-2.5.so
+   obj:/lib/libc-2.5.so
+   obj:/lib/libdl-2.5.so
+   obj:/lib/ld-2.5.so
+   obj:/lib/libdl-2.5.so
+   fun:dlsym
+   fun:libdl_resolve_symbol
+   fun:plugin_list_init
+   fun:init_plugins
+   fun:main
+}
+
+{
+   <insert a suppression name here>
+   Memcheck:Cond
+   obj:/lib/ld-2.5.so
+   obj:/lib/ld-2.5.so
+   obj:/lib/ld-2.5.so
+   obj:/lib/ld-2.5.so
    obj:/lib/libdl-2.5.so
    obj:/lib/ld-2.5.so
    obj:/lib/libdl-2.5.so

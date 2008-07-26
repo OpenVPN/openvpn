@@ -240,6 +240,14 @@ argv_init (struct argv *a)
   a->argv = NULL;
 }
 
+struct argv
+argv_new (void)
+{
+  struct argv ret;
+  argv_init (&ret);
+  return ret;
+}
+
 void
 argv_reset (struct argv *a)
 {
@@ -264,6 +272,23 @@ argv_argc (const char *format)
       free (term);
     }
   return argc;
+}
+
+struct argv
+argv_insert_head (const struct argv *a, const char *head)
+{
+  struct argv r;
+  size_t i;
+
+  r.argc = (a ? a->argc : 0) + 1;
+  ALLOC_ARRAY_CLEAR (r.argv, char *, r.argc + 1);
+  r.argv[0] = string_alloc (head, NULL);
+  if (a)
+    {
+      for (i = 0; i < a->argc; ++i)
+	r.argv[i+1] = string_alloc (a->argv[i], NULL);
+    }
+  return r;
 }
 
 char *
@@ -324,6 +349,22 @@ argv_str (const struct argv *a, struct gc_arena *gc, const unsigned int flags)
 }
 
 void
+argv_msg (const int msglev, const struct argv *a)
+{
+  struct gc_arena gc = gc_new ();
+  msg (msglev, "%s", argv_str (a, &gc, 0));
+  gc_free (&gc);
+}
+
+void
+argv_msg_prefix (const int msglev, const struct argv *a, const char *prefix)
+{
+  struct gc_arena gc = gc_new ();
+  msg (msglev, "%s: %s", prefix, argv_str (a, &gc, 0));
+  gc_free (&gc);
+}
+
+void
 argv_printf (struct argv *a, const char *format, ...)
 {
   va_list arglist;
@@ -373,7 +414,10 @@ argv_printf_arglist (struct argv *a, const char *format, const unsigned int flag
 	{
 	  if (!strcmp (term, "%s"))
 	    {
-	      a->argv[argc++] = string_alloc (va_arg (arglist, char *), NULL);
+	      char *s = va_arg (arglist, char *);
+	      if (!s)
+		s = "";
+	      a->argv[argc++] = string_alloc (s, NULL);
 	    }
 	  else if (!strcmp (term, "%d"))
 	    {
@@ -387,6 +431,41 @@ argv_printf_arglist (struct argv *a, const char *format, const unsigned int flag
 	      openvpn_snprintf (numstr, sizeof (numstr), "%u", va_arg (arglist, unsigned int));
 	      a->argv[argc++] = string_alloc (numstr, NULL);
 	    }
+	  else if (!strcmp (term, "%s/%d"))
+	    {
+	      char numstr[64];
+	      char *s = va_arg (arglist, char *);
+
+	      if (!s)
+		s = "";
+
+	      openvpn_snprintf (numstr, sizeof (numstr), "%d", va_arg (arglist, int));
+
+	      {
+		const size_t len = strlen(s) + strlen(numstr) + 2;
+		char *combined = (char *) malloc (len);
+		check_malloc_return (combined);
+
+		strcpy (combined, s);
+		strcat (combined, "/");
+		strcat (combined, numstr);
+		a->argv[argc++] = combined;
+	      }
+	    }
+	  else if (!strcmp (term, "%s%s"))
+	    {
+	      char *s1 = va_arg (arglist, char *);
+	      char *s2 = va_arg (arglist, char *);
+	      char *combined;
+
+	      if (!s1) s1 = "";
+	      if (!s2) s2 = "";
+	      combined = (char *) malloc (strlen(s1) + strlen(s2) + 1);
+	      check_malloc_return (combined);
+	      strcpy (combined, s1);
+	      strcat (combined, s2);
+	      a->argv[argc++] = combined;
+	    }
 	  else
 	    ASSERT (0);
 	  free (term);
@@ -398,57 +477,6 @@ argv_printf_arglist (struct argv *a, const char *format, const unsigned int flag
     }
   ASSERT (argc == a->argc);
 }
-
-#ifdef ARGV_TEST
-void
-argv_test (void)
-{
-  struct gc_arena gc = gc_new ();
-  char line[512];
-  const char *s;
-
-  struct argv a;
-  argv_init (&a);
-  argv_printf (&a, "this is a %s test of int %d unsigned %u", "FOO", -69, 42);
-  s = argv_str (&a, &gc, PA_BRACKET);
-  argv_reset (&a);
-  printf ("%s\n", s);
-
-  argv_init (&a);
-  argv_printf (&a, "foo bar %d", 99);
-  s = argv_str (&a, &gc, PA_BRACKET);
-  argv_reset (&a);
-  printf ("%s\n", s);
-
-  argv_init (&a);
-  s = argv_str (&a, &gc, PA_BRACKET);
-  argv_reset (&a);
-  printf ("%s\n", s);
-
-  argv_init (&a);
-  argv_printf (&a, "foo bar %d", 99);
-  argv_printf_cat (&a, "bar %d foo", 42);
-  argv_printf_cat (&a, "cool %s %d u", "frood", 4);
-  s = argv_str (&a, &gc, PA_BRACKET);
-  argv_reset (&a);
-  printf ("%s\n", s);
-
-  while (fgets (line, sizeof(line), stdin) != NULL)
-    {
-      char *term;
-      const char *f = line;
-      int i = 0;
-
-      while ((term = argv_term (&f)) != NULL) 
-	{
-	  printf ("[%d] '%s'\n", i, term);
-	  ++i;
-	  free (term);
-	}
-    }
-  gc_free (&gc);
-}
-#endif
 
 /*
  * write a string to the end of a buffer that was

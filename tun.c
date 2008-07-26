@@ -39,6 +39,7 @@
 #include "socket.h"
 #include "manage.h"
 #include "route.h"
+#include "win32.h"
 
 #include "memdbg.h"
 
@@ -534,7 +535,9 @@ do_ifconfig (struct tuntap *tt,
       const char *ifconfig_local = NULL;
       const char *ifconfig_remote_netmask = NULL;
       const char *ifconfig_broadcast = NULL;
-      char command_line[256];
+      struct argv argv;
+
+      argv_init (&argv);
 
       /*
        * We only handle TUN/TAP devices here, not --dev null devices.
@@ -570,31 +573,31 @@ do_ifconfig (struct tuntap *tt,
 	/*
 	 * Set the MTU for the device
 	 */
-	openvpn_snprintf (command_line, sizeof (command_line),
+	argv_printf (&argv,
 			  "%s link set dev %s up mtu %d",
 			  iproute_path,
 			  actual,
 			  tun_mtu
 			  );
-	  msg (M_INFO, "%s", command_line);
-	  system_check (command_line, es, S_FATAL, "Linux ip link set failed");
+	  argv_msg (M_INFO, &argv);
+	  openvpn_execve_check (&argv, es, S_FATAL, "Linux ip link set failed");
 
 	if (tun) {
 
 		/*
 		 * Set the address for the device
 		 */
-		openvpn_snprintf (command_line, sizeof (command_line),
+		argv_printf (&argv,
 				  "%s addr add dev %s local %s peer %s",
 				  iproute_path,
 				  actual,
 				  ifconfig_local,
 				  ifconfig_remote_netmask
 				  );
-		  msg (M_INFO, "%s", command_line);
-		  system_check (command_line, es, S_FATAL, "Linux ip addr add failed");
+		  argv_msg (M_INFO, &argv);
+		  openvpn_execve_check (&argv, es, S_FATAL, "Linux ip addr add failed");
 	} else {
-		openvpn_snprintf (command_line, sizeof (command_line),
+		argv_printf (&argv,
 				  "%s addr add dev %s %s/%d broadcast %s",
 				  iproute_path,
 				  actual,
@@ -602,30 +605,32 @@ do_ifconfig (struct tuntap *tt,
 				  count_netmask_bits(ifconfig_remote_netmask),
 				  ifconfig_broadcast
 				  );
-		  msg (M_INFO, "%s", command_line);
-		  system_check (command_line, es, S_FATAL, "Linux ip addr add failed");
+		  argv_msg (M_INFO, &argv);
+		  openvpn_execve_check (&argv, es, S_FATAL, "Linux ip addr add failed");
 	}
 	tt->did_ifconfig = true;
 #else
       if (tun)
-	openvpn_snprintf (command_line, sizeof (command_line),
-			  IFCONFIG_PATH " %s %s pointopoint %s mtu %d",
+	argv_printf (&argv,
+			  "%s %s %s pointopoint %s mtu %d",
+			  IFCONFIG_PATH,
 			  actual,
 			  ifconfig_local,
 			  ifconfig_remote_netmask,
 			  tun_mtu
 			  );
       else
-	openvpn_snprintf (command_line, sizeof (command_line),
-			  IFCONFIG_PATH " %s %s netmask %s mtu %d broadcast %s",
+	argv_printf (&argv,
+			  "%s %s %s netmask %s mtu %d broadcast %s",
+			  IFCONFIG_PATH,
 			  actual,
 			  ifconfig_local,
 			  ifconfig_remote_netmask,
 			  tun_mtu,
 			  ifconfig_broadcast
 			  );
-      msg (M_INFO, "%s", command_line);
-      system_check (command_line, es, S_FATAL, "Linux ifconfig failed");
+      argv_msg (M_INFO, &argv);
+      openvpn_execve_check (&argv, es, S_FATAL, "Linux ifconfig failed");
       tt->did_ifconfig = true;
 
 #endif /*CONFIG_FEATURE_IPROUTE*/
@@ -638,28 +643,30 @@ do_ifconfig (struct tuntap *tt,
        */
       if (tun)
 	{
-	  openvpn_snprintf (command_line, sizeof (command_line),
-			    IFCONFIG_PATH " %s %s %s mtu %d up",
+	  argv_printf (&argv,
+			    "%s %s %s %s mtu %d up",
+			    IFCONFIG_PATH,
 			    actual,
 			    ifconfig_local,
 			    ifconfig_remote_netmask,
 			    tun_mtu
 			    );
 
-	  msg (M_INFO, "%s", command_line);
-	  if (!system_check (command_line, es, 0, "Solaris ifconfig phase-1 failed"))
+	  argv_msg (M_INFO, &argv);
+	  if (!openvpn_execve_check (&argv, es, 0, "Solaris ifconfig phase-1 failed"))
 	    solaris_error_close (tt, es, actual);
 
-	  openvpn_snprintf (command_line, sizeof (command_line),
-			    IFCONFIG_PATH " %s netmask 255.255.255.255",
+	  argv_printf (&argv,
+			    "%s %s netmask 255.255.255.255",
+			    IFCONFIG_PATH,
 			    actual
 			    );
 	}
       else
 	no_tap_ifconfig ();
 
-      msg (M_INFO, "%s", command_line);
-      if (!system_check (command_line, es, 0, "Solaris ifconfig phase-2 failed"))
+      argv_msg (M_INFO, &argv);
+      if (!openvpn_execve_check (&argv, es, 0, "Solaris ifconfig phase-2 failed"))
 	solaris_error_close (tt, es, actual);
 
       tt->did_ifconfig = true;
@@ -672,45 +679,50 @@ do_ifconfig (struct tuntap *tt,
        * (if it exists), and re-ifconfig.  Let me know if you know a better way.
        */
 
-      openvpn_snprintf (command_line, sizeof (command_line),
-			IFCONFIG_PATH " %s destroy",
+      argv_printf (&argv,
+			"%s %s destroy",
+			IFCONFIG_PATH,
 			actual);
-      msg (M_INFO, "%s", command_line);
-      system_check (command_line, es, 0, NULL);
-      openvpn_snprintf (command_line, sizeof (command_line),
-			IFCONFIG_PATH " %s create",
+      argv_msg (M_INFO, &argv);
+      openvpn_execve_check (&argv, es, 0, NULL);
+      argv_printf (&argv,
+			"%s %s create",
+			IFCONFIG_PATH,
 			actual);
-      msg (M_INFO, "%s", command_line);
-      system_check (command_line, es, 0, NULL);
+      argv_msg (M_INFO, &argv);
+      openvpn_execve_check (&argv, es, 0, NULL);
       msg (M_INFO, "NOTE: Tried to delete pre-existing tun/tap instance -- No Problem if failure");
 
       /* example: ifconfig tun2 10.2.0.2 10.2.0.1 mtu 1450 netmask 255.255.255.255 up */
       if (tun)
-	openvpn_snprintf (command_line, sizeof (command_line),
-			  IFCONFIG_PATH " %s %s %s mtu %d netmask 255.255.255.255 up",
+	argv_printf (&argv,
+			  "%s %s %s %s mtu %d netmask 255.255.255.255 up",
+			  IFCONFIG_PATH,
 			  actual,
 			  ifconfig_local,
 			  ifconfig_remote_netmask,
 			  tun_mtu
 			  );
       else
-	openvpn_snprintf (command_line, sizeof (command_line),
-			  IFCONFIG_PATH " %s %s netmask %s mtu %d broadcast %s link0",
+	argv_printf (&argv,
+			  "%s %s %s netmask %s mtu %d broadcast %s link0",
+			  IFCONFIG_PATH,
 			  actual,
 			  ifconfig_local,
 			  ifconfig_remote_netmask,
 			  tun_mtu,
 			  ifconfig_broadcast
 			  );
-      msg (M_INFO, "%s", command_line);
-      system_check (command_line, es, S_FATAL, "OpenBSD ifconfig failed");
+      argv_msg (M_INFO, &argv);
+      openvpn_execve_check (&argv, es, S_FATAL, "OpenBSD ifconfig failed");
       tt->did_ifconfig = true;
 
 #elif defined(TARGET_NETBSD)
 
       if (tun)
-	openvpn_snprintf (command_line, sizeof (command_line),
-			  IFCONFIG_PATH " %s %s %s mtu %d netmask 255.255.255.255 up",
+	argv_printf (&argv,
+			  "%s %s %s %s mtu %d netmask 255.255.255.255 up",
+			  IFCONFIG_PATH,
 			  actual,
 			  ifconfig_local,
 			  ifconfig_remote_netmask,
@@ -722,16 +734,17 @@ do_ifconfig (struct tuntap *tt,
        * so we don't need the "link0" extra parameter to specify we want to do 
        * tunneling at the ethernet level
        */
-		openvpn_snprintf (command_line, sizeof (command_line),
-			  IFCONFIG_PATH " %s %s netmask %s mtu %d broadcast %s",
+		argv_printf (&argv,
+			  "%s %s %s netmask %s mtu %d broadcast %s",
+			  IFCONFIG_PATH,
 			  actual,
 			  ifconfig_local,
 			  ifconfig_remote_netmask,
 			  tun_mtu,
 			  ifconfig_broadcast
 			  );
-      msg (M_INFO, "%s", command_line);
-      system_check (command_line, es, S_FATAL, "NetBSD ifconfig failed");
+      argv_msg (M_INFO, &argv);
+      openvpn_execve_check (&argv, es, S_FATAL, "NetBSD ifconfig failed");
       tt->did_ifconfig = true;
 
 #elif defined(TARGET_DARWIN)
@@ -740,18 +753,20 @@ do_ifconfig (struct tuntap *tt,
        * Darwin (i.e. Mac OS X) seems to exhibit similar behaviour to OpenBSD...
        */
 
-      openvpn_snprintf (command_line, sizeof (command_line),
-			IFCONFIG_PATH " %s delete",
+      argv_printf (&argv,
+			"%s %s delete",
+			IFCONFIG_PATH,
 			actual);
-      msg (M_INFO, "%s", command_line);
-      system_check (command_line, es, 0, NULL);
+      argv_msg (M_INFO, &argv);
+      openvpn_execve_check (&argv, es, 0, NULL);
       msg (M_INFO, "NOTE: Tried to delete pre-existing tun/tap instance -- No Problem if failure");
 
 
       /* example: ifconfig tun2 10.2.0.2 10.2.0.1 mtu 1450 netmask 255.255.255.255 up */
       if (tun)
-	openvpn_snprintf (command_line, sizeof (command_line),
-			  IFCONFIG_PATH " %s %s %s mtu %d netmask 255.255.255.255 up",
+	argv_printf (&argv,
+			  "%s %s %s %s mtu %d netmask 255.255.255.255 up",
+			  IFCONFIG_PATH,
 			  actual,
 			  ifconfig_local,
 			  ifconfig_remote_netmask,
@@ -760,8 +775,9 @@ do_ifconfig (struct tuntap *tt,
       else
         {
           if (tt->topology == TOP_SUBNET)
-    	    openvpn_snprintf (command_line, sizeof (command_line),
-			      IFCONFIG_PATH " %s %s %s netmask %s mtu %d up",
+    	    argv_printf (&argv,
+			      "%s %s %s %s netmask %s mtu %d up",
+			      IFCONFIG_PATH,
 			      actual,
 			      ifconfig_local,
 			      ifconfig_local,
@@ -769,16 +785,17 @@ do_ifconfig (struct tuntap *tt,
 			      tun_mtu
 			      );
 	  else
-    	    openvpn_snprintf (command_line, sizeof (command_line),
-			      IFCONFIG_PATH " %s %s netmask %s mtu %d up",
+    	    argv_printf (&argv,
+			      "%s %s %s netmask %s mtu %d up",
+			      IFCONFIG_PATH,
 			      actual,
 			      ifconfig_local,
 			      ifconfig_remote_netmask,
 			      tun_mtu
 			      );
 	}
-      msg (M_INFO, "%s", command_line);
-      system_check (command_line, es, S_FATAL, "Mac OS X ifconfig failed");
+      argv_msg (M_INFO, &argv);
+      openvpn_execve_check (&argv, es, S_FATAL, "Mac OS X ifconfig failed");
       tt->did_ifconfig = true;
 
       /* Add a network route for the local tun interface */
@@ -797,8 +814,9 @@ do_ifconfig (struct tuntap *tt,
 
       /* example: ifconfig tun2 10.2.0.2 10.2.0.1 mtu 1450 netmask 255.255.255.255 up */
       if (tun)
-	openvpn_snprintf (command_line, sizeof (command_line),
-			  IFCONFIG_PATH " %s %s %s mtu %d netmask 255.255.255.255 up",
+	argv_printf (&argv,
+			  "%s %s %s %s mtu %d netmask 255.255.255.255 up",
+			  IFCONFIG_PATH,
 			  actual,
 			  ifconfig_local,
 			  ifconfig_remote_netmask,
@@ -806,8 +824,9 @@ do_ifconfig (struct tuntap *tt,
 			  );
       else {
 	if (tt->topology == TOP_SUBNET)
-            openvpn_snprintf (command_line, sizeof (command_line),
-                              IFCONFIG_PATH " %s %s %s netmask %s mtu %d up",
+            argv_printf (&argv,
+                              "%s %s %s %s netmask %s mtu %d up",
+                              IFCONFIG_PATH,
                               actual,
                               ifconfig_local,
                               ifconfig_local,
@@ -815,8 +834,9 @@ do_ifconfig (struct tuntap *tt,
                               tun_mtu
                               );
 	else
-  	    openvpn_snprintf (command_line, sizeof (command_line),
-			  IFCONFIG_PATH " %s %s netmask %s mtu %d up",
+  	    argv_printf (&argv,
+			  "%s %s %s netmask %s mtu %d up",
+			  IFCONFIG_PATH,
 			  actual,
 			  ifconfig_local,
 			  ifconfig_remote_netmask,
@@ -824,8 +844,8 @@ do_ifconfig (struct tuntap *tt,
 			  );
       }
 	
-      msg (M_INFO, "%s", command_line);
-      system_check (command_line, es, S_FATAL, "FreeBSD ifconfig failed");
+      argv_msg (M_INFO, &argv);
+      openvpn_execve_check (&argv, es, S_FATAL, "FreeBSD ifconfig failed");
       tt->did_ifconfig = true;
 
 	/* Add a network route for the local tun interface */
@@ -882,6 +902,7 @@ do_ifconfig (struct tuntap *tt,
 #else
       msg (M_FATAL, "Sorry, but I don't know how to do 'ifconfig' commands on this operating system.  You should ifconfig your TUN/TAP device manually or use an --up script.");
 #endif
+      argv_reset (&argv);
     }
   gc_free (&gc);
 }
@@ -1216,13 +1237,14 @@ close_tun (struct tuntap *tt)
     {
 	if (tt->type != DEV_TYPE_NULL && tt->did_ifconfig)
 	  {
-	    char command_line[256];
+	    struct argv argv;
 	    struct gc_arena gc = gc_new ();
+	    argv_init (&argv);
 
 #ifdef CONFIG_FEATURE_IPROUTE
 	    if (is_tun_p2p (tt))
 	      {
-		openvpn_snprintf (command_line, sizeof (command_line),
+		argv_printf (&argv,
 			"%s addr del dev %s local %s peer %s",
 			iproute_path,
 			tt->actual_name,
@@ -1232,7 +1254,7 @@ close_tun (struct tuntap *tt)
 	      }
 	    else
 	      {
-		openvpn_snprintf (command_line, sizeof (command_line),
+		argv_printf (&argv,
 			"%s addr del dev %s %s/%d",
 			iproute_path,
 			tt->actual_name,
@@ -1241,15 +1263,17 @@ close_tun (struct tuntap *tt)
 			);
 	      }
 #else
-	    openvpn_snprintf (command_line, sizeof (command_line),
-			IFCONFIG_PATH " %s 0.0.0.0",
+	    argv_printf (&argv,
+			"%s %s 0.0.0.0",
+			IFCONFIG_PATH,
 			tt->actual_name
 			);
 #endif
 
-	    msg (M_INFO, "%s", command_line);
-	    system_check (command_line, NULL, 0, "Linux ip addr del failed");
+	    argv_msg (M_INFO, &argv);
+	    openvpn_execve_check (&argv, NULL, 0, "Linux ip addr del failed");
 
+	    argv_reset (&argv);
 	    gc_free (&gc);
 	  }
       close_tun_generic (tt);
@@ -1471,16 +1495,19 @@ close_tun (struct tuntap *tt)
 static void
 solaris_error_close (struct tuntap *tt, const struct env_set *es, const char *actual)
 {
-  char command_line[256];
+  struct argv argv;
+  argv_init (&argv);
 
-  openvpn_snprintf (command_line, sizeof (command_line),
-		    IFCONFIG_PATH " %s unplumb",
+  argv_printf (&argv,
+		    "%s %s unplumb",
+		    IFCONFIG_PATH,
 		    actual);
 
-  msg (M_INFO, "%s", command_line);
-  system_check (command_line, es, 0, "Solaris ifconfig unplumb failed");
+  argv_msg (M_INFO, &argv);
+  openvpn_execve_check (&argv, es, 0, "Solaris ifconfig unplumb failed");
   close_tun (tt);
   msg (M_FATAL, "Solaris ifconfig failed");
+  argv_reset (&argv);
 }
 
 int
@@ -3275,7 +3302,7 @@ dhcp_renew (const struct tuntap *tt)
  */
 
 static void
-netsh_command (const char *cmd, int n)
+netsh_command (const struct argv *a, int n)
 {
   int i;
   for (i = 0; i < n; ++i)
@@ -3283,8 +3310,8 @@ netsh_command (const char *cmd, int n)
       bool status;
       openvpn_sleep (1);
       netcmd_semaphore_lock ();
-      msg (M_INFO, "NETSH: %s", cmd);
-      status = system_check (cmd, NULL, 0, "ERROR: netsh command failed");
+      argv_msg_prefix (M_INFO, a, "NETSH");
+      status = openvpn_execve_check (a, NULL, 0, "ERROR: netsh command failed");
       netcmd_semaphore_release ();
       if (status)
 	return;
@@ -3376,7 +3403,7 @@ netsh_ifconfig_options (const char *type,
 			const bool test_first)
 {
   struct gc_arena gc = gc_new ();
-  struct buffer out = alloc_buf_gc (256, &gc);
+  struct argv argv = argv_new ();
   bool delete_first = false;
 
   /* first check if we should delete existing DNS/WINS settings from TAP interface */
@@ -3391,11 +3418,12 @@ netsh_ifconfig_options (const char *type,
   /* delete existing DNS/WINS settings from TAP interface */
   if (delete_first)
     {
-      buf_init (&out, 0);
-      buf_printf (&out, "netsh interface ip delete %s \"%s\" all",
-		  type,
-		  flex_name);
-      netsh_command (BSTR(&out), 2);
+      argv_printf (&argv, "%s%s interface ip delete %s %s all",
+		   get_win_sys_path(),
+		   NETSH_PATH_SUFFIX,
+		   type,
+		   flex_name);
+      netsh_command (&argv, 2);
     }
 
   /* add new DNS/WINS settings to TAP interface */
@@ -3407,15 +3435,16 @@ netsh_ifconfig_options (const char *type,
 	if (delete_first || !test_first || !ip_addr_member_of (addr_list[i], current))
 	  {
 	    const char *fmt = count ?
-	        "netsh interface ip add %s \"%s\" %s"
-	      : "netsh interface ip set %s \"%s\" static %s";
+	        "%s%s interface ip add %s %s %s"
+	      : "%s%s interface ip set %s %s static %s";
 
-	    buf_init (&out, 0);
-	    buf_printf (&out, fmt,
-			type,
-			flex_name,
-			print_in_addr_t (addr_list[i], 0, &gc));
-	    netsh_command (BSTR(&out), 2);
+	    argv_printf (&argv, fmt,
+			 get_win_sys_path(),
+			 NETSH_PATH_SUFFIX,
+			 type,
+			 flex_name,
+			 print_in_addr_t (addr_list[i], 0, &gc));
+	    netsh_command (&argv, 2);
 	  
 	    ++count;
 	  }
@@ -3429,6 +3458,7 @@ netsh_ifconfig_options (const char *type,
       }
   }
 
+  argv_reset (&argv);
   gc_free (&gc);
 }
 
@@ -3458,7 +3488,7 @@ netsh_ifconfig (const struct tuntap_options *to,
 		const unsigned int flags)
 {
   struct gc_arena gc = gc_new ();
-  struct buffer out = alloc_buf_gc (256, &gc);
+  struct argv argv = argv_new ();
   const IP_ADAPTER_INFO *ai = NULL;
   const IP_PER_ADAPTER_INFO *pai = NULL;
 
@@ -3482,14 +3512,15 @@ netsh_ifconfig (const struct tuntap_options *to,
       else
 	{
 	  /* example: netsh interface ip set address my-tap static 10.3.0.1 255.255.255.0 */
-	  buf_init (&out, 0);
-	  buf_printf (&out,
-		      "netsh interface ip set address \"%s\" static %s %s",
-		      flex_name,
-		      print_in_addr_t (ip, 0, &gc),
-		      print_in_addr_t (netmask, 0, &gc));
+	  argv_printf (&argv,
+		       "%s%s interface ip set address %s static %s %s",
+		       get_win_sys_path(),
+		       NETSH_PATH_SUFFIX,
+		       flex_name,
+		       print_in_addr_t (ip, 0, &gc),
+		       print_in_addr_t (netmask, 0, &gc));
 
-	  netsh_command (BSTR(&out), 4);
+	  netsh_command (&argv, 4);
 	}
     }
 
@@ -3517,6 +3548,7 @@ netsh_ifconfig (const struct tuntap_options *to,
 			      BOOL_CAST (flags & NI_TEST_FIRST));
     }
   
+  argv_reset (&argv);
   gc_free (&gc);
 }
 
@@ -3524,17 +3556,19 @@ static void
 netsh_enable_dhcp (const struct tuntap_options *to,
 		   const char *actual_name)
 {
-  struct gc_arena gc = gc_new ();
-  struct buffer out = alloc_buf_gc (256, &gc);
+  struct argv argv;
+  argv_init (&argv);
 
   /* example: netsh interface ip set address my-tap dhcp */
-  buf_printf (&out,
-	      "netsh interface ip set address \"%s\" dhcp",
-	      actual_name);
+  argv_printf (&argv,
+	      "%s%s interface ip set address %s dhcp",
+	       get_win_sys_path(),
+	       NETSH_PATH_SUFFIX,
+	       actual_name);
 
-  netsh_command (BSTR(&out), 4);
+  netsh_command (&argv, 4);
 
-  gc_free (&gc);
+  argv_reset (&argv);
 }
 
 /*

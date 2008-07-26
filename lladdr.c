@@ -9,7 +9,7 @@
 int set_lladdr(const char *ifname, const char *lladdr,
 		const struct env_set *es)
 {
-  char cmd[256];
+  struct argv argv = argv_new ();
   int r;
 
   if (!ifname || !lladdr)
@@ -17,37 +17,45 @@ int set_lladdr(const char *ifname, const char *lladdr,
   
 #if defined(TARGET_LINUX)
 #ifdef CONFIG_FEATURE_IPROUTE
-  openvpn_snprintf (cmd, sizeof (cmd),
+  argv_printf (&argv,
 		    "%s link set addr %s dev %s",
 		    iproute_path, lladdr, ifname);
 #else
-  openvpn_snprintf (cmd, sizeof (cmd),
-		    IFCONFIG_PATH " %s hw ether %s",
+  argv_printf (&argv,
+		    "%s %s hw ether %s",
+		    IFCONFIG_PATH,
 		    ifname, lladdr);
 #endif
 #elif defined(TARGET_SOLARIS)
-  openvpn_snprintf (cmd, sizeof (cmd),
-		    IFCONFIG_PATH " %s ether %s",
+  argv_printf (&argv,
+		    "%s %s ether %s",
+		    IFCONFIG_PATH,
 		    ifname, lladdr);
 #elif defined(TARGET_OPENBSD)
-  openvpn_snprintf (cmd, sizeof (cmd),
-		    IFCONFIG_PATH " %s lladdr %s",
+  argv_printf (&argv,
+		    "%s %s lladdr %s",
+		    IFCONFIG_PATH,
 		    ifname, lladdr);
 #elif defined(TARGET_DARWIN)
-  openvpn_snprintf (cmd, sizeof (cmd),
-		    IFCONFIG_PATH " %s lladdr %s",
+  argv_printf (&argv,
+		    "%s %s lladdr %s",
+		    IFCONFIG_PATH,
 		    ifname, lladdr);
 #elif defined(TARGET_FREEBSD)
-  openvpn_snprintf (cmd, sizeof (cmd),
-		    IFCONFIG_PATH " %s ether %s",
+  argv_printf (&argv,
+		    "%s %s ether %s",
+		    IFCONFIG_PATH,
 		    ifname, lladdr);
 #else
       msg (M_WARN, "Sorry, but I don't know how to configure link layer addresses on this operating system.");
       return -1;
 #endif
 
-  r = system_check (cmd, es, M_WARN, "ERROR: Unable to set link layer address.");
+  argv_msg (M_INFO, &argv);
+  r = openvpn_execve_check (&argv, es, M_WARN, "ERROR: Unable to set link layer address.");
   if (r)
     msg (M_INFO, "TUN/TAP link layer address set to %s", lladdr);
+
+  argv_reset (&argv);
   return r;
 }

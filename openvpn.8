@@ -252,6 +252,7 @@ openvpn \- secure IP tunnel daemon.
 [\ \fB\-\-route\-up\fR\ \fIcmd\fR\ ]
 [\ \fB\-\-route\fR\ \fInetwork\ [netmask]\ [gateway]\ [metric]\fR\ ]
 [\ \fB\-\-rport\fR\ \fIport\fR\ ]
+[\ \fB\-\-script\-security\fR\ \fIlevel\fR\ ]
 [\ \fB\-\-secret\fR\ \fIfile\ [direction]\fR\ ]
 [\ \fB\-\-secret\fR\ \fIfile\fR\ ]
 [\ \fB\-\-server\-bridge\fR\ \fIgateway\ netmask\ pool\-start\-IP\ pool\-end\-IP\fR\ ]
@@ -300,6 +301,7 @@ openvpn \- secure IP tunnel daemon.
 [\ \fB\-\-user\fR\ \fIuser\fR\ ]
 [\ \fB\-\-username\-as\-common\-name\fR\ ]
 [\ \fB\-\-verb\fR\ \fIn\fR\ ]
+[\ \fB\-\-win\-sys\fR\ \fIpath|'env'\fR\ ]
 [\ \fB\-\-writepid\fR\ \fIfile\fR\ ]
 .in -4
 .ti +4
@@ -1996,6 +1998,24 @@ This directive is designed to be pushed by the server to clients,
 and the prepending of "OPENVPN_" to the environmental variable
 is a safety precaution to prevent a LD_PRELOAD style attack
 from a malicious or compromised server.
+.\"*********************************************************
+.TP
+.B --script-security level
+This directive offers policy-level control over OpenVPN's usage of external programs
+and scripts.  Lower values are more restrictive, higher values are more permissive.  Settings for
+.B level:
+
+.B 0 --
+Strictly no calling of external programs.
+.br
+.B 1 --
+(Default) Only call built-in executables such as ifconfig, ip, route, or netsh.
+.br
+.B 2 --
+Allow calling of built-in executables and user-defined scripts.
+.br
+.B 3 --
+Allow passwords to be passed to scripts via environmental variables (potentially unsafe).
 .\"*********************************************************
 .TP
 .B --disable-occ
@@ -4479,6 +4499,22 @@ Optional user to be owner of this tunnel.
 Optional group to be owner of this tunnel.
 .\"*********************************************************
 .SS Windows-Specific Options:
+.\"*********************************************************
+.TP
+.B --win-sys path|'env'
+Set the Windows system directory pathname to use when looking for system
+executables such as
+.B route.exe
+and
+.B netsh.exe.
+By default, if this directive is
+not specified, the pathname will be set to "C:\\WINDOWS"
+
+The special string
+.B 'env'
+indicates that the pathname should be read from the
+.B SystemRoot
+environmental variable.
 .\"*********************************************************
 .TP
 .B --ip-win32 method

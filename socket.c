@@ -1480,6 +1480,22 @@ setenv_trusted (struct env_set *es, const struct link_socket_info *info)
   setenv_link_socket_actual (es, "trusted", &info->lsa->actual, SA_IP_PORT);
 }
 
+static void
+ipchange_fmt (const bool include_cmd, struct argv *argv, const struct link_socket_info *info, struct gc_arena *gc)
+{
+  const char *ip = print_sockaddr_ex (&info->lsa->actual.dest, NULL, 0, gc);
+  const char *port = print_sockaddr_ex (&info->lsa->actual.dest, NULL, PS_DONT_SHOW_ADDR|PS_SHOW_PORT, gc);
+  if (include_cmd)
+    argv_printf (argv, "%s %s %s",
+		 info->ipchange_command,
+		 ip,
+		 port);
+  else
+    argv_printf (argv, "%s %s",
+		 ip,
+		 port);
+}
+
 void
 link_socket_connection_initiated (const struct buffer *buf,
 				  struct link_socket_info *info,
@@ -1508,20 +1524,21 @@ link_socket_connection_initiated (const struct buffer *buf,
   /* Process --ipchange plugin */
   if (plugin_defined (info->plugins, OPENVPN_PLUGIN_IPCHANGE))
     {
-      const char *addr_ascii = print_sockaddr_ex (&info->lsa->actual.dest, " ", PS_SHOW_PORT, &gc);
-      if (plugin_call (info->plugins, OPENVPN_PLUGIN_IPCHANGE, addr_ascii, NULL, es) != OPENVPN_PLUGIN_FUNC_SUCCESS)
+      struct argv argv = argv_new ();
+      ipchange_fmt (false, &argv, info, &gc);
+      if (plugin_call (info->plugins, OPENVPN_PLUGIN_IPCHANGE, &argv, NULL, es) != OPENVPN_PLUGIN_FUNC_SUCCESS)
 	msg (M_WARN, "WARNING: ipchange plugin call failed");
+      argv_reset (&argv);
     }
 
   /* Process --ipchange option */
   if (info->ipchange_command)
     {
-      struct buffer out = alloc_buf_gc (256, &gc);
+      struct argv argv = argv_new ();
       setenv_str (es, "script_type", "ipchange");
-      buf_printf (&out, "%s %s",
-		  info->ipchange_command,
-		  print_sockaddr_ex (&info->lsa->actual.dest, " ", PS_SHOW_PORT, &gc));
-      system_check (BSTR (&out), es, S_SCRIPT, "ip-change command failed");
+      ipchange_fmt (true, &argv, info, &gc);
+      openvpn_execve_check (&argv, es, S_SCRIPT, "ip-change command failed");
+      argv_reset (&argv);
     }
 
   gc_free (&gc);
@@ -1791,7 +1808,8 @@ print_sockaddr_ex (const struct openvpn_sockaddr *addr,
       const int port = ntohs (addr->sa.sin_port);
 
       mutex_lock_static (L_INET_NTOA);
-      buf_printf (&out, "%s", (addr_defined (addr) ? inet_ntoa (addr->sa.sin_addr) : "[undef]"));
+      if (!(flags & PS_DONT_SHOW_ADDR))
+	buf_printf (&out, "%s", (addr_defined (addr) ? inet_ntoa (addr->sa.sin_addr) : "[undef]"));
       mutex_unlock_static (L_INET_NTOA);
 
       if (((flags & PS_SHOW_PORT) || (addr_defined (addr) && (flags & PS_SHOW_PORT_IF_DEFINED)))

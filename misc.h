@@ -117,17 +117,15 @@ void warn_if_group_others_accessible(const char* filename);
 #define S_SCRIPT (1<<0)
 #define S_FATAL  (1<<1)
 
-/* wrapper around the system() call. */
-int openvpn_system (const char *command, const struct env_set *es, unsigned int flags);
-
-/* interpret the status code returned by system() */
+/* interpret the status code returned by system()/execve() */
 bool system_ok(int);
 int system_executed (int stat);
 const char *system_error_message (int, struct gc_arena *gc);
 
-/* run system() with error check, return true if success,
-   false if error, exit if error and fatal==true */
-bool system_check (const char *command, const struct env_set *es, unsigned int flags, const char *error_message);
+/* wrapper around the execve() call */
+int openvpn_execve (const struct argv *a, const struct env_set *es, const unsigned int flags);
+bool openvpn_execve_check (const struct argv *a, const struct env_set *es, const unsigned int flags, const char *error_message);
+bool openvpn_execve_allowed (const unsigned int flags);
 
 #ifdef HAVE_STRERROR
 /* a thread-safe version of strerror */
@@ -184,7 +182,10 @@ void env_set_remove_from_environment (const struct env_set *es);
 
 /* Make arrays of strings */
 
-const char **make_env_array (const struct env_set *es, struct gc_arena *gc);
+const char **make_env_array (const struct env_set *es,
+			     const bool check_allowed,
+			     struct gc_arena *gc);
+
 const char **make_arg_array (const char *first, const char *parms, struct gc_arena *gc);
 const char **make_extended_arg_array (char **p, struct gc_arena *gc);
 
@@ -271,6 +272,9 @@ const char *safe_print (const char *str, struct gc_arena *gc);
 /* returns true if environmental variable safe to print to log */
 bool env_safe_to_print (const char *str);
 
+/* returns true if environmental variable may be passed to an external program */
+bool env_allowed (const char *str);
+
 /*
  * A sleep function that services the management layer for n
  * seconds rather than doing nothing.
@@ -289,5 +293,11 @@ void get_user_pass_auto_userid (struct user_pass *up, const char *tag);
 #ifdef CONFIG_FEATURE_IPROUTE
 extern const char *iproute_path;
 #endif
+
+#define SSEC_NONE      0 /* strictly no calling of external programs */
+#define SSEC_BUILT_IN  1 /* only call built-in programs such as ifconfig, route, netsh, etc.*/
+#define SSEC_SCRIPTS   2 /* allow calling of built-in programs and user-defined scripts */
+#define SSEC_PW_ENV    3 /* allow calling of built-in programs and user-defined scripts that may receive a password as an environmental variable */
+extern int script_security; /* GLOBAL */
 
 #endif

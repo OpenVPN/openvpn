@@ -189,6 +189,10 @@ static const char usage_message[] =
   "                  flag to add a direct route to DHCP server, bypassing tunnel.\n"
   "                  Add 'bypass-dns' flag to similarly bypass tunnel for DNS.\n"
   "--setenv name value : Set a custom environmental variable to pass to script.\n"
+  "--script-security level : 0 -- strictly no calling of external programs\n"
+  "                          1 -- (default) only call built-ins such as ifconfig\n"
+  "                          2 -- allow calling of built-ins and scripts\n"
+  "                          3 -- allow password to be passed to scripts via env\n"
   "--shaper n      : Restrict output to peer to n bytes per second.\n"
   "--keepalive n m : Helper option for setting timeouts in server mode.  Send\n"
   "                  ping once every n seconds, restart if ping not received\n"
@@ -536,6 +540,8 @@ static const char usage_message[] =
 #ifdef WIN32
   "\n"
   "Windows Specific:\n"
+  "--win-sys path|'env' : Pathname of Windows system directory, C:\\WINDOWS by default.\n"
+  "                       If specified as 'env', read the pathname from SystemRoot env var.\n"
   "--ip-win32 method : When using --ifconfig on Windows, set TAP-Win32 adapter\n"
   "                    IP address using method = manual, netsh, ipapi,\n"
   "                    dynamic, or adaptive (default = adaptive).\n"
@@ -4249,6 +4255,11 @@ add_option (struct options *options,
       VERIFY_PERMISSION (OPT_P_SETENV);
       setenv_str_safe (es, p[1], p[2] ? p[2] : "");
     }
+  else if (streq (p[0], "script-security") && p[1])
+    {
+      VERIFY_PERMISSION (OPT_P_GENERAL);
+      script_security = atoi (p[1]);
+    }  
   else if (streq (p[0], "mssfix"))
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
@@ -4618,6 +4629,14 @@ add_option (struct options *options,
     }
 #endif
 #ifdef WIN32
+  else if (streq (p[0], "win-sys") && p[1])
+    {
+      VERIFY_PERMISSION (OPT_P_GENERAL);
+      if (streq (p[1], "env"))
+	set_win_sys_path_via_env (es);
+      else
+	set_win_sys_path (p[1], es);
+    }
   else if (streq (p[0], "route-method") && p[1])
     {
       VERIFY_PERMISSION (OPT_P_ROUTE_EXTRAS);

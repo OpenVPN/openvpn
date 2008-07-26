@@ -448,6 +448,14 @@ socket_defined (const socket_descriptor_t sd)
 #define USE_64_BIT_COUNTERS
 
 /*
+ * Should we enable the use of execve() for calling subprocesses,
+ * instead of system()?
+ */
+#if defined(HAVE_EXECVE) && defined(HAVE_FORK)
+#define ENABLE_EXECVE
+#endif
+
+/*
  * Do we have point-to-multipoint capability?
  */
 

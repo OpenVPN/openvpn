@@ -85,36 +85,33 @@ learn_address_script (const struct multi_context *m,
 
   if (plugin_defined (plugins, OPENVPN_PLUGIN_LEARN_ADDRESS))
     {
-      struct buffer cmd = alloc_buf_gc (256, &gc);
-
-      buf_printf (&cmd, "\"%s\" \"%s\"",
-		  op,
-		  mroute_addr_print (addr, &gc));
+      struct argv argv = argv_new ();
+      argv_printf (&argv, "%s %s",
+		   op,
+		   mroute_addr_print (addr, &gc));
       if (mi)
-	buf_printf (&cmd, " \"%s\"", tls_common_name (mi->context.c2.tls_multi, false));
-
-      if (plugin_call (plugins, OPENVPN_PLUGIN_LEARN_ADDRESS, BSTR (&cmd), NULL, es) != OPENVPN_PLUGIN_FUNC_SUCCESS)
+	argv_printf_cat (&argv, "%s", tls_common_name (mi->context.c2.tls_multi, false));
+      if (plugin_call (plugins, OPENVPN_PLUGIN_LEARN_ADDRESS, &argv, NULL, es) != OPENVPN_PLUGIN_FUNC_SUCCESS)
 	{
 	  msg (M_WARN, "WARNING: learn-address plugin call failed");
 	  ret = false;
 	}
+      argv_reset (&argv);
     }
 
   if (m->top.options.learn_address_script)
     {
-      struct buffer cmd = alloc_buf_gc (256, &gc);
-
+      struct argv argv = argv_new ();
       setenv_str (es, "script_type", "learn-address");
-
-      buf_printf (&cmd, "%s \"%s\" \"%s\"",
-		  m->top.options.learn_address_script,
-		  op,
-		  mroute_addr_print (addr, &gc));
+      argv_printf (&argv, "%s %s %s",
+		   m->top.options.learn_address_script,
+		   op,
+		   mroute_addr_print (addr, &gc));
       if (mi)
-	buf_printf (&cmd, " \"%s\"", tls_common_name (mi->context.c2.tls_multi, false));
-
-      if (!system_check (BSTR (&cmd), es, S_SCRIPT, "WARNING: learn-address command failed"))
+	argv_printf_cat (&argv, "%s", tls_common_name (mi->context.c2.tls_multi, false));
+      if (!openvpn_execve_check (&argv, es, S_SCRIPT, "WARNING: learn-address command failed"))
 	ret = false;
+      argv_reset (&argv);
     }
 
   gc_free (&gc);
@@ -474,16 +471,11 @@ multi_client_disconnect_script (struct multi_context *m,
 
       if (mi->context.options.client_disconnect_script)
 	{
-	  struct gc_arena gc = gc_new ();
-	  struct buffer cmd = alloc_buf_gc (256, &gc);
-
+	  struct argv argv = argv_new ();
 	  setenv_str (mi->context.c2.es, "script_type", "client-disconnect");
-	  
-	  buf_printf (&cmd, "%s", mi->context.options.client_disconnect_script);
-
-	  system_check (BSTR (&cmd), mi->context.c2.es, S_SCRIPT, "client-disconnect command failed");
-	  
-	  gc_free (&gc);
+	  argv_printf (&argv, "%s", mi->context.options.client_disconnect_script);
+	  openvpn_execve_check (&argv, mi->context.c2.es, S_SCRIPT, "client-disconnect command failed");
+	  argv_reset (&argv);
 	}
 #ifdef MANAGEMENT_DEF_AUTH
       if (management)
@@ -1523,11 +1515,11 @@ multi_connection_established (struct multi_context *m, struct multi_instance *mi
       /* deprecated callback, use a file for passing back return info */
       if (plugin_defined (mi->context.plugins, OPENVPN_PLUGIN_CLIENT_CONNECT))
 	{
+	  struct argv argv = argv_new ();
 	  const char *dc_file = create_temp_filename (mi->context.options.tmp_dir, "cc", &gc);
-
+	  argv_printf (&argv, "%s", dc_file);
 	  delete_file (dc_file);
-
-	  if (plugin_call (mi->context.plugins, OPENVPN_PLUGIN_CLIENT_CONNECT, dc_file, NULL, mi->context.c2.es) != OPENVPN_PLUGIN_FUNC_SUCCESS)
+	  if (plugin_call (mi->context.plugins, OPENVPN_PLUGIN_CLIENT_CONNECT, &argv, NULL, mi->context.c2.es) != OPENVPN_PLUGIN_FUNC_SUCCESS)
 	    {
 	      msg (M_WARN, "WARNING: client-connect plugin call failed");
 	      cc_succeeded = false;
@@ -1537,6 +1529,7 @@ multi_connection_established (struct multi_context *m, struct multi_instance *mi
 	      multi_client_connect_post (m, mi, dc_file, option_permissions_mask, &option_types_found);
 	      ++cc_succeeded_count;
 	    }
+	  argv_reset (&argv);
 	}
 
       /* V2 callback, use a plugin_return struct for passing back return info */
@@ -1566,7 +1559,7 @@ multi_connection_established (struct multi_context *m, struct multi_instance *mi
        */
       if (mi->context.options.client_connect_script && cc_succeeded)
 	{
-	  struct buffer cmd = alloc_buf_gc (256, &gc);
+	  struct argv argv = argv_new ();
 	  const char *dc_file = NULL;
 
 	  setenv_str (mi->context.c2.es, "script_type", "client-connect");
@@ -1575,17 +1568,19 @@ multi_connection_established (struct multi_context *m, struct multi_instance *mi
 
 	  delete_file (dc_file);
 
-	  buf_printf (&cmd, "%s %s",
-		      mi->context.options.client_connect_script,
-		      dc_file);
+	  argv_printf (&argv, "%s %s",
+		       mi->context.options.client_connect_script,
+		       dc_file);
 
-	  if (system_check (BSTR (&cmd), mi->context.c2.es, S_SCRIPT, "client-connect command failed"))
+	  if (openvpn_execve_check (&argv, mi->context.c2.es, S_SCRIPT, "client-connect command failed"))
 	    {
 	      multi_client_connect_post (m, mi, dc_file, option_permissions_mask, &option_types_found);
 	      ++cc_succeeded_count;
 	    }
 	  else
 	    cc_succeeded = false;
+
+	  argv_reset (&argv);
 	}
 
       /*
