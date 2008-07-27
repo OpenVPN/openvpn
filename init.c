@@ -1982,6 +1982,8 @@ do_option_warnings (struct context *c)
       && !(o->ns_cert_type & NS_SSL_SERVER)
       && !o->remote_cert_eku)
     msg (M_WARN, "WARNING: No server certificate verification method has been enabled.  See http://openvpn.net/howto.html#mitm for more info.");
+  if (o->tls_remote)
+    msg (M_WARN, "WARNING: Make sure you understand the semantics of --tls-remote before using it (see the man page).");
 #endif
 #endif
 
@@ -1989,6 +1991,11 @@ do_option_warnings (struct context *c)
   if (o->ce.connect_timeout_defined)
     msg (M_WARN, "NOTE: --connect-timeout option is not supported on this OS");
 #endif
+
+  if (script_security >= SSEC_SCRIPTS)
+    msg (M_WARN, "NOTE: the current --script-security setting may allow this configuration to call user-defined scripts");
+  if (script_security >= SSEC_PW_ENV)
+    msg (M_WARN, "WARNING: the current --script-security setting may allow passwords to be passed to scripts via environmental variables");
 }
 
 static void
