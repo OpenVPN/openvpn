@@ -42,6 +42,12 @@ array_mult_safe (const size_t m1, const size_t m2)
   return (size_t) res;
 }
 
+void
+buf_size_error (size_t size)
+{
+  msg (M_FATAL, "fatal buffer size error, size=%lu", (unsigned long)size);
+}
+
 struct buffer
 #ifdef DMALLOC
 alloc_buf_debug (size_t size, const char *file, int line)
@@ -64,6 +70,8 @@ alloc_buf_gc (size_t size, struct gc_arena *gc)
 #endif
 {
   struct buffer buf;
+  if (!buf_size_valid (size))
+    buf_size_error (size);
   buf.capacity = (int)size;
   buf.offset = 0;
   buf.len = 0;
