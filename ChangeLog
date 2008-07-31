@@ -24,6 +24,10 @@ $Id$
   user-defined scripts has been completely revamped in favor
   of execve() on unix and CreateProcess() on Windows.
 
+* In Windows build, package a statically linked openssl.exe to work around
+  observed instabilities in the dynamic build since the migration to
+  OpenSSL 0.9.8h.
+
 2008.06.11 -- Version 2.1_rc8
 
 * Added client authentication and packet filtering capability
