@@ -5,7 +5,7 @@ $Id$
 
 2008.07.31 -- Version 2.1_rc9
 
-* Security Vulnerability -- affects non-Windows OpenVPN clients running
+* Security Fix -- affects non-Windows OpenVPN clients running
   OpenVPN 2.1-beta14 through 2.1-rc8 (OpenVPN 2.0.x clients are NOT
   vulnerable nor are any versions of the OpenVPN server vulnerable).
   An OpenVPN client connecting to a malicious or compromised
@@ -14,7 +14,7 @@ $Id$
   the client. A successful attack requires that (a) the client has agreed
   to allow the server to push configuration directives to it by including
   "pull" or the macro "client" in its configuration file, (b) the client
-  succesfully authenticates the server, (c) the server is malicious or has
+  successfully authenticates the server, (c) the server is malicious or has
   been compromised and is under the control of the attacker, and (d) the
   client is running a non-Windows OS.  Credit: David Wagner.
 
