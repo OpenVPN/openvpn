@@ -1214,11 +1214,18 @@ table (not supported on all OSes).
 address if OpenVPN is being run in client mode, and is undefined in server mode.
 .\"*********************************************************
 .TP
-.B --route-gateway gw
+.B --route-gateway gw|'dhcp'
 Specify a default gateway
 .B gw
 for use with
 .B --route.
+
+If
+.B dhcp
+is specified as the parameter,
+the gateway address will be extracted from a DHCP
+negotiation with the OpenVPN server-side LAN.
+.\"*********************************************************
 .TP
 .B --route-metric m
 Specify a default metric
@@ -2607,12 +2614,22 @@ if you are ethernet bridging.  Use
 instead.
 .\"*********************************************************
 .TP
-.B --server-bridge gateway netmask pool-start-IP pool-end-IP
+.B --server-bridge [ gateway netmask pool-start-IP pool-end-IP ]
 
 A helper directive similar to
 .B --server
 which is designed to simplify the configuration
 of OpenVPN's server mode in ethernet bridging configurations.
+
+If
+.B --server-bridge
+is used without any parameters, it will enable a DHCP-proxy
+mode, where connecting OpenVPN clients will receive an IP
+address for their TAP adapter from the DHCP server running
+on the OpenVPN server-side LAN.
+Note that only clients that support
+the binding of a DHCP client with the TAP adapter (such as
+Windows) can support this mode.
 
 To configure ethernet bridging, you 
 must first use your OS's bridging capability
@@ -2658,6 +2675,23 @@ tls-server
 
 ifconfig-pool 10.8.0.128 10.8.0.254 255.255.255.0
 push "route-gateway 10.8.0.4"
+.ft
+.LP
+.RE
+.fi
+
+In another example,
+.B --server-bridge
+(without parameters) expands as follows:
+
+.RS
+.ft 3
+.nf
+.sp
+mode server
+tls-server
+
+push "route-gateway dhcp"
 .ft
 .LP
 .RE

@@ -79,6 +79,7 @@ openvpn_SOURCES = \
 	circ_list.h \
 	common.h \
 	crypto.c crypto.h \
+	dhcp.c dhcp.h \
 	errlevel.h \
 	error.c error.h \
 	event.c event.h \

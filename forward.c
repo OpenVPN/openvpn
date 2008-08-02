@@ -31,6 +31,7 @@
 #include "mss.h"
 #include "event.h"
 #include "ps.h"
+#include "dhcp.h"
 
 #include "memdbg.h"
 
@@ -976,6 +977,8 @@ process_ipv4_header (struct context *c, unsigned int flags, struct buffer *buf)
   if (!c->options.passtos)
     flags &= ~PIPV4_PASSTOS;
 #endif
+  if (!c->options.route_gateway_via_dhcp || !route_list_default_gateway_needed (c->c1.route_list))
+    flags &= ~PIPV4_EXTRACT_DHCP_ROUTER;
 
   if (buf->len > 0)
     {
@@ -1001,6 +1004,13 @@ process_ipv4_header (struct context *c, unsigned int flags, struct buffer *buf)
 	      /* possibly alter the TCP MSS */
 	      if (flags & PIPV4_MSSFIX)
 		mss_fixup (&ipbuf, MTU_TO_MSS (TUN_MTU_SIZE_DYNAMIC (&c->c2.frame)));
+
+	      /* possibly extract a DHCP router message */
+	      if (flags & PIPV4_EXTRACT_DHCP_ROUTER)
+		{
+		  const in_addr_t dhcp_router = dhcp_extract_router_msg (&ipbuf);
+		  route_list_add_default_gateway (c->c1.route_list, c->c2.es, dhcp_router);
+		}
 	    }
 	}
     }
@@ -1149,7 +1159,7 @@ process_outgoing_tun (struct context *c)
    * The --mssfix option requires
    * us to examine the IPv4 header.
    */
-  process_ipv4_header (c, PIPV4_MSSFIX|PIPV4_OUTGOING, &c->c2.to_tun);
+  process_ipv4_header (c, PIPV4_MSSFIX|PIPV4_EXTRACT_DHCP_ROUTER|PIPV4_OUTGOING, &c->c2.to_tun);
 
   if (c->c2.to_tun.len <= MAX_RW_SIZE_TUN (&c->c2.frame))
     {

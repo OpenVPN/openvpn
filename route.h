@@ -138,6 +138,10 @@ bool init_route_list (struct route_list *rl,
 		      in_addr_t remote_host,
 		      struct env_set *es);
 
+void route_list_add_default_gateway (struct route_list *rl,
+				     struct env_set *es,
+				     const in_addr_t addr);
+
 void add_routes (struct route_list *rl,
 		 const struct tuntap *tt,
 		 unsigned int flags,
@@ -184,6 +188,15 @@ netbits_to_netmask (const int netbits)
   if (netbits > 0 && netbits <= addrlen)
     mask = ~0 << (addrlen-netbits);
   return mask;
+}
+
+static inline bool
+route_list_default_gateway_needed (const struct route_list *rl)
+{
+  if (!rl)
+    return false;
+  else
+    return !rl->spec.remote_endpoint_defined;
 }
 
 #endif

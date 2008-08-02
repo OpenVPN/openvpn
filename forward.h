@@ -75,6 +75,7 @@ bool send_control_channel_string (struct context *c, const char *str, int msglev
 #define PIPV4_PASSTOS         (1<<0)
 #define PIPV4_MSSFIX          (1<<1)
 #define PIPV4_OUTGOING        (1<<2)
+#define PIPV4_EXTRACT_DHCP_ROUTER (1<<3)
 
 void process_ipv4_header (struct context *c, unsigned int flags, struct buffer *buf);
 

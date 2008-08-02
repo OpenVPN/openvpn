@@ -169,7 +169,7 @@ static const char usage_message[] =
   "                  netmask default: 255.255.255.255\n"
   "                  gateway default: taken from --route-gateway or --ifconfig\n"
   "                  Specify default by leaving blank or setting to \"nil\".\n"
-  "--route-gateway gw : Specify a default gateway for use with --route.\n"
+  "--route-gateway gw|'dhcp' : Specify a default gateway for use with --route.\n"
   "--route-metric m : Specify a default metric for use with --route.\n"
   "--route-delay n [w] : Delay n seconds after connection initiation before\n"
   "                  adding routes (may be 0).  If not specified, routes will\n"
@@ -339,7 +339,7 @@ static const char usage_message[] =
   "\n"
   "Multi-Client Server options (when --mode server is used):\n"
   "--server network netmask : Helper option to easily configure server mode.\n"
-  "--server-bridge IP netmask pool-start-IP pool-end-IP : Helper option to\n"
+  "--server-bridge [IP netmask pool-start-IP pool-end-IP] : Helper option to\n"
   "                    easily configure ethernet bridging server mode.\n"
   "--push \"option\" : Push a config file option back to the peer for remote\n"
   "                  execution.  Peer must specify --pull in its config file.\n"
@@ -1226,6 +1226,7 @@ show_settings (const struct options *o)
   SHOW_INT (route_delay_window);
   SHOW_BOOL (route_delay_defined);
   SHOW_BOOL (route_nopull);
+  SHOW_BOOL (route_gateway_via_dhcp);
   if (o->routes)
     print_route_options (o->routes, D_SHOW_PARMS);
 
@@ -1888,7 +1889,7 @@ static void
 options_postprocess_mutate_ce (struct options *o, struct connection_entry *ce)
 {
 #if P2MP_SERVER
-  if (o->server_defined || o->server_bridge_defined)
+  if (o->server_defined || o->server_bridge_defined || o->server_bridge_proxy_dhcp)
     {
       if (ce->proto == PROTO_TCPv4)
 	ce->proto = PROTO_TCPv4_SERVER;
@@ -4237,14 +4238,21 @@ add_option (struct options *options,
   else if (streq (p[0], "route-gateway") && p[1])
     {
       VERIFY_PERMISSION (OPT_P_ROUTE_EXTRAS);
-      if (ip_addr_dotted_quad_safe (p[1]) || is_special_addr (p[1]))
+      if (streq (p[1], "dhcp"))
 	{
-	  options->route_default_gateway = p[1];
+	  options->route_gateway_via_dhcp = true;
 	}
       else
 	{
-	  msg (msglevel, "route-gateway parm '%s' must be an IP address", p[1]);
-	  goto err;
+	  if (ip_addr_dotted_quad_safe (p[1]) || is_special_addr (p[1]))
+	    {
+	      options->route_default_gateway = p[1];
+	    }
+	  else
+	    {
+	      msg (msglevel, "route-gateway parm '%s' must be an IP address", p[1]);
+	      goto err;
+	    }
 	}
     }
   else if (streq (p[0], "route-metric") && p[1])
@@ -4394,6 +4402,11 @@ add_option (struct options *options,
       options->server_bridge_netmask = netmask;
       options->server_bridge_pool_start = pool_start;
       options->server_bridge_pool_end = pool_end;
+    }
+  else if (streq (p[0], "server-bridge") && !p[1])
+    {
+      VERIFY_PERMISSION (OPT_P_GENERAL);
+      options->server_bridge_proxy_dhcp = true;
     }
   else if (streq (p[0], "push") && p[1])
     {

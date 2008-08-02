@@ -54,6 +54,14 @@ print_opt_route_gateway (const in_addr_t route_gateway, struct gc_arena *gc)
 }
 
 static const char *
+print_opt_route_gateway_dhcp (struct gc_arena *gc)
+{
+  struct buffer out = alloc_buf_gc (32, gc);
+  buf_printf (&out, "route-gateway dhcp");
+  return BSTR (&out);
+}
+
+static const char *
 print_opt_route (const in_addr_t network, const in_addr_t netmask, struct gc_arena *gc)
 {
   struct buffer out = alloc_buf_gc (128, gc);
@@ -170,7 +178,7 @@ helper_client_server (struct options *o)
       if (o->client)
 	msg (M_USAGE, "--server and --client cannot be used together");
 
-      if (o->server_bridge_defined)
+      if (o->server_bridge_defined || o->server_bridge_proxy_dhcp)
 	msg (M_USAGE, "--server and --server-bridge cannot be used together");
 
       if (o->shared_secret_file)
@@ -295,8 +303,19 @@ helper_client_server (struct options *o)
    *
    * ifconfig-pool 10.8.0.128 10.8.0.254 255.255.255.0
    * push "route-gateway 10.8.0.4"
+   *
+   * OR
+   *
+   * server-bridge
+   *
+   * EXPANDS TO:
+   *
+   * mode server
+   * tls-server
+   *
+   * push "route-gateway dhcp"
    */
-  else if (o->server_bridge_defined)
+  else if (o->server_bridge_defined | o->server_bridge_proxy_dhcp)
     {
       if (o->client)
 	msg (M_USAGE, "--server-bridge and --client cannot be used together");
@@ -310,18 +329,29 @@ helper_client_server (struct options *o)
       if (dev != DEV_TYPE_TAP)
 	msg (M_USAGE, "--server-bridge directive only makes sense with --dev tap");
 
-      verify_common_subnet ("--server-bridge", o->server_bridge_ip, o->server_bridge_pool_start, o->server_bridge_netmask); 
-      verify_common_subnet ("--server-bridge", o->server_bridge_pool_start, o->server_bridge_pool_end, o->server_bridge_netmask); 
-      verify_common_subnet ("--server-bridge", o->server_bridge_ip, o->server_bridge_pool_end, o->server_bridge_netmask); 
+      if (o->server_bridge_defined)
+	{
+	  verify_common_subnet ("--server-bridge", o->server_bridge_ip, o->server_bridge_pool_start, o->server_bridge_netmask); 
+	  verify_common_subnet ("--server-bridge", o->server_bridge_pool_start, o->server_bridge_pool_end, o->server_bridge_netmask); 
+	  verify_common_subnet ("--server-bridge", o->server_bridge_ip, o->server_bridge_pool_end, o->server_bridge_netmask); 
+	}
 
       o->mode = MODE_SERVER;
       o->tls_server = true;
-      o->ifconfig_pool_defined = true;
-      o->ifconfig_pool_start = o->server_bridge_pool_start;
-      o->ifconfig_pool_end = o->server_bridge_pool_end;
-      ifconfig_pool_verify_range (M_USAGE, o->ifconfig_pool_start, o->ifconfig_pool_end);
-      o->ifconfig_pool_netmask = o->server_bridge_netmask;
-      push_option (o, print_opt_route_gateway (o->server_bridge_ip, &o->gc), M_USAGE);
+
+      if (o->server_bridge_defined)
+	{
+	  o->ifconfig_pool_defined = true;
+	  o->ifconfig_pool_start = o->server_bridge_pool_start;
+	  o->ifconfig_pool_end = o->server_bridge_pool_end;
+	  ifconfig_pool_verify_range (M_USAGE, o->ifconfig_pool_start, o->ifconfig_pool_end);
+	  o->ifconfig_pool_netmask = o->server_bridge_netmask;
+	  push_option (o, print_opt_route_gateway (o->server_bridge_ip, &o->gc), M_USAGE);
+	}
+      else if (o->server_bridge_proxy_dhcp)
+	{
+	  push_option (o, print_opt_route_gateway_dhcp (&o->gc), M_USAGE);
+	}
     }
   else
 #endif /* P2MP_SERVER */

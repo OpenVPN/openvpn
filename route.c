@@ -335,6 +335,16 @@ clear_route_list (struct route_list *rl)
   CLEAR (*rl);
 }
 
+void
+route_list_add_default_gateway (struct route_list *rl,
+				struct env_set *es,
+				const in_addr_t addr)
+{
+  rl->spec.remote_endpoint = addr;
+  rl->spec.remote_endpoint_defined = true;
+  setenv_route_addr (es, "vpn_gateway", rl->spec.remote_endpoint, -1);
+}
+
 bool
 init_route_list (struct route_list *rl,
 		 const struct route_option_list *opt,
