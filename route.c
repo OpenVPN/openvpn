@@ -2050,7 +2050,7 @@ netmask_to_netbits (const in_addr_t network, const in_addr_t netmask, int *netbi
 static void
 add_host_route_if_nonlocal (struct route_bypass *rb, const in_addr_t addr, const IP_ADAPTER_INFO *dgi)
 {
-  if (!is_ip_in_adapter_subnet (dgi, addr, NULL))
+  if (!is_ip_in_adapter_subnet (dgi, addr, NULL) && addr != 0 && addr != ~0)
     add_bypass_address (rb, addr);
 }
 
