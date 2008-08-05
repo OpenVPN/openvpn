@@ -1957,6 +1957,9 @@ do_option_warnings (struct context *c)
     msg (M_WARN, "WARNING: using --pull/--client and --ifconfig together is probably not what you want");
 
 #if P2MP_SERVER
+  if (o->server_bridge_defined | o->server_bridge_proxy_dhcp)
+    msg (M_WARN, "NOTE: when bridging your LAN adapter with the TAP adapter, note that the new bridge adapter will often take on its own IP address that is different from what the LAN adapter was previously set to");
+
   if (o->mode == MODE_SERVER)
     {
       if (o->duplicate_cn && o->client_config_dir)
@@ -1976,6 +1979,8 @@ do_option_warnings (struct context *c)
     msg (M_WARN, "WARNING: You have disabled Crypto IVs (--no-iv) which may make " PACKAGE_NAME " less secure");
 
 #ifdef USE_SSL
+  if (o->tls_server)
+    warn_on_use_of_common_subnets ();
   if (o->tls_client
       && !o->tls_verify
       && !o->tls_remote

@@ -278,6 +278,58 @@ check_addr_clash (const char *name,
 }
 
 /*
+ * Issue a warning if ip/netmask (on the virtual IP network) conflicts with
+ * the settings on the local LAN.  This is designed to flag issues where
+ * (for example) the OpenVPN server LAN is running on 192.168.1.x, but then
+ * an OpenVPN client tries to connect from a public location that is also running
+ * off of a router set to 192.168.1.x.
+ */
+void
+check_subnet_conflict (const in_addr_t ip,
+		       const in_addr_t netmask,
+		       const char *prefix)
+{
+  struct gc_arena gc = gc_new ();
+  in_addr_t lan_gw = 0;
+  in_addr_t lan_netmask = 0;
+
+  if (get_default_gateway (&lan_gw, &lan_netmask))
+    {
+      const in_addr_t lan_network = lan_gw & lan_netmask; 
+      const in_addr_t network = ip & netmask;
+
+      /* do the two subnets defined by network/netmask and lan_network/lan_netmask intersect? */
+      if ((network & lan_netmask) == lan_network
+	  || (lan_network & netmask) == network)
+	{
+	  msg (M_WARN, "WARNING: potential %s subnet conflict between local LAN [%s/%s] and remote VPN [%s/%s]",
+	       prefix,
+	       print_in_addr_t (lan_network, 0, &gc),
+	       print_in_addr_t (lan_netmask, 0, &gc),
+	       print_in_addr_t (network, 0, &gc),
+	       print_in_addr_t (netmask, 0, &gc));
+	}
+    }
+  gc_free (&gc);
+}
+
+void
+warn_on_use_of_common_subnets (void)
+{
+  struct gc_arena gc = gc_new ();
+  in_addr_t lan_gw = 0;
+  in_addr_t lan_netmask = 0;
+
+  if (get_default_gateway (&lan_gw, &lan_netmask))
+    {
+      const in_addr_t lan_network = lan_gw & lan_netmask; 
+      if (lan_network == 0xC0A80000 || lan_network == 0xC0A80100)
+	msg (M_WARN, "NOTE: your local LAN uses the extremely common subnet address 192.168.0.x or 192.168.1.x.  Be aware that this might create routing conflicts if you connect to the VPN server from public locations such as internet cafes that use the same subnet.");
+    }
+  gc_free (&gc);
+}
+
+/*
  * Complain if --dev tap and --ifconfig is used on an OS for which
  * we don't have a custom tap ifconfig template below.
  */
@@ -462,6 +514,11 @@ init_tun (const char *dev,       /* --dev option */
 			    remote_public,
 			    tt->local,
 			    tt->remote_netmask);
+
+	  if (tt->type == DEV_TYPE_TAP || (tt->type == DEV_TYPE_TUN && tt->topology == TOP_SUBNET))
+	    check_subnet_conflict (tt->local, tt->remote_netmask, "TUN/TAP adapter");
+	  else if (tt->type == DEV_TYPE_TUN)
+	    check_subnet_conflict (tt->local, ~0, "TUN/TAP adapter");
 	}
 
       /*
@@ -2856,7 +2913,10 @@ is_ip_in_adapter_subnet (const IP_ADAPTER_INFO *ai, const in_addr_t ip, in_addr_
 }
 
 DWORD
-adapter_index_of_ip (const IP_ADAPTER_INFO *list, const in_addr_t ip, int *count)
+adapter_index_of_ip (const IP_ADAPTER_INFO *list,
+		     const in_addr_t ip,
+		     int *count,
+		     in_addr_t *netmask)
 {
   struct gc_arena gc = gc_new ();
   DWORD ret = ~0;
@@ -2897,6 +2957,9 @@ adapter_index_of_ip (const IP_ADAPTER_INFO *list, const in_addr_t ip, int *count
 
   if (ret == ~0 && count)
     *count = 0;
+
+  if (netmask)
+    *netmask = highest_netmask;
 
   gc_free (&gc);
   return ret;

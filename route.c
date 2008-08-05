@@ -39,7 +39,6 @@
 #include "memdbg.h"
 
 static void delete_route (const struct route *r, const struct tuntap *tt, unsigned int flags, const struct env_set *es);
-static bool get_default_gateway (in_addr_t *ret);
 static void get_bypass_addresses (struct route_bypass *rb, const unsigned int flags);
 
 #ifdef ENABLE_DEBUG
@@ -372,11 +371,11 @@ init_route_list (struct route_list *rl,
       rl->spec.default_metric_defined = true;
     }
 
-  rl->spec.net_gateway_defined = get_default_gateway (&rl->spec.net_gateway);
+  rl->spec.net_gateway_defined = get_default_gateway (&rl->spec.net_gateway, NULL);
   if (rl->spec.net_gateway_defined)
     {
       setenv_route_addr (es, "net_gateway", rl->spec.net_gateway, -1);
-      dmsg (D_ROUTE_DEBUG, "ROUTE DEBUG: default_gateway=%s", print_in_addr_t (rl->spec.net_gateway, 0, &gc));
+      dmsg (D_ROUTE, "ROUTE default_gateway=%s", print_in_addr_t (rl->spec.net_gateway, 0, &gc));
     }
   else
     {
@@ -666,9 +665,11 @@ add_routes (struct route_list *rl, const struct tuntap *tt, unsigned int flags, 
       
       for (i = 0; i < rl->n; ++i)
 	{
+	  struct route *r = &rl->routes[i];
+	  check_subnet_conflict (r->network, r->netmask, "route");
 	  if (flags & ROUTE_DELETE_FIRST)
-	    delete_route (&rl->routes[i], tt, flags, es);
-	  add_route (&rl->routes[i], tt, flags, es);
+	    delete_route (r, tt, flags, es);
+	  add_route (r, tt, flags, es);
 	}
       rl->routes_added = true;
     }
@@ -1142,7 +1143,7 @@ test_route (const IP_ADAPTER_INFO *adapters,
 	    DWORD *index)
 {
   int count = 0;
-  DWORD i = adapter_index_of_ip (adapters, gateway, &count);
+  DWORD i = adapter_index_of_ip (adapters, gateway, &count, NULL);
   if (index)
     *index = i;
   return count;
@@ -1251,18 +1252,24 @@ get_default_gateway_row (const MIB_IPFORWARDTABLE *routes)
   return ret;
 }
 
-static bool
-get_default_gateway (in_addr_t *ret)
+bool
+get_default_gateway (in_addr_t *gw, in_addr_t *netmask)
 {
   struct gc_arena gc = gc_new ();
   bool ret_bool = false;
 
+  const IP_ADAPTER_INFO *adapters = get_adapter_info_list (&gc);
   const MIB_IPFORWARDTABLE *routes = get_windows_routing_table (&gc);
   const MIB_IPFORWARDROW *row = get_default_gateway_row (routes);
 
   if (row)
     {
-      *ret = ntohl (row->dwForwardNextHop);
+      *gw = ntohl (row->dwForwardNextHop);
+      if (netmask)
+	{
+	  if (adapter_index_of_ip (adapters, *gw, NULL, netmask) == ~0)
+	    *netmask = ~0;
+	}
       ret_bool = true;
     }
 
@@ -1467,8 +1474,8 @@ show_routes (int msglev)
 
 #elif defined(TARGET_LINUX)
 
-static bool
-get_default_gateway (in_addr_t *gateway)
+bool
+get_default_gateway (in_addr_t *gateway, in_addr_t *netmask)
 {
   struct gc_arena gc = gc_new ();
   bool ret = false;
@@ -1521,6 +1528,10 @@ get_default_gateway (in_addr_t *gateway)
       if (best_gw)
 	{
 	  *gateway = best_gw;
+	  if (netmask)
+	    {
+	      *netmask = 0xFFFFFF00; // FIXME -- get the real netmask of the adapter containing the default gateway
+	    }
 	  ret = true;
 	}
 
@@ -1595,8 +1606,8 @@ struct {
 #define ROUNDUP(a) \
         ((a) > 0 ? (1 + (((a) - 1) | (sizeof(long) - 1))) : sizeof(long))
 
-static bool
-get_default_gateway (in_addr_t *ret)
+bool
+get_default_gateway (in_addr_t *ret, in_addr_t *netmask)
 {
   struct gc_arena gc = gc_new ();
   int s, seq, l, pid, rtm_addrs, i;
@@ -1676,10 +1687,15 @@ get_default_gateway (in_addr_t *ret)
   if (gate != NULL )
     {
       *ret = ntohl(((struct sockaddr_in *)gate)->sin_addr.s_addr);
-#if 1
+#if 0
       msg (M_INFO, "gw %s",
 	   print_in_addr_t ((in_addr_t) *ret, 0, &gc));
 #endif
+
+      if (netmask)
+	{
+	  *netmask = 0xFFFFFF00; // FIXME -- get the real netmask of the adapter containing the default gateway
+	}
 
       gc_free (&gc);
       return true;
@@ -1752,8 +1768,8 @@ struct {
 #define ROUNDUP(a) \
         ((a) > 0 ? (1 + (((a) - 1) | (sizeof(long) - 1))) : sizeof(long))
 
-static bool
-get_default_gateway (in_addr_t *ret)
+bool
+get_default_gateway (in_addr_t *ret, in_addr_t *netmask)
 {
   struct gc_arena gc = gc_new ();
   int s, seq, l, pid, rtm_addrs, i;
@@ -1833,10 +1849,15 @@ get_default_gateway (in_addr_t *ret)
   if (gate != NULL )
     {
       *ret = ntohl(((struct sockaddr_in *)gate)->sin_addr.s_addr);
-#if 1
+#if 0
       msg (M_INFO, "gw %s",
 	   print_in_addr_t ((in_addr_t) *ret, 0, &gc));
 #endif
+
+      if (netmask)
+	{
+	  *netmask = 0xFFFFFF00; // FIXME -- get the real netmask of the adapter containing the default gateway
+	}
 
       gc_free (&gc);
       return true;
@@ -1908,8 +1929,8 @@ struct {
 #define ROUNDUP(a) \
         ((a) > 0 ? (1 + (((a) - 1) | (sizeof(long) - 1))) : sizeof(long))
 
-static bool
-get_default_gateway (in_addr_t *ret)
+bool
+get_default_gateway (in_addr_t *ret, in_addr_t *netmask)
 {
   struct gc_arena gc = gc_new ();
   int s, seq, l, rtm_addrs, i;
@@ -1990,10 +2011,15 @@ get_default_gateway (in_addr_t *ret)
   if (gate != NULL )
     {
       *ret = ntohl(((struct sockaddr_in *)gate)->sin_addr.s_addr);
-#if 1
+#if 0
       msg (M_INFO, "gw %s",
 	   print_in_addr_t ((in_addr_t) *ret, 0, &gc));
 #endif
+
+      if (netmask)
+	{
+	  *netmask = 0xFFFFFF00; // FIXME -- get the real netmask of the adapter containing the default gateway
+	}
 
       gc_free (&gc);
       return true;
@@ -2007,8 +2033,8 @@ get_default_gateway (in_addr_t *ret)
 
 #else
 
-static bool
-get_default_gateway (in_addr_t *ret)
+bool
+get_default_gateway (in_addr_t *ret, in_addr_t *netmask)
 {
   return false;
 }
@@ -2126,7 +2152,7 @@ get_default_gateway_mac_addr (unsigned char *macaddr)
   in_addr_t gwip = 0;
   bool ret = false;
 
-  if (!get_default_gateway (&gwip))
+  if (!get_default_gateway (&gwip, NULL))
     {
       msg (M_WARN, "GDGMA: get_default_gateway failed");
       goto err;
@@ -2223,13 +2249,13 @@ get_default_gateway_mac_addr (unsigned char *macaddr)
   DWORD a_index;
   const IP_ADAPTER_INFO *ai;
 
-  if (!get_default_gateway (&gwip))
+  if (!get_default_gateway (&gwip, NULL))
     {
       msg (M_WARN, "GDGMA: get_default_gateway failed");
       goto err;
     }
 
-  a_index = adapter_index_of_ip (adapters, gwip, NULL);
+  a_index = adapter_index_of_ip (adapters, gwip, NULL, NULL);
   ai = get_adapter (adapters, a_index);
 
   if (!ai)

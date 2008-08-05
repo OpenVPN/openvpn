@@ -241,6 +241,12 @@ const char *ifconfig_options_string (const struct tuntap* tt, bool remote, bool 
 
 bool is_tun_p2p (const struct tuntap *tt);
 
+void check_subnet_conflict (const in_addr_t ip,
+			    const in_addr_t netmask,
+			    const char *prefix);
+
+void warn_on_use_of_common_subnets (void);
+
 /*
  * Inline functions
  */
@@ -313,7 +319,11 @@ const IP_ADAPTER_INFO *get_adapter (const IP_ADAPTER_INFO *ai, DWORD index);
 
 bool is_adapter_up (const struct tuntap *tt, const IP_ADAPTER_INFO *list);
 bool is_ip_in_adapter_subnet (const IP_ADAPTER_INFO *ai, const in_addr_t ip, in_addr_t *highest_netmask);
-DWORD adapter_index_of_ip (const IP_ADAPTER_INFO *list, const in_addr_t ip, int *count);
+
+DWORD adapter_index_of_ip (const IP_ADAPTER_INFO *list,
+			   const in_addr_t ip,
+			   int *count,
+			   in_addr_t *netmask);
 
 void show_tap_win32_adapters (int msglev, int warnlev);
 void show_adapters (int msglev);

@@ -156,6 +156,8 @@ void setenv_routes (struct env_set *es, const struct route_list *rl);
 
 bool is_special_addr (const char *addr_str);
 
+bool get_default_gateway (in_addr_t *ip, in_addr_t *netmask);
+
 #if AUTO_USERID
 bool get_default_gateway_mac_addr (unsigned char *macaddr);
 #endif
