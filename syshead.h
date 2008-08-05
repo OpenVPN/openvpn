@@ -54,6 +54,18 @@
 #define sleep(x) Sleep((x)*1000)
 #define random rand
 #define srandom srand
+
+/* MinGW autoconf workaround */
+
+#undef HAVE_SETSOCKOPT
+#define HAVE_SETSOCKOPT 1
+
+#undef HAVE_GETSOCKOPT
+#define HAVE_GETSOCKOPT 1
+
+#undef HAVE_POLL
+#define HAVE_POLL 1
+
 #endif
 
 #ifdef HAVE_SYS_TYPES_H
