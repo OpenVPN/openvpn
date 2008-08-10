@@ -256,7 +256,8 @@ ntlm_phase_3 (const struct http_proxy_info *p, const char *phase_2, struct gc_ar
   }
 
 	if (ntlmv2_enabled){ /* Generate NTLMv2 response */
-		
+	        int tib_len;
+
 		/* NTLMv2 hash */
 	        my_strupr((unsigned char *)strcpy(userdomain, username));
 		if (strlen(username) + strlen(domain) < sizeof(userdomain))
@@ -276,7 +277,6 @@ ntlm_phase_3 (const struct http_proxy_info *p, const char *phase_2, struct gc_ar
 		ntlmv2_blob[0x18]=0;                        /* Unknown, zero should work */
 
 		/* Add target information block to the blob */
-		int tib_len;
 		if (( *((long *)&buf2[0x14]) & 0x00800000) == 0x00800000){ /* Check for Target Information block */
 			tib_len = buf2[0x28];/* Get Target Information block size */
 			if (tib_len > 96) tib_len = 96;

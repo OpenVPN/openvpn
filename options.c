@@ -3249,9 +3249,9 @@ add_option (struct options *options,
 	    struct env_set *es)
 {
   struct gc_arena gc = gc_new ();
-  ASSERT (MAX_PARMS >= 5);
   const bool pull_mode = BOOL_CAST (permission_mask & OPT_P_PULL_MODE);
 
+  ASSERT (MAX_PARMS >= 5);
   if (!file)
     {
       file = "[CMD-LINE]";

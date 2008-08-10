@@ -288,7 +288,7 @@ init_proxy (struct context *c, const int scope)
 }
 
 static inline void
-uninit_proxy (struct context *c, const int scope)
+uninit_proxy (struct context *c)
 {
 }
 
