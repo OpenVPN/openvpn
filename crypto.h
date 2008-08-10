@@ -69,9 +69,6 @@
 
 #if SSLEAY_VERSION_NUMBER < 0x00907000L
 
-/* Workaround: OpenSSL 0.9.6 breaks extract_x509_field_ssl function */
-#define USE_OLD_EXTRACT_X509_FIELD
-
 /* Workaround: EVP_CIPHER_mode is defined wrong in OpenSSL 0.9.6 but is fixed in 0.9.7 */
 #undef EVP_CIPHER_mode
 #define EVP_CIPHER_mode(e)                (((e)->flags) & EVP_CIPH_MODE)

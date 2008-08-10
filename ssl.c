@@ -358,8 +358,8 @@ extract_x509_field_ssl (X509_NAME *x509, const char *field_name, char *out, int 
   int tmp = -1;
   X509_NAME_ENTRY *x509ne = 0;
   ASN1_STRING *asn1 = 0;
-  unsigned char *buf = 0;
-  int nid = OBJ_txt2nid(field_name);
+  unsigned char *buf = (unsigned char *)1; /* bug in OpenSSL 0.9.6b ASN1_STRING_to_UTF8 requires this workaround */
+  int nid = OBJ_txt2nid((char *)field_name);
 
   ASSERT (size > 0);
   *out = '\0';
