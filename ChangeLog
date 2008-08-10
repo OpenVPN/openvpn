@@ -17,6 +17,7 @@ $Id$
   successfully authenticates the server, (c) the server is malicious or has
   been compromised and is under the control of the attacker, and (d) the
   client is running a non-Windows OS.  Credit: David Wagner.
+  CVE-2008-3459
 
 * Miscellaneous defensive programming changes to multiple
   areas of the code.  In particular, use of the system() call
