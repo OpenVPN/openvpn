@@ -280,8 +280,10 @@ ntlm_phase_3 (const struct http_proxy_info *p, const char *phase_2, struct gc_ar
 		if (( *((long *)&buf2[0x14]) & 0x00800000) == 0x00800000){ /* Check for Target Information block */
 			tib_len = buf2[0x28];/* Get Target Information block size */
 			if (tib_len > 96) tib_len = 96;
-			char *tib_ptr = buf2 + buf2[0x2c]; /* Get Target Information block pointer */
-			memcpy(&ntlmv2_blob[0x1c], tib_ptr, tib_len); /* Copy Target Information block into the blob */
+			{
+			  char *tib_ptr = buf2 + buf2[0x2c]; /* Get Target Information block pointer */
+			  memcpy(&ntlmv2_blob[0x1c], tib_ptr, tib_len); /* Copy Target Information block into the blob */
+			}
 		} else {
 			tib_len = 0;
 		}
