@@ -156,7 +156,13 @@ lzo_compress (struct buffer *buf, struct buffer work,
     {
       ASSERT (buf_init (&work, FRAME_HEADROOM (frame)));
       ASSERT (buf_safe (&work, LZO_EXTRA_BUFFER (PAYLOAD_SIZE (frame))));
-      ASSERT (buf->len <= PAYLOAD_SIZE (frame));
+
+      if (!(buf->len <= PAYLOAD_SIZE (frame)))
+	{
+	  dmsg (D_COMP_ERRORS, "LZO compression buffer overflow");
+	  buf->len = 0;
+	  return;
+	}
 
       err = LZO_COMPRESS (BPTR (buf), BLEN (buf), BPTR (&work), &zlen, lzowork->wmem);
       if (err != LZO_E_OK)
