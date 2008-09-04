@@ -98,6 +98,7 @@ openvpn \- secure IP tunnel daemon.
 .ti -4
 .B openvpn
 [\ \fB\-\-allow\-nonadmin\fR\ \fI[TAP\-adapter]\fR\ ]
+[\ \fB\-\-allow\-pull\-fqdn\fR\ ]
 [\ \fB\-\-askpass\fR\ \fI[file]\fR\ ]
 [\ \fB\-\-auth\-nocache\fR\ ]
 [\ \fB\-\-auth\-retry\fR\ \fItype\fR\ ]
@@ -1298,6 +1299,15 @@ When used on the client, this option effectively bars the
 server from adding routes to the client's routing table,
 however note that this option still allows the server
 to set the TCP/IP properties of the client's TUN/TAP interface.
+.\"*********************************************************
+.TP
+.B --allow-pull-fqdn
+Allow client to pull DNS names from server (rather than being limited
+to IP address) for
+.B --ifconfig,
+.B --route,
+and
+.B --route-gateway.
 .\"*********************************************************
 .TP
 .B --redirect-gateway flags...

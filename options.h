@@ -303,6 +303,7 @@ struct options
   struct route_option_list *routes;
   bool route_nopull;
   bool route_gateway_via_dhcp;
+  bool allow_pull_fqdn; /* as a client, allow server to push a FQDN for certain parameters */
 
 #ifdef ENABLE_OCC
   /* Enable options consistency check between peers */
