@@ -923,7 +923,7 @@ do_route (const struct options *options,
     {
       struct argv argv = argv_new ();
       setenv_str (es, "script_type", "route-up");
-      argv_printf (&argv, "%s", options->route_script);
+      argv_printf (&argv, "%sc", options->route_script);
       openvpn_execve_check (&argv, es, S_SCRIPT, "Route script failed");
       argv_reset (&argv);
     }

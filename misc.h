@@ -221,9 +221,6 @@ bool delete_file (const char *filename);
 /* return true if pathname is absolute */
 bool absolute_pathname (const char *pathname);
 
-/* return the next largest power of 2 */
-unsigned int adjust_power_of_2 (unsigned int u);
-
 /*
  * Get and store a username/password
  */
@@ -299,5 +296,38 @@ extern const char *iproute_path;
 #define SSEC_SCRIPTS   2 /* allow calling of built-in programs and user-defined scripts */
 #define SSEC_PW_ENV    3 /* allow calling of built-in programs and user-defined scripts that may receive a password as an environmental variable */
 extern int script_security; /* GLOBAL */
+
+/* return the next largest power of 2 */
+size_t adjust_power_of_2 (size_t u);
+
+/*
+ * A printf-like function (that only recognizes a subset of standard printf
+ * format operators) that prints arguments to an argv list instead
+ * of a standard string.  This is used to build up argv arrays for passing
+ * to execve.
+ */
+void argv_init (struct argv *a);
+struct argv argv_new (void);
+void argv_reset (struct argv *a);
+char *argv_term (const char **f);
+const char *argv_str (const struct argv *a, struct gc_arena *gc, const unsigned int flags);
+struct argv argv_insert_head (const struct argv *a, const char *head);
+void argv_msg (const int msglev, const struct argv *a);
+void argv_msg_prefix (const int msglev, const struct argv *a, const char *prefix);
+
+#define APA_CAT (1<<0) /* concatentate onto existing struct argv list */
+void argv_printf_arglist (struct argv *a, const char *format, const unsigned int flags, va_list arglist);
+
+void argv_printf (struct argv *a, const char *format, ...)
+#ifdef __GNUC__
+  __attribute__ ((format (printf, 2, 3)))
+#endif
+  ;
+
+void argv_printf_cat (struct argv *a, const char *format, ...)
+#ifdef __GNUC__
+  __attribute__ ((format (printf, 2, 3)))
+#endif
+  ;
 
 #endif

@@ -103,7 +103,7 @@ learn_address_script (const struct multi_context *m,
     {
       struct argv argv = argv_new ();
       setenv_str (es, "script_type", "learn-address");
-      argv_printf (&argv, "%s %s %s",
+      argv_printf (&argv, "%sc %s %s",
 		   m->top.options.learn_address_script,
 		   op,
 		   mroute_addr_print (addr, &gc));
@@ -473,7 +473,7 @@ multi_client_disconnect_script (struct multi_context *m,
 	{
 	  struct argv argv = argv_new ();
 	  setenv_str (mi->context.c2.es, "script_type", "client-disconnect");
-	  argv_printf (&argv, "%s", mi->context.options.client_disconnect_script);
+	  argv_printf (&argv, "%sc", mi->context.options.client_disconnect_script);
 	  openvpn_execve_check (&argv, mi->context.c2.es, S_SCRIPT, "client-disconnect command failed");
 	  argv_reset (&argv);
 	}
@@ -1568,7 +1568,7 @@ multi_connection_established (struct multi_context *m, struct multi_instance *mi
 
 	  delete_file (dc_file);
 
-	  argv_printf (&argv, "%s %s",
+	  argv_printf (&argv, "%sc %s",
 		       mi->context.options.client_connect_script,
 		       dc_file);
 

@@ -1539,7 +1539,7 @@ ipchange_fmt (const bool include_cmd, struct argv *argv, const struct link_socke
   const char *ip = print_sockaddr_ex (&info->lsa->actual.dest, NULL, 0, gc);
   const char *port = print_sockaddr_ex (&info->lsa->actual.dest, NULL, PS_DONT_SHOW_ADDR|PS_SHOW_PORT, gc);
   if (include_cmd)
-    argv_printf (argv, "%s %s %s",
+    argv_printf (argv, "%sc %s %s",
 		 info->ipchange_command,
 		 ip,
 		 port);

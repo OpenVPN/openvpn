@@ -60,6 +60,7 @@ struct buffer
 
 /* used by argv_x functions */
 struct argv {
+  size_t capacity;
   size_t argc;
   char **argv;
 };
@@ -291,37 +292,6 @@ int openvpn_snprintf(char *str, size_t size, const char *format, ...)
     __attribute__ ((format (printf, 3, 4)))
 #endif
     ;
-
-/*
- * A printf-like function (that only recognizes a subset of standard printf
- * format operators) that prints arguments to an argv list instead
- * of a standard string.  This is used to build up argv arrays for passing
- * to execve.
- */
-void argv_init (struct argv *a);
-struct argv argv_new (void);
-void argv_reset (struct argv *a);
-size_t argv_argc (const char *format);
-char *argv_term (const char **f);
-const char *argv_str (const struct argv *a, struct gc_arena *gc, const unsigned int flags);
-struct argv argv_insert_head (const struct argv *a, const char *head);
-void argv_msg (const int msglev, const struct argv *a);
-void argv_msg_prefix (const int msglev, const struct argv *a, const char *prefix);
-
-#define APA_CAT (1<<0) /* concatentate onto existing struct argv list */
-void argv_printf_arglist (struct argv *a, const char *format, const unsigned int flags, va_list arglist);
-
-void argv_printf (struct argv *a, const char *format, ...)
-#ifdef __GNUC__
-  __attribute__ ((format (printf, 2, 3)))
-#endif
-  ;
-
-void argv_printf_cat (struct argv *a, const char *format, ...)
-#ifdef __GNUC__
-  __attribute__ ((format (printf, 2, 3)))
-#endif
-  ;
 
 /*
  * remove/add trailing characters

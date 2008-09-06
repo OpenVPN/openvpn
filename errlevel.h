@@ -75,6 +75,7 @@
 #define D_CLOSE              LOGLEV(2, 22, 0)        /* show socket and TUN/TAP close */
 #define D_SHOW_OCC_HASH      LOGLEV(2, 23, 0)        /* show MD5 hash of option compatibility string */
 #define D_PROXY              LOGLEV(2, 24, 0)        /* show http proxy control packets */
+#define D_ARGV               LOGLEV(2, 25, 0)        /* show struct argv errors */
 
 #define D_TLS_DEBUG_LOW      LOGLEV(3, 20, 0)        /* low frequency info from tls_session routines */
 #define D_GREMLIN            LOGLEV(3, 30, 0)        /* show simulated outage info from gremlin module */

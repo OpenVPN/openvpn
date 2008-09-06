@@ -718,7 +718,7 @@ verify_callback (int preverify_ok, X509_STORE_CTX * ctx)
 
       setenv_str (opt->es, "script_type", "tls-verify");
 
-      argv_printf (&argv, "%s %d %s",
+      argv_printf (&argv, "%sc %d %s",
 		   opt->verify_command,
 		   ctx->error_depth,
 		   subject);
@@ -2937,7 +2937,7 @@ verify_user_pass_script (struct tls_session *session, const struct user_pass *up
       setenv_untrusted (session);
 
       /* format command line */
-      argv_printf (&argv, "%s %s", session->opt->auth_user_pass_verify_script, tmp_file);
+      argv_printf (&argv, "%sc %s", session->opt->auth_user_pass_verify_script, tmp_file);
       
       /* call command */
       retval = openvpn_execve (&argv, session->opt->es, S_SCRIPT);
