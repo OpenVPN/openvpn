@@ -294,13 +294,25 @@ ip_addr_dotted_quad_safe (const char *dotted_quad)
   }
 }
 
-bool
-ip_or_dns_addr_safe (const char *dotted_quad, const bool allow_fqdn)
+static bool
+dns_addr_safe (const char *addr)
 {
-  if (ip_addr_dotted_quad_safe (dotted_quad))
+  if (addr)
+    {
+      const size_t len = strlen (addr);
+      return len > 0 && len <= 255 && string_class (addr, CC_ALNUM|CC_DASH|CC_DOT, 0);
+    }
+  else
+    return false;
+}
+
+bool
+ip_or_dns_addr_safe (const char *addr, const bool allow_fqdn)
+{
+  if (ip_addr_dotted_quad_safe (addr))
     return true;
   else if (allow_fqdn)
-    return string_class (dotted_quad, CC_NAME|CC_DASH|CC_DOT, 0);
+    return dns_addr_safe (addr);
   else
     return false;
 }
