@@ -64,7 +64,8 @@ dist_noinst_HEADERS = \
 dist_noinst_SCRIPTS = \
 	$(TESTS) \
 	doclean \
-	domake-win
+	domake-win \
+	t_cltsrv-down.sh
 
 dist_noinst_DATA = \
 	openvpn.spec \
