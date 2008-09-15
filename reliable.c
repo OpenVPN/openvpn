@@ -42,9 +42,9 @@
  * verify that test - base < extent while allowing for base or test wraparound
  */
 static inline bool
-reliable_pid_in_range (const packet_id_type test,
-		       const packet_id_type base,
-		       const unsigned int extent)
+reliable_pid_in_range1 (const packet_id_type test,
+			const packet_id_type base,
+			const unsigned int extent)
 {
   if (test >= base)
     {
@@ -52,9 +52,30 @@ reliable_pid_in_range (const packet_id_type test,
 	return true;
     }
   else
-    {      
-      const packet_id_type be = base + extent;
-      if (test < be && be < base)
+    {
+      if ((test+0x80000000u) - (base+0x80000000u) < extent)
+	return true;
+    }
+
+  return false;
+}
+
+/*
+ * verify that test < base + extent while allowing for base or test wraparound
+ */
+static inline bool
+reliable_pid_in_range2 (const packet_id_type test,
+			const packet_id_type base,
+			const unsigned int extent)
+{
+  if (base + extent >= base)
+    {
+      if (test < base + extent)
+	return true;
+    }
+  else
+    {
+      if ((test+0x80000000u) < (base+0x80000000u) + extent)
 	return true;
     }
 
@@ -68,7 +89,7 @@ static inline bool
 reliable_pid_min (const packet_id_type p1,
 		  const packet_id_type p2)
 {
-  return !reliable_pid_in_range (p1, p2, 0x80000000);
+  return !reliable_pid_in_range1 (p1, p2, 0x80000000u);
 }
 
 /* check if a particular packet_id is present in ack */
@@ -386,7 +407,7 @@ reliable_wont_break_sequentiality (const struct reliable *rel, packet_id_type id
 {
   struct gc_arena gc = gc_new ();
 
-  const int ret = reliable_pid_in_range (id, rel->packet_id, rel->size);
+  const int ret = reliable_pid_in_range2 (id, rel->packet_id, rel->size);
 
   if (!ret)
     {
@@ -441,7 +462,7 @@ reliable_get_buf_output_sequenced (struct reliable *rel)
 	}
     }
 
-  if (!min_id_defined || reliable_pid_in_range (rel->packet_id, min_id, rel->size))
+  if (!min_id_defined || reliable_pid_in_range1 (rel->packet_id, min_id, rel->size))
     {
       ret = reliable_get_buf (rel);
     }

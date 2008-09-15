@@ -3,6 +3,11 @@ Copyright (C) 2002-2008 Telethra, Inc. <sales@openvpn.net>
 
 $Id$
 
+2008.09.14 -- Version 2.1_rc11
+
+* Fixed a bug that can cause SSL/TLS negotiations in UDP mode
+  to fail if UDP packets are dropped.
+
 2008.09.10 -- Version 2.1_rc10
 
 * Added "--server-bridge" (without parameters) to enable

@@ -43,6 +43,8 @@
 #define GREMLIN_UP_DOWN_SHIFT            (7)
 #define GREMLIN_UP_DOWN_MASK             (0x03)
 
+/* 512:1/500 1024:1/100 1536:1/50 */
+
 #define GREMLIN_DROP_SHIFT               (9)
 #define GREMLIN_DROP_MASK                (0x03)
 
