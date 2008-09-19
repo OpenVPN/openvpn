@@ -400,6 +400,7 @@ int openvpn_inet_aton (const char *dotted_quad, struct in_addr *addr);
 /* integrity validation on pulled options */
 bool ip_addr_dotted_quad_safe (const char *dotted_quad);
 bool ip_or_dns_addr_safe (const char *addr, const bool allow_fqdn);
+bool mac_addr_safe (const char *mac_addr);
 
 socket_descriptor_t create_socket_tcp (void);
 

@@ -3436,11 +3436,11 @@ add_option (struct options *options,
   else if (streq (p[0], "lladdr") && p[1])
     {
       VERIFY_PERMISSION (OPT_P_UP);
-      if (ip_addr_dotted_quad_safe (p[1])) /* FQDN -- IP address only */
+      if (mac_addr_safe (p[1])) /* MAC address only */
 	options->lladdr = p[1];
       else
 	{
-	  msg (msglevel, "lladdr parm '%s' must be an IP address", p[1]);
+	  msg (msglevel, "lladdr parm '%s' must be a MAC address", p[1]);
 	  goto err;
 	}
     }

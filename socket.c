@@ -317,6 +317,45 @@ ip_or_dns_addr_safe (const char *addr, const bool allow_fqdn)
     return false;
 }
 
+bool
+mac_addr_safe (const char *mac_addr)
+{
+  /* verify non-NULL */
+  if (!mac_addr)
+    return false;
+
+  /* verify length is within limits */
+  if (strlen (mac_addr) > 17)
+    return false;
+
+  /* verify that all chars are either alphanumeric or ':' and that no
+     alphanumeric substring is greater than 2 chars */
+  {
+    int nnum = 0;
+    const char *p = mac_addr;
+    int c;
+
+    while ((c = *p++))
+      {
+	if ( (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F') )
+	  {
+	    ++nnum;
+	    if (nnum > 2)
+	      return false;
+	  }
+	else if (c == ':')
+	  {
+	    nnum = 0;
+	  }
+	else
+	  return false;
+      }
+  }
+
+  /* error-checking is left to script invoked in lladdr.c */
+  return true;
+}
+
 static void
 update_remote (const char* host,
 	       struct openvpn_sockaddr *addr,
