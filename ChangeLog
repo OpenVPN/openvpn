@@ -3,6 +3,15 @@ Copyright (C) 2002-2008 Telethra, Inc. <sales@openvpn.net>
 
 $Id$
 
+2008.09.23 -- Version 2.1_rc12
+
+* Patched Makefile.am so that the new t_cltsrv-down.sh script becomes
+  part of the tarball (Matthias Andree).
+
+* Fixed --lladdr bug introduced in 2.1-rc9 where input validation code
+  was incorrectly expecting the lladdr parameter to be an IP address
+  when it is actually a MAC address (HoverHell).
+	
 2008.09.14 -- Version 2.1_rc11
 
 * Fixed a bug that can cause SSL/TLS negotiations in UDP mode
