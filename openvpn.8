@@ -181,7 +181,9 @@ openvpn \- secure IP tunnel daemon.
 [\ \fB\-\-suppress-timestamps\fR\ ]
 [\ \fB\-\-lport\fR\ \fIport\fR\ ]
 [\ \fB\-\-management\-client\-auth\fR\ ]
+[\ \fB\-\-management\-client\-group\fR\ \fIg\fR\ ]
 [\ \fB\-\-management\-client\-pf\fR\ ]
+[\ \fB\-\-management\-client\-user\fR\ \fIu\fR\ ]
 [\ \fB\-\-management\-forget\-disconnect\fR\ ]
 [\ \fB\-\-management\-hold\fR\ ]
 [\ \fB\-\-management\-log\-cache\fR\ \fIn\fR\ ]
@@ -2455,6 +2457,19 @@ or "stdin" to prompt from standard input.  The password
 provided will set the password which TCP clients will need
 to provide in order to access management functions.
 
+The management interface can also listen on a unix domain socket,
+for those platforms that support it.  To use a unix domain socket, specify
+the unix socket pathname in place of
+.B IP
+and set
+.B port
+to 'unix'.  While the default behavior is to create a unix domain socket
+that may be connected to by any process, the
+.B --management-client-user
+and
+.B --management-client-group
+directives can be used to restrict access.
+
 The management interface provides a special mode where the TCP
 management link can operate over the tunnel itself.  To enable this mode,
 set
@@ -2530,6 +2545,18 @@ distribution for detailed notes.
 Management interface clients must specify a packet
 filter file for each connecting client.  See management-notes.txt
 in OpenVPN distribution for detailed notes.
+.\"*********************************************************
+.TP
+.B --management-client-user u
+When the management interface is listening on a unix domain socket,
+only allow connections from user
+.B u.
+.\"*********************************************************
+.TP
+.B --management-client-group g
+When the management interface is listening on a unix domain socket,
+only allow connections from group
+.B g.
 .\"*********************************************************
 .TP
 .B --plugin module-pathname [init-string]

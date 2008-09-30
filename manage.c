@@ -226,6 +226,15 @@ man_prompt (struct management *man)
 }
 
 static void
+man_delete_unix_socket (struct management *man)
+{
+#if UNIX_SOCK_SUPPORT
+  if (man->settings.flags & MF_LISTEN_UNIX)
+    socket_delete_unix (&man->settings.local_unix);
+#endif
+}
+
+static void
 man_close_socket (struct management *man, const socket_descriptor_t sd)
 {
 #ifndef WIN32
@@ -1231,9 +1240,18 @@ man_new_connection_post (struct management *man, const char *description)
   man_start_ne32 (man);
 #endif
 
-  msg (D_MANAGEMENT, "MANAGEMENT: %s %s",
-       description,
-       print_sockaddr (&man->settings.local, &gc));
+#if UNIX_SOCK_SUPPORT
+  if (man->settings.flags & MF_LISTEN_UNIX)
+    {
+      msg (D_MANAGEMENT, "MANAGEMENT: %s %s",
+	   description,
+	   sockaddr_unix_name (&man->settings.local_unix, "NULL"));
+    }
+  else
+#endif
+    msg (D_MANAGEMENT, "MANAGEMENT: %s %s",
+	 description,
+	 print_sockaddr (&man->settings.local, &gc));
 
   buffer_list_reset (man->connection.out);
 
@@ -1249,11 +1267,46 @@ static void
 man_accept (struct management *man)
 {
   struct link_socket_actual act;
+  CLEAR (act);
 
   /*
-   * Accept the TCP client.
+   * Accept the TCP or Unix domain socket client.
    */
-  man->connection.sd_cli = socket_do_accept (man->connection.sd_top, &act, false);
+#if UNIX_SOCK_SUPPORT
+  if (man->settings.flags & MF_LISTEN_UNIX)
+    {
+      struct sockaddr_un remote;
+      man->connection.sd_cli = socket_accept_unix (man->connection.sd_top, &remote);
+      if (socket_defined (man->connection.sd_cli) && (man->settings.client_uid != -1 || man->settings.client_gid != -1))
+	{
+	  static const char err_prefix[] = "MANAGEMENT: unix domain socket client connection rejected --";
+	  int uid, gid;
+	  if (unix_socket_get_peer_uid_gid (man->connection.sd_cli, &uid, &gid))
+	    {
+	      if (man->settings.client_uid != -1 && man->settings.client_uid != uid)
+		{
+		  msg (D_MANAGEMENT, "%s UID of socket peer (%d) doesn't match required value (%d) as given by --management-client-user",
+		       err_prefix, uid, man->settings.client_uid);
+		  sd_close (&man->connection.sd_cli);
+		}
+	      if (man->settings.client_gid != -1 && man->settings.client_gid != gid)
+		{
+		  msg (D_MANAGEMENT, "%s GID of socket peer (%d) doesn't match required value (%d) as given by --management-client-group",
+		       err_prefix, gid, man->settings.client_gid);
+		  sd_close (&man->connection.sd_cli);
+		}
+	    }
+	  else
+	    {
+	      msg (D_MANAGEMENT, "%s cannot get UID/GID of socket peer", err_prefix);
+	      sd_close (&man->connection.sd_cli);
+	    }
+	}
+    }
+  else
+#endif
+    man->connection.sd_cli = socket_do_accept (man->connection.sd_top, &act, false);
+
   if (socket_defined (man->connection.sd_cli))
     {
       man->connection.remote = act.dest;
@@ -1285,12 +1338,19 @@ man_listen (struct management *man)
    */
   if (man->connection.sd_top == SOCKET_UNDEFINED)
     {
-      man->connection.sd_top = create_socket_tcp ();
-
-      /*
-       * Bind socket
-       */
-      socket_bind (man->connection.sd_top, &man->settings.local, "MANAGEMENT");
+#if UNIX_SOCK_SUPPORT
+      if (man->settings.flags & MF_LISTEN_UNIX)
+	{
+	  man_delete_unix_socket (man);
+	  man->connection.sd_top = create_socket_unix ();
+	  socket_bind_unix (man->connection.sd_top, &man->settings.local_unix, "MANAGEMENT");
+	}
+      else
+#endif
+	{
+	  man->connection.sd_top = create_socket_tcp ();
+	  socket_bind (man->connection.sd_top, &man->settings.local, "MANAGEMENT");
+	}
 
       /*
        * Listen for connection
@@ -1304,8 +1364,16 @@ man_listen (struct management *man)
       set_nonblock (man->connection.sd_top);
       set_cloexec (man->connection.sd_top);
 
-      msg (D_MANAGEMENT, "MANAGEMENT: TCP Socket listening on %s",
-	   print_sockaddr (&man->settings.local, &gc));
+#if UNIX_SOCK_SUPPORT
+      if (man->settings.flags & MF_LISTEN_UNIX)
+	{
+	  msg (D_MANAGEMENT, "MANAGEMENT: unix domain socket listening on %s",
+	       sockaddr_unix_name (&man->settings.local_unix, "NULL"));
+	}
+      else
+#endif
+	msg (D_MANAGEMENT, "MANAGEMENT: TCP Socket listening on %s",
+	     print_sockaddr (&man->settings.local, &gc));
     }
 
 #ifdef WIN32
@@ -1645,6 +1713,8 @@ man_settings_init (struct man_settings *ms,
 		   const char *addr,
 		   const int port,
 		   const char *pass_file,
+		   const char *client_user,
+		   const char *client_group,
 		   const int log_history_cache,
 		   const int echo_buffer_size,
 		   const int state_buffer_size,
@@ -1657,6 +1727,8 @@ man_settings_init (struct man_settings *ms,
       CLEAR (*ms);
 
       ms->flags = flags;
+      ms->client_uid = -1;
+      ms->client_gid = -1;
 
       /*
        * Get username/password
@@ -1664,27 +1736,54 @@ man_settings_init (struct man_settings *ms,
       if (pass_file)
 	get_user_pass (&ms->up, pass_file, "Management", GET_USER_PASS_PASSWORD_ONLY);
 
+      /*
+       * lookup client UID/GID if specified
+       */
+      if (client_user)
+	{
+	  struct user_state s;
+	  get_user (client_user, &s);
+	  ms->client_uid = user_state_uid (&s);
+	  msg (D_MANAGEMENT, "MANAGEMENT: client_uid=%d", ms->client_uid);
+	  ASSERT (ms->client_uid >= 0);
+	}
+      if (client_group)
+	{
+	  struct group_state s;
+	  get_group (client_group, &s);
+	  ms->client_gid = group_state_gid (&s);
+	  msg (D_MANAGEMENT, "MANAGEMENT: client_gid=%d", ms->client_gid);
+	  ASSERT (ms->client_gid >= 0);
+	}
+
       ms->write_peer_info_file = string_alloc (write_peer_info_file, NULL);
 
-      /*
-       * Initialize socket address
-       */
-      ms->local.sa.sin_family = AF_INET;
-      ms->local.sa.sin_addr.s_addr = 0;
-      ms->local.sa.sin_port = htons (port);
-
-      /*
-       * Run management over tunnel, or
-       * separate channel?
-       */
-      if (streq (addr, "tunnel") && !(flags & MF_CONNECT_AS_CLIENT))
-	{
-	  ms->management_over_tunnel = true;
-	}
+#if UNIX_SOCK_SUPPORT
+      if (ms->flags & MF_LISTEN_UNIX)
+	sockaddr_unix_init (&ms->local_unix, addr);
       else
+#endif
 	{
-	  ms->local.sa.sin_addr.s_addr = getaddr
-	    (GETADDR_RESOLVE|GETADDR_WARN_ON_SIGNAL|GETADDR_FATAL, addr, 0, NULL, NULL);
+	  /*
+	   * Initialize socket address
+	   */
+	  ms->local.sa.sin_family = AF_INET;
+	  ms->local.sa.sin_addr.s_addr = 0;
+	  ms->local.sa.sin_port = htons (port);
+
+	  /*
+	   * Run management over tunnel, or
+	   * separate channel?
+	   */
+	  if (streq (addr, "tunnel") && !(flags & MF_CONNECT_AS_CLIENT))
+	    {
+	      ms->management_over_tunnel = true;
+	    }
+	  else
+	    {
+	      ms->local.sa.sin_addr.s_addr = getaddr
+		(GETADDR_RESOLVE|GETADDR_WARN_ON_SIGNAL|GETADDR_FATAL, addr, 0, NULL, NULL);
+	    }
 	}
       
       /*
@@ -1764,7 +1863,10 @@ man_connection_close (struct management *man)
   net_event_win32_close (&mc->ne32);
 #endif
   if (socket_defined (mc->sd_top))
-    man_close_socket (man, mc->sd_top);
+    {
+      man_close_socket (man, mc->sd_top);
+      man_delete_unix_socket (man);
+    }
   if (socket_defined (mc->sd_cli))
     man_close_socket (man, mc->sd_cli);
   if (mc->in)
@@ -1798,6 +1900,8 @@ management_open (struct management *man,
 		 const char *addr,
 		 const int port,
 		 const char *pass_file,
+		 const char *client_user,
+		 const char *client_group,
 		 const int log_history_cache,
 		 const int echo_buffer_size,
 		 const int state_buffer_size,
@@ -1815,6 +1919,8 @@ management_open (struct management *man,
 		     addr,
 		     port,
 		     pass_file,
+		     client_user,
+		     client_group,
 		     log_history_cache,
 		     echo_buffer_size,
 		     state_buffer_size,

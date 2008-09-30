@@ -82,7 +82,7 @@ get_user (const char *username, struct user_state *state)
       state->username = username;
       ret = true;
 #else
-      msg (M_FATAL, "Sorry but I can't setuid to '%s' because this operating system doesn't appear to support the getpwname() or setuid() system calls", username);
+      msg (M_FATAL, "cannot get UID for user %s -- platform lacks getpwname() or setuid() system calls", username);
 #endif
     }
   return ret;
@@ -117,7 +117,7 @@ get_group (const char *groupname, struct group_state *state)
       state->groupname = groupname;
       ret = true;
 #else
-      msg (M_FATAL, "Sorry but I can't setgid to '%s' because this operating system doesn't appear to support the getgrnam() or setgid() system calls", groupname);
+      msg (M_FATAL, "cannot get GID for group %s -- platform lacks getgrnam() or setgid() system calls", groupname);
 #endif
     }
   return ret;

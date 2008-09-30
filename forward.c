@@ -1290,11 +1290,11 @@ io_wait_dowork (struct context *c, const unsigned int flags)
   struct event_set_return esr[4];
 
   /* These shifts all depend on EVENT_READ and EVENT_WRITE */
-  static const int socket_shift = 0;     /* depends on SOCKET_READ and SOCKET_WRITE */
-  static const int tun_shift = 2;        /* depends on TUN_READ and TUN_WRITE */
-  static const int err_shift = 4;        /* depends on ES_ERROR */
+  static int socket_shift = 0;     /* depends on SOCKET_READ and SOCKET_WRITE */
+  static int tun_shift = 2;        /* depends on TUN_READ and TUN_WRITE */
+  static int err_shift = 4;        /* depends on ES_ERROR */
 #ifdef ENABLE_MANAGEMENT
-  static const int management_shift = 6; /* depends on MANAGEMENT_READ and MANAGEMENT_WRITE */
+  static int management_shift = 6; /* depends on MANAGEMENT_READ and MANAGEMENT_WRITE */
 #endif
 
   /*

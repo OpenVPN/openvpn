@@ -311,6 +311,10 @@ static const char usage_message[] =
   "--management ip port [pass] : Enable a TCP server on ip:port to handle\n"
   "                  management functions.  pass is a password file\n"
   "                  or 'stdin' to prompt from console.\n"
+#if UNIX_SOCK_SUPPORT
+  "                  To listen on a unix domain socket, specific the pathname\n"
+  "                  in place of ip and use 'unix' as the port number.\n"
+#endif
   "--management-client : Management interface will connect as a TCP client to\n"
   "                      ip/port rather than listen as a TCP server.\n"
   "--management-query-passwords : Query management channel for private key\n"
@@ -322,6 +326,12 @@ static const char usage_message[] =
   "                                 event occurs.\n"
   "--management-log-cache n : Cache n lines of log file history for usage\n"
   "                  by the management channel.\n"
+#if UNIX_SOCK_SUPPORT
+  "--management-client-user u  : When management interface is a unix socket, only\n"
+  "                              allow connections from user u.\n"
+  "--management-client-group g : When management interface is a unix socket, only\n"
+  "                              allow connections from group g.\n"
+#endif
 #ifdef MANAGEMENT_DEF_AUTH
   "--management-client-auth : gives management interface client the responsibility\n"
   "                           to authenticate clients after their client certificate\n"
@@ -1240,6 +1250,8 @@ show_settings (const struct options *o)
   SHOW_INT (management_log_history_cache);
   SHOW_INT (management_echo_buffer_size);
   SHOW_STR (management_write_peer_info_file);
+  SHOW_STR (management_client_user);
+  SHOW_STR (management_client_group);
   SHOW_INT (management_flags);
 #endif
 #ifdef ENABLE_PLUGIN
@@ -1554,6 +1566,14 @@ options_postprocess_verify_ce (const struct options *options, const struct conne
        || options->management_write_peer_info_file
        || options->management_log_history_cache != defaults.management_log_history_cache))
     msg (M_USAGE, "--management is not specified, however one or more options which modify the behavior of --management were specified");
+
+  if ((options->management_flags & (MF_LISTEN_UNIX|MF_CONNECT_AS_CLIENT))
+      == (MF_LISTEN_UNIX|MF_CONNECT_AS_CLIENT))
+    msg (M_USAGE, "--management-client does not support unix domain sockets");
+
+  if ((options->management_client_user || options->management_client_group)
+      && !(options->management_flags & MF_LISTEN_UNIX))
+    msg (M_USAGE, "--management-client-(user|group) can only be used on unix domain sockets");
 #endif
 
   /*
@@ -3319,14 +3339,26 @@ add_option (struct options *options,
 #ifdef ENABLE_MANAGEMENT
   else if (streq (p[0], "management") && p[1] && p[2])
     {
-      int port;
+      int port = 0;
 
       VERIFY_PERMISSION (OPT_P_GENERAL);
-      port = atoi (p[2]);
-      if (!legal_ipv4_port (port))
+      if (streq (p[2], "unix"))
 	{
-	  msg (msglevel, "port number associated with --management directive is out of range");
+#if UNIX_SOCK_SUPPORT
+	  options->management_flags |= MF_LISTEN_UNIX;
+#else
+	  msg (msglevel, "MANAGEMENT: this platform does not support unix domain sockets");
 	  goto err;
+#endif
+	}
+      else
+	{
+	  port = atoi (p[2]);
+	  if (!legal_ipv4_port (port))
+	    {
+	      msg (msglevel, "port number associated with --management directive is out of range");
+	      goto err;
+	    }
 	}
 
       options->management_addr = p[1];
@@ -3335,6 +3367,16 @@ add_option (struct options *options,
 	{
 	  options->management_user_pass = p[3];
 	}
+    }
+  else if (streq (p[0], "management-client-user") && p[1])
+    {
+      VERIFY_PERMISSION (OPT_P_GENERAL);
+      options->management_client_user = p[1];
+    }
+  else if (streq (p[0], "management-client-group") && p[1])
+    {
+      VERIFY_PERMISSION (OPT_P_GENERAL);
+      options->management_client_group = p[1];
     }
   else if (streq (p[0], "management-query-passwords"))
     {

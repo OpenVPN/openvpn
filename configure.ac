@@ -339,7 +339,7 @@ AC_CHECK_HEADERS(fcntl.h stdlib.h dnl
 
 if test "${WIN32}" != "yes"; then
    AC_HEADER_SYS_WAIT
-   AC_CHECK_HEADERS(sys/time.h sys/socket.h sys/ioctl.h sys/stat.h dnl
+   AC_CHECK_HEADERS(sys/time.h sys/socket.h sys/un.h sys/ioctl.h sys/stat.h dnl
 		 sys/mman.h fcntl.h sys/file.h stdlib.h stdint.h dnl
 		 stdarg.h unistd.h signal.h stdio.h string.h dnl
 		 strings.h ctype.h errno.h syslog.h pwd.h grp.h dnl
@@ -464,7 +464,7 @@ AC_CHECK_FUNCS(daemon chroot getpwnam setuid nice system getpid dup dup2 dnl
 	       getpass strerror syslog openlog mlockall getgrnam setgid dnl
 	       setgroups stat flock readv writev time dnl
 	       setsid chdir putenv getpeername unlink dnl
-	       chsize ftruncate execve)
+	       chsize ftruncate execve getpeereid umask)
 
 # Windows use stdcall for winsock so we cannot auto detect these
 m4_define([SOCKET_FUNCS], [socket recv recvfrom send sendto listen dnl

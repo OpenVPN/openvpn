@@ -119,7 +119,7 @@ void warn_if_group_others_accessible(const char* filename);
 
 /* interpret the status code returned by system()/execve() */
 bool system_ok(int);
-int system_executed (int stat);
+bool system_executed (int stat);
 const char *system_error_message (int, struct gc_arena *gc);
 
 /* wrapper around the execve() call */
@@ -329,5 +329,29 @@ void argv_printf_cat (struct argv *a, const char *format, ...)
   __attribute__ ((format (printf, 2, 3)))
 #endif
   ;
+
+/*
+ * Extract UID or GID
+ */
+
+static inline int
+user_state_uid (const struct user_state *s)
+{
+#if defined(HAVE_GETPWNAM) && defined(HAVE_SETUID)
+  if (s->pw)
+    return s->pw->pw_uid;
+#endif
+  return -1;
+}
+
+static inline int
+group_state_gid (const struct group_state *s)
+{
+#if defined(HAVE_GETGRNAM) && defined(HAVE_SETGID)
+  if (s->gr)
+    return s->gr->gr_gid;
+#endif
+  return -1;
+}
 
 #endif

@@ -2627,3 +2627,125 @@ socket_set (struct link_socket *s,
     }
   return rwflags;
 }
+
+void
+sd_close (socket_descriptor_t *sd)
+{
+  if (sd && socket_defined (*sd))
+    {
+      openvpn_close_socket (*sd);
+      *sd = SOCKET_UNDEFINED;
+    }
+}
+
+#if UNIX_SOCK_SUPPORT
+
+/*
+ * code for unix domain sockets
+ */
+
+const char *
+sockaddr_unix_name (const struct sockaddr_un *local, const char *null)
+{
+  if (local && local->sun_family == PF_UNIX)
+    return local->sun_path;
+  else
+    return null;
+}
+
+socket_descriptor_t
+create_socket_unix (void)
+{
+  socket_descriptor_t sd;
+
+  if ((sd = socket (PF_UNIX, SOCK_STREAM, 0)) < 0)
+    msg (M_SOCKERR, "Cannot create unix domain socket");
+  return sd;
+}
+
+void
+socket_bind_unix (socket_descriptor_t sd,
+		  struct sockaddr_un *local,
+		  const char *prefix)
+{
+  struct gc_arena gc = gc_new ();
+
+#ifdef HAVE_UMASK
+  const mode_t orig_umask = umask (0);
+#endif
+
+  if (bind (sd, (struct sockaddr *) local, sizeof (struct sockaddr_un)))
+    {
+      const int errnum = openvpn_errno_socket ();
+      msg (M_FATAL, "%s: Socket bind[%d] failed on unix domain socket %s: %s",
+	   prefix,
+	   (int)sd,
+           sockaddr_unix_name (local, "NULL"),
+           strerror_ts (errnum, &gc));
+    }
+
+#ifdef HAVE_UMASK
+  umask (orig_umask);
+#endif
+
+  gc_free (&gc);
+}
+
+socket_descriptor_t
+socket_accept_unix (socket_descriptor_t sd,
+		    struct sockaddr_un *remote)
+{
+  socklen_t remote_len = sizeof (struct sockaddr_un);
+  socket_descriptor_t ret;
+
+  CLEAR (*remote);
+  ret = accept (sd, (struct sockaddr *) remote, &remote_len);
+  return ret;
+}
+
+void
+sockaddr_unix_init (struct sockaddr_un *local, const char *path)
+{
+  local->sun_family = PF_UNIX;
+  strncpynt (local->sun_path, path, sizeof (local->sun_path));
+}
+
+void
+socket_delete_unix (const struct sockaddr_un *local)
+{
+  const char *name = sockaddr_unix_name (local, NULL);
+#ifdef HAVE_UNLINK
+  if (name && strlen (name))
+    unlink (name);
+#endif
+}
+
+bool
+unix_socket_get_peer_uid_gid (const socket_descriptor_t sd, int *uid, int *gid)
+{
+#ifdef HAVE_GETPEEREID
+  uid_t u;
+  gid_t g;
+  if (getpeereid (sd, &u, &g) == -1) 
+    return false;
+  if (uid)
+    *uid = u;
+  if (gid)
+    *gid = g;
+  return true;
+#elif defined(SO_PEERCRED)
+  struct ucred peercred;
+  socklen_t so_len = sizeof(peercred);
+  if (getsockopt(sd, SOL_SOCKET, SO_PEERCRED, &peercred, &so_len) == -1) 
+    return false;
+  if (uid)
+    *uid = peercred.uid;
+  if (gid)
+    *gid = peercred.gid;
+  return true;
+#else
+  return false;
+#endif
+}
+
+#endif

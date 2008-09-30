@@ -88,6 +88,10 @@
 #include <sys/socket.h>
 #endif
 
+#ifdef HAVE_SYS_UN_H
+#include <sys/un.h>
+#endif
+
 #ifdef HAVE_SYS_IOCTL_H
 #include <sys/ioctl.h>
 #endif
@@ -513,6 +517,15 @@ socket_defined (const socket_descriptor_t sd)
 #endif
 #if defined(PLUGIN_PF) || defined(MANAGEMENT_PF)
 #define ENABLE_PF
+#endif
+
+/*
+ * Do we support Unix domain sockets?
+ */
+#if defined(PF_UNIX) && !defined(WIN32)
+#define UNIX_SOCK_SUPPORT 1
+#else
+#define UNIX_SOCK_SUPPORT 0
 #endif
 
 /*

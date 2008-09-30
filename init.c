@@ -2670,6 +2670,8 @@ open_management (struct context *c)
 			       c->options.management_addr,
 			       c->options.management_port,
 			       c->options.management_user_pass,
+			       c->options.management_client_user,
+			       c->options.management_client_group,
 			       c->options.management_log_history_cache,
 			       c->options.management_echo_buffer_size,
 			       c->options.management_state_buffer_size,
