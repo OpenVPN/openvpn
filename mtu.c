@@ -5,7 +5,7 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2002-2008 Telethra, Inc. <sales@openvpn.net>
+ *  Copyright (C) 2002-2008 OpenVPN Technologies, Inc. <sales@openvpn.net>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -182,13 +182,6 @@ translate_mtu_discover_type_name (const char *name)
 }
 
 #if EXTENDED_SOCKET_ERROR_CAPABILITY
-
-/*
- *
- * The following code is adapted from tracepath
- * under the terms of the GPL.
- * Copyright (C) Alexey Kuznetsov, <kuznet@ms2.inr.ac.ru>.
- */
 
 struct probehdr
 {

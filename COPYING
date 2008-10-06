@@ -1,6 +1,6 @@
 OpenVPN (TM) -- An Open Source VPN daemon
 
-Copyright (C) 2002-2008 Telethra, Inc. <sales@openvpn.net>
+Copyright (C) 2002-2008 OpenVPN Technologies, Inc. <sales@openvpn.net>
 
 This distribution contains multiple components, some
 of which fall under different licenses.  By using OpenVPN
@@ -11,7 +11,7 @@ each respective component.
 OpenVPN trademark
 -----------------
 
-  "OpenVPN" is a trademark of Telethra, Inc.
+  "OpenVPN" is a trademark of OpenVPN Technologies, Inc.
 
 
 OpenVPN license:
@@ -21,7 +21,7 @@ OpenVPN license:
 
   Special exception for linking OpenVPN with OpenSSL:
 
-  In addition, as a special exception, Telethra, Inc. gives
+  In addition, as a special exception, OpenVPN Technologies, Inc. gives
   permission to link the code of this program with the OpenSSL
   library (or with modified versions of OpenSSL that use the same
   license as OpenSSL), and distribute linked combinations including
@@ -52,9 +52,9 @@ TAP-Win32/TAP-Win64 Driver license:
   Damion K. Wilson.
 
   The source and object code of the TAP-Win32/TAP-Win64 driver
-  is Copyright (C) 2002-2008 Telethra, Inc., and is released under
+  is Copyright (C) 2002-2008 OpenVPN Technologies, Inc., and is released under
   the GPL version 2 (see below), however due to the extra costs of
-  supporting Windows Vista, Telethra, Inc. reserves the right to
+  supporting Windows Vista, OpenVPN Technologies, Inc. reserves the right to
   change the terms of the TAP-Win32/TAP-Win64 license for versions 9.1
   and higher prior to the official release of OpenVPN 2.1.
 

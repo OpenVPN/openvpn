@@ -36,8 +36,8 @@
 #define VER_COMPANYNAME_STR         "The OpenVPN Project"
 #define VER_FILEDESCRIPTION_STR     "TAP-Win32 Virtual Network Driver"
 #define VER_ORIGINALFILENAME_STR    TAP_COMPONENT_ID ".sys"
-#define VER_LEGALCOPYRIGHT_YEARS    "2003-2006"
-#define VER_LEGALCOPYRIGHT_STR      "Telethra, Inc."
+#define VER_LEGALCOPYRIGHT_YEARS    "2003-2008"
+#define VER_LEGALCOPYRIGHT_STR      "OpenVPN Technologies, Inc."
 
 
 #define VER_PRODUCTNAME_STR         VER_FILEDESCRIPTION_STR
