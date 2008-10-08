@@ -22,10 +22,10 @@
 ;!define OPENVPN_XGUI_DIR "../ovpnxml"
 
 # Prebuilt libraries.  DMALLOC is optional.
-!define OPENSSL_DIR	  "../openssl-0.9.8h"
+!define OPENSSL_DIR	  "../openssl-0.9.8i"
 !define LZO_DIR		  "../lzo-2.02"
 !define PKCS11_HELPER_DIR "../pkcs11-helper"
-!define DMALLOC_DIR	  "../dmalloc-5.4.2"
+;!define DMALLOC_DIR	  "../dmalloc-5.4.2"
 
 # Optional directory of prebuilt OpenVPN binary components,
 # to be used as a source when build-from-scratch prerequisites
@@ -33,7 +33,8 @@
 !define GENOUT_PREBUILT  "../gen-prebuilt"
 
 # tapinstall.exe source code.
-# Not needed if DRVBINSRC is defined.
+# Not needed if DRVBINSRC is defined
+# (or if using pre-built mode).
 !define TISRC	"../tapinstall"
 
 # TAP Adapter parameters.  Note that PRODUCT_TAP_ID is
@@ -44,7 +45,7 @@
 !define PRODUCT_TAP_MINOR_VER           4
 !define PRODUCT_TAP_RELDATE             "01/22/2008"
 
-; visible=0x81  hidden=0x89
+# TAP adapter icon -- visible=0x81 or hidden=0x89
 !define PRODUCT_TAP_CHARACTERISTICS     0x81
 
 # Build debugging version of TAP driver

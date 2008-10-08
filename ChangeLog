@@ -3,6 +3,21 @@ Copyright (C) 2002-2008 OpenVPN Technologies, Inc. <sales@openvpn.net>
 
 $Id$
 
+2008.10.07 -- Version 2.1_rc13
+
+* Bundled OpenSSL 0.9.8i with Windows installer.
+
+* Management interface can now listen on a unix
+  domain socket, for example:
+
+    management /tmp/openvpn unix
+
+  Also added management-client-user and management-client-group
+  directives to control which processes are allowed to connect
+  to the socket.
+
+* Copyright change to OpenVPN Technologies, Inc.
+
 2008.09.23 -- Version 2.1_rc12
 
 * Patched Makefile.am so that the new t_cltsrv-down.sh script becomes
@@ -11,7 +26,7 @@ $Id$
 * Fixed --lladdr bug introduced in 2.1-rc9 where input validation code
   was incorrectly expecting the lladdr parameter to be an IP address
   when it is actually a MAC address (HoverHell).
-	
+
 2008.09.14 -- Version 2.1_rc11
 
 * Fixed a bug that can cause SSL/TLS negotiations in UDP mode

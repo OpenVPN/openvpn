@@ -28,7 +28,7 @@
 #
 # The following additional prerequisites may be omitted
 # when building in pre-built mode (see note below). 
-
+#
 # svn       -- for checking out source code (or TortoiseSVN)
 # Windows Driver Kit (6001_17121_HyperV_WDK.iso) -- for building
 #    TAP driver + tapinstall
@@ -49,9 +49,6 @@
 #                  Windows Driver Kit (formerly known as DDK).
 #                  Copy the 'devcon' source tree to ../tapinstall
 #                  Edit 'sources' and modify TARGETNAME=tapinstall
-#
-# ../svc-template -- This directory should contain service.[ch]
-#                    from the MS Platform SDK.
 
 # Note that all variables referenced here such as GENOUT,
 # GENOUT_PREBUILT, and CLEAN are defined in install-win32/settings.in
@@ -65,11 +62,11 @@
 #   this and use the pre-built version instead.  This would allow you, for
 #   example, to build an OpenVPN installer with custom edits to
 #   install-win32/settings.in, but then avoid needing to build all other
-#   components (such as OpenSSL, LZO, Pkcs11-helper, TAP driver windows
+#   components (such as OpenSSL, LZO, Pkcs11-helper, TAP driver, Windows
 #   service, etc.).  The procedure is as follows. First Download and expand
 #   the pre-built binaries from:
 #
-#     https://secure.openvpn.net/devel/ (choose the most recent -prebuilt .tbz file)
+#     http://openvpn.net/prebuilt/ (choose the most recent -prebuilt .tbz file)
 #
 #   After expanding the .tbz file, cd to the top level directory and
 #   expand an OpenVPN source distribution taken from either the subversion
@@ -80,12 +77,12 @@
 #
 #   gen-prebuilt     -> from prebuilt .tbz file
 #   lzo-2.02         -> from prebuilt .tbz file
-#   openssl-0.9.7m   -> from prebuilt .tbz file
+#   openssl-0.9.8i   -> from prebuilt .tbz file
 #   pkcs11-helper    -> from prebuilt .tbz file
-#   openvpn-2.1_rc7a.tar.gz  -> downloaded from openvpn.net
-#   openvpn-2.1_rc7a -> directory expanded from above file
+#   openvpn-2.1_rc13.tar.gz  -> downloaded from openvpn.net
+#   openvpn-2.1_rc13 -> directory expanded from above file
 #
-#   Now cd to your expanded source tree (openvpn-2.1_rc7a in the
+#   Now cd to your expanded source tree (openvpn-2.1_rc13 in the
 #   example above), make edits to install-win32/settings.in (or even
 #   patch the OpenVPN source code directly), and run this script:
 #
@@ -93,8 +90,6 @@
 #
 #   If everything runs correctly, you should have a custom installer
 #   written to ./gen/install
-
-
 
 # First build the autodefs directory, containing C, sh, and NSIS versions
 # of global settings, using install-win32/settings.in as source.

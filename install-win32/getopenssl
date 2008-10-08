@@ -10,7 +10,7 @@ if [ -d "$OPENSSL_DIR" ] ; then
     for f in libeay32.dll libssl32.dll out/openssl.exe ; do
 	cp $OPENSSL_DIR/$f $GENOUT/lib
         if [ -z "$NO_STRIP" ]; then
-	    strip $GENOUT/lib/$f
+	    strip $GENOUT/lib/`basename $f`
 	fi
     done
     mv $GENOUT/lib/openssl.exe $GENOUT/bin

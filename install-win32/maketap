@@ -6,7 +6,7 @@
 # get version.nsi definitions
 . autodefs/defs.sh
 
-if [ -d "/c/WINDDK/$DDKVER" ] ; then
+if [ -n "$DDKVER" ] && [ -d "/c/WINDDK/$DDKVER" ] ; then
 
 # common declarations for all DDK build targets
 . install-win32/ddk-common

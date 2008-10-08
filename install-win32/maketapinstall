@@ -8,7 +8,7 @@
 # get version.nsi definitions
 . autodefs/defs.sh
 
-if [ -d "/c/WINDDK/$DDKVER" ] ; then
+if [ -n "$DDKVER" ] && [ -d "/c/WINDDK/$DDKVER" ] ; then
 
 if ! [ -d "$TISRC" ] ; then
     echo "$TISRC" NOT INSTALLED

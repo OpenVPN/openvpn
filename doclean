@@ -9,6 +9,10 @@
 #        make
 #        make install
 
+if ! [ "$KEEPAUTODEFS" = "yes" ]; then
+    rm -rf autodefs
+fi
+
 rm -f \
     *.o \
     service-win32/*.o \
@@ -49,7 +53,6 @@ rm -rf \
     .deps \
     */.deps \
     windest \
-    autodefs \
     gen \
     tapinstall \
     install-win32/tmp
