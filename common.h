@@ -81,4 +81,9 @@ typedef unsigned long ptr_type;
 #define INLINE_FILE_TAG "[[INLINE]]"
 #endif
 
+/*
+ * Script security warning
+ */
+#define SCRIPT_SECURITY_WARNING "openvpn_execve: external program may not be called unless '--script-security 2' or higher is enabled.  See --help text for detailed info."
+
 #endif

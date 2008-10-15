@@ -949,7 +949,7 @@ openvpn_execve (const struct argv *a, const struct env_set *es, const unsigned i
 	}
       else
 	{
-	  msg (M_WARN, "openvpn_execve: external program may not be called due to setting of --script-security level");
+	  msg (M_WARN, SCRIPT_SECURITY_WARNING);
 	}
     }
   else
