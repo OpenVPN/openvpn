@@ -7,14 +7,17 @@
 
 ; OpenVPN install script for Windows, using NSIS
 
-!define HOME ".."
-
-!include "${HOME}\autodefs\defs.nsi"
-!include "${HOME}\autodefs\guidefs.nsi"
-!include "${HOME}\autodefs\xguidefs.nsi"
 !include "MUI.nsh"
+
+!include "defs.nsi"
+!include "guidefs.nsi"
+!include "xguidefs.nsi"
 !include "setpath.nsi"
 !include "GetWindowsVersion.nsi"
+
+!define GEN ".."
+!define BIN "${GEN}\bin"
+!define LIB "${GEN}\lib"
 
 ; Which GUI to use (XGUI has priority).
 ; We will define either USE_XGUI (XML-based version) or
@@ -26,10 +29,6 @@
 !define USE_GUI
 !endif
 !endif
-
-!define GEN "${HOME}\${GENOUT}"
-!define BIN "${GEN}\bin"
-!define LIB "${GEN}\lib"
 
 !define PRODUCT_ICON "icon.ico"
 
@@ -72,7 +71,7 @@
 
   ;General
 
-  OutFile "${PRODUCT_UNIX_NAME}-${VERSION}${OUTFILE_LABEL}-install.exe"
+  OutFile "${GEN}\${PRODUCT_UNIX_NAME}-${VERSION}${OUTFILE_LABEL}-install.exe"
 
   SetCompressor bzip2
 
@@ -103,10 +102,10 @@
   !endif
   !define MUI_FINISHPAGE_NOAUTOCLOSE
   !define MUI_ABORTWARNING
-  !define MUI_ICON "${HOME}\images\${PRODUCT_ICON}"
-  !define MUI_UNICON "${HOME}\images\${PRODUCT_ICON}"
+  !define MUI_ICON "${GEN}\images\${PRODUCT_ICON}"
+  !define MUI_UNICON "${GEN}\images\${PRODUCT_ICON}"
   !define MUI_HEADERIMAGE
-  !define MUI_HEADERIMAGE_BITMAP "${HOME}\images\install-whirl.bmp"
+  !define MUI_HEADERIMAGE_BITMAP "${GEN}\images\install-whirl.bmp"
   !define MUI_UNFINISHPAGE_NOAUTOCLOSE
 
   !insertmacro MUI_PAGE_WELCOME
@@ -163,7 +162,7 @@
   ;Things that need to be extracted on first (keep these lines before any File command!)
   ;Only useful for BZIP2 compression
   
-  ReserveFile "${HOME}\images\install-whirl.bmp"
+  ReserveFile "${GEN}\images\install-whirl.bmp"
 
 ;--------------------------------
 ;Macros
@@ -325,21 +324,21 @@ Section "${PRODUCT_NAME} RSA Certificate Management Scripts" SecOpenVPNEasyRSA
   SetOverwrite on
   SetOutPath "$INSTDIR\easy-rsa"
 
-  File "${GEN}\samples\openssl.cnf.sample"
-  File "${HOME}\easy-rsa\Windows\vars.bat.sample"
+  File "${GEN}\easy-rsa\openssl.cnf.sample"
+  File "${GEN}\easy-rsa\vars.bat.sample"
 
-  File "${HOME}\easy-rsa\Windows\init-config.bat"
+  File "${GEN}\easy-rsa\init-config.bat"
 
-  File "${HOME}\easy-rsa\Windows\README.txt"
-  File "${HOME}\easy-rsa\Windows\build-ca.bat"
-  File "${HOME}\easy-rsa\Windows\build-dh.bat"
-  File "${HOME}\easy-rsa\Windows\build-key-server.bat"
-  File "${HOME}\easy-rsa\Windows\build-key.bat"
-  File "${HOME}\easy-rsa\Windows\build-key-pkcs12.bat"
-  File "${HOME}\easy-rsa\Windows\clean-all.bat"
-  File "${HOME}\easy-rsa\Windows\index.txt.start"
-  File "${HOME}\easy-rsa\Windows\revoke-full.bat"
-  File "${HOME}\easy-rsa\Windows\serial.start"
+  File "${GEN}\easy-rsa\README.txt"
+  File "${GEN}\easy-rsa\build-ca.bat"
+  File "${GEN}\easy-rsa\build-dh.bat"
+  File "${GEN}\easy-rsa\build-key-server.bat"
+  File "${GEN}\easy-rsa\build-key.bat"
+  File "${GEN}\easy-rsa\build-key-pkcs12.bat"
+  File "${GEN}\easy-rsa\clean-all.bat"
+  File "${GEN}\easy-rsa\index.txt.start"
+  File "${GEN}\easy-rsa\revoke-full.bat"
+  File "${GEN}\easy-rsa\serial.start"
 
 SectionEnd
 
@@ -497,20 +496,29 @@ Section -post
     File "${GEN}\text\INSTALL-win32.txt"
   !endif
   File "${GEN}\text\license.txt"
-  File "${HOME}\images\${PRODUCT_ICON}"
+  File "${GEN}\images\${PRODUCT_ICON}"
 
   ; store sample config files
   !ifdef SAMPCONF_DIR
     SetOverwrite on
     SetOutPath "$INSTDIR\config"
   !ifdef SAMPCONF_CONF
-    File "${HOME}\..\${SAMPCONF_DIR}\${SAMPCONF_CONF}"
+    File "${GEN}\conf\${SAMPCONF_CONF}"
   !endif
   !ifdef SAMPCONF_P12
-    File "${HOME}\..\${SAMPCONF_DIR}\${SAMPCONF_P12}"
+    File "${GEN}\conf\${SAMPCONF_P12}"
   !endif
   !ifdef SAMPCONF_TA
-    File "${HOME}\..\${SAMPCONF_DIR}\${SAMPCONF_TA}"
+    File "${GEN}\conf\${SAMPCONF_TA}"
+  !endif
+  !ifdef SAMPCONF_CA
+    File "${GEN}\conf\${SAMPCONF_CA}"
+  !endif
+  !ifdef SAMPCONF_CRT
+    File "${GEN}\conf\${SAMPCONF_CRT}"
+  !endif
+  !ifdef SAMPCONF_KEY
+    File "${GEN}\conf\${SAMPCONF_KEY}"
   !endif
   !endif
 
@@ -759,6 +767,15 @@ Section "Uninstall"
   !endif
   !ifdef SAMPCONF_TA
     Delete "$INSTDIR\config\${SAMPCONF_TA}"
+  !endif
+  !ifdef SAMPCONF_CA
+    Delete "$INSTDIR\config\${SAMPCONF_CA}"
+  !endif
+  !ifdef SAMPCONF_CRT
+    Delete "$INSTDIR\config\${SAMPCONF_CRT}"
+  !endif
+  !ifdef SAMPCONF_KEY
+    Delete "$INSTDIR\config\${SAMPCONF_KEY}"
   !endif
   !endif
 

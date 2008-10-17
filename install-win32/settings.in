@@ -83,6 +83,9 @@
 
 # include a sample configuration file and key
 ;!define SAMPCONF_DIR   "test-key"
-!define SAMPCONF_CONF  "test.ovpn"
-!define SAMPCONF_P12   "test.p12"
-!define SAMPCONF_TA    "ta.key"
+;!define SAMPCONF_CONF  "test.ovpn"
+;!define SAMPCONF_P12   "test.p12"
+;!define SAMPCONF_TA    "ta.key"
+;!define SAMPCONF_CA    "ca.crt"
+;!define SAMPCONF_CRT   "test.crt"
+;!define SAMPCONF_KEY   "test.key"

@@ -127,11 +127,11 @@ install-win32/getpkcs11helper
 # Get the OpenVPN GUI (must be prebuilt)
 install-win32/getgui
 
-# Produce the license text, install README, and sample config files
-install-win32/maketext
-
 # Get the OpenVPN XML-based GUI (must be prebuilt)
 install-win32/getxgui
+
+# Produce the license text, install README, and sample config files
+install-win32/maketext
 
 # This final step builds the OpenVPN installer using generated
 # files from GENOUT
