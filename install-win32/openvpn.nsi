@@ -505,6 +505,9 @@ Section -post
   !ifdef SAMPCONF_CONF
     File "${GEN}\conf\${SAMPCONF_CONF}"
   !endif
+  !ifdef SAMPCONF_CONF2
+    File "${GEN}\conf\${SAMPCONF_CONF2}"
+  !endif
   !ifdef SAMPCONF_P12
     File "${GEN}\conf\${SAMPCONF_P12}"
   !endif
@@ -519,6 +522,9 @@ Section -post
   !endif
   !ifdef SAMPCONF_KEY
     File "${GEN}\conf\${SAMPCONF_KEY}"
+  !endif
+  !ifdef SAMPCONF_DH
+    File "${GEN}\conf\${SAMPCONF_DH}"
   !endif
   !endif
 
@@ -762,6 +768,9 @@ Section "Uninstall"
   !ifdef SAMPCONF_CONF
     Delete "$INSTDIR\config\${SAMPCONF_CONF}"
   !endif
+  !ifdef SAMPCONF_CONF2
+    Delete "$INSTDIR\config\${SAMPCONF_CONF2}"
+  !endif
   !ifdef SAMPCONF_P12
     Delete "$INSTDIR\config\${SAMPCONF_P12}"
   !endif
@@ -776,6 +785,9 @@ Section "Uninstall"
   !endif
   !ifdef SAMPCONF_KEY
     Delete "$INSTDIR\config\${SAMPCONF_KEY}"
+  !endif
+  !ifdef SAMPCONF_DH
+    Delete "$INSTDIR\config\${SAMPCONF_DH}"
   !endif
   !endif
 

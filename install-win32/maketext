@@ -45,9 +45,11 @@ if [ -n "$SAMPCONF_DIR" ]; then
     c=$GENOUT/conf
     mkdir -p $c &>/dev/null
     test -n "$SAMPCONF_CONF" && cp "../$SAMPCONF_DIR/$SAMPCONF_CONF" $c
+    test -n "$SAMPCONF_CONF2" && cp "../$SAMPCONF_DIR/$SAMPCONF_CONF2" $c
     test -n "$SAMPCONF_P12" && cp "../$SAMPCONF_DIR/$SAMPCONF_P12" $c
     test -n "$SAMPCONF_TA" && cp "../$SAMPCONF_DIR/$SAMPCONF_TA" $c
     test -n "$SAMPCONF_CA" && cp "../$SAMPCONF_DIR/$SAMPCONF_CA" $c
     test -n "$SAMPCONF_CRT" && cp "../$SAMPCONF_DIR/$SAMPCONF_CRT" $c
     test -n "$SAMPCONF_KEY" && cp "../$SAMPCONF_DIR/$SAMPCONF_KEY" $c
+    test -n "$SAMPCONF_DH" && cp "../$SAMPCONF_DIR/$SAMPCONF_DH" $c
 fi
