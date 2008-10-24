@@ -367,11 +367,15 @@ man_status (struct management *man, const int version, struct status_output *so)
 static void
 man_bytecount (struct management *man, const int update_seconds)
 {
-  man->connection.bytecount_update_seconds = update_seconds;
+  if (update_seconds >= 0)
+    man->connection.bytecount_update_seconds = update_seconds;
+  else
+    man->connection.bytecount_update_seconds = 0;
+  msg (M_CLIENT, "SUCCESS: bytecount interval changed");
 }
 
 void
-man_bytecount_output (struct management *man)
+man_bytecount_output_client (struct management *man)
 {
   char in[32];
   char out[32];
@@ -381,6 +385,25 @@ man_bytecount_output (struct management *man)
   msg (M_CLIENT, ">BYTECOUNT:%s,%s", in, out);
   man->connection.bytecount_last_update = now;
 }
+
+#ifdef MANAGEMENT_DEF_AUTH
+
+void
+man_bytecount_output_server (struct management *man,
+			     const counter_type *bytes_in_total,
+			     const counter_type *bytes_out_total,
+			     struct man_def_auth_context *mdac)
+{
+  char in[32];
+  char out[32];
+  /* do in a roundabout way to work around possible mingw or mingw-glibc bug */
+  openvpn_snprintf (in, sizeof (in), counter_format, *bytes_in_total);
+  openvpn_snprintf (out, sizeof (out), counter_format, *bytes_out_total);
+  msg (M_CLIENT, ">BYTECOUNT_CLI:%lu,%s,%s", mdac->cid, in, out);
+  mdac->bytecount_last_update = now;
+}
+
+#endif
 
 static void
 man_kill (struct management *man, const char *victim)

@@ -437,6 +437,13 @@ multi_del_iroutes (struct multi_context *m,
 }
 
 static void
+setenv_stats (struct context *c)
+{
+  setenv_counter (c->c2.es, "bytes_received", c->c2.link_read_bytes);
+  setenv_counter (c->c2.es, "bytes_sent", c->c2.link_write_bytes);
+}
+
+static void
 multi_client_disconnect_setenv (struct multi_context *m,
 				struct multi_instance *mi)
 {
@@ -444,8 +451,7 @@ multi_client_disconnect_setenv (struct multi_context *m,
   setenv_trusted (mi->context.c2.es, get_link_socket_info (&mi->context));
 
   /* setenv stats */
-  setenv_counter (mi->context.c2.es, "bytes_received", mi->context.c2.link_read_bytes);
-  setenv_counter (mi->context.c2.es, "bytes_sent", mi->context.c2.link_write_bytes);
+  setenv_stats (&mi->context);
 
   /* setenv connection duration */
   {
@@ -2583,6 +2589,7 @@ init_management_callback_multi (struct multi_context *m)
       struct management_callback cb;
       CLEAR (cb);
       cb.arg = m;
+      cb.flags = MCF_SERVER;
       cb.status = management_callback_status;
       cb.show_net = management_show_net_callback;
       cb.kill_by_cn = management_callback_kill_by_cn;

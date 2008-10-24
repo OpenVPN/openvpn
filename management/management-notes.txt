@@ -3,26 +3,24 @@ OpenVPN Management Interface Notes
 
 The OpenVPN Management interface allows OpenVPN to
 be administratively controlled from an external program via
-a TCP socket.
+a TCP or unix domain socket.
 
-The interface has been specifically designed for GUI developers
-and those who would like to programmatically or remotely control
-an OpenVPN daemon.
+The interface has been specifically designed for developers
+who would like to programmatically or remotely control
+an OpenVPN daemon, and can be used when OpenVPN is running
+as a client or server.
 
 The management interface is implemented using a client/server TCP
-connection, where OpenVPN will listen on a provided IP address
-and port for incoming management client connections.
+connection or unix domain socket where OpenVPN will listen on a
+provided IP address and port for incoming management client connections.
 
 The management protocol is currently cleartext without an explicit
 security layer.  For this reason, it is recommended that the
-management interface either listen on localhost (127.0.0.1)
-or on the local VPN address.  It's possible to remotely connect
-to the management interface over the VPN itself, though some
-capabilities will be limited in this mode, such as the ability
-to provide private key passwords.
-
-Future versions of the management interface may allow out-of-band
-connections (i.e. not over the VPN) and secured with SSL/TLS.
+management interface either listen on a unix domain socket,
+localhost (127.0.0.1), or on the local VPN address.  It's possible
+to remotely connect to the management interface over the VPN itself,
+though some capabilities will be limited in this mode, such as the
+ability to provide private key passwords.
 
 The management interface is enabled in the OpenVPN
 configuration file using the following directive:
@@ -38,6 +36,44 @@ a telnet client which understands "raw" mode).
 
 Once connected to the management port, you can use
 the "help" command to list all commands.
+
+COMMAND -- bytecount
+--------------------
+
+The bytecount command is used to request real-time notification
+of OpenVPN bandwidth usage.
+
+Command syntax:
+
+  bytecount n (where n > 0) -- set up automatic notification of
+                               bandwidth usage once every n seconds
+  bytecount 0 -- turn off bytecount notifications
+
+If OpenVPN is running as a client, the bytecount notification
+will look like this:
+
+  >BYTECOUNT:{BYTES_IN},{BYTES_OUT}
+
+BYTES_IN is the number of bytes that have been received from
+the server and BYTES_OUT is the number of bytes that have been
+sent to the server.
+
+If OpenVPN is running as a server, the bytecount notification
+will look like this:
+
+  >BYTECOUNT_CLI:{CID},{BYTES_IN},{BYTES_OUT}
+ 
+CID is the Client ID, BYTES_IN is the number of bytes that have
+been received from the client and BYTES_OUT is the number of
+bytes that have been sent to the client.
+
+Note that when the bytecount command is used on the server, every
+connected client will report its bandwidth numbers once every n
+seconds.
+
+When the client disconnects, the final bandwidth numbers will be
+placed in the 'bytes_received' and 'bytes_sent' environmental variables
+as included in the >CLIENT:DISCONNECT notification.
 
 COMMAND -- echo
 ---------------
@@ -660,6 +696,14 @@ Real-time messages start with a '>' character in the first
 column and are immediately followed by a type keyword
 indicating the type of real-time message.  The following
 types are currently defined:
+
+BYTECOUNT -- Real-time bandwidth usage notification, as enabled
+             by "bytecount" command when OpenVPN is running as
+             a client.
+
+BYTECOUNT_CLI -- Real-time bandwidth usage notification per-client,
+	         as enabled by "bytecount" command when OpenVPN is
+                 running as a server.
 
 CLIENT   -- Notification of client connections and disconnections
             on an OpenVPN server.  Enabled when OpenVPN is started

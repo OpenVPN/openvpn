@@ -51,6 +51,8 @@ struct man_def_auth_context {
   unsigned int flags;
 
   unsigned int mda_key_id_counter;
+
+  time_t bytecount_last_update;
 };
 #endif
 
@@ -143,6 +145,10 @@ log_history_capacity (const struct log_history *h)
 struct management_callback
 {
   void *arg;
+
+# define MCF_SERVER (1<<0) /* is OpenVPN being run as a server? */
+  unsigned int flags;
+
   void (*status) (void *arg, const int version, struct status_output *so);
   void (*show_net) (void *arg, const int msglevel);
   int (*kill_by_cn) (void *arg, const char *common_name);
@@ -432,31 +438,65 @@ void management_auth_failure (struct management *man, const char *type);
  * These functions drive the bytecount in/out counters.
  */
 
-void man_bytecount_output (struct management *man);
+void man_bytecount_output_client (struct management *man);
 
 static inline void
-man_bytecount_possible_output (struct management *man)
+man_bytecount_possible_output_client (struct management *man)
 {
   if (man->connection.bytecount_update_seconds > 0
       && now >= man->connection.bytecount_last_update
       + man->connection.bytecount_update_seconds)
-    man_bytecount_output (man);
+    man_bytecount_output_client (man);
+}
+
+static inline void
+management_bytes_out_client (struct management *man, const int size)
+{
+  man->persist.bytes_out += size;
+  man_bytecount_possible_output_client (man);
+}
+
+static inline void
+management_bytes_in_client (struct management *man, const int size)
+{
+  man->persist.bytes_in += size;
+  man_bytecount_possible_output_client (man);
 }
 
 static inline void
 management_bytes_out (struct management *man, const int size)
 {
-  man->persist.bytes_out += size;
-  man_bytecount_possible_output (man);
+  if (!(man->persist.callback.flags & MCF_SERVER))
+    management_bytes_out_client (man, size);
 }
 
 static inline void
 management_bytes_in (struct management *man, const int size)
 {
-  man->persist.bytes_in += size;
-  man_bytecount_possible_output (man);
+  if (!(man->persist.callback.flags & MCF_SERVER))
+    management_bytes_in_client (man, size);
 }
 
-#endif
+#ifdef MANAGEMENT_DEF_AUTH
 
+static inline void
+management_bytes_server (struct management *man,
+			 const counter_type *bytes_in_total,
+			 const counter_type *bytes_out_total,
+			 struct man_def_auth_context *mdac)
+{
+  void man_bytecount_output_server (struct management *man,
+				    const counter_type *bytes_in_total,
+				    const counter_type *bytes_out_total,
+				    struct man_def_auth_context *mdac);
+
+  if (man->connection.bytecount_update_seconds > 0
+      && now >= mdac->bytecount_last_update + man->connection.bytecount_update_seconds
+      && (mdac->flags & (DAF_CONNECTION_ESTABLISHED|DAF_CONNECTION_CLOSED)) == DAF_CONNECTION_ESTABLISHED)
+    man_bytecount_output_server (man, bytes_in_total, bytes_out_total, mdac);
+}
+
+#endif /* MANAGEMENT_DEF_AUTH */
+
+#endif
 #endif

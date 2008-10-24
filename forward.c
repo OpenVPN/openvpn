@@ -707,12 +707,17 @@ process_incoming_link (struct context *c)
       c->c2.original_recv_size = c->c2.buf.len;
 #ifdef ENABLE_MANAGEMENT
       if (management)
-	management_bytes_in (management, c->c2.buf.len);
+	{
+	  management_bytes_in (management, c->c2.buf.len);
+#ifdef MANAGEMENT_DEF_AUTH
+	  management_bytes_server (management, &c->c2.link_read_bytes, &c->c2.link_write_bytes, &c->c2.mda_context);
+#endif
+	}
 #endif
     }
   else
     c->c2.original_recv_size = 0;
-
+  
 #ifdef ENABLE_DEBUG
   /* take action to corrupt packet if we are in gremlin test mode */
   if (c->options.gremlin) {
@@ -1100,7 +1105,12 @@ process_outgoing_link (struct context *c)
 	      c->c2.link_write_bytes += size;
 #ifdef ENABLE_MANAGEMENT
 	      if (management)
-		management_bytes_out (management, size);
+		{
+		  management_bytes_out (management, size);
+#ifdef MANAGEMENT_DEF_AUTH
+		  management_bytes_server (management, &c->c2.link_read_bytes, &c->c2.link_write_bytes, &c->c2.mda_context);
+#endif
+		}
 #endif
 	    }
 	}
