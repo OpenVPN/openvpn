@@ -3333,7 +3333,11 @@ key_method_2_read (struct buffer *buf, struct tls_multi *multi, struct tls_sessi
 	  if (session->opt->username_as_common_name)
 	    set_common_name (session, up->username);
 	  msg (D_HANDSHAKE, "TLS: Username/Password authentication %s for username '%s' %s",
-	       s1 == OPENVPN_PLUGIN_FUNC_SUCCESS ? "succeeded" : "deferred",
+#ifdef ENABLE_DEF_AUTH
+	       ks->auth_deferred ? "deferred" : "succeeded",
+#else
+	       "succeeded",
+#endif
 	       up->username,
 	       session->opt->username_as_common_name ? "[CN SET]" : "");
 	}
