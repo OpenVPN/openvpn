@@ -5468,6 +5468,43 @@ script execution only when the
 .B via-env
 modifier is specified.
 .\"*********************************************************
+.TP
+.B X509_{n}_{subject_field}
+An X509 subject field from the remote peer certificate,
+where
+.B n
+is the verification level.  Only set for TLS connections.  Set prior
+to execution of
+.B --tls-verify
+script.  This variable is similar to
+.B tls_id_{n}
+except the component X509 subject fields are broken out, and
+no string remapping occurs on these field values (except for remapping
+of control characters to "_").
+For example, the following variables would be set on the
+OpenVPN server using the sample client certificate
+in sample-keys (client.crt).
+Note that the verification level is 0 for the client certificate
+and 1 for the CA certificate.
+.RS
+.ft 3
+.nf
+.sp
+X509_0_emailAddress=me@myhost.mydomain
+X509_0_CN=Test-Client
+X509_0_O=OpenVPN-TEST
+X509_0_ST=NA
+X509_0_C=KG
+X509_1_emailAddress=me@myhost.mydomain
+X509_1_O=OpenVPN-TEST
+X509_1_L=BISHKEK
+X509_1_ST=NA
+X509_1_C=KG
+.ft
+.LP
+.RE
+.fi
+.\"*********************************************************
 .SH SIGNALS
 .TP
 .B SIGHUP
