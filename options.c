@@ -381,6 +381,8 @@ static const char usage_message[] =
   "                  run script cmd to verify.  If method='via-env', pass\n"
   "                  user/pass via environment, if method='via-file', pass\n"
   "                  user/pass via temporary file.\n"
+  "--auth-user-pass-optional : Allow connections by clients that don't\n"
+  "                  specify a username/password.\n"
   "--client-to-client : Internally route client-to-client traffic.\n"
   "--duplicate-cn  : Allow multiple clients with the same common name to\n"
   "                  concurrently connect.\n"
@@ -965,10 +967,9 @@ show_p2mp_parms (const struct options *o)
   SHOW_INT (cf_per);
   SHOW_INT (max_clients);
   SHOW_INT (max_routes_per_client);
-  SHOW_BOOL (client_cert_not_required);
-  SHOW_BOOL (username_as_common_name)
   SHOW_STR (auth_user_pass_verify_script);
   SHOW_BOOL (auth_user_pass_verify_script_via_file);
+  SHOW_INT (ssl_flags);
 #if PORT_SHARE
   SHOW_STR (port_share_host);
   SHOW_INT (port_share_port);
@@ -1702,10 +1703,12 @@ options_postprocess_verify_ce (const struct options *options, const struct conne
 			     || PLUGIN_OPTION_LIST (options)
 			     || MAN_CLIENT_AUTH_ENABLED (options));
 	  const char *postfix = "must be used with --management-client-auth, an --auth-user-pass-verify script, or plugin";
-	  if (options->client_cert_not_required && !ccnr)
+	  if ((options->ssl_flags & SSLF_CLIENT_CERT_NOT_REQUIRED) && !ccnr)
 	    msg (M_USAGE, "--client-cert-not-required %s", postfix);
-	  if (options->username_as_common_name && !ccnr)
+	  if ((options->ssl_flags & SSLF_USERNAME_AS_COMMON_NAME) && !ccnr)
 	    msg (M_USAGE, "--username-as-common-name %s", postfix);
+	  if ((options->ssl_flags & SSLF_AUTH_USER_PASS_OPTIONAL) && !ccnr)
+	    msg (M_USAGE, "--auth-user-pass-optional %s", postfix);
 	}
     }
   else
@@ -1735,10 +1738,12 @@ options_postprocess_verify_ce (const struct options *options, const struct conne
 	msg (M_USAGE, "--duplicate-cn requires --mode server");
       if (options->cf_max || options->cf_per)
 	msg (M_USAGE, "--connect-freq requires --mode server");
-      if (options->client_cert_not_required)
+      if (options->ssl_flags & SSLF_CLIENT_CERT_NOT_REQUIRED)
 	msg (M_USAGE, "--client-cert-not-required requires --mode server");
-      if (options->username_as_common_name)
+      if (options->ssl_flags & SSLF_USERNAME_AS_COMMON_NAME)
 	msg (M_USAGE, "--username-as-common-name requires --mode server");
+      if (options->ssl_flags & SSLF_AUTH_USER_PASS_OPTIONAL)
+	msg (M_USAGE, "--auth-user-pass-optional requires --mode server");
       if (options->auth_user_pass_verify_script)
 	msg (M_USAGE, "--auth-user-pass-verify requires --mode server");
 #if PORT_SHARE
@@ -4559,12 +4564,17 @@ add_option (struct options *options,
   else if (streq (p[0], "client-cert-not-required"))
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
-      options->client_cert_not_required = true;
+      options->ssl_flags |= SSLF_CLIENT_CERT_NOT_REQUIRED;
     }
   else if (streq (p[0], "username-as-common-name"))
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
-      options->username_as_common_name = true;
+      options->ssl_flags |= SSLF_USERNAME_AS_COMMON_NAME;
+    }
+  else if (streq (p[0], "auth-user-pass-optional"))
+    {
+      VERIFY_PERMISSION (OPT_P_GENERAL);
+      options->ssl_flags |= SSLF_AUTH_USER_PASS_OPTIONAL;
     }
   else if (streq (p[0], "auth-user-pass-verify") && p[1])
     {

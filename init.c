@@ -1756,7 +1756,7 @@ do_init_crypto_tls (struct context *c, const unsigned int flags)
   to.auth_user_pass_verify_script = options->auth_user_pass_verify_script;
   to.auth_user_pass_verify_script_via_file = options->auth_user_pass_verify_script_via_file;
   to.tmp_dir = options->tmp_dir;
-  to.username_as_common_name = options->username_as_common_name;
+  to.ssl_flags = options->ssl_flags;
   if (options->ccd_exclusive)
     to.client_config_dir_exclusive = options->client_config_dir;
 #endif

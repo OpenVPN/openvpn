@@ -456,7 +456,6 @@ struct tls_options
   const char *auth_user_pass_verify_script;
   bool auth_user_pass_verify_script_via_file;
   const char *tmp_dir;
-  bool username_as_common_name;
 
   /* use the client-config-dir as a positive authenticator */
   const char *client_config_dir_exclusive;
@@ -464,6 +463,12 @@ struct tls_options
   /* instance-wide environment variable set */
   struct env_set *es;
   const struct plugin_list *plugins;
+
+  /* configuration file boolean options */
+# define SSLF_CLIENT_CERT_NOT_REQUIRED (1<<0)
+# define SSLF_USERNAME_AS_COMMON_NAME  (1<<1)
+# define SSLF_AUTH_USER_PASS_OPTIONAL  (1<<2)
+  unsigned int ssl_flags;
 
 #ifdef MANAGEMENT_DEF_AUTH
   struct man_def_auth_context *mda_context;

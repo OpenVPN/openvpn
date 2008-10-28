@@ -102,6 +102,7 @@ openvpn \- secure IP tunnel daemon.
 [\ \fB\-\-askpass\fR\ \fI[file]\fR\ ]
 [\ \fB\-\-auth\-nocache\fR\ ]
 [\ \fB\-\-auth\-retry\fR\ \fItype\fR\ ]
+[\ \fB\-\-auth\-user\-pass\-optional\fR\ ]
 [\ \fB\-\-auth\-user\-pass\-verify\fR\ \fIscript\fR\ ]
 [\ \fB\-\-auth\-user\-pass\fR\ \fIup\fR\ ]
 [\ \fB\-\-auth\fR\ \fIalg\fR\ ]
@@ -3248,6 +3249,24 @@ that they might be escaped or evaluated by a shell interpreter.
 For a sample script that performs PAM authentication, see
 .B sample-scripts/auth-pam.pl
 in the OpenVPN source distribution.
+.\"*********************************************************
+.TP
+.B --auth-user-pass-optional
+Allow connections by clients that do not specify a username/password.
+Normally, when
+.B --auth-user-pass-verify
+or
+.B --management-client-auth
+is specified (or an authentication plugin module), the
+OpenVPN server daemon will require connecting clients to specify a
+username and password.  This option makes the submission of a username/password
+by clients optional, passing the responsibility to the user-defined authentication
+module/script to accept or deny the client based on other factors
+(such as the setting of X509 certificate fields).  When this option is used,
+and a connecting client does not submit a username/password, the user-defined
+authentication module/script will see the username and password as being set
+to empty strings ("").  The authentication module/script MUST have logic
+to detect this condition and respond accordingly.
 .\"*********************************************************
 .TP
 .B --client-cert-not-required

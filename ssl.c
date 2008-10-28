@@ -1555,7 +1555,7 @@ init_ssl (const struct options *options)
 
   /* Require peer certificate verification */
 #if P2MP_SERVER
-  if (options->client_cert_not_required)
+  if (options->ssl_flags & SSLF_CLIENT_CERT_NOT_REQUIRED)
     {
       msg (M_WARN, "WARNING: POTENTIALLY DANGEROUS OPTION --client-cert-not-required may accept clients which do not present a certificate");
     }
@@ -2958,7 +2958,7 @@ verify_user_pass_script (struct tls_session *session, const struct user_pass *up
   bool ret = false;
 
   /* Is username defined? */
-  if (strlen (up->username))
+  if ((session->opt->ssl_flags & SSLF_AUTH_USER_PASS_OPTIONAL) || strlen (up->username))
     {
       /* Set environmental variables prior to calling script */
       setenv_str (session->opt->es, "script_type", "user-pass-verify");
@@ -3025,7 +3025,7 @@ verify_user_pass_plugin (struct tls_session *session, const struct user_pass *up
   int retval = OPENVPN_PLUGIN_FUNC_ERROR;
 
   /* Is username defined? */
-  if (strlen (up->username))
+  if ((session->opt->ssl_flags & SSLF_AUTH_USER_PASS_OPTIONAL) || strlen (up->username))
     {
       /* set username/password in private env space */
       setenv_str (session->opt->es, "username", raw_username);
@@ -3077,7 +3077,7 @@ verify_user_pass_management (struct tls_session *session, const struct user_pass
   int retval = KMDA_ERROR;
 
   /* Is username defined? */
-  if (strlen (up->username))
+  if ((session->opt->ssl_flags & SSLF_AUTH_USER_PASS_OPTIONAL) || strlen (up->username))
     {
       /* set username/password in private env space */
       setenv_str (session->opt->es, "username", raw_username);
@@ -3336,9 +3336,12 @@ key_method_2_read (struct buffer *buf, struct tls_multi *multi, struct tls_sessi
       if (!read_string (buf, up->username, USER_PASS_LEN)
 	  || !read_string (buf, up->password, USER_PASS_LEN))
 	{
-	  msg (D_TLS_ERRORS, "TLS Error: Auth Username/Password was not provided by peer");
 	  CLEAR (*up);
-	  goto error;
+	  if (!(session->opt->ssl_flags & SSLF_AUTH_USER_PASS_OPTIONAL))
+	    {
+	      msg (D_TLS_ERRORS, "TLS Error: Auth Username/Password was not provided by peer");
+	      goto error;
+	    }
 	}
 
       /* preserve raw username before string_mod remapping, for plugins */
@@ -3361,7 +3364,7 @@ key_method_2_read (struct buffer *buf, struct tls_multi *multi, struct tls_sessi
 	s2 = verify_user_pass_script (session, up);
 
       /* check sizing of username if it will become our common name */
-      if (session->opt->username_as_common_name && strlen (up->username) >= TLS_CN_LEN)
+      if ((session->opt->ssl_flags & SSLF_USERNAME_AS_COMMON_NAME) && strlen (up->username) >= TLS_CN_LEN)
 	{
 	  msg (D_TLS_ERRORS, "TLS Auth Error: --username-as-common name specified and username is longer than the maximum permitted Common Name length of %d characters", TLS_CN_LEN);
 	  s1 = OPENVPN_PLUGIN_FUNC_ERROR;
@@ -3384,7 +3387,7 @@ key_method_2_read (struct buffer *buf, struct tls_multi *multi, struct tls_sessi
 	    ks->auth_deferred = true;
 #endif
 	    
-	  if (session->opt->username_as_common_name)
+	  if ((session->opt->ssl_flags & SSLF_USERNAME_AS_COMMON_NAME))
 	    set_common_name (session, up->username);
 	  msg (D_HANDSHAKE, "TLS: Username/Password authentication %s for username '%s' %s",
 #ifdef ENABLE_DEF_AUTH
@@ -3393,7 +3396,7 @@ key_method_2_read (struct buffer *buf, struct tls_multi *multi, struct tls_sessi
 	       "succeeded",
 #endif
 	       up->username,
-	       session->opt->username_as_common_name ? "[CN SET]" : "");
+	       (session->opt->ssl_flags & SSLF_USERNAME_AS_COMMON_NAME) ? "[CN SET]" : "");
 	}
       else
 	{
