@@ -245,7 +245,7 @@ if [ -z "$KEY_NAME" ]; then
     KEY_NAME=""
 fi
 
-# Set KEY_CN
+# Set KEY_CN, FN
 if [ $DO_ROOT -eq 1 ]; then
     if [ -z "$KEY_CN" ]; then
 	if [ "$1" ]; then
@@ -255,10 +255,15 @@ if [ $DO_ROOT -eq 1 ]; then
 	fi
     fi
     if [ $BATCH ] && [ "$KEY_CN" ]; then
-	echo "Using CA Common Name:" $KEY_CN
+	echo "Using CA Common Name:" "$KEY_CN"
     fi
-elif [ $BATCH ] && [ "$KEY_CN" ] && [ $# -eq 0 ]; then
-    echo "Using Common Name:" $KEY_CN
+    FN="$KEY_CN"
+elif [ $BATCH ] && [ "$KEY_CN" ]; then
+    echo "Using Common Name:" "$KEY_CN"
+    FN="$KEY_CN"
+    if [ "$1" ]; then
+	FN="$1"
+    fi
 else
     if [ $# -ne 1 ]; then
 	usage
@@ -266,6 +271,7 @@ else
     else
 	KEY_CN="$1"
     fi
+    FN="$KEY_CN"
 fi
 
 export CA_EXPIRE KEY_EXPIRE KEY_OU KEY_NAME KEY_CN PKCS11_MODULE_PATH PKCS11_PIN
@@ -342,21 +348,21 @@ if [ -d "$KEY_DIR" ] && [ "$KEY_CONFIG" ]; then
 
         # Build cert/key
 	( [ $DO_REQ -eq 0 ] || $OPENSSL req $BATCH -days $KEY_EXPIRE $NODES_REQ -new -newkey rsa:$KEY_SIZE \
-	        -keyout "$KEY_CN.key" -out "$KEY_CN.csr" $REQ_EXT -config "$KEY_CONFIG" $PKCS11_ARGS ) && \
-	    ( [ $DO_CA -eq 0 ]  || $OPENSSL ca $BATCH -days $KEY_EXPIRE -out "$KEY_CN.crt" \
-	        -in "$KEY_CN.csr" $CA_EXT -md sha1 -config "$KEY_CONFIG" ) && \
-	    ( [ $DO_P12 -eq 0 ] || $OPENSSL pkcs12 -export -inkey "$KEY_CN.key" \
-	        -in "$KEY_CN.crt" -certfile "$CA.crt" -out "$KEY_CN.p12" $NODES_P12 ) && \
-	    ( [ $DO_CA -eq 0 -o $DO_P11 -eq 1 ]  || chmod 0600 "$KEY_CN.key" ) && \
-	    ( [ $DO_P12 -eq 0 ] || chmod 0600 "$KEY_CN.p12" )
+	        -keyout "$FN.key" -out "$FN.csr" $REQ_EXT -config "$KEY_CONFIG" $PKCS11_ARGS ) && \
+	    ( [ $DO_CA -eq 0 ]  || $OPENSSL ca $BATCH -days $KEY_EXPIRE -out "$FN.crt" \
+	        -in "$FN.csr" $CA_EXT -md sha1 -config "$KEY_CONFIG" ) && \
+	    ( [ $DO_P12 -eq 0 ] || $OPENSSL pkcs12 -export -inkey "$FN.key" \
+	        -in "$FN.crt" -certfile "$CA.crt" -out "$FN.p12" $NODES_P12 ) && \
+	    ( [ $DO_CA -eq 0 -o $DO_P11 -eq 1 ]  || chmod 0600 "$FN.key" ) && \
+	    ( [ $DO_P12 -eq 0 ] || chmod 0600 "$FN.p12" )
 
 	# Load certificate into PKCS#11 token
 	if [ $DO_P11 -eq 1 ]; then
-		$OPENSSL x509 -in "$KEY_CN.crt" -inform PEM -out "$KEY_CN.crt.der" -outform DER && \
-		  $PKCS11TOOL --module "$PKCS11_MODULE_PATH" --write-object "$KEY_CN.crt.der" --type cert \
+		$OPENSSL x509 -in "$FN.crt" -inform PEM -out "$FN.crt.der" -outform DER && \
+		  $PKCS11TOOL --module "$PKCS11_MODULE_PATH" --write-object "$FN.crt.der" --type cert \
 			--login --pin "$PKCS11_PIN" \
 			--slot "$PKCS11_SLOT" --id "$PKCS11_ID" --label "$PKCS11_LABEL" 
-		[ -e "$KEY_CN.crt.der" ]; rm "$KEY_CN.crt.der"
+		[ -e "$FN.crt.der" ]; rm "$FN.crt.der"
 	fi
 
     fi
