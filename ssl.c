@@ -392,6 +392,57 @@ extract_x509_field_ssl (X509_NAME *x509, const char *field_name, char *out, int 
   }
 }
 
+/*
+ * Save X509 fields to environment, using the naming convention:
+ *
+ *  X509_{cert_depth}_{name}={value}
+ */
+static void
+setenv_x509 (struct env_set *es, const int error_depth, X509_NAME *x509)
+{
+  int i, n;
+  int fn_nid;
+  ASN1_OBJECT *fn;
+  ASN1_STRING *val;
+  X509_NAME_ENTRY *ent;
+  const char *objbuf;
+  unsigned char *buf;
+  char *name_expand;
+  size_t name_expand_size;
+
+  n = X509_NAME_entry_count (x509);
+  for (i = 0; i < n; ++i)
+    {
+      ent = X509_NAME_get_entry (x509, i);
+      if (!ent)
+	continue;
+      fn = X509_NAME_ENTRY_get_object (ent);
+      if (!fn)
+	continue;
+      val = X509_NAME_ENTRY_get_data (ent);
+      if (!val)
+	continue;
+      fn_nid = OBJ_obj2nid (fn);
+      if (fn_nid == NID_undef)
+	continue;
+      objbuf = OBJ_nid2sn (fn_nid);
+      if (!objbuf)
+	continue;
+      buf = (unsigned char *)1; /* bug in OpenSSL 0.9.6b ASN1_STRING_to_UTF8 requires this workaround */
+      if (ASN1_STRING_to_UTF8 (&buf, val) <= 0)
+	continue;
+      name_expand_size = 64 + strlen (objbuf);
+      name_expand = (char *) malloc (name_expand_size);
+      check_malloc_return (name_expand);
+      openvpn_snprintf (name_expand, name_expand_size, "X509_%d_%s", error_depth, objbuf);
+      string_mod (name_expand, CC_PRINT, CC_CRLF, '_');
+      string_mod ((char*)buf, CC_PRINT, CC_CRLF, '_');
+      setenv_str (es, name_expand, (char*)buf);
+      free (name_expand);
+      OPENSSL_free (buf);
+    }
+}
+
 static void
 setenv_untrusted (struct tls_session *session)
 {
@@ -563,6 +614,9 @@ verify_callback (int preverify_ok, X509_STORE_CTX * ctx)
       msg (D_TLS_ERRORS, "VERIFY ERROR: depth=%d, could not extract X509 subject string from certificate", ctx->error_depth);
       goto err;
     }
+
+  /* Save X509 fields in environment */
+  setenv_x509 (opt->es, ctx->error_depth, X509_get_subject_name (ctx->current_cert));
 
   /* enforce character class restrictions in X509 name */
   string_mod (subject, X509_NAME_CHAR_CLASS, 0, '_');
