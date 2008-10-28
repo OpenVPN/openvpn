@@ -27,6 +27,9 @@
 # Calling scripts can set the certificate organizational 
 # unit with the KEY_OU environmental variable. 
 
+# Calling scripts can also set the KEY_NAME environmental
+# variable to set the "name" X509 subject field.
+
 PROGNAME=pkitool
 VERSION=2.0
 DEBUG=0
@@ -237,6 +240,11 @@ if [ -z "$KEY_OU" ]; then
     KEY_OU=""
 fi
 
+# Set X509 Name string to empty string if undefined
+if [ -z "$KEY_NAME" ]; then
+    KEY_NAME=""
+fi
+
 # Set KEY_CN
 if [ $DO_ROOT -eq 1 ]; then
     if [ -z "$KEY_CN" ]; then
@@ -260,7 +268,7 @@ else
     fi
 fi
 
-export CA_EXPIRE KEY_EXPIRE KEY_OU KEY_CN PKCS11_MODULE_PATH PKCS11_PIN
+export CA_EXPIRE KEY_EXPIRE KEY_OU KEY_NAME KEY_CN PKCS11_MODULE_PATH PKCS11_PIN
 
 # Show parameters (debugging)
 if [ $DEBUG -eq 1 ]; then
@@ -277,6 +285,7 @@ if [ $DEBUG -eq 1 ]; then
     echo KEY_EXPIRE $KEY_EXPIRE
     echo CA_EXPIRE $CA_EXPIRE
     echo KEY_OU $KEY_OU
+    echo KEY_NAME $KEY_NAME
     echo DO_P11 $DO_P11
     echo PKCS11_MODULE_PATH $PKCS11_MODULE_PATH
     echo PKCS11_SLOT $PKCS11_SLOT

@@ -74,6 +74,7 @@ stateOrProvinceName	= match
 organizationName	= match
 organizationalUnitName	= optional
 commonName		= supplied
+name			= optional
 emailAddress		= optional
 
 # For the 'anything' policy
@@ -86,6 +87,7 @@ localityName		= optional
 organizationName	= optional
 organizationalUnitName	= optional
 commonName		= supplied
+name			= optional
 emailAddress		= optional
 
 ####################################################################
@@ -137,6 +139,9 @@ organizationalUnitName		= Organizational Unit Name (eg, section)
 commonName			= Common Name (eg, your name or your server\'s hostname)
 commonName_max			= 64
 
+name				= Name
+name_max			= 64
+
 emailAddress			= Email Address
 emailAddress_default		= $ENV::KEY_EMAIL
 emailAddress_max		= 40
@@ -144,6 +149,7 @@ emailAddress_max		= 40
 # JY -- added for batch mode
 organizationalUnitName_default = $ENV::KEY_OU
 commonName_default = $ENV::KEY_CN
+name_default = $ENV::KEY_NAME
 
 # SET-ex3			= SET extension number 3
 
