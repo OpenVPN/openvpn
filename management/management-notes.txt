@@ -378,7 +378,8 @@ Command examples:
 status   -- Show status information using the default status
             format version.
 
-status 2 -- Show status information using status format version 2.
+status 3 -- Show status information using the format of
+            --status-version 3.
 
 COMMAND -- username
 -------------------

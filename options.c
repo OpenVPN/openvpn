@@ -294,7 +294,7 @@ static const char usage_message[] =
   "--mute n        : Log at most n consecutive messages in the same category.\n"
   "--status file n : Write operational status to file every n seconds.\n"
   "--status-version [n] : Choose the status file format version number.\n"
-  "                  Currently, n can be 1 or 2 (default=1).\n"
+  "                  Currently, n can be 1, 2, or 3 (default=1).\n"
 #ifdef ENABLE_OCC
   "--disable-occ   : Disable options consistency check between peers.\n"
 #endif
