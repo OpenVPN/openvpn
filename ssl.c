@@ -580,6 +580,15 @@ print_nsCertType (int type)
     }
 }
 
+static void
+string_mod_sslname (char *str, const unsigned int restrictive_flags, const unsigned int ssl_flags)
+{
+  if (ssl_flags & SSLF_NO_NAME_REMAPPING)
+    string_mod (str, CC_PRINT, CC_CRLF, '_');
+  else
+    string_mod (str, restrictive_flags, 0, '_');
+}
+
 /*
  * Our verify callback function -- check
  * that an incoming peer certificate is good.
@@ -619,7 +628,7 @@ verify_callback (int preverify_ok, X509_STORE_CTX * ctx)
   setenv_x509 (opt->es, ctx->error_depth, X509_get_subject_name (ctx->current_cert));
 
   /* enforce character class restrictions in X509 name */
-  string_mod (subject, X509_NAME_CHAR_CLASS, 0, '_');
+  string_mod_sslname (subject, X509_NAME_CHAR_CLASS, opt->ssl_flags);
   string_replace_leading (subject, '-', '_');
 
   /* extract the common name */
@@ -634,7 +643,7 @@ verify_callback (int preverify_ok, X509_STORE_CTX * ctx)
 	}
     }
 
-  string_mod (common_name, COMMON_NAME_CHAR_CLASS, 0, '_');
+  string_mod_sslname (common_name, COMMON_NAME_CHAR_CLASS, opt->ssl_flags);
 
 #if 0 /* print some debugging info */
   msg (D_LOW, "LOCAL OPT: %s", opt->local_options);
@@ -3350,7 +3359,7 @@ key_method_2_read (struct buffer *buf, struct tls_multi *multi, struct tls_sessi
       string_mod (raw_username, CC_PRINT, CC_CRLF, '_');
 
       /* enforce character class restrictions in username/password */
-      string_mod (up->username, COMMON_NAME_CHAR_CLASS, 0, '_');
+      string_mod_sslname (up->username, COMMON_NAME_CHAR_CLASS, session->opt->ssl_flags);
       string_mod (up->password, CC_PRINT, CC_CRLF, '_');
 
       /* call plugin(s) and/or script */

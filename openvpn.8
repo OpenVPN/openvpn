@@ -203,6 +203,7 @@ openvpn \- secure IP tunnel daemon.
 [\ \fB\-\-mute\fR\ \fIn\fR\ ]
 [\ \fB\-\-nice\fR\ \fIn\fR\ ]
 [\ \fB\-\-no\-iv\fR\ ]
+[\ \fB\-\-no\-name\-remapping\fR\ ]
 [\ \fB\-\-no\-replay\fR\ ]
 [\ \fB\-\-bind\fR\ ]
 [\ \fB\-\-nobind\fR\ ]
@@ -3295,6 +3296,27 @@ For
 authentication, use
 the authenticated username as the common name,
 rather than the common name from the client cert.
+.\"*********************************************************
+.TP
+.B --no-name-remapping
+Allow Common Name, X509 Subject, and username strings to include
+any printable character including space, but excluding control
+characters such as tab, newline, and carriage-return.
+
+By default, OpenVPN will remap
+any character other than alphanumeric, underbar ('_'), dash
+('-'), dot ('.'), and slash ('/') to underbar ('_').  The X509
+Subject string as returned by the
+.B tls_id
+environmental variable, can additionally contain colon (':') or
+equal ('=').
+
+While name remapping is performed for security reasons to reduce
+the possibility of introducing string expansion security vulnerabilities
+in user-defined authentication
+scripts, this option is provided for those cases where it is desirable to
+disable the remapping feature.  Don't use this option unless you 
+know what you are doing!
 .\"*********************************************************
 .TP
 .B --port-share host port

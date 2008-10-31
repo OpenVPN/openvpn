@@ -383,6 +383,8 @@ static const char usage_message[] =
   "                  user/pass via temporary file.\n"
   "--auth-user-pass-optional : Allow connections by clients that don't\n"
   "                  specify a username/password.\n"
+  "--no-name-remapping : Allow Common Name and X509 Subject to include\n"
+  "                      any printable character.\n"
   "--client-to-client : Internally route client-to-client traffic.\n"
   "--duplicate-cn  : Allow multiple clients with the same common name to\n"
   "                  concurrently connect.\n"
@@ -4575,6 +4577,11 @@ add_option (struct options *options,
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->ssl_flags |= SSLF_AUTH_USER_PASS_OPTIONAL;
+    }
+  else if (streq (p[0], "no-name-remapping"))
+    {
+      VERIFY_PERMISSION (OPT_P_GENERAL);
+      options->ssl_flags |= SSLF_NO_NAME_REMAPPING;
     }
   else if (streq (p[0], "auth-user-pass-verify") && p[1])
     {
