@@ -3837,9 +3837,9 @@ add_option (struct options *options,
 
       VERIFY_PERMISSION (OPT_P_GENERAL);
       version = atoi (p[1]);
-      if (version < 1 || version > 2)
+      if (version < 1 || version > 3)
 	{
-	  msg (msglevel, "--status-version must be 1 or 2");
+	  msg (msglevel, "--status-version must be 1 to 3");
 	  goto err;
 	}
       options->status_file_version = version;

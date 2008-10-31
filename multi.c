@@ -773,14 +773,17 @@ multi_print_status (struct multi_context *m, struct status_output *so, const int
 
 	  status_printf (so, "END");
 	}
-      else if (version == 2)
+      else if (version == 2 || version == 3)
 	{
+	  const char sep = (version == 3) ? '\t' : ',';
+
 	  /*
-	   * Status file version 2
+	   * Status file version 2 and 3
 	   */
-	  status_printf (so, "TITLE,%s", title_string);
-	  status_printf (so, "TIME,%s,%u", time_string (now, 0, false, &gc_top), (unsigned int)now);
-	  status_printf (so, "HEADER,CLIENT_LIST,Common Name,Real Address,Virtual Address,Bytes Received,Bytes Sent,Connected Since,Connected Since (time_t)");
+	  status_printf (so, "TITLE%c%s", sep, title_string);
+	  status_printf (so, "TIME%c%s%c%u", sep, time_string (now, 0, false, &gc_top), sep, (unsigned int)now);
+	  status_printf (so, "HEADER%cCLIENT_LIST%cCommon Name%cReal Address%cVirtual Address%cBytes Received%cBytes Sent%cConnected Since%cConnected Since (time_t)",
+			 sep, sep, sep, sep, sep, sep, sep, sep);
 	  hash_iterator_init (m->hash, &hi, true);
 	  while ((he = hash_iterator_next (&hi)))
 	    {
@@ -789,20 +792,21 @@ multi_print_status (struct multi_context *m, struct status_output *so, const int
 
 	      if (!mi->halt)
 		{
-		  status_printf (so, "CLIENT_LIST,%s,%s,%s," counter_format "," counter_format ",%s,%u",
-				 tls_common_name (mi->context.c2.tls_multi, false),
-				 mroute_addr_print (&mi->real, &gc),
-				 print_in_addr_t (mi->reporting_addr, IA_EMPTY_IF_UNDEF, &gc),
-				 mi->context.c2.link_read_bytes,
-				 mi->context.c2.link_write_bytes,
-				 time_string (mi->created, 0, false, &gc),
-				 (unsigned int)mi->created);
+		  status_printf (so, "CLIENT_LIST%c%s%c%s%c%s%c" counter_format "%c" counter_format "%c%s%c%u",
+				 sep, tls_common_name (mi->context.c2.tls_multi, false),
+				 sep, mroute_addr_print (&mi->real, &gc),
+				 sep, print_in_addr_t (mi->reporting_addr, IA_EMPTY_IF_UNDEF, &gc),
+				 sep, mi->context.c2.link_read_bytes,
+				 sep, mi->context.c2.link_write_bytes,
+				 sep, time_string (mi->created, 0, false, &gc),
+				 sep, (unsigned int)mi->created);
 		}
 	      gc_free (&gc);
 	    }
 	  hash_iterator_free (&hi);
 
-	  status_printf (so, "HEADER,ROUTING_TABLE,Virtual Address,Common Name,Real Address,Last Ref,Last Ref (time_t)");
+	  status_printf (so, "HEADER%cROUTING_TABLE%cVirtual Address%cCommon Name%cReal Address%cLast Ref%cLast Ref (time_t)",
+			 sep, sep, sep, sep, sep, sep);
 	  hash_iterator_init (m->vhash, &hi, true);
 	  while ((he = hash_iterator_next (&hi)))
 	    {
@@ -817,21 +821,20 @@ multi_print_status (struct multi_context *m, struct status_output *so, const int
 
 		  if (route->flags & MULTI_ROUTE_CACHE)
 		    flags[0] = 'C';
-		  status_printf (so, "ROUTING_TABLE,%s%s,%s,%s,%s,%u",
-				 mroute_addr_print (ma, &gc),
-				 flags,
-				 tls_common_name (mi->context.c2.tls_multi, false),
-				 mroute_addr_print (&mi->real, &gc),
-				 time_string (route->last_reference, 0, false, &gc),
-				 (unsigned int)route->last_reference);
+		  status_printf (so, "ROUTING_TABLE%c%s%s%c%s%c%s%c%s%c%u",
+				 sep, mroute_addr_print (ma, &gc), flags,
+				 sep, tls_common_name (mi->context.c2.tls_multi, false),
+				 sep, mroute_addr_print (&mi->real, &gc),
+				 sep, time_string (route->last_reference, 0, false, &gc),
+				 sep, (unsigned int)route->last_reference);
 		}
 	      gc_free (&gc);
 	    }
 	  hash_iterator_free (&hi);
 
 	  if (m->mbuf)
-	    status_printf (so, "GLOBAL_STATS,Max bcast/mcast queue length,%d",
-			   mbuf_maximum_queued (m->mbuf));
+	    status_printf (so, "GLOBAL_STATS%cMax bcast/mcast queue length%c%d",
+			   sep, sep, mbuf_maximum_queued (m->mbuf));
 
 	  status_printf (so, "END");
 	}
