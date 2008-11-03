@@ -2629,8 +2629,9 @@ expands as follows:
  push "topology [topology]"
 
  if dev tun AND (topology == net30 OR topology == p2p):
-   ifconfig 10.8.0.1 10.8.0.2 
-   ifconfig-pool 10.8.0.4 10.8.0.251
+   ifconfig 10.8.0.1 10.8.0.2
+   if !nopool:
+     ifconfig-pool 10.8.0.4 10.8.0.251
    route 10.8.0.0 255.255.255.0
    if client-to-client:
      push "route 10.8.0.0 255.255.255.0"
@@ -2639,7 +2640,8 @@ expands as follows:
 
  if dev tap OR (dev tun AND topology == subnet):
    ifconfig 10.8.0.1 255.255.255.0
-   ifconfig-pool 10.8.0.2 10.8.0.254 255.255.255.0
+   if !nopool:
+     ifconfig-pool 10.8.0.2 10.8.0.254 255.255.255.0
    push "route-gateway 10.8.0.1"
 .ft
 .LP

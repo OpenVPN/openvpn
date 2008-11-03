@@ -4499,7 +4499,8 @@ add_option (struct options *options,
       options->ifconfig_pool_defined = true;
       options->ifconfig_pool_start = start;
       options->ifconfig_pool_end = end;
-      options->ifconfig_pool_netmask = netmask;
+      if (netmask)
+	options->ifconfig_pool_netmask = netmask;
     }
   else if (streq (p[0], "ifconfig-pool-persist") && p[1])
     {
