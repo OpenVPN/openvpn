@@ -191,6 +191,8 @@ static const char usage_message[] =
   "                  flag to add a direct route to DHCP server, bypassing tunnel.\n"
   "                  Add 'bypass-dns' flag to similarly bypass tunnel for DNS.\n"
   "--setenv name value : Set a custom environmental variable to pass to script.\n"
+  "--setenv FORWARD_COMPATIBLE 1 : Relax config file syntax checking to allow\n"
+  "                  directives for future OpenVPN versions to be ignored.\n"
   "--script-security level : 0 -- strictly no calling of external programs\n"
   "                          1 -- (default) only call built-ins such as ifconfig\n"
   "                          2 -- allow calling of built-ins and scripts\n"
@@ -3267,6 +3269,12 @@ no_more_than_n_args (const int msglevel,
     return true;
 }
 
+static inline int
+msglevel_forward_compatible (struct options *options)
+{
+  return options->forward_compatible ? M_WARN : msglevel;
+}
+
 static void
 add_option (struct options *options,
 	    char *p[],
@@ -3280,6 +3288,7 @@ add_option (struct options *options,
 {
   struct gc_arena gc = gc_new ();
   const bool pull_mode = BOOL_CAST (permission_mask & OPT_P_PULL_MODE);
+  int msglevel_fc = msglevel_forward_compatible (options);
 
   ASSERT (MAX_PARMS >= 5);
   if (!file)
@@ -4377,6 +4386,11 @@ add_option (struct options *options,
   else if (streq (p[0], "setenv") && p[1])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
+      if (streq (p[1], "FORWARD_COMPATIBLE") && p[2] && streq (p[2], "1"))
+	{
+	  options->forward_compatible = true;
+	  msglevel_fc = msglevel_forward_compatible (options);
+	}
       setenv_str (es, p[1], p[2] ? p[2] : "");
     }
   else if (streq (p[0], "setenv-safe") && p[1])
@@ -5540,9 +5554,9 @@ add_option (struct options *options,
   else
     {
       if (file)
-	msg (msglevel, "Unrecognized option or missing parameter(s) in %s:%d: %s (%s)", file, line, p[0], PACKAGE_VERSION);
+	msg (msglevel_fc, "Unrecognized option or missing parameter(s) in %s:%d: %s (%s)", file, line, p[0], PACKAGE_VERSION);
       else
-	msg (msglevel, "Unrecognized option or missing parameter(s): --%s (%s)", p[0], PACKAGE_VERSION);
+	msg (msglevel_fc, "Unrecognized option or missing parameter(s): --%s (%s)", p[0], PACKAGE_VERSION);
     }
  err:
   gc_free (&gc);

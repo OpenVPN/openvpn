@@ -26,7 +26,7 @@
 .\" LP paragraph
 .\" IP indented paragraph
 .\" TP hanging label
-.TH openvpn 8 "3 August 2005"
+.TH openvpn 8 "4 November 2008"
 .\"*********************************************************
 .SH NAME
 openvpn \- secure IP tunnel daemon.
@@ -2008,6 +2008,19 @@ option documentation.
 Set a custom environmental variable
 .B name=value
 to pass to script.
+.\"*********************************************************
+.TP
+.B --setenv FORWARD_COMPATIBLE 1
+Relax config file syntax checking so that unknown directives
+will trigger a warning but not a fatal error,
+on the assumption that a given unknown directive might be valid
+in future OpenVPN versions.
+
+This option should be used with caution, as there are good security
+reasons for having OpenVPN fail if it detects problems in a
+config file.  Having said that, there are valid reasons for wanting
+new software features to gracefully degrade when encountered by
+older software versions.
 .\"*********************************************************
 .TP
 .B --setenv-safe name value

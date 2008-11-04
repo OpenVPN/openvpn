@@ -150,6 +150,9 @@ struct options
 # define MODE_SERVER         1
   int mode;
 
+  /* enable forward compatibility for post-2.1 features */
+  bool forward_compatible;
+
   /* persist parms */
   bool persist_config;
   int persist_mode;
