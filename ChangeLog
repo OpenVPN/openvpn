@@ -3,7 +3,7 @@ Copyright (C) 2002-2008 OpenVPN Technologies, Inc. <sales@openvpn.net>
 
 $Id$
 
-2008.11.xx -- Version 2.1_rc13b
+2008.11.xx -- Version 2.1_rc14
 
 * Added AC_GNU_SOURCE to configure.ac to enable struct ucred,
   with the goal of fixing a build issue on Fedora 9 that was
@@ -88,6 +88,12 @@ $Id$
 * Added config file option "setenv FORWARD_COMPATIBLE 1" to relax
   config file syntax checking to allow directives for future OpenVPN
   versions to be ignored.
+
+* Added additional method parameter to --script-security to preserve
+  backward compatibility with system() call semantics used in OpenVPN
+  2.1_rc8 and earlier.  To preserve backward compatibility use:
+
+    script-security 3 system
 
 2008.10.07 -- Version 2.1_rc13
 

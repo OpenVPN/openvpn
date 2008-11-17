@@ -193,10 +193,11 @@ static const char usage_message[] =
   "--setenv name value : Set a custom environmental variable to pass to script.\n"
   "--setenv FORWARD_COMPATIBLE 1 : Relax config file syntax checking to allow\n"
   "                  directives for future OpenVPN versions to be ignored.\n"
-  "--script-security level : 0 -- strictly no calling of external programs\n"
-  "                          1 -- (default) only call built-ins such as ifconfig\n"
-  "                          2 -- allow calling of built-ins and scripts\n"
-  "                          3 -- allow password to be passed to scripts via env\n"
+  "--script-security level mode : mode='execve' (default) or 'system', level=\n"
+  "                  0 -- strictly no calling of external programs\n"
+  "                  1 -- (default) only call built-ins such as ifconfig\n"
+  "                  2 -- allow calling of built-ins and scripts\n"
+  "                  3 -- allow password to be passed to scripts via env\n"
   "--shaper n      : Restrict output to peer to n bytes per second.\n"
   "--keepalive n m : Helper option for setting timeouts in server mode.  Send\n"
   "                  ping once every n seconds, restart if ping not received\n"
@@ -1714,6 +1715,9 @@ options_postprocess_verify_ce (const struct options *options, const struct conne
 	  if ((options->ssl_flags & SSLF_AUTH_USER_PASS_OPTIONAL) && !ccnr)
 	    msg (M_USAGE, "--auth-user-pass-optional %s", postfix);
 	}
+
+	if ((options->ssl_flags & SSLF_NO_NAME_REMAPPING) && script_method == SM_SYSTEM)
+	  msg (M_USAGE, "--script-security method='system' cannot be combined with --no-name-remapping");
     }
   else
     {
@@ -2843,11 +2847,14 @@ parse_line (const char *line,
 	  if (backslash && out)
 	    {
 	      if (!(out == '\\' || out == '\"' || space (out)))
+		{
 #ifdef ENABLE_SMALL
-		msg (msglevel, "%sOptions warning: Bad backslash ('\\') usage in %s:%d", error_prefix, file, line_num);
+		  msg (msglevel, "%sOptions warning: Bad backslash ('\\') usage in %s:%d", error_prefix, file, line_num);
 #else
-		msg (msglevel, "%sOptions warning: Bad backslash ('\\') usage in %s:%d: remember that backslashes are treated as shell-escapes and if you need to pass backslash characters as part of a Windows filename, you should use double backslashes such as \"c:\\\\" PACKAGE "\\\\static.key\"", error_prefix, file, line_num);
+		  msg (msglevel, "%sOptions warning: Bad backslash ('\\') usage in %s:%d: remember that backslashes are treated as shell-escapes and if you need to pass backslash characters as part of a Windows filename, you should use double backslashes such as \"c:\\\\" PACKAGE "\\\\static.key\"", error_prefix, file, line_num);
 #endif
+		  return 0;
+		}
 	    }
 	  backslash = false;
 	}
@@ -4402,7 +4409,21 @@ add_option (struct options *options,
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       script_security = atoi (p[1]);
-    }  
+      if (p[2])
+	{
+	  if (streq (p[2], "execve"))
+	    script_method = SM_EXECVE;
+	  else if (streq (p[2], "system"))
+	    script_method = SM_SYSTEM;
+	  else
+	    {
+	      msg (msglevel, "unknown --script-security method: %s", p[2]);
+	      goto err;
+	    }
+	}
+      else
+	script_method = SM_EXECVE;
+    }
   else if (streq (p[0], "mssfix"))
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);

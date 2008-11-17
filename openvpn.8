@@ -2034,9 +2034,11 @@ is a safety precaution to prevent a LD_PRELOAD style attack
 from a malicious or compromised server.
 .\"*********************************************************
 .TP
-.B --script-security level
+.B --script-security level [method]
 This directive offers policy-level control over OpenVPN's usage of external programs
-and scripts.  Lower values are more restrictive, higher values are more permissive.  Settings for
+and scripts.  Lower
+.B level
+values are more restrictive, higher values are more permissive.  Settings for
 .B level:
 
 .B 0 --
@@ -2050,6 +2052,25 @@ Allow calling of built-in executables and user-defined scripts.
 .br
 .B 3 --
 Allow passwords to be passed to scripts via environmental variables (potentially unsafe).
+
+The
+.B method
+parameter indicates how OpenVPN should call external commands and scripts.
+Settings for
+.B method:
+
+.B execve --
+(default) Use execve() function on Unix family OSes and CreateProcess() on Windows.
+.br
+.B system --
+Use system() function (deprecated and less safe since the external program command
+line is subject to shell expansion).
+
+The
+.B --script-security
+option was introduced in OpenVPN 2.1_rc9.  For configuration file compatibility
+with previous OpenVPN versions, use:
+.B --script-security 3 system
 .\"*********************************************************
 .TP
 .B --disable-occ

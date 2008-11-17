@@ -827,7 +827,7 @@ add_route (struct route *r, const struct tuntap *tt, unsigned int flags, const s
 
 #elif defined (WIN32)
 
-  argv_printf (&argv, "%s%s ADD %s MASK %s %s",
+  argv_printf (&argv, "%s%sc ADD %s MASK %s %s",
 	       get_win_sys_path(),
 	       WIN_ROUTE_PATH_SUFFIX,
 	       network,
@@ -1007,7 +1007,7 @@ delete_route (const struct route *r, const struct tuntap *tt, unsigned int flags
 
 #elif defined (WIN32)
   
-  argv_printf (&argv, "%s%s DELETE %s MASK %s %s",
+  argv_printf (&argv, "%s%sc DELETE %s MASK %s %s",
 	       get_win_sys_path(),
 	       WIN_ROUTE_PATH_SUFFIX,
 	       network,

@@ -75,6 +75,51 @@ struct semaphore netcmd_semaphore; /* GLOBAL */
  */
 static char *win_sys_path = NULL; /* GLOBAL */
 
+/*
+ * Configure PATH.  On Windows, sometimes PATH is not set correctly
+ * by default.
+ */
+static void
+configure_win_path (void)
+{
+  static bool done = false; /* GLOBAL */
+  if (!done)
+    {
+      FILE *fp;
+      fp = fopen ("c:\\windows\\system32\\route.exe", "rb");
+      if (fp)
+	{
+	  const int bufsiz = 4096;
+	  struct gc_arena gc = gc_new ();
+	  struct buffer oldpath = alloc_buf_gc (bufsiz, &gc);
+	  struct buffer newpath = alloc_buf_gc (bufsiz, &gc);
+	  const char* delim = ";";
+	  DWORD status;
+	  fclose (fp);
+	  status = GetEnvironmentVariable ("PATH", BPTR(&oldpath), (DWORD)BCAP(&oldpath));
+#if 0
+	  status = 0;
+#endif
+	  if (!status)
+	    {
+	      *BPTR(&oldpath) = '\0';
+	      delim = "";
+	    }
+	  buf_printf (&newpath, "C:\\WINDOWS\\System32;C:\\WINDOWS;C:\\WINDOWS\\System32\\Wbem%s%s",
+		      delim,
+		      BSTR(&oldpath));
+	  SetEnvironmentVariable ("PATH", BSTR(&newpath));
+#if 0
+	  status = GetEnvironmentVariable ("PATH", BPTR(&oldpath), (DWORD)BCAP(&oldpath));
+	  if (status > 0)
+	    printf ("PATH: %s\n", BSTR(&oldpath));
+#endif
+	  gc_free (&gc);
+	  done = true;
+	}
+    }
+}
+
 void
 init_win32 (void)
 {
@@ -911,41 +956,53 @@ openvpn_execve (const struct argv *a, const struct env_set *es, const unsigned i
     {
       if (openvpn_execve_allowed (flags))
 	{
-	  STARTUPINFO start_info;
-	  PROCESS_INFORMATION proc_info;
-
-	  char *env = env_block (es);
-	  char *cl = cmd_line (a);
-	  char *cmd = a->argv[0];
-
-	  CLEAR (start_info);
-	  CLEAR (proc_info);
-
-	  /* fill in STARTUPINFO struct */
-	  GetStartupInfo(&start_info);
-	  start_info.cb = sizeof(start_info);
-	  start_info.dwFlags = STARTF_USESTDHANDLES|STARTF_USESHOWWINDOW;
-	  start_info.wShowWindow = SW_HIDE;
-	  start_info.hStdInput = GetStdHandle(STD_INPUT_HANDLE);
-	  start_info.hStdOutput = start_info.hStdError = GetStdHandle(STD_OUTPUT_HANDLE);
-
-	  if (CreateProcess (cmd, cl, NULL, NULL, FALSE, 0, env, NULL, &start_info, &proc_info))
+	  if (script_method == SM_EXECVE)
 	    {
-	      DWORD exit_status = 0;
-	      CloseHandle (proc_info.hThread);
-	      WaitForSingleObject (proc_info.hProcess, INFINITE);
-	      if (GetExitCodeProcess (proc_info.hProcess, &exit_status))
-		ret = (int)exit_status;
+	      STARTUPINFO start_info;
+	      PROCESS_INFORMATION proc_info;
+
+	      char *env = env_block (es);
+	      char *cl = cmd_line (a);
+	      char *cmd = a->argv[0];
+
+	      CLEAR (start_info);
+	      CLEAR (proc_info);
+
+	      /* fill in STARTUPINFO struct */
+	      GetStartupInfo(&start_info);
+	      start_info.cb = sizeof(start_info);
+	      start_info.dwFlags = STARTF_USESTDHANDLES|STARTF_USESHOWWINDOW;
+	      start_info.wShowWindow = SW_HIDE;
+	      start_info.hStdInput = GetStdHandle(STD_INPUT_HANDLE);
+	      start_info.hStdOutput = start_info.hStdError = GetStdHandle(STD_OUTPUT_HANDLE);
+
+	      if (CreateProcess (cmd, cl, NULL, NULL, FALSE, 0, env, NULL, &start_info, &proc_info))
+		{
+		  DWORD exit_status = 0;
+		  CloseHandle (proc_info.hThread);
+		  WaitForSingleObject (proc_info.hProcess, INFINITE);
+		  if (GetExitCodeProcess (proc_info.hProcess, &exit_status))
+		    ret = (int)exit_status;
+		  else
+		    msg (M_WARN|M_ERRNO, "openvpn_execve: GetExitCodeProcess %s failed", cmd);
+		  CloseHandle (proc_info.hProcess);
+		}
 	      else
-		msg (M_WARN|M_ERRNO, "openvpn_execve: GetExitCodeProcess %s failed", cmd);
-	      CloseHandle (proc_info.hProcess);
+		{
+		  msg (M_WARN|M_ERRNO, "openvpn_execve: CreateProcess %s failed", cmd);
+		}
+	      free (cl);
+	      free (env);
+	    }
+	  else if (script_method == SM_SYSTEM)
+	    {
+	      configure_win_path ();
+	      ret = openvpn_system (argv_system_str (a), es, flags);
 	    }
 	  else
 	    {
-	      msg (M_WARN|M_ERRNO, "openvpn_execve: CreateProcess %s failed", cmd);
+	      ASSERT (0);
 	    }
-	  free (cl);
-	  free (env);
 	}
       else
 	{

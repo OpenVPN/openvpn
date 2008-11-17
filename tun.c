@@ -106,25 +106,6 @@ dev_type_string (const char *dev, const char *dev_type)
     }
 }
 
-const char *
-dev_component_in_dev_node (const char *dev_node)
-{
-  const char *ret;
-  const int dirsep = OS_SPECIFIC_DIRSEP;
-
-  if (dev_node)
-    {
-      ret = strrchr (dev_node, dirsep);
-      if (ret && *ret)
-	++ret;
-      else
-	ret = dev_node;
-      if (*ret)
-	return ret;
-    }
-  return NULL;
-}
-
 /*
  * Try to predict the actual TUN/TAP device instance name,
  * before the device is actually opened.
@@ -3481,7 +3462,7 @@ netsh_ifconfig_options (const char *type,
   /* delete existing DNS/WINS settings from TAP interface */
   if (delete_first)
     {
-      argv_printf (&argv, "%s%s interface ip delete %s %s all",
+      argv_printf (&argv, "%s%sc interface ip delete %s %s all",
 		   get_win_sys_path(),
 		   NETSH_PATH_SUFFIX,
 		   type,
@@ -3498,8 +3479,8 @@ netsh_ifconfig_options (const char *type,
 	if (delete_first || !test_first || !ip_addr_member_of (addr_list[i], current))
 	  {
 	    const char *fmt = count ?
-	        "%s%s interface ip add %s %s %s"
-	      : "%s%s interface ip set %s %s static %s";
+	        "%s%sc interface ip add %s %s %s"
+	      : "%s%sc interface ip set %s %s static %s";
 
 	    argv_printf (&argv, fmt,
 			 get_win_sys_path(),
@@ -3575,8 +3556,7 @@ netsh_ifconfig (const struct tuntap_options *to,
       else
 	{
 	  /* example: netsh interface ip set address my-tap static 10.3.0.1 255.255.255.0 */
-	  argv_printf (&argv,
-		       "%s%s interface ip set address %s static %s %s",
+	  argv_printf (&argv, "%s%sc interface ip set address %s static %s %s",
 		       get_win_sys_path(),
 		       NETSH_PATH_SUFFIX,
 		       flex_name,
@@ -3624,7 +3604,7 @@ netsh_enable_dhcp (const struct tuntap_options *to,
 
   /* example: netsh interface ip set address my-tap dhcp */
   argv_printf (&argv,
-	      "%s%s interface ip set address %s dhcp",
+	      "%s%sc interface ip set address %s dhcp",
 	       get_win_sys_path(),
 	       NETSH_PATH_SUFFIX,
 	       actual_name);

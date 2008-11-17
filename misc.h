@@ -36,6 +36,14 @@
 /* forward declarations */
 struct plugin_list;
 
+/* used by argv_x functions */
+struct argv {
+  size_t capacity;
+  size_t argc;
+  char **argv;
+  char *system_str;
+};
+
 /*
  * Handle environmental variable lists
  */
@@ -126,6 +134,7 @@ const char *system_error_message (int, struct gc_arena *gc);
 int openvpn_execve (const struct argv *a, const struct env_set *es, const unsigned int flags);
 bool openvpn_execve_check (const struct argv *a, const struct env_set *es, const unsigned int flags, const char *error_message);
 bool openvpn_execve_allowed (const unsigned int flags);
+int openvpn_system (const char *command, const struct env_set *es, unsigned int flags);
 
 #ifdef HAVE_STRERROR
 /* a thread-safe version of strerror */
@@ -297,8 +306,15 @@ extern const char *iproute_path;
 #define SSEC_PW_ENV    3 /* allow calling of built-in programs and user-defined scripts that may receive a password as an environmental variable */
 extern int script_security; /* GLOBAL */
 
+#define SM_EXECVE 0      /* call external programs with execve() or CreateProcess() */
+#define SM_SYSTEM 1      /* call external programs with system() */
+extern int script_method; /* GLOBAL */
+
 /* return the next largest power of 2 */
 size_t adjust_power_of_2 (size_t u);
+
+/* return the basename of path */
+const char *openvpn_basename (const char *path);
 
 /*
  * A printf-like function (that only recognizes a subset of standard printf
@@ -314,6 +330,7 @@ const char *argv_str (const struct argv *a, struct gc_arena *gc, const unsigned 
 struct argv argv_insert_head (const struct argv *a, const char *head);
 void argv_msg (const int msglev, const struct argv *a);
 void argv_msg_prefix (const int msglev, const struct argv *a, const char *prefix);
+const char *argv_system_str (const struct argv *a);
 
 #define APA_CAT (1<<0) /* concatentate onto existing struct argv list */
 void argv_printf_arglist (struct argv *a, const char *format, const unsigned int flags, va_list arglist);

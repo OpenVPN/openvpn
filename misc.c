@@ -46,6 +46,9 @@ const char *iproute_path = IPROUTE_PATH; /* GLOBAL */
 /* contains an SSEC_x value defined in misc.h */
 int script_security = SSEC_BUILT_IN; /* GLOBAL */
 
+/* contains SM_x value defined in misc.h */
+int script_method = SM_EXECVE; /* GLOBAL */
+
 /* Redefine the top level directory of the filesystem
    to restrict access to files for security */
 void
@@ -507,23 +510,34 @@ openvpn_execve (const struct argv *a, const struct env_set *es, const unsigned i
 #if defined(ENABLE_EXECVE)
       if (openvpn_execve_allowed (flags))
 	{
-	  const char *cmd = a->argv[0];
-	  char *const *argv = a->argv;
-	  char *const *envp = (char *const *)make_env_array (es, true, &gc);
-	  pid_t pid;
+	  if (script_method == SM_EXECVE)
+	    {
+	      const char *cmd = a->argv[0];
+	      char *const *argv = a->argv;
+	      char *const *envp = (char *const *)make_env_array (es, true, &gc);
+	      pid_t pid;
 
-	  pid = fork ();
-	  if (pid == (pid_t)0) /* child side */
-	    {
-	      execve (cmd, argv, envp);
-	      exit (127);
+	      pid = fork ();
+	      if (pid == (pid_t)0) /* child side */
+		{
+		  execve (cmd, argv, envp);
+		  exit (127);
+		}
+	      else if (pid < (pid_t)0) /* fork failed */
+		;
+	      else /* parent side */
+		{
+		  if (waitpid (pid, &ret, 0) != pid)
+		    ret = -1;
+		}
 	    }
-	  else if (pid < (pid_t)0) /* fork failed */
-	    ;
-	  else /* parent side */
+	  else if (script_method == SM_SYSTEM)
 	    {
-	      if (waitpid (pid, &ret, 0) != pid)
-		ret = -1;
+	      ret = openvpn_system (argv_system_str (a), es, flags);
+	    }
+	  else
+	    {
+	      ASSERT (0);
 	    }
 	}
       else
@@ -543,6 +557,52 @@ openvpn_execve (const struct argv *a, const struct env_set *es, const unsigned i
   return ret;
 }
 #endif
+
+/*
+ * Wrapper around the system() call.
+ */
+int
+openvpn_system (const char *command, const struct env_set *es, unsigned int flags)
+{
+#ifdef HAVE_SYSTEM
+  int ret;
+
+  perf_push (PERF_SCRIPT);
+
+  /*
+   * add env_set to environment.
+   */
+  if (flags & S_SCRIPT)
+    env_set_add_to_environment (es);
+
+
+  /* debugging */
+  dmsg (D_SCRIPT, "SYSTEM[%u] '%s'", flags, command);
+  if (flags & S_SCRIPT)
+    env_set_print (D_SCRIPT, es);
+
+  /*
+   * execute the command
+   */
+  ret = system (command);
+
+  /* debugging */
+  dmsg (D_SCRIPT, "SYSTEM return=%u", ret);
+
+  /*
+   * remove env_set from environment
+   */
+  if (flags & S_SCRIPT)
+    env_set_remove_from_environment (es);
+
+  perf_pop ();
+  return ret;
+
+#else
+  msg (M_FATAL, "Sorry but I can't execute the shell command '%s' because this operating system doesn't appear to support the system() call", command);
+  return -1; /* NOTREACHED */
+#endif
+}
 
 /*
  * Initialize random number seed.  random() is only used
@@ -1679,6 +1739,7 @@ argv_init (struct argv *a)
   a->capacity = 0;
   a->argc = 0;
   a->argv = NULL;
+  a->system_str = NULL;
 }
 
 struct argv
@@ -1696,6 +1757,7 @@ argv_reset (struct argv *a)
   for (i = 0; i < a->argc; ++i)
     free (a->argv[i]);
   free (a->argv);
+  free (a->system_str);
   argv_init (a);
 }
 
@@ -1730,6 +1792,64 @@ argv_append (struct argv *a, char *str) /* str must have been malloced or be NUL
   a->argv[a->argc++] = str;
 }
 
+static void
+argv_system_str_append (struct argv *a, const char *str, const bool enquote)
+{
+  if (str)
+    {
+      char *newstr;
+
+      /* compute length of new system_str */
+      size_t l = strlen (str) + 1; /* space for new string plus trailing '\0' */
+      if (a->system_str)
+	l += strlen (a->system_str) + 1; /* space for existing string + space (" ") separator */
+      if (enquote)
+	l += 2; /* space for two quotes */
+
+      /* build new system_str */
+      newstr = (char *) malloc (l);
+      newstr[0] = '\0';
+      check_malloc_return (newstr);
+      if (a->system_str)
+	{
+	  strcpy (newstr, a->system_str);
+	  strcat (newstr, " ");
+	}
+      if (enquote)
+	strcat (newstr, "\"");
+      strcat (newstr, str);
+      if (enquote)
+	strcat (newstr, "\"");
+      free (a->system_str);
+      a->system_str = newstr;
+    }
+}
+
+static char *
+argv_extract_cmd_name (const char *path)
+{
+  if (path)
+    {
+      const char *bn = openvpn_basename (path);
+      if (bn)
+	{
+	  char *ret = string_alloc (bn, NULL);
+	  char *dot = strrchr (ret, '.');
+	  if (dot)
+	    *dot = '\0';
+	  if (ret[0] != '\0')
+	    return ret;
+	}
+    }
+  return NULL;
+}
+
+const char *
+argv_system_str (const struct argv *a)
+{
+  return a->system_str;
+}
+
 struct argv
 argv_clone (const struct argv *a, const size_t headroom)
 {
@@ -1744,6 +1864,7 @@ argv_clone (const struct argv *a, const size_t headroom)
       for (i = 0; i < a->argc; ++i)
 	argv_append (&r, string_alloc (a->argv[i], NULL));
     }
+  r.system_str = string_alloc (a->system_str, NULL);
   return r;
 }
 
@@ -1751,10 +1872,17 @@ struct argv
 argv_insert_head (const struct argv *a, const char *head)
 {
   struct argv r;
+  char *s;
 
   r = argv_clone (a, 1);
   r.argv[0] = string_alloc (head, NULL);
-
+  s = r.system_str;
+  r.system_str = string_alloc (head, NULL);
+  if (s)
+    {
+      argv_system_str_append (&r, s, false);
+      free (s);
+    }
   return r;
 }
 
@@ -1870,6 +1998,7 @@ argv_printf_arglist (struct argv *a, const char *format, const unsigned int flag
 	      if (!s)
 		s = "";
 	      argv_append (a, string_alloc (s, NULL));
+	      argv_system_str_append (a, s, true);
 	    }
 	  else if (!strcmp (term, "%sc"))
 	    {
@@ -1880,24 +2009,36 @@ argv_printf_arglist (struct argv *a, const char *format, const unsigned int flag
 		  char *parms[MAX_PARMS+1];
 		  int i;
 
-		  nparms = parse_line (s, parms, MAX_PARMS, "SCRIPT-ARGV", 0, M_FATAL, &gc);
-		  for (i = 0; i < nparms; ++i)
-		    argv_append (a, string_alloc (parms[i], NULL));
+		  nparms = parse_line (s, parms, MAX_PARMS, "SCRIPT-ARGV", 0, D_ARGV_PARSE_CMD, &gc);
+		  if (nparms)
+		    {
+		      for (i = 0; i < nparms; ++i)
+			argv_append (a, string_alloc (parms[i], NULL));
+		    }
+		  else
+		    argv_append (a, string_alloc (s, NULL));
+
+		  argv_system_str_append (a, s, false);
 		}
 	      else
-		argv_append (a, string_alloc ("", NULL));
+		{
+		  argv_append (a, string_alloc ("", NULL));
+		  argv_system_str_append (a, "echo", false);
+		}
 	    }
 	  else if (!strcmp (term, "%d"))
 	    {
 	      char numstr[64];
 	      openvpn_snprintf (numstr, sizeof (numstr), "%d", va_arg (arglist, int));
 	      argv_append (a, string_alloc (numstr, NULL));
+	      argv_system_str_append (a, numstr, false);
 	    }
 	  else if (!strcmp (term, "%u"))
 	    {
 	      char numstr[64];
 	      openvpn_snprintf (numstr, sizeof (numstr), "%u", va_arg (arglist, unsigned int));
 	      argv_append (a, string_alloc (numstr, NULL));
+	      argv_system_str_append (a, numstr, false);
 	    }
 	  else if (!strcmp (term, "%s/%d"))
 	    {
@@ -1918,13 +2059,15 @@ argv_printf_arglist (struct argv *a, const char *format, const unsigned int flag
 		strcat (combined, "/");
 		strcat (combined, numstr);
 		argv_append (a, combined);
+		argv_system_str_append (a, combined, false);
 	      }
 	    }
-	  else if (!strcmp (term, "%s%s"))
+	  else if (!strcmp (term, "%s%sc"))
 	    {
 	      char *s1 = va_arg (arglist, char *);
 	      char *s2 = va_arg (arglist, char *);
 	      char *combined;
+	      char *cmd_name;
 
 	      if (!s1) s1 = "";
 	      if (!s2) s2 = "";
@@ -1933,6 +2076,13 @@ argv_printf_arglist (struct argv *a, const char *format, const unsigned int flag
 	      strcpy (combined, s1);
 	      strcat (combined, s2);
 	      argv_append (a, combined);
+
+	      cmd_name = argv_extract_cmd_name (combined);
+	      if (cmd_name)
+		{
+		  argv_system_str_append (a, cmd_name, false);
+		  free (cmd_name);
+		}
 	    }
 	  else
 	    ASSERT (0);
@@ -1941,6 +2091,7 @@ argv_printf_arglist (struct argv *a, const char *format, const unsigned int flag
       else
 	{
 	  argv_append (a, term);
+	  argv_system_str_append (a, term, false);
 	}
     }
   gc_free (&gc);
@@ -1954,43 +2105,54 @@ argv_test (void)
   const char *s;
 
   struct argv a;
+
   argv_init (&a);
-
-#ifdef WIN32
-  argv_printf (&a, "%s foo bar %s", "c:\\src\\test\\jyargs.exe", "foo bar");
-  //argv_printf (&a, "%s %s %s", "c:\\src\\test files\\batargs.bat", "foo", "bar");  
-#else
-  argv_printf (&a, "./myechox foo bar");
-#endif
-
+  argv_printf (&a, "%sc foo bar %s", "c:\\\\src\\\\test\\\\jyargs.exe", "foo bar");
   argv_msg_prefix (M_INFO, &a, "ARGV");
+  msg (M_INFO, "ARGV-S: %s", argv_system_str(&a));
+  //openvpn_execve_check (&a, NULL, 0, "command failed");
+
+  argv_printf (&a, "%sc %s %s", "c:\\\\src\\\\test files\\\\batargs.bat", "foo", "bar");  
+  argv_msg_prefix (M_INFO, &a, "ARGV");
+  msg (M_INFO, "ARGV-S: %s", argv_system_str(&a));
+  //openvpn_execve_check (&a, NULL, 0, "command failed");
+
+  argv_printf (&a, "%s%sc foo bar %s %s/%d %d %u", "/foo", "/bar.exe", "one two", "1.2.3.4", 24, -69, 96);
+  argv_msg_prefix (M_INFO, &a, "ARGV");
+  msg (M_INFO, "ARGV-S: %s", argv_system_str(&a));
   //openvpn_execve_check (&a, NULL, 0, "command failed");
 
   argv_printf (&a, "this is a %s test of int %d unsigned %u", "FOO", -69, 42);
   s = argv_str (&a, &gc, PA_BRACKET);
-  printf ("%s\n", s);
+  printf ("PF: %s\n", s);
+  printf ("PF-S: %s\n", argv_system_str(&a));
 
   {
     struct argv b = argv_insert_head (&a, "MARK");
     s = argv_str (&b, &gc, PA_BRACKET);
+    printf ("PF: %s\n", s);
+    printf ("PF-S: %s\n", argv_system_str(&b));
     argv_reset (&b);
-    printf ("%s\n", s);
   }
 
   argv_printf (&a, "%sc foo bar %d", "\"multi term\" command      following \\\"spaces", 99);
   s = argv_str (&a, &gc, PA_BRACKET);
+  printf ("PF: %s\n", s);
+  printf ("PF-S: %s\n", argv_system_str(&a));
   argv_reset (&a);
-  printf ("%s\n", s);
 
   s = argv_str (&a, &gc, PA_BRACKET);
+  printf ("PF: %s\n", s);
+  printf ("PF-S: %s\n", argv_system_str(&a));
   argv_reset (&a);
-  printf ("%s\n", s);
 
   argv_printf (&a, "foo bar %d", 99);
   argv_printf_cat (&a, "bar %d foo %sc", 42, "nonesuch");
   argv_printf_cat (&a, "cool %s %d u %s/%d end", "frood", 4, "hello", 7);
   s = argv_str (&a, &gc, PA_BRACKET);
-  printf ("%s\n", s);
+  printf ("PF: %s\n", s);
+  printf ("PF-S: %s\n", argv_system_str(&a));
+  argv_reset (&a);
 
 #if 0
   {
@@ -2015,3 +2177,22 @@ argv_test (void)
   gc_free (&gc);
 }
 #endif
+
+const char *
+openvpn_basename (const char *path)
+{
+  const char *ret;
+  const int dirsep = OS_SPECIFIC_DIRSEP;
+
+  if (path)
+    {
+      ret = strrchr (path, dirsep);
+      if (ret && *ret)
+	++ret;
+      else
+	ret = path;
+      if (*ret)
+	return ret;
+    }
+  return NULL;
+}

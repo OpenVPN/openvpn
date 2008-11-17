@@ -58,13 +58,6 @@ struct buffer
 #endif
 };
 
-/* used by argv_x functions */
-struct argv {
-  size_t capacity;
-  size_t argc;
-  char **argv;
-};
-
 /* for garbage collection */
 
 struct gc_entry

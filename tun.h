@@ -231,8 +231,6 @@ void do_ifconfig (struct tuntap *tt,
 		  int tun_mtu,
 		  const struct env_set *es);
 
-const char *dev_component_in_dev_node (const char *dev_node);
-
 bool is_dev_type (const char *dev, const char *dev_type, const char *match_type);
 int dev_type_enum (const char *dev, const char *dev_type);
 const char *dev_type_string (const char *dev, const char *dev_type);
