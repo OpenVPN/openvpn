@@ -384,6 +384,8 @@ static const char usage_message[] =
   "                  run script cmd to verify.  If method='via-env', pass\n"
   "                  user/pass via environment, if method='via-file', pass\n"
   "                  user/pass via temporary file.\n"
+  "--opt-verify    : Clients that connect with options that are incompatible\n"
+  "                  with those of the server will be disconnected.\n"
   "--auth-user-pass-optional : Allow connections by clients that don't\n"
   "                  specify a username/password.\n"
   "--no-name-remapping : Allow Common Name and X509 Subject to include\n"
@@ -1758,6 +1760,8 @@ options_postprocess_verify_ce (const struct options *options, const struct conne
 	msg (M_USAGE, "--username-as-common-name requires --mode server");
       if (options->ssl_flags & SSLF_AUTH_USER_PASS_OPTIONAL)
 	msg (M_USAGE, "--auth-user-pass-optional requires --mode server");
+      if (options->ssl_flags & SSLF_OPT_VERIFY)
+	msg (M_USAGE, "--opt-verify requires --mode server");
       if (options->auth_user_pass_verify_script)
 	msg (M_USAGE, "--auth-user-pass-verify requires --mode server");
 #if PORT_SHARE
@@ -4624,6 +4628,11 @@ add_option (struct options *options,
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->ssl_flags |= SSLF_NO_NAME_REMAPPING;
+    }
+  else if (streq (p[0], "opt-verify"))
+    {
+      VERIFY_PERMISSION (OPT_P_GENERAL);
+      options->ssl_flags |= SSLF_OPT_VERIFY;
     }
   else if (streq (p[0], "auth-user-pass-verify") && p[1])
     {

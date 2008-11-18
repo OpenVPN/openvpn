@@ -3288,6 +3288,20 @@ For a sample script that performs PAM authentication, see
 in the OpenVPN source distribution.
 .\"*********************************************************
 .TP
+.B --opt-verify
+Clients that connect with options that are incompatible
+with those of the server will be disconnected.
+
+Options that will be compared for compatibility include
+dev-type, link-mtu, tun-mtu, proto, tun-ipv6, ifconfig,
+comp-lzo, fragment, keydir, cipher, auth, keysize, secret,
+no-replay, no-iv, tls-auth, key-method, tls-server, and tls-client.
+
+This option requires that
+.B --disable-occ
+NOT be used.
+.\"*********************************************************
+.TP
 .B --auth-user-pass-optional
 Allow connections by clients that do not specify a username/password.
 Normally, when

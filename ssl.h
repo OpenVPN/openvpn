@@ -469,6 +469,7 @@ struct tls_options
 # define SSLF_USERNAME_AS_COMMON_NAME  (1<<1)
 # define SSLF_AUTH_USER_PASS_OPTIONAL  (1<<2)
 # define SSLF_NO_NAME_REMAPPING        (1<<3)
+# define SSLF_OPT_VERIFY               (1<<4)
   unsigned int ssl_flags;
 
 #ifdef MANAGEMENT_DEF_AUTH
