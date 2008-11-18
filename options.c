@@ -1760,6 +1760,8 @@ options_postprocess_verify_ce (const struct options *options, const struct conne
 	msg (M_USAGE, "--username-as-common-name requires --mode server");
       if (options->ssl_flags & SSLF_AUTH_USER_PASS_OPTIONAL)
 	msg (M_USAGE, "--auth-user-pass-optional requires --mode server");
+      if (options->ssl_flags & SSLF_NO_NAME_REMAPPING)
+	msg (M_USAGE, "--no-name-remapping requires --mode server");
       if (options->ssl_flags & SSLF_OPT_VERIFY)
 	msg (M_USAGE, "--opt-verify requires --mode server");
       if (options->auth_user_pass_verify_script)
