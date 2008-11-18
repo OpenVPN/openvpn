@@ -402,6 +402,8 @@ static const char usage_message[] =
   "                  virtual address table to v.\n"
   "--bcast-buffers n : Allocate n broadcast buffers.\n"
   "--tcp-queue-limit n : Maximum number of queued TCP output packets.\n"
+  "--tcp-nodelay   : Macro that sets TCP_NODELAY socket flag on the server\n"
+  "                  as well as pushes it to connecting clients.\n"
   "--learn-address cmd : Run script cmd to validate client virtual addresses.\n"
   "--connect-freq n s : Allow a maximum of n new connections per s seconds.\n"
   "--max-clients n : Allow a maximum of n simultaneously connected clients.\n"
@@ -1764,6 +1766,8 @@ options_postprocess_verify_ce (const struct options *options, const struct conne
 	msg (M_USAGE, "--no-name-remapping requires --mode server");
       if (options->ssl_flags & SSLF_OPT_VERIFY)
 	msg (M_USAGE, "--opt-verify requires --mode server");
+      if (options->server_flags & SF_TCP_NODELAY_HELPER)
+	msg (M_USAGE, "--tcp-nodelay requires --mode server");
       if (options->auth_user_pass_verify_script)
 	msg (M_USAGE, "--auth-user-pass-verify requires --mode server");
 #if PORT_SHARE
@@ -2065,6 +2069,7 @@ options_postprocess_mutate (struct options *o)
    */
   helper_client_server (o);
   helper_keepalive (o);
+  helper_tcp_nodelay (o);
 
   options_postprocess_mutate_invariant (o);
 
@@ -4796,6 +4801,11 @@ add_option (struct options *options,
     {
       VERIFY_PERMISSION (OPT_P_INSTANCE);
       options->disable = true;
+    }
+  else if (streq (p[0], "tcp-nodelay"))
+    {
+      VERIFY_PERMISSION (OPT_P_GENERAL);
+      options->server_flags |= SF_TCP_NODELAY_HELPER;
     }
 #endif /* P2MP_SERVER */
 

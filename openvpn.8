@@ -2866,6 +2866,31 @@ OpenVPN will start to drop outgoing packets directed
 at this client.
 .\"*********************************************************
 .TP
+.B --tcp-nodelay
+This macro sets the TCP_NODELAY socket flag on the server
+as well as pushes it to connecting clients.  The TCP_NODELAY
+flag disables the Nagle algorithm on TCP sockets causing
+packets to be transmitted immediately with low latency,
+rather than waiting a short period of time in order
+to aggregate several packets into a larger containing
+packet.  In VPN applications over TCP, TCP_NODELAY
+is generally a good latency optimization.
+
+The macro expands as follows:
+
+.RS
+.ft 3
+.nf
+.sp
+ if mode server:
+   socket-flags TCP_NODELAY
+   push "socket-flags TCP_NODELAY"
+.ft
+.LP
+.RE
+.fi
+.\"*********************************************************
+.TP
 .B --max-clients n
 Limit server to a maximum of
 .B n

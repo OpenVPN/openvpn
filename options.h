@@ -346,6 +346,7 @@ struct options
   in_addr_t server_netmask;
 
 # define SF_NOPOOL (1<<0)
+# define SF_TCP_NODELAY_HELPER (1<<1)
   unsigned int server_flags;
 
   bool server_bridge_proxy_dhcp;
