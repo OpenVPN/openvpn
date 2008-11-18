@@ -3616,6 +3616,21 @@ larger key may offer no real guarantee of greater
 security, or may even reduce security.
 .\"*********************************************************
 .TP
+.B --prng alg [nsl]
+(Advanced) For PRNG (Pseudo-random number generator),
+use digest algorithm
+.B alg
+(default=sha1), and set
+.B nsl
+(default=16)
+to the size in bytes of the nonce secret length (between 16 and 64).
+
+Set
+.B alg=none
+to disable the PRNG and use the OpenSSL RAND_bytes function
+instead for all of OpenVPN's pseudo-random number needs.
+.\"*********************************************************
+.TP
 .B --engine [engine-name]
 Enable OpenSSL hardware-based crypto engine functionality.
 

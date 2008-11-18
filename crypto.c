@@ -1640,6 +1640,7 @@ void uninit_crypto_lib ()
       engine_initialized = false;
     }
 #endif
+  prng_uninit ();
 }
 
 /*
@@ -1649,33 +1650,73 @@ void uninit_crypto_lib ()
  * IV values and a number of other miscellaneous tasks.
  */
 
-#define NONCE_SECRET_LEN 16
-
-static uint8_t nonce_data [SHA_DIGEST_LENGTH + NONCE_SECRET_LEN]; /* GLOBAL */
+static uint8_t *nonce_data; /* GLOBAL */
+static const EVP_MD *nonce_md = NULL; /* GLOBAL */
+static int nonce_secret_len; /* GLOBAL */
 
 void
-prng_init (void)
+prng_init (const char *md_name, const int nonce_secret_len_parm)
 {
-  if (!RAND_bytes (nonce_data, sizeof(nonce_data)))
-    msg (M_FATAL, "ERROR: Random number generator cannot obtain entropy for PRNG");
+  prng_uninit ();
+  nonce_md = md_name ? get_md (md_name) : NULL;
+  if (nonce_md)
+    {
+      ASSERT (nonce_secret_len_parm >= NONCE_SECRET_LEN_MIN && nonce_secret_len_parm <= NONCE_SECRET_LEN_MAX);
+      nonce_secret_len = nonce_secret_len_parm;
+      {
+	const int size = EVP_MD_size (nonce_md) + nonce_secret_len;
+	dmsg (D_CRYPTO_DEBUG, "PRNG init md=%s size=%d", EVP_MD_name (nonce_md), size);
+	nonce_data = (uint8_t*) malloc (size);
+	check_malloc_return (nonce_data);
+#if 1 /* Must be 1 for real usage */
+	if (!RAND_bytes (nonce_data, size))
+	  msg (M_FATAL, "ERROR: Random number generator cannot obtain entropy for PRNG");
+#else
+	/* Only for testing -- will cause a predictable PRNG sequence */
+	{
+	  int i;
+	  for (i = 0; i < size; ++i)
+	    nonce_data[i] = (uint8_t) i;
+	}
+#endif
+      }
+    }
+}
+
+void
+prng_uninit (void)
+{
+  free (nonce_data);
+  nonce_data = NULL;
+  nonce_md = NULL;
+  nonce_secret_len = 0;
 }
 
 void
 prng_bytes (uint8_t *output, int len)
 {
-  SHA_CTX ctx;
-  mutex_lock_static (L_PRNG);
-  while (len > 0)
+  if (nonce_md)
     {
-      const int blen = min_int (len, SHA_DIGEST_LENGTH);
-      SHA1_Init (&ctx);
-      SHA1_Update (&ctx, nonce_data, sizeof (nonce_data));
-      SHA1_Final (nonce_data, &ctx);
-      memcpy (output, nonce_data, blen);
-      output += blen;
-      len -= blen;
+      EVP_MD_CTX ctx;
+      const int md_size = EVP_MD_size (nonce_md);
+      mutex_lock_static (L_PRNG);
+      while (len > 0)
+	{
+	  unsigned int outlen = 0;
+	  const int blen = min_int (len, md_size);
+	  EVP_DigestInit (&ctx, nonce_md);
+	  EVP_DigestUpdate (&ctx, nonce_data, md_size + nonce_secret_len);
+	  EVP_DigestFinal (&ctx, nonce_data, &outlen);
+	  ASSERT (outlen == md_size);
+	  EVP_MD_CTX_cleanup (&ctx);
+	  memcpy (output, nonce_data, blen);
+	  output += blen;
+	  len -= blen;
+	}
+      mutex_unlock_static (L_PRNG);
     }
-  mutex_unlock_static (L_PRNG);
+  else
+    RAND_bytes (output, len);
 }
 
 /* an analogue to the random() function, but use prng_bytes */

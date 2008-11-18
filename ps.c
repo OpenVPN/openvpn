@@ -793,7 +793,7 @@ port_share_open (const char *host, const int port)
       set_nonblock (fd[1]);
 
       /* initialize prng */
-      prng_init ();
+      prng_init (NULL, 0);
 
       /* execute the event loop */
       port_share_proxy (hostaddr, port, fd[1]);

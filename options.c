@@ -442,6 +442,8 @@ static const char usage_message[] =
   "--cipher alg    : Encrypt packets with cipher algorithm alg\n"
   "                  (default=%s).\n"
   "                  Set alg=none to disable encryption.\n"
+  "--prng alg [nsl] : For PRNG, use digest algorithm alg, and\n"
+  "                   nonce_secret_len=nsl.  Set alg=none to disable PRNG.\n"
 #ifdef HAVE_EVP_CIPHER_CTX_SET_KEY_LENGTH
   "--keysize n     : Size of cipher key in bits (optional).\n"
   "                  If unspecified, defaults to cipher-specific default.\n"
@@ -717,6 +719,8 @@ init_options (struct options *o, const bool init_gc)
   o->ciphername_defined = true;
   o->authname = "SHA1";
   o->authname_defined = true;
+  o->prng_hash = "SHA1";
+  o->prng_nonce_secret_len = 16;
   o->replay = true;
   o->replay_window = DEFAULT_SEQ_BACKTRACK;
   o->replay_time = DEFAULT_TIME_BACKTRACK;
@@ -1272,6 +1276,8 @@ show_settings (const struct options *o)
   SHOW_STR (ciphername);
   SHOW_BOOL (authname_defined);
   SHOW_STR (authname);
+  SHOW_STR (prng_hash);
+  SHOW_INT (prng_nonce_secret_len);
   SHOW_INT (keysize);
   SHOW_BOOL (engine);
   SHOW_BOOL (replay);
@@ -5157,6 +5163,28 @@ add_option (struct options *options,
     {
       VERIFY_PERMISSION (OPT_P_CRYPTO);
       options->ciphername_defined = true;
+    }
+  else if (streq (p[0], "prng") && p[1])
+    {
+      VERIFY_PERMISSION (OPT_P_CRYPTO);
+      if (streq (p[1], "none"))
+	options->prng_hash = NULL;
+      else
+	options->prng_hash = p[1];
+      if (p[2])
+	{
+	  const int sl = atoi (p[2]);
+	  if (sl >= NONCE_SECRET_LEN_MIN && sl <= NONCE_SECRET_LEN_MAX)
+	    {
+	      options->prng_nonce_secret_len = sl;
+	    }
+	  else
+	    {
+	      msg (msglevel, "prng parameter nonce_secret_len must be between %d and %d",
+		   NONCE_SECRET_LEN_MIN, NONCE_SECRET_LEN_MAX);
+	      goto err;
+	    }
+	}
     }
   else if (streq (p[0], "no-replay"))
     {

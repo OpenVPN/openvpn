@@ -401,7 +401,7 @@ init_static (void)
   /* init PRNG used for IV generation */
   /* When forking, copy this to more places in the code to avoid fork
      random-state predictability */
-  prng_init ();
+  prng_init (NULL, 0);
 #endif
 
 #ifdef PID_TEST
@@ -469,6 +469,29 @@ init_static (void)
   {
     void argv_test (void);
     argv_test ();
+    return false;
+  }
+#endif
+
+#ifdef PRNG_TEST
+  {
+    struct gc_arena gc = gc_new ();
+    uint8_t rndbuf[8];
+    int i;
+    prng_init ("sha1", 16);
+    //prng_init (NULL, 0);
+    const int factor = 1;
+    for (i = 0; i < factor * 8; ++i)
+      {
+#if 1
+	prng_bytes (rndbuf, sizeof (rndbuf));
+#else
+	ASSERT(RAND_bytes (rndbuf, sizeof (rndbuf)));
+#endif
+	printf ("[%d] %s\n", i, format_hex (rndbuf, sizeof (rndbuf), 0, &gc));
+      }
+    gc_free (&gc);
+    prng_uninit ();
     return false;
   }
 #endif
@@ -1633,6 +1656,9 @@ do_init_crypto_tls_c1 (struct context *c)
       init_key_type (&c->c1.ks.key_type, options->ciphername,
 		     options->ciphername_defined, options->authname,
 		     options->authname_defined, options->keysize, true, true);
+
+      /* Initialize PRNG with config-specified digest */
+      prng_init (options->prng_hash, options->prng_nonce_secret_len);
 
       /* TLS handshake authentication (--tls-auth) */
       if (options->tls_auth_file)

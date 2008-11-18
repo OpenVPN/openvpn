@@ -418,6 +418,8 @@ struct options
   bool authname_defined;
   const char *authname;
   int keysize;
+  const char *prng_hash;
+  int prng_nonce_secret_len;
   const char *engine;
   bool replay;
   bool mute_replay_warnings;
