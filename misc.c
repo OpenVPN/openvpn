@@ -1863,8 +1863,8 @@ argv_clone (const struct argv *a, const size_t headroom)
     {
       for (i = 0; i < a->argc; ++i)
 	argv_append (&r, string_alloc (a->argv[i], NULL));
+      r.system_str = string_alloc (a->system_str, NULL);
     }
-  r.system_str = string_alloc (a->system_str, NULL);
   return r;
 }
 
