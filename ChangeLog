@@ -3,6 +3,33 @@ Copyright (C) 2002-2008 OpenVPN Technologies, Inc. <sales@openvpn.net>
 
 $Id$
 
+2008.11.19 -- Version 2.1_rc15
+
+* Fixed issue introduced in 2.1_rc14 that may cause a
+  segfault when a --plugin module is used.
+
+* Added server-side --opt-verify option: clients that connect
+  with options that are incompatible with those of the server
+  will be disconnected (without this option, incompatible
+  clients would trigger a warning message in the server log
+  but would not be disconnected).
+
+* Added --tcp-nodelay option: Macro that sets TCP_NODELAY socket
+  flag on the server as well as pushes it to connecting clients.
+
+* Minor options check fix: --no-name-remapping is a
+  server-only option and should therefore generate an
+  error when used on the client.
+
+* Added --prng option to control PRNG (pseudo-random
+  number generator) parameters.  In previous OpenVPN
+  versions, the PRNG was hardcoded to use the SHA1
+  hash.  Now any OpenSSL hash may be used.  This is
+  part of an effort to remove hardcoded references to
+  a specific cipher or cryptographic hash algorithm.
+
+* Cleaned up man page synopsis.
+
 2008.11.16 -- Version 2.1_rc14
 
 * Added AC_GNU_SOURCE to configure.ac to enable struct ucred,
