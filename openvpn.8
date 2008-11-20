@@ -21,25 +21,28 @@
 .\"  59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 .\"
 .\" Manual page for openvpn
+.\
 .\" SH section heading
 .\" SS subsection heading
 .\" LP paragraph
 .\" IP indented paragraph
 .\" TP hanging label
+.\
+.\" .nf -- no formatting
+.\" .fi -- resume formatting
+.\" .ft 3 -- boldface
+.\" .ft -- normal face
+.\" .in +|-{n} -- indent
+.\"
 .TH openvpn 8 "17 November 2008"
 .\"*********************************************************
 .SH NAME
 openvpn \- secure IP tunnel daemon.
 .\"*********************************************************
 .SH SYNOPSIS
-.LP
-.nh
-.in +4
-.ti -4
-.B openvpn [ options ... ]
-.in -4
-.ti +4
-.hy
+.ft 3
+openvpn [ options ... ]
+.ft
 .\"*********************************************************
 .SH INTRODUCTION
 .LP
@@ -128,31 +131,27 @@ Note that OpenVPN 2.0 and higher performs backslash-based shell
 escaping for characters not in single quotations,
 so the following mappings should be observed:
 
-.RS
-.ft 3
 .nf
-.sp
+.ft 3
+.in +4
 \\\\       Maps to a single backslash character (\\).
 \\"       Pass a literal doublequote character ("), don't
          interpret it as enclosing a parameter.
 \\[SPACE] Pass a literal space or tab character, don't
          interpret it as a parameter delimiter.
+.in -4
 .ft
-.LP
-.RE
 .fi
 
 For example on Windows, use double backslashes to
 represent pathnames:
 
-.RS
-.ft 3
 .nf
-.sp
+.ft 3
+.in +4
 secret "c:\\\\OpenVPN\\\\secret.key"
+.in -4
 .ft
-.LP
-.RE
 .fi
 
 For examples of configuration files,
@@ -160,10 +159,10 @@ see
 .I http://openvpn.net/examples.html
 
 Here is an example configuration file:
-.RS
-.ft 3
+
 .nf
-.sp
+.ft 3
+.in +4
 #
 # Sample OpenVPN configuration file for
 # using a pre-shared static key.
@@ -182,9 +181,8 @@ ifconfig 10.1.0.1 10.1.0.2
 
 # Our pre-shared static key
 secret static.key
+.in -4
 .ft
-.LP
-.RE
 .fi
 .\"*********************************************************
 .SS Tunnel Options:
@@ -291,10 +289,9 @@ list.
 
 Here is an example of connection profile usage:
 
-.RS
-.ft 3
 .nf
-.sp
+.ft 3
+.in +4
 client
 dev tun
 
@@ -323,9 +320,8 @@ persist-tun
 pkcs12 client.p12
 ns-cert-type server
 verb 3
+.in -4
 .ft
-.LP
-.RE
 .fi
 
 First we try to connect to a server at 198.19.34.56:1194 using UDP.
@@ -671,12 +667,12 @@ for an example on setting up a TUN device.
 
 You must use either tun devices on both ends of the connection
 or tap devices on both ends.  You cannot mix them, as they
-represent different underlying protocols.
+represent different underlying network layers.
 
 .B tun
-devices encapsulate IPv4 or IPv6 while
+devices encapsulate IPv4 or IPv6 (OSI Layer 3) while
 .B tap
-devices encapsulate Ethernet 802.3.
+devices encapsulate Ethernet 802.3 (OSI Layer 2).
 .\"*********************************************************
 .TP
 .B --dev-type device-type
@@ -684,8 +680,10 @@ Which device type are we using?
 .B device-type
 should be
 .B tun
+(OSI Layer 3)
 or
-.B tap.
+.B tap
+(OSI Layer 2).
 Use this option only if the TUN/TAP device used with
 .B --dev
 does not begin with
@@ -1482,10 +1480,9 @@ For example,
 .B --keepalive 10 60
 expands as follows:
 
-.RS
-.ft 3
 .nf
-.sp
+.ft 3
+.in +4
  if mode server:
    ping 10
    ping-restart 120
@@ -1494,9 +1491,8 @@ expands as follows:
  else
    ping 10
    ping-restart 60
+.in -4
 .ft
-.LP
-.RE
 .fi
 .\"*********************************************************
 .TP
@@ -2177,15 +2173,13 @@ Next in a
 file, specify the compression setting for the client,
 for example:
 
-.RS
-.ft 3
 .nf
-.sp
+.ft 3
+.in +4
 comp-lzo yes
 push "comp-lzo yes"
+.in -4
 .ft
-.LP
-.RE
 .fi
 
 The first line sets the
@@ -2383,10 +2377,9 @@ For example,
 .B --server 10.8.0.0 255.255.255.0
 expands as follows:
 
-.RS
-.ft 3
 .nf
-.sp
+.ft 3
+.in +4
  mode server
  tls-server
  push "topology [topology]"
@@ -2406,9 +2399,8 @@ expands as follows:
    if !nopool:
      ifconfig-pool 10.8.0.2 10.8.0.254 255.255.255.0
    push "route-gateway 10.8.0.1"
+.in -4
 .ft
-.LP
-.RE
 .fi
 
 Don't use
@@ -2418,7 +2410,9 @@ if you are ethernet bridging.  Use
 instead.
 .\"*********************************************************
 .TP
-.B --server-bridge [ gateway netmask pool-start-IP pool-end-IP ]
+.B --server-bridge gateway netmask pool-start-IP pool-end-IP
+.TP
+.B --server-bridge ['nogw']
 
 A helper directive similar to
 .B --server
@@ -2433,7 +2427,10 @@ address for their TAP adapter from the DHCP server running
 on the OpenVPN server-side LAN.
 Note that only clients that support
 the binding of a DHCP client with the TAP adapter (such as
-Windows) can support this mode.
+Windows) can support this mode.  The optional 
+.B nogw
+flag (advanced) indicates that gateway information should not be
+pushed to the client.
 
 To configure ethernet bridging, you 
 must first use your OS's bridging capability
@@ -2470,35 +2467,44 @@ For example,
 .B server-bridge 10.8.0.4 255.255.255.0 10.8.0.128 10.8.0.254
 expands as follows:
 
-.RS
-.ft 3
 .nf
-.sp
+.ft 3
+.in +4
 mode server
 tls-server
 
 ifconfig-pool 10.8.0.128 10.8.0.254 255.255.255.0
 push "route-gateway 10.8.0.4"
+.in -4
 .ft
-.LP
-.RE
 .fi
 
 In another example,
 .B --server-bridge
 (without parameters) expands as follows:
 
-.RS
-.ft 3
 .nf
-.sp
+.ft 3
+.in +4
 mode server
 tls-server
 
 push "route-gateway dhcp"
+.in -4
 .ft
-.LP
-.RE
+.fi
+
+Or
+.B --server-bridge nogw
+expands as follows:
+
+.nf
+.ft 3
+.in +4
+mode server
+tls-server
+.in -4
+.ft
 .fi
 .\"*********************************************************
 .TP
@@ -2878,16 +2884,14 @@ is generally a good latency optimization.
 
 The macro expands as follows:
 
-.RS
-.ft 3
 .nf
-.sp
+.ft 3
+.in +4
  if mode server:
    socket-flags TCP_NODELAY
    push "socket-flags TCP_NODELAY"
+.in -4
 .ft
-.LP
-.RE
 .fi
 .\"*********************************************************
 .TP
@@ -3148,15 +3152,13 @@ in it's configuration.
 A helper directive designed to simplify the configuration
 of OpenVPN's client mode.  This directive is equivalent to:
 
-.RS
-.ft 3
 .nf
-.sp
+.ft 3
+.in +4
  pull
  tls-client
+.in -4
 .ft
-.LP
-.RE
 .fi
 .\"*********************************************************
 .TP
@@ -3364,7 +3366,9 @@ OpenVPN, use the
 .B --show-ciphers
 option.
 
-OpenVPN supports the CBC, CFB, and OFB cipher modes.
+OpenVPN supports the CBC, CFB, and OFB cipher modes,
+however CBC is recommended and CFB and OFB should
+be considered advanced modes.
 
 Set
 .B alg=none
@@ -3412,7 +3416,7 @@ supported by OpenSSL.
 .\"*********************************************************
 .TP
 .B --no-replay
-Disable OpenVPN's protection against replay attacks.
+(Advanced) Disable OpenVPN's protection against replay attacks.
 Don't use this option unless you are prepared to make
 a tradeoff of greater efficiency in exchange for less
 security.
@@ -3575,7 +3579,7 @@ This option only makes sense when replay protection is enabled
 .\"*********************************************************
 .TP
 .B --no-iv
-Disable OpenVPN's use of IV (cipher initialization vector).
+(Advanced) Disable OpenVPN's use of IV (cipher initialization vector).
 Don't use this option unless you are prepared to make
 a tradeoff of greater efficiency in exchange for less
 security.
@@ -4834,6 +4838,14 @@ strings from untrusted sources to be passed as parameters to scripts,
 saved in the environment, used as a common name, translated to a filename,
 etc.
 
+.B Q:
+Can string remapping be disabled?
+
+.B A:
+Yes, by using the
+.B --no-name-remapping
+option, however this should be considered an advanced option.
+
 Here is a brief rundown of OpenVPN's current string types and the 
 permitted character class for each string:
 
@@ -5327,10 +5339,10 @@ OpenVPN server using the sample client certificate
 in sample-keys (client.crt).
 Note that the verification level is 0 for the client certificate
 and 1 for the CA certificate.
-.RS
-.ft 3
+
 .nf
-.sp
+.ft 3
+.in +4
 X509_0_emailAddress=me@myhost.mydomain
 X509_0_CN=Test-Client
 X509_0_O=OpenVPN-TEST
@@ -5341,9 +5353,8 @@ X509_1_O=OpenVPN-TEST
 X509_1_L=BISHKEK
 X509_1_ST=NA
 X509_1_C=KG
+.in -4
 .ft
-.LP
-.RE
 .fi
 .\"*********************************************************
 .SH SIGNALS
@@ -5736,12 +5747,10 @@ OpenVPN's web site is at
 
 Go here to download the latest version of OpenVPN, subscribe
 to the mailing lists, read the mailing list
-archives, or browse the CVS repository.
+archives, or browse the SVN repository.
 .\"*********************************************************
 .SH BUGS
-Report all bugs to the OpenVPN users list <openvpn-users@lists.sourceforge.net>.
-To subscribe to the list or see the archives, go to
-.I http://openvpn.net/mail.html
+Report all bugs to the OpenVPN team <info@openvpn.net>.
 .\"*********************************************************
 .SH "SEE ALSO"
 .BR dhcpcd (8),

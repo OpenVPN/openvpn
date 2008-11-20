@@ -320,7 +320,8 @@ helper_client_server (struct options *o)
    * mode server
    * tls-server
    *
-   * push "route-gateway dhcp"
+   * if !nogw:
+   *   push "route-gateway dhcp"
    */
   else if (o->server_bridge_defined | o->server_bridge_proxy_dhcp)
     {
@@ -355,7 +356,7 @@ helper_client_server (struct options *o)
 	  o->ifconfig_pool_netmask = o->server_bridge_netmask;
 	  push_option (o, print_opt_route_gateway (o->server_bridge_ip, &o->gc), M_USAGE);
 	}
-      else if (o->server_bridge_proxy_dhcp)
+      else if (o->server_bridge_proxy_dhcp && !(o->server_flags & SF_NO_PUSH_ROUTE_GATEWAY))
 	{
 	  push_option (o, print_opt_route_gateway_dhcp (&o->gc), M_USAGE);
 	}

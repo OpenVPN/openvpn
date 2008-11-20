@@ -4512,6 +4512,12 @@ add_option (struct options *options,
       options->server_bridge_pool_start = pool_start;
       options->server_bridge_pool_end = pool_end;
     }
+  else if (streq (p[0], "server-bridge") && p[1] && streq (p[1], "nogw"))
+    {
+      VERIFY_PERMISSION (OPT_P_GENERAL);
+      options->server_bridge_proxy_dhcp = true;
+      options->server_flags |= SF_NO_PUSH_ROUTE_GATEWAY;
+    }
   else if (streq (p[0], "server-bridge") && !p[1])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);

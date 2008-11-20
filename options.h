@@ -347,6 +347,7 @@ struct options
 
 # define SF_NOPOOL (1<<0)
 # define SF_TCP_NODELAY_HELPER (1<<1)
+# define SF_NO_PUSH_ROUTE_GATEWAY (1<<2)
   unsigned int server_flags;
 
   bool server_bridge_proxy_dhcp;
