@@ -84,6 +84,7 @@ man_help ()
   msg (M_CLIENT, "                         where action is reply string.");
   msg (M_CLIENT, "net                    : (Windows only) Show network info and routing table.");
   msg (M_CLIENT, "password type p        : Enter password p for a queried OpenVPN password.");
+  msg (M_CLIENT, "pid                    : Show process ID of the current OpenVPN process.");
 #ifdef ENABLE_PKCS11
   msg (M_CLIENT, "pkcs11-id-count        : Get number of available PKCS#11 identities.");
   msg (M_CLIENT, "pkcs11-id-get index    : Get PKCS#11 identity at index.");
@@ -975,6 +976,10 @@ man_dispatch_command (struct management *man, struct status_output *so, const ch
       msg (M_CLIENT, "OpenVPN Version: %s", title_string);
       msg (M_CLIENT, "Management Version: %d", MANAGEMENT_VERSION);
       msg (M_CLIENT, "END");
+    }
+  else if (streq (p[0], "pid"))
+    {
+      msg (M_CLIENT, "SUCCESS: pid=%d", openvpn_getpid ());
     }
   else if (streq (p[0], "signal"))
     {

@@ -247,6 +247,11 @@ COMMAND -- net
 of the system network adapter list and routing table based
 on information returned by the Windows IP helper API.
 
+COMMAND -- pid
+--------------
+
+Shows the process ID of the current OpenVPN process.
+
 COMMAND -- password and username
 --------------------------------
 
