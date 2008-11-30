@@ -89,3 +89,7 @@
 ;!define SAMPCONF_CA    "ca.crt"
 ;!define SAMPCONF_CRT   "test.crt"
 ;!define SAMPCONF_KEY   "test.key"
+
+# Include a sample configuration file via ExtractAuxFile
+# functionality.
+!define AUX_FILE        "client.ovpn"

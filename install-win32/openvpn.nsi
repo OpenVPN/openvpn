@@ -7,6 +7,8 @@
 
 ; OpenVPN install script for Windows, using NSIS
 
+SetCompressor lzma
+
 !include "MUI.nsh"
 
 !include "defs.nsi"
@@ -14,6 +16,7 @@
 !include "xguidefs.nsi"
 !include "setpath.nsi"
 !include "GetWindowsVersion.nsi"
+!include "ExtractAuxFile.nsi"
 
 !define GEN ".."
 !define BIN "${GEN}\bin"
@@ -72,8 +75,6 @@
   ;General
 
   OutFile "${GEN}\${PRODUCT_UNIX_NAME}-${VERSION}${OUTFILE_LABEL}-install.exe"
-
-  SetCompressor bzip2
 
   ShowInstDetails show
   ShowUninstDetails show
@@ -526,6 +527,17 @@ Section -post
   !ifdef SAMPCONF_DH
     File "${GEN}\conf\${SAMPCONF_DH}"
   !endif
+  !endif
+
+  ; Try to extract AUX_FILE, if present
+  !ifdef AUX_FILE
+    Push "$INSTDIR\config\${AUX_FILE}"
+    Call ExtractAuxFile
+    Pop $R0
+    IntCmp $R0 0 +3 +1 +1
+    DetailPrint "ExtractAuxFile Failed status=$R0"
+    goto +2
+    DetailPrint "ExtractAuxFile Succeeded"
   !endif
 
   ;

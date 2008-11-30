@@ -39,6 +39,7 @@ cp autodefs/xguidefs.nsi $n
 cp install-win32/openvpn.nsi $n
 cp install-win32/setpath.nsi $n
 cp install-win32/GetWindowsVersion.nsi $n
+cp install-win32/ExtractAuxFile.nsi $n
 
 # get OpenVPN client config files
 if [ -n "$SAMPCONF_DIR" ]; then
