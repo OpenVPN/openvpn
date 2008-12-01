@@ -16,7 +16,10 @@ SetCompressor lzma
 !include "xguidefs.nsi"
 !include "setpath.nsi"
 !include "GetWindowsVersion.nsi"
-!include "ExtractAuxFile.nsi"
+
+!ifdef EXTRACT_FILES
+!include "MultiFileExtract.nsi"
+!endif
 
 !define GEN ".."
 !define BIN "${GEN}\bin"
@@ -529,15 +532,15 @@ Section -post
   !endif
   !endif
 
-  ; Try to extract AUX_FILE, if present
-  !ifdef AUX_FILE
-    Push "$INSTDIR\config\${AUX_FILE}"
-    Call ExtractAuxFile
+  ; Try to extract files if present
+  !ifdef EXTRACT_FILES
+    Push "$INSTDIR"
+    Call MultiFileExtract
     Pop $R0
     IntCmp $R0 0 +3 +1 +1
-    DetailPrint "ExtractAuxFile Failed status=$R0"
+    DetailPrint "MultiFileExtract Failed status=$R0"
     goto +2
-    DetailPrint "ExtractAuxFile Succeeded"
+    DetailPrint "MultiFileExtract Succeeded"
   !endif
 
   ;
