@@ -2066,7 +2066,7 @@ management_set_state (struct management *man,
 #ifdef MANAGEMENT_DEF_AUTH
 
 static void
-man_output_env (const struct env_set *es)
+man_output_env (const struct env_set *es, const bool tail)
 {
   if (es)
     {
@@ -2077,7 +2077,22 @@ man_output_env (const struct env_set *es)
 	    msg (M_CLIENT, ">CLIENT:ENV,%s", e->string);
 	}
     }
-  msg (M_CLIENT, ">CLIENT:ENV,END");
+  if (tail)
+    msg (M_CLIENT, ">CLIENT:ENV,END");
+}
+
+static void
+man_output_extra_env (struct management *man)
+{
+  struct gc_arena gc = gc_new ();
+  struct env_set *es = env_set_create (&gc);
+  if (man->persist.callback.n_clients)
+    {
+      const int nclients = (*man->persist.callback.n_clients) (man->persist.callback.arg);
+      setenv_int (es, "n_clients", nclients);
+    }
+  man_output_env (es, false);
+  gc_free (&gc);
 }
 
 void
@@ -2092,7 +2107,8 @@ management_notify_client_needing_auth (struct management *management,
       if (mdac->flags & DAF_CONNECTION_ESTABLISHED)
 	mode = "REAUTH";
       msg (M_CLIENT, ">CLIENT:%s,%lu,%u", mode, mdac->cid, mda_key_id);
-      man_output_env (es);
+      man_output_extra_env (management);
+      man_output_env (es, true);
       mdac->flags |= DAF_INITIAL_AUTH;
     }
 }
@@ -2112,7 +2128,7 @@ management_notify_client_close (struct management *management,
   if ((mdac->flags & DAF_INITIAL_AUTH) && !(mdac->flags & DAF_CONNECTION_CLOSED))
     {
       msg (M_CLIENT, ">CLIENT:DISCONNECT,%lu", mdac->cid);
-      man_output_env (es);
+      man_output_env (es, true);
       mdac->flags |= DAF_CONNECTION_CLOSED;
     }
 }
