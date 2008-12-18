@@ -83,6 +83,7 @@ struct multi_instance {
 #endif
   bool connection_established_flag;
   bool did_iroutes;
+  int n_clients_delta; /* added to multi_context.n_clients when instance is closed */
 
   struct context context;
 };
@@ -114,6 +115,7 @@ struct multi_context {
   int max_clients;
   int tcp_queue_limit;
   int status_file_version;
+  int n_clients; /* current number of authenticated clients */
 
 #ifdef MANAGEMENT_DEF_AUTH
   struct hash *cid_hash;

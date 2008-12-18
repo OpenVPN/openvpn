@@ -916,6 +916,20 @@ man_client_kill (struct management *man, const char *cid_str)
     }
 }
 
+static void
+man_client_n_clients (struct management *man)
+{
+  if (man->persist.callback.n_clients)
+    {
+      const int nclients = (*man->persist.callback.n_clients) (man->persist.callback.arg);
+      msg (M_CLIENT, "SUCCESS: nclients=%d", nclients);
+    }
+  else
+    {
+      msg (M_CLIENT, "ERROR: The nclients command is not supported by the current daemon mode");
+    }
+}
+
 #ifdef MANAGEMENT_PF
 
 static void
@@ -980,6 +994,10 @@ man_dispatch_command (struct management *man, struct status_output *so, const ch
   else if (streq (p[0], "pid"))
     {
       msg (M_CLIENT, "SUCCESS: pid=%d", openvpn_getpid ());
+    }
+  else if (streq (p[0], "nclients"))
+    {
+      man_client_n_clients (man);
     }
   else if (streq (p[0], "signal"))
     {
