@@ -1158,8 +1158,11 @@ read_key_file (struct key2 *key2, const char *file, const unsigned int flags)
 	     error_filename, count, onekeylen, keylen);
     }
 
-  /* zero file read buffer */
-  buf_clear (&in);
+  /* zero file read buffer if not an inline file */
+#if ENABLE_INLINE_FILES
+  if (!(flags & RKF_INLINE))
+#endif
+    buf_clear (&in);
 
   if (key2->n)
     warn_if_group_others_accessible (error_filename);

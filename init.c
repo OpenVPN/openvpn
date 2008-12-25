@@ -1680,7 +1680,7 @@ do_init_crypto_tls_c1 (struct context *c)
 				 flags);
 	}
 
-#if ENABLE_INLINE_FILES
+#if 0 /* was: #if ENABLE_INLINE_FILES --  Note that enabling this code will break restarts */
       if (options->priv_key_file_inline)
 	{
 	  string_clear (c->options.priv_key_file_inline);
