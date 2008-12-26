@@ -1698,7 +1698,7 @@ multi_connection_established (struct multi_context *m, struct multi_instance *mi
 
 #ifdef MANAGEMENT_DEF_AUTH
       if (management)
-	management_connection_established (management, &mi->context.c2.mda_context);
+	management_connection_established (management, &mi->context.c2.mda_context, mi->context.c2.es);
 #endif
 
       gc_free (&gc);

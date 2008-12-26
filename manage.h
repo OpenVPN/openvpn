@@ -355,7 +355,8 @@ void management_notify_client_needing_auth (struct management *management,
 					    const struct env_set *es);
 
 void management_connection_established (struct management *management,
-					struct man_def_auth_context *mdac);
+					struct man_def_auth_context *mdac,
+					const struct env_set *es);
 
 void management_notify_client_close (struct management *management,
 				     struct man_def_auth_context *mdac,

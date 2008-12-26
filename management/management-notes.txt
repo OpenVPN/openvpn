@@ -770,7 +770,16 @@ CLIENT notification types:
     >CLIENT:ENV,...
     >CLIENT:ENV,END
 
-(2) Notify existing client disconnection.  The environmental variables passed
+(2) Notify successful client authentication and session initiation.
+    Called after CONNECT.
+
+    >CLIENT:ESTABLISHED,{CID}
+    >CLIENT:ENV,name1=val1
+    >CLIENT:ENV,name2=val2
+    >CLIENT:ENV,...
+    >CLIENT:ENV,END
+
+(3) Notify existing client disconnection.  The environmental variables passed
     are equivalent to those that would be passed to a --client-disconnect
     script.
 
@@ -780,7 +789,7 @@ CLIENT notification types:
     >CLIENT:ENV,...
     >CLIENT:ENV,END
 
-(3) Notify that a particular virtual address or subnet
+(4) Notify that a particular virtual address or subnet
     is now associated with a specific client.
 
     >CLIENT:ADDRESS,{CID},{ADDR},{PRI}

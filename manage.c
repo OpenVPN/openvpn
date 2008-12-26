@@ -2115,9 +2115,13 @@ management_notify_client_needing_auth (struct management *management,
 
 void
 management_connection_established (struct management *management,
-				   struct man_def_auth_context *mdac)
+				   struct man_def_auth_context *mdac,
+				   const struct env_set *es)
 {
   mdac->flags |= DAF_CONNECTION_ESTABLISHED;
+  msg (M_CLIENT, ">CLIENT:ESTABLISHED,%lu", mdac->cid);
+  man_output_extra_env (management);
+  man_output_env (es, true);
 }
 
 void
