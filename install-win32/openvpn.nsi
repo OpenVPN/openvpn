@@ -234,6 +234,7 @@ Function .onInit
 # Delete previous start menu
   RMDir /r $SMPROGRAMS\${PRODUCT_NAME}
 
+!ifdef CHECK_WINDOWS_VERSION
 # Check windows version
   Call GetWindowsVersion
   Pop $1
@@ -263,9 +264,13 @@ vista64bummer:
 
 init32bits:
 
+!endif
+
 FunctionEnd
 
+!ifndef SF_SELECTED
 !define SF_SELECTED 1
+!endif
 
 ;--------------------
 ;Pre-install section
