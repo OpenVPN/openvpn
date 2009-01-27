@@ -66,15 +66,15 @@ struct openvpn_ethhdr
 
 struct openvpn_arp {
 # define ARP_MAC_ADDR_TYPE 0x0001
-  uint16_t mac_addr_type;       // 0x0001
+  uint16_t mac_addr_type;       /* 0x0001 */
 
-  uint16_t proto_addr_type;     // 0x0800
-  uint8_t  mac_addr_size;       // 0x06
-  uint8_t  proto_addr_size;     // 0x04
+  uint16_t proto_addr_type;     /* 0x0800 */
+  uint8_t  mac_addr_size;       /* 0x06 */
+  uint8_t  proto_addr_size;     /* 0x04 */
 
 # define ARP_REQUEST 0x0001
 # define ARP_REPLY   0x0002
-  uint16_t arp_command;         // 0x0001 for ARP request, 0x0002 for ARP reply
+  uint16_t arp_command;         /* 0x0001 for ARP request, 0x0002 for ARP reply */
 
   uint8_t   mac_src[OPENVPN_ETH_ALEN];
   in_addr_t ip_src;

@@ -1530,7 +1530,7 @@ get_default_gateway (in_addr_t *gateway, in_addr_t *netmask)
 	  *gateway = best_gw;
 	  if (netmask)
 	    {
-	      *netmask = 0xFFFFFF00; // FIXME -- get the real netmask of the adapter containing the default gateway
+	      *netmask = 0xFFFFFF00; /* FIXME -- get the real netmask of the adapter containing the default gateway */
 	    }
 	  ret = true;
 	}
