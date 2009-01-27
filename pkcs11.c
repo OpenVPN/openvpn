@@ -148,6 +148,8 @@ _pkcs11_openvpn_log (
 	va_list args
 ) {
 	char Buffer[10*1024];
+
+	(void)global_data;
 	
 	vsnprintf (Buffer, sizeof (Buffer), szFormat, args);
 	Buffer[sizeof (Buffer)-1] = 0;
@@ -441,7 +443,7 @@ pkcs11_management_id_get (
 #endif
 	pkcs11h_certificate_t certificate = NULL;
 	CK_RV rv = CKR_OK;
-	char *certificate_blob = NULL;
+	unsigned char *certificate_blob = NULL;
 	size_t certificate_blob_size = 0;
 	size_t max;
 	char *internal_id = NULL;
@@ -541,7 +543,7 @@ pkcs11_management_id_get (
 		goto cleanup;
 	}
 
-	if ((certificate_blob = (char *)malloc (certificate_blob_size)) == NULL) {
+	if ((certificate_blob = (unsigned char *)malloc (certificate_blob_size)) == NULL) {
 		msg (M_FATAL, "PKCS#11: Cannot allocate memory");
 		goto cleanup;
 	}

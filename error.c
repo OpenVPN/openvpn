@@ -577,7 +577,7 @@ x_check_status (int status,
 		struct link_socket *sock,
 		struct tuntap *tt)
 {
-  const int my_errno = (sock ? openvpn_errno_socket () : openvpn_errno ());
+  const int my_errno = (sock ? openvpn_errno_socket () : (int)openvpn_errno ());
   const char *extended_msg = NULL;
 
   msg (x_cs_verbose_level, "%s %s returned %d",

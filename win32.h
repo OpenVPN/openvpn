@@ -112,7 +112,7 @@ void net_event_win32_reset_write (struct net_event_win32 *ne);
 void net_event_win32_stop (struct net_event_win32 *ne);
 void net_event_win32_close (struct net_event_win32 *ne);
 
-static bool
+static inline bool
 net_event_win32_defined (const struct net_event_win32 *ne)
 {
   return defined_net_event_win32 (&ne->handle);

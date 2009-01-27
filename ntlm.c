@@ -207,7 +207,7 @@ ntlm_phase_3 (const struct http_proxy_info *p, const char *phase_2, struct gc_ar
 	char *ntlmv2_blob = ntlmv2_response + 16; /* inside ntlmv2_response, length: 128 */
 	int ntlmv2_blob_size=0;
 	int phase3_bufpos = 0x40; /* offset to next security buffer data to be added */
-	int len;
+	size_t len;
 
 	char domain[128];
 	char username[128];
