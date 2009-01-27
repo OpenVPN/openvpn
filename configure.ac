@@ -44,7 +44,7 @@ AC_ARG_WITH(cygwin-native,
 WIN32="no"
 CYGWIN="no"
 case "${host}" in
-	*-mingw32*)
+	*-mingw*)
 		WIN32="yes"
 		cross_compiling="yes"
 	;;
@@ -679,38 +679,40 @@ dnl
 
 if test "$CRYPTO" = "yes"; then
    AC_CHECKING([for OpenSSL Crypto Library and Header files])
-   AC_CHECK_HEADER(openssl/evp.h,
-	[AC_CHECK_LIB(crypto, EVP_CIPHER_CTX_init,
-            [
-		   AC_CHECKING([that OpenSSL Library is at least version 0.9.6])
-		   AC_EGREP_CPP(yes,
-		     [
-		       #include <openssl/evp.h>
-		       #if SSLEAY_VERSION_NUMBER >= 0x00906000L
-		         yes
-		       #endif
-		     ],
-		     [
-                       AC_DEFINE(USE_CRYPTO, 1, [Use OpenSSL crypto library])
-                       if test "${WIN32}" = "yes"; then
-                         OPENVPN_ADD_LIBS(-leay32)
-                       else
-                         OPENVPN_ADD_LIBS(-lcrypto)
-                       fi
-                       AC_CHECK_FUNCS(EVP_CIPHER_CTX_set_key_length)
+   AC_CHECK_HEADER(openssl/evp.h,,
+	[AC_MSG_ERROR([OpenSSL Crypto headers not found.])])
 
-		       dnl check for OpenSSL crypto acceleration capability
-		       AC_CHECK_HEADERS(openssl/engine.h)
-                       AC_CHECK_FUNCS(ENGINE_load_builtin_engines)
-                       AC_CHECK_FUNCS(ENGINE_register_all_complete)
-                       AC_CHECK_FUNCS(ENGINE_cleanup)
-                     ],
-		     [AC_MSG_ERROR([OpenSSL crypto Library is too old.])]
-		   )
-	    ],
-	    [AC_MSG_ERROR([OpenSSL Crypto library not found.])]
-	)],
-	[AC_MSG_ERROR([OpenSSL Crypto headers not found.])]
+   for lib in crypto eay32; do
+      AC_CHECK_LIB($lib, EVP_CIPHER_CTX_init,
+            [
+		cryptofound=1
+		OPENVPN_ADD_LIBS(-l$lib)
+	    ]
+      )
+   done
+
+   test -n "$cryptofound" || AC_MSG_ERROR([OpenSSL Crypto library not found.])
+
+   AC_MSG_CHECKING([that OpenSSL Library is at least version 0.9.6])
+   AC_EGREP_CPP(yes,
+     [
+       #include <openssl/evp.h>
+       #if SSLEAY_VERSION_NUMBER >= 0x00906000L
+	 yes
+       #endif
+     ],
+     [
+       AC_MSG_RESULT([yes])
+       AC_DEFINE(USE_CRYPTO, 1, [Use OpenSSL crypto library])
+       AC_CHECK_FUNCS(EVP_CIPHER_CTX_set_key_length)
+
+       dnl check for OpenSSL crypto acceleration capability
+       AC_CHECK_HEADERS(openssl/engine.h)
+       AC_CHECK_FUNCS(ENGINE_load_builtin_engines)
+       AC_CHECK_FUNCS(ENGINE_register_all_complete)
+       AC_CHECK_FUNCS(ENGINE_cleanup)
+     ],
+     [AC_MSG_ERROR([OpenSSL crypto Library is too old.])]
    )
 
 dnl
@@ -719,30 +721,33 @@ dnl
 
    if test "$SSL" = "yes"; then
       AC_CHECKING([for OpenSSL SSL Library and Header files])
-      AC_CHECK_HEADER(openssl/ssl.h,
-	   [AC_CHECK_LIB(ssl, SSL_CTX_new,
-	       [
-                  if test "$MEMCHECK" = "ssl"; then
-                     AC_CHECKING([for Memory Debugging Capabilities in OpenSSL Library])
-                     AC_CHECK_LIB(ssl, CRYPTO_mem_ctrl,
-                         [
-                             AC_DEFINE(CRYPTO_MDEBUG, 1, [Use memory debugging function in OpenSSL])
-			     AC_MSG_RESULT([NOTE: OpenSSL library must be compiled with CRYPTO_MDEBUG])
-                         ],
-                         [AC_MSG_ERROR([Memory Debugging function in OpenSSL library not found.])]
-                     )
-                  fi
-	       ],
-	       [AC_MSG_ERROR([OpenSSL SSL library not found.])]
-	   )],
+      AC_CHECK_HEADER(openssl/ssl.h,,
 	   [AC_MSG_ERROR([OpenSSL SSL headers not found.])]
       )
-      AC_DEFINE(USE_SSL, 1, [Use OpenSSL SSL library])
-      if test "${WIN32}" = "yes"; then
-        OPENVPN_ADD_LIBS(-lssl32)
-      else
-        OPENVPN_ADD_LIBS(-lssl)
+
+      for lib in ssl ssl32; do
+	  AC_CHECK_LIB($lib, SSL_CTX_new,
+		[
+			sslfound=1
+			OPENVPN_ADD_LIBS(-l$lib)
+		]
+	  )
+      done
+
+      test -n "${sslfound}" || AC_MSG_ERROR([OpenSSL SSL library not found.])
+
+      if test "$MEMCHECK" = "ssl"; then
+	     AC_CHECKING([for Memory Debugging Capabilities in OpenSSL Library])
+	     AC_CHECK_LIB(ssl, CRYPTO_mem_ctrl,
+		 [
+		     AC_DEFINE(CRYPTO_MDEBUG, 1, [Use memory debugging function in OpenSSL])
+		     AC_MSG_RESULT([NOTE: OpenSSL library must be compiled with CRYPTO_MDEBUG])
+		 ],
+		 [AC_MSG_ERROR([Memory Debugging function in OpenSSL library not found.])]
+	     )
       fi
+
+      AC_DEFINE(USE_SSL, 1, [Use OpenSSL SSL library])
    fi
 fi
 
