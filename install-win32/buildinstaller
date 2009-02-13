@@ -9,6 +9,6 @@ rm -f $GENOUT/*.exe
 tail -20 makensis.log
 
 # sign the installer
-if [ -d "$SIGNTOOL" ] && ! [ -n "${EXTRACT_FILES+x}" ]; then
+if [ -d "$SIGNTOOL" ]; then
     TARGET_EXE="$(echo $(pwd)/$GENOUT/*.exe)" $SIGNTOOL/signexe
 fi
