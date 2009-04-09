@@ -3058,7 +3058,10 @@ read_config_file (struct options *options,
   ++level;
   if (level <= max_recursive_levels)
     {
-      fp = fopen (file, "r");
+      if (streq (file, "stdin"))
+	fp = stdin;
+      else
+	fp = fopen (file, "r");
       if (fp)
 	{
 	  line_num = 0;
@@ -3075,7 +3078,8 @@ read_config_file (struct options *options,
 		  add_option (options, p, file, line_num, level, msglevel, permission_mask, option_types_found, es);
 		}
 	    }
-	  fclose (fp);
+	  if (fp != stdin)
+	    fclose (fp);
 	}
       else
 	{
