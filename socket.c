@@ -2703,6 +2703,16 @@ socket_accept_unix (socket_descriptor_t sd,
   return ret;
 }
 
+int
+socket_connect_unix (socket_descriptor_t sd,
+		     struct sockaddr_un *remote)
+{
+  int status = connect (sd, (struct sockaddr *) remote, sizeof (struct sockaddr_un));
+  if (status)
+    status = openvpn_errno_socket ();
+  return status;
+}
+
 void
 sockaddr_unix_init (struct sockaddr_un *local, const char *path)
 {

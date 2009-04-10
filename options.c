@@ -1585,12 +1585,8 @@ options_postprocess_verify_ce (const struct options *options, const struct conne
        || options->management_log_history_cache != defaults.management_log_history_cache))
     msg (M_USAGE, "--management is not specified, however one or more options which modify the behavior of --management were specified");
 
-  if ((options->management_flags & (MF_LISTEN_UNIX|MF_CONNECT_AS_CLIENT))
-      == (MF_LISTEN_UNIX|MF_CONNECT_AS_CLIENT))
-    msg (M_USAGE, "--management-client does not support unix domain sockets");
-
   if ((options->management_client_user || options->management_client_group)
-      && !(options->management_flags & MF_LISTEN_UNIX))
+      && !(options->management_flags & MF_UNIX_SOCK))
     msg (M_USAGE, "--management-client-(user|group) can only be used on unix domain sockets");
 #endif
 
@@ -3391,7 +3387,7 @@ add_option (struct options *options,
       if (streq (p[2], "unix"))
 	{
 #if UNIX_SOCK_SUPPORT
-	  options->management_flags |= MF_LISTEN_UNIX;
+	  options->management_flags |= MF_UNIX_SOCK;
 #else
 	  msg (msglevel, "MANAGEMENT: this platform does not support unix domain sockets");
 	  goto err;

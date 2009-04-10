@@ -421,6 +421,9 @@ void socket_bind_unix (socket_descriptor_t sd,
 socket_descriptor_t socket_accept_unix (socket_descriptor_t sd,
 					struct sockaddr_un *remote);
 
+int socket_connect_unix (socket_descriptor_t sd,
+			 struct sockaddr_un *remote);
+
 void sockaddr_unix_init (struct sockaddr_un *local, const char *path);
 
 const char *sockaddr_unix_name (const struct sockaddr_un *local, const char *null);

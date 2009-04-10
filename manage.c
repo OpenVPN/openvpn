@@ -230,7 +230,7 @@ static void
 man_delete_unix_socket (struct management *man)
 {
 #if UNIX_SOCK_SUPPORT
-  if (man->settings.flags & MF_LISTEN_UNIX)
+  if ((man->settings.flags & (MF_UNIX_SOCK|MF_CONNECT_AS_CLIENT)) == MF_UNIX_SOCK)
     socket_delete_unix (&man->settings.local_unix);
 #endif
 }
@@ -1287,7 +1287,7 @@ man_new_connection_post (struct management *man, const char *description)
 #endif
 
 #if UNIX_SOCK_SUPPORT
-  if (man->settings.flags & MF_LISTEN_UNIX)
+  if (man->settings.flags & MF_UNIX_SOCK)
     {
       msg (D_MANAGEMENT, "MANAGEMENT: %s %s",
 	   description,
@@ -1309,6 +1309,39 @@ man_new_connection_post (struct management *man, const char *description)
   gc_free (&gc);
 }
 
+#if UNIX_SOCK_SUPPORT
+static bool
+man_verify_unix_peer_uid_gid (struct management *man, const socket_descriptor_t sd)
+{
+  if (socket_defined (sd) && (man->settings.client_uid != -1 || man->settings.client_gid != -1))
+    {
+      static const char err_prefix[] = "MANAGEMENT: unix domain socket client connection rejected --";
+      int uid, gid;
+      if (unix_socket_get_peer_uid_gid (man->connection.sd_cli, &uid, &gid))
+	{
+	  if (man->settings.client_uid != -1 && man->settings.client_uid != uid)
+	    {
+	      msg (D_MANAGEMENT, "%s UID of socket peer (%d) doesn't match required value (%d) as given by --management-client-user",
+		   err_prefix, uid, man->settings.client_uid);
+	      return false;
+	    }
+	  if (man->settings.client_gid != -1 && man->settings.client_gid != gid)
+	    {
+	      msg (D_MANAGEMENT, "%s GID of socket peer (%d) doesn't match required value (%d) as given by --management-client-group",
+		   err_prefix, gid, man->settings.client_gid);
+	      return false;
+	    }
+	}
+      else
+	{
+	  msg (D_MANAGEMENT, "%s cannot get UID/GID of socket peer", err_prefix);
+	  return false;
+	}
+    }
+  return true;
+}
+#endif
+
 static void
 man_accept (struct management *man)
 {
@@ -1319,35 +1352,12 @@ man_accept (struct management *man)
    * Accept the TCP or Unix domain socket client.
    */
 #if UNIX_SOCK_SUPPORT
-  if (man->settings.flags & MF_LISTEN_UNIX)
+  if (man->settings.flags & MF_UNIX_SOCK)
     {
       struct sockaddr_un remote;
       man->connection.sd_cli = socket_accept_unix (man->connection.sd_top, &remote);
-      if (socket_defined (man->connection.sd_cli) && (man->settings.client_uid != -1 || man->settings.client_gid != -1))
-	{
-	  static const char err_prefix[] = "MANAGEMENT: unix domain socket client connection rejected --";
-	  int uid, gid;
-	  if (unix_socket_get_peer_uid_gid (man->connection.sd_cli, &uid, &gid))
-	    {
-	      if (man->settings.client_uid != -1 && man->settings.client_uid != uid)
-		{
-		  msg (D_MANAGEMENT, "%s UID of socket peer (%d) doesn't match required value (%d) as given by --management-client-user",
-		       err_prefix, uid, man->settings.client_uid);
-		  sd_close (&man->connection.sd_cli);
-		}
-	      if (man->settings.client_gid != -1 && man->settings.client_gid != gid)
-		{
-		  msg (D_MANAGEMENT, "%s GID of socket peer (%d) doesn't match required value (%d) as given by --management-client-group",
-		       err_prefix, gid, man->settings.client_gid);
-		  sd_close (&man->connection.sd_cli);
-		}
-	    }
-	  else
-	    {
-	      msg (D_MANAGEMENT, "%s cannot get UID/GID of socket peer", err_prefix);
-	      sd_close (&man->connection.sd_cli);
-	    }
-	}
+      if (!man_verify_unix_peer_uid_gid (man, man->connection.sd_cli))
+	sd_close (&man->connection.sd_cli);
     }
   else
 #endif
@@ -1385,7 +1395,7 @@ man_listen (struct management *man)
   if (man->connection.sd_top == SOCKET_UNDEFINED)
     {
 #if UNIX_SOCK_SUPPORT
-      if (man->settings.flags & MF_LISTEN_UNIX)
+      if (man->settings.flags & MF_UNIX_SOCK)
 	{
 	  man_delete_unix_socket (man);
 	  man->connection.sd_top = create_socket_unix ();
@@ -1411,7 +1421,7 @@ man_listen (struct management *man)
       set_cloexec (man->connection.sd_top);
 
 #if UNIX_SOCK_SUPPORT
-      if (man->settings.flags & MF_LISTEN_UNIX)
+      if (man->settings.flags & MF_UNIX_SOCK)
 	{
 	  msg (D_MANAGEMENT, "MANAGEMENT: unix domain socket listening on %s",
 	       sockaddr_unix_name (&man->settings.local_unix, "NULL"));
@@ -1442,12 +1452,30 @@ man_connect (struct management *man)
   man->connection.state = MS_INITIAL;
   man->connection.sd_top = SOCKET_UNDEFINED;
 
-  man->connection.sd_cli = create_socket_tcp ();
-
-  status = openvpn_connect (man->connection.sd_cli,
-			    &man->settings.local,
-			    5,
-			    &signal_received);
+#if UNIX_SOCK_SUPPORT
+  if (man->settings.flags & MF_UNIX_SOCK)
+    {
+      man->connection.sd_cli = create_socket_unix ();
+      status = socket_connect_unix (man->connection.sd_cli, &man->settings.local_unix);
+      if (!status && !man_verify_unix_peer_uid_gid (man, man->connection.sd_cli))
+	  {
+#ifdef EPERM
+	    status = EPERM;
+#else
+	    status = 1;
+#endif
+	    sd_close (&man->connection.sd_cli);
+	  }
+    }
+  else
+#endif
+    {
+      man->connection.sd_cli = create_socket_tcp ();
+      status = openvpn_connect (man->connection.sd_cli,
+				&man->settings.local,
+				5,
+				&signal_received);
+    }
 
   if (signal_received)
     {
@@ -1457,6 +1485,16 @@ man_connect (struct management *man)
 
   if (status)
     {
+#if UNIX_SOCK_SUPPORT
+      if (man->settings.flags & MF_UNIX_SOCK)
+	{
+	  msg (D_LINK_ERRORS,
+	       "MANAGEMENT: connect to unix socket %s failed: %s",
+	       sockaddr_unix_name (&man->settings.local_unix, "NULL"),
+	       strerror_ts (status, &gc));
+	}
+      else
+#endif
       msg (D_LINK_ERRORS,
 	   "MANAGEMENT: connect to %s failed: %s",
 	   print_sockaddr (&man->settings.local, &gc),
@@ -1805,7 +1843,7 @@ man_settings_init (struct man_settings *ms,
       ms->write_peer_info_file = string_alloc (write_peer_info_file, NULL);
 
 #if UNIX_SOCK_SUPPORT
-      if (ms->flags & MF_LISTEN_UNIX)
+      if (ms->flags & MF_UNIX_SOCK)
 	sockaddr_unix_init (&ms->local_unix, addr);
       else
 #endif

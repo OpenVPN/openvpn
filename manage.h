@@ -307,7 +307,7 @@ struct management *management_init (void);
 #ifdef MANAGEMENT_PF
 # define MF_CLIENT_PF         (1<<7)
 #endif
-# define MF_LISTEN_UNIX       (1<<8)
+# define MF_UNIX_SOCK       (1<<8)
 
 bool management_open (struct management *man,
 		      const char *addr,
