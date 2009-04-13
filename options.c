@@ -2669,7 +2669,7 @@ auth_retry_print (void)
 static void
 usage (void)
 {
-  FILE *fp = msg_fp();
+  FILE *fp = msg_fp(0);
 
 #ifdef ENABLE_SMALL
 
@@ -3858,6 +3858,11 @@ add_option (struct options *options,
     {
       VERIFY_PERMISSION (OPT_P_MESSAGES);
       options->mute = positive_atoi (p[1]);
+    }
+  else if (streq (p[0], "errors-to-stderr"))
+    {
+      VERIFY_PERMISSION (OPT_P_MESSAGES);
+      errors_to_stderr();
     }
   else if (streq (p[0], "status") && p[1])
     {

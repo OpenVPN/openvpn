@@ -88,6 +88,10 @@ static FILE *msgfp;         /* GLOBAL */
 /* If true, we forked from main OpenVPN process */
 static bool forked;         /* GLOBAL */
 
+/* our default output targets */
+static FILE *default_out; /* GLOBAL */
+static FILE *default_err; /* GLOBAL */
+
 void
 msg_forked (void)
 {
@@ -151,6 +155,8 @@ error_reset ()
   mute_cutoff = 0;
   mute_count = 0;
   mute_category = 0;
+  default_out = OPENVPN_MSG_FP;
+  default_err = OPENVPN_MSG_FP;
 
 #ifdef OPENVPN_DEBUG_COMMAND_LINE
   msgfp = fopen (OPENVPN_DEBUG_FILE, "w");
@@ -161,15 +167,21 @@ error_reset ()
 #endif
 }
 
+void
+errors_to_stderr (void)
+{
+  default_err = OPENVPN_ERROR_FP;  
+}
+
 /*
  * Return a file to print messages to before syslog is opened.
  */
 FILE *
-msg_fp()
+msg_fp(const unsigned int flags)
 {
   FILE *fp = msgfp;
   if (!fp)
-    fp = OPENVPN_MSG_FP;
+    fp = (flags & (M_FATAL|M_USAGE_SMALL)) ? default_err : default_out;
   if (!fp)
     openvpn_exit (OPENVPN_EXIT_STATUS_CANNOT_OPEN_DEBUG_FILE); /* exit point */
   return fp;
@@ -305,7 +317,7 @@ void x_msg (const unsigned int flags, const char *format, ...)
 	}
       else
 	{
-	  FILE *fp = msg_fp();
+	  FILE *fp = msg_fp(flags);
 	  const bool show_usec = check_debug_level (DEBUG_LEVEL_USEC_TIME);
 
 	  if ((flags & M_NOPREFIX) || suppress_timestamps)
