@@ -96,7 +96,7 @@
 # These settings will then drive the rest of the build process. 
 install-win32/winconfig
 
-# Delete the GENOUT directory if CLEAN="yes"
+# clean all generated files
 install-win32/doclean
 
 # Load a pre-built GENOUT directory if GENOUT_PREBUILT is defined

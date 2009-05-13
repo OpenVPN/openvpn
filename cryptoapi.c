@@ -51,8 +51,8 @@
 #define CERT_STORE_OPEN_EXISTING_FLAG 0x00004000
 #define CRYPT_ACQUIRE_COMPARE_KEY_FLAG 0x00000004
 static HINSTANCE crypt32dll = NULL;
-static BOOL WINAPI (*CryptAcquireCertificatePrivateKey) (PCCERT_CONTEXT pCert, DWORD dwFlags,
-    void *pvReserved, HCRYPTPROV *phCryptProv, DWORD *pdwKeySpec, BOOL *pfCallerFreeProv) = NULL;
+static BOOL WINAPI (*OpenVPNCryptAcquireCertificatePrivateKey) (PCCERT_CONTEXT pCert, DWORD dwFlags,
+  void *pvReserved, HCRYPTPROV *phCryptProv, DWORD *pdwKeySpec, BOOL *pfCallerFreeProv) = NULL;
 #endif
 
 /* Size of an SSL signature: MD5+SHA1 */
@@ -75,7 +75,7 @@ static ERR_STRING_DATA CRYPTOAPI_str_functs[] =	{
     { ERR_PACK(ERR_LIB_CRYPTOAPI, 0, 0),				    "microsoft cryptoapi"},
     { ERR_PACK(0, CRYPTOAPI_F_CERT_OPEN_SYSTEM_STORE, 0),		    "CertOpenSystemStore" },
     { ERR_PACK(0, CRYPTOAPI_F_CERT_FIND_CERTIFICATE_IN_STORE, 0),	    "CertFindCertificateInStore" },
-    { ERR_PACK(0, CRYPTOAPI_F_CRYPT_ACQUIRE_CERTIFICATE_PRIVATE_KEY, 0),    "CryptAcquireCertificatePrivateKey" },
+    { ERR_PACK(0, CRYPTOAPI_F_CRYPT_ACQUIRE_CERTIFICATE_PRIVATE_KEY, 0),    "OpenVPNCryptAcquireCertificatePrivateKey" },
     { ERR_PACK(0, CRYPTOAPI_F_CRYPT_CREATE_HASH, 0),			    "CryptCreateHash" },
     { ERR_PACK(0, CRYPTOAPI_F_CRYPT_GET_HASH_PARAM, 0),			    "CryptGetHashParam" },
     { ERR_PACK(0, CRYPTOAPI_F_CRYPT_SET_HASH_PARAM, 0),			    "CryptSetHashParam" },
@@ -387,16 +387,16 @@ int SSL_CTX_use_CryptoAPI_certificate(SSL_CTX *ssl_ctx, const char *cert_prop)
 	    goto err;
 	}
     }
-    if (CryptAcquireCertificatePrivateKey == NULL) {
-	CryptAcquireCertificatePrivateKey = GetProcAddress(crypt32dll,
-		"CryptAcquireCertificatePrivateKey");
-	if (CryptAcquireCertificatePrivateKey == NULL) {
+    if (OpenVPNCryptAcquireCertificatePrivateKey == NULL) {
+	OpenVPNCryptAcquireCertificatePrivateKey = GetProcAddress(crypt32dll,
+		"OpenVPNCryptAcquireCertificatePrivateKey");
+	if (OpenVPNCryptAcquireCertificatePrivateKey == NULL) {
 	    CRYPTOAPIerr(CRYPTOAPI_F_GET_PROC_ADDRESS);
 	    goto err;
 	}
     }
 #endif
-    if (!CryptAcquireCertificatePrivateKey(cd->cert_context, CRYPT_ACQUIRE_COMPARE_KEY_FLAG,
+    if (!OpenVPNCryptAcquireCertificatePrivateKey(cd->cert_context, CRYPT_ACQUIRE_COMPARE_KEY_FLAG,
 	    NULL, &cd->crypt_prov, &cd->key_spec, &cd->free_crypt_prov)) {
 	/* if we don't have a smart card reader here, and we try to access a
 	 * smart card certificate, we get:
