@@ -3,6 +3,59 @@ Copyright (C) 2002-2008 OpenVPN Technologies, Inc. <sales@openvpn.net>
 
 $Id$
 
+2009.05.17 -- Version 2.1_rc16
+
+* Windows installer changes:
+
+  1. ifdefed out the check Windows version code which is causing
+  problems on Windows 7
+
+  2. don't define SF_SELECTED if it is already defined
+
+  3. Use LZMA instead of BZIP2 compression for better compression
+
+  4. Upgraded OpenSSL to 0.9.8k
+
+* Added the ability to read the configuration file
+  from stdin, when "stdin" is given as the config
+  file name.
+
+* Allow "management-client" directive to be used
+  with unix domain sockets.
+
+* Added errors-to-stderr option.  When enabled, fatal errors
+  that result in the termination of the daemon will be written
+  to stderr.
+
+* Added optional "nogw" (no gateway) flag to --server-bridge
+  to inhibit the pushing of the route-gateway parameter to
+  clients.
+
+* Added new management interface command "pid" to show the
+  process ID of the current OpenVPN process (Angelo Laub).
+
+* Fixed issue where SIGUSR1 restarts would fail if private
+  key was specified as an inline file.
+
+* Added daemon_start_time and daemon_pid environmental variables.
+
+* In management interface, added new ">CLIENT:ESTABLISHED" notification.
+
+* Build fixes:
+
+  1. Fixed some issues with C++ style comments that leaked into the code.
+
+  2. Updated configure.ac to work on MinGW64.
+
+  3. Updated common.h types for _WIN64.
+
+  4. Fixed issue involving an #ifdef in a macro reference that breaks early gcc
+     compilers.
+
+  5. In cryptoapi.c, renamed CryptAcquireCertificatePrivateKey to
+     OpenVPNCryptAcquireCertificatePrivateKey to work around
+     a symbol conflict in MinGW-5.1.4.
+
 2008.11.19 -- Version 2.1_rc15
 
 * Fixed issue introduced in 2.1_rc14 that may cause a
