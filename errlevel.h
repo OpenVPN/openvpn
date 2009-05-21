@@ -129,7 +129,7 @@
 #define D_SEMAPHORE_LOW      LOGLEV(7, 70, M_DEBUG)  /* show Win32 semaphore waits (low freq) */
 #define D_SEMAPHORE          LOGLEV(7, 70, M_DEBUG)  /* show Win32 semaphore waits */
 #define D_TEST_FILE          LOGLEV(7, 70, M_DEBUG)  /* show test_file() calls */
-#define D_MANAGEMENT_DEBUG   LOGLEV(7, 70, M_DEBUG)  /* show --management debug info */
+#define D_MANAGEMENT_DEBUG   LOGLEV(3, 70, M_DEBUG)  /* show --management debug info */
 #define D_PLUGIN_DEBUG       LOGLEV(7, 70, M_DEBUG)  /* show verbose plugin calls */
 #define D_SOCKET_DEBUG       LOGLEV(7, 70, M_DEBUG)  /* show socket.[ch] debugging info */
 #define D_SHOW_PKCS11        LOGLEV(7, 70, M_DEBUG)  /* show PKCS#11 actions */
