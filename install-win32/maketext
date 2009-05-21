@@ -41,7 +41,7 @@ cp install-win32/setpath.nsi $n
 cp install-win32/GetWindowsVersion.nsi $n
 
 if [ -n "$EXTRACT_FILES" ]; then
-    cp install-win32/MultiFileExtract.nsi $n
+    cp "$EXTRACT_FILES/MultiFileExtract.nsi" $n
 fi
 
 # get OpenVPN client config files

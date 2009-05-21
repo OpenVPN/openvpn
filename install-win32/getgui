@@ -7,7 +7,7 @@
 
 GUI="$OPENVPN_GUI_DIR/$OPENVPN_GUI"
 
-if [ -e "$GUI" ]; then
+if [ -f "$GUI" ]; then
     mkdir -p $GENOUT/bin &>/dev/null    
     cp $GUI $GENOUT/bin
     if [ -d "$SIGNTOOL" ]; then
@@ -15,7 +15,7 @@ if [ -e "$GUI" ]; then
     fi
 fi
 
-if [ -e "$GENOUT/bin/$OPENVPN_GUI" ]; then
+if [ -f "$GENOUT/bin/$OPENVPN_GUI" ]; then
     echo '!define OPENVPN_GUI_DEFINED' >autodefs/guidefs.nsi
 else
     cat /dev/null >autodefs/guidefs.nsi

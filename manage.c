@@ -1914,7 +1914,7 @@ man_connection_init (struct management *man)
        * Allocate helper objects for command line input and
        * command output from/to the socket.
        */
-      man->connection.in = command_line_new (256);
+      man->connection.in = command_line_new (1024);
       man->connection.out = buffer_list_new (0);
 
       /*
@@ -2323,7 +2323,8 @@ management_io (struct management *man)
 	    {
 	      if (net_events & FD_READ)
 		{
-		  man_read (man);
+		  while (man_read (man) > 0)
+		    ;
 		  net_event_win32_clear_selected_events (&man->connection.ne32, FD_READ);
 		}
 	    }
