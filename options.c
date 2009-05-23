@@ -182,7 +182,7 @@ static const char usage_message[] =
   "                  by server EXCEPT for routes.\n"
   "--allow-pull-fqdn : Allow client to pull DNS names from server for\n"
   "                    --ifconfig, --route, and --route-gateway.\n"
-  "--redirect-gateway [flags]: (Experimental) Automatically execute routing\n"
+  "--redirect-gateway [flags]: Automatically execute routing\n"
   "                  commands to redirect all outgoing IP traffic through the\n"
   "                  VPN.  Add 'local' flag if both " PACKAGE_NAME " servers are directly\n"
   "                  connected via a common subnet, such as with WiFi.\n"
@@ -190,6 +190,8 @@ static const char usage_message[] =
   "                  and 128.0.0.0/1 rather than 0.0.0.0/0.  Add 'bypass-dhcp'\n"
   "                  flag to add a direct route to DHCP server, bypassing tunnel.\n"
   "                  Add 'bypass-dns' flag to similarly bypass tunnel for DNS.\n"
+  "--redirect-private [flags]: Like --redirect-gateway, but omit actually changing\n"
+  "                  the default gateway.  Useful when pushing private subnets.\n"
   "--setenv name value : Set a custom environmental variable to pass to script.\n"
   "--setenv FORWARD_COMPATIBLE 1 : Relax config file syntax checking to allow\n"
   "                  directives for future OpenVPN versions to be ignored.\n"
@@ -4391,13 +4393,15 @@ add_option (struct options *options,
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->allow_pull_fqdn = true;
     }
-  else if (streq (p[0], "redirect-gateway"))
+  else if (streq (p[0], "redirect-gateway") || streq (p[0], "redirect-private"))
     {
       int j;
       VERIFY_PERMISSION (OPT_P_ROUTE);
       rol_check_alloc (options);
       for (j = 1; j < MAX_PARMS && p[j] != NULL; ++j)
 	{
+	  if (streq (p[0], "redirect-gateway"))
+	    options->routes->flags |= RG_REROUTE_GW;
 	  if (streq (p[j], "local"))
 	    options->routes->flags |= RG_LOCAL;
 	  else if (streq (p[j], "def1"))
@@ -4408,7 +4412,7 @@ add_option (struct options *options,
 	    options->routes->flags |= RG_BYPASS_DNS;
 	  else
 	    {
-	      msg (msglevel, "unknown --redirect-gateway flag: %s", p[j]);
+	      msg (msglevel, "unknown --%s flag: %s", p[0], p[j]);
 	      goto err;
 	    }
 	}

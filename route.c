@@ -543,41 +543,44 @@ redirect_default_route_to_vpn (struct route_list *rl, const struct tuntap *tt, u
 	  /* route DHCP/DNS server traffic through original default gateway */
 	  add_bypass_routes (&rl->spec.bypass, rl->spec.net_gateway, tt, flags, es);
 
-	  if (rl->flags & RG_DEF1)
+	  if (rl->flags & RG_REROUTE_GW)
 	    {
-	      /* add new default route (1st component) */
-	      add_route3 (0x00000000,
-			  0x80000000,
-			  rl->spec.remote_endpoint,
-			  tt,
-			  flags,
-			  es);
+	      if (rl->flags & RG_DEF1)
+		{
+		  /* add new default route (1st component) */
+		  add_route3 (0x00000000,
+			      0x80000000,
+			      rl->spec.remote_endpoint,
+			      tt,
+			      flags,
+			      es);
 
-	      /* add new default route (2nd component) */
-	      add_route3 (0x80000000,
-			  0x80000000,
-			  rl->spec.remote_endpoint,
-			  tt,
-			  flags,
-			  es);
-	    }
-	  else
-	    {
-	      /* delete default route */
-	      del_route3 (0,
-			  0,
-			  rl->spec.net_gateway,
-			  tt,
-			  flags,
-			  es);
+		  /* add new default route (2nd component) */
+		  add_route3 (0x80000000,
+			      0x80000000,
+			      rl->spec.remote_endpoint,
+			      tt,
+			      flags,
+			      es);
+		}
+	      else
+		{
+		  /* delete default route */
+		  del_route3 (0,
+			      0,
+			      rl->spec.net_gateway,
+			      tt,
+			      flags,
+			      es);
 
-	      /* add new default route */
-	      add_route3 (0,
-			  0,
-			  rl->spec.remote_endpoint,
-			  tt,
-			  flags,
-			  es);
+		  /* add new default route */
+		  add_route3 (0,
+			      0,
+			      rl->spec.remote_endpoint,
+			      tt,
+			      flags,
+			      es);
+		}
 	    }
 
 	  /* set a flag so we can undo later */
@@ -603,41 +606,44 @@ undo_redirect_default_route_to_vpn (struct route_list *rl, const struct tuntap *
       /* delete special DHCP/DNS bypass route */
       del_bypass_routes (&rl->spec.bypass, rl->spec.net_gateway, tt, flags, es);
 
-      if (rl->flags & RG_DEF1)
+      if (rl->flags & RG_REROUTE_GW)
 	{
-	  /* delete default route (1st component) */
-	  del_route3 (0x00000000,
-		      0x80000000,
-		      rl->spec.remote_endpoint,
-		      tt,
-		      flags,
-		      es);
+	  if (rl->flags & RG_DEF1)
+	    {
+	      /* delete default route (1st component) */
+	      del_route3 (0x00000000,
+			  0x80000000,
+			  rl->spec.remote_endpoint,
+			  tt,
+			  flags,
+			  es);
 
-	  /* delete default route (2nd component) */
-	  del_route3 (0x80000000,
-		      0x80000000,
-		      rl->spec.remote_endpoint,
-		      tt,
-		      flags,
-		      es);
-	}
-      else
-	{
-	  /* delete default route */
-	  del_route3 (0,
-		      0,
-		      rl->spec.remote_endpoint,
-		      tt,
-		      flags,
-		      es);
+	      /* delete default route (2nd component) */
+	      del_route3 (0x80000000,
+			  0x80000000,
+			  rl->spec.remote_endpoint,
+			  tt,
+			  flags,
+			  es);
+	    }
+	  else
+	    {
+	      /* delete default route */
+	      del_route3 (0,
+			  0,
+			  rl->spec.remote_endpoint,
+			  tt,
+			  flags,
+			  es);
 
-	  /* restore original default route */
-	  add_route3 (0,
-		      0,
-		      rl->spec.net_gateway,
-		      tt,
-		      flags,
-		      es);
+	      /* restore original default route */
+	      add_route3 (0,
+			  0,
+			  rl->spec.net_gateway,
+			  tt,
+			  flags,
+			  es);
+	    }
 	}
 
       rl->did_redirect_default_gateway = false;

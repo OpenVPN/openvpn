@@ -82,6 +82,7 @@ struct route_option {
 #define RG_DEF1           (1<<2)
 #define RG_BYPASS_DHCP    (1<<3)
 #define RG_BYPASS_DNS     (1<<4)
+#define RG_REROUTE_GW     (1<<5)
 
 struct route_option_list {
   int n;
