@@ -50,7 +50,7 @@ print_bypass_addresses (const struct route_bypass *rb)
   int i;
   for (i = 0; i < rb->n_bypass; ++i)
     {
-      msg (D_ROUTE_DEBUG, "ROUTE DEBUG: bypass_host_route[%d]=%s",
+      msg (D_ROUTE, "ROUTE: bypass_host_route[%d]=%s",
 	   i,
 	   print_in_addr_t (rb->bypass[i], 0, &gc));
     }
@@ -379,7 +379,7 @@ init_route_list (struct route_list *rl,
     }
   else
     {
-      dmsg (D_ROUTE_DEBUG, "ROUTE DEBUG: default_gateway=UNDEF");
+      dmsg (D_ROUTE, "ROUTE: default_gateway=UNDEF");
     }
 
   if (rl->flags & RG_ENABLE)
@@ -531,14 +531,31 @@ redirect_default_route_to_vpn (struct route_list *rl, const struct tuntap *tt, u
 	}
       else
 	{
-	  /* route remote host to original default gateway */
-	  if (!(rl->flags & RG_LOCAL))
-	    add_route3 (rl->spec.remote_host,
-			~0,
-			rl->spec.net_gateway,
-			tt,
-			flags,
-			es);
+	  bool local = BOOL_CAST(rl->flags & RG_LOCAL);
+	  if (rl->flags & RG_AUTO_LOCAL) {
+	    const int tla = test_local_addr (rl->spec.remote_host);
+	    if (tla == TLA_NONLOCAL)
+	      {
+		dmsg (D_ROUTE, "ROUTE remote_host is NOT LOCAL");
+		local = false;
+	      }
+	    else if (tla == TLA_LOCAL)
+	      {
+		dmsg (D_ROUTE, "ROUTE remote_host is LOCAL");
+		local = true;
+	      }
+	  }
+	  if (!local)
+	    {
+	      /* route remote host to original default gateway */
+	      add_route3 (rl->spec.remote_host,
+			  ~0,
+			  rl->spec.net_gateway,
+			  tt,
+			  flags,
+			  es);
+	      rl->did_local = true;
+	    }
 
 	  /* route DHCP/DNS server traffic through original default gateway */
 	  add_bypass_routes (&rl->spec.bypass, rl->spec.net_gateway, tt, flags, es);
@@ -595,13 +612,16 @@ undo_redirect_default_route_to_vpn (struct route_list *rl, const struct tuntap *
   if (rl->did_redirect_default_gateway)
     {
       /* delete remote host route */
-      if (!(rl->flags & RG_LOCAL))
-	del_route3 (rl->spec.remote_host,
-		    ~0,
-		    rl->spec.net_gateway,
-		    tt,
-		    flags,
-		    es);
+      if (rl->did_local)
+	{
+	  del_route3 (rl->spec.remote_host,
+		      ~0,
+		      rl->spec.net_gateway,
+		      tt,
+		      flags,
+		      es);
+	  rl->did_local = false;
+	}
 
       /* delete special DHCP/DNS bypass route */
       del_bypass_routes (&rl->spec.bypass, rl->spec.net_gateway, tt, flags, es);
@@ -2080,14 +2100,14 @@ netmask_to_netbits (const in_addr_t network, const in_addr_t netmask, int *netbi
 #if defined(WIN32)
 
 static void
-add_host_route_if_nonlocal (struct route_bypass *rb, const in_addr_t addr, const IP_ADAPTER_INFO *dgi)
+add_host_route_if_nonlocal (struct route_bypass *rb, const in_addr_t addr)
 {
-  if (!is_ip_in_adapter_subnet (dgi, addr, NULL) && addr != 0 && addr != ~0)
+  if (test_local_addr(addr) == TLA_NONLOCAL && addr != 0 && addr != ~0)
     add_bypass_address (rb, addr);
 }
 
 static void
-add_host_route_array (struct route_bypass *rb, const IP_ADAPTER_INFO *dgi, const IP_ADDR_STRING *iplist)
+add_host_route_array (struct route_bypass *rb, const IP_ADDR_STRING *iplist)
 {
   while (iplist)
     {
@@ -2095,7 +2115,7 @@ add_host_route_array (struct route_bypass *rb, const IP_ADAPTER_INFO *dgi, const
       const in_addr_t ip = getaddr (GETADDR_HOST_ORDER, iplist->IpAddress.String, 0, &succeed, NULL);
       if (succeed)
 	{
-	  add_host_route_if_nonlocal (rb, ip, dgi);
+	  add_host_route_if_nonlocal (rb, ip);
 	}
       iplist = iplist->Next;
     }
@@ -2123,11 +2143,11 @@ get_bypass_addresses (struct route_bypass *rb, const unsigned int flags)
 
       /* Bypass DHCP server address */
       if ((flags & RG_BYPASS_DHCP) && dgi && dgi->DhcpEnabled)
-	add_host_route_array (rb, dgi, &dgi->DhcpServer);
+	add_host_route_array (rb, &dgi->DhcpServer);
 
       /* Bypass DNS server addresses */
       if ((flags & RG_BYPASS_DNS) && pai)
-	add_host_route_array (rb, dgi, &pai->DnsServerList);
+	add_host_route_array (rb, &pai->DnsServerList);
     }
 
   gc_free (&gc);
@@ -2290,3 +2310,54 @@ get_default_gateway_mac_addr (unsigned char *macaddr)
 
 #endif
 #endif /* AUTO_USERID */
+
+/*
+ * Test if addr is reachable via a local interface (return ILA_LOCAL),
+ * or if it needs to be routed via the default gateway (return
+ * ILA_NONLOCAL).  If the target platform doesn't implement this
+ * function, return ILA_NOT_IMPLEMENTED.
+ *
+ * Used by redirect-gateway autolocal feature
+ */
+
+#if defined(WIN32)
+
+int
+test_local_addr (const in_addr_t addr)
+{
+  struct gc_arena gc = gc_new ();
+  const in_addr_t nonlocal_netmask = 0x80000000L; /* routes with netmask <= to this are considered non-local */
+  bool ret = TLA_NONLOCAL;
+
+  /* get full routing table */
+  const MIB_IPFORWARDTABLE *rt = get_windows_routing_table (&gc);
+  if (rt)
+    {
+      int i;
+      for (i = 0; i < rt->dwNumEntries; ++i)
+	{
+	  const MIB_IPFORWARDROW *row = &rt->table[i];
+	  const in_addr_t net = ntohl (row->dwForwardDest);
+	  const in_addr_t mask = ntohl (row->dwForwardMask);
+	  if (mask > nonlocal_netmask && (addr & mask) == net)
+	    {
+	      ret = TLA_LOCAL;
+	      break;
+	    }
+	}
+    }
+
+  gc_free (&gc);
+  return ret;
+}
+
+#else
+
+
+int
+test_local_addr (const in_addr_t addr)
+{
+  return TLA_NOT_IMPLEMENTED;
+}
+
+#endif

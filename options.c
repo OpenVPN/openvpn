@@ -4404,6 +4404,8 @@ add_option (struct options *options,
 	    options->routes->flags |= RG_REROUTE_GW;
 	  if (streq (p[j], "local"))
 	    options->routes->flags |= RG_LOCAL;
+	  else if (streq (p[j], "autolocal"))
+	    options->routes->flags |= RG_AUTO_LOCAL;
 	  else if (streq (p[j], "def1"))
 	    options->routes->flags |= RG_DEF1;
 	  else if (streq (p[j], "bypass-dhcp"))

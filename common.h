@@ -79,7 +79,7 @@ typedef unsigned long ptr_type;
  * the full --push/--pull list.  If you increase it, do so
  * on both server and client.
  */
-#define TLS_CHANNEL_BUF_SIZE 1024
+#define TLS_CHANNEL_BUF_SIZE 2048
 
 /*
  * A sort of pseudo-filename for data provided inline within

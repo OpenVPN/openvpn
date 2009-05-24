@@ -83,6 +83,7 @@ struct route_option {
 #define RG_BYPASS_DHCP    (1<<3)
 #define RG_BYPASS_DNS     (1<<4)
 #define RG_REROUTE_GW     (1<<5)
+#define RG_AUTO_LOCAL     (1<<6)
 
 struct route_option_list {
   int n;
@@ -105,6 +106,7 @@ struct route_list {
   struct route_special_addr spec;
   unsigned int flags;
   bool did_redirect_default_gateway;
+  bool did_local;
   int n;
   struct route routes[MAX_ROUTES];
 };
@@ -158,6 +160,17 @@ void setenv_routes (struct env_set *es, const struct route_list *rl);
 bool is_special_addr (const char *addr_str);
 
 bool get_default_gateway (in_addr_t *ip, in_addr_t *netmask);
+
+/*
+ * Test if addr is reachable via a local interface (return ILA_LOCAL),
+ * or if it needs to be routed via the default gateway (return
+ * ILA_NONLOCAL).  If the current platform doesn't implement this
+ * function, return ILA_NOT_IMPLEMENTED.
+ */
+#define TLA_NOT_IMPLEMENTED 0
+#define TLA_NONLOCAL        1
+#define TLA_LOCAL           2
+int test_local_addr (const in_addr_t addr);
 
 #if AUTO_USERID
 bool get_default_gateway_mac_addr (unsigned char *macaddr);
