@@ -771,8 +771,8 @@ setenv_connection_entry (struct env_set *es,
   setenv_str_i (es, "proto", proto2ascii (e->proto, false), i);
   setenv_str_i (es, "local", e->local, i);
   setenv_int_i (es, "local_port", e->local_port, i);
-  setenv_str_i (es, "remote", e->local, i);
-  setenv_int_i (es, "remote_port", e->local_port, i);
+  setenv_str_i (es, "remote", e->remote, i);
+  setenv_int_i (es, "remote_port", e->remote_port, i);
 
 #ifdef ENABLE_HTTP_PROXY
   if (e->http_proxy_options)
