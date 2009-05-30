@@ -1716,8 +1716,8 @@ state_name (int state)
       return "S_GOT_KEY";
     case S_ACTIVE:
       return "S_ACTIVE";
-    case S_NORMAL:
-      return "S_NORMAL";
+    case S_NORMAL_OP:
+      return "S_NORMAL_OP";
     case S_ERROR:
       return "S_ERROR";
     default:
@@ -3642,8 +3642,8 @@ tls_process (struct tls_multi *multi,
 		}
 	      else /* assume that ks->state == S_ACTIVE */
 		{
-		  dmsg (D_TLS_DEBUG_MED, "STATE S_NORMAL");
-		  ks->state = S_NORMAL;
+		  dmsg (D_TLS_DEBUG_MED, "STATE S_NORMAL_OP");
+		  ks->state = S_NORMAL_OP;
 		  ks->must_negotiate = 0;
 		}
 	    }

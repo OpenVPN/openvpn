@@ -230,7 +230,7 @@
 #define S_SENT_KEY        4	/* client does S_SENT_KEY -> S_GOT_KEY */
 #define S_GOT_KEY         5	/* server does S_GOT_KEY -> S_SENT_KEY */
 #define S_ACTIVE          6	/* ready to exchange data channel packets */
-#define S_NORMAL          7	/* normal operations */
+#define S_NORMAL_OP       7	/* normal operations */
 
 /*
  * Are we ready to receive data channel packets?

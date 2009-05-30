@@ -75,7 +75,7 @@ static ERR_STRING_DATA CRYPTOAPI_str_functs[] =	{
     { ERR_PACK(ERR_LIB_CRYPTOAPI, 0, 0),				    "microsoft cryptoapi"},
     { ERR_PACK(0, CRYPTOAPI_F_CERT_OPEN_SYSTEM_STORE, 0),		    "CertOpenSystemStore" },
     { ERR_PACK(0, CRYPTOAPI_F_CERT_FIND_CERTIFICATE_IN_STORE, 0),	    "CertFindCertificateInStore" },
-    { ERR_PACK(0, CRYPTOAPI_F_CRYPT_ACQUIRE_CERTIFICATE_PRIVATE_KEY, 0),    "OpenVPNCryptAcquireCertificatePrivateKey" },
+    { ERR_PACK(0, CRYPTOAPI_F_CRYPT_ACQUIRE_CERTIFICATE_PRIVATE_KEY, 0),    "CryptAcquireCertificatePrivateKey" },
     { ERR_PACK(0, CRYPTOAPI_F_CRYPT_CREATE_HASH, 0),			    "CryptCreateHash" },
     { ERR_PACK(0, CRYPTOAPI_F_CRYPT_GET_HASH_PARAM, 0),			    "CryptGetHashParam" },
     { ERR_PACK(0, CRYPTOAPI_F_CRYPT_SET_HASH_PARAM, 0),			    "CryptSetHashParam" },
@@ -389,7 +389,7 @@ int SSL_CTX_use_CryptoAPI_certificate(SSL_CTX *ssl_ctx, const char *cert_prop)
     }
     if (OpenVPNCryptAcquireCertificatePrivateKey == NULL) {
 	OpenVPNCryptAcquireCertificatePrivateKey = GetProcAddress(crypt32dll,
-		"OpenVPNCryptAcquireCertificatePrivateKey");
+		"CryptAcquireCertificatePrivateKey");
 	if (OpenVPNCryptAcquireCertificatePrivateKey == NULL) {
 	    CRYPTOAPIerr(CRYPTOAPI_F_GET_PROC_ADDRESS);
 	    goto err;
