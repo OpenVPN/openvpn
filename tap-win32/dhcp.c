@@ -4,7 +4,7 @@
  *
  *  This code was inspired by the CIPE-Win32 driver by Damion K. Wilson.
  *
- *  This source code is Copyright (C) 2002-2008 OpenVPN Technologies, Inc.,
+ *  This source code is Copyright (C) 2002-2009 OpenVPN Technologies, Inc.,
  *  and is released under the GPL version 2 (see below), however due
  *  to the extra costs of supporting Windows Vista, OpenVPN Solutions
  *  LLC reserves the right to change the terms of the TAP-Win32/TAP-Win64

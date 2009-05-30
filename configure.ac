@@ -4,7 +4,7 @@ dnl             session authentication and key exchange,
 dnl             packet encryption, packet authentication, and
 dnl             packet compression.
 dnl
-dnl  Copyright (C) 2002-2008 OpenVPN Technologies, Inc. <sales@openvpn.net>
+dnl  Copyright (C) 2002-2009 OpenVPN Technologies, Inc. <sales@openvpn.net>
 dnl
 dnl  This program is free software; you can redistribute it and/or modify
 dnl  it under the terms of the GNU General Public License as published by

@@ -1,6 +1,6 @@
 OpenVPN (TM) -- An Open Source VPN daemon
 
-Copyright (C) 2002-2008 OpenVPN Technologies, Inc. <sales@openvpn.net>
+Copyright (C) 2002-2009 OpenVPN Technologies, Inc. <sales@openvpn.net>
 
 This distribution contains multiple components, some
 of which fall under different licenses.  By using OpenVPN
@@ -52,7 +52,7 @@ TAP-Win32/TAP-Win64 Driver license:
   Damion K. Wilson.
 
   The source and object code of the TAP-Win32/TAP-Win64 driver
-  is Copyright (C) 2002-2008 OpenVPN Technologies, Inc., and is released under
+  is Copyright (C) 2002-2009 OpenVPN Technologies, Inc., and is released under
   the GPL version 2 (see below), however due to the extra costs of
   supporting Windows Vista, OpenVPN Technologies, Inc. reserves the right to
   change the terms of the TAP-Win32/TAP-Win64 license for versions 9.1
