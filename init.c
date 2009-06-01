@@ -35,6 +35,7 @@
 #include "pkcs11.h"
 #include "ps.h"
 #include "lladdr.h"
+#include "ping.h"
 
 #include "memdbg.h"
 
