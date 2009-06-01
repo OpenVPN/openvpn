@@ -1,7 +1,50 @@
 OpenVPN
 Copyright (C) 2002-2009 OpenVPN Technologies, Inc. <sales@openvpn.net>
 
-$Id$
+2009.05.30 -- Version 2.1_rc17
+
+* Reduce the debug level (--verb) at which received management interface
+  commands are echoed from 7 to 3.  Passwords will be filtered.
+
+* Fixed race condition in management interface recv code on
+  Windows, where sending a set of several commands to the
+  management interface in quick succession might cause the
+  latter commands in the set to be ignored.
+
+* Increased management interface input command buffer size
+  from 256 to 1024 bytes.
+
+* Minor tweaks to Windows build system.
+
+* Added "redirect-private" option which allows private subnets
+  to be pushed to the client in such a way that they don't accidently
+  obscure critical local addresses such as the DHCP server address and
+  DNS server addresses.
+
+* Added new 'autolocal' redirect-gateway flag.  When enabled, the OpenVPN
+  client will examine the routing table and determine whether (a) the
+  OpenVPN server is reachable via a locally connected interface, or (b)
+  traffic to the server must be forwarded through the default router.
+  Only add a special bypass route for the OpenVPN server if (b) is true.
+  If (a) is true, behave as if the 'local' flag is specified, and do not
+  add a bypass route.
+
+  The new 'autolocal' flag depends on the non-portable test_local_addr()
+  function in route.c, which is currently only implemented for Windows.
+  The 'autolocal' flag will act as a no-op on platforms that have not
+  yet defined a test_local_addr() function.
+
+* Increased TLS_CHANNEL_BUF_SIZE to 2048 from 1024 (this will allow for
+  more option content to be pushed from server to client).
+
+* Raised D_MULTI_DROPPED debug level to 4 from 3 to filter out (at debug
+  levels <=3) a common and usually innocuous warning.
+
+* Fixed issue of symbol conflicts interfering with Windows CryptoAPI
+  functionality (Alon Bar-Lev).
+
+* Fixed bug where the remote_X environmental variables were not being
+  set correctly when the 'local' option is specifed.
 
 2009.05.17 -- Version 2.1_rc16
 
