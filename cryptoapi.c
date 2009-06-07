@@ -53,6 +53,8 @@
 static HINSTANCE crypt32dll = NULL;
 static BOOL WINAPI (*OpenVPNCryptAcquireCertificatePrivateKey) (PCCERT_CONTEXT pCert, DWORD dwFlags,
   void *pvReserved, HCRYPTPROV *phCryptProv, DWORD *pdwKeySpec, BOOL *pfCallerFreeProv) = NULL;
+#else
+#define OpenVPNCryptAcquireCertificatePrivateKey CryptAcquireCertificatePrivateKey
 #endif
 
 /* Size of an SSL signature: MD5+SHA1 */
