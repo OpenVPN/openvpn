@@ -857,7 +857,7 @@ AM_CONDITIONAL(WIN32, test "${WIN32}" = "yes")
 
 # workaround for <autoconf-2.60
 if test -z "${docdir}"; then
-	docdir="\$(datarootdir)/doc/\$(PACKAGE_NAME)"
+	docdir="\$(datadir)/doc/\$(PACKAGE_NAME)"
 	AC_SUBST([docdir])
 fi
 if test -z "${htmldir}"; then
