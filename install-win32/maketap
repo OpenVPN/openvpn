@@ -40,6 +40,7 @@ if [ -z "$DRVBINSRC" ] ; then
     for mode in "$w2ktarget" "$amdtarget"; do
 	echo '**********' build TAP $mode
 	cmd //c "C:\\WINDDK\\$DDKVER\\bin\\setenv.bat C:\\WINDDK\\$DDKVER $mode && cd `perl install-win32/dosname.pl $t` && build -cef"
+	mv tap-win32/tapdrvr.cod "tap-win32/tapdrvr-$(echo $mode | tr ' ' '-').cod"
     done
 
     title openvpn-build &>/dev/null
