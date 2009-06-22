@@ -379,9 +379,9 @@ SendDHCPMsg (const TapAdapterPointer a,
 		       DHCPMSG_LEN_FULL (pkt));
 
 	  // Return DHCP response to kernel
-	  InjectPacket (a,
-			DHCPMSG_BUF (pkt),
-			DHCPMSG_LEN_FULL (pkt));
+	  InjectPacketDeferred (a,
+				DHCPMSG_BUF (pkt),
+				DHCPMSG_LEN_FULL (pkt));
 	}
       else
 	{

@@ -171,12 +171,31 @@ VOID SetMediaStatus
     BOOLEAN state
    );
 
-VOID InjectPacket
+VOID InjectPacketDeferred
    (
     TapAdapterPointer p_Adapter,
     UCHAR *packet,
     const unsigned int len
    );
+
+VOID InjectPacketNow
+   (
+    TapAdapterPointer p_Adapter,
+    UCHAR *packet,
+    const unsigned int len
+   );
+
+// for KDEFERRED_ROUTINE and Static Driver Verifier
+//#include <wdm.h>
+//KDEFERRED_ROUTINE InjectPacketDpc;
+
+VOID InjectPacketDpc
+   (
+    KDPC *Dpc,
+    PVOID DeferredContext,
+    PVOID SystemArgument1,
+    PVOID SystemArgument2
+    );
 
 VOID CheckIfDhcpAndTunMode
    (

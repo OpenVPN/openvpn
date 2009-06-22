@@ -30,20 +30,20 @@
 # Optional directory of prebuilt OpenVPN binary components,
 # to be used as a source when build-from-scratch prerequisites
 # are not met.
-!define GENOUT_PREBUILT  "../gen-prebuilt"
+;!define GENOUT_PREBUILT  "../gen-prebuilt"
 
 # tapinstall.exe source code.
 # Not needed if DRVBINSRC is defined
 # (or if using pre-built mode).
-;!define TISRC	"../tapinstall"
+!define TISRC	"../tapinstall"
 
 # TAP Adapter parameters.  Note that PRODUCT_TAP_ID is
 # defined in version.m4.
 !define PRODUCT_TAP_DEVICE_DESCRIPTION  "TAP-Win32 Adapter V9"
 !define PRODUCT_TAP_PROVIDER            "TAP-Win32 Provider V9"
 !define PRODUCT_TAP_MAJOR_VER           9
-!define PRODUCT_TAP_MINOR_VER           5
-!define PRODUCT_TAP_RELDATE             "05/13/2009"
+!define PRODUCT_TAP_MINOR_VER           6
+!define PRODUCT_TAP_RELDATE             "06/22/2009"
 
 # TAP adapter icon -- visible=0x81 or hidden=0x89
 !define PRODUCT_TAP_CHARACTERISTICS     0x81
@@ -53,8 +53,8 @@
 
 # DDK Version.
 # DDK distribution is assumed to be in C:\WINDDK\${DDKVER}
-;!define DDKVER	     6001.18002
-;!define DDKVER_MAJOR 6001
+!define DDKVER	     6001.18002
+!define DDKVER_MAJOR 6001
 
 # Code Signing.
 # If undefined, don't sign any files.

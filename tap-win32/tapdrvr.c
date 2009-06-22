@@ -692,6 +692,8 @@ TapDeviceFreeResources (TapExtensionPointer p_Extension)
     QueueFree (p_Extension->m_PacketQueue);
   if (p_Extension->m_IrpQueue)
     QueueFree (p_Extension->m_IrpQueue);
+  if (p_Extension->m_InjectQueue)
+    QueueFree (p_Extension->m_InjectQueue);
 
   if (p_Extension->m_CreatedUnicodeLinkName)
     RtlFreeUnicodeString (&p_Extension->m_UnicodeLinkName);
@@ -717,8 +719,14 @@ TapDeviceFreeResources (TapExtensionPointer p_Extension)
   if (p_Extension->m_TapName)
     MemFree (p_Extension->m_TapName, NAME_BUFFER_SIZE);
   
+  if (p_Extension->m_InjectDpcInitialized)
+    KeRemoveQueueDpc (&p_Extension->m_InjectDpc);
+
   if (p_Extension->m_AllocatedSpinlocks)
-    NdisFreeSpinLock (&p_Extension->m_QueueLock);
+    {
+      NdisFreeSpinLock (&p_Extension->m_QueueLock);
+      NdisFreeSpinLock (&p_Extension->m_InjectLock);
+    }
 }
 
 //========================================================================
@@ -932,18 +940,27 @@ CreateTapDevice (TapExtensionPointer p_Extension, const char *p_Name)
   //========================================================
 
   NdisAllocateSpinLock (&p_Extension->m_QueueLock);
+  NdisAllocateSpinLock (&p_Extension->m_InjectLock);
   p_Extension->m_AllocatedSpinlocks = TRUE;
 
   p_Extension->m_PacketQueue = QueueInit (PACKET_QUEUE_SIZE);
   p_Extension->m_IrpQueue = QueueInit (IRP_QUEUE_SIZE);
-
+  p_Extension->m_InjectQueue = QueueInit (INJECT_QUEUE_SIZE);
   if (!p_Extension->m_PacketQueue
-      || !p_Extension->m_IrpQueue)
+      || !p_Extension->m_IrpQueue
+      || !p_Extension->m_InjectQueue)
     {
       DEBUGP (("[%s] couldn't alloc TAP queues\n", p_Name));
       l_Return = NDIS_STATUS_RESOURCES;
       goto cleanup;
     }
+
+  //=================================================================
+  // Initialize deferred procedure call for DHCP/ARP packet injection
+  //=================================================================
+
+  KeInitializeDpc (&p_Extension->m_InjectDpc, InjectPacketDpc, NULL);
+  p_Extension->m_InjectDpcInitialized = TRUE;
 
   //========================
   // Finalize initialization
@@ -1808,9 +1825,9 @@ TapDeviceHook (IN PDEVICE_OBJECT p_DeviceObject, IN PIRP p_IRP)
 		NULL,
 		STRSAFE_FILL_BEHIND_NULL | STRSAFE_IGNORE_NULLS,
 #if PACKET_TRUNCATION_CHECK
-		"State=%s Err=[%s/%d] #O=%d Tx=[%d,%d,%d] Rx=[%d,%d,%d] IrpQ=[%d,%d,%d] PktQ=[%d,%d,%d]",
+		"State=%s Err=[%s/%d] #O=%d Tx=[%d,%d,%d] Rx=[%d,%d,%d] IrpQ=[%d,%d,%d] PktQ=[%d,%d,%d] InjQ=[%d,%d,%d]",
 #else
-		"State=%s Err=[%s/%d] #O=%d Tx=[%d,%d] Rx=[%d,%d] IrpQ=[%d,%d,%d] PktQ=[%d,%d,%d]",
+		"State=%s Err=[%s/%d] #O=%d Tx=[%d,%d] Rx=[%d,%d] IrpQ=[%d,%d,%d] PktQ=[%d,%d,%d] InjQ=[%d,%d,%d]",
 #endif
 		state,
 		g_LastErrorFilename,
@@ -1831,7 +1848,10 @@ TapDeviceHook (IN PDEVICE_OBJECT p_DeviceObject, IN PIRP p_IRP)
 		(int)IRP_QUEUE_SIZE,
 		(int)l_Adapter->m_Extension.m_PacketQueue->size,
 		(int)l_Adapter->m_Extension.m_PacketQueue->max_size,
-		(int)PACKET_QUEUE_SIZE
+		(int)PACKET_QUEUE_SIZE,
+		(int)l_Adapter->m_Extension.m_InjectQueue->size,
+		(int)l_Adapter->m_Extension.m_InjectQueue->max_size,
+		(int)INJECT_QUEUE_SIZE
 		);
 
 	      p_IRP->IoStatus.Information
@@ -2519,15 +2539,16 @@ CancelIRP (TapExtensionPointer p_Extension,
     IoCompleteRequest (p_IRP, IO_NO_INCREMENT);
 }
 
-//====================================
-// Exhaust packet and IRP queues.
-//====================================
+//===========================================
+// Exhaust packet, IRP, and injection queues.
+//===========================================
 VOID
 FlushQueues (TapExtensionPointer p_Extension)
 {
   PIRP l_IRP;
   TapPacketPointer l_PacketBuffer;
-  int n_IRP=0, n_Packet=0;
+  InjectPacketPointer l_InjectBuffer;
+  int n_IRP=0, n_Packet=0, n_Inject=0;
 
   MYASSERT (p_Extension);
   MYASSERT (p_Extension->m_TapDevice);
@@ -2560,15 +2581,32 @@ FlushQueues (TapExtensionPointer p_Extension)
 	break;
     }
 
+  while (TRUE)
+    {
+      NdisAcquireSpinLock (&p_Extension->m_InjectLock);
+      l_InjectBuffer = QueuePop (p_Extension->m_InjectQueue);
+      NdisReleaseSpinLock (&p_Extension->m_InjectLock);
+      if (l_InjectBuffer)
+	{
+	  ++n_Inject;
+	  INJECT_PACKET_FREE(l_InjectBuffer);
+	}
+      else
+	break;
+    }
+
   DEBUGP ((
-	   "[%s] [TAP] FlushQueues n_IRP=[%d,%d,%d] n_Packet=[%d,%d,%d]\n",
+	   "[%s] [TAP] FlushQueues n_IRP=[%d,%d,%d] n_Packet=[%d,%d,%d] n_Inject=[%d,%d,%d]\n",
 	   p_Extension->m_TapName,
 	   n_IRP,
 	   p_Extension->m_IrpQueue->max_size,
 	   IRP_QUEUE_SIZE,
 	   n_Packet,
 	   p_Extension->m_PacketQueue->max_size,
-	   PACKET_QUEUE_SIZE
+	   PACKET_QUEUE_SIZE,
+	   n_Inject,
+	   p_Extension->m_InjectQueue->max_size,
+	   INJECT_QUEUE_SIZE
 	   ));
 }
 
@@ -2667,7 +2705,7 @@ ProcessARP (TapAdapterPointer p_Adapter,
 		       (unsigned char *) arp,
 		       sizeof (ARP_PACKET));
 
-	  InjectPacket (p_Adapter, (UCHAR *) arp, sizeof (ARP_PACKET));
+	  InjectPacketDeferred (p_Adapter, (UCHAR *) arp, sizeof (ARP_PACKET));
 
 	  MemFree (arp, sizeof (ARP_PACKET));
 	}
@@ -2684,10 +2722,60 @@ ProcessARP (TapAdapterPointer p_Adapter,
 // seen as an incoming packet "arriving" on the interface.
 //===============================================================
 
+// Defer packet injection till IRQL < DISPATCH_LEVEL
 VOID
-InjectPacket (TapAdapterPointer p_Adapter,
-	      UCHAR *packet,
-	      const unsigned int len)
+InjectPacketDeferred (TapAdapterPointer p_Adapter,
+		      UCHAR *packet,
+		      const unsigned int len)
+{
+  InjectPacketPointer l_InjectBuffer;
+  PVOID result;
+
+  if (NdisAllocateMemoryWithTag (&l_InjectBuffer,
+				 INJECT_PACKET_SIZE (len),
+				 'IPAT') == NDIS_STATUS_SUCCESS)
+    {
+      l_InjectBuffer->m_Size = len;
+      NdisMoveMemory (l_InjectBuffer->m_Data, packet, len);
+      NdisAcquireSpinLock (&p_Adapter->m_Extension.m_InjectLock);
+      result = QueuePush (p_Adapter->m_Extension.m_InjectQueue, l_InjectBuffer);
+      NdisReleaseSpinLock (&p_Adapter->m_Extension.m_InjectLock);
+      if (result)
+	KeInsertQueueDpc (&p_Adapter->m_Extension.m_InjectDpc, p_Adapter, NULL);
+      else
+	INJECT_PACKET_FREE(l_InjectBuffer);
+    }
+}
+
+// Handle the injection of previously deferred packets
+VOID
+InjectPacketDpc(KDPC *Dpc,
+		PVOID DeferredContext,
+		PVOID SystemArgument1,
+		PVOID SystemArgument2)
+{
+  InjectPacketPointer l_InjectBuffer;
+  TapAdapterPointer l_Adapter = (TapAdapterPointer)SystemArgument1;
+  while (TRUE)
+    {
+      NdisAcquireSpinLock (&l_Adapter->m_Extension.m_InjectLock);
+      l_InjectBuffer = QueuePop (l_Adapter->m_Extension.m_InjectQueue);
+      NdisReleaseSpinLock (&l_Adapter->m_Extension.m_InjectLock);
+      if (l_InjectBuffer)
+	{
+	  InjectPacketNow(l_Adapter, l_InjectBuffer->m_Data, l_InjectBuffer->m_Size);
+	  INJECT_PACKET_FREE(l_InjectBuffer);
+	}
+      else
+	break;
+    }
+}
+
+// Do packet injection now
+VOID
+InjectPacketNow (TapAdapterPointer p_Adapter,
+		 UCHAR *packet,
+		 const unsigned int len)
 {
   MYASSERT (len >= ETHERNET_HEADER_SIZE);
 
@@ -2699,6 +2787,9 @@ InjectPacket (TapAdapterPointer p_Adapter,
       // TapDeviceHook/IRP_MJ_WRITE.
       //
       // The DDK docs imply that this is okay.
+      //
+      // Note that reentrant behavior could only occur if the
+      // non-deferred version of InjectPacket is used.
       //------------------------------------------------------------
       NdisMEthIndicateReceive
 	(p_Adapter->m_MiniportAdapterHandle,
@@ -2713,7 +2804,7 @@ InjectPacket (TapAdapterPointer p_Adapter,
     }
   __except (EXCEPTION_EXECUTE_HANDLER)
     {
-      DEBUGP (("[%s] NdisMEthIndicateReceive failed in InjectPacket\n",
+      DEBUGP (("[%s] NdisMEthIndicateReceive failed in InjectPacketNow\n",
 	       NAME (p_Adapter)));
       NOTE_ERROR ();
     }
