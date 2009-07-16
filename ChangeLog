@@ -1,6 +1,18 @@
 OpenVPN Change Log
 Copyright (C) 2002-2009 OpenVPN Technologies, Inc. <sales@openvpn.net>
 
+2009.07.16 -- Version 2.1_rc19
+
+* In Windows TAP driver, refactor DHCP/ARP packet injection code to
+  use a DPC (deferred procedure call) to defer packet injection until
+  IRQL < DISPATCH_LEVEL, rather than calling NdisMEthIndicateReceive
+  in the context of AdapterTransmit.  This is an attempt to reduce kernel
+  stack usage, and prevent EXCEPTION_DOUBLE_FAULT BSODs that have been
+  observed on Vista.  Updated TAP driver version number to 9.6.
+
+* In configure.ac, use datadir instead of datarootdir for compatibility
+  with <autoconf-2.60.
+
 2009.06.07 -- Version 2.1_rc18
 
 * Fixed compile error on ./configure --enable-small
