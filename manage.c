@@ -995,10 +995,12 @@ man_dispatch_command (struct management *man, struct status_output *so, const ch
     {
       msg (M_CLIENT, "SUCCESS: pid=%d", openvpn_getpid ());
     }
+#ifdef MANAGEMENT_DEF_AUTH
   else if (streq (p[0], "nclients"))
     {
       man_client_n_clients (man);
     }
+#endif
   else if (streq (p[0], "signal"))
     {
       if (man_need (man, p, 1, 0))
