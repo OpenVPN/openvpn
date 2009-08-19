@@ -863,10 +863,9 @@ do_ifconfig (struct tuntap *tt,
       else {
 	if (tt->topology == TOP_SUBNET)
             argv_printf (&argv,
-                              "%s %s %s %s netmask %s mtu %d up",
+                              "%s %s %s netmask %s mtu %d up",
                               IFCONFIG_PATH,
                               actual,
-                              ifconfig_local,
                               ifconfig_local,
                               ifconfig_remote_netmask,
                               tun_mtu
@@ -1745,14 +1744,19 @@ open_tun (const char *dev, const char *dev_type, const char *dev_node, bool ipv6
 {
   open_tun_generic (dev, dev_type, dev_node, ipv6, true, true, tt);
 
-  if (tt->fd >= 0)
+  if (tt->fd >= 0 && tt->type == DEV_TYPE_TUN)
     {
       int i = 0;
 
-      /* Disable extended modes */
-      ioctl (tt->fd, TUNSLMODE, &i);
+      i = tt->topology == TOP_SUBNET ? IFF_BROADCAST : IFF_POINTOPOINT;
+      i |= IFF_MULTICAST;
+      if (ioctl (tt->fd, TUNSIFMODE, &i) < 0) {
+	msg (M_WARN | M_ERRNO, "ioctl(TUNSIFMODE): %s", strerror(errno));
+      }
       i = 1;
-      ioctl (tt->fd, TUNSIFHEAD, &i);
+      if (ioctl (tt->fd, TUNSIFHEAD, &i) < 0) {
+	msg (M_WARN | M_ERRNO, "ioctl(TUNSIFHEAD): %s", strerror(errno));
+      }
     }
 }
 
