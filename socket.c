@@ -32,6 +32,7 @@
 #include "plugin.h"
 #include "ps.h"
 #include "manage.h"
+#include "misc.h"
 
 #include "memdbg.h"
 
@@ -41,6 +42,19 @@ const int proto_overhead[] = { /* indexed by PROTO_x */
   IPv4_TCP_HEADER_SIZE,
   IPv4_TCP_HEADER_SIZE
 };
+
+/*
+ * Convert sockflags/getaddr_flags into getaddr_flags
+ */
+static unsigned int
+sf2gaf(const unsigned int getaddr_flags,
+       const unsigned int sockflags)
+{
+  if (sockflags & SF_HOST_RANDOMIZE)
+    return getaddr_flags | GETADDR_RANDOMIZE;
+  else
+    return getaddr_flags;
+}
 
 /*
  * Functions related to the translation of DNS names to IP addresses.
@@ -79,6 +93,10 @@ getaddr (unsigned int flags,
   int status;
   int sigrec = 0;
   int msglevel = (flags & GETADDR_FATAL) ? M_FATAL : D_RESOLVE_ERRORS;
+  struct gc_arena gc = gc_new ();
+
+  if (flags & GETADDR_RANDOMIZE)
+    hostname = hostname_randomize(hostname, &gc);
 
   if (flags & GETADDR_MSG_VIRT_OUT)
     msglevel |= M_MSG_VIRT_OUT;
@@ -225,6 +243,7 @@ getaddr (unsigned int flags,
       msg (level, "RESOLVE: signal received during DNS resolution attempt");
     }
 
+  gc_free (&gc);
   return (flags & GETADDR_HOST_ORDER) ? ntohl (ia.s_addr) : ia.s_addr;
 }
 
@@ -359,12 +378,13 @@ mac_addr_safe (const char *mac_addr)
 static void
 update_remote (const char* host,
 	       struct openvpn_sockaddr *addr,
-	       bool *changed)
+	       bool *changed,
+	       const unsigned int sockflags)
 {
   if (host && addr)
     {
       const in_addr_t new_addr = getaddr (
-					  GETADDR_RESOLVE|GETADDR_UPDATE_MANAGEMENT_STATE,
+					  sf2gaf(GETADDR_RESOLVE|GETADDR_UPDATE_MANAGEMENT_STATE, sockflags),
 					  host,
 					  1,
 					  NULL,
@@ -728,7 +748,7 @@ socket_listen_accept (socket_descriptor_t sd,
 
       if (socket_defined (new_sd))
 	{
-	  update_remote (remote_dynamic, &remote_verify, remote_changed);
+	  update_remote (remote_dynamic, &remote_verify, remote_changed, 0);
 	  if (addr_defined (&remote_verify)
 	      && !addr_match (&remote_verify, &act->dest))
 	    {
@@ -858,6 +878,7 @@ socket_connect (socket_descriptor_t *sd,
 		const int connect_retry_seconds,
 		const int connect_timeout,
 		const int connect_retry_max,
+		const unsigned int sockflags,
 		volatile int *signal_received)
 {
   struct gc_arena gc = gc_new ();
@@ -919,7 +940,7 @@ socket_connect (socket_descriptor_t *sd,
       *sd = create_socket_tcp ();
       if (bind_local)
         socket_bind (*sd, local, "TCP Client");
-      update_remote (remote_dynamic, remote, remote_changed);
+      update_remote (remote_dynamic, remote, remote_changed, sockflags);
     }
 
   msg (M_INFO, "TCP connection established with %s", 
@@ -1023,7 +1044,7 @@ resolve_remote (struct link_socket *sock,
 
 	  if (sock->remote_host)
 	    {
-	      unsigned int flags = GETADDR_RESOLVE|GETADDR_UPDATE_MANAGEMENT_STATE;
+	      unsigned int flags = sf2gaf(GETADDR_RESOLVE|GETADDR_UPDATE_MANAGEMENT_STATE, sock->sockflags);
 	      int retry = 0;
 	      bool status = false;
 
@@ -1384,6 +1405,7 @@ link_socket_init_phase2 (struct link_socket *sock,
 			    sock->connect_retry_seconds,
 			    sock->connect_timeout,
 			    sock->connect_retry_max,
+			    sock->sockflags,
 			    signal_received);
 
 	    if (*signal_received)
@@ -1432,6 +1454,7 @@ link_socket_init_phase2 (struct link_socket *sock,
 			  sock->connect_retry_seconds,
 			  sock->connect_timeout,
 			  sock->connect_retry_max,
+			  sock->sockflags,
 			  signal_received);
 
 	  if (*signal_received)

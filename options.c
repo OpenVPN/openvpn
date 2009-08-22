@@ -90,6 +90,7 @@ static const char usage_message[] =
   "--local host    : Local host name or ip address. Implies --bind.\n"
   "--remote host [port] : Remote host name or ip address.\n"
   "--remote-random : If multiple --remote options specified, choose one randomly.\n"
+  "--remote-random-hostname : Add a random string to remote DNS name.\n"
   "--mode m        : Major mode, m = 'p2p' (default, point-to-point) or 'server'.\n"
   "--proto p       : Use protocol p for communicating with peer.\n"
   "                  p = udp (default), tcp-server, or tcp-client\n"
@@ -4420,15 +4421,27 @@ add_option (struct options *options,
 	}
       options->routes->flags |= RG_ENABLE;
     }
+  else if (streq (p[0], "remote-random-hostname"))
+    {
+      VERIFY_PERMISSION (OPT_P_GENERAL);
+      options->sockflags |= SF_HOST_RANDOMIZE;
+    }
   else if (streq (p[0], "setenv") && p[1])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
-      if (streq (p[1], "FORWARD_COMPATIBLE") && p[2] && streq (p[2], "1"))
+      if (streq (p[1], "REMOTE_RANDOM_HOSTNAME"))
 	{
-	  options->forward_compatible = true;
-	  msglevel_fc = msglevel_forward_compatible (options, msglevel);
+	  options->sockflags |= SF_HOST_RANDOMIZE;
 	}
-      setenv_str (es, p[1], p[2] ? p[2] : "");
+      else
+	{
+	  if (streq (p[1], "FORWARD_COMPATIBLE") && p[2] && streq (p[2], "1"))
+	    {
+	      options->forward_compatible = true;
+	      msglevel_fc = msglevel_forward_compatible (options, msglevel);
+	    }
+	  setenv_str (es, p[1], p[2] ? p[2] : "");
+	}
     }
   else if (streq (p[0], "setenv-safe") && p[1])
     {

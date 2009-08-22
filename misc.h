@@ -230,6 +230,9 @@ bool delete_file (const char *filename);
 /* return true if pathname is absolute */
 bool absolute_pathname (const char *pathname);
 
+/* prepend a random prefix to hostname (need USE_CRYPTO) */
+const char *hostname_randomize(const char *hostname, struct gc_arena *gc);
+
 /*
  * Get and store a username/password
  */
