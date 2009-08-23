@@ -35,6 +35,7 @@
 #include "integer.h"
 #include "misc.h"
 #include "ssl.h"
+#include "common.h"
 #include "manage.h"
 
 #include "memdbg.h"
@@ -75,6 +76,7 @@ man_help ()
   msg (M_CLIENT, "                         release current hold and start tunnel."); 
   msg (M_CLIENT, "kill cn                : Kill the client instance(s) having common name cn.");
   msg (M_CLIENT, "kill IP:port           : Kill the client instance connecting from IP:port.");
+  msg (M_CLIENT, "load-stats             : Show global server load stats.");
   msg (M_CLIENT, "log [on|off] [N|all]   : Turn on/off realtime log display");
   msg (M_CLIENT, "                         + show last N lines or 'all' for entire history.");
   msg (M_CLIENT, "mute [n]               : Set log mute level to n, or show level if n is absent.");
@@ -948,6 +950,21 @@ man_client_pf (struct management *man, const char *cid_str)
 #endif
 #endif
 
+static void
+man_load_stats (struct management *man)
+{
+  extern counter_type link_read_bytes_global;
+  extern counter_type link_write_bytes_global;
+  int nclients = 0;
+
+  if (man->persist.callback.n_clients)
+    nclients = (*man->persist.callback.n_clients) (man->persist.callback.arg);
+  msg (M_CLIENT, "SUCCESS: nclients=%d,bytesin=" counter_format ",bytesout=" counter_format,
+       nclients,
+       link_read_bytes_global,
+       link_write_bytes_global);
+}
+
 #define MN_AT_LEAST (1<<0)
 
 static bool
@@ -1005,6 +1022,10 @@ man_dispatch_command (struct management *man, struct status_output *so, const ch
     {
       if (man_need (man, p, 1, 0))
 	man_signal (man, p[1]);
+    }
+  else if (streq (p[0], "load-stats"))
+    {
+      man_load_stats (man);
     }
   else if (streq (p[0], "status"))
     {

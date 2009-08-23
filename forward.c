@@ -32,12 +32,16 @@
 #include "event.h"
 #include "ps.h"
 #include "dhcp.h"
+#include "common.h"
 
 #include "memdbg.h"
 
 #include "forward-inline.h"
 #include "occ-inline.h"
 #include "ping-inline.h"
+
+counter_type link_read_bytes_global;  /* GLOBAL */
+counter_type link_write_bytes_global; /* GLOBAL */
 
 /* show event wait debugging info */
 
@@ -704,6 +708,7 @@ process_incoming_link (struct context *c)
   if (c->c2.buf.len > 0)
     {
       c->c2.link_read_bytes += c->c2.buf.len;
+      link_read_bytes_global += c->c2.buf.len;
       c->c2.original_recv_size = c->c2.buf.len;
 #ifdef ENABLE_MANAGEMENT
       if (management)
@@ -1103,6 +1108,7 @@ process_outgoing_link (struct context *c)
 	    {
 	      c->c2.max_send_size_local = max_int (size, c->c2.max_send_size_local);
 	      c->c2.link_write_bytes += size;
+	      link_write_bytes_global += size;
 #ifdef ENABLE_MANAGEMENT
 	      if (management)
 		{
