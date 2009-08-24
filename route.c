@@ -2060,7 +2060,7 @@ get_default_gateway (in_addr_t *ret, in_addr_t *netmask)
 #else
 
 bool
-get_default_gateway (in_addr_t *ret, in_addr_t *netmask)
+get_default_gateway (in_addr_t *ret, in_addr_t *netmask)  /* PLATFORM-SPECIFIC */
 {
   return false;
 }
@@ -2156,7 +2156,7 @@ get_bypass_addresses (struct route_bypass *rb, const unsigned int flags)
 #else
 
 static void
-get_bypass_addresses (struct route_bypass *rb, const unsigned int flags)
+get_bypass_addresses (struct route_bypass *rb, const unsigned int flags)  /* PLATFORM-SPECIFIC */
 {
 }
 
@@ -2303,7 +2303,7 @@ get_default_gateway_mac_addr (unsigned char *macaddr)
 #else
 
 bool
-get_default_gateway_mac_addr (unsigned char *macaddr)
+get_default_gateway_mac_addr (unsigned char *macaddr) /* PLATFORM-SPECIFIC */
 {
   return false;
 }
@@ -2355,7 +2355,7 @@ test_local_addr (const in_addr_t addr)
 
 
 int
-test_local_addr (const in_addr_t addr)
+test_local_addr (const in_addr_t addr) /* PLATFORM-SPECIFIC */
 {
   return TLA_NOT_IMPLEMENTED;
 }
