@@ -170,6 +170,18 @@ AC_ARG_ENABLE(iproute2,
    test $enableval = "yes" && AC_DEFINE(CONFIG_FEATURE_IPROUTE, 1, [enable iproute2 support])   
 )
 
+AC_ARG_ENABLE(def-auth,
+   [  --disable-def-auth      Disable deferred authentication],
+   [DEF_AUTH="$enableval"],
+   [DEF_AUTH="yes"]
+)
+
+AC_ARG_ENABLE(pf,
+   [  --disable-pf            Disable internal packet filter],
+   [PF="$enableval"],
+   [PF="yes"]
+)
+
 AC_ARG_ENABLE(strict,
    [  --enable-strict         Enable strict compiler warnings (debugging option)],
    [STRICT="$enableval"],
@@ -814,6 +826,16 @@ fi
 dnl enable --port-share
 if test "$PORT_SHARE" = "yes"; then
    AC_DEFINE(ENABLE_PORT_SHARE, 1, [Enable TCP Server port sharing])
+fi
+
+dnl enable deferred auth
+if test "$DEF_AUTH" = "yes"; then
+   AC_DEFINE(CONFIGURE_DEF_AUTH, 1, [Enable deferred authentication])
+fi
+
+dnl enable internal packet filter
+if test "$PF" = "yes"; then
+   AC_DEFINE(CONFIGURE_PF, 1, [Enable internal packet filter])
 fi
 
 dnl enable strict compiler warnings
