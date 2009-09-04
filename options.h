@@ -253,6 +253,9 @@ struct options
   const char *groupname;
   const char *chroot_dir;
   const char *cd_dir;
+#ifdef HAVE_SETCON
+  char *selinux_context;
+#endif
   const char *writepid;
   const char *up_script;
   const char *down_script;

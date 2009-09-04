@@ -1889,6 +1889,39 @@ complications can result when scripts or restarts
 are executed after the chroot operation.
 .\"*********************************************************
 .TP
+.B --setcon context
+Apply SELinux
+.B context
+after initialization. This
+essentially provides the ability to restrict OpenVPN's
+rights to only network I/O operations, thanks to
+SELinux. This goes further than
+.B --user
+and
+.B --chroot
+in that those two, while being great security features,
+unfortunately do not protect against privilege escalation
+by exploitation of a vulnerable system call. You can of
+course combine all three, but please note that since
+setcon requires access to /proc you will have to provide
+it inside the chroot directory (e.g. with mount --bind).
+
+Since the setcon operation is delayed until after
+initialization, OpenVPN can be restricted to just
+network-related system calls, whereas by applying the
+context before startup (such as the OpenVPN one provided
+in the SELinux Reference Policies) you will have to
+allow many things required only during initialization.
+
+Like with chroot, complications can result when scripts
+or restarts are executed after the setcon operation,
+which is why you should really consider using the
+.B --persist-key
+and
+.B --persist-tun
+options.
+.\"*********************************************************
+.TP
 .B --daemon [progname]
 Become a daemon after all initialization functions are completed.
 This option will cause all message and error output to

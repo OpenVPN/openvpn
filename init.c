@@ -667,7 +667,7 @@ possibly_become_daemon (const struct options *options, const bool first_time)
 }
 
 /*
- * Actually do UID/GID downgrade, and chroot, if requested.
+ * Actually do UID/GID downgrade, chroot and SELinux context switching, if requested.
  */
 static void
 do_uid_gid_chroot (struct context *c, bool no_delay)
@@ -697,6 +697,26 @@ do_uid_gid_chroot (struct context *c, bool no_delay)
 	{
 	  msg (M_INFO, "NOTE: UID/GID downgrade %s", why_not);
 	}
+
+#ifdef HAVE_SETCON
+      /* Apply a SELinux context in order to restrict what OpenVPN can do
+       * to _only_ what it is supposed to do after initialization is complete
+       * (basically just network I/O operations). Doing it after chroot
+       * requires /proc to be mounted in the chroot (which is annoying indeed
+       * but doing it before requires more complex SELinux policies.
+       */
+      if (c->options.selinux_context)
+	{
+	  if (no_delay) {
+	    if (-1 == setcon (c->options.selinux_context))
+	      msg (M_ERR, "setcon to '%s' failed; is /proc accessible?", c->options.selinux_context);
+	    else
+	      msg (M_INFO, "setcon to '%s' succeeded", c->options.selinux_context);
+	  }
+	  else
+	    msg (M_INFO, "NOTE: setcon %s", why_not);
+	}
+#endif
     }
 }
 
@@ -1964,16 +1984,20 @@ do_option_warnings (struct context *c)
   if (o->ping_send_timeout && !o->ping_rec_timeout)
     msg (M_WARN, "WARNING: --ping should normally be used with --ping-restart or --ping-exit");
 
-  if (o->username || o->groupname || o->chroot_dir)
+  if (o->username || o->groupname || o->chroot_dir
+#ifdef HAVE_SETCON
+      || o->selinux_context
+#endif
+      )
    {
     if (!o->persist_tun)
-     msg (M_WARN, "WARNING: you are using user/group/chroot without persist-tun -- this may cause restarts to fail");
+     msg (M_WARN, "WARNING: you are using user/group/chroot/setcon without persist-tun -- this may cause restarts to fail");
     if (!o->persist_key
 #ifdef ENABLE_PKCS11
 	&& !o->pkcs11_id
 #endif
 	)
-     msg (M_WARN, "WARNING: you are using user/group/chroot without persist-key -- this may cause restarts to fail");
+     msg (M_WARN, "WARNING: you are using user/group/chroot/setcon without persist-key -- this may cause restarts to fail");
    }
 
   if (o->chroot_dir && !(o->username && o->groupname))

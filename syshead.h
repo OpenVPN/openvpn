@@ -180,6 +180,10 @@
 #include <sys/epoll.h>
 #endif
 
+#ifdef HAVE_SETCON
+#include <selinux/selinux.h>
+#endif
+
 #ifdef TARGET_SOLARIS
 #ifdef HAVE_STRINGS_H
 #include <strings.h>

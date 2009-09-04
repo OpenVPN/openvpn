@@ -206,6 +206,12 @@ AC_ARG_ENABLE(strict-options,
    [STRICT_OPTIONS="no"]
 )
 
+AC_ARG_ENABLE(selinux,
+   [  --disable-selinux       Disable SELinux support],
+   [SELINUX="$enableval"],
+   [SELINUX="yes"]
+)
+
 AC_ARG_WITH(ssl-headers,
    [  --with-ssl-headers=DIR  Crypto/SSL Include files location],
    [CS_HDR_DIR="$withval"]
@@ -861,6 +867,23 @@ fi
 dnl enable password save
 if test "$PASSWORD_SAVE" = "yes"; then
    AC_DEFINE(ENABLE_PASSWORD_SAVE, 1, [Allow --askpass and --auth-user-pass passwords to be read from a file])
+fi
+
+dnl
+dnl check for SELinux library and headers
+dnl
+if test "$SELINUX" = "yes"; then
+   AC_CHECKING([for libselinux Library and Header files])
+   AC_CHECK_HEADER(selinux/selinux.h,
+      [AC_CHECK_LIB(selinux, setcon,
+         [
+            OPENVPN_ADD_LIBS(-lselinux)
+            AC_DEFINE(HAVE_SETCON, 1, [SELinux support])
+         ],
+            [AC_MSG_RESULT([SELinux library not found.])]
+         )],
+      [AC_MSG_RESULT([SELinux headers not found.])]
+   )
 fi
 
 TAP_ID="PRODUCT_TAP_ID"
