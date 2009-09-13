@@ -299,9 +299,9 @@ recv_socks_reply (socket_descriptor_t sd,
 
   if (addr != NULL)
     {
-      addr->sa.sin_family = AF_INET;
-      addr->sa.sin_addr.s_addr = htonl (INADDR_ANY);
-      addr->sa.sin_port = htons (0);
+      addr->addr.in4.sin_family = AF_INET;
+      addr->addr.in4.sin_addr.s_addr = htonl (INADDR_ANY);
+      addr->addr.in4.sin_port = htons (0);
     }
 
   while (len < 4 + alen + 2)
@@ -388,8 +388,8 @@ recv_socks_reply (socket_descriptor_t sd,
   /* ATYP == 1 (IP V4 address) */
   if (atyp == '\x01' && addr != NULL)
     {
-      memcpy (&addr->sa.sin_addr, buf + 4, sizeof (addr->sa.sin_addr));
-      memcpy (&addr->sa.sin_port, buf + 8, sizeof (addr->sa.sin_port));
+      memcpy (&addr->addr.in4.sin_addr, buf + 4, sizeof (addr->addr.in4.sin_addr));
+      memcpy (&addr->addr.in4.sin_port, buf + 8, sizeof (addr->addr.in4.sin_port));
     }
 
 
@@ -507,8 +507,8 @@ socks_process_incoming_udp (struct buffer *buf,
   if (atyp != 1)		/* ATYP == 1 (IP V4) */
     goto error;
 
-  buf_read (buf, &from->dest.sa.sin_addr, sizeof (from->dest.sa.sin_addr));
-  buf_read (buf, &from->dest.sa.sin_port, sizeof (from->dest.sa.sin_port));
+  buf_read (buf, &from->dest.addr.in4.sin_addr, sizeof (from->dest.addr.in4.sin_addr));
+  buf_read (buf, &from->dest.addr.in4.sin_port, sizeof (from->dest.addr.in4.sin_port));
 
   return;
 
@@ -540,8 +540,8 @@ socks_process_outgoing_udp (struct buffer *buf,
   buf_write_u16 (&head, 0);	/* RSV = 0 */
   buf_write_u8 (&head, 0);	/* FRAG = 0 */
   buf_write_u8 (&head, '\x01'); /* ATYP = 1 (IP V4) */
-  buf_write (&head, &to->dest.sa.sin_addr, sizeof (to->dest.sa.sin_addr));
-  buf_write (&head, &to->dest.sa.sin_port, sizeof (to->dest.sa.sin_port));
+  buf_write (&head, &to->dest.addr.in4.sin_addr, sizeof (to->dest.addr.in4.sin_addr));
+  buf_write (&head, &to->dest.addr.in4.sin_port, sizeof (to->dest.addr.in4.sin_port));
 
   return 10;
 }

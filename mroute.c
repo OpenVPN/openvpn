@@ -226,25 +226,47 @@ bool mroute_extract_openvpn_sockaddr (struct mroute_addr *addr,
 				      const struct openvpn_sockaddr *osaddr,
 				      bool use_port)
 {
-  if (osaddr->sa.sin_family == AF_INET)
+  switch (osaddr->addr.sa.sa_family) 
+  {
+    case AF_INET:
     {
       if (use_port)
 	{
 	  addr->type = MR_ADDR_IPV4 | MR_WITH_PORT;
 	  addr->netbits = 0;
 	  addr->len = 6;
-	  memcpy (addr->addr, &osaddr->sa.sin_addr.s_addr, 4);
-	  memcpy (addr->addr + 4, &osaddr->sa.sin_port, 2);
+	  memcpy (addr->addr, &osaddr->addr.in4.sin_addr.s_addr, 4);
+	  memcpy (addr->addr + 4, &osaddr->addr.in4.sin_port, 2);
 	}
       else
 	{
 	  addr->type = MR_ADDR_IPV4;
 	  addr->netbits = 0;
 	  addr->len = 4;
-	  memcpy (addr->addr, &osaddr->sa.sin_addr.s_addr, 4);
+	  memcpy (addr->addr, &osaddr->addr.in4.sin_addr.s_addr, 4);
 	}
       return true;
     }
+#ifdef USE_PF_INET6
+    case AF_INET6:
+      if (use_port)
+	{
+	  addr->type = MR_ADDR_IPV6 | MR_WITH_PORT;
+	  addr->netbits = 0;
+	  addr->len = 18;
+	  memcpy (addr->addr, &osaddr->addr.in6.sin6_addr, 16);
+	  memcpy (addr->addr + 16, &osaddr->addr.in6.sin6_port, 2);
+	}
+      else
+	{
+	  addr->type = MR_ADDR_IPV6;
+	  addr->netbits = 0;
+	  addr->len = 16;
+	  memcpy (addr->addr, &osaddr->addr.in6.sin6_addr, 16);
+	}
+      return true;
+#endif
+  }
   return false;
 }
 
@@ -337,7 +359,37 @@ mroute_addr_print_ex (const struct mroute_addr *ma,
 	  }
 	  break;
 	case MR_ADDR_IPV6:
+#ifdef USE_PF_INET6
+          {
+	    struct buffer buf;
+	    struct sockaddr_in6 sin6;
+	    int port;
+	    char buf6[INET6_ADDRSTRLEN] = "";
+	    memset(&sin6, 0, sizeof sin6);
+	    sin6.sin6_family = AF_INET6;
+	    buf_set_read (&buf, maddr.addr, maddr.len);
+            if (buf_read(&buf, &sin6.sin6_addr, sizeof (sin6.sin6_addr)))
+            {
+              if (getnameinfo((struct sockaddr *)&sin6, sizeof (struct sockaddr_in6),
+                                      buf6, sizeof (buf6), NULL, 0, NI_NUMERICHOST) != 0)
+                {
+                  buf_printf (&out, "MR_ADDR_IPV6 getnameinfo() err");
+                  break;
+		}
+              buf_puts (&out, buf6);
+	      if (maddr.type & MR_WITH_NETBITS)
+	        buf_printf (&out, "/%d", maddr.netbits);
+              if (maddr.type & MR_WITH_PORT)
+                {
+                  port = buf_read_u16 (&buf);
+                  if (port >= 0)
+                    buf_printf (&out, ":%d", port);
+                }
+	    }
+          }
+#else /* old pre IPV6 1-line code: */
 	  buf_printf (&out, "IPV6"); 
+#endif
 	  break;
 	default:
 	  buf_printf (&out, "UNKNOWN"); 
