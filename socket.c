@@ -293,6 +293,7 @@ getaddr6 (unsigned int flags,
 	 const char *hostname,
 	 int resolve_retry_seconds,
 	 volatile int *signal_received,
+         int *gai_err,
 	 struct sockaddr_in6 *in6)
 {
   bool success;
@@ -303,6 +304,9 @@ getaddr6 (unsigned int flags,
   struct gc_arena gc = gc_new ();
 
   ASSERT(in6);
+
+  if (!hostname)
+    hostname = "::";
 
   if (flags & GETADDR_RANDOMIZE)
     hostname = hostname_randomize(hostname, &gc);
@@ -321,11 +325,15 @@ getaddr6 (unsigned int flags,
   CLEAR(hints);
   hints.ai_family = AF_INET6;
   hints.ai_flags = AI_NUMERICHOST;
-  if ((status = getaddrinfo(hostname, NULL, &hints, &ai))==0) {
-    *in6 = *((struct sockaddr_in6 *)(ai->ai_addr));
-    freeaddrinfo(ai);
-    ai = NULL;
-  }
+  if ((status = getaddrinfo(hostname, NULL, &hints, &ai))==0)
+    {
+      *in6 = *((struct sockaddr_in6 *)(ai->ai_addr));
+      freeaddrinfo(ai);
+      ai = NULL;
+    }
+  if (gai_err)
+    *gai_err = status;
+
 
   if (status != 0) /* parse as IPv6 address failed? */
     {
@@ -368,6 +376,8 @@ getaddr6 (unsigned int flags,
 	  /* try hostname lookup */
           hints.ai_flags = 0;
           err = getaddrinfo(hostname, NULL, &hints, &ai);
+          if (gai_err)
+            *gai_err = err;
 
 	  if (signal_received)
 	    {
@@ -459,7 +469,6 @@ getaddr6 (unsigned int flags,
     }
 
   gc_free (&gc);
-  //return (flags & GETADDR_HOST_ORDER) ? ntohl (ia.s_addr) : ia.s_addr;
   return success;
 }
 #endif /* USE_PF_INET6 */
@@ -616,27 +625,29 @@ update_remote (const char* host,
     }
   break;
 #ifdef USE_PF_INET6
-    case AF_INET6: /* TODO(jjo): should adapt getaddr() + sf2gaf() for AF_INET6 */
+    case AF_INET6:
       if (host && addr)
-      {
-	struct addrinfo hints , *ai;
-	int err;
-	memset(&hints, 0, sizeof hints);
-	hints.ai_flags = AI_PASSIVE;
-	hints.ai_family = AF_INET6;
-	if ((err=getaddrinfo(host, NULL, &hints, &ai))==0)
-	{
-	  struct sockaddr_in6 *sin6 = (struct sockaddr_in6*)ai->ai_addr;
-	  if (!IN6_ARE_ADDR_EQUAL(&sin6->sin6_addr, &addr->addr.in6.sin6_addr))
-	  {
-	    int port = addr->addr.in6.sin6_port;
-	    /* ipv6 requires also eg. sin6_scope_id => easier to fully copy and override port */
-	    addr->addr.in6 = *sin6; 
-	    addr->addr.in6.sin6_port = port;
-	  }
-	  freeaddrinfo(ai);
-	}
-      }
+        {
+          struct sockaddr_in6 sin6;
+          CLEAR(sin6);
+          int success = getaddr6 (
+                                    sf2gaf(GETADDR_RESOLVE|GETADDR_UPDATE_MANAGEMENT_STATE, sockflags),
+                                    host,
+                                    1,
+                                    NULL,
+                                    NULL,
+                                    &sin6);
+          if ( success )
+            {
+              if (!IN6_ARE_ADDR_EQUAL(&sin6.sin6_addr, &addr->addr.in6.sin6_addr))
+              {
+                int port = addr->addr.in6.sin6_port;
+                /* ipv6 requires also eg. sin6_scope_id => easier to fully copy and override port */
+                addr->addr.in6 = sin6; 
+                addr->addr.in6.sin6_port = port;
+              }
+            }
+        }
       break;
 #endif
     default:
@@ -1320,22 +1331,30 @@ resolve_bind_local (struct link_socket *sock)
 #ifdef USE_PF_INET6
       case AF_INET6:
 	{
-	  struct addrinfo hints , *ai;
-	  int err;
-	  memset(&hints, 0, sizeof hints);
-	  hints.ai_flags=AI_PASSIVE;
-	  hints.ai_family=AF_INET6;
-	  /* if no local_host provided, ask for IN6ADDR_ANY ... */
-	  if ((err=getaddrinfo(sock->local_host? sock->local_host : "::", 
-		  NULL, &hints, &ai))==0) {
-	    sock->info.lsa->local.addr.in6 = *((struct sockaddr_in6*)(ai->ai_addr));
-	    freeaddrinfo(ai);
-            ai = NULL;
-	  } else {
-	    msg (M_FATAL, "getaddrinfo() failed for local \"%s\": %s",
-		sock->local_host,
-		gai_strerror(err));
-	  }
+          int success;
+          int err;
+          CLEAR(sock->info.lsa->local.addr.in6);
+          if (sock->local_host)
+            {
+              success = getaddr6(GETADDR_RESOLVE | GETADDR_WARN_ON_SIGNAL | GETADDR_FATAL,
+                                 sock->local_host,
+                                 0,
+                                 NULL,
+                                 &err,
+                                 &sock->info.lsa->local.addr.in6);
+            }
+          else
+            {
+              sock->info.lsa->local.addr.in6.sin6_family = AF_INET6;
+              sock->info.lsa->local.addr.in6.sin6_addr = in6addr_any;
+              success = true;
+            }
+	  if (!success)
+            {
+              msg (M_FATAL, "getaddr6() failed for local \"%s\": %s",
+                  sock->local_host,
+                  gai_strerror(err));
+            }
 	  sock->info.lsa->local.addr.in6.sin6_port = htons (sock->local_port);
 	}
 	break;
@@ -1363,17 +1382,27 @@ resolve_remote (struct link_socket *sock,
 		volatile int *signal_received)
 {
   struct gc_arena gc = gc_new ();
+  int af;
 
   if (!sock->did_resolve_remote)
     {
       /* resolve remote address if undefined */
       if (!addr_defined (&sock->info.lsa->remote))
 	{
-          switch(addr_guess_family(sock->info.proto, sock->remote_host)) 
-          {
-          case AF_INET:
-	  sock->info.lsa->remote.addr.in4.sin_family = AF_INET;
-	  sock->info.lsa->remote.addr.in4.sin_addr.s_addr = 0;
+          af = addr_guess_family(sock->info.proto, sock->remote_host);
+          switch(af) {
+            case AF_INET:
+              sock->info.lsa->remote.addr.in4.sin_family = AF_INET;
+              sock->info.lsa->remote.addr.in4.sin_addr.s_addr = 0;
+              break;
+#ifdef USE_PF_INET6
+            case AF_INET6:
+              CLEAR(sock->info.lsa->remote.addr.in6);
+              sock->info.lsa->remote.addr.in6.sin6_family = AF_INET6;
+              sock->info.lsa->remote.addr.in6.sin6_addr = in6addr_any;
+              break;
+#endif
+          }
 
 	  if (sock->remote_host)
 	    {
@@ -1416,85 +1445,28 @@ resolve_remote (struct link_socket *sock,
 		  ASSERT (0);
 		}
 
+              switch(af) {
+              case AF_INET:
 	      sock->info.lsa->remote.addr.in4.sin_addr.s_addr = getaddr (
 		    flags,
 		    sock->remote_host,
 		    retry,
 		    &status,
 		    signal_received);
-	      
-	      dmsg (D_SOCKET_DEBUG, "RESOLVE_REMOTE flags=0x%04x phase=%d rrs=%d sig=%d status=%d",
-		   flags,
-		   phase,
-		   retry,
-		   signal_received ? *signal_received : -1,
-		   status);
-
-	      if (signal_received)
-		{
-		  if (*signal_received)
-		    goto done;
-		}
-	      if (!status)
-		{
-		  if (signal_received)
-		    *signal_received = SIGUSR1;
-		  goto done;
-		}
-	    }
-
-	  sock->info.lsa->remote.addr.in4.sin_port = htons (sock->remote_port);
-          break;
+              break;
 #ifdef USE_PF_INET6
-	case AF_INET6: /* TODO(jjo): ipv6 signal logic */
-	  {
-	  if (sock->remote_host)
-	    {
-	      unsigned int flags = sf2gaf(GETADDR_RESOLVE|GETADDR_UPDATE_MANAGEMENT_STATE, sock->sockflags);
-	      int retry = 0;
-	      bool status = false;
-
-	      if (sock->connection_profiles_defined && sock->resolve_retry_seconds == RESOLV_RETRY_INFINITE)
-		{
-		  if (phase == 2)
-		    flags |= (GETADDR_TRY_ONCE | GETADDR_FATAL);
-		  retry = 0;
-		}
-	      else if (phase == 1)
-		{
-		  if (sock->resolve_retry_seconds)
-		    {
-		      retry = 0;
-		    }
-		  else
-		    {
-		      flags |= (GETADDR_FATAL | GETADDR_MENTION_RESOLVE_RETRY);
-		      retry = 0;
-		    }
-		}
-	      else if (phase == 2)
-		{
-		  if (sock->resolve_retry_seconds)
-		    {
-		      flags |= GETADDR_FATAL;
-		      retry = sock->resolve_retry_seconds;
-		    }
-		  else
-		    {
-		      ASSERT (0);
-		    }
-		}
-	      else
-		{
-		  ASSERT (0);
-		}
-
+              case AF_INET6:
 	      status = getaddr6 (
 		    flags,
 		    sock->remote_host,
 		    retry,
 		    signal_received,
+                    NULL,
                     &sock->info.lsa->remote.addr.in6);
+              break;
+#endif
+              }
+
 	      
 	      dmsg (D_SOCKET_DEBUG, "RESOLVE_REMOTE flags=0x%04x phase=%d rrs=%d sig=%d status=%d",
 		   flags,
@@ -1515,23 +1487,17 @@ resolve_remote (struct link_socket *sock,
 		  goto done;
 		}
 	    }
-          else
+          switch(af)
             {
-              /* 
-               * no ipv6 hostname given:
-               *  shortcut instead of calling getaddrinfo("::", ...)
-               */
-
-              CLEAR(sock->info.lsa->remote.addr.in6);
-              sock->info.lsa->remote.addr.in6.sin6_family = AF_INET6;
-              sock->info.lsa->remote.addr.in6.sin6_addr = in6addr_any;
-            }
-
-	    sock->info.lsa->remote.addr.in6.sin6_port = htons (sock->remote_port);
-	  }
-	  break;
+              case AF_INET:
+                sock->info.lsa->remote.addr.in4.sin_port = htons (sock->remote_port);
+                break;
+#ifdef USE_PF_INET6
+              case AF_INET6:
+                sock->info.lsa->remote.addr.in6.sin6_port = htons (sock->remote_port);
+                break;
 #endif
-          }
+            }
 	}
   
       /* should we re-use previous active remote address? */
@@ -2688,11 +2654,13 @@ addr_guess_family(int proto, const char *name)
     int err;
     memset(&hints, 0, sizeof hints);
     hints.ai_flags=AI_NUMERICHOST;
-    if ((err=getaddrinfo(name, NULL, &hints, &ai))==0) {
-      ret=ai->ai_family;
-      freeaddrinfo(ai);
-      return ret;
-    }
+    err = getaddrinfo(name, NULL, &hints, &ai);
+    if ( 0 == err )
+      {
+        ret=ai->ai_family;
+        freeaddrinfo(ai);
+        return ret;
+      }
   }
 #endif
   return AF_INET;	/* default */
