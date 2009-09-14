@@ -282,6 +282,188 @@ getaddr_multi (unsigned int flags,
   return (flags & GETADDR_HOST_ORDER) ? ntohl (ia.s_addr) : ia.s_addr;
 }
 
+#ifdef USE_PF_INET6
+/*
+ * Translate IPv6 addr or hostname into struct addrinfo
+ * If resolve error, try again for
+ * resolve_retry_seconds seconds.
+ */
+bool
+getaddr6 (unsigned int flags,
+	 const char *hostname,
+	 int resolve_retry_seconds,
+	 volatile int *signal_received,
+	 struct sockaddr_in6 *in6)
+{
+  bool success;
+  struct addrinfo hints, *ai;
+  int status;
+  int sigrec = 0;
+  int msglevel = (flags & GETADDR_FATAL) ? M_FATAL : D_RESOLVE_ERRORS;
+  struct gc_arena gc = gc_new ();
+
+  ASSERT(in6);
+
+  if (flags & GETADDR_RANDOMIZE)
+    hostname = hostname_randomize(hostname, &gc);
+
+  if (flags & GETADDR_MSG_VIRT_OUT)
+    msglevel |= M_MSG_VIRT_OUT;
+
+  CLEAR (ai);
+  success = false;
+
+  if ((flags & (GETADDR_FATAL_ON_SIGNAL|GETADDR_WARN_ON_SIGNAL))
+      && !signal_received)
+    signal_received = &sigrec;
+
+  /* try numeric ipv6 addr first */
+  CLEAR(hints);
+  hints.ai_family = AF_INET6;
+  hints.ai_flags = AI_NUMERICHOST;
+  if ((status = getaddrinfo(hostname, NULL, &hints, &ai))==0) {
+    *in6 = *((struct sockaddr_in6 *)(ai->ai_addr));
+    freeaddrinfo(ai);
+    ai = NULL;
+  }
+
+  if (status != 0) /* parse as IPv6 address failed? */
+    {
+      const int fail_wait_interval = 5; /* seconds */
+      int resolve_retries = (flags & GETADDR_TRY_ONCE) ? 1 : (resolve_retry_seconds / fail_wait_interval);
+      const char *fmt;
+      int level = 0;
+      int err;
+
+      ai = NULL;
+
+      fmt = "RESOLVE: Cannot resolve host address: %s: %s";
+      if ((flags & GETADDR_MENTION_RESOLVE_RETRY)
+	  && !resolve_retry_seconds)
+	fmt = "RESOLVE: Cannot resolve host address: %s: %s (I would have retried this name query if you had specified the --resolv-retry option.)";
+
+      if (!(flags & GETADDR_RESOLVE) || status == EAI_FAIL)
+	{
+	  msg (msglevel, "RESOLVE: Cannot parse IPv6 address: %s", hostname);
+	  goto done;
+	}
+
+#ifdef ENABLE_MANAGEMENT
+      if (flags & GETADDR_UPDATE_MANAGEMENT_STATE)
+	{
+	  if (management)
+	    management_set_state (management,
+				  OPENVPN_STATE_RESOLVE,
+				  NULL,
+				  (in_addr_t)0,
+				  (in_addr_t)0);
+	}
+#endif
+
+      /*
+       * Resolve hostname
+       */
+      while (true)
+	{
+	  /* try hostname lookup */
+          hints.ai_flags = 0;
+          err = getaddrinfo(hostname, NULL, &hints, &ai);
+
+	  if (signal_received)
+	    {
+	      get_signal (signal_received);
+	      if (*signal_received) /* were we interrupted by a signal? */
+		{
+                  if (0 == err) {
+                    ASSERT(ai);
+                    freeaddrinfo(ai);
+                    ai = NULL;
+                  }
+		  if (*signal_received == SIGUSR1) /* ignore SIGUSR1 */
+		    {
+		      msg (level, "RESOLVE: Ignored SIGUSR1 signal received during DNS resolution attempt");
+		      *signal_received = 0;
+		    }
+		  else
+		    goto done;
+		}
+	    }
+
+	  /* success? */
+	  if (0 == err)
+	    break;
+
+	  /* resolve lookup failed, should we
+	     continue or fail? */
+
+	  level = msglevel;
+	  if (resolve_retries > 0)
+	    level = D_RESOLVE_ERRORS;
+
+	  msg (level,
+	       fmt,
+	       hostname,
+	       gai_strerror(err));
+
+	  if (--resolve_retries <= 0)
+	    goto done;
+
+	  openvpn_sleep (fail_wait_interval);
+	}
+
+      ASSERT(ai);
+
+      if (!ai->ai_next)
+        *in6 = *((struct sockaddr_in6*)(ai->ai_addr));
+      else 
+        /* more than one address returned */
+        {
+          struct addrinfo *ai_cursor;
+          int n = 0;
+          /* count address list */
+          for (ai_cursor = ai; ai_cursor; ai_cursor = ai_cursor->ai_next) n++;
+          ASSERT (n >= 2);
+
+          msg (D_RESOLVE_ERRORS, "RESOLVE: NOTE: %s resolves to %d ipv6 addresses, choosing one by random",
+               hostname,
+               n);
+
+          /* choose address randomly, for basic load-balancing capability */
+	  n--;
+          n %= get_random();
+          for (ai_cursor = ai; n; ai_cursor = ai_cursor->ai_next) n--;
+          *in6 = *((struct sockaddr_in6*)(ai_cursor->ai_addr));
+        }
+
+      freeaddrinfo(ai);
+      ai = NULL;
+
+      /* hostname resolve succeeded */
+      success = true;
+    }
+  else
+    {
+      /* IP address parse succeeded */
+      success = true;
+    }
+
+ done:
+  if (signal_received && *signal_received)
+    {
+      int level = 0;
+      if (flags & GETADDR_FATAL_ON_SIGNAL)
+	level = M_FATAL;
+      else if (flags & GETADDR_WARN_ON_SIGNAL)
+	level = M_WARN;
+      msg (level, "RESOLVE: signal received during DNS resolution attempt");
+    }
+
+  gc_free (&gc);
+  //return (flags & GETADDR_HOST_ORDER) ? ntohl (ia.s_addr) : ia.s_addr;
+  return success;
+}
+#endif /* USE_PF_INET6 */
+
 /*
  * We do our own inet_aton because the glibc function
  * isn't very good about error checking.
@@ -445,10 +627,11 @@ update_remote (const char* host,
 	if ((err=getaddrinfo(host, NULL, &hints, &ai))==0)
 	{
 	  struct sockaddr_in6 *sin6 = (struct sockaddr_in6*)ai->ai_addr;
-	  if (IN6_ARE_ADDR_EQUAL(&sin6->sin6_addr, &addr->addr.in6.sin6_addr))
+	  if (!IN6_ARE_ADDR_EQUAL(&sin6->sin6_addr, &addr->addr.in6.sin6_addr))
 	  {
-	    int port = addr->addr.in6.sin6_port; /* backup current port for easier copy, restore later */
-	    addr->addr.in6 = *sin6; /* ipv6 requires also eg. sin6_scope_id => easy to full copy*/
+	    int port = addr->addr.in6.sin6_port;
+	    /* ipv6 requires also eg. sin6_scope_id => easier to fully copy and override port */
+	    addr->addr.in6 = *sin6; 
 	    addr->addr.in6.sin6_port = port;
 	  }
 	  freeaddrinfo(ai);
@@ -1147,6 +1330,7 @@ resolve_bind_local (struct link_socket *sock)
 		  NULL, &hints, &ai))==0) {
 	    sock->info.lsa->local.addr.in6 = *((struct sockaddr_in6*)(ai->ai_addr));
 	    freeaddrinfo(ai);
+            ai = NULL;
 	  } else {
 	    msg (M_FATAL, "getaddrinfo() failed for local \"%s\": %s",
 		sock->local_host,
@@ -1264,19 +1448,85 @@ resolve_remote (struct link_socket *sock,
 #ifdef USE_PF_INET6
 	case AF_INET6: /* TODO(jjo): ipv6 signal logic */
 	  {
-	    struct addrinfo hints , *ai;
-	    int err;
-	    memset(&hints, 0, sizeof hints);
-	    hints.ai_flags=0;
-	    hints.ai_family=AF_INET6;
-	    if ((err=getaddrinfo(sock->remote_host? sock->remote_host : "::" , NULL, &hints, &ai))==0) {
-	      sock->info.lsa->remote.addr.in6 = *((struct sockaddr_in6*)(ai->ai_addr));
-	      freeaddrinfo(ai);
-	    } else {
-	      msg (M_FATAL, "getaddrinfo() failed for remote \"%s\": %s",
-		  sock->remote_host,
-		  gai_strerror(err));
+	  if (sock->remote_host)
+	    {
+	      unsigned int flags = sf2gaf(GETADDR_RESOLVE|GETADDR_UPDATE_MANAGEMENT_STATE, sock->sockflags);
+	      int retry = 0;
+	      bool status = false;
+
+	      if (sock->connection_profiles_defined && sock->resolve_retry_seconds == RESOLV_RETRY_INFINITE)
+		{
+		  if (phase == 2)
+		    flags |= (GETADDR_TRY_ONCE | GETADDR_FATAL);
+		  retry = 0;
+		}
+	      else if (phase == 1)
+		{
+		  if (sock->resolve_retry_seconds)
+		    {
+		      retry = 0;
+		    }
+		  else
+		    {
+		      flags |= (GETADDR_FATAL | GETADDR_MENTION_RESOLVE_RETRY);
+		      retry = 0;
+		    }
+		}
+	      else if (phase == 2)
+		{
+		  if (sock->resolve_retry_seconds)
+		    {
+		      flags |= GETADDR_FATAL;
+		      retry = sock->resolve_retry_seconds;
+		    }
+		  else
+		    {
+		      ASSERT (0);
+		    }
+		}
+	      else
+		{
+		  ASSERT (0);
+		}
+
+	      status = getaddr6 (
+		    flags,
+		    sock->remote_host,
+		    retry,
+		    signal_received,
+                    &sock->info.lsa->remote.addr.in6);
+	      
+	      dmsg (D_SOCKET_DEBUG, "RESOLVE_REMOTE flags=0x%04x phase=%d rrs=%d sig=%d status=%d",
+		   flags,
+		   phase,
+		   retry,
+		   signal_received ? *signal_received : -1,
+		   status);
+
+	      if (signal_received)
+		{
+		  if (*signal_received)
+		    goto done;
+		}
+	      if (!status)
+		{
+		  if (signal_received)
+		    *signal_received = SIGUSR1;
+		  goto done;
+		}
 	    }
+          else
+            {
+              /* 
+               * no ipv6 hostname given:
+               *  shortcut instead of calling getaddrinfo("::", ...)
+               */
+
+              CLEAR(sock->info.lsa->remote.addr.in6);
+              sock->info.lsa->remote.addr.in6.sin6_family = AF_INET6;
+              sock->info.lsa->remote.addr.in6.sin6_addr = in6addr_any;
+            }
+
 	    sock->info.lsa->remote.addr.in6.sin6_port = htons (sock->remote_port);
 	  }
 	  break;
