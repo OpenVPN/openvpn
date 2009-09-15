@@ -1251,7 +1251,20 @@ socket_connect (socket_descriptor_t *sd,
       if (*signal_received)
 	goto done;
 
-      *sd = create_socket_tcp ();
+#ifdef USE_PF_INET6
+      switch(local->addr.sa.sa_family)
+	{
+	case PF_INET6:
+	  *sd = create_socket_tcp6 ();
+	  break;
+	case PF_INET:
+#endif
+	  *sd = create_socket_tcp ();
+#ifdef USE_PF_INET6
+	  break;
+	}
+#endif
+
       if (bind_local)
         socket_bind (*sd, local, "TCP Client");
       update_remote (remote_dynamic, remote, remote_changed, sockflags);
