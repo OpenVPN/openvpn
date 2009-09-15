@@ -108,7 +108,7 @@ static const char usage_message[] =
   "                  p = udp (default), tcp-server, or tcp-client\n"
   "--proto-force p : only consider protocol p in list of connection profiles.\n"
 #ifdef USE_PF_INET6
-  "                  p = udp6, tcp6-server, or tcp6-client (IPv6)\n"
+  "                  p = udp6, tcp6-server, or tcp6-client (ipv6)\n"
 #endif
   "--connect-retry n : For --proto tcp-client, number of seconds to wait\n"
   "                    between connection retries (default=%d).\n"
@@ -1703,10 +1703,18 @@ options_postprocess_verify_ce (const struct options *options, const struct conne
    * Sanity check on TCP mode options
    */
 
-  if (ce->connect_retry_defined && ce->proto != PROTO_TCPv4_CLIENT && ce->proto != PROTO_TCPv6_CLIENT)
+  if (ce->connect_retry_defined && ce->proto != PROTO_TCPv4_CLIENT
+#ifdef USE_PF_INET6
+      && ce->proto != PROTO_TCPv6_CLIENT
+#endif
+      )
     msg (M_USAGE, "--connect-retry doesn't make sense unless also used with --proto tcp-client");
 
-  if (ce->connect_timeout_defined && ce->proto != PROTO_TCPv4_CLIENT && ce->proto != PROTO_TCPv6_CLIENT)
+  if (ce->connect_timeout_defined && ce->proto != PROTO_TCPv4_CLIENT
+#ifdef USE_PF_INET6
+      && ce->proto != PROTO_TCPv6_CLIENT
+#endif
+      )
     msg (M_USAGE, "--connect-timeout doesn't make sense unless also used with --proto tcp-client");
 
   /*
@@ -1804,7 +1812,11 @@ options_postprocess_verify_ce (const struct options *options, const struct conne
     msg (M_USAGE, "--explicit-exit-notify can only be used with --proto udp");
 #endif
 
-  if (!ce->remote && (ce->proto == PROTO_TCPv4_CLIENT || ce->proto == PROTO_TCPv6_CLIENT))
+  if (!ce->remote && (ce->proto == PROTO_TCPv4_CLIENT 
+#ifdef USE_PF_INET6
+		      || ce->proto == PROTO_TCPv6_CLIENT
+#endif
+		      ))
     msg (M_USAGE, "--remote MUST be used in TCP Client mode");
 
 #ifdef ENABLE_HTTP_PROXY
@@ -1822,7 +1834,11 @@ options_postprocess_verify_ce (const struct options *options, const struct conne
     msg (M_USAGE, "--socks-proxy can not be used in TCP Server mode");
 #endif
 
-  if ((ce->proto == PROTO_TCPv4_SERVER || ce->proto == PROTO_TCPv6_SERVER)
+  if ((ce->proto == PROTO_TCPv4_SERVER
+#ifdef USE_PF_INET6
+       || ce->proto == PROTO_TCPv6_SERVER
+#endif
+       )
        && connection_list_defined (options))
     msg (M_USAGE, "TCP server mode allows at most one --remote address");
 
@@ -1837,11 +1853,19 @@ options_postprocess_verify_ce (const struct options *options, const struct conne
 	msg (M_USAGE, "--mode server only works with --dev tun or --dev tap");
       if (options->pull)
 	msg (M_USAGE, "--pull cannot be used with --mode server");
-      if (!(proto_is_udp(ce->proto) || ce->proto == PROTO_TCPv4_SERVER || ce->proto == PROTO_TCPv6_SERVER))
+      if (!(proto_is_udp(ce->proto) || ce->proto == PROTO_TCPv4_SERVER
+#ifdef USE_PF_INET6
+	    || ce->proto == PROTO_TCPv6_SERVER
+#endif
+	    ))
 	msg (M_USAGE, "--mode server currently only supports --proto udp or --proto tcp-server");
 #if PORT_SHARE
       if ((options->port_share_host || options->port_share_port) && 
-            (ce->proto != PROTO_TCPv4_SERVER && ce->proto != PROTO_TCPv6_SERVER))
+            (ce->proto != PROTO_TCPv4_SERVER
+#ifdef USE_PF_INET6
+	     && ce->proto != PROTO_TCPv6_SERVER
+#endif
+	     ))
 	msg (M_USAGE, "--port-share only works in TCP server mode (--proto tcp-server)");
 #endif
       if (!options->tls_server)
@@ -1870,7 +1894,11 @@ options_postprocess_verify_ce (const struct options *options, const struct conne
 	msg (M_USAGE, "--inetd cannot be used with --mode server");
       if (options->ipchange)
 	msg (M_USAGE, "--ipchange cannot be used with --mode server (use --client-connect instead)");
-      if (!(proto_is_dgram(ce->proto) || ce->proto == PROTO_TCPv4_SERVER || ce->proto == PROTO_TCPv6_SERVER ))
+      if (!(proto_is_dgram(ce->proto) || ce->proto == PROTO_TCPv4_SERVER
+#ifdef USE_PF_INET6
+	    || ce->proto == PROTO_TCPv6_SERVER
+#endif
+	    ))
 	msg (M_USAGE, "--mode server currently only supports --proto udp or --proto tcp-server");
       if (!proto_is_udp(ce->proto) && (options->cf_max || options->cf_per))
 	msg (M_USAGE, "--connect-freq only works with --mode server --proto udp.  Try --max-clients instead.");

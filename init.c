@@ -3095,11 +3095,11 @@ init_instance (struct context *c, const struct env_set *env, const unsigned int 
   /* link_socket_mode allows CM_CHILD_TCP
      instances to inherit acceptable fds
      from a top-level parent */
+  if (c->options.ce.proto == PROTO_TCPv4_SERVER
 #ifdef USE_PF_INET6
-  if (c->options.ce.proto == PROTO_TCPv4_SERVER || c->options.ce.proto == PROTO_TCPv6_SERVER)
-#else
-  if (c->options.ce.proto == PROTO_TCPv4_SERVER)
+      || c->options.ce.proto == PROTO_TCPv6_SERVER
 #endif
+     )
     {
       if (c->mode == CM_TOP)
 	link_socket_mode = LS_MODE_TCP_LISTEN;

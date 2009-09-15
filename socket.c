@@ -1316,10 +1316,12 @@ resolve_bind_local (struct link_socket *sock)
   /* resolve local address if undefined */
   if (!addr_defined (&sock->info.lsa->local))
     {
+#ifdef USE_PF_INET6
       /* may return AF_{INET|INET6} guessed from local_host */
       switch(addr_guess_family(sock->info.proto, sock->local_host))
 	{
 	case AF_INET:
+#endif
 	  sock->info.lsa->local.addr.in4.sin_family = AF_INET;
 	  sock->info.lsa->local.addr.in4.sin_addr.s_addr =
 	    (sock->local_host ? getaddr (GETADDR_RESOLVE | GETADDR_WARN_ON_SIGNAL | GETADDR_FATAL,
@@ -1329,8 +1331,8 @@ resolve_bind_local (struct link_socket *sock)
 					 NULL)
 	     : htonl (INADDR_ANY));
 	  sock->info.lsa->local.addr.in4.sin_port = htons (sock->local_port);
-	  break;
 #ifdef USE_PF_INET6
+	  break;
 	case AF_INET6:
 	    {
 	      int success;
@@ -1360,8 +1362,8 @@ resolve_bind_local (struct link_socket *sock)
 	      sock->info.lsa->local.addr.in6.sin6_port = htons (sock->local_port);
 	    }
 	  break;
-#endif
 	}
+#endif /* USE_PF_INET6 */
     }
   
   /* bind to local address/port */
@@ -1756,7 +1758,7 @@ link_socket_init_phase2 (struct link_socket *sock,
       /* TCP client/server */
       if (sock->info.proto == PROTO_TCPv4_SERVER
 #ifdef USE_PF_INET6
-	||sock->info.proto == PROTO_TCPv6_SERVER
+	  ||sock->info.proto == PROTO_TCPv6_SERVER
 #endif
 	)
 	{
@@ -1795,7 +1797,7 @@ link_socket_init_phase2 (struct link_socket *sock,
 	}
       else if (sock->info.proto == PROTO_TCPv4_CLIENT
 #ifdef USE_PF_INET6
-                ||sock->info.proto == PROTO_TCPv6_CLIENT
+               ||sock->info.proto == PROTO_TCPv6_CLIENT
 #endif
               )
 	{
@@ -2122,7 +2124,7 @@ link_socket_current_remote (const struct link_socket_info *info)
  * by now just ignore it
  *
  */
-#if defined ( USE_PF_INET6 )
+#ifdef USE_PF_INET6
   if(lsa->actual.dest.addr.sa.sa_family != AF_INET)
     return 0;
 #else
@@ -2435,17 +2437,19 @@ print_link_socket_actual_ex (const struct link_socket_actual *act,
 #if ENABLE_IP_PKTINFO
       if ((flags & PS_SHOW_PKTINFO) && addr_defined_ipi(act))
 	{
+#ifdef USE_PF_INET6
 	  switch(act->dest.addr.sa.sa_family)
 	    {
 	    case AF_INET:
+#endif
 		{
 		  struct openvpn_sockaddr sa;
 		  CLEAR (sa);
 		  sa.addr.in4.sin_addr = act->pi.in4.ipi_spec_dst;
 		  buf_printf (&out, " (via %s)", print_sockaddr_ex (&sa, separator, 0, gc));
 		}
-	      break;
 #ifdef USE_PF_INET6
+	      break;
 	    case AF_INET6:
 		{
 		  struct sockaddr_in6 sin6;
@@ -2462,8 +2466,8 @@ print_link_socket_actual_ex (const struct link_socket_actual *act,
 		    }
 		}
 	      break;
-#endif
 	    }
+#endif /* USE_PF_INET6 */
 
 	}
 #endif
@@ -2663,33 +2667,36 @@ int
 addr_guess_family(int proto, const char *name) 
 {
   sa_family_t ret;
-  if (proto) {
-    return proto_sa_family(proto);	/* already stamped */
-  } 
+  if (proto)
+    {
+      return proto_sa_family(proto);	/* already stamped */
+    } 
 #ifdef USE_PF_INET6
-  else {
-    struct addrinfo hints , *ai;
-    int err;
-    memset(&hints, 0, sizeof hints);
-    hints.ai_flags=AI_NUMERICHOST;
-    err = getaddrinfo(name, NULL, &hints, &ai);
-    if ( 0 == err )
-      {
-        ret=ai->ai_family;
-        freeaddrinfo(ai);
-        return ret;
-      }
-  }
+  else
+    {
+      struct addrinfo hints , *ai;
+      int err;
+      memset(&hints, 0, sizeof hints);
+      hints.ai_flags=AI_NUMERICHOST;
+      err = getaddrinfo(name, NULL, &hints, &ai);
+      if ( 0 == err )
+	{
+	  ret=ai->ai_family;
+	  freeaddrinfo(ai);
+	  return ret;
+	}
+    }
 #endif
   return AF_INET;	/* default */
 }
 const char *
 addr_family_name (int af) 
 {
-  switch (af) {
-    case AF_INET: return "AF_INET";
+  switch (af)
+    {
+    case AF_INET:  return "AF_INET";
     case AF_INET6: return "AF_INET6";
-  }
+    }
   return "AF_UNSPEC";
 }
 

@@ -2681,16 +2681,17 @@ tunnel_server (struct context *top)
   else
     tunnel_server_tcp(top);
 #else
-  switch (top->options.ce.proto) {
-  case PROTO_UDPv4:
-    tunnel_server_udp (top);
-    break;
-  case PROTO_TCPv4_SERVER:
-    tunnel_server_tcp (top);
-    break;
-  default:
-    ASSERT (0);
-  }
+  switch (top->options.ce.proto)
+    {
+    case PROTO_UDPv4:
+      tunnel_server_udp (top);
+      break;
+    case PROTO_TCPv4_SERVER:
+      tunnel_server_tcp (top);
+      break;
+    default:
+      ASSERT (0);
+    }
 #endif
 }
 

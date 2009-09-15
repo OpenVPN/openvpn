@@ -491,19 +491,6 @@ in_addr_t getaddr_multi (unsigned int flags,
  * Transport protocol naming and other details.
  */
 
-#if 0 /* PRE UDPv6/TCPv6 code */
-#define PROTO_NONE         0 /* catch for uninitialized */
-#define PROTO_UDPv4        1
-#define PROTO_TCPv4_SERVER 2
-#define PROTO_TCPv4_CLIENT 3
-#define PROTO_TCPv4        4
-#define PROTO_UDPv6        5
-#define PROTO_TCPv6_SERVER 6
-#define PROTO_TCPv6_CLIENT 7
-#define PROTO_TCPv6        8
-#define PROTO_N            9
-#endif /* if 0 */
-
 /* 
  * Use enum's instead of #define to allow for easier
  * optional proto support
@@ -514,10 +501,12 @@ enum proto_num {
 	PROTO_TCPv4_SERVER,
 	PROTO_TCPv4_CLIENT,
 	PROTO_TCPv4,
+#ifdef USE_PF_INET6
 	PROTO_UDPv6,
 	PROTO_TCPv6_SERVER,
 	PROTO_TCPv6_CLIENT,
 	PROTO_TCPv6,
+#endif
 	PROTO_N
 };
 

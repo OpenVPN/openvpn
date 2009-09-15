@@ -387,7 +387,7 @@ mroute_addr_print_ex (const struct mroute_addr *ma,
                 }
 	    }
           }
-#else /* old pre IPV6 1-line code: */
+#else /* old, pre USE_PF_INET6 code */
 	  buf_printf (&out, "IPV6"); 
 #endif
 	  break;
