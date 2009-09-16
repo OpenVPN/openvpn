@@ -176,6 +176,9 @@ void
 check_push_request_dowork (struct context *c)
 {
   send_push_request (c);
+
+  /* if no response to first push_request, retry at 5 second intervals */
+  event_timeout_modify_wakeup (&c->c2.push_request_interval, 5);
 }
 
 #endif
@@ -204,10 +207,8 @@ check_connection_established_dowork (struct context *c)
 					0);
 		}
 #endif
-	      send_push_request (c);
-
-	      /* if no reply, try again in 5 sec */
-	      event_timeout_init (&c->c2.push_request_interval, 5, now);
+	      /* send push request in 1 sec */
+	      event_timeout_init (&c->c2.push_request_interval, 1, now);
 	      reset_coarse_timers (c);
 	    }
 	  else

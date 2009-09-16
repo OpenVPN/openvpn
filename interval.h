@@ -177,6 +177,14 @@ event_timeout_reset (struct event_timeout* et)
     et->last = now;
 }
 
+static inline void
+event_timeout_modify_wakeup (struct event_timeout* et, interval_t n)
+{
+  /* note that you might need to call reset_coarse_timers after this */
+  if (et->defined)
+    et->n = (n >= 0) ? n : 0;
+}
+
 /*
  * This is the principal function for testing and triggering recurring
  * timers and will return true on a timer signal event.
