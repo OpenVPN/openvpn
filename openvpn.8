@@ -946,6 +946,13 @@ table (not supported on all OSes).
 address if OpenVPN is being run in client mode, and is undefined in server mode.
 .\"*********************************************************
 .TP
+.B --max-routes n
+Allow a maximum number of n
+.B --route
+options to be specified, either in the local configuration file,
+or pulled from an OpenVPN server.  By default, n=100.
+.\"*********************************************************
+.TP
 .B --route-gateway gw|'dhcp'
 Specify a default gateway
 .B gw

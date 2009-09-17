@@ -32,7 +32,7 @@
 #include "tun.h"
 #include "misc.h"
 
-#define MAX_ROUTES 100
+#define MAX_ROUTES_DEFAULT 100
 
 #ifdef WIN32
 /*
@@ -86,9 +86,10 @@ struct route_option {
 #define RG_AUTO_LOCAL     (1<<6)
 
 struct route_option_list {
-  int n;
   unsigned int flags;
-  struct route_option routes[MAX_ROUTES];
+  int capacity;
+  int n;
+  struct route_option routes[EMPTY_ARRAY_SIZE];
 };
 
 struct route {
@@ -107,8 +108,9 @@ struct route_list {
   unsigned int flags;
   bool did_redirect_default_gateway;
   bool did_local;
+  int capacity;
   int n;
-  struct route routes[MAX_ROUTES];
+  struct route routes[EMPTY_ARRAY_SIZE];
 };
 
 #if P2MP
@@ -120,9 +122,11 @@ struct iroute {
 };
 #endif
 
-struct route_option_list *new_route_option_list (struct gc_arena *a);
+struct route_option_list *new_route_option_list (const int max_routes, struct gc_arena *a);
+struct route_option_list *clone_route_option_list (const struct route_option_list *src, struct gc_arena *a);
+void copy_route_option_list (struct route_option_list *dest, const struct route_option_list *src);
 
-struct route_list *new_route_list (struct gc_arena *a);
+struct route_list *new_route_list (const int max_routes, struct gc_arena *a);
 
 void add_route (struct route *r, const struct tuntap *tt, unsigned int flags, const struct env_set *es);
 
@@ -131,8 +135,6 @@ void add_route_to_option_list (struct route_option_list *l,
 			       const char *netmask,
 			       const char *gateway,
 			       const char *metric);
-
-void clear_route_list (struct route_list *rl);
 
 bool init_route_list (struct route_list *rl,
 		      const struct route_option_list *opt,

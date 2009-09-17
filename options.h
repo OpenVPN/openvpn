@@ -75,7 +75,7 @@ struct options_pre_pull
   struct tuntap_options tuntap_options;
 
   bool routes_defined;
-  struct route_option_list routes;
+  struct route_option_list *routes;
 
   int foreign_option_index;
 };
@@ -306,6 +306,7 @@ struct options
   int route_delay;
   int route_delay_window;
   bool route_delay_defined;
+  int max_routes;
   struct route_option_list *routes;
   bool route_nopull;
   bool route_gateway_via_dhcp;

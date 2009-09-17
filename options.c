@@ -170,6 +170,8 @@ static const char usage_message[] =
   "                  netmask default: 255.255.255.255\n"
   "                  gateway default: taken from --route-gateway or --ifconfig\n"
   "                  Specify default by leaving blank or setting to \"nil\".\n"
+  "--max-routes n :  Specify the maximum number of routes that may be defined\n"
+  "                  or pulled from a server.\n"
   "--route-gateway gw|'dhcp' : Specify a default gateway for use with --route.\n"
   "--route-metric m : Specify a default metric for use with --route.\n"
   "--route-delay n [w] : Delay n seconds after connection initiation before\n"
@@ -680,6 +682,7 @@ init_options (struct options *o, const bool init_gc)
   o->mtu_discover_type = -1;
   o->mssfix = MSSFIX_DEFAULT;
   o->route_delay_window = 30;
+  o->max_routes = MAX_ROUTES_DEFAULT;
   o->resolve_retry_seconds = RESOLV_RETRY_INFINITE;
 #ifdef ENABLE_OCC
   o->occ = true;
@@ -1075,7 +1078,7 @@ void
 rol_check_alloc (struct options *options)
 {
   if (!options->routes)
-    options->routes = new_route_option_list (&options->gc);
+    options->routes = new_route_option_list (options->max_routes, &options->gc);
 }
 
 #ifdef ENABLE_DEBUG
@@ -1264,6 +1267,7 @@ show_settings (const struct options *o)
   SHOW_BOOL (route_delay_defined);
   SHOW_BOOL (route_nopull);
   SHOW_BOOL (route_gateway_via_dhcp);
+  SHOW_INT (max_routes);
   SHOW_BOOL (allow_pull_fqdn);
   if (o->routes)
     print_route_options (o->routes, D_SHOW_PARMS);
@@ -2160,7 +2164,7 @@ pre_pull_save (struct options *o)
       o->pre_pull->foreign_option_index = o->foreign_option_index;
       if (o->routes)
 	{
-	  o->pre_pull->routes = *o->routes;
+	  o->pre_pull->routes = clone_route_option_list(o->routes, &o->gc);
 	  o->pre_pull->routes_defined = true;
 	}
     }
@@ -2179,7 +2183,7 @@ pre_pull_restore (struct options *o)
       if (pp->routes_defined)
 	{
 	  rol_check_alloc (o);
-	  *o->routes = pp->routes;
+	  copy_route_option_list (o->routes, pp->routes);
 	}
       else
 	o->routes = NULL;
@@ -4342,6 +4346,19 @@ add_option (struct options *options,
 	    }
 	}
       add_route_to_option_list (options->routes, p[1], p[2], p[3], p[4]);
+    }
+  else if (streq (p[0], "max-routes") && p[1])
+    {
+      int max_routes;
+
+      VERIFY_PERMISSION (OPT_P_GENERAL);
+      max_routes = atoi (p[1]);
+      if (max_routes < 0 || max_routes > 100000000)
+	{
+	  msg (msglevel, "--max-routes parameter is out of range");
+	  goto err;
+	}
+      options->max_routes = max_routes;
     }
   else if (streq (p[0], "route-gateway") && p[1])
     {
