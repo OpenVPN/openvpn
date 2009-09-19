@@ -6,9 +6,15 @@ Available under GPLv2 from
   http://github.com/jjo/openvpn-ipv6
 
 * Working:
-  - upd6,tcp6: tested on GNU/Linux, win32
-  - udp4->upd6,tcp4->tcp6 (ipv4/6 mapped): tested on GNU/Linux, win32
+  OK:
+  - upd6,tcp6: GNU/Linux, win32
+  - udp4->upd6,tcp4->tcp6 (ipv4/6 mapped): GNU/Linux
     (gives a warning on local!=remote proto matching)
+  NOT:
+  - tcp4->tcp6 (ipv4/6 mapped): win32
+    fails w/connection refused
+
+
 
 * Setup:
   ./configure --enable-ipv6        (by default)
@@ -58,6 +64,8 @@ Available under GPLv2 from
   -  Should not use random for listening in IPv6 "by name", as eg
      ip6-localhost could return any ifindex, or "randomly" behave as
      if it were IPV6_V6ONLY (caught this in my unittesting)
+  -  win32: find out about mapped addresses, as I can't make it work
+            with bound at ::1 and connect to 127.0.0.1
   -  Implement comparison for mapped addesses: server in dual stack
      listening IPv6 must permit incoming streams from allowed IPv4 peer,
      currently you need to pass eg:  --remote ffff::1.2.3.4
