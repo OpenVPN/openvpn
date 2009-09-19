@@ -1173,7 +1173,7 @@ openvpn_connect (socket_descriptor_t sd,
 	}
     }
 #else
-  status = connect (sd, (struct sockaddr *) &remote->sa, sizeof (remote->sa));
+  status = connect (sd, &remote->addr.sa, af_addr_size(remote->addr.sa.sa_family));
   if (status)
     status = openvpn_errno_socket ();
 #endif
@@ -2515,9 +2515,9 @@ void
 setenv_sockaddr (struct env_set *es, const char *name_prefix, const struct openvpn_sockaddr *addr, const bool flags)
 {
   char name_buf[256];
-  char buf[128];
 
 #ifdef USE_PF_INET6
+  char buf[128];
   switch(addr->addr.sa.sa_family)
     {
     case AF_INET:
@@ -2582,7 +2582,7 @@ struct proto_names {
   const char *display_form;
   bool	is_dgram;
   bool	is_net;
-  sa_family_t proto_af;
+  unsigned short proto_af;
 };
 
 /* Indexed by PROTO_x */
@@ -2629,7 +2629,7 @@ proto_is_tcp(int proto)
   return (!proto_names[proto].is_dgram)&&proto_names[proto].is_net;
 }
 
-sa_family_t 
+unsigned short 
 proto_sa_family(int proto)
 {
   if (proto < 0 || proto >= PROTO_N)
@@ -2679,7 +2679,9 @@ proto2ascii_all (struct gc_arena *gc)
 int
 addr_guess_family(int proto, const char *name) 
 {
-  sa_family_t ret;
+#ifdef USE_PF_INET6
+  unsigned short ret;
+#endif
   if (proto)
     {
       return proto_sa_family(proto);	/* already stamped */
@@ -3270,10 +3272,10 @@ socket_finalize (SOCKET s,
 	{
 	  if (io->addrlen != sizeof (io->addr))
 	    bad_address_length (io->addrlen, sizeof (io->addr));
-	  from->dest.addr.sa = io->addr;
+	  from->dest.addr.in4 = io->addr;
 	}
       else
-	CLEAR (from->dest.addr.sa);
+	CLEAR (from->dest.addr);
     }
   
   if (buf)

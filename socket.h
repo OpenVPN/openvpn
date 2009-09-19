@@ -591,6 +591,7 @@ addr_defined_ipi (const struct link_socket_actual *lsa)
 #else
   ASSERT(0);
 #endif
+  return false;
 }
 
 static inline bool
@@ -702,7 +703,7 @@ addr_inet4or6(struct sockaddr *addr)
 
 int addr_guess_family(int proto, const char *name);
 static inline int
-af_addr_size(sa_family_t af)
+af_addr_size(unsigned short af)
 {
 #if defined(USE_PF_INET6) || defined (USE_PF_UNIX)
    switch(af) {

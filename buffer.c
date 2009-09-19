@@ -214,8 +214,10 @@ buf_printf (struct buffer *buf, const char *format, ...)
   return ret;
 }
 
-void buf_puts(struct buffer *buf, const char *str)
+bool
+buf_puts(struct buffer *buf, const char *str)
 {
+  int ret = false;
   uint8_t *ptr = BEND (buf);
   int cap = buf_forward_capacity (buf);
   if (cap > 0)
@@ -223,7 +225,9 @@ void buf_puts(struct buffer *buf, const char *str)
       strncpynt ((char *)ptr,str, cap);
       *(buf->data + buf->capacity - 1) = 0; /* windows vsnprintf needs this */
       buf->len += (int) strlen ((char *)ptr);
+      ret = true;
     }
+  return ret;
 }
  
 
