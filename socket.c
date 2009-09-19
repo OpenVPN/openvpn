@@ -2993,11 +2993,19 @@ socket_recv_queue (struct link_socket *sock, int maxsize)
       int status;
 
       /* reset buf to its initial state */
-      if (sock->info.proto == PROTO_UDPv4)
+      if (sock->info.proto == PROTO_UDPv4
+#ifdef USE_PF_INET6
+          || sock->info.proto == PROTO_UDPv6
+#endif
+	 )
 	{
 	  sock->reads.buf = sock->reads.buf_init;
 	}
-      else if (sock->info.proto == PROTO_TCPv4_CLIENT || sock->info.proto == PROTO_TCPv4_SERVER)
+      else if (sock->info.proto == PROTO_TCPv4_CLIENT || sock->info.proto == PROTO_TCPv4_SERVER
+#ifdef USE_PF_INET6
+	       || sock->info.proto == PROTO_TCPv6_CLIENT || sock->info.proto == PROTO_TCPv6_SERVER
+#endif
+	       )
 	{
 	  stream_buf_get_next (&sock->stream_buf, &sock->reads.buf);
 	}
@@ -3017,10 +3025,19 @@ socket_recv_queue (struct link_socket *sock, int maxsize)
       ASSERT (ResetEvent (sock->reads.overlapped.hEvent));
       sock->reads.flags = 0;
 
-      if (sock->info.proto == PROTO_UDPv4)
+      if (sock->info.proto == PROTO_UDPv4
+#ifdef USE_PF_INET6
+          || sock->info.proto == PROTO_UDPv6
+#endif
+	  )
 	{
 	  sock->reads.addr_defined = true;
-	  sock->reads.addrlen = sizeof (sock->reads.addr);
+#ifdef USE_PF_INET6
+	  if (sock->info.proto == PROTO_UDPv6)
+	    sock->reads.addrlen = sizeof (sock->reads.addr6);
+	  else
+#endif
+	    sock->reads.addrlen = sizeof (sock->reads.addr);
 	  status = WSARecvFrom(
 			       sock->sd,
 			       wsabuf,
@@ -3032,7 +3049,12 @@ socket_recv_queue (struct link_socket *sock, int maxsize)
 			       &sock->reads.overlapped,
 			       NULL);
 	}
-      else if (sock->info.proto == PROTO_TCPv4_CLIENT || sock->info.proto == PROTO_TCPv4_SERVER)
+      else if (sock->info.proto == PROTO_TCPv4_CLIENT || sock->info.proto == PROTO_TCPv4_SERVER
+#ifdef USE_PF_INET6
+	       || sock->info.proto == PROTO_TCPv6_CLIENT || sock->info.proto == PROTO_TCPv6_SERVER
+#endif
+              )
+
 	{
 	  sock->reads.addr_defined = false;
 	  status = WSARecv(
@@ -3052,8 +3074,14 @@ socket_recv_queue (struct link_socket *sock, int maxsize)
 
       if (!status) /* operation completed immediately? */
 	{
+#ifdef USE_PF_INET6
+	  int addrlen = af_addr_size(sock->info.lsa->local.addr.sa.sa_family);
+	  if (sock->reads.addr_defined && sock->reads.addrlen != addrlen)
+	    bad_address_length (sock->reads.addrlen, addrlen);
+#else
 	  if (sock->reads.addr_defined && sock->reads.addrlen != sizeof (sock->reads.addr))
 	    bad_address_length (sock->reads.addrlen, sizeof (sock->reads.addr));
+#endif
 
 	  sock->reads.iostate = IOSTATE_IMMEDIATE_RETURN;
 
@@ -3112,12 +3140,26 @@ socket_send_queue (struct link_socket *sock, struct buffer *buf, const struct li
       ASSERT (ResetEvent (sock->writes.overlapped.hEvent));
       sock->writes.flags = 0;
 
-      if (sock->info.proto == PROTO_UDPv4)
+      if (sock->info.proto == PROTO_UDPv4
+#ifdef USE_PF_INET6
+	  || sock->info.proto == PROTO_UDPv6
+#endif
+	 )
 	{
 	  /* set destination address for UDP writes */
 	  sock->writes.addr_defined = true;
-	  sock->writes.addr = to->dest.addr.in4;
-	  sock->writes.addrlen = sizeof (sock->writes.addr);
+#ifdef USE_PF_INET6
+	  if (sock->info.proto == PROTO_UDPv6)
+	    {
+	      sock->writes.addr6 = to->dest.addr.in6;
+	      sock->writes.addrlen = sizeof (sock->writes.addr6);
+	    }
+	  else
+#endif
+	    {
+	      sock->writes.addr = to->dest.addr.in4;
+	      sock->writes.addrlen = sizeof (sock->writes.addr);
+	    }
 
 	  status = WSASendTo(
 			       sock->sd,
@@ -3130,7 +3172,11 @@ socket_send_queue (struct link_socket *sock, struct buffer *buf, const struct li
 			       &sock->writes.overlapped,
 			       NULL);
 	}
-      else if (sock->info.proto == PROTO_TCPv4_CLIENT || sock->info.proto == PROTO_TCPv4_SERVER)
+      else if (sock->info.proto == PROTO_TCPv4_CLIENT || sock->info.proto == PROTO_TCPv4_SERVER
+#ifdef USE_PF_INET6
+	       || sock->info.proto == PROTO_TCPv6_CLIENT || sock->info.proto == PROTO_TCPv6_SERVER
+#endif
+	      )
 	{
 	  /* destination address for TCP writes was established on connection initiation */
 	  sock->writes.addr_defined = false;
@@ -3269,11 +3315,42 @@ socket_finalize (SOCKET s,
   if (from)
     {
       if (ret >= 0 && io->addr_defined)
+#ifdef USE_PF_INET6
+	{
+	  /* TODO(jjo): streamline this mess */
+	  /* in this func we dont have relevant info about the PF_ of this
+	   * endpoint, as link_socket_actual will be zero for the 1st received packet
+	   *
+	   * Test for inets PF_ possible sizes
+	   */
+	  switch (io->addrlen)
+	    {
+	    case sizeof(struct sockaddr_in):
+	    case sizeof(struct sockaddr_in6):
+	    /* TODO(jjo): for some reason (?) I'm getting 24,28 for AF_INET6 */ 
+	    case sizeof(struct sockaddr_in6)-4:
+	      break;
+	    default:
+	      bad_address_length (io->addrlen, af_addr_size(io->addr.sin_family));
+	    }
+
+	  switch (io->addr.sin_family)
+	    {
+	    case AF_INET:
+	      from->dest.addr.in4 = io->addr;
+	      break;
+	    case AF_INET6:
+	      from->dest.addr.in6 = io->addr6;
+	      break;
+	    }
+	}
+#else
 	{
 	  if (io->addrlen != sizeof (io->addr))
 	    bad_address_length (io->addrlen, sizeof (io->addr));
 	  from->dest.addr.in4 = io->addr;
 	}
+#endif
       else
 	CLEAR (from->dest.addr);
     }

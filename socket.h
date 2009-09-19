@@ -717,7 +717,7 @@ af_addr_size(unsigned short af)
      default: 
 #if 0
       /* could be called from socket_do_accept() with empty addr */
-      msg (M_ERR, "Bad address family: %d\n", addr->sa_family);
+      msg (M_ERR, "Bad address family: %d\n", af);
       ASSERT(0);
 #endif
      	return 0;
