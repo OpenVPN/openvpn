@@ -5,21 +5,41 @@ H=`pwd`
 # get version.nsi definitions
 . autodefs/defs.sh
 
-if gcc --version &>/dev/null && [ -d "$OPENSSL_DIR" ] && [ -d "$LZO_DIR" ] && [ -d "$PKCS11_HELPER_DIR" ]; then
+[ -z "$CC" ] && CC=gcc
+LZO_INC_DIR=$H/$LZO_DIR/include
+LZO_LIB_DIR=$H/$LZO_DIR
+PKCS11_INC_DIR=$H/$PKCS11_HELPER_DIR/usr/local/include
+PKCS11_LIB_DIR=$H/$PKCS11_HELPER_DIR/usr/local/lib
+XAUTOCONF=""
+
+case "`uname -o 2>/dev/null`" in
+  *inux) 
+    # cross-compiling, make dude's life easier
+    XAUTOCONF="--host=i586-mingw32msvc --build=i386-linux"
+    export CC=i586-mingw32msvc-gcc
+    export CXXCPP=i586-mingw32msvc-cpp
+    export CXX=i586-mingw32msvc-g++
+    # when cross-compiling from src, you'll typically get:
+    LZO_LIB_DIR=$H/$LZO_DIR/src/.libs
+    PKCS11_INC_DIR=$H/$PKCS11_HELPER_DIR/include/pkcs11-helper-1.0/
+    PKCS11_LIB_DIR=$H/$PKCS11_HELPER_DIR/lib/.libs/
+    ;;
+esac
+if $CC --version &>/dev/null && [ -d "$OPENSSL_DIR" ] && [ -d "$LZO_DIR" ] && [ -d "$PKCS11_HELPER_DIR" ]; then
     # build OpenVPN binary
 
     if ! [ -f Makefile ]; then
 	autoreconf -i -v \
-	&& ./configure \
+	&& ./configure $XAUTOCONF \
 	    --enable-strict \
 	    --prefix=$H/windest \
 	    MAN2HTML=true \
 	    --with-ssl-headers=$H/$OPENSSL_DIR/include \
 	    --with-ssl-lib=$H/$OPENSSL_DIR/out \
-	    --with-lzo-headers=$H/$LZO_DIR/include \
-	    --with-lzo-lib=$H/$LZO_DIR \
-	    --with-pkcs11-helper-headers=$H/$PKCS11_HELPER_DIR/usr/local/include \
-	    --with-pkcs11-helper-lib=$H/$PKCS11_HELPER_DIR/usr/local/lib
+	    --with-lzo-headers=$LZO_INC_DIR \
+	    --with-lzo-lib=$LZO_LIB_DIR \
+	    --with-pkcs11-helper-headers=$PKCS11_INC_DIR \
+	    --with-pkcs11-helper-lib=$PKCS11_LIB_DIR
     fi
 
     make -j $MAKE_JOBS && make install
