@@ -1,0 +1,11 @@
+* make possible to get AF from getaddrinfo() answer, ie allow openvpn to
+  use ipv4/6 if DNS returns A/AAAA without specifying protocol.
+  Hard: requires deep changes in initialization/calling logic
+* the getaddr()/getaddr6() interface is not prepared for handling socktype
+  "tagging", currently I abuse the sockflags bits for getting the ai_socktype
+  downstream.
+* win32: find out about mapped addresses, as I can't make it work
+  with bound at ::1 and connect to 127.0.0.1
+* implement comparison for mapped addesses: server in dual stack
+  listening IPv6 must permit incoming streams from allowed IPv4 peer,
+  currently you need to pass eg:  --remote ffff::1.2.3.4

@@ -210,6 +210,7 @@ struct link_socket
 # define SF_TCP_NODELAY (1<<1)
 # define SF_PORT_SHARE (1<<2)
 # define SF_HOST_RANDOMIZE (1<<3)
+# define SF_GETADDRINFO_DGRAM (1<<4)
   unsigned int sockflags;
 
   /* for stream sockets */
@@ -473,6 +474,11 @@ struct resolve_list {
 #define GETADDR_TRY_ONCE              (1<<7)
 #define GETADDR_UPDATE_MANAGEMENT_STATE (1<<8)
 #define GETADDR_RANDOMIZE             (1<<9)
+
+/* [ab]use flags bits to get socktype info downstream */
+/* TODO(jjo): resolve tradeoff between hackiness|args-overhead */
+#define GETADDR_DGRAM                 (1<<10)
+#define dnsflags_to_socktype(flags) ((flags & GETADDR_DGRAM) ? SOCK_DGRAM : SOCK_STREAM)
 
 in_addr_t getaddr (unsigned int flags,
 		   const char *hostname,

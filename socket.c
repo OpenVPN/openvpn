@@ -52,13 +52,12 @@ const int proto_overhead[] = { /* indexed by PROTO_x */
  * Convert sockflags/getaddr_flags into getaddr_flags
  */
 static unsigned int
-sf2gaf(const unsigned int getaddr_flags,
+sf2gaf(unsigned int getaddr_flags,
        const unsigned int sockflags)
 {
-  if (sockflags & SF_HOST_RANDOMIZE)
-    return getaddr_flags | GETADDR_RANDOMIZE;
-  else
-    return getaddr_flags;
+  getaddr_flags |= (sockflags & SF_GETADDRINFO_DGRAM) ? GETADDR_DGRAM : 0;
+  getaddr_flags |= (sockflags & SF_HOST_RANDOMIZE) ? GETADDR_RANDOMIZE : 0;
+  return getaddr_flags;
 }
 
 /*
@@ -375,7 +374,11 @@ getaddr6 (unsigned int flags,
 	{
 	  /* try hostname lookup */
           hints.ai_flags = 0;
+          hints.ai_socktype = dnsflags_to_socktype(flags);
+	  dmsg (D_SOCKET_DEBUG, "GETADDR6 flags=0x%04x ai_family=%d ai_socktype=%d",
+		flags, hints.ai_family, hints.ai_socktype);
           err = getaddrinfo(hostname, NULL, &hints, &ai);
+
           if (gai_err)
             *gai_err = err;
 
@@ -891,6 +894,7 @@ create_socket (struct link_socket *sock)
   if (sock->info.proto == PROTO_UDPv4)
     {
       sock->sd = create_socket_udp (sock->sockflags);
+      sock->sockflags |= SF_GETADDRINFO_DGRAM;
 
 #ifdef ENABLE_SOCKS
       if (sock->socks_proxy)
@@ -911,6 +915,7 @@ create_socket (struct link_socket *sock)
   else if (sock->info.proto == PROTO_UDPv6)
     {
       sock->sd = create_socket_udp6 (sock->sockflags);
+      sock->sockflags |= SF_GETADDRINFO_DGRAM;
     }
 #endif
   else
@@ -1492,7 +1497,6 @@ resolve_remote (struct link_socket *sock,
                 }
 #endif
 
-	      
 	      dmsg (D_SOCKET_DEBUG, "RESOLVE_REMOTE flags=0x%04x phase=%d rrs=%d sig=%d status=%d",
 		   flags,
 		   phase,

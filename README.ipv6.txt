@@ -60,15 +60,7 @@ Available under GPLv2 from
     addr_copy(), addr_zero(), ...etc
     proto_is_udp(), proto_is_dgram(), proto_is_net()
 
-* TODO:
-  -  Should not use random for listening in IPv6 "by name", as eg
-     ip6-localhost could return any ifindex, or "randomly" behave as
-     if it were IPV6_V6ONLY (caught this in my unittesting)
-  -  win32: find out about mapped addresses, as I can't make it work
-            with bound at ::1 and connect to 127.0.0.1
-  -  Implement comparison for mapped addesses: server in dual stack
-     listening IPv6 must permit incoming streams from allowed IPv4 peer,
-     currently you need to pass eg:  --remote ffff::1.2.3.4
+* TODO: See TODO.ipv6
 
 --
 JuanJo Ciarlante   jjo () google () com
