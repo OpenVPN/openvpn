@@ -189,8 +189,8 @@ struct context_1
   bool ifconfig_pool_persist_owned;
 #endif
 
-  /* if client mode, option strings we pulled from server */
-  char *pulled_options_string_save;
+  /* if client mode, hash of option strings we pulled from server */
+  struct md5_digest pulled_options_digest_save;
 
   /* save user/pass for authentication */
   struct user_pass *auth_user_pass;
@@ -427,7 +427,11 @@ struct context_2
 #endif
 
   struct event_timeout push_request_interval;
-  const char *pulled_options_string;
+  bool did_pre_pull_restore;
+
+  /* hash of pulled options, so we can compare when options change */
+  struct md5_state pulled_options_state;
+  struct md5_digest pulled_options_digest;
 
   struct event_timeout scheduled_exit;
 #endif

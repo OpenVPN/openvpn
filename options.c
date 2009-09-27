@@ -960,11 +960,15 @@ show_p2mp_parms (const struct options *o)
   msg (D_SHOW_PARMS, "  server_bridge_netmask = %s", print_in_addr_t (o->server_bridge_netmask, 0, &gc));
   msg (D_SHOW_PARMS, "  server_bridge_pool_start = %s", print_in_addr_t (o->server_bridge_pool_start, 0, &gc));
   msg (D_SHOW_PARMS, "  server_bridge_pool_end = %s", print_in_addr_t (o->server_bridge_pool_end, 0, &gc));
-  if (o->push_list)
+  if (o->push_list.head)
     {
-      const struct push_list *l = o->push_list;
-      const char *printable_push_list = l->options;
-      msg (D_SHOW_PARMS, "  push_list = '%s'", printable_push_list);
+      const struct push_entry *e = o->push_list.head;
+      while (e)
+	{
+	  if (e->enable)
+	    msg (D_SHOW_PARMS, "  push_entry = '%s'", e->option);
+	  e = e->next;
+	}
     }
   SHOW_BOOL (ifconfig_pool_defined);
   msg (D_SHOW_PARMS, "  ifconfig_pool_start = %s", print_in_addr_t (o->ifconfig_pool_start, 0, &gc));
@@ -1065,12 +1069,7 @@ options_detach (struct options *o)
   gc_detach (&o->gc);
   o->routes = NULL;
 #if P2MP_SERVER
-  if (o->push_list) /* clone push_list */
-    {
-      const struct push_list *old = o->push_list;
-      ALLOC_OBJ_GC (o->push_list, struct push_list, &o->gc);
-      strcpy (o->push_list->options, old->options);
-    }
+  clone_push_list(o);
 #endif
 }
 
@@ -2190,6 +2189,8 @@ pre_pull_restore (struct options *o)
 
       o->foreign_option_index = pp->foreign_option_index;
     }
+
+  o->push_continuation = 0;
 }
 
 #endif
@@ -4880,6 +4881,11 @@ add_option (struct options *options,
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->pull = true;
+    }
+  else if (streq (p[0], "push-continuation") && p[1])
+    {
+      VERIFY_PERMISSION (OPT_P_PULL_MODE);
+      options->push_continuation = atoi(p[1]);
     }
   else if (streq (p[0], "auth-user-pass"))
     {

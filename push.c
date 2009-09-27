@@ -99,9 +99,10 @@ incoming_push_message (struct context *c, const struct buffer *buffer)
 
   if (status == PUSH_MSG_ERROR)
     msg (D_PUSH_ERRORS, "WARNING: Received bad push/pull message: %s", BSTR (buffer));
-  else if (status == PUSH_MSG_REPLY)
+  else if (status == PUSH_MSG_REPLY || status == PUSH_MSG_CONTINUATION)
     {
-      do_up (c, true, option_types_found); /* delay bringing tun/tap up until --push parms received from remote */
+      if (status == PUSH_MSG_REPLY)
+	do_up (c, true, option_types_found); /* delay bringing tun/tap up until --push parms received from remote */
       event_timeout_clear (&c->c2.push_request_interval);
     }
 
@@ -115,60 +116,114 @@ send_push_request (struct context *c)
 }
 
 #if P2MP_SERVER
+
 bool
 send_push_reply (struct context *c)
 {
   struct gc_arena gc = gc_new ();
-  struct buffer buf = alloc_buf_gc (MAX_PUSH_LIST_LEN + 256, &gc);
-  bool ret = false;
+  struct buffer buf = alloc_buf_gc (TLS_CHANNEL_BUF_SIZE, &gc);
+  struct push_entry *e = c->options.push_list.head;
+  bool multi_push = false;
+  static char cmd[] = "PUSH_REPLY";
+  const int extra = 64; /* extra space for possible trailing ifconfig and push-continuation */
+  const int safe_cap = BCAP (&buf) - extra;
 
-  buf_printf (&buf, "PUSH_REPLY");
+  buf_printf (&buf, cmd);
 
-  if (c->options.push_list && strlen (c->options.push_list->options))
-    buf_printf (&buf, ",%s", c->options.push_list->options);
+  while (e)
+    {
+      if (e->enable)
+	{
+	  const int l = strlen (e->option);
+	  if (BLEN (&buf) + l >= safe_cap)
+	    {
+	      buf_printf (&buf, ",push-continuation 2");
+	      {
+		const bool status = send_control_channel_string (c, BSTR (&buf), D_PUSH);
+		if (!status)
+		  goto fail;
+		multi_push = true;
+		buf_reset_len (&buf);
+		buf_printf (&buf, cmd);
+	      }
+	    }
+	  if (BLEN (&buf) + l >= safe_cap)
+	    {
+	      msg (M_WARN, "--push option is too long");
+	      goto fail;
+	    }
+	  buf_printf (&buf, ",%s", e->option);
+	}
+      e = e->next;
+    }
 
   if (c->c2.push_ifconfig_defined && c->c2.push_ifconfig_local && c->c2.push_ifconfig_remote_netmask)
     buf_printf (&buf, ",ifconfig %s %s",
 		print_in_addr_t (c->c2.push_ifconfig_local, 0, &gc),
 		print_in_addr_t (c->c2.push_ifconfig_remote_netmask, 0, &gc));
+  if (multi_push)
+    buf_printf (&buf, ",push-continuation 1");
 
-  if (strlen (BSTR (&buf)) < MAX_PUSH_LIST_LEN)
-    ret = send_control_channel_string (c, BSTR (&buf), D_PUSH);
-  else
-    msg (M_WARN, "Maximum length of --push buffer (%d) has been exceeded", MAX_PUSH_LIST_LEN);
+  if (BLEN (&buf) > sizeof(cmd)-1)
+    {
+      const bool status = send_control_channel_string (c, BSTR (&buf), D_PUSH);
+      if (!status)
+	goto fail;
+    }
 
   gc_free (&gc);
-  return ret;
+  return true;
+
+ fail:
+  gc_free (&gc);
+  return false;
 }
 
-void
-push_option (struct options *o, const char *opt, int msglevel)
+static void
+push_option_ex (struct options *o, const char *opt, bool enable, int msglevel)
 {
-  int len;
-  bool first = false;
-
   if (!string_class (opt, CC_ANY, CC_COMMA))
     {
       msg (msglevel, "PUSH OPTION FAILED (illegal comma (',') in string): '%s'", opt);
     }
   else
     {
-      if (!o->push_list)
+      struct push_entry *e;
+      ALLOC_OBJ_CLEAR_GC (e, struct push_entry, &o->gc);
+      e->enable = true;
+      e->option = opt;
+      if (o->push_list.head)
 	{
-	  ALLOC_OBJ_CLEAR_GC (o->push_list, struct push_list, &o->gc);
-	  first = true;
-	}
-
-      len = strlen (o->push_list->options);
-      if (len + strlen (opt) + 2 >= MAX_PUSH_LIST_LEN)
-	{
-	  msg (msglevel, "Maximum length of --push buffer (%d) has been exceeded", MAX_PUSH_LIST_LEN);
+	  ASSERT(o->push_list.tail);
+	  o->push_list.tail->next = e;
+	  o->push_list.tail = e;
 	}
       else
 	{
-	  if (!first)
-	    strcat (o->push_list->options, ",");
-	  strcat (o->push_list->options, opt);
+	  ASSERT(!o->push_list.tail);
+	  o->push_list.head = e;
+	  o->push_list.tail = e;
+	}
+    }
+}
+
+void
+push_option (struct options *o, const char *opt, int msglevel)
+{
+  push_option_ex (o, opt, true, msglevel);
+}
+
+void
+clone_push_list (struct options *o)
+{
+  if (o->push_list.head)
+    {
+      const struct push_entry *e = o->push_list.head;
+      push_reset (o);
+      while (e)
+	{
+	  push_option_ex (o, string_alloc (e->option, &o->gc), true, M_FATAL);
+	  e = e->next;
 	}
     }
 }
@@ -184,7 +239,7 @@ push_options (struct options *o, char **p, int msglevel, struct gc_arena *gc)
 void
 push_reset (struct options *o)
 {
-  o->push_list = NULL;
+  CLEAR (o->push_list);
 }
 #endif
 
@@ -224,14 +279,31 @@ process_incoming_push_msg (struct context *c,
       const uint8_t ch = buf_read_u8 (&buf);
       if (ch == ',')
 	{
-	  pre_pull_restore (&c->options);
-	  c->c2.pulled_options_string = string_alloc (BSTR (&buf), &c->c2.gc);
+	  struct buffer buf_orig = buf;
+	  if (!c->c2.did_pre_pull_restore)
+	    {
+	      pre_pull_restore (&c->options);
+	      md5_state_init (&c->c2.pulled_options_state);
+	      c->c2.did_pre_pull_restore = true;
+	    }
 	  if (apply_push_options (&c->options,
 				  &buf,
 				  permission_mask,
 				  option_types_found,
 				  c->c2.es))
-	    ret = PUSH_MSG_REPLY;
+	    switch (c->options.push_continuation)
+	      {
+	      case 0:
+	      case 1:
+		md5_state_update (&c->c2.pulled_options_state, BPTR(&buf_orig), BLEN(&buf_orig));
+		md5_state_final (&c->c2.pulled_options_state, &c->c2.pulled_options_digest);
+		ret = PUSH_MSG_REPLY;
+		break;
+	      case 2:
+		md5_state_update (&c->c2.pulled_options_state, BPTR(&buf_orig), BLEN(&buf_orig));
+		ret = PUSH_MSG_CONTINUATION;
+		break;
+	      }
 	}
       else if (ch == '\0')
 	{
@@ -243,36 +315,27 @@ process_incoming_push_msg (struct context *c,
 }
 
 #if P2MP_SERVER
+
 /*
  * Remove iroutes from the push_list.
  */
 void
 remove_iroutes_from_push_route_list (struct options *o)
 {
-  if (o && o->push_list && o->iroutes)
+  if (o && o->push_list.head && o->iroutes)
     {
       struct gc_arena gc = gc_new ();
-      struct push_list *pl;
-      struct buffer in, out;
-      char *line;
-      bool first = true;
-
-      /* prepare input and output buffers */
-      ALLOC_OBJ_CLEAR_GC (pl, struct push_list, &gc);
-      ALLOC_ARRAY_CLEAR_GC (line, char, MAX_PUSH_LIST_LEN, &gc);
-
-      buf_set_read (&in, (const uint8_t*) o->push_list->options, strlen (o->push_list->options));
-      buf_set_write (&out, (uint8_t*) pl->options, sizeof (pl->options));
+      struct push_entry *e = o->push_list.head;
 
       /* cycle through the push list */
-      while (buf_parse (&in, ',', line, MAX_PUSH_LIST_LEN))
+      while (e)
 	{
 	  char *p[MAX_PARMS];
-	  bool copy = true;
+	  bool enable = true;
 
 	  /* parse the push item */
 	  CLEAR (p);
-	  if (parse_line (line, p, SIZE (p), "[PUSH_ROUTE_REMOVE]", 1, D_ROUTE_DEBUG, &gc))
+	  if (parse_line (e->option, p, SIZE (p), "[PUSH_ROUTE_REMOVE]", 1, D_ROUTE_DEBUG, &gc))
 	    {
 	      /* is the push item a route directive? */
 	      if (p[0] && !strcmp (p[0], "route") && !p[3])
@@ -292,7 +355,7 @@ remove_iroutes_from_push_route_list (struct options *o)
 			{
 			  if (network == ir->network && netmask == netbits_to_netmask (ir->netbits >= 0 ? ir->netbits : 32))
 			    {
-			      copy = false;
+			      enable = false;
 			      break;
 			    }
 			}
@@ -301,28 +364,17 @@ remove_iroutes_from_push_route_list (struct options *o)
 	    }
 
 	  /* should we copy the push item? */
-	  if (copy)
-	    {
-	      if (!first)
-		buf_printf (&out, ",");
-	      buf_printf (&out, "%s", line);
-	      first = false;
-	    }
-	  else
-	    msg (D_PUSH, "REMOVE PUSH ROUTE: '%s'", line);
+	  e->enable = enable;
+	  if (!enable)
+	    msg (D_PUSH, "REMOVE PUSH ROUTE: '%s'", e->option);
+
+	  e = e->next;
 	}
-
-#if 0
-      msg (M_INFO, "BEFORE: '%s'", o->push_list->options);
-      msg (M_INFO, "AFTER:  '%s'", pl->options);
-#endif
-
-      /* copy new push list back to options */
-      *o->push_list = *pl;
 
       gc_free (&gc);
     }
 }
+
 #endif
 
 #endif

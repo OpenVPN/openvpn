@@ -2069,8 +2069,8 @@ key_state_init (struct tls_session *session, struct key_state *ks)
   ALLOC_OBJ_CLEAR (ks->rec_ack, struct reliable_ack);
 
   /* allocate buffers */
-  ks->plaintext_read_buf = alloc_buf (PLAINTEXT_BUFFER_SIZE);
-  ks->plaintext_write_buf = alloc_buf (PLAINTEXT_BUFFER_SIZE);
+  ks->plaintext_read_buf = alloc_buf (TLS_CHANNEL_BUF_SIZE);
+  ks->plaintext_write_buf = alloc_buf (TLS_CHANNEL_BUF_SIZE);
   ks->ack_write_buf = alloc_buf (BUF_SIZE (&session->opt->frame));
   reliable_init (ks->send_reliable, BUF_SIZE (&session->opt->frame),
 		 FRAME_HEADROOM (&session->opt->frame), TLS_RELIABLE_N_SEND_BUFFERS,
@@ -3750,7 +3750,7 @@ tls_process (struct tls_multi *multi,
 	      int status;
 
 	      ASSERT (buf_init (buf, 0));
-	      status = key_state_read_plaintext (multi, ks, buf, PLAINTEXT_BUFFER_SIZE);
+	      status = key_state_read_plaintext (multi, ks, buf, TLS_CHANNEL_BUF_SIZE);
 	      update_time ();
 	      if (status == -1)
 		{

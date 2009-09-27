@@ -1796,4 +1796,49 @@ free_ssl_lib (void)
 }
 
 #endif /* USE_SSL */
+
+/*
+ * md5 functions
+ */
+
+void
+md5_state_init (struct md5_state *s)
+{
+  MD5_Init (&s->ctx);
+}
+
+void
+md5_state_update (struct md5_state *s, void *data, size_t len)
+{
+  MD5_Update (&s->ctx, data, len);
+}
+
+void
+md5_state_final (struct md5_state *s, struct md5_digest *out)
+{
+  MD5_Final (out->digest, &s->ctx);
+}
+
+void
+md5_digest_clear (struct md5_digest *digest)
+{
+  CLEAR (*digest);
+}
+
+bool
+md5_digest_defined (const struct md5_digest *digest)
+{
+  int i;
+  for (i = 0; i < MD5_DIGEST_LENGTH; ++i)
+    if (digest->digest[i])
+      return true;
+  return false;
+}
+
+bool
+md5_digest_equal (const struct md5_digest *d1, const struct md5_digest *d2)
+{
+  return memcmp(d1->digest, d2->digest, MD5_DIGEST_LENGTH) == 0;
+}
+
 #endif /* USE_CRYPTO */

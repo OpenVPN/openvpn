@@ -33,7 +33,7 @@
 #ifdef ENABLE_PKCS11
 #define ERR_BUF_SIZE 8192
 #else
-#define ERR_BUF_SIZE 1024
+#define ERR_BUF_SIZE 1280
 #endif
 
 struct gc_arena;

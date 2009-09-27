@@ -740,7 +740,7 @@ delete_routes (struct route_list *rl, const struct tuntap *tt, unsigned int flag
     }
   undo_redirect_default_route_to_vpn (rl, tt, flags, es);
 
-  CLEAR (*rl);
+  clear_route_list (rl);
 }
 
 #ifdef ENABLE_DEBUG

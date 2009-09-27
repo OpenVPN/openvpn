@@ -278,8 +278,6 @@
  * Buffer sizes (also see mtu.h).
  */
 
-#define PLAINTEXT_BUFFER_SIZE TLS_CHANNEL_BUF_SIZE
-
 /* Maximum length of common name */
 #define TLS_CN_LEN 64
 

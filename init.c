@@ -992,15 +992,12 @@ do_route (const struct options *options,
  */
 #if P2MP
 static void
-save_pulled_options_string (struct context *c, const char *newstring)
+save_pulled_options_digest (struct context *c, const struct md5_digest *newdigest)
 {
-  if (c->c1.pulled_options_string_save)
-    free (c->c1.pulled_options_string_save);
-
-  c->c1.pulled_options_string_save = NULL;
-
-  if (newstring)
-    c->c1.pulled_options_string_save = string_alloc (newstring, NULL);
+  if (newdigest)
+    c->c1.pulled_options_digest_save = *newdigest;
+  else
+    md5_digest_clear (&c->c1.pulled_options_digest_save);
 }
 #endif
 
@@ -1144,7 +1141,7 @@ do_close_tun_simple (struct context *c)
   c->c1.tuntap = NULL;
   c->c1.tuntap_owned = false;
 #if P2MP
-  save_pulled_options_string (c, NULL); /* delete C1-saved pulled_options_string */
+  save_pulled_options_digest (c, NULL); /* delete C1-saved pulled_options_digest */
 #endif
 }
 
@@ -1244,8 +1241,8 @@ do_up (struct context *c, bool pulled_options, unsigned int option_types_found)
 	  if (!c->c2.did_open_tun
 	      && PULL_DEFINED (&c->options)
 	      && c->c1.tuntap
-	      && (!c->c1.pulled_options_string_save || !c->c2.pulled_options_string
-		  || strcmp (c->c1.pulled_options_string_save, c->c2.pulled_options_string)))
+	      && (!md5_digest_defined (&c->c1.pulled_options_digest_save) || !md5_digest_defined (&c->c2.pulled_options_digest)
+		  || !md5_digest_equal (&c->c1.pulled_options_digest_save, &c->c2.pulled_options_digest)))
 	    {
 	      /* if so, close tun, delete routes, then reinitialize tun and add routes */
 	      msg (M_INFO, "NOTE: Pulled options changed on restart, will need to close and reopen TUN/TAP device.");
@@ -1260,7 +1257,7 @@ do_up (struct context *c, bool pulled_options, unsigned int option_types_found)
       if (c->c2.did_open_tun)
 	{
 #if P2MP
-	  save_pulled_options_string (c, c->c2.pulled_options_string);
+	  save_pulled_options_digest (c, &c->c2.pulled_options_digest);
 #endif
 
 	  /* if --route-delay was specified, start timer */

@@ -123,6 +123,7 @@ openvpn_SOURCES = \
 	ieproxy.h ieproxy.c \
         ps.c ps.h \
 	push.c push.h \
+	pushlist.h \
 	reliable.c reliable.h \
 	route.c route.h \
 	schedule.c schedule.h \
