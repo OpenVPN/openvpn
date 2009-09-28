@@ -4434,10 +4434,10 @@ add_option (struct options *options,
       int j;
       VERIFY_PERMISSION (OPT_P_ROUTE);
       rol_check_alloc (options);
+      if (streq (p[0], "redirect-gateway"))
+	options->routes->flags |= RG_REROUTE_GW;
       for (j = 1; j < MAX_PARMS && p[j] != NULL; ++j)
 	{
-	  if (streq (p[0], "redirect-gateway"))
-	    options->routes->flags |= RG_REROUTE_GW;
 	  if (streq (p[j], "local"))
 	    options->routes->flags |= RG_LOCAL;
 	  else if (streq (p[j], "autolocal"))
