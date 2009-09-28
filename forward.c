@@ -314,6 +314,19 @@ check_inactivity_timeout_dowork (struct context *c)
 
 #if P2MP
 
+void
+check_server_poll_timeout_dowork (struct context *c)
+{
+  event_timeout_reset (&c->c2.server_poll_interval);
+  if (!tls_initial_packet_received (c->c2.tls_multi))
+    {
+      msg (M_INFO, "Server poll timeout, restarting");
+      c->sig->signal_received = SIGUSR1;
+      c->sig->signal_text = "server_poll";
+      c->persist.restart_sleep_seconds = -1;
+    }
+}
+
 /*
  * Schedule a SIGTERM n_seconds from now.
  */
@@ -516,6 +529,10 @@ process_coarse_timers (struct context *c)
     return;
 
 #if P2MP
+  check_server_poll_timeout (c);
+  if (c->sig->signal_received)
+    return;
+
   check_scheduled_exit (c);
   if (c->sig->signal_received)
     return;

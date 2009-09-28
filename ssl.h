@@ -703,6 +703,12 @@ bool tls_authenticate_key (struct tls_multi *multi, const unsigned int mda_key_i
  */
 
 static inline bool
+tls_initial_packet_received (const struct tls_multi *multi)
+{
+  return multi->n_sessions > 0;
+}
+
+static inline bool
 tls_test_auth_deferred_interval (const struct tls_multi *multi)
 {
   if (multi)

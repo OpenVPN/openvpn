@@ -399,6 +399,8 @@ struct options
   const char *auth_user_pass_file;
   struct options_pre_pull *pre_pull;
 
+  int server_poll_timeout;
+
   int scheduled_exit_interval;
 
 #endif

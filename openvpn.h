@@ -433,6 +433,8 @@ struct context_2
   struct md5_state pulled_options_state;
   struct md5_digest pulled_options_digest;
 
+  struct event_timeout server_poll_interval;
+
   struct event_timeout scheduled_exit;
 #endif
 

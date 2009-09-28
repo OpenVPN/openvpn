@@ -432,6 +432,9 @@ static const char usage_message[] =
   "                  when connecting to a '--mode server' remote host.\n"
   "--auth-retry t  : How to handle auth failures.  Set t to\n"
   "                  none (default), interact, or nointeract.\n"
+  "--server-poll-timeout n : when polling possible remote servers to connect to\n"
+  "                  in a round-robin fashion, spend no more than n seconds\n"
+  "                  waiting for a response before trying the next server.\n"
 #endif
 #ifdef ENABLE_OCC
   "--explicit-exit-notify [n] : On exit/restart, send exit signal to\n"
@@ -726,6 +729,7 @@ init_options (struct options *o, const bool init_gc)
 #endif
 #if P2MP
   o->scheduled_exit_interval = 5;
+  o->server_poll_timeout = 0;
 #endif
 #ifdef USE_CRYPTO
   o->ciphername = "BF-CBC";
@@ -4464,6 +4468,12 @@ add_option (struct options *options,
 	{
 	  options->sockflags |= SF_HOST_RANDOMIZE;
 	}
+#if P2MP
+      else if (streq (p[1], "SERVER_POLL_TIMEOUT") && p[2])
+	{
+	  options->server_poll_timeout = positive_atoi(p[2]);
+	}
+#endif
       else
 	{
 	  if (streq (p[1], "FORWARD_COMPATIBLE") && p[2] && streq (p[2], "1"))
@@ -4886,6 +4896,11 @@ add_option (struct options *options,
     {
       VERIFY_PERMISSION (OPT_P_PULL_MODE);
       options->push_continuation = atoi(p[1]);
+    }
+  else if (streq (p[0], "server-poll-timeout") && p[1])
+    {
+      VERIFY_PERMISSION (OPT_P_GENERAL);
+      options->server_poll_timeout = positive_atoi(p[1]);
     }
   else if (streq (p[0], "auth-user-pass"))
     {

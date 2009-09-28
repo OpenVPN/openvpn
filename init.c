@@ -792,6 +792,11 @@ do_init_timers (struct context *c, bool deferred)
   if (c->options.ping_rec_timeout)
     event_timeout_init (&c->c2.ping_rec_interval, c->options.ping_rec_timeout, now);
 
+#if P2MP
+  if (c->options.server_poll_timeout)
+    event_timeout_init (&c->c2.server_poll_interval, c->options.server_poll_timeout, now);
+#endif
+
   if (!deferred)
     {
       /* initialize connection establishment timer */
@@ -1444,10 +1449,15 @@ socket_restart_pause (struct context *c)
 #if P2MP
   if (auth_retry_get () == AR_NOINTERACT)
     sec = 10;
+
+  if (c->options.server_poll_timeout && sec > 1)
+    sec = 1;
 #endif
 
   if (c->persist.restart_sleep_seconds > 0 && c->persist.restart_sleep_seconds > sec)
     sec = c->persist.restart_sleep_seconds;
+  else if (c->persist.restart_sleep_seconds == -1)
+    sec = 0;
   c->persist.restart_sleep_seconds = 0;
 
   /* do managment hold on context restart, i.e. second, third, fourth, etc. initialization */

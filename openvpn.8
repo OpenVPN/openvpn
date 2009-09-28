@@ -3279,6 +3279,13 @@ Note that while this option cannot be pushed, it can be controlled
 from the management interface.
 .\"*********************************************************
 .TP
+.B --server-poll-timeout n
+when polling possible remote servers to connect to
+in a round-robin fashion, spend no more than
+.B n
+seconds waiting for a response before trying the next server.
+.\"*********************************************************
+.TP
 .B --explicit-exit-notify [n]
 In UDP client mode or point-to-point mode, send server/peer an exit notification
 if tunnel is restarted or OpenVPN process is exited.  In client mode, on
