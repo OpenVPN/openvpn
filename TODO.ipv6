@@ -17,3 +17,6 @@
   o find out about mapped addresses, as I can't make it work
     with bound at ::1 and connect to 127.0.0.1
 
+* N/A:
+  o this is ipv6 *endpoint* support, so don't expect "ifconfig6"-like
+    support in this patch 

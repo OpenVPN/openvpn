@@ -1150,6 +1150,8 @@ initialization_sequence_completed (struct context *c, const unsigned int flags)
       const char *detail = "SUCCESS";
       if (c->c1.tuntap)
 	tun_local = c->c1.tuntap->local;
+      /* TODO(jjo): for ipv6 this will convert some 32bits in the ipv6 addr
+       *            to a meaningless ipv4 address */
       tun_remote = htonl (c->c1.link_socket_addr.actual.dest.addr.in4.sin_addr.s_addr);
       if (flags & ISC_ERRORS)
 	detail = "ERROR";
