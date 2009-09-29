@@ -162,6 +162,7 @@ struct management_callback
 		       const unsigned int mda_key_id,
 		       const bool auth,
 		       const char *reason,
+		       const char *client_reason,
 		       struct buffer_list *cc_config); /* ownership transferred */
 #endif
 #ifdef MANAGEMENT_PF

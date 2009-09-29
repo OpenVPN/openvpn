@@ -594,6 +594,11 @@ struct tls_multi
   char *locked_cn;
 
 #ifdef ENABLE_DEF_AUTH
+  /*
+   * An error message to send to client on AUTH_FAILED
+   */
+  char *client_reason;
+
   /* Time of last call to tls_authentication_status */
   time_t tas_last;
 #endif
@@ -695,7 +700,7 @@ int tls_authentication_status (struct tls_multi *multi, const int latency);
 void tls_deauthenticate (struct tls_multi *multi);
 
 #ifdef MANAGEMENT_DEF_AUTH
-bool tls_authenticate_key (struct tls_multi *multi, const unsigned int mda_key_id, const bool auth);
+bool tls_authenticate_key (struct tls_multi *multi, const unsigned int mda_key_id, const bool auth, const char *client_reason);
 #endif
 
 /*
@@ -736,6 +741,16 @@ tls_set_single_session (struct tls_multi *multi)
 {
   if (multi)
     multi->opt.single_session = true;
+}
+
+static inline const char *
+tls_client_reason (struct tls_multi *multi)
+{
+#ifdef ENABLE_DEF_AUTH
+  return multi->client_reason;
+#else
+  return NULL;
+#endif
 }
 
 #ifdef ENABLE_PF

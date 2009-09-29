@@ -62,7 +62,7 @@ bool send_push_reply (struct context *c);
 
 void remove_iroutes_from_push_route_list (struct options *o);
 
-void send_auth_failed (struct context *c);
+void send_auth_failed (struct context *c, const char *client_reason);
 
 #endif
 #endif

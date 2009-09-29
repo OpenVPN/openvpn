@@ -2552,6 +2552,7 @@ management_client_auth (void *arg,
 			const unsigned int mda_key_id,
 			const bool auth,
 			const char *reason,
+			const char *client_reason,
 			struct buffer_list *cc_config) /* ownership transferred */
 {
   struct multi_context *m = (struct multi_context *) arg;
@@ -2561,7 +2562,7 @@ management_client_auth (void *arg,
 
   if (mi)
     {
-      ret = tls_authenticate_key (mi->context.c2.tls_multi, mda_key_id, auth);
+      ret = tls_authenticate_key (mi->context.c2.tls_multi, mda_key_id, auth, client_reason);
       if (ret)
 	{
 	  if (auth && !mi->connection_established_flag)
@@ -2570,7 +2571,7 @@ management_client_auth (void *arg,
 	      cc_config_owned = false;
 	    }
 	  if (!auth && reason)
-	    msg (D_MULTI_LOW, "MULTI: connection rejected: %s", reason);
+	    msg (D_MULTI_LOW, "MULTI: connection rejected: %s, CLI:%s", reason, np(client_reason));
 	}
     }
   if (cc_config_owned && cc_config)

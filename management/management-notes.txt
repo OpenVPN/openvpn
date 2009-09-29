@@ -308,6 +308,12 @@ COMMAND -- password and username
 
     >PASSWORD:Verification Failed: 'Auth'
 
+  Example 5: The --auth-user-pass username/password failed,
+  and the server provided a custom client-reason-text string
+  using the client-deny server-side management interface command.
+
+    >PASSWORD:Verification Failed: 'custom server-generated string'
+
 COMMAND -- forget-passwords
 ---------------------------
 
@@ -535,7 +541,7 @@ COMMAND -- client-deny  (OpenVPN 2.1 or higher)
 
 Deny a ">CLIENT:CONNECT" or ">CLIENT:REAUTH" request.
 
-  client-deny {CID} {KID} "reason-text"
+  client-deny {CID} {KID} "reason-text" ["client-reason-text"]
 
 CID,KID -- client ID and Key ID.  See documentation for ">CLIENT:"
 notification for more info.
@@ -543,6 +549,9 @@ notification for more info.
 reason-text: a human-readable message explaining why the authentication
 request was denied.  This message will be output to the OpenVPN log
 file or syslog.
+
+client-reason-text: a message that will be sent to the client as
+part of the AUTH_FAILED message.
 
 Note that client-deny denies a specific Key ID (pertaining to a
 TLS renegotiation).  A client-deny command issued in response to

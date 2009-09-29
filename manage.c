@@ -94,7 +94,8 @@ man_help ()
 #ifdef MANAGEMENT_DEF_AUTH
   msg (M_CLIENT, "client-auth CID KID    : Authenticate client-id/key-id CID/KID (MULTILINE)");
   msg (M_CLIENT, "client-auth-nt CID KID : Authenticate client-id/key-id CID/KID");
-  msg (M_CLIENT, "client-deny CID KID R  : Deny auth client-id/key-id CID/KID with reason text R");
+  msg (M_CLIENT, "client-deny CID KID R [CR] : Deny auth client-id/key-id CID/KID with log reason");
+  msg (M_CLIENT, "                             text R and optional client reason text CR");
   msg (M_CLIENT, "client-kill CID        : Kill client instance CID");
 #ifdef MANAGEMENT_PF
   msg (M_CLIENT, "client-pf CID          : Define packet filter for client CID (MULTILINE)");
@@ -801,6 +802,7 @@ in_extra_dispatch (struct management *man)
 	     man->connection.in_extra_kid,
 	     true,
 	     NULL,
+	     NULL,
 	     man->connection.in_extra);
 	  man->connection.in_extra = NULL;
 	  if (status)
@@ -862,7 +864,7 @@ man_client_auth (struct management *man, const char *cid_str, const char *kid_st
 }
 
 static void
-man_client_deny (struct management *man, const char *cid_str, const char *kid_str, const char *reason)
+man_client_deny (struct management *man, const char *cid_str, const char *kid_str, const char *reason, const char *client_reason)
 {
   unsigned long cid = 0;
   unsigned int kid = 0;
@@ -876,6 +878,7 @@ man_client_deny (struct management *man, const char *cid_str, const char *kid_st
 	     kid,
 	     false,
 	     reason,
+	     client_reason,
 	     NULL);
 	  if (status)
 	    {
@@ -1160,8 +1163,8 @@ man_dispatch_command (struct management *man, struct status_output *so, const ch
     }
   else if (streq (p[0], "client-deny"))
     {
-      if (man_need (man, p, 3, 0))
-	man_client_deny (man, p[1], p[2], p[3]);
+      if (man_need (man, p, 3, MN_AT_LEAST))
+	man_client_deny (man, p[1], p[2], p[3], p[4]);
     }
   else if (streq (p[0], "client-auth-nt"))
     {

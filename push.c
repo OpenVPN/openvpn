@@ -61,7 +61,13 @@ receive_auth_failed (struct context *c, const struct buffer *buffer)
       c->sig->signal_text = "auth-failure";
 #ifdef ENABLE_MANAGEMENT
       if (management)
-	management_auth_failure (management, UP_TYPE_AUTH);
+	{
+	  const char *reason = UP_TYPE_AUTH;
+	  struct buffer buf = *buffer;
+	  if (buf_string_compare_advance (&buf, "AUTH_FAILED,") && BLEN (&buf))
+	    reason = BSTR (&buf);
+	  management_auth_failure (management, reason);
+	}
 #endif
     }
 }
@@ -71,10 +77,27 @@ receive_auth_failed (struct context *c, const struct buffer *buffer)
  * Send auth failed message from server to client.
  */
 void
-send_auth_failed (struct context *c)
+send_auth_failed (struct context *c, const char *client_reason)
 {
+  struct gc_arena gc = gc_new ();
+  static const char auth_failed[] = "AUTH_FAILED";
+  size_t len;
+
   schedule_exit (c, c->options.scheduled_exit_interval);
-  send_control_channel_string (c, "AUTH_FAILED", D_PUSH);
+
+  len = (client_reason ? strlen(client_reason)+1 : 0) + sizeof(auth_failed);
+  if (len > TLS_CHANNEL_BUF_SIZE)
+    len = TLS_CHANNEL_BUF_SIZE;
+
+  {
+    struct buffer buf = alloc_buf_gc (len, &gc);
+    buf_printf (&buf, auth_failed);
+    if (client_reason)
+      buf_printf (&buf, ",%s", client_reason);
+    send_control_channel_string (c, BSTR (&buf), D_PUSH);
+  }
+
+  gc_free (&gc);
 }
 #endif
 
@@ -258,7 +281,8 @@ process_incoming_push_msg (struct context *c,
     {
       if (tls_authentication_status (c->c2.tls_multi, 0) == TLS_AUTHENTICATION_FAILED || c->c2.context_auth == CAS_FAILED)
 	{
-	  send_auth_failed (c);
+	  const char *client_reason = tls_client_reason (c->c2.tls_multi);
+	  send_auth_failed (c, client_reason);
 	  ret = PUSH_MSG_AUTH_FAILURE;
 	}
       else if (!c->c2.push_reply_deferred && c->c2.context_auth == CAS_SUCCEEDED)
