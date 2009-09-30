@@ -1645,7 +1645,11 @@ link_socket_init_phase1 (struct link_socket *sock,
   if (mode == LS_MODE_TCP_ACCEPT_FROM)
     {
       ASSERT (accept_from);
-      ASSERT (sock->info.proto == PROTO_TCPv4_SERVER);
+      ASSERT (sock->info.proto == PROTO_TCPv4_SERVER
+#ifdef USE_PF_INET6
+	      || sock->info.proto == PROTO_TCPv6_SERVER
+#endif
+	     );
       ASSERT (!sock->inetd);
       sock->sd = accept_from->sd;
     }
