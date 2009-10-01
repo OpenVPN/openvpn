@@ -1601,7 +1601,7 @@ man_process_command (struct management *man, const char *line)
       nparms = parse_line (line, parms, MAX_PARMS, "TCP", 0, M_CLIENT, &gc);
       if (parms[0] && streq (parms[0], "password"))
 	msg (D_MANAGEMENT_DEBUG, "MANAGEMENT: CMD 'password [...]'");
-      else
+      else if (!streq (line, "load-stats"))
 	msg (D_MANAGEMENT_DEBUG, "MANAGEMENT: CMD '%s'", line);
 
 #if 0
