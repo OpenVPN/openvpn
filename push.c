@@ -72,7 +72,22 @@ receive_auth_failed (struct context *c, const struct buffer *buffer)
     }
 }
 
+/*
+ * Act on received restart message from server
+ */
+void
+server_pushed_restart (struct context *c, const struct buffer *buffer)
+{
+  if (c->options.pull)
+    {
+      msg (D_STREAM_ERRORS, "Connection reset command was pushed by server");
+      c->sig->signal_received = SIGUSR1; /* SOFT-SIGUSR1 -- server-pushed connection reset */
+      c->sig->signal_text = "server-pushed-connection-reset";
+    }
+}
+
 #if P2MP_SERVER
+
 /*
  * Send auth failed message from server to client.
  */
@@ -83,7 +98,7 @@ send_auth_failed (struct context *c, const char *client_reason)
   static const char auth_failed[] = "AUTH_FAILED";
   size_t len;
 
-  schedule_exit (c, c->options.scheduled_exit_interval);
+  schedule_exit (c, c->options.scheduled_exit_interval, SIGTERM);
 
   len = (client_reason ? strlen(client_reason)+1 : 0) + sizeof(auth_failed);
   if (len > TLS_CHANNEL_BUF_SIZE)
@@ -99,6 +114,17 @@ send_auth_failed (struct context *c, const char *client_reason)
 
   gc_free (&gc);
 }
+
+/*
+ * Send restart message from server to client.
+ */
+void
+send_restart (struct context *c)
+{
+  schedule_exit (c, c->options.scheduled_exit_interval, SIGTERM);
+  send_control_channel_string (c, "RESTART", D_PUSH);
+}
+
 #endif
 
 /*

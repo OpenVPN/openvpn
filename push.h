@@ -49,6 +49,8 @@ bool send_push_request (struct context *c);
 
 void receive_auth_failed (struct context *c, const struct buffer *buffer);
 
+void server_pushed_restart (struct context *c, const struct buffer *buffer);
+
 #if P2MP_SERVER
 
 void clone_push_list (struct options *o);
@@ -63,6 +65,8 @@ bool send_push_reply (struct context *c);
 void remove_iroutes_from_push_route_list (struct options *o);
 
 void send_auth_failed (struct context *c, const char *client_reason);
+
+void send_restart (struct context *c);
 
 #endif
 #endif

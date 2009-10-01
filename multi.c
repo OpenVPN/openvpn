@@ -2539,7 +2539,7 @@ management_kill_by_cid (void *arg, const unsigned long cid)
   struct multi_instance *mi = lookup_by_cid (m, cid);
   if (mi)
     {
-      multi_signal_instance (m, mi, SIGTERM);
+      send_restart (&mi->context); /* was: multi_signal_instance (m, mi, SIGTERM); */
       return true;
     }
   else

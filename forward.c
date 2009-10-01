@@ -157,6 +157,8 @@ check_incoming_control_channel_dowork (struct context *c)
 	    receive_auth_failed (c, &buf);
 	  else if (buf_string_match_head_str (&buf, "PUSH_"))
 	    incoming_push_message (c, &buf);
+	  else if (buf_string_match_head_str (&buf, "RESTART"))
+	    server_pushed_restart (c, &buf);
 	  else
 	    msg (D_PUSH_ERRORS, "WARNING: Received unknown control message: %s", BSTR (&buf));
 	}
@@ -181,7 +183,7 @@ check_push_request_dowork (struct context *c)
   event_timeout_modify_wakeup (&c->c2.push_request_interval, 5);
 }
 
-#endif
+#endif /* P2MP */
 
 /*
  * Things that need to happen immediately after connection initiation should go here.
@@ -328,15 +330,16 @@ check_server_poll_timeout_dowork (struct context *c)
 }
 
 /*
- * Schedule a SIGTERM n_seconds from now.
+ * Schedule a signal n_seconds from now.
  */
 void
-schedule_exit (struct context *c, const int n_seconds)
+schedule_exit (struct context *c, const int n_seconds, const int signal)
 {
   tls_set_single_session (c->c2.tls_multi);
   update_time ();
   reset_coarse_timers (c);
   event_timeout_init (&c->c2.scheduled_exit, n_seconds, now);
+  c->c2.scheduled_exit_signal = signal;
   msg (D_SCHED_EXIT, "Delayed exit in %d seconds", n_seconds);
 }
 
@@ -346,7 +349,7 @@ schedule_exit (struct context *c, const int n_seconds)
 void
 check_scheduled_exit_dowork (struct context *c)
 {
-  c->sig->signal_received = SIGTERM;
+  c->sig->signal_received = c->c2.scheduled_exit_signal;
   c->sig->signal_text = "delayed-exit";
 }
 

@@ -436,6 +436,7 @@ struct context_2
   struct event_timeout server_poll_interval;
 
   struct event_timeout scheduled_exit;
+  int scheduled_exit_signal;
 #endif
 
   /* packet filter */
