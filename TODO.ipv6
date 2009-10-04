@@ -13,6 +13,10 @@
     listening IPv6 must permit incoming streams from allowed IPv4 peer,
     currently you need to pass eg:  --remote ffff::1.2.3.4
 
+  o do something with multi mode learn routes, for now just ignoring
+    ipv6 addresses seems the most sensible thing to do, because there's
+    no support for intra-tunnel ipv6 stuff.
+
 * win32:
   o find out about mapped addresses, as I can't make it work
     with bound at ::1 and connect to 127.0.0.1
