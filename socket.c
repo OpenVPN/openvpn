@@ -2384,10 +2384,10 @@ print_sockaddr_ex (const struct openvpn_sockaddr *addr,
 {
   struct buffer out = alloc_buf_gc (128, gc);
   bool addr_is_defined;
-  if (!addr) {
-    return "[NULL]";
+  addr_is_defined = addr_defined (addr);
+  if (!addr_is_defined) {
+    return "[undef]";
   }
-  addr_is_defined =  addr_defined (addr);
 #ifdef USE_PF_INET6
   switch(addr->addr.sa.sa_family)
     {
@@ -2414,7 +2414,7 @@ print_sockaddr_ex (const struct openvpn_sockaddr *addr,
     case AF_INET6:
 	{
 	  const int port= ntohs (addr->addr.in6.sin6_port);
-	  char buf[INET6_ADDRSTRLEN] = "[undef]";
+	  char buf[INET6_ADDRSTRLEN] = "";
 	  buf_puts (&out, "[AF_INET6]");
 	  if (addr_is_defined)
 	    {
