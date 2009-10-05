@@ -2382,7 +2382,7 @@ print_sockaddr_ex (const struct openvpn_sockaddr *addr,
 		   const unsigned int flags,
 		   struct gc_arena *gc)
 {
-  struct buffer out;
+  struct buffer out = alloc_buf_gc (128, gc);
   bool addr_is_defined;
   if (!addr) {
     return "[NULL]";
@@ -2395,7 +2395,6 @@ print_sockaddr_ex (const struct openvpn_sockaddr *addr,
 #endif
 	{
 	  const int port= ntohs (addr->addr.in4.sin_port);
-	  out = alloc_buf_gc (128, gc);
 	  buf_puts (&out, "[AF_INET]");
 	  mutex_lock_static (L_INET_NTOA);
 	  buf_puts (&out, (addr_is_defined ? inet_ntoa (addr->addr.in4.sin_addr) : "[undef]"));
@@ -2416,7 +2415,6 @@ print_sockaddr_ex (const struct openvpn_sockaddr *addr,
 	{
 	  const int port= ntohs (addr->addr.in6.sin6_port);
 	  char buf[INET6_ADDRSTRLEN] = "[undef]";
-	  out = alloc_buf_gc (128, gc);
 	  buf_puts (&out, "[AF_INET6]");
 	  if (addr_is_defined)
 	    {
@@ -2434,6 +2432,8 @@ print_sockaddr_ex (const struct openvpn_sockaddr *addr,
 	    }
 	}
       break;
+    default:
+      ASSERT(0);
     }
 #endif
   return BSTR (&out);
