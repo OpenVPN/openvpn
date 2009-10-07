@@ -142,7 +142,7 @@ openvpn_SOURCES = \
 
 
 dist-hook:
-	cd $(distdir) && for i in $(EXTRA_DIST) ; do find $$i -name .svn -type d -prune -exec rm -rf '{}' ';' ; rm -f `find $$i -type f | grep -E '(^|\/)\.?\#|\~$$|\.s?o$$'` ; done
+	cd $(distdir) && for i in $(EXTRA_DIST) $(SUBDIRS) ; do find $$i -name .svn -type d -prune -exec rm -rf '{}' ';' ; rm -f `find $$i -type f | grep -E '(^|\/)\.?\#|\~$$|\.s?o$$'` ; done
 
 if WIN32
 dist_noinst_DATA += openvpn.8
