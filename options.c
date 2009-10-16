@@ -4468,6 +4468,11 @@ add_option (struct options *options,
 	{
 	  options->sockflags |= SF_HOST_RANDOMIZE;
 	}
+      else if (streq (p[1], "GENERIC_CONFIG"))
+	{
+	  msg (msglevel, "this is a generic configuration and cannot directly be used");
+	  goto err;
+	}
 #if P2MP
       else if (streq (p[1], "SERVER_POLL_TIMEOUT") && p[2])
 	{
