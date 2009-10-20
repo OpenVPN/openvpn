@@ -1,9 +1,13 @@
+[ Last updated: 20-Oct-2009. ]
+
 * All platforms:
   o mgmt console: as currently passes straight in_addr_t bits around
 
   o make possible to get AF from getaddrinfo() answer, ie allow openvpn to
     use ipv4/6 if DNS returns A/AAAA without specifying protocol.
     Hard: requires deep changes in initialization/calling logic
+
+  o use AI_PASSIVE
 
   o the getaddr()/getaddr6() interface is not prepared for handling socktype
     "tagging", currently I abuse the sockflags bits for getting the ai_socktype

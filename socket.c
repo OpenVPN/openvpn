@@ -2146,10 +2146,10 @@ link_socket_current_remote (const struct link_socket_info *info)
  *
  */
 #ifdef USE_PF_INET6
-  if(lsa->actual.dest.addr.sa.sa_family != AF_INET)
+  if (lsa->actual.dest.addr.sa.sa_family != AF_INET)
     return 0;
 #else
-  ASSERT(lsa->actual.dest.addr.sa.sa_family == AF_INET);
+  ASSERT (lsa->actual.dest.addr.sa.sa_family == AF_INET);
 #endif
 
   if (link_socket_actual_defined (&lsa->actual))
@@ -2475,7 +2475,7 @@ print_link_socket_actual_ex (const struct link_socket_actual *act,
 		{
 		  struct sockaddr_in6 sin6;
 		  char buf[INET6_ADDRSTRLEN] = "[undef]";
-		  memset(&sin6, 0, sizeof sin6);
+		  CLEAR(sin6);
 		  sin6.sin6_family = AF_INET6;
 		  sin6.sin6_addr = act->pi.in6.ipi6_addr;
 		    {
@@ -2699,8 +2699,8 @@ addr_guess_family(int proto, const char *name)
     {
       struct addrinfo hints , *ai;
       int err;
-      memset(&hints, 0, sizeof hints);
-      hints.ai_flags=AI_NUMERICHOST;
+      CLEAR(hints);
+      hints.ai_flags = AI_NUMERICHOST;
       err = getaddrinfo(name, NULL, &hints, &ai);
       if ( 0 == err )
 	{
@@ -3001,19 +3001,11 @@ socket_recv_queue (struct link_socket *sock, int maxsize)
       int status;
 
       /* reset buf to its initial state */
-      if (sock->info.proto == PROTO_UDPv4
-#ifdef USE_PF_INET6
-          || sock->info.proto == PROTO_UDPv6
-#endif
-	 )
+      if (proto_is_udp(sock->info.proto))
 	{
 	  sock->reads.buf = sock->reads.buf_init;
 	}
-      else if (sock->info.proto == PROTO_TCPv4_CLIENT || sock->info.proto == PROTO_TCPv4_SERVER
-#ifdef USE_PF_INET6
-	       || sock->info.proto == PROTO_TCPv6_CLIENT || sock->info.proto == PROTO_TCPv6_SERVER
-#endif
-	       )
+      else if (proto_is_tcp(sock->info.proto))
 	{
 	  stream_buf_get_next (&sock->stream_buf, &sock->reads.buf);
 	}
@@ -3033,11 +3025,7 @@ socket_recv_queue (struct link_socket *sock, int maxsize)
       ASSERT (ResetEvent (sock->reads.overlapped.hEvent));
       sock->reads.flags = 0;
 
-      if (sock->info.proto == PROTO_UDPv4
-#ifdef USE_PF_INET6
-          || sock->info.proto == PROTO_UDPv6
-#endif
-	  )
+      if (proto_is_udp(sock->info.proto))
 	{
 	  sock->reads.addr_defined = true;
 #ifdef USE_PF_INET6
@@ -3057,12 +3045,7 @@ socket_recv_queue (struct link_socket *sock, int maxsize)
 			       &sock->reads.overlapped,
 			       NULL);
 	}
-      else if (sock->info.proto == PROTO_TCPv4_CLIENT || sock->info.proto == PROTO_TCPv4_SERVER
-#ifdef USE_PF_INET6
-	       || sock->info.proto == PROTO_TCPv6_CLIENT || sock->info.proto == PROTO_TCPv6_SERVER
-#endif
-              )
-
+      else if (proto_is_tcp(sock->info.proto))
 	{
 	  sock->reads.addr_defined = false;
 	  status = WSARecv(
@@ -3148,11 +3131,7 @@ socket_send_queue (struct link_socket *sock, struct buffer *buf, const struct li
       ASSERT (ResetEvent (sock->writes.overlapped.hEvent));
       sock->writes.flags = 0;
 
-      if (sock->info.proto == PROTO_UDPv4
-#ifdef USE_PF_INET6
-	  || sock->info.proto == PROTO_UDPv6
-#endif
-	 )
+      if (proto_is_udp(sock->info.proto))
 	{
 	  /* set destination address for UDP writes */
 	  sock->writes.addr_defined = true;
@@ -3180,11 +3159,7 @@ socket_send_queue (struct link_socket *sock, struct buffer *buf, const struct li
 			       &sock->writes.overlapped,
 			       NULL);
 	}
-      else if (sock->info.proto == PROTO_TCPv4_CLIENT || sock->info.proto == PROTO_TCPv4_SERVER
-#ifdef USE_PF_INET6
-	       || sock->info.proto == PROTO_TCPv6_CLIENT || sock->info.proto == PROTO_TCPv6_SERVER
-#endif
-	      )
+      else if (proto_is_tcp(sock->info.proto))
 	{
 	  /* destination address for TCP writes was established on connection initiation */
 	  sock->writes.addr_defined = false;

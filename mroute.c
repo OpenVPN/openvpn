@@ -365,7 +365,7 @@ mroute_addr_print_ex (const struct mroute_addr *ma,
 	    struct sockaddr_in6 sin6;
 	    int port;
 	    char buf6[INET6_ADDRSTRLEN] = "";
-	    memset(&sin6, 0, sizeof sin6);
+	    CLEAR(sin6);
 	    sin6.sin6_family = AF_INET6;
 	    buf_set_read (&buf, maddr.addr, maddr.len);
             if (buf_read(&buf, &sin6.sin6_addr, sizeof (sin6.sin6_addr)))
