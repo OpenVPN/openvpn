@@ -898,6 +898,30 @@ tls_lock_common_name (struct tls_multi *multi)
     multi->locked_cn = string_alloc (cn, NULL);
 }
 
+static bool
+tls_lock_username (struct tls_multi *multi, const char *username)
+{
+  if (multi->locked_username)
+    {
+      if (!username || strcmp (username, multi->locked_username))
+	{
+	  msg (D_TLS_ERRORS, "TLS Auth Error: username attempted to change from '%s' to '%s' -- tunnel disabled",
+	       multi->locked_username,
+	       np(username));
+
+	  /* disable the tunnel */
+	  tls_deauthenticate (multi);
+	  return false;
+	}
+    }
+  else
+    {
+      if (username)
+	multi->locked_username = string_alloc (username, NULL);
+    }
+  return true;
+}
+
 #ifdef ENABLE_DEF_AUTH
 /* key_state_test_auth_control_file return values,
    NOTE: acf_merge indexing depends on these values */
@@ -2417,6 +2441,9 @@ tls_multi_free (struct tls_multi *multi, bool clear)
   if (multi->locked_cn)
     free (multi->locked_cn);
 
+  if (multi->locked_username)
+    free (multi->locked_username);
+
   for (i = 0; i < TM_SIZE; ++i)
     tls_session_free (&multi->session[i], false);
 
@@ -3401,7 +3428,8 @@ key_method_2_read (struct buffer *buf, struct tls_multi *multi, struct tls_sessi
 #ifdef PLUGIN_DEF_AUTH
 	   || s1 == OPENVPN_PLUGIN_FUNC_DEFERRED
 #endif
-	   ) && s2 && man_def_auth != KMDA_ERROR)
+	   ) && s2 && man_def_auth != KMDA_ERROR
+	  && tls_lock_username (multi, up->username))
 	{
 	  ks->authenticated = true;
 #ifdef PLUGIN_DEF_AUTH
@@ -3412,7 +3440,6 @@ key_method_2_read (struct buffer *buf, struct tls_multi *multi, struct tls_sessi
 	  if (man_def_auth != KMDA_UNDEF)
 	    ks->auth_deferred = true;
 #endif
-	    
 	  if ((session->opt->ssl_flags & SSLF_USERNAME_AS_COMMON_NAME))
 	    set_common_name (session, up->username);
 #ifdef ENABLE_DEF_AUTH

@@ -589,9 +589,10 @@ struct tls_multi
   int n_soft_errors;   /* errors due to unrecognized or failed-to-authenticate incoming packets */
 
   /*
-   * Our locked common name (cannot change during the life of this tls_multi object)
+   * Our locked common name and username (cannot change during the life of this tls_multi object)
    */
   char *locked_cn;
+  char *locked_username;
 
 #ifdef ENABLE_DEF_AUTH
   /*
