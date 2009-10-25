@@ -303,6 +303,21 @@
 /* #define MEASURE_TLS_HANDSHAKE_STATS */
 
 /*
+ * Keep track of certificate hashes at various depths
+ */
+
+/* Maximum certificate depth we will allow */
+#define MAX_CERT_DEPTH 8
+
+struct cert_hash {
+  unsigned char sha1_hash[SHA_DIGEST_LENGTH];
+};
+
+struct cert_hash_set {
+  struct cert_hash *ch[MAX_CERT_DEPTH];
+};
+
+/*
  * Key material, used as source for PRF-based
  * key expansion.
  */
@@ -518,6 +533,8 @@ struct tls_session
 
   char *common_name;
 
+  struct cert_hash_set *cert_hash_set;
+
 #ifdef ENABLE_PF
   uint32_t common_name_hashval;
 #endif
@@ -589,10 +606,11 @@ struct tls_multi
   int n_soft_errors;   /* errors due to unrecognized or failed-to-authenticate incoming packets */
 
   /*
-   * Our locked common name and username (cannot change during the life of this tls_multi object)
+   * Our locked common name, username, and cert hashes (cannot change during the life of this tls_multi object)
    */
   char *locked_cn;
   char *locked_username;
+  struct cert_hash_set *locked_cert_hash_set;
 
 #ifdef ENABLE_DEF_AUTH
   /*
@@ -692,6 +710,7 @@ bool tls_rec_payload (struct tls_multi *multi,
 const char *tls_common_name (const struct tls_multi* multi, const bool null);
 void tls_set_common_name (struct tls_multi *multi, const char *common_name);
 void tls_lock_common_name (struct tls_multi *multi);
+void tls_lock_cert_hash_set (struct tls_multi *multi);
 
 #define TLS_AUTHENTICATION_SUCCEEDED  0
 #define TLS_AUTHENTICATION_FAILED     1

@@ -1458,8 +1458,9 @@ multi_connection_established (struct multi_context *m, struct multi_instance *mi
 
       ASSERT (mi->context.c1.tuntap);
 
-      /* lock down the common name so it can't change during future TLS renegotiations */
+      /* lock down the common name and cert hashes so they can't change during future TLS renegotiations */
       tls_lock_common_name (mi->context.c2.tls_multi);
+      tls_lock_cert_hash_set (mi->context.c2.tls_multi);
 
       /* generate a msg() prefix for this client instance */
       generate_prefix (mi);
