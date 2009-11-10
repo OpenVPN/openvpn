@@ -581,13 +581,17 @@ redirect_default_route_to_vpn (struct route_list *rl, const struct tuntap *tt, u
 	  if (!local)
 	    {
 	      /* route remote host to original default gateway */
-	      add_route3 (rl->spec.remote_host,
-			  ~0,
-			  rl->spec.net_gateway,
-			  tt,
-			  flags,
-			  es);
-	      rl->did_local = true;
+	      if (rl->spec.remote_host != 0xffffffff) {
+		add_route3 (rl->spec.remote_host,
+			    ~0,
+			    rl->spec.net_gateway,
+			    tt,
+			    flags,
+			    es);
+		rl->did_local = true;
+	      } else {
+		dmsg (D_ROUTE, "ROUTE remote_host protocol differs from tunneled");
+	      }
 	    }
 
 	  /* route DHCP/DNS server traffic through original default gateway */

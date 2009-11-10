@@ -2147,7 +2147,7 @@ link_socket_current_remote (const struct link_socket_info *info)
  */
 #ifdef USE_PF_INET6
   if (lsa->actual.dest.addr.sa.sa_family != AF_INET)
-    return 0;
+    return 0xffffffff;
 #else
   ASSERT (lsa->actual.dest.addr.sa.sa_family == AF_INET);
 #endif
