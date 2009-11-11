@@ -581,7 +581,7 @@ redirect_default_route_to_vpn (struct route_list *rl, const struct tuntap *tt, u
 	  if (!local)
 	    {
 	      /* route remote host to original default gateway */
-	      if (rl->spec.remote_host != 0xffffffff) {
+	      if (rl->spec.remote_host != IPV4_INVALID_ADDR) {
 		add_route3 (rl->spec.remote_host,
 			    ~0,
 			    rl->spec.net_gateway,

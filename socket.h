@@ -383,6 +383,12 @@ void setenv_link_socket_actual (struct env_set *es,
 
 void bad_address_length (int actual, int expected);
 
+#ifdef USE_PF_INET6
+/* IPV4_INVALID_ADDR: returned by link_socket_current_remote()
+ * to ease redirect-gateway logic for ipv4 tunnels on ipv6 endpoints
+ */
+#define IPV4_INVALID_ADDR 0xffffffff
+#endif
 in_addr_t link_socket_current_remote (const struct link_socket_info *info);
 
 void link_socket_connection_initiated (const struct buffer *buf,
