@@ -22,7 +22,7 @@
 ;!define OPENVPN_XGUI_DIR "../ovpnxml"
 
 # Prebuilt libraries.  DMALLOC is optional.
-!define OPENSSL_DIR	  "../openssl-0.9.8k"
+!define OPENSSL_DIR	  "../openssl-0.9.8l"
 !define LZO_DIR		  "../lzo-2.02"
 !define PKCS11_HELPER_DIR "../pkcs11-helper"
 ;!define DMALLOC_DIR	  "../dmalloc-5.4.2"
