@@ -766,7 +766,10 @@ verify_callback (int preverify_ok, X509_STORE_CTX * ctx)
 
   /* warn if cert chain is too deep */
   if (ctx->error_depth >= max_depth)
-    msg (M_WARN, "TLS Warning: Convoluted certificate chain detected with depth [%d] greater than %d", ctx->error_depth, max_depth);
+    {
+      msg (D_TLS_ERRORS, "TLS Error: Convoluted certificate chain detected with depth [%d] greater than %d", ctx->error_depth, max_depth);
+      goto err;			/* Reject connection */
+    }
 
   /* save common name in session object */
   if (ctx->error_depth == 0)

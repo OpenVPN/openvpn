@@ -1,5 +1,5 @@
 dnl define the OpenVPN version
-define(PRODUCT_VERSION,[2.1_rc21])
+define(PRODUCT_VERSION,[2.1_rc21a])
 dnl define the TAP version
 define(PRODUCT_TAP_ID,[tap0901])
 define(PRODUCT_TAP_WIN32_MIN_MAJOR,[9])

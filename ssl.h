@@ -307,7 +307,7 @@
  */
 
 /* Maximum certificate depth we will allow */
-#define MAX_CERT_DEPTH 8
+#define MAX_CERT_DEPTH 16
 
 struct cert_hash {
   unsigned char sha1_hash[SHA_DIGEST_LENGTH];
