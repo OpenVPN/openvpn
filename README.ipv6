@@ -1,6 +1,6 @@
-[ Last updated: 11-Nov-2009. ]
+[ Last updated: 16-Nov-2009. ]
 
-OpenVPN-2.1 over UDP6/TCP6 README for v0.4.x patch releases:
+OpenVPN-2.1 over UDP6/TCP6 README for ipv6-0.4.x patch releases:
 ( --udp6 and --tcp6-{client,server} )
 
 * Availability
@@ -13,6 +13,8 @@ OpenVPN-2.1 over UDP6/TCP6 README for v0.4.x patch releases:
     - https://bugs.gentoo.org/show_bug.cgi?id=287896
   o Ubuntu package, by Bernhard Schmidt:
     - https://launchpad.net/~berni/+archive/ipv6/+packages
+  o Freetz.org, milestone freetz-1.2
+    - http://trac.freetz.org/milestone/freetz-1.2
 
 * Status:
   o OK:
