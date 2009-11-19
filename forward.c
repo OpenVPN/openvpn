@@ -1040,7 +1040,8 @@ process_ipv4_header (struct context *c, unsigned int flags, struct buffer *buf)
 	      if (flags & PIPV4_EXTRACT_DHCP_ROUTER)
 		{
 		  const in_addr_t dhcp_router = dhcp_extract_router_msg (&ipbuf);
-		  route_list_add_default_gateway (c->c1.route_list, c->c2.es, dhcp_router);
+		  if (dhcp_router)
+		    route_list_add_default_gateway (c->c1.route_list, c->c2.es, dhcp_router);
 		}
 	    }
 	}

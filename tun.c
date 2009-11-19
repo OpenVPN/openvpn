@@ -3292,57 +3292,71 @@ tap_allow_nonadmin_access (const char *dev_node)
 /*
  * DHCP release/renewal
  */
-
 bool
-dhcp_release (const struct tuntap *tt)
+dhcp_release_by_adapter_index(const DWORD adapter_index)
 {
   struct gc_arena gc = gc_new ();
   bool ret = false;
-  if (tt && tt->options.ip_win32_type == IPW32_SET_DHCP_MASQ && tt->adapter_index != ~0)
+  const IP_ADAPTER_INDEX_MAP *inter = get_interface_info (adapter_index, &gc);
+
+  if (inter)
     {
-      const IP_ADAPTER_INDEX_MAP *inter = get_interface_info (tt->adapter_index, &gc);
-      if (inter)
+      DWORD status = IpReleaseAddress ((IP_ADAPTER_INDEX_MAP *)inter);
+      if (status == NO_ERROR)
 	{
-	  DWORD status = IpReleaseAddress ((IP_ADAPTER_INDEX_MAP *)inter);
-	  if (status == NO_ERROR)
-	    {
-	      msg (D_TUNTAP_INFO, "TAP: DHCP address released");
-	      ret = true;
-	    }
-	  else
-	    msg (M_WARN, "NOTE: Release of DHCP-assigned IP address lease on TAP-Win32 adapter failed: %s (code=%u)",
-		 strerror_win32 (status, &gc),
-		 (unsigned int)status);
+	  msg (D_TUNTAP_INFO, "TAP: DHCP address released");
+	  ret = true;
 	}
+      else
+	msg (M_WARN, "NOTE: Release of DHCP-assigned IP address lease on TAP-Win32 adapter failed: %s (code=%u)",
+	     strerror_win32 (status, &gc),
+	     (unsigned int)status);
+    }
+
+  gc_free (&gc);
+  return ret;
+}
+
+static bool
+dhcp_release (const struct tuntap *tt)
+{
+  if (tt && tt->options.ip_win32_type == IPW32_SET_DHCP_MASQ && tt->adapter_index != ~0)
+    return dhcp_release_by_adapter_index (tt->adapter_index);
+  else
+    return false;
+}
+
+bool
+dhcp_renew_by_adapter_index (const DWORD adapter_index)
+{
+  struct gc_arena gc = gc_new ();
+  bool ret = false;
+  const IP_ADAPTER_INDEX_MAP *inter = get_interface_info (adapter_index, &gc);
+
+  if (inter)
+    {
+      DWORD status = IpRenewAddress ((IP_ADAPTER_INDEX_MAP *)inter);
+      if (status == NO_ERROR)
+	{
+	  msg (D_TUNTAP_INFO, "TAP: DHCP address renewal succeeded");
+	  ret = true;
+	}
+      else
+	msg (M_WARN, "WARNING: Failed to renew DHCP IP address lease on TAP-Win32 adapter: %s (code=%u)",
+	     strerror_win32 (status, &gc),
+	     (unsigned int)status);
     }
   gc_free (&gc);
   return ret;
 }
 
-bool
+static bool
 dhcp_renew (const struct tuntap *tt)
 {
-  struct gc_arena gc = gc_new ();
-  bool ret = false;
   if (tt && tt->options.ip_win32_type == IPW32_SET_DHCP_MASQ && tt->adapter_index != ~0)
-    {
-      const IP_ADAPTER_INDEX_MAP *inter = get_interface_info (tt->adapter_index, &gc);
-      if (inter)
-	{
-	  DWORD status = IpRenewAddress ((IP_ADAPTER_INDEX_MAP *)inter);
-	  if (status == NO_ERROR)
-	    {
-	      msg (D_TUNTAP_INFO, "TAP: DHCP address renewal succeeded");
-	      ret = true;
-	    }
-	  else
-	    msg (M_WARN, "WARNING: Failed to renew DHCP IP address lease on TAP-Win32 adapter: %s (code=%u)",
-		 strerror_win32 (status, &gc),
-		 (unsigned int)status);
-	}
-    }
-  gc_free (&gc);
-  return ret;
+    return dhcp_renew_by_adapter_index (tt->adapter_index);
+  else
+    return false;
 }
 
 /*
@@ -3788,6 +3802,28 @@ build_dhcp_options_string (struct buffer *buf, const struct tuntap_options *o)
   return !error;
 }
 
+static void
+fork_dhcp_action (struct tuntap *tt)
+{
+  if (tt->options.dhcp_pre_release || tt->options.dhcp_renew)
+    {
+      struct gc_arena gc = gc_new ();
+      struct buffer cmd = alloc_buf_gc (256, &gc);
+      const int verb = 3;
+      const int pre_sleep = 1;
+  
+      buf_printf (&cmd, "openvpn --verb %d --tap-sleep %d", verb, pre_sleep);
+      if (tt->options.dhcp_pre_release)
+	buf_printf (&cmd, " --dhcp-pre-release");
+      if (tt->options.dhcp_renew)
+	buf_printf (&cmd, " --dhcp-renew");
+      buf_printf (&cmd, " --dhcp-rr %u", (unsigned int)tt->adapter_index);
+
+      fork_to_self (BSTR (&cmd));
+      gc_free (&gc);
+    }
+}
+
 void
 open_tun (const char *dev, const char *dev_type, const char *dev_node, bool ipv6, struct tuntap *tt)
 {
@@ -4152,6 +4188,8 @@ open_tun (const char *dev, const char *dev_type, const char *dev_node, bool ipv6
 	if (tt->options.dhcp_renew)
 	  dhcp_renew (tt);
       }
+    else
+      fork_dhcp_action (tt);
 
     if (tt->did_ifconfig_setup && tt->options.ip_win32_type == IPW32_SET_IPAPI)
       {

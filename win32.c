@@ -1016,6 +1016,51 @@ openvpn_execve (const struct argv *a, const struct env_set *es, const unsigned i
   return ret;
 }
 
+/*
+ * call ourself in another process
+ */
+void
+fork_to_self (const char *cmdline)
+{
+  STARTUPINFO start_info;
+  PROCESS_INFORMATION proc_info;
+  char self_exe[256];
+  char *cl = string_alloc (cmdline, NULL);
+  DWORD status;
+
+  CLEAR (start_info);
+  CLEAR (proc_info);
+  CLEAR (self_exe);
+
+  status = GetModuleFileName (NULL, self_exe, sizeof(self_exe));
+  if (status == 0 || status == sizeof(self_exe))
+    {
+      msg (M_WARN|M_ERRNO, "fork_to_self: CreateProcess failed: cannot get module name via GetModuleFileName");
+      goto done;
+    }
+
+  /* fill in STARTUPINFO struct */
+  GetStartupInfo(&start_info);
+  start_info.cb = sizeof(start_info);
+  start_info.dwFlags = STARTF_USESTDHANDLES|STARTF_USESHOWWINDOW;
+  start_info.wShowWindow = SW_HIDE;
+  start_info.hStdInput = GetStdHandle(STD_INPUT_HANDLE);
+  start_info.hStdOutput = start_info.hStdError = GetStdHandle(STD_OUTPUT_HANDLE);
+
+  if (CreateProcess (self_exe, cl, NULL, NULL, FALSE, 0, NULL, NULL, &start_info, &proc_info))
+    {
+      CloseHandle (proc_info.hThread);
+      CloseHandle (proc_info.hProcess);
+    }
+  else
+    {
+      msg (M_WARN|M_ERRNO, "fork_to_self: CreateProcess failed: %s", cmdline);
+    }
+
+ done:
+  free (cl);
+}
+
 char *
 get_win_sys_path (void)
 {

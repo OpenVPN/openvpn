@@ -265,5 +265,8 @@ void set_win_sys_path (const char *newpath, struct env_set *es);
 void set_win_sys_path_via_env (struct env_set *es);
 char *get_win_sys_path (void);
 
+/* call self in a subprocess */
+void fork_to_self (const char *cmdline);
+
 #endif
 #endif

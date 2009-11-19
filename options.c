@@ -2780,6 +2780,14 @@ positive_atoi (const char *str)
   return i < 0 ? 0 : i;
 }
 
+static unsigned int
+atou (const char *str)
+{
+  unsigned int val = 0;
+  sscanf (str, "%u", &val);
+  return val;
+}
+
 static inline bool
 space (unsigned char c)
 {
@@ -5096,6 +5104,19 @@ add_option (struct options *options,
     {
       VERIFY_PERMISSION (OPT_P_IPWIN32);
       options->tuntap_options.dhcp_release = true;
+    }
+  else if (streq (p[0], "dhcp-rr") && p[1]) /* standalone method for internal use */
+    {
+      unsigned int adapter_index;
+      VERIFY_PERMISSION (OPT_P_GENERAL);
+      set_debug_level (options->verbosity, SDL_CONSTRAIN);
+      adapter_index = atou (p[1]);
+      sleep (options->tuntap_options.tap_sleep);
+      if (options->tuntap_options.dhcp_pre_release)
+	dhcp_release_by_adapter_index (adapter_index);
+      if (options->tuntap_options.dhcp_renew)
+	dhcp_renew_by_adapter_index (adapter_index);
+      openvpn_exit (OPENVPN_EXIT_STATUS_USAGE); /* exit point */
     }
   else if (streq (p[0], "show-valid-subnets"))
     {

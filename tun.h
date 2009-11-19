@@ -332,8 +332,8 @@ void show_valid_win32_tun_subnets (void);
 const char *tap_win32_getinfo (const struct tuntap *tt, struct gc_arena *gc);
 void tun_show_debug (struct tuntap *tt);
 
-bool dhcp_release (const struct tuntap *tt);
-bool dhcp_renew (const struct tuntap *tt);
+bool dhcp_release_by_adapter_index(const DWORD adapter_index);
+bool dhcp_renew_by_adapter_index (const DWORD adapter_index);
 
 void tun_standby_init (struct tuntap *tt);
 bool tun_standby (struct tuntap *tt);
