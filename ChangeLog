@@ -1,6 +1,18 @@
 OpenVPN Change Log
 Copyright (C) 2002-2009 OpenVPN Technologies, Inc. <sales@openvpn.net>
 
+2009.11.20 -- Version 2.1_rc22
+
+* Fixed a client-side bug on Windows that occurred when the
+  "dhcp-pre-release" or "dhcp-renew" options were combined with
+  "route-gateway dhcp".  The release/renew would not occur
+  because the Windows DHCP renew function is blocking and
+  therefore must be called from another process or thread
+  so as not to stall the tunnel.
+
+* Added a hard failure when peer provides a certificate chain
+  with depth > 16.  Previously, a warning was issued.
+
 2009.11.12 -- Version 2.1_rc21
 
 * Rebuilt OpenVPN Windows installer with OpenSSL 0.9.8l to address
