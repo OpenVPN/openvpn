@@ -274,6 +274,8 @@ openvpn_plugin_open_v1 (unsigned int *type_mask, const char *argv[], const char 
    * Allocate our context
    */
   context = (struct down_root_context *) calloc (1, sizeof (struct down_root_context));
+  if (!context)
+    goto error;
   context->foreground_fd = -1;
 
   /*
@@ -434,7 +436,7 @@ openvpn_plugin_abort_v1 (openvpn_plugin_handle_t handle)
 {
   struct down_root_context *context = (struct down_root_context *) handle;
 
-  if (context->foreground_fd >= 0)
+  if (context && context->foreground_fd >= 0)
     {
       /* tell background process to exit */
       send_control (context->foreground_fd, COMMAND_EXIT);
