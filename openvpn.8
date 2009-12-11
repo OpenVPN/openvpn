@@ -2125,6 +2125,12 @@ attempt to bind client sessions to the interface on which packets
 are being received, so that outgoing packets will be sent out
 of the same interface.  Note that this option is only relevant for
 UDP servers and currently is only implemented on Linux.
+
+Note: clients connecting to a
+.B --multihome
+server should always use the
+.B --nobind
+option.
 .\"*********************************************************
 .TP
 .B --echo [parms...]

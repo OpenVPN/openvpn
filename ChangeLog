@@ -1,6 +1,17 @@
 OpenVPN Change Log
 Copyright (C) 2002-2009 OpenVPN Technologies, Inc. <sales@openvpn.net>
 
+2009.12.11 -- Version 2.1.0
+
+* Fixed a couple issues in sample plugins auth-pam.c and down-root.c.
+  (1) Fail gracefully rather than segfault if calloc returns NULL.
+  (2) The openvpn_plugin_abort_v1 function can potentially be called
+  with handle == NULL.  Add code to detect this case, and if  so, avoid
+  dereferencing pointers derived from handle  (Thanks to David
+  Sommerseth for finding this bug).
+
+* Documented "multihome" option in the man page.
+
 2009.11.20 -- Version 2.1_rc22
 
 * Fixed a client-side bug on Windows that occurred when the
