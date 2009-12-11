@@ -1,6 +1,13 @@
 OpenVPN Change Log
 Copyright (C) 2002-2009 OpenVPN Technologies, Inc. <sales@openvpn.net>
 
+2009.12.11 -- Version 2.1.1
+
+* Fixed some breakage in openvpn.spec (which is required to build an
+  RPM distribution) where it was referencing a non-existent
+  subdirectory in the tarball, causing it to fail (patch from
+  David Sommerseth).
+
 2009.12.11 -- Version 2.1.0
 
 * Fixed a couple issues in sample plugins auth-pam.c and down-root.c.
