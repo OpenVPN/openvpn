@@ -342,6 +342,24 @@ ip_addr_dotted_quad_safe (const char *dotted_quad)
   }
 }
 
+bool
+ipv6_addr_safe (const char *ipv6_text_addr)
+{
+  /* verify non-NULL */
+  if (!ipv6_text_addr)
+    return false;
+
+  /* verify length is within limits */
+  if (strlen (ipv6_text_addr) > INET6_ADDRSTRLEN )
+    return false;
+
+  /* verify that string will convert to IPv6 address */
+  {
+    struct in6_addr a6;
+    return inet_pton( AF_INET6, ipv6_text_addr, &a6 ) == 1;
+  }
+}
+
 static bool
 dns_addr_safe (const char *addr)
 {
@@ -2030,6 +2048,58 @@ print_in_addr_t (in_addr_t addr, unsigned int flags, struct gc_arena *gc)
       buf_printf (&out, "%s", inet_ntoa (ia));
     }
   return BSTR (&out);
+}
+
+/*
+ * Convert an in6_addr in host byte order
+ * to an ascii representation of an IPv6 address
+ * (we reuse the L_INET_NTOA mutex, no contention here)
+ */
+const char *
+print_in6_addr (struct in6_addr a6, unsigned int flags, struct gc_arena *gc)
+{
+  struct buffer out = alloc_buf_gc (64, gc);
+  char tmp_out_buf[64];		/* inet_ntop wants pointer to buffer */
+
+  if ( memcmp(&a6, &in6addr_any, sizeof(a6)) != 0 || 
+       !(flags & IA_EMPTY_IF_UNDEF))
+    {
+      mutex_lock_static (L_INET_NTOA);
+      inet_ntop (AF_INET6, &a6, tmp_out_buf, sizeof(tmp_out_buf)-1);
+      buf_printf (&out, "%s", tmp_out_buf );
+      mutex_unlock_static (L_INET_NTOA);
+    }
+  return BSTR (&out);
+}
+
+/* add some offset to an ipv6 address
+ * (add in steps of 32 bits, taking overflow into next round)
+ */
+#ifndef s6_addr32
+# ifdef TARGET_SOLARIS
+#  define s6_addr32 _S6_un._S6_u32
+# else
+#  define s6_addr32 __u6_addr.__u6_addr32
+# endif
+#endif
+#ifndef UINT32_MAX
+# define UINT32_MAX (4294967295U)
+#endif
+struct in6_addr add_in6_addr( struct in6_addr base, uint32_t add )
+{
+    int i;
+    uint32_t h;
+
+    for( i=3; i>=0 && add > 0 ; i-- )
+    {
+	h = ntohl( base.s6_addr32[i] );
+	base.s6_addr32[i] = htonl( (h+add) & UINT32_MAX );
+	/* 32-bit overrun? 
+	 * caveat: can't do "h+add > UINT32_MAX" with 32bit math!
+         */
+	add = ( h > UINT32_MAX - add )?  1: 0;
+    }
+    return base;
 }
 
 /* set environmental variables for ip/port in *addr */

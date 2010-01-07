@@ -108,6 +108,21 @@ struct openvpn_iphdr {
 };
 
 /*
+ * IPv6 header
+ */
+struct openvpn_ipv6hdr {
+        uint8_t		version_prio;
+        uint8_t		flow_lbl[3];
+        uint16_t	payload_len;
+        uint8_t		nexthdr;
+        uint8_t		hop_limit;
+
+        struct  in6_addr        saddr;
+        struct  in6_addr        daddr;
+};
+
+
+/*
  * UDP header
  */
 struct openvpn_udphdr {

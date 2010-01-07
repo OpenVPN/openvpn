@@ -1,0 +1,37 @@
+known issues for IPv6 payload support in OpenVPN
+-----------------------------------------------
+
+1.) "--topology subnet" doesn't work together with IPv6 payload
+    (verified for FreeBSD server, Linux/ifconfig client, problems 
+    with ICMP6 neighbor solicitations from BSD not being answered by Linux)
+
+2.) NetBSD IPv6 support doesn't work
+    ("connected" route is not auto-created, "route-ipv6" adding fails)
+
+    * fixed, 3.1.10 *
+
+3.) route deletion for IPv6 routes is not yet done
+
+    * fixed for configured routes, 3.1.10 *
+    * missing for manual-ifconfig-connected (NetBSD, Darwin)
+
+4.) do "ifconfig tun0 inet6 unplumb"  or "ifconfig tun0 destroy" for
+    Solaris, *BSD, ... at program termination time, to clean up leftovers
+    (unless tunnel persistance is desired).
+
+    For Solaris, only the "ipv6 tun0" is affected, for the *BSDs all tun0
+    stay around.
+
+5.) add new option "ifconfig-ipv6-push"
+    (per-client static IPv6 assignment, -> radiusplugin, etc)
+
+6.) add new option "route-ipv6-gateway"
+
+7.) add "full" gateway handling for IPv6 in route.c 
+    (right now, the routes are just sent down the tun interface, if the
+    operating system in questions supports that, without care for the
+    gateway address - which does not work for gateways that are supposed
+    to point elsewhere.  Also, it doesn't work for TAP interfaces.
+
+8.) full IPv6 support for TAP interfaces 
+    (main issue should be routes+gateway - and testing :-) )

@@ -165,6 +165,9 @@ struct context_1
   /* list of --route directives */
   struct route_list *route_list;
 
+  /* list of --route-ipv6 directives */
+  struct route_ipv6_list *route_ipv6_list;
+
   /* --status file */
   struct status_output *status_output;
   bool status_output_owned;
@@ -416,6 +419,11 @@ struct context_2
   bool push_ifconfig_defined;
   in_addr_t push_ifconfig_local;
   in_addr_t push_ifconfig_remote_netmask;
+
+  bool            push_ifconfig_ipv6_defined;
+  struct in6_addr push_ifconfig_ipv6_local;
+  int             push_ifconfig_ipv6_netbits;
+  struct in6_addr push_ifconfig_ipv6_remote;
 
   /* client authentication state, CAS_SUCCEEDED must be 0 */
 # define CAS_SUCCEEDED 0

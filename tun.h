@@ -130,6 +130,7 @@ struct tuntap
   int topology; /* one of the TOP_x values */
 
   bool did_ifconfig_setup;
+  bool did_ifconfig_ipv6_setup;
   bool did_ifconfig;
 
   bool ipv6;
@@ -145,6 +146,10 @@ struct tuntap
   in_addr_t local;
   in_addr_t remote_netmask;
   in_addr_t broadcast;
+
+  struct in6_addr local_ipv6;
+  struct in6_addr remote_ipv6;
+  int netbits_ipv6;
 
 #ifdef WIN32
   HANDLE hand;
@@ -219,6 +224,8 @@ struct tuntap *init_tun (const char *dev,       /* --dev option */
 			 int topology,          /* one of the TOP_x values */
 			 const char *ifconfig_local_parm,          /* --ifconfig parm 1 */
 			 const char *ifconfig_remote_netmask_parm, /* --ifconfig parm 2 */
+			 const char *ifconfig_ipv6_local_parm,     /* --ifconfig parm 1 / IPv6 */
+			 const char *ifconfig_ipv6_remote_parm,    /* --ifconfig parm 2 / IPv6 */
 			 in_addr_t local_public,
 			 in_addr_t remote_public,
 			 const bool strict_warn,

@@ -1,0 +1,8 @@
+This is an experimentally patched version of OpenVPN 2.1 with IPv6
+payload support.
+
+Go here for release notes and documentation:
+
+  http://www.greenie.net/ipv6/openvpn.html
+
+Gert Doering, 31.12.2009
