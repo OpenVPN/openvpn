@@ -433,6 +433,7 @@ init_tun (const char *dev,       /* --dev option */
 {
   struct gc_arena gc = gc_new ();
   struct tuntap *tt;
+  bool tun;
 
   ALLOC_OBJ (tt, struct tuntap);
   clear_tuntap (tt);
@@ -440,17 +441,16 @@ init_tun (const char *dev,       /* --dev option */
   tt->type = dev_type_enum (dev, dev_type);
   tt->topology = topology;
 
+  /*
+   * We only handle TUN/TAP devices here, not --dev null devices.
+   */
+  tun = is_tun_p2p (tt);
+
   if (ifconfig_local_parm && ifconfig_remote_netmask_parm)
     {
-      bool tun = false;
       const char *ifconfig_local = NULL;
       const char *ifconfig_remote_netmask = NULL;
       const char *ifconfig_broadcast = NULL;
-
-      /*
-       * We only handle TUN/TAP devices here, not --dev null devices.
-       */
-      tun = is_tun_p2p (tt);
 
       /*
        * Convert arguments to binary IPv4 addresses.
@@ -1973,6 +1973,15 @@ read_tun (struct tuntap* tt, uint8_t *buf, int len)
  *
  */
 
+static inline int
+netbsd_modify_read_write_return (int len)
+{
+  if (len > 0)
+    return len > sizeof (u_int32_t) ? len - sizeof (u_int32_t) : 0;
+  else
+    return len;
+}
+
 void
 open_tun (const char *dev, const char *dev_type, const char *dev_node, bool ipv6, struct tuntap *tt)
 {
@@ -2074,12 +2083,46 @@ read_tun (struct tuntap* tt, uint8_t *buf, int len)
 int
 write_tun (struct tuntap* tt, uint8_t *buf, int len)
 {
+  if (tt->type == DEV_TYPE_TUN)
+    {
+      u_int32_t type;
+      struct iovec iv[2];
+      struct openvpn_iphdr *iph;
+
+      iph = (struct openvpn_iphdr *) buf;
+
+      if (tt->ipv6 && OPENVPN_IPH_GET_VER(iph->version_len) == 6)
+        type = htonl (AF_INET6);
+      else 
+        type = htonl (AF_INET);
+
+      iv[0].iov_base = (char *)&type;
+      iv[0].iov_len = sizeof (type);
+      iv[1].iov_base = buf;
+      iv[1].iov_len = len;
+
+      return netbsd_modify_read_write_return (writev (tt->fd, iv, 2));
+    }
+  else
     return write (tt->fd, buf, len);
 }
 
 int
 read_tun (struct tuntap* tt, uint8_t *buf, int len)
 {
+  if (tt->type == DEV_TYPE_TUN)
+    {
+      u_int32_t type;
+      struct iovec iv[2];
+
+      iv[0].iov_base = (char *)&type;
+      iv[0].iov_len = sizeof (type);
+      iv[1].iov_base = buf;
+      iv[1].iov_len = len;
+
+      return netbsd_modify_read_write_return (readv (tt->fd, iv, 2));
+    }
+  else
     return read (tt->fd, buf, len);
 }
 #endif	/* NETBSD_MULTI_AF */

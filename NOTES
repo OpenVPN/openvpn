@@ -1,0 +1,180 @@
+TODO:
+
+ * tun.c -> init_tun()
+    [ifconfig-Parameter vorbereiten]
+
+    init.c -> do_open_tun() -> init.c::do_init_tun() -> tun.c::init_tun()
+			    -> do_ifconfig()
+
+ o tun.c -> do_ifconfig()
+    [ifconfig/ip aufrufen]
+
+    * Linux / ifconfig  
+    / Linux / iproute2  ** TESTEN **
+    o FreeBSD
+    / NetBSD ("needs patch", googlen) ** TESTEN **
+    / Solaris                         ** TESTEN **
+    o OpenBSD
+    o MacOS X
+
+ o tun.c (?) -> interface cleanup ("ip addr del dev tun0 ...")
+
+ o TAP mode und IPv6?  Fehlermeldung?
+    o einfach confen
+
+ o ifconfig_ipv6_remote -> kann eigentlich ersatzlos wegfallen
+   [tun.c, init.c, options.c, options.h]
+   o [kann nicht, braucht man als default-gateway auf Solaris :( ]
+
+ * push ifconfig-ipv6
+   push::send_push_reply() -> c->c2.push_ifconfig_local
+
+   ** wo wird das gesetzt? ** multi.c (und ggf. options.c / ifconfig-push)
+
+   o /netbits pushen (push.c) -> options.c "ifconfig-ipv6" muss auch
+     damit zurecht kommen, tut es derzeit aber nicht
+
+ * ifconfig_pool_write() -> IPv6 "wenn pool IPv6 hat"
+
+ * multi::multi_init() -> ifconfig_pool_init()
+   
+
+ * "route-ipv6"-Option und "push route-ipv6"
+   o "gateway" 
+   o "metric"
+   o "route-gateway-ipv6"-Option
+   o "ifconfig-ipv6-push"-Option
+      options.c -> options.push_ifconfig_...
+      multi.c 
+	mi->context.c2.push_ifconfig_local = mi->context.options.push_ifconfig_local;
+
+
+ o "server-ipv6"-Option
+
+   o options.c, add_option() -> wird fuer "lokale" und "push"-Options
+     aufgerufen
+     no_more_than_n_args()
+     struct options [options.h]
+
+   * add_route_to_option_list() 
+     [route.c -> add_route_ipv6_to_option_list]
+     [options.h -> options->routes_ipv6]
+
+     o was passiert danach damit?
+
+   * socket.c: ip_or_dns_addr_safe()
+     --> ipv6_addr_safe()
+     --> ipv6_addr_safe_hexplusbits()
+
+   * Makro?  helper.c -> helper_client_server()      ******
+     * Fehler, wenn options->mode != MODE_SERVER
+     * "tun-ipv6" auto-enablen
+
+   * if (options->tun_ipv6)
+		 msg (M_USAGE, "--tun-ipv6 cannot be used with --mode server");
+     [options.c, 1710]
+     [raus]
+
+   o struct tuntap->ipv6 = true, wenn "ipv6" und "system kann das"
+   o Fehler, wenn System kein IPv6 kann
+     ("NetBSD needs patch" -> googlen)
+
+ o Adress-Allokation an Clients (/128 aus ifconfig-ipv6-pool /64 erstmal nur)
+   o hash aus Client-Key als host part?
+     (nein, wir nehmen einfach "den gleichen Offset wie bei IPv4" und
+     add_in6_addr())
+
+ o "iroute-ipv6"-Option
+ o "ifconfig-ipv6"
+ o "ifconfig-ipv6-pool"
+ o "ifconfig-pool-persist-ipv6"-Option
+
+ o was tut #define LINUX_IPV6?
+ o was tut bestehender Code mit "ipv6"?
+
+
+ o Routing-/Forwarding-Funktion
+   read_tun() --> ??
+   ?? --> write_tun() 
+
+   [muss für p2p schon funktionieren, d.h. vermutlich ist nur die
+   server-seite anzupassen]
+
+ o ICMP
+
+ o Optionen dokumentieren (-> berniv6)
+   o server-ipv6
+   o ifconfig-ipv6
+   o ifconfig-ipv6-pool
+   o ifconfig-pool-persist (v4+v6, Formataenderung im File)
+   o iroute-ipv6
+   o route-ipv6
+   o tun-ipv6
+
+   * http://www.greenie.net/ipv6/openvpn.html  - DONE
+   o man pages, --help
+
+ * options.c
+    - get_ip_addr() --> socket.c getaddr()
+    - openvpn_inet_aton -> OIA_IP "ist IP"
+
+ * options.c, show_p2mp_parms()
+
+ * socket.c, print_in_addr_t()  --> print_in6_addr()
+
+ o forward_compatible?
+
+ o ifconfig_ipv6_pool_persist --> einfach ifconfig_pool_persist mitbenutzen?
+   Entscheidung: JA
+   o to be implemented: pool.c
+
+ o route.c:
+    clone_route_option_list(), copy_route_option_list(),
+    new_route_list(), add_route(), init_route_list(), ...
+    add_routes(), delete_routes(), setenv_routes(), 
+
+    -> wo werden die aufgerufen, wofuer verwendet, IPv6-Anpassung?
+
+    * add_route() ruft "/sbin/route add..." auf
+    o div. (redirect gateway related) -> route.c::add_route3() -> add_route()
+    o init.c::do_route() -> route.c::add_routes() -> add_route()
+    o init.c::do_open_tun() -> do_route()
+    o forward.c::check_add_routes_action() -> do_route()
+    o init.c::do_open_tun() -> init.c::do_init_route_list() ->
+      route.c::init_route_list()
+    * init.c::do_open_tun() -> do_alloc_route_list() -> new_route_ipv6_list()
+
+ o add_route_ipv6() - implementieren und testen
+    * Linux / ifconfig  
+    * Linux / iproute2
+    i FreeBSD
+    i NetBSD ("needs patch", googlen)
+    i Solaris *braucht Gateway*
+    i OpenBSD
+    i MacOS X
+
+ o delete_route_ipv6() - implementieren und testen
+    * Linux / ifconfig  
+    * Linux / iproute2
+    i FreeBSD
+    i NetBSD ("needs patch", googlen)
+    i Solaris
+    i OpenBSD
+    i MacOS X
+
+ o Gateway-Logik für IPv6-Routen mitschleifen ("explizit angeben oder
+   aus ifconfig-ipv6 $remote")
+
+ o IPv6 TCPMSS oder "fragmentation required"?
+    o IPv6 MTU auf Interface setzen?
+    o sysdep!
+
+
+TESTEN
+ * ipv6_addr_safe() [--ifconfig-ipv6 null/zu lang/invalid]
+ o ipv6_addr_safe_hexplusbits() [--route-ipv6 ...]
+ * get_ipv6_addr() [--server-ipv6 ...]
+
+ o unmodifizierter 2.1-client -> 2.1+ipv6-Server?
+ o unmodifizierter 2.0-client -> 2.1+ipv6-Server?
+ o wie kann der Server das erkennen, und "kein v6" schicken?

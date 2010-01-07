@@ -189,6 +189,8 @@ send_push_reply (struct context *c)
   const int safe_cap = BCAP (&buf) - extra;
   bool push_sent = false;
 
+  msg( M_INFO, "send_push_reply(): safe_cap=%d", safe_cap );
+
   buf_printf (&buf, "%s", cmd);
 
   if ( c->c2.push_ifconfig_ipv6_defined )
