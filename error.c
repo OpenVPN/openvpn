@@ -682,9 +682,12 @@ msg_thread_uninit (void)
 void
 openvpn_exit (const int status)
 {
+  void tun_abort();
 #ifdef ENABLE_PLUGIN
   void plugin_abort (void);
 #endif
+
+  tun_abort();
 
 #ifdef WIN32
   uninit_win32 ();

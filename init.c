@@ -41,6 +41,8 @@
 
 #include "occ-inline.h"
 
+static struct context *static_context; /* GLOBAL */
+
 /*
  * Crypto initialization flags
  */
@@ -1109,6 +1111,7 @@ do_open_tun (struct context *c)
 			       SET_MTU_TUN | SET_MTU_UPPER_BOUND);
 
       ret = true;
+      static_context = c;
     }
   else
     {
@@ -1162,6 +1165,8 @@ do_close_tun (struct context *c, bool force)
 
       if (force || !(c->sig->signal_received == SIGUSR1 && c->options.persist_tun))
 	{
+	  static_context = NULL;
+
 #ifdef ENABLE_MANAGEMENT
 	  /* tell management layer we are about to close the TUN/TAP device */
 	  if (management)
@@ -1216,6 +1221,17 @@ do_close_tun (struct context *c, bool force)
 	}
     }
   gc_free (&gc);
+}
+
+void
+tun_abort()
+{
+  struct context *c = static_context;
+  if (c)
+    {
+      static_context = NULL;
+      do_close_tun (c, true);
+    }
 }
 
 /*
