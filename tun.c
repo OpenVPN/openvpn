@@ -888,6 +888,13 @@ do_ifconfig (struct tuntap *tt,
 
 #elif defined(TARGET_NETBSD)
 
+/* whether or not NetBSD can do IPv6 can be seen by the availability of
+ * the TUNSIFHEAD ioctl() - see next TARGET_NETBSD block for more details
+ */
+#ifdef TUNSIFHEAD
+# define NETBSD_MULTI_AF
+#endif
+
       /* as on OpenBSD and Darwin, destroy and re-create tun0 interface
        */
       argv_printf (&argv, "%s %s destroy", IFCONFIG_PATH, actual );
@@ -922,6 +929,7 @@ do_ifconfig (struct tuntap *tt,
 
       if ( do_ipv6 )
 	{
+#ifdef NETBSD_MULTI_AF
 	  struct route_ipv6 r6;
 	  argv_printf (&argv,
 			  "%s %s inet6 %s/%d",
@@ -939,6 +947,10 @@ do_ifconfig (struct tuntap *tt,
 	  r6.netbits = tt->netbits_ipv6;
 	  r6.gateway = tt->local_ipv6;
 	  add_route_ipv6 (&r6, tt, 0, es);
+#else
+	  msg( M_INFO, "no IPv6 support for tun interfaces on NetBSD before 4.0 (if your system is newer, recompile openvpn)" );
+	  tt->ipv6 = false;
+#endif
 	}
       tt->did_ifconfig = true;
 
@@ -1951,46 +1963,39 @@ read_tun (struct tuntap* tt, uint8_t *buf, int len)
  * NetBSD before 4.0 does not support IPv6 on tun out of the box,
  * but there exists a patch (sys/net/if_tun.c, 1.79->1.80, see PR 32944).
  *
- * When this patch is applied, only two things are left to openvpn:
- * 1. Activate multicasting (this has already been done
- *    before by the kernel, but we make sure that nobody
- *    has deactivated multicasting inbetween.
- * 2. Deactivate "link layer mode" (otherwise NetBSD 
- *    prepends the address family to the packet, and we
- *    would run into the same trouble as with OpenBSD.
+ * NetBSD 4.0 and up do, but we need to put the tun interface into
+ * "multi_af" mode, which will prepend the address family to all packets
+ * (same as OpenBSD and FreeBSD).  If this is not enabled, the kernel
+ * silently drops all IPv6 packets on output and gets confused on input.
  *
- * ... unfortunately, it doesn't work that way.  If TUN_IFHEAD is disabled
- * ("no prepending of the AF"), then the kernel code just drops IPv6 packets
- * on output, and gets confused on input.
+ * On earlier versions, multi_af is not available at all, so we have
+ * two different NetBSD code variants here :-(
  *
- * So we have to do it the same way as FreeBSD and OpenBSD do it 
- * (and we really should merge FreeBSD, NetBSD and OpenBSD together)
  */
-
-static inline int
-netbsd_modify_read_write_return (int len)
-{
-  if (len > 0)
-    return len > sizeof (u_int32_t) ? len - sizeof (u_int32_t) : 0;
-  else
-    return len;
-}
 
 void
 open_tun (const char *dev, const char *dev_type, const char *dev_node, bool ipv6, struct tuntap *tt)
 {
+#ifdef NETBSD_MULTI_AF
     open_tun_generic (dev, dev_type, dev_node, ipv6, true, true, tt);
+#else
+    open_tun_generic (dev, dev_type, dev_node, ipv6, false, true, tt);
+#endif
+
     if (tt->fd >= 0)
       {
         int i = IFF_POINTOPOINT|IFF_MULTICAST;
         ioctl (tt->fd, TUNSIFMODE, &i);  /* multicast on */
         i = 0;
         ioctl (tt->fd, TUNSLMODE, &i);   /* link layer mode off */
+
+#ifdef NETBSD_MULTI_AF
         i = 1;
         if (ioctl (tt->fd, TUNSIFHEAD, &i) < 0) 	/* multi-af mode on */
 	  {
 	    msg (M_WARN | M_ERRNO, "ioctl(TUNSIFHEAD): %s", strerror(errno));
 	  }
+#endif
       }
 }
 
@@ -2005,6 +2010,17 @@ close_tun (struct tuntap *tt)
       close_tun_generic (tt);
       free (tt);
     }
+}
+
+#ifdef NETBSD_MULTI_AF
+
+static inline int
+netbsd_modify_read_write_return (int len)
+{
+  if (len > 0)
+    return len > sizeof (u_int32_t) ? len - sizeof (u_int32_t) : 0;
+  else
+    return len;
 }
 
 int
@@ -2052,6 +2068,21 @@ read_tun (struct tuntap* tt, uint8_t *buf, int len)
   else
     return read (tt->fd, buf, len);
 }
+
+#else	/* not NETBSD_MULTI_AF -> older code, IPv4 only */
+
+int
+write_tun (struct tuntap* tt, uint8_t *buf, int len)
+{
+    return write (tt->fd, buf, len);
+}
+
+int
+read_tun (struct tuntap* tt, uint8_t *buf, int len)
+{
+    return read (tt->fd, buf, len);
+}
+#endif	/* NETBSD_MULTI_AF */
 
 #elif defined(TARGET_FREEBSD)
 
