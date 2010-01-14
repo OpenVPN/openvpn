@@ -22,6 +22,17 @@ known issues for IPv6 payload support in OpenVPN
     For Solaris, only the "ipv6 tun0" is affected, for the *BSDs all tun0
     stay around.
 
+4a.) deconfigure IPv6 on tun interface on session termination, otherwise
+    one could end up with something like this (on NetBSD):
+
+tun0: flags=8051<UP,POINTOPOINT,RUNNING,MULTICAST> mtu 1500
+        inet 10.9.0.18 -> 10.9.0.17 netmask 0xffffffff
+        inet6 fe80::a00:20ff:fece:d299%tun0 ->  prefixlen 64 scopeid 0x3
+        inet6 2001:608:4:eff::2000:3 ->  prefixlen 64
+        inet6 2001:608:4:eff::1:3 ->  prefixlen 64
+
+    (pool was changed, previous address still active on tun0, breakage)
+
 5.) add new option "ifconfig-ipv6-push"
     (per-client static IPv6 assignment, -> radiusplugin, etc)
 
@@ -35,3 +46,26 @@ known issues for IPv6 payload support in OpenVPN
 
 8.) full IPv6 support for TAP interfaces 
     (main issue should be routes+gateway - and testing :-) )
+
+9.) verify that iroute-ipv6 and route-ipv6 interact in the same way as
+    documented for iroute/route:
+
+    A's subnet, OpenVPN must push this route to all clients
+    EXCEPT for A, since the subnet is already owned by A.
+    OpenVPN accomplishes this by not
+    not pushing a route to a client
+    if it matches one of the client's iroutes.
+
+10.) extend "ifconfig-ipv6" to handle specification of /netbits, pushing
+    of /netbits, and correctly ifconfig'ing this
+    (default, if not specified: /64)
+
+11.) do not add ipv6-routes if tun-ipv6 is not set - complain instead
+
+     * done * 12.1.10
+
+12.) handle incoming [::] and [fe80:...] packets in tun-p2mp MULTI mode
+     (most likely those are DAD packets)
+     silently ignore DAD?  
+        Or accept-and-forward iff (multicast && client2client)?
+     handle NS/NA
