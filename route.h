@@ -130,7 +130,7 @@ struct route_ipv6 {
   bool defined;
   const struct route_ipv6_option *option;
   struct in6_addr network;
-  int netbits;
+  unsigned int netbits;
   struct in6_addr gateway;
   bool metric_defined;
   int metric;

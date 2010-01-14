@@ -1237,6 +1237,17 @@ multi_select_virtual_addr (struct multi_context *m, struct multi_instance *mi)
       mi->context.c2.push_ifconfig_defined = true;
       mi->context.c2.push_ifconfig_local = mi->context.options.push_ifconfig_local;
       mi->context.c2.push_ifconfig_remote_netmask = mi->context.options.push_ifconfig_remote_netmask;
+
+      /* the current implementation does not allow "static IPv4, pool IPv6",
+       * (see below) so issue a warning if that happens - don't break the
+       * session, though, as we don't even know if this client WANTS IPv6
+       */
+      if ( mi->context.c1.tuntap->ipv6 &&
+	   mi->context.options.ifconfig_ipv6_pool_defined &&
+	   ! mi->context.options.push_ifconfig_ipv6_defined )
+	{
+	  msg( M_INFO, "MULTI_sva: WARNING: if --ifconfig-push is used for IPv4, automatic IPv6 assignment from --ifconfig-ipv6-pool does not work.  Use --ifconfig-ipv6-push for IPv6 then." );
+	}
     }
   else if (m->ifconfig_pool && mi->vaddr_handle < 0) /* otherwise, choose a pool address */
     {
@@ -1294,6 +1305,30 @@ multi_select_virtual_addr (struct multi_context *m, struct multi_instance *mi)
 	  msg (D_MULTI_ERRORS, "MULTI: no free --ifconfig-pool addresses are available");
 	}
     }
+
+  /* IPv6 push_ifconfig is a bit problematic - since IPv6 shares the 
+   * pool handling with IPv4, the combination "static IPv4, dynamic IPv6"
+   * will fail (because no pool will be allocated in this case).
+   * OTOH, this doesn't make too much sense in reality - and the other
+   * way round ("dynamic IPv4, static IPv6") or "both static" makes sense
+   * -> and so it's implemented right now
+   */
+  if ( mi->context.c1.tuntap->ipv6 &&
+       mi->context.options.push_ifconfig_ipv6_defined )
+    {
+      mi->context.c2.push_ifconfig_ipv6_local = 
+	    mi->context.options.push_ifconfig_ipv6_local;
+      mi->context.c2.push_ifconfig_ipv6_remote = 
+	    mi->context.options.push_ifconfig_ipv6_remote;
+      mi->context.c2.push_ifconfig_ipv6_netbits = 
+	    mi->context.options.push_ifconfig_ipv6_netbits;
+      mi->context.c2.push_ifconfig_ipv6_defined = true;
+
+      msg( M_INFO, "MULTI_sva: push_ifconfig_ipv6 %s/%d", 
+	    print_in6_addr( mi->context.c2.push_ifconfig_ipv6_local, 0, &gc ),
+	    mi->context.c2.push_ifconfig_ipv6_netbits );
+    }
+
   gc_free (&gc);
 }
 

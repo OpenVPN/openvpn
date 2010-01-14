@@ -395,6 +395,10 @@ static const char usage_message[] =
   "--ifconfig-push local remote-netmask : Push an ifconfig option to remote,\n"
   "                  overrides --ifconfig-pool dynamic allocation.\n"
   "                  Only valid in a client-specific config file.\n"
+  "--ifconfig-ipv6-push local/bits remote : Push an ifconfig-ipv6 option to\n"
+  "                  remote, overrides --ifconfig-ipv6-pool allocation.\n"
+  "                  Only valid in a client-specific config file.\n"
+  "--iroute network [netmask] : Route subnet to client.\n"
   "--iroute network [netmask] : Route subnet to client.\n"
   "--iroute-ipv6 network/bits : Route IPv6 subnet to client.\n"
   "                  Sets up internal routes only.\n"
@@ -881,47 +885,67 @@ get_ip_addr (const char *ip_string, int msglevel, bool *error)
   return ret;
 }
 
-/* parse a text string containing an IPv6 address + netbits
+/* helper: parse a text string containing an IPv6 address + netbits
  * in "standard format" (2001:dba::/32)
+ * "/nn" is optional, default to /64 if missing
+ *
  * return true if parsing succeeded, modify *network and *netbits
+ * return address part without "/nn" in *printable_ipv6 (if != NULL)
  */
 bool
 get_ipv6_addr( const char * prefix_str, struct in6_addr *network,
-	       unsigned int * netbits, int msglevel )
+	       unsigned int * netbits, char ** printable_ipv6, int msglevel )
 {
     int rc;
     char * sep, * endp;
     int bits;
+    struct in6_addr t_network;
 
     sep = strchr( prefix_str, '/' );
     if ( sep == NULL )
-    {
-      msg (msglevel, "IPv6 prefix '%s': missing '/'", prefix_str);
-      return false;
-    }
-
-    bits = strtol( sep+1, &endp, 10 );
-    if ( *endp != '\0' || bits < 0 || bits > 128 )
-    {
-      msg (msglevel, "IPv6 prefix '%s': invalid '/bits' spec", prefix_str);
-      return false;
-    }
+      {
+ 	bits = 64;
+      }
+    else
+      {
+	bits = strtol( sep+1, &endp, 10 );
+	if ( *endp != '\0' || bits < 0 || bits > 128 )
+	  {
+	    msg (msglevel, "IPv6 prefix '%s': invalid '/bits' spec", prefix_str);
+	    return false;
+	  }
+      }
 
     /* temporary replace '/' in caller-provided string with '\0', otherwise
      * inet_pton() will refuse prefix string
      * (alternative would be to strncpy() the prefix to temporary buffer)
      */
 
-    *sep = '\0';
-    rc = inet_pton( AF_INET6, prefix_str, network );
-    *sep = '/';
+    if ( sep != NULL ) *sep = '\0';
+
+    rc = inet_pton( AF_INET6, prefix_str, &t_network );
+
+    if ( rc == 1 && printable_ipv6 != NULL )
+      {
+	*printable_ipv6 = string_alloc( prefix_str, NULL );
+      }
+
+    if ( sep != NULL ) *sep = '/';
 
     if ( rc != 1 )
-    {
-      msg (msglevel, "IPv6 prefix '%s': invalid network part", prefix_str);
-      return false;
-    }
-    *netbits = bits;
+      {
+	msg (msglevel, "IPv6 prefix '%s': invalid IPv6 address", prefix_str);
+	return false;
+      }
+
+    if ( netbits != NULL )
+      {
+	*netbits = bits;
+      }
+    if ( network != NULL )
+      {
+	*network = t_network;
+      }
     return true;		/* parsing OK, values set */
 }
 
@@ -930,7 +954,7 @@ static bool ipv6_addr_safe_hexplusbits( const char * ipv6_prefix_spec )
     struct in6_addr t_addr;
     unsigned int t_bits;
 
-    return get_ipv6_addr( ipv6_prefix_spec, &t_addr, &t_bits, M_WARN );
+    return get_ipv6_addr( ipv6_prefix_spec, &t_addr, &t_bits, NULL, M_WARN );
 }
 
 static char *
@@ -1073,6 +1097,7 @@ show_p2mp_parms (const struct options *o)
   msg (D_SHOW_PARMS, "  ifconfig_pool_netmask = %s", print_in_addr_t (o->ifconfig_pool_netmask, 0, &gc));
   SHOW_STR (ifconfig_pool_persist_filename);
   SHOW_INT (ifconfig_pool_persist_refresh_freq);
+  SHOW_BOOL (ifconfig_ipv6_pool_defined);
   msg (D_SHOW_PARMS, "  ifconfig_ipv6_pool_base = %s", print_in6_addr (o->ifconfig_ipv6_pool_base, 0, &gc));
   SHOW_INT (ifconfig_ipv6_pool_netbits);
   SHOW_INT (n_bcast_buf);
@@ -1088,6 +1113,9 @@ show_p2mp_parms (const struct options *o)
   SHOW_BOOL (push_ifconfig_defined);
   msg (D_SHOW_PARMS, "  push_ifconfig_local = %s", print_in_addr_t (o->push_ifconfig_local, 0, &gc));
   msg (D_SHOW_PARMS, "  push_ifconfig_remote_netmask = %s", print_in_addr_t (o->push_ifconfig_remote_netmask, 0, &gc));
+  SHOW_BOOL (push_ifconfig_ipv6_defined);
+  msg (D_SHOW_PARMS, "  push_ifconfig_ipv6_local = %s/%d", print_in6_addr (o->push_ifconfig_ipv6_local, 0, &gc), o->push_ifconfig_ipv6_netbits );
+  msg (D_SHOW_PARMS, "  push_ifconfig_ipv6_remote = %s", print_in6_addr (o->push_ifconfig_ipv6_remote, 0, &gc));
   SHOW_BOOL (enable_c2c);
   SHOW_BOOL (duplicate_cn);
   SHOW_INT (cf_max);
@@ -1151,7 +1179,7 @@ option_iroute_ipv6 (struct options *o,
 
   ALLOC_OBJ_GC (ir, struct iroute_ipv6, &o->gc);
 
-  if ( get_ipv6_addr (prefix_str, &ir->network, &ir->netbits, msglevel ) < 0 )
+  if ( get_ipv6_addr (prefix_str, &ir->network, &ir->netbits, NULL, msglevel ) < 0 )
     {
       msg (msglevel, "in --iroute-ipv6 %s: Bad IPv6 prefix specification",
 	   prefix_str);
@@ -1296,6 +1324,7 @@ show_settings (const struct options *o)
   SHOW_BOOL (ifconfig_noexec);
   SHOW_BOOL (ifconfig_nowarn);
   SHOW_STR (ifconfig_ipv6_local);
+  SHOW_INT (ifconfig_ipv6_netbits);
   SHOW_STR (ifconfig_ipv6_remote);
 
 #ifdef HAVE_GETTIMEOFDAY
@@ -1985,6 +2014,11 @@ options_postprocess_verify_ce (const struct options *options, const struct conne
 	msg (M_USAGE, "--up-delay cannot be used with --mode server");
       if (!options->ifconfig_pool_defined && options->ifconfig_pool_persist_filename)
 	msg (M_USAGE, "--ifconfig-pool-persist must be used with --ifconfig-pool");
+      if (options->ifconfig_ipv6_pool_defined && !options->ifconfig_ipv6_local )
+	msg (M_USAGE, "--ifconfig-ipv6-pool needs --ifconfig-ipv6");
+      if (options->ifconfig_ipv6_local && !options->tun_ipv6 )
+	msg (M_INFO, "Warning: --ifconfig-ipv6 without --tun-ipv6 will not do IPv6");
+
       if (options->auth_user_pass_file)
 	msg (M_USAGE, "--auth-user-pass cannot be used with --mode server (it should be used on the client side only)");
       if (options->ccd_exclusive && !options->client_config_dir)
@@ -2016,6 +2050,8 @@ options_postprocess_verify_ce (const struct options *options, const struct conne
        */
       if (options->ifconfig_pool_defined || options->ifconfig_pool_persist_filename)
 	msg (M_USAGE, "--ifconfig-pool/--ifconfig-pool-persist requires --mode server");
+      if (options->ifconfig_ipv6_pool_defined)
+	msg (M_USAGE, "--ifconfig-ipv6-pool requires --mode server");
       if (options->real_hash_size != defaults.real_hash_size
 	  || options->virtual_hash_size != defaults.virtual_hash_size)
 	msg (M_USAGE, "--hash-size requires --mode server");
@@ -3894,11 +3930,20 @@ add_option (struct options *options,
     }
   else if (streq (p[0], "ifconfig-ipv6") && p[1] && p[2] )
     {
+      unsigned int netbits;
+      char * ipv6_local;
+	
       VERIFY_PERMISSION (OPT_P_UP);
-      /* TODO: should we accept address + netbits (2001:db8::1/64) here? */
-      if ( ipv6_addr_safe( p[1] ) && ipv6_addr_safe( p[2] ) )
+      if ( get_ipv6_addr( p[1], NULL, &netbits, &ipv6_local, msglevel ) &&
+           ipv6_addr_safe( p[2] ) )
         {
-	  options->ifconfig_ipv6_local = p[1];
+	  if ( netbits < 64 || netbits > 124 )
+	    {
+	      msg( msglevel, "ifconfig-ipv6: /netbits must be between 64 and 124, not '/%d'", netbits );
+	      goto err;
+	    }
+	  options->ifconfig_ipv6_local = ipv6_local;
+	  options->ifconfig_ipv6_netbits = netbits;
 	  options->ifconfig_ipv6_remote = p[2];
         }
       else
@@ -4945,7 +4990,7 @@ add_option (struct options *options,
       unsigned int netbits = 0;
 
       VERIFY_PERMISSION (OPT_P_GENERAL);
-      if ( ! get_ipv6_addr (p[1], &network, &netbits, lev) )
+      if ( ! get_ipv6_addr (p[1], &network, &netbits, NULL, lev) )
 	{
 	  msg (msglevel, "error parsing --server-ipv6 parameter");
 	  goto err;
@@ -4961,7 +5006,7 @@ add_option (struct options *options,
 
       if (p[2])		/* no "nopool" options or similar for IPv6 */
 	{
-	  msg (msglevel, "error parsing --server: %s is not a recognized flag", p[3]);
+	  msg (msglevel, "error parsing --server-ipv6: %s is not a recognized flag", p[3]);
 	  goto err;
 	}
     }
@@ -5056,7 +5101,7 @@ add_option (struct options *options,
       unsigned int netbits = 0;
 
       VERIFY_PERMISSION (OPT_P_GENERAL);
-      if ( ! get_ipv6_addr (p[1], &network, &netbits, lev ) )
+      if ( ! get_ipv6_addr (p[1], &network, &netbits, NULL, lev ) )
 	{
 	  msg (msglevel, "error parsing --ifconfig-ipv6-pool parameters");
 	  goto err;
@@ -5308,6 +5353,43 @@ add_option (struct options *options,
 	  msg (msglevel, "cannot parse --ifconfig-push-constraint addresses");
 	  goto err;
 	}
+    }
+  else if (streq (p[0], "ifconfig-ipv6-push") && p[1] )
+    {
+      struct in6_addr local, remote;
+      unsigned int netbits;
+
+      VERIFY_PERMISSION (OPT_P_INSTANCE);
+
+      if ( ! get_ipv6_addr( p[1], &local, &netbits, NULL, msglevel ) )
+	{
+	  msg (msglevel, "cannot parse --ifconfig-ipv6-push addresses");
+	  goto err;
+	}
+
+      if ( p[2] )
+	{
+	  if ( !get_ipv6_addr( p[2], &remote, NULL, NULL, msglevel ) )
+	    {
+	      msg( msglevel, "cannot parse --ifconfig-ipv6-push addresses");
+	      goto err;
+	    }
+	}
+      else
+	{
+	  if ( ! options->ifconfig_ipv6_local ||
+	       ! get_ipv6_addr( options->ifconfig_ipv6_local, &remote, 
+				NULL, NULL, msglevel ) )
+	    {
+	      msg( msglevel, "second argument to --ifconfig-ipv6-push missing and no global --ifconfig-ipv6 address set");
+	      goto err;
+	    }
+	}
+
+      options->push_ifconfig_ipv6_defined = true;
+      options->push_ifconfig_ipv6_local = local;
+      options->push_ifconfig_ipv6_netbits = netbits;
+      options->push_ifconfig_ipv6_remote = remote;
     }
   else if (streq (p[0], "disable"))
     {

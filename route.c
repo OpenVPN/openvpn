@@ -35,6 +35,7 @@
 #include "socket.h"
 #include "manage.h"
 #include "win32.h"
+#include "options.h"
 
 #include "memdbg.h"
 
@@ -338,7 +339,7 @@ init_route_ipv6 (struct route_ipv6 *r6,
   r6->option = r6o;
   r6->defined = false;
 
-  if ( !get_ipv6_addr( r6o->prefix, &r6->network, &r6->netbits, M_WARN ))
+  if ( !get_ipv6_addr( r6o->prefix, &r6->network, &r6->netbits, NULL, M_WARN ))
     goto fail;
 
   /* gateway */
@@ -1300,6 +1301,13 @@ add_route_ipv6 (struct route_ipv6 *r6, const struct tuntap *tt, unsigned int fla
   network = print_in6_addr( network_copy, 0, &gc);
   gateway = print_in6_addr( r6->gateway, 0, &gc);
 
+  if ( !tt->ipv6 )
+    {
+      msg( M_INFO, "add_route_ipv6(): not adding %s/%d, no IPv6 on if %s",
+		    network, r6->netbits, device );
+      return;
+    }
+
   msg( M_INFO, "add_route_ipv6(%s/%d -> %s metric %d) dev %s",
 		network, r6->netbits, gateway, r6->metric, device );
 
@@ -1549,6 +1557,13 @@ delete_route_ipv6 (const struct route_ipv6 *r6, const struct tuntap *tt, unsigne
 
   network = print_in6_addr( r6->network, 0, &gc);
   gateway = print_in6_addr( r6->gateway, 0, &gc);
+
+  if ( !tt->ipv6 )
+    {
+      msg( M_INFO, "delete_route_ipv6(): not deleting %s/%d, no IPv6 on if %s",
+		    network, r6->netbits, device );
+      return;
+    }
 
   msg( M_INFO, "delete_route_ipv6(%s/%d)", network, r6->netbits );
 

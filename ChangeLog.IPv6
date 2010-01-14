@@ -187,3 +187,45 @@ Mon Jan  4 17:46:58 CET 2010
     on the Solaris side via "ndpd.conf" (see ``man ifconfig'').
 
   * release as patch 20100104-1
+
+Fri Jan  8 10:00:50 CET 2010
+
+  * import into git repository
+
+  * options.c: add sanity checks for most typical error cases
+    (--ifconfig-ipv6-pool configured with no --ifconfig-ipv6, etc)
+
+  * options.c: modify get_ipv6_addr() to be more flexible about netbits
+    (optional now, default to /64) and to return the address-without-netbits
+    string now (-> for options that want the IPv6 address in printable
+    form, but without /nn)
+
+  * options.c: modify --ifconfig-ipv6 to optionally accept /netbits,
+    you can do now "ifconfig-ipv6 2001:df8::1/64 2001:df8::2" or just
+    "ifconfig-ipv6 2001:df8::5 2001:df8::7", defaulting to /64
+
+  * options.h: add necessary structure elements for --ifconfig-ipv6-push
+
+  * options.c: implement "parse options" side of --ifconfig-ipv6-push
+
+Tue Jan 12 22:42:09 CET 2010
+
+  * tun.c: in TARGET_NETBSD #ifdef, distinguish between "old" code
+    (IPv4 only, but unmodified read/write) and "new" code (multi-af, 
+    extra 32 bit AF on read/write of the tun interface) - pre-4.0
+    NetBSD systems don't have TUNSIFHEAD, no way to have common code.
+
+  * TEST SUCCESS: NetBSD 5.0/Sparc64: client-ipv6 with route-ipv6 (v4+v6)
+
+  * TEST SUCCESS: NetBSD 3.1/Sparc64: client-ipv6 with route-ipv6 (v4-only)
+
+Thu Jan 14 15:41:50 CET 2010
+
+  * multi.c: if "--ifconfig-push" is used together with "--ifconfig-ipv6-pool"
+    and no "--ifconfig-ipv6-push" is seen, issue warning - the current
+    implementation of pools has IPv6 tied to IPv4, so if v4 does not use
+    the pool, it breaks for IPv6.  Not a *big* problem (since there is 
+    enough v6, just give those users a static v6 address as well), but needs
+    to be pointed out clearly.
+
+  * release as patch 20100114-1

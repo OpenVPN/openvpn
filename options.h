@@ -206,6 +206,7 @@ struct options
   const char *ifconfig_local;
   const char *ifconfig_remote_netmask;
   const char *ifconfig_ipv6_local;
+  int         ifconfig_ipv6_netbits;
   const char *ifconfig_ipv6_remote;
   bool ifconfig_noexec;
   bool ifconfig_nowarn;
@@ -412,6 +413,10 @@ struct options
   bool push_ifconfig_constraint_defined;
   in_addr_t push_ifconfig_constraint_network;
   in_addr_t push_ifconfig_constraint_netmask;
+  bool            push_ifconfig_ipv6_defined;		/* IPv6 */
+  struct in6_addr push_ifconfig_ipv6_local;		/* IPv6 */
+  int 		  push_ifconfig_ipv6_netbits;		/* IPv6 */
+  struct in6_addr push_ifconfig_ipv6_remote;		/* IPv6 */
   bool enable_c2c;
   bool duplicate_cn;
   int cf_max;
@@ -735,7 +740,8 @@ void options_string_import (struct options *options,
 			    struct env_set *es);
 
 bool get_ipv6_addr( const char * prefix_str, struct in6_addr *network,
-		    unsigned int * netbits, int msglevel );
+		    unsigned int * netbits, char ** printable_ipv6, 
+		    int msglevel );
 
 /*
  * inline functions
