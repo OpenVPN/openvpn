@@ -1228,6 +1228,10 @@ tls_authentication_status (struct tls_multi *multi, const int latency)
 }
 
 #ifdef MANAGEMENT_DEF_AUTH
+/*
+ * For deferred auth, this is where the management interface calls (on server)
+ * to indicate auth failure/success.
+ */
 bool
 tls_authenticate_key (struct tls_multi *multi, const unsigned int mda_key_id, const bool auth, const char *client_reason)
 {

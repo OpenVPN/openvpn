@@ -1843,6 +1843,20 @@ compute_wakeup_sigma (const struct timeval *delta)
     }
 }
 
+static void
+multi_schedule_context_wakeup (struct multi_context *m, struct multi_instance *mi)
+{
+  /* calculate an absolute wakeup time */
+  ASSERT (!openvpn_gettimeofday (&mi->wakeup, NULL));
+  tv_add (&mi->wakeup, &mi->context.c2.timeval);
+
+  /* tell scheduler to wake us up at some point in the future */
+  schedule_add_entry (m->schedule,
+		      (struct schedule_entry *) mi,
+		      &mi->wakeup,
+		      compute_wakeup_sigma (&mi->context.c2.timeval));
+}
+
 /*
  * Figure instance-specific timers, convert
  * earliest to absolute time in mi->wakeup,
@@ -1863,15 +1877,8 @@ multi_process_post (struct multi_context *m, struct multi_instance *mi, const un
 
       if (!IS_SIG (&mi->context))
 	{
-	  /* calculate an absolute wakeup time */
-	  ASSERT (!openvpn_gettimeofday (&mi->wakeup, NULL));
-	  tv_add (&mi->wakeup, &mi->context.c2.timeval);
-
 	  /* tell scheduler to wake us up at some point in the future */
-	  schedule_add_entry (m->schedule,
-			      (struct schedule_entry *) mi,
-			      &mi->wakeup,
-			      compute_wakeup_sigma (&mi->context.c2.timeval));
+	  multi_schedule_context_wakeup(m, mi);
 
 	  /* connection is "established" when SSL/TLS key negotiation succeeds
 	     and (if specified) auth user/pass succeeds */
@@ -2566,13 +2573,24 @@ management_client_auth (void *arg,
       ret = tls_authenticate_key (mi->context.c2.tls_multi, mda_key_id, auth, client_reason);
       if (ret)
 	{
-	  if (auth && !mi->connection_established_flag)
+	  if (auth)
 	    {
-	      set_cc_config (mi, cc_config);
-	      cc_config_owned = false;
+	      if (!mi->connection_established_flag)
+		{
+		  set_cc_config (mi, cc_config);
+		  cc_config_owned = false;
+		}
 	    }
-	  if (!auth && reason)
-	    msg (D_MULTI_LOW, "MULTI: connection rejected: %s, CLI:%s", reason, np(client_reason));
+	  else
+	    {
+	      if (reason)
+		msg (D_MULTI_LOW, "MULTI: connection rejected: %s, CLI:%s", reason, np(client_reason));
+	      if (mi->connection_established_flag)
+		{
+		  send_auth_failed (&mi->context, client_reason); /* mid-session reauth failed */
+		  multi_schedule_context_wakeup(m, mi);
+		}
+	    }
 	}
     }
   if (cc_config_owned && cc_config)
