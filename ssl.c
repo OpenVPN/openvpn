@@ -7,6 +7,10 @@
  *
  *  Copyright (C) 2002-2009 OpenVPN Technologies, Inc. <sales@openvpn.net>
  *
+ *  Additions for eurephia plugin done by:
+ *         David Sommerseth <dazo@users.sourceforge.net> Copyright (C) 2008-2009
+ *
+ *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
  *  as published by the Free Software Foundation.
@@ -780,6 +784,16 @@ verify_callback (int preverify_ok, X509_STORE_CTX * ctx)
   openvpn_snprintf (envname, sizeof(envname), "tls_id_%d", ctx->error_depth);
   setenv_str (opt->es, envname, subject);
 
+#ifdef ENABLE_EUREPHIA
+  /* export X509 cert SHA1 fingerprint */
+  {
+    struct gc_arena gc = gc_new ();
+    openvpn_snprintf (envname, sizeof(envname), "tls_digest_%d", ctx->error_depth);
+    setenv_str (opt->es, envname,
+		format_hex_ex(ctx->current_cert->sha1_hash, SHA_DIGEST_LENGTH, 0, 1, ":", &gc));
+    gc_free(&gc);
+  }
+#endif
 #if 0
   /* export common name string as environmental variable */
   openvpn_snprintf (envname, sizeof(envname), "tls_common_name_%d", ctx->error_depth);

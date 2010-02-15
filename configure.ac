@@ -99,6 +99,12 @@ AC_ARG_ENABLE(plugins,
    [PLUGINS="yes"]
 )
 
+AC_ARG_ENABLE(eurephia,
+   [  --disable-eurephia      Disable support for the eurephia plug-in],
+   [EUREPHIA="$enableval"],
+   [EUREPHIA="yes"]
+)
+
 AC_ARG_ENABLE(management,
    [  --disable-management    Disable management server support],
    [MANAGEMENT="$enableval"],
@@ -632,6 +638,9 @@ if test "${WIN32}" != "yes"; then
            )],
            [AC_MSG_RESULT([libdl headers not found.])]
       )
+      if test "$EUREPHIA" = "yes"; then
+         AC_DEFINE(ENABLE_EUREPHIA, 1, [Enable support for the eurephia plug-in])
+      fi
    fi
 fi
 
