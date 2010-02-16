@@ -433,7 +433,6 @@ init_tun (const char *dev,       /* --dev option */
 {
   struct gc_arena gc = gc_new ();
   struct tuntap *tt;
-  bool tun;
 
   ALLOC_OBJ (tt, struct tuntap);
   clear_tuntap (tt);
@@ -441,16 +440,17 @@ init_tun (const char *dev,       /* --dev option */
   tt->type = dev_type_enum (dev, dev_type);
   tt->topology = topology;
 
-  /*
-   * We only handle TUN/TAP devices here, not --dev null devices.
-   */
-  tun = is_tun_p2p (tt);
-
   if (ifconfig_local_parm && ifconfig_remote_netmask_parm)
     {
+      bool tun = false;
       const char *ifconfig_local = NULL;
       const char *ifconfig_remote_netmask = NULL;
       const char *ifconfig_broadcast = NULL;
+
+      /*
+       * We only handle TUN/TAP devices here, not --dev null devices.
+       */
+      tun = is_tun_p2p (tt);
 
       /*
        * Convert arguments to binary IPv4 addresses.
