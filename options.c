@@ -400,7 +400,6 @@ static const char usage_message[] =
   "                  remote, overrides --ifconfig-ipv6-pool allocation.\n"
   "                  Only valid in a client-specific config file.\n"
   "--iroute network [netmask] : Route subnet to client.\n"
-  "--iroute network [netmask] : Route subnet to client.\n"
   "--iroute-ipv6 network/bits : Route IPv6 subnet to client.\n"
   "                  Sets up internal routes only.\n"
   "                  Only valid in a client-specific config file.\n"
