@@ -69,3 +69,16 @@ tun0: flags=8051<UP,POINTOPOINT,RUNNING,MULTICAST> mtu 1500
      silently ignore DAD?  
         Or accept-and-forward iff (multicast && client2client)?
      handle NS/NA
+
+13.) from Martin List-Petersen:
+
+	One thing, and I guess this requires modifications in
+	network-manager-openvpn: It also works, BUT ignores "push
+	route-ipv6-gateway" and "push route-ipv6 ...." (obviously routes pushed
+	from the server) entirely.
+
+14.) from ##openvpn-discussion:
+
+	new features should be #ifdef'ed
+
+	(check whether this is feasible at all)

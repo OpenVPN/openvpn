@@ -229,3 +229,14 @@ Thu Jan 14 15:41:50 CET 2010
     to be pointed out clearly.
 
   * release as patch 20100114-1
+
+Tue Feb 16 14:43:28 CET 2010
+
+  * options.c: print "IPv6 payload patch" release date in "--version"
+
+  * tun.c: undo change to init_tun() (moving "bool tun" and call to
+    "is_tun_p2p()" further up) - it wasn't needed and breaks "make check"
+
+  * git stuff: rebase on David Sommerseth's openvpn-testing git tree
+
+  * release as patch 20100216-1
