@@ -212,12 +212,11 @@ getaddr (unsigned int flags,
 		++n;
 	      ASSERT (n >= 2);
 
-	      msg (D_RESOLVE_ERRORS, "RESOLVE: NOTE: %s resolves to %d addresses, choosing one by random",
+	      msg (D_RESOLVE_ERRORS, "RESOLVE: NOTE: %s resolves to %d addresses, choosing the first resolved IP address",
 		   hostname,
 		   n);
 
-	      /* choose address randomly, for basic load-balancing capability */
-	      ia.s_addr = *(in_addr_t *) (h->h_addr_list[get_random () % n]);
+	      ia.s_addr = *(in_addr_t *) (h->h_addr_list[0]);
 	    }
 	}
 
