@@ -755,7 +755,7 @@ process_incoming_link (struct context *c)
 
   /* log incoming packet */
 #ifdef LOG_RW
-  if (c->c2.log_rw)
+  if (c->c2.log_rw && c->c2.buf.len > 0)
     fprintf (stderr, "R");
 #endif
   msg (D_LINK_RW, "%s READ [%d] from %s: %s",
@@ -965,7 +965,7 @@ process_incoming_tun (struct context *c)
     c->c2.tun_read_bytes += c->c2.buf.len;
 
 #ifdef LOG_RW
-  if (c->c2.log_rw)
+  if (c->c2.log_rw && c->c2.buf.len > 0)
     fprintf (stderr, "r");
 #endif
 
