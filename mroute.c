@@ -359,37 +359,7 @@ mroute_addr_print_ex (const struct mroute_addr *ma,
 	  }
 	  break;
 	case MR_ADDR_IPV6:
-#ifdef USE_PF_INET6
-          {
-	    struct buffer buf;
-	    struct sockaddr_in6 sin6;
-	    int port;
-	    char buf6[INET6_ADDRSTRLEN] = "";
-	    CLEAR(sin6);
-	    sin6.sin6_family = AF_INET6;
-	    buf_set_read (&buf, maddr.addr, maddr.len);
-            if (buf_read(&buf, &sin6.sin6_addr, sizeof (sin6.sin6_addr)))
-            {
-              if (getnameinfo((struct sockaddr *)&sin6, sizeof (struct sockaddr_in6),
-                                      buf6, sizeof (buf6), NULL, 0, NI_NUMERICHOST) != 0)
-                {
-                  buf_printf (&out, "MR_ADDR_IPV6 getnameinfo() err");
-                  break;
-		}
-              buf_puts (&out, buf6);
-	      if (maddr.type & MR_WITH_NETBITS)
-	        buf_printf (&out, "/%d", maddr.netbits);
-              if (maddr.type & MR_WITH_PORT)
-                {
-                  port = buf_read_u16 (&buf);
-                  if (port >= 0)
-                    buf_printf (&out, ":%d", port);
-                }
-	    }
-          }
-#else /* old, pre USE_PF_INET6 code */
 	  buf_printf (&out, "IPV6"); 
-#endif
 	  break;
 	default:
 	  buf_printf (&out, "UNKNOWN"); 
