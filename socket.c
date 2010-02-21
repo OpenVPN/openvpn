@@ -2407,6 +2407,58 @@ link_socket_write_udp_posix_sendmsg (struct link_socket *sock,
 
 #ifdef WIN32
 
+/*
+ * inet_ntop() and inet_pton() wrap-implementations using
+ * WSAAddressToString() and WSAStringToAddress() functions
+ */
+const char *
+inet_ntop(int af, const void *src, char *dst, socklen_t size)
+{
+  struct sockaddr_storage ss;
+  unsigned long s = size;
+
+  CLEAR(ss);
+  ss.ss_family = af;
+
+  switch(af) {
+    case AF_INET:
+      ((struct sockaddr_in *)&ss)->sin_addr = *(struct in_addr *)src;
+      break;
+    case AF_INET6:
+      ((struct sockaddr_in6 *)&ss)->sin6_addr = *(struct in6_addr *)src;
+      break;
+    default:
+      ASSERT (0);
+  }
+  // cannot direclty use &size because of strict aliasing rules
+  return (WSAAddressToString((struct sockaddr *)&ss, sizeof(ss), NULL, dst, &s) == 0)?
+          dst : NULL;
+}
+
+int
+inet_pton(int af, const char *src, void *dst)
+{
+  struct sockaddr_storage ss;
+  int size = sizeof(ss);
+  char src_copy[INET6_ADDRSTRLEN+1];
+
+  CLEAR(ss);
+  // stupid non-const API
+  strncpynt(src_copy, src, INET6_ADDRSTRLEN+1);
+
+  if (WSAStringToAddress(src_copy, af, NULL, (struct sockaddr *)&ss, &size) == 0) {
+    switch(af) {
+      case AF_INET:
+	*(struct in_addr *)dst = ((struct sockaddr_in *)&ss)->sin_addr;
+	return 1;
+      case AF_INET6:
+	*(struct in6_addr *)dst = ((struct sockaddr_in6 *)&ss)->sin6_addr;
+	return 1;
+    }
+  }
+  return 0;
+}
+
 int
 socket_recv_queue (struct link_socket *sock, int maxsize)
 {
