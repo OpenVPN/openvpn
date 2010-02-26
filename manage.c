@@ -1541,17 +1541,18 @@ man_reset_client_socket (struct management *man, const bool exiting)
 {
   if (socket_defined (man->connection.sd_cli))
     {
-      msg (D_MANAGEMENT, "MANAGEMENT: Client disconnected");
 #ifdef WIN32
       man_stop_ne32 (man);
 #endif
       man_close_socket (man, man->connection.sd_cli);
       man->connection.sd_cli = SOCKET_UNDEFINED;
+      man->connection.state = MS_INITIAL;
       command_line_reset (man->connection.in);
       buffer_list_reset (man->connection.out);
 #ifdef MANAGEMENT_DEF_AUTH
       in_extra_reset (&man->connection, false);
 #endif
+      msg (D_MANAGEMENT, "MANAGEMENT: Client disconnected");
     }
   if (!exiting)
     {
@@ -2511,11 +2512,13 @@ man_output_standalone (struct management *man, volatile int *signal_received)
 static int
 man_standalone_event_loop (struct management *man, volatile int *signal_received, const time_t expire)
 {
-  int status;
-  ASSERT (man_standalone_ok (man));
-  status = man_block (man, signal_received, expire);
-  if (status > 0)
-    management_io (man);
+  int status = -1;
+  if (man_standalone_ok (man))
+    {
+      status = man_block (man, signal_received, expire);
+      if (status > 0)
+	management_io (man);
+    }
   return status;
 }
 
@@ -2573,6 +2576,8 @@ management_event_loop_n_seconds (struct management *man, int sec)
       while (true)
 	{
 	  man_standalone_event_loop (man, &signal_received, expire);
+	  if (!signal_received)
+	    man_check_for_signals (&signal_received);
 	  if (signal_received)
 	    return;
 	}
@@ -2662,6 +2667,8 @@ management_query_user_pass (struct management *man,
 	  do
 	    {
 	      man_standalone_event_loop (man, &signal_received, 0);
+	      if (!signal_received)
+		man_check_for_signals (&signal_received);
 	      if (signal_received)
 		{
 		  ret = false;
@@ -2742,6 +2749,8 @@ management_hold (struct management *man)
 	  do
 	    {
 	      man_standalone_event_loop (man, &signal_received, 0);
+	      if (!signal_received)
+		man_check_for_signals (&signal_received);
 	      if (signal_received)
 		break;
 	    } while (!man->persist.hold_release);
