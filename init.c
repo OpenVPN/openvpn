@@ -843,7 +843,7 @@ do_persist_tuntap (const struct options *options)
 	msg (M_FATAL|M_OPTERR,
 	     "options --mktun or --rmtun should only be used together with --dev");
       tuncfg (options->dev, options->dev_type, options->dev_node,
-	      options->tun_ipv6, options->persist_mode,
+	      options->persist_mode,
 	      options->username, options->groupname, &options->tuntap_options);
       if (options->persist_mode && options->lladdr)
         set_lladdr(options->dev, options->lladdr, NULL);
@@ -1282,6 +1282,9 @@ do_init_tun (struct context *c)
 			   !c->options.ifconfig_nowarn,
 			   c->c2.es);
 
+  /* flag tunnel for IPv6 config if --tun-ipv6 is set */
+  c->c1.tuntap->ipv6 = c->options.tun_ipv6;
+
   init_tun_post (c->c1.tuntap,
 		 &c->c2.frame,
 		 &c->options.tuntap_options);
@@ -1331,7 +1334,7 @@ do_open_tun (struct context *c)
 
       /* open the tun device */
       open_tun (c->options.dev, c->options.dev_type, c->options.dev_node,
-		c->options.tun_ipv6, c->c1.tuntap);
+		c->c1.tuntap);
 
       /* set the hardware address */
       if (c->options.lladdr)
