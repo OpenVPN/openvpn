@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 # Make an intermediate CA certificate/private key pair using a locally generated
 # root certificate.

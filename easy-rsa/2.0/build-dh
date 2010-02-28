@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 # Build Diffie-Hellman parameters for the server side
 # of an SSL/TLS connection.
