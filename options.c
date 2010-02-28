@@ -4077,7 +4077,7 @@ add_option (struct options *options,
 
       VERIFY_PERMISSION (OPT_P_GENERAL|OPT_P_CONNECTION);
       port = atoi (p[1]);
-      if (!legal_ipv4_port (port))
+      if ((port != 0) && !legal_ipv4_port (port))
 	{
 	  msg (msglevel, "Bad local port number: %s", p[1]);
 	  goto err;
