@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 # Initialize the $KEY_DIR directory.
 # Note that this script does a

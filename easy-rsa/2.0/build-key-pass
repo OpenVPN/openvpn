@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 # Similar to build-key, but protect the private key
 # with a password.
