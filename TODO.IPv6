@@ -33,8 +33,13 @@ tun0: flags=8051<UP,POINTOPOINT,RUNNING,MULTICAST> mtu 1500
 
     (pool was changed, previous address still active on tun0, breakage)
 
+    * semi-fixed for NetBSD, 28.2.10, always do tun0 destroy / tun0 create
+      before actual ifconfig -- tunnel still lingers after OpenVPN quits
+
 5.) add new option "ifconfig-ipv6-push"
     (per-client static IPv6 assignment, -> radiusplugin, etc)
+
+    * implemented, 14.1.10 *
 
 6.) add new option "route-ipv6-gateway"
 
@@ -82,3 +87,8 @@ tun0: flags=8051<UP,POINTOPOINT,RUNNING,MULTICAST> mtu 1500
 	new features should be #ifdef'ed
 
 	(check whether this is feasible at all)
+
+15.) IPv6 related environment variables
+
+	- document all of them in openvpn.8
+	- make sure that all existing IPv4 stuff has IPv6 counterparts

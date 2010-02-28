@@ -240,3 +240,49 @@ Tue Feb 16 14:43:28 CET 2010
   * git stuff: rebase on David Sommerseth's openvpn-testing git tree
 
   * release as patch 20100216-1
+
+Fri Feb 26 19:59:01 CET 2010
+
+  * init.c: initialize tuntap->ipv6 in do_init_tun() (to make sure it's
+    always initialized early-enough, independent of the sequence of
+    do_ifconfig()/open_tun() [see ifconfig_order() in tun.h])
+
+  * tun.c, init.c: remove "bool ipv6" argument to tuncfg(), open_tun()
+    and open_tun_generic() - obsoleted by previous change
+
+  * tun.c: remove ipv6_support() - original purpose was unclear, and all
+    current platforms (except linux-very-old) fully support IPv6 now :-)
+
+  * tun.c: initial implementation of "netsh" IPv6-ifconfig for Win32
+
+  * RE-TEST SUCCESS: Linux/i386/ifconfig, client-tun/net30, v4+v6
+
+Sun Feb 28 17:05:57 CET 2010
+
+  * tun.c: NetBSD dependent part: correct destroying/re-creation of tun dev
+
+  * tun.c: move adding of "connected" IPv6 prefix to new helper function,
+           add_route_connected_v6_net()
+
+  * RE-TEST SUCCESS: NetBSD 5.0/Sparc64, client-tun/net30, v4+v6
+
+  * RE-TEST SUCCESS: NetBSD 3.1/Sparc64: client-tun/net30, v4-only
+
+  * RE-TEST SUCCESS: Linux/i386/iproute2: server-tun/net30, v4+v6
+
+  * tun.c: add #ifdef TARGET_DARWIN block for *_tun() functions, to
+           be able to modify close_tun() for unconfiguring IPv6
+
+  * tun.c: on close_tun() on MacOS X, need to de-configure "lo0" route for
+           configured IPv6 address
+
+  * RE-TEST SUCCESS: MacOS X (10.5)/i386: client-tun/net30, v4+v6
+
+  * route.c: implement ipv6 route adding / deletion via "netsh" for WIN32
+
+  * TEST FAIL: Windows XP fails, because the tun/tap driver does not
+    forward IPv6 frames kernel->userland if in "tun" mode
+
+  * options.c: set IPv6 version to 20100228-1
+
+  * release as patch 20100228-1
