@@ -860,26 +860,15 @@ do_ifconfig (struct tuntap *tt,
 			  ifconfig_remote_netmask,
 			  tun_mtu
 			  );
-      else {
-	if (tt->topology == TOP_SUBNET)
-            argv_printf (&argv,
-                              "%s %s %s netmask %s mtu %d up",
+      else
+	argv_printf (&argv,
+		      "%s %s %s netmask %s mtu %d up",
                               IFCONFIG_PATH,
                               actual,
                               ifconfig_local,
                               ifconfig_remote_netmask,
                               tun_mtu
                               );
-	else
-  	    argv_printf (&argv,
-			  "%s %s %s netmask %s mtu %d up",
-			  IFCONFIG_PATH,
-			  actual,
-			  ifconfig_local,
-			  ifconfig_remote_netmask,
-			  tun_mtu
-			  );
-      }
 	
       argv_msg (M_INFO, &argv);
       openvpn_execve_check (&argv, es, S_FATAL, "FreeBSD ifconfig failed");
