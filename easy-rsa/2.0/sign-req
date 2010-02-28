@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 # Sign a certificate signing request (a .csr file)
 # with a local root certificate and key.

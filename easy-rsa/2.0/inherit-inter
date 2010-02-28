@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 # Build a new PKI which is rooted on an intermediate certificate generated
 # by ./build-inter or ./pkitool --inter from a parent PKI.  The new PKI should

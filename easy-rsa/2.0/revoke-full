@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 # revoke a certificate, regenerate CRL,
 # and verify revocation
