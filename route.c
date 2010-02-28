@@ -1340,7 +1340,24 @@ add_route_ipv6 (struct route_ipv6 *r6, const struct tuntap *tt, unsigned int fla
 
 #elif defined (WIN32)
 
-  msg( M_FATAL, "no idea how to set IPv6 routes on windows (unimplemented)" );
+  /* netsh interface ipv6 add route 2001:db8::/32 MyTunDevice */
+  argv_printf (&argv, "%s%sc interface ipv6 add route %s/%d %s",
+	       get_win_sys_path(),
+	       NETSH_PATH_SUFFIX,
+	       network,
+	       r6->netbits,
+	       device);
+
+#if 0
+  if (r->metric_defined)
+    argv_printf_cat (&argv, "METRIC %d", r->metric);
+#endif
+
+  argv_msg (D_ROUTE, &argv);
+
+  netcmd_semaphore_lock ();
+  status = openvpn_execve_check (&argv, es, 0, "ERROR: Windows route add ipv6 command failed");
+  netcmd_semaphore_release ();
 
 #elif defined (TARGET_SOLARIS)
 
@@ -1586,7 +1603,24 @@ delete_route_ipv6 (const struct route_ipv6 *r6, const struct tuntap *tt, unsigne
 
 #elif defined (WIN32)
 
-  msg( M_FATAL, "no idea how to delete IPv6 routes on windows (unimplemented)" );
+  /* netsh interface ipv6 delete route 2001:db8::/32 MyTunDevice */
+  argv_printf (&argv, "%s%sc interface ipv6 delete route %s/%d %s",
+	       get_win_sys_path(),
+	       NETSH_PATH_SUFFIX,
+	       network,
+	       r6->netbits,
+	       device);
+
+#if 0
+  if (r->metric_defined)
+    argv_printf_cat (&argv, "METRIC %d", r->metric);
+#endif
+
+  argv_msg (D_ROUTE, &argv);
+
+  netcmd_semaphore_lock ();
+  openvpn_execve_check (&argv, es, 0, "ERROR: Windows route add ipv6 command failed");
+  netcmd_semaphore_release ();
 
 #elif defined (TARGET_SOLARIS)
 
