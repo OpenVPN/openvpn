@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 # Build a certificate signing request and private key.  Use this
 # when your root certificate and key is not available locally.
