@@ -687,6 +687,49 @@ string_mod_sslname (char *str, const unsigned int restrictive_flags, const unsig
     string_mod (str, restrictive_flags, 0, '_');
 }
 
+/* Get peer cert and store it in pem format in a temporary file
+ * in tmp_dir
+ */
+
+const char *
+get_peer_cert(X509_STORE_CTX *ctx, const char *tmp_dir, struct gc_arena *gc)
+{
+  X509 *peercert;
+  FILE *peercert_file;
+  const char *peercert_filename="";
+
+  if(!tmp_dir)
+      return NULL;
+
+  /* get peer cert */
+  peercert = X509_STORE_CTX_get_current_cert(ctx);
+  if(!peercert)
+    {
+      msg (M_ERR, "Unable to get peer certificate from current context");
+      return NULL;
+    }
+
+  /* create tmp file to store peer cert */
+  peercert_filename = create_temp_filename (tmp_dir, "pcf", gc);
+
+  /* write peer-cert in tmp-file */
+  peercert_file = fopen(peercert_filename, "w+");
+  if(!peercert_file)
+    {
+      msg (M_ERR, "Failed to open temporary file : %s", peercert_filename);
+      return NULL;
+    }
+  if(PEM_write_X509(peercert_file,peercert)<0)
+    {
+      msg (M_ERR, "Failed to write peer certificate in PEM format");
+      fclose(peercert_file);
+      return NULL;
+    }
+
+  fclose(peercert_file);
+  return peercert_filename;
+}
+
 /*
  * Our verify callback function -- check
  * that an incoming peer certificate is good.
@@ -885,9 +928,20 @@ verify_callback (int preverify_ok, X509_STORE_CTX * ctx)
   /* run --tls-verify script */
   if (opt->verify_command)
     {
+      const char *tmp_file;
+      struct gc_arena gc;
       int ret;
 
       setenv_str (opt->es, "script_type", "tls-verify");
+
+      if (opt->verify_export_cert)
+        {
+          gc = gc_new();
+          if (tmp_file=get_peer_cert(ctx, opt->verify_export_cert,&gc))
+           {
+             setenv_str(opt->es, "peer_cert", tmp_file);
+           }
+        }
 
       argv_printf (&argv, "%sc %d %s",
 		   opt->verify_command,
@@ -895,6 +949,13 @@ verify_callback (int preverify_ok, X509_STORE_CTX * ctx)
 		   subject);
       argv_msg_prefix (D_TLS_DEBUG, &argv, "TLS: executing verify command");
       ret = openvpn_execve (&argv, opt->es, S_SCRIPT);
+
+      if (opt->verify_export_cert)
+        {
+           if (tmp_file)
+              delete_file(tmp_file);
+           gc_free(&gc);
+        }
 
       if (system_ok (ret))
 	{
