@@ -2024,6 +2024,7 @@ do_init_crypto_tls (struct context *c, const unsigned int flags)
 #endif
 
   to.verify_command = options->tls_verify;
+  to.verify_export_cert = options->tls_export_cert;
   to.verify_x509name = options->tls_remote;
   to.crl_file = options->crl_file;
   to.ns_cert_type = options->ns_cert_type;

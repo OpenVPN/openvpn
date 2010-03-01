@@ -4288,6 +4288,14 @@ to
 to build a command line which will be passed to the script.
 .\"*********************************************************
 .TP
+.B \-\-tls-export-cert directory
+Store the certificates the clients uses upon connection to this
+directory. This will be done before --tls-verify is called.  The
+certificates will use a temporary name and will be deleted when
+the tls-verify script returns.  The file name used for the certificate
+is available via the peer_cert environment variable.
+.\"*********************************************************
+.TP
 .B \-\-tls-remote name
 Accept connections only from a host with X509 name
 or common name equal to
@@ -5284,6 +5292,11 @@ If the network or gateway are resolvable DNS names,
 their IP address translations will be recorded rather
 than their names as denoted on the command line
 or configuration file.
+.\"*********************************************************
+.TP
+.B peer_cert
+Temporary file name containing the client certificate upon
+connection.  Useful in conjunction with --tls-verify
 .\"*********************************************************
 .TP
 .B script_context
