@@ -192,6 +192,12 @@ while [ $# -gt 0 ]; do
 		     $PKCS11TOOL --module "$PKCS11_MODULE_PATH" --list-objects --login --slot "$PKCS11_SLOT"
 		     exit 0;;
 
+        --help|--usage)
+                    usage
+                    exit ;;
+        --version)
+                    echo "$PROGNAME $VERSION"
+                    exit ;;
 	# errors
 	--*        ) die "$PROGNAME: unknown option: $1" ;;
 	*          ) break ;;
