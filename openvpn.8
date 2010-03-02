@@ -4230,10 +4230,22 @@ test).
 
 .B cmd
 should return 0 to allow the TLS handshake to proceed, or 1 to fail.
+
+Note that
 .B cmd
-is executed as
+is a command line and as such may (if enclosed in quotes) contain
+whitespace separated arguments.  The first word of
+.B cmd
+is the shell command to execute and the remaining words are its
+arguments.
+When
+.B cmd
+is executed two arguments are appended, as follows:
 
 .B cmd certificate_depth X509_NAME_oneline
+
+These arguments are, respectively, the current certificate depth and
+the X509 common name (cn) of the peer.
 
 This feature is useful if the peer you want to trust has a certificate
 which was signed by a certificate authority who also signed many
@@ -4248,14 +4260,6 @@ in the OpenVPN distribution.
 
 See the "Environmental Variables" section below for
 additional parameters passed as environmental variables.
-
-Note that
-.B cmd
-can be a shell command with multiple arguments, in which
-case all OpenVPN-generated arguments will be appended
-to
-.B cmd
-to build a command line which will be passed to the script.
 .\"*********************************************************
 .TP
 .B --tls-export-cert directory
