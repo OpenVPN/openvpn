@@ -80,7 +80,7 @@ const char title_string[] =
 #ifdef ENABLE_EUREPHIA
   " [eurephia]"
 #endif
-  " [IPv6 payload 20100228-1]"
+  " [IPv6 payload 20100307-1]"
   " built on " __DATE__
 ;
 

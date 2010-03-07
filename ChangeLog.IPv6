@@ -286,3 +286,32 @@ Sun Feb 28 17:05:57 CET 2010
   * options.c: set IPv6 version to 20100228-1
 
   * release as patch 20100228-1
+
+Sun Mar  7 19:17:33 CET 2010
+
+  * options.c: set IPv6 version to 20100307-1
+
+  * TODO.IPv6: add note about OpenBSD TODO (#16)
+
+  * route.c: set (and remove) "magic next hop" fe80::8 for IPv6 routes on
+    Win32
+
+  * install-win32/settings.in: bump TAP driver version from 9.6 to 9.7
+    and TAP_RELDATE to "07/03/2010"
+
+  * tap-win32/proto.h: add data types and definitions needed for IPv6
+
+  * tap-win32/types.h: add m_UserToTap_IPv6 ethernet header for IPv6 packets
+
+  * tap-win32/tapdrvr.c: implement support for IPv6 in TUN mode:
+     - IPv6 packets User->OS need correct ether type
+     - IPv6 packets OS->User get correctly forwarded
+     - IPv6 neighbour discovery packets for "fe80::8" (magic address
+       installed as route-nexthop by OpenVPN.exe) get answered locally
+
+  * TEST SUCCESS: WindowsXP/32bit: client-tun/net30, v4+v6
+
+  * tun.c: if IPv6 requested in TUN mode, and TUN/TAP driver version
+    is older than 9.7, log warning and disable IPv6 (won't work anyway).
+
+  * release as patch 20100307-1

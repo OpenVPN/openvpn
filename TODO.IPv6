@@ -13,7 +13,7 @@ known issues for IPv6 payload support in OpenVPN
 3.) route deletion for IPv6 routes is not yet done
 
     * fixed for configured routes, 3.1.10 *
-    * missing for manual-ifconfig-connected (NetBSD, Darwin)
+    * missing for manual-ifconfig-connected (NetBSD, Darwin, Win32)
 
 4.) do "ifconfig tun0 inet6 unplumb"  or "ifconfig tun0 destroy" for
     Solaris, *BSD, ... at program termination time, to clean up leftovers
@@ -92,3 +92,9 @@ tun0: flags=8051<UP,POINTOPOINT,RUNNING,MULTICAST> mtu 1500
 
 	- document all of them in openvpn.8
 	- make sure that all existing IPv4 stuff has IPv6 counterparts
+
+16.) OpenBSD
+	- implement ifconfig/route for IPv6
+	- revert ifconfig/open_tun order to "normal" (separate commit!!!)
+	  (openvpn-devel, Subject: OpenBSD)
+	- test
