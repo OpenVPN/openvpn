@@ -1621,6 +1621,17 @@ delete_route_ipv6 (const struct route_ipv6 *r6, const struct tuntap *tt, unsigne
 	       r6->netbits,
 	       device);
 
+  /* next-hop depends on TUN or TAP mode:
+   * - in TAP mode, we use the "real" next-hop
+   * - in TUN mode we use a special-case link-local address that the tapdrvr
+   *   knows about and will answer ND (neighbor discovery) packets for
+   * (and "route deletion without specifying next-hop" does not work...)
+   */
+  if ( tt->type == DEV_TYPE_TUN )
+	argv_printf_cat( &argv, " %s", "fe80::8" );
+  else
+	argv_printf_cat( &argv, " %s", gateway );
+
 #if 0
   if (r->metric_defined)
     argv_printf_cat (&argv, "METRIC %d", r->metric);
