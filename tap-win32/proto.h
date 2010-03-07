@@ -29,9 +29,11 @@
 #pragma pack(1)
 
 #define IP_HEADER_SIZE 20
+#define IPV6_HEADER_SIZE 40
 
 typedef unsigned char MACADDR [6];
 typedef unsigned long IPADDR;
+typedef unsigned char IPV6ADDR [16];
 
 //-----------------
 // Ethernet address
@@ -55,6 +57,7 @@ typedef struct
   MACADDR src;                /* source ether addr	*/
 
 # define ETH_P_IP   0x0800    /* IPv4 protocol */
+# define ETH_P_IPV6 0x86DD    /* IPv6 protocol */
 # define ETH_P_ARP  0x0806    /* ARP protocol */
   USHORT proto;               /* packet type ID field	*/
 } ETH_HEADER, *PETH_HEADER;
@@ -160,5 +163,62 @@ typedef struct {
 #define	TCPOPT_NOP     1
 #define	TCPOPT_MAXSEG  2
 #define TCPOLEN_MAXSEG 4
+
+//------------
+// IPv6 Header
+//------------
+
+typedef struct {
+  UCHAR    version_prio;
+  UCHAR    flow_lbl[3];
+  USHORT   payload_len;
+# define IPPROTO_ICMPV6  0x3a  /* ICMP protocol v6 */
+  UCHAR    nexthdr;
+  UCHAR    hop_limit;
+  IPV6ADDR saddr;
+  IPV6ADDR daddr;
+} IPV6HDR;
+
+//--------------------------------------------
+// IPCMPv6 NS/NA Packets (RFC4443 and RFC4861)
+//--------------------------------------------
+
+// Neighbor Solictiation - RFC 4861, 4.3
+// (this is just the ICMPv6 part of the packet)
+typedef struct {
+  UCHAR    type;
+# define ICMPV6_TYPE_NS	135		// neighbour solicitation
+  UCHAR    code;
+# define ICMPV6_CODE_0	0		// no specific sub-code for NS/NA
+  USHORT   checksum;
+  ULONG    reserved;
+  IPV6ADDR target_addr;
+} ICMPV6_NS;
+
+// Neighbor Advertisement - RFC 4861, 4.4 + 4.6/4.6.1
+// (this is just the ICMPv6 payload)
+typedef struct {
+  UCHAR    type;
+# define ICMPV6_TYPE_NA	136		// neighbour advertisement
+  UCHAR    code;
+# define ICMPV6_CODE_0	0		// no specific sub-code for NS/NA
+  USHORT   checksum;
+  UCHAR    rso_bits;			// Router(0), Solicited(2), Ovrrd(4)
+  UCHAR	   reserved[3];
+  IPV6ADDR target_addr;
+// always include "Target Link-layer Address" option (RFC 4861 4.6.1)
+  UCHAR    opt_type;
+#define ICMPV6_OPTION_TLLA 2
+  UCHAR    opt_length;
+#define ICMPV6_LENGTH_TLLA 1		// multiplied by 8 -> 1 = 8 bytes
+  MACADDR  target_macaddr;
+} ICMPV6_NA;
+
+// this is the complete packet with Ethernet and IPv6 headers
+typedef struct {
+  ETH_HEADER eth;
+  IPV6HDR    ipv6;
+  ICMPV6_NA  icmpv6;
+} ICMPV6_NA_PKT;
 
 #pragma pack()
