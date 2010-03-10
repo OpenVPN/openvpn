@@ -85,6 +85,10 @@
 #endif
 
 #ifdef HAVE_SYS_SOCKET_H
+# if defined(TARGET_LINUX) && !defined(_GNU_SOURCE)
+   /* needed for peercred support on glibc-2.8 */
+#  define _GNU_SOURCE
+# endif
 #include <sys/socket.h>
 #endif
 
