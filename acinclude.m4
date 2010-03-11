@@ -224,8 +224,8 @@ acx_pthread_flags="pthreads none -Kthread -kthread lthread -pthread -pthreads -m
 # pthread: Linux, etcetera
 # --thread-safe: KAI C++
 
-case "$target" in
-        *solaris*)
+case "$host" in
+        *-*-solaris*)
 
         # On Solaris (at least, for some versions), libc contains stubbed
         # (non-functional) versions of the pthreads routines, so link-based
@@ -321,9 +321,9 @@ if test "x$acx_pthread_ok" = xyes; then
 
         AC_MSG_CHECKING([if more special flags are required for pthreads])
         flag=no
-        case "$target" in
-                *-aix* | *-freebsd*)               flag="-D_THREAD_SAFE";;
-                *solaris* | alpha*-osf* | *linux*) flag="-D_REENTRANT";;
+        case "$host" in
+                *-*-aix* | *-freebsd*)               flag="-D_THREAD_SAFE";;
+                *-*-solaris* | alpha*-osf* | *linux*) flag="-D_REENTRANT";;
         esac
         AC_MSG_RESULT(${flag})
         if test "x$flag" != xno; then
