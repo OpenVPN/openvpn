@@ -41,6 +41,8 @@
 
 #ifdef ENABLE_HTTP_PROXY
 
+#define UP_TYPE_PROXY        "HTTP Proxy"
+
 /* cached proxy username/password */
 static struct user_pass static_proxy_user_pass;
 
@@ -222,7 +224,7 @@ get_user_pass_http (struct http_proxy_info *p, const bool force)
     {
       get_user_pass (&static_proxy_user_pass,
 		     p->options.auth_file,
-		     "HTTP Proxy",
+		     UP_TYPE_PROXY,
 		     GET_USER_PASS_MANAGEMENT);
       p->up = static_proxy_user_pass;
     }
