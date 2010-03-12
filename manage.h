@@ -435,7 +435,7 @@ void management_echo (struct management *man, const char *string, const bool pul
  * OpenVPN calls here to indicate a password failure
  */
 
-void management_auth_failure (struct management *man, const char *type);
+void management_auth_failure (struct management *man, const char *type, const char *reason);
 
 /*
  * These functions drive the bytecount in/out counters.

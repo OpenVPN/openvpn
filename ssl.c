@@ -1639,7 +1639,7 @@ init_ssl (const struct options *options)
 		{
 #ifdef ENABLE_MANAGEMENT
 		  if (management && (ERR_GET_REASON (ERR_peek_error()) == EVP_R_BAD_DECRYPT))
-		    management_auth_failure (management, UP_TYPE_PRIVATE_KEY);
+		    management_auth_failure (management, UP_TYPE_PRIVATE_KEY, NULL);
 #endif
 		  msg (M_WARN|M_SSL, "Cannot load private key file %s", options->priv_key_file);
 		  goto err;
