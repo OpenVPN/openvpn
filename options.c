@@ -3632,6 +3632,11 @@ add_option (struct options *options,
 	}
     }
 #endif
+  else if (streq (p[0], "remote-ip-hint") && p[1])
+    {
+      VERIFY_PERMISSION (OPT_P_GENERAL|OPT_P_CONNECTION);
+      // fixme
+    }
   else if (streq (p[0], "remote") && p[1])
     {
       struct remote_entry re;
