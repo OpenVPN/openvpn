@@ -2273,9 +2273,12 @@ management_pre_tunnel_close (struct management *man)
 }
 
 void
-management_auth_failure (struct management *man, const char *type)
+management_auth_failure (struct management *man, const char *type, const char *reason)
 {
-  msg (M_CLIENT, ">PASSWORD:Verification Failed: '%s'", type);
+  if (reason)
+    msg (M_CLIENT, ">PASSWORD:Verification Failed: '%s' ['%s']", type, reason);
+  else
+    msg (M_CLIENT, ">PASSWORD:Verification Failed: '%s'", type);
 }
 
 static inline bool

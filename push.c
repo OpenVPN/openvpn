@@ -63,11 +63,11 @@ receive_auth_failed (struct context *c, const struct buffer *buffer)
 #ifdef ENABLE_MANAGEMENT
       if (management)
 	{
-	  const char *reason = UP_TYPE_AUTH;
+	  const char *reason = NULL;
 	  struct buffer buf = *buffer;
 	  if (buf_string_compare_advance (&buf, "AUTH_FAILED,") && BLEN (&buf))
 	    reason = BSTR (&buf);
-	  management_auth_failure (management, reason);
+	  management_auth_failure (management, UP_TYPE_AUTH, reason);
 	}
 #endif
     }
