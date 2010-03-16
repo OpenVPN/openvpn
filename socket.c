@@ -1863,7 +1863,7 @@ stream_buf_added (struct stream_buf *sb,
 
       if (sb->len < 1 || sb->len > sb->maxlen)
 	{
-	  msg (M_WARN, "WARNING: Bad encapsulated packet length from peer (%d), which must be > 0 and <= %d -- please ensure that --tun-mtu or --link-mtu is equal on both peers -- this condition could also indicate a possible active attack on the TCP link -- [Attemping restart...]", sb->len, sb->maxlen);
+	  msg (M_WARN, "WARNING: Bad encapsulated packet length from peer (%d), which must be > 0 and <= %d -- please ensure that --tun-mtu or --link-mtu is equal on both peers -- this condition could also indicate a possible active attack on the TCP link -- [Attempting restart...]", sb->len, sb->maxlen);
 	  stream_buf_reset (sb);
 	  sb->error = true;
 	  return false;
