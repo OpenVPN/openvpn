@@ -38,7 +38,7 @@
 #include "session_id.h"
 #include "mtu.h"
 
-/* #define EXPONENTIAL_BACKOFF */
+#define EXPONENTIAL_BACKOFF
 
 #define RELIABLE_ACK_SIZE 8
 
