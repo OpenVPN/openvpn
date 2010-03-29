@@ -1004,7 +1004,9 @@ setenv_str_ex (struct env_set *es,
 	{
 	  const char *str = construct_name_value (name_tmp, val_tmp, &gc);
 	  env_set_add (es, str);
-	  msg (M_INFO, "SETENV_ES '%s'", str);/**/
+#if DEBUG_VERBOSE_SETENV
+	  msg (M_INFO, "SETENV_ES '%s'", str);
+#endif
 	}
       else
 	env_set_del (es, name_tmp);
