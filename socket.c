@@ -1291,6 +1291,10 @@ link_socket_init_phase1 (struct link_socket *sock,
   else if (mode != LS_MODE_TCP_ACCEPT_FROM)
     {
       create_socket (sock);
+
+      /* set socket buffers based on --sndbuf and --rcvbuf options */
+      socket_set_buffers (sock->sd, &sock->socket_buffer_sizes);
+
       resolve_bind_local (sock);
       resolve_remote (sock, 1, NULL, NULL);
     }
@@ -1492,9 +1496,6 @@ link_socket_init_phase2 (struct link_socket *sock,
 	  sock->info.lsa->remote.sa.sin_addr.s_addr = sock->info.lsa->actual.dest.sa.sin_addr.s_addr;
 	}
     }
-
-  /* set socket buffers based on --sndbuf and --rcvbuf options */
-  socket_set_buffers (sock->sd, &sock->socket_buffer_sizes);
 
   /* set misc socket parameters */
   socket_set_flags (sock->sd, sock->sockflags);
