@@ -36,7 +36,7 @@ MAINTAINERCLEANFILES = \
 	$(srcdir)/install-sh $(srcdir)/ltmain.sh $(srcdir)/missing \
 	$(srcdir)/depcomp $(srcdir)/aclocal.m4 \
 	$(srcdir)/config.guess $(srcdir)/config.sub \
-	$(srcdir)/config-win32.h $(srcdir)/openvpn.spec
+	$(srcdir)/openvpn.spec
 CLEANFILES = openvpn.8.html
 
 EXTRA_DIST = \
@@ -58,8 +58,7 @@ SUBDIRS = \
 TESTS = t_lpback.sh t_cltsrv.sh
 sbin_PROGRAMS = openvpn
 
-dist_noinst_HEADERS = \
-	config-win32.h
+dist_noinst_HEADERS =
 
 dist_noinst_SCRIPTS = \
 	$(TESTS) \

@@ -985,8 +985,8 @@ get_tls_handshake_key (const struct key_type *key_type,
 #endif
 
 /* header and footer for static key file */
-static const char static_key_head[] = "-----BEGIN " PACKAGE_NAME " Static key V1-----";
-static const char static_key_foot[] = "-----END " PACKAGE_NAME " Static key V1-----";
+static const char static_key_head[] = "-----BEGIN OpenVPN Static key V1-----";
+static const char static_key_foot[] = "-----END OpenVPN Static key V1-----";
 
 static const char printable_char_fmt[] =
   "Non-Hex character ('%c') found at line %d in key file '%s' (%d/%d/%d bytes found/min/max)";
@@ -1065,8 +1065,8 @@ read_key_file (struct key2 *key2, const char *file, const unsigned int flags)
       const unsigned char c = *cp;
 
 #if 0
-      msg (M_INFO, "char='%c' s=%d ln=%d li=%d m=%d c=%d",
-	   c, state, line_num, line_index, match, count);
+      msg (M_INFO, "char='%c'[%d] s=%d ln=%d li=%d m=%d c=%d",
+	   c, (int)c, state, line_num, line_index, match, count);
 #endif
 
       if (c == '\n')
@@ -1150,7 +1150,7 @@ read_key_file (struct key2 *key2, const char *file, const unsigned int flags)
   if (flags & RKF_MUST_SUCCEED)
     {
       if (!key2->n)
-	msg (M_FATAL, "Insufficient key material or header text not found found in file '%s' (%d/%d/%d bytes found/min/max)",
+	msg (M_FATAL, "Insufficient key material or header text not found in file '%s' (%d/%d/%d bytes found/min/max)",
 	     error_filename, count, onekeylen, keylen);
 
       if (state != PARSE_FINISHED)
@@ -1297,7 +1297,7 @@ write_key_file (const int nkeys, const char *filename)
   buf_printf (&out, "%s\n", static_key_foot);
 
   /* write number of bits */
-  buf_printf (&nbits_head_text, "#\n# %d bit " PACKAGE_NAME " static key\n#\n", nbits);
+  buf_printf (&nbits_head_text, "#\n# %d bit OpenVPN static key\n#\n", nbits);
   buf_write_string_file (&nbits_head_text, filename, fd);
 
   /* write key file, now formatted in out, to file */

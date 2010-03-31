@@ -55,7 +55,7 @@ static void netsh_ifconfig (const struct tuntap_options *to,
 			    const char *flex_name,
 			    const in_addr_t ip,
 			    const in_addr_t netmask,
-			    unsigned int flags);
+			    const unsigned int flags);
 
 static const char *netsh_get_id (const char *dev_node, struct gc_arena *gc);
 

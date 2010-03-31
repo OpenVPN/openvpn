@@ -1,4 +1,5 @@
 *.o
+*.obj
 config.status
 config.log
 config.guess
@@ -12,7 +13,6 @@ config.h
 Makefile
 config.h.in
 configure
-config-win32.h
 config.sub
 openvpn.spec
 stamp-h1

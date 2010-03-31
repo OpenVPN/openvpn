@@ -225,7 +225,7 @@ man_prompt (struct management *man)
     man_output_list_push (man, "ENTER PASSWORD:");
 #if 0 /* should we use prompt? */
   else
-    man_output_list_push (man, PACKAGE_NAME ">");
+    man_output_list_push (man, ">");
 #endif
 }
 

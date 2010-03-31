@@ -721,7 +721,7 @@ multi_print_status (struct multi_context *m, struct status_output *so, const int
 	  /*
 	   * Status file version 1
 	   */
-	  status_printf (so, PACKAGE_NAME " CLIENT LIST");
+	  status_printf (so, "OpenVPN CLIENT LIST");
 	  status_printf (so, "Updated,%s", time_string (0, 0, false, &gc_top));
 	  status_printf (so, "Common Name,Real Address,Bytes Received,Bytes Sent,Connected Since");
 	  hash_iterator_init (m->hash, &hi, true);

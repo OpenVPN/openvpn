@@ -43,7 +43,7 @@ array_mult_safe (const size_t m1, const size_t m2, const size_t extra)
 }
 
 void
-buf_size_error (size_t size)
+buf_size_error (const size_t size)
 {
   msg (M_FATAL, "fatal buffer size error, size=%lu", (unsigned long)size);
 }
