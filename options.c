@@ -45,6 +45,7 @@
 #include "pool.h"
 #include "helper.h"
 #include "manage.h"
+#include "configure.h"
 
 #include "memdbg.h"
 
@@ -2751,6 +2752,8 @@ usage_version (void)
   msg (M_INFO|M_NOPREFIX, "%s", title_string);
   msg (M_INFO|M_NOPREFIX, "Originally developed by James Yonan");
   msg (M_INFO|M_NOPREFIX, "Copyright (C) 2002-2009 OpenVPN Technologies, Inc. <sales@openvpn.net>");
+  msg (M_INFO|M_NOPREFIX, "\n%s\n", CONFIGURE_CALL);
+  msg (M_INFO|M_NOPREFIX, "Compile time defines: %s", CONFIGURE_DEFINES);
   openvpn_exit (OPENVPN_EXIT_STATUS_USAGE); /* exit point */
 }
 
