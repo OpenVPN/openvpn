@@ -378,8 +378,8 @@ struct key_state
 
   struct buffer_list *paybuf;
 
-  int n_bytes;			 /* how many bytes sent/recvd since last key exchange */
-  int n_packets;		 /* how many packets sent/recvd since last key exchange */
+  counter_type n_bytes;		 /* how many bytes sent/recvd since last key exchange */
+  counter_type n_packets;	 /* how many packets sent/recvd since last key exchange */
 
   /*
    * If bad username/password, TLS connection will come up but 'authenticated' will be false.
