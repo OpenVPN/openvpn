@@ -38,7 +38,7 @@ MAINTAINERCLEANFILES = \
 	$(srcdir)/depcomp $(srcdir)/aclocal.m4 \
 	$(srcdir)/config.guess $(srcdir)/config.sub \
 	$(srcdir)/openvpn.spec
-CLEANFILES = openvpn.8.html
+CLEANFILES = openvpn.8.html configure.h
 
 EXTRA_DIST = \
 	easy-rsa \
@@ -149,9 +149,6 @@ options.$(OBJEXT): configure.h
 configure.h: Makefile
 	awk -f $(srcdir)/configure_h.awk config.h > $@
 	awk -f $(srcdir)/configure_log.awk config.log >> $@
-
-clean-local:
-	-rm -f configure.h
 
 dist-hook:
 	cd $(distdir) && for i in $(EXTRA_DIST) $(SUBDIRS) ; do find $$i -name .svn -type d -prune -exec rm -rf '{}' ';' ; rm -f `find $$i -type f | grep -E '(^|\/)\.?\#|\~$$|\.s?o$$'` ; done
