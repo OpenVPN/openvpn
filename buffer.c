@@ -945,13 +945,52 @@ buffer_list_push (struct buffer_list *ol, const unsigned char *str)
     }
 }
 
-const struct buffer *
+struct buffer *
 buffer_list_peek (struct buffer_list *ol)
 {
   if (ol->head)
     return &ol->head->buf;
   else
     return NULL;
+}
+
+void
+buffer_list_aggregate (struct buffer_list *bl, const size_t max)
+{
+  if (bl->head)
+    {
+      struct buffer_entry *more = bl->head;
+      size_t size = 0;
+      int count = 0;
+      for (count = 0; more && size <= max; ++count)
+	{
+	  size += BLEN(&more->buf);
+	  more = more->next;
+	}
+
+      if (count >= 2)
+	{
+	  int i;
+	  struct buffer_entry *e = bl->head, *f;
+
+	  ALLOC_OBJ_CLEAR (f, struct buffer_entry);
+	  f->buf.data = malloc (size);
+	  check_malloc_return (f->buf.data);
+	  f->buf.capacity = size;
+	  for (i = 0; e && i < count; ++i)
+	    {
+	      struct buffer_entry *next = e->next;
+	      buf_copy (&f->buf, &e->buf);
+	      free_buf (&e->buf);
+	      free (e);
+	      e = next;
+	    }
+	  bl->head = f;
+	  f->next = more;
+	  if (!more)
+	    bl->tail = f;
+	}
+    }
 }
 
 static void
