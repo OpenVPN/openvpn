@@ -1094,10 +1094,11 @@ key_state_gen_auth_control_file (struct key_state *ks, const struct tls_options 
   const char *acf;
 
   key_state_rm_auth_control_file (ks);
-  acf = create_temp_filename (opt->tmp_dir, "acf", &gc);
-  ks->auth_control_file = string_alloc (acf, NULL);
-  setenv_str (opt->es, "auth_control_file", ks->auth_control_file);
-
+  acf = create_temp_file (opt->tmp_dir, "acf", &gc);
+  if( acf ) {
+    ks->auth_control_file = string_alloc (acf, NULL);
+    setenv_str (opt->es, "auth_control_file", ks->auth_control_file);
+  } /* FIXME: Should have better error handling? */
   gc_free (&gc);					  
 }
 
@@ -3144,17 +3145,22 @@ verify_user_pass_script (struct tls_session *session, const struct user_pass *up
 	{
 	  struct status_output *so;
 
-	  tmp_file = create_temp_filename (session->opt->tmp_dir, "up", &gc);
-	  so = status_open (tmp_file, 0, -1, NULL, STATUS_OUTPUT_WRITE);
-	  status_printf (so, "%s", up->username);
-	  status_printf (so, "%s", up->password);
-	  if (!status_close (so))
-	    {
-	      msg (D_TLS_ERRORS, "TLS Auth Error: could not write username/password to file: %s",
-		   tmp_file);
-	      goto done;
-	    }
-	}
+	  tmp_file = create_temp_file (session->opt->tmp_dir, "up", &gc);
+          if( tmp_file ) {
+            so = status_open (tmp_file, 0, -1, NULL, STATUS_OUTPUT_WRITE);
+            status_printf (so, "%s", up->username);
+            status_printf (so, "%s", up->password);
+            if (!status_close (so))
+              {
+                msg (D_TLS_ERRORS, "TLS Auth Error: could not write username/password to file: %s",
+                     tmp_file);
+                goto done;
+              }
+          } else {
+            msg (D_TLS_ERRORS, "TLS Auth Error: could not create write "
+                 "username/password to temp file");
+          }
+        }
       else
 	{
 	  setenv_str (session->opt->es, "username", up->username);
