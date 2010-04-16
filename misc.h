@@ -218,8 +218,8 @@ long int get_random(void);
 /* return true if filename can be opened for read */
 bool test_file (const char *filename);
 
-/* create a temporary filename in directory */
-const char *create_temp_filename (const char *directory, const char *prefix, struct gc_arena *gc);
+/* create a temporary file in directory, returns the filename of the created file */
+const char *create_temp_file (const char *directory, const char *prefix, struct gc_arena *gc);
 
 /* put a directory and filename together */
 const char *gen_path (const char *directory, const char *filename, struct gc_arena *gc);
