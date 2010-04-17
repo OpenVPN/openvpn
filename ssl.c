@@ -3194,7 +3194,7 @@ verify_user_pass_script (struct tls_session *session, const struct user_pass *up
     }
 
  done:
-  if (strlen (tmp_file) > 0)
+  if (tmp_file && strlen (tmp_file) > 0)
     delete_file (tmp_file);
 
   argv_reset (&argv);
