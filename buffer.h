@@ -845,8 +845,10 @@ bool buffer_list_defined (const struct buffer_list *ol);
 void buffer_list_reset (struct buffer_list *ol);
 
 void buffer_list_push (struct buffer_list *ol, const unsigned char *str);
-const struct buffer *buffer_list_peek (struct buffer_list *ol);
+struct buffer *buffer_list_peek (struct buffer_list *ol);
 void buffer_list_advance (struct buffer_list *ol, int n);
+
+void buffer_list_aggregate (struct buffer_list *bl, const size_t max);
 
 struct buffer_list *buffer_list_file (const char *fn, int max_line_len);
 

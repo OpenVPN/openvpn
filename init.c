@@ -499,6 +499,60 @@ init_static (void)
   }
 #endif
 
+#ifdef BUFFER_LIST_AGGREGATE_TEST
+  /* test buffer_list_aggregate function */
+  {
+    static const char *text[] = {
+      "It was a bright cold day in April, ",
+      "and the clocks were striking ",
+      "thirteen. ",
+      "Winston Smith, ",
+      "his chin nuzzled into his breast in an ",
+      "effort to escape the vile wind, ",
+      "slipped quickly through the glass doors ",
+      "of Victory Mansions, though not quickly ",
+      "enough to prevent a swirl of gritty dust from ",
+      "entering along with him."
+    };
+
+    int iter, listcap;
+    for (listcap = 0; listcap < 12; ++listcap)
+      {
+	for (iter = 0; iter < 512; ++iter)
+	  {
+	    struct buffer_list *bl = buffer_list_new(listcap);
+	    {
+	      int i;
+	      for (i = 0; i < SIZE(text); ++i)
+		buffer_list_push(bl, (unsigned char *)text[i]);
+	    }
+	    printf("[cap=%d i=%d] *************************\n", listcap, iter);
+	    if (!(iter & 8))
+	      buffer_list_aggregate(bl, iter/2);
+	    if (!(iter & 16))
+	      buffer_list_push(bl, (unsigned char *)"Even more text...");
+	    buffer_list_aggregate(bl, iter);
+	    if (!(iter & 1))
+	      buffer_list_push(bl, (unsigned char *)"More text...");
+	    {
+	      struct buffer *buf;
+	      while ((buf = buffer_list_peek(bl)))
+		{
+		  int c;
+		  printf ("'");
+		  while ((c = buf_read_u8(buf)) >= 0)
+		    putchar(c);
+		  printf ("'\n");
+		  buffer_list_advance(bl, 0);
+		}
+	    }
+	    buffer_list_free(bl);
+	  }
+      }
+    return false;
+  }
+#endif
+
   return true;
 }
 

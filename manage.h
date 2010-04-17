@@ -268,6 +268,7 @@ struct man_connection {
   unsigned long in_extra_cid;
   unsigned int in_extra_kid;
   struct buffer_list *in_extra;
+  int env_filter_level;
 #endif
   struct event_set *es;
 

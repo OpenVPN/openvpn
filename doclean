@@ -37,7 +37,6 @@ rm -f \
     openvpn.spec \
     install-sh \
     openvpn.8.html \
-    config-win32.h \
     install-win32/*.exe \
     install-win32/makensis.log \
     install-win32/settings \
