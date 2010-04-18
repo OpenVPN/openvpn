@@ -97,6 +97,7 @@ man_help ()
   msg (M_CLIENT, "client-deny CID KID R [CR] : Deny auth client-id/key-id CID/KID with log reason");
   msg (M_CLIENT, "                             text R and optional client reason text CR");
   msg (M_CLIENT, "client-kill CID        : Kill client instance CID");
+  msg (M_CLIENT, "env-filter [level]     : Set env-var filter level");
 #ifdef MANAGEMENT_PF
   msg (M_CLIENT, "client-pf CID          : Define packet filter for client CID (MULTILINE)");
 #endif
@@ -935,6 +936,13 @@ man_client_n_clients (struct management *man)
     }
 }
 
+static void
+man_env_filter (struct management *man, const int level)
+{
+  man->connection.env_filter_level = level;
+  msg (M_CLIENT, "SUCCESS: env_filter_level=%d", level);
+}
+
 #ifdef MANAGEMENT_PF
 
 static void
@@ -1019,6 +1027,13 @@ man_dispatch_command (struct management *man, struct status_output *so, const ch
   else if (streq (p[0], "nclients"))
     {
       man_client_n_clients (man);
+    }
+  else if (streq (p[0], "env-filter"))
+    {
+      int level = 0;
+      if (p[1])
+	level = atoi (p[1]);
+      man_env_filter (man, level);
     }
 #endif
   else if (streq (p[0], "signal"))
@@ -1723,13 +1738,15 @@ man_read (struct management *man)
 static int
 man_write (struct management *man)
 {
-  const int max_send = 256;
+  const int size_hint = 1024;
   int sent = 0;
+  const struct buffer *buf;
 
-  const struct buffer *buf = buffer_list_peek (man->connection.out);
+  buffer_list_aggregate(man->connection.out, size_hint);
+  buf = buffer_list_peek (man->connection.out);
   if (buf && BLEN (buf))
     {
-      const int len = min_int (max_send, BLEN (buf));
+      const int len = min_int (size_hint, BLEN (buf));
       sent = send (man->connection.sd_cli, BPTR (buf), len, MSG_NOSIGNAL);
       if (sent >= 0)
 	{
@@ -2130,15 +2147,51 @@ management_set_state (struct management *man,
 
 #ifdef MANAGEMENT_DEF_AUTH
 
+static bool
+env_filter_match (const char *env_str, const int env_filter_level)
+{
+  static const char *env_names[] = {
+    "username=",
+    "password=",
+    "X509_0_CN=",
+    "tls_serial_0=",
+    "untrusted_ip=",
+    "ifconfig_local=",
+    "ifconfig_netmask=",
+    "daemon_start_time=",
+    "daemon_pid=",
+    "dev=",
+    "ifconfig_pool_remote_ip=",
+    "ifconfig_pool_netmask=",
+    "time_duration=",
+    "bytes_sent=",
+    "bytes_received="
+  };
+  if (env_filter_level >= 1)
+    {
+      size_t i;
+      for (i = 0; i < SIZE(env_names); ++i)
+	{
+	  const char *en = env_names[i];
+	  const size_t len = strlen(en);
+	  if (strncmp(env_str, en, len) == 0)
+	    return true;
+	}
+      return false;
+    }
+  else
+    return true;
+}
+
 static void
-man_output_env (const struct env_set *es, const bool tail)
+man_output_env (const struct env_set *es, const bool tail, const int env_filter_level)
 {
   if (es)
     {
       struct env_item *e;
       for (e = es->list; e != NULL; e = e->next)
 	{
-	  if (e->string)
+	  if (e->string && (!env_filter_level || env_filter_match(e->string, env_filter_level)))
 	    msg (M_CLIENT, ">CLIENT:ENV,%s", e->string);
 	}
     }
@@ -2156,7 +2209,7 @@ man_output_extra_env (struct management *man)
       const int nclients = (*man->persist.callback.n_clients) (man->persist.callback.arg);
       setenv_int (es, "n_clients", nclients);
     }
-  man_output_env (es, false);
+  man_output_env (es, false, man->connection.env_filter_level);
   gc_free (&gc);
 }
 
@@ -2173,7 +2226,7 @@ management_notify_client_needing_auth (struct management *management,
 	mode = "REAUTH";
       msg (M_CLIENT, ">CLIENT:%s,%lu,%u", mode, mdac->cid, mda_key_id);
       man_output_extra_env (management);
-      man_output_env (es, true);
+      man_output_env (es, true, management->connection.env_filter_level);
       mdac->flags |= DAF_INITIAL_AUTH;
     }
 }
@@ -2186,7 +2239,7 @@ management_connection_established (struct management *management,
   mdac->flags |= DAF_CONNECTION_ESTABLISHED;
   msg (M_CLIENT, ">CLIENT:ESTABLISHED,%lu", mdac->cid);
   man_output_extra_env (management);
-  man_output_env (es, true);
+  man_output_env (es, true, management->connection.env_filter_level);
 }
 
 void
@@ -2197,7 +2250,7 @@ management_notify_client_close (struct management *management,
   if ((mdac->flags & DAF_INITIAL_AUTH) && !(mdac->flags & DAF_CONNECTION_CLOSED))
     {
       msg (M_CLIENT, ">CLIENT:DISCONNECT,%lu", mdac->cid);
-      man_output_env (es, true);
+      man_output_env (es, true, management->connection.env_filter_level);
       mdac->flags |= DAF_CONNECTION_CLOSED;
     }
 }
