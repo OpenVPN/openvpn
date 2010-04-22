@@ -66,7 +66,8 @@ dist_noinst_SCRIPTS = \
 	$(TESTS) \
 	doclean \
 	domake-win \
-	t_cltsrv-down.sh
+	t_cltsrv-down.sh \
+	configure_h.awk configure_log.awk
 
 dist_noinst_DATA = \
 	openvpn.spec \
@@ -141,9 +142,12 @@ openvpn_SOURCES = \
 	win32.h win32.c \
 	cryptoapi.h cryptoapi.c
 
+nodist_openvpn_SOURCES = configure.h
+options.$(OBJEXT): configure.h
+
 configure.h: Makefile
-	awk -f configure_h.awk config.h > $@
-	awk -f configure_log.awk config.log >> $@
+	awk -f $(srcdir)/configure_h.awk config.h > $@
+	awk -f $(srcdir)/configure_log.awk config.log >> $@
 
 clean-local:
 	-rm -f configure.h
