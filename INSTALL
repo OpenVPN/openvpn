@@ -15,9 +15,8 @@ QUICK START:
   Windows MinGW, using MSYS bash shell:
     ./domake-win (see comments in the script for more info)
 
-  Windows MSVC using Visual Studio 2008 Command Prompt window:
-    python msvc\config.py
-    nmake /f msvc\msvc.mak
+  Windows Visual Studio:
+    python win\build_all.py
 
 *************************************************************************
 

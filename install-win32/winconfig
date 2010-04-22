@@ -13,3 +13,6 @@ for g in "h" "sh" "nsi" "in" ; do
 done
 
 cat /dev/null >autodefs/guidefs.nsi
+
+echo '#include "autodefs/defs.h"' >autodefs.h
+echo '#include "config.h"' >>autodefs.h

@@ -8,7 +8,7 @@ TARGETNAME=@@PRODUCT_TAP_ID@@
 TARGETTYPE=DRIVER
 TARGETPATH=.
 TARGETLIBS=$(DDK_LIB_PATH)\ndis.lib $(DDK_LIB_PATH)\ntstrsafe.lib
-INCLUDES=$(DDK_INCLUDE_PATH)
+INCLUDES=$(DDK_INCLUDE_PATH) ..
 
 # The TAP version numbers here must be >=
 # TAP_WIN32_MIN_x values defined in
@@ -53,7 +53,7 @@ MSC_OPTIMIZATION=/Od /Oi /Fc
 !ENDIF
 
 # Generate a linker map file just in case we need one for debugging
-LINKER_FLAGS=$(LINKER_FLAGS) /MAP /MAPINFO:EXPORTS /MAPINFO:LINES
+LINKER_FLAGS=$(LINKER_FLAGS) /INCREMENTAL:NO /MAP /MAPINFO:EXPORTS
 
 # Generate a browser information file for use in IDE development
 #BROWSER_INFO=1
