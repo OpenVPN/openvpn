@@ -27,10 +27,7 @@
 #  ./config.log.
 #
 
-BEGIN {
-	printf ("#define CONFIGURE_CALL \"")
-}
-/\$ .\/configure/ {
-	print $0,"\""
+/\$ (.*)\/configure/ {
+	printf ("#define CONFIGURE_CALL \"%s\"\n", $0)
 	exit 0
 }
