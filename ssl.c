@@ -714,7 +714,7 @@ get_peer_cert(X509_STORE_CTX *ctx, const char *tmp_dir, struct gc_arena *gc)
     }
 
   /* create tmp file to store peer cert */
-  peercert_filename = create_temp_filename (tmp_dir, "pcf", gc);
+  peercert_filename = create_temp_file (tmp_dir, "pcf", gc);
 
   /* write peer-cert in tmp-file */
   peercert_file = fopen(peercert_filename, "w+");
