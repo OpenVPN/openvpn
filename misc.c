@@ -1588,14 +1588,16 @@ void
 purge_user_pass (struct user_pass *up, const bool force)
 {
   const bool nocache = up->nocache;
+  static bool warn_shown = false;
   if (nocache || force)
     {
       CLEAR (*up);
       up->nocache = nocache;
     }
-  else
+  else if (!warn_shown)
     {
       msg (M_WARN, "WARNING: this configuration may cache passwords in memory -- use the auth-nocache option to prevent this");
+      warn_shown = true;
     }
 }
 
