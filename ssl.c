@@ -788,9 +788,30 @@ verify_callback (int preverify_ok, X509_STORE_CTX * ctx)
 
   /* export serial number as environmental variable */
   {
-    const int serial = (int) ASN1_INTEGER_get (X509_get_serialNumber (ctx->current_cert));
-    openvpn_snprintf (envname, sizeof(envname), "tls_serial_%d", ctx->error_depth);
-    setenv_int (opt->es, envname, serial);
+    BIO *bio = NULL;
+    char serial[100];
+    int n1, n2;
+
+    CLEAR (serial);
+    if ((bio = BIO_new (BIO_s_mem ())) == NULL)
+      {
+        msg (M_WARN, "CALLBACK: Cannot create BIO (for tls_serial_%d)", ctx->error_depth);
+      }
+    else
+      {
+        /* "prints" the serial number onto the BIO and read it back */
+        if ( ! ( ( (n1 = i2a_ASN1_INTEGER(bio, X509_get_serialNumber (ctx->current_cert))) >= 0 ) &&
+                 ( (n2 = BIO_read (bio, serial, sizeof (serial)-1)) >= 0 ) &&
+                 ( n1 == n2 ) ) )
+          {
+            msg (M_WARN, "CALLBACK: Error reading/writing BIO (for tls_serial_%d)", ctx->error_depth);
+            CLEAR (serial);     /* empty string */
+          }
+
+        openvpn_snprintf (envname, sizeof(envname), "tls_serial_%d", ctx->error_depth);
+        setenv_str (opt->es, envname, serial);
+        BIO_free(bio);
+      }
   }
 
   /* export current untrusted IP */
