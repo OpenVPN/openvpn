@@ -5321,8 +5321,13 @@ where
 .B n
 is the verification level.  Only set for TLS connections.  Set prior
 to execution of
-.B \-\-tls-verify
-script.
+.B --tls-verify
+script. This is in the form of a hex string like "37AB46E0", which is
+suitable for doing serial-based OCSP queries (with OpenSSL, you have
+to prepend "0x" to the string). If something goes wrong while reading
+the value from the certificate it will be an empty string, so your
+code should check that.
+See the contrib/OCSP_check/OCSP_check.sh script for an example.
 .\"*********************************************************
 .TP
 .B tun_mtu
