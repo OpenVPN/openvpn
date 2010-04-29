@@ -1663,7 +1663,7 @@ link_socket_connection_initiated (const struct buffer *buf,
       struct argv argv = argv_new ();
       setenv_str (es, "script_type", "ipchange");
       ipchange_fmt (true, &argv, info, &gc);
-      openvpn_execve_check (&argv, es, S_SCRIPT, "ip-change command failed");
+      openvpn_run_script (&argv, es, 0, "--ipchange");
       argv_reset (&argv);
     }
 

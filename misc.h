@@ -136,6 +136,15 @@ bool openvpn_execve_check (const struct argv *a, const struct env_set *es, const
 bool openvpn_execve_allowed (const unsigned int flags);
 int openvpn_system (const char *command, const struct env_set *es, unsigned int flags);
 
+static inline bool
+openvpn_run_script (const struct argv *a, const struct env_set *es, const unsigned int flags, const char *hook)
+{
+  char msg[256];
+
+  openvpn_snprintf(msg, sizeof(msg), "WARNING: Failed running command (%s)", hook);
+  return openvpn_execve_check(a, es, flags | S_SCRIPT, msg);
+};
+
 #ifdef HAVE_STRERROR
 /* a thread-safe version of strerror */
 const char* strerror_ts (int errnum, struct gc_arena *gc);
@@ -303,6 +312,7 @@ void get_user_pass_auto_userid (struct user_pass *up, const char *tag);
 extern const char *iproute_path;
 #endif
 
+/* Script security */
 #define SSEC_NONE      0 /* strictly no calling of external programs */
 #define SSEC_BUILT_IN  1 /* only call built-in programs such as ifconfig, route, netsh, etc.*/
 #define SSEC_SCRIPTS   2 /* allow calling of built-in programs and user-defined scripts */

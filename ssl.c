@@ -948,7 +948,7 @@ verify_callback (int preverify_ok, X509_STORE_CTX * ctx)
 		   ctx->error_depth,
 		   subject);
       argv_msg_prefix (D_TLS_DEBUG, &argv, "TLS: executing verify command");
-      ret = openvpn_execve (&argv, opt->es, S_SCRIPT);
+      ret = openvpn_run_script (&argv, opt->es, 0, "--tls-verify script");
 
       if (opt->verify_export_cert)
         {
@@ -3232,7 +3232,7 @@ verify_user_pass_script (struct tls_session *session, const struct user_pass *up
       argv_printf (&argv, "%sc %s", session->opt->auth_user_pass_verify_script, tmp_file);
       
       /* call command */
-      retval = openvpn_execve (&argv, session->opt->es, S_SCRIPT);
+      retval = openvpn_run_script (&argv, session->opt->es, 0, "--auth-user-pass-verify");
 
       /* test return status of command */
       if (system_ok (retval))

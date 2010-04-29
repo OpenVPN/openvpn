@@ -952,6 +952,8 @@ int
 openvpn_execve (const struct argv *a, const struct env_set *es, const unsigned int flags)
 {
   int ret = -1;
+  static bool exec_warn = false;
+
   if (a && a->argv[0])
     {
       if (openvpn_execve_allowed (flags))
@@ -1004,9 +1006,10 @@ openvpn_execve (const struct argv *a, const struct env_set *es, const unsigned i
 	      ASSERT (0);
 	    }
 	}
-      else
+      else if (!exec_warn && (script_security < SSEC_SCRIPTS))
 	{
 	  msg (M_WARN, SCRIPT_SECURITY_WARNING);
+          exec_warn = true;
 	}
     }
   else

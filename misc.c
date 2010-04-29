@@ -230,7 +230,7 @@ run_up_down (const char *command,
 		  ifconfig_local, ifconfig_remote,
 		  context);
       argv_msg (M_INFO, &argv);
-      openvpn_execve_check (&argv, es, S_SCRIPT|S_FATAL, "script failed");
+      openvpn_run_script (&argv, es, S_FATAL, "--up/--down");
       argv_reset (&argv);
     }
 
@@ -493,6 +493,7 @@ openvpn_execve_allowed (const unsigned int flags)
     return script_security >= SSEC_BUILT_IN;
 }
 
+
 #ifndef WIN32
 /*
  * Run execve() inside a fork().  Designed to replicate the semantics of system() but
@@ -504,6 +505,7 @@ openvpn_execve (const struct argv *a, const struct env_set *es, const unsigned i
 {
   struct gc_arena gc = gc_new ();
   int ret = -1;
+  static bool warn_shown = false;
 
   if (a && a->argv[0])
     {
@@ -540,9 +542,10 @@ openvpn_execve (const struct argv *a, const struct env_set *es, const unsigned i
 	      ASSERT (0);
 	    }
 	}
-      else
+      else if (!warn_shown && (script_security < SSEC_SCRIPTS))
 	{
 	  msg (M_WARN, SCRIPT_SECURITY_WARNING);
+          warn_shown = true;
 	}
 #else
       msg (M_WARN, "openvpn_execve: execve function not available");

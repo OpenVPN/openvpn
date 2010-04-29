@@ -109,7 +109,7 @@ learn_address_script (const struct multi_context *m,
 		   mroute_addr_print (addr, &gc));
       if (mi)
 	argv_printf_cat (&argv, "%s", tls_common_name (mi->context.c2.tls_multi, false));
-      if (!openvpn_execve_check (&argv, es, S_SCRIPT, "WARNING: learn-address command failed"))
+      if (!openvpn_run_script (&argv, es, 0, "--learn-address"))
 	ret = false;
       argv_reset (&argv);
     }
@@ -480,7 +480,7 @@ multi_client_disconnect_script (struct multi_context *m,
 	  struct argv argv = argv_new ();
 	  setenv_str (mi->context.c2.es, "script_type", "client-disconnect");
 	  argv_printf (&argv, "%sc", mi->context.options.client_disconnect_script);
-	  openvpn_execve_check (&argv, mi->context.c2.es, S_SCRIPT, "client-disconnect command failed");
+	  openvpn_run_script (&argv, mi->context.c2.es, 0, "--client-disconnect");
 	  argv_reset (&argv);
 	}
 #ifdef MANAGEMENT_DEF_AUTH
@@ -1586,7 +1586,7 @@ multi_connection_established (struct multi_context *m, struct multi_instance *mi
 		       mi->context.options.client_connect_script,
 		       dc_file);
 
-	  if (openvpn_execve_check (&argv, mi->context.c2.es, S_SCRIPT, "client-connect command failed"))
+	  if (openvpn_run_script (&argv, mi->context.c2.es, 0, "--client-connect"))
 	    {
 	      multi_client_connect_post (m, mi, dc_file, option_permissions_mask, &option_types_found);
 	      ++cc_succeeded_count;
