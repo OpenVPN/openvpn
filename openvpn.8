@@ -1372,15 +1372,25 @@ to be between 100 bytes/sec and 100 Mbytes/sec.
 .B \-\-inactive n [bytes]
 Causes OpenVPN to exit after
 .B n
-seconds of inactivity on the TUN/TAP device.  The time length
-of inactivity is measured since the last incoming tunnel packet.
+seconds of inactivity on the TUN/TAP device. The time length of
+inactivity is measured since the last incoming or outgoing tunnel
+packet.
 
 If the optional
 .B bytes
 parameter is included,
-exit after n seconds of activity on tun/tap device
-produces a combined in/out byte count that is less than
-.B bytes.
+exit if less than
+.B bytes
+of combined in/out traffic are produced on the tun/tap device
+in
+.B n
+seconds.
+
+In any case, OpenVPN's internal ping packets (which are just
+keepalives) and TLS control packets are not considered
+"activity", nor are they counted as traffic, as they are used
+internally by OpenVPN and are not an indication of actual user
+activity.
 .\"*********************************************************
 .TP
 .B \-\-ping n

@@ -1168,8 +1168,9 @@ process_outgoing_link (struct context *c)
 		 size);
 	}
 
-      /* indicate activity regarding --inactive parameter */
-      register_activity (c, size);
+      /* if not a ping/control message, indicate activity regarding --inactive parameter */
+      if (c->c2.buf.len > 0 )
+        register_activity (c, size);
     }
   else
     {
