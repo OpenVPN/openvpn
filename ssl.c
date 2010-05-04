@@ -957,21 +957,19 @@ verify_callback (int preverify_ok, X509_STORE_CTX * ctx)
            gc_free(&gc);
         }
 
-      if (system_ok (ret))
+      if (ret)
 	{
 	  msg (D_HANDSHAKE, "VERIFY SCRIPT OK: depth=%d, %s",
 	       ctx->error_depth, subject);
 	}
       else
 	{
-	  if (!system_executed (ret))
-	    argv_msg_prefix (M_ERR, &argv, "Verify command failed to execute");
 	  msg (D_HANDSHAKE, "VERIFY SCRIPT ERROR: depth=%d, %s",
 	       ctx->error_depth, subject);
 	  goto err;		/* Reject connection */
 	}
     }
-  
+
   /* check peer cert against CRL */
   if (opt->crl_file)
     {
@@ -3192,7 +3190,6 @@ verify_user_pass_script (struct tls_session *session, const struct user_pass *up
   struct gc_arena gc = gc_new ();
   struct argv argv = argv_new ();
   const char *tmp_file = "";
-  int retval;
   bool ret = false;
 
   /* Is username defined? */
@@ -3230,16 +3227,11 @@ verify_user_pass_script (struct tls_session *session, const struct user_pass *up
 
       /* format command line */
       argv_printf (&argv, "%sc %s", session->opt->auth_user_pass_verify_script, tmp_file);
-      
-      /* call command */
-      retval = openvpn_run_script (&argv, session->opt->es, 0, "--auth-user-pass-verify");
 
-      /* test return status of command */
-      if (system_ok (retval))
-	ret = true;
-      else if (!system_executed (retval))
-	argv_msg_prefix (D_TLS_ERRORS, &argv, "TLS Auth Error: user-pass-verify script failed to execute");
-	  
+      /* call command */
+      ret = openvpn_run_script (&argv, session->opt->es, 0,
+				"--auth-user-pass-verify");
+
       if (!session->opt->auth_user_pass_verify_script_via_file)
 	setenv_del (session->opt->es, "password");
     }
