@@ -75,7 +75,7 @@ DigestCalcHA1(
   MD5_Update(&Md5Ctx, ":", 1);
   MD5_Update(&Md5Ctx, pszPassword, strlen(pszPassword));
   MD5_Final(HA1, &Md5Ctx);
-  if (pszAlg && stricmp(pszAlg, "md5-sess") == 0)
+  if (pszAlg && strcasecmp(pszAlg, "md5-sess") == 0)
     {
       MD5_Init(&Md5Ctx);
       MD5_Update(&Md5Ctx, HA1, HASHLEN);
@@ -112,7 +112,7 @@ DigestCalcResponse(
   MD5_Update(&Md5Ctx, pszMethod, strlen(pszMethod));
   MD5_Update(&Md5Ctx, ":", 1);
   MD5_Update(&Md5Ctx, pszDigestUri, strlen(pszDigestUri));
-  if (stricmp(pszQop, "auth-int") == 0)
+  if (strcasecmp(pszQop, "auth-int") == 0)
     {
       MD5_Update(&Md5Ctx, ":", 1);
       MD5_Update(&Md5Ctx, HEntity, HASHHEXLEN);
