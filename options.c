@@ -108,8 +108,9 @@ static const char usage_message[] =
   "                  up is a file containing username/password on 2 lines, or\n"
   "                  'stdin' to prompt from console.  Add auth='ntlm' if\n"
   "                  the proxy requires NTLM authentication.\n"
-  "--http-proxy s p 'auto': Like the above directive, but automatically determine\n"
-  "                         auth method and query for username/password if needed.\n"
+  "--http-proxy s p 'auto[-nct]' : Like the above directive, but automatically\n"
+  "                  determine auth method and query for username/password\n"
+  "                  if needed.  auto-nct disables weak proxy auth methods.\n"
   "--http-proxy-retry     : Retry indefinitely on HTTP proxy errors.\n"
   "--http-proxy-timeout n : Proxy timeout in seconds, default=5.\n"
   "--http-proxy-option type [parm] : Set extended HTTP proxy options.\n"
@@ -4197,8 +4198,13 @@ add_option (struct options *options,
 
       if (p[3])
 	{
+	  /* auto -- try to figure out proxy addr, port, and type automatically */
+	  /* semiauto -- given proxy addr:port, try to figure out type automatically */
+	  /* (auto|semiauto)-nct -- disable proxy auth cleartext protocols (i.e. basic auth) */
 	  if (streq (p[3], "auto"))
-	    ho->auth_retry = true;
+	    ho->auth_retry = PAR_ALL;
+	  else if (streq (p[3], "auto-nct"))
+	    ho->auth_retry = PAR_NCT;
 	  else
 	    {
 	      ho->auth_method_string = "basic";

@@ -572,6 +572,15 @@ socket_defined (const socket_descriptor_t sd)
 #endif
 
 /*
+ * Should we include proxy digest auth functionality
+ */
+#if defined(USE_CRYPTO) && defined(ENABLE_HTTP_PROXY)
+#define PROXY_DIGEST_AUTH 1
+#else
+#define PROXY_DIGEST_AUTH 0
+#endif
+
+/*
  * Should we include code common to all proxy methods?
  */
 #if defined(ENABLE_HTTP_PROXY) || defined(ENABLE_SOCKS)
