@@ -291,6 +291,7 @@ typedef unsigned long in_addr_t;
 #define lseek _lseek
 #define chdir _chdir
 #define strdup _strdup
+#define strcasecmp _stricmp
 #define chsize _chsize
 #define S_IRUSR 0
 #define S_IWUSR 0

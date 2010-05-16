@@ -474,7 +474,7 @@ InternetQueryOption API.
 This option exists in OpenVPN 2.1 or higher.
 .\"*********************************************************
 .TP
-.B \-\-http-proxy server port [authfile|'auto'] [auth-method]
+.B \-\-http-proxy server port [authfile|'auto'|'auto-nct'] [auth-method]
 Connect to remote host through an HTTP proxy at address
 .B server
 and port
@@ -487,6 +487,13 @@ is a file containing a username and password on 2 lines, or
 .B auth-method
 should be one of "none", "basic", or "ntlm".
 
+HTTP Digest authentication is supported as well, but only via
+the
+.B auto
+or
+.B auto-nct
+flags (below).
+
 The
 .B auto
 flag causes OpenVPN to automatically determine the
@@ -494,6 +501,12 @@ flag causes OpenVPN to automatically determine the
 and query stdin or the management interface for
 username/password credentials, if required.  This flag
 exists on OpenVPN 2.1 or higher.
+
+The
+.B auto-nct
+flag (no clear-text auth) instructs OpenVPN to automatically
+determine the authentication method, but to reject weak
+authentication protocols such as HTTP Basic Authentication.
 .\"*********************************************************
 .TP
 .B \-\-http-proxy-retry
