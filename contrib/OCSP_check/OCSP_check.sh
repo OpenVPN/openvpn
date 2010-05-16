@@ -63,27 +63,49 @@ fi
 
 # begin
 if [ $check_depth -eq -1 ] || [ $cur_depth -eq $check_depth ]; then
+
   eval serial="\$tls_serial_${cur_depth}"
 
-  # Check that the serial is not empty
+  # To successfully complete, the following must happen:
+  #
+  # - The serial number must not be empty
+  # - The exit status of "openssl ocsp" must be zero
+  # - The output of the above command must contain the line
+  #   "0x${serial}: good"
+  #
+  # Everything else fails with exit status 1.
+
   if [ -n "$serial" ]; then
 
     # This is only an example; you are encouraged to run this command (without
     # redirections) manually against your or your CA's OCSP server to see how
     # it responds, and adapt accordingly.
-    # Sample output:
+    # Sample output that is assumed here:
     #
     # Response verify OK
     # 0x428740A5: good
     #      This Update: Apr 24 19:38:49 2010 GMT
     #      Next Update: May  2 14:23:42 2010 GMT
+    #
+    # NOTE: It is needed to check the exit code of OpenSSL explicitly.  OpenSSL
+    #       can in some circumstances give a "good" result if it could not
+    #       reach the the OSCP server.  In this case, the exit code will indicate
+    #       if OpenSSL itself failed or not.  If OpenSSL's exit code is not 0,
+    #       don't trust the OpenSSL status.
 
-    openssl ocsp -issuer "$issuer" \
-                 "$nonce" \
-                 -CAfile "$verify" \
-                 -url "$ocsp_url" \
-                 -serial "0x${serial}" >/dev/null 2>&1
-  else
-    exit 1
+    status=$(openssl ocsp -issuer "$issuer" \
+                    "$nonce" \
+                    -CAfile "$verify" \
+                    -url "$ocsp_url" \
+                    -serial "0x${serial}" 2>/dev/null)
+
+    if [ $? -eq 0 ]; then
+      # check that it's good
+      if echo "$status" | grep -Fq "0x${serial}: good"; then
+        exit 0
+      fi
+    fi
   fi
+  # if we get here, something was wrong
+  exit 1
 fi
