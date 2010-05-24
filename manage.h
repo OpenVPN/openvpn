@@ -170,6 +170,9 @@ struct management_callback
 		     const unsigned long cid,
 		     struct buffer_list *pf_config);   /* ownership transferred */
 #endif
+#if HTTP_PROXY_FALLBACK
+  bool (*http_proxy_fallback_cmd) (void *arg, const char *server, const char *port, const char *flags);
+#endif
 };
 
 /*
@@ -501,6 +504,12 @@ management_bytes_server (struct management *man,
 }
 
 #endif /* MANAGEMENT_DEF_AUTH */
+
+#if HTTP_PROXY_FALLBACK
+
+void management_http_proxy_fallback_notify (struct management *man, const char *type, const char *remote_ip_hint);
+
+#endif /* HTTP_PROXY_FALLBACK */
 
 #endif
 #endif

@@ -97,6 +97,14 @@ struct connection_entry
   int socks_proxy_port;
   bool socks_proxy_retry;
 #endif
+
+# define CE_DISABLED (1<<0)
+#if HTTP_PROXY_FALLBACK
+# define CE_HTTP_PROXY_FALLBACK (1<<1)
+  time_t ce_http_proxy_fallback_timestamp; /* time when fallback http_proxy_options was last updated */
+#endif
+
+  unsigned int flags;
 };
 
 struct remote_entry
@@ -114,6 +122,7 @@ struct connection_list
 {
   int len;
   int current;
+  int n_cycles;
   bool no_advance;
   struct connection_entry *array[CONNECTION_LIST_SIZE];
 };
@@ -124,6 +133,14 @@ struct remote_list
   struct remote_entry *array[CONNECTION_LIST_SIZE];
 };
 
+#endif
+
+#if HTTP_PROXY_FALLBACK
+struct hpo_store
+{
+  struct http_proxy_options hpo;
+  char server[80];
+};
 #endif
 
 /* Command line options */
@@ -162,12 +179,20 @@ struct options
   struct connection_entry ce;
 
 #ifdef ENABLE_CONNECTION
+  char *remote_ip_hint;
   struct connection_list *connection_list;
   struct remote_list *remote_list;
+  bool force_connection_list;
 #endif
 
 #ifdef GENERAL_PROXY_SUPPORT
   struct auto_proxy_info *auto_proxy_info;
+#endif
+
+#if HTTP_PROXY_FALLBACK
+  bool http_proxy_fallback;
+  struct http_proxy_options *http_proxy_override;
+  struct hpo_store *hpo_store; /* used to store dynamic proxy info given by management interface */
 #endif
 
   bool remote_random;
@@ -709,5 +734,16 @@ connection_list_set_no_advance (struct options *o)
     o->connection_list->no_advance = true;
 #endif
 }
+
+#if HTTP_PROXY_FALLBACK
+
+struct http_proxy_options *
+parse_http_proxy_fallback (struct context *c,
+			   const char *server,
+			   const char *port,
+			   const char *flags,
+			   const int msglevel);
+
+#endif /* HTTP_PROXY_FALLBACK */
 
 #endif

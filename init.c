@@ -111,6 +111,103 @@ update_options_ce_post (struct options *options)
 #endif
 }
 
+#if HTTP_PROXY_FALLBACK
+
+static bool
+ce_http_proxy_fallback_defined(const struct context *c)
+{
+  const struct connection_list *l = c->options.connection_list;
+  if (l && l->current == 0)
+    {
+      int i;
+      for (i = 0; i < l->len; ++i)
+	{
+	  if (l->array[i]->flags & CE_HTTP_PROXY_FALLBACK)
+	    return true;
+	}
+    }
+  return false;
+}
+
+static void
+ce_http_proxy_fallback_start(struct context *c, const char *remote_ip_hint)
+{
+  const struct connection_list *l = c->options.connection_list;
+  if (l)
+    {
+      int i;
+      for (i = 0; i < l->len; ++i)
+	{
+	  struct connection_entry *ce = l->array[i];
+	  if (ce->flags & CE_HTTP_PROXY_FALLBACK)
+	    {
+	      ce->http_proxy_options = NULL;
+	      ce->ce_http_proxy_fallback_timestamp = 0;
+	      if (!remote_ip_hint)
+		remote_ip_hint = ce->remote;
+	    }
+	}
+    }
+
+  if (management)
+    management_http_proxy_fallback_notify(management, "NEED_LATER", remote_ip_hint);
+}
+
+static bool
+ce_http_proxy_fallback (struct context *c, volatile const struct connection_entry *ce)
+{
+  const int proxy_info_expire = 120; /* seconds before proxy info expires */
+
+  update_time();
+  if (management)
+    {
+      if (!ce->ce_http_proxy_fallback_timestamp)
+	{
+	  management_http_proxy_fallback_notify(management, "NEED_NOW", NULL);
+	  while (!ce->ce_http_proxy_fallback_timestamp)
+	    {
+	      management_event_loop_n_seconds (management, 1);
+	      if (IS_SIG (c))
+		return false;
+	    }
+	}
+      return (now < ce->ce_http_proxy_fallback_timestamp + proxy_info_expire && ce->http_proxy_options);
+    }
+  return false;
+}
+
+static bool
+management_callback_http_proxy_fallback_cmd (void *arg, const char *server, const char *port, const char *flags)
+{
+  struct context *c = (struct context *) arg;
+  const struct connection_list *l = c->options.connection_list;
+  int ret = false;
+  struct http_proxy_options *ho = parse_http_proxy_fallback (c, server, port, flags, M_WARN);
+
+  update_time();
+  if (l)
+    {
+      int i;
+      for (i = 0; i < l->len; ++i)
+	{
+	  struct connection_entry *ce = l->array[i];
+	  if (ce->flags & CE_HTTP_PROXY_FALLBACK)
+	    {
+	      if (ho)
+		{
+		  ce->http_proxy_options = ho;
+		  ret = true;
+		}
+	      ce->ce_http_proxy_fallback_timestamp = now;
+	    }
+	}
+    }
+  
+  return ret;
+}
+
+#endif
+
 /*
  * Initialize and possibly randomize connection list.
  */
@@ -141,6 +238,30 @@ init_connection_list (struct context *c)
 #endif
 }
 
+#if 0 /* fixme -- disable for production */
+static void
+show_connection_list (const struct connection_list *l)
+{
+  int i;
+  dmsg (M_INFO, "CONNECTION_LIST len=%d current=%d",
+	l->len, l->current);
+  for (i = 0; i < l->len; ++i)
+    {
+      dmsg (M_INFO, "[%d] %s:%d proto=%s http_proxy=%d",
+	    i,
+	    l->array[i]->remote,
+	    l->array[i]->remote_port,
+	    proto2ascii(l->array[i]->proto, true),
+	    BOOL_CAST(l->array[i]->http_proxy_options));
+    }
+}
+#else
+static inline void
+show_connection_list (const struct connection_list *l)
+{
+}
+#endif
+
 /*
  * Increment to next connection entry
  */
@@ -151,27 +272,65 @@ next_connection_entry (struct context *c)
   struct connection_list *l = c->options.connection_list;
   if (l)
     {
-      if (l->no_advance && l->current >= 0)
-	{
-	  l->no_advance = false;
-	}
-      else
-	{
-	  int i;
-	  if (++l->current >= l->len)
-	    l->current = 0;
+      bool ce_defined;
+      struct connection_entry *ce;
+      int n_cycles = 0;
 
-	  dmsg (D_CONNECTION_LIST, "CONNECTION_LIST len=%d current=%d",
-		l->len, l->current);
-	  for (i = 0; i < l->len; ++i)
-	    {
-	      dmsg (D_CONNECTION_LIST, "[%d] %s:%d",
-		    i,
-		    l->array[i]->remote,
-		    l->array[i]->remote_port);
-	    }
-	}
-      c->options.ce = *l->array[l->current];
+      do {
+	const char *remote_ip_hint = NULL;
+	bool advanced = false;
+
+	ce_defined = true;
+	if (l->no_advance && l->current >= 0)
+	  {
+	    l->no_advance = false;
+	  }
+	else
+	  {
+	    if (++l->current >= l->len)
+	      {
+		l->current = 0;
+		++l->n_cycles;
+		if (++n_cycles >= 2)
+		  msg (M_FATAL, "No usable connection profiles are present");
+	      }
+
+	    advanced = true;
+	    show_connection_list(l);
+	  }
+
+	ce = l->array[l->current];
+
+	if (c->options.remote_ip_hint && !l->n_cycles)
+	  remote_ip_hint = c->options.remote_ip_hint;
+
+#if HTTP_PROXY_FALLBACK
+	if (advanced && ce_http_proxy_fallback_defined(c))
+	  ce_http_proxy_fallback_start(c, remote_ip_hint);
+
+	if (ce->flags & CE_HTTP_PROXY_FALLBACK)
+	  {
+	    ce_defined = ce_http_proxy_fallback(c, ce);
+	    if (IS_SIG (c))
+	      break;
+	  }
+#endif
+
+	if (ce->flags & CE_DISABLED)
+	  ce_defined = false;
+
+	c->options.ce = *ce;
+
+	if (remote_ip_hint)
+	  c->options.ce.remote = remote_ip_hint;
+
+#if 0 /* fixme -- disable for production, this code simulates a network where proxy fallback is the only method to reach the OpenVPN server */
+	if (!(c->options.ce.flags & CE_HTTP_PROXY_FALLBACK))
+	  {
+	    c->options.ce.remote = "10.10.0.1"; /* use an unreachable address here */
+	  }
+#endif
+      } while (!ce_defined);
     }
 #endif
   update_options_ce_post (&c->options);
@@ -2774,6 +2933,9 @@ init_management_callback_p2p (struct context *c)
       cb.arg = c;
       cb.status = management_callback_status_p2p;
       cb.show_net = management_show_net_callback;
+#if HTTP_PROXY_FALLBACK
+      cb.http_proxy_fallback_cmd = management_callback_http_proxy_fallback_cmd;
+#endif
       management_set_callback (management, &cb);
     }
 #endif
@@ -2898,6 +3060,17 @@ init_instance (struct context *c, const struct env_set *env, const unsigned int 
   c->sig->signal_text = NULL;
   c->sig->hard = false;
 
+  if (c->mode == CM_P2P)
+    init_management_callback_p2p (c);
+
+  /* possible sleep or management hold if restart */
+  if (c->mode == CM_P2P || c->mode == CM_TOP)
+    {
+      do_startup_pause (c);
+      if (IS_SIG (c))
+	goto sig;
+    }
+
   /* map in current connection entry */
   next_connection_entry (c);
 
@@ -2915,14 +3088,6 @@ init_instance (struct context *c, const struct env_set *env, const unsigned int 
   /* should we disable paging? */
   if (c->first_time && options->mlock)
     do_mlockall (true);
-
-  /* possible sleep or management hold if restart */
-  if (c->mode == CM_P2P || c->mode == CM_TOP)
-    {
-      do_startup_pause (c);
-      if (IS_SIG (c))
-	goto sig;
-    }
 
 #if P2MP
   /* get passwords if undefined */

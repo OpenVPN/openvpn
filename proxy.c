@@ -224,10 +224,14 @@ get_user_pass_http (struct http_proxy_info *p, const bool force)
 {
   if (!static_proxy_user_pass.defined || force)
     {
+      unsigned int flags = GET_USER_PASS_MANAGEMENT;
+      if (p->queried_creds)
+	flags |= GET_USER_PASS_PREVIOUS_CREDS_FAILED;
       get_user_pass (&static_proxy_user_pass,
 		     p->options.auth_file,
 		     UP_TYPE_PROXY,
-		     GET_USER_PASS_MANAGEMENT);
+		     flags);
+      p->queried_creds = true;
       p->up = static_proxy_user_pass;
     }
 }
@@ -755,12 +759,12 @@ establish_http_proxy_passthru (struct http_proxy_info *p,
 			    realm,
 			    password,
 			    nonce,
-			    cnonce,
+			    (char *)cnonce,
 			    session_key);
 	      DigestCalcResponse(session_key,
 				 nonce,
 				 nonce_count,
-				 cnonce,
+				 (char *)cnonce,
 				 qop,
 				 http_method,
 				 uri,
@@ -877,6 +881,8 @@ establish_http_proxy_passthru (struct http_proxy_info *p,
       goto error;
     }
 
+  /* SUCCESS */
+
   /* receive line from proxy and discard */
   if (!recv_line (sd, NULL, 0, p->options.timeout, true, NULL, signal_received))
     goto error;
@@ -887,6 +893,9 @@ establish_http_proxy_passthru (struct http_proxy_info *p,
    */
   while (recv_line (sd, NULL, 0, 2, false, lookahead, signal_received))
     ;
+
+  /* reset queried_creds so that we don't think that the next creds request is due to an auth error */
+  p->queried_creds = false;
 
 #if 0
   if (lookahead && BLEN (lookahead))

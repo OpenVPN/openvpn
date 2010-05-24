@@ -625,6 +625,22 @@ socket_defined (const socket_descriptor_t sd)
 #define ENABLE_INLINE_FILES 1
 
 /*
+ * Support "connection" directive
+ */
+#if ENABLE_INLINE_FILES
+#define ENABLE_CONNECTION 1
+#endif
+
+/*
+ * Should we include http proxy fallback functionality
+ */
+#if defined(ENABLE_CONNECTION) && defined(ENABLE_MANAGEMENT) && defined(ENABLE_HTTP_PROXY)
+#define HTTP_PROXY_FALLBACK 1
+#else
+#define HTTP_PROXY_FALLBACK 0
+#endif
+
+/*
  * Reduce sensitivity to system clock instability
  * and backtracks.
  */
@@ -644,13 +660,6 @@ socket_defined (const socket_descriptor_t sd)
 #define AUTO_USERID 1
 #else
 #define AUTO_USERID 0
-#endif
-
-/*
- * Support "connection" directive
- */
-#if ENABLE_INLINE_FILES
-#define ENABLE_CONNECTION 1
 #endif
 
 #endif

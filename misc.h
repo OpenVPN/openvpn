@@ -263,11 +263,16 @@ bool get_console_input (const char *prompt, const bool echo, char *input, const 
 #define GET_USER_PASS_NEED_OK       (1<<3)
 #define GET_USER_PASS_NOFATAL       (1<<4)
 #define GET_USER_PASS_NEED_STR      (1<<5)
+#define GET_USER_PASS_PREVIOUS_CREDS_FAILED (1<<6)
 
 bool get_user_pass (struct user_pass *up,
 		    const char *auth_file,
 		    const char *prefix,
 		    const unsigned int flags);
+
+void fail_user_pass (const char *prefix,
+		     const unsigned int flags,
+		     const char *reason);
 
 void purge_user_pass (struct user_pass *up, const bool force);
 

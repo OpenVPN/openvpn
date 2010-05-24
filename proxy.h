@@ -71,12 +71,18 @@ struct http_proxy_options {
 # define PAR_NO  0  /* don't support any auth retries */
 # define PAR_ALL 1  /* allow all proxy auth protocols */
 # define PAR_NCT 2  /* disable cleartext proxy auth protocols */
-  bool auth_retry;
+  int auth_retry;
 
   const char *auth_method_string;
   const char *auth_file;
   const char *http_version;
   const char *user_agent;
+};
+
+struct http_proxy_options_simple {
+  const char *server;
+  int port;
+  int auth_retry;
 };
 
 struct http_proxy_info {
@@ -85,6 +91,7 @@ struct http_proxy_info {
   struct http_proxy_options options;
   struct user_pass up;
   char *proxy_authenticate;
+  bool queried_creds;
 };
 
 struct http_proxy_info *http_proxy_new (const struct http_proxy_options *o,
