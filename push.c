@@ -102,8 +102,8 @@ send_auth_failed (struct context *c, const char *client_reason)
   schedule_exit (c, c->options.scheduled_exit_interval, SIGTERM);
 
   len = (client_reason ? strlen(client_reason)+1 : 0) + sizeof(auth_failed);
-  if (len > TLS_CHANNEL_BUF_SIZE)
-    len = TLS_CHANNEL_BUF_SIZE;
+  if (len > PUSH_BUNDLE_SIZE)
+    len = PUSH_BUNDLE_SIZE;
 
   {
     struct buffer buf = alloc_buf_gc (len, &gc);
@@ -171,7 +171,7 @@ bool
 send_push_reply (struct context *c)
 {
   struct gc_arena gc = gc_new ();
-  struct buffer buf = alloc_buf_gc (TLS_CHANNEL_BUF_SIZE, &gc);
+  struct buffer buf = alloc_buf_gc (PUSH_BUNDLE_SIZE, &gc);
   struct push_entry *e = c->options.push_list.head;
   bool multi_push = false;
   static char cmd[] = "PUSH_REPLY";

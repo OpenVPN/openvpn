@@ -2275,6 +2275,58 @@ man_output_extra_env (struct management *man)
   gc_free (&gc);
 }
 
+static bool
+validate_peer_info_line(const char *line)
+{
+  uint8_t c;
+  int state = 0;
+  while ((c=*line++))
+    {
+      switch (state)
+	{
+	case 0:
+	case 1:
+	  if (c == '=' && state == 1)
+	    state = 2;
+	  else if (isalnum(c) || c == '_')
+	    state = 1;
+	  else
+	    return false;
+	case 2:
+	  if (isprint(c))
+	    ;
+	  else
+	    return false;
+	}
+    }
+  return (state == 2);
+}
+
+static void
+man_output_peer_info_env (struct management *man, struct man_def_auth_context *mdac)
+{
+  char line[256];
+  if (man->persist.callback.get_peer_info)
+    {
+      const char *peer_info = (*man->persist.callback.get_peer_info) (man->persist.callback.arg, mdac->cid);
+      if (peer_info)
+	{
+	  struct buffer buf;
+	  buf_set_read (&buf, (const uint8_t *) peer_info, strlen(peer_info));
+	  while (buf_parse (&buf, '\n', line, sizeof (line)))
+	    {
+	      chomp (line);
+	      if (validate_peer_info_line(line))
+		{
+		  msg (M_CLIENT, ">CLIENT:ENV,%s", line);
+		}
+	      else
+		msg (D_MANAGEMENT, "validation failed on peer_info line received from client");
+	    }
+	}
+    }
+}
+
 void
 management_notify_client_needing_auth (struct management *management,
 				       const unsigned int mda_key_id,
@@ -2288,6 +2340,7 @@ management_notify_client_needing_auth (struct management *management,
 	mode = "REAUTH";
       msg (M_CLIENT, ">CLIENT:%s,%lu,%u", mode, mdac->cid, mda_key_id);
       man_output_extra_env (management);
+      man_output_peer_info_env(management, mdac);
       man_output_env (es, true, management->connection.env_filter_level);
       mdac->flags |= DAF_INITIAL_AUTH;
     }

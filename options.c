@@ -196,6 +196,9 @@ static const char usage_message[] =
   "                  Add 'bypass-dns' flag to similarly bypass tunnel for DNS.\n"
   "--redirect-private [flags]: Like --redirect-gateway, but omit actually changing\n"
   "                  the default gateway.  Useful when pushing private subnets.\n"
+#ifdef ENABLE_PUSH_PEER_INFO
+  "--push-peer-info : (client only) push client info to server.\n"
+#endif
   "--setenv name value : Set a custom environmental variable to pass to script.\n"
   "--setenv FORWARD_COMPATIBLE 1 : Relax config file syntax checking to allow\n"
   "                  directives for future OpenVPN versions to be ignored.\n"
@@ -1348,6 +1351,9 @@ show_settings (const struct options *o)
   SHOW_INT (transition_window);
 
   SHOW_BOOL (single_session);
+#ifdef ENABLE_PUSH_PEER_INFO
+  SHOW_BOOL (push_peer_info);
+#endif
   SHOW_BOOL (tls_exit);
 
   SHOW_STR (tls_auth_file);
@@ -2057,6 +2063,9 @@ options_postprocess_verify_ce (const struct options *options, const struct conne
       MUST_BE_UNDEF (transition_window);
       MUST_BE_UNDEF (tls_auth_file);
       MUST_BE_UNDEF (single_session);
+#ifdef ENABLE_PUSH_PEER_INFO
+      MUST_BE_UNDEF (push_peer_info);
+#endif
       MUST_BE_UNDEF (tls_exit);
       MUST_BE_UNDEF (crl_file);
       MUST_BE_UNDEF (key_method);
@@ -5672,6 +5681,13 @@ add_option (struct options *options,
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->single_session = true;
     }
+#ifdef ENABLE_PUSH_PEER_INFO
+  else if (streq (p[0], "push-peer-info"))
+    {
+      VERIFY_PERMISSION (OPT_P_GENERAL);
+      options->push_peer_info = true;
+    }
+#endif
   else if (streq (p[0], "tls-exit"))
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);

@@ -2007,6 +2007,9 @@ do_init_crypto_tls (struct context *c, const unsigned int flags)
   to.renegotiate_packets = options->renegotiate_packets;
   to.renegotiate_seconds = options->renegotiate_seconds;
   to.single_session = options->single_session;
+#ifdef ENABLE_PUSH_PEER_INFO
+  to.push_peer_info = options->push_peer_info;
+#endif
 
   /* should we not xmit any packets until we get an initial
      response from client? */
