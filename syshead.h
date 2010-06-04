@@ -662,4 +662,9 @@ socket_defined (const socket_descriptor_t sd)
 #define AUTO_USERID 0
 #endif
 
+/*
+ * Do we support pushing peer info?
+ */
+#define ENABLE_PUSH_PEER_INFO
+
 #endif

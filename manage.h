@@ -164,6 +164,7 @@ struct management_callback
 		       const char *reason,
 		       const char *client_reason,
 		       struct buffer_list *cc_config); /* ownership transferred */
+  char *(*get_peer_info) (void *arg, const unsigned long cid);
 #endif
 #ifdef MANAGEMENT_PF
   bool (*client_pf) (void *arg,

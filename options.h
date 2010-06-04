@@ -520,6 +520,10 @@ struct options
   /* Allow only one session */
   bool single_session;
 
+#ifdef ENABLE_PUSH_PEER_INFO
+  bool push_peer_info;
+#endif
+
   bool tls_exit;
 
 #endif /* USE_SSL */
