@@ -2605,6 +2605,20 @@ management_client_auth (void *arg,
     buffer_list_free (cc_config);
   return ret;
 }
+
+static char *
+management_get_peer_info (void *arg, const unsigned long cid)
+{
+  struct multi_context *m = (struct multi_context *) arg;
+  struct multi_instance *mi = lookup_by_cid (m, cid);
+  char *ret = NULL;
+
+  if (mi)
+      ret = tls_get_peer_info (mi->context.c2.tls_multi);
+
+  return ret;
+}
+
 #endif
 
 #ifdef MANAGEMENT_PF
@@ -2645,6 +2659,7 @@ init_management_callback_multi (struct multi_context *m)
 #ifdef MANAGEMENT_DEF_AUTH
       cb.kill_by_cid = management_kill_by_cid;
       cb.client_auth = management_client_auth;
+      cb.get_peer_info = management_get_peer_info;
 #endif
 #ifdef MANAGEMENT_PF
       cb.client_pf = management_client_pf;

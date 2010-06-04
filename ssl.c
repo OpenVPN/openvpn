@@ -2580,6 +2580,8 @@ tls_multi_free (struct tls_multi *multi, bool clear)
 
 #ifdef MANAGEMENT_DEF_AUTH
   man_def_auth_set_client_reason(multi, NULL);  
+
+  free (multi->peer_info);
 #endif
 
   if (multi->locked_cn)
@@ -3128,6 +3130,14 @@ write_string (struct buffer *buf, const char *str, const int maxlen)
 }
 
 static bool
+write_empty_string (struct buffer *buf)
+{
+  if (!buf_write_u16 (buf, 0))
+    return false;
+  return true;
+}
+
+static bool
 read_string (struct buffer *buf, char *str, const unsigned int capacity)
 {
   const int len = buf_read_u16 (buf);
@@ -3137,6 +3147,33 @@ read_string (struct buffer *buf, char *str, const unsigned int capacity)
     return false;
   str[len-1] = '\0';
   return true;
+}
+
+static char *
+read_string_alloc (struct buffer *buf)
+{
+  const int len = buf_read_u16 (buf);
+  char *str;
+
+  if (len < 1)
+    return NULL;
+  str = (char *) malloc(len);
+  check_malloc_return(str);
+  if (!buf_read (buf, str, len))
+    {
+      free (str);
+      return NULL;
+    }
+  str[len-1] = '\0';
+  return str;
+}
+
+void
+read_string_discard (struct buffer *buf)
+{
+  char *data = read_string_alloc(buf);
+  if (data)
+    free (data);
 }
 
 /*
@@ -3355,6 +3392,73 @@ key_method_1_write (struct buffer *buf, struct tls_session *session)
 }
 
 static bool
+push_peer_info(struct buffer *buf, struct tls_session *session)
+{
+  struct gc_arena gc = gc_new ();
+  bool ret = false;
+
+#ifdef ENABLE_PUSH_PEER_INFO
+  if (session->opt->push_peer_info) /* write peer info */
+    {
+      struct env_set *es = session->opt->es;
+      struct env_item *e;
+      struct buffer out = alloc_buf_gc (512*3, &gc);
+
+      /* push version */
+      buf_printf (&out, "IV_VER=%s\n", PACKAGE_VERSION);
+
+      /* push platform */
+#if defined(TARGET_LINUX)
+      buf_printf (&out, "IV_PLAT=linux\n");
+#elif defined(TARGET_SOLARIS)
+      buf_printf (&out, "IV_PLAT=solaris\n");
+#elif defined(TARGET_OPENBSD)
+      buf_printf (&out, "IV_PLAT=openbsd\n");
+#elif defined(TARGET_DARWIN)
+      buf_printf (&out, "IV_PLAT=mac\n");
+#elif defined(TARGET_NETBSD)
+      buf_printf (&out, "IV_PLAT=netbsd\n");
+#elif defined(TARGET_FREEBSD)
+      buf_printf (&out, "IV_PLAT=freebsd\n");
+#elif defined(WIN32)
+      buf_printf (&out, "IV_PLAT=win\n");
+#endif
+
+      /* push mac addr */
+      {
+	bool get_default_gateway_mac_addr (unsigned char *macaddr);
+	uint8_t macaddr[6];
+	get_default_gateway_mac_addr (macaddr);
+	buf_printf (&out, "IV_HWADDR=%s\n", format_hex_ex (macaddr, 6, 0, 1, ":", &gc));
+      }
+
+      /* push env vars that begin with UV_ */
+      for (e=es->list; e != NULL; e=e->next)
+	{
+	  if (e->string)
+	    {
+	      if (!strncmp(e->string, "UV_", 3) && buf_safe(&out, strlen(e->string)+1))
+		buf_printf (&out, "%s\n", e->string);
+	    }
+	}
+
+      if (!write_string(buf, BSTR(&out), -1))
+	goto error;
+    }
+  else
+#endif
+    {
+      if (!write_empty_string (buf)) /* no peer info */
+	goto error;
+    }
+  ret = true;
+
+ error:
+  gc_free (&gc);
+  return ret;
+}
+
+static bool
 key_method_2_write (struct buffer *buf, struct tls_session *session)
 {
   ASSERT (session->opt->key_method == 2);
@@ -3388,6 +3492,16 @@ key_method_2_write (struct buffer *buf, struct tls_session *session)
 	goto error;
       purge_user_pass (&auth_user_pass, false);
     }
+  else
+    {
+      if (!write_empty_string (buf)) /* no username */
+	goto error;
+      if (!write_empty_string (buf)) /* no password */
+	goto error;
+    }
+
+  if (!push_peer_info (buf, session))
+    goto error;
 
   /*
    * generate tunnel keys if server
@@ -3534,11 +3648,13 @@ key_method_2_read (struct buffer *buf, struct tls_multi *multi, struct tls_sessi
       int s1 = OPENVPN_PLUGIN_FUNC_SUCCESS;
       bool s2 = true;
       char *raw_username;
+      bool username_status, password_status;
 
       /* get username/password from plaintext buffer */
       ALLOC_OBJ_CLEAR_GC (up, struct user_pass, &gc);
-      if (!read_string (buf, up->username, USER_PASS_LEN)
-	  || !read_string (buf, up->password, USER_PASS_LEN))
+      username_status = read_string (buf, up->username, USER_PASS_LEN);
+      password_status = read_string (buf, up->password, USER_PASS_LEN);
+      if (!username_status || !password_status)
 	{
 	  CLEAR (*up);
 	  if (!(session->opt->ssl_flags & SSLF_AUTH_USER_PASS_OPTIONAL))
@@ -3559,6 +3675,10 @@ key_method_2_read (struct buffer *buf, struct tls_multi *multi, struct tls_sessi
 
       /* call plugin(s) and/or script */
 #ifdef MANAGEMENT_DEF_AUTH
+      /* get peer info from control channel */
+      free (multi->peer_info);
+      multi->peer_info = read_string_alloc (buf);
+
       if (man_def_auth == KMDA_DEF)
 	man_def_auth = verify_user_pass_management (session, up, raw_username);
 #endif

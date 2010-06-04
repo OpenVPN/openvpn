@@ -432,6 +432,9 @@ struct tls_options
 #ifdef ENABLE_OCC
   bool disable_occ;
 #endif
+#ifdef ENABLE_PUSH_PEER_INFO
+  bool push_peer_info;
+#endif
   int transition_window;
   int handshake_window;
   interval_t packet_timeout;
@@ -618,6 +621,12 @@ struct tls_multi
    */
   char *client_reason;
 
+  /*
+   * A multi-line string of general-purpose info received from peer
+   * over control channel.
+   */
+  char *peer_info;
+
   /* Time of last call to tls_authentication_status */
   time_t tas_last;
 #endif
@@ -721,6 +730,12 @@ void tls_deauthenticate (struct tls_multi *multi);
 
 #ifdef MANAGEMENT_DEF_AUTH
 bool tls_authenticate_key (struct tls_multi *multi, const unsigned int mda_key_id, const bool auth, const char *client_reason);
+
+static inline char *
+tls_get_peer_info(const struct tls_multi *multi)
+{
+  return multi->peer_info;
+}
 #endif
 
 /*

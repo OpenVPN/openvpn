@@ -1406,6 +1406,9 @@ get_user_pass (struct user_pass *up,
     {
       const bool from_stdin = (!auth_file || !strcmp (auth_file, "stdin"));
 
+      if (flags & GET_USER_PASS_PREVIOUS_CREDS_FAILED)
+	msg (M_WARN, "Note: previous '%s' credentials failed", prefix);
+
 #ifdef ENABLE_MANAGEMENT
       /*
        * Get username/password from standard input?
@@ -1414,6 +1417,9 @@ get_user_pass (struct user_pass *up,
 	  && ((auth_file && streq (auth_file, "management")) || (from_stdin && (flags & GET_USER_PASS_MANAGEMENT)))
 	  && management_query_user_pass_enabled (management))
 	{
+	  if (flags & GET_USER_PASS_PREVIOUS_CREDS_FAILED)
+	    management_auth_failure (management, prefix, "previous auth credentials failed");
+
 	  if (!management_query_user_pass (management, up, prefix, flags))
 	    {
 	      if ((flags & GET_USER_PASS_NOFATAL) != 0)

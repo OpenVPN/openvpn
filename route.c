@@ -2186,7 +2186,7 @@ get_bypass_addresses (struct route_bypass *rb, const unsigned int flags)  /* PLA
 
 #endif
 
-#if AUTO_USERID
+#if AUTO_USERID || defined(ENABLE_PUSH_PEER_INFO)
 
 #if defined(TARGET_LINUX)
 

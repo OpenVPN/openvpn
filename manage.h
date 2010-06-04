@@ -164,11 +164,15 @@ struct management_callback
 		       const char *reason,
 		       const char *client_reason,
 		       struct buffer_list *cc_config); /* ownership transferred */
+  char *(*get_peer_info) (void *arg, const unsigned long cid);
 #endif
 #ifdef MANAGEMENT_PF
   bool (*client_pf) (void *arg,
 		     const unsigned long cid,
 		     struct buffer_list *pf_config);   /* ownership transferred */
+#endif
+#if HTTP_PROXY_FALLBACK
+  bool (*http_proxy_fallback_cmd) (void *arg, const char *server, const char *port, const char *flags);
 #endif
 };
 
@@ -501,6 +505,12 @@ management_bytes_server (struct management *man,
 }
 
 #endif /* MANAGEMENT_DEF_AUTH */
+
+#if HTTP_PROXY_FALLBACK
+
+void management_http_proxy_fallback_notify (struct management *man, const char *type, const char *remote_ip_hint);
+
+#endif /* HTTP_PROXY_FALLBACK */
 
 #endif
 #endif

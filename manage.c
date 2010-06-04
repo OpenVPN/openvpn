@@ -110,6 +110,10 @@ man_help ()
   msg (M_CLIENT, "username type u        : Enter username u for a queried OpenVPN username.");
   msg (M_CLIENT, "verb [n]               : Set log verbosity level to n, or show if n is absent.");
   msg (M_CLIENT, "version                : Show current version number.");
+#if HTTP_PROXY_FALLBACK
+  msg (M_CLIENT, "http-proxy-fallback <server> <port> [flags] : Enter dynamic HTTP proxy fallback info.");
+  msg (M_CLIENT, "http-proxy-fallback-disable : Disable HTTP proxy fallback.");
+#endif
   msg (M_CLIENT, "END");
 }
 
@@ -204,12 +208,10 @@ man_update_io_state (struct management *man)
 }
 
 static void
-man_output_list_push (struct management *man, const char *str)
+man_output_list_push_finalize (struct management *man)
 {
   if (management_connected (man))
     {
-      if (str)
-	buffer_list_push (man->connection.out, (const unsigned char *) str);
       man_update_io_state (man);
       if (!man->persist.standalone_disabled)
 	{
@@ -217,6 +219,22 @@ man_output_list_push (struct management *man, const char *str)
 	  man_output_standalone (man, &signal_received);
 	}
     }
+}
+
+static void
+man_output_list_push_str (struct management *man, const char *str)
+{
+  if (management_connected (man) && str)
+    {
+      buffer_list_push (man->connection.out, (const unsigned char *) str);
+    }
+}
+
+static void
+man_output_list_push (struct management *man, const char *str)
+{
+  man_output_list_push_str (man, str);
+  man_output_list_push_finalize (man);
 }
 
 static void
@@ -256,12 +274,13 @@ man_close_socket (struct management *man, const socket_descriptor_t sd)
 static void
 virtual_output_callback_func (void *arg, const unsigned int flags, const char *str)
 {
+  struct management *man = (struct management *) arg;
   static int recursive_level = 0; /* GLOBAL */
+  bool did_push = false;
 
   if (!recursive_level) /* don't allow recursion */
     {
       struct gc_arena gc = gc_new ();
-      struct management *man = (struct management *) arg;
       struct log_entry e;
       const char *out = NULL;
 
@@ -289,13 +308,17 @@ virtual_output_callback_func (void *arg, const unsigned int flags, const char *s
 				   |   LOG_PRINT_LOG_PREFIX
 				   |   LOG_PRINT_CRLF, &gc);
 	  if (out)
-	    man_output_list_push (man, out);
+	    {
+	      man_output_list_push_str (man, out);
+	      did_push = true;
+	    }
 	  if (flags & M_FATAL)
 	    {
 	      out = log_entry_print (&e, LOG_FATAL_NOTIFY|LOG_PRINT_CRLF, &gc);
 	      if (out)
 		{
-		  man_output_list_push (man, out);
+		  man_output_list_push_str (man, out);
+		  did_push = true;
 		  man_reset_client_socket (man, true);
 		}
 	    }
@@ -304,6 +327,9 @@ virtual_output_callback_func (void *arg, const unsigned int flags, const char *s
       --recursive_level;
       gc_free (&gc);
     }
+
+  if (did_push)
+    man_output_list_push_finalize (man);
 }
 
 /*
@@ -998,6 +1024,31 @@ man_need (struct management *man, const char **p, const int n, unsigned int flag
   return true;
 }
 
+#if HTTP_PROXY_FALLBACK
+
+static void
+man_http_proxy_fallback (struct management *man, const char *server, const char *port, const char *flags)
+{
+  if (man->persist.callback.http_proxy_fallback_cmd)
+    {
+      const bool status = (*man->persist.callback.http_proxy_fallback_cmd)(man->persist.callback.arg, server, port, flags);
+      if (status)
+	{
+	  msg (M_CLIENT, "SUCCESS: proxy-fallback command succeeded");
+	}
+      else
+	{
+	  msg (M_CLIENT, "ERROR: proxy-fallback command failed");
+	}
+    }
+  else
+    {
+      msg (M_CLIENT, "ERROR: The proxy-fallback command is not supported by the current daemon mode");
+    }
+}
+
+#endif
+
 static void
 man_dispatch_command (struct management *man, struct status_output *so, const char **p, const int nparms)
 {
@@ -1208,6 +1259,17 @@ man_dispatch_command (struct management *man, struct status_output *so, const ch
     {
       if (man_need (man, p, 1, 0))
 	man_pkcs11_id_get (man, atoi(p[1]));
+    }
+#endif
+#if HTTP_PROXY_FALLBACK
+  else if (streq (p[0], "http-proxy-fallback"))
+    {
+      if (man_need (man, p, 2, MN_AT_LEAST))
+	man_http_proxy_fallback (man, p[1], p[2], p[3]);
+    }
+  else if (streq (p[0], "http-proxy-fallback-disable"))
+    {
+      man_http_proxy_fallback (man, NULL, NULL, NULL);
     }
 #endif
 #if 1
@@ -2103,7 +2165,7 @@ management_clear_callback (struct management *man)
   man->persist.standalone_disabled = false;
   man->persist.hold_release = false;
   CLEAR (man->persist.callback);
-  man_output_list_push (man, NULL); /* flush output queue */
+  man_output_list_push_finalize (man); /* flush output queue */
 }
 
 void
@@ -2213,6 +2275,58 @@ man_output_extra_env (struct management *man)
   gc_free (&gc);
 }
 
+static bool
+validate_peer_info_line(const char *line)
+{
+  uint8_t c;
+  int state = 0;
+  while ((c=*line++))
+    {
+      switch (state)
+	{
+	case 0:
+	case 1:
+	  if (c == '=' && state == 1)
+	    state = 2;
+	  else if (isalnum(c) || c == '_')
+	    state = 1;
+	  else
+	    return false;
+	case 2:
+	  if (isprint(c))
+	    ;
+	  else
+	    return false;
+	}
+    }
+  return (state == 2);
+}
+
+static void
+man_output_peer_info_env (struct management *man, struct man_def_auth_context *mdac)
+{
+  char line[256];
+  if (man->persist.callback.get_peer_info)
+    {
+      const char *peer_info = (*man->persist.callback.get_peer_info) (man->persist.callback.arg, mdac->cid);
+      if (peer_info)
+	{
+	  struct buffer buf;
+	  buf_set_read (&buf, (const uint8_t *) peer_info, strlen(peer_info));
+	  while (buf_parse (&buf, '\n', line, sizeof (line)))
+	    {
+	      chomp (line);
+	      if (validate_peer_info_line(line))
+		{
+		  msg (M_CLIENT, ">CLIENT:ENV,%s", line);
+		}
+	      else
+		msg (D_MANAGEMENT, "validation failed on peer_info line received from client");
+	    }
+	}
+    }
+}
+
 void
 management_notify_client_needing_auth (struct management *management,
 				       const unsigned int mda_key_id,
@@ -2226,6 +2340,7 @@ management_notify_client_needing_auth (struct management *management,
 	mode = "REAUTH";
       msg (M_CLIENT, ">CLIENT:%s,%lu,%u", mode, mdac->cid, mda_key_id);
       man_output_extra_env (management);
+      man_output_peer_info_env(management, mdac);
       man_output_env (es, true, management->connection.env_filter_level);
       mdac->flags |= DAF_INITIAL_AUTH;
     }
@@ -2402,7 +2517,7 @@ management_io (struct management *man)
 		  net_event_win32_clear_selected_events (&man->connection.ne32, FD_ACCEPT);
 		}
 	    }
-	  else if (man->connection.state == MS_CC_WAIT_READ)
+	  else if (man->connection.state == MS_CC_WAIT_READ || man->connection.state == MS_CC_WAIT_WRITE)
 	    {
 	      if (net_events & FD_READ)
 		{
@@ -2410,18 +2525,13 @@ management_io (struct management *man)
 		    ;
 		  net_event_win32_clear_selected_events (&man->connection.ne32, FD_READ);
 		}
-	    }
 
-	  if (man->connection.state == MS_CC_WAIT_WRITE)
-	    {
 	      if (net_events & FD_WRITE)
 		{
 		  int status;
-		  /* dmsg (M_INFO, "FD_WRITE set"); */
 		  status = man_write (man);
 		  if (status < 0 && WSAGetLastError() == WSAEWOULDBLOCK)
 		    {
-		      /* dmsg (M_INFO, "FD_WRITE cleared"); */
 		      net_event_win32_clear_selected_events (&man->connection.ne32, FD_WRITE);
 		    }
 		}
@@ -2512,7 +2622,7 @@ man_block (struct management *man, volatile int *signal_received, const time_t e
   
   if (man_standalone_ok (man))
     {
-      do
+      while (true)
 	{
 	  event_reset (man->connection.es);
 	  management_socket_set (man, man->connection.es, NULL, NULL);
@@ -2530,15 +2640,18 @@ man_block (struct management *man, volatile int *signal_received, const time_t e
 	      status = -1;
 	      break;
 	    }
-	  /* set SIGINT signal if expiration time exceeded */
-	  if (expire && now >= expire)
+
+	  if (status > 0)
+	    break;
+	  else if (expire && now >= expire)
 	    {
+	      /* set SIGINT signal if expiration time exceeded */
 	      status = 0;
 	      if (signal_received)
 		*signal_received = SIGINT;
 	      break;
 	    }
-	} while (status != 1);
+	}
     }
   return status;
 }
@@ -2615,28 +2728,29 @@ management_event_loop_n_seconds (struct management *man, int sec)
     {
       volatile int signal_received = 0;
       const bool standalone_disabled_save = man->persist.standalone_disabled;
-      time_t expire;
+      time_t expire = 0;
 
       man->persist.standalone_disabled = false; /* This is so M_CLIENT messages will be correctly passed through msg() */
 
       /* set expire time */
       update_time ();
-      expire = now + sec;
+      if (sec)
+	expire = now + sec;
 
       /* if no client connection, wait for one */
       man_wait_for_client_connection (man, &signal_received, expire, 0);
       if (signal_received)
 	return;
 
-      /* run command processing event loop until we get our username/password */
-      while (true)
+      /* run command processing event loop */
+      do
 	{
 	  man_standalone_event_loop (man, &signal_received, expire);
 	  if (!signal_received)
 	    man_check_for_signals (&signal_received);
 	  if (signal_received)
 	    return;
-	}
+	} while (expire);
 
       /* revert state */
       man->persist.standalone_disabled = standalone_disabled_save;
@@ -3027,6 +3141,19 @@ log_history_ref (const struct log_history *h, const int index)
   else
     return NULL;
 }
+
+#if HTTP_PROXY_FALLBACK
+
+void
+management_http_proxy_fallback_notify (struct management *man, const char *type, const char *remote_ip_hint)
+{
+  if (remote_ip_hint)
+    msg (M_CLIENT, ">PROXY:%s,%s", type, remote_ip_hint);
+  else
+    msg (M_CLIENT, ">PROXY:%s", type);
+}
+
+#endif /* HTTP_PROXY_FALLBACK */
 
 #else
 static void dummy(void) {}

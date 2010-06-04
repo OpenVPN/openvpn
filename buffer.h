@@ -724,6 +724,12 @@ void gc_transfer (struct gc_arena *dest, struct gc_arena *src);
 
 void x_gc_free (struct gc_arena *a);
 
+static inline bool
+gc_defined (struct gc_arena *a)
+{
+  return a->list != NULL;
+}
+
 static inline void
 gc_init (struct gc_arena *a)
 {

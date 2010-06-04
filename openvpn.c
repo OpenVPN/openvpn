@@ -55,8 +55,6 @@ tunnel_point_to_point (struct context *c)
   if (IS_SIG (c))
     return;
 
-  init_management_callback_p2p (c);
-
   /* main event loop */
   while (true)
     {
