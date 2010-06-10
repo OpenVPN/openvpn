@@ -620,8 +620,11 @@ establish_http_proxy_passthru (struct http_proxy_info *p,
     {
       msg (D_PROXY, "Proxy requires authentication");
 
-      /* check for NTLM */
-      if ((p->auth_method == HTTP_AUTH_NTLM || p->auth_method == HTTP_AUTH_NTLM2) && !processed)
+      if (p->auth_method == HTTP_AUTH_BASIC && !processed)
+	{
+	  processed = true;
+	}
+      else if ((p->auth_method == HTTP_AUTH_NTLM || p->auth_method == HTTP_AUTH_NTLM2) && !processed) /* check for NTLM */
         {
 #if NTLM
           /* look for the phase 2 response */
