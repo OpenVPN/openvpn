@@ -109,6 +109,11 @@ add_subnet (const char *line, const char *prefix, const int line_num, struct pf_
 	  return false;
 	}
       netmask = netbits_to_netmask (netbits);
+      if ((network.s_addr & htonl (netmask)) != network.s_addr)
+        {
+          network.s_addr &= htonl (netmask);
+          msg (M_WARN, "WARNING: PF: %s/%d: incorrect subnet %s/%d changed to %s/%d", prefix, line_num, line, netbits, inet_ntoa (network), netbits);
+        }
     }
   else
     {
