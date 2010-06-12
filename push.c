@@ -177,6 +177,7 @@ send_push_reply (struct context *c)
   static char cmd[] = "PUSH_REPLY";
   const int extra = 64; /* extra space for possible trailing ifconfig and push-continuation */
   const int safe_cap = BCAP (&buf) - extra;
+  bool push_sent = false;
 
   buf_printf (&buf, cmd);
 
@@ -192,6 +193,7 @@ send_push_reply (struct context *c)
 		const bool status = send_control_channel_string (c, BSTR (&buf), D_PUSH);
 		if (!status)
 		  goto fail;
+		push_sent = true;
 		multi_push = true;
 		buf_reset_len (&buf);
 		buf_printf (&buf, cmd);
@@ -217,6 +219,21 @@ send_push_reply (struct context *c)
   if (BLEN (&buf) > sizeof(cmd)-1)
     {
       const bool status = send_control_channel_string (c, BSTR (&buf), D_PUSH);
+      if (!status)
+        goto fail;
+      push_sent = true;
+    }
+
+  /* If nothing have been pushed, send an empty push,
+   * as the client is expecting a response
+   */
+  if (!push_sent)
+    {
+      bool status = false;
+
+      buf_reset_len (&buf);
+      buf_printf (&buf, cmd);
+      status = send_control_channel_string (c, BSTR(&buf), D_PUSH);
       if (!status)
 	goto fail;
     }
