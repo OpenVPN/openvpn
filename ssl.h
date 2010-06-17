@@ -278,8 +278,8 @@
  * Buffer sizes (also see mtu.h).
  */
 
-/* Maximum length of common name */
-#define TLS_CN_LEN 64
+/* Maximum length of the username in cert */
+#define TLS_USERNAME_LEN 64
 
 /* Legal characters in an X509 or common name */
 #define X509_NAME_CHAR_CLASS   (CC_ALNUM|CC_UNDERBAR|CC_DASH|CC_DOT|CC_AT|CC_COLON|CC_SLASH|CC_EQUAL)
@@ -287,6 +287,9 @@
 
 /* Maximum length of OCC options string passed as part of auth handshake */
 #define TLS_OPTIONS_LEN 512
+
+/* Default field in X509 to be username */
+#define X509_USERNAME_FIELD_DEFAULT "CN"
 
 /*
  * Range of key exchange methods

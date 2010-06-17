@@ -734,6 +734,8 @@ get_peer_cert(X509_STORE_CTX *ctx, const char *tmp_dir, struct gc_arena *gc)
   return peercert_filename;
 }
 
+char * x509_username_field; /* GLOBAL */
+
 /*
  * Our verify callback function -- check
  * that an incoming peer certificate is good.
@@ -744,7 +746,7 @@ verify_callback (int preverify_ok, X509_STORE_CTX * ctx)
 {
   char *subject = NULL;
   char envname[64];
-  char common_name[TLS_CN_LEN];
+  char common_name[TLS_USERNAME_LEN];
   SSL *ssl;
   struct tls_session *session;
   const struct tls_options *opt;
@@ -776,17 +778,19 @@ verify_callback (int preverify_ok, X509_STORE_CTX * ctx)
   string_mod_sslname (subject, X509_NAME_CHAR_CLASS, opt->ssl_flags);
   string_replace_leading (subject, '-', '_');
 
-  /* extract the common name */
-  if (!extract_x509_field_ssl (X509_get_subject_name (ctx->current_cert), "CN", common_name, TLS_CN_LEN))
+  /* extract the username (default is CN) */
+  if (!extract_x509_field_ssl (X509_get_subject_name (ctx->current_cert), x509_username_field, common_name, TLS_USERNAME_LEN))
     {
       if (!ctx->error_depth)
-	{
-	  msg (D_TLS_ERRORS, "VERIFY ERROR: could not extract Common Name from X509 subject string ('%s') -- note that the Common Name length is limited to %d characters",
-	       subject,
-	       TLS_CN_LEN);
-	  goto err;
-	}
+        {
+          msg (D_TLS_ERRORS, "VERIFY ERROR: could not extract %s from X509 subject string ('%s') -- note that the username length is limited to %d characters",
+                 x509_username_field,
+                 subject,
+                 TLS_USERNAME_LEN);
+          goto err;
+        }
     }
+
 
   string_mod_sslname (common_name, COMMON_NAME_CHAR_CLASS, opt->ssl_flags);
 
@@ -1844,7 +1848,8 @@ init_ssl (const struct options *options)
     }
   else
 #endif
-    SSL_CTX_set_verify (ctx, SSL_VERIFY_PEER | SSL_VERIFY_FAIL_IF_NO_PEER_CERT,
+  x509_username_field = (char *) options->x509_username_field;
+  SSL_CTX_set_verify (ctx, SSL_VERIFY_PEER | SSL_VERIFY_FAIL_IF_NO_PEER_CERT,
 			verify_callback);
 
   /* Connection information callback */
@@ -3789,9 +3794,9 @@ key_method_2_read (struct buffer *buf, struct tls_multi *multi, struct tls_sessi
 	s2 = verify_user_pass_script (session, up);
 
       /* check sizing of username if it will become our common name */
-      if ((session->opt->ssl_flags & SSLF_USERNAME_AS_COMMON_NAME) && strlen (up->username) >= TLS_CN_LEN)
+      if ((session->opt->ssl_flags & SSLF_USERNAME_AS_COMMON_NAME) && strlen (up->username) >= TLS_USERNAME_LEN)
 	{
-	  msg (D_TLS_ERRORS, "TLS Auth Error: --username-as-common name specified and username is longer than the maximum permitted Common Name length of %d characters", TLS_CN_LEN);
+	  msg (D_TLS_ERRORS, "TLS Auth Error: --username-as-common name specified and username is longer than the maximum permitted Common Name length of %d characters", TLS_USERNAME_LEN);
 	  s1 = OPENVPN_PLUGIN_FUNC_ERROR;
 	}
 
