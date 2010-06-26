@@ -779,7 +779,7 @@ verify_callback (int preverify_ok, X509_STORE_CTX * ctx)
   string_replace_leading (subject, '-', '_');
 
   /* extract the username (default is CN) */
-  if (!extract_x509_field_ssl (X509_get_subject_name (ctx->current_cert), x509_username_field, common_name, TLS_USERNAME_LEN))
+  if (!extract_x509_field_ssl (X509_get_subject_name (ctx->current_cert), x509_username_field, common_name, sizeof(common_name)))
     {
       if (!ctx->error_depth)
         {
