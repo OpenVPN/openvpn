@@ -371,6 +371,9 @@ if test "${WIN32}" != "yes"; then
 		 [#ifdef HAVE_SYS_SOCKET_H 
 		  # include <sys/socket.h>
 		  #endif
+	          #ifdef HAVE_SYS_TYPES_H
+		  # include <sys/types.h>
+		  #endif
 		 ])
    AC_CHECK_HEADERS(netinet/ip.h,,,
 		 [#ifdef HAVE_SYS_TYPES_H
