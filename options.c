@@ -1464,19 +1464,24 @@ parse_http_proxy_fallback (struct context *c,
 			   const char *flags,
 			   const int msglevel)
 {
-  struct gc_arena gc = gc_new ();  
+  struct gc_arena gc = gc_new ();
+  struct http_proxy_options *ret = NULL;
   struct http_proxy_options *hp = parse_http_proxy_override(server, port, flags, msglevel, &gc);
-  struct hpo_store *hpos = c->options.hpo_store;
-  if (!hpos)
+  if (hp)
     {
-      ALLOC_OBJ_CLEAR_GC (hpos, struct hpo_store, &c->options.gc);
-      c->options.hpo_store = hpos;
+      struct hpo_store *hpos = c->options.hpo_store;
+      if (!hpos)
+	{
+	  ALLOC_OBJ_CLEAR_GC (hpos, struct hpo_store, &c->options.gc);
+	  c->options.hpo_store = hpos;
+	}
+      hpos->hpo = *hp;
+      hpos->hpo.server = hpos->server;
+      strncpynt(hpos->server, hp->server, sizeof(hpos->server));
+      ret = &hpos->hpo;
     }
-  hpos->hpo = *hp;
-  hpos->hpo.server = hpos->server;
-  strncpynt(hpos->server, hp->server, sizeof(hpos->server));
   gc_free (&gc);
-  return &hpos->hpo;
+  return ret;
 }
 
 static void

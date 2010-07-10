@@ -122,7 +122,8 @@ ce_http_proxy_fallback_defined(const struct context *c)
       int i;
       for (i = 0; i < l->len; ++i)
 	{
-	  if (l->array[i]->flags & CE_HTTP_PROXY_FALLBACK)
+	  const struct connection_entry *ce = l->array[i];
+	  if (ce->flags & CE_HTTP_PROXY_FALLBACK)
 	    return true;
 	}
     }
@@ -193,12 +194,9 @@ management_callback_http_proxy_fallback_cmd (void *arg, const char *server, cons
 	  struct connection_entry *ce = l->array[i];
 	  if (ce->flags & CE_HTTP_PROXY_FALLBACK)
 	    {
-	      if (ho)
-		{
-		  ce->http_proxy_options = ho;
-		  ret = true;
-		}
+	      ce->http_proxy_options = ho;
 	      ce->ce_http_proxy_fallback_timestamp = now;
+	      ret = true;
 	    }
 	}
     }
@@ -278,7 +276,7 @@ next_connection_entry (struct context *c)
 
       do {
 	const char *remote_ip_hint = NULL;
-	bool advanced = false;
+	bool newcycle = false;
 
 	ce_defined = true;
 	if (l->no_advance && l->current >= 0)
@@ -295,7 +293,8 @@ next_connection_entry (struct context *c)
 		  msg (M_FATAL, "No usable connection profiles are present");
 	      }
 
-	    advanced = true;
+	    if (l->current == 0)
+	      newcycle = true;
 	    show_connection_list(l);
 	  }
 
@@ -305,7 +304,7 @@ next_connection_entry (struct context *c)
 	  remote_ip_hint = c->options.remote_ip_hint;
 
 #if HTTP_PROXY_FALLBACK
-	if (advanced && ce_http_proxy_fallback_defined(c))
+	if (newcycle && ce_http_proxy_fallback_defined(c))
 	  ce_http_proxy_fallback_start(c, remote_ip_hint);
 
 	if (ce->flags & CE_HTTP_PROXY_FALLBACK)
