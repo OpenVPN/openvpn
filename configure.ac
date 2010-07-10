@@ -368,11 +368,11 @@ if test "${WIN32}" != "yes"; then
 		 linux/types.h sys/poll.h sys/epoll.h err.h dnl
    )
    AC_CHECK_HEADERS(net/if.h,,,
-		 [#ifdef HAVE_SYS_SOCKET_H 
-		  # include <sys/socket.h>
-		  #endif
-	          #ifdef HAVE_SYS_TYPES_H
+		 [#ifdef HAVE_SYS_TYPES_H
 		  # include <sys/types.h>
+		  #endif
+		  #ifdef HAVE_SYS_SOCKET_H
+		  # include <sys/socket.h>
 		  #endif
 		 ])
    AC_CHECK_HEADERS(netinet/ip.h,,,
