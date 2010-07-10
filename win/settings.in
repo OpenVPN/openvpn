@@ -40,6 +40,9 @@
 # Build debugging version of TAP driver
 ;!define PRODUCT_TAP_DEBUG
 
+# Build debugging version of openvpn.exe
+;!define PRODUCT_OPENVPN_DEBUG
+
 # DDK path -- currently Windows 7 WDK
 !define DDK_PATH "c:/winddk/7600.16385.1"
 ;!define DDK_PATH "c:/winddk/6001.18002"

@@ -9,6 +9,7 @@ def main(config):
                out_fn=home_fn('msvc.mak'),
                quote_begin='@',
                quote_end='@',
+               if_prefix='!',
                head_comment='# %s\n\n' % autogen)
 
 # if we are run directly, and not loaded as a module

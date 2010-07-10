@@ -23,17 +23,22 @@ LIB_DIRS = -LIBPATH:$(OPENSSL)\lib -LIBPATH:$(LZO)\lib
 EXE = openvpn.exe
 
 CPP=cl.exe
-CPP_ARG_COMMON=/nologo /W3 /O2 -DWIN32 -DWIN32_LEAN_AND_MEAN -D_CONSOLE -D_MBCS -D_CRT_SECURE_NO_DEPRECATE $(INCLUDE_DIRS) /FD /c
-# release:
-CPP_PROJ=$(CPP_ARG_COMMON) /MD -DNDEBUG
-# debug:
-#CPP_PROJ=$(CPP_ARG_COMMON) /MDd /Zi /Od -D_DEBUG
+CPP_ARG_COMMON=/nologo /W3 -DWIN32 -DWIN32_LEAN_AND_MEAN -D_CONSOLE -D_MBCS -D_CRT_SECURE_NO_DEPRECATE $(INCLUDE_DIRS) /FD /c
 
 LINK32=link.exe
-# release:
-LINK32_FLAGS=/nologo /subsystem:console /incremental:no /out:"$(EXE)"
+
+!ifdef PRODUCT_OPENVPN_DEBUG
 # debug:
+CPP_PROJ=$(CPP_ARG_COMMON) /MD /Z7
+LINK32_FLAGS=/nologo /subsystem:console /incremental:no /opt:ref /opt:icf /debug /out:"$(EXE)"
+# old debug:
+#CPP_PROJ=$(CPP_ARG_COMMON) /MDd /Zi /Od -D_DEBUG
 #LINK32_FLAGS=/nologo /subsystem:console /incremental:no /debug /out:"$(EXE)"
+!else
+# release:
+CPP_PROJ=$(CPP_ARG_COMMON) /O2 /MD -DNDEBUG
+LINK32_FLAGS=/nologo /subsystem:console /incremental:no /out:"$(EXE)"
+!endif
 
 # HEADERS and OBJS definitions, automatically generated
 @HEADERS_OBJS@
