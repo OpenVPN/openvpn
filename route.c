@@ -219,6 +219,7 @@ is_special_addr (const char *addr_str)
 
 static bool
 init_route (struct route *r,
+	    struct resolve_list *network_list,
 	    const struct route_option *ro,
 	    const struct route_special_addr *spec)
 {
@@ -237,14 +238,15 @@ init_route (struct route *r,
   
   if (!get_special_addr (spec, ro->network, &r->network, &status))
     {
-      r->network = getaddr (
-			    GETADDR_RESOLVE
-			    | GETADDR_HOST_ORDER
-			    | GETADDR_WARN_ON_SIGNAL,
-			    ro->network,
-			    0,
-			    &status,
-			    NULL);
+      r->network = getaddr_multi (
+				  GETADDR_RESOLVE
+				  | GETADDR_HOST_ORDER
+				  | GETADDR_WARN_ON_SIGNAL,
+				  ro->network,
+				  0,
+				  &status,
+				  NULL,
+				  network_list);
     }
 
   if (!status)
@@ -438,20 +440,45 @@ init_route_list (struct route_list *rl,
   else
     rl->spec.remote_endpoint_defined = false;
 
-  if (!(opt->n >= 0 && opt->n <= rl->capacity))
-    msg (M_FATAL, PACKAGE_NAME " ROUTE: (init) number of route options (%d) is greater than route list capacity (%d)", opt->n, rl->capacity);
-
   /* parse the routes from opt to rl */
   {
     int i, j = 0;
+    bool warned = false;
     for (i = 0; i < opt->n; ++i)
       {
-	if (!init_route (&rl->routes[j],
+	struct resolve_list netlist;
+	struct route r;
+	int k;
+
+	if (!init_route (&r,
+			 &netlist,
 			 &opt->routes[i],
 			 &rl->spec))
 	  ret = false;
 	else
-	  ++j;
+	  {
+	    if (!netlist.len)
+	      {
+		netlist.data[0] = r.network;
+		netlist.len = 1;
+	      }
+	    for (k = 0; k < netlist.len; ++k)
+	      {
+		if (j < rl->capacity)
+		  {
+		    r.network = netlist.data[k];
+		    rl->routes[j++] = r;
+		  }
+		else
+		  {
+		    if (!warned)
+		      {
+			msg (M_WARN, PACKAGE_NAME " ROUTE: routes dropped because number of expanded routes is greater than route list capacity (%d)", rl->capacity);
+			warned = true;
+		      }
+		  }
+	      }
+	  }
       }
     rl->n = j;
   }

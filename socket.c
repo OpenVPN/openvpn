@@ -89,11 +89,25 @@ getaddr (unsigned int flags,
 	 bool *succeeded,
 	 volatile int *signal_received)
 {
+  return getaddr_multi (flags, hostname, resolve_retry_seconds, succeeded, signal_received, NULL);
+}
+
+in_addr_t
+getaddr_multi (unsigned int flags,
+	 const char *hostname,
+	 int resolve_retry_seconds,
+	 bool *succeeded,
+	 volatile int *signal_received,
+	 struct resolve_list *reslist)
+{
   struct in_addr ia;
   int status;
   int sigrec = 0;
   int msglevel = (flags & GETADDR_FATAL) ? M_FATAL : D_RESOLVE_ERRORS;
   struct gc_arena gc = gc_new ();
+
+  if (reslist)
+    reslist->len = 0;
 
   if (flags & GETADDR_RANDOMIZE)
     hostname = hostname_randomize(hostname, &gc);
@@ -212,12 +226,28 @@ getaddr (unsigned int flags,
 		++n;
 	      ASSERT (n >= 2);
 
-	      msg (D_RESOLVE_ERRORS, "RESOLVE: NOTE: %s resolves to %d addresses, choosing one by random",
+	      msg (D_RESOLVE_ERRORS, "RESOLVE: NOTE: %s resolves to %d addresses",
 		   hostname,
 		   n);
 
 	      /* choose address randomly, for basic load-balancing capability */
-	      ia.s_addr = *(in_addr_t *) (h->h_addr_list[get_random () % n]);
+	      /*ia.s_addr = *(in_addr_t *) (h->h_addr_list[get_random () % n]);*
+
+	      /* choose first address */
+	      ia.s_addr = *(in_addr_t *) (h->h_addr_list[0]);
+
+	      if (reslist)
+		{
+		  int i;
+		  for (i = 0; i < n && i < SIZE(reslist->data); ++i)
+		    {
+		      in_addr_t a = *(in_addr_t *) (h->h_addr_list[i]);
+		      if (flags & GETADDR_HOST_ORDER)
+			a = ntohl(a);
+		      reslist->data[i] = a;
+		    }
+		  reslist->len = i;
+		}
 	    }
 	}
 
