@@ -4749,6 +4749,12 @@ This option has the same caveats as
 above.
 .\"*********************************************************
 .TP
+.B --register-dns
+Run ipconfig /flushdns and ipconfig /registerdns on
+connection initiation.  This is known to kick Windows into
+recognizing pushed DNS servers.
+.\"*********************************************************
+.TP
 .B --pause-exit
 Put up a "press any key to continue" message on the console prior
 to OpenVPN program exit.  This option is automatically used by the

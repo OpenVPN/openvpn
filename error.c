@@ -521,6 +521,10 @@ redirect_stdout_stderr (const char *file, bool append)
       if (msgfp == NULL)
 	msg (M_ERR, "Error: --log redirect failed due to _fdopen");
 
+      /* redirect C-library stdout/stderr to log file */
+      if (_dup2 (log_fd, 1) == -1 || _dup2 (log_fd, 2) == -1)
+	msg (M_WARN, "Error: --log redirect of stdout/stderr failed");
+
       std_redir = true;
     }
 #elif defined(HAVE_DUP2)

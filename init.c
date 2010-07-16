@@ -1138,6 +1138,10 @@ initialization_sequence_completed (struct context *c, const unsigned int flags)
   if ((flags & (ISC_ERRORS|ISC_SERVER)) == 0 && connection_list_defined (&c->options))
     connection_list_set_no_advance (&c->options);
 
+#ifdef WIN32
+  fork_register_dns_action (c->c1.tuntap);
+#endif
+
 #ifdef ENABLE_MANAGEMENT
   /* Tell management interface that we initialized */
   if (management)

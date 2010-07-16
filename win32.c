@@ -971,10 +971,8 @@ openvpn_execve (const struct argv *a, const struct env_set *es, const unsigned i
 	      /* fill in STARTUPINFO struct */
 	      GetStartupInfo(&start_info);
 	      start_info.cb = sizeof(start_info);
-	      start_info.dwFlags = STARTF_USESTDHANDLES|STARTF_USESHOWWINDOW;
+	      start_info.dwFlags = STARTF_USESHOWWINDOW;
 	      start_info.wShowWindow = SW_HIDE;
-	      start_info.hStdInput = GetStdHandle(STD_INPUT_HANDLE);
-	      start_info.hStdOutput = start_info.hStdError = GetStdHandle(STD_OUTPUT_HANDLE);
 
 	      if (CreateProcess (cmd, cl, NULL, NULL, FALSE, 0, env, NULL, &start_info, &proc_info))
 		{
@@ -1042,10 +1040,8 @@ fork_to_self (const char *cmdline)
   /* fill in STARTUPINFO struct */
   GetStartupInfo(&start_info);
   start_info.cb = sizeof(start_info);
-  start_info.dwFlags = STARTF_USESTDHANDLES|STARTF_USESHOWWINDOW;
+  start_info.dwFlags = STARTF_USESHOWWINDOW;
   start_info.wShowWindow = SW_HIDE;
-  start_info.hStdInput = GetStdHandle(STD_INPUT_HANDLE);
-  start_info.hStdOutput = start_info.hStdError = GetStdHandle(STD_OUTPUT_HANDLE);
 
   if (CreateProcess (self_exe, cl, NULL, NULL, FALSE, 0, NULL, NULL, &start_info, &proc_info))
     {

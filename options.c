@@ -615,6 +615,8 @@ static const char usage_message[] =
   "--dhcp-pre-release : Ask Windows to release the previous TAP adapter lease on\n"
 "                       startup.\n"
   "--dhcp-release     : Ask Windows to release the TAP adapter lease on shutdown.\n"
+  "--register-dns     : Run ipconfig /flushdns and ipconfig /registerdns on\n"
+  "                     connection initiation.\n"
   "--tap-sleep n   : Sleep for n seconds after TAP adapter open before\n"
   "                  attempting to set adapter properties.\n"
   "--pause-exit         : When run from a console window, pause before exiting.\n"
@@ -5288,7 +5290,7 @@ add_option (struct options *options,
       VERIFY_PERMISSION (OPT_P_IPWIN32);
       options->tuntap_options.dhcp_release = true;
     }
-  else if (streq (p[0], "dhcp-rr") && p[1]) /* standalone method for internal use */
+  else if (streq (p[0], "dhcp-internal") && p[1]) /* standalone method for internal use */
     {
       unsigned int adapter_index;
       VERIFY_PERMISSION (OPT_P_GENERAL);
@@ -5299,13 +5301,26 @@ add_option (struct options *options,
 	dhcp_release_by_adapter_index (adapter_index);
       if (options->tuntap_options.dhcp_renew)
 	dhcp_renew_by_adapter_index (adapter_index);
-      openvpn_exit (OPENVPN_EXIT_STATUS_USAGE); /* exit point */
+      openvpn_exit (OPENVPN_EXIT_STATUS_GOOD); /* exit point */
+    }
+  else if (streq (p[0], "register-dns"))
+    {
+      VERIFY_PERMISSION (OPT_P_IPWIN32);
+      options->tuntap_options.register_dns = true;
+    }
+  else if (streq (p[0], "rdns-internal")) /* standalone method for internal use */
+    {
+      VERIFY_PERMISSION (OPT_P_GENERAL);
+      set_debug_level (options->verbosity, SDL_CONSTRAIN);
+      if (options->tuntap_options.register_dns)
+	ipconfig_register_dns (NULL);
+      openvpn_exit (OPENVPN_EXIT_STATUS_GOOD); /* exit point */
     }
   else if (streq (p[0], "show-valid-subnets"))
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       show_valid_win32_tun_subnets ();
-      openvpn_exit (OPENVPN_EXIT_STATUS_USAGE); /* exit point */
+      openvpn_exit (OPENVPN_EXIT_STATUS_GOOD); /* exit point */
     }
   else if (streq (p[0], "pause-exit"))
     {
