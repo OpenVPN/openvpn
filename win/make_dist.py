@@ -1,7 +1,7 @@
 import os
 from wb import home_fn, rm_rf, mkdir, cp_a, cp
 
-def main(config):
+def main(config, tap=True):
     dist = config['DIST']
     assert dist
     dist = home_fn(dist)
@@ -13,8 +13,9 @@ def main(config):
     rm_rf(dist)
     mkdir(dist)
     mkdir(bin)
-    mkdir(i386)
-    mkdir(amd64)
+    if tap:
+        mkdir(i386)
+        mkdir(amd64)
 
     # copy openvpn.exe and manifest
     cp(home_fn('openvpn.exe'), bin)
@@ -28,25 +29,26 @@ def main(config):
     # copy MSVC CRT
     cp_a(home_fn(config['MSVC_CRT']), bin)
 
-    # copy TAP drivers
-    for dir_name, dest in (('amd64', amd64), ('i386', i386)):
-        dir = home_fn(os.path.join('tap-win32', dir_name))
-        for dirpath, dirnames, filenames in os.walk(dir):
-            for f in filenames:
-                root, ext = os.path.splitext(f)
-                if ext in ('.inf', '.cat', '.sys'):
-                    cp(os.path.join(dir, f), dest)
-            break
+    if tap:
+        # copy TAP drivers
+        for dir_name, dest in (('amd64', amd64), ('i386', i386)):
+            dir = home_fn(os.path.join('tap-win32', dir_name))
+            for dirpath, dirnames, filenames in os.walk(dir):
+                for f in filenames:
+                    root, ext = os.path.splitext(f)
+                    if ext in ('.inf', '.cat', '.sys'):
+                        cp(os.path.join(dir, f), dest)
+                break
 
-    # copy tapinstall
-    dest = {'amd64' : amd64, 'i386' : i386}
-    for dirpath, dirnames, filenames in os.walk(home_fn('tapinstall')):
-        for f in filenames:
-            if f == 'tapinstall.exe':
-                dir_name = os.path.basename(dirpath)
-                src = os.path.join(dirpath, f)
-                if dir_name in dest:
-                    cp(src, dest[dir_name])
+        # copy tapinstall
+        dest = {'amd64' : amd64, 'i386' : i386}
+        for dirpath, dirnames, filenames in os.walk(home_fn('tapinstall')):
+            for f in filenames:
+                if f == 'tapinstall.exe':
+                    dir_name = os.path.basename(dirpath)
+                    src = os.path.join(dirpath, f)
+                    if dir_name in dest:
+                        cp(src, dest[dir_name])
 
 # if we are run directly, and not loaded as a module
 if __name__ == "__main__":
