@@ -788,9 +788,30 @@ verify_callback (int preverify_ok, X509_STORE_CTX * ctx)
 
   /* export serial number as environmental variable */
   {
-    const int serial = (int) ASN1_INTEGER_get (X509_get_serialNumber (ctx->current_cert));
-    openvpn_snprintf (envname, sizeof(envname), "tls_serial_%d", ctx->error_depth);
-    setenv_int (opt->es, envname, serial);
+    BIO *bio = NULL;
+    char serial[100];
+    int n1, n2;
+
+    CLEAR (serial);
+    if ((bio = BIO_new (BIO_s_mem ())) == NULL)
+      {
+        msg (M_WARN, "CALLBACK: Cannot create BIO (for tls_serial_%d)", ctx->error_depth);
+      }
+    else
+      {
+        /* "prints" the serial number onto the BIO and read it back */
+        if ( ! ( ( (n1 = i2a_ASN1_INTEGER(bio, X509_get_serialNumber (ctx->current_cert))) >= 0 ) &&
+                 ( (n2 = BIO_read (bio, serial, sizeof (serial)-1)) >= 0 ) &&
+                 ( n1 == n2 ) ) )
+          {
+            msg (M_WARN, "CALLBACK: Error reading/writing BIO (for tls_serial_%d)", ctx->error_depth);
+            CLEAR (serial);     /* empty string */
+          }
+
+        openvpn_snprintf (envname, sizeof(envname), "tls_serial_%d", ctx->error_depth);
+        setenv_str (opt->es, envname, serial);
+        BIO_free(bio);
+      }
   }
 
   /* export current untrusted IP */
@@ -1094,10 +1115,11 @@ key_state_gen_auth_control_file (struct key_state *ks, const struct tls_options 
   const char *acf;
 
   key_state_rm_auth_control_file (ks);
-  acf = create_temp_filename (opt->tmp_dir, "acf", &gc);
-  ks->auth_control_file = string_alloc (acf, NULL);
-  setenv_str (opt->es, "auth_control_file", ks->auth_control_file);
-
+  acf = create_temp_file (opt->tmp_dir, "acf", &gc);
+  if( acf ) {
+    ks->auth_control_file = string_alloc (acf, NULL);
+    setenv_str (opt->es, "auth_control_file", ks->auth_control_file);
+  } /* FIXME: Should have better error handling? */
   gc_free (&gc);					  
 }
 
@@ -3181,17 +3203,22 @@ verify_user_pass_script (struct tls_session *session, const struct user_pass *up
 	{
 	  struct status_output *so;
 
-	  tmp_file = create_temp_filename (session->opt->tmp_dir, "up", &gc);
-	  so = status_open (tmp_file, 0, -1, NULL, STATUS_OUTPUT_WRITE);
-	  status_printf (so, "%s", up->username);
-	  status_printf (so, "%s", up->password);
-	  if (!status_close (so))
-	    {
-	      msg (D_TLS_ERRORS, "TLS Auth Error: could not write username/password to file: %s",
-		   tmp_file);
-	      goto done;
-	    }
-	}
+	  tmp_file = create_temp_file (session->opt->tmp_dir, "up", &gc);
+          if( tmp_file ) {
+            so = status_open (tmp_file, 0, -1, NULL, STATUS_OUTPUT_WRITE);
+            status_printf (so, "%s", up->username);
+            status_printf (so, "%s", up->password);
+            if (!status_close (so))
+              {
+                msg (D_TLS_ERRORS, "TLS Auth Error: could not write username/password to file: %s",
+                     tmp_file);
+                goto done;
+              }
+          } else {
+            msg (D_TLS_ERRORS, "TLS Auth Error: could not create write "
+                 "username/password to temp file");
+          }
+        }
       else
 	{
 	  setenv_str (session->opt->es, "username", up->username);
@@ -3225,7 +3252,7 @@ verify_user_pass_script (struct tls_session *session, const struct user_pass *up
     }
 
  done:
-  if (strlen (tmp_file) > 0)
+  if (tmp_file && strlen (tmp_file) > 0)
     delete_file (tmp_file);
 
   argv_reset (&argv);
@@ -3867,7 +3894,8 @@ tls_process (struct tls_multi *multi,
 	   && ks->n_packets >= session->opt->renegotiate_packets)
        || (packet_id_close_to_wrapping (&ks->packet_id.send))))
     {
-      msg (D_TLS_DEBUG_LOW, "TLS: soft reset sec=%d bytes=%d/%d pkts=%d/%d",
+      msg (D_TLS_DEBUG_LOW,
+           "TLS: soft reset sec=%d bytes=" counter_format "/%d pkts=" counter_format "/%d",
 	   (int)(ks->established + session->opt->renegotiate_seconds - now),
 	   ks->n_bytes, session->opt->renegotiate_bytes,
 	   ks->n_packets, session->opt->renegotiate_packets);

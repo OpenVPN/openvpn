@@ -1165,25 +1165,57 @@ test_file (const char *filename)
 
 /* create a temporary filename in directory */
 const char *
-create_temp_filename (const char *directory, const char *prefix, struct gc_arena *gc)
+create_temp_file (const char *directory, const char *prefix, struct gc_arena *gc)
 {
   static unsigned int counter;
   struct buffer fname = alloc_buf_gc (256, gc);
+  int fd;
+  const char *retfname = NULL;
+  unsigned int attempts = 0;
 
-  mutex_lock_static (L_CREATE_TEMP);
-  ++counter;
-  mutex_unlock_static (L_CREATE_TEMP);
+  do
+    {
+      uint8_t rndbytes[16];
+      const char *rndstr;
 
-  {
-    uint8_t rndbytes[16];
-    const char *rndstr;
+      ++attempts;
+      mutex_lock_static (L_CREATE_TEMP);
+      ++counter;
+      mutex_unlock_static (L_CREATE_TEMP);
 
-    prng_bytes (rndbytes, sizeof (rndbytes));
-    rndstr = format_hex_ex (rndbytes, sizeof (rndbytes), 40, 0, NULL, gc);
-    buf_printf (&fname, PACKAGE "_%s_%s.tmp", prefix, rndstr);
-  }
+      prng_bytes (rndbytes, sizeof rndbytes);
+      rndstr = format_hex_ex (rndbytes, sizeof rndbytes, 40, 0, NULL, gc);
+      buf_printf (&fname, PACKAGE "_%s_%s.tmp", prefix, rndstr);
 
-  return gen_path (directory, BSTR (&fname), gc);
+      retfname = gen_path (directory, BSTR (&fname), gc);
+      if (!retfname)
+        {
+          msg (M_FATAL, "Failed to create temporary filename and path");
+          return NULL;
+        }
+
+      /* Atomically create the file.  Errors out if the file already
+         exists.  */
+      fd = open (retfname, O_CREAT | O_EXCL | O_WRONLY, S_IRUSR | S_IWUSR);
+      if (fd != -1)
+        {
+          close (fd);
+          return retfname;
+        }
+      else if (fd == -1 && errno != EEXIST)
+        {
+          /* Something else went wrong, no need to retry.  */
+          struct gc_arena gcerr = gc_new ();
+          msg (M_FATAL, "Could not create temporary file '%s': %s",
+               retfname, strerror_ts (errno, &gcerr));
+          gc_free (&gcerr);
+          return NULL;
+        }
+    }
+  while (attempts < 6);
+
+  msg (M_FATAL, "Failed to create temporary file after %i attempts", attempts);
+  return NULL;
 }
 
 /*
@@ -1562,14 +1594,16 @@ void
 purge_user_pass (struct user_pass *up, const bool force)
 {
   const bool nocache = up->nocache;
+  static bool warn_shown = false;
   if (nocache || force)
     {
       CLEAR (*up);
       up->nocache = nocache;
     }
-  else
+  else if (!warn_shown)
     {
       msg (M_WARN, "WARNING: this configuration may cache passwords in memory -- use the auth-nocache option to prevent this");
+      warn_shown = true;
     }
 }
 

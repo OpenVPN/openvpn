@@ -615,7 +615,7 @@ init_static (void)
 #ifdef STATUS_PRINTF_TEST
   {
     struct gc_arena gc = gc_new ();
-    const char *tmp_file = create_temp_filename ("/tmp", "foo", &gc);
+    const char *tmp_file = create_temp_file ("/tmp", "foo", &gc);
     struct status_output *so = status_open (tmp_file, 0, -1, NULL, STATUS_OUTPUT_WRITE);
     status_printf (so, "%s", "foo");
     status_printf (so, "%s", "bar");

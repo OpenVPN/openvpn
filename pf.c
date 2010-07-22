@@ -109,6 +109,11 @@ add_subnet (const char *line, const char *prefix, const int line_num, struct pf_
 	  return false;
 	}
       netmask = netbits_to_netmask (netbits);
+      if ((network.s_addr & htonl (netmask)) != network.s_addr)
+        {
+          network.s_addr &= htonl (netmask);
+          msg (M_WARN, "WARNING: PF: %s/%d: incorrect subnet %s/%d changed to %s/%d", prefix, line_num, line, netbits, inet_ntoa (network), netbits);
+        }
     }
   else
     {
@@ -554,24 +559,25 @@ pf_init_context (struct context *c)
 #ifdef PLUGIN_PF
   if (plugin_defined (c->plugins, OPENVPN_PLUGIN_ENABLE_PF))
     {
-      const char *pf_file = create_temp_filename (c->options.tmp_dir, "pf", &gc);
-      delete_file (pf_file);
-      setenv_str (c->c2.es, "pf_file", pf_file);
+      const char *pf_file = create_temp_file (c->options.tmp_dir, "pf", &gc);
+      if( pf_file ) {
+        setenv_str (c->c2.es, "pf_file", pf_file);
 
-      if (plugin_call (c->plugins, OPENVPN_PLUGIN_ENABLE_PF, NULL, NULL, c->c2.es) == OPENVPN_PLUGIN_FUNC_SUCCESS)
-	{
-	  event_timeout_init (&c->c2.pf.reload, 1, now);
-	  c->c2.pf.filename = string_alloc (pf_file, NULL);
-	  c->c2.pf.enabled = true;
+        if (plugin_call (c->plugins, OPENVPN_PLUGIN_ENABLE_PF, NULL, NULL, c->c2.es) == OPENVPN_PLUGIN_FUNC_SUCCESS)
+          {
+            event_timeout_init (&c->c2.pf.reload, 1, now);
+            c->c2.pf.filename = string_alloc (pf_file, NULL);
+            c->c2.pf.enabled = true;
 #ifdef ENABLE_DEBUG
-	  if (check_debug_level (D_PF_DEBUG))
-	    pf_context_print (&c->c2.pf, "pf_init_context#1", D_PF_DEBUG);
+            if (check_debug_level (D_PF_DEBUG))
+              pf_context_print (&c->c2.pf, "pf_init_context#1", D_PF_DEBUG);
 #endif
-	}
-      else
-	{
-	  msg (M_WARN, "WARNING: OPENVPN_PLUGIN_ENABLE_PF disabled");
-	}
+          }
+        else
+          {
+            msg (M_WARN, "WARNING: OPENVPN_PLUGIN_ENABLE_PF disabled");
+          }
+      }
     }
 #endif
 #ifdef MANAGEMENT_PF

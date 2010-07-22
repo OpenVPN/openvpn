@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 # Copyright (c) 2005-2010 OpenVPN Technologies, Inc.
 # Licensed under the GPL version 2
@@ -14,7 +14,6 @@
 # Place this in /etc/openvpn/client.down
 # Then, add the following to your /etc/openvpn/<clientconfig>.conf:
 #   client
-#   pull dhcp-options
 #   up /etc/openvpn/client.up
 #   down /etc/openvpn/client.down
 # Next, "chmod a+x /etc/openvpn/client.down"
@@ -23,8 +22,8 @@
 # Note that this script is best served with the companion "client.up"
 # script.
 
-# Only tested on Gentoo Linux 2005.0 with OpenVPN 2.0
-# It should work with any GNU/Linux with /etc/resolv.conf
+# Tested under Debian lenny with OpenVPN 2.1_rc11
+# It should work with any UNIX with a POSIX sh, /etc/resolv.conf or resolvconf
 
 # This runs with the context of the OpenVPN UID/GID 
 # at the time of execution. This generally means that
@@ -36,41 +35,12 @@
 # is to run OpenVPN as root. THIS IS NOT RECOMMENDED. You have
 # been WARNED.
 
-# init variables
-
-i=1
-j=1
-unset fopt
-unset dns
-unset opt
-
-# Convert ENVs to an array
-
-while fopt=foreign_option_$i; [ -n "${!fopt}" ]; do
-{
-	opt[i-1]=${!fopt}
-	case ${opt[i-1]} in
-		*DOMAIN* ) domain=`echo ${opt[i-1]} | \
-				sed -e 's/dhcp-option DOMAIN //g'` ;;
-		*DNS*    ) dns[j-1]=`echo ${opt[i-1]} | \
-				sed -e 's/dhcp-option DNS //g'`
-			       let j++ ;;
-	esac
-	let i++
-}
-done
-
-# Now, do the work
-
-if [ -n "${dns[*]}" ]; then
-	for i in "${dns[@]}"; do
-		sed -i -e "/nameserver ${i}/D" /etc/resolv.conf || die
-	done
+if [ -x /sbin/resolvconf ] ; then
+  /sbin/resolvconf -d "${1}"
+elif [ -e /etc/resolv.conf.ovpnsave ] ; then
+  # cp + rm rather than mv in case it's a symlink
+  cp /etc/resolv.conf.ovpnsave /etc/resolv.conf
+  rm -f /etc/resolv.conf.ovpnsave
 fi
 
-if [ -n "${domain}" ]; then
-	sed -i -e "/search ${domain}/D" /etc/resolv.conf || die
-fi
-
-# all done...
 exit 0

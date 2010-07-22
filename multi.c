@@ -1530,9 +1530,14 @@ multi_connection_established (struct multi_context *m, struct multi_instance *mi
       if (plugin_defined (mi->context.plugins, OPENVPN_PLUGIN_CLIENT_CONNECT))
 	{
 	  struct argv argv = argv_new ();
-	  const char *dc_file = create_temp_filename (mi->context.options.tmp_dir, "cc", &gc);
+	  const char *dc_file = create_temp_file (mi->context.options.tmp_dir, "cc", &gc);
+
+          if( !dc_file ) {
+            cc_succeeded = false;
+            goto script_depr_failed;
+          }
+
 	  argv_printf (&argv, "%s", dc_file);
-	  delete_file (dc_file);
 	  if (plugin_call (mi->context.plugins, OPENVPN_PLUGIN_CLIENT_CONNECT, &argv, NULL, mi->context.c2.es) != OPENVPN_PLUGIN_FUNC_SUCCESS)
 	    {
 	      msg (M_WARN, "WARNING: client-connect plugin call failed");
@@ -1543,6 +1548,7 @@ multi_connection_established (struct multi_context *m, struct multi_instance *mi
 	      multi_client_connect_post (m, mi, dc_file, option_permissions_mask, &option_types_found);
 	      ++cc_succeeded_count;
 	    }
+        script_depr_failed:
 	  argv_reset (&argv);
 	}
 
@@ -1578,9 +1584,11 @@ multi_connection_established (struct multi_context *m, struct multi_instance *mi
 
 	  setenv_str (mi->context.c2.es, "script_type", "client-connect");
 
-	  dc_file = create_temp_filename (mi->context.options.tmp_dir, "cc", &gc);
-
-	  delete_file (dc_file);
+	  dc_file = create_temp_file (mi->context.options.tmp_dir, "cc", &gc);
+          if( !dc_file ) {
+            cc_succeeded = false;
+            goto script_failed;
+          }
 
 	  argv_printf (&argv, "%sc %s",
 		       mi->context.options.client_connect_script,
@@ -1593,7 +1601,7 @@ multi_connection_established (struct multi_context *m, struct multi_instance *mi
 	    }
 	  else
 	    cc_succeeded = false;
-
+        script_failed:
 	  argv_reset (&argv);
 	}
 
