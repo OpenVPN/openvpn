@@ -143,6 +143,7 @@ typedef struct _TapAdapter
   IPADDR m_remoteNetmask;
   ETH_HEADER m_TapToUser;
   ETH_HEADER m_UserToTap;
+  ETH_HEADER m_UserToTap_IPv6;		// same as UserToTap but proto=ipv6
   MACADDR m_MAC_Broadcast;
 
   // Used for DHCP server masquerade

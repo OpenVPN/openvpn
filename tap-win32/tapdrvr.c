@@ -1430,6 +1430,158 @@ NDIS_STATUS AdapterModify
   return l_Status;
 }
 
+// checksum code for ICMPv6 packet, taken from dhcp.c / udp_checksum
+// see RFC 4443, 2.3, and RFC 2460, 8.1
+USHORT
+icmpv6_checksum (const UCHAR *buf,
+	         const int len_icmpv6,
+	         const UCHAR *saddr6,
+	         const UCHAR *daddr6)
+{
+  USHORT word16;
+  ULONG sum = 0;
+  int i;
+
+  // make 16 bit words out of every two adjacent 8 bit words and
+  // calculate the sum of all 16 bit words
+  for (i = 0; i < len_icmpv6; i += 2){
+    word16 = ((buf[i] << 8) & 0xFF00) + ((i + 1 < len_icmpv6) ? (buf[i+1] & 0xFF) : 0);
+    sum += word16;
+  }
+
+  // add the IPv6 pseudo header which contains the IP source and destination addresses
+  for (i = 0; i < 16; i += 2){
+    word16 =((saddr6[i] << 8) & 0xFF00) + (saddr6[i+1] & 0xFF);
+    sum += word16;
+  }
+  for (i = 0; i < 16; i += 2){
+    word16 =((daddr6[i] << 8) & 0xFF00) + (daddr6[i+1] & 0xFF);
+    sum += word16;
+  }
+
+  // the next-header number and the length of the ICMPv6 packet
+  sum += (USHORT) IPPROTO_ICMPV6 + (USHORT) len_icmpv6;
+
+  // keep only the last 16 bits of the 32 bit calculated sum and add the carries
+  while (sum >> 16)
+    sum = (sum & 0xFFFF) + (sum >> 16);
+
+  // Take the one's complement of sum
+  return ((USHORT) ~sum);
+}
+
+// check IPv6 packet for "is this an IPv6 Neighbor Solicitation that
+// the tap driver needs to answer?"
+// see RFC 4861 4.3 for the different cases
+static IPV6ADDR IPV6_NS_TARGET_MCAST =
+	{ 0xff, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+          0x00, 0x00, 0x00, 0x01, 0xff, 0x00, 0x00, 0x08 };
+static IPV6ADDR IPV6_NS_TARGET_UNICAST =
+	{ 0xfe, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+          0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x08 };
+
+BOOLEAN
+HandleIPv6NeighborDiscovery( TapAdapterPointer p_Adapter, UCHAR * m_Data )
+{
+    const ETH_HEADER * e = (ETH_HEADER *) m_Data;
+    const IPV6HDR *ipv6 = (IPV6HDR *) (m_Data + sizeof (ETH_HEADER));
+    const ICMPV6_NS * icmpv6_ns = (ICMPV6_NS *) (m_Data + sizeof (ETH_HEADER) + sizeof (IPV6HDR));
+    ICMPV6_NA_PKT *na;
+    USHORT icmpv6_len, icmpv6_csum;
+
+    // we don't really care about the destination MAC address here
+    // - it's either a multicast MAC, or the userland destination MAC
+    // but since the TAP driver is point-to-point, all packets are "for us"
+
+    // IPv6 target address must be ff02::1::ff00:8 (multicast for
+    // initial NS) or fe80::1 (unicast for recurrent NUD)
+    if ( memcmp( ipv6->daddr, IPV6_NS_TARGET_MCAST,
+		 sizeof(IPV6ADDR) ) != 0 &&
+         memcmp( ipv6->daddr, IPV6_NS_TARGET_UNICAST,
+		 sizeof(IPV6ADDR) ) != 0 )
+    {
+	return FALSE;				// wrong target address
+    }
+
+    // IPv6 Next-Header must be ICMPv6
+    if ( ipv6->nexthdr != IPPROTO_ICMPV6 )
+    {
+	return FALSE;				// wrong next-header
+    }
+
+    // ICMPv6 type+code must be 135/0 for NS
+    if ( icmpv6_ns->type != ICMPV6_TYPE_NS ||
+	 icmpv6_ns->code != ICMPV6_CODE_0 )
+    {
+	return FALSE;				// wrong ICMPv6 type
+    }
+
+    // ICMPv6 target address must be fe80::8 (magic)
+    if ( memcmp( icmpv6_ns->target_addr, IPV6_NS_TARGET_UNICAST,
+	         sizeof(IPV6ADDR) ) != 0 )
+    {
+	return FALSE;				// not for us
+    }
+
+    // packet identified, build magic response packet
+
+    na = (ICMPV6_NA_PKT *) MemAlloc (sizeof (ICMPV6_NA_PKT), TRUE);
+    if ( !na ) return FALSE;
+
+    //------------------------------------------------
+    // Initialize Neighbour Advertisement reply packet
+    //------------------------------------------------
+
+    // ethernet header
+    na->eth.proto = htons(ETH_P_IPV6);
+    COPY_MAC(na->eth.dest, p_Adapter->m_MAC);
+    COPY_MAC(na->eth.src, p_Adapter->m_TapToUser.dest);
+
+    // IPv6 header
+    na->ipv6.version_prio = ipv6->version_prio;
+    NdisMoveMemory( na->ipv6.flow_lbl, ipv6->flow_lbl,
+		    sizeof(na->ipv6.flow_lbl) );
+    icmpv6_len = sizeof(ICMPV6_NA_PKT) - sizeof(ETH_HEADER) - sizeof(IPV6HDR);
+    na->ipv6.payload_len = htons(icmpv6_len);
+    na->ipv6.nexthdr = IPPROTO_ICMPV6;
+    na->ipv6.hop_limit = 255;
+    NdisMoveMemory( na->ipv6.saddr, IPV6_NS_TARGET_UNICAST,
+		    sizeof(IPV6ADDR) );
+    NdisMoveMemory( na->ipv6.daddr, ipv6->saddr,
+		    sizeof(IPV6ADDR) );
+
+    // ICMPv6
+    na->icmpv6.type = ICMPV6_TYPE_NA;
+    na->icmpv6.code = ICMPV6_CODE_0;
+    na->icmpv6.checksum = 0;
+    na->icmpv6.rso_bits = 0x60;		// Solicited + Override
+    NdisZeroMemory( na->icmpv6.reserved, sizeof(na->icmpv6.reserved) );
+    NdisMoveMemory( na->icmpv6.target_addr, IPV6_NS_TARGET_UNICAST,
+		    sizeof(IPV6ADDR) );
+
+    // ICMPv6 option "Target Link Layer Address"
+    na->icmpv6.opt_type = ICMPV6_OPTION_TLLA;
+    na->icmpv6.opt_length = ICMPV6_LENGTH_TLLA;
+    COPY_MAC( na->icmpv6.target_macaddr, p_Adapter->m_TapToUser.dest );
+
+    // calculate and set checksum
+    icmpv6_csum = icmpv6_checksum ( (UCHAR*) &(na->icmpv6),
+				    icmpv6_len,
+				    na->ipv6.saddr,
+				    na->ipv6.daddr );
+    na->icmpv6.checksum = htons( icmpv6_csum );
+
+    DUMP_PACKET ("HandleIPv6NeighborDiscovery",
+		 (unsigned char *) na,
+		 sizeof (ICMPV6_NA_PKT));
+
+    InjectPacketDeferred (p_Adapter, (UCHAR *) na, sizeof (ICMPV6_NA_PKT));
+
+    MemFree (na, sizeof (ICMPV6_NA_PKT));
+
+    return TRUE;				// all fine
+}
+
 //====================================================================
 //                               Adapter Transmission
 //====================================================================
@@ -1566,7 +1718,10 @@ AdapterTransmit (IN NDIS_HANDLE p_AdapterContext,
 
     //===============================================
     // In Point-To-Point mode, check to see whether
-    // packet is ARP or IPv4 (if neither, then drop).
+    // packet is ARP (handled) or IPv4 (sent to app).
+    // IPv6 packets are inspected for neighbour discovery
+    // (to be handled locally), and the rest is forwarded
+    // all other protocols are dropped
     //===============================================
     if (l_Adapter->m_tun)
       {
@@ -1610,6 +1765,27 @@ AdapterTransmit (IN NDIS_HANDLE p_AdapterContext,
 	      goto no_queue;
 
 	    // Packet looks like IPv4, queue it.
+	    l_PacketBuffer->m_SizeFlags |= TP_TUN;
+
+	  case ETH_P_IPV6:
+	    // make sure that packet is large
+	    // enough to be IPv6
+	    if (l_PacketLength
+		< ETHERNET_HEADER_SIZE + IPV6_HEADER_SIZE)
+	      goto no_queue;
+
+	    // broadcasts and multicasts are handled specially
+	    // (to be implemented)
+
+	    // neighbor discovery packets to fe80::8 are special
+	    // OpenVPN sets this next-hop to signal "handled by tapdrv"
+	    if ( HandleIPv6NeighborDiscovery( l_Adapter,
+					      l_PacketBuffer->m_Data ))
+	      {
+		goto no_queue;
+	      }
+
+	    // Packet looks like IPv6, queue it :-)
 	    l_PacketBuffer->m_SizeFlags |= TP_TUN;
 	  }
       }
@@ -1902,6 +2078,8 @@ TapDeviceHook (IN PDEVICE_OBJECT p_DeviceObject, IN PIRP p_IRP)
 		  COPY_MAC (l_Adapter->m_UserToTap.dest, l_Adapter->m_MAC);
 
 		  l_Adapter->m_TapToUser.proto = l_Adapter->m_UserToTap.proto = htons (ETH_P_IP);
+		  l_Adapter->m_UserToTap_IPv6 = l_Adapter->m_UserToTap;
+		  l_Adapter->m_UserToTap_IPv6.proto = htons(ETH_P_IPV6);
 
 		  l_Adapter->m_tun = TRUE;
 
@@ -1939,6 +2117,8 @@ TapDeviceHook (IN PDEVICE_OBJECT p_DeviceObject, IN PIRP p_IRP)
 		  COPY_MAC (l_Adapter->m_UserToTap.dest, l_Adapter->m_MAC);
 
 		  l_Adapter->m_TapToUser.proto = l_Adapter->m_UserToTap.proto = htons (ETH_P_IP);
+		  l_Adapter->m_UserToTap_IPv6 = l_Adapter->m_UserToTap;
+		  l_Adapter->m_UserToTap_IPv6.proto = htons(ETH_P_IPV6);
 
 		  l_Adapter->m_tun = TRUE;
 
@@ -2236,10 +2416,18 @@ TapDeviceHook (IN PDEVICE_OBJECT p_DeviceObject, IN PIRP p_IRP)
 	  {
 	    __try
 	      {
+		ETH_HEADER * p_UserToTap = &l_Adapter->m_UserToTap;
+
+		// for IPv6, need to use ethernet header with IPv6 proto
+		if ( IPH_GET_VER( ((IPHDR*) p_IRP->AssociatedIrp.SystemBuffer)->version_len) == 6 )
+		  {
+		    p_UserToTap = &l_Adapter->m_UserToTap_IPv6;
+		  }
+
 		p_IRP->IoStatus.Information = l_IrpSp->Parameters.Write.Length;
 
 		DUMP_PACKET2 ("IRP_MJ_WRITE P2P",
-			      &l_Adapter->m_UserToTap,
+			      p_UserToTap,
 			      (unsigned char *) p_IRP->AssociatedIrp.SystemBuffer,
 			      l_IrpSp->Parameters.Write.Length);
 
@@ -2258,8 +2446,8 @@ TapDeviceHook (IN PDEVICE_OBJECT p_DeviceObject, IN PIRP p_IRP)
 		NdisMEthIndicateReceive
 		  (l_Adapter->m_MiniportAdapterHandle,
 		   (NDIS_HANDLE) l_Adapter,
-		   (unsigned char *) &l_Adapter->m_UserToTap,
-		   sizeof (l_Adapter->m_UserToTap),
+		   (unsigned char *) p_UserToTap,
+		   sizeof (ETH_HEADER),
 		   (unsigned char *) p_IRP->AssociatedIrp.SystemBuffer,
 		   l_IrpSp->Parameters.Write.Length,
 		   l_IrpSp->Parameters.Write.Length);
@@ -2820,6 +3008,7 @@ VOID ResetTapAdapterState (TapAdapterPointer p_Adapter)
   p_Adapter->m_remoteNetmask = 0;
   NdisZeroMemory (&p_Adapter->m_TapToUser, sizeof (p_Adapter->m_TapToUser));
   NdisZeroMemory (&p_Adapter->m_UserToTap, sizeof (p_Adapter->m_UserToTap));
+  NdisZeroMemory (&p_Adapter->m_UserToTap_IPv6, sizeof (p_Adapter->m_UserToTap_IPv6));
 
   // DHCP Masq
   p_Adapter->m_dhcp_enabled = FALSE;
