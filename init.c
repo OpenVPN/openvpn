@@ -1191,7 +1191,7 @@ do_route (const struct options *options,
       struct argv argv = argv_new ();
       setenv_str (es, "script_type", "route-up");
       argv_printf (&argv, "%sc", options->route_script);
-      openvpn_execve_check (&argv, es, S_SCRIPT, "Route script failed");
+      openvpn_run_script (&argv, es, 0, "--route-up");
       argv_reset (&argv);
     }
 
@@ -2024,6 +2024,7 @@ do_init_crypto_tls (struct context *c, const unsigned int flags)
 #endif
 
   to.verify_command = options->tls_verify;
+  to.verify_export_cert = options->tls_export_cert;
   to.verify_x509name = options->tls_remote;
   to.crl_file = options->crl_file;
   to.ns_cert_type = options->ns_cert_type;

@@ -687,6 +687,51 @@ string_mod_sslname (char *str, const unsigned int restrictive_flags, const unsig
     string_mod (str, restrictive_flags, 0, '_');
 }
 
+/* Get peer cert and store it in pem format in a temporary file
+ * in tmp_dir
+ */
+
+const char *
+get_peer_cert(X509_STORE_CTX *ctx, const char *tmp_dir, struct gc_arena *gc)
+{
+  X509 *peercert;
+  FILE *peercert_file;
+  const char *peercert_filename="";
+
+  if(!tmp_dir)
+      return NULL;
+
+  /* get peer cert */
+  peercert = X509_STORE_CTX_get_current_cert(ctx);
+  if(!peercert)
+    {
+      msg (M_ERR, "Unable to get peer certificate from current context");
+      return NULL;
+    }
+
+  /* create tmp file to store peer cert */
+  peercert_filename = create_temp_filename (tmp_dir, "pcf", gc);
+
+  /* write peer-cert in tmp-file */
+  peercert_file = fopen(peercert_filename, "w+");
+  if(!peercert_file)
+    {
+      msg (M_ERR, "Failed to open temporary file : %s", peercert_filename);
+      return NULL;
+    }
+  if(PEM_write_X509(peercert_file,peercert)<0)
+    {
+      msg (M_ERR, "Failed to write peer certificate in PEM format");
+      fclose(peercert_file);
+      return NULL;
+    }
+
+  fclose(peercert_file);
+  return peercert_filename;
+}
+
+char * x509_username_field; /* GLOBAL */
+
 /*
  * Our verify callback function -- check
  * that an incoming peer certificate is good.
@@ -697,7 +742,7 @@ verify_callback (int preverify_ok, X509_STORE_CTX * ctx)
 {
   char *subject = NULL;
   char envname[64];
-  char common_name[TLS_CN_LEN];
+  char common_name[TLS_USERNAME_LEN];
   SSL *ssl;
   struct tls_session *session;
   const struct tls_options *opt;
@@ -729,17 +774,19 @@ verify_callback (int preverify_ok, X509_STORE_CTX * ctx)
   string_mod_sslname (subject, X509_NAME_CHAR_CLASS, opt->ssl_flags);
   string_replace_leading (subject, '-', '_');
 
-  /* extract the common name */
-  if (!extract_x509_field_ssl (X509_get_subject_name (ctx->current_cert), "CN", common_name, TLS_CN_LEN))
+  /* extract the username (default is CN) */
+  if (!extract_x509_field_ssl (X509_get_subject_name (ctx->current_cert), x509_username_field, common_name, sizeof(common_name)))
     {
       if (!ctx->error_depth)
-	{
-	  msg (D_TLS_ERRORS, "VERIFY ERROR: could not extract Common Name from X509 subject string ('%s') -- note that the Common Name length is limited to %d characters",
-	       subject,
-	       TLS_CN_LEN);
-	  goto err;
-	}
+        {
+          msg (D_TLS_ERRORS, "VERIFY ERROR: could not extract %s from X509 subject string ('%s') -- note that the username length is limited to %d characters",
+                 x509_username_field,
+                 subject,
+                 TLS_USERNAME_LEN);
+          goto err;
+        }
     }
+
 
   string_mod_sslname (common_name, COMMON_NAME_CHAR_CLASS, opt->ssl_flags);
 
@@ -906,32 +953,48 @@ verify_callback (int preverify_ok, X509_STORE_CTX * ctx)
   /* run --tls-verify script */
   if (opt->verify_command)
     {
+      const char *tmp_file;
+      struct gc_arena gc;
       int ret;
 
       setenv_str (opt->es, "script_type", "tls-verify");
+
+      if (opt->verify_export_cert)
+        {
+          gc = gc_new();
+          if (tmp_file=get_peer_cert(ctx, opt->verify_export_cert,&gc))
+           {
+             setenv_str(opt->es, "peer_cert", tmp_file);
+           }
+        }
 
       argv_printf (&argv, "%sc %d %s",
 		   opt->verify_command,
 		   ctx->error_depth,
 		   subject);
       argv_msg_prefix (D_TLS_DEBUG, &argv, "TLS: executing verify command");
-      ret = openvpn_execve (&argv, opt->es, S_SCRIPT);
+      ret = openvpn_run_script (&argv, opt->es, 0, "--tls-verify script");
 
-      if (system_ok (ret))
+      if (opt->verify_export_cert)
+        {
+           if (tmp_file)
+              delete_file(tmp_file);
+           gc_free(&gc);
+        }
+
+      if (ret)
 	{
 	  msg (D_HANDSHAKE, "VERIFY SCRIPT OK: depth=%d, %s",
 	       ctx->error_depth, subject);
 	}
       else
 	{
-	  if (!system_executed (ret))
-	    argv_msg_prefix (M_ERR, &argv, "Verify command failed to execute");
 	  msg (D_HANDSHAKE, "VERIFY SCRIPT ERROR: depth=%d, %s",
 	       ctx->error_depth, subject);
 	  goto err;		/* Reject connection */
 	}
     }
-  
+
   /* check peer cert against CRL */
   if (opt->crl_file)
     {
@@ -1749,7 +1812,8 @@ init_ssl (const struct options *options)
     }
   else
 #endif
-    SSL_CTX_set_verify (ctx, SSL_VERIFY_PEER | SSL_VERIFY_FAIL_IF_NO_PEER_CERT,
+  x509_username_field = (char *) options->x509_username_field;
+  SSL_CTX_set_verify (ctx, SSL_VERIFY_PEER | SSL_VERIFY_FAIL_IF_NO_PEER_CERT,
 			verify_callback);
 
   /* Connection information callback */
@@ -3190,7 +3254,6 @@ verify_user_pass_script (struct tls_session *session, const struct user_pass *up
   struct gc_arena gc = gc_new ();
   struct argv argv = argv_new ();
   const char *tmp_file = "";
-  int retval;
   bool ret = false;
 
   /* Is username defined? */
@@ -3233,16 +3296,11 @@ verify_user_pass_script (struct tls_session *session, const struct user_pass *up
 
       /* format command line */
       argv_printf (&argv, "%sc %s", session->opt->auth_user_pass_verify_script, tmp_file);
-      
-      /* call command */
-      retval = openvpn_execve (&argv, session->opt->es, S_SCRIPT);
 
-      /* test return status of command */
-      if (system_ok (retval))
-	ret = true;
-      else if (!system_executed (retval))
-	argv_msg_prefix (D_TLS_ERRORS, &argv, "TLS Auth Error: user-pass-verify script failed to execute");
-	  
+      /* call command */
+      ret = openvpn_run_script (&argv, session->opt->es, 0,
+				"--auth-user-pass-verify");
+
       if (!session->opt->auth_user_pass_verify_script_via_file)
 	setenv_del (session->opt->es, "password");
     }
@@ -3688,9 +3746,9 @@ key_method_2_read (struct buffer *buf, struct tls_multi *multi, struct tls_sessi
 	s2 = verify_user_pass_script (session, up);
 
       /* check sizing of username if it will become our common name */
-      if ((session->opt->ssl_flags & SSLF_USERNAME_AS_COMMON_NAME) && strlen (up->username) >= TLS_CN_LEN)
+      if ((session->opt->ssl_flags & SSLF_USERNAME_AS_COMMON_NAME) && strlen (up->username) >= TLS_USERNAME_LEN)
 	{
-	  msg (D_TLS_ERRORS, "TLS Auth Error: --username-as-common name specified and username is longer than the maximum permitted Common Name length of %d characters", TLS_CN_LEN);
+	  msg (D_TLS_ERRORS, "TLS Auth Error: --username-as-common name specified and username is longer than the maximum permitted Common Name length of %d characters", TLS_USERNAME_LEN);
 	  s1 = OPENVPN_PLUGIN_FUNC_ERROR;
 	}
 

@@ -465,6 +465,7 @@ struct options
   const char *pkcs12_file;
   const char *cipher_list;
   const char *tls_verify;
+  const char *tls_export_cert;
   const char *tls_remote;
   const char *crl_file;
 
@@ -507,6 +508,9 @@ struct options
   /* Data channel key handshake must finalize
      within n seconds of handshake initiation. */
   int handshake_window;
+
+  /* Field used to be the username in X509 cert. */
+  char *x509_username_field;
 
   /* Old key allowed to live n seconds after new key goes active */
   int transition_window;

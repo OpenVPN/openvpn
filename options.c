@@ -45,6 +45,8 @@
 #include "pool.h"
 #include "helper.h"
 #include "manage.h"
+#include "configure.h"
+#include <ctype.h>
 
 #include "memdbg.h"
 
@@ -503,6 +505,8 @@ static const char usage_message[] =
   "--key file      : Local private key in .pem format.\n"
   "--pkcs12 file   : PKCS#12 file containing local private key, local certificate\n"
   "                  and optionally the root CA certificate.\n"
+  "--x509-username-field : Field used in x509 certificat to be username.\n"
+  "                        Default is CN.\n"
 #ifdef WIN32
   "--cryptoapicert select-string : Load the certificate and private key from the\n"
   "                  Windows Certificate System Store.\n"
@@ -533,6 +537,9 @@ static const char usage_message[] =
   "                  tests of certification.  cmd should return 0 to allow\n"
   "                  TLS handshake to proceed, or 1 to fail.  (cmd is\n"
   "                  executed as 'cmd certificate_depth X509_NAME_oneline')\n"
+  "--tls-export-cert [directory] : Get peer cert in PEM format and store it \n"
+  "                  in an openvpn temporary file in [directory]. Peer cert is \n"
+  "                  stored before tls-verify script execution and deleted after.\n"
   "--tls-remote x509name: Accept connections only from a host with X509 name\n"
   "                  x509name. The remote host must also pass all other tests\n"
   "                  of verification.\n"
@@ -755,6 +762,7 @@ init_options (struct options *o, const bool init_gc)
   o->renegotiate_seconds = 3600;
   o->handshake_window = 60;
   o->transition_window = 3600;
+  o->x509_username_field = X509_USERNAME_FIELD_DEFAULT;
 #endif
 #endif
 #ifdef ENABLE_PKCS11
@@ -1333,6 +1341,7 @@ show_settings (const struct options *o)
 #endif
   SHOW_STR (cipher_list);
   SHOW_STR (tls_verify);
+  SHOW_STR (tls_export_cert);
   SHOW_STR (tls_remote);
   SHOW_STR (crl_file);
   SHOW_INT (ns_cert_type);
@@ -2061,6 +2070,7 @@ options_postprocess_verify_ce (const struct options *options, const struct conne
       MUST_BE_UNDEF (pkcs12_file);
       MUST_BE_UNDEF (cipher_list);
       MUST_BE_UNDEF (tls_verify);
+      MUST_BE_UNDEF (tls_export_cert);
       MUST_BE_UNDEF (tls_remote);
       MUST_BE_UNDEF (tls_timeout);
       MUST_BE_UNDEF (renegotiate_bytes);
@@ -2903,6 +2913,12 @@ usage_version (void)
   msg (M_INFO|M_NOPREFIX, "%s", title_string);
   msg (M_INFO|M_NOPREFIX, "Originally developed by James Yonan");
   msg (M_INFO|M_NOPREFIX, "Copyright (C) 2002-2010 OpenVPN Technologies, Inc. <sales@openvpn.net>");
+#ifndef ENABLE_SMALL
+#ifdef CONFIGURE_CALL
+  msg (M_INFO|M_NOPREFIX, "\n%s\n", CONFIGURE_CALL);
+#endif
+  msg (M_INFO|M_NOPREFIX, "Compile time defines: %s", CONFIGURE_DEFINES);
+#endif
   openvpn_exit (OPENVPN_EXIT_STATUS_USAGE); /* exit point */
 }
 
@@ -5730,6 +5746,11 @@ add_option (struct options *options,
 	goto err;
       options->tls_verify = string_substitute (p[1], ',', ' ', &options->gc);
     }
+  else if (streq (p[0], "tls-export-cert") && p[1])
+    {
+      VERIFY_PERMISSION (OPT_P_GENERAL);
+      options->tls_export_cert = p[1];
+    }
   else if (streq (p[0], "tls-remote") && p[1])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
@@ -5854,6 +5875,13 @@ add_option (struct options *options,
 	  goto err;
 	}
       options->key_method = key_method;
+    }
+  else if (streq (p[0], "x509-username-field") && p[1])
+    {
+      char *s = p[1];
+      VERIFY_PERMISSION (OPT_P_GENERAL);
+      while ((*s = toupper(*s)) != '\0') s++; /* Uppercase if necessary */
+      options->x509_username_field = p[1];
     }
 #endif /* USE_SSL */
 #endif /* USE_CRYPTO */
