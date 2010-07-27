@@ -3390,17 +3390,37 @@ ipconfig_register_dns (const struct env_set *es)
   const char err[] = "ERROR: Windows ipconfig command failed";
 
   netcmd_semaphore_lock ();
+
   argv_init (&argv);
+
+  argv_printf (&argv, "%s%sc stop dnscache",
+	       get_win_sys_path(),
+	       WIN_NET_PATH_SUFFIX);
+  argv_msg (D_TUNTAP_INFO, &argv);
+  status = openvpn_execve_check (&argv, es, 0, err);
+  argv_reset(&argv);
+
+  argv_printf (&argv, "%s%sc start dnscache",
+	       get_win_sys_path(),
+	       WIN_NET_PATH_SUFFIX);
+  argv_msg (D_TUNTAP_INFO, &argv);
+  status = openvpn_execve_check (&argv, es, 0, err);
+  argv_reset(&argv);
+
   argv_printf (&argv, "%s%sc /flushdns",
 	       get_win_sys_path(),
 	       WIN_IPCONFIG_PATH_SUFFIX);
+  argv_msg (D_TUNTAP_INFO, &argv);
   status = openvpn_execve_check (&argv, es, 0, err);
   argv_reset(&argv);
+
   argv_printf (&argv, "%s%sc /registerdns",
 	       get_win_sys_path(),
 	       WIN_IPCONFIG_PATH_SUFFIX);
+  argv_msg (D_TUNTAP_INFO, &argv);
   status = openvpn_execve_check (&argv, es, 0, err);
   argv_reset(&argv);
+
   netcmd_semaphore_release ();
 }
 
