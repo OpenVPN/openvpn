@@ -531,11 +531,9 @@ socket_defined (const socket_descriptor_t sd)
 #endif
 
 /*
- * Don't compile the struct buffer_list code unless something needs it
+ * Compile the struct buffer_list code
  */
-#if defined(ENABLE_MANAGEMENT) || defined(ENABLE_PF)
 #define ENABLE_BUFFER_LIST
-#endif
 
 /*
  * Do we have pthread capability?

@@ -2266,6 +2266,7 @@ key_state_free (struct key_state *ks, bool clear)
   free_buf (&ks->plaintext_read_buf);
   free_buf (&ks->plaintext_write_buf);
   free_buf (&ks->ack_write_buf);
+  buffer_list_free(ks->paybuf);
 
   if (ks->send_reliable)
     {
@@ -3062,6 +3063,17 @@ key_source2_read (struct key_source2 *k2,
     return 0;
 
   return 1;
+}
+
+static void
+flush_payload_buffer (struct tls_multi *multi, struct key_state *ks)
+{
+  struct buffer *b;
+  while ((b = buffer_list_peek (ks->paybuf)))
+    {
+      key_state_write_plaintext_const (multi, ks, b->data, b->len);
+      buffer_list_pop (ks->paybuf);
+    }
 }
 
 /*
@@ -3977,6 +3989,9 @@ tls_process (struct tls_multi *multi,
 
 		  /* Set outgoing address for data channel packets */
 		  link_socket_set_outgoing_addr (NULL, to_link_socket_info, &ks->remote_addr, session->common_name, session->opt->es);
+
+		  /* Flush any payload packets that were buffered before our state transitioned to S_ACTIVE */
+		  flush_payload_buffer (multi, ks);
 
 #ifdef MEASURE_TLS_HANDSHAKE_STATS
 		  show_tls_performance_stats();
@@ -5076,6 +5091,13 @@ tls_send_payload (struct tls_multi *multi,
     {
       if (key_state_write_plaintext_const (multi, ks, data, size) == 1)
 	ret = true;
+    }
+  else
+    {
+      if (!ks->paybuf)
+	ks->paybuf = buffer_list_new (0);
+      buffer_list_push_data (ks->paybuf, data, (size_t)size);
+      ret = true;
     }
 
   ERR_clear_error ();
