@@ -896,8 +896,11 @@ buffer_list_new (const int max_size)
 void
 buffer_list_free (struct buffer_list *ol)
 {
-  buffer_list_reset (ol);
-  free (ol);
+  if (ol)
+    {
+      buffer_list_reset (ol);
+      free (ol);
+    }
 }
 
 bool
@@ -924,9 +927,21 @@ buffer_list_reset (struct buffer_list *ol)
 void
 buffer_list_push (struct buffer_list *ol, const unsigned char *str)
 {
-  if (!ol->max_size || ol->size < ol->max_size)
+  if (str)
     {
-      struct buffer_entry *e;
+      const size_t len = strlen ((const char *)str);
+      struct buffer_entry *e = buffer_list_push_data (ol, str, len+1);
+      if (e)
+	e->buf.len = len; /* Don't count trailing '\0' as part of length */
+    }
+}
+
+struct buffer_entry *
+buffer_list_push_data (struct buffer_list *ol, const uint8_t *data, size_t size)
+{
+  struct buffer_entry *e = NULL;
+  if (data && (!ol->max_size || ol->size < ol->max_size))
+    {
       ALLOC_OBJ_CLEAR (e, struct buffer_entry);
 
       ++ol->size;
@@ -940,15 +955,18 @@ buffer_list_push (struct buffer_list *ol, const unsigned char *str)
 	  ASSERT (!ol->head);
 	  ol->head = e;
 	}
-      e->buf = string_alloc_buf ((const char *) str, NULL);
+      e->buf = alloc_buf (size);
+      memcpy (e->buf.data, data, size);
+      e->buf.len = (int)size;
       ol->tail = e;
     }
+  return e;
 }
 
 struct buffer *
 buffer_list_peek (struct buffer_list *ol)
 {
-  if (ol->head)
+  if (ol && ol->head)
     return &ol->head->buf;
   else
     return NULL;
@@ -993,10 +1011,10 @@ buffer_list_aggregate (struct buffer_list *bl, const size_t max)
     }
 }
 
-static void
+void
 buffer_list_pop (struct buffer_list *ol)
 {
-  if (ol->head)
+  if (ol && ol->head)
     {
       struct buffer_entry *e = ol->head->next;
       free_buf (&ol->head->buf);

@@ -379,6 +379,8 @@ struct key_state
   struct reliable *rec_reliable;  /* order incoming ciphertext packets before we pass to TLS */
   struct reliable_ack *rec_ack;	  /* buffers all packet IDs we want to ACK back to sender */
 
+  struct buffer_list *paybuf;
+
   counter_type n_bytes;		 /* how many bytes sent/recvd since last key exchange */
   counter_type n_packets;	 /* how many packets sent/recvd since last key exchange */
 

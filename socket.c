@@ -231,7 +231,7 @@ getaddr_multi (unsigned int flags,
 		   n);
 
 	      /* choose address randomly, for basic load-balancing capability */
-	      /*ia.s_addr = *(in_addr_t *) (h->h_addr_list[get_random () % n]);*
+	      /*ia.s_addr = *(in_addr_t *) (h->h_addr_list[get_random () % n]);*/
 
 	      /* choose first address */
 	      ia.s_addr = *(in_addr_t *) (h->h_addr_list[0]);

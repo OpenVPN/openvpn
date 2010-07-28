@@ -4763,8 +4763,9 @@ above.
 .\"*********************************************************
 .TP
 .B \-\-register-dns
-Run ipconfig /flushdns and ipconfig /registerdns on
-connection initiation.  This is known to kick Windows into
+Run net stop dnscache, net start dnscache, ipconfig /flushdns
+and ipconfig /registerdns on connection initiation.
+This is known to kick Windows into
 recognizing pushed DNS servers.
 .\"*********************************************************
 .TP
