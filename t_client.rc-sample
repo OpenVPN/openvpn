@@ -1,0 +1,83 @@
+#
+# this is sourced from t_client.sh and defines which openvpn client tests
+# to run
+#
+# (sample config, copy to t_client.rc and adapt to your environment)
+#
+#
+# define these - if empty, no tests will run
+#
+CA_CERT="/home/openvpn-test-ca/keys/ca.crt"
+CLIENT_KEY="/home/openvpn-test-ca/keys/client-test.key"
+CLIENT_CERT="/home/openvpn-test-ca/keys/client-test.crt"
+#
+# remote host (used as macro below)
+#
+REMOTE=mytestserver
+#
+# tests to run (list suffixes for config stanzas below)
+#
+TEST_RUN_LIST="1 2"
+
+#
+# base confic that is the same for all the p2mp test runs
+#
+OPENVPN_BASE_P2MP="--client --ca $CA_CERT \
+	--cert $CLIENT_CERT --key $CLIENT_KEY \
+	--ns-cert-type server --nobind --comp-lzo --verb 3"
+
+# base config for p2p tests
+#
+OPENVPN_BASE_P2P="..."
+
+#
+#
+# now define the individual tests - all variables suffixed with _1, _2 etc
+# will be used in test run "1", "2", etc.
+#
+# if something is not defined here, the corresponding test is not run
+#
+# possible test options:
+#
+# OPENVPN_CONF_x = "how to call ./openvpn" [mandatory]
+# EXPECT_IFCONFIG4_x = "this IPv4 address needs to show up in ifconfig"
+# EXPECT_IFCONFIG6_x = "this IPv6 address needs to show up in ifconfig"
+# PING4_HOSTS_x = "these hosts musts ping when openvpn is up (IPv4 fping)"
+# PING6_HOSTS_x = "these hosts musts ping when openvpn is up (IPv6 fping6)"
+#
+# Test 1: UDP / p2mp tun
+#   specify IPv4+IPv6 addresses expected from server and ping targets
+#
+OPENVPN_CONF_1="$OPENVPN_BASE_P2MP --dev tun --proto udp --remote $REMOTE --port 51194"
+EXPECT_IFCONFIG4_1="10.100.50.6"
+EXPECT_IFCONFIG6_1="2001:dba:a050::1:0"
+PING4_HOSTS_1="10.100.50.1 10.100.0.1"
+PING6_HOSTS_1="2001:dba::1 2001:dba:a050::1"
+
+# Test 2: TCP / p2mp tun
+#
+OPENVPN_CONF_2="$OPENVPN_BASE_P2MP --dev tun --proto tcp --remote $REMOTE --port 51194"
+EXPECT_IFCONFIG4_2="10.100.51.6"
+EXPECT_IFCONFIG6_2="2001:dba:a051::1:0"
+PING4_HOSTS_2="10.100.51.1 10.100.0.1"
+PING6_HOSTS_1="2001:dba::1 2001:dba:a051::1"
+
+# Test 3: UDP / p2p tun
+# ...
+
+# Test 4: TCP / p2p tun
+# ...
+
+# Test 5: UDP / p2mp tap
+# ...
+
+# Test 6: TCP / p2mp tun
+# ...
+
+# Test 7: UDP / p2p tap
+# ...
+
+# Test 8: TCP / p2p tap
+# ...
+
+# Test 9: whatever you want to test... :-)
