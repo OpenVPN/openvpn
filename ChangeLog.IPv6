@@ -315,3 +315,21 @@ Sun Mar  7 19:17:33 CET 2010
     is older than 9.7, log warning and disable IPv6 (won't work anyway).
 
   * release as patch 20100307-1
+
+Sat Jul 10 14:37:52 CEST 2010
+
+  * TEST SUCCESS: point-to-point tun mode with --ifconfig-ipv6 between
+                  Solaris10/sparc and Linux (Michal Ludvig)
+    (using the whiteboard tun driver on Solaris, otherwise "no IPv6")
+
+Sun Aug  8 12:30:44 CEST 2010
+
+  * route.c: split NetBSD and OpenBSD parts of add_route_ipv6() and
+             delete_route_ipv6(), implement OpenBSD variant
+             (needs "-prefixlen nn" while NetBSD uses "/nn")
+
+  * tun.c: implement IPv6 ifconfig for OpenBSD
+
+  * tun.c: destroy tunX interface at tun_close() on OpenBSD (cleanup)
+
+  * TEST SUCCESS: OpenBSD 4.7: client-tun/net30, v4+v6

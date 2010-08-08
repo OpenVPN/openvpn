@@ -1407,17 +1407,23 @@ add_route_ipv6 (struct route_ipv6 *r6, const struct tuntap *tt, unsigned int fla
   argv_msg (D_ROUTE, &argv);
   status = openvpn_execve_check (&argv, es, 0, "ERROR: MacOS X route add -inet6 command failed");
 
-#elif defined(TARGET_OPENBSD) || defined(TARGET_NETBSD)
+#elif defined(TARGET_OPENBSD)
 
-  /* GERT-TODO: this needs real-world testing on OpenBSD, but it should work
-   */
+  argv_printf (&argv, "%s add -inet6 %s -prefixlen %d %s",
+		ROUTE_PATH,
+	        network, r6->netbits, gateway );
+
+  argv_msg (D_ROUTE, &argv);
+  status = openvpn_execve_check (&argv, es, 0, "ERROR: OpenBSD route add -inet6 command failed");
+
+#elif defined(TARGET_NETBSD)
 
   argv_printf (&argv, "%s add -inet6 %s/%d %s",
 		ROUTE_PATH,
 	        network, r6->netbits, gateway );
 
   argv_msg (D_ROUTE, &argv);
-  status = openvpn_execve_check (&argv, es, 0, "ERROR: NetBSD/OpenBSD route add -inet6 command failed");
+  status = openvpn_execve_check (&argv, es, 0, "ERROR: NetBSD route add -inet6 command failed");
 
 #else
   msg (M_FATAL, "Sorry, but I don't know how to do 'route ipv6' commands on this operating system.  Try putting your routes in a --route-up script");
@@ -1677,17 +1683,23 @@ delete_route_ipv6 (const struct route_ipv6 *r6, const struct tuntap *tt, unsigne
   argv_msg (D_ROUTE, &argv);
   openvpn_execve_check (&argv, es, 0, "ERROR: *BSD route delete -inet6 command failed");
 
-#elif defined(TARGET_OPENBSD) || defined(TARGET_NETBSD)
+#elif defined(TARGET_OPENBSD)
 
-  /* GERT-TODO: this needs real-world testing on OpenBSD, but it should work
-   */
+  argv_printf (&argv, "%s delete -inet6 %s -prefixlen %d %s",
+		ROUTE_PATH,
+	        network, r6->netbits, gateway );
+
+  argv_msg (D_ROUTE, &argv);
+  openvpn_execve_check (&argv, es, 0, "ERROR: OpenBSD route delete -inet6 command failed");
+
+#elif defined(TARGET_NETBSD)
 
   argv_printf (&argv, "%s delete -inet6 %s/%d %s",
 		ROUTE_PATH,
 	        network, r6->netbits, gateway );
 
   argv_msg (D_ROUTE, &argv);
-  openvpn_execve_check (&argv, es, 0, "ERROR: NetBSD/OpenBSD route delete -inet6 command failed");
+  openvpn_execve_check (&argv, es, 0, "ERROR: NetBSD route delete -inet6 command failed");
 
 #else
   msg (M_FATAL, "Sorry, but I don't know how to do 'route ipv6' commands on this operating system.  Try putting your routes in a --route-down script");
