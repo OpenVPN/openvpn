@@ -266,6 +266,13 @@ AC_ARG_WITH(route-path,
 )
 AC_DEFINE_UNQUOTED(ROUTE_PATH, "$ROUTE", [Path to route tool])
 
+AC_ARG_WITH(netstat-path,
+   [  --with-netstat-path=PATH  Path to netstat tool],
+   [NETSTAT="$withval"],
+   [AC_PATH_PROG([NETSTAT], [netstat], [netstat], [$PATH:/usr/local/sbin:/usr/sbin:/sbin:/etc])]
+)
+AC_DEFINE_UNQUOTED(NETSTAT_PATH, "$NETSTAT", [Path to netstat tool])
+
 AC_ARG_WITH(mem-check,
    [  --with-mem-check=TYPE  Build with debug memory checking, TYPE = dmalloc or valgrind],
    [MEMCHECK="$withval"]
@@ -913,6 +920,7 @@ if test -z "${htmldir}"; then
 fi
 # end workaround
 
+AC_CONFIG_FILES([t_client.sh], [chmod +x t_client.sh])
 AC_OUTPUT([
 	Makefile
 	openvpn.spec

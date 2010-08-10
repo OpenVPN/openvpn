@@ -1,4 +1,4 @@
-#!/bin/sh
+#!@SHELL@
 #
 # run OpenVPN client against ``test reference'' server
 # - check that ping, http, ... via tunnel works
@@ -79,13 +79,13 @@ fail()
 # this is higly system dependent...
 get_ifconfig_route()
 {
-    # linux / iproute2?
-    if [ -x /sbin/ip -o -x /usr/sbin/ip ]
+    # linux / iproute2? (-> if configure got a path)
+    if [ "@IPROUTE@" != "ip" ]
     then
 	echo "-- linux iproute2 --"
-	ip addr show     | grep -v valid_lft
-	ip route show
-	ip -6 route show | sed -e 's/expires [0-9]*sec //'
+	@IPROUTE@ addr show     | grep -v valid_lft
+	@IPROUTE@ route show
+	@IPROUTE@ -6 route show | sed -e 's/expires [0-9]*sec //'
 	return
     fi
 
@@ -93,27 +93,27 @@ get_ifconfig_route()
     case `uname -s` in
 	Linux)
 	   echo "-- linux / ifconfig --"
-	   LANG=C ifconfig -a |egrep  "( addr:|encap:)"
-	   LANG=C netstat -rn -4 -6
+	   LANG=C @IFCONFIG@ -a |egrep  "( addr:|encap:)"
+	   LANG=C @NETSTAT@ -rn -4 -6
 	   return
 	   ;;
 	FreeBSD|NetBSD|Darwin)
 	   echo "-- FreeBSD/NetBSD/Darwin [MacOS X] --"
-	   ifconfig -a | egrep "(flags=|inet)"
-	   netstat -rn | awk '$3 !~ /^UHL/ { print $1,$2,$3,$NF }'
+	   @IFCONFIG@ -a | egrep "(flags=|inet)"
+	   @NETSTAT@ -rn | awk '$3 !~ /^UHL/ { print $1,$2,$3,$NF }'
 	   return
 	   ;;
 	OpenBSD)
 	   echo "-- OpenBSD --"
-	   ifconfig -a | egrep "(flags=|inet)" | \
+	   @IFCONFIG@ -a | egrep "(flags=|inet)" | \
 		sed -e 's/pltime [0-9]*//' -e 's/vltime [0-9]*//'
-	   netstat -rn | awk '$3 !~ /^UHL/ { print $1,$2,$3,$NF }'
+	   @NETSTAT@ -rn | awk '$3 !~ /^UHL/ { print $1,$2,$3,$NF }'
 	   return
 	   ;;
 	SunOS)
 	   echo "-- Solaris --"
-	   ifconfig -a | egrep "(flags=|inet)"
-	   netstat -rn
+	   @IFCONFIG@ -a | egrep "(flags=|inet)"
+	   @NETSTAT@ -rn | awk '$3 !~ /^UHL/ { print $1,$2,$3,$6 }'
 	   return
 	   ;;
     esac
