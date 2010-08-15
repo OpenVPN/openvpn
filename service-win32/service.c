@@ -370,11 +370,13 @@ int CmdInstallService()
 
    int ret = 0;
 
-   if ( GetModuleFileName( NULL, szPath, 512 ) == 0 )
+   if ( GetModuleFileName( NULL, szPath+1, 510 ) == 0 )
    {
       _tprintf(TEXT("Unable to install %s - %s\n"), TEXT(SZSERVICEDISPLAYNAME), GetLastErrorText(szErr, 256));
       return 1;
    }
+   szPath[0] = '\"';
+   strcat(szPath, "\"");
 
    schSCManager = OpenSCManager(
                                NULL,                   // machine (NULL == local)
