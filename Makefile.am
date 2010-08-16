@@ -49,7 +49,8 @@ EXTRA_DIST = \
 	tap-win32 \
 	contrib \
 	debug \
-	plugin
+	plugin \
+	win
 
 SUBDIRS = \
 	images \

@@ -4301,6 +4301,13 @@ or common name equal to
 The remote host must also pass all other tests
 of verification.
 
+.B NOTE:
+Because tls-remote may test against a common name prefix,
+only use this option when you are using OpenVPN with a custom CA
+certificate that is under your control.
+Never use this option when your client certificates are signed by
+a third party, such as a commercial web CA.
+
 Name can also be a common name prefix, for example if you
 want a client to only accept connections to "Server-1",
 "Server-2", etc., you can simply use
