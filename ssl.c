@@ -1039,10 +1039,10 @@ verify_callback (int preverify_ok, X509_STORE_CTX * ctx)
 	goto end;
       }
 
-      n = sk_num(X509_CRL_get_REVOKED(crl));
+      n = sk_X509_REVOKED_num(X509_CRL_get_REVOKED(crl));
 
       for (i = 0; i < n; i++) {
-	revoked = (X509_REVOKED *)sk_value(X509_CRL_get_REVOKED(crl), i);
+	revoked = (X509_REVOKED *)sk_X509_REVOKED_value(X509_CRL_get_REVOKED(crl), i);
 	if (ASN1_INTEGER_cmp(revoked->serialNumber, X509_get_serialNumber(ctx->current_cert)) == 0) {
 	  msg (D_HANDSHAKE, "CRL CHECK FAILED: %s is REVOKED",subject);
 	  goto end;
@@ -1661,7 +1661,7 @@ init_ssl (const struct options *options)
       /* Set Certificate Verification chain */
       if (!options->ca_file)
         {
-          if (ca && sk_num(ca))
+          if (ca && sk_X509_num(ca))
             {
               for (i = 0; i < sk_X509_num(ca); i++)
                 {
