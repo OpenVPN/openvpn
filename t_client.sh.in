@@ -36,12 +36,12 @@ fi
 
 if [ -z "$CA_CERT" ] ; then
     echo "CA_CERT not defined in 't_client.rc'. SKIP test." >&2
-    exit 0
+    exit 77
 fi
 
 if [ -z "$TEST_RUN_LIST" ] ; then
     echo "TEST_RUN_LIST empty, no tests defined.  SKIP test." >&2
-    exit 0
+    exit 77
 fi
 
 # make sure we have permissions to run ifconfig/route from OpenVPN
@@ -51,7 +51,7 @@ if expr "$ID" : "uid=0" >/dev/null
 then :
 else
     echo "$0: this test must run be as root. SKIP." >&2
-    exit 0
+    exit 77
 fi
 
 LOGDIR=t_client-`hostname`-`date +%Y%m%d-%H%M%S`
