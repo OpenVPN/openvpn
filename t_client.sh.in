@@ -12,6 +12,16 @@
 # - for "ping6" checks: fping6 binary in $PATH
 #
 
+if [ -r ./t_client.rc ] ; then
+    . ./t_client.rc
+elif [ -r "${srcdir}"/t_client.rc ] ; then
+    . "${srcdir}"/t_client.rc
+else
+    echo "$0: cannot find 't_client.rc' in current directory or" >&2
+    echo "$0: source dir ('${srcdir}').  SKIPPING TEST." >&2
+    exit 77
+fi
+
 if [ ! -x ./openvpn ]
 then
     echo "no (executable) openvpn binary in current directory. FAIL." >&2
@@ -21,16 +31,6 @@ fi
 if [ ! -w . ]
 then
     echo "current directory is not writable (required for logging). FAIL." >&2
-    exit 1
-fi
-
-if [ -r ./t_client.rc ] ; then
-    . ./t_client.rc
-elif [ -r "${srcdir}"/t_client.rc ] ; then
-    . "${srcdir}"/t_client.rc
-else
-    echo "cannot find 't_client.rc' in current directory or" >&2
-    echo "source dir ('${srcdir}').  FAIL." >&2
     exit 1
 fi
 
