@@ -47,6 +47,9 @@
 !define DDK_PATH "c:/winddk/7600.16385.1"
 ;!define DDK_PATH "c:/winddk/6001.18002"
 
+# output path for tap_span.py
+!define TAP_DIST "tap_dist"
+
 # Visual studio path
 !define MSVC "C:/Program Files/Microsoft Visual Studio 9.0"
 

@@ -2,9 +2,13 @@ import os
 from wb import system, home_fn, choose_arch
 
 def build_ddk(config, dir, x64):
-    setenv_bat = os.path.realpath(os.path.join(config['DDK_PATH'], 'bin/setenv.bat'))
+    ddk_path = config['DDK_PATH']
     ddk_major = int(config['DDKVER_MAJOR'])
     debug = 'PRODUCT_TAP_DEBUG' in config
+    return build_tap(ddk_path, ddk_major, debug, dir, x64)
+
+def build_tap(ddk_path, ddk_major, debug, dir, x64):
+    setenv_bat = os.path.realpath(os.path.join(ddk_path, 'bin/setenv.bat'))
     target = 'chk' if debug else 'fre'
     if x64:
         target += ' x64'
@@ -23,7 +27,7 @@ def build_ddk(config, dir, x64):
 
     system('cmd /c "%s %s %s && cd %s && build -cef"' % (
            setenv_bat,
-           os.path.realpath(config['DDK_PATH']),
+           os.path.realpath(ddk_path),
            target,
            dir
            ))

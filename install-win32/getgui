@@ -10,9 +10,6 @@ GUI="$OPENVPN_GUI_DIR/$OPENVPN_GUI"
 if [ -f "$GUI" ]; then
     mkdir -p $GENOUT/bin &>/dev/null    
     cp $GUI $GENOUT/bin
-    if [ -d "$SIGNTOOL" ]; then
-	TARGET_EXE="$GENOUT/bin/$OPENVPN_GUI" $SIGNTOOL/signexe
-    fi
 fi
 
 if [ -f "$GENOUT/bin/$OPENVPN_GUI" ]; then

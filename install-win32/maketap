@@ -1,101 +1,17 @@
 #!/bin/sh
 
-# Build the x86 and x64 versions of the TAP driver
-# Requires the Windows DDK
+# Get the x86 and x64 versions of the TAP driver
 
 # get version.nsi definitions
 . autodefs/defs.sh
 
-if [ -n "$DDKVER" ] && [ -d "/c/WINDDK/$DDKVER" ] ; then
-
-# common declarations for all DDK build targets
-. install-win32/ddk-common
-
-# configure tap driver sources
-MACRO="perl install-win32/macro.pl autodefs/defs.in"
-IFDEF="perl install-win32/ifdef.pl"
-rm -rf tap-win32/amd64
-mkdir tap-win32/amd64
-$MACRO <tap-win32/SOURCES.in >tap-win32/SOURCES
-$MACRO <tap-win32/i386/OemWin2k.inf.in | $IFDEF >tap-win32/i386/OemWin2k.inf
-$MACRO <tap-win32/i386/OemWin2k.inf.in | $IFDEF -DAMD64 >tap-win32/amd64/OemWin2k.inf
-
-if [ -n "$PRODUCT_TAP_DEBUG" ] ; then
-    w2ktarget="w2k c"
-    amdtarget="chk $x64_tag WNET"
-else
-    w2ktarget="w2k f"
-    amdtarget="fre $x64_tag WNET"
-fi
-
-if [ -z "$DRVBINSRC" ] ; then
-    if [ -n "$TAP_BIN_AMD64" ]; then
-	amdtarget=""
-    fi
-
-    cd tap-win32
-    t=`pwd`
-    cd ..
-
-    for mode in "$w2ktarget" "$amdtarget"; do
-	echo '**********' build TAP $mode
-	cmd //c "C:\\WINDDK\\$DDKVER\\bin\\setenv.bat C:\\WINDDK\\$DDKVER $mode && cd `perl install-win32/dosname.pl $t` && build -cef"
-	mv tap-win32/tapdrvr.cod "tap-win32/tapdrvr-$(echo $mode | tr ' ' '-').cod"
+if [ -d "$TAPBINSRC" ]; then
+    mkdir -p $GENOUT/driver/i386 &>/dev/null
+    mkdir -p $GENOUT/driver/amd64 &>/dev/null
+    for arch in i386 amd64; do
+	s=$TAPBINSRC/$arch
+	cp $s/*.sys $s/*.cat $s/*.inf $GENOUT/driver/$arch
     done
-
-    title openvpn-build &>/dev/null
-
-    if [ -n "$TAP_BIN_AMD64" ]; then
-	mkdir -p $t/amd64
-	cp "$TAP_BIN_AMD64" $t/amd64
-    fi
-
-    # copy driver files into tap-win32/dist
-    cd tap-win32
-    rm -rf dist
-    mkdir dist
-    cd dist
-    mkdir i386
-    mkdir amd64
-    cd i386
-    x86=`pwd`
-    cd ../amd64
-    x64=`pwd`
-    cd ../..
-    cp i386/OemWin2k.inf $x86
-    cp i386/*.sys $x86
-    cp amd64/OemWin2k.inf $x64
-    cp amd64/*.sys $x64
-    out="TAP driver catalog file is undefined";
-    echo "$out" >$x86/$PRODUCT_TAP_ID.cat
-    echo "$out" >$x64/$PRODUCT_TAP_ID.cat
-    cd ..
-fi
-
-# $DRVBINSRC, if defined, points to prebuilt TAP driver and
-# tapinstall.exe.
-mkdir $GENOUT &>/dev/null
-rm -rf $GENOUT/driver
-if [ -z "$DRVBINSRC" ] ; then
-    # Get TAP drivers
-    cp -a tap-win32/dist $GENOUT/driver
-
-    # Sign TAP drivers
-    if [ -d "$SIGNTOOL" ]; then
-	$SIGNTOOL/signtap
-    fi
 else
-    cp -a $DRVBINSRC/driver $GENOUT/driver
-fi
-
-# $DRVBINDEST, if defined, points to a destination directory
-# where TAP driver and tapinstall.exe will be saved, to be used
-# as a $DRVBINSRC in future builds.
-if [ -n "$DRVBINDEST" ] ; then
-    mkdir $DRVBINDEST &>/dev/null
-    cp -a $GENOUT/driver $DRVBINDEST
-fi
-
-else
-    echo Not building TAP driver -- DDK version $DDKVER NOT FOUND
+    echo Cannot find pre-built tap drivers
 fi
