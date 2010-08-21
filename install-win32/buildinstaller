@@ -10,5 +10,5 @@ tail -20 makensis.log
 
 # sign the installer
 if [ -d "$SIGNTOOL" ]; then
-    TARGET_EXE="$(echo $(pwd)/$GENOUT/*.exe)" $SIGNTOOL/signexe
+    python $SIGNTOOL/signapp.py "$(echo $(pwd)/$GENOUT/*.exe)"
 fi

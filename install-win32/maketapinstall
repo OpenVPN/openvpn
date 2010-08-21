@@ -1,77 +1,15 @@
 #!/bin/sh
 
-# Build the x86 and x64 versions of the tapinstall tool
-# Requires the Windows DDK.
-# TISRC should be set to directory containing
-# tapinstall source code.
+# Get the x86 and x64 versions of the tapinstall tool
 
 # get version.nsi definitions
 . autodefs/defs.sh
 
-if [ -n "$DDKVER" ] && [ -d "/c/WINDDK/$DDKVER" ] ; then
-
-if ! [ -d "$TISRC" ] ; then
-    echo "$TISRC" NOT INSTALLED
-    exit 1
-fi
-
-# common declarations for all DDK build targets
-. install-win32/ddk-common
-
-amdtarget=""
-if [ -z "$TI_BIN_AMD64" ]; then
-    amdtarget="fre $x64_tag WNET"
-fi
-
-if [ -z "$DRVBINSRC" ] ; then
-    rm -rf tapinstall
-    cp -a "$TISRC" tapinstall
-
-    if [ -e tapinstall/sources.in ]; then
-	perl install-win32/ifdef.pl autodefs/defs.in <tapinstall/sources.in >tapinstall/sources
-    fi
-
-    cd tapinstall
-    t=`pwd`
-    cd ..
-
-    for mode in "w2k f" "$amdtarget"; do
-	if [ -n "$mode" ]; then
-	    echo '**********' build TAPINSTALL $mode
-	    cmd //c "C:\\WINDDK\\$DDKVER\\bin\\setenv.bat C:\\WINDDK\\$DDKVER $mode && cd `perl install-win32/dosname.pl $t` && build -cef"
-	fi
-    done
-fi
-
-if [ -n "$TI_BIN_AMD64" ]; then
-    mkdir -p $t/objfre_wnet_amd64/amd64
-    cp "$TI_BIN_AMD64" $t/objfre_wnet_amd64/amd64
-fi
-
-# $DRVBINSRC, if defined, points to prebuilt TAP driver and
-# tapinstall.exe.
-if [ -z "$DRVBINSRC" ] ; then
-    # Get tapinstall
+if [ -d "$TAPBINSRC" ]; then
     mkdir -p $GENOUT/tapinstall/i386 &>/dev/null
     mkdir -p $GENOUT/tapinstall/amd64 &>/dev/null
-    cp tapinstall/objfre_w2k_x86/i386/tapinstall.exe $GENOUT/tapinstall/i386
-    cp tapinstall/objfre_wnet_amd64/amd64/tapinstall.exe $GENOUT/tapinstall/amd64
+    cp $TAPBINSRC/i386/tapinstall.exe $GENOUT/tapinstall/i386
+    cp $TAPBINSRC/amd64/tapinstall.exe $GENOUT/tapinstall/amd64
 else
-    mkdir $GENOUT &>/dev/null
-    cp -a $DRVBINSRC/tapinstall $GENOUT/tapinstall
-fi
-
-# $DRVBINDEST, if defined, points to a destination directory
-# where TAP driver and tapinstall.exe will be saved, to be used
-# as a $DRVBINSRC in future builds.
-if [ -n "$DRVBINDEST" ] ; then
-    mkdir $DRVBINDEST &>/dev/null
-    cp -a $GENOUT/driver $DRVBINDEST
-    cp -a $GENOUT/tapinstall $DRVBINDEST
-fi
-
-title openvpn-build &>/dev/null
-
-else
-    echo Not building tapinstall -- DDK version $DDKVER NOT BUILT
+    echo Cannot find pre-built tapinstall
 fi

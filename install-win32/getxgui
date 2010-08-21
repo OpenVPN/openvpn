@@ -19,12 +19,6 @@ if [ -d "$OPENVPN_XGUI_DIR" ]; then
 	done
     fi
 
-    for f in $SIGNED_EXES; do
-	if [ -d "$SIGNTOOL" ]; then
-	    TARGET_EXE="$GENOUT/bin/`basename $f`" $SIGNTOOL/signexe
-	fi
-    done
-
     rm -rf $GENOUT/htdocs
     cp -a $OPENVPN_XGUI_DIR/ajax/htdocs $GENOUT/htdocs
 
