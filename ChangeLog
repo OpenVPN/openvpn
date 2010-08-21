@@ -1,7 +1,30 @@
 OpenVPN Change Log
 Copyright (C) 2002-2010 OpenVPN Technologies, Inc. <sales@openvpn.net>
 
-2010.08.09 -- Version 2.1.2
+2010.08.21 -- Version 2.2-beta3
+
+* Attempt to fix issue where domake-win build system was not properly
+  signing drivers and .exe files.
+
+  Added win/tap_span.py for building multiple versions of the TAP driver
+  and tapinstall binaries using different DDK versions to span from Win2K
+  to Win7 and beyond.
+
+* Community patches
+  David Sommerseth (2):
+      Test framework improvment - Do not FAIL if t_client.rc is missing
+      More t_client.sh updates - exit with SKIP when we want to skip
+
+  Gert Doering (4):
+      Fix compile problems on NetBSD and OpenBSD
+      Fix <net/if.h> compile time problems on OpenBSD for good
+      full "VPN client connect" test framework for OpenVPN
+      Build t_client.sh by configure at run-time.
+
+  chantra (1):
+      Fixes openssl-1.0.0 compilation warning
+
+2010.08.16 -- Version 2.2-beta2
 
 * Windows security issue:
   Fixed potential local privilege escalation vulnerability in
