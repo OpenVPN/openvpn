@@ -633,7 +633,6 @@ multi_create_instance (struct multi_context *m, const struct mroute_addr *real)
 
   ALLOC_OBJ_CLEAR (mi, struct multi_instance);
 
-  mutex_init (&mi->mutex);
   mi->gc = gc_new ();
   multi_instance_inc_refcount (mi);
   mi->vaddr_handle = -1;

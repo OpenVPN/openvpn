@@ -52,7 +52,6 @@ hash_init (const int n_buckets,
     {
       struct hash_bucket *b = &h->buckets[i];
       b->list = NULL;
-      mutex_init (&b->mutex);
     }
   return h;
 }
@@ -66,7 +65,6 @@ hash_free (struct hash *hash)
       struct hash_bucket *b = &hash->buckets[i];
       struct hash_element *he = b->list;
 
-      mutex_destroy (&b->mutex);
       while (he)
 	{
 	  struct hash_element *next = he->next;
@@ -148,7 +146,6 @@ hash_add (struct hash *hash, const void *key, void *value, bool replace)
 
   hv = hash_value (hash, key);
   bucket = &hash->buckets[hv & hash->mask];
-  mutex_lock (&bucket->mutex);
 
   if ((he = hash_lookup_fast (hash, bucket, key, hv))) /* already exists? */
     {
@@ -163,8 +160,6 @@ hash_add (struct hash *hash, const void *key, void *value, bool replace)
       hash_add_fast (hash, bucket, key, hv, value);
       ret = true;
     }
-
-  mutex_unlock (&bucket->mutex);
 
   return ret;
 }
@@ -257,10 +252,6 @@ hash_iterator_init (struct hash *hash,
 static inline void
 hash_iterator_lock (struct hash_iterator *hi, struct hash_bucket *b)
 {
-  if (hi->autolock)
-    {
-      mutex_lock (&b->mutex);
-    }
   hi->bucket = b;
   hi->last = NULL;
   hi->bucket_marked = false;
@@ -275,10 +266,6 @@ hash_iterator_unlock (struct hash_iterator *hi)
 	{
 	  hash_remove_marked (hi->hash, hi->bucket);
 	  hi->bucket_marked = false;
-	}
-      if (hi->autolock)
-	{
-	  mutex_unlock (&hi->bucket->mutex);
 	}
       hi->bucket = NULL;
       hi->last = NULL;

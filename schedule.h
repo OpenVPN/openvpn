@@ -42,7 +42,6 @@
 /*#define SCHEDULE_TEST*/
 
 #include "otime.h"
-#include "thread.h"
 #include "error.h"
 
 struct schedule_entry
@@ -56,7 +55,6 @@ struct schedule_entry
 
 struct schedule
 {
-  MUTEX_DEFINE (mutex);
   struct schedule_entry *earliest_wakeup; /* cached earliest wakeup */
   struct schedule_entry *root;            /* the root of the treap (btree) */
 };
@@ -100,14 +98,12 @@ schedule_add_entry (struct schedule *s,
 		    const struct timeval *tv,
 		    unsigned int sigma)
 {
-  mutex_lock (&s->mutex);
   if (!IN_TREE (e) || !sigma || !tv_within_sigma (tv, &e->tv, sigma))
     {
       e->tv = *tv;
       schedule_add_modify (s, e);
       s->earliest_wakeup = NULL; /* invalidate cache */
     }
-  mutex_unlock (&s->mutex);
 }
 
 /*
@@ -122,16 +118,12 @@ schedule_get_earliest_wakeup (struct schedule *s,
 {
   struct schedule_entry *ret;
 
-  mutex_lock (&s->mutex);
-
   /* cache result */
   if (!s->earliest_wakeup)
     s->earliest_wakeup = schedule_find_least (s->root);
   ret = s->earliest_wakeup;
   if (ret)
     *wakeup = ret->tv;
-
-  mutex_unlock (&s->mutex);
 
   return ret;
 }

@@ -38,7 +38,6 @@ mbuf_init (unsigned int size)
 {
   struct mbuf_set *ret;
   ALLOC_OBJ_CLEAR (ret, struct mbuf_set);
-  mutex_init (&ret->mutex);
   ret->capacity = adjust_power_of_2 (size);
   ALLOC_ARRAY (ret->array, struct mbuf_item, ret->capacity);
   return ret;
@@ -56,7 +55,6 @@ mbuf_free (struct mbuf_set *ms)
 	  mbuf_free_buf (item->buffer);
 	}
       free (ms->array);
-      mutex_destroy (&ms->mutex);
       free (ms);
     }
 }
@@ -89,7 +87,6 @@ void
 mbuf_add_item (struct mbuf_set *ms, const struct mbuf_item *item)
 {
   ASSERT (ms);
-  mutex_lock (&ms->mutex);
   if (ms->len == ms->capacity)
     {
       struct mbuf_item rm;
@@ -104,7 +101,6 @@ mbuf_add_item (struct mbuf_set *ms, const struct mbuf_item *item)
   if (++ms->len > ms->max_queued)
     ms->max_queued = ms->len;
   ++item->buffer->refcount;
-  mutex_unlock (&ms->mutex);
 }
 
 bool
@@ -113,8 +109,6 @@ mbuf_extract_item (struct mbuf_set *ms, struct mbuf_item *item, const bool lock)
   bool ret = false;
   if (ms)
     {
-      if (lock)
-	mutex_lock (&ms->mutex);
       while (ms->len)
 	{
 	  *item = ms->array[ms->head];
@@ -126,8 +120,6 @@ mbuf_extract_item (struct mbuf_set *ms, struct mbuf_item *item, const bool lock)
 	      break;
 	    }
 	}
-      if (lock)
-	mutex_unlock (&ms->mutex);
     }
   return ret;
 }
@@ -139,7 +131,6 @@ mbuf_peek_dowork (struct mbuf_set *ms)
   if (ms)
     {
       int i;
-      mutex_lock (&ms->mutex);
       for (i = 0; i < (int) ms->len; ++i)
 	{
 	  struct mbuf_item *item = &ms->array[MBUF_INDEX(ms->head, i, ms->capacity)];
@@ -149,7 +140,6 @@ mbuf_peek_dowork (struct mbuf_set *ms)
 	      break;
 	    }
 	}
-      mutex_unlock (&ms->mutex);
     }
   return ret;
 }
@@ -160,7 +150,6 @@ mbuf_dereference_instance (struct mbuf_set *ms, struct multi_instance *mi)
   if (ms)
     {
       int i;
-      mutex_lock (&ms->mutex);
       for (i = 0; i < (int) ms->len; ++i)
 	{
 	  struct mbuf_item *item = &ms->array[MBUF_INDEX(ms->head, i, ms->capacity)];
@@ -172,7 +161,6 @@ mbuf_dereference_instance (struct mbuf_set *ms, struct multi_instance *mi)
 	      msg (D_MBUF, "MBUF: dereferenced queued packet");
 	    }
 	}
-      mutex_unlock (&ms->mutex);
     }
 }
 

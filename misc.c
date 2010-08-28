@@ -28,7 +28,6 @@
 #include "misc.h"
 #include "tun.h"
 #include "error.h"
-#include "thread.h"
 #include "otime.h"
 #include "plugin.h"
 #include "options.h"
@@ -639,9 +638,7 @@ strerror_ts (int errnum, struct gc_arena *gc)
 #ifdef HAVE_STRERROR
   struct buffer out = alloc_buf_gc (256, gc);
 
-  mutex_lock_static (L_STRERR);
   buf_printf (&out, "%s", openvpn_strerror (errnum, gc));
-  mutex_unlock_static (L_STRERR);
   return BSTR (&out);
 #else
   return "[error string unavailable]";
@@ -779,18 +776,15 @@ struct env_set *
 env_set_create (struct gc_arena *gc)
 {
   struct env_set *es;
-  mutex_lock_static (L_ENV_SET);
   ALLOC_OBJ_CLEAR_GC (es, struct env_set, gc);
   es->list = NULL;
   es->gc = gc;
-  mutex_unlock_static (L_ENV_SET);
   return es;
 }
 
 void
 env_set_destroy (struct env_set *es)
 {
-  mutex_lock_static (L_ENV_SET);
   if (es && es->gc == NULL)
     {
       struct env_item *e = es->list;
@@ -803,7 +797,6 @@ env_set_destroy (struct env_set *es)
 	}
       free (es);
     }
-  mutex_unlock_static (L_ENV_SET);
 }
 
 bool
@@ -812,9 +805,7 @@ env_set_del (struct env_set *es, const char *str)
   bool ret;
   ASSERT (es);
   ASSERT (str);
-  mutex_lock_static (L_ENV_SET);
   ret = env_set_del_nolock (es, str);
-  mutex_unlock_static (L_ENV_SET);
   return ret;
 }
 
@@ -823,9 +814,7 @@ env_set_add (struct env_set *es, const char *str)
 {
   ASSERT (es);
   ASSERT (str);
-  mutex_lock_static (L_ENV_SET);
   env_set_add_nolock (es, str);
-  mutex_unlock_static (L_ENV_SET);
 }
 
 void
@@ -838,7 +827,6 @@ env_set_print (int msglevel, const struct env_set *es)
 
       if (es)
 	{
-	  mutex_lock_static (L_ENV_SET);
 	  e = es->list;
 	  i = 0;
 
@@ -849,7 +837,6 @@ env_set_print (int msglevel, const struct env_set *es)
 	      ++i;
 	      e = e->next;
 	    }
-	  mutex_unlock_static (L_ENV_SET);
 	}
     }
 }
@@ -863,14 +850,12 @@ env_set_inherit (struct env_set *es, const struct env_set *src)
 
   if (src)
     {
-      mutex_lock_static (L_ENV_SET);
       e = src->list;
       while (e)
 	{
 	  env_set_add_nolock (es, e->string);
 	  e = e->next;
 	}
-      mutex_unlock_static (L_ENV_SET);
     }
 }
 
@@ -882,7 +867,6 @@ env_set_add_to_environment (const struct env_set *es)
       struct gc_arena gc = gc_new ();
       const struct env_item *e;
 
-      mutex_lock_static (L_ENV_SET);
       e = es->list;
 
       while (e)
@@ -895,7 +879,6 @@ env_set_add_to_environment (const struct env_set *es)
 
 	  e = e->next;
 	}
-      mutex_unlock_static (L_ENV_SET);
       gc_free (&gc);
     }
 }
@@ -908,7 +891,6 @@ env_set_remove_from_environment (const struct env_set *es)
       struct gc_arena gc = gc_new ();
       const struct env_item *e;
 
-      mutex_lock_static (L_ENV_SET);
       e = es->list;
 
       while (e)
@@ -921,7 +903,6 @@ env_set_remove_from_environment (const struct env_set *es)
 
 	  e = e->next;
 	}
-      mutex_unlock_static (L_ENV_SET);
       gc_free (&gc);
     }
 }
@@ -1040,12 +1021,10 @@ setenv_str_ex (struct env_set *es,
 	char *str = construct_name_value (name_tmp, val_tmp, NULL);
 	int status;
 
-	mutex_lock_static (L_PUTENV);
 	status = putenv (str);
 	/*msg (M_INFO, "PUTENV '%s'", str);*/
 	if (!status)
 	  manage_env (str);
-	mutex_unlock_static (L_PUTENV);
 	if (status)
 	  msg (M_WARN | M_ERRNO, "putenv('%s') failed", str);
       }
@@ -1173,9 +1152,7 @@ create_temp_filename (const char *directory, const char *prefix, struct gc_arena
   static unsigned int counter;
   struct buffer fname = alloc_buf_gc (256, gc);
 
-  mutex_lock_static (L_CREATE_TEMP);
   ++counter;
-  mutex_unlock_static (L_CREATE_TEMP);
 
   {
     uint8_t rndbytes[16];

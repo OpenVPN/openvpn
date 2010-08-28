@@ -40,7 +40,6 @@
 /*#define LIST_TEST*/
 
 #include "basic.h"
-#include "thread.h"
 #include "buffer.h"
 
 #define hashsize(n) ((uint32_t)1<<(n))
@@ -56,7 +55,6 @@ struct hash_element
 
 struct hash_bucket
 {
-  MUTEX_DEFINE (mutex);
   struct hash_element *list;
 };
 
@@ -152,13 +150,11 @@ hash_bucket (struct hash *hash, uint32_t hv)
 static inline void
 hash_bucket_lock (struct hash_bucket *bucket)
 {
-  mutex_lock (&bucket->mutex);
 }
 
 static inline void
 hash_bucket_unlock (struct hash_bucket *bucket)
 {
-  mutex_unlock (&bucket->mutex);
 }
 
 static inline void *
@@ -168,11 +164,9 @@ hash_lookup_lock (struct hash *hash, const void *key, uint32_t hv)
   struct hash_element *he;
   struct hash_bucket *bucket = &hash->buckets[hv & hash->mask];
 
-  mutex_lock (&bucket->mutex);
   he = hash_lookup_fast (hash, bucket, key, hv);
   if (he)
     ret = he->value;
-  mutex_unlock (&bucket->mutex);
 
   return ret;
 }
@@ -211,9 +205,7 @@ hash_remove (struct hash *hash, const void *key)
 
   hv = hash_value (hash, key);
   bucket = &hash->buckets[hv & hash->mask];
-  mutex_lock (&bucket->mutex);
   ret = hash_remove_fast (hash, bucket, key, hv);
-  mutex_unlock (&bucket->mutex);
   return ret;
 }
 

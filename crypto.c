@@ -29,7 +29,6 @@
 #include "crypto.h"
 #include "error.h"
 #include "misc.h"
-#include "thread.h"
 
 #include "memdbg.h"
 
@@ -1702,7 +1701,6 @@ prng_bytes (uint8_t *output, int len)
     {
       EVP_MD_CTX ctx;
       const int md_size = EVP_MD_size (nonce_md);
-      mutex_lock_static (L_PRNG);
       while (len > 0)
 	{
 	  unsigned int outlen = 0;
@@ -1716,7 +1714,6 @@ prng_bytes (uint8_t *output, int len)
 	  output += blen;
 	  len -= blen;
 	}
-      mutex_unlock_static (L_PRNG);
     }
   else
     RAND_bytes (output, len);

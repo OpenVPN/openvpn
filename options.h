@@ -328,11 +328,6 @@ struct options
   struct plugin_option_list *plugin_list;
 #endif
 
-#ifdef USE_PTHREAD
-  int n_threads;
-  int nice_work;
-#endif
-
 #if P2MP
 
 #if P2MP_SERVER

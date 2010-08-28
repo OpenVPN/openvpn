@@ -42,7 +42,6 @@
 #include "reliable.h"
 #include "socket.h"
 #include "mtu.h"
-#include "thread.h"
 #include "options.h"
 #include "plugin.h"
 

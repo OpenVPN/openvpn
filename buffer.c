@@ -28,7 +28,6 @@
 #include "buffer.h"
 #include "error.h"
 #include "mtu.h"
-#include "thread.h"
 
 #include "memdbg.h"
 

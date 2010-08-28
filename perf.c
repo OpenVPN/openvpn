@@ -33,10 +33,6 @@
 
 #include "memdbg.h"
 
-#ifdef USE_PTHREAD
-#error ENABLE_PERFORMANCE_METRICS is incompatible with USE_PTHREAD
-#endif
-
 static const char *metric_names[] = {
   "PERF_BIO_READ_PLAINTEXT",
   "PERF_BIO_WRITE_PLAINTEXT",

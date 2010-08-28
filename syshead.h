@@ -538,24 +538,6 @@ socket_defined (const socket_descriptor_t sd)
 #endif
 
 /*
- * Do we have pthread capability?
- */
-#ifdef USE_PTHREAD
-#if defined(USE_CRYPTO) && defined(USE_SSL) && P2MP
-#include <pthread.h>
-#else
-#undef USE_PTHREAD
-#endif
-#endif
-
-/*
- * Pthread support is currently experimental (and quite unfinished).
- */
-#if 1 /* JYFIXME -- if defined, disable pthread */
-#undef USE_PTHREAD
-#endif
-
-/*
  * Should we include OCC (options consistency check) code?
  */
 #ifndef ENABLE_SMALL

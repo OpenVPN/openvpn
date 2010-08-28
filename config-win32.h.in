@@ -298,11 +298,6 @@ typedef unsigned long in_addr_t;
 /* Route command */
 #define ROUTE_PATH "route"
 
-/* Windows doesn't support PTHREAD yet */
-#ifdef USE_PTHREAD
-#error The Windows version of OpenVPN does not support PTHREAD yet
-#endif
-
 #ifdef _MSC_VER
 /* MSVC++ hacks */
 #include <io.h>

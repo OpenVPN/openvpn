@@ -506,8 +506,6 @@ init_static (void)
 void
 uninit_static (void)
 {
-  openvpn_thread_cleanup ();
-
 #ifdef USE_CRYPTO
   free_ssl_lib ();
 #endif
@@ -3280,23 +3278,6 @@ close_context (struct context *c, int sig, unsigned int flags)
 
 #ifdef USE_CRYPTO
 
-static void
-test_malloc (void)
-{
-  int i, j;
-  msg (M_INFO, "Multithreaded malloc test...");
-  for (i = 0; i < 25; ++i)
-    {
-      struct gc_arena gc = gc_new ();
-      const int limit = get_random () & 0x03FF;
-      for (j = 0; j < limit; ++j)
-	{
-	  gc_malloc (get_random () & 0x03FF, false, &gc);
-	}
-      gc_free (&gc);
-    }
-}
-
 /*
  * Do a loopback test
  * on the crypto subsystem.
@@ -3306,50 +3287,19 @@ test_crypto_thread (void *arg)
 {
   struct context *c = (struct context *) arg;
   const struct options *options = &c->options;
-#if defined(USE_PTHREAD)
-  struct context *child = NULL;
-  openvpn_thread_t child_id = 0;
-#endif
 
   ASSERT (options->test_crypto);
   init_verb_mute (c, IVM_LEVEL_1);
   context_init_1 (c);
   do_init_crypto_static (c, 0);
 
-#if defined(USE_PTHREAD)
-  {
-    if (c->first_time && options->n_threads > 1)
-      {
-	if (options->n_threads > 2)
-	  msg (M_FATAL, "ERROR: --test-crypto option only works with --threads set to 1 or 2");
-	openvpn_thread_init ();
-	ALLOC_OBJ (child, struct context);
-	context_clear (child);
-	child->options = *options;
-	options_detach (&child->options);
-	child->first_time = false;
-	child_id = openvpn_thread_create (test_crypto_thread, (void *) child);
-      }
-  }
-#endif
   frame_finalize_options (c, options);
-
-#if defined(USE_PTHREAD)
-  if (options->n_threads == 2)
-    test_malloc ();
-#endif
 
   test_crypto (&c->c2.crypto_options, &c->c2.frame);
 
   key_schedule_free (&c->c1.ks, true);
   packet_id_free (&c->c2.packet_id);
 
-#if defined(USE_PTHREAD)
-  if (c->first_time && options->n_threads > 1)
-    openvpn_thread_join (child_id);
-  if (child)
-    free (child);
-#endif
   context_gc_free (c);
   return NULL;
 }
