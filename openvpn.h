@@ -460,9 +460,6 @@ struct context
   /* true on initial VPN iteration */
   bool first_time;
 
-  /* used by multi-client code to lock the context */
-  /*MUTEX_DEFINE (mutex);*/
-
   /* context modes */
 # define CM_P2P            0 /* standalone point-to-point session or client */
 # define CM_TOP            1 /* top level of a multi-client or point-to-multipoint server */

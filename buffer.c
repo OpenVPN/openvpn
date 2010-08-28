@@ -298,10 +298,8 @@ gc_malloc (size_t size, bool clear, struct gc_arena *a)
 #endif
       check_malloc_return (e);
       ret = (char *) e + sizeof (struct gc_entry);
-      /*mutex_lock_static (L_GC_MALLOC);*/
       e->next = a->list;
       a->list = e;
-      /*mutex_unlock_static (L_GC_MALLOC);*/
     }
   else
     {
@@ -323,10 +321,8 @@ void
 x_gc_free (struct gc_arena *a)
 {
   struct gc_entry *e;
-  /*mutex_lock_static (L_GC_MALLOC);*/
   e = a->list;
   a->list = NULL;
-  /*mutex_unlock_static (L_GC_MALLOC);*/
   
   while (e != NULL)
     {

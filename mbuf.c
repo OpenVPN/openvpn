@@ -90,7 +90,7 @@ mbuf_add_item (struct mbuf_set *ms, const struct mbuf_item *item)
   if (ms->len == ms->capacity)
     {
       struct mbuf_item rm;
-      ASSERT (mbuf_extract_item (ms, &rm, false));
+      ASSERT (mbuf_extract_item (ms, &rm));
       mbuf_free_buf (rm.buffer);
       msg (D_MULTI_DROPPED, "MBUF: mbuf packet dropped");
     }
@@ -104,7 +104,7 @@ mbuf_add_item (struct mbuf_set *ms, const struct mbuf_item *item)
 }
 
 bool
-mbuf_extract_item (struct mbuf_set *ms, struct mbuf_item *item, const bool lock)
+mbuf_extract_item (struct mbuf_set *ms, struct mbuf_item *item)
 {
   bool ret = false;
   if (ms)

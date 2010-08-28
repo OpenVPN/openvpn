@@ -3814,8 +3814,6 @@ tls_process (struct tls_multi *multi,
 	msg (D_TLS_DEBUG_LOW, "TLS: tls_process: killed expiring key");
   }
 
-  /*mutex_cycle (multi->mutex);*/
-
   do
     {
       update_time ();
@@ -4099,7 +4097,6 @@ tls_process (struct tls_multi *multi,
 		}
 	    }
 	}
-      /*mutex_cycle (multi->mutex);*/
     }
   while (state_change);
 
@@ -4253,7 +4250,6 @@ tls_multi_process (struct tls_multi *multi,
 		reset_session (multi, session);
 	    }
 	}
-      /*mutex_cycle (multi->mutex);*/
     }
 
   update_time ();

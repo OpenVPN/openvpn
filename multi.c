@@ -1000,8 +1000,6 @@ multi_get_instance_by_virtual_addr (struct multi_context *m,
       struct mroute_addr tryaddr;
       int i;
 
-      mroute_helper_lock (rh);
-
       /* cycle through each CIDR length */
       for (i = 0; i < rh->n_net_len; ++i)
 	{
@@ -1022,8 +1020,6 @@ multi_get_instance_by_virtual_addr (struct multi_context *m,
 	      break;
 	    }
 	}
-      
-      mroute_helper_unlock (rh);
     }
   
 #ifdef ENABLE_DEBUG
@@ -2240,7 +2236,7 @@ multi_get_queue (struct mbuf_set *ms)
 {
   struct mbuf_item item;
 
-  if (mbuf_extract_item (ms, &item, true)) /* cleartext IP packet */
+  if (mbuf_extract_item (ms, &item)) /* cleartext IP packet */
     {
       unsigned int pipv4_flags = PIPV4_PASSTOS;
 

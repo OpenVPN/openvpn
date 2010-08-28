@@ -264,7 +264,7 @@ multi_tcp_process_outgoing_link_ready (struct multi_context *m, struct multi_ins
   ASSERT (mi);
 
   /* extract from queue */
-  if (mbuf_extract_item (mi->tcp_link_out_deferred, &item, true)) /* ciphertext IP packet */
+  if (mbuf_extract_item (mi->tcp_link_out_deferred, &item)) /* ciphertext IP packet */
     {
       dmsg (D_MULTI_TCP, "MULTI TCP: transmitting previously deferred packet");
 

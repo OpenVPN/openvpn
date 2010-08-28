@@ -454,7 +454,6 @@ encrypt_sign (struct context *c, bool comp_frag)
    */
   if (c->c2.tls_multi)
     {
-      /*tls_mutex_lock (c->c2.tls_multi);*/
       tls_pre_encrypt (c->c2.tls_multi, &c->c2.buf, &c->c2.crypto_options);
     }
 #endif
@@ -482,7 +481,6 @@ encrypt_sign (struct context *c, bool comp_frag)
   if (c->c2.tls_multi)
     {
       tls_post_encrypt (c->c2.tls_multi, &c->c2.buf);
-      /*tls_mutex_unlock (c->c2.tls_multi);*/
     }
 #endif
 #endif
@@ -790,7 +788,6 @@ process_incoming_link (struct context *c)
 	   * will load crypto_options with the correct encryption key
 	   * and return false.
 	   */
-	  /*tls_mutex_lock (c->c2.tls_multi);*/
 	  if (tls_pre_decrypt (c->c2.tls_multi, &c->c2.from, &c->c2.buf, &c->c2.crypto_options))
 	    {
 	      interval_action (&c->c2.tmp_int);
@@ -813,13 +810,6 @@ process_incoming_link (struct context *c)
       /* authenticate and decrypt the incoming packet */
       decrypt_status = openvpn_decrypt (&c->c2.buf, c->c2.buffers->decrypt_buf, &c->c2.crypto_options, &c->c2.frame);
 
-#ifdef USE_SSL
-      if (c->c2.tls_multi)
-	{
-	  /*tls_mutex_unlock (c->c2.tls_multi);*/
-	}
-#endif
-      
       if (!decrypt_status && link_socket_connection_oriented (c->c2.link_socket))
 	{
 	  /* decryption errors are fatal in TCP mode */
