@@ -146,7 +146,7 @@ multi_reap_range (const struct multi_context *m,
     }
 
   dmsg (D_MULTI_DEBUG, "MULTI: REAP range %d -> %d", start_bucket, end_bucket);
-  hash_iterator_init_range (m->vhash, &hi, true, start_bucket, end_bucket);
+  hash_iterator_init_range (m->vhash, &hi, start_bucket, end_bucket);
   while ((he = hash_iterator_next (&hi)) != NULL)
     {
       struct multi_route *r = (struct multi_route *) he->value;
@@ -587,7 +587,7 @@ multi_uninit (struct multi_context *m)
 	  struct hash_iterator hi;
 	  struct hash_element *he;
 
-	  hash_iterator_init (m->iter, &hi, true);
+	  hash_iterator_init (m->iter, &hi);
 	  while ((he = hash_iterator_next (&hi)))
 	    {
 	      struct multi_instance *mi = (struct multi_instance *) he->value;
@@ -723,7 +723,7 @@ multi_print_status (struct multi_context *m, struct status_output *so, const int
 	  status_printf (so, PACKAGE_NAME " CLIENT LIST");
 	  status_printf (so, "Updated,%s", time_string (0, 0, false, &gc_top));
 	  status_printf (so, "Common Name,Real Address,Bytes Received,Bytes Sent,Connected Since");
-	  hash_iterator_init (m->hash, &hi, true);
+	  hash_iterator_init (m->hash, &hi);
 	  while ((he = hash_iterator_next (&hi)))
 	    {
 	      struct gc_arena gc = gc_new ();
@@ -744,7 +744,7 @@ multi_print_status (struct multi_context *m, struct status_output *so, const int
 
 	  status_printf (so, "ROUTING TABLE");
 	  status_printf (so, "Virtual Address,Common Name,Real Address,Last Ref");
-	  hash_iterator_init (m->vhash, &hi, true);
+	  hash_iterator_init (m->vhash, &hi);
 	  while ((he = hash_iterator_next (&hi)))
 	    {
 	      struct gc_arena gc = gc_new ();
@@ -787,7 +787,7 @@ multi_print_status (struct multi_context *m, struct status_output *so, const int
 	  status_printf (so, "TIME%c%s%c%u", sep, time_string (now, 0, false, &gc_top), sep, (unsigned int)now);
 	  status_printf (so, "HEADER%cCLIENT_LIST%cCommon Name%cReal Address%cVirtual Address%cBytes Received%cBytes Sent%cConnected Since%cConnected Since (time_t)",
 			 sep, sep, sep, sep, sep, sep, sep, sep);
-	  hash_iterator_init (m->hash, &hi, true);
+	  hash_iterator_init (m->hash, &hi);
 	  while ((he = hash_iterator_next (&hi)))
 	    {
 	      struct gc_arena gc = gc_new ();
@@ -810,7 +810,7 @@ multi_print_status (struct multi_context *m, struct status_output *so, const int
 
 	  status_printf (so, "HEADER%cROUTING_TABLE%cVirtual Address%cCommon Name%cReal Address%cLast Ref%cLast Ref (time_t)",
 			 sep, sep, sep, sep, sep, sep);
-	  hash_iterator_init (m->vhash, &hi, true);
+	  hash_iterator_init (m->vhash, &hi);
 	  while ((he = hash_iterator_next (&hi)))
 	    {
 	      struct gc_arena gc = gc_new ();
@@ -849,7 +849,7 @@ multi_print_status (struct multi_context *m, struct status_output *so, const int
 #ifdef PACKET_TRUNCATION_CHECK
       {
 	status_printf (so, "HEADER,ERRORS,Common Name,TUN Read Trunc,TUN Write Trunc,Pre-encrypt Trunc,Post-decrypt Trunc");
-	hash_iterator_init (m->hash, &hi, true);
+	hash_iterator_init (m->hash, &hi);
 	while ((he = hash_iterator_next (&hi)))
 	    {
 	      struct gc_arena gc = gc_new ();
@@ -894,8 +894,6 @@ multi_learn_addr (struct multi_context *m,
   struct hash_bucket *bucket = hash_bucket (m->vhash, hv);
   struct multi_route *oldroute = NULL;
   struct multi_instance *owner = NULL;
-
-  hash_bucket_lock (bucket);
 
   /* if route currently exists, get the instance which owns it */
   he = hash_lookup_fast (m->vhash, bucket, addr, hv);
@@ -966,7 +964,6 @@ multi_learn_addr (struct multi_context *m,
       gc_free (&gc);
     }
 
-  hash_bucket_unlock (bucket);
   return owner;
 }
 
@@ -1130,7 +1127,7 @@ multi_delete_dup (struct multi_context *m, struct multi_instance *new_mi)
 	  struct hash_element *he;
 	  int count = 0;
 
-	  hash_iterator_init (m->iter, &hi, true);
+	  hash_iterator_init (m->iter, &hi);
 	  while ((he = hash_iterator_next (&hi)))
 	    {
 	      struct multi_instance *mi = (struct multi_instance *) he->value;
@@ -1768,7 +1765,7 @@ multi_bcast (struct multi_context *m,
       printf ("BCAST len=%d\n", BLEN (buf));
 #endif
       mb = mbuf_alloc_buf (buf);
-      hash_iterator_init (m->iter, &hi, true);
+      hash_iterator_init (m->iter, &hi);
 
       while ((he = hash_iterator_next (&hi)))
 	{
@@ -2462,7 +2459,7 @@ management_callback_kill_by_cn (void *arg, const char *del_cn)
   struct hash_element *he;
   int count = 0;
 
-  hash_iterator_init (m->iter, &hi, true);
+  hash_iterator_init (m->iter, &hi);
   while ((he = hash_iterator_next (&hi)))
     {
       struct multi_instance *mi = (struct multi_instance *) he->value;
@@ -2496,7 +2493,7 @@ management_callback_kill_by_addr (void *arg, const in_addr_t addr, const int por
   saddr.sa.sin_port = htons (port);
   if (mroute_extract_openvpn_sockaddr (&maddr, &saddr, true))
     {
-      hash_iterator_init (m->iter, &hi, true);
+      hash_iterator_init (m->iter, &hi);
       while ((he = hash_iterator_next (&hi)))
 	{
 	  struct multi_instance *mi = (struct multi_instance *) he->value;

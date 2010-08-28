@@ -112,7 +112,6 @@ multi_create_instance_tcp (struct multi_context *m)
       const uint32_t hv = hash_value (hash, &mi->real);
       struct hash_bucket *bucket = hash_bucket (hash, hv);
   
-      hash_bucket_lock (bucket);
       he = hash_lookup_fast (hash, bucket, &mi->real, hv);
 
       if (he)
@@ -128,8 +127,6 @@ multi_create_instance_tcp (struct multi_context *m)
 	hash_add_fast (hash, bucket, &mi->real, hv, mi);
 
       mi->did_real_hash = true;
-
-      hash_bucket_unlock (bucket);
     }
 
 #ifdef ENABLE_DEBUG

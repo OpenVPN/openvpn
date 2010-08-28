@@ -165,12 +165,12 @@ hash_add (struct hash *hash, const void *key, void *value, bool replace)
 }
 
 void
-hash_remove_by_value (struct hash *hash, void *value, bool autolock)
+hash_remove_by_value (struct hash *hash, void *value)
 {
   struct hash_iterator hi;
   struct hash_element *he;
 
-  hash_iterator_init (hash, &hi, autolock);
+  hash_iterator_init (hash, &hi);
   while ((he = hash_iterator_next (&hi)))
     {
       if (he->value == value)
@@ -221,7 +221,6 @@ void_ptr_compare_function (const void *key1, const void *key2)
 void
 hash_iterator_init_range (struct hash *hash,
 		       struct hash_iterator *hi,
-		       bool autolock,
 		       int start_bucket,
 		       int end_bucket)
 {
@@ -233,7 +232,6 @@ hash_iterator_init_range (struct hash *hash,
   hi->hash = hash;
   hi->elem = NULL;
   hi->bucket = NULL;
-  hi->autolock = autolock;
   hi->last = NULL;
   hi->bucket_marked = false;
   hi->bucket_index_start = start_bucket;
@@ -243,10 +241,9 @@ hash_iterator_init_range (struct hash *hash,
 
 void
 hash_iterator_init (struct hash *hash,
-		    struct hash_iterator *hi,
-		    bool autolock)
+		    struct hash_iterator *hi)
 {
-  hash_iterator_init_range (hash, hi, autolock, 0, hash->n_buckets);
+  hash_iterator_init_range (hash, hi, 0, hash->n_buckets);
 }
 
 static inline void
