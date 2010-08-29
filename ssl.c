@@ -1514,23 +1514,41 @@ init_ssl (const struct options *options)
 
   if (options->pkcs12_file)
     {
-    /* Use PKCS #12 file for key, cert and CA certs */
+      /* Use PKCS #12 file for key, cert and CA certs */
 
       FILE *fp;
       EVP_PKEY *pkey;
       X509 *cert;
       STACK_OF(X509) *ca = NULL;
-      PKCS12 *p12;
+      PKCS12 *p12=NULL;
       int i;
       char password[256];
 
-      /* Load the PKCS #12 file */
-      if (!(fp = fopen(options->pkcs12_file, "rb")))
-        msg (M_SSLERR, "Error opening file %s", options->pkcs12_file);
-      p12 = d2i_PKCS12_fp(fp, NULL);
-      fclose (fp);
-      if (!p12) msg (M_SSLERR, "Error reading PKCS#12 file %s", options->pkcs12_file);
-      
+#if ENABLE_INLINE_FILES
+      if (!strcmp (options->pkcs12_file, INLINE_FILE_TAG) && options->pkcs12_file_inline)
+	{
+	  BIO *b64 = BIO_new (BIO_f_base64());
+	  BIO *bio = BIO_new_mem_buf ((void *)options->pkcs12_file_inline, (int)strlen(options->pkcs12_file_inline));
+	  ASSERT(b64 && bio);
+	  BIO_push (b64, bio);
+	  p12 = d2i_PKCS12_bio(b64, NULL);
+	  if (!p12)
+	    msg (M_SSLERR, "Error reading inline PKCS#12 file");
+	  BIO_free (b64);
+	  BIO_free (bio);
+	}
+      else
+#endif
+	{
+	  /* Load the PKCS #12 file */
+	  if (!(fp = fopen(options->pkcs12_file, "rb")))
+	    msg (M_SSLERR, "Error opening file %s", options->pkcs12_file);
+	  p12 = d2i_PKCS12_fp(fp, NULL);
+	  fclose (fp);
+	  if (!p12)
+	    msg (M_SSLERR, "Error reading PKCS#12 file %s", options->pkcs12_file);
+	}
+
       /* Parse the PKCS #12 file */
       if (!PKCS12_parse(p12, "", &pkey, &cert, &ca))
         {
@@ -1539,8 +1557,12 @@ init_ssl (const struct options *options)
           ca = NULL;
           if (!PKCS12_parse(p12, password, &pkey, &cert, &ca))
 	    {
+#ifdef ENABLE_MANAGEMENT
+	      if (management && (ERR_GET_REASON (ERR_peek_error()) == PKCS12_R_MAC_VERIFY_FAILURE))
+		management_auth_failure (management, UP_TYPE_PRIVATE_KEY, NULL);
+#endif
 	      PKCS12_free(p12);
-	      msg (M_WARN|M_SSL, "Error parsing PKCS#12 file %s", options->pkcs12_file);
+	      msg (M_INFO, "OpenSSL ERROR code: %d", (ERR_GET_REASON (ERR_peek_error()))); // fixme
 	      goto err;
 	    }
         }

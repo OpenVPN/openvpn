@@ -473,6 +473,7 @@ struct options
   const char *cert_file_inline;
   char *priv_key_file_inline;
   const char *dh_file_inline;
+  const char *pkcs12_file_inline; /* contains the base64 encoding of pkcs12 file */
 #endif
 
   int ns_cert_type; /* set to 0, NS_SSL_SERVER, or NS_SSL_CLIENT */

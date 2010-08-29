@@ -5680,6 +5680,12 @@ add_option (struct options *options,
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->pkcs12_file = p[1];
+#if ENABLE_INLINE_FILES
+      if (streq (p[1], INLINE_FILE_TAG) && p[2])
+	{
+	  options->pkcs12_file_inline = p[2];
+	}
+#endif
     }
   else if (streq (p[0], "askpass"))
     {
