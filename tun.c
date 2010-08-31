@@ -1157,7 +1157,7 @@ open_tun (const char *dev, const char *dev_type, const char *dev_node, bool ipv6
        * Try making the TX send queue bigger
        */
 #if defined(IFF_ONE_QUEUE) && defined(SIOCSIFTXQLEN)
-      {
+      if (tt->options.txqueuelen) {
 	struct ifreq netifr;
 	int ctl_fd;
 
