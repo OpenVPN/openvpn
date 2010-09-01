@@ -216,6 +216,8 @@ struct options
   bool tun_mtu_defined;  /* true if user overriding parm with command line option */
   bool link_mtu_defined; /* true if user overriding parm with command line option */
 
+  int proto_force;
+
   /* Advanced MTU negotiation and datagram fragmentation options */
   int mtu_discover_type; /* used if OS supports setting Path MTU discovery options on socket */
 
