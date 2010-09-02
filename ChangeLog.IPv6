@@ -333,3 +333,8 @@ Sun Aug  8 12:30:44 CEST 2010
   * tun.c: destroy tunX interface at tun_close() on OpenBSD (cleanup)
 
   * TEST SUCCESS: OpenBSD 4.7: client-tun/net30, v4+v6
+
+Thu Sep  2 21:18:32 CEST 2010
+
+  * tun.c: the TAP binary in 2.2-beta3 has the IPv6 related changes, but
+    the version number is 9.8 now -> check for 9.8, not 9.7
