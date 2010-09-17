@@ -179,7 +179,7 @@ send_push_reply (struct context *c)
   const int safe_cap = BCAP (&buf) - extra;
   bool push_sent = false;
 
-  buf_printf (&buf, cmd);
+  buf_printf (&buf, "%s", cmd);
 
   while (e)
     {
@@ -196,7 +196,7 @@ send_push_reply (struct context *c)
 		push_sent = true;
 		multi_push = true;
 		buf_reset_len (&buf);
-		buf_printf (&buf, cmd);
+		buf_printf (&buf, "%s", cmd);
 	      }
 	    }
 	  if (BLEN (&buf) + l >= safe_cap)
@@ -232,7 +232,7 @@ send_push_reply (struct context *c)
       bool status = false;
 
       buf_reset_len (&buf);
-      buf_printf (&buf, cmd);
+      buf_printf (&buf, "%s", cmd);
       status = send_control_channel_string (c, BSTR(&buf), D_PUSH);
       if (!status)
 	goto fail;
