@@ -616,7 +616,8 @@ do_ifconfig (struct tuntap *tt,
 
       argv_init (&argv);
 
-      msg( M_INFO, "do_ifconfig, tt->ipv6=%d", tt->ipv6 );
+      msg( M_INFO, "do_ifconfig, tt->ipv6=%d, tt->did_ifconfig_ipv6_setup=%d",
+	           tt->ipv6, tt->did_ifconfig_ipv6_setup );
 
       /*
        * We only handle TUN/TAP devices here, not --dev null devices.
@@ -682,18 +683,6 @@ do_ifconfig (struct tuntap *tt,
 				  );
 		  argv_msg (M_INFO, &argv);
 		  openvpn_execve_check (&argv, es, S_FATAL, "Linux ip addr add failed");
-		  if ( do_ipv6 )
-		    {
-		      argv_printf( &argv,
-				  "%s -6 addr add %s/%d dev %s",
-				  iproute_path,
-				  ifconfig_ipv6_local,
-				  tt->netbits_ipv6,
-				  actual
-				  );
-		      argv_msg (M_INFO, &argv);
-		      openvpn_execve_check (&argv, es, S_FATAL, "Linux ip -6 addr add failed");
-		    }
 	} else {
 		argv_printf (&argv,
 				  "%s addr add dev %s %s/%d broadcast %s",
@@ -706,7 +695,19 @@ do_ifconfig (struct tuntap *tt,
 		  argv_msg (M_INFO, &argv);
 		  openvpn_execve_check (&argv, es, S_FATAL, "Linux ip addr add failed");
 	}
-	tt->did_ifconfig = true;
+      if ( do_ipv6 )
+	{
+	  argv_printf( &argv,
+		      "%s -6 addr add %s/%d dev %s",
+		      iproute_path,
+		      ifconfig_ipv6_local,
+		      tt->netbits_ipv6,
+		      actual
+		      );
+	  argv_msg (M_INFO, &argv);
+	  openvpn_execve_check (&argv, es, S_FATAL, "Linux ip -6 addr add failed");
+	}
+      tt->did_ifconfig = true;
 #else
       if (tun)
 	argv_printf (&argv,
