@@ -338,3 +338,13 @@ Thu Sep  2 21:18:32 CEST 2010
 
   * tun.c: the TAP binary in 2.2-beta3 has the IPv6 related changes, but
     the version number is 9.8 now -> check for 9.8, not 9.7
+
+Wed Sep 22 22:20:37 CEST 2010
+
+  * tun.c: bugfix for Linux/iproute2/"topology subnet".  Works :-)
+
+  * TEST SUCCESS: Linux/ifconfig: client-tun/net30+subnet, v4+v6
+
+  * TEST SUCCESS: Linux/iproute2: client-tun/net30+subnet, v4+v6
+
+  * options.c: tag as 20100922-1 so "allmerged" users can see IPv6 change
