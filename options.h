@@ -95,6 +95,7 @@ struct connection_entry
 #ifdef ENABLE_SOCKS
   const char *socks_proxy_server;
   int socks_proxy_port;
+  const char *socks_proxy_authfile;
   bool socks_proxy_retry;
 #endif
 };

@@ -120,8 +120,11 @@ static const char usage_message[] =
   "                  AGENT user-agent\n"
 #endif
 #ifdef ENABLE_SOCKS
-  "--socks-proxy s [p]: Connect to remote host through a Socks5 proxy at address\n"
-  "                  s and port p (default port = 1080).\n"
+  "--socks-proxy s [p] [up] : Connect to remote host through a Socks5 proxy at\n"
+  "                  address s and port p (default port = 1080).\n"
+  "                  If proxy authentication is required,\n"
+  "                  up is a file containing username/password on 2 lines, or\n"
+  "                  'stdin' to prompt for console.\n"
   "--socks-proxy-retry : Retry indefinitely on Socks proxy errors.\n"
 #endif
   "--resolv-retry n: If hostname resolve fails for --remote, retry\n"
@@ -4283,6 +4286,7 @@ add_option (struct options *options,
 	  options->ce.socks_proxy_port = 1080;
 	}
       options->ce.socks_proxy_server = p[1];
+      options->ce.socks_proxy_authfile = p[3]; /* might be NULL */
     }
   else if (streq (p[0], "socks-proxy-retry"))
     {

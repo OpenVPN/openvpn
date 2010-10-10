@@ -23,10 +23,11 @@
  */
 
 /*
- * 2004-01-30: Added Socks5 proxy support
+ * 2004-01-30: Added Socks5 proxy support, see RFC 1928
  *   (Christof Meerwald, http://cmeerw.org)
  *
- * see RFC 1928, only supports "no authentication"
+ * 2010-10-10: Added Socks5 plain text authentication support (RFC 1929)
+ *   (Pierre Bourdon <delroth@gmail.com>)
  */
 
 #include "syshead.h"
@@ -38,10 +39,12 @@
 #include "win32.h"
 #include "socket.h"
 #include "fdmisc.h"
+#include "misc.h"
 #include "proxy.h"
 
 #include "memdbg.h"
 
+#define UP_TYPE_SOCKS		"SOCKS Proxy"
 
 void
 socks_adjust_frame_parameters (struct frame *frame, int proto)
@@ -53,6 +56,7 @@ socks_adjust_frame_parameters (struct frame *frame, int proto)
 struct socks_proxy_info *
 socks_proxy_new (const char *server,
 		 int port,
+		 const char *authfile,
 		 bool retry,
 		 struct auto_proxy_info *auto_proxy_info)
 {
@@ -77,6 +81,12 @@ socks_proxy_new (const char *server,
 
   strncpynt (p->server, server, sizeof (p->server));
   p->port = port;
+
+  if (authfile)
+    strncpynt (p->authfile, authfile, sizeof (p->authfile));
+  else
+    p->authfile[0] = 0;
+
   p->retry = retry;
   p->defined = true;
 
@@ -90,15 +100,99 @@ socks_proxy_close (struct socks_proxy_info *sp)
 }
 
 static bool
-socks_handshake (socket_descriptor_t sd, volatile int *signal_received)
+socks_username_password_auth (struct socks_proxy_info *p,
+                              socket_descriptor_t sd,
+                              volatile int *signal_received)
+{
+  char to_send[516];
+  char buf[2];
+  int len = 0;
+  const int timeout_sec = 5;
+  struct user_pass creds;
+  ssize_t size;
+
+  creds.defined = 0;
+
+  get_user_pass (&creds, p->authfile, UP_TYPE_SOCKS, GET_USER_PASS_MANAGEMENT);
+  snprintf (to_send, sizeof (to_send), "\x01%c%s%c%s", strlen(creds.username),
+            creds.username, strlen(creds.password), creds.password);
+  size = send (sd, to_send, strlen(to_send), MSG_NOSIGNAL);
+
+  if (size != strlen (to_send))
+    {
+      msg (D_LINK_ERRORS | M_ERRNO_SOCK, "socks_username_password_auth: TCP port write failed on send()");
+      return false;
+    }
+
+  while (len < 2)
+    {
+      int status;
+      ssize_t size;
+      fd_set reads;
+      struct timeval tv;
+      char c;
+
+      FD_ZERO (&reads);
+      FD_SET (sd, &reads);
+      tv.tv_sec = timeout_sec;
+      tv.tv_usec = 0;
+
+      status = select (sd + 1, &reads, NULL, NULL, &tv);
+
+      get_signal (signal_received);
+      if (*signal_received)
+	return false;
+
+      /* timeout? */
+      if (status == 0)
+	{
+	  msg (D_LINK_ERRORS | M_ERRNO_SOCK, "socks_username_password_auth: TCP port read timeout expired");
+	  return false;
+	}
+
+      /* error */
+      if (status < 0)
+	{
+	  msg (D_LINK_ERRORS | M_ERRNO_SOCK, "socks_username_password_auth: TCP port read failed on select()");
+	  return false;
+	}
+
+      /* read single char */
+      size = recv(sd, &c, 1, MSG_NOSIGNAL);
+
+      /* error? */
+      if (size != 1)
+	{
+	  msg (D_LINK_ERRORS | M_ERRNO_SOCK, "socks_username_password_auth: TCP port read failed on recv()");
+	  return false;
+	}
+
+      /* store char in buffer */
+      buf[len++] = c;
+    }
+
+  /* VER = 5, SUCCESS = 0 --> auth success */
+  if (buf[0] != 5 && buf[1] != 0)
+  {
+    msg (D_LINK_ERRORS, "socks_username_password_auth: server refused the authentication");
+    return false;
+  }
+
+  return true;
+}
+
+static bool
+socks_handshake (struct socks_proxy_info *p,
+                 socket_descriptor_t sd,
+                 volatile int *signal_received)
 {
   char buf[2];
   int len = 0;
   const int timeout_sec = 5;
 
-  /* VER = 5, NMETHODS = 1, METHODS = [0] */
-  const ssize_t size = send (sd, "\x05\x01\x00", 3, MSG_NOSIGNAL);
-  if (size != 3)
+  /* VER = 5, NMETHODS = 2, METHODS = [0 (no auth), 2 (plain login)] */
+  const ssize_t size = send (sd, "\x05\x02\x00\x02", 4, MSG_NOSIGNAL);
+  if (size != 4)
     {
       msg (D_LINK_ERRORS | M_ERRNO_SOCK, "socks_handshake: TCP port write failed on send()");
       return false;
@@ -151,10 +245,34 @@ socks_handshake (socket_descriptor_t sd, volatile int *signal_received)
       buf[len++] = c;
     }
 
-  /* VER == 5 && METHOD == 0 */
-  if (buf[0] != '\x05' || buf[1] != '\x00')
+  /* VER == 5 */
+  if (buf[0] != '\x05')
     {
       msg (D_LINK_ERRORS, "socks_handshake: Socks proxy returned bad status");
+      return false;
+    }
+
+  /* select the appropriate authentication method */
+  switch (buf[1])
+    {
+    case 0: /* no authentication */
+      break;
+
+    case 2: /* login/password */
+      if (!p->authfile[0])
+      {
+	msg(D_LINK_ERRORS, "socks_handshake: server asked for username/login auth but we were "
+	                   "not provided any credentials");
+	return false;
+      }
+
+      if (!socks_username_password_auth(p, sd, signal_received))
+	return false;
+
+      break;
+
+    default: /* unknown auth method */
+      msg(D_LINK_ERRORS, "socks_handshake: unknown SOCKS auth method");
       return false;
     }
 
@@ -281,7 +399,7 @@ establish_socks_proxy_passthru (struct socks_proxy_info *p,
   char buf[128];
   size_t len;
 
-  if (!socks_handshake (sd, signal_received))
+  if (!socks_handshake (p, sd, signal_received))
     goto error;
 
   /* format Socks CONNECT message */
@@ -328,7 +446,7 @@ establish_socks_proxy_udpassoc (struct socks_proxy_info *p,
 				struct openvpn_sockaddr *relay_addr,
 			        volatile int *signal_received)
 {
-  if (!socks_handshake (ctrl_sd, signal_received))
+  if (!socks_handshake (p, ctrl_sd, signal_received))
     goto error;
 
   {
