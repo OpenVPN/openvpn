@@ -5294,12 +5294,12 @@ documentation for
 .\"*********************************************************
 .TP
 .B script_type
-One of
+Prior to execution of any script, this variable is set to the type of
+script being run.  It can be one of the following:
 .B up, down, ipchange, route-up, tls-verify, auth-user-pass-verify,
 .B client-connect, client-disconnect, 
 or
 .B learn-address.
-Set prior to execution of any script.
 .\"*********************************************************
 .TP
 .B signal
