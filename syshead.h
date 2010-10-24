@@ -661,6 +661,11 @@ socket_defined (const socket_descriptor_t sd)
 #endif
 
 /*
+ * Do we support challenge/response authentication, as a console-based client?
+ */
+#define ENABLE_CLIENT_CR
+
+/*
  * Do we support pushing peer info?
  */
 #define ENABLE_PUSH_PEER_INFO
