@@ -702,6 +702,19 @@ do_ifconfig (struct tuntap *tt,
 			    );
 	}
       else
+        if (tt->topology == TOP_SUBNET)
+	{
+          argv_printf (&argv,
+                              "%s %s %s %s netmask %s mtu %d up",
+                              IFCONFIG_PATH,
+                              actual,
+                              ifconfig_local,
+                              ifconfig_local,
+                              ifconfig_remote_netmask,
+                              tun_mtu
+                              );
+	}
+        else
           argv_printf (&argv,
                             " %s %s %s netmask %s broadcast + up",
                             IFCONFIG_PATH,
@@ -713,6 +726,20 @@ do_ifconfig (struct tuntap *tt,
       argv_msg (M_INFO, &argv);
       if (!openvpn_execve_check (&argv, es, 0, "Solaris ifconfig phase-2 failed"))
 	solaris_error_close (tt, es, actual);
+
+      if (!tun && tt->topology == TOP_SUBNET)
+	{
+	  /* Add a network route for the local tun interface */
+	  struct route r;
+	  CLEAR (r);      
+	  r.defined = true;       
+	  r.network = tt->local & tt->remote_netmask;
+	  r.netmask = tt->remote_netmask;
+	  r.gateway = tt->local;  
+	  r.metric_defined = true;
+	  r.metric = 0;
+	  add_route (&r, tt, 0, es);
+	}
 
       tt->did_ifconfig = true;
 
