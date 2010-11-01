@@ -34,9 +34,10 @@
 # A horrid work around, from a security perspective,
 # is to run OpenVPN as root. THIS IS NOT RECOMMENDED. You have
 # been WARNED.
+PATH=/bin:/usr/bin:/usr/local/bin:/sbin:/usr/sbin:/usr/local/sbin
 
-if [ -x /sbin/resolvconf ] ; then
-  /sbin/resolvconf -d "${1}"
+if type resolvconf >/dev/null 2>&1; then
+  resolvconf -d "${1}" -f
 elif [ -e /etc/resolv.conf.ovpnsave ] ; then
   # cp + rm rather than mv in case it's a symlink
   cp /etc/resolv.conf.ovpnsave /etc/resolv.conf
