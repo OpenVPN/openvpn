@@ -261,6 +261,26 @@ struct user_pass
   char password[USER_PASS_LEN];
 };
 
+#ifdef ENABLE_CLIENT_CR
+/*
+ * Challenge response info on client as pushed by server.
+ */
+struct auth_challenge_info {
+# define CR_ECHO     (1<<0) /* echo response when typed by user */
+# define CR_RESPONSE (1<<1) /* response needed */
+  unsigned int flags;
+
+  const char *user;
+  const char *state_id;
+  const char *challenge_text;
+};
+
+struct auth_challenge_info *get_auth_challenge (const char *auth_challenge, struct gc_arena *gc);
+
+#else
+struct auth_challenge_info {};
+#endif
+
 bool get_console_input (const char *prompt, const bool echo, char *input, const int capacity);
 
 /*
@@ -274,10 +294,20 @@ bool get_console_input (const char *prompt, const bool echo, char *input, const 
 #define GET_USER_PASS_NEED_STR      (1<<5)
 #define GET_USER_PASS_PREVIOUS_CREDS_FAILED (1<<6)
 
-bool get_user_pass (struct user_pass *up,
-		    const char *auth_file,
-		    const char *prefix,
-		    const unsigned int flags);
+bool get_user_pass_cr (struct user_pass *up,
+		       const char *auth_file,
+		       const char *prefix,
+		       const unsigned int flags,
+		       const char *auth_challenge);
+
+static inline bool
+get_user_pass (struct user_pass *up,
+	       const char *auth_file,
+	       const char *prefix,
+	       const unsigned int flags)
+{
+  return get_user_pass_cr (up, auth_file, prefix, flags, NULL);
+}
 
 void fail_user_pass (const char *prefix,
 		     const unsigned int flags,

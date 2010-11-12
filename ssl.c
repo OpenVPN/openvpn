@@ -290,6 +290,10 @@ pem_password_callback (char *buf, int size, int rwflag, void *u)
 static bool auth_user_pass_enabled;     /* GLOBAL */
 static struct user_pass auth_user_pass; /* GLOBAL */
 
+#ifdef ENABLE_CLIENT_CR
+static char *auth_challenge; /* GLOBAL */
+#endif
+
 void
 auth_user_pass_setup (const char *auth_file)
 {
@@ -298,6 +302,8 @@ auth_user_pass_setup (const char *auth_file)
     {
 #if AUTO_USERID
       get_user_pass_auto_userid (&auth_user_pass, auth_file);
+#elif defined(ENABLE_CLIENT_CR)
+      get_user_pass_cr (&auth_user_pass, auth_file, UP_TYPE_AUTH, GET_USER_PASS_MANAGEMENT|GET_USER_PASS_SENSITIVE, auth_challenge);
 #else
       get_user_pass (&auth_user_pass, auth_file, UP_TYPE_AUTH, GET_USER_PASS_MANAGEMENT|GET_USER_PASS_SENSITIVE);
 #endif
@@ -325,7 +331,28 @@ ssl_purge_auth (void)
 #endif
   purge_user_pass (&passbuf, true);
   purge_user_pass (&auth_user_pass, true);
+#ifdef ENABLE_CLIENT_CR
+  ssl_purge_auth_challenge();
+#endif
 }
+
+#ifdef ENABLE_CLIENT_CR
+
+void
+ssl_purge_auth_challenge (void)
+{
+  free (auth_challenge);
+  auth_challenge = NULL;
+}
+
+void
+ssl_put_auth_challenge (const char *cr_str)
+{
+  ssl_purge_auth_challenge();
+  auth_challenge = string_alloc(cr_str, NULL);
+}
+
+#endif
 
 /*
  * OpenSSL callback to get a temporary RSA key, mostly
