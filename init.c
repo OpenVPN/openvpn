@@ -417,6 +417,7 @@ init_proxy_dowork (struct context *c)
     {
       c->c1.socks_proxy = socks_proxy_new (c->options.ce.socks_proxy_server,
 					   c->options.ce.socks_proxy_port,
+					   c->options.ce.socks_proxy_authfile,
 					   c->options.ce.socks_proxy_retry,
 					   c->options.auto_proxy_info);
       if (c->c1.socks_proxy)

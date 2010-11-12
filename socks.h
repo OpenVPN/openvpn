@@ -43,12 +43,14 @@ struct socks_proxy_info {
 
   char server[128];
   int port;
+  char authfile[256];
 };
 
 void socks_adjust_frame_parameters (struct frame *frame, int proto);
 
 struct socks_proxy_info *socks_proxy_new (const char *server,
 					  int port,
+					  const char *authfile,
 					  bool retry,
 					  struct auto_proxy_info *auto_proxy_info);
 

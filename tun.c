@@ -63,6 +63,7 @@ static const char *netsh_get_id (const char *dev_node, struct gc_arena *gc);
 
 #ifdef TARGET_SOLARIS
 static void solaris_error_close (struct tuntap *tt, const struct env_set *es, const char *actual);
+#include <stropts.h>
 #endif
 
 bool
@@ -701,11 +702,44 @@ do_ifconfig (struct tuntap *tt,
 			    );
 	}
       else
-	no_tap_ifconfig ();
+        if (tt->topology == TOP_SUBNET)
+	{
+          argv_printf (&argv,
+                              "%s %s %s %s netmask %s mtu %d up",
+                              IFCONFIG_PATH,
+                              actual,
+                              ifconfig_local,
+                              ifconfig_local,
+                              ifconfig_remote_netmask,
+                              tun_mtu
+                              );
+	}
+        else
+          argv_printf (&argv,
+                            " %s %s %s netmask %s broadcast + up",
+                            IFCONFIG_PATH,
+                            actual,
+                            ifconfig_local,
+                            ifconfig_remote_netmask
+                            );
 
       argv_msg (M_INFO, &argv);
       if (!openvpn_execve_check (&argv, es, 0, "Solaris ifconfig phase-2 failed"))
 	solaris_error_close (tt, es, actual);
+
+      if (!tun && tt->topology == TOP_SUBNET)
+	{
+	  /* Add a network route for the local tun interface */
+	  struct route r;
+	  CLEAR (r);      
+	  r.defined = true;       
+	  r.network = tt->local & tt->remote_netmask;
+	  r.netmask = tt->remote_netmask;
+	  r.gateway = tt->local;  
+	  r.metric_defined = true;
+	  r.metric = 0;
+	  add_route (&r, tt, 0, es);
+	}
 
       tt->did_ifconfig = true;
 
@@ -1372,15 +1406,17 @@ read_tun (struct tuntap* tt, uint8_t *buf, int len)
 void
 open_tun (const char *dev, const char *dev_type, const char *dev_node, bool ipv6, struct tuntap *tt)
 {
-  int if_fd, muxid, ppa = -1;
-  struct ifreq ifr;
+  int if_fd, ip_muxid, arp_muxid, arp_fd, ppa = -1;
+  struct lifreq ifr;
   const char *ptr;
-  const char *ip_node;
+  const char *ip_node, *arp_node;
   const char *dev_tuntap_type;
   int link_type;
   bool is_tun;
+  struct strioctl  strioc_if, strioc_ppa;
 
-  ipv6_support (ipv6, false, tt);
+  ipv6_support (ipv6, true, tt);
+  memset(&ifr, 0x0, sizeof(ifr));
 
   if (tt->type == DEV_TYPE_NULL)
     {
@@ -1399,9 +1435,10 @@ open_tun (const char *dev, const char *dev_type, const char *dev_node, bool ipv6
     }
   else if (tt->type == DEV_TYPE_TAP)
     {
-      ip_node = "/dev/ip";
+      ip_node = "/dev/udp";
       if (!dev_node)
 	dev_node = "/dev/tap";
+      arp_node = dev_node;
       dev_tuntap_type = "tap";
       link_type = I_PLINK; /* was: I_LINK */
       is_tun = false;
@@ -1428,7 +1465,11 @@ open_tun (const char *dev, const char *dev_type, const char *dev_node, bool ipv6
     msg (M_ERR, "Can't open %s", dev_node);
 
   /* Assign a new PPA and get its unit number. */
-  if ((ppa = ioctl (tt->fd, TUNNEWPPA, ppa)) < 0)
+  strioc_ppa.ic_cmd = TUNNEWPPA;
+  strioc_ppa.ic_timout = 0;
+  strioc_ppa.ic_len = sizeof(ppa);
+  strioc_ppa.ic_dp = (char *)&ppa;
+  if ((ppa = ioctl (tt->fd, I_STR, &strioc_ppa)) < 0)
     msg (M_ERR, "Can't assign new interface");
 
   if ((if_fd = open (dev_node, O_RDWR, 0)) < 0)
@@ -1437,27 +1478,83 @@ open_tun (const char *dev, const char *dev_type, const char *dev_node, bool ipv6
   if (ioctl (if_fd, I_PUSH, "ip") < 0)
     msg (M_ERR, "Can't push IP module");
 
+  if (tt->type == DEV_TYPE_TUN)
+    {
   /* Assign ppa according to the unit number returned by tun device */
   if (ioctl (if_fd, IF_UNITSEL, (char *) &ppa) < 0)
     msg (M_ERR, "Can't set PPA %d", ppa);
-
-  if ((muxid = ioctl (tt->ip_fd, link_type, if_fd)) < 0)
-    msg (M_ERR, "Can't link %s device to IP", dev_tuntap_type);
-
-  close (if_fd);
+    }
 
   tt->actual_name = (char *) malloc (32);
   check_malloc_return (tt->actual_name);
 
   openvpn_snprintf (tt->actual_name, 32, "%s%d", dev_tuntap_type, ppa);
 
-  CLEAR (ifr);
-  strncpynt (ifr.ifr_name, tt->actual_name, sizeof (ifr.ifr_name));
-  ifr.ifr_ip_muxid = muxid;
-
-  if (ioctl (tt->ip_fd, SIOCSIFMUXID, &ifr) < 0)
+  if (tt->type == DEV_TYPE_TAP)
     {
-      ioctl (tt->ip_fd, I_PUNLINK, muxid);
+          if (ioctl(if_fd, SIOCGLIFFLAGS, &ifr) < 0)
+            msg (M_ERR, "Can't get flags\n");
+          strncpynt (ifr.lifr_name, tt->actual_name, sizeof (ifr.lifr_name));
+          ifr.lifr_ppa = ppa;
+          /* Assign ppa according to the unit number returned by tun device */
+          if (ioctl (if_fd, SIOCSLIFNAME, &ifr) < 0)
+            msg (M_ERR, "Can't set PPA %d", ppa);
+          if (ioctl(if_fd, SIOCGLIFFLAGS, &ifr) <0)
+            msg (M_ERR, "Can't get flags\n");
+          /* Push arp module to if_fd */
+          if (ioctl (if_fd, I_PUSH, "arp") < 0)
+            msg (M_ERR, "Can't push ARP module");
+
+          /* Pop any modules on the stream */
+          while (true)
+            {
+                 if (ioctl (tt->ip_fd, I_POP, NULL) < 0)
+                     break;
+            }
+          /* Push arp module to ip_fd */
+          if (ioctl (tt->ip_fd, I_PUSH, "arp") < 0)
+            msg (M_ERR, "Can't push ARP module\n");
+
+          /* Open arp_fd */
+          if ((arp_fd = open (arp_node, O_RDWR, 0)) < 0)
+            msg (M_ERR, "Can't open %s\n", arp_node);
+          /* Push arp module to arp_fd */
+          if (ioctl (arp_fd, I_PUSH, "arp") < 0)
+            msg (M_ERR, "Can't push ARP module\n");
+
+          /* Set ifname to arp */
+          strioc_if.ic_cmd = SIOCSLIFNAME;
+          strioc_if.ic_timout = 0;
+          strioc_if.ic_len = sizeof(ifr);
+          strioc_if.ic_dp = (char *)&ifr;
+          if (ioctl(arp_fd, I_STR, &strioc_if) < 0){
+              msg (M_ERR, "Can't set ifname to arp\n");
+          }
+   }
+
+  if ((ip_muxid = ioctl (tt->ip_fd, link_type, if_fd)) < 0)
+    msg (M_ERR, "Can't link %s device to IP", dev_tuntap_type);
+
+  if (tt->type == DEV_TYPE_TAP) {
+          if ((arp_muxid = ioctl (tt->ip_fd, link_type, arp_fd)) < 0)
+            msg (M_ERR, "Can't link %s device to ARP", dev_tuntap_type);
+          close (arp_fd);
+  }
+
+  CLEAR (ifr);
+  strncpynt (ifr.lifr_name, tt->actual_name, sizeof (ifr.lifr_name));
+  ifr.lifr_ip_muxid  = ip_muxid;
+  if (tt->type == DEV_TYPE_TAP) {
+          ifr.lifr_arp_muxid = arp_muxid;
+  }
+
+  if (ioctl (tt->ip_fd, SIOCSLIFMUXID, &ifr) < 0)
+    {
+      if (tt->type == DEV_TYPE_TAP)
+        {
+              ioctl (tt->ip_fd, I_PUNLINK , arp_muxid);
+        }
+      ioctl (tt->ip_fd, I_PUNLINK, ip_muxid);
       msg (M_ERR, "Can't set multiplexor id");
     }
 
@@ -1475,18 +1572,24 @@ solaris_close_tun (struct tuntap *tt)
     {
       if (tt->ip_fd >= 0)
 	{
-	  struct ifreq ifr;
+          struct lifreq ifr;
 	  CLEAR (ifr);
-	  strncpynt (ifr.ifr_name, tt->actual_name, sizeof (ifr.ifr_name));
+          strncpynt (ifr.lifr_name, tt->actual_name, sizeof (ifr.lifr_name));
 
-	  if (ioctl (tt->ip_fd, SIOCGIFFLAGS, &ifr) < 0)
+          if (ioctl (tt->ip_fd, SIOCGLIFFLAGS, &ifr) < 0)
 	    msg (M_WARN | M_ERRNO, "Can't get iface flags");
 
-	  if (ioctl (tt->ip_fd, SIOCGIFMUXID, &ifr) < 0)
+          if (ioctl (tt->ip_fd, SIOCGLIFMUXID, &ifr) < 0)
 	    msg (M_WARN | M_ERRNO, "Can't get multiplexor id");
 
-	  if (ioctl (tt->ip_fd, I_PUNLINK, ifr.ifr_ip_muxid) < 0)
-	    msg (M_WARN | M_ERRNO, "Can't unlink interface");
+          if (tt->type == DEV_TYPE_TAP)
+            {
+                  if (ioctl (tt->ip_fd, I_PUNLINK, ifr.lifr_arp_muxid) < 0)
+                    msg (M_WARN | M_ERRNO, "Can't unlink interface(arp)");
+            }
+
+          if (ioctl (tt->ip_fd, I_PUNLINK, ifr.lifr_ip_muxid) < 0)
+            msg (M_WARN | M_ERRNO, "Can't unlink interface(ip)");
 
 	  close (tt->ip_fd);
 	  tt->ip_fd = -1;

@@ -952,15 +952,13 @@ add_route (struct route *r, const struct tuntap *tt, unsigned int flags, const s
   argv_printf (&argv, "%s add",
 		ROUTE_PATH);
 
-#if 0
-  if (r->metric_defined)
-    argv_printf_cat (&argv, "-rtt %d", r->metric);
-#endif
-
   argv_printf_cat (&argv, "%s -netmask %s %s",
 	      network,
 	      netmask,
 	      gateway);
+
+  if (r->metric_defined)
+    argv_printf_cat (&argv, "%d", r->metric);
 
   argv_msg (D_ROUTE, &argv);
   status = openvpn_execve_check (&argv, es, 0, "ERROR: Solaris route add command failed");
