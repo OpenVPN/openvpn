@@ -2763,7 +2763,9 @@ usage_version (void)
 #ifdef CONFIGURE_CALL
   msg (M_INFO|M_NOPREFIX, "\n%s\n", CONFIGURE_CALL);
 #endif
+#ifdef CONFIGURE_DEFINES
   msg (M_INFO|M_NOPREFIX, "Compile time defines: %s", CONFIGURE_DEFINES);
+#endif
 #endif
   openvpn_exit (OPENVPN_EXIT_STATUS_USAGE); /* exit point */
 }
