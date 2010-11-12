@@ -552,6 +552,10 @@ establish_http_proxy_passthru (struct http_proxy_info *p,
       if (!send_line_crlf (sd, buf))
 	goto error;
 
+      openvpn_snprintf(buf, sizeof(buf), "Host: %s", host);
+      if (!send_line_crlf(sd, buf))
+        goto error;
+
       /* send User-Agent string if provided */
       if (p->options.user_agent)
 	{
