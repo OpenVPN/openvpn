@@ -34,7 +34,7 @@
 #ifndef _BASE64_H_
 #define _BASE64_H_
 
-#ifdef ENABLE_HTTP_PROXY
+#if defined(ENABLE_HTTP_PROXY) || defined(ENABLE_PKCS11) || defined(ENABLE_CLIENT_CR)
 
 int base64_encode(const void *data, int size, char **str);
 int base64_decode(const char *str, void *data);

@@ -705,6 +705,17 @@ void auth_user_pass_setup (const char *auth_file);
 void ssl_set_auth_nocache (void);
 void ssl_purge_auth (void);
 
+
+#ifdef ENABLE_CLIENT_CR
+/*
+ * ssl_get_auth_challenge will parse the server-pushed auth-failed
+ * reason string and return a dynamically allocated
+ * auth_challenge_info struct.
+ */
+void ssl_purge_auth_challenge (void);
+void ssl_put_auth_challenge (const char *cr_str);
+#endif
+
 void tls_set_verify_command (const char *cmd);
 void tls_set_crl_verify (const char *crl);
 void tls_set_verify_x509name (const char *x509name);
