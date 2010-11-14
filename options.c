@@ -50,6 +50,7 @@
 #include "manage.h"
 #include "forward.h"
 #include "configure.h"
+#include "forward.h"
 #include <ctype.h>
 
 #include "memdbg.h"
