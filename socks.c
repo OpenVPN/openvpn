@@ -112,10 +112,17 @@ socks_username_password_auth (struct socks_proxy_info *p,
   ssize_t size;
 
   creds.defined = 0;
-
   get_user_pass (&creds, p->authfile, UP_TYPE_SOCKS, GET_USER_PASS_MANAGEMENT);
-  snprintf (to_send, sizeof (to_send), "\x01%c%s%c%s", strlen(creds.username),
-            creds.username, strlen(creds.password), creds.password);
+
+  if( !creds.username || (strlen(creds.username) > 255)
+      || !creds.password || (strlen(creds.password) > 255) ) {
+          msg (M_NONFATAL,
+               "SOCKS username and/or password exceeds 255 characters.  "
+               "Authentication not possible.");
+          return false;
+  }
+  snprintf (to_send, sizeof (to_send), "\x01%c%s%c%s", (int) strlen(creds.username),
+            creds.username, (int) strlen(creds.password), creds.password);
   size = send (sd, to_send, strlen(to_send), MSG_NOSIGNAL);
 
   if (size != strlen (to_send))
