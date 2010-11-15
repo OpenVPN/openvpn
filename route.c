@@ -59,26 +59,6 @@ print_bypass_addresses (const struct route_bypass *rb)
 
 #endif
 
-static bool
-add_bypass_address (struct route_bypass *rb, const in_addr_t a)
-{
-  int i;
-  for (i = 0; i < rb->n_bypass; ++i)
-    {
-      if (a == rb->bypass[i]) /* avoid duplicates */
-	return true;
-    }
-  if (rb->n_bypass < N_ROUTE_BYPASS)
-    {
-      rb->bypass[rb->n_bypass++] = a;
-      return true;
-    }
-  else
-    {
-      return false;
-    }
-}
-
 struct route_option_list *
 new_route_option_list (const int max_routes, struct gc_arena *a)
 {
@@ -2124,8 +2104,18 @@ netmask_to_netbits (const in_addr_t network, const in_addr_t netmask, int *netbi
 static void
 add_host_route_if_nonlocal (struct route_bypass *rb, const in_addr_t addr)
 {
-  if (test_local_addr(addr) == TLA_NONLOCAL && addr != 0 && addr != ~0)
-    add_bypass_address (rb, addr);
+  if (test_local_addr(addr) == TLA_NONLOCAL && addr != 0 && addr != ~0) {
+    int i;
+    for (i = 0; i < rb->n_bypass; ++i)
+      {
+        if (addr == rb->bypass[i]) /* avoid duplicates */
+          return;
+      }
+    if (rb->n_bypass < N_ROUTE_BYPASS)
+      {
+        rb->bypass[rb->n_bypass++] = addr;
+      }
+  }
 }
 
 static void
