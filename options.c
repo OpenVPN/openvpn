@@ -2785,6 +2785,7 @@ positive_atoi (const char *str)
   return i < 0 ? 0 : i;
 }
 
+#ifdef WIN32  /* This function is only used when compiling on Windows */
 static unsigned int
 atou (const char *str)
 {
@@ -2792,6 +2793,7 @@ atou (const char *str)
   sscanf (str, "%u", &val);
   return val;
 }
+#endif
 
 static inline bool
 space (unsigned char c)
