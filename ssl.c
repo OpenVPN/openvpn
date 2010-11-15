@@ -940,7 +940,7 @@ verify_callback (int preverify_ok, X509_STORE_CTX * ctx)
       if (opt->verify_export_cert)
         {
           gc = gc_new();
-          if (tmp_file=get_peer_cert(ctx, opt->verify_export_cert,&gc))
+          if ((tmp_file=get_peer_cert(ctx, opt->verify_export_cert,&gc)))
            {
              setenv_str(opt->es, "peer_cert", tmp_file);
            }
