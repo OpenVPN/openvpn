@@ -45,6 +45,7 @@
 #include "pool.h"
 #include "helper.h"
 #include "manage.h"
+#include "forward.h"
 
 #include "memdbg.h"
 
