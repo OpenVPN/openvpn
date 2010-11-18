@@ -1014,13 +1014,13 @@ verify_callback (int preverify_ok, X509_STORE_CTX * ctx)
   msg (D_HANDSHAKE, "VERIFY OK: depth=%d, %s", ctx->error_depth, subject);
 
   session->verified = true;
-  free (subject);
+  OPENSSL_free (subject);
   argv_reset (&argv);
   return 1;			/* Accept connection */
 
  err:
   ERR_clear_error ();
-  free (subject);
+  OPENSSL_free (subject);
   argv_reset (&argv);
   return 0;                     /* Reject connection */
 }
