@@ -42,7 +42,6 @@
 #include "reliable.h"
 #include "socket.h"
 #include "mtu.h"
-#include "thread.h"
 #include "options.h"
 #include "plugin.h"
 
@@ -579,9 +578,6 @@ struct tls_session
  */
 struct tls_multi
 {
-  /* used to coordinate access between main thread and TLS thread */
-  /*MUTEX_PTR_DEFINE (mutex);*/
-
   /* const options and config info */
   struct tls_options opt;
 

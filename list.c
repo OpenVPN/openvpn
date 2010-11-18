@@ -52,7 +52,6 @@ hash_init (const int n_buckets,
     {
       struct hash_bucket *b = &h->buckets[i];
       b->list = NULL;
-      mutex_init (&b->mutex);
     }
   return h;
 }
@@ -66,7 +65,6 @@ hash_free (struct hash *hash)
       struct hash_bucket *b = &hash->buckets[i];
       struct hash_element *he = b->list;
 
-      mutex_destroy (&b->mutex);
       while (he)
 	{
 	  struct hash_element *next = he->next;
@@ -148,7 +146,6 @@ hash_add (struct hash *hash, const void *key, void *value, bool replace)
 
   hv = hash_value (hash, key);
   bucket = &hash->buckets[hv & hash->mask];
-  mutex_lock (&bucket->mutex);
 
   if ((he = hash_lookup_fast (hash, bucket, key, hv))) /* already exists? */
     {
@@ -164,18 +161,16 @@ hash_add (struct hash *hash, const void *key, void *value, bool replace)
       ret = true;
     }
 
-  mutex_unlock (&bucket->mutex);
-
   return ret;
 }
 
 void
-hash_remove_by_value (struct hash *hash, void *value, bool autolock)
+hash_remove_by_value (struct hash *hash, void *value)
 {
   struct hash_iterator hi;
   struct hash_element *he;
 
-  hash_iterator_init (hash, &hi, autolock);
+  hash_iterator_init (hash, &hi);
   while ((he = hash_iterator_next (&hi)))
     {
       if (he->value == value)
@@ -226,7 +221,6 @@ void_ptr_compare_function (const void *key1, const void *key2)
 void
 hash_iterator_init_range (struct hash *hash,
 		       struct hash_iterator *hi,
-		       bool autolock,
 		       int start_bucket,
 		       int end_bucket)
 {
@@ -238,7 +232,6 @@ hash_iterator_init_range (struct hash *hash,
   hi->hash = hash;
   hi->elem = NULL;
   hi->bucket = NULL;
-  hi->autolock = autolock;
   hi->last = NULL;
   hi->bucket_marked = false;
   hi->bucket_index_start = start_bucket;
@@ -248,19 +241,14 @@ hash_iterator_init_range (struct hash *hash,
 
 void
 hash_iterator_init (struct hash *hash,
-		    struct hash_iterator *hi,
-		    bool autolock)
+		    struct hash_iterator *hi)
 {
-  hash_iterator_init_range (hash, hi, autolock, 0, hash->n_buckets);
+  hash_iterator_init_range (hash, hi, 0, hash->n_buckets);
 }
 
 static inline void
 hash_iterator_lock (struct hash_iterator *hi, struct hash_bucket *b)
 {
-  if (hi->autolock)
-    {
-      mutex_lock (&b->mutex);
-    }
   hi->bucket = b;
   hi->last = NULL;
   hi->bucket_marked = false;
@@ -275,10 +263,6 @@ hash_iterator_unlock (struct hash_iterator *hi)
 	{
 	  hash_remove_marked (hi->hash, hi->bucket);
 	  hi->bucket_marked = false;
-	}
-      if (hi->autolock)
-	{
-	  mutex_unlock (&hi->bucket->mutex);
 	}
       hi->bucket = NULL;
       hi->last = NULL;

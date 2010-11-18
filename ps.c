@@ -234,18 +234,6 @@ port_share_sendmsg (const socket_descriptor_t sd,
     }
 }
 
-static int
-pc_list_len (struct proxy_connection *pc)
-{
-  int count = 0;
-  while (pc)
-    {
-      ++count;
-      pc = pc->next;
-    }
-  return count;
-}
-
 static void
 proxy_entry_close_sd (struct proxy_connection *pc, struct event_set *es)
 {

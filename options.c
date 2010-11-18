@@ -73,9 +73,6 @@ const char title_string[] =
 #ifdef PRODUCT_TAP_DEBUG
   " [TAPDBG]"
 #endif
-#ifdef USE_PTHREAD
-  " [PTHREAD]"
-#endif
 #ifdef ENABLE_PKCS11
   " [PKCS11]"
 #endif
@@ -300,13 +297,6 @@ static const char usage_message[] =
   "--suppress-timestamps : Don't log timestamps to stdout/stderr.\n"
   "--writepid file : Write main process ID to file.\n"
   "--nice n        : Change process priority (>0 = lower, <0 = higher).\n"
-#if 0
-#ifdef USE_PTHREAD
-  "--nice-work n   : Change thread priority of work thread.  The work\n"
-  "                  thread is used for background processing such as\n"
-  "                  RSA key number crunching.\n"
-#endif
-#endif
   "--echo [parms ...] : Echo parameters to log output.\n"
   "--verb n        : Set output verbosity to n (default=%d):\n"
   "                  (Level 3 is recommended if you want a good summary\n"
@@ -740,9 +730,6 @@ init_options (struct options *o, const bool init_gc)
   o->tuntap_options.dhcp_masq_offset = 0;       /* use network address as internal DHCP server address */
   o->route_method = ROUTE_METHOD_ADAPTIVE;
 #endif
-#ifdef USE_PTHREAD
-  o->n_threads = 1;
-#endif
 #if P2MP_SERVER
   o->real_hash_size = 256;
   o->virtual_hash_size = 256;
@@ -892,9 +879,6 @@ is_persist_option (const struct options *o)
       || o->persist_key
       || o->persist_local_ip
       || o->persist_remote_ip
-#ifdef USE_PTHREAD
-      || o->n_threads >= 2
-#endif
     ;
 }
 
@@ -2971,6 +2955,7 @@ positive_atoi (const char *str)
   return i < 0 ? 0 : i;
 }
 
+#ifdef WIN32  /* This function is only used when compiling on Windows */
 static unsigned int
 atou (const char *str)
 {
@@ -2978,6 +2963,7 @@ atou (const char *str)
   sscanf (str, "%u", &val);
   return val;
 }
+#endif
 
 static inline bool
 space (unsigned char c)
@@ -4238,26 +4224,6 @@ add_option (struct options *options,
       goto err;
 #endif
     }
-#ifdef USE_PTHREAD
-  else if (streq (p[0], "nice-work") && p[1])
-    {
-      VERIFY_PERMISSION (OPT_P_NICE);
-      options->nice_work = atoi (p[1]);
-    }
-  else if (streq (p[0], "threads") && p[1])
-    {
-      int n_threads;
-
-      VERIFY_PERMISSION (OPT_P_GENERAL);
-      n_threads = positive_atoi (p[1]);
-      if (n_threads < 1)
-	{
-	  msg (msglevel, "--threads parameter must be at least 1");
-	  goto err;
-	}
-      options->n_threads = n_threads;
-    }
-#endif
   else if (streq (p[0], "shaper") && p[1])
     {
 #ifdef HAVE_GETTIMEOFDAY

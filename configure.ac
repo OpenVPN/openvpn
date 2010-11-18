@@ -158,12 +158,6 @@ AC_ARG_ENABLE(small,
    [SMALL="no"]
 )
 
-AC_ARG_ENABLE(pthread,
-   [  --enable-pthread        Enable pthread support (Experimental for OpenVPN 2.0)],
-   [PTHREAD="$enableval"],
-   [PTHREAD="no"]
-)
-
 AC_ARG_ENABLE(password-save,
    [  --enable-password-save  Allow --askpass and --auth-user-pass passwords to be read from a file],
    [PASSWORD_SAVE="$enableval"],
@@ -581,32 +575,6 @@ if test "$MEMCHECK" = "valgrind"; then
 fi
 
 dnl
-dnl check for pthread library
-dnl
-
-if test "$PTHREAD" = "yes"; then
-  AC_CHECKING([for pthread support])
-  AC_MSG_RESULT([********* WARNING: pthread support is experimental for OpenVPN 2.0])
-  ACX_PTHREAD(
-        [
-	    case "$host" in
-	    *openbsd*)
-		AC_MSG_RESULT([WARNING: pthread support on OpenBSD is unstable!])
-		CFLAGS="$CFLAGS -pthread"
-		;;
-	    esac
-	    LIBS="$PTHREAD_LIBS $LIBS"
-	    CFLAGS="$CFLAGS $PTHREAD_CFLAGS"
-	    CC="$PTHREAD_CC"
-	    AC_DEFINE(USE_PTHREAD, 1, [Use pthread-based multithreading])
-	],
-	[
-	    AC_MSG_RESULT([I don't know how to build with pthread support on this platform.])
-	    AC_MSG_ERROR([try ./configure --disable-pthread])
-	])
-fi
-
-dnl
 dnl check for dmalloc library
 dnl
 
@@ -615,11 +583,7 @@ if test "$MEMCHECK" = "dmalloc"; then
    AC_CHECK_HEADER(dmalloc.h, 
         [AC_CHECK_LIB(dmalloc, malloc,
 	    [
-               if test "$PTHREAD" = "yes"; then
-                   OPENVPN_ADD_LIBS(-ldmallocth)
-               else
-                   OPENVPN_ADD_LIBS(-ldmalloc)
-               fi
+               OPENVPN_ADD_LIBS(-ldmalloc)
 	       AC_DEFINE(DMALLOC, 1, [Use dmalloc memory debugging library])
 	    ],
 	    [AC_MSG_ERROR([dmalloc library not found.])]

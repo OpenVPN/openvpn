@@ -185,15 +185,6 @@ signal_handler (const int signum)
   signal (signum, signal_handler);
 }
 
-/* temporary signal handler, before we are fully initialized */
-static void
-signal_handler_exit (const int signum)
-{
-  msg (M_FATAL,
-       "Signal %d (%s) received during initialization, exiting",
-       signum, signal_description (signum, NULL));
-}
-
 #endif
 
 /* set handlers for unix signals */

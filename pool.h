@@ -31,7 +31,6 @@
 
 #include "basic.h"
 #include "status.h"
-#include "thread.h"
 
 #define IFCONFIG_POOL_MAX         65536
 #define IFCONFIG_POOL_MIN_NETBITS    16

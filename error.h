@@ -26,7 +26,6 @@
 #define ERROR_H
 
 #include "basic.h"
-#include "thread.h"
 
 /* #define ABORT_ON_ERROR */
 
@@ -282,34 +281,18 @@ set_check_status_error_delay (unsigned int milliseconds)
 
 extern const char *x_msg_prefix;
 
-#ifdef USE_PTHREAD
-extern pthread_key_t x_msg_prefix_key;
-#endif
-
 void msg_thread_init (void);
 void msg_thread_uninit (void);
 
 static inline void
 msg_set_prefix (const char *prefix)
 {
-#ifdef USE_PTHREAD
-  if (openvpn_thread_enabled ())
-    {
-      ASSERT (!pthread_setspecific (x_msg_prefix_key, prefix));
-    }
-  else
-#endif
     x_msg_prefix = prefix;
 }
 
 static inline const char *
 msg_get_prefix (void)
 {
-#ifdef USE_PTHREAD
-  if (openvpn_thread_enabled ())
-    return (const char *) pthread_getspecific (x_msg_prefix_key);
-  else
-#endif
     return x_msg_prefix;
 }
 

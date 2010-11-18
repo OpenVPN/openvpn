@@ -40,7 +40,6 @@
 /*#define LIST_TEST*/
 
 #include "basic.h"
-#include "thread.h"
 #include "buffer.h"
 
 #define hashsize(n) ((uint32_t)1<<(n))
@@ -56,7 +55,6 @@ struct hash_element
 
 struct hash_bucket
 {
-  MUTEX_DEFINE (mutex);
   struct hash_element *list;
 };
 
@@ -90,7 +88,7 @@ bool hash_remove_fast (struct hash *hash,
 		       const void *key,
 		       uint32_t hv);
 
-void hash_remove_by_value (struct hash *hash, void *value, bool autolock);
+void hash_remove_by_value (struct hash *hash, void *value);
 
 struct hash_iterator
 {
@@ -100,18 +98,16 @@ struct hash_iterator
   struct hash_element *elem;
   struct hash_element *last;
   bool bucket_marked;
-  bool autolock;
   int bucket_index_start;
   int bucket_index_end;
 };
 
 void hash_iterator_init_range (struct hash *hash,
 			       struct hash_iterator *hi,
-			       bool autolock,
 			       int start_bucket,
 			       int end_bucket);
 
-void hash_iterator_init (struct hash *hash, struct hash_iterator *iter, bool autolock);
+void hash_iterator_init (struct hash *hash, struct hash_iterator *iter);
 struct hash_element *hash_iterator_next (struct hash_iterator *hi);
 void hash_iterator_delete_element (struct hash_iterator *hi);
 void hash_iterator_free (struct hash_iterator *hi);
@@ -149,38 +145,19 @@ hash_bucket (struct hash *hash, uint32_t hv)
   return &hash->buckets[hv & hash->mask];
 }
 
-static inline void
-hash_bucket_lock (struct hash_bucket *bucket)
-{
-  mutex_lock (&bucket->mutex);
-}
-
-static inline void
-hash_bucket_unlock (struct hash_bucket *bucket)
-{
-  mutex_unlock (&bucket->mutex);
-}
-
-static inline void *
-hash_lookup_lock (struct hash *hash, const void *key, uint32_t hv)
-{
-  void *ret = NULL;
-  struct hash_element *he;
-  struct hash_bucket *bucket = &hash->buckets[hv & hash->mask];
-
-  mutex_lock (&bucket->mutex);
-  he = hash_lookup_fast (hash, bucket, key, hv);
-  if (he)
-    ret = he->value;
-  mutex_unlock (&bucket->mutex);
-
-  return ret;
-}
-
 static inline void *
 hash_lookup (struct hash *hash, const void *key)
 {
-  return hash_lookup_lock (hash, key, hash_value (hash, key));
+  void *ret = NULL;
+  struct hash_element *he;
+  uint32_t hv = hash_value (hash, key);
+  struct hash_bucket *bucket = &hash->buckets[hv & hash->mask];
+
+  he = hash_lookup_fast (hash, bucket, key, hv);
+  if (he)
+    ret = he->value;
+
+  return ret;
 }
 
 /* NOTE: assumes that key is not a duplicate */
@@ -211,9 +188,7 @@ hash_remove (struct hash *hash, const void *key)
 
   hv = hash_value (hash, key);
   bucket = &hash->buckets[hv & hash->mask];
-  mutex_lock (&bucket->mutex);
   ret = hash_remove_fast (hash, bucket, key, hv);
-  mutex_unlock (&bucket->mutex);
   return ret;
 }
 

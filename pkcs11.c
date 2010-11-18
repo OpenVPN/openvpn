@@ -982,5 +982,7 @@ cleanup:
 }
 
 #else
+#ifdef _MSC_VER  /* Dummy function needed to avoid empty file compiler warning in Microsoft VC */
 static void dummy (void) {}
+#endif
 #endif /* ENABLE_PKCS11 */

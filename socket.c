@@ -26,7 +26,6 @@
 
 #include "socket.h"
 #include "fdmisc.h"
-#include "thread.h"
 #include "misc.h"
 #include "gremlin.h"
 #include "plugin.h"
@@ -1965,10 +1964,8 @@ print_sockaddr_ex (const struct openvpn_sockaddr *addr,
       struct buffer out = alloc_buf_gc (64, gc);
       const int port = ntohs (addr->sa.sin_port);
 
-      mutex_lock_static (L_INET_NTOA);
       if (!(flags & PS_DONT_SHOW_ADDR))
 	buf_printf (&out, "%s", (addr_defined (addr) ? inet_ntoa (addr->sa.sin_addr) : "[undef]"));
-      mutex_unlock_static (L_INET_NTOA);
 
       if (((flags & PS_SHOW_PORT) || (addr_defined (addr) && (flags & PS_SHOW_PORT_IF_DEFINED)))
 	  && port)
@@ -2030,9 +2027,7 @@ print_in_addr_t (in_addr_t addr, unsigned int flags, struct gc_arena *gc)
       CLEAR (ia);
       ia.s_addr = (flags & IA_NET_ORDER) ? addr : htonl (addr);
 
-      mutex_lock_static (L_INET_NTOA);
       buf_printf (&out, "%s", inet_ntoa (ia));
-      mutex_unlock_static (L_INET_NTOA);
     }
   return BSTR (&out);
 }
@@ -2048,9 +2043,7 @@ setenv_sockaddr (struct env_set *es, const char *name_prefix, const struct openv
   else
     openvpn_snprintf (name_buf, sizeof (name_buf), "%s", name_prefix);
 
-  mutex_lock_static (L_INET_NTOA);
   setenv_str (es, name_buf, inet_ntoa (addr->sa.sin_addr));
-  mutex_unlock_static (L_INET_NTOA);
 
   if ((flags & SA_IP_PORT) && addr->sa.sin_port)
     {

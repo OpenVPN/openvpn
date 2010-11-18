@@ -644,7 +644,7 @@ pf_cn_set_print (const struct pf_cn_set *s, const int lev)
 
       if (s->hash_table)
 	{
-	  hash_iterator_init (s->hash_table, &hi, false);
+	  hash_iterator_init (s->hash_table, &hi);
 	  while ((he = hash_iterator_next (&hi)))
 	    {
 	      struct pf_cn *e = (struct pf_cn *)he->value;

@@ -138,7 +138,6 @@ openvpn_SOURCES = \
 	ssl.c ssl.h \
 	status.c status.h \
 	syshead.h \
-	thread.c thread.h \
 	tun.c tun.h \
 	win32.h win32.c \
 	cryptoapi.h cryptoapi.c
