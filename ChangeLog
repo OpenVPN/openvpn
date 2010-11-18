@@ -1,6 +1,45 @@
 OpenVPN Change Log
 Copyright (C) 2002-2010 OpenVPN Technologies, Inc. <sales@openvpn.net>
 
+2010.11.18 -- Version 2.2-betaX
+
+David Sommerseth (10):
+      Clarified --explicit-exit-notify man page entry
+      Clean-up: Remove pthread and mutex locking code
+      Clean-up: Remove more dead and inactive code paths
+      Clean-up: Removing useless code - hash related functions
+      Use stricter snprintf() formatting in socks_username_password_auth() (v3)
+      Fix compiler warnings about not used dummy() functions
+      Fixed potential misinterpretation of boolean logic
+      Only add some functions when really needed
+      Removed functions not being used anywhere
+      Merged add_bypass_address() and add_host_route_if_nonlocal()
+
+Gert Doering (3):
+      Integrate support for TAP mode on Solaris, written by Kazuyoshi Aizawa <admin2@whiteboard.ne.jp>.
+      Make "topology subnet" work on Solaris
+      Improved man page entry for script_type
+
+James Yonan (5):
+      Fixed initialization bug in route_list_add_default_gateway (Gert Doering).
+      Implement challenge/response authentication support in client mode
+      Make base64.h have the same conditional compilation expression as base64.c.
+      Fixed compiling issues when using --disable-crypto
+      In verify_callback, the subject var should be freed by OPENSSL_free, not free
+
+Jesse Young (1):
+      Remove hardcoded path to resolvconf
+
+Lars Hupel (1):
+      Add HTTP/1.1 Host header
+
+Pierre Bourdon (1):
+      Adding support for SOCKS plain text authentication
+
+Samuli Seppänen (2):
+      Added check for variable CONFIGURE_DEFINES into options.c
+      Added command-line option parser and an unsigned build option to build_all.py
+
 2010.08.21 -- Version 2.2-beta3
 
 * Attempt to fix issue where domake-win build system was not properly
