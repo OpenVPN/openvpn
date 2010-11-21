@@ -1,7 +1,7 @@
 OpenVPN Change Log
 Copyright (C) 2002-2010 OpenVPN Technologies, Inc. <sales@openvpn.net>
 
-2010.11.18 -- Version 2.2-betaX
+2010.11.18 -- Version 2.2-beta4
 
 David Sommerseth (10):
       Clarified --explicit-exit-notify man page entry
