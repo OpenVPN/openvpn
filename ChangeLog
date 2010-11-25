@@ -1,6 +1,11 @@
 OpenVPN Change Log
 Copyright (C) 2002-2010 OpenVPN Technologies, Inc. <sales@openvpn.net>
 
+2010.11.25 -- Version 2.2-beta5
+
+Samuli Seppänen (1):
+      Fixed an issue causing a build failure with MS Visual Studio 2008.
+
 2010.11.18 -- Version 2.2-beta4
 
 David Sommerseth (10):
