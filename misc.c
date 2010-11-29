@@ -174,6 +174,7 @@ run_up_down (const char *command,
 	     const struct plugin_list *plugins,
 	     int plugin_type,
 	     const char *arg,
+	     const char *dev_type,
 	     int tun_mtu,
 	     int link_mtu,
 	     const char *ifconfig_local,
@@ -191,6 +192,8 @@ run_up_down (const char *command,
   setenv_int (es, "tun_mtu", tun_mtu);
   setenv_int (es, "link_mtu", link_mtu);
   setenv_str (es, "dev", arg);
+  if (dev_type)
+    setenv_str (es, "dev_type", dev_type);
 
   if (!ifconfig_local)
     ifconfig_local = "";
