@@ -84,9 +84,9 @@ static HANDLE exit_event = NULL;
 #define CLEAR(x) memset(&(x), 0, sizeof(x))
 
 /* snprintf with guaranteed null termination */
-#define mysnprintf(out, args...) \
+#define mysnprintf(out, ...) \
         { \
-           snprintf (out, sizeof(out), args); \
+           snprintf (out, sizeof(out), __VA_ARGS__); \
            out [sizeof (out) - 1] = '\0'; \
         }
 
@@ -98,10 +98,10 @@ static HANDLE exit_event = NULL;
 #define M_ERR     (MSG_FLAGS_ERROR)                    // error
 
 /* write error to event log */
-#define MSG(flags, args...) \
+#define MSG(flags, ...) \
         { \
            char x_msg[256]; \
-           mysnprintf (x_msg, args); \
+           mysnprintf (x_msg, __VA_ARGS__); \
            AddToMessageLog ((flags), x_msg); \
         }
 
