@@ -3636,6 +3636,14 @@ add_option (struct options *options,
       options->management_flags |= MF_CONNECT_AS_CLIENT;
       options->management_write_peer_info_file = p[1];
     }
+#ifdef MANAGMENT_EXTERNAL_KEY
+  else if (streq (p[0], "management-external-key"))
+    {
+      VERIFY_PERMISSION (OPT_P_GENERAL);
+      options->management_flags |= MF_EXTERNAL_KEY;
+      options->priv_key_file = "EXTERNAL_PRIVATE_KEY";
+    }
+#endif
 #ifdef MANAGEMENT_DEF_AUTH
   else if (streq (p[0], "management-client-auth"))
     {
