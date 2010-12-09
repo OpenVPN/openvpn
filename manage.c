@@ -102,6 +102,10 @@ man_help ()
   msg (M_CLIENT, "client-pf CID          : Define packet filter for client CID (MULTILINE)");
 #endif
 #endif
+#ifdef MANAGMENT_EXTERNAL_KEY
+  msg (M_CLIENT, "rsa-sig                : Enter an RSA signature in response to >RSA_SIGN challenge");
+  msg (M_CLIENT, "                         Enter signature base64 on subsequent lines followed by END");
+#endif
   msg (M_CLIENT, "signal s               : Send signal s to daemon,");
   msg (M_CLIENT, "                         s = SIGHUP|SIGTERM|SIGUSR1|SIGUSR2.");
   msg (M_CLIENT, "state [on|off] [N|all] : Like log, but show state history.");
@@ -768,6 +772,103 @@ man_hold (struct management *man, const char *cmd)
     msg (M_CLIENT, "SUCCESS: hold=%d", BOOL_CAST(man->settings.flags & MF_HOLD));
 }
 
+#ifdef MANAGEMENT_IN_EXTRA
+
+#define IER_RESET      0
+#define IER_NEW        1
+#define IER_CONDRESET  2
+
+static void
+in_extra_reset (struct man_connection *mc, const int mode)
+{
+  if (mc && (mc->in_extra_cmd < IEC_STATEFUL_BASE || mode != IER_CONDRESET))
+    {
+      if (mode != IER_NEW)
+	{
+	  mc->in_extra_cmd = IEC_UNDEF;
+#ifdef MANAGEMENT_DEF_AUTH
+	  mc->in_extra_cid = 0;
+	  mc->in_extra_kid = 0;
+#endif
+	}
+      if (mc->in_extra)
+	{
+	  buffer_list_free (mc->in_extra);
+	  mc->in_extra = NULL;
+	}
+      if (mode == IER_NEW)
+	mc->in_extra = buffer_list_new (0);
+    }
+}
+
+static void
+in_extra_dispatch (struct management *man)
+{
+   switch (man->connection.in_extra_cmd)
+    {
+#ifdef MANAGEMENT_DEF_AUTH
+    case IEC_CLIENT_AUTH:
+       if (man->persist.callback.client_auth)
+	{
+	  const bool status = (*man->persist.callback.client_auth)
+	    (man->persist.callback.arg,
+	     man->connection.in_extra_cid,
+	     man->connection.in_extra_kid,
+	     true,
+	     NULL,
+	     NULL,
+	     man->connection.in_extra);
+	  man->connection.in_extra = NULL;
+	  if (status)
+	    {
+	      msg (M_CLIENT, "SUCCESS: client-auth command succeeded");
+	    }
+	  else
+	    {
+	      msg (M_CLIENT, "ERROR: client-auth command failed");
+	    }
+	}
+      else
+	{
+	  msg (M_CLIENT, "ERROR: The client-auth command is not supported by the current daemon mode");
+	}
+      break;
+#endif
+#ifdef MANAGEMENT_PF
+    case IEC_CLIENT_PF:
+      if (man->persist.callback.client_pf)
+	{
+	  const bool status = (*man->persist.callback.client_pf)
+	    (man->persist.callback.arg,
+	     man->connection.in_extra_cid,
+	     man->connection.in_extra);
+	  man->connection.in_extra = NULL;
+	  if (status)
+	    {
+	      msg (M_CLIENT, "SUCCESS: client-pf command succeeded");
+	    }
+	  else
+	    {
+	      msg (M_CLIENT, "ERROR: client-pf command failed");
+	    }
+	}
+      else
+	{
+	  msg (M_CLIENT, "ERROR: The client-pf command is not supported by the current daemon mode");
+	}
+      break;
+#endif
+#ifdef MANAGMENT_EXTERNAL_KEY
+    case IEC_RSA_SIGN:
+      man->connection.in_extra_cmd = IEC_RSA_SIGN_FINAL;
+      return;
+#endif
+    }
+   in_extra_reset (&man->connection, IER_RESET);
+}
+
+#endif /* MANAGEMENT_IN_EXTRA */
+
 #ifdef MANAGEMENT_DEF_AUTH
 
 static bool
@@ -795,86 +896,6 @@ parse_kid (const char *str, unsigned int *kid)
 }
 
 static void
-in_extra_reset (struct man_connection *mc, const bool new)
-{
-  if (mc)
-    {
-      if (!new)
-	{
-	  mc->in_extra_cmd = IEC_UNDEF;
-	  mc->in_extra_cid = 0;
-	  mc->in_extra_kid = 0;
-	}
-      if (mc->in_extra)
-	{
-	  buffer_list_free (mc->in_extra);
-	  mc->in_extra = NULL;
-	}
-      if (new)
-	mc->in_extra = buffer_list_new (0);
-    }
-}
-
-static void
-in_extra_dispatch (struct management *man)
-{
-   switch (man->connection.in_extra_cmd)
-    {
-    case IEC_CLIENT_AUTH:
-       if (man->persist.callback.client_auth)
-	{
-	  const bool status = (*man->persist.callback.client_auth)
-	    (man->persist.callback.arg,
-	     man->connection.in_extra_cid,
-	     man->connection.in_extra_kid,
-	     true,
-	     NULL,
-	     NULL,
-	     man->connection.in_extra);
-	  man->connection.in_extra = NULL;
-	  if (status)
-	    {
-	      msg (M_CLIENT, "SUCCESS: client-auth command succeeded");
-	    }
-	  else
-	    {
-	      msg (M_CLIENT, "ERROR: client-auth command failed");
-	    }
-	}
-      else
-	{
-	  msg (M_CLIENT, "ERROR: The client-auth command is not supported by the current daemon mode");
-	}
-      break;
-#ifdef MANAGEMENT_PF
-    case IEC_CLIENT_PF:
-      if (man->persist.callback.client_pf)
-	{
-	  const bool status = (*man->persist.callback.client_pf)
-	    (man->persist.callback.arg,
-	     man->connection.in_extra_cid,
-	     man->connection.in_extra);
-	  man->connection.in_extra = NULL;
-	  if (status)
-	    {
-	      msg (M_CLIENT, "SUCCESS: client-pf command succeeded");
-	    }
-	  else
-	    {
-	      msg (M_CLIENT, "ERROR: client-pf command failed");
-	    }
-	}
-      else
-	{
-	  msg (M_CLIENT, "ERROR: The client-pf command is not supported by the current daemon mode");
-	}
-      break;
-#endif
-    }
-   in_extra_reset (&man->connection, false);
-}
-
-static void
 man_client_auth (struct management *man, const char *cid_str, const char *kid_str, const bool extra)
 {
   struct man_connection *mc = &man->connection;
@@ -884,7 +905,7 @@ man_client_auth (struct management *man, const char *cid_str, const char *kid_st
       && parse_kid (kid_str, &mc->in_extra_kid))
     {
       mc->in_extra_cmd = IEC_CLIENT_AUTH;
-      in_extra_reset (mc, true);
+      in_extra_reset (mc, IER_NEW);
       if (!extra)
 	in_extra_dispatch (man);
     }
@@ -980,11 +1001,28 @@ man_client_pf (struct management *man, const char *cid_str)
   if (parse_cid (cid_str, &mc->in_extra_cid))
     {
       mc->in_extra_cmd = IEC_CLIENT_PF;
-      in_extra_reset (mc, true);
+      in_extra_reset (mc, IER_NEW);
     }
 }
 
-#endif
+#endif /* MANAGEMENT_PF */
+#endif /* MANAGEMENT_DEF_AUTH */
+
+#ifdef MANAGMENT_EXTERNAL_KEY
+
+static void
+man_rsa_sig (struct management *man)
+{
+  struct man_connection *mc = &man->connection;
+  if (mc->in_extra_cmd == IEC_RSA_SIGN_PRE)
+    {
+      in_extra_reset (&man->connection, IER_NEW);
+      mc->in_extra_cmd = IEC_RSA_SIGN;
+    }
+  else
+    msg (M_CLIENT, "ERROR: The rsa-sig command is not currently available");
+}
+
 #endif
 
 static void
@@ -1249,6 +1287,12 @@ man_dispatch_command (struct management *man, struct status_output *so, const ch
 	man_client_pf (man, p[1]);
     }
 #endif
+#endif
+#ifdef MANAGMENT_EXTERNAL_KEY
+  else if (streq (p[0], "rsa-sig"))
+    {
+      man_rsa_sig (man);
+    }
 #endif
 #ifdef ENABLE_PKCS11
   else if (streq (p[0], "pkcs11-id-count"))
@@ -1626,8 +1670,8 @@ man_reset_client_socket (struct management *man, const bool exiting)
       man->connection.state = MS_INITIAL;
       command_line_reset (man->connection.in);
       buffer_list_reset (man->connection.out);
-#ifdef MANAGEMENT_DEF_AUTH
-      in_extra_reset (&man->connection, false);
+#ifdef MANAGEMENT_IN_EXTRA
+      in_extra_reset (&man->connection, IER_RESET);
 #endif
       msg (D_MANAGEMENT, "MANAGEMENT: Client disconnected");
     }
@@ -1666,8 +1710,8 @@ man_process_command (struct management *man, const char *line)
 
   CLEAR (parms);
   so = status_open (NULL, 0, -1, &man->persist.vout, 0);
-#ifdef MANAGEMENT_DEF_AUTH
-  in_extra_reset (&man->connection, false);
+#ifdef MANAGEMENT_IN_EXTRA
+  in_extra_reset (&man->connection, IER_CONDRESET);
 #endif
 
   if (man_password_needed (man))
@@ -1751,18 +1795,13 @@ man_read (struct management *man)
 	const unsigned char *line;
 	while ((line = command_line_get (man->connection.in)))
 	  {
-#ifdef MANAGEMENT_DEF_AUTH
+#ifdef MANAGEMENT_IN_EXTRA
 	    if (man->connection.in_extra)
 	      {
 		if (!strcmp ((char *)line, "END"))
-		  {
-		    in_extra_dispatch (man);
-		    in_extra_reset (&man->connection, false);
-		  }
+		  in_extra_dispatch (man);
 		else
-		  {
-		    buffer_list_push (man->connection.in_extra, line);
-		  }
+		  buffer_list_push (man->connection.in_extra, line);
 	      }
 	    else
 #endif
@@ -2063,8 +2102,8 @@ man_connection_close (struct management *man)
     command_line_free (mc->in);
   if (mc->out)
     buffer_list_free (mc->out);
-#ifdef MANAGEMENT_DEF_AUTH
-  in_extra_reset (&man->connection, false);
+#ifdef MANAGEMENT_IN_EXTRA
+  in_extra_reset (&man->connection, IER_RESET);
 #endif
   man_connection_clear (mc);
 }
@@ -2387,7 +2426,7 @@ management_learn_addr (struct management *management,
   gc_free (&gc);
 }
 
-#endif
+#endif /* MANAGEMENT_DEF_AUTH */
 
 void
 management_echo (struct management *man, const char *string, const bool pull)
@@ -2693,6 +2732,7 @@ man_standalone_event_loop (struct management *man, volatile int *signal_received
 
 #define MWCC_PASSWORD_WAIT (1<<0)
 #define MWCC_HOLD_WAIT     (1<<1)
+#define MWCC_OTHER_WAIT    (1<<2)
 
 /*
  * Block until client connects
@@ -2710,6 +2750,8 @@ man_wait_for_client_connection (struct management *man,
 	msg (D_MANAGEMENT, "Need password(s) from management interface, waiting...");
       if (flags & MWCC_HOLD_WAIT)
 	msg (D_MANAGEMENT, "Need hold release from management interface, waiting...");
+      if (flags & MWCC_OTHER_WAIT)
+	msg (D_MANAGEMENT, "Need information from management interface, waiting...");
       do {
 	man_standalone_event_loop (man, signal_received, expire);
 	if (signal_received && *signal_received)
@@ -2872,6 +2914,74 @@ management_query_user_pass (struct management *man,
   gc_free (&gc);
   return ret;
 }
+
+#ifdef MANAGMENT_EXTERNAL_KEY
+
+char * /* returns allocated base64 signature */
+management_query_rsa_sig (struct management *man,
+			  const char *b64_data)
+{
+  struct gc_arena gc = gc_new ();
+  char *ret = NULL;
+  volatile int signal_received = 0;
+  struct buffer alert_msg = clear_buf();
+  struct buffer *buf;
+  const bool standalone_disabled_save = man->persist.standalone_disabled;
+
+  if (man_standalone_ok (man))
+    {
+      man->persist.standalone_disabled = false; /* This is so M_CLIENT messages will be correctly passed through msg() */
+      man->persist.special_state_msg = NULL;
+
+      in_extra_reset (&man->connection, IER_RESET);
+      man->connection.in_extra_cmd = IEC_RSA_SIGN_PRE;
+
+      alert_msg = alloc_buf_gc (strlen(b64_data)+64, &gc);
+      buf_printf (&alert_msg, ">RSA_SIGN:%s", b64_data);
+
+      man_wait_for_client_connection (man, &signal_received, 0, MWCC_OTHER_WAIT);
+
+      if (signal_received)
+	goto done;
+
+      man->persist.special_state_msg = BSTR (&alert_msg);
+      msg (M_CLIENT, "%s", man->persist.special_state_msg);
+
+      /* run command processing event loop until we get our signature */
+      do
+	{
+	  man_standalone_event_loop (man, &signal_received, 0);
+	  if (!signal_received)
+	    man_check_for_signals (&signal_received);
+	  if (signal_received)
+	    goto done;
+	} while (man->connection.in_extra_cmd != IEC_RSA_SIGN_FINAL);
+
+      if (buffer_list_defined(man->connection.in_extra))
+	{
+	  buffer_list_aggregate (man->connection.in_extra, 2000);
+	  buf = buffer_list_peek (man->connection.in_extra);
+	  if (buf && BLEN(buf) > 0)
+	    {
+	      ret = (char *) malloc(BLEN(buf)+1);
+	      check_malloc_return(ret);
+	      memcpy(ret, buf->data, BLEN(buf));
+	      ret[BLEN(buf)] = '\0';
+	    }
+	}
+    }
+
+ done:
+  /* revert state */
+  man->persist.standalone_disabled = standalone_disabled_save;
+  man->persist.special_state_msg = NULL;
+  in_extra_reset (&man->connection, IER_RESET);
+
+  gc_free (&gc);
+  return ret;
+}
+
+#endif
 
 /*
  * Return true if management_hold() would block

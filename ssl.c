@@ -51,6 +51,7 @@
 #include "gremlin.h"
 #include "pkcs11.h"
 #include "list.h"
+#include "base64.h"
 
 #ifdef WIN32
 #include "cryptoapi.h"
@@ -1482,6 +1483,195 @@ info_callback (INFO_CALLBACK_SSL_CONST SSL * s, int where, int ret)
     }
 }
 
+#ifdef MANAGMENT_EXTERNAL_KEY
+
+/* encrypt */
+static int
+rsa_pub_enc(int flen, const unsigned char *from, unsigned char *to, RSA *rsa, int padding)
+{
+  ASSERT(0);
+  return -1;
+}
+
+/* verify arbitrary data */
+static int
+rsa_pub_dec(int flen, const unsigned char *from, unsigned char *to, RSA *rsa, int padding)
+{
+  ASSERT(0);
+  return -1;
+}
+
+/* decrypt */
+static int
+rsa_priv_dec(int flen, const unsigned char *from, unsigned char *to, RSA *rsa, int padding)
+{
+  ASSERT(0);
+  return -1;
+}
+
+/* called at RSA_free */
+static int
+rsa_finish(RSA *rsa)
+{
+  free ((void*)rsa->meth);
+  rsa->meth = NULL;
+  return 1;
+}
+
+/* sign arbitrary data */
+static int
+rsa_priv_enc(int flen, const unsigned char *from, unsigned char *to, RSA *rsa, int padding)
+{
+  /* optional app data in rsa->meth->app_data; */
+  char *in_b64 = NULL;
+  char *out_b64 = NULL;
+  int ret = -1;
+  int len;
+
+  if (padding != RSA_PKCS1_PADDING)
+    {
+      RSAerr (RSA_F_RSA_EAY_PRIVATE_ENCRYPT, RSA_R_UNKNOWN_PADDING_TYPE);
+      goto done;
+    }
+
+  /* convert 'from' to base64 */
+  if (base64_encode (from, flen, &in_b64) <= 0)
+    goto done;
+
+  /* call MI for signature */
+  if (management)
+    out_b64 = management_query_rsa_sig (management, in_b64);
+  if (!out_b64)
+    goto done;
+
+  /* decode base64 signature to binary */
+  len = RSA_size(rsa);
+  ret = base64_decode (out_b64, to, len);
+
+  /* verify length */
+  if (ret != len)
+    ret = -1;
+
+ done:
+  if (in_b64)
+    free (in_b64);
+  if (out_b64)
+    free (out_b64);
+  return ret;
+}
+
+static int
+use_external_private_key (SSL_CTX *ssl_ctx, X509 *cert)
+{
+  RSA *rsa = NULL;
+  RSA *pub_rsa;
+  RSA_METHOD *rsa_meth;
+
+  /* allocate custom RSA method object */
+  ALLOC_OBJ_CLEAR (rsa_meth, RSA_METHOD);
+  rsa_meth->name = "OpenVPN external private key RSA Method";
+  rsa_meth->rsa_pub_enc = rsa_pub_enc;
+  rsa_meth->rsa_pub_dec = rsa_pub_dec;
+  rsa_meth->rsa_priv_enc = rsa_priv_enc;
+  rsa_meth->rsa_priv_dec = rsa_priv_dec;
+  rsa_meth->init = NULL;
+  rsa_meth->finish = rsa_finish;
+  rsa_meth->flags = RSA_METHOD_FLAG_NO_CHECK;
+  rsa_meth->app_data = NULL;
+
+  /* allocate RSA object */
+  rsa = RSA_new();
+  if (rsa == NULL)
+    {
+      SSLerr(SSL_F_SSL_USE_PRIVATEKEY, ERR_R_MALLOC_FAILURE);
+      goto err;
+    }
+
+  /* get the public key */
+  ASSERT(cert->cert_info->key->pkey); /* NULL before SSL_CTX_use_certificate() is called */
+  pub_rsa = cert->cert_info->key->pkey->pkey.rsa;
+
+  /* initialize RSA object */
+  rsa->n = BN_dup(pub_rsa->n);
+  rsa->flags |= RSA_FLAG_EXT_PKEY;
+  if (!RSA_set_method(rsa, rsa_meth))
+    goto err;
+
+  /* bind our custom RSA object to ssl_ctx */
+  if (!SSL_CTX_use_RSAPrivateKey(ssl_ctx, rsa))
+    goto err;
+
+  RSA_free(rsa); /* doesn't necessarily free, just decrements refcount */
+  return 1;
+
+ err:
+  if (rsa)
+    RSA_free(rsa);
+  else
+    {
+      if (rsa_meth)
+	free(rsa_meth);
+    }
+  return 0;
+}
+
+/*
+ * Basically a clone of SSL_CTX_use_certificate_file, but also return
+ * the x509 object.
+ */
+static int
+use_certificate_file(SSL_CTX *ctx, const char *file, int type, X509 **x509)
+{
+  int j;
+  BIO *in;
+  int ret=0;
+  X509 *x=NULL;
+
+  in=BIO_new(BIO_s_file_internal());
+  if (in == NULL)
+    {
+      SSLerr(SSL_F_SSL_CTX_USE_CERTIFICATE_FILE,ERR_R_BUF_LIB);
+      goto end;
+    }
+
+  if (BIO_read_filename(in,file) <= 0)
+    {
+      SSLerr(SSL_F_SSL_CTX_USE_CERTIFICATE_FILE,ERR_R_SYS_LIB);
+      goto end;
+    }
+  if (type == SSL_FILETYPE_ASN1)
+    {
+      j=ERR_R_ASN1_LIB;
+      x=d2i_X509_bio(in,NULL);
+    }
+  else if (type == SSL_FILETYPE_PEM)
+    {
+      j=ERR_R_PEM_LIB;
+      x=PEM_read_bio_X509(in,NULL,ctx->default_passwd_callback,ctx->default_passwd_callback_userdata);
+    }
+  else
+    {
+      SSLerr(SSL_F_SSL_CTX_USE_CERTIFICATE_FILE,SSL_R_BAD_SSL_FILETYPE);
+      goto end;
+    }
+
+  if (x == NULL)
+    {
+      SSLerr(SSL_F_SSL_CTX_USE_CERTIFICATE_FILE,j);
+      goto end;
+    }
+
+  ret=SSL_CTX_use_certificate(ctx,x);
+ end:
+  if (in != NULL)
+    BIO_free(in);
+  if (x509)
+    *x509 = x;
+  return(ret);
+}
+
+#endif
+
 #if ENABLE_INLINE_FILES
 
 static int
@@ -1589,7 +1779,7 @@ use_inline_load_client_CA_file (SSL_CTX *ctx, const char *ca_string)
 }
 
 static int
-use_inline_certificate_file (SSL_CTX *ctx, const char *cert_string)
+use_inline_certificate_file (SSL_CTX *ctx, const char *cert_string, X509 **x509)
 {
   BIO *in = NULL;
   X509 *x = NULL;
@@ -1613,6 +1803,8 @@ use_inline_certificate_file (SSL_CTX *ctx, const char *cert_string)
     X509_free (x);
   if (in)
     BIO_free (in);
+  if (x509)
+    *x509 = x;
   return ret;
 }
 
@@ -1657,6 +1849,7 @@ init_ssl (const struct options *options)
   DH *dh;
   BIO *bio;
   bool using_cert_file = false;
+  X509 *my_cert = NULL;
 
   ERR_clear_error ();
 
@@ -1756,7 +1949,6 @@ init_ssl (const struct options *options)
 		management_auth_failure (management, UP_TYPE_PRIVATE_KEY, NULL);
 #endif
 	      PKCS12_free(p12);
-	      msg (M_INFO, "OpenSSL ERROR code: %d", (ERR_GET_REASON (ERR_peek_error()))); // fixme
 	      goto err;
 	    }
         }
@@ -1824,17 +2016,31 @@ init_ssl (const struct options *options)
 #if ENABLE_INLINE_FILES
 	      if (!strcmp (options->cert_file, INLINE_FILE_TAG) && options->cert_file_inline)
 		{
-		  if (!use_inline_certificate_file (ctx, options->cert_file_inline))
+		  if (!use_inline_certificate_file (ctx, options->cert_file_inline, &my_cert))
 		    msg (M_SSLERR, "Cannot load inline certificate file");
 		}
 	      else
 #endif
 		{
+#ifdef MANAGMENT_EXTERNAL_KEY
+		  if (!use_certificate_file (ctx, options->cert_file, SSL_FILETYPE_PEM, &my_cert))
+#else
 		  if (!SSL_CTX_use_certificate_file (ctx, options->cert_file, SSL_FILETYPE_PEM))
+#endif
 		    msg (M_SSLERR, "Cannot load certificate file %s", options->cert_file);
 		  using_cert_file = true;
 		}
 	    }
+
+#ifdef MANAGMENT_EXTERNAL_KEY
+	  if (options->management_flags & MF_EXTERNAL_KEY)
+	    {
+	      ASSERT (my_cert);
+	      if (!use_external_private_key(ctx, my_cert))
+		msg (M_SSLERR, "Cannot enable SSL external private key capability");
+	    }
+	  else
+#endif
 
 	  /* Load Private Key */
 	  if (options->priv_key_file)
@@ -1967,6 +2173,8 @@ init_ssl (const struct options *options)
 
  err:
   ERR_clear_error ();
+  if (my_cert)
+    X509_free(my_cert);
   if (ctx)
     SSL_CTX_free (ctx);
   return NULL;

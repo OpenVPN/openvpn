@@ -901,7 +901,7 @@ buffer_list_free (struct buffer_list *ol)
 bool
 buffer_list_defined (const struct buffer_list *ol)
 {
-  return ol->head != NULL;
+  return ol && ol->head != NULL;
 }
 
 void

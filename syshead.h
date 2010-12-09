@@ -510,6 +510,21 @@ socket_defined (const socket_descriptor_t sd)
 #endif
 
 /*
+ * Enable external private key
+ */
+#if defined(ENABLE_MANAGEMENT) && defined(USE_SSL)
+#define MANAGMENT_EXTERNAL_KEY
+#endif
+
+/*
+ * MANAGEMENT_IN_EXTRA allows the management interface to
+ * read multi-line inputs from clients.
+ */
+#if defined(MANAGEMENT_DEF_AUTH) || defined(MANAGMENT_EXTERNAL_KEY)
+#define MANAGEMENT_IN_EXTRA
+#endif
+
+/*
  * Enable packet filter?
  */
 #if defined(CONFIGURE_PF) && P2MP_SERVER && defined(ENABLE_PLUGIN) && defined(HAVE_STAT)

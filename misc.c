@@ -1618,7 +1618,7 @@ get_auth_challenge (const char *auth_challenge, struct gc_arena *gc)
       if (!buf_parse(&b, ':', work, len))
 	return NULL;
       ac->user = (char *) gc_malloc (strlen(work)+1, true, gc);
-      base64_decode(work, (void*)ac->user);
+      base64_decode(work, (void*)ac->user, -1);
 
       /* parse challenge text */
       ac->challenge_text = string_alloc(BSTR(&b), gc);
