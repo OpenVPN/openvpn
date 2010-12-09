@@ -232,8 +232,10 @@ plugin_init_item (struct plugin *p, const struct plugin_option *o)
 
   PLUGIN_SYM (open1, "openvpn_plugin_open_v1", 0);
   PLUGIN_SYM (open2, "openvpn_plugin_open_v2", 0);
+  PLUGIN_SYM (open3, "openvpn_plugin_open_v3", 0);
   PLUGIN_SYM (func1, "openvpn_plugin_func_v1", 0);
   PLUGIN_SYM (func2, "openvpn_plugin_func_v2", 0);
+  PLUGIN_SYM (func3, "openvpn_plugin_func_v3", 0);
   PLUGIN_SYM (close, "openvpn_plugin_close_v1", PLUGIN_SYMBOL_REQUIRED);
   PLUGIN_SYM (abort, "openvpn_plugin_abort_v1", 0);
   PLUGIN_SYM (client_constructor, "openvpn_plugin_client_constructor_v1", 0);
@@ -241,10 +243,10 @@ plugin_init_item (struct plugin *p, const struct plugin_option *o)
   PLUGIN_SYM (min_version_required, "openvpn_plugin_min_version_required_v1", 0);
   PLUGIN_SYM (initialization_point, "openvpn_plugin_select_initialization_point_v1", 0);
 
-  if (!p->open1 && !p->open2)
+  if (!p->open1 && !p->open2 && !p->open3)
     msg (M_FATAL, "PLUGIN: symbol openvpn_plugin_open_vX is undefined in plugin: %s", p->so_pathname);
 
-  if (!p->func1 && !p->func2)
+  if (!p->func1 && !p->func2 && !p->func3)
     msg (M_FATAL, "PLUGIN: symbol openvpn_plugin_func_vX is undefined in plugin: %s", p->so_pathname);
 
   /*

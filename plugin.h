@@ -61,8 +61,10 @@ struct plugin {
 
   openvpn_plugin_open_v1 open1;
   openvpn_plugin_open_v2 open2;
+  openvpn_plugin_open_v3 open3;
   openvpn_plugin_func_v1 func1;
   openvpn_plugin_func_v2 func2;
+  openvpn_plugin_func_v3 func3;
   openvpn_plugin_close_v1 close;
   openvpn_plugin_abort_v1 abort;
   openvpn_plugin_client_constructor_v1 client_constructor;
