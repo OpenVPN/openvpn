@@ -298,7 +298,21 @@ plugin_open_item (struct plugin *p,
       /*
        * Call the plugin initialization
        */
-      if (p->open2)
+      if (p->open3) {
+        struct openvpn_plugin_args_open_in args = { .type_mask = p->plugin_type_mask,
+                                                    .argv      = o->argv,
+                                                    .envp      = envp };
+        struct openvpn_plugin_args_open_return retargs;
+
+        CLEAR(retargs);
+        if ((*p->open3)(OPENVPN_PLUGIN_VERSION, &args, &retargs) == OPENVPN_PLUGIN_FUNC_SUCCESS) {
+          p->plugin_type_mask = retargs.type_mask;
+          p->plugin_handle = retargs.handle;
+          retlist = retargs.return_list;
+        } else {
+          p->plugin_handle = NULL;
+        }
+      } else if (p->open2)
 	p->plugin_handle = (*p->open2)(&p->plugin_type_mask, o->argv, envp, retlist);
       else if (p->open1)
 	p->plugin_handle = (*p->open1)(&p->plugin_type_mask, o->argv, envp);
@@ -350,7 +364,18 @@ plugin_call_item (const struct plugin *p,
       /*
        * Call the plugin work function
        */
-      if (p->func2)
+      if (p->func3) {
+        struct openvpn_plugin_args_func_in args = { .type    = type,
+                                                    .argv    = (const char **) a.argv,
+                                                    .envp    = envp,
+                                                    .handle  = p->plugin_handle,
+                                                    .per_client_context = per_client_context };
+        struct openvpn_plugin_args_func_return retargs;
+
+        CLEAR(retargs);
+        status = (*p->func3)(OPENVPN_PLUGIN_VERSION, &args, &retargs);
+        retlist = retargs.return_list;
+      } else if (p->func2)
 	status = (*p->func2)(p->plugin_handle, type, (const char **)a.argv, envp, per_client_context, retlist);
       else if (p->func1)
 	status = (*p->func1)(p->plugin_handle, type, (const char **)a.argv, envp);
