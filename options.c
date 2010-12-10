@@ -5907,7 +5907,8 @@ add_option (struct options *options,
     {
       char *s = p[1];
       VERIFY_PERMISSION (OPT_P_GENERAL);
-      while ((*s = toupper(*s)) != '\0') s++; /* Uppercase if necessary */
+      if( strncmp ("ext:",s,4) != 0 )
+        while ((*s = toupper(*s)) != '\0') s++; /* Uppercase if necessary */
       options->x509_username_field = p[1];
     }
 #endif /* ENABLE_X509ALTUSERNAME */
