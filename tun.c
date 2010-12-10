@@ -3389,6 +3389,7 @@ ipconfig_register_dns (const struct env_set *es)
   bool status;
   const char err[] = "ERROR: Windows ipconfig command failed";
 
+  msg (D_TUNTAP_INFO, "Start net commands...");
   netcmd_semaphore_lock ();
 
   argv_init (&argv);
@@ -3422,6 +3423,7 @@ ipconfig_register_dns (const struct env_set *es)
   argv_reset(&argv);
 
   netcmd_semaphore_release ();
+  msg (D_TUNTAP_INFO, "End net commands...");
 }
 
 void
