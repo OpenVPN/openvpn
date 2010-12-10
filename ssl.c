@@ -1045,7 +1045,7 @@ verify_callback (int preverify_ok, X509_STORE_CTX * ctx)
 		   ctx->error_depth,
 		   subject);
 
-      ret = plugin_call (opt->plugins, OPENVPN_PLUGIN_TLS_VERIFY, &argv, NULL, opt->es);
+      ret = plugin_call (opt->plugins, OPENVPN_PLUGIN_TLS_VERIFY, &argv, NULL, opt->es, ctx->error_depth, ctx->current_cert);
 
       if (ret == OPENVPN_PLUGIN_FUNC_SUCCESS)
 	{
@@ -3701,7 +3701,7 @@ verify_user_pass_plugin (struct tls_session *session, const struct user_pass *up
 #endif
 
       /* call command */
-      retval = plugin_call (session->opt->plugins, OPENVPN_PLUGIN_AUTH_USER_PASS_VERIFY, NULL, NULL, session->opt->es);
+      retval = plugin_call (session->opt->plugins, OPENVPN_PLUGIN_AUTH_USER_PASS_VERIFY, NULL, NULL, session->opt->es, -1, NULL);
 
 #ifdef PLUGIN_DEF_AUTH
       /* purge auth control filename (and file itself) for non-deferred returns */
@@ -4230,7 +4230,7 @@ key_method_2_read (struct buffer *buf, struct tls_multi *multi, struct tls_sessi
    */
   if (ks->authenticated && plugin_defined (session->opt->plugins, OPENVPN_PLUGIN_TLS_FINAL))
     {
-      if (plugin_call (session->opt->plugins, OPENVPN_PLUGIN_TLS_FINAL, NULL, NULL, session->opt->es) != OPENVPN_PLUGIN_FUNC_SUCCESS)
+      if (plugin_call (session->opt->plugins, OPENVPN_PLUGIN_TLS_FINAL, NULL, NULL, session->opt->es, -1, NULL) != OPENVPN_PLUGIN_FUNC_SUCCESS)
 	ks->authenticated = false;
     }
 

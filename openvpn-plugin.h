@@ -22,6 +22,8 @@
  *  59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
+#include <openssl/x509v3.h>
+
 #define OPENVPN_PLUGIN_VERSION 3
 
 /*
@@ -243,6 +245,9 @@ struct openvpn_plugin_args_open_return
  * *per_client_context : the per-client context pointer which was returned by
  *        openvpn_plugin_client_constructor_v1, if defined.
  *
+ * current_cert_depth : Certificate depth of the certificate being passed over
+ *
+ * *current_cert : X509 Certificate object received from the client
  *
  */
 struct openvpn_plugin_args_func_in
@@ -252,6 +257,8 @@ struct openvpn_plugin_args_func_in
   const char const **envp;
   openvpn_plugin_handle_t handle;
   void *per_client_context;
+  int current_cert_depth;
+  X509 *current_cert;
 };
 
 

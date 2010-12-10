@@ -213,7 +213,7 @@ run_up_down (const char *command,
 		   ifconfig_local, ifconfig_remote,
 		   context);
 
-      if (plugin_call (plugins, plugin_type, &argv, NULL, es) != OPENVPN_PLUGIN_FUNC_SUCCESS)
+      if (plugin_call (plugins, plugin_type, &argv, NULL, es, -1, NULL) != OPENVPN_PLUGIN_FUNC_SUCCESS)
 	msg (M_FATAL, "ERROR: up/down plugin call failed");
 
       argv_reset (&argv);
