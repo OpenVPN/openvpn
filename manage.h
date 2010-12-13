@@ -268,17 +268,21 @@ struct man_connection {
 # define IEC_UNDEF       0
 # define IEC_CLIENT_AUTH 1
 # define IEC_CLIENT_PF   2
-
-# define IEC_STATEFUL_BASE  16
-# define IEC_RSA_SIGN_PRE   16
-# define IEC_RSA_SIGN       17
-# define IEC_RSA_SIGN_FINAL 18
+# define IEC_RSA_SIGN    3
   int in_extra_cmd;
   struct buffer_list *in_extra;
 #ifdef MANAGEMENT_DEF_AUTH
   unsigned long in_extra_cid;
   unsigned int in_extra_kid;
   int env_filter_level;
+#endif
+#ifdef MANAGMENT_EXTERNAL_KEY
+# define EKS_UNDEF   0
+# define EKS_SOLICIT 1
+# define EKS_INPUT   2
+# define EKS_READY   3
+  int ext_key_state;
+  struct buffer_list *ext_key_input;
 #endif
 #endif
   struct event_set *es;
