@@ -375,3 +375,11 @@ process_signal (struct context *c)
     }
   return ret;
 }
+
+void
+register_signal (struct context *c, int sig, const char *text)
+{
+  if (c->sig->signal_received != SIGTERM)
+    c->sig->signal_received = sig;
+  c->sig->signal_text = text;
+}

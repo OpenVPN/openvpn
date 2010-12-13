@@ -776,12 +776,11 @@ man_hold (struct management *man, const char *cmd)
 
 #define IER_RESET      0
 #define IER_NEW        1
-#define IER_CONDRESET  2
 
 static void
 in_extra_reset (struct man_connection *mc, const int mode)
 {
-  if (mc && (mc->in_extra_cmd < IEC_STATEFUL_BASE || mode != IER_CONDRESET))
+  if (mc)
     {
       if (mode != IER_NEW)
 	{
@@ -860,7 +859,10 @@ in_extra_dispatch (struct management *man)
 #endif
 #ifdef MANAGMENT_EXTERNAL_KEY
     case IEC_RSA_SIGN:
-      man->connection.in_extra_cmd = IEC_RSA_SIGN_FINAL;
+      man->connection.ext_key_state = EKS_READY;
+      buffer_list_free (man->connection.ext_key_input);
+      man->connection.ext_key_input = man->connection.in_extra;
+      man->connection.in_extra = NULL;
       return;
 #endif
     }
@@ -1014,10 +1016,11 @@ static void
 man_rsa_sig (struct management *man)
 {
   struct man_connection *mc = &man->connection;
-  if (mc->in_extra_cmd == IEC_RSA_SIGN_PRE)
+  if (mc->ext_key_state == EKS_SOLICIT)
     {
-      in_extra_reset (&man->connection, IER_NEW);
+      mc->ext_key_state = EKS_INPUT;
       mc->in_extra_cmd = IEC_RSA_SIGN;
+      in_extra_reset (mc, IER_NEW);
     }
   else
     msg (M_CLIENT, "ERROR: The rsa-sig command is not currently available");
@@ -1711,7 +1714,7 @@ man_process_command (struct management *man, const char *line)
   CLEAR (parms);
   so = status_open (NULL, 0, -1, &man->persist.vout, 0);
 #ifdef MANAGEMENT_IN_EXTRA
-  in_extra_reset (&man->connection, IER_CONDRESET);
+  in_extra_reset (&man->connection, IER_RESET);
 #endif
 
   if (man_password_needed (man))
@@ -2104,6 +2107,9 @@ man_connection_close (struct management *man)
     buffer_list_free (mc->out);
 #ifdef MANAGEMENT_IN_EXTRA
   in_extra_reset (&man->connection, IER_RESET);
+#endif
+#ifdef MANAGMENT_EXTERNAL_KEY
+  buffer_list_free (mc->ext_key_input);
 #endif
   man_connection_clear (mc);
 }
@@ -2927,14 +2933,14 @@ management_query_rsa_sig (struct management *man,
   struct buffer alert_msg = clear_buf();
   struct buffer *buf;
   const bool standalone_disabled_save = man->persist.standalone_disabled;
+  struct man_connection *mc = &man->connection;
 
   if (man_standalone_ok (man))
     {
       man->persist.standalone_disabled = false; /* This is so M_CLIENT messages will be correctly passed through msg() */
       man->persist.special_state_msg = NULL;
 
-      in_extra_reset (&man->connection, IER_RESET);
-      man->connection.in_extra_cmd = IEC_RSA_SIGN_PRE;
+      mc->ext_key_state = EKS_SOLICIT;
 
       alert_msg = alloc_buf_gc (strlen(b64_data)+64, &gc);
       buf_printf (&alert_msg, ">RSA_SIGN:%s", b64_data);
@@ -2955,12 +2961,12 @@ management_query_rsa_sig (struct management *man,
 	    man_check_for_signals (&signal_received);
 	  if (signal_received)
 	    goto done;
-	} while (man->connection.in_extra_cmd != IEC_RSA_SIGN_FINAL);
+	} while (mc->ext_key_state != EKS_READY);
 
-      if (buffer_list_defined(man->connection.in_extra))
+      if (buffer_list_defined(mc->ext_key_input))
 	{
-	  buffer_list_aggregate (man->connection.in_extra, 2000);
-	  buf = buffer_list_peek (man->connection.in_extra);
+	  buffer_list_aggregate (mc->ext_key_input, 2048);
+	  buf = buffer_list_peek (mc->ext_key_input);
 	  if (buf && BLEN(buf) > 0)
 	    {
 	      ret = (char *) malloc(BLEN(buf)+1);
@@ -2972,10 +2978,18 @@ management_query_rsa_sig (struct management *man,
     }
 
  done:
+  if (mc->ext_key_state == EKS_READY && ret)
+    msg (M_CLIENT, "SUCCESS: rsa-sig command succeeded");
+  else if (mc->ext_key_state == EKS_INPUT || mc->ext_key_state == EKS_READY)
+    msg (M_CLIENT, "ERROR: rsa-sig command failed");
+
   /* revert state */
   man->persist.standalone_disabled = standalone_disabled_save;
   man->persist.special_state_msg = NULL;
-  in_extra_reset (&man->connection, IER_RESET);
+  in_extra_reset (mc, IER_RESET);
+  mc->ext_key_state = EKS_UNDEF;
+  buffer_list_free (mc->ext_key_input);
+  mc->ext_key_input = NULL;
 
   gc_free (&gc);
   return ret;

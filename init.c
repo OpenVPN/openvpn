@@ -1163,7 +1163,6 @@ initialization_sequence_completed (struct context *c, const unsigned int flags)
 	management_post_tunnel_open (management, tun_local);
     }
 #endif
-
 }
 
 /*

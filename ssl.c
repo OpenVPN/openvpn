@@ -1500,6 +1500,8 @@ use_certificate_file(SSL_CTX *ctx, const char *file, int type, X509 **x509)
     BIO_free(in);
   if (x509)
     *x509 = x;
+  else if (x)
+    X509_free (x);
   return(ret);
 }
 
@@ -1632,12 +1634,12 @@ use_inline_certificate_file (SSL_CTX *ctx, const char *cert_string, X509 **x509)
   ret = SSL_CTX_use_certificate(ctx, x);
 
  end:
-  if (x)
-    X509_free (x);
   if (in)
     BIO_free (in);
   if (x509)
     *x509 = x;
+  else if (x)
+    X509_free (x);
   return ret;
 }
 
@@ -1995,17 +1997,19 @@ init_ssl (const struct options *options)
 	msg (M_SSLERR, "Problem with cipher list: %s", options->cipher_list);
     }
 
-  ERR_clear_error ();
-
-  return ctx;
-
- err:
+ done:
   ERR_clear_error ();
   if (my_cert)
     X509_free(my_cert);
+  return ctx;
+
+ err:
   if (ctx)
-    SSL_CTX_free (ctx);
-  return NULL;
+    {
+      SSL_CTX_free (ctx);
+      ctx = NULL;
+    }
+  goto done;
 }
 
 /*

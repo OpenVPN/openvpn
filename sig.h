@@ -64,6 +64,8 @@ void signal_restart_status (const struct signal_info *si);
 
 bool process_signal (struct context *c);
 
+void register_signal (struct context *c, int sig, const char *text);
+
 #ifdef ENABLE_OCC
 void process_explicit_exit_notification_timer_wakeup (struct context *c);
 #endif
