@@ -506,7 +506,7 @@ redirect_stdout_stderr (const char *file, bool append)
       
       /* open log_handle as FILE stream */
       ASSERT (msgfp == NULL);
-      msgfp = _fdopen (log_fd, "w");
+      msgfp = _fdopen (log_fd, "wt");
       if (msgfp == NULL)
 	msg (M_ERR, "Error: --log redirect failed due to _fdopen");
 
