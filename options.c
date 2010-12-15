@@ -506,8 +506,10 @@ static const char usage_message[] =
   "--key file      : Local private key in .pem format.\n"
   "--pkcs12 file   : PKCS#12 file containing local private key, local certificate\n"
   "                  and optionally the root CA certificate.\n"
+#ifdef ENABLE_X509ALTUSERNAME
   "--x509-username-field : Field used in x509 certificat to be username.\n"
   "                        Default is CN.\n"
+#endif
 #ifdef WIN32
   "--cryptoapicert select-string : Load the certificate and private key from the\n"
   "                  Windows Certificate System Store.\n"
@@ -761,7 +763,9 @@ init_options (struct options *o, const bool init_gc)
   o->renegotiate_seconds = 3600;
   o->handshake_window = 60;
   o->transition_window = 3600;
+#ifdef ENABLE_X509ALTUSERNAME
   o->x509_username_field = X509_USERNAME_FIELD_DEFAULT;
+#endif
 #endif
 #endif
 #ifdef ENABLE_PKCS11
@@ -5898,6 +5902,7 @@ add_option (struct options *options,
 	}
       options->key_method = key_method;
     }
+#ifdef ENABLE_X509ALTUSERNAME
   else if (streq (p[0], "x509-username-field") && p[1])
     {
       char *s = p[1];
@@ -5905,6 +5910,7 @@ add_option (struct options *options,
       while ((*s = toupper(*s)) != '\0') s++; /* Uppercase if necessary */
       options->x509_username_field = p[1];
     }
+#endif /* ENABLE_X509ALTUSERNAME */
 #endif /* USE_SSL */
 #endif /* USE_CRYPTO */
 #ifdef ENABLE_PKCS11

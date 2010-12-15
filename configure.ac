@@ -80,6 +80,12 @@ AC_ARG_ENABLE(ssl,
    [SSL="yes"]
 )
 
+AC_ARG_ENABLE(x509-alt-username,
+   [  --enable-x509-alt-username    Enable the --x509-username-field feature],
+   [X509ALTUSERNAME="$enableval"],
+   [X509ALTUSERNAME="no"]
+)
+
 AC_ARG_ENABLE(multi,
    [  --disable-multi         Disable client/server support (--mode server + client mode)],
    [MULTI="$enableval"],
@@ -749,6 +755,11 @@ dnl
 
       AC_DEFINE(USE_SSL, 1, [Use OpenSSL SSL library])
    fi
+fi
+
+dnl enable --x509-username-field feature if requested
+if test "$X509ALTUSERNAME" = "yes"; then
+   AC_DEFINE(ENABLE_X509ALTUSERNAME, 1, [Enable --x509-username-field feature])
 fi
 
 dnl enable pkcs11 capability
