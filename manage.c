@@ -2274,14 +2274,17 @@ env_filter_match (const char *env_str, const int env_filter_level)
     "bytes_sent=",
     "bytes_received="
   };
-  if (env_filter_level >= 1)
+
+  if (env_filter_level >= 2 && !strncmp(env_str, "X509_", 5))
+    return true;
+  else if (env_filter_level >= 1)
     {
       size_t i;
       for (i = 0; i < SIZE(env_names); ++i)
 	{
 	  const char *en = env_names[i];
 	  const size_t len = strlen(en);
-	  if (strncmp(env_str, en, len) == 0)
+	  if (!strncmp(env_str, en, len))
 	    return true;
 	}
       return false;

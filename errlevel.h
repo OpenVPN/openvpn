@@ -104,6 +104,7 @@
 #define D_PACKET_TRUNC_ERR   LOGLEV(4, 55, 0)        /* PACKET_TRUNCATION_CHECK */
 #define D_PF_DROPPED         LOGLEV(4, 56, 0)        /* packet filter dropped a packet */
 #define D_MULTI_DROPPED      LOGLEV(4, 57, 0)        /* show point-to-multipoint packet drops */
+#define D_X509_ATTR          LOGLEV(4, 58, 0)        /* show x509-track attributes on connection */
 
 #define D_LOG_RW             LOGLEV(5, 0,  0)        /* Print 'R' or 'W' to stdout for read/write */
 

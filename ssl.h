@@ -402,6 +402,21 @@ struct key_state
 #endif
 };
 
+#ifdef ENABLE_X509_TRACK
+
+struct x509_track
+{
+  const struct x509_track *next;
+  const char *name;
+# define XT_FULL_CHAIN (1<<0)
+  unsigned int flags;
+  int nid;
+};
+
+void x509_track_add (const struct x509_track **ll_head, const char *name, int msglevel, struct gc_arena *gc);
+
+#endif
+
 /*
  * Our const options, obtained directly or derived from
  * command line options.
@@ -492,6 +507,10 @@ struct tls_options
 
 #ifdef MANAGEMENT_DEF_AUTH
   struct man_def_auth_context *mda_context;
+#endif
+
+#ifdef ENABLE_X509_TRACK
+  const struct x509_track *x509_track;
 #endif
 
   /* --gremlin bits */

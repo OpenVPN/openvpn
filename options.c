@@ -540,6 +540,8 @@ static const char usage_message[] =
   "                  of verification.\n"
   "--ns-cert-type t: Require that peer certificate was signed with an explicit\n"
   "                  nsCertType designation t = 'client' | 'server'.\n"
+  "--x509-track x  : Save peer X509 attribute x in environment for use by\n"
+  "                  plugins and management interface.\n"
 #if OPENSSL_VERSION_NUMBER >= 0x00907000L
   "--remote-cert-ku v ... : Require that the peer certificate was signed with\n"
   "                  explicit key usage, you can specify more than one value.\n"
@@ -3649,6 +3651,13 @@ add_option (struct options *options,
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->management_flags |= MF_CLIENT_AUTH;
+    }
+#endif
+#ifdef ENABLE_X509_TRACK
+  else if (streq (p[0], "x509-track") && p[1])
+    {
+      VERIFY_PERMISSION (OPT_P_GENERAL);
+      x509_track_add (&options->x509_track, p[1], msglevel, &options->gc);
     }
 #endif
 #ifdef MANAGEMENT_PF

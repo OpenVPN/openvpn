@@ -608,6 +608,13 @@ socket_defined (const socket_descriptor_t sd)
 #endif
 
 /*
+ * Enable x509-track feature?
+ */
+#if defined(USE_CRYPTO) && defined(USE_SSL)
+#define ENABLE_X509_TRACK
+#endif
+
+/*
  * Is poll available on this platform?
  */
 #if defined(HAVE_POLL) && defined(HAVE_SYS_POLL_H)

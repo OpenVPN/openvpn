@@ -532,6 +532,10 @@ struct options
 #endif /* USE_SSL */
 #endif /* USE_CRYPTO */
 
+#ifdef ENABLE_X509_TRACK
+  const struct x509_track *x509_track;
+#endif
+
   /* special state parms */
   int foreign_option_index;
 

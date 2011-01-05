@@ -518,6 +518,99 @@ extract_x509_field_ssl (X509_NAME *x509, const char *field_name, char *out, int 
   }
 }
 
+#ifdef ENABLE_X509_TRACK
+/*
+ * setenv_x509_track function -- save X509 fields to environment,
+ * using the naming convention:
+ *
+ *  X509_{cert_depth}_{name}={value}
+ *
+ * This function differs from setenv_x509 below in the following ways:
+ *
+ * (1) Only explicitly named attributes in xt are saved, per usage
+ *     of --x509-track program options.
+ * (2) Only the level 0 cert info is saved unless the XT_FULL_CHAIN
+ *     flag is set in xt->flags (corresponds with prepending a '+'
+ *     to the name when specified by --x509-track program option).
+ * (3) This function supports both X509 subject name fields as
+ *     well as X509 V3 extensions.
+ */
+
+/* worker method for setenv_x509_track */
+static void
+do_setenv_x509 (struct env_set *es, const char *name, char *value, int depth)
+{
+  char *name_expand;
+  size_t name_expand_size;
+
+  string_mod (value, CC_ANY, CC_CRLF, '?');
+  msg (D_X509_ATTR, "X509 ATTRIBUTE name='%s' value='%s' depth=%d", name, value, depth);
+  name_expand_size = 64 + strlen (name);
+  name_expand = (char *) malloc (name_expand_size);
+  check_malloc_return (name_expand);
+  openvpn_snprintf (name_expand, name_expand_size, "X509_%d_%s", depth, name);
+  setenv_str (es, name_expand, value);
+  free (name_expand);
+}
+
+static void
+setenv_x509_track (const struct x509_track *xt, struct env_set *es, const int depth, X509 *x509)
+{
+  X509_NAME *x509_name = X509_get_subject_name (x509);
+  const char nullc = '\0';
+  int i;
+
+  while (xt)
+    {
+      if (depth == 0 || (xt->flags & XT_FULL_CHAIN))
+	{
+	  i = X509_NAME_get_index_by_NID(x509_name, xt->nid, -1);
+	  if (i >= 0)
+	    {
+	      X509_NAME_ENTRY *ent = X509_NAME_get_entry(x509_name, i);
+	      if (ent)
+		{
+		  ASN1_STRING *val = X509_NAME_ENTRY_get_data (ent);
+		  unsigned char *buf;
+		  buf = (unsigned char *)1; /* bug in OpenSSL 0.9.6b ASN1_STRING_to_UTF8 requires this workaround */
+		  if (ASN1_STRING_to_UTF8 (&buf, val) > 0)
+		    {
+		      do_setenv_x509(es, xt->name, (char *)buf, depth);
+		      OPENSSL_free (buf);
+		    }
+		}
+	    }
+	  else
+	    {
+	      i = X509_get_ext_by_NID(x509, xt->nid, -1);
+	      if (i >= 0)
+		{
+		  X509_EXTENSION *ext = X509_get_ext(x509, i);
+		  if (ext)
+		    {
+		      BIO *bio = BIO_new(BIO_s_mem());
+		      if (bio)
+			{
+			  if (X509V3_EXT_print(bio, ext, 0, 0))
+			    {
+			      if (BIO_write(bio, &nullc, 1) == 1)
+				{
+				  char *str;
+				  BIO_get_mem_data(bio, &str);
+				  do_setenv_x509(es, xt->name, str, depth);
+				}
+			    }
+			  BIO_free(bio);
+			}
+		    }
+		}
+	    }
+	}
+      xt = xt->next;
+    }
+}
+#endif
+
 /*
  * Save X509 fields to environment, using the naming convention:
  *
@@ -751,7 +844,12 @@ verify_callback (int preverify_ok, X509_STORE_CTX * ctx)
     }
 
   /* Save X509 fields in environment */
-  setenv_x509 (opt->es, ctx->error_depth, X509_get_subject_name (ctx->current_cert));
+#ifdef ENABLE_X509_TRACK
+  if (opt->x509_track)
+    setenv_x509_track (opt->x509_track, opt->es, ctx->error_depth, ctx->current_cert);
+  else
+#endif
+    setenv_x509 (opt->es, ctx->error_depth, X509_get_subject_name (ctx->current_cert));
 
   /* enforce character class restrictions in X509 name */
   string_mod_sslname (subject, X509_NAME_CHAR_CLASS, opt->ssl_flags);
@@ -1065,6 +1163,31 @@ tls_lock_username (struct tls_multi *multi, const char *username)
     }
   return true;
 }
+
+#ifdef ENABLE_X509_TRACK
+
+void
+x509_track_add (const struct x509_track **ll_head, const char *name, int msglevel, struct gc_arena *gc)
+{
+  struct x509_track *xt;
+  ALLOC_OBJ_CLEAR_GC (xt, struct x509_track, gc);
+  if (*name == '+')
+    {
+      xt->flags |= XT_FULL_CHAIN;
+      ++name;
+    }
+  xt->name = name;
+  xt->nid = OBJ_txt2nid(name);
+  if (xt->nid != NID_undef)
+    {
+      xt->next = *ll_head;
+      *ll_head = xt;
+    }
+  else
+    msg(msglevel, "x509_track: no such attribute '%s'", name);
+}
+
+#endif
 
 #ifdef ENABLE_DEF_AUTH
 /* key_state_test_auth_control_file return values,

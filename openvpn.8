@@ -4311,6 +4311,18 @@ works in a
 environment too.
 .\"*********************************************************
 .TP
+.B --x509-track attribute
+Save peer X509
+.B attribute
+value in environment for use by plugins and management interface.
+Prepend a '+' to
+.B attribute
+to save values from full cert chain.  Values will be encoded
+as X509_<depth>_<attribute>=<value>.  Multiple
+.B --x509-track
+options can be defined to track multiple attributes.
+.\"*********************************************************
+.TP
 .B --ns-cert-type client|server
 Require that peer certificate was signed with an explicit
 .B nsCertType

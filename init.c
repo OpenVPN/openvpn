@@ -2049,6 +2049,10 @@ do_init_crypto_tls (struct context *c, const unsigned int flags)
     to.client_config_dir_exclusive = options->client_config_dir;
 #endif
 
+#ifdef ENABLE_X509_TRACK
+  to.x509_track = options->x509_track;
+#endif
+
   /* TLS handshake authentication (--tls-auth) */
   if (options->tls_auth_file)
     {
