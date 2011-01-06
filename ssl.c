@@ -1909,7 +1909,7 @@ init_ssl (const struct options *options)
 static void
 print_details (SSL * c_ssl, const char *prefix)
 {
-  SSL_CIPHER *ciph;
+  const SSL_CIPHER *ciph;
   X509 *cert;
   char s1[256];
   char s2[256];
