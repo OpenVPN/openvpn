@@ -305,7 +305,7 @@ plugin_open_item (struct plugin *p,
         struct openvpn_plugin_args_open_return retargs;
 
         CLEAR(retargs);
-        if ((*p->open3)(OPENVPN_PLUGIN_VERSION, &args, &retargs) == OPENVPN_PLUGIN_FUNC_SUCCESS) {
+        if ((*p->open3)(OPENVPN_PLUGINv3_STRUCTVER, &args, &retargs) == OPENVPN_PLUGIN_FUNC_SUCCESS) {
           p->plugin_type_mask = retargs.type_mask;
           p->plugin_handle = retargs.handle;
           retlist = retargs.return_list;
@@ -377,7 +377,7 @@ plugin_call_item (const struct plugin *p,
         struct openvpn_plugin_args_func_return retargs;
 
         CLEAR(retargs);
-        status = (*p->func3)(OPENVPN_PLUGIN_VERSION, &args, &retargs);
+        status = (*p->func3)(OPENVPN_PLUGINv3_STRUCTVER, &args, &retargs);
         retlist = retargs.return_list;
       } else if (p->func2)
 	status = (*p->func2)(p->plugin_handle, type, (const char **)a.argv, envp, per_client_context, retlist);

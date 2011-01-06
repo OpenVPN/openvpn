@@ -72,14 +72,14 @@ get_env (const char *name, const char *envp[])
 }
 
 OPENVPN_EXPORT int
-openvpn_plugin_open_v3 (const int apiver,
+openvpn_plugin_open_v3 (const int v3structver,
                         struct openvpn_plugin_args_open_in const *args,
                         struct openvpn_plugin_args_open_return *ret)
 {
   struct plugin_context *context = NULL;
 
   /* Check that we are API compatible */
-  if( apiver != OPENVPN_PLUGIN_VERSION ) {
+  if( v3structver != OPENVPN_PLUGINv3_STRUCTVER ) {
     return OPENVPN_PLUGIN_FUNC_ERROR;
   }
 

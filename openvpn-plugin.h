@@ -168,6 +168,20 @@ struct openvpn_plugin_string_list
 
 /* openvpn_plugin_{open,func}_v3() related structs */
 
+/* Defines version of the v3 plugin argument structs
+ *
+ * Whenever one or more of these structs are modified, this constant
+ * must be updated.  A changelog should be appended in this comment
+ * as well, to make it easier to see what information is available
+ * in the different versions.
+ *
+ * Version   Comment
+ *    1      Initial plugin v3 structures providing the same API as
+ *           the v2 plugin interface + X509 certificate information.
+ *
+ */
+#define OPENVPN_PLUGINv3_STRUCTVER 1
+
 /**
  * Arguments used to transport variables to the plug-in.
  * The struct openvpn_plugin_args_open_in is only used
