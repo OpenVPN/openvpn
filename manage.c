@@ -2252,8 +2252,6 @@ management_set_state (struct management *man,
     }
 }
 
-#ifdef MANAGEMENT_DEF_AUTH
-
 static bool
 env_filter_match (const char *env_str, const int env_filter_level)
 {
@@ -2275,9 +2273,11 @@ env_filter_match (const char *env_str, const int env_filter_level)
     "bytes_received="
   };
 
-  if (env_filter_level >= 2 && !strncmp(env_str, "X509_", 5))
+  if (env_filter_level == 0)
     return true;
-  else if (env_filter_level >= 1)
+  else if (env_filter_level <= 1 && !strncmp(env_str, "X509_", 5))
+    return true;
+  else if (env_filter_level <= 2)
     {
       size_t i;
       for (i = 0; i < SIZE(env_names); ++i)
@@ -2289,12 +2289,11 @@ env_filter_match (const char *env_str, const int env_filter_level)
 	}
       return false;
     }
-  else
-    return true;
+  return false;
 }
 
 static void
-man_output_env (const struct env_set *es, const bool tail, const int env_filter_level)
+man_output_env (const struct env_set *es, const bool tail, const int env_filter_level, const char *prefix)
 {
   if (es)
     {
@@ -2302,15 +2301,15 @@ man_output_env (const struct env_set *es, const bool tail, const int env_filter_
       for (e = es->list; e != NULL; e = e->next)
 	{
 	  if (e->string && (!env_filter_level || env_filter_match(e->string, env_filter_level)))
-	    msg (M_CLIENT, ">CLIENT:ENV,%s", e->string);
+	    msg (M_CLIENT, ">%s:ENV,%s", prefix, e->string);
 	}
     }
   if (tail)
-    msg (M_CLIENT, ">CLIENT:ENV,END");
+    msg (M_CLIENT, ">%s:ENV,END", prefix);
 }
 
 static void
-man_output_extra_env (struct management *man)
+man_output_extra_env (struct management *man, const char *prefix)
 {
   struct gc_arena gc = gc_new ();
   struct env_set *es = env_set_create (&gc);
@@ -2319,9 +2318,21 @@ man_output_extra_env (struct management *man)
       const int nclients = (*man->persist.callback.n_clients) (man->persist.callback.arg);
       setenv_int (es, "n_clients", nclients);
     }
-  man_output_env (es, false, man->connection.env_filter_level);
+  man_output_env (es, false, man->connection.env_filter_level, prefix);
   gc_free (&gc);
 }
+
+void
+management_up_down(struct management *man, const char *updown, const struct env_set *es)
+{
+  if (man->settings.flags & MF_UP_DOWN)
+    {
+      msg (M_CLIENT, ">UPDOWN:%s", updown);
+      man_output_env (es, true, 0, "UPDOWN");
+    }
+}
+
+#ifdef MANAGEMENT_DEF_AUTH
 
 static bool
 validate_peer_info_line(const char *line)
@@ -2387,9 +2398,9 @@ management_notify_client_needing_auth (struct management *management,
       if (mdac->flags & DAF_CONNECTION_ESTABLISHED)
 	mode = "REAUTH";
       msg (M_CLIENT, ">CLIENT:%s,%lu,%u", mode, mdac->cid, mda_key_id);
-      man_output_extra_env (management);
+      man_output_extra_env (management, "CLIENT");
       man_output_peer_info_env(management, mdac);
-      man_output_env (es, true, management->connection.env_filter_level);
+      man_output_env (es, true, management->connection.env_filter_level, "CLIENT");
       mdac->flags |= DAF_INITIAL_AUTH;
     }
 }
@@ -2401,8 +2412,8 @@ management_connection_established (struct management *management,
 {
   mdac->flags |= DAF_CONNECTION_ESTABLISHED;
   msg (M_CLIENT, ">CLIENT:ESTABLISHED,%lu", mdac->cid);
-  man_output_extra_env (management);
-  man_output_env (es, true, management->connection.env_filter_level);
+  man_output_extra_env (management, "CLIENT");
+  man_output_env (es, true, management->connection.env_filter_level, "CLIENT");
 }
 
 void
@@ -2413,7 +2424,7 @@ management_notify_client_close (struct management *management,
   if ((mdac->flags & DAF_INITIAL_AUTH) && !(mdac->flags & DAF_CONNECTION_CLOSED))
     {
       msg (M_CLIENT, ">CLIENT:DISCONNECT,%lu", mdac->cid);
-      man_output_env (es, true, management->connection.env_filter_level);
+      man_output_env (es, true, management->connection.env_filter_level, "CLIENT");
       mdac->flags |= DAF_CONNECTION_CLOSED;
     }
 }

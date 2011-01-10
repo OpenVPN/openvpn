@@ -332,6 +332,7 @@ struct management *management_init (void);
 #ifdef MANAGMENT_EXTERNAL_KEY
 # define MF_EXTERNAL_KEY    (1<<9)
 #endif
+#define MF_UP_DOWN          (1<<10)
 
 bool management_open (struct management *man,
 		      const char *addr,
@@ -371,6 +372,8 @@ bool management_would_hold (struct management *man);
 bool management_hold (struct management *man);
 
 void management_event_loop_n_seconds (struct management *man, int sec);
+
+void management_up_down(struct management *man, const char *updown, const struct env_set *es);
 
 #ifdef MANAGEMENT_DEF_AUTH
 void management_notify_client_needing_auth (struct management *management,

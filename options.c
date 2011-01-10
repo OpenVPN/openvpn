@@ -341,6 +341,7 @@ static const char usage_message[] =
   "--management-signal : Issue SIGUSR1 when management disconnect event occurs.\n"
   "--management-forget-disconnect : Forget passwords when management disconnect\n"
   "                                 event occurs.\n"
+  "--management-up-down : Report tunnel up/down events to management interface.\n"
   "--management-log-cache n : Cache n lines of log file history for usage\n"
   "                  by the management channel.\n"
 #if UNIX_SOCK_SUPPORT
@@ -3631,6 +3632,11 @@ add_option (struct options *options,
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->management_flags |= MF_FORGET_DISCONNECT;
+    }
+  else if (streq (p[0], "management-up-down"))
+    {
+      VERIFY_PERMISSION (OPT_P_GENERAL);
+      options->management_flags |= MF_UP_DOWN;
     }
   else if (streq (p[0], "management-client"))
     {

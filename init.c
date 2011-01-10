@@ -1177,7 +1177,14 @@ do_route (const struct options *options,
 	  struct env_set *es)
 {
   if (!options->route_noexec && route_list)
-    add_routes (route_list, tt, ROUTE_OPTION_FLAGS (options), es);
+    {
+      add_routes (route_list, tt, ROUTE_OPTION_FLAGS (options), es);
+      setenv_int (es, "redirect_gateway", route_list->did_redirect_default_gateway);
+    }
+#ifdef ENABLE_MANAGEMENT
+  if (management)
+    management_up_down (management, "UP", es);
+#endif
 
   if (plugin_defined (plugins, OPENVPN_PLUGIN_ROUTE_UP))
     {
@@ -1385,7 +1392,10 @@ do_close_tun (struct context *c, bool force)
 #ifdef ENABLE_MANAGEMENT
 	  /* tell management layer we are about to close the TUN/TAP device */
 	  if (management)
-	    management_pre_tunnel_close (management);
+	    {
+	      management_pre_tunnel_close (management);
+	      management_up_down (management, "DOWN", c->c2.es);
+	    }
 #endif
 
 	  /* delete any routes we added */
@@ -1527,7 +1537,6 @@ pull_permission_mask (const struct context *c)
   unsigned int flags =
       OPT_P_UP
     | OPT_P_ROUTE_EXTRAS
-    | OPT_P_IPWIN32
     | OPT_P_SOCKBUF
     | OPT_P_SOCKFLAGS
     | OPT_P_SETENV
@@ -1541,7 +1550,7 @@ pull_permission_mask (const struct context *c)
     | OPT_P_PULL_MODE;
 
   if (!c->options.route_nopull)
-    flags |= OPT_P_ROUTE;
+    flags |= (OPT_P_ROUTE | OPT_P_IPWIN32);
 
   return flags;
 }
