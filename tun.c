@@ -799,14 +799,16 @@ do_ifconfig (struct tuntap *tt,
       if (!openvpn_execve_check (&argv, es, 0, "Solaris ifconfig phase-2 failed"))
 	solaris_error_close (tt, es, actual, false);
 
-      if ( do_ipv6 )			/* GERT-TODO: UNTESTED */
+      if ( do_ipv6 )
         {
  	  argv_printf (&argv, "%s %s inet6 unplumb",
 			    IFCONFIG_PATH, actual );
 	  argv_msg (M_INFO, &argv);
 	  openvpn_execve_check (&argv, es, 0, NULL);
 
-	  argv_printf (&argv,
+	  if ( tt->type == DEV_TYPE_TUN )
+	   {
+	      argv_printf (&argv,
 			    "%s %s inet6 plumb %s/%d %s up",
 			    IFCONFIG_PATH,
 			    actual,
@@ -814,6 +816,30 @@ do_ifconfig (struct tuntap *tt,
 			    tt->netbits_ipv6,
 			    ifconfig_ipv6_remote
 			    );
+	    }
+	  else						/* tap mode */
+	    {
+	      /* base IPv6 tap interface needs to be brought up first
+	       */
+	      argv_printf (&argv, "%s %s inet6 plumb up",
+			    IFCONFIG_PATH, actual );
+	      argv_msg (M_INFO, &argv);
+	      if (!openvpn_execve_check (&argv, es, 0, "Solaris ifconfig IPv6 (prepare) failed"))
+		solaris_error_close (tt, es, actual, true);
+
+	      /* we might need to do "ifconfig %s inet6 auto-dhcp drop"
+	       * after the system has noticed the interface and fired up
+	       * the DHCPv6 client - but this takes quite a while, and the 
+	       * server will ignore the DHCPv6 packets anyway.  So we don't.
+	       */
+
+	      /* static IPv6 addresses need to go to a subinterface (tap0:1)
+	       */
+	      argv_printf (&argv,
+			    "%s %s inet6 addif %s/%d up",
+			    IFCONFIG_PATH, actual,
+			    ifconfig_ipv6_local, tt->netbits_ipv6 );
+	    }
 	  argv_msg (M_INFO, &argv);
 	  if (!openvpn_execve_check (&argv, es, 0, "Solaris ifconfig IPv6 failed"))
 	    solaris_error_close (tt, es, actual, true);
@@ -1777,6 +1803,18 @@ solaris_close_tun (struct tuntap *tt)
 {
   if (tt)
     {
+      /* IPv6 interfaces need to be 'manually' de-configured */
+      if ( tt->ipv6 && tt->did_ifconfig_ipv6_setup )
+	{
+	  struct argv argv;
+	  argv_init (&argv);
+	  argv_printf( &argv, "%s %s inet6 unplumb",
+		       IFCONFIG_PATH, tt->actual_name );
+	  argv_msg (M_INFO, &argv);
+	  openvpn_execve_check (&argv, NULL, 0, "Solaris ifconfig inet6 unplumb failed");
+	  argv_reset (&argv);
+	}
+
       if (tt->ip_fd >= 0)
 	{
           struct lifreq ifr;
