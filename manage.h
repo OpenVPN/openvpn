@@ -274,7 +274,6 @@ struct man_connection {
 #ifdef MANAGEMENT_DEF_AUTH
   unsigned long in_extra_cid;
   unsigned int in_extra_kid;
-  int env_filter_level;
 #endif
 #ifdef MANAGMENT_EXTERNAL_KEY
 # define EKS_UNDEF   0
@@ -286,6 +285,7 @@ struct man_connection {
 #endif
 #endif
   struct event_set *es;
+  int env_filter_level;
 
   bool state_realtime;
   bool log_realtime;
