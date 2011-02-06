@@ -843,7 +843,9 @@ create_socket_udp (const unsigned int flags)
   else if (flags & SF_USE_IP_PKTINFO)
     {
       int pad = 1;
-      setsockopt (sd, SOL_IP, IP_PKTINFO, (void*)&pad, sizeof(pad));
+      if (setsockopt (sd, SOL_IP, IP_PKTINFO,
+		      (void*)&pad, sizeof(pad)) < 0)
+        msg(M_SOCKERR, "UDP: failed setsockopt for IP_PKTINFO");
     }
 #endif
   return sd;
@@ -861,7 +863,9 @@ create_socket_udp6 (const unsigned int flags)
   else if (flags & SF_USE_IP_PKTINFO)
     {
       int pad = 1;
-      setsockopt (sd, IPPROTO_IPV6, IPV6_PKTINFO, (void*)&pad, sizeof(pad));
+      if (setsockopt (sd, IPPROTO_IPV6, IPV6_RECVPKTINFO,
+		      (void*)&pad, sizeof(pad)) < 0)
+	msg(M_SOCKERR, "UDP: failed setsockopt for IPV6_RECVPKTINFO");
     }
 #endif
   return sd;
@@ -2453,6 +2457,7 @@ print_link_socket_actual_ex (const struct link_socket_actual *act,
 {
   if (act)
     {
+      char ifname[IF_NAMESIZE] = "[undef]";
       struct buffer out = alloc_buf_gc (128, gc);
       buf_printf (&out, "%s", print_sockaddr_ex (&act->dest, separator, flags, gc));
 #if ENABLE_IP_PKTINFO
@@ -2468,7 +2473,10 @@ print_link_socket_actual_ex (const struct link_socket_actual *act,
 		  CLEAR (sa);
 		  sa.addr.in4.sin_family = AF_INET;
 		  sa.addr.in4.sin_addr = act->pi.in4.ipi_spec_dst;
-		  buf_printf (&out, " (via %s)", print_sockaddr_ex (&sa, separator, 0, gc));
+		  if_indextoname(act->pi.in4.ipi_ifindex, ifname);
+		  buf_printf (&out, " (via %s%%%s)",
+			      print_sockaddr_ex (&sa, separator, 0, gc),
+			      ifname);
 		}
 #ifdef USE_PF_INET6
 	      break;
@@ -2479,13 +2487,12 @@ print_link_socket_actual_ex (const struct link_socket_actual *act,
 		  CLEAR(sin6);
 		  sin6.sin6_family = AF_INET6;
 		  sin6.sin6_addr = act->pi.in6.ipi6_addr;
-		    {
-		      if (getnameinfo((struct sockaddr *)&sin6, sizeof (struct sockaddr_in6),
-				      buf, sizeof (buf), NULL, 0, NI_NUMERICHOST) == 0)
-			buf_printf (&out, " (via %s)", buf);
-		      else
-			buf_printf (&out, " (via [getnameinfo() err])");
-		    }
+		  if_indextoname(act->pi.in6.ipi6_ifindex, ifname);
+		  if (getnameinfo((struct sockaddr *)&sin6, sizeof (struct sockaddr_in6),
+				  buf, sizeof (buf), NULL, 0, NI_NUMERICHOST) == 0)
+		    buf_printf (&out, " (via %s%%%s)", buf, ifname);
+		  else
+		    buf_printf (&out, " (via [getnameinfo() err]%%%s)", ifname);
 		}
 	      break;
 	    }
