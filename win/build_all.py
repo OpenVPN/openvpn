@@ -11,6 +11,7 @@ def Usage():
     print
     print " -h, --help		Show this help"
     print " -u, --unsigned	Do not sign the TAP drivers"
+    print " -n, --notap		Don't build the TAP driver"
     sys.exit(1)
 
 def main(config):
@@ -18,9 +19,12 @@ def main(config):
     # Do a signed build by default
     signedBuild=True
 
+    # Build the TAP driver by default
+    tap=True
+
     # Parse the command line argument(s)
     try:
-       opts, args = getopt.getopt(sys.argv[1:], "hu", ["help", "unsigned"])
+       opts, args = getopt.getopt(sys.argv[1:], "hun", ["help", "unsigned", "notap"])
     except getopt.GetoptError:
        Usage()
 
@@ -29,7 +33,8 @@ def main(config):
           Usage()
        if o in ("-u", "--unsigned"):
           signedBuild=False
-
+       if o in ("-n", "--notap"):
+          tap=False
 
     # Check if the SignTool module is present. This avoids ImportErrors popping
     # up annoyingly _after_ the build.
@@ -45,8 +50,12 @@ def main(config):
     # Start the build
     config_all(config)
     build_openvpn()
-    build_ddk(config, 'tap', 'all')
-    build_ddk(config, 'tapinstall', 'all')
+
+    if tap:
+       build_ddk(config, 'tap', 'all')
+       build_ddk(config, 'tapinstall', 'all')
+    else:
+       print "Not building the TAP driver"
 
     if signedBuild:
        sign(config, 'all')
