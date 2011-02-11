@@ -8,6 +8,7 @@ def build_ddk(config, dir, x64):
     return build_tap(ddk_path, ddk_major, debug, dir, x64)
 
 def build_tap(ddk_path, ddk_major, debug, dir, x64):
+    """Build drivers using WinDDK tools"""
     setenv_bat = os.path.realpath(os.path.join(ddk_path, 'bin/setenv.bat'))
     target = 'chk' if debug else 'fre'
     if x64:
