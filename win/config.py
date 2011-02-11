@@ -1,6 +1,8 @@
-from wb import preprocess, autogen, mod_fn, home_fn, build_autodefs, make_headers_objs, dict_def
+from wb import preprocess, autogen, mod_fn, home_fn, build_configure_h, build_version_m4_vars, build_autodefs, make_headers_objs, dict_def
 
 def main(config):
+    build_configure_h(config, mod_fn(home_fn('configure.h')), head_comment='/* %s */\n\n' % autogen)
+    build_version_m4_vars(mod_fn(mod_fn('version_m4_vars.tmp')), head_comment='/* %s */\n\n' % autogen)
     build_autodefs(config, mod_fn('autodefs.h.in'), home_fn('autodefs.h'))
     ho = make_headers_objs(home_fn('Makefile.am'))
 
