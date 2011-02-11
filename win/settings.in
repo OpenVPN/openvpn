@@ -1,38 +1,31 @@
 # Version numbers, settings, and dependencies
 # for Windows OpenVPN installer.
+#
+# Note that some variables are parsed by wb.py from version.m4 and are not 
+# stored in this file. This is done to allow using the old and new Windows build 
+# systems side-by-side
 
 # Branding
 !define PRODUCT_NAME      "OpenVPN"
 !define PRODUCT_UNIX_NAME "openvpn"
 !define PRODUCT_FILE_EXT  "ovpn"
 
-# Allow --askpass and --auth-user-pass passwords to be read from a file
-;!define ENABLE_PASSWORD_SAVE
-
-# Include the OpenVPN GUI exe in the installer.
-# May be undefined.
+# Include the OpenVPN GUI exe in the installer. Comment out USE_GUI to disable.
+!define USE_GUI
 !define OPENVPN_GUI_DIR "../openvpn-gui"
 !define OPENVPN_GUI     "openvpn-gui-1.0.3.exe"
 
 # Prebuilt libraries.  DMALLOC is optional.
 !define OPENSSL_DIR	  "../openssl"
 !define LZO_DIR		  "../lzo"
+!define PKCS11_HELPER_DIR "../pkcs11-helper"
 
 # write output files here
 !define DIST   "dist"
 
-# tapinstall.exe source code.
-# Not needed if DRVBINSRC is defined
-# (or if using pre-built mode).
+# tapinstall.exe (a.k.a. devcon.exe) source code. Not needed if DRVBINSRC is 
+# defined (or if using pre-built mode).
 !define TISRC	"../tapinstall"
-
-# TAP Adapter parameters.  Note that PRODUCT_TAP_ID is
-# defined in version.m4.
-!define PRODUCT_TAP_DEVICE_DESCRIPTION  "TAP-Win32 Adapter V9"
-!define PRODUCT_TAP_PROVIDER            "TAP-Win32 Provider V9"
-!define PRODUCT_TAP_MAJOR_VER           9
-!define PRODUCT_TAP_MINOR_VER           7
-!define PRODUCT_TAP_RELDATE             "04/19/2010"
 
 # TAP adapter icon -- visible=0x81 or hidden=0x89
 !define PRODUCT_TAP_CHARACTERISTICS     0x81
