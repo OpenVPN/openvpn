@@ -1,12 +1,15 @@
-# This makefile builds the user-mode component
-# of OpenVPN for Windows in the Visual Studio 2008 environment.
-
-# To build:
-#    python win\config.py
-#    nmake /f msvc.mak
-
-# Each of the OPENSSL and LZO dirs should have 'lib' and 'include'
-# directories under them.
+# This makefile builds the user-mode component of OpenVPN for Windows in the 
+# Visual Studio 2008 environment. Note that this file is basis for the real 
+# makefile (..\msvc.mak) but unusable as is. The real makefile is automatically 
+# generated during the build process by the Python build scripts.
+#
+# A few details are in order:
+#
+# - Everything between @<< and << is inserted into a s.c. "in-line file". This 
+#   file drives the linker (link.exe).
+# - HEADERS_OBJS is expanded to all all header and source files listed in 
+#  ..\Makefile.am
+# - OPENSSL_DIR and LZO_DIR are dynamically created from settings.in
 
 OPENSSL = @OPENSSL_DIR@
 OPENSSL_DYNAMIC = libeay32.lib ssleay32.lib
@@ -30,22 +33,19 @@ LINK32=link.exe
 !ifdef PRODUCT_OPENVPN_DEBUG
 # debug:
 CPP_PROJ=$(CPP_ARG_COMMON) /MD /Z7
-LINK32_FLAGS=/nologo /subsystem:console /incremental:no /opt:ref /opt:icf /debug /out:"$(EXE)"
-# old debug:
-#CPP_PROJ=$(CPP_ARG_COMMON) /MDd /Zi /Od -D_DEBUG
-#LINK32_FLAGS=/nologo /subsystem:console /incremental:no /debug /out:"$(EXE)"
+LINK32_FLAGS=/nologo /subsystem:console /incremental:no /opt:ref /opt:icf /debug
 !else
 # release:
 CPP_PROJ=$(CPP_ARG_COMMON) /O2 /MD -DNDEBUG
-LINK32_FLAGS=/nologo /subsystem:console /incremental:no /out:"$(EXE)"
+LINK32_FLAGS=/nologo /subsystem:console /incremental:no
 !endif
 
-# HEADERS and OBJS definitions, automatically generated
+# HEADERS and OBJS definitions, automatically generated from ../Makefile.am
 @HEADERS_OBJS@
 
 openvpn : $(OBJS)
 	$(LINK32) @<<
-	$(LINK32_FLAGS) $(LIB_DIRS) $(LIBS) $(OBJS)
+	$(LINK32_FLAGS) "/out:$(EXE)" $(LIB_DIRS) $(LIBS) $(OBJS)
 <<
 
 clean :
