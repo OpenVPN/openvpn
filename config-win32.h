@@ -50,6 +50,9 @@ typedef unsigned long in_addr_t;
 #define TAP_WIN32_DEBUG
 #endif
 
+/* Enable reading credentials from a file */
+#define ENABLE_PASSWORD_SAVE 1
+
 /* Enable client/server capability */
 #define ENABLE_CLIENT_SERVER 1
 
