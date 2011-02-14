@@ -912,11 +912,19 @@ verify_callback (int preverify_ok, X509_STORE_CTX * ctx)
   setenv_str (opt->es, envname, common_name);
 #endif
 
-  /* export serial number as environmental variable */
+  /* export serial number as environmental variable,
+     use bignum in case serial number is large */
   {
-    const int serial = (int) ASN1_INTEGER_get (X509_get_serialNumber (ctx->current_cert));
+    ASN1_INTEGER *asn1_i;
+    BIGNUM *bignum;
+    char *dec;
+    asn1_i = X509_get_serialNumber(ctx->current_cert);
+    bignum = ASN1_INTEGER_to_BN(asn1_i, NULL);
+    dec = BN_bn2dec(bignum);
     openvpn_snprintf (envname, sizeof(envname), "tls_serial_%d", ctx->error_depth);
-    setenv_int (opt->es, envname, serial);
+    setenv_str (opt->es, envname, dec);
+    BN_free(bignum);
+    OPENSSL_free(dec);
   }
 
   /* export current untrusted IP */
