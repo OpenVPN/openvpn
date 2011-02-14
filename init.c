@@ -600,6 +600,27 @@ init_static (void)
   return false;
 #endif
 
+#ifdef TEST_GET_DEFAULT_GATEWAY
+  {
+    struct gc_arena gc = gc_new ();
+    in_addr_t addr;
+    char macaddr[6];
+
+    if (get_default_gateway(&addr, NULL))
+      msg (M_INFO, "GW %s", print_in_addr_t(addr, 0, &gc));
+    else
+      msg (M_INFO, "GDG ERROR");
+
+    if (get_default_gateway_mac_addr(macaddr))
+      msg (M_INFO, "MAC %s", format_hex_ex (macaddr, 6, 0, 1, ":", &gc));
+    else
+      msg (M_INFO, "GDGMA ERROR");
+
+    gc_free (&gc);
+    return false;
+  }
+#endif
+
 #ifdef GEN_PATH_TEST
   {
     struct gc_arena gc = gc_new ();

@@ -1791,70 +1791,26 @@ get_default_gateway (in_addr_t *ret, in_addr_t *netmask)
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <net/route.h>
+#include <net/if_dl.h>
 
-/* all of this is taken from <net/route.h> in Darwin */
-#define RTA_DST     0x1
-#define RTA_GATEWAY 0x2
-#define RTA_NETMASK 0x4
-
-#define RTM_GET     0x4
-#define RTM_VERSION 5
-
-#define RTF_UP      0x1
-#define RTF_GATEWAY 0x2
-
-/*
- * These numbers are used by reliable protocols for determining
- * retransmission behavior and are included in the routing structure.
- */
-struct rt_metrics {
-        u_long  rmx_locks;      /* Kernel must leave these values alone */
-        u_long  rmx_mtu;        /* MTU for this path */
-        u_long  rmx_hopcount;   /* max hops expected */
-        u_long  rmx_expire;     /* lifetime for route, e.g. redirect */
-        u_long  rmx_recvpipe;   /* inbound delay-bandwidth product */
-        u_long  rmx_sendpipe;   /* outbound delay-bandwidth product */
-        u_long  rmx_ssthresh;   /* outbound gateway buffer limit */
-        u_long  rmx_rtt;        /* estimated round trip time */
-        u_long  rmx_rttvar;     /* estimated rtt variance */
-        u_long  rmx_pksent;     /* packets sent using this route */
-        u_long  rmx_filler[4];  /* will be used for T/TCP later */
-};
-
-/*
- * Structures for routing messages.
- */
-struct rt_msghdr {
-        u_short rtm_msglen;     /* to skip over non-understood messages */
-        u_char  rtm_version;    /* future binary compatibility */
-        u_char  rtm_type;       /* message type */
-        u_short rtm_index;      /* index for associated ifp */
-        int     rtm_flags;      /* flags, incl. kern & message, e.g. DONE */
-        int     rtm_addrs;      /* bitmask identifying sockaddrs in msg */
-        pid_t   rtm_pid;        /* identify sender */
-        int     rtm_seq;        /* for sender to identify action */
-        int     rtm_errno;      /* why failed */
-        int     rtm_use;        /* from rtentry */
-        u_long  rtm_inits;      /* which metrics we are initializing */
-        struct  rt_metrics rtm_rmx; /* metrics themselves */
-};
-
-struct {
+struct rtmsg {
   struct rt_msghdr m_rtm;
   char       m_space[512];
-} m_rtmsg;
+};
 
 #define ROUNDUP(a) \
         ((a) > 0 ? (1 + (((a) - 1) | (sizeof(long) - 1))) : sizeof(long))
 
-bool
-get_default_gateway (in_addr_t *ret, in_addr_t *netmask)
+static bool
+get_default_gateway_ex (in_addr_t *ret, in_addr_t *netmask, char **ifname)
 {
   struct gc_arena gc = gc_new ();
+  struct rtmsg m_rtmsg;
   int s, seq, l, pid, rtm_addrs, i;
   struct sockaddr so_dst, so_mask;
   char *cp = m_rtmsg.m_space; 
-  struct sockaddr *gate = NULL, *sa;
+  struct sockaddr *gate = NULL, *ifp = NULL, *sa;
   struct  rt_msghdr *rtm_aux;
 
 #define NEXTADDR(w, u) \
@@ -1868,8 +1824,9 @@ get_default_gateway (in_addr_t *ret, in_addr_t *netmask)
 
   pid = getpid();
   seq = 0;
-  rtm_addrs = RTA_DST | RTA_NETMASK;
+  rtm_addrs = RTA_DST | RTA_NETMASK | RTA_IFP;
 
+  bzero(&m_rtmsg, sizeof(m_rtmsg));
   bzero(&so_dst, sizeof(so_dst));
   bzero(&so_mask, sizeof(so_mask));
   bzero(&rtm, sizeof(struct rt_msghdr));
@@ -1911,11 +1868,16 @@ get_default_gateway (in_addr_t *ret, in_addr_t *netmask)
   cp = ((char *)(rtm_aux + 1));
   if (rtm_aux->rtm_addrs) {
     for (i = 1; i; i <<= 1)
-      if (i & rtm_aux->rtm_addrs) {
-	sa = (struct sockaddr *)cp;
-	if (i == RTA_GATEWAY )
-	  gate = sa;
-	ADVANCE(cp, sa);
+      {
+	if (i & rtm_aux->rtm_addrs)
+	  {
+	    sa = (struct sockaddr *)cp;
+	    if (i == RTA_GATEWAY )
+	      gate = sa;
+	    else if (i == RTA_IFP)
+	      ifp = sa;
+	    ADVANCE(cp, sa);
+	  }
       }
   }
   else
@@ -1938,6 +1900,16 @@ get_default_gateway (in_addr_t *ret, in_addr_t *netmask)
 	  *netmask = 0xFFFFFF00; // FIXME -- get the real netmask of the adapter containing the default gateway
 	}
 
+      if (ifp && ifname)
+	{
+	  struct sockaddr_dl *adl = (struct sockaddr_dl *) ifp;
+	  char *name = malloc(adl->sdl_nlen+1);
+	  check_malloc_return(name);
+	  memcpy(name, adl->sdl_data, adl->sdl_nlen);
+	  name[adl->sdl_nlen] = '\0';
+	  *ifname = name;
+	}
+
       gc_free (&gc);
       return true;
     }
@@ -1946,6 +1918,12 @@ get_default_gateway (in_addr_t *ret, in_addr_t *netmask)
       gc_free (&gc);
       return false;
     }
+}
+
+bool
+get_default_gateway (in_addr_t *ret, in_addr_t *netmask)
+{
+  return get_default_gateway_ex(ret, netmask, NULL);
 }
 
 #elif defined(TARGET_OPENBSD) || defined(TARGET_NETBSD)
@@ -2351,6 +2329,73 @@ get_default_gateway_mac_addr (unsigned char *macaddr)
  err:
   gc_free (&gc);
   return false;
+}
+
+#elif defined(TARGET_DARWIN)
+
+bool
+get_default_gateway_mac_addr (unsigned char *macaddr)
+{
+# define max(a,b) ((a) > (b) ? (a) : (b))
+  struct gc_arena gc = gc_new ();
+  struct ifconf ifc;
+  struct ifreq *ifr;
+  char *buffer, *cp;
+  bool status = false;
+  in_addr_t gw = 0;
+  char *ifname = NULL;
+  int sockfd = -1;
+  const int bufsize = 4096;
+
+  if (!get_default_gateway_ex (&gw, NULL, &ifname)) /* get interface name of default gateway */
+    {
+      msg (M_WARN, "GDGMA: get_default_gateway_ex failed");
+      goto done;
+    }
+
+  if (!ifname)
+    {
+      msg (M_WARN, "GDGMA: cannot get default gateway ifname");
+      goto done;
+    }
+
+  buffer = (char *) gc_malloc (bufsize, false, &gc);
+
+  sockfd = socket(AF_INET, SOCK_DGRAM, 0);
+  if (sockfd < 0)
+    {
+      msg (M_WARN, "GDGMA: socket failed");
+      goto done;
+    }
+
+  ifc.ifc_len = bufsize;
+  ifc.ifc_buf = buffer;
+
+  if (ioctl(sockfd, SIOCGIFCONF, (char *)&ifc) < 0)
+    {
+      msg (M_WARN, "GDGMA: ioctl failed");
+      goto done;
+    }
+
+  for (cp = buffer; cp < buffer + bufsize; )
+    {
+      ifr = (struct ifreq *)cp;
+      if (ifr->ifr_addr.sa_family == AF_LINK && !strncmp(ifr->ifr_name, ifname, IFNAMSIZ))
+	{
+	  struct sockaddr_dl *sdl = (struct sockaddr_dl *)&ifr->ifr_addr;
+	  memcpy(macaddr, LLADDR(sdl), 6);
+	  status = true;
+	}      
+      cp += sizeof(ifr->ifr_name) + max(sizeof(ifr->ifr_addr), ifr->ifr_addr.sa_len);
+    }
+
+ done:
+  if (sockfd >= 0)
+    close (sockfd);
+  free (ifname);
+  gc_free (&gc);
+  return status;
+# undef max
 }
 
 #else
