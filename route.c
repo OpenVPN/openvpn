@@ -1800,7 +1800,7 @@ struct rtmsg {
 };
 
 #define ROUNDUP(a) \
-        ((a) > 0 ? (1 + (((a) - 1) | (sizeof(long) - 1))) : sizeof(long))
+        ((a) > 0 ? (1 + (((a) - 1) | (sizeof(uint32_t) - 1))) : sizeof(uint32_t))
 
 static bool
 get_default_gateway_ex (in_addr_t *ret, in_addr_t *netmask, char **ifname)
@@ -2359,7 +2359,7 @@ get_default_gateway_mac_addr (unsigned char *macaddr)
       goto done;
     }
 
-  buffer = (char *) gc_malloc (bufsize, false, &gc);
+  buffer = (char *) gc_malloc (bufsize, true, &gc);
 
   sockfd = socket(AF_INET, SOCK_DGRAM, 0);
   if (sockfd < 0)
@@ -2377,7 +2377,7 @@ get_default_gateway_mac_addr (unsigned char *macaddr)
       goto done;
     }
 
-  for (cp = buffer; cp < buffer + bufsize; )
+  for (cp = buffer; cp <= buffer + bufsize - sizeof(struct ifreq); )
     {
       ifr = (struct ifreq *)cp;
       if (ifr->ifr_addr.sa_family == AF_LINK && !strncmp(ifr->ifr_name, ifname, IFNAMSIZ))
