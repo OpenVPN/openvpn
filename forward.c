@@ -977,7 +977,7 @@ process_incoming_tun (struct context *c)
        * The --passtos and --mssfix options require
        * us to examine the IPv4 header.
        */
-      process_ipv4_header (c, PIPV4_PASSTOS|PIPV4_MSSFIX, &c->c2.buf);
+      process_ipv4_header (c, PIPV4_PASSTOS|PIPV4_MSSFIX|PIPV4_CLIENT_NAT, &c->c2.buf);
 
 #ifdef PACKET_TRUNCATION_CHECK
       /* if (c->c2.buf.len > 1) --c->c2.buf.len; */
@@ -1035,6 +1035,14 @@ process_ipv4_header (struct context *c, unsigned int flags, struct buffer *buf)
 	      if (flags & PIPV4_MSSFIX)
 		mss_fixup (&ipbuf, MTU_TO_MSS (TUN_MTU_SIZE_DYNAMIC (&c->c2.frame)));
 
+#ifdef ENABLE_CLIENT_NAT
+	      /* possibly do NAT on packet */
+	      if ((flags & PIPV4_CLIENT_NAT) && c->options.client_nat)
+		{
+		  const int direction = (flags & PIPV4_OUTGOING) ? CN_INCOMING : CN_OUTGOING;
+		  client_nat_transform (c->options.client_nat, &ipbuf, direction);
+		}
+#endif
 	      /* possibly extract a DHCP router message */
 	      if (flags & PIPV4_EXTRACT_DHCP_ROUTER)
 		{
@@ -1196,7 +1204,7 @@ process_outgoing_tun (struct context *c)
    * The --mssfix option requires
    * us to examine the IPv4 header.
    */
-  process_ipv4_header (c, PIPV4_MSSFIX|PIPV4_EXTRACT_DHCP_ROUTER|PIPV4_OUTGOING, &c->c2.to_tun);
+  process_ipv4_header (c, PIPV4_MSSFIX|PIPV4_EXTRACT_DHCP_ROUTER|PIPV4_CLIENT_NAT|PIPV4_OUTGOING, &c->c2.to_tun);
 
   if (c->c2.to_tun.len <= MAX_RW_SIZE_TUN (&c->c2.frame))
     {

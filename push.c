@@ -185,7 +185,7 @@ send_push_reply (struct context *c)
   struct push_entry *e = c->options.push_list.head;
   bool multi_push = false;
   static char cmd[] = "PUSH_REPLY";
-  const int extra = 64; /* extra space for possible trailing ifconfig and push-continuation */
+  const int extra = 84; /* extra space for possible trailing ifconfig and push-continuation */
   const int safe_cap = BCAP (&buf) - extra;
 
   buf_printf (&buf, cmd);
@@ -218,9 +218,16 @@ send_push_reply (struct context *c)
     }
 
   if (c->c2.push_ifconfig_defined && c->c2.push_ifconfig_local && c->c2.push_ifconfig_remote_netmask)
-    buf_printf (&buf, ",ifconfig %s %s",
-		print_in_addr_t (c->c2.push_ifconfig_local, 0, &gc),
-		print_in_addr_t (c->c2.push_ifconfig_remote_netmask, 0, &gc));
+    {
+      in_addr_t ifconfig_local = c->c2.push_ifconfig_local;
+#ifdef ENABLE_CLIENT_NAT
+      if (c->c2.push_ifconfig_local_alias)
+	ifconfig_local = c->c2.push_ifconfig_local_alias;
+#endif
+      buf_printf (&buf, ",ifconfig %s %s",
+		  print_in_addr_t (ifconfig_local, 0, &gc),
+		  print_in_addr_t (c->c2.push_ifconfig_remote_netmask, 0, &gc));
+    }
   if (multi_push)
     buf_printf (&buf, ",push-continuation 1");
 

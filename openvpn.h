@@ -416,6 +416,9 @@ struct context_2
   bool push_ifconfig_defined;
   in_addr_t push_ifconfig_local;
   in_addr_t push_ifconfig_remote_netmask;
+#ifdef ENABLE_CLIENT_NAT
+  in_addr_t push_ifconfig_local_alias;
+#endif
 
   /* client authentication state, CAS_SUCCEEDED must be 0 */
 # define CAS_SUCCEEDED 0

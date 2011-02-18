@@ -1200,6 +1200,9 @@ multi_select_virtual_addr (struct multi_context *m, struct multi_instance *mi)
       mi->context.c2.push_ifconfig_defined = true;
       mi->context.c2.push_ifconfig_local = mi->context.options.push_ifconfig_local;
       mi->context.c2.push_ifconfig_remote_netmask = mi->context.options.push_ifconfig_remote_netmask;
+#ifdef ENABLE_CLIENT_NAT
+      mi->context.c2.push_ifconfig_local_alias = mi->context.options.push_ifconfig_local_alias;
+#endif
     }
   else if (m->ifconfig_pool && mi->vaddr_handle < 0) /* otherwise, choose a pool address */
     {

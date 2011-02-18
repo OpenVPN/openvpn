@@ -149,6 +149,14 @@ struct openvpn_tcphdr {
 #define	OPENVPN_TCPOPT_MAXSEG  2
 #define OPENVPN_TCPOLEN_MAXSEG 4
 
+struct ip_tcp_udp_hdr {
+  struct openvpn_iphdr ip;
+  union {
+    struct openvpn_tcphdr tcp;
+    struct openvpn_udphdr udp;
+  } u;
+};
+
 #pragma pack()
 
 /*
@@ -160,17 +168,28 @@ struct openvpn_tcphdr {
  * is the checksum value to be updated.
  */
 #define ADJUST_CHECKSUM(acc, cksum) { \
-  (acc) += (cksum); \
-  if ((acc) < 0) { \
-    (acc) = -(acc); \
-    (acc) = ((acc) >> 16) + ((acc) & 0xffff); \
-    (acc) += (acc) >> 16; \
-    (cksum) = (uint16_t) ~(acc); \
+  int _acc = acc; \
+  _acc += (cksum); \
+  if (_acc < 0) { \
+    _acc = -_acc; \
+    _acc = (_acc >> 16) + (_acc & 0xffff); \
+    _acc += _acc >> 16; \
+    (cksum) = (uint16_t) ~_acc; \
   } else { \
-    (acc) = ((acc) >> 16) + ((acc) & 0xffff); \
-    (acc) += (acc) >> 16; \
-    (cksum) = (uint16_t) (acc); \
+    _acc = (_acc >> 16) + (_acc & 0xffff); \
+    _acc += _acc >> 16; \
+    (cksum) = (uint16_t) _acc; \
   } \
+}
+
+#define ADD_CHECKSUM_32(acc, u32) { \
+  acc += (u32) & 0xffff; \
+  acc += (u32) >> 16;	 \
+}
+
+#define SUB_CHECKSUM_32(acc, u32) { \
+  acc -= (u32) & 0xffff; \
+  acc -= (u32) >> 16;	 \
 }
 
 /*

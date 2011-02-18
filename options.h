@@ -41,6 +41,7 @@
 #include "proxy.h"
 #include "lzo.h"
 #include "pushlist.h"
+#include "clinat.h"
 
 /*
  * Maximum number of parameters associated with an option,
@@ -66,6 +67,11 @@ struct options_pre_pull
 
   bool routes_defined;
   struct route_option_list *routes;
+
+#ifdef ENABLE_CLIENT_NAT
+  bool client_nat_defined;
+  struct client_nat_option_list *client_nat;
+#endif
 
   int foreign_option_index;
 };
@@ -329,6 +335,10 @@ struct options
   bool route_gateway_via_dhcp;
   bool allow_pull_fqdn; /* as a client, allow server to push a FQDN for certain parameters */
 
+#ifdef ENABLE_CLIENT_NAT
+  struct client_nat_option_list *client_nat;
+#endif
+
 #ifdef ENABLE_OCC
   /* Enable options consistency check between peers */
   bool occ;
@@ -401,6 +411,9 @@ struct options
   bool push_ifconfig_defined;
   in_addr_t push_ifconfig_local;
   in_addr_t push_ifconfig_remote_netmask;
+#ifdef ENABLE_CLIENT_NAT
+  in_addr_t push_ifconfig_local_alias;
+#endif
   bool push_ifconfig_constraint_defined;
   in_addr_t push_ifconfig_constraint_network;
   in_addr_t push_ifconfig_constraint_netmask;

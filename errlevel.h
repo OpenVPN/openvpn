@@ -111,6 +111,7 @@
 #define D_LINK_RW            LOGLEV(6, 60, M_DEBUG)  /* show TCP/UDP reads/writes (terse) */
 #define D_TUN_RW             LOGLEV(6, 60, M_DEBUG)  /* show TUN/TAP reads/writes */
 #define D_TAP_WIN32_DEBUG    LOGLEV(6, 60, M_DEBUG)  /* show TAP-Win32 driver debug info */
+#define D_CLIENT_NAT         LOGLEV(6, 60, M_DEBUG)  /* show client NAT debug info */
 
 #define D_SHOW_KEYS          LOGLEV(7, 70, M_DEBUG)  /* show data channel encryption keys */
 #define D_SHOW_KEY_SOURCE    LOGLEV(7, 70, M_DEBUG)  /* show data channel key source entropy */

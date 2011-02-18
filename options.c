@@ -198,6 +198,9 @@ static const char usage_message[] =
   "                  Add 'bypass-dns' flag to similarly bypass tunnel for DNS.\n"
   "--redirect-private [flags]: Like --redirect-gateway, but omit actually changing\n"
   "                  the default gateway.  Useful when pushing private subnets.\n"
+#ifdef ENABLE_CLIENT_NAT
+  "--client-nat snat|dnat network netmask alias : on client add 1-to-1 NAT rule.\n"
+#endif
 #ifdef ENABLE_PUSH_PEER_INFO
   "--push-peer-info : (client only) push client info to server.\n"
 #endif
@@ -1086,6 +1089,9 @@ options_detach (struct options *o)
 {
   gc_detach (&o->gc);
   o->routes = NULL;
+#ifdef ENABLE_CLIENT_NAT
+  o->client_nat = NULL;
+#endif
 #if P2MP_SERVER
   clone_push_list(o);
 #endif
@@ -1097,6 +1103,15 @@ rol_check_alloc (struct options *options)
   if (!options->routes)
     options->routes = new_route_option_list (options->max_routes, &options->gc);
 }
+
+#ifdef ENABLE_CLIENT_NAT
+static void
+cnol_check_alloc (struct options *options)
+{
+  if (!options->client_nat)
+    options->client_nat = new_client_nat_list (&options->gc);
+}
+#endif
 
 #ifdef ENABLE_DEBUG
 static void
@@ -1288,6 +1303,11 @@ show_settings (const struct options *o)
   SHOW_BOOL (allow_pull_fqdn);
   if (o->routes)
     print_route_options (o->routes, D_SHOW_PARMS);
+  
+#ifdef ENABLE_CLIENT_NAT
+  if (o->client_nat)
+    print_client_nat_list(o->client_nat, D_SHOW_PARMS);
+#endif
 
 #ifdef ENABLE_MANAGEMENT
   SHOW_STR (management_addr);
@@ -2337,6 +2357,13 @@ pre_pull_save (struct options *o)
 	  o->pre_pull->routes = clone_route_option_list(o->routes, &o->gc);
 	  o->pre_pull->routes_defined = true;
 	}
+#ifdef ENABLE_CLIENT_NAT
+      if (o->client_nat)
+	{
+	  o->pre_pull->client_nat = clone_client_nat_option_list(o->client_nat, &o->gc);
+	  o->pre_pull->client_nat_defined = true;
+	}
+#endif
     }
 }
 
@@ -2357,6 +2384,16 @@ pre_pull_restore (struct options *o)
 	}
       else
 	o->routes = NULL;
+
+#ifdef ENABLE_CLIENT_NAT
+      if (pp->client_nat_defined)
+	{
+	  cnol_check_alloc (o);
+	  copy_client_nat_option_list (o->client_nat, pp->client_nat);
+	}
+      else
+	o->client_nat = NULL;
+#endif
 
       o->foreign_option_index = pp->foreign_option_index;
     }
@@ -4564,6 +4601,14 @@ add_option (struct options *options,
       VERIFY_PERMISSION (OPT_P_PERSIST_IP);
       options->persist_remote_ip = true;
     }
+#ifdef ENABLE_CLIENT_NAT
+  else if (streq (p[0], "client-nat") && p[1] && p[2] && p[3] && p[4])
+    {
+      VERIFY_PERMISSION (OPT_P_ROUTE);
+      cnol_check_alloc (options);
+      add_client_nat_to_option_list(options->client_nat, p[1], p[2], p[3], p[4], msglevel);
+    }
+#endif
   else if (streq (p[0], "route") && p[1])
     {
       VERIFY_PERMISSION (OPT_P_ROUTE);
@@ -5085,6 +5130,10 @@ add_option (struct options *options,
 	  options->push_ifconfig_defined = true;
 	  options->push_ifconfig_local = local;
 	  options->push_ifconfig_remote_netmask = remote_netmask;
+#ifdef ENABLE_CLIENT_NAT
+	  if (p[3])
+	    options->push_ifconfig_local_alias = getaddr (GETADDR_HOST_ORDER|GETADDR_RESOLVE, p[3], 0, NULL, NULL);
+#endif
 	}
       else
 	{

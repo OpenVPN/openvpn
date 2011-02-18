@@ -692,4 +692,9 @@ socket_defined (const socket_descriptor_t sd)
  */
 #define ENABLE_PUSH_PEER_INFO
 
+/*
+ * Do we support internal client-side NAT?
+ */
+#define ENABLE_CLIENT_NAT
+
 #endif
