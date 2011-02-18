@@ -86,7 +86,7 @@ static HANDLE exit_event = NULL;
 /* snprintf with guaranteed null termination */
 #define mysnprintf(out, ...) \
         { \
-           snprintf (out, sizeof(out), __VA_ARGS__); \
+           _snprintf (out, sizeof(out), __VA_ARGS__); \
            out [sizeof (out) - 1] = '\0'; \
         }
 
@@ -275,7 +275,6 @@ VOID ServiceStart (DWORD dwArgc, LPTSTR *lpszArgv)
     LONG status;
     DWORD len;
     DWORD type;
-    char error_string[256];
 
     static const char error_format_str[] =
       "Error querying registry key of type REG_SZ: HKLM\\" REG_KEY "\\%s";
