@@ -5,6 +5,16 @@
 # stored in this file. This is done to allow using the old and new Windows build 
 # systems side-by-side
 
+# Features to include
+!define ENABLE_PASSWORD_SAVE 1
+!define ENABLE_CLIENT_SERVER 1
+!define ENABLE_CLIENT_ONLY
+!define ENABLE_MANAGEMENT 1
+!define ENABLE_HTTP_PROXY 1
+!define ENABLE_SOCKS 1
+!define ENABLE_FRAGMENT 1
+!define ENABLE_DEBUG 1
+
 # Branding
 !define PRODUCT_NAME      "OpenVPN"
 !define PRODUCT_UNIX_NAME "openvpn"
@@ -29,6 +39,11 @@
 
 # TAP adapter icon -- visible=0x81 or hidden=0x89
 !define PRODUCT_TAP_CHARACTERISTICS     0x81
+
+# TAP adapter metadata. Version information in ../version.m4.
+!define PRODUCT_TAP_RELDATE    "04/19/2010"
+!define PRODUCT_TAP_DEVICE_DESCRIPTION    "TAP-Win32 Adapter V9"
+!define PRODUCT_TAP_PROVIDER    "TAP-Win32 Provider V9"
 
 # Build debugging version of TAP driver
 ;!define PRODUCT_TAP_DEBUG

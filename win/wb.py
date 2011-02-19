@@ -21,7 +21,7 @@ def get_config():
 
 def get_build_params():
     kv = {}
-    parse_config_win32_h(kv,home_fn('config-win32.h'))
+    parse_build_params(kv,mod_fn('settings.in'))
 
     return kv
 
@@ -80,34 +80,18 @@ def parse_settings_in(kv, settings_in):
             kv[g[0]] = g[1] or ''
     f.close()
 
-def parse_config_win32_h(kv, config_win32_h):
-    r = re.compile(r'^#define\s+(ENABLE_\w+)\s+(\w+)')
-    s = re.compile(r'^#ifdef|^#ifndef')
-    e = re.compile(r'^#endif')
+def parse_build_params(kv, settings_in):
+    r = re.compile(r'^!define\s+(ENABLE_\w+)\s+(\w+)')
 
-    # How "deep" in nested conditional statements are we?
-    depth=0
-
-    f = open(config_win32_h)
+    f = open(settings_in)
 
     for line in f:
         line = line.rstrip()
 
-        # Check if this is a #define line starting with ENABLE_
+        # Check if this is a #define line starts with ENABLE_
         m = re.match(r, line)
 
-        # Calculate how deep we're in (nested) conditional statements. A simple
-        # #ifdef/#endif state switcher would get confused by an #endif followed
-        # by a #define.
-        if re.match(s, line):
-            depth=depth+1
-        if re.match(e, line):
-            depth=depth-1
-
         if m:
-            # Only add this #define if it's not inside a conditional statement 
-            # block
-            if depth == 0:
                 g = m.groups()
                 kv[g[0]] = g[1] or ''
     f.close()
@@ -129,20 +113,33 @@ def build_autodefs(kv, autodefs_in, autodefs_out):
 def build_configure_h(kv, configure_h_out, head_comment):
     """Generate a configure.h dynamically"""
     fout = open(configure_h_out, 'w')
+
+    # These two variables are required to view build parameters during runtime 
     configure_defines='#define CONFIGURE_DEFINES \"'
     configure_call='#define CONFIGURE_CALL \" config_all.py \"'
 
+    # Initialize the list of enabled features
+    features = ''
+
+    # Write the header
     fout.write(head_comment)
 
     dict = get_build_params()
 
     for key, value in dict.iteritems():
+        # Add enabled features
+	features = features + "#define " + key + " " + value + "\n"
+
+	# Add each enabled feature to CONFIGURE_DEFINES list
         configure_defines = configure_defines + " " + key + "=" + value + ","
 
     configure_defines = configure_defines + "\"" + "\n"
 
+    fout.write(features)
     fout.write(configure_defines)
     fout.write(configure_call)
+
+
     fout.close()
 
 def build_version_m4_vars(version_m4_vars_out, head_comment):
