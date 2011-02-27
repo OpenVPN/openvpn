@@ -174,7 +174,9 @@ plugin_call (const struct plugin_list *pl,
 	     const int type,
 	     const struct argv *av,
 	     struct plugin_return *pr,
-	     struct env_set *es)
+	     struct env_set *es,
+	     int current_cert_depth,
+	     X509 *current_cert);
 {
   return 0;
 }
