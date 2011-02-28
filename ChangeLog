@@ -1,5 +1,33 @@
 OpenVPN Change Log
-Copyright (C) 2002-2010 OpenVPN Technologies, Inc. <sales@openvpn.net>
+Copyright (C) 2002-2011 OpenVPN Technologies, Inc. <sales@openvpn.net>
+
+2011.02.28 -- Version 2.2-RC
+David Sommerseth (2):
+      Make the --x509-username-field feature an opt-in feature
+      Fix compiler warning when compiling against OpenSSL 1.0.0
+
+James Yonan (1):
+      Minor addition of logging info before and after execution of Windows net commands.
+
+Matthias Andree (1):
+      Change variadic macros to C99 style.
+
+Samuli Seppänen (15):
+      Added ENABLE_PASSWORD_SAVE to config-win32.h
+      Added a nmake makefile for openvpnserv.exe building
+      Moved TAP-driver version info to version.m4. Cleaned up win/settings.in.
+      Added helper functionality to win/wb.py
+      Added support for viewing config-win32.h paramters to win/show.py
+      Added comments and made small modifications to win/msvc.mak.in
+      Added command-line switch to win/build_all.py to skip TAP driver building
+      Added configure.h and version.m4 variable parsing to win/config.py
+      Added openvpnserv.exe building to win/build.py
+      Added comments to win/build_ddk.py
+      Several modifications to win/make_dist.py to allow building the NSI installer
+      Copied install-win32/setpath.nsi to win/setpath.nsi
+      Added first version of NSI installer script to win/openvpn.nsi
+      Changes to buildsystem patchset
+      Temporary snprintf-related fix to service-win32/openvpnserv.c
 
 2010.11.25 -- Version 2.2-beta5
 
