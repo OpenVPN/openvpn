@@ -2,9 +2,10 @@ OpenVPN Change Log
 Copyright (C) 2002-2011 OpenVPN Technologies, Inc. <sales@openvpn.net>
 
 2011.02.28 -- Version 2.2-RC
-David Sommerseth (2):
+David Sommerseth (3):
       Make the --x509-username-field feature an opt-in feature
       Fix compiler warning when compiling against OpenSSL 1.0.0
+      Fix packaging of config-win32.h and service-win32/msvc.mak
 
 James Yonan (1):
       Minor addition of logging info before and after execution of Windows net commands.

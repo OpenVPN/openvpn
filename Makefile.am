@@ -60,7 +60,8 @@ SUBDIRS = \
 TESTS = t_client.sh t_lpback.sh t_cltsrv.sh
 sbin_PROGRAMS = openvpn
 
-dist_noinst_HEADERS =
+dist_noinst_HEADERS = \
+	config-win32.h
 
 dist_noinst_SCRIPTS = \
 	$(TESTS) \
@@ -73,7 +74,8 @@ dist_noinst_DATA = \
 	openvpn.spec \
 	COPYRIGHT.GPL \
 	PORTS \
-	INSTALL-win32.txt
+	INSTALL-win32.txt \
+	service-win32/msvc.mak
 
 openvpn_SOURCES = \
         base64.c base64.h \
