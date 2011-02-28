@@ -5,10 +5,10 @@
 #
 # chkconfig: 345 24 76
 #
-# description: OpenVPN is a robust and highly flexible tunneling application that
-#              uses all of the encryption, authentication, and certification features
-#              of the OpenSSL library to securely tunnel IP networks over a single
-#              UDP port.
+# description: OpenVPN is a robust and highly flexible tunneling application \
+#              that uses all of the encryption, authentication, and \
+#              certification features of the OpenSSL library to securely \
+#              tunnel IP networks over a single UDP port.
 #
 
 # Contributed to the OpenVPN project by
