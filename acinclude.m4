@@ -90,34 +90,30 @@ AC_DEFUN([TYPE_SOCKLEN_T],
       AC_MSG_CHECKING([for socklen_t equivalent])
       AC_CACHE_VAL([curl_cv_socklen_t_equiv],
       [
-         # Systems have either "struct sockaddr *" or
-         # "void *" as the second argument to getpeername
-         curl_cv_socklen_t_equiv=
-         for arg2 in "struct sockaddr" void; do
-            for t in int size_t unsigned long "unsigned long"; do
-               AC_TRY_COMPILE([
-                  #ifdef _WIN32
-                  #include <windows.h>
-                  #define PREFIX1 WINSOCK_API_LINKAGE
-                  #define PREFIX2 PASCAL
-                  #else
-                  #include <sys/types.h>
-                  #include <sys/socket.h>
-                  #define PREFIX1
-                  #define PREFIX2
-                  #define SOCKET int
-                  #endif
+         case "$host" in
+	 *-mingw*) curl_cv_socklen_t_equiv=int ;;
+	 *)
+            # Systems have either "struct sockaddr *" or
+            # "void *" as the second argument to getpeername
+            curl_cv_socklen_t_equiv=
+            for arg2 in "struct sockaddr" void; do
+               for t in int size_t unsigned long "unsigned long"; do
+                  AC_TRY_COMPILE([
+                     #include <sys/types.h>
+                     #include <sys/socket.h>
 
-                  PREFIX1 int PREFIX2 getpeername (SOCKET, $arg2 *, $t *);
-               ],[
-                  $t len;
-                  getpeername(0,0,&len);
-               ],[
-                  curl_cv_socklen_t_equiv="$t"
-                  break
-               ])
+                     int getpeername (int, $arg2 *, $t *);
+                  ],[
+                     $t len;
+                     getpeername(0,0,&len);
+                  ],[
+                     curl_cv_socklen_t_equiv="$t"
+                     break
+                  ])
+               done
             done
-         done
+	 ;;
+	 esac
 
          if test "x$curl_cv_socklen_t_equiv" = x; then
             AC_MSG_ERROR([Cannot find a type to use in place of socklen_t])

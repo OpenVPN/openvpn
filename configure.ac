@@ -320,6 +320,7 @@ case "$host" in
 	;;
 *-mingw*)
 	AC_DEFINE(TARGET_WIN32, 1, [Are we running WIN32?])
+	CPPFLAGS="${CPPFLAGS} -DWIN32_LEAN_AND_MEAN"
 	OPENVPN_ADD_LIBS(-lgdi32)
 	OPENVPN_ADD_LIBS(-lws2_32)
 	OPENVPN_ADD_LIBS(-lwininet)

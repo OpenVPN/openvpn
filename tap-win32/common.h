@@ -28,7 +28,9 @@
 // common to both.
 //===============================================
 
+#ifndef HAVE_CONFIG_H
 #include "autodefs.h"
+#endif
 
 //=============
 // TAP IOCTLs
