@@ -119,13 +119,13 @@ static void pam_server (int fd, const char *service, int verb, const struct name
 static char *
 searchandreplace(const char *tosearch, const char *searchfor, const char *replacewith)
 {
-  if (!tosearch || !searchfor || !replacewith) return 0;
-  if (!strlen(tosearch) || !strlen(searchfor) || !strlen(replacewith)) return 0;
-
   const char *searching=tosearch;
   char *scratch;
   char temp[strlen(tosearch)*10];
   temp[0]=0;
+
+  if (!tosearch || !searchfor || !replacewith) return 0;
+  if (!strlen(tosearch) || !strlen(searchfor) || !strlen(replacewith)) return 0;
 
   scratch = strstr(searching,searchfor);
   if (!scratch) return strdup(tosearch);
