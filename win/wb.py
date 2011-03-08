@@ -44,6 +44,11 @@ def system(cmd):
     print "RUN:", cmd
     os.system(cmd)
 
+def run_in_vs_shell(cmd):
+    """Make sure environment variables are setup before running command"""
+    os.environ['PATH'] += ";%s\\VC" % (os.path.normpath(config['MSVC']),)
+    system('cmd /c "vcvarsall.bat x86 && %s"' % (cmd,))
+
 def parse_version_m4(kv, version_m4):
     '''Parse define lines in version.m4'''
     r = re.compile(r'^define\((\w+),\[(.*)\]\)$')

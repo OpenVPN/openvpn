@@ -1,5 +1,5 @@
 import os
-from wb import home_fn, rm_rf, mkdir, cp_a, cp, rename
+from wb import home_fn, rm_rf, mkdir, cp_a, cp, rename, run_in_vs_shell
 
 def main(config, tap=True):
     dist = config['DIST']
@@ -14,9 +14,8 @@ def main(config, tap=True):
     rm_rf(dist)
     mkdir(dist)
     mkdir(bin)
-    if tap:
-        mkdir(i386)
-        mkdir(amd64)
+    mkdir(i386)
+    mkdir(amd64)
     mkdir(samples)
 
     # copy openvpn.exe, openvpnserv.exe and their manifests
@@ -46,31 +45,61 @@ def main(config, tap=True):
     rename(os.path.join(samples,'client.conf'), os.path.join(samples, 'client.ovpn'))
     rename(os.path.join(samples,'server.conf'), os.path.join(samples, 'server.ovpn'))
 
+    # embed manifests to executables and DLLs
+    for f in [ "openvpn.exe", "openvpnserv.exe", "lzo2.dll", "libpkcs11-helper-1.dll" ]:
+
+        outputresource = os.path.join(bin,f)
+        manifest = outputresource+".manifest"
+
+        # EXEs and DLLs require slightly different treatment
+        if f.endswith(".exe"):
+            type = "1"
+        elif f.endswith(".dll"):
+            type = "2"
+        else:
+            print "ERROR: Could not embed manifest to "+outputresouce+", bailing out."
+            sys.exit(1)
+
+        # Embed the manifest
+        run_in_vs_shell('mt.exe -manifest %s -outputresource:%s;%s' % (manifest, outputresource, type))
+
     # copy MSVC CRT
     cp_a(home_fn(config['MSVC_CRT']), bin)
 
+    # TAP-driver and tapinstall.exe were built, so copy those over
     if tap:
-        # copy TAP drivers
-        for dir_name, dest in (('amd64', amd64), ('i386', i386)):
-            dir = home_fn(os.path.join('tap-win32', dir_name))
-            for dirpath, dirnames, filenames in os.walk(dir):
-                for f in filenames:
-                    root, ext = os.path.splitext(f)
-                    if ext in ('.inf', '.cat', '.sys'):
-                        cp(os.path.join(dir, f), dest)
-                break
+        drv_dir = 'tap-win32'
+        ti_dir = 'tapinstall'
 
-        # Copy tapinstall.exe (usually known as devcon.exe)
-        dest = {'amd64' : amd64, 'i386' : i386}
-        for dirpath, dirnames, filenames in os.walk(home_fn('tapinstall')):
+    # we're using prebuilt TAP-driver and tapinstall.exe
+    elif 'TAP_PREBUILT' in config:
+        drv_dir = config['TAP_PREBUILT']
+        ti_dir = config['TAP_PREBUILT']
+
+    else:
+        print "ERROR: Could not find prebuilt TAP-drivers or tapinstall.exe. Please check win/settings.in"
+        sys.exit(1)
+
+    # copy TAP drivers
+    for dir_name, dest in (('amd64', amd64), ('i386', i386)):
+        dir = home_fn(os.path.join(drv_dir, dir_name))
+        for dirpath, dirnames, filenames in os.walk(dir):
             for f in filenames:
-                if f == 'tapinstall.exe':
-		    # dir_name is either i386 or amd64
-                    dir_name = os.path.basename(dirpath)
-                    src = os.path.join(dirpath, f)
-                    if dir_name in dest:
-                        cp(src, dest[dir_name])
+                root, ext = os.path.splitext(f)
+                if ext in ('.inf', '.cat', '.sys'):
+                    cp(os.path.join(dir, f), dest)
+            break
 
+    # Copy tapinstall.exe (usually known as devcon.exe)
+    dest = {'amd64' : amd64, 'i386' : i386}
+    for dirpath, dirnames, filenames in os.walk(home_fn(ti_dir)):
+        for f in filenames:
+            if f == 'devcon.exe':
+                dir_name = os.path.basename(dirpath)
+                src = os.path.join(dirpath, f)
+                dst = os.path.join(dest[dir_name],'tapinstall.exe')
+                if dir_name in dest:
+                    cp(src, dst, dest_is_dir=False)
 
 # if we are run directly, and not loaded as a module
 if __name__ == "__main__":

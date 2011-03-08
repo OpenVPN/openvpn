@@ -26,7 +26,7 @@ def copy_tapinstall(src, dest, x64):
     mkdir_silent(dest)
     for dirpath, dirnames, filenames in os.walk(home_fn(src)):
         for f in filenames:
-            if f == 'tapinstall.exe':
+            if f == 'devcon.exe':
                 dir_name = os.path.basename(dirpath)
                 s = os.path.join(dirpath, f)
                 if dir_name == base:

@@ -69,6 +69,9 @@
 !define SIGNTOOL        "../signtool"
 !define PRODUCT_SIGN_CN "openvpn"
 
+# Directory with prebuilt TAP drivers and tapinstall.exes
+!define TAP_PREBUILT "../tap-prebuilt"
+
 ; DEBUGGING -- set to something like "-DBG2"
 !define OUTFILE_LABEL ""
 

@@ -54,13 +54,14 @@ def main(config):
     if tap:
        build_ddk(config, 'tap', 'all')
        build_ddk(config, 'tapinstall', 'all')
+       if signedBuild:
+          sign(config, 'all')
+       make_dist(config,tap=True)
+
     else:
-       print "Not building the TAP driver"
-
-    if signedBuild:
-       sign(config, 'all')
-
-    make_dist(config)
+       if 'TAP_PREBUILT' in config:
+          print "Using prebuilt TAP driver"
+          make_dist(config,tap=False)
 
 # if we are run directly, and not loaded as a module
 if __name__ == "__main__":
