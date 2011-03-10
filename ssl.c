@@ -3809,6 +3809,11 @@ push_peer_info(struct buffer *buf, struct tls_session *session)
 	buf_printf (&out, "IV_HWADDR=%s\n", format_hex_ex (macaddr, 6, 0, 1, ":", &gc));
       }
 
+      /* push LZO status */
+#ifdef LZO_STUB
+      buf_printf (&out, "IV_LZO_STUB=1\n");
+#endif
+
       /* push env vars that begin with UV_ */
       for (e=es->list; e != NULL; e=e->next)
 	{

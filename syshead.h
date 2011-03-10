@@ -697,4 +697,16 @@ socket_defined (const socket_descriptor_t sd)
  */
 #define ENABLE_CLIENT_NAT
 
+/*
+ * Support LZO as a stub in client? (LZO lib not included, but we
+ * we still support LZO protocol changes that allow us to
+ * communicate with an LZO-enabled server)
+ */
+#ifdef LZO_STUB
+#undef USE_LZO
+#undef LZO_VERSION_NUM
+#define USE_LZO 1
+#define LZO_VERSION_NUM "STUB"
+#endif
+
 #endif

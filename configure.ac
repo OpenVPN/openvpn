@@ -69,6 +69,12 @@ AC_ARG_ENABLE(lzo,
    [LZO="yes"]
 )
 
+AC_ARG_ENABLE(lzo-stub,
+   [  --enable-lzo-stub       Don't compile LZO compression support but still allow limited interoperability with LZO-enabled peers],
+   [LZO_STUB="$enableval"],
+   [LZO_STUB="no"]
+)
+
 AC_ARG_ENABLE(crypto,
    [  --disable-crypto        Disable OpenSSL crypto support],
    [CRYPTO="$enableval"],
@@ -657,7 +663,7 @@ dnl
 dnl check for LZO library
 dnl
 
-if test "$LZO" = "yes"; then
+if test "$LZO" = "yes" && test "$LZO_STUB" = "no"; then
    LZO_H=""
    AC_CHECKING([for LZO Library and Header files])
    AC_CHECK_HEADER(lzo/lzo1x.h,
@@ -687,8 +693,13 @@ if test "$LZO" = "yes"; then
    else
      AC_MSG_RESULT([LZO headers were not found])
      AC_MSG_RESULT([LZO library available from http://www.oberhumer.com/opensource/lzo/])
-     AC_MSG_ERROR([Or try ./configure --disable-lzo])
+     AC_MSG_ERROR([Or try ./configure --disable-lzo OR ./configure --enable-lzo-stub])
    fi
+fi
+
+dnl enable multi-client mode
+if test "$LZO_STUB" = "yes"; then
+   AC_DEFINE(LZO_STUB, 1, [Enable LZO stub capability])
 fi
 
 dnl

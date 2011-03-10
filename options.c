@@ -4754,6 +4754,12 @@ add_option (struct options *options,
 	  msg (msglevel, "this is a generic configuration and cannot directly be used");
 	  goto err;
 	}
+#ifdef ENABLE_PUSH_PEER_INFO
+      else if (streq (p[1], "PUSH_PEER_INFO"))
+	{
+	  options->push_peer_info = true;
+	}
+#endif
 #if P2MP
       else if (streq (p[1], "SERVER_POLL_TIMEOUT") && p[2])
 	{
