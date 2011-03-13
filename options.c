@@ -427,8 +427,9 @@ static const char usage_message[] =
   "--max-clients n : Allow a maximum of n simultaneously connected clients.\n"
   "--max-routes-per-client n : Allow a maximum of n internal routes per client.\n"
 #if PORT_SHARE
-  "--port-share host port : When run in TCP mode, proxy incoming HTTPS sessions\n"
-  "                  to a web server at host:port.\n"
+  "--port-share host port [dir] : When run in TCP mode, proxy incoming HTTPS\n"
+  "                  sessions to a web server at host:port.  dir specifies an\n"
+  "                  optional directory to write origin IP:port data.\n"
 #endif
 #endif
   "\n"
@@ -5101,6 +5102,7 @@ add_option (struct options *options,
 
       options->port_share_host = p[1];
       options->port_share_port = port;
+      options->port_share_journal_dir = p[3];
     }
 #endif
   else if (streq (p[0], "client-to-client"))

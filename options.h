@@ -430,6 +430,7 @@ struct options
 #if PORT_SHARE
   char *port_share_host;
   int port_share_port;
+  const char *port_share_journal_dir;
 #endif
 #endif
 

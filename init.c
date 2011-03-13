@@ -520,7 +520,9 @@ init_port_share (struct context *c)
   if (!port_share && (c->options.port_share_host && c->options.port_share_port))
     {
       port_share = port_share_open (c->options.port_share_host,
-				    c->options.port_share_port);
+				    c->options.port_share_port,
+				    MAX_RW_SIZE_LINK (&c->c2.frame),
+				    c->options.port_share_journal_dir);
       if (port_share == NULL)
 	msg (M_FATAL, "Fatal error: Port sharing failed");
     }

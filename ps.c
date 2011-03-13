@@ -69,6 +69,7 @@ struct proxy_connection {
   bool buffer_initial;
   int rwflags;
   int sd;
+  char *jfn;
 };
 
 #if 0
@@ -226,7 +227,7 @@ port_share_sendmsg (const socket_descriptor_t sd,
 
       status = sendmsg (sd, &mesg, MSG_NOSIGNAL);
       if (status == -1)
-	msg (M_WARN, "PORT SHARE: sendmsg failed (unable to communicate with background process)");
+	msg (M_WARN|M_ERRNO_SOCK, "PORT SHARE: sendmsg failed (unable to communicate with background process)");
 
       close_socket_if_defined (sd_null[0]);
       close_socket_if_defined (sd_null[1]);
@@ -273,6 +274,12 @@ proxy_entry_mark_for_close (struct proxy_connection *pc, struct event_set *es)
       pc->buffer_initial = false;
       pc->rwflags = 0;
       pc->defined = false;
+      if (pc->jfn)
+	{
+	  unlink (pc->jfn);
+	  free (pc->jfn);
+	  pc->jfn = NULL;
+	}
       if (cp && cp->defined && cp->counterpart == pc)
 	proxy_entry_mark_for_close (cp, es);
     }
@@ -306,6 +313,48 @@ proxy_list_housekeeping (struct proxy_connection **list)
 	  pc = next;
 	}
     }
+}
+
+/*
+ * Record IP/port of client in filesystem, so that server receiving
+ * the proxy can determine true client origin.
+ */
+static void
+journal_add (const char *journal_dir, struct proxy_connection *pc, struct proxy_connection *cp)
+{
+  struct gc_arena gc = gc_new ();
+  struct openvpn_sockaddr from, to;
+  socklen_t slen, dlen;
+  int fnlen;
+  char *jfn;
+  int fd;
+
+  slen = sizeof(from.sa);
+  dlen = sizeof(to.sa);
+  if (!getpeername (pc->sd, (struct sockaddr *) &from.sa, &slen)
+      && !getsockname (cp->sd, (struct sockaddr *) &to.sa, &dlen))
+    {
+      const char *f = print_sockaddr_ex (&from, ":", PS_SHOW_PORT, &gc);
+      const char *t = print_sockaddr_ex (&to, ":", PS_SHOW_PORT, &gc);
+      fnlen =  strlen(journal_dir) + strlen(t) + 2;
+      jfn = (char *) malloc(fnlen);
+      check_malloc_return (jfn);
+      openvpn_snprintf (jfn, fnlen, "%s/%s", journal_dir, t);
+      dmsg (D_PS_PROXY_DEBUG, "PORT SHARE PROXY: client origin %s -> %s", jfn, f);
+      fd = open (jfn, O_CREAT | O_TRUNC | O_WRONLY, S_IRUSR | S_IWUSR | S_IRGRP);
+      if (fd != -1)
+	{
+	  write(fd, f, strlen(f));
+	  close (fd);
+	  cp->jfn = jfn;
+	}
+      else
+	{
+	  msg (M_WARN|M_ERRNO, "PORT SHARE: unable to write journal file in %s", jfn);
+	  free (jfn);
+	}
+    }
+  gc_free (&gc);
 }
 
 /*
@@ -361,7 +410,8 @@ proxy_entry_new (struct proxy_connection **list,
 		 const in_addr_t server_addr,
 		 const int server_port,
 		 const socket_descriptor_t sd_client,
-		 struct buffer *initial_data)
+		 struct buffer *initial_data,
+		 const char *journal_dir)
 {
   struct openvpn_sockaddr osaddr;
   socket_descriptor_t sd_server;
@@ -371,7 +421,11 @@ proxy_entry_new (struct proxy_connection **list,
 
   /* connect to port share server */
   sock_addr_set (&osaddr, server_addr, server_port);
-  sd_server = create_socket_tcp ();
+  if ((sd_server = socket (PF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0)
+    {
+      msg (M_WARN|M_ERRNO_SOCK, "PORT SHARE PROXY: cannot create socket");
+      return false;
+    }
   status = openvpn_connect (sd_server, &osaddr, 5, NULL);
   if (status)
     {
@@ -408,6 +462,10 @@ proxy_entry_new (struct proxy_connection **list,
 
   /* add to list */
   *list = pc;
+
+  /* add journal entry */
+  if (journal_dir)
+    journal_add (journal_dir, pc, cp);
   
   dmsg (D_PS_PROXY_DEBUG, "PORT SHARE PROXY: NEW CONNECTION [c=%d s=%d]", (int)sd_client, (int)sd_server);
 
@@ -429,9 +487,14 @@ control_message_from_parent (const socket_descriptor_t sd_control,
 			     struct proxy_connection **list,
 			     struct event_set *es,
 			     const in_addr_t server_addr,
-			     const int server_port)
+			     const int server_port,
+			     const int max_initial_buf,
+			     const char *journal_dir)
 {
-  struct buffer buf = alloc_buf (PROXY_CONNECTION_BUFFER_SIZE);
+  /* this buffer needs to be large enough to handle the largest buffer
+     that might be returned by the link_socket_read call in read_incoming_link. */
+  struct buffer buf = alloc_buf (max_initial_buf);
+
   struct msghdr mesg;
   struct cmsghdr* h;
   struct iovec iov[2];
@@ -467,7 +530,7 @@ control_message_from_parent (const socket_descriptor_t sd_control,
 	  || h->cmsg_level  != SOL_SOCKET
 	  || h->cmsg_type   != SCM_RIGHTS )
 	{
-	  ret = false;
+	  msg (M_WARN, "PORT SHARE PROXY: received unknown message");
 	}
       else
 	{
@@ -482,7 +545,8 @@ control_message_from_parent (const socket_descriptor_t sd_control,
 				   server_addr,
 				   server_port,
 				   received_fd,
-				   &buf))
+				   &buf,
+				   journal_dir))
 		{
 		  CLEAR (buf); /* we gave the buffer to proxy_entry_new */
 		}
@@ -517,6 +581,7 @@ proxy_connection_io_recv (struct proxy_connection *pc)
     {
       if (!status)
 	return IOSTAT_READ_ERROR;
+      dmsg (D_PS_PROXY_DEBUG, "PORT SHARE PROXY: read[%d] %d", (int)pc->sd, status);
       pc->buf.len = status;
     }
   return IOSTAT_GOOD;
@@ -544,7 +609,7 @@ proxy_connection_io_send (struct proxy_connection *pc, int *bytes_sent)
 	}
       else
 	{
-	  /*dmsg (D_PS_PROXY_DEBUG, "PORT SHARE PROXY: wrote[%d] %d", (int)sd, status);*/
+	  dmsg (D_PS_PROXY_DEBUG, "PORT SHARE PROXY: wrote[%d] %d", (int)sd, status);
 	  pc->buf.len = 0;
 	  pc->buf.offset = 0;
 	}
@@ -627,6 +692,8 @@ proxy_connection_io_dispatch (struct proxy_connection *pc,
   int rwflags_pc = pc->rwflags;
   int rwflags_cp = cp->rwflags;
 
+  ASSERT(pc->defined && cp->defined && cp->counterpart == pc);
+
   if (rwflags & EVENT_READ)
     {
       const int status = proxy_connection_io_xfer (pc, max_transfer_per_iteration);
@@ -653,7 +720,11 @@ proxy_connection_io_dispatch (struct proxy_connection *pc,
  * This is the main function for the port share proxy background process.
  */
 static void
-port_share_proxy (const in_addr_t hostaddr, const int port, const socket_descriptor_t sd_control)
+port_share_proxy (const in_addr_t hostaddr,
+		  const int port,
+		  const socket_descriptor_t sd_control,
+		  const int max_initial_buf,
+		  const char *journal_dir)
 {
   if (send_control (sd_control, RESPONSE_INIT_SUCCEEDED) >= 0)
     {
@@ -687,7 +758,7 @@ port_share_proxy (const in_addr_t hostaddr, const int port, const socket_descrip
 		  const struct event_set_return *e = &esr[i];
 		  if (e->arg == sd_control_marker)
 		    {
-		      if (!control_message_from_parent (sd_control, &list, es, hostaddr, port))
+		      if (!control_message_from_parent (sd_control, &list, es, hostaddr, port, max_initial_buf, journal_dir))
 			goto done;
 		    }
 		  else
@@ -713,7 +784,7 @@ port_share_proxy (const in_addr_t hostaddr, const int port, const socket_descrip
       proxy_list_close (&list);
       event_free (es);
     }
-  msg (D_PS_PROXY, "PORT SHARE PROXY: proxy exiting");
+  msg (M_INFO, "PORT SHARE PROXY: proxy exiting");
 }
 
 /*
@@ -721,7 +792,10 @@ port_share_proxy (const in_addr_t hostaddr, const int port, const socket_descrip
  * share proxy.
  */
 struct port_share *
-port_share_open (const char *host, const int port)
+port_share_open (const char *host,
+		 const int port,
+		 const int max_initial_buf,
+		 const char *journal_dir)
 {
   pid_t pid;
   socket_descriptor_t fd[2];
@@ -766,6 +840,10 @@ port_share_open (const char *host, const int port)
       /* don't let future subprocesses inherit child socket */
       set_cloexec (fd[0]);
 
+      /* note that this will cause possible EAGAIN when writing to
+         control socket if proxy process is backlogged */
+      set_nonblock (fd[0]);
+
       /* wait for background child process to initialize */
       status = recv_control (fd[0]);
       if (status == RESPONSE_INIT_SUCCEEDED)
@@ -796,7 +874,7 @@ port_share_open (const char *host, const int port)
       prng_init (NULL, 0);
 
       /* execute the event loop */
-      port_share_proxy (hostaddr, port, fd[1]);
+      port_share_proxy (hostaddr, port, fd[1], max_initial_buf, journal_dir);
 
       openvpn_close_socket (fd[1]);
 

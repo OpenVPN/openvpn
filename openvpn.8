@@ -3240,7 +3240,7 @@ disable the remapping feature.  Don't use this option unless you
 know what you are doing!
 .\"*********************************************************
 .TP
-.B --port-share host port
+.B --port-share host port [dir]
 When run in TCP server mode, share the OpenVPN port with
 another application, such as an HTTPS server.  If OpenVPN
 senses a connection to its port which is using a non-OpenVPN
@@ -3249,6 +3249,16 @@ protocol, it will proxy the connection to the server at
 Currently only designed to work with HTTP/HTTPS,
 though it would be theoretically possible to extend to
 other protocols such as ssh.
+
+.B dir
+specifies an optional directory where a temporary file with name N
+containing content C will be dynamically generated for each proxy
+connection, where N is the source IP:port of the client connection
+and C is the source IP:port of the connection to the proxy
+receiver.  This directory can be used as a dictionary by
+the proxy receiver to determine the origin of the connection.
+Each generated file will be automatically deleted when the proxied
+connection is torn down.
 
 Not implemented on Windows.
 .\"*********************************************************
