@@ -29,11 +29,7 @@
  * Only include if not during configure
  */
 #ifndef PACKAGE_NAME
-#ifdef _MSC_VER
-#include "config-win32.h"
-#else
 #include "config.h"
-#endif
 #endif
 
 /* branch prediction hints */

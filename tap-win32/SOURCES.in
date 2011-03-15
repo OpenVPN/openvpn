@@ -11,8 +11,7 @@ TARGETLIBS=$(DDK_LIB_PATH)\ndis.lib $(DDK_LIB_PATH)\ntstrsafe.lib
 INCLUDES=$(DDK_INCLUDE_PATH) ..
 
 # The TAP version numbers here must be >=
-# TAP_WIN32_MIN_x values defined in
-# config-win32.h
+# PRODUCT_TAP_WIN32_MIN_x values defined in version.m4
 C_DEFINES=
 C_DEFINES=$(C_DEFINES) -DTAP_DRIVER_MAJOR_VERSION=@@PRODUCT_TAP_MAJOR_VER@@
 C_DEFINES=$(C_DEFINES) -DTAP_DRIVER_MINOR_VERSION=@@PRODUCT_TAP_MINOR_VER@@

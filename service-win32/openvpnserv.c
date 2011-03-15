@@ -33,11 +33,7 @@
  * This code is designed to be built with the mingw compiler.
  */
 
-#ifdef _MSC_VER
-#include "config-win32.h"
-#else
 #include "config.h"
-#endif
 #include <windows.h>
 #include <stdlib.h>
 #include <stdio.h>

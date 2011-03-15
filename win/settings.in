@@ -5,10 +5,18 @@
 # stored in this file. This is done to allow using the old and new Windows build 
 # systems side-by-side
 
-# Features to include
+# Features to include. DO NOT comment these out, use 1 to enable and 0 to
+# disable.
 !define ENABLE_PASSWORD_SAVE 1
+
+# ENABLE_CLIENT_SERVER enables the point-to-multipoint support. Normally you
+# want to have this enabled.
 !define ENABLE_CLIENT_SERVER 1
-!define ENABLE_CLIENT_ONLY
+
+# ENABLE_CLIENT_ONLY removes server-side point-to-multipoint features. This
+# depends on ENABLE_CLIENT_SERVER being set to 1.
+!define ENABLE_CLIENT_ONLY 0
+
 !define ENABLE_MANAGEMENT 1
 !define ENABLE_HTTP_PROXY 1
 !define ENABLE_SOCKS 1

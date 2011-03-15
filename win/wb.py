@@ -101,7 +101,6 @@ def parse_build_params(kv, settings_in):
                 kv[g[0]] = g[1] or ''
     f.close()
 
-
 def dict_def(dict, newdefs):
     ret = dict.copy()
     ret.update(newdefs)
@@ -111,6 +110,15 @@ def build_autodefs(kv, autodefs_in, autodefs_out):
     preprocess(kv,
                in_fn=autodefs_in,
                out_fn=autodefs_out,
+               quote_begin='@',
+               quote_end='@',
+               head_comment='/* %s */\n\n' % autogen)
+
+def build_config_h(kv):
+    """Generate static win/config.h to config.h to mimic autotools behavior"""
+    preprocess(kv,
+               in_fn=mod_fn('config.h.in'),
+               out_fn=home_fn('config.h'),
                quote_begin='@',
                quote_end='@',
                head_comment='/* %s */\n\n' % autogen)
@@ -162,8 +170,6 @@ win/settings.in format. This done to allow importing them in win/openvpn.nsi"""
          fout.write(line)
 
     fout.close()
-
-
 
 def preprocess(kv, in_fn, out_fn, quote_begin=None, quote_end=None, if_prefix=None, head_comment=None):
     def repfn(m):
