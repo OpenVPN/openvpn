@@ -106,9 +106,9 @@ lzo_compress_init (struct lzo_compress_workspace *lzowork, unsigned int flags)
     msg (M_FATAL, "Cannot initialize LZO compression library");
   lzowork->wmem = (lzo_voidp) lzo_malloc (lzowork->wmem_size);
   check_malloc_return (lzowork->wmem);
-  msg (M_INFO, "LZO compression initialized");
+  msg (D_INIT_MEDIUM, "LZO compression initialized");
 #else
-  msg (M_INFO, "LZO stub compression initialized");
+  msg (D_INIT_MEDIUM, "LZO stub compression initialized");
 #endif
   lzowork->defined = true;
 }

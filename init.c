@@ -1981,7 +1981,7 @@ do_init_crypto_tls_c1 (struct context *c)
     }
   else
     {
-      msg (M_INFO, "Re-using SSL/TLS context");
+      msg (D_INIT_MEDIUM, "Re-using SSL/TLS context");
     }
 }
 

@@ -71,9 +71,7 @@
 #define D_ALIGN_ERRORS       LOGLEV(1, 14, M_NONFATAL)   /* show bad struct alignments */
 
 #define D_HANDSHAKE          LOGLEV(2, 20, 0)        /* show data & control channel handshakes */
-#define D_MTU_INFO           LOGLEV(2, 21, 0)        /* show terse MTU info */
 #define D_CLOSE              LOGLEV(2, 22, 0)        /* show socket and TUN/TAP close */
-#define D_SHOW_OCC_HASH      LOGLEV(2, 23, 0)        /* show MD5 hash of option compatibility string */
 #define D_PROXY              LOGLEV(2, 24, 0)        /* show http proxy control packets */
 #define D_ARGV               LOGLEV(2, 25, 0)        /* show struct argv errors */
 
@@ -104,14 +102,18 @@
 #define D_PACKET_TRUNC_ERR   LOGLEV(4, 55, 0)        /* PACKET_TRUNCATION_CHECK */
 #define D_PF_DROPPED         LOGLEV(4, 56, 0)        /* packet filter dropped a packet */
 #define D_MULTI_DROPPED      LOGLEV(4, 57, 0)        /* show point-to-multipoint packet drops */
-#define D_X509_ATTR          LOGLEV(4, 58, 0)        /* show x509-track attributes on connection */
+#define D_MULTI_MEDIUM       LOGLEV(4, 58, 0)        /* show medium frequency multi messages */
+#define D_X509_ATTR          LOGLEV(4, 59, 0)        /* show x509-track attributes on connection */
+#define D_INIT_MEDIUM        LOGLEV(4, 60, 0)        /* show medium frequency init messages */
+#define D_MTU_INFO           LOGLEV(4, 61, 0)        /* show terse MTU info */
+#define D_SHOW_OCC_HASH      LOGLEV(4, 62, 0)        /* show MD5 hash of option compatibility string */
 
 #define D_LOG_RW             LOGLEV(5, 0,  0)        /* Print 'R' or 'W' to stdout for read/write */
 
-#define D_LINK_RW            LOGLEV(6, 60, M_DEBUG)  /* show TCP/UDP reads/writes (terse) */
-#define D_TUN_RW             LOGLEV(6, 60, M_DEBUG)  /* show TUN/TAP reads/writes */
-#define D_TAP_WIN32_DEBUG    LOGLEV(6, 60, M_DEBUG)  /* show TAP-Win32 driver debug info */
-#define D_CLIENT_NAT         LOGLEV(6, 60, M_DEBUG)  /* show client NAT debug info */
+#define D_LINK_RW            LOGLEV(6, 69, M_DEBUG)  /* show TCP/UDP reads/writes (terse) */
+#define D_TUN_RW             LOGLEV(6, 69, M_DEBUG)  /* show TUN/TAP reads/writes */
+#define D_TAP_WIN32_DEBUG    LOGLEV(6, 69, M_DEBUG)  /* show TAP-Win32 driver debug info */
+#define D_CLIENT_NAT         LOGLEV(6, 69, M_DEBUG)  /* show client NAT debug info */
 
 #define D_SHOW_KEYS          LOGLEV(7, 70, M_DEBUG)  /* show data channel encryption keys */
 #define D_SHOW_KEY_SOURCE    LOGLEV(7, 70, M_DEBUG)  /* show data channel key source entropy */

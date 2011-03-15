@@ -629,7 +629,7 @@ multi_create_instance (struct multi_context *m, const struct mroute_addr *real)
 
   perf_push (PERF_MULTI_CREATE_INSTANCE);
 
-  msg (D_MULTI_LOW, "MULTI: multi_create_instance called");
+  msg (D_MULTI_MEDIUM, "MULTI: multi_create_instance called");
 
   ALLOC_OBJ_CLEAR (mi, struct multi_instance);
 
