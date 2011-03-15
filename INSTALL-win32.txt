@@ -1,4 +1,4 @@
-IMPORTANT NOTE FOR VISTA USERS
+IMPORTANT NOTE FOR WINDOWS VISTA/7 USERS
 
 Note that on Windows Vista, you will need to run the OpenVPN
 GUI with administrator privileges, so that it can add routes
@@ -9,14 +9,15 @@ desktop icon, and selecting "Run as administrator".
 GENERAL QUICKSTART FOR WINDOWS
 
 The OpenVPN Client requires a configuration file
-and key/certificate files.  You should obtain
-these and save them to \Program Files\OpenVPN\config.
+and key/certificate files. You should obtain
+these and save them to OpenVPN's configuration
+directory, usually C:\Program Files\OpenVPN\config.
 
-To start OpenVPN, first run the OpenVPN GUI by double
-clicking on the desktop icon or start menu icon.
-
-The OpenVPN GUI is a system-tray applet, so an icon for the
-GUI will appear in the lower-right corner of the screen.
-Right click on the system tray icon, and a menu should appear
-showing the names of your OpenVPN configuration files, and
-giving you the option to connect.
+You can run OpenVPN as a Windows system service or by using
+the client GUI. To use the OpenVPN GUI, double click on the
+desktop icon or start menu icon. The OpenVPN GUI is a
+system-tray applet, so an icon for the GUI will appear in
+the lower-right corner of the screen. Right click on the
+system tray icon, and a menu should appear showing the names
+of your OpenVPN configuration files, and giving you the
+option to connect.
