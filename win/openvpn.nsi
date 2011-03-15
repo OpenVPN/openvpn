@@ -7,6 +7,12 @@
 
 ; OpenVPN install script for Windows, using NSIS
 
+; Start menu entries don't get uninstalled properly on Windows Vista/7 unless we
+; explicitly state that the installer requires admin privileges. This is
+; caused by backwards compatibility tricks used on those platforms. For details,
+; see http://nsis.sourceforge.net/Shortcuts_removal_fails_on_Windows_Vista
+RequestExecutionLevel admin
+
 SetCompressor lzma
 
 !include "MUI.nsh"
@@ -394,7 +400,9 @@ Section "TAP Virtual Ethernet Adapter" SecTAP
 
   File "${GEN}\amd64\OemWin2k.inf"
   File "${GEN}\amd64\${TAPDRV}"
-  File "${GEN}\amd64\${PRODUCT_TAP_ID}.cat"
+
+  # Don't try to install TAP driver signature if it does not exist.
+  File /nonfatal "${GEN}\amd64\${PRODUCT_TAP_ID}.cat"
 
 goto tapend
 
@@ -408,7 +416,9 @@ tap-32bit:
   SetOutPath "$INSTDIR\driver"
   File "${GEN}\i386\OemWin2k.inf"
   File "${GEN}\i386\${TAPDRV}"
-  File "${GEN}\i386\${PRODUCT_TAP_ID}.cat"
+
+  # Don't try to install TAP driver signature if it does not exist.
+  File /nonfatal "${GEN}\i386\${PRODUCT_TAP_ID}.cat"
 
   tapend:
 
@@ -428,6 +438,8 @@ SectionEnd
 
 Section "Add Shortcuts to Start Menu" SecAddShortcuts
 
+  ; Required to handle shortcuts properly on Vista/7
+  SetShellVarContext all
   SetOverwrite on
   CreateDirectory "$SMPROGRAMS\${PRODUCT_NAME}"
   CreateDirectory "$SMPROGRAMS\${PRODUCT_NAME}\Documentation"
@@ -681,6 +693,9 @@ Function un.onInit
 FunctionEnd
 
 Section "Uninstall"
+
+  ; Required to handle shortcuts properly on Vista/7
+  SetShellVarContext all
 
   ; Stop OpenVPN if currently running
 
