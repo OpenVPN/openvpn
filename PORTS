@@ -1,0 +1,94 @@
+OpenVPN
+Copyright (C) 2002-2010 OpenVPN Technologies, Inc. <sales@openvpn.net>
+
+  OpenVPN has been written to try to avoid features
+  that are not standardized well across different
+  OSes, so porting OpenVPN itself will probably be
+  straightforward if a tun or tap driver already exists.
+
+  Where special OS features are used, they are usually
+  bracketed with #ifdef HAVE_SOME_FUNCTION.
+
+PLATFORM STATUS:
+
+  * Linux 2.2+ (supported)
+  * Solaris (supported)
+  * OpenBSD 3.0 (supported but pthreads are broken)
+  * Max OS X Darwin
+  * FreeBSD
+  * NetBSD
+  * Windows
+  * 64 bit platforms -- I have heard reports that
+    OpenVPN runs on Alpha Linux and FreeBSD.
+  * ARM -- I have heard of at least one case
+    where OpenVPN was successfully built and
+    run on the ARM architecture.
+
+PORTING NOTES:
+
+  * Make sure that OpenSSL will build on your
+    platform.
+  * Make sure that a tun or tap virtual device
+    driver exists for your platform.  See
+    http://vtun.sourceforge.net/tun/ for examples
+    of tun and tap drivers that have been written
+    for Linux, Solaris, and FreeBSD.
+  * Make sure you have autoconf 2.50+ and
+    automake 1.6+.
+  * Edit configure.ac, adding platform specific
+    config code, and a TARGET_YOUROS define.
+  * Add platform-specific includes to syshead.h.
+  * Add an #ifdef TARGET_YOUROS to the do_ifconfig()
+    function in tun.c to generate a correct "ifconfig"
+    command for your platform.  Note that OpenVPN
+    determines the ifconfig path at ./configure time.
+  * Add an ifconfig_order() variant for your OS so
+    openvpn knows whether to call ifconfig before
+    or after tun/tap dev open.
+  * Add an #ifdef TARGET_YOUROS block in tun.c and define
+    the open_tun, close_tun, read_tun, and write_tun
+    functions.  If your tun/tap virtual device is
+    sufficiently generic, you may be able to use the
+    default case.
+  * Add appropriate code to route.c to handle
+    the route command on your platform.  This
+    is necessary for the --route option to
+    work correctly.
+  * After you successfully build OpenVPN, run
+    the loopback tests as described in INSTALL.
+  * For the next test, confirm that the UDP socket
+    functionality is working independently of the
+    tun device, by doing something like:
+      ./openvpn --remote localhost --verb 9 --ping 1 --dev null
+  * Now try with --remote [a real host]
+  * Now try with a real tun/tap device, you will
+    need to figure out the appropriate ifconfig
+    command to use once openvpn has opened the tun/tap
+    device.
+  * Once you have simple tests working on the tun device,
+    try more complex tests such as using TLS mode.
+  * Stress test the link by doing ping -f across it.
+  * Make sure that packet fragmenting is happening
+    correctly by doing a ping -s 2000 or higher.
+  * Ensure that OpenVPN on your platform will talk
+    to OpenVPN on other platforms such as Linux.
+    Some tun/tap driver implementations will prepend
+    unnecessary stuff onto the datagram that must be
+    disabled with an explicit ioctl call if cross-platform
+    compatibility is to be preserved.  You can see some
+    examples of this in tun.c.
+  * If your system supports pthreads, try building
+    with ./configure --enable-pthread and do a stress
+    test in TLS mode.
+  * Try the ultimate stress test which is --gremlin
+    --reneg-sec 10 in TLS mode (preferably with pthreads
+    enabled), then do a flood ping across the tunnel
+    (ping -f remote-endpoint) in both directions and let
+    it run overnight.  --gremlin will induce massive
+    corruption and packet loss, but you win if you
+    wake up the next morning and both peers are still
+    running and occasionally even succeeding in their
+    attempted once-per-10-seconds TLS handshake. 
+  * When it's working, submit your patch to
+    <openvpn-devel@lists.sourceforge.net>
+    and rejoice :)

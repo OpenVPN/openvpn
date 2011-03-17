@@ -1,0 +1,19 @@
+#!/bin/sh
+
+# get version.nsi definitions
+. autodefs/defs.sh
+
+# Get OpenSSL binaries
+if [ -d "$OPENSSL_DIR" ] ; then
+    mkdir -p $GENOUT/lib &>/dev/null    
+    mkdir -p $GENOUT/bin &>/dev/null    
+    for f in libeay32.dll libssl32.dll out/openssl.exe ; do
+	cp $OPENSSL_DIR/$f $GENOUT/lib
+        if [ -z "$NO_STRIP" ]; then
+	    strip $GENOUT/lib/`basename $f`
+	fi
+    done
+    mv $GENOUT/lib/openssl.exe $GENOUT/bin
+else
+    echo OpenSSL DIR $OPENSSL_DIR NOT FOUND
+fi

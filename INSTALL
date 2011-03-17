@@ -1,0 +1,343 @@
+Installation instructions for OpenVPN, a Secure Tunneling Daemon
+
+Copyright (C) 2002-2010 OpenVPN Technologies, Inc. This program is free software;
+you can redistribute it and/or modify
+it under the terms of the GNU General Public License version 2
+as published by the Free Software Foundation.
+
+*************************************************************************
+
+QUICK START:
+
+  Unix:
+    ./configure && make && make-install
+
+  Windows MinGW, using MSYS bash shell:
+    ./domake-win (see comments in the script for more info)
+
+  Windows Visual Studio:
+    python win\build_all.py
+
+*************************************************************************
+
+To download OpenVPN, go to:
+
+	http://openvpn.net/download.html
+
+For step-by-step installation instructions with real-world
+examples see:
+
+	http://openvpn.net/howto.html
+
+For examples see:
+
+	http://openvpn.net/examples.html
+
+*************************************************************************
+
+SUPPORTED PLATFORMS:
+  (1) Linux 2.2+
+  (2) Solaris
+  (3) OpenBSD 3.0+ (Comes with OpenSSL and TUN devices by default)
+  (4) Mac OS X Darwin
+  (5) FreeBSD
+  (6) NetBSD
+  (7) Windows (Win 2K and higher)
+
+SUPPORTED PROCESSOR ARCHITECTURES:
+   In general, OpenVPN is word size and endian independent, so
+   most processors should be supported.  Architectures known to
+   work include Intel x86, Alpha, Sparc, Amd64, and ARM.
+
+REQUIRES:
+  (1) TUN and/or TAP driver to allow user-space programs to control
+      a virtual point-to-point IP or Ethernet device.  See
+      TUN/TAP Driver Configuration section below for more info.
+
+OPTIONAL (but recommended):
+  (1) OpenSSL library, necessary for encryption, version 0.9.5 or higher
+      required, available from http://www.openssl.org/
+  (2) LZO real-time compression library, required for link compression,
+      available from http://www.oberhumer.com/opensource/lzo/
+      OpenBSD users can use ports or packages to install lzo, but remember
+      to add "--with-lzo-headers" and "--with-lzo-lib" directives to
+      "configure", pointing to /usr/local/include and /usr/local/lib
+      respectively since gcc will not find them otherwise.
+  (3) Pthread library.
+
+OPTIONAL (for developers only):
+  (1) Autoconf 2.50 or higher + Automake 1.5 or higher
+      -- available from http://www.gnu.org/software/software.html
+  (2) Dmalloc library
+      -- available from http://dmalloc.com/
+
+*************************************************************************
+
+CHECK OUT SOURCE FROM SUBVERSION REPOSITORY:
+
+  Check out stable version:
+
+    svn checkout http://svn.openvpn.net/projects/openvpn/trunk/openvpn openvpn
+
+  Check out beta21 branch:
+
+    svn checkout http://svn.openvpn.net/projects/openvpn/branches/BETA21/openvpn openvpn
+
+*************************************************************************
+
+BUILD COMMANDS FROM TARBALL:
+
+	./configure
+	make
+	make install
+
+*************************************************************************
+
+BUILD COMMANDS FROM SUBVERSION REPOSITORY CHECKOUT:
+
+	autoreconf -i -v
+	./configure
+	make
+	make install
+
+*************************************************************************
+
+BUILD A TARBALL FROM SUBVERSION REPOSITORY CHECKOUT:
+
+	autoreconf -i -v
+	./configure
+	make dist
+
+*************************************************************************
+
+LOOPBACK TESTS (after BUILD):
+
+make check (Run all tests below)
+
+Test Crypto:
+
+./openvpn --genkey --secret key
+./openvpn --test-crypto --secret key
+
+Test SSL/TLS negotiations (runs for 2 minutes):
+
+./openvpn --config sample-config-files/loopback-client  (In one window) 
+./openvpn --config sample-config-files/loopback-server  (Simultaneously in another window) 
+
+*************************************************************************
+
+OPTIONS for ./configure:
+
+  --enable-pthread          Compile pthread support for
+                            improved latency during SSL/TLS key
+                            negotiations (Linux or Solaris only)
+
+  --disable-lzo             Do not compile LZO compression support
+  --disable-crypto          Do not compile OpenSSL crypto support
+  --disable-ssl             Do not compile OpenSSL SSL support for
+                            TLS-based key exchange
+
+  --with-ssl-headers=DIR    Crypto/SSL Include files location
+  --with-ssl-lib=DIR        Crypto/SSL Library location
+  --with-lzo-headers=DIR    LZO Include files location
+  --with-lzo-lib=DIR        LZO Library location
+
+  --with-ifconfig-path=PATH   Path to ifconfig tool (only need to
+                              specify if in a non-standard location)
+
+  --with-leak-check=TYPE    Build with memory leak checking
+                            TYPE = dmalloc or ssl
+
+  --enable-strict           Enable strict compiler warnings
+
+  --enable-strict-options   Enable strict options check between peers
+
+*************************************************************************
+
+BUILDING ON LINUX 2.4+ FROM RPM
+
+You can build a binary RPM directly from the OpenVPN tarball file:
+
+	rpmbuild -tb [tarball]
+
+This command will build a binary RPM file and place it in the system
+RPM directory.  You can then install the RPM with the standard RPM
+install command:
+
+	rpm -ivh [binary-rpm]
+
+When you install the binary RPM, it will install
+sample-scripts/openvpn.init, which can be used to
+automatically start or stop one or more OpenVPN tunnels on system
+startup or shutdown, based on OpenVPN .conf files in /etc/openvpn.
+See the comments in openvpn.init for more information.
+
+Installing the RPM will also configure the TUN/TAP device node
+for linux 2.4.
+
+Note that the current openvpn.spec file, which instructs the rpm tool
+how to build a package, will build OpenVPN with all options enabled,
+including OpenSSL, LZO, and pthread linkage.  Therefore all of
+these packages will need to be present prior to the RPM build, unless
+you edit the openvpn.spec file.
+
+*************************************************************************
+
+TUN/TAP Driver Configuration:
+
+* Linux 2.4 or higher (with integrated TUN/TAP driver):
+
+  (1)  make device node:         mknod /dev/net/tun c 10 200
+  (2a) add to /etc/modules.conf: alias char-major-10-200 tun
+  (2b) load driver:              modprobe tun
+  (3)  enable routing:           echo 1 > /proc/sys/net/ipv4/ip_forward
+
+  Note that either of steps (2a) or (2b) is sufficient.  While (2a)
+  only needs to be done once per install, (2b) needs to be done once
+  per reboot.  If you install from RPM (see above) and use the
+  openvpn.init script, these steps are taken care of for you.
+
+* Linux 2.2 or Solaris:
+
+  You should obtain
+  version 1.1 of the TUN/TAP driver from
+  http://vtun.sourceforge.net/tun/
+  and follow the installation instructions.
+
+  If you use OpenVPN on Linux 2.2 or 2.4 or Solaris, you may be
+  suffering from a bug which causes connections to hang under heavy load.
+  The symptoms are very similar to the MTU problems discussed frequently
+  in the OpenVPN mailing lists. But it turns out that this bug is not caused by
+  MTU problems. It's a bug in the tun/tap driver.  A patch is provided here:
+
+  http://openvpn.net/patch/tun-sb.patch
+
+* Solaris
+
+  For 64 bit, I used the tun-1.1.tar.gz source and compiled it.
+
+  Of course there is a but :)
+  In the tun-1-1\solaris\Makefile I changed a line so it compiles with 64 bit
+
+  CFLAGS = $(DEFS) -m64 -O2 -Wall -D_KERNEL -I.
+
+  I just added -m64 and it worked.
+
+  The tun driver works fine as said previously, however we noticed there is a
+  minor problem when creating multiple tunnels on Solaris.
+  Mr Tycho Fruru changed the code in tun.c file where he locked the tun device
+  number to -1. This way it is impossible to specify the name of the tun device
+  but it is still possible to have multiple devices.
+  The modification will increment automatically meaning starting from tun0 --->
+  tunX I know you are not responsible for the tun coding but if you think the
+  modification can be useful for you feel free to use it.
+
+  http://openvpn.net/solaris/tun.c
+
+* FreeBSD 4.1.1+:
+
+  FreeBSD ships with the TUN/TAP driver, and the device nodes for tap0,
+  tap1, tap2, tap3, tun0, tun1, tun2 and tun3 are made by default.
+  However, only the TUN driver is linked into the GENERIC kernel.
+
+  To load the TAP driver, enter: 
+
+	kldload if_tap
+
+  See man rc(8) to find out how you can do this at boot time.
+
+  The easiest way is to install OpenVPN from the FreeBSD ports system,
+  the port includes a sample script to automatically load the TAP driver
+  at boot-up time.
+
+* OpenBSD:
+
+  OpenBSD ships with tun0 and tun1 installed by default on pre-3.5 systems,
+  while 3.5 and later have dynamically created tun* devices so you only need
+  to create an empty /etc/hostname.tun0 (tun1, tun2 and so on) for each tun
+  you plan to use to create the device(s) at boot.
+
+* Mac OS X:
+
+  2005.02.13: Angelo Laub has developed a GUI for OS X:
+
+  http://rechenknecht.net/OpenVPN-GUI/
+
+  2004.10.26: Mattias Nissler has developed a new TUN/TAP driver for
+  MAC OS X:
+
+  http://www-user.rhrk.uni-kl.de/~nissler/tuntap/    
+
+  Christoph Pfisterer's old TUN driver can be obtained at
+  http://chrisp.de/en/projects/tunnel.html -- note that it
+  is no longer being maintained.
+
+* Solaris9 Sparc/64
+
+  The kernel module for solaris
+  can be generated by adding the -m64 switch to a modern
+  gcc compiler (I'm using 3.2)  The resulting kernel driver
+  needs to be manually copied to /kernel/drv/sparcv9/ and then a 
+  reconfiguration reboot. (boot -r).
+
+* Windows 2000/XP/2003/Vista
+
+  See domake-win for building instructions.
+  See INSTALL-win32.txt for usage info.
+
+ See the man page for more information, usage examples, and
+ information on firewall configuration.
+
+*************************************************************************
+
+CAVEATS & BUGS:
+
+* I have noticed cases where TCP sessions tunneled over the Linux
+  TAP driver (kernel 2.4.21 and 2.4.22) stall when lower --mssfix
+  values are used.  The TCP sessions appear to unstall and resume
+  normally when the remote VPN endpoint is pinged.
+
+* If run through a firewall using OpenBSDs packet filter PF and the
+  filter rules include a "scrub" directive, you may get problems talking
+  to Linux hosts over the tunnel, since the scrubbing will kill packets
+  sent from Linux hosts if they are fragmented. This is usually seen as
+  tunnels where small packets and pings get through but large packets
+  and "regular traffic" don't. To circumvent this, add "no-df" to
+  the scrub directive so that the packet filter will let fragments with
+  the "dont fragment"-flag set through anyway.
+
+* Mixing OFB or CFB cipher modes with static key mode is not recommended,
+  and is flagged as an error on OpenVPN versions 1.2.1 and greater.
+  If you use the --cipher option to explicitly select an OFB or CFB
+  cipher AND you are using static key mode, it is possible that there
+  could be an IV collision if the OpenVPN daemons on both sides
+  of the connection are started at exactly the same time, since
+  OpenVPN uses a timestamp combined with a sequence number as the cipher
+  IV for OFB and CFB modes.  This is not an issue if you are
+  using CBC cipher mode (the default), or if you are using OFB or CFB
+  cipher mode with SSL/TLS authentication.
+
+******************************************************************************
+
+Subject: [Openvpn-users] Re: Windows XP 64 bit
+From: Hypherion
+Date: Thu, 14 Apr 2005 07:01:17 +0000 (UTC)
+
+Well I managed to build a Windows XP 64 bit driver myself and it's working
+great, I can connect to my server again :)
+
+I had to use the WinDDK for Windows 2003 Service Pack 1 and just built the
+driver in the Windows 2003 AMD64 environment.  I had to comment out the
+MAPINFO:FIXUPS directive in the SOURCES file. 
+ 
+Then I copied and renamed (devcon.exe/tapinstall.exe) from
+C:\WINDDK\3790.1830\tools\devcon\amd64. 
+ 
+I had to edit the file OemWin2k.inf and change the Manufactured + Product
+Section to:
+
+[Manufacturer]
+   %Provider% = tap0901, NTamd64
+
+[tap0901.NTamd64]
+   %DeviceDescription% = tap0901.ndi, tap0901

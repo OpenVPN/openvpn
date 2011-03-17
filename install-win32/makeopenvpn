@@ -1,0 +1,37 @@
+#!/bin/sh
+
+H=`pwd`
+
+# get version.nsi definitions
+. autodefs/defs.sh
+
+if gcc --version &>/dev/null && [ -d "$OPENSSL_DIR" ] && [ -d "$LZO_DIR" ] && [ -d "$PKCS11_HELPER_DIR" ]; then
+    # build OpenVPN binary
+
+    if ! [ -f Makefile ]; then
+	autoreconf -i -v \
+	&& ./configure \
+	    --enable-strict \
+	    --prefix=$H/windest \
+	    MAN2HTML=true \
+	    --with-ssl-headers=$H/$OPENSSL_DIR/include \
+	    --with-ssl-lib=$H/$OPENSSL_DIR/out \
+	    --with-lzo-headers=$H/$LZO_DIR/include \
+	    --with-lzo-lib=$H/$LZO_DIR \
+	    --with-pkcs11-helper-headers=$H/$PKCS11_HELPER_DIR/usr/local/include \
+	    --with-pkcs11-helper-lib=$H/$PKCS11_HELPER_DIR/usr/local/lib
+    fi
+
+    make -j $MAKE_JOBS && make install
+
+    # copy OpenVPN and service executables to GENOUT/bin
+    mkdir -p $GENOUT/bin &>/dev/null
+    cp windest/sbin/openvpn.exe $GENOUT/bin
+    cp windest/sbin/openvpnserv.exe $GENOUT/bin
+    if [ -z "$NO_STRIP" ]; then
+	strip $GENOUT/bin/openvpn.exe
+	strip $GENOUT/bin/openvpnserv.exe
+    fi
+else
+    echo DID NOT BUILD openvpn.exe and openvpnserv.exe because one or more of gcc, OPENSSL_DIR, LZO_DIR, or PKCS11_HELPER_DIR directories were missing
+fi

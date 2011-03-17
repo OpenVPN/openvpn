@@ -1,0 +1,28 @@
+#!/bin/sh
+
+# Get and sign the OpenVPN XML-based GUI
+
+# load version.nsi definitions
+. autodefs/defs.sh
+
+if [ -d "$OPENVPN_XGUI_DIR" ]; then
+    SIGNED_EXES="gui/ovpn-xgui-en.exe sta/ovpn-tray.exe"
+    UNSIGNED_EXES="xmlserv/ovpn-xmlserv.exe"
+    EXES="$SIGNED_EXES $UNSIGNED_EXES"
+
+    mkdir -p $GENOUT/bin &>/dev/null
+
+    if [ -z "$NO_STRIP" ]; then
+	for f in $EXES; do
+	    cp $OPENVPN_XGUI_DIR/$f $GENOUT/bin
+	    strip $GENOUT/bin/`basename $f`
+	done
+    fi
+
+    rm -rf $GENOUT/htdocs
+    cp -a $OPENVPN_XGUI_DIR/ajax/htdocs $GENOUT/htdocs
+
+    echo '!define OPENVPN_XGUI_DEFINED' >autodefs/xguidefs.nsi
+else
+    cat /dev/null >autodefs/xguidefs.nsi
+fi

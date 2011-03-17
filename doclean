@@ -1,0 +1,73 @@
+#!/bin/sh
+
+# Let's have a fresh start.  Remove all
+# generated files.
+#
+# Run this script, then:
+#        autoreconf -i -v
+#        ./configure
+#        make
+#        make install
+
+if ! [ "$KEEPAUTODEFS" = "yes" ]; then
+    rm -rf autodefs
+fi
+
+rm -f \
+    *.o \
+    service-win32/*.o \
+    service-win32/*.exe \
+    *.exe \
+    openvpn \
+    config.cache \
+    configure \
+    Makefile \
+    Makefile.in \
+    stamp-h* \
+    config.guess \
+    config.sub \
+    depcomp \
+    missing \
+    mkinstalldirs \
+    config.log \
+    config.status \
+    config.h \
+    config.h.in \
+    aclocal.m4 \
+    openvpn.spec \
+    install-sh \
+    openvpn.8.html \
+    install-win32/*.exe \
+    install-win32/makensis.log \
+    install-win32/settings \
+    install-win32/Makefile \
+    install-win32/Makefile.in \
+    images/Makefile \
+    images/Makefile.in \
+    service-win32/Makefile \
+    service-win32/Makefile.in
+
+rm -rf \
+    autom4te*.cache \
+    .deps \
+    */.deps \
+    windest \
+    gen \
+    tapinstall \
+    install-win32/tmp
+
+rm -rf \
+    tap-win32/objfre_w2k_x86 \
+    tap-win32/dist \
+    tap-win32/SOURCES \
+    tap-win32/tapdrvr.cod \
+    tap-win32/buildfre_wnet_amd64.wrn \
+    tap-win32/buildfre_w2k_x86.wrn \
+    tap-win32/objfre_wnet_amd64 \
+    tap-win32/buildfre_wnet_amd64.log \
+    tap-win32/buildfre_w2k_x86.log \
+    tap-win32/amd64 \
+    tap-win32/i386/tap0901.pdb \
+    tap-win32/i386/OemWin2k.inf \
+    tap-win32/i386/tap0901.map \
+    tap-win32/i386/tap0901.sys

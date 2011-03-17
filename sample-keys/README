@@ -1,0 +1,14 @@
+Sample RSA keys.
+
+See the examples section of the man page
+for usage examples.
+
+NOTE: THESE KEYS ARE FOR TESTING PURPOSES ONLY.
+      DON'T USE THEM FOR ANY REAL WORK BECAUSE
+      THEY ARE TOTALLY INSECURE!
+
+ca.{crt,key}     -- sample CA key/cert
+client.{crt,key} -- sample client key/cert
+server.{crt,key} -- sample server key/cert (nsCertType=server)
+pass.{crt,key}   -- sample client key/cert with password-encrypted key
+                    password = "password"

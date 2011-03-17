@@ -1,0 +1,16 @@
+OpenVPN plugin examples.
+
+Examples provided:
+
+simple.c -- using the --auth-user-pass-verify callback,
+            test deferred authentication.
+
+To build:
+
+  ./build simple (Linux/BSD/etc.)
+  ./winbuild simple (MinGW on Windows)
+
+To use in OpenVPN, add to config file:
+
+  plugin simple.so (Linux/BSD/etc.)
+  plugin simple.dll (MinGW on Windows)

@@ -1,0 +1,4 @@
+*.o
+Makefile.in
+settings
+Makefile

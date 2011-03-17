@@ -1,0 +1,26 @@
+# Perform a TLS loopback test -- server side.
+#
+# This test performs a TLS negotiation once every 10 seconds,
+# and will terminate after 2 minutes.
+#
+# From the root directory of the OpenVPN distribution,
+# after openvpn has been built, run:
+#
+#  ./openvpn --config sample-config-files/loopback-client  (In one window) 
+#  ./openvpn --config sample-config-files/loopback-server  (Simultaneously in another window) 
+
+rport 16001
+lport 16000
+remote localhost
+local localhost
+dev null
+verb 3
+reneg-sec 10
+tls-server
+dh sample-keys/dh1024.pem
+ca sample-keys/ca.crt
+key sample-keys/server.key
+cert sample-keys/server.crt
+cipher DES-EDE3-CBC
+ping 1
+inactive 120 10000000

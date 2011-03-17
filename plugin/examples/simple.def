@@ -1,0 +1,6 @@
+LIBRARY   OpenVPN_PLUGIN_SAMPLE
+DESCRIPTION "Sample OpenVPN plug-in module."
+EXPORTS
+   openvpn_plugin_open_v1   @1
+   openvpn_plugin_func_v1   @2
+   openvpn_plugin_close_v1  @3

@@ -1,0 +1,7 @@
+#!/bin/bash
+
+# Like build-req, but protect your private key
+# with a password.
+
+export EASY_RSA="${EASY_RSA:-.}"
+"$EASY_RSA/pkitool" --interact --csr --pass $*

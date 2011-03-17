@@ -1,0 +1,75 @@
+OpenVPN -- A Secure tunneling daemon
+
+Copyright (C) 2002-2010 OpenVPN Technologies, Inc. This program is free software;
+you can redistribute it and/or modify
+it under the terms of the GNU General Public License version 2
+as published by the Free Software Foundation.
+
+*************************************************************************
+
+For the latest version of OpenVPN, go to:
+
+	http://openvpn.net/
+
+To Build and Install,
+
+	./configure
+	make
+	make install
+
+or see the file INSTALL for more info.
+
+*************************************************************************
+
+For detailed information on OpenVPN, including examples, see the man page
+  http://openvpn.net/man.html
+
+For a sample VPN configuration, see
+  http://openvpn.net/howto.html
+
+For a description of OpenVPN's underlying protocol,
+  see the file ssl.h included in the source distribution.
+
+*************************************************************************
+
+Other Files & Directories:
+
+* INSTALL-win32.txt -- installation instructions
+  for Windows
+
+* configure.ac -- script to rebuild our configure
+  script and makefile.
+
+* openvpn.spec -- RPM Spec file
+  To build an OpenVPN binary RPM, use the command:
+
+	rpmbuild -tb [tarball]
+
+  When you install the binary RPM, it will automatically
+  install sample-scripts/openvpn.init (see below)
+
+* sample-scripts/openvpn.init
+
+  A sample init script for OpenVPN.  See the file for
+  comments and additional information.
+
+* sample-scripts/verify-cn
+
+  A sample perl script which can be used with OpenVPN's
+  --tls-verify option to provide a customized authentication
+  test on embedded X509 certificate fields.
+
+* sample-keys/
+
+  Sample RSA keys and certificates.  DON'T USE THESE FILES
+  FOR ANYTHING OTHER THAN TESTING BECAUSE THEY ARE TOTALLY INSECURE.
+
+* sample-config-files/
+
+  A collection of OpenVPN config files and scripts from
+  the HOWTO at http://openvpn.net/howto.html
+
+* easy-rsa/
+
+  A simple guide to RSA key management, scripts included.
+  Also see http://openvpn.net/easyrsa.html

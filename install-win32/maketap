@@ -1,0 +1,17 @@
+#!/bin/sh
+
+# Get the x86 and x64 versions of the TAP driver
+
+# get version.nsi definitions
+. autodefs/defs.sh
+
+if [ -d "$TAPBINSRC" ]; then
+    mkdir -p $GENOUT/driver/i386 &>/dev/null
+    mkdir -p $GENOUT/driver/amd64 &>/dev/null
+    for arch in i386 amd64; do
+	s=$TAPBINSRC/$arch
+	cp $s/*.sys $s/*.cat $s/*.inf $GENOUT/driver/$arch
+    done
+else
+    echo Cannot find pre-built tap drivers
+fi

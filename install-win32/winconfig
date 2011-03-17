@@ -1,0 +1,18 @@
+#!/bin/sh
+
+# prepare files for building on Windows
+# run from top directory: install-win32/winconfig
+
+rm -rf autodefs
+mkdir autodefs
+
+# build multi-grammar definition files
+perl install-win32/m4todef.pl <version.m4 >autodefs/version.in
+for g in "h" "sh" "nsi" "in" ; do
+    perl install-win32/trans.pl $g install-win32/settings.in >autodefs/defs.$g
+done
+
+cat /dev/null >autodefs/guidefs.nsi
+
+echo '#include "autodefs/defs.h"' >autodefs.h
+echo '#include "config.h"' >>autodefs.h

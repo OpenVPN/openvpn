@@ -1,0 +1,31 @@
+#ifndef AUTODEFS_H
+#define AUTODEFS_H
+
+/*
+ * Minimum TAP-Win32 version number expected by userspace
+ *
+ * The TAP-Win32 version number is defined in tap-win32/SOURCES
+ */
+#define TAP_ID "@PRODUCT_TAP_ID@"
+#define TAP_WIN32_MIN_MAJOR @PRODUCT_TAP_WIN32_MIN_MAJOR@
+#define TAP_WIN32_MIN_MINOR @PRODUCT_TAP_WIN32_MIN_MINOR@
+
+/* Friendly name for TAP driver */
+#define PRODUCT_TAP_DEVICE_DESCRIPTION "@PRODUCT_TAP_DEVICE_DESCRIPTION@"
+
+/* Version number of DDK/WDK used to build TAP driver */
+#define DDKVER_MAJOR @DDKVER_MAJOR@
+
+/* Name of package */
+#define PACKAGE "@PRODUCT_UNIX_NAME@"
+
+/* Define to the full name of this package. */
+#define PACKAGE_NAME "@PRODUCT_NAME@"
+
+/* Define to the one symbol short name of this package. */
+#define PACKAGE_TARNAME "@PRODUCT_UNIX_NAME@"
+
+/* Define to the version of this package. */
+#define PACKAGE_VERSION "@PRODUCT_VERSION@"
+
+#endif

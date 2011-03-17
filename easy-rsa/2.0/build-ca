@@ -1,0 +1,8 @@
+#!/bin/bash
+
+#
+# Build a root certificate
+#
+
+export EASY_RSA="${EASY_RSA:-.}"
+"$EASY_RSA/pkitool" --interact --initca $*

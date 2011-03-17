@@ -1,0 +1,838 @@
+OpenVPN Management Interface Notes
+----------------------------------
+
+The OpenVPN Management interface allows OpenVPN to
+be administratively controlled from an external program via
+a TCP or unix domain socket.
+
+The interface has been specifically designed for developers
+who would like to programmatically or remotely control
+an OpenVPN daemon, and can be used when OpenVPN is running
+as a client or server.
+
+The management interface is implemented using a client/server TCP
+connection or unix domain socket where OpenVPN will listen on a
+provided IP address and port for incoming management client connections.
+
+The management protocol is currently cleartext without an explicit
+security layer.  For this reason, it is recommended that the
+management interface either listen on a unix domain socket,
+localhost (127.0.0.1), or on the local VPN address.  It's possible
+to remotely connect to the management interface over the VPN itself,
+though some capabilities will be limited in this mode, such as the
+ability to provide private key passwords.
+
+The management interface is enabled in the OpenVPN
+configuration file using the following directive:
+
+--management
+
+See the man page for documentation on this and related
+directives.
+
+Once OpenVPN has started with the management layer enabled,
+you can telnet to the management port (make sure to use
+a telnet client which understands "raw" mode).
+
+Once connected to the management port, you can use
+the "help" command to list all commands.
+
+COMMAND -- bytecount
+--------------------
+
+The bytecount command is used to request real-time notification
+of OpenVPN bandwidth usage.
+
+Command syntax:
+
+  bytecount n (where n > 0) -- set up automatic notification of
+                               bandwidth usage once every n seconds
+  bytecount 0 -- turn off bytecount notifications
+
+If OpenVPN is running as a client, the bytecount notification
+will look like this:
+
+  >BYTECOUNT:{BYTES_IN},{BYTES_OUT}
+
+BYTES_IN is the number of bytes that have been received from
+the server and BYTES_OUT is the number of bytes that have been
+sent to the server.
+
+If OpenVPN is running as a server, the bytecount notification
+will look like this:
+
+  >BYTECOUNT_CLI:{CID},{BYTES_IN},{BYTES_OUT}
+ 
+CID is the Client ID, BYTES_IN is the number of bytes that have
+been received from the client and BYTES_OUT is the number of
+bytes that have been sent to the client.
+
+Note that when the bytecount command is used on the server, every
+connected client will report its bandwidth numbers once every n
+seconds.
+
+When the client disconnects, the final bandwidth numbers will be
+placed in the 'bytes_received' and 'bytes_sent' environmental variables
+as included in the >CLIENT:DISCONNECT notification.
+
+COMMAND -- echo
+---------------
+
+The echo capability is used to allow GUI-specific
+parameters to be either embedded in the OpenVPN config file
+or pushed to an OpenVPN client from a server.
+
+Command examples:
+
+  echo on      -- turn on real-time notification of echo messages
+  echo all     -- print the current echo history list
+  echo off     -- turn off real-time notification of echo messages
+  echo on all  -- atomically enable real-time notification,
+                  plus show any messages in history buffer
+
+For example, suppose you are developing a OpenVPN GUI and
+you want to give the OpenVPN server the ability to ask
+the GUI to forget any saved passwords.
+
+In the OpenVPN server config file, add:
+
+  push "echo forget-passwords"
+
+When the OpenVPN client receives its pulled list of directives
+from the server, the "echo forget-passwords" directive will
+be in the list, and it will cause the management interface
+to save the "forget-passwords" string in its list of echo
+parameters.
+
+The management client can use "echo all" to output the full
+list of echoed parameters, "echo on" to turn on real-time
+notification of echoed parameters via the ">ECHO:" prefix,
+or "echo off" to turn off real-time notification.
+
+When the GUI connects to the OpenVPN management socket, it
+can issue an "echo all" command, which would produce output
+like this:
+
+  1101519562,forget-passwords
+  END
+
+Essentially the echo command allowed us to pass parameters from
+the OpenVPN server to the OpenVPN client, and then to the
+management client (such as a GUI).  The large integer is the
+unix date/time when the echo parameter was received.
+
+If the management client had issued the command "echo on",
+it would have enabled real-time notifications of echo
+parameters.  In this case, our "forget-passwords" message
+would be output like this:
+
+  >ECHO:1101519562,forget-passwords
+
+Like the log command, the echo command can atomically show
+history while simultaneously activating real-time updates:
+
+  echo on all
+
+The size of the echo buffer is currently hardcoded to 100
+messages.
+
+COMMAND -- exit, quit
+---------------------
+
+Close the managment session, and resume listening on the
+management port for connections from other clients. Currently,
+the OpenVPN daemon can at most support a single management client
+any one time.
+
+COMMAND -- help
+---------------
+
+Print a summary of commands.
+
+COMMAND -- hold
+---------------
+
+The hold command can be used to manipulate the hold flag,
+or release OpenVPN from a hold state.
+
+If the hold flag is set on initial startup or
+restart, OpenVPN will hibernate prior to initializing
+the tunnel until the management interface receives
+a "hold release" command.
+
+The --management-hold directive of OpenVPN can be used
+to start OpenVPN with the hold flag set.
+
+The hold flag setting is persistent and will not
+be reset by restarts.
+
+OpenVPN will indicate that it is in a hold state by
+sending a real-time notification to the management
+client:
+
+  >HOLD:Waiting for hold release
+
+Command examples:
+
+  hold         -- show current hold flag, 0=off, 1=on.
+  hold on      -- turn on hold flag so that future restarts
+                  will hold.
+  hold off     -- turn off hold flag so that future restarts will
+                  not hold.
+  hold release -- leave hold state and start OpenVPN, but
+                  do not alter the current hold flag setting.
+
+COMMAND -- kill
+---------------
+
+In server mode, kill a particlar client instance.
+
+Command examples:
+
+  kill Test-Client -- kill the client instance having a
+                      common name of "Test-Client".
+  kill 1.2.3.4:4000 -- kill the client instance having a
+                       source address and port of 1.2.3.4:4000
+
+Use the "status" command to see which clients are connected.
+
+COMMAND -- log
+--------------
+
+Show the OpenVPN log file.  Only the most recent n lines
+of the log file are cached by the management interface, where
+n is controlled by the OpenVPN --management-log-cache directive.
+
+Command examples:
+
+  log on     -- Enable real-time output of log messages.
+  log all    -- Show currently cached log file history.
+  log on all -- Atomically show all currently cached log file
+                history then enable real-time notification of
+                new log file messages.
+  log off    -- Turn off real-time notification of log messages.
+  log 20     -- Show the most recent 20 lines of log file history.
+
+Real-time notification format:
+
+Real-time log messages begin with the ">LOG:" prefix followed
+by the following comma-separated fields:
+
+  (a) unix integer date/time,
+  (b) zero or more message flags in a single string:
+      I -- informational
+      F -- fatal error
+      N -- non-fatal error
+      W -- warning
+      D -- debug, and
+  (c) message text.
+
+COMMAND -- mute
+---------------
+
+Change the OpenVPN --mute parameter.  The mute parameter is
+used to silence repeating messages of the same message
+category.
+
+Command examples:
+
+  mute 40 -- change the mute parameter to 40
+  mute    -- show the current mute setting
+
+COMMAND -- net
+--------------
+
+(Windows Only) Produce output equivalent to the OpenVPN
+--show-net directive.  The output includes OpenVPN's view
+of the system network adapter list and routing table based
+on information returned by the Windows IP helper API.
+
+COMMAND -- pid
+--------------
+
+Shows the process ID of the current OpenVPN process.
+
+COMMAND -- password and username
+--------------------------------
+
+  The password command is used to pass passwords to OpenVPN.
+
+  If OpenVPN is run with the --management-query-passwords
+  directive, it will query the management interface for RSA
+  private key passwords and the --auth-user-pass
+  username/password.
+
+  When OpenVPN needs a password from the management interface,
+  it will produce a real-time ">PASSWORD:" message.
+
+  Example 1:
+
+    >PASSWORD:Need 'Private Key' password
+
+  OpenVPN is indicating that it needs a password of type
+  "Private Key".
+
+  The management client should respond to this query as follows:
+
+    password "Private Key" foo
+
+  Example 2:
+
+    >PASSWORD:Need 'Auth' username/password
+
+  OpenVPN needs a --auth-user-pass password.  The management
+  client should respond:
+
+    username "Auth" foo
+    password "Auth" bar
+
+  The username/password itself can be in quotes, and special
+  characters such as double quote or backslash must be escaped,
+  for example,
+
+    password "Private Key" "foo\"bar"
+
+  The escaping rules are the same as for the config file.
+  See the "Command Parsing" section below for more info.
+
+  The PASSWORD real-time message type can also be used to
+  indicate password or other types of authentication failure:
+
+  Example 3: The private key password is incorrect and OpenVPN
+  is exiting:
+
+    >PASSWORD:Verification Failed: 'Private Key'
+
+  Example 4: The --auth-user-pass username/password failed,
+  and OpenVPN is exiting:
+
+    >PASSWORD:Verification Failed: 'Auth'
+
+  Example 5: The --auth-user-pass username/password failed,
+  and the server provided a custom client-reason-text string
+  using the client-deny server-side management interface command.
+
+    >PASSWORD:Verification Failed: 'custom server-generated string'
+
+COMMAND -- forget-passwords
+---------------------------
+
+The forget-passwords command will cause the daemon to forget passwords
+entered during the session.
+
+Command example:
+
+  forget-passwords -- forget passwords entered so far.
+
+COMMAND -- signal
+-----------------
+
+The signal command will send a signal to the OpenVPN daemon.
+The signal can be one of SIGHUP, SIGTERM, SIGUSR1, or SIGUSR2.
+
+Command example:
+
+  signal SIGUSR1 -- send a SIGUSR1 signal to daemon
+
+COMMAND -- state
+----------------
+
+Show the current OpenVPN state, show state history, or
+enable real-time notification of state changes.
+
+These are the OpenVPN states:
+
+CONNECTING    -- OpenVPN's initial state.
+WAIT          -- (Client only) Waiting for initial response
+                 from server.
+AUTH          -- (Client only) Authenticating with server.
+GET_CONFIG    -- (Client only) Downloading configuration options
+                 from server.
+ASSIGN_IP     -- Assigning IP address to virtual network
+                 interface.
+ADD_ROUTES    -- Adding routes to system.
+CONNECTED     -- Initialization Sequence Completed.
+RECONNECTING  -- A restart has occurred.
+EXITING       -- A graceful exit is in progress.
+
+Command examples:
+
+  state        -- Print current OpenVPN state.
+  state on     -- Enable real-time notification of state changes.
+  state off    -- Disable real-time notification of state changes.
+  state all    -- Print current state history.
+  state 3      -- Print the 3 most recent state transitions.
+  state on all -- Atomically show state history while at the
+                  same time enable real-time state notification
+		  of future state transitions.
+
+The output format consists of 4 comma-separated parameters: 
+  (a) the integer unix date/time,
+  (b) the state name,
+  (c) optional descriptive string (used mostly on RECONNECTING
+      and EXITING to show the reason for the disconnect),
+  (d) optional TUN/TAP local IP address (shown for ASSIGN_IP
+      and CONNECTED), and
+  (e) optional address of remote server (OpenVPN 2.1 or higher).
+
+Real-time state notifications will have a ">STATE:" prefix
+prepended to them.
+
+COMMAND -- status
+-----------------
+
+Show current daemon status information, in the same format as
+that produced by the OpenVPN --status directive.
+
+Command examples:
+
+status   -- Show status information using the default status
+            format version.
+
+status 3 -- Show status information using the format of
+            --status-version 3.
+
+COMMAND -- username
+-------------------
+
+See the "password" section above.
+
+COMMAND -- verb
+---------------
+
+Change the OpenVPN --verb parameter.  The verb parameter
+controls the output verbosity, and may range from 0 (no output)
+to 15 (maximum output).  See the OpenVPN man page for additional
+info on verbosity levels.
+
+Command examples:
+
+  verb 4  -- change the verb parameter to 4
+  mute    -- show the current verb setting
+
+COMMAND -- version
+------------------
+
+Show the current OpenVPN and Management Interface versions.
+
+
+COMMAND -- auth-retry
+---------------------
+
+Set the --auth-retry setting to control how OpenVPN responds to
+username/password authentication errors.  See the manual page
+for more info.
+
+Command examples:
+
+  auth-retry interact -- Don't exit when bad username/passwords are entered.
+                         Query for new input and retry.
+
+COMMAND -- needok  (OpenVPN 2.1 or higher)
+------------------------------------------
+
+Confirm a ">NEED-OK" real-time notification, normally used by
+OpenVPN to block while waiting for a specific user action.
+
+Example:
+
+  OpenVPN needs the user to insert a cryptographic token,
+  so it sends a real-time notification:
+
+    >NEED-OK:Need 'token-insertion-request' confirmation MSG:Please insert your cryptographic token
+
+  The management client, if it is a GUI, can flash a dialog
+  box containing the text after the "MSG:" marker to the user.
+  When the user acknowledges the dialog box,
+  the management client can issue this command:
+
+     needok token-insertion-request ok
+  or
+     needok token-insertion-request cancel
+
+COMMAND -- needstr  (OpenVPN 2.1 or higher)
+-------------------------------------------
+
+Confirm a ">NEED-STR" real-time notification, normally used by
+OpenVPN to block while waiting for a specific user input.
+
+Example:
+
+  OpenVPN needs the user to specify some input, so it sends a
+  real-time notification:
+
+    >NEED-STR:Need 'name' input MSG:Please specify your name
+
+  The management client, if it is a GUI, can flash a dialog
+  box containing the text after the "MSG:" marker to the user.
+  When the user acknowledges the dialog box,
+  the management client can issue this command:
+
+     needstr name "John"
+
+COMMAND -- pkcs11-id-count  (OpenVPN 2.1 or higher)
+---------------------------------------------------
+
+Retrieve available number of certificates.
+
+Example:
+
+     pkcs11-id-count
+     >PKCS11ID-COUNT:5
+
+COMMAND -- pkcs11-id-get  (OpenVPN 2.1 or higher)
+-------------------------------------------------
+
+Retrieve certificate by index, the ID string should be provided
+as PKCS#11 identity, the blob is BASE64 encoded certificate.
+
+Example:
+
+     pkcs11-id-get 1
+     PKCS11ID-ENTRY:'1', ID:'<snip>', BLOB:'<snip>'
+
+COMMAND -- client-auth  (OpenVPN 2.1 or higher)
+-----------------------------------------------
+
+Authorize a ">CLIENT:CONNECT" or ">CLIENT:REAUTH" request and specify
+"client-connect" configuration directives in a subsequent text block.
+
+The OpenVPN server should have been started with the
+--management-client-auth directive so that it will ask the management
+interface to approve client connections.
+
+
+  client-auth {CID} {KID}
+  line_1
+  line_2
+  ...
+  line_n
+  END
+
+CID,KID -- client ID and Key ID.  See documentation for ">CLIENT:"
+notification for more info.
+
+line_1 to line_n -- client-connect configuration text block, as would be
+returned by a --client-connect script.  The text block may be null, with
+"END" immediately following the "client-auth" line (using a null text
+block is equivalent to using the client-auth-nt command).
+
+A client-connect configuration text block contains OpenVPN directives
+that will be applied to the client instance object representing a newly
+connected client.
+
+COMMAND -- client-auth-nt  (OpenVPN 2.1 or higher)
+--------------------------------------------------
+
+Authorize a ">CLIENT:CONNECT" or ">CLIENT:REAUTH" request without specifying
+client-connect configuration text.
+
+The OpenVPN server should have been started with the
+--management-client-auth directive so that it will ask the management
+interface to approve client connections.
+
+  client-auth-nt {CID} {KID}
+
+CID,KID -- client ID and Key ID.  See documentation for ">CLIENT:"
+notification for more info.
+
+COMMAND -- client-deny  (OpenVPN 2.1 or higher)
+-----------------------------------------------
+
+Deny a ">CLIENT:CONNECT" or ">CLIENT:REAUTH" request.
+
+  client-deny {CID} {KID} "reason-text" ["client-reason-text"]
+
+CID,KID -- client ID and Key ID.  See documentation for ">CLIENT:"
+notification for more info.
+
+reason-text: a human-readable message explaining why the authentication
+request was denied.  This message will be output to the OpenVPN log
+file or syslog.
+
+client-reason-text: a message that will be sent to the client as
+part of the AUTH_FAILED message.
+
+Note that client-deny denies a specific Key ID (pertaining to a
+TLS renegotiation).  A client-deny command issued in response to
+an initial TLS key negotiation (notified by ">CLIENT:CONNECT") will
+terminate the client session after returning "AUTH-FAILED" to the client.
+On the other hand, a client-deny command issued in response to
+a TLS renegotiation (">CLIENT:REAUTH") will invalidate the renegotiated
+key, however the TLS session associated with the currently active
+key will continue to live for up to --tran-window seconds before
+expiration.
+
+To immediately kill a client session, use "client-kill".
+
+COMMAND -- client-kill  (OpenVPN 2.1 or higher)
+-----------------------------------------------
+
+Immediately kill a client instance by CID.
+
+  client-kill {CID}
+
+CID -- client ID.  See documentation for ">CLIENT:" notification for more
+info.
+
+COMMAND -- client-pf  (OpenVPN 2.1 or higher)
+---------------------------------------------
+
+Push a packet filter file to a specific client.
+
+The OpenVPN server should have been started with the
+--management-client-pf directive so that it will require that
+VPN tunnel packets sent or received by client instances must
+conform to that client's packet filter configuration.
+
+  client-pf {CID}
+  line_1
+  line_2
+  ...
+  line_n
+  END
+
+CID -- client ID.  See documentation for ">CLIENT:" notification for
+more info.
+
+line_1 to line_n -- the packet filter configuration file for this
+client.
+
+Packet filter file grammar:
+
+ [CLIENTS DROP|ACCEPT]
+ {+|-}common_name1
+ {+|-}common_name2
+ . . .
+ [SUBNETS DROP|ACCEPT]
+ {+|-}subnet1
+ {+|-}subnet2
+ . . .
+ [END]
+
+ Subnet: IP-ADDRESS | IP-ADDRESS/NUM_NETWORK_BITS | "unknown"
+
+ CLIENTS refers to the set of clients (by their common-name) which
+ this instance is allowed ('+') to connect to, or is excluded ('-')
+ from connecting to.  Note that in the case of client-to-client
+ connections, such communication must be allowed by the packet filter
+ configuration files of both clients AND the --client-to-client
+ directive must have been specified in the OpenVPN server config.
+
+ SUBNETS refers to IP addresses or IP address subnets which this
+ client instance may connect to ('+') or is excluded ('-') from
+ connecting to, and applies to IPv4 and ARP packets.  The special
+ "unknown" tag refers to packets of unknown type, i.e. a packet that
+ is not IPv4 or ARP.
+
+ DROP or ACCEPT defines default policy when there is no explicit match
+ for a common-name or subnet.  The [END] tag must exist.
+
+ Notes:
+
+ * The SUBNETS section currently only supports IPv4 addresses and
+   subnets.
+
+ * A given client or subnet rule applies to both incoming and
+   outgoing packets.
+
+ * The CLIENTS list is order-invariant.  Because the list is stored
+   as a hash-table, the order of the list does not affect its function.
+
+ * The SUBNETS table is scanned sequentially, and the first item to
+   match is chosen.  Therefore the SUBNETS table is NOT order-invariant.
+
+ * No client-to-client communication is allowed unless the
+   --client-to-client configuration directive is enabled AND
+   the CLIENTS list of BOTH clients allows the communication.
+
+Example packet filter spec, as transmitted to the management interface:
+
+ client-pf 42
+ [CLIENTS ACCEPT]
+ -accounting
+ -enigma
+ [SUBNETS DROP]
+ -10.46.79.9
+ +10.0.0.0/8
+ [END]
+ END
+
+The above example sets the packet filter policy for the client
+identified by CID=42.  This client may connect to all other clients
+except those having a common name of "accounting" or "enigma".
+The client may only interact with external IP addresses in the
+10.0.0.0/8 subnet, however access to 10.46.79.9 is specifically
+excluded.
+
+Another example packet filter spec, as transmitted to the
+management interface:
+
+ client-pf 99
+ [CLIENTS DENY]
+ +public
+ [SUBNETS ACCEPT]
+ +10.10.0.1
+ -10.0.0.0/8
+ -unknown
+ [END]
+ END
+
+The above example sets the packet filter policy for the client
+identified by CID=99.  This client may not connect to any other
+clients except those having a common name of "public".  It may
+interact with any external IP address except those in the
+10.0.0.0/8 netblock.  However interaction with one address in
+the 10.0.0.0/8 netblock is allowed: 10.10.0.1.  Also, the client
+may not interact with external IP addresses using an "unknown"
+protocol (i.e. one that is not IPv4 or ARP).
+
+OUTPUT FORMAT
+-------------
+
+(1) Command success/failure indicated by "SUCCESS: [text]" or
+    "ERROR: [text]".
+
+(2) For commands which print multiple lines of output,
+    the last line will be "END".
+
+(3) Real-time messages will be in the form ">[source]:[text]",
+    where source is "CLIENT", "ECHO", "FATAL", "HOLD", "INFO", "LOG",
+    "NEED-OK", "PASSWORD", or "STATE".
+
+REAL-TIME MESSAGE FORMAT
+------------------------
+
+The OpenVPN management interface produces two kinds of
+output: (a) output from a command, or (b) asynchronous,
+real-time output which can be generated at any time.
+
+Real-time messages start with a '>' character in the first
+column and are immediately followed by a type keyword
+indicating the type of real-time message.  The following
+types are currently defined:
+
+BYTECOUNT -- Real-time bandwidth usage notification, as enabled
+             by "bytecount" command when OpenVPN is running as
+             a client.
+
+BYTECOUNT_CLI -- Real-time bandwidth usage notification per-client,
+	         as enabled by "bytecount" command when OpenVPN is
+                 running as a server.
+
+CLIENT   -- Notification of client connections and disconnections
+            on an OpenVPN server.  Enabled when OpenVPN is started
+            with the --management-client-auth option.  CLIENT
+            notifications may be multi-line.  See "The CLIENT
+            notification" section below for detailed info.
+
+ECHO     -- Echo messages as controlled by the "echo" command.
+
+FATAL    -- A fatal error which is output to the log file just
+            prior to OpenVPN exiting.
+
+HOLD     -- Used to indicate that OpenVPN is in a holding state
+            and will not start until it receives a
+            "hold release" command.
+
+INFO     -- Informational messages such as the welcome message.
+
+LOG      -- Log message output as controlled by the "log" command.
+
+NEED-OK  -- OpenVPN needs the end user to do something, such as
+            insert a cryptographic token.  The "needok" command can
+            be used to tell OpenVPN to continue.
+
+NEED-STR -- OpenVPN needs information from end, such as
+            a certificate to use.  The "needstr" command can
+            be used to tell OpenVPN to continue.
+
+PASSWORD -- Used to tell the management client that OpenVPN
+            needs a password, also to indicate password
+            verification failure.
+
+STATE    -- Shows the current OpenVPN state, as controlled
+            by the "state" command.
+
+The CLIENT notification
+-----------------------
+
+The ">CLIENT:" notification is enabled by the --management-client-auth
+OpenVPN configuration directive that gives the management interface client
+the responsibility to authenticate OpenVPN clients after their client
+certificate has been verified.  CLIENT notifications may be multi-line, and
+the sequentiality of a given CLIENT notification, its associated environmental
+variables, and the terminating ">CLIENT:ENV,END" line are guaranteed to be
+atomic.
+
+CLIENT notification types:
+
+(1) Notify new client connection ("CONNECT") or existing client TLS session
+    renegotiation ("REAUTH").  Information about the client is provided
+    by a list of environmental variables which are documented in the OpenVPN
+    man page.  The environmental variables passed are equivalent to those
+    that would be passed to an --auth-user-pass-verify script.
+
+    >CLIENT:CONNECT|REAUTH,{CID},{KID}
+    >CLIENT:ENV,name1=val1
+    >CLIENT:ENV,name2=val2
+    >CLIENT:ENV,...
+    >CLIENT:ENV,END
+
+(2) Notify successful client authentication and session initiation.
+    Called after CONNECT.
+
+    >CLIENT:ESTABLISHED,{CID}
+    >CLIENT:ENV,name1=val1
+    >CLIENT:ENV,name2=val2
+    >CLIENT:ENV,...
+    >CLIENT:ENV,END
+
+(3) Notify existing client disconnection.  The environmental variables passed
+    are equivalent to those that would be passed to a --client-disconnect
+    script.
+
+    >CLIENT:DISCONNECT,{CID}
+    >CLIENT:ENV,name1=val1
+    >CLIENT:ENV,name2=val2
+    >CLIENT:ENV,...
+    >CLIENT:ENV,END
+
+(4) Notify that a particular virtual address or subnet
+    is now associated with a specific client.
+
+    >CLIENT:ADDRESS,{CID},{ADDR},{PRI}
+
+Variables:
+
+CID --  Client ID, numerical ID for each connecting client, sequence = 0,1,2,...
+KID --  Key ID, numerical ID for the key associated with a given client TLS session,
+        sequence = 0,1,2,...
+PRI --  Primary (1) or Secondary (0) VPN address/subnet.  All clients have at least
+        one primary IP address.  Secondary address/subnets are associated with
+        client-specific "iroute" directives.
+ADDR -- IPv4 address/subnet in the form 1.2.3.4 or 1.2.3.0/255.255.255.0
+
+In the unlikely scenario of an extremely long-running OpenVPN server,
+CID and KID should be assumed to recycle to 0 after (2^32)-1, however this
+recycling behavior is guaranteed to be collision-free.
+
+Command Parsing
+---------------
+
+The management interface uses the same command line lexical analyzer
+as is used by the OpenVPN config file parser.
+
+Whitespace is a parameter separator.
+
+Double quotation or single quotation characters ("", '') can be used
+to enclose parameters containing whitespace.
+
+Backslash-based shell escaping is performed, using the following
+mappings, when not in single quotations:
+
+\\       Maps to a single backslash character (\).
+\"       Pass a literal doublequote character ("), don't
+         interpret it as enclosing a parameter.
+\[SPACE] Pass a literal space or tab character, don't
+         interpret it as a parameter delimiter.

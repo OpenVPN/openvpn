@@ -1,0 +1,71 @@
+# Version numbers, settings, and dependencies
+# for Windows OpenVPN installer.
+
+# Get the OpenVPN version number
+!include "autodefs/version.in"
+
+# Branding
+!define PRODUCT_NAME      "OpenVPN"
+!define PRODUCT_UNIX_NAME "openvpn"
+!define PRODUCT_FILE_EXT  "ovpn"
+
+# Allow --askpass and --auth-user-pass passwords to be read from a file
+;!define ENABLE_PASSWORD_SAVE
+
+# Include the OpenVPN GUI exe in the installer.
+# May be undefined.
+!define OPENVPN_GUI_DIR "../openvpn-gui"
+!define OPENVPN_GUI     "openvpn-gui-1.0.3.exe"
+
+# Include the OpenVPN XML-based GUI exe in the installer.
+# May be undefined.
+;!define OPENVPN_XGUI_DIR "../ovpnxml"
+
+# Prebuilt libraries.  DMALLOC is optional.
+!define OPENSSL_DIR	  "../openssl.mingw/openssl-0.9.8o"
+!define LZO_DIR		  "../lzo-2.02"
+!define PKCS11_HELPER_DIR "../pkcs11-helper"
+;!define DMALLOC_DIR	  "../dmalloc-5.4.2"
+
+# Prebuilt TAP drivers and tapinstall
+!define TAPBINSRC "../tap_dist"
+
+# Directory containing python script for signing .exe files
+!define SIGNTOOL        "../signtool"
+
+# Optional directory of prebuilt OpenVPN binary components,
+# to be used as a source when build-from-scratch prerequisites
+# are not met.
+;!define GENOUT_PREBUILT  "../gen-prebuilt"
+
+# -j parameter passed to make
+!define MAKE_JOBS 1
+
+# output directory for built binaries
+# and other generated files
+!define GENOUT "gen"
+
+# delete GENOUT directory before starting
+# set to "yes" or "no"
+!define CLEAN "yes"
+
+# Don't strip executables and DLLs
+;!define NO_STRIP
+
+; DEBUGGING -- set to something like "-DBG2"
+!define OUTFILE_LABEL ""
+
+; DEBUGGING -- set to something like "DEBUG2"
+!define TITLE_LABEL ""
+
+# include a sample configuration file and key
+;!define SAMPCONF_DIR   "test-key"
+;!define SAMPCONF_CONF  "test.ovpn"
+;!define SAMPCONF_P12   "test.p12"
+;!define SAMPCONF_TA    "ta.key"
+;!define SAMPCONF_CA    "ca.crt"
+;!define SAMPCONF_CRT   "test.crt"
+;!define SAMPCONF_KEY   "test.key"
+
+# Extract files embedded in installer
+;!define EXTRACT_FILES

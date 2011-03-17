@@ -1,0 +1,13 @@
+#!/bin/bash
+
+# list revoked certificates
+
+CRL="${1:-crl.pem}"
+
+if [ "$KEY_DIR" ]; then
+    cd "$KEY_DIR" && \
+	$OPENSSL crl -text -noout -in "$CRL"
+else
+    echo 'Please source the vars script first (i.e. "source ./vars")'
+    echo 'Make sure you have edited it to reflect your configuration.'
+fi

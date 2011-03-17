@@ -1,0 +1,59 @@
+#!/bin/sh
+
+# get version.nsi definitions
+. autodefs/defs.sh
+
+mkdir -p $GENOUT/text &>/dev/null
+
+# build license file
+cat COPYING COPYRIGHT.GPL >$GENOUT/text/license.txt
+
+# copy install file
+cp INSTALL-win32.txt $GENOUT/text/INSTALL-win32.txt
+
+# copy sample configuration files and docs
+s=$GENOUT/samples
+mkdir -p $s &>/dev/null
+cp sample-config-files/client.conf $s/client.$PRODUCT_FILE_EXT
+cp sample-config-files/server.conf $s/server.$PRODUCT_FILE_EXT
+cp install-win32/sample.ovpn $s/sample.$PRODUCT_FILE_EXT
+
+# get easy-rsa (Windows)
+e=$GENOUT/easy-rsa
+mkdir -p $e &>/dev/null
+cp easy-rsa/1.0/openssl.cnf $e/openssl.cnf.sample
+cp easy-rsa/Windows/* $e
+
+# get images
+i=$GENOUT/images
+mkdir -p $i &>/dev/null
+cp images/*.ico $i
+cp images/*.bmp $i
+
+# get NSI files
+n=$GENOUT/nsi
+mkdir -p $n &>/dev/null
+cp autodefs/defs.nsi $n
+cp autodefs/guidefs.nsi $n
+cp autodefs/xguidefs.nsi $n
+cp install-win32/openvpn.nsi $n
+cp install-win32/setpath.nsi $n
+cp install-win32/GetWindowsVersion.nsi $n
+
+if [ -n "$EXTRACT_FILES" ]; then
+    cp "$EXTRACT_FILES/MultiFileExtract.nsi" $n
+fi
+
+# get OpenVPN client config files
+if [ -n "$SAMPCONF_DIR" ]; then
+    c=$GENOUT/conf
+    mkdir -p $c &>/dev/null
+    test -n "$SAMPCONF_CONF" && cp "../$SAMPCONF_DIR/$SAMPCONF_CONF" $c
+    test -n "$SAMPCONF_CONF2" && cp "../$SAMPCONF_DIR/$SAMPCONF_CONF2" $c
+    test -n "$SAMPCONF_P12" && cp "../$SAMPCONF_DIR/$SAMPCONF_P12" $c
+    test -n "$SAMPCONF_TA" && cp "../$SAMPCONF_DIR/$SAMPCONF_TA" $c
+    test -n "$SAMPCONF_CA" && cp "../$SAMPCONF_DIR/$SAMPCONF_CA" $c
+    test -n "$SAMPCONF_CRT" && cp "../$SAMPCONF_DIR/$SAMPCONF_CRT" $c
+    test -n "$SAMPCONF_KEY" && cp "../$SAMPCONF_DIR/$SAMPCONF_KEY" $c
+    test -n "$SAMPCONF_DH" && cp "../$SAMPCONF_DIR/$SAMPCONF_DH" $c
+fi

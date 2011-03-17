@@ -1,0 +1,217 @@
+OpenVPN (TM) -- An Open Source VPN daemon
+
+Copyright (C) 2002-2010 OpenVPN Technologies, Inc. <sales@openvpn.net>
+
+This distribution contains multiple components, some
+of which fall under different licenses.  By using OpenVPN
+or any of the bundled components enumerated below, you
+agree to be bound by the conditions of the license for
+each respective component.
+
+OpenVPN trademark
+-----------------
+
+  "OpenVPN" is a trademark of OpenVPN Technologies, Inc.
+
+
+OpenVPN license:
+----------------
+
+  OpenVPN is distributed under the GPL license version 2 (see Below).
+
+  Special exception for linking OpenVPN with OpenSSL:
+
+  In addition, as a special exception, OpenVPN Technologies, Inc. gives
+  permission to link the code of this program with the OpenSSL
+  library (or with modified versions of OpenSSL that use the same
+  license as OpenSSL), and distribute linked combinations including
+  the two.  You must obey the GNU General Public License in all
+  respects for all of the code used other than OpenSSL.  If you modify
+  this file, you may extend this exception to your version of the
+  file, but you are not obligated to do so.  If you do not wish to
+  do so, delete this exception statement from your version.
+
+LZO license:
+------------
+
+  LZO is Copyright (C) Markus F.X.J. Oberhumer,
+  and is licensed under the GPL.
+
+  Special exception for linking OpenVPN with both OpenSSL and LZO:
+
+  Hereby I grant a special exception to the OpenVPN project 
+  (http://openvpn.net/) to link the LZO library with 
+  the OpenSSL library (http://www.openssl.org).
+ 
+  Markus F.X.J. Oberhumer
+
+TAP-Win32/TAP-Win64 Driver license:
+-----------------------------------
+
+  This device driver was inspired by the CIPE-Win32 driver by
+  Damion K. Wilson.
+
+  The source and object code of the TAP-Win32/TAP-Win64 driver
+  is Copyright (C) 2002-2010 OpenVPN Technologies, Inc., and is released under
+  the GPL version 2.
+
+Windows DDK Samples:
+--------------------
+
+  The Windows binary distribution includes devcon.exe, a
+  Microsoft DDK sample which is redistributed under the terms
+  of the DDK EULA.
+
+NSIS License:
+-------------
+
+  Copyright (C) 2002-2003 Joost Verburg
+
+  This software is provided 'as-is', without any express or implied
+  warranty. In no event will the authors be held liable for any damages
+  arising from the use of this software.
+
+  Permission is granted to anyone to use this software for any purpose,
+  including commercial applications, and to alter it and redistribute
+  it freely, subject to the following restrictions:
+
+  1. The origin of this software must not be misrepresented; 
+     you must not claim that you wrote the original software.
+     If you use this software in a product, an acknowledgment in the
+     product documentation would be appreciated but is not required.
+  2. Altered versions must be plainly marked as such,
+     and must not be misrepresented as being the original software.
+  3. This notice may not be removed or altered from any distribution.
+
+OpenSSL License:
+----------------
+
+  The OpenSSL toolkit stays under a dual license, i.e. both the conditions of
+  the OpenSSL License and the original SSLeay license apply to the toolkit.
+  See below for the actual license texts. Actually both licenses are BSD-style
+  Open Source licenses. In case of any license issues related to OpenSSL
+  please contact openssl-core@openssl.org.
+
+/* ====================================================================
+ * Copyright (c) 1998-2003 The OpenSSL Project.  All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer. 
+ *
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in
+ *    the documentation and/or other materials provided with the
+ *    distribution.
+ *
+ * 3. All advertising materials mentioning features or use of this
+ *    software must display the following acknowledgment:
+ *    "This product includes software developed by the OpenSSL Project
+ *    for use in the OpenSSL Toolkit. (http://www.openssl.org/)"
+ *
+ * 4. The names "OpenSSL Toolkit" and "OpenSSL Project" must not be used to
+ *    endorse or promote products derived from this software without
+ *    prior written permission. For written permission, please contact
+ *    openssl-core@openssl.org.
+ *
+ * 5. Products derived from this software may not be called "OpenSSL"
+ *    nor may "OpenSSL" appear in their names without prior written
+ *    permission of the OpenSSL Project.
+ *
+ * 6. Redistributions of any form whatsoever must retain the following
+ *    acknowledgment:
+ *    "This product includes software developed by the OpenSSL Project
+ *    for use in the OpenSSL Toolkit (http://www.openssl.org/)"
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE OpenSSL PROJECT ``AS IS'' AND ANY
+ * EXPRESSED OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+ * PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL THE OpenSSL PROJECT OR
+ * ITS CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+ * NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+ * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+ * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
+ * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
+ * OF THE POSSIBILITY OF SUCH DAMAGE.
+ * ====================================================================
+ *
+ * This product includes cryptographic software written by Eric Young
+ * (eay@cryptsoft.com).  This product includes software written by Tim
+ * Hudson (tjh@cryptsoft.com).
+ *
+ */
+
+ Original SSLeay License
+ -----------------------
+
+/* Copyright (C) 1995-1998 Eric Young (eay@cryptsoft.com)
+ * All rights reserved.
+ *
+ * This package is an SSL implementation written
+ * by Eric Young (eay@cryptsoft.com).
+ * The implementation was written so as to conform with Netscapes SSL.
+ * 
+ * This library is free for commercial and non-commercial use as long as
+ * the following conditions are aheared to.  The following conditions
+ * apply to all code found in this distribution, be it the RC4, RSA,
+ * lhash, DES, etc., code; not just the SSL code.  The SSL documentation
+ * included with this distribution is covered by the same copyright terms
+ * except that the holder is Tim Hudson (tjh@cryptsoft.com).
+ * 
+ * Copyright remains Eric Young's, and as such any Copyright notices in
+ * the code are not to be removed.
+ * If this package is used in a product, Eric Young should be given attribution
+ * as the author of the parts of the library used.
+ * This can be in the form of a textual message at program startup or
+ * in documentation (online or textual) provided with the package.
+ * 
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the distribution.
+ * 3. All advertising materials mentioning features or use of this software
+ *    must display the following acknowledgement:
+ *    "This product includes cryptographic software written by
+ *     Eric Young (eay@cryptsoft.com)"
+ *    The word 'cryptographic' can be left out if the rouines from the library
+ *    being used are not cryptographic related :-).
+ * 4. If you include any Windows specific code (or a derivative thereof) from 
+ *    the apps directory (application code) you must include an acknowledgement:
+ *    "This product includes software written by Tim Hudson (tjh@cryptsoft.com)"
+ * 
+ * THIS SOFTWARE IS PROVIDED BY ERIC YOUNG ``AS IS'' AND
+ * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED.  IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+ * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+ * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+ * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+ * SUCH DAMAGE.
+ * 
+ * The licence and distribution terms for any publically available version or
+ * derivative of this code cannot be changed.  i.e. this code cannot simply be
+ * copied and put under another distribution licence
+ * [including the GNU Public Licence.]
+ */
+
+GNU Public License (GPL)
+------------------------
+
+  OpenVPN, LZO, and the TAP-Win32 distributions are
+  licensed under the GPL version 2 (see COPYRIGHT.GPL).
+
+  In the Windows binary distribution of OpenVPN, the
+  GPL is reproduced below.
+

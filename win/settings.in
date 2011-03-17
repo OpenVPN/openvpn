@@ -1,0 +1,68 @@
+# Version numbers, settings, and dependencies
+# for Windows OpenVPN installer.
+
+# Branding
+!define PRODUCT_NAME      "OpenVPN"
+!define PRODUCT_UNIX_NAME "openvpn"
+!define PRODUCT_FILE_EXT  "ovpn"
+
+# Allow --askpass and --auth-user-pass passwords to be read from a file
+;!define ENABLE_PASSWORD_SAVE
+
+# Include the OpenVPN GUI exe in the installer.
+# May be undefined.
+!define OPENVPN_GUI_DIR "../openvpn-gui"
+!define OPENVPN_GUI     "openvpn-gui-1.0.3.exe"
+
+# Prebuilt libraries.  DMALLOC is optional.
+!define OPENSSL_DIR	  "../openssl"
+!define LZO_DIR		  "../lzo"
+
+# write output files here
+!define DIST   "dist"
+
+# tapinstall.exe source code.
+# Not needed if DRVBINSRC is defined
+# (or if using pre-built mode).
+!define TISRC	"../tapinstall"
+
+# TAP Adapter parameters.  Note that PRODUCT_TAP_ID is
+# defined in version.m4.
+!define PRODUCT_TAP_DEVICE_DESCRIPTION  "TAP-Win32 Adapter V9"
+!define PRODUCT_TAP_PROVIDER            "TAP-Win32 Provider V9"
+!define PRODUCT_TAP_MAJOR_VER           9
+!define PRODUCT_TAP_MINOR_VER           7
+!define PRODUCT_TAP_RELDATE             "04/19/2010"
+
+# TAP adapter icon -- visible=0x81 or hidden=0x89
+!define PRODUCT_TAP_CHARACTERISTICS     0x81
+
+# Build debugging version of TAP driver
+;!define PRODUCT_TAP_DEBUG
+
+# Build debugging version of openvpn.exe
+;!define PRODUCT_OPENVPN_DEBUG
+
+# DDK path -- currently Windows 7 WDK
+!define DDK_PATH "c:/winddk/7600.16385.1"
+;!define DDK_PATH "c:/winddk/6001.18002"
+
+# output path for tap_span.py
+!define TAP_DIST "tap_dist"
+
+# Visual studio path
+!define MSVC "C:/Program Files/Microsoft Visual Studio 9.0"
+
+# Visual studio C run-time library path
+!define MSVC_CRT "../Microsoft.VC90.CRT"
+
+# Code Signing.
+# If undefined, don't sign any files.
+!define SIGNTOOL        "../signtool"
+!define PRODUCT_SIGN_CN "openvpn"
+
+; DEBUGGING -- set to something like "-DBG2"
+!define OUTFILE_LABEL ""
+
+; DEBUGGING -- set to something like "DEBUG2"
+!define TITLE_LABEL ""

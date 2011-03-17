@@ -1,0 +1,7 @@
+#!/bin/bash
+
+# Similar to build-key, but protect the private key
+# with a password.
+
+export EASY_RSA="${EASY_RSA:-.}"
+"$EASY_RSA/pkitool" --interact --pass $*

@@ -1,0 +1,14 @@
+#!/bin/sh
+
+# load version.nsi definitions
+. autodefs/defs.sh
+
+# build the installer
+rm -f $GENOUT/*.exe
+'/c/Program Files/NSIS/makensis' $GENOUT/nsi/openvpn.nsi &>makensis.log
+tail -20 makensis.log
+
+# sign the installer
+if [ -d "$SIGNTOOL" ]; then
+    python $SIGNTOOL/signapp.py "$(echo $(pwd)/$GENOUT/*.exe)"
+fi

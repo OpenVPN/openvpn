@@ -1,0 +1,6 @@
+#!/bin/sh
+
+# get version.nsi definitions
+. autodefs/defs.sh
+
+[ "$CLEAN" = "yes" ] && rm -rf $GENOUT && KEEPAUTODEFS="yes" ./doclean

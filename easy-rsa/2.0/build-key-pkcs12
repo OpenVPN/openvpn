@@ -1,0 +1,8 @@
+#!/bin/bash
+
+# Make a certificate/private key pair using a locally generated
+# root certificate and convert it to a PKCS #12 file including the
+# the CA certificate as well.
+
+export EASY_RSA="${EASY_RSA:-.}"
+"$EASY_RSA/pkitool" --interact --pkcs12 $*

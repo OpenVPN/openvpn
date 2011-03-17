@@ -1,0 +1,15 @@
+#!/bin/sh
+
+# Get the x86 and x64 versions of the tapinstall tool
+
+# get version.nsi definitions
+. autodefs/defs.sh
+
+if [ -d "$TAPBINSRC" ]; then
+    mkdir -p $GENOUT/tapinstall/i386 &>/dev/null
+    mkdir -p $GENOUT/tapinstall/amd64 &>/dev/null
+    cp $TAPBINSRC/i386/tapinstall.exe $GENOUT/tapinstall/i386
+    cp $TAPBINSRC/amd64/tapinstall.exe $GENOUT/tapinstall/amd64
+else
+    echo Cannot find pre-built tapinstall
+fi
