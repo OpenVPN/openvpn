@@ -2259,7 +2259,7 @@ env_filter_match (const char *env_str, const int env_filter_level)
     "username=",
     "password=",
     "X509_0_CN=",
-    "tls_serial_0=",
+    "tls_serial_",
     "untrusted_ip=",
     "ifconfig_local=",
     "ifconfig_netmask=",
