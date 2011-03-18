@@ -35,6 +35,7 @@
 #define PUSH_MSG_REQUEST_DEFERRED 3
 #define PUSH_MSG_AUTH_FAILURE     4
 #define PUSH_MSG_CONTINUATION     5
+#define PUSH_MSG_ALREADY_REPLIED  6
 
 void incoming_push_message (struct context *c,
 			    const struct buffer *buffer);

@@ -331,8 +331,18 @@ process_incoming_push_msg (struct context *c,
 	}
       else if (!c->c2.push_reply_deferred && c->c2.context_auth == CAS_SUCCEEDED)
 	{
-	  if (send_push_reply (c))
-	    ret = PUSH_MSG_REQUEST;
+	  if (c->c2.sent_push_reply)
+	    {
+	      ret = PUSH_MSG_ALREADY_REPLIED;
+	    }
+	  else
+	    {
+	      if (send_push_reply (c))
+		{
+		  ret = PUSH_MSG_REQUEST;
+		  c->c2.sent_push_reply = true;
+		}
+	    }
 	}
       else
 	{
