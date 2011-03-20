@@ -431,6 +431,7 @@ struct context_2
 #endif
 
   struct event_timeout push_request_interval;
+  int n_sent_push_requests;
   bool did_pre_pull_restore;
 
   /* hash of pulled options, so we can compare when options change */

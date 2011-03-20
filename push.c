@@ -189,7 +189,18 @@ incoming_push_message (struct context *c, const struct buffer *buffer)
 bool
 send_push_request (struct context *c)
 {
-  return send_control_channel_string (c, "PUSH_REQUEST", D_PUSH);
+  const int max_push_requests = c->options.handshake_window / PUSH_REQUEST_INTERVAL;
+  if (++c->c2.n_sent_push_requests <= max_push_requests)
+    {
+      return send_control_channel_string (c, "PUSH_REQUEST", D_PUSH);
+    }
+  else
+    {
+      msg (D_STREAM_ERRORS, "No reply from server after sending %d push requests", max_push_requests);
+      c->sig->signal_received = SIGUSR1; /* SOFT-SIGUSR1 -- server-pushed connection reset */
+      c->sig->signal_text = "no-push-reply";
+      return false;
+    }
 }
 
 #if P2MP_SERVER
