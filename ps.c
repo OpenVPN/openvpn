@@ -227,7 +227,9 @@ port_share_sendmsg (const socket_descriptor_t sd,
 
       status = sendmsg (sd, &mesg, MSG_NOSIGNAL);
       if (status == -1)
-	msg (M_WARN|M_ERRNO_SOCK, "PORT SHARE: sendmsg failed (unable to communicate with background process)");
+	msg (M_WARN|M_ERRNO_SOCK, "PORT SHARE: sendmsg failed -- unable to communicate with background process (%d,%d,%d,%d)",
+	     sd, sd_send, sd_null[0], sd_null[1]
+	     );
 
       close_socket_if_defined (sd_null[0]);
       close_socket_if_defined (sd_null[1]);
@@ -803,6 +805,8 @@ port_share_open (const char *host,
   struct port_share *ps;
 
   ALLOC_OBJ_CLEAR (ps, struct port_share);
+  ps->foreground_fd = -1;
+  ps->background_pid = -1;
 
   /*
    * Get host's IP address
@@ -840,16 +844,20 @@ port_share_open (const char *host,
       /* don't let future subprocesses inherit child socket */
       set_cloexec (fd[0]);
 
-      /* note that this will cause possible EAGAIN when writing to
-         control socket if proxy process is backlogged */
-      set_nonblock (fd[0]);
-
       /* wait for background child process to initialize */
       status = recv_control (fd[0]);
       if (status == RESPONSE_INIT_SUCCEEDED)
 	{
+	  /* note that this will cause possible EAGAIN when writing to
+	     control socket if proxy process is backlogged */
+	  set_nonblock (fd[0]);
+
 	  ps->foreground_fd = fd[0];
 	  return ps;
+	}
+      else
+	{
+	  msg (M_SOCKERR, "PORT SHARE: unexpected init recv_control status=%d", status);
 	}
     }
   else
@@ -959,7 +967,9 @@ void
 port_share_redirect (struct port_share *ps, const struct buffer *head, socket_descriptor_t sd)
 {
   if (ps)
-    port_share_sendmsg (ps->foreground_fd, COMMAND_REDIRECT, head, sd);
+    {
+      port_share_sendmsg (ps->foreground_fd, COMMAND_REDIRECT, head, sd);
+    }
 }
 
 #endif
