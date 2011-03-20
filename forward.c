@@ -178,8 +178,8 @@ check_push_request_dowork (struct context *c)
 {
   send_push_request (c);
 
-  /* if no response to first push_request, retry at 5 second intervals */
-  event_timeout_modify_wakeup (&c->c2.push_request_interval, 5);
+  /* if no response to first push_request, retry at PUSH_REQUEST_INTERVAL second intervals */
+  event_timeout_modify_wakeup (&c->c2.push_request_interval, PUSH_REQUEST_INTERVAL);
 }
 
 #endif /* P2MP */

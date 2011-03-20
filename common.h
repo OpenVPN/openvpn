@@ -87,6 +87,11 @@ typedef unsigned long ptr_type;
 #define PUSH_BUNDLE_SIZE 1024
 
 /*
+ * In how many seconds does client re-send PUSH_REQUEST if we haven't yet received a reply
+ */
+#define PUSH_REQUEST_INTERVAL 5
+
+/*
  * A sort of pseudo-filename for data provided inline within
  * the configuration file.
  */
