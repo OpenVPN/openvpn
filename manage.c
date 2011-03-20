@@ -96,7 +96,7 @@ man_help ()
   msg (M_CLIENT, "client-auth-nt CID KID : Authenticate client-id/key-id CID/KID");
   msg (M_CLIENT, "client-deny CID KID R [CR] : Deny auth client-id/key-id CID/KID with log reason");
   msg (M_CLIENT, "                             text R and optional client reason text CR");
-  msg (M_CLIENT, "client-kill CID        : Kill client instance CID");
+  msg (M_CLIENT, "client-kill CID [M]    : Kill client instance CID with message M (def=RESTART)");
   msg (M_CLIENT, "env-filter [level]     : Set env-var filter level");
 #ifdef MANAGEMENT_PF
   msg (M_CLIENT, "client-pf CID          : Define packet filter for client CID (MULTILINE)");
@@ -947,14 +947,14 @@ man_client_deny (struct management *man, const char *cid_str, const char *kid_st
 }
 
 static void
-man_client_kill (struct management *man, const char *cid_str)
+man_client_kill (struct management *man, const char *cid_str, const char *kill_msg)
 {
   unsigned long cid = 0;
   if (parse_cid (cid_str, &cid))
     {
       if (man->persist.callback.kill_by_cid)
 	{
-	  const bool status = (*man->persist.callback.kill_by_cid) (man->persist.callback.arg, cid);
+	  const bool status = (*man->persist.callback.kill_by_cid) (man->persist.callback.arg, cid, kill_msg);
 	  if (status)
 	    {
 	      msg (M_CLIENT, "SUCCESS: client-kill command succeeded");
@@ -1265,8 +1265,8 @@ man_dispatch_command (struct management *man, struct status_output *so, const ch
 #ifdef MANAGEMENT_DEF_AUTH
   else if (streq (p[0], "client-kill"))
     {
-      if (man_need (man, p, 1, 0))
-	man_client_kill (man, p[1]);
+      if (man_need (man, p, 1, MN_AT_LEAST))
+	man_client_kill (man, p[1], p[2]);
     }
   else if (streq (p[0], "client-deny"))
     {
@@ -2190,6 +2190,7 @@ management_open (struct management *man,
 void
 management_close (struct management *man)
 {
+  man_output_list_push_finalize (man);  /* flush output queue */
   man_connection_close (man);
   man_settings_close (&man->settings);
   man_persist_close (&man->persist);
@@ -2330,6 +2331,12 @@ management_up_down(struct management *man, const char *updown, const struct env_
       msg (M_CLIENT, ">UPDOWN:%s", updown);
       man_output_env (es, true, 0, "UPDOWN");
     }
+}
+
+void
+management_notify(struct management *man, const char *severity, const char *type, const char *text)
+{
+  msg (M_CLIENT, ">NOTIFY:%s,%s,%s", severity, type, text);
 }
 
 #ifdef MANAGEMENT_DEF_AUTH

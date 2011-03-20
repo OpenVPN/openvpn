@@ -155,7 +155,9 @@ check_incoming_control_channel_dowork (struct context *c)
 	  else if (buf_string_match_head_str (&buf, "PUSH_"))
 	    incoming_push_message (c, &buf);
 	  else if (buf_string_match_head_str (&buf, "RESTART"))
-	    server_pushed_restart (c, &buf);
+	    server_pushed_signal (c, &buf, true, 7);
+	  else if (buf_string_match_head_str (&buf, "HALT"))
+	    server_pushed_signal (c, &buf, false, 4);
 	  else
 	    msg (D_PUSH_ERRORS, "WARNING: Received unknown control message: %s", BSTR (&buf));
 	}
@@ -237,7 +239,12 @@ send_control_channel_string (struct context *c, const char *str, int msglevel)
     /* buffered cleartext write onto TLS control channel */
     stat = tls_send_payload (c->c2.tls_multi, (uint8_t*) str, strlen (str) + 1);
 
-    /* reschedule tls_multi_process */
+    /*
+     * Reschedule tls_multi_process.
+     * NOTE: in multi-client mode, usually the below two statements are
+     * insufficient to reschedule the client instance object unless
+     * multi_schedule_context_wakeup(m, mi) is also called.
+     */
     interval_action (&c->c2.tmp_int);
     context_immediate_reschedule (c); /* ZERO-TIMEOUT */
 

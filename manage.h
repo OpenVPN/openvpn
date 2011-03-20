@@ -156,7 +156,7 @@ struct management_callback
   void (*delete_event) (void *arg, event_t event);
   int (*n_clients) (void *arg);
 #ifdef MANAGEMENT_DEF_AUTH
-  bool (*kill_by_cid) (void *arg, const unsigned long cid);
+  bool (*kill_by_cid) (void *arg, const unsigned long cid, const char *kill_msg);
   bool (*client_auth) (void *arg,
 		       const unsigned long cid,
 		       const unsigned int mda_key_id,
@@ -374,6 +374,8 @@ bool management_hold (struct management *man);
 void management_event_loop_n_seconds (struct management *man, int sec);
 
 void management_up_down(struct management *man, const char *updown, const struct env_set *es);
+
+void management_notify(struct management *man, const char *severity, const char *type, const char *text);
 
 #ifdef MANAGEMENT_DEF_AUTH
 void management_notify_client_needing_auth (struct management *management,

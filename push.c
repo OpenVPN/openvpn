@@ -87,13 +87,30 @@ receive_auth_failed (struct context *c, const struct buffer *buffer)
  * Act on received restart message from server
  */
 void
-server_pushed_restart (struct context *c, const struct buffer *buffer)
+server_pushed_signal (struct context *c, const struct buffer *buffer, const bool restart, const int adv)
 {
   if (c->options.pull)
     {
-      msg (D_STREAM_ERRORS, "Connection reset command was pushed by server");
-      c->sig->signal_received = SIGUSR1; /* SOFT-SIGUSR1 -- server-pushed connection reset */
-      c->sig->signal_text = "server-pushed-connection-reset";
+      struct buffer buf = *buffer;
+      const char *m = "";
+      if (buf_advance (&buf, adv) && buf_read_u8 (&buf) == ',' && BLEN (&buf))
+	m = BSTR (&buf);
+      if (restart)
+	{
+	  msg (D_STREAM_ERRORS, "Connection reset command was pushed by server ('%s')", m);
+	  c->sig->signal_received = SIGUSR1; /* SOFT-SIGUSR1 -- server-pushed connection reset */
+	  c->sig->signal_text = "server-pushed-connection-reset";
+	}
+      else
+	{
+	  msg (D_STREAM_ERRORS, "Halt command was pushed by server ('%s')", m);
+	  c->sig->signal_received = SIGTERM; /* SOFT-SIGTERM -- server-pushed halt */
+	  c->sig->signal_text = "server-pushed-halt";
+	}
+#ifdef ENABLE_MANAGEMENT
+      if (management)
+	management_notify (management, "info", c->sig->signal_text, m);
+#endif
     }
 }
 
@@ -130,10 +147,10 @@ send_auth_failed (struct context *c, const char *client_reason)
  * Send restart message from server to client.
  */
 void
-send_restart (struct context *c)
+send_restart (struct context *c, const char *kill_msg)
 {
   schedule_exit (c, c->options.scheduled_exit_interval, SIGTERM);
-  send_control_channel_string (c, "RESTART", D_PUSH);
+  send_control_channel_string (c, kill_msg ? kill_msg : "RESTART", D_PUSH);
 }
 
 #endif
