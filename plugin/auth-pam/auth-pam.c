@@ -81,6 +81,7 @@ struct auth_pam_context
  *
  *  "USERNAME" -- substitute client-supplied username
  *  "PASSWORD" -- substitute client-specified password
+ *  "COMMONNAME" -- substitute client certificate common name
  */
 
 #define N_NAME_VALUE 16
@@ -104,6 +105,7 @@ struct user_pass {
 
   char username[128];
   char password[128];
+  char common_name[128];
 
   const struct name_value_list *name_value_list;
 };
@@ -470,12 +472,14 @@ openvpn_plugin_func_v1 (openvpn_plugin_handle_t handle, const int type, const ch
       /* get username/password from envp string array */
       const char *username = get_env ("username", envp);
       const char *password = get_env ("password", envp);
+      const char *common_name = get_env ("common_name", envp) ? get_env ("common_name", envp) : "";
 
       if (username && strlen (username) > 0 && password)
 	{
 	  if (send_control (context->foreground_fd, COMMAND_VERIFY) == -1
 	      || send_string (context->foreground_fd, username) == -1
-	      || send_string (context->foreground_fd, password) == -1)
+	      || send_string (context->foreground_fd, password) == -1
+             || send_string (context->foreground_fd, common_name) == -1)
 	    {
 	      fprintf (stderr, "AUTH-PAM: Error sending auth info to background process\n");
 	    }
@@ -592,6 +596,8 @@ my_conv (int n, const struct pam_message **msg_array,
 		    aresp[i].resp = searchandreplace(match_value, "USERNAME", up->username);
 		  else if (strstr(match_value, "PASSWORD"))
 		    aresp[i].resp = searchandreplace(match_value, "PASSWORD", up->password);
+		  else if (strstr(match_value, "COMMONNAME"))
+		    aresp[i].resp = searchandreplace(match_value, "COMMONNAME", up->common_name);
 		  else
 		    aresp[i].resp = strdup (match_value);
 
@@ -737,7 +743,8 @@ pam_server (int fd, const char *service, int verb, const struct name_value_list 
 	{
 	case COMMAND_VERIFY:
 	  if (recv_string (fd, up.username, sizeof (up.username)) == -1
-	      || recv_string (fd, up.password, sizeof (up.password)) == -1)
+	      || recv_string (fd, up.password, sizeof (up.password)) == -1
+	      || recv_string (fd, up.common_name, sizeof (up.common_name)) == -1)
 	    {
 	      fprintf (stderr, "AUTH-PAM: BACKGROUND: read error on command channel: code=%d, exiting\n",
 		       command);

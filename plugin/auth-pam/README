@@ -48,7 +48,7 @@ For example, suppose you were using a PAM module called
 
   plugin openvpn-auth-pam.so "test name USERNAME password PASSWORD"
 
-While "USERNAME" and "PASSWORD" are special strings which substitute
+While "USERNAME" "COMMONNAME" and "PASSWORD" are special strings which substitute
 to client-supplied values, it is also possible to name literal values
 to use as PAM module query responses.  For example, suppose that the
 login module queried for a third parameter, "domain" which
