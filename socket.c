@@ -1710,7 +1710,11 @@ link_socket_init_phase1 (struct link_socket *sock,
   /* were we started by inetd or xinetd? */
   if (sock->inetd)
     {
-      ASSERT (sock->info.proto != PROTO_TCPv4_CLIENT);
+      ASSERT (sock->info.proto != PROTO_TCPv4_CLIENT
+#ifdef USE_PF_INET6
+	      && sock->info.proto != PROTO_TCPv6_CLIENT
+#endif
+      );
       ASSERT (socket_defined (inetd_socket_descriptor));
       sock->sd = inetd_socket_descriptor;
     }
@@ -1759,7 +1763,34 @@ link_socket_init_phase2 (struct link_socket *sock,
   /* were we started by inetd or xinetd? */
   if (sock->inetd)
     {
-      if (sock->info.proto == PROTO_TCPv4_SERVER)
+      if (sock->info.proto == PROTO_TCPv4_SERVER
+#ifdef USE_PF_INET6
+	  || sock->info.proto == PROTO_TCPv6_SERVER
+#endif
+      ) {
+	/* AF_INET as default (and fallback) for inetd */
+	sock->info.lsa->actual.dest.addr.sa.sa_family = AF_INET;
+#ifdef USE_PF_INET6
+#ifdef HAVE_GETSOCKNAME
+	  {
+	    /* inetd: hint family type for dest = local's */
+	    struct openvpn_sockaddr local_addr;
+	    socklen_t addrlen = sizeof(local_addr);
+	    if (getsockname (sock->sd, (struct sockaddr *)&local_addr, &addrlen) == 0) {
+	      sock->info.lsa->actual.dest.addr.sa.sa_family = local_addr.addr.sa.sa_family;
+	      dmsg (D_SOCKET_DEBUG, "inetd(%s): using sa_family=%d from getsockname(%d)",
+		    proto2ascii(sock->info.proto, false), local_addr.addr.sa.sa_family,
+		    sock->sd);
+	    } else
+	      msg (M_WARN, "inetd(%s): getsockname(%d) failed, using AF_INET",
+		   proto2ascii(sock->info.proto, false), sock->sd);
+	  }
+#else
+	msg (M_WARN, "inetd(%s): this OS does not provide the getsockname() "
+	     "function, using AF_INET",
+	     proto2ascii(sock->info.proto, false));
+#endif
+#endif
 	sock->sd =
 	  socket_listen_accept (sock->sd,
 				&sock->info.lsa->actual,
@@ -1769,6 +1800,7 @@ link_socket_init_phase2 (struct link_socket *sock,
 				false,
 				sock->inetd == INETD_NOWAIT,
 				signal_received);
+      }
       ASSERT (!remote_changed);
       if (*signal_received)
 	goto done;
