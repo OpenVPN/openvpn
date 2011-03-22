@@ -86,7 +86,12 @@ struct link_socket_actual
   struct openvpn_sockaddr dest;
 #if ENABLE_IP_PKTINFO
   union {
+#ifdef HAVE_IN_PKTINFO
     struct in_pktinfo in4;
+#endif
+#ifdef IP_RECVDSTADDR
+    struct in_addr in4;
+#endif
 #ifdef USE_PF_INET6
     struct in6_pktinfo in6;
 #endif
@@ -594,7 +599,12 @@ addr_defined_ipi (const struct link_socket_actual *lsa)
 #if ENABLE_IP_PKTINFO
   if (!lsa) return 0;
   switch (lsa->dest.addr.sa.sa_family) {
+#ifdef HAVE_IN_PKTINFO
     case AF_INET: return lsa->pi.in4.ipi_spec_dst.s_addr != 0;
+#endif
+#ifdef IP_RECVDSTADDR
+    case AF_INET: return lsa->pi.in4.s_addr != 0;
+#endif
 #ifdef USE_PF_INET6
     case AF_INET6: return !IN6_IS_ADDR_UNSPECIFIED(&lsa->pi.in6.ipi6_addr);
 #endif

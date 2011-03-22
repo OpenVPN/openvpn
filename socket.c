@@ -843,9 +843,17 @@ create_socket_udp (const unsigned int flags)
   else if (flags & SF_USE_IP_PKTINFO)
     {
       int pad = 1;
+#ifdef IP_PKTINFO
       if (setsockopt (sd, SOL_IP, IP_PKTINFO,
 		      (void*)&pad, sizeof(pad)) < 0)
         msg(M_SOCKERR, "UDP: failed setsockopt for IP_PKTINFO");
+#elif defined(IP_RECVDSTADDR)
+      if (setsockopt (sd, IPPROTO_IP, IP_RECVDSTADDR,
+		      (void*)&pad, sizeof(pad)) < 0)
+        msg(M_SOCKERR, "UDP: failed setsockopt for IP_RECVDSTADDR");
+#else
+#error ENABLE_IP_PKTINFO is set without IP_PKTINFO xor IP_RECVDSTADDR (fix syshead.h)
+#endif
     }
 #endif
   return sd;
@@ -2504,8 +2512,15 @@ print_link_socket_actual_ex (const struct link_socket_actual *act,
 		  struct openvpn_sockaddr sa;
 		  CLEAR (sa);
 		  sa.addr.in4.sin_family = AF_INET;
+#ifdef IP_PKTINFO
 		  sa.addr.in4.sin_addr = act->pi.in4.ipi_spec_dst;
 		  if_indextoname(act->pi.in4.ipi_ifindex, ifname);
+#elif defined(IP_RECVDSTADDR)
+		  sa.addr.in4.sin_addr = act->pi.in4;
+		  ifname[0]=0;
+#else
+#error ENABLE_IP_PKTINFO is set without IP_PKTINFO xor IP_RECVDSTADDR (fix syshead.h)
+#endif
 		  buf_printf (&out, " (via %s%%%s)",
 			      print_sockaddr_ex (&sa, separator, 0, gc),
 			      ifname);
@@ -2847,7 +2862,12 @@ link_socket_read_tcp (struct link_socket *sock,
 struct openvpn_in4_pktinfo
 {
   struct cmsghdr cmsghdr;
+#ifdef HAVE_IN_PKTINFO
   struct in_pktinfo pi4;
+#endif
+#ifdef IP_RECVDSTADDR
+  struct in_addr pi4;
+#endif
 };
 #ifdef USE_PF_INET6
 struct openvpn_in6_pktinfo
@@ -2892,13 +2912,26 @@ link_socket_read_udp_posix_recvmsg (struct link_socket *sock,
       cmsg = CMSG_FIRSTHDR (&mesg);
       if (cmsg != NULL
 	  && CMSG_NXTHDR (&mesg, cmsg) == NULL
+#ifdef IP_PKTINFO
 	  && cmsg->cmsg_level == SOL_IP 
 	  && cmsg->cmsg_type == IP_PKTINFO
+#elif defined(IP_RECVDSTADDR)
+	  && cmsg->cmsg_level == IPPROTO_IP
+	  && cmsg->cmsg_type == IP_RECVDSTADDR
+#else
+#error ENABLE_IP_PKTINFO is set without IP_PKTINFO xor IP_RECVDSTADDR (fix syshead.h)
+#endif
 	  && cmsg->cmsg_len >= sizeof (struct openvpn_in4_pktinfo))
 	{
+#ifdef IP_PKTINFO
 	  struct in_pktinfo *pkti = (struct in_pktinfo *) CMSG_DATA (cmsg);
 	  from->pi.in4.ipi_ifindex = pkti->ipi_ifindex;
 	  from->pi.in4.ipi_spec_dst = pkti->ipi_spec_dst;
+#elif defined(IP_RECVDSTADDR)
+	  from->pi.in4 = *(struct in_addr*) CMSG_DATA (cmsg);
+#else
+#error ENABLE_IP_PKTINFO is set without IP_PKTINFO xor IP_RECVDSTADDR (fix syshead.h)
+#endif
 	}
 #ifdef USE_PF_INET6
       else if (cmsg != NULL
@@ -2983,7 +3016,6 @@ link_socket_write_udp_posix_sendmsg (struct link_socket *sock,
     case AF_INET:
       {
         struct openvpn_in4_pktinfo msgpi4;
-        struct in_pktinfo *pkti;
         mesg.msg_name = &to->dest.addr.sa;
         mesg.msg_namelen = sizeof (struct sockaddr_in);
         mesg.msg_control = &msgpi4;
@@ -2991,12 +3023,23 @@ link_socket_write_udp_posix_sendmsg (struct link_socket *sock,
         mesg.msg_flags = 0;
         cmsg = CMSG_FIRSTHDR (&mesg);
         cmsg->cmsg_len = sizeof (struct openvpn_in4_pktinfo);
+#ifdef HAVE_IN_PKTINFO
         cmsg->cmsg_level = SOL_IP;
         cmsg->cmsg_type = IP_PKTINFO;
+	{
+        struct in_pktinfo *pkti;
         pkti = (struct in_pktinfo *) CMSG_DATA (cmsg);
         pkti->ipi_ifindex = to->pi.in4.ipi_ifindex;
         pkti->ipi_spec_dst = to->pi.in4.ipi_spec_dst;
         pkti->ipi_addr.s_addr = 0;
+	}
+#elif defined(IP_RECVDSTADDR)
+        cmsg->cmsg_level = IPPROTO_IP;
+        cmsg->cmsg_type = IP_RECVDSTADDR;
+        *(struct in_addr *) CMSG_DATA (cmsg) = to->pi.in4;
+#else
+#error ENABLE_IP_PKTINFO is set without IP_PKTINFO xor IP_RECVDSTADDR (fix syshead.h)
+#endif
         break;
       }
 #ifdef USE_PF_INET6
