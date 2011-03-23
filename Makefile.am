@@ -60,8 +60,8 @@ SUBDIRS = \
 TESTS = t_client.sh t_lpback.sh t_cltsrv.sh
 sbin_PROGRAMS = openvpn
 
-dist_noinst_HEADERS = \
-	config-win32.h
+dist_doc_DATA = \
+	management/management-notes.txt
 
 dist_noinst_SCRIPTS = \
 	$(TESTS) \
