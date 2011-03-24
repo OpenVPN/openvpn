@@ -1,6 +1,28 @@
 OpenVPN Change Log
 Copyright (C) 2002-2011 OpenVPN Technologies, Inc. <sales@openvpn.net>
 
+2011.03.24 -- Version 2.2-RC2
+Alon Bar-Lev (1):
+      Windows cross-compile cleanup
+
+David Sommerseth (2):
+      Open log files as text files on Windows
+      Clarify default value for the --inactive option.
+
+Gert Doering (1):
+      Implement IPv6 in TUN mode for Windows TAP driver.
+
+Samuli Seppänen (6):
+      Added support for prebuilt TAP-drivers. Automated embedding manifests.
+      Fixes to win/openvpn.nsi
+      Replaced config-win32.h with win/config.h.in
+      Updated INSTALL-win32.txt
+      Fixes to Makefile.am
+      Clarified --client-config-dir section on the man-page.
+
+Ville Skyttä (1):
+      Fix line continuation in chkconfig init script description.
+
 2011.02.28 -- Version 2.2-RC
 David Sommerseth (3):
       Make the --x509-username-field feature an opt-in feature
