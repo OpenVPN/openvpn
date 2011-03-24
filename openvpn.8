@@ -2895,7 +2895,9 @@ as the client's X509 common name.  If a matching file
 exists, it will be opened and parsed for client-specific
 configuration options.  If no matching file is found, OpenVPN
 will instead try to open and parse a default file called
-"DEFAULT", which may be provided but is not required.
+"DEFAULT", which may be provided but is not required. Note that
+the configuration files must be readable by the OpenVPN process
+after it has dropped it's root privileges.
 
 This file can specify a fixed IP address for a given
 client using
