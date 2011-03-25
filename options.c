@@ -413,7 +413,7 @@ static const char usage_message[] =
   "--client-disconnect cmd : Run script cmd on client disconnection.\n"
   "--client-config-dir dir : Directory for custom client config files.\n"
   "--ccd-exclusive : Refuse connection unless custom client config is found.\n"
-  "--tmp-dir dir   : Temporary directory, used for --client-connect return file.\n"
+  "--tmp-dir dir   : Temporary directory, used for --client-connect return file and plugin communication.\n"
   "--hash-size r v : Set the size of the real address hash table to r and the\n"
   "                  virtual address table to v.\n"
   "--bcast-buffers n : Allocate n broadcast buffers.\n"

@@ -2928,9 +2928,26 @@ file.
 Specify a directory
 .B dir
 for temporary files.  This directory will be used by
+openvpn processes and script to communicate temporary
+data with openvpn main process. Note that
+the directory must be writable by the OpenVPN process
+after it has dropped it's root privileges.
+
+This directory will be used by in the following cases:
+
+*
 .B \-\-client-connect
 scripts to dynamically generate client-specific
 configuration files.
+
+*
+.B OPENVPN_PLUGIN_AUTH_USER_PASS_VERIFY
+plugin hook to return success/failure via auth_control_file
+when using deferred auth method
+
+*
+.B OPENVPN_PLUGIN_ENABLE_PF
+plugin hook to pass filtering rules via pf_file
 .\"*********************************************************
 .TP
 .B \-\-hash-size r v
