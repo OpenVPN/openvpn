@@ -1,4 +1,4 @@
-[ Last updated: 16-Nov-2009. ]
+[ Last updated: 25-Mar-2011. ]
 
 OpenVPN-2.1 over UDP6/TCP6 README for ipv6-0.4.x patch releases:
 ( --udp6 and --tcp6-{client,server} )
@@ -18,7 +18,7 @@ OpenVPN-2.1 over UDP6/TCP6 README for ipv6-0.4.x patch releases:
 
 * Status:
   o OK:
-    - upd6,tcp6: GNU/Linux, win32, openbsd-4.6
+    - upd6,tcp6: GNU/Linux, win32, openbsd-4.7, freebsd-8.1
     - udp4->upd6,tcp4->tcp6 (ipv4/6 mapped): GNU/Linux
       (gives a warning on local!=remote proto matching)
   o NOT:

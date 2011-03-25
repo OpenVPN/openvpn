@@ -52,12 +52,13 @@ const int proto_overhead[] = { /* indexed by PROTO_x */
  * Convert sockflags/getaddr_flags into getaddr_flags
  */
 static unsigned int
-sf2gaf(unsigned int getaddr_flags,
+sf2gaf(const unsigned int getaddr_flags,
        const unsigned int sockflags)
 {
-  getaddr_flags |= (sockflags & SF_GETADDRINFO_DGRAM) ? GETADDR_DGRAM : 0;
-  getaddr_flags |= (sockflags & SF_HOST_RANDOMIZE) ? GETADDR_RANDOMIZE : 0;
-  return getaddr_flags;
+  if (sockflags & SF_HOST_RANDOMIZE)
+    return getaddr_flags | GETADDR_RANDOMIZE;
+  else
+    return getaddr_flags;
 }
 
 /*
@@ -2440,11 +2441,11 @@ print_sockaddr_ex (const struct openvpn_sockaddr *addr,
 	{
 	  const int port= ntohs (addr->addr.in4.sin_port);
 	  buf_puts (&out, "[AF_INET]");
-	  mutex_lock_static (L_INET_NTOA);
-	  buf_puts (&out, (addr_is_defined ? inet_ntoa (addr->addr.in4.sin_addr) : "[undef]"));
-	  mutex_unlock_static (L_INET_NTOA);
 
-	  if (((flags & PS_SHOW_PORT) || (addr_is_defined && (flags & PS_SHOW_PORT_IF_DEFINED)))
+	  if (!(flags & PS_DONT_SHOW_ADDR))
+	    buf_printf (&out, "%s", (addr_defined (addr) ? inet_ntoa (addr->addr.in4.sin_addr) : "[undef]"));
+
+	  if (((flags & PS_SHOW_PORT) || (addr_defined (addr) && (flags & PS_SHOW_PORT_IF_DEFINED)))
 	      && port)
 	    {
 	      if (separator)
@@ -2590,9 +2591,7 @@ setenv_sockaddr (struct env_set *es, const char *name_prefix, const struct openv
       else
 	openvpn_snprintf (name_buf, sizeof (name_buf), "%s", name_prefix);
 
-      mutex_lock_static (L_INET_NTOA);
       setenv_str (es, name_buf, inet_ntoa (addr->addr.in4.sin_addr));
-      mutex_unlock_static (L_INET_NTOA);
 
       if ((flags & SA_IP_PORT) && addr->addr.in4.sin_port)
 	{
@@ -2607,8 +2606,11 @@ setenv_sockaddr (struct env_set *es, const char *name_prefix, const struct openv
 		  buf, sizeof(buf), NULL, 0, NI_NUMERICHOST);
       setenv_str (es, name_buf, buf);
 
-      openvpn_snprintf (name_buf, sizeof (name_buf), "%s_port", name_prefix);
-      setenv_int (es, name_buf, ntohs (addr->addr.in6.sin6_port));
+      if ((flags & SA_IP_PORT) && addr->addr.in6.sin6_port)
+	{
+	  openvpn_snprintf (name_buf, sizeof (name_buf), "%s_port", name_prefix);
+	  setenv_int (es, name_buf, ntohs (addr->addr.in6.sin6_port));
+	}
       break;
     }
 #endif

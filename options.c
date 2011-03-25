@@ -79,6 +79,7 @@ const char title_string[] =
 #endif
 #ifdef ENABLE_EUREPHIA
   " [eurephia]"
+#endif
 #ifdef ENABLE_IP_PKTINFO
   " [MH]"
 #endif
