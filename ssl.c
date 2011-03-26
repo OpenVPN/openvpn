@@ -318,15 +318,27 @@ ssl_set_auth_nocache (void)
 }
 
 /*
+ * Set an authentication token
+ */
+void
+ssl_set_auth_token (const char *token)
+{
+  set_auth_token (&auth_user_pass, token);
+}
+
+/*
  * Forget private key password AND auth-user-pass username/password.
  */
 void
-ssl_purge_auth (void)
+ssl_purge_auth (const bool auth_user_pass_only)
 {
+  if (!auth_user_pass_only)
+    {
 #ifdef USE_PKCS11
-  pkcs11_logout ();
+      pkcs11_logout ();
 #endif
-  purge_user_pass (&passbuf, true);
+      purge_user_pass (&passbuf, true);
+    }
   purge_user_pass (&auth_user_pass, true);
 #ifdef ENABLE_CLIENT_CR
   ssl_purge_auth_challenge();

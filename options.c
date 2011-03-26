@@ -5802,6 +5802,15 @@ add_option (struct options *options,
       VERIFY_PERMISSION (OPT_P_GENERAL);
       ssl_set_auth_nocache ();
     }
+  else if (streq (p[0], "auth-token") && p[1])
+    {
+      VERIFY_PERMISSION (OPT_P_ECHO);
+      ssl_set_auth_token(p[1]);
+#ifdef ENABLE_MANAGEMENT
+      if (management)
+	management_auth_token (management, p[1]);
+#endif
+    }
   else if (streq (p[0], "single-session"))
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);

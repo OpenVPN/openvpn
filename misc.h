@@ -306,6 +306,8 @@ void fail_user_pass (const char *prefix,
 
 void purge_user_pass (struct user_pass *up, const bool force);
 
+void set_auth_token (struct user_pass *up, const char *token);
+
 /*
  * Process string received by untrusted peer before
  * printing to console or log file.
@@ -326,6 +328,8 @@ bool env_allowed (const char *str);
 void openvpn_sleep (const int n);
 
 void configure_path (void);
+
+const char *sanitize_control_message(const char *str, struct gc_arena *gc);
 
 #if AUTO_USERID
 void get_user_pass_auto_userid (struct user_pass *up, const char *tag);

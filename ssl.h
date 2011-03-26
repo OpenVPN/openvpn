@@ -722,7 +722,8 @@ void pem_password_setup (const char *auth_file);
 int pem_password_callback (char *buf, int size, int rwflag, void *u);
 void auth_user_pass_setup (const char *auth_file);
 void ssl_set_auth_nocache (void);
-void ssl_purge_auth (void);
+void ssl_set_auth_token (const char *token);
+void ssl_purge_auth (const bool auth_user_pass_only);
 
 
 #ifdef ENABLE_CLIENT_CR

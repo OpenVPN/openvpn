@@ -232,8 +232,8 @@ bool
 send_control_channel_string (struct context *c, const char *str, int msglevel)
 {
 #if defined(USE_CRYPTO) && defined(USE_SSL)
-
   if (c->c2.tls_multi) {
+    struct gc_arena gc = gc_new ();
     bool stat;
 
     /* buffered cleartext write onto TLS control channel */
@@ -250,9 +250,10 @@ send_control_channel_string (struct context *c, const char *str, int msglevel)
 
     msg (msglevel, "SENT CONTROL [%s]: '%s' (status=%d)",
 	 tls_common_name (c->c2.tls_multi, false),
-	 str,
+	 sanitize_control_message (str, &gc),
 	 (int) stat);
 
+    gc_free (&gc);
     return stat;
   }
 #endif

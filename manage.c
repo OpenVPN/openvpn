@@ -698,7 +698,7 @@ static void
 man_forget_passwords (struct management *man)
 {
 #if defined(USE_CRYPTO) && defined(USE_SSL)
-  ssl_purge_auth ();
+  ssl_purge_auth (false);
   msg (M_CLIENT, "SUCCESS: Passwords were forgotten");
 #endif
 }
@@ -1682,7 +1682,7 @@ man_reset_client_socket (struct management *man, const bool exiting)
     {
 #if defined(USE_CRYPTO) && defined(USE_SSL)
       if (man->settings.flags & MF_FORGET_DISCONNECT)
-	ssl_purge_auth ();
+	ssl_purge_auth (false);
 #endif
       if (man->settings.flags & MF_SIGNAL) {
       	  int mysig = man_mod_signal (man, SIGUSR1);
@@ -2513,6 +2513,12 @@ management_auth_failure (struct management *man, const char *type, const char *r
     msg (M_CLIENT, ">PASSWORD:Verification Failed: '%s' ['%s']", type, reason);
   else
     msg (M_CLIENT, ">PASSWORD:Verification Failed: '%s'", type);
+}
+
+void
+management_auth_token (struct management *man, const char *token)
+{
+  msg (M_CLIENT, ">PASSWORD:Auth-Token:%s", token);  
 }
 
 static inline bool
