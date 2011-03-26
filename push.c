@@ -52,7 +52,7 @@ receive_auth_failed (struct context *c, const struct buffer *buffer)
 	  c->sig->signal_received = SIGTERM; /* SOFT-SIGTERM -- Auth failure error */
 	  break;
 	case AR_INTERACT:
-	  ssl_purge_auth ();
+	  ssl_purge_auth (false);
 	case AR_NOINTERACT:
 	  c->sig->signal_received = SIGUSR1; /* SOFT-SIGUSR1 -- Auth failure error */
 	  break;
@@ -95,6 +95,24 @@ server_pushed_signal (struct context *c, const struct buffer *buffer, const bool
       const char *m = "";
       if (buf_advance (&buf, adv) && buf_read_u8 (&buf) == ',' && BLEN (&buf))
 	m = BSTR (&buf);
+
+      /* preserve cached passwords? */
+      {
+	bool purge = true;
+
+	if (m[0] == '[')
+	  {
+	    int i;
+	    for (i = 1; m[i] != '\0' && m[i] != ']'; ++i)
+	      {
+		if (m[i] == 'P')
+		  purge = false;
+	      }
+	  }
+	if (purge)
+	  ssl_purge_auth (true);
+      }
+
       if (restart)
 	{
 	  msg (D_STREAM_ERRORS, "Connection reset command was pushed by server ('%s')", m);
@@ -166,7 +184,7 @@ incoming_push_message (struct context *c, const struct buffer *buffer)
   unsigned int option_types_found = 0;
   int status;
 
-  msg (D_PUSH, "PUSH: Received control message: '%s'", BSTR (buffer));
+  msg (D_PUSH, "PUSH: Received control message: '%s'", sanitize_control_message(BSTR(buffer), &gc));
 
   status = process_incoming_push_msg (c,
 				      buffer,
@@ -175,7 +193,7 @@ incoming_push_message (struct context *c, const struct buffer *buffer)
 				      &option_types_found);
 
   if (status == PUSH_MSG_ERROR)
-    msg (D_PUSH_ERRORS, "WARNING: Received bad push/pull message: %s", BSTR (buffer));
+    msg (D_PUSH_ERRORS, "WARNING: Received bad push/pull message: %s", sanitize_control_message(BSTR(buffer), &gc));
   else if (status == PUSH_MSG_REPLY || status == PUSH_MSG_CONTINUATION)
     {
       if (status == PUSH_MSG_REPLY)

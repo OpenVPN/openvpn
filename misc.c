@@ -1695,6 +1695,16 @@ purge_user_pass (struct user_pass *up, const bool force)
     }
 }
 
+void
+set_auth_token (struct user_pass *up, const char *token)
+{
+  if (token && strlen(token) && up && up->defined && !up->nocache)
+    {
+      CLEAR (up->password);
+      strncpynt (up->password, token, USER_PASS_LEN);
+    }
+}
+
 /*
  * Process string received by untrusted peer before
  * printing to console or log file.
@@ -2362,4 +2372,38 @@ openvpn_basename (const char *path)
 	return ret;
     }
   return NULL;
+}
+
+/*
+ * Remove SESS_ID_x strings (i.e. auth tokens) from control message
+ * strings so that they will not be output to log file.
+ */
+const char *
+sanitize_control_message(const char *str, struct gc_arena *gc)
+{
+  char *ret = gc_malloc (strlen(str)+1, false, gc);
+  char *cp = ret;
+  bool redact = false;
+
+  strcpy(ret, str);
+  for (;;)
+    {
+      const char c = *cp;
+      if (c == '\0')
+	  break;
+      if (c == 'S' && !strncmp(cp, "SESS_ID_", 8))
+	{
+	  cp += 7;
+	  redact = true;
+	}
+      else
+	{
+	  if (c == ',') /* end of session id? */
+	    redact = false;
+	  if (redact)
+	    *cp = '_';
+	}
+      ++cp;
+    }
+  return ret;
 }

@@ -472,6 +472,11 @@ void management_echo (struct management *man, const char *string, const bool pul
 void management_auth_failure (struct management *man, const char *type, const char *reason);
 
 /*
+ * Echo an authentication token to management interface
+ */
+void management_auth_token (struct management *man, const char *token);
+
+/*
  * These functions drive the bytecount in/out counters.
  */
 

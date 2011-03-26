@@ -1929,7 +1929,7 @@ do_init_crypto_tls_c1 (struct context *c)
 	      msg (M_FATAL, "Error: private key password verification failed");
 	      break;
 	    case AR_INTERACT:
-	      ssl_purge_auth ();
+	      ssl_purge_auth (false);
 	    case AR_NOINTERACT:
 	      c->sig->signal_received = SIGUSR1; /* SOFT-SIGUSR1 -- Password failure error */
 	      break;
