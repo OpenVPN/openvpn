@@ -176,6 +176,11 @@ AC_ARG_ENABLE(iproute2,
    test $enableval = "yes" && AC_DEFINE(CONFIG_FEATURE_IPROUTE, 1, [enable iproute2 support])   
 )
 
+AC_ARG_ENABLE(osxipconfig,
+   [  --enable-osxipconfig    Enable support for ipconfig on OS X],
+   test $enableval = "yes" && AC_DEFINE(DARWIN_USE_IPCONFIG, 1, [Enable support for ipconfig on OS X])
+)
+
 AC_ARG_ENABLE(def-auth,
    [  --disable-def-auth      Disable deferred authentication],
    [DEF_AUTH="$enableval"],
