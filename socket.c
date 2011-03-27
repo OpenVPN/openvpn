@@ -2490,6 +2490,10 @@ print_link_socket_actual (const struct link_socket_actual *act, struct gc_arena 
   return print_link_socket_actual_ex (act, ":", PS_SHOW_PORT|PS_SHOW_PKTINFO, gc);
 }
 
+#ifndef IF_NAMESIZE
+#define IF_NAMESIZE 16
+#endif
+
 const char *
 print_link_socket_actual_ex (const struct link_socket_actual *act,
 			     const char *separator,

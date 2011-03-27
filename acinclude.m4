@@ -123,5 +123,9 @@ AC_DEFUN([TYPE_SOCKLEN_T],
       AC_DEFINE_UNQUOTED(socklen_t, $curl_cv_socklen_t_equiv,
 			[type to use in place of socklen_t if not defined])],
       [#include <sys/types.h>
-#include <sys/socket.h>])
+#ifdef WIN32
+#include <ws2tcpip.h>
+#else
+#include <sys/socket.h>
+#endif])
 ])
