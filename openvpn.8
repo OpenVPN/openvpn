@@ -1129,6 +1129,11 @@ on non-Windows clients).
 Using the def1 flag is highly recommended.
 .\"*********************************************************
 .TP
+.B \-\-redirect-private [flags]
+Like \-\-redirect-gateway, but omit actually changing the default
+gateway.  Useful when pushing private subnets.
+.\"*********************************************************
+.TP
 .B \-\-link-mtu n
 Sets an upper bound on the size of UDP packets which are sent
 between OpenVPN peers.  It's best not to set this parameter unless
