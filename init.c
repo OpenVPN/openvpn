@@ -1833,7 +1833,7 @@ do_init_crypto_static (struct context *c, const unsigned int flags)
   if (options->replay)
     {
       packet_id_init (&c->c2.packet_id, options->replay_window,
-		      options->replay_time);
+		      options->replay_time, "STATIC", 0);
       c->c2.crypto_options.packet_id = &c->c2.packet_id;
       c->c2.crypto_options.pid_persist = &c->c1.pid_persist;
       c->c2.crypto_options.flags |= CO_PACKET_ID_LONG_FORM;
