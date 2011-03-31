@@ -83,7 +83,7 @@
 #define D_RESTART            LOGLEV(3, 33, 0)        /* show certain restart messages */
 #define D_PUSH               LOGLEV(3, 34, 0)        /* show push/pull info */
 #define D_IFCONFIG_POOL      LOGLEV(3, 35, 0)        /* show ifconfig pool info */
-#define D_BACKTRACK          LOGLEV(3, 36, 0)        /* show replay backtracks */
+#define D_PID_DEBUG_LOW      LOGLEV(3, 36, 0)        /* show low-freq packet-id debugging info */
 #define D_AUTH               LOGLEV(3, 37, 0)        /* show user/pass auth info */
 #define D_MULTI_LOW          LOGLEV(3, 38, 0)        /* show point-to-multipoint low-freq debug info */
 #define D_PLUGIN             LOGLEV(3, 39, 0)        /* show plugin calls */
@@ -107,6 +107,7 @@
 #define D_INIT_MEDIUM        LOGLEV(4, 60, 0)        /* show medium frequency init messages */
 #define D_MTU_INFO           LOGLEV(4, 61, 0)        /* show terse MTU info */
 #define D_SHOW_OCC_HASH      LOGLEV(4, 62, 0)        /* show MD5 hash of option compatibility string */
+#define D_PID_DEBUG_MEDIUM   LOGLEV(4, 63, 0)        /* show medium-freq packet-id debugging info */
 
 #define D_LOG_RW             LOGLEV(5, 0,  0)        /* Print 'R' or 'W' to stdout for read/write */
 
@@ -121,7 +122,6 @@
 #define D_FRAG_DEBUG         LOGLEV(7, 70, M_DEBUG)  /* show fragment debugging info */
 #define D_WIN32_IO_LOW       LOGLEV(7, 70, M_DEBUG)  /* low freq win32 I/O debugging info */
 #define D_MTU_DEBUG          LOGLEV(7, 70, M_DEBUG)  /* show MTU debugging info */
-#define D_PID_DEBUG_LOW      LOGLEV(7, 70, M_DEBUG)  /* show low-freq packet-id debugging info */
 #define D_MULTI_DEBUG        LOGLEV(7, 70, M_DEBUG)  /* show medium-freq multi debugging info */
 #define D_MSS                LOGLEV(7, 70, M_DEBUG)  /* show MSS adjustments */
 #define D_COMP_LOW           LOGLEV(7, 70, M_DEBUG)  /* show adaptive compression state changes */
@@ -145,6 +145,7 @@
 #define D_TLS_KEYSELECT      LOGLEV(7, 70, M_DEBUG)  /* show information on key selection for data channel */
 #define D_ARGV_PARSE_CMD     LOGLEV(7, 70, M_DEBUG)  /* show parse_line() errors in argv_printf %sc */
 #define D_CRYPTO_DEBUG       LOGLEV(7, 70, M_DEBUG)  /* show detailed info from crypto.c routines */
+#define D_PID_DEBUG          LOGLEV(7, 70, M_DEBUG)  /* show packet-id debugging info */
 #define D_PF_DROPPED_BCAST   LOGLEV(7, 71, M_DEBUG)  /* packet filter dropped a broadcast packet */
 #define D_PF_DEBUG           LOGLEV(7, 72, M_DEBUG)  /* packet filter debugging, must also define PF_DEBUG in pf.h */
 
@@ -162,7 +163,6 @@
 #define D_READ_WRITE         LOGLEV(9, 70, M_DEBUG)  /* show all tun/tcp/udp reads/writes/opens */
 #define D_PACKET_CONTENT     LOGLEV(9, 70, M_DEBUG)  /* show before/after encryption packet content */
 #define D_TLS_NO_SEND_KEY    LOGLEV(9, 70, M_DEBUG)  /* show when no data channel send-key exists */
-#define D_PID_DEBUG          LOGLEV(9, 70, M_DEBUG)  /* show packet-id debugging info */
 #define D_PID_PERSIST_DEBUG  LOGLEV(9, 70, M_DEBUG)  /* show packet-id persist debugging info */
 #define D_LINK_RW_VERBOSE    LOGLEV(9, 70, M_DEBUG)  /* show link reads/writes with greater verbosity */
 #define D_STREAM_DEBUG       LOGLEV(9, 70, M_DEBUG)  /* show TCP stream debug info */

@@ -2644,7 +2644,8 @@ key_state_init (struct tls_session *session, struct key_state *ks)
   /* init packet ID tracker */
   packet_id_init (&ks->packet_id,
 		  session->opt->replay_window,
-		  session->opt->replay_time);
+		  session->opt->replay_time,
+		  "SSL", ks->key_id);
 
 #ifdef MANAGEMENT_DEF_AUTH
   ks->mda_key_id = session->opt->mda_context->mda_key_id_counter++;
@@ -2749,7 +2750,8 @@ tls_session_init (struct tls_multi *multi, struct tls_session *session)
   /* initialize packet ID replay window for --tls-auth */
   packet_id_init (session->tls_auth.packet_id,
 		  session->opt->replay_window,
-		  session->opt->replay_time);
+		  session->opt->replay_time,
+		  "TLS_AUTH", session->key_id);
 
   /* load most recent packet-id to replay protect on --tls-auth */
   packet_id_persist_load_obj (session->tls_auth.pid_persist, session->tls_auth.packet_id);
