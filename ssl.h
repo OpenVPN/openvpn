@@ -477,6 +477,7 @@ struct tls_options
 
   int replay_window;                   /* --replay-window parm */
   int replay_time;                     /* --replay-window parm */
+  bool tcp_mode;
 
   /* packet authentication for TLS handshake */
   struct crypto_options tls_auth;

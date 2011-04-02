@@ -70,9 +70,10 @@ packet_id_debug (int msglevel,
 }
 
 void
-packet_id_init (struct packet_id *p, int seq_backtrack, int time_backtrack, const char *name, int unit)
+packet_id_init (struct packet_id *p, bool tcp_mode, int seq_backtrack, int time_backtrack, const char *name, int unit)
 {
-  dmsg (D_PID_DEBUG, "PID packet_id_init seq_backtrack=%d time_backtrack=%d",
+  dmsg (D_PID_DEBUG, "PID packet_id_init tcp_mode=%d seq_backtrack=%d time_backtrack=%d",
+	tcp_mode,
 	seq_backtrack,
 	time_backtrack);
 
@@ -81,7 +82,7 @@ packet_id_init (struct packet_id *p, int seq_backtrack, int time_backtrack, cons
 
   p->rec.name = name;
   p->rec.unit = unit;
-  if (seq_backtrack)
+  if (seq_backtrack && !tcp_mode)
     {
       ASSERT (MIN_SEQ_BACKTRACK <= seq_backtrack && seq_backtrack <= MAX_SEQ_BACKTRACK);
       ASSERT (MIN_TIME_BACKTRACK <= time_backtrack && time_backtrack <= MAX_TIME_BACKTRACK);
