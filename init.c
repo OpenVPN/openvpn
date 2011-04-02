@@ -102,13 +102,6 @@ update_options_ce_post (struct options *options)
       options->ping_rec_timeout_action = PING_RESTART;
     }
 #endif
-#ifdef USE_CRYPTO
-  /* 
-   * Don't use replay window for TCP mode (i.e. require that packets be strictly in sequence).
-   */
-  if (link_socket_proto_connection_oriented (options->ce.proto))
-    options->replay_window = options->replay_time = 0;
-#endif
 }
 
 #if HTTP_PROXY_FALLBACK
@@ -1832,8 +1825,11 @@ do_init_crypto_static (struct context *c, const unsigned int flags)
   /* Initialize packet ID tracking */
   if (options->replay)
     {
-      packet_id_init (&c->c2.packet_id, options->replay_window,
-		      options->replay_time, "STATIC", 0);
+      packet_id_init (&c->c2.packet_id,
+		      link_socket_proto_connection_oriented (options->ce.proto),
+		      options->replay_window,
+		      options->replay_time,
+		      "STATIC", 0);
       c->c2.crypto_options.packet_id = &c->c2.packet_id;
       c->c2.crypto_options.pid_persist = &c->c1.pid_persist;
       c->c2.crypto_options.flags |= CO_PACKET_ID_LONG_FORM;
@@ -2034,6 +2030,7 @@ do_init_crypto_tls (struct context *c, const unsigned int flags)
   to.replay = options->replay;
   to.replay_window = options->replay_window;
   to.replay_time = options->replay_time;
+  to.tcp_mode = link_socket_proto_connection_oriented (options->ce.proto);
   to.transition_window = options->transition_window;
   to.handshake_window = options->handshake_window;
   to.packet_timeout = options->tls_timeout;
