@@ -270,6 +270,12 @@ chosen, providing a sort of basic load-balancing and
 failover capability.
 .\"*********************************************************
 .TP
+.B \-\-remote-random-hostname
+Add a random string (6 characters) to first DNS label of hostname to prevent
+DNS caching.  For example, "foo.bar.gov" would be modified to
+"<random-chars>.foo.bar.gov".
+.\"*********************************************************
+.TP
 .B <connection>
 Define a client connection
 profile.  Client connection profiles are groups of OpenVPN options that
