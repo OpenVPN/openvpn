@@ -5343,7 +5343,13 @@ add_option (struct options *options,
       VERIFY_PERMISSION (OPT_P_IPWIN32);
       options->tuntap_options.register_dns = true;
     }
-  else if (streq (p[0], "rdns-internal")) /* standalone method for internal use */
+  else if (streq (p[0], "rdns-internal"))
+     /* standalone method for internal use
+      *
+      * (if --register-dns is set, openvpn needs to call itself in a
+      *  sub-process to execute the required functions in a non-blocking
+      *  way, and uses --rdns-internal to signal that to itself)
+      */
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       set_debug_level (options->verbosity, SDL_CONSTRAIN);
