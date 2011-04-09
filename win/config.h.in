@@ -26,6 +26,9 @@
  * Configuration header for Win32 using the MSVC environment.
  */
 
+#ifndef OPENVPN_CONFIG_H
+#define OPENVPN_CONFIG_H
+
 #include <windows.h>
 #include <winsock2.h>
 #include "autodefs.h" /* machine generated */
@@ -274,6 +277,7 @@ typedef unsigned long in_addr_t;
 /* type to use in place of socklen_t if not defined */
 #define socklen_t unsigned int
 
+#ifndef __MINGW32__
 /* 32-bit unsigned type */
 #define uint32_t unsigned int
 
@@ -282,6 +286,7 @@ typedef unsigned long in_addr_t;
 
 /* 8-bit unsigned type */
 #define uint8_t unsigned char
+#endif /* __MINGW32__ */
 
 /* Route command */
 #define ROUTE_PATH "route"
@@ -314,3 +319,5 @@ typedef int intptr_t;
 #define HAVE_CPP_VARARG_MACRO_ISO 1
 #endif
 #endif
+
+#endif /* OPENVPN_CONFIG_H */
