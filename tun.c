@@ -801,7 +801,17 @@ do_ifconfig (struct tuntap *tt,
 		       );
 	}
       argv_msg (M_INFO, &argv);
-      openvpn_execve_check (&argv, es, S_FATAL, "Mac OS X ipconfig failed");
+      {
+	int i;
+	const int n = 15;
+	for (i = 1; i <= n; ++i) /* OSX 10.5 needs retry */
+	  {
+	    if (openvpn_execve_check (&argv, es, (i == n) ? S_FATAL : 0, "Mac OS X ipconfig failed"))
+	      break;
+	    msg (M_INFO, "Retry #%d", i);
+	    openvpn_sleep(1);
+	  }
+      }
       tt->did_ifconfig = true;
 #else
       /*
