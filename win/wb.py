@@ -60,8 +60,8 @@ def parse_version_m4(kv, version_m4):
         if m:
             g = m.groups()
 
-            # If we encounter PRODUCT_TAP_WIN32_MIN_MAJOR or 
-            # PRODUCT_TAP_WIN32_MIN_MAJOR then we need to generate extra 
+            # If we encounter PRODUCT_TAP_WIN32_MIN_MAJOR or
+            # PRODUCT_TAP_WIN32_MIN_MAJOR then we need to generate extra
             # variables, PRODUCT_TAP_MAJOR_VER and PRODUCT_TAP_MINOR_VER with 
             # the same contents. This is necessary because tap-win32/tapdrv.c 
             # build depends on those.

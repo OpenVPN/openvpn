@@ -1,4 +1,4 @@
-# build autodefs.h and 
+# build autodefs.h and
 
 import re
 
