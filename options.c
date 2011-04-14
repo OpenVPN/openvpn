@@ -767,11 +767,23 @@ init_options (struct options *o, const bool init_gc)
 #ifdef ENABLE_X509ALTUSERNAME
   o->x509_username_field = X509_USERNAME_FIELD_DEFAULT;
 #endif
-#endif
-#endif
+#endif /* USE_SSL */
+#endif /* USE_CRYPTO */
 #ifdef ENABLE_PKCS11
   o->pkcs11_pin_cache_period = -1;
 #endif			/* ENABLE_PKCS11 */
+
+  /* Set default --tmp-dir */
+#ifdef WIN32
+  /* On Windows, find temp dir via enviroment variables */
+  o->tmp_dir = win_get_tempdir();
+#else
+  /* Non-windows platforms use $TMPDIR, and if not set, default to '/tmp' */
+  o->tmp_dir = getenv("TMPDIR");
+  if( !o->tmp_dir ) {
+          o->tmp_dir = "/tmp";
+  }
+#endif /* WIN32 */
 }
 
 void
@@ -1917,8 +1929,6 @@ options_postprocess_verify_ce (const struct options *options, const struct conne
 	msg (M_USAGE, "--client-connect requires --mode server");
       if (options->client_disconnect_script)
 	msg (M_USAGE, "--client-disconnect requires --mode server");
-      if (options->tmp_dir)
-	msg (M_USAGE, "--tmp-dir requires --mode server");
       if (options->client_config_dir || options->ccd_exclusive)
 	msg (M_USAGE, "--client-config-dir/--ccd-exclusive requires --mode server");
       if (options->enable_c2c)
