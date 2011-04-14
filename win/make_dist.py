@@ -94,7 +94,7 @@ def main(config, tap=True):
     dest = {'amd64' : amd64, 'i386' : i386}
     for dirpath, dirnames, filenames in os.walk(home_fn(ti_dir)):
         for f in filenames:
-            if f == 'devcon.exe':
+            if f in ( 'devcon.exe', 'tapinstall.exe' ):
                 dir_name = os.path.basename(dirpath)
                 src = os.path.join(dirpath, f)
                 dst = os.path.join(dest[dir_name],'tapinstall.exe')
