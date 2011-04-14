@@ -7,7 +7,7 @@ def main(config):
     shutil.rmtree(dest, ignore_errors=True)
     shutil.copytree(src, dest)
     preprocess(config,
-               in_fn=os.path.join(dest, 'sources.in'),
+               in_fn=os.path.join(src, 'sources'),
                out_fn=os.path.join(dest, 'sources'),
                if_prefix='!',
                head_comment='# %s\n\n' % autogen)
