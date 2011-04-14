@@ -1093,4 +1093,23 @@ env_set_add_win32 (struct env_set *es)
   set_win_sys_path (DEFAULT_WIN_SYS_PATH, es);
 }
 
+
+const char *
+win_get_tempdir()
+{
+  static char buf[MAX_PATH];
+  char *tmpdir = buf;
+
+  CLEAR(buf);
+
+  if (!GetTempPath(sizeof(buf),buf)) {
+    /* Warn if we can't find a valid temporary directory, which should
+     * be unlikely.
+     */
+    msg (M_WARN, "Could not find a suitable temporary directory."
+         " (GetTempPath() failed).  Consider to use --tmp-dir");
+    tmpdir = NULL;
+  }
+  return tmpdir;
+}
 #endif
