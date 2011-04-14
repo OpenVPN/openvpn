@@ -29,7 +29,7 @@ diff -urw tmp/openssl-0.9.8h/ms/mw.bat openssl-0.9.8h/ms/mw.bat
 @@ -1,17 +1,23 @@
  @rem OpenSSL with Mingw32
  @rem --------------------
- 
+
 +@rem Include MinGW, MSYS, and ActiveState Perl in path
 +set PATH=c:\bin;C:\Perl\bin\;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;c:\MinGW\bin;c:\msys\1.0\bin
 +
@@ -45,12 +45,12 @@ diff -urw tmp/openssl-0.9.8h/ms/mw.bat openssl-0.9.8h/ms/mw.bat
 -perl util\mkdef.pl 32 ssleay >ms\ssleay32.def
 +perl util\mkdef.pl no-idea no-mdc2 no-rc5 32 ssleay >ms\ssleay32.def
  if errorlevel 1 goto end
- 
+
  @rem Build the libraries
 -make -f ms/mingw32.mak
 +
 +@rem JY added --win32
 +make --win32 -f ms/mingw32.mak
  if errorlevel 1 goto end
- 
+
  @rem Generate the DLLs and input libraries

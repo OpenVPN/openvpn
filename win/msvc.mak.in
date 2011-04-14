@@ -7,7 +7,7 @@
 #
 # - Everything between @<< and << is inserted into a s.c. "in-line file". This 
 #   file drives the linker (link.exe).
-# - HEADERS_OBJS is expanded to all all header and source files listed in 
+# - HEADERS_OBJS is expanded to all all header and source files listed in
 #  ..\Makefile.am
 # - OPENSSL_DIR and LZO_DIR are dynamically created from settings.in
 
