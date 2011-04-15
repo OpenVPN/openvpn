@@ -237,6 +237,12 @@ Section -pre
 
   Sleep 3000
 
+  # Fix for Trac ticket 120. Remove after 2.3 has been released.
+  !ifdef USE_GUI
+    SetShellVarContext current
+    Delete "$DESKTOP\${PRODUCT_NAME} GUI.lnk"
+  !endif
+
 SectionEnd
 
 Section "${PRODUCT_NAME} User-Space Components" SecOpenVPNUserSpace
