@@ -1,0 +1,11 @@
+This commit message falsely states that the default '/tmp' path can be
+modified at compile time.  This is not true anymore.  This patch restricts
+fallback on non-Windows to '/tmp' and the start-up directory for OpenVPN
+on Windows.  On all POSIX platforms '/tmp' should exist anyway and it can
+be modified by setting $TMPDIR at runtime, or via --tmp-dir.
+
+This patch also includes a two comments to the #ifdef blocks in the same
+area.  These lines were not removed as they were considered helpful and it
+does not change the running code in any way.  It was initially added to
+make sure the changes needed in this patch came on the right place.  It
+should probably have been mentioned in the commit log anyhow though.
