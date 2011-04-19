@@ -786,34 +786,6 @@ do_ifconfig (struct tuntap *tt,
       tt->did_ifconfig = true;
 
 #elif defined(TARGET_DARWIN)
-#ifdef DARWIN_USE_IPCONFIG
-      if (tun)
-	{
-	  msg (M_FATAL, "Error: tun point-to-point mode not supported on Darwin when DARWIN_USE_IPCONFIG is defined");
-	}
-      else
-        {
-	  argv_printf (&argv,
-		       "/usr/sbin/ipconfig set %s MANUAL %s %s",
-		       actual,
-		       ifconfig_local,
-		       ifconfig_remote_netmask
-		       );
-	}
-      argv_msg (M_INFO, &argv);
-      {
-	int i;
-	const int n = 15;
-	for (i = 1; i <= n; ++i) /* OSX 10.5 needs retry */
-	  {
-	    if (openvpn_execve_check (&argv, es, (i == n) ? S_FATAL : 0, "Mac OS X ipconfig failed"))
-	      break;
-	    msg (M_INFO, "Retry #%d", i);
-	    openvpn_sleep(1);
-	  }
-      }
-      tt->did_ifconfig = true;
-#else
       /*
        * Darwin (i.e. Mac OS X) seems to exhibit similar behaviour to OpenBSD...
        */
@@ -863,7 +835,6 @@ do_ifconfig (struct tuntap *tt,
       argv_msg (M_INFO, &argv);
       openvpn_execve_check (&argv, es, S_FATAL, "Mac OS X ifconfig failed");
       tt->did_ifconfig = true;
-#endif
 
       /* Add a network route for the local tun interface */
       if (!tun && tt->topology == TOP_SUBNET)
