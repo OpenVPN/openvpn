@@ -118,6 +118,7 @@ static const char usage_message[] =
   "--connect-retry-max n : Maximum connection attempt retries, default infinite.\n"
 #ifdef GENERAL_PROXY_SUPPORT
   "--auto-proxy    : Try to sense proxy settings (or lack thereof) automatically.\n"
+  "--show-proxy-settings : Show sensed proxy settings.\n"
 #endif
 #ifdef ENABLE_HTTP_PROXY
   "--http-proxy s p [up] [auth] : Connect to remote host\n"
