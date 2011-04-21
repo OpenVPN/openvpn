@@ -1,6 +1,39 @@
 OpenVPN Change Log
 Copyright (C) 2002-2011 OpenVPN Technologies, Inc. <sales@openvpn.net>
 
+2011.04.21 -- Version 2.2.0
+David Sommerseth (4):
+      Fix the --client-cert-not-required feature
+      Change the default --tmp-dir path to a more suitable path
+      Improve the mysprintf() issue in openvpnserv.c
+      Add a simple comment regarding openvpn_snprintf() is duplicated
+
+Gert Doering (1):
+      Add more detailed explanation regarding the function of "--rdns-internal"
+
+Gisle Vanem (1):
+      Avoid re-defining uint32_t when using mingw compiler
+
+James Yonan (1):
+      Fixed bug in port-share that could cause port share process to crash with output like this:
+
+Robert Fischer / rf (4):
+      Update man page with info about --capath
+      Update man page with info about --connect-timeout
+      Update man page with info about --remote-random-hostname
+      Added man page entry for --management-client
+
+Samuli Seppänen (6):
+      Add man page entry for --redirect-private
+      Change all CRLF linefeeds to LF linefeeds
+      Fix a bug in devcon source code handling
+      Removed Win2k from supported platforms list in INSTALL and win/openvpn.nsi
+      Fixed copying of tapinstall.exe to dist/bin when using prebuilt TAP-drivers
+      Fixed a bug with GUI icon deletion on upgrade from 2.2-RC or earlier
+
+chantra (1):
+      Clarify --tmp-dir option
+
 2011.03.24 -- Version 2.2-RC2
 Alon Bar-Lev (1):
       Windows cross-compile cleanup
