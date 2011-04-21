@@ -4434,6 +4434,14 @@ the tls-verify script returns.  The file name used for the certificate
 is available via the peer_cert environment variable.
 .\"*********************************************************
 .TP
+.B \-\-x509-username-field fieldname
+Field in x509 certificate subject to be used as username (default=CN).
+.B Fieldname
+will be uppercased before matching. When this option is used, the
+--tls-remote option will match against the chosen fieldname instead
+of the CN.
+.\"*********************************************************
+.TP
 .B \-\-tls-remote name
 Accept connections only from a host with X509 name
 or common name equal to
