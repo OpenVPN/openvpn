@@ -217,6 +217,9 @@ buf_printf (struct buffer *buf, const char *format, ...)
 /*
  * This is necessary due to certain buggy implementations of snprintf,
  * that don't guarantee null termination for size > 0.
+ *
+ * This function is duplicated into service-win32/openvpnserv.c
+ * Any modifications here should be done to the other place as well.
  */
 
 int openvpn_snprintf(char *str, size_t size, const char *format, ...)
