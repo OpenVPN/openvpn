@@ -4457,7 +4457,7 @@ or
 .B --tls-verify.
 .\"*********************************************************
 .TP
-.B --crl-verify crl
+.B --crl-verify crl ['dir']
 Check peer certificate against the file
 .B crl
 in PEM format.
@@ -4473,6 +4473,16 @@ overall integrity of the PKI.
 
 The only time when it would be necessary to rebuild the entire PKI from scratch would be
 if the root certificate key itself was compromised.
+
+If the optional
+.B dir
+flag is specified, enable a different mode where
+.B crl
+is a directory containing files named as revoked serial numbers
+(the files may be empty, the contents are never read).  If a client
+requests a connection, where the client certificate serial number
+(decimal string) is the name of a file present in the directory,
+it will be rejected.
 .\"*********************************************************
 .SS SSL Library information:
 .\"*********************************************************

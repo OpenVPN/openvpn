@@ -534,7 +534,7 @@ static const char usage_message[] =
   "                  see --secret option for more info.\n"
   "--askpass [file]: Get PEM password from controlling tty before we daemonize.\n"
   "--auth-nocache  : Don't cache --askpass or --auth-user-pass passwords.\n"
-  "--crl-verify crl: Check peer certificate against a CRL.\n"
+  "--crl-verify crl ['dir']: Check peer certificate against a CRL.\n"
   "--tls-verify cmd: Execute shell command cmd to verify the X509 name of a\n"
   "                  pending TLS connection that has otherwise passed all other\n"
   "                  tests of certification.  cmd should return 0 to allow\n"
@@ -5836,6 +5836,8 @@ add_option (struct options *options,
   else if (streq (p[0], "crl-verify") && p[1])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
+      if (p[2] && streq(p[2], "dir"))
+	options->ssl_flags |= SSLF_CRL_VERIFY_DIR;
       options->crl_file = p[1];
     }
   else if (streq (p[0], "tls-verify") && p[1])
