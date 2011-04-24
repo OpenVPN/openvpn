@@ -836,6 +836,7 @@ verify_callback (int preverify_ok, X509_STORE_CTX * ctx)
   const struct tls_options *opt;
   const int max_depth = MAX_CERT_DEPTH;
   struct argv argv = argv_new ();
+  char *serial = NULL;
 
   /* get the tls_session pointer */
   ssl = X509_STORE_CTX_get_ex_data (ctx, SSL_get_ex_data_X509_STORE_CTX_idx());
@@ -929,14 +930,12 @@ verify_callback (int preverify_ok, X509_STORE_CTX * ctx)
   {
     ASN1_INTEGER *asn1_i;
     BIGNUM *bignum;
-    char *dec;
     asn1_i = X509_get_serialNumber(ctx->current_cert);
     bignum = ASN1_INTEGER_to_BN(asn1_i, NULL);
-    dec = BN_bn2dec(bignum);
+    serial = BN_bn2dec(bignum);
     openvpn_snprintf (envname, sizeof(envname), "tls_serial_%d", ctx->error_depth);
-    setenv_str (opt->es, envname, dec);
+    setenv_str (opt->es, envname, serial);
     BN_free(bignum);
-    OPENSSL_free(dec);
   }
 
   /* export current untrusted IP */
@@ -1060,67 +1059,89 @@ verify_callback (int preverify_ok, X509_STORE_CTX * ctx)
   /* check peer cert against CRL */
   if (opt->crl_file)
     {
-      X509_CRL *crl=NULL;
-      X509_REVOKED *revoked;
-      BIO *in=NULL;
-      int n,i,retval = 0;
-
-      in=BIO_new(BIO_s_file());
-
-      if (in == NULL) {
-	msg (M_ERR, "CRL: BIO err");
-	goto end;
-      }
-      if (BIO_read_filename(in, opt->crl_file) <= 0) {
-	msg (M_ERR, "CRL: cannot read: %s", opt->crl_file);
-	goto end;
-      }
-      crl=PEM_read_bio_X509_CRL(in,NULL,NULL,NULL);
-      if (crl == NULL) {
-	msg (M_ERR, "CRL: cannot read CRL from file %s", opt->crl_file);
-	goto end;
-      }
-
-      if (X509_NAME_cmp(X509_CRL_get_issuer(crl), X509_get_issuer_name(ctx->current_cert)) != 0) {
-	msg (M_WARN, "CRL: CRL %s is from a different issuer than the issuer of certificate %s", opt->crl_file, subject);
-	retval = 1;
-	goto end;
-      }
-
-      n = sk_num(X509_CRL_get_REVOKED(crl));
-
-      for (i = 0; i < n; i++) {
-	revoked = (X509_REVOKED *)sk_value(X509_CRL_get_REVOKED(crl), i);
-	if (ASN1_INTEGER_cmp(revoked->serialNumber, X509_get_serialNumber(ctx->current_cert)) == 0) {
-	  msg (D_HANDSHAKE, "CRL CHECK FAILED: %s is REVOKED",subject);
-	  goto end;
+      if (opt->ssl_flags & SSLF_CRL_VERIFY_DIR)
+	{
+	  char fn[256];
+	  int fd;
+	  if (!openvpn_snprintf(fn, sizeof(fn), "%s%c%s", opt->crl_file, OS_SPECIFIC_DIRSEP, serial))
+	    {
+	      msg (D_HANDSHAKE, "VERIFY CRL: filename overflow");
+	      goto err;
+	    }
+	  fd = open (fn, O_RDONLY);
+	  if (fd >= 0)
+	    {
+	      msg (D_HANDSHAKE, "VERIFY CRL: certificate serial number %s is revoked", serial);
+	      close(fd);
+	      goto err;
+	    }
 	}
-      }
+      else
+	{
+	  X509_CRL *crl=NULL;
+	  X509_REVOKED *revoked;
+	  BIO *in=NULL;
+	  int n,i,retval = 0;
 
-      retval = 1;
-      msg (D_HANDSHAKE, "CRL CHECK OK: %s",subject);
+	  in=BIO_new(BIO_s_file());
 
-    end:
+	  if (in == NULL) {
+	    msg (M_ERR, "CRL: BIO err");
+	    goto end;
+	  }
+	  if (BIO_read_filename(in, opt->crl_file) <= 0) {
+	    msg (M_ERR, "CRL: cannot read: %s", opt->crl_file);
+	    goto end;
+	  }
+	  crl=PEM_read_bio_X509_CRL(in,NULL,NULL,NULL);
+	  if (crl == NULL) {
+	    msg (M_ERR, "CRL: cannot read CRL from file %s", opt->crl_file);
+	    goto end;
+	  }
 
-      BIO_free(in);
-      if (crl)
-	X509_CRL_free (crl);
-      if (!retval)
-	goto err;
+	  if (X509_NAME_cmp(X509_CRL_get_issuer(crl), X509_get_issuer_name(ctx->current_cert)) != 0) {
+	    msg (M_WARN, "CRL: CRL %s is from a different issuer than the issuer of certificate %s", opt->crl_file, subject);
+	    retval = 1;
+	    goto end;
+	  }
+
+	  n = sk_num(X509_CRL_get_REVOKED(crl));
+
+	  for (i = 0; i < n; i++) {
+	    revoked = (X509_REVOKED *)sk_value(X509_CRL_get_REVOKED(crl), i);
+	    if (ASN1_INTEGER_cmp(revoked->serialNumber, X509_get_serialNumber(ctx->current_cert)) == 0) {
+	      msg (D_HANDSHAKE, "CRL CHECK FAILED: %s is REVOKED",subject);
+	      goto end;
+	    }
+	  }
+
+	  retval = 1;
+	  msg (D_HANDSHAKE, "CRL CHECK OK: %s",subject);
+
+	end:
+
+	  BIO_free(in);
+	  if (crl)
+	    X509_CRL_free (crl);
+	  if (!retval)
+	    goto err;
+	}
     }
 
   msg (D_HANDSHAKE, "VERIFY OK: depth=%d, %s", ctx->error_depth, subject);
-
   session->verified = true;
+
+ done:
   OPENSSL_free (subject);
+  if (serial)
+    OPENSSL_free(serial);
   argv_reset (&argv);
-  return 1;			/* Accept connection */
+  return (session->verified == true) ? 1 : 0;
 
  err:
   ERR_clear_error ();
-  OPENSSL_free (subject);
-  argv_reset (&argv);
-  return 0;                     /* Reject connection */
+  session->verified = false;
+  goto done;
 }
 
 void
@@ -1954,7 +1975,7 @@ init_ssl (const struct options *options)
                 {
 	          if (!X509_STORE_add_cert(ctx->cert_store,sk_X509_value(ca, i)))
                     msg (M_SSLERR, "Cannot add certificate to certificate chain (X509_STORE_add_cert)");
-                  if (!SSL_CTX_add_client_CA(ctx, sk_X509_value(ca, i)))
+                  if (options->tls_server && !SSL_CTX_add_client_CA(ctx, sk_X509_value(ca, i)))
                     msg (M_SSLERR, "Cannot add certificate to client CA list (SSL_CTX_add_client_CA)");
                 }
             }
@@ -2066,11 +2087,11 @@ init_ssl (const struct options *options)
 #endif
 	{
 	  /* Load CA file for verifying peer supplied certificate */
-	  status = SSL_CTX_load_verify_locations (ctx, options->ca_file, options->ca_path);
+	  status = SSL_CTX_load_verify_locations (ctx, options->ca_file, NULL);
 	}
       
       if (!status)
-	msg (M_SSLERR, "Cannot load CA certificate file %s path %s (SSL_CTX_load_verify_locations)", options->ca_file, options->ca_path);
+	msg (M_SSLERR, "Cannot load CA certificate file %s path %s (SSL_CTX_load_verify_locations)", np(options->ca_file), np(options->ca_path));
 
       /* Set a store for certs (CA & CRL) with a lookup on the "capath" hash directory */
       if (options->ca_path) {
@@ -2094,7 +2115,7 @@ init_ssl (const struct options *options)
       }
 
       /* Load names of CAs from file and use it as a client CA list */
-      if (options->ca_file) {
+      if (options->ca_file && options->tls_server) {
         STACK_OF(X509_NAME) *cert_names = NULL;
 #if ENABLE_INLINE_FILES
 	if (!strcmp (options->ca_file, INLINE_FILE_TAG) && options->ca_file_inline)
@@ -2108,7 +2129,7 @@ init_ssl (const struct options *options)
 	  }
         if (!cert_names)
           msg (M_SSLERR, "Cannot load CA certificate file %s (SSL_load_client_CA_file)", options->ca_file);
-        SSL_CTX_set_client_CA_list (ctx, cert_names);
+	SSL_CTX_set_client_CA_list (ctx, cert_names);
       }
     }
 

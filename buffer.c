@@ -218,20 +218,21 @@ buf_printf (struct buffer *buf, const char *format, ...)
 /*
  * This is necessary due to certain buggy implementations of snprintf,
  * that don't guarantee null termination for size > 0.
+ * Return false on overflow.
  */
 
-int openvpn_snprintf(char *str, size_t size, const char *format, ...)
+bool openvpn_snprintf(char *str, size_t size, const char *format, ...)
 {
   va_list arglist;
-  int ret = 0;
+  int len = -1;
   if (size > 0)
     {
       va_start (arglist, format);
-      ret = vsnprintf (str, size, format, arglist);
+      len = vsnprintf (str, size, format, arglist);
       va_end (arglist);
       str[size - 1] = 0;
     }
-  return ret;
+  return (len >= 0 && len < size);
 }
 
 /*
