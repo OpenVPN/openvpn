@@ -1,7 +1,7 @@
 known issues for IPv6 payload support in OpenVPN
 -----------------------------------------------
 
-1.) "--topology subnet" doesn't work together with IPv6 payload
+1.) "--topology subnet" doesn't work together with IPv6 payload on FreeBSD
     (verified for FreeBSD server, Linux/ifconfig client, problems 
     with ICMP6 neighbor solicitations from BSD not being answered by Linux)
 
@@ -36,6 +36,11 @@ tun0: flags=8051<UP,POINTOPOINT,RUNNING,MULTICAST> mtu 1500
     * semi-fixed for NetBSD, 28.2.10, always do tun0 destroy / tun0 create
       before actual ifconfig -- tunnel still lingers after OpenVPN quits
 
+4b.) verify this - on FreeBSD, tun0 is auto-destroyed if created by
+     opening /dev/tun (and lingers if created by "ifconfig tun0 create")
+
+     -> use for persistant tunnels on not-linux?
+
 5.) add new option "ifconfig-ipv6-push"
     (per-client static IPv6 assignment, -> radiusplugin, etc)
 
@@ -51,6 +56,13 @@ tun0: flags=8051<UP,POINTOPOINT,RUNNING,MULTICAST> mtu 1500
 
 8.) full IPv6 support for TAP interfaces 
     (main issue should be routes+gateway - and testing :-) )
+
+    test 2010/09/24: TAP itself works on linux/ifconfig+iproute2, but 
+    route-via-tap doesn't work at all (route points to "tap0" which fails)
+
+17:51:14.075412 fe:ab:6e:c5:53:71 > 33:33:ff:00:00:01, ethertype IPv6 (0x86dd), length 86: 2001:608:4:a053::1:0 > ff02::1:ff00:1: ICMP6, neighbor solicitation, who has 2001:608:4:a001::1, length 32
+
+    how is iroute-via-tap supposed to work??
 
 9.) verify that iroute-ipv6 and route-ipv6 interact in the same way as
     documented for iroute/route:
@@ -98,3 +110,40 @@ tun0: flags=8051<UP,POINTOPOINT,RUNNING,MULTICAST> mtu 1500
 	- revert ifconfig/open_tun order to "normal" (separate commit!!!)
 	  (openvpn-devel, Subject: OpenBSD)
 	- test
+
+17.) client-option (Elwood)
+	- ignore-v6-push-options yes/no
+	- ignore-v6-route-push  ("as for IPv4 routes")
+
+18.) fail-save?  "what if 'ip -6 addr add' fails" -> fail, or fallback to v4?
+	(-> recomment setting "ignore-v6-push-options yes")
+
+19.) safety check: if connecting over IPv6 (v6 transport) and the pushed
+     route-ipv6 network encompasses the server IPv6 address, make sure 
+     we at least log a warning (until we can fiddle with external routing
+     to make this work correctly).
+
+20.) show "route add" / "route delete" commands for IPv6 in log file
+     (we show the "ifconfig" commands, so why not the routes?)
+
+     2010-08-07: this is a null-feature - it's already there, but with
+                 different debug level (M_INFO vs. D_ROUTE) so user 
+                 didn't notice
+
+21.) enable ipv6-only server operations
+      - decouple ipv6 pool handling from ipv4 pool
+      - make sure Rest of OpenVPN doesn't assume "there will always be IPv4"
+
+22.) implement --learn-address for IPv6
+
+23.) FreeBSD 8 seems to require explicit setting of the "ifconfig" IPv6
+     route, while FreeBSD 6+7 don't --> more testing, and code fix
+
+     workaround for the time being: just add
+
+	server-ipv6 2001:608:4:a051::/64
+	route-ipv6 2001:608:4:a051::/64
+
+    to the config
+
+    (problem + workaround applies both to tun and tap style devices)

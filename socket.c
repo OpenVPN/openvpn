@@ -2053,7 +2053,6 @@ print_in_addr_t (in_addr_t addr, unsigned int flags, struct gc_arena *gc)
 /*
  * Convert an in6_addr in host byte order
  * to an ascii representation of an IPv6 address
- * (we reuse the L_INET_NTOA mutex, no contention here)
  */
 const char *
 print_in6_addr (struct in6_addr a6, unsigned int flags, struct gc_arena *gc)
@@ -2064,10 +2063,8 @@ print_in6_addr (struct in6_addr a6, unsigned int flags, struct gc_arena *gc)
   if ( memcmp(&a6, &in6addr_any, sizeof(a6)) != 0 || 
        !(flags & IA_EMPTY_IF_UNDEF))
     {
-      mutex_lock_static (L_INET_NTOA);
       inet_ntop (AF_INET6, &a6, tmp_out_buf, sizeof(tmp_out_buf)-1);
       buf_printf (&out, "%s", tmp_out_buf );
-      mutex_unlock_static (L_INET_NTOA);
     }
   return BSTR (&out);
 }

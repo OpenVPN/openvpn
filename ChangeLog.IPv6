@@ -348,3 +348,47 @@ Wed Sep 22 22:20:37 CEST 2010
   * TEST SUCCESS: Linux/iproute2: client-tun/net30+subnet, v4+v6
 
   * options.c: tag as 20100922-1 so "allmerged" users can see IPv6 change
+
+Fri Sep 24 17:57:41 CEST 2010
+
+  * TEST SUCCESS: Linux/<both>: client-tap, v4+v6, ping6 on connected addr
+
+  * TEST FAIL: Linux/<both>: client-tap, v6, route6 (gateway missing)
+
+Do 21. Okt 19:36:49 CEST 2010
+
+  * t_client.sh.in: cherrypick commit f25fe91a40aa3f and 6f1e61b41be52 
+    (proper exit codes to signal "SKIP" if we do not want to run)
+
+So 16. Jan 17:25:23 CET 2011
+
+  * tun.c, route.c: cherrypick 121755c2cb4891f and f0eac1a5979096c67
+    (TAP driver and "topology subnet" support for Solaris)
+
+  * tun.c: add IPv6 configuration for TAP interfaces (<device>:1 inet6)
+
+  * tun.c: on close_tun on Solaris, unplumb IPv6 TUN or TAP interfaces
+
+  * TEST SUCCESS: OpenSolaris: client-tun, v4+v6
+    TEST SUCCESS: OpenSolaris: client-tap, v4+v6, ping6 on connected addr
+    TEST FAIL: OpenSolaris: client-tap, v6, route6 (gateway missing)
+
+So 24. Apr 16:51:45 CEST 2011
+
+  * rebase to "beta2.2" branch (at 2.2RC2 tag)
+
+  * mroute.c: remove mroute_helper_lock/_unlock() calls for IPv6
+  * socket.c: remove locking with L_INET_NTOA mutex
+      (all the threading stuff got removed by David Sommerseth for 2.2)
+
+  * mroute.c: remove duplicate mroute_helper_add_iroute6() and
+              mroute_helper_del_iroute6() - "git rebase" artefact
+
+  * ChangeLog.IPv6 and TODO.IPv6: add to commit
+
+  * options.c: tag as 20110424-2 (2.2RC2)
+
+  * TEST SUCCESS: Linux/ifconfig: client-tun/net30+subnet, v4+v6
+
+  * TEST SUCCESS: Linux/iproute2: client-tun/net30+subnet, v4+v6
+

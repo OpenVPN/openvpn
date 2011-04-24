@@ -499,12 +499,10 @@ mroute_helper_add_iroute6 (struct mroute_helper *mh,
   if (ir6->netbits >= 0)
     {
       ASSERT (ir6->netbits < MR_HELPER_NET_LEN);
-      mroute_helper_lock (mh);
       ++mh->cache_generation;
       ++mh->net_len_refcount[ir6->netbits];
       if (mh->net_len_refcount[ir6->netbits] == 1)
 	mroute_helper_regenerate (mh);
-      mroute_helper_unlock (mh);
     }
 }
 
@@ -515,51 +513,11 @@ mroute_helper_del_iroute6 (struct mroute_helper *mh,
   if (ir6->netbits >= 0)
     {
       ASSERT (ir6->netbits < MR_HELPER_NET_LEN);
-      mroute_helper_lock (mh);
       ++mh->cache_generation;
       --mh->net_len_refcount[ir6->netbits];
       ASSERT (mh->net_len_refcount[ir6->netbits] >= 0);
       if (!mh->net_len_refcount[ir6->netbits])
 	mroute_helper_regenerate (mh);
-      mroute_helper_unlock (mh);
-    }
-}
-
-/* this is a bit inelegant, we really should have a helper to that 
- * is only passed the netbits value, and not the whole struct iroute *
- * - thus one helper could do IPv4 and IPv6.  For the sake of "not change
- * code unrelated to IPv4" this is left for later cleanup, for now.
- */
-void
-mroute_helper_add_iroute6 (struct mroute_helper *mh, 
-                           const struct iroute_ipv6 *ir6)
-{
-  if (ir6->netbits >= 0)
-    {
-      ASSERT (ir6->netbits < MR_HELPER_NET_LEN);
-      mroute_helper_lock (mh);
-      ++mh->cache_generation;
-      ++mh->net_len_refcount[ir6->netbits];
-      if (mh->net_len_refcount[ir6->netbits] == 1)
-	mroute_helper_regenerate (mh);
-      mroute_helper_unlock (mh);
-    }
-}
-
-void
-mroute_helper_del_iroute6 (struct mroute_helper *mh, 
-			   const struct iroute_ipv6 *ir6)
-{
-  if (ir6->netbits >= 0)
-    {
-      ASSERT (ir6->netbits < MR_HELPER_NET_LEN);
-      mroute_helper_lock (mh);
-      ++mh->cache_generation;
-      --mh->net_len_refcount[ir6->netbits];
-      ASSERT (mh->net_len_refcount[ir6->netbits] >= 0);
-      if (!mh->net_len_refcount[ir6->netbits])
-	mroute_helper_regenerate (mh);
-      mroute_helper_unlock (mh);
     }
 }
 
