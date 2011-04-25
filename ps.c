@@ -320,9 +320,9 @@ sock_addr_set (struct openvpn_sockaddr *osaddr,
 	       const int port)
 {
   CLEAR (*osaddr);
-  osaddr->sa.sin_family = AF_INET;
-  osaddr->sa.sin_addr.s_addr = htonl (addr);
-  osaddr->sa.sin_port = htons (port);
+  osaddr->addr.in4.sin_family = AF_INET;
+  osaddr->addr.in4.sin_addr.s_addr = htonl (addr);
+  osaddr->addr.in4.sin_port = htons (port);
 }
 
 static inline void

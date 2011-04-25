@@ -195,7 +195,10 @@ struct overlapped_io {
   DWORD flags;
   int status;
   bool addr_defined;
-  struct sockaddr_in addr;
+  union {
+    struct sockaddr_in addr;
+    struct sockaddr_in6 addr6;
+  };
   int addrlen;
   struct buffer buf_init;
   struct buffer buf;

@@ -581,13 +581,23 @@ redirect_default_route_to_vpn (struct route_list *rl, const struct tuntap *tt, u
 	  if (!local)
 	    {
 	      /* route remote host to original default gateway */
-	      add_route3 (rl->spec.remote_host,
-			  ~0,
-			  rl->spec.net_gateway,
-			  tt,
-			  flags,
-			  es);
-	      rl->did_local = true;
+#ifdef USE_PF_INET6
+	      /* if remote_host is not ipv4 (ie: ipv6), just skip
+	       * adding this special /32 route */
+	      if (rl->spec.remote_host != IPV4_INVALID_ADDR) {
+#endif
+		add_route3 (rl->spec.remote_host,
+			    ~0,
+			    rl->spec.net_gateway,
+			    tt,
+			    flags,
+			    es);
+		rl->did_local = true;
+#ifdef USE_PF_INET6
+	      } else {
+		dmsg (D_ROUTE, "ROUTE remote_host protocol differs from tunneled");
+	      }
+#endif
 	    }
 
 	  /* route DHCP/DNS server traffic through original default gateway */

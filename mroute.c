@@ -226,25 +226,47 @@ bool mroute_extract_openvpn_sockaddr (struct mroute_addr *addr,
 				      const struct openvpn_sockaddr *osaddr,
 				      bool use_port)
 {
-  if (osaddr->sa.sin_family == AF_INET)
+  switch (osaddr->addr.sa.sa_family) 
+  {
+    case AF_INET:
     {
       if (use_port)
 	{
 	  addr->type = MR_ADDR_IPV4 | MR_WITH_PORT;
 	  addr->netbits = 0;
 	  addr->len = 6;
-	  memcpy (addr->addr, &osaddr->sa.sin_addr.s_addr, 4);
-	  memcpy (addr->addr + 4, &osaddr->sa.sin_port, 2);
+	  memcpy (addr->addr, &osaddr->addr.in4.sin_addr.s_addr, 4);
+	  memcpy (addr->addr + 4, &osaddr->addr.in4.sin_port, 2);
 	}
       else
 	{
 	  addr->type = MR_ADDR_IPV4;
 	  addr->netbits = 0;
 	  addr->len = 4;
-	  memcpy (addr->addr, &osaddr->sa.sin_addr.s_addr, 4);
+	  memcpy (addr->addr, &osaddr->addr.in4.sin_addr.s_addr, 4);
 	}
       return true;
     }
+#ifdef USE_PF_INET6
+    case AF_INET6:
+      if (use_port)
+	{
+	  addr->type = MR_ADDR_IPV6 | MR_WITH_PORT;
+	  addr->netbits = 0;
+	  addr->len = 18;
+	  memcpy (addr->addr, &osaddr->addr.in6.sin6_addr, 16);
+	  memcpy (addr->addr + 16, &osaddr->addr.in6.sin6_port, 2);
+	}
+      else
+	{
+	  addr->type = MR_ADDR_IPV6;
+	  addr->netbits = 0;
+	  addr->len = 16;
+	  memcpy (addr->addr, &osaddr->addr.in6.sin6_addr, 16);
+	}
+      return true;
+#endif
+  }
   return false;
 }
 

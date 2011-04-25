@@ -96,7 +96,7 @@ update_options_ce_post (struct options *options)
    */
   if (options->pull
       && options->ping_rec_timeout_action == PING_UNDEF
-      && options->ce.proto == PROTO_UDPv4)
+      && proto_is_dgram(options->ce.proto))
     {
       options->ping_rec_timeout = PRE_PULL_INITIAL_PING_RESTART;
       options->ping_rec_timeout_action = PING_RESTART;
@@ -1150,7 +1150,12 @@ initialization_sequence_completed (struct context *c, const unsigned int flags)
       const char *detail = "SUCCESS";
       if (c->c1.tuntap)
 	tun_local = c->c1.tuntap->local;
-      tun_remote = htonl (c->c1.link_socket_addr.actual.dest.sa.sin_addr.s_addr);
+      /* TODO(jjo): for ipv6 this will convert some 32bits in the ipv6 addr
+       *            to a meaningless ipv4 address.
+       *            In any case, is somewhat inconsistent to send local tunnel
+       *            addr with remote _endpoint_ addr (?)
+       */
+      tun_remote = htonl (c->c1.link_socket_addr.actual.dest.addr.in4.sin_addr.s_addr);
       if (flags & ISC_ERRORS)
 	detail = "ERROR";
       management_set_state (management,
@@ -1569,7 +1574,7 @@ do_deferred_options (struct context *c, const unsigned int found)
 #ifdef ENABLE_OCC
   if (found & OPT_P_EXPLICIT_NOTIFY)
     {
-      if (c->options.ce.proto != PROTO_UDPv4 && c->options.explicit_exit_notification)
+      if (!proto_is_udp(c->options.ce.proto) && c->options.explicit_exit_notification)
 	{
 	  msg (D_PUSH, "OPTIONS IMPORT: --explicit-exit-notify can only be used with --proto udp");
 	  c->options.explicit_exit_notification = 0;
@@ -1664,13 +1669,22 @@ socket_restart_pause (struct context *c)
   switch (c->options.ce.proto)
     {
     case PROTO_UDPv4:
+#ifdef USE_PF_INET6
+    case PROTO_UDPv6:
+#endif
       if (proxy)
 	sec = c->options.ce.connect_retry_seconds;
       break;
     case PROTO_TCPv4_SERVER:
+#ifdef USE_PF_INET6
+    case PROTO_TCPv6_SERVER:
+#endif
       sec = 1;
       break;
     case PROTO_TCPv4_CLIENT:
+#ifdef USE_PF_INET6
+    case PROTO_TCPv6_CLIENT:
+#endif
       sec = c->options.ce.connect_retry_seconds;
       break;
     }
@@ -2810,7 +2824,7 @@ do_setup_fast_io (struct context *c)
 #ifdef WIN32
       msg (M_INFO, "NOTE: --fast-io is disabled since we are running on Windows");
 #else
-      if (c->options.ce.proto != PROTO_UDPv4)
+      if (!proto_is_udp(c->options.ce.proto))
 	msg (M_INFO, "NOTE: --fast-io is disabled since we are not using UDP");
       else
 	{
@@ -3086,7 +3100,11 @@ init_instance (struct context *c, const struct env_set *env, const unsigned int 
   /* link_socket_mode allows CM_CHILD_TCP
      instances to inherit acceptable fds
      from a top-level parent */
-  if (c->options.ce.proto == PROTO_TCPv4_SERVER)
+  if (c->options.ce.proto == PROTO_TCPv4_SERVER
+#ifdef USE_PF_INET6
+      || c->options.ce.proto == PROTO_TCPv6_SERVER
+#endif
+     )
     {
       if (c->mode == CM_TOP)
 	link_socket_mode = LS_MODE_TCP_LISTEN;
@@ -3361,17 +3379,8 @@ inherit_context_child (struct context *dest,
 {
   CLEAR (*dest);
 
-  switch (src->options.ce.proto)
-    {
-    case PROTO_UDPv4:
-      dest->mode = CM_CHILD_UDP;
-      break;
-    case PROTO_TCPv4_SERVER:
-      dest->mode = CM_CHILD_TCP;
-      break;
-    default:
-      ASSERT (0);
-    }
+  /* proto_is_dgram will ASSERT(0) if proto is invalid */
+  dest->mode = proto_is_dgram(src->options.ce.proto)? CM_CHILD_UDP : CM_CHILD_TCP;
 
   dest->gc = gc_new ();
 
@@ -3477,7 +3486,7 @@ inherit_context_top (struct context *dest,
   dest->c2.es_owned = false;
 
   dest->c2.event_set = NULL;
-  if (src->options.ce.proto == PROTO_UDPv4)
+  if (proto_is_dgram(src->options.ce.proto))
     do_event_set_init (dest, false);
 }
 

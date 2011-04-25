@@ -5450,13 +5450,16 @@ or
 script execution.
 .\"*********************************************************
 .TP
-.B trusted_ip
+.B trusted_ip (or trusted_ip6)
 Actual IP address of connecting client or peer which has been authenticated.
 Set prior to execution of
 .B \-\-ipchange, \-\-client-connect,
 and
 .B \-\-client-disconnect
 scripts.
+If using ipv6 endpoints (udp6, tcp6),
+.B trusted_ip6
+will be set instead.
 .\"*********************************************************
 .TP
 .B trusted_port
@@ -5468,7 +5471,7 @@ and
 scripts.
 .\"*********************************************************
 .TP
-.B untrusted_ip
+.B untrusted_ip (or untrusted_ip6)
 Actual IP address of connecting client or peer which has not been authenticated
 yet.  Sometimes used to
 .B nmap
@@ -5480,6 +5483,9 @@ Set prior to execution of
 and
 .B \-\-auth-user-pass-verify
 scripts.
+If using ipv6 endpoints (udp6, tcp6),
+.B untrusted_ip6
+will be set instead.
 .\"*********************************************************
 .TP
 .B untrusted_port

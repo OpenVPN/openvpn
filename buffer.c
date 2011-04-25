@@ -214,6 +214,23 @@ buf_printf (struct buffer *buf, const char *format, ...)
   return ret;
 }
 
+bool
+buf_puts(struct buffer *buf, const char *str)
+{
+  int ret = false;
+  uint8_t *ptr = BEND (buf);
+  int cap = buf_forward_capacity (buf);
+  if (cap > 0)
+    {
+      strncpynt ((char *)ptr,str, cap);
+      *(buf->data + buf->capacity - 1) = 0; /* windows vsnprintf needs this */
+      buf->len += (int) strlen ((char *)ptr);
+      ret = true;
+    }
+  return ret;
+}
+ 
+
 /*
  * This is necessary due to certain buggy implementations of snprintf,
  * that don't guarantee null termination for size > 0.

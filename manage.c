@@ -1999,9 +1999,9 @@ man_settings_init (struct man_settings *ms,
 	  /*
 	   * Initialize socket address
 	   */
-	  ms->local.sa.sin_family = AF_INET;
-	  ms->local.sa.sin_addr.s_addr = 0;
-	  ms->local.sa.sin_port = htons (port);
+	  ms->local.addr.in4.sin_family = AF_INET;
+	  ms->local.addr.in4.sin_addr.s_addr = 0;
+	  ms->local.addr.in4.sin_port = htons (port);
 
 	  /*
 	   * Run management over tunnel, or
@@ -2013,7 +2013,7 @@ man_settings_init (struct man_settings *ms,
 	    }
 	  else
 	    {
-	      ms->local.sa.sin_addr.s_addr = getaddr
+	      ms->local.addr.in4.sin_addr.s_addr = getaddr
 		(GETADDR_RESOLVE|GETADDR_WARN_ON_SIGNAL|GETADDR_FATAL, addr, 0, NULL, NULL);
 	    }
 	}
@@ -2472,7 +2472,7 @@ management_post_tunnel_open (struct management *man, const in_addr_t tun_local_i
       && man->connection.state == MS_INITIAL)
     {
       /* listen on our local TUN/TAP IP address */
-      man->settings.local.sa.sin_addr.s_addr = htonl (tun_local_ip);
+      man->settings.local.addr.in4.sin_addr.s_addr = htonl (tun_local_ip);
       man_connection_init (man);
     }
 
