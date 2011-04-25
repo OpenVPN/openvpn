@@ -426,7 +426,6 @@ struct options
 
   const char *auth_user_pass_verify_script;
   bool auth_user_pass_verify_script_via_file;
-  unsigned int ssl_flags; /* set to SSLF_x flags from ssl.h */
 #if PORT_SHARE
   char *port_share_host;
   int port_share_port;
@@ -498,6 +497,7 @@ struct options
   unsigned remote_cert_ku[MAX_PARMS];
   const char *remote_cert_eku;
   uint8_t *verify_hash;
+  unsigned int ssl_flags; /* set to SSLF_x flags from ssl.h */
 
 #ifdef ENABLE_PKCS11
   const char *pkcs11_providers[MAX_PARMS];
