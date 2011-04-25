@@ -1055,7 +1055,6 @@ show_p2mp_parms (const struct options *o)
   SHOW_INT (max_routes_per_client);
   SHOW_STR (auth_user_pass_verify_script);
   SHOW_BOOL (auth_user_pass_verify_script_via_file);
-  SHOW_INT (ssl_flags);
 #if PORT_SHARE
   SHOW_STR (port_share_host);
   SHOW_INT (port_share_port);
@@ -1405,6 +1404,7 @@ show_settings (const struct options *o)
       SHOW_INT (remote_cert_ku[i]);
   }
   SHOW_STR (remote_cert_eku);
+  SHOW_INT (ssl_flags);
 
   SHOW_INT (tls_timeout);
 
