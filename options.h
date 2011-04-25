@@ -477,6 +477,7 @@ struct options
   const char *ca_path;
   const char *dh_file;
   const char *cert_file;
+  const char *extra_certs_file;
   const char *priv_key_file;
   const char *pkcs12_file;
   const char *cipher_list;
@@ -487,6 +488,7 @@ struct options
 #if ENABLE_INLINE_FILES
   const char *ca_file_inline;
   const char *cert_file_inline;
+  const char *extra_certs_file_inline;
   char *priv_key_file_inline;
   const char *dh_file_inline;
   const char *pkcs12_file_inline; /* contains the base64 encoding of pkcs12 file */
@@ -495,6 +497,7 @@ struct options
   int ns_cert_type; /* set to 0, NS_SSL_SERVER, or NS_SSL_CLIENT */
   unsigned remote_cert_ku[MAX_PARMS];
   const char *remote_cert_eku;
+  uint8_t *verify_hash;
 
 #ifdef ENABLE_PKCS11
   const char *pkcs11_providers[MAX_PARMS];

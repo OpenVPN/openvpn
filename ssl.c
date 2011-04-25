@@ -910,6 +910,16 @@ verify_callback (int preverify_ok, X509_STORE_CTX * ctx)
       goto err;			/* Reject connection */
     }
 
+  /* verify level 1 cert, i.e. the CA that signed our leaf cert */
+  if (ctx->error_depth == 1 && opt->verify_hash)
+    {
+      if (memcmp (ctx->current_cert->sha1_hash, opt->verify_hash, SHA_DIGEST_LENGTH))
+	{
+	  msg (D_TLS_ERRORS, "TLS Error: level-1 certificate hash verification failed");
+	  goto err;
+	}
+    }
+
   /* save common name in session object */
   if (ctx->error_depth == 0)
     set_common_name (session, common_name);
@@ -2138,6 +2148,37 @@ init_ssl (const struct options *options)
     {
       if (!SSL_CTX_use_certificate_chain_file (ctx, options->cert_file))
 	msg (M_SSLERR, "Cannot load certificate chain file %s (SSL_use_certificate_chain_file)", options->cert_file);
+    }
+
+  /* Load extra certificates that are part of our own certificate
+     chain but shouldn't be included in the verify chain */
+  if (options->extra_certs_file || options->extra_certs_file_inline)
+    {
+      BIO *bio;
+      X509 *cert;
+#if ENABLE_INLINE_FILES
+      if (!strcmp (options->extra_certs_file, INLINE_FILE_TAG) && options->extra_certs_file_inline)
+	{
+	  bio = BIO_new_mem_buf ((char *)options->extra_certs_file_inline, -1);
+	}
+      else
+#endif
+	{
+	  bio = BIO_new(BIO_s_file());
+	  if (BIO_read_filename(bio, options->extra_certs_file) <= 0)
+	    msg (M_SSLERR, "Cannot load extra-certs file: %s", options->extra_certs_file);
+	}
+      for (;;)
+	{
+	  cert = NULL;
+	  if (!PEM_read_bio_X509 (bio, &cert, 0, NULL)) /* takes ownership of cert */
+	    break;
+	  if (!cert)
+	    msg (M_SSLERR, "Error reading extra-certs certificate");
+	  if (SSL_CTX_add_extra_chain_cert(ctx, cert) != 1)
+	    msg (M_SSLERR, "Error adding extra-certs certificate");
+	}
+      BIO_free (bio);
     }
 
   /* Require peer certificate verification */

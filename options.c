@@ -507,9 +507,11 @@ static const char usage_message[] =
   "                  Use \"openssl dhparam -out dh1024.pem 1024\" to generate.\n"
   "--cert file     : Local certificate in .pem format -- must be signed\n"
   "                  by a Certificate Authority in --ca file.\n"
+  "--extra-certs file : one or more PEM certs that complete the cert chain.\n"
   "--key file      : Local private key in .pem format.\n"
   "--pkcs12 file   : PKCS#12 file containing local private key, local certificate\n"
   "                  and optionally the root CA certificate.\n"
+  "--verify-hash   : Specify SHA1 fingerprint for level-1 cert.\n"
 #ifdef WIN32
   "--cryptoapicert select-string : Load the certificate and private key from the\n"
   "                  Windows Certificate System Store.\n"
@@ -893,6 +895,40 @@ is_stateful_restart (const struct options *o)
 {
   return is_persist_option (o) || connection_list_defined (o);
 }
+
+#ifdef USE_SSL
+static uint8_t *
+parse_hash_fingerprint(const char *str, int nbytes, int msglevel, struct gc_arena *gc)
+{
+  int i;
+  const char *cp = str;
+  uint8_t *ret = (uint8_t *) gc_malloc (nbytes, true, gc);
+  char term = 1;
+  int byte;
+  char bs[3];
+
+  for (i = 0; i < nbytes; ++i)
+    {
+      if (strlen(cp) < 2)
+	msg (msglevel, "format error in hash fingerprint: %s", str);
+      bs[0] = *cp++;
+      bs[1] = *cp++;
+      bs[2] = 0;
+      byte = 0;
+      if (sscanf(bs, "%x", &byte) != 1)
+	msg (msglevel, "format error in hash fingerprint hex byte: %s", str);
+      ret[i] = (uint8_t)byte;
+      term = *cp++;
+      if (term != ':' && term != 0)
+	msg (msglevel, "format error in hash fingerprint delimiter: %s", str);
+      if (term == 0)
+	break;
+    }
+  if (term != 0 || i != nbytes-1)
+    msg (msglevel, "hash fingerprint is different length than expected (%d bytes): %s", nbytes, str);
+  return ret;
+}
+#endif
 
 #ifdef WIN32
 
@@ -5757,6 +5793,22 @@ add_option (struct options *options,
 	  options->cert_file_inline = p[2];
 	}
 #endif
+    }
+  else if (streq (p[0], "extra-certs") && p[1])
+    {
+      VERIFY_PERMISSION (OPT_P_GENERAL);
+      options->extra_certs_file = p[1];
+#if ENABLE_INLINE_FILES
+      if (streq (p[1], INLINE_FILE_TAG) && p[2])
+	{
+	  options->extra_certs_file_inline = p[2];
+	}
+#endif
+    }
+  else if (streq (p[0], "verify-hash") && p[1])
+    {
+      VERIFY_PERMISSION (OPT_P_GENERAL);
+      options->verify_hash = parse_hash_fingerprint(p[1], SHA_DIGEST_LENGTH, msglevel, &options->gc);
     }
 #ifdef WIN32
   else if (streq (p[0], "cryptoapicert") && p[1])

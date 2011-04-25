@@ -466,6 +466,7 @@ struct tls_options
   int ns_cert_type;
   unsigned remote_cert_ku[MAX_PARMS];
   const char *remote_cert_eku;
+  uint8_t *verify_hash;
 
   /* allow openvpn config info to be
      passed over control channel */
