@@ -35,10 +35,12 @@
 #include "socket.h"
 #include "manage.h"
 #include "win32.h"
+#include "options.h"
 
 #include "memdbg.h"
 
 static void delete_route (const struct route *r, const struct tuntap *tt, unsigned int flags, const struct env_set *es);
+static void delete_route_ipv6 (const struct route_ipv6 *r, const struct tuntap *tt, unsigned int flags, const struct env_set *es);
 static void get_bypass_addresses (struct route_bypass *rb, const unsigned int flags);
 
 #ifdef ENABLE_DEBUG
@@ -68,6 +70,15 @@ new_route_option_list (const int max_routes, struct gc_arena *a)
   return ret;
 }
 
+struct route_ipv6_option_list *
+new_route_ipv6_option_list (const int max_routes, struct gc_arena *a)
+{
+  struct route_ipv6_option_list *ret;
+  ALLOC_VAR_ARRAY_CLEAR_GC (ret, struct route_ipv6_option_list, struct route_ipv6_option, max_routes, a);
+  ret->capacity = max_routes;
+  return ret;
+}
+
 struct route_option_list *
 clone_route_option_list (const struct route_option_list *src, struct gc_arena *a)
 {
@@ -91,6 +102,15 @@ new_route_list (const int max_routes, struct gc_arena *a)
 {
   struct route_list *ret;
   ALLOC_VAR_ARRAY_CLEAR_GC (ret, struct route_list, struct route, max_routes, a);
+  ret->capacity = max_routes;
+  return ret;
+}
+
+struct route_ipv6_list *
+new_route_ipv6_list (const int max_routes, struct gc_arena *a)
+{
+  struct route_ipv6_list *ret;
+  ALLOC_VAR_ARRAY_CLEAR_GC (ret, struct route_ipv6_list, struct route_ipv6, max_routes, a);
   ret->capacity = max_routes;
   return ret;
 }
@@ -311,6 +331,68 @@ init_route (struct route *r,
   return false;
 }
 
+static bool
+init_route_ipv6 (struct route_ipv6 *r6,
+	         const struct route_ipv6_option *r6o,
+	         const struct route_ipv6_list *rl6 )
+{
+  r6->option = r6o;
+  r6->defined = false;
+
+  if ( !get_ipv6_addr( r6o->prefix, &r6->network, &r6->netbits, NULL, M_WARN ))
+    goto fail;
+
+  /* gateway */
+  if (is_route_parm_defined (r6o->gateway))
+    {
+      if ( inet_pton( AF_INET6, r6o->gateway, &r6->gateway ) != 1 )
+        {
+	  msg( M_WARN, PACKAGE_NAME "ROUTE6: cannot parse gateway spec '%s'", r6o->gateway );
+        }
+    }
+  else if (rl6->remote_endpoint_defined)
+    {
+      r6->gateway = rl6->remote_endpoint_ipv6;
+    }
+  else
+    {
+      msg (M_WARN, PACKAGE_NAME " ROUTE6: " PACKAGE_NAME " needs a gateway parameter for a --route-ipv6 option and no default was specified by either --route-ipv6-gateway or --ifconfig-ipv6 options");
+      goto fail;
+    }
+
+  /* metric */
+
+  r6->metric_defined = false;
+  r6->metric = 0;
+  if (is_route_parm_defined (r6o->metric))
+    {
+      r6->metric = atoi (r6o->metric);
+      if (r6->metric < 0)
+	{
+	  msg (M_WARN, PACKAGE_NAME " ROUTE: route metric for network %s (%s) must be >= 0",
+	       r6o->prefix,
+	       r6o->metric);
+	  goto fail;
+	}
+      r6->metric_defined = true;
+    }
+  else if (rl6->default_metric_defined)
+    {
+      r6->metric = rl6->default_metric;
+      r6->metric_defined = true;
+    }
+
+  r6->defined = true;
+
+  return true;
+
+ fail:
+  msg (M_WARN, PACKAGE_NAME " ROUTE: failed to parse/resolve route for host/network: %s",
+       r6o->prefix);
+  r6->defined = false;
+  return false;
+}
+
 void
 add_route_to_option_list (struct route_option_list *l,
 			  const char *network,
@@ -331,12 +413,38 @@ add_route_to_option_list (struct route_option_list *l,
 }
 
 void
+add_route_ipv6_to_option_list (struct route_ipv6_option_list *l,
+			  const char *prefix,
+			  const char *gateway,
+			  const char *metric)
+{
+  struct route_ipv6_option *ro;
+  if (l->n >= l->capacity)
+    msg (M_FATAL, PACKAGE_NAME " ROUTE: cannot add more than %d IPv6 routes -- please increase the max-routes option in the client configuration file",
+	 l->capacity);
+  ro = &l->routes_ipv6[l->n];
+  ro->prefix = prefix;
+  ro->gateway = gateway;
+  ro->metric = metric;
+  ++l->n;
+}
+
+void
 clear_route_list (struct route_list *rl)
 {
   const int capacity = rl->capacity;
   const size_t rl_size = array_mult_safe (sizeof(struct route), capacity, sizeof(struct route_list));
   memset(rl, 0, rl_size);
   rl->capacity = capacity;
+}
+
+void
+clear_route_ipv6_list (struct route_ipv6_list *rl6)
+{
+  const int capacity = rl6->capacity;
+  const size_t rl6_size = array_mult_safe (sizeof(struct route_ipv6), capacity, sizeof(struct route_ipv6_list));
+  memset(rl6, 0, rl6_size);
+  rl6->capacity = capacity;
 }
 
 void
@@ -463,6 +571,72 @@ init_route_list (struct route_list *rl,
 	  }
       }
     rl->n = j;
+  }
+
+  gc_free (&gc);
+  return ret;
+}
+
+bool
+init_route_ipv6_list (struct route_ipv6_list *rl6,
+		 const struct route_ipv6_option_list *opt6,
+		 const char *remote_endpoint,
+		 int default_metric,
+		 struct env_set *es)
+{
+  struct gc_arena gc = gc_new ();
+  bool ret = true;
+
+  clear_route_ipv6_list (rl6);
+
+  rl6->flags = opt6->flags;
+
+  if (default_metric)
+    {
+      rl6->default_metric = default_metric;
+      rl6->default_metric_defined = true;
+    }
+
+  /* "default_gateway" is stuff for "redirect-gateway", which we don't
+   * do for IPv6 yet -> TODO
+   */
+    {
+      dmsg (D_ROUTE, "ROUTE6: default_gateway=UNDEF");
+    }
+
+  if ( is_route_parm_defined( remote_endpoint ))
+    {
+      if ( inet_pton( AF_INET6, remote_endpoint, 
+			&rl6->remote_endpoint_ipv6) == 1 )
+        {
+	  rl6->remote_endpoint_defined = true;
+        }
+      else
+	{
+	  msg (M_WARN, PACKAGE_NAME " ROUTE: failed to parse/resolve default gateway: %s", remote_endpoint);
+          ret = false;
+	}
+    }
+  else
+    rl6->remote_endpoint_defined = false;
+
+
+  if (!(opt6->n >= 0 && opt6->n <= rl6->capacity))
+    msg (M_FATAL, PACKAGE_NAME " ROUTE6: (init) number of route options (%d) is greater than route list capacity (%d)", opt6->n, rl6->capacity);
+
+  /* parse the routes from opt to rl6 */
+  {
+    int i, j = 0;
+    for (i = 0; i < opt6->n; ++i)
+      {
+	if (!init_route_ipv6 (&rl6->routes_ipv6[j],
+			      &opt6->routes_ipv6[i],
+			      rl6 ))
+	  ret = false;
+	else
+	  ++j;
+      }
+    rl6->n = j;
   }
 
   gc_free (&gc);
@@ -714,10 +888,13 @@ undo_redirect_default_route_to_vpn (struct route_list *rl, const struct tuntap *
 }
 
 void
-add_routes (struct route_list *rl, const struct tuntap *tt, unsigned int flags, const struct env_set *es)
+add_routes (struct route_list *rl, struct route_ipv6_list *rl6,
+	    const struct tuntap *tt, unsigned int flags, const struct env_set *es)
 {
-  redirect_default_route_to_vpn (rl, tt, flags, es);
-  if (!rl->routes_added)
+  if (rl) 
+      redirect_default_route_to_vpn (rl, tt, flags, es);
+
+  if (rl && !rl->routes_added)
     {
       int i;
 
@@ -742,12 +919,27 @@ add_routes (struct route_list *rl, const struct tuntap *tt, unsigned int flags, 
 	}
       rl->routes_added = true;
     }
+
+  if (rl6 && !rl6->routes_added)
+    {
+      int i;
+
+      for (i = 0; i < rl6->n; ++i)
+	{
+	  struct route_ipv6 *r = &rl6->routes_ipv6[i];
+	  if (flags & ROUTE_DELETE_FIRST)
+	    delete_route_ipv6 (r, tt, flags, es);
+	  add_route_ipv6 (r, tt, flags, es);
+	}
+      rl6->routes_added = true;
+    }
 }
 
 void
-delete_routes (struct route_list *rl, const struct tuntap *tt, unsigned int flags, const struct env_set *es)
+delete_routes (struct route_list *rl, struct route_ipv6_list *rl6,
+	       const struct tuntap *tt, unsigned int flags, const struct env_set *es)
 {
-  if (rl->routes_added)
+  if (rl && rl->routes_added)
     {
       int i;
       for (i = rl->n - 1; i >= 0; --i)
@@ -757,9 +949,28 @@ delete_routes (struct route_list *rl, const struct tuntap *tt, unsigned int flag
 	}
       rl->routes_added = false;
     }
-  undo_redirect_default_route_to_vpn (rl, tt, flags, es);
 
-  clear_route_list (rl);
+  if ( rl )
+    {
+      undo_redirect_default_route_to_vpn (rl, tt, flags, es);
+      clear_route_list (rl);
+    }
+
+  if ( rl6 && rl6->routes_added )
+    {
+      int i;
+      for (i = rl6->n - 1; i >= 0; --i)
+	{
+	  const struct route_ipv6 *r6 = &rl6->routes_ipv6[i];
+	  delete_route_ipv6 (r6, tt, flags, es);
+	}
+      rl6->routes_added = false;
+    }
+
+  if ( rl6 )
+    {
+      clear_route_ipv6_list (rl6);
+    }
 }
 
 #ifdef ENABLE_DEBUG
@@ -840,6 +1051,34 @@ setenv_routes (struct env_set *es, const struct route_list *rl)
   int i;
   for (i = 0; i < rl->n; ++i)
     setenv_route (es, &rl->routes[i], i + 1);
+}
+
+static void
+setenv_route_ipv6 (struct env_set *es, const struct route_ipv6 *r6, int i)
+{
+  struct gc_arena gc = gc_new ();
+  if (r6->defined)
+    {
+      struct buffer name1 = alloc_buf_gc( 256, &gc );
+      struct buffer val = alloc_buf_gc( 256, &gc );
+      struct buffer name2 = alloc_buf_gc( 256, &gc );
+
+      buf_printf( &name1, "route_ipv6_network_%d", i );
+      buf_printf( &val, "%s/%d", print_in6_addr( r6->network, 0, &gc ),
+				 r6->netbits );
+      setenv_str( es, BSTR(&name1), BSTR(&val) );
+
+      buf_printf( &name2, "route_ipv6_gateway_%d", i );
+      setenv_str( es, BSTR(&name2), print_in6_addr( r6->gateway, 0, &gc ));
+    }
+  gc_free (&gc);
+}
+void
+setenv_routes_ipv6 (struct env_set *es, const struct route_ipv6_list *rl6)
+{
+  int i;
+  for (i = 0; i < rl6->n; ++i)
+    setenv_route_ipv6 (es, &rl6->routes_ipv6[i], i + 1);
 }
 
 void
@@ -1035,6 +1274,176 @@ add_route (struct route *r, const struct tuntap *tt, unsigned int flags, const s
   gc_free (&gc);
 }
 
+void
+add_route_ipv6 (struct route_ipv6 *r6, const struct tuntap *tt, unsigned int flags, const struct env_set *es)
+{
+  struct gc_arena gc;
+  struct argv argv;
+
+  const char *network;
+  const char *gateway;
+  bool status = false;
+  const char *device = tt->actual_name;
+  int byte, bits_to_clear;
+  struct in6_addr network_copy = r6->network;
+
+  if (!r6->defined)
+    return;
+
+  gc_init (&gc);
+  argv_init (&argv);
+
+  /* clear host bit parts of route 
+   * (needed if routes are specified improperly, or if we need to 
+   * explicitely setup the "connected" network routes on some OSes)
+   */
+  byte = 15;
+  bits_to_clear = 128 - r6->netbits;
+
+  while( byte >= 0 && bits_to_clear > 0 )
+    {
+      if ( bits_to_clear >= 8 )
+	{ network_copy.s6_addr[byte--] = 0; bits_to_clear -= 8; }
+      else
+	{ network_copy.s6_addr[byte--] &= (~0 << bits_to_clear); bits_to_clear = 0; }
+    }
+
+  network = print_in6_addr( network_copy, 0, &gc);
+  gateway = print_in6_addr( r6->gateway, 0, &gc);
+
+  if ( !tt->ipv6 )
+    {
+      msg( M_INFO, "add_route_ipv6(): not adding %s/%d, no IPv6 on if %s",
+		    network, r6->netbits, device );
+      return;
+    }
+
+  msg( M_INFO, "add_route_ipv6(%s/%d -> %s metric %d) dev %s",
+		network, r6->netbits, gateway, r6->metric, device );
+
+  /*
+   * Filter out routes which are essentially no-ops
+   * (not currently done for IPv6)
+   */
+
+#if defined(TARGET_LINUX)
+#ifdef CONFIG_FEATURE_IPROUTE
+  argv_printf (&argv, "%s -6 route add %s/%d dev %s",
+  	      iproute_path,
+	      network,
+	      r6->netbits,
+	      device);
+  if (r6->metric_defined)
+    argv_printf_cat (&argv, " metric %d", r6->metric);
+
+#else
+  argv_printf (&argv, "%s -A inet6 add %s/%d dev %s",
+		ROUTE_PATH,
+	      network,
+	      r6->netbits,
+	      device);
+  if (r6->metric_defined)
+    argv_printf_cat (&argv, " metric %d", r6->metric);
+#endif  /*CONFIG_FEATURE_IPROUTE*/
+  argv_msg (D_ROUTE, &argv);
+  status = openvpn_execve_check (&argv, es, 0, "ERROR: Linux route -6/-A inet6 add command failed");
+
+#elif defined (WIN32)
+
+  /* netsh interface ipv6 add route 2001:db8::/32 MyTunDevice */
+  argv_printf (&argv, "%s%sc interface ipv6 add route %s/%d %s",
+	       get_win_sys_path(),
+	       NETSH_PATH_SUFFIX,
+	       network,
+	       r6->netbits,
+	       device);
+
+  /* next-hop depends on TUN or TAP mode:
+   * - in TAP mode, we use the "real" next-hop
+   * - in TUN mode we use a special-case link-local address that the tapdrvr
+   *   knows about and will answer ND (neighbor discovery) packets for
+   */
+  if ( tt->type == DEV_TYPE_TUN )
+	argv_printf_cat( &argv, " %s", "fe80::8" );
+  else
+	argv_printf_cat( &argv, " %s", gateway );
+
+#if 0
+  if (r->metric_defined)
+    argv_printf_cat (&argv, " METRIC %d", r->metric);
+#endif
+
+  argv_msg (D_ROUTE, &argv);
+
+  netcmd_semaphore_lock ();
+  status = openvpn_execve_check (&argv, es, 0, "ERROR: Windows route add ipv6 command failed");
+  netcmd_semaphore_release ();
+
+#elif defined (TARGET_SOLARIS)
+
+  /* example: route add -inet6 2001:db8::/32 somegateway 0 */
+
+  /* for some weird reason, this does not work for me unless I set
+   * "metric 0" - otherwise, the routes will be nicely installed, but
+   * packets will just disappear somewhere.  So we use "0" now...
+   */
+
+  argv_printf (&argv, "%s add -inet6 %s/%d %s 0",
+		ROUTE_PATH,
+		network,
+		r6->netbits,
+		gateway );
+
+  argv_msg (D_ROUTE, &argv);
+  status = openvpn_execve_check (&argv, es, 0, "ERROR: Solaris route add -inet6 command failed");
+
+#elif defined(TARGET_FREEBSD) || defined(TARGET_DRAGONFLY)
+
+  argv_printf (&argv, "%s add -inet6 %s/%d -iface %s",
+		ROUTE_PATH,
+	        network,
+	        r6->netbits,
+	        device );
+
+  argv_msg (D_ROUTE, &argv);
+  status = openvpn_execve_check (&argv, es, 0, "ERROR: *BSD route add -inet6 command failed");
+
+#elif defined(TARGET_DARWIN) 
+
+  argv_printf (&argv, "%s add -inet6 %s -prefixlen %d -iface %s",
+		ROUTE_PATH,
+	        network, r6->netbits, device );
+
+  argv_msg (D_ROUTE, &argv);
+  status = openvpn_execve_check (&argv, es, 0, "ERROR: MacOS X route add -inet6 command failed");
+
+#elif defined(TARGET_OPENBSD)
+
+  argv_printf (&argv, "%s add -inet6 %s -prefixlen %d %s",
+		ROUTE_PATH,
+	        network, r6->netbits, gateway );
+
+  argv_msg (D_ROUTE, &argv);
+  status = openvpn_execve_check (&argv, es, 0, "ERROR: OpenBSD route add -inet6 command failed");
+
+#elif defined(TARGET_NETBSD)
+
+  argv_printf (&argv, "%s add -inet6 %s/%d %s",
+		ROUTE_PATH,
+	        network, r6->netbits, gateway );
+
+  argv_msg (D_ROUTE, &argv);
+  status = openvpn_execve_check (&argv, es, 0, "ERROR: NetBSD route add -inet6 command failed");
+
+#else
+  msg (M_FATAL, "Sorry, but I don't know how to do 'route ipv6' commands on this operating system.  Try putting your routes in a --route-up script");
+#endif
+
+  r6->defined = status;
+  argv_reset (&argv);
+  gc_free (&gc);
+}
+
 static void
 delete_route (const struct route *r, const struct tuntap *tt, unsigned int flags, const struct env_set *es)
 {
@@ -1168,6 +1577,142 @@ delete_route (const struct route *r, const struct tuntap *tt, unsigned int flags
 
 #else
   msg (M_FATAL, "Sorry, but I don't know how to do 'route' commands on this operating system.  Try putting your routes in a --route-up script");
+#endif
+
+  argv_reset (&argv);
+  gc_free (&gc);
+}
+
+static void
+delete_route_ipv6 (const struct route_ipv6 *r6, const struct tuntap *tt, unsigned int flags, const struct env_set *es)
+{
+  struct gc_arena gc;
+  struct argv argv;
+  const char *network;
+  const char *gateway;
+  const char *device = tt->actual_name;
+
+  if (!r6->defined)
+    return;
+
+  gc_init (&gc);
+  argv_init (&argv);
+
+  network = print_in6_addr( r6->network, 0, &gc);
+  gateway = print_in6_addr( r6->gateway, 0, &gc);
+
+  if ( !tt->ipv6 )
+    {
+      msg( M_INFO, "delete_route_ipv6(): not deleting %s/%d, no IPv6 on if %s",
+		    network, r6->netbits, device );
+      return;
+    }
+
+  msg( M_INFO, "delete_route_ipv6(%s/%d)", network, r6->netbits );
+
+#if defined(TARGET_LINUX)
+#ifdef CONFIG_FEATURE_IPROUTE
+  argv_printf (&argv, "%s -6 route del %s/%d dev %s",
+  	      iproute_path,
+	      network,
+	      r6->netbits,
+	      device);
+#else
+  argv_printf (&argv, "%s -A inet6 del %s/%d dev %s",
+		ROUTE_PATH,
+	      network,
+	      r6->netbits,
+	      device);
+#endif  /*CONFIG_FEATURE_IPROUTE*/
+  argv_msg (D_ROUTE, &argv);
+  openvpn_execve_check (&argv, es, 0, "ERROR: Linux route -6/-A inet6 del command failed");
+
+#elif defined (WIN32)
+
+  /* netsh interface ipv6 delete route 2001:db8::/32 MyTunDevice */
+  argv_printf (&argv, "%s%sc interface ipv6 delete route %s/%d %s",
+	       get_win_sys_path(),
+	       NETSH_PATH_SUFFIX,
+	       network,
+	       r6->netbits,
+	       device);
+
+  /* next-hop depends on TUN or TAP mode:
+   * - in TAP mode, we use the "real" next-hop
+   * - in TUN mode we use a special-case link-local address that the tapdrvr
+   *   knows about and will answer ND (neighbor discovery) packets for
+   * (and "route deletion without specifying next-hop" does not work...)
+   */
+  if ( tt->type == DEV_TYPE_TUN )
+	argv_printf_cat( &argv, " %s", "fe80::8" );
+  else
+	argv_printf_cat( &argv, " %s", gateway );
+
+#if 0
+  if (r->metric_defined)
+    argv_printf_cat (&argv, "METRIC %d", r->metric);
+#endif
+
+  argv_msg (D_ROUTE, &argv);
+
+  netcmd_semaphore_lock ();
+  openvpn_execve_check (&argv, es, 0, "ERROR: Windows route add ipv6 command failed");
+  netcmd_semaphore_release ();
+
+#elif defined (TARGET_SOLARIS)
+
+  /* example: route delete -inet6 2001:db8::/32 somegateway */
+  /* GERT-TODO: this is untested, but should work */
+
+  argv_printf (&argv, "%s delete -inet6 %s/%d %s",
+		ROUTE_PATH,
+		network,
+		r6->netbits,
+		gateway );
+
+  argv_msg (D_ROUTE, &argv);
+  openvpn_execve_check (&argv, es, 0, "ERROR: Solaris route delete -inet6 command failed");
+
+#elif defined(TARGET_FREEBSD) || defined(TARGET_DRAGONFLY)
+
+  argv_printf (&argv, "%s delete -inet6 %s/%d -iface %s",
+		ROUTE_PATH,
+	        network,
+	        r6->netbits,
+	        device );
+
+  argv_msg (D_ROUTE, &argv);
+  openvpn_execve_check (&argv, es, 0, "ERROR: *BSD route delete -inet6 command failed");
+
+#elif defined(TARGET_DARWIN) 
+
+  argv_printf (&argv, "%s delete -inet6 %s -prefixlen %d -iface %s",
+		ROUTE_PATH, 
+		network, r6->netbits, device );
+
+  argv_msg (D_ROUTE, &argv);
+  openvpn_execve_check (&argv, es, 0, "ERROR: *BSD route delete -inet6 command failed");
+
+#elif defined(TARGET_OPENBSD)
+
+  argv_printf (&argv, "%s delete -inet6 %s -prefixlen %d %s",
+		ROUTE_PATH,
+	        network, r6->netbits, gateway );
+
+  argv_msg (D_ROUTE, &argv);
+  openvpn_execve_check (&argv, es, 0, "ERROR: OpenBSD route delete -inet6 command failed");
+
+#elif defined(TARGET_NETBSD)
+
+  argv_printf (&argv, "%s delete -inet6 %s/%d %s",
+		ROUTE_PATH,
+	        network, r6->netbits, gateway );
+
+  argv_msg (D_ROUTE, &argv);
+  openvpn_execve_check (&argv, es, 0, "ERROR: NetBSD route delete -inet6 command failed");
+
+#else
+  msg (M_FATAL, "Sorry, but I don't know how to do 'route ipv6' commands on this operating system.  Try putting your routes in a --route-down script");
 #endif
 
   argv_reset (&argv);

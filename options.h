@@ -205,6 +205,9 @@ struct options
   int topology; /* one of the TOP_x values from proto.h */
   const char *ifconfig_local;
   const char *ifconfig_remote_netmask;
+  const char *ifconfig_ipv6_local;
+  int         ifconfig_ipv6_netbits;
+  const char *ifconfig_ipv6_remote;
   bool ifconfig_noexec;
   bool ifconfig_nowarn;
 #ifdef HAVE_GETTIMEOFDAY
@@ -326,6 +329,7 @@ struct options
   bool route_delay_defined;
   int max_routes;
   struct route_option_list *routes;
+  struct route_ipv6_option_list *routes_ipv6;			/* IPv6 */
   bool route_nopull;
   bool route_gateway_via_dhcp;
   bool allow_pull_fqdn; /* as a client, allow server to push a FQDN for certain parameters */
@@ -361,6 +365,9 @@ struct options
   bool server_defined;
   in_addr_t server_network;
   in_addr_t server_netmask;
+  bool server_ipv6_defined;				/* IPv6 */
+  struct in6_addr server_network_ipv6;			/* IPv6 */
+  unsigned int    server_netbits_ipv6;			/* IPv6 */
 
 # define SF_NOPOOL (1<<0)
 # define SF_TCP_NODELAY_HELPER (1<<1)
@@ -382,6 +389,11 @@ struct options
   in_addr_t ifconfig_pool_netmask;
   const char *ifconfig_pool_persist_filename;
   int ifconfig_pool_persist_refresh_freq;
+
+  bool   ifconfig_ipv6_pool_defined;			/* IPv6 */
+  struct in6_addr ifconfig_ipv6_pool_base;		/* IPv6 */
+  int    ifconfig_ipv6_pool_netbits;			/* IPv6 */
+
   int real_hash_size;
   int virtual_hash_size;
   const char *client_connect_script;
@@ -394,12 +406,17 @@ struct options
   int n_bcast_buf;
   int tcp_queue_limit;
   struct iroute *iroutes;
+  struct iroute_ipv6 *iroutes_ipv6;			/* IPv6 */
   bool push_ifconfig_defined;
   in_addr_t push_ifconfig_local;
   in_addr_t push_ifconfig_remote_netmask;
   bool push_ifconfig_constraint_defined;
   in_addr_t push_ifconfig_constraint_network;
   in_addr_t push_ifconfig_constraint_netmask;
+  bool            push_ifconfig_ipv6_defined;		/* IPv6 */
+  struct in6_addr push_ifconfig_ipv6_local;		/* IPv6 */
+  int 		  push_ifconfig_ipv6_netbits;		/* IPv6 */
+  struct in6_addr push_ifconfig_ipv6_remote;		/* IPv6 */
   bool enable_c2c;
   bool duplicate_cn;
   int cf_max;
@@ -721,6 +738,10 @@ void options_string_import (struct options *options,
 			    const unsigned int permission_mask,
 			    unsigned int *option_types_found,
 			    struct env_set *es);
+
+bool get_ipv6_addr( const char * prefix_str, struct in6_addr *network,
+		    unsigned int * netbits, char ** printable_ipv6, 
+		    int msglevel );
 
 /*
  * inline functions

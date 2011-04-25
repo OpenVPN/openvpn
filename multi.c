@@ -316,25 +316,18 @@ multi_init (struct multi_context *m, struct context *t, bool tcp_mode, int threa
    */
   if (t->options.ifconfig_pool_defined)
     {
-      if (dev == DEV_TYPE_TAP)
-	{
-	  m->ifconfig_pool = ifconfig_pool_init (IFCONFIG_POOL_INDIV,
-						 t->options.ifconfig_pool_start,
-						 t->options.ifconfig_pool_end,
-						 t->options.duplicate_cn);
-	}
-      else if (dev == DEV_TYPE_TUN)
-	{
-	  m->ifconfig_pool = ifconfig_pool_init (
-	    (t->options.topology == TOP_NET30) ? IFCONFIG_POOL_30NET : IFCONFIG_POOL_INDIV,
-	    t->options.ifconfig_pool_start,
-	    t->options.ifconfig_pool_end,
-	    t->options.duplicate_cn);
-	}
-      else
-	{
-	  ASSERT (0);
-	}
+      int pool_type = IFCONFIG_POOL_INDIV;
+
+      if ( dev == DEV_TYPE_TUN && t->options.topology == TOP_NET30 )
+	pool_type = IFCONFIG_POOL_30NET;
+
+      m->ifconfig_pool = ifconfig_pool_init (pool_type,
+				 t->options.ifconfig_pool_start,
+				 t->options.ifconfig_pool_end,
+				 t->options.duplicate_cn,
+				 t->options.ifconfig_ipv6_pool_defined,
+				 t->options.ifconfig_ipv6_pool_base,
+				 t->options.ifconfig_ipv6_pool_netbits );
 
       /* reload pool data from file */
       if (t->c1.ifconfig_pool_persist)
@@ -429,10 +422,14 @@ multi_del_iroutes (struct multi_context *m,
 		   struct multi_instance *mi)
 {
   const struct iroute *ir;
+  const struct iroute_ipv6 *ir6;
   if (TUNNEL_TYPE (mi->context.c1.tuntap) == DEV_TYPE_TUN)
     {
       for (ir = mi->context.options.iroutes; ir != NULL; ir = ir->next)
 	mroute_helper_del_iroute (m->route_helper, ir);
+
+      for ( ir6 = mi->context.options.iroutes_ipv6; ir6 != NULL; ir6 = ir6->next )
+	mroute_helper_del_iroute6 (m->route_helper, ir6);
     }
 }
 
@@ -1078,6 +1075,37 @@ multi_learn_in_addr_t (struct multi_context *m,
   }
 }
 
+static struct multi_instance *
+multi_learn_in6_addr  (struct multi_context *m,
+		       struct multi_instance *mi,
+		       struct in6_addr a6,
+		       int netbits, /* -1 if host route, otherwise # of network bits in address */
+		       bool primary)
+{
+  struct mroute_addr addr;
+
+  addr.len = 16;
+  addr.type = MR_ADDR_IPV6;
+  addr.netbits = 0;
+  memcpy( &addr.addr, &a6, sizeof(a6) );
+
+  if (netbits >= 0)
+    {
+      addr.type |= MR_WITH_NETBITS;
+      addr.netbits = (uint8_t) netbits;
+      mroute_addr_mask_host_bits( &addr );
+    }
+
+  {
+    struct multi_instance *owner = multi_learn_addr (m, mi, &addr, 0);
+#ifdef MANAGEMENT_DEF_AUTH
+    if (management && owner)
+      management_learn_addr (management, &mi->context.c2.mda_context, &addr, primary);
+#endif
+    return owner;
+  }
+}
+
 /*
  * A new client has connected, add routes (server -> client)
  * to internal routing table.
@@ -1088,6 +1116,7 @@ multi_add_iroutes (struct multi_context *m,
 {
   struct gc_arena gc = gc_new ();
   const struct iroute *ir;
+  const struct iroute_ipv6 *ir6;
   if (TUNNEL_TYPE (mi->context.c1.tuntap) == DEV_TYPE_TUN)
     {
       mi->did_iroutes = true;
@@ -1106,6 +1135,22 @@ multi_add_iroutes (struct multi_context *m,
 	  mroute_helper_add_iroute (m->route_helper, ir);
       
 	  multi_learn_in_addr_t (m, mi, ir->network, ir->netbits, false);
+	}
+      for ( ir6 = mi->context.options.iroutes_ipv6; ir6 != NULL; ir6 = ir6->next )
+	{
+	  if (ir6->netbits >= 0)
+	    msg (D_MULTI_LOW, "MULTI: internal route %s/%d -> %s",
+		 print_in6_addr (ir6->network, 0, &gc),
+		 ir6->netbits,
+		 multi_instance_string (mi, false, &gc));
+	  else
+	    msg (D_MULTI_LOW, "MULTI: internal route %s -> %s",
+		 print_in6_addr (ir6->network, 0, &gc),
+		 multi_instance_string (mi, false, &gc));
+
+	  mroute_helper_add_iroute6 (m->route_helper, ir6);
+      
+	  multi_learn_in6_addr (m, mi, ir6->network, ir6->netbits, false);
 	}
     }
   gc_free (&gc);
@@ -1192,20 +1237,36 @@ multi_select_virtual_addr (struct multi_context *m, struct multi_instance *mi)
       mi->context.c2.push_ifconfig_defined = true;
       mi->context.c2.push_ifconfig_local = mi->context.options.push_ifconfig_local;
       mi->context.c2.push_ifconfig_remote_netmask = mi->context.options.push_ifconfig_remote_netmask;
+
+      /* the current implementation does not allow "static IPv4, pool IPv6",
+       * (see below) so issue a warning if that happens - don't break the
+       * session, though, as we don't even know if this client WANTS IPv6
+       */
+      if ( mi->context.c1.tuntap->ipv6 &&
+	   mi->context.options.ifconfig_ipv6_pool_defined &&
+	   ! mi->context.options.push_ifconfig_ipv6_defined )
+	{
+	  msg( M_INFO, "MULTI_sva: WARNING: if --ifconfig-push is used for IPv4, automatic IPv6 assignment from --ifconfig-ipv6-pool does not work.  Use --ifconfig-ipv6-push for IPv6 then." );
+	}
     }
   else if (m->ifconfig_pool && mi->vaddr_handle < 0) /* otherwise, choose a pool address */
     {
       in_addr_t local=0, remote=0;
+      struct in6_addr remote_ipv6;
       const char *cn = NULL;
 
       if (!mi->context.options.duplicate_cn)
 	cn = tls_common_name (mi->context.c2.tls_multi, true);
 
-      mi->vaddr_handle = ifconfig_pool_acquire (m->ifconfig_pool, &local, &remote, cn);
+      mi->vaddr_handle = ifconfig_pool_acquire (m->ifconfig_pool, &local, &remote, &remote_ipv6, cn);
       if (mi->vaddr_handle >= 0)
 	{
 	  const int tunnel_type = TUNNEL_TYPE (mi->context.c1.tuntap);
 	  const int tunnel_topology = TUNNEL_TOPOLOGY (mi->context.c1.tuntap);
+
+	  msg( M_INFO, "MULTI_sva: pool returned IPv4=%s, IPv6=%s", 
+		    print_in_addr_t( remote, 0, &gc ),
+		    print_in6_addr( remote_ipv6, 0, &gc ) );
 
 	  /* set push_ifconfig_remote_netmask from pool ifconfig address(es) */
 	  mi->context.c2.push_ifconfig_local = remote;
@@ -1228,12 +1289,46 @@ multi_select_virtual_addr (struct multi_context *m, struct multi_instance *mi)
 	  else
 	    msg (D_MULTI_ERRORS, "MULTI: no --ifconfig-pool netmask parameter is available to push to %s",
 		 multi_instance_string (mi, false, &gc));
+
+	  if ( mi->context.options.ifconfig_ipv6_pool_defined )
+	    {
+	      mi->context.c2.push_ifconfig_ipv6_local = remote_ipv6;
+	      mi->context.c2.push_ifconfig_ipv6_remote = 
+		    mi->context.c1.tuntap->local_ipv6;
+	      mi->context.c2.push_ifconfig_ipv6_netbits = 
+		    mi->context.options.ifconfig_ipv6_pool_netbits;
+	      mi->context.c2.push_ifconfig_ipv6_defined = true;
+	    }
 	}
       else
 	{
 	  msg (D_MULTI_ERRORS, "MULTI: no free --ifconfig-pool addresses are available");
 	}
     }
+
+  /* IPv6 push_ifconfig is a bit problematic - since IPv6 shares the 
+   * pool handling with IPv4, the combination "static IPv4, dynamic IPv6"
+   * will fail (because no pool will be allocated in this case).
+   * OTOH, this doesn't make too much sense in reality - and the other
+   * way round ("dynamic IPv4, static IPv6") or "both static" makes sense
+   * -> and so it's implemented right now
+   */
+  if ( mi->context.c1.tuntap->ipv6 &&
+       mi->context.options.push_ifconfig_ipv6_defined )
+    {
+      mi->context.c2.push_ifconfig_ipv6_local = 
+	    mi->context.options.push_ifconfig_ipv6_local;
+      mi->context.c2.push_ifconfig_ipv6_remote = 
+	    mi->context.options.push_ifconfig_ipv6_remote;
+      mi->context.c2.push_ifconfig_ipv6_netbits = 
+	    mi->context.options.push_ifconfig_ipv6_netbits;
+      mi->context.c2.push_ifconfig_ipv6_defined = true;
+
+      msg( M_INFO, "MULTI_sva: push_ifconfig_ipv6 %s/%d", 
+	    print_in6_addr( mi->context.c2.push_ifconfig_ipv6_local, 0, &gc ),
+	    mi->context.c2.push_ifconfig_ipv6_netbits );
+    }
+
   gc_free (&gc);
 }
 
@@ -1272,6 +1367,11 @@ multi_set_virtual_addr_env (struct multi_context *m, struct multi_instance *mi)
 			    SA_SET_IF_NONZERO);
 	}
     }
+
+    /* TODO: I'm not exactly sure what these environment variables are
+     *       used for, but if we have them for IPv4, we should also have
+     *       them for IPv6, no?
+     */
 }
 
 /*
@@ -1659,6 +1759,15 @@ multi_connection_established (struct multi_context *m, struct multi_instance *mi
 		  msg (D_MULTI_LOW, "MULTI: primary virtual IP for %s: %s",
 		       multi_instance_string (mi, false, &gc),
 		       print_in_addr_t (mi->context.c2.push_ifconfig_local, 0, &gc));
+		}
+
+	      if (mi->context.c2.push_ifconfig_ipv6_defined)
+		{
+		  multi_learn_in6_addr (m, mi, mi->context.c2.push_ifconfig_ipv6_local, -1, true);
+		  /* TODO: find out where addresses are "unlearned"!! */
+		  msg (D_MULTI_LOW, "MULTI: primary virtual IPv6 for %s: %s",
+		       multi_instance_string (mi, false, &gc),
+		       print_in6_addr (mi->context.c2.push_ifconfig_ipv6_local, 0, &gc));
 		}
 
 	      /* add routes locally, pointing to new client, if

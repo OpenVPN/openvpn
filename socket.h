@@ -368,6 +368,8 @@ const char *print_link_socket_actual (const struct link_socket_actual *act,
 #define IA_EMPTY_IF_UNDEF (1<<0)
 #define IA_NET_ORDER      (1<<1)
 const char *print_in_addr_t (in_addr_t addr, unsigned int flags, struct gc_arena *gc);
+const char *print_in6_addr  (struct in6_addr addr6, unsigned int flags, struct gc_arena *gc);
+struct in6_addr add_in6_addr( struct in6_addr base, uint32_t add );
 
 #define SA_IP_PORT        (1<<0)
 #define SA_SET_IF_NONZERO (1<<1)
@@ -427,6 +429,7 @@ int openvpn_inet_aton (const char *dotted_quad, struct in_addr *addr);
 bool ip_addr_dotted_quad_safe (const char *dotted_quad);
 bool ip_or_dns_addr_safe (const char *addr, const bool allow_fqdn);
 bool mac_addr_safe (const char *mac_addr);
+bool ipv6_addr_safe (const char *ipv6_text_addr);
 
 socket_descriptor_t create_socket_tcp (void);
 

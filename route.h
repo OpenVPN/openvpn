@@ -92,6 +92,19 @@ struct route_option_list {
   struct route_option routes[EMPTY_ARRAY_SIZE];
 };
 
+struct route_ipv6_option {
+  const char *prefix;		/* e.g. "2001:db8:1::/64" */
+  const char *gateway;		/* e.g. "2001:db8:0::2" */
+  const char *metric;		/* e.g. "5" */
+};
+
+struct route_ipv6_option_list {
+  unsigned int flags;
+  int capacity;
+  int n;
+  struct route_ipv6_option routes_ipv6[EMPTY_ARRAY_SIZE];
+};
+
 struct route {
   bool defined;
   const struct route_option *option;
@@ -113,6 +126,31 @@ struct route_list {
   struct route routes[EMPTY_ARRAY_SIZE];
 };
 
+struct route_ipv6 {
+  bool defined;
+  const struct route_ipv6_option *option;
+  struct in6_addr network;
+  unsigned int netbits;
+  struct in6_addr gateway;
+  bool metric_defined;
+  int metric;
+};
+
+struct route_ipv6_list {
+  bool routes_added;
+  unsigned int flags;
+  int default_metric;
+  bool default_metric_defined;
+  struct in6_addr remote_endpoint_ipv6;
+  bool remote_endpoint_defined;
+  bool did_redirect_default_gateway;			/* TODO (?) */
+  bool did_local;					/* TODO (?) */
+  int capacity;
+  int n;
+  struct route_ipv6 routes_ipv6[EMPTY_ARRAY_SIZE];
+};
+
+
 #if P2MP
 /* internal OpenVPN route */
 struct iroute {
@@ -120,19 +158,33 @@ struct iroute {
   int netbits;
   struct iroute *next;
 };
+
+struct iroute_ipv6 {
+  struct in6_addr network;
+  unsigned int netbits;
+  struct iroute_ipv6 *next;
+};
 #endif
 
 struct route_option_list *new_route_option_list (const int max_routes, struct gc_arena *a);
+struct route_ipv6_option_list *new_route_ipv6_option_list (const int max_routes, struct gc_arena *a);
 struct route_option_list *clone_route_option_list (const struct route_option_list *src, struct gc_arena *a);
 void copy_route_option_list (struct route_option_list *dest, const struct route_option_list *src);
 
 struct route_list *new_route_list (const int max_routes, struct gc_arena *a);
+struct route_ipv6_list *new_route_ipv6_list (const int max_routes, struct gc_arena *a);
 
 void add_route (struct route *r, const struct tuntap *tt, unsigned int flags, const struct env_set *es);
+void add_route_ipv6 (struct route_ipv6 *r, const struct tuntap *tt, unsigned int flags, const struct env_set *es);
 
 void add_route_to_option_list (struct route_option_list *l,
 			       const char *network,
 			       const char *netmask,
+			       const char *gateway,
+			       const char *metric);
+
+void add_route_ipv6_to_option_list (struct route_ipv6_option_list *l,
+			       const char *prefix,
 			       const char *gateway,
 			       const char *metric);
 
@@ -143,21 +195,30 @@ bool init_route_list (struct route_list *rl,
 		      in_addr_t remote_host,
 		      struct env_set *es);
 
+bool init_route_ipv6_list (struct route_ipv6_list *rl6,
+		      const struct route_ipv6_option_list *opt6,
+		      const char *remote_endpoint,
+		      int default_metric,
+		      struct env_set *es);
+
 void route_list_add_default_gateway (struct route_list *rl,
 				     struct env_set *es,
 				     const in_addr_t addr);
 
 void add_routes (struct route_list *rl,
+		 struct route_ipv6_list *rl6,
 		 const struct tuntap *tt,
 		 unsigned int flags,
 		 const struct env_set *es);
 
 void delete_routes (struct route_list *rl,
+		    struct route_ipv6_list *rl6,
 		    const struct tuntap *tt,
 		    unsigned int flags,
 		    const struct env_set *es);
 
 void setenv_routes (struct env_set *es, const struct route_list *rl);
+void setenv_routes_ipv6 (struct env_set *es, const struct route_ipv6_list *rl6);
 
 bool is_special_addr (const char *addr_str);
 

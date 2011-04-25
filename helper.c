@@ -142,6 +142,55 @@ helper_client_server (struct options *o)
 
 #if P2MP
 #if P2MP_SERVER
+
+  /* 
+   *
+   * HELPER DIRECTIVE for IPv6
+   *
+   * server-ipv6 2001:db8::/64
+   *
+   * EXPANDS TO:
+   *
+   * tun-ipv6
+   * push "tun-ipv6"
+   * ifconfig-ipv6 2001:db8::1 2001:db8::2
+   * if !nopool: 
+   *   ifconfig-ipv6-pool 2001:db8::1:0/64
+   * 
+   */
+   if ( o->server_ipv6_defined )
+     {
+	if ( ! o->server_defined )
+	  {
+	    msg (M_USAGE, "--server-ipv6 must be used together with --server");
+	  }
+	if ( o->server_flags & SF_NOPOOL )
+	  {
+	    msg( M_USAGE, "--server-ipv6 is incompatible with 'nopool' option" );
+	  }
+	if ( o->ifconfig_ipv6_pool_defined )
+	  {
+	    msg( M_USAGE, "--server-ipv6 already defines an ifconfig-ipv6-pool, so you can't also specify --ifconfig-pool explicitly");
+	  }
+
+        /* local ifconfig is "base address + 1" and "+2" */
+	o->ifconfig_ipv6_local = 
+		print_in6_addr( add_in6_addr( o->server_network_ipv6, 1), 0, &o->gc );
+	o->ifconfig_ipv6_remote = 
+		print_in6_addr( add_in6_addr( o->server_network_ipv6, 2), 0, &o->gc );
+
+	/* pool starts at "base address + 0x10000" */
+	ASSERT( o->server_netbits_ipv6 < 96 );		/* want 32 bits */
+	o->ifconfig_ipv6_pool_defined = true;
+	o->ifconfig_ipv6_pool_base = 
+		add_in6_addr( o->server_network_ipv6, 0x10000 );
+	o->ifconfig_ipv6_pool_netbits = o->server_netbits_ipv6;
+
+	o->tun_ipv6 = true;
+
+	push_option( o, "tun-ipv6", M_USAGE );
+     }
+
   /*
    *
    * HELPER DIRECTIVE:

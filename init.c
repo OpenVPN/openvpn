@@ -843,7 +843,7 @@ do_persist_tuntap (const struct options *options)
 	msg (M_FATAL|M_OPTERR,
 	     "options --mktun or --rmtun should only be used together with --dev");
       tuncfg (options->dev, options->dev_type, options->dev_node,
-	      options->tun_ipv6, options->persist_mode,
+	      options->persist_mode,
 	      options->username, options->groupname, &options->tuntap_options);
       if (options->persist_mode && options->lladdr)
         set_lladdr(options->dev, options->lladdr, NULL);
@@ -1066,6 +1066,8 @@ do_alloc_route_list (struct context *c)
 {
   if (c->options.routes && !c->c1.route_list)
     c->c1.route_list = new_route_list (c->options.max_routes, &c->gc);
+  if (c->options.routes_ipv6 && !c->c1.route_ipv6_list)
+    c->c1.route_ipv6_list = new_route_ipv6_list (c->options.max_routes, &c->gc);
 }
 
 
@@ -1107,6 +1109,45 @@ do_init_route_list (const struct options *options,
       setenv_routes (es, route_list);
     }
 }
+
+static void
+do_init_route_ipv6_list (const struct options *options,
+		    struct route_ipv6_list *route_ipv6_list,
+		    bool fatal,
+		    struct env_set *es)
+{
+  const char *gw = NULL;
+  int dev = dev_type_enum (options->dev, options->dev_type);
+  int metric = 0;
+
+  if (dev != DEV_TYPE_TUN )
+    msg( M_WARN, "IPv6 routes on TAP devices are going to fail on some platforms (need gateway spec)" );	/* TODO-GERT */
+
+  gw = options->ifconfig_ipv6_remote;		/* default GW = remote end */
+#if 0					/* not yet done for IPv6 - TODO!*/
+  if ( options->route_ipv6_default_gateway )		/* override? */
+    gw = options->route_ipv6_default_gateway;
+#endif
+
+  if (options->route_default_metric)
+    metric = options->route_default_metric;
+
+  if (!init_route_ipv6_list (route_ipv6_list,
+			options->routes_ipv6,
+			gw,
+			metric,
+			es))
+    {
+      if (fatal)
+	openvpn_exit (OPENVPN_EXIT_STATUS_ERROR);	/* exit point */
+    }
+  else
+    {
+      /* copy routes to environment */
+      setenv_routes_ipv6 (es, route_ipv6_list);
+    }
+}
+
 
 /*
  * Called after all initialization has been completed.
@@ -1176,12 +1217,13 @@ initialization_sequence_completed (struct context *c, const unsigned int flags)
 void
 do_route (const struct options *options,
 	  struct route_list *route_list,
+	  struct route_ipv6_list *route_ipv6_list,
 	  const struct tuntap *tt,
 	  const struct plugin_list *plugins,
 	  struct env_set *es)
 {
-  if (!options->route_noexec && route_list)
-    add_routes (route_list, tt, ROUTE_OPTION_FLAGS (options), es);
+  if (!options->route_noexec && ( route_list || route_ipv6_list ) )
+    add_routes (route_list, route_ipv6_list, tt, ROUTE_OPTION_FLAGS (options), es);
 
   if (plugin_defined (plugins, OPENVPN_PLUGIN_ROUTE_UP))
     {
@@ -1238,10 +1280,15 @@ do_init_tun (struct context *c)
 			   c->options.topology,
 			   c->options.ifconfig_local,
 			   c->options.ifconfig_remote_netmask,
+			   c->options.ifconfig_ipv6_local,
+			   c->options.ifconfig_ipv6_remote,
 			   addr_host (&c->c1.link_socket_addr.local),
 			   addr_host (&c->c1.link_socket_addr.remote),
 			   !c->options.ifconfig_nowarn,
 			   c->c2.es);
+
+  /* flag tunnel for IPv6 config if --tun-ipv6 is set */
+  c->c1.tuntap->ipv6 = c->options.tun_ipv6;
 
   init_tun_post (c->c1.tuntap,
 		 &c->c2.frame,
@@ -1274,6 +1321,8 @@ do_open_tun (struct context *c)
       /* parse and resolve the route option list */
       if (c->options.routes && c->c1.route_list && c->c2.link_socket)
 	do_init_route_list (&c->options, c->c1.route_list, &c->c2.link_socket->info, false, c->c2.es);
+      if (c->options.routes_ipv6 && c->c1.route_ipv6_list )
+	do_init_route_ipv6_list (&c->options, c->c1.route_ipv6_list, false, c->c2.es);
 
       /* do ifconfig */
       if (!c->options.ifconfig_noexec
@@ -1290,7 +1339,7 @@ do_open_tun (struct context *c)
 
       /* open the tun device */
       open_tun (c->options.dev, c->options.dev_type, c->options.dev_node,
-		c->options.tun_ipv6, c->c1.tuntap);
+		c->c1.tuntap);
 
       /* set the hardware address */
       if (c->options.lladdr)
@@ -1320,7 +1369,8 @@ do_open_tun (struct context *c)
 
       /* possibly add routes */
       if (!c->options.route_delay_defined)
-	do_route (&c->options, c->c1.route_list, c->c1.tuntap, c->plugins, c->c2.es);
+	do_route (&c->options, c->c1.route_list, c->c1.route_ipv6_list,
+		  c->c1.tuntap, c->plugins, c->c2.es);
 
       /*
        * Did tun/tap driver give us an MTU?
@@ -1395,8 +1445,9 @@ do_close_tun (struct context *c, bool force)
 #endif
 
 	  /* delete any routes we added */
-	  if (c->c1.route_list)
-	    delete_routes (c->c1.route_list, c->c1.tuntap, ROUTE_OPTION_FLAGS (&c->options), c->c2.es);
+	  if (c->c1.route_list || c->c1.route_ipv6_list )
+	    delete_routes (c->c1.route_list, c->c1.route_ipv6_list,
+			   c->c1.tuntap, ROUTE_OPTION_FLAGS (&c->options), c->c2.es);
 
 	  /* actually close tun/tap device based on --down-pre flag */
 	  if (!c->options.down_pre)

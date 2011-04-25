@@ -56,13 +56,14 @@ static void netsh_ifconfig (const struct tuntap_options *to,
 			    const in_addr_t ip,
 			    const in_addr_t netmask,
 			    const unsigned int flags);
+static void netsh_command (const struct argv *a, int n);
 
 static const char *netsh_get_id (const char *dev_node, struct gc_arena *gc);
 
 #endif
 
 #ifdef TARGET_SOLARIS
-static void solaris_error_close (struct tuntap *tt, const struct env_set *es, const char *actual);
+static void solaris_error_close (struct tuntap *tt, const struct env_set *es, const char *actual, bool unplumb_inet6);
 #include <stropts.h>
 #endif
 
@@ -129,30 +130,6 @@ guess_tuntap_dev (const char *dev,
   return dev;
 }
 
-/*
- * Called by the open_tun function of OSes to check if we
- * explicitly support IPv6.
- *
- * In this context, explicit means that the OS expects us to
- * do something special to the tun socket in order to support
- * IPv6, i.e. it is not transparent.
- *
- * ipv6_explicitly_supported should be set to false if we don't
- * have any explicit IPv6 code in the tun device handler.
- *
- * If ipv6_explicitly_supported is true, then we have explicit
- * OS-specific tun dev code for handling IPv6.  If so, tt->ipv6
- * is set according to the --tun-ipv6 command line option.
- */
-static void
-ipv6_support (bool ipv6, bool ipv6_explicitly_supported, struct tuntap* tt)
-{
-  tt->ipv6 = false;
-  if (ipv6_explicitly_supported)
-    tt->ipv6 = ipv6;
-  else if (ipv6)
-    msg (M_WARN, "NOTE: explicit support for IPv6 tun devices is not provided for this OS");
-}
 
 /* --ifconfig-nowarn disables some options sanity checking */
 static const char ifconfig_warn_how_to_silence[] = "(silence this warning with --ifconfig-nowarn)";
@@ -423,6 +400,8 @@ init_tun (const char *dev,       /* --dev option */
 	  int topology,          /* one of the TOP_x values */
 	  const char *ifconfig_local_parm,          /* --ifconfig parm 1 */
 	  const char *ifconfig_remote_netmask_parm, /* --ifconfig parm 2 */
+	  const char *ifconfig_ipv6_local_parm,     /* --ifconfig parm 1 IPv6 */
+	  const char *ifconfig_ipv6_remote_parm,    /* --ifconfig parm 2 IPv6 */
 	  in_addr_t local_public,
 	  in_addr_t remote_public,
 	  const bool strict_warn,
@@ -537,6 +516,40 @@ init_tun (const char *dev,       /* --dev option */
 
       tt->did_ifconfig_setup = true;
     }
+
+  if (ifconfig_ipv6_local_parm && ifconfig_ipv6_remote_parm)
+    {
+      const char *ifconfig_ipv6_local = NULL;
+      const char *ifconfig_ipv6_remote = NULL;
+
+      /*
+       * Convert arguments to binary IPv6 addresses.
+       */
+
+      if ( inet_pton( AF_INET6, ifconfig_ipv6_local_parm, &tt->local_ipv6 ) != 1 ||
+           inet_pton( AF_INET6, ifconfig_ipv6_remote_parm, &tt->remote_ipv6 ) != 1 ) 
+	{
+	  msg( M_FATAL, "init_tun: problem converting IPv6 ifconfig addresses %s and %s to binary", ifconfig_ipv6_local_parm, ifconfig_ipv6_remote_parm );
+	}
+      tt->netbits_ipv6 = 64;
+
+      /*
+       * Set ifconfig parameters
+       */
+      ifconfig_ipv6_local = print_in6_addr (tt->local_ipv6, 0, &gc);
+      ifconfig_ipv6_remote = print_in6_addr (tt->remote_ipv6, 0, &gc);
+
+      /*
+       * Set environmental variables with ifconfig parameters.
+       */
+      if (es)
+	{
+	  setenv_str (es, "ifconfig_ipv6_local", ifconfig_ipv6_local);
+	  setenv_str (es, "ifconfig_ipv6_remote", ifconfig_ipv6_remote);
+	}
+      tt->did_ifconfig_ipv6_setup = true;
+    }
+
   gc_free (&gc);
   return tt;
 }
@@ -559,6 +572,28 @@ init_tun_post (struct tuntap *tt,
 #endif
 }
 
+#if defined(TARGET_WIN32) || \
+    defined(TARGET_DARWIN) || defined(TARGET_NETBSD) || defined(TARGET_OPENBSD)
+
+/* some of the platforms will auto-add a "network route" pointing
+ * to the interface on "ifconfig tunX 2001:db8::1/64", others need
+ * an extra call to "route add..."
+ * -> helper function to simplify code below
+ */
+void add_route_connected_v6_net(struct tuntap * tt,
+	                        const struct env_set *es)
+{
+    struct route_ipv6 r6;
+
+    r6.defined = true;
+    r6.network = tt->local_ipv6;
+    r6.netbits = tt->netbits_ipv6;
+    r6.gateway = tt->local_ipv6;
+    add_route_ipv6 (&r6, tt, 0, es);
+}
+#endif
+
+
 /* execute the ifconfig command through the shell */
 void
 do_ifconfig (struct tuntap *tt,
@@ -574,9 +609,15 @@ do_ifconfig (struct tuntap *tt,
       const char *ifconfig_local = NULL;
       const char *ifconfig_remote_netmask = NULL;
       const char *ifconfig_broadcast = NULL;
+      const char *ifconfig_ipv6_local = NULL;
+      const char *ifconfig_ipv6_remote = NULL;
+      bool do_ipv6 = false;
       struct argv argv;
 
       argv_init (&argv);
+
+      msg( M_INFO, "do_ifconfig, tt->ipv6=%d, tt->did_ifconfig_ipv6_setup=%d",
+	           tt->ipv6, tt->did_ifconfig_ipv6_setup );
 
       /*
        * We only handle TUN/TAP devices here, not --dev null devices.
@@ -588,6 +629,13 @@ do_ifconfig (struct tuntap *tt,
        */
       ifconfig_local = print_in_addr_t (tt->local, 0, &gc);
       ifconfig_remote_netmask = print_in_addr_t (tt->remote_netmask, 0, &gc);
+
+      if ( tt->ipv6 && tt->did_ifconfig_ipv6_setup )
+        {
+	  ifconfig_ipv6_local = print_in6_addr (tt->local_ipv6, 0, &gc);
+	  ifconfig_ipv6_remote = print_in6_addr (tt->remote_ipv6, 0, &gc);
+	  do_ipv6 = true;
+	}
 
       /*
        * If TAP-style device, generate broadcast address.
@@ -647,7 +695,19 @@ do_ifconfig (struct tuntap *tt,
 		  argv_msg (M_INFO, &argv);
 		  openvpn_execve_check (&argv, es, S_FATAL, "Linux ip addr add failed");
 	}
-	tt->did_ifconfig = true;
+      if ( do_ipv6 )
+	{
+	  argv_printf( &argv,
+		      "%s -6 addr add %s/%d dev %s",
+		      iproute_path,
+		      ifconfig_ipv6_local,
+		      tt->netbits_ipv6,
+		      actual
+		      );
+	  argv_msg (M_INFO, &argv);
+	  openvpn_execve_check (&argv, es, S_FATAL, "Linux ip -6 addr add failed");
+	}
+      tt->did_ifconfig = true;
 #else
       if (tun)
 	argv_printf (&argv,
@@ -670,6 +730,18 @@ do_ifconfig (struct tuntap *tt,
 			  );
       argv_msg (M_INFO, &argv);
       openvpn_execve_check (&argv, es, S_FATAL, "Linux ifconfig failed");
+      if ( do_ipv6 )
+	{
+	  argv_printf (&argv,
+			  "%s %s inet6 add %s/%d",
+			  IFCONFIG_PATH,
+			  actual,
+			  ifconfig_ipv6_local,
+			  tt->netbits_ipv6
+			  );
+	  argv_msg (M_INFO, &argv);
+	  openvpn_execve_check (&argv, es, S_FATAL, "Linux ifconfig inet6 failed");
+	}
       tt->did_ifconfig = true;
 
 #endif /*CONFIG_FEATURE_IPROUTE*/
@@ -693,7 +765,7 @@ do_ifconfig (struct tuntap *tt,
 
 	  argv_msg (M_INFO, &argv);
 	  if (!openvpn_execve_check (&argv, es, 0, "Solaris ifconfig phase-1 failed"))
-	    solaris_error_close (tt, es, actual);
+	    solaris_error_close (tt, es, actual, false);
 
 	  argv_printf (&argv,
 			    "%s %s netmask 255.255.255.255",
@@ -725,7 +797,53 @@ do_ifconfig (struct tuntap *tt,
 
       argv_msg (M_INFO, &argv);
       if (!openvpn_execve_check (&argv, es, 0, "Solaris ifconfig phase-2 failed"))
-	solaris_error_close (tt, es, actual);
+	solaris_error_close (tt, es, actual, false);
+
+      if ( do_ipv6 )
+        {
+ 	  argv_printf (&argv, "%s %s inet6 unplumb",
+			    IFCONFIG_PATH, actual );
+	  argv_msg (M_INFO, &argv);
+	  openvpn_execve_check (&argv, es, 0, NULL);
+
+	  if ( tt->type == DEV_TYPE_TUN )
+	   {
+	      argv_printf (&argv,
+			    "%s %s inet6 plumb %s/%d %s up",
+			    IFCONFIG_PATH,
+			    actual,
+			    ifconfig_ipv6_local,
+			    tt->netbits_ipv6,
+			    ifconfig_ipv6_remote
+			    );
+	    }
+	  else						/* tap mode */
+	    {
+	      /* base IPv6 tap interface needs to be brought up first
+	       */
+	      argv_printf (&argv, "%s %s inet6 plumb up",
+			    IFCONFIG_PATH, actual );
+	      argv_msg (M_INFO, &argv);
+	      if (!openvpn_execve_check (&argv, es, 0, "Solaris ifconfig IPv6 (prepare) failed"))
+		solaris_error_close (tt, es, actual, true);
+
+	      /* we might need to do "ifconfig %s inet6 auto-dhcp drop"
+	       * after the system has noticed the interface and fired up
+	       * the DHCPv6 client - but this takes quite a while, and the 
+	       * server will ignore the DHCPv6 packets anyway.  So we don't.
+	       */
+
+	      /* static IPv6 addresses need to go to a subinterface (tap0:1)
+	       */
+	      argv_printf (&argv,
+			    "%s %s inet6 addif %s/%d up",
+			    IFCONFIG_PATH, actual,
+			    ifconfig_ipv6_local, tt->netbits_ipv6 );
+	    }
+	  argv_msg (M_INFO, &argv);
+	  if (!openvpn_execve_check (&argv, es, 0, "Solaris ifconfig IPv6 failed"))
+	    solaris_error_close (tt, es, actual, true);
+        }
 
       if (!tun && tt->topology == TOP_SUBNET)
 	{
@@ -787,9 +905,41 @@ do_ifconfig (struct tuntap *tt,
 			  );
       argv_msg (M_INFO, &argv);
       openvpn_execve_check (&argv, es, S_FATAL, "OpenBSD ifconfig failed");
+      if ( do_ipv6 )
+	{
+	  argv_printf (&argv,
+			  "%s %s inet6 %s/%d",
+			  IFCONFIG_PATH,
+			  actual,
+			  ifconfig_ipv6_local,
+			  tt->netbits_ipv6
+			  );
+	  argv_msg (M_INFO, &argv);
+	  openvpn_execve_check (&argv, es, S_FATAL, "OpenBSD ifconfig inet6 failed");
+
+	  /* and, hooray, we explicitely need to add a route... */
+	  add_route_connected_v6_net(tt, es);
+	}
       tt->did_ifconfig = true;
 
 #elif defined(TARGET_NETBSD)
+
+/* whether or not NetBSD can do IPv6 can be seen by the availability of
+ * the TUNSIFHEAD ioctl() - see next TARGET_NETBSD block for more details
+ */
+#ifdef TUNSIFHEAD
+# define NETBSD_MULTI_AF
+#endif
+
+      /* as on OpenBSD and Darwin, destroy and re-create tun<x> interface
+       */
+      argv_printf (&argv, "%s %s destroy", IFCONFIG_PATH, actual );
+      argv_msg (M_INFO, &argv);
+      openvpn_execve_check (&argv, es, 0, "NetBSD ifconfig destroy failed");
+
+      argv_printf (&argv, "%s %s create", IFCONFIG_PATH, actual );
+      argv_msg (M_INFO, &argv);
+      openvpn_execve_check (&argv, es, S_FATAL, "NetBSD ifconfig create failed");
 
       if (tun)
 	argv_printf (&argv,
@@ -817,6 +967,27 @@ do_ifconfig (struct tuntap *tt,
 			  );
       argv_msg (M_INFO, &argv);
       openvpn_execve_check (&argv, es, S_FATAL, "NetBSD ifconfig failed");
+
+      if ( do_ipv6 )
+	{
+#ifdef NETBSD_MULTI_AF
+	  argv_printf (&argv,
+			  "%s %s inet6 %s/%d",
+			  IFCONFIG_PATH,
+			  actual,
+			  ifconfig_ipv6_local,
+			  tt->netbits_ipv6
+			  );
+	  argv_msg (M_INFO, &argv);
+	  openvpn_execve_check (&argv, es, S_FATAL, "NetBSD ifconfig inet6 failed");
+
+	  /* and, hooray, we explicitely need to add a route... */
+	  add_route_connected_v6_net(tt, es);
+#else
+	  msg( M_INFO, "no IPv6 support for tun interfaces on NetBSD before 4.0 (if your system is newer, recompile openvpn)" );
+	  tt->ipv6 = false;
+#endif
+	}
       tt->did_ifconfig = true;
 
 #elif defined(TARGET_DARWIN)
@@ -882,6 +1053,22 @@ do_ifconfig (struct tuntap *tt,
 	  add_route (&r, tt, 0, es);
 	}
 
+      if ( do_ipv6 )
+	{
+          argv_printf (&argv,
+                              "%s %s inet6 %s/%d",
+                              IFCONFIG_PATH,
+                              actual,
+                              ifconfig_ipv6_local,
+                              tt->netbits_ipv6
+                              );
+	  argv_msg (M_INFO, &argv);
+	  openvpn_execve_check (&argv, es, S_FATAL, "MacOS X ifconfig inet6 failed");
+
+	  /* and, hooray, we explicitely need to add a route... */
+	  add_route_connected_v6_net(tt, es);
+	}
+
 #elif defined(TARGET_FREEBSD)||defined(TARGET_DRAGONFLY)
 
       /* example: ifconfig tun2 10.2.0.2 10.2.0.1 mtu 1450 netmask 255.255.255.255 up */
@@ -919,6 +1106,19 @@ do_ifconfig (struct tuntap *tt,
           r.gateway = tt->local;  
           add_route (&r, tt, 0, es);
         }
+
+      if ( do_ipv6 )
+	{
+          argv_printf (&argv,
+                              "%s %s inet6 %s/%d",
+                              IFCONFIG_PATH,
+                              actual,
+                              ifconfig_ipv6_local,
+                              tt->netbits_ipv6
+                              );
+	  argv_msg (M_INFO, &argv);
+	  openvpn_execve_check (&argv, es, S_FATAL, "FreeBSD ifconfig inet6 failed");
+	}
 
 #elif defined (WIN32)
       {
@@ -959,6 +1159,34 @@ do_ifconfig (struct tuntap *tt,
 	tt->did_ifconfig = true;
       }
 
+    /* IPv6 always uses "netsh" interface */
+    if ( do_ipv6 )
+      {
+	char * saved_actual;
+
+	if (!strcmp (actual, "NULL"))
+	  msg (M_FATAL, "Error: When using --tun-ipv6, if you have more than one TAP-Win32 adapter, you must also specify --dev-node");
+
+	/* example: netsh interface ipv6 add address MyTap 2001:608:8003::d */
+	argv_printf (&argv,
+		    "%s%sc interface ipv6 add address %s %s",
+		     get_win_sys_path(),
+		     NETSH_PATH_SUFFIX,
+		     actual,
+		     ifconfig_ipv6_local );
+
+	netsh_command (&argv, 4);
+
+	/* explicit route needed */
+	/* on windows, OpenVPN does ifconfig first, open_tun later, so
+	 * tt->actual_name might not yet be initialized, but routing code
+	 * needs to know interface name - point to "actual", restore later
+	 */
+	saved_actual = tt->actual_name;
+	tt->actual_name = (char*) actual;
+	add_route_connected_v6_net(tt, es);
+	tt->actual_name = saved_actual;
+      }
 #else
       msg (M_FATAL, "Sorry, but I don't know how to do 'ifconfig' commands on this operating system.  You should ifconfig your TUN/TAP device manually or use an --up script.");
 #endif
@@ -991,14 +1219,16 @@ open_null (struct tuntap *tt)
 #ifndef WIN32
 static void
 open_tun_generic (const char *dev, const char *dev_type, const char *dev_node,
-		  bool ipv6, bool ipv6_explicitly_supported, bool dynamic,
+		  bool ipv6_explicitly_supported, bool dynamic,
 		  struct tuntap *tt)
 {
   char tunname[256];
   char dynamic_name[256];
   bool dynamic_opened = false;
 
-  ipv6_support (ipv6, ipv6_explicitly_supported, tt);
+
+  if ( tt->ipv6 && ! ipv6_explicitly_supported )
+    msg (M_WARN, "NOTE: explicit support for IPv6 tun devices is not provided for this OS");
 
   if (tt->type == DEV_TYPE_NULL)
     {
@@ -1094,16 +1324,16 @@ close_tun_generic (struct tuntap *tt)
 #if !PEDANTIC
 
 void
-open_tun (const char *dev, const char *dev_type, const char *dev_node, bool ipv6, struct tuntap *tt)
+open_tun (const char *dev, const char *dev_type, const char *dev_node, struct tuntap *tt)
 {
   struct ifreq ifr;
 
-  /*
-   * Set tt->ipv6 to true if
-   * (a) we have the capability of supporting --tun-ipv6, and
-   * (b) --tun-ipv6 was specified.
+  /* warn if a very old linux version is used & --tun-ipv6 set
    */
-  ipv6_support (ipv6, LINUX_IPV6, tt);
+#if LINUX_IPV6 == 0
+  if ( tt->ipv6 )
+    msg (M_WARN, "NOTE: explicit support for IPv6 tun devices is not provided for this OS");
+#endif
 
   /*
    * We handle --dev null specially, we do not open /dev/null for this.
@@ -1215,13 +1445,13 @@ open_tun (const char *dev, const char *dev_type, const char *dev_node, bool ipv6
       close (tt->fd);
       tt->fd = -1;
     }
-  open_tun_generic (dev, dev_type, dev_node, ipv6, false, true, tt);
+  open_tun_generic (dev, dev_type, dev_node, false, true, tt);
 }
 
 #else
 
 void
-open_tun (const char *dev, const char *dev_type, const char *dev_node, bool ipv6, struct tuntap *tt)
+open_tun (const char *dev, const char *dev_type, const char *dev_node, struct tuntap *tt)
 {
   ASSERT (0);
 }
@@ -1231,9 +1461,9 @@ open_tun (const char *dev, const char *dev_type, const char *dev_node, bool ipv6
 #else
 
 void
-open_tun (const char *dev, const char *dev_type, const char *dev_node, bool ipv6, struct tuntap *tt)
+open_tun (const char *dev, const char *dev_type, const char *dev_node, struct tuntap *tt)
 {
-  open_tun_generic (dev, dev_type, dev_node, ipv6, false, true, tt);
+  open_tun_generic (dev, dev_type, dev_node, false, true, tt);
 }
 
 #endif /* HAVE_LINUX_IF_TUN_H */
@@ -1253,7 +1483,7 @@ open_tun (const char *dev, const char *dev_type, const char *dev_node, bool ipv6
 #endif
 
 void
-tuncfg (const char *dev, const char *dev_type, const char *dev_node, bool ipv6, int persist_mode, const char *username, const char *groupname, const struct tuntap_options *options)
+tuncfg (const char *dev, const char *dev_type, const char *dev_node, int persist_mode, const char *username, const char *groupname, const struct tuntap_options *options)
 {
   struct tuntap *tt;
 
@@ -1261,7 +1491,7 @@ tuncfg (const char *dev, const char *dev_type, const char *dev_node, bool ipv6, 
   clear_tuntap (tt);
   tt->type = dev_type_enum (dev, dev_type);
   tt->options = *options;
-  open_tun (dev, dev_type, dev_node, ipv6, tt);
+  open_tun (dev, dev_type, dev_node, tt);
   if (ioctl (tt->fd, TUNSETPERSIST, persist_mode) < 0)
     msg (M_ERR, "Cannot ioctl TUNSETPERSIST(%d) %s", persist_mode, dev);
   if (username != NULL)
@@ -1404,7 +1634,7 @@ read_tun (struct tuntap* tt, uint8_t *buf, int len)
 #endif
 
 void
-open_tun (const char *dev, const char *dev_type, const char *dev_node, bool ipv6, struct tuntap *tt)
+open_tun (const char *dev, const char *dev_type, const char *dev_node, struct tuntap *tt)
 {
   int if_fd, ip_muxid, arp_muxid, arp_fd, ppa = -1;
   struct lifreq ifr;
@@ -1415,7 +1645,10 @@ open_tun (const char *dev, const char *dev_type, const char *dev_node, bool ipv6
   bool is_tun;
   struct strioctl  strioc_if, strioc_ppa;
 
-  ipv6_support (ipv6, true, tt);
+  /* improved generic TUN/TAP driver from
+   * http://www.whiteboard.ne.jp/~admin2/tuntap/
+   * has IPv6 support
+   */
   memset(&ifr, 0x0, sizeof(ifr));
 
   if (tt->type == DEV_TYPE_NULL)
@@ -1570,6 +1803,18 @@ solaris_close_tun (struct tuntap *tt)
 {
   if (tt)
     {
+      /* IPv6 interfaces need to be 'manually' de-configured */
+      if ( tt->ipv6 && tt->did_ifconfig_ipv6_setup )
+	{
+	  struct argv argv;
+	  argv_init (&argv);
+	  argv_printf( &argv, "%s %s inet6 unplumb",
+		       IFCONFIG_PATH, tt->actual_name );
+	  argv_msg (M_INFO, &argv);
+	  openvpn_execve_check (&argv, NULL, 0, "Solaris ifconfig inet6 unplumb failed");
+	  argv_reset (&argv);
+	}
+
       if (tt->ip_fd >= 0)
 	{
           struct lifreq ifr;
@@ -1622,10 +1867,19 @@ close_tun (struct tuntap *tt)
 }
 
 static void
-solaris_error_close (struct tuntap *tt, const struct env_set *es, const char *actual)
+solaris_error_close (struct tuntap *tt, const struct env_set *es, 
+                     const char *actual, bool unplumb_inet6 )
 {
   struct argv argv;
   argv_init (&argv);
+
+  if (unplumb_inet6)
+    {
+      argv_printf( &argv, "%s %s inet6 unplumb",
+		   IFCONFIG_PATH, actual );
+      argv_msg (M_INFO, &argv);
+      openvpn_execve_check (&argv, es, 0, "Solaris ifconfig inet6 unplumb failed");
+    }
 
   argv_printf (&argv,
 		    "%s %s unplumb",
@@ -1683,9 +1937,9 @@ read_tun (struct tuntap* tt, uint8_t *buf, int len)
  */
 
 void
-open_tun (const char *dev, const char *dev_type, const char *dev_node, bool ipv6, struct tuntap *tt)
+open_tun (const char *dev, const char *dev_type, const char *dev_node, struct tuntap *tt)
 {
-  open_tun_generic (dev, dev_type, dev_node, ipv6, true, true, tt);
+  open_tun_generic (dev, dev_type, dev_node, true, true, tt);
 
   /* Enable multicast on the interface */
   if (tt->fd >= 0)
@@ -1708,12 +1962,31 @@ open_tun (const char *dev, const char *dev_type, const char *dev_node, bool ipv6
     }
 }
 
+/* the current way OpenVPN handles tun devices on OpenBSD leads to
+ * lingering tunX interfaces after close -> for a full cleanup, they
+ * need to be explicitely destroyed
+ */
+
 void
 close_tun (struct tuntap* tt)
 {
   if (tt)
     {
+      struct gc_arena gc = gc_new ();
+      struct argv argv;
+
+      /* setup command, close tun dev (clears tt->actual_name!), run command
+       */
+
+      argv_init (&argv);
+      argv_printf (&argv, "%s %s destroy",
+                          IFCONFIG_PATH, tt->actual_name);
+
       close_tun_generic (tt);
+
+      argv_msg (M_INFO, &argv);
+      openvpn_execve_check (&argv, NULL, 0, "OpenBSD 'destroy tun interface' failed (non-critical)");
+
       free (tt);
     }
 }
@@ -1776,39 +2049,116 @@ read_tun (struct tuntap* tt, uint8_t *buf, int len)
 #elif defined(TARGET_NETBSD)
 
 /*
- * NetBSD does not support IPv6 on tun out of the box,
- * but there exists a patch. When this patch is applied,
- * only two things are left to openvpn:
- * 1. Activate multicasting (this has already been done
- *    before by the kernel, but we make sure that nobody
- *    has deactivated multicasting inbetween.
- * 2. Deactivate "link layer mode" (otherwise NetBSD 
- *    prepends the address family to the packet, and we
- *    would run into the same trouble as with OpenBSD.
+ * NetBSD before 4.0 does not support IPv6 on tun out of the box,
+ * but there exists a patch (sys/net/if_tun.c, 1.79->1.80, see PR 32944).
+ *
+ * NetBSD 4.0 and up do, but we need to put the tun interface into
+ * "multi_af" mode, which will prepend the address family to all packets
+ * (same as OpenBSD and FreeBSD).  If this is not enabled, the kernel
+ * silently drops all IPv6 packets on output and gets confused on input.
+ *
+ * On earlier versions, multi_af is not available at all, so we have
+ * two different NetBSD code variants here :-(
+ *
  */
 
 void
-open_tun (const char *dev, const char *dev_type, const char *dev_node, bool ipv6, struct tuntap *tt)
+open_tun (const char *dev, const char *dev_type, const char *dev_node, struct tuntap *tt)
 {
-    open_tun_generic (dev, dev_type, dev_node, ipv6, true, true, tt);
+#ifdef NETBSD_MULTI_AF
+    open_tun_generic (dev, dev_type, dev_node, true, true, tt);
+#else
+    open_tun_generic (dev, dev_type, dev_node, false, true, tt);
+#endif
+
     if (tt->fd >= 0)
       {
         int i = IFF_POINTOPOINT|IFF_MULTICAST;
         ioctl (tt->fd, TUNSIFMODE, &i);  /* multicast on */
         i = 0;
         ioctl (tt->fd, TUNSLMODE, &i);   /* link layer mode off */
+
+#ifdef NETBSD_MULTI_AF
+        i = 1;
+        if (ioctl (tt->fd, TUNSIFHEAD, &i) < 0) 	/* multi-af mode on */
+	  {
+	    msg (M_WARN | M_ERRNO, "ioctl(TUNSIFHEAD): %s", strerror(errno));
+	  }
+#endif
       }
 }
 
 void
 close_tun (struct tuntap *tt)
 {
+  /* TODO: we really should cleanup non-persistant tunX with 
+   * "ifconfig tunX destroy" here...
+   */
   if (tt)
     {
       close_tun_generic (tt);
       free (tt);
     }
 }
+
+#ifdef NETBSD_MULTI_AF
+
+static inline int
+netbsd_modify_read_write_return (int len)
+{
+  if (len > 0)
+    return len > sizeof (u_int32_t) ? len - sizeof (u_int32_t) : 0;
+  else
+    return len;
+}
+
+int
+write_tun (struct tuntap* tt, uint8_t *buf, int len)
+{
+  if (tt->type == DEV_TYPE_TUN)
+    {
+      u_int32_t type;
+      struct iovec iv[2];
+      struct openvpn_iphdr *iph;
+
+      iph = (struct openvpn_iphdr *) buf;
+
+      if (tt->ipv6 && OPENVPN_IPH_GET_VER(iph->version_len) == 6)
+        type = htonl (AF_INET6);
+      else 
+        type = htonl (AF_INET);
+
+      iv[0].iov_base = (char *)&type;
+      iv[0].iov_len = sizeof (type);
+      iv[1].iov_base = buf;
+      iv[1].iov_len = len;
+
+      return netbsd_modify_read_write_return (writev (tt->fd, iv, 2));
+    }
+  else
+    return write (tt->fd, buf, len);
+}
+
+int
+read_tun (struct tuntap* tt, uint8_t *buf, int len)
+{
+  if (tt->type == DEV_TYPE_TUN)
+    {
+      u_int32_t type;
+      struct iovec iv[2];
+
+      iv[0].iov_base = (char *)&type;
+      iv[0].iov_len = sizeof (type);
+      iv[1].iov_base = buf;
+      iv[1].iov_len = len;
+
+      return netbsd_modify_read_write_return (readv (tt->fd, iv, 2));
+    }
+  else
+    return read (tt->fd, buf, len);
+}
+
+#else	/* not NETBSD_MULTI_AF -> older code, IPv4 only */
 
 int
 write_tun (struct tuntap* tt, uint8_t *buf, int len)
@@ -1821,6 +2171,7 @@ read_tun (struct tuntap* tt, uint8_t *buf, int len)
 {
     return read (tt->fd, buf, len);
 }
+#endif	/* NETBSD_MULTI_AF */
 
 #elif defined(TARGET_FREEBSD)
 
@@ -1834,9 +2185,9 @@ freebsd_modify_read_write_return (int len)
 }
 
 void
-open_tun (const char *dev, const char *dev_type, const char *dev_node, bool ipv6, struct tuntap *tt)
+open_tun (const char *dev, const char *dev_type, const char *dev_node, struct tuntap *tt)
 {
-  open_tun_generic (dev, dev_type, dev_node, ipv6, true, true, tt);
+  open_tun_generic (dev, dev_type, dev_node, true, true, tt);
 
   if (tt->fd >= 0 && tt->type == DEV_TYPE_TUN)
     {
@@ -1922,9 +2273,9 @@ dragonfly_modify_read_write_return (int len)
 }
 
 void
-open_tun (const char *dev, const char *dev_type, const char *dev_node, bool ipv6, struct tuntap *tt)
+open_tun (const char *dev, const char *dev_type, const char *dev_node, struct tuntap *tt)
 {
-  open_tun_generic (dev, dev_type, dev_node, ipv6, true, true, tt);
+  open_tun_generic (dev, dev_type, dev_node, true, true, tt);
 
   if (tt->fd >= 0)
     {
@@ -1991,6 +2342,61 @@ read_tun (struct tuntap* tt, uint8_t *buf, int len)
     }
   else
     return read (tt->fd, buf, len);
+}
+
+#elif defined(TARGET_DARWIN)
+
+/* Darwin (MacOS X) is mostly "just use the generic stuff", but there
+ * is always one caveat...:
+ *
+ * If IPv6 is configured, and the tun device is closed, the IPv6 address
+ * configured to the tun interface changes to a lingering /128 route
+ * pointing to lo0.  Need to unconfigure...  (observed on 10.5)
+ */
+
+void
+open_tun (const char *dev, const char *dev_type, const char *dev_node, struct tuntap *tt)
+{
+  open_tun_generic (dev, dev_type, dev_node, false, true, tt);
+}
+
+void
+close_tun (struct tuntap* tt)
+{
+  if (tt)
+    {
+      struct gc_arena gc = gc_new ();
+      struct argv argv;
+      argv_init (&argv);
+
+      if ( tt->ipv6 && tt->did_ifconfig_ipv6_setup )
+	{
+	  const char * ifconfig_ipv6_local =
+				print_in6_addr (tt->local_ipv6, 0, &gc);
+
+          argv_printf (&argv, "%s delete -inet6 %s",
+                              ROUTE_PATH, ifconfig_ipv6_local );
+	  argv_msg (M_INFO, &argv);
+	  openvpn_execve_check (&argv, NULL, 0, "MacOS X 'remove inet6 route' failed (non-critical)");
+	}
+
+      close_tun_generic (tt);
+      free (tt);
+      argv_reset (&argv);
+      gc_free (&gc);
+    }
+}
+
+int
+write_tun (struct tuntap* tt, uint8_t *buf, int len)
+{
+  return write (tt->fd, buf, len);
+}
+
+int
+read_tun (struct tuntap* tt, uint8_t *buf, int len)
+{
+  return read (tt->fd, buf, len);
 }
 
 #elif defined(WIN32)
@@ -3978,7 +4384,7 @@ fork_register_dns_action (struct tuntap *tt)
 }
 
 void
-open_tun (const char *dev, const char *dev_type, const char *dev_node, bool ipv6, struct tuntap *tt)
+open_tun (const char *dev, const char *dev_type, const char *dev_node, struct tuntap *tt)
 {
   struct gc_arena gc = gc_new ();
   char device_path[256];
@@ -3989,7 +4395,7 @@ open_tun (const char *dev, const char *dev_type, const char *dev_node, bool ipv6
 
   /*netcmd_semaphore_lock ();*/
 
-  ipv6_support (ipv6, false, tt);
+  msg( M_INFO, "open_tun, tt->ipv6=%d", tt->ipv6 );
 
   if (tt->type == DEV_TYPE_NULL)
     {
@@ -4111,6 +4517,16 @@ open_tun (const char *dev, const char *dev_type, const char *dev_node, bool ipv6
       msg (M_FATAL, "ERROR:  This version of " PACKAGE_NAME " requires a TAP-Win32 driver that is at least version %d.%d -- If you recently upgraded your " PACKAGE_NAME " distribution, a reboot is probably required at this point to get Windows to see the new driver.",
 	   TAP_WIN32_MIN_MAJOR,
 	   TAP_WIN32_MIN_MINOR);
+
+    /* usage of numeric constants is ugly, but this is really tied to
+     * *this* version of the driver
+     */
+    if ( tt->ipv6 && tt->type == DEV_TYPE_TUN &&
+         info[0] == 9 && info[1] < 8)
+      {
+	msg( M_INFO, "WARNING:  Tap-Win32 driver version %d.%d does not support IPv6 in TUN mode.  IPv6 will be disabled.  Upgrade to Tap-Win32 9.8 (2.2-beta3 release or later) or use TAP mode to get IPv6", (int) info[0], (int) info[1] );
+	tt->ipv6 = false;
+      }
   }
 
   /* get driver MTU */
@@ -4435,6 +4851,12 @@ close_tun (struct tuntap *tt)
 
   if (tt)
     {
+      if ( tt->ipv6 && tt->did_ifconfig_ipv6_setup )
+        {
+	  /* netsh interface ipv6 delete address \"%s\" %s */
+	  const char * ifconfig_ipv6_local = print_in6_addr (tt->local_ipv6, 0, &gc);
+	  msg( M_WARN, "TODO: remove IPv6 address %s", ifconfig_ipv6_local );
+	}
 #if 1
       if (tt->ipapi_context_defined)
 	{
@@ -4538,9 +4960,9 @@ ipset2ascii_all (struct gc_arena *gc)
 #else /* generic */
 
 void
-open_tun (const char *dev, const char *dev_type, const char *dev_node, bool ipv6, struct tuntap *tt)
+open_tun (const char *dev, const char *dev_type, const char *dev_node, struct tuntap *tt)
 {
-  open_tun_generic (dev, dev_type, dev_node, ipv6, false, true, tt);
+  open_tun_generic (dev, dev_type, dev_node, false, true, tt);
 }
 
 void

@@ -85,7 +85,7 @@ struct mroute_addr {
 /*
  * Number of bits in an address.  Should be raised for IPv6.
  */
-#define MR_HELPER_NET_LEN 32
+#define MR_HELPER_NET_LEN 129
 
 /*
  * Used to help maintain CIDR routing table.
@@ -127,6 +127,8 @@ struct mroute_helper *mroute_helper_init (int ageable_ttl_secs);
 void mroute_helper_free (struct mroute_helper *mh);
 void mroute_helper_add_iroute (struct mroute_helper *mh, const struct iroute *ir);
 void mroute_helper_del_iroute (struct mroute_helper *mh, const struct iroute *ir);
+void mroute_helper_add_iroute6 (struct mroute_helper *mh, const struct iroute_ipv6 *ir6);
+void mroute_helper_del_iroute6 (struct mroute_helper *mh, const struct iroute_ipv6 *ir6);
 
 /*
  * Given a raw packet in buf, return the src and dest

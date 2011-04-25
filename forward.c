@@ -259,7 +259,8 @@ send_control_channel_string (struct context *c, const char *str, int msglevel)
 static void
 check_add_routes_action (struct context *c, const bool errors)
 {
-  do_route (&c->options, c->c1.route_list, c->c1.tuntap, c->plugins, c->c2.es);
+  do_route (&c->options, c->c1.route_list, c->c1.route_ipv6_list,
+	    c->c1.tuntap, c->plugins, c->c2.es);
   update_time ();
   event_timeout_clear (&c->c2.route_wakeup);
   event_timeout_clear (&c->c2.route_wakeup_expire);

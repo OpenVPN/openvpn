@@ -52,6 +52,9 @@ struct ifconfig_pool
   int size;
   int type;
   bool duplicate_cn;
+  bool ipv6;
+  struct in6_addr base_ipv6;
+  unsigned int size_ipv6;
   struct ifconfig_pool_entry *list;
 };
 
@@ -63,13 +66,13 @@ struct ifconfig_pool_persist
 
 typedef int ifconfig_pool_handle;
 
-struct ifconfig_pool *ifconfig_pool_init (int type, in_addr_t start, in_addr_t end, const bool duplicate_cn);
+struct ifconfig_pool *ifconfig_pool_init (int type, in_addr_t start, in_addr_t end, const bool duplicate_cn, const bool ipv6_pool, const struct in6_addr ipv6_base, const int ipv6_netbits );
 
 void ifconfig_pool_free (struct ifconfig_pool *pool);
 
 bool ifconfig_pool_verify_range (const int msglevel, const in_addr_t start, const in_addr_t end);
 
-ifconfig_pool_handle ifconfig_pool_acquire (struct ifconfig_pool *pool, in_addr_t *local, in_addr_t *remote, const char *common_name);
+ifconfig_pool_handle ifconfig_pool_acquire (struct ifconfig_pool *pool, in_addr_t *local, in_addr_t *remote, struct in6_addr *remote_ipv6, const char *common_name);
 
 bool ifconfig_pool_release (struct ifconfig_pool* pool, ifconfig_pool_handle hand, const bool hard);
 

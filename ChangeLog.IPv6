@@ -1,0 +1,394 @@
+Do 31. Dez 15:32:40 CET 2009 Gert Doering
+
+  * Basic IPv6 p2mp functionality implemented
+
+  * new options:
+     - server-ipv6
+     - ifconfig-ipv6
+     - ifconfig-ipv6-pool
+     - route-ipv6
+     - iroute-ipv6
+
+  * modules touched:
+     - init.c: init & setup IPv6 route list & add/delete IPv6 routes
+     - tun.c: add "ifconfig" and "route" handling for IPv6
+     - multi.c: IPv6 ifconfig-pool assignments
+		put to route-hash table
+		push to client
+     - pool.c: extend pools to handle IPv4+IPv6, and also return IPv6 address
+	       IPv6 address saved to file if ifconfig-pool-persist is set
+	       (but ignored on read due to the way pools work)
+     - mroute.c: handle reading src/dst addresses from IPv6 packets
+		 (so multi.c can check against route-hash table)
+		 handle printing of IPv6 mroute_addr structure
+     - helper.c: implement "server-ipv6" macro (->ifconfig-ipv6, pool, ...)
+     - options.c: implement all the new options
+		  add helper functions for IPv6 address handling
+     - forward.c: tell do_route() about IPv6 routes
+     - route.c:   handle IPv6 route lists + route option lists
+		  extend add_routes() to do IPv4 + IPv6 route lists
+		  extend delete_routes() to do IPv4 + IPv6 route lists
+		  implement add_route_ipv6(), delete_route_ipv6() to call
+		  system-dependend external program to do the work
+     - push.c:    handle pushing of "ifconfig-ipv6" option
+     - socket.c:  helper function to check & print IPv6 address strings
+
+  * known issues:
+     - operating system support on all but Linux (ifconfig, route)
+     - route-ipv6 gateway handling
+     - iroute-ipv6 not implemented
+     - TAP support: ifconfig, routing (route needs gateway!)
+
+  * release as patch 20091231-1
+
+Thu Dec 31 17:02:08 CET 2009
+
+  * NetBSD port (NetBSD 3.1 on Sparc64)
+
+  * mroute.c, socket.c: make byte/word access to in6_addr more portable
+
+  * tun.c: fix IPv6 ifconfig arguments on NetBSD
+
+    still doesn't work on NetBSD 3.1, "ifconfig tun0 inet6..." errors with
+
+    ifconfig: SIOCAIFADDR: Address family not supported by protocol family
+
+    (sys/net/if_tun.c, needs to be revision 1.80 or later, NetBSD PR 32944,
+    included in NetBSD 4.0 and up)
+
+
+Fri Jan  1 14:07:15 CET 2010
+
+  * FreeBSD port (FreeBSD 6.3-p12 on i386)
+
+  * tun.c: implement IPv6 ifconfig setting for FreeBSD
+
+  * route.c: fix %s/%s argument to IPv6 route add/delete command for *BSD
+
+  * TEST SUCCESS: FreeBSD 6.3-p12, server-ipv6, route-ipv6, ccd/iroute-ipv6
+
+  * multi.c: implement setting and deleting of iroute-ipv6 
+             (multi_add_iroutes(), multi_del_iroutes())
+  * mroute.c: add mroute_helper_add_iroute6(), mroute_helper_del_iroute6()
+  * mroute.h: add prototypes, increase MR_HELPER_NET_LEN to 129 (/0.../128)
+  * multi.c: zeroize host part of IPv6 iroutes in multi_learn_in6_addr()
+  * mroute.c: implement mroute_addr_mask_host_bits() for IPv6
+
+  * TEST SUCCESS: Linux 2.6.30 (Gentoo)/iproute2, server-ipv6, ccd/iroute-ipv6
+
+  * TEST SUCCESS: Linux 2.6.30 (Gentoo)/ifconfig, client-ipv6
+
+  * TEST FAIL: NetBSD 5.0, IPv6 client
+     - "ifconfig tun0 .../64" does not create a "connected" route
+     - adding routes fails
+
+     --> more work to do here.
+
+  * release as patch 20100101-1
+
+  * TEST FAIL: 
+      FreeBSD 6.3-p12 server "--topology subnet"
+      Linux/ifconfig client
+    - BSD sends ICMP6 neighbor solicitations, which are ignored by Linux
+    - server tun interface is not in p2p mode, client tun interface *is*
+
+  * TEST SUCCESS: non-ipv6 enabled client -> "--server-ipv6" server
+    (warnings in the log file, but no malfunctions)
+
+
+Sat Jan  2 19:48:35 CET 2010
+
+  * tun.c: change "ipv6_support()", do not turn off tt->ipv6 unconditionally
+    if we don't know about OS IPv6 support - just log warning
+
+  * tun.c: implement "ifconfig inet6" setting for MacOS X / Darwin
+
+  * route.c: split *BSD system dependent part of add/delete_route_ipv6() 
+             into FreeBSD/Dragonfly and NetBSD/Darwin/OpenBSD variants 
+             ("2001:db8::/64" vs. "2001:db8:: --prefixlen 64").
+
+  * tun.c: on MacOS X, NetBSD and OpenBSD, explicitely set on-link route
+
+  * TEST SUCCESS: MacOS X, client-ipv6 with route-ipv6
+
+
+Sun Jan  3 10:55:31 CET 2010
+
+  * route.c: NetBSD fails with "-iface tun0", needs gateway address
+    (assume that the same syntax is needed for OpenBSD)
+
+  * route.h: introduce "remote_endpoint_ipv6" into "struct route_ipv6_list"
+
+  * init.c: pass "ifconfig_ipv6_remote" as gateway to init_route_ipv6_list()
+
+  * route.c: 
+    - init_route_ipv6(): use "remote_endpoint_ipv6" as IPv6 gateway address
+                         if no gateway was specified explicitely
+
+    - init_route_ipv6_list(): fill in "remote_endpoint_ipv6", if parseable
+
+    - get rid of "GATEWAY-LESS ROUTE6" warning
+
+  * route.c, add_route_ipv6()
+    - explicitely clear host bits of base address, to be able to more 
+      easily set up "connected" /64 routes on NetBSD+Darwin
+
+    - split system-dependent part between Darwin and NetBSD/OpenBSD
+      (Darwin can use "-iface tun0", NetBSD/OpenBSD get gateway address)
+
+    - change Solaris comments from "known-broken" to "unknown"
+
+  * tun.c: rework NetBSD tunnel initialization and tun_read() / tun_write()
+    to work the same way OpenBSD and NetBSD do - tunnel is put into 
+    "multi-af" mode, and all packet read/write activity is prepended by 
+    a 32 bit value specifying the address family.
+
+  * TEST SUCCESS: NetBSD 5.0/Sparc64: client-ipv6 with route-ipv6
+
+  * TEST SUCCESS: MacOS X 10.5: client-ipv6 with route-ipv6
+
+  * (RE-)TEST SUCCESS: Linux/iproute2: server-ipv6
+                       Linux/ifconfig: client-ipv6
+                       FreeBSD 6.3: server-ipv6
+
+  * release as patch 20100103-1
+
+  * options.c: document all new options in "--help"
+
+  * tun.c: fix typo in Solaris-specific section
+
+  * socket.h, socket.c: change u_int32_t to uint32_t 
+    (Solaris - and all the rest of the code uses "uintNN" anyway)
+
+Mon Jan  4 17:46:58 CET 2010
+
+  * socket.c: rework add_in6_addr() to use 32-bit access to struct in6_addr
+    (Solaris has no 16-bit values in union, but this is more elegant as well)
+
+  * tun.c: fix "ifconfig inet6" command for Solaris
+
+  * tun.c: make sure "tun0 inet6" is unplumbed first, cleanup leftovers
+
+  * route.c: add routes with "metric 0" on solaris, otherwise they just
+    don't work (someone who understands Solaris might want to fix this).
+
+  * Solaris "sort of" works now - ifconfig works, route add does not give
+    errors, "netstat -rn" looks right, but packets are discarded unless
+    the routes are installed with "metric 0".  So we just use "metric 0"...
+
+  * CAVEAT: Solaris "ifconfig ... preferred" interferes with source address
+    selection.  So if there are any active IPv6 interfaces configured with 
+    "preferred", packets leaving out the tunnel will use the wrong source
+    IPv6 address.  Not fixable from within OpenVPN.
+
+  * CAVEAT2: Solaris insists on doing DHCPv6 on tun0 interfaces by default,
+    so DHCPv6 solicitation packets will be seen.  Since the server end has
+    no idea what to do with them, they are a harmless nuisance.  Fixable
+    on the Solaris side via "ndpd.conf" (see ``man ifconfig'').
+
+  * release as patch 20100104-1
+
+Fri Jan  8 10:00:50 CET 2010
+
+  * import into git repository
+
+  * options.c: add sanity checks for most typical error cases
+    (--ifconfig-ipv6-pool configured with no --ifconfig-ipv6, etc)
+
+  * options.c: modify get_ipv6_addr() to be more flexible about netbits
+    (optional now, default to /64) and to return the address-without-netbits
+    string now (-> for options that want the IPv6 address in printable
+    form, but without /nn)
+
+  * options.c: modify --ifconfig-ipv6 to optionally accept /netbits,
+    you can do now "ifconfig-ipv6 2001:df8::1/64 2001:df8::2" or just
+    "ifconfig-ipv6 2001:df8::5 2001:df8::7", defaulting to /64
+
+  * options.h: add necessary structure elements for --ifconfig-ipv6-push
+
+  * options.c: implement "parse options" side of --ifconfig-ipv6-push
+
+Tue Jan 12 22:42:09 CET 2010
+
+  * tun.c: in TARGET_NETBSD #ifdef, distinguish between "old" code
+    (IPv4 only, but unmodified read/write) and "new" code (multi-af, 
+    extra 32 bit AF on read/write of the tun interface) - pre-4.0
+    NetBSD systems don't have TUNSIFHEAD, no way to have common code.
+
+  * TEST SUCCESS: NetBSD 5.0/Sparc64: client-ipv6 with route-ipv6 (v4+v6)
+
+  * TEST SUCCESS: NetBSD 3.1/Sparc64: client-ipv6 with route-ipv6 (v4-only)
+
+Thu Jan 14 15:41:50 CET 2010
+
+  * multi.c: if "--ifconfig-push" is used together with "--ifconfig-ipv6-pool"
+    and no "--ifconfig-ipv6-push" is seen, issue warning - the current
+    implementation of pools has IPv6 tied to IPv4, so if v4 does not use
+    the pool, it breaks for IPv6.  Not a *big* problem (since there is 
+    enough v6, just give those users a static v6 address as well), but needs
+    to be pointed out clearly.
+
+  * release as patch 20100114-1
+
+Tue Feb 16 14:43:28 CET 2010
+
+  * options.c: print "IPv6 payload patch" release date in "--version"
+
+  * tun.c: undo change to init_tun() (moving "bool tun" and call to
+    "is_tun_p2p()" further up) - it wasn't needed and breaks "make check"
+
+  * git stuff: rebase on David Sommerseth's openvpn-testing git tree
+
+  * release as patch 20100216-1
+
+Fri Feb 26 19:59:01 CET 2010
+
+  * init.c: initialize tuntap->ipv6 in do_init_tun() (to make sure it's
+    always initialized early-enough, independent of the sequence of
+    do_ifconfig()/open_tun() [see ifconfig_order() in tun.h])
+
+  * tun.c, init.c: remove "bool ipv6" argument to tuncfg(), open_tun()
+    and open_tun_generic() - obsoleted by previous change
+
+  * tun.c: remove ipv6_support() - original purpose was unclear, and all
+    current platforms (except linux-very-old) fully support IPv6 now :-)
+
+  * tun.c: initial implementation of "netsh" IPv6-ifconfig for Win32
+
+  * RE-TEST SUCCESS: Linux/i386/ifconfig, client-tun/net30, v4+v6
+
+Sun Feb 28 17:05:57 CET 2010
+
+  * tun.c: NetBSD dependent part: correct destroying/re-creation of tun dev
+
+  * tun.c: move adding of "connected" IPv6 prefix to new helper function,
+           add_route_connected_v6_net()
+
+  * RE-TEST SUCCESS: NetBSD 5.0/Sparc64, client-tun/net30, v4+v6
+
+  * RE-TEST SUCCESS: NetBSD 3.1/Sparc64: client-tun/net30, v4-only
+
+  * RE-TEST SUCCESS: Linux/i386/iproute2: server-tun/net30, v4+v6
+
+  * tun.c: add #ifdef TARGET_DARWIN block for *_tun() functions, to
+           be able to modify close_tun() for unconfiguring IPv6
+
+  * tun.c: on close_tun() on MacOS X, need to de-configure "lo0" route for
+           configured IPv6 address
+
+  * RE-TEST SUCCESS: MacOS X (10.5)/i386: client-tun/net30, v4+v6
+
+  * route.c: implement ipv6 route adding / deletion via "netsh" for WIN32
+
+  * TEST FAIL: Windows XP fails, because the tun/tap driver does not
+    forward IPv6 frames kernel->userland if in "tun" mode
+
+  * options.c: set IPv6 version to 20100228-1
+
+  * release as patch 20100228-1
+
+Sun Mar  7 19:17:33 CET 2010
+
+  * options.c: set IPv6 version to 20100307-1
+
+  * TODO.IPv6: add note about OpenBSD TODO (#16)
+
+  * route.c: set (and remove) "magic next hop" fe80::8 for IPv6 routes on
+    Win32
+
+  * install-win32/settings.in: bump TAP driver version from 9.6 to 9.7
+    and TAP_RELDATE to "07/03/2010"
+
+  * tap-win32/proto.h: add data types and definitions needed for IPv6
+
+  * tap-win32/types.h: add m_UserToTap_IPv6 ethernet header for IPv6 packets
+
+  * tap-win32/tapdrvr.c: implement support for IPv6 in TUN mode:
+     - IPv6 packets User->OS need correct ether type
+     - IPv6 packets OS->User get correctly forwarded
+     - IPv6 neighbour discovery packets for "fe80::8" (magic address
+       installed as route-nexthop by OpenVPN.exe) get answered locally
+
+  * TEST SUCCESS: WindowsXP/32bit: client-tun/net30, v4+v6
+
+  * tun.c: if IPv6 requested in TUN mode, and TUN/TAP driver version
+    is older than 9.7, log warning and disable IPv6 (won't work anyway).
+
+  * release as patch 20100307-1
+
+Sat Jul 10 14:37:52 CEST 2010
+
+  * TEST SUCCESS: point-to-point tun mode with --ifconfig-ipv6 between
+                  Solaris10/sparc and Linux (Michal Ludvig)
+    (using the whiteboard tun driver on Solaris, otherwise "no IPv6")
+
+Sun Aug  8 12:30:44 CEST 2010
+
+  * route.c: split NetBSD and OpenBSD parts of add_route_ipv6() and
+             delete_route_ipv6(), implement OpenBSD variant
+             (needs "-prefixlen nn" while NetBSD uses "/nn")
+
+  * tun.c: implement IPv6 ifconfig for OpenBSD
+
+  * tun.c: destroy tunX interface at tun_close() on OpenBSD (cleanup)
+
+  * TEST SUCCESS: OpenBSD 4.7: client-tun/net30, v4+v6
+
+Thu Sep  2 21:18:32 CEST 2010
+
+  * tun.c: the TAP binary in 2.2-beta3 has the IPv6 related changes, but
+    the version number is 9.8 now -> check for 9.8, not 9.7
+
+Wed Sep 22 22:20:37 CEST 2010
+
+  * tun.c: bugfix for Linux/iproute2/"topology subnet".  Works :-)
+
+  * TEST SUCCESS: Linux/ifconfig: client-tun/net30+subnet, v4+v6
+
+  * TEST SUCCESS: Linux/iproute2: client-tun/net30+subnet, v4+v6
+
+  * options.c: tag as 20100922-1 so "allmerged" users can see IPv6 change
+
+Fri Sep 24 17:57:41 CEST 2010
+
+  * TEST SUCCESS: Linux/<both>: client-tap, v4+v6, ping6 on connected addr
+
+  * TEST FAIL: Linux/<both>: client-tap, v6, route6 (gateway missing)
+
+Do 21. Okt 19:36:49 CEST 2010
+
+  * t_client.sh.in: cherrypick commit f25fe91a40aa3f and 6f1e61b41be52 
+    (proper exit codes to signal "SKIP" if we do not want to run)
+
+So 16. Jan 17:25:23 CET 2011
+
+  * tun.c, route.c: cherrypick 121755c2cb4891f and f0eac1a5979096c67
+    (TAP driver and "topology subnet" support for Solaris)
+
+  * tun.c: add IPv6 configuration for TAP interfaces (<device>:1 inet6)
+
+  * tun.c: on close_tun on Solaris, unplumb IPv6 TUN or TAP interfaces
+
+  * TEST SUCCESS: OpenSolaris: client-tun, v4+v6
+    TEST SUCCESS: OpenSolaris: client-tap, v4+v6, ping6 on connected addr
+    TEST FAIL: OpenSolaris: client-tap, v6, route6 (gateway missing)
+
+So 24. Apr 16:51:45 CEST 2011
+
+  * rebase to "beta2.2" branch (at 2.2RC2 tag)
+
+  * mroute.c: remove mroute_helper_lock/_unlock() calls for IPv6
+  * socket.c: remove locking with L_INET_NTOA mutex
+      (all the threading stuff got removed by David Sommerseth for 2.2)
+
+  * mroute.c: remove duplicate mroute_helper_add_iroute6() and
+              mroute_helper_del_iroute6() - "git rebase" artefact
+
+  * ChangeLog.IPv6 and TODO.IPv6: add to commit
+
+  * options.c: tag as 20110424-2 (2.2RC2)
+
+  * TEST SUCCESS: Linux/ifconfig: client-tun/net30+subnet, v4+v6
+
+  * TEST SUCCESS: Linux/iproute2: client-tun/net30+subnet, v4+v6
+

@@ -543,6 +543,24 @@ ip_addr_dotted_quad_safe (const char *dotted_quad)
   }
 }
 
+bool
+ipv6_addr_safe (const char *ipv6_text_addr)
+{
+  /* verify non-NULL */
+  if (!ipv6_text_addr)
+    return false;
+
+  /* verify length is within limits */
+  if (strlen (ipv6_text_addr) > INET6_ADDRSTRLEN )
+    return false;
+
+  /* verify that string will convert to IPv6 address */
+  {
+    struct in6_addr a6;
+    return inet_pton( AF_INET6, ipv6_text_addr, &a6 ) == 1;
+  }
+}
+
 static bool
 dns_addr_safe (const char *addr)
 {
@@ -2578,6 +2596,55 @@ print_in_addr_t (in_addr_t addr, unsigned int flags, struct gc_arena *gc)
   return BSTR (&out);
 }
 
+/*
+ * Convert an in6_addr in host byte order
+ * to an ascii representation of an IPv6 address
+ */
+const char *
+print_in6_addr (struct in6_addr a6, unsigned int flags, struct gc_arena *gc)
+{
+  struct buffer out = alloc_buf_gc (64, gc);
+  char tmp_out_buf[64];		/* inet_ntop wants pointer to buffer */
+
+  if ( memcmp(&a6, &in6addr_any, sizeof(a6)) != 0 || 
+       !(flags & IA_EMPTY_IF_UNDEF))
+    {
+      inet_ntop (AF_INET6, &a6, tmp_out_buf, sizeof(tmp_out_buf)-1);
+      buf_printf (&out, "%s", tmp_out_buf );
+    }
+  return BSTR (&out);
+}
+
+/* add some offset to an ipv6 address
+ * (add in steps of 32 bits, taking overflow into next round)
+ */
+#ifndef s6_addr32
+# ifdef TARGET_SOLARIS
+#  define s6_addr32 _S6_un._S6_u32
+# else
+#  define s6_addr32 __u6_addr.__u6_addr32
+# endif
+#endif
+#ifndef UINT32_MAX
+# define UINT32_MAX (4294967295U)
+#endif
+struct in6_addr add_in6_addr( struct in6_addr base, uint32_t add )
+{
+    int i;
+    uint32_t h;
+
+    for( i=3; i>=0 && add > 0 ; i-- )
+    {
+	h = ntohl( base.s6_addr32[i] );
+	base.s6_addr32[i] = htonl( (h+add) & UINT32_MAX );
+	/* 32-bit overrun? 
+	 * caveat: can't do "h+add > UINT32_MAX" with 32bit math!
+         */
+	add = ( h > UINT32_MAX - add )?  1: 0;
+    }
+    return base;
+}
+
 /* set environmental variables for ip/port in *addr */
 void
 setenv_sockaddr (struct env_set *es, const char *name_prefix, const struct openvpn_sockaddr *addr, const bool flags)
@@ -3080,6 +3147,58 @@ link_socket_write_udp_posix_sendmsg (struct link_socket *sock,
  */
 
 #ifdef WIN32
+
+/*
+ * inet_ntop() and inet_pton() wrap-implementations using
+ * WSAAddressToString() and WSAStringToAddress() functions
+ */
+const char *
+inet_ntop(int af, const void *src, char *dst, socklen_t size)
+{
+  struct sockaddr_storage ss;
+  unsigned long s = size;
+
+  CLEAR(ss);
+  ss.ss_family = af;
+
+  switch(af) {
+    case AF_INET:
+      ((struct sockaddr_in *)&ss)->sin_addr = *(struct in_addr *)src;
+      break;
+    case AF_INET6:
+      ((struct sockaddr_in6 *)&ss)->sin6_addr = *(struct in6_addr *)src;
+      break;
+    default:
+      ASSERT (0);
+  }
+  // cannot direclty use &size because of strict aliasing rules
+  return (WSAAddressToString((struct sockaddr *)&ss, sizeof(ss), NULL, dst, &s) == 0)?
+          dst : NULL;
+}
+
+int
+inet_pton(int af, const char *src, void *dst)
+{
+  struct sockaddr_storage ss;
+  int size = sizeof(ss);
+  char src_copy[INET6_ADDRSTRLEN+1];
+
+  CLEAR(ss);
+  // stupid non-const API
+  strncpynt(src_copy, src, INET6_ADDRSTRLEN+1);
+
+  if (WSAStringToAddress(src_copy, af, NULL, (struct sockaddr *)&ss, &size) == 0) {
+    switch(af) {
+      case AF_INET:
+	*(struct in_addr *)dst = ((struct sockaddr_in *)&ss)->sin_addr;
+	return 1;
+      case AF_INET6:
+	*(struct in6_addr *)dst = ((struct sockaddr_in6 *)&ss)->sin6_addr;
+	return 1;
+    }
+  }
+  return 0;
+}
 
 int
 socket_recv_queue (struct link_socket *sock, int maxsize)

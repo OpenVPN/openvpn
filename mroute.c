@@ -88,10 +88,31 @@ mroute_get_in_addr_t (struct mroute_addr *ma, const in_addr_t src, unsigned int 
     }
 }
 
+static inline void
+mroute_get_in6_addr (struct mroute_addr *ma, const struct in6_addr src, unsigned int mask)
+{
+  if (ma)
+    {
+      ma->type = MR_ADDR_IPV6 | mask;
+      ma->netbits = 0;
+      ma->len = 16;
+      *(struct in6_addr *)ma->addr = src;
+    }
+}
+
 static inline bool
 mroute_is_mcast (const in_addr_t addr)
 {
   return ((addr & htonl(IP_MCAST_SUBNET_MASK)) == htonl(IP_MCAST_NETWORK));
+}
+
+/* RFC 4291, 2.7, "binary 11111111 at the start of an address identifies 
+ *                 the address as being a multicast address"
+ */
+static inline bool
+mroute_is_mcast_ipv6 (const struct in6_addr addr)
+{
+  return (addr.s6_addr[0] == 0xff);
 }
 
 #ifdef ENABLE_PF
@@ -155,10 +176,29 @@ mroute_extract_addr_ipv4 (struct mroute_addr *src,
 	    }
 	  break;
 	case 6:
-	  {
-	    msg (M_WARN, "Need IPv6 code in mroute_extract_addr_from_packet"); 
-	    break;
-	  }
+	  if (BLEN (buf) >= (int) sizeof (struct openvpn_ipv6hdr))
+	    {
+	      const struct openvpn_ipv6hdr *ipv6 = (const struct openvpn_ipv6hdr *) BPTR (buf);
+#if 0				/* very basic debug */
+	      struct gc_arena gc = gc_new ();
+	      msg( M_INFO, "IPv6 packet! src=%s, dst=%s",
+			print_in6_addr( ipv6->saddr, 0, &gc ),
+			print_in6_addr( ipv6->daddr, 0, &gc ));
+	      gc_free (&gc);
+#endif
+
+	      mroute_get_in6_addr (src, ipv6->saddr, 0);
+	      mroute_get_in6_addr (dest, ipv6->daddr, 0);
+
+	      if (mroute_is_mcast_ipv6 (ipv6->daddr))
+		ret |= MROUTE_EXTRACT_MCAST;
+
+	      ret |= MROUTE_EXTRACT_SUCCEEDED;
+	    }
+	  break;
+	default:
+	    msg (M_WARN, "IP packet with unknown IP version=%d seen",
+	                 OPENVPN_IPH_GET_VER (*BPTR(buf)));
 	}
     }
   return ret;
@@ -274,14 +314,36 @@ bool mroute_extract_openvpn_sockaddr (struct mroute_addr *addr,
  * Zero off the host bits in an address, leaving
  * only the network bits, using the netbits member of
  * struct mroute_addr as the controlling parameter.
+ *
+ * TODO: this is called for route-lookup for every yet-unhashed
+ * destination address, so for lots of active net-iroutes, this
+ * might benefit from some "zeroize 32 bit at a time" improvements
  */
 void
 mroute_addr_mask_host_bits (struct mroute_addr *ma)
 {
   in_addr_t addr = ntohl(*(in_addr_t*)ma->addr);
-  ASSERT ((ma->type & MR_ADDR_MASK) == MR_ADDR_IPV4);
-  addr &= netbits_to_netmask (ma->netbits);
-  *(in_addr_t*)ma->addr = htonl (addr);
+  if ((ma->type & MR_ADDR_MASK) == MR_ADDR_IPV4)
+    {
+      addr &= netbits_to_netmask (ma->netbits);
+      *(in_addr_t*)ma->addr = htonl (addr);
+    }
+  else if ((ma->type & MR_ADDR_MASK) == MR_ADDR_IPV6)
+    {
+      int byte = ma->len-1;		/* rightmost byte in address */
+      int bits_to_clear = 128 - ma->netbits;
+
+      while( byte >= 0 && bits_to_clear > 0 )
+        {
+	  if ( bits_to_clear >= 8 )
+	    { ma->addr[byte--] = 0; bits_to_clear -= 8; }
+	  else
+	    { ma->addr[byte--] &= (~0 << bits_to_clear); bits_to_clear = 0; }
+        }
+      ASSERT( bits_to_clear == 0 );
+    }
+  else
+      ASSERT(0);
 }
 
 /*
@@ -359,17 +421,24 @@ mroute_addr_print_ex (const struct mroute_addr *ma,
 	  }
 	  break;
 	case MR_ADDR_IPV6:
-	  buf_printf (&out, "IPV6"); 
-	  break;
-	default:
-	  buf_printf (&out, "UNKNOWN"); 
-	  break;
-	}
-      return BSTR (&out);
-    }
-  else
-    return "[NULL]";
-}
+	  {
+	    buf_printf (&out, "%s",
+		  print_in6_addr( *(struct in6_addr*)&maddr.addr, 0, gc)); 
+	    if (maddr.type & MR_WITH_NETBITS)
+	      {
+		buf_printf (&out, "/%d", maddr.netbits);
+	      }
+	    }
+	    break;
+	  default:
+	    buf_printf (&out, "UNKNOWN"); 
+	    break;
+	  }
+	return BSTR (&out);
+      }
+    else
+      return "[NULL]";
+  }
 
 /*
  * mroute_helper's main job is keeping track of
@@ -436,6 +505,40 @@ mroute_helper_del_iroute (struct mroute_helper *mh, const struct iroute *ir)
       --mh->net_len_refcount[ir->netbits];
       ASSERT (mh->net_len_refcount[ir->netbits] >= 0);
       if (!mh->net_len_refcount[ir->netbits])
+	mroute_helper_regenerate (mh);
+    }
+}
+
+/* this is a bit inelegant, we really should have a helper to that 
+ * is only passed the netbits value, and not the whole struct iroute *
+ * - thus one helper could do IPv4 and IPv6.  For the sake of "not change
+ * code unrelated to IPv4" this is left for later cleanup, for now.
+ */
+void
+mroute_helper_add_iroute6 (struct mroute_helper *mh, 
+                           const struct iroute_ipv6 *ir6)
+{
+  if (ir6->netbits >= 0)
+    {
+      ASSERT (ir6->netbits < MR_HELPER_NET_LEN);
+      ++mh->cache_generation;
+      ++mh->net_len_refcount[ir6->netbits];
+      if (mh->net_len_refcount[ir6->netbits] == 1)
+	mroute_helper_regenerate (mh);
+    }
+}
+
+void
+mroute_helper_del_iroute6 (struct mroute_helper *mh, 
+			   const struct iroute_ipv6 *ir6)
+{
+  if (ir6->netbits >= 0)
+    {
+      ASSERT (ir6->netbits < MR_HELPER_NET_LEN);
+      ++mh->cache_generation;
+      --mh->net_len_refcount[ir6->netbits];
+      ASSERT (mh->net_len_refcount[ir6->netbits] >= 0);
+      if (!mh->net_len_refcount[ir6->netbits])
 	mroute_helper_regenerate (mh);
     }
 }

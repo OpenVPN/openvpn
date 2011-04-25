@@ -272,6 +272,8 @@ char *get_win_sys_path (void);
 
 /* call self in a subprocess */
 void fork_to_self (const char *cmdline);
+const char *inet_ntop(int af, const void *src, char *dst, socklen_t size);
+int inet_pton(int af, const char *src, void *st);
 
 /* Find temporary directory */
 const char *win_get_tempdir();

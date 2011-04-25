@@ -789,6 +789,8 @@ or
 .B \-\-dev tunX.
 A warning will be displayed
 if no specific IPv6 TUN support for your OS has been compiled into OpenVPN.
+
+See below for further IPv6-related configuration options.
 .\"*********************************************************
 .TP
 .B \-\-dev-node node
@@ -4935,6 +4937,57 @@ if certificates are stored as private objects.
 
 .B \-\-verb
 option can be used BEFORE this option to produce debugging information.
+.\"*********************************************************
+.SS IPv6 Related Options
+.\"*********************************************************
+The following options exist to support IPv6 tunneling in peer-to-peer
+and client-server mode.  As of now, this is just very basic
+documentation of the IPv6-related options. More documentation can be
+found on http://www.greenie.net/ipv6/openvpn.html.
+.TP
+.B --ifconfig-ipv6 ipv6addr/bits ipv6remote
+configure IPv6 address
+.B ipv6addr/bits
+on the ``tun'' device.  The second parameter is used as route target for
+.B --route-ipv6
+if no gateway is specified.
+.TP
+.B --route-ipv6 ipv6addr/bits [gateway] [metric]
+setup IPv6 routing in the system to send the specified IPv6 network
+into OpenVPN's ``tun'' device
+.TP
+.B --server-ipv6 ipv6addr/bits
+convenience-function to enable a number of IPv6 related options at
+once, namely
+.B --ifconfig-ipv6, --ifconfig-ipv6-pool, --tun-ipv6
+and
+.B --push tun-ipv6
+Is only accepted if ``--mode server'' or ``--server'' is set.
+.TP
+.B --ifconfig-ipv6-pool ipv6addr/bits
+Specify an IPv6 address pool for dynamic assignment to clients.  The
+pool starts at
+.B ipv6addr
+and increments by +1 for every new client (linear mode).  The
+.B /bits
+setting controls the size of the pool.
+.TP
+.B --ifconfig-ipv6-push ipv6addr/bits ipv6remote
+for ccd/ per-client static IPv6 interface configuration, see
+.B --client-config-dir
+and
+.B --ifconfig-push
+for more details.
+.TP
+.B --iroute-ipv6 ipv6addr/bits
+for ccd/ per-client static IPv6 route configuration, see
+.B --iroute
+for more details how to setup and use this, and how
+.B --iroute
+and
+.B --route
+interact.
+
 .\"*********************************************************
 .SH SCRIPTING AND ENVIRONMENTAL VARIABLES
 OpenVPN exports a series

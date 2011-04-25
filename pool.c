@@ -132,7 +132,10 @@ ifconfig_pool_verify_range (const int msglevel, const in_addr_t start, const in_
 }
 
 struct ifconfig_pool *
-ifconfig_pool_init (int type, in_addr_t start, in_addr_t end, const bool duplicate_cn)
+ifconfig_pool_init (int type, in_addr_t start, in_addr_t end, 
+		    const bool duplicate_cn,
+		    const bool ipv6_pool, const struct in6_addr ipv6_base, 
+		    const int ipv6_netbits )
 {
   struct gc_arena gc = gc_new ();
   struct ifconfig_pool *pool = NULL;
@@ -157,11 +160,31 @@ ifconfig_pool_init (int type, in_addr_t start, in_addr_t end, const bool duplica
       ASSERT (0);
     }
 
+  /* IPv6 pools are always "INDIV" type */
+  pool->ipv6 = ipv6_pool;
+
+  if ( pool->ipv6 )
+    {
+      pool->base_ipv6 = ipv6_base;
+      pool->size_ipv6 = ipv6_netbits>96? ( 1<<(128-ipv6_netbits) ) 
+				       : IFCONFIG_POOL_MAX;
+
+      msg( D_IFCONFIG_POOL, "IFCONFIG POOL IPv6: (IPv4) size=%d, size_ipv6=%d, netbits=%d, base_ipv6=%s",
+			    pool->size, pool->size_ipv6, ipv6_netbits,
+			    print_in6_addr( pool->base_ipv6, 0, &gc ));
+
+      /* the current code is very simple and assumes that the IPv6
+       * pool is at least as big as the IPv4 pool, and we don't need
+       * to do separate math etc. for IPv6
+       */
+      ASSERT( pool->size < pool->size_ipv6 );
+    }
+
   ALLOC_ARRAY_CLEAR (pool->list, struct ifconfig_pool_entry, pool->size);
 
-  msg (D_IFCONFIG_POOL, "IFCONFIG POOL: base=%s size=%d",
+  msg (D_IFCONFIG_POOL, "IFCONFIG POOL: base=%s size=%d, ipv6=%d",
        print_in_addr_t (pool->base, 0, &gc),
-       pool->size);
+       pool->size, pool->ipv6 );
 
   gc_free (&gc);
   return pool;
@@ -181,7 +204,7 @@ ifconfig_pool_free (struct ifconfig_pool *pool)
 }
 
 ifconfig_pool_handle
-ifconfig_pool_acquire (struct ifconfig_pool *pool, in_addr_t *local, in_addr_t *remote, const char *common_name)
+ifconfig_pool_acquire (struct ifconfig_pool *pool, in_addr_t *local, in_addr_t *remote, struct in6_addr *remote_ipv6, const char *common_name)
 {
   int i;
 
@@ -213,6 +236,12 @@ ifconfig_pool_acquire (struct ifconfig_pool *pool, in_addr_t *local, in_addr_t *
 	  }
 	default:
 	  ASSERT (0);
+	}
+
+      /* IPv6 pools are always INDIV (--linear) */
+      if ( pool->ipv6 && remote_ipv6 )
+	{
+	  *remote_ipv6 = add_in6_addr( pool->base_ipv6, i );
 	}
     }
   return i;
@@ -288,6 +317,19 @@ ifconfig_pool_handle_to_ip_base (const struct ifconfig_pool* pool, ifconfig_pool
   return ret;
 }
 
+static struct in6_addr
+ifconfig_pool_handle_to_ipv6_base (const struct ifconfig_pool* pool, ifconfig_pool_handle hand)
+{
+  struct in6_addr ret = in6addr_any;
+
+  /* IPv6 pools are always INDIV (--linear) */
+  if (hand >= 0 && hand < pool->size_ipv6 )
+    {
+      ret = add_in6_addr( pool->base_ipv6, hand );
+    }
+  return ret;
+}
+
 static void
 ifconfig_pool_set (struct ifconfig_pool* pool, const char *cn, const in_addr_t addr, const bool fixed)
 {
@@ -317,9 +359,20 @@ ifconfig_pool_list (const struct ifconfig_pool* pool, struct status_output *out)
 	  if (e->common_name)
 	    {
 	      const in_addr_t ip = ifconfig_pool_handle_to_ip_base (pool, i);
-	      status_printf (out, "%s,%s",
-			     e->common_name,
-			     print_in_addr_t (ip, 0, &gc));
+	      if ( pool->ipv6 )
+		{
+		  struct in6_addr ip6 = ifconfig_pool_handle_to_ipv6_base (pool, i);
+		  status_printf (out, "%s,%s,%s",
+				 e->common_name,
+				 print_in_addr_t (ip, 0, &gc),
+				 print_in6_addr (ip6, 0, &gc));
+		}
+	      else
+		{
+		  status_printf (out, "%s,%s",
+				 e->common_name,
+				 print_in_addr_t (ip, 0, &gc));
+		}
 	    }
 	}
       gc_free (&gc);
@@ -409,6 +462,9 @@ ifconfig_pool_read (struct ifconfig_pool_persist *persist, struct ifconfig_pool 
 	      int c = *BSTR(&in);
 	      if (c == '#' || c == ';')
 		continue;
+	      msg( M_INFO, "ifconfig_pool_read(), in='%s', TODO: IPv6",
+				BSTR(&in) );
+
 	      if (buf_parse (&in, ',', cn_buf, buf_size)
 		  && buf_parse (&in, ',', ip_buf, buf_size))
 		{
@@ -416,6 +472,7 @@ ifconfig_pool_read (struct ifconfig_pool_persist *persist, struct ifconfig_pool 
 		  const in_addr_t addr = getaddr (GETADDR_HOST_ORDER, ip_buf, 0, &succeeded, NULL);
 		  if (succeeded)
 		    {
+		      msg( M_INFO, "succeeded -> ifconfig_pool_set()");
 		      ifconfig_pool_set (pool, cn_buf, addr, persist->fixed);
 		    }
 		}
@@ -471,7 +528,7 @@ ifconfig_pool_test (in_addr_t start, in_addr_t end)
 #else
       cn = buf;
 #endif
-      h = ifconfig_pool_acquire (p, &local, &remote, cn);
+      h = ifconfig_pool_acquire (p, &local, &remote, NULL, cn);
       if (h < 0)
 	break;
       msg (M_INFO | M_NOPREFIX, "IFCONFIG_POOL TEST pass 1: l=%s r=%s cn=%s",
@@ -506,7 +563,7 @@ ifconfig_pool_test (in_addr_t start, in_addr_t end)
 #else
       cn = buf;
 #endif
-      h = ifconfig_pool_acquire (p, &local, &remote, cn);
+      h = ifconfig_pool_acquire (p, &local, &remote, NULL, cn);
       if (h < 0)
 	break;
       msg (M_INFO | M_NOPREFIX, "IFCONFIG_POOL TEST pass 3: l=%s r=%s cn=%s",
