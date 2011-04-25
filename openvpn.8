@@ -3887,6 +3887,22 @@ that for certificate authority functions, you must set up the files
 ).
 .\"*********************************************************
 .TP
+.B --extra-certs file
+Specify a
+.B file
+containing one or more PEM certs (concatenated together)
+that complete the
+local certificate chain.
+
+This option is useful for "split" CAs, where the CA for server
+certs is different than the CA for client certs.  Putting certs
+in this file allows them to be used to complete the local
+certificate chain without trusting them to verify the peer-submitted
+certificate, as would be the case if the certs were placed in the
+.B ca
+file.
+.\"*********************************************************
+.TP
 .B --key file
 Local peer's private key in .pem format.  Use the private key which was generated
 when you built your peer's certificate (see
@@ -3901,6 +3917,17 @@ This option can be used instead of
 .B --ca, --cert,
 and
 .B --key.
+.\"*********************************************************
+.TP
+.B --verify-hash hash
+Specify SHA1 fingerprint for level-1 cert.  The level-1 cert is the
+CA (or intermediate cert) that signs the leaf certificate, and is
+one removed from the leaf certificate in the direction of the root.
+When accepting a connection from a peer, the level-1 cert
+fingerprint must match
+.B hash
+or certificate verification will fail.  Hash is specified
+as XX:XX:...  For example: AD:B0:95:D8:09:C8:36:45:12:A9:89:C8:90:09:CB:13:72:A6:AD:16
 .\"*********************************************************
 .TP
 .B --pkcs11-cert-private [0|1]...

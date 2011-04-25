@@ -1706,8 +1706,10 @@ socket_restart_pause (struct context *c)
   if (auth_retry_get () == AR_NOINTERACT)
     sec = 10;
 
+#if 0 /* not really needed because of c->persist.restart_sleep_seconds */
   if (c->options.server_poll_timeout && sec > 1)
     sec = 1;
+#endif
 #endif
 
   if (c->persist.restart_sleep_seconds > 0 && c->persist.restart_sleep_seconds > sec)
@@ -2057,6 +2059,7 @@ do_init_crypto_tls (struct context *c, const unsigned int flags)
   to.ns_cert_type = options->ns_cert_type;
   memmove (to.remote_cert_ku, options->remote_cert_ku, sizeof (to.remote_cert_ku));
   to.remote_cert_eku = options->remote_cert_eku;
+  to.verify_hash = options->verify_hash;
   to.es = c->c2.es;
 
 #ifdef ENABLE_DEBUG
