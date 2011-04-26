@@ -319,10 +319,10 @@ journal_add (const char *journal_dir, struct proxy_connection *pc, struct proxy_
   char *jfn;
   int fd;
 
-  slen = sizeof(from.sa);
-  dlen = sizeof(to.sa);
-  if (!getpeername (pc->sd, (struct sockaddr *) &from.sa, &slen)
-      && !getsockname (cp->sd, (struct sockaddr *) &to.sa, &dlen))
+  slen = sizeof(from.addr.sa);
+  dlen = sizeof(to.addr.sa);
+  if (!getpeername (pc->sd, (struct sockaddr *) &from.addr.sa, &slen)
+      && !getsockname (cp->sd, (struct sockaddr *) &to.addr.sa, &dlen))
     {
       const char *f = print_sockaddr_ex (&from, ":", PS_SHOW_PORT, &gc);
       const char *t = print_sockaddr_ex (&to, ":", PS_SHOW_PORT, &gc);

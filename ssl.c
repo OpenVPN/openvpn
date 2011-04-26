@@ -585,6 +585,9 @@ bool extract_x509_extension(X509 *cert, char *fieldname, char *out, int size)
         sk_GENERAL_NAME_free (extensions);
     }
   return retval;
+}
+#endif /* ENABLE_X509ALTUSERNAME */
+
 #ifdef ENABLE_X509_TRACK
 /*
  * setenv_x509_track function -- save X509 fields to environment,
