@@ -27,12 +27,14 @@
 
 #ifdef USE_LZO
 
+#ifndef LZO_STUB
 #ifdef LZO_HEADER_DIR
 #include "lzo/lzoutil.h"
 #include "lzo/lzo1x.h"
 #else
 #include "lzoutil.h"
 #include "lzo1x.h"
+#endif
 #endif
 
 #include "buffer.h"
@@ -44,6 +46,18 @@
 #define LZO_SELECTED   (1<<0)
 #define LZO_ON         (1<<1)
 #define LZO_ADAPTIVE   (1<<2)  
+
+/*
+ * Length of prepended prefix on LZO packets
+ */ 
+#define LZO_PREFIX_LEN 1
+
+/*
+ * LZO 2.0 worst case size expansion
+ */
+#define LZO_EXTRA_BUFFER(len) ((len)/8 + 128 + 3)
+
+#ifndef LZO_STUB
 
 /*
  * Use LZO compress routine lzo1x_1_15_compress which is described
@@ -58,17 +72,10 @@
 #define LZO_WORKSPACE	LZO1X_1_15_MEM_COMPRESS
 #define LZO_DECOMPRESS  lzo1x_decompress_safe
 
-#define LZO_EXTRA_BUFFER(len) ((len)/8 + 128 + 3)	/* LZO 2.0 worst case size expansion. */
-
 /*
  * Don't try to compress any packet smaller than this.
  */
 #define COMPRESS_THRESHOLD 100
-
-/*
- * Length of prepended prefix on LZO packets
- */ 
-#define LZO_PREFIX_LEN 1
 
 /*
  * Adaptive compress parameters
@@ -88,23 +95,27 @@ struct lzo_adaptive_compress {
   int n_comp;
 };
 
+#endif /* LZO_STUB */
+
 /*
  * Compress and Uncompress routines.
  */
 
 struct lzo_compress_workspace
 {
+  bool defined;
+  unsigned int flags;
+#ifndef LZO_STUB
   lzo_voidp wmem;
   int wmem_size;
   struct lzo_adaptive_compress ac;
-  unsigned int flags;
-  bool defined;
 
   /* statistics */
   counter_type pre_decompress;
   counter_type post_decompress;
   counter_type pre_compress;
   counter_type post_compress;
+#endif
 };
 
 void lzo_adjust_frame_parameters(struct frame *frame);

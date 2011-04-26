@@ -82,7 +82,9 @@ openvpn_SOURCES = \
 	basic.h \
 	buffer.c buffer.h \
 	circ_list.h \
+	clinat.c clinat.h \
 	common.h \
+	config-win32.h \
 	crypto.c crypto.h \
 	dhcp.c dhcp.h \
 	errlevel.h \

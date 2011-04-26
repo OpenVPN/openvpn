@@ -284,7 +284,7 @@ bool buf_puts (struct buffer *buf, const char *str);
 /*
  * Like snprintf but guarantees null termination for size > 0
  */
-int openvpn_snprintf(char *str, size_t size, const char *format, ...)
+bool openvpn_snprintf(char *str, size_t size, const char *format, ...)
 #ifdef __GNUC__
     __attribute__ ((format (printf, 3, 4)))
 #endif

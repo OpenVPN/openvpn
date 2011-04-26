@@ -155,7 +155,9 @@ check_incoming_control_channel_dowork (struct context *c)
 	  else if (buf_string_match_head_str (&buf, "PUSH_"))
 	    incoming_push_message (c, &buf);
 	  else if (buf_string_match_head_str (&buf, "RESTART"))
-	    server_pushed_restart (c, &buf);
+	    server_pushed_signal (c, &buf, true, 7);
+	  else if (buf_string_match_head_str (&buf, "HALT"))
+	    server_pushed_signal (c, &buf, false, 4);
 	  else
 	    msg (D_PUSH_ERRORS, "WARNING: Received unknown control message: %s", BSTR (&buf));
 	}
@@ -176,8 +178,8 @@ check_push_request_dowork (struct context *c)
 {
   send_push_request (c);
 
-  /* if no response to first push_request, retry at 5 second intervals */
-  event_timeout_modify_wakeup (&c->c2.push_request_interval, 5);
+  /* if no response to first push_request, retry at PUSH_REQUEST_INTERVAL second intervals */
+  event_timeout_modify_wakeup (&c->c2.push_request_interval, PUSH_REQUEST_INTERVAL);
 }
 
 #endif /* P2MP */
@@ -230,22 +232,28 @@ bool
 send_control_channel_string (struct context *c, const char *str, int msglevel)
 {
 #if defined(USE_CRYPTO) && defined(USE_SSL)
-
   if (c->c2.tls_multi) {
+    struct gc_arena gc = gc_new ();
     bool stat;
 
     /* buffered cleartext write onto TLS control channel */
     stat = tls_send_payload (c->c2.tls_multi, (uint8_t*) str, strlen (str) + 1);
 
-    /* reschedule tls_multi_process */
+    /*
+     * Reschedule tls_multi_process.
+     * NOTE: in multi-client mode, usually the below two statements are
+     * insufficient to reschedule the client instance object unless
+     * multi_schedule_context_wakeup(m, mi) is also called.
+     */
     interval_action (&c->c2.tmp_int);
     context_immediate_reschedule (c); /* ZERO-TIMEOUT */
 
     msg (msglevel, "SENT CONTROL [%s]: '%s' (status=%d)",
 	 tls_common_name (c->c2.tls_multi, false),
-	 str,
+	 sanitize_control_message (str, &gc),
 	 (int) stat);
 
+    gc_free (&gc);
     return stat;
   }
 #endif
@@ -968,7 +976,7 @@ process_incoming_tun (struct context *c)
        * The --passtos and --mssfix options require
        * us to examine the IPv4 header.
        */
-      process_ipv4_header (c, PIPV4_PASSTOS|PIPV4_MSSFIX, &c->c2.buf);
+      process_ipv4_header (c, PIPV4_PASSTOS|PIPV4_MSSFIX|PIPV4_CLIENT_NAT, &c->c2.buf);
 
 #ifdef PACKET_TRUNCATION_CHECK
       /* if (c->c2.buf.len > 1) --c->c2.buf.len; */
@@ -1026,6 +1034,14 @@ process_ipv4_header (struct context *c, unsigned int flags, struct buffer *buf)
 	      if (flags & PIPV4_MSSFIX)
 		mss_fixup (&ipbuf, MTU_TO_MSS (TUN_MTU_SIZE_DYNAMIC (&c->c2.frame)));
 
+#ifdef ENABLE_CLIENT_NAT
+	      /* possibly do NAT on packet */
+	      if ((flags & PIPV4_CLIENT_NAT) && c->options.client_nat)
+		{
+		  const int direction = (flags & PIPV4_OUTGOING) ? CN_INCOMING : CN_OUTGOING;
+		  client_nat_transform (c->options.client_nat, &ipbuf, direction);
+		}
+#endif
 	      /* possibly extract a DHCP router message */
 	      if (flags & PIPV4_EXTRACT_DHCP_ROUTER)
 		{
@@ -1188,7 +1204,7 @@ process_outgoing_tun (struct context *c)
    * The --mssfix option requires
    * us to examine the IPv4 header.
    */
-  process_ipv4_header (c, PIPV4_MSSFIX|PIPV4_EXTRACT_DHCP_ROUTER|PIPV4_OUTGOING, &c->c2.to_tun);
+  process_ipv4_header (c, PIPV4_MSSFIX|PIPV4_EXTRACT_DHCP_ROUTER|PIPV4_CLIENT_NAT|PIPV4_OUTGOING, &c->c2.to_tun);
 
   if (c->c2.to_tun.len <= MAX_RW_SIZE_TUN (&c->c2.frame))
     {

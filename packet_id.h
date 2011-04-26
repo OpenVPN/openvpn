@@ -138,8 +138,11 @@ struct packet_id_rec
   packet_id_type id;          /* highest sequence number received */
   int seq_backtrack;          /* set from --replay-window */
   int time_backtrack;         /* set from --replay-window */
+  int max_backtrack_stat;     /* maximum backtrack seen so far */
   bool initialized;           /* true if packet_id_init was called */
   struct seq_list *seq_list;  /* packet-id "memory" */
+  const char *name;
+  int unit;
 };
 
 /*
@@ -207,11 +210,11 @@ struct packet_id
   struct packet_id_rec rec;
 };
 
-void packet_id_init (struct packet_id *p, int seq_backtrack, int time_backtrack);
+void packet_id_init (struct packet_id *p, bool tcp_mode, int seq_backtrack, int time_backtrack, const char *name, int unit);
 void packet_id_free (struct packet_id *p);
 
 /* should we accept an incoming packet id ? */
-bool packet_id_test (const struct packet_id_rec *p,
+bool packet_id_test (struct packet_id_rec *p,
 		     const struct packet_id_net *pin);
 
 /* change our current state to reflect an accepted packet id */

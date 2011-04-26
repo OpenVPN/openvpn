@@ -41,6 +41,7 @@
 #include "proxy.h"
 #include "lzo.h"
 #include "pushlist.h"
+#include "clinat.h"
 
 /*
  * Maximum number of parameters associated with an option,
@@ -66,6 +67,11 @@ struct options_pre_pull
 
   bool routes_defined;
   struct route_option_list *routes;
+
+#ifdef ENABLE_CLIENT_NAT
+  bool client_nat_defined;
+  struct client_nat_option_list *client_nat;
+#endif
 
   int foreign_option_index;
 };
@@ -334,6 +340,10 @@ struct options
   bool route_gateway_via_dhcp;
   bool allow_pull_fqdn; /* as a client, allow server to push a FQDN for certain parameters */
 
+#ifdef ENABLE_CLIENT_NAT
+  struct client_nat_option_list *client_nat;
+#endif
+
 #ifdef ENABLE_OCC
   /* Enable options consistency check between peers */
   bool occ;
@@ -410,6 +420,9 @@ struct options
   bool push_ifconfig_defined;
   in_addr_t push_ifconfig_local;
   in_addr_t push_ifconfig_remote_netmask;
+#ifdef ENABLE_CLIENT_NAT
+  in_addr_t push_ifconfig_local_alias;
+#endif
   bool push_ifconfig_constraint_defined;
   in_addr_t push_ifconfig_constraint_network;
   in_addr_t push_ifconfig_constraint_netmask;
@@ -426,10 +439,10 @@ struct options
 
   const char *auth_user_pass_verify_script;
   bool auth_user_pass_verify_script_via_file;
-  unsigned int ssl_flags; /* set to SSLF_x flags from ssl.h */
 #if PORT_SHARE
   char *port_share_host;
   int port_share_port;
+  const char *port_share_journal_dir;
 #endif
 #endif
 
@@ -476,6 +489,7 @@ struct options
   const char *ca_path;
   const char *dh_file;
   const char *cert_file;
+  const char *extra_certs_file;
   const char *priv_key_file;
   const char *pkcs12_file;
   const char *cipher_list;
@@ -487,6 +501,7 @@ struct options
 #if ENABLE_INLINE_FILES
   const char *ca_file_inline;
   const char *cert_file_inline;
+  const char *extra_certs_file_inline;
   char *priv_key_file_inline;
   const char *dh_file_inline;
   const char *pkcs12_file_inline; /* contains the base64 encoding of pkcs12 file */
@@ -495,6 +510,8 @@ struct options
   int ns_cert_type; /* set to 0, NS_SSL_SERVER, or NS_SSL_CLIENT */
   unsigned remote_cert_ku[MAX_PARMS];
   const char *remote_cert_eku;
+  uint8_t *verify_hash;
+  unsigned int ssl_flags; /* set to SSLF_x flags from ssl.h */
 
 #ifdef ENABLE_PKCS11
   const char *pkcs11_providers[MAX_PARMS];
@@ -550,6 +567,10 @@ struct options
 
 #endif /* USE_SSL */
 #endif /* USE_CRYPTO */
+
+#ifdef ENABLE_X509_TRACK
+  const struct x509_track *x509_track;
+#endif
 
   /* special state parms */
   int foreign_option_index;

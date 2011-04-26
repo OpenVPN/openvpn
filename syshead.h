@@ -599,6 +599,13 @@ socket_defined (const socket_descriptor_t sd)
 #endif
 
 /*
+ * Enable x509-track feature?
+ */
+#if defined(USE_CRYPTO) && defined(USE_SSL)
+#define ENABLE_X509_TRACK
+#endif
+
+/*
  * Is poll available on this platform?
  */
 #if defined(HAVE_POLL) && defined(HAVE_SYS_POLL_H)
@@ -675,5 +682,22 @@ socket_defined (const socket_descriptor_t sd)
  * Do we support pushing peer info?
  */
 #define ENABLE_PUSH_PEER_INFO
+
+/*
+ * Do we support internal client-side NAT?
+ */
+#define ENABLE_CLIENT_NAT
+
+/*
+ * Support LZO as a stub in client? (LZO lib not included, but we
+ * we still support LZO protocol changes that allow us to
+ * communicate with an LZO-enabled server)
+ */
+#ifdef LZO_STUB
+#undef USE_LZO
+#undef LZO_VERSION_NUM
+#define USE_LZO 1
+#define LZO_VERSION_NUM "STUB"
+#endif
 
 #endif

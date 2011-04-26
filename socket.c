@@ -2014,21 +2014,25 @@ link_socket_init_phase2 (struct link_socket *sock,
 #endif
 
   /* print local address */
-  if (sock->inetd)
-    msg (M_INFO, "%s link local: [inetd]", proto2ascii (sock->info.proto, true));
-  else
-    msg (M_INFO, "%s link local%s: %s",
-	 proto2ascii (sock->info.proto, true),
-	 (sock->bind_local ? " (bound)" : ""),
-	 print_sockaddr_ex (&sock->info.lsa->local, ":", sock->bind_local ? PS_SHOW_PORT : 0, &gc));
+  {
+    const int msglevel = (sock->mode == LS_MODE_TCP_ACCEPT_FROM) ? D_INIT_MEDIUM : M_INFO;
 
-  /* print active remote address */
-  msg (M_INFO, "%s link remote: %s",
-       proto2ascii (sock->info.proto, true),
-       print_link_socket_actual_ex (&sock->info.lsa->actual,
-				    ":",
-				    PS_SHOW_PORT_IF_DEFINED,
-				    &gc));
+    if (sock->inetd)
+      msg (msglevel, "%s link local: [inetd]", proto2ascii (sock->info.proto, true));
+    else
+      msg (msglevel, "%s link local%s: %s",
+	   proto2ascii (sock->info.proto, true),
+	   (sock->bind_local ? " (bound)" : ""),
+	   print_sockaddr_ex (&sock->info.lsa->local, ":", sock->bind_local ? PS_SHOW_PORT : 0, &gc));
+
+    /* print active remote address */
+    msg (msglevel, "%s link remote: %s",
+	 proto2ascii (sock->info.proto, true),
+	 print_link_socket_actual_ex (&sock->info.lsa->actual,
+				      ":",
+				      PS_SHOW_PORT_IF_DEFINED,
+				      &gc));
+  }
 
  done:
   if (sig_save && signal_received)
@@ -2057,7 +2061,7 @@ link_socket_close (struct link_socket *sock)
 #endif
 	  if (!gremlin)
 	    {
-	      msg (D_CLOSE, "TCP/UDP: Closing socket");
+	      msg (D_LOW, "TCP/UDP: Closing socket");
 	      if (openvpn_close_socket (sock->sd))
 		msg (M_WARN | M_ERRNO_SOCK, "TCP/UDP: Close Socket failed");
 	    }

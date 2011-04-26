@@ -96,7 +96,7 @@ man_help ()
   msg (M_CLIENT, "client-auth-nt CID KID : Authenticate client-id/key-id CID/KID");
   msg (M_CLIENT, "client-deny CID KID R [CR] : Deny auth client-id/key-id CID/KID with log reason");
   msg (M_CLIENT, "                             text R and optional client reason text CR");
-  msg (M_CLIENT, "client-kill CID        : Kill client instance CID");
+  msg (M_CLIENT, "client-kill CID [M]    : Kill client instance CID with message M (def=RESTART)");
   msg (M_CLIENT, "env-filter [level]     : Set env-var filter level");
 #ifdef MANAGEMENT_PF
   msg (M_CLIENT, "client-pf CID          : Define packet filter for client CID (MULTILINE)");
@@ -698,7 +698,7 @@ static void
 man_forget_passwords (struct management *man)
 {
 #if defined(USE_CRYPTO) && defined(USE_SSL)
-  ssl_purge_auth ();
+  ssl_purge_auth (false);
   msg (M_CLIENT, "SUCCESS: Passwords were forgotten");
 #endif
 }
@@ -947,14 +947,14 @@ man_client_deny (struct management *man, const char *cid_str, const char *kid_st
 }
 
 static void
-man_client_kill (struct management *man, const char *cid_str)
+man_client_kill (struct management *man, const char *cid_str, const char *kill_msg)
 {
   unsigned long cid = 0;
   if (parse_cid (cid_str, &cid))
     {
       if (man->persist.callback.kill_by_cid)
 	{
-	  const bool status = (*man->persist.callback.kill_by_cid) (man->persist.callback.arg, cid);
+	  const bool status = (*man->persist.callback.kill_by_cid) (man->persist.callback.arg, cid, kill_msg);
 	  if (status)
 	    {
 	      msg (M_CLIENT, "SUCCESS: client-kill command succeeded");
@@ -1265,8 +1265,8 @@ man_dispatch_command (struct management *man, struct status_output *so, const ch
 #ifdef MANAGEMENT_DEF_AUTH
   else if (streq (p[0], "client-kill"))
     {
-      if (man_need (man, p, 1, 0))
-	man_client_kill (man, p[1]);
+      if (man_need (man, p, 1, MN_AT_LEAST))
+	man_client_kill (man, p[1], p[2]);
     }
   else if (streq (p[0], "client-deny"))
     {
@@ -1682,7 +1682,7 @@ man_reset_client_socket (struct management *man, const bool exiting)
     {
 #if defined(USE_CRYPTO) && defined(USE_SSL)
       if (man->settings.flags & MF_FORGET_DISCONNECT)
-	ssl_purge_auth ();
+	ssl_purge_auth (false);
 #endif
       if (man->settings.flags & MF_SIGNAL) {
       	  int mysig = man_mod_signal (man, SIGUSR1);
@@ -2190,6 +2190,7 @@ management_open (struct management *man,
 void
 management_close (struct management *man)
 {
+  man_output_list_push_finalize (man);  /* flush output queue */
   man_connection_close (man);
   man_settings_close (&man->settings);
   man_persist_close (&man->persist);
@@ -2252,8 +2253,6 @@ management_set_state (struct management *man,
     }
 }
 
-#ifdef MANAGEMENT_DEF_AUTH
-
 static bool
 env_filter_match (const char *env_str, const int env_filter_level)
 {
@@ -2261,7 +2260,7 @@ env_filter_match (const char *env_str, const int env_filter_level)
     "username=",
     "password=",
     "X509_0_CN=",
-    "tls_serial_0=",
+    "tls_serial_",
     "untrusted_ip=",
     "ifconfig_local=",
     "ifconfig_netmask=",
@@ -2274,24 +2273,28 @@ env_filter_match (const char *env_str, const int env_filter_level)
     "bytes_sent=",
     "bytes_received="
   };
-  if (env_filter_level >= 1)
+
+  if (env_filter_level == 0)
+    return true;
+  else if (env_filter_level <= 1 && !strncmp(env_str, "X509_", 5))
+    return true;
+  else if (env_filter_level <= 2)
     {
       size_t i;
       for (i = 0; i < SIZE(env_names); ++i)
 	{
 	  const char *en = env_names[i];
 	  const size_t len = strlen(en);
-	  if (strncmp(env_str, en, len) == 0)
+	  if (!strncmp(env_str, en, len))
 	    return true;
 	}
       return false;
     }
-  else
-    return true;
+  return false;
 }
 
 static void
-man_output_env (const struct env_set *es, const bool tail, const int env_filter_level)
+man_output_env (const struct env_set *es, const bool tail, const int env_filter_level, const char *prefix)
 {
   if (es)
     {
@@ -2299,15 +2302,15 @@ man_output_env (const struct env_set *es, const bool tail, const int env_filter_
       for (e = es->list; e != NULL; e = e->next)
 	{
 	  if (e->string && (!env_filter_level || env_filter_match(e->string, env_filter_level)))
-	    msg (M_CLIENT, ">CLIENT:ENV,%s", e->string);
+	    msg (M_CLIENT, ">%s:ENV,%s", prefix, e->string);
 	}
     }
   if (tail)
-    msg (M_CLIENT, ">CLIENT:ENV,END");
+    msg (M_CLIENT, ">%s:ENV,END", prefix);
 }
 
 static void
-man_output_extra_env (struct management *man)
+man_output_extra_env (struct management *man, const char *prefix)
 {
   struct gc_arena gc = gc_new ();
   struct env_set *es = env_set_create (&gc);
@@ -2316,9 +2319,27 @@ man_output_extra_env (struct management *man)
       const int nclients = (*man->persist.callback.n_clients) (man->persist.callback.arg);
       setenv_int (es, "n_clients", nclients);
     }
-  man_output_env (es, false, man->connection.env_filter_level);
+  man_output_env (es, false, man->connection.env_filter_level, prefix);
   gc_free (&gc);
 }
+
+void
+management_up_down(struct management *man, const char *updown, const struct env_set *es)
+{
+  if (man->settings.flags & MF_UP_DOWN)
+    {
+      msg (M_CLIENT, ">UPDOWN:%s", updown);
+      man_output_env (es, true, 0, "UPDOWN");
+    }
+}
+
+void
+management_notify(struct management *man, const char *severity, const char *type, const char *text)
+{
+  msg (M_CLIENT, ">NOTIFY:%s,%s,%s", severity, type, text);
+}
+
+#ifdef MANAGEMENT_DEF_AUTH
 
 static bool
 validate_peer_info_line(const char *line)
@@ -2384,9 +2405,9 @@ management_notify_client_needing_auth (struct management *management,
       if (mdac->flags & DAF_CONNECTION_ESTABLISHED)
 	mode = "REAUTH";
       msg (M_CLIENT, ">CLIENT:%s,%lu,%u", mode, mdac->cid, mda_key_id);
-      man_output_extra_env (management);
+      man_output_extra_env (management, "CLIENT");
       man_output_peer_info_env(management, mdac);
-      man_output_env (es, true, management->connection.env_filter_level);
+      man_output_env (es, true, management->connection.env_filter_level, "CLIENT");
       mdac->flags |= DAF_INITIAL_AUTH;
     }
 }
@@ -2398,8 +2419,8 @@ management_connection_established (struct management *management,
 {
   mdac->flags |= DAF_CONNECTION_ESTABLISHED;
   msg (M_CLIENT, ">CLIENT:ESTABLISHED,%lu", mdac->cid);
-  man_output_extra_env (management);
-  man_output_env (es, true, management->connection.env_filter_level);
+  man_output_extra_env (management, "CLIENT");
+  man_output_env (es, true, management->connection.env_filter_level, "CLIENT");
 }
 
 void
@@ -2410,7 +2431,7 @@ management_notify_client_close (struct management *management,
   if ((mdac->flags & DAF_INITIAL_AUTH) && !(mdac->flags & DAF_CONNECTION_CLOSED))
     {
       msg (M_CLIENT, ">CLIENT:DISCONNECT,%lu", mdac->cid);
-      man_output_env (es, true, management->connection.env_filter_level);
+      man_output_env (es, true, management->connection.env_filter_level, "CLIENT");
       mdac->flags |= DAF_CONNECTION_CLOSED;
     }
 }
@@ -2492,6 +2513,12 @@ management_auth_failure (struct management *man, const char *type, const char *r
     msg (M_CLIENT, ">PASSWORD:Verification Failed: '%s' ['%s']", type, reason);
   else
     msg (M_CLIENT, ">PASSWORD:Verification Failed: '%s'", type);
+}
+
+void
+management_auth_token (struct management *man, const char *token)
+{
+  msg (M_CLIENT, ">PASSWORD:Auth-Token:%s", token);  
 }
 
 static inline bool

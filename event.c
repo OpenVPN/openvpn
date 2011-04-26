@@ -522,10 +522,10 @@ ep_ctl (struct event_set *es, event_t event, unsigned int rwflags, void *arg)
       if (errno == ENOENT)
 	{
 	  if (epoll_ctl (eps->epfd, EPOLL_CTL_ADD, event, &ev) < 0)
-	    msg (M_ERR, "EVENT: epoll_ctl EPOLL_CTL_ADD failed");
+	    msg (M_ERR, "EVENT: epoll_ctl EPOLL_CTL_ADD failed, sd=%d", (int)event);
 	}
       else
-	msg (M_ERR, "EVENT: epoll_ctl EPOLL_CTL_MOD failed");
+	msg (M_ERR, "EVENT: epoll_ctl EPOLL_CTL_MOD failed, sd=%d", (int)event);
     }
 }
 

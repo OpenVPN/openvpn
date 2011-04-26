@@ -321,15 +321,27 @@ ssl_set_auth_nocache (void)
 }
 
 /*
+ * Set an authentication token
+ */
+void
+ssl_set_auth_token (const char *token)
+{
+  set_auth_token (&auth_user_pass, token);
+}
+
+/*
  * Forget private key password AND auth-user-pass username/password.
  */
 void
-ssl_purge_auth (void)
+ssl_purge_auth (const bool auth_user_pass_only)
 {
+  if (!auth_user_pass_only)
+    {
 #ifdef USE_PKCS11
-  pkcs11_logout ();
+      pkcs11_logout ();
 #endif
-  purge_user_pass (&passbuf, true);
+      purge_user_pass (&passbuf, true);
+    }
   purge_user_pass (&auth_user_pass, true);
 #ifdef ENABLE_CLIENT_CR
   ssl_purge_auth_challenge();
@@ -573,6 +585,96 @@ bool extract_x509_extension(X509 *cert, char *fieldname, char *out, int size)
         sk_GENERAL_NAME_free (extensions);
     }
   return retval;
+#ifdef ENABLE_X509_TRACK
+/*
+ * setenv_x509_track function -- save X509 fields to environment,
+ * using the naming convention:
+ *
+ *  X509_{cert_depth}_{name}={value}
+ *
+ * This function differs from setenv_x509 below in the following ways:
+ *
+ * (1) Only explicitly named attributes in xt are saved, per usage
+ *     of --x509-track program options.
+ * (2) Only the level 0 cert info is saved unless the XT_FULL_CHAIN
+ *     flag is set in xt->flags (corresponds with prepending a '+'
+ *     to the name when specified by --x509-track program option).
+ * (3) This function supports both X509 subject name fields as
+ *     well as X509 V3 extensions.
+ */
+
+/* worker method for setenv_x509_track */
+static void
+do_setenv_x509 (struct env_set *es, const char *name, char *value, int depth)
+{
+  char *name_expand;
+  size_t name_expand_size;
+
+  string_mod (value, CC_ANY, CC_CRLF, '?');
+  msg (D_X509_ATTR, "X509 ATTRIBUTE name='%s' value='%s' depth=%d", name, value, depth);
+  name_expand_size = 64 + strlen (name);
+  name_expand = (char *) malloc (name_expand_size);
+  check_malloc_return (name_expand);
+  openvpn_snprintf (name_expand, name_expand_size, "X509_%d_%s", depth, name);
+  setenv_str (es, name_expand, value);
+  free (name_expand);
+}
+
+static void
+setenv_x509_track (const struct x509_track *xt, struct env_set *es, const int depth, X509 *x509)
+{
+  X509_NAME *x509_name = X509_get_subject_name (x509);
+  const char nullc = '\0';
+  int i;
+
+  while (xt)
+    {
+      if (depth == 0 || (xt->flags & XT_FULL_CHAIN))
+	{
+	  i = X509_NAME_get_index_by_NID(x509_name, xt->nid, -1);
+	  if (i >= 0)
+	    {
+	      X509_NAME_ENTRY *ent = X509_NAME_get_entry(x509_name, i);
+	      if (ent)
+		{
+		  ASN1_STRING *val = X509_NAME_ENTRY_get_data (ent);
+		  unsigned char *buf;
+		  buf = (unsigned char *)1; /* bug in OpenSSL 0.9.6b ASN1_STRING_to_UTF8 requires this workaround */
+		  if (ASN1_STRING_to_UTF8 (&buf, val) > 0)
+		    {
+		      do_setenv_x509(es, xt->name, (char *)buf, depth);
+		      OPENSSL_free (buf);
+		    }
+		}
+	    }
+	  else
+	    {
+	      i = X509_get_ext_by_NID(x509, xt->nid, -1);
+	      if (i >= 0)
+		{
+		  X509_EXTENSION *ext = X509_get_ext(x509, i);
+		  if (ext)
+		    {
+		      BIO *bio = BIO_new(BIO_s_mem());
+		      if (bio)
+			{
+			  if (X509V3_EXT_print(bio, ext, 0, 0))
+			    {
+			      if (BIO_write(bio, &nullc, 1) == 1)
+				{
+				  char *str;
+				  BIO_get_mem_data(bio, &str);
+				  do_setenv_x509(es, xt->name, str, depth);
+				}
+			    }
+			  BIO_free(bio);
+			}
+		    }
+		}
+	    }
+	}
+      xt = xt->next;
+    }
 }
 #endif
 
@@ -834,6 +936,7 @@ verify_callback (int preverify_ok, X509_STORE_CTX * ctx)
   const struct tls_options *opt;
   const int max_depth = MAX_CERT_DEPTH;
   struct argv argv = argv_new ();
+  char *serial = NULL;
 
   /* get the tls_session pointer */
   ssl = X509_STORE_CTX_get_ex_data (ctx, SSL_get_ex_data_X509_STORE_CTX_idx());
@@ -854,7 +957,12 @@ verify_callback (int preverify_ok, X509_STORE_CTX * ctx)
     }
 
   /* Save X509 fields in environment */
-  setenv_x509 (opt->es, ctx->error_depth, X509_get_subject_name (ctx->current_cert));
+#ifdef ENABLE_X509_TRACK
+  if (opt->x509_track)
+    setenv_x509_track (opt->x509_track, opt->es, ctx->error_depth, ctx->current_cert);
+  else
+#endif
+    setenv_x509 (opt->es, ctx->error_depth, X509_get_subject_name (ctx->current_cert));
 
   /* enforce character class restrictions in X509 name */
   string_mod_sslname (subject, X509_NAME_CHAR_CLASS, opt->ssl_flags);
@@ -918,6 +1026,16 @@ verify_callback (int preverify_ok, X509_STORE_CTX * ctx)
       goto err;			/* Reject connection */
     }
 
+  /* verify level 1 cert, i.e. the CA that signed our leaf cert */
+  if (ctx->error_depth == 1 && opt->verify_hash)
+    {
+      if (memcmp (ctx->current_cert->sha1_hash, opt->verify_hash, SHA_DIGEST_LENGTH))
+	{
+	  msg (D_TLS_ERRORS, "TLS Error: level-1 certificate hash verification failed");
+	  goto err;
+	}
+    }
+
   /* save common name in session object */
   if (ctx->error_depth == 0)
     set_common_name (session, common_name);
@@ -943,32 +1061,17 @@ verify_callback (int preverify_ok, X509_STORE_CTX * ctx)
   setenv_str (opt->es, envname, common_name);
 #endif
 
-  /* export serial number as environmental variable */
+  /* export serial number as environmental variable,
+     use bignum in case serial number is large */
   {
-    BIO *bio = NULL;
-    char serial[100];
-    int n1, n2;
-
-    CLEAR (serial);
-    if ((bio = BIO_new (BIO_s_mem ())) == NULL)
-      {
-        msg (M_WARN, "CALLBACK: Cannot create BIO (for tls_serial_%d)", ctx->error_depth);
-      }
-    else
-      {
-        /* "prints" the serial number onto the BIO and read it back */
-        if ( ! ( ( (n1 = i2a_ASN1_INTEGER(bio, X509_get_serialNumber (ctx->current_cert))) >= 0 ) &&
-                 ( (n2 = BIO_read (bio, serial, sizeof (serial)-1)) >= 0 ) &&
-                 ( n1 == n2 ) ) )
-          {
-            msg (M_WARN, "CALLBACK: Error reading/writing BIO (for tls_serial_%d)", ctx->error_depth);
-            CLEAR (serial);     /* empty string */
-          }
-
-        openvpn_snprintf (envname, sizeof(envname), "tls_serial_%d", ctx->error_depth);
-        setenv_str (opt->es, envname, serial);
-        BIO_free(bio);
-      }
+    ASN1_INTEGER *asn1_i;
+    BIGNUM *bignum;
+    asn1_i = X509_get_serialNumber(ctx->current_cert);
+    bignum = ASN1_INTEGER_to_BN(asn1_i, NULL);
+    serial = BN_bn2dec(bignum);
+    openvpn_snprintf (envname, sizeof(envname), "tls_serial_%d", ctx->error_depth);
+    setenv_str (opt->es, envname, serial);
+    BN_free(bignum);
   }
 
   /* export current untrusted IP */
@@ -1108,67 +1211,89 @@ verify_callback (int preverify_ok, X509_STORE_CTX * ctx)
   /* check peer cert against CRL */
   if (opt->crl_file)
     {
-      X509_CRL *crl=NULL;
-      X509_REVOKED *revoked;
-      BIO *in=NULL;
-      int n,i,retval = 0;
-
-      in=BIO_new(BIO_s_file());
-
-      if (in == NULL) {
-	msg (M_ERR, "CRL: BIO err");
-	goto end;
-      }
-      if (BIO_read_filename(in, opt->crl_file) <= 0) {
-	msg (M_ERR, "CRL: cannot read: %s", opt->crl_file);
-	goto end;
-      }
-      crl=PEM_read_bio_X509_CRL(in,NULL,NULL,NULL);
-      if (crl == NULL) {
-	msg (M_ERR, "CRL: cannot read CRL from file %s", opt->crl_file);
-	goto end;
-      }
-
-      if (X509_NAME_cmp(X509_CRL_get_issuer(crl), X509_get_issuer_name(ctx->current_cert)) != 0) {
-	msg (M_WARN, "CRL: CRL %s is from a different issuer than the issuer of certificate %s", opt->crl_file, subject);
-	retval = 1;
-	goto end;
-      }
-
-      n = sk_X509_REVOKED_num(X509_CRL_get_REVOKED(crl));
-
-      for (i = 0; i < n; i++) {
-	revoked = (X509_REVOKED *)sk_X509_REVOKED_value(X509_CRL_get_REVOKED(crl), i);
-	if (ASN1_INTEGER_cmp(revoked->serialNumber, X509_get_serialNumber(ctx->current_cert)) == 0) {
-	  msg (D_HANDSHAKE, "CRL CHECK FAILED: %s is REVOKED",subject);
-	  goto end;
+      if (opt->ssl_flags & SSLF_CRL_VERIFY_DIR)
+	{
+	  char fn[256];
+	  int fd;
+	  if (!openvpn_snprintf(fn, sizeof(fn), "%s%c%s", opt->crl_file, OS_SPECIFIC_DIRSEP, serial))
+	    {
+	      msg (D_HANDSHAKE, "VERIFY CRL: filename overflow");
+	      goto err;
+	    }
+	  fd = open (fn, O_RDONLY);
+	  if (fd >= 0)
+	    {
+	      msg (D_HANDSHAKE, "VERIFY CRL: certificate serial number %s is revoked", serial);
+	      close(fd);
+	      goto err;
+	    }
 	}
-      }
+      else
+	{
+	  X509_CRL *crl=NULL;
+	  X509_REVOKED *revoked;
+	  BIO *in=NULL;
+	  int n,i,retval = 0;
 
-      retval = 1;
-      msg (D_HANDSHAKE, "CRL CHECK OK: %s",subject);
+	  in=BIO_new(BIO_s_file());
 
-    end:
+	  if (in == NULL) {
+	    msg (M_ERR, "CRL: BIO err");
+	    goto end;
+	  }
+	  if (BIO_read_filename(in, opt->crl_file) <= 0) {
+	    msg (M_ERR, "CRL: cannot read: %s", opt->crl_file);
+	    goto end;
+	  }
+	  crl=PEM_read_bio_X509_CRL(in,NULL,NULL,NULL);
+	  if (crl == NULL) {
+	    msg (M_ERR, "CRL: cannot read CRL from file %s", opt->crl_file);
+	    goto end;
+	  }
 
-      BIO_free(in);
-      if (crl)
-	X509_CRL_free (crl);
-      if (!retval)
-	goto err;
+	  if (X509_NAME_cmp(X509_CRL_get_issuer(crl), X509_get_issuer_name(ctx->current_cert)) != 0) {
+	    msg (M_WARN, "CRL: CRL %s is from a different issuer than the issuer of certificate %s", opt->crl_file, subject);
+	    retval = 1;
+	    goto end;
+	  }
+
+          n = sk_X509_REVOKED_num(X509_CRL_get_REVOKED(crl));
+
+          for (i = 0; i < n; i++) {
+            revoked = (X509_REVOKED *)sk_X509_REVOKED_value(X509_CRL_get_REVOKED(crl), i);
+            if (ASN1_INTEGER_cmp(revoked->serialNumber, X509_get_serialNumber(ctx->current_cert)) == 0) {
+              msg (D_HANDSHAKE, "CRL CHECK FAILED: %s is REVOKED",subject);
+              goto end;
+            }
+          }
+
+	  retval = 1;
+	  msg (D_HANDSHAKE, "CRL CHECK OK: %s",subject);
+
+	end:
+
+	  BIO_free(in);
+	  if (crl)
+	    X509_CRL_free (crl);
+	  if (!retval)
+	    goto err;
+	}
     }
 
   msg (D_HANDSHAKE, "VERIFY OK: depth=%d, %s", ctx->error_depth, subject);
-
   session->verified = true;
+
+ done:
   OPENSSL_free (subject);
+  if (serial)
+    OPENSSL_free(serial);
   argv_reset (&argv);
-  return 1;			/* Accept connection */
+  return (session->verified == true) ? 1 : 0;
 
  err:
   ERR_clear_error ();
-  OPENSSL_free (subject);
-  argv_reset (&argv);
-  return 0;                     /* Reject connection */
+  session->verified = false;
+  goto done;
 }
 
 void
@@ -1231,6 +1356,31 @@ tls_lock_username (struct tls_multi *multi, const char *username)
     }
   return true;
 }
+
+#ifdef ENABLE_X509_TRACK
+
+void
+x509_track_add (const struct x509_track **ll_head, const char *name, int msglevel, struct gc_arena *gc)
+{
+  struct x509_track *xt;
+  ALLOC_OBJ_CLEAR_GC (xt, struct x509_track, gc);
+  if (*name == '+')
+    {
+      xt->flags |= XT_FULL_CHAIN;
+      ++name;
+    }
+  xt->name = name;
+  xt->nid = OBJ_txt2nid(name);
+  if (xt->nid != NID_undef)
+    {
+      xt->next = *ll_head;
+      *ll_head = xt;
+    }
+  else
+    msg(msglevel, "x509_track: no such attribute '%s'", name);
+}
+
+#endif
 
 #ifdef ENABLE_DEF_AUTH
 /* key_state_test_auth_control_file return values,
@@ -1978,7 +2128,7 @@ init_ssl (const struct options *options)
                 {
 	          if (!X509_STORE_add_cert(ctx->cert_store,sk_X509_value(ca, i)))
                     msg (M_SSLERR, "Cannot add certificate to certificate chain (X509_STORE_add_cert)");
-                  if (!SSL_CTX_add_client_CA(ctx, sk_X509_value(ca, i)))
+                  if (options->tls_server && !SSL_CTX_add_client_CA(ctx, sk_X509_value(ca, i)))
                     msg (M_SSLERR, "Cannot add certificate to client CA list (SSL_CTX_add_client_CA)");
                 }
             }
@@ -2090,11 +2240,11 @@ init_ssl (const struct options *options)
 #endif
 	{
 	  /* Load CA file for verifying peer supplied certificate */
-	  status = SSL_CTX_load_verify_locations (ctx, options->ca_file, options->ca_path);
+	  status = SSL_CTX_load_verify_locations (ctx, options->ca_file, NULL);
 	}
       
       if (!status)
-	msg (M_SSLERR, "Cannot load CA certificate file %s path %s (SSL_CTX_load_verify_locations)", options->ca_file, options->ca_path);
+	msg (M_SSLERR, "Cannot load CA certificate file %s path %s (SSL_CTX_load_verify_locations)", np(options->ca_file), np(options->ca_path));
 
       /* Set a store for certs (CA & CRL) with a lookup on the "capath" hash directory */
       if (options->ca_path) {
@@ -2118,7 +2268,7 @@ init_ssl (const struct options *options)
       }
 
       /* Load names of CAs from file and use it as a client CA list */
-      if (options->ca_file) {
+      if (options->ca_file && options->tls_server) {
         STACK_OF(X509_NAME) *cert_names = NULL;
 #if ENABLE_INLINE_FILES
 	if (!strcmp (options->ca_file, INLINE_FILE_TAG) && options->ca_file_inline)
@@ -2132,7 +2282,7 @@ init_ssl (const struct options *options)
 	  }
         if (!cert_names)
           msg (M_SSLERR, "Cannot load CA certificate file %s (SSL_load_client_CA_file)", options->ca_file);
-        SSL_CTX_set_client_CA_list (ctx, cert_names);
+	SSL_CTX_set_client_CA_list (ctx, cert_names);
       }
     }
 
@@ -2141,6 +2291,37 @@ init_ssl (const struct options *options)
     {
       if (!SSL_CTX_use_certificate_chain_file (ctx, options->cert_file))
 	msg (M_SSLERR, "Cannot load certificate chain file %s (SSL_use_certificate_chain_file)", options->cert_file);
+    }
+
+  /* Load extra certificates that are part of our own certificate
+     chain but shouldn't be included in the verify chain */
+  if (options->extra_certs_file || options->extra_certs_file_inline)
+    {
+      BIO *bio;
+      X509 *cert;
+#if ENABLE_INLINE_FILES
+      if (!strcmp (options->extra_certs_file, INLINE_FILE_TAG) && options->extra_certs_file_inline)
+	{
+	  bio = BIO_new_mem_buf ((char *)options->extra_certs_file_inline, -1);
+	}
+      else
+#endif
+	{
+	  bio = BIO_new(BIO_s_file());
+	  if (BIO_read_filename(bio, options->extra_certs_file) <= 0)
+	    msg (M_SSLERR, "Cannot load extra-certs file: %s", options->extra_certs_file);
+	}
+      for (;;)
+	{
+	  cert = NULL;
+	  if (!PEM_read_bio_X509 (bio, &cert, 0, NULL)) /* takes ownership of cert */
+	    break;
+	  if (!cert)
+	    msg (M_SSLERR, "Error reading extra-certs certificate");
+	  if (SSL_CTX_add_extra_chain_cert(ctx, cert) != 1)
+	    msg (M_SSLERR, "Error adding extra-certs certificate");
+	}
+      BIO_free (bio);
     }
 
   /* Require peer certificate verification */
@@ -2674,8 +2855,10 @@ key_state_init (struct tls_session *session, struct key_state *ks)
 
   /* init packet ID tracker */
   packet_id_init (&ks->packet_id,
+		  session->opt->tcp_mode,
 		  session->opt->replay_window,
-		  session->opt->replay_time);
+		  session->opt->replay_time,
+		  "SSL", ks->key_id);
 
 #ifdef MANAGEMENT_DEF_AUTH
   ks->mda_key_id = session->opt->mda_context->mda_key_id_counter++;
@@ -2779,8 +2962,10 @@ tls_session_init (struct tls_multi *multi, struct tls_session *session)
 
   /* initialize packet ID replay window for --tls-auth */
   packet_id_init (session->tls_auth.packet_id,
+		  session->opt->tcp_mode,
 		  session->opt->replay_window,
-		  session->opt->replay_time);
+		  session->opt->replay_time,
+		  "TLS_AUTH", session->key_id);
 
   /* load most recent packet-id to replay protect on --tls-auth */
   packet_id_persist_load_obj (session->tls_auth.pid_persist, session->tls_auth.packet_id);
@@ -3850,6 +4035,11 @@ push_peer_info(struct buffer *buf, struct tls_session *session)
 	get_default_gateway_mac_addr (macaddr);
 	buf_printf (&out, "IV_HWADDR=%s\n", format_hex_ex (macaddr, 6, 0, 1, ":", &gc));
       }
+
+      /* push LZO status */
+#ifdef LZO_STUB
+      buf_printf (&out, "IV_LZO_STUB=1\n");
+#endif
 
       /* push env vars that begin with UV_ */
       for (e=es->list; e != NULL; e=e->next)

@@ -102,13 +102,6 @@ update_options_ce_post (struct options *options)
       options->ping_rec_timeout_action = PING_RESTART;
     }
 #endif
-#ifdef USE_CRYPTO
-  /* 
-   * Don't use replay window for TCP mode (i.e. require that packets be strictly in sequence).
-   */
-  if (link_socket_proto_connection_oriented (options->ce.proto))
-    options->replay_window = options->replay_time = 0;
-#endif
 }
 
 #if HTTP_PROXY_FALLBACK
@@ -521,7 +514,9 @@ init_port_share (struct context *c)
   if (!port_share && (c->options.port_share_host && c->options.port_share_port))
     {
       port_share = port_share_open (c->options.port_share_host,
-				    c->options.port_share_port);
+				    c->options.port_share_port,
+				    MAX_RW_SIZE_LINK (&c->c2.frame),
+				    c->options.port_share_journal_dir);
       if (port_share == NULL)
 	msg (M_FATAL, "Fatal error: Port sharing failed");
     }
@@ -599,6 +594,27 @@ init_static (void)
 #ifdef TIME_TEST
   time_test ();
   return false;
+#endif
+
+#ifdef TEST_GET_DEFAULT_GATEWAY
+  {
+    struct gc_arena gc = gc_new ();
+    in_addr_t addr;
+    char macaddr[6];
+
+    if (get_default_gateway(&addr, NULL))
+      msg (M_INFO, "GW %s", print_in_addr_t(addr, 0, &gc));
+    else
+      msg (M_INFO, "GDG ERROR");
+
+    if (get_default_gateway_mac_addr(macaddr))
+      msg (M_INFO, "MAC %s", format_hex_ex (macaddr, 6, 0, 1, ":", &gc));
+    else
+      msg (M_INFO, "GDGMA ERROR");
+
+    gc_free (&gc);
+    return false;
+  }
 #endif
 
 #ifdef GEN_PATH_TEST
@@ -1223,7 +1239,14 @@ do_route (const struct options *options,
 	  struct env_set *es)
 {
   if (!options->route_noexec && ( route_list || route_ipv6_list ) )
-    add_routes (route_list, route_ipv6_list, tt, ROUTE_OPTION_FLAGS (options), es);
+    {
+      add_routes (route_list, route_ipv6_list, tt, ROUTE_OPTION_FLAGS (options), es);
+      setenv_int (es, "redirect_gateway", route_list->did_redirect_default_gateway);
+    }
+#ifdef ENABLE_MANAGEMENT
+  if (management)
+    management_up_down (management, "UP", es);
+#endif
 
   if (plugin_defined (plugins, OPENVPN_PLUGIN_ROUTE_UP))
     {
@@ -1441,7 +1464,10 @@ do_close_tun (struct context *c, bool force)
 #ifdef ENABLE_MANAGEMENT
 	  /* tell management layer we are about to close the TUN/TAP device */
 	  if (management)
-	    management_pre_tunnel_close (management);
+	    {
+	      management_pre_tunnel_close (management);
+	      management_up_down (management, "DOWN", c->c2.es);
+	    }
 #endif
 
 	  /* delete any routes we added */
@@ -1586,7 +1612,6 @@ pull_permission_mask (const struct context *c)
   unsigned int flags =
       OPT_P_UP
     | OPT_P_ROUTE_EXTRAS
-    | OPT_P_IPWIN32
     | OPT_P_SOCKBUF
     | OPT_P_SOCKFLAGS
     | OPT_P_SETENV
@@ -1600,7 +1625,7 @@ pull_permission_mask (const struct context *c)
     | OPT_P_PULL_MODE;
 
   if (!c->options.route_nopull)
-    flags |= OPT_P_ROUTE;
+    flags |= (OPT_P_ROUTE | OPT_P_IPWIN32);
 
   return flags;
 }
@@ -1749,8 +1774,10 @@ socket_restart_pause (struct context *c)
   if (auth_retry_get () == AR_NOINTERACT)
     sec = 10;
 
+#if 0 /* not really needed because of c->persist.restart_sleep_seconds */
   if (c->options.server_poll_timeout && sec > 1)
     sec = 1;
+#endif
 #endif
 
   if (c->persist.restart_sleep_seconds > 0 && c->persist.restart_sleep_seconds > sec)
@@ -1868,8 +1895,11 @@ do_init_crypto_static (struct context *c, const unsigned int flags)
   /* Initialize packet ID tracking */
   if (options->replay)
     {
-      packet_id_init (&c->c2.packet_id, options->replay_window,
-		      options->replay_time);
+      packet_id_init (&c->c2.packet_id,
+		      link_socket_proto_connection_oriented (options->ce.proto),
+		      options->replay_window,
+		      options->replay_time,
+		      "STATIC", 0);
       c->c2.crypto_options.packet_id = &c->c2.packet_id;
       c->c2.crypto_options.pid_persist = &c->c1.pid_persist;
       c->c2.crypto_options.flags |= CO_PACKET_ID_LONG_FORM;
@@ -1965,7 +1995,7 @@ do_init_crypto_tls_c1 (struct context *c)
 	      msg (M_FATAL, "Error: private key password verification failed");
 	      break;
 	    case AR_INTERACT:
-	      ssl_purge_auth ();
+	      ssl_purge_auth (false);
 	    case AR_NOINTERACT:
 	      c->sig->signal_received = SIGUSR1; /* SOFT-SIGUSR1 -- Password failure error */
 	      break;
@@ -2017,7 +2047,7 @@ do_init_crypto_tls_c1 (struct context *c)
     }
   else
     {
-      msg (M_INFO, "Re-using SSL/TLS context");
+      msg (D_INIT_MEDIUM, "Re-using SSL/TLS context");
     }
 }
 
@@ -2070,6 +2100,7 @@ do_init_crypto_tls (struct context *c, const unsigned int flags)
   to.replay = options->replay;
   to.replay_window = options->replay_window;
   to.replay_time = options->replay_time;
+  to.tcp_mode = link_socket_proto_connection_oriented (options->ce.proto);
   to.transition_window = options->transition_window;
   to.handshake_window = options->handshake_window;
   to.packet_timeout = options->tls_timeout;
@@ -2094,9 +2125,11 @@ do_init_crypto_tls (struct context *c, const unsigned int flags)
   to.verify_export_cert = options->tls_export_cert;
   to.verify_x509name = options->tls_remote;
   to.crl_file = options->crl_file;
+  to.ssl_flags = options->ssl_flags;
   to.ns_cert_type = options->ns_cert_type;
   memmove (to.remote_cert_ku, options->remote_cert_ku, sizeof (to.remote_cert_ku));
   to.remote_cert_eku = options->remote_cert_eku;
+  to.verify_hash = options->verify_hash;
   to.es = c->c2.es;
 
 #ifdef ENABLE_DEBUG
@@ -2113,9 +2146,12 @@ do_init_crypto_tls (struct context *c, const unsigned int flags)
   to.auth_user_pass_verify_script = options->auth_user_pass_verify_script;
   to.auth_user_pass_verify_script_via_file = options->auth_user_pass_verify_script_via_file;
   to.tmp_dir = options->tmp_dir;
-  to.ssl_flags = options->ssl_flags;
   if (options->ccd_exclusive)
     to.client_config_dir_exclusive = options->client_config_dir;
+#endif
+
+#ifdef ENABLE_X509_TRACK
+  to.x509_track = options->x509_track;
 #endif
 
   /* TLS handshake authentication (--tls-auth) */

@@ -626,7 +626,7 @@ multi_create_instance (struct multi_context *m, const struct mroute_addr *real)
 
   perf_push (PERF_MULTI_CREATE_INSTANCE);
 
-  msg (D_MULTI_LOW, "MULTI: multi_create_instance called");
+  msg (D_MULTI_MEDIUM, "MULTI: multi_create_instance called");
 
   ALLOC_OBJ_CLEAR (mi, struct multi_instance);
 
@@ -1237,6 +1237,9 @@ multi_select_virtual_addr (struct multi_context *m, struct multi_instance *mi)
       mi->context.c2.push_ifconfig_defined = true;
       mi->context.c2.push_ifconfig_local = mi->context.options.push_ifconfig_local;
       mi->context.c2.push_ifconfig_remote_netmask = mi->context.options.push_ifconfig_remote_netmask;
+#ifdef ENABLE_CLIENT_NAT
+      mi->context.c2.push_ifconfig_local_alias = mi->context.options.push_ifconfig_local_alias;
+#endif
 
       /* the current implementation does not allow "static IPv4, pool IPv6",
        * (see below) so issue a warning if that happens - don't break the
@@ -2650,13 +2653,14 @@ lookup_by_cid (struct multi_context *m, const unsigned long cid)
 }
 
 static bool
-management_kill_by_cid (void *arg, const unsigned long cid)
+management_kill_by_cid (void *arg, const unsigned long cid, const char *kill_msg)
 {
   struct multi_context *m = (struct multi_context *) arg;
   struct multi_instance *mi = lookup_by_cid (m, cid);
   if (mi)
     {
-      send_restart (&mi->context); /* was: multi_signal_instance (m, mi, SIGTERM); */
+      send_restart (&mi->context, kill_msg); /* was: multi_signal_instance (m, mi, SIGTERM); */
+      multi_schedule_context_wakeup(m, mi);
       return true;
     }
   else

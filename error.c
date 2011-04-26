@@ -340,7 +340,7 @@ void x_msg (const unsigned int flags, const char *format, ...)
     }
 
   if (flags & M_FATAL)
-    msg (M_INFO, "Exiting");
+    msg (M_INFO, "Exiting due to fatal error");
 
   if (flags & M_FATAL)
     openvpn_exit (OPENVPN_EXIT_STATUS_ERROR); /* exit point */
@@ -651,35 +651,38 @@ const struct virtual_output *x_msg_virtual_output; /* GLOBAL */
 void
 openvpn_exit (const int status)
 {
-  void tun_abort();
+  if (!forked)
+    {
+      void tun_abort();
 #ifdef ENABLE_PLUGIN
-  void plugin_abort (void);
+      void plugin_abort (void);
 #endif
 
-  tun_abort();
+      tun_abort();
 
 #ifdef WIN32
-  uninit_win32 ();
+      uninit_win32 ();
 #endif
 
-  close_syslog ();
+      close_syslog ();
 
 #ifdef ENABLE_PLUGIN
-  plugin_abort ();
+      plugin_abort ();
 #endif
 
 #if PORT_SHARE
-  if (port_share)
-    port_share_abort (port_share);
+      if (port_share)
+	port_share_abort (port_share);
 #endif
 
 #ifdef ABORT_ON_ERROR
-  if (status == OPENVPN_EXIT_STATUS_ERROR)
-    abort ();
+      if (status == OPENVPN_EXIT_STATUS_ERROR)
+	abort ();
 #endif
 
-  if (status == OPENVPN_EXIT_STATUS_GOOD)
-    perf_output_results ();
+      if (status == OPENVPN_EXIT_STATUS_GOOD)
+	perf_output_results ();
+    }
 
   exit (status);
 }

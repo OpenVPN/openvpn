@@ -41,6 +41,8 @@
 
 #include "memdbg.h"
 
+/* #define PID_SIMULATE_BACKTRACK */
+
 /*
  * Special time_t value that indicates that
  * sequence number has expired.
@@ -48,17 +50,39 @@
 #define SEQ_UNSEEN  ((time_t)0)
 #define SEQ_EXPIRED ((time_t)1)
 
-void
-packet_id_init (struct packet_id *p, int seq_backtrack, int time_backtrack)
+static void packet_id_debug_print (int msglevel,
+				   const struct packet_id_rec *p,
+				   const struct packet_id_net *pin,
+				   const char *message,
+				   int value);
+
+static inline void
+packet_id_debug (int msglevel,
+		 const struct packet_id_rec *p,
+		 const struct packet_id_net *pin,
+		 const char *message,
+		 int value)
 {
-  dmsg (D_PID_DEBUG_LOW, "PID packet_id_init seq_backtrack=%d time_backtrack=%d",
-       seq_backtrack,
-       time_backtrack);
+#ifdef ENABLE_DEBUG
+  if (unlikely(check_debug_level(msglevel)))
+    packet_id_debug_print (msglevel, p, pin, message, value);
+#endif
+}
+
+void
+packet_id_init (struct packet_id *p, bool tcp_mode, int seq_backtrack, int time_backtrack, const char *name, int unit)
+{
+  dmsg (D_PID_DEBUG, "PID packet_id_init tcp_mode=%d seq_backtrack=%d time_backtrack=%d",
+	tcp_mode,
+	seq_backtrack,
+	time_backtrack);
 
   ASSERT (p);
   CLEAR (*p);
 
-  if (seq_backtrack)
+  p->rec.name = name;
+  p->rec.unit = unit;
+  if (seq_backtrack && !tcp_mode)
     {
       ASSERT (MIN_SEQ_BACKTRACK <= seq_backtrack && seq_backtrack <= MAX_SEQ_BACKTRACK);
       ASSERT (MIN_TIME_BACKTRACK <= time_backtrack && time_backtrack <= MAX_TIME_BACKTRACK);
@@ -74,7 +98,7 @@ packet_id_free (struct packet_id *p)
 {
   if (p)
     {
-      dmsg (D_PID_DEBUG_LOW, "PID packet_id_free");
+      dmsg (D_PID_DEBUG, "PID packet_id_free");
       if (p->rec.seq_list)
 	free (p->rec.seq_list);
       CLEAR (*p);
@@ -105,7 +129,11 @@ packet_id_add (struct packet_id_rec *p, const struct packet_id_net *pin)
 	  CIRC_LIST_RESET (p->seq_list);
 	}
 
-      while (p->id < pin->id)
+      while (p->id < pin->id
+#ifdef PID_SIMULATE_BACKTRACK
+	     || (get_random() % 64) < 31
+#endif
+	     )
 	{
 	  CIRC_LIST_PUSH (p->seq_list, SEQ_UNSEEN);
 	  ++p->id;
@@ -155,17 +183,13 @@ packet_id_reap (struct packet_id_rec *p)
  * it is a replay.
  */
 bool
-packet_id_test (const struct packet_id_rec *p,
+packet_id_test (struct packet_id_rec *p,
 		const struct packet_id_net *pin)
 {
-  static int max_backtrack_stat;
   packet_id_type diff;
 
-  dmsg (D_PID_DEBUG,
-       "PID TEST " time_format ":" packet_id_format " " time_format ":" packet_id_format "",
-       (time_type)p->time, (packet_id_print_type)p->id, (time_type)pin->time,
-       (packet_id_print_type)pin->id);
-
+  packet_id_debug (D_PID_DEBUG, p, pin, "PID_TEST", 0);
+  
   ASSERT (p->initialized);
 
   if (!pin->id)
@@ -189,19 +213,35 @@ packet_id_test (const struct packet_id_rec *p,
 	  diff = p->id - pin->id;
 
 	  /* keep track of maximum backtrack seen for debugging purposes */
-	  if ((int)diff > max_backtrack_stat)
+	  if ((int)diff > p->max_backtrack_stat)
 	    {
-	      max_backtrack_stat = (int)diff;
-	      msg (D_BACKTRACK, "Replay-window backtrack occurred [%d]", max_backtrack_stat);
+	      p->max_backtrack_stat = (int)diff;
+	      packet_id_debug (D_PID_DEBUG_LOW, p, pin, "PID_ERR replay-window backtrack occurred", p->max_backtrack_stat);
 	    }
 
 	  if (diff >= (packet_id_type) CIRC_LIST_SIZE (p->seq_list))
-	    return false;
+	    {
+	      packet_id_debug (D_PID_DEBUG_LOW, p, pin, "PID_ERR large diff", diff);
+	      return false;
+	    }
 
-	  return CIRC_LIST_ITEM (p->seq_list, diff) == 0;
+	  {
+	    const time_t v = CIRC_LIST_ITEM (p->seq_list, diff);
+	    if (v == 0)
+	      return true;
+	    else
+	      {
+		/* might want to increase this to D_PID_DEBUG_MEDIUM (or even D_PID_DEBUG) in the future */
+		packet_id_debug (D_PID_DEBUG_LOW, p, pin, "PID_ERR replay", diff);
+		return false;
+	      }
+	  }
 	}
       else if (pin->time < p->time) /* if time goes back, reject */
-	return false;
+	{
+	  packet_id_debug (D_PID_DEBUG_LOW, p, pin, "PID_ERR time backtrack", 0);
+	  return false;
+	}
       else                          /* time moved forward */
 	return true;
     }
@@ -433,6 +473,76 @@ packet_id_persist_print (const struct packet_id_persist *p, struct gc_arena *gc)
   buf_printf (&out, " ]");
   return (char *)out.data;
 }
+
+#ifdef ENABLE_DEBUG
+
+static void
+packet_id_debug_print (int msglevel,
+		       const struct packet_id_rec *p,
+		       const struct packet_id_net *pin,
+		       const char *message,
+		       int value)
+{
+  struct gc_arena gc = gc_new ();
+  struct buffer out = alloc_buf_gc (256, &gc);
+  struct timeval tv;
+  const time_t prev_now = now;
+  const struct seq_list *sl = p->seq_list;
+  int i;
+
+  CLEAR (tv);
+  gettimeofday (&tv, NULL);
+
+  buf_printf (&out, "%s [%d]", message, value);
+  buf_printf (&out, " [%s-%d] [", p->name, p->unit);
+  for (i = 0; i < sl->x_size; ++i)
+    {
+      char c;
+      time_t v;
+      int diff;
+
+      v = CIRC_LIST_ITEM(sl, i);
+      if (v == SEQ_UNSEEN)
+	c = '_';
+      else if (v == SEQ_EXPIRED)
+	c = 'E';
+      else
+	{
+	  diff = (int) prev_now - v;
+	  if (diff < 0)
+	    c = 'N';
+	  else if (diff < 10)
+	    c = '0' + diff;
+	  else
+	    c = '>';
+	}
+      buf_printf(&out, "%c", c);
+    }
+  buf_printf (&out, "] " time_format ":" packet_id_format, (time_type)p->time, (packet_id_print_type)p->id); 
+  if (pin)
+    buf_printf (&out, " " time_format ":" packet_id_format, (time_type)pin->time, (packet_id_print_type)pin->id);
+
+  buf_printf (&out, " t=" time_format "[%d]",
+	      (time_type)prev_now,
+	      (int)(prev_now - tv.tv_sec));
+
+  buf_printf (&out, " r=[%d,%d,%d,%d,%d]",
+	      (int)(p->last_reap - tv.tv_sec),
+	      p->seq_backtrack,
+	      p->time_backtrack,
+	      p->max_backtrack_stat,
+	      (int)p->initialized);
+  buf_printf (&out, " sl=[%d,%d,%d,%d]",
+	      sl->x_head,
+	      sl->x_size,
+	      sl->x_cap,
+	      sl->x_sizeof);
+
+  msg (msglevel, "%s", BSTR(&out));
+  gc_free (&gc);
+}
+
+#endif
 
 #ifdef PID_TEST
 

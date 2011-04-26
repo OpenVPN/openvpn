@@ -991,7 +991,6 @@ do_ifconfig (struct tuntap *tt,
       tt->did_ifconfig = true;
 
 #elif defined(TARGET_DARWIN)
-
       /*
        * Darwin (i.e. Mac OS X) seems to exhibit similar behaviour to OpenBSD...
        */
@@ -1037,6 +1036,7 @@ do_ifconfig (struct tuntap *tt,
 			      tun_mtu
 			      );
 	}
+
       argv_msg (M_INFO, &argv);
       openvpn_execve_check (&argv, es, S_FATAL, "Mac OS X ifconfig failed");
       tt->did_ifconfig = true;

@@ -1083,6 +1083,31 @@ and
 .B \-\-route-gateway.
 .\"*********************************************************
 .TP
+.B \-\-client-nat snat|dnat network netmask alias
+This pushable client option sets up a stateless one-to-one NAT
+rule on packet addresses (not ports), and is useful in cases
+where routes or ifconfig settings pushed to the client would
+create an IP numbering conflict.
+
+.B network/netmask
+(for example 192.168.0.0/255.255.0.0)
+defines the local view of a resource from the client perspective, while
+.B alias/netmask
+(for example 10.64.0.0/255.255.0.0)
+defines the remote view from the server perspective.
+
+Use
+.B snat
+(source NAT) for resources owned by the client and
+.B dnat
+(destination NAT) for remote resources.
+
+Set
+.B \-\-verb 6
+for debugging info showing the transformation of src/dest
+addresses in packets.
+.\"*********************************************************
+.TP
 .B \-\-redirect-gateway flags...
 (Experimental) Automatically execute routing commands to cause all outgoing IP traffic
 to be redirected over the VPN.
@@ -2406,6 +2431,11 @@ lines of log file history for usage
 by the management channel.
 .\"*********************************************************
 .TP
+.B \-\-management-up-down
+Report tunnel up/down events to management interface.
+.B 
+.\"*********************************************************
+.TP
 .B \-\-management-client-auth
 Gives management interface client the responsibility
 to authenticate clients after their client certificate
@@ -2740,7 +2770,7 @@ This option is deprecated, and should be replaced with
 which is functionally equivalent.
 .\"*********************************************************
 .TP
-.B \-\-ifconfig-push local remote-netmask
+.B \-\-ifconfig-push local remote-netmask [alias]
 Push virtual IP endpoints for client tunnel,
 overriding the \-\-ifconfig-pool dynamic allocation.
 
@@ -2758,6 +2788,15 @@ and
 are from the perspective of the client, not the server.  They may be
 DNS names rather than IP addresses, in which case they will be resolved
 on the server at the time of client connection.
+
+The optional
+.B alias
+parameter may be used in cases where NAT causes the client view
+of its local endpoint to differ from the server view.  In this case
+.B local/remote-netmask
+will refer to the server view while
+.B alias/remote-netmask
+will refer to the client view.
 
 This option must be associated with a specific client instance,
 which means that it must be specified either in a client
@@ -3259,7 +3298,7 @@ disable the remapping feature.  Don't use this option unless you
 know what you are doing!
 .\"*********************************************************
 .TP
-.B \-\-port-share host port
+.B \-\-port-share host port [dir]
 When run in TCP server mode, share the OpenVPN port with
 another application, such as an HTTPS server.  If OpenVPN
 senses a connection to its port which is using a non-OpenVPN
@@ -3268,6 +3307,16 @@ protocol, it will proxy the connection to the server at
 Currently only designed to work with HTTP/HTTPS,
 though it would be theoretically possible to extend to
 other protocols such as ssh.
+
+.B dir
+specifies an optional directory where a temporary file with name N
+containing content C will be dynamically generated for each proxy
+connection, where N is the source IP:port of the client connection
+and C is the source IP:port of the connection to the proxy
+receiver.  This directory can be used as a dictionary by
+the proxy receiver to determine the origin of the connection.
+Each generated file will be automatically deleted when the proxied
+connection is torn down.
 
 Not implemented on Windows.
 .\"*********************************************************
@@ -3902,6 +3951,22 @@ that for certificate authority functions, you must set up the files
 ).
 .\"*********************************************************
 .TP
+.B \-\-extra-certs file
+Specify a
+.B file
+containing one or more PEM certs (concatenated together)
+that complete the
+local certificate chain.
+
+This option is useful for "split" CAs, where the CA for server
+certs is different than the CA for client certs.  Putting certs
+in this file allows them to be used to complete the local
+certificate chain without trusting them to verify the peer-submitted
+certificate, as would be the case if the certs were placed in the
+.B ca
+file.
+.\"*********************************************************
+.TP
 .B \-\-key file
 Local peer's private key in .pem format.  Use the private key which was generated
 when you built your peer's certificate (see
@@ -3916,6 +3981,17 @@ This option can be used instead of
 .B \-\-ca, \-\-cert,
 and
 .B \-\-key.
+.\"*********************************************************
+.TP
+.B \-\-verify-hash hash
+Specify SHA1 fingerprint for level-1 cert.  The level-1 cert is the
+CA (or intermediate cert) that signs the leaf certificate, and is
+one removed from the leaf certificate in the direction of the root.
+When accepting a connection from a peer, the level-1 cert
+fingerprint must match
+.B hash
+or certificate verification will fail.  Hash is specified
+as XX:XX:...  For example: AD:B0:95:D8:09:C8:36:45:12:A9:89:C8:90:09:CB:13:72:A6:AD:16
 .\"*********************************************************
 .TP
 .B \-\-pkcs11-cert-private [0|1]...
@@ -4347,7 +4423,7 @@ additional parameters passed as environmental variables.
 .TP
 .B \-\-tls-export-cert directory
 Store the certificates the clients uses upon connection to this
-directory. This will be done before --tls-verify is called.  The
+directory. This will be done before \-\-tls-verify is called.  The
 certificates will use a temporary name and will be deleted when
 the tls-verify script returns.  The file name used for the certificate
 is available via the peer_cert environment variable.
@@ -4385,6 +4461,18 @@ option to verify the remote host, because
 works in a
 .B \-\-chroot
 environment too.
+.\"*********************************************************
+.TP
+.B \-\-x509-track attribute
+Save peer X509
+.B attribute
+value in environment for use by plugins and management interface.
+Prepend a '+' to
+.B attribute
+to save values from full cert chain.  Values will be encoded
+as X509_<depth>_<attribute>=<value>.  Multiple
+.B \-\-x509-track
+options can be defined to track multiple attributes.
 .\"*********************************************************
 .TP
 .B \-\-ns-cert-type client|server
@@ -4472,7 +4560,7 @@ or
 .B \-\-tls-verify.
 .\"*********************************************************
 .TP
-.B \-\-crl-verify crl
+.B \-\-crl-verify crl ['dir']
 Check peer certificate against the file
 .B crl
 in PEM format.
@@ -4488,6 +4576,16 @@ overall integrity of the PKI.
 
 The only time when it would be necessary to rebuild the entire PKI from scratch would be
 if the root certificate key itself was compromised.
+
+If the optional
+.B dir
+flag is specified, enable a different mode where
+.B crl
+is a directory containing files named as revoked serial numbers
+(the files may be empty, the contents are never read).  If a client
+requests a connection, where the client certificate serial number
+(decimal string) is the name of a file present in the directory,
+it will be rejected.
 .\"*********************************************************
 .SS SSL Library information:
 .\"*********************************************************

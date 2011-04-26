@@ -156,7 +156,7 @@ struct management_callback
   void (*delete_event) (void *arg, event_t event);
   int (*n_clients) (void *arg);
 #ifdef MANAGEMENT_DEF_AUTH
-  bool (*kill_by_cid) (void *arg, const unsigned long cid);
+  bool (*kill_by_cid) (void *arg, const unsigned long cid, const char *kill_msg);
   bool (*client_auth) (void *arg,
 		       const unsigned long cid,
 		       const unsigned int mda_key_id,
@@ -274,7 +274,6 @@ struct man_connection {
 #ifdef MANAGEMENT_DEF_AUTH
   unsigned long in_extra_cid;
   unsigned int in_extra_kid;
-  int env_filter_level;
 #endif
 #ifdef MANAGMENT_EXTERNAL_KEY
 # define EKS_UNDEF   0
@@ -286,6 +285,7 @@ struct man_connection {
 #endif
 #endif
   struct event_set *es;
+  int env_filter_level;
 
   bool state_realtime;
   bool log_realtime;
@@ -332,6 +332,7 @@ struct management *management_init (void);
 #ifdef MANAGMENT_EXTERNAL_KEY
 # define MF_EXTERNAL_KEY    (1<<9)
 #endif
+#define MF_UP_DOWN          (1<<10)
 
 bool management_open (struct management *man,
 		      const char *addr,
@@ -371,6 +372,10 @@ bool management_would_hold (struct management *man);
 bool management_hold (struct management *man);
 
 void management_event_loop_n_seconds (struct management *man, int sec);
+
+void management_up_down(struct management *man, const char *updown, const struct env_set *es);
+
+void management_notify(struct management *man, const char *severity, const char *type, const char *text);
 
 #ifdef MANAGEMENT_DEF_AUTH
 void management_notify_client_needing_auth (struct management *management,
@@ -465,6 +470,11 @@ void management_echo (struct management *man, const char *string, const bool pul
  */
 
 void management_auth_failure (struct management *man, const char *type, const char *reason);
+
+/*
+ * Echo an authentication token to management interface
+ */
+void management_auth_token (struct management *man, const char *token);
 
 /*
  * These functions drive the bytecount in/out counters.

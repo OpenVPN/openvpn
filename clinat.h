@@ -22,38 +22,44 @@
  *  59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#ifndef PS_H
-#define PS_H
+#if !defined(CLINAT_H) && defined(ENABLE_CLIENT_NAT)
+#define CLINAT_H
 
-#if PORT_SHARE
-
-#include "basic.h"
 #include "buffer.h"
-#include "ssl.h"
 
-typedef void (*post_fork_cleanup_func_t)(void *arg);
+#define MAX_CLIENT_NAT 64
 
-struct port_share {
-  /* Foreground's socket to background process */
-  socket_descriptor_t foreground_fd;
+#define CN_OUTGOING 0
+#define CN_INCOMING 1
 
-  /* Process ID of background process */
-  pid_t background_pid;
+struct client_nat_entry {
+# define CN_SNAT 0
+# define CN_DNAT 1
+  int type;
+  in_addr_t network;
+  in_addr_t netmask;
+  in_addr_t foreign_network;
 };
 
-extern struct port_share *port_share;
+struct client_nat_option_list {
+  int n;
+  struct client_nat_entry entries[MAX_CLIENT_NAT];
+};
 
-struct port_share *port_share_open (const char *host,
-				    const int port,
-				    const int max_initial_buf,
-				    const char *journal_dir);
+struct client_nat_option_list *new_client_nat_list (struct gc_arena *gc);
+struct client_nat_option_list *clone_client_nat_option_list (const struct client_nat_option_list *src, struct gc_arena *gc);
+void copy_client_nat_option_list (struct client_nat_option_list *dest, const struct client_nat_option_list *src);
+void print_client_nat_list(const struct client_nat_option_list *list, int msglevel);
 
-void port_share_close (struct port_share *ps);
-void port_share_abort (struct port_share *ps);
+void add_client_nat_to_option_list (struct client_nat_option_list *dest,
+				    const char *type,
+				    const char *network,
+				    const char *netmask,
+				    const char *foreign_network,
+				    int msglevel);
 
-bool is_openvpn_protocol (const struct buffer *buf);
+void client_nat_transform (const struct client_nat_option_list *list,
+			   struct buffer *ipbuf,
+			   const int direction);
 
-void port_share_redirect (struct port_share *ps, const struct buffer *head, socket_descriptor_t sd);
-
-#endif
 #endif

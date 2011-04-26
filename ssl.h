@@ -404,6 +404,21 @@ struct key_state
 #endif
 };
 
+#ifdef ENABLE_X509_TRACK
+
+struct x509_track
+{
+  const struct x509_track *next;
+  const char *name;
+# define XT_FULL_CHAIN (1<<0)
+  unsigned int flags;
+  int nid;
+};
+
+void x509_track_add (const struct x509_track **ll_head, const char *name, int msglevel, struct gc_arena *gc);
+
+#endif
+
 /*
  * Our const options, obtained directly or derived from
  * command line options.
@@ -454,6 +469,7 @@ struct tls_options
   int ns_cert_type;
   unsigned remote_cert_ku[MAX_PARMS];
   const char *remote_cert_eku;
+  uint8_t *verify_hash;
 
   /* allow openvpn config info to be
      passed over control channel */
@@ -465,6 +481,7 @@ struct tls_options
 
   int replay_window;                   /* --replay-window parm */
   int replay_time;                     /* --replay-window parm */
+  bool tcp_mode;
 
   /* packet authentication for TLS handshake */
   struct crypto_options tls_auth;
@@ -491,10 +508,15 @@ struct tls_options
 # define SSLF_AUTH_USER_PASS_OPTIONAL  (1<<2)
 # define SSLF_NO_NAME_REMAPPING        (1<<3)
 # define SSLF_OPT_VERIFY               (1<<4)
+# define SSLF_CRL_VERIFY_DIR           (1<<5)
   unsigned int ssl_flags;
 
 #ifdef MANAGEMENT_DEF_AUTH
   struct man_def_auth_context *mda_context;
+#endif
+
+#ifdef ENABLE_X509_TRACK
+  const struct x509_track *x509_track;
 #endif
 
   /* --gremlin bits */
@@ -703,7 +725,8 @@ void pem_password_setup (const char *auth_file);
 int pem_password_callback (char *buf, int size, int rwflag, void *u);
 void auth_user_pass_setup (const char *auth_file);
 void ssl_set_auth_nocache (void);
-void ssl_purge_auth (void);
+void ssl_set_auth_token (const char *token);
+void ssl_purge_auth (const bool auth_user_pass_only);
 
 
 #ifdef ENABLE_CLIENT_CR

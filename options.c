@@ -223,6 +223,9 @@ static const char usage_message[] =
   "                  Add 'bypass-dns' flag to similarly bypass tunnel for DNS.\n"
   "--redirect-private [flags]: Like --redirect-gateway, but omit actually changing\n"
   "                  the default gateway.  Useful when pushing private subnets.\n"
+#ifdef ENABLE_CLIENT_NAT
+  "--client-nat snat|dnat network netmask alias : on client add 1-to-1 NAT rule.\n"
+#endif
 #ifdef ENABLE_PUSH_PEER_INFO
   "--push-peer-info : (client only) push client info to server.\n"
 #endif
@@ -359,6 +362,7 @@ static const char usage_message[] =
   "--management-signal : Issue SIGUSR1 when management disconnect event occurs.\n"
   "--management-forget-disconnect : Forget passwords when management disconnect\n"
   "                                 event occurs.\n"
+  "--management-up-down : Report tunnel up/down events to management interface.\n"
   "--management-log-cache n : Cache n lines of log file history for usage\n"
   "                  by the management channel.\n"
 #if UNIX_SOCK_SUPPORT
@@ -448,8 +452,9 @@ static const char usage_message[] =
   "--max-clients n : Allow a maximum of n simultaneously connected clients.\n"
   "--max-routes-per-client n : Allow a maximum of n internal routes per client.\n"
 #if PORT_SHARE
-  "--port-share host port : When run in TCP mode, proxy incoming HTTPS sessions\n"
-  "                  to a web server at host:port.\n"
+  "--port-share host port [dir] : When run in TCP mode, proxy incoming HTTPS\n"
+  "                  sessions to a web server at host:port.  dir specifies an\n"
+  "                  optional directory to write origin IP:port data.\n"
 #endif
 #endif
   "\n"
@@ -527,6 +532,7 @@ static const char usage_message[] =
   "                  Use \"openssl dhparam -out dh1024.pem 1024\" to generate.\n"
   "--cert file     : Local certificate in .pem format -- must be signed\n"
   "                  by a Certificate Authority in --ca file.\n"
+  "--extra-certs file : one or more PEM certs that complete the cert chain.\n"
   "--key file      : Local private key in .pem format.\n"
   "--pkcs12 file   : PKCS#12 file containing local private key, local certificate\n"
   "                  and optionally the root CA certificate.\n"
@@ -534,6 +540,7 @@ static const char usage_message[] =
   "--x509-username-field : Field used in x509 certificat to be username.\n"
   "                        Default is CN.\n"
 #endif
+  "--verify-hash   : Specify SHA1 fingerprint for level-1 cert.\n"
 #ifdef WIN32
   "--cryptoapicert select-string : Load the certificate and private key from the\n"
   "                  Windows Certificate System Store.\n"
@@ -558,7 +565,7 @@ static const char usage_message[] =
   "                  see --secret option for more info.\n"
   "--askpass [file]: Get PEM password from controlling tty before we daemonize.\n"
   "--auth-nocache  : Don't cache --askpass or --auth-user-pass passwords.\n"
-  "--crl-verify crl: Check peer certificate against a CRL.\n"
+  "--crl-verify crl ['dir']: Check peer certificate against a CRL.\n"
   "--tls-verify cmd: Execute shell command cmd to verify the X509 name of a\n"
   "                  pending TLS connection that has otherwise passed all other\n"
   "                  tests of certification.  cmd should return 0 to allow\n"
@@ -572,6 +579,8 @@ static const char usage_message[] =
   "                  of verification.\n"
   "--ns-cert-type t: Require that peer certificate was signed with an explicit\n"
   "                  nsCertType designation t = 'client' | 'server'.\n"
+  "--x509-track x  : Save peer X509 attribute x in environment for use by\n"
+  "                  plugins and management interface.\n"
 #if OPENSSL_VERSION_NUMBER >= 0x00907000L
   "--remote-cert-ku v ... : Require that the peer certificate was signed with\n"
   "                  explicit key usage, you can specify more than one value.\n"
@@ -1000,6 +1009,40 @@ is_stateful_restart (const struct options *o)
   return is_persist_option (o) || connection_list_defined (o);
 }
 
+#ifdef USE_SSL
+static uint8_t *
+parse_hash_fingerprint(const char *str, int nbytes, int msglevel, struct gc_arena *gc)
+{
+  int i;
+  const char *cp = str;
+  uint8_t *ret = (uint8_t *) gc_malloc (nbytes, true, gc);
+  char term = 1;
+  int byte;
+  char bs[3];
+
+  for (i = 0; i < nbytes; ++i)
+    {
+      if (strlen(cp) < 2)
+	msg (msglevel, "format error in hash fingerprint: %s", str);
+      bs[0] = *cp++;
+      bs[1] = *cp++;
+      bs[2] = 0;
+      byte = 0;
+      if (sscanf(bs, "%x", &byte) != 1)
+	msg (msglevel, "format error in hash fingerprint hex byte: %s", str);
+      ret[i] = (uint8_t)byte;
+      term = *cp++;
+      if (term != ':' && term != 0)
+	msg (msglevel, "format error in hash fingerprint delimiter: %s", str);
+      if (term == 0)
+	break;
+    }
+  if (term != 0 || i != nbytes-1)
+    msg (msglevel, "hash fingerprint is different length than expected (%d bytes): %s", nbytes, str);
+  return ret;
+}
+#endif
+
 #ifdef WIN32
 
 #ifdef ENABLE_DEBUG
@@ -1133,7 +1176,6 @@ show_p2mp_parms (const struct options *o)
   SHOW_INT (max_routes_per_client);
   SHOW_STR (auth_user_pass_verify_script);
   SHOW_BOOL (auth_user_pass_verify_script_via_file);
-  SHOW_INT (ssl_flags);
 #if PORT_SHARE
   SHOW_STR (port_share_host);
   SHOW_INT (port_share_port);
@@ -1223,6 +1265,9 @@ options_detach (struct options *o)
 {
   gc_detach (&o->gc);
   o->routes = NULL;
+#ifdef ENABLE_CLIENT_NAT
+  o->client_nat = NULL;
+#endif
 #if P2MP_SERVER
   clone_push_list(o);
 #endif
@@ -1241,6 +1286,15 @@ rol6_check_alloc (struct options *options)
   if (!options->routes_ipv6)
     options->routes_ipv6 = new_route_ipv6_option_list (options->max_routes, &options->gc);
 }
+
+#ifdef ENABLE_CLIENT_NAT
+static void
+cnol_check_alloc (struct options *options)
+{
+  if (!options->client_nat)
+    options->client_nat = new_client_nat_list (&options->gc);
+}
+#endif
 
 #ifdef ENABLE_DEBUG
 static void
@@ -1435,6 +1489,11 @@ show_settings (const struct options *o)
   SHOW_BOOL (allow_pull_fqdn);
   if (o->routes)
     print_route_options (o->routes, D_SHOW_PARMS);
+  
+#ifdef ENABLE_CLIENT_NAT
+  if (o->client_nat)
+    print_client_nat_list(o->client_nat, D_SHOW_PARMS);
+#endif
 
 #ifdef ENABLE_MANAGEMENT
   SHOW_STR (management_addr);
@@ -1496,6 +1555,7 @@ show_settings (const struct options *o)
       SHOW_INT (remote_cert_ku[i]);
   }
   SHOW_STR (remote_cert_eku);
+  SHOW_INT (ssl_flags);
 
   SHOW_INT (tls_timeout);
 
@@ -2548,6 +2608,13 @@ pre_pull_save (struct options *o)
 	  o->pre_pull->routes = clone_route_option_list(o->routes, &o->gc);
 	  o->pre_pull->routes_defined = true;
 	}
+#ifdef ENABLE_CLIENT_NAT
+      if (o->client_nat)
+	{
+	  o->pre_pull->client_nat = clone_client_nat_option_list(o->client_nat, &o->gc);
+	  o->pre_pull->client_nat_defined = true;
+	}
+#endif
     }
 }
 
@@ -2568,6 +2635,16 @@ pre_pull_restore (struct options *o)
 	}
       else
 	o->routes = NULL;
+
+#ifdef ENABLE_CLIENT_NAT
+      if (pp->client_nat_defined)
+	{
+	  cnol_check_alloc (o);
+	  copy_client_nat_option_list (o->client_nat, pp->client_nat);
+	}
+      else
+	o->client_nat = NULL;
+#endif
 
       o->foreign_option_index = pp->foreign_option_index;
     }
@@ -3865,6 +3942,11 @@ add_option (struct options *options,
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->management_flags |= MF_FORGET_DISCONNECT;
     }
+  else if (streq (p[0], "management-up-down"))
+    {
+      VERIFY_PERMISSION (OPT_P_GENERAL);
+      options->management_flags |= MF_UP_DOWN;
+    }
   else if (streq (p[0], "management-client"))
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
@@ -3884,6 +3966,13 @@ add_option (struct options *options,
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->management_flags |= MF_CLIENT_AUTH;
+    }
+#endif
+#ifdef ENABLE_X509_TRACK
+  else if (streq (p[0], "x509-track") && p[1])
+    {
+      VERIFY_PERMISSION (OPT_P_GENERAL);
+      x509_track_add (&options->x509_track, p[1], msglevel, &options->gc);
     }
 #endif
 #ifdef MANAGEMENT_PF
@@ -4792,6 +4881,14 @@ add_option (struct options *options,
       VERIFY_PERMISSION (OPT_P_PERSIST_IP);
       options->persist_remote_ip = true;
     }
+#ifdef ENABLE_CLIENT_NAT
+  else if (streq (p[0], "client-nat") && p[1] && p[2] && p[3] && p[4])
+    {
+      VERIFY_PERMISSION (OPT_P_ROUTE);
+      cnol_check_alloc (options);
+      add_client_nat_to_option_list(options->client_nat, p[1], p[2], p[3], p[4], msglevel);
+    }
+#endif
   else if (streq (p[0], "route") && p[1])
     {
       VERIFY_PERMISSION (OPT_P_ROUTE);
@@ -4958,6 +5055,12 @@ add_option (struct options *options,
 	  msg (msglevel, "this is a generic configuration and cannot directly be used");
 	  goto err;
 	}
+#ifdef ENABLE_PUSH_PEER_INFO
+      else if (streq (p[1], "PUSH_PEER_INFO"))
+	{
+	  options->push_peer_info = true;
+	}
+#endif
 #if P2MP
       else if (streq (p[1], "SERVER_POLL_TIMEOUT") && p[2])
 	{
@@ -5352,6 +5455,7 @@ add_option (struct options *options,
 
       options->port_share_host = p[1];
       options->port_share_port = port;
+      options->port_share_journal_dir = p[3];
     }
 #endif
   else if (streq (p[0], "client-to-client"))
@@ -5392,6 +5496,10 @@ add_option (struct options *options,
 	  options->push_ifconfig_defined = true;
 	  options->push_ifconfig_local = local;
 	  options->push_ifconfig_remote_netmask = remote_netmask;
+#ifdef ENABLE_CLIENT_NAT
+	  if (p[3])
+	    options->push_ifconfig_local_alias = getaddr (GETADDR_HOST_ORDER|GETADDR_RESOLVE, p[3], 0, NULL, NULL);
+#endif
 	}
       else
 	{
@@ -6051,6 +6159,22 @@ add_option (struct options *options,
 	}
 #endif
     }
+  else if (streq (p[0], "extra-certs") && p[1])
+    {
+      VERIFY_PERMISSION (OPT_P_GENERAL);
+      options->extra_certs_file = p[1];
+#if ENABLE_INLINE_FILES
+      if (streq (p[1], INLINE_FILE_TAG) && p[2])
+	{
+	  options->extra_certs_file_inline = p[2];
+	}
+#endif
+    }
+  else if (streq (p[0], "verify-hash") && p[1])
+    {
+      VERIFY_PERMISSION (OPT_P_GENERAL);
+      options->verify_hash = parse_hash_fingerprint(p[1], SHA_DIGEST_LENGTH, msglevel, &options->gc);
+    }
 #ifdef WIN32
   else if (streq (p[0], "cryptoapicert") && p[1])
     {
@@ -6095,6 +6219,15 @@ add_option (struct options *options,
       VERIFY_PERMISSION (OPT_P_GENERAL);
       ssl_set_auth_nocache ();
     }
+  else if (streq (p[0], "auth-token") && p[1])
+    {
+      VERIFY_PERMISSION (OPT_P_ECHO);
+      ssl_set_auth_token(p[1]);
+#ifdef ENABLE_MANAGEMENT
+      if (management)
+	management_auth_token (management, p[1]);
+#endif
+    }
   else if (streq (p[0], "single-session"))
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
@@ -6120,6 +6253,8 @@ add_option (struct options *options,
   else if (streq (p[0], "crl-verify") && p[1])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
+      if (p[2] && streq(p[2], "dir"))
+	options->ssl_flags |= SSLF_CRL_VERIFY_DIR;
       options->crl_file = p[1];
     }
   else if (streq (p[0], "tls-verify") && p[1])

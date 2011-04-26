@@ -133,15 +133,15 @@ static HANDLE exit_event = NULL;
 int openvpn_snprintf(char *str, size_t size, const char *format, ...)
 {
   va_list arglist;
-  int ret = 0;
+  int len = -1;
   if (size > 0)
     {
       va_start (arglist, format);
-      ret = vsnprintf (str, size, format, arglist);
+      len = vsnprintf (str, size, format, arglist);
       va_end (arglist);
       str[size - 1] = 0;
     }
-  return ret;
+  return (len >= 0 && len < size);
 }
 
 

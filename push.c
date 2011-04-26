@@ -42,7 +42,7 @@
 void
 receive_auth_failed (struct context *c, const struct buffer *buffer)
 {
-  msg (M_VERB0, "AUTH: Received AUTH_FAILED control message");
+  msg (M_VERB0, "AUTH: Received control message: %s", BSTR(buffer));
   connection_list_set_no_advance(&c->options);
   if (c->options.pull)
     {
@@ -52,7 +52,7 @@ receive_auth_failed (struct context *c, const struct buffer *buffer)
 	  c->sig->signal_received = SIGTERM; /* SOFT-SIGTERM -- Auth failure error */
 	  break;
 	case AR_INTERACT:
-	  ssl_purge_auth ();
+	  ssl_purge_auth (false);
 	case AR_NOINTERACT:
 	  c->sig->signal_received = SIGUSR1; /* SOFT-SIGUSR1 -- Auth failure error */
 	  break;
@@ -87,13 +87,48 @@ receive_auth_failed (struct context *c, const struct buffer *buffer)
  * Act on received restart message from server
  */
 void
-server_pushed_restart (struct context *c, const struct buffer *buffer)
+server_pushed_signal (struct context *c, const struct buffer *buffer, const bool restart, const int adv)
 {
   if (c->options.pull)
     {
-      msg (D_STREAM_ERRORS, "Connection reset command was pushed by server");
-      c->sig->signal_received = SIGUSR1; /* SOFT-SIGUSR1 -- server-pushed connection reset */
-      c->sig->signal_text = "server-pushed-connection-reset";
+      struct buffer buf = *buffer;
+      const char *m = "";
+      if (buf_advance (&buf, adv) && buf_read_u8 (&buf) == ',' && BLEN (&buf))
+	m = BSTR (&buf);
+
+      /* preserve cached passwords? */
+      {
+	bool purge = true;
+
+	if (m[0] == '[')
+	  {
+	    int i;
+	    for (i = 1; m[i] != '\0' && m[i] != ']'; ++i)
+	      {
+		if (m[i] == 'P')
+		  purge = false;
+	      }
+	  }
+	if (purge)
+	  ssl_purge_auth (true);
+      }
+
+      if (restart)
+	{
+	  msg (D_STREAM_ERRORS, "Connection reset command was pushed by server ('%s')", m);
+	  c->sig->signal_received = SIGUSR1; /* SOFT-SIGUSR1 -- server-pushed connection reset */
+	  c->sig->signal_text = "server-pushed-connection-reset";
+	}
+      else
+	{
+	  msg (D_STREAM_ERRORS, "Halt command was pushed by server ('%s')", m);
+	  c->sig->signal_received = SIGTERM; /* SOFT-SIGTERM -- server-pushed halt */
+	  c->sig->signal_text = "server-pushed-halt";
+	}
+#ifdef ENABLE_MANAGEMENT
+      if (management)
+	management_notify (management, "info", c->sig->signal_text, m);
+#endif
     }
 }
 
@@ -130,10 +165,10 @@ send_auth_failed (struct context *c, const char *client_reason)
  * Send restart message from server to client.
  */
 void
-send_restart (struct context *c)
+send_restart (struct context *c, const char *kill_msg)
 {
   schedule_exit (c, c->options.scheduled_exit_interval, SIGTERM);
-  send_control_channel_string (c, "RESTART", D_PUSH);
+  send_control_channel_string (c, kill_msg ? kill_msg : "RESTART", D_PUSH);
 }
 
 #endif
@@ -149,7 +184,7 @@ incoming_push_message (struct context *c, const struct buffer *buffer)
   unsigned int option_types_found = 0;
   int status;
 
-  msg (D_PUSH, "PUSH: Received control message: '%s'", BSTR (buffer));
+  msg (D_PUSH, "PUSH: Received control message: '%s'", sanitize_control_message(BSTR(buffer), &gc));
 
   status = process_incoming_push_msg (c,
 				      buffer,
@@ -158,7 +193,7 @@ incoming_push_message (struct context *c, const struct buffer *buffer)
 				      &option_types_found);
 
   if (status == PUSH_MSG_ERROR)
-    msg (D_PUSH_ERRORS, "WARNING: Received bad push/pull message: %s", BSTR (buffer));
+    msg (D_PUSH_ERRORS, "WARNING: Received bad push/pull message: %s", sanitize_control_message(BSTR(buffer), &gc));
   else if (status == PUSH_MSG_REPLY || status == PUSH_MSG_CONTINUATION)
     {
       if (status == PUSH_MSG_REPLY)
@@ -172,7 +207,18 @@ incoming_push_message (struct context *c, const struct buffer *buffer)
 bool
 send_push_request (struct context *c)
 {
-  return send_control_channel_string (c, "PUSH_REQUEST", D_PUSH);
+  const int max_push_requests = c->options.handshake_window / PUSH_REQUEST_INTERVAL;
+  if (++c->c2.n_sent_push_requests <= max_push_requests)
+    {
+      return send_control_channel_string (c, "PUSH_REQUEST", D_PUSH);
+    }
+  else
+    {
+      msg (D_STREAM_ERRORS, "No reply from server after sending %d push requests", max_push_requests);
+      c->sig->signal_received = SIGUSR1; /* SOFT-SIGUSR1 -- server-pushed connection reset */
+      c->sig->signal_text = "no-push-reply";
+      return false;
+    }
 }
 
 #if P2MP_SERVER
@@ -185,7 +231,7 @@ send_push_reply (struct context *c)
   struct push_entry *e = c->options.push_list.head;
   bool multi_push = false;
   static char cmd[] = "PUSH_REPLY";
-  const int extra = 64; /* extra space for possible trailing ifconfig and push-continuation */
+  const int extra = 84; /* extra space for possible trailing ifconfig and push-continuation */
   const int safe_cap = BCAP (&buf) - extra;
   bool push_sent = false;
 
@@ -238,9 +284,16 @@ send_push_reply (struct context *c)
     }
 
   if (c->c2.push_ifconfig_defined && c->c2.push_ifconfig_local && c->c2.push_ifconfig_remote_netmask)
-    buf_printf (&buf, ",ifconfig %s %s",
-		print_in_addr_t (c->c2.push_ifconfig_local, 0, &gc),
-		print_in_addr_t (c->c2.push_ifconfig_remote_netmask, 0, &gc));
+    {
+      in_addr_t ifconfig_local = c->c2.push_ifconfig_local;
+#ifdef ENABLE_CLIENT_NAT
+      if (c->c2.push_ifconfig_local_alias)
+	ifconfig_local = c->c2.push_ifconfig_local_alias;
+#endif
+      buf_printf (&buf, ",ifconfig %s %s",
+		  print_in_addr_t (ifconfig_local, 0, &gc),
+		  print_in_addr_t (c->c2.push_ifconfig_remote_netmask, 0, &gc));
+    }
   if (multi_push)
     buf_printf (&buf, ",push-continuation 1");
 
@@ -359,8 +412,18 @@ process_incoming_push_msg (struct context *c,
 	}
       else if (!c->c2.push_reply_deferred && c->c2.context_auth == CAS_SUCCEEDED)
 	{
-	  if (send_push_reply (c))
-	    ret = PUSH_MSG_REQUEST;
+	  if (c->c2.sent_push_reply)
+	    {
+	      ret = PUSH_MSG_ALREADY_REPLIED;
+	    }
+	  else
+	    {
+	      if (send_push_reply (c))
+		{
+		  ret = PUSH_MSG_REQUEST;
+		  c->c2.sent_push_reply = true;
+		}
+	    }
 	}
       else
 	{
