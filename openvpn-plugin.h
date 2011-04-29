@@ -203,8 +203,8 @@ struct openvpn_plugin_string_list
 struct openvpn_plugin_args_open_in
 {
   const int type_mask;
-  const char const **argv;
-  const char const **envp;
+  const char ** const argv;
+  const char ** const envp;
 };
 
 
@@ -267,8 +267,8 @@ struct openvpn_plugin_args_open_return
 struct openvpn_plugin_args_func_in
 {
   const int type;
-  const char const **argv;
-  const char const **envp;
+  const char ** const argv;
+  const char ** const envp;
   openvpn_plugin_handle_t handle;
   void *per_client_context;
   int current_cert_depth;
