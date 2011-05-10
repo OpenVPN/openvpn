@@ -1167,9 +1167,9 @@ do_ifconfig (struct tuntap *tt,
 	if (!strcmp (actual, "NULL"))
 	  msg (M_FATAL, "Error: When using --tun-ipv6, if you have more than one TAP-Win32 adapter, you must also specify --dev-node");
 
-	/* example: netsh interface ipv6 add address MyTap 2001:608:8003::d */
+	/* example: netsh interface ipv6 set address MyTap 2001:608:8003::d store=active */
 	argv_printf (&argv,
-		    "%s%sc interface ipv6 add address %s %s",
+		    "%s%sc interface ipv6 set address %s %s store=active",
 		     get_win_sys_path(),
 		     NETSH_PATH_SUFFIX,
 		     actual,
