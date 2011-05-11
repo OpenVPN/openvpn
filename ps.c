@@ -774,8 +774,10 @@ port_share_open (const char *host, const int port)
       /* Let msg know that we forked */
       msg_forked ();
 
+#ifdef ENABLE_MANAGEMENT
       /* Don't interact with management interface */
       management = NULL;
+#endif
 
       /* close all parent fds except our socket back to parent */
       close_fds_except (fd[1]);
