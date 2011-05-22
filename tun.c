@@ -591,6 +591,18 @@ void add_route_connected_v6_net(struct tuntap * tt,
     r6.gateway = tt->local_ipv6;
     add_route_ipv6 (&r6, tt, 0, es);
 }
+
+void delete_route_connected_v6_net(struct tuntap * tt,
+	                           const struct env_set *es)
+{
+    struct route_ipv6 r6;
+
+    r6.defined = true;
+    r6.network = tt->local_ipv6;
+    r6.netbits = tt->netbits_ipv6;
+    r6.gateway = tt->local_ipv6;
+    delete_route_ipv6 (&r6, tt, 0, es);
+}
 #endif
 
 
@@ -1649,7 +1661,7 @@ open_tun (const char *dev, const char *dev_type, const char *dev_node, struct tu
    * http://www.whiteboard.ne.jp/~admin2/tuntap/
    * has IPv6 support
    */
-  memset(&ifr, 0x0, sizeof(ifr));
+  CLEAR(ifr);
 
   if (tt->type == DEV_TYPE_NULL)
     {
@@ -4851,9 +4863,23 @@ close_tun (struct tuntap *tt)
     {
       if ( tt->ipv6 && tt->did_ifconfig_ipv6_setup )
         {
+	  struct argv argv;
+	  argv_init (&argv);
+
+	  /* remove route pointing to interface */
+	  delete_route_connected_v6_net(tt, NULL);
+
 	  /* netsh interface ipv6 delete address \"%s\" %s */
 	  const char * ifconfig_ipv6_local = print_in6_addr (tt->local_ipv6, 0, &gc);
-	  msg( M_WARN, "TODO: remove IPv6 address %s", ifconfig_ipv6_local );
+	  argv_printf (&argv,
+		    "%s%sc interface ipv6 delete address %s %s",
+		     get_win_sys_path(),
+		     NETSH_PATH_SUFFIX,
+		     tt->actual_name,
+		     ifconfig_ipv6_local );
+
+	  netsh_command (&argv, 1);
+          argv_reset (&argv);
 	}
 #if 1
       if (tt->ipapi_context_defined)

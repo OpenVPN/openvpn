@@ -392,3 +392,49 @@ So 24. Apr 16:51:45 CEST 2011
 
   * TEST SUCCESS: Linux/iproute2: client-tun/net30+subnet, v4+v6
 
+Thu Apr 28 19:10:01 CEST 2011
+
+  * rebase to "origin/release/2.2" branch (at v2.2.0 tag)
+
+Thu May 19 20:51:12 CEST 2011
+
+  * include Windows "netsh add" -> "netsh set ... store=active" patch from
+    Seth Mos, to fix restart problems on Windows due to persistant addresses
+
+  * TEST SUCCESS: Windows XP SP3: client-tun/net30, v4+v6
+
+Sat May 21 17:03:20 CEST 2011
+
+  * tun.c: Solaris cleanup (use CLEAR() to zero-out "ifr")
+
+  * tun.c: Windows cleanup: remove route and IPv6 address on disconnect
+
+  * route.c, route.h: remove "static" from delete_route_ipv6(), needed
+    for ipv6-route cleanup on disconnect
+
+  * TEST SUCCESS: Windows XP SP3: client-tun/net30, v4+v6
+
+  * TEST SUCCESS: Windows 7 Home Premium: client-tun/net30, v4+v6
+
+So 22. Mai 14:46:12 CEST 2011
+
+  * Tony Lim: removing routes fails on windows if certain bits are set
+    in the "host part" (others are silently ignored) -->
+
+  * route.c: create print_in6_addr_netbits_only() helper, call from 
+    add_route_ipv6() and delete_route_ipv6() to get only network part
+    of route-to-be-modified
+
+  * route.c: set 'store=active' on adding routes on WIN32 as well (Tony Lim)
+
+  * options.c: bump IPv6 release to 20110522-1
+
+  * TEST SUCCESS: Linux/iproute2: client-tun/net30+subnet, v4+v6
+
+  * TEST SUCCESS: Windows XP SP3: client-tun/net30, v4+v6
+
+  * TEST SUCCESS: Windows 7 Home Premium: client-tun/net30, v4+v6
+
+  * TEST SUCCESS: OpenBSD 4.7: client-tun/net30, v4+v6
+    TEST FAIL: OpenBSD 4.7: client-tun/subnet, v4
+    (seems to be due to "topology subnet has just not been implemented yet")

@@ -176,6 +176,7 @@ struct route_ipv6_list *new_route_ipv6_list (const int max_routes, struct gc_are
 
 void add_route (struct route *r, const struct tuntap *tt, unsigned int flags, const struct env_set *es);
 void add_route_ipv6 (struct route_ipv6 *r, const struct tuntap *tt, unsigned int flags, const struct env_set *es);
+void delete_route_ipv6 (const struct route_ipv6 *r, const struct tuntap *tt, unsigned int flags, const struct env_set *es);
 
 void add_route_to_option_list (struct route_option_list *l,
 			       const char *network,
