@@ -86,7 +86,7 @@ const char title_string[] =
 #ifdef USE_PF_INET6
   " [PF_INET6]"
 #endif
-  " [IPv6 payload 20110424-2 (2.2RC2)]"
+  " [IPv6 payload 20110522-1 (2.2.0)]"
   " built on " __DATE__
 ;
 

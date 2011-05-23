@@ -40,7 +40,6 @@
 #include "memdbg.h"
 
 static void delete_route (const struct route *r, const struct tuntap *tt, unsigned int flags, const struct env_set *es);
-static void delete_route_ipv6 (const struct route_ipv6 *r, const struct tuntap *tt, unsigned int flags, const struct env_set *es);
 static void get_bypass_addresses (struct route_bypass *rb, const unsigned int flags);
 
 #ifdef ENABLE_DEBUG
@@ -1274,6 +1273,29 @@ add_route (struct route *r, const struct tuntap *tt, unsigned int flags, const s
   gc_free (&gc);
 }
 
+
+static const char * 
+print_in6_addr_netbits_only( struct in6_addr network_copy, int netbits, 
+                             struct gc_arena * gc)
+{
+  /* clear host bit parts of route 
+   * (needed if routes are specified improperly, or if we need to 
+   * explicitely setup/clear the "connected" network routes on some OSes)
+   */
+  int byte = 15;
+  int bits_to_clear = 128 - netbits;
+
+  while( byte >= 0 && bits_to_clear > 0 )
+    {
+      if ( bits_to_clear >= 8 )
+	{ network_copy.s6_addr[byte--] = 0; bits_to_clear -= 8; }
+      else
+	{ network_copy.s6_addr[byte--] &= (~0 << bits_to_clear); bits_to_clear = 0; }
+    }
+
+  return print_in6_addr( network_copy, 0, gc);
+}
+
 void
 add_route_ipv6 (struct route_ipv6 *r6, const struct tuntap *tt, unsigned int flags, const struct env_set *es)
 {
@@ -1284,8 +1306,6 @@ add_route_ipv6 (struct route_ipv6 *r6, const struct tuntap *tt, unsigned int fla
   const char *gateway;
   bool status = false;
   const char *device = tt->actual_name;
-  int byte, bits_to_clear;
-  struct in6_addr network_copy = r6->network;
 
   if (!r6->defined)
     return;
@@ -1293,22 +1313,7 @@ add_route_ipv6 (struct route_ipv6 *r6, const struct tuntap *tt, unsigned int fla
   gc_init (&gc);
   argv_init (&argv);
 
-  /* clear host bit parts of route 
-   * (needed if routes are specified improperly, or if we need to 
-   * explicitely setup the "connected" network routes on some OSes)
-   */
-  byte = 15;
-  bits_to_clear = 128 - r6->netbits;
-
-  while( byte >= 0 && bits_to_clear > 0 )
-    {
-      if ( bits_to_clear >= 8 )
-	{ network_copy.s6_addr[byte--] = 0; bits_to_clear -= 8; }
-      else
-	{ network_copy.s6_addr[byte--] &= (~0 << bits_to_clear); bits_to_clear = 0; }
-    }
-
-  network = print_in6_addr( network_copy, 0, &gc);
+  network = print_in6_addr_netbits_only( r6->network, r6->netbits, &gc);
   gateway = print_in6_addr( r6->gateway, 0, &gc);
 
   if ( !tt->ipv6 )
@@ -1372,6 +1377,11 @@ add_route_ipv6 (struct route_ipv6 *r6, const struct tuntap *tt, unsigned int fla
   if (r->metric_defined)
     argv_printf_cat (&argv, " METRIC %d", r->metric);
 #endif
+
+  /* in some versions of Windows, routes are persistent across reboots by
+   * default, unless "store=active" is set (pointed out by Tony Lim, thanks)
+   */
+  argv_printf_cat( &argv, " store=active" );
 
   argv_msg (D_ROUTE, &argv);
 
@@ -1583,7 +1593,7 @@ delete_route (const struct route *r, const struct tuntap *tt, unsigned int flags
   gc_free (&gc);
 }
 
-static void
+void
 delete_route_ipv6 (const struct route_ipv6 *r6, const struct tuntap *tt, unsigned int flags, const struct env_set *es)
 {
   struct gc_arena gc;
@@ -1598,7 +1608,7 @@ delete_route_ipv6 (const struct route_ipv6 *r6, const struct tuntap *tt, unsigne
   gc_init (&gc);
   argv_init (&argv);
 
-  network = print_in6_addr( r6->network, 0, &gc);
+  network = print_in6_addr_netbits_only( r6->network, r6->netbits, &gc);
   gateway = print_in6_addr( r6->gateway, 0, &gc);
 
   if ( !tt->ipv6 )
