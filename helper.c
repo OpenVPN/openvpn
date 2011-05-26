@@ -143,6 +143,12 @@ helper_client_server (struct options *o)
 #if P2MP
 #if P2MP_SERVER
 
+/*
+   * Get tun/tap/null device type
+   */
+  const int dev = dev_type_enum (o->dev, o->dev_type);
+  const int topology = o->topology;
+
   /* 
    *
    * HELPER DIRECTIVE for IPv6
@@ -219,12 +225,6 @@ helper_client_server (struct options *o)
    *     ifconfig-pool 10.8.0.2 10.8.0.254 255.255.255.0
    *   push "route-gateway 10.8.0.1"
    */
-
-  /*
-   * Get tun/tap/null device type
-   */
-  const int dev = dev_type_enum (o->dev, o->dev_type);
-  const int topology = o->topology;
 
   if (o->server_defined)
     {

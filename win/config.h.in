@@ -275,7 +275,7 @@ typedef unsigned long in_addr_t;
 #define inline __inline
 
 /* type to use in place of socklen_t if not defined */
-#define socklen_t unsigned int
+/*#define socklen_t unsigned int*/
 
 #ifndef __MINGW32__
 /* 32-bit unsigned type */

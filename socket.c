@@ -3156,6 +3156,8 @@ link_socket_write_udp_posix_sendmsg (struct link_socket *sock,
  * inet_ntop() and inet_pton() wrap-implementations using
  * WSAAddressToString() and WSAStringToAddress() functions
  */
+
+#ifndef _MSC_VER
 const char *
 inet_ntop(int af, const void *src, char *dst, socklen_t size)
 {
@@ -3203,6 +3205,8 @@ inet_pton(int af, const char *src, void *dst)
   }
   return 0;
 }
+
+#endif
 
 int
 socket_recv_queue (struct link_socket *sock, int maxsize)
