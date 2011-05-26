@@ -29,7 +29,7 @@
  * Only include if not during configure
  */
 #ifdef WIN32
-/* USE_PF_INET6: win32 ipv6 exists only after 0x0501 (XP) */
+/* PF_INET6: win32 ipv6 exists only after 0x0501 (XP) */
 #define WINVER 0x0501
 #endif
 #ifndef PACKAGE_NAME
@@ -344,7 +344,7 @@
 #include <iphlpapi.h>
 #include <NtDDNdis.h>
 #include <wininet.h>
-/* The following two headers are needed of USE_PF_INET6 */
+/* The following two headers are needed of PF_INET6 */
 #include <winsock2.h>
 #include <ws2tcpip.h>
 #endif

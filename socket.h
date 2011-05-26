@@ -73,9 +73,7 @@ struct openvpn_sockaddr
   union {
     struct sockaddr sa;
     struct sockaddr_in in4;
-#ifdef USE_PF_INET6
     struct sockaddr_in6 in6;
-#endif
   } addr;
 };
 
@@ -92,9 +90,7 @@ struct link_socket_actual
 #ifdef IP_RECVDSTADDR
     struct in_addr in4;
 #endif
-#ifdef USE_PF_INET6
     struct in6_pktinfo in6;
-#endif
   } pi;
 #endif
 };
@@ -390,12 +386,10 @@ void setenv_link_socket_actual (struct env_set *es,
 
 void bad_address_length (int actual, int expected);
 
-#ifdef USE_PF_INET6
 /* IPV4_INVALID_ADDR: returned by link_socket_current_remote()
  * to ease redirect-gateway logic for ipv4 tunnels on ipv6 endpoints
  */
 #define IPV4_INVALID_ADDR 0xffffffff
-#endif
 in_addr_t link_socket_current_remote (const struct link_socket_info *info);
 
 void link_socket_connection_initiated (const struct buffer *buf,
@@ -521,12 +515,10 @@ enum proto_num {
 	PROTO_TCPv4_SERVER,
 	PROTO_TCPv4_CLIENT,
 	PROTO_TCPv4,
-#ifdef USE_PF_INET6
 	PROTO_UDPv6,
 	PROTO_TCPv6_SERVER,
 	PROTO_TCPv6_CLIENT,
 	PROTO_TCPv6,
-#endif
 	PROTO_N
 };
 
@@ -584,9 +576,7 @@ addr_defined (const struct openvpn_sockaddr *addr)
   if (!addr) return 0;
   switch (addr->addr.sa.sa_family) {
     case AF_INET: return addr->addr.in4.sin_addr.s_addr != 0;
-#ifdef USE_PF_INET6
     case AF_INET6: return !IN6_IS_ADDR_UNSPECIFIED(&addr->addr.in6.sin6_addr);
-#endif
     default: return 0;
   }
 }
@@ -602,9 +592,7 @@ addr_defined_ipi (const struct link_socket_actual *lsa)
 #ifdef IP_RECVDSTADDR
     case AF_INET: return lsa->pi.in4.s_addr != 0;
 #endif
-#ifdef USE_PF_INET6
     case AF_INET6: return !IN6_IS_ADDR_UNSPECIFIED(&lsa->pi.in6.ipi6_addr);
-#endif
     default: return 0;
   }
 #else
@@ -625,10 +613,8 @@ addr_match (const struct openvpn_sockaddr *a1, const struct openvpn_sockaddr *a2
   switch(a1->addr.sa.sa_family) {
     case AF_INET:
       return a1->addr.in4.sin_addr.s_addr == a2->addr.in4.sin_addr.s_addr;
-#ifdef USE_PF_INET6
     case AF_INET6:
       return IN6_ARE_ADDR_EQUAL(&a1->addr.in6.sin6_addr, &a2->addr.in6.sin6_addr);
-#endif
   }
   ASSERT(0);
   return false;
@@ -642,12 +628,8 @@ addr_host (const struct openvpn_sockaddr *addr)
    * possible clash: non sense for now given
    * that we do ifconfig only IPv4
    */
-#if defined(USE_PF_INET6) 
   if(addr->addr.sa.sa_family != AF_INET)
     return 0;
-#else 
-  ASSERT(addr->addr.sa.sa_family == AF_INET);
-#endif
   return ntohl (addr->addr.in4.sin_addr.s_addr);
 }
 
@@ -658,11 +640,9 @@ addr_port_match (const struct openvpn_sockaddr *a1, const struct openvpn_sockadd
     case AF_INET:
       return a1->addr.in4.sin_addr.s_addr == a2->addr.in4.sin_addr.s_addr
 	&& a1->addr.in4.sin_port == a2->addr.in4.sin_port;
-#ifdef USE_PF_INET6
     case AF_INET6:
       return IN6_ARE_ADDR_EQUAL(&a1->addr.in6.sin6_addr, &a2->addr.in6.sin6_addr) 
 	&& a1->addr.in6.sin6_port == a2->addr.in6.sin6_port;
-#endif
   }
   ASSERT(0);
   return false;
@@ -685,11 +665,9 @@ addr_zero_host(struct openvpn_sockaddr *addr)
      case AF_INET:
        addr->addr.in4.sin_addr.s_addr = 0;
        break;
-#ifdef USE_PF_INET6
      case AF_INET6: 
        memset(&addr->addr.in6.sin6_addr, 0, sizeof (struct in6_addr));
        break;
-#endif
    }
 }
 
@@ -706,11 +684,9 @@ addr_copy_host(struct openvpn_sockaddr *dst, const struct openvpn_sockaddr *src)
      case AF_INET:
        dst->addr.in4.sin_addr.s_addr = src->addr.in4.sin_addr.s_addr;
        break;
-#ifdef USE_PF_INET6
      case AF_INET6: 
        dst->addr.in6.sin6_addr = src->addr.in6.sin6_addr;
        break;
-#endif
    }
 }
 
@@ -724,15 +700,9 @@ int addr_guess_family(int proto, const char *name);
 static inline int
 af_addr_size(unsigned short af)
 {
-#if defined(USE_PF_INET6) || defined (USE_PF_UNIX)
    switch(af) {
      case AF_INET: return sizeof (struct sockaddr_in);
-#ifdef USE_PF_UNIX
-     case AF_UNIX: return sizeof (struct sockaddr_un);
-#endif
-#ifdef USE_PF_INET6
      case AF_INET6: return sizeof (struct sockaddr_in6);
-#endif
      default: 
 #if 0
       /* could be called from socket_do_accept() with empty addr */
@@ -741,9 +711,6 @@ af_addr_size(unsigned short af)
 #endif
      	return 0;
    }
-#else /* only AF_INET */
-   return sizeof(struct sockaddr_in);
-#endif
 }
 
 static inline bool
@@ -803,9 +770,7 @@ link_socket_verify_incoming_addr (struct buffer *buf,
   if (buf->len > 0)
     {
       switch (from_addr->dest.addr.sa.sa_family) {
-#ifdef USE_PF_INET6
 	case AF_INET6:
-#endif
 	case AF_INET:
 	  if (!link_socket_actual_defined (from_addr))
 	    return false;

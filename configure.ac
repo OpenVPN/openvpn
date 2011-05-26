@@ -152,12 +152,6 @@ AC_ARG_ENABLE(multihome,
    [MULTIHOME="yes"]
 )
 
-AC_ARG_ENABLE(ipv6,
-   [  --disable-ipv6          Disable UDP/IPv6 support],
-   [PF_INET6="$enableval"],
-   [PF_INET6="yes"]
-)
-
 AC_ARG_ENABLE(port-share,
    [  --disable-port-share    Disable TCP server port-share support (--port-share)],
    [PORT_SHARE="$enableval"],
@@ -579,14 +573,12 @@ AC_CHECK_FUNC(epoll_create, AC_DEFINE(HAVE_EPOLL_CREATE, 1, [epoll_create functi
 LDFLAGS="$OLDLDFLAGS"
 
 dnl ipv6 support
-if test "$PF_INET6" = "yes"; then
-  AC_CHECKING([for struct sockaddr_in6 for IPv6 support])
-  AC_CHECK_TYPE(
+AC_CHECKING([for struct sockaddr_in6 for IPv6 support])
+AC_CHECK_TYPE(
       [struct sockaddr_in6],
-      [AC_DEFINE(USE_PF_INET6, 1, [struct sockaddr_in6 is needed for IPv6 peer support])],
       [],
+      [AC_MSG_ERROR([struct sockaddr_in6 not found, needed for ipv6 transport support.])],
       [#include "syshead.h"])
-fi
 
 dnl
 dnl check for valgrind tool

@@ -83,9 +83,7 @@ const char title_string[] =
 #if ENABLE_IP_PKTINFO
   " [MH]"
 #endif
-#ifdef USE_PF_INET6
   " [PF_INET6]"
-#endif
   " [IPv6 payload 20110522-1 (2.2.0)]"
   " built on " __DATE__
 ;
@@ -109,9 +107,7 @@ static const char usage_message[] =
   "--proto p       : Use protocol p for communicating with peer.\n"
   "                  p = udp (default), tcp-server, or tcp-client\n"
   "--proto-force p : only consider protocol p in list of connection profiles.\n"
-#ifdef USE_PF_INET6
   "                  p = udp6, tcp6-server, or tcp6-client (ipv6)\n"
-#endif
   "--connect-retry n : For --proto tcp-client, number of seconds to wait\n"
   "                    between connection retries (default=%d).\n"
   "--connect-timeout n : For --proto tcp-client, connection timeout (in seconds).\n"
@@ -1909,26 +1905,14 @@ options_postprocess_verify_ce (const struct options *options, const struct conne
    */
 
   if (ce->connect_retry_defined && ce->proto != PROTO_TCPv4_CLIENT
-#ifdef USE_PF_INET6
-      && ce->proto != PROTO_TCPv6_CLIENT
-#endif
-      )
-    msg (M_USAGE, "--connect-retry doesn't make sense unless also used with --proto tcp-client"
-#ifdef USE_PF_INET6
-	 " or tcp6-client"
-#endif
-	 );
+      && ce->proto != PROTO_TCPv6_CLIENT)
+    msg (M_USAGE, "--connect-retry doesn't make sense unless also used with "
+	 "--proto tcp-client or tcp6-client");
 
   if (ce->connect_timeout_defined && ce->proto != PROTO_TCPv4_CLIENT
-#ifdef USE_PF_INET6
-      && ce->proto != PROTO_TCPv6_CLIENT
-#endif
-      )
-    msg (M_USAGE, "--connect-timeout doesn't make sense unless also used with --proto tcp-client"
-#ifdef USE_PF_INET6
-	 " or tcp6-client"
-#endif
-	 );
+      && ce->proto != PROTO_TCPv6_CLIENT)
+    msg (M_USAGE, "--connect-timeout doesn't make sense unless also used with "
+	 "--proto tcp-client or tcp6-client");
 
   /*
    * Sanity check on MTU parameters
@@ -2026,10 +2010,7 @@ options_postprocess_verify_ce (const struct options *options, const struct conne
 #endif
 
   if (!ce->remote && (ce->proto == PROTO_TCPv4_CLIENT 
-#ifdef USE_PF_INET6
-		      || ce->proto == PROTO_TCPv6_CLIENT
-#endif
-		      ))
+		      || ce->proto == PROTO_TCPv6_CLIENT))
     msg (M_USAGE, "--remote MUST be used in TCP Client mode");
 
 #ifdef ENABLE_HTTP_PROXY
@@ -2047,12 +2028,8 @@ options_postprocess_verify_ce (const struct options *options, const struct conne
     msg (M_USAGE, "--socks-proxy can not be used in TCP Server mode");
 #endif
 
-  if ((ce->proto == PROTO_TCPv4_SERVER
-#ifdef USE_PF_INET6
-       || ce->proto == PROTO_TCPv6_SERVER
-#endif
-       )
-       && connection_list_defined (options))
+  if ((ce->proto == PROTO_TCPv4_SERVER || ce->proto == PROTO_TCPv6_SERVER)
+      && connection_list_defined (options))
     msg (M_USAGE, "TCP server mode allows at most one --remote address");
 
 #if P2MP_SERVER
@@ -2067,27 +2044,14 @@ options_postprocess_verify_ce (const struct options *options, const struct conne
       if (options->pull)
 	msg (M_USAGE, "--pull cannot be used with --mode server");
       if (!(proto_is_udp(ce->proto) || ce->proto == PROTO_TCPv4_SERVER
-#ifdef USE_PF_INET6
-	    || ce->proto == PROTO_TCPv6_SERVER
-#endif
-	    ))
-	msg (M_USAGE, "--mode server currently only supports --proto udp or --proto tcp-server"
-#ifdef USE_PF_INET6
-	    " or proto tcp6-server"
-#endif
-	     );
+	    || ce->proto == PROTO_TCPv6_SERVER))
+	msg (M_USAGE, "--mode server currently only supports "
+	     "--proto udp or --proto tcp-server or proto tcp6-server");
 #if PORT_SHARE
       if ((options->port_share_host || options->port_share_port) && 
-            (ce->proto != PROTO_TCPv4_SERVER
-#ifdef USE_PF_INET6
-	     && ce->proto != PROTO_TCPv6_SERVER
-#endif
-	     ))
-	msg (M_USAGE, "--port-share only works in TCP server mode (--proto tcp-server"
-#ifdef USE_PF_INET6
-	     " or tcp6-server"
-#endif
-	  ")");
+	  (ce->proto != PROTO_TCPv4_SERVER && ce->proto != PROTO_TCPv6_SERVER))
+	msg (M_USAGE, "--port-share only works in TCP server mode "
+	     "(--proto tcp-server or tcp6-server)");
 #endif
       if (!options->tls_server)
 	msg (M_USAGE, "--mode server requires --tls-server");
@@ -2118,15 +2082,9 @@ options_postprocess_verify_ce (const struct options *options, const struct conne
       if (options->ipchange)
 	msg (M_USAGE, "--ipchange cannot be used with --mode server (use --client-connect instead)");
       if (!(proto_is_dgram(ce->proto) || ce->proto == PROTO_TCPv4_SERVER
-#ifdef USE_PF_INET6
-	    || ce->proto == PROTO_TCPv6_SERVER
-#endif
-	    ))
-	msg (M_USAGE, "--mode server currently only supports --proto udp or --proto tcp-server"
-#ifdef USE_PF_INET6
-	    " or --proto tcp6-server"
-#endif
-	     );
+	    || ce->proto == PROTO_TCPv6_SERVER))
+	msg (M_USAGE, "--mode server currently only supports "
+	     "--proto udp or --proto tcp-server or --proto tcp6-server");
       if (!proto_is_udp(ce->proto) && (options->cf_max || options->cf_per))
 	msg (M_USAGE, "--connect-freq only works with --mode server --proto udp.  Try --max-clients instead.");
       if (!(dev == DEV_TYPE_TAP || (dev == DEV_TYPE_TUN && options->topology == TOP_SUBNET)) && options->ifconfig_pool_netmask)
@@ -2398,10 +2356,8 @@ options_postprocess_mutate_ce (struct options *o, struct connection_entry *ce)
     {
       if (ce->proto == PROTO_TCPv4)
 	ce->proto = PROTO_TCPv4_CLIENT;
-#ifdef USE_PF_INET6
       else if (ce->proto == PROTO_TCPv6)
 	ce->proto = PROTO_TCPv6_CLIENT;
-#endif
     }
 #endif
 

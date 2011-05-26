@@ -1832,22 +1832,16 @@ socket_restart_pause (struct context *c)
   switch (c->options.ce.proto)
     {
     case PROTO_UDPv4:
-#ifdef USE_PF_INET6
     case PROTO_UDPv6:
-#endif
       if (proxy)
 	sec = c->options.ce.connect_retry_seconds;
       break;
     case PROTO_TCPv4_SERVER:
-#ifdef USE_PF_INET6
     case PROTO_TCPv6_SERVER:
-#endif
       sec = 1;
       break;
     case PROTO_TCPv4_CLIENT:
-#ifdef USE_PF_INET6
     case PROTO_TCPv6_CLIENT:
-#endif
       sec = c->options.ce.connect_retry_seconds;
       break;
     }
@@ -3282,10 +3276,7 @@ init_instance (struct context *c, const struct env_set *env, const unsigned int 
      instances to inherit acceptable fds
      from a top-level parent */
   if (c->options.ce.proto == PROTO_TCPv4_SERVER
-#ifdef USE_PF_INET6
-      || c->options.ce.proto == PROTO_TCPv6_SERVER
-#endif
-     )
+      || c->options.ce.proto == PROTO_TCPv6_SERVER)
     {
       if (c->mode == CM_TOP)
 	link_socket_mode = LS_MODE_TCP_LISTEN;

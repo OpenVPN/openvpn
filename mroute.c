@@ -287,7 +287,6 @@ bool mroute_extract_openvpn_sockaddr (struct mroute_addr *addr,
 	}
       return true;
     }
-#ifdef USE_PF_INET6
     case AF_INET6:
       if (use_port)
 	{
@@ -305,7 +304,6 @@ bool mroute_extract_openvpn_sockaddr (struct mroute_addr *addr,
 	  memcpy (addr->addr, &osaddr->addr.in6.sin6_addr, 16);
 	}
       return true;
-#endif
   }
   return false;
 }
