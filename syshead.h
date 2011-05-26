@@ -651,6 +651,8 @@ socket_defined (const socket_descriptor_t sd)
 /*
  * Do we support pushing peer info?
  */
+#if defined(USE_CRYPTO) && defined(USE_SSL)
 #define ENABLE_PUSH_PEER_INFO
+#endif
 
 #endif
