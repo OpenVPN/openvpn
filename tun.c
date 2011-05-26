@@ -575,7 +575,7 @@ init_tun_post (struct tuntap *tt,
 #endif
 }
 
-#if defined(TARGET_WIN32) || \
+#if defined(WIN32) || \
     defined(TARGET_DARWIN) || defined(TARGET_NETBSD) || defined(TARGET_OPENBSD)
 
 /* some of the platforms will auto-add a "network route" pointing
