@@ -299,9 +299,9 @@ plugin_open_item (struct plugin *p,
        * Call the plugin initialization
        */
       if (p->open3) {
-        struct openvpn_plugin_args_open_in args = { .type_mask = p->plugin_type_mask,
-                                                    .argv      = o->argv,
-                                                    .envp      = envp };
+        struct openvpn_plugin_args_open_in args = { p->plugin_type_mask,
+                                                    (const char ** const) o->argv,
+                                                    (const char ** const) envp };
         struct openvpn_plugin_args_open_return retargs;
 
         CLEAR(retargs);
@@ -367,13 +367,13 @@ plugin_call_item (const struct plugin *p,
        * Call the plugin work function
        */
       if (p->func3) {
-        struct openvpn_plugin_args_func_in args = { .type    = type,
-                                                    .argv    = (const char **) a.argv,
-                                                    .envp    = envp,
-                                                    .handle  = p->plugin_handle,
-						    .per_client_context = per_client_context,
-						    .current_cert_depth = (current_cert ? certdepth : -1),
-						    .current_cert = current_cert };
+        struct openvpn_plugin_args_func_in args = { type,
+                                                    (const char ** const) a.argv,
+                                                    (const char ** const) envp,
+                                                    p->plugin_handle,
+                                                    per_client_context,
+                                                    (current_cert ? certdepth : -1),
+                                                    current_cert };
         struct openvpn_plugin_args_func_return retargs;
 
         CLEAR(retargs);
