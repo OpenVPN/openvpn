@@ -2620,32 +2620,30 @@ print_in6_addr (struct in6_addr a6, unsigned int flags, struct gc_arena *gc)
   return BSTR (&out);
 }
 
+#ifndef UINT8_MAX
+# define UINT8_MAX 0xff
+#endif
+
 /* add some offset to an ipv6 address
- * (add in steps of 32 bits, taking overflow into next round)
+ * (add in steps of 8 bits, taking overflow into next round)
  */
-#ifndef s6_addr32
-# ifdef TARGET_SOLARIS
-#  define s6_addr32 _S6_un._S6_u32
-# else
-#  define s6_addr32 __u6_addr.__u6_addr32
-# endif
-#endif
-#ifndef UINT32_MAX
-# define UINT32_MAX (4294967295U)
-#endif
 struct in6_addr add_in6_addr( struct in6_addr base, uint32_t add )
 {
     int i;
-    uint32_t h;
 
-    for( i=3; i>=0 && add > 0 ; i-- )
+    for( i=15; i>=0 && add > 0 ; i-- )
     {
-	h = ntohl( base.s6_addr32[i] );
-	base.s6_addr32[i] = htonl( (h+add) & UINT32_MAX );
-	/* 32-bit overrun? 
-	 * caveat: can't do "h+add > UINT32_MAX" with 32bit math!
+	register int carry;
+	register uint32_t h;
+
+	h = (unsigned char) base.s6_addr[i];
+	base.s6_addr[i] = (h+add) & UINT8_MAX;
+
+	/* using explicit carry for the 8-bit additions will catch
+         * 8-bit and(!) 32-bit overruns nicely
          */
-	add = ( h > UINT32_MAX - add )?  1: 0;
+	carry = ((h & 0xff)  + (add & 0xff)) >> 8;
+	add = (add>>8) + carry;
     }
     return base;
 }
