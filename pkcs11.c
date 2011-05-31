@@ -33,6 +33,8 @@
 #include "manage.h"
 #include "base64.h"
 #include "pkcs11.h"
+#include "misc.h"
+#include "otime.h"
 
 static
 time_t
