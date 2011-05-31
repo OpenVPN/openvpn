@@ -652,8 +652,9 @@ update_remote (const char* host,
       if (host && addr)
         {
           struct sockaddr_in6 sin6;
+          int success;
           CLEAR(sin6);
-          int success = getaddr6 (
+          success = getaddr6 (
                                     sf2gaf(GETADDR_RESOLVE|GETADDR_UPDATE_MANAGEMENT_STATE, sockflags),
                                     host,
                                     1,
