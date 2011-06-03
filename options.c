@@ -443,6 +443,8 @@ static const char usage_message[] =
   "                  when connecting to a '--mode server' remote host.\n"
   "--auth-retry t  : How to handle auth failures.  Set t to\n"
   "                  none (default), interact, or nointeract.\n"
+  "--static-challenge t e : Enable static challenge/response protocol using\n"
+  "                  challenge text t, with e indicating echo flag (0|1)\n"
   "--server-poll-timeout n : when polling possible remote servers to connect to\n"
   "                  in a round-robin fashion, spend no more than n seconds\n"
   "                  waiting for a response before trying the next server.\n"
@@ -5251,6 +5253,14 @@ add_option (struct options *options,
       VERIFY_PERMISSION (OPT_P_GENERAL);
       auth_retry_set (msglevel, p[1]);
     }
+#ifdef ENABLE_CLIENT_CR
+  else if (streq (p[0], "static-challenge") && p[1] && p[2])
+    {
+      options->sc_info.challenge_text = p[1];
+      if (atoi(p[2]))
+	options->sc_info.flags |= SC_ECHO;
+    }
+#endif
 #endif
 #ifdef WIN32
   else if (streq (p[0], "win-sys") && p[1])

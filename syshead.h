@@ -683,7 +683,7 @@ socket_defined (const socket_descriptor_t sd)
 #endif
 
 /*
- * Do we support challenge/response authentication, as a console-based client?
+ * Do we support challenge/response authentication as client?
  */
 #define ENABLE_CLIENT_CR
 

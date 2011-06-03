@@ -343,7 +343,13 @@ init_query_passwords (struct context *c)
 #if P2MP
   /* Auth user/pass input */
   if (c->options.auth_user_pass_file)
-    auth_user_pass_setup (c->options.auth_user_pass_file);
+    {
+#ifdef ENABLE_CLIENT_CR
+      auth_user_pass_setup (c->options.auth_user_pass_file, &c->options.sc_info);
+#else
+      auth_user_pass_setup (c->options.auth_user_pass_file, NULL);
+#endif
+    }
 #endif
 }
 
@@ -2083,6 +2089,10 @@ do_init_crypto_tls (struct context *c, const unsigned int flags)
 
 #ifdef ENABLE_X509_TRACK
   to.x509_track = options->x509_track;
+#endif
+
+#ifdef ENABLE_CLIENT_CR
+  to.sci = &options->sc_info;
 #endif
 
   /* TLS handshake authentication (--tls-auth) */

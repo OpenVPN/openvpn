@@ -426,6 +426,9 @@ struct options
 
   const char *auth_user_pass_verify_script;
   bool auth_user_pass_verify_script_via_file;
+#ifdef ENABLE_CLIENT_CR
+  struct static_challenge_info sc_info;
+#endif
 #if PORT_SHARE
   char *port_share_host;
   int port_share_port;

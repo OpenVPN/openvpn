@@ -3362,6 +3362,21 @@ Note that while this option cannot be pushed, it can be controlled
 from the management interface.
 .\"*********************************************************
 .TP
+.B \-\-static\-challenge t e
+Enable static challenge/response protocol using challenge text
+.B t,
+with
+echo flag given by
+.B e
+(0|1).
+
+The echo flag indicates whether or not the user's response
+to the challenge should be echoed.
+
+See management\-notes.txt in the OpenVPN distribution for a
+description of the OpenVPN challenge/response protocol.
+.\"*********************************************************
+.TP
 .B --server-poll-timeout n
 when polling possible remote servers to connect to
 in a round-robin fashion, spend no more than

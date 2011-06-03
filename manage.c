@@ -606,24 +606,18 @@ man_up_finalize (struct management *man)
 {
   switch (man->connection.up_query_mode)
     {
-    case UP_QUERY_DISABLED:
-      man->connection.up_query.defined = false;
-      break;
     case UP_QUERY_USER_PASS:
-      if (strlen (man->connection.up_query.username) && strlen (man->connection.up_query.password))
-	man->connection.up_query.defined = true;
-      break;
+      if (!strlen (man->connection.up_query.username))
+	break;
+      /* fall through */
     case UP_QUERY_PASS:
-      if (strlen (man->connection.up_query.password))
-	man->connection.up_query.defined = true;
-      break;
     case UP_QUERY_NEED_OK:
-      if (strlen (man->connection.up_query.password))
-	man->connection.up_query.defined = true;
-      break;
     case UP_QUERY_NEED_STR:
       if (strlen (man->connection.up_query.password))
 	man->connection.up_query.defined = true;
+      break;
+    case UP_QUERY_DISABLED:
+      man->connection.up_query.defined = false;
       break;
     default:
       ASSERT (0);
@@ -665,16 +659,17 @@ man_query_user_pass (struct management *man,
 static void
 man_query_username (struct management *man, const char *type, const char *string)
 {
-  const bool needed = (man->connection.up_query_mode == UP_QUERY_USER_PASS && man->connection.up_query_type);
+  const bool needed = ((man->connection.up_query_mode == UP_QUERY_USER_PASS
+			) && man->connection.up_query_type);
   man_query_user_pass (man, type, string, needed, "username", man->connection.up_query.username, USER_PASS_LEN);
 }
 
 static void
 man_query_password (struct management *man, const char *type, const char *string)
 {
-  const bool needed = ((man->connection.up_query_mode == UP_QUERY_USER_PASS
-			|| man->connection.up_query_mode == UP_QUERY_PASS)
-		       && man->connection.up_query_type);
+  const bool needed = ((man->connection.up_query_mode == UP_QUERY_PASS
+			|| man->connection.up_query_mode == UP_QUERY_USER_PASS
+			) && man->connection.up_query_type);
   if (!string[0]) /* allow blank passwords to be passed through using the blank_up tag */
     string = blank_up;
   man_query_user_pass (man, type, string, needed, "password", man->connection.up_query.password, USER_PASS_LEN);
@@ -2843,7 +2838,8 @@ bool
 management_query_user_pass (struct management *man,
 			    struct user_pass *up,
 			    const char *type,
-			    const unsigned int flags)
+			    const unsigned int flags,
+			    const char *static_challenge)
 {
   struct gc_arena gc = gc_new ();
   bool ret = false;
@@ -2856,7 +2852,9 @@ management_query_user_pass (struct management *man,
       const char *alert_type = NULL;
       const char *prefix = NULL;
       unsigned int up_query_mode = 0;
-
+#ifdef ENABLE_CLIENT_CR
+      const char *sc = NULL;
+#endif
       ret = true;
       man->persist.standalone_disabled = false; /* This is so M_CLIENT messages will be correctly passed through msg() */
       man->persist.special_state_msg = NULL;
@@ -2886,6 +2884,10 @@ management_query_user_pass (struct management *man,
 	  up_query_mode = UP_QUERY_USER_PASS;
 	  prefix = "PASSWORD";
 	  alert_type = "username/password";
+#ifdef ENABLE_CLIENT_CR
+	  if (static_challenge)
+	    sc = static_challenge;
+#endif
 	}
       buf_printf (&alert_msg, ">%s:Need '%s' %s",
 		  prefix,
@@ -2894,6 +2896,13 @@ management_query_user_pass (struct management *man,
 
       if (flags & (GET_USER_PASS_NEED_OK | GET_USER_PASS_NEED_STR))
 	buf_printf (&alert_msg, " MSG:%s", up->username);
+
+#ifdef ENABLE_CLIENT_CR
+      if (sc)
+	buf_printf (&alert_msg, " SC:%d,%s",
+		    BOOL_CAST(flags & GET_USER_PASS_STATIC_CHALLENGE_ECHO),
+		    sc);
+#endif
 
       man_wait_for_client_connection (man, &signal_received, 0, MWCC_PASSWORD_WAIT);
       if (signal_received)
@@ -2908,7 +2917,7 @@ management_query_user_pass (struct management *man,
 	  man->connection.up_query_mode = up_query_mode;
 	  man->connection.up_query_type = type;
 
-	  /* run command processing event loop until we get our username/password */
+	  /* run command processing event loop until we get our username/password/response */
 	  do
 	    {
 	      man_standalone_event_loop (man, &signal_received, 0);

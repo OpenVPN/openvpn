@@ -292,17 +292,35 @@ static char *auth_challenge; /* GLOBAL */
 #endif
 
 void
-auth_user_pass_setup (const char *auth_file)
+auth_user_pass_setup (const char *auth_file, const struct static_challenge_info *sci)
 {
   auth_user_pass_enabled = true;
   if (!auth_user_pass.defined)
     {
 #if AUTO_USERID
       get_user_pass_auto_userid (&auth_user_pass, auth_file);
-#elif defined(ENABLE_CLIENT_CR)
-      get_user_pass_cr (&auth_user_pass, auth_file, UP_TYPE_AUTH, GET_USER_PASS_MANAGEMENT|GET_USER_PASS_SENSITIVE, auth_challenge);
 #else
-      get_user_pass (&auth_user_pass, auth_file, UP_TYPE_AUTH, GET_USER_PASS_MANAGEMENT|GET_USER_PASS_SENSITIVE);
+# ifdef ENABLE_CLIENT_CR
+      if (auth_challenge) /* dynamic challenge/response */
+	get_user_pass_cr (&auth_user_pass,
+			  auth_file,
+			  UP_TYPE_AUTH,
+			  GET_USER_PASS_MANAGEMENT|GET_USER_PASS_SENSITIVE|GET_USER_PASS_DYNAMIC_CHALLENGE,
+			  auth_challenge);
+      else if (sci) /* static challenge response */
+	{
+	  int flags = GET_USER_PASS_MANAGEMENT|GET_USER_PASS_SENSITIVE|GET_USER_PASS_STATIC_CHALLENGE;
+	  if (sci->flags & SC_ECHO)
+	    flags |= GET_USER_PASS_STATIC_CHALLENGE_ECHO;
+	  get_user_pass_cr (&auth_user_pass,
+			    auth_file,
+			    UP_TYPE_AUTH,
+			    flags,
+			    sci->challenge_text);
+	}
+      else
+# endif
+	get_user_pass (&auth_user_pass, auth_file, UP_TYPE_AUTH, GET_USER_PASS_MANAGEMENT|GET_USER_PASS_SENSITIVE);
 #endif
     }
 }
@@ -3945,7 +3963,11 @@ key_method_2_write (struct buffer *buf, struct tls_session *session)
   /* write username/password if specified */
   if (auth_user_pass_enabled)
     {
-      auth_user_pass_setup (NULL);
+#ifdef ENABLE_CLIENT_CR
+      auth_user_pass_setup (NULL, session->opt->sci);
+#else
+      auth_user_pass_setup (NULL, NULL);
+#endif
       if (!write_string (buf, auth_user_pass.username, -1))
 	goto error;
       if (!write_string (buf, auth_user_pass.password, -1))
