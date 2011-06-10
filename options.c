@@ -5256,6 +5256,7 @@ add_option (struct options *options,
 #ifdef ENABLE_CLIENT_CR
   else if (streq (p[0], "static-challenge") && p[1] && p[2])
     {
+      VERIFY_PERMISSION (OPT_P_GENERAL);
       options->sc_info.challenge_text = p[1];
       if (atoi(p[2]))
 	options->sc_info.flags |= SC_ECHO;
