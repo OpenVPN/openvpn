@@ -49,6 +49,7 @@
 #include "pkcs11.h"
 #include "list.h"
 #include "base64.h"
+#include "route.h"
 
 #ifdef WIN32
 #include "cryptoapi.h"
@@ -3899,10 +3900,10 @@ push_peer_info(struct buffer *buf, struct tls_session *session)
 
       /* push mac addr */
       {
-	bool get_default_gateway_mac_addr (unsigned char *macaddr);
-	uint8_t macaddr[6];
-	get_default_gateway_mac_addr (macaddr);
-	buf_printf (&out, "IV_HWADDR=%s\n", format_hex_ex (macaddr, 6, 0, 1, ":", &gc));
+	struct route_gateway_info rgi;
+	get_default_gateway (&rgi);
+	if (rgi.flags & RGI_HWADDR_DEFINED)
+	  buf_printf (&out, "IV_HWADDR=%s\n", format_hex_ex (rgi.hwaddr, 6, 0, 1, ":", &gc));
       }
 
       /* push LZO status */

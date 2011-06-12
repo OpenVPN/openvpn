@@ -270,11 +270,12 @@ check_subnet_conflict (const in_addr_t ip,
 		       const in_addr_t netmask,
 		       const char *prefix)
 {
+#if 0 /* too many false positives */
   struct gc_arena gc = gc_new ();
   in_addr_t lan_gw = 0;
   in_addr_t lan_netmask = 0;
 
-  if (get_default_gateway (&lan_gw, &lan_netmask))
+  if (get_default_gateway (&lan_gw, &lan_netmask) && lan_netmask)
     {
       const in_addr_t lan_network = lan_gw & lan_netmask; 
       const in_addr_t network = ip & netmask;
@@ -292,18 +293,20 @@ check_subnet_conflict (const in_addr_t ip,
 	}
     }
   gc_free (&gc);
+#endif
 }
 
 void
 warn_on_use_of_common_subnets (void)
 {
   struct gc_arena gc = gc_new ();
-  in_addr_t lan_gw = 0;
-  in_addr_t lan_netmask = 0;
+  struct route_gateway_info rgi;
+  const int needed = (RGI_ADDR_DEFINED|RGI_NETMASK_DEFINED);
 
-  if (get_default_gateway (&lan_gw, &lan_netmask))
+  get_default_gateway (&rgi);
+  if ((rgi.flags & needed) == needed)
     {
-      const in_addr_t lan_network = lan_gw & lan_netmask; 
+      const in_addr_t lan_network = rgi.gateway.addr & rgi.gateway.netmask; 
       if (lan_network == 0xC0A80000 || lan_network == 0xC0A80100)
 	msg (M_WARN, "NOTE: your local LAN uses the extremely common subnet address 192.168.0.x or 192.168.1.x.  Be aware that this might create routing conflicts if you connect to the VPN server from public locations such as internet cafes that use the same subnet.");
     }
@@ -841,11 +844,11 @@ do_ifconfig (struct tuntap *tt,
 	{
 	  struct route r;
 	  CLEAR (r);
-	  r.defined = true;
+	  r.flags = RT_DEFINED;
 	  r.network = tt->local & tt->remote_netmask;
 	  r.netmask = tt->remote_netmask;
 	  r.gateway = tt->local;
-	  add_route (&r, tt, 0, es);
+	  add_route (&r, tt, 0, NULL, es);
 	}
 
 #elif defined(TARGET_FREEBSD)||defined(TARGET_DRAGONFLY)

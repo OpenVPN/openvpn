@@ -1015,7 +1015,7 @@ process_ipv4_header (struct context *c, unsigned int flags, struct buffer *buf)
   if (!c->options.passtos)
     flags &= ~PIPV4_PASSTOS;
 #endif
-  if (!c->options.route_gateway_via_dhcp || !route_list_default_gateway_needed (c->c1.route_list))
+  if (!c->options.route_gateway_via_dhcp || !route_list_vpn_gateway_needed (c->c1.route_list))
     flags &= ~PIPV4_EXTRACT_DHCP_ROUTER;
 
   if (buf->len > 0)
@@ -1056,7 +1056,7 @@ process_ipv4_header (struct context *c, unsigned int flags, struct buffer *buf)
 		{
 		  const in_addr_t dhcp_router = dhcp_extract_router_msg (&ipbuf);
 		  if (dhcp_router)
-		    route_list_add_default_gateway (c->c1.route_list, c->c2.es, dhcp_router);
+		    route_list_add_vpn_gateway (c->c1.route_list, c->c2.es, dhcp_router);
 		}
 	    }
 	}

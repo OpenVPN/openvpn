@@ -1093,8 +1093,8 @@ addresses in packets.
 .\"*********************************************************
 .TP
 .B --redirect-gateway flags...
-(Experimental) Automatically execute routing commands to cause all outgoing IP traffic
-to be redirected over the VPN.
+Automatically execute routing commands to cause all outgoing IP traffic
+to be redirected over the VPN.  This is a client-side option.
 
 This option performs three steps:
 
@@ -1126,12 +1126,17 @@ Option flags:
 .B local --
 Add the
 .B local
-flag if both OpenVPN servers are directly connected via a common subnet,
+flag if both OpenVPN nodes are directly connected via a common subnet,
 such as with wireless.  The
 .B local
 flag will cause step
 .B 1
 above to be omitted.
+
+.B autolocal --
+Try to automatically determine whether to enable
+.B local
+flag above.
 
 .B def1 --
 Use this flag to override
@@ -1151,7 +1156,10 @@ bypasses the tunnel
 (Available on Windows clients, may not be available
 on non-Windows clients).
 
-Using the def1 flag is highly recommended.
+.B block-local --
+Block access to local LAN when the tunnel is active, except for
+the LAN gateway itself.  This is accomplished by routing the local
+LAN (except for the LAN gateway address) into the tunnel.
 .\"*********************************************************
 .TP
 .B --link-mtu n

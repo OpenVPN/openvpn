@@ -29,6 +29,7 @@
 #ifndef ROUTE_H
 #define ROUTE_H
 
+#include "basic.h"
 #include "tun.h"
 #include "misc.h"
 
@@ -58,15 +59,17 @@ struct route_bypass
 
 struct route_special_addr
 {
+  /* bits indicating which members below are defined */
+# define RTSA_REMOTE_ENDPOINT  (1<<0)
+# define RTSA_REMOTE_HOST      (1<<1)
+# define RTSA_DEFAULT_METRIC   (1<<2)
+  unsigned int flags;
+
   in_addr_t remote_endpoint;
-  bool remote_endpoint_defined;
-  in_addr_t net_gateway;
-  bool net_gateway_defined;
   in_addr_t remote_host;
-  bool remote_host_defined;
+  int remote_host_local;  /* TLA_x value */
   struct route_bypass bypass;
   int default_metric;
-  bool default_metric_defined;
 };
 
 struct route_option {
@@ -84,30 +87,68 @@ struct route_option {
 #define RG_BYPASS_DNS     (1<<4)
 #define RG_REROUTE_GW     (1<<5)
 #define RG_AUTO_LOCAL     (1<<6)
+#define RG_BLOCK_LOCAL    (1<<7)
 
 struct route_option_list {
-  unsigned int flags;
+  unsigned int flags;  /* RG_x flags */
   int capacity;
   int n;
   struct route_option routes[EMPTY_ARRAY_SIZE];
 };
 
 struct route {
-  bool defined;
+# define RT_DEFINED        (1<<0)
+# define RT_ADDED          (1<<1)
+# define RT_METRIC_DEFINED (1<<2)
+  unsigned int flags;
   const struct route_option *option;
   in_addr_t network;
   in_addr_t netmask;
   in_addr_t gateway;
-  bool metric_defined;
   int metric;
 };
 
-struct route_list {
-  bool routes_added;
-  struct route_special_addr spec;
+struct route_gateway_address {
+  in_addr_t addr;
+  in_addr_t netmask;
+};
+
+struct route_gateway_info {
+# define RGI_ADDR_DEFINED     (1<<0) /* set if gateway.addr defined */
+# define RGI_NETMASK_DEFINED  (1<<1) /* set if gateway.netmask defined */
+# define RGI_HWADDR_DEFINED   (1<<2) /* set if hwaddr is defined */
+# define RGI_IFACE_DEFINED    (1<<3) /* set if iface is defined */
+# define RGI_OVERFLOW         (1<<4) /* set if more interface addresses than will fit in addrs */
   unsigned int flags;
-  bool did_redirect_default_gateway;
-  bool did_local;
+
+  /* gateway interface */
+# ifdef WIN32
+  DWORD adapter_index;  /* interface or ~0 if undefined */
+#else
+  char iface[16]; /* interface name (null terminated), may be empty */
+#endif
+
+  /* gateway interface hardware address */
+  uint8_t hwaddr[6];
+
+  /* gateway/router address */
+  struct route_gateway_address gateway;
+
+  /* address/netmask pairs bound to interface */
+# define RGI_N_ADDRESSES 8
+  int n_addrs; /* len of addrs, may be 0 */
+  struct route_gateway_address addrs[RGI_N_ADDRESSES]; /* local addresses attached to iface */
+};
+
+struct route_list {
+# define RL_DID_REDIRECT_DEFAULT_GATEWAY (1<<0)
+# define RL_DID_LOCAL                    (1<<1)
+# define RL_ROUTES_ADDED                 (1<<2)
+  unsigned int iflags;
+
+  struct route_special_addr spec;
+  struct route_gateway_info rgi;
+  unsigned int flags;     /* RG_x flags */
   int capacity;
   int n;
   struct route routes[EMPTY_ARRAY_SIZE];
@@ -128,7 +169,11 @@ void copy_route_option_list (struct route_option_list *dest, const struct route_
 
 struct route_list *new_route_list (const int max_routes, struct gc_arena *a);
 
-void add_route (struct route *r, const struct tuntap *tt, unsigned int flags, const struct env_set *es);
+void add_route (struct route *r,
+		const struct tuntap *tt,
+		unsigned int flags,
+		const struct route_gateway_info *rgi,
+		const struct env_set *es);
 
 void add_route_to_option_list (struct route_option_list *l,
 			       const char *network,
@@ -143,9 +188,9 @@ bool init_route_list (struct route_list *rl,
 		      in_addr_t remote_host,
 		      struct env_set *es);
 
-void route_list_add_default_gateway (struct route_list *rl,
-				     struct env_set *es,
-				     const in_addr_t addr);
+void route_list_add_vpn_gateway (struct route_list *rl,
+				 struct env_set *es,
+				 const in_addr_t addr);
 
 void add_routes (struct route_list *rl,
 		 const struct tuntap *tt,
@@ -161,7 +206,8 @@ void setenv_routes (struct env_set *es, const struct route_list *rl);
 
 bool is_special_addr (const char *addr_str);
 
-bool get_default_gateway (in_addr_t *ip, in_addr_t *netmask);
+void get_default_gateway (struct route_gateway_info *rgi);
+void print_default_gateway(const int msglevel, const struct route_gateway_info *rgi);
 
 /*
  * Test if addr is reachable via a local interface (return ILA_LOCAL),
@@ -172,11 +218,7 @@ bool get_default_gateway (in_addr_t *ip, in_addr_t *netmask);
 #define TLA_NOT_IMPLEMENTED 0
 #define TLA_NONLOCAL        1
 #define TLA_LOCAL           2
-int test_local_addr (const in_addr_t addr);
-
-#if AUTO_USERID || defined(ENABLE_PUSH_PEER_INFO)
-bool get_default_gateway_mac_addr (unsigned char *macaddr);
-#endif
+int test_local_addr (const in_addr_t addr, const struct route_gateway_info *rgi);
 
 #ifdef ENABLE_DEBUG
 void print_route_options (const struct route_option_list *rol,
@@ -189,7 +231,7 @@ void print_routes (const struct route_list *rl, int level);
 
 void show_routes (int msglev);
 bool test_routes (const struct route_list *rl, const struct tuntap *tt);
-bool add_route_ipapi (const struct route *r, const struct tuntap *tt);
+bool add_route_ipapi (const struct route *r, const struct tuntap *tt, DWORD adapter_index);
 bool del_route_ipapi (const struct route *r, const struct tuntap *tt);
 
 #else
@@ -209,12 +251,18 @@ netbits_to_netmask (const int netbits)
 }
 
 static inline bool
-route_list_default_gateway_needed (const struct route_list *rl)
+route_list_vpn_gateway_needed (const struct route_list *rl)
 {
   if (!rl)
     return false;
   else
-    return !rl->spec.remote_endpoint_defined;
+    return !(rl->spec.flags & RTSA_REMOTE_ENDPOINT);
+}
+
+static inline int
+route_did_redirect_default_gateway(const struct route_list *rl)
+{
+  return BOOL_CAST(rl->iflags & RL_DID_REDIRECT_DEFAULT_GATEWAY);
 }
 
 #endif

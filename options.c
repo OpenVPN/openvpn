@@ -670,6 +670,9 @@ static const char usage_message[] =
   "--show-pkcs11-ids provider [cert_private] : Show PKCS#11 available ids.\n" 
   "                                            --verb option can be added *BEFORE* this.\n"
 #endif				/* ENABLE_PKCS11 */
+  "\n"
+  "General Standalone Options:\n"
+  "--show-gateway : Show info about default gateway.\n"
  ;
 
 #endif /* !ENABLE_SMALL */
@@ -3611,6 +3614,14 @@ add_option (struct options *options,
 
       read_config_file (options, p[1], level, file, line, msglevel, permission_mask, option_types_found, es);
     }
+  else if (streq (p[0], "show-gateway"))
+    {
+      struct route_gateway_info rgi;
+      VERIFY_PERMISSION (OPT_P_GENERAL);
+      get_default_gateway(&rgi);
+      print_default_gateway(M_INFO, &rgi);
+      openvpn_exit (OPENVPN_EXIT_STATUS_GOOD); /* exit point */
+    }
 #if 0
   else if (streq (p[0], "foreign-option") && p[1])
     {
@@ -4768,6 +4779,8 @@ add_option (struct options *options,
 	    options->routes->flags |= RG_BYPASS_DHCP;
 	  else if (streq (p[j], "bypass-dns"))
 	    options->routes->flags |= RG_BYPASS_DNS;
+	  else if (streq (p[j], "block-local"))
+	    options->routes->flags |= RG_BLOCK_LOCAL;
 	  else
 	    {
 	      msg (msglevel, "unknown --%s flag: %s", p[0], p[j]);

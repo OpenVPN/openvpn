@@ -603,21 +603,9 @@ init_static (void)
 
 #ifdef TEST_GET_DEFAULT_GATEWAY
   {
-    struct gc_arena gc = gc_new ();
-    in_addr_t addr;
-    char macaddr[6];
-
-    if (get_default_gateway(&addr, NULL))
-      msg (M_INFO, "GW %s", print_in_addr_t(addr, 0, &gc));
-    else
-      msg (M_INFO, "GDG ERROR");
-
-    if (get_default_gateway_mac_addr(macaddr))
-      msg (M_INFO, "MAC %s", format_hex_ex (macaddr, 6, 0, 1, ":", &gc));
-    else
-      msg (M_INFO, "GDGMA ERROR");
-
-    gc_free (&gc);
+    struct route_gateway_info rgi;
+    get_default_gateway(&rgi);
+    print_default_gateway(M_INFO, &rgi);
     return false;
   }
 #endif
@@ -1201,7 +1189,7 @@ do_route (const struct options *options,
   if (!options->route_noexec && route_list)
     {
       add_routes (route_list, tt, ROUTE_OPTION_FLAGS (options), es);
-      setenv_int (es, "redirect_gateway", route_list->did_redirect_default_gateway);
+      setenv_int (es, "redirect_gateway", route_did_redirect_default_gateway(route_list));
     }
 #ifdef ENABLE_MANAGEMENT
   if (management)
