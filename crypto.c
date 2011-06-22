@@ -6,6 +6,7 @@
  *             packet compression.
  *
  *  Copyright (C) 2002-2010 OpenVPN Technologies, Inc. <sales@openvpn.net>
+ *  Copyright (C) 2010 Fox Crypto B.V. <openvpn@fox-it.com>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -803,8 +804,8 @@ generate_key_random (struct key *key, const struct key_type *kt)
 	if (kt->digest && kt->hmac_length > 0 && kt->hmac_length <= hmac_len)
 	  hmac_len = kt->hmac_length;
       }
-    if (!RAND_bytes (key->cipher, cipher_len)
-	|| !RAND_bytes (key->hmac, hmac_len))
+    if (!rand_bytes (key->cipher, cipher_len)
+	|| !rand_bytes (key->hmac, hmac_len))
       msg (M_FATAL, "ERROR: Random number generator cannot obtain entropy for key generation");
 
     dmsg (D_SHOW_KEY_SOURCE, "Cipher source entropy: %s", format_hex (key->cipher, cipher_len, 0, &gc));
@@ -870,7 +871,7 @@ test_crypto (const struct crypto_options *co, struct frame* frame)
       ASSERT (buf_init (&src, 0));
       ASSERT (i <= src.capacity);
       src.len = i;
-      ASSERT (RAND_pseudo_bytes (BPTR (&src), BLEN (&src)));
+      ASSERT (rand_bytes (BPTR (&src), BLEN (&src)));
 
       /* copy source to input buf */
       buf = work;
@@ -1671,7 +1672,7 @@ prng_init (const char *md_name, const int nonce_secret_len_parm)
 	nonce_data = (uint8_t*) malloc (size);
 	check_malloc_return (nonce_data);
 #if 1 /* Must be 1 for real usage */
-	if (!RAND_bytes (nonce_data, size))
+	if (!rand_bytes (nonce_data, size))
 	  msg (M_FATAL, "ERROR: Random number generator cannot obtain entropy for PRNG");
 #else
 	/* Only for testing -- will cause a predictable PRNG sequence */
@@ -1716,7 +1717,7 @@ prng_bytes (uint8_t *output, int len)
 	}
     }
   else
-    RAND_bytes (output, len);
+    rand_bytes (output, len);
 }
 
 /* an analogue to the random() function, but use prng_bytes */

@@ -3916,7 +3916,7 @@ random_bytes_to_buf (struct buffer *buf,
 		     uint8_t *out,
 		     int outlen)
 {
-  if (!RAND_bytes (out, outlen))
+  if (!rand_bytes (out, outlen))
     msg (M_FATAL, "ERROR: Random number generator cannot obtain entropy for key generation [SSL]");
   if (!buf_write (buf, out, outlen))
     return false;

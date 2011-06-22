@@ -740,7 +740,7 @@ establish_http_proxy_passthru (struct http_proxy_info *p,
 	      const char *opaque = get_pa_var("opaque", pa, &gc);
 
 	      /* generate a client nonce */
-	      ASSERT(RAND_bytes(cnonce_raw, sizeof(cnonce_raw)));
+	      ASSERT(rand_bytes(cnonce_raw, sizeof(cnonce_raw)));
 	      cnonce = make_base64_string2(cnonce_raw, sizeof(cnonce_raw), &gc);
 
 

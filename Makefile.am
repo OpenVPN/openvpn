@@ -85,7 +85,7 @@ openvpn_SOURCES = \
 	clinat.c clinat.h \
 	common.h \
 	config-win32.h \
-	crypto.c crypto.h \
+	crypto.c crypto.h crypto_backend.h \
 	dhcp.c dhcp.h \
 	errlevel.h \
 	error.c error.h \
@@ -151,6 +151,11 @@ options.$(OBJEXT): configure.h
 configure.h: Makefile
 	awk -f $(srcdir)/configure_h.awk config.h > $@
 	awk -f $(srcdir)/configure_log.awk config.log >> $@
+
+if USE_OPENSSL
+openvpn_SOURCES += \
+	crypto_openssl.c crypto_openssl.h
+endif
 
 dist-hook:
 	cd $(distdir) && for i in $(EXTRA_DIST) $(SUBDIRS) ; do find $$i -name .svn -type d -prune -exec rm -rf '{}' ';' ; rm -f `find $$i -type f | grep -E '(^|\/)\.?\#|\~$$|\.s?o$$'` ; done

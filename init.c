@@ -751,7 +751,7 @@ init_static (void)
 #if 1
 	prng_bytes (rndbuf, sizeof (rndbuf));
 #else
-	ASSERT(RAND_bytes (rndbuf, sizeof (rndbuf)));
+	ASSERT(rand_bytes (rndbuf, sizeof (rndbuf)));
 #endif
 	printf ("[%d] %s\n", i, format_hex (rndbuf, sizeof (rndbuf), 0, &gc));
       }
