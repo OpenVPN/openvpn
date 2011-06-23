@@ -38,7 +38,30 @@
 
 #include "basic.h"
 
+
+/*
+ * This routine should have additional OpenSSL crypto library initialisations
+ * used by both crypto and ssl components of OpenVPN.
+ */
+void crypto_init_lib (void);
+
+void crypto_uninit_lib (void);
+
 void crypto_clear_error (void);
+
+/*
+ * Initialise the given named crypto engine.
+ */
+void crypto_init_lib_engine (const char *engine_name);
+
+#ifdef DMALLOC
+/*
+ * OpenSSL memory debugging.  If dmalloc debugging is enabled, tell
+ * OpenSSL to use our private malloc/realloc/free functions so that
+ * we can dispatch them to dmalloc.
+ */
+void crypto_init_dmalloc (void);
+#endif /* DMALLOC */
 
 void show_available_ciphers (void);
 

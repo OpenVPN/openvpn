@@ -84,13 +84,177 @@ cipher_ok (const char* name)
 
 #if SSLEAY_VERSION_NUMBER < 0x0090581f
 
+#endif /* SSLEAY_VERSION_NUMBER < 0x0090581f */
+
+/*
+ *
+ * OpenSSL engine support. Allows loading/unloading of engines.
+ *
+ */
+
+#if defined(HAVE_OPENSSL_ENGINE_H) && defined(HAVE_ENGINE_LOAD_BUILTIN_ENGINES) && defined(HAVE_ENGINE_REGISTER_ALL_COMPLETE) && defined(HAVE_ENGINE_CLEANUP)
+#define CRYPTO_ENGINE 1
+#else
+#define CRYPTO_ENGINE 0
 #endif
+
+#if CRYPTO_ENGINE
+#include <openssl/engine.h>
+
+static bool engine_initialized = false; /* GLOBAL */
+
+static ENGINE *engine_persist = NULL;   /* GLOBAL */
+
+/* Try to load an engine in a shareable library */
+static ENGINE *
+try_load_engine (const char *engine)
+{
+  ENGINE *e = ENGINE_by_id ("dynamic");
+  if (e)
+    {
+      if (!ENGINE_ctrl_cmd_string (e, "SO_PATH", engine, 0)
+	  || !ENGINE_ctrl_cmd_string (e, "LOAD", NULL, 0))
+	{
+	  ENGINE_free (e);
+	  e = NULL;
+	}
+    }
+  return e;
+}
+
+static ENGINE *
+setup_engine (const char *engine)
+{
+  ENGINE *e = NULL;
+
+  ENGINE_load_builtin_engines ();
+
+  if (engine)
+    {
+      if (strcmp (engine, "auto") == 0)
+	{
+	  msg (M_INFO, "Initializing OpenSSL auto engine support");
+	  ENGINE_register_all_complete ();
+	  return NULL;
+	}
+      if ((e = ENGINE_by_id (engine)) == NULL
+	 && (e = try_load_engine (engine)) == NULL)
+	{
+	  msg (M_FATAL, "OpenSSL error: cannot load engine '%s'", engine);
+	}
+
+      if (!ENGINE_set_default (e, ENGINE_METHOD_ALL))
+	{
+	  msg (M_FATAL, "OpenSSL error: ENGINE_set_default failed on engine '%s'",
+	       engine);
+	}
+
+      msg (M_INFO, "Initializing OpenSSL support for engine '%s'",
+	   ENGINE_get_id (e));
+    }
+  return e;
+}
+
+#endif /* CRYPTO_ENGINE */
+
+void
+crypto_init_lib_engine (const char *engine_name)
+{
+#if CRYPTO_ENGINE
+  if (!engine_initialized)
+    {
+      ASSERT (engine_name);
+      ASSERT (!engine_persist);
+      engine_persist = setup_engine (engine_name);
+      engine_initialized = true;
+    }
+#else
+  msg (M_WARN, "Note: OpenSSL hardware crypto engine functionality is not available");
+#endif
+}
+
+/*
+ *
+ * Functions related to the core crypto library
+ *
+ */
+
+void
+crypto_init_lib (void)
+{
+  /*
+   * If you build the OpenSSL library and OpenVPN with
+   * CRYPTO_MDEBUG, you will get a listing of OpenSSL
+   * memory leaks on program termination.
+   */
+#ifdef CRYPTO_MDEBUG
+  CRYPTO_mem_ctrl(CRYPTO_MEM_CHECK_ON);
+#endif
+}
+
+void
+crypto_uninit_lib (void)
+{
+#ifdef CRYPTO_MDEBUG
+  FILE* fp = fopen ("sdlog", "w");
+  ASSERT (fp);
+  CRYPTO_mem_leaks_fp (fp);
+  fclose (fp);
+#endif
+
+#if CRYPTO_ENGINE
+  if (engine_initialized)
+    {
+      ENGINE_cleanup ();
+      engine_persist = NULL;
+      engine_initialized = false;
+    }
+#endif
+
+  prng_uninit ();
+}
 
 void
 crypto_clear_error (void)
 {
   ERR_clear_error ();
 }
+
+/*
+ *
+ * OpenSSL memory debugging.  If dmalloc debugging is enabled, tell
+ * OpenSSL to use our private malloc/realloc/free functions so that
+ * we can dispatch them to dmalloc.
+ *
+ */
+
+#ifdef DMALLOC
+static void *
+crypto_malloc (size_t size, const char *file, int line)
+{
+  return dmalloc_malloc(file, line, size, DMALLOC_FUNC_MALLOC, 0, 0);
+}
+
+static void *
+crypto_realloc (void *ptr, size_t size, const char *file, int line)
+{
+  return dmalloc_realloc(file, line, ptr, size, DMALLOC_FUNC_REALLOC, 0);
+}
+
+static void
+crypto_free (void *ptr)
+{
+  dmalloc_free (__FILE__, __LINE__, ptr, DMALLOC_FUNC_FREE);
+}
+
+void
+crypto_init_dmalloc (void)
+{
+  CRYPTO_set_mem_ex_functions (crypto_malloc,
+				crypto_realloc,
+				crypto_free);
+}
+#endif /* DMALLOC */
 
 void
 show_available_ciphers ()

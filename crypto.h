@@ -34,15 +34,6 @@
 
 #define ALLOW_NON_CBC_CIPHERS
 
-/*
- * Does our OpenSSL library support crypto hardware acceleration?
- */
-#if defined(HAVE_OPENSSL_ENGINE_H) && defined(HAVE_ENGINE_LOAD_BUILTIN_ENGINES) && defined(HAVE_ENGINE_REGISTER_ALL_COMPLETE) && defined(HAVE_ENGINE_CLEANUP)
-#define CRYPTO_ENGINE 1
-#else
-#define CRYPTO_ENGINE 0
-#endif
-
 #include <openssl/objects.h>
 #include <openssl/rand.h>
 #include <openssl/evp.h>
@@ -54,10 +45,6 @@
 #endif
 #include <openssl/sha.h>
 #include <openssl/err.h>
-
-#if CRYPTO_ENGINE
-#include <openssl/engine.h>
-#endif
 
 #if SSLEAY_VERSION_NUMBER >= 0x00907000L
 #include <openssl/des_old.h>
@@ -434,12 +421,6 @@ void test_crypto (const struct crypto_options *co, struct frame* f);
 
 const char *md5sum(uint8_t *buf, int len, int n_print_chars, struct gc_arena *gc);
 
-void init_crypto_lib_engine (const char *engine_name);
-
-void init_crypto_lib (void);
-
-void uninit_crypto_lib (void);
-
 /* key direction functions */
 
 void key_direction_state_init (struct key_direction_state *kds, int key_direction);
@@ -457,9 +438,6 @@ void key2_print (const struct key2* k,
 		 const struct key_type *kt,
 		 const char* prefix0,
 		 const char* prefix1);
-
-/* memory debugging */
-void openssl_dmalloc_init (void);
 
 #ifdef USE_SSL
 

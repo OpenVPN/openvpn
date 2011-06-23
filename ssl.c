@@ -226,7 +226,7 @@ init_ssl_lib ()
   SSL_load_error_strings ();
   OpenSSL_add_all_algorithms ();
 
-  init_crypto_lib();
+  crypto_init_lib();
 
   /*
    * If you build the OpenSSL library and OpenVPN with
@@ -250,7 +250,7 @@ free_ssl_lib ()
   fclose (fp);
 #endif
 
-  uninit_crypto_lib ();
+  crypto_uninit_lib ();
   EVP_cleanup ();
   ERR_free_strings ();
 }

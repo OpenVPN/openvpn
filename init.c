@@ -629,7 +629,7 @@ init_static (void)
   /* configure_path (); */
 
 #if defined(USE_CRYPTO) && defined(DMALLOC)
-  openssl_dmalloc_init ();
+  crypto_init_dmalloc();
 #endif
 
   init_random_seed ();		/* init random() function, only used as
@@ -1944,7 +1944,7 @@ static void
 init_crypto_pre (struct context *c, const unsigned int flags)
 {
   if (c->options.engine)
-    init_crypto_lib_engine (c->options.engine);
+    crypto_init_lib_engine (c->options.engine);
 
   if (flags & CF_LOAD_PERSISTED_PACKET_ID)
     {
