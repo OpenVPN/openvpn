@@ -139,6 +139,8 @@ cipher_ok (const char* name)
 
 #if SSLEAY_VERSION_NUMBER < 0x0090581f
 
+#undef DES_check_key_parity
+#define DES_check_key_parity(x) 1
 #endif /* SSLEAY_VERSION_NUMBER < 0x0090581f */
 
 #ifndef EVP_CIPHER_name
