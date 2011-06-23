@@ -75,8 +75,8 @@ openvpn_encrypt (struct buffer *buf, struct buffer work,
       if (ctx->cipher)
 	{
 	  uint8_t iv_buf[OPENVPN_MAX_IV_LENGTH];
-	  const int iv_size = EVP_CIPHER_CTX_iv_length (ctx->cipher);
-	  const unsigned int mode = EVP_CIPHER_CTX_mode (ctx->cipher);  
+	  const int iv_size = cipher_ctx_iv_length (ctx->cipher);
+	  const unsigned int mode = cipher_ctx_mode (ctx->cipher);
 	  int outlen;
 
 	  if (mode == OPENVPN_MODE_CBC)
@@ -124,10 +124,10 @@ openvpn_encrypt (struct buffer *buf, struct buffer work,
 	       format_hex (BPTR (buf), BLEN (buf), 80, &gc));
 
 	  /* cipher_ctx was already initialized with key & keylen */
-	  ASSERT (EVP_CipherInit_ov (ctx->cipher, NULL, NULL, iv_buf, DO_ENCRYPT));
+	  ASSERT (cipher_ctx_reset(ctx->cipher, iv_buf));
 
 	  /* Buffer overflow check */
-	  if (!buf_safe (&work, buf->len + EVP_CIPHER_CTX_block_size (ctx->cipher)))
+	  if (!buf_safe (&work, buf->len + cipher_ctx_block_size(ctx->cipher)))
 	    {
 	      msg (D_CRYPT_ERRORS, "ENCRYPT: buffer size error, bc=%d bo=%d bl=%d wc=%d wo=%d wl=%d cbs=%d",
 		   buf->capacity,
@@ -136,16 +136,16 @@ openvpn_encrypt (struct buffer *buf, struct buffer work,
 		   work.capacity,
 		   work.offset,
 		   work.len,
-		   EVP_CIPHER_CTX_block_size (ctx->cipher));
+		   cipher_ctx_block_size (ctx->cipher));
 	      goto err;
 	    }
 
 	  /* Encrypt packet ID, payload */
-	  ASSERT (EVP_CipherUpdate_ov (ctx->cipher, BPTR (&work), &outlen, BPTR (buf), BLEN (buf)));
+	  ASSERT (cipher_ctx_update (ctx->cipher, BPTR (&work), &outlen, BPTR (buf), BLEN (buf)));
 	  work.len += outlen;
 
 	  /* Flush the encryption buffer */
-	  ASSERT (EVP_CipherFinal (ctx->cipher, BPTR (&work) + outlen, &outlen));
+	  ASSERT(cipher_ctx_final(ctx->cipher, BPTR (&work) + outlen, &outlen));
 	  work.len += outlen;
 	  ASSERT (outlen == iv_size);
 
@@ -248,8 +248,8 @@ openvpn_decrypt (struct buffer *buf, struct buffer work,
 
       if (ctx->cipher)
 	{
-	  const unsigned int mode = EVP_CIPHER_CTX_mode (ctx->cipher);
-	  const int iv_size = EVP_CIPHER_CTX_iv_length (ctx->cipher);
+	  const unsigned int mode = cipher_ctx_mode (ctx->cipher);
+	  const int iv_size = cipher_ctx_iv_length (ctx->cipher);
 	  uint8_t iv_buf[OPENVPN_MAX_IV_LENGTH];
 	  int outlen;
 
@@ -274,7 +274,7 @@ openvpn_decrypt (struct buffer *buf, struct buffer work,
 	    CRYPT_ERROR ("missing payload");
 
 	  /* ctx->cipher was already initialized with key & keylen */
-	  if (!EVP_CipherInit_ov (ctx->cipher, NULL, NULL, iv_buf, DO_DECRYPT))
+	  if (!cipher_ctx_reset (ctx->cipher, iv_buf))
 	    CRYPT_ERROR ("cipher init failed");
 
 	  /* Buffer overflow check (should never happen) */
@@ -282,12 +282,12 @@ openvpn_decrypt (struct buffer *buf, struct buffer work,
 	    CRYPT_ERROR ("buffer overflow");
 
 	  /* Decrypt packet ID, payload */
-	  if (!EVP_CipherUpdate_ov (ctx->cipher, BPTR (&work), &outlen, BPTR (buf), BLEN (buf)))
+	  if (!cipher_ctx_update (ctx->cipher, BPTR (&work), &outlen, BPTR (buf), BLEN (buf)))
 	    CRYPT_ERROR ("cipher update failed");
 	  work.len += outlen;
 
 	  /* Flush the decryption buffer */
-	  if (!EVP_CipherFinal (ctx->cipher, BPTR (&work) + outlen, &outlen))
+	  if (!cipher_ctx_final (ctx->cipher, BPTR (&work) + outlen, &outlen))
 	    CRYPT_ERROR ("cipher final failed");
 	  work.len += outlen;
 
@@ -383,41 +383,6 @@ crypto_adjust_frame_parameters(struct frame *frame,
 			    kt->hmac_length);
 }
 
-static void
-init_cipher (EVP_CIPHER_CTX *ctx, const EVP_CIPHER *cipher,
-	     struct key *key, const struct key_type *kt, int enc,
-	     const char *prefix)
-{
-  struct gc_arena gc = gc_new ();
-
-  EVP_CIPHER_CTX_init (ctx);
-  if (!EVP_CipherInit_ov (ctx, cipher, NULL, NULL, enc))
-    msg (M_SSLERR, "EVP cipher init #1");
-#ifdef HAVE_EVP_CIPHER_CTX_SET_KEY_LENGTH
-  if (!EVP_CIPHER_CTX_set_key_length (ctx, kt->cipher_length))
-    msg (M_SSLERR, "EVP set key size");
-#endif
-  if (!EVP_CipherInit_ov (ctx, NULL, key->cipher, NULL, enc))
-    msg (M_SSLERR, "EVP cipher init #2");
-
-  msg (D_HANDSHAKE, "%s: Cipher '%s' initialized with %d bit key",
-       prefix,
-       OBJ_nid2sn (EVP_CIPHER_CTX_nid (ctx)),
-       EVP_CIPHER_CTX_key_length (ctx) * 8);
-
-  /* make sure we used a big enough key */
-  ASSERT (EVP_CIPHER_CTX_key_length (ctx) <= kt->cipher_length);
-
-  dmsg (D_SHOW_KEYS, "%s: CIPHER KEY: %s", prefix,
-       format_hex (key->cipher, kt->cipher_length, 0, &gc));
-  dmsg (D_CRYPTO_DEBUG, "%s: CIPHER block_size=%d iv_size=%d",
-       prefix,
-       EVP_CIPHER_CTX_block_size (ctx),
-       EVP_CIPHER_CTX_iv_length (ctx));
-
-  gc_free (&gc);
-}
-
 /*
  * Build a struct key_type.
  */
@@ -476,8 +441,9 @@ init_key_ctx (struct key_ctx *ctx, struct key *key,
   CLEAR (*ctx);
   if (kt->cipher && kt->cipher_length > 0)
     {
-      ALLOC_OBJ (ctx->cipher, EVP_CIPHER_CTX);
-      init_cipher (ctx->cipher, kt->cipher, key, kt, enc, prefix);
+      ALLOC_OBJ(ctx->cipher, cipher_ctx_t);
+      cipher_ctx_init (ctx->cipher, key->cipher, kt->cipher_length,
+	  kt->cipher, enc, prefix);
     }
   if (kt->digest && kt->hmac_length > 0)
     {
@@ -492,8 +458,8 @@ free_key_ctx (struct key_ctx *ctx)
 {
   if (ctx->cipher)
     {
-      EVP_CIPHER_CTX_cleanup (ctx->cipher);
-      free (ctx->cipher);
+      cipher_ctx_cleanup(ctx->cipher);
+      free(ctx->cipher);
       ctx->cipher = NULL;
     }
   if (ctx->hmac)

@@ -219,6 +219,106 @@ int cipher_kt_block_size (const cipher_kt_t *cipher_kt);
 bool cipher_kt_mode (const cipher_kt_t *cipher_kt);
 
 
+/**
+ *
+ * Generic cipher functions
+ *
+ */
+
+/**
+ * Initialise a cipher context, based on the given key and key type.
+ *
+ * @param ctx		Cipher context. May not be NULL
+ * @param key		Buffer containing the key to use
+ * @param key_len 	Length of the key, in bytes
+ * @param kt		Static cipher parameters to use
+ * @param enc		Whether to encrypt or decrypt (either
+ * 			\c POLARSSL_OP_ENCRYPT or \c POLARSSL_OP_DECRYPT).
+ * @param prefix	Prefix to use for output.
+ */
+void cipher_ctx_init (cipher_ctx_t *ctx, uint8_t *key, int key_len,
+    const cipher_kt_t *kt, int enc, const char *prefix);
+
+/**
+ * Cleanup the specified context.
+ *
+ * @param ctx	Cipher context to cleanup.
+ */
+void cipher_ctx_cleanup (cipher_ctx_t *ctx);
+
+/**
+ * Returns the size of the IV used by the cipher, in bytes, or 0 if no IV is
+ * used.
+ *
+ * @param ctx	 	The cipher's context
+ *
+ * @return 		Size of the IV, in bytes, or \c 0 if the cipher does not
+ * 			use an IV or ctx was NULL.
+ */
+int cipher_ctx_iv_length (const cipher_ctx_t *ctx);
+
+/**
+ * Returns the block size of the cipher, in bytes.
+ *
+ * @param ctx	 	The cipher's context
+ *
+ * @return 		Block size, in bytes, or 0 if ctx was NULL.
+ */
+int cipher_ctx_block_size (const cipher_ctx_t *ctx);
+
+/**
+ * Returns the mode that the cipher runs in.
+ *
+ * @param ctx 		Cipher's context. May not be NULL.
+ *
+ * @return 		Cipher mode, either \c OPENVPN_MODE_CBC, \c
+ * 			OPENVPN_MODE_OFB or \c OPENVPN_MODE_CFB
+ */
+int cipher_ctx_mode (const cipher_ctx_t *ctx);
+
+/**
+ * Resets the given cipher context, setting the IV to the specified value.
+ * Preserves the associated key information.
+ *
+ * @param ctx 		Cipher's context. May not be NULL.
+ * @param iv_buf	The IV to use.
+ *
+ * @return 		\c 0 on failure, \c 1 on success.
+ */
+int cipher_ctx_reset (cipher_ctx_t *ctx, uint8_t *iv_buf);
+
+/**
+ * Updates the given cipher context, encrypting data in the source buffer, and
+ * placing any complete blocks in the destination buffer.
+ *
+ * Note that if a complete block cannot be written, data is cached in the
+ * context, and emitted at a later call to \c cipher_ctx_update, or by a call
+ * to \c cipher_ctx_final(). This implies that dst should have enough room for
+ * src_len + \c cipher_ctx_block_size() - 1.
+ *
+ * @param ctx 		Cipher's context. May not be NULL.
+ * @param dst		Destination buffer
+ * @param dst_len	Length of the destination buffer, in bytes
+ * @param src		Source buffer
+ * @param src_len	Length of the source buffer, in bytes
+ *
+ * @return 		\c 0 on failure, \c 1 on success.
+ */
+int cipher_ctx_update (cipher_ctx_t *ctx, uint8_t *dst, int *dst_len,
+    uint8_t *src, int src_len);
+
+/**
+ * Pads the final cipher block using PKCS padding, and output to the destination
+ * buffer.
+ *
+ * @param ctx 		Cipher's context. May not be NULL.
+ * @param dst		Destination buffer
+ * @param dst_len	Length of the destination buffer, in bytes
+ *
+ * @return 		\c 0 on failure, \c 1 on success.
+ */
+int cipher_ctx_final (cipher_ctx_t *ctx, uint8_t *dst, int *dst_len);
+
 /*
  *
  * Generic message digest information functions

@@ -560,6 +560,95 @@ cipher_kt_mode (const EVP_CIPHER *cipher_kt)
   return EVP_CIPHER_mode (cipher_kt);
 }
 
+/*
+ *
+ * Generic cipher context functions
+ *
+ */
+
+
+void
+cipher_ctx_init (EVP_CIPHER_CTX *ctx, uint8_t *key, int key_len,
+    const EVP_CIPHER *kt, int enc, const char *prefix)
+{
+  struct gc_arena gc = gc_new ();
+
+  ASSERT(NULL != kt && NULL != ctx);
+
+  CLEAR (*ctx);
+
+  EVP_CIPHER_CTX_init (ctx);
+  if (!EVP_CipherInit_ov (ctx, kt, NULL, NULL, enc))
+    msg (M_SSLERR, "EVP cipher init #1");
+#ifdef HAVE_EVP_CIPHER_CTX_SET_KEY_LENGTH
+  if (!EVP_CIPHER_CTX_set_key_length (ctx, key_len))
+    msg (M_SSLERR, "EVP set key size");
+#endif
+  if (!EVP_CipherInit_ov (ctx, NULL, key, NULL, enc))
+    msg (M_SSLERR, "EVP cipher init #2");
+
+  msg (D_HANDSHAKE, "%s: Cipher '%s' initialized with %d bit key",
+      prefix,
+      OBJ_nid2sn (EVP_CIPHER_CTX_nid (ctx)),
+      EVP_CIPHER_CTX_key_length (ctx) * 8);
+
+  /* make sure we used a big enough key */
+  ASSERT (EVP_CIPHER_CTX_key_length (ctx) <= key_len);
+
+  dmsg (D_SHOW_KEYS, "%s: CIPHER KEY: %s", prefix,
+      format_hex (key, key_len, 0, &gc));
+  dmsg (D_CRYPTO_DEBUG, "%s: CIPHER block_size=%d iv_size=%d",
+      prefix,
+      EVP_CIPHER_CTX_block_size (ctx),
+      EVP_CIPHER_CTX_iv_length (ctx));
+
+  gc_free (&gc);
+}
+
+void
+cipher_ctx_cleanup (EVP_CIPHER_CTX *ctx)
+{
+  EVP_CIPHER_CTX_cleanup (ctx);
+}
+
+int
+cipher_ctx_iv_length (const EVP_CIPHER_CTX *ctx)
+{
+  return EVP_CIPHER_CTX_iv_length (ctx);
+}
+
+int
+cipher_ctx_block_size(const EVP_CIPHER_CTX *ctx)
+{
+  return EVP_CIPHER_CTX_block_size (ctx);
+}
+
+int
+cipher_ctx_mode (const EVP_CIPHER_CTX *ctx)
+{
+  return EVP_CIPHER_CTX_mode (ctx);
+}
+
+int
+cipher_ctx_reset (EVP_CIPHER_CTX *ctx, uint8_t *iv_buf)
+{
+  return EVP_CipherInit_ov (ctx, NULL, NULL, iv_buf, -1);
+}
+
+int
+cipher_ctx_update (EVP_CIPHER_CTX *ctx, uint8_t *dst, int *dst_len,
+    uint8_t *src, int src_len)
+{
+  return EVP_CipherUpdate_ov (ctx, dst, dst_len, src, src_len);
+}
+
+int
+cipher_ctx_final (EVP_CIPHER_CTX *ctx, uint8_t *dst, int *dst_len)
+{
+  return EVP_CipherFinal (ctx, dst, dst_len);
+}
+
+
 void
 cipher_des_encrypt_ecb (const unsigned char key[8],
     unsigned char *src,

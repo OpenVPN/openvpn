@@ -182,6 +182,17 @@ struct key
                                 /**< %Key material for HMAC operations. */
 };
 
+
+/**
+ * Container for one set of OpenSSL cipher and/or HMAC contexts.
+ * @ingroup control_processor
+ */
+struct key_ctx
+{
+  cipher_ctx_t *cipher;      	/**< Generic cipher %context. */
+  hmac_ctx_t *hmac;               /**< Generic HMAC %context. */
+};
+
 #define KEY_DIRECTION_BIDIRECTIONAL 0 /* same keys for both directions */
 #define KEY_DIRECTION_NORMAL        1 /* encrypt with keys[0], decrypt with keys[1] */
 #define KEY_DIRECTION_INVERSE       2 /* encrypt with keys[1], decrypt with keys[0] */
@@ -221,16 +232,6 @@ struct key_direction_state
                                  *   used in both directions, or 2 if
                                  *   there are two sets of unidirectional
                                  *   keys. */
-};
-
-/**
- * Container for one set of OpenSSL cipher and/or HMAC contexts.
- * @ingroup control_processor
- */
-struct key_ctx
-{
-  EVP_CIPHER_CTX *cipher;       /**< OpenSSL cipher %context. */
-  HMAC_CTX *hmac;               /**< OpenSSL HMAC %context. */
 };
 
 /**
@@ -313,9 +314,6 @@ void init_key_type (struct key_type *kt, const char *ciphername,
     bool ciphername_defined, const char *authname, bool authname_defined,
     int keysize, bool cfb_ofb_allowed, bool warn);
 
-/* enc parameter in init_key_ctx */
-#define DO_ENCRYPT 1
-#define DO_DECRYPT 0
 /*
  * Key context functions
  */
@@ -325,6 +323,7 @@ void init_key_ctx (struct key_ctx *ctx, struct key *key,
 		   const char *prefix);
 
 void free_key_ctx (struct key_ctx *ctx);
+
 void free_key_ctx_bi (struct key_ctx_bi *ctx);
 
 
@@ -400,7 +399,6 @@ bool openvpn_decrypt (struct buffer *buf, struct buffer work,
 		      const struct frame* frame);
 
 /** @} name Functions for performing security operations on data channel packets */
-
 
 void crypto_adjust_frame_parameters(struct frame *frame,
 				    const struct key_type* kt,
