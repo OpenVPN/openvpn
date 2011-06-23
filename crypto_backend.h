@@ -58,4 +58,38 @@
  */
 int rand_bytes (uint8_t *output, int len);
 
+/*
+ *
+ * Generic cipher key type functions
+ *
+ */
+/*
+ * Max size in bytes of any cipher key that might conceivably be used.
+ *
+ * This value is checked at compile time in crypto.c to make sure
+ * it is always at least EVP_MAX_KEY_LENGTH.
+ *
+ * We define our own value, since this parameter
+ * is used to control the size of static key files.
+ * If the OpenSSL library increases EVP_MAX_KEY_LENGTH,
+ * we don't want our key files to be suddenly rendered
+ * unusable.
+ */
+#define MAX_CIPHER_KEY_LENGTH 64
+
+/*
+ *
+ * Generic message digest information functions
+ *
+ */
+
+/*
+ * Max size in bytes of any HMAC key that might conceivably be used.
+ *
+ * This value is checked at compile time in crypto.c to make sure
+ * it is always at least EVP_MAX_MD_SIZE.  We define our own value
+ * for the same reason as above.
+ */
+#define MAX_HMAC_KEY_LENGTH 64
+
 #endif /* CRYPTO_BACKEND_H_ */

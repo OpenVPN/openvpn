@@ -173,29 +173,6 @@ cipher_ok (const char* name)
 #endif
 
 /*
- * Max size in bytes of any cipher key that might conceivably be used.
- *
- * This value is checked at compile time in crypto.c to make sure
- * it is always at least EVP_MAX_KEY_LENGTH.
- *
- * We define our own value, since this parameter
- * is used to control the size of static key files.
- * If the OpenSSL library increases EVP_MAX_KEY_LENGTH,
- * we don't want our key files to be suddenly rendered
- * unusable.
- */
-#define MAX_CIPHER_KEY_LENGTH 64
-
-/*
- * Max size in bytes of any HMAC key that might conceivably be used.
- *
- * This value is checked at compile time in crypto.c to make sure
- * it is always at least EVP_MAX_MD_SIZE.  We define our own value
- * for the same reason as above.
- */
-#define MAX_HMAC_KEY_LENGTH 64
-
-/*
  * Defines a key type and key length for both cipher and HMAC.
  */
 struct key_type
@@ -205,7 +182,6 @@ struct key_type
   const EVP_CIPHER *cipher;
   const EVP_MD *digest;
 };
-
 
 /**
  * Container for unidirectional cipher and HMAC %key material.

@@ -38,6 +38,18 @@
 #include <openssl/des.h>
 
 /*
+ * Check for key size creepage.
+ */
+
+#if MAX_CIPHER_KEY_LENGTH < EVP_MAX_KEY_LENGTH
+#warning Some OpenSSL EVP ciphers now support key lengths greater than MAX_CIPHER_KEY_LENGTH -- consider increasing MAX_CIPHER_KEY_LENGTH
+#endif
+
+#if MAX_HMAC_KEY_LENGTH < EVP_MAX_MD_SIZE
+#warning Some OpenSSL HMAC message digests now support key lengths greater than MAX_HMAC_KEY_LENGTH -- consider increasing MAX_HMAC_KEY_LENGTH
+#endif
+
+/*
  *
  * Random number functions, used in cases where we want
  * reasonably strong cryptographic random number generation
