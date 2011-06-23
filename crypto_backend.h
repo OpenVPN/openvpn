@@ -156,6 +156,69 @@ void cipher_des_encrypt_ecb (const unsigned char key[8],
  */
 #define MAX_CIPHER_KEY_LENGTH 64
 
+/**
+ * Return cipher parameters, based on the given cipher name. The
+ * contents of these parameters are library-specific, and can be used to
+ * initialise encryption/decryption.
+ *
+ * @param ciphername 	Name of the cipher to retrieve parameters for (e.g.
+ * 			\c AES-128-CBC).
+ *
+ * @return		A statically allocated structure containing parameters
+ * 			for the given cipher.
+ */
+const cipher_kt_t * cipher_kt_get (const char *ciphername);
+
+/**
+ * Retrieve a string describing the cipher (e.g. \c AES-128-CBC).
+ *
+ * @param cipher_kt 	Static cipher parameters
+ *
+ * @return a statically allocated string describing the cipher.
+ */
+const char * cipher_kt_name (const cipher_kt_t *cipher_kt);
+
+/**
+ * Returns the size of keys used by the cipher, in bytes. If the cipher has a
+ * variable key size, return the default key size.
+ *
+ * @param cipher_kt 	Static cipher parameters
+ *
+ * @return 		(Default) size of keys used by the cipher, in bytes.
+ */
+int cipher_kt_key_size (const cipher_kt_t *cipher_kt);
+
+/**
+ * Returns the size of the IV used by the cipher, in bytes, or 0 if no IV is
+ * used.
+ *
+ * @param cipher_kt 	Static cipher parameters
+ *
+ * @return 		Size of the IV, in bytes, or 0 if the cipher does not
+ * 			use an IV.
+ */
+int cipher_kt_iv_size (const cipher_kt_t *cipher_kt);
+
+/**
+ * Returns the block size of the cipher, in bytes.
+ *
+ * @param cipher_kt 	Static cipher parameters
+ *
+ * @return 		Block size, in bytes.
+ */
+int cipher_kt_block_size (const cipher_kt_t *cipher_kt);
+
+/**
+ * Returns the mode that the cipher runs in.
+ *
+ * @param cipher_kt 	Static cipher parameters
+ *
+ * @return 		Cipher mode, either \c OPENVPN_MODE_CBC, \c
+ * 			OPENVPN_MODE_OFB or \c OPENVPN_MODE_CFB
+ */
+bool cipher_kt_mode (const cipher_kt_t *cipher_kt);
+
+
 /*
  *
  * Generic message digest information functions

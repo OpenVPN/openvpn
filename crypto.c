@@ -378,25 +378,9 @@ crypto_adjust_frame_parameters(struct frame *frame,
 {
   frame_add_to_extra_frame (frame,
 			    (packet_id ? packet_id_size (packet_id_long_form) : 0) +
-			    ((cipher_defined && use_iv) ? EVP_CIPHER_iv_length (kt->cipher) : 0) +
-			    (cipher_defined ? EVP_CIPHER_block_size (kt->cipher) : 0) + /* worst case padding expansion */
+			    ((cipher_defined && use_iv) ? cipher_kt_iv_size (kt->cipher) : 0) +
+			    (cipher_defined ? cipher_kt_block_size (kt->cipher) : 0) + /* worst case padding expansion */
 			    kt->hmac_length);
-}
-
-static const EVP_CIPHER *
-get_cipher (const char *ciphername)
-{
-  const EVP_CIPHER *cipher = NULL;
-  ASSERT (ciphername);
-  cipher = EVP_get_cipherbyname (ciphername);
-  if ( !(cipher && cipher_ok (OBJ_nid2sn (EVP_CIPHER_nid (cipher)))))
-    msg (M_SSLERR, "Cipher algorithm '%s' not found", ciphername);
-  if (EVP_CIPHER_key_length (cipher) > MAX_CIPHER_KEY_LENGTH)
-    msg (M_FATAL, "Cipher algorithm '%s' uses a default key size (%d bytes) which is larger than " PACKAGE_NAME "'s current maximum key size (%d bytes)",
-	 ciphername,
-	 EVP_CIPHER_key_length (cipher),
-	 MAX_CIPHER_KEY_LENGTH);
-  return cipher;
 }
 
 static void
@@ -446,14 +430,14 @@ init_key_type (struct key_type *kt, const char *ciphername,
   CLEAR (*kt);
   if (ciphername && ciphername_defined)
     {
-      kt->cipher = get_cipher (ciphername);
-      kt->cipher_length = EVP_CIPHER_key_length (kt->cipher);
+      kt->cipher = cipher_kt_get (ciphername);
+      kt->cipher_length = cipher_kt_key_size (kt->cipher);
       if (keysize > 0 && keysize <= MAX_CIPHER_KEY_LENGTH)
 	kt->cipher_length = keysize;
 
       /* check legal cipher mode */
       {
-	const unsigned int mode = EVP_CIPHER_mode (kt->cipher);
+	const unsigned int mode = cipher_kt_mode (kt->cipher);
 	if (!(mode == OPENVPN_MODE_CBC
 #ifdef ALLOW_NON_CBC_CIPHERS
 	      || (cfb_ofb_allowed && (mode == OPENVPN_MODE_CFB || mode == OPENVPN_MODE_OFB))
@@ -481,26 +465,6 @@ init_key_type (struct key_type *kt, const char *ciphername,
       if (warn)
 	msg (M_WARN, "******* WARNING *******: null MAC specified, no authentication will be used");
     }
-}
-
-const char *
-kt_cipher_name (const struct key_type *kt)
-{
-  if (kt->cipher)
-    return EVP_CIPHER_name (kt->cipher);
-  else
-    return "[null-cipher]";
-}
-
-int
-kt_key_size (const struct key_type *kt)
-{
-  if (kt->cipher_length)
-    return kt->cipher_length * 8;
-  else if (kt->cipher)
-    return EVP_CIPHER_key_length (kt->cipher) * 8;
-  else
-    return 0;
 }
 
 /* given a key and key_type, build a key_ctx */
@@ -632,8 +596,8 @@ check_replay_iv_consistency (const struct key_type *kt, bool packet_id, bool use
 bool
 cfb_ofb_mode (const struct key_type* kt)
 {
-    const unsigned int mode = EVP_CIPHER_mode (kt->cipher);
   if (kt && kt->cipher) {
+      const unsigned int mode = cipher_kt_mode (kt->cipher);
       return mode == OPENVPN_MODE_CFB || mode == OPENVPN_MODE_OFB;
   }
   return false;

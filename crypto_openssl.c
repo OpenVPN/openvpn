@@ -58,6 +58,10 @@
 
 #if SSLEAY_VERSION_NUMBER < 0x00907000L
 
+/* Workaround: EVP_CIPHER_mode is defined wrong in OpenSSL 0.9.6 but is fixed in 0.9.7 */
+#undef EVP_CIPHER_mode
+#define EVP_CIPHER_mode(e)                (((e)->flags) & EVP_CIPH_MODE)
+
 #define DES_cblock                        des_cblock
 #define DES_is_weak_key                   des_is_weak_key
 #define DES_check_key_parity              des_check_key_parity
@@ -74,6 +78,33 @@
 
 #if SSLEAY_VERSION_NUMBER < 0x00906000
 
+#undef EVP_CIPHER_mode
+#define EVP_CIPHER_mode(x) 1
+#define EVP_CIPHER_CTX_mode(x) 1
+#define EVP_CIPHER_flags(x) 0
+
+#define EVP_CIPH_CBC_MODE 1
+#define EVP_CIPH_CFB_MODE 0
+#define EVP_CIPH_OFB_MODE 0
+#define EVP_CIPH_VARIABLE_LENGTH 0
+
+#define OPENSSL_malloc(x) malloc(x)
+#define OPENSSL_free(x) free(x)
+
+static inline int
+EVP_CipherInit_ov (EVP_CIPHER_CTX *ctx, const EVP_CIPHER *type, uint8_t *key, uint8_t *iv, int enc)
+{
+  EVP_CipherInit (ctx, type, key, iv, enc);
+  return 1;
+}
+
+static inline int
+EVP_CipherUpdate_ov (EVP_CIPHER_CTX *ctx, uint8_t *out, int *outl, uint8_t *in, int inl)
+{
+  EVP_CipherUpdate (ctx, out, outl, in, inl);
+  return 1;
+}
+
 static inline bool
 cipher_ok (const char* name)
 {
@@ -86,6 +117,18 @@ cipher_ok (const char* name)
 
 #else
 
+static inline int
+EVP_CipherInit_ov (EVP_CIPHER_CTX *ctx, const EVP_CIPHER *type, uint8_t *key, uint8_t *iv, int enc)
+{
+  return EVP_CipherInit (ctx, type, key, iv, enc);
+}
+
+static inline int
+EVP_CipherUpdate_ov (EVP_CIPHER_CTX *ctx, uint8_t *out, int *outl, uint8_t *in, int inl)
+{
+  return EVP_CipherUpdate (ctx, out, outl, in, inl);
+}
+
 static inline bool
 cipher_ok (const char* name)
 {
@@ -97,6 +140,10 @@ cipher_ok (const char* name)
 #if SSLEAY_VERSION_NUMBER < 0x0090581f
 
 #endif /* SSLEAY_VERSION_NUMBER < 0x0090581f */
+
+#ifndef EVP_CIPHER_name
+#define EVP_CIPHER_name(e)		OBJ_nid2sn(EVP_CIPHER_nid(e))
+#endif
 
 #ifndef EVP_MD_name
 #define EVP_MD_name(e)			OBJ_nid2sn(EVP_MD_type(e))
@@ -451,6 +498,67 @@ key_des_fixup (uint8_t *key, int key_len, int ndc)
     }
 }
 
+
+/*
+ *
+ * Generic cipher key type functions
+ *
+ */
+
+
+const EVP_CIPHER *
+cipher_kt_get (const char *ciphername)
+{
+  const EVP_CIPHER *cipher = NULL;
+
+  ASSERT (ciphername);
+
+  cipher = EVP_get_cipherbyname (ciphername);
+
+  if ((NULL == cipher) || !cipher_ok (OBJ_nid2sn (EVP_CIPHER_nid (cipher))))
+    msg (M_SSLERR, "Cipher algorithm '%s' not found", ciphername);
+
+  if (EVP_CIPHER_key_length (cipher) > MAX_CIPHER_KEY_LENGTH)
+    msg (M_FATAL, "Cipher algorithm '%s' uses a default key size (%d bytes) which is larger than " PACKAGE_NAME "'s current maximum key size (%d bytes)",
+	 ciphername,
+	 EVP_CIPHER_key_length (cipher),
+	 MAX_CIPHER_KEY_LENGTH);
+
+  return cipher;
+}
+
+const char *
+cipher_kt_name (const EVP_CIPHER *cipher_kt)
+{
+  if (NULL == cipher_kt)
+    return "[null-cipher]";
+  return EVP_CIPHER_name (cipher_kt);
+}
+
+int
+cipher_kt_key_size (const EVP_CIPHER *cipher_kt)
+{
+  return EVP_CIPHER_key_length (cipher_kt);
+}
+
+int
+cipher_kt_iv_size (const EVP_CIPHER *cipher_kt)
+{
+  return EVP_CIPHER_iv_length (cipher_kt);
+}
+
+int
+cipher_kt_block_size (const EVP_CIPHER *cipher_kt)
+{
+  return EVP_CIPHER_block_size (cipher_kt);
+}
+
+bool
+cipher_kt_mode (const EVP_CIPHER *cipher_kt)
+{
+  ASSERT(NULL != cipher_kt);
+  return EVP_CIPHER_mode (cipher_kt);
+}
 
 void
 cipher_des_encrypt_ecb (const unsigned char key[8],

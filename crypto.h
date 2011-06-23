@@ -164,9 +164,9 @@ cipher_ok (const char* name)
  */
 struct key_type
 {
-  uint8_t cipher_length;
+  uint8_t cipher_length; 	/**< Cipher length, in bytes */
   uint8_t hmac_length;		/**< HMAC length, in bytes */
-  const EVP_CIPHER *cipher;
+  const cipher_kt_t *cipher;	/**< Cipher static parameters */
   const md_kt_t *digest;	/**< Message digest static parameters */
 };
 
@@ -309,8 +309,6 @@ int read_key (struct key *key, const struct key_type *kt, struct buffer *buf);
 
 bool cfb_ofb_mode (const struct key_type* kt);
 
-const char *kt_cipher_name (const struct key_type *kt);
-int kt_key_size (const struct key_type *kt);
 void init_key_type (struct key_type *kt, const char *ciphername,
     bool ciphername_defined, const char *authname, bool authname_defined,
     int keysize, bool cfb_ofb_allowed, bool warn);

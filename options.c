@@ -2779,9 +2779,9 @@ options_string (const struct options *o,
 		       o->authname, o->authname_defined,
 		       o->keysize, true, false);
 
-	buf_printf (&out, ",cipher %s", kt_cipher_name (&kt));
+	buf_printf (&out, ",cipher %s", cipher_kt_name (kt.cipher));
 	buf_printf (&out, ",auth %s", md_kt_name (kt.digest));
-	buf_printf (&out, ",keysize %d", kt_key_size (&kt));
+	buf_printf (&out, ",keysize %d", kt.cipher_length);
 	if (o->shared_secret_file)
 	  buf_printf (&out, ",secret");
 	if (!o->replay)
