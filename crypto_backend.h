@@ -264,4 +264,64 @@ void md_ctx_update (md_ctx_t *ctx, const uint8_t *src, int src_len);
 void md_ctx_final (md_ctx_t *ctx, uint8_t *dst);
 
 
+/*
+ *
+ * Generic HMAC functions
+ *
+ */
+
+/*
+ * Initialises the given HMAC context, using the given digest
+ * and key.
+ *
+ * @param ctx		HMAC context to intialise
+ * @param key		The key to use for the HMAC
+ * @param key_len	The key length to use
+ * @param kt 		Static message digest parameters
+ * @param prefix	Prefix to use when printing debug information.
+ *
+ */
+void hmac_ctx_init (hmac_ctx_t *ctx, const uint8_t *key, int key_length,
+    const md_kt_t *kt, const char *prefix);
+
+/*
+ * Free the given HMAC context.
+ *
+ * @param ctx		HMAC context
+ */
+void hmac_ctx_cleanup(hmac_ctx_t *ctx);
+
+/*
+ * Returns the size of the HMAC output by the given HMAC Context
+ *
+ * @param ctx 		HMAC context.
+ *
+ * @return 		Size of the HMAC, or \0 if ctx is NULL.
+ */
+int hmac_ctx_size (const hmac_ctx_t *ctx);
+
+/*
+ * Resets the given HMAC context, preserving the associated key information
+ *
+ * @param ctx 		HMAC context. May not be NULL.
+ */
+void hmac_ctx_reset (hmac_ctx_t *ctx);
+
+/*
+ * Process the given data for use in the HMAC.
+ *
+ * @param ctx		HMAC context. May not be NULL.
+ * @param src		The buffer to HMAC. May not be NULL.
+ * @param src_len	The length of the incoming buffer.
+ */
+void hmac_ctx_update (hmac_ctx_t *ctx, const uint8_t *src, int src_len);
+
+/*
+ * Output the HMAC to the given buffer.
+ *
+ * @param ctx		HMAC context. May not be NULL.
+ * @param dst		buffer to write the HMAC to. May not be NULL.
+ */
+void hmac_ctx_final (hmac_ctx_t *ctx, uint8_t *dst);
+
 #endif /* CRYPTO_BACKEND_H_ */

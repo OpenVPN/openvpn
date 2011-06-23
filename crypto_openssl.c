@@ -551,3 +551,76 @@ md_ctx_final (EVP_MD_CTX *ctx, uint8_t *dst)
 
   EVP_DigestFinal(ctx, dst, &in_md_len);
 }
+
+
+/*
+ *
+ * Generic HMAC functions
+ *
+ */
+
+
+void
+hmac_ctx_init (HMAC_CTX *ctx, const uint8_t *key, int key_len,
+    const EVP_MD *kt, const char *prefix)
+{
+  struct gc_arena gc = gc_new ();
+
+  ASSERT(NULL != kt && NULL != ctx);
+
+  CLEAR(*ctx);
+
+  HMAC_CTX_init (ctx);
+  HMAC_Init_ex (ctx, key, key_len, kt, NULL);
+
+  if (prefix)
+    msg (D_HANDSHAKE,
+	"%s: Using %d bit message hash '%s' for HMAC authentication",
+	prefix, HMAC_size (ctx) * 8, OBJ_nid2sn (EVP_MD_type (kt)));
+
+  /* make sure we used a big enough key */
+  ASSERT (HMAC_size (ctx) <= key_len);
+
+  if (prefix)
+    dmsg (D_SHOW_KEYS, "%s: HMAC KEY: %s", prefix,
+	format_hex (key, key_len, 0, &gc));
+  if (prefix)
+    dmsg (D_CRYPTO_DEBUG, "%s: HMAC size=%d block_size=%d",
+	prefix,
+	EVP_MD_size (kt),
+	EVP_MD_block_size (kt));
+
+  gc_free (&gc);
+}
+
+void
+hmac_ctx_cleanup(HMAC_CTX *ctx)
+{
+  HMAC_CTX_cleanup (ctx);
+}
+
+int
+hmac_ctx_size (const HMAC_CTX *ctx)
+{
+  return HMAC_size (ctx);
+}
+
+void
+hmac_ctx_reset (HMAC_CTX *ctx)
+{
+  HMAC_Init_ex (ctx, NULL, 0, NULL, NULL);
+}
+
+void
+hmac_ctx_update (HMAC_CTX *ctx, const uint8_t *src, int src_len)
+{
+  HMAC_Update (ctx, src, src_len);
+}
+
+void
+hmac_ctx_final (HMAC_CTX *ctx, uint8_t *dst)
+{
+  unsigned int in_hmac_len = 0;
+
+  HMAC_Final (ctx, dst, &in_hmac_len);
+}

@@ -174,15 +174,13 @@ openvpn_encrypt (struct buffer *buf, struct buffer work,
       /* HMAC the ciphertext (or plaintext if !cipher) */
       if (ctx->hmac)
 	{
-	  int hmac_len;
-	  uint8_t *output;
+	  uint8_t *output = NULL;
 
-	  HMAC_Init_ex (ctx->hmac, NULL, 0, NULL, NULL);
-	  HMAC_Update (ctx->hmac, BPTR (&work), BLEN (&work));
-	  output = buf_prepend (&work, HMAC_size (ctx->hmac));
+	  hmac_ctx_reset (ctx->hmac);
+	  hmac_ctx_update (ctx->hmac, BPTR(&work), BLEN(&work));
+	  output = buf_prepend (&work, hmac_ctx_size(ctx->hmac));
 	  ASSERT (output);
-	  HMAC_Final (ctx->hmac, output, (unsigned int *)&hmac_len);
-	  ASSERT (hmac_len == HMAC_size (ctx->hmac));
+	  hmac_ctx_final (ctx->hmac, output);
 	}
 
       *buf = work;
@@ -226,21 +224,18 @@ openvpn_decrypt (struct buffer *buf, struct buffer work,
 	{
 	  int hmac_len;
 	  uint8_t local_hmac[MAX_HMAC_KEY_LENGTH]; /* HMAC of ciphertext computed locally */
-	  int in_hmac_len;
 
-	  HMAC_Init_ex (ctx->hmac, NULL, 0, NULL, NULL);
+	  hmac_ctx_reset(ctx->hmac);
 
 	  /* Assume the length of the input HMAC */
-	  hmac_len = HMAC_size (ctx->hmac);
+	  hmac_len = hmac_ctx_size (ctx->hmac);
 
 	  /* Authentication fails if insufficient data in packet for HMAC */
 	  if (buf->len < hmac_len)
 	    CRYPT_ERROR ("missing authentication info");
 
-	  HMAC_Update (ctx->hmac, BPTR (buf) + hmac_len,
-		       BLEN (buf) - hmac_len);
-	  HMAC_Final (ctx->hmac, local_hmac, (unsigned int *)&in_hmac_len);
-	  ASSERT (hmac_len == in_hmac_len);
+	  hmac_ctx_update (ctx->hmac, BPTR (buf) + hmac_len, BLEN (buf) - hmac_len);
+	  hmac_ctx_final (ctx->hmac, local_hmac);
 
 	  /* Compare locally computed HMAC with packet HMAC */
 	  if (memcmp (local_hmac, BPTR (buf), hmac_len))
@@ -439,31 +434,6 @@ init_cipher (EVP_CIPHER_CTX *ctx, const EVP_CIPHER *cipher,
   gc_free (&gc);
 }
 
-static void
-init_hmac (HMAC_CTX *ctx, const EVP_MD *digest,
-	   struct key *key, const struct key_type *kt, const char *prefix)
-{
-  struct gc_arena gc = gc_new ();
-
-  HMAC_CTX_init (ctx);
-  HMAC_Init_ex (ctx, key->hmac, kt->hmac_length, digest, NULL);
-  msg (D_HANDSHAKE,
-       "%s: Using %d bit message hash '%s' for HMAC authentication",
-       prefix, HMAC_size (ctx) * 8, OBJ_nid2sn (EVP_MD_type (digest)));
-
-  /* make sure we used a big enough key */
-  ASSERT (HMAC_size (ctx) <= kt->hmac_length);
-
-  dmsg (D_SHOW_KEYS, "%s: HMAC KEY: %s", prefix,
-       format_hex (key->hmac, kt->hmac_length, 0, &gc));
-  dmsg (D_CRYPTO_DEBUG, "%s: HMAC size=%d block_size=%d",
-       prefix,
-       EVP_MD_size (digest),
-       EVP_MD_block_size (digest));
-
-  gc_free (&gc);
-}
-
 /*
  * Build a struct key_type.
  */
@@ -547,8 +517,9 @@ init_key_ctx (struct key_ctx *ctx, struct key *key,
     }
   if (kt->digest && kt->hmac_length > 0)
     {
-      ALLOC_OBJ (ctx->hmac, HMAC_CTX);
-      init_hmac (ctx->hmac, kt->digest, key, kt, prefix);
+      ALLOC_OBJ(ctx->hmac, hmac_ctx_t);
+      hmac_ctx_init (ctx->hmac, key->hmac, kt->hmac_length, kt->digest,
+	  prefix);
     }
 }
 
@@ -563,8 +534,8 @@ free_key_ctx (struct key_ctx *ctx)
     }
   if (ctx->hmac)
     {
-      HMAC_CTX_cleanup (ctx->hmac);
-      free (ctx->hmac);
+      hmac_ctx_cleanup(ctx->hmac);
+      free(ctx->hmac);
       ctx->hmac = NULL;
     }
 }

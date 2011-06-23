@@ -80,13 +80,14 @@ gen_md4_hash (const char* data, int data_len, char *result)
 static void
 gen_hmac_md5 (const char* data, int data_len, const char* key, int key_len,char *result)
 {
-	unsigned int len;
+	const md_kt_t *md5_kt = md_kt_get("MD5");
+	hmac_ctx_t hmac_ctx;
+	CLEAR(hmac_ctx);
 
-	HMAC_CTX c;
-	HMAC_Init (&c, key, key_len, EVP_md5());
-	HMAC_Update (&c, (const unsigned char *)data, data_len);
-	HMAC_Final (&c, (unsigned char *)result, &len);
-	HMAC_CTX_cleanup(&c);
+	hmac_ctx_init(&hmac_ctx, key, key_len, md5_kt, NULL);
+	hmac_ctx_update(&hmac_ctx, (const unsigned char *)data, data_len);
+	hmac_ctx_final(&hmac_ctx, (unsigned char *)result);
+	hmac_ctx_cleanup(&hmac_ctx);
 }
 
 static void
