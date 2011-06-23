@@ -126,6 +126,17 @@ bool key_des_check (uint8_t *key, int key_len, int ndc);
  */
 void key_des_fixup (uint8_t *key, int key_len, int ndc);
 
+/**
+ * Encrypt the given block, using DES ECB mode
+ *
+ * @param key		DES key to use.
+ * @param src		Buffer containing the 8-byte source.
+ * @param dst		Buffer containing the 8-byte destination
+ */
+void cipher_des_encrypt_ecb (const unsigned char key[8],
+    unsigned char src[8],
+    unsigned char dst[8]);
+
 /*
  *
  * Generic cipher key type functions

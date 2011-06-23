@@ -196,8 +196,6 @@ ntlm_phase_3 (const struct http_proxy_info *p, const char *phase_2, struct gc_ar
   char md4_hash[21];
   char challenge[8], ntlm_response[24];
   int i, ret_val;
-  des_cblock key1, key2, key3;
-  des_key_schedule sched1, sched2, sched3;
 
 	char ntlmv2_response[144];
 	char userdomain_u[256]; /* for uppercase unicode username and domain */
@@ -303,18 +301,16 @@ ntlm_phase_3 (const struct http_proxy_info *p, const char *phase_2, struct gc_ar
 		memcpy(ntlmv2_response, ntlmv2_hmacmd5, 16); /* Note: This overwrites challenge previously written at ntlmv2_response[8..15] */
 	
 	} else { /* Generate NTLM response */
+		unsigned char key1[8], key2[8], key3[8];
 
 		create_des_keys ((unsigned char *)md4_hash, key1);
-		des_set_key_unchecked ((des_cblock *)key1, sched1);
-		des_ecb_encrypt ((des_cblock *)challenge, (des_cblock *)ntlm_response, sched1, DES_ENCRYPT);
+		cipher_des_encrypt_ecb (key1, challenge, ntlm_response);
 
 		create_des_keys ((unsigned char *)&(md4_hash[7]), key2);
-		des_set_key_unchecked ((des_cblock *)key2, sched2);
-		des_ecb_encrypt ((des_cblock *)challenge, (des_cblock *)&(ntlm_response[8]), sched2, DES_ENCRYPT);
+		cipher_des_encrypt_ecb (key2, challenge, &ntlm_response[8]);
 
 		create_des_keys ((unsigned char *)&(md4_hash[14]), key3);
-		des_set_key_unchecked ((des_cblock *)key3, sched3);
-		des_ecb_encrypt ((des_cblock *)challenge, (des_cblock *)&(ntlm_response[16]), sched3, DES_ENCRYPT);
+		cipher_des_encrypt_ecb (key3, challenge, &ntlm_response[16]);
 	}
 	
 	

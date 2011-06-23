@@ -439,3 +439,15 @@ key_des_fixup (uint8_t *key, int key_len, int ndc)
       DES_set_odd_parity (dc);
     }
 }
+
+
+void
+cipher_des_encrypt_ecb (const unsigned char key[8],
+    unsigned char *src,
+    unsigned char *dst)
+{
+    des_key_schedule sched;
+
+    des_set_key_unchecked((des_cblock*)key, sched);
+    des_ecb_encrypt((des_cblock *)src, (des_cblock *)dst, sched, DES_ENCRYPT);
+}
