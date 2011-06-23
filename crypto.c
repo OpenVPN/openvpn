@@ -1088,7 +1088,7 @@ read_passphrase_hash (const char *passphrase_file,
   ASSERT (len >= md_kt_size(digest));
   memset (output, 0, len);
 
-  EVP_DigestInit (&md, digest);
+  md_ctx_init(&md, digest);
 
   /* read passphrase file */
   {
@@ -1108,7 +1108,7 @@ read_passphrase_hash (const char *passphrase_file,
 	if (size == -1)
 	  msg (M_ERR, "Read error on passphrase file: '%s'",
 	       passphrase_file);
-	EVP_DigestUpdate (&md, buf, size);
+	md_ctx_update(&md, buf, size);
 	total_size += size;
       }
     close (fd);
@@ -1120,10 +1120,9 @@ read_passphrase_hash (const char *passphrase_file,
 	   "Passphrase file '%s' is too small (must have at least %d characters)",
 	   passphrase_file, min_passphrase_size);
   }
-
-  EVP_DigestFinal (&md, output, &outlen);
-  EVP_MD_CTX_cleanup (&md);
-  return outlen;
+  md_ctx_final(&md, output);
+  md_ctx_cleanup(&md);
+  return md_kt_size(digest);
 }
 
 /*
@@ -1403,17 +1402,13 @@ prng_bytes (uint8_t *output, int len)
 {
   if (nonce_md)
     {
-      EVP_MD_CTX ctx;
+      md_ctx_t ctx;
       const int md_size = md_kt_size (nonce_md);
       while (len > 0)
 	{
 	  unsigned int outlen = 0;
 	  const int blen = min_int (len, md_size);
-	  EVP_DigestInit (&ctx, nonce_md);
-	  EVP_DigestUpdate (&ctx, nonce_data, md_size + nonce_secret_len);
-	  EVP_DigestFinal (&ctx, nonce_data, &outlen);
-	  ASSERT (outlen == md_size);
-	  EVP_MD_CTX_cleanup (&ctx);
+	  md_full(nonce_md, nonce_data, md_size + nonce_secret_len, nonce_data);
 	  memcpy (output, nonce_data, blen);
 	  output += blen;
 	  len -= blen;
@@ -1432,14 +1427,6 @@ get_random()
   if (l < 0)
     l = -l;
   return l;
-}
-
-const char *
-md5sum (uint8_t *buf, int len, int n_print_chars, struct gc_arena *gc)
-{
-  uint8_t digest[MD5_DIGEST_LENGTH];
-  MD5 (buf, len, digest);
-  return format_hex (digest, MD5_DIGEST_LENGTH, n_print_chars, gc);
 }
 
 #ifndef USE_SSL
@@ -1466,22 +1453,36 @@ free_ssl_lib (void)
  * md5 functions
  */
 
+const char *
+md5sum (uint8_t *buf, int len, int n_print_chars, struct gc_arena *gc)
+{
+  uint8_t digest[MD5_DIGEST_LENGTH];
+  const md_kt_t *md5_kt = md_kt_get("MD5");
+
+  md_full(md5_kt, buf, len, digest);
+
+  return format_hex (digest, MD5_DIGEST_LENGTH, n_print_chars, gc);
+}
+
 void
 md5_state_init (struct md5_state *s)
 {
-  MD5_Init (&s->ctx);
+  const md_kt_t *md5_kt = md_kt_get("MD5");
+
+  md_ctx_init(&s->ctx, md5_kt);
 }
 
 void
 md5_state_update (struct md5_state *s, void *data, size_t len)
 {
-  MD5_Update (&s->ctx, data, len);
+  md_ctx_update(&s->ctx, data, len);
 }
 
 void
 md5_state_final (struct md5_state *s, struct md5_digest *out)
 {
-  MD5_Final (out->digest, &s->ctx);
+  md_ctx_final(&s->ctx, out->digest);
+  md_ctx_cleanup(&s->ctx);
 }
 
 void

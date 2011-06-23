@@ -499,3 +499,55 @@ md_kt_size (const EVP_MD *kt)
 {
   return EVP_MD_size(kt);
 }
+
+
+/*
+ *
+ * Generic message digest functions
+ *
+ */
+
+int
+md_full (const EVP_MD *kt, const uint8_t *src, int src_len, uint8_t *dst)
+{
+  unsigned int in_md_len = 0;
+
+  return EVP_Digest(src, src_len, dst, &in_md_len, kt, NULL);
+}
+
+void
+md_ctx_init (EVP_MD_CTX *ctx, const EVP_MD *kt)
+{
+  ASSERT(NULL != ctx && NULL != kt);
+
+  CLEAR (*ctx);
+
+  EVP_MD_CTX_init (ctx);
+  EVP_DigestInit(ctx, kt);
+}
+
+void
+md_ctx_cleanup(EVP_MD_CTX *ctx)
+{
+  EVP_MD_CTX_cleanup(ctx);
+}
+
+int
+md_ctx_size (const EVP_MD_CTX *ctx)
+{
+  return EVP_MD_CTX_size(ctx);
+}
+
+void
+md_ctx_update (EVP_MD_CTX *ctx, const uint8_t *src, int src_len)
+{
+  EVP_DigestUpdate(ctx, src, src_len);
+}
+
+void
+md_ctx_final (EVP_MD_CTX *ctx, uint8_t *dst)
+{
+  unsigned int in_md_len = 0;
+
+  EVP_DigestFinal(ctx, dst, &in_md_len);
+}

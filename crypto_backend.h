@@ -204,4 +204,64 @@ const char * md_kt_name (const md_kt_t *kt);
 int md_kt_size (const md_kt_t *kt);
 
 
+/*
+ *
+ * Generic message digest functions
+ *
+ */
+
+/*
+ * Calculates the message digest for the given buffer.
+ *
+ * @param kt 		Static message digest parameters
+ * @param src		Buffer to digest. May not be NULL.
+ * @param src_len	The length of the incoming buffer.
+ * @param dst		Buffer to write the message digest to. May not be NULL.
+ *
+ * @return		\c 1 on success, \c 0 on failure
+ */
+int md_full (const md_kt_t *kt, const uint8_t *src, int src_len, uint8_t *dst);
+
+/*
+ * Initialises the given message digest context.
+ *
+ * @param ctx		Message digest context
+ * @param kt 		Static message digest parameters
+ */
+void md_ctx_init (md_ctx_t *ctx, const md_kt_t *kt);
+
+/*
+ * Free the given message digest context.
+ *
+ * @param ctx		Message digest context
+ */
+void md_ctx_cleanup(md_ctx_t *ctx);
+
+/*
+ * Returns the size of the message digest output by the given context
+ *
+ * @param ctx 		Message digest context.
+ *
+ * @return 		Size of the message digest, or \0 if ctx is NULL.
+ */
+int md_ctx_size (const md_ctx_t *ctx);
+
+/*
+ * Process the given data for use in the message digest.
+ *
+ * @param ctx		Message digest context. May not be NULL.
+ * @param src		Buffer to digest. May not be NULL.
+ * @param src_len	The length of the incoming buffer.
+ */
+void md_ctx_update (md_ctx_t *ctx, const uint8_t *src, int src_len);
+
+/*
+ * Output the message digest to the given buffer.
+ *
+ * @param ctx		Message digest context. May not be NULL.
+ * @param dst		Buffer to write the message digest to. May not be NULL.
+ */
+void md_ctx_final (md_ctx_t *ctx, uint8_t *dst);
+
+
 #endif /* CRYPTO_BACKEND_H_ */

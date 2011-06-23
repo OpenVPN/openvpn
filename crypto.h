@@ -419,7 +419,6 @@ void prng_uninit ();
 
 void test_crypto (const struct crypto_options *co, struct frame* f);
 
-const char *md5sum(uint8_t *buf, int len, int n_print_chars, struct gc_arena *gc);
 
 /* key direction functions */
 
@@ -470,13 +469,14 @@ key_ctx_bi_defined(const struct key_ctx_bi* key)
  */
 
 struct md5_state {
-  MD5_CTX ctx;
+  md_ctx_t ctx;
 };
 
 struct md5_digest {
   uint8_t digest [MD5_DIGEST_LENGTH];
 };
 
+const char *md5sum(uint8_t *buf, int len, int n_print_chars, struct gc_arena *gc);
 void md5_state_init (struct md5_state *s);
 void md5_state_update (struct md5_state *s, void *data, size_t len);
 void md5_state_final (struct md5_state *s, struct md5_digest *out);

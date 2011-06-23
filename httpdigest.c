@@ -65,26 +65,28 @@ DigestCalcHA1(
 	      OUT HASHHEX SessionKey
 	      )
 {
-  MD5_CTX Md5Ctx;
   HASH HA1;
+  md_ctx_t md5_ctx;
+  const md_kt_t *md5_kt = md_kt_get("MD5");
 
-  MD5_Init(&Md5Ctx);
-  MD5_Update(&Md5Ctx, pszUserName, strlen(pszUserName));
-  MD5_Update(&Md5Ctx, ":", 1);
-  MD5_Update(&Md5Ctx, pszRealm, strlen(pszRealm));
-  MD5_Update(&Md5Ctx, ":", 1);
-  MD5_Update(&Md5Ctx, pszPassword, strlen(pszPassword));
-  MD5_Final(HA1, &Md5Ctx);
+  md_ctx_init(&md5_ctx, md5_kt);
+  md_ctx_update(&md5_ctx, pszUserName, strlen(pszUserName));
+  md_ctx_update(&md5_ctx, ":", 1);
+  md_ctx_update(&md5_ctx, pszRealm, strlen(pszRealm));
+  md_ctx_update(&md5_ctx, ":", 1);
+  md_ctx_update(&md5_ctx, pszPassword, strlen(pszPassword));
+  md_ctx_final(&md5_ctx, HA1);
   if (pszAlg && strcasecmp(pszAlg, "md5-sess") == 0)
     {
-      MD5_Init(&Md5Ctx);
-      MD5_Update(&Md5Ctx, HA1, HASHLEN);
-      MD5_Update(&Md5Ctx, ":", 1);
-      MD5_Update(&Md5Ctx, pszNonce, strlen(pszNonce));
-      MD5_Update(&Md5Ctx, ":", 1);
-      MD5_Update(&Md5Ctx, pszCNonce, strlen(pszCNonce));
-      MD5_Final(HA1, &Md5Ctx);
+      md_ctx_init(&md5_ctx, md5_kt);
+      md_ctx_update(&md5_ctx, HA1, HASHLEN);
+      md_ctx_update(&md5_ctx, ":", 1);
+      md_ctx_update(&md5_ctx, pszNonce, strlen(pszNonce));
+      md_ctx_update(&md5_ctx, ":", 1);
+      md_ctx_update(&md5_ctx, pszCNonce, strlen(pszCNonce));
+      md_ctx_final(&md5_ctx, HA1);
     };
+  md_ctx_cleanup(&md5_ctx);
   CvtHex(HA1, SessionKey);
 }
 
@@ -102,41 +104,44 @@ DigestCalcResponse(
 		   OUT HASHHEX Response      /* request-digest or response-digest */
 		   )
 {
-  MD5_CTX Md5Ctx;
   HASH HA2;
   HASH RespHash;
   HASHHEX HA2Hex;
 
+  md_ctx_t md5_ctx;
+  const md_kt_t *md5_kt = md_kt_get("MD5");
+
   // calculate H(A2)
-  MD5_Init(&Md5Ctx);
-  MD5_Update(&Md5Ctx, pszMethod, strlen(pszMethod));
-  MD5_Update(&Md5Ctx, ":", 1);
-  MD5_Update(&Md5Ctx, pszDigestUri, strlen(pszDigestUri));
+  md_ctx_init(&md5_ctx, md5_kt);
+  md_ctx_update(&md5_ctx, pszMethod, strlen(pszMethod));
+  md_ctx_update(&md5_ctx, ":", 1);
+  md_ctx_update(&md5_ctx, pszDigestUri, strlen(pszDigestUri));
   if (strcasecmp(pszQop, "auth-int") == 0)
     {
-      MD5_Update(&Md5Ctx, ":", 1);
-      MD5_Update(&Md5Ctx, HEntity, HASHHEXLEN);
+      md_ctx_update(&md5_ctx, ":", 1);
+      md_ctx_update(&md5_ctx, HEntity, HASHHEXLEN);
     };
-  MD5_Final(HA2, &Md5Ctx);
+  md_ctx_final(&md5_ctx, HA2);
   CvtHex(HA2, HA2Hex);
 
   // calculate response
-  MD5_Init(&Md5Ctx);
-  MD5_Update(&Md5Ctx, HA1, HASHHEXLEN);
-  MD5_Update(&Md5Ctx, ":", 1);
-  MD5_Update(&Md5Ctx, pszNonce, strlen(pszNonce));
-  MD5_Update(&Md5Ctx, ":", 1);
+  md_ctx_init(&md5_ctx, md5_kt);
+  md_ctx_update(&md5_ctx, HA1, HASHHEXLEN);
+  md_ctx_update(&md5_ctx, ":", 1);
+  md_ctx_update(&md5_ctx, pszNonce, strlen(pszNonce));
+  md_ctx_update(&md5_ctx, ":", 1);
   if (*pszQop)
     {
-      MD5_Update(&Md5Ctx, pszNonceCount, strlen(pszNonceCount));
-      MD5_Update(&Md5Ctx, ":", 1);
-      MD5_Update(&Md5Ctx, pszCNonce, strlen(pszCNonce));
-      MD5_Update(&Md5Ctx, ":", 1);
-      MD5_Update(&Md5Ctx, pszQop, strlen(pszQop));
-      MD5_Update(&Md5Ctx, ":", 1);
+      md_ctx_update(&md5_ctx, pszNonceCount, strlen(pszNonceCount));
+      md_ctx_update(&md5_ctx, ":", 1);
+      md_ctx_update(&md5_ctx, pszCNonce, strlen(pszCNonce));
+      md_ctx_update(&md5_ctx, ":", 1);
+      md_ctx_update(&md5_ctx, pszQop, strlen(pszQop));
+      md_ctx_update(&md5_ctx, ":", 1);
     };
-  MD5_Update(&Md5Ctx, HA2Hex, HASHHEXLEN);
-  MD5_Final(RespHash, &Md5Ctx);
+  md_ctx_update(&md5_ctx, HA2Hex, HASHHEXLEN);
+  md_ctx_final(&md5_ctx, RespHash);
+  md_ctx_cleanup(&md5_ctx);
   CvtHex(RespHash, Response);
 }
 

@@ -70,14 +70,10 @@ static void
 gen_md4_hash (const char* data, int data_len, char *result)
 {
   /* result is 16 byte md4 hash */
-
-  MD4_CTX c;
+  const md_kt_t *md4_kt = md_kt_get("MD4");
   char md[16];
 
-  MD4_Init (&c);
-  MD4_Update (&c, data, data_len);
-  MD4_Final ((unsigned char *)md, &c);
-
+  md_full(md4_kt, data, data_len, md);
   memcpy (result, md, 16);
 }
 
