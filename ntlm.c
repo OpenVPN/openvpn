@@ -63,7 +63,7 @@ create_des_keys(const unsigned char *hash, unsigned char *key)
   key[5] = ((hash[4]&31)<<3)|(hash[5]>>5);
   key[6] = ((hash[5]&63)<<2)|(hash[6]>>6);
   key[7] = ((hash[6]&127)<<1);
-  des_set_odd_parity((des_cblock *)key);
+  key_des_fixup(key, 8, 1);
 }
 
 static void

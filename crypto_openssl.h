@@ -34,6 +34,21 @@
 #include <openssl/hmac.h>
 #include <openssl/md5.h>
 
+/** Generic cipher key type %context. */
+typedef EVP_CIPHER cipher_kt_t;
+
+/** Generic message digest key type %context. */
+typedef EVP_MD md_kt_t;
+
+/** Generic cipher %context. */
+typedef EVP_CIPHER_CTX cipher_ctx_t;
+
+/** Generic message digest %context. */
+typedef EVP_MD_CTX md_ctx_t;
+
+/** Generic HMAC %context. */
+typedef HMAC_CTX hmac_ctx_t;
+
 /** Maximum length of an IV */
 #define OPENVPN_MAX_IV_LENGTH 	EVP_MAX_IV_LENGTH
 

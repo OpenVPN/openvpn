@@ -91,6 +91,43 @@ int rand_bytes (uint8_t *output, int len);
 
 /*
  *
+ * Key functions, allow manipulation of keys.
+ *
+ */
+
+
+/**
+ * Return number of DES cblocks (1 cblock = length of a single-DES key) for the
+ * current key type or 0 if not a DES cipher.
+ *
+ * @param kt		Type of key
+ *
+ * @return 		Number of DES cblocks that the key consists of, or 0.
+ */
+int key_des_num_cblocks (const cipher_kt_t *kt);
+
+/*
+ * Check the given DES key. Checks the given key's length, weakness and parity.
+ *
+ * @param key		Key to check
+ * @param key_len	Length of the key, in bytes
+ * @param ndc		Number of DES cblocks that the key is made up of.
+ *
+ * @return 		\c true if the key is valid, \c false otherwise.
+ */
+bool key_des_check (uint8_t *key, int key_len, int ndc);
+
+/*
+ * Fix the given DES key, setting its parity to odd.
+ *
+ * @param key		Key to check
+ * @param key_len	Length of the key, in bytes
+ * @param ndc		Number of DES cblocks that the key is made up of.
+ */
+void key_des_fixup (uint8_t *key, int key_len, int ndc);
+
+/*
+ *
  * Generic cipher key type functions
  *
  */

@@ -58,6 +58,11 @@
 
 #if SSLEAY_VERSION_NUMBER < 0x00907000L
 
+#define DES_cblock                        des_cblock
+#define DES_is_weak_key                   des_is_weak_key
+#define DES_check_key_parity              des_check_key_parity
+#define DES_set_odd_parity                des_set_odd_parity
+
 #endif
 
 #if SSLEAY_VERSION_NUMBER < 0x00906000
@@ -354,3 +359,83 @@ int rand_bytes(uint8_t *output, int len)
   return RAND_bytes (output, len);
 }
 
+/*
+ *
+ * Key functions, allow manipulation of keys.
+ *
+ */
+
+
+int
+key_des_num_cblocks (const EVP_CIPHER *kt)
+{
+  int ret = 0;
+  const char *name = OBJ_nid2sn (EVP_CIPHER_nid (kt));
+  if (name)
+    {
+      if (!strncmp (name, "DES-", 4))
+	{
+	  ret = EVP_CIPHER_key_length (kt) / sizeof (DES_cblock);
+	}
+      else if (!strncmp (name, "DESX-", 5))
+	{
+	  ret = 1;
+	}
+    }
+  dmsg (D_CRYPTO_DEBUG, "CRYPTO INFO: n_DES_cblocks=%d", ret);
+  return ret;
+}
+
+bool
+key_des_check (uint8_t *key, int key_len, int ndc)
+{
+  int i;
+  struct buffer b;
+
+  buf_set_read (&b, key, key_len);
+
+  for (i = 0; i < ndc; ++i)
+    {
+      DES_cblock *dc = (DES_cblock*) buf_read_alloc (&b, sizeof (DES_cblock));
+      if (!dc)
+	{
+	  msg (D_CRYPT_ERRORS, "CRYPTO INFO: check_key_DES: insufficient key material");
+	  goto err;
+	}
+      if (DES_is_weak_key(dc))
+	{
+	  msg (D_CRYPT_ERRORS, "CRYPTO INFO: check_key_DES: weak key detected");
+	  goto err;
+	}
+      if (!DES_check_key_parity (dc))
+	{
+	  msg (D_CRYPT_ERRORS, "CRYPTO INFO: check_key_DES: bad parity detected");
+	  goto err;
+	}
+    }
+  return true;
+
+ err:
+  ERR_clear_error ();
+  return false;
+}
+
+void
+key_des_fixup (uint8_t *key, int key_len, int ndc)
+{
+  int i;
+  struct buffer b;
+
+  buf_set_read (&b, key, key_len);
+  for (i = 0; i < ndc; ++i)
+    {
+      DES_cblock *dc = (DES_cblock*) buf_read_alloc(&b, sizeof(DES_cblock));
+      if (!dc)
+	{
+	  msg (D_CRYPT_ERRORS, "CRYPTO INFO: fixup_key_DES: insufficient key material");
+	  ERR_clear_error ();
+	  return;
+	}
+      DES_set_odd_parity (dc);
+    }
+}

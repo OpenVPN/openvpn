@@ -601,83 +601,6 @@ free_key_ctx_bi (struct key_ctx_bi *ctx)
   free_key_ctx(&ctx->decrypt);
 }
 
-/*
- * Return number of DES cblocks for the current
- * key type or 0 if not a DES cipher.
- */
-static int
-n_DES_cblocks (const struct key_type *kt)
-{
-  int ret = 0;
-  const char *name = OBJ_nid2sn (EVP_CIPHER_nid (kt->cipher));
-  if (name)
-    {
-      if (!strncmp (name, "DES-", 4))
-	{
-	  ret = EVP_CIPHER_key_length (kt->cipher) / sizeof (DES_cblock);
-	}
-      else if (!strncmp (name, "DESX-", 5))
-	{
-	  ret = 1;
-	}
-    }
-  dmsg (D_CRYPTO_DEBUG, "CRYPTO INFO: n_DES_cblocks=%d", ret);
-  return ret;
-}
-
-static bool
-check_key_DES (struct key *key, const struct key_type *kt, int ndc)
-{
-  int i;
-  struct buffer b;
-
-  buf_set_read (&b, key->cipher, kt->cipher_length);
-
-  for (i = 0; i < ndc; ++i)
-    {
-      DES_cblock *dc = (DES_cblock*) buf_read_alloc (&b, sizeof (DES_cblock));
-      if (!dc)
-	{
-	  msg (D_CRYPT_ERRORS, "CRYPTO INFO: check_key_DES: insufficient key material");
-	  goto err;
-	}
-      if (DES_is_weak_key(dc))
-	{
-	  msg (D_CRYPT_ERRORS, "CRYPTO INFO: check_key_DES: weak key detected");
-	  goto err;
-	}
-      if (!DES_check_key_parity (dc))
-	{
-	  msg (D_CRYPT_ERRORS, "CRYPTO INFO: check_key_DES: bad parity detected");
-	  goto err;
-	}
-    }
-  return true;
-
- err:
-  ERR_clear_error ();
-  return false;
-}
-
-static void
-fixup_key_DES (struct key *key, const struct key_type *kt, int ndc)
-{
-  int i;
-  struct buffer b;
-
-  buf_set_read (&b, key->cipher, kt->cipher_length);
-  for (i = 0; i < ndc; ++i)
-    {
-      DES_cblock *dc = (DES_cblock*) buf_read_alloc(&b, sizeof(DES_cblock));
-      if (!dc)
-	{
-	  msg (D_CRYPT_ERRORS, "CRYPTO INFO: fixup_key_DES: insufficient key material");
-	  ERR_clear_error ();
-	  return;
-	}
-      DES_set_odd_parity (dc);
-    }
-}
 
 static bool
 key_is_zero (struct key *key, const struct key_type *kt)
@@ -708,9 +631,9 @@ check_key (struct key *key, const struct key_type *kt)
        * Check for weak or semi-weak DES keys.
        */
       {
-	const int ndc = n_DES_cblocks (kt);
+	const int ndc = key_des_num_cblocks (kt->cipher);
 	if (ndc)
-	  return check_key_DES (key, kt, ndc);
+	  return key_des_check (key->cipher, kt->cipher_length, ndc);
 	else
 	  return true;
       }
@@ -735,10 +658,10 @@ fixup_key (struct key *key, const struct key_type *kt)
 #ifdef ENABLE_DEBUG
       const struct key orig = *key;
 #endif
-      const int ndc = n_DES_cblocks (kt);
+      const int ndc = key_des_num_cblocks (kt->cipher);
 
       if (ndc)
-	fixup_key_DES (key, kt, ndc);
+	key_des_fixup (key->cipher, kt->cipher_length, ndc);
 
 #ifdef ENABLE_DEBUG
       if (check_debug_level (D_CRYPTO_DEBUG))
