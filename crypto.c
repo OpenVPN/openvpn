@@ -404,22 +404,6 @@ get_cipher (const char *ciphername)
   return cipher;
 }
 
-static const EVP_MD *
-get_md (const char *digest)
-{
-  const EVP_MD *md = NULL;
-  ASSERT (digest);
-  md = EVP_get_digestbyname (digest);
-  if (!md)
-    msg (M_SSLERR, "Message hash algorithm '%s' not found", digest);
-  if (EVP_MD_size (md) > MAX_HMAC_KEY_LENGTH)
-    msg (M_FATAL, "Message hash algorithm '%s' uses a default hash size (%d bytes) which is larger than " PACKAGE_NAME "'s current maximum hash size (%d bytes)",
-	 digest,
-	 EVP_MD_size (md),
-	 MAX_HMAC_KEY_LENGTH);
-  return md;
-}
-
 static void
 init_cipher (EVP_CIPHER_CTX *ctx, const EVP_CIPHER *cipher,
 	     struct key *key, const struct key_type *kt, int enc,
@@ -519,8 +503,8 @@ init_key_type (struct key_type *kt, const char *ciphername,
     }
   if (authname && authname_defined)
     {
-      kt->digest = get_md (authname);
-      kt->hmac_length = EVP_MD_size (kt->digest);
+      kt->digest = md_kt_get (authname);
+      kt->hmac_length = md_kt_size (kt->digest);
     }
   else
     {
@@ -536,15 +520,6 @@ kt_cipher_name (const struct key_type *kt)
     return EVP_CIPHER_name (kt->cipher);
   else
     return "[null-cipher]";
-}
-
-const char *
-kt_digest_name (const struct key_type *kt)
-{
-  if (kt->digest)
-    return EVP_MD_name (kt->digest);
-  else
-    return "[null-digest]";
 }
 
 int
@@ -1103,14 +1078,14 @@ read_key_file (struct key2 *key2, const char *file, const unsigned int flags)
 
 int
 read_passphrase_hash (const char *passphrase_file,
-		      const EVP_MD *digest,
+		      const md_kt_t *digest,
 		      uint8_t *output,
 		      int len)
 {
   unsigned int outlen = 0;
-  EVP_MD_CTX md;
+  md_ctx_t md;
 
-  ASSERT (len >= EVP_MD_size (digest));
+  ASSERT (len >= md_kt_size(digest));
   memset (output, 0, len);
 
   EVP_DigestInit (&md, digest);
@@ -1381,22 +1356,22 @@ key_len_err:
  * IV values and a number of other miscellaneous tasks.
  */
 
-static uint8_t *nonce_data; /* GLOBAL */
-static const EVP_MD *nonce_md = NULL; /* GLOBAL */
-static int nonce_secret_len; /* GLOBAL */
+static uint8_t *nonce_data = NULL; /* GLOBAL */
+static const md_kt_t *nonce_md = NULL; /* GLOBAL */
+static int nonce_secret_len = 0; /* GLOBAL */
 
 void
 prng_init (const char *md_name, const int nonce_secret_len_parm)
 {
   prng_uninit ();
-  nonce_md = md_name ? get_md (md_name) : NULL;
+  nonce_md = md_name ? md_kt_get (md_name) : NULL;
   if (nonce_md)
     {
       ASSERT (nonce_secret_len_parm >= NONCE_SECRET_LEN_MIN && nonce_secret_len_parm <= NONCE_SECRET_LEN_MAX);
       nonce_secret_len = nonce_secret_len_parm;
       {
-	const int size = EVP_MD_size (nonce_md) + nonce_secret_len;
-	dmsg (D_CRYPTO_DEBUG, "PRNG init md=%s size=%d", EVP_MD_name (nonce_md), size);
+	const int size = md_kt_size(nonce_md) + nonce_secret_len;
+	dmsg (D_CRYPTO_DEBUG, "PRNG init md=%s size=%d", md_kt_name(nonce_md), size);
 	nonce_data = (uint8_t*) malloc (size);
 	check_malloc_return (nonce_data);
 #if 1 /* Must be 1 for real usage */
@@ -1429,7 +1404,7 @@ prng_bytes (uint8_t *output, int len)
   if (nonce_md)
     {
       EVP_MD_CTX ctx;
-      const int md_size = EVP_MD_size (nonce_md);
+      const int md_size = md_kt_size (nonce_md);
       while (len > 0)
 	{
 	  unsigned int outlen = 0;

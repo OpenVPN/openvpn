@@ -165,9 +165,9 @@ cipher_ok (const char* name)
 struct key_type
 {
   uint8_t cipher_length;
-  uint8_t hmac_length;
+  uint8_t hmac_length;		/**< HMAC length, in bytes */
   const EVP_CIPHER *cipher;
-  const EVP_MD *digest;
+  const md_kt_t *digest;	/**< Message digest static parameters */
 };
 
 /**
@@ -283,11 +283,6 @@ struct crypto_options
                                  *   security operation functions. */
 };
 
-void init_key_type (struct key_type *kt, const char *ciphername,
-		    bool ciphername_defined, const char *authname,
-		    bool authname_defined, int keysize,
-		    bool cfb_ofb_allowed, bool warn);
-
 #define RKF_MUST_SUCCEED (1<<0)
 #define RKF_INLINE       (1<<1)
 void read_key_file (struct key2 *key2, const char *file, const unsigned int flags);
@@ -295,7 +290,7 @@ void read_key_file (struct key2 *key2, const char *file, const unsigned int flag
 int write_key_file (const int nkeys, const char *filename);
 
 int read_passphrase_hash (const char *passphrase_file,
-			  const EVP_MD *digest,
+			  const md_kt_t *digest,
 			  uint8_t *output,
 			  int len);
 
@@ -315,12 +310,17 @@ int read_key (struct key *key, const struct key_type *kt, struct buffer *buf);
 bool cfb_ofb_mode (const struct key_type* kt);
 
 const char *kt_cipher_name (const struct key_type *kt);
-const char *kt_digest_name (const struct key_type *kt);
 int kt_key_size (const struct key_type *kt);
+void init_key_type (struct key_type *kt, const char *ciphername,
+    bool ciphername_defined, const char *authname, bool authname_defined,
+    int keysize, bool cfb_ofb_allowed, bool warn);
 
 /* enc parameter in init_key_ctx */
 #define DO_ENCRYPT 1
 #define DO_DECRYPT 0
+/*
+ * Key context functions
+ */
 
 void init_key_ctx (struct key_ctx *ctx, struct key *key,
 		   const struct key_type *kt, int enc,

@@ -2780,7 +2780,7 @@ options_string (const struct options *o,
 		       o->keysize, true, false);
 
 	buf_printf (&out, ",cipher %s", kt_cipher_name (&kt));
-	buf_printf (&out, ",auth %s", kt_digest_name (&kt));
+	buf_printf (&out, ",auth %s", md_kt_name (kt.digest));
 	buf_printf (&out, ",keysize %d", kt_key_size (&kt));
 	if (o->shared_secret_file)
 	  buf_printf (&out, ",secret");

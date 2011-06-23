@@ -63,6 +63,13 @@
 #define DES_check_key_parity              des_check_key_parity
 #define DES_set_odd_parity                des_set_odd_parity
 
+#define HMAC_CTX_init(ctx)                CLEAR (*ctx)
+#define HMAC_Init_ex(ctx,sec,len,md,impl) HMAC_Init(ctx, sec, len, md)
+#define HMAC_CTX_cleanup(ctx)             HMAC_cleanup(ctx)
+#define EVP_MD_CTX_cleanup(md)            CLEAR (*md)
+
+#define INFO_CALLBACK_SSL_CONST
+
 #endif
 
 #if SSLEAY_VERSION_NUMBER < 0x00906000
@@ -90,6 +97,10 @@ cipher_ok (const char* name)
 #if SSLEAY_VERSION_NUMBER < 0x0090581f
 
 #endif /* SSLEAY_VERSION_NUMBER < 0x0090581f */
+
+#ifndef EVP_MD_name
+#define EVP_MD_name(e)			OBJ_nid2sn(EVP_MD_type(e))
+#endif
 
 /*
  *
@@ -450,4 +461,41 @@ cipher_des_encrypt_ecb (const unsigned char key[8],
 
     des_set_key_unchecked((des_cblock*)key, sched);
     des_ecb_encrypt((des_cblock *)src, (des_cblock *)dst, sched, DES_ENCRYPT);
+}
+
+/*
+ *
+ * Generic message digest information functions
+ *
+ */
+
+
+const EVP_MD *
+md_kt_get (const char *digest)
+{
+  const EVP_MD *md = NULL;
+  ASSERT (digest);
+  md = EVP_get_digestbyname (digest);
+  if (!md)
+    msg (M_SSLERR, "Message hash algorithm '%s' not found", digest);
+  if (EVP_MD_size (md) > MAX_HMAC_KEY_LENGTH)
+    msg (M_FATAL, "Message hash algorithm '%s' uses a default hash size (%d bytes) which is larger than " PACKAGE_NAME "'s current maximum hash size (%d bytes)",
+	 digest,
+	 EVP_MD_size (md),
+	 MAX_HMAC_KEY_LENGTH);
+  return md;
+}
+
+const char *
+md_kt_name (const EVP_MD *kt)
+{
+  if (NULL == kt)
+    return "[null-digest]";
+  return EVP_MD_name (kt);
+}
+
+int
+md_kt_size (const EVP_MD *kt)
+{
+  return EVP_MD_size(kt);
 }

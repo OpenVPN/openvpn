@@ -171,4 +171,37 @@ void cipher_des_encrypt_ecb (const unsigned char key[8],
  */
 #define MAX_HMAC_KEY_LENGTH 64
 
+/**
+ * Return message digest parameters, based on the given digest name. The
+ * contents of these parameters are library-specific, and can be used to
+ * initialise HMAC or message digest operations.
+ *
+ * @param digest	Name of the digest to retrieve parameters for (e.g.
+ * 			\c MD5).
+ *
+ * @return		A statically allocated structure containing parameters
+ * 			for the given message digest.
+ */
+const md_kt_t * md_kt_get (const char *digest);
+
+/**
+ * Retrieve a string describing the digest digest (e.g. \c SHA1).
+ *
+ * @param kt 		Static message digest parameters
+ *
+ * @return 		Statically allocated string describing the message
+ * 			digest.
+ */
+const char * md_kt_name (const md_kt_t *kt);
+
+/**
+ * Returns the size of the message digest, in bytes.
+ *
+ * @param kt 		Static message digest parameters
+ *
+ * @return 		Message digest size, in bytes, or 0 if ctx was NULL.
+ */
+int md_kt_size (const md_kt_t *kt);
+
+
 #endif /* CRYPTO_BACKEND_H_ */
