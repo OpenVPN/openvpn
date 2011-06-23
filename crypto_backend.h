@@ -38,6 +38,12 @@
 
 #include "basic.h"
 
+void show_available_ciphers (void);
+
+void show_available_digests (void);
+
+void show_available_engines (void);
+
 /*
  *
  * Random number functions, used in cases where we want

@@ -434,12 +434,6 @@ void test_crypto (const struct crypto_options *co, struct frame* f);
 
 const char *md5sum(uint8_t *buf, int len, int n_print_chars, struct gc_arena *gc);
 
-void show_available_ciphers (void);
-
-void show_available_digests (void);
-
-void show_available_engines (void);
-
 void init_crypto_lib_engine (const char *engine_name);
 
 void init_crypto_lib (void);
