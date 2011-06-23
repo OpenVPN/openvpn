@@ -87,6 +87,12 @@ cipher_ok (const char* name)
 #endif
 
 void
+crypto_clear_error (void)
+{
+  ERR_clear_error ();
+}
+
+void
 show_available_ciphers ()
 {
   int nid;

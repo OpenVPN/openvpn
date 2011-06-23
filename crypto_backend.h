@@ -38,6 +38,8 @@
 
 #include "basic.h"
 
+void crypto_clear_error (void);
+
 void show_available_ciphers (void);
 
 void show_available_digests (void);

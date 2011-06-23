@@ -191,8 +191,8 @@ openvpn_encrypt (struct buffer *buf, struct buffer work,
   gc_free (&gc);
   return;
 
- err:
-  ERR_clear_error ();
+err:
+  crypto_clear_error();
   buf->len = 0;
   gc_free (&gc);
   return;
@@ -363,7 +363,7 @@ openvpn_decrypt (struct buffer *buf, struct buffer work,
   return true;
 
  error_exit:
-  ERR_clear_error ();
+  crypto_clear_error();
   buf->len = 0;
   gc_free (&gc);
   return false;
