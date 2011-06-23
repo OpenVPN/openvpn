@@ -86,12 +86,12 @@ openvpn_encrypt (struct buffer *buf, struct buffer work,
       /* Do Encrypt from buf -> work */
       if (ctx->cipher)
 	{
-	  uint8_t iv_buf[EVP_MAX_IV_LENGTH];
+	  uint8_t iv_buf[OPENVPN_MAX_IV_LENGTH];
 	  const int iv_size = EVP_CIPHER_CTX_iv_length (ctx->cipher);
 	  const unsigned int mode = EVP_CIPHER_CTX_mode (ctx->cipher);  
 	  int outlen;
 
-	  if (mode == EVP_CIPH_CBC_MODE)
+	  if (mode == OPENVPN_MODE_CBC)
 	    {
 	      CLEAR (iv_buf);
 
@@ -107,7 +107,7 @@ openvpn_encrypt (struct buffer *buf, struct buffer work,
 		  ASSERT (packet_id_write (&pin, buf, BOOL_CAST (opt->flags & CO_PACKET_ID_LONG_FORM), true));
 		}
 	    }
-	  else if (mode == EVP_CIPH_CFB_MODE || mode == EVP_CIPH_OFB_MODE)
+	  else if (mode == OPENVPN_MODE_CFB || mode == OPENVPN_MODE_OFB)
 	    {
 	      struct packet_id_net pin;
 	      struct buffer b;
@@ -267,7 +267,7 @@ openvpn_decrypt (struct buffer *buf, struct buffer work,
 	{
 	  const unsigned int mode = EVP_CIPHER_CTX_mode (ctx->cipher);
 	  const int iv_size = EVP_CIPHER_CTX_iv_length (ctx->cipher);
-	  uint8_t iv_buf[EVP_MAX_IV_LENGTH];
+	  uint8_t iv_buf[OPENVPN_MAX_IV_LENGTH];
 	  int outlen;
 
 	  /* initialize work buffer with FRAME_HEADROOM bytes of prepend capacity */
@@ -313,7 +313,7 @@ openvpn_decrypt (struct buffer *buf, struct buffer work,
 
 	  /* Get packet ID from plaintext buffer or IV, depending on cipher mode */
 	  {
-	    if (mode == EVP_CIPH_CBC_MODE)
+	    if (mode == OPENVPN_MODE_CBC)
 	      {
 		if (opt->packet_id)
 		  {
@@ -322,7 +322,7 @@ openvpn_decrypt (struct buffer *buf, struct buffer work,
 		    have_pin = true;
 		  }
 	      }
-	    else if (mode == EVP_CIPH_CFB_MODE || mode == EVP_CIPH_OFB_MODE)
+	    else if (mode == OPENVPN_MODE_CFB || mode == OPENVPN_MODE_OFB)
 	      {
 		struct buffer b;
 
@@ -512,9 +512,9 @@ init_key_type (struct key_type *kt, const char *ciphername,
       /* check legal cipher mode */
       {
 	const unsigned int mode = EVP_CIPHER_mode (kt->cipher);
-	if (!(mode == EVP_CIPH_CBC_MODE
+	if (!(mode == OPENVPN_MODE_CBC
 #ifdef ALLOW_NON_CBC_CIPHERS
-	      || (cfb_ofb_allowed && (mode == EVP_CIPH_CFB_MODE || mode == EVP_CIPH_OFB_MODE))
+	      || (cfb_ofb_allowed && (mode == OPENVPN_MODE_CFB || mode == OPENVPN_MODE_OFB))
 #endif
 	      ))
 #ifdef ENABLE_SMALL
@@ -775,11 +775,11 @@ check_replay_iv_consistency (const struct key_type *kt, bool packet_id, bool use
 bool
 cfb_ofb_mode (const struct key_type* kt)
 {
-  if (kt->cipher) {
     const unsigned int mode = EVP_CIPHER_mode (kt->cipher);
-    return mode == EVP_CIPH_CFB_MODE || mode == EVP_CIPH_OFB_MODE;
-  } else
-    return false;
+  if (kt && kt->cipher) {
+      return mode == OPENVPN_MODE_CFB || mode == OPENVPN_MODE_OFB;
+  }
+  return false;
 }
 
 /*
@@ -970,9 +970,9 @@ get_tls_handshake_key (const struct key_type *key_type,
 
       /* initialize hmac key in both directions */
 
-      init_key_ctx (&ctx->encrypt, &key2.keys[kds.out_key], &kt, DO_ENCRYPT,
+      init_key_ctx (&ctx->encrypt, &key2.keys[kds.out_key], &kt, OPENVPN_OP_ENCRYPT,
 		    "Outgoing Control Channel Authentication");
-      init_key_ctx (&ctx->decrypt, &key2.keys[kds.in_key], &kt, DO_DECRYPT,
+      init_key_ctx (&ctx->decrypt, &key2.keys[kds.in_key], &kt, OPENVPN_OP_DECRYPT,
 		    "Incoming Control Channel Authentication");
 
       CLEAR (key2);

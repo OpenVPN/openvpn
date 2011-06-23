@@ -34,4 +34,22 @@
 #include <openssl/hmac.h>
 #include <openssl/md5.h>
 
+/** Maximum length of an IV */
+#define OPENVPN_MAX_IV_LENGTH 	EVP_MAX_IV_LENGTH
+
+/** Cipher is in CBC mode */
+#define OPENVPN_MODE_CBC 	EVP_CIPH_CBC_MODE
+
+/** Cipher is in OFB mode */
+#define OPENVPN_MODE_OFB	EVP_CIPH_OFB_MODE
+
+/** Cipher is in CFB mode */
+#define OPENVPN_MODE_CFB 	EVP_CIPH_CFB_MODE
+
+/** Cipher should encrypt */
+#define OPENVPN_OP_ENCRYPT 	1
+
+/** Cipher should decrypt */
+#define OPENVPN_OP_DECRYPT 	0
+
 #endif /* CRYPTO_OPENSSL_H_ */

@@ -2023,9 +2023,9 @@ do_init_crypto_static (struct context *c, const unsigned int flags)
       must_have_n_keys (options->shared_secret_file, "secret", &key2,
 			kds.need_keys);
       init_key_ctx (&c->c1.ks.static_key.encrypt, &key2.keys[kds.out_key],
-		    &c->c1.ks.key_type, DO_ENCRYPT, "Static Encrypt");
+		    &c->c1.ks.key_type, OPENVPN_OP_ENCRYPT, "Static Encrypt");
       init_key_ctx (&c->c1.ks.static_key.decrypt, &key2.keys[kds.in_key],
-		    &c->c1.ks.key_type, DO_DECRYPT, "Static Decrypt");
+		    &c->c1.ks.key_type, OPENVPN_OP_DECRYPT, "Static Decrypt");
 
       /* Erase the temporary copy of key */
       CLEAR (key2);

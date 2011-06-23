@@ -6,6 +6,7 @@
  *             packet compression.
  *
  *  Copyright (C) 2002-2010 OpenVPN Technologies, Inc. <sales@openvpn.net>
+ *  Copyright (C) 2010 Fox Crypto B.V. <openvpn@fox-it.com>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -22,14 +23,13 @@
  *  59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-
 /**
- * @file
+ * @file Data Channel Cryptography Module
  */
-
 
 #ifndef CRYPTO_H
 #define CRYPTO_H
+
 #ifdef USE_CRYPTO
 
 #define ALLOW_NON_CBC_CIPHERS
@@ -63,6 +63,7 @@
 #include <openssl/des_old.h>
 #endif
 
+#include "crypto_backend.h"
 #include "basic.h"
 #include "buffer.h"
 #include "packet_id.h"

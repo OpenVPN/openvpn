@@ -3893,13 +3893,13 @@ generate_key_expansion (struct key_ctx_bi *key,
   init_key_ctx (&key->encrypt,
 		&key2.keys[(int)server],
 		key_type,
-		DO_ENCRYPT,
+		OPENVPN_OP_ENCRYPT,
 		"Data Channel Encrypt");
 
   init_key_ctx (&key->decrypt,
 		&key2.keys[1-(int)server],
 		key_type,
-		DO_DECRYPT,
+		OPENVPN_OP_DECRYPT,
 		"Data Channel Decrypt");
 
   ret = true;
@@ -4267,7 +4267,7 @@ key_method_1_write (struct buffer *buf, struct tls_session *session)
     }
 
   init_key_ctx (&ks->key.encrypt, &key, &session->opt->key_type,
-		DO_ENCRYPT, "Data Channel Encrypt");
+		OPENVPN_OP_ENCRYPT, "Data Channel Encrypt");
   CLEAR (key);
 
   /* send local options string */
@@ -4483,7 +4483,7 @@ key_method_1_read (struct buffer *buf, struct tls_session *session)
   buf_clear (buf);
 
   init_key_ctx (&ks->key.decrypt, &key, &session->opt->key_type,
-		DO_DECRYPT, "Data Channel Decrypt");
+		OPENVPN_OP_DECRYPT, "Data Channel Decrypt");
   CLEAR (key);
   ks->authenticated = true;
   return true;
