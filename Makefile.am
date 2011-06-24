@@ -138,7 +138,8 @@ openvpn_SOURCES = \
 	sig.c sig.h \
 	socket.c socket.h \
 	socks.c socks.h \
-	ssl.c ssl.h \
+	ssl.c ssl.h  ssl_backend.h \
+	ssl_verify.c ssl_verify.h ssl_verify_backend.h \
 	status.c status.h \
 	syshead.h \
 	tun.c tun.h \
@@ -154,7 +155,9 @@ configure.h: Makefile
 
 if USE_OPENSSL
 openvpn_SOURCES += \
-	crypto_openssl.c crypto_openssl.h
+	crypto_openssl.c crypto_openssl.h \
+	ssl_openssl.c ssl_openssl.h \
+	ssl_verify_openssl.c ssl_verify_openssl.h
 endif
 
 dist-hook:
