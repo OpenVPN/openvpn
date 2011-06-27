@@ -2450,32 +2450,6 @@ print_details (SSL * c_ssl, const char *prefix)
 }
 
 /*
- * The OpenSSL library has a notion of preference in TLS
- * ciphers.  Higher preference == more secure.
- * Return the highest preference cipher.
- */
-void
-get_highest_preference_tls_cipher (char *buf, int size)
-{
-  SSL_CTX *ctx;
-  SSL *ssl;
-  const char *cipher_name;
-
-  ctx = SSL_CTX_new (TLSv1_method ());
-  if (!ctx)
-    msg (M_SSLERR, "Cannot create SSL_CTX object");
-  ssl = SSL_new (ctx);
-  if (!ssl)
-    msg (M_SSLERR, "Cannot create SSL object");
-
-  cipher_name = SSL_get_cipher_list (ssl, 0);
-  strncpynt (buf, cipher_name, size);
-
-  SSL_free (ssl);
-  SSL_CTX_free (ctx);
-}
-
-/*
  * Map internal constants to ascii names.
  */
 static const char *

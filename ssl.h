@@ -824,8 +824,6 @@ void tls_post_encrypt (struct tls_multi *multi, struct buffer *buf);
 
 /** @} name Functions for managing security parameter state for data channel packets */
 
-void get_highest_preference_tls_cipher (char *buf, int size);
-
 void pem_password_setup (const char *auth_file);
 int pem_password_callback (char *buf, int size, int rwflag, void *u);
 void auth_user_pass_setup (const char *auth_file, const struct static_challenge_info *sc_info);

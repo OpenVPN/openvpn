@@ -70,4 +70,10 @@ void tls_clear_error();
  */
 void show_available_tls_ciphers ();
 
+/*
+ * The OpenSSL library has a notion of preference in TLS ciphers.  Higher
+ * preference == more secure. Return the highest preference cipher.
+ */
+void get_highest_preference_tls_cipher (char *buf, int size);
+
 #endif /* SSL_BACKEND_H_ */
