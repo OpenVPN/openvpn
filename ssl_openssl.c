@@ -74,3 +74,29 @@ tls_clear_error()
 {
   ERR_clear_error ();
 }
+
+void
+show_available_tls_ciphers ()
+{
+  SSL_CTX *ctx;
+  SSL *ssl;
+  const char *cipher_name;
+  int priority = 0;
+
+  ctx = SSL_CTX_new (TLSv1_method ());
+  if (!ctx)
+    msg (M_SSLERR, "Cannot create SSL_CTX object");
+
+  ssl = SSL_new (ctx);
+  if (!ssl)
+    msg (M_SSLERR, "Cannot create SSL object");
+
+  printf ("Available TLS Ciphers,\n");
+  printf ("listed in order of preference:\n\n");
+  while ((cipher_name = SSL_get_cipher_list (ssl, priority++)))
+    printf ("%s\n", cipher_name);
+  printf ("\n");
+
+  SSL_free (ssl);
+  SSL_CTX_free (ctx);
+}

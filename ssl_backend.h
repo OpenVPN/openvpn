@@ -64,4 +64,10 @@ void tls_free_lib();
  */
 void tls_clear_error();
 
+/*
+ * Show the TLS ciphers that are available for us to use in the OpenSSL
+ * library.
+ */
+void show_available_tls_ciphers ();
+
 #endif /* SSL_BACKEND_H_ */
