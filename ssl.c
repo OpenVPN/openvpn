@@ -1870,21 +1870,6 @@ is_hard_reset (int op, int key_method)
 }
 
 /*
- * OpenVPN's interface to SSL/TLS authentication,
- * encryption, and decryption is exclusively
- * through "memory BIOs".
- */
-static BIO *
-getbio (BIO_METHOD * type, const char *desc)
-{
-  BIO *ret;
-  ret = BIO_new (type);
-  if (!ret)
-    msg (M_SSLERR, "Error creating %s BIO", desc);
-  return ret;
-}
-
-/*
  * Write to an OpenSSL BIO in non-blocking mode.
  */
 static int
@@ -2202,37 +2187,14 @@ key_state_init (struct tls_session *session, struct key_state *ks)
 {
   update_time ();
 
+  CLEAR (*ks);
+
   /*
    * Build TLS object that reads/writes ciphertext
    * to/from memory BIOs.
    */
-  CLEAR (*ks);
-
-  ks->ks_ssl.ssl = SSL_new (session->opt->ssl_ctx.ctx);
-  if (!ks->ks_ssl.ssl)
-    msg (M_SSLERR, "SSL_new failed");
-
-  /* put session * in ssl object so we can access it
-     from verify callback*/
-  SSL_set_ex_data (ks->ks_ssl.ssl, mydata_index, session);
-
-  ks->ks_ssl.ssl_bio = getbio (BIO_f_ssl (), "ssl_bio");
-  ks->ks_ssl.ct_in = getbio (BIO_s_mem (), "ct_in");
-  ks->ks_ssl.ct_out = getbio (BIO_s_mem (), "ct_out");
-
-#ifdef BIO_DEBUG
-  bio_debug_oc ("open ssl_bio", ks->ks_ssl.ssl_bio);
-  bio_debug_oc ("open ct_in", ks->ks_ssl.ct_in);
-  bio_debug_oc ("open ct_out", ks->ks_ssl.ct_out);
-#endif
-
-  if (session->opt->server)
-    SSL_set_accept_state (ks->ks_ssl.ssl);
-  else
-    SSL_set_connect_state (ks->ks_ssl.ssl);
-
-  SSL_set_bio (ks->ks_ssl.ssl, ks->ks_ssl.ct_in, ks->ks_ssl.ct_out);
-  BIO_set_ssl (ks->ks_ssl.ssl_bio, ks->ks_ssl.ssl, BIO_NOCLOSE);
+  key_state_ssl_init(&ks->ks_ssl, &session->opt->ssl_ctx, session->opt->server,
+      session);
 
   /* Set control-channel initiation mode */
   ks->initial_opcode = session->initial_opcode;

@@ -829,6 +829,66 @@ tls_ctx_load_ca (struct tls_root_ctx *ctx, const char *ca_file,
 
 }
 
+/* **************************************
+ *
+ * Key-state specific functions
+ *
+ ***************************************/
+/*
+ *
+ * BIO functions
+ *
+ */
+
+/*
+ * OpenVPN's interface to SSL/TLS authentication,
+ * encryption, and decryption is exclusively
+ * through "memory BIOs".
+ */
+static BIO *
+getbio (BIO_METHOD * type, const char *desc)
+{
+  BIO *ret;
+  ret = BIO_new (type);
+  if (!ret)
+    msg (M_SSLERR, "Error creating %s BIO", desc);
+  return ret;
+}
+
+void
+key_state_ssl_init(struct key_state_ssl *ks_ssl, const struct tls_root_ctx *ssl_ctx, bool is_server, void *session)
+{
+  ASSERT(NULL != ssl_ctx);
+  ASSERT(ks_ssl);
+  CLEAR (*ks_ssl);
+
+  ks_ssl->ssl = SSL_new (ssl_ctx->ctx);
+  if (!ks_ssl->ssl)
+    msg (M_SSLERR, "SSL_new failed");
+
+  /* put session * in ssl object so we can access it
+     from verify callback*/
+  SSL_set_ex_data (ks_ssl->ssl, mydata_index, session);
+
+  ks_ssl->ssl_bio = getbio (BIO_f_ssl (), "ssl_bio");
+  ks_ssl->ct_in = getbio (BIO_s_mem (), "ct_in");
+  ks_ssl->ct_out = getbio (BIO_s_mem (), "ct_out");
+
+#ifdef BIO_DEBUG
+  bio_debug_oc ("open ssl_bio", ks_ssl->ssl_bio);
+  bio_debug_oc ("open ct_in", ks_ssl->ct_in);
+  bio_debug_oc ("open ct_out", ks_ssl->ct_out);
+#endif
+
+  if (is_server)
+    SSL_set_accept_state (ks_ssl->ssl);
+  else
+    SSL_set_connect_state (ks_ssl->ssl);
+
+  SSL_set_bio (ks_ssl->ssl, ks_ssl->ct_in, ks_ssl->ct_out);
+  BIO_set_ssl (ks_ssl->ssl_bio, ks_ssl->ssl, BIO_NOCLOSE);
+}
+
 void
 tls_ctx_load_extra_certs (struct tls_root_ctx *ctx, const char *extra_certs_file
 #if ENABLE_INLINE_FILES

@@ -269,6 +269,24 @@ void tls_ctx_load_extra_certs (struct tls_root_ctx *ctx, const char *extra_certs
 #endif
     );
 
+/* **************************************
+ *
+ * Key-state specific functions
+ *
+ ***************************************/
+
+/**
+ * Initialise the SSL channel part of the given key state. Settings will be
+ * loaded from a previously initialised TLS context.
+ *
+ * @param ks_ssl	The SSL channel's state info to initialise
+ * @param ssl_ctx	The TLS context to use when initialising the channel.
+ * @param is_server	Initialise a server?
+ * @param session	The session associated with the given key_state
+ */
+void key_state_ssl_init(struct key_state_ssl *ks_ssl,
+    const struct tls_root_ctx *ssl_ctx, bool is_server, void *session);
+
 /*
  * Show the TLS ciphers that are available for us to use in the OpenSSL
  * library.
