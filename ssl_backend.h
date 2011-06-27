@@ -193,6 +193,23 @@ void tls_ctx_load_cert_file (struct tls_root_ctx *ctx, const char *cert_file,
     );
 
 /**
+ * Load private key file into the given TLS context.
+ *
+ * @param ctx			TLS context to use
+ * @param priv_key_file		The file name to load the private key from, or
+ * 				"[[INLINE]]" in the case of inline files.
+ * @param priv_key_file_inline	A string containing the private key
+ *
+ * @return 			1 if an error occurred, 0 if parsing was
+ * 				successful.
+ */
+int tls_ctx_load_priv_file (struct tls_root_ctx *ctx, const char *priv_key_file
+#if ENABLE_INLINE_FILES
+    , const char *priv_key_file_inline
+#endif
+    );
+
+/**
  * Show the TLS ciphers that are available for us to use in the OpenSSL
  * library.
  */

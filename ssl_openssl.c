@@ -438,6 +438,75 @@ tls_ctx_load_cert_file (struct tls_root_ctx *ctx, const char *cert_file,
     }
 }
 
+#if ENABLE_INLINE_FILES
+static int
+use_inline_PrivateKey_file (SSL_CTX *ctx, const char *key_string)
+{
+  BIO *in = NULL;
+  EVP_PKEY *pkey = NULL;
+  int ret = 0;
+
+  in = BIO_new_mem_buf ((char *)key_string, -1);
+  if (!in)
+    goto end;
+
+  pkey = PEM_read_bio_PrivateKey (in,
+				  NULL,
+				  ctx->default_passwd_callback,
+				  ctx->default_passwd_callback_userdata);
+  if (!pkey)
+    goto end;
+
+  ret = SSL_CTX_use_PrivateKey (ctx, pkey);
+
+ end:
+  if (pkey)
+    EVP_PKEY_free (pkey);
+  if (in)
+    BIO_free (in);
+  return ret;
+}
+#endif /* ENABLE_INLINE_FILES */
+
+int
+tls_ctx_load_priv_file (struct tls_root_ctx *ctx, const char *priv_key_file
+#if ENABLE_INLINE_FILES
+    , const char *priv_key_file_inline
+#endif
+    )
+{
+  ASSERT(NULL != ctx);
+
+  int status;
+
+#if ENABLE_INLINE_FILES
+  if (!strcmp (priv_key_file, INLINE_FILE_TAG) && priv_key_file_inline)
+    {
+      status = use_inline_PrivateKey_file (ctx->ctx, priv_key_file_inline);
+    }
+  else
+#endif /* ENABLE_INLINE_FILES */
+    {
+      status = SSL_CTX_use_PrivateKey_file (ctx->ctx, priv_key_file, SSL_FILETYPE_PEM);
+    }
+  if (!status)
+    {
+#ifdef ENABLE_MANAGEMENT
+      if (management && (ERR_GET_REASON (ERR_peek_error()) == EVP_R_BAD_DECRYPT))
+	  management_auth_failure (management, UP_TYPE_PRIVATE_KEY, NULL);
+#endif
+      msg (M_WARN|M_SSL, "Cannot load private key file %s", priv_key_file);
+      return 1;
+    }
+  warn_if_group_others_accessible (priv_key_file);
+
+  /* Check Private Key */
+  if (!SSL_CTX_check_private_key (ctx->ctx))
+    msg (M_SSLERR, "Private key does not match the certificate");
+  return 0;
+
+}
+
 void
 show_available_tls_ciphers ()
 {

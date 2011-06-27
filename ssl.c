@@ -1842,34 +1842,6 @@ use_inline_load_client_CA_file (SSL_CTX *ctx, const char *ca_string)
   return(ret);
 }
 
-static int
-use_inline_PrivateKey_file (SSL_CTX *ctx, const char *key_string)
-{
-  BIO *in = NULL;
-  EVP_PKEY *pkey = NULL;
-  int ret = 0;
-
-  in = BIO_new_mem_buf ((char *)key_string, -1);
-  if (!in)
-    goto end;
-
-  pkey = PEM_read_bio_PrivateKey (in,
-				  NULL,
-				  ctx->default_passwd_callback,
-				  ctx->default_passwd_callback_userdata);
-  if (!pkey)
-    goto end;
-
-  ret = SSL_CTX_use_PrivateKey (ctx, pkey);
-
- end:
-  if (pkey)
-    EVP_PKEY_free (pkey);
-  if (in)
-    BIO_free (in);
-  return ret;
-}
-
 #endif
 
 /*
@@ -1935,44 +1907,19 @@ init_ssl (const struct options *options, struct tls_root_ctx *new_ctx)
 #endif
   else
     {
-      /* Use seperate PEM files for key, cert and CA certs */
       /* Load Certificate */
       if (options->cert_file)
 	{
           tls_ctx_load_cert_file(new_ctx, options->cert_file, options->cert_file_inline, NULL);
 	}
 
-	  /* Load Private Key */
-	  if (options->priv_key_file)
-	    {
-	      int status;
-	      
-#if ENABLE_INLINE_FILES
-	      if (!strcmp (options->priv_key_file, INLINE_FILE_TAG) && options->priv_key_file_inline)
-		{
-		  status = use_inline_PrivateKey_file (ctx, options->priv_key_file_inline);
-		}
-	      else
-#endif
-	      {
-		status = SSL_CTX_use_PrivateKey_file (ctx, options->priv_key_file, SSL_FILETYPE_PEM);
-	      }
-	      if (!status)
-		{
-#ifdef ENABLE_MANAGEMENT
-		  if (management && (ERR_GET_REASON (ERR_peek_error()) == EVP_R_BAD_DECRYPT))
-		    management_auth_failure (management, UP_TYPE_PRIVATE_KEY, NULL);
-#endif
-		  msg (M_WARN|M_SSL, "Cannot load private key file %s", options->priv_key_file);
-		  goto err;
-		}
-	      warn_if_group_others_accessible (options->priv_key_file);
-
-	      /* Check Private Key */
-	      if (!SSL_CTX_check_private_key (ctx))
-		msg (M_SSLERR, "Private key does not match the certificate");
-	    }
+      /* Load Private Key */
+      if (options->priv_key_file)
+	{
+          if (0 != tls_ctx_load_priv_file(new_ctx, options->priv_key_file, options->priv_key_file_inline))
+            goto err;
 	}
+    }
 
   if (options->ca_file || options->ca_path)
     {
