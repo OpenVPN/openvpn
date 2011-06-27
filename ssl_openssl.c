@@ -313,6 +313,23 @@ tls_ctx_load_pkcs12(struct tls_root_ctx *ctx, const char *pkcs12_file,
   return 0;
 }
 
+#ifdef ENABLE_PKCS11
+int
+tls_ctx_load_pkcs11(struct tls_root_ctx *ctx, bool pkcs11_id_management,
+    const char *pkcs11_id)
+{
+  ASSERT(NULL != ctx);
+
+  /* Load Certificate and Private Key */
+  if (!SSL_CTX_use_pkcs11 (ctx->ctx, pkcs11_id_management, pkcs11_id))
+    {
+      msg (M_WARN, "Cannot load certificate \"%s\" using PKCS#11 interface", pkcs11_id);
+      return 1;
+    }
+  return 0;
+}
+#endif /* ENABLE_PKCS11 */
+
 void
 show_available_tls_ciphers ()
 {

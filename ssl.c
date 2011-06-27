@@ -1993,32 +1993,22 @@ init_ssl (const struct options *options, struct tls_root_ctx *new_ctx)
 	  options->pkcs12_file_inline, !options->ca_file))
         goto err;
     }
-  else
-    {
-      /* Use seperate PEM files for key, cert and CA certs */
-
 #ifdef ENABLE_PKCS11
-      if (options->pkcs11_providers[0])
-        {
-         /* Load Certificate and Private Key */
-	 if (!SSL_CTX_use_pkcs11 (ctx, options->pkcs11_id_management, options->pkcs11_id))
-	   {
-	     msg (M_WARN, "Cannot load certificate \"%s\" using PKCS#11 interface", options->pkcs11_id);
-	     goto err;
-	   }
-        }
-      else
+  else if (options->pkcs11_providers[0])
+    {
+      if (0 != tls_ctx_load_pkcs11(new_ctx, options->pkcs11_id_management, options->pkcs11_id))
+         goto err;
+    }
 #endif
-
 #ifdef WIN32
-      if (options->cryptoapi_cert)
-	{
+  else if (options->cryptoapi_cert)
+    {
 	  /* Load Certificate and Private Key */
 	  if (!SSL_CTX_use_CryptoAPI_certificate (ctx, options->cryptoapi_cert))
 	    msg (M_SSLERR, "Cannot load certificate \"%s\" from Microsoft Certificate Store",
 		 options->cryptoapi_cert);
-	}
-      else
+    }
+  else
 #endif
 	{
 	  X509 *my_cert = NULL;
@@ -2088,7 +2078,6 @@ init_ssl (const struct options *options, struct tls_root_ctx *new_ctx)
 		msg (M_SSLERR, "Private key does not match the certificate");
 	    }
 	}
-    }
 
   if (options->ca_file || options->ca_path)
     {
