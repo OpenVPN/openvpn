@@ -94,6 +94,21 @@ void tls_ctx_free(struct tls_root_ctx *ctx);
  */
 bool tls_ctx_initialised(struct tls_root_ctx *ctx);
 
+/**
+ * Load Diffie Hellman Parameters, and load them into the library-specific
+ * TLS context.
+ *
+ * @param ctx			TLS context to use
+ * @param dh_file		The file name to load the parameters from, or
+ * 				"[[INLINE]]" in the case of inline files.
+ * @param dh_file_inline	A string containing the parameters
+ */
+void tls_ctx_load_dh_params(struct tls_root_ctx *ctx, const char *dh_file
+#if ENABLE_INLINE_FILES
+    , const char *dh_file_inline
+#endif /* ENABLE_INLINE_FILES */
+    );
+
 /*
  * Show the TLS ciphers that are available for us to use in the OpenSSL
  * library.

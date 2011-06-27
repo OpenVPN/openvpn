@@ -131,6 +131,46 @@ bool tls_ctx_initialised(struct tls_root_ctx *ctx)
 }
 
 void
+tls_ctx_load_dh_params (struct tls_root_ctx *ctx, const char *dh_file
+#if ENABLE_INLINE_FILES
+    , const char *dh_file_inline
+#endif /* ENABLE_INLINE_FILES */
+    )
+{
+  DH *dh;
+  BIO *bio;
+
+  ASSERT(NULL != ctx);
+
+#if ENABLE_INLINE_FILES
+  if (!strcmp (dh_file, INLINE_FILE_TAG) && dh_file_inline)
+    {
+      if (!(bio = BIO_new_mem_buf ((char *)dh_file_inline, -1)))
+	msg (M_SSLERR, "Cannot open memory BIO for inline DH parameters");
+    }
+  else
+#endif /* ENABLE_INLINE_FILES */
+    {
+      /* Get Diffie Hellman Parameters */
+      if (!(bio = BIO_new_file (dh_file, "r")))
+	msg (M_SSLERR, "Cannot open %s for DH parameters", dh_file);
+    }
+
+  dh = PEM_read_bio_DHparams (bio, NULL, NULL, NULL);
+  BIO_free (bio);
+
+  if (!dh)
+    msg (M_SSLERR, "Cannot load DH parameters from %s", dh_file);
+  if (!SSL_CTX_set_tmp_dh (ctx->ctx, dh))
+    msg (M_SSLERR, "SSL_CTX_set_tmp_dh");
+
+  msg (D_TLS_DEBUG_LOW, "Diffie-Hellman initialized with %d bit key",
+       8 * DH_size (dh));
+
+  DH_free (dh);
+}
+
+void
 show_available_tls_ciphers ()
 {
   SSL_CTX *ctx;

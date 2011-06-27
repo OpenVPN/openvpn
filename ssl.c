@@ -2019,8 +2019,6 @@ void
 init_ssl (const struct options *options, struct tls_root_ctx *new_ctx)
 {
   SSL_CTX *ctx = NULL;
-  DH *dh;
-  BIO *bio;
   bool using_cert_file = false;
 
   ASSERT(NULL != new_ctx);
@@ -2030,37 +2028,14 @@ init_ssl (const struct options *options, struct tls_root_ctx *new_ctx)
   if (options->tls_server)
     {
       tls_ctx_server_new(new_ctx);
-      ctx = new_ctx->ctx;
-
-#if ENABLE_INLINE_FILES
-      if (!strcmp (options->dh_file, INLINE_FILE_TAG) && options->dh_file_inline)
-	{
-	  if (!(bio = BIO_new_mem_buf ((char *)options->dh_file_inline, -1)))
-	    msg (M_SSLERR, "Cannot open memory BIO for inline DH parameters");
-	}
-      else
-#endif
-	{
-	  /* Get Diffie Hellman Parameters */
-	  if (!(bio = BIO_new_file (options->dh_file, "r")))
-	    msg (M_SSLERR, "Cannot open %s for DH parameters", options->dh_file);
-	}
-
-      dh = PEM_read_bio_DHparams (bio, NULL, NULL, NULL);
-      BIO_free (bio);
-      if (!dh)
-	msg (M_SSLERR, "Cannot load DH parameters from %s", options->dh_file);
-      if (!SSL_CTX_set_tmp_dh (ctx, dh))
-	msg (M_SSLERR, "SSL_CTX_set_tmp_dh");
-      msg (D_TLS_DEBUG_LOW, "Diffie-Hellman initialized with %d bit key",
-	   8 * DH_size (dh));
-      DH_free (dh);
+      tls_ctx_load_dh_params(new_ctx, options->dh_file, options->dh_file_inline);
     }
   else				/* if client */
     {
       tls_ctx_client_new(new_ctx);
-      ctx = new_ctx->ctx;
     }
+
+  ctx = new_ctx->ctx;
 
   /* Set SSL options */
   SSL_CTX_set_session_cache_mode (ctx, SSL_SESS_CACHE_OFF);
