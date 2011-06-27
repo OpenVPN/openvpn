@@ -330,6 +330,19 @@ tls_ctx_load_pkcs11(struct tls_root_ctx *ctx, bool pkcs11_id_management,
 }
 #endif /* ENABLE_PKCS11 */
 
+#ifdef WIN32
+void
+tls_ctx_load_cryptoapi(struct tls_root_ctx *ctx, const char *cryptoapi_cert)
+{
+  ASSERT(NULL != ctx);
+
+  /* Load Certificate and Private Key */
+  if (!SSL_CTX_use_CryptoAPI_certificate (ctx->ctx, cryptoapi_cert))
+    msg (M_SSLERR, "Cannot load certificate \"%s\" from Microsoft Certificate Store",
+	   options->cryptoapi_cert);
+}
+#endif /* WIN32 */
+
 void
 show_available_tls_ciphers ()
 {

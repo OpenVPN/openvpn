@@ -162,6 +162,17 @@ int tls_ctx_load_pkcs11(struct tls_root_ctx *ctx,
 #endif /* ENABLE_PKCS11 */
 
 /**
+ * Use Windows cryptoapi for key and cert, and add to library-specific TLS
+ * context.
+ *
+ * @param ctx			TLS context to use
+ * @param crypto_api_cert	String representing the certificate to load.
+ */
+#ifdef WIN32
+void tls_ctx_load_cryptoapi(struct tls_root_ctx *ctx, const char *cryptoapi_cert);
+#endif /* WIN32 */
+
+/**
  * Show the TLS ciphers that are available for us to use in the OpenSSL
  * library.
  */

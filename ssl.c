@@ -2003,13 +2003,10 @@ init_ssl (const struct options *options, struct tls_root_ctx *new_ctx)
 #ifdef WIN32
   else if (options->cryptoapi_cert)
     {
-	  /* Load Certificate and Private Key */
-	  if (!SSL_CTX_use_CryptoAPI_certificate (ctx, options->cryptoapi_cert))
-	    msg (M_SSLERR, "Cannot load certificate \"%s\" from Microsoft Certificate Store",
-		 options->cryptoapi_cert);
+      tls_ctx_load_cryptoapi(new_ctx, options->cryptoapi_cert);
     }
-  else
 #endif
+  else
 	{
 	  X509 *my_cert = NULL;
 
