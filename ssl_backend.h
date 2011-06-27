@@ -287,6 +287,13 @@ void tls_ctx_load_extra_certs (struct tls_root_ctx *ctx, const char *extra_certs
 void key_state_ssl_init(struct key_state_ssl *ks_ssl,
     const struct tls_root_ctx *ssl_ctx, bool is_server, void *session);
 
+/**
+ * Free the SSL channel part of the given key state.
+ *
+ * @param ks_ssl	The SSL channel's state info to free
+ */
+void key_state_ssl_free(struct key_state_ssl *ks_ssl);
+
 /*
  * Show the TLS ciphers that are available for us to use in the OpenSSL
  * library.

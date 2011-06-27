@@ -2262,15 +2262,7 @@ key_state_free (struct key_state *ks, bool clear)
 {
   ks->state = S_UNDEF;
 
-  if (ks->ks_ssl.ssl) {
-#ifdef BIO_DEBUG
-    bio_debug_oc ("close ssl_bio", ks->ks_ssl.ssl_bio);
-    bio_debug_oc ("close ct_in", ks->ks_ssl.ct_in);
-    bio_debug_oc ("close ct_out", ks->ks_ssl.ct_out);
-#endif
-    BIO_free_all(ks->ks_ssl.ssl_bio);
-    SSL_free (ks->ks_ssl.ssl);
-  }
+  key_state_ssl_free(&ks->ks_ssl);
 
   free_key_ctx_bi (&ks->key);
   free_buf (&ks->plaintext_read_buf);

@@ -889,6 +889,19 @@ key_state_ssl_init(struct key_state_ssl *ks_ssl, const struct tls_root_ctx *ssl_
   BIO_set_ssl (ks_ssl->ssl_bio, ks_ssl->ssl, BIO_NOCLOSE);
 }
 
+void key_state_ssl_free(struct key_state_ssl *ks_ssl)
+{
+  if (ks_ssl->ssl) {
+#ifdef BIO_DEBUG
+    bio_debug_oc ("close ssl_bio", ks_ssl->ssl_bio);
+    bio_debug_oc ("close ct_in", ks_ssl->ct_in);
+    bio_debug_oc ("close ct_out", ks_ssl->ct_out);
+#endif
+    BIO_free_all(ks_ssl->ssl_bio);
+    SSL_free (ks_ssl->ssl);
+  }
+}
+
 void
 tls_ctx_load_extra_certs (struct tls_root_ctx *ctx, const char *extra_certs_file
 #if ENABLE_INLINE_FILES
