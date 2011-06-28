@@ -36,3 +36,26 @@
 #ifdef USE_OPENSSL
 #include "ssl_verify_openssl.h"
 #endif
+
+void
+verify_final_auth_checks(struct tls_multi *multi, struct tls_session *session)
+{
+  /* verify --client-config-dir based authentication */
+  if (session->opt->client_config_dir_exclusive)
+    {
+      struct key_state *ks = &session->key[KS_PRIMARY]; 	   /* primary key */
+      struct gc_arena gc = gc_new ();
+
+      const char *cn = session->common_name;
+      const char *path = gen_path (session->opt->client_config_dir_exclusive, cn, &gc);
+      if (!cn || !strcmp (cn, CCD_DEFAULT) || !test_file (path))
+	{
+	  ks->authenticated = false;
+	  msg (D_TLS_ERRORS, "TLS Auth Error: --client-config-dir authentication failed for common name '%s' file='%s'",
+	       session->common_name,
+	       path ? path : "UNDEF");
+	}
+
+      gc_free (&gc);
+    }
+}

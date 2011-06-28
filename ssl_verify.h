@@ -40,5 +40,16 @@
 #include "ssl_verify_openssl.h"
 #endif
 
+/**
+ * Perform final authentication checks, including locking of the cn, the allowed
+ * certificate hashes, and whether a client config entry exists in the
+ * client config directory.
+ *
+ * @param multi		The TLS multi structure to verify locked structures.
+ * @param session	The current TLS session
+ *
+ */
+void verify_final_auth_checks(struct tls_multi *multi, struct tls_session *session);
+
 
 #endif /* SSL_VERIFY_H_ */
