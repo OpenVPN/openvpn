@@ -302,6 +302,43 @@ void key_state_ssl_free(struct key_state_ssl *ks_ssl);
  *  @{ */
 
 /**
+ * Insert a plaintext buffer into the TLS module.
+ *
+ * After successfully processing the data, the data in \a buf is zeroized,
+ * its length set to zero, and a value of \c 1 is returned.
+ *
+ * @param ks_ssl       - The security parameter state for this %key
+ *                       session.
+ * @param buf          - The plaintext message to process.
+ *
+ * @return The return value indicates whether the data was successfully
+ *     processed:
+ * - \c 1: All the data was processed successfully.
+ * - \c 0: The data was not processed, this function should be called
+ *   again later to retry.
+ * - \c -1: An error occurred.
+ */
+int key_state_write_plaintext (struct key_state_ssl *ks_ssl, struct buffer *buf);
+
+/**
+ * Insert plaintext data into the TLS module.
+ *
+ * @param ks_ssl       - The security parameter state for this %key
+ *                       session.
+ * @param data         - A pointer to the data to process.
+ * @param len          - The length in bytes of the data to process.
+ *
+ * @return The return value indicates whether the data was successfully
+ *     processed:
+ * - \c 1: All the data was processed successfully.
+ * - \c 0: The data was not processed, this function should be called
+ *   again later to retry.
+ * - \c -1: An error occurred.
+ */
+int key_state_write_plaintext_const (struct key_state_ssl *ks_ssl,
+    const uint8_t *data, int len);
+
+/**
  * Extract ciphertext data from the TLS module.
  *
  * If the \a buf buffer has a length other than zero, this function does
@@ -327,6 +364,26 @@ int key_state_read_ciphertext (struct key_state_ssl *ks_ssl, struct buffer *buf,
 
 /** @name Functions for packets received from a remote OpenVPN peer
  *  @{ */
+
+/**
+ * Insert a ciphertext buffer into the TLS module.
+ *
+ * After successfully processing the data, the data in \a buf is zeroized,
+ * its length set to zero, and a value of \c 1 is returned.
+ *
+ * @param ks_ssl       - The security parameter state for this %key
+ *                       session.
+ * @param buf          - The ciphertext message to process.
+ *
+ * @return The return value indicates whether the data was successfully
+ *     processed:
+ * - \c 1: All the data was processed successfully.
+ * - \c 0: The data was not processed, this function should be called
+ *   again later to retry.
+ * - \c -1: An error occurred.
+ */
+int key_state_write_ciphertext (struct key_state_ssl *ks_ssl,
+    struct buffer *buf);
 
 /**
  * Extract plaintext data from the TLS module.

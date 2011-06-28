@@ -856,6 +856,73 @@ getbio (BIO_METHOD * type, const char *desc)
 }
 
 /*
+ * Write to an OpenSSL BIO in non-blocking mode.
+ */
+static int
+bio_write (BIO *bio, const uint8_t *data, int size, const char *desc)
+{
+  int i;
+  int ret = 0;
+  ASSERT (size >= 0);
+  if (size)
+    {
+      /*
+       * Free the L_TLS lock prior to calling BIO routines
+       * so that foreground thread can still call
+       * tls_pre_decrypt or tls_pre_encrypt,
+       * allowing tunnel packet forwarding to continue.
+       */
+#ifdef BIO_DEBUG
+      bio_debug_data ("write", bio, data, size, desc);
+#endif
+      i = BIO_write (bio, data, size);
+
+      if (i < 0)
+	{
+	  if (BIO_should_retry (bio))
+	    {
+	      ;
+	    }
+	  else
+	    {
+	      msg (D_TLS_ERRORS | M_SSL, "TLS ERROR: BIO write %s error",
+		   desc);
+	      ret = -1;
+	      ERR_clear_error ();
+	    }
+	}
+      else if (i != size)
+	{
+	  msg (D_TLS_ERRORS | M_SSL,
+	       "TLS ERROR: BIO write %s incomplete %d/%d", desc, i, size);
+	  ret = -1;
+	  ERR_clear_error ();
+	}
+      else
+	{			/* successful write */
+	  dmsg (D_HANDSHAKE_VERBOSE, "BIO write %s %d bytes", desc, i);
+	  ret = 1;
+	}
+    }
+  return ret;
+}
+
+/*
+ * Inline functions for reading from and writing
+ * to BIOs.
+ */
+
+static void
+bio_write_post (const int status, struct buffer *buf)
+{
+  if (status == 1) /* success status return from bio_write? */
+    {
+      memset (BPTR (buf), 0, BLEN (buf)); /* erase data just written */
+      buf->len = 0;
+    }
+}
+
+/*
  * Read from an OpenSSL BIO in non-blocking mode.
  */
 static int
@@ -963,6 +1030,40 @@ void key_state_ssl_free(struct key_state_ssl *ks_ssl)
 }
 
 int
+key_state_write_plaintext (struct key_state_ssl *ks_ssl, struct buffer *buf)
+{
+  int ret = 0;
+  perf_push (PERF_BIO_WRITE_PLAINTEXT);
+
+#ifdef USE_OPENSSL
+  ASSERT (NULL != ks_ssl);
+
+  ret = bio_write (ks_ssl->ssl_bio, BPTR(buf), BLEN(buf),
+      "tls_write_plaintext");
+  bio_write_post (ret, buf);
+#endif /* USE_OPENSSL */
+
+  perf_pop ();
+  return ret;
+}
+
+int
+key_state_write_plaintext_const (struct key_state_ssl *ks_ssl, const uint8_t *data, int len)
+{
+  int ret = 0;
+  perf_push (PERF_BIO_WRITE_PLAINTEXT);
+
+#ifdef USE_OPENSSL
+  ASSERT (NULL != ks_ssl);
+
+  ret = bio_write (ks_ssl->ssl_bio, data, len, "tls_write_plaintext_const");
+#endif /* USE_OPENSSL */
+
+  perf_pop ();
+  return ret;
+}
+
+int
 key_state_read_ciphertext (struct key_state_ssl *ks_ssl, struct buffer *buf,
     int maxlen)
 {
@@ -973,6 +1074,23 @@ key_state_read_ciphertext (struct key_state_ssl *ks_ssl, struct buffer *buf,
   ASSERT (NULL != ks_ssl);
 
   ret = bio_read (ks_ssl->ct_out, buf, maxlen, "tls_read_ciphertext");
+#endif /* USE_OPENSSL */
+
+  perf_pop ();
+  return ret;
+}
+
+int
+key_state_write_ciphertext (struct key_state_ssl *ks_ssl, struct buffer *buf)
+{
+  int ret = 0;
+  perf_push (PERF_BIO_WRITE_CIPHERTEXT);
+
+#ifdef USE_OPENSSL
+  ASSERT (NULL != ks_ssl);
+
+  ret = bio_write (ks_ssl->ct_in, BPTR(buf), BLEN(buf), "tls_write_ciphertext");
+  bio_write_post (ret, buf);
 #endif /* USE_OPENSSL */
 
   perf_pop ();

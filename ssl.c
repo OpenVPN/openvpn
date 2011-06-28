@@ -1824,176 +1824,6 @@ is_hard_reset (int op, int key_method)
   return false;
 }
 
-/*
- * Write to an OpenSSL BIO in non-blocking mode.
- */
-static int
-bio_write (struct tls_multi* multi, BIO *bio, const uint8_t *data, int size, const char *desc)
-{
-  int i;
-  int ret = 0;
-  ASSERT (size >= 0);
-  if (size)
-    {
-      /*
-       * Free the L_TLS lock prior to calling BIO routines
-       * so that foreground thread can still call
-       * tls_pre_decrypt or tls_pre_encrypt,
-       * allowing tunnel packet forwarding to continue.
-       */
-#ifdef BIO_DEBUG
-      bio_debug_data ("write", bio, data, size, desc);
-#endif
-      i = BIO_write (bio, data, size);
-
-      if (i < 0)
-	{
-	  if (BIO_should_retry (bio))
-	    {
-	      ;
-	    }
-	  else
-	    {
-	      msg (D_TLS_ERRORS | M_SSL, "TLS ERROR: BIO write %s error",
-		   desc);
-	      ret = -1;
-	      ERR_clear_error ();
-	    }
-	}
-      else if (i != size)
-	{
-	  msg (D_TLS_ERRORS | M_SSL,
-	       "TLS ERROR: BIO write %s incomplete %d/%d", desc, i, size);
-	  ret = -1;
-	  ERR_clear_error ();
-	}
-      else
-	{			/* successful write */
-	  dmsg (D_HANDSHAKE_VERBOSE, "BIO write %s %d bytes", desc, i);
-	  ret = 1;
-	}
-    }
-  return ret;
-}
-
-/*
- * Inline functions for reading from and writing
- * to BIOs.
- */
-
-static void
-bio_write_post (const int status, struct buffer *buf)
-{
-  if (status == 1) /* success status return from bio_write? */
-    {
-      memset (BPTR (buf), 0, BLEN (buf)); /* erase data just written */
-      buf->len = 0;
-    }
-}
-
-
-/**************************************************************************/
-/** @addtogroup control_tls
- *  @{ */
-
-/** @name Functions for packets to be sent to a remote OpenVPN peer
- *  @{ */
-
-/**
- * Insert a plaintext buffer into the TLS module.
- *
- * After successfully processing the data, the data in \a buf is zeroized,
- * its length set to zero, and a value of \c 1 is returned.
- *
- * @param multi        - The security parameter state for this VPN tunnel.
- * @param ks           - The security parameter state for this %key
- *                       session.
- * @param buf          - The plaintext message to process.
- *
- * @return The return value indicates whether the data was successfully
- *     processed:
- * - \c 1: All the data was processed successfully.
- * - \c 0: The data was not processed, this function should be called
- *   again later to retry.
- * - \c -1: An error occurred.
- */
-static int
-key_state_write_plaintext (struct tls_multi *multi, struct key_state *ks, struct buffer *buf)
-{
-  int ret;
-  perf_push (PERF_BIO_WRITE_PLAINTEXT);
-  ret = bio_write (multi, ks->ks_ssl.ssl_bio, BPTR(buf), BLEN(buf), "tls_write_plaintext");
-  bio_write_post (ret, buf);
-  perf_pop ();
-  return ret;
-}
-
-/**
- * Insert plaintext data into the TLS module.
- *
- * @param multi        - The security parameter state for this VPN tunnel.
- * @param ks           - The security parameter state for this %key
- *                       session.
- * @param data         - A pointer to the data to process.
- * @param len          - The length in bytes of the data to process.
- *
- * @return The return value indicates whether the data was successfully
- *     processed:
- * - \c 1: All the data was processed successfully.
- * - \c 0: The data was not processed, this function should be called
- *   again later to retry.
- * - \c -1: An error occurred.
- */
-static int
-key_state_write_plaintext_const (struct tls_multi *multi, struct key_state *ks, const uint8_t *data, int len)
-{
-  int ret;
-  perf_push (PERF_BIO_WRITE_PLAINTEXT);
-  ret = bio_write (multi, ks->ks_ssl.ssl_bio, data, len, "tls_write_plaintext_const");
-  perf_pop ();
-  return ret;
-}
-
-/** @} name Functions for packets to be sent to a remote OpenVPN peer */
-
-
-/** @name Functions for packets received from a remote OpenVPN peer
- *  @{ */
-
-/**
- * Insert a ciphertext buffer into the TLS module.
- *
- * After successfully processing the data, the data in \a buf is zeroized,
- * its length set to zero, and a value of \c 1 is returned.
- *
- * @param multi        - The security parameter state for this VPN tunnel.
- * @param ks           - The security parameter state for this %key
- *                       session.
- * @param buf          - The ciphertext message to process.
- *
- * @return The return value indicates whether the data was successfully
- *     processed:
- * - \c 1: All the data was processed successfully.
- * - \c 0: The data was not processed, this function should be called
- *   again later to retry.
- * - \c -1: An error occurred.
- */
-static int
-key_state_write_ciphertext (struct tls_multi *multi, struct key_state *ks, struct buffer *buf)
-{
-  int ret;
-  perf_push (PERF_BIO_WRITE_CIPHERTEXT);
-  ret = bio_write (multi, ks->ks_ssl.ct_in, BPTR(buf), BLEN(buf), "tls_write_ciphertext");
-  bio_write_post (ret, buf);
-  perf_pop ();
-  return ret;
-}
-
-/** @} name Functions for packets received from a remote OpenVPN peer */
-
-/** @} addtogroup control_tls */
-
-
 /** @addtogroup control_processor
  *  @{ */
 
@@ -3008,7 +2838,7 @@ flush_payload_buffer (struct tls_multi *multi, struct key_state *ks)
   struct buffer *b;
   while ((b = buffer_list_peek (ks->paybuf)))
     {
-      key_state_write_plaintext_const (multi, ks, b->data, b->len);
+      key_state_write_plaintext_const (&ks->ks_ssl, b->data, b->len);
       buffer_list_pop (ks->paybuf);
     }
 }
@@ -3987,7 +3817,7 @@ tls_process (struct tls_multi *multi,
 	      int status = 0;
 	      if (buf->len)
 		{
-		  status = key_state_write_ciphertext (multi, ks, buf);
+		  status = key_state_write_ciphertext (&ks->ks_ssl, buf);
 		  if (status == -1)
 		    {
 		      msg (D_TLS_ERRORS,
@@ -4087,7 +3917,7 @@ tls_process (struct tls_multi *multi,
 	  buf = &ks->plaintext_write_buf;
 	  if (buf->len)
 	    {
-	      int status = key_state_write_plaintext (multi, ks, buf);
+	      int status = key_state_write_plaintext (&ks->ks_ssl, buf);
 	      if (status == -1)
 		{
 		  msg (D_TLS_ERRORS,
@@ -5031,7 +4861,7 @@ tls_send_payload (struct tls_multi *multi,
 
   if (ks->state >= S_ACTIVE)
     {
-      if (key_state_write_plaintext_const (multi, ks, data, size) == 1)
+      if (key_state_write_plaintext_const (&ks->ks_ssl, data, size) == 1)
 	ret = true;
     }
   else
