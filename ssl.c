@@ -111,68 +111,6 @@ show_tls_performance_stats(void)
 
 #endif
 
-#ifdef BIO_DEBUG
-
-#warning BIO_DEBUG defined
-
-static FILE *biofp;                            /* GLOBAL */
-static bool biofp_toggle;                      /* GLOBAL */
-static time_t biofp_last_open;                 /* GLOBAL */
-static const int biofp_reopen_interval = 600;  /* GLOBAL */
-
-static void
-close_biofp()
-{
-  if (biofp)
-    {
-      ASSERT (!fclose (biofp));
-      biofp = NULL;
-    }
-}
-
-static void
-open_biofp()
-{
-  const time_t current = time (NULL);
-  const pid_t pid = getpid ();
-
-  if (biofp_last_open + biofp_reopen_interval < current)
-    close_biofp();
-  if (!biofp)
-    {
-      char fn[256];
-      openvpn_snprintf(fn, sizeof(fn), "bio/%d-%d.log", pid, biofp_toggle);
-      biofp = fopen (fn, "w");
-      ASSERT (biofp);
-      biofp_last_open = time (NULL);
-      biofp_toggle ^= 1;
-    }
-}
-
-static void
-bio_debug_data (const char *mode, BIO *bio, const uint8_t *buf, int len, const char *desc)
-{
-  struct gc_arena gc = gc_new ();
-  if (len > 0)
-    {
-      open_biofp();
-      fprintf(biofp, "BIO_%s %s time=" time_format " bio=" ptr_format " len=%d data=%s\n",
-	      mode, desc, time (NULL), (ptr_type)bio, len, format_hex (buf, len, 0, &gc));
-      fflush (biofp);
-    }
-  gc_free (&gc);
-}
-
-static void
-bio_debug_oc (const char *mode, BIO *bio)
-{
-  open_biofp();
-  fprintf(biofp, "BIO %s time=" time_format " bio=" ptr_format "\n",
-	  mode, time (NULL), (ptr_type)bio);
-  fflush (biofp);
-}
-
-#endif
 
 /*
  * Max number of bytes we will add
