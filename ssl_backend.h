@@ -294,6 +294,65 @@ void key_state_ssl_init(struct key_state_ssl *ks_ssl,
  */
 void key_state_ssl_free(struct key_state_ssl *ks_ssl);
 
+/**************************************************************************/
+/** @addtogroup control_tls
+ *  @{ */
+
+/** @name Functions for packets to be sent to a remote OpenVPN peer
+ *  @{ */
+
+/**
+ * Extract ciphertext data from the TLS module.
+ *
+ * If the \a buf buffer has a length other than zero, this function does
+ * not perform any action and returns 0.
+ *
+ * @param ks_ssl       - The security parameter state for this %key
+ *                       session.
+ * @param buf          - A buffer in which to store the ciphertext.
+ * @param maxlen       - The maximum number of bytes to extract.
+ *
+ * @return The return value indicates whether the data was successfully
+ *     processed:
+ * - \c 1: Data was extracted successfully.
+ * - \c 0: No data was extracted, this function should be called again
+ *   later to retry.
+ * - \c -1: An error occurred.
+ */
+int key_state_read_ciphertext (struct key_state_ssl *ks_ssl, struct buffer *buf,
+    int maxlen);
+
+/** @} name Functions for packets to be sent to a remote OpenVPN peer */
+
+
+/** @name Functions for packets received from a remote OpenVPN peer
+ *  @{ */
+
+/**
+ * Extract plaintext data from the TLS module.
+ *
+ * If the \a buf buffer has a length other than zero, this function does
+ * not perform any action and returns 0.
+ *
+ * @param ks_ssl       - The security parameter state for this %key
+ *                       session.
+ * @param buf          - A buffer in which to store the plaintext.
+ * @param maxlen       - The maximum number of bytes to extract.
+ *
+ * @return The return value indicates whether the data was successfully
+ *     processed:
+ * - \c 1: Data was extracted successfully.
+ * - \c 0: No data was extracted, this function should be called again
+ *   later to retry.
+ * - \c -1: An error occurred.
+ */
+int key_state_read_plaintext (struct key_state_ssl *ks_ssl, struct buffer *buf,
+    int maxlen);
+
+/** @} name Functions for packets received from a remote OpenVPN peer */
+
+/** @} addtogroup control_tls */
+
 /* **************************************
  *
  * Information functions

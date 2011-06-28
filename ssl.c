@@ -1877,66 +1877,6 @@ bio_write (struct tls_multi* multi, BIO *bio, const uint8_t *data, int size, con
 }
 
 /*
- * Read from an OpenSSL BIO in non-blocking mode.
- */
-static int
-bio_read (struct tls_multi* multi, BIO *bio, struct buffer *buf, int maxlen, const char *desc)
-{
-  int i;
-  int ret = 0;
-  ASSERT (buf->len >= 0);
-  if (buf->len)
-    {
-      ;
-    }
-  else
-    {
-      int len = buf_forward_capacity (buf);
-      if (maxlen < len)
-	len = maxlen;
-
-      /*
-       * BIO_read brackets most of the serious RSA
-       * key negotiation number crunching.
-       */
-      i = BIO_read (bio, BPTR (buf), len);
-
-      VALGRIND_MAKE_READABLE ((void *) &i, sizeof (i));
-
-#ifdef BIO_DEBUG
-      bio_debug_data ("read", bio, BPTR (buf), i, desc);
-#endif
-      if (i < 0)
-	{
-	  if (BIO_should_retry (bio))
-	    {
-	      ;
-	    }
-	  else
-	    {
-	      msg (D_TLS_ERRORS | M_SSL, "TLS_ERROR: BIO read %s error",
-		   desc);
-	      buf->len = 0;
-	      ret = -1;
-	      ERR_clear_error ();
-	    }
-	}
-      else if (!i)
-	{
-	  buf->len = 0;
-	}
-      else
-	{			/* successful read */
-	  dmsg (D_HANDSHAKE_VERBOSE, "BIO read %s %d bytes", desc, i);
-	  buf->len = i;
-	  ret = 1;
-	  VALGRIND_MAKE_READABLE ((void *) BPTR (buf), BLEN (buf));
-	}
-    }
-  return ret;
-}
-
-/*
  * Inline functions for reading from and writing
  * to BIOs.
  */
@@ -2014,36 +1954,6 @@ key_state_write_plaintext_const (struct tls_multi *multi, struct key_state *ks, 
   return ret;
 }
 
-/**
- * Extract ciphertext data from the TLS module.
- *
- * If the \a buf buffer has a length other than zero, this function does
- * not perform any action and returns 0.
- *
- * @param multi        - The security parameter state for this VPN tunnel.
- * @param ks           - The security parameter state for this %key
- *                       session.
- * @param buf          - A buffer in which to store the ciphertext.
- * @param maxlen       - The maximum number of bytes to extract.
- *
- * @return The return value indicates whether the data was successfully
- *     processed:
- * - \c 1: Data was extracted successfully.
- * - \c 0: No data was extracted, this function should be called again
- *   later to retry.
- * - \c -1: An error occurred.
- */
-static int
-key_state_read_ciphertext (struct tls_multi *multi, struct key_state *ks, struct buffer *buf,
-			   int maxlen)
-{
-  int ret;
-  perf_push (PERF_BIO_READ_CIPHERTEXT);
-  ret = bio_read (multi, ks->ks_ssl.ct_out, buf, maxlen, "tls_read_ciphertext");
-  perf_pop ();
-  return ret;
-}
-
 /** @} name Functions for packets to be sent to a remote OpenVPN peer */
 
 
@@ -2075,36 +1985,6 @@ key_state_write_ciphertext (struct tls_multi *multi, struct key_state *ks, struc
   perf_push (PERF_BIO_WRITE_CIPHERTEXT);
   ret = bio_write (multi, ks->ks_ssl.ct_in, BPTR(buf), BLEN(buf), "tls_write_ciphertext");
   bio_write_post (ret, buf);
-  perf_pop ();
-  return ret;
-}
-
-/**
- * Extract plaintext data from the TLS module.
- *
- * If the \a buf buffer has a length other than zero, this function does
- * not perform any action and returns 0.
- *
- * @param multi        - The security parameter state for this VPN tunnel.
- * @param ks           - The security parameter state for this %key
- *                       session.
- * @param buf          - A buffer in which to store the plaintext.
- * @param maxlen       - The maximum number of bytes to extract.
- *
- * @return The return value indicates whether the data was successfully
- *     processed:
- * - \c 1: Data was extracted successfully.
- * - \c 0: No data was extracted, this function should be called again
- *   later to retry.
- * - \c -1: An error occurred.
- */
-static int
-key_state_read_plaintext (struct tls_multi *multi, struct key_state *ks, struct buffer *buf,
-			  int maxlen)
-{
-  int ret;
-  perf_push (PERF_BIO_READ_PLAINTEXT);
-  ret = bio_read (multi, ks->ks_ssl.ssl_bio, buf, maxlen, "tls_read_plaintext");
   perf_pop ();
   return ret;
 }
@@ -4134,7 +4014,7 @@ tls_process (struct tls_multi *multi,
 	      int status;
 
 	      ASSERT (buf_init (buf, 0));
-	      status = key_state_read_plaintext (multi, ks, buf, TLS_CHANNEL_BUF_SIZE);
+	      status = key_state_read_plaintext (&ks->ks_ssl, buf, TLS_CHANNEL_BUF_SIZE);
 	      update_time ();
 	      if (status == -1)
 		{
@@ -4227,7 +4107,7 @@ tls_process (struct tls_multi *multi,
 	      buf = reliable_get_buf_output_sequenced (ks->send_reliable);
 	      if (buf)
 		{
-		  int status = key_state_read_ciphertext (multi, ks, buf, PAYLOAD_SIZE_DYNAMIC (&multi->opt.frame));
+		  int status = key_state_read_ciphertext (&ks->ks_ssl, buf, PAYLOAD_SIZE_DYNAMIC (&multi->opt.frame));
 		  if (status == -1)
 		    {
 		      msg (D_TLS_ERRORS,

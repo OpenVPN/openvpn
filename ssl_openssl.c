@@ -855,6 +855,66 @@ getbio (BIO_METHOD * type, const char *desc)
   return ret;
 }
 
+/*
+ * Read from an OpenSSL BIO in non-blocking mode.
+ */
+static int
+bio_read (BIO *bio, struct buffer *buf, int maxlen, const char *desc)
+{
+  int i;
+  int ret = 0;
+  ASSERT (buf->len >= 0);
+  if (buf->len)
+    {
+      ;
+    }
+  else
+    {
+      int len = buf_forward_capacity (buf);
+      if (maxlen < len)
+	len = maxlen;
+
+      /*
+       * BIO_read brackets most of the serious RSA
+       * key negotiation number crunching.
+       */
+      i = BIO_read (bio, BPTR (buf), len);
+
+      VALGRIND_MAKE_READABLE ((void *) &i, sizeof (i));
+
+#ifdef BIO_DEBUG
+      bio_debug_data ("read", bio, BPTR (buf), i, desc);
+#endif
+      if (i < 0)
+	{
+	  if (BIO_should_retry (bio))
+	    {
+	      ;
+	    }
+	  else
+	    {
+	      msg (D_TLS_ERRORS | M_SSL, "TLS_ERROR: BIO read %s error",
+		   desc);
+	      buf->len = 0;
+	      ret = -1;
+	      ERR_clear_error ();
+	    }
+	}
+      else if (!i)
+	{
+	  buf->len = 0;
+	}
+      else
+	{			/* successful read */
+	  dmsg (D_HANDSHAKE_VERBOSE, "BIO read %s %d bytes", desc, i);
+	  buf->len = i;
+	  ret = 1;
+	  VALGRIND_MAKE_READABLE ((void *) BPTR (buf), BLEN (buf));
+	}
+    }
+  return ret;
+}
+
 void
 key_state_ssl_init(struct key_state_ssl *ks_ssl, const struct tls_root_ctx *ssl_ctx, bool is_server, void *session)
 {
@@ -900,6 +960,40 @@ void key_state_ssl_free(struct key_state_ssl *ks_ssl)
     BIO_free_all(ks_ssl->ssl_bio);
     SSL_free (ks_ssl->ssl);
   }
+}
+
+int
+key_state_read_ciphertext (struct key_state_ssl *ks_ssl, struct buffer *buf,
+    int maxlen)
+{
+  int ret = 0;
+  perf_push (PERF_BIO_READ_CIPHERTEXT);
+
+#ifdef USE_OPENSSL
+  ASSERT (NULL != ks_ssl);
+
+  ret = bio_read (ks_ssl->ct_out, buf, maxlen, "tls_read_ciphertext");
+#endif /* USE_OPENSSL */
+
+  perf_pop ();
+  return ret;
+}
+
+int
+key_state_read_plaintext (struct key_state_ssl *ks_ssl, struct buffer *buf,
+    int maxlen)
+{
+  int ret = 0;
+  perf_push (PERF_BIO_READ_PLAINTEXT);
+
+#ifdef USE_OPENSSL
+  ASSERT (NULL != ks_ssl);
+
+  ret = bio_read (ks_ssl->ssl_bio, buf, maxlen, "tls_read_plaintext");
+#endif /* USE_OPENSSL */
+
+  perf_pop ();
+  return ret;
 }
 
 /* **************************************
