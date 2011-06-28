@@ -521,11 +521,6 @@ bool tls_send_payload (struct tls_multi *multi,
 bool tls_rec_payload (struct tls_multi *multi,
 		      struct buffer *buf);
 
-const char *tls_common_name (const struct tls_multi* multi, const bool null);
-const char *tls_username(const struct tls_multi *multi, const bool null);
-void tls_set_common_name (struct tls_multi *multi, const char *common_name);
-void tls_lock_common_name (struct tls_multi *multi);
-
 #define TLS_AUTHENTICATION_SUCCEEDED  0
 #define TLS_AUTHENTICATION_FAILED     1
 #define TLS_AUTHENTICATION_DEFERRED   2
@@ -591,26 +586,6 @@ tls_client_reason (struct tls_multi *multi)
   return NULL;
 #endif
 }
-
-#ifdef ENABLE_PF
-
-static inline bool
-tls_common_name_hash (const struct tls_multi *multi, const char **cn, uint32_t *cn_hash)
-{
-  if (multi)
-    {
-      const struct tls_session *s = &multi->session[TM_ACTIVE];
-      if (s->common_name && s->common_name[0] != '\0')
-	{
-	  *cn = s->common_name;
-	  *cn_hash = s->common_name_hashval;
-	  return true;
-	}
-    }
-  return false;
-}
-
-#endif
 
 /*
  * protocol_dump() flags

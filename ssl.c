@@ -554,32 +554,6 @@ setenv_untrusted (struct tls_session *session)
   setenv_link_socket_actual (session->opt->es, "untrusted", &session->untrusted_addr, SA_IP_PORT);
 }
 
-static void
-set_common_name (struct tls_session *session, const char *common_name)
-{
-  if (session->common_name)
-    {
-      free (session->common_name);
-      session->common_name = NULL;
-#ifdef ENABLE_PF
-      session->common_name_hashval = 0;
-#endif
-    }
-  if (common_name)
-    {
-      session->common_name = string_alloc (common_name, NULL);
-#ifdef ENABLE_PF
-      {
-	const uint32_t len = (uint32_t) strlen (common_name);
-	if (len)
-	  session->common_name_hashval = hash_func ((const uint8_t*)common_name, len+1, 0);
-	else
-	  session->common_name_hashval = 0;
-      }
-#endif
-    }
-}
-
 #if OPENSSL_VERSION_NUMBER >= 0x00907000L
 
 bool verify_cert_eku (X509 *x509, const char * const expected_oid) {
@@ -1112,35 +1086,6 @@ verify_callback (int preverify_ok, X509_STORE_CTX * ctx)
 
 /** @} name Function for authenticating a new connection from a remote OpenVPN peer */
 
-
-void
-tls_set_common_name (struct tls_multi *multi, const char *common_name)
-{
-  if (multi)
-    set_common_name (&multi->session[TM_ACTIVE], common_name);
-}
-
-const char *
-tls_common_name (const struct tls_multi *multi, const bool null)
-{
-  const char *ret = NULL;
-  if (multi)
-    ret = multi->session[TM_ACTIVE].common_name;
-  if (ret && strlen (ret))
-    return ret;
-  else if (null)
-    return NULL;
-  else
-    return "UNDEF";
-}
-
-void
-tls_lock_common_name (struct tls_multi *multi)
-{
-  const char *cn = multi->session[TM_ACTIVE].common_name;
-  if (cn && !multi->locked_cn)
-    multi->locked_cn = string_alloc (cn, NULL);
-}
 
 static bool
 tls_lock_username (struct tls_multi *multi, const char *username)
@@ -3292,26 +3237,6 @@ key_method_2_read (struct buffer *buf, struct tls_multi *multi, struct tls_sessi
 	  goto error;
 	}
       ks->authenticated = true;
-    }
-
-  /* While it shouldn't really happen, don't allow the common name to be NULL */
-  if (!session->common_name)
-    set_common_name (session, "");
-
-  /* Don't allow the CN to change once it's been locked */
-  if (ks->authenticated && multi->locked_cn)
-    {
-      const char *cn = session->common_name;
-      if (cn && strcmp (cn, multi->locked_cn))
-	{
-	  msg (D_TLS_ERRORS, "TLS Auth Error: TLS object CN attempted to change from '%s' to '%s' -- tunnel disabled",
-	       multi->locked_cn,
-	       cn);
-
-	  /* change the common name back to its original value and disable the tunnel */
-	  set_common_name (session, multi->locked_cn);
-	  tls_deauthenticate (multi);
-	}
     }
 
   /* Perform final authentication checks */

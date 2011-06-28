@@ -73,6 +73,52 @@ void cert_hash_free (struct cert_hash_set *chs);
 void tls_lock_cert_hash_set (struct tls_multi *multi);
 
 /**
+ * Locks the common name field for the given tunnel
+ *
+ * @param multi	The tunnel to lock
+ */
+void tls_lock_common_name (struct tls_multi *multi);
+
+/**
+ * Returns the common name field for the given tunnel
+ *
+ * @param multi	The tunnel to return the common name for
+ * @param null	Whether null may be returned. If not, "UNDEF" will be returned.
+ */
+const char *tls_common_name (const struct tls_multi* multi, const bool null);
+
+void tls_set_common_name (struct tls_multi *multi, const char *common_name);
+
+#ifdef ENABLE_PF
+
+/**
+ * Retrieve the given tunnel's common name and its hash value.
+ *
+ * @param multi		The tunnel to use
+ * @param cn		Common name's string
+ * @param cn_hash	Common name's hash value
+ *
+ * @return true if the common name was set, false otherwise.
+ */
+static inline bool
+tls_common_name_hash (const struct tls_multi *multi, const char **cn, uint32_t *cn_hash)
+{
+  if (multi)
+    {
+      const struct tls_session *s = &multi->session[TM_ACTIVE];
+      if (s->common_name && s->common_name[0] != '\0')
+	{
+	  *cn = s->common_name;
+	  *cn_hash = s->common_name_hashval;
+	  return true;
+	}
+    }
+  return false;
+}
+
+#endif
+
+/**
  * Perform final authentication checks, including locking of the cn, the allowed
  * certificate hashes, and whether a client config entry exists in the
  * client config directory.

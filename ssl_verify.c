@@ -49,6 +49,54 @@ tls_deauthenticate (struct tls_multi *multi)
     }
 }
 
+void
+set_common_name (struct tls_session *session, const char *common_name)
+{
+  if (session->common_name)
+    {
+      free (session->common_name);
+      session->common_name = NULL;
+#ifdef ENABLE_PF
+      session->common_name_hashval = 0;
+#endif
+    }
+  if (common_name)
+    {
+      session->common_name = string_alloc (common_name, NULL);
+#ifdef ENABLE_PF
+      {
+	const uint32_t len = (uint32_t) strlen (common_name);
+	if (len)
+	  session->common_name_hashval = hash_func ((const uint8_t*)common_name, len+1, 0);
+	else
+	  session->common_name_hashval = 0;
+      }
+#endif
+    }
+}
+
+const char *
+tls_common_name (const struct tls_multi *multi, const bool null)
+{
+  const char *ret = NULL;
+  if (multi)
+    ret = multi->session[TM_ACTIVE].common_name;
+  if (ret && strlen (ret))
+    return ret;
+  else if (null)
+    return NULL;
+  else
+    return "UNDEF";
+}
+
+void
+tls_lock_common_name (struct tls_multi *multi)
+{
+  const char *cn = multi->session[TM_ACTIVE].common_name;
+  if (cn && !multi->locked_cn)
+    multi->locked_cn = string_alloc (cn, NULL);
+}
+
 
 void
 cert_hash_remember (struct tls_session *session, const int error_depth, const unsigned char *sha1_hash)
@@ -156,6 +204,25 @@ tls_lock_cert_hash_set (struct tls_multi *multi)
 void
 verify_final_auth_checks(struct tls_multi *multi, struct tls_session *session)
 {
+  /* While it shouldn't really happen, don't allow the common name to be NULL */
+  if (!session->common_name)
+    set_common_name (session, "");
+
+  /* Don't allow the CN to change once it's been locked */
+  if (multi->locked_cn)
+    {
+      const char *cn = session->common_name;
+      if (cn && strcmp (cn, multi->locked_cn))
+	{
+	  msg (D_TLS_ERRORS, "TLS Auth Error: TLS object CN attempted to change from '%s' to '%s' -- tunnel disabled",
+	       multi->locked_cn,
+	       cn);
+
+	  /* change the common name back to its original value and disable the tunnel */
+	  set_common_name (session, multi->locked_cn);
+	  tls_deauthenticate (multi);
+	}
+    }
 
   /* Don't allow the cert hashes to change once they have been locked */
   if (multi->locked_cert_hash_set)
