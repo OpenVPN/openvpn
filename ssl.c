@@ -2771,21 +2771,16 @@ key_source2_read (struct key_source2 *k2,
 }
 
 static void
-flush_payload_buffer (struct tls_multi *multi, struct key_state *ks)
+flush_payload_buffer (struct key_state *ks)
 {
   struct buffer *b;
+
   while ((b = buffer_list_peek (ks->paybuf)))
     {
       key_state_write_plaintext_const (&ks->ks_ssl, b->data, b->len);
       buffer_list_pop (ks->paybuf);
     }
 }
-
-/*
- * Macros for key_state_soft_reset & tls_process
- */
-#define ks      (&session->key[KS_PRIMARY])	/* primary key */
-#define ks_lame (&session->key[KS_LAME_DUCK])	/* retiring key */
 
 /* true if no in/out acknowledgements pending */
 #define FULL_SYNC \
@@ -2798,6 +2793,9 @@ flush_payload_buffer (struct tls_multi *multi, struct key_state *ks)
 static void
 key_state_soft_reset (struct tls_session *session)
 {
+  struct key_state *ks = &session->key[KS_PRIMARY]; 	   /* primary key */
+  struct key_state *ks_lame = &session->key[KS_LAME_DUCK]; /* retiring key */
+
   ks->must_die = now + session->opt->transition_window; /* remaining lifetime of old key */
   key_state_free (ks_lame, false);
   *ks_lame = *ks;
@@ -2953,6 +2951,7 @@ static int
 verify_user_pass_plugin (struct tls_session *session, const struct user_pass *up, const char *raw_username)
 {
   int retval = OPENVPN_PLUGIN_FUNC_ERROR;
+  struct key_state *ks = &session->key[KS_PRIMARY]; 	   /* primary key */
 
   /* Is username defined? */
   if ((session->opt->ssl_flags & SSLF_AUTH_USER_PASS_OPTIONAL) || strlen (up->username))
@@ -3005,6 +3004,7 @@ static int
 verify_user_pass_management (struct tls_session *session, const struct user_pass *up, const char *raw_username)
 {
   int retval = KMDA_ERROR;
+  struct key_state *ks = &session->key[KS_PRIMARY]; 	   /* primary key */
 
   /* Is username defined? */
   if ((session->opt->ssl_flags & SSLF_AUTH_USER_PASS_OPTIONAL) || strlen (up->username))
@@ -3045,6 +3045,8 @@ static bool
 key_method_1_write (struct buffer *buf, struct tls_session *session)
 {
   struct key key;
+  struct key_state *ks = &session->key[KS_PRIMARY]; 	   /* primary key */
+  struct key_state *ks_lame = &session->key[KS_LAME_DUCK]; /* retiring key */
 
   ASSERT (session->opt->key_method == 1);
   ASSERT (buf_init (buf, 0));
@@ -3155,6 +3157,9 @@ push_peer_info(struct buffer *buf, struct tls_session *session)
 static bool
 key_method_2_write (struct buffer *buf, struct tls_session *session)
 {
+  struct key_state *ks = &session->key[KS_PRIMARY]; 	   /* primary key */
+  struct key_state *ks_lame = &session->key[KS_LAME_DUCK]; /* retiring key */
+
   ASSERT (session->opt->key_method == 2);
   ASSERT (buf_init (buf, 0));
 
@@ -3236,6 +3241,8 @@ key_method_1_read (struct buffer *buf, struct tls_session *session)
 {
   int status;
   struct key key;
+  struct key_state *ks = &session->key[KS_PRIMARY]; 	   /* primary key */
+  struct key_state *ks_lame = &session->key[KS_LAME_DUCK]; /* retiring key */
 
   ASSERT (session->opt->key_method == 1);
 
@@ -3293,6 +3300,8 @@ key_method_1_read (struct buffer *buf, struct tls_session *session)
 static bool
 key_method_2_read (struct buffer *buf, struct tls_multi *multi, struct tls_session *session)
 {
+  struct key_state *ks = &session->key[KS_PRIMARY]; 	   /* primary key */
+  struct key_state *ks_lame = &session->key[KS_LAME_DUCK]; /* retiring key */
   struct gc_arena gc = gc_new ();
   int key_method_flags;
   char *options;
@@ -3576,6 +3585,8 @@ tls_process (struct tls_multi *multi,
   struct buffer *buf;
   bool state_change = false;
   bool active = false;
+  struct key_state *ks = &session->key[KS_PRIMARY]; 	   /* primary key */
+  struct key_state *ks_lame = &session->key[KS_LAME_DUCK]; /* retiring key */
 
   /* Make sure we were initialized and that we're not in an error state */
   ASSERT (ks->state != S_UNDEF);
@@ -3702,8 +3713,8 @@ tls_process (struct tls_multi *multi,
 		  /* Set outgoing address for data channel packets */
 		  link_socket_set_outgoing_addr (NULL, to_link_socket_info, &ks->remote_addr, session->common_name, session->opt->es);
 
-		  /* Flush any payload packets that were buffered before our state transitioned to S_ACTIVE */
-		  flush_payload_buffer (multi, ks);
+                  /* Flush any payload packets that were buffered before our state transitioned to S_ACTIVE */
+                  flush_payload_buffer (ks);
 
 #ifdef MEASURE_TLS_HANDSHAKE_STATS
 		  show_tls_performance_stats();
@@ -3951,9 +3962,6 @@ error:
   gc_free (&gc);
   return false;
 }
-
-#undef ks
-#undef ks_lame
 
 /*
  * Called by the top-level event loop.
