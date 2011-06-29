@@ -302,48 +302,6 @@ setenv_untrusted (struct tls_session *session)
   setenv_link_socket_actual (session->opt->es, "untrusted", &session->untrusted_addr, SA_IP_PORT);
 }
 
-#if OPENSSL_VERSION_NUMBER >= 0x00907000L
-
-bool verify_cert_eku (X509 *x509, const char * const expected_oid) {
-
-	EXTENDED_KEY_USAGE *eku = NULL;
-	bool fFound = false;
-
-	if ((eku = (EXTENDED_KEY_USAGE *)X509_get_ext_d2i (x509, NID_ext_key_usage, NULL, NULL)) == NULL) {
-		msg (D_HANDSHAKE, "Certificate does not have extended key usage extension");
-	}
-	else {
-		int i;
-
-		msg (D_HANDSHAKE, "Validating certificate extended key usage");
-		for(i = 0; !fFound && i < sk_ASN1_OBJECT_num (eku); i++) {
-			ASN1_OBJECT *oid = sk_ASN1_OBJECT_value (eku, i);
-			char szOid[1024];
-
-			if (!fFound && OBJ_obj2txt (szOid, sizeof (szOid), oid, 0) != -1) {
-				msg (D_HANDSHAKE, "++ Certificate has EKU (str) %s, expects %s", szOid, expected_oid);
-				if (!strcmp (expected_oid, szOid)) {
-					fFound = true;
-				}
-			}
-			if (!fFound && OBJ_obj2txt (szOid, sizeof (szOid), oid, 1) != -1) {
-				msg (D_HANDSHAKE, "++ Certificate has EKU (oid) %s, expects %s", szOid, expected_oid);
-				if (!strcmp (expected_oid, szOid)) {
-					fFound = true;
-				}
-			}
-		}
-	}
-
-	if (eku != NULL) {
-		sk_ASN1_OBJECT_pop_free (eku, ASN1_OBJECT_free);
-	}
-
-	return fFound;
-}
-
-#endif	/* OPENSSL_VERSION_NUMBER */
-
 static void
 string_mod_sslname (char *str, const unsigned int restrictive_flags, const unsigned int ssl_flags)
 {
@@ -472,24 +430,6 @@ verify_cert(struct tls_session *session, x509_cert_t *cert, int cert_depth)
   /* If this is the peer's own certificate, verify it */
   if (cert_depth == 0 && verify_peer_cert(opt, cert, subject, common_name))
     goto err;
-
-#if OPENSSL_VERSION_NUMBER >= 0x00907000L
-
-  /* verify certificate eku */
-  if (opt->remote_cert_eku != NULL && cert_depth == 0)
-    {
-      if (verify_cert_eku (cert, opt->remote_cert_eku))
-        {
-	  msg (D_HANDSHAKE, "VERIFY EKU OK");
-	}
-      else
-	{
-	  msg (D_HANDSHAKE, "VERIFY EKU ERROR");
-          goto err;		/* Reject connection */
-	}
-    }
-
-#endif	/* OPENSSL_VERSION_NUMBER */
 
   /* verify X509 name or common name against --tls-remote */
   if (opt->verify_x509name && strlen (opt->verify_x509name) > 0 && cert_depth == 0)

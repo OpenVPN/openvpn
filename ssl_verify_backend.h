@@ -167,4 +167,19 @@ bool verify_nsCertType(const x509_cert_t *cert, const int usage);
 bool verify_cert_ku (x509_cert_t *x509, const unsigned * const expected_ku,
     int expected_len);
 
+/*
+ * Verify X.509 extended key usage extension field.
+ *
+ * @param cert		Certificate to check.
+ * @param expected_oid	String representation of the expected Object ID. May be
+ * 			either the string representation of the numeric OID
+ * 			(e.g. \c "1.2.3.4", or the descriptive string matching
+ * 			the OID.
+ *
+ * @return 		\c true if one of the expected OID matches one of the
+ * 			extended key usage fields, \c false if extended key
+ * 			usage is not enabled, or the values do not match.
+ */
+bool verify_cert_eku (x509_cert_t *x509, const char * const expected_oid);
+
 #endif /* SSL_VERIFY_BACKEND_H_ */

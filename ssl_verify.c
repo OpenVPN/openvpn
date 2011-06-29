@@ -367,6 +367,19 @@ verify_peer_cert(const struct tls_options *opt, x509_cert_t *peer_cert,
 	}
     }
 
+  /* verify certificate eku */
+  if (opt->remote_cert_eku != NULL)
+    {
+      if (verify_cert_eku (peer_cert, opt->remote_cert_eku))
+        {
+	  msg (D_HANDSHAKE, "VERIFY EKU OK");
+	}
+      else
+	{
+	  msg (D_HANDSHAKE, "VERIFY EKU ERROR");
+          return 1;		/* Reject connection */
+	}
+    }
 
 #endif /* OPENSSL_VERSION_NUMBER */
   return 0;

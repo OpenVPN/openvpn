@@ -445,4 +445,48 @@ verify_cert_ku (X509 *x509, const unsigned * const expected_ku,
   return fFound;
 }
 
+bool
+verify_cert_eku (X509 *x509, const char * const expected_oid)
+{
+  EXTENDED_KEY_USAGE *eku = NULL;
+  bool fFound = false;
+
+  if ((eku = (EXTENDED_KEY_USAGE *) X509_get_ext_d2i (x509, NID_ext_key_usage,
+      NULL, NULL)) == NULL)
+    {
+      msg (D_HANDSHAKE, "Certificate does not have extended key usage extension");
+    }
+  else
+    {
+      int i;
+
+      msg (D_HANDSHAKE, "Validating certificate extended key usage");
+      for (i = 0; !fFound && i < sk_ASN1_OBJECT_num (eku); i++)
+	{
+	  ASN1_OBJECT *oid = sk_ASN1_OBJECT_value (eku, i);
+	  char szOid[1024];
+
+	  if (!fFound && OBJ_obj2txt (szOid, sizeof(szOid), oid, 0) != -1)
+	    {
+	      msg (D_HANDSHAKE, "++ Certificate has EKU (str) %s, expects %s",
+		  szOid, expected_oid);
+	      if (!strcmp (expected_oid, szOid))
+		fFound = true;
+	    }
+	  if (!fFound && OBJ_obj2txt (szOid, sizeof(szOid), oid, 1) != -1)
+	    {
+	      msg (D_HANDSHAKE, "++ Certificate has EKU (oid) %s, expects %s",
+		  szOid, expected_oid);
+	      if (!strcmp (expected_oid, szOid))
+		fFound = true;
+	    }
+	}
+    }
+
+  if (eku != NULL)
+    sk_ASN1_OBJECT_pop_free (eku, ASN1_OBJECT_free);
+
+  return fFound;
+}
+
 #endif /* OPENSSL_VERSION_NUMBER */
