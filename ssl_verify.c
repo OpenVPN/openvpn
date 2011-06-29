@@ -382,6 +382,21 @@ verify_peer_cert(const struct tls_options *opt, x509_cert_t *peer_cert,
     }
 
 #endif /* OPENSSL_VERSION_NUMBER */
+
+  /* verify X509 name or common name against --tls-remote */
+  if (opt->verify_x509name && strlen (opt->verify_x509name) > 0)
+    {
+      if (strcmp (opt->verify_x509name, subject) == 0
+	  || strncmp (opt->verify_x509name, common_name, strlen (opt->verify_x509name)) == 0)
+	msg (D_HANDSHAKE, "VERIFY X509NAME OK: %s", subject);
+      else
+	{
+	  msg (D_HANDSHAKE, "VERIFY X509NAME ERROR: %s, must be %s",
+	       subject, opt->verify_x509name);
+	  return 1;		/* Reject connection */
+	}
+    }
+
   return 0;
 }
 

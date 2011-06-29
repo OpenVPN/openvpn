@@ -431,20 +431,6 @@ verify_cert(struct tls_session *session, x509_cert_t *cert, int cert_depth)
   if (cert_depth == 0 && verify_peer_cert(opt, cert, subject, common_name))
     goto err;
 
-  /* verify X509 name or common name against --tls-remote */
-  if (opt->verify_x509name && strlen (opt->verify_x509name) > 0 && cert_depth == 0)
-    {
-      if (strcmp (opt->verify_x509name, subject) == 0
-	  || strncmp (opt->verify_x509name, common_name, strlen (opt->verify_x509name)) == 0)
-	msg (D_HANDSHAKE, "VERIFY X509NAME OK: %s", subject);
-      else
-	{
-	  msg (D_HANDSHAKE, "VERIFY X509NAME ERROR: %s, must be %s",
-	       subject, opt->verify_x509name);
-	  goto err;		/* Reject connection */
-	}
-    }
-
   /* call --tls-verify plug-in(s) */
   if (plugin_defined (opt->plugins, OPENVPN_PLUGIN_TLS_VERIFY))
     {
