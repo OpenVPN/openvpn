@@ -32,4 +32,12 @@
 
 #include <openssl/ssl.h>
 
+/**
+ * Allocate space in SSL objects in which to store a struct tls_session
+ * pointer back to parent.
+ */
+extern int mydata_index; /* GLOBAL */
+
+void openssl_set_mydata_index (void);
+
 #endif /* SSL_OPENSSL_H_ */

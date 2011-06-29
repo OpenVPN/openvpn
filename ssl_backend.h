@@ -43,4 +43,25 @@
  * Functions implemented in ssl.c for use by the backend SSL library
  *
  */
+/*
+ *
+ * Functions used in ssl.c which must be implemented by the backend SSL library
+ *
+ */
+
+/**
+ * Perform any static initialisation necessary by the library.
+ * Called on OpenVPN initialisation
+ */
+void tls_init_lib();
+
+/**
+ * Free any global SSL library-specific data structures.
+ */
+void tls_free_lib();
+/**
+ * Clear the underlying SSL library's error state.
+ */
+void tls_clear_error();
+
 #endif /* SSL_BACKEND_H_ */

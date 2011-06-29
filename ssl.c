@@ -6,6 +6,7 @@
  *             packet compression.
  *
  *  Copyright (C) 2002-2010 OpenVPN Technologies, Inc. <sales@openvpn.net>
+ *  Copyright (C) 2010 Fox Crypto B.V. <openvpn@fox-it.com>
  *
  *  Additions for eurephia plugin done by:
  *         David Sommerseth <dazo@users.sourceforge.net> Copyright (C) 2008-2009
@@ -26,6 +27,10 @@
  *  59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
+/**
+ * @file Control Channel SSL/Data channel negotiation Module
+ */
+
 /*
  * The routines in this file deal with dynamically negotiating
  * the data channel HMAC and cipher keys through a TLS session.
@@ -38,7 +43,6 @@
 
 #if defined(USE_CRYPTO) && defined(USE_SSL)
 
-#include "ssl.h"
 #include "error.h"
 #include "common.h"
 #include "integer.h"
@@ -53,6 +57,10 @@
 #include "list.h"
 #include "base64.h"
 #include "route.h"
+
+#include "ssl.h"
+#include "ssl_verify.h"
+#include "ssl_backend.h"
 
 #ifdef WIN32
 #include "cryptoapi.h"
@@ -204,55 +212,20 @@ tls_init_control_channel_frame_parameters(const struct frame *data_channel_frame
   frame_set_mtu_dynamic (frame, 0, SET_MTU_TUN);
 }
 
-/*
- * Allocate space in SSL objects
- * in which to store a struct tls_session
- * pointer back to parent.
- */
-
-static int mydata_index; /* GLOBAL */
-
-static void
-ssl_set_mydata_index ()
-{
-  mydata_index = SSL_get_ex_new_index (0, "struct session *", NULL, NULL, NULL);
-  ASSERT (mydata_index >= 0);
-}
-
 void
 init_ssl_lib ()
 {
-  SSL_library_init ();
-  SSL_load_error_strings ();
-  OpenSSL_add_all_algorithms ();
+  tls_init_lib ();
 
-  crypto_init_lib();
-
-  /*
-   * If you build the OpenSSL library and OpenVPN with
-   * CRYPTO_MDEBUG, you will get a listing of OpenSSL
-   * memory leaks on program termination.
-   */
-#ifdef CRYPTO_MDEBUG
-  CRYPTO_mem_ctrl(CRYPTO_MEM_CHECK_ON);
-#endif
-
-  ssl_set_mydata_index ();
+  crypto_init_lib ();
 }
 
 void
 free_ssl_lib ()
 {
-#ifdef CRYPTO_MDEBUG
-  FILE* fp = fopen ("sdlog", "w");
-  ASSERT (fp);
-  CRYPTO_mem_leaks_fp (fp);
-  fclose (fp);
-#endif
-
   crypto_uninit_lib ();
-  EVP_cleanup ();
-  ERR_free_strings ();
+
+  tls_free_lib();
 }
 
 /*
@@ -5151,7 +5124,7 @@ tls_process (struct tls_multi *multi,
   }
 
 error:
-  ERR_clear_error ();
+  tls_clear_error();
   ks->state = S_ERROR;
   msg (D_TLS_ERRORS, "TLS Error: TLS handshake failed");
   INCR_ERROR;
@@ -5184,7 +5157,7 @@ tls_multi_process (struct tls_multi *multi,
 
   perf_push (PERF_TLS_MULTI_PROCESS);
 
-  ERR_clear_error ();
+  tls_clear_error ();
 
   /*
    * Process each session object having state of S_INITIAL or greater,
@@ -5791,7 +5764,7 @@ tls_pre_decrypt (struct tls_multi *multi,
  error:
   ++multi->n_soft_errors;
  error_lite:
-  ERR_clear_error ();
+  tls_clear_error();
   goto done;
 }
 
@@ -5902,7 +5875,7 @@ tls_pre_decrypt_lite (const struct tls_auth_standalone *tas,
   return ret;
 
  error:
-  ERR_clear_error ();
+  tls_clear_error();
   gc_free (&gc);
   return ret;
 }
@@ -5997,7 +5970,7 @@ tls_send_payload (struct tls_multi *multi,
   struct key_state *ks;
   bool ret = false;
 
-  ERR_clear_error ();
+  tls_clear_error();
 
   ASSERT (multi);
 
@@ -6017,7 +5990,8 @@ tls_send_payload (struct tls_multi *multi,
       ret = true;
     }
 
-  ERR_clear_error ();
+
+  tls_clear_error();
 
   return ret;
 }
@@ -6030,7 +6004,7 @@ tls_rec_payload (struct tls_multi *multi,
   struct key_state *ks;
   bool ret = false;
 
-  ERR_clear_error ();
+  tls_clear_error();
 
   ASSERT (multi);
 
@@ -6044,7 +6018,7 @@ tls_rec_payload (struct tls_multi *multi,
       ks->plaintext_read_buf.len = 0;
     }
 
-  ERR_clear_error ();
+  tls_clear_error();
 
   return ret;
 }

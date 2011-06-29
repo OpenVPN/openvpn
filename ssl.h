@@ -6,6 +6,7 @@
  *             packet compression.
  *
  *  Copyright (C) 2002-2010 OpenVPN Technologies, Inc. <sales@openvpn.net>
+ *  Copyright (C) 2010 Fox Crypto B.V. <openvpn@fox-it.com>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -22,11 +23,9 @@
  *  59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-
 /**
- * @file header file
+ * @file Control Channel SSL/Data channel negotiation module
  */
-
 
 #ifndef OPENVPN_SSL_H
 #define OPENVPN_SSL_H
@@ -51,6 +50,9 @@
 #include "options.h"
 #include "plugin.h"
 
+#include "ssl_common.h"
+#include "ssl_verify.h"
+#include "ssl_backend.h"
 
 /* Used in the TLS PRF function */
 #define KEY_EXPANSION_ID "OpenVPN"
@@ -231,6 +233,15 @@ struct cert_hash {
 struct cert_hash_set {
   struct cert_hash *ch[MAX_CERT_DEPTH];
 };
+/*
+ * Prepare the SSL library for use
+ */
+void init_ssl_lib (void);
+
+/*
+ * Free any internal state that the SSL library might have
+ */
+void free_ssl_lib (void);
 
 /**
  * Container for one half of random material to be used in %key method 2

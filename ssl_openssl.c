@@ -42,3 +42,35 @@
 #include <openssl/pkcs12.h>
 #include <openssl/x509.h>
 #include <openssl/crypto.h>
+
+/*
+ * Allocate space in SSL objects in which to store a struct tls_session
+ * pointer back to parent.
+ *
+ */
+
+int mydata_index; /* GLOBAL */
+
+void
+tls_init_lib()
+{
+  SSL_library_init();
+  SSL_load_error_strings();
+  OpenSSL_add_all_algorithms ();
+
+  mydata_index = SSL_get_ex_new_index(0, "struct session *", NULL, NULL, NULL);
+  ASSERT (mydata_index >= 0);
+}
+
+void
+tls_free_lib()
+{
+  EVP_cleanup();
+  ERR_free_strings();
+}
+
+void
+tls_clear_error()
+{
+  ERR_clear_error ();
+}
