@@ -182,6 +182,16 @@ tls_ctx_set_options (struct tls_root_ctx *ctx, unsigned int ssl_flags)
 }
 
 void
+tls_ctx_restrict_ciphers(struct tls_root_ctx *ctx, const char *ciphers)
+{
+  ASSERT(NULL != ctx);
+
+  /* Fox-IT hardening: restrict allowed TLS ciphers. */
+  if(!SSL_CTX_set_cipher_list(ctx->ctx, ciphers))
+    msg(M_SSLERR, "Failed to set restricted TLS cipher list: %s", ciphers);
+}
+
+void
 tls_ctx_load_dh_params (struct tls_root_ctx *ctx, const char *dh_file
 #if ENABLE_INLINE_FILES
     , const char *dh_file_inline

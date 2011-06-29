@@ -1609,8 +1609,6 @@ tls_deauthenticate (struct tls_multi *multi)
 void
 init_ssl (const struct options *options, struct tls_root_ctx *new_ctx)
 {
-  SSL_CTX *ctx = NULL;
-
   ASSERT(NULL != new_ctx);
 
   tls_clear_error();
@@ -1673,8 +1671,6 @@ init_ssl (const struct options *options, struct tls_root_ctx *new_ctx)
 	}
     }
 
-  ctx = new_ctx->ctx;
-
   if (options->ca_file || options->ca_path)
     {
       tls_ctx_load_ca(new_ctx, options->ca_file, options->ca_file_inline,
@@ -1702,8 +1698,7 @@ init_ssl (const struct options *options, struct tls_root_ctx *new_ctx)
   /* Allowable ciphers */
   if (options->cipher_list)
     {
-      if (!SSL_CTX_set_cipher_list (ctx, options->cipher_list))
-	msg (M_SSLERR, "Problem with cipher list: %s", options->cipher_list);
+      tls_ctx_restrict_ciphers(new_ctx, options->cipher_list);
     }
 
   tls_clear_error ();

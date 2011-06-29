@@ -117,6 +117,14 @@ bool tls_ctx_initialised(struct tls_root_ctx *ctx);
 void tls_ctx_set_options (struct tls_root_ctx *ctx, unsigned int ssl_flags);
 
 /**
+ * Restrict the list of ciphers that can be used within the TLS context.
+ *
+ * @param ctx		TLS context to restrict
+ * @param ciphers	String containing : delimited cipher names.
+ */
+void tls_ctx_restrict_ciphers(struct tls_root_ctx *ctx, const char *ciphers);
+
+/**
  * Load Diffie Hellman Parameters, and load them into the library-specific
  * TLS context.
  *
