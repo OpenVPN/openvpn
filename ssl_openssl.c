@@ -343,6 +343,101 @@ tls_ctx_load_cryptoapi(struct tls_root_ctx *ctx, const char *cryptoapi_cert)
 }
 #endif /* WIN32 */
 
+/*
+ * Based on SSL_CTX_use_certificate_file, return an x509 object for the
+ * given file.
+ */
+static int
+tls_ctx_read_certificate_file(SSL_CTX *ctx, const char *file, X509 **x509)
+{
+  int j;
+  BIO *in;
+  int ret=0;
+  X509 *x=NULL;
+
+  in=BIO_new(BIO_s_file_internal());
+  if (in == NULL)
+    {
+      SSLerr(SSL_F_SSL_CTX_USE_CERTIFICATE_FILE, ERR_R_BUF_LIB);
+      goto end;
+    }
+
+  if (BIO_read_filename(in,file) <= 0)
+    {
+      SSLerr(SSL_F_SSL_CTX_USE_CERTIFICATE_FILE, ERR_R_SYS_LIB);
+      goto end;
+    }
+
+  x = PEM_read_bio_X509(in, NULL, ctx->default_passwd_callback,
+    ctx->default_passwd_callback_userdata);
+  if (x == NULL)
+    {
+      SSLerr(SSL_F_SSL_CTX_USE_CERTIFICATE_FILE, ERR_R_PEM_LIB);
+      goto end;
+    }
+
+ end:
+  if (in != NULL)
+    BIO_free(in);
+  if (x509)
+    *x509 = x;
+  else if (x)
+    X509_free (x);
+  return(ret);
+}
+
+void
+tls_ctx_load_cert_file (struct tls_root_ctx *ctx, const char *cert_file,
+#if ENABLE_INLINE_FILES
+    const char *cert_file_inline,
+#endif
+    X509 **x509
+    )
+{
+  ASSERT(NULL != ctx);
+  if (NULL != x509)
+    ASSERT(NULL == *x509);
+
+#if ENABLE_INLINE_FILES
+  if (!strcmp (cert_file, INLINE_FILE_TAG) && cert_file_inline)
+    {
+      BIO *in = NULL;
+      X509 *x = NULL;
+      int ret = 0;
+
+      in = BIO_new_mem_buf ((char *)cert_file_inline, -1);
+      if (in)
+	{
+	  x = PEM_read_bio_X509 (in,
+			     NULL,
+			     ctx->ctx->default_passwd_callback,
+			     ctx->ctx->default_passwd_callback_userdata);
+	  BIO_free (in);
+	  if (x) {
+	    ret = SSL_CTX_use_certificate(ctx->ctx, x);
+	    if (x509)
+	      *x509 = x;
+	    else
+	      X509_free (x);
+	  }
+	}
+
+      if (!ret)
+        msg (M_SSLERR, "Cannot load inline certificate file");
+    }
+  else
+#endif /* ENABLE_INLINE_FILES */
+    {
+      if (!SSL_CTX_use_certificate_chain_file (ctx->ctx, cert_file))
+	msg (M_SSLERR, "Cannot load certificate file %s", cert_file);
+      if (x509)
+	{
+	  if (!tls_ctx_read_certificate_file(ctx->ctx, cert_file, x509))
+	    msg (M_SSLERR, "Cannot load certificate file %s", cert_file);
+	}
+    }
+}
+
 void
 show_available_tls_ciphers ()
 {

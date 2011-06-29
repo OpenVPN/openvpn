@@ -1734,63 +1734,6 @@ use_external_private_key (SSL_CTX *ssl_ctx, X509 *cert)
   return 0;
 }
 
-/*
- * Basically a clone of SSL_CTX_use_certificate_file, but also return
- * the x509 object.
- */
-static int
-use_certificate_file(SSL_CTX *ctx, const char *file, int type, X509 **x509)
-{
-  int j;
-  BIO *in;
-  int ret=0;
-  X509 *x=NULL;
-
-  in=BIO_new(BIO_s_file_internal());
-  if (in == NULL)
-    {
-      SSLerr(SSL_F_SSL_CTX_USE_CERTIFICATE_FILE,ERR_R_BUF_LIB);
-      goto end;
-    }
-
-  if (BIO_read_filename(in,file) <= 0)
-    {
-      SSLerr(SSL_F_SSL_CTX_USE_CERTIFICATE_FILE,ERR_R_SYS_LIB);
-      goto end;
-    }
-  if (type == SSL_FILETYPE_ASN1)
-    {
-      j=ERR_R_ASN1_LIB;
-      x=d2i_X509_bio(in,NULL);
-    }
-  else if (type == SSL_FILETYPE_PEM)
-    {
-      j=ERR_R_PEM_LIB;
-      x=PEM_read_bio_X509(in,NULL,ctx->default_passwd_callback,ctx->default_passwd_callback_userdata);
-    }
-  else
-    {
-      SSLerr(SSL_F_SSL_CTX_USE_CERTIFICATE_FILE,SSL_R_BAD_SSL_FILETYPE);
-      goto end;
-    }
-
-  if (x == NULL)
-    {
-      SSLerr(SSL_F_SSL_CTX_USE_CERTIFICATE_FILE,j);
-      goto end;
-    }
-
-  ret=SSL_CTX_use_certificate(ctx,x);
- end:
-  if (in != NULL)
-    BIO_free(in);
-  if (x509)
-    *x509 = x;
-  else if (x)
-    X509_free (x);
-  return(ret);
-}
-
 #endif
 
 #if ENABLE_INLINE_FILES
@@ -1900,36 +1843,6 @@ use_inline_load_client_CA_file (SSL_CTX *ctx, const char *ca_string)
 }
 
 static int
-use_inline_certificate_file (SSL_CTX *ctx, const char *cert_string, X509 **x509)
-{
-  BIO *in = NULL;
-  X509 *x = NULL;
-  int ret = 0;
-
-  in = BIO_new_mem_buf ((char *)cert_string, -1);
-  if (!in)
-    goto end;
-
-  x = PEM_read_bio_X509 (in,
-			 NULL,
-			 ctx->default_passwd_callback,
-			 ctx->default_passwd_callback_userdata);
-  if (!x)
-    goto end;
-
-  ret = SSL_CTX_use_certificate(ctx, x);
-
- end:
-  if (in)
-    BIO_free (in);
-  if (x509)
-    *x509 = x;
-  else if (x)
-    X509_free (x);
-  return ret;
-}
-
-static int
 use_inline_PrivateKey_file (SSL_CTX *ctx, const char *key_string)
 {
   BIO *in = NULL;
@@ -1967,7 +1880,6 @@ void
 init_ssl (const struct options *options, struct tls_root_ctx *new_ctx)
 {
   SSL_CTX *ctx = NULL;
-  bool using_cert_file = false;
 
   ASSERT(NULL != new_ctx);
 
@@ -2006,43 +1918,29 @@ init_ssl (const struct options *options, struct tls_root_ctx *new_ctx)
       tls_ctx_load_cryptoapi(new_ctx, options->cryptoapi_cert);
     }
 #endif
+#ifdef MANAGMENT_EXTERNAL_KEY
+  else if (options->management_flags & MF_EXTERNAL_KEY)
+    {
+      X509 *my_cert = NULL;
+
+      if (options->cert_file)
+        {
+          tls_ctx_load_cert_file(new_ctx, options->cert_file, options->cert_file_inline, &my_cert);
+        }
+      ASSERT (my_cert);
+      if (!use_external_private_key(new_ctx->ctx, my_cert))
+	msg (M_SSLERR, "Cannot enable SSL external private key capability");
+      X509_free(my_cert);
+    }
+#endif
   else
+    {
+      /* Use seperate PEM files for key, cert and CA certs */
+      /* Load Certificate */
+      if (options->cert_file)
 	{
-	  X509 *my_cert = NULL;
-
-	  /* Load Certificate */
-	  if (options->cert_file)
-	    {
-#if ENABLE_INLINE_FILES
-	      if (!strcmp (options->cert_file, INLINE_FILE_TAG) && options->cert_file_inline)
-		{
-		  if (!use_inline_certificate_file (ctx, options->cert_file_inline, &my_cert))
-		    msg (M_SSLERR, "Cannot load inline certificate file");
-		}
-	      else
-#endif
-		{
-#ifdef MANAGMENT_EXTERNAL_KEY
-		  if (!use_certificate_file (ctx, options->cert_file, SSL_FILETYPE_PEM, &my_cert))
-#else
-		  if (!SSL_CTX_use_certificate_file (ctx, options->cert_file, SSL_FILETYPE_PEM))
-#endif
-		    msg (M_SSLERR, "Cannot load certificate file %s", options->cert_file);
-		  using_cert_file = true;
-		}
-	    }
-
-#ifdef MANAGMENT_EXTERNAL_KEY
-	  if (options->management_flags & MF_EXTERNAL_KEY)
-	    {
-	      ASSERT (my_cert);
-	      if (!use_external_private_key(ctx, my_cert))
-		msg (M_SSLERR, "Cannot enable SSL external private key capability");
-	      if (my_cert)
-	        X509_free(my_cert);
-	    }
-	  else
-#endif
+          tls_ctx_load_cert_file(new_ctx, options->cert_file, options->cert_file_inline, NULL);
+	}
 
 	  /* Load Private Key */
 	  if (options->priv_key_file)
@@ -2133,13 +2031,6 @@ init_ssl (const struct options *options, struct tls_root_ctx *new_ctx)
           msg (M_SSLERR, "Cannot load CA certificate file %s (SSL_load_client_CA_file)", options->ca_file);
 	SSL_CTX_set_client_CA_list (ctx, cert_names);
       }
-    }
-
-  /* Enable the use of certificate chains */
-  if (using_cert_file)
-    {
-      if (!SSL_CTX_use_certificate_chain_file (ctx, options->cert_file))
-	msg (M_SSLERR, "Cannot load certificate chain file %s (SSL_use_certificate_chain_file)", options->cert_file);
     }
 
   /* Load extra certificates that are part of our own certificate

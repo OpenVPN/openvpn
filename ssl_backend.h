@@ -173,6 +173,26 @@ void tls_ctx_load_cryptoapi(struct tls_root_ctx *ctx, const char *cryptoapi_cert
 #endif /* WIN32 */
 
 /**
+ * Load certificate file into the given TLS context. If the given certificate
+ * file contains a certificate chain, load the whole chain.
+ *
+ * @param ctx			TLS context to use
+ * @param cert_file		The file name to load the certificate from, or
+ * 				"[[INLINE]]" in the case of inline files.
+ * @param cert_file_inline	A string containing the certificate
+ * @param x509			An optional certificate, if x509 is NULL,
+ * 				do nothing, if x509 is not NULL, *x509 will be
+ * 				allocated and filled with the loaded certificate.
+ * 				*x509 must be NULL.
+ */
+void tls_ctx_load_cert_file (struct tls_root_ctx *ctx, const char *cert_file,
+#if ENABLE_INLINE_FILES
+    const char *cert_file_inline,
+#endif
+    X509 **x509
+    );
+
+/**
  * Show the TLS ciphers that are available for us to use in the OpenSSL
  * library.
  */
