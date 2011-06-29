@@ -57,10 +57,6 @@
 /* Used in the TLS PRF function */
 #define KEY_EXPANSION_ID "OpenVPN"
 
-/* passwords */
-#define UP_TYPE_AUTH        "Auth"
-#define UP_TYPE_PRIVATE_KEY "Private Key"
-
 /* packet opcode (high 5 bits) and key-id (low 3 bits) are combined in one byte */
 #define P_KEY_ID_MASK                  0x07
 #define P_OPCODE_SHIFT                 3

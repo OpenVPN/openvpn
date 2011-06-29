@@ -221,6 +221,98 @@ tls_ctx_load_dh_params (struct tls_root_ctx *ctx, const char *dh_file
   DH_free (dh);
 }
 
+int
+tls_ctx_load_pkcs12(struct tls_root_ctx *ctx, const char *pkcs12_file,
+#if ENABLE_INLINE_FILES
+    const char *pkcs12_file_inline,
+#endif /* ENABLE_INLINE_FILES */
+    bool load_ca_file
+    )
+{
+  FILE *fp;
+  EVP_PKEY *pkey;
+  X509 *cert;
+  STACK_OF(X509) *ca = NULL;
+  PKCS12 *p12;
+  int i;
+  char password[256];
+
+  ASSERT(NULL != ctx);
+
+#if ENABLE_INLINE_FILES
+  if (!strcmp (pkcs12_file, INLINE_FILE_TAG) && pkcs12_file_inline)
+    {
+      BIO *b64 = BIO_new(BIO_f_base64());
+      BIO *bio = BIO_new_mem_buf((void *) pkcs12_file_inline,
+	  (int) strlen(pkcs12_file_inline));
+      ASSERT(b64 && bio);
+      BIO_push(b64, bio);
+      p12 = d2i_PKCS12_bio(b64, NULL);
+      if (!p12)
+	msg(M_SSLERR, "Error reading inline PKCS#12 file");
+      BIO_free(b64);
+      BIO_free(bio);
+    }
+  else
+#endif
+    {
+      /* Load the PKCS #12 file */
+      if (!(fp = fopen(pkcs12_file, "rb")))
+	msg(M_SSLERR, "Error opening file %s", pkcs12_file);
+      p12 = d2i_PKCS12_fp(fp, NULL);
+      fclose(fp);
+      if (!p12)
+	msg(M_SSLERR, "Error reading PKCS#12 file %s", pkcs12_file);
+    }
+
+  /* Parse the PKCS #12 file */
+  if (!PKCS12_parse(p12, "", &pkey, &cert, &ca))
+   {
+     pem_password_callback (password, sizeof(password) - 1, 0, NULL);
+     /* Reparse the PKCS #12 file with password */
+     ca = NULL;
+     if (!PKCS12_parse(p12, password, &pkey, &cert, &ca))
+      {
+#ifdef ENABLE_MANAGEMENT
+	      if (management && (ERR_GET_REASON (ERR_peek_error()) == PKCS12_R_MAC_VERIFY_FAILURE))
+		management_auth_failure (management, UP_TYPE_PRIVATE_KEY, NULL);
+#endif
+	PKCS12_free(p12);
+	return 1;
+      }
+   }
+  PKCS12_free(p12);
+
+  /* Load Certificate */
+  if (!SSL_CTX_use_certificate (ctx->ctx, cert))
+   msg (M_SSLERR, "Cannot use certificate");
+
+  /* Load Private Key */
+  if (!SSL_CTX_use_PrivateKey (ctx->ctx, pkey))
+   msg (M_SSLERR, "Cannot use private key");
+  warn_if_group_others_accessible (pkcs12_file);
+
+  /* Check Private Key */
+  if (!SSL_CTX_check_private_key (ctx->ctx))
+   msg (M_SSLERR, "Private key does not match the certificate");
+
+  /* Set Certificate Verification chain */
+  if (load_ca_file)
+   {
+     if (ca && sk_X509_num(ca))
+      {
+	for (i = 0; i < sk_X509_num(ca); i++)
+	  {
+	      if (!X509_STORE_add_cert(ctx->ctx->cert_store,sk_X509_value(ca, i)))
+	      msg (M_SSLERR, "Cannot add certificate to certificate chain (X509_STORE_add_cert)");
+	    if (!SSL_CTX_add_client_CA(ctx->ctx, sk_X509_value(ca, i)))
+	      msg (M_SSLERR, "Cannot add certificate to client CA list (SSL_CTX_add_client_CA)");
+	  }
+      }
+   }
+  return 0;
+}
+
 void
 show_available_tls_ciphers ()
 {

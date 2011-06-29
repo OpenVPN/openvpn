@@ -38,6 +38,10 @@
 
 #include "ssl_backend.h"
 
+/* passwords */
+#define UP_TYPE_AUTH        "Auth"
+#define UP_TYPE_PRIVATE_KEY "Private Key"
+
   /* configuration file boolean options */
 # define SSLF_CLIENT_CERT_NOT_REQUIRED (1<<0)
 # define SSLF_USERNAME_AS_COMMON_NAME  (1<<1)

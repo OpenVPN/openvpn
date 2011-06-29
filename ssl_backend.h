@@ -116,7 +116,7 @@ bool tls_ctx_initialised(struct tls_root_ctx *ctx);
  */
 void tls_ctx_set_options (struct tls_root_ctx *ctx, unsigned int ssl_flags);
 
-/*
+/**
  * Load Diffie Hellman Parameters, and load them into the library-specific
  * TLS context.
  *
@@ -131,7 +131,26 @@ void tls_ctx_load_dh_params(struct tls_root_ctx *ctx, const char *dh_file
 #endif /* ENABLE_INLINE_FILES */
     );
 
-/*
+/**
+ * Load PKCS #12 file for key, cert and (optionally) CA certs, and add to
+ * library-specific TLS context.
+ *
+ * @param ctx			TLS context to use
+ * @param pkcs12_file		The file name to load the information from, or
+ * 				"[[INLINE]]" in the case of inline files.
+ * @param pkcs12_file_inline	A string containing the information
+ *
+ * @return 			1 if an error occurred, 0 if parsing was
+ * 				successful.
+ */
+int tls_ctx_load_pkcs12(struct tls_root_ctx *ctx, const char *pkcs12_file,
+#if ENABLE_INLINE_FILES
+    const char *pkcs12_file_inline,
+#endif /* ENABLE_INLINE_FILES */
+    bool load_ca_file
+    );
+
+/**
  * Show the TLS ciphers that are available for us to use in the OpenSSL
  * library.
  */
