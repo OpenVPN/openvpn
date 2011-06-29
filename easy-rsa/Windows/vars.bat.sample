@@ -4,7 +4,7 @@ rem the openssl.cnf file included
 rem with easy-rsa.
 
 set HOME=%ProgramFiles%\OpenVPN\easy-rsa
-set KEY_CONFIG=openssl.cnf
+set KEY_CONFIG=openssl-1.0.0.cnf
 
 rem Edit this variable to point to
 rem your soon-to-be-created key
@@ -33,3 +33,8 @@ set KEY_PROVINCE=CA
 set KEY_CITY=SanFrancisco
 set KEY_ORG=OpenVPN
 set KEY_EMAIL=mail@host.domain
+set KEY_CN=changeme
+set KEY_NAME=changeme
+set KEY_OU=changeme
+set PKCS11_MODULE_PATH=changeme
+set PKCS11_PIN=1234

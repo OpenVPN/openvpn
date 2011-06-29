@@ -74,8 +74,8 @@ Release Notes for easy-rsa-2.0
 INSTALL easy-rsa
 
 1. Edit vars.
-2. Set KEY_CONFIG to point to the openssl.cnf file
-   included in this distribution.
+2. Set KEY_CONFIG to point to the correct openssl-<version>.cnf
+   file included in this distribution.
 3. Set KEY_DIR to point to a directory which will
    contain all keys, certificates, etc.  This
    directory need not exist, and if it does,
