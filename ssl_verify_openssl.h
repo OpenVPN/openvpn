@@ -32,4 +32,39 @@
 #define SSL_VERIFY_OPENSSL_H_
 
 #include <openssl/x509.h>
+/** @name Function for authenticating a new connection from a remote OpenVPN peer
+ *  @{ */
+
+/**
+ * Verify that the remote OpenVPN peer's certificate allows setting up a
+ * VPN tunnel.
+ * @ingroup control_tls
+ *
+ * This callback function is called every time a new TLS session is being
+ * setup to determine whether the remote OpenVPN peer's certificate is
+ * allowed to connect. It is called for once for every certificate in the chain.
+ * The callback functionality is configured in the \c init_ssl() function, which
+ * calls the OpenSSL library's \c SSL_CTX_set_verify() function with \c
+ * verify_callback() as its callback argument.
+ *
+ * It checks preverify_ok, and registers the certificate hash. If these steps
+ * succeed, it calls the \c verify_cert() function, which performs
+ * OpenVPN-specific verification.
+ *
+ * @param preverify_ok - Whether the remote OpenVPN peer's certificate
+ *                       past verification.  A value of 1 means it
+ *                       verified successfully, 0 means it failed.
+ * @param ctx          - The complete context used by the OpenSSL library
+ *                       to verify the certificate chain.
+ *
+ * @return The return value indicates whether the supplied certificate is
+ *     allowed to set up a VPN tunnel.  The following values can be
+ *     returned:
+ *      - \c 0: failure, this certificate is not allowed to connect.
+ *      - \c 1: success, this certificate is allowed to connect.
+ */
+int verify_callback (int preverify_ok, X509_STORE_CTX * ctx);
+
+/** @} name Function for authenticating a new connection from a remote OpenVPN peer */
+
 #endif /* SSL_VERIFY_OPENSSL_H_ */

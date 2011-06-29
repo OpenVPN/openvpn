@@ -43,6 +43,17 @@
  * Functions implemented in ssl.c for use by the backend SSL library
  *
  */
+
+/**
+ * Callback to retrieve the user's password
+ *
+ * @param buf		Buffer to return the password in
+ * @param size		Size of the buffer
+ * @param rwflag	Unused, needed for OpenSSL compatibility
+ * @param u		Unused, needed for OpenSSL compatibility
+ */
+int pem_password_callback (char *buf, int size, int rwflag, void *u);
+
 /*
  *
  * Functions used in ssl.c which must be implemented by the backend SSL library
@@ -95,6 +106,17 @@ void tls_ctx_free(struct tls_root_ctx *ctx);
 bool tls_ctx_initialised(struct tls_root_ctx *ctx);
 
 /**
+ * Set any library specific options.
+ *
+ * Examples include disabling session caching, the password callback to use,
+ * and session verification parameters.
+ *
+ * @param ctx		TLS context to set options on
+ * @param ssl_flags	SSL flags to set
+ */
+void tls_ctx_set_options (struct tls_root_ctx *ctx, unsigned int ssl_flags);
+
+/*
  * Load Diffie Hellman Parameters, and load them into the library-specific
  * TLS context.
  *

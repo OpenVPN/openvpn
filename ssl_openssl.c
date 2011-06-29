@@ -130,6 +130,57 @@ bool tls_ctx_initialised(struct tls_root_ctx *ctx)
   return NULL != ctx->ctx;
 }
 
+/*
+ * Print debugging information on SSL/TLS session negotiation.
+ */
+
+#ifndef INFO_CALLBACK_SSL_CONST
+#define INFO_CALLBACK_SSL_CONST const
+#endif
+static void
+info_callback (INFO_CALLBACK_SSL_CONST SSL * s, int where, int ret)
+{
+  if (where & SSL_CB_LOOP)
+    {
+      dmsg (D_HANDSHAKE_VERBOSE, "SSL state (%s): %s",
+	   where & SSL_ST_CONNECT ? "connect" :
+	   where & SSL_ST_ACCEPT ? "accept" :
+	   "undefined", SSL_state_string_long (s));
+    }
+  else if (where & SSL_CB_ALERT)
+    {
+      dmsg (D_HANDSHAKE_VERBOSE, "SSL alert (%s): %s: %s",
+	   where & SSL_CB_READ ? "read" : "write",
+	   SSL_alert_type_string_long (ret),
+	   SSL_alert_desc_string_long (ret));
+    }
+}
+
+void
+tls_ctx_set_options (struct tls_root_ctx *ctx, unsigned int ssl_flags)
+{
+  ASSERT(NULL != ctx);
+
+  SSL_CTX_set_session_cache_mode (ctx->ctx, SSL_SESS_CACHE_OFF);
+  SSL_CTX_set_options (ctx->ctx, SSL_OP_SINGLE_DH_USE);
+  SSL_CTX_set_default_passwd_cb (ctx->ctx, pem_password_callback);
+
+  /* Require peer certificate verification */
+#if P2MP_SERVER
+  if (ssl_flags & SSLF_CLIENT_CERT_NOT_REQUIRED)
+    {
+      msg (M_WARN, "WARNING: POTENTIALLY DANGEROUS OPTION "
+	  "--client-cert-not-required may accept clients which do not present "
+	  "a certificate");
+    }
+  else
+#endif
+  SSL_CTX_set_verify (ctx->ctx, SSL_VERIFY_PEER | SSL_VERIFY_FAIL_IF_NO_PEER_CERT,
+		      verify_callback);
+
+  SSL_CTX_set_info_callback (ctx->ctx, info_callback);
+}
+
 void
 tls_ctx_load_dh_params (struct tls_root_ctx *ctx, const char *dh_file
 #if ENABLE_INLINE_FILES

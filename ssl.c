@@ -899,34 +899,7 @@ get_peer_cert(X509_STORE_CTX *ctx, const char *tmp_dir, struct gc_arena *gc)
 
 char * x509_username_field; /* GLOBAL */
 
-/** @name Function for authenticating a new connection from a remote OpenVPN peer
- *  @{ */
-
-/**
- * Verify that the remote OpenVPN peer's certificate allows setting up a
- * VPN tunnel.
- * @ingroup control_tls
- *
- * This callback function is called every time a new TLS session is being
- * setup to determine whether the remote OpenVPN peer's certificate is
- * allowed to connect.  The callback functionality is configured in the \c
- * init_ssl() function, which calls the OpenSSL library's \c
- * SSL_CTX_set_verify() function with \c verify_callback() as its callback
- * argument.
- *
- * @param preverify_ok - Whether the remote OpenVPN peer's certificate
- *                       past verification.  A value of 1 means it
- *                       verified successfully, 0 means it failed.
- * @param ctx          - The complete context used by the OpenSSL library
- *                       to verify the certificate chain.
- *
- * @return The return value indicates whether the supplied certificate is
- *     allowed to set up a VPN tunnel.  The following values can be
- *     returned:
- *      - \c 0: failure, this certificate is not allowed to connect.
- *      - \c 1: success, this certificate is allowed to connect.
- */
-static int
+int
 verify_callback (int preverify_ok, X509_STORE_CTX * ctx)
 {
   char *subject = NULL;
@@ -1629,31 +1602,6 @@ tls_deauthenticate (struct tls_multi *multi)
     }
 }
 
-#ifndef INFO_CALLBACK_SSL_CONST
-#define INFO_CALLBACK_SSL_CONST const
-#endif
-/*
- * Print debugging information on SSL/TLS session negotiation.
- */
-static void
-info_callback (INFO_CALLBACK_SSL_CONST SSL * s, int where, int ret)
-{
-  if (where & SSL_CB_LOOP)
-    {
-      dmsg (D_HANDSHAKE_VERBOSE, "SSL state (%s): %s",
-	   where & SSL_ST_CONNECT ? "connect" :
-	   where & SSL_ST_ACCEPT ? "accept" :
-	   "undefined", SSL_state_string_long (s));
-    }
-  else if (where & SSL_CB_ALERT)
-    {
-      dmsg (D_HANDSHAKE_VERBOSE, "SSL alert (%s): %s: %s",
-	   where & SSL_CB_READ ? "read" : "write",
-	   SSL_alert_type_string_long (ret),
-	   SSL_alert_desc_string_long (ret));
-    }
-}
-
 #ifdef MANAGMENT_EXTERNAL_KEY
 
 /* encrypt */
@@ -2035,14 +1983,9 @@ init_ssl (const struct options *options, struct tls_root_ctx *new_ctx)
       tls_ctx_client_new(new_ctx);
     }
 
+  tls_ctx_set_options(new_ctx, options->ssl_flags);
+
   ctx = new_ctx->ctx;
-
-  /* Set SSL options */
-  SSL_CTX_set_session_cache_mode (ctx, SSL_SESS_CACHE_OFF);
-  SSL_CTX_set_options (ctx, SSL_OP_SINGLE_DH_USE);
-
-  /* Set callback for getting password from user to decrypt private key */
-  SSL_CTX_set_default_passwd_cb (ctx, pem_password_callback);
 
   if (options->pkcs12_file)
     {
@@ -2321,13 +2264,8 @@ init_ssl (const struct options *options, struct tls_root_ctx *new_ctx)
       BIO_free (bio);
     }
 
-  /* Require peer certificate verification */
 #if P2MP_SERVER
-  if (options->ssl_flags & SSLF_CLIENT_CERT_NOT_REQUIRED)
-    {
-      msg (M_WARN, "WARNING: POTENTIALLY DANGEROUS OPTION --client-cert-not-required may accept clients which do not present a certificate");
-    }
-  else
+  if (!(options->ssl_flags & SSLF_CLIENT_CERT_NOT_REQUIRED))
 #endif
     {
 #ifdef ENABLE_X509ALTUSERNAME
@@ -2335,12 +2273,7 @@ init_ssl (const struct options *options, struct tls_root_ctx *new_ctx)
 #else
       x509_username_field = X509_USERNAME_FIELD_DEFAULT;
 #endif
-      SSL_CTX_set_verify (ctx, SSL_VERIFY_PEER | SSL_VERIFY_FAIL_IF_NO_PEER_CERT,
-                          verify_callback);
     }
-
-  /* Connection information callback */
-  SSL_CTX_set_info_callback (ctx, info_callback);
 
   /* Allowable ciphers */
   if (options->cipher_list)
