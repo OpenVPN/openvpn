@@ -274,7 +274,7 @@ Section "${PRODUCT_NAME} RSA Certificate Management Scripts" SecOpenVPNEasyRSA
 
   # Original nsi script looked for ${EASYRSA}\2.0\openssl.cnf.sample. A newer
   # openssl.cnf is needed on OpenVPN 2.2+.
-  File "${EASYRSA}\Windows\openssl.cnf"
+  File "${EASYRSA}\2.0\openssl-1.0.0.cnf"
 
   File "${EASYRSA}\Windows\vars.bat.sample"
 
