@@ -64,6 +64,36 @@ void tls_free_lib();
  */
 void tls_clear_error();
 
+/**
+ * Initialise a library-specific TLS context for a server.
+ *
+ * @param ctx		TLS context to initialise
+ */
+void tls_ctx_server_new(struct tls_root_ctx *ctx);
+
+/**
+ * Initialises a library-specific TLS context for a client.
+ *
+ * @param ctx		TLS context to initialise
+ */
+void tls_ctx_client_new(struct tls_root_ctx *ctx);
+
+/**
+ * Frees the library-specific TLSv1 context
+ *
+ * @param ctx		TLS context to free
+ */
+void tls_ctx_free(struct tls_root_ctx *ctx);
+
+/**
+ * Checks whether the given TLS context is initialised
+ *
+ * @param ctx		TLS context to check
+ *
+ * @return	true if the context is initialised, false if not.
+ */
+bool tls_ctx_initialised(struct tls_root_ctx *ctx);
+
 /*
  * Show the TLS ciphers that are available for us to use in the OpenSSL
  * library.

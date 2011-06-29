@@ -33,6 +33,14 @@
 #include <openssl/ssl.h>
 
 /**
+ * Structure that wraps the TLS context. Contents differ depending on the
+ * SSL library used.
+ */
+struct tls_root_ctx {
+    SSL_CTX *ctx;
+};
+
+/**
  * Allocate space in SSL objects in which to store a struct tls_session
  * pointer back to parent.
  */

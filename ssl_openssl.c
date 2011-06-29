@@ -75,6 +75,61 @@ tls_clear_error()
   ERR_clear_error ();
 }
 
+/*
+ * OpenSSL callback to get a temporary RSA key, mostly
+ * used for export ciphers.
+ */
+static RSA *
+tmp_rsa_cb (SSL * s, int is_export, int keylength)
+{
+  static RSA *rsa_tmp = NULL;
+  if (rsa_tmp == NULL)
+    {
+      msg (D_HANDSHAKE, "Generating temp (%d bit) RSA key", keylength);
+      rsa_tmp = RSA_generate_key (keylength, RSA_F4, NULL, NULL);
+    }
+  return (rsa_tmp);
+}
+
+void
+tls_ctx_server_new(struct tls_root_ctx *ctx)
+{
+  ASSERT(NULL != ctx);
+
+  ctx->ctx = SSL_CTX_new (TLSv1_server_method ());
+
+  if (ctx->ctx == NULL)
+    msg (M_SSLERR, "SSL_CTX_new TLSv1_server_method");
+
+  SSL_CTX_set_tmp_rsa_callback (ctx->ctx, tmp_rsa_cb);
+}
+
+void
+tls_ctx_client_new(struct tls_root_ctx *ctx)
+{
+  ASSERT(NULL != ctx);
+
+  ctx->ctx = SSL_CTX_new (TLSv1_client_method ());
+
+  if (ctx->ctx == NULL)
+    msg (M_SSLERR, "SSL_CTX_new TLSv1_client_method");
+}
+
+void
+tls_ctx_free(struct tls_root_ctx *ctx)
+{
+  ASSERT(NULL != ctx);
+  if (NULL != ctx->ctx)
+    SSL_CTX_free (ctx->ctx);
+  ctx->ctx = NULL;
+}
+
+bool tls_ctx_initialised(struct tls_root_ctx *ctx)
+{
+  ASSERT(NULL != ctx);
+  return NULL != ctx->ctx;
+}
+
 void
 show_available_tls_ciphers ()
 {

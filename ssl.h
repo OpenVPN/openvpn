@@ -668,8 +668,11 @@ struct tls_auth_standalone
 void init_ssl_lib (void);
 void free_ssl_lib (void);
 
-/* Build master SSL_CTX object that serves for the whole of openvpn instantiation */
-SSL_CTX *init_ssl (const struct options *options);
+/**
+ * Build master SSL context object that serves for the whole of OpenVPN
+ * instantiation
+ */
+void init_ssl (const struct options *options, struct tls_root_ctx *ctx);
 
 struct tls_multi *tls_multi_init (struct tls_options *tls_options);
 

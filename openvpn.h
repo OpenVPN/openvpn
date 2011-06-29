@@ -64,7 +64,7 @@ struct key_schedule
 
 #ifdef USE_SSL
   /* our global SSL context */
-  SSL_CTX *ssl_ctx;
+  struct tls_root_ctx ssl_ctx;
 
   /* optional authentication HMAC key for TLS control channel */
   struct key_ctx_bi tls_auth_key;

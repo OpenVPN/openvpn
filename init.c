@@ -1928,9 +1928,9 @@ key_schedule_free (struct key_schedule *ks, bool free_ssl_ctx)
 #ifdef USE_CRYPTO
   free_key_ctx_bi (&ks->static_key);
 #ifdef USE_SSL
-  if (ks->ssl_ctx && free_ssl_ctx)
+  if (tls_ctx_initialised(&ks->ssl_ctx) && free_ssl_ctx)
     {
-      SSL_CTX_free (ks->ssl_ctx);
+      tls_ctx_free (&ks->ssl_ctx);
       free_key_ctx_bi (&ks->tls_auth_key);
     }
 #endif /* USE_SSL */
@@ -2060,14 +2060,14 @@ do_init_crypto_tls_c1 (struct context *c)
 {
   const struct options *options = &c->options;
 
-  if (!c->c1.ks.ssl_ctx)
+  if (!tls_ctx_initialised(&c->c1.ks.ssl_ctx))
     {
       /*
        * Initialize the OpenSSL library's global
        * SSL context.
        */
-      c->c1.ks.ssl_ctx = init_ssl (options);
-      if (!c->c1.ks.ssl_ctx)
+      init_ssl (options, &(c->c1.ks.ssl_ctx));
+      if (!tls_ctx_initialised(&c->c1.ks.ssl_ctx))
 	{
 #if P2MP
 	  switch (auth_retry_get ())
@@ -2174,7 +2174,7 @@ do_init_crypto_tls (struct context *c, const unsigned int flags)
   if (packet_id_long_form)
     to.crypto_flags_or = CO_PACKET_ID_LONG_FORM;
 
-  to.ssl_ctx = c->c1.ks.ssl_ctx;
+  to.ssl_ctx = c->c1.ks.ssl_ctx.ctx;
   to.key_type = c->c1.ks.key_type;
   to.server = options->tls_server;
   to.key_method = options->key_method;
