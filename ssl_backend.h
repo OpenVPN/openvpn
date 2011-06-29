@@ -227,6 +227,41 @@ int tls_ctx_use_external_private_key (struct tls_root_ctx *ctx, X509 *cert);
 #endif
 
 /**
+ * Load certificate authority certificates from the given file or path.
+ *
+ * Note that not all SSL libraries support loading from a path.
+ *
+ * @param ctx			TLS context to use
+ * @param ca_file		The file name to load the CAs from, or
+ * 				"[[INLINE]]" in the case of inline files.
+ * @param ca_file_inline	A string containing the CAs
+ * @param ca_path		The path to load the CAs from
+ */
+void tls_ctx_load_ca (struct tls_root_ctx *ctx, const char *ca_file,
+#if ENABLE_INLINE_FILES
+    const char *ca_file_inline,
+#endif
+    const char *ca_path, bool tls_server
+    );
+
+/**
+ * Load extra certificate authority certificates from the given file or path.
+ * These Load extra certificates that are part of our own certificate
+ * chain but shouldn't be included in the verify chain.
+ *
+ *
+ * @param ctx				TLS context to use
+ * @param extra_certs_file		The file name to load the certs from, or
+ * 					"[[INLINE]]" in the case of inline files.
+ * @param extra_certs_file_inline	A string containing the certs
+ */
+void tls_ctx_load_extra_certs (struct tls_root_ctx *ctx, const char *extra_certs_file
+#if ENABLE_INLINE_FILES
+    , const char *extra_certs_file_inline
+#endif
+    );
+
+/*
  * Show the TLS ciphers that are available for us to use in the OpenSSL
  * library.
  */
