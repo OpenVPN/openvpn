@@ -333,7 +333,7 @@ Section "${PRODUCT_NAME} RSA Certificate Management Scripts" SecOpenVPNEasyRSA
   SetOverwrite on
   SetOutPath "$INSTDIR\easy-rsa"
 
-  File "${GEN}\easy-rsa\openssl.cnf.sample"
+  File "${GEN}\easy-rsa\openssl-1.0.0.cnf"
   File "${GEN}\easy-rsa\vars.bat.sample"
 
   File "${GEN}\easy-rsa\init-config.bat"
@@ -850,7 +850,7 @@ Section "Uninstall"
   Delete "$INSTDIR\license.txt"
   Delete "$INSTDIR\Uninstall.exe"
 
-  Delete "$INSTDIR\easy-rsa\openssl.cnf.sample"
+  Delete "$INSTDIR\easy-rsa\openssl-1.0.0.cnf"
   Delete "$INSTDIR\easy-rsa\vars.bat.sample"
   Delete "$INSTDIR\easy-rsa\init-config.bat"
   Delete "$INSTDIR\easy-rsa\README.txt"
