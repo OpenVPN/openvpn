@@ -351,6 +351,24 @@ verify_peer_cert(const struct tls_options *opt, x509_cert_t *peer_cert,
 	}
     }
 
+#if OPENSSL_VERSION_NUMBER >= 0x00907000L
+
+  /* verify certificate ku */
+  if (opt->remote_cert_ku[0] != 0)
+    {
+      if (verify_cert_ku (peer_cert, opt->remote_cert_ku, MAX_PARMS))
+	{
+	  msg (D_HANDSHAKE, "VERIFY KU OK");
+	}
+        else
+        {
+	  msg (D_HANDSHAKE, "VERIFY KU ERROR");
+          return 1;		/* Reject connection */
+	}
+    }
+
+
+#endif /* OPENSSL_VERSION_NUMBER */
   return 0;
 }
 

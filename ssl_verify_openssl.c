@@ -392,3 +392,57 @@ verify_nsCertType(const x509_cert_t *peer_cert, const int usage)
 
   return false;
 }
+
+#if OPENSSL_VERSION_NUMBER >= 0x00907000L
+
+bool
+verify_cert_ku (X509 *x509, const unsigned * const expected_ku,
+    int expected_len)
+{
+  ASN1_BIT_STRING *ku = NULL;
+  bool fFound = false;
+
+  if ((ku = (ASN1_BIT_STRING *) X509_get_ext_d2i (x509, NID_key_usage, NULL,
+      NULL)) == NULL)
+    {
+      msg (D_HANDSHAKE, "Certificate does not have key usage extension");
+    }
+  else
+    {
+      unsigned nku = 0;
+      int i;
+      for (i = 0; i < 8; i++)
+	{
+	  if (ASN1_BIT_STRING_get_bit (ku, i))
+	    nku |= 1 << (7 - i);
+	}
+
+      /*
+       * Fixup if no LSB bits
+       */
+      if ((nku & 0xff) == 0)
+	{
+	  nku >>= 8;
+	}
+
+      msg (D_HANDSHAKE, "Validating certificate key usage");
+      for (i = 0; !fFound && i < expected_len; i++)
+	{
+	  if (expected_ku[i] != 0)
+	    {
+	      msg (D_HANDSHAKE, "++ Certificate has key usage  %04x, expects "
+		  "%04x", nku, expected_ku[i]);
+
+	      if (nku == expected_ku[i])
+		fFound = true;
+	    }
+	}
+    }
+
+  if (ku != NULL)
+    ASN1_BIT_STRING_free (ku);
+
+  return fFound;
+}
+
+#endif /* OPENSSL_VERSION_NUMBER */

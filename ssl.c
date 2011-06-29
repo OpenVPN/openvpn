@@ -342,49 +342,6 @@ bool verify_cert_eku (X509 *x509, const char * const expected_oid) {
 	return fFound;
 }
 
-bool verify_cert_ku (X509 *x509, const unsigned * const expected_ku, int expected_len) {
-
-	ASN1_BIT_STRING *ku = NULL;
-	bool fFound = false;
-
-	if ((ku = (ASN1_BIT_STRING *)X509_get_ext_d2i (x509, NID_key_usage, NULL, NULL)) == NULL) {
-		msg (D_HANDSHAKE, "Certificate does not have key usage extension");
-	}
-	else {
-		unsigned nku = 0;
-		int i;
-		for (i=0;i<8;i++) {
-			if (ASN1_BIT_STRING_get_bit (ku, i)) {
-				nku |= 1<<(7-i);
-			}
-		}
-
-		/*
-		 * Fixup if no LSB bits
-		 */
-		if ((nku & 0xff) == 0) {
-			nku >>= 8;
-		}
-
-		msg (D_HANDSHAKE, "Validating certificate key usage");
-		for (i=0;!fFound && i<expected_len;i++) {
-			if (expected_ku[i] != 0) {
-				msg (D_HANDSHAKE, "++ Certificate has key usage  %04x, expects %04x", nku, expected_ku[i]);
-
-				if (nku == expected_ku[i]) {
-					fFound = true;
-				}
-			}
-		}
-	}
-
-	if (ku != NULL) {
-		ASN1_BIT_STRING_free (ku);
-	}
-
-	return fFound;
-}
-
 #endif	/* OPENSSL_VERSION_NUMBER */
 
 static void
@@ -517,20 +474,6 @@ verify_cert(struct tls_session *session, x509_cert_t *cert, int cert_depth)
     goto err;
 
 #if OPENSSL_VERSION_NUMBER >= 0x00907000L
-
-  /* verify certificate ku */
-  if (opt->remote_cert_ku[0] != 0 &&  cert_depth == 0)
-    {
-      if (verify_cert_ku (cert, opt->remote_cert_ku, MAX_PARMS))
-	{
-	  msg (D_HANDSHAKE, "VERIFY KU OK");
-	}
-        else
-        {
-	  msg (D_HANDSHAKE, "VERIFY KU ERROR");
-          goto err;		/* Reject connection */
-	}
-    }
 
   /* verify certificate eku */
   if (opt->remote_cert_eku != NULL && cert_depth == 0)

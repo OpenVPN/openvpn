@@ -154,4 +154,17 @@ void setenv_x509 (struct env_set *es, int cert_depth, x509_cert_t *cert);
  */
 bool verify_nsCertType(const x509_cert_t *cert, const int usage);
 
+/*
+ * Verify X.509 key usage extension field.
+ *
+ * @param cert		Certificate to check.
+ * @param expected_ku	Array of valid key usage values
+ * @param expected_len	Length of the key usage array
+ *
+ * @return 		\c true if one of the key usage values matches, \c false
+ * 			if key usage is not enabled, or the values do not match.
+ */
+bool verify_cert_ku (x509_cert_t *x509, const unsigned * const expected_ku,
+    int expected_len);
+
 #endif /* SSL_VERIFY_BACKEND_H_ */
