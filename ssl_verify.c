@@ -37,6 +37,9 @@
 #include "ssl_verify_openssl.h"
 #endif
 
+/** Legal characters in an X509 name */
+#define X509_NAME_CHAR_CLASS   (CC_ALNUM|CC_UNDERBAR|CC_DASH|CC_DOT|CC_AT|CC_COLON|CC_SLASH|CC_EQUAL)
+
 /** Legal characters in a common name */
 #define COMMON_NAME_CHAR_CLASS (CC_ALNUM|CC_UNDERBAR|CC_DASH|CC_DOT|CC_AT|CC_SLASH)
 
@@ -76,6 +79,9 @@ tls_deauthenticate (struct tls_multi *multi)
     }
 }
 
+/*
+ * Set the given session's common_name
+ */
 void
 set_common_name (struct tls_session *session, const char *common_name)
 {
@@ -102,6 +108,11 @@ set_common_name (struct tls_session *session, const char *common_name)
     }
 }
 
+/*
+ * Retrieve the common name for the given tunnel's active session. If the
+ * common name is NULL or empty, return NULL if null is true, or "UNDEF" if
+ * null is false.
+ */
 const char *
 tls_common_name (const struct tls_multi *multi, const bool null)
 {
@@ -116,6 +127,9 @@ tls_common_name (const struct tls_multi *multi, const bool null)
     return "UNDEF";
 }
 
+/*
+ * Lock the common name for the given tunnel.
+ */
 void
 tls_lock_common_name (struct tls_multi *multi)
 {
@@ -124,6 +138,9 @@ tls_lock_common_name (struct tls_multi *multi)
     multi->locked_cn = string_alloc (cn, NULL);
 }
 
+/*
+ * Lock the username for the given tunnel
+ */
 static bool
 tls_lock_username (struct tls_multi *multi, const char *username)
 {
