@@ -72,3 +72,13 @@ verify_callback (int preverify_ok, X509_STORE_CTX * ctx)
 
   return verify_cert(session, ctx->current_cert, ctx->error_depth);
 }
+
+int
+verify_get_subject (char **subject, X509 *cert)
+{
+  *subject = X509_NAME_oneline (X509_get_subject_name (cert), NULL, 0);
+  if (!*subject)
+      return 1;
+
+  return 0;
+}

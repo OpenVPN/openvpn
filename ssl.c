@@ -720,8 +720,7 @@ verify_cert(struct tls_session *session, x509_cert_t *cert, int cert_depth)
   session->verified = false;
 
   /* get the X509 name */
-  subject = X509_NAME_oneline (X509_get_subject_name (cert), NULL, 0);
-  if (!subject)
+  if (verify_get_subject(&subject, cert))
     {
         msg (D_TLS_ERRORS, "VERIFY ERROR: depth=%d, could not extract X509 "
             "subject string from certificate", cert_depth);

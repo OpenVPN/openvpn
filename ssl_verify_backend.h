@@ -66,4 +66,22 @@ int verify_cert(struct tls_session *session, x509_cert_t *cert, int cert_depth);
 void cert_hash_remember (struct tls_session *session, const int cert_depth,
     const unsigned char *sha1_hash);
 
+/*
+ * Library-specific functions.
+ *
+ * The following functions must be implemented on a library-specific basis.
+ */
+
+/*
+ * Retrieve certificate's subject name, and place it in **subject.
+ *
+ * Memory for subject is allocated in the process, and must be freed.
+ *
+ * @param subject	Pointer to memory to be allocated for the subject
+ * @param cert		Certificate to retrieve the subject from.
+ *
+ * @return 		\c 1 on failure, \c 0 on success
+ */
+bool verify_get_subject (char **subject, x509_cert_t *cert);
+
 #endif /* SSL_VERIFY_BACKEND_H_ */
