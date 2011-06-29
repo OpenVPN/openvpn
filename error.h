@@ -95,7 +95,11 @@ extern int x_msg_line_num;
 
 #define M_ERRNO           (1<<8)	 /* show errno description */
 #define M_ERRNO_SOCK      (1<<9)	 /* show socket errno description */
-#define M_SSL             (1<<10)	 /* show SSL error */
+
+#ifdef USE_OPENSSL
+#  define M_SSL             (1<<10)	 /* show SSL error */
+#endif
+
 #define M_NOMUTE          (1<<11)        /* don't do mute processing */
 #define M_NOPREFIX        (1<<12)        /* don't show date/time prefix */
 #define M_USAGE_SMALL     (1<<13)        /* fatal options error, call usage_small */

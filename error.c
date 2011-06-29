@@ -37,7 +37,9 @@
 #include "ps.h"
 
 #ifdef USE_CRYPTO
+#ifdef USE_OPENSSL
 #include <openssl/err.h>
+#endif
 #endif
 
 #include "memdbg.h"
@@ -244,6 +246,7 @@ void x_msg (const unsigned int flags, const char *format, ...)
     }
 
 #ifdef USE_CRYPTO
+#ifdef USE_OPENSSL
   if (flags & M_SSL)
     {
       int nerrs = 0;
@@ -261,6 +264,7 @@ void x_msg (const unsigned int flags, const char *format, ...)
 	  SWAP;
 	}
     }
+#endif
 #endif
 
   if (flags & M_OPTERR)
