@@ -507,6 +507,144 @@ tls_ctx_load_priv_file (struct tls_root_ctx *ctx, const char *priv_key_file
 
 }
 
+#ifdef MANAGMENT_EXTERNAL_KEY
+
+/* encrypt */
+static int
+rsa_pub_enc(int flen, const unsigned char *from, unsigned char *to, RSA *rsa, int padding)
+{
+  ASSERT(0);
+  return -1;
+}
+
+/* verify arbitrary data */
+static int
+rsa_pub_dec(int flen, const unsigned char *from, unsigned char *to, RSA *rsa, int padding)
+{
+  ASSERT(0);
+  return -1;
+}
+
+/* decrypt */
+static int
+rsa_priv_dec(int flen, const unsigned char *from, unsigned char *to, RSA *rsa, int padding)
+{
+  ASSERT(0);
+  return -1;
+}
+
+/* called at RSA_free */
+static int
+rsa_finish(RSA *rsa)
+{
+  free ((void*)rsa->meth);
+  rsa->meth = NULL;
+  return 1;
+}
+
+/* sign arbitrary data */
+static int
+rsa_priv_enc(int flen, const unsigned char *from, unsigned char *to, RSA *rsa, int padding)
+{
+  /* optional app data in rsa->meth->app_data; */
+  char *in_b64 = NULL;
+  char *out_b64 = NULL;
+  int ret = -1;
+  int len;
+
+  if (padding != RSA_PKCS1_PADDING)
+    {
+      RSAerr (RSA_F_RSA_EAY_PRIVATE_ENCRYPT, RSA_R_UNKNOWN_PADDING_TYPE);
+      goto done;
+    }
+
+  /* convert 'from' to base64 */
+  if (base64_encode (from, flen, &in_b64) <= 0)
+    goto done;
+
+  /* call MI for signature */
+  if (management)
+    out_b64 = management_query_rsa_sig (management, in_b64);
+  if (!out_b64)
+    goto done;
+
+  /* decode base64 signature to binary */
+  len = RSA_size(rsa);
+  ret = base64_decode (out_b64, to, len);
+
+  /* verify length */
+  if (ret != len)
+    ret = -1;
+
+ done:
+  if (in_b64)
+    free (in_b64);
+  if (out_b64)
+    free (out_b64);
+  return ret;
+}
+
+int
+tls_ctx_use_external_private_key (struct tls_root_ctx *ctx, X509 *cert)
+{
+  RSA *rsa = NULL;
+  RSA *pub_rsa;
+  RSA_METHOD *rsa_meth;
+
+  ASSERT (NULL != ctx);
+  ASSERT (NULL != cert);
+
+  /* allocate custom RSA method object */
+  ALLOC_OBJ_CLEAR (rsa_meth, RSA_METHOD);
+  rsa_meth->name = "OpenVPN external private key RSA Method";
+  rsa_meth->rsa_pub_enc = rsa_pub_enc;
+  rsa_meth->rsa_pub_dec = rsa_pub_dec;
+  rsa_meth->rsa_priv_enc = rsa_priv_enc;
+  rsa_meth->rsa_priv_dec = rsa_priv_dec;
+  rsa_meth->init = NULL;
+  rsa_meth->finish = rsa_finish;
+  rsa_meth->flags = RSA_METHOD_FLAG_NO_CHECK;
+  rsa_meth->app_data = NULL;
+
+  /* allocate RSA object */
+  rsa = RSA_new();
+  if (rsa == NULL)
+    {
+      SSLerr(SSL_F_SSL_USE_PRIVATEKEY, ERR_R_MALLOC_FAILURE);
+      goto err;
+    }
+
+  /* get the public key */
+  ASSERT(cert->cert_info->key->pkey); /* NULL before SSL_CTX_use_certificate() is called */
+  pub_rsa = cert->cert_info->key->pkey->pkey.rsa;
+
+  /* initialize RSA object */
+  rsa->n = BN_dup(pub_rsa->n);
+  rsa->flags |= RSA_FLAG_EXT_PKEY;
+  if (!RSA_set_method(rsa, rsa_meth))
+    goto err;
+
+  /* bind our custom RSA object to ssl_ctx */
+  if (!SSL_CTX_use_RSAPrivateKey(ctx->ctx, rsa))
+    goto err;
+
+  RSA_free(rsa); /* doesn't necessarily free, just decrements refcount */
+  return 1;
+
+ err:
+  if (rsa)
+    RSA_free(rsa);
+  else
+    {
+      if (rsa_meth)
+	free(rsa_meth);
+    }
+  msg (M_SSLERR, "Cannot enable SSL external private key capability");
+  return 0;
+}
+
+#endif
+
 void
 show_available_tls_ciphers ()
 {

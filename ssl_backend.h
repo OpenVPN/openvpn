@@ -209,6 +209,23 @@ int tls_ctx_load_priv_file (struct tls_root_ctx *ctx, const char *priv_key_file
 #endif
     );
 
+#ifdef MANAGMENT_EXTERNAL_KEY
+
+/**
+ * Tell the management interface to load the external private key matching
+ * the given certificate.
+ *
+ * @param ctx			TLS context to use
+ * @param cert			The certificate file to load the private key for
+ * 				"[[INLINE]]" in the case of inline files.
+ *
+ * @return 			1 if an error occurred, 0 if parsing was
+ * 				successful.
+ */
+int tls_ctx_use_external_private_key (struct tls_root_ctx *ctx, X509 *cert);
+
+#endif
+
 /**
  * Show the TLS ciphers that are available for us to use in the OpenSSL
  * library.
