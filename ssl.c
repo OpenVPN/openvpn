@@ -315,7 +315,6 @@ int
 verify_cert(struct tls_session *session, x509_cert_t *cert, int cert_depth)
 {
   char *subject = NULL;
-  char envname[64];
   char common_name[TLS_USERNAME_LEN] = {0};
   const struct tls_options *opt;
 
@@ -325,7 +324,8 @@ verify_cert(struct tls_session *session, x509_cert_t *cert, int cert_depth)
   session->verified = false;
 
   /* get the X509 name */
-  if (verify_get_subject(&subject, cert))
+  subject = verify_get_subject(cert);
+  if (!subject)
     {
         msg (D_TLS_ERRORS, "VERIFY ERROR: depth=%d, could not extract X509 "
             "subject string from certificate", cert_depth);
@@ -351,17 +351,8 @@ verify_cert(struct tls_session *session, x509_cert_t *cert, int cert_depth)
         }
     }
 
+  /* enforce character class restrictions in common name */
   string_mod_sslname (common_name, COMMON_NAME_CHAR_CLASS, opt->ssl_flags);
-
-#if 0 /* print some debugging info */
-  {
-    struct gc_arena gc = gc_new ();
-    msg (M_INFO, "LOCAL OPT[%d]: %s", cert_depth, opt->local_options);
-    msg (M_INFO, "X509[%d]: %s", cert_depth, subject);
-    msg (M_INFO, "SHA1[%d]: %s", cert_depth, format_hex(cert->sha1_hash, SHA_DIGEST_LENGTH, 0, &gc));
-    gc_free (&gc);
-  }
-#endif
 
   /* warn if cert chain is too deep */
   if (cert_depth >= MAX_CERT_DEPTH)
@@ -424,11 +415,11 @@ verify_cert(struct tls_session *session, x509_cert_t *cert, int cert_depth)
   session->verified = true;
 
  done:
-  OPENSSL_free (subject);
+  verify_free_subject (subject);
   return (session->verified == true) ? 1 : 0;
 
  err:
-  ERR_clear_error ();
+  tls_clear_error();
   session->verified = false;
   goto done;
 }

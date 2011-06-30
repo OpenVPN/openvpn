@@ -73,16 +73,6 @@ verify_callback (int preverify_ok, X509_STORE_CTX * ctx)
   return verify_cert(session, ctx->current_cert, ctx->error_depth);
 }
 
-int
-verify_get_subject (char **subject, X509 *cert)
-{
-  *subject = X509_NAME_oneline (X509_get_subject_name (cert), NULL, 0);
-  if (!*subject)
-      return 1;
-
-  return 0;
-}
-
 #ifdef ENABLE_X509ALTUSERNAME
 static
 bool extract_x509_extension(X509 *cert, char *fieldname, char *out, int size)
@@ -231,6 +221,20 @@ verify_free_serial (char *serial)
   if (serial)
     OPENSSL_free(serial);
 }
+
+char *
+verify_get_subject (X509 *cert)
+{
+  return X509_NAME_oneline (X509_get_subject_name (cert), NULL, 0);
+}
+
+void
+verify_free_subject (char *subject)
+{
+  if (subject)
+    OPENSSL_free(subject);
+}
+
 
 #ifdef ENABLE_X509_TRACK
 /*

@@ -75,14 +75,20 @@ void cert_hash_remember (struct tls_session *session, const int cert_depth,
 /*
  * Retrieve certificate's subject name, and place it in **subject.
  *
- * Memory for subject is allocated in the process, and must be freed.
+ * The returned string must be freed with \c verify_free_subject()
  *
- * @param subject	Pointer to memory to be allocated for the subject
  * @param cert		Certificate to retrieve the subject from.
  *
- * @return 		\c 1 on failure, \c 0 on success
+ * @return 		a string containing the subject
  */
-bool verify_get_subject (char **subject, x509_cert_t *cert);
+char *verify_get_subject (X509 *cert);
+
+/*
+ * Free a subjectnumber string as returned by \c verify_get_subject()
+ *
+ * @param subject	The subject to be freed.
+ */
+void verify_free_subject (char *subject);
 
 /*
  * Retrieve the certificate's username from the specified field.
@@ -104,7 +110,7 @@ bool verify_get_username (char *common_name, int cn_len,
  * Return the certificate's serial number.
  *
  * The serial number is returned as a string, since it might be a bignum.
- * The returened string must be freed with \c verify_free_serial()
+ * The returned string must be freed with \c verify_free_serial()
  *
  * @param cert		Certificate to retrieve the serial number from.
  *
