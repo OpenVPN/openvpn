@@ -81,14 +81,14 @@ void cert_hash_remember (struct tls_session *session, const int cert_depth,
  *
  * @return 		a string containing the subject
  */
-char *verify_get_subject (X509 *cert);
+char *x509_get_subject (x509_cert_t *cert);
 
 /*
  * Free a subjectnumber string as returned by \c verify_get_subject()
  *
  * @param subject	The subject to be freed.
  */
-void verify_free_subject (char *subject);
+void x509_free_subject (char *subject);
 
 /*
  * Retrieve the certificate's username from the specified field.
@@ -103,7 +103,7 @@ void verify_free_subject (char *subject);
  *
  * @return 		\c 1 on failure, \c 0 on success
  */
-bool verify_get_username (char *common_name, int cn_len,
+bool x509_get_username (char *common_name, int cn_len,
     char * x509_username_field, x509_cert_t *peer_cert);
 
 /*
@@ -116,14 +116,14 @@ bool verify_get_username (char *common_name, int cn_len,
  *
  * @return 		The certificate's serial number.
  */
-char *verify_get_serial (x509_cert_t *cert);
+char *x509_get_serial (x509_cert_t *cert);
 
 /*
  * Free a serial number string as returned by \c verify_get_serial()
  *
  * @param serial	The string to be freed.
  */
-void verify_free_serial (char *serial);
+void x509_free_serial (char *serial);
 
 /*
  * TODO: document
@@ -133,7 +133,7 @@ void verify_free_serial (char *serial);
  * @param cert_depth	Depth of the certificate
  * @param cert		Certificate to set the environment for
  */
-void setenv_x509_track (const struct x509_track *xt, struct env_set *es,
+void x509_setenv_track (const struct x509_track *xt, struct env_set *es,
     const int depth, x509_cert_t *x509);
 
 /*
@@ -145,7 +145,7 @@ void setenv_x509_track (const struct x509_track *xt, struct env_set *es,
  * @param cert_depth	Depth of the certificate
  * @param cert		Certificate to set the environment for
  */
-void setenv_x509 (struct env_set *es, int cert_depth, x509_cert_t *cert);
+void x509_setenv (struct env_set *es, int cert_depth, x509_cert_t *cert);
 
 /*
  * Check X.509 Netscape certificate type field, if available.
@@ -158,7 +158,7 @@ void setenv_x509 (struct env_set *es, int cert_depth, x509_cert_t *cert);
  * 			the expected bit set. \c false if the certificate does
  * 			not have NS cert type verification or the wrong bit set.
  */
-bool verify_nsCertType(const x509_cert_t *cert, const int usage);
+bool x509_verify_ns_cert_type(const x509_cert_t *cert, const int usage);
 
 /*
  * Verify X.509 key usage extension field.
@@ -170,7 +170,7 @@ bool verify_nsCertType(const x509_cert_t *cert, const int usage);
  * @return 		\c true if one of the key usage values matches, \c false
  * 			if key usage is not enabled, or the values do not match.
  */
-bool verify_cert_ku (x509_cert_t *x509, const unsigned * const expected_ku,
+bool x509_verify_cert_ku (x509_cert_t *x509, const unsigned * const expected_ku,
     int expected_len);
 
 /*
@@ -186,7 +186,7 @@ bool verify_cert_ku (x509_cert_t *x509, const unsigned * const expected_ku,
  * 			extended key usage fields, \c false if extended key
  * 			usage is not enabled, or the values do not match.
  */
-bool verify_cert_eku (x509_cert_t *x509, const char * const expected_oid);
+bool x509_verify_cert_eku (x509_cert_t *x509, const char * const expected_oid);
 
 /*
  * Store the given certificate in pem format in a temporary file in tmp_dir
@@ -195,7 +195,7 @@ bool verify_cert_eku (x509_cert_t *x509, const char * const expected_oid);
  * @param tmp_dir	Temporary directory to store the directory
  * @param gc		gc_arena to store temporary objects in
  */
-const char *write_peer_cert(x509_cert_t *cert, const char *tmp_dir,
+const char *x509_write_cert(x509_cert_t *cert, const char *tmp_dir,
     struct gc_arena *gc);
 
 /*
@@ -209,7 +209,7 @@ const char *write_peer_cert(x509_cert_t *cert, const char *tmp_dir,
  * 			certificate or does not contain an entry for it.
  * 			\c 0 otherwise.
  */
-bool verify_check_crl(const char *crl_file, x509_cert_t *cert,
+bool x509_verify_crl(const char *crl_file, x509_cert_t *cert,
     const char *subject);
 
 #endif /* SSL_VERIFY_BACKEND_H_ */

@@ -338,7 +338,7 @@ verify_peer_cert(const struct tls_options *opt, x509_cert_t *peer_cert,
   /* verify certificate nsCertType */
   if (opt->ns_cert_type != NS_CERT_CHECK_NONE)
     {
-      if (verify_nsCertType (peer_cert, opt->ns_cert_type))
+      if (x509_verify_ns_cert_type (peer_cert, opt->ns_cert_type))
 	{
 	  msg (D_HANDSHAKE, "VERIFY OK: nsCertType=%s",
 	       print_nsCertType (opt->ns_cert_type));
@@ -356,7 +356,7 @@ verify_peer_cert(const struct tls_options *opt, x509_cert_t *peer_cert,
   /* verify certificate ku */
   if (opt->remote_cert_ku[0] != 0)
     {
-      if (verify_cert_ku (peer_cert, opt->remote_cert_ku, MAX_PARMS))
+      if (x509_verify_cert_ku (peer_cert, opt->remote_cert_ku, MAX_PARMS))
 	{
 	  msg (D_HANDSHAKE, "VERIFY KU OK");
 	}
@@ -370,7 +370,7 @@ verify_peer_cert(const struct tls_options *opt, x509_cert_t *peer_cert,
   /* verify certificate eku */
   if (opt->remote_cert_eku != NULL)
     {
-      if (verify_cert_eku (peer_cert, opt->remote_cert_eku))
+      if (x509_verify_cert_eku (peer_cert, opt->remote_cert_eku))
         {
 	  msg (D_HANDSHAKE, "VERIFY EKU OK");
 	}
@@ -414,10 +414,10 @@ verify_cert_set_env(struct env_set *es, x509_cert_t *peer_cert, int cert_depth,
   /* Save X509 fields in environment */
 #ifdef ENABLE_X509_TRACK
   if (x509_track)
-    setenv_x509_track (x509_track, es, cert_depth, peer_cert);
+    x509_setenv_track (x509_track, es, cert_depth, peer_cert);
   else
 #endif
-    setenv_x509 (es, cert_depth, peer_cert);
+    x509_setenv (es, cert_depth, peer_cert);
 
   /* export subject name string as environmental variable */
   openvpn_snprintf (envname, sizeof(envname), "tls_id_%d", cert_depth);
@@ -443,10 +443,10 @@ verify_cert_set_env(struct env_set *es, x509_cert_t *peer_cert, int cert_depth,
   /* export serial number as environmental variable,
      use bignum in case serial number is large */
   {
-    char *serial = verify_get_serial(peer_cert);
+    char *serial = x509_get_serial(peer_cert);
     openvpn_snprintf (envname, sizeof(envname), "tls_serial_%d", cert_depth);
     setenv_str (es, envname, serial);
-    verify_free_serial(serial);
+    x509_free_serial(serial);
   }
 }
 
@@ -500,7 +500,7 @@ verify_cert_call_command(const char *verify_command, struct env_set *es,
   if (verify_export_cert)
     {
       gc = gc_new();
-      if ((tmp_file=write_peer_cert(cert, verify_export_cert,&gc)))
+      if ((tmp_file=x509_write_cert(cert, verify_export_cert,&gc)))
        {
          setenv_str(es, "peer_cert", tmp_file);
        }
@@ -540,24 +540,24 @@ verify_check_crl_dir(const char *crl_dir, X509 *cert)
 {
   char fn[256];
   int fd;
-  char *serial = verify_get_serial(cert);
+  char *serial = x509_get_serial(cert);
 
   if (!openvpn_snprintf(fn, sizeof(fn), "%s%c%s", crl_dir, OS_SPECIFIC_DIRSEP, serial))
     {
       msg (D_HANDSHAKE, "VERIFY CRL: filename overflow");
-      verify_free_serial(serial);
+      x509_free_serial(serial);
       return true;
     }
   fd = open (fn, O_RDONLY);
   if (fd >= 0)
     {
       msg (D_HANDSHAKE, "VERIFY CRL: certificate serial number %s is revoked", serial);
-      verify_free_serial(serial);
+      x509_free_serial(serial);
       close(fd);
       return true;
     }
 
-  verify_free_serial(serial);
+  x509_free_serial(serial);
 
   return false;
 }
@@ -575,7 +575,7 @@ verify_cert(struct tls_session *session, x509_cert_t *cert, int cert_depth)
   session->verified = false;
 
   /* get the X509 name */
-  subject = verify_get_subject(cert);
+  subject = x509_get_subject(cert);
   if (!subject)
     {
 	msg (D_TLS_ERRORS, "VERIFY ERROR: depth=%d, could not extract X509 "
@@ -588,7 +588,7 @@ verify_cert(struct tls_session *session, x509_cert_t *cert, int cert_depth)
   string_replace_leading (subject, '-', '_');
 
   /* extract the username (default is CN) */
-  if (verify_get_username (common_name, TLS_USERNAME_LEN, opt->x509_username_field, cert))
+  if (x509_get_username (common_name, TLS_USERNAME_LEN, opt->x509_username_field, cert))
     {
       if (!cert_depth)
 	{
@@ -657,7 +657,7 @@ verify_cert(struct tls_session *session, x509_cert_t *cert, int cert_depth)
       }
       else
       {
-	if (verify_check_crl(opt->crl_file, cert, subject))
+	if (x509_verify_crl(opt->crl_file, cert, subject))
 	  goto err;
       }
     }
@@ -666,7 +666,7 @@ verify_cert(struct tls_session *session, x509_cert_t *cert, int cert_depth)
   session->verified = true;
 
  done:
-  verify_free_subject (subject);
+  x509_free_subject (subject);
   return (session->verified == true) ? 1 : 0;
 
  err:

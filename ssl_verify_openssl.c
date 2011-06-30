@@ -183,7 +183,7 @@ extract_x509_field_ssl (X509_NAME *x509, const char *field_name, char *out,
 }
 
 bool
-verify_get_username (char *common_name, int cn_len,
+x509_get_username (char *common_name, int cn_len,
     char * x509_username_field, X509 *peer_cert)
 {
 #ifdef ENABLE_X509ALTUSERNAME
@@ -201,7 +201,7 @@ verify_get_username (char *common_name, int cn_len,
 }
 
 char *
-verify_get_serial (x509_cert_t *cert)
+x509_get_serial (x509_cert_t *cert)
 {
   ASN1_INTEGER *asn1_i;
   BIGNUM *bignum;
@@ -216,20 +216,20 @@ verify_get_serial (x509_cert_t *cert)
 }
 
 void
-verify_free_serial (char *serial)
+x509_free_serial (char *serial)
 {
   if (serial)
     OPENSSL_free(serial);
 }
 
 char *
-verify_get_subject (X509 *cert)
+x509_get_subject (X509 *cert)
 {
   return X509_NAME_oneline (X509_get_subject_name (cert), NULL, 0);
 }
 
 void
-verify_free_subject (char *subject)
+x509_free_subject (char *subject)
 {
   if (subject)
     OPENSSL_free(subject);
@@ -272,7 +272,7 @@ do_setenv_x509 (struct env_set *es, const char *name, char *value, int depth)
 }
 
 void
-setenv_x509_track (const struct x509_track *xt, struct env_set *es, const int depth, X509 *x509)
+x509_setenv_track (const struct x509_track *xt, struct env_set *es, const int depth, X509 *x509)
 {
   X509_NAME *x509_name = X509_get_subject_name (x509);
   const char nullc = '\0';
@@ -335,7 +335,7 @@ setenv_x509_track (const struct x509_track *xt, struct env_set *es, const int de
  *  X509_{cert_depth}_{name}={value}
  */
 void
-setenv_x509 (struct env_set *es, int cert_depth, x509_cert_t *peer_cert)
+x509_setenv (struct env_set *es, int cert_depth, x509_cert_t *peer_cert)
 {
   int i, n;
   int fn_nid;
@@ -383,7 +383,7 @@ setenv_x509 (struct env_set *es, int cert_depth, x509_cert_t *peer_cert)
 }
 
 bool
-verify_nsCertType(const x509_cert_t *peer_cert, const int usage)
+x509_verify_ns_cert_type(const x509_cert_t *peer_cert, const int usage)
 {
   if (usage == NS_CERT_CHECK_NONE)
     return true;
@@ -400,7 +400,7 @@ verify_nsCertType(const x509_cert_t *peer_cert, const int usage)
 #if OPENSSL_VERSION_NUMBER >= 0x00907000L
 
 bool
-verify_cert_ku (X509 *x509, const unsigned * const expected_ku,
+x509_verify_cert_ku (X509 *x509, const unsigned * const expected_ku,
     int expected_len)
 {
   ASN1_BIT_STRING *ku = NULL;
@@ -450,7 +450,7 @@ verify_cert_ku (X509 *x509, const unsigned * const expected_ku,
 }
 
 bool
-verify_cert_eku (X509 *x509, const char * const expected_oid)
+x509_verify_cert_eku (X509 *x509, const char * const expected_oid)
 {
   EXTENDED_KEY_USAGE *eku = NULL;
   bool fFound = false;
@@ -494,7 +494,7 @@ verify_cert_eku (X509 *x509, const char * const expected_oid)
 }
 
 const char *
-write_peer_cert(X509 *peercert, const char *tmp_dir, struct gc_arena *gc)
+x509_write_cert(X509 *peercert, const char *tmp_dir, struct gc_arena *gc)
 {
   FILE *peercert_file;
   const char *peercert_filename="";
@@ -529,7 +529,7 @@ write_peer_cert(X509 *peercert, const char *tmp_dir, struct gc_arena *gc)
  * check peer cert against CRL
  */
 bool
-verify_check_crl(const char *crl_file, X509 *peer_cert, const char *subject)
+x509_verify_crl(const char *crl_file, X509 *peer_cert, const char *subject)
 {
   X509_CRL *crl=NULL;
   X509_REVOKED *revoked;
