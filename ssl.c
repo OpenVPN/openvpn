@@ -2107,27 +2107,6 @@ lame_duck_must_die (const struct tls_session* session, interval_t *wakeup)
     return false;
 }
 
-
-/** @addtogroup control_processor
- *  @{ */
-
-/** @name Functions for initialization and cleanup of tls_multi structures
- *  @{ */
-
-/**
- * Allocate and initialize a \c tls_multi structure.
- * @ingroup control_processor
- *
- * This function allocates a new \c tls_multi structure, and performs some
- * amount of initialization.  Afterwards, the \c tls_multi_init_finalize()
- * function must be called to finalize the structure's initialization
- * process.
- *
- * @param tls_options  - The configuration options to be used for this VPN
- *                       tunnel.
- *
- * @return A newly allocated and initialized \c tls_multi structure.
- */
 struct tls_multi *
 tls_multi_init (struct tls_options *tls_options)
 {
@@ -2150,21 +2129,6 @@ tls_multi_init (struct tls_options *tls_options)
   return ret;
 }
 
-
-/**
- * Finalize initialization of a \c tls_multi structure.
- * @ingroup control_processor
- *
- * This function initializes the \c TM_ACTIVE \c tls_session, and in
- * server mode also the \c TM_UNTRUSTED \c tls_session, associated with
- * this \c tls_multi structure.  It also configures the control channel's
- * \c frame structure based on the data channel's \c frame given in
- * argument \a frame.
- *
- * @param multi        - The \c tls_multi structure of which to finalize
- *                       initialization.
- * @param frame        - The data channel's \c frame structure.
- */
 void
 tls_multi_init_finalize (struct tls_multi* multi, const struct frame* frame)
 {
@@ -2225,18 +2189,8 @@ tls_multi_init_set_options (struct tls_multi* multi,
 #endif
 }
 
-
-/**
- * Cleanup a \c tls_multi structure and free associated memory
- * allocations.
- * @ingroup control_processor
- *
- * This function cleans up a \c tls_multi structure.  This includes
- * cleaning up all associated \c tls_session structures.
- *
- * @param multi        - The \c tls_multi structure to clean up in free.
- * @param clear        - Whether the memory allocated for the \a multi
- *                       object should be overwritten with 0s.
+/*
+ * Cleanup a tls_multi structure and free associated memory allocations.
  */
 void
 tls_multi_free (struct tls_multi *multi, bool clear)
@@ -2267,10 +2221,6 @@ tls_multi_free (struct tls_multi *multi, bool clear)
 
   free(multi);
 }
-
-/** @} name Functions for initialization and cleanup of tls_multi structures */
-
-/** @} addtogroup control_processor */
 
 
 /*

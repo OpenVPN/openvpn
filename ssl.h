@@ -177,8 +177,11 @@
 #define TLS_MULTI_HORIZON 2     /* call tls_multi_process frequently for n seconds after
 				   every packet sent/received action */
 
-/* The SSL/TLS worker thread will wait at most this many seconds for the interprocess
-   communication pipe to the main thread to be ready to accept writes. */
+/*
+ * The SSL/TLS worker thread will wait at most this many seconds for the
+ * interprocess communication pipe to the main thread to be ready to accept
+ * writes.
+ */
 #define TLS_MULTI_THREAD_SEND_TIMEOUT 5
 
 /* Interval that tls_multi_process should call tls_authentication_status */
@@ -229,15 +232,6 @@ struct cert_hash {
 struct cert_hash_set {
   struct cert_hash *ch[MAX_CERT_DEPTH];
 };
-/*
- * Prepare the SSL library for use
- */
-void init_ssl_lib (void);
-
-/*
- * Free any internal state that the SSL library might have
- */
-void free_ssl_lib (void);
 
 #ifdef ENABLE_X509_TRACK
 
@@ -362,6 +356,8 @@ struct tls_session
  */
 #define KEY_SCAN_SIZE 3
 
+/** @name Functions for initialization and cleanup of tls_multi structures
+ *  @{ */
 
 /**
  * Security parameter state for a single VPN tunnel.
@@ -450,7 +446,14 @@ struct tls_auth_standalone
   struct frame frame;
 };
 
+/*
+ * Prepare the SSL library for use
+ */
 void init_ssl_lib (void);
+
+/*
+ * Free any internal state that the SSL library might have
+ */
 void free_ssl_lib (void);
 
 /**
@@ -459,31 +462,99 @@ void free_ssl_lib (void);
  */
 void init_ssl (const struct options *options, struct tls_root_ctx *ctx);
 
+/** @addtogroup control_processor
+ *  @{ */
+
+/** @name Functions for initialization and cleanup of tls_multi structures
+ *  @{ */
+
+/**
+ * Allocate and initialize a \c tls_multi structure.
+ * @ingroup control_processor
+ *
+ * This function allocates a new \c tls_multi structure, and performs some
+ * amount of initialization.  Afterwards, the \c tls_multi_init_finalize()
+ * function must be called to finalize the structure's initialization
+ * process.
+ *
+ * @param tls_options  - The configuration options to be used for this VPN
+ *                       tunnel.
+ *
+ * @return A newly allocated and initialized \c tls_multi structure.
+ */
 struct tls_multi *tls_multi_init (struct tls_options *tls_options);
 
-struct tls_auth_standalone *tls_auth_standalone_init (struct tls_options *tls_options,
-						      struct gc_arena *gc);
-
-void tls_auth_standalone_finalize (struct tls_auth_standalone *tas,
-				   const struct frame *frame);
-
+/**
+ * Finalize initialization of a \c tls_multi structure.
+ * @ingroup control_processor
+ *
+ * This function initializes the \c TM_ACTIVE \c tls_session, and in
+ * server mode also the \c TM_UNTRUSTED \c tls_session, associated with
+ * this \c tls_multi structure.  It also configures the control channel's
+ * \c frame structure based on the data channel's \c frame given in
+ * argument \a frame.
+ *
+ * @param multi        - The \c tls_multi structure of which to finalize
+ *                       initialization.
+ * @param frame        - The data channel's \c frame structure.
+ */
 void tls_multi_init_finalize(struct tls_multi *multi,
 			     const struct frame *frame);
 
+/*
+ * Initialize a standalone tls-auth verification object.
+ */
+struct tls_auth_standalone *tls_auth_standalone_init (struct tls_options *tls_options,
+						      struct gc_arena *gc);
+
+/*
+ * Finalize a standalone tls-auth verification object.
+ */
+void tls_auth_standalone_finalize (struct tls_auth_standalone *tas,
+				   const struct frame *frame);
+
+/*
+ * Set local and remote option compatibility strings.
+ * Used to verify compatibility of local and remote option
+ * sets.
+ */
 void tls_multi_init_set_options(struct tls_multi* multi,
 				const char *local,
 				const char *remote);
 
+/**
+ * Cleanup a \c tls_multi structure and free associated memory
+ * allocations.
+ * @ingroup control_processor
+ *
+ * This function cleans up a \c tls_multi structure.  This includes
+ * cleaning up all associated \c tls_session structures.
+ *
+ * @param multi        - The \c tls_multi structure to clean up in free.
+ * @param clear        - Whether the memory allocated for the \a multi
+ *                       object should be overwritten with 0s.
+ */
+void tls_multi_free (struct tls_multi *multi, bool clear);
+
+/** @} name Functions for initialization and cleanup of tls_multi structures */
+
+/** @} addtogroup control_processor */
+
 #define TLSMP_INACTIVE 0
 #define TLSMP_ACTIVE   1
 #define TLSMP_KILL     2
+
+/*
+ * Called by the top-level event loop.
+ *
+ * Basically decides if we should call tls_process for
+ * the active or untrusted sessions.
+ */
 int tls_multi_process (struct tls_multi *multi,
 		       struct buffer *to_link,
 		       struct link_socket_actual **to_link_addr,
 		       struct link_socket_info *to_link_socket_info,
 		       interval_t *wakeup);
-
-void tls_multi_free (struct tls_multi *multi, bool clear);
 
 
 /**************************************************************************/
@@ -634,12 +705,21 @@ void tls_set_verify_command (const char *cmd);
 void tls_set_crl_verify (const char *crl);
 void tls_set_verify_x509name (const char *x509name);
 
+/*
+ * Reserve any extra space required on frames.
+ */
 void tls_adjust_frame_parameters(struct frame *frame);
 
+/*
+ * Send a payload over the TLS control channel
+ */
 bool tls_send_payload (struct tls_multi *multi,
 		       const uint8_t *data,
 		       int size);
 
+/*
+ * Receive a payload through the TLS control channel
+ */
 bool tls_rec_payload (struct tls_multi *multi,
 		      struct buffer *buf);
 
