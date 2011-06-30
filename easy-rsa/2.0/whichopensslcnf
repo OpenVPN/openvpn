@@ -1,13 +1,26 @@
 #!/bin/sh
 
+cnf="$1/openssl.cnf"
+
 if [ "$OPENSSL" ]; then
-	if $OPENSSL version | grep 0.9.6 > /dev/null; then
-		echo "$1/openssl-0.9.6.cnf"
+	if $OPENSSL version | grep -E "0\.9\.6[[:alnum:]]" > /dev/null; then
+		cnf="$1/openssl-0.9.6.cnf"
+	elif $OPENSSL version | grep -E "0\.9\.8[[:alnum:]]" > /dev/null; then
+		cnf="$1/openssl-0.9.8.cnf"
+	elif $OPENSSL version | grep -E "1\.0\.([[:digit:]][[:alnum:]])" > /dev/null; then
+                cnf="$1/openssl-1.0.0.cnf"
 	else
-		echo "$1/openssl.cnf"
+		cnf="$1/openssl.cnf"
 	fi
-else
-	echo "$1/openssl.cnf"
+fi
+
+echo $cnf
+
+if [ ! -r $cnf ]; then
+    echo "**************************************************************" >&2
+    echo "  No $cnf file could be found" >&2
+    echo "  Further invocations will fail" >&2
+    echo "**************************************************************" >&2
 fi
 
 exit 0
