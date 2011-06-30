@@ -30,4 +30,25 @@
 #ifndef SSL_VERIFY_BACKEND_H_
 #define SSL_VERIFY_BACKEND_H_
 
+/*
+ * Backend support functions.
+ *
+ * The following functions are needed by the backend, but defined in the main
+ * file.
+ */
+
+/*
+ * Remember the given certificate hash, allowing the certificate chain to be
+ * locked between sessions.
+ *
+ * Must be called for every certificate in the verification chain, whether it
+ * is valid or not.
+ *
+ * @param session	TLS Session associated with this tunnel
+ * @param cert_depth	Depth of the current certificate
+ * @param sha1_hash	Hash of the current certificate
+ */
+void cert_hash_remember (struct tls_session *session, const int cert_depth,
+    const unsigned char *sha1_hash);
+
 #endif /* SSL_VERIFY_BACKEND_H_ */

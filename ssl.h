@@ -218,21 +218,6 @@
  */
 /* #define MEASURE_TLS_HANDSHAKE_STATS */
 
-/*
- * Keep track of certificate hashes at various depths
- */
-
-/* Maximum certificate depth we will allow */
-#define MAX_CERT_DEPTH 16
-
-struct cert_hash {
-  unsigned char sha1_hash[SHA_DIGEST_LENGTH];
-};
-
-struct cert_hash_set {
-  struct cert_hash *ch[MAX_CERT_DEPTH];
-};
-
 #ifdef ENABLE_X509_TRACK
 
 struct x509_track
@@ -540,14 +525,12 @@ const char *tls_common_name (const struct tls_multi* multi, const bool null);
 const char *tls_username(const struct tls_multi *multi, const bool null);
 void tls_set_common_name (struct tls_multi *multi, const char *common_name);
 void tls_lock_common_name (struct tls_multi *multi);
-void tls_lock_cert_hash_set (struct tls_multi *multi);
 
 #define TLS_AUTHENTICATION_SUCCEEDED  0
 #define TLS_AUTHENTICATION_FAILED     1
 #define TLS_AUTHENTICATION_DEFERRED   2
 #define TLS_AUTHENTICATION_UNDEFINED  3
 int tls_authentication_status (struct tls_multi *multi, const int latency);
-void tls_deauthenticate (struct tls_multi *multi);
 
 #ifdef MANAGEMENT_DEF_AUTH
 bool tls_authenticate_key (struct tls_multi *multi, const unsigned int mda_key_id, const bool auth, const char *client_reason);

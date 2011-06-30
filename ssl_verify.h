@@ -40,6 +40,38 @@
 #include "ssl_verify_openssl.h"
 #endif
 
+/*
+ * Keep track of certificate hashes at various depths
+ */
+
+/** Maximum certificate depth we will allow */
+#define MAX_CERT_DEPTH 16
+
+/** Structure containing the hash for a single certificate */
+struct cert_hash {
+  unsigned char sha1_hash[SHA_DIGEST_LENGTH]; /**< The SHA1 hash for a certificate */
+};
+
+/** Structure containing the hashes for a full certificate chain */
+struct cert_hash_set {
+  struct cert_hash *ch[MAX_CERT_DEPTH]; /**< Array of certificate hashes */
+};
+
+
+/**
+ * Frees the given set of certificate hashes.
+ *
+ * @param chs	The certificate hash set to free.
+ */
+void cert_hash_free (struct cert_hash_set *chs);
+
+/**
+ * Locks the certificate hash set used in the given tunnel
+ *
+ * @param multi	The tunnel to lock
+ */
+void tls_lock_cert_hash_set (struct tls_multi *multi);
+
 /**
  * Perform final authentication checks, including locking of the cn, the allowed
  * certificate hashes, and whether a client config entry exists in the
