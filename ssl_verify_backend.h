@@ -98,6 +98,47 @@ bool verify_get_subject (char **subject, x509_cert_t *cert);
  * @return 		\c 1 on failure, \c 0 on success
  */
 bool verify_get_username (char *common_name, int cn_len,
-    char * x509_username_field, X509 *peer_cert);
+    char * x509_username_field, x509_cert_t *peer_cert);
+
+/*
+ * Return the certificate's serial number.
+ *
+ * The serial number is returned as a string, since it might be a bignum.
+ * The returened string must be freed with \c verify_free_serial()
+ *
+ * @param cert		Certificate to retrieve the serial number from.
+ *
+ * @return 		The certificate's serial number.
+ */
+char *verify_get_serial (x509_cert_t *cert);
+
+/*
+ * Free a serial number string as returned by \c verify_get_serial()
+ *
+ * @param serial	The string to be freed.
+ */
+void verify_free_serial (char *serial);
+
+/*
+ * TODO: document
+ *
+ * @param xt
+ * @param es		Environment set to save variables in
+ * @param cert_depth	Depth of the certificate
+ * @param cert		Certificate to set the environment for
+ */
+void setenv_x509_track (const struct x509_track *xt, struct env_set *es,
+    const int depth, x509_cert_t *x509);
+
+/*
+ * Save X509 fields to environment, using the naming convention:
+ *
+ * X509_{cert_depth}_{name}={value}
+ *
+ * @param es		Environment set to save variables in
+ * @param cert_depth	Depth of the certificate
+ * @param cert		Certificate to set the environment for
+ */
+void setenv_x509 (struct env_set *es, int cert_depth, x509_cert_t *cert);
 
 #endif /* SSL_VERIFY_BACKEND_H_ */

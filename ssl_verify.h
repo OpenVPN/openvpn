@@ -40,6 +40,8 @@
 #include "ssl_verify_openssl.h"
 #endif
 
+#include "ssl_verify_backend.h"
+
 /*
  * Keep track of certificate hashes at various depths
  */
@@ -197,6 +199,21 @@ void verify_user_pass(struct user_pass *up, struct tls_multi *multi,
  */
 void verify_final_auth_checks(struct tls_multi *multi, struct tls_session *session);
 
+#ifdef ENABLE_X509_TRACK
+
+struct x509_track
+{
+  const struct x509_track *next;
+  const char *name;
+# define XT_FULL_CHAIN (1<<0)
+  unsigned int flags;
+  int nid;
+};
+
+void x509_track_add (const struct x509_track **ll_head, const char *name, int msglevel, struct gc_arena *gc);
+
+#endif
+
 /*
  * TODO: document
  */
@@ -215,6 +232,11 @@ tls_client_reason (struct tls_multi *multi)
 #endif
 }
 
+/* TEMP */
+void
+verify_cert_set_env(struct env_set *es, x509_cert_t *peer_cert, int cert_depth,
+    const char *subject, const char *common_name,
+    const struct x509_track *x509_track);
 
 #endif /* SSL_VERIFY_H_ */
 

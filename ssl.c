@@ -296,150 +296,6 @@ ssl_put_auth_challenge (const char *cr_str)
 
 #endif
 
-#ifdef ENABLE_X509_TRACK
-/*
- * setenv_x509_track function -- save X509 fields to environment,
- * using the naming convention:
- *
- *  X509_{cert_depth}_{name}={value}
- *
- * This function differs from setenv_x509 below in the following ways:
- *
- * (1) Only explicitly named attributes in xt are saved, per usage
- *     of --x509-track program options.
- * (2) Only the level 0 cert info is saved unless the XT_FULL_CHAIN
- *     flag is set in xt->flags (corresponds with prepending a '+'
- *     to the name when specified by --x509-track program option).
- * (3) This function supports both X509 subject name fields as
- *     well as X509 V3 extensions.
- */
-
-/* worker method for setenv_x509_track */
-static void
-do_setenv_x509 (struct env_set *es, const char *name, char *value, int depth)
-{
-  char *name_expand;
-  size_t name_expand_size;
-
-  string_mod (value, CC_ANY, CC_CRLF, '?');
-  msg (D_X509_ATTR, "X509 ATTRIBUTE name='%s' value='%s' depth=%d", name, value, depth);
-  name_expand_size = 64 + strlen (name);
-  name_expand = (char *) malloc (name_expand_size);
-  check_malloc_return (name_expand);
-  openvpn_snprintf (name_expand, name_expand_size, "X509_%d_%s", depth, name);
-  setenv_str (es, name_expand, value);
-  free (name_expand);
-}
-
-static void
-setenv_x509_track (const struct x509_track *xt, struct env_set *es, const int depth, X509 *x509)
-{
-  X509_NAME *x509_name = X509_get_subject_name (x509);
-  const char nullc = '\0';
-  int i;
-
-  while (xt)
-    {
-      if (depth == 0 || (xt->flags & XT_FULL_CHAIN))
-	{
-	  i = X509_NAME_get_index_by_NID(x509_name, xt->nid, -1);
-	  if (i >= 0)
-	    {
-	      X509_NAME_ENTRY *ent = X509_NAME_get_entry(x509_name, i);
-	      if (ent)
-		{
-		  ASN1_STRING *val = X509_NAME_ENTRY_get_data (ent);
-		  unsigned char *buf;
-		  buf = (unsigned char *)1; /* bug in OpenSSL 0.9.6b ASN1_STRING_to_UTF8 requires this workaround */
-		  if (ASN1_STRING_to_UTF8 (&buf, val) > 0)
-		    {
-		      do_setenv_x509(es, xt->name, (char *)buf, depth);
-		      OPENSSL_free (buf);
-		    }
-		}
-	    }
-	  else
-	    {
-	      i = X509_get_ext_by_NID(x509, xt->nid, -1);
-	      if (i >= 0)
-		{
-		  X509_EXTENSION *ext = X509_get_ext(x509, i);
-		  if (ext)
-		    {
-		      BIO *bio = BIO_new(BIO_s_mem());
-		      if (bio)
-			{
-			  if (X509V3_EXT_print(bio, ext, 0, 0))
-			    {
-			      if (BIO_write(bio, &nullc, 1) == 1)
-				{
-				  char *str;
-				  BIO_get_mem_data(bio, &str);
-				  do_setenv_x509(es, xt->name, str, depth);
-				}
-			    }
-			  BIO_free(bio);
-			}
-		    }
-		}
-	    }
-	}
-      xt = xt->next;
-    }
-}
-#endif
-
-/*
- * Save X509 fields to environment, using the naming convention:
- *
- *  X509_{cert_depth}_{name}={value}
- */
-static void
-setenv_x509 (struct env_set *es, const int error_depth, X509_NAME *x509)
-{
-  int i, n;
-  int fn_nid;
-  ASN1_OBJECT *fn;
-  ASN1_STRING *val;
-  X509_NAME_ENTRY *ent;
-  const char *objbuf;
-  unsigned char *buf;
-  char *name_expand;
-  size_t name_expand_size;
-
-  n = X509_NAME_entry_count (x509);
-  for (i = 0; i < n; ++i)
-    {
-      ent = X509_NAME_get_entry (x509, i);
-      if (!ent)
-	continue;
-      fn = X509_NAME_ENTRY_get_object (ent);
-      if (!fn)
-	continue;
-      val = X509_NAME_ENTRY_get_data (ent);
-      if (!val)
-	continue;
-      fn_nid = OBJ_obj2nid (fn);
-      if (fn_nid == NID_undef)
-	continue;
-      objbuf = OBJ_nid2sn (fn_nid);
-      if (!objbuf)
-	continue;
-      buf = (unsigned char *)1; /* bug in OpenSSL 0.9.6b ASN1_STRING_to_UTF8 requires this workaround */
-      if (ASN1_STRING_to_UTF8 (&buf, val) <= 0)
-	continue;
-      name_expand_size = 64 + strlen (objbuf);
-      name_expand = (char *) malloc (name_expand_size);
-      check_malloc_return (name_expand);
-      openvpn_snprintf (name_expand, name_expand_size, "X509_%d_%s", error_depth, objbuf);
-      string_mod (name_expand, CC_PRINT, CC_CRLF, '_');
-      string_mod ((char*)buf, CC_PRINT, CC_CRLF, '_');
-      setenv_str (es, name_expand, (char*)buf);
-      free (name_expand);
-      OPENSSL_free (buf);
-    }
-}
-
 static void
 setenv_untrusted (struct tls_session *session)
 {
@@ -602,7 +458,6 @@ verify_cert(struct tls_session *session, x509_cert_t *cert, int cert_depth)
   char common_name[TLS_USERNAME_LEN] = {0};
   const struct tls_options *opt;
   struct argv argv = argv_new ();
-  char *serial = NULL;
 
   opt = session->opt;
   ASSERT (opt);
@@ -616,14 +471,6 @@ verify_cert(struct tls_session *session, x509_cert_t *cert, int cert_depth)
             "subject string from certificate", cert_depth);
         goto err;
     }
-
-  /* Save X509 fields in environment */
-#ifdef ENABLE_X509_TRACK
-  if (opt->x509_track)
-    setenv_x509_track (opt->x509_track, opt->es, cert_depth, cert);
-  else
-#endif
-    setenv_x509 (opt->es, cert_depth, X509_get_subject_name (cert));
 
   /* enforce character class restrictions in X509 name */
   string_mod_sslname (subject, X509_NAME_CHAR_CLASS, opt->ssl_flags);
@@ -677,39 +524,10 @@ verify_cert(struct tls_session *session, x509_cert_t *cert, int cert_depth)
   if (cert_depth == 0)
     set_common_name (session, common_name);
 
-  /* export subject name string as environmental variable */
   session->verify_maxlevel = max_int (session->verify_maxlevel, cert_depth);
-  openvpn_snprintf (envname, sizeof(envname), "tls_id_%d", cert_depth);
-  setenv_str (opt->es, envname, subject);
 
-#ifdef ENABLE_EUREPHIA
-  /* export X509 cert SHA1 fingerprint */
-  {
-    struct gc_arena gc = gc_new ();
-    openvpn_snprintf (envname, sizeof(envname), "tls_digest_%d", cert_depth);
-    setenv_str (opt->es, envname,
-		format_hex_ex(cert->sha1_hash, SHA_DIGEST_LENGTH, 0, 1, ":", &gc));
-    gc_free(&gc);
-  }
-#endif
-#if 0
-  /* export common name string as environmental variable */
-  openvpn_snprintf (envname, sizeof(envname), "tls_common_name_%d", cert_depth);
-  setenv_str (opt->es, envname, common_name);
-#endif
-
-  /* export serial number as environmental variable,
-     use bignum in case serial number is large */
-  {
-    ASN1_INTEGER *asn1_i;
-    BIGNUM *bignum;
-    asn1_i = X509_get_serialNumber(cert);
-    bignum = ASN1_INTEGER_to_BN(asn1_i, NULL);
-    serial = BN_bn2dec(bignum);
-    openvpn_snprintf (envname, sizeof(envname), "tls_serial_%d", cert_depth);
-    setenv_str (opt->es, envname, serial);
-    BN_free(bignum);
-  }
+  /* export certificate values to the environment */
+  verify_cert_set_env(opt->es, cert, cert_depth, subject, common_name, opt->x509_track);
 
   /* export current untrusted IP */
   setenv_untrusted (session);
@@ -852,18 +670,22 @@ verify_cert(struct tls_session *session, x509_cert_t *cert, int cert_depth)
 	{
 	  char fn[256];
 	  int fd;
+	  char *serial = verify_get_serial(cert);
 	  if (!openvpn_snprintf(fn, sizeof(fn), "%s%c%s", opt->crl_file, OS_SPECIFIC_DIRSEP, serial))
 	    {
 	      msg (D_HANDSHAKE, "VERIFY CRL: filename overflow");
+	      verify_free_serial(serial);
 	      goto err;
 	    }
 	  fd = open (fn, O_RDONLY);
 	  if (fd >= 0)
 	    {
 	      msg (D_HANDSHAKE, "VERIFY CRL: certificate serial number %s is revoked", serial);
+	      verify_free_serial(serial);
 	      close(fd);
 	      goto err;
 	    }
+	  verify_free_serial(serial);
 	}
       else
 	{
@@ -922,8 +744,6 @@ verify_cert(struct tls_session *session, x509_cert_t *cert, int cert_depth)
 
  done:
   OPENSSL_free (subject);
-  if (serial)
-    OPENSSL_free(serial);
   argv_reset (&argv);
   return (session->verified == true) ? 1 : 0;
 
@@ -934,32 +754,6 @@ verify_cert(struct tls_session *session, x509_cert_t *cert, int cert_depth)
 }
 
 /** @} name Function for authenticating a new connection from a remote OpenVPN peer */
-
-#ifdef ENABLE_X509_TRACK
-
-void
-x509_track_add (const struct x509_track **ll_head, const char *name, int msglevel, struct gc_arena *gc)
-{
-  struct x509_track *xt;
-  ALLOC_OBJ_CLEAR_GC (xt, struct x509_track, gc);
-  if (*name == '+')
-    {
-      xt->flags |= XT_FULL_CHAIN;
-      ++name;
-    }
-  xt->name = name;
-  xt->nid = OBJ_txt2nid(name);
-  if (xt->nid != NID_undef)
-    {
-      xt->next = *ll_head;
-      *ll_head = xt;
-    }
-  else
-    msg(msglevel, "x509_track: no such attribute '%s'", name);
-}
-
-#endif
-
 
 /*
  * Initialize SSL context.

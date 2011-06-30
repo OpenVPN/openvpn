@@ -281,6 +281,81 @@ tls_lock_cert_hash_set (struct tls_multi *multi)
     multi->locked_cert_hash_set = cert_hash_copy (chs);
 }
 
+#ifdef ENABLE_X509_TRACK
+
+void
+x509_track_add (const struct x509_track **ll_head, const char *name, int msglevel, struct gc_arena *gc)
+{
+  struct x509_track *xt;
+  ALLOC_OBJ_CLEAR_GC (xt, struct x509_track, gc);
+  if (*name == '+')
+    {
+      xt->flags |= XT_FULL_CHAIN;
+      ++name;
+    }
+  xt->name = name;
+  xt->nid = OBJ_txt2nid(name);
+  if (xt->nid != NID_undef)
+    {
+      xt->next = *ll_head;
+      *ll_head = xt;
+    }
+  else
+    msg(msglevel, "x509_track: no such attribute '%s'", name);
+}
+
+#endif
+
+/*
+ * Export the subject, common_name, and raw certificate fields to the
+ * environment for later verification by scripts and plugins.
+ */
+void
+verify_cert_set_env(struct env_set *es, x509_cert_t *peer_cert, int cert_depth,
+    const char *subject, const char *common_name,
+    const struct x509_track *x509_track)
+{
+  char envname[64];
+
+  /* Save X509 fields in environment */
+#ifdef ENABLE_X509_TRACK
+  if (x509_track)
+    setenv_x509_track (x509_track, es, cert_depth, peer_cert);
+  else
+#endif
+    setenv_x509 (es, cert_depth, peer_cert);
+
+  /* export subject name string as environmental variable */
+  openvpn_snprintf (envname, sizeof(envname), "tls_id_%d", cert_depth);
+  setenv_str (es, envname, subject);
+
+#if 0
+  /* export common name string as environmental variable */
+  openvpn_snprintf (envname, sizeof(envname), "tls_common_name_%d", cert_depth);
+  setenv_str (es, envname, common_name);
+#endif
+
+#ifdef ENABLE_EUREPHIA
+  /* export X509 cert SHA1 fingerprint */
+  {
+    struct gc_arena gc = gc_new ();
+    openvpn_snprintf (envname, sizeof(envname), "tls_digest_%d", cert_depth);
+    setenv_str (es, envname,
+	  format_hex_ex(peer_cert->sha1_hash, SHA_DIGEST_LENGTH, 0, 1, ":", &gc));
+    gc_free(&gc);
+  }
+#endif
+
+  /* export serial number as environmental variable,
+     use bignum in case serial number is large */
+  {
+    char *serial = verify_get_serial(peer_cert);
+    openvpn_snprintf (envname, sizeof(envname), "tls_serial_%d", cert_depth);
+    setenv_str (es, envname, serial);
+    verify_free_serial(serial);
+  }
+}
+
 
 /* ***************************************************************************
  * Functions for the management of deferred authentication when using

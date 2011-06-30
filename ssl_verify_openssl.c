@@ -209,3 +209,171 @@ verify_get_username (char *common_name, int cn_len,
 
   return false;
 }
+
+char *
+verify_get_serial (x509_cert_t *cert)
+{
+  ASN1_INTEGER *asn1_i;
+  BIGNUM *bignum;
+  char *serial;
+
+  asn1_i = X509_get_serialNumber(cert);
+  bignum = ASN1_INTEGER_to_BN(asn1_i, NULL);
+  serial = BN_bn2dec(bignum);
+
+  BN_free(bignum);
+  return serial;
+}
+
+void
+verify_free_serial (char *serial)
+{
+  if (serial)
+    OPENSSL_free(serial);
+}
+
+#ifdef ENABLE_X509_TRACK
+/*
+ * setenv_x509_track function -- save X509 fields to environment,
+ * using the naming convention:
+ *
+ *  X509_{cert_depth}_{name}={value}
+ *
+ * This function differs from setenv_x509 below in the following ways:
+ *
+ * (1) Only explicitly named attributes in xt are saved, per usage
+ *     of --x509-track program options.
+ * (2) Only the level 0 cert info is saved unless the XT_FULL_CHAIN
+ *     flag is set in xt->flags (corresponds with prepending a '+'
+ *     to the name when specified by --x509-track program option).
+ * (3) This function supports both X509 subject name fields as
+ *     well as X509 V3 extensions.
+ */
+
+/* worker method for setenv_x509_track */
+static void
+do_setenv_x509 (struct env_set *es, const char *name, char *value, int depth)
+{
+  char *name_expand;
+  size_t name_expand_size;
+
+  string_mod (value, CC_ANY, CC_CRLF, '?');
+  msg (D_X509_ATTR, "X509 ATTRIBUTE name='%s' value='%s' depth=%d", name, value, depth);
+  name_expand_size = 64 + strlen (name);
+  name_expand = (char *) malloc (name_expand_size);
+  check_malloc_return (name_expand);
+  openvpn_snprintf (name_expand, name_expand_size, "X509_%d_%s", depth, name);
+  setenv_str (es, name_expand, value);
+  free (name_expand);
+}
+
+void
+setenv_x509_track (const struct x509_track *xt, struct env_set *es, const int depth, X509 *x509)
+{
+  X509_NAME *x509_name = X509_get_subject_name (x509);
+  const char nullc = '\0';
+  int i;
+
+  while (xt)
+    {
+      if (depth == 0 || (xt->flags & XT_FULL_CHAIN))
+	{
+	  i = X509_NAME_get_index_by_NID(x509_name, xt->nid, -1);
+	  if (i >= 0)
+	    {
+	      X509_NAME_ENTRY *ent = X509_NAME_get_entry(x509_name, i);
+	      if (ent)
+		{
+		  ASN1_STRING *val = X509_NAME_ENTRY_get_data (ent);
+		  unsigned char *buf;
+		  buf = (unsigned char *)1; /* bug in OpenSSL 0.9.6b ASN1_STRING_to_UTF8 requires this workaround */
+		  if (ASN1_STRING_to_UTF8 (&buf, val) > 0)
+		    {
+		      do_setenv_x509(es, xt->name, (char *)buf, depth);
+		      OPENSSL_free (buf);
+		    }
+		}
+	    }
+	  else
+	    {
+	      i = X509_get_ext_by_NID(x509, xt->nid, -1);
+	      if (i >= 0)
+		{
+		  X509_EXTENSION *ext = X509_get_ext(x509, i);
+		  if (ext)
+		    {
+		      BIO *bio = BIO_new(BIO_s_mem());
+		      if (bio)
+			{
+			  if (X509V3_EXT_print(bio, ext, 0, 0))
+			    {
+			      if (BIO_write(bio, &nullc, 1) == 1)
+				{
+				  char *str;
+				  BIO_get_mem_data(bio, &str);
+				  do_setenv_x509(es, xt->name, str, depth);
+				}
+			    }
+			  BIO_free(bio);
+			}
+		    }
+		}
+	    }
+	}
+      xt = xt->next;
+    }
+}
+#endif
+
+/*
+ * Save X509 fields to environment, using the naming convention:
+ *
+ *  X509_{cert_depth}_{name}={value}
+ */
+void
+setenv_x509 (struct env_set *es, int cert_depth, x509_cert_t *peer_cert)
+{
+  int i, n;
+  int fn_nid;
+  ASN1_OBJECT *fn;
+  ASN1_STRING *val;
+  X509_NAME_ENTRY *ent;
+  const char *objbuf;
+  unsigned char *buf;
+  char *name_expand;
+  size_t name_expand_size;
+  X509_NAME *x509 = X509_get_subject_name (peer_cert);
+
+  n = X509_NAME_entry_count (x509);
+  for (i = 0; i < n; ++i)
+    {
+      ent = X509_NAME_get_entry (x509, i);
+      if (!ent)
+	continue;
+      fn = X509_NAME_ENTRY_get_object (ent);
+      if (!fn)
+	continue;
+      val = X509_NAME_ENTRY_get_data (ent);
+      if (!val)
+	continue;
+      fn_nid = OBJ_obj2nid (fn);
+      if (fn_nid == NID_undef)
+	continue;
+      objbuf = OBJ_nid2sn (fn_nid);
+      if (!objbuf)
+	continue;
+      buf = (unsigned char *)1; /* bug in OpenSSL 0.9.6b ASN1_STRING_to_UTF8 requires this workaround */
+      if (ASN1_STRING_to_UTF8 (&buf, val) <= 0)
+	continue;
+      name_expand_size = 64 + strlen (objbuf);
+      name_expand = (char *) malloc (name_expand_size);
+      check_malloc_return (name_expand);
+      openvpn_snprintf (name_expand, name_expand_size, "X509_%d_%s", cert_depth,
+	  objbuf);
+      string_mod (name_expand, CC_PRINT, CC_CRLF, '_');
+      string_mod ((char*)buf, CC_PRINT, CC_CRLF, '_');
+      setenv_str (es, name_expand, (char*)buf);
+      free (name_expand);
+      OPENSSL_free (buf);
+    }
+}

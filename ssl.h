@@ -145,21 +145,6 @@
  */
 /* #define MEASURE_TLS_HANDSHAKE_STATS */
 
-#ifdef ENABLE_X509_TRACK
-
-struct x509_track
-{
-  const struct x509_track *next;
-  const char *name;
-# define XT_FULL_CHAIN (1<<0)
-  unsigned int flags;
-  int nid;
-};
-
-void x509_track_add (const struct x509_track **ll_head, const char *name, int msglevel, struct gc_arena *gc);
-
-#endif
-
 /*
  * Used in --mode server mode to check tls-auth signature on initial
  * packets received from new clients.
