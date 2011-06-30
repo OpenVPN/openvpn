@@ -2174,7 +2174,7 @@ do_init_crypto_tls (struct context *c, const unsigned int flags)
   if (packet_id_long_form)
     to.crypto_flags_or = CO_PACKET_ID_LONG_FORM;
 
-  to.ssl_ctx = c->c1.ks.ssl_ctx.ctx;
+  to.ssl_ctx = c->c1.ks.ssl_ctx;
   to.key_type = c->c1.ks.key_type;
   to.server = options->tls_server;
   to.key_method = options->key_method;

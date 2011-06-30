@@ -2042,7 +2042,7 @@ key_state_write_plaintext (struct tls_multi *multi, struct key_state *ks, struct
 {
   int ret;
   perf_push (PERF_BIO_WRITE_PLAINTEXT);
-  ret = bio_write (multi, ks->ssl_bio, BPTR(buf), BLEN(buf), "tls_write_plaintext");
+  ret = bio_write (multi, ks->ks_ssl.ssl_bio, BPTR(buf), BLEN(buf), "tls_write_plaintext");
   bio_write_post (ret, buf);
   perf_pop ();
   return ret;
@@ -2069,7 +2069,7 @@ key_state_write_plaintext_const (struct tls_multi *multi, struct key_state *ks, 
 {
   int ret;
   perf_push (PERF_BIO_WRITE_PLAINTEXT);
-  ret = bio_write (multi, ks->ssl_bio, data, len, "tls_write_plaintext_const");
+  ret = bio_write (multi, ks->ks_ssl.ssl_bio, data, len, "tls_write_plaintext_const");
   perf_pop ();
   return ret;
 }
@@ -2099,7 +2099,7 @@ key_state_read_ciphertext (struct tls_multi *multi, struct key_state *ks, struct
 {
   int ret;
   perf_push (PERF_BIO_READ_CIPHERTEXT);
-  ret = bio_read (multi, ks->ct_out, buf, maxlen, "tls_read_ciphertext");
+  ret = bio_read (multi, ks->ks_ssl.ct_out, buf, maxlen, "tls_read_ciphertext");
   perf_pop ();
   return ret;
 }
@@ -2133,7 +2133,7 @@ key_state_write_ciphertext (struct tls_multi *multi, struct key_state *ks, struc
 {
   int ret;
   perf_push (PERF_BIO_WRITE_CIPHERTEXT);
-  ret = bio_write (multi, ks->ct_in, BPTR(buf), BLEN(buf), "tls_write_ciphertext");
+  ret = bio_write (multi, ks->ks_ssl.ct_in, BPTR(buf), BLEN(buf), "tls_write_ciphertext");
   bio_write_post (ret, buf);
   perf_pop ();
   return ret;
@@ -2164,7 +2164,7 @@ key_state_read_plaintext (struct tls_multi *multi, struct key_state *ks, struct 
 {
   int ret;
   perf_push (PERF_BIO_READ_PLAINTEXT);
-  ret = bio_read (multi, ks->ssl_bio, buf, maxlen, "tls_read_plaintext");
+  ret = bio_read (multi, ks->ks_ssl.ssl_bio, buf, maxlen, "tls_read_plaintext");
   perf_pop ();
   return ret;
 }
@@ -2208,31 +2208,31 @@ key_state_init (struct tls_session *session, struct key_state *ks)
    */
   CLEAR (*ks);
 
-  ks->ssl = SSL_new (session->opt->ssl_ctx);
-  if (!ks->ssl)
+  ks->ks_ssl.ssl = SSL_new (session->opt->ssl_ctx.ctx);
+  if (!ks->ks_ssl.ssl)
     msg (M_SSLERR, "SSL_new failed");
 
   /* put session * in ssl object so we can access it
      from verify callback*/
-  SSL_set_ex_data (ks->ssl, mydata_index, session);
+  SSL_set_ex_data (ks->ks_ssl.ssl, mydata_index, session);
 
-  ks->ssl_bio = getbio (BIO_f_ssl (), "ssl_bio");
-  ks->ct_in = getbio (BIO_s_mem (), "ct_in");
-  ks->ct_out = getbio (BIO_s_mem (), "ct_out");
+  ks->ks_ssl.ssl_bio = getbio (BIO_f_ssl (), "ssl_bio");
+  ks->ks_ssl.ct_in = getbio (BIO_s_mem (), "ct_in");
+  ks->ks_ssl.ct_out = getbio (BIO_s_mem (), "ct_out");
 
 #ifdef BIO_DEBUG
-  bio_debug_oc ("open ssl_bio", ks->ssl_bio);
-  bio_debug_oc ("open ct_in", ks->ct_in);
-  bio_debug_oc ("open ct_out", ks->ct_out);
+  bio_debug_oc ("open ssl_bio", ks->ks_ssl.ssl_bio);
+  bio_debug_oc ("open ct_in", ks->ks_ssl.ct_in);
+  bio_debug_oc ("open ct_out", ks->ks_ssl.ct_out);
 #endif
 
   if (session->opt->server)
-    SSL_set_accept_state (ks->ssl);
+    SSL_set_accept_state (ks->ks_ssl.ssl);
   else
-    SSL_set_connect_state (ks->ssl);
+    SSL_set_connect_state (ks->ks_ssl.ssl);
 
-  SSL_set_bio (ks->ssl, ks->ct_in, ks->ct_out);
-  BIO_set_ssl (ks->ssl_bio, ks->ssl, BIO_NOCLOSE);
+  SSL_set_bio (ks->ks_ssl.ssl, ks->ks_ssl.ct_in, ks->ks_ssl.ct_out);
+  BIO_set_ssl (ks->ks_ssl.ssl_bio, ks->ks_ssl.ssl, BIO_NOCLOSE);
 
   /* Set control-channel initiation mode */
   ks->initial_opcode = session->initial_opcode;
@@ -2300,14 +2300,14 @@ key_state_free (struct key_state *ks, bool clear)
 {
   ks->state = S_UNDEF;
 
-  if (ks->ssl) {
+  if (ks->ks_ssl.ssl) {
 #ifdef BIO_DEBUG
-    bio_debug_oc ("close ssl_bio", ks->ssl_bio);
-    bio_debug_oc ("close ct_in", ks->ct_in);
-    bio_debug_oc ("close ct_out", ks->ct_out);
+    bio_debug_oc ("close ssl_bio", ks->ks_ssl.ssl_bio);
+    bio_debug_oc ("close ct_in", ks->ks_ssl.ct_in);
+    bio_debug_oc ("close ct_out", ks->ks_ssl.ct_out);
 #endif
-    BIO_free_all(ks->ssl_bio);
-    SSL_free (ks->ssl);
+    BIO_free_all(ks->ks_ssl.ssl_bio);
+    SSL_free (ks->ks_ssl.ssl);
   }
 
   free_key_ctx_bi (&ks->key);
@@ -4137,7 +4137,7 @@ tls_process (struct tls_multi *multi,
 		  ks->established = now;
 		  dmsg (D_TLS_DEBUG_MED, "STATE S_ACTIVE");
 		  if (check_debug_level (D_HANDSHAKE))
-		    print_details (ks->ssl, "Control Channel:");
+		    print_details (ks->ks_ssl.ssl, "Control Channel:");
 		  state_change = true;
 		  ks->state = S_ACTIVE;
 		  INCR_SUCCESS;

@@ -40,6 +40,13 @@ struct tls_root_ctx {
     SSL_CTX *ctx;
 };
 
+struct key_state_ssl {
+    SSL *ssl;			/* SSL object -- new obj created for each new key */
+    BIO *ssl_bio;			/* read/write plaintext from here */
+    BIO *ct_in;			/* write ciphertext to here */
+    BIO *ct_out;			/* read ciphertext from here */
+};
+
 /**
  * Allocate space in SSL objects in which to store a struct tls_session
  * pointer back to parent.
