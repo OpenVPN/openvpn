@@ -253,6 +253,7 @@ int verify_cert_call_plugin(const struct plugin_list *plugins, struct env_set *e
     int cert_depth, x509_cert_t *cert, char *subject);
 int verify_cert_call_command(const char *verify_command, struct env_set *es,
     int cert_depth, x509_cert_t *cert, char *subject, const char *verify_export_cert);
+bool verify_check_crl_dir(const char *crl_dir, X509 *cert);
 
 #endif /* SSL_VERIFY_H_ */
 

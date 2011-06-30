@@ -532,6 +532,35 @@ verify_cert_call_command(const char *verify_command, struct env_set *es,
   return 1;		/* Reject connection */
 }
 
+/*
+ * check peer cert against CRL directory
+ */
+bool
+verify_check_crl_dir(const char *crl_dir, X509 *cert)
+{
+  char fn[256];
+  int fd;
+  char *serial = verify_get_serial(cert);
+
+  if (!openvpn_snprintf(fn, sizeof(fn), "%s%c%s", crl_dir, OS_SPECIFIC_DIRSEP, serial))
+    {
+      msg (D_HANDSHAKE, "VERIFY CRL: filename overflow");
+      verify_free_serial(serial);
+      return true;
+    }
+  fd = open (fn, O_RDONLY);
+  if (fd >= 0)
+    {
+      msg (D_HANDSHAKE, "VERIFY CRL: certificate serial number %s is revoked", serial);
+      verify_free_serial(serial);
+      close(fd);
+      return true;
+    }
+
+  verify_free_serial(serial);
+
+  return false;
+}
 
 /* ***************************************************************************
  * Functions for the management of deferred authentication when using

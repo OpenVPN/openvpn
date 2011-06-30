@@ -410,73 +410,12 @@ verify_cert(struct tls_session *session, x509_cert_t *cert, int cert_depth)
     {
       if (opt->ssl_flags & SSLF_CRL_VERIFY_DIR)
 	{
-	  char fn[256];
-	  int fd;
-	  char *serial = verify_get_serial(cert);
-	  if (!openvpn_snprintf(fn, sizeof(fn), "%s%c%s", opt->crl_file, OS_SPECIFIC_DIRSEP, serial))
-	    {
-	      msg (D_HANDSHAKE, "VERIFY CRL: filename overflow");
-	      verify_free_serial(serial);
-	      goto err;
-	    }
-	  fd = open (fn, O_RDONLY);
-	  if (fd >= 0)
-	    {
-	      msg (D_HANDSHAKE, "VERIFY CRL: certificate serial number %s is revoked", serial);
-	      verify_free_serial(serial);
-	      close(fd);
-	      goto err;
-	    }
-	  verify_free_serial(serial);
+	  if (verify_check_crl_dir(opt->crl_file, cert))
+	    goto err;
 	}
       else
 	{
-	  X509_CRL *crl=NULL;
-	  X509_REVOKED *revoked;
-	  BIO *in=NULL;
-	  int n,i,retval = 0;
-
-	  in=BIO_new(BIO_s_file());
-
-	  if (in == NULL) {
-	    msg (M_ERR, "CRL: BIO err");
-	    goto end;
-	  }
-	  if (BIO_read_filename(in, opt->crl_file) <= 0) {
-	    msg (M_ERR, "CRL: cannot read: %s", opt->crl_file);
-	    goto end;
-	  }
-	  crl=PEM_read_bio_X509_CRL(in,NULL,NULL,NULL);
-	  if (crl == NULL) {
-	    msg (M_ERR, "CRL: cannot read CRL from file %s", opt->crl_file);
-	    goto end;
-	  }
-
-	  if (X509_NAME_cmp(X509_CRL_get_issuer(crl), X509_get_issuer_name(cert)) != 0) {
-	    msg (M_WARN, "CRL: CRL %s is from a different issuer than the issuer of certificate %s", opt->crl_file, subject);
-	    retval = 1;
-	    goto end;
-	  }
-
-          n = sk_X509_REVOKED_num(X509_CRL_get_REVOKED(crl));
-
-          for (i = 0; i < n; i++) {
-            revoked = (X509_REVOKED *)sk_X509_REVOKED_value(X509_CRL_get_REVOKED(crl), i);
-            if (ASN1_INTEGER_cmp(revoked->serialNumber, X509_get_serialNumber(cert)) == 0) {
-              msg (D_HANDSHAKE, "CRL CHECK FAILED: %s is REVOKED",subject);
-              goto end;
-            }
-          }
-
-	  retval = 1;
-	  msg (D_HANDSHAKE, "CRL CHECK OK: %s",subject);
-
-	end:
-
-	  BIO_free(in);
-	  if (crl)
-	    X509_CRL_free (crl);
-	  if (!retval)
+	  if (verify_check_crl(opt->crl_file, cert, subject))
 	    goto err;
 	}
     }

@@ -521,3 +521,56 @@ write_peer_cert(X509 *peercert, const char *tmp_dir, struct gc_arena *gc)
 
 #endif /* OPENSSL_VERSION_NUMBER */
 
+/*
+ * check peer cert against CRL
+ */
+bool
+verify_check_crl(const char *crl_file, X509 *peer_cert, const char *subject)
+{
+  X509_CRL *crl=NULL;
+  X509_REVOKED *revoked;
+  BIO *in=NULL;
+  int n,i,retval = 0;
+
+  in=BIO_new(BIO_s_file());
+
+  if (in == NULL) {
+    msg (M_ERR, "CRL: BIO err");
+    goto end;
+  }
+  if (BIO_read_filename(in, crl_file) <= 0) {
+    msg (M_ERR, "CRL: cannot read: %s", crl_file);
+    goto end;
+  }
+  crl=PEM_read_bio_X509_CRL(in,NULL,NULL,NULL);
+  if (crl == NULL) {
+    msg (M_ERR, "CRL: cannot read CRL from file %s", crl_file);
+    goto end;
+  }
+
+  if (X509_NAME_cmp(X509_CRL_get_issuer(crl), X509_get_issuer_name(peer_cert)) != 0) {
+    msg (M_WARN, "CRL: CRL %s is from a different issuer than the issuer of "
+	"certificate %s", crl_file, subject);
+    retval = 1;
+    goto end;
+  }
+
+  n = sk_X509_REVOKED_num(X509_CRL_get_REVOKED(crl));
+  for (i = 0; i < n; i++) {
+    revoked = (X509_REVOKED *)sk_X509_REVOKED_value(X509_CRL_get_REVOKED(crl), i);
+    if (ASN1_INTEGER_cmp(revoked->serialNumber, X509_get_serialNumber(peer_cert)) == 0) {
+      msg (D_HANDSHAKE, "CRL CHECK FAILED: %s is REVOKED",subject);
+      goto end;
+    }
+  }
+
+  retval = 1;
+  msg (D_HANDSHAKE, "CRL CHECK OK: %s",subject);
+
+end:
+  BIO_free(in);
+  if (crl)
+    X509_CRL_free (crl);
+
+  return !retval;
+}

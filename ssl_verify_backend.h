@@ -192,4 +192,18 @@ bool verify_cert_eku (x509_cert_t *x509, const char * const expected_oid);
 const char *write_peer_cert(x509_cert_t *cert, const char *tmp_dir,
     struct gc_arena *gc);
 
+/*
+ * Check the certificate against a CRL file.
+ *
+ * @param crl_file	File name of the CRL file
+ * @param cert		Certificate to verify
+ * @param subject	Subject of the given certificate
+ *
+ * @return 		\c 1 if the CRL was not signed by the issuer of the
+ * 			certificate or does not contain an entry for it.
+ * 			\c 0 otherwise.
+ */
+bool verify_check_crl(const char *crl_file, x509_cert_t *cert,
+    const char *subject);
+
 #endif /* SSL_VERIFY_BACKEND_H_ */
