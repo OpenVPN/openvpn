@@ -307,6 +307,54 @@ x509_track_add (const struct x509_track **ll_head, const char *name, int msgleve
 #endif
 
 /*
+ * Returns the string associated with the given certificate type.
+ */
+static const char *
+print_nsCertType (int type)
+{
+  switch (type)
+    {
+    case NS_CERT_CHECK_SERVER:
+      return "SERVER";
+    case NS_CERT_CHECK_CLIENT:
+      return "CLIENT";
+    default:
+      return "?";
+    }
+}
+
+/*
+ * Verify the peer's certificate fields.
+ *
+ * @param opt the tls options to verify against
+ * @param peer_cert the peer's certificate
+ * @param subject the peer's extracted subject name
+ * @param subject the peer's extracted common name
+ */
+int
+verify_peer_cert(const struct tls_options *opt, x509_cert_t *peer_cert,
+    const char *subject, const char *common_name)
+{
+  /* verify certificate nsCertType */
+  if (opt->ns_cert_type != NS_CERT_CHECK_NONE)
+    {
+      if (verify_nsCertType (peer_cert, opt->ns_cert_type))
+	{
+	  msg (D_HANDSHAKE, "VERIFY OK: nsCertType=%s",
+	       print_nsCertType (opt->ns_cert_type));
+	}
+      else
+	{
+	  msg (D_HANDSHAKE, "VERIFY nsCertType ERROR: %s, require nsCertType=%s",
+	       subject, print_nsCertType (opt->ns_cert_type));
+	  return 1;		/* Reject connection */
+	}
+    }
+
+  return 0;
+}
+
+/*
  * Export the subject, common_name, and raw certificate fields to the
  * environment for later verification by scripts and plugins.
  */

@@ -6313,9 +6313,9 @@ add_option (struct options *options,
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       if (streq (p[1], "server"))
-	options->ns_cert_type = NS_SSL_SERVER;
+	options->ns_cert_type = NS_CERT_CHECK_SERVER;
       else if (streq (p[1], "client"))
-	options->ns_cert_type = NS_SSL_CLIENT;
+	options->ns_cert_type = NS_CERT_CHECK_CLIENT;
       else
 	{
 	  msg (msglevel, "--ns-cert-type must be 'client' or 'server'");

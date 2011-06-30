@@ -539,7 +539,7 @@ struct options
   const char *pkcs12_file_inline; /* contains the base64 encoding of pkcs12 file */
 #endif
 
-  int ns_cert_type; /* set to 0, NS_SSL_SERVER, or NS_SSL_CLIENT */
+  int ns_cert_type; /* set to 0, NS_CERT_CHECK_SERVER, or NS_CERT_CHECK_CLIENT */
   unsigned remote_cert_ku[MAX_PARMS];
   const char *remote_cert_eku;
   uint8_t *verify_hash;

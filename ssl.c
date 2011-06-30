@@ -387,26 +387,6 @@ bool verify_cert_ku (X509 *x509, const unsigned * const expected_ku, int expecte
 
 #endif	/* OPENSSL_VERSION_NUMBER */
 
-/*
- * nsCertType checking
- */
-
-#define verify_nsCertType(x, usage) (((x)->ex_flags & EXFLAG_NSCERT) && ((x)->ex_nscert & (usage)))
-
-static const char *
-print_nsCertType (int type)
-{
-  switch (type)
-    {
-    case NS_SSL_SERVER:
-      return "SERVER";
-    case NS_SSL_CLIENT:
-      return "CLIENT";
-    default:
-      return "?";
-    }
-}
-
 static void
 string_mod_sslname (char *str, const unsigned int restrictive_flags, const unsigned int ssl_flags)
 {
@@ -532,21 +512,9 @@ verify_cert(struct tls_session *session, x509_cert_t *cert, int cert_depth)
   /* export current untrusted IP */
   setenv_untrusted (session);
 
-  /* verify certificate nsCertType */
-  if (opt->ns_cert_type && cert_depth == 0)
-    {
-      if (verify_nsCertType (cert, opt->ns_cert_type))
-	{
-	  msg (D_HANDSHAKE, "VERIFY OK: nsCertType=%s",
-	       print_nsCertType (opt->ns_cert_type));
-	}
-      else
-	{
-	  msg (D_HANDSHAKE, "VERIFY nsCertType ERROR: %s, require nsCertType=%s",
-	       subject, print_nsCertType (opt->ns_cert_type));
-	  goto err;		/* Reject connection */
-	}
-    }
+  /* If this is the peer's own certificate, verify it */
+  if (cert_depth == 0 && verify_peer_cert(opt, cert, subject, common_name))
+    goto err;
 
 #if OPENSSL_VERSION_NUMBER >= 0x00907000L
 

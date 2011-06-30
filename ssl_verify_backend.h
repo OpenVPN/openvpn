@@ -141,4 +141,17 @@ void setenv_x509_track (const struct x509_track *xt, struct env_set *es,
  */
 void setenv_x509 (struct env_set *es, int cert_depth, x509_cert_t *cert);
 
+/*
+ * Check X.509 Netscape certificate type field, if available.
+ *
+ * @param cert		Certificate to check.
+ * @param usage		One of \c NS_CERT_CHECK_CLIENT, \c NS_CERT_CHECK_SERVER,
+ * 			or \c NS_CERT_CHECK_NONE.
+ *
+ * @return		\c true if NS_CERT_CHECK_NONE or if the certificate has
+ * 			the expected bit set. \c false if the certificate does
+ * 			not have NS cert type verification or the wrong bit set.
+ */
+bool verify_nsCertType(const x509_cert_t *cert, const int usage);
+
 #endif /* SSL_VERIFY_BACKEND_H_ */

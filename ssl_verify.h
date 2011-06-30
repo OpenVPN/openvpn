@@ -215,6 +215,16 @@ void x509_track_add (const struct x509_track **ll_head, const char *name, int ms
 #endif
 
 /*
+ * Certificate checking for verify_nsCertType
+ */
+/** Do not perform Netscape certificate type verification */
+#define NS_CERT_CHECK_NONE (0)
+/** Do not perform Netscape certificate type verification */
+#define NS_CERT_CHECK_SERVER (1<<0)
+/** Do not perform Netscape certificate type verification */
+#define NS_CERT_CHECK_CLIENT (1<<1)
+
+/*
  * TODO: document
  */
 #ifdef MANAGEMENT_DEF_AUTH
@@ -233,6 +243,8 @@ tls_client_reason (struct tls_multi *multi)
 }
 
 /* TEMP */
+int verify_peer_cert(const struct tls_options *opt, x509_cert_t *peer_cert,
+    const char *subject, const char *common_name);
 void
 verify_cert_set_env(struct env_set *es, x509_cert_t *peer_cert, int cert_depth,
     const char *subject, const char *common_name,

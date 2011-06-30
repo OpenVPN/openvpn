@@ -377,3 +377,18 @@ setenv_x509 (struct env_set *es, int cert_depth, x509_cert_t *peer_cert)
       OPENSSL_free (buf);
     }
 }
+
+bool
+verify_nsCertType(const x509_cert_t *peer_cert, const int usage)
+{
+  if (usage == NS_CERT_CHECK_NONE)
+    return true;
+  if (usage == NS_CERT_CHECK_CLIENT)
+    return ((peer_cert->ex_flags & EXFLAG_NSCERT)
+	&& (peer_cert->ex_nscert & NS_SSL_CLIENT));
+  if (usage == NS_CERT_CHECK_SERVER)
+    return ((peer_cert->ex_flags & EXFLAG_NSCERT)
+	&& (peer_cert->ex_nscert & NS_SSL_SERVER));
+
+  return false;
+}
