@@ -38,6 +38,21 @@
  */
 
 /*
+ * Verify certificate for the given session. Performs OpenVPN-specific
+ * verification.
+ *
+ * This function must be called for every certificate in the certificate
+ * chain during the certificate verification stage of the handshake.
+ *
+ * @param session	TLS Session associated with this tunnel
+ * @param cert		Certificate to process
+ * @param cert_depth	Depth of the current certificate
+ *
+ * @return 		\c 1 if verification was successful, \c 0 on failure.
+ */
+int verify_cert(struct tls_session *session, x509_cert_t *cert, int cert_depth);
+
+/*
  * Remember the given certificate hash, allowing the certificate chain to be
  * locked between sessions.
  *

@@ -673,22 +673,13 @@ string_mod_sslname (char *str, const unsigned int restrictive_flags, const unsig
  */
 
 const char *
-get_peer_cert(X509_STORE_CTX *ctx, const char *tmp_dir, struct gc_arena *gc)
+write_peer_cert(X509 *peercert, const char *tmp_dir, struct gc_arena *gc)
 {
-  X509 *peercert;
   FILE *peercert_file;
   const char *peercert_filename="";
 
   if(!tmp_dir)
       return NULL;
-
-  /* get peer cert */
-  peercert = X509_STORE_CTX_get_current_cert(ctx);
-  if(!peercert)
-    {
-      msg (M_ERR, "Unable to get peer certificate from current context");
-      return NULL;
-    }
 
   /* create tmp file to store peer cert */
   peercert_filename = create_temp_file (tmp_dir, "pcf", gc);
@@ -714,43 +705,36 @@ get_peer_cert(X509_STORE_CTX *ctx, const char *tmp_dir, struct gc_arena *gc)
 char * x509_username_field; /* GLOBAL */
 
 int
-verify_callback (int preverify_ok, X509_STORE_CTX * ctx)
+verify_cert(struct tls_session *session, x509_cert_t *cert, int cert_depth)
 {
   char *subject = NULL;
   char envname[64];
-  char common_name[TLS_USERNAME_LEN];
-  SSL *ssl;
-  struct tls_session *session;
+  char common_name[TLS_USERNAME_LEN] = {0};
   const struct tls_options *opt;
-  const int max_depth = MAX_CERT_DEPTH;
   struct argv argv = argv_new ();
   char *serial = NULL;
 
-  /* get the tls_session pointer */
-  ssl = X509_STORE_CTX_get_ex_data (ctx, SSL_get_ex_data_X509_STORE_CTX_idx());
-  ASSERT (ssl);
-  session = (struct tls_session *) SSL_get_ex_data (ssl, mydata_index);
-  ASSERT (session);
   opt = session->opt;
   ASSERT (opt);
 
   session->verified = false;
 
   /* get the X509 name */
-  subject = X509_NAME_oneline (X509_get_subject_name (ctx->current_cert), NULL, 0);
+  subject = X509_NAME_oneline (X509_get_subject_name (cert), NULL, 0);
   if (!subject)
     {
-      msg (D_TLS_ERRORS, "VERIFY ERROR: depth=%d, could not extract X509 subject string from certificate", ctx->error_depth);
-      goto err;
+        msg (D_TLS_ERRORS, "VERIFY ERROR: depth=%d, could not extract X509 "
+            "subject string from certificate", cert_depth);
+        goto err;
     }
 
   /* Save X509 fields in environment */
 #ifdef ENABLE_X509_TRACK
   if (opt->x509_track)
-    setenv_x509_track (opt->x509_track, opt->es, ctx->error_depth, ctx->current_cert);
+    setenv_x509_track (opt->x509_track, opt->es, cert_depth, cert);
   else
 #endif
-    setenv_x509 (opt->es, ctx->error_depth, X509_get_subject_name (ctx->current_cert));
+    setenv_x509 (opt->es, cert_depth, X509_get_subject_name (cert));
 
   /* enforce character class restrictions in X509 name */
   string_mod_sslname (subject, X509_NAME_CHAR_CLASS, opt->ssl_flags);
@@ -771,11 +755,13 @@ verify_callback (int preverify_ok, X509_STORE_CTX * ctx)
         }
     } else
 #endif
-  if (!extract_x509_field_ssl (X509_get_subject_name (ctx->current_cert), x509_username_field, common_name, sizeof(common_name)))
+  if (!extract_x509_field_ssl (X509_get_subject_name (cert), x509_username_field, common_name, sizeof(common_name)))
     {
-      if (!ctx->error_depth)
+      if (!cert_depth)
         {
-          msg (D_TLS_ERRORS, "VERIFY ERROR: could not extract %s from X509 subject string ('%s') -- note that the username length is limited to %d characters",
+          msg (D_TLS_ERRORS, "VERIFY ERROR: could not extract %s from X509 "
+              "subject string ('%s') -- note that the username length is "
+              "limited to %d characters",
                  x509_username_field,
                  subject,
                  TLS_USERNAME_LEN);
@@ -786,38 +772,27 @@ verify_callback (int preverify_ok, X509_STORE_CTX * ctx)
 
   string_mod_sslname (common_name, COMMON_NAME_CHAR_CLASS, opt->ssl_flags);
 
-  cert_hash_remember (session, ctx->error_depth, ctx->current_cert->sha1_hash);
-
 #if 0 /* print some debugging info */
   {
     struct gc_arena gc = gc_new ();
-    msg (M_INFO, "LOCAL OPT[%d]: %s", ctx->error_depth, opt->local_options);
-    msg (M_INFO, "X509[%d]: %s", ctx->error_depth, subject);
-    msg (M_INFO, "SHA1[%d]: %s", ctx->error_depth, format_hex(ctx->current_cert->sha1_hash, SHA_DIGEST_LENGTH, 0, &gc));
+    msg (M_INFO, "LOCAL OPT[%d]: %s", cert_depth, opt->local_options);
+    msg (M_INFO, "X509[%d]: %s", cert_depth, subject);
+    msg (M_INFO, "SHA1[%d]: %s", cert_depth, format_hex(cert->sha1_hash, SHA_DIGEST_LENGTH, 0, &gc));
     gc_free (&gc);
   }
 #endif
 
-  /* did peer present cert which was signed our root cert? */
-  if (!preverify_ok)
-    {
-      /* Remote site specified a certificate, but it's not correct */
-      msg (D_TLS_ERRORS, "VERIFY ERROR: depth=%d, error=%s: %s",
-	   ctx->error_depth, X509_verify_cert_error_string (ctx->error), subject);
-      goto err;			/* Reject connection */
-    }
-
   /* warn if cert chain is too deep */
-  if (ctx->error_depth >= max_depth)
+  if (cert_depth >= MAX_CERT_DEPTH)
     {
-      msg (D_TLS_ERRORS, "TLS Error: Convoluted certificate chain detected with depth [%d] greater than %d", ctx->error_depth, max_depth);
+      msg (D_TLS_ERRORS, "TLS Error: Convoluted certificate chain detected with depth [%d] greater than %d", cert_depth, MAX_CERT_DEPTH);
       goto err;			/* Reject connection */
     }
 
   /* verify level 1 cert, i.e. the CA that signed our leaf cert */
-  if (ctx->error_depth == 1 && opt->verify_hash)
+  if (cert_depth == 1 && opt->verify_hash)
     {
-      if (memcmp (ctx->current_cert->sha1_hash, opt->verify_hash, SHA_DIGEST_LENGTH))
+      if (memcmp (cert->sha1_hash, opt->verify_hash, SHA_DIGEST_LENGTH))
 	{
 	  msg (D_TLS_ERRORS, "TLS Error: level-1 certificate hash verification failed");
 	  goto err;
@@ -825,27 +800,27 @@ verify_callback (int preverify_ok, X509_STORE_CTX * ctx)
     }
 
   /* save common name in session object */
-  if (ctx->error_depth == 0)
+  if (cert_depth == 0)
     set_common_name (session, common_name);
 
   /* export subject name string as environmental variable */
-  session->verify_maxlevel = max_int (session->verify_maxlevel, ctx->error_depth);
-  openvpn_snprintf (envname, sizeof(envname), "tls_id_%d", ctx->error_depth);
+  session->verify_maxlevel = max_int (session->verify_maxlevel, cert_depth);
+  openvpn_snprintf (envname, sizeof(envname), "tls_id_%d", cert_depth);
   setenv_str (opt->es, envname, subject);
 
 #ifdef ENABLE_EUREPHIA
   /* export X509 cert SHA1 fingerprint */
   {
     struct gc_arena gc = gc_new ();
-    openvpn_snprintf (envname, sizeof(envname), "tls_digest_%d", ctx->error_depth);
+    openvpn_snprintf (envname, sizeof(envname), "tls_digest_%d", cert_depth);
     setenv_str (opt->es, envname,
-		format_hex_ex(ctx->current_cert->sha1_hash, SHA_DIGEST_LENGTH, 0, 1, ":", &gc));
+		format_hex_ex(cert->sha1_hash, SHA_DIGEST_LENGTH, 0, 1, ":", &gc));
     gc_free(&gc);
   }
 #endif
 #if 0
   /* export common name string as environmental variable */
-  openvpn_snprintf (envname, sizeof(envname), "tls_common_name_%d", ctx->error_depth);
+  openvpn_snprintf (envname, sizeof(envname), "tls_common_name_%d", cert_depth);
   setenv_str (opt->es, envname, common_name);
 #endif
 
@@ -854,10 +829,10 @@ verify_callback (int preverify_ok, X509_STORE_CTX * ctx)
   {
     ASN1_INTEGER *asn1_i;
     BIGNUM *bignum;
-    asn1_i = X509_get_serialNumber(ctx->current_cert);
+    asn1_i = X509_get_serialNumber(cert);
     bignum = ASN1_INTEGER_to_BN(asn1_i, NULL);
     serial = BN_bn2dec(bignum);
-    openvpn_snprintf (envname, sizeof(envname), "tls_serial_%d", ctx->error_depth);
+    openvpn_snprintf (envname, sizeof(envname), "tls_serial_%d", cert_depth);
     setenv_str (opt->es, envname, serial);
     BN_free(bignum);
   }
@@ -866,9 +841,9 @@ verify_callback (int preverify_ok, X509_STORE_CTX * ctx)
   setenv_untrusted (session);
 
   /* verify certificate nsCertType */
-  if (opt->ns_cert_type && ctx->error_depth == 0)
+  if (opt->ns_cert_type && cert_depth == 0)
     {
-      if (verify_nsCertType (ctx->current_cert, opt->ns_cert_type))
+      if (verify_nsCertType (cert, opt->ns_cert_type))
 	{
 	  msg (D_HANDSHAKE, "VERIFY OK: nsCertType=%s",
 	       print_nsCertType (opt->ns_cert_type));
@@ -884,9 +859,9 @@ verify_callback (int preverify_ok, X509_STORE_CTX * ctx)
 #if OPENSSL_VERSION_NUMBER >= 0x00907000L
 
   /* verify certificate ku */
-  if (opt->remote_cert_ku[0] != 0 &&  ctx->error_depth == 0)
+  if (opt->remote_cert_ku[0] != 0 &&  cert_depth == 0)
     {
-      if (verify_cert_ku (ctx->current_cert, opt->remote_cert_ku, MAX_PARMS))
+      if (verify_cert_ku (cert, opt->remote_cert_ku, MAX_PARMS))
 	{
 	  msg (D_HANDSHAKE, "VERIFY KU OK");
 	}
@@ -898,9 +873,9 @@ verify_callback (int preverify_ok, X509_STORE_CTX * ctx)
     }
 
   /* verify certificate eku */
-  if (opt->remote_cert_eku != NULL && ctx->error_depth == 0)
+  if (opt->remote_cert_eku != NULL && cert_depth == 0)
     {
-      if (verify_cert_eku (ctx->current_cert, opt->remote_cert_eku))
+      if (verify_cert_eku (cert, opt->remote_cert_eku))
         {
 	  msg (D_HANDSHAKE, "VERIFY EKU OK");
 	}
@@ -914,7 +889,7 @@ verify_callback (int preverify_ok, X509_STORE_CTX * ctx)
 #endif	/* OPENSSL_VERSION_NUMBER */
 
   /* verify X509 name or common name against --tls-remote */
-  if (opt->verify_x509name && strlen (opt->verify_x509name) > 0 && ctx->error_depth == 0)
+  if (opt->verify_x509name && strlen (opt->verify_x509name) > 0 && cert_depth == 0)
     {
       if (strcmp (opt->verify_x509name, subject) == 0
 	  || strncmp (opt->verify_x509name, common_name, strlen (opt->verify_x509name)) == 0)
@@ -933,20 +908,20 @@ verify_callback (int preverify_ok, X509_STORE_CTX * ctx)
       int ret;
 
       argv_printf (&argv, "%d %s",
-		   ctx->error_depth,
+		   cert_depth,
 		   subject);
 
-      ret = plugin_call (opt->plugins, OPENVPN_PLUGIN_TLS_VERIFY, &argv, NULL, opt->es, ctx->error_depth, ctx->current_cert);
+      ret = plugin_call (opt->plugins, OPENVPN_PLUGIN_TLS_VERIFY, &argv, NULL, opt->es, cert_depth, cert);
 
       if (ret == OPENVPN_PLUGIN_FUNC_SUCCESS)
 	{
 	  msg (D_HANDSHAKE, "VERIFY PLUGIN OK: depth=%d, %s",
-	       ctx->error_depth, subject);
+	       cert_depth, subject);
 	}
       else
 	{
 	  msg (D_HANDSHAKE, "VERIFY PLUGIN ERROR: depth=%d, %s",
-	       ctx->error_depth, subject);
+	       cert_depth, subject);
 	  goto err;		/* Reject connection */
 	}
     }
@@ -963,7 +938,7 @@ verify_callback (int preverify_ok, X509_STORE_CTX * ctx)
       if (opt->verify_export_cert)
         {
           gc = gc_new();
-          if ((tmp_file=get_peer_cert(ctx, opt->verify_export_cert,&gc)))
+          if ((tmp_file=write_peer_cert(cert, opt->verify_export_cert,&gc)))
            {
              setenv_str(opt->es, "peer_cert", tmp_file);
            }
@@ -971,7 +946,7 @@ verify_callback (int preverify_ok, X509_STORE_CTX * ctx)
 
       argv_printf (&argv, "%sc %d %s",
 		   opt->verify_command,
-		   ctx->error_depth,
+		   cert_depth,
 		   subject);
       argv_msg_prefix (D_TLS_DEBUG, &argv, "TLS: executing verify command");
       ret = openvpn_run_script (&argv, opt->es, 0, "--tls-verify script");
@@ -986,12 +961,12 @@ verify_callback (int preverify_ok, X509_STORE_CTX * ctx)
       if (ret)
 	{
 	  msg (D_HANDSHAKE, "VERIFY SCRIPT OK: depth=%d, %s",
-	       ctx->error_depth, subject);
+	       cert_depth, subject);
 	}
       else
 	{
 	  msg (D_HANDSHAKE, "VERIFY SCRIPT ERROR: depth=%d, %s",
-	       ctx->error_depth, subject);
+	       cert_depth, subject);
 	  goto err;		/* Reject connection */
 	}
     }
@@ -1039,7 +1014,7 @@ verify_callback (int preverify_ok, X509_STORE_CTX * ctx)
 	    goto end;
 	  }
 
-	  if (X509_NAME_cmp(X509_CRL_get_issuer(crl), X509_get_issuer_name(ctx->current_cert)) != 0) {
+	  if (X509_NAME_cmp(X509_CRL_get_issuer(crl), X509_get_issuer_name(cert)) != 0) {
 	    msg (M_WARN, "CRL: CRL %s is from a different issuer than the issuer of certificate %s", opt->crl_file, subject);
 	    retval = 1;
 	    goto end;
@@ -1049,7 +1024,7 @@ verify_callback (int preverify_ok, X509_STORE_CTX * ctx)
 
           for (i = 0; i < n; i++) {
             revoked = (X509_REVOKED *)sk_X509_REVOKED_value(X509_CRL_get_REVOKED(crl), i);
-            if (ASN1_INTEGER_cmp(revoked->serialNumber, X509_get_serialNumber(ctx->current_cert)) == 0) {
+            if (ASN1_INTEGER_cmp(revoked->serialNumber, X509_get_serialNumber(cert)) == 0) {
               msg (D_HANDSHAKE, "CRL CHECK FAILED: %s is REVOKED",subject);
               goto end;
             }
@@ -1068,7 +1043,7 @@ verify_callback (int preverify_ok, X509_STORE_CTX * ctx)
 	}
     }
 
-  msg (D_HANDSHAKE, "VERIFY OK: depth=%d, %s", ctx->error_depth, subject);
+  msg (D_HANDSHAKE, "VERIFY OK: depth=%d, %s", cert_depth, subject);
   session->verified = true;
 
  done:
