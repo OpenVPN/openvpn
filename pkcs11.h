@@ -27,7 +27,7 @@
 
 #if defined(ENABLE_PKCS11)
 
-#include <openssl/ssl.h>
+#include "ssl_common.h"
 
 bool
 pkcs11_initialize (
@@ -63,8 +63,8 @@ pkcs11_management_id_get (
 );
 
 int
-SSL_CTX_use_pkcs11 (
-	SSL_CTX * const ssl_ctx,
+tls_ctx_use_pkcs11 (
+	struct tls_root_ctx * const ssl_ctx,
 	bool pkcs11_id_management,
 	const char * const pkcs11_id
 );

@@ -114,7 +114,7 @@ openvpn_SOURCES = \
 	multi.c multi.h \
         ntlm.c ntlm.h \
 	occ.c occ.h occ-inline.h \
-	pkcs11.c pkcs11.h \
+	pkcs11.c pkcs11.h pkcs11_backend.h \
 	openvpn.c openvpn.h \
 	openvpn-plugin.h \
 	options.c options.h \
@@ -156,6 +156,7 @@ configure.h: Makefile
 if USE_OPENSSL
 openvpn_SOURCES += \
 	crypto_openssl.c crypto_openssl.h \
+	pkcs11_openssl.c \
 	ssl_openssl.c ssl_openssl.h \
 	ssl_verify_openssl.c ssl_verify_openssl.h
 endif

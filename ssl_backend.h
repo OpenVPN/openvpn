@@ -158,17 +158,6 @@ int tls_ctx_load_pkcs12(struct tls_root_ctx *ctx, const char *pkcs12_file,
     bool load_ca_file
     );
 
-/*
- * Load PKCS #11 information for key and cert, and add to library-specific TLS
- * context.
- *
- * TODO: document
- */
-#ifdef ENABLE_PKCS11
-int tls_ctx_load_pkcs11(struct tls_root_ctx *ctx,
-    bool pkcs11_id_management, const char *pkcs11_id);
-#endif /* ENABLE_PKCS11 */
-
 /**
  * Use Windows cryptoapi for key and cert, and add to library-specific TLS
  * context.

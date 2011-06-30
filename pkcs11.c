@@ -27,7 +27,6 @@
 #if defined(ENABLE_PKCS11)
 
 #include <pkcs11-helper-1.0/pkcs11h-certificate.h>
-#include <pkcs11-helper-1.0/pkcs11h-openssl.h>
 #include "basic.h"
 #include "error.h"
 #include "manage.h"
@@ -35,6 +34,7 @@
 #include "pkcs11.h"
 #include "misc.h"
 #include "otime.h"
+#include "pkcs11_backend.h"
 
 static
 time_t
@@ -605,16 +605,13 @@ cleanup:
 }
 
 int
-SSL_CTX_use_pkcs11 (
-	SSL_CTX * const ssl_ctx,
+tls_ctx_use_pkcs11 (
+	struct tls_root_ctx * const ssl_ctx,
 	bool pkcs11_id_management,
 	const char * const pkcs11_id
 ) {
-	X509 *x509 = NULL;
-	RSA *rsa = NULL;
 	pkcs11h_certificate_id_t certificate_id = NULL;
 	pkcs11h_certificate_t certificate = NULL;
-	pkcs11h_openssl_session_t openssl_session = NULL;
 	CK_RV rv = CKR_OK;
 
 	bool ok = false;
@@ -624,7 +621,7 @@ SSL_CTX_use_pkcs11 (
 
 	dmsg (
 		D_PKCS11_DEBUG,
-		"PKCS#11: SSL_CTX_use_pkcs11 - entered - ssl_ctx=%p, pkcs11_id_management=%d, pkcs11_id='%s'",
+		"PKCS#11: tls_ctx_use_pkcs11 - entered - ssl_ctx=%p, pkcs11_id_management=%d, pkcs11_id='%s'",
 		(void *)ssl_ctx,
 		pkcs11_id_management ? 1 : 0,
 		pkcs11_id
@@ -689,54 +686,22 @@ SSL_CTX_use_pkcs11 (
 		goto cleanup;
 	}
 
-	if ((openssl_session = pkcs11h_openssl_createSession (certificate)) == NULL	) {
-		msg (M_WARN, "PKCS#11: Cannot initialize openssl session");
+	if (
+		(pkcs11_init_tls_session (
+		    certificate,
+		    ssl_ctx
+		))
+	) {
+		/* Handled by SSL context free */
+		certificate = NULL;
 		goto cleanup;
 	}
 
-	/*
-	 * Will be released by openssl_session
-	 */
+	/* Handled by SSL context free */
 	certificate = NULL;
-
-	if ((rsa = pkcs11h_openssl_session_getRSA (openssl_session)) == NULL) {
-		msg (M_WARN, "PKCS#11: Unable get rsa object");
-		goto cleanup;
-	}
-
-	if ((x509 = pkcs11h_openssl_session_getX509 (openssl_session)) == NULL) {
-		msg (M_WARN, "PKCS#11: Unable get certificate object");
-		goto cleanup;
-	}
-
-	if (!SSL_CTX_use_RSAPrivateKey (ssl_ctx, rsa)) {
-		msg (M_WARN, "PKCS#11: Cannot set private key for openssl");
-		goto cleanup;
-	}
-
-	if (!SSL_CTX_use_certificate (ssl_ctx, x509)) {
-		msg (M_WARN, "PKCS#11: Cannot set certificate for openssl");
-		goto cleanup;
-	}
-
 	ok = true;
 
 cleanup:
-	/*
-	 * openssl objects have reference
-	 * count, so release them
-	 */
-
-	if (x509 != NULL) {
-		X509_free (x509);
-		x509 = NULL;
-	}
-
-	if (rsa != NULL) {
-		RSA_free (rsa);
-		rsa = NULL;
-	}
-
 	if (certificate != NULL) {
 		pkcs11h_certificate_freeCertificate (certificate);
 		certificate = NULL;
@@ -746,15 +711,10 @@ cleanup:
 		pkcs11h_certificate_freeCertificateId (certificate_id);
 		certificate_id = NULL;
 	}
-	
-	if (openssl_session != NULL) {
-		pkcs11h_openssl_freeSession (openssl_session);
-		openssl_session = NULL;
-	}
 
 	dmsg (
 		D_PKCS11_DEBUG,
-		"PKCS#11: SSL_CTX_use_pkcs11 - return ok=%d, rv=%ld",
+		"PKCS#11: tls_ctx_use_pkcs11 - return ok=%d, rv=%ld",
 		ok ? 1 : 0,
 		rv
 	);
@@ -867,13 +827,10 @@ show_pkcs11_ids (
 	);
 	for (current = user_certificates;current != NULL; current = current->next) {
 		pkcs11h_certificate_t certificate = NULL;
-		X509 *x509 = NULL;
-		BIO *bio = NULL;
 		char dn[1024] = {0};
 		char serial[1024] = {0};
 		char *ser = NULL;
 		size_t ser_len = 0;
-		int n;
 
 		if (
 			(rv = pkcs11h_certificate_serializeCertificateId (
@@ -918,29 +875,24 @@ show_pkcs11_ids (
 			goto cleanup1;
 		}
 
-		if ((x509 = pkcs11h_openssl_getX509 (certificate)) == NULL) {
-			msg (M_FATAL, "PKCS#11: Cannot get X509");
+		if (
+		      (pkcs11_certificate_dn (
+				certificate,
+				dn,
+				sizeof(dn)
+		      ))
+		) {
 			goto cleanup1;
 		}
 
-		X509_NAME_oneline (
-			X509_get_subject_name (x509),
-			dn,
-			sizeof (dn)
-		);
-
-		if ((bio = BIO_new (BIO_s_mem ())) == NULL) {
-			msg (M_FATAL, "PKCS#11: Cannot create BIO");
+		if (
+		      (pkcs11_certificate_serial (
+				certificate,
+				serial,
+				sizeof(serial)
+		      ))
+		) {
 			goto cleanup1;
-		}
-
-		i2a_ASN1_INTEGER(bio, X509_get_serialNumber (x509));
-		n = BIO_read (bio, serial, sizeof (serial)-1);
-		if (n<0) {
-			serial[0] = '\x0';
-		}
-		else {
-			serial[n] = 0;
 		}
 
 		msg (
@@ -958,10 +910,6 @@ show_pkcs11_ids (
 		);
 
 	cleanup1:
-		if (x509 != NULL) {
-			X509_free (x509);
-			x509 = NULL;
-		}
 
 		if (certificate != NULL) {
 			pkcs11h_certificate_freeCertificate (certificate);
