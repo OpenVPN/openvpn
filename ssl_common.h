@@ -251,6 +251,7 @@ struct tls_options
   unsigned remote_cert_ku[MAX_PARMS];
   const char *remote_cert_eku;
   uint8_t *verify_hash;
+  char *x509_username_field;
 
   /* allow openvpn config info to be
      passed over control channel */

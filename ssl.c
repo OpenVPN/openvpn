@@ -594,8 +594,6 @@ write_peer_cert(X509 *peercert, const char *tmp_dir, struct gc_arena *gc)
   return peercert_filename;
 }
 
-char * x509_username_field; /* GLOBAL */
-
 int
 verify_cert(struct tls_session *session, x509_cert_t *cert, int cert_depth)
 {
@@ -632,14 +630,14 @@ verify_cert(struct tls_session *session, x509_cert_t *cert, int cert_depth)
   string_replace_leading (subject, '-', '_');
 
   /* extract the username (default is CN) */
-  if (verify_get_username (common_name, TLS_USERNAME_LEN, x509_username_field, cert))
+  if (verify_get_username (common_name, TLS_USERNAME_LEN, opt->x509_username_field, cert))
     {
       if (!cert_depth)
         {
           msg (D_TLS_ERRORS, "VERIFY ERROR: could not extract %s from X509 "
               "subject string ('%s') -- note that the username length is "
               "limited to %d characters",
-                 x509_username_field,
+		 opt->x509_username_field,
                  subject,
                  TLS_USERNAME_LEN);
           goto err;
@@ -1043,17 +1041,6 @@ init_ssl (const struct options *options, struct tls_root_ctx *new_ctx)
   if (options->extra_certs_file || options->extra_certs_file_inline)
     {
       tls_ctx_load_extra_certs(new_ctx, options->extra_certs_file, options->extra_certs_file_inline);
-    }
-
-#if P2MP_SERVER
-  if (!(options->ssl_flags & SSLF_CLIENT_CERT_NOT_REQUIRED))
-#endif
-    {
-#ifdef ENABLE_X509ALTUSERNAME
-      x509_username_field = (char *) options->x509_username_field;
-#else
-      x509_username_field = X509_USERNAME_FIELD_DEFAULT;
-#endif
     }
 
   /* Allowable ciphers */

@@ -2211,6 +2211,11 @@ do_init_crypto_tls (struct context *c, const unsigned int flags)
   memmove (to.remote_cert_ku, options->remote_cert_ku, sizeof (to.remote_cert_ku));
   to.remote_cert_eku = options->remote_cert_eku;
   to.verify_hash = options->verify_hash;
+#ifdef ENABLE_X509ALTUSERNAME
+  to.x509_username_field = (char *) options->x509_username_field;
+#else
+  to.x509_username_field = X509_USERNAME_FIELD_DEFAULT;
+#endif
   to.es = c->c2.es;
 
 #ifdef ENABLE_DEBUG
