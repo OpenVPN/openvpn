@@ -251,6 +251,8 @@ verify_cert_set_env(struct env_set *es, x509_cert_t *peer_cert, int cert_depth,
     const struct x509_track *x509_track);
 int verify_cert_call_plugin(const struct plugin_list *plugins, struct env_set *es,
     int cert_depth, x509_cert_t *cert, char *subject);
+int verify_cert_call_command(const char *verify_command, struct env_set *es,
+    int cert_depth, x509_cert_t *cert, char *subject, const char *verify_export_cert);
 
 #endif /* SSL_VERIFY_H_ */
 

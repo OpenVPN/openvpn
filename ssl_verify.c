@@ -483,6 +483,55 @@ verify_cert_call_plugin(const struct plugin_list *plugins, struct env_set *es,
   return 0;
 }
 
+/*
+ * run --tls-verify script
+ */
+int
+verify_cert_call_command(const char *verify_command, struct env_set *es,
+    int cert_depth, x509_cert_t *cert, char *subject, const char *verify_export_cert)
+{
+  const char *tmp_file = NULL;
+  struct gc_arena gc;
+  int ret;
+  struct argv argv = argv_new ();
+
+  setenv_str (es, "script_type", "tls-verify");
+
+  if (verify_export_cert)
+    {
+      gc = gc_new();
+      if ((tmp_file=write_peer_cert(cert, verify_export_cert,&gc)))
+       {
+         setenv_str(es, "peer_cert", tmp_file);
+       }
+    }
+
+  argv_printf (&argv, "%sc %d %s", verify_command, cert_depth, subject);
+
+  argv_msg_prefix (D_TLS_DEBUG, &argv, "TLS: executing verify command");
+  ret = openvpn_run_script (&argv, es, 0, "--tls-verify script");
+
+  if (verify_export_cert)
+    {
+       if (tmp_file)
+          delete_file(tmp_file);
+       gc_free(&gc);
+    }
+
+  argv_reset (&argv);
+
+  if (ret)
+    {
+      msg (D_HANDSHAKE, "VERIFY SCRIPT OK: depth=%d, %s",
+	   cert_depth, subject);
+      return 0;
+    }
+
+  msg (D_HANDSHAKE, "VERIFY SCRIPT ERROR: depth=%d, %s",
+       cert_depth, subject);
+  return 1;		/* Reject connection */
+}
+
 
 /* ***************************************************************************
  * Functions for the management of deferred authentication when using

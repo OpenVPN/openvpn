@@ -182,4 +182,14 @@ bool verify_cert_ku (x509_cert_t *x509, const unsigned * const expected_ku,
  */
 bool verify_cert_eku (x509_cert_t *x509, const char * const expected_oid);
 
+/*
+ * Store the given certificate in pem format in a temporary file in tmp_dir
+ *
+ * @param cert		Certificate to store
+ * @param tmp_dir	Temporary directory to store the directory
+ * @param gc		gc_arena to store temporary objects in
+ */
+const char *write_peer_cert(x509_cert_t *cert, const char *tmp_dir,
+    struct gc_arena *gc);
+
 #endif /* SSL_VERIFY_BACKEND_H_ */

@@ -311,40 +311,6 @@ string_mod_sslname (char *str, const unsigned int restrictive_flags, const unsig
     string_mod (str, restrictive_flags, 0, '_');
 }
 
-/* Get peer cert and store it in pem format in a temporary file
- * in tmp_dir
- */
-
-const char *
-write_peer_cert(X509 *peercert, const char *tmp_dir, struct gc_arena *gc)
-{
-  FILE *peercert_file;
-  const char *peercert_filename="";
-
-  if(!tmp_dir)
-      return NULL;
-
-  /* create tmp file to store peer cert */
-  peercert_filename = create_temp_file (tmp_dir, "pcf", gc);
-
-  /* write peer-cert in tmp-file */
-  peercert_file = fopen(peercert_filename, "w+");
-  if(!peercert_file)
-    {
-      msg (M_ERR, "Failed to open temporary file : %s", peercert_filename);
-      return NULL;
-    }
-  if(PEM_write_X509(peercert_file,peercert)<0)
-    {
-      msg (M_ERR, "Failed to write peer certificate in PEM format");
-      fclose(peercert_file);
-      return NULL;
-    }
-
-  fclose(peercert_file);
-  return peercert_filename;
-}
-
 int
 verify_cert(struct tls_session *session, x509_cert_t *cert, int cert_depth)
 {
@@ -352,7 +318,6 @@ verify_cert(struct tls_session *session, x509_cert_t *cert, int cert_depth)
   char envname[64];
   char common_name[TLS_USERNAME_LEN] = {0};
   const struct tls_options *opt;
-  struct argv argv = argv_new ();
 
   opt = session->opt;
   ASSERT (opt);
@@ -436,49 +401,9 @@ verify_cert(struct tls_session *session, x509_cert_t *cert, int cert_depth)
     goto err;
 
   /* run --tls-verify script */
-  if (opt->verify_command)
-    {
-      const char *tmp_file = NULL;
-      struct gc_arena gc;
-      int ret;
-
-      setenv_str (opt->es, "script_type", "tls-verify");
-
-      if (opt->verify_export_cert)
-        {
-          gc = gc_new();
-          if ((tmp_file=write_peer_cert(cert, opt->verify_export_cert,&gc)))
-           {
-             setenv_str(opt->es, "peer_cert", tmp_file);
-           }
-        }
-
-      argv_printf (&argv, "%sc %d %s",
-		   opt->verify_command,
-		   cert_depth,
-		   subject);
-      argv_msg_prefix (D_TLS_DEBUG, &argv, "TLS: executing verify command");
-      ret = openvpn_run_script (&argv, opt->es, 0, "--tls-verify script");
-
-      if (opt->verify_export_cert)
-        {
-           if (tmp_file)
-              delete_file(tmp_file);
-           gc_free(&gc);
-        }
-
-      if (ret)
-	{
-	  msg (D_HANDSHAKE, "VERIFY SCRIPT OK: depth=%d, %s",
-	       cert_depth, subject);
-	}
-      else
-	{
-	  msg (D_HANDSHAKE, "VERIFY SCRIPT ERROR: depth=%d, %s",
-	       cert_depth, subject);
-	  goto err;		/* Reject connection */
-	}
-    }
+  if (opt->verify_command && verify_cert_call_command(opt->verify_command, opt->es,
+      cert_depth, cert, subject, opt->verify_export_cert))
+    goto err;
 
   /* check peer cert against CRL */
   if (opt->crl_file)
@@ -561,7 +486,6 @@ verify_cert(struct tls_session *session, x509_cert_t *cert, int cert_depth)
 
  done:
   OPENSSL_free (subject);
-  argv_reset (&argv);
   return (session->verified == true) ? 1 : 0;
 
  err:

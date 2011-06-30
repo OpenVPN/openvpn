@@ -489,4 +489,35 @@ verify_cert_eku (X509 *x509, const char * const expected_oid)
   return fFound;
 }
 
+const char *
+write_peer_cert(X509 *peercert, const char *tmp_dir, struct gc_arena *gc)
+{
+  FILE *peercert_file;
+  const char *peercert_filename="";
+
+  if(!tmp_dir)
+      return NULL;
+
+  /* create tmp file to store peer cert */
+  peercert_filename = create_temp_file (tmp_dir, "pcf", gc);
+
+  /* write peer-cert in tmp-file */
+  peercert_file = fopen(peercert_filename, "w+");
+  if(!peercert_file)
+    {
+      msg (M_ERR, "Failed to open temporary file : %s", peercert_filename);
+      return NULL;
+    }
+  if(PEM_write_X509(peercert_file,peercert)<0)
+    {
+      msg (M_ERR, "Failed to write peer certificate in PEM format");
+      fclose(peercert_file);
+      return NULL;
+    }
+
+  fclose(peercert_file);
+  return peercert_filename;
+}
+
 #endif /* OPENSSL_VERSION_NUMBER */
+
