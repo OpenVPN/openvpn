@@ -82,7 +82,7 @@ tls_deauthenticate (struct tls_multi *multi)
 /*
  * Set the given session's common_name
  */
-void
+static void
 set_common_name (struct tls_session *session, const char *common_name)
 {
   if (session->common_name)
@@ -331,7 +331,7 @@ print_nsCertType (int type)
  * @param subject the peer's extracted subject name
  * @param subject the peer's extracted common name
  */
-int
+static int
 verify_peer_cert(const struct tls_options *opt, x509_cert_t *peer_cert,
     const char *subject, const char *common_name)
 {
@@ -404,7 +404,7 @@ verify_peer_cert(const struct tls_options *opt, x509_cert_t *peer_cert,
  * Export the subject, common_name, and raw certificate fields to the
  * environment for later verification by scripts and plugins.
  */
-void
+static void
 verify_cert_set_env(struct env_set *es, x509_cert_t *peer_cert, int cert_depth,
     const char *subject, const char *common_name,
     const struct x509_track *x509_track)
@@ -453,7 +453,7 @@ verify_cert_set_env(struct env_set *es, x509_cert_t *peer_cert, int cert_depth,
 /*
  * call --tls-verify plug-in(s)
  */
-int
+static int
 verify_cert_call_plugin(const struct plugin_list *plugins, struct env_set *es,
     int cert_depth, x509_cert_t *cert, char *subject)
 {
@@ -486,7 +486,7 @@ verify_cert_call_plugin(const struct plugin_list *plugins, struct env_set *es,
 /*
  * run --tls-verify script
  */
-int
+static int
 verify_cert_call_command(const char *verify_command, struct env_set *es,
     int cert_depth, x509_cert_t *cert, char *subject, const char *verify_export_cert)
 {
@@ -535,7 +535,7 @@ verify_cert_call_command(const char *verify_command, struct env_set *es,
 /*
  * check peer cert against CRL directory
  */
-bool
+static bool
 verify_check_crl_dir(const char *crl_dir, X509 *cert)
 {
   char fn[256];
@@ -560,6 +560,119 @@ verify_check_crl_dir(const char *crl_dir, X509 *cert)
   verify_free_serial(serial);
 
   return false;
+}
+
+int
+verify_cert(struct tls_session *session, x509_cert_t *cert, int cert_depth)
+{
+  char *subject = NULL;
+  char common_name[TLS_USERNAME_LEN] = {0};
+  const struct tls_options *opt;
+
+  opt = session->opt;
+  ASSERT (opt);
+
+  session->verified = false;
+
+  /* get the X509 name */
+  subject = verify_get_subject(cert);
+  if (!subject)
+    {
+	msg (D_TLS_ERRORS, "VERIFY ERROR: depth=%d, could not extract X509 "
+	    "subject string from certificate", cert_depth);
+	goto err;
+    }
+
+  /* enforce character class restrictions in X509 name */
+  string_mod_sslname (subject, X509_NAME_CHAR_CLASS, opt->ssl_flags);
+  string_replace_leading (subject, '-', '_');
+
+  /* extract the username (default is CN) */
+  if (verify_get_username (common_name, TLS_USERNAME_LEN, opt->x509_username_field, cert))
+    {
+      if (!cert_depth)
+	{
+	  msg (D_TLS_ERRORS, "VERIFY ERROR: could not extract %s from X509 "
+	      "subject string ('%s') -- note that the username length is "
+	      "limited to %d characters",
+	       opt->x509_username_field,
+		 subject,
+		 TLS_USERNAME_LEN);
+	  goto err;
+	}
+    }
+
+  /* enforce character class restrictions in common name */
+  string_mod_sslname (common_name, COMMON_NAME_CHAR_CLASS, opt->ssl_flags);
+
+  /* warn if cert chain is too deep */
+  if (cert_depth >= MAX_CERT_DEPTH)
+    {
+      msg (D_TLS_ERRORS, "TLS Error: Convoluted certificate chain detected with depth [%d] greater than %d", cert_depth, MAX_CERT_DEPTH);
+      goto err;			/* Reject connection */
+    }
+
+  /* verify level 1 cert, i.e. the CA that signed our leaf cert */
+  if (cert_depth == 1 && opt->verify_hash)
+    {
+      if (memcmp (cert->sha1_hash, opt->verify_hash, SHA_DIGEST_LENGTH))
+      {
+	msg (D_TLS_ERRORS, "TLS Error: level-1 certificate hash verification failed");
+	goto err;
+      }
+    }
+
+  /* save common name in session object */
+  if (cert_depth == 0)
+    set_common_name (session, common_name);
+
+  session->verify_maxlevel = max_int (session->verify_maxlevel, cert_depth);
+
+  /* export certificate values to the environment */
+  verify_cert_set_env(opt->es, cert, cert_depth, subject, common_name, opt->x509_track);
+
+  /* export current untrusted IP */
+  setenv_untrusted (session);
+
+  /* If this is the peer's own certificate, verify it */
+  if (cert_depth == 0 && verify_peer_cert(opt, cert, subject, common_name))
+    goto err;
+
+  /* call --tls-verify plug-in(s), if registered */
+  if (verify_cert_call_plugin(opt->plugins, opt->es, cert_depth, cert, subject))
+    goto err;
+
+  /* run --tls-verify script */
+  if (opt->verify_command && verify_cert_call_command(opt->verify_command, opt->es,
+      cert_depth, cert, subject, opt->verify_export_cert))
+    goto err;
+
+  /* check peer cert against CRL */
+  if (opt->crl_file)
+    {
+      if (opt->ssl_flags & SSLF_CRL_VERIFY_DIR)
+      {
+	if (verify_check_crl_dir(opt->crl_file, cert))
+	  goto err;
+      }
+      else
+      {
+	if (verify_check_crl(opt->crl_file, cert, subject))
+	  goto err;
+      }
+    }
+
+  msg (D_HANDSHAKE, "VERIFY OK: depth=%d, %s", cert_depth, subject);
+  session->verified = true;
+
+ done:
+  verify_free_subject (subject);
+  return (session->verified == true) ? 1 : 0;
+
+ err:
+  tls_clear_error();
+  session->verified = false;
+  goto done;
 }
 
 /* ***************************************************************************

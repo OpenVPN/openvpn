@@ -118,13 +118,6 @@
  * Buffer sizes (also see mtu.h).
  */
 
-/* Maximum length of the username in cert */
-#define TLS_USERNAME_LEN 64
-
-/* Legal characters in an X509 or common name */
-#define X509_NAME_CHAR_CLASS   (CC_ALNUM|CC_UNDERBAR|CC_DASH|CC_DOT|CC_AT|CC_COLON|CC_SLASH|CC_EQUAL)
-#define COMMON_NAME_CHAR_CLASS (CC_ALNUM|CC_UNDERBAR|CC_DASH|CC_DOT|CC_AT|CC_SLASH)
-
 /* Maximum length of OCC options string passed as part of auth handshake */
 #define TLS_OPTIONS_LEN 512
 
