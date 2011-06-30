@@ -237,7 +237,7 @@ ntlm_phase_3 (const struct http_proxy_info *p, const char *phase_2, struct gc_ar
   /* pad to 21 bytes */
   memset (md4_hash + 16, 0, 5);
 
-  ret_val = base64_decode( phase_2, (void *)buf2, -1);
+  ret_val = openvpn_base64_decode( phase_2, (void *)buf2, -1);
   if (ret_val < 0)
     return NULL;
 

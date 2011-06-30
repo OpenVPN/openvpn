@@ -192,7 +192,7 @@ make_base64_string2 (const uint8_t *str, int src_len, struct gc_arena *gc)
 {
   uint8_t *ret = NULL;
   char *b64out = NULL;
-  ASSERT (base64_encode ((const void *)str, src_len, &b64out) >= 0);
+  ASSERT (openvpn_base64_encode ((const void *)str, src_len, &b64out) >= 0);
   ret = (uint8_t *) string_alloc (b64out, gc);
   free (b64out);
   return ret;

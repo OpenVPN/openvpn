@@ -561,7 +561,7 @@ pkcs11_management_id_get (
 		goto cleanup;
 	}
 
-	if (base64_encode (certificate_blob, certificate_blob_size, &internal_base64) == -1) {
+	if (openvpn_base64_encode (certificate_blob, certificate_blob_size, &internal_base64) == -1) {
 		msg (M_WARN, "PKCS#11: Cannot encode certificate");
 		goto cleanup;
 	}

@@ -552,7 +552,7 @@ rsa_priv_enc(int flen, const unsigned char *from, unsigned char *to, RSA *rsa, i
     }
 
   /* convert 'from' to base64 */
-  if (base64_encode (from, flen, &in_b64) <= 0)
+  if (openvpn_base64_encode (from, flen, &in_b64) <= 0)
     goto done;
 
   /* call MI for signature */
@@ -563,7 +563,7 @@ rsa_priv_enc(int flen, const unsigned char *from, unsigned char *to, RSA *rsa, i
 
   /* decode base64 signature to binary */
   len = RSA_size(rsa);
-  ret = base64_decode (out_b64, to, len);
+  ret = openvpn_base64_decode (out_b64, to, len);
 
   /* verify length */
   if (ret != len)

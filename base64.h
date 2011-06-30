@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1995, 1996, 1997 Kungliga Tekniska Högskolan
+ * Copyright (c) 1995, 1996, 1997 Kungliga Tekniska HÃ¶gskolan
  * (Royal Institute of Technology, Stockholm, Sweden).
  * All rights reserved.
  * 
@@ -36,8 +36,8 @@
 
 #if defined(ENABLE_HTTP_PROXY) || defined(ENABLE_PKCS11) || defined(ENABLE_CLIENT_CR) || defined(MANAGMENT_EXTERNAL_KEY)
 
-int base64_encode(const void *data, int size, char **str);
-int base64_decode(const char *str, void *data, int size);
+int openvpn_base64_encode(const void *data, int size, char **str);
+int openvpn_base64_decode(const char *str, void *data, int size);
 
 #endif
 

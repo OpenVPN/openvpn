@@ -1494,8 +1494,8 @@ get_user_pass_cr (struct user_pass *up,
 		  msg (M_INFO|M_NOPREFIX, "CHALLENGE: %s", auth_challenge);
 		  if (!get_console_input ("Response:", BOOL_CAST(flags & GET_USER_PASS_STATIC_CHALLENGE_ECHO), response, USER_PASS_LEN))
 		    msg (M_FATAL, "ERROR: could not read static challenge response from stdin");
-		  if (base64_encode(up->password, strlen(up->password), &pw64) == -1
-		      || base64_encode(response, strlen(response), &resp64) == -1)
+		  if (openvpn_base64_encode(up->password, strlen(up->password), &pw64) == -1
+		      || openvpn_base64_encode(response, strlen(response), &resp64) == -1)
 		    msg (M_FATAL, "ERROR: could not base64-encode password/static_response");
 		  buf_set_write (&packed_resp, (uint8_t*)up->password, USER_PASS_LEN);
 		  buf_printf (&packed_resp, "SCRV1:%s:%s", pw64, resp64);
@@ -1617,7 +1617,7 @@ get_auth_challenge (const char *auth_challenge, struct gc_arena *gc)
       if (!buf_parse(&b, ':', work, len))
 	return NULL;
       ac->user = (char *) gc_malloc (strlen(work)+1, true, gc);
-      base64_decode(work, (void*)ac->user, -1);
+      openvpn_base64_decode(work, (void*)ac->user, -1);
 
       /* parse challenge text */
       ac->challenge_text = string_alloc(BSTR(&b), gc);
