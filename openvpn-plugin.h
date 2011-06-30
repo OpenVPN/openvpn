@@ -22,7 +22,12 @@
  *  59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#include <openssl/x509v3.h>
+#ifndef OPENVPN_PLUGIN_H_
+#define OPENVPN_PLUGIN_H_
+
+#ifdef USE_OPENSSL
+#include "ssl_verify_openssl.h"
+#endif
 
 #define OPENVPN_PLUGIN_VERSION 3
 
@@ -272,7 +277,7 @@ struct openvpn_plugin_args_func_in
   openvpn_plugin_handle_t handle;
   void *per_client_context;
   int current_cert_depth;
-  X509 *current_cert;
+  x509_cert_t *current_cert;
 };
 
 
@@ -700,3 +705,5 @@ OPENVPN_PLUGIN_DEF openvpn_plugin_handle_t OPENVPN_PLUGIN_FUNC(openvpn_plugin_op
 
 OPENVPN_PLUGIN_DEF int OPENVPN_PLUGIN_FUNC(openvpn_plugin_func_v1)
      (openvpn_plugin_handle_t handle, const int type, const char *argv[], const char *envp[]);
+
+#endif /* OPENVPN_PLUGIN_H_ */

@@ -122,7 +122,7 @@ int plugin_call (const struct plugin_list *pl,
 		 struct plugin_return *pr,
 		 struct env_set *es,
 		 int current_cert_depth,
-		 X509 *current_cert);
+		 x509_cert_t *current_cert);
 
 void plugin_list_close (struct plugin_list *pl);
 bool plugin_defined (const struct plugin_list *pl, const int type);
@@ -176,7 +176,7 @@ plugin_call (const struct plugin_list *pl,
 	     struct plugin_return *pr,
 	     struct env_set *es,
 	     int current_cert_depth,
-	     X509 *current_cert)
+	     x509_cert_t *current_cert)
 {
   return 0;
 }

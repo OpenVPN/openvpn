@@ -347,7 +347,7 @@ plugin_call_item (const struct plugin *p,
 		  struct openvpn_plugin_string_list **retlist,
 		  const char **envp,
 		  int certdepth,
-		  X509 *current_cert)
+		  x509_cert_t *current_cert)
 {
   int status = OPENVPN_PLUGIN_FUNC_SUCCESS;
 
@@ -576,7 +576,7 @@ plugin_call (const struct plugin_list *pl,
 	     struct plugin_return *pr,
 	     struct env_set *es,
              int certdepth,
-	     X509 *current_cert)
+	     x509_cert_t *current_cert)
 {
   if (pr)
     plugin_return_init (pr);

@@ -431,29 +431,9 @@ verify_cert(struct tls_session *session, x509_cert_t *cert, int cert_depth)
   if (cert_depth == 0 && verify_peer_cert(opt, cert, subject, common_name))
     goto err;
 
-  /* call --tls-verify plug-in(s) */
-  if (plugin_defined (opt->plugins, OPENVPN_PLUGIN_TLS_VERIFY))
-    {
-      int ret;
-
-      argv_printf (&argv, "%d %s",
-		   cert_depth,
-		   subject);
-
-      ret = plugin_call (opt->plugins, OPENVPN_PLUGIN_TLS_VERIFY, &argv, NULL, opt->es, cert_depth, cert);
-
-      if (ret == OPENVPN_PLUGIN_FUNC_SUCCESS)
-	{
-	  msg (D_HANDSHAKE, "VERIFY PLUGIN OK: depth=%d, %s",
-	       cert_depth, subject);
-	}
-      else
-	{
-	  msg (D_HANDSHAKE, "VERIFY PLUGIN ERROR: depth=%d, %s",
-	       cert_depth, subject);
-	  goto err;		/* Reject connection */
-	}
-    }
+  /* call --tls-verify plug-in(s), if registered */
+  if (verify_cert_call_plugin(opt->plugins, opt->es, cert_depth, cert, subject))
+    goto err;
 
   /* run --tls-verify script */
   if (opt->verify_command)

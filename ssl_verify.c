@@ -450,6 +450,39 @@ verify_cert_set_env(struct env_set *es, x509_cert_t *peer_cert, int cert_depth,
   }
 }
 
+/*
+ * call --tls-verify plug-in(s)
+ */
+int
+verify_cert_call_plugin(const struct plugin_list *plugins, struct env_set *es,
+    int cert_depth, x509_cert_t *cert, char *subject)
+{
+  if (plugin_defined (plugins, OPENVPN_PLUGIN_TLS_VERIFY))
+    {
+      int ret;
+      struct argv argv = argv_new ();
+
+      argv_printf (&argv, "%d %s", cert_depth, subject);
+
+      ret = plugin_call (plugins, OPENVPN_PLUGIN_TLS_VERIFY, &argv, NULL, es, cert_depth, cert);
+
+      argv_reset (&argv);
+
+      if (ret == OPENVPN_PLUGIN_FUNC_SUCCESS)
+	{
+	  msg (D_HANDSHAKE, "VERIFY PLUGIN OK: depth=%d, %s",
+	      cert_depth, subject);
+	}
+      else
+	{
+	  msg (D_HANDSHAKE, "VERIFY PLUGIN ERROR: depth=%d, %s",
+	      cert_depth, subject);
+	  return 1;		/* Reject connection */
+	}
+    }
+  return 0;
+}
+
 
 /* ***************************************************************************
  * Functions for the management of deferred authentication when using
