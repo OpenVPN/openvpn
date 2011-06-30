@@ -84,4 +84,20 @@ void cert_hash_remember (struct tls_session *session, const int cert_depth,
  */
 bool verify_get_subject (char **subject, x509_cert_t *cert);
 
+/*
+ * Retrieve the certificate's username from the specified field.
+ *
+ * If the field is prepended with ext: and ENABLE_X509ALTUSERNAME is enabled,
+ * it will be loaded from an X.509 extension
+ *
+ * @param cn			Buffer to return the common name in.
+ * @param cn_len		Length of the cn buffer.
+ * @param x509_username_field	Name of the field to load from
+ * @param cert			Certificate to retrieve the common name from.
+ *
+ * @return 		\c 1 on failure, \c 0 on success
+ */
+bool verify_get_username (char *common_name, int cn_len,
+    char * x509_username_field, X509 *peer_cert);
+
 #endif /* SSL_VERIFY_BACKEND_H_ */
