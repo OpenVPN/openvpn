@@ -294,6 +294,19 @@ void key_state_ssl_init(struct key_state_ssl *ks_ssl,
  */
 void key_state_ssl_free(struct key_state_ssl *ks_ssl);
 
+/* **************************************
+ *
+ * Information functions
+ *
+ * Print information for the end user.
+ *
+ ***************************************/
+
+/*
+ * Print a one line summary of SSL/TLS session handshake.
+ */
+void print_details (struct key_state_ssl * ks_ssl, const char *prefix);
+
 /*
  * Show the TLS ciphers that are available for us to use in the OpenSSL
  * library.

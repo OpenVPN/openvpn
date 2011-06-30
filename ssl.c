@@ -1711,51 +1711,6 @@ init_ssl (const struct options *options, struct tls_root_ctx *new_ctx)
 }
 
 /*
- * Print a one line summary of SSL/TLS session handshake.
- */
-static void
-print_details (SSL * c_ssl, const char *prefix)
-{
-  const SSL_CIPHER *ciph;
-  X509 *cert;
-  char s1[256];
-  char s2[256];
-
-  s1[0] = s2[0] = 0;
-  ciph = SSL_get_current_cipher (c_ssl);
-  openvpn_snprintf (s1, sizeof (s1), "%s %s, cipher %s %s",
-		    prefix,
-		    SSL_get_version (c_ssl),
-		    SSL_CIPHER_get_version (ciph),
-		    SSL_CIPHER_get_name (ciph));
-  cert = SSL_get_peer_certificate (c_ssl);
-  if (cert != NULL)
-    {
-      EVP_PKEY *pkey = X509_get_pubkey (cert);
-      if (pkey != NULL)
-	{
-	  if (pkey->type == EVP_PKEY_RSA && pkey->pkey.rsa != NULL
-	      && pkey->pkey.rsa->n != NULL)
-	    {
-	      openvpn_snprintf (s2, sizeof (s2), ", %d bit RSA",
-				BN_num_bits (pkey->pkey.rsa->n));
-	    }
-	  else if (pkey->type == EVP_PKEY_DSA && pkey->pkey.dsa != NULL
-		   && pkey->pkey.dsa->p != NULL)
-	    {
-	      openvpn_snprintf (s2, sizeof (s2), ", %d bit DSA",
-				BN_num_bits (pkey->pkey.dsa->p));
-	    }
-	  EVP_PKEY_free (pkey);
-	}
-      X509_free (cert);
-    }
-  /* The SSL API does not allow us to look at temporary RSA/DH keys,
-   * otherwise we should print their lengths too */
-  msg (D_HANDSHAKE, "%s%s", s1, s2);
-}
-
-/*
  * Map internal constants to ascii names.
  */
 static const char *
@@ -4091,7 +4046,7 @@ tls_process (struct tls_multi *multi,
 		  ks->established = now;
 		  dmsg (D_TLS_DEBUG_MED, "STATE S_ACTIVE");
 		  if (check_debug_level (D_HANDSHAKE))
-		    print_details (ks->ks_ssl.ssl, "Control Channel:");
+		    print_details (&ks->ks_ssl, "Control Channel:");
 		  state_change = true;
 		  ks->state = S_ACTIVE;
 		  INCR_SUCCESS;

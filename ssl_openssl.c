@@ -902,6 +902,55 @@ void key_state_ssl_free(struct key_state_ssl *ks_ssl)
   }
 }
 
+/* **************************************
+ *
+ * Information functions
+ *
+ * Print information for the end user.
+ *
+ ***************************************/
+void
+print_details (struct key_state_ssl * ks_ssl, const char *prefix)
+{
+  SSL_CIPHER *ciph;
+  X509 *cert;
+  char s1[256];
+  char s2[256];
+
+  s1[0] = s2[0] = 0;
+  ciph = SSL_get_current_cipher (ks_ssl->ssl);
+  openvpn_snprintf (s1, sizeof (s1), "%s %s, cipher %s %s",
+		    prefix,
+		    SSL_get_version (ks_ssl->ssl),
+		    SSL_CIPHER_get_version (ciph),
+		    SSL_CIPHER_get_name (ciph));
+  cert = SSL_get_peer_certificate (ks_ssl->ssl);
+  if (cert != NULL)
+    {
+      EVP_PKEY *pkey = X509_get_pubkey (cert);
+      if (pkey != NULL)
+	{
+	  if (pkey->type == EVP_PKEY_RSA && pkey->pkey.rsa != NULL
+	      && pkey->pkey.rsa->n != NULL)
+	    {
+	      openvpn_snprintf (s2, sizeof (s2), ", %d bit RSA",
+				BN_num_bits (pkey->pkey.rsa->n));
+	    }
+	  else if (pkey->type == EVP_PKEY_DSA && pkey->pkey.dsa != NULL
+		   && pkey->pkey.dsa->p != NULL)
+	    {
+	      openvpn_snprintf (s2, sizeof (s2), ", %d bit DSA",
+				BN_num_bits (pkey->pkey.dsa->p));
+	    }
+	  EVP_PKEY_free (pkey);
+	}
+      X509_free (cert);
+    }
+  /* The SSL API does not allow us to look at temporary RSA/DH keys,
+   * otherwise we should print their lengths too */
+  msg (D_HANDSHAKE, "%s%s", s1, s2);
+}
+
 void
 tls_ctx_load_extra_certs (struct tls_root_ctx *ctx, const char *extra_certs_file
 #if ENABLE_INLINE_FILES
