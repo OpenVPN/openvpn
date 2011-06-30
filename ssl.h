@@ -32,13 +32,6 @@
 
 #if defined(USE_CRYPTO) && defined(USE_SSL)
 
-#include <openssl/ssl.h>
-#include <openssl/bio.h>
-#include <openssl/rand.h>
-#include <openssl/err.h>
-#include <openssl/pkcs12.h>
-#include <openssl/x509v3.h>
-
 #include "basic.h"
 #include "common.h"
 #include "crypto.h"
@@ -99,7 +92,6 @@
 /*
  * Various timeouts
  */
- 
 #define TLS_MULTI_REFRESH 15    /* call tls_multi_process once every n seconds */
 #define TLS_MULTI_HORIZON 2     /* call tls_multi_process frequently for n seconds after
 				   every packet sent/received action */
@@ -386,13 +378,30 @@ void tls_post_encrypt (struct tls_multi *multi, struct buffer *buf);
 
 /** @} name Functions for managing security parameter state for data channel packets */
 
+/*
+ * Setup private key file password. If auth_file is given, use the
+ * credentials stored in the file.
+ */
 void pem_password_setup (const char *auth_file);
-int pem_password_callback (char *buf, int size, int rwflag, void *u);
+
+/*
+ * Setup authentication username and password. If auth_file is given, use the
+ * credentials stored in the file.
+ */
 void auth_user_pass_setup (const char *auth_file, const struct static_challenge_info *sc_info);
+
+/*
+ * Ensure that no caching is performed on authentication information
+ */
 void ssl_set_auth_nocache (void);
-void ssl_set_auth_token (const char *token);
+
+/*
+ * Purge any stored authentication information, both for key files and tunnel
+ * authentication. If PCKS #11 is enabled, purge authentication for that too.
+ */
 void ssl_purge_auth (const bool auth_user_pass_only);
 
+void ssl_set_auth_token (const char *token);
 
 #ifdef ENABLE_CLIENT_CR
 /*
@@ -403,10 +412,6 @@ void ssl_purge_auth (const bool auth_user_pass_only);
 void ssl_purge_auth_challenge (void);
 void ssl_put_auth_challenge (const char *cr_str);
 #endif
-
-void tls_set_verify_command (const char *cmd);
-void tls_set_crl_verify (const char *crl);
-void tls_set_verify_x509name (const char *x509name);
 
 /*
  * Reserve any extra space required on frames.
