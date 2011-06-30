@@ -58,6 +58,36 @@ struct cert_hash_set {
 };
 
 
+#define TLS_AUTHENTICATION_SUCCEEDED  0
+#define TLS_AUTHENTICATION_FAILED     1
+#define TLS_AUTHENTICATION_DEFERRED   2
+#define TLS_AUTHENTICATION_UNDEFINED  3
+
+/*
+ * Return current session authentication state.  Return
+ * value is TLS_AUTHENTICATION_x.
+ *
+ * TODO: document this function
+ */
+int tls_authentication_status (struct tls_multi *multi, const int latency);
+
+/** Check whether the \a ks \c key_state is ready to receive data channel
+ *   packets.
+ *   @ingroup data_crypto
+ *
+ *   If true, it is safe to assume that this session has been authenticated
+ *   by TLS.
+ *
+ *   @note This macro only works if S_SENT_KEY + 1 == S_GOT_KEY. */
+#define DECRYPT_KEY_ENABLED(multi, ks) ((ks)->state >= (S_GOT_KEY - (multi)->opt.server))
+
+/**
+ * Remove the given key state's auth control file, if it exists.
+ *
+ * @param ks	The key state the remove the file for
+ */
+void key_state_rm_auth_control_file (struct key_state *ks);
+
 /**
  * Frees the given set of certificate hashes.
  *
@@ -87,7 +117,13 @@ void tls_lock_common_name (struct tls_multi *multi);
  */
 const char *tls_common_name (const struct tls_multi* multi, const bool null);
 
-void tls_set_common_name (struct tls_multi *multi, const char *common_name);
+/**
+ * Returns the username field for the given tunnel
+ *
+ * @param multi	The tunnel to return the username for
+ * @param null	Whether null may be returned. If not, "UNDEF" will be returned.
+ */
+const char *tls_username (const struct tls_multi *multi, const bool null);
 
 #ifdef ENABLE_PF
 
@@ -119,6 +155,38 @@ tls_common_name_hash (const struct tls_multi *multi, const char **cn, uint32_t *
 #endif
 
 /**
+ * Returns whether or not the server should check for username/password
+ *
+ * @param session	The current TLS session
+ *
+ * @return 		true if username and password verification is enabled,
+ * 			false if not.
+ *
+ */
+static inline bool verify_user_pass_enabled(struct tls_session *session)
+{
+  return (session->opt->auth_user_pass_verify_script
+        || plugin_defined (session->opt->plugins, OPENVPN_PLUGIN_AUTH_USER_PASS_VERIFY)
+        || management_enable_def_auth (management));
+}
+
+/**
+ * Verify the given username and password, using either an external script, a
+ * plugin, or the management interface.
+ *
+ * If authentication succeeds, the appropriate state is filled into the
+ * session's primary key state's authenticated field. Authentication may also
+ * be deferred, in which case the key state's auth_deferred field is filled in.
+ *
+ * @param up		The username and password to verify.
+ * @param multi		The TLS multi structure to verify usernames against.
+ * @param session	The current TLS session
+ *
+ */
+void verify_user_pass(struct user_pass *up, struct tls_multi *multi,
+    struct tls_session *session);
+
+/**
  * Perform final authentication checks, including locking of the cn, the allowed
  * certificate hashes, and whether a client config entry exists in the
  * client config directory.
@@ -129,5 +197,24 @@ tls_common_name_hash (const struct tls_multi *multi, const char **cn, uint32_t *
  */
 void verify_final_auth_checks(struct tls_multi *multi, struct tls_session *session);
 
+/*
+ * TODO: document
+ */
+#ifdef MANAGEMENT_DEF_AUTH
+bool tls_authenticate_key (struct tls_multi *multi, const unsigned int mda_key_id, const bool auth, const char *client_reason);
+void man_def_auth_set_client_reason (struct tls_multi *multi, const char *client_reason);
+#endif
+
+static inline const char *
+tls_client_reason (struct tls_multi *multi)
+{
+#ifdef ENABLE_DEF_AUTH
+  return multi->client_reason;
+#else
+  return NULL;
+#endif
+}
+
 
 #endif /* SSL_VERIFY_H_ */
+

@@ -42,6 +42,65 @@
 #define UP_TYPE_AUTH        "Auth"
 #define UP_TYPE_PRIVATE_KEY "Private Key"
 
+/** @addtogroup control_processor
+ *  @{ */
+/**
+ * @name Control channel negotiation states
+ *
+ * These states represent the different phases of control channel
+ * negotiation between OpenVPN peers.  OpenVPN servers and clients
+ * progress through the states in a different order, because of their
+ * different roles during exchange of random material.  The references to
+ * the \c key_source2 structure in the list below is only valid if %key
+ * method 2 is being used.  See the \link key_generation data channel key
+ * generation\endlink related page for more information.
+ *
+ * Clients follow this order:
+ *   -# \c S_INITIAL, ready to begin three-way handshake and control
+ *      channel negotiation.
+ *   -# \c S_PRE_START, have started three-way handshake, waiting for
+ *      acknowledgment from remote.
+ *   -# \c S_START, initial three-way handshake complete.
+ *   -# \c S_SENT_KEY, have sent local part of \c key_source2 random
+ *      material.
+ *   -# \c S_GOT_KEY, have received remote part of \c key_source2 random
+ *      material.
+ *   -# \c S_ACTIVE, normal operation during remaining handshake window.
+ *   -# \c S_NORMAL_OP, normal operation.
+ *
+ * Servers follow the same order, except for \c S_SENT_KEY and \c
+ * S_GOT_KEY being reversed, because the server first receives the
+ * client's \c key_source2 random material before generating and sending
+ * its own.
+ *
+ * @{
+ */
+#define S_ERROR          -1     /**< Error state.  */
+#define S_UNDEF           0     /**< Undefined state, used after a \c
+                                 *   key_state is cleaned up. */
+#define S_INITIAL         1     /**< Initial \c key_state state after
+                                 *   initialization by \c key_state_init()
+                                 *   before start of three-way handshake. */
+#define S_PRE_START       2     /**< Waiting for the remote OpenVPN peer
+                                 *   to acknowledge during the initial
+                                 *   three-way handshake. */
+#define S_START           3     /**< Three-way handshake is complete,
+                                 *   start of key exchange. */
+#define S_SENT_KEY        4     /**< Local OpenVPN process has sent its
+                                 *   part of the key material. */
+#define S_GOT_KEY         5     /**< Local OpenVPN process has received
+                                 *   the remote's part of the key
+                                 *   material. */
+#define S_ACTIVE          6     /**< Operational \c key_state state
+                                 *   immediately after negotiation has
+                                 *   completed while still within the
+                                 *   handshake window. */
+/* ready to exchange data channel packets */
+#define S_NORMAL_OP       7     /**< Normal operational \c key_state
+                                 *   state. */
+/** @} name Control channel negotiation states */
+/** @} addtogroup control_processor */
+
 /**
  * Container for one half of random material to be used in %key method 2
  * \ref key_generation "data channel key generation".
