@@ -229,7 +229,7 @@ x509_get_sha1_hash (X509 *cert)
 {
   char *hash = malloc(SHA_DIGEST_LENGTH);
   memcpy(hash, cert->sha1_hash, SHA_DIGEST_LENGTH);
-  return cert->sha1_hash;
+  return hash;
 }
 
 void
