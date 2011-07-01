@@ -148,6 +148,43 @@ void x509_free_serial (char *serial);
  *
  * X509_{cert_depth}_{name}={value}
  *
+ * @param es		Environment set to save variables in
+ * @param cert_depth	Depth of the certificate
+ * @param cert		Certificate to set the environment for
+ */
+void x509_setenv (struct env_set *es, int cert_depth, x509_cert_t *cert);
+
+#ifdef ENABLE_X509_TRACK
+
+/*
+ * Start tracking the given attribute.
+ *
+ * The tracked attributes are stored in ll_head.
+ *
+ * @param ll_head	The x509_track to store tracked atttributes in
+ * @param name		Name of the attribute to track
+ * @param msglevel	Message level for errors
+ * @param gc		Garbage collection arena for temp data
+ *
+ */
+void x509_track_add (const struct x509_track **ll_head, const char *name,
+    int msglevel, struct gc_arena *gc);
+
+/*
+ * Save X509 fields to environment, using the naming convention:
+ *
+ *  X509_{cert_depth}_{name}={value}
+ *
+ * This function differs from setenv_x509 below in the following ways:
+ *
+ * (1) Only explicitly named attributes in xt are saved, per usage
+ *     of --x509-track program options.
+ * (2) Only the level 0 cert info is saved unless the XT_FULL_CHAIN
+ *     flag is set in xt->flags (corresponds with prepending a '+'
+ *     to the name when specified by --x509-track program option).
+ * (3) This function supports both X509 subject name fields as
+ *     well as X509 V3 extensions.
+ *
  * @param xt
  * @param es		Environment set to save variables in
  * @param cert_depth	Depth of the certificate
@@ -156,16 +193,7 @@ void x509_free_serial (char *serial);
 void x509_setenv_track (const struct x509_track *xt, struct env_set *es,
     const int depth, x509_cert_t *x509);
 
-/*
- * Save X509 fields to environment, using the naming convention:
- *
- * X509_{cert_depth}_{name}={value}
- *
- * @param es		Environment set to save variables in
- * @param cert_depth	Depth of the certificate
- * @param cert		Certificate to set the environment for
- */
-void x509_setenv (struct env_set *es, int cert_depth, x509_cert_t *cert);
+#endif
 
 /*
  * Check X.509 Netscape certificate type field, if available.

@@ -620,7 +620,7 @@ socket_defined (const socket_descriptor_t sd)
 /*
  * Enable x509-track feature?
  */
-#if defined(USE_CRYPTO) && defined(USE_SSL)
+#if defined(USE_CRYPTO) && defined(USE_SSL) && defined USE_OPENSSL
 #define ENABLE_X509_TRACK
 #endif
 

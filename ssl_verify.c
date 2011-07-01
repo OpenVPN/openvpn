@@ -281,31 +281,6 @@ tls_lock_cert_hash_set (struct tls_multi *multi)
     multi->locked_cert_hash_set = cert_hash_copy (chs);
 }
 
-#ifdef ENABLE_X509_TRACK
-
-void
-x509_track_add (const struct x509_track **ll_head, const char *name, int msglevel, struct gc_arena *gc)
-{
-  struct x509_track *xt;
-  ALLOC_OBJ_CLEAR_GC (xt, struct x509_track, gc);
-  if (*name == '+')
-    {
-      xt->flags |= XT_FULL_CHAIN;
-      ++name;
-    }
-  xt->name = name;
-  xt->nid = OBJ_txt2nid(name);
-  if (xt->nid != NID_undef)
-    {
-      xt->next = *ll_head;
-      *ll_head = xt;
-    }
-  else
-    msg(msglevel, "x509_track: no such attribute '%s'", name);
-}
-
-#endif
-
 /*
  * Returns the string associated with the given certificate type.
  */
@@ -406,8 +381,11 @@ verify_peer_cert(const struct tls_options *opt, x509_cert_t *peer_cert,
  */
 static void
 verify_cert_set_env(struct env_set *es, x509_cert_t *peer_cert, int cert_depth,
-    const char *subject, const char *common_name,
-    const struct x509_track *x509_track)
+    const char *subject, const char *common_name
+#ifdef ENABLE_X509_TRACK
+    , const struct x509_track *x509_track
+#endif
+    )
 {
   char envname[64];
 
@@ -635,7 +613,11 @@ verify_cert(struct tls_session *session, x509_cert_t *cert, int cert_depth)
   session->verify_maxlevel = max_int (session->verify_maxlevel, cert_depth);
 
   /* export certificate values to the environment */
-  verify_cert_set_env(opt->es, cert, cert_depth, subject, common_name, opt->x509_track);
+  verify_cert_set_env(opt->es, cert, cert_depth, subject, common_name
+#ifdef ENABLE_X509_TRACK
+      , opt->x509_track
+#endif
+      );
 
   /* export current untrusted IP */
   setenv_untrusted (session);

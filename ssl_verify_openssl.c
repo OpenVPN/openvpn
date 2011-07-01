@@ -254,22 +254,27 @@ x509_free_subject (char *subject)
 
 
 #ifdef ENABLE_X509_TRACK
-/*
- * setenv_x509_track function -- save X509 fields to environment,
- * using the naming convention:
- *
- *  X509_{cert_depth}_{name}={value}
- *
- * This function differs from setenv_x509 below in the following ways:
- *
- * (1) Only explicitly named attributes in xt are saved, per usage
- *     of --x509-track program options.
- * (2) Only the level 0 cert info is saved unless the XT_FULL_CHAIN
- *     flag is set in xt->flags (corresponds with prepending a '+'
- *     to the name when specified by --x509-track program option).
- * (3) This function supports both X509 subject name fields as
- *     well as X509 V3 extensions.
- */
+
+void
+x509_track_add (const struct x509_track **ll_head, const char *name, int msglevel, struct gc_arena *gc)
+{
+  struct x509_track *xt;
+  ALLOC_OBJ_CLEAR_GC (xt, struct x509_track, gc);
+  if (*name == '+')
+    {
+      xt->flags |= XT_FULL_CHAIN;
+      ++name;
+    }
+  xt->name = name;
+  xt->nid = OBJ_txt2nid(name);
+  if (xt->nid != NID_undef)
+    {
+      xt->next = *ll_head;
+      *ll_head = xt;
+    }
+  else
+    msg(msglevel, "x509_track: no such attribute '%s'", name);
+}
 
 /* worker method for setenv_x509_track */
 static void
