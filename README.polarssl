@@ -1,0 +1,23 @@
+This version of OpenVPN has PolarSSL support. To enable follow the following
+instructions:
+
+To Build and Install,
+
+	./configure --with-ssl-type=polarssl
+	make
+	make install
+
+*************************************************************************
+
+The following features are missing in the PolarSSL version of OpenVPN:
+
+ * ca_path support - Loading certificate authorities from a directory
+ * PKCS#12 file support
+ * Windows CryptoAPI support
+ * Management external key support
+ * X509 alternative username fields (must be "CN")
+
+ TODO:
+ * serial is in Hex
+ * X509 certificate export
+ * X.509 tracking

@@ -291,14 +291,16 @@ AC_ARG_WITH(mem-check,
 )
 
 AC_ARG_WITH([ssl-type],
-   [  --with-ssl-type=TYPE  Build with the given SSL library, TYPE = openssl ],
+   [  --with-ssl-type=TYPE  Build with the given SSL library, TYPE = openssl or polarssl ],
    [case "${withval}" in 
         openssl) SSL_LIB=openssl ;;
+        polarssl) SSL_LIB=polarssl ;;
         *) AC_MSG_ERROR([bad value ${withval} for --with-ssl-type]) ;;
    esac],
    [SSL_LIB="openssl"]
 )
 AM_CONDITIONAL([USE_OPENSSL], [test x$SSL_LIB = xopenssl])
+AM_CONDITIONAL([USE_POLARSSL], [test x$SSL_LIB = xpolarssl])
 
 dnl fix search path, to allow compilers to find syshead.h
 CPPFLAGS="$CPPFLAGS -I${srcdir}"
@@ -710,6 +712,24 @@ if test "$LZO_STUB" = "yes"; then
 fi
 
 dnl
+dnl enable pkcs11 capability
+dnl
+
+if test "$PKCS11" = "yes"; then
+   AC_CHECKING([for pkcs11-helper Library and Header files])
+   AC_CHECK_HEADER(pkcs11-helper-1.0/pkcs11h-core.h,
+	[AC_CHECK_LIB(pkcs11-helper, pkcs11h_initialize,
+	    [
+		   AC_DEFINE(USE_PKCS11, 1, [Enable PKCS11 capability])
+		   OPENVPN_ADD_LIBS(-lpkcs11-helper)
+	    ],
+	    [AC_MSG_RESULT([pkcs11-helper library not found.])]
+	)],
+	[AC_MSG_RESULT([pkcs11-helper headers not found.])]
+   )
+fi
+
+dnl
 dnl check for SSL-crypto library
 dnl
 
@@ -752,7 +772,20 @@ if test "$CRYPTO" = "yes"; then
          [AC_MSG_ERROR([OpenSSL crypto Library is too old.])]
        )
    fi
-
+   if test "$SSL_LIB" = "polarssl"; then
+        AC_CHECKING([for PolarSSL Crypto Library and Header files])
+        AC_CHECK_HEADER(polarssl/aes.h,
+            [AC_CHECK_LIB(polarssl, aes_crypt_cbc,
+                [
+                    OPENVPN_ADD_LIBS(-lpolarssl)
+                    AC_DEFINE(USE_CRYPTO, 1, [Use crypto library])
+                    AC_DEFINE(USE_POLARSSL, 1, [Use PolarSSL library])
+                ],
+                [AC_MSG_ERROR([PolarSSL Crypto library not found.])]
+            )],
+            [AC_MSG_ERROR([PolarSSL Crypto headers not found.])]
+        )
+    fi
    dnl
    dnl check for OpenSSL-SSL library
    dnl
@@ -788,28 +821,26 @@ if test "$CRYPTO" = "yes"; then
 
          AC_DEFINE(USE_SSL, 1, [Use OpenSSL SSL library])
       fi
+      if test "$SSL_LIB" = "polarssl"; then
+         AC_CHECKING([for PolarSSL SSL Library and Header files])
+         AC_CHECK_HEADER(polarssl/ssl.h,
+              [AC_CHECK_LIB(polarssl, ssl_init,
+              [
+                  OPENVPN_ADD_LIBS(-lpolarssl)
+                  AC_DEFINE(USE_SSL, 1, [Use SSL library])
+                  AC_DEFINE(USE_POLARSSL, 1, [Use PolarSSL library])
+              ],
+              [AC_MSG_ERROR([PolarSSL SSL library not found.])]
+          )],
+              [AC_MSG_ERROR([PolarSSL SSL headers not found.])]
+          )
+       fi
    fi
 fi
 
 dnl enable --x509-username-field feature if requested
 if test "$X509ALTUSERNAME" = "yes"; then
    AC_DEFINE(ENABLE_X509ALTUSERNAME, 1, [Enable --x509-username-field feature])
-fi
-
-dnl enable pkcs11 capability
-
-if test "$PKCS11" = "yes"; then
-   AC_CHECKING([for pkcs11-helper Library and Header files])
-   AC_CHECK_HEADER(pkcs11-helper-1.0/pkcs11h-core.h,
-	[AC_CHECK_LIB(pkcs11-helper, pkcs11h_initialize,
-	    [
-		   AC_DEFINE(USE_PKCS11, 1, [Enable PKCS11 capability])
-		   OPENVPN_ADD_LIBS(-lpkcs11-helper)
-	    ],
-	    [AC_MSG_RESULT([pkcs11-helper library not found.])]
-	)],
-	[AC_MSG_RESULT([pkcs11-helper headers not found.])]
-   )
 fi
 
 dnl enable multi-client mode

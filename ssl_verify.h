@@ -39,6 +39,9 @@
 #ifdef USE_OPENSSL
 #include "ssl_verify_openssl.h"
 #endif
+#ifdef USE_POLARSSL
+#include "ssl_verify_polarssl.h"
+#endif
 
 #include "ssl_verify_backend.h"
 

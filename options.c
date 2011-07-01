@@ -508,7 +508,9 @@ static const char usage_message[] =
   "--keysize n     : Size of cipher key in bits (optional).\n"
   "                  If unspecified, defaults to cipher-specific default.\n"
 #endif
+#ifndef USE_POLARSSL
   "--engine [name] : Enable OpenSSL hardware crypto engine functionality.\n"
+#endif
   "--no-replay     : Disable replay protection.\n"
   "--mute-replay-warnings : Silence the output of replay warnings to log file.\n"
   "--replay-window n [t]  : Use a replay protection sliding window of size n\n"
@@ -529,13 +531,15 @@ static const char usage_message[] =
   "                  number, such as 1 (default), 2, etc.\n"
   "--ca file       : Certificate authority file in .pem format containing\n"
   "                  root certificate.\n"
+#ifndef USE_POLARSSL
   "--capath dir    : A directory of trusted certificates (CAs"
 #if OPENSSL_VERSION_NUMBER >= 0x00907000L
   " and CRLs).\n"
-#else
+#else /* OPENSSL_VERSION_NUMBER >= 0x00907000L */
   ").\n"
   "                  WARNING: no support of CRL available with this version.\n"
-#endif
+#endif /* OPENSSL_VERSION_NUMBER >= 0x00907000L */
+#endif /* USE_POLARSSL */
   "--dh file       : File containing Diffie Hellman parameters\n"
   "                  in .pem format (for --tls-server only).\n"
   "                  Use \"openssl dhparam -out dh1024.pem 1024\" to generate.\n"
@@ -590,7 +594,7 @@ static const char usage_message[] =
   "                  nsCertType designation t = 'client' | 'server'.\n"
   "--x509-track x  : Save peer X509 attribute x in environment for use by\n"
   "                  plugins and management interface.\n"
-#if OPENSSL_VERSION_NUMBER >= 0x00907000L
+#if OPENSSL_VERSION_NUMBER >= 0x00907000L || USE_POLARSSL
   "--remote-cert-ku v ... : Require that the peer certificate was signed with\n"
   "                  explicit key usage, you can specify more than one value.\n"
   "                  value should be given in hex format.\n"
@@ -600,7 +604,7 @@ static const char usage_message[] =
   "--remote-cert-tls t: Require that peer certificate was signed with explicit\n"
   "                  key usage and extended key usage based on RFC3280 TLS rules.\n"
   "                  t = 'client' | 'server'.\n"
-#endif				/* OPENSSL_VERSION_NUMBER */
+#endif				/* OPENSSL_VERSION_NUMBER || USE_POLARSSL */
 #endif				/* USE_SSL */
 #ifdef ENABLE_PKCS11
   "\n"
@@ -1537,7 +1541,9 @@ show_settings (const struct options *o)
   SHOW_STR (prng_hash);
   SHOW_INT (prng_nonce_secret_len);
   SHOW_INT (keysize);
+#ifndef USE_POLARSSL
   SHOW_BOOL (engine);
+#endif /* USE_POLARSSL */
   SHOW_BOOL (replay);
   SHOW_BOOL (mute_replay_warnings);
   SHOW_INT (replay_window);
@@ -2268,8 +2274,13 @@ options_postprocess_verify_ce (const struct options *options, const struct conne
         }
       else
         {
+#ifdef USE_POLARSSL
+	  if (!(options->ca_file))
+	    msg(M_USAGE, "You must define CA file (--ca)");
+#else
 	  if ((!(options->ca_file)) && (!(options->ca_path)))
 	    msg(M_USAGE, "You must define CA file (--ca) or CA path (--capath)");
+#endif
 	  if (pull)
 	    {
 	      const int sum = (options->cert_file != NULL) + (options->priv_key_file != NULL);
@@ -6114,6 +6125,7 @@ add_option (struct options *options,
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->test_crypto = true;
     }
+#ifndef USE_POLARSSL
   else if (streq (p[0], "engine"))
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
@@ -6124,6 +6136,7 @@ add_option (struct options *options,
       else
 	options->engine = "auto";
     }  
+#endif /* USE_POLARSSL */
 #ifdef HAVE_EVP_CIPHER_CTX_SET_KEY_LENGTH
   else if (streq (p[0], "keysize") && p[1])
     {
@@ -6166,11 +6179,13 @@ add_option (struct options *options,
 	}
 #endif
     }
+#ifndef USE_POLARSSL
   else if (streq (p[0], "capath") && p[1])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->ca_path = p[1];
     }
+#endif /* USE_POLARSSL */
   else if (streq (p[0], "dh") && p[1])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
@@ -6322,7 +6337,7 @@ add_option (struct options *options,
 	  goto err;
 	}
     }
-#if OPENSSL_VERSION_NUMBER >= 0x00907000L
+#if OPENSSL_VERSION_NUMBER >= 0x00907000L || USE_POLARSSL
   else if (streq (p[0], "remote-cert-ku"))
     {
       int j;

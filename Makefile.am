@@ -160,6 +160,13 @@ openvpn_SOURCES += \
 	ssl_openssl.c ssl_openssl.h \
 	ssl_verify_openssl.c ssl_verify_openssl.h
 endif
+if USE_POLARSSL
+openvpn_SOURCES += \
+	crypto_polarssl.c crypto_polarssl.h \
+	pkcs11_polarssl.c \
+	ssl_polarssl.c ssl_polarssl.h \
+	ssl_verify_polarssl.c ssl_verify_polarssl.h
+endif
 
 dist-hook:
 	cd $(distdir) && for i in $(EXTRA_DIST) $(SUBDIRS) ; do find $$i -name .svn -type d -prune -exec rm -rf '{}' ';' ; rm -f `find $$i -type f | grep -E '(^|\/)\.?\#|\~$$|\.s?o$$'` ; done

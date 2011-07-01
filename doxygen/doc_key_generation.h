@@ -79,9 +79,11 @@
  *
  * @subsection key_generation_random Source of random material
  *
- * OpenVPN uses the OpenSSL library as its source of random material. More
- * specifically, the \c RAND_bytes() function is called to supply
- * cryptographically strong pseudo-random data.  The following links
+ * OpenVPN uses the either the OpenSSL library or the PolarSSL library as its
+ * source of random material.
+ *
+ * In OpenSSL, the \c RAND_bytes() function is called
+ * to supply cryptographically strong pseudo-random data.  The following links
  * contain more information on this subject:
  * - For OpenSSL's \c RAND_bytes() function:
  *   http://www.openssl.org/docs/crypto/RAND_bytes.html
@@ -89,6 +91,9 @@
  *   http://www.openssl.org/docs/crypto/rand.html
  * - For OpenSSL's support for external crypto modules:
  *   http://www.openssl.org/docs/crypto/engine.html
+ *
+ * In PolarSSL, the Havege random number generator is used. For details, see
+ * the PolarSSL documentation.
  *
  * @section key_generation_exchange Key exchange:
  *

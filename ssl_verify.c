@@ -326,7 +326,7 @@ verify_peer_cert(const struct tls_options *opt, x509_cert_t *peer_cert,
 	}
     }
 
-#if OPENSSL_VERSION_NUMBER >= 0x00907000L
+#if OPENSSL_VERSION_NUMBER >= 0x00907000L || USE_POLARSSL
 
   /* verify certificate ku */
   if (opt->remote_cert_ku[0] != 0)

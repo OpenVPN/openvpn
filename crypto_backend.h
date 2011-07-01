@@ -35,7 +35,9 @@
 #ifdef USE_OPENSSL
 #include "crypto_openssl.h"
 #endif
-
+#ifdef USE_POLARSSL
+#include "crypto_polarssl.h"
+#endif
 #include "basic.h"
 
 
