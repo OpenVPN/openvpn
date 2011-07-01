@@ -37,6 +37,7 @@ verify_callback (int preverify_ok, X509_STORE_CTX * ctx)
 {
   struct tls_session *session;
   SSL *ssl;
+  unsigned char *sha1_hash = NULL;
 
   /* get the tls_session pointer */
   ssl = X509_STORE_CTX_get_ex_data (ctx, SSL_get_ex_data_X509_STORE_CTX_idx());
@@ -44,14 +45,15 @@ verify_callback (int preverify_ok, X509_STORE_CTX * ctx)
   session = (struct tls_session *) SSL_get_ex_data (ssl, mydata_index);
   ASSERT (session);
 
-  cert_hash_remember (session, ctx->error_depth, ctx->current_cert->sha1_hash);
+  sha1_hash = x509_get_sha1_hash(ctx->current_cert);
+  cert_hash_remember (session, ctx->error_depth, sha1_hash);
+  x509_free_sha1_hash(sha1_hash);
 
   /* did peer present cert which was signed by our root cert? */
   if (!preverify_ok)
     {
       /* get the X509 name */
-      char *subject = X509_NAME_oneline (
-	  X509_get_subject_name (ctx->current_cert), NULL, 0);
+      char *subject = x509_get_serial(ctx->current_cert);
 
       if (subject)
 	{
@@ -60,7 +62,7 @@ verify_callback (int preverify_ok, X509_STORE_CTX * ctx)
 	      ctx->error_depth,
 	      X509_verify_cert_error_string (ctx->error),
 	      subject);
-	  free (subject);
+	  x509_free_subject(subject);
 	}
 
       ERR_clear_error();
@@ -220,6 +222,21 @@ x509_free_serial (char *serial)
 {
   if (serial)
     OPENSSL_free(serial);
+}
+
+unsigned char *
+x509_get_sha1_hash (X509 *cert)
+{
+  char *hash = malloc(SHA_DIGEST_LENGTH);
+  memcpy(hash, cert->sha1_hash, SHA_DIGEST_LENGTH);
+  return cert->sha1_hash;
+}
+
+void
+x509_free_sha1_hash (unsigned char *hash)
+{
+  if (hash)
+    free(hash);
 }
 
 char *

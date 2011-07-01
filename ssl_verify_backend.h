@@ -73,7 +73,7 @@ void cert_hash_remember (struct tls_session *session, const int cert_depth,
  */
 
 /*
- * Retrieve certificate's subject name, and place it in **subject.
+ * Retrieve certificate's subject name.
  *
  * The returned string must be freed with \c verify_free_subject()
  *
@@ -84,11 +84,29 @@ void cert_hash_remember (struct tls_session *session, const int cert_depth,
 char *x509_get_subject (x509_cert_t *cert);
 
 /*
- * Free a subjectnumber string as returned by \c verify_get_subject()
+ * Free a subject string as returned by \c verify_get_subject()
  *
  * @param subject	The subject to be freed.
  */
 void x509_free_subject (char *subject);
+
+/* Retrieve the certificate's SHA1 hash.
+ *
+ * The returned string must be freed with \c verify_free_sha1_hash()
+ *
+ * @param cert		Certificate to retrieve the hash from.
+ *
+ * @return 		a string containing the SHA1 hash of the certificate
+ */
+
+unsigned char *x509_get_sha1_hash (x509_cert_t *cert);
+
+/*
+ * Free a hash as returned by \c verify_get_hash()
+ *
+ * @param hash		The subject to be freed.
+ */
+void x509_free_sha1_hash (unsigned char *hash);
 
 /*
  * Retrieve the certificate's username from the specified field.
@@ -126,7 +144,9 @@ char *x509_get_serial (x509_cert_t *cert);
 void x509_free_serial (char *serial);
 
 /*
- * TODO: document
+ * Save X509 fields to environment, using the naming convention:
+ *
+ * X509_{cert_depth}_{name}={value}
  *
  * @param xt
  * @param es		Environment set to save variables in
@@ -160,6 +180,8 @@ void x509_setenv (struct env_set *es, int cert_depth, x509_cert_t *cert);
  */
 bool x509_verify_ns_cert_type(const x509_cert_t *cert, const int usage);
 
+#if OPENSSL_VERSION_NUMBER >= 0x00907000L || USE_POLARSSL
+
 /*
  * Verify X.509 key usage extension field.
  *
@@ -187,6 +209,8 @@ bool x509_verify_cert_ku (x509_cert_t *x509, const unsigned * const expected_ku,
  * 			usage is not enabled, or the values do not match.
  */
 bool x509_verify_cert_eku (x509_cert_t *x509, const char * const expected_oid);
+
+#endif
 
 /*
  * Store the given certificate in pem format in a temporary file in tmp_dir

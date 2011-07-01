@@ -173,6 +173,8 @@ void tls_ctx_load_cryptoapi(struct tls_root_ctx *ctx, const char *cryptoapi_cert
  * Load certificate file into the given TLS context. If the given certificate
  * file contains a certificate chain, load the whole chain.
  *
+ * If the x509 parameter is not NULL, the certificate will be returned in it.
+ *
  * @param ctx			TLS context to use
  * @param cert_file		The file name to load the certificate from, or
  * 				"[[INLINE]]" in the case of inline files.
@@ -186,7 +188,7 @@ void tls_ctx_load_cert_file (struct tls_root_ctx *ctx, const char *cert_file,
 #if ENABLE_INLINE_FILES
     const char *cert_file_inline,
 #endif
-    X509 **x509
+    x509_cert_t **x509
     );
 
 /**
@@ -219,7 +221,7 @@ int tls_ctx_load_priv_file (struct tls_root_ctx *ctx, const char *priv_key_file
  * @return 			1 if an error occurred, 0 if parsing was
  * 				successful.
  */
-int tls_ctx_use_external_private_key (struct tls_root_ctx *ctx, X509 *cert);
+int tls_ctx_use_external_private_key (struct tls_root_ctx *ctx, x509_cert_t *cert);
 
 #endif
 

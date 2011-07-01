@@ -809,7 +809,41 @@ tls_ctx_load_ca (struct tls_root_ctx *ctx, const char *ca_file,
       msg (M_SSLERR, "Cannot load CA certificate file %s (SSL_load_client_CA_file)", ca_file);
     SSL_CTX_set_client_CA_list (ctx->ctx, cert_names);
   }
+}
 
+
+void
+tls_ctx_load_extra_certs (struct tls_root_ctx *ctx, const char *extra_certs_file
+#if ENABLE_INLINE_FILES
+    , const char *extra_certs_file_inline
+#endif
+    )
+{
+  BIO *bio;
+  X509 *cert;
+#if ENABLE_INLINE_FILES
+  if (!strcmp (extra_certs_file, INLINE_FILE_TAG) && extra_certs_file_inline)
+    {
+      bio = BIO_new_mem_buf ((char *)extra_certs_file_inline, -1);
+    }
+  else
+#endif
+    {
+      bio = BIO_new(BIO_s_file());
+      if (BIO_read_filename(bio, extra_certs_file) <= 0)
+	msg (M_SSLERR, "Cannot load extra-certs file: %s", extra_certs_file);
+    }
+  for (;;)
+    {
+      cert = NULL;
+      if (!PEM_read_bio_X509 (bio, &cert, 0, NULL)) /* takes ownership of cert */
+	break;
+      if (!cert)
+	msg (M_SSLERR, "Error reading extra-certs certificate");
+      if (SSL_CTX_add_extra_chain_cert(ctx->ctx, cert) != 1)
+	msg (M_SSLERR, "Error adding extra-certs certificate");
+    }
+  BIO_free (bio);
 }
 
 /* **************************************
@@ -1099,11 +1133,9 @@ key_state_write_plaintext_const (struct key_state_ssl *ks_ssl, const uint8_t *da
   int ret = 0;
   perf_push (PERF_BIO_WRITE_PLAINTEXT);
 
-#ifdef USE_OPENSSL
   ASSERT (NULL != ks_ssl);
 
   ret = bio_write (ks_ssl->ssl_bio, data, len, "tls_write_plaintext_const");
-#endif /* USE_OPENSSL */
 
   perf_pop ();
   return ret;
@@ -1116,11 +1148,9 @@ key_state_read_ciphertext (struct key_state_ssl *ks_ssl, struct buffer *buf,
   int ret = 0;
   perf_push (PERF_BIO_READ_CIPHERTEXT);
 
-#ifdef USE_OPENSSL
   ASSERT (NULL != ks_ssl);
 
   ret = bio_read (ks_ssl->ct_out, buf, maxlen, "tls_read_ciphertext");
-#endif /* USE_OPENSSL */
 
   perf_pop ();
   return ret;
@@ -1132,12 +1162,10 @@ key_state_write_ciphertext (struct key_state_ssl *ks_ssl, struct buffer *buf)
   int ret = 0;
   perf_push (PERF_BIO_WRITE_CIPHERTEXT);
 
-#ifdef USE_OPENSSL
   ASSERT (NULL != ks_ssl);
 
   ret = bio_write (ks_ssl->ct_in, BPTR(buf), BLEN(buf), "tls_write_ciphertext");
   bio_write_post (ret, buf);
-#endif /* USE_OPENSSL */
 
   perf_pop ();
   return ret;
@@ -1150,11 +1178,9 @@ key_state_read_plaintext (struct key_state_ssl *ks_ssl, struct buffer *buf,
   int ret = 0;
   perf_push (PERF_BIO_READ_PLAINTEXT);
 
-#ifdef USE_OPENSSL
   ASSERT (NULL != ks_ssl);
 
   ret = bio_read (ks_ssl->ssl_bio, buf, maxlen, "tls_read_plaintext");
-#endif /* USE_OPENSSL */
 
   perf_pop ();
   return ret;
@@ -1207,40 +1233,6 @@ print_details (struct key_state_ssl * ks_ssl, const char *prefix)
   /* The SSL API does not allow us to look at temporary RSA/DH keys,
    * otherwise we should print their lengths too */
   msg (D_HANDSHAKE, "%s%s", s1, s2);
-}
-
-void
-tls_ctx_load_extra_certs (struct tls_root_ctx *ctx, const char *extra_certs_file
-#if ENABLE_INLINE_FILES
-    , const char *extra_certs_file_inline
-#endif
-    )
-{
-  BIO *bio;
-  X509 *cert;
-#if ENABLE_INLINE_FILES
-  if (!strcmp (extra_certs_file, INLINE_FILE_TAG) && extra_certs_file_inline)
-    {
-      bio = BIO_new_mem_buf ((char *)extra_certs_file_inline, -1);
-    }
-  else
-#endif
-    {
-      bio = BIO_new(BIO_s_file());
-      if (BIO_read_filename(bio, extra_certs_file) <= 0)
-	msg (M_SSLERR, "Cannot load extra-certs file: %s", extra_certs_file);
-    }
-  for (;;)
-    {
-      cert = NULL;
-      if (!PEM_read_bio_X509 (bio, &cert, 0, NULL)) /* takes ownership of cert */
-	break;
-      if (!cert)
-	msg (M_SSLERR, "Error reading extra-certs certificate");
-      if (SSL_CTX_add_extra_chain_cert(ctx->ctx, cert) != 1)
-	msg (M_SSLERR, "Error adding extra-certs certificate");
-    }
-  BIO_free (bio);
 }
 
 void

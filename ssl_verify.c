@@ -433,9 +433,12 @@ verify_cert_set_env(struct env_set *es, x509_cert_t *peer_cert, int cert_depth,
   /* export X509 cert SHA1 fingerprint */
   {
     struct gc_arena gc = gc_new ();
+    unsigned char *sha1_hash = x509_get_sha1_hash(peer_cert);
+
     openvpn_snprintf (envname, sizeof(envname), "tls_digest_%d", cert_depth);
-    setenv_str (es, envname,
-	  format_hex_ex(peer_cert->sha1_hash, SHA_DIGEST_LENGTH, 0, 1, ":", &gc));
+    setenv_str (es, envname, format_hex_ex(sha1_hash, SHA_DIGEST_LENGTH, 0, 1,
+					  ":", &gc));
+    x509_free_sha1_hash(sha1_hash);
     gc_free(&gc);
   }
 #endif
@@ -536,7 +539,7 @@ verify_cert_call_command(const char *verify_command, struct env_set *es,
  * check peer cert against CRL directory
  */
 static bool
-verify_check_crl_dir(const char *crl_dir, X509 *cert)
+verify_check_crl_dir(const char *crl_dir, x509_cert_t *cert)
 {
   char fn[256];
   int fd;
@@ -615,11 +618,14 @@ verify_cert(struct tls_session *session, x509_cert_t *cert, int cert_depth)
   /* verify level 1 cert, i.e. the CA that signed our leaf cert */
   if (cert_depth == 1 && opt->verify_hash)
     {
-      if (memcmp (cert->sha1_hash, opt->verify_hash, SHA_DIGEST_LENGTH))
+      unsigned char *sha1_hash = x509_get_sha1_hash(cert);
+      if (memcmp (sha1_hash, opt->verify_hash, SHA_DIGEST_LENGTH))
       {
 	msg (D_TLS_ERRORS, "TLS Error: level-1 certificate hash verification failed");
+	x509_free_sha1_hash(sha1_hash);
 	goto err;
       }
+      x509_free_sha1_hash(sha1_hash);
     }
 
   /* save common name in session object */
