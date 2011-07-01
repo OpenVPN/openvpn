@@ -1,6 +1,34 @@
 OpenVPN Change Log
 Copyright (C) 2002-2011 OpenVPN Technologies, Inc. <sales@openvpn.net>
 
+2011.07.01 -- Versoin 2.2.1
+David Sommerseth (4):
+	      Don't define ENABLE_PUSH_PEER_INFO if SSL is not available
+	      Fix compiling issues with pkcs11 when --disable-management is configured
+	      Remove support for Linux 2.2 configuration fallback
+	      Revert "Add new openssl.cnf to easy-rsa/Windows"
+	      Prepared for releasing OpenVPN 2.2.1
+
+	Gustavo Zacarias (1):
+	      Fix compile issues when using --enable-small and --disable-ssl/--disable-crypto
+
+	Matthew L. Creech (1):
+	      Fix 2.2.0 build failure when management interface disabled
+
+	Robert Fischer (2):
+	      Added info about --show-proxy-settings
+	      Documented --x509-username-field option
+
+	Samuli Seppänen (5):
+	      Fix a build-ca issue on Windows
+	      Add new openssl.cnf to easy-rsa/Windows
+	      Updated "easy-rsa" for OpenSSL 1.0.0
+	      Made domake-win builds to use easy-rsa/2.0/openssl-1.0.0.cnf
+	      Fixes to easy-rsa/2.0
+
+	Simon Matter (1):
+	      Fix issues with some older GCC compilers
+
 2011.04.21 -- Version 2.2.0
 David Sommerseth (4):
       Fix the --client-cert-not-required feature
