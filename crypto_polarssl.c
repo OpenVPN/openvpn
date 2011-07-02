@@ -216,7 +216,7 @@ key_des_check (uint8_t *key, int key_len, int ndc)
 	  msg (D_CRYPT_ERRORS, "CRYPTO INFO: check_key_DES: insufficient key material");
 	  goto err;
 	}
-      if (0 != des_key_check_weak(key))
+      if (0 == des_key_check_weak(key))
 	{
 	  msg (D_CRYPT_ERRORS, "CRYPTO INFO: check_key_DES: weak key detected");
 	  goto err;
@@ -391,12 +391,25 @@ int cipher_ctx_reset (cipher_context_t *ctx, uint8_t *iv_buf)
 int cipher_ctx_update (cipher_context_t *ctx, uint8_t *dst, int *dst_len,
     uint8_t *src, int src_len)
 {
-  return 0 == cipher_update(ctx, src, src_len, dst, dst_len);
+  int retval = 0;
+  size_t s_dst_len = *dst_len;
+
+  retval = cipher_update(ctx, src, (size_t)src_len, dst, &s_dst_len);
+
+  *dst_len = s_dst_len;
+
+  return 0 == retval;
 }
 
 int cipher_ctx_final (cipher_context_t *ctx, uint8_t *dst, int *dst_len)
 {
-  return 0 == cipher_finish(ctx, dst, dst_len);
+  int retval = 0;
+  size_t s_dst_len = *dst_len;
+
+  retval = cipher_finish(ctx, dst, &s_dst_len);
+  *dst_len = s_dst_len;
+
+  return 0 == retval;
 }
 
 void
@@ -472,13 +485,13 @@ md_ctx_init (md_context_t *ctx, const md_info_t *kt)
 
   CLEAR(*ctx);
 
-  ASSERT(0 == md_starts(kt, ctx));
+  ASSERT(0 == md_init_ctx(ctx, kt));
+  ASSERT(0 == md_starts(ctx));
 }
 
 void
 md_ctx_cleanup(md_context_t *ctx)
 {
-  ASSERT(0 == md_free_ctx(ctx));
 }
 
 int
@@ -499,6 +512,7 @@ void
 md_ctx_final (md_context_t *ctx, uint8_t *dst)
 {
   ASSERT(0 == md_finish(ctx, dst));
+  ASSERT(0 == md_free_ctx(ctx));
 }
 
 
@@ -522,7 +536,8 @@ hmac_ctx_init (md_context_t *ctx, const uint8_t *key, int key_len, const md_info
 
   CLEAR(*ctx);
 
-  ASSERT(0 == md_hmac_starts(kt, ctx, key, key_len));
+  ASSERT(0 == md_init_ctx(ctx, kt));
+  ASSERT(0 == md_hmac_starts(ctx, key, key_len));
 
   if (prefix)
     msg (D_HANDSHAKE,
