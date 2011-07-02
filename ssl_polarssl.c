@@ -36,6 +36,7 @@
 #include "ssl_common.h"
 
 #include "ssl_verify_polarssl.h"
+#include <polarssl/pem.h>
 
 void
 tls_init_lib()
@@ -52,7 +53,7 @@ tls_clear_error()
 {
 }
 
-static int default_ciphers[] =
+static int default_ciphersuites[] =
 {
     SSL_EDH_RSA_AES_256_SHA,
     SSL_EDH_RSA_CAMELLIA_256_SHA,
@@ -179,7 +180,7 @@ tls_ctx_restrict_ciphers(struct tls_root_ctx *ctx, const char *ciphers)
   i = 0;
   tmp_ciphers_orig = tmp_ciphers = strdup(ciphers);
   while(tmp_ciphers) {
-      ctx->allowed_ciphers[i] = ssl_get_cipher_id (strsep (&tmp_ciphers, ":"));
+      ctx->allowed_ciphers[i] = ssl_get_ciphersuite_id (strsep (&tmp_ciphers, ":"));
       if (ctx->allowed_ciphers[i] != 0)
 	i++;
   }
@@ -276,7 +277,7 @@ tls_ctx_load_priv_file (struct tls_root_ctx *ctx, const char *priv_key_file
       status = x509parse_key(ctx->priv_key,
 	  priv_key_file_inline, strlen(priv_key_file_inline),
 	  NULL, 0);
-      if (POLARSSL_ERR_X509_KEY_PASSWORD_REQUIRED == status)
+      if (POLARSSL_ERR_PEM_PASSWORD_REQUIRED == status)
 	{
 	  char passbuf[512] = {0};
 	  pem_password_callback(passbuf, 512, 0, NULL);
@@ -289,7 +290,7 @@ tls_ctx_load_priv_file (struct tls_root_ctx *ctx, const char *priv_key_file
 #endif /* ENABLE_INLINE_FILES */
     {
       status = x509parse_keyfile(ctx->priv_key, priv_key_file, NULL);
-      if (POLARSSL_ERR_X509_KEY_PASSWORD_REQUIRED == status)
+      if (POLARSSL_ERR_PEM_PASSWORD_REQUIRED == status)
 	{
 	  char passbuf[512] = {0};
 	  pem_password_callback(passbuf, 512, 0, NULL);
@@ -299,7 +300,7 @@ tls_ctx_load_priv_file (struct tls_root_ctx *ctx, const char *priv_key_file
   if (0 != status)
     {
 #ifdef ENABLE_MANAGEMENT
-      if (management && (POLARSSL_ERR_X509_KEY_PASSWORD_MISMATCH == status))
+      if (management && (POLARSSL_ERR_PEM_PASSWORD_MISMATCH == status))
 	  management_auth_failure (management, UP_TYPE_PRIVATE_KEY, NULL);
 #endif
       msg (M_WARN, "Cannot load private key file %s", priv_key_file);
@@ -406,13 +407,13 @@ static void buf_free_entries(endless_buffer *buf)
   buf->last_block = NULL;
 }
 
-static int endless_buf_read( void * ctx, unsigned char * out, int out_len )
+static int endless_buf_read( void * ctx, unsigned char * out, size_t out_len )
 {
   endless_buffer *in = (endless_buffer *) ctx;
-  int read_len = 0;
+  size_t read_len = 0;
 
   if (in->first_block == NULL)
-    return POLARSSL_ERR_NET_TRY_AGAIN;
+    return POLARSSL_ERR_NET_WANT_READ;
 
   while (in->first_block != NULL && read_len < out_len)
     {
@@ -445,7 +446,7 @@ static int endless_buf_read( void * ctx, unsigned char * out, int out_len )
   return read_len;
 }
 
-static int endless_buf_write( void *ctx, unsigned char *in, int len )
+static int endless_buf_write( void *ctx, unsigned char *in, size_t len )
 {
   endless_buffer *out = (endless_buffer *) ctx;
   buffer_entry *new_block = malloc(sizeof(buffer_entry));
@@ -500,12 +501,13 @@ void key_state_ssl_init(struct key_state_ssl *ks_ssl,
       ALLOC_OBJ_CLEAR (ks_ssl->ssn, ssl_session);
       ssl_set_session (ks_ssl->ctx, 0, 0, ks_ssl->ssn );
       if (ssl_ctx->allowed_ciphers)
-	ssl_set_ciphers (ks_ssl->ctx, ssl_ctx->allowed_ciphers);
+	ssl_set_ciphersuites (ks_ssl->ctx, ssl_ctx->allowed_ciphers);
       else
-	ssl_set_ciphers (ks_ssl->ctx, default_ciphers);
+	ssl_set_ciphersuites (ks_ssl->ctx, default_ciphersuites);
 
       /* Initialise authentication information */
-      ssl_set_dh_param_ctx (ks_ssl->ctx, ssl_ctx->dhm_ctx );
+      if (is_server)
+	ssl_set_dh_param_ctx (ks_ssl->ctx, ssl_ctx->dhm_ctx );
       if (ssl_ctx->priv_key_pkcs11 != NULL)
 	ssl_set_own_cert_pkcs11( ks_ssl->ctx, ssl_ctx->crt_chain,
 	    ssl_ctx->priv_key_pkcs11 );
@@ -571,7 +573,7 @@ key_state_write_plaintext (struct key_state_ssl *ks, struct buffer *buf)
   if (retval < 0)
     {
       perf_pop ();
-      if (POLARSSL_ERR_NET_TRY_AGAIN == retval )
+      if (POLARSSL_ERR_NET_WANT_WRITE == retval || POLARSSL_ERR_NET_WANT_READ == retval)
 	return 0;
       msg (D_TLS_ERRORS, "TLS ERROR: write tls_write_plaintext error");
       return -1;
@@ -618,7 +620,7 @@ key_state_write_plaintext_const (struct key_state_ssl *ks, const uint8_t *data, 
   if (retval < 0)
     {
       perf_pop ();
-      if (POLARSSL_ERR_NET_TRY_AGAIN == retval )
+      if (POLARSSL_ERR_NET_WANT_WRITE == retval || POLARSSL_ERR_NET_WANT_READ == retval)
 	return 0;
       msg (D_TLS_ERRORS, "TLS ERROR: write tls_write_plaintext_const error");
       return -1;
@@ -669,7 +671,7 @@ key_state_read_ciphertext (struct key_state_ssl *ks, struct buffer *buf,
   if (retval < 0)
     {
       perf_pop ();
-      if (POLARSSL_ERR_NET_TRY_AGAIN == retval )
+      if (POLARSSL_ERR_NET_WANT_WRITE == retval || POLARSSL_ERR_NET_WANT_READ == retval)
 	return 0;
       msg (D_TLS_ERRORS, "TLS_ERROR: read tls_read_plaintext error");
       buf->len = 0;
@@ -712,7 +714,7 @@ key_state_write_ciphertext (struct key_state_ssl *ks, struct buffer *buf)
     {
       perf_pop ();
 
-      if (POLARSSL_ERR_NET_TRY_AGAIN == retval )
+      if (POLARSSL_ERR_NET_WANT_WRITE == retval || POLARSSL_ERR_NET_WANT_READ == retval)
 	return 0;
       msg (D_TLS_ERRORS, "TLS ERROR: write tls_write_ciphertext error");
       return -1;
@@ -765,7 +767,7 @@ key_state_read_plaintext (struct key_state_ssl *ks, struct buffer *buf,
   /* Error during read, check for retry error */
   if (retval < 0)
     {
-      if (POLARSSL_ERR_NET_TRY_AGAIN == retval )
+      if (POLARSSL_ERR_NET_WANT_WRITE == retval || POLARSSL_ERR_NET_WANT_READ == retval)
 	return 0;
       msg (D_TLS_ERRORS, "TLS_ERROR: read tls_read_plaintext error");
       buf->len = 0;
@@ -806,7 +808,7 @@ print_details (struct key_state_ssl * ks_ssl, const char *prefix)
   openvpn_snprintf (s1, sizeof (s1), "%s %s, cipher %s",
 		    prefix,
 		    ssl_get_version (ks_ssl->ctx),
-		    ssl_get_cipher(ks_ssl->ctx));
+		    ssl_get_ciphersuite(ks_ssl->ctx));
 
   cert = ks_ssl->ctx->peer_cert;
   if (cert != NULL)
@@ -820,7 +822,7 @@ print_details (struct key_state_ssl * ks_ssl, const char *prefix)
 void
 show_available_tls_ciphers ()
 {
-  const int *ciphers = ssl_list_ciphers();
+  const int *ciphers = ssl_list_ciphersuites();
 
 #ifndef ENABLE_SMALL
   printf ("Available TLS Ciphers,\n");
@@ -829,7 +831,7 @@ show_available_tls_ciphers ()
 
   while (*ciphers != 0)
     {
-      printf ("%s\n", ssl_get_cipher_name(*ciphers));
+      printf ("%s\n", ssl_get_ciphersuite_name(*ciphers));
       ciphers++;
     }
   printf ("\n");
@@ -839,10 +841,10 @@ void
 get_highest_preference_tls_cipher (char *buf, int size)
 {
   const char *cipher_name;
-  const int *ciphers = ssl_list_ciphers();
+  const int *ciphers = ssl_list_ciphersuites();
   if (*ciphers == 0)
     msg (M_FATAL, "Cannot retrieve list of supported SSL ciphers.");
 
-  cipher_name = ssl_get_cipher_name(*ciphers);
+  cipher_name = ssl_get_ciphersuite_name(*ciphers);
   strncpynt (buf, cipher_name, size);
 }
