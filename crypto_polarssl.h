@@ -67,5 +67,6 @@ typedef md_context_t hmac_ctx_t;
 #define OPENVPN_OP_DECRYPT 	POLARSSL_DECRYPT
 
 #define MD5_DIGEST_LENGTH 	16
+#define SHA_DIGEST_LENGTH 	20
 
 #endif /* CRYPTO_POLARSSL_H_ */
