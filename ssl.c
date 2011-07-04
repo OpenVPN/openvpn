@@ -589,52 +589,74 @@ setenv_x509_track (const struct x509_track *xt, struct env_set *es, const int de
 {
   X509_NAME *x509_name = X509_get_subject_name (x509);
   const char nullc = '\0';
-  int i;
 
   while (xt)
     {
       if (depth == 0 || (xt->flags & XT_FULL_CHAIN))
 	{
-	  i = X509_NAME_get_index_by_NID(x509_name, xt->nid, -1);
-	  if (i >= 0)
+	  switch (xt->nid)
 	    {
-	      X509_NAME_ENTRY *ent = X509_NAME_get_entry(x509_name, i);
-	      if (ent)
-		{
-		  ASN1_STRING *val = X509_NAME_ENTRY_get_data (ent);
-		  unsigned char *buf;
-		  buf = (unsigned char *)1; /* bug in OpenSSL 0.9.6b ASN1_STRING_to_UTF8 requires this workaround */
-		  if (ASN1_STRING_to_UTF8 (&buf, val) > 0)
-		    {
-		      do_setenv_x509(es, xt->name, (char *)buf, depth);
-		      OPENSSL_free (buf);
-		    }
-		}
-	    }
-	  else
-	    {
-	      i = X509_get_ext_by_NID(x509, xt->nid, -1);
-	      if (i >= 0)
-		{
-		  X509_EXTENSION *ext = X509_get_ext(x509, i);
-		  if (ext)
-		    {
-		      BIO *bio = BIO_new(BIO_s_mem());
-		      if (bio)
-			{
-			  if (X509V3_EXT_print(bio, ext, 0, 0))
-			    {
-			      if (BIO_write(bio, &nullc, 1) == 1)
-				{
-				  char *str;
-				  BIO_get_mem_data(bio, &str);
-				  do_setenv_x509(es, xt->name, str, depth);
-				}
-			    }
-			  BIO_free(bio);
-			}
-		    }
-		}
+	    case NID_sha1:
+	      {
+		int i;
+		const int hl = SHA_DIGEST_LENGTH*3+1;
+		char hash_str[hl];
+		char *hs = hash_str;
+		const unsigned char *src = x509->sha1_hash;
+		for (i = 0; i < SHA_DIGEST_LENGTH; ++i)
+		  {
+		    openvpn_snprintf(hs, 4, "%02X:", src[i]);
+		    hs += 3;
+		  }
+		--hs; /* wipe the trailing ':' */
+		*hs = '\0';
+		do_setenv_x509(es, xt->name, hash_str, depth);
+	      }
+	      break;
+	    default:
+	      {
+		int i = X509_NAME_get_index_by_NID(x509_name, xt->nid, -1);
+		if (i >= 0)
+		  {
+		    X509_NAME_ENTRY *ent = X509_NAME_get_entry(x509_name, i);
+		    if (ent)
+		      {
+			ASN1_STRING *val = X509_NAME_ENTRY_get_data (ent);
+			unsigned char *buf;
+			buf = (unsigned char *)1; /* bug in OpenSSL 0.9.6b ASN1_STRING_to_UTF8 requires this workaround */
+			if (ASN1_STRING_to_UTF8 (&buf, val) > 0)
+			  {
+			    do_setenv_x509(es, xt->name, (char *)buf, depth);
+			    OPENSSL_free (buf);
+			  }
+		      }
+		  }
+		else
+		  {
+		    i = X509_get_ext_by_NID(x509, xt->nid, -1);
+		    if (i >= 0)
+		      {
+			X509_EXTENSION *ext = X509_get_ext(x509, i);
+			if (ext)
+			  {
+			    BIO *bio = BIO_new(BIO_s_mem());
+			    if (bio)
+			      {
+				if (X509V3_EXT_print(bio, ext, 0, 0))
+				  {
+				    if (BIO_write(bio, &nullc, 1) == 1)
+				      {
+					char *str;
+					BIO_get_mem_data(bio, &str);
+					do_setenv_x509(es, xt->name, str, depth);
+				      }
+				  }
+				BIO_free(bio);
+			      }
+			  }
+		      }
+		  }
+	      }
 	    }
 	}
       xt = xt->next;
