@@ -350,7 +350,7 @@ init_ssl (const struct options *options, struct tls_root_ctx *new_ctx)
 	  &my_cert);
       tls_ctx_use_external_private_key(new_ctx, my_cert);
 
-      X509_free(my_cert);
+      tls_ctx_free_cert_file(my_cert);
     }
 #endif
   else

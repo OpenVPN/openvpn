@@ -262,6 +262,12 @@ tls_ctx_load_cert_file (struct tls_root_ctx *ctx, const char *cert_file,
     }
 }
 
+void
+tls_ctx_free_cert_file (x509_cert_t *x509)
+{
+  x509_free(x509);
+}
+
 int
 tls_ctx_load_priv_file (struct tls_root_ctx *ctx, const char *priv_key_file
 #if ENABLE_INLINE_FILES

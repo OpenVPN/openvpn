@@ -197,6 +197,13 @@ void tls_ctx_load_cert_file (struct tls_root_ctx *ctx, const char *cert_file,
     );
 
 /**
+ * Free the given certificate
+ *
+ * @param x509			certificate to free
+ */
+void tls_ctx_free_cert_file (x509_cert_t *x509);
+
+/**
  * Load private key file into the given TLS context.
  *
  * @param ctx			TLS context to use
