@@ -339,6 +339,9 @@ static const char usage_message[] =
   "                      ip/port rather than listen as a TCP server.\n"
   "--management-query-passwords : Query management channel for private key\n"
   "                  and auth-user-pass passwords.\n"
+#if MANAGEMENT_QUERY_REMOTE
+  "--management-query-remote : Query management channel for --remote directive.\n"
+#endif
   "--management-hold : Start " PACKAGE_NAME " in a hibernating state, until a client\n"
   "                    of the management interface explicitly starts it.\n"
   "--management-signal : Issue SIGUSR1 when management disconnect event occurs.\n"
@@ -3705,6 +3708,13 @@ add_option (struct options *options,
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->management_flags |= MF_QUERY_PASSWORDS;
     }
+#if MANAGEMENT_QUERY_REMOTE
+  else if (streq (p[0], "management-query-remote"))
+    {
+      VERIFY_PERMISSION (OPT_P_GENERAL);
+      options->management_flags |= MF_QUERY_REMOTE;
+    }
+#endif
   else if (streq (p[0], "management-hold"))
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);

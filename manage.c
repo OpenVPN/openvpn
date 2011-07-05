@@ -86,6 +86,9 @@ man_help ()
   msg (M_CLIENT, "                         where action is reply string.");
   msg (M_CLIENT, "net                    : (Windows only) Show network info and routing table.");
   msg (M_CLIENT, "password type p        : Enter password p for a queried OpenVPN password.");
+#if MANAGEMENT_QUERY_REMOTE
+  msg (M_CLIENT, "remote type [host port] : Override remote directive, type=ACCEPT|MOD|SKIP.");
+#endif
   msg (M_CLIENT, "pid                    : Show process ID of the current OpenVPN process.");
 #ifdef ENABLE_PKCS11
   msg (M_CLIENT, "pkcs11-id-count        : Get number of available PKCS#11 identities.");
@@ -1085,6 +1088,31 @@ man_http_proxy_fallback (struct management *man, const char *server, const char 
 
 #endif
 
+#if MANAGEMENT_QUERY_REMOTE
+
+static void
+man_remote (struct management *man, const char **p)
+{
+  if (man->persist.callback.remote_cmd)
+    {
+      const bool status = (*man->persist.callback.remote_cmd)(man->persist.callback.arg, p);
+      if (status)
+	{
+	  msg (M_CLIENT, "SUCCESS: remote command succeeded");
+	}
+      else
+	{
+	  msg (M_CLIENT, "ERROR: remote command failed");
+	}
+    }
+  else
+    {
+      msg (M_CLIENT, "ERROR: The remote command is not supported by the current daemon mode");
+    }
+}
+
+#endif
+
 static void
 man_dispatch_command (struct management *man, struct status_output *so, const char **p, const int nparms)
 {
@@ -1312,6 +1340,13 @@ man_dispatch_command (struct management *man, struct status_output *so, const ch
   else if (streq (p[0], "http-proxy-fallback-disable"))
     {
       man_http_proxy_fallback (man, NULL, NULL, NULL);
+    }
+#endif
+#if MANAGEMENT_QUERY_REMOTE
+  else if (streq (p[0], "remote"))
+    {
+      if (man_need (man, p, 1, MN_AT_LEAST))
+	man_remote (man, p);
     }
 #endif
 #if 1
@@ -2332,6 +2367,12 @@ void
 management_notify(struct management *man, const char *severity, const char *type, const char *text)
 {
   msg (M_CLIENT, ">NOTIFY:%s,%s,%s", severity, type, text);
+}
+
+void
+management_notify_generic (struct management *man, const char *str)
+{
+  msg (M_CLIENT, "%s", str);
 }
 
 #ifdef MANAGEMENT_DEF_AUTH

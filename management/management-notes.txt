@@ -687,6 +687,38 @@ the 10.0.0.0/8 netblock is allowed: 10.10.0.1.  Also, the client
 may not interact with external IP addresses using an "unknown"
 protocol (i.e. one that is not IPv4 or ARP).
 
+COMMAND -- remote  (OpenVPN 2.1.4 or higher)
+--------------------------------------------
+
+Provide remote host/port in response to a >REMOTE notification
+(client only).  Requires that the --management-query-remote
+directive is used.
+
+  remote ACTION [HOST PORT]
+
+The "remote" command should only be given in response to a >REMOTE
+notification.  For example, the following >REMOTE notification
+indicates that the client config file would ordinarily connect
+to vpn.example.com port 1194 (UDP):
+
+  >REMOTE:vpn.example.com,1194,udp
+
+Now, suppose we want to override the host and port, connecting
+instead to vpn.otherexample.com port 1234.  After receiving
+the above notification, use this command:
+
+  remote MOD vpn.otherexample.com 1234
+
+To accept the same host and port as the client would ordinarily
+have connected to, use this command:
+
+  remote ACCEPT
+
+To skip the current connection entry and advance to the next one,
+use this command:
+
+  remote SKIP
+
 OUTPUT FORMAT
 -------------
 

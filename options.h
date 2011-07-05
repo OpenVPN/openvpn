@@ -109,7 +109,15 @@ struct connection_entry
 # define CE_HTTP_PROXY_FALLBACK (1<<1)
   time_t ce_http_proxy_fallback_timestamp; /* time when fallback http_proxy_options was last updated */
 #endif
-
+#if MANAGEMENT_QUERY_REMOTE
+# define CE_MAN_QUERY_REMOTE_UNDEF  0
+# define CE_MAN_QUERY_REMOTE_QUERY  1
+# define CE_MAN_QUERY_REMOTE_ACCEPT 2
+# define CE_MAN_QUERY_REMOTE_MOD    3
+# define CE_MAN_QUERY_REMOTE_SKIP   4
+# define CE_MAN_QUERY_REMOTE_MASK   (0x07)
+# define CE_MAN_QUERY_REMOTE_SHIFT  (2)
+#endif
   unsigned int flags;
 };
 
@@ -146,6 +154,14 @@ struct hpo_store
 {
   struct http_proxy_options hpo;
   char server[80];
+};
+#endif
+
+#if MANAGEMENT_QUERY_REMOTE
+struct remote_host_store
+{
+# define RH_HOST_LEN 80
+  char host[RH_HOST_LEN];
 };
 #endif
 
@@ -199,6 +215,10 @@ struct options
   bool http_proxy_fallback;
   struct http_proxy_options *http_proxy_override;
   struct hpo_store *hpo_store; /* used to store dynamic proxy info given by management interface */
+#endif
+
+#if MANAGEMENT_QUERY_REMOTE
+  struct remote_host_store *rh_store;
 #endif
 
   bool remote_random;

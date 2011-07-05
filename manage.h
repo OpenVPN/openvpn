@@ -174,6 +174,9 @@ struct management_callback
 #if HTTP_PROXY_FALLBACK
   bool (*http_proxy_fallback_cmd) (void *arg, const char *server, const char *port, const char *flags);
 #endif
+#if MANAGEMENT_QUERY_REMOTE
+  bool (*remote_cmd) (void *arg, const char **p);
+#endif
 };
 
 /*
@@ -333,6 +336,9 @@ struct management *management_init (void);
 # define MF_EXTERNAL_KEY    (1<<9)
 #endif
 #define MF_UP_DOWN          (1<<10)
+#if MANAGEMENT_QUERY_REMOTE
+#define MF_QUERY_REMOTE     (1<<11)
+#endif
 
 bool management_open (struct management *man,
 		      const char *addr,
@@ -381,6 +387,8 @@ void management_up_down(struct management *man, const char *updown, const struct
 
 void management_notify(struct management *man, const char *severity, const char *type, const char *text);
 
+void management_notify_generic (struct management *man, const char *str);
+
 #ifdef MANAGEMENT_DEF_AUTH
 void management_notify_client_needing_auth (struct management *management,
 					    const unsigned int auth_id,
@@ -418,6 +426,14 @@ management_query_user_pass_enabled (const struct management *man)
 {
   return BOOL_CAST(man->settings.flags & MF_QUERY_PASSWORDS);
 }
+
+#if MANAGEMENT_QUERY_REMOTE
+static inline bool
+management_query_remote_enabled (const struct management *man)
+{
+  return BOOL_CAST(man->settings.flags & MF_QUERY_REMOTE);
+}
+#endif
 
 #ifdef MANAGEMENT_PF
 static inline bool

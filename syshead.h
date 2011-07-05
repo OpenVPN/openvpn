@@ -661,6 +661,15 @@ socket_defined (const socket_descriptor_t sd)
 #endif
 
 /*
+ * Should we include --management-query-remote functionality
+ */
+#if defined(ENABLE_CONNECTION) && defined(ENABLE_MANAGEMENT)
+#define MANAGEMENT_QUERY_REMOTE 1
+#else
+#define MANAGEMENT_QUERY_REMOTE 0
+#endif
+
+/*
  * Reduce sensitivity to system clock instability
  * and backtracks.
  */

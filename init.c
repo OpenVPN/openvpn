@@ -199,6 +199,90 @@ management_callback_http_proxy_fallback_cmd (void *arg, const char *server, cons
 
 #endif
 
+#if MANAGEMENT_QUERY_REMOTE
+
+static bool
+management_callback_remote_cmd (void *arg, const char **p)
+{
+  struct context *c = (struct context *) arg;
+  struct connection_entry *ce = &c->options.ce;
+  int ret = false;
+  if (p[1] && ((ce->flags>>CE_MAN_QUERY_REMOTE_SHIFT)&CE_MAN_QUERY_REMOTE_MASK) == CE_MAN_QUERY_REMOTE_QUERY)
+    {
+      int flags = 0;
+      if (!strcmp(p[1], "ACCEPT"))
+	{
+	  flags = CE_MAN_QUERY_REMOTE_ACCEPT;
+	  ret = true;
+	}
+      else if (!strcmp(p[1], "SKIP"))
+	{
+	  flags = CE_MAN_QUERY_REMOTE_SKIP;
+	  ret = true;
+	}
+      else if (!strcmp(p[1], "MOD") && p[2] && p[3])
+	{
+	  const int port = atoi(p[3]);
+	  if (strlen(p[2]) < RH_HOST_LEN && legal_ipv4_port(port))
+	    {
+	      struct remote_host_store *rhs = c->options.rh_store;
+	      if (!rhs)
+		{
+		  ALLOC_OBJ_CLEAR_GC (rhs, struct remote_host_store, &c->options.gc);
+		  c->options.rh_store = rhs;
+		}
+	      strncpynt(rhs->host, p[2], RH_HOST_LEN);
+	      ce->remote = rhs->host;
+	      ce->remote_port = port;
+	      flags = CE_MAN_QUERY_REMOTE_MOD;
+	      ret = true;
+	    }
+	}
+      if (ret)
+	{
+	  ce->flags &= ~(CE_MAN_QUERY_REMOTE_MASK<<CE_MAN_QUERY_REMOTE_SHIFT);
+	  ce->flags |= ((flags&CE_MAN_QUERY_REMOTE_MASK)<<CE_MAN_QUERY_REMOTE_SHIFT);
+	}
+    }
+  return ret;
+}
+
+static bool
+ce_management_query_remote (struct context *c, const char *remote_ip_hint)
+{
+  struct gc_arena gc = gc_new ();
+  volatile struct connection_entry *ce = &c->options.ce;
+  int ret = true;
+  update_time();
+  if (management)
+    {
+      struct buffer out = alloc_buf_gc (256, &gc);
+      buf_printf (&out, ">REMOTE:%s,%d,%s", np(ce->remote), ce->remote_port, proto2ascii(ce->proto, false));
+      management_notify_generic(management, BSTR (&out));
+      ce->flags &= ~(CE_MAN_QUERY_REMOTE_MASK<<CE_MAN_QUERY_REMOTE_SHIFT);
+      ce->flags |= (CE_MAN_QUERY_REMOTE_QUERY<<CE_MAN_QUERY_REMOTE_SHIFT);
+      while (((ce->flags>>CE_MAN_QUERY_REMOTE_SHIFT) & CE_MAN_QUERY_REMOTE_MASK) == CE_MAN_QUERY_REMOTE_QUERY)
+	{
+	  management_event_loop_n_seconds (management, 1);
+	  if (IS_SIG (c))
+	    {
+	      ret = false;
+	      break;
+	    }
+	}
+    }
+  {
+    const int flags = ((ce->flags>>CE_MAN_QUERY_REMOTE_SHIFT) & CE_MAN_QUERY_REMOTE_MASK);
+    if (flags == CE_MAN_QUERY_REMOTE_ACCEPT && remote_ip_hint)
+      ce->remote = remote_ip_hint;
+    ret = (flags != CE_MAN_QUERY_REMOTE_SKIP);
+  }
+  gc_free (&gc);
+  return ret;
+}
+
+#endif
+
 /*
  * Initialize and possibly randomize connection list.
  */
@@ -313,6 +397,15 @@ next_connection_entry (struct context *c)
 
 	c->options.ce = *ce;
 
+#if MANAGEMENT_QUERY_REMOTE
+	if (ce_defined && management && management_query_remote_enabled(management))
+	  {
+	    /* allow management interface to override connection entry details */
+	    ce_defined = ce_management_query_remote(c, remote_ip_hint);
+	    if (IS_SIG (c))
+	      break;
+	  } else
+#endif
 	if (remote_ip_hint)
 	  c->options.ce.remote = remote_ip_hint;
 
@@ -2975,6 +3068,9 @@ init_management_callback_p2p (struct context *c)
 #if HTTP_PROXY_FALLBACK
       cb.http_proxy_fallback_cmd = management_callback_http_proxy_fallback_cmd;
 #endif
+#if MANAGEMENT_QUERY_REMOTE
+      cb.remote_cmd = management_callback_remote_cmd;
+#endif
       management_set_callback (management, &cb);
     }
 #endif
@@ -3110,6 +3206,16 @@ init_instance (struct context *c, const struct env_set *env, const unsigned int 
 	goto sig;
     }
 
+  /* should we disable paging? */
+  if (c->first_time && options->mlock)
+    do_mlockall (true);
+
+#if P2MP
+  /* get passwords if undefined */
+  if (auth_retry_get () == AR_INTERACT)
+    init_query_passwords (c);
+#endif
+
   /* map in current connection entry */
   next_connection_entry (c);
 
@@ -3123,16 +3229,6 @@ init_instance (struct context *c, const struct env_set *env, const unsigned int 
       else if (c->mode == CM_CHILD_TCP)
 	link_socket_mode = LS_MODE_TCP_ACCEPT_FROM;
     }
-
-  /* should we disable paging? */
-  if (c->first_time && options->mlock)
-    do_mlockall (true);
-
-#if P2MP
-  /* get passwords if undefined */
-  if (auth_retry_get () == AR_INTERACT)
-    init_query_passwords (c);
-#endif
 
   /* initialize context level 2 --verb/--mute parms */
   init_verb_mute (c, IVM_LEVEL_2);
