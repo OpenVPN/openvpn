@@ -2265,12 +2265,16 @@ options_postprocess_verify_ce (const struct options *options, const struct conne
 #endif
       if (options->pkcs12_file)
         {
+#ifdef USE_POLARSSL
+	  msg(M_USAGE, "Parameter --pkcs12 cannot be used with the PolarSSL version version of OpenVPN.");
+#else
           if (options->ca_path)
 	    msg(M_USAGE, "Parameter --capath cannot be used when --pkcs12 is also specified.");
           if (options->cert_file)
 	    msg(M_USAGE, "Parameter --cert cannot be used when --pkcs12 is also specified.");
           if (options->priv_key_file)
 	    msg(M_USAGE, "Parameter --key cannot be used when --pkcs12 is also specified.");
+#endif
         }
       else
         {

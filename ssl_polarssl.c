@@ -220,6 +220,7 @@ tls_ctx_load_pkcs12(struct tls_root_ctx *ctx, const char *pkcs12_file,
     )
 {
   msg(M_FATAL, "PKCS #12 files not yet supported for PolarSSL.");
+  return 0;
 }
 
 #ifdef WIN32
