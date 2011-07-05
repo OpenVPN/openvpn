@@ -539,7 +539,7 @@ socket_defined (const socket_descriptor_t sd)
 /*
  * Enable external private key
  */
-#if defined(ENABLE_MANAGEMENT) && defined(USE_SSL)
+#if defined(ENABLE_MANAGEMENT) && defined(USE_SSL) && !defined(USE_POLARSSL)
 #define MANAGMENT_EXTERNAL_KEY
 #endif
 

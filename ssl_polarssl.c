@@ -322,7 +322,7 @@ int
 tls_ctx_use_external_private_key (struct tls_root_ctx *ctx, x509_cert_t *cert)
 {
   msg(M_FATAL, "Use of management external keys not yet supported for PolarSSL.");
-
+  return false;
 }
 
 #endif
