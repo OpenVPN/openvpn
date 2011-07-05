@@ -336,7 +336,7 @@ init_ssl (const struct options *options, struct tls_root_ctx *new_ctx)
 	}
     }
 #endif
-#ifdef WIN32
+#ifdef ENABLE_CRYPTOAPI
   else if (options->cryptoapi_cert)
     {
       tls_ctx_load_cryptoapi(new_ctx, options->cryptoapi_cert);

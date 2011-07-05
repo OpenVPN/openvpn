@@ -1562,7 +1562,7 @@ show_settings (const struct options *o)
   SHOW_STR (cert_file);
   SHOW_STR (priv_key_file);
   SHOW_STR (pkcs12_file);
-#ifdef WIN32
+#ifdef ENABLE_CRYPTOAPI
   SHOW_STR (cryptoapi_cert);
 #endif
   SHOW_STR (cipher_list);
@@ -2242,14 +2242,14 @@ options_postprocess_verify_ce (const struct options *options, const struct conne
 	  msg(M_USAGE, "Parameter --key cannot be used when --pkcs11-provider is also specified.");
 	if (options->pkcs12_file)
 	  msg(M_USAGE, "Parameter --pkcs12 cannot be used when --pkcs11-provider is also specified.");
-#ifdef WIN32
+#ifdef ENABLE_CRYPTOAPI
 	if (options->cryptoapi_cert)
 	  msg(M_USAGE, "Parameter --cryptoapicert cannot be used when --pkcs11-provider is also specified.");
 #endif
        }
       else
 #endif
-#ifdef WIN32
+#ifdef ENABLE_CRYPTOAPI
       if (options->cryptoapi_cert)
 	{
 	  if ((!(options->ca_file)) && (!(options->ca_path)))
@@ -6230,7 +6230,7 @@ add_option (struct options *options,
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->verify_hash = parse_hash_fingerprint(p[1], SHA_DIGEST_LENGTH, msglevel, &options->gc);
     }
-#ifdef WIN32
+#ifdef ENABLE_CRYPTOAPI
   else if (streq (p[0], "cryptoapicert") && p[1])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);

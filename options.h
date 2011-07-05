@@ -555,7 +555,7 @@ struct options
   bool pkcs11_id_management;
 #endif
 
-#ifdef WIN32
+#ifdef ENABLE_CRYPTOAPI
   const char *cryptoapi_cert;
 #endif
 

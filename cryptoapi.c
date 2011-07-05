@@ -30,7 +30,7 @@
 
 #include "syshead.h"
 
-#if defined(WIN32) && defined(USE_CRYPTO) && defined(USE_SSL)
+#ifdef ENABLE_CRYPTOAPI
 
 #include <openssl/ssl.h>
 #include <openssl/err.h>

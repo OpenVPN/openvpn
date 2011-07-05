@@ -170,7 +170,7 @@ int tls_ctx_load_pkcs12(struct tls_root_ctx *ctx, const char *pkcs12_file,
  * @param ctx			TLS context to use
  * @param crypto_api_cert	String representing the certificate to load.
  */
-#ifdef WIN32
+#ifdef ENABLE_CRYPTOAPI
 void tls_ctx_load_cryptoapi(struct tls_root_ctx *ctx, const char *cryptoapi_cert);
 #endif /* WIN32 */
 

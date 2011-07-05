@@ -223,7 +223,7 @@ tls_ctx_load_pkcs12(struct tls_root_ctx *ctx, const char *pkcs12_file,
   return 0;
 }
 
-#ifdef WIN32
+#ifdef ENABLE_CRYPTOAPI
 void
 tls_ctx_load_cryptoapi(struct tls_root_ctx *ctx, const char *cryptoapi_cert)
 {
