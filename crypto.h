@@ -295,6 +295,9 @@ void crypto_adjust_frame_parameters(struct frame *frame,
 /* Maximum length of the nonce used by the PRNG */
 #define NONCE_SECRET_LEN_MAX 64
 
+/** Number of bytes of random to allow before resetting the nonce */
+#define PRNG_NONCE_RESET_BYTES 1024
+
 /**
  * Pseudo-random number generator initialisation.
  * (see \c prng_rand_bytes())

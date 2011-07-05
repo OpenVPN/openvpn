@@ -1260,6 +1260,24 @@ static uint8_t *nonce_data = NULL; /* GLOBAL */
 static const md_kt_t *nonce_md = NULL; /* GLOBAL */
 static int nonce_secret_len = 0; /* GLOBAL */
 
+/* Reset the nonce value, also done periodically to refresh entropy */
+static void
+prng_reset_nonce ()
+{
+  const int size = md_kt_size (nonce_md) + nonce_secret_len;
+#if 1 /* Must be 1 for real usage */
+  if (!rand_bytes (nonce_data, size))
+    msg (M_FATAL, "ERROR: Random number generator cannot obtain entropy for PRNG");
+#else
+    /* Only for testing -- will cause a predictable PRNG sequence */
+    {
+      int i;
+      for (i = 0; i < size; ++i)
+	nonce_data[i] = (uint8_t) i;
+    }
+#endif
+}
+
 void
 prng_init (const char *md_name, const int nonce_secret_len_parm)
 {
@@ -1274,17 +1292,7 @@ prng_init (const char *md_name, const int nonce_secret_len_parm)
 	dmsg (D_CRYPTO_DEBUG, "PRNG init md=%s size=%d", md_kt_name(nonce_md), size);
 	nonce_data = (uint8_t*) malloc (size);
 	check_malloc_return (nonce_data);
-#if 1 /* Must be 1 for real usage */
-	if (!rand_bytes (nonce_data, size))
-	  msg (M_FATAL, "ERROR: Random number generator cannot obtain entropy for PRNG");
-#else
-	/* Only for testing -- will cause a predictable PRNG sequence */
-	{
-	  int i;
-	  for (i = 0; i < size; ++i)
-	    nonce_data[i] = (uint8_t) i;
-	}
-#endif
+	prng_reset_nonce();
       }
     }
 }
@@ -1301,6 +1309,8 @@ prng_uninit (void)
 void
 prng_bytes (uint8_t *output, int len)
 {
+  static int32_t processed = 0;
+
   if (nonce_md)
     {
       md_ctx_t ctx;
@@ -1313,6 +1323,13 @@ prng_bytes (uint8_t *output, int len)
 	  memcpy (output, nonce_data, blen);
 	  output += blen;
 	  len -= blen;
+
+	  /* Ensure that random data is reset regularly */
+	  processed += blen;
+	  if(processed > PRNG_NONCE_RESET_BYTES) {
+	    prng_reset_nonce();
+	    processed = 0;
+	  }
 	}
     }
   else
