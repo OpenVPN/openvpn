@@ -687,7 +687,7 @@ the 10.0.0.0/8 netblock is allowed: 10.10.0.1.  Also, the client
 may not interact with external IP addresses using an "unknown"
 protocol (i.e. one that is not IPv4 or ARP).
 
-COMMAND -- remote  (OpenVPN 2.1.4 or higher)
+COMMAND -- remote  (OpenVPN 2.1.5 or higher)
 --------------------------------------------
 
 Provide remote host/port in response to a >REMOTE notification
