@@ -60,11 +60,23 @@ const char title_string[] =
   " " TARGET_ALIAS
 #ifdef USE_CRYPTO
 #ifdef USE_SSL
+#if defined(USE_POLARSSL)
+  " [SSL (PolarSSL)]"
+#elif defined(USE_OPENSSL)
+  " [SSL (OpenSSL)]"
+#else
   " [SSL]"
+#endif /* defined(USE_POLARSSL) */
+#else /* ! USE_SSL */
+#if defined(USE_POLARSSL)
+  " [CRYPTO (PolarSSL)]"
+#elif defined(USE_OPENSSL)
+  " [CRYPTO (OpenSSL)]"
 #else
   " [CRYPTO]"
-#endif
-#endif
+#endif /* defined(USE_POLARSSL) */
+#endif /* USE_SSL */
+#endif /* USE_CRYPTO */
 #ifdef USE_LZO
   " [LZO" LZO_VERSION_NUM "]"
 #endif
