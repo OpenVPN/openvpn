@@ -464,6 +464,34 @@ verify_cert_call_plugin(const struct plugin_list *plugins, struct env_set *es,
   return 0;
 }
 
+static const char *
+verify_cert_export_cert(x509_cert_t *peercert, const char *tmp_dir, struct gc_arena *gc)
+{
+  FILE *peercert_file;
+  const char *peercert_filename="";
+
+  if(!tmp_dir)
+      return NULL;
+
+  /* create tmp file to store peer cert */
+  peercert_filename = create_temp_file (tmp_dir, "pcf", gc);
+
+  /* write peer-cert in tmp-file */
+  peercert_file = fopen(peercert_filename, "w+");
+  if(!peercert_file)
+    {
+      msg (M_ERR, "Failed to open temporary file : %s", peercert_filename);
+      return NULL;
+    }
+
+  if (x509_write_pem(peercert_file, peercert))
+      msg (M_ERR, "Error writing PEM file containing certificate");
+
+  fclose(peercert_file);
+  return peercert_filename;
+}
+
+
 /*
  * run --tls-verify script
  */
@@ -481,7 +509,7 @@ verify_cert_call_command(const char *verify_command, struct env_set *es,
   if (verify_export_cert)
     {
       gc = gc_new();
-      if ((tmp_file=x509_write_cert(cert, verify_export_cert,&gc)))
+      if ((tmp_file=verify_cert_export_cert(cert, verify_export_cert, &gc)))
        {
          setenv_str(es, "peer_cert", tmp_file);
        }

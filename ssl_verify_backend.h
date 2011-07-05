@@ -98,7 +98,6 @@ void x509_free_subject (char *subject);
  *
  * @return 		a string containing the SHA1 hash of the certificate
  */
-
 unsigned char *x509_get_sha1_hash (x509_cert_t *cert);
 
 /*
@@ -247,8 +246,7 @@ bool x509_verify_cert_eku (x509_cert_t *x509, const char * const expected_oid);
  * @param tmp_dir	Temporary directory to store the directory
  * @param gc		gc_arena to store temporary objects in
  */
-const char *x509_write_cert(x509_cert_t *cert, const char *tmp_dir,
-    struct gc_arena *gc);
+bool x509_write_pem(FILE *peercert_file, x509_cert_t *peercert);
 
 /*
  * Check the certificate against a CRL file.

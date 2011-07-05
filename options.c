@@ -6248,6 +6248,7 @@ add_option (struct options *options,
 	}
 #endif
     }
+#ifdef USE_POLARSSL
   else if (streq (p[0], "pkcs12") && p[1])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
@@ -6259,6 +6260,7 @@ add_option (struct options *options,
 	}
 #endif
     }
+#endif /* USE_POLARSSL */
   else if (streq (p[0], "askpass"))
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
@@ -6320,11 +6322,13 @@ add_option (struct options *options,
       warn_multiple_script (options->tls_verify, "tls-verify");
       options->tls_verify = string_substitute (p[1], ',', ' ', &options->gc);
     }
+#ifndef USE_POLARSSL
   else if (streq (p[0], "tls-export-cert") && p[1])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->tls_export_cert = p[1];
     }
+#endif
   else if (streq (p[0], "tls-remote") && p[1])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);

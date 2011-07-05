@@ -372,35 +372,11 @@ x509_verify_cert_eku (x509_cert *cert, const char * const expected_oid)
     return fFound;
 }
 
-const char *
-x509_write_cert(x509_cert *peercert, const char *tmp_dir, struct gc_arena *gc)
+bool
+x509_write_pem(FILE *peercert_file, x509_cert *peercert)
 {
-  FILE *peercert_file;
-  const char *peercert_filename="";
-
-  if(!tmp_dir)
-      return NULL;
-
-  /* create tmp file to store peer cert */
-  peercert_filename = create_temp_file (tmp_dir, "pcf", gc);
-
-  /* write peer-cert in tmp-file */
-  peercert_file = fopen(peercert_filename, "w+");
-  if(!peercert_file)
-    {
-      msg (M_ERR, "Failed to open temporary file : %s", peercert_filename);
-      return NULL;
-    }
-
-//  if(PEM_write_X509(peercert_file,peercert)<0)
-//    {
-      msg (M_ERR, "PolarSSL does not support writing peer certificate in PEM format");
-      fclose(peercert_file);
-      return NULL;
-//    }
-
-  fclose(peercert_file);
-  return peercert_filename;
+    msg (M_WARN, "PolarSSL does not support writing peer certificate in PEM format");
+    return true;
 }
 
 /*
