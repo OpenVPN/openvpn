@@ -2281,6 +2281,8 @@ options_postprocess_verify_ce (const struct options *options, const struct conne
 #ifdef USE_POLARSSL
 	  if (!(options->ca_file))
 	    msg(M_USAGE, "You must define CA file (--ca)");
+          if (options->ca_path)
+            msg(M_USAGE, "Parameter --capath cannot be used with the PolarSSL version version of OpenVPN.");
 #else
 	  if ((!(options->ca_file)) && (!(options->ca_path)))
 	    msg(M_USAGE, "You must define CA file (--ca) or CA path (--capath)");
