@@ -7,17 +7,22 @@ To Build and Install,
 	make
 	make install
 
+This version depends on at least PolarSSL v0.99.
+
 *************************************************************************
 
-The following features are missing in the PolarSSL version of OpenVPN:
+Due to limitations in the PolarSSL library, the following features are missing
+in the PolarSSL version of OpenVPN:
 
- * ca_path support - Loading certificate authorities from a directory
  * PKCS#12 file support
+ * --capath support - Loading certificate authorities from a directory
  * Windows CryptoAPI support
  * Management external key support
- * X509 alternative username fields (must be "CN")
+ * X.509 alternative username fields (must be "CN")
 
- TODO:
- * serial is in Hex
- * X509 certificate export
- * X.509 tracking
+Plugin/Script features:
+
+ * X.509 Serial number is in hex, not decimal as with OpenSSL
+ * X.509 subject line has a different format than the OpenSSL subject line
+ * X.509 certificate export does not work
+ * X.509 certificate tracking

@@ -604,8 +604,10 @@ static const char usage_message[] =
   "                  of verification.\n"
   "--ns-cert-type t: Require that peer certificate was signed with an explicit\n"
   "                  nsCertType designation t = 'client' | 'server'.\n"
+#ifdef ENABLE_X509_TRACK
   "--x509-track x  : Save peer X509 attribute x in environment for use by\n"
   "                  plugins and management interface.\n"
+#endif
 #if OPENSSL_VERSION_NUMBER >= 0x00907000L || USE_POLARSSL
   "--remote-cert-ku v ... : Require that the peer certificate was signed with\n"
   "                  explicit key usage, you can specify more than one value.\n"

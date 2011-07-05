@@ -840,6 +840,10 @@ fi
 
 dnl enable --x509-username-field feature if requested
 if test "$X509ALTUSERNAME" = "yes"; then
+   if test "$SSL_LIB" = "polarssl" ; then
+      AC_MSG_ERROR([PolarSSL does not support the --x509-username-field feature])
+   fi
+
    AC_DEFINE(ENABLE_X509ALTUSERNAME, 1, [Enable --x509-username-field feature])
 fi
 
