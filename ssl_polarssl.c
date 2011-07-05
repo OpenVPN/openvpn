@@ -515,10 +515,12 @@ void key_state_ssl_init(struct key_state_ssl *ks_ssl,
       /* Initialise authentication information */
       if (is_server)
 	ssl_set_dh_param_ctx (ks_ssl->ctx, ssl_ctx->dhm_ctx );
+#if defined(ENABLE_PKCS11)
       if (ssl_ctx->priv_key_pkcs11 != NULL)
 	ssl_set_own_cert_pkcs11( ks_ssl->ctx, ssl_ctx->crt_chain,
 	    ssl_ctx->priv_key_pkcs11 );
       else
+#endif
 	ssl_set_own_cert( ks_ssl->ctx, ssl_ctx->crt_chain, ssl_ctx->priv_key );
 
       /* Initialise SSL verification */
