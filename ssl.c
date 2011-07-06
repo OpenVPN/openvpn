@@ -599,8 +599,7 @@ setenv_x509_track (const struct x509_track *xt, struct env_set *es, const int de
 	    case NID_sha1:
 	      {
 		int i;
-		const int hl = SHA_DIGEST_LENGTH*3+1;
-		char hash_str[hl];
+		char hash_str[SHA_DIGEST_LENGTH*3+1];
 		char *hs = hash_str;
 		const unsigned char *src = x509->sha1_hash;
 		for (i = 0; i < SHA_DIGEST_LENGTH; ++i)
