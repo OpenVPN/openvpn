@@ -38,6 +38,7 @@
 
 #define USE_SSL
 #define USE_OPENSSL
+#include "ssl_verify_openssl.h"
 
 #include "openvpn-plugin.h"
 

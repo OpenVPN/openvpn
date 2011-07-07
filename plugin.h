@@ -29,6 +29,12 @@
 #ifndef OPENVPN_PLUGIN_H
 #define OPENVPN_PLUGIN_H
 
+#ifdef USE_OPENSSL
+#include "ssl_verify_openssl.h"
+#endif
+#ifdef USE_POLARSSL
+#include "ssl_verify_polarssl.h"
+#endif
 #include "openvpn-plugin.h"
 
 #ifdef ENABLE_PLUGIN

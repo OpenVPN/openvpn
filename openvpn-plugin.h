@@ -24,15 +24,12 @@
 
 #ifndef OPENVPN_PLUGIN_H_
 #define OPENVPN_PLUGIN_H_
-
 #ifdef USE_SSL
-#if defined(USE_OPENSSL)
-#include "ssl_verify_openssl.h"
-#elif defined(USE_POLARSSL)
-#include "ssl_verify_polarssl.h"
-#else
-#error "Either USE_OPENSSL or USE_POLARSSL should be defined"
-#endif
+#  if defined(SSL_VERIFY_OPENSSL_H_) || defined(SSL_VERIFY_POLARSSL_H_)
+#    define ENABLE_SSL_PLUGIN
+#  else
+#    warning "Neither OpenSSL or PoLarSSL headers included, disabling plugin's SSL support"
+#  endif
 #endif /*USE_SSL*/
 
 #define OPENVPN_PLUGIN_VERSION 3
@@ -282,12 +279,12 @@ struct openvpn_plugin_args_func_in
   const char ** const envp;
   openvpn_plugin_handle_t handle;
   void *per_client_context;
-#ifdef USE_SSL
+#ifdef ENABLE_SSL_PLUGIN
   int current_cert_depth;
   x509_cert_t *current_cert;
 #else
-  int current_cert_depth; /* Unused, for compatibility purposes only */
-  void *current_cert; /* Unused, for compatibility purposes only */
+  int __current_cert_depth_disabled; /* Unused, for compatibility purposes only */
+  void *__current_cert_disabled; /* Unused, for compatibility purposes only */
 #endif
 };
 
