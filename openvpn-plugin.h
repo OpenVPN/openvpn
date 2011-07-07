@@ -25,12 +25,15 @@
 #ifndef OPENVPN_PLUGIN_H_
 #define OPENVPN_PLUGIN_H_
 
-#ifdef USE_OPENSSL
+#ifdef USE_SSL
+#if defined(USE_OPENSSL)
 #include "ssl_verify_openssl.h"
-#endif
-#ifdef USE_POLARSSL
+#elif defined(USE_POLARSSL)
 #include "ssl_verify_polarssl.h"
+#else
+#error "Either USE_OPENSSL or USE_POLARSSL should be defined"
 #endif
+#endif /*USE_SSL*/
 
 #define OPENVPN_PLUGIN_VERSION 3
 
@@ -267,9 +270,9 @@ struct openvpn_plugin_args_open_return
  * *per_client_context : the per-client context pointer which was returned by
  *        openvpn_plugin_client_constructor_v1, if defined.
  *
- * current_cert_depth : Certificate depth of the certificate being passed over
+ * current_cert_depth : Certificate depth of the certificate being passed over (only if compiled with USE_SSL defined)
  *
- * *current_cert : X509 Certificate object received from the client
+ * *current_cert : X509 Certificate object received from the client (only if compiled with USE_SSL defined)
  *
  */
 struct openvpn_plugin_args_func_in
@@ -279,8 +282,13 @@ struct openvpn_plugin_args_func_in
   const char ** const envp;
   openvpn_plugin_handle_t handle;
   void *per_client_context;
+#ifdef USE_SSL
   int current_cert_depth;
   x509_cert_t *current_cert;
+#else
+  int current_cert_depth; /* Unused, for compatibility purposes only */
+  void *current_cert; /* Unused, for compatibility purposes only */
+#endif
 };
 
 

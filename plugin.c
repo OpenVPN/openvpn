@@ -345,9 +345,12 @@ plugin_call_item (const struct plugin *p,
 		  const int type,
 		  const struct argv *av,
 		  struct openvpn_plugin_string_list **retlist,
-		  const char **envp,
-		  int certdepth,
-		  x509_cert_t *current_cert)
+		  const char **envp
+#ifdef USE_SSL
+		  , int certdepth,
+		  x509_cert_t *current_cert
+#endif
+		 )
 {
   int status = OPENVPN_PLUGIN_FUNC_SUCCESS;
 
@@ -372,8 +375,15 @@ plugin_call_item (const struct plugin *p,
                                                     (const char ** const) envp,
                                                     p->plugin_handle,
                                                     per_client_context,
-                                                    (current_cert ? certdepth : -1),
-                                                    current_cert };
+#ifdef USE_SSL
+						    (current_cert ? certdepth : -1),
+						    current_cert
+#else
+						    -1,
+						    NULL
+#endif
+	  };
+
         struct openvpn_plugin_args_func_return retargs;
 
         CLEAR(retargs);
@@ -570,13 +580,16 @@ plugin_list_open (struct plugin_list *pl,
 }
 
 int
-plugin_call (const struct plugin_list *pl,
+plugin_call_ssl (const struct plugin_list *pl,
 	     const int type,
 	     const struct argv *av,
 	     struct plugin_return *pr,
-	     struct env_set *es,
-             int certdepth,
-	     x509_cert_t *current_cert)
+	     struct env_set *es
+#ifdef USE_SSL
+             , int certdepth,
+	     x509_cert_t *current_cert
+#endif
+	    )
 {
   if (pr)
     plugin_return_init (pr);
@@ -601,8 +614,12 @@ plugin_call (const struct plugin_list *pl,
 					       type,
 					       av,
 					       pr ? &pr->list[i] : NULL,
-					       envp,
-					       certdepth, current_cert);
+					       envp
+#ifdef USE_SSL
+					       ,certdepth,
+					       current_cert
+#endif
+					      );
 	  switch (status)
 	    {
 	    case OPENVPN_PLUGIN_FUNC_SUCCESS:

@@ -563,7 +563,7 @@ pf_init_context (struct context *c)
       if( pf_file ) {
         setenv_str (c->c2.es, "pf_file", pf_file);
 
-        if (plugin_call (c->plugins, OPENVPN_PLUGIN_ENABLE_PF, NULL, NULL, c->c2.es, -1, NULL) == OPENVPN_PLUGIN_FUNC_SUCCESS)
+        if (plugin_call (c->plugins, OPENVPN_PLUGIN_ENABLE_PF, NULL, NULL, c->c2.es) == OPENVPN_PLUGIN_FUNC_SUCCESS)
           {
             event_timeout_init (&c->c2.pf.reload, 1, now);
             c->c2.pf.filename = string_alloc (pf_file, NULL);

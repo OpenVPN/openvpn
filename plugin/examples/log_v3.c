@@ -36,6 +36,9 @@
 #include <string.h>
 #include <stdlib.h>
 
+#define USE_SSL
+#define USE_OPENSSL
+
 #include "openvpn-plugin.h"
 
 /*

@@ -116,13 +116,31 @@ void plugin_list_open (struct plugin_list *pl,
 
 struct plugin_list *plugin_list_inherit (const struct plugin_list *src);
 
-int plugin_call (const struct plugin_list *pl,
+
+static inline int
+plugin_call(const struct plugin_list *pl,
+	const int type,
+	const struct argv *av,
+	struct plugin_return *pr,
+	struct env_set *es)
+{
+  return plugin_call_ssl(pl, type, av, pr, es
+#ifdef USE_SSL
+      -1, NULL
+#endif
+      );
+}
+
+int plugin_call_ssl (const struct plugin_list *pl,
 		 const int type,
 		 const struct argv *av,
 		 struct plugin_return *pr,
-		 struct env_set *es,
-		 int current_cert_depth,
-		 x509_cert_t *current_cert);
+		 struct env_set *es
+#ifdef USE_SSL
+		 , int current_cert_depth,
+		 x509_cert_t *current_cert
+#endif
+		);
 
 void plugin_list_close (struct plugin_list *pl);
 bool plugin_defined (const struct plugin_list *pl, const int type);
@@ -174,9 +192,12 @@ plugin_call (const struct plugin_list *pl,
 	     const int type,
 	     const struct argv *av,
 	     struct plugin_return *pr,
-	     struct env_set *es,
-	     int current_cert_depth,
-	     x509_cert_t *current_cert)
+	     struct env_set *es
+#ifdef USE_SSL
+	     , int current_cert_depth,
+	     x509_cert_t *current_cert
+#endif
+	    )
 {
   return 0;
 }

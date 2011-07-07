@@ -2117,7 +2117,7 @@ link_socket_connection_initiated (const struct buffer *buf,
     {
       struct argv argv = argv_new ();
       ipchange_fmt (false, &argv, info, &gc);
-      if (plugin_call (info->plugins, OPENVPN_PLUGIN_IPCHANGE, &argv, NULL, es, -1, NULL) != OPENVPN_PLUGIN_FUNC_SUCCESS)
+      if (plugin_call (info->plugins, OPENVPN_PLUGIN_IPCHANGE, &argv, NULL, es) != OPENVPN_PLUGIN_FUNC_SUCCESS)
 	msg (M_WARN, "WARNING: ipchange plugin call failed");
       argv_reset (&argv);
     }
