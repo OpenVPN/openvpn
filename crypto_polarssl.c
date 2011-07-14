@@ -329,10 +329,8 @@ cipher_kt_mode (const cipher_info_t *cipher_kt)
 
 void
 cipher_ctx_init (cipher_context_t *ctx, uint8_t *key, int key_len,
-    const cipher_info_t *kt, int enc, const char *prefix)
+    const cipher_info_t *kt, int enc)
 {
-  struct gc_arena gc = gc_new ();
-
   ASSERT(NULL != kt && NULL != ctx);
 
   CLEAR (*ctx);
@@ -343,22 +341,8 @@ cipher_ctx_init (cipher_context_t *ctx, uint8_t *key, int key_len,
   if (0 != cipher_setkey(ctx, key, key_len*8, enc))
     msg (M_FATAL, "PolarSSL cipher set key");
 
-  msg (D_HANDSHAKE, "%s: Cipher '%s' initialized with %d bit key",
-       prefix,
-       cipher_kt_name(kt),
-       cipher_get_key_size(ctx));
-
   /* make sure we used a big enough key */
   ASSERT (ctx->key_length <= key_len*8);
-
-  dmsg (D_SHOW_KEYS, "%s: CIPHER KEY: %s", prefix,
-       format_hex (key, key_len, 0, &gc));
-  dmsg (D_CRYPTO_DEBUG, "%s: CIPHER block_size=%d iv_size=%d",
-       prefix,
-       cipher_get_block_size(ctx),
-       cipher_get_iv_size(ctx));
-
-  gc_free (&gc);
 }
 
 void cipher_ctx_cleanup (cipher_context_t *ctx)

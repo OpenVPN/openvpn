@@ -571,10 +571,8 @@ cipher_kt_mode (const EVP_CIPHER *cipher_kt)
 
 void
 cipher_ctx_init (EVP_CIPHER_CTX *ctx, uint8_t *key, int key_len,
-    const EVP_CIPHER *kt, int enc, const char *prefix)
+    const EVP_CIPHER *kt, int enc)
 {
-  struct gc_arena gc = gc_new ();
-
   ASSERT(NULL != kt && NULL != ctx);
 
   CLEAR (*ctx);
@@ -589,22 +587,8 @@ cipher_ctx_init (EVP_CIPHER_CTX *ctx, uint8_t *key, int key_len,
   if (!EVP_CipherInit_ov (ctx, NULL, key, NULL, enc))
     msg (M_SSLERR, "EVP cipher init #2");
 
-  msg (D_HANDSHAKE, "%s: Cipher '%s' initialized with %d bit key",
-      prefix,
-      OBJ_nid2sn (EVP_CIPHER_CTX_nid (ctx)),
-      EVP_CIPHER_CTX_key_length (ctx) * 8);
-
   /* make sure we used a big enough key */
   ASSERT (EVP_CIPHER_CTX_key_length (ctx) <= key_len);
-
-  dmsg (D_SHOW_KEYS, "%s: CIPHER KEY: %s", prefix,
-      format_hex (key, key_len, 0, &gc));
-  dmsg (D_CRYPTO_DEBUG, "%s: CIPHER block_size=%d iv_size=%d",
-      prefix,
-      EVP_CIPHER_CTX_block_size (ctx),
-      EVP_CIPHER_CTX_iv_length (ctx));
-
-  gc_free (&gc);
 }
 
 void

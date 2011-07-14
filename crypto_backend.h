@@ -236,10 +236,9 @@ bool cipher_kt_mode (const cipher_kt_t *cipher_kt);
  * @param kt		Static cipher parameters to use
  * @param enc		Whether to encrypt or decrypt (either
  * 			\c POLARSSL_OP_ENCRYPT or \c POLARSSL_OP_DECRYPT).
- * @param prefix	Prefix to use for output.
  */
 void cipher_ctx_init (cipher_ctx_t *ctx, uint8_t *key, int key_len,
-    const cipher_kt_t *kt, int enc, const char *prefix);
+    const cipher_kt_t *kt, int enc);
 
 /**
  * Cleanup the specified context.
