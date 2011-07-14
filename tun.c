@@ -4859,6 +4859,7 @@ close_tun (struct tuntap *tt)
     {
       if ( tt->ipv6 && tt->did_ifconfig_ipv6_setup )
         {
+	  const char *ifconfig_ipv6_local;
 	  struct argv argv;
 	  argv_init (&argv);
 
@@ -4866,7 +4867,7 @@ close_tun (struct tuntap *tt)
 	  delete_route_connected_v6_net(tt, NULL);
 
 	  /* netsh interface ipv6 delete address \"%s\" %s */
-	  const char * ifconfig_ipv6_local = print_in6_addr (tt->local_ipv6, 0, &gc);
+	  ifconfig_ipv6_local = print_in6_addr (tt->local_ipv6, 0,  &gc);
 	  argv_printf (&argv,
 		    "%s%sc interface ipv6 delete address %s %s",
 		     get_win_sys_path(),
