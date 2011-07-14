@@ -2812,7 +2812,7 @@ options_string (const struct options *o,
 
 	buf_printf (&out, ",cipher %s", cipher_kt_name (kt.cipher));
 	buf_printf (&out, ",auth %s", md_kt_name (kt.digest));
-	buf_printf (&out, ",keysize %d", kt.cipher_length);
+	buf_printf (&out, ",keysize %d", kt.cipher_length * 8);
 	if (o->shared_secret_file)
 	  buf_printf (&out, ",secret");
 	if (!o->replay)
