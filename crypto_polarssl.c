@@ -511,11 +511,8 @@ md_ctx_final (md_context_t *ctx, uint8_t *dst)
  * TODO: re-enable dmsg for crypto debug
  */
 void
-hmac_ctx_init (md_context_t *ctx, const uint8_t *key, int key_len, const md_info_t *kt,
-    const char *prefix)
+hmac_ctx_init (md_context_t *ctx, const uint8_t *key, int key_len, const md_info_t *kt)
 {
-  struct gc_arena gc = gc_new ();
-
   ASSERT(NULL != kt && NULL != ctx);
 
   CLEAR(*ctx);
@@ -523,24 +520,8 @@ hmac_ctx_init (md_context_t *ctx, const uint8_t *key, int key_len, const md_info
   ASSERT(0 == md_init_ctx(ctx, kt));
   ASSERT(0 == md_hmac_starts(ctx, key, key_len));
 
-  if (prefix)
-    msg (D_HANDSHAKE,
-	"%s: Using %d bit message hash '%s' for HMAC authentication",
-	prefix, md_get_size(kt) * 8, md_get_name(kt));
-
   /* make sure we used a big enough key */
   ASSERT (md_get_size(kt) <= key_len);
-
-  if (prefix)
-    dmsg (D_SHOW_KEYS, "%s: HMAC KEY: %s", prefix,
-	format_hex (key, key_len, 0, &gc));
-//  if (prefix)
-//    dmsg (D_CRYPTO_DEBUG, "%s: HMAC size=%d block_size=%d",
-//         prefix,
-//         md_get_size(md_info),
-//         EVP_MD_block_size (md_info));
-
-  gc_free (&gc);
 }
 
 void

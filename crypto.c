@@ -462,8 +462,20 @@ init_key_ctx (struct key_ctx *ctx, struct key *key,
   if (kt->digest && kt->hmac_length > 0)
     {
       ALLOC_OBJ(ctx->hmac, hmac_ctx_t);
-      hmac_ctx_init (ctx->hmac, key->hmac, kt->hmac_length, kt->digest,
-	  prefix);
+      hmac_ctx_init (ctx->hmac, key->hmac, kt->hmac_length, kt->digest);
+
+      msg (D_HANDSHAKE,
+      "%s: Using %d bit message hash '%s' for HMAC authentication",
+      prefix, md_kt_size(kt->digest) * 8, md_kt_name(kt->digest));
+
+      dmsg (D_SHOW_KEYS, "%s: HMAC KEY: %s", prefix,
+	  format_hex (key->hmac, kt->hmac_length, 0, &gc));
+
+      dmsg (D_CRYPTO_DEBUG, "%s: HMAC size=%d block_size=%d",
+	prefix,
+	md_kt_size(kt->digest),
+	hmac_ctx_size(ctx->hmac));
+
     }
   gc_free (&gc);
 }

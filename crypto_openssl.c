@@ -745,10 +745,8 @@ md_ctx_final (EVP_MD_CTX *ctx, uint8_t *dst)
 
 void
 hmac_ctx_init (HMAC_CTX *ctx, const uint8_t *key, int key_len,
-    const EVP_MD *kt, const char *prefix)
+    const EVP_MD *kt)
 {
-  struct gc_arena gc = gc_new ();
-
   ASSERT(NULL != kt && NULL != ctx);
 
   CLEAR(*ctx);
@@ -756,24 +754,8 @@ hmac_ctx_init (HMAC_CTX *ctx, const uint8_t *key, int key_len,
   HMAC_CTX_init (ctx);
   HMAC_Init_ex (ctx, key, key_len, kt, NULL);
 
-  if (prefix)
-    msg (D_HANDSHAKE,
-	"%s: Using %d bit message hash '%s' for HMAC authentication",
-	prefix, HMAC_size (ctx) * 8, OBJ_nid2sn (EVP_MD_type (kt)));
-
   /* make sure we used a big enough key */
   ASSERT (HMAC_size (ctx) <= key_len);
-
-  if (prefix)
-    dmsg (D_SHOW_KEYS, "%s: HMAC KEY: %s", prefix,
-	format_hex (key, key_len, 0, &gc));
-  if (prefix)
-    dmsg (D_CRYPTO_DEBUG, "%s: HMAC size=%d block_size=%d",
-	prefix,
-	EVP_MD_size (kt),
-	EVP_MD_block_size (kt));
-
-  gc_free (&gc);
 }
 
 void
