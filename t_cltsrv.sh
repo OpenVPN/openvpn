@@ -33,7 +33,7 @@ case `uname -s` in
 	    echo "###"
 	    echo "### To run the test in a FreeBSD jail, you MUST add an IP alias for the jail's IP."
 	    echo "###"
-	    exit 1
+	    exit 77
 	fi
     fi
     ;;
