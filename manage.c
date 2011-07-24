@@ -86,6 +86,9 @@ man_help ()
   msg (M_CLIENT, "                         where action is reply string.");
   msg (M_CLIENT, "net                    : (Windows only) Show network info and routing table.");
   msg (M_CLIENT, "password type p        : Enter password p for a queried OpenVPN password.");
+#if MANAGEMENT_QUERY_REMOTE
+  msg (M_CLIENT, "remote type [host port] : Override remote directive, type=ACCEPT|MOD|SKIP.");
+#endif
   msg (M_CLIENT, "pid                    : Show process ID of the current OpenVPN process.");
 #ifdef ENABLE_PKCS11
   msg (M_CLIENT, "pkcs11-id-count        : Get number of available PKCS#11 identities.");
@@ -606,24 +609,18 @@ man_up_finalize (struct management *man)
 {
   switch (man->connection.up_query_mode)
     {
-    case UP_QUERY_DISABLED:
-      man->connection.up_query.defined = false;
-      break;
     case UP_QUERY_USER_PASS:
-      if (strlen (man->connection.up_query.username) && strlen (man->connection.up_query.password))
-	man->connection.up_query.defined = true;
-      break;
+      if (!strlen (man->connection.up_query.username))
+	break;
+      /* fall through */
     case UP_QUERY_PASS:
-      if (strlen (man->connection.up_query.password))
-	man->connection.up_query.defined = true;
-      break;
     case UP_QUERY_NEED_OK:
-      if (strlen (man->connection.up_query.password))
-	man->connection.up_query.defined = true;
-      break;
     case UP_QUERY_NEED_STR:
       if (strlen (man->connection.up_query.password))
 	man->connection.up_query.defined = true;
+      break;
+    case UP_QUERY_DISABLED:
+      man->connection.up_query.defined = false;
       break;
     default:
       ASSERT (0);
@@ -665,16 +662,17 @@ man_query_user_pass (struct management *man,
 static void
 man_query_username (struct management *man, const char *type, const char *string)
 {
-  const bool needed = (man->connection.up_query_mode == UP_QUERY_USER_PASS && man->connection.up_query_type);
+  const bool needed = ((man->connection.up_query_mode == UP_QUERY_USER_PASS
+			) && man->connection.up_query_type);
   man_query_user_pass (man, type, string, needed, "username", man->connection.up_query.username, USER_PASS_LEN);
 }
 
 static void
 man_query_password (struct management *man, const char *type, const char *string)
 {
-  const bool needed = ((man->connection.up_query_mode == UP_QUERY_USER_PASS
-			|| man->connection.up_query_mode == UP_QUERY_PASS)
-		       && man->connection.up_query_type);
+  const bool needed = ((man->connection.up_query_mode == UP_QUERY_PASS
+			|| man->connection.up_query_mode == UP_QUERY_USER_PASS
+			) && man->connection.up_query_type);
   if (!string[0]) /* allow blank passwords to be passed through using the blank_up tag */
     string = blank_up;
   man_query_user_pass (man, type, string, needed, "password", man->connection.up_query.password, USER_PASS_LEN);
@@ -1090,6 +1088,31 @@ man_http_proxy_fallback (struct management *man, const char *server, const char 
 
 #endif
 
+#if MANAGEMENT_QUERY_REMOTE
+
+static void
+man_remote (struct management *man, const char **p)
+{
+  if (man->persist.callback.remote_cmd)
+    {
+      const bool status = (*man->persist.callback.remote_cmd)(man->persist.callback.arg, p);
+      if (status)
+	{
+	  msg (M_CLIENT, "SUCCESS: remote command succeeded");
+	}
+      else
+	{
+	  msg (M_CLIENT, "ERROR: remote command failed");
+	}
+    }
+  else
+    {
+      msg (M_CLIENT, "ERROR: The remote command is not supported by the current daemon mode");
+    }
+}
+
+#endif
+
 static void
 man_dispatch_command (struct management *man, struct status_output *so, const char **p, const int nparms)
 {
@@ -1317,6 +1340,13 @@ man_dispatch_command (struct management *man, struct status_output *so, const ch
   else if (streq (p[0], "http-proxy-fallback-disable"))
     {
       man_http_proxy_fallback (man, NULL, NULL, NULL);
+    }
+#endif
+#if MANAGEMENT_QUERY_REMOTE
+  else if (streq (p[0], "remote"))
+    {
+      if (man_need (man, p, 1, MN_AT_LEAST))
+	man_remote (man, p);
     }
 #endif
 #if 1
@@ -2339,6 +2369,12 @@ management_notify(struct management *man, const char *severity, const char *type
   msg (M_CLIENT, ">NOTIFY:%s,%s,%s", severity, type, text);
 }
 
+void
+management_notify_generic (struct management *man, const char *str)
+{
+  msg (M_CLIENT, "%s", str);
+}
+
 #ifdef MANAGEMENT_DEF_AUTH
 
 static bool
@@ -2843,7 +2879,8 @@ bool
 management_query_user_pass (struct management *man,
 			    struct user_pass *up,
 			    const char *type,
-			    const unsigned int flags)
+			    const unsigned int flags,
+			    const char *static_challenge)
 {
   struct gc_arena gc = gc_new ();
   bool ret = false;
@@ -2856,7 +2893,9 @@ management_query_user_pass (struct management *man,
       const char *alert_type = NULL;
       const char *prefix = NULL;
       unsigned int up_query_mode = 0;
-
+#ifdef ENABLE_CLIENT_CR
+      const char *sc = NULL;
+#endif
       ret = true;
       man->persist.standalone_disabled = false; /* This is so M_CLIENT messages will be correctly passed through msg() */
       man->persist.special_state_msg = NULL;
@@ -2886,6 +2925,10 @@ management_query_user_pass (struct management *man,
 	  up_query_mode = UP_QUERY_USER_PASS;
 	  prefix = "PASSWORD";
 	  alert_type = "username/password";
+#ifdef ENABLE_CLIENT_CR
+	  if (static_challenge)
+	    sc = static_challenge;
+#endif
 	}
       buf_printf (&alert_msg, ">%s:Need '%s' %s",
 		  prefix,
@@ -2894,6 +2937,13 @@ management_query_user_pass (struct management *man,
 
       if (flags & (GET_USER_PASS_NEED_OK | GET_USER_PASS_NEED_STR))
 	buf_printf (&alert_msg, " MSG:%s", up->username);
+
+#ifdef ENABLE_CLIENT_CR
+      if (sc)
+	buf_printf (&alert_msg, " SC:%d,%s",
+		    BOOL_CAST(flags & GET_USER_PASS_STATIC_CHALLENGE_ECHO),
+		    sc);
+#endif
 
       man_wait_for_client_connection (man, &signal_received, 0, MWCC_PASSWORD_WAIT);
       if (signal_received)
@@ -2908,7 +2958,7 @@ management_query_user_pass (struct management *man,
 	  man->connection.up_query_mode = up_query_mode;
 	  man->connection.up_query_type = type;
 
-	  /* run command processing event loop until we get our username/password */
+	  /* run command processing event loop until we get our username/password/response */
 	  do
 	    {
 	      man_standalone_event_loop (man, &signal_received, 0);

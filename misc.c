@@ -1403,10 +1403,16 @@ get_user_pass_cr (struct user_pass *up,
 	  && ((auth_file && streq (auth_file, "management")) || (from_stdin && (flags & GET_USER_PASS_MANAGEMENT)))
 	  && management_query_user_pass_enabled (management))
 	{
+	  const char *sc = NULL;
+
 	  if (flags & GET_USER_PASS_PREVIOUS_CREDS_FAILED)
 	    management_auth_failure (management, prefix, "previous auth credentials failed");
 
-	  if (!management_query_user_pass (management, up, prefix, flags))
+#ifdef ENABLE_CLIENT_CR
+	  if (auth_challenge && (flags & GET_USER_PASS_STATIC_CHALLENGE))
+	    sc = auth_challenge;
+#endif
+	  if (!management_query_user_pass (management, up, prefix, flags, sc))
 	    {
 	      if ((flags & GET_USER_PASS_NOFATAL) != 0)
 		return false;
@@ -1438,7 +1444,7 @@ get_user_pass_cr (struct user_pass *up,
       else if (from_stdin)
 	{
 #ifdef ENABLE_CLIENT_CR
-	  if (auth_challenge)
+	  if (auth_challenge && (flags & GET_USER_PASS_DYNAMIC_CHALLENGE))
 	    {
 	      struct auth_challenge_info *ac = get_auth_challenge (auth_challenge, &gc);
 	      if (ac)
@@ -1447,7 +1453,7 @@ get_user_pass_cr (struct user_pass *up,
 		  struct buffer packed_resp;
 
 		  buf_set_write (&packed_resp, (uint8_t*)up->password, USER_PASS_LEN);
-		  msg (M_INFO, "CHALLENGE: %s", ac->challenge_text);
+		  msg (M_INFO|M_NOPREFIX, "CHALLENGE: %s", ac->challenge_text);
 		  if (!get_console_input ("Response:", BOOL_CAST(ac->flags&CR_ECHO), response, USER_PASS_LEN))
 		    msg (M_FATAL, "ERROR: could not read challenge response from stdin");
 		  strncpynt (up->username, ac->user, USER_PASS_LEN);
@@ -1477,6 +1483,28 @@ get_user_pass_cr (struct user_pass *up,
 
 	      if (!get_console_input (BSTR (&pass_prompt), false, up->password, USER_PASS_LEN))
 		msg (M_FATAL, "ERROR: could not not read %s password from stdin", prefix);
+
+#ifdef ENABLE_CLIENT_CR
+	      if (auth_challenge && (flags & GET_USER_PASS_STATIC_CHALLENGE))
+		{
+		  char *response = (char *) gc_malloc (USER_PASS_LEN, false, &gc);
+		  struct buffer packed_resp;
+		  char *pw64=NULL, *resp64=NULL;
+
+		  msg (M_INFO|M_NOPREFIX, "CHALLENGE: %s", auth_challenge);
+		  if (!get_console_input ("Response:", BOOL_CAST(flags & GET_USER_PASS_STATIC_CHALLENGE_ECHO), response, USER_PASS_LEN))
+		    msg (M_FATAL, "ERROR: could not read static challenge response from stdin");
+		  if (base64_encode(up->password, strlen(up->password), &pw64) == -1
+		      || base64_encode(response, strlen(response), &resp64) == -1)
+		    msg (M_FATAL, "ERROR: could not base64-encode password/static_response");
+		  buf_set_write (&packed_resp, (uint8_t*)up->password, USER_PASS_LEN);
+		  buf_printf (&packed_resp, "SCRV1:%s:%s", pw64, resp64);
+		  string_clear(pw64);
+		  free(pw64);
+		  string_clear(resp64);
+		  free(resp64);
+		}
+#endif
 	    }
 	}
       else
@@ -1544,42 +1572,8 @@ get_user_pass_cr (struct user_pass *up,
 #ifdef ENABLE_CLIENT_CR
 
 /*
- * Parse a challenge message returned along with AUTH_FAILED.
- * The message is formatted as such:
- *
- *  CRV1:<flags>:<state_id>:<username_base64>:<challenge_text>
- *
- * flags: a series of optional, comma-separated flags:
- *  E : echo the response when the user types it
- *  R : a response is required
- *
- * state_id: an opaque string that should be returned to the server
- *  along with the response.
- *
- * username_base64 : the username formatted as base64
- *
- * challenge_text : the challenge text to be shown to the user
- *
- * Example challenge:
- *
- *   CRV1:R,E:Om01u7Fh4LrGBS7uh0SWmzwabUiGiW6l:Y3Ix:Please enter token PIN
- *
- * After showing the challenge_text and getting a response from the user
- * (if R flag is specified), the client should submit the following
- * auth creds back to the OpenVPN server:
- *
- * Username: [username decoded from username_base64]
- * Password: CRV1::<state_id>::<response_text>
- *
- * Where state_id is taken from the challenge request and response_text
- * is what the user entered in response to the challenge_text.
- * If the R flag is not present, response_text may be the empty
- * string.
- *
- * Example response (suppose the user enters "8675309" for the token PIN):
- *
- *   Username: cr1 ("Y3Ix" base64 decoded)
- *   Password: CRV1::Om01u7Fh4LrGBS7uh0SWmzwabUiGiW6l::8675309
+ * See management/management-notes.txt for more info on the
+ * the dynamic challenge/response protocol implemented here.
  */
 struct auth_challenge_info *
 get_auth_challenge (const char *auth_challenge, struct gc_arena *gc)

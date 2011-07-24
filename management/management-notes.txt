@@ -687,6 +687,38 @@ the 10.0.0.0/8 netblock is allowed: 10.10.0.1.  Also, the client
 may not interact with external IP addresses using an "unknown"
 protocol (i.e. one that is not IPv4 or ARP).
 
+COMMAND -- remote  (OpenVPN AS 2.1.5/OpenVPN 2.3 or higher)
+--------------------------------------------
+
+Provide remote host/port in response to a >REMOTE notification
+(client only).  Requires that the --management-query-remote
+directive is used.
+
+  remote ACTION [HOST PORT]
+
+The "remote" command should only be given in response to a >REMOTE
+notification.  For example, the following >REMOTE notification
+indicates that the client config file would ordinarily connect
+to vpn.example.com port 1194 (UDP):
+
+  >REMOTE:vpn.example.com,1194,udp
+
+Now, suppose we want to override the host and port, connecting
+instead to vpn.otherexample.com port 1234.  After receiving
+the above notification, use this command:
+
+  remote MOD vpn.otherexample.com 1234
+
+To accept the same host and port as the client would ordinarily
+have connected to, use this command:
+
+  remote ACCEPT
+
+To skip the current connection entry and advance to the next one,
+use this command:
+
+  remote SKIP
+
 OUTPUT FORMAT
 -------------
 
@@ -836,3 +868,113 @@ mappings, when not in single quotations:
          interpret it as enclosing a parameter.
 \[SPACE] Pass a literal space or tab character, don't
          interpret it as a parameter delimiter.
+
+Challenge/Response Protocol
+---------------------------
+
+The OpenVPN Challenge/Response Protocol allows an OpenVPN server to
+generate challenge questions that are shown to the user, and to see
+the user's responses to those challenges.  Based on the responses, the
+server can allow or deny access.
+
+In this way, the OpenVPN Challenge/Response Protocol can be used
+to implement multi-factor authentication.  Two different
+variations on the challenge/response protocol are supported: the
+"Dynamic" and "Static" protocols.
+
+The basic idea of Challenge/Response is that the user must enter an
+additional piece of information, in addition to the username and
+password, to successfully authenticate.  Normally, this information
+is used to prove that the user posesses a certain key-like device
+such as cryptographic token or a particular mobile phone.
+
+Dynamic protocol:
+
+The OpenVPN dynamic challenge/response protocol works by returning
+a specially formatted error message after initial successful
+authentication.  This error message contains the challenge question,
+and is formatted as such:
+
+  CRV1:<flags>:<state_id>:<username_base64>:<challenge_text>
+
+flags: a series of optional, comma-separated flags:
+ E : echo the response when the user types it
+ R : a response is required
+
+state_id: an opaque string that should be returned to the server
+ along with the response.
+
+username_base64 : the username formatted as base64
+
+challenge_text : the challenge text to be shown to the user
+
+Example challenge:
+
+  CRV1:R,E:Om01u7Fh4LrGBS7uh0SWmzwabUiGiW6l:Y3Ix:Please enter token PIN
+
+After showing the challenge_text and getting a response from the user
+(if R flag is specified), the client should submit the following
+auth creds back to the OpenVPN server:
+
+Username: [username decoded from username_base64]
+Password: CRV1::<state_id>::<response_text>
+
+Where state_id is taken from the challenge request and response_text
+is what the user entered in response to the challenge_text.
+If the R flag is not present, response_text may be the empty
+string.
+
+Example response (suppose the user enters "8675309" for the token PIN):
+
+  Username: cr1 ("Y3Ix" base64 decoded)
+  Password: CRV1::Om01u7Fh4LrGBS7uh0SWmzwabUiGiW6l::8675309
+
+Static protocol:
+
+The static protocol differs from the dynamic protocol in that the
+challenge question and response field is given to the user in the
+initial username/password dialog, and the username, password, and
+response are delivered back to the server in a single transaction.
+
+The "static-challenge" directive is used to give the challenge text
+to OpenVPN and indicate whether or not the response should be echoed.
+
+When the "static-challenge" directive is used, the management
+interface will respond as such when credentials are needed:
+
+  >PASSWORD:Need 'Auth' username/password SC:<ECHO>,<TEXT>
+
+  ECHO: "1" if response should be echoed, "0" to not echo
+  TEXT: challenge text that should be shown to the user to
+      facilitate their response
+
+For example:
+
+  >PASSWORD:Need 'Auth' username/password SC:1,Please enter token PIN
+
+The above notification indicates that OpenVPN needs a --auth-user-pass
+password plus a response to a static challenge ("Please enter token PIN").
+The "1" after the "SC:" indicates that the response should be echoed.
+
+The management interface client in this case should add the static
+challenge text to the auth dialog followed by a field for the user to
+enter a response.  Then the client should pack the password and response
+together into an encoded password:
+
+  username "Auth" foo
+  password "Auth" "SCRV1:<BASE64_PASSWORD>:<BASE64_RESPONSE>"
+
+For example, if the user entered "bar" as the password and 8675309
+as the PIN, the following management interface commands should be
+issued:
+
+  username "Auth" foo
+  password "Auth" "SCRV1:Zm9v:ODY3NTMwOQ=="
+
+Client-side support for challenge/response protocol:
+
+Currently, the Access Server client and standalone OpenVPN
+client support both static and dynamic challenge/response
+protocols.  However, any OpenVPN client UI that drives OpenVPN
+via the management interface needs to add explicit support
+for the challenge/response protocol.

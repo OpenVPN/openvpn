@@ -1114,8 +1114,8 @@ addresses in packets.
 .\"*********************************************************
 .TP
 .B \-\-redirect-gateway flags...
-(Experimental) Automatically execute routing commands to cause all outgoing IP traffic
-to be redirected over the VPN.
+Automatically execute routing commands to cause all outgoing IP traffic
+to be redirected over the VPN.  This is a client-side option.
 
 This option performs three steps:
 
@@ -1154,6 +1154,11 @@ flag will cause step
 .B 1
 above to be omitted.
 
+.B autolocal \-\-
+Try to automatically determine whether to enable
+.B local
+flag above.
+
 .B def1 \-\-
 Use this flag to override
 the default gateway by using 0.0.0.0/1 and 128.0.0.0/1
@@ -1172,18 +1177,22 @@ bypasses the tunnel
 (Available on Windows clients, may not be available
 on non-Windows clients).
 
-Using the def1 flag is highly recommended.
-.\"*********************************************************
-.TP
-.B \-\-redirect-private [flags]
-Like \-\-redirect-gateway, but omit actually changing the default
-gateway.  Useful when pushing private subnets.
+.B block-local \-\-
+Block access to local LAN when the tunnel is active, except for
+the LAN gateway itself.  This is accomplished by routing the local
+LAN (except for the LAN gateway address) into the tunnel.
 .\"*********************************************************
 .TP
 .B \-\-link-mtu n
 Sets an upper bound on the size of UDP packets which are sent
 between OpenVPN peers.  It's best not to set this parameter unless
 you know what you're doing.
+.\"*********************************************************
+.\"*********************************************************
+.TP
+.B \-\-redirect-private [flags]
+Like \-\-redirect-gateway, but omit actually changing the default
+gateway.  Useful when pushing private subnets.
 .\"*********************************************************
 .TP
 .B \-\-tun-mtu n
@@ -2406,6 +2415,12 @@ for inputs which ordinarily would have been queried from the
 console.
 .\"*********************************************************
 .TP
+.B \-\-management-query-remote
+Allow management interface to override
+.B \-\-remote
+directives (client-only).
+.\"*********************************************************
+.TP
 .B \-\-management-forget-disconnect
 Make OpenVPN forget passwords when management session
 disconnects.
@@ -3423,6 +3438,21 @@ username/password and/or private key password before attempting a reconnection.
 
 Note that while this option cannot be pushed, it can be controlled
 from the management interface.
+.\"*********************************************************
+.TP
+.B \-\-static\-challenge t e
+Enable static challenge/response protocol using challenge text
+.B t,
+with
+echo flag given by
+.B e
+(0|1).
+
+The echo flag indicates whether or not the user's response
+to the challenge should be echoed.
+
+See management\-notes.txt in the OpenVPN distribution for a
+description of the OpenVPN challenge/response protocol.
 .\"*********************************************************
 .TP
 .B \-\-server-poll-timeout n
@@ -5532,6 +5562,7 @@ script being run.  It can be one of the following:
 .B client-connect, client-disconnect, 
 or
 .B learn-address.
+Set prior to execution of any script.
 .\"*********************************************************
 .TP
 .B signal

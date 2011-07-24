@@ -358,6 +358,9 @@ static const char usage_message[] =
   "                      ip/port rather than listen as a TCP server.\n"
   "--management-query-passwords : Query management channel for private key\n"
   "                  and auth-user-pass passwords.\n"
+#if MANAGEMENT_QUERY_REMOTE
+  "--management-query-remote : Query management channel for --remote directive.\n"
+#endif
   "--management-hold : Start " PACKAGE_NAME " in a hibernating state, until a client\n"
   "                    of the management interface explicitly starts it.\n"
   "--management-signal : Issue SIGUSR1 when management disconnect event occurs.\n"
@@ -469,6 +472,8 @@ static const char usage_message[] =
   "                  when connecting to a '--mode server' remote host.\n"
   "--auth-retry t  : How to handle auth failures.  Set t to\n"
   "                  none (default), interact, or nointeract.\n"
+  "--static-challenge t e : Enable static challenge/response protocol using\n"
+  "                  challenge text t, with e indicating echo flag (0|1)\n"
   "--server-poll-timeout n : when polling possible remote servers to connect to\n"
   "                  in a round-robin fashion, spend no more than n seconds\n"
   "                  waiting for a response before trying the next server.\n"
@@ -701,6 +706,9 @@ static const char usage_message[] =
   "--show-pkcs11-ids provider [cert_private] : Show PKCS#11 available ids.\n" 
   "                                            --verb option can be added *BEFORE* this.\n"
 #endif				/* ENABLE_PKCS11 */
+  "\n"
+  "General Standalone Options:\n"
+  "--show-gateway : Show info about default gateway.\n"
  ;
 
 #endif /* !ENABLE_SMALL */
@@ -3845,6 +3853,14 @@ add_option (struct options *options,
 
       read_config_file (options, p[1], level, file, line, msglevel, permission_mask, option_types_found, es);
     }
+  else if (streq (p[0], "show-gateway"))
+    {
+      struct route_gateway_info rgi;
+      VERIFY_PERMISSION (OPT_P_GENERAL);
+      get_default_gateway(&rgi);
+      print_default_gateway(M_INFO, &rgi);
+      openvpn_exit (OPENVPN_EXIT_STATUS_GOOD); /* exit point */
+    }
 #if 0
   else if (streq (p[0], "foreign-option") && p[1])
     {
@@ -3928,6 +3944,13 @@ add_option (struct options *options,
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->management_flags |= MF_QUERY_PASSWORDS;
     }
+#if MANAGEMENT_QUERY_REMOTE
+  else if (streq (p[0], "management-query-remote"))
+    {
+      VERIFY_PERMISSION (OPT_P_GENERAL);
+      options->management_flags |= MF_QUERY_REMOTE;
+    }
+#endif
   else if (streq (p[0], "management-hold"))
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
@@ -5031,6 +5054,8 @@ add_option (struct options *options,
 	    options->routes->flags |= RG_BYPASS_DHCP;
 	  else if (streq (p[j], "bypass-dns"))
 	    options->routes->flags |= RG_BYPASS_DNS;
+	  else if (streq (p[j], "block-local"))
+	    options->routes->flags |= RG_BLOCK_LOCAL;
 	  else
 	    {
 	      msg (msglevel, "unknown --%s flag: %s", p[0], p[j]);
@@ -5611,6 +5636,15 @@ add_option (struct options *options,
       VERIFY_PERMISSION (OPT_P_GENERAL);
       auth_retry_set (msglevel, p[1]);
     }
+#ifdef ENABLE_CLIENT_CR
+  else if (streq (p[0], "static-challenge") && p[1] && p[2])
+    {
+      VERIFY_PERMISSION (OPT_P_GENERAL);
+      options->sc_info.challenge_text = p[1];
+      if (atoi(p[2]))
+	options->sc_info.flags |= SC_ECHO;
+    }
+#endif
 #endif
 #ifdef WIN32
   else if (streq (p[0], "win-sys") && p[1])
