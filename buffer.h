@@ -42,14 +42,30 @@
 #define BUF_INIT_TRACKING
 #endif
 
-/* basic buffer class for OpenVPN */
-
+/**************************************************************************/
+/**
+ * Wrapper structure for dynamically allocated memory.
+ *
+ * The actual content stored in a \c buffer structure starts at the memory
+ * location \c buffer.data \c + \c buffer.offset, and has a length of \c
+ * buffer.len bytes.  This, together with the space available before and
+ * after the content, is represented in the pseudocode below:
+@code
+uint8_t *content_start    = buffer.data + buffer.offset;
+uint8_t *content_end      = buffer.data + buffer.offset + buffer.len;
+int      prepend_capacity = buffer.offset;
+int      append_capacity  = buffer.capacity - (buffer.offset + buffer.len);
+@endcode
+ */
 struct buffer
 {
-  int capacity;	   /* size of buffer allocated by malloc */
-  int offset;	   /* data starts at data + offset, offset > 0 to allow for efficient prepending */
-  int len;	   /* length of data that starts at data + offset */
-  uint8_t *data;
+  int capacity;                 /**< Size in bytes of memory allocated by
+                                 *   \c malloc(). */
+  int offset;                   /**< Offset in bytes of the actual content
+                                 *   within the allocated memory. */
+  int len;                      /**< Length in bytes of the actual content
+                                 *   within the allocated memory. */
+  uint8_t *data;                /**< Pointer to the allocated memory. */
 
 #ifdef BUF_INIT_TRACKING
   const char *debug_file;
@@ -57,17 +73,40 @@ struct buffer
 #endif
 };
 
-/* for garbage collection */
 
+/**************************************************************************/
+/**
+ * Garbage collection entry for one dynamically allocated block of memory.
+ *
+ * This structure represents one link in the linked list contained in a \c
+ * gc_arena structure.  Each time the \c gc_malloc() function is called,
+ * it allocates \c sizeof(gc_entry) + the requested number of bytes.  The
+ * \c gc_entry is then stored as a header in front of the memory address
+ * returned to the caller.
+ */
 struct gc_entry
 {
-  struct gc_entry *next;
+  struct gc_entry *next;        /**< Pointer to the next item in the
+                                 *   linked list. */
 };
 
+
+/**
+ * Garbage collection arena used to keep track of dynamically allocated
+ * memory.
+ *
+ * This structure contains a linked list of \c gc_entry structures.  When
+ * a block of memory is allocated using the \c gc_malloc() function, the
+ * allocation is registered in the function's \c gc_arena argument.  All
+ * the dynamically allocated memory registered in a \c gc_arena can be
+ * freed using the \c gc_free() function.
+ */
 struct gc_arena
 {
-  struct gc_entry *list;
+  struct gc_entry *list;        /**< First element of the linked list of
+                                 *   \c gc_entry structures. */
 };
+
 
 #define BPTR(buf)  (buf_bptr(buf))
 #define BEND(buf)  (buf_bend(buf))
