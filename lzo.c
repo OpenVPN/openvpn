@@ -22,6 +22,10 @@
  *  59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
+/**
+ * @file Data Channel Compression module function definitions.
+ */
+
 #include "syshead.h"
 
 #ifdef USE_LZO
@@ -33,7 +37,13 @@
 #include "memdbg.h"
 
 #ifndef LZO_STUB
-
+/**
+ * Perform adaptive compression housekeeping.
+ *
+ * @param ac the adaptive compression state structure.
+ *
+ * @return
+ */
 static bool
 lzo_adaptive_compress_test (struct lzo_adaptive_compress *ac)
 {
@@ -141,10 +151,6 @@ lzo_compression_enabled (struct lzo_compress_workspace *lzowork)
 #endif
   return false;
 }
-
-/* Magic numbers to tell our peer if we compressed or not */
-#define YES_COMPRESS 0x66
-#define NO_COMPRESS  0xFA
 
 void
 lzo_compress (struct buffer *buf, struct buffer work,
@@ -281,9 +287,6 @@ lzo_modify_flags (struct lzo_compress_workspace *lzowork, unsigned int flags)
   lzowork->flags = flags;
 }
 
-/*
- * Print statistics
- */
 void lzo_print_stats (const struct lzo_compress_workspace *lzo_compwork, struct status_output *so)
 {
   ASSERT (lzo_compwork->defined);
