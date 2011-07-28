@@ -34,8 +34,37 @@
 struct context;
 struct multi_context;
 
+
+/**************************************************************************/
+/**
+ * Main event loop wrapper function for OpenVPN in UDP server mode.
+ * @ingroup eventloop
+ *
+ * This function simply calls \c tunnel_server_udp_single_threaded().
+ *
+ * @param top          - Top-level context structure.
+ */
 void tunnel_server_udp (struct context *top);
 
+
+/**************************************************************************/
+/**
+ * Get, and if necessary create, the multi_instance associated with a
+ * packet's source address.
+ * @ingroup external_multiplexer
+ *
+ * This function extracts the source address of a recently read packet
+ * from \c m->top.c2.from and uses that source address as a hash key for
+ * the hash table \c m->hash.  If an entry exists, this function returns
+ * it.  If no entry exists, this function handles its creation, and if
+ * successful, returns the newly created instance.
+ *
+ * @param m            - The single multi_context structure.
+ *
+ * @return A pointer to a multi_instance if one already existed for the
+ *     packet's source address or if one was a newly created successfully.
+ *      NULL if one did not yet exist and a new one was not created.
+ */
 struct multi_instance *multi_get_create_instance_udp (struct multi_context *m);
 
 #endif

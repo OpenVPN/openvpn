@@ -126,10 +126,14 @@ struct context_persist
   int restart_sleep_seconds;
 };
 
-/* 
- * level 0 context contains data related to
- * once-per OpenVPN instantiation events
- * such as daemonization.
+
+/**************************************************************************/
+/**
+ * Level 0 %context containing information related to the OpenVPN process.
+ *
+ * Level 0 state is initialized once at program startup, and then remains
+ * throughout the lifetime of the OpenVPN process.  This structure
+ * contains information related to the process's PID, user, and group.
  */
 struct context_0
 {
@@ -143,14 +147,21 @@ struct context_0
   struct group_state group_state;
 };
 
-/*
- * Contains the persist-across-restart OpenVPN tunnel instance state.
- * Reset only for SIGHUP restarts.
+
+/**
+ * Level 1 %context containing state that persists across \c SIGUSR1
+ * restarts.
+ *
+ * Level 1 state is reset on \c SIGHUP restarts.  This structure is
+ * initialized for every iteration of the \c main() function's outer \c
+ * SIGHUP loop, but persists over iteration of that function's inner \c
+ * SIGUSR1 loop.
  */
 struct context_1
 {
-  /* local and remote addresses */
   struct link_socket_addr link_socket_addr;
+                                /**< Local and remote addresses on the
+                                 *   external network. */
 
   /* tunnel session keys */
   struct key_schedule ks;
@@ -158,12 +169,14 @@ struct context_1
   /* persist crypto sequence number to/from file */
   struct packet_id_persist pid_persist;
 
-  /* TUN/TAP interface */
-  struct tuntap *tuntap;
-  bool tuntap_owned;
+  struct tuntap *tuntap;        /**< Tun/tap virtual network interface. */
+  bool tuntap_owned;            /**< Whether the tun/tap interface should
+                                 *   be cleaned up when this %context is
+                                 *   cleaned up. */
 
-  /* list of --route directives */
   struct route_list *route_list;
+                                /**< List of routing information. See the
+                                 *   \c --route command line option. */
 
   /* list of --route-ipv6 directives */
   struct route_ipv6_list *route_ipv6_list;
@@ -194,20 +207,30 @@ struct context_1
 
   /* if client mode, hash of option strings we pulled from server */
   struct md5_digest pulled_options_digest_save;
+                                /**< Hash of option strings received from the
+                                 *   remote OpenVPN server.  Only used in
+                                 *   client-mode. */
 
-  /* save user/pass for authentication */
   struct user_pass *auth_user_pass;
+                                /**< Username and password for
+                                 *   authentication. */
 #endif
 };
 
-/*
- * Contains the OpenVPN tunnel instance state, wiped across
- * SIGUSR1 and SIGHUP restarts.
+/**
+ * Level 2 %context containing state that is reset on both \c SIGHUP and
+ * \c SIGUSR1 restarts.
+ *
+ * This structure is initialized at the top of the \c
+ * tunnel_point_to_point(), \c tunnel_server_udp_single_threaded(), and \c
+ * tunnel_server_tcp() functions.  In other words, it is reset for every
+ * iteration of the \c main() function's inner \c SIGUSR1 loop.
  */
 struct context_2
 {
-  /* garbage collection arena for context_2 scope */
-  struct gc_arena gc;
+  struct gc_arena gc;           /**< Garbage collection arena for
+                                 *   allocations done in the level 2 scope
+                                 *   of this context_2 structure. */
 
   /* our global wait events */
   struct event_set *event_set;
@@ -315,12 +338,19 @@ struct context_2
    */
 #ifdef USE_SSL
 
-  /* master OpenVPN SSL/TLS object */
-  struct tls_multi *tls_multi;
+  struct tls_multi *tls_multi;  /**< TLS state structure for this VPN
+                                 *   tunnel. */
 
-  /* check --tls-auth signature without needing
-     a full-size tls_multi object */
   struct tls_auth_standalone *tls_auth_standalone;
+                                /**< TLS state structure required for the
+                                 *   initial authentication of a client's
+                                 *   connection attempt.  This structure
+                                 *   is used by the \c
+                                 *   tls_pre_decrypt_lite() function when
+                                 *   it performs the HMAC firewall check
+                                 *   on the first connection packet
+                                 *   received from a new client.  See the
+                                 *   \c --tls-auth commandline option. */
 
   /* used to optimize calls to tls_multi_process */
   struct interval tmp_int;
@@ -330,10 +360,11 @@ struct context_2
 
 #endif /* USE_SSL */
 
-  /* passed to encrypt or decrypt, contains all
-     crypto-related command line options related
-     to data channel encryption/decryption */
   struct crypto_options crypto_options;
+                                /**< Security parameters and crypto state
+                                 *   used by the \link data_crypto Data
+                                 *   Channel Crypto module\endlink to
+                                 *   process data channel packet. */
 
   /* used to keep track of data channel packet sequence numbers */
   struct packet_id packet_id;
@@ -341,11 +372,11 @@ struct context_2
 
 #endif /* USE_CRYPTO */
 
-  /*
-   * LZO compression library workspace.
-   */
 #ifdef USE_LZO
   struct lzo_compress_workspace lzo_compwork;
+                                /**< Compression workspace used by the
+                                 *   \link compression Data Channel
+                                 *   Compression module\endlink. */
 #endif
 
   /*
@@ -462,16 +493,25 @@ struct context_2
 #endif
 };
 
-/*
+
+/**
  * Contains all state information for one tunnel.
+ *
+ * This structure represents one VPN tunnel.  It is used to store state
+ * information related to a VPN tunnel, but also includes process-wide
+ * data, such as configuration options.
+ *
+ * The @ref tunnel_state "Structure of VPN tunnel state storage" related
+ * page describes how this structure is used in client-mode and
+ * server-mode.
  */
 struct context
 {
-  /* command line or config file options */
-  struct options options;
+  struct options options;       /**< Options loaded from command line or
+                                 *   configuration file. */
 
-  /* true on initial VPN iteration */
-  bool first_time;
+  bool first_time;              /**< True on the first iteration of
+                                 *   OpenVPN's main loop. */
 
   /* context modes */
 # define CM_P2P            0 /* standalone point-to-point session or client */
@@ -479,41 +519,32 @@ struct context
 # define CM_TOP_CLONE      2 /* clone of a CM_TOP context for one thread */
 # define CM_CHILD_UDP      3 /* child context of a CM_TOP or CM_THREAD */
 # define CM_CHILD_TCP      4 /* child context of a CM_TOP or CM_THREAD */
-  int mode;
+  int mode;                     /**< Role of this context within the
+                                 *   OpenVPN process.  Valid values are \c
+                                 *   CM_P2P, \c CM_TOP, \c CM_TOP_CLONE,
+                                 *   \c CM_CHILD_UDP, and \c CM_CHILD_TCP. */
 
-  /* garbage collection for context scope
-     allocations */
-  struct gc_arena gc;
+  struct gc_arena gc;           /**< Garbage collection arena for
+                                 *   allocations done in the scope of this
+                                 *   context structure. */
 
-  /* environmental variable settings */
-  struct env_set *es;
+  struct env_set *es;           /**< Set of environment variables. */
 
-  /* signal info */
-  struct signal_info *sig;
+  struct signal_info *sig;      /**< Internal error signaling object. */
 
-  /* shared object plugins */
-  struct plugin_list *plugins;
-  bool plugins_owned;
+  struct plugin_list *plugins;  /**< List of plug-ins. */
+  bool plugins_owned;           /**< Whether the plug-ins should be
+                                 *   cleaned up when this %context is
+                                 *   cleaned up. */
   
-  /* set to true after we daemonize */
-  bool did_we_daemonize;
+  bool did_we_daemonize;        /**< Whether demonization has already
+                                 *   taken place. */
 
-  /* persistent across SIGHUP */
   struct context_persist persist;
-
-  /* level 0 context contains data related to
-     once-per OpenVPN instantiation events
-     such as daemonization */
-  struct context_0 *c0;
-
-  /* level 1 context is preserved for
-     SIGUSR1 restarts, but initialized
-     for SIGHUP restarts */
-  struct context_1 c1;
-
-  /* level 2 context is initialized for all
-     restarts (SIGUSR1 and SIGHUP) */
-  struct context_2 c2;
+                                /**< Persistent %context. */
+  struct context_0 *c0;         /**< Level 0 %context. */
+  struct context_1 c1;          /**< Level 1 %context. */
+  struct context_2 c2;          /**< Level 2 %context. */
 };
 
 /*

@@ -42,6 +42,16 @@ process_signal_p2p (struct context *c)
   return process_signal (c);
 }
 
+
+
+/**************************************************************************/
+/**
+ * Main event loop for OpenVPN in client mode, where only one VPN tunnel
+ * is active.
+ * @ingroup eventloop
+ *
+ * @param c - The context structure of the single active VPN tunnel.
+ */
 static void
 tunnel_point_to_point (struct context *c)
 {
@@ -90,6 +100,27 @@ tunnel_point_to_point (struct context *c)
 
 #undef PROCESS_SIGNAL_P2P
 
+
+/**************************************************************************/
+/**
+ * OpenVPN's main init-run-cleanup loop.
+ * @ingroup eventloop
+ *
+ * This function contains the two outer OpenVPN loops.  Its structure is
+ * as follows:
+ *  - Once-per-process initialization.
+ *  - Outer loop, run at startup and then once per \c SIGHUP:
+ *    - Level 1 initialization
+ *    - Inner loop, run at startup and then once per \c SIGUSR1:
+ *      - Call event loop function depending on client or server mode:
+ *        - \c tunnel_point_to_point()
+ *        - \c tunnel_server()
+ *    - Level 1 cleanup
+ *  - Once-per-process cleanup.
+ *
+ * @param argc - Commandline argument count.
+ * @param argv - Commandline argument values.
+ */
 int
 main (int argc, char *argv[])
 {

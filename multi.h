@@ -22,6 +22,10 @@
  *  59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
+/**
+ * @file Header file for server-mode related structures and functions.
+ */
+
 #ifndef MULTI_H
 #define MULTI_H
 
@@ -50,8 +54,16 @@ struct multi_reap
   time_t last_call;
 };
 
-/*
- * One multi_instance object per client instance.
+
+/**
+ * Server-mode state structure for one single VPN tunnel.
+ *
+ * This structure is used by OpenVPN processes running in server-mode to
+ * store state information related to one single VPN tunnel.
+ *
+ * The @ref tunnel_state "Structure of VPN tunnel state storage" related
+ * page describes the role the structure plays when OpenVPN is running in
+ * server-mode.
  */
 struct multi_instance {
   struct schedule_entry se;    /* this must be the first element of the structure */
@@ -60,9 +72,13 @@ struct multi_instance {
   bool halt;
   int refcount;
   int route_count;             /* number of routes (including cached routes) owned by this instance */
-  time_t created;
+  time_t created;               /**< Time at which a VPN tunnel instance
+                                 *   was created.  This parameter is set
+                                 *   by the \c multi_create_instance()
+                                 *   function. */
   struct timeval wakeup;       /* absolute time */
-  struct mroute_addr real;
+  struct mroute_addr real;      /**< External network address of the
+                                 *   remote peer. */
   ifconfig_pool_handle vaddr_handle;
   const char *msg_prefix;
 
@@ -84,11 +100,20 @@ struct multi_instance {
   bool did_iroutes;
   int n_clients_delta; /* added to multi_context.n_clients when instance is closed */
 
-  struct context context;
+  struct context context;       /**< The context structure storing state
+                                 *   for this VPN tunnel. */
 };
 
-/*
- * One multi_context object per server daemon thread.
+
+/**
+ * Main OpenVPN server state structure.
+ *
+ * This structure is used by OpenVPN processes running in server-mode to
+ * store all the VPN tunnel and process-wide state.
+ *
+ * The @ref tunnel_state "Structure of VPN tunnel state storage" related
+ * page describes the role the structure plays when OpenVPN is running in
+ * server-mode.
  */
 struct multi_context {
 # define MC_UNDEF                      0
@@ -99,12 +124,19 @@ struct multi_context {
 # define MC_WORK_THREAD                (MC_MULTI_THREADED_WORKER|MC_MULTI_THREADED_SCHEDULER)
   int thread_mode;
 
-  struct hash *hash;   /* client instances indexed by real address */
-  struct hash *vhash;  /* client instances indexed by virtual address */
-  struct hash *iter;   /* like real address hash but optimized for iteration */
+  struct hash *hash;            /**< VPN tunnel instances indexed by real
+                                 *   address of the remote peer. */
+  struct hash *vhash;           /**< VPN tunnel instances indexed by
+                                 *   virtual address of remote hosts. */
+  struct hash *iter;            /**< VPN tunnel instances indexed by real
+                                 *   address of the remote peer, optimized
+                                 *   for iteration. */
   struct schedule *schedule;
-  struct mbuf_set *mbuf;
-  struct multi_tcp *mtcp;
+  struct mbuf_set *mbuf;        /**< Set of buffers for passing data
+                                 *   channel packets between VPN tunnel
+                                 *   instances. */
+  struct multi_tcp *mtcp;       /**< State specific to OpenVPN using TCP
+                                 *   as external transport. */
   struct ifconfig_pool *ifconfig_pool;
   struct frequency_limit *new_connection_limiter;
   struct mroute_helper *route_helper;
@@ -127,7 +159,8 @@ struct multi_context {
   struct context_buffers *context_buffers;
   time_t per_second_trigger;
 
-  struct context top;
+  struct context top;           /**< Storage structure for process-wide
+                                 *   configuration. */
 };
 
 /*
@@ -146,10 +179,21 @@ struct multi_route
   time_t last_reference;
 };
 
-/*
- * top level function, called by openvpn.c
+
+/**************************************************************************/
+/**
+ * Main event loop for OpenVPN in server mode.
+ * @ingroup eventloop
+ *
+ * This function calls the appropriate main event loop function depending
+ * on the transport protocol used:
+ *  - \c tunnel_server_udp()
+ *  - \c tunnel_server_tcp()
+ *
+ * @param top          - Top-level context structure.
  */
 void tunnel_server (struct context *top);
+
 
 const char *multi_instance_string (const struct multi_instance *mi, bool null, struct gc_arena *gc);
 
@@ -172,10 +216,76 @@ bool multi_process_timeout (struct multi_context *m, const unsigned int mpp_flag
 #define MPP_CONDITIONAL_PRE_SELECT (1<<1)
 #define MPP_CLOSE_ON_SIGNAL        (1<<2)
 #define MPP_RECORD_TOUCH           (1<<3)
+
+
+/**************************************************************************/
+/**
+ * Perform postprocessing of a VPN tunnel instance.
+ *
+ * After some VPN tunnel activity has taken place, the VPN tunnel's state
+ * may need updating and some follow-up action may be required.  This
+ * function controls the necessary postprocessing.  It is called by many
+ * other functions that handle VPN tunnel related activity, such as \c
+ * multi_process_incoming_link(), \c multi_process_outgoing_link(), \c
+ * multi_process_incoming_tun(), \c multi_process_outgoing_tun(), and \c
+ * multi_process_timeout(), among others.
+ *
+ * @param m            - The single \c multi_context structure.
+ * @param mi           - The \c multi_instance of the VPN tunnel to be
+ *                       postprocessed.
+ * @param flags        - Fast I/O optimization flags.
+ *
+ * @return
+ *  - True, if the VPN tunnel instance \a mi was not closed due to a
+ *    signal during processing.
+ *  - False, if the VPN tunnel instance \a mi was closed.
+ */
 bool multi_process_post (struct multi_context *m, struct multi_instance *mi, const unsigned int flags);
 
+
+/**************************************************************************/
+/**
+ * Demultiplex and process a packet received over the external network
+ * interface.
+ * @ingroup external_multiplexer
+ *
+ * This function determines which VPN tunnel instance the incoming packet
+ * is associated with, and then calls \c process_incoming_link() to handle
+ * it.  Afterwards, if the packet is destined for a broadcast/multicast
+ * address or a remote host reachable through a different VPN tunnel, this
+ * function takes care of sending it they are.
+ *
+ * @note This function is only used by OpenVPN processes which are running
+ *     in server mode, and can therefore sustain multiple active VPN
+ *     tunnels.
+ *
+ * @param m            - The single \c multi_context structure.
+ * @param instance     - The VPN tunnel state structure associated with
+ *                       the incoming packet, if known, as is the case
+ *                       when using TCP transport. Otherwise NULL, as is
+ *                       the case when using UDP transport.
+ * @param mpp_flags    - Fast I/O optimization flags.
+ */
 bool multi_process_incoming_link (struct multi_context *m, struct multi_instance *instance, const unsigned int mpp_flags);
+
+
+/**
+ * Determine the destination VPN tunnel of a packet received over the
+ * virtual tun/tap network interface and then process it accordingly.
+ * @ingroup internal_multiplexer
+ *
+ * This function determines which VPN tunnel instance the packet is
+ * destined for, and then calls \c process_outgoing_tun() to handle it.
+ *
+ * @note This function is only used by OpenVPN processes which are running
+ *     in server mode, and can therefore sustain multiple active VPN
+ *     tunnels.
+ *
+ * @param m            - The single \c multi_context structure.
+ * @param mpp_flags    - Fast I/O optimization flags.
+ */
 bool multi_process_incoming_tun (struct multi_context *m, const unsigned int mpp_flags);
+
 
 void multi_process_drop_outgoing_tun (struct multi_context *m, const unsigned int mpp_flags);
 
@@ -397,8 +507,23 @@ multi_get_timeout (struct multi_context *m, struct timeval *dest)
     }
 }
 
-/*
- * Send a packet to TUN/TAP interface.
+
+/**
+ * Send a packet over the virtual tun/tap network interface to its locally
+ * reachable destination.
+ * @ingroup internal_multiplexer
+ *
+ * This function calls \c process_outgoing_tun() to perform the actual
+ * sending of the packet.  Afterwards, it calls \c multi_process_post() to
+ * perform server-mode postprocessing.
+ *
+ * @param m            - The single \c multi_context structure.
+ * @param mpp_flags    - Fast I/O optimization flags.
+ *
+ * @return
+ *  - True, if the \c multi_instance associated with the packet sent was
+ *    not closed due to a signal during processing.
+ *  - Falls, if the \c multi_instance was closed.
  */
 static inline bool
 multi_process_outgoing_tun (struct multi_context *m, const unsigned int mpp_flags)
@@ -418,6 +543,8 @@ multi_process_outgoing_tun (struct multi_context *m, const unsigned int mpp_flag
   clear_prefix ();
   return ret;
 }
+
+
 
 static inline bool
 multi_process_outgoing_link_dowork (struct multi_context *m, struct multi_instance *mi, const unsigned int mpp_flags)

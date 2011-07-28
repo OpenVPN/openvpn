@@ -86,39 +86,43 @@
  */
 #define PAYLOAD_ALIGN 4
 
+
+/**************************************************************************/
+/**
+ * Packet geometry parameters.
+ */
 struct frame {
-  /*
-   * Maximum datagram size to be sent over the tunnel TCP/UDP channel.
-   */
-  int link_mtu;
-  int link_mtu_dynamic;
+  int link_mtu;                 /**< Maximum packet size to be sent over
+                                 *   the external network interface. */
 
-  /*
-   * How many extra bytes might each subsystem (crypto, TLS, or, compression)
-   * add to frame in worst case?
-   *
-   * mtu + extra_frame = MTU of TCP/UDP transport
-   */
-  int extra_frame;
+  int link_mtu_dynamic;         /**< Dynamic MTU value for the external
+                                 *   network interface. */
 
-  /*
-   * Worst case size added to internal buffer due to functions
-   * such as compression which can potentially expand the size of uncompressible
-   * data.
-   */
-  int extra_buffer;
+  int extra_frame;              /**< Maximum number of bytes that all
+                                 *   processing steps together could add.
+                                 *   @code
+                                 *   frame.link_mtu = "socket MTU" - extra_frame;
+                                 *   @endcode
+                                 */
 
-  /*
-   * Max number of bytes in excess of tun mtu size that we might read
-   * or write from TUN/TAP device.
-   */
-  int extra_tun;
+  int extra_buffer;             /**< Maximum number of bytes that
+                                 *   processing steps could expand the
+                                 *   internal work buffer.
+                                 *
+                                 *   This is used by the \link compression
+                                 *   Data Channel Compression
+                                 *   module\endlink to give enough working
+                                 *   space for worst-case expansion of
+                                 *   incompressible content. */
 
-  /*
-   * Max number of bytes in excess of link mtu size that we might read
-   * or write from UDP/TCP link.
-   */
-  int extra_link;
+  int extra_tun;                /**< Maximum number of bytes in excess of
+                                 *   the tun/tap MTU that might be read
+                                 *   from or written to the virtual
+                                 *   tun/tap network interface. */
+
+  int extra_link;               /**< Maximum number of bytes in excess of
+                                 *   external network interface's MTU that
+                                 *   might be read from or written to it. */
 
   /*
    * Alignment control

@@ -199,9 +199,17 @@ p2mp_iow_flags (const struct multi_context *m)
   return flags;
 }
 
-/*
- * Top level event loop for single-threaded operation.
- * UDP mode.
+
+/**************************************************************************/
+/**
+ * Main event loop for OpenVPN in UDP server mode.
+ * @ingroup eventloop
+ *
+ * This function implements OpenVPN's main event loop for UDP server mode.
+ *  At this time, OpenVPN does not yet support multithreading.  This
+ * function's name is therefore slightly misleading.
+ *
+ * @param top - Top-level context structure.
  */
 static void
 tunnel_server_udp_single_threaded (struct context *top)
