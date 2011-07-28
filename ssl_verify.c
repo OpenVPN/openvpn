@@ -1183,12 +1183,14 @@ verify_user_pass(struct user_pass *up, struct tls_multi *multi,
 void
 verify_final_auth_checks(struct tls_multi *multi, struct tls_session *session)
 {
+  struct key_state *ks = &session->key[KS_PRIMARY]; 	   /* primary key */
+
   /* While it shouldn't really happen, don't allow the common name to be NULL */
   if (!session->common_name)
     set_common_name (session, "");
 
   /* Don't allow the CN to change once it's been locked */
-  if (multi->locked_cn)
+  if (ks->authenticated && multi->locked_cn)
     {
       const char *cn = session->common_name;
       if (cn && strcmp (cn, multi->locked_cn))
@@ -1204,7 +1206,7 @@ verify_final_auth_checks(struct tls_multi *multi, struct tls_session *session)
     }
 
   /* Don't allow the cert hashes to change once they have been locked */
-  if (multi->locked_cert_hash_set)
+  if (ks->authenticated && multi->locked_cert_hash_set)
     {
       const struct cert_hash_set *chs = session->cert_hash_set;
       if (chs && !cert_hash_compare (chs, multi->locked_cert_hash_set))
@@ -1218,9 +1220,8 @@ verify_final_auth_checks(struct tls_multi *multi, struct tls_session *session)
     }
 
   /* verify --client-config-dir based authentication */
-  if (session->opt->client_config_dir_exclusive)
+  if (ks->authenticated && session->opt->client_config_dir_exclusive)
     {
-      struct key_state *ks = &session->key[KS_PRIMARY]; 	   /* primary key */
       struct gc_arena gc = gc_new ();
 
       const char *cn = session->common_name;
