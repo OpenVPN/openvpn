@@ -2387,40 +2387,52 @@ openvpn_basename (const char *path)
 }
 
 /*
- * Remove SESS_ID_x strings (i.e. auth tokens) from control message
- * strings so that they will not be output to log file.
+ * Remove security-sensitive strings from control message
+ * so that they will not be output to log file.
  */
 const char *
-sanitize_control_message(const char *str, struct gc_arena *gc)
+sanitize_control_message(const char *src, struct gc_arena *gc)
 {
-  char *ret = gc_malloc (strlen(str)+1, false, gc);
-  char *cp = ret;
+  char *ret = gc_malloc (strlen(src)+1, false, gc);
+  char *dest = ret;
   bool redact = false;
+  int skip = 0;
 
-  strcpy(ret, str);
   for (;;)
     {
-      const char c = *cp;
+      const char c = *src;
       if (c == '\0')
 	  break;
-      if (c == 'S' && !strncmp(cp, "SESS_ID_", 8))
+      if (c == 'S' && !strncmp(src, "SESS_ID_", 8))
 	{
-	  cp += 7;
+	  skip = 7;
 	  redact = true;
 	}
-      else if (c == 'e' && !strncmp(cp, "echo ", 5))
+      else if (c == 'e' && !strncmp(src, "echo ", 5))
 	{
-	  cp += 4;
+	  skip = 4;
 	  redact = true;
+	}
+
+      if (c == ',') /* end of redacted item? */
+	{
+	  skip = 0;
+	  redact = false;
+	}
+
+      if (redact)
+	{
+	  if (skip > 0)
+	    {
+	      --skip;
+	      *dest++ = c;
+	    }
 	}
       else
-	{
-	  if (c == ',') /* end of session id? */
-	    redact = false;
-	  if (redact)
-	    *cp = '_';
-	}
-      ++cp;
+	*dest++ = c;
+
+      ++src;
     }
+  *dest = '\0';
   return ret;
 }
