@@ -6,7 +6,7 @@
 DOXYFILE_ENCODING      = UTF-8
 PROJECT_NAME           = "OpenVPN"
 PROJECT_NUMBER         =
-OUTPUT_DIRECTORY       = doxygen/output
+OUTPUT_DIRECTORY       = doxygen
 CREATE_SUBDIRS         = NO
 OUTPUT_LANGUAGE        = English
 BRIEF_MEMBER_DESC      = YES
