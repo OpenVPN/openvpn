@@ -3886,9 +3886,13 @@ add_option (struct options *options,
 	}
       if (good)
 	{
+#if 0
+	  /* removed for now since ECHO can potentially include
+	     security-sensitive strings */
 	  msg (M_INFO, "%s:%s",
 	       pull_mode ? "ECHO-PULL" : "ECHO",
 	       BSTR (&string));
+#endif
 #ifdef ENABLE_MANAGEMENT
 	  if (management)
 	    management_echo (management, BSTR (&string), pull_mode);

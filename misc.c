@@ -2408,6 +2408,11 @@ sanitize_control_message(const char *str, struct gc_arena *gc)
 	  cp += 7;
 	  redact = true;
 	}
+      else if (c == 'e' && !strncmp(cp, "echo ", 5))
+	{
+	  cp += 4;
+	  redact = true;
+	}
       else
 	{
 	  if (c == ',') /* end of session id? */
