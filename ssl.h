@@ -22,6 +22,12 @@
  *  59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
+
+/**
+ * @file header file
+ */
+
+
 #ifndef OPENVPN_SSL_H
 #define OPENVPN_SSL_H
 
@@ -45,153 +51,6 @@
 #include "options.h"
 #include "plugin.h"
 
-/*
- * OpenVPN Protocol, taken from ssl.h in OpenVPN source code.
- *
- * TCP/UDP Packet:  This represents the top-level encapsulation.
- *
- * TCP/UDP packet format:
- *
- *   Packet length (16 bits, unsigned) -- TCP only, always sent as
- *       plaintext.  Since TCP is a stream protocol, the packet
- *       length words define the packetization of the stream.
- *
- *   Packet opcode/key_id (8 bits) -- TLS only, not used in
- *       pre-shared secret mode.
- *            packet message type, a P_* constant (high 5 bits)
- *            key_id (low 3 bits, see key_id in struct tls_session
- *              below for comment).  The key_id refers to an
- *              already negotiated TLS session.  OpenVPN seamlessly
- *              renegotiates the TLS session by using a new key_id
- *              for the new session.  Overlap (controlled by
- *              user definable parameters) between old and new TLS
- *              sessions is allowed, providing a seamless transition
- *              during tunnel operation.
- *
- *   Payload (n bytes), which may be a P_CONTROL, P_ACK, or P_DATA
- *       message.
- *
- * Message types:
- *
- *  P_CONTROL_HARD_RESET_CLIENT_V1 -- Key method 1, initial key from
- *    client, forget previous state.
- *
- *  P_CONTROL_HARD_RESET_SERVER_V1 -- Key method 2, initial key
- *    from server, forget previous state.
- *
- *  P_CONTROL_SOFT_RESET_V1 -- New key, with a graceful transition
- *    from old to new key in the sense that a transition window
- *    exists where both the old or new key_id can be used.  OpenVPN
- *    uses two different forms of key_id.  The first form is 64 bits
- *    and is used for all P_CONTROL messages.  P_DATA messages on the
- *    other hand use a shortened key_id of 3 bits for efficiency
- *    reasons since the vast majority of OpenVPN packets in an
- *    active tunnel will be P_DATA messages.  The 64 bit form
- *    is referred to as a session_id, while the 3 bit form is
- *    referred to as a key_id.
- *
- *  P_CONTROL_V1 -- Control channel packet (usually TLS ciphertext).
- *
- *  P_ACK_V1 -- Acknowledgement for P_CONTROL packets received.
- *
- *  P_DATA_V1 -- Data channel packet containing actual tunnel data
- *    ciphertext.
- *
- *  P_CONTROL_HARD_RESET_CLIENT_V2 -- Key method 2, initial key from
- *   client, forget previous state.
- *
- *  P_CONTROL_HARD_RESET_SERVER_V2 -- Key method 2, initial key from
- *   server, forget previous state.
- *
- * P_CONTROL* and P_ACK Payload:  The P_CONTROL message type
- * indicates a TLS ciphertext packet which has been encapsulated
- * inside of a reliability layer.  The reliability layer is
- * implemented as a straightforward ACK and retransmit model.
- *
- * P_CONTROL message format:
- *
- *   local session_id (random 64 bit value to identify TLS session).
- *   HMAC signature of entire encapsulation header for integrity
- *       check if --tls-auth is specified (usually 16 or 20 bytes).
- *   packet-id for replay protection (4 or 8 bytes, includes
- *       sequence number and optional time_t timestamp).
- *   P_ACK packet_id array length (1 byte).
- *   P_ACK packet-id array (if length > 0).
- *   P_ACK remote session_id (if length > 0).
- *   message packet-id (4 bytes).
- *   TLS payload ciphertext (n bytes) (only for P_CONTROL).
- *
- * Once the TLS session has been initialized and authenticated,
- * the TLS channel is used to exchange random key material for
- * bidirectional cipher and HMAC keys which will be
- * used to secure actual tunnel packets.  OpenVPN currently
- * implements two key methods.  Key method 1 directly
- * derives keys using random bits obtained from the RAND_bytes
- * OpenSSL function.  Key method 2 mixes random key material
- * from both sides of the connection using the TLS PRF mixing
- * function.  Key method 2 is the preferred method and is the default
- * for OpenVPN 2.0.
- * 
- * TLS plaintext content:
- *
- * TLS plaintext packet (if key_method == 1):
- *
- *   Cipher key length in bytes (1 byte).
- *   Cipher key (n bytes).
- *   HMAC key length in bytes (1 byte).
- *   HMAC key (n bytes).
- *   Options string (n bytes, null terminated, client/server options
- *       string should match).
- *
- * TLS plaintext packet (if key_method == 2):
- *
- *   Literal 0 (4 bytes).
- *   key_method type (1 byte).
- *   key_source structure (pre_master only defined for client ->
- *       server).
- *   options_string_length, including null (2 bytes).
- *   Options string (n bytes, null terminated, client/server options
- *       string must match).
- *   [The username/password data below is optional, record can end
- *       at this point.]
- *   username_string_length, including null (2 bytes).
- *   Username string (n bytes, null terminated).
- *   password_string_length, including null (2 bytes).
- *   Password string (n bytes, null terminated).
- *
- * The P_DATA payload represents encrypted, encapsulated tunnel
- * packets which tend to be either IP packets or Ethernet frames.
- * This is essentially the "payload" of the VPN.
- *
- * P_DATA message content:
- *   HMAC of ciphertext IV + ciphertext (if not disabled by
- *       --auth none).
- *   Ciphertext IV (size is cipher-dependent, if not disabled by
- *       --no-iv).
- *   Tunnel packet ciphertext.
- *
- * P_DATA plaintext
- *   packet_id (4 or 8 bytes, if not disabled by --no-replay).
- *       In SSL/TLS mode, 4 bytes are used because the implementation
- *       can force a TLS renegotation before 2^32 packets are sent.
- *       In pre-shared key mode, 8 bytes are used (sequence number
- *       and time_t value) to allow long-term key usage without
- *       packet_id collisions.
- *   User plaintext (n bytes).
- *
- * Notes:
- *   (1) ACK messages can be encoded in either the dedicated
- *       P_ACK record or they can be prepended to a P_CONTROL message.
- *   (2) P_DATA and P_CONTROL/P_ACK use independent packet-id
- *       sequences because P_DATA is an unreliable channel while
- *       P_CONTROL/P_ACK is a reliable channel.  Each use their
- *       own independent HMAC keys.
- *   (3) Note that when --tls-auth is used, all message types are
- *       protected with an HMAC signature, even the initial packets
- *       of the TLS handshake.  This makes it easy for OpenVPN to
- *       throw away bogus packets quickly, without wasting resources
- *       on attempting a TLS handshake which will ultimately fail.
- */
 
 /* Used in the TLS PRF function */
 #define KEY_EXPANSION_ID "OpenVPN"
@@ -220,28 +79,82 @@
 #define P_FIRST_OPCODE                 1
 #define P_LAST_OPCODE                  8
 
-/* key negotiation states */
-#define S_ERROR          -1
-#define S_UNDEF           0
-#define S_INITIAL         1	/* tls_init() was called */
-#define S_PRE_START       2	/* waiting for initial reset & acknowledgement */
-#define S_START           3	/* ready to exchange keys */
-#define S_SENT_KEY        4	/* client does S_SENT_KEY -> S_GOT_KEY */
-#define S_GOT_KEY         5	/* server does S_GOT_KEY -> S_SENT_KEY */
-#define S_ACTIVE          6	/* ready to exchange data channel packets */
-#define S_NORMAL_OP       7	/* normal operations */
-
-/*
- * Are we ready to receive data channel packets?
+/** @addtogroup control_processor
+ *  @{ */
+/**
+ * @name Control channel negotiation states
  *
- * Also, if true, we can safely assume session has been
- * authenticated by TLS.
+ * These states represent the different phases of control channel
+ * negotiation between OpenVPN peers.  OpenVPN servers and clients
+ * progress through the states in a different order, because of their
+ * different roles during exchange of random material.  The references to
+ * the \c key_source2 structure in the list below is only valid if %key
+ * method 2 is being used.  See the \link key_generation data channel key
+ * generation\endlink related page for more information.
  *
- * NOTE: Assumes S_SENT_KEY + 1 == S_GOT_KEY.
+ * Clients follow this order:
+ *   -# \c S_INITIAL, ready to begin three-way handshake and control
+ *      channel negotiation.
+ *   -# \c S_PRE_START, have started three-way handshake, waiting for
+ *      acknowledgment from remote.
+ *   -# \c S_START, initial three-way handshake complete.
+ *   -# \c S_SENT_KEY, have sent local part of \c key_source2 random
+ *      material.
+ *   -# \c S_GOT_KEY, have received remote part of \c key_source2 random
+ *      material.
+ *   -# \c S_ACTIVE, normal operation during remaining handshake window.
+ *   -# \c S_NORMAL_OP, normal operation.
+ *
+ * Servers follow the same order, except for \c S_SENT_KEY and \c
+ * S_GOT_KEY being reversed, because the server first receives the
+ * client's \c key_source2 random material before generating and sending
+ * its own.
+ *
+ * @{
  */
-#define DECRYPT_KEY_ENABLED(multi, ks) ((ks)->state >= (S_GOT_KEY - (multi)->opt.server))
+#define S_ERROR          -1     /**< Error state.  */
+#define S_UNDEF           0     /**< Undefined state, used after a \c
+                                 *   key_state is cleaned up. */
+#define S_INITIAL         1     /**< Initial \c key_state state after
+                                 *   initialization by \c key_state_init()
+                                 *   before start of three-way handshake. */
+#define S_PRE_START       2     /**< Waiting for the remote OpenVPN peer
+                                 *   to acknowledge during the initial
+                                 *   three-way handshake. */
+#define S_START           3     /**< Three-way handshake is complete,
+                                 *   start of key exchange. */
+#define S_SENT_KEY        4     /**< Local OpenVPN process has sent its
+                                 *   part of the key material. */
+#define S_GOT_KEY         5     /**< Local OpenVPN process has received
+                                 *   the remote's part of the key
+                                 *   material. */
+#define S_ACTIVE          6     /**< Operational \c key_state state
+                                 *   immediately after negotiation has
+                                 *   completed while still within the
+                                 *   handshake window. */
+/* ready to exchange data channel packets */
+#define S_NORMAL_OP       7     /**< Normal operational \c key_state
+                                 *   state. */
+/** @} name Control channel negotiation states */
+/** @} addtogroup control_processor */
 
-/* Should we aggregate TLS acknowledgements, and tack them onto control packets? */
+
+#define DECRYPT_KEY_ENABLED(multi, ks) ((ks)->state >= (S_GOT_KEY - (multi)->opt.server))
+                                /**< Check whether the \a ks \c key_state
+                                 *   is ready to receive data channel
+                                 *   packets.
+                                 *   @ingroup data_crypto
+                                 *
+                                 *   If true, it is safe to assume that
+                                 *   this session has been authenticated
+                                 *   by TLS.
+                                 *
+                                 *   @note This macro only works if
+                                 *       S_SENT_KEY + 1 == S_GOT_KEY. */
+
+/* Should we aggregate TLS
+ * acknowledgements, and tack them onto
+ * control packets? */
 #define TLS_AGGREGATE_ACK
 
 /*
@@ -319,33 +232,50 @@ struct cert_hash_set {
   struct cert_hash *ch[MAX_CERT_DEPTH];
 };
 
-/*
- * Key material, used as source for PRF-based
- * key expansion.
+/**
+ * Container for one half of random material to be used in %key method 2
+ * \ref key_generation "data channel key generation".
+ * @ingroup control_processor
  */
-
 struct key_source {
-  uint8_t pre_master[48]; /* client generated */
-  uint8_t random1[32];    /* generated by both client and server */
-  uint8_t random2[32];    /* generated by both client and server */
+  uint8_t pre_master[48];       /**< Random used for master secret
+                                 *   generation, provided only by client
+                                 *   OpenVPN peer. */
+  uint8_t random1[32];          /**< Seed used for master secret
+                                 *   generation, provided by both client
+                                 *   and server. */
+  uint8_t random2[32];          /**< Seed used for key expansion, provided
+                                 *   by both client and server. */
 };
 
+
+/**
+ * Container for both halves of random material to be used in %key method
+ * 2 \ref key_generation "data channel key generation".
+ * @ingroup control_processor
+ */
 struct key_source2 {
-  struct key_source client;
-  struct key_source server;
+  struct key_source client;     /**< Random provided by client. */
+  struct key_source server;     /**< Random provided by server. */
 };
 
-/*
- * Represents a single instantiation of a TLS negotiation and
- * data channel key exchange.  4 keys are kept: encrypt hmac,
- * decrypt hmac, encrypt cipher, and decrypt cipher.  The TLS
- * control channel is used to exchange these keys.
- * Each hard or soft reset will build
- * a fresh key_state.  Normally an openvpn session will contain two
- * key_state objects, one for the current TLS connection, and other
- * for the retiring or "lame duck" key.  The lame duck key_state is
- * used to maintain transmission continuity on the data-channel while
- * a key renegotiation is taking place.
+/**
+ * Security parameter state of one TLS and data channel %key session.
+ * @ingroup control_processor
+ *
+ * This structure represents one security parameter session between
+ * OpenVPN peers.  It includes the control channel TLS state and the data
+ * channel crypto state.  It also contains the reliability layer
+ * structures used for control channel messages.
+ *
+ * A new \c key_state structure is initialized for each hard or soft
+ * reset.
+ *
+ * @see
+ *  - This structure should be initialized using the \c key_state_init()
+ *    function.
+ *  - This structure should be cleaned up using the \c key_state_free()
+ *    function.
  */
 struct key_state
 {
@@ -523,23 +453,37 @@ struct tls_options
   int gremlin;
 };
 
-/* index into tls_session.key */
-#define KS_PRIMARY    0		/* the primary key */
-#define KS_LAME_DUCK  1		/* the key that's going to retire soon */
-#define KS_SIZE       2
 
-/*
- * A tls_session lives through multiple key_state life-cycles.  Soft resets
- * will reuse a tls_session object, but hard resets or errors will require
- * that a fresh object be built.  Normally three tls_session objects are maintained
- * by an active openvpn session.  The first is the current, TLS authenticated
- * session, the second is used to process connection requests from a new
- * client that would usurp the current session if successfully authenticated,
- * and the third is used as a repository for a "lame-duck" key in the event
- * that the primary session resets due to error while the lame-duck key still
- * has time left before its expiration.  Lame duck keys are used to maintain
- * the continuity of the data channel connection while a new key is being
- * negotiated.
+/** @addtogroup control_processor
+ *  @{ */
+/** @name Index of key_state objects within a tls_session structure
+ *
+ *  This is the index of \c tls_session.key
+ *
+ *  @{ */
+#define KS_PRIMARY    0         /**< Primary %key state index. */
+#define KS_LAME_DUCK  1         /**< %Key state index that will retire
+                                 *   soon. */
+#define KS_SIZE       2         /**< Size of the \c tls_session.key array. */
+/** @} name Index of key_state objects within a tls_session structure */
+/** @} addtogroup control_processor */
+
+
+/**
+ * Security parameter state of a single session within a VPN tunnel.
+ * @ingroup control_processor
+ *
+ * This structure represents an OpenVPN peer-to-peer control channel
+ * session.
+ *
+ * A \c tls_session remains over soft resets, but a new instance is
+ * initialized for each hard reset.
+ *
+ * @see
+ *  - This structure should be initialized using the \c tls_session_init()
+ *    function.
+ *  - This structure should be cleaned up using the \c tls_session_free()
+ *    function.
  */
 struct tls_session
 {
@@ -577,11 +521,34 @@ struct tls_session
   struct key_state key[KS_SIZE];
 };
 
-/* index into tls_multi.session */
-#define TM_ACTIVE    0
-#define TM_UNTRUSTED 1
-#define TM_LAME_DUCK 2
-#define TM_SIZE      3
+
+
+/** @addtogroup control_processor
+ *  @{ */
+/** @name Index of tls_session objects within a tls_multi structure
+ *
+ *  This is the index of \c tls_multi.session
+ *
+ *  Normally three tls_session objects are maintained by an active openvpn
+ *  session.  The first is the current, TLS authenticated session, the
+ *  second is used to process connection requests from a new client that
+ *  would usurp the current session if successfully authenticated, and the
+ *  third is used as a repository for a "lame-duck" %key in the event that
+ *  the primary session resets due to error while the lame-duck %key still
+ *  has time left before its expiration.  Lame duck keys are used to
+ *  maintain the continuity of the data channel connection while a new %key
+ *  is being negotiated.
+ *
+ *  @{ */
+#define TM_ACTIVE    0          /**< Active \c tls_session. */
+#define TM_UNTRUSTED 1          /**< As yet un-trusted \c tls_session
+                                 *   being negotiated. */
+#define TM_LAME_DUCK 2          /**< Old \c tls_session. */
+#define TM_SIZE      3          /**< Size of the \c tls_multi.session
+                                 *   array. */
+/** @} name Index of tls_session objects within a tls_multi structure */
+/** @} addtogroup control_processor */
+
 
 /*
  * The number of keys we will scan on encrypt or decrypt.  The first
@@ -595,19 +562,29 @@ struct tls_session
  */
 #define KEY_SCAN_SIZE 3
 
-/*
- * An openvpn session running with TLS enabled has one tls_multi object.
+
+/**
+ * Security parameter state for a single VPN tunnel.
+ * @ingroup control_processor
+ *
+ * An active VPN tunnel running with TLS enabled has one \c tls_multi
+ * object, in which it stores all control channel and data channel
+ * security parameter state.  This structure can contain multiple,
+ * possibly simultaneously active, \c tls_context objects to allow for
+ * interruption-less transitions during session renegotiations.  Each \c
+ * tls_context represents one control channel session, which can span
+ * multiple data channel security parameter sessions stored in \c
+ * key_state structures.
  */
 struct tls_multi
 {
   /* const options and config info */
   struct tls_options opt;
 
-  /*
-   * A list of key_state objects in the order they should be
-   * scanned by data channel encrypt and decrypt routines.
-   */
   struct key_state* key_scan[KEY_SCAN_SIZE];
+                                /**< List of \c key_state objects in the
+                                 *   order they should be scanned by data
+                                 *   channel modules. */
 
   /*
    * used by tls_pre_encrypt to communicate the encrypt key
@@ -621,10 +598,8 @@ struct tls_multi
    */
   struct link_socket_actual to_link_addr;
 
-  /*
-   * Number of sessions negotiated thus far.
-   */
-  int n_sessions;
+  int n_sessions;               /**< Number of sessions negotiated thus
+                                 *   far. */
 
   /*
    * Number of errors.
@@ -659,6 +634,9 @@ struct tls_multi
    * Our session objects.
    */
   struct tls_session session[TM_SIZE];
+                                /**< Array of \c tls_session objects
+                                 *   representing control channel
+                                 *   sessions with the remote peer. */
 };
 
 /*
@@ -704,19 +682,133 @@ int tls_multi_process (struct tls_multi *multi,
 
 void tls_multi_free (struct tls_multi *multi, bool clear);
 
+
+/**************************************************************************/
+/**
+ * Determine whether an incoming packet is a data channel or control
+ * channel packet, and process accordingly.
+ * @ingroup external_multiplexer
+ *
+ * When OpenVPN is in TLS mode, this is the first function to process an
+ * incoming packet.  It inspects the packet's one-byte header which
+ * contains the packet's opcode and key ID.  Depending on the opcode, the
+ * packet is processed as a data channel or as a control channel packet.
+ *
+ * @par Data channel packets
+ *
+ * If the opcode indicates the packet is a data channel packet, then the
+ * packet's key ID is used to find the local TLS state it is associated
+ * with.  This state is checked whether it is active, authenticated, and
+ * its remote peer is the source of this packet.  If these checks passed,
+ * the state's security parameters are loaded into the \a opt crypto
+ * options so that \p openvpn_decrypt() can later use them to authenticate
+ * and decrypt the packet.
+ *
+ * This function then returns false.  The \a buf buffer has not been
+ * modified, except for removing the header.
+ *
+ * @par Control channel packets
+ *
+ * If the opcode indicates the packet is a control channel packet, then
+ * this function will process it based on its plaintext header. depending
+ * on the packet's opcode and session ID this function determines if it is
+ * destined for an active TLS session, or whether a new TLS session should
+ * be started.  This function also initiates data channel session key
+ * renegotiation if the received opcode requests that.
+ *
+ * If the incoming packet is destined for an active TLS session, then the
+ * packet is inserted into the Reliability Layer and will be handled
+ * later.
+ *
+ * @param multi - The TLS multi structure associated with the VPN tunnel
+ *     of this packet.
+ * @param from - The source address of the packet.
+ * @param buf - A buffer structure containing the incoming packet.
+ * @param opt - A crypto options structure that will be loaded with the
+ *     appropriate security parameters to handle the packet if it is a
+ *     data channel packet.
+ *
+ * @return
+ * @li True if the packet is a control channel packet that has been
+ *     processed successfully.
+ * @li False if the packet is a data channel packet, or if an error
+ *     occurred during processing of a control channel packet.
+ */
 bool tls_pre_decrypt (struct tls_multi *multi,
 		      const struct link_socket_actual *from,
 		      struct buffer *buf,
 		      struct crypto_options *opt);
 
+
+/**************************************************************************/
+/** @name Functions for managing security parameter state for data channel packets
+ *  @{ */
+
+/**
+ * Inspect an incoming packet for which no VPN tunnel is active, and
+ * determine whether a new VPN tunnel should be created.
+ * @ingroup data_crypto
+ *
+ * This function receives the initial incoming packet from a client that
+ * wishes to establish a new VPN tunnel, and determines the packet is a
+ * valid initial packet.  It is only used when OpenVPN is running in
+ * server mode.
+ *
+ * The tests performed by this function are whether the packet's opcode is
+ * correct for establishing a new VPN tunnel, whether its key ID is 0, and
+ * whether its size is not too large.  This function also performs the
+ * initial HMAC firewall test, if configured to do so.
+ *
+ * The incoming packet and the local VPN tunnel state are not modified by
+ * this function.  Its sole purpose is to inspect the packet and determine
+ * whether a new VPN tunnel should be created.  If so, that new VPN tunnel
+ * instance will handle processing of the packet.
+ *
+ * @param tas - The standalone TLS authentication setting structure for
+ *     this process.
+ * @param from - The source address of the packet.
+ * @param buf - A buffer structure containing the incoming packet.
+ *
+ * @return
+ * @li True if the packet is valid and a new VPN tunnel should be created
+ *     for this client.
+ * @li False if the packet is not valid, did not pass the HMAC firewall
+ *     test, or some other error occurred.
+ */
 bool tls_pre_decrypt_lite (const struct tls_auth_standalone *tas,
 			   const struct link_socket_actual *from,
 			   const struct buffer *buf);
 
+
+/**
+ * Choose the appropriate security parameters with which to process an
+ * outgoing packet.
+ * @ingroup data_crypto
+ *
+ * If no appropriate security parameters can be found, or if some other
+ * error occurs, then the buffer is set to empty.
+ *
+ * @param multi - The TLS state for this packet's destination VPN tunnel.
+ * @param buf - The buffer containing the outgoing packet.
+ * @param opt - The crypto options structure into which the appropriate
+ *     security parameters should be loaded.
+ */
 void tls_pre_encrypt (struct tls_multi *multi,
 		      struct buffer *buf, struct crypto_options *opt);
 
+
+/**
+ * Prepend the one-byte OpenVPN header to the packet, and perform some
+ * accounting for the key state used.
+ * @ingroup data_crypto
+ *
+ * @param multi - The TLS state for this packet's destination VPN tunnel.
+ * @param buf - The buffer containing the outgoing packet.
+ */
 void tls_post_encrypt (struct tls_multi *multi, struct buffer *buf);
+
+/** @} name Functions for managing security parameter state for data channel packets */
+
 
 void show_available_tls_ciphers (void);
 void get_highest_preference_tls_cipher (char *buf, int size);

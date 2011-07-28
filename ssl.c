@@ -923,11 +923,33 @@ get_peer_cert(X509_STORE_CTX *ctx, const char *tmp_dir, struct gc_arena *gc)
 
 char * x509_username_field; /* GLOBAL */
 
-/*
- * Our verify callback function -- check
- * that an incoming peer certificate is good.
- */
+/** @name Function for authenticating a new connection from a remote OpenVPN peer
+ *  @{ */
 
+/**
+ * Verify that the remote OpenVPN peer's certificate allows setting up a
+ * VPN tunnel.
+ * @ingroup control_tls
+ *
+ * This callback function is called every time a new TLS session is being
+ * setup to determine whether the remote OpenVPN peer's certificate is
+ * allowed to connect.  The callback functionality is configured in the \c
+ * init_ssl() function, which calls the OpenSSL library's \c
+ * SSL_CTX_set_verify() function with \c verify_callback() as its callback
+ * argument.
+ *
+ * @param preverify_ok - Whether the remote OpenVPN peer's certificate
+ *                       past verification.  A value of 1 means it
+ *                       verified successfully, 0 means it failed.
+ * @param ctx          - The complete context used by the OpenSSL library
+ *                       to verify the certificate chain.
+ *
+ * @return The return value indicates whether the supplied certificate is
+ *     allowed to set up a VPN tunnel.  The following values can be
+ *     returned:
+ *      - \c 0: failure, this certificate is not allowed to connect.
+ *      - \c 1: success, this certificate is allowed to connect.
+ */
 static int
 verify_callback (int preverify_ok, X509_STORE_CTX * ctx)
 {
@@ -1298,6 +1320,9 @@ verify_callback (int preverify_ok, X509_STORE_CTX * ctx)
   session->verified = false;
   goto done;
 }
+
+/** @} name Function for authenticating a new connection from a remote OpenVPN peer */
+
 
 void
 tls_set_common_name (struct tls_multi *multi, const char *common_name)
@@ -2726,6 +2751,32 @@ bio_write_post (const int status, struct buffer *buf)
     }
 }
 
+
+/**************************************************************************/
+/** @addtogroup control_tls
+ *  @{ */
+
+/** @name Functions for packets to be sent to a remote OpenVPN peer
+ *  @{ */
+
+/**
+ * Insert a plaintext buffer into the TLS module.
+ *
+ * After successfully processing the data, the data in \a buf is zeroized,
+ * its length set to zero, and a value of \c 1 is returned.
+ *
+ * @param multi        - The security parameter state for this VPN tunnel.
+ * @param ks           - The security parameter state for this %key
+ *                       session.
+ * @param buf          - The plaintext message to process.
+ *
+ * @return The return value indicates whether the data was successfully
+ *     processed:
+ * - \c 1: All the data was processed successfully.
+ * - \c 0: The data was not processed, this function should be called
+ *   again later to retry.
+ * - \c -1: An error occurred.
+ */
 static int
 key_state_write_plaintext (struct tls_multi *multi, struct key_state *ks, struct buffer *buf)
 {
@@ -2737,6 +2788,22 @@ key_state_write_plaintext (struct tls_multi *multi, struct key_state *ks, struct
   return ret;
 }
 
+/**
+ * Insert plaintext data into the TLS module.
+ *
+ * @param multi        - The security parameter state for this VPN tunnel.
+ * @param ks           - The security parameter state for this %key
+ *                       session.
+ * @param data         - A pointer to the data to process.
+ * @param len          - The length in bytes of the data to process.
+ *
+ * @return The return value indicates whether the data was successfully
+ *     processed:
+ * - \c 1: All the data was processed successfully.
+ * - \c 0: The data was not processed, this function should be called
+ *   again later to retry.
+ * - \c -1: An error occurred.
+ */
 static int
 key_state_write_plaintext_const (struct tls_multi *multi, struct key_state *ks, const uint8_t *data, int len)
 {
@@ -2747,28 +2814,25 @@ key_state_write_plaintext_const (struct tls_multi *multi, struct key_state *ks, 
   return ret;
 }
 
-static int
-key_state_write_ciphertext (struct tls_multi *multi, struct key_state *ks, struct buffer *buf)
-{
-  int ret;
-  perf_push (PERF_BIO_WRITE_CIPHERTEXT);
-  ret = bio_write (multi, ks->ct_in, BPTR(buf), BLEN(buf), "tls_write_ciphertext");
-  bio_write_post (ret, buf);
-  perf_pop ();
-  return ret;
-}
-
-static int
-key_state_read_plaintext (struct tls_multi *multi, struct key_state *ks, struct buffer *buf,
-			  int maxlen)
-{
-  int ret;
-  perf_push (PERF_BIO_READ_PLAINTEXT);
-  ret = bio_read (multi, ks->ssl_bio, buf, maxlen, "tls_read_plaintext");
-  perf_pop ();
-  return ret;
-}
-
+/**
+ * Extract ciphertext data from the TLS module.
+ *
+ * If the \a buf buffer has a length other than zero, this function does
+ * not perform any action and returns 0.
+ *
+ * @param multi        - The security parameter state for this VPN tunnel.
+ * @param ks           - The security parameter state for this %key
+ *                       session.
+ * @param buf          - A buffer in which to store the ciphertext.
+ * @param maxlen       - The maximum number of bytes to extract.
+ *
+ * @return The return value indicates whether the data was successfully
+ *     processed:
+ * - \c 1: Data was extracted successfully.
+ * - \c 0: No data was extracted, this function should be called again
+ *   later to retry.
+ * - \c -1: An error occurred.
+ */
 static int
 key_state_read_ciphertext (struct tls_multi *multi, struct key_state *ks, struct buffer *buf,
 			   int maxlen)
@@ -2780,9 +2844,98 @@ key_state_read_ciphertext (struct tls_multi *multi, struct key_state *ks, struct
   return ret;
 }
 
-/*
- * Initialize a key_state.  Each key_state corresponds to
- * a specific SSL/TLS session.
+/** @} name Functions for packets to be sent to a remote OpenVPN peer */
+
+
+/** @name Functions for packets received from a remote OpenVPN peer
+ *  @{ */
+
+/**
+ * Insert a ciphertext buffer into the TLS module.
+ *
+ * After successfully processing the data, the data in \a buf is zeroized,
+ * its length set to zero, and a value of \c 1 is returned.
+ *
+ * @param multi        - The security parameter state for this VPN tunnel.
+ * @param ks           - The security parameter state for this %key
+ *                       session.
+ * @param buf          - The ciphertext message to process.
+ *
+ * @return The return value indicates whether the data was successfully
+ *     processed:
+ * - \c 1: All the data was processed successfully.
+ * - \c 0: The data was not processed, this function should be called
+ *   again later to retry.
+ * - \c -1: An error occurred.
+ */
+static int
+key_state_write_ciphertext (struct tls_multi *multi, struct key_state *ks, struct buffer *buf)
+{
+  int ret;
+  perf_push (PERF_BIO_WRITE_CIPHERTEXT);
+  ret = bio_write (multi, ks->ct_in, BPTR(buf), BLEN(buf), "tls_write_ciphertext");
+  bio_write_post (ret, buf);
+  perf_pop ();
+  return ret;
+}
+
+/**
+ * Extract plaintext data from the TLS module.
+ *
+ * If the \a buf buffer has a length other than zero, this function does
+ * not perform any action and returns 0.
+ *
+ * @param multi        - The security parameter state for this VPN tunnel.
+ * @param ks           - The security parameter state for this %key
+ *                       session.
+ * @param buf          - A buffer in which to store the plaintext.
+ * @param maxlen       - The maximum number of bytes to extract.
+ *
+ * @return The return value indicates whether the data was successfully
+ *     processed:
+ * - \c 1: Data was extracted successfully.
+ * - \c 0: No data was extracted, this function should be called again
+ *   later to retry.
+ * - \c -1: An error occurred.
+ */
+static int
+key_state_read_plaintext (struct tls_multi *multi, struct key_state *ks, struct buffer *buf,
+			  int maxlen)
+{
+  int ret;
+  perf_push (PERF_BIO_READ_PLAINTEXT);
+  ret = bio_read (multi, ks->ssl_bio, buf, maxlen, "tls_read_plaintext");
+  perf_pop ();
+  return ret;
+}
+
+/** @} name Functions for packets received from a remote OpenVPN peer */
+
+/** @} addtogroup control_tls */
+
+
+/** @addtogroup control_processor
+ *  @{ */
+
+/** @name Functions for initialization and cleanup of key_state structures
+ *  @{ */
+
+/**
+ * Initialize a \c key_state structure.
+ * @ingroup control_processor
+ *
+ * This function initializes a \c key_state structure associated with a \c
+ * tls_session.  It sets up the structure's SSL-BIO, sets the object's \c
+ * key_state.state to \c S_INITIAL, and sets the session ID and key ID two
+ * appropriate values based on the \c tls_session's internal state.  It
+ * also initializes a new set of structures for the \link reliable
+ * Reliability Layer\endlink.
+ *
+ * @param session      - A pointer to the \c tls_session structure
+ *                       associated with the \a ks argument.
+ * @param ks           - A pointer to the \c key_state structure to be
+ *                       initialized.  This structure should already have
+ *                       been allocated before calling this function.
  */
 static void
 key_state_init (struct tls_session *session, struct key_state *ks)
@@ -2868,6 +3021,20 @@ key_state_init (struct tls_session *session, struct key_state *ks)
 #endif
 }
 
+
+/**
+ * Cleanup a \c key_state structure.
+ * @ingroup control_processor
+ *
+ * This function cleans up a \c key_state structure.  It frees the
+ * associated SSL-BIO, and the structures allocated for the \link reliable
+ * Reliability Layer\endlink.
+ *
+ * @param ks           - A pointer to the \c key_state structure to be
+ *                       cleaned up.
+ * @param clear        - Whether the memory allocated for the \a ks object
+ *                       should be overwritten with 0s.
+ */
 static void
 key_state_free (struct key_state *ks, bool clear)
 {
@@ -2917,6 +3084,11 @@ key_state_free (struct key_state *ks, bool clear)
     CLEAR (*ks);
 }
 
+/** @} name Functions for initialization and cleanup of key_state structures */
+
+/** @} addtogroup control_processor */
+
+
 /*
  * Must be called if we move a tls_session in memory.
  */
@@ -2924,9 +3096,26 @@ static inline void tls_session_set_self_referential_pointers (struct tls_session
   session->tls_auth.packet_id = &session->tls_auth_pid;
 }
 
-/*
- * Initialize a TLS session.  A TLS session normally has 2 key_state objects,
- * one for the current key, and one for the lame duck (i.e. retiring) key.
+
+/** @addtogroup control_processor
+ *  @{ */
+
+/** @name Functions for initialization and cleanup of tls_session structures
+ *  @{ */
+
+/**
+ * Initialize a \c tls_session structure.
+ * @ingroup control_processor
+ *
+ * This function initializes a \c tls_session structure.  This includes
+ * generating a random session ID, and initializing the \c KS_PRIMARY \c
+ * key_state in the \c tls_session.key array.
+ *
+ * @param multi        - A pointer to the \c tls_multi structure
+ *                       associated with the \a session argument.
+ * @param session      - A pointer to the \c tls_session structure to be
+ *                       initialized.  This structure should already have
+ *                       been allocated before calling this function.
  */
 static void
 tls_session_init (struct tls_multi *multi, struct tls_session *session)
@@ -2981,6 +3170,18 @@ tls_session_init (struct tls_multi *multi, struct tls_session *session)
   gc_free (&gc);
 }
 
+/**
+ * Clean up a \c tls_session structure.
+ * @ingroup control_processor
+ *
+ * This function cleans up a \c tls_session structure.  This includes
+ * cleaning up all associated \c key_state structures.
+ *
+ * @param session      - A pointer to the \c tls_session structure to be
+ *                       cleaned up.
+ * @param clear        - Whether the memory allocated for the \a session
+ *                       object should be overwritten with 0s.
+ */
 static void
 tls_session_free (struct tls_session *session, bool clear)
 {
@@ -3000,6 +3201,11 @@ tls_session_free (struct tls_session *session, bool clear)
   if (clear)
     CLEAR (*session);
 }
+
+/** @} name Functions for initialization and cleanup of tls_session structures */
+
+/** @} addtogroup control_processor */
+
 
 static void
 move_session (struct tls_multi* multi, int dest, int src, bool reinit_src)
@@ -3084,9 +3290,26 @@ lame_duck_must_die (const struct tls_session* session, interval_t *wakeup)
     return false;
 }
 
-/*
- * A tls_multi object fully encapsulates OpenVPN's TLS state.
- * See ssl.h for more comments.
+
+/** @addtogroup control_processor
+ *  @{ */
+
+/** @name Functions for initialization and cleanup of tls_multi structures
+ *  @{ */
+
+/**
+ * Allocate and initialize a \c tls_multi structure.
+ * @ingroup control_processor
+ *
+ * This function allocates a new \c tls_multi structure, and performs some
+ * amount of initialization.  Afterwards, the \c tls_multi_init_finalize()
+ * function must be called to finalize the structure's initialization
+ * process.
+ *
+ * @param tls_options  - The configuration options to be used for this VPN
+ *                       tunnel.
+ *
+ * @return A newly allocated and initialized \c tls_multi structure.
  */
 struct tls_multi *
 tls_multi_init (struct tls_options *tls_options)
@@ -3110,8 +3333,20 @@ tls_multi_init (struct tls_options *tls_options)
   return ret;
 }
 
-/*
- * Finalize our computation of frame sizes.
+
+/**
+ * Finalize initialization of a \c tls_multi structure.
+ * @ingroup control_processor
+ *
+ * This function initializes the \c TM_ACTIVE \c tls_session, and in
+ * server mode also the \c TM_UNTRUSTED \c tls_session, associated with
+ * this \c tls_multi structure.  It also configures the control channel's
+ * \c frame structure based on the data channel's \c frame given in
+ * argument \a frame.
+ *
+ * @param multi        - The \c tls_multi structure of which to finalize
+ *                       initialization.
+ * @param frame        - The data channel's \c frame structure.
  */
 void
 tls_multi_init_finalize (struct tls_multi* multi, const struct frame* frame)
@@ -3173,6 +3408,19 @@ tls_multi_init_set_options (struct tls_multi* multi,
 #endif
 }
 
+
+/**
+ * Cleanup a \c tls_multi structure and free associated memory
+ * allocations.
+ * @ingroup control_processor
+ *
+ * This function cleans up a \c tls_multi structure.  This includes
+ * cleaning up all associated \c tls_session structures.
+ *
+ * @param multi        - The \c tls_multi structure to clean up in free.
+ * @param clear        - Whether the memory allocated for the \a multi
+ *                       object should be overwritten with 0s.
+ */
 void
 tls_multi_free (struct tls_multi *multi, bool clear)
 {
@@ -3202,6 +3450,11 @@ tls_multi_free (struct tls_multi *multi, bool clear)
 
   free(multi);
 }
+
+/** @} name Functions for initialization and cleanup of tls_multi structures */
+
+/** @} addtogroup control_processor */
+
 
 /*
  * Move a packet authentication HMAC + related fields to or from the front
