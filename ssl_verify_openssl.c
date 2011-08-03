@@ -69,10 +69,12 @@ verify_callback (int preverify_ok, X509_STORE_CTX * ctx)
 
       session->verified = false;
 
-      return 1;
+      return 0;
     }
 
-  return verify_cert(session, ctx->current_cert, ctx->error_depth);
+  if (SUCCESS == verify_cert(session, ctx->current_cert, ctx->error_depth))
+    return 1;
+  return 0;
 }
 
 #ifdef ENABLE_X509ALTUSERNAME
