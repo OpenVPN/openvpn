@@ -306,14 +306,14 @@ print_nsCertType (int type)
  * @param subject the peer's extracted subject name
  * @param subject the peer's extracted common name
  */
-static int
+static result_t
 verify_peer_cert(const struct tls_options *opt, x509_cert_t *peer_cert,
     const char *subject, const char *common_name)
 {
   /* verify certificate nsCertType */
   if (opt->ns_cert_type != NS_CERT_CHECK_NONE)
     {
-      if (x509_verify_ns_cert_type (peer_cert, opt->ns_cert_type))
+      if (SUCCESS == x509_verify_ns_cert_type (peer_cert, opt->ns_cert_type))
 	{
 	  msg (D_HANDSHAKE, "VERIFY OK: nsCertType=%s",
 	       print_nsCertType (opt->ns_cert_type));
@@ -322,7 +322,7 @@ verify_peer_cert(const struct tls_options *opt, x509_cert_t *peer_cert,
 	{
 	  msg (D_HANDSHAKE, "VERIFY nsCertType ERROR: %s, require nsCertType=%s",
 	       subject, print_nsCertType (opt->ns_cert_type));
-	  return 1;		/* Reject connection */
+	  return FAILURE;		/* Reject connection */
 	}
     }
 
@@ -331,28 +331,28 @@ verify_peer_cert(const struct tls_options *opt, x509_cert_t *peer_cert,
   /* verify certificate ku */
   if (opt->remote_cert_ku[0] != 0)
     {
-      if (x509_verify_cert_ku (peer_cert, opt->remote_cert_ku, MAX_PARMS))
+      if (SUCCESS == x509_verify_cert_ku (peer_cert, opt->remote_cert_ku, MAX_PARMS))
 	{
 	  msg (D_HANDSHAKE, "VERIFY KU OK");
 	}
         else
         {
 	  msg (D_HANDSHAKE, "VERIFY KU ERROR");
-          return 1;		/* Reject connection */
+          return FAILURE;		/* Reject connection */
 	}
     }
 
   /* verify certificate eku */
   if (opt->remote_cert_eku != NULL)
     {
-      if (x509_verify_cert_eku (peer_cert, opt->remote_cert_eku))
+      if (SUCCESS == x509_verify_cert_eku (peer_cert, opt->remote_cert_eku))
         {
 	  msg (D_HANDSHAKE, "VERIFY EKU OK");
 	}
       else
 	{
 	  msg (D_HANDSHAKE, "VERIFY EKU ERROR");
-          return 1;		/* Reject connection */
+          return FAILURE;		/* Reject connection */
 	}
     }
 
@@ -368,11 +368,11 @@ verify_peer_cert(const struct tls_options *opt, x509_cert_t *peer_cert,
 	{
 	  msg (D_HANDSHAKE, "VERIFY X509NAME ERROR: %s, must be %s",
 	       subject, opt->verify_x509name);
-	  return 1;		/* Reject connection */
+	  return FAILURE;		/* Reject connection */
 	}
     }
 
-  return 0;
+  return SUCCESS;
 }
 
 /*
@@ -434,7 +434,7 @@ verify_cert_set_env(struct env_set *es, x509_cert_t *peer_cert, int cert_depth,
 /*
  * call --tls-verify plug-in(s)
  */
-static int
+static result_t
 verify_cert_call_plugin(const struct plugin_list *plugins, struct env_set *es,
     int cert_depth, x509_cert_t *cert, char *subject)
 {
@@ -458,10 +458,10 @@ verify_cert_call_plugin(const struct plugin_list *plugins, struct env_set *es,
 	{
 	  msg (D_HANDSHAKE, "VERIFY PLUGIN ERROR: depth=%d, %s",
 	      cert_depth, subject);
-	  return 1;		/* Reject connection */
+	  return FAILURE;		/* Reject connection */
 	}
     }
-  return 0;
+  return SUCCESS;
 }
 
 static const char *
@@ -484,7 +484,7 @@ verify_cert_export_cert(x509_cert_t *peercert, const char *tmp_dir, struct gc_ar
       return NULL;
     }
 
-  if (x509_write_pem(peercert_file, peercert))
+  if (SUCCESS != x509_write_pem(peercert_file, peercert))
       msg (M_ERR, "Error writing PEM file containing certificate");
 
   fclose(peercert_file);
@@ -495,7 +495,7 @@ verify_cert_export_cert(x509_cert_t *peercert, const char *tmp_dir, struct gc_ar
 /*
  * run --tls-verify script
  */
-static int
+static result_t
 verify_cert_call_command(const char *verify_command, struct env_set *es,
     int cert_depth, x509_cert_t *cert, char *subject, const char *verify_export_cert)
 {
@@ -532,18 +532,18 @@ verify_cert_call_command(const char *verify_command, struct env_set *es,
     {
       msg (D_HANDSHAKE, "VERIFY SCRIPT OK: depth=%d, %s",
 	   cert_depth, subject);
-      return 0;
+      return SUCCESS;
     }
 
   msg (D_HANDSHAKE, "VERIFY SCRIPT ERROR: depth=%d, %s",
        cert_depth, subject);
-  return 1;		/* Reject connection */
+  return FAILURE;		/* Reject connection */
 }
 
 /*
  * check peer cert against CRL directory
  */
-static bool
+static result_t
 verify_check_crl_dir(const char *crl_dir, x509_cert_t *cert)
 {
   char fn[256];
@@ -554,7 +554,7 @@ verify_check_crl_dir(const char *crl_dir, x509_cert_t *cert)
     {
       msg (D_HANDSHAKE, "VERIFY CRL: filename overflow");
       x509_free_serial(serial);
-      return true;
+      return FAILURE;
     }
   fd = open (fn, O_RDONLY);
   if (fd >= 0)
@@ -562,15 +562,15 @@ verify_check_crl_dir(const char *crl_dir, x509_cert_t *cert)
       msg (D_HANDSHAKE, "VERIFY CRL: certificate serial number %s is revoked", serial);
       x509_free_serial(serial);
       close(fd);
-      return true;
+      return FAILURE;
     }
 
   x509_free_serial(serial);
 
-  return false;
+  return SUCCESS;
 }
 
-int
+result_t
 verify_cert(struct tls_session *session, x509_cert_t *cert, int cert_depth)
 {
   char *subject = NULL;
@@ -596,7 +596,8 @@ verify_cert(struct tls_session *session, x509_cert_t *cert, int cert_depth)
   string_replace_leading (subject, '-', '_');
 
   /* extract the username (default is CN) */
-  if (x509_get_username (common_name, TLS_USERNAME_LEN, opt->x509_username_field, cert))
+  if (SUCCESS != x509_get_username (common_name, TLS_USERNAME_LEN,
+      opt->x509_username_field, cert))
     {
       if (!cert_depth)
 	{
@@ -650,16 +651,16 @@ verify_cert(struct tls_session *session, x509_cert_t *cert, int cert_depth)
   setenv_untrusted (session);
 
   /* If this is the peer's own certificate, verify it */
-  if (cert_depth == 0 && verify_peer_cert(opt, cert, subject, common_name))
+  if (cert_depth == 0 && SUCCESS != verify_peer_cert(opt, cert, subject, common_name))
     goto err;
 
   /* call --tls-verify plug-in(s), if registered */
-  if (verify_cert_call_plugin(opt->plugins, opt->es, cert_depth, cert, subject))
+  if (SUCCESS != verify_cert_call_plugin(opt->plugins, opt->es, cert_depth, cert, subject))
     goto err;
 
   /* run --tls-verify script */
-  if (opt->verify_command && verify_cert_call_command(opt->verify_command, opt->es,
-      cert_depth, cert, subject, opt->verify_export_cert))
+  if (opt->verify_command && SUCCESS != verify_cert_call_command(opt->verify_command,
+      opt->es, cert_depth, cert, subject, opt->verify_export_cert))
     goto err;
 
   /* check peer cert against CRL */
@@ -667,12 +668,12 @@ verify_cert(struct tls_session *session, x509_cert_t *cert, int cert_depth)
     {
       if (opt->ssl_flags & SSLF_CRL_VERIFY_DIR)
       {
-	if (verify_check_crl_dir(opt->crl_file, cert))
+	if (SUCCESS != verify_check_crl_dir(opt->crl_file, cert))
 	  goto err;
       }
       else
       {
-	if (x509_verify_crl(opt->crl_file, cert, subject))
+	if (SUCCESS != x509_verify_crl(opt->crl_file, cert, subject))
 	  goto err;
       }
     }
@@ -682,7 +683,7 @@ verify_cert(struct tls_session *session, x509_cert_t *cert, int cert_depth)
 
  done:
   x509_free_subject (subject);
-  return (session->verified == true) ? 1 : 0;
+  return (session->verified == true) ? SUCCESS : FAILURE;
 
  err:
   tls_clear_error();

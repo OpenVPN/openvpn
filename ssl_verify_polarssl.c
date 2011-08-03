@@ -65,17 +65,18 @@ verify_callback (void *session_obj, x509_cert *cert, int cert_depth,
     }
 
   /*
-   * verify_cert() returns 1 on success, 0 on failure.
-   * PolarSSL expects the opposite.
+   * PolarSSL expects 1 on failure, 0 on success
    */
-  return 0 == verify_cert(session, cert, cert_depth);
+  if (SUCCESS == verify_cert(session, cert, cert_depth))
+    return 0;
+  return 1;
 }
 
 #ifdef ENABLE_X509ALTUSERNAME
 # warning "X509 alt user name not yet supported for PolarSSL"
 #endif
 
-bool
+result_t
 x509_get_username (char *cn, int cn_len,
     char *x509_username_field, x509_cert *cert)
 {
@@ -96,7 +97,7 @@ x509_get_username (char *cn, int cn_len,
 
   /* Not found, return an error if this is the peer's certificate */
   if( name == NULL )
-      return 1;
+      return FAILURE;
 
   /* Found, extract CN */
   if (cn_len > name->val.len)
@@ -107,7 +108,7 @@ x509_get_username (char *cn, int cn_len,
       cn[cn_len-1] = '\0';
     }
 
-  return 0;
+  return SUCCESS;
 }
 
 char *
@@ -274,26 +275,26 @@ x509_setenv (struct env_set *es, int cert_depth, x509_cert_t *cert)
     }
 }
 
-bool
+result_t
 x509_verify_ns_cert_type(const x509_cert *cert, const int usage)
 {
   if (usage == NS_CERT_CHECK_NONE)
-    return true;
+    return SUCCESS;
   if (usage == NS_CERT_CHECK_CLIENT)
     return ((cert->ext_types & EXT_NS_CERT_TYPE)
-	&& (cert->ns_cert_type & NS_CERT_TYPE_SSL_CLIENT));
+	&& (cert->ns_cert_type & NS_CERT_TYPE_SSL_CLIENT)) ? SUCCESS : FAILURE;
   if (usage == NS_CERT_CHECK_SERVER)
     return ((cert->ext_types & EXT_NS_CERT_TYPE)
-	&& (cert->ns_cert_type & NS_CERT_TYPE_SSL_SERVER));
+	&& (cert->ns_cert_type & NS_CERT_TYPE_SSL_SERVER)) ? SUCCESS : FAILURE;
 
-  return false;
+  return FAILURE;
 }
 
-bool
+result_t
 x509_verify_cert_ku (x509_cert *cert, const unsigned * const expected_ku,
     int expected_len)
 {
-  bool fFound = false;
+  result_t fFound = FAILURE;
 
   if(!(cert->ext_types & EXT_KEY_USAGE))
     {
@@ -305,7 +306,7 @@ x509_verify_cert_ku (x509_cert *cert, const unsigned * const expected_ku,
       unsigned nku = cert->key_usage;
 
       msg (D_HANDSHAKE, "Validating certificate key usage");
-      for (i=0;!fFound && i<expected_len;i++)
+      for (i=0; SUCCESS != fFound && i<expected_len; i++)
 	{
 	  if (expected_ku[i] != 0)
 	    {
@@ -314,7 +315,7 @@ x509_verify_cert_ku (x509_cert *cert, const unsigned * const expected_ku,
 
 	      if (nku == expected_ku[i])
 		{
-		  fFound = true;
+		  fFound = SUCCESS;
 		}
 	    }
 	}
@@ -322,10 +323,10 @@ x509_verify_cert_ku (x509_cert *cert, const unsigned * const expected_ku,
   return fFound;
 }
 
-bool
+result_t
 x509_verify_cert_eku (x509_cert *cert, const char * const expected_oid)
 {
-  bool fFound = false;
+  result_t fFound = FAILURE;
 
   if (!(cert->ext_types & EXT_EXTENDED_KEY_USAGE))
     {
@@ -349,7 +350,7 @@ x509_verify_cert_eku (x509_cert *cert, const char * const expected_oid)
 		  oid_str, expected_oid);
 	      if (!strcmp (expected_oid, oid_str))
 		{
-		  fFound = true;
+		  fFound = SUCCESS;
 		  break;
 		}
 	    }
@@ -361,7 +362,7 @@ x509_verify_cert_eku (x509_cert *cert, const char * const expected_oid)
 		  oid_num_str, expected_oid);
 	      if (!strcmp (expected_oid, oid_num_str))
 		{
-		  fFound = true;
+		  fFound = SUCCESS;
 		  break;
 		}
 	    }
@@ -372,20 +373,20 @@ x509_verify_cert_eku (x509_cert *cert, const char * const expected_oid)
     return fFound;
 }
 
-bool
+result_t
 x509_write_pem(FILE *peercert_file, x509_cert *peercert)
 {
     msg (M_WARN, "PolarSSL does not support writing peer certificate in PEM format");
-    return true;
+    return FAILURE;
 }
 
 /*
  * check peer cert against CRL
  */
-bool
+result_t
 x509_verify_crl(const char *crl_file, x509_cert *cert, const char *subject)
 {
-  int retval = 0;
+  result_t retval = FAILURE;
   x509_crl crl = {0};
 
   if (x509parse_crlfile(&crl, crl_file) != 0)
@@ -399,7 +400,7 @@ x509_verify_crl(const char *crl_file, x509_cert *cert, const char *subject)
     {
       msg (M_WARN, "CRL: CRL %s is from a different issuer than the issuer of "
 	  "certificate %s", crl_file, subject);
-      retval = 1;
+      retval = SUCCESS;
       goto end;
     }
 
@@ -409,14 +410,10 @@ x509_verify_crl(const char *crl_file, x509_cert *cert, const char *subject)
       goto end;
     }
 
-  retval = 1;
+  retval = SUCCESS;
   msg (D_HANDSHAKE, "CRL CHECK OK: %s",subject);
 
 end:
   x509_crl_free(&crl);
-
-  if (!retval)
-    return true;
-
-  return false;
+  return retval;
 }

@@ -144,7 +144,7 @@ bool extract_x509_extension(X509 *cert, char *fieldname, char *out, int size)
  * Return true on success, false on error (insufficient buffer size in 'out'
  * to contain result is grounds for error).
  */
-static bool
+static result_t
 extract_x509_field_ssl (X509_NAME *x509, const char *field_name, char *out,
     int size)
 {
@@ -164,29 +164,29 @@ extract_x509_field_ssl (X509_NAME *x509, const char *field_name, char *out,
 
   /* Nothing found */
   if (lastpos == -1)
-    return false;
+    return FAILURE;
 
   x509ne = X509_NAME_get_entry(x509, lastpos);
   if (!x509ne)
-    return false;
+    return FAILURE;
 
   asn1 = X509_NAME_ENTRY_get_data(x509ne);
   if (!asn1)
-    return false;
+    return FAILURE;
   tmp = ASN1_STRING_to_UTF8(&buf, asn1);
   if (tmp <= 0)
-    return false;
+    return FAILURE;
 
   strncpynt(out, (char *)buf, size);
 
   {
-    const bool ret = (strlen ((char *)buf) < size);
+    const result_t ret = (strlen ((char *)buf) < size) ? SUCCESS: FAILURE;
     OPENSSL_free (buf);
     return ret;
   }
 }
 
-bool
+result_t
 x509_get_username (char *common_name, int cn_len,
     char * x509_username_field, X509 *peer_cert)
 {
@@ -194,14 +194,14 @@ x509_get_username (char *common_name, int cn_len,
   if (strncmp("ext:",x509_username_field,4) == 0)
     {
       if (!extract_x509_extension (peer_cert, x509_username_field+4, common_name, cn_len))
-	return true;
+	return FAILURE;
     } else
 #endif
-  if (!extract_x509_field_ssl (X509_get_subject_name (peer_cert),
+  if (FAILURE == extract_x509_field_ssl (X509_get_subject_name (peer_cert),
       x509_username_field, common_name, cn_len))
-      return true;
+      return FAILURE;
 
-  return false;
+  return SUCCESS;
 }
 
 char *
@@ -406,29 +406,29 @@ x509_setenv (struct env_set *es, int cert_depth, x509_cert_t *peer_cert)
     }
 }
 
-bool
+result_t
 x509_verify_ns_cert_type(const x509_cert_t *peer_cert, const int usage)
 {
   if (usage == NS_CERT_CHECK_NONE)
-    return true;
+    return SUCCESS;
   if (usage == NS_CERT_CHECK_CLIENT)
     return ((peer_cert->ex_flags & EXFLAG_NSCERT)
-	&& (peer_cert->ex_nscert & NS_SSL_CLIENT));
+	&& (peer_cert->ex_nscert & NS_SSL_CLIENT)) ? SUCCESS: FAILURE;
   if (usage == NS_CERT_CHECK_SERVER)
     return ((peer_cert->ex_flags & EXFLAG_NSCERT)
-	&& (peer_cert->ex_nscert & NS_SSL_SERVER));
+	&& (peer_cert->ex_nscert & NS_SSL_SERVER))  ? SUCCESS: FAILURE;
 
-  return false;
+  return FAILURE;
 }
 
 #if OPENSSL_VERSION_NUMBER >= 0x00907000L
 
-bool
+result_t
 x509_verify_cert_ku (X509 *x509, const unsigned * const expected_ku,
     int expected_len)
 {
   ASN1_BIT_STRING *ku = NULL;
-  bool fFound = false;
+  result_t fFound = FAILURE;
 
   if ((ku = (ASN1_BIT_STRING *) X509_get_ext_d2i (x509, NID_key_usage, NULL,
       NULL)) == NULL)
@@ -454,7 +454,7 @@ x509_verify_cert_ku (X509 *x509, const unsigned * const expected_ku,
 	}
 
       msg (D_HANDSHAKE, "Validating certificate key usage");
-      for (i = 0; !fFound && i < expected_len; i++)
+      for (i = 0; fFound != SUCCESS && i < expected_len; i++)
 	{
 	  if (expected_ku[i] != 0)
 	    {
@@ -462,7 +462,7 @@ x509_verify_cert_ku (X509 *x509, const unsigned * const expected_ku,
 		  "%04x", nku, expected_ku[i]);
 
 	      if (nku == expected_ku[i])
-		fFound = true;
+		fFound = SUCCESS;
 	    }
 	}
     }
@@ -473,11 +473,11 @@ x509_verify_cert_ku (X509 *x509, const unsigned * const expected_ku,
   return fFound;
 }
 
-bool
+result_t
 x509_verify_cert_eku (X509 *x509, const char * const expected_oid)
 {
   EXTENDED_KEY_USAGE *eku = NULL;
-  bool fFound = false;
+  result_t fFound = FAILURE;
 
   if ((eku = (EXTENDED_KEY_USAGE *) X509_get_ext_d2i (x509, NID_ext_key_usage,
       NULL, NULL)) == NULL)
@@ -489,24 +489,24 @@ x509_verify_cert_eku (X509 *x509, const char * const expected_oid)
       int i;
 
       msg (D_HANDSHAKE, "Validating certificate extended key usage");
-      for (i = 0; !fFound && i < sk_ASN1_OBJECT_num (eku); i++)
+      for (i = 0; SUCCESS != fFound && i < sk_ASN1_OBJECT_num (eku); i++)
 	{
 	  ASN1_OBJECT *oid = sk_ASN1_OBJECT_value (eku, i);
 	  char szOid[1024];
 
-	  if (!fFound && OBJ_obj2txt (szOid, sizeof(szOid), oid, 0) != -1)
+	  if (SUCCESS != fFound && OBJ_obj2txt (szOid, sizeof(szOid), oid, 0) != -1)
 	    {
 	      msg (D_HANDSHAKE, "++ Certificate has EKU (str) %s, expects %s",
 		  szOid, expected_oid);
 	      if (!strcmp (expected_oid, szOid))
-		fFound = true;
+		fFound = SUCCESS;
 	    }
-	  if (!fFound && OBJ_obj2txt (szOid, sizeof(szOid), oid, 1) != -1)
+	  if (SUCCESS != fFound && OBJ_obj2txt (szOid, sizeof(szOid), oid, 1) != -1)
 	    {
 	      msg (D_HANDSHAKE, "++ Certificate has EKU (oid) %s, expects %s",
 		  szOid, expected_oid);
 	      if (!strcmp (expected_oid, szOid))
-		fFound = true;
+		fFound = SUCCESS;
 	    }
 	}
     }
@@ -517,15 +517,15 @@ x509_verify_cert_eku (X509 *x509, const char * const expected_oid)
   return fFound;
 }
 
-bool
+result_t
 x509_write_pem(FILE *peercert_file, X509 *peercert)
 {
   if (PEM_write_X509(peercert_file, peercert) < 0)
     {
       msg (M_ERR, "Failed to write peer certificate in PEM format");
-      return true;
+      return FAILURE;
     }
-  return false;
+  return SUCCESS;
 }
 
 #endif /* OPENSSL_VERSION_NUMBER */
@@ -533,13 +533,14 @@ x509_write_pem(FILE *peercert_file, X509 *peercert)
 /*
  * check peer cert against CRL
  */
-bool
+result_t
 x509_verify_crl(const char *crl_file, X509 *peer_cert, const char *subject)
 {
   X509_CRL *crl=NULL;
   X509_REVOKED *revoked;
   BIO *in=NULL;
-  int n,i,retval = 0;
+  int n,i;
+  result_t retval = FAILURE;
 
   in=BIO_new(BIO_s_file());
 
@@ -560,7 +561,7 @@ x509_verify_crl(const char *crl_file, X509 *peer_cert, const char *subject)
   if (X509_NAME_cmp(X509_CRL_get_issuer(crl), X509_get_issuer_name(peer_cert)) != 0) {
     msg (M_WARN, "CRL: CRL %s is from a different issuer than the issuer of "
 	"certificate %s", crl_file, subject);
-    retval = 1;
+    retval = SUCCESS;
     goto end;
   }
 
@@ -573,7 +574,7 @@ x509_verify_crl(const char *crl_file, X509 *peer_cert, const char *subject)
     }
   }
 
-  retval = 1;
+  retval = SUCCESS;
   msg (D_HANDSHAKE, "CRL CHECK OK: %s",subject);
 
 end:
@@ -581,5 +582,5 @@ end:
   if (crl)
     X509_CRL_free (crl);
 
-  return !retval;
+  return retval;
 }

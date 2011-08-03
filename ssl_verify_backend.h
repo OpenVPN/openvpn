@@ -30,6 +30,11 @@
 #ifndef SSL_VERIFY_BACKEND_H_
 #define SSL_VERIFY_BACKEND_H_
 
+/**
+ * Result of verification function
+ */
+typedef enum { SUCCESS=0, FAILURE=1 } result_t;
+
 /*
  * Backend support functions.
  *
@@ -48,9 +53,9 @@
  * @param cert		Certificate to process
  * @param cert_depth	Depth of the current certificate
  *
- * @return 		\c 1 if verification was successful, \c 0 on failure.
+ * @return 		\c SUCCESS if verification was successful, \c FAILURE on failure.
  */
-int verify_cert(struct tls_session *session, x509_cert_t *cert, int cert_depth);
+result_t verify_cert(struct tls_session *session, x509_cert_t *cert, int cert_depth);
 
 /*
  * Remember the given certificate hash, allowing the certificate chain to be
@@ -118,9 +123,9 @@ void x509_free_sha1_hash (unsigned char *hash);
  * @param x509_username_field	Name of the field to load from
  * @param cert			Certificate to retrieve the common name from.
  *
- * @return 		\c 1 on failure, \c 0 on success
+ * @return 		\c FAILURE, \c or SUCCESS
  */
-bool x509_get_username (char *common_name, int cn_len,
+result_t x509_get_username (char *common_name, int cn_len,
     char * x509_username_field, x509_cert_t *peer_cert);
 
 /*
@@ -201,11 +206,11 @@ void x509_setenv_track (const struct x509_track *xt, struct env_set *es,
  * @param usage		One of \c NS_CERT_CHECK_CLIENT, \c NS_CERT_CHECK_SERVER,
  * 			or \c NS_CERT_CHECK_NONE.
  *
- * @return		\c true if NS_CERT_CHECK_NONE or if the certificate has
- * 			the expected bit set. \c false if the certificate does
+ * @return		\c SUCCESS if NS_CERT_CHECK_NONE or if the certificate has
+ * 			the expected bit set. \c FAILURE if the certificate does
  * 			not have NS cert type verification or the wrong bit set.
  */
-bool x509_verify_ns_cert_type(const x509_cert_t *cert, const int usage);
+result_t x509_verify_ns_cert_type(const x509_cert_t *cert, const int usage);
 
 #if OPENSSL_VERSION_NUMBER >= 0x00907000L || USE_POLARSSL
 
@@ -216,10 +221,10 @@ bool x509_verify_ns_cert_type(const x509_cert_t *cert, const int usage);
  * @param expected_ku	Array of valid key usage values
  * @param expected_len	Length of the key usage array
  *
- * @return 		\c true if one of the key usage values matches, \c false
+ * @return 		\c SUCCESS if one of the key usage values matches, \c FAILURE
  * 			if key usage is not enabled, or the values do not match.
  */
-bool x509_verify_cert_ku (x509_cert_t *x509, const unsigned * const expected_ku,
+result_t x509_verify_cert_ku (x509_cert_t *x509, const unsigned * const expected_ku,
     int expected_len);
 
 /*
@@ -231,11 +236,11 @@ bool x509_verify_cert_ku (x509_cert_t *x509, const unsigned * const expected_ku,
  * 			(e.g. \c "1.2.3.4", or the descriptive string matching
  * 			the OID.
  *
- * @return 		\c true if one of the expected OID matches one of the
- * 			extended key usage fields, \c false if extended key
+ * @return 		\c SUCCESS if one of the expected OID matches one of the
+ * 			extended key usage fields, \c FAILURE if extended key
  * 			usage is not enabled, or the values do not match.
  */
-bool x509_verify_cert_eku (x509_cert_t *x509, const char * const expected_oid);
+result_t x509_verify_cert_eku (x509_cert_t *x509, const char * const expected_oid);
 
 #endif
 
@@ -245,8 +250,10 @@ bool x509_verify_cert_eku (x509_cert_t *x509, const char * const expected_oid);
  * @param cert		Certificate to store
  * @param tmp_dir	Temporary directory to store the directory
  * @param gc		gc_arena to store temporary objects in
+ *
+ *
  */
-bool x509_write_pem(FILE *peercert_file, x509_cert_t *peercert);
+result_t x509_write_pem(FILE *peercert_file, x509_cert_t *peercert);
 
 /*
  * Check the certificate against a CRL file.
@@ -255,11 +262,11 @@ bool x509_write_pem(FILE *peercert_file, x509_cert_t *peercert);
  * @param cert		Certificate to verify
  * @param subject	Subject of the given certificate
  *
- * @return 		\c 1 if the CRL was not signed by the issuer of the
+ * @return 		\c SUCCESS if the CRL was not signed by the issuer of the
  * 			certificate or does not contain an entry for it.
- * 			\c 0 otherwise.
+ * 			\c FAILURE otherwise.
  */
-bool x509_verify_crl(const char *crl_file, x509_cert_t *cert,
+result_t x509_verify_crl(const char *crl_file, x509_cert_t *cert,
     const char *subject);
 
 #endif /* SSL_VERIFY_BACKEND_H_ */
