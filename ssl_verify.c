@@ -500,15 +500,14 @@ verify_cert_call_command(const char *verify_command, struct env_set *es,
     int cert_depth, x509_cert_t *cert, char *subject, const char *verify_export_cert)
 {
   const char *tmp_file = NULL;
-  struct gc_arena gc;
   int ret;
+  struct gc_arena gc = gc_new();
   struct argv argv = argv_new ();
 
   setenv_str (es, "script_type", "tls-verify");
 
   if (verify_export_cert)
     {
-      gc = gc_new();
       if ((tmp_file=verify_cert_export_cert(cert, verify_export_cert, &gc)))
        {
          setenv_str(es, "peer_cert", tmp_file);
@@ -524,9 +523,9 @@ verify_cert_call_command(const char *verify_command, struct env_set *es,
     {
        if (tmp_file)
           delete_file(tmp_file);
-       gc_free(&gc);
     }
 
+  gc_free(&gc);
   argv_reset (&argv);
 
   if (ret)
