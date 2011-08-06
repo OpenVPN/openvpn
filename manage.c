@@ -3173,7 +3173,7 @@ command_line_add (struct command_line *cl, const unsigned char *buf, const int l
   int i;
   for (i = 0; i < len; ++i)
     {
-      if (buf[i] && (isprint(buf[i]) || buf[i] == '\n'))
+      if (buf[i] && char_class(buf[i], (CC_PRINT|CC_NEWLINE)))
 	{
 	  if (!buf_write_u8 (&cl->buf, buf[i]))
 	    buf_clear (&cl->buf);

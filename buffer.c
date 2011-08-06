@@ -720,7 +720,7 @@ char_class (const unsigned char c, const unsigned int flags)
     return true;
   if ((flags & CC_DIGIT) && isdigit (c))
     return true;
-  if ((flags & CC_PRINT) && isprint (c))
+  if ((flags & CC_PRINT) && (isprint (c) || c >= 0x7f)) /* allow UTF-8 */
     return true;
   if ((flags & CC_PUNCT) && ispunct (c))
     return true;    
