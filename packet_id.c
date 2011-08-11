@@ -231,8 +231,8 @@ packet_id_test (struct packet_id_rec *p,
 	      return true;
 	    else
 	      {
-		/* might want to increase this to D_PID_DEBUG_MEDIUM (or even D_PID_DEBUG) in the future */
-		packet_id_debug (D_PID_DEBUG_LOW, p, pin, "PID_ERR replay", diff);
+		/* raised from D_PID_DEBUG_LOW to reduce verbosity */
+		packet_id_debug (D_PID_DEBUG_MEDIUM, p, pin, "PID_ERR replay", diff);
 		return false;
 	      }
 	  }
