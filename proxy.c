@@ -34,11 +34,6 @@
 #include "base64.h"
 #include "httpdigest.h"
 #include "ntlm.h"
-
-#ifdef WIN32
-#include "ieproxy.h"
-#endif
-
 #include "memdbg.h"
 
 #ifdef ENABLE_HTTP_PROXY

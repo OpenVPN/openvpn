@@ -127,7 +127,6 @@ openvpn_SOURCES = \
 	pool.c pool.h \
 	proto.c proto.h \
 	proxy.c proxy.h \
-	ieproxy.h ieproxy.c \
         ps.c ps.h \
 	push.c push.h \
 	pushlist.h \
