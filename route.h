@@ -328,7 +328,7 @@ route_list_vpn_gateway_needed (const struct route_list *rl)
 static inline int
 route_did_redirect_default_gateway(const struct route_list *rl)
 {
-  return BOOL_CAST(rl->iflags & RL_DID_REDIRECT_DEFAULT_GATEWAY);
+  return rl && BOOL_CAST(rl->iflags & RL_DID_REDIRECT_DEFAULT_GATEWAY);
 }
 
 #endif

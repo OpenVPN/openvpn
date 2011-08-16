@@ -808,7 +808,7 @@ redirect_default_route_to_vpn (struct route_list *rl, const struct tuntap *tt, u
 {
   const char err[] = "NOTE: unable to redirect default gateway --";
 
-  if (rl->flags & RG_ENABLE)
+  if ( rl && rl->flags & RG_ENABLE )
     {
       if (!(rl->spec.flags & RTSA_REMOTE_ENDPOINT))
 	{
@@ -917,7 +917,7 @@ redirect_default_route_to_vpn (struct route_list *rl, const struct tuntap *tt, u
 static void
 undo_redirect_default_route_to_vpn (struct route_list *rl, const struct tuntap *tt, unsigned int flags, const struct env_set *es)
 {
-  if (rl->iflags & RL_DID_REDIRECT_DEFAULT_GATEWAY)
+  if ( rl && rl->iflags & RL_DID_REDIRECT_DEFAULT_GATEWAY )
     {
       /* delete remote host route */
       if (rl->iflags & RL_DID_LOCAL)
@@ -987,7 +987,7 @@ void
 add_routes (struct route_list *rl, struct route_ipv6_list *rl6, const struct tuntap *tt, unsigned int flags, const struct env_set *es)
 {
   redirect_default_route_to_vpn (rl, tt, flags, es);
-  if (!(rl->iflags & RL_ROUTES_ADDED))
+  if ( rl && !(rl->iflags & RL_ROUTES_ADDED) )
     {
       int i;
 
@@ -1031,19 +1031,23 @@ void
 delete_routes (struct route_list *rl, struct route_ipv6_list *rl6,
 	       const struct tuntap *tt, unsigned int flags, const struct env_set *es)
 {
-  if (rl->iflags & RL_ROUTES_ADDED)
+  if ( rl && rl->iflags & RL_ROUTES_ADDED )
     {
       int i;
       for (i = rl->n - 1; i >= 0; --i)
 	{
-	  const struct route *r = &rl->routes[i];
+	  struct route * r = &rl->routes[i];
 	  delete_route (r, tt, flags, &rl->rgi, es);
 	}
       rl->iflags &= ~RL_ROUTES_ADDED;
     }
 
    undo_redirect_default_route_to_vpn (rl, tt, flags, es);
-   clear_route_list (rl);
+
+  if ( rl )
+    {
+      clear_route_list (rl);
+    }
 
   if ( rl6 && rl6->routes_added )
     {
