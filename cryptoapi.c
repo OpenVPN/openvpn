@@ -40,21 +40,23 @@
 #include <ctype.h>
 #include <assert.h>
 
-#ifdef __MINGW32_VERSION
-/* MinGW w32api is incomplete when it comes to CryptoAPI, as per version 3.1
- * anyway. This is a hack around that problem. */
-#define CALG_SSL3_SHAMD5 (ALG_CLASS_HASH | ALG_TYPE_ANY | ALG_SID_SSL3SHAMD5)
+/* MinGW w32api 3.17 is still incomplete when it comes to CryptoAPI while
+ * MinGW32-w64 defines all macros used. This is a hack around that problem.
+ */
+#ifndef CERT_SYSTEM_STORE_LOCATION_SHIFT
 #define CERT_SYSTEM_STORE_LOCATION_SHIFT 16
+#endif
+#ifndef CERT_SYSTEM_STORE_CURRENT_USER_ID
 #define CERT_SYSTEM_STORE_CURRENT_USER_ID 1
+#endif
+#ifndef CERT_SYSTEM_STORE_CURRENT_USER
 #define CERT_SYSTEM_STORE_CURRENT_USER (CERT_SYSTEM_STORE_CURRENT_USER_ID << CERT_SYSTEM_STORE_LOCATION_SHIFT)
+#endif
+#ifndef CERT_STORE_READONLY_FLAG
 #define CERT_STORE_READONLY_FLAG 0x00008000
+#endif
+#ifndef CERT_STORE_OPEN_EXISTING_FLAG
 #define CERT_STORE_OPEN_EXISTING_FLAG 0x00004000
-#define CRYPT_ACQUIRE_COMPARE_KEY_FLAG 0x00000004
-static HINSTANCE crypt32dll = NULL;
-static BOOL WINAPI (*OpenVPNCryptAcquireCertificatePrivateKey) (PCCERT_CONTEXT pCert, DWORD dwFlags,
-  void *pvReserved, HCRYPTPROV *phCryptProv, DWORD *pdwKeySpec, BOOL *pfCallerFreeProv) = NULL;
-#else
-#define OpenVPNCryptAcquireCertificatePrivateKey CryptAcquireCertificatePrivateKey
 #endif
 
 /* Size of an SSL signature: MD5+SHA1 */
@@ -379,26 +381,7 @@ int SSL_CTX_use_CryptoAPI_certificate(SSL_CTX *ssl_ctx, const char *cert_prop)
     }
 
     /* set up stuff to use the private key */
-#ifdef __MINGW32_VERSION
-    /* MinGW w32api is incomplete when it comes to CryptoAPI, as per version 3.1
-     * anyway. This is a hack around that problem. */
-    if (crypt32dll == NULL) {
-	crypt32dll = LoadLibrary("crypt32");
-	if (crypt32dll == NULL) {
-	    CRYPTOAPIerr(CRYPTOAPI_F_LOAD_LIBRARY);
-	    goto err;
-	}
-    }
-    if (OpenVPNCryptAcquireCertificatePrivateKey == NULL) {
-	OpenVPNCryptAcquireCertificatePrivateKey = GetProcAddress(crypt32dll,
-		"CryptAcquireCertificatePrivateKey");
-	if (OpenVPNCryptAcquireCertificatePrivateKey == NULL) {
-	    CRYPTOAPIerr(CRYPTOAPI_F_GET_PROC_ADDRESS);
-	    goto err;
-	}
-    }
-#endif
-    if (!OpenVPNCryptAcquireCertificatePrivateKey(cd->cert_context, CRYPT_ACQUIRE_COMPARE_KEY_FLAG,
+    if (!CryptAcquireCertificatePrivateKey(cd->cert_context, CRYPT_ACQUIRE_COMPARE_KEY_FLAG,
 	    NULL, &cd->crypt_prov, &cd->key_spec, &cd->free_crypt_prov)) {
 	/* if we don't have a smart card reader here, and we try to access a
 	 * smart card certificate, we get:
