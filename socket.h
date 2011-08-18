@@ -563,12 +563,6 @@ legal_ipv4_port (int port)
   return port > 0 && port < 65536;
 }
 
-static inline int
-is_proto_tcp(const int p)
-{
-  return p > 0; /* depends on the definition of PROTO_x */
-}
-
 static inline bool
 link_socket_proto_connection_oriented (int proto)
 {

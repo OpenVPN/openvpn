@@ -2417,7 +2417,7 @@ options_postprocess_mutate_ce (struct options *o, struct connection_entry *ce)
     ce->local_port = 0;
 
   /* if protocol forcing is enabled, disable all protocols except for the forced one */
-  if (o->proto_force >= 0 && is_proto_tcp(o->proto_force) != is_proto_tcp(ce->proto))
+  if (o->proto_force >= 0 && proto_is_tcp(o->proto_force) != proto_is_tcp(ce->proto))
     ce->flags |= CE_DISABLED;
 }
 
