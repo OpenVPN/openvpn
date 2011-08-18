@@ -214,9 +214,9 @@ we_ctl (struct event_set *es, event_t event, unsigned int rwflags, void *arg)
 {
   struct we_set *wes = (struct we_set *) es;
 
-  dmsg (D_EVENT_WAIT, "WE_CTL n=%d ev=0x%08x rwflags=0x%04x arg=" ptr_format,
+  dmsg (D_EVENT_WAIT, "WE_CTL n=%d ev=%p rwflags=0x%04x arg=" ptr_format,
        wes->n_events,
-       (unsigned int)event,
+       event,
        rwflags,
        (ptr_type)arg);
 
@@ -344,9 +344,9 @@ we_wait (struct event_set *es, const struct timeval *tv, struct event_set_return
   if (check_debug_level (D_EVENT_WAIT)) {
     int i;
     for (i = 0; i < wes->n_events; ++i)
-      dmsg (D_EVENT_WAIT, "[%d] ev=0x%08x rwflags=0x%04x arg=" ptr_format,
+      dmsg (D_EVENT_WAIT, "[%d] ev=%p rwflags=0x%04x arg=" ptr_format,
        i,
-       (unsigned int)wes->events[i],
+       wes->events[i],
        wes->esr[i].rwflags,
        (ptr_type)wes->esr[i].arg);
   }
