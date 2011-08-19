@@ -492,9 +492,9 @@ add_block_local_item (struct route_list *rl,
       CLEAR(r);
       r.flags = RT_DEFINED;
       r.gateway = target;
+      r.network = gateway->addr & gateway->netmask;
       l2 = ((~gateway->netmask)+1)>>1;
       r.netmask = ~(l2-1);
-      r.network = gateway->addr & r.netmask;
       rl->routes[rl->n++] = r;
       r.network += l2;
       rl->routes[rl->n++] = r;
