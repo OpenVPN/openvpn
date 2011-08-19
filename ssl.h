@@ -849,6 +849,7 @@ bool tls_rec_payload (struct tls_multi *multi,
 		      struct buffer *buf);
 
 const char *tls_common_name (const struct tls_multi* multi, const bool null);
+const char *tls_username(const struct tls_multi *multi, const bool null);
 void tls_set_common_name (struct tls_multi *multi, const char *common_name);
 void tls_lock_common_name (struct tls_multi *multi);
 void tls_lock_cert_hash_set (struct tls_multi *multi);

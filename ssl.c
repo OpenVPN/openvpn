@@ -1404,6 +1404,20 @@ tls_lock_username (struct tls_multi *multi, const char *username)
   return true;
 }
 
+const char *
+tls_username (const struct tls_multi *multi, const bool null)
+{
+  const char *ret = NULL;
+  if (multi)
+    ret = multi->locked_username;
+  if (ret && strlen (ret))
+    return ret;
+  else if (null)
+    return NULL;
+  else
+    return "UNDEF";
+}
+
 #ifdef ENABLE_X509_TRACK
 
 void
