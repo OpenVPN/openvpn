@@ -278,8 +278,19 @@ struct auth_challenge_info {
 
 struct auth_challenge_info *get_auth_challenge (const char *auth_challenge, struct gc_arena *gc);
 
+/*
+ * Challenge response info on client as pushed by server.
+ */
+struct static_challenge_info {
+# define SC_ECHO     (1<<0) /* echo response when typed by user */
+  unsigned int flags;
+
+  const char *challenge_text;
+};
+
 #else
 struct auth_challenge_info {};
+struct static_challenge_info {};
 #endif
 
 bool get_console_input (const char *prompt, const bool echo, char *input, const int capacity);
@@ -294,6 +305,10 @@ bool get_console_input (const char *prompt, const bool echo, char *input, const 
 #define GET_USER_PASS_NOFATAL       (1<<4)
 #define GET_USER_PASS_NEED_STR      (1<<5)
 #define GET_USER_PASS_PREVIOUS_CREDS_FAILED (1<<6)
+
+#define GET_USER_PASS_DYNAMIC_CHALLENGE      (1<<7) /* CRV1 protocol  -- dynamic challenge */
+#define GET_USER_PASS_STATIC_CHALLENGE       (1<<8) /* SCRV1 protocol -- static challenge */
+#define GET_USER_PASS_STATIC_CHALLENGE_ECHO  (1<<9) /* SCRV1 protocol -- echo response */
 
 bool get_user_pass_cr (struct user_pass *up,
 		       const char *auth_file,

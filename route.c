@@ -39,7 +39,8 @@
 
 #include "memdbg.h"
 
-static void delete_route (const struct route *r, const struct tuntap *tt, unsigned int flags, const struct env_set *es);
+static void delete_route (struct route *r, const struct tuntap *tt, unsigned int flags, const struct route_gateway_info *rgi, const struct env_set *es);
+
 static void get_bypass_addresses (struct route_bypass *rb, const unsigned int flags);
 
 #ifdef ENABLE_DEBUG
@@ -59,6 +60,26 @@ print_bypass_addresses (const struct route_bypass *rb)
 }
 
 #endif
+
+static bool
+add_bypass_address (struct route_bypass *rb, const in_addr_t a)
+{
+  int i;
+  for (i = 0; i < rb->n_bypass; ++i)
+    {
+      if (a == rb->bypass[i]) /* avoid duplicates */
+	return true;
+    }
+  if (rb->n_bypass < N_ROUTE_BYPASS)
+    {
+      rb->bypass[rb->n_bypass++] = a;
+      return true;
+    }
+  else
+    {
+      return false;
+    }
+}
 
 struct route_option_list *
 new_route_option_list (const int max_routes, struct gc_arena *a)
@@ -123,7 +144,7 @@ route_string (const struct route *r, struct gc_arena *gc)
 	      print_in_addr_t (r->netmask, 0, gc),
 	      print_in_addr_t (r->gateway, 0, gc)
 	      );
-  if (r->metric_defined)
+  if (r->flags & RT_METRIC_DEFINED)
     buf_printf (&out, " metric %d", r->metric);
   return BSTR (&out);
 }
@@ -152,7 +173,7 @@ setenv_route_addr (struct env_set *es, const char *key, const in_addr_t addr, in
 }
 
 static bool
-get_special_addr (const struct route_special_addr *spec,
+get_special_addr (const struct route_list *rl,
 		  const char *string,
 		  in_addr_t *out,
 		  bool *status)
@@ -161,10 +182,10 @@ get_special_addr (const struct route_special_addr *spec,
     *status = true;
   if (!strcmp (string, "vpn_gateway"))
     {
-      if (spec)
+      if (rl)
 	{
-	  if (spec->remote_endpoint_defined)
-	    *out = spec->remote_endpoint;
+	  if (rl->spec.flags & RTSA_REMOTE_ENDPOINT)
+	    *out = rl->spec.remote_endpoint;
 	  else
 	    {
 	      msg (M_INFO, PACKAGE_NAME " ROUTE: vpn_gateway undefined");
@@ -176,10 +197,10 @@ get_special_addr (const struct route_special_addr *spec,
     }
   else if (!strcmp (string, "net_gateway"))
     {
-      if (spec)
+      if (rl)
 	{
-	  if (spec->net_gateway_defined)
-	    *out = spec->net_gateway;
+	  if (rl->rgi.flags & RGI_ADDR_DEFINED)
+	    *out = rl->rgi.gateway.addr;
 	  else
 	    {
 	      msg (M_INFO, PACKAGE_NAME " ROUTE: net_gateway undefined -- unable to get default gateway from system");
@@ -191,10 +212,10 @@ get_special_addr (const struct route_special_addr *spec,
     }
   else if (!strcmp (string, "remote_host"))
     {
-      if (spec)
+      if (rl)
 	{
-	  if (spec->remote_host_defined)
-	    *out = spec->remote_host;
+	  if (rl->spec.flags & RTSA_REMOTE_HOST)
+	    *out = rl->spec.remote_host;
 	  else
 	    {
 	      msg (M_INFO, PACKAGE_NAME " ROUTE: remote_host undefined");
@@ -220,13 +241,13 @@ static bool
 init_route (struct route *r,
 	    struct resolve_list *network_list,
 	    const struct route_option *ro,
-	    const struct route_special_addr *spec)
+	    const struct route_list *rl)
 {
   const in_addr_t default_netmask = ~0;
   bool status;
 
+  CLEAR (*r);
   r->option = ro;
-  r->defined = false;
 
   /* network */
 
@@ -235,7 +256,7 @@ init_route (struct route *r,
       goto fail;
     }
   
-  if (!get_special_addr (spec, ro->network, &r->network, &status))
+  if (!get_special_addr (rl, ro->network, &r->network, &status))
     {
       r->network = getaddr_multi (
 				  GETADDR_RESOLVE
@@ -272,7 +293,7 @@ init_route (struct route *r,
 
   if (is_route_parm_defined (ro->gateway))
     {
-      if (!get_special_addr (spec, ro->gateway, &r->gateway, &status))
+      if (!get_special_addr (rl, ro->gateway, &r->gateway, &status))
 	{
 	  r->gateway = getaddr (
 				GETADDR_RESOLVE
@@ -288,8 +309,8 @@ init_route (struct route *r,
     }
   else
     {
-      if (spec->remote_endpoint_defined)
-	r->gateway = spec->remote_endpoint;
+      if (rl->spec.flags & RTSA_REMOTE_ENDPOINT)
+	r->gateway = rl->spec.remote_endpoint;
       else
 	{
 	  msg (M_WARN, PACKAGE_NAME " ROUTE: " PACKAGE_NAME " needs a gateway parameter for a --route option and no default was specified by either --route-gateway or --ifconfig options");
@@ -299,7 +320,6 @@ init_route (struct route *r,
 
   /* metric */
 
-  r->metric_defined = false;
   r->metric = 0;
   if (is_route_parm_defined (ro->metric))
     {
@@ -311,22 +331,21 @@ init_route (struct route *r,
 	       ro->metric);
 	  goto fail;
 	}
-      r->metric_defined = true;
+      r->flags |= RT_METRIC_DEFINED;
     }
-  else if (spec->default_metric_defined)
+  else if (rl->spec.flags & RTSA_DEFAULT_METRIC)
     {
-      r->metric = spec->default_metric;
-      r->metric_defined = true;
+      r->metric = rl->spec.default_metric;
+      r->flags |= RT_METRIC_DEFINED;
     }
 
-  r->defined = true;
+  r->flags |= RT_DEFINED;
 
   return true;
 
  fail:
   msg (M_WARN, PACKAGE_NAME " ROUTE: failed to parse/resolve route for host/network: %s",
        ro->network);
-  r->defined = false;
   return false;
 }
 
@@ -447,13 +466,68 @@ clear_route_ipv6_list (struct route_ipv6_list *rl6)
 }
 
 void
-route_list_add_default_gateway (struct route_list *rl,
-				struct env_set *es,
-				const in_addr_t addr)
+route_list_add_vpn_gateway (struct route_list *rl,
+			    struct env_set *es,
+			    const in_addr_t addr)
 {
   rl->spec.remote_endpoint = addr;
-  rl->spec.remote_endpoint_defined = true;
+  rl->spec.flags |= RTSA_REMOTE_ENDPOINT;
   setenv_route_addr (es, "vpn_gateway", rl->spec.remote_endpoint, -1);
+}
+
+static void
+add_block_local_item (struct route_list *rl,
+		      const struct route_gateway_address *gateway,
+		      in_addr_t target)
+{
+  const int rgi_needed = (RGI_ADDR_DEFINED|RGI_NETMASK_DEFINED);
+  if ((rl->rgi.flags & rgi_needed) == rgi_needed
+      && rl->rgi.gateway.netmask < 0xFFFFFFFF
+      && (rl->n)+2 <= rl->capacity)
+    {
+      struct route r;
+      unsigned int l2;
+
+      /* split a route into two smaller blocking routes, and direct them to target */
+      CLEAR(r);
+      r.flags = RT_DEFINED;
+      r.gateway = target;
+      l2 = ((~gateway->netmask)+1)>>1;
+      r.netmask = ~(l2-1);
+      r.network = gateway->addr & r.netmask;
+      rl->routes[rl->n++] = r;
+      r.network += l2;
+      rl->routes[rl->n++] = r;
+    }
+}
+
+static void
+add_block_local (struct route_list *rl)
+{
+  const int rgi_needed = (RGI_ADDR_DEFINED|RGI_NETMASK_DEFINED);
+  if ((rl->flags & RG_BLOCK_LOCAL)
+      && (rl->rgi.flags & rgi_needed) == rgi_needed
+      && (rl->spec.flags & RTSA_REMOTE_ENDPOINT)
+      && rl->spec.remote_host_local != TLA_LOCAL)
+    {
+      size_t i;
+
+      /* add bypass for gateway addr */
+      add_bypass_address (&rl->spec.bypass, rl->rgi.gateway.addr);
+
+      /* block access to local subnet */
+      add_block_local_item (rl, &rl->rgi.gateway, rl->spec.remote_endpoint);
+
+      /* process additional subnets on gateway interface */
+      for (i = 0; i < rl->rgi.n_addrs; ++i)
+	{
+	  const struct route_gateway_address *gwa = &rl->rgi.addrs[i];
+	  /* omit the add/subnet in &rl->rgi which we processed above */
+	  if (!((rl->rgi.gateway.addr & rl->rgi.gateway.netmask) == (gwa->addr & gwa->netmask)
+		&& rl->rgi.gateway.netmask == gwa->netmask))
+	    add_block_local_item (rl, gwa, rl->spec.remote_endpoint);
+	}
+    }
 }
 
 bool
@@ -474,48 +548,47 @@ init_route_list (struct route_list *rl,
   if (remote_host)
     {
       rl->spec.remote_host = remote_host;
-      rl->spec.remote_host_defined = true;
+      rl->spec.flags |= RTSA_REMOTE_HOST;
     }
 
   if (default_metric)
     {
       rl->spec.default_metric = default_metric;
-      rl->spec.default_metric_defined = true;
+      rl->spec.flags |= RTSA_DEFAULT_METRIC;
     }
 
-  rl->spec.net_gateway_defined = get_default_gateway (&rl->spec.net_gateway, NULL);
-  if (rl->spec.net_gateway_defined)
+  get_default_gateway (&rl->rgi);
+  if (rl->rgi.flags & RGI_ADDR_DEFINED)
     {
-      setenv_route_addr (es, "net_gateway", rl->spec.net_gateway, -1);
-      dmsg (D_ROUTE, "ROUTE default_gateway=%s", print_in_addr_t (rl->spec.net_gateway, 0, &gc));
+      setenv_route_addr (es, "net_gateway", rl->rgi.gateway.addr, -1);
+#ifdef ENABLE_DEBUG
+      print_default_gateway (D_ROUTE, &rl->rgi);
+#endif
     }
   else
     {
       dmsg (D_ROUTE, "ROUTE: default_gateway=UNDEF");
     }
 
-  if (rl->flags & RG_ENABLE)
-    {
-      get_bypass_addresses (&rl->spec.bypass, rl->flags);
-#ifdef ENABLE_DEBUG
-      print_bypass_addresses (&rl->spec.bypass);
-#endif
-    }
+  if (rl->spec.flags & RTSA_REMOTE_HOST)
+    rl->spec.remote_host_local = test_local_addr (remote_host, &rl->rgi);
 
   if (is_route_parm_defined (remote_endpoint))
     {
+      bool defined = false;
       rl->spec.remote_endpoint = getaddr (
 				     GETADDR_RESOLVE
 				     | GETADDR_HOST_ORDER
 				     | GETADDR_WARN_ON_SIGNAL,
 				     remote_endpoint,
 				     0,
-				     &rl->spec.remote_endpoint_defined,
+				     &defined,
 				     NULL);
 
-      if (rl->spec.remote_endpoint_defined)
+      if (defined)
 	{
 	  setenv_route_addr (es, "vpn_gateway", rl->spec.remote_endpoint, -1);
+	  rl->spec.flags |= RTSA_REMOTE_ENDPOINT;
 	}
       else
 	{
@@ -524,12 +597,20 @@ init_route_list (struct route_list *rl,
 	  ret = false;
 	}
     }
-  else
-    rl->spec.remote_endpoint_defined = false;
+
+  if (rl->flags & RG_ENABLE)
+    {
+      add_block_local (rl);
+      get_bypass_addresses (&rl->spec.bypass, rl->flags);
+#ifdef ENABLE_DEBUG
+      print_bypass_addresses (&rl->spec.bypass);
+#endif
+    }
 
   /* parse the routes from opt to rl */
   {
-    int i, j = 0;
+    int i = 0;
+    int j = rl->n;
     bool warned = false;
     for (i = 0; i < opt->n; ++i)
       {
@@ -542,7 +623,7 @@ init_route_list (struct route_list *rl,
 	if (!init_route (&r,
 			 &netlist,
 			 &opt->routes[i],
-			 &rl->spec))
+			 rl))
 	  ret = false;
 	else
 	  {
@@ -648,15 +729,16 @@ add_route3 (in_addr_t network,
 	    in_addr_t gateway,
 	    const struct tuntap *tt,
 	    unsigned int flags,
+	    const struct route_gateway_info *rgi,
 	    const struct env_set *es)
 {
   struct route r;
   CLEAR (r);
-  r.defined = true;
+  r.flags = RT_DEFINED;
   r.network = network;
   r.netmask = netmask;
   r.gateway = gateway;
-  add_route (&r, tt, flags, es);
+  add_route (&r, tt, flags, rgi, es);
 }
 
 static void
@@ -665,15 +747,16 @@ del_route3 (in_addr_t network,
 	    in_addr_t gateway,
 	    const struct tuntap *tt,
 	    unsigned int flags,
+	    const struct route_gateway_info *rgi,
 	    const struct env_set *es)
 {
   struct route r;
   CLEAR (r);
-  r.defined = true;
+  r.flags = RT_DEFINED|RT_ADDED;
   r.network = network;
   r.netmask = netmask;
   r.gateway = gateway;
-  delete_route (&r, tt, flags, es);
+  delete_route (&r, tt, flags, rgi, es);
 }
 
 static void
@@ -681,17 +764,19 @@ add_bypass_routes (struct route_bypass *rb,
 		   in_addr_t gateway,
 		   const struct tuntap *tt,
 		   unsigned int flags,
+		   const struct route_gateway_info *rgi,
 		   const struct env_set *es)
 {
   int i;
   for (i = 0; i < rb->n_bypass; ++i)
     {
-      if (rb->bypass[i] != gateway)
+      if (rb->bypass[i])
 	add_route3 (rb->bypass[i],
 		    ~0,
 		    gateway,
 		    tt,
 		    flags,
+		    rgi,
 		    es);
     }
 }
@@ -701,17 +786,19 @@ del_bypass_routes (struct route_bypass *rb,
 		   in_addr_t gateway,
 		   const struct tuntap *tt,
 		   unsigned int flags,
+		   const struct route_gateway_info *rgi,
 		   const struct env_set *es)
 {
   int i;
   for (i = 0; i < rb->n_bypass; ++i)
     {
-      if (rb->bypass[i] != gateway)
+      if (rb->bypass[i])
 	del_route3 (rb->bypass[i],
 		    ~0,
 		    gateway,
 		    tt,
 		    flags,
+		    rgi,
 		    es);
     }
 }
@@ -723,15 +810,15 @@ redirect_default_route_to_vpn (struct route_list *rl, const struct tuntap *tt, u
 
   if (rl->flags & RG_ENABLE)
     {
-      if (!rl->spec.remote_endpoint_defined)
+      if (!(rl->spec.flags & RTSA_REMOTE_ENDPOINT))
 	{
 	  msg (M_WARN, "%s VPN gateway parameter (--route-gateway or --ifconfig) is missing", err);
 	}
-      else if (!rl->spec.net_gateway_defined)
+      else if (!(rl->rgi.flags & RGI_ADDR_DEFINED))
 	{
 	  msg (M_WARN, "%s Cannot read current default gateway from system", err);
 	}
-      else if (!rl->spec.remote_host_defined)
+      else if (!(rl->spec.flags & RTSA_REMOTE_HOST))
 	{
 	  msg (M_WARN, "%s Cannot obtain current remote host address", err);
 	}
@@ -739,7 +826,7 @@ redirect_default_route_to_vpn (struct route_list *rl, const struct tuntap *tt, u
 	{
 	  bool local = BOOL_CAST(rl->flags & RG_LOCAL);
 	  if (rl->flags & RG_AUTO_LOCAL) {
-	    const int tla = test_local_addr (rl->spec.remote_host);
+	    const int tla = rl->spec.remote_host_local;
 	    if (tla == TLA_NONLOCAL)
 	      {
 		dmsg (D_ROUTE, "ROUTE remote_host is NOT LOCAL");
@@ -761,11 +848,12 @@ redirect_default_route_to_vpn (struct route_list *rl, const struct tuntap *tt, u
 #endif
 		add_route3 (rl->spec.remote_host,
 			    ~0,
-			    rl->spec.net_gateway,
+			    rl->rgi.gateway.addr,
 			    tt,
 			    flags,
+			    &rl->rgi,
 			    es);
-		rl->did_local = true;
+		rl->iflags |= RL_DID_LOCAL;
 #ifdef USE_PF_INET6
 	      } else {
 		dmsg (D_ROUTE, "ROUTE remote_host protocol differs from tunneled");
@@ -774,7 +862,7 @@ redirect_default_route_to_vpn (struct route_list *rl, const struct tuntap *tt, u
 	    }
 
 	  /* route DHCP/DNS server traffic through original default gateway */
-	  add_bypass_routes (&rl->spec.bypass, rl->spec.net_gateway, tt, flags, es);
+	  add_bypass_routes (&rl->spec.bypass, rl->rgi.gateway.addr, tt, flags, &rl->rgi, es);
 
 	  if (rl->flags & RG_REROUTE_GW)
 	    {
@@ -786,6 +874,7 @@ redirect_default_route_to_vpn (struct route_list *rl, const struct tuntap *tt, u
 			      rl->spec.remote_endpoint,
 			      tt,
 			      flags,
+			      &rl->rgi,
 			      es);
 
 		  /* add new default route (2nd component) */
@@ -794,6 +883,7 @@ redirect_default_route_to_vpn (struct route_list *rl, const struct tuntap *tt, u
 			      rl->spec.remote_endpoint,
 			      tt,
 			      flags,
+			      &rl->rgi,
 			      es);
 		}
 	      else
@@ -801,9 +891,10 @@ redirect_default_route_to_vpn (struct route_list *rl, const struct tuntap *tt, u
 		  /* delete default route */
 		  del_route3 (0,
 			      0,
-			      rl->spec.net_gateway,
+			      rl->rgi.gateway.addr,
 			      tt,
 			      flags,
+			      &rl->rgi,
 			      es);
 
 		  /* add new default route */
@@ -812,12 +903,13 @@ redirect_default_route_to_vpn (struct route_list *rl, const struct tuntap *tt, u
 			      rl->spec.remote_endpoint,
 			      tt,
 			      flags,
+			      &rl->rgi,
 			      es);
 		}
 	    }
 
 	  /* set a flag so we can undo later */
-	  rl->did_redirect_default_gateway = true;
+	  rl->iflags |= RL_DID_REDIRECT_DEFAULT_GATEWAY;
 	}
     }
 }
@@ -825,22 +917,23 @@ redirect_default_route_to_vpn (struct route_list *rl, const struct tuntap *tt, u
 static void
 undo_redirect_default_route_to_vpn (struct route_list *rl, const struct tuntap *tt, unsigned int flags, const struct env_set *es)
 {
-  if (rl->did_redirect_default_gateway)
+  if (rl->iflags & RL_DID_REDIRECT_DEFAULT_GATEWAY)
     {
       /* delete remote host route */
-      if (rl->did_local)
+      if (rl->iflags & RL_DID_LOCAL)
 	{
 	  del_route3 (rl->spec.remote_host,
 		      ~0,
-		      rl->spec.net_gateway,
+		      rl->rgi.gateway.addr,
 		      tt,
 		      flags,
+		      &rl->rgi,
 		      es);
-	  rl->did_local = false;
+	  rl->iflags &= ~RL_DID_LOCAL;
 	}
 
       /* delete special DHCP/DNS bypass route */
-      del_bypass_routes (&rl->spec.bypass, rl->spec.net_gateway, tt, flags, es);
+      del_bypass_routes (&rl->spec.bypass, rl->rgi.gateway.addr, tt, flags, &rl->rgi, es);
 
       if (rl->flags & RG_REROUTE_GW)
 	{
@@ -852,6 +945,7 @@ undo_redirect_default_route_to_vpn (struct route_list *rl, const struct tuntap *
 			  rl->spec.remote_endpoint,
 			  tt,
 			  flags,
+			  &rl->rgi,
 			  es);
 
 	      /* delete default route (2nd component) */
@@ -860,6 +954,7 @@ undo_redirect_default_route_to_vpn (struct route_list *rl, const struct tuntap *
 			  rl->spec.remote_endpoint,
 			  tt,
 			  flags,
+			  &rl->rgi,
 			  es);
 	    }
 	  else
@@ -870,30 +965,29 @@ undo_redirect_default_route_to_vpn (struct route_list *rl, const struct tuntap *
 			  rl->spec.remote_endpoint,
 			  tt,
 			  flags,
+			  &rl->rgi,
 			  es);
 
 	      /* restore original default route */
 	      add_route3 (0,
 			  0,
-			  rl->spec.net_gateway,
+			  rl->rgi.gateway.addr,
 			  tt,
 			  flags,
+			  &rl->rgi,
 			  es);
 	    }
 	}
 
-      rl->did_redirect_default_gateway = false;
+      rl->iflags &= ~RL_DID_REDIRECT_DEFAULT_GATEWAY;
     }
 }
 
 void
-add_routes (struct route_list *rl, struct route_ipv6_list *rl6,
-	    const struct tuntap *tt, unsigned int flags, const struct env_set *es)
+add_routes (struct route_list *rl, struct route_ipv6_list *rl6, const struct tuntap *tt, unsigned int flags, const struct env_set *es)
 {
-  if (rl) 
-      redirect_default_route_to_vpn (rl, tt, flags, es);
-
-  if (rl && !rl->routes_added)
+  redirect_default_route_to_vpn (rl, tt, flags, es);
+  if (!(rl->iflags & RL_ROUTES_ADDED))
     {
       int i;
 
@@ -913,12 +1007,11 @@ add_routes (struct route_list *rl, struct route_ipv6_list *rl6,
 	  struct route *r = &rl->routes[i];
 	  check_subnet_conflict (r->network, r->netmask, "route");
 	  if (flags & ROUTE_DELETE_FIRST)
-	    delete_route (r, tt, flags, es);
-	  add_route (r, tt, flags, es);
+	    delete_route (r, tt, flags, &rl->rgi, es);
+	  add_route (r, tt, flags, &rl->rgi, es);
 	}
-      rl->routes_added = true;
+      rl->iflags |= RL_ROUTES_ADDED;
     }
-
   if (rl6 && !rl6->routes_added)
     {
       int i;
@@ -938,22 +1031,19 @@ void
 delete_routes (struct route_list *rl, struct route_ipv6_list *rl6,
 	       const struct tuntap *tt, unsigned int flags, const struct env_set *es)
 {
-  if (rl && rl->routes_added)
+  if (rl->iflags & RL_ROUTES_ADDED)
     {
       int i;
       for (i = rl->n - 1; i >= 0; --i)
 	{
 	  const struct route *r = &rl->routes[i];
-	  delete_route (r, tt, flags, es);
+	  delete_route (r, tt, flags, &rl->rgi, es);
 	}
-      rl->routes_added = false;
+      rl->iflags &= ~RL_ROUTES_ADDED;
     }
 
-  if ( rl )
-    {
-      undo_redirect_default_route_to_vpn (rl, tt, flags, es);
-      clear_route_list (rl);
-    }
+   undo_redirect_default_route_to_vpn (rl, tt, flags, es);
+   clear_route_list (rl);
 
   if ( rl6 && rl6->routes_added )
     {
@@ -1005,13 +1095,38 @@ print_route_options (const struct route_option_list *rol,
     print_route_option (&rol->routes[i], level);
 }
 
+void
+print_default_gateway(const int msglevel, const struct route_gateway_info *rgi)
+{
+  struct gc_arena gc = gc_new ();
+  if (rgi->flags & RGI_ADDR_DEFINED)
+    {
+      struct buffer out = alloc_buf_gc (256, &gc);
+      buf_printf (&out, "ROUTE_GATEWAY");
+      buf_printf (&out, " %s", print_in_addr_t (rgi->gateway.addr, 0, &gc));
+      if (rgi->flags & RGI_NETMASK_DEFINED)
+	buf_printf (&out, "/%s", print_in_addr_t (rgi->gateway.netmask, 0, &gc));
+#ifdef WIN32
+      if (rgi->flags & RGI_IFACE_DEFINED)
+	buf_printf (&out, " I=%u", (unsigned int)rgi->adapter_index);
+#else
+      if (rgi->flags & RGI_IFACE_DEFINED)
+	buf_printf (&out, " IFACE=%s", rgi->iface);
+#endif
+      if (rgi->flags & RGI_HWADDR_DEFINED)
+	buf_printf (&out, " HWADDR=%s", format_hex_ex (rgi->hwaddr, 6, 0, 1, ":", &gc));
+      msg (msglevel, "%s", BSTR (&out));
+    }
+  gc_free (&gc);
+}
+
 #endif
 
 static void
 print_route (const struct route *r, int level)
 {
   struct gc_arena gc = gc_new ();
-  if (r->defined)
+  if (r->flags & RT_DEFINED)
     msg (level, "%s", route_string (r, &gc));
   gc_free (&gc);
 }
@@ -1028,13 +1143,13 @@ static void
 setenv_route (struct env_set *es, const struct route *r, int i)
 {
   struct gc_arena gc = gc_new ();
-  if (r->defined)
+  if (r->flags & RT_DEFINED)
     {
       setenv_route_addr (es, "network", r->network, i);
       setenv_route_addr (es, "netmask", r->netmask, i);
       setenv_route_addr (es, "gateway", r->gateway, i);
 
-      if (r->metric_defined)
+      if (r->flags & RT_METRIC_DEFINED)
 	{
 	  struct buffer name = alloc_buf_gc (256, &gc);
 	  buf_printf (&name, "route_metric_%d", i);
@@ -1080,8 +1195,65 @@ setenv_routes_ipv6 (struct env_set *es, const struct route_ipv6_list *rl6)
     setenv_route_ipv6 (es, &rl6->routes_ipv6[i], i + 1);
 }
 
+/*
+ * local_route() determines whether the gateway of a provided host
+ * route is on the same interface that owns the default gateway.
+ * It uses the data structure
+ * returned by get_default_gateway() (struct route_gateway_info)
+ * to determine this.  If the route is local, LR_MATCH is returned.
+ * When adding routes into the kernel, if LR_MATCH is defined for
+ * a given route, the route should explicitly reference the default
+ * gateway interface as the route destination.  For example, here
+ * is an example on Linux that uses LR_MATCH:
+ *
+ *   route add -net 10.10.0.1 netmask 255.255.255.255 dev eth0
+ *
+ * This capability is needed by the "default-gateway block-local"
+ * directive, to allow client access to the local subnet to be
+ * blocked but still allow access to the local default gateway.
+ */
+
+/* local_route() return values */
+#define LR_NOMATCH 0 /* route is not local */
+#define LR_MATCH   1 /* route is local */
+#define LR_ERROR   2 /* caller should abort adding route */
+
+static int
+local_route (in_addr_t network,
+	     in_addr_t netmask,
+	     in_addr_t gateway,
+	     const struct route_gateway_info *rgi)
+{
+  /* set LR_MATCH on local host routes */
+  const int rgi_needed = (RGI_ADDR_DEFINED|RGI_NETMASK_DEFINED|RGI_IFACE_DEFINED);
+  if (rgi
+      && (rgi->flags & rgi_needed) == rgi_needed
+      && gateway == rgi->gateway.addr
+      && netmask == 0xFFFFFFFF)
+    {
+      if (((network ^  rgi->gateway.addr) & rgi->gateway.netmask) == 0)
+	return LR_MATCH;
+      else
+	{
+	  /* examine additional subnets on gateway interface */
+	  size_t i;
+	  for (i = 0; i < rgi->n_addrs; ++i)
+	    {
+	      const struct route_gateway_address *gwa = &rgi->addrs[i];
+	      if (((network ^ gwa->addr) & gwa->netmask) == 0)
+		return LR_MATCH;
+	    }
+	}
+    }
+    return LR_NOMATCH;
+}
+
 void
-add_route (struct route *r, const struct tuntap *tt, unsigned int flags, const struct env_set *es)
+add_route (struct route *r,
+	   const struct tuntap *tt,
+	   unsigned int flags,
+	   const struct route_gateway_info *rgi, /* may be NULL */
+	   const struct env_set *es)
 {
   struct gc_arena gc;
   struct argv argv;
@@ -1089,8 +1261,9 @@ add_route (struct route *r, const struct tuntap *tt, unsigned int flags, const s
   const char *netmask;
   const char *gateway;
   bool status = false;
+  int is_local_route;
 
-  if (!r->defined)
+  if (!(r->flags & RT_DEFINED))
     return;
 
   gc_init (&gc);
@@ -1100,78 +1273,84 @@ add_route (struct route *r, const struct tuntap *tt, unsigned int flags, const s
   netmask = print_in_addr_t (r->netmask, 0, &gc);
   gateway = print_in_addr_t (r->gateway, 0, &gc);
 
-  /*
-   * Filter out routes which are essentially no-ops
-   */
-  if (r->network == r->gateway && r->netmask == 0xFFFFFFFF)
-    {
-      msg (M_INFO, PACKAGE_NAME " ROUTE: omitted no-op route: %s/%s -> %s",
-	   network, netmask, gateway);
-      goto done;
-    }
+  is_local_route = local_route(r->network, r->netmask, r->gateway, rgi);
+  if (is_local_route == LR_ERROR)
+    goto done;
 
 #if defined(TARGET_LINUX)
 #ifdef CONFIG_FEATURE_IPROUTE
+  /* FIXME -- add LR_MATCH support for CONFIG_FEATURE_IPROUTE */
   argv_printf (&argv, "%s route add %s/%d via %s",
   	      iproute_path,
 	      network,
 	      count_netmask_bits(netmask),
 	      gateway);
-  if (r->metric_defined)
+  if (r->flags & RT_METRIC_DEFINED)
     argv_printf_cat (&argv, "metric %d", r->metric);
 
 #else
-  argv_printf (&argv, "%s add -net %s netmask %s gw %s",
-		ROUTE_PATH,
-	      network,
-	      netmask,
-	      gateway);
-  if (r->metric_defined)
+  argv_printf (&argv, "%s add -net %s netmask %s",
+	       ROUTE_PATH,
+	       network,
+	       netmask);
+  if (r->flags & RT_METRIC_DEFINED)
     argv_printf_cat (&argv, "metric %d", r->metric);
+  if (rgi && is_local_route == LR_MATCH)
+    argv_printf_cat (&argv, "dev %s", rgi->iface);
+  else
+    argv_printf_cat (&argv, "gw %s", gateway);
+
 #endif  /*CONFIG_FEATURE_IPROUTE*/
   argv_msg (D_ROUTE, &argv);
   status = openvpn_execve_check (&argv, es, 0, "ERROR: Linux route add command failed");
 
 #elif defined (WIN32)
+  {
+    DWORD ai = ~0;
+    argv_printf (&argv, "%s%sc ADD %s MASK %s %s",
+		 get_win_sys_path(),
+		 WIN_ROUTE_PATH_SUFFIX,
+		 network,
+		 netmask,
+		 gateway);
+    if (r->flags & RT_METRIC_DEFINED)
+      argv_printf_cat (&argv, "METRIC %d", r->metric);
+    if (rgi && is_local_route == LR_MATCH)
+      {
+	ai = rgi->adapter_index;
+	argv_printf_cat (&argv, "IF %u", (unsigned int)ai);
+      }
 
-  argv_printf (&argv, "%s%sc ADD %s MASK %s %s",
-	       get_win_sys_path(),
-	       WIN_ROUTE_PATH_SUFFIX,
-	       network,
-	       netmask,
-	       gateway);
-  if (r->metric_defined)
-    argv_printf_cat (&argv, "METRIC %d", r->metric);
+    argv_msg (D_ROUTE, &argv);
 
-  argv_msg (D_ROUTE, &argv);
-
-  if ((flags & ROUTE_METHOD_MASK) == ROUTE_METHOD_IPAPI)
-    {
-      status = add_route_ipapi (r, tt);
-      msg (D_ROUTE, "Route addition via IPAPI %s", status ? "succeeded" : "failed");
-    }
-  else if ((flags & ROUTE_METHOD_MASK) == ROUTE_METHOD_EXE)
-    {
-      netcmd_semaphore_lock ();
-      status = openvpn_execve_check (&argv, es, 0, "ERROR: Windows route add command failed");
-      netcmd_semaphore_release ();
-    }
-  else if ((flags & ROUTE_METHOD_MASK) == ROUTE_METHOD_ADAPTIVE)
-    {
-      status = add_route_ipapi (r, tt);
-      msg (D_ROUTE, "Route addition via IPAPI %s [adaptive]", status ? "succeeded" : "failed");
-      if (!status)
-	{
-	  msg (D_ROUTE, "Route addition fallback to route.exe");
-	  netcmd_semaphore_lock ();
-	  status = openvpn_execve_check (&argv, es, 0, "ERROR: Windows route add command failed [adaptive]");
-	  netcmd_semaphore_release ();
-	}
-    }
-  else
-    {
-      ASSERT (0);
-    }
+    if ((flags & ROUTE_METHOD_MASK) == ROUTE_METHOD_IPAPI)
+      {
+	status = add_route_ipapi (r, tt, ai);
+	msg (D_ROUTE, "Route addition via IPAPI %s", status ? "succeeded" : "failed");
+      }
+    else if ((flags & ROUTE_METHOD_MASK) == ROUTE_METHOD_EXE)
+      {
+	netcmd_semaphore_lock ();
+	status = openvpn_execve_check (&argv, es, 0, "ERROR: Windows route add command failed");
+	netcmd_semaphore_release ();
+      }
+    else if ((flags & ROUTE_METHOD_MASK) == ROUTE_METHOD_ADAPTIVE)
+      {
+	status = add_route_ipapi (r, tt, ai);
+	msg (D_ROUTE, "Route addition via IPAPI %s [adaptive]", status ? "succeeded" : "failed");
+	if (!status)
+	  {
+	    msg (D_ROUTE, "Route addition fallback to route.exe");
+	    netcmd_semaphore_lock ();
+	    status = openvpn_execve_check (&argv, es, 0, "ERROR: Windows route add command failed [adaptive]");
+	    netcmd_semaphore_release ();
+	  }
+      }
+    else
+      {
+	ASSERT (0);
+      }
+  }
 
 #elif defined (TARGET_SOLARIS)
 
@@ -1180,13 +1359,17 @@ add_route (struct route *r, const struct tuntap *tt, unsigned int flags, const s
   argv_printf (&argv, "%s add",
 		ROUTE_PATH);
 
+#if 0
+  if (r->flags & RT_METRIC_DEFINED)
+    argv_printf_cat (&argv, "-rtt %d", r->metric);
+#endif
+
   argv_printf_cat (&argv, "%s -netmask %s %s",
 	      network,
 	      netmask,
 	      gateway);
 
-  if (r->metric_defined)
-    argv_printf_cat (&argv, "%d", r->metric);
+  /* FIXME -- add LR_MATCH support for Solaris */
 
   argv_msg (D_ROUTE, &argv);
   status = openvpn_execve_check (&argv, es, 0, "ERROR: Solaris route add command failed");
@@ -1197,7 +1380,7 @@ add_route (struct route *r, const struct tuntap *tt, unsigned int flags, const s
 		ROUTE_PATH);
 
 #if 0
-  if (r->metric_defined)
+  if (r->flags & RT_METRIC_DEFINED)
     argv_printf_cat (&argv, "-rtt %d", r->metric);
 #endif
 
@@ -1205,6 +1388,8 @@ add_route (struct route *r, const struct tuntap *tt, unsigned int flags, const s
 	      network,
 	      gateway,
 	      netmask);
+
+  /* FIXME -- add LR_MATCH support for FreeBSD */
 
   argv_msg (D_ROUTE, &argv);
   status = openvpn_execve_check (&argv, es, 0, "ERROR: FreeBSD route add command failed");
@@ -1215,7 +1400,7 @@ add_route (struct route *r, const struct tuntap *tt, unsigned int flags, const s
 		ROUTE_PATH);
 
 #if 0
-  if (r->metric_defined)
+  if (r->flags & RT_METRIC_DEFINED)
     argv_printf_cat (&argv, "-rtt %d", r->metric);
 #endif
 
@@ -1223,6 +1408,8 @@ add_route (struct route *r, const struct tuntap *tt, unsigned int flags, const s
 	      network,
 	      gateway,
 	      netmask);
+
+  /* FIXME -- add LR_MATCH support for Dragonfly */
 
   argv_msg (D_ROUTE, &argv);
   status = openvpn_execve_check (&argv, es, 0, "ERROR: DragonFly route add command failed");
@@ -1233,14 +1420,26 @@ add_route (struct route *r, const struct tuntap *tt, unsigned int flags, const s
 		ROUTE_PATH);
 
 #if 0
-  if (r->metric_defined)
+  if (r->flags & RT_METRIC_DEFINED)
     argv_printf_cat (&argv, "-rtt %d", r->metric);
 #endif
 
-  argv_printf_cat (&argv, "-net %s %s %s",
-              network,
-              gateway,
-              netmask);
+  if (rgi && is_local_route == LR_MATCH)
+    {
+      /* Mac OS X route syntax for LR_MATCH:
+	 route add -cloning -net 10.10.0.1 -netmask 255.255.255.255 -interface en0 */
+      argv_printf_cat (&argv, "-cloning -net %s -netmask %s -interface %s",
+		       network,
+		       netmask,
+		       rgi->iface);
+    }
+  else
+    {
+      argv_printf_cat (&argv, "-net %s %s %s",
+		       network,
+		       gateway,
+		       netmask);
+    }
 
   argv_msg (D_ROUTE, &argv);
   status = openvpn_execve_check (&argv, es, 0, "ERROR: OS X route add command failed");
@@ -1251,7 +1450,7 @@ add_route (struct route *r, const struct tuntap *tt, unsigned int flags, const s
 		ROUTE_PATH);
 
 #if 0
-  if (r->metric_defined)
+  if (r->flags & RT_METRIC_DEFINED)
     argv_printf_cat (&argv, "-rtt %d", r->metric);
 #endif
 
@@ -1259,6 +1458,8 @@ add_route (struct route *r, const struct tuntap *tt, unsigned int flags, const s
 	      network,
 	      gateway,
 	      netmask);
+
+  /* FIXME -- add LR_MATCH support for OpenBSD/NetBSD */
 
   argv_msg (D_ROUTE, &argv);
   status = openvpn_execve_check (&argv, es, 0, "ERROR: OpenBSD/NetBSD route add command failed");
@@ -1268,7 +1469,10 @@ add_route (struct route *r, const struct tuntap *tt, unsigned int flags, const s
 #endif
 
  done:
-  r->defined = status;
+  if (status)
+    r->flags |= RT_ADDED;
+  else
+    r->flags &= ~RT_ADDED;
   argv_reset (&argv);
   gc_free (&gc);
 }
@@ -1455,15 +1659,20 @@ add_route_ipv6 (struct route_ipv6 *r6, const struct tuntap *tt, unsigned int fla
 }
 
 static void
-delete_route (const struct route *r, const struct tuntap *tt, unsigned int flags, const struct env_set *es)
+delete_route (struct route *r,
+	      const struct tuntap *tt,
+	      unsigned int flags,
+	      const struct route_gateway_info *rgi,
+	      const struct env_set *es)
 {
   struct gc_arena gc;
   struct argv argv;
   const char *network;
   const char *netmask;
   const char *gateway;
+  int is_local_route;
 
-  if (!r->defined)
+  if ((r->flags & (RT_DEFINED|RT_ADDED)) != (RT_DEFINED|RT_ADDED))
     return;
 
   gc_init (&gc);
@@ -1473,6 +1682,10 @@ delete_route (const struct route *r, const struct tuntap *tt, unsigned int flags
   netmask = print_in_addr_t (r->netmask, 0, &gc);
   gateway = print_in_addr_t (r->gateway, 0, &gc);
 
+  is_local_route = local_route(r->network, r->netmask, r->gateway, rgi);
+  if (is_local_route == LR_ERROR)
+    goto done;
+
 #if defined(TARGET_LINUX)
 #ifdef CONFIG_FEATURE_IPROUTE
   argv_printf (&argv, "%s route del %s/%d",
@@ -1480,13 +1693,12 @@ delete_route (const struct route *r, const struct tuntap *tt, unsigned int flags
 	      network,
 	      count_netmask_bits(netmask));
 #else
-
   argv_printf (&argv, "%s del -net %s netmask %s",
-		ROUTE_PATH,
-	      network,
-	      netmask);
+	       ROUTE_PATH,
+	       network,
+	       netmask);
 #endif /*CONFIG_FEATURE_IPROUTE*/
-  if (r->metric_defined)
+  if (r->flags & RT_METRIC_DEFINED)
     argv_printf_cat (&argv, "metric %d", r->metric);
   argv_msg (D_ROUTE, &argv);
   openvpn_execve_check (&argv, es, 0, "ERROR: Linux route delete command failed");
@@ -1565,11 +1777,22 @@ delete_route (const struct route *r, const struct tuntap *tt, unsigned int flags
 
 #elif defined(TARGET_DARWIN)
 
-  argv_printf (&argv, "%s delete -net %s %s %s",
-		ROUTE_PATH,
-              network,
-              gateway,
-              netmask);
+  if (rgi && is_local_route == LR_MATCH)
+    {
+      argv_printf (&argv, "%s delete -cloning -net %s -netmask %s -interface %s",
+		   ROUTE_PATH,
+		   network,
+		   netmask,
+		   rgi->iface);
+    }
+  else
+    {
+      argv_printf (&argv, "%s delete -net %s %s %s",
+		   ROUTE_PATH,
+		   network,
+		   gateway,
+		   netmask);
+    }
 
   argv_msg (D_ROUTE, &argv);
   openvpn_execve_check (&argv, es, 0, "ERROR: OS X route delete command failed");
@@ -1589,6 +1812,8 @@ delete_route (const struct route *r, const struct tuntap *tt, unsigned int flags
   msg (M_FATAL, "Sorry, but I don't know how to do 'route' commands on this operating system.  Try putting your routes in a --route-up script");
 #endif
 
+ done:
+  r->flags &= ~RT_ADDED;
   argv_reset (&argv);
   gc_free (&gc);
 }
@@ -1816,7 +2041,7 @@ test_routes (const struct route_list *rl, const struct tuntap *tt)
 	  for (i = 0; i < rl->n; ++i)
 	    test_route_helper (&ret, &count, &good, &ambig, adapters, rl->routes[i].gateway);
 
-	  if ((rl->flags & RG_ENABLE) && rl->spec.remote_endpoint_defined)
+	  if ((rl->flags & RG_ENABLE) && (rl->spec.flags & RTSA_REMOTE_ENDPOINT))
 	    test_route_helper (&ret, &count, &good, &ambig, adapters, rl->spec.remote_endpoint);
 	}
     }
@@ -1874,29 +2099,41 @@ get_default_gateway_row (const MIB_IPFORWARDTABLE *routes)
   return ret;
 }
 
-bool
-get_default_gateway (in_addr_t *gw, in_addr_t *netmask)
+void
+get_default_gateway (struct route_gateway_info *rgi)
 {
   struct gc_arena gc = gc_new ();
-  bool ret_bool = false;
 
   const IP_ADAPTER_INFO *adapters = get_adapter_info_list (&gc);
   const MIB_IPFORWARDTABLE *routes = get_windows_routing_table (&gc);
   const MIB_IPFORWARDROW *row = get_default_gateway_row (routes);
+  DWORD a_index;
+  const IP_ADAPTER_INFO *ai;
+
+  CLEAR(*rgi);
 
   if (row)
     {
-      *gw = ntohl (row->dwForwardNextHop);
-      if (netmask)
+      rgi->gateway.addr = ntohl (row->dwForwardNextHop);
+      if (rgi->gateway.addr)
 	{
-	  if (adapter_index_of_ip (adapters, *gw, NULL, netmask) == ~0)
-	    *netmask = ~0;
+	  rgi->flags |= RGI_ADDR_DEFINED;
+	  a_index = adapter_index_of_ip (adapters, rgi->gateway.addr, NULL, &rgi->gateway.netmask);
+	  if (a_index != ~0)
+	    {
+	      rgi->adapter_index = a_index;
+	      rgi->flags |= (RGI_IFACE_DEFINED|RGI_NETMASK_DEFINED);
+	      ai = get_adapter (adapters, a_index);
+	      if (ai)
+		{
+		  memcpy (rgi->hwaddr, ai->Address, 6);
+		  rgi->flags |= RGI_HWADDR_DEFINED;
+		}
+	    }
 	}
-      ret_bool = true;
     }
 
   gc_free (&gc);
-  return ret_bool;
 }
 
 static DWORD
@@ -1945,12 +2182,12 @@ windows_route_find_if_index (const struct route *r, const struct tuntap *tt)
 }
 
 bool
-add_route_ipapi (const struct route *r, const struct tuntap *tt)
+add_route_ipapi (const struct route *r, const struct tuntap *tt, DWORD adapter_index)
 {
   struct gc_arena gc = gc_new ();
   bool ret = false;
   DWORD status;
-  const DWORD if_index = windows_route_find_if_index (r, tt);  
+  const DWORD if_index = (adapter_index == ~0) ? windows_route_find_if_index (r, tt) : adapter_index;
 
   if (if_index != ~0)
     {
@@ -1965,7 +2202,7 @@ add_route_ipapi (const struct route *r, const struct tuntap *tt)
       fr.dwForwardProto = 3; /* PROTO_IP_NETMGMT */
       fr.dwForwardAge = 0;
       fr.dwForwardNextHopAS = 0;
-      fr.dwForwardMetric1 = r->metric_defined ? r->metric : 1;
+      fr.dwForwardMetric1 = (r->flags & RT_METRIC_DEFINED) ? r->metric : 1;
       fr.dwForwardMetric2 = ~0;
       fr.dwForwardMetric3 = ~0;
       fr.dwForwardMetric4 = ~0;
@@ -2096,75 +2333,136 @@ show_routes (int msglev)
 
 #elif defined(TARGET_LINUX)
 
-bool
-get_default_gateway (in_addr_t *gateway, in_addr_t *netmask)
+void
+get_default_gateway (struct route_gateway_info *rgi)
 {
   struct gc_arena gc = gc_new ();
-  bool ret = false;
-  FILE *fp = fopen ("/proc/net/route", "r");
-  if (fp)
+  int sd = -1;
+
+  CLEAR(*rgi);
+
+  /* get default gateway IP addr */
+  {
+    FILE *fp = fopen ("/proc/net/route", "r");
+    if (fp)
+      {
+	char line[256];
+	int count = 0;
+	unsigned int lowest_metric = ~0;
+	in_addr_t best_gw = 0;
+	while (fgets (line, sizeof (line), fp) != NULL)
+	  {
+	    if (count)
+	      {
+		unsigned int net_x = 0;
+		unsigned int mask_x = 0;
+		unsigned int gw_x = 0;
+		unsigned int metric = 0;
+		unsigned int flags = 0;
+		const int np = sscanf (line, "%*s\t%x\t%x\t%x\t%*s\t%*s\t%d\t%x",
+				       &net_x,
+				       &gw_x,
+				       &flags,
+				       &metric,
+				       &mask_x);
+		if (np == 5 && (flags & IFF_UP))
+		  {
+		    const in_addr_t net = ntohl (net_x);
+		    const in_addr_t mask = ntohl (mask_x);
+		    const in_addr_t gw = ntohl (gw_x);
+
+		    if (!net && !mask && metric < lowest_metric)
+		      {
+			best_gw = gw;
+			lowest_metric = metric;
+		      }
+		  }
+	      }
+	    ++count;
+	  }
+	fclose (fp);
+
+	if (best_gw)
+	  {
+	    rgi->gateway.addr = best_gw;
+	    rgi->flags |= RGI_ADDR_DEFINED;
+	  }
+      }
+  }
+
+  /* scan adapter list */
+  if (rgi->flags & RGI_ADDR_DEFINED)
     {
-      char line[256];
-      int count = 0;
-      int best_count = 0;
-      unsigned int lowest_metric = ~0;
-      in_addr_t best_gw = 0;
-      while (fgets (line, sizeof (line), fp) != NULL)
+      struct ifreq *ifr, *ifend;
+      in_addr_t addr, netmask;
+      struct ifreq ifreq;
+      struct ifconf ifc;
+      struct ifreq ifs[20]; /* Maximum number of interfaces to scan */
+
+      if ((sd = socket (AF_INET, SOCK_DGRAM, 0)) < 0)
 	{
-	  if (count)
+	  msg (M_WARN, "GDG: socket() failed");
+	  goto done;
+	}
+      ifc.ifc_len = sizeof (ifs);
+      ifc.ifc_req = ifs;
+      if (ioctl (sd, SIOCGIFCONF, &ifc) < 0)
+	{
+	  msg (M_WARN, "GDG: ioctl(SIOCGIFCONF) failed");
+	  goto done;
+	}
+
+      /* scan through interface list */
+      ifend = ifs + (ifc.ifc_len / sizeof (struct ifreq));
+      for (ifr = ifc.ifc_req; ifr < ifend; ifr++)
+	{
+	  if (ifr->ifr_addr.sa_family == AF_INET)
 	    {
-	      unsigned int net_x = 0;
-	      unsigned int mask_x = 0;
-	      unsigned int gw_x = 0;
-	      unsigned int metric = 0;
-	      const int np = sscanf (line, "%*s\t%x\t%x\t%*s\t%*s\t%*s\t%d\t%x",
-				     &net_x,
-				     &gw_x,
-				     &metric,
-				     &mask_x);
-	      if (np == 4)
+	      /* get interface addr */
+	      addr = ntohl(((struct sockaddr_in *) &ifr->ifr_addr)->sin_addr.s_addr);
+
+	      /* get interface name */
+	      strncpynt (ifreq.ifr_name, ifr->ifr_name, sizeof (ifreq.ifr_name));
+
+	      /* check that the interface is up, and not point-to-point or loopback */
+	      if (ioctl (sd, SIOCGIFFLAGS, &ifreq) < 0)
+		continue;
+	      if (!(ifreq.ifr_flags & IFF_UP))
+		continue;
+
+	      /* get interface netmask */
+	      if (ioctl (sd, SIOCGIFNETMASK, &ifreq) < 0)
+		continue;
+	      netmask = ntohl(((struct sockaddr_in *) &ifreq.ifr_addr)->sin_addr.s_addr);
+
+	      /* check that interface matches default route */
+	      if (((rgi->gateway.addr ^ addr) & netmask) != 0)
+		continue;
+
+	      /* save iface name and netmask */
+	      strncpynt (rgi->iface, ifreq.ifr_name, sizeof(rgi->iface));
+	      rgi->gateway.netmask = netmask;
+	      rgi->flags |= (RGI_IFACE_DEFINED|RGI_NETMASK_DEFINED);
+
+	      /* now get the hardware address. */
+	      memset (&ifreq.ifr_hwaddr, 0, sizeof (struct sockaddr));
+	      if (ioctl (sd, SIOCGIFHWADDR, &ifreq) < 0)
 		{
-		  const in_addr_t net = ntohl (net_x);
-		  const in_addr_t mask = ntohl (mask_x);
-		  const in_addr_t gw = ntohl (gw_x);
-
-		  dmsg (D_ROUTE_DEBUG, "GDG: route[%d] %s/%s/%s m=%u",
-			count,
-			print_in_addr_t ((in_addr_t) net, 0, &gc),
-			print_in_addr_t ((in_addr_t) mask, 0, &gc),
-			print_in_addr_t ((in_addr_t) gw, 0, &gc),
-			metric);
-
-		  if (!net && !mask && metric < lowest_metric)
-		    {
-		      best_gw = gw;
-		      lowest_metric = metric;
-		      best_count = count;
-		    }
+		  msg (M_WARN, "GDG: SIOCGIFHWADDR(%s) failed", ifreq.ifr_name);
+		  goto done;
 		}
-	    }
-	  ++count;
-	}
-      fclose (fp);
+	      memcpy (rgi->hwaddr, &ifreq.ifr_hwaddr.sa_data, 6);
+	      rgi->flags |= RGI_HWADDR_DEFINED;
 
-      if (best_gw)
-	{
-	  *gateway = best_gw;
-	  if (netmask)
-	    {
-	      *netmask = 0xFFFFFF00; /* FIXME -- get the real netmask of the adapter containing the default gateway */
+	      break;
 	    }
-	  ret = true;
 	}
-
-      dmsg (D_ROUTE_DEBUG, "GDG: best=%s[%d] lm=%u",
-	    print_in_addr_t ((in_addr_t) best_gw, 0, &gc),
-	    best_count,
-	    (unsigned int)lowest_metric);
     }
 
+ done:
+  if (sd >= 0)
+    close (sd);
   gc_free (&gc);
-  return ret;
 }
 
 #elif defined(TARGET_FREEBSD)||defined(TARGET_DRAGONFLY)
@@ -2228,8 +2526,11 @@ struct {
 #define ROUNDUP(a) \
         ((a) > 0 ? (1 + (((a) - 1) | (sizeof(long) - 1))) : sizeof(long))
 
-bool
-get_default_gateway (in_addr_t *ret, in_addr_t *netmask)
+/*
+ * FIXME -- add support for netmask, hwaddr, and iface
+ */
+void
+get_default_gateway (struct route_gateway_info *rgi)
 {
   struct gc_arena gc = gc_new ();
   int s, seq, l, pid, rtm_addrs, i;
@@ -2246,6 +2547,8 @@ get_default_gateway (in_addr_t *ret, in_addr_t *netmask)
 #define ADVANCE(x, n) (x += ROUNDUP((n)->sa_len))
 
 #define rtm m_rtmsg.m_rtm
+
+  CLEAR(*rgi);
 
   pid = getpid();
   seq = 0;
@@ -2308,24 +2611,14 @@ get_default_gateway (in_addr_t *ret, in_addr_t *netmask)
 
   if (gate != NULL )
     {
-      *ret = ntohl(((struct sockaddr_in *)gate)->sin_addr.s_addr);
-#if 0
-      msg (M_INFO, "gw %s",
-	   print_in_addr_t ((in_addr_t) *ret, 0, &gc));
-#endif
-
-      if (netmask)
-	{
-	  *netmask = 0xFFFFFF00; // FIXME -- get the real netmask of the adapter containing the default gateway
-	}
+      rgi->gateway.addr = ntohl(((struct sockaddr_in *)gate)->sin_addr.s_addr);
+      rgi->flags |= RGI_ADDR_DEFINED;
 
       gc_free (&gc);
-      return true;
     }
   else
     {
       gc_free (&gc);
-      return false;
     }
 }
 
@@ -2345,17 +2638,6 @@ struct rtmsg {
 #define ROUNDUP(a) \
         ((a) > 0 ? (1 + (((a) - 1) | (sizeof(uint32_t) - 1))) : sizeof(uint32_t))
 
-static bool
-get_default_gateway_ex (in_addr_t *ret, in_addr_t *netmask, char **ifname)
-{
-  struct gc_arena gc = gc_new ();
-  struct rtmsg m_rtmsg;
-  int s, seq, l, pid, rtm_addrs, i;
-  struct sockaddr so_dst, so_mask;
-  char *cp = m_rtmsg.m_space; 
-  struct sockaddr *gate = NULL, *ifp = NULL, *sa;
-  struct  rt_msghdr *rtm_aux;
-
 #define NEXTADDR(w, u) \
         if (rtm_addrs & (w)) {\
             l = ROUNDUP(u.sa_len); memmove(cp, &(u), l); cp += l;\
@@ -2363,8 +2645,25 @@ get_default_gateway_ex (in_addr_t *ret, in_addr_t *netmask, char **ifname)
 
 #define ADVANCE(x, n) (x += ROUNDUP((n)->sa_len))
 
-#define rtm m_rtmsg.m_rtm
+#define max(a,b) ((a) > (b) ? (a) : (b))
 
+void
+get_default_gateway (struct route_gateway_info *rgi)
+{
+  struct gc_arena gc = gc_new ();
+  struct rtmsg m_rtmsg;
+  int sockfd = -1;
+  int seq, l, pid, rtm_addrs, i;
+  struct sockaddr so_dst, so_mask;
+  char *cp = m_rtmsg.m_space; 
+  struct sockaddr *gate = NULL, *ifp = NULL, *sa;
+  struct  rt_msghdr *rtm_aux;
+
+# define rtm m_rtmsg.m_rtm
+
+  CLEAR(*rgi);
+
+  /* setup data to send to routing socket */
   pid = getpid();
   seq = 0;
   rtm_addrs = RTA_DST | RTA_NETMASK | RTA_IFP;
@@ -2390,84 +2689,147 @@ get_default_gateway_ex (in_addr_t *ret, in_addr_t *netmask, char **ifname)
 
   rtm.rtm_msglen = l = cp - (char *)&m_rtmsg;
 
-  s = socket(PF_ROUTE, SOCK_RAW, 0);
-
-  if (write(s, (char *)&m_rtmsg, l) < 0)
+  /* transact with routing socket */
+  sockfd = socket(PF_ROUTE, SOCK_RAW, 0);
+  if (sockfd < 0)
     {
-      msg (M_WARN, "ROUTE: problem writing to routing socket");
-      gc_free (&gc);
-      close(s);
-      return false;
+      msg (M_WARN, "GDG: socket #1 failed");
+      goto done;
     }
-
+  if (write(sockfd, (char *)&m_rtmsg, l) < 0)
+    {
+      msg (M_WARN, "GDG: problem writing to routing socket");
+      goto done;
+    }
   do {
-    l = read(s, (char *)&m_rtmsg, sizeof(m_rtmsg));
+    l = read(sockfd, (char *)&m_rtmsg, sizeof(m_rtmsg));
   } while (l > 0 && (rtm.rtm_seq != seq || rtm.rtm_pid != pid));
-                        
-  close(s);
+  close(sockfd);
+  sockfd = -1;
 
+  /* extract return data from routing socket */
   rtm_aux = &rtm;
-
   cp = ((char *)(rtm_aux + 1));
-  if (rtm_aux->rtm_addrs) {
-    for (i = 1; i; i <<= 1)
-      {
-	if (i & rtm_aux->rtm_addrs)
-	  {
-	    sa = (struct sockaddr *)cp;
-	    if (i == RTA_GATEWAY )
-	      gate = sa;
-	    else if (i == RTA_IFP)
-	      ifp = sa;
-	    ADVANCE(cp, sa);
-	  }
-      }
-  }
-  else
+  if (rtm_aux->rtm_addrs)
     {
-      gc_free (&gc);
-      return false;
+      for (i = 1; i; i <<= 1)
+	{
+	  if (i & rtm_aux->rtm_addrs)
+	    {
+	      sa = (struct sockaddr *)cp;
+	      if (i == RTA_GATEWAY )
+		gate = sa;
+	      else if (i == RTA_IFP)
+		ifp = sa;
+	      ADVANCE(cp, sa);
+	    }
+	}
     }
+  else
+    goto done;
 
-
+  /* get gateway addr and interface name */
   if (gate != NULL )
     {
-      *ret = ntohl(((struct sockaddr_in *)gate)->sin_addr.s_addr);
-#if 0
-      msg (M_INFO, "gw %s",
-	   print_in_addr_t ((in_addr_t) *ret, 0, &gc));
-#endif
+      /* get default gateway addr */
+      rgi->gateway.addr = ntohl(((struct sockaddr_in *)gate)->sin_addr.s_addr);
+      if (rgi->gateway.addr)
+	  rgi->flags |= RGI_ADDR_DEFINED;
 
-      if (netmask)
+      if (ifp)
 	{
-	  *netmask = 0xFFFFFF00; // FIXME -- get the real netmask of the adapter containing the default gateway
+	  /* get interface name */
+	  const struct sockaddr_dl *adl = (struct sockaddr_dl *) ifp;
+	  int len = adl->sdl_nlen;
+	  if (adl->sdl_nlen && adl->sdl_nlen < sizeof(rgi->iface))
+	    {
+	      memcpy (rgi->iface, adl->sdl_data, adl->sdl_nlen);
+	      rgi->iface[adl->sdl_nlen] = '\0';
+	      rgi->flags |= RGI_IFACE_DEFINED;
+	    }
 	}
-
-      if (ifp && ifname)
-	{
-	  struct sockaddr_dl *adl = (struct sockaddr_dl *) ifp;
-	  char *name = malloc(adl->sdl_nlen+1);
-	  check_malloc_return(name);
-	  memcpy(name, adl->sdl_data, adl->sdl_nlen);
-	  name[adl->sdl_nlen] = '\0';
-	  *ifname = name;
-	}
-
-      gc_free (&gc);
-      return true;
     }
-  else
+
+  /* get netmask of interface that owns default gateway */
+  if (rgi->flags & RGI_IFACE_DEFINED) {
+    struct ifreq ifr;
+
+    sockfd = socket(AF_INET, SOCK_DGRAM, 0);
+    if (sockfd < 0)
+      {
+	msg (M_WARN, "GDG: socket #2 failed");
+	goto done;
+      }
+
+    CLEAR(ifr);
+    ifr.ifr_addr.sa_family = AF_INET;
+    strncpynt(ifr.ifr_name, rgi->iface, IFNAMSIZ);
+
+    if (ioctl(sockfd, SIOCGIFNETMASK, (char *)&ifr) < 0)
+      {
+	msg (M_WARN, "GDG: ioctl #1 failed");
+	goto done;
+      }
+    close(sockfd);
+    sockfd = -1;
+
+    rgi->gateway.netmask = ntohl(((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr.s_addr);
+    rgi->flags |= RGI_NETMASK_DEFINED;
+  }
+
+  /* try to read MAC addr associated with interface that owns default gateway */
+  if (rgi->flags & RGI_IFACE_DEFINED)
     {
-      gc_free (&gc);
-      return false;
+      struct ifconf ifc;
+      struct ifreq *ifr;
+      const int bufsize = 4096;
+      char *buffer;
+
+      buffer = (char *) gc_malloc (bufsize, true, &gc);
+      sockfd = socket(AF_INET, SOCK_DGRAM, 0);
+      if (sockfd < 0)
+	{
+	  msg (M_WARN, "GDG: socket #3 failed");
+	  goto done;
+	}
+
+      ifc.ifc_len = bufsize;
+      ifc.ifc_buf = buffer;
+
+      if (ioctl(sockfd, SIOCGIFCONF, (char *)&ifc) < 0)
+	{
+	  msg (M_WARN, "GDG: ioctl #2 failed");
+	  goto done;
+	}
+      close(sockfd);
+      sockfd = -1;
+
+      for (cp = buffer; cp <= buffer + ifc.ifc_len - sizeof(struct ifreq); )
+	{
+	  ifr = (struct ifreq *)cp;
+	  const size_t len = sizeof(ifr->ifr_name) + max(sizeof(ifr->ifr_addr), ifr->ifr_addr.sa_len);
+	  if (!ifr->ifr_addr.sa_family)
+	    break;
+	  if (!strncmp(ifr->ifr_name, rgi->iface, IFNAMSIZ))
+	    {
+	      if (ifr->ifr_addr.sa_family == AF_LINK)
+		{
+		  struct sockaddr_dl *sdl = (struct sockaddr_dl *)&ifr->ifr_addr;
+		  memcpy(rgi->hwaddr, LLADDR(sdl), 6);
+		  rgi->flags |= RGI_HWADDR_DEFINED;
+		}
+	    }
+	  cp += len;
+	}
     }
+
+ done:
+  if (sockfd >= 0)
+    close(sockfd);
+  gc_free (&gc);
 }
 
-bool
-get_default_gateway (in_addr_t *ret, in_addr_t *netmask)
-{
-  return get_default_gateway_ex(ret, netmask, NULL);
-}
+#undef max
 
 #elif defined(TARGET_OPENBSD) || defined(TARGET_NETBSD)
 
@@ -2529,8 +2891,11 @@ struct {
 #define ROUNDUP(a) \
         ((a) > 0 ? (1 + (((a) - 1) | (sizeof(long) - 1))) : sizeof(long))
 
-bool
-get_default_gateway (in_addr_t *ret, in_addr_t *netmask)
+/*
+ * FIXME -- add support for netmask, hwaddr, and iface
+ */
+void
+get_default_gateway (struct route_gateway_info *rgi)
 {
   struct gc_arena gc = gc_new ();
   int s, seq, l, rtm_addrs, i;
@@ -2548,6 +2913,8 @@ get_default_gateway (in_addr_t *ret, in_addr_t *netmask)
 #define ADVANCE(x, n) (x += ROUNDUP((n)->sa_len))
 
 #define rtm m_rtmsg.m_rtm
+
+  CLEAR(*rgi);
 
   pid = getpid();
   seq = 0;
@@ -2610,33 +2977,47 @@ get_default_gateway (in_addr_t *ret, in_addr_t *netmask)
 
   if (gate != NULL )
     {
-      *ret = ntohl(((struct sockaddr_in *)gate)->sin_addr.s_addr);
-#if 0
-      msg (M_INFO, "gw %s",
-	   print_in_addr_t ((in_addr_t) *ret, 0, &gc));
-#endif
-
-      if (netmask)
-	{
-	  *netmask = 0xFFFFFF00; // FIXME -- get the real netmask of the adapter containing the default gateway
-	}
+      rgi->gateway.addr = ntohl(((struct sockaddr_in *)gate)->sin_addr.s_addr);
+      rgi->flags |= RGI_ADDR_DEFINED;
 
       gc_free (&gc);
-      return true;
     }
   else
     {
       gc_free (&gc);
-      return false;
     }
 }
 
 #else
 
-bool
-get_default_gateway (in_addr_t *ret, in_addr_t *netmask)  /* PLATFORM-SPECIFIC */
+/*
+ * This is a platform-specific method that returns data about
+ * the current default gateway.  Return data is placed into
+ * a struct route_gateway_info object provided by caller.  The
+ * implementation should CLEAR the structure before adding
+ * data to it.
+ *
+ * Data returned includes:
+ * 1. default gateway address (rgi->gateway.addr)
+ * 2. netmask of interface that owns default gateway
+ *    (rgi->gateway.netmask)
+ * 3. hardware address (i.e. MAC address) of interface that owns
+ *    default gateway (rgi->hwaddr)
+ * 4. interface name (or adapter index on Windows) that owns default
+ *    gateway (rgi->iface or rgi->adapter_index)
+ * 5. an array of additional address/netmask pairs defined by
+ *    interface that owns default gateway (rgi->addrs with length
+ *    given in rgi->n_addrs)
+ *
+ * The flags RGI_x_DEFINED may be used to indicate which of the data
+ * members were successfully returned (set in rgi->flags).  All of
+ * the data members are optional, however certain OpenVPN functionality
+ * may be disabled by missing items.
+ */
+void
+get_default_gateway (struct route_gateway_info *rgi)
 {
-  return false;
+  CLEAR(*rgi);
 }
 
 #endif
@@ -2676,18 +3057,8 @@ netmask_to_netbits (const in_addr_t network, const in_addr_t netmask, int *netbi
 static void
 add_host_route_if_nonlocal (struct route_bypass *rb, const in_addr_t addr)
 {
-  if (test_local_addr(addr) == TLA_NONLOCAL && addr != 0 && addr != ~0) {
-    int i;
-    for (i = 0; i < rb->n_bypass; ++i)
-      {
-        if (addr == rb->bypass[i]) /* avoid duplicates */
-          return;
-      }
-    if (rb->n_bypass < N_ROUTE_BYPASS)
-      {
-        rb->bypass[rb->n_bypass++] = addr;
-      }
-  }
+  if (test_local_addr(addr, NULL) == TLA_NONLOCAL && addr != 0 && addr != ~0)
+    add_bypass_address (rb, addr);
 }
 
 static void
@@ -2746,222 +3117,6 @@ get_bypass_addresses (struct route_bypass *rb, const unsigned int flags)  /* PLA
 
 #endif
 
-#if AUTO_USERID || defined(ENABLE_PUSH_PEER_INFO)
-
-#if defined(TARGET_LINUX)
-
-bool
-get_default_gateway_mac_addr (unsigned char *macaddr)
-{
-  struct ifreq *ifr, *ifend;
-  in_addr_t ina, mask;
-  struct ifreq ifreq;
-  struct ifconf ifc;
-  struct ifreq ifs[20]; // Maximum number of interfaces to scan
-  int sd = -1;
-  in_addr_t gwip = 0;
-  bool ret = false;
-
-  if (!get_default_gateway (&gwip, NULL))
-    {
-      msg (M_WARN, "GDGMA: get_default_gateway failed");
-      goto err;
-    }
-
-  if ((sd = socket (AF_INET, SOCK_DGRAM, 0)) < 0)
-    {
-      msg (M_WARN, "GDGMA: socket() failed");
-      goto err;
-    }
-
-  ifc.ifc_len = sizeof (ifs);
-  ifc.ifc_req = ifs;
-  if (ioctl (sd, SIOCGIFCONF, &ifc) < 0)
-    {
-      msg (M_WARN, "GDGMA: ioctl(SIOCGIFCONF) failed");
-      goto err;
-    }
-
-  /* scan through interface list */
-  ifend = ifs + (ifc.ifc_len / sizeof (struct ifreq));
-  for (ifr = ifc.ifc_req; ifr < ifend; ifr++)
-    {
-      if (ifr->ifr_addr.sa_family == AF_INET)
-	{
-	  ina = ntohl(((struct sockaddr_in *) &ifr->ifr_addr)->sin_addr.s_addr);
-	  strncpynt (ifreq.ifr_name, ifr->ifr_name, sizeof (ifreq.ifr_name));
-
-	  dmsg (D_AUTO_USERID, "GDGMA: %s", ifreq.ifr_name);
-
-	  /* check that the interface is up, and not point-to-point or loopback */
-	  if (ioctl (sd, SIOCGIFFLAGS, &ifreq) < 0)
-	    {
-	      dmsg (D_AUTO_USERID, "GDGMA: SIOCGIFFLAGS(%s) failed", ifreq.ifr_name);
-	      continue;
-	    }
-
-	  if ((ifreq.ifr_flags & (IFF_UP|IFF_LOOPBACK)) != IFF_UP)
-	    {
-	      dmsg (D_AUTO_USERID, "GDGMA: interface %s is down or loopback", ifreq.ifr_name);
-	      continue;
-	    }
-
-	  /* get interface netmask and check for correct subnet */
-	  if (ioctl (sd, SIOCGIFNETMASK, &ifreq) < 0)
-	    {
-	      dmsg (D_AUTO_USERID, "GDGMA: SIOCGIFNETMASK(%s) failed", ifreq.ifr_name);
-	      continue;
-	    }
-
-	  mask = ntohl(((struct sockaddr_in *) &ifreq.ifr_addr)->sin_addr.s_addr);
-	  if (((gwip ^ ina) & mask) != 0)
-	    {
-	      dmsg (D_AUTO_USERID, "GDGMA: gwip=0x%08x ina=0x%08x mask=0x%08x",
-		    (unsigned int)gwip,
-		    (unsigned int)ina,
-		    (unsigned int)mask);
-	      continue;
-	    }
-	  break;
-	}
-    }
-  if (ifr >= ifend)
-    {
-      msg (M_WARN, "GDGMA: couldn't find gw interface");
-      goto err;
-    }
-
-  /* now get the hardware address. */
-  memset (&ifreq.ifr_hwaddr, 0, sizeof (struct sockaddr));
-  if (ioctl (sd, SIOCGIFHWADDR, &ifreq) < 0)
-    {
-      msg (M_WARN, "GDGMA: SIOCGIFHWADDR(%s) failed", ifreq.ifr_name);
-      goto err;
-    }
-
-  memcpy (macaddr, &ifreq.ifr_hwaddr.sa_data, 6);
-  ret = true;
-
- err:
-  if (sd >= 0)
-    close (sd);
-  return ret;
-}
-
-#elif defined(WIN32)
-
-bool
-get_default_gateway_mac_addr (unsigned char *macaddr)
-{
-  struct gc_arena gc = gc_new ();
-  const IP_ADAPTER_INFO *adapters = get_adapter_info_list (&gc);
-  in_addr_t gwip = 0;
-  DWORD a_index;
-  const IP_ADAPTER_INFO *ai;
-
-  if (!get_default_gateway (&gwip, NULL))
-    {
-      msg (M_WARN, "GDGMA: get_default_gateway failed");
-      goto err;
-    }
-
-  a_index = adapter_index_of_ip (adapters, gwip, NULL, NULL);
-  ai = get_adapter (adapters, a_index);
-
-  if (!ai)
-    {
-      msg (M_WARN, "GDGMA: couldn't find gw interface");
-      goto err;
-    }
-
-  memcpy (macaddr, ai->Address, 6);
-
-  gc_free (&gc);
-  return true;
-
- err:
-  gc_free (&gc);
-  return false;
-}
-
-#elif defined(TARGET_DARWIN)
-
-bool
-get_default_gateway_mac_addr (unsigned char *macaddr)
-{
-# define max(a,b) ((a) > (b) ? (a) : (b))
-  struct gc_arena gc = gc_new ();
-  struct ifconf ifc;
-  struct ifreq *ifr;
-  char *buffer, *cp;
-  bool status = false;
-  in_addr_t gw = 0;
-  char *ifname = NULL;
-  int sockfd = -1;
-  const int bufsize = 4096;
-
-  if (!get_default_gateway_ex (&gw, NULL, &ifname)) /* get interface name of default gateway */
-    {
-      msg (M_WARN, "GDGMA: get_default_gateway_ex failed");
-      goto done;
-    }
-
-  if (!ifname)
-    {
-      msg (M_WARN, "GDGMA: cannot get default gateway ifname");
-      goto done;
-    }
-
-  buffer = (char *) gc_malloc (bufsize, true, &gc);
-
-  sockfd = socket(AF_INET, SOCK_DGRAM, 0);
-  if (sockfd < 0)
-    {
-      msg (M_WARN, "GDGMA: socket failed");
-      goto done;
-    }
-
-  ifc.ifc_len = bufsize;
-  ifc.ifc_buf = buffer;
-
-  if (ioctl(sockfd, SIOCGIFCONF, (char *)&ifc) < 0)
-    {
-      msg (M_WARN, "GDGMA: ioctl failed");
-      goto done;
-    }
-
-  for (cp = buffer; cp <= buffer + bufsize - sizeof(struct ifreq); )
-    {
-      ifr = (struct ifreq *)cp;
-      if (ifr->ifr_addr.sa_family == AF_LINK && !strncmp(ifr->ifr_name, ifname, IFNAMSIZ))
-	{
-	  struct sockaddr_dl *sdl = (struct sockaddr_dl *)&ifr->ifr_addr;
-	  memcpy(macaddr, LLADDR(sdl), 6);
-	  status = true;
-	}      
-      cp += sizeof(ifr->ifr_name) + max(sizeof(ifr->ifr_addr), ifr->ifr_addr.sa_len);
-    }
-
- done:
-  if (sockfd >= 0)
-    close (sockfd);
-  free (ifname);
-  gc_free (&gc);
-  return status;
-# undef max
-}
-
-#else
-
-bool
-get_default_gateway_mac_addr (unsigned char *macaddr) /* PLATFORM-SPECIFIC */
-{
-  return false;
-}
-
-#endif
-#endif /* AUTO_USERID */
-
 /*
  * Test if addr is reachable via a local interface (return ILA_LOCAL),
  * or if it needs to be routed via the default gateway (return
@@ -2974,7 +3129,7 @@ get_default_gateway_mac_addr (unsigned char *macaddr) /* PLATFORM-SPECIFIC */
 #if defined(WIN32)
 
 int
-test_local_addr (const in_addr_t addr)
+test_local_addr (const in_addr_t addr, const struct route_gateway_info *rgi)
 {
   struct gc_arena gc = gc_new ();
   const in_addr_t nonlocal_netmask = 0x80000000L; /* routes with netmask <= to this are considered non-local */
@@ -3004,10 +3159,16 @@ test_local_addr (const in_addr_t addr)
 
 #else
 
-
 int
-test_local_addr (const in_addr_t addr) /* PLATFORM-SPECIFIC */
+test_local_addr (const in_addr_t addr, const struct route_gateway_info *rgi) /* PLATFORM-SPECIFIC */
 {
+  if (rgi)
+    {
+      if (local_route (addr, 0xFFFFFFFF, rgi->gateway.addr, rgi))
+	return TLA_LOCAL;
+      else
+	return TLA_NONLOCAL;
+    }
   return TLA_NOT_IMPLEMENTED;
 }
 

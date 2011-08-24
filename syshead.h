@@ -652,6 +652,15 @@ socket_defined (const socket_descriptor_t sd)
 #endif
 
 /*
+ * Should we include --management-query-remote functionality
+ */
+#if defined(ENABLE_CONNECTION) && defined(ENABLE_MANAGEMENT)
+#define MANAGEMENT_QUERY_REMOTE 1
+#else
+#define MANAGEMENT_QUERY_REMOTE 0
+#endif
+
+/*
  * Reduce sensitivity to system clock instability
  * and backtracks.
  */
@@ -674,7 +683,7 @@ socket_defined (const socket_descriptor_t sd)
 #endif
 
 /*
- * Do we support challenge/response authentication, as a console-based client?
+ * Do we support challenge/response authentication as client?
  */
 #define ENABLE_CLIENT_CR
 

@@ -41,7 +41,11 @@
 
 static char base64_chars[] = 
     "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-
+/*
+ * base64 encode input data of length size to malloced
+ * buffer which is returned as *str.  Returns string
+ * length of *str.
+ */
 int 
 base64_encode(const void *data, int size, char **str)
 {
@@ -115,7 +119,11 @@ token_decode(const char *token)
 	return DECODE_ERROR;
     return (marker << 24) | val;
 }
-
+/*
+ * Decode base64 str, outputting data to buffer
+ * at data of length size.  Return length of
+ * decoded data written or -1 on error or overflow.
+ */
 int
 base64_decode(const char *str, void *data, int size)
 {

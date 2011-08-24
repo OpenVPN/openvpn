@@ -199,6 +199,90 @@ management_callback_http_proxy_fallback_cmd (void *arg, const char *server, cons
 
 #endif
 
+#if MANAGEMENT_QUERY_REMOTE
+
+static bool
+management_callback_remote_cmd (void *arg, const char **p)
+{
+  struct context *c = (struct context *) arg;
+  struct connection_entry *ce = &c->options.ce;
+  int ret = false;
+  if (p[1] && ((ce->flags>>CE_MAN_QUERY_REMOTE_SHIFT)&CE_MAN_QUERY_REMOTE_MASK) == CE_MAN_QUERY_REMOTE_QUERY)
+    {
+      int flags = 0;
+      if (!strcmp(p[1], "ACCEPT"))
+	{
+	  flags = CE_MAN_QUERY_REMOTE_ACCEPT;
+	  ret = true;
+	}
+      else if (!strcmp(p[1], "SKIP"))
+	{
+	  flags = CE_MAN_QUERY_REMOTE_SKIP;
+	  ret = true;
+	}
+      else if (!strcmp(p[1], "MOD") && p[2] && p[3])
+	{
+	  const int port = atoi(p[3]);
+	  if (strlen(p[2]) < RH_HOST_LEN && legal_ipv4_port(port))
+	    {
+	      struct remote_host_store *rhs = c->options.rh_store;
+	      if (!rhs)
+		{
+		  ALLOC_OBJ_CLEAR_GC (rhs, struct remote_host_store, &c->options.gc);
+		  c->options.rh_store = rhs;
+		}
+	      strncpynt(rhs->host, p[2], RH_HOST_LEN);
+	      ce->remote = rhs->host;
+	      ce->remote_port = port;
+	      flags = CE_MAN_QUERY_REMOTE_MOD;
+	      ret = true;
+	    }
+	}
+      if (ret)
+	{
+	  ce->flags &= ~(CE_MAN_QUERY_REMOTE_MASK<<CE_MAN_QUERY_REMOTE_SHIFT);
+	  ce->flags |= ((flags&CE_MAN_QUERY_REMOTE_MASK)<<CE_MAN_QUERY_REMOTE_SHIFT);
+	}
+    }
+  return ret;
+}
+
+static bool
+ce_management_query_remote (struct context *c, const char *remote_ip_hint)
+{
+  struct gc_arena gc = gc_new ();
+  volatile struct connection_entry *ce = &c->options.ce;
+  int ret = true;
+  update_time();
+  if (management)
+    {
+      struct buffer out = alloc_buf_gc (256, &gc);
+      buf_printf (&out, ">REMOTE:%s,%d,%s", np(ce->remote), ce->remote_port, proto2ascii(ce->proto, false));
+      management_notify_generic(management, BSTR (&out));
+      ce->flags &= ~(CE_MAN_QUERY_REMOTE_MASK<<CE_MAN_QUERY_REMOTE_SHIFT);
+      ce->flags |= (CE_MAN_QUERY_REMOTE_QUERY<<CE_MAN_QUERY_REMOTE_SHIFT);
+      while (((ce->flags>>CE_MAN_QUERY_REMOTE_SHIFT) & CE_MAN_QUERY_REMOTE_MASK) == CE_MAN_QUERY_REMOTE_QUERY)
+	{
+	  management_event_loop_n_seconds (management, 1);
+	  if (IS_SIG (c))
+	    {
+	      ret = false;
+	      break;
+	    }
+	}
+    }
+  {
+    const int flags = ((ce->flags>>CE_MAN_QUERY_REMOTE_SHIFT) & CE_MAN_QUERY_REMOTE_MASK);
+    if (flags == CE_MAN_QUERY_REMOTE_ACCEPT && remote_ip_hint)
+      ce->remote = remote_ip_hint;
+    ret = (flags != CE_MAN_QUERY_REMOTE_SKIP);
+  }
+  gc_free (&gc);
+  return ret;
+}
+
+#endif
+
 /*
  * Initialize and possibly randomize connection list.
  */
@@ -313,6 +397,15 @@ next_connection_entry (struct context *c)
 
 	c->options.ce = *ce;
 
+#if MANAGEMENT_QUERY_REMOTE
+	if (ce_defined && management && management_query_remote_enabled(management))
+	  {
+	    /* allow management interface to override connection entry details */
+	    ce_defined = ce_management_query_remote(c, remote_ip_hint);
+	    if (IS_SIG (c))
+	      break;
+	  } else
+#endif
 	if (remote_ip_hint)
 	  c->options.ce.remote = remote_ip_hint;
 
@@ -343,7 +436,13 @@ init_query_passwords (struct context *c)
 #if P2MP
   /* Auth user/pass input */
   if (c->options.auth_user_pass_file)
-    auth_user_pass_setup (c->options.auth_user_pass_file);
+    {
+#ifdef ENABLE_CLIENT_CR
+      auth_user_pass_setup (c->options.auth_user_pass_file, &c->options.sc_info);
+#else
+      auth_user_pass_setup (c->options.auth_user_pass_file, NULL);
+#endif
+    }
 #endif
 }
 
@@ -598,21 +697,9 @@ init_static (void)
 
 #ifdef TEST_GET_DEFAULT_GATEWAY
   {
-    struct gc_arena gc = gc_new ();
-    in_addr_t addr;
-    char macaddr[6];
-
-    if (get_default_gateway(&addr, NULL))
-      msg (M_INFO, "GW %s", print_in_addr_t(addr, 0, &gc));
-    else
-      msg (M_INFO, "GDG ERROR");
-
-    if (get_default_gateway_mac_addr(macaddr))
-      msg (M_INFO, "MAC %s", format_hex_ex (macaddr, 6, 0, 1, ":", &gc));
-    else
-      msg (M_INFO, "GDGMA ERROR");
-
-    gc_free (&gc);
+    struct route_gateway_info rgi;
+    get_default_gateway(&rgi);
+    print_default_gateway(M_INFO, &rgi);
     return false;
   }
 #endif
@@ -1241,7 +1328,7 @@ do_route (const struct options *options,
   if (!options->route_noexec && ( route_list || route_ipv6_list ) )
     {
       add_routes (route_list, route_ipv6_list, tt, ROUTE_OPTION_FLAGS (options), es);
-      setenv_int (es, "redirect_gateway", route_list->did_redirect_default_gateway);
+      setenv_int (es, "redirect_gateway", route_did_redirect_default_gateway(route_list));
     }
 #ifdef ENABLE_MANAGEMENT
   if (management)
@@ -2154,6 +2241,10 @@ do_init_crypto_tls (struct context *c, const unsigned int flags)
   to.x509_track = options->x509_track;
 #endif
 
+#ifdef ENABLE_CLIENT_CR
+  to.sci = &options->sc_info;
+#endif
+
   /* TLS handshake authentication (--tls-auth) */
   if (options->tls_auth_file)
     {
@@ -3045,6 +3136,9 @@ init_management_callback_p2p (struct context *c)
       cb.show_net = management_show_net_callback;
 #if HTTP_PROXY_FALLBACK
       cb.http_proxy_fallback_cmd = management_callback_http_proxy_fallback_cmd;
+#endif
+#if MANAGEMENT_QUERY_REMOTE
+      cb.remote_cmd = management_callback_remote_cmd;
 #endif
       management_set_callback (management, &cb);
     }
