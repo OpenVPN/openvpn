@@ -720,7 +720,7 @@ char_class (const unsigned char c, const unsigned int flags)
     return true;
   if ((flags & CC_DIGIT) && isdigit (c))
     return true;
-  if ((flags & CC_PRINT) && (c >= 32)) /* allow ascii non-control and UTF-8 */
+  if ((flags & CC_PRINT) && (c >= 32 && c != 127)) /* allow ascii non-control and UTF-8, consider DEL to be a control */
     return true;
   if ((flags & CC_PUNCT) && ispunct (c))
     return true;    
