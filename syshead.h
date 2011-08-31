@@ -342,7 +342,7 @@
 
 #ifdef WIN32
 #include <iphlpapi.h>
-#include <NtDDNdis.h>
+#include <ntddndis.h>
 #include <wininet.h>
 /* The following two headers are needed of PF_INET6 */
 #include <winsock2.h>
