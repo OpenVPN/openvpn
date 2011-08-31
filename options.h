@@ -342,6 +342,9 @@ struct options
   int rcvbuf;
   int sndbuf;
 
+  /* mark value */
+  int mark;
+
   /* socket flags */
   unsigned int sockflags;
 

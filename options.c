@@ -280,6 +280,10 @@ static const char usage_message[] =
   "                  or --fragment max value, whichever is lower.\n"
   "--sndbuf size   : Set the TCP/UDP send buffer size.\n"
   "--rcvbuf size   : Set the TCP/UDP receive buffer size.\n"
+#ifdef TARGET_LINUX
+  "--mark value    : Mark encrypted packets being sent with value. The mark value\n"
+  "                  can be matched in policy routing and packetfilter rules.\n"
+#endif
   "--txqueuelen n  : Set the tun/tap TX queue length to n (Linux only).\n"
   "--mlock         : Disable Paging -- ensures key material and tunnel\n"
   "                  data will never be written to disk.\n"
@@ -1473,6 +1477,9 @@ show_settings (const struct options *o)
 #endif
   SHOW_INT (rcvbuf);
   SHOW_INT (sndbuf);
+#ifdef TARGET_LINUX
+  SHOW_INT (mark);
+#endif
   SHOW_INT (sockflags);
 
   SHOW_BOOL (fast_io);
@@ -4519,6 +4526,13 @@ add_option (struct options *options,
     {
       VERIFY_PERMISSION (OPT_P_SOCKBUF);
       options->sndbuf = positive_atoi (p[1]);
+    }
+  else if (streq (p[0], "mark") && p[1])
+    {
+#ifdef TARGET_LINUX
+      VERIFY_PERMISSION (OPT_P_GENERAL);
+      options->mark = atoi(p[1]);
+#endif
     }
   else if (streq (p[0], "socket-flags"))
     {

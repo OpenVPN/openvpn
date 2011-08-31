@@ -779,6 +779,15 @@ socket_set_tcp_nodelay (int sd, int state)
 #endif
 }
 
+static void
+socket_set_mark (int sd, int mark)
+{
+#ifdef TARGET_LINUX
+  if (mark && setsockopt (sd, SOL_SOCKET, SO_MARK, &mark, sizeof (mark)) != 0)
+    msg (M_WARN, "NOTE: setsockopt SO_MARK=%d failed", mark);
+#endif
+}
+
 static bool
 socket_set_flags (int sd, unsigned int sockflags)
 {
@@ -1599,6 +1608,7 @@ link_socket_init_phase1 (struct link_socket *sock,
 			 int mtu_discover_type,
 			 int rcvbuf,
 			 int sndbuf,
+			 int mark,
 			 unsigned int sockflags)
 {
   ASSERT (sock);
@@ -1715,6 +1725,9 @@ link_socket_init_phase1 (struct link_socket *sock,
 
       /* set socket buffers based on --sndbuf and --rcvbuf options */
       socket_set_buffers (sock->sd, &sock->socket_buffer_sizes);
+
+      /* set socket to --mark packets with given value */
+      socket_set_mark (sock->sd, mark);
 
       resolve_bind_local (sock);
       resolve_remote (sock, 1, NULL, NULL);

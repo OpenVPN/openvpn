@@ -2640,6 +2640,7 @@ do_init_socket_1 (struct context *c, const int mode)
 			   c->options.mtu_discover_type,
 			   c->options.rcvbuf,
 			   c->options.sndbuf,
+			   c->options.mark,
 			   sockflags);
 }
 

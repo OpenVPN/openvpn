@@ -1371,6 +1371,12 @@ Set the TCP/UDP socket receive buffer size.
 Currently defaults to 65536 bytes.
 .\"*********************************************************
 .TP
+.B \-\-mark value
+Mark encrypted packets being sent with value. The mark value can be
+matched in policy routing and packetfilter rules. This option is
+only supported in Linux and does nothing on other operating systems.
+.\"*********************************************************
+.TP
 .B \-\-socket-flags flags...
 Apply the given flags to the OpenVPN transport socket.
 Currently, only

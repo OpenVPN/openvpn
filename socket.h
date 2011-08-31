@@ -324,6 +324,7 @@ link_socket_init_phase1 (struct link_socket *sock,
 			 int mtu_discover_type,
 			 int rcvbuf,
 			 int sndbuf,
+			 int mark,
 			 unsigned int sockflags);
 
 void link_socket_init_phase2 (struct link_socket *sock,
