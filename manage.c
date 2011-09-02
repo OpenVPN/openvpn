@@ -283,7 +283,10 @@ virtual_output_callback_func (void *arg, const unsigned int flags, const char *s
 {
   struct management *man = (struct management *) arg;
   static int recursive_level = 0; /* GLOBAL */
-  bool did_push = false;
+
+# define AF_DID_PUSH  (1<<0)
+# define AF_DID_RESET (1<<1)
+  unsigned int action_flags = 0;
 
   if (!recursive_level) /* don't allow recursion */
     {
@@ -317,7 +320,7 @@ virtual_output_callback_func (void *arg, const unsigned int flags, const char *s
 	  if (out)
 	    {
 	      man_output_list_push_str (man, out);
-	      did_push = true;
+	      action_flags |= AF_DID_PUSH;
 	    }
 	  if (flags & M_FATAL)
 	    {
@@ -325,8 +328,7 @@ virtual_output_callback_func (void *arg, const unsigned int flags, const char *s
 	      if (out)
 		{
 		  man_output_list_push_str (man, out);
-		  did_push = true;
-		  man_reset_client_socket (man, true);
+		  action_flags |= (AF_DID_PUSH|AF_DID_RESET);
 		}
 	    }
 	}
@@ -335,8 +337,10 @@ virtual_output_callback_func (void *arg, const unsigned int flags, const char *s
       gc_free (&gc);
     }
 
-  if (did_push)
+  if (action_flags & AF_DID_PUSH)
     man_output_list_push_finalize (man);
+  if (action_flags & AF_DID_RESET)
+    man_reset_client_socket (man, true);
 }
 
 /*
