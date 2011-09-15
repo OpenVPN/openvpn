@@ -455,6 +455,9 @@ static const char usage_message[] =
   "--connect-freq n s : Allow a maximum of n new connections per s seconds.\n"
   "--max-clients n : Allow a maximum of n simultaneously connected clients.\n"
   "--max-routes-per-client n : Allow a maximum of n internal routes per client.\n"
+  "--stale-routes-check n [t] : Remove routes with a last activity timestamp\n"
+  "                             older than n seconds. Run this check every t\n"
+  "                             seconds (defaults to n).\n"
 #if PORT_SHARE
   "--port-share host port [dir] : When run in TCP mode, proxy incoming HTTPS\n"
   "                  sessions to a web server at host:port.  dir specifies an\n"
@@ -781,6 +784,7 @@ init_options (struct options *o, const bool init_gc)
   o->tcp_queue_limit = 64;
   o->max_clients = 1024;
   o->max_routes_per_client = 256;
+  o->stale_routes_check_interval = 0;
   o->ifconfig_pool_persist_refresh_freq = 600;
 #endif
 #if P2MP
@@ -2182,6 +2186,8 @@ options_postprocess_verify_ce (const struct options *options, const struct conne
 	msg (M_USAGE, "--port-share requires TCP server mode (--mode server --proto tcp-server)");
 #endif
 
+      if (options->stale_routes_check_interval)
+        msg (M_USAGE, "--stale-routes-check requires --mode server");
     }
 #endif /* P2MP_SERVER */
 
@@ -4943,6 +4949,25 @@ add_option (struct options *options,
 	  goto err;
 	}
       options->max_routes = max_routes;
+    }
+  else if (streq (p[0], "stale-routes-check") && p[1])
+    {
+      int ageing_time, check_interval;
+
+      VERIFY_PERMISSION (OPT_P_GENERAL);
+      ageing_time = atoi (p[1]);
+      if (p[2])
+        check_interval = atoi (p[2]);
+      else
+        check_interval = ageing_time;
+
+      if (ageing_time < 1 || check_interval < 1)
+        {
+        msg (msglevel, "--stale-routes-check aging time and check interval must be >= 1");
+        goto err;
+        }
+      options->stale_routes_ageing_time  = ageing_time;
+      options->stale_routes_check_interval = check_interval;
     }
   else if (streq (p[0], "route-gateway") && p[1])
     {

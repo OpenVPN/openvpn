@@ -161,6 +161,11 @@ struct multi_context {
 
   struct context top;           /**< Storage structure for process-wide
                                  *   configuration. */
+
+  /*
+   * Timer object for stale route check
+   */
+  struct event_timeout stale_routes_check_et;
 };
 
 /*

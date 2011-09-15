@@ -3118,6 +3118,25 @@ directive affects OpenVPN's internal routing table, not the
 kernel routing table.
 .\"*********************************************************
 .TP
+.B \-\-stale-routes-check n [t]
+Remove routes haven't had activity for
+.B n
+seconds (i.e. the ageing time).
+
+This check is ran every
+.B t
+seconds (i.e. check interval).
+
+If
+.B t
+is not present it defaults to
+.B n
+
+This option helps to keep the dynamic routing table small.
+See also
+.B \-\-max-routes-per-client
+.\"*********************************************************
+.TP
 .B \-\-connect-freq n sec
 Allow a maximum of
 .B n

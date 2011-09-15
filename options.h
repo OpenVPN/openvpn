@@ -460,6 +460,8 @@ struct options
   int cf_per;
   int max_clients;
   int max_routes_per_client;
+  int stale_routes_check_interval;
+  int stale_routes_ageing_time;
 
   const char *auth_user_pass_verify_script;
   bool auth_user_pass_verify_script_via_file;

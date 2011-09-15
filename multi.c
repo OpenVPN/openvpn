@@ -368,6 +368,14 @@ multi_init (struct multi_context *m, struct context *t, bool tcp_mode, int threa
    * tun/tap interface and network stack?
    */
   m->enable_c2c = t->options.enable_c2c;
+
+  /* initialize stale routes check timer */
+  if (t->options.stale_routes_check_interval > 0)
+    {
+      msg (M_INFO, "Initializing stale route check timer to run every %i seconds and to removing routes with activity timeout older than %i seconds",
+        t->options.stale_routes_check_interval, t->options.stale_routes_ageing_time);
+      event_timeout_init (&m->stale_routes_check_et, t->options.stale_routes_check_interval, 0);
+    }
 }
 
 const char *
@@ -1195,6 +1203,32 @@ multi_delete_dup (struct multi_context *m, struct multi_instance *new_mi)
 	    msg (D_MULTI_LOW, "MULTI: new connection by client '%s' will cause previous active sessions by this client to be dropped.  Remember to use the --duplicate-cn option if you want multiple clients using the same certificate or username to concurrently connect.", new_cn);
 	}
     }
+}
+
+static void
+check_stale_routes (struct multi_context *m)
+{
+
+  struct gc_arena gc = gc_new ();
+  struct hash_iterator hi;
+  struct hash_element *he;
+
+  dmsg (D_MULTI_DEBUG, "MULTI: Checking stale routes");
+  hash_iterator_init_range (m->vhash, &hi, 0, hash_n_buckets (m->vhash));
+  while ((he = hash_iterator_next (&hi)) != NULL)
+    {
+      struct multi_route *r = (struct multi_route *) he->value;
+      if (multi_route_defined (m, r) && difftime(now, r->last_reference) >= m->top.options.stale_routes_ageing_time)
+        {
+          dmsg (D_MULTI_DEBUG, "MULTI: Deleting stale route for address '%s'",
+               mroute_addr_print (&r->addr, &gc));
+          learn_address_script (m, NULL, "delete", &r->addr);
+          multi_route_del (r);
+          hash_iterator_delete_element (&hi);
+        }
+    }
+  hash_iterator_free (&hi);
+  gc_free (&gc);
 }
 
 /*
@@ -2469,6 +2503,14 @@ gremlin_flood_clients (struct multi_context *m)
 }
 #endif
 
+bool
+stale_route_check_trigger (struct multi_context *m)
+{
+  struct timeval null;
+  CLEAR (null);
+  return event_timeout_trigger (&m->stale_routes_check_et, &null, ETT_DEFAULT);
+}
+
 /*
  * Process timers in the top-level context
  */
@@ -2491,6 +2533,10 @@ multi_process_per_second_timers_dowork (struct multi_context *m)
 #ifdef ENABLE_DEBUG
   gremlin_flood_clients (m);
 #endif
+
+  /* Should we check for stale routes? */
+  if (m->top.options.stale_routes_check_interval && stale_route_check_trigger (m))
+    check_stale_routes (m);
 }
 
 void
