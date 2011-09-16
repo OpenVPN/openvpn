@@ -945,16 +945,6 @@ do_ifconfig (struct tuntap *tt,
 # define NETBSD_MULTI_AF
 #endif
 
-      /* as on OpenBSD and Darwin, destroy and re-create tun<x> interface
-       */
-      argv_printf (&argv, "%s %s destroy", IFCONFIG_PATH, actual );
-      argv_msg (M_INFO, &argv);
-      openvpn_execve_check (&argv, es, 0, "NetBSD ifconfig destroy failed");
-
-      argv_printf (&argv, "%s %s create", IFCONFIG_PATH, actual );
-      argv_msg (M_INFO, &argv);
-      openvpn_execve_check (&argv, es, S_FATAL, "NetBSD ifconfig create failed");
-
       if (tun)
 	argv_printf (&argv,
 			  "%s %s %s %s mtu %d netmask 255.255.255.255 up",
@@ -964,6 +954,19 @@ do_ifconfig (struct tuntap *tt,
 			  ifconfig_remote_netmask,
 			  tun_mtu
 			  );
+      else
+	if ( tt->topology == TOP_SUBNET )
+	{
+	    argv_printf (&argv,
+			  "%s %s %s %s mtu %d netmask %s up",
+			  IFCONFIG_PATH,
+			  actual,
+			  ifconfig_local,
+			  ifconfig_local,
+			  tun_mtu,
+			  ifconfig_remote_netmask
+			  );
+	}
       else
       /*
        * NetBSD has distinct tun and tap devices
@@ -1264,6 +1267,30 @@ open_tun_generic (const char *dev, const char *dev_type, const char *dev_node,
 	   * explicit unit number.  Try opening /dev/[dev]n
 	   * where n = [0, 255].
 	   */
+#ifdef TARGET_NETBSD
+	  /* on NetBSD, tap (but not tun) devices are opened by
+           * opening /dev/tap and then querying the system about the
+	   * actual device name (tap0, tap1, ...) assigned
+           */
+	  if ( dynamic && strcmp( dev, "tap" ) == 0 )
+	    {
+	      struct ifreq ifr;
+	      if ((tt->fd = open ( "/dev/tap", O_RDWR)) < 0)
+		{
+		  msg (M_FATAL, "Cannot allocate NetBSD TAP dev dynamically");
+		}
+	      if ( ioctl( tt->fd, TAPGIFNAME, (void*)&ifr ) < 0 )
+		{
+		  msg (M_FATAL, "Cannot query NetBSD TAP device name");
+		}
+	      CLEAR(dynamic_name);
+	      strncpy( dynamic_name, ifr.ifr_name, sizeof(dynamic_name)-1 );
+	      dynamic_opened = true;
+	      openvpn_snprintf (tunname, sizeof (tunname), "/dev/%s", dynamic_name );
+	    }
+	  else
+#endif
+
 	  if (dynamic && !has_digit((unsigned char *)dev))
 	    {
 	      int i;
@@ -2084,24 +2111,49 @@ open_tun (const char *dev, const char *dev_type, const char *dev_node, struct tu
         ioctl (tt->fd, TUNSLMODE, &i);   /* link layer mode off */
 
 #ifdef NETBSD_MULTI_AF
-        i = 1;
-        if (ioctl (tt->fd, TUNSIFHEAD, &i) < 0) 	/* multi-af mode on */
+	if ( tt->type == DEV_TYPE_TUN )
 	  {
-	    msg (M_WARN | M_ERRNO, "ioctl(TUNSIFHEAD): %s", strerror(errno));
+	    i = 1;
+	    if (ioctl (tt->fd, TUNSIFHEAD, &i) < 0) 	/* multi-af mode on */
+	      {
+		msg (M_WARN | M_ERRNO, "ioctl(TUNSIFHEAD): %s", strerror(errno));
+	      }
 	  }
 #endif
       }
 }
 
+/* the current way OpenVPN handles tun devices on NetBSD leads to
+ * lingering tunX interfaces after close -> for a full cleanup, they
+ * need to be explicitely destroyed
+ */
 void
 close_tun (struct tuntap *tt)
 {
-  /* TODO: we really should cleanup non-persistant tunX with 
-   * "ifconfig tunX destroy" here...
+  /* only tun devices need destroying, tap devices auto-self-destruct
    */
-  if (tt)
+  if (tt && tt->type != DEV_TYPE_TUN )
     {
       close_tun_generic (tt);
+      free(tt);
+    }
+  else if (tt)
+    {
+      struct gc_arena gc = gc_new ();
+      struct argv argv;
+
+      /* setup command, close tun dev (clears tt->actual_name!), run command
+       */
+
+      argv_init (&argv);
+      argv_printf (&argv, "%s %s destroy",
+                          IFCONFIG_PATH, tt->actual_name);
+
+      close_tun_generic (tt);
+
+      argv_msg (M_INFO, &argv);
+      openvpn_execve_check (&argv, NULL, 0, "NetBSD 'destroy tun interface' failed (non-critical)");
+
       free (tt);
     }
 }

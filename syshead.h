@@ -213,6 +213,10 @@
 #include <net/if.h>
 #endif
 
+#ifdef TARGET_NETBSD
+#include <net/if_tap.h>
+#endif
+
 #ifdef TARGET_LINUX
 
 #if defined(HAVE_NETINET_IF_ETHER_H)
