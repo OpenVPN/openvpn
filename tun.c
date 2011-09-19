@@ -865,13 +865,12 @@ do_ifconfig (struct tuntap *tt,
 	  /* Add a network route for the local tun interface */
 	  struct route r;
 	  CLEAR (r);      
-	  r.defined = true;       
+	  r.flags = RT_DEFINED | RT_METRIC_DEFINED;
 	  r.network = tt->local & tt->remote_netmask;
 	  r.netmask = tt->remote_netmask;
 	  r.gateway = tt->local;  
-	  r.metric_defined = true;
 	  r.metric = 0;
-	  add_route (&r, tt, 0, es);
+	  add_route (&r, tt, 0, NULL, es);
 	}
 
       tt->did_ifconfig = true;
@@ -1105,21 +1104,21 @@ do_ifconfig (struct tuntap *tt,
                               ifconfig_remote_netmask,
                               tun_mtu
                               );
-	
+
       argv_msg (M_INFO, &argv);
       openvpn_execve_check (&argv, es, S_FATAL, "FreeBSD ifconfig failed");
       tt->did_ifconfig = true;
 
 	/* Add a network route for the local tun interface */
       if (!tun && tt->topology == TOP_SUBNET)
-        {               
+        {
           struct route r;
-          CLEAR (r);      
-          r.defined = true;       
+          CLEAR (r);
+          r.flags = RT_DEFINED;
           r.network = tt->local & tt->remote_netmask;
           r.netmask = tt->remote_netmask;
-          r.gateway = tt->local;  
-          add_route (&r, tt, 0, es);
+          r.gateway = tt->local;
+          add_route (&r, tt, 0, NULL, es);
         }
 
       if ( do_ipv6 )
