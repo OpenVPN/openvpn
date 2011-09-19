@@ -57,6 +57,12 @@
 #define srandom srand
 #endif
 
+#if defined(__APPLE__)
+#if __ENVIRONMENT_MAC_OS_X_VERSION_MIN_REQUIRED__ >= 1070
+#define __APPLE_USE_RFC_3542  1
+#endif
+#endif
+
 #ifdef HAVE_SYS_TYPES_H
 #include <sys/types.h>
 #endif
@@ -398,6 +404,14 @@
 #define ENABLE_IP_PKTINFO 1
 #else
 #define ENABLE_IP_PKTINFO 0
+#endif
+
+/*
+ * Does this platform define SOL_IP
+ * or only bsd-style IPPROTO_IP ?
+ */
+#ifndef SOL_IP
+#define SOL_IP IPPROTO_IP
 #endif
 
 /*

@@ -86,8 +86,7 @@ struct link_socket_actual
   union {
 #ifdef HAVE_IN_PKTINFO
     struct in_pktinfo in4;
-#endif
-#ifdef IP_RECVDSTADDR
+#elif defined(IP_RECVDSTADDR)
     struct in_addr in4;
 #endif
     struct in6_pktinfo in6;
@@ -589,8 +588,7 @@ addr_defined_ipi (const struct link_socket_actual *lsa)
   switch (lsa->dest.addr.sa.sa_family) {
 #ifdef HAVE_IN_PKTINFO
     case AF_INET: return lsa->pi.in4.ipi_spec_dst.s_addr != 0;
-#endif
-#ifdef IP_RECVDSTADDR
+#elif defined(IP_RECVDSTADDR)
     case AF_INET: return lsa->pi.in4.s_addr != 0;
 #endif
     case AF_INET6: return !IN6_IS_ADDR_UNSPECIFIED(&lsa->pi.in6.ipi6_addr);

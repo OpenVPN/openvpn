@@ -1060,11 +1060,11 @@ do_ifconfig (struct tuntap *tt,
 	{
 	  struct route r;
 	  CLEAR (r);
-	  r.defined = true;
+	  r.flags = RT_DEFINED;
 	  r.network = tt->local & tt->remote_netmask;
 	  r.netmask = tt->remote_netmask;
 	  r.gateway = tt->local;
-	  add_route (&r, tt, 0, es);
+	  add_route (&r, tt, 0, NULL, es);
 	}
 
       if ( do_ipv6 )

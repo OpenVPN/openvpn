@@ -2878,8 +2878,7 @@ struct openvpn_in4_pktinfo
   struct cmsghdr cmsghdr;
 #ifdef HAVE_IN_PKTINFO
   struct in_pktinfo pi4;
-#endif
-#ifdef IP_RECVDSTADDR
+#elif defined(IP_RECVDSTADDR)
   struct in_addr pi4;
 #endif
 };
