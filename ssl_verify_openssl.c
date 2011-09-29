@@ -53,7 +53,7 @@ verify_callback (int preverify_ok, X509_STORE_CTX * ctx)
   if (!preverify_ok)
     {
       /* get the X509 name */
-      char *subject = x509_get_serial(ctx->current_cert);
+      char *subject = x509_get_subject(ctx->current_cert);
 
       if (subject)
 	{
