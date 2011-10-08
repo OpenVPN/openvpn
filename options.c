@@ -4950,25 +4950,6 @@ add_option (struct options *options,
 	}
       options->max_routes = max_routes;
     }
-  else if (streq (p[0], "stale-routes-check") && p[1])
-    {
-      int ageing_time, check_interval;
-
-      VERIFY_PERMISSION (OPT_P_GENERAL);
-      ageing_time = atoi (p[1]);
-      if (p[2])
-        check_interval = atoi (p[2]);
-      else
-        check_interval = ageing_time;
-
-      if (ageing_time < 1 || check_interval < 1)
-        {
-        msg (msglevel, "--stale-routes-check aging time and check interval must be >= 1");
-        goto err;
-        }
-      options->stale_routes_ageing_time  = ageing_time;
-      options->stale_routes_check_interval = check_interval;
-    }
   else if (streq (p[0], "route-gateway") && p[1])
     {
       VERIFY_PERMISSION (OPT_P_ROUTE_EXTRAS);
@@ -5597,6 +5578,25 @@ add_option (struct options *options,
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->server_flags |= SF_TCP_NODELAY_HELPER;
+    }
+  else if (streq (p[0], "stale-routes-check") && p[1])
+    {
+      int ageing_time, check_interval;
+
+      VERIFY_PERMISSION (OPT_P_GENERAL);
+      ageing_time = atoi (p[1]);
+      if (p[2])
+        check_interval = atoi (p[2]);
+      else
+        check_interval = ageing_time;
+
+      if (ageing_time < 1 || check_interval < 1)
+        {
+        msg (msglevel, "--stale-routes-check aging time and check interval must be >= 1");
+        goto err;
+        }
+      options->stale_routes_ageing_time  = ageing_time;
+      options->stale_routes_check_interval = check_interval;
     }
 #endif /* P2MP_SERVER */
 
