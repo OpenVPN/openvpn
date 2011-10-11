@@ -83,7 +83,6 @@
 #define D_RESTART            LOGLEV(3, 33, 0)        /* show certain restart messages */
 #define D_PUSH               LOGLEV(3, 34, 0)        /* show push/pull info */
 #define D_IFCONFIG_POOL      LOGLEV(3, 35, 0)        /* show ifconfig pool info */
-#define D_PID_DEBUG_LOW      LOGLEV(3, 36, 0)        /* show low-freq packet-id debugging info */
 #define D_AUTH               LOGLEV(3, 37, 0)        /* show user/pass auth info */
 #define D_MULTI_LOW          LOGLEV(3, 38, 0)        /* show point-to-multipoint low-freq debug info */
 #define D_PLUGIN             LOGLEV(3, 39, 0)        /* show plugin calls */
@@ -107,7 +106,8 @@
 #define D_INIT_MEDIUM        LOGLEV(4, 60, 0)        /* show medium frequency init messages */
 #define D_MTU_INFO           LOGLEV(4, 61, 0)        /* show terse MTU info */
 #define D_SHOW_OCC_HASH      LOGLEV(4, 62, 0)        /* show MD5 hash of option compatibility string */
-#define D_PID_DEBUG_MEDIUM   LOGLEV(4, 63, 0)        /* show medium-freq packet-id debugging info */
+#define D_PID_DEBUG_LOW      LOGLEV(4, 63, 0)        /* show low-freq packet-id debugging info */
+#define D_PID_DEBUG_MEDIUM   LOGLEV(4, 64, 0)        /* show medium-freq packet-id debugging info */
 
 #define D_LOG_RW             LOGLEV(5, 0,  0)        /* Print 'R' or 'W' to stdout for read/write */
 
