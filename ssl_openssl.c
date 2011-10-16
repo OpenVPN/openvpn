@@ -1201,7 +1201,7 @@ key_state_read_plaintext (struct key_state_ssl *ks_ssl, struct buffer *buf,
 void
 print_details (struct key_state_ssl * ks_ssl, const char *prefix)
 {
-  SSL_CIPHER *ciph;
+  const SSL_CIPHER *ciph;
   X509 *cert;
   char s1[256];
   char s2[256];
