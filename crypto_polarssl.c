@@ -216,7 +216,7 @@ key_des_check (uint8_t *key, int key_len, int ndc)
 	  msg (D_CRYPT_ERRORS, "CRYPTO INFO: check_key_DES: insufficient key material");
 	  goto err;
 	}
-      if (0 == des_key_check_weak(key))
+      if (0 != des_key_check_weak(key))
 	{
 	  msg (D_CRYPT_ERRORS, "CRYPTO INFO: check_key_DES: weak key detected");
 	  goto err;

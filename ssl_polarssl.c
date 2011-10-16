@@ -453,7 +453,7 @@ static int endless_buf_read( void * ctx, unsigned char * out, size_t out_len )
   return read_len;
 }
 
-static int endless_buf_write( void *ctx, unsigned char *in, size_t len )
+static int endless_buf_write( void *ctx, const unsigned char *in, size_t len )
 {
   endless_buffer *out = (endless_buffer *) ctx;
   buffer_entry *new_block = malloc(sizeof(buffer_entry));
