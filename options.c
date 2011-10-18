@@ -299,6 +299,9 @@ static const char usage_message[] =
   "                  can be matched in policy routing and packetfilter rules.\n"
 #endif
   "--txqueuelen n  : Set the tun/tap TX queue length to n (Linux only).\n"
+#ifdef ENABLE_MEMSTATS
+  "--memstats file : Write live usage stats to memory mapped binary file.\n"
+#endif
   "--mlock         : Disable Paging -- ensures key material and tunnel\n"
   "                  data will never be written to disk.\n"
   "--up cmd        : Shell cmd to execute after successful tun device open.\n"
@@ -4602,6 +4605,13 @@ add_option (struct options *options,
       options->log = true;
       redirect_stdout_stderr (p[1], true);
     }
+#ifdef ENABLE_MEMSTATS
+  else if (streq (p[0], "memstats") && p[1])
+    {
+      VERIFY_PERMISSION (OPT_P_GENERAL);
+      options->memstats_fn = p[1];
+    }
+#endif
   else if (streq (p[0], "mlock"))
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);

@@ -35,6 +35,7 @@
 #include "status.h"
 #include "integer.h"
 #include "ps.h"
+#include "mstats.h"
 
 #ifdef USE_CRYPTO
 #ifdef USE_OPENSSL
@@ -677,6 +678,10 @@ openvpn_exit (const int status)
 #if PORT_SHARE
       if (port_share)
 	port_share_abort (port_share);
+#endif
+
+#ifdef ENABLE_MEMSTATS
+      mstats_close();
 #endif
 
 #ifdef ABORT_ON_ERROR

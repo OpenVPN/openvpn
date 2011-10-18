@@ -110,6 +110,7 @@ openvpn_SOURCES = \
 	misc.c misc.h \
 	mroute.c mroute.h \
 	mss.c mss.h \
+	mstats.c mstats.h \
 	mtcp.c mtcp.h \
 	mtu.c mtu.h \
 	mudp.c mudp.h \

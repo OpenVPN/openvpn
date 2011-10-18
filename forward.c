@@ -39,6 +39,7 @@
 #include "forward-inline.h"
 #include "occ-inline.h"
 #include "ping-inline.h"
+#include "mstats.h"
 
 counter_type link_read_bytes_global;  /* GLOBAL */
 counter_type link_write_bytes_global; /* GLOBAL */
@@ -738,6 +739,10 @@ process_incoming_link (struct context *c)
     {
       c->c2.link_read_bytes += c->c2.buf.len;
       link_read_bytes_global += c->c2.buf.len;
+#ifdef ENABLE_MEMSTATS
+      if (mmap_stats)
+	mmap_stats->link_read_bytes = link_read_bytes_global;
+#endif
       c->c2.original_recv_size = c->c2.buf.len;
 #ifdef ENABLE_MANAGEMENT
       if (management)
@@ -1137,6 +1142,10 @@ process_outgoing_link (struct context *c)
 	      c->c2.max_send_size_local = max_int (size, c->c2.max_send_size_local);
 	      c->c2.link_write_bytes += size;
 	      link_write_bytes_global += size;
+#ifdef ENABLE_MEMSTATS
+	      if (mmap_stats)
+		mmap_stats->link_write_bytes = link_write_bytes_global;
+#endif
 #ifdef ENABLE_MANAGEMENT
 	      if (management)
 		{

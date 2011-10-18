@@ -737,4 +737,11 @@ socket_defined (const socket_descriptor_t sd)
 #define LZO_VERSION_NUM "STUB"
 #endif
 
+/*
+ * Enable --memstats option
+ */
+#ifdef TARGET_LINUX
+#define ENABLE_MEMSTATS
+#endif
+
 #endif
