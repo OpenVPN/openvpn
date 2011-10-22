@@ -1,0 +1,3 @@
+"Doing low-level stuff like verifying CRL issuers and checking serial numbers
+ is something that's better done by the OpenSSL library directly"
+(James Yonan, code review comment)
