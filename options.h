@@ -77,7 +77,7 @@ struct options_pre_pull
 };
 
 #endif
-#if !defined(USE_OPENSSL) && !defined(USE_POLARSSL)
+#if defined(USE_CRYPTO) && !defined(USE_OPENSSL) && !defined(USE_POLARSSL)
 # error "At least one of OpenSSL or PolarSSL needs to be defined."
 #endif
 

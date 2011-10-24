@@ -27,6 +27,10 @@
  * @file Control Channel Verification Module PolarSSL backend
  */
 
+#include "syshead.h"
+
+#if defined(USE_SSL) && defined(USE_POLARSSL)
+
 #include "ssl_verify.h"
 #include <polarssl/sha1.h>
 
@@ -417,3 +421,5 @@ end:
   x509_crl_free(&crl);
   return retval;
 }
+
+#endif /* #if defined(USE_SSL) && defined(USE_POLARSSL) */

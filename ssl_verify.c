@@ -28,6 +28,9 @@
  */
 
 #include "syshead.h"
+
+#if defined(USE_CRYPTO) && defined(USE_SSL)
+
 #include "misc.h"
 #include "manage.h"
 #include "ssl_verify.h"
@@ -1237,3 +1240,4 @@ verify_final_auth_checks(struct tls_multi *multi, struct tls_session *session)
       gc_free (&gc);
     }
 }
+#endif /* defined(USE_CRYPTO) && defined(USE_SSL) */

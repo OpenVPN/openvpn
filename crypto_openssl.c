@@ -29,6 +29,8 @@
 
 #include "syshead.h"
 
+#if defined(USE_CRYPTO) && defined(USE_OPENSSL)
+
 #include "basic.h"
 #include "buffer.h"
 #include "integer.h"
@@ -789,3 +791,5 @@ hmac_ctx_final (HMAC_CTX *ctx, uint8_t *dst)
 
   HMAC_Final (ctx, dst, &in_hmac_len);
 }
+
+#endif /* USE_CRYPTO && USE_OPENSSL */

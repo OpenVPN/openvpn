@@ -27,6 +27,10 @@
  * @file Control Channel Verification Module OpenSSL implementation
  */
 
+#include "syshead.h"
+
+#if defined(USE_SSL) && defined(USE_OPENSSL)
+
 #include "ssl_verify.h"
 #include "ssl_verify_backend.h"
 #include "ssl_openssl.h"
@@ -584,3 +588,5 @@ end:
 
   return retval;
 }
+
+#endif /* defined(USE_SSL) && defined(USE_OPENSSL) */

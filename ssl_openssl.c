@@ -28,6 +28,9 @@
  */
 
 #include "syshead.h"
+
+#if defined(USE_SSL) && defined(USE_OPENSSL)
+
 #include "errlevel.h"
 #include "buffer.h"
 #include "misc.h"
@@ -1286,3 +1289,5 @@ get_highest_preference_tls_cipher (char *buf, int size)
   SSL_free (ssl);
   SSL_CTX_free (ctx);
 }
+
+#endif /* defined(USE_SSL) && defined(USE_OPENSSL) */

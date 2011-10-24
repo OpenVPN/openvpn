@@ -299,8 +299,6 @@ AC_ARG_WITH([ssl-type],
    esac],
    [SSL_LIB="openssl"]
 )
-AM_CONDITIONAL([USE_OPENSSL], [test x$SSL_LIB = xopenssl])
-AM_CONDITIONAL([USE_POLARSSL], [test x$SSL_LIB = xpolarssl])
 
 dnl fix search path, to allow compilers to find syshead.h
 CPPFLAGS="$CPPFLAGS -I${srcdir}"

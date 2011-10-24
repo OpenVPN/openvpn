@@ -29,7 +29,7 @@
 
 #include "syshead.h"
 
-#ifdef ENABLE_PKCS11
+#if defined(ENABLE_PKCS11) && defined(USE_OPENSSL)
 
 #include "errlevel.h"
 #include "pkcs11_backend.h"
@@ -185,4 +185,4 @@ cleanup:
     }
   return ret;
 }
-#endif /* ENABLE_PKCS11 */
+#endif /* defined(ENABLE_PKCS11) && defined(ENABLE_OPENSSL) */

@@ -28,6 +28,9 @@
  */
 
 #include "syshead.h"
+
+#if defined(USE_SSL) && defined(USE_POLARSSL)
+
 #include "errlevel.h"
 #include "ssl_backend.h"
 #include "buffer.h"
@@ -857,3 +860,5 @@ get_highest_preference_tls_cipher (char *buf, int size)
   cipher_name = ssl_get_ciphersuite_name(*ciphers);
   strncpynt (buf, cipher_name, size);
 }
+
+#endif /* defined(USE_SSL) && defined(USE_POLARSSL) */

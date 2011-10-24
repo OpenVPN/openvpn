@@ -86,6 +86,8 @@ openvpn_SOURCES = \
 	common.h \
 	config-win32.h \
 	crypto.c crypto.h crypto_backend.h \
+	crypto_openssl.c crypto_openssl.h \
+	crypto_polarssl.c crypto_polarssl.h \
 	dhcp.c dhcp.h \
 	errlevel.h \
 	error.c error.h \
@@ -115,6 +117,8 @@ openvpn_SOURCES = \
         ntlm.c ntlm.h \
 	occ.c occ.h occ-inline.h \
 	pkcs11.c pkcs11.h pkcs11_backend.h \
+	pkcs11_openssl.c \
+	pkcs11_polarssl.c \
 	openvpn.c openvpn.h \
 	openvpn-plugin.h \
 	options.c options.h \
@@ -139,7 +143,11 @@ openvpn_SOURCES = \
 	socket.c socket.h \
 	socks.c socks.h \
 	ssl.c ssl.h  ssl_backend.h \
+	ssl_openssl.c ssl_openssl.h \
+	ssl_polarssl.c ssl_polarssl.h \
 	ssl_verify.c ssl_verify.h ssl_verify_backend.h \
+	ssl_verify_openssl.c ssl_verify_openssl.h \
+	ssl_verify_polarssl.c ssl_verify_polarssl.h \
 	status.c status.h \
 	syshead.h \
 	tun.c tun.h \
@@ -152,21 +160,6 @@ options.$(OBJEXT): configure.h
 configure.h: Makefile
 	awk -f $(srcdir)/configure_h.awk config.h > $@
 	awk -f $(srcdir)/configure_log.awk config.log >> $@
-
-if USE_OPENSSL
-openvpn_SOURCES += \
-	crypto_openssl.c crypto_openssl.h \
-	pkcs11_openssl.c \
-	ssl_openssl.c ssl_openssl.h \
-	ssl_verify_openssl.c ssl_verify_openssl.h
-endif
-if USE_POLARSSL
-openvpn_SOURCES += \
-	crypto_polarssl.c crypto_polarssl.h \
-	pkcs11_polarssl.c \
-	ssl_polarssl.c ssl_polarssl.h \
-	ssl_verify_polarssl.c ssl_verify_polarssl.h
-endif
 
 dist-hook:
 	cd $(distdir) && for i in $(EXTRA_DIST) $(SUBDIRS) ; do find $$i -name .svn -type d -prune -exec rm -rf '{}' ';' ; rm -f `find $$i -type f | grep -E '(^|\/)\.?\#|\~$$|\.s?o$$'` ; done
