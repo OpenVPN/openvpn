@@ -399,7 +399,7 @@ int cipher_ctx_final (cipher_context_t *ctx, uint8_t *dst, int *dst_len)
 }
 
 void
-cipher_des_encrypt_ecb (const unsigned char key[DES_KEY_SIZE],
+cipher_des_encrypt_ecb (const unsigned char key[DES_KEY_LENGTH],
     unsigned char *src,
     unsigned char *dst)
 {

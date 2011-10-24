@@ -135,9 +135,9 @@ void key_des_fixup (uint8_t *key, int key_len, int ndc);
  * @param src		Buffer containing the 8-byte source.
  * @param dst		Buffer containing the 8-byte destination
  */
-void cipher_des_encrypt_ecb (const unsigned char key[8],
-    unsigned char src[8],
-    unsigned char dst[8]);
+void cipher_des_encrypt_ecb (const unsigned char key[DES_KEY_LENGTH],
+    unsigned char src[DES_KEY_LENGTH],
+    unsigned char dst[DES_KEY_LENGTH]);
 
 /*
  *

@@ -66,7 +66,9 @@ typedef md_context_t hmac_ctx_t;
 /** Cipher should decrypt */
 #define OPENVPN_OP_DECRYPT 	POLARSSL_DECRYPT
 
+#define MD4_DIGEST_LENGTH 	16
 #define MD5_DIGEST_LENGTH 	16
 #define SHA_DIGEST_LENGTH 	20
+#define DES_KEY_LENGTH 8
 
 #endif /* CRYPTO_POLARSSL_H_ */

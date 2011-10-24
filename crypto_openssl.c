@@ -638,7 +638,7 @@ cipher_ctx_final (EVP_CIPHER_CTX *ctx, uint8_t *dst, int *dst_len)
 
 
 void
-cipher_des_encrypt_ecb (const unsigned char key[8],
+cipher_des_encrypt_ecb (const unsigned char key[DES_KEY_LENGTH],
     unsigned char *src,
     unsigned char *dst)
 {
