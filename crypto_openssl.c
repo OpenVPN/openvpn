@@ -642,10 +642,10 @@ cipher_des_encrypt_ecb (const unsigned char key[DES_KEY_LENGTH],
     unsigned char *src,
     unsigned char *dst)
 {
-    des_key_schedule sched;
+    DES_key_schedule sched;
 
-    des_set_key_unchecked((des_cblock*)key, sched);
-    des_ecb_encrypt((des_cblock *)src, (des_cblock *)dst, sched, DES_ENCRYPT);
+    des_set_key_unchecked((DES_cblock*)key, sched);
+    des_ecb_encrypt((DES_cblock *)src, (DES_cblock *)dst, sched, DES_ENCRYPT);
 }
 
 /*
