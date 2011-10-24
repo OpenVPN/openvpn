@@ -559,8 +559,10 @@ static const char usage_message[] =
   "                  by a Certificate Authority in --ca file.\n"
   "--extra-certs file : one or more PEM certs that complete the cert chain.\n"
   "--key file      : Local private key in .pem format.\n"
+#ifndef USE_POLARSSL
   "--pkcs12 file   : PKCS#12 file containing local private key, local certificate\n"
   "                  and optionally the root CA certificate.\n"
+#endif
 #ifdef ENABLE_X509ALTUSERNAME
   "--x509-username-field : Field used in x509 certificate to be username.\n"
   "                        Default is CN.\n"
@@ -1575,7 +1577,9 @@ show_settings (const struct options *o)
   SHOW_STR (dh_file);
   SHOW_STR (cert_file);
   SHOW_STR (priv_key_file);
+#ifndef USE_POLARSSL
   SHOW_STR (pkcs12_file);
+#endif
 #ifdef ENABLE_CRYPTOAPI
   SHOW_STR (cryptoapi_cert);
 #endif
@@ -2341,7 +2345,9 @@ options_postprocess_verify_ce (const struct options *options, const struct conne
       MUST_BE_UNDEF (dh_file);
       MUST_BE_UNDEF (cert_file);
       MUST_BE_UNDEF (priv_key_file);
+#ifndef USE_POLARSSL
       MUST_BE_UNDEF (pkcs12_file);
+#endif
       MUST_BE_UNDEF (cipher_list);
       MUST_BE_UNDEF (tls_verify);
       MUST_BE_UNDEF (tls_export_cert);
@@ -6262,7 +6268,7 @@ add_option (struct options *options,
 	}
 #endif
     }
-#ifdef USE_POLARSSL
+#ifndef USE_POLARSSL
   else if (streq (p[0], "pkcs12") && p[1])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
