@@ -132,7 +132,7 @@ plugin_call(const struct plugin_list *pl,
 {
   return plugin_call_ssl(pl, type, av, pr, es
 #ifdef USE_SSL
-      -1, NULL
+      , -1, NULL
 #endif
       );
 }
