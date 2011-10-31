@@ -339,7 +339,7 @@ tls_ctx_load_cryptoapi(struct tls_root_ctx *ctx, const char *cryptoapi_cert)
   /* Load Certificate and Private Key */
   if (!SSL_CTX_use_CryptoAPI_certificate (ctx->ctx, cryptoapi_cert))
     msg (M_SSLERR, "Cannot load certificate \"%s\" from Microsoft Certificate Store",
-	   options->cryptoapi_cert);
+	   cryptoapi_cert);
 }
 #endif /* WIN32 */
 
