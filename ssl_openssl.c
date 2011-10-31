@@ -39,6 +39,10 @@
 #include "ssl_backend.h"
 #include "ssl_common.h"
 
+#ifdef ENABLE_CRYPTOAPI
+#include "cryptoapi.h"
+#endif
+
 #include "ssl_verify_openssl.h"
 
 #include <openssl/err.h>

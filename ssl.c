@@ -62,10 +62,6 @@
 #include "ssl_verify.h"
 #include "ssl_backend.h"
 
-#ifdef WIN32
-#include "cryptoapi.h"
-#endif
-
 #include "memdbg.h"
 
 #ifndef ENABLE_OCC
