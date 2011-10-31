@@ -347,8 +347,6 @@ void tls_ctx_load_ca (struct tls_root_ctx *ctx, const char *ca_file,
     const char *ca_path, bool tls_server
     )
 {
-  int status;
-
   if (ca_path)
       msg(M_FATAL, "ERROR: PolarSSL cannot handle the capath directive");
 

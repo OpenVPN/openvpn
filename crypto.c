@@ -1336,11 +1336,10 @@ prng_uninit (void)
 void
 prng_bytes (uint8_t *output, int len)
 {
-  static int32_t processed = 0;
+  static size_t processed = 0;
 
   if (nonce_md)
     {
-      md_ctx_t ctx;
       const int md_size = md_kt_size (nonce_md);
       while (len > 0)
 	{

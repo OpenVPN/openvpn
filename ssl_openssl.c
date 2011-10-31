@@ -38,6 +38,7 @@
 #include "memdbg.h"
 #include "ssl_backend.h"
 #include "ssl_common.h"
+#include "base64.h"
 
 #ifdef ENABLE_CRYPTOAPI
 #include "cryptoapi.h"
@@ -349,7 +350,6 @@ tls_ctx_load_cryptoapi(struct tls_root_ctx *ctx, const char *cryptoapi_cert)
 static int
 tls_ctx_read_certificate_file(SSL_CTX *ctx, const char *file, X509 **x509)
 {
-  int j;
   BIO *in;
   int ret=0;
   X509 *x=NULL;
@@ -480,9 +480,9 @@ tls_ctx_load_priv_file (struct tls_root_ctx *ctx, const char *priv_key_file
 #endif
     )
 {
-  ASSERT(NULL != ctx);
-
   int status;
+
+  ASSERT(NULL != ctx);
 
 #if ENABLE_INLINE_FILES
   if (!strcmp (priv_key_file, INLINE_FILE_TAG) && priv_key_file_inline)

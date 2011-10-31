@@ -191,7 +191,7 @@ x509_free_subject (char *subject)
 void
 x509_setenv (struct env_set *es, int cert_depth, x509_cert_t *cert)
 {
-  int i, ret;
+  int i;
   unsigned char c;
   const x509_name *name;
   char s[128];

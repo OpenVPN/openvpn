@@ -35,6 +35,7 @@
 #include "ssl_verify_backend.h"
 #include "ssl_openssl.h"
 #include <openssl/x509v3.h>
+#include <openssl/err.h>
 
 int
 verify_callback (int preverify_ok, X509_STORE_CTX * ctx)

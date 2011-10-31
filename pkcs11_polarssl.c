@@ -40,7 +40,6 @@ pkcs11_init_tls_session(pkcs11h_certificate_t certificate,
     struct tls_root_ctx * const ssl_ctx)
 {
   int ret = 1;
-  pkcs11_context pkcs11_ctx;
 
   ASSERT (NULL != ssl_ctx);
 
