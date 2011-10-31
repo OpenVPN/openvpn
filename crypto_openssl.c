@@ -277,8 +277,6 @@ crypto_uninit_lib (void)
       engine_initialized = false;
     }
 #endif
-
-  prng_uninit ();
 }
 
 void

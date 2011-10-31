@@ -69,7 +69,6 @@ crypto_init_lib (void)
 void
 crypto_uninit_lib (void)
 {
-  prng_uninit();
 }
 
 void

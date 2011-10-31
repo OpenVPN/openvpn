@@ -162,7 +162,8 @@ void
 free_ssl_lib ()
 {
   crypto_uninit_lib ();
-
+  prng_uninit();
+  
   tls_free_lib();
 }
 
@@ -1168,7 +1169,6 @@ tls1_P_hash(const md_kt_t *md_kt,
 {
   struct gc_arena gc = gc_new ();
   int chunk,n;
-  unsigned int j;
   hmac_ctx_t ctx;
   hmac_ctx_t ctx_tmp;
   uint8_t A1[MAX_HMAC_KEY_LENGTH];

@@ -1388,6 +1388,7 @@ void
 free_ssl_lib (void)
 {
   crypto_uninit_lib ();
+  prng_uninit();
   EVP_cleanup ();
   ERR_free_strings ();
 }
