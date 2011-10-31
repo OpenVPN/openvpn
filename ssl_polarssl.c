@@ -164,7 +164,7 @@ tls_ctx_set_options (struct tls_root_ctx *ctx, unsigned int ssl_flags)
 void
 tls_ctx_restrict_ciphers(struct tls_root_ctx *ctx, const char *ciphers)
 {
-  char *tmp_ciphers, *tmp_ciphers_orig;
+  char *tmp_ciphers, *tmp_ciphers_orig, *token;
   int i, cipher_count;
   int ciphers_len = strlen (ciphers);
 
@@ -182,11 +182,15 @@ tls_ctx_restrict_ciphers(struct tls_root_ctx *ctx, const char *ciphers)
   /* Parse allowed ciphers, getting IDs */
   i = 0;
   tmp_ciphers_orig = tmp_ciphers = strdup(ciphers);
-  while(tmp_ciphers) {
-      ctx->allowed_ciphers[i] = ssl_get_ciphersuite_id (strsep (&tmp_ciphers, ":"));
-      if (ctx->allowed_ciphers[i] != 0)
+
+  token = strtok (tmp_ciphers, ":");
+  while(token)
+    {
+      ctx->allowed_ciphers[i] = ssl_get_ciphersuite_id (token);
+      if (0 != ctx->allowed_ciphers[i])
 	i++;
-  }
+      token = strtok (NULL, ":");
+    }
   free(tmp_ciphers_orig);
 }
 
