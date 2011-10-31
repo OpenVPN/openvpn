@@ -33,8 +33,21 @@
 !define OPENVPN_GUI_DIR "../openvpn-gui"
 !define OPENVPN_GUI     "openvpn-gui-1.0.3.exe"
 
+# Use either PolarSSL or OpenSSL. Only one may be active at a time
+!define USE_POLARSSL 0
+!define USE_OPENSSL 1
+
+# The same as above, but for library inclusion (must be defined/undefined due to build system)
+;!define INCLUDE_POLARSSL
+!define INCLUDE_OPENSSL
+
+# Uncomment to use the PKCS#11 helper library
+!define USE_PKCS11 0
+;!define INCLUDE_PKCS11
+
 # Prebuilt libraries.  DMALLOC is optional.
 !define OPENSSL_DIR	  "../openssl"
+!define POLARSSL_DIR	  "../polarssl"
 !define LZO_DIR		  "../lzo"
 !define PKCS11_HELPER_DIR "../pkcs11-helper"
 

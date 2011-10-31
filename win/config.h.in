@@ -74,7 +74,9 @@ typedef unsigned long in_addr_t;
 #endif
 
 /* Enable PKCS#11 support */
-/* #define USE_PKCS11 1 */
+#if @USE_PKCS11@ != 0
+#define USE_PKCS11 1
+#endif
 
 /* Enable HTTP proxy support */
 #if @ENABLE_HTTP_PROXY@ != 0
@@ -252,7 +254,17 @@ typedef unsigned long in_addr_t;
 #define TIME_WITH_SYS_TIME 1
 #endif
 
-/* Use OpenSSL crypto library */
+/* Use the PolarSSL crypto library */
+#if @USE_POLARSSL@ != 0
+#define USE_POLARSSL 1
+#endif
+
+/* Use the OpenSSL crypto library */
+#if @USE_OPENSSL@ != 0
+#define USE_OPENSSL 1
+#endif
+
+/* Use the crypto library */
 #define USE_CRYPTO 1
 
 /* Use LZO compression library */
@@ -264,7 +276,7 @@ typedef unsigned long in_addr_t;
 /* Use lzo/ directory prefix for LZO header files (for LZO 2.0) */
 #define LZO_HEADER_DIR 1
 
-/* Use OpenSSL SSL library */
+/* Use the SSL library */
 #define USE_SSL 1
 
 /* Version number of package */
