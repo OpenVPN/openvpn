@@ -36,6 +36,7 @@
 #include "crypto.h"
 #include "route.h"
 #include "win32.h"
+#include <unistd.h>
 
 #include "memdbg.h"
 
@@ -608,6 +609,73 @@ openvpn_system (const char *command, const struct env_set *es, unsigned int flag
   return -1; /* NOTREACHED */
 #endif
 }
+
+/*
+ * Run execve() inside a fork(), duping stdout.  Designed to replicate the semantics of popen() but
+ * in a safer way that doesn't require the invocation of a shell or the risks
+ * assocated with formatting and parsing a command line.
+ */
+int
+openvpn_popen (const struct argv *a,  const struct env_set *es)
+{
+  struct gc_arena gc = gc_new ();
+  int ret = -1;
+  static bool warn_shown = false;
+
+  if (a && a->argv[0])
+    {
+#if defined(ENABLE_EXECVE)
+      if (script_security >= SSEC_BUILT_IN)
+	{
+	      const char *cmd = a->argv[0];
+	      char *const *argv = a->argv;
+	      char *const *envp = (char *const *)make_env_array (es, true, &gc);
+	      pid_t pid;
+	      int pipe_stdout[2];
+
+              if (pipe (pipe_stdout) == 0) {
+		      pid = fork ();
+		      if (pid == (pid_t)0) /* child side */
+			{
+			  close (pipe_stdout[0]);
+			  dup2 (pipe_stdout[1],1);
+			  execve (cmd, argv, envp);
+			  exit (127);
+			}
+		      else if (pid < (pid_t)0) /* fork failed */
+			{
+			  msg (M_ERR, "openvpn_popen: unable to fork");
+			}
+		      else /* parent side */
+			{
+                            ret=pipe_stdout[0];
+			    close (pipe_stdout[1]);
+			}
+	      }
+	      else {
+		      msg (M_WARN, "openvpn_popen: unable to create stdout pipe");
+		      ret = -1;
+	      }
+	}
+      else if (!warn_shown && (script_security < SSEC_SCRIPTS))
+	{
+	  msg (M_WARN, SCRIPT_SECURITY_WARNING);
+          warn_shown = true;
+	}
+#else
+      msg (M_WARN, "openvpn_popen: execve function not available");
+#endif
+    }
+  else
+    {
+      msg (M_FATAL, "openvpn_popen: called with empty argv");
+    }
+
+  gc_free (&gc);
+  return ret;
+}
+
+
 
 /*
  * Initialize random number seed.  random() is only used
@@ -1328,6 +1396,56 @@ close_tty (FILE *fp)
 #endif
 
 /*
+ * is systemd running
+ */
+
+#if defined(TARGET_LINUX) && defined(ENABLE_SYSTEMD)
+bool
+check_systemd_running ()
+{
+  struct stat a, b;
+
+  /* We simply test whether the systemd cgroup hierarchy is
+   * mounted */
+
+  return (lstat("/sys/fs/cgroup", &a) == 0)
+	  && (lstat("/sys/fs/cgroup/systemd", &b) == 0)
+	  && (a.st_dev != b.st_dev);
+
+}
+
+bool
+get_console_input_systemd (const char *prompt, const bool echo, char *input, const int capacity)
+{
+  int std_out;
+  char cmd[256];
+  bool ret = false;
+  struct argv argv;
+
+  argv_init (&argv);
+  argv_printf (&argv, "/bin/systemd-ask-password");
+  argv_printf_cat (&argv, "%s", prompt);
+
+  if ((std_out = openvpn_popen (&argv, NULL)) < 0) {
+	  return false;
+  }
+  CLEAR (*input);
+  if (read (std_out, input, capacity) != 0)
+    {
+       chomp (input);
+       ret = true;
+    }
+  close (std_out);
+
+  argv_reset (&argv);
+
+  return ret;
+}
+
+
+#endif
+
+/*
  * Get input from console
  */
 bool
@@ -1338,6 +1456,11 @@ get_console_input (const char *prompt, const bool echo, char *input, const int c
   ASSERT (input);
   ASSERT (capacity > 0);
   input[0] = '\0';
+
+#if defined(TARGET_LINUX) && defined(ENABLE_SYSTEMD)
+  if (check_systemd_running ())
+    return get_console_input_systemd (prompt, echo, input, capacity);
+#endif
 
 #if defined(WIN32)
   return get_console_input_win32 (prompt, echo, input, capacity);

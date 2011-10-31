@@ -223,6 +223,12 @@ AC_ARG_ENABLE(selinux,
    [SELINUX="yes"]
 )
 
+AC_ARG_ENABLE(systemd,
+   [  --enable-systemd        Enable systemd suppport],
+   [SYSTEMD="$enableval"],
+   [SYSTEMD="no"]
+)
+
 AC_ARG_WITH(ssl-headers,
    [  --with-ssl-headers=DIR  Crypto/SSL Include files location],
    [CS_HDR_DIR="$withval"]
@@ -928,6 +934,11 @@ fi
 dnl enable password save
 if test "$PASSWORD_SAVE" = "yes"; then
    AC_DEFINE(ENABLE_PASSWORD_SAVE, 1, [Allow --askpass and --auth-user-pass passwords to be read from a file])
+fi
+
+dnl enable systemd support
+if test "$SYSTEMD" = "yes"; then
+   AC_DEFINE(ENABLE_SYSTEMD, 1, [Enable systemd support])
 fi
 
 dnl
