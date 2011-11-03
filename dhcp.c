@@ -66,20 +66,20 @@ get_dhcp_message_type (const struct dhcp *dhcp, const int optlen)
 }
 
 static in_addr_t
-do_extract (struct dhcp *dhcp, const int optlen)
+do_extract (struct dhcp *dhcp, int optlen)
 {
   uint8_t *p = (uint8_t *) (dhcp + 1);
   int i;
   in_addr_t ret = 0;
 
-  for (i = 0; i < optlen; ++i)
+  for (i = 0; i < optlen; )
     {
       const uint8_t type = p[i];
       const int room = optlen - i;
       if (type == DHCP_END)
 	break;
       else if (type == DHCP_PAD)
-	;
+	++i;
       else if (type == DHCP_ROUTER)
 	{
 	  if (room >= 2)
@@ -87,23 +87,39 @@ do_extract (struct dhcp *dhcp, const int optlen)
 	      const int len = p[i+1]; /* get option length */
 	      if (len <= (room-2))
 		{
+		  /* get router IP address */
 		  if (!ret && len >= 4 && (len & 3) == 0)
 		    {
-		      memcpy (&ret, p+i+2, 4);      /* get router IP address */
+		      memcpy (&ret, p+i+2, 4);
 		      ret = ntohl (ret);
 		    }
-		  memset (p+i, DHCP_PAD, len+2);    /* delete the router option by padding it out */
+		  {
+		    /* delete the router option */
+		    uint8_t *dest = p + i;
+		    const int owlen = len + 2;            /* len of data to overwrite */
+		    uint8_t *src = dest + owlen;
+		    uint8_t *end = p + optlen;
+		    const int movlen = end - src;
+		    if (movlen > 0)
+		      memmove(dest, src, movlen);         /* overwrite router option */
+		    memset(end - owlen, DHCP_PAD, owlen); /* pad tail */		    
+		  }
 		}
-	      i += (len + 1);         /* advance to next option */
+	      else
+		break;
 	    }
+	  else
+	    break;
 	}
-      else                            /* some other option */
+      else                              /* some other option */
 	{
 	  if (room >= 2)
 	    {
-	      const int len = p[i+1]; /* get option length */
-	      i += (len + 1);         /* advance to next option */
+	      const int len = p[i+1];   /* get option length */
+	      i += (len + 2);           /* advance to next option */
 	    }
+	  else
+	    break;
 	}
     }
   return ret;
@@ -157,27 +173,34 @@ dhcp_extract_router_msg (struct buffer *ipbuf)
       && df->ip.protocol == OPENVPN_IPPROTO_UDP
       && df->udp.source == htons (BOOTPS_PORT)
       && df->udp.dest == htons (BOOTPC_PORT)
-      && df->dhcp.op == BOOTREPLY
-      && get_dhcp_message_type (&df->dhcp, optlen) == DHCPACK)
+      && df->dhcp.op == BOOTREPLY)
     {
-      /* get the router IP address while padding out all DHCP router options */
-      const in_addr_t ret = do_extract (&df->dhcp, optlen);
-
-      /* recompute the UDP checksum */
-      df->udp.check = htons (udp_checksum ((uint8_t *) &df->udp, 
-					   sizeof (struct openvpn_udphdr) + sizeof (struct dhcp) + optlen,
-					   (uint8_t *)&df->ip.saddr,
-					   (uint8_t *)&df->ip.daddr));
-
-      if (ret)
+      const int message_type = get_dhcp_message_type (&df->dhcp, optlen);
+      if (message_type == DHCPACK || message_type == DHCPOFFER)
 	{
-	  struct gc_arena gc = gc_new ();
-	  msg (D_ROUTE, "Extracted DHCP router address: %s", print_in_addr_t (ret, 0, &gc));
-	  gc_free (&gc);
-	}
+	  /* get the router IP address while padding out all DHCP router options */
+	  const in_addr_t ret = do_extract (&df->dhcp, optlen);
 
-      return ret;
+	  /* recompute the UDP checksum */
+	  df->udp.check = 0;
+	  df->udp.check = htons (udp_checksum ((uint8_t *) &df->udp, 
+					       sizeof (struct openvpn_udphdr) + sizeof (struct dhcp) + optlen,
+					       (uint8_t *)&df->ip.saddr,
+					       (uint8_t *)&df->ip.daddr));
+
+	  /* only return the extracted Router address if DHCPACK */
+	  if (message_type == DHCPACK)
+	    {
+	      if (ret)
+		{
+		  struct gc_arena gc = gc_new ();
+		  msg (D_ROUTE, "Extracted DHCP router address: %s", print_in_addr_t (ret, 0, &gc));
+		  gc_free (&gc);
+		}
+
+	      return ret;
+	    }
+	}
     }
-  else
-    return 0;
+  return 0;
 }

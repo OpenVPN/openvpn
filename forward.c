@@ -1011,7 +1011,7 @@ process_ipv4_header (struct context *c, unsigned int flags, struct buffer *buf)
   if (!c->options.passtos)
     flags &= ~PIPV4_PASSTOS;
 #endif
-  if (!c->options.route_gateway_via_dhcp || !route_list_vpn_gateway_needed (c->c1.route_list))
+  if (!c->options.route_gateway_via_dhcp)
     flags &= ~PIPV4_EXTRACT_DHCP_ROUTER;
 
   if (buf->len > 0)
