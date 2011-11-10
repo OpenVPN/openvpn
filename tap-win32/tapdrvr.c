@@ -1766,6 +1766,7 @@ AdapterTransmit (IN NDIS_HANDLE p_AdapterContext,
 
 	    // Packet looks like IPv4, queue it.
 	    l_PacketBuffer->m_SizeFlags |= TP_TUN;
+	    break;
 
 	  case ETH_P_IPV6:
 	    // make sure that packet is large
