@@ -4438,6 +4438,27 @@ fork_register_dns_action (struct tuntap *tt)
     }
 }
 
+static uint32_t
+dhcp_masq_addr (const in_addr_t local, const in_addr_t netmask, const int offset)
+{
+  struct gc_arena gc = gc_new ();
+  in_addr_t dsa; /* DHCP server addr */
+
+  if (offset < 0)
+    dsa = (local | (~netmask)) + offset;
+  else
+    dsa = (local & netmask) + offset;
+
+  if (dsa == local)
+    msg (M_FATAL, "ERROR: There is a clash between the --ifconfig local address and the internal DHCP server address -- both are set to %s -- please use the --ip-win32 dynamic option to choose a different free address from the --ifconfig subnet for the internal DHCP server", print_in_addr_t (dsa, 0, &gc));
+
+  if ((local & netmask) != (dsa & netmask))
+    msg (M_FATAL, "ERROR: --tap-win32 dynamic [offset] : offset is outside of --ifconfig subnet");
+
+  gc_free (&gc);
+  return htonl(dsa);
+}
+
 void
 open_tun (const char *dev, const char *dev_type, const char *dev_node, struct tuntap *tt)
 {
@@ -4696,33 +4717,18 @@ open_tun (const char *dev, const char *dev_type, const char *dev_node, struct tu
 	{
 	  if (tt->topology == TOP_SUBNET)
 	    {
-	      const in_addr_t netmask_inv = ~tt->remote_netmask;
-	      ep[2] = netmask_inv ? htonl ((tt->local | netmask_inv) - 1) : 0;
+	      if (tt->options.dhcp_masq_custom_offset)
+		ep[2] = dhcp_masq_addr (tt->local, tt->remote_netmask, tt->options.dhcp_masq_offset);
+	      else
+		ep[2] = dhcp_masq_addr (tt->local, tt->remote_netmask, -1);
 	    }
 	  else
 	    ep[2] = htonl (tt->remote_netmask);
-
-	  if (tt->options.dhcp_masq_custom_offset)
-	    msg (M_WARN, "WARNING: because you are using '--dev tun' mode, the '--ip-win32 dynamic [offset]' option is ignoring the offset parameter");
 	}
       else
 	{
-	  in_addr_t dsa; /* DHCP server addr */
-
 	  ASSERT (tt->type == DEV_TYPE_TAP);
-
-	  if (tt->options.dhcp_masq_offset < 0)
-	    dsa = (tt->local | (~tt->adapter_netmask)) + tt->options.dhcp_masq_offset;
-	  else
-	    dsa = (tt->local & tt->adapter_netmask) + tt->options.dhcp_masq_offset;
-
-	  if (dsa == tt->local)
-	    msg (M_FATAL, "ERROR: There is a clash between the --ifconfig local address and the internal DHCP server address -- both are set to %s -- please use the --ip-win32 dynamic option to choose a different free address from the --ifconfig subnet for the internal DHCP server", print_in_addr_t (dsa, 0, &gc));
-
-	  if ((tt->local & tt->adapter_netmask) != (dsa & tt->adapter_netmask))
-	    msg (M_FATAL, "ERROR: --tap-win32 dynamic [offset] : offset is outside of --ifconfig subnet");
-
-	  ep[2] = htonl (dsa);
+	  ep[2] = dhcp_masq_addr (tt->local, tt->adapter_netmask, tt->options.dhcp_masq_custom_offset ? tt->options.dhcp_masq_offset : 0);
 	}
 
       /* lease time in seconds */
