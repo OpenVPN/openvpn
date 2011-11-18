@@ -1103,12 +1103,6 @@ set_win_sys_path_via_env (struct env_set *es)
   set_win_sys_path (buf, es);
 }
 
-void
-env_set_add_win32 (struct env_set *es)
-{
-  set_win_sys_path (DEFAULT_WIN_SYS_PATH, es);
-}
-
 
 const char *
 win_get_tempdir()

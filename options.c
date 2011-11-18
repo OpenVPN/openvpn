@@ -652,8 +652,8 @@ static const char usage_message[] =
 #ifdef WIN32
   "\n"
   "Windows Specific:\n"
-  "--win-sys path|'env' : Pathname of Windows system directory, C:\\WINDOWS by default.\n"
-  "                       If specified as 'env', read the pathname from SystemRoot env var.\n"
+  "--win-sys path    : Pathname of Windows system directory. Default is the pathname\n"
+  "                    from SystemRoot environment variable.\n"
   "--ip-win32 method : When using --ifconfig on Windows, set TAP-Win32 adapter\n"
   "                    IP address using method = manual, netsh, ipapi,\n"
   "                    dynamic, or adaptive (default = adaptive).\n"
@@ -5687,7 +5687,9 @@ add_option (struct options *options,
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       if (streq (p[1], "env"))
-	set_win_sys_path_via_env (es);
+	msg (M_INFO, "NOTE: --win-sys env is default from OpenVPN v2.3.	 "
+	     "This entry will now be ignored.  "
+	     "Please remove this entry from your configuration file.");
       else
 	set_win_sys_path (p[1], es);
     }

@@ -162,7 +162,7 @@ main (int argc, char *argv[])
 	  /* initialize environmental variable store */
 	  c.es = env_set_create (NULL);
 #ifdef WIN32
-	  env_set_add_win32 (c.es);
+	  set_win_sys_path_via_env (c.es);
 #endif
 
 #ifdef ENABLE_MANAGEMENT
