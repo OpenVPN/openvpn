@@ -2581,7 +2581,7 @@ get_default_gateway (struct route_gateway_info *rgi)
       warn("writing to routing socket");
       gc_free (&gc);
       close(s);
-      return false;
+      return;
     }
 
   do {
@@ -2605,7 +2605,7 @@ get_default_gateway (struct route_gateway_info *rgi)
   else
     {
       gc_free (&gc);
-      return false;
+      return;
     }
 
 
@@ -2947,7 +2947,7 @@ get_default_gateway (struct route_gateway_info *rgi)
       warn("writing to routing socket");
       gc_free (&gc);
       close(s);
-      return false;
+      return;
     }
 
   do {
@@ -2971,7 +2971,7 @@ get_default_gateway (struct route_gateway_info *rgi)
   else
     {
       gc_free (&gc);
-      return false;
+      return;
     }
 
 
