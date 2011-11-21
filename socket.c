@@ -779,10 +779,10 @@ socket_set_tcp_nodelay (int sd, int state)
 #endif
 }
 
-static void
+static inline void
 socket_set_mark (int sd, int mark)
 {
-#ifdef TARGET_LINUX
+#if defined(TARGET_LINUX) && defined(HAVE_SO_MARK)
   if (mark && setsockopt (sd, SOL_SOCKET, SO_MARK, &mark, sizeof (mark)) != 0)
     msg (M_WARN, "NOTE: setsockopt SO_MARK=%d failed", mark);
 #endif

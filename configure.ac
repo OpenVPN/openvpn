@@ -443,6 +443,9 @@ if test "${WIN32}" != "yes"; then
 	 # include <linux/types.h>
 	 #endif
 	])
+
+   dnl Check if SO_MARK is available
+   AC_TRY_COMPILE([#include <sys/socket.h>], [if( SO_MARK > 0) return 1;], [AC_DEFINE(HAVE_SO_MARK,[],[Is SO_MARK available?])])
 fi
 
 AC_CACHE_SAVE

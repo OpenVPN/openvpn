@@ -292,7 +292,7 @@ static const char usage_message[] =
   "                  or --fragment max value, whichever is lower.\n"
   "--sndbuf size   : Set the TCP/UDP send buffer size.\n"
   "--rcvbuf size   : Set the TCP/UDP receive buffer size.\n"
-#ifdef TARGET_LINUX
+#if defined(TARGET_LINUX) && defined(HAVE_SO_MARK)
   "--mark value    : Mark encrypted packets being sent with value. The mark value\n"
   "                  can be matched in policy routing and packetfilter rules.\n"
 #endif
@@ -1504,7 +1504,7 @@ show_settings (const struct options *o)
 #endif
   SHOW_INT (rcvbuf);
   SHOW_INT (sndbuf);
-#ifdef TARGET_LINUX
+#if defined(TARGET_LINUX) && defined(HAVE_SO_MARK)
   SHOW_INT (mark);
 #endif
   SHOW_INT (sockflags);
@@ -4745,7 +4745,7 @@ add_option (struct options *options,
     }
   else if (streq (p[0], "mark") && p[1])
     {
-#ifdef TARGET_LINUX
+#if defined(TARGET_LINUX) && defined(HAVE_SO_MARK)
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->mark = atoi(p[1]);
 #endif
