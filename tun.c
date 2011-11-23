@@ -4584,6 +4584,14 @@ open_tun (const char *dev, const char *dev_type, const char *dev_node, struct tu
 	msg( M_INFO, "WARNING:  Tap-Win32 driver version %d.%d does not support IPv6 in TUN mode.  IPv6 will be disabled.  Upgrade to Tap-Win32 9.8 (2.2-beta3 release or later) or use TAP mode to get IPv6", (int) info[0], (int) info[1] );
 	tt->ipv6 = false;
       }
+
+    /* tap driver 9.8 (2.2.0 and 2.2.1 release) is buggy
+     */
+    if ( tt->type == DEV_TYPE_TUN &&
+	 info[0] == 9 && info[1] == 8)
+      {
+	msg( M_FATAL, "ERROR:  Tap-Win32 driver version %d.%d is buggy regarding small IPv4 packets in TUN mode.  Upgrade to Tap-Win32 9.9 (2.2.2 release or later) or use TAP mode", (int) info[0], (int) info[1] );
+      }
   }
 
   /* get driver MTU */
