@@ -763,6 +763,7 @@ get_console_input_win32 (const char *prompt, const bool echo, char *input, const
       bool is_console = (GetFileType (in) == FILE_TYPE_CHAR);
       DWORD flags_save = 0;
       int status = 0;
+      WCHAR *winput;
 
       if (is_console)
 	{
@@ -777,7 +778,18 @@ get_console_input_win32 (const char *prompt, const bool echo, char *input, const
 	    is_console = 0;
 	}
 
-      status = ReadFile (in, input, capacity, &len, NULL);
+      if (is_console)
+        {
+          winput = malloc (capacity * sizeof (WCHAR));
+          if (winput == NULL)
+            return false;
+
+          status = ReadConsoleW (in, winput, capacity, &len, NULL);
+          WideCharToMultiByte (CP_UTF8, 0, winput, len, input, capacity, NULL, NULL);
+          free (winput);
+        }
+      else
+        status = ReadFile (in, input, capacity, &len, NULL);
 
       string_null_terminate (input, (int)len, capacity);
       chomp (input);

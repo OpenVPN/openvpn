@@ -131,6 +131,10 @@ main (int argc, char *argv[])
   return 1;
 #endif
 
+#ifdef TARGET_WIN32
+  SetConsoleOutputCP (CP_UTF8);
+#endif
+
   CLEAR (c);
 
   /* signify first time for components which can

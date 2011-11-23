@@ -349,6 +349,7 @@ case "$host" in
 	OPENVPN_ADD_LIBS(-lcrypt32)
 	OPENVPN_ADD_LIBS(-liphlpapi)
 	OPENVPN_ADD_LIBS(-lwinmm)
+	OPENVPN_ADD_LIBS(-lshell32)
 	;;
 *-*-dragonfly*)
 	AC_DEFINE(TARGET_DRAGONFLY, 1, [Are we running on DragonFlyBSD?])
