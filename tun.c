@@ -4100,6 +4100,14 @@ open_tun (const char *dev, const char *dev_type, const char *dev_node, bool ipv6
       msg (M_FATAL, "ERROR:  This version of " PACKAGE_NAME " requires a TAP-Win32 driver that is at least version %d.%d -- If you recently upgraded your " PACKAGE_NAME " distribution, a reboot is probably required at this point to get Windows to see the new driver.",
 	   TAP_WIN32_MIN_MAJOR,
 	   TAP_WIN32_MIN_MINOR);
+
+    /* tap driver 9.8 (2.2.0 and 2.2.1 release) is buggy
+     */
+    if ( tt->type == DEV_TYPE_TUN &&
+	 info[0] == 9 && info[1] == 8)
+      {
+	msg( M_FATAL, "ERROR:  Tap-Win32 driver version %d.%d is buggy regarding small IPv4 packets in TUN mode.  Upgrade to Tap-Win32 9.9 (2.2.2 release or later) or use TAP mode", (int) info[0], (int) info[1] );
+      }
   }
 
   /* get driver MTU */
