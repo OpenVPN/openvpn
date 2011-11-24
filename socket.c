@@ -3083,11 +3083,12 @@ link_socket_write_udp_posix_sendmsg (struct link_socket *sock,
 /*
  * inet_ntop() and inet_pton() wrap-implementations using
  * WSAAddressToString() and WSAStringToAddress() functions
+ *
+ * this is needed as long as we support running OpenVPN on WinXP
  */
 
-#ifndef _MSC_VER
 const char *
-inet_ntop(int af, const void *src, char *dst, socklen_t size)
+openvpn_inet_ntop(int af, const void *src, char *dst, socklen_t size)
 {
   struct sockaddr_storage ss;
   unsigned long s = size;
@@ -3111,7 +3112,7 @@ inet_ntop(int af, const void *src, char *dst, socklen_t size)
 }
 
 int
-inet_pton(int af, const char *src, void *dst)
+openvpn_inet_pton(int af, const char *src, void *dst)
 {
   struct sockaddr_storage ss;
   int size = sizeof(ss);
@@ -3133,8 +3134,6 @@ inet_pton(int af, const char *src, void *dst)
   }
   return 0;
 }
-
-#endif
 
 int
 socket_recv_queue (struct link_socket *sock, int maxsize)
