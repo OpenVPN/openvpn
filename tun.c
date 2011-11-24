@@ -1397,8 +1397,7 @@ open_tun (const char *dev, const char *dev_type, const char *dev_node, struct tu
        */
       if ((tt->fd = open (node, O_RDWR)) < 0)
 	{
-	  msg (M_WARN | M_ERRNO, "Note: Cannot open TUN/TAP dev %s", node);
-	  return;
+	  msg (M_ERR, "ERROR: Cannot open TUN/TAP dev %s", node);
 	}
 
       /*
@@ -1441,8 +1440,7 @@ open_tun (const char *dev, const char *dev_type, const char *dev_node, struct tu
        */
       if (ioctl (tt->fd, TUNSETIFF, (void *) &ifr) < 0)
 	{
-	  msg (M_WARN | M_ERRNO, "Note: Cannot ioctl TUNSETIFF %s", dev);
-	  return;
+	  msg (M_ERR, "ERROR: Cannot ioctl TUNSETIFF %s", dev);
 	}
 
       msg (M_INFO, "TUN/TAP device %s opened", ifr.ifr_name);
