@@ -2688,8 +2688,9 @@ options_postprocess_filechecks (struct options *options)
   errs |= check_file_access (CHKACC_FILE, options->management_user_pass, R_OK,
                              "--management user/password file");
 #endif /* ENABLE_MANAGEMENT */
-  errs |= check_file_access (CHKACC_FILE, options->auth_user_pass_file, R_OK,
-                             "--auth-user-pass");
+  if( options->auth_user_pass_file && strcmp(options->auth_user_pass_file, "stdin") != 0 )
+    errs |= check_file_access (CHKACC_FILE, options->auth_user_pass_file, R_OK,
+                               "--auth-user-pass");
 
 
   /* ** System related ** */
