@@ -2145,13 +2145,15 @@ argv_extract_cmd_name (const char *path)
 {
   if (path)
     {
-      const char *bn = openvpn_basename (path);
+      char *path_cp = strdup(path); /* POSIX basename() implementaions may modify its arguments */
+      const char *bn = basename (path_cp);
       if (bn)
 	{
 	  char *ret = string_alloc (bn, NULL);
 	  char *dot = strrchr (ret, '.');
 	  if (dot)
 	    *dot = '\0';
+	  free(path_cp);
 	  if (ret[0] != '\0')
 	    return ret;
 	}
@@ -2492,25 +2494,6 @@ argv_test (void)
   gc_free (&gc);
 }
 #endif
-
-const char *
-openvpn_basename (const char *path)
-{
-  const char *ret;
-  const int dirsep = OS_SPECIFIC_DIRSEP;
-
-  if (path)
-    {
-      ret = strrchr (path, dirsep);
-      if (ret && *ret)
-	++ret;
-      else
-	ret = path;
-      if (*ret)
-	return ret;
-    }
-  return NULL;
-}
 
 /*
  * Remove security-sensitive strings from control message

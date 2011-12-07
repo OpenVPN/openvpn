@@ -381,9 +381,6 @@ extern int script_method; /* GLOBAL */
 /* return the next largest power of 2 */
 size_t adjust_power_of_2 (size_t u);
 
-/* return the basename of path */
-const char *openvpn_basename (const char *path);
-
 /*
  * A printf-like function (that only recognizes a subset of standard printf
  * format operators) that prints arguments to an argv list instead

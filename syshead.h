@@ -36,6 +36,8 @@
 #include "config.h"
 #endif
 
+#include "compat.h"
+
 /* branch prediction hints */
 #if defined(__GNUC__)
 # define likely(x)       __builtin_expect((x),1)

@@ -879,8 +879,10 @@ init_verb_mute (struct context *c, unsigned int flags)
 void
 init_options_dev (struct options *options)
 {
-  if (!options->dev)
-    options->dev = openvpn_basename (options->dev_node);
+  if (!options->dev && options->dev_node) {
+    char *dev_node = strdup(options->dev_node); /* POSIX basename() implementaions may modify its arguments */
+    options->dev = basename (dev_node);
+  }
 }
 
 bool

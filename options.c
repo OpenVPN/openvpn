@@ -53,7 +53,6 @@
 #include "forward.h"
 #include <ctype.h>
 #include <unistd.h>
-#include <libgen.h>
 
 #include "memdbg.h"
 
