@@ -1082,8 +1082,8 @@ setenv_str_ex (struct env_set *es,
     {
 #if defined(WIN32)
       {
-	/*msg (M_INFO, "SetEnvironmentVariable '%s' '%s'", name_tmp, val_tmp ? val_tmp : "NULL");*/
-	if (!SetEnvironmentVariable (name_tmp, val_tmp))
+        if (!SetEnvironmentVariableW (wide_string (name_tmp, &gc),
+                                      wide_string (val_tmp, &gc)))
 	  msg (M_WARN | M_ERRNO, "SetEnvironmentVariable failed, name='%s', value='%s'",
 	       name_tmp,
 	       val_tmp ? val_tmp : "NULL");
