@@ -52,7 +52,6 @@
 #include "configure.h"
 #include "forward.h"
 #include <ctype.h>
-#include <unistd.h>
 
 #include "memdbg.h"
 

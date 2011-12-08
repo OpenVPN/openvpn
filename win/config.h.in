@@ -223,6 +223,34 @@ typedef unsigned long in_addr_t;
 /* Special Windows version of getpass() defined in io.c */
 #define HAVE_GETPASS 1
 
+
+/* The POSIX access() function is available, but requires
+ * _CRT_NONSTDC_NO_WARNINGS and _CRT_SECURE_NO_WARNINGS
+ * to be defined
+ */
+#define HAVE_ACCESS 1
+
+/* Macros used by the POSIX access() function might not be available on Windows.
+ * Based on information found here:
+ * http://msdn.microsoft.com/en-us/library/1w06ktdy%28v=vs.80%29.aspx
+ */
+#ifndef R_OK
+#define R_OK 4
+#endif
+
+#ifndef W_OK
+#define W_OK 2
+#endif
+
+#ifndef X_OK
+#define X_OK 1
+#endif
+
+#ifndef F_OK
+#define F_OK 0
+#endif
+
+
 /* Define to the full name and version of this package. */
 #ifdef DEBUG_LABEL
 #define PACKAGE_STRING PACKAGE_NAME " " PACKAGE_VERSION " " DEBUG_LABEL
