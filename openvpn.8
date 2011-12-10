@@ -2717,6 +2717,20 @@ as with a
 configuration file.  This option will ignore
 .B \-\-push
 options at the global config file level.
+.TP
+.B \-\-push-peer-info
+Push additional information about the client to server.  The additional information
+consists of the following data:
+
+IV_VER=<version> -- the client OpenVPN version
+
+IV_PLAT=[linux|solaris|openbsd|mac|netbsd|freebsd|win] -- the client OS platform
+
+IV_HWADDR=<mac address> -- the MAC address of clients default gateway
+
+IV_LZO_STUB=1 -- if client was built with LZO stub capability
+
+UV_<name>=<value> -- client environment variables whose names start with "UV_"
 .\"*********************************************************
 .TP
 .B \-\-disable
