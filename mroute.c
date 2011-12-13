@@ -131,6 +131,8 @@ mroute_extract_addr_ipv4 (struct mroute_addr *src,
 			  const struct buffer *buf)
 {
   unsigned int ret = 0;
+  static bool ipv6warned = false;
+
   if (BLEN (buf) >= 1)
     {
       switch (OPENVPN_IPH_GET_VER (*BPTR(buf)))
@@ -156,7 +158,10 @@ mroute_extract_addr_ipv4 (struct mroute_addr *src,
 	  break;
 	case 6:
 	  {
-	    msg (M_WARN, "Need IPv6 code in mroute_extract_addr_from_packet"); 
+            if( !ipv6warned ) {
+              msg (M_WARN, "IPv6 in tun mode is not supported in OpenVPN 2.2");
+              ipv6warned = true;
+            }
 	    break;
 	  }
 	}
