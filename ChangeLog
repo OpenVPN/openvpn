@@ -1,7 +1,19 @@
 OpenVPN Change Log
 Copyright (C) 2002-2011 OpenVPN Technologies, Inc. <sales@openvpn.net>
 
-2011.07.01 -- Versoin 2.2.1
+2011.12.14 -- Version 2.2.2
+David Sommerseth (1):
+      Only warn about non-tackled IPv6 packets once
+
+Gert Doering (3):
+      add missing break between "case IPv4" and "case IPv6"
+      bump tap driver version from 9.8 to 9.9
+      log error message and exit for "win32, tun mode, tap driver version 9.8"
+
+Samuli Seppänen (1):
+      Backported pkcs11-related parts of 7a8d707237bb18 to 2.2 branch
+
+2011.07.01 -- Version 2.2.1
 David Sommerseth (4):
 	      Don't define ENABLE_PUSH_PEER_INFO if SSL is not available
 	      Fix compiling issues with pkcs11 when --disable-management is configured
@@ -9,24 +21,24 @@ David Sommerseth (4):
 	      Revert "Add new openssl.cnf to easy-rsa/Windows"
 	      Prepared for releasing OpenVPN 2.2.1
 
-	Gustavo Zacarias (1):
+Gustavo Zacarias (1):
 	      Fix compile issues when using --enable-small and --disable-ssl/--disable-crypto
 
-	Matthew L. Creech (1):
+Matthew L. Creech (1):
 	      Fix 2.2.0 build failure when management interface disabled
 
-	Robert Fischer (2):
+Robert Fischer (2):
 	      Added info about --show-proxy-settings
 	      Documented --x509-username-field option
 
-	Samuli Seppänen (5):
+Samuli Seppänen (5):
 	      Fix a build-ca issue on Windows
 	      Add new openssl.cnf to easy-rsa/Windows
 	      Updated "easy-rsa" for OpenSSL 1.0.0
 	      Made domake-win builds to use easy-rsa/2.0/openssl-1.0.0.cnf
 	      Fixes to easy-rsa/2.0
 
-	Simon Matter (1):
+Simon Matter (1):
 	      Fix issues with some older GCC compilers
 
 2011.04.21 -- Version 2.2.0
