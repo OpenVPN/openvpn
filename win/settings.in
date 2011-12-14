@@ -33,6 +33,10 @@
 !define OPENVPN_GUI_DIR "../openvpn-gui"
 !define OPENVPN_GUI     "openvpn-gui-1.0.3.exe"
 
+# Uncomment to use the PKCS#11 helper library
+!define USE_PKCS11 0
+;!define INCLUDE_PKCS11
+
 # Prebuilt libraries.  DMALLOC is optional.
 !define OPENSSL_DIR	  "../openssl"
 !define LZO_DIR		  "../lzo"

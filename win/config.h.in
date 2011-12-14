@@ -74,7 +74,9 @@ typedef unsigned long in_addr_t;
 #endif
 
 /* Enable PKCS#11 support */
-/* #define USE_PKCS11 1 */
+#if @USE_PKCS11@ != 0
+#define USE_PKCS11 1
+#endif
 
 /* Enable HTTP proxy support */
 #if @ENABLE_HTTP_PROXY@ != 0
