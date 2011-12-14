@@ -2691,10 +2691,11 @@ options_postprocess_filechecks (struct options *options)
   errs |= check_file_access (CHKACC_FILE, options->management_user_pass, R_OK,
                              "--management user/password file");
 #endif /* ENABLE_MANAGEMENT */
+#if P2MP
   if( options->auth_user_pass_file && strcmp(options->auth_user_pass_file, "stdin") != 0 )
     errs |= check_file_access (CHKACC_FILE, options->auth_user_pass_file, R_OK,
                                "--auth-user-pass");
-
+#endif /* P2MP */
 
   /* ** System related ** */
   errs |= check_file_access (CHKACC_FILE, options->chroot_dir,
@@ -2709,15 +2710,14 @@ options_postprocess_filechecks (struct options *options)
                              R_OK|W_OK, "--status");
 
   /* ** Config related ** */
-#ifdef USE_CRYPTO
+#ifdef USE_SSL
   errs |= check_file_access (CHKACC_FILE, options->tls_export_cert,
                              R_OK|W_OK|X_OK, "--tls-export-cert");
-#endif /* USE_CRYPTO */
+#endif /* USE_SSL */
+#if P2MP_SERVER
   errs |= check_file_access (CHKACC_FILE, options->client_config_dir,
                              R_OK|X_OK, "--client-config-dir");
-
   /* ** Script hooks ** */
-#if P2MP_SERVER
   errs |= check_file_access (CHKACC_FILE, options->client_connect_script,
                              R_OK|X_OK, "--client-connect script");
   errs |= check_file_access (CHKACC_FILE, options->client_disconnect_script,
