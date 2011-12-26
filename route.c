@@ -794,7 +794,7 @@ add_bypass_routes (struct route_bypass *rb,
 		    ~0,
 		    gateway,
 		    tt,
-		    flags,
+		    flags | ROUTE_REF_GW,
 		    rgi,
 		    es);
     }
@@ -816,7 +816,7 @@ del_bypass_routes (struct route_bypass *rb,
 		    ~0,
 		    gateway,
 		    tt,
-		    flags,
+		    flags | ROUTE_REF_GW,
 		    rgi,
 		    es);
     }
@@ -867,7 +867,7 @@ redirect_default_route_to_vpn (struct route_list *rl, const struct tuntap *tt, u
 			    ~0,
 			    rl->rgi.gateway.addr,
 			    tt,
-			    flags,
+			    flags | ROUTE_REF_GW,
 			    &rl->rgi,
 			    es);
 		rl->iflags |= RL_DID_LOCAL;
@@ -908,7 +908,7 @@ redirect_default_route_to_vpn (struct route_list *rl, const struct tuntap *tt, u
 			      0,
 			      rl->rgi.gateway.addr,
 			      tt,
-			      flags,
+			      flags | ROUTE_REF_GW,
 			      &rl->rgi,
 			      es);
 
@@ -941,7 +941,7 @@ undo_redirect_default_route_to_vpn (struct route_list *rl, const struct tuntap *
 		      ~0,
 		      rl->rgi.gateway.addr,
 		      tt,
-		      flags,
+		      flags | ROUTE_REF_GW,
 		      &rl->rgi,
 		      es);
 	  rl->iflags &= ~RL_DID_LOCAL;
@@ -988,7 +988,7 @@ undo_redirect_default_route_to_vpn (struct route_list *rl, const struct tuntap *
 			  0,
 			  rl->rgi.gateway.addr,
 			  tt,
-			  flags,
+			  flags | ROUTE_REF_GW,
 			  &rl->rgi,
 			  es);
 	    }
@@ -1122,7 +1122,10 @@ print_default_gateway(const int msglevel, const struct route_gateway_info *rgi)
     {
       struct buffer out = alloc_buf_gc (256, &gc);
       buf_printf (&out, "ROUTE_GATEWAY");
-      buf_printf (&out, " %s", print_in_addr_t (rgi->gateway.addr, 0, &gc));
+      if (rgi->flags & RGI_ON_LINK)
+	buf_printf (&out, " ON_LINK");
+      else
+	buf_printf (&out, " %s", print_in_addr_t (rgi->gateway.addr, 0, &gc));
       if (rgi->flags & RGI_NETMASK_DEFINED)
 	buf_printf (&out, "/%s", print_in_addr_t (rgi->gateway.netmask, 0, &gc));
 #ifdef WIN32
@@ -1267,6 +1270,14 @@ local_route (in_addr_t network,
     return LR_NOMATCH;
 }
 
+/* Return true if the "on-link" form of the route should be used.  This is when the gateway for a
+   a route is specified as an interface rather than an address. */
+static inline bool
+is_on_link (const int is_local_route, const unsigned int flags, const struct route_gateway_info *rgi)
+{
+  return rgi && (is_local_route == LR_MATCH || ((flags & ROUTE_REF_GW) && (rgi->flags & RGI_ON_LINK)));
+}
+
 void
 add_route (struct route *r,
 	   const struct tuntap *tt,
@@ -1298,7 +1309,7 @@ add_route (struct route *r,
 
 #if defined(TARGET_LINUX)
 #ifdef CONFIG_FEATURE_IPROUTE
-  /* FIXME -- add LR_MATCH support for CONFIG_FEATURE_IPROUTE */
+  /* FIXME -- add on-link support for CONFIG_FEATURE_IPROUTE */
   argv_printf (&argv, "%s route add %s/%d via %s",
   	      iproute_path,
 	      network,
@@ -1314,7 +1325,7 @@ add_route (struct route *r,
 	       netmask);
   if (r->flags & RT_METRIC_DEFINED)
     argv_printf_cat (&argv, "metric %d", r->metric);
-  if (rgi && is_local_route == LR_MATCH)
+  if (is_on_link (is_local_route, flags, rgi))
     argv_printf_cat (&argv, "dev %s", rgi->iface);
   else
     argv_printf_cat (&argv, "gw %s", gateway);
@@ -1334,7 +1345,7 @@ add_route (struct route *r,
 		 gateway);
     if (r->flags & RT_METRIC_DEFINED)
       argv_printf_cat (&argv, "METRIC %d", r->metric);
-    if (rgi && is_local_route == LR_MATCH)
+    if (is_on_link (is_local_route, flags, rgi))
       {
 	ai = rgi->adapter_index;
 	argv_printf_cat (&argv, "IF %u", (unsigned int)ai);
@@ -1388,7 +1399,7 @@ add_route (struct route *r,
 	      netmask,
 	      gateway);
 
-  /* FIXME -- add LR_MATCH support for Solaris */
+  /* FIXME -- add on-link support for Solaris */
 
   argv_msg (D_ROUTE, &argv);
   status = openvpn_execve_check (&argv, es, 0, "ERROR: Solaris route add command failed");
@@ -1408,7 +1419,7 @@ add_route (struct route *r,
 	      gateway,
 	      netmask);
 
-  /* FIXME -- add LR_MATCH support for FreeBSD */
+  /* FIXME -- add on-link support for FreeBSD */
 
   argv_msg (D_ROUTE, &argv);
   status = openvpn_execve_check (&argv, es, 0, "ERROR: FreeBSD route add command failed");
@@ -1428,7 +1439,7 @@ add_route (struct route *r,
 	      gateway,
 	      netmask);
 
-  /* FIXME -- add LR_MATCH support for Dragonfly */
+  /* FIXME -- add on-link support for Dragonfly */
 
   argv_msg (D_ROUTE, &argv);
   status = openvpn_execve_check (&argv, es, 0, "ERROR: DragonFly route add command failed");
@@ -1443,9 +1454,9 @@ add_route (struct route *r,
     argv_printf_cat (&argv, "-rtt %d", r->metric);
 #endif
 
-  if (rgi && is_local_route == LR_MATCH)
+  if (is_on_link (is_local_route, flags, rgi))
     {
-      /* Mac OS X route syntax for LR_MATCH:
+      /* Mac OS X route syntax for ON_LINK:
 	 route add -cloning -net 10.10.0.1 -netmask 255.255.255.255 -interface en0 */
       argv_printf_cat (&argv, "-cloning -net %s -netmask %s -interface %s",
 		       network,
@@ -1478,7 +1489,7 @@ add_route (struct route *r,
 	      gateway,
 	      netmask);
 
-  /* FIXME -- add LR_MATCH support for OpenBSD/NetBSD */
+  /* FIXME -- add on-link support for OpenBSD/NetBSD */
 
   argv_msg (D_ROUTE, &argv);
   status = openvpn_execve_check (&argv, es, 0, "ERROR: OpenBSD/NetBSD route add command failed");
@@ -1796,7 +1807,7 @@ delete_route (struct route *r,
 
 #elif defined(TARGET_DARWIN)
 
-  if (rgi && is_local_route == LR_MATCH)
+  if (is_on_link (is_local_route, flags, rgi))
     {
       argv_printf (&argv, "%s delete -cloning -net %s -netmask %s -interface %s",
 		   ROUTE_PATH,
@@ -2357,6 +2368,8 @@ get_default_gateway (struct route_gateway_info *rgi)
 {
   struct gc_arena gc = gc_new ();
   int sd = -1;
+  char best_name[16];
+  best_name[0] = 0;
 
   CLEAR(*rgi);
 
@@ -2369,6 +2382,7 @@ get_default_gateway (struct route_gateway_info *rgi)
 	int count = 0;
 	unsigned int lowest_metric = ~0;
 	in_addr_t best_gw = 0;
+	bool found = false;
 	while (fgets (line, sizeof (line), fp) != NULL)
 	  {
 	    if (count)
@@ -2378,13 +2392,16 @@ get_default_gateway (struct route_gateway_info *rgi)
 		unsigned int gw_x = 0;
 		unsigned int metric = 0;
 		unsigned int flags = 0;
-		const int np = sscanf (line, "%*s\t%x\t%x\t%x\t%*s\t%*s\t%d\t%x",
+		char name[16];
+		name[0] = 0;
+		const int np = sscanf (line, "%15s\t%x\t%x\t%x\t%*s\t%*s\t%d\t%x",
+				       name,
 				       &net_x,
 				       &gw_x,
 				       &flags,
 				       &metric,
 				       &mask_x);
-		if (np == 5 && (flags & IFF_UP))
+		if (np == 6 && (flags & IFF_UP))
 		  {
 		    const in_addr_t net = ntohl (net_x);
 		    const in_addr_t mask = ntohl (mask_x);
@@ -2392,7 +2409,9 @@ get_default_gateway (struct route_gateway_info *rgi)
 
 		    if (!net && !mask && metric < lowest_metric)
 		      {
+			found = true;
 			best_gw = gw;
+			strcpy (best_name, name);
 			lowest_metric = metric;
 		      }
 		  }
@@ -2401,10 +2420,12 @@ get_default_gateway (struct route_gateway_info *rgi)
 	  }
 	fclose (fp);
 
-	if (best_gw)
+	if (found)
 	  {
 	    rgi->gateway.addr = best_gw;
 	    rgi->flags |= RGI_ADDR_DEFINED;
+	    if (!rgi->gateway.addr && best_name[0])
+	      rgi->flags |= RGI_ON_LINK;
 	  }
       }
   }
@@ -2443,25 +2464,47 @@ get_default_gateway (struct route_gateway_info *rgi)
 	      /* get interface name */
 	      strncpynt (ifreq.ifr_name, ifr->ifr_name, sizeof (ifreq.ifr_name));
 
-	      /* check that the interface is up, and not point-to-point or loopback */
+	      /* check that the interface is up */
 	      if (ioctl (sd, SIOCGIFFLAGS, &ifreq) < 0)
 		continue;
 	      if (!(ifreq.ifr_flags & IFF_UP))
 		continue;
 
-	      /* get interface netmask */
-	      if (ioctl (sd, SIOCGIFNETMASK, &ifreq) < 0)
-		continue;
-	      netmask = ntohl(((struct sockaddr_in *) &ifreq.ifr_addr)->sin_addr.s_addr);
+	      if (rgi->flags & RGI_ON_LINK)
+		{
+		  /* check that interface name of current interface
+		     matches interface name of best default route */
+		  if (strcmp(ifreq.ifr_name, best_name))
+		    continue;
+#if 0
+		  /* if point-to-point link, use remote addr as route gateway */
+		  if ((ifreq.ifr_flags & IFF_POINTOPOINT) && ioctl (sd, SIOCGIFDSTADDR, &ifreq) >= 0)
+		    {
+		      rgi->gateway.addr = ntohl(((struct sockaddr_in *) &ifreq.ifr_addr)->sin_addr.s_addr);
+		      if (rgi->gateway.addr)
+			rgi->flags &= ~RGI_ON_LINK;
+		    }
+#endif
+		}
+	      else
+		{
+		  /* get interface netmask */
+		  if (ioctl (sd, SIOCGIFNETMASK, &ifreq) < 0)
+		    continue;
+		  netmask = ntohl(((struct sockaddr_in *) &ifreq.ifr_addr)->sin_addr.s_addr);
 
-	      /* check that interface matches default route */
-	      if (((rgi->gateway.addr ^ addr) & netmask) != 0)
-		continue;
+		  /* check that interface matches default route */
+		  if (((rgi->gateway.addr ^ addr) & netmask) != 0)
+		    continue;
 
-	      /* save iface name and netmask */
+		  /* save netmask */
+		  rgi->gateway.netmask = netmask;
+		  rgi->flags |= RGI_NETMASK_DEFINED;
+		}
+
+	      /* save iface name */
 	      strncpynt (rgi->iface, ifreq.ifr_name, sizeof(rgi->iface));
-	      rgi->gateway.netmask = netmask;
-	      rgi->flags |= (RGI_IFACE_DEFINED|RGI_NETMASK_DEFINED);
+	      rgi->flags |= RGI_IFACE_DEFINED;
 
 	      /* now get the hardware address. */
 	      memset (&ifreq.ifr_hwaddr, 0, sizeof (struct sockaddr));

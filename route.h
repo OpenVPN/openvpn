@@ -46,9 +46,10 @@
 #endif
 
 /*
- * Route add flags (must stay clear of ROUTE_METHOD bits)
+ * Route add/delete flags (must stay clear of ROUTE_METHOD bits)
  */
-#define ROUTE_DELETE_FIRST  4
+#define ROUTE_DELETE_FIRST  (1<<2)
+#define ROUTE_REF_GW        (1<<3)
 
 struct route_bypass
 {
@@ -157,6 +158,7 @@ struct route_gateway_info {
 # define RGI_HWADDR_DEFINED   (1<<2) /* set if hwaddr is defined */
 # define RGI_IFACE_DEFINED    (1<<3) /* set if iface is defined */
 # define RGI_OVERFLOW         (1<<4) /* set if more interface addresses than will fit in addrs */
+# define RGI_ON_LINK          (1<<5)
   unsigned int flags;
 
   /* gateway interface */

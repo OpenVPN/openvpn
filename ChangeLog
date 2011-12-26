@@ -1,6 +1,28 @@
 OpenVPN Change Log
 Copyright (C) 2002-2011 OpenVPN Technologies, Inc. <sales@openvpn.net>
 
+2011.12.25 -- Version 2.x-master
+James Yonan (1):
+      Added support for "on-link" routes on Linux client -- these are
+      routes where the gateway is specified as an interface rather than
+      an address.  This allows redirect-gateway to work on Linux clients
+      whose connection to the internet is via a point-to-point link
+      such as PPP.
+
+      Note that at the moment, this capability is incompatible with
+      the "redirect-gateway block-local" directive -- this is because
+      the block-local directive blocks all traffic from the local LAN
+      except for the local and gateway addresses.  Since a PPP link
+      is essentially a subnet of two addresses, local and remote (i.e.
+      gateway), the set of addresses that would be blocked by block-local
+      is empty.  Therefore, the "redirect-gateway block-local" directive
+      will be ignored on PPP links.
+
+      To view the OpenVPN client's current determination of the default
+      gateway, use this command:
+
+        ./openvpn --show-gateway
+
 2011.03.24 -- Version 2.2-RC2
 Alon Bar-Lev (1):
       Windows cross-compile cleanup
