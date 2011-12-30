@@ -211,7 +211,10 @@ struct route_option_list *new_route_option_list (const int max_routes, struct gc
 struct route_ipv6_option_list *new_route_ipv6_option_list (const int max_routes, struct gc_arena *a);
 
 struct route_option_list *clone_route_option_list (const struct route_option_list *src, struct gc_arena *a);
+struct route_ipv6_option_list *clone_route_ipv6_option_list (const struct route_ipv6_option_list *src, struct gc_arena *a);
 void copy_route_option_list (struct route_option_list *dest, const struct route_option_list *src);
+void copy_route_ipv6_option_list (struct route_ipv6_option_list *dest,
+				  const struct route_ipv6_option_list *src);
 
 struct route_list *new_route_list (const int max_routes, struct gc_arena *a);
 struct route_ipv6_list *new_route_ipv6_list (const int max_routes, struct gc_arena *a);

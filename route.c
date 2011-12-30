@@ -108,10 +108,29 @@ clone_route_option_list (const struct route_option_list *src, struct gc_arena *a
   return ret;
 }
 
+struct route_ipv6_option_list *
+clone_route_ipv6_option_list (const struct route_ipv6_option_list *src, struct gc_arena *a)
+{
+  const size_t rl_size = array_mult_safe (sizeof(struct route_ipv6_option), src->capacity, sizeof(struct route_ipv6_option_list));
+  struct route_ipv6_option_list *ret = gc_malloc (rl_size, false, a);
+  memcpy (ret, src, rl_size);
+  return ret;
+}
+
 void
 copy_route_option_list (struct route_option_list *dest, const struct route_option_list *src)
 {
   const size_t src_size = array_mult_safe (sizeof(struct route_option), src->capacity, sizeof(struct route_option_list));
+  if (src->n > dest->capacity)
+    msg (M_FATAL, PACKAGE_NAME " ROUTE: (copy) number of route options in src (%d) is greater than route list capacity in dest (%d)", src->n, dest->capacity);
+  memcpy (dest, src, src_size);
+}
+
+void
+copy_route_ipv6_option_list (struct route_ipv6_option_list *dest,
+			     const struct route_ipv6_option_list *src)
+{
+  const size_t src_size = array_mult_safe (sizeof(struct route_ipv6_option), src->capacity, sizeof(struct route_ipv6_option_list));
   if (src->n > dest->capacity)
     msg (M_FATAL, PACKAGE_NAME " ROUTE: (copy) number of route options in src (%d) is greater than route list capacity in dest (%d)", src->n, dest->capacity);
   memcpy (dest, src, src_size);

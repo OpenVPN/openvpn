@@ -68,6 +68,9 @@ struct options_pre_pull
   bool routes_defined;
   struct route_option_list *routes;
 
+  bool routes_ipv6_defined;
+  struct route_ipv6_option_list *routes_ipv6;
+
 #ifdef ENABLE_CLIENT_NAT
   bool client_nat_defined;
   struct client_nat_option_list *client_nat;

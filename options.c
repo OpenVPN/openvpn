@@ -2778,6 +2778,11 @@ pre_pull_save (struct options *o)
 	  o->pre_pull->routes = clone_route_option_list(o->routes, &o->gc);
 	  o->pre_pull->routes_defined = true;
 	}
+      if (o->routes_ipv6)
+	{
+	  o->pre_pull->routes_ipv6 = clone_route_ipv6_option_list(o->routes_ipv6, &o->gc);
+	  o->pre_pull->routes_ipv6_defined = true;
+	}
 #ifdef ENABLE_CLIENT_NAT
       if (o->client_nat)
 	{
@@ -2805,6 +2810,14 @@ pre_pull_restore (struct options *o)
 	}
       else
 	o->routes = NULL;
+
+      if (pp->routes_ipv6_defined)
+	{
+	  rol6_check_alloc (o);
+	  copy_route_ipv6_option_list (o->routes_ipv6, pp->routes_ipv6);
+	}
+      else
+	o->routes_ipv6 = NULL;
 
 #ifdef ENABLE_CLIENT_NAT
       if (pp->client_nat_defined)
