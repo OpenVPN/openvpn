@@ -121,8 +121,8 @@ void
 copy_route_option_list (struct route_option_list *dest, const struct route_option_list *src)
 {
   const size_t src_size = array_mult_safe (sizeof(struct route_option), src->capacity, sizeof(struct route_option_list));
-  if (src->n > dest->capacity)
-    msg (M_FATAL, PACKAGE_NAME " ROUTE: (copy) number of route options in src (%d) is greater than route list capacity in dest (%d)", src->n, dest->capacity);
+  if (src->capacity > dest->capacity)
+    msg (M_FATAL, PACKAGE_NAME " ROUTE: (copy) number of route options in src (%d) is greater than route list capacity in dest (%d)", src->capacity, dest->capacity);
   memcpy (dest, src, src_size);
 }
 
@@ -131,8 +131,8 @@ copy_route_ipv6_option_list (struct route_ipv6_option_list *dest,
 			     const struct route_ipv6_option_list *src)
 {
   const size_t src_size = array_mult_safe (sizeof(struct route_ipv6_option), src->capacity, sizeof(struct route_ipv6_option_list));
-  if (src->n > dest->capacity)
-    msg (M_FATAL, PACKAGE_NAME " ROUTE: (copy) number of route options in src (%d) is greater than route list capacity in dest (%d)", src->n, dest->capacity);
+  if (src->capacity > dest->capacity)
+    msg (M_FATAL, PACKAGE_NAME " ROUTE: (copy) number of route options in src (%d) is greater than route list capacity in dest (%d)", src->capacity, dest->capacity);
   memcpy (dest, src, src_size);
 }
 
