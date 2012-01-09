@@ -529,7 +529,7 @@ openvpn_execve (const struct argv *a, const struct env_set *es, const unsigned i
 		  exit (127);
 		}
 	      else if (pid < (pid_t)0) /* fork failed */
-		;
+		msg (M_ERR, "openvpn_execve: unable to fork");
 	      else /* parent side */
 		{
 		  if (waitpid (pid, &ret, 0) != pid)
@@ -556,7 +556,7 @@ openvpn_execve (const struct argv *a, const struct env_set *es, const unsigned i
     }
   else
     {
-      msg (M_WARN, "openvpn_execve: called with empty argv");
+      msg (M_FATAL, "openvpn_execve: called with empty argv");
     }
 
   gc_free (&gc);
