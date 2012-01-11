@@ -36,7 +36,6 @@
 #include "crypto.h"
 #include "route.h"
 #include "win32.h"
-#include <unistd.h>
 
 #include "memdbg.h"
 

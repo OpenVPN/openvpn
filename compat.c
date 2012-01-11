@@ -117,9 +117,9 @@ dirname (char *path)
  * This version is extended to handle both / and \ in path names
  */
 char *
-basename (const char *filename)
+basename (char *filename)
 {
-  char *p = strrchr (filenamem, '/');
+  char *p = strrchr (filename, '/');
   if (!p) {
     /* If NULL, check for \ instead ... might be Windows a path */
     p = strrchr (filename, '\\');
