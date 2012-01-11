@@ -34,9 +34,9 @@
 #endif
 #ifndef PACKAGE_NAME
 #include "config.h"
+#include "compat.h"
 #endif
 
-#include "compat.h"
 
 /* branch prediction hints */
 #if defined(__GNUC__)
