@@ -1307,6 +1307,7 @@ multi_select_virtual_addr (struct multi_context *m, struct multi_instance *mi)
       if (!mi->context.options.duplicate_cn)
 	cn = tls_common_name (mi->context.c2.tls_multi, true);
 
+      CLEAR(remote_ipv6);
       mi->vaddr_handle = ifconfig_pool_acquire (m->ifconfig_pool, &local, &remote, &remote_ipv6, cn);
       if (mi->vaddr_handle >= 0)
 	{
@@ -1314,8 +1315,10 @@ multi_select_virtual_addr (struct multi_context *m, struct multi_instance *mi)
 	  const int tunnel_topology = TUNNEL_TOPOLOGY (mi->context.c1.tuntap);
 
 	  msg( M_INFO, "MULTI_sva: pool returned IPv4=%s, IPv6=%s", 
-		    print_in_addr_t( remote, 0, &gc ),
-		    print_in6_addr( remote_ipv6, 0, &gc ) );
+	       print_in_addr_t( remote, 0, &gc ),
+	       (mi->context.options.ifconfig_ipv6_pool_defined
+		? print_in6_addr( remote_ipv6, 0, &gc )
+		: "(Not enabled)") );
 
 	  /* set push_ifconfig_remote_netmask from pool ifconfig address(es) */
 	  mi->context.c2.push_ifconfig_local = remote;
