@@ -1098,6 +1098,18 @@ do_ifconfig (struct tuntap *tt,
 			  ifconfig_remote_netmask,
 			  tun_mtu
 			  );
+      else if ( tt->topology == TOP_SUBNET )
+	{
+	    argv_printf (&argv,
+			  "%s %s %s %s mtu %d netmask %s up",
+			  IFCONFIG_PATH,
+			  actual,
+			  ifconfig_local,
+			  ifconfig_local,
+			  tun_mtu,
+			  ifconfig_remote_netmask
+			  );
+	}
       else
 	argv_printf (&argv,
 		      "%s %s %s netmask %s mtu %d up",
@@ -2246,10 +2258,8 @@ open_tun (const char *dev, const char *dev_type, const char *dev_node, struct tu
 
   if (tt->fd >= 0 && tt->type == DEV_TYPE_TUN)
     {
-      int i = 0;
+      int i = IFF_POINTOPOINT | IFF_MULTICAST;
 
-      i = tt->topology == TOP_SUBNET ? IFF_BROADCAST : IFF_POINTOPOINT;
-      i |= IFF_MULTICAST;
       if (ioctl (tt->fd, TUNSIFMODE, &i) < 0) {
 	msg (M_WARN | M_ERRNO, "ioctl(TUNSIFMODE): %s", strerror(errno));
       }
@@ -2260,12 +2270,33 @@ open_tun (const char *dev, const char *dev_type, const char *dev_node, struct tu
     }
 }
 
+/* tun(4): "These network interfaces persist until the if_tun.ko module is
+ *          unloaded, or until removed with the ifconfig(8) command."
+ *          (verified for FreeBSD 6.3, 7.4, 8.2 and 9, same for tap(4))
+ *
+ * so, to avoid lingering tun/tap interfaces after OpenVPN quits,
+ * we need to call "ifconfig ... destroy" for cleanup
+ */
 void
 close_tun (struct tuntap *tt)
 {
   if (tt)
     {
+      struct gc_arena gc = gc_new ();
+      struct argv argv;
+
+      /* setup command, close tun dev (clears tt->actual_name!), run command
+       */
+
+      argv_init (&argv);
+      argv_printf (&argv, "%s %s destroy",
+                          IFCONFIG_PATH, tt->actual_name);
+
       close_tun_generic (tt);
+
+      argv_msg (M_INFO, &argv);
+      openvpn_execve_check (&argv, NULL, 0, "FreeBSD 'destroy tun interface' failed (non-critical)");
+
       free (tt);
     }
 }
