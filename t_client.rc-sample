@@ -20,6 +20,12 @@ REMOTE=mytestserver
 TEST_RUN_LIST="1 2"
 
 #
+# use "sudo" (etc) to give openvpn the necessary privileges
+# if this is not active, "make check" must be run as root
+#
+#RUN_SUDO=sudo
+
+#
 # base confic that is the same for all the p2mp test runs
 #
 OPENVPN_BASE_P2MP="--client --ca $CA_CERT \
@@ -39,6 +45,7 @@ OPENVPN_BASE_P2P="..."
 #
 # possible test options:
 #
+# RUN_TITLE_x="what is being tested on here" (purely informational)
 # OPENVPN_CONF_x = "how to call ./openvpn" [mandatory]
 # EXPECT_IFCONFIG4_x = "this IPv4 address needs to show up in ifconfig"
 # EXPECT_IFCONFIG6_x = "this IPv6 address needs to show up in ifconfig"
@@ -48,6 +55,7 @@ OPENVPN_BASE_P2P="..."
 # Test 1: UDP / p2mp tun
 #   specify IPv4+IPv6 addresses expected from server and ping targets
 #
+RUN_TITLE_1="testing tun/udp/ipv4+ipv6"
 OPENVPN_CONF_1="$OPENVPN_BASE_P2MP --dev tun --proto udp --remote $REMOTE --port 51194"
 EXPECT_IFCONFIG4_1="10.100.50.6"
 EXPECT_IFCONFIG6_1="2001:dba:a050::1:0"
@@ -56,6 +64,7 @@ PING6_HOSTS_1="2001:dba::1 2001:dba:a050::1"
 
 # Test 2: TCP / p2mp tun
 #
+RUN_TITLE_2="testing tun/tcp/ipv4+ipv6"
 OPENVPN_CONF_2="$OPENVPN_BASE_P2MP --dev tun --proto tcp --remote $REMOTE --port 51194"
 EXPECT_IFCONFIG4_2="10.100.51.6"
 EXPECT_IFCONFIG6_2="2001:dba:a051::1:0"
