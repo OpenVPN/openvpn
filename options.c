@@ -216,6 +216,7 @@ static const char usage_message[] =
   "                  be added immediately after tun/tap open.  On Windows, wait\n"
   "                  up to w seconds for TUN/TAP adapter to come up.\n"
   "--route-up cmd  : Execute shell cmd after routes are added.\n"
+  "--route-pre-down cmd  : Execute shell cmd before routes are removed.\n"
   "--route-noexec  : Don't add routes automatically.  Instead pass routes to\n"
   "                  --route-up script using environmental variables.\n"
   "--route-nopull  : When used with --client or --pull, accept options pushed\n"
@@ -2739,6 +2740,8 @@ options_postprocess_filechecks (struct options *options)
                              R_OK|X_OK, "--ipchange script");
   errs |= check_file_access (CHKACC_FILE, options->route_script,
                              R_OK|X_OK, "--route-up script");
+  errs |= check_file_access (CHKACC_FILE, options->route_predown_script,
+                             R_OK|X_OK, "--route-pre-down script");
   errs |= check_file_access (CHKACC_FILE, options->learn_address_script,
                              R_OK|X_OK, "--learn-address script");
 #endif /* P2MP_SERVER */
@@ -5216,6 +5219,14 @@ add_option (struct options *options,
 	goto err;
       warn_multiple_script (options->route_script, "route-up");
       options->route_script = p[1];
+    }
+  else if (streq (p[0], "route-pre-down") && p[1])
+    {
+      VERIFY_PERMISSION (OPT_P_SCRIPT);
+      if (!no_more_than_n_args (msglevel, p, 2, NM_QUOTE_HINT))
+	goto err;
+      warn_multiple_script (options->route_predown_script, "route-pre-down");
+      options->route_predown_script = p[1];
     }
   else if (streq (p[0], "route-noexec"))
     {

@@ -360,6 +360,7 @@ struct options
 
   /* route management */
   const char *route_script;
+  const char *route_predown_script;
   const char *route_default_gateway;
   int route_default_metric;
   bool route_noexec;

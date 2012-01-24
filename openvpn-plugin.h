@@ -108,7 +108,8 @@
 #define OPENVPN_PLUGIN_CLIENT_CONNECT_V2     9
 #define OPENVPN_PLUGIN_TLS_FINAL             10
 #define OPENVPN_PLUGIN_ENABLE_PF             11
-#define OPENVPN_PLUGIN_N                     12
+#define OPENVPN_PLUGIN_ROUTE_PREDOWN         12
+#define OPENVPN_PLUGIN_N                     13
 
 /*
  * Build a mask out of a set of plug-in types.

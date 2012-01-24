@@ -1583,8 +1583,25 @@ do_close_tun (struct context *c, bool force)
 
 	  /* delete any routes we added */
 	  if (c->c1.route_list || c->c1.route_ipv6_list )
-	    delete_routes (c->c1.route_list, c->c1.route_ipv6_list,
-			   c->c1.tuntap, ROUTE_OPTION_FLAGS (&c->options), c->c2.es);
+            {
+              run_up_down (c->options.route_predown_script,
+                           c->plugins,
+                           OPENVPN_PLUGIN_ROUTE_PREDOWN,
+                           tuntap_actual,
+                           NULL,
+                           TUN_MTU_SIZE (&c->c2.frame),
+                           EXPANDED_SIZE (&c->c2.frame),
+                           print_in_addr_t (local, IA_EMPTY_IF_UNDEF, &gc),
+                           print_in_addr_t (remote_netmask, IA_EMPTY_IF_UNDEF, &gc),
+                           "init",
+                           signal_description (c->sig->signal_received,
+                                               c->sig->signal_text),
+                           "route-pre-down",
+                           c->c2.es);
+
+              delete_routes (c->c1.route_list, c->c1.route_ipv6_list,
+                             c->c1.tuntap, ROUTE_OPTION_FLAGS (&c->options), c->c2.es);
+            }
 
 	  /* actually close tun/tap device based on --down-pre flag */
 	  if (!c->options.down_pre)
