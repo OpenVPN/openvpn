@@ -404,6 +404,7 @@ init_tun (const char *dev,       /* --dev option */
 	  const char *ifconfig_local_parm,          /* --ifconfig parm 1 */
 	  const char *ifconfig_remote_netmask_parm, /* --ifconfig parm 2 */
 	  const char *ifconfig_ipv6_local_parm,     /* --ifconfig parm 1 IPv6 */
+	  int         ifconfig_ipv6_netbits_parm,
 	  const char *ifconfig_ipv6_remote_parm,    /* --ifconfig parm 2 IPv6 */
 	  in_addr_t local_public,
 	  in_addr_t remote_public,
@@ -534,7 +535,7 @@ init_tun (const char *dev,       /* --dev option */
 	{
 	  msg( M_FATAL, "init_tun: problem converting IPv6 ifconfig addresses %s and %s to binary", ifconfig_ipv6_local_parm, ifconfig_ipv6_remote_parm );
 	}
-      tt->netbits_ipv6 = 64;
+      tt->netbits_ipv6 = ifconfig_ipv6_netbits_parm;
 
       /*
        * Set ifconfig parameters
@@ -548,6 +549,7 @@ init_tun (const char *dev,       /* --dev option */
       if (es)
 	{
 	  setenv_str (es, "ifconfig_ipv6_local", ifconfig_ipv6_local);
+	  setenv_int (es, "ifconfig_ipv6_netbits", tt->netbits_ipv6);
 	  setenv_str (es, "ifconfig_ipv6_remote", ifconfig_ipv6_remote);
 	}
       tt->did_ifconfig_ipv6_setup = true;

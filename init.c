@@ -1415,6 +1415,7 @@ do_init_tun (struct context *c)
 			   c->options.ifconfig_local,
 			   c->options.ifconfig_remote_netmask,
 			   c->options.ifconfig_ipv6_local,
+			   c->options.ifconfig_ipv6_netbits,
 			   c->options.ifconfig_ipv6_remote,
 			   addr_host (&c->c1.link_socket_addr.local),
 			   addr_host (&c->c1.link_socket_addr.remote),

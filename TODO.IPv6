@@ -77,6 +77,8 @@ tun0: flags=8051<UP,POINTOPOINT,RUNNING,MULTICAST> mtu 1500
     of /netbits, and correctly ifconfig'ing this
     (default, if not specified: /64)
 
+    * done * 2012-02-03
+
 11.) do not add ipv6-routes if tun-ipv6 is not set - complain instead
 
      * done * 12.1.10

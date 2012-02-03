@@ -242,11 +242,9 @@ send_push_reply (struct context *c)
   if ( c->c2.push_ifconfig_ipv6_defined )
     {
       /* IPv6 is put into buffer first, could be lengthy */
-      /* TODO: push "/netbits" as well, to allow non-/64 subnet sizes
-       *       (needs changes in options.c, options.h, and other places)
-       */
-      buf_printf( &buf, ",ifconfig-ipv6 %s %s",
+      buf_printf( &buf, ",ifconfig-ipv6 %s/%d %s",
 		    print_in6_addr( c->c2.push_ifconfig_ipv6_local, 0, &gc),
+		    c->c2.push_ifconfig_ipv6_netbits,
 		    print_in6_addr( c->c2.push_ifconfig_ipv6_remote, 0, &gc) );
       if (BLEN (&buf) >= safe_cap)
 	{

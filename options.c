@@ -2926,6 +2926,7 @@ options_string (const struct options *o,
 		     o->ifconfig_local,
 		     o->ifconfig_remote_netmask,
 		     o->ifconfig_ipv6_local,
+		     o->ifconfig_ipv6_netbits,
 		     o->ifconfig_ipv6_remote,
 		     (in_addr_t)0,
 		     (in_addr_t)0,
@@ -5396,9 +5397,9 @@ add_option (struct options *options,
 	  msg (msglevel, "error parsing --server-ipv6 parameter");
 	  goto err;
 	}
-      if ( netbits != 64 )
+      if ( netbits < 64 || netbits > 112 )
 	{
-	  msg( msglevel, "--server-ipv6 settings: only /64 supported right now (not /%d)", netbits );
+	  msg( msglevel, "--server-ipv6 settings: only /64../112 supported right now (not /%d)", netbits );
 	  goto err;
 	}
       options->server_ipv6_defined = true;
