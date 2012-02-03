@@ -233,14 +233,14 @@ do
     opid=$!
 
     # make sure openvpn client is terminated in case shell exits
-    trap "kill $opid" 0
-    trap "kill $opid ; trap - 0 ; exit 1" 1 2 3 15
+    trap "$RUN_SUDO kill $opid" 0
+    trap "$RUN_SUDO kill $opid ; trap - 0 ; exit 1" 1 2 3 15
 
     echo "wait for connection to establish..."
     sleep 10
 
     # test whether OpenVPN process is still there
-    if kill -0 $opid
+    if $RUN_SUDO kill -0 $opid
     then :
     else
 	echo -e "OpenVPN process has failed to start up, check log ($LOGDIR/$SUF:openvpn.log).  FAIL.\ntail of logfile follows:\n..." >&2
@@ -271,7 +271,7 @@ do
     echo -e "ping tests done.\n"
 
     echo "stopping OpenVPN"
-    kill $opid
+    $RUN_SUDO kill $opid
     wait $!
     rc=$?
     if [ $rc != 0 ] ; then
