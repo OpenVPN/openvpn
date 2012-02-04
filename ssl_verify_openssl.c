@@ -249,21 +249,21 @@ x509_free_sha1_hash (unsigned char *hash)
 char *
 _openssl_get_subject (X509 *cert, char *buf, int size)
 {
-  BIO *subject_bio;
+  BIO *subject_bio = NULL;
   BUF_MEM *subject_mem;
   char *subject = buf;
   int maxlen = size;
 
   subject_bio = BIO_new (BIO_s_mem ());
   if (subject_bio == NULL)
-    goto out;
+    goto err;
 
   X509_NAME_print_ex (subject_bio, X509_get_subject_name (cert),
                       0, XN_FLAG_SEP_CPLUS_SPC | XN_FLAG_FN_SN |
                       ASN1_STRFLGS_UTF8_CONVERT | ASN1_STRFLGS_ESC_CTRL);
 
   if (BIO_eof (subject_bio))
-    goto out_free;
+    goto err;
 
   BIO_get_mem_ptr (subject_bio, &subject_mem);
   if (subject == NULL)
@@ -276,9 +276,10 @@ _openssl_get_subject (X509 *cert, char *buf, int size)
   memcpy (subject, subject_mem->data, maxlen);
   subject[maxlen - 1] = '\0';
 
-out_free:
-  BIO_free (subject_bio);
-out:
+err:
+  if (subject_bio)
+    BIO_free (subject_bio);
+
   return subject;
 }
 
