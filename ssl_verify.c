@@ -669,14 +669,14 @@ verify_cert(struct tls_session *session, x509_cert_t *cert, int cert_depth)
   msg (D_HANDSHAKE, "VERIFY OK: depth=%d, %s", cert_depth, subject);
   session->verified = true;
 
- done:
   x509_free_subject (subject);
-  return (session->verified == true) ? SUCCESS : FAILURE;
+  return SUCCESS;
 
  err:
   tls_clear_error();
   session->verified = false;
-  goto done;
+  x509_free_subject (subject);
+  return FAILURE;
 }
 
 /* ***************************************************************************
