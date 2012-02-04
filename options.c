@@ -601,7 +601,7 @@ static const char usage_message[] =
   "                  pending TLS connection that has otherwise passed all other\n"
   "                  tests of certification.  cmd should return 0 to allow\n"
   "                  TLS handshake to proceed, or 1 to fail.  (cmd is\n"
-  "                  executed as 'cmd certificate_depth X509_NAME_oneline')\n"
+  "                  executed as 'cmd certificate_depth subject')\n"
   "--tls-export-cert [directory] : Get peer cert in PEM format and store it \n"
   "                  in an openvpn temporary file in [directory]. Peer cert is \n"
   "                  stored before tls-verify script execution and deleted after.\n"
@@ -2164,9 +2164,6 @@ options_postprocess_verify_ce (const struct options *options, const struct conne
 	  if ((options->ssl_flags & SSLF_AUTH_USER_PASS_OPTIONAL) && !ccnr)
 	    msg (M_USAGE, "--auth-user-pass-optional %s", postfix);
 	}
-
-	if ((options->ssl_flags & SSLF_NO_NAME_REMAPPING) && script_method == SM_SYSTEM)
-	  msg (M_USAGE, "--script-security method='system' cannot be combined with --no-name-remapping");
     }
   else
     {
@@ -2201,8 +2198,6 @@ options_postprocess_verify_ce (const struct options *options, const struct conne
 	msg (M_USAGE, "--username-as-common-name requires --mode server");
       if (options->ssl_flags & SSLF_AUTH_USER_PASS_OPTIONAL)
 	msg (M_USAGE, "--auth-user-pass-optional requires --mode server");
-      if (options->ssl_flags & SSLF_NO_NAME_REMAPPING)
-	msg (M_USAGE, "--no-name-remapping requires --mode server");
       if (options->ssl_flags & SSLF_OPT_VERIFY)
 	msg (M_USAGE, "--opt-verify requires --mode server");
       if (options->server_flags & SF_TCP_NODELAY_HELPER)
@@ -5580,11 +5575,6 @@ add_option (struct options *options,
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->ssl_flags |= SSLF_AUTH_USER_PASS_OPTIONAL;
-    }
-  else if (streq (p[0], "no-name-remapping"))
-    {
-      VERIFY_PERMISSION (OPT_P_GENERAL);
-      options->ssl_flags |= SSLF_NO_NAME_REMAPPING;
     }
   else if (streq (p[0], "opt-verify"))
     {

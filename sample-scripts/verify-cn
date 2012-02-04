@@ -3,7 +3,7 @@
 # verify-cn -- a sample OpenVPN tls-verify script
 #
 # Return 0 if cn matches the common name component of
-# X509_NAME_oneline, 1 otherwise.
+# subject, 1 otherwise.
 #
 # For example in OpenVPN, you could use the directive:
 #
@@ -13,7 +13,7 @@
 # the client common name is listed on a line in the
 # allowed_clients file.
 
-die "usage: verify-cn cnfile certificate_depth X509_NAME_oneline" if (@ARGV != 3);
+die "usage: verify-cn cnfile certificate_depth subject" if (@ARGV != 3);
 
 # Parse out arguments:
 #   cnfile -- The file containing the list of common names, one per
@@ -37,7 +37,7 @@ if ($depth == 0) {
     # If so, parse out the common name substring in
     # the X509 subject string.
 
-    if ($x509 =~ /\/CN=([^\/]+)/) {
+    if ($x509 =~ / CN=([^,]+)/) {
         $cn = $1;
 	# Accept the connection if the X509 common name
 	# string matches the passed cn argument.

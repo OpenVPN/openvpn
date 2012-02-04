@@ -129,7 +129,7 @@ pkcs11_certificate_dn (pkcs11h_certificate_t certificate, char *dn,
       goto cleanup;
     }
 
-  X509_NAME_oneline (X509_get_subject_name (x509), dn, dn_len);
+  _openssl_get_subject (x509, dn, dn_len);
 
   ret = 0;
 
