@@ -5358,6 +5358,49 @@ normally occurs prior to
 script execution.
 .\"*********************************************************
 .TP
+.B ifconfig_ipv6_local
+The local VPN endpoint IPv6 address specified in the
+.B \-\-ifconfig-ipv6
+option (first parameter).
+Set prior to OpenVPN calling the
+.I ifconfig
+or
+.I netsh
+(windows version of ifconfig) commands which
+normally occurs prior to
+.B \-\-up
+script execution.
+.\"*********************************************************
+.TP
+.B ifconfig_ipv6_netbits
+The prefix length of the IPv6 network on the VPN interface.  Derived from
+the /nnn parameter of the IPv6 address in the
+.B \-\-ifconfig-ipv6
+option (first parameter).
+Set prior to OpenVPN calling the
+.I ifconfig
+or
+.I netsh
+(windows version of ifconfig) commands which
+normally occurs prior to
+.B \-\-up
+script execution.
+.\"*********************************************************
+.TP
+.B ifconfig_ipv6_remote
+The remote VPN endpoint IPv6 address specified in the
+.B \-\-ifconfig-ipv6
+option (second parameter).
+Set prior to OpenVPN calling the
+.I ifconfig
+or
+.I netsh
+(windows version of ifconfig) commands which
+normally occurs prior to
+.B \-\-up
+script execution.
+.\"*********************************************************
+.TP
 .B ifconfig_local
 The local VPN endpoint IP address specified in the
 .B \-\-ifconfig
@@ -5547,6 +5590,26 @@ script execution.
 
 .B parm
 will be one of "network", "netmask", "gateway", or "metric".
+
+.B n
+is the OpenVPN route number, starting from 1.
+
+If the network or gateway are resolvable DNS names,
+their IP address translations will be recorded rather
+than their names as denoted on the command line
+or configuration file.
+.\"*********************************************************
+.TP
+.B route_ipv6_{parm}_{n}
+A set of variables which define each IPv6 route to be added, and
+are set prior to
+.B \-\-up
+script execution.
+
+.B parm
+will be one of "network" or "gateway" ("netmask" is contained as "/nnn"
+in the route_ipv6_network_{n}, unlike IPv4 where it is passed in a separate
+environment variable).
 
 .B n
 is the OpenVPN route number, starting from 1.
