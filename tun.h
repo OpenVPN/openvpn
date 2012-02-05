@@ -283,7 +283,7 @@ ifconfig_order(void)
 #elif defined(TARGET_SOLARIS)
   return IFCONFIG_AFTER_TUN_OPEN;
 #elif defined(TARGET_OPENBSD)
-  return IFCONFIG_BEFORE_TUN_OPEN;
+  return IFCONFIG_AFTER_TUN_OPEN;
 #elif defined(TARGET_DARWIN)
   return IFCONFIG_AFTER_TUN_OPEN;
 #elif defined(TARGET_NETBSD)

@@ -880,35 +880,34 @@ do_ifconfig (struct tuntap *tt,
 #elif defined(TARGET_OPENBSD)
 
       /*
-       * OpenBSD tun devices appear to be persistent by default.  It seems in order
-       * to make this work correctly, we need to delete the previous instance
-       * (if it exists), and re-ifconfig.  Let me know if you know a better way.
+       * On OpenBSD, tun interfaces are persistant if created with
+       * "ifconfig tunX create", and auto-destroyed if created by
+       * opening "/dev/tunX" (so we just use the /dev/tunX)
        */
-
-      argv_printf (&argv,
-			"%s %s destroy",
-			IFCONFIG_PATH,
-			actual);
-      argv_msg (M_INFO, &argv);
-      openvpn_execve_check (&argv, es, 0, NULL);
-      argv_printf (&argv,
-			"%s %s create",
-			IFCONFIG_PATH,
-			actual);
-      argv_msg (M_INFO, &argv);
-      openvpn_execve_check (&argv, es, 0, NULL);
-      msg (M_INFO, "NOTE: Tried to delete pre-existing tun/tap instance -- No Problem if failure");
 
       /* example: ifconfig tun2 10.2.0.2 10.2.0.1 mtu 1450 netmask 255.255.255.255 up */
       if (tun)
 	argv_printf (&argv,
-			  "%s %s %s %s mtu %d netmask 255.255.255.255 up",
+			  "%s %s %s %s mtu %d netmask 255.255.255.255 up -link0",
 			  IFCONFIG_PATH,
 			  actual,
 			  ifconfig_local,
 			  ifconfig_remote_netmask,
 			  tun_mtu
 			  );
+      else
+	if ( tt->topology == TOP_SUBNET )
+	{
+	    argv_printf (&argv,
+			  "%s %s %s %s mtu %d netmask %s up -link0",
+			  IFCONFIG_PATH,
+			  actual,
+			  ifconfig_local,
+			  ifconfig_local,
+			  tun_mtu,
+			  ifconfig_remote_netmask
+			  );
+	}
       else
 	argv_printf (&argv,
 			  "%s %s %s netmask %s mtu %d broadcast %s link0",
@@ -1959,10 +1958,6 @@ read_tun (struct tuntap* tt, uint8_t *buf, int len)
 
 #elif defined(TARGET_OPENBSD)
 
-#if !defined(HAVE_READV) || !defined(HAVE_WRITEV)
-#error openbsd build requires readv & writev library functions
-#endif
-
 /*
  * OpenBSD has a slightly incompatible TUN device from
  * the rest of the world, in that it prepends a
@@ -2006,15 +2001,26 @@ open_tun (const char *dev, const char *dev_type, const char *dev_node, struct tu
     }
 }
 
-/* the current way OpenVPN handles tun devices on OpenBSD leads to
- * lingering tunX interfaces after close -> for a full cleanup, they
- * need to be explicitely destroyed
+/* tun(4): "If the device was created by opening /dev/tunN, it will be
+ *          automatically destroyed.  Devices created via ifconfig(8) are
+ *          only marked as not running and traffic will be dropped
+ *          returning EHOSTDOWN."
+ * --> no special handling should be needed - *but* OpenBSD is misbehaving
+ * here: if the interface was put in tap mode ("ifconfig tunN link0"), it
+ * *will* stay around, and needs to be cleaned up manually
  */
 
 void
 close_tun (struct tuntap* tt)
 {
-  if (tt)
+  /* only *TAP* devices need destroying, tun devices auto-self-destruct
+   */
+  if (tt && tt->type == DEV_TYPE_TUN )
+    {
+      close_tun_generic (tt);
+      free(tt);
+    }
+  else if (tt)
     {
       struct gc_arena gc = gc_new ();
       struct argv argv;
