@@ -135,10 +135,6 @@ static const char usage_message[] =
   "                    between connection retries (default=%d).\n"
   "--connect-timeout n : For --proto tcp-client, connection timeout (in seconds).\n"
   "--connect-retry-max n : Maximum connection attempt retries, default infinite.\n"
-#ifdef GENERAL_PROXY_SUPPORT
-  "--auto-proxy    : Try to sense proxy settings (or lack thereof) automatically.\n"
-  "--show-proxy-settings : Show sensed proxy settings.\n"
-#endif
 #ifdef ENABLE_HTTP_PROXY
   "--http-proxy s p [up] [auth] : Connect to remote host\n"
   "                  through an HTTP proxy at address s and port p.\n"
@@ -2060,8 +2056,8 @@ options_postprocess_verify_ce (const struct options *options, const struct conne
     msg (M_USAGE, "--remote MUST be used in TCP Client mode");
 
 #ifdef ENABLE_HTTP_PROXY
-  if ((ce->http_proxy_options || options->auto_proxy_info) && ce->proto != PROTO_TCPv4_CLIENT)
-    msg (M_USAGE, "--http-proxy or --auto-proxy MUST be used in TCP Client mode (i.e. --proto tcp-client)");
+  if ((ce->http_proxy_options) && ce->proto != PROTO_TCPv4_CLIENT)
+    msg (M_USAGE, "--http-proxy MUST be used in TCP Client mode (i.e. --proto tcp-client)");
 #endif
 
 #if defined(ENABLE_HTTP_PROXY) && defined(ENABLE_SOCKS)
@@ -5000,38 +4996,6 @@ add_option (struct options *options,
       options->proto_force = proto_force;
       options->force_connection_list = true;
     }
-#ifdef GENERAL_PROXY_SUPPORT
-  else if (streq (p[0], "auto-proxy"))
-    {
-      char *error = NULL;
-
-      VERIFY_PERMISSION (OPT_P_GENERAL);
-      options->auto_proxy_info = get_proxy_settings (&error, &options->gc);
-      if (error)
-	msg (M_WARN, "PROXY: %s", error);
-    }
-  else if (streq (p[0], "show-proxy-settings"))
-    {
-      struct auto_proxy_info *pi;
-      char *error = NULL;
-
-      VERIFY_PERMISSION (OPT_P_GENERAL);
-      pi = get_proxy_settings (&error, &options->gc);
-      if (pi)
-	{
-	  msg (M_INFO|M_NOPREFIX, "HTTP Server: %s", np(pi->http.server));
-	  msg (M_INFO|M_NOPREFIX, "HTTP Port: %d", pi->http.port);
-	  msg (M_INFO|M_NOPREFIX, "SOCKS Server: %s", np(pi->socks.server));
-	  msg (M_INFO|M_NOPREFIX, "SOCKS Port: %d", pi->socks.port);
-	}
-      if (error)
-	msg (msglevel, "Proxy error: %s", error);
-#ifdef WIN32
-      show_win_proxy_settings (M_INFO|M_NOPREFIX);
-#endif
-      openvpn_exit (OPENVPN_EXIT_STATUS_GOOD); /* exit point */
-    }
-#endif /* GENERAL_PROXY_SUPPORT */
 #ifdef ENABLE_HTTP_PROXY
   else if (streq (p[0], "http-proxy") && p[1])
     {

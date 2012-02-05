@@ -63,22 +63,9 @@ struct socks_proxy_info *
 socks_proxy_new (const char *server,
 		 int port,
 		 const char *authfile,
-		 bool retry,
-		 struct auto_proxy_info *auto_proxy_info)
+		 bool retry)
 {
   struct socks_proxy_info *p;
-
-  if (auto_proxy_info)
-    {
-      if (!server)
-	{
-	  if (!auto_proxy_info->socks.server)
-	    return NULL;
-
-	  server = auto_proxy_info->socks.server;
-	  port = auto_proxy_info->socks.port;
-	}
-    }
 
   ALLOC_OBJ_CLEAR (p, struct socks_proxy_info);
 

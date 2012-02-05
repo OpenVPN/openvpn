@@ -498,11 +498,10 @@ init_proxy_dowork (struct context *c)
   uninit_proxy_dowork (c);
 
 #ifdef ENABLE_HTTP_PROXY
-  if (c->options.ce.http_proxy_options || c->options.auto_proxy_info)
+  if (c->options.ce.http_proxy_options)
     {
       /* Possible HTTP proxy user/pass input */
-      c->c1.http_proxy = http_proxy_new (c->options.ce.http_proxy_options,
-					 c->options.auto_proxy_info);
+      c->c1.http_proxy = http_proxy_new (c->options.ce.http_proxy_options);
       if (c->c1.http_proxy)
 	{
 	  did_http = true;
@@ -512,13 +511,12 @@ init_proxy_dowork (struct context *c)
 #endif
 
 #ifdef ENABLE_SOCKS
-  if (!did_http && (c->options.ce.socks_proxy_server || c->options.auto_proxy_info))
+  if (!did_http && c->options.ce.socks_proxy_server)
     {
       c->c1.socks_proxy = socks_proxy_new (c->options.ce.socks_proxy_server,
 					   c->options.ce.socks_proxy_port,
 					   c->options.ce.socks_proxy_authfile,
-					   c->options.ce.socks_proxy_retry,
-					   c->options.auto_proxy_info);
+					   c->options.ce.socks_proxy_retry);
       if (c->c1.socks_proxy)
 	{
 	  c->c1.socks_proxy_owned = true;

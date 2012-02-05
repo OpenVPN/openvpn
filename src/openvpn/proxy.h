@@ -28,30 +28,6 @@
 #include "buffer.h"
 #include "misc.h"
 
-#ifdef GENERAL_PROXY_SUPPORT
-
-/*
- * Return value for get_proxy_settings to automatically
- * determine proxy information.
- */
-struct auto_proxy_info_entry {
-  char *server;
-  int port;
-};
-
-struct auto_proxy_info {
-  struct auto_proxy_info_entry http;
-  struct auto_proxy_info_entry socks;
-};
-
-struct auto_proxy_info *get_proxy_settings (char **err, struct gc_arena *gc);
-
-#ifdef WIN32
-void show_win_proxy_settings (const int msglevel);
-#endif /* WIN32 */
-
-#endif /* GENERAL_PROXY_SUPPORT */
-
 #ifdef ENABLE_HTTP_PROXY
 
 /* HTTP CONNECT authentication methods */
@@ -94,8 +70,7 @@ struct http_proxy_info {
   bool queried_creds;
 };
 
-struct http_proxy_info *http_proxy_new (const struct http_proxy_options *o,
-					struct auto_proxy_info *auto_proxy_info);
+struct http_proxy_info *http_proxy_new (const struct http_proxy_options *o);
 
 void http_proxy_close (struct http_proxy_info *hp);
 

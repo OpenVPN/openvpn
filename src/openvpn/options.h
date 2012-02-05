@@ -232,10 +232,6 @@ struct options
   bool force_connection_list;
 #endif
 
-#ifdef GENERAL_PROXY_SUPPORT
-  struct auto_proxy_info *auto_proxy_info;
-#endif
-
 #if HTTP_PROXY_FALLBACK
   bool http_proxy_fallback;
   struct http_proxy_options *http_proxy_override;

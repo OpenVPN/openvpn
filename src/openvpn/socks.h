@@ -51,8 +51,7 @@ void socks_adjust_frame_parameters (struct frame *frame, int proto);
 struct socks_proxy_info *socks_proxy_new (const char *server,
 					  int port,
 					  const char *authfile,
-					  bool retry,
-					  struct auto_proxy_info *auto_proxy_info);
+					  bool retry);
 
 void socks_proxy_close (struct socks_proxy_info *sp);
 
