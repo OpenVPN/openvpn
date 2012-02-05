@@ -4291,7 +4291,7 @@ add_option (struct options *options,
     {
       unsigned int netbits;
       char * ipv6_local;
-	
+
       VERIFY_PERMISSION (OPT_P_UP);
       if ( get_ipv6_addr( p[1], NULL, &netbits, &ipv6_local, msglevel ) &&
            ipv6_addr_safe( p[2] ) )
@@ -4301,6 +4301,11 @@ add_option (struct options *options,
 	      msg( msglevel, "ifconfig-ipv6: /netbits must be between 64 and 124, not '/%d'", netbits );
 	      goto err;
 	    }
+
+          if (options->ifconfig_ipv6_local)
+            /* explicitly ignoring this is a const char */
+            free ((char *) options->ifconfig_ipv6_local);
+
 	  options->ifconfig_ipv6_local = ipv6_local;
 	  options->ifconfig_ipv6_netbits = netbits;
 	  options->ifconfig_ipv6_remote = p[2];

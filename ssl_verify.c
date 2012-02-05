@@ -83,6 +83,7 @@ set_common_name (struct tls_session *session, const char *common_name)
     }
   if (common_name)
     {
+      /* FIXME: Last alloc will never be freed */
       session->common_name = string_alloc (common_name, NULL);
 #ifdef ENABLE_PF
       {
@@ -703,6 +704,7 @@ man_def_auth_set_client_reason (struct tls_multi *multi, const char *client_reas
       multi->client_reason = NULL;
     }
   if (client_reason && strlen (client_reason))
+    /* FIXME: Last alloc will never be freed */
     multi->client_reason = string_alloc (client_reason, NULL);
 }
 

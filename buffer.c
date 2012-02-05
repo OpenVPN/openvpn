@@ -54,11 +54,21 @@ alloc_buf_debug (size_t size, const char *file, int line)
 alloc_buf (size_t size)
 #endif
 {
+  struct buffer buf;
+
+  if (!buf_size_valid (size))
+    buf_size_error (size);
+  buf.capacity = (int)size;
+  buf.offset = 0;
+  buf.len = 0;
 #ifdef DMALLOC
-  return alloc_buf_gc_debug (size, NULL, file, line);
+  buf.data = openvpn_dmalloc (file, line, size);
 #else
-  return alloc_buf_gc (size, NULL);
+  buf.data = calloc (1, size);
 #endif
+  check_malloc_return(buf.data);
+
+  return buf;
 }
 
 struct buffer
@@ -515,11 +525,25 @@ string_alloc (const char *str, struct gc_arena *gc)
       const int n = strlen (str) + 1;
       char *ret;
 
+      if (gc) {
 #ifdef DMALLOC
-      ret = (char *) gc_malloc_debug (n, false, gc, file, line);
+        ret = (char *) gc_malloc_debug (n, false, gc, file, line);
 #else
-      ret = (char *) gc_malloc (n, false, gc);
+        ret = (char *) gc_malloc (n, false, gc);
 #endif
+      } else {
+        /* If there are no garbage collector available, it's expected
+         * that the caller cleans up afterwards.  This is coherent with the
+         * earlier behaviour when gc_malloc() would be called with gc == NULL
+         */
+#ifdef DMALLOC
+        ret = openvpn_dmalloc (file, line, n);
+        memset(ret, 0, n);
+#else
+        ret = calloc(1, n);
+#endif
+        check_malloc_return(ret);
+      }
       memcpy (ret, str, n);
       return ret;
     }

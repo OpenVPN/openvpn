@@ -566,7 +566,7 @@ pf_init_context (struct context *c)
         if (plugin_call (c->plugins, OPENVPN_PLUGIN_ENABLE_PF, NULL, NULL, c->c2.es) == OPENVPN_PLUGIN_FUNC_SUCCESS)
           {
             event_timeout_init (&c->c2.pf.reload, 1, now);
-            c->c2.pf.filename = string_alloc (pf_file, NULL);
+            c->c2.pf.filename = string_alloc (pf_file, &c->c2.gc);
             c->c2.pf.enabled = true;
 #ifdef ENABLE_DEBUG
             if (check_debug_level (D_PF_DEBUG))
