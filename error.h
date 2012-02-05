@@ -244,6 +244,9 @@ HANDLE get_orig_stderr (void);
 /* exit program */
 void openvpn_exit (const int status);
 
+/* exit program on out of memory error */
+void out_of_memory (void);
+
 /*
  * Check the return status of read/write routines.
  */

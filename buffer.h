@@ -26,6 +26,7 @@
 #define BUFFER_H
 
 #include "basic.h"
+#include "error.h"
 
 #define BUF_SIZE_MAX 1000000
 
@@ -810,8 +811,6 @@ gc_reset (struct gc_arena *a)
  * Allocate memory to hold a structure
  */
 
-void out_of_memory (void);
-
 #define ALLOC_OBJ(dptr, type) \
 { \
   check_malloc_return ((dptr) = (type *) malloc (sizeof (type))); \
@@ -862,7 +861,6 @@ void out_of_memory (void);
 static inline void
 check_malloc_return (void *p)
 {
-  void out_of_memory (void);
   if (!p)
     out_of_memory ();
 }
