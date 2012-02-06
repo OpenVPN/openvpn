@@ -17,16 +17,16 @@ dnl @author James Yonan <jim@yonan.net>
 
 AC_DEFUN([AX_EMPTY_ARRAY], [
   AC_MSG_RESULT([checking for C compiler empty array support])
-  AC_COMPILE_IFELSE(
+  AC_COMPILE_IFELSE([AC_LANG_SOURCE(
     [
         struct { int foo; int bar[[0]]; } mystruct;
-    ], [
+    ])], [
         AC_DEFINE_UNQUOTED(EMPTY_ARRAY_SIZE, 0, [Dimension to use for empty array declaration])
     ], [
-        AC_COMPILE_IFELSE(
+        AC_COMPILE_IFELSE([AC_LANG_SOURCE(
 	    [
 	        struct { int foo; int bar[[]]; } mystruct;
-	    ], [
+	    ])], [
                 AC_DEFINE_UNQUOTED(EMPTY_ARRAY_SIZE,, [Dimension to use for empty array declaration])
 	    ], [
 	        AC_MSG_ERROR([C compiler is unable to creaty empty arrays])
@@ -45,13 +45,13 @@ dnl @author James Yonan <jim@yonan.net>, Matthias Andree <matthias.andree@web.de
 AC_DEFUN([AX_CPP_VARARG_MACRO_GCC], [dnl
     AS_VAR_PUSHDEF([VAR],[ax_cv_cpp_vararg_macro_gcc])dnl
     AC_CACHE_CHECK([for GNU GCC vararg macro support], VAR, [dnl
-      AC_COMPILE_IFELSE([
+      AC_COMPILE_IFELSE([AC_LANG_SOURCE([
 	#define macro(a, b...) func(a, b)
 	int func(int a, int b, int c);
 	int test() { return macro(1, 2, 3); }
-	], [ VAR=yes ], [VAR=no])])
+	])], [ VAR=yes ], [VAR=no])])
     if test $VAR = yes ; then
-    AC_DEFINE([HAVE_CPP_VARARG_MACRO_GCC], 1, 
+    AC_DEFINE([HAVE_CPP_VARARG_MACRO_GCC], 1,
       [Define to 1 if your compiler supports GNU GCC-style variadic macros])
     fi
     AS_VAR_POPDEF([VAR])dnl
@@ -67,13 +67,13 @@ dnl @author James Yonan <jim@yonan.net>, Matthias Andree <matthias.andree@web.de
 AC_DEFUN([AX_CPP_VARARG_MACRO_ISO], [dnl
     AS_VAR_PUSHDEF([VAR],[ax_cv_cpp_vararg_macro_iso])dnl
     AC_CACHE_CHECK([for ISO C 1999 vararg macro support], VAR, [dnl
-      AC_COMPILE_IFELSE([
+      AC_COMPILE_IFELSE([AC_LANG_SOURCE([
 #define macro(a, ...) func(a, __VA_ARGS__)
 	int func(int a, int b, int c);
 	int test() { return macro(1, 2, 3); }
-	], [ VAR=yes ], [VAR=no])])
+	])], [ VAR=yes ], [VAR=no])])
     if test $VAR = yes ; then
-    AC_DEFINE([HAVE_CPP_VARARG_MACRO_ISO], 1, 
+    AC_DEFINE([HAVE_CPP_VARARG_MACRO_ISO], 1,
       [Define to 1 if your compiler supports ISO C99 variadic macros])
     fi
     AS_VAR_POPDEF([VAR])dnl
