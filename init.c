@@ -1779,10 +1779,10 @@ do_deferred_options (struct context *c, const unsigned int found)
 #ifdef ENABLE_OCC
   if (found & OPT_P_EXPLICIT_NOTIFY)
     {
-      if (!proto_is_udp(c->options.ce.proto) && c->options.explicit_exit_notification)
+      if (!proto_is_udp(c->options.ce.proto) && c->options.ce.explicit_exit_notification)
 	{
 	  msg (D_PUSH, "OPTIONS IMPORT: --explicit-exit-notify can only be used with --proto udp");
-	  c->options.explicit_exit_notification = 0;
+	  c->options.ce.explicit_exit_notification = 0;
 	}
       else
 	msg (D_PUSH, "OPTIONS IMPORT: explicit notify parm(s) modified");
@@ -1955,10 +1955,10 @@ frame_finalize_options (struct context *c, const struct options *o)
     }
   
   frame_finalize (&c->c2.frame,
-		  o->link_mtu_defined,
-		  o->link_mtu,
-		  o->tun_mtu_defined,
-		  o->tun_mtu);
+		  o->ce.link_mtu_defined,
+		  o->ce.link_mtu,
+		  o->ce.tun_mtu_defined,
+		  o->ce.tun_mtu);
 }
 
 /*
@@ -2404,8 +2404,8 @@ do_init_frame (struct context *c)
   /*
    * Adjust frame size based on the --tun-mtu-extra parameter.
    */
-  if (c->options.tun_mtu_extra_defined)
-    tun_adjust_frame_parameters (&c->c2.frame, c->options.tun_mtu_extra);
+  if (c->options.ce.tun_mtu_extra_defined)
+    tun_adjust_frame_parameters (&c->c2.frame, c->options.ce.tun_mtu_extra);
 
   /*
    * Adjust frame size based on link socket parameters.
@@ -2434,13 +2434,13 @@ do_init_frame (struct context *c)
   /*
    * MTU advisories
    */
-  if (c->options.fragment && c->options.mtu_test)
+  if (c->options.ce.fragment && c->options.mtu_test)
     msg (M_WARN,
 	 "WARNING: using --fragment and --mtu-test together may produce an inaccurate MTU test result");
 #endif
 
 #ifdef ENABLE_FRAGMENT
-  if ((c->options.mssfix || c->options.fragment)
+  if ((c->options.ce.mssfix || c->options.ce.fragment)
       && TUN_MTU_SIZE (&c->c2.frame_fragment) != ETHERNET_MTU)
     msg (M_WARN,
 	 "WARNING: normally if you use --mssfix and/or --fragment, you should also set --tun-mtu %d (currently it is %d)",
@@ -2612,9 +2612,9 @@ do_init_buffers (struct context *c)
 static void
 do_init_fragment (struct context *c)
 {
-  ASSERT (c->options.fragment);
+  ASSERT (c->options.ce.fragment);
   frame_set_mtu_dynamic (&c->c2.frame_fragment,
-			 c->options.fragment, SET_MTU_UPPER_BOUND);
+			 c->options.ce.fragment, SET_MTU_UPPER_BOUND);
   fragment_frame_init (c->c2.fragment, &c->c2.frame_fragment);
 }
 #endif
@@ -2625,10 +2625,10 @@ do_init_fragment (struct context *c)
 static void
 do_init_mssfix (struct context *c)
 {
-  if (c->options.mssfix)
+  if (c->options.ce.mssfix)
     {
       frame_set_mtu_dynamic (&c->c2.frame,
-			     c->options.mssfix, SET_MTU_UPPER_BOUND);
+			     c->options.ce.mssfix, SET_MTU_UPPER_BOUND);
     }
 }
 
@@ -2684,7 +2684,7 @@ do_init_socket_1 (struct context *c, const int mode)
 			   c->options.ce.connect_retry_seconds,
 			   c->options.ce.connect_timeout,
 			   c->options.ce.connect_retry_max,
-			   c->options.mtu_discover_type,
+			   c->options.ce.mtu_discover_type,
 			   c->options.rcvbuf,
 			   c->options.sndbuf,
 			   c->options.mark,
@@ -3399,7 +3399,7 @@ init_instance (struct context *c, const struct env_set *env, const unsigned int 
 
 #ifdef ENABLE_FRAGMENT
   /* initialize internal fragmentation object */
-  if (options->fragment && (c->mode == CM_P2P || child))
+  if (options->ce.fragment && (c->mode == CM_P2P || child))
     c->c2.fragment = fragment_init (&c->c2.frame);
 #endif
 
@@ -3435,7 +3435,7 @@ init_instance (struct context *c, const struct env_set *env, const unsigned int 
 
 #ifdef ENABLE_FRAGMENT
   /* initialize internal fragmentation capability with known frame size */
-  if (options->fragment && (c->mode == CM_P2P || child))
+  if (options->ce.fragment && (c->mode == CM_P2P || child))
     do_init_fragment (c);
 #endif
 

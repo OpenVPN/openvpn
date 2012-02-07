@@ -767,10 +767,10 @@ init_options (struct options *o, const bool init_gc)
   o->status_file_update_freq = 60;
   o->status_file_version = 1;
   o->ce.bind_local = true;
-  o->tun_mtu = TUN_MTU_DEFAULT;
-  o->link_mtu = LINK_MTU_DEFAULT;
-  o->mtu_discover_type = -1;
-  o->mssfix = MSSFIX_DEFAULT;
+  o->ce.tun_mtu = TUN_MTU_DEFAULT;
+  o->ce.link_mtu = LINK_MTU_DEFAULT;
+  o->ce.mtu_discover_type = -1;
+  o->ce.mssfix = MSSFIX_DEFAULT;
   o->route_delay_window = 30;
   o->max_routes = MAX_ROUTES_DEFAULT;
   o->resolve_retry_seconds = RESOLV_RETRY_INFINITE;
@@ -1360,7 +1360,25 @@ show_connection_entry (const struct connection_entry *o)
   SHOW_INT (socks_proxy_port);
   SHOW_BOOL (socks_proxy_retry);
 #endif
+  SHOW_INT (tun_mtu);
+  SHOW_BOOL (tun_mtu_defined);
+  SHOW_INT (link_mtu);
+  SHOW_BOOL (link_mtu_defined);
+  SHOW_INT (tun_mtu_extra);
+  SHOW_BOOL (tun_mtu_extra_defined);
+
+  SHOW_INT (mtu_discover_type);
+
+#ifdef ENABLE_FRAGMENT
+  SHOW_INT (fragment);
+#endif
+  SHOW_INT (mssfix);
+
+#ifdef ENABLE_OCC
+  SHOW_INT (explicit_exit_notification);
+#endif
 }
+
 
 static void
 show_connection_entries (const struct options *o)
@@ -1432,19 +1450,6 @@ show_settings (const struct options *o)
 #ifdef HAVE_GETTIMEOFDAY
   SHOW_INT (shaper);
 #endif
-  SHOW_INT (tun_mtu);
-  SHOW_BOOL (tun_mtu_defined);
-  SHOW_INT (link_mtu);
-  SHOW_BOOL (link_mtu_defined);
-  SHOW_INT (tun_mtu_extra);
-  SHOW_BOOL (tun_mtu_extra_defined);
-
-#ifdef ENABLE_FRAGMENT
-  SHOW_INT (fragment);
-#endif
-
-  SHOW_INT (mtu_discover_type);
-
 #ifdef ENABLE_OCC
   SHOW_INT (mtu_test);
 #endif
@@ -1459,16 +1464,11 @@ show_settings (const struct options *o)
   SHOW_INT (ping_rec_timeout_action);
   SHOW_BOOL (ping_timer_remote);
   SHOW_INT (remap_sigusr1);
-#ifdef ENABLE_OCC
-  SHOW_INT (explicit_exit_notification);
-#endif
   SHOW_BOOL (persist_tun);
   SHOW_BOOL (persist_local_ip);
   SHOW_BOOL (persist_remote_ip);
   SHOW_BOOL (persist_key);
 
-  SHOW_INT (mssfix);
-  
 #if PASSTOS_CAPABILITY
   SHOW_BOOL (passtos);
 #endif
@@ -1958,7 +1958,7 @@ options_postprocess_verify_ce (const struct options *options, const struct conne
   /*
    * Sanity check on MTU parameters
    */
-  if (options->tun_mtu_defined && options->link_mtu_defined)
+  if (options->ce.tun_mtu_defined && options->ce.link_mtu_defined)
     msg (M_USAGE, "only one of --tun-mtu or --link-mtu may be defined (note that --ifconfig implies --link-mtu %d)", LINK_MTU_DEFAULT);
 
 #ifdef ENABLE_OCC
@@ -2041,12 +2041,12 @@ options_postprocess_verify_ce (const struct options *options, const struct conne
    */
 
 #ifdef ENABLE_FRAGMENT
-  if (!proto_is_udp(ce->proto) && options->fragment)
+  if (!proto_is_udp(ce->proto) && ce->fragment)
     msg (M_USAGE, "--fragment can only be used with --proto udp");
 #endif
 
 #ifdef ENABLE_OCC
-  if (!proto_is_udp(ce->proto) && options->explicit_exit_notification)
+  if (!proto_is_udp(ce->proto) && ce->explicit_exit_notification)
     msg (M_USAGE, "--explicit-exit-notify can only be used with --proto udp");
 #endif
 
@@ -2131,7 +2131,7 @@ options_postprocess_verify_ce (const struct options *options, const struct conne
       if (!(dev == DEV_TYPE_TAP || (dev == DEV_TYPE_TUN && options->topology == TOP_SUBNET)) && options->ifconfig_pool_netmask)
 	msg (M_USAGE, "The third parameter to --ifconfig-pool (netmask) is only valid in --dev tap mode");
 #ifdef ENABLE_OCC
-      if (options->explicit_exit_notification)
+      if (ce->explicit_exit_notification)
 	msg (M_USAGE, "--explicit-exit-notify cannot be used with --mode server");
 #endif
       if (options->routes && (options->routes->flags & RG_ENABLE))
@@ -2426,26 +2426,27 @@ options_postprocess_mutate_ce (struct options *o, struct connection_entry *ce)
   /* if protocol forcing is enabled, disable all protocols except for the forced one */
   if (o->proto_force >= 0 && proto_is_tcp(o->proto_force) != proto_is_tcp(ce->proto))
     ce->flags |= CE_DISABLED;
+
+  /*
+   * If --mssfix is supplied without a parameter, default
+   * it to --fragment value, if --fragment is specified.
+   */
+  if (o->ce.mssfix_default)
+    {
+#ifdef ENABLE_FRAGMENT
+      if (ce->fragment)
+	o->ce.mssfix = ce->fragment;
+#else
+      msg (M_USAGE, "--mssfix must specify a parameter");
+#endif      
+    }
+
 }
 
 static void
 options_postprocess_mutate_invariant (struct options *options)
 {
   const int dev = dev_type_enum (options->dev, options->dev_type);
-
-  /*
-   * If --mssfix is supplied without a parameter, default
-   * it to --fragment value, if --fragment is specified.
-   */
-  if (options->mssfix_default)
-    {
-#ifdef ENABLE_FRAGMENT
-      if (options->fragment)
-	options->mssfix = options->fragment;
-#else
-      msg (M_USAGE, "--mssfix must specify a parameter");
-#endif      
-    }
 
   /*
    * In forking TCP server mode, you don't need to ifconfig
@@ -2458,14 +2459,14 @@ options_postprocess_mutate_invariant (struct options *options)
    * Set MTU defaults
    */
   {
-    if (!options->tun_mtu_defined && !options->link_mtu_defined)
+    if (!options->ce.tun_mtu_defined && !options->ce.link_mtu_defined)
       {
-	options->tun_mtu_defined = true;
+	options->ce.tun_mtu_defined = true;
       }
-    if ((dev == DEV_TYPE_TAP) && !options->tun_mtu_extra_defined)
+    if ((dev == DEV_TYPE_TAP) && !options->ce.tun_mtu_extra_defined)
       {
-	options->tun_mtu_extra_defined = true;
-	options->tun_mtu_extra = TAP_MTU_EXTRA_DEFAULT;
+	options->ce.tun_mtu_extra_defined = true;
+	options->ce.tun_mtu_extra = TAP_MTU_EXTRA_DEFAULT;
       }
   }
 
@@ -2951,7 +2952,7 @@ options_string (const struct options *o,
 #endif
 
 #ifdef ENABLE_FRAGMENT
-  if (o->fragment)
+  if (o->ce.fragment)
     buf_printf (&out, ",mtu-dynamic");
 #endif
 
@@ -4729,39 +4730,40 @@ add_option (struct options *options,
     }
   else if ((streq (p[0], "link-mtu") || streq (p[0], "udp-mtu")) && p[1])
     {
-      VERIFY_PERMISSION (OPT_P_MTU);
-      options->link_mtu = positive_atoi (p[1]);
-      options->link_mtu_defined = true;
+      VERIFY_PERMISSION (OPT_P_MTU|OPT_P_CONNECTION);
+      options->ce.link_mtu = positive_atoi (p[1]);
+      options->ce.link_mtu_defined = true;
     }
   else if (streq (p[0], "tun-mtu") && p[1])
     {
-      VERIFY_PERMISSION (OPT_P_MTU);
-      options->tun_mtu = positive_atoi (p[1]);
-      options->tun_mtu_defined = true;
+      VERIFY_PERMISSION (OPT_P_MTU|OPT_P_CONNECTION);
+      options->ce.tun_mtu = positive_atoi (p[1]);
+      options->ce.tun_mtu_defined = true;
     }
   else if (streq (p[0], "tun-mtu-extra") && p[1])
     {
-      VERIFY_PERMISSION (OPT_P_MTU);
-      options->tun_mtu_extra = positive_atoi (p[1]);
-      options->tun_mtu_extra_defined = true;
+      VERIFY_PERMISSION (OPT_P_MTU|OPT_P_CONNECTION);
+      options->ce.tun_mtu_extra = positive_atoi (p[1]);
+      options->ce.tun_mtu_extra_defined = true;
     }
 #ifdef ENABLE_FRAGMENT
   else if (streq (p[0], "mtu-dynamic"))
     {
-      VERIFY_PERMISSION (OPT_P_GENERAL);
+      VERIFY_PERMISSION (OPT_P_MTU|OPT_P_CONNECTION);
       msg (msglevel, "--mtu-dynamic has been replaced by --fragment");
       goto err;
     }
   else if (streq (p[0], "fragment") && p[1])
     {
-      VERIFY_PERMISSION (OPT_P_MTU);
-      options->fragment = positive_atoi (p[1]);
+//      VERIFY_PERMISSION (OPT_P_MTU);
+      VERIFY_PERMISSION (OPT_P_MTU|OPT_P_CONNECTION);
+      options->ce.fragment = positive_atoi (p[1]);
     }
 #endif
   else if (streq (p[0], "mtu-disc") && p[1])
     {
-      VERIFY_PERMISSION (OPT_P_MTU);
-      options->mtu_discover_type = translate_mtu_discover_type_name (p[1]);
+      VERIFY_PERMISSION (OPT_P_MTU|OPT_P_CONNECTION);
+      options->ce.mtu_discover_type = translate_mtu_discover_type_name (p[1]);
     }
 #ifdef ENABLE_OCC
   else if (streq (p[0], "mtu-test"))
@@ -5106,14 +5108,15 @@ add_option (struct options *options,
 #ifdef ENABLE_OCC
   else if (streq (p[0], "explicit-exit-notify"))
     {
-      VERIFY_PERMISSION (OPT_P_EXPLICIT_NOTIFY);
+      VERIFY_PERMISSION (OPT_P_GENERAL|OPT_P_CONNECTION);
+//      VERIFY_PERMISSION (OPT_P_EXPLICIT_NOTIFY);
       if (p[1])
 	{
-	  options->explicit_exit_notification = positive_atoi (p[1]);
+	  options->ce.explicit_exit_notification = positive_atoi (p[1]);
 	}
       else
 	{
-	  options->explicit_exit_notification = 1;
+	  options->ce.explicit_exit_notification = 1;
 	}
     }
 #endif
@@ -5369,13 +5372,13 @@ add_option (struct options *options,
     }
   else if (streq (p[0], "mssfix"))
     {
-      VERIFY_PERMISSION (OPT_P_GENERAL);
+      VERIFY_PERMISSION (OPT_P_GENERAL|OPT_P_CONNECTION);
       if (p[1])
 	{
-	  options->mssfix = positive_atoi (p[1]);
+	  options->ce.mssfix = positive_atoi (p[1]);
 	}
       else
-	options->mssfix_default = true;
+	options->ce.mssfix_default = true;
 
     }
 #ifdef ENABLE_OCC

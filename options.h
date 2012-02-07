@@ -111,6 +111,24 @@ struct connection_entry
   bool socks_proxy_retry;
 #endif
 
+  int tun_mtu;           /* MTU of tun device */
+  bool tun_mtu_defined;  /* true if user overriding parm with command line option */
+  int tun_mtu_extra;
+  bool tun_mtu_extra_defined;
+  int link_mtu;          /* MTU of device over which tunnel packets pass via TCP/UDP */
+  bool link_mtu_defined; /* true if user overriding parm with command line option */
+
+  /* Advanced MTU negotiation and datagram fragmentation options */
+  int mtu_discover_type; /* used if OS supports setting Path MTU discovery options on socket */
+
+  int fragment;          /* internal fragmentation size */
+  int mssfix;            /* Upper bound on TCP MSS */
+  bool mssfix_default;   /* true if --mssfix was supplied without a parameter */
+
+#ifdef ENABLE_OCC
+  int explicit_exit_notification;  /* Explicitly tell peer when we are exiting via OCC_EXIT message */
+#endif
+
 # define CE_DISABLED (1<<0)
 #if HTTP_PROXY_FALLBACK
 # define CE_HTTP_PROXY_FALLBACK (1<<1)
@@ -245,23 +263,12 @@ struct options
 #ifdef HAVE_GETTIMEOFDAY
   int shaper;
 #endif
-  int tun_mtu;           /* MTU of tun device */
-  int tun_mtu_extra;
-  bool tun_mtu_extra_defined;
-  int link_mtu;          /* MTU of device over which tunnel packets pass via TCP/UDP */
-  bool tun_mtu_defined;  /* true if user overriding parm with command line option */
-  bool link_mtu_defined; /* true if user overriding parm with command line option */
 
   int proto_force;
-
-  /* Advanced MTU negotiation and datagram fragmentation options */
-  int mtu_discover_type; /* used if OS supports setting Path MTU discovery options on socket */
 
 #ifdef ENABLE_OCC
   bool mtu_test;
 #endif
-
-  int fragment;                 /* internal fragmentation size */
 
 #ifdef ENABLE_MEMSTATS
   char *memstats_fn;
@@ -285,17 +292,10 @@ struct options
 # define PING_RESTART 2
   int ping_rec_timeout_action;  /* What action to take on ping_rec_timeout (exit or restart)? */
 
-#ifdef ENABLE_OCC
-  int explicit_exit_notification;  /* Explicitly tell peer when we are exiting via OCC_EXIT message */
-#endif
-
   bool persist_tun;             /* Don't close/reopen TUN/TAP dev on SIGUSR1 or PING_RESTART */
   bool persist_local_ip;        /* Don't re-resolve local address on SIGUSR1 or PING_RESTART */
   bool persist_remote_ip;       /* Don't re-resolve remote address on SIGUSR1 or PING_RESTART */
   bool persist_key;             /* Don't re-read key files on SIGUSR1 or PING_RESTART */
-
-  int mssfix;                   /* Upper bound on TCP MSS */
-  bool mssfix_default;          /* true if --mssfix was supplied without a parameter */
 
 #if PASSTOS_CAPABILITY
   bool passtos;                  

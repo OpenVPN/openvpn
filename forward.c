@@ -1005,7 +1005,7 @@ process_incoming_tun (struct context *c)
 void
 process_ipv4_header (struct context *c, unsigned int flags, struct buffer *buf)
 {
-  if (!c->options.mssfix)
+  if (!c->options.ce.mssfix)
     flags &= ~PIPV4_MSSFIX;
 #if PASSTOS_CAPABILITY
   if (!c->options.passtos)

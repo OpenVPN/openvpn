@@ -300,8 +300,8 @@ process_explicit_exit_notification_timer_wakeup (struct context *c)
 			     &c->c2.timeval,
 			     ETT_DEFAULT))
     {
-      ASSERT (c->c2.explicit_exit_notification_time_wait && c->options.explicit_exit_notification);
-      if (now >= c->c2.explicit_exit_notification_time_wait + c->options.explicit_exit_notification)
+      ASSERT (c->c2.explicit_exit_notification_time_wait && c->options.ce.explicit_exit_notification);
+      if (now >= c->c2.explicit_exit_notification_time_wait + c->options.ce.explicit_exit_notification)
 	{
 	  event_timeout_clear (&c->c2.explicit_exit_notification_interval);
 	  c->sig->signal_received = SIGTERM;
@@ -340,7 +340,7 @@ process_sigterm (struct context *c)
 {
   bool ret = true;
 #ifdef ENABLE_OCC
-  if (c->options.explicit_exit_notification
+  if (c->options.ce.explicit_exit_notification
       && !c->c2.explicit_exit_notification_time_wait)
     {
       process_explicit_exit_notification_init (c);
