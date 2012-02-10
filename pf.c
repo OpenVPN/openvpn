@@ -499,7 +499,7 @@ pf_check_reload (struct context *c)
       && event_timeout_trigger (&c->c2.pf.reload, &c->c2.timeval, ETT_DEFAULT))
     {
       struct stat s;
-      if (!stat (c->c2.pf.filename, &s))
+      if (!openvpn_stat (c->c2.pf.filename, &s))
 	{
 	  if (s.st_mtime > c->c2.pf.file_last_mod)
 	    {

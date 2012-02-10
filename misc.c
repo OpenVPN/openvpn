@@ -246,7 +246,7 @@ get_pid_file (const char* filename, struct pid_state *state)
   CLEAR (*state);
   if (filename)
     {
-      state->fp = fopen (filename, "w");
+      state->fp = openvpn_fopen (filename, "w");
       if (!state->fp)
 	msg (M_ERR, "Open error on pid file %s", filename);
       state->filename = filename;
@@ -356,7 +356,15 @@ int
 openvpn_chdir (const char* dir)
 {
 #ifdef HAVE_CHDIR
+#ifdef TARGET_WIN32
+  int res;
+  struct gc_arena gc = gc_new ();
+  res = _wchdir (wide_string (dir, &gc));
+  gc_free (&gc);
+  return res;
+#else
   return chdir (dir);
+#endif
 #else
   return -1;
 #endif
@@ -571,6 +579,7 @@ openvpn_system (const char *command, const struct env_set *es, unsigned int flag
 {
 #ifdef HAVE_SYSTEM
   int ret;
+  struct gc_arena gc;
 
   perf_push (PERF_SCRIPT);
 
@@ -589,7 +598,13 @@ openvpn_system (const char *command, const struct env_set *es, unsigned int flag
   /*
    * execute the command
    */
+#ifdef TARGET_WIN32
+  gc = gc_new ();
+  ret = _wsystem (wide_string (command, &gc));
+  gc_free (&gc);
+#else
   ret = system (command);
+#endif
 
   /* debugging */
   dmsg (D_SCRIPT, "SYSTEM return=%u", ret);
@@ -606,6 +621,19 @@ openvpn_system (const char *command, const struct env_set *es, unsigned int flag
 #else
   msg (M_FATAL, "Sorry but I can't execute the shell command '%s' because this operating system doesn't appear to support the system() call", command);
   return -1; /* NOTREACHED */
+#endif
+}
+
+int
+openvpn_access (const char *path, int mode)
+{
+#ifdef TARGET_WIN32
+  struct gc_arena gc = gc_new ();
+  int ret = _waccess (wide_string (path, &gc), mode);
+  gc_free (&gc);
+  return ret;
+#else
+  return access (path, mode);
 #endif
 }
 
@@ -1200,7 +1228,7 @@ test_file (const char *filename)
   bool ret = false;
   if (filename)
     {
-      FILE *fp = fopen (filename, "r");
+      FILE *fp = openvpn_fopen (filename, "r");
       if (fp)
 	{
 	  fclose (fp);
@@ -1248,7 +1276,7 @@ create_temp_file (const char *directory, const char *prefix, struct gc_arena *gc
 
       /* Atomically create the file.  Errors out if the file already
          exists.  */
-      fd = open (retfname, O_CREAT | O_EXCL | O_WRONLY, S_IRUSR | S_IWUSR);
+      fd = openvpn_open (retfname, O_CREAT | O_EXCL | O_WRONLY, S_IRUSR | S_IWUSR);
       if (fd != -1)
         {
           close (fd);
@@ -1349,7 +1377,10 @@ bool
 delete_file (const char *filename)
 {
 #if defined(WIN32)
-  return (DeleteFile (filename) != 0);
+  struct gc_arena gc = gc_new ();
+  BOOL ret = DeleteFileW (wide_string (filename, &gc));
+  gc_free (&gc);
+  return (ret != 0);
 #elif defined(HAVE_UNLINK)
   return (unlink (filename) == 0);
 #else
@@ -1647,7 +1678,7 @@ get_user_pass_cr (struct user_pass *up,
 
 	  warn_if_group_others_accessible (auth_file);
 
-	  fp = fopen (auth_file, "r");
+	  fp = openvpn_fopen (auth_file, "r");
 	  if (!fp)
 	    msg (M_ERR, "Error opening '%s' auth file: %s", prefix, auth_file);
 

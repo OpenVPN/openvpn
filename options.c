@@ -2620,18 +2620,18 @@ check_file_access(const int type, const char *file, const int mode, const char *
       char *fullpath = strdup(file);  /* POSIX dirname() implementaion may modify its arguments */
       char *dirpath = dirname(fullpath);
 
-      if (access (dirpath, mode|X_OK) != 0)
+      if (openvpn_access (dirpath, mode|X_OK) != 0)
           errcode = errno;
       free(fullpath);
     }
 
   /* Is the file itself accessible? */
-  if (!errcode && (type & CHKACC_FILE) && (access (file, mode) != 0) )
+  if (!errcode && (type & CHKACC_FILE) && (openvpn_access (file, mode) != 0) )
       errcode = errno;
 
   /* If the file exists and is accessible, is it writable? */
-  if (!errcode && (type & CHKACC_FILEXSTWR) && (access (file, F_OK) == 0) )
-    if (access (file, W_OK) != 0)
+  if (!errcode && (type & CHKACC_FILEXSTWR) && (openvpn_access (file, F_OK) == 0) )
+    if (openvpn_access (file, W_OK) != 0)
       errcode = errno;
 
   /* Scream if an error is found */
@@ -3737,7 +3737,7 @@ read_config_file (struct options *options,
       if (streq (file, "stdin"))
 	fp = stdin;
       else
-	fp = fopen (file, "r");
+	fp = openvpn_fopen (file, "r");
       if (fp)
 	{
 	  line_num = 0;
@@ -3813,6 +3813,33 @@ parse_argv (struct options *options,
 	    struct env_set *es)
 {
   int i, j;
+
+#ifdef WIN32
+  /*
+   * Windows replaces Unicode characters in argv[] that are not present
+   * in the current codepage with '?'. Get the wide char command line and
+   * convert it to UTF-8 ourselves.
+   */
+  int wargc;
+  WCHAR **wargv;
+  char **uargv;
+
+  wargv = CommandLineToArgvW (GetCommandLineW (), &wargc);
+  if (wargv == NULL || wargc != argc)
+    usage ();
+
+  uargv = gc_malloc (wargc * sizeof (*uargv), false, &options->gc);
+
+  for (i = 0; i < wargc; i++)
+    {
+      int n = WideCharToMultiByte (CP_UTF8, 0, wargv[i], -1, NULL, 0, NULL, NULL);
+      uargv[i] = gc_malloc (n, false, &options->gc);
+      WideCharToMultiByte (CP_UTF8, 0, wargv[i], -1, uargv[i], n, NULL, NULL);
+    }
+
+  LocalFree (wargv);
+  argv = uargv;
+#endif
 
   /* usage message */
   if (argc <= 1)

@@ -465,6 +465,7 @@ redirect_stdout_stderr (const char *file, bool append)
 #if defined(WIN32)
   if (!std_redir)
     {
+      struct gc_arena gc = gc_new ();
       HANDLE log_handle;
       int log_fd;
 
@@ -473,13 +474,15 @@ redirect_stdout_stderr (const char *file, bool append)
       saAttr.bInheritHandle = TRUE; 
       saAttr.lpSecurityDescriptor = NULL; 
 
-      log_handle = CreateFile (file,
-			       GENERIC_WRITE,
-			       FILE_SHARE_READ,
-			       &saAttr,
-			       append ? OPEN_ALWAYS : CREATE_ALWAYS,
-			       FILE_ATTRIBUTE_NORMAL,
-			       NULL);
+      log_handle = CreateFileW (wide_string (file, &gc),
+                                GENERIC_WRITE,
+                                FILE_SHARE_READ,
+                                &saAttr,
+                                append ? OPEN_ALWAYS : CREATE_ALWAYS,
+                                FILE_ATTRIBUTE_NORMAL,
+                                NULL);
+
+      gc_free (&gc);
 
       if (log_handle == INVALID_HANDLE_VALUE)
 	{

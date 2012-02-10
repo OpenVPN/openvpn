@@ -356,6 +356,7 @@
 #include <iphlpapi.h>
 #include <ntddndis.h>
 #include <wininet.h>
+#include <shellapi.h>
 /* The following two headers are needed of PF_INET6 */
 #include <winsock2.h>
 #include <ws2tcpip.h>

@@ -584,13 +584,9 @@ x509_verify_crl(const char *crl_file, X509 *peer_cert, const char *subject)
   int n,i;
   result_t retval = FAILURE;
 
-  in=BIO_new(BIO_s_file());
+  in = BIO_new_file (crl_file, "r");
 
   if (in == NULL) {
-    msg (M_ERR, "CRL: BIO err");
-    goto end;
-  }
-  if (BIO_read_filename(in, crl_file) <= 0) {
     msg (M_ERR, "CRL: cannot read: %s", crl_file);
     goto end;
   }

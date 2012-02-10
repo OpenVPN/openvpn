@@ -30,6 +30,7 @@
 #include "error.h"
 #include "misc.h"
 #include "plugin.h"
+#include "win32.h"
 
 #include "memdbg.h"
 
@@ -222,7 +223,7 @@ plugin_init_item (struct plugin *p, const struct plugin_option *o)
 #elif defined(USE_LOAD_LIBRARY)
 
   rel = !absolute_pathname (p->so_pathname);
-  p->module = LoadLibrary (p->so_pathname);
+  p->module = LoadLibraryW (wide_string (p->so_pathname, &gc));
   if (!p->module)
     msg (M_ERR, "PLUGIN_INIT: could not load plugin DLL: %s", p->so_pathname);
 

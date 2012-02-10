@@ -286,5 +286,8 @@ int openvpn_inet_pton(int af, const char *src, void *dst);
 /* Find temporary directory */
 const char *win_get_tempdir();
 
+/* Convert a string from UTF-8 to UCS-2 */
+WCHAR *wide_string (const char* utf8, struct gc_arena *gc);
+
 #endif
 #endif

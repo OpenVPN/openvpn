@@ -67,45 +67,27 @@ status_open (const char *filename,
       buf_reset (&so->read_buf);
       event_timeout_clear (&so->et);
       if (filename)
-	{
-	  switch (so->flags)
-	    {
-#ifdef _MSC_VER
+        {
+          switch (so->flags)
+            {
             case STATUS_OUTPUT_WRITE:
-              so->fd = open (filename,
-                             O_CREAT | O_TRUNC | O_WRONLY,
-			     _S_IREAD | _S_IWRITE);
+              so->fd = openvpn_open (filename,
+                                     O_CREAT | O_TRUNC | O_WRONLY,
+                                     S_IRUSR | S_IWUSR);
               break;
             case STATUS_OUTPUT_READ:
-              so->fd = open (filename,
-                             O_RDONLY,
-			     _S_IREAD | _S_IWRITE);
+              so->fd = openvpn_open (filename,
+                                     O_RDONLY,
+                                     S_IRUSR | S_IWUSR);
               break;
             case STATUS_OUTPUT_READ|STATUS_OUTPUT_WRITE:
-              so->fd = open (filename,
-                             O_CREAT | O_RDWR,
-			     _S_IREAD | _S_IWRITE);
+              so->fd = openvpn_open (filename,
+                                     O_CREAT | O_RDWR,
+                                     S_IRUSR | S_IWUSR);
               break;
-#else
-	    case STATUS_OUTPUT_WRITE:
-	      so->fd = open (filename,
-			     O_CREAT | O_TRUNC | O_WRONLY,
-			     S_IRUSR | S_IWUSR);
-	      break;
-	    case STATUS_OUTPUT_READ:
-	      so->fd = open (filename,
-			     O_RDONLY,
-			     S_IRUSR | S_IWUSR);
-	      break;
-	    case STATUS_OUTPUT_READ|STATUS_OUTPUT_WRITE:
-	      so->fd = open (filename,
-			     O_CREAT | O_RDWR,
-			     S_IRUSR | S_IWUSR);
-	      break;
-#endif
-	    default:
-	      ASSERT (0);
-	    }
+            default:
+              ASSERT (0);
+            }
 	  if (so->fd >= 0)
 	    {
 	      so->filename = string_alloc (filename, NULL);

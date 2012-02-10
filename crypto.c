@@ -862,7 +862,7 @@ read_key_file (struct key2 *key2, const char *file, const unsigned int flags)
 #endif
     {
       in = alloc_buf_gc (2048, &gc);
-      fd = open (file, O_RDONLY);
+      fd = openvpn_open (file, O_RDONLY, 0);
       if (fd == -1)
 	msg (M_ERR, "Cannot open file key file '%s'", file);
       size = read (fd, in.data, in.capacity);
@@ -1023,7 +1023,7 @@ read_passphrase_hash (const char *passphrase_file,
     const int min_passphrase_size = 8;
     uint8_t buf[64];
     int total_size = 0;
-    int fd = open (passphrase_file, O_RDONLY);
+    int fd = openvpn_open (passphrase_file, O_RDONLY, 0);
 
     if (fd == -1)
       msg (M_ERR, "Cannot open passphrase file: '%s'", passphrase_file);
@@ -1073,7 +1073,7 @@ write_key_file (const int nkeys, const char *filename)
   const int bytes_per_line = 16;
 
   /* open key file */
-  fd = open (filename, O_CREAT | O_TRUNC | O_WRONLY, S_IRUSR | S_IWUSR);
+  fd = openvpn_open (filename, O_CREAT | O_TRUNC | O_WRONLY, S_IRUSR | S_IWUSR);
 
   if (fd == -1)
     msg (M_ERR, "Cannot open shared secret file '%s' for write", filename);

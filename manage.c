@@ -1423,7 +1423,7 @@ man_record_peer_info (struct management *man)
 	    {
 	      const in_addr_t a = ntohl (addr.sin_addr.s_addr);
 	      const int p = ntohs (addr.sin_port);
-	      FILE *fp = fopen (man->settings.write_peer_info_file, "w");
+	      FILE *fp = openvpn_fopen (man->settings.write_peer_info_file, "w");
 	      if (fp)
 		{
 		  fprintf (fp, "%s\n%d\n", print_in_addr_t (a, 0, &gc), p);

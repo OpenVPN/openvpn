@@ -136,6 +136,7 @@ int openvpn_execve (const struct argv *a, const struct env_set *es, const unsign
 bool openvpn_execve_check (const struct argv *a, const struct env_set *es, const unsigned int flags, const char *error_message);
 bool openvpn_execve_allowed (const unsigned int flags);
 int openvpn_system (const char *command, const struct env_set *es, unsigned int flags);
+int openvpn_access (const char *path, int mode);
 
 static inline bool
 openvpn_run_script (const struct argv *a, const struct env_set *es, const unsigned int flags, const char *hook)
@@ -145,6 +146,36 @@ openvpn_run_script (const struct argv *a, const struct env_set *es, const unsign
   openvpn_snprintf(msg, sizeof(msg), "WARNING: Failed running command (%s)", hook);
   return openvpn_execve_check(a, es, flags | S_SCRIPT, msg);
 };
+
+#ifdef TARGET_WIN32
+FILE * openvpn_fopen (const char *path, const char *mode);
+#else
+static inline FILE *
+openvpn_fopen (const char *path, const char *mode)
+{
+  return fopen (path, mode);
+}
+#endif
+
+#ifdef TARGET_WIN32
+int openvpn_open (const char *path, int flags, mode_t mode);
+#else
+static inline int
+openvpn_open (const char *path, int flags, mode_t mode)
+{
+  return open (path, flags, mode);
+}
+#endif
+
+#ifdef TARGET_WIN32
+int openvpn_stat (const char *path, struct stat *buf);
+#else
+static inline int
+openvpn_stat (const char *path, struct stat *buf)
+{
+  return stat (path, buf);
+}
+#endif
 
 #ifdef HAVE_STRERROR
 /* a thread-safe version of strerror */

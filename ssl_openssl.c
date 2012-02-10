@@ -274,7 +274,7 @@ tls_ctx_load_pkcs12(struct tls_root_ctx *ctx, const char *pkcs12_file,
 #endif
     {
       /* Load the PKCS #12 file */
-      if (!(fp = fopen(pkcs12_file, "rb")))
+      if (!(fp = openvpn_fopen(pkcs12_file, "rb")))
 	msg(M_SSLERR, "Error opening file %s", pkcs12_file);
       p12 = d2i_PKCS12_fp(fp, NULL);
       fclose(fp);
@@ -343,46 +343,20 @@ tls_ctx_load_cryptoapi(struct tls_root_ctx *ctx, const char *cryptoapi_cert)
 }
 #endif /* WIN32 */
 
-/*
- * Based on SSL_CTX_use_certificate_file, return an x509 object for the
- * given file.
- */
-static int
-tls_ctx_read_certificate_file(SSL_CTX *ctx, const char *file, X509 **x509)
+static void
+tls_ctx_add_extra_certs (struct tls_root_ctx *ctx, BIO *bio)
 {
-  BIO *in;
-  int ret=0;
-  X509 *x=NULL;
-
-  in=BIO_new(BIO_s_file_internal());
-  if (in == NULL)
+  X509 *cert;
+  for (;;)
     {
-      SSLerr(SSL_F_SSL_CTX_USE_CERTIFICATE_FILE, ERR_R_BUF_LIB);
-      goto end;
+      cert = NULL;
+      if (!PEM_read_bio_X509 (bio, &cert, 0, NULL)) /* takes ownership of cert */
+        break;
+      if (!cert)
+        msg (M_SSLERR, "Error reading extra certificate");
+      if (SSL_CTX_add_extra_chain_cert(ctx->ctx, cert) != 1)
+        msg (M_SSLERR, "Error adding extra certificate");
     }
-
-  if (BIO_read_filename(in,file) <= 0)
-    {
-      SSLerr(SSL_F_SSL_CTX_USE_CERTIFICATE_FILE, ERR_R_SYS_LIB);
-      goto end;
-    }
-
-  x = PEM_read_bio_X509(in, NULL, ctx->default_passwd_callback,
-    ctx->default_passwd_callback_userdata);
-  if (x == NULL)
-    {
-      SSLerr(SSL_F_SSL_CTX_USE_CERTIFICATE_FILE, ERR_R_PEM_LIB);
-      goto end;
-    }
-
- end:
-  if (in != NULL)
-    BIO_free(in);
-  if (x509)
-    *x509 = x;
-  else if (x)
-    X509_free (x);
-  return(ret);
 }
 
 void
@@ -393,48 +367,57 @@ tls_ctx_load_cert_file (struct tls_root_ctx *ctx, const char *cert_file,
     X509 **x509
     )
 {
-  ASSERT(NULL != ctx);
+  BIO *in = NULL;
+  X509 *x = NULL;
+  int ret = 0;
+  bool inline_file = false;
+
+  ASSERT (NULL != ctx);
   if (NULL != x509)
-    ASSERT(NULL == *x509);
+    ASSERT (NULL == *x509);
 
 #if ENABLE_INLINE_FILES
-  if (!strcmp (cert_file, INLINE_FILE_TAG) && cert_file_inline)
-    {
-      BIO *in = NULL;
-      X509 *x = NULL;
-      int ret = 0;
+  inline_file = (strcmp (cert_file, INLINE_FILE_TAG) == 0);
 
-      in = BIO_new_mem_buf ((char *)cert_file_inline, -1);
-      if (in)
-	{
-	  x = PEM_read_bio_X509 (in,
-			     NULL,
-			     ctx->ctx->default_passwd_callback,
-			     ctx->ctx->default_passwd_callback_userdata);
-	  BIO_free (in);
-	  if (x) {
-	    ret = SSL_CTX_use_certificate(ctx->ctx, x);
-	    if (x509)
-	      *x509 = x;
-	    else
-	      X509_free (x);
-	  }
-	}
-
-      if (!ret)
-        msg (M_SSLERR, "Cannot load inline certificate file");
-    }
+  if (inline_file && cert_file_inline)
+    in = BIO_new_mem_buf ((char *)cert_file_inline, -1);
   else
 #endif /* ENABLE_INLINE_FILES */
+    in = BIO_new_file (cert_file, "r");
+
+  if (in == NULL)
     {
-      if (!SSL_CTX_use_certificate_chain_file (ctx->ctx, cert_file))
-	msg (M_SSLERR, "Cannot load certificate file %s", cert_file);
-      if (x509)
-	{
-	  if (!tls_ctx_read_certificate_file(ctx->ctx, cert_file, x509))
-	    msg (M_SSLERR, "Cannot load certificate file %s", cert_file);
-	}
+      SSLerr (SSL_F_SSL_CTX_USE_CERTIFICATE_FILE, ERR_R_SYS_LIB);
+      goto end;
     }
+
+  x = PEM_read_bio_X509 (in, NULL, ctx->ctx->default_passwd_callback,
+                         ctx->ctx->default_passwd_callback_userdata);
+  if (x == NULL)
+    {
+      SSLerr (SSL_F_SSL_CTX_USE_CERTIFICATE_FILE, ERR_R_PEM_LIB);
+      goto end;
+    }
+
+  ret = SSL_CTX_use_certificate (ctx->ctx, x);
+  if (ret)
+    tls_ctx_add_extra_certs (ctx, in);
+
+end:
+  if (!ret)
+    {
+      if (inline_file)
+        msg (M_SSLERR, "Cannot load inline certificate file");
+      else
+        msg (M_SSLERR, "Cannot load certificate file %s", cert_file);
+    }
+
+  if (in != NULL)
+    BIO_free(in);
+  if (x509)
+    *x509 = x;
+  else if (x)
+    X509_free (x);
 }
 
 void
@@ -442,36 +425,6 @@ tls_ctx_free_cert_file (X509 *x509)
 {
   X509_free(x509);
 }
-
-#if ENABLE_INLINE_FILES
-static int
-use_inline_PrivateKey_file (SSL_CTX *ctx, const char *key_string)
-{
-  BIO *in = NULL;
-  EVP_PKEY *pkey = NULL;
-  int ret = 0;
-
-  in = BIO_new_mem_buf ((char *)key_string, -1);
-  if (!in)
-    goto end;
-
-  pkey = PEM_read_bio_PrivateKey (in,
-				  NULL,
-				  ctx->default_passwd_callback,
-				  ctx->default_passwd_callback_userdata);
-  if (!pkey)
-    goto end;
-
-  ret = SSL_CTX_use_PrivateKey (ctx, pkey);
-
- end:
-  if (pkey)
-    EVP_PKEY_free (pkey);
-  if (in)
-    BIO_free (in);
-  return ret;
-}
-#endif /* ENABLE_INLINE_FILES */
 
 int
 tls_ctx_load_priv_file (struct tls_root_ctx *ctx, const char *priv_key_file
@@ -481,35 +434,53 @@ tls_ctx_load_priv_file (struct tls_root_ctx *ctx, const char *priv_key_file
     )
 {
   int status;
+  SSL_CTX *ssl_ctx = NULL;
+  BIO *in = NULL;
+  EVP_PKEY *pkey = NULL;
+  int ret = 1;
 
   ASSERT(NULL != ctx);
 
+  ssl_ctx = ctx->ctx;
+
 #if ENABLE_INLINE_FILES
   if (!strcmp (priv_key_file, INLINE_FILE_TAG) && priv_key_file_inline)
-    {
-      status = use_inline_PrivateKey_file (ctx->ctx, priv_key_file_inline);
-    }
+    in = BIO_new_mem_buf ((char *)priv_key_file_inline, -1);
   else
 #endif /* ENABLE_INLINE_FILES */
-    {
-      status = SSL_CTX_use_PrivateKey_file (ctx->ctx, priv_key_file, SSL_FILETYPE_PEM);
-    }
-  if (!status)
+    in = BIO_new_file (priv_key_file, "r");
+
+  if (!in)
+    goto end;
+
+  pkey = PEM_read_bio_PrivateKey (in, NULL,
+                                  ssl_ctx->default_passwd_callback,
+                                  ssl_ctx->default_passwd_callback_userdata);
+  if (!pkey)
+    goto end;
+
+  if (!SSL_CTX_use_PrivateKey (ssl_ctx, pkey))
     {
 #ifdef ENABLE_MANAGEMENT
       if (management && (ERR_GET_REASON (ERR_peek_error()) == EVP_R_BAD_DECRYPT))
-	  management_auth_failure (management, UP_TYPE_PRIVATE_KEY, NULL);
+          management_auth_failure (management, UP_TYPE_PRIVATE_KEY, NULL);
 #endif
       msg (M_WARN|M_SSL, "Cannot load private key file %s", priv_key_file);
-      return 1;
+      goto end;
     }
   warn_if_group_others_accessible (priv_key_file);
 
   /* Check Private Key */
-  if (!SSL_CTX_check_private_key (ctx->ctx))
+  if (!SSL_CTX_check_private_key (ssl_ctx))
     msg (M_SSLERR, "Private key does not match the certificate");
-  return 0;
+  ret = 0;
 
+end:
+  if (pkey)
+    EVP_PKEY_free (pkey);
+  if (in)
+    BIO_free (in);
+  return ret;
 }
 
 #ifdef MANAGMENT_EXTERNAL_KEY
@@ -650,111 +621,11 @@ tls_ctx_use_external_private_key (struct tls_root_ctx *ctx, X509 *cert)
 
 #endif
 
-#if ENABLE_INLINE_FILES
 static int
-xname_cmp(const X509_NAME * const *a, const X509_NAME * const *b)
+sk_x509_name_cmp(const X509_NAME * const *a, const X509_NAME * const *b)
 {
-  return(X509_NAME_cmp(*a,*b));
+  return X509_NAME_cmp (*a, *b);
 }
-
-static STACK_OF(X509_NAME) *
-use_inline_load_client_CA_file (SSL_CTX *ctx, const char *ca_string)
-{
-  BIO *in = NULL;
-  X509 *x = NULL;
-  X509_NAME *xn = NULL;
-  STACK_OF(X509_NAME) *ret = NULL, *sk;
-
-  sk=sk_X509_NAME_new(xname_cmp);
-
-  in = BIO_new_mem_buf ((char *)ca_string, -1);
-  if (!in)
-    goto err;
-
-  if ((sk == NULL) || (in == NULL))
-    goto err;
-
-  for (;;)
-    {
-      if (PEM_read_bio_X509(in,&x,NULL,NULL) == NULL)
-	break;
-      if (ret == NULL)
-	{
-	  ret = sk_X509_NAME_new_null();
-	  if (ret == NULL)
-	    goto err;
-	}
-      if ((xn=X509_get_subject_name(x)) == NULL) goto err;
-      /* check for duplicates */
-      xn=X509_NAME_dup(xn);
-      if (xn == NULL) goto err;
-      if (sk_X509_NAME_find(sk,xn) >= 0)
-	X509_NAME_free(xn);
-      else
-	{
-	  sk_X509_NAME_push(sk,xn);
-	  sk_X509_NAME_push(ret,xn);
-	}
-    }
-
-  if (0)
-    {
-    err:
-      if (ret != NULL) sk_X509_NAME_pop_free(ret,X509_NAME_free);
-      ret=NULL;
-    }
-  if (sk != NULL) sk_X509_NAME_free(sk);
-  if (in != NULL) BIO_free(in);
-  if (x != NULL) X509_free(x);
-  if (ret != NULL)
-    ERR_clear_error();
-  return(ret);
-}
-
-static int
-use_inline_load_verify_locations (SSL_CTX *ctx, const char *ca_string)
-{
-  X509_STORE *store = NULL;
-  X509* cert = NULL;
-  BIO *in = NULL;
-  int ret = 0;
-
-  in = BIO_new_mem_buf ((char *)ca_string, -1);
-  if (!in)
-    goto err;
-
-  for (;;)
-    {
-      if (!PEM_read_bio_X509 (in, &cert, 0, NULL))
-	{
-	  ret = 1;
-	  break;
-	}
-      if (!cert)
-	break;
-
-      store = SSL_CTX_get_cert_store (ctx);
-      if (!store)
-	break;
-
-      if (!X509_STORE_add_cert (store, cert))
-	break;
-
-      if (cert)
-	{
-	  X509_free (cert);
-	  cert = NULL;
-	}
-    }
-
- err:
-  if (cert)
-    X509_free (cert);
-  if (in)
-    BIO_free (in);
-  return ret;
-}
-#endif /* ENABLE_INLINE_FILES */
 
 void
 tls_ctx_load_ca (struct tls_root_ctx *ctx, const char *ca_file,
@@ -764,65 +635,98 @@ tls_ctx_load_ca (struct tls_root_ctx *ctx, const char *ca_file,
     const char *ca_path, bool tls_server
     )
 {
-  int status;
+  STACK_OF(X509_INFO) *info_stack = NULL;
+  STACK_OF(X509_NAME) *cert_names = NULL;
+  X509_LOOKUP *lookup = NULL;
+  X509_STORE *store = NULL;
+  X509_NAME *xn = NULL;
+  BIO *in = NULL;
+  int i, added = 0;
 
   ASSERT(NULL != ctx);
 
-#if ENABLE_INLINE_FILES
-  if (ca_file && !strcmp (ca_file, INLINE_FILE_TAG) && ca_file_inline)
-	{
-	  status = use_inline_load_verify_locations (ctx->ctx, ca_file_inline);
-	}
-  else
-#endif
-	{
-	  /* Load CA file for verifying peer supplied certificate */
-	  status = SSL_CTX_load_verify_locations (ctx->ctx, ca_file, ca_path);
-	}
+  store = SSL_CTX_get_cert_store(ctx->ctx);
+  if (!store)
+    msg(M_SSLERR, "Cannot get certificate store (SSL_CTX_get_cert_store)");
 
-  if (!status)
-	msg (M_SSLERR, "Cannot load CA certificate file %s path %s (SSL_CTX_load_verify_locations)", np(ca_file), np(ca_path));
+  /* Try to add certificates and CRLs from ca_file */
+  if (ca_file)
+    {
+#if ENABLE_INLINE_FILES
+      if (!strcmp (ca_file, INLINE_FILE_TAG) && ca_file_inline)
+        in = BIO_new_mem_buf ((char *)ca_file_inline, -1);
+      else
+#endif
+        in = BIO_new_file (ca_file, "r");
+
+      if (in)
+        info_stack = PEM_X509_INFO_read_bio (in, NULL, NULL, NULL);
+
+      if (info_stack)
+        {
+          for (i = 0; i < sk_X509_INFO_num (info_stack); i++)
+            {
+              X509_INFO *info = sk_X509_INFO_value (info_stack, i);
+              if (info->crl)
+                  X509_STORE_add_crl (store, info->crl);
+
+              if (info->x509)
+                {
+                  X509_STORE_add_cert (store, info->x509);
+                  added++;
+
+                  if (!tls_server)
+                    continue;
+
+                  /* Use names of CAs as a client CA list */
+                  if (cert_names == NULL)
+                    {
+                      cert_names = sk_X509_NAME_new (sk_x509_name_cmp);
+                      if (!cert_names)
+                        continue;
+                    }
+
+                  xn = X509_get_subject_name (info->x509);
+                  if (!xn)
+                    continue;
+
+                  /* Don't add duplicate CA names */
+                  if (sk_X509_NAME_find (cert_names, xn) == -1)
+                    {
+                      xn = X509_NAME_dup (xn);
+                      if (!xn)
+                        continue;
+                      sk_X509_NAME_push (cert_names, xn);
+                    }
+                }
+            }
+          sk_X509_INFO_pop_free (info_stack, X509_INFO_free);
+        }
+
+      if (tls_server)
+        SSL_CTX_set_client_CA_list (ctx->ctx, cert_names);
+
+      if (!added || (tls_server && sk_X509_NAME_num (cert_names) != added))
+        msg (M_SSLERR, "Cannot load CA certificate file %s", np(ca_file));
+      if (in)
+        BIO_free (in);
+    }
 
   /* Set a store for certs (CA & CRL) with a lookup on the "capath" hash directory */
-  if (ca_path) {
-    X509_STORE *store = SSL_CTX_get_cert_store(ctx->ctx);
-
-    if (store)
-	  {
-	    X509_LOOKUP *lookup = X509_STORE_add_lookup(store, X509_LOOKUP_hash_dir());
-	    if (!X509_LOOKUP_add_dir(lookup, ca_path, X509_FILETYPE_PEM))
-	      X509_LOOKUP_add_dir(lookup, NULL, X509_FILETYPE_DEFAULT);
-	    else
-	      msg(M_WARN, "WARNING: experimental option --capath %s", ca_path);
+  if (ca_path)
+    {
+      lookup = X509_STORE_add_lookup (store, X509_LOOKUP_hash_dir ());
+      if (lookup && X509_LOOKUP_add_dir (lookup, ca_path, X509_FILETYPE_PEM))
+        msg(M_WARN, "WARNING: experimental option --capath %s", ca_path);
+      else
+        msg(M_SSLERR, "Cannot add lookup at --capath %s", ca_path);
 #if OPENSSL_VERSION_NUMBER >= 0x00907000L
-	    X509_STORE_set_flags(store, X509_V_FLAG_CRL_CHECK | X509_V_FLAG_CRL_CHECK_ALL);
+      X509_STORE_set_flags (store, X509_V_FLAG_CRL_CHECK | X509_V_FLAG_CRL_CHECK_ALL);
 #else
-	    msg(M_WARN, "WARNING: this version of OpenSSL cannot handle CRL files in capath");
+      msg(M_WARN, "WARNING: this version of OpenSSL cannot handle CRL files in capath");
 #endif
-	  }
-	else
-      msg(M_SSLERR, "Cannot get certificate store (SSL_CTX_get_cert_store)");
-  }
-
-  /* Load names of CAs from file and use it as a client CA list */
-  if (ca_file && tls_server) {
-    STACK_OF(X509_NAME) *cert_names = NULL;
-#if ENABLE_INLINE_FILES
-	if (!strcmp (ca_file, INLINE_FILE_TAG) && ca_file_inline)
-	  {
-	    cert_names = use_inline_load_client_CA_file (ctx->ctx, ca_file_inline);
-	  }
-	else
-#endif
-	  {
-	    cert_names = SSL_load_client_CA_file (ca_file);
-	  }
-    if (!cert_names)
-      msg (M_SSLERR, "Cannot load CA certificate file %s (SSL_load_client_CA_file)", ca_file);
-    SSL_CTX_set_client_CA_list (ctx->ctx, cert_names);
-  }
+    }
 }
-
 
 void
 tls_ctx_load_extra_certs (struct tls_root_ctx *ctx, const char *extra_certs_file
@@ -831,31 +735,20 @@ tls_ctx_load_extra_certs (struct tls_root_ctx *ctx, const char *extra_certs_file
 #endif
     )
 {
-  BIO *bio;
-  X509 *cert;
+  BIO *in;
 #if ENABLE_INLINE_FILES
   if (!strcmp (extra_certs_file, INLINE_FILE_TAG) && extra_certs_file_inline)
-    {
-      bio = BIO_new_mem_buf ((char *)extra_certs_file_inline, -1);
-    }
+    in = BIO_new_mem_buf ((char *)extra_certs_file_inline, -1);
   else
 #endif
-    {
-      bio = BIO_new(BIO_s_file());
-      if (BIO_read_filename(bio, extra_certs_file) <= 0)
-	msg (M_SSLERR, "Cannot load extra-certs file: %s", extra_certs_file);
-    }
-  for (;;)
-    {
-      cert = NULL;
-      if (!PEM_read_bio_X509 (bio, &cert, 0, NULL)) /* takes ownership of cert */
-	break;
-      if (!cert)
-	msg (M_SSLERR, "Error reading extra-certs certificate");
-      if (SSL_CTX_add_extra_chain_cert(ctx->ctx, cert) != 1)
-	msg (M_SSLERR, "Error adding extra-certs certificate");
-    }
-  BIO_free (bio);
+    in = BIO_new_file (extra_certs_file, "r");
+
+  if (in == NULL)
+    msg (M_SSLERR, "Cannot load extra-certs file: %s", extra_certs_file);
+  else
+    tls_ctx_add_extra_certs (ctx, in);
+
+  BIO_free (in);
 }
 
 /* **************************************

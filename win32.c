@@ -931,8 +931,8 @@ env_block (const struct env_set *es)
     return NULL;
 }
 
-static char *
-cmd_line (const struct argv *a)
+static WCHAR *
+wide_cmd_line (const struct argv *a, struct gc_arena *gc)
 {
   size_t nchars = 1;
   size_t maxlen = 0;
@@ -952,9 +952,9 @@ cmd_line (const struct argv *a)
 	maxlen = len;
     }
 
-  work = (char *) malloc (maxlen + 1);
+  work = gc_malloc (maxlen + 1, false, gc);
   check_malloc_return (work);
-  buf = alloc_buf (nchars);
+  buf = alloc_buf_gc (nchars, gc);
 
   for (i = 0; i < a->argc; ++i)
     {
@@ -969,8 +969,7 @@ cmd_line (const struct argv *a)
 	buf_printf (&buf, "\"%s\"", work);
     }
 
-  free (work);
-  return BSTR(&buf);
+  return wide_string (BSTR (&buf), gc);
 }
 
 /*
@@ -988,23 +987,24 @@ openvpn_execve (const struct argv *a, const struct env_set *es, const unsigned i
 	{
 	  if (script_method == SM_EXECVE)
 	    {
-	      STARTUPINFO start_info;
+	      struct gc_arena gc = gc_new ();
+	      STARTUPINFOW start_info;
 	      PROCESS_INFORMATION proc_info;
 
 	      char *env = env_block (es);
-	      char *cl = cmd_line (a);
-	      char *cmd = a->argv[0];
+	      WCHAR *cl = wide_cmd_line (a, &gc);
+	      WCHAR *cmd = wide_string (a->argv[0], &gc);
 
 	      CLEAR (start_info);
 	      CLEAR (proc_info);
 
 	      /* fill in STARTUPINFO struct */
-	      GetStartupInfo(&start_info);
+	      GetStartupInfoW(&start_info);
 	      start_info.cb = sizeof(start_info);
 	      start_info.dwFlags = STARTF_USESHOWWINDOW;
 	      start_info.wShowWindow = SW_HIDE;
 
-	      if (CreateProcess (cmd, cl, NULL, NULL, FALSE, 0, env, NULL, &start_info, &proc_info))
+	      if (CreateProcessW (cmd, cl, NULL, NULL, FALSE, 0, env, NULL, &start_info, &proc_info))
 		{
 		  DWORD exit_status = 0;
 		  CloseHandle (proc_info.hThread);
@@ -1019,8 +1019,8 @@ openvpn_execve (const struct argv *a, const struct env_set *es, const unsigned i
 		{
 		  msg (M_WARN|M_ERRNO, "openvpn_execve: CreateProcess %s failed", cmd);
 		}
-	      free (cl);
 	      free (env);
+	      gc_free (&gc);
 	    }
 	  else if (script_method == SM_SYSTEM)
 	    {
@@ -1043,6 +1043,42 @@ openvpn_execve (const struct argv *a, const struct env_set *es, const unsigned i
       msg (M_WARN, "openvpn_execve: called with empty argv");
     }
   return ret;
+}
+
+WCHAR *
+wide_string (const char* utf8, struct gc_arena *gc)
+{
+  int n = MultiByteToWideChar (CP_UTF8, 0, utf8, -1, NULL, 0);
+  WCHAR *ucs16 = gc_malloc (n * sizeof (WCHAR), false, gc);
+  MultiByteToWideChar (CP_UTF8, 0, utf8, -1, ucs16, n);
+  return ucs16;
+}
+
+FILE *
+openvpn_fopen (const char *path, const char *mode)
+{
+  struct gc_arena gc = gc_new ();
+  FILE *f = _wfopen (wide_string (path, &gc), wide_string (mode, &gc));
+  gc_free (&gc);
+  return f;
+}
+
+int
+openvpn_open (const char *path, int flags, mode_t mode)
+{
+  struct gc_arena gc = gc_new ();
+  int fd = _wopen (wide_string (path, &gc), flags, mode);
+  gc_free (&gc);
+  return fd;
+}
+
+int
+openvpn_stat (const char *path, struct stat *buf)
+{
+  struct gc_arena gc = gc_new ();
+  int res = wstat (wide_string (path, &gc), buf);
+  gc_free (&gc);
+  return res;
 }
 
 /*

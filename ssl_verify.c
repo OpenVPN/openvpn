@@ -545,7 +545,7 @@ verify_check_crl_dir(const char *crl_dir, x509_cert_t *cert)
       x509_free_serial(serial);
       return FAILURE;
     }
-  fd = open (fn, O_RDONLY);
+  fd = openvpn_open (fn, O_RDONLY, 0);
   if (fd >= 0)
     {
       msg (D_HANDSHAKE, "VERIFY CRL: certificate serial number %s is revoked", serial);

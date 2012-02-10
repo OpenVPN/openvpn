@@ -28,6 +28,7 @@
 #include "buffer.h"
 #include "error.h"
 #include "mtu.h"
+#include "misc.h"
 
 #include "memdbg.h"
 
@@ -1073,7 +1074,7 @@ buffer_list_advance (struct buffer_list *ol, int n)
 struct buffer_list *
 buffer_list_file (const char *fn, int max_line_len)
 {
-  FILE *fp = fopen (fn, "r");
+  FILE *fp = openvpn_fopen (fn, "r");
   struct buffer_list *bl = NULL;
 
   if (fp)
