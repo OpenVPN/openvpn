@@ -735,7 +735,9 @@ static const char usage_message[] =
 #endif				/* ENABLE_PKCS11 */
   "\n"
   "General Standalone Options:\n"
+#ifdef ENABLE_DEBUG
   "--show-gateway : Show info about default gateway.\n"
+#endif
  ;
 
 #endif /* !ENABLE_SMALL */
@@ -4058,6 +4060,7 @@ add_option (struct options *options,
 
       read_config_file (options, p[1], level, file, line, msglevel, permission_mask, option_types_found, es);
     }
+#ifdef ENABLE_DEBUG
   else if (streq (p[0], "show-gateway"))
     {
       struct route_gateway_info rgi;
@@ -4066,6 +4069,7 @@ add_option (struct options *options,
       print_default_gateway(M_INFO, &rgi);
       openvpn_exit (OPENVPN_EXIT_STATUS_GOOD); /* exit point */
     }
+#endif
 #if 0
   else if (streq (p[0], "foreign-option") && p[1])
     {
