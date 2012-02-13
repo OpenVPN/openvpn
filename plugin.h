@@ -133,20 +133,6 @@ int plugin_call_ssl (const struct plugin_list *pl,
 #endif
 		);
 
-static inline int
-plugin_call(const struct plugin_list *pl,
-	const int type,
-	const struct argv *av,
-	struct plugin_return *pr,
-	struct env_set *es)
-{
-  return plugin_call_ssl(pl, type, av, pr, es
-#ifdef USE_SSL
-      , -1, NULL
-#endif
-      );
-}
-
 void plugin_list_close (struct plugin_list *pl);
 bool plugin_defined (const struct plugin_list *pl, const int type);
 
@@ -182,7 +168,6 @@ plugin_return_init (struct plugin_return *pr)
 }
 
 #else
-
 struct plugin_list { int dummy; };
 struct plugin_return { int dummy; };
 
@@ -193,7 +178,7 @@ plugin_defined (const struct plugin_list *pl, const int type)
 }
 
 static inline int
-plugin_call (const struct plugin_list *pl,
+plugin_call_ssl (const struct plugin_list *pl,
 	     const int type,
 	     const struct argv *av,
 	     struct plugin_return *pr,
@@ -208,5 +193,19 @@ plugin_call (const struct plugin_list *pl,
 }
 
 #endif /* ENABLE_PLUGIN */
+
+static inline int
+plugin_call(const struct plugin_list *pl,
+	const int type,
+	const struct argv *av,
+	struct plugin_return *pr,
+	struct env_set *es)
+{
+  return plugin_call_ssl(pl, type, av, pr, es
+#ifdef USE_SSL
+      , -1, NULL
+#endif
+      );
+}
 
 #endif /* OPENVPN_PLUGIN_H */
