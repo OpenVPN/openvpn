@@ -383,6 +383,8 @@ verify_cert_set_env(struct env_set *es, openvpn_x509_cert_t *peer_cert, int cert
     )
 {
   char envname[64];
+  char *serial = NULL;
+  struct gc_arena gc = gc_new ();
 
   /* Save X509 fields in environment */
 #ifdef ENABLE_X509_TRACK
@@ -405,25 +407,21 @@ verify_cert_set_env(struct env_set *es, openvpn_x509_cert_t *peer_cert, int cert
 #ifdef ENABLE_EUREPHIA
   /* export X509 cert SHA1 fingerprint */
   {
-    struct gc_arena gc = gc_new ();
     unsigned char *sha1_hash = x509_get_sha1_hash(peer_cert);
 
     openvpn_snprintf (envname, sizeof(envname), "tls_digest_%d", cert_depth);
     setenv_str (es, envname, format_hex_ex(sha1_hash, SHA_DIGEST_LENGTH, 0, 1,
 					  ":", &gc));
     x509_free_sha1_hash(sha1_hash);
-    gc_free(&gc);
   }
 #endif
 
-  /* export serial number as environmental variable,
-     use bignum in case serial number is large */
-  {
-    char *serial = x509_get_serial(peer_cert);
-    openvpn_snprintf (envname, sizeof(envname), "tls_serial_%d", cert_depth);
-    setenv_str (es, envname, serial);
-    x509_free_serial(serial);
-  }
+  /* export serial number as environmental variable */
+  serial = x509_get_serial(peer_cert, &gc);
+  openvpn_snprintf (envname, sizeof(envname), "tls_serial_%d", cert_depth);
+  setenv_str (es, envname, serial);
+
+  gc_free(&gc);
 }
 
 /*
@@ -543,24 +541,26 @@ verify_check_crl_dir(const char *crl_dir, openvpn_x509_cert_t *cert)
 {
   char fn[256];
   int fd;
-  char *serial = x509_get_serial(cert);
+  struct gc_arena gc = gc_new();
+
+  char *serial = x509_get_serial(cert, &gc);
 
   if (!openvpn_snprintf(fn, sizeof(fn), "%s%c%s", crl_dir, OS_SPECIFIC_DIRSEP, serial))
     {
       msg (D_HANDSHAKE, "VERIFY CRL: filename overflow");
-      x509_free_serial(serial);
+      gc_free(&gc);
       return FAILURE;
     }
   fd = platform_open (fn, O_RDONLY, 0);
   if (fd >= 0)
     {
       msg (D_HANDSHAKE, "VERIFY CRL: certificate serial number %s is revoked", serial);
-      x509_free_serial(serial);
       close(fd);
+      gc_free(&gc);
       return FAILURE;
     }
 
-  x509_free_serial(serial);
+  gc_free(&gc);
 
   return SUCCESS;
 }

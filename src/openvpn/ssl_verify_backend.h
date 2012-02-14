@@ -124,20 +124,13 @@ result_t x509_get_username (char *common_name, int cn_len,
  * Return the certificate's serial number.
  *
  * The serial number is returned as a string, since it might be a bignum.
- * The returned string must be freed with \c verify_free_serial()
  *
  * @param cert		Certificate to retrieve the serial number from.
+ * @param gc		Garbage collection arena to use when allocating string.
  *
  * @return 		The certificate's serial number.
  */
-char *x509_get_serial (openvpn_x509_cert_t *cert);
-
-/*
- * Free a serial number string as returned by \c verify_get_serial()
- *
- * @param serial	The string to be freed.
- */
-void x509_free_serial (char *serial);
+char *x509_get_serial (openvpn_x509_cert_t *cert, struct gc_arena *gc);
 
 /*
  * Save X509 fields to environment, using the naming convention:

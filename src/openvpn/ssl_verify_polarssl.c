@@ -125,30 +125,19 @@ x509_get_username (char *cn, int cn_len,
 }
 
 char *
-x509_get_serial (x509_cert *cert)
+x509_get_serial (x509_cert *cert, struct gc_arena *gc)
 {
   int ret = 0;
   int i = 0;
   char *buf = NULL;
   size_t len = cert->serial.len * 3 + 1;
 
-  buf = malloc(len);
-  ASSERT(buf);
+  buf = gc_malloc(len, true, gc);
 
   if(x509parse_serial_gets(buf, len-1, &cert->serial) < 0)
-    {
-      free(buf);
-      buf = NULL;
-    }
+    buf = NULL;
 
   return buf;
-}
-
-void
-x509_free_serial (char *serial)
-{
-  if (serial)
-    free(serial);
 }
 
 unsigned char *

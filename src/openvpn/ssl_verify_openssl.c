@@ -219,25 +219,22 @@ x509_get_username (char *common_name, int cn_len,
 }
 
 char *
-x509_get_serial (openvpn_x509_cert_t *cert)
+x509_get_serial (openvpn_x509_cert_t *cert, struct gc_arena *gc)
 {
   ASN1_INTEGER *asn1_i;
   BIGNUM *bignum;
-  char *serial;
+  char *openssl_serial, *serial;
 
   asn1_i = X509_get_serialNumber(cert);
   bignum = ASN1_INTEGER_to_BN(asn1_i, NULL);
-  serial = BN_bn2dec(bignum);
+  openssl_serial = BN_bn2dec(bignum);
+
+  serial = string_alloc(openssl_serial, gc);
 
   BN_free(bignum);
-  return serial;
-}
+  OPENSSL_free(openssl_serial);
 
-void
-x509_free_serial (char *serial)
-{
-  if (serial)
-    OPENSSL_free(serial);
+  return serial;
 }
 
 unsigned char *
