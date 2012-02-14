@@ -2395,6 +2395,8 @@ options_postprocess_verify_ce (const struct options *options, const struct conne
 static void
 options_postprocess_mutate_ce (struct options *o, struct connection_entry *ce)
 {
+  const int dev = dev_type_enum (o->dev, o->dev_type);
+
 #if P2MP_SERVER
   if (o->server_defined || o->server_bridge_defined || o->server_bridge_proxy_dhcp)
     {
@@ -2441,6 +2443,21 @@ options_postprocess_mutate_ce (struct options *o, struct connection_entry *ce)
 #endif      
     }
 
+  /*
+   * Set MTU defaults
+   */
+  {
+    if (!ce->tun_mtu_defined && !ce->link_mtu_defined)
+      {
+	ce->tun_mtu_defined = true;
+      }
+    if ((dev == DEV_TYPE_TAP) && !ce->tun_mtu_extra_defined)
+      {
+	ce->tun_mtu_extra_defined = true;
+	ce->tun_mtu_extra = TAP_MTU_EXTRA_DEFAULT;
+      }
+  }
+
 }
 
 static void
@@ -2454,21 +2471,6 @@ options_postprocess_mutate_invariant (struct options *options)
    */
   if (options->inetd == INETD_NOWAIT)
     options->ifconfig_noexec = true;
-
-  /*
-   * Set MTU defaults
-   */
-  {
-    if (!options->ce.tun_mtu_defined && !options->ce.link_mtu_defined)
-      {
-	options->ce.tun_mtu_defined = true;
-      }
-    if ((dev == DEV_TYPE_TAP) && !options->ce.tun_mtu_extra_defined)
-      {
-	options->ce.tun_mtu_extra_defined = true;
-	options->ce.tun_mtu_extra = TAP_MTU_EXTRA_DEFAULT;
-      }
-  }
 
 #ifdef WIN32
   if ((dev == DEV_TYPE_TUN || dev == DEV_TYPE_TAP) && !options->route_delay_defined)
