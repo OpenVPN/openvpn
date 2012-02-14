@@ -47,6 +47,7 @@ verify_callback (void *session_obj, x509_cert *cert, int cert_depth,
     int preverify_ok)
 {
   struct tls_session *session = (struct tls_session *) session_obj;
+  struct gc_arena gc = gc_new();
   unsigned char *sha1_hash = NULL;
 
   ASSERT (cert);
@@ -62,21 +63,23 @@ verify_callback (void *session_obj, x509_cert *cert, int cert_depth,
   /* did peer present cert which was signed by our root cert? */
   if (!preverify_ok)
     {
-      char subject[MAX_SUBJECT_LENGTH] = {0};
+      char *subject = x509_get_subject(cert, &gc);
 
-      /* get the X509 name */
-      if (x509parse_dn_gets( subject, MAX_SUBJECT_LENGTH, &cert->subject ) < 0)
-	  msg (D_TLS_ERRORS, "VERIFY ERROR: depth=%d, could not extract X509 "
-	      "subject string from certificate", cert_depth);
-      else
+      if (subject)
 	msg (D_TLS_ERRORS, "VERIFY ERROR: depth=%d, %s", cert_depth, subject);
+      else
+	msg (D_TLS_ERRORS, "VERIFY ERROR: depth=%d, could not extract X509 "
+	      "subject string from certificate", cert_depth);
 
+      gc_free(&gc);
       return 1;
     }
 
   /*
    * PolarSSL expects 1 on failure, 0 on success
    */
+  gc_free(&gc);
+
   if (SUCCESS == verify_cert(session, cert, cert_depth))
     return 0;
   return 1;
@@ -164,7 +167,7 @@ x509_free_sha1_hash (unsigned char *hash)
 }
 
 char *
-x509_get_subject(x509_cert *cert)
+x509_get_subject(x509_cert *cert, struct gc_arena *gc)
 {
   char tmp_subject[MAX_SUBJECT_LENGTH] = {0};
   char *subject = NULL;
@@ -175,19 +178,12 @@ x509_get_subject(x509_cert *cert)
   if (ret > 0)
     {
       /* Allocate the required space for the subject */
-      subject = malloc(ret + 1);
-      strncpy(subject, tmp_subject, ret+1);
+      subject = string_alloc(tmp_subject, gc);
     }
 
   return subject;
 }
 
-void
-x509_free_subject (char *subject)
-{
-  if (subject)
-    free(subject);
-}
 
 /*
  * Save X509 fields to environment, using the naming convention:

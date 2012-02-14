@@ -39,6 +39,7 @@
 
 #include "errlevel.h"
 #include "pkcs11_backend.h"
+#include "ssl_verify.h"
 #include <pkcs11-helper-1.0/pkcs11h-openssl.h>
 
 int
@@ -121,23 +122,20 @@ cleanup:
   return ret;
 }
 
-int
-pkcs11_certificate_dn (pkcs11h_certificate_t certificate, char *dn,
-    size_t dn_len)
+char *
+pkcs11_certificate_dn (pkcs11h_certificate_t certificate, struct gc_arena *gc)
 {
   X509 *x509 = NULL;
-  int ret = 1;
+
+  char *dn = NULL;
 
   if ((x509 = pkcs11h_openssl_getX509 (certificate)) == NULL)
     {
       msg (M_FATAL, "PKCS#11: Cannot get X509");
-      ret = 1;
       goto cleanup;
     }
 
-  _openssl_get_subject (x509, dn, dn_len);
-
-  ret = 0;
+  dn = x509_get_subject (x509, gc);
 
 cleanup:
   if (x509 != NULL)
@@ -146,7 +144,7 @@ cleanup:
       x509 = NULL;
     }
 
-  return ret;
+  return dn;
 }
 
 int

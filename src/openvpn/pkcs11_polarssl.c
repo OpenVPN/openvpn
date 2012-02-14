@@ -72,11 +72,11 @@ cleanup:
   return ret;
 }
 
-int
-pkcs11_certificate_dn (pkcs11h_certificate_t cert, char *dn,
-    size_t dn_len)
+char *
+pkcs11_certificate_dn (pkcs11h_certificate_t cert, struct gc_arena *gc)
 {
   int ret = 1;
+  char dn[1024] = {0};
 
   x509_cert polar_cert = {0};
 
@@ -85,7 +85,7 @@ pkcs11_certificate_dn (pkcs11h_certificate_t cert, char *dn,
       goto cleanup;
   }
 
-  if (-1 == x509parse_dn_gets (dn, dn_len, &polar_cert.subject)) {
+  if (-1 == x509parse_dn_gets (dn, sizeof(dn), &polar_cert.subject)) {
       msg (M_FATAL, "PKCS#11: PolarSSL cannot parse subject");
       goto cleanup;
   }
@@ -95,7 +95,9 @@ pkcs11_certificate_dn (pkcs11h_certificate_t cert, char *dn,
 cleanup:
   x509_free(&polar_cert);
 
-  return ret;
+  if (ret == 0)
+    return string_alloc(dn, gc);
+  return NULL;
 }
 
 int

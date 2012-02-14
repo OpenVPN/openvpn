@@ -571,6 +571,7 @@ verify_cert(struct tls_session *session, openvpn_x509_cert_t *cert, int cert_dep
   char *subject = NULL;
   char common_name[TLS_USERNAME_LEN] = {0};
   const struct tls_options *opt;
+  struct gc_arena gc = gc_new();
 
   opt = session->opt;
   ASSERT (opt);
@@ -578,7 +579,7 @@ verify_cert(struct tls_session *session, openvpn_x509_cert_t *cert, int cert_dep
   session->verified = false;
 
   /* get the X509 name */
-  subject = x509_get_subject(cert);
+  subject = x509_get_subject(cert, &gc);
   if (!subject)
     {
 	msg (D_TLS_ERRORS, "VERIFY ERROR: depth=%d, could not extract X509 "
@@ -676,13 +677,13 @@ verify_cert(struct tls_session *session, openvpn_x509_cert_t *cert, int cert_dep
   msg (D_HANDSHAKE, "VERIFY OK: depth=%d, %s", cert_depth, subject);
   session->verified = true;
 
-  x509_free_subject (subject);
+  gc_free(&gc);
   return SUCCESS;
 
  err:
   tls_clear_error();
   session->verified = false;
-  x509_free_subject (subject);
+  gc_free(&gc);
   return FAILURE;
 }
 

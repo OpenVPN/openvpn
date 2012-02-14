@@ -834,7 +834,8 @@ show_pkcs11_ids (
 	);
 	for (current = user_certificates;current != NULL; current = current->next) {
 		pkcs11h_certificate_t certificate = NULL;
-		char dn[1024] = {0};
+		struct gc_arena gc = gc_new();
+		char *dn = NULL;
 		char serial[1024] = {0};
 		char *ser = NULL;
 		size_t ser_len = 0;
@@ -883,10 +884,9 @@ show_pkcs11_ids (
 		}
 
 		if (
-		      (pkcs11_certificate_dn (
+		      (dn = pkcs11_certificate_dn (
 				certificate,
-				dn,
-				sizeof(dn)
+				&gc
 		      ))
 		) {
 			goto cleanup1;
@@ -927,6 +927,8 @@ show_pkcs11_ids (
 			free (ser);
 			ser = NULL;
 		}
+
+		gc_free (&gc);
 	}
 
 cleanup:

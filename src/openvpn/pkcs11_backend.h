@@ -42,13 +42,11 @@
  * Retrieve PKCS #11 Certificate's DN in a printable format.
  *
  * @param certificate 	The PKCS #11 helper certificate object
- * @param dn		Buffer that the certificate subject DN will be placed in.
- * @param dn_len	Size of said buffer.
+ * @param gc		Garbage collection pool to allocate memory in
  *
- * @return 		1 on failure, 0 on success
+ * @return 		Certificate's DN on success, NULL on failure
  */
-int pkcs11_certificate_dn (pkcs11h_certificate_t certificate, char *dn,
-    size_t dn_len);
+char * pkcs11_certificate_dn (pkcs11h_certificate_t certificate, struct gc_arena *gc);
 
 /**
  * Retrieve PKCS #11 Certificate's serial number in a printable format.

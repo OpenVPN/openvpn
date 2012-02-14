@@ -80,20 +80,12 @@ void cert_hash_remember (struct tls_session *session, const int cert_depth,
 /*
  * Retrieve certificate's subject name.
  *
- * The returned string must be freed with \c verify_free_subject()
- *
  * @param cert		Certificate to retrieve the subject from.
+ * @param gc		Garbage collection arena to use when allocating string.
  *
  * @return 		a string containing the subject
  */
-char *x509_get_subject (openvpn_x509_cert_t *cert);
-
-/*
- * Free a subject string as returned by \c verify_get_subject()
- *
- * @param subject	The subject to be freed.
- */
-void x509_free_subject (char *subject);
+char *x509_get_subject (openvpn_x509_cert_t *cert, struct gc_arena *gc);
 
 /* Retrieve the certificate's SHA1 hash.
  *

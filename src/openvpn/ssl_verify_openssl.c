@@ -48,6 +48,7 @@ verify_callback (int preverify_ok, X509_STORE_CTX * ctx)
 {
   struct tls_session *session;
   SSL *ssl;
+  struct gc_arena gc = gc_new();
   unsigned char *sha1_hash = NULL;
 
   /* get the tls_session pointer */
@@ -64,7 +65,7 @@ verify_callback (int preverify_ok, X509_STORE_CTX * ctx)
   if (!preverify_ok)
     {
       /* get the X509 name */
-      char *subject = x509_get_subject(ctx->current_cert);
+      char *subject = x509_get_subject(ctx->current_cert, &gc);
 
       if (subject)
 	{
@@ -73,15 +74,17 @@ verify_callback (int preverify_ok, X509_STORE_CTX * ctx)
 	      ctx->error_depth,
 	      X509_verify_cert_error_string (ctx->error),
 	      subject);
-	  x509_free_subject(subject);
 	}
 
       ERR_clear_error();
 
+      gc_free(&gc);
       session->verified = false;
 
       return 0;
     }
+
+  gc_free(&gc);
 
   if (SUCCESS == verify_cert(session, ctx->current_cert, ctx->error_depth))
     return 1;
@@ -253,12 +256,12 @@ x509_free_sha1_hash (unsigned char *hash)
 }
 
 char *
-_openssl_get_subject (X509 *cert, char *buf, int size)
+x509_get_subject (X509 *cert, struct gc_arena *gc)
 {
   BIO *subject_bio = NULL;
   BUF_MEM *subject_mem;
-  char *subject = buf;
-  int maxlen = size;
+  char *subject = NULL;
+  int maxlen = 0;
 
   subject_bio = BIO_new (BIO_s_mem ());
   if (subject_bio == NULL)
@@ -272,12 +275,9 @@ _openssl_get_subject (X509 *cert, char *buf, int size)
     goto err;
 
   BIO_get_mem_ptr (subject_bio, &subject_mem);
-  if (subject == NULL)
-    {
-      maxlen = subject_mem->length + 1;
-      subject = malloc (maxlen);
-      check_malloc_return (subject);
-    }
+
+  maxlen = subject_mem->length + 1;
+  subject = gc_malloc (maxlen, false, gc);
 
   memcpy (subject, subject_mem->data, maxlen);
   subject[maxlen - 1] = '\0';
@@ -287,19 +287,6 @@ err:
     BIO_free (subject_bio);
 
   return subject;
-}
-
-char *
-x509_get_subject (X509 *cert)
-{
-  return _openssl_get_subject (cert, NULL, 0);
-}
-
-void
-x509_free_subject (char *subject)
-{
-  if (subject)
-    free(subject);
 }
 
 
