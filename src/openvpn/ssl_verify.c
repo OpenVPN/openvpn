@@ -407,12 +407,11 @@ verify_cert_set_env(struct env_set *es, openvpn_x509_cert_t *peer_cert, int cert
 #ifdef ENABLE_EUREPHIA
   /* export X509 cert SHA1 fingerprint */
   {
-    unsigned char *sha1_hash = x509_get_sha1_hash(peer_cert);
+    unsigned char *sha1_hash = x509_get_sha1_hash(peer_cert, &gc);
 
     openvpn_snprintf (envname, sizeof(envname), "tls_digest_%d", cert_depth);
     setenv_str (es, envname, format_hex_ex(sha1_hash, SHA_DIGEST_LENGTH, 0, 1,
 					  ":", &gc));
-    x509_free_sha1_hash(sha1_hash);
   }
 #endif
 
@@ -620,14 +619,12 @@ verify_cert(struct tls_session *session, openvpn_x509_cert_t *cert, int cert_dep
   /* verify level 1 cert, i.e. the CA that signed our leaf cert */
   if (cert_depth == 1 && opt->verify_hash)
     {
-      unsigned char *sha1_hash = x509_get_sha1_hash(cert);
+      unsigned char *sha1_hash = x509_get_sha1_hash(cert, &gc);
       if (memcmp (sha1_hash, opt->verify_hash, SHA_DIGEST_LENGTH))
       {
 	msg (D_TLS_ERRORS, "TLS Error: level-1 certificate hash verification failed");
-	x509_free_sha1_hash(sha1_hash);
 	goto err;
       }
-      x509_free_sha1_hash(sha1_hash);
     }
 
   /* save common name in session object */

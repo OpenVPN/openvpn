@@ -48,7 +48,6 @@ verify_callback (void *session_obj, x509_cert *cert, int cert_depth,
 {
   struct tls_session *session = (struct tls_session *) session_obj;
   struct gc_arena gc = gc_new();
-  unsigned char *sha1_hash = NULL;
 
   ASSERT (cert);
   ASSERT (session);
@@ -56,9 +55,7 @@ verify_callback (void *session_obj, x509_cert *cert, int cert_depth,
   session->verified = false;
 
   /* Remember certificate hash */
-  sha1_hash = x509_get_sha1_hash(cert);
-  cert_hash_remember (session, cert_depth, sha1_hash);
-  x509_free_sha1_hash(sha1_hash);
+  cert_hash_remember (session, cert_depth, x509_get_sha1_hash(cert, &gc));
 
   /* did peer present cert which was signed by our root cert? */
   if (!preverify_ok)
@@ -141,18 +138,11 @@ x509_get_serial (x509_cert *cert, struct gc_arena *gc)
 }
 
 unsigned char *
-x509_get_sha1_hash (x509_cert *cert)
+x509_get_sha1_hash (x509_cert *cert, struct gc_arena *gc)
 {
-  unsigned char *sha1_hash = malloc(SHA_DIGEST_LENGTH);
+  unsigned char *sha1_hash = gc_malloc(SHA_DIGEST_LENGTH, false, gc);
   sha1(cert->tbs.p, cert->tbs.len, sha1_hash);
   return sha1_hash;
-}
-
-void
-x509_free_sha1_hash (unsigned char *hash)
-{
-  if (hash)
-    free(hash);
 }
 
 char *
@@ -172,7 +162,6 @@ x509_get_subject(x509_cert *cert, struct gc_arena *gc)
 
   return subject;
 }
-
 
 /*
  * Save X509 fields to environment, using the naming convention:

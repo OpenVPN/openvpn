@@ -49,7 +49,6 @@ verify_callback (int preverify_ok, X509_STORE_CTX * ctx)
   struct tls_session *session;
   SSL *ssl;
   struct gc_arena gc = gc_new();
-  unsigned char *sha1_hash = NULL;
 
   /* get the tls_session pointer */
   ssl = X509_STORE_CTX_get_ex_data (ctx, SSL_get_ex_data_X509_STORE_CTX_idx());
@@ -57,9 +56,8 @@ verify_callback (int preverify_ok, X509_STORE_CTX * ctx)
   session = (struct tls_session *) SSL_get_ex_data (ssl, mydata_index);
   ASSERT (session);
 
-  sha1_hash = x509_get_sha1_hash(ctx->current_cert);
-  cert_hash_remember (session, ctx->error_depth, sha1_hash);
-  x509_free_sha1_hash(sha1_hash);
+  cert_hash_remember (session, ctx->error_depth,
+      x509_get_sha1_hash(ctx->current_cert, &gc));
 
   /* did peer present cert which was signed by our root cert? */
   if (!preverify_ok)
@@ -238,18 +236,11 @@ x509_get_serial (openvpn_x509_cert_t *cert, struct gc_arena *gc)
 }
 
 unsigned char *
-x509_get_sha1_hash (X509 *cert)
+x509_get_sha1_hash (X509 *cert, struct gc_arena *gc)
 {
-  char *hash = malloc(SHA_DIGEST_LENGTH);
+  char *hash = gc_malloc(SHA_DIGEST_LENGTH, false, gc);
   memcpy(hash, cert->sha1_hash, SHA_DIGEST_LENGTH);
   return hash;
-}
-
-void
-x509_free_sha1_hash (unsigned char *hash)
-{
-  if (hash)
-    free(hash);
 }
 
 char *

@@ -89,20 +89,12 @@ char *x509_get_subject (openvpn_x509_cert_t *cert, struct gc_arena *gc);
 
 /* Retrieve the certificate's SHA1 hash.
  *
- * The returned string must be freed with \c verify_free_sha1_hash()
- *
  * @param cert		Certificate to retrieve the hash from.
+ * @param gc		Garbage collection arena to use when allocating string.
  *
  * @return 		a string containing the SHA1 hash of the certificate
  */
-unsigned char *x509_get_sha1_hash (openvpn_x509_cert_t *cert);
-
-/*
- * Free a hash as returned by \c verify_get_hash()
- *
- * @param hash		The subject to be freed.
- */
-void x509_free_sha1_hash (unsigned char *hash);
+unsigned char *x509_get_sha1_hash (openvpn_x509_cert_t *cert, struct gc_arena *gc);
 
 /*
  * Retrieve the certificate's username from the specified field.
