@@ -218,7 +218,7 @@ int cipher_kt_block_size (const cipher_kt_t *cipher_kt);
  * @return 		Cipher mode, either \c OPENVPN_MODE_CBC, \c
  * 			OPENVPN_MODE_OFB or \c OPENVPN_MODE_CFB
  */
-bool cipher_kt_mode (const cipher_kt_t *cipher_kt);
+int cipher_kt_mode (const cipher_kt_t *cipher_kt);
 
 
 /**

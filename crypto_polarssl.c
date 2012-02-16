@@ -313,7 +313,7 @@ cipher_kt_block_size (const cipher_info_t *cipher_kt)
   return cipher_kt->block_size;
 }
 
-bool
+int
 cipher_kt_mode (const cipher_info_t *cipher_kt)
 {
   ASSERT(NULL != cipher_kt);

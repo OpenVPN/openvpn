@@ -555,7 +555,7 @@ cipher_kt_block_size (const EVP_CIPHER *cipher_kt)
   return EVP_CIPHER_block_size (cipher_kt);
 }
 
-bool
+int
 cipher_kt_mode (const EVP_CIPHER *cipher_kt)
 {
   ASSERT(NULL != cipher_kt);
