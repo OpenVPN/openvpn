@@ -131,7 +131,7 @@ main (int argc, char *argv[])
   return 1;
 #endif
 
-#ifdef TARGET_WIN32
+#ifdef WIN32
   SetConsoleOutputCP (CP_UTF8);
 #endif
 

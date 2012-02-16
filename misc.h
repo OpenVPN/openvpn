@@ -147,7 +147,7 @@ openvpn_run_script (const struct argv *a, const struct env_set *es, const unsign
   return openvpn_execve_check(a, es, flags | S_SCRIPT, msg);
 };
 
-#ifdef TARGET_WIN32
+#ifdef WIN32
 FILE * openvpn_fopen (const char *path, const char *mode);
 #else
 static inline FILE *
@@ -157,7 +157,7 @@ openvpn_fopen (const char *path, const char *mode)
 }
 #endif
 
-#ifdef TARGET_WIN32
+#ifdef WIN32
 int openvpn_open (const char *path, int flags, mode_t mode);
 #else
 static inline int
@@ -167,7 +167,7 @@ openvpn_open (const char *path, int flags, mode_t mode)
 }
 #endif
 
-#ifdef TARGET_WIN32
+#ifdef WIN32
 int openvpn_stat (const char *path, struct stat *buf);
 #else
 static inline int

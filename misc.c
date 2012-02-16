@@ -356,7 +356,7 @@ int
 openvpn_chdir (const char* dir)
 {
 #ifdef HAVE_CHDIR
-#ifdef TARGET_WIN32
+#ifdef WIN32
   int res;
   struct gc_arena gc = gc_new ();
   res = _wchdir (wide_string (dir, &gc));
@@ -598,7 +598,7 @@ openvpn_system (const char *command, const struct env_set *es, unsigned int flag
   /*
    * execute the command
    */
-#ifdef TARGET_WIN32
+#ifdef WIN32
   gc = gc_new ();
   ret = _wsystem (wide_string (command, &gc));
   gc_free (&gc);
@@ -627,7 +627,7 @@ openvpn_system (const char *command, const struct env_set *es, unsigned int flag
 int
 openvpn_access (const char *path, int mode)
 {
-#ifdef TARGET_WIN32
+#ifdef WIN32
   struct gc_arena gc = gc_new ();
   int ret = _waccess (wide_string (path, &gc), mode);
   gc_free (&gc);
