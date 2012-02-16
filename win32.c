@@ -1073,10 +1073,10 @@ openvpn_open (const char *path, int flags, int mode)
 }
 
 int
-openvpn_stat (const char *path, struct stat *buf)
+openvpn_stat (const char *path, openvpn_stat_t *buf)
 {
   struct gc_arena gc = gc_new ();
-  int res = wstat (wide_string (path, &gc), buf);
+  int res = _wstat (wide_string (path, &gc), buf);
   gc_free (&gc);
   return res;
 }

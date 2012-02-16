@@ -168,10 +168,12 @@ openvpn_open (const char *path, int flags, mode_t mode)
 #endif
 
 #ifdef WIN32
-int openvpn_stat (const char *path, struct stat *buf);
+typedef struct _stat openvpn_stat_t;
+int openvpn_stat (const char *path, openvpn_stat_t *buf);
 #else
+typedef struct stat openvpn_stat_t;
 static inline int
-openvpn_stat (const char *path, struct stat *buf)
+openvpn_stat (const char *path, openvpn_stat_t *buf)
 {
   return stat (path, buf);
 }
