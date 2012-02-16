@@ -1064,7 +1064,7 @@ openvpn_fopen (const char *path, const char *mode)
 }
 
 int
-openvpn_open (const char *path, int flags, mode_t mode)
+openvpn_open (const char *path, int flags, int mode)
 {
   struct gc_arena gc = gc_new ();
   int fd = _wopen (wide_string (path, &gc), flags, mode);

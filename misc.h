@@ -158,7 +158,7 @@ openvpn_fopen (const char *path, const char *mode)
 #endif
 
 #ifdef WIN32
-int openvpn_open (const char *path, int flags, mode_t mode);
+int openvpn_open (const char *path, int flags, int mode);
 #else
 static inline int
 openvpn_open (const char *path, int flags, mode_t mode)
