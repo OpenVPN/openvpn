@@ -85,7 +85,6 @@ openvpn_SOURCES = \
 	clinat.c clinat.h \
 	common.h \
 	compat.h compat.c \
-	config-win32.h \
 	crypto.c crypto.h crypto_backend.h \
 	crypto_openssl.c crypto_openssl.h \
 	crypto_polarssl.c crypto_polarssl.h \
