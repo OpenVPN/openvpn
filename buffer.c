@@ -321,9 +321,9 @@ gc_malloc (size_t size, bool clear, struct gc_arena *a)
 #endif
 {
   void *ret;
+  struct gc_entry *e;
   ASSERT (NULL != a);
 
-  struct gc_entry *e;
 #ifdef DMALLOC
   e = (struct gc_entry *) openvpn_dmalloc (file, line, size + sizeof (struct gc_entry));
 #else
