@@ -243,7 +243,7 @@ typedef unsigned long in_addr_t;
 #endif
 
 #ifndef X_OK
-#define X_OK 1
+#define X_OK 0
 #endif
 
 #ifndef F_OK
