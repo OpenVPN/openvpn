@@ -2605,6 +2605,7 @@ options_postprocess_mutate (struct options *o)
 #define CHKACC_DIRPATH (1<<1)    /** Check for directory precense where a file should reside */
 #define CHKACC_FILEXSTWR (1<<2)  /** If file exists, is it writable? */
 #define CHKACC_INLINE (1<<3)     /** File is present if it's an inline file */
+#define CHKACC_ACPTSTDIN (1<<4)  /** If filename is stdin, it's allowed and "exists" */
 
 static bool
 check_file_access(const int type, const char *file, const int mode, const char *opt)
@@ -2618,6 +2619,12 @@ check_file_access(const int type, const char *file, const int mode, const char *
   /* If this may be an inline file, and the proper inline "filename" is set - no issues */
   if ((type & CHKACC_INLINE) && streq(file, INLINE_FILE_TAG) )
     return false;
+
+  /* If stdin is allowed and the file name is 'stdin', then do no
+   * further checks as stdin is always available
+   */
+  if( (type & CHKACC_ACPTSTDIN) && streq(file, "stdin") )
+      return false;
 
   /* Is the directory path leading to the given file accessible? */
   if (type & CHKACC_DIRPATH)
@@ -2694,13 +2701,14 @@ options_postprocess_filechecks (struct options *options)
                              "--askpass");
 #endif /* USE_SSL */
 #ifdef ENABLE_MANAGEMENT
-  errs |= check_file_access (CHKACC_FILE, options->management_user_pass, R_OK,
+  errs |= check_file_access (CHKACC_FILE|CHKACC_ACPTSTDIN,
+                             options->management_user_pass, R_OK,
                              "--management user/password file");
 #endif /* ENABLE_MANAGEMENT */
 #if P2MP
-  if( options->auth_user_pass_file && strcmp(options->auth_user_pass_file, "stdin") != 0 )
-    errs |= check_file_access (CHKACC_FILE, options->auth_user_pass_file, R_OK,
-                               "--auth-user-pass");
+  errs |= check_file_access (CHKACC_FILE|CHKACC_ACPTSTDIN,
+                             options->auth_user_pass_file, R_OK,
+                             "--auth-user-pass");
 #endif /* P2MP */
 
   /* ** System related ** */
