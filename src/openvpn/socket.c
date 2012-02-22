@@ -899,8 +899,13 @@ create_socket_udp6 (const unsigned int flags)
   else if (flags & SF_USE_IP_PKTINFO)
     {
       int pad = 1;
+#ifndef IPV6_RECVPKTINFO /* Some older Darwin platforms require this */
+      if (setsockopt (sd, IPPROTO_IPV6, IPV6_PKTINFO,
+		      (void*)&pad, sizeof(pad)) < 0)
+#else
       if (setsockopt (sd, IPPROTO_IPV6, IPV6_RECVPKTINFO,
 		      (void*)&pad, sizeof(pad)) < 0)
+#endif
 	msg(M_SOCKERR, "UDP: failed setsockopt for IPV6_RECVPKTINFO");
     }
 #endif
