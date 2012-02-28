@@ -1384,8 +1384,6 @@ get_random()
 void
 init_ssl_lib (void)
 {
-  ERR_load_crypto_strings ();
-  OpenSSL_add_all_algorithms ();
   crypto_init_lib ();
 }
 
@@ -1394,8 +1392,6 @@ free_ssl_lib (void)
 {
   crypto_uninit_lib ();
   prng_uninit();
-  EVP_cleanup ();
-  ERR_free_strings ();
 }
 
 #endif /* ENABLE_SSL */

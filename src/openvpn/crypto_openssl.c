@@ -194,11 +194,19 @@ crypto_init_lib_engine (const char *engine_name)
 void
 crypto_init_lib (void)
 {
+#ifndef USE_SSL
+#ifndef ENABLE_SMALL
+  ERR_load_crypto_strings ();
+#endif
+  OpenSSL_add_all_algorithms ();
+#endif
+
   /*
    * If you build the OpenSSL library and OpenVPN with
    * CRYPTO_MDEBUG, you will get a listing of OpenSSL
    * memory leaks on program termination.
    */
+
 #ifdef CRYPTO_MDEBUG
   CRYPTO_mem_ctrl(CRYPTO_MEM_CHECK_ON);
 #endif
@@ -207,6 +215,13 @@ crypto_init_lib (void)
 void
 crypto_uninit_lib (void)
 {
+#ifndef USE_SSL
+  EVP_cleanup ();
+#ifndef ENABLE_SMALL
+  ERR_free_strings ();
+#endif
+#endif
+
 #ifdef CRYPTO_MDEBUG
   FILE* fp = fopen ("sdlog", "w");
   ASSERT (fp);

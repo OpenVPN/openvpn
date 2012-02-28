@@ -69,7 +69,9 @@ void
 tls_init_lib()
 {
   SSL_library_init();
+#ifndef ENABLE_SMALL
   SSL_load_error_strings();
+#endif
   OpenSSL_add_all_algorithms ();
 
   mydata_index = SSL_get_ex_new_index(0, "struct session *", NULL, NULL, NULL);
@@ -80,7 +82,9 @@ void
 tls_free_lib()
 {
   EVP_cleanup();
+#ifndef ENABLE_SMALL
   ERR_free_strings();
+#endif
 }
 
 void
