@@ -127,7 +127,7 @@ x509_get_serial (x509_cert *cert)
   int ret = 0;
   int i = 0;
   char *buf = NULL;
-  size_t len = cert->serial.len * 3;
+  size_t len = cert->serial.len * 3 + 1;
 
   buf = malloc(len);
   ASSERT(buf);
