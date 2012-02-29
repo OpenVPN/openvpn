@@ -46,8 +46,7 @@ EXTRA_DIST = \
 	suse \
 	contrib \
 	debug \
-	plugins \
-	win
+	plugins
 
 SUBDIRS = service-win32
 
@@ -59,8 +58,6 @@ dist_doc_DATA = \
 
 dist_noinst_SCRIPTS = \
 	$(TESTS) \
-	doclean \
-	domake-win \
 	t_cltsrv-down.sh \
 	configure_h.awk configure_log.awk
 
@@ -68,8 +65,7 @@ dist_noinst_DATA = \
 	openvpn.spec \
 	COPYRIGHT.GPL \
 	PORTS \
-	INSTALL-win32.txt \
-	service-win32/msvc.mak
+	INSTALL-win32.txt
 
 openvpn_SOURCES = \
         base64.c base64.h \
