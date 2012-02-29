@@ -4764,7 +4764,7 @@ add_option (struct options *options,
     }
   else if (streq (p[0], "fragment") && p[1])
     {
-//      VERIFY_PERMISSION (OPT_P_MTU);
+/*      VERIFY_PERMISSION (OPT_P_MTU); */
       VERIFY_PERMISSION (OPT_P_MTU|OPT_P_CONNECTION);
       options->ce.fragment = positive_atoi (p[1]);
     }
@@ -5118,7 +5118,7 @@ add_option (struct options *options,
   else if (streq (p[0], "explicit-exit-notify"))
     {
       VERIFY_PERMISSION (OPT_P_GENERAL|OPT_P_CONNECTION);
-//      VERIFY_PERMISSION (OPT_P_EXPLICIT_NOTIFY);
+/*      VERIFY_PERMISSION (OPT_P_EXPLICIT_NOTIFY); */
       if (p[1])
 	{
 	  options->ce.explicit_exit_notification = positive_atoi (p[1]);

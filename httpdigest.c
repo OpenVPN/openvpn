@@ -111,7 +111,7 @@ DigestCalcResponse(
   md_ctx_t md5_ctx;
   const md_kt_t *md5_kt = md_kt_get("MD5");
 
-  // calculate H(A2)
+  /* calculate H(A2) */
   md_ctx_init(&md5_ctx, md5_kt);
   md_ctx_update(&md5_ctx, pszMethod, strlen(pszMethod));
   md_ctx_update(&md5_ctx, ":", 1);
@@ -124,7 +124,7 @@ DigestCalcResponse(
   md_ctx_final(&md5_ctx, HA2);
   CvtHex(HA2, HA2Hex);
 
-  // calculate response
+  /* calculate response */
   md_ctx_init(&md5_ctx, md5_kt);
   md_ctx_update(&md5_ctx, HA1, HASHHEXLEN);
   md_ctx_update(&md5_ctx, ":", 1);

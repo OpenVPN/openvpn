@@ -324,8 +324,10 @@ tls_ctx_load_priv_file (struct tls_root_ctx *ctx, const char *priv_key_file
   warn_if_group_others_accessible (priv_key_file);
 
   /* TODO: Check Private Key */
-//  if (!SSL_CTX_check_private_key (ctx))
-//    msg (M_SSLERR, "Private key does not match the certificate");
+#if 0
+  if (!SSL_CTX_check_private_key (ctx))
+    msg (M_SSLERR, "Private key does not match the certificate");
+#endif
   return 0;
 }
 

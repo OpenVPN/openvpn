@@ -745,7 +745,7 @@ init_static (void)
     uint8_t rndbuf[8];
     int i;
     prng_init ("sha1", 16);
-    //prng_init (NULL, 0);
+    /*prng_init (NULL, 0);*/
     const int factor = 1;
     for (i = 0; i < factor * 8; ++i)
       {

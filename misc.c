@@ -2457,17 +2457,17 @@ argv_test (void)
   argv_printf (&a, "%sc foo bar %s", "c:\\\\src\\\\test\\\\jyargs.exe", "foo bar");
   argv_msg_prefix (M_INFO, &a, "ARGV");
   msg (M_INFO, "ARGV-S: %s", argv_system_str(&a));
-  //openvpn_execve_check (&a, NULL, 0, "command failed");
+  /*openvpn_execve_check (&a, NULL, 0, "command failed");*/
 
   argv_printf (&a, "%sc %s %s", "c:\\\\src\\\\test files\\\\batargs.bat", "foo", "bar");  
   argv_msg_prefix (M_INFO, &a, "ARGV");
   msg (M_INFO, "ARGV-S: %s", argv_system_str(&a));
-  //openvpn_execve_check (&a, NULL, 0, "command failed");
+  /*openvpn_execve_check (&a, NULL, 0, "command failed");*/
 
   argv_printf (&a, "%s%sc foo bar %s %s/%d %d %u", "/foo", "/bar.exe", "one two", "1.2.3.4", 24, -69, 96);
   argv_msg_prefix (M_INFO, &a, "ARGV");
   msg (M_INFO, "ARGV-S: %s", argv_system_str(&a));
-  //openvpn_execve_check (&a, NULL, 0, "command failed");
+  /*openvpn_execve_check (&a, NULL, 0, "command failed");*/
 
   argv_printf (&a, "this is a %s test of int %d unsigned %u", "FOO", -69, 42);
   s = argv_str (&a, &gc, PA_BRACKET);

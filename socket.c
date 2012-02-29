@@ -3106,7 +3106,7 @@ openvpn_inet_ntop(int af, const void *src, char *dst, socklen_t size)
     default:
       ASSERT (0);
   }
-  // cannot direclty use &size because of strict aliasing rules
+  /* cannot direclty use &size because of strict aliasing rules */
   return (WSAAddressToString((struct sockaddr *)&ss, sizeof(ss), NULL, dst, &s) == 0)?
           dst : NULL;
 }
@@ -3119,7 +3119,7 @@ openvpn_inet_pton(int af, const char *src, void *dst)
   char src_copy[INET6_ADDRSTRLEN+1];
 
   CLEAR(ss);
-  // stupid non-const API
+  /* stupid non-const API */
   strncpynt(src_copy, src, INET6_ADDRSTRLEN+1);
 
   if (WSAStringToAddress(src_copy, af, NULL, (struct sockaddr *)&ss, &size) == 0) {
