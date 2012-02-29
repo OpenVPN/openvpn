@@ -913,6 +913,9 @@ if test "${enable_strict}" = "yes"; then
 	CFLAGS="${CFLAGS} -Wall -Wno-unused-parameter -Wno-unused-function"
 fi
 
+CONFIGURE_DEFINES="`set | grep '^enable_.*=' ; set | grep '^with_.*='`"
+AC_DEFINE_UNQUOTED([CONFIGURE_DEFINES], ["`echo ${CONFIGURE_DEFINES}`"], [Configuration settings])
+
 TAP_WIN_COMPONENT_ID="PRODUCT_TAP_WIN_COMPONENT_ID"
 TAP_WIN_MIN_MAJOR="PRODUCT_TAP_WIN_MIN_MAJOR"
 TAP_WIN_MIN_MINOR="PRODUCT_TAP_WIN_MIN_MINOR"

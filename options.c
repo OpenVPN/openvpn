@@ -49,7 +49,6 @@
 #include "helper.h"
 #include "manage.h"
 #include "forward.h"
-#include "configure.h"
 #include <ctype.h>
 
 #include "memdbg.h"
@@ -3403,9 +3402,6 @@ usage_version (void)
   msg (M_INFO|M_NOPREFIX, "Originally developed by James Yonan");
   msg (M_INFO|M_NOPREFIX, "Copyright (C) 2002-2010 OpenVPN Technologies, Inc. <sales@openvpn.net>");
 #ifndef ENABLE_SMALL
-#ifdef CONFIGURE_CALL
-  msg (M_INFO|M_NOPREFIX, "\n%s\n", CONFIGURE_CALL);
-#endif
 #ifdef CONFIGURE_DEFINES
   msg (M_INFO|M_NOPREFIX, "Compile time defines: %s", CONFIGURE_DEFINES);
 #endif

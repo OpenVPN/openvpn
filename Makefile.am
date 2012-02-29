@@ -36,7 +36,7 @@ MAINTAINERCLEANFILES = \
 	$(srcdir)/depcomp $(srcdir)/aclocal.m4 \
 	$(srcdir)/config.guess $(srcdir)/config.sub \
 	$(srcdir)/openvpn.spec
-CLEANFILES = openvpn.8.html configure.h
+CLEANFILES = openvpn.8.html
 
 EXTRA_DIST = \
 	sample-config-files \
@@ -57,8 +57,7 @@ dist_doc_DATA = \
 
 dist_noinst_SCRIPTS = \
 	$(TESTS) \
-	t_cltsrv-down.sh \
-	configure_h.awk configure_log.awk
+	t_cltsrv-down.sh
 
 dist_doc_DATA = \
 	COPYRIGHT.GPL \
@@ -155,13 +154,6 @@ openvpn_SOURCES = \
 	tun.c tun.h tap-windows.h \
 	win32.h win32.c \
 	cryptoapi.h cryptoapi.c
-
-nodist_openvpn_SOURCES = configure.h
-options.$(OBJEXT): configure.h
-
-configure.h: Makefile
-	awk -f $(srcdir)/configure_h.awk config.h > $@
-	awk -f $(srcdir)/configure_log.awk config.log >> $@
 
 if WIN32
 dist_noinst_DATA += openvpn.8
