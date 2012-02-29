@@ -22,47 +22,58 @@
  *  59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#ifndef COMPAT_H
-#define COMPAT_H
-
-#ifdef HAVE_WINSOCK2_H
-#include <winsock2.h>
-#endif
-
-#ifdef HAVE_WS2TCPIP_H
-#include <ws2tcpip.h>
-#endif
-
-#ifdef HAVE_SYS_TIME_H
-#include <sys/time.h>
-#endif
-
-#ifdef HAVE_SYS_SOCKET_H
-#include <sys/socket.h>
-#endif
-
-#ifndef HAVE_DIRNAME
-char * dirname(char *str);
-#endif /* HAVE_DIRNAME */
-
-#ifndef HAVE_BASENAME
-char * basename(char *str);
-#endif /* HAVE_BASENAME */
-
-#ifndef HAVE_GETTIMEOFDAY
-int gettimeofday (struct timeval *tv, void *tz);
-#endif
-
-#ifndef HAVE_DAEMON
-int daemon(int nochdir, int noclose);
-#endif
-
-#ifndef HAVE_INET_NTOP
-const char * inet_ntop(int af, const void *src, char *dst, socklen_t size);
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#elif defined(_MSC_VER)
+#include "config-msvc.h"
 #endif
 
 #ifndef HAVE_INET_PTON
-int inet_pton(int af, const char *src, void *dst);
+
+#include "compat.h"
+
+#ifdef WIN32
+
+#include <windows.h>
+#include <string.h>
+
+/*
+ * inet_ntop() and inet_pton() wrap-implementations using
+ * WSAAddressToString() and WSAStringToAddress() functions
+ *
+ * this is needed as long as we support running OpenVPN on WinXP
+ */
+
+
+int
+inet_pton(int af, const char *src, void *dst)
+{
+  struct sockaddr_storage ss;
+  int size = sizeof(ss);
+  char src_copy[INET6_ADDRSTRLEN+1];
+
+  ZeroMemory(&ss, sizeof(ss));
+  /* stupid non-const API */
+  strncpy (src_copy, src, INET6_ADDRSTRLEN+1);
+  src_copy[INET6_ADDRSTRLEN] = 0;
+
+  if (WSAStringToAddress(src_copy, af, NULL, (struct sockaddr *)&ss, &size) == 0) {
+    switch(af) {
+      case AF_INET:
+	*(struct in_addr *)dst = ((struct sockaddr_in *)&ss)->sin_addr;
+	return 1;
+      case AF_INET6:
+	*(struct in6_addr *)dst = ((struct sockaddr_in6 *)&ss)->sin6_addr;
+	return 1;
+    }
+  }
+  return 0;
+}
+
+#else
+
+#error no emulation for inet_ntop
+
 #endif
 
-#endif /* COMPAT_H */
+#endif

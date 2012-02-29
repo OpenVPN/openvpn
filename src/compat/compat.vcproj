@@ -163,6 +163,14 @@
 				>
 			</File>
 			<File
+				RelativePath=".\compat-inet_ntop.c"
+				>
+			</File>
+			<File
+				RelativePath=".\compat-inet_pton.c"
+				>
+			</File>
+			<File
 				RelativePath=".\compat-daemon.c"
 				>
 			</File>

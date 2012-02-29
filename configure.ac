@@ -522,7 +522,7 @@ AC_CHECK_FUNCS([ \
 	chsize ftruncate execve getpeereid umask basename dirname access \
 	epoll_create \
 ])
-AC_CHECK_FUNCS([sendmsg recvmsg])
+AC_CHECK_FUNCS([sendmsg recvmsg inet_ntop inet_pton])
 AC_CHECK_FUNCS(
 	[res_init],
 	,
