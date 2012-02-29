@@ -903,6 +903,9 @@ AC_SUBST([OPTIONAL_PKCS11_HELPER_LIBS])
 
 AM_CONDITIONAL([WIN32], [test "${WIN32}" = "yes"])
 
+sampledir="\$(docdir)/sample"
+AC_SUBST([sampledir])
+
 AC_CONFIG_FILES([
 	version.sh
 	Makefile
