@@ -564,9 +564,6 @@ else
 
 fi
 
-dnl Required library functions
-AC_FUNC_MEMCMP
-
 dnl
 dnl Check for res_init
 dnl
