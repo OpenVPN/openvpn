@@ -6,9 +6,10 @@
 #
 
 # This directory is where we will look for openvpn-plugin.h
-INCLUDE="-I../.."
+CPPFLAGS="${CPPFLAGS:--I../..}"
 
-CC_FLAGS="-O2 -Wall -g"
+CC="${CC:-gcc}"
+CFLAGS="${CFLAGS:--O2 -Wall -g}"
 
-gcc $CC_FLAGS -fPIC -c $INCLUDE $1.c && \
-gcc $CC_FLAGS -fPIC -shared -Wl,-soname,$1.so -o $1.so $1.o -lc
+$CC $CPPFLAGS $CFLAGS -fPIC -c $1.c && \
+$CC $CFLAGS -fPIC -shared ${LDFLAS} -Wl,-soname,$1.so -o $1.so $1.o -lc

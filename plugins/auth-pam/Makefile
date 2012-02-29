@@ -13,18 +13,20 @@ else
 endif
 
 # This directory is where we will look for openvpn-plugin.h
-INCLUDE=-I../..
+CPPFLAGS=-I../..
 
-CC_FLAGS=-O2 -Wall -DDLOPEN_PAM=$(DLOPEN_PAM)
+CC=gcc
+CFLAGS=-O2 -Wall
+DEFS = -DDLOPEN_PAM=$(DLOPEN_PAM)
 
 openvpn-auth-pam.so : auth-pam.o pamdl.o
-	gcc ${CC_FLAGS} -fPIC -shared -Wl,-soname,openvpn-auth-pam.so -o openvpn-auth-pam.so auth-pam.o pamdl.o -lc $(LIBPAM)
+	$(CC) $(CFLAGS) -fPIC -shared $(LDFLAGS) -Wl,-soname,openvpn-auth-pam.so -o openvpn-auth-pam.so auth-pam.o pamdl.o -lc $(LIBPAM)
 
 auth-pam.o : auth-pam.c pamdl.h
-	gcc ${CC_FLAGS} -fPIC -c ${INCLUDE} auth-pam.c
+	$(CC) $(CPPFLAGS) $(CFLAGS) $(DEFS) -fPIC -c auth-pam.c
 
 pamdl.o : pamdl.c pamdl.h
-	gcc ${CC_FLAGS} -fPIC -c ${INCLUDE} pamdl.c
+	$(CC) $(CPPFLAGS) $(CFLAGS) $(DEFS) -fPIC -c pamdl.c
 
 clean :
-	rm -f *.o *.so
+	-rm -f *.o *.so
