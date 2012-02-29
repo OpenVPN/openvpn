@@ -78,47 +78,6 @@
 
 #endif
 
-#if SSLEAY_VERSION_NUMBER < 0x00906000
-
-#undef EVP_CIPHER_mode
-#define EVP_CIPHER_mode(x) 1
-#define EVP_CIPHER_CTX_mode(x) 1
-#define EVP_CIPHER_flags(x) 0
-
-#define EVP_CIPH_CBC_MODE 1
-#define EVP_CIPH_CFB_MODE 0
-#define EVP_CIPH_OFB_MODE 0
-#define EVP_CIPH_VARIABLE_LENGTH 0
-
-#define OPENSSL_malloc(x) malloc(x)
-#define OPENSSL_free(x) free(x)
-
-static inline int
-EVP_CipherInit_ov (EVP_CIPHER_CTX *ctx, const EVP_CIPHER *type, uint8_t *key, uint8_t *iv, int enc)
-{
-  EVP_CipherInit (ctx, type, key, iv, enc);
-  return 1;
-}
-
-static inline int
-EVP_CipherUpdate_ov (EVP_CIPHER_CTX *ctx, uint8_t *out, int *outl, uint8_t *in, int inl)
-{
-  EVP_CipherUpdate (ctx, out, outl, in, inl);
-  return 1;
-}
-
-static inline bool
-cipher_ok (const char* name)
-{
-  const int i = strlen (name) - 4;
-  if (i >= 0)
-    return !strcmp (name + i, "-CBC");
-  else
-    return false;
-}
-
-#else
-
 static inline int
 EVP_CipherInit_ov (EVP_CIPHER_CTX *ctx, const EVP_CIPHER *type, uint8_t *key, uint8_t *iv, int enc)
 {
@@ -136,14 +95,6 @@ cipher_ok (const char* name)
 {
   return true;
 }
-
-#endif
-
-#if SSLEAY_VERSION_NUMBER < 0x0090581f
-
-#undef DES_check_key_parity
-#define DES_check_key_parity(x) 1
-#endif /* SSLEAY_VERSION_NUMBER < 0x0090581f */
 
 #ifndef EVP_CIPHER_name
 #define EVP_CIPHER_name(e)		OBJ_nid2sn(EVP_CIPHER_nid(e))
