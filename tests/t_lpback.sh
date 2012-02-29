@@ -19,11 +19,12 @@
 # 02110-1301, USA.
 
 set -e
+top_builddir="${top_builddir:-..}"
 trap "rm -f key.$$ log.$$ ; trap 0 ; exit 77" 1 2 15
 trap "rm -f key.$$ log.$$ ; exit 1" 0 3
-./openvpn --genkey --secret key.$$
+"${top_builddir}/src/openvpn/openvpn" --genkey --secret key.$$
 set +e
-( ./openvpn --test-crypto --secret key.$$ ) >log.$$ 2>&1
+( "${top_builddir}/src/openvpn/openvpn" --test-crypto --secret key.$$ ) >log.$$ 2>&1
 e=$?
 if [ $e != 0 ] ; then cat log.$$ ; fi
 rm key.$$ log.$$

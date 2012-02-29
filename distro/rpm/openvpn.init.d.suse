@@ -82,7 +82,7 @@
 #
 
 # Location of openvpn binary
-openvpn="/usr/local/sbin/openvpn"
+openvpn="/usr/sbin/openvpn"
 
 # Lockfile
 lock="/var/lock/subsys/openvpn"

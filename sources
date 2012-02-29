@@ -1,2 +1,0 @@
-ls -1 *.[ch]
-ls -1 configure.ac Makefile.am

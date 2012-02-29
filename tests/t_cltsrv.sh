@@ -19,6 +19,9 @@
 # 02110-1301, USA.
 
 set -e
+srcdir="${srcdir:-.}"
+top_srcdir="${top_srcdir:-..}"
+top_builddir="${top_builddir:-..}"
 trap "rm -f log.$$ log.$$.signal ; trap 0 ; exit 77" 1 2 15
 trap "rm -f log.$$ log.$$.signal ; exit 1" 0 3
 addopts=
@@ -41,8 +44,9 @@ esac
 
 # make sure that the --down script is executable -- fail (rather than
 # skip) test if it isn't.
-downscript="t_cltsrv-down.sh"
-test -x "${srcdir}"/$downscript || chmod +x "${srcdir}"/$downscript || { echo >&2 "$downscript is not executable, failing." ; exit 1 ; }
+downscript="../tests/t_cltsrv-down.sh"
+root="${top_srcdir}/sample"
+test -x "${root}/${downscript}" || chmod +x "${root}/${downscript}" || { echo >&2 "${root}/${downscript} is not executable, failing." ; exit 1 ; }
 echo "The following test will take about two minutes." >&2
 echo "If the addresses are in use, this test will retry up to two times." >&2
 
@@ -51,8 +55,8 @@ success=0
 for i in 1 2 3 ; do
   set +e
   (
-  ./openvpn --script-security 2 --cd "${srcdir}" ${addopts} --setenv role srv --down "$downscript" --tls-exit --ping-exit 180 --config sample-config-files/loopback-server &
-  ./openvpn --script-security 2 --cd "${srcdir}" ${addopts} --setenv role clt --down "$downscript" --tls-exit --ping-exit 180 --config sample-config-files/loopback-client
+  "${top_builddir}/src/openvpn/openvpn" --script-security 2 --cd "${root}" ${addopts} --setenv role srv --down "${downscript}" --tls-exit --ping-exit 180 --config "sample-config-files/loopback-server" &
+  "${top_builddir}/src/openvpn/openvpn" --script-security 2 --cd "${top_srcdir}/sample" ${addopts} --setenv role clt --down "${downscript}" --tls-exit --ping-exit 180 --config "sample-config-files/loopback-client"
   ) 3>log.$$.signal >log.$$ 2>&1
   e1=$?
   wait $!

@@ -31,7 +31,7 @@ AC_INIT([PRODUCT_NAME], [PRODUCT_VERSION], [PRODUCT_BUGREPORT], [PRODUCT_TARNAME
 m4_include(compat.m4)
 AC_CONFIG_AUX_DIR([.])
 AM_CONFIG_HEADER([config.h])
-AC_CONFIG_SRCDIR([syshead.h])
+AC_CONFIG_SRCDIR([src/openvpn/syshead.h])
 AC_CONFIG_MACRO_DIR([m4])
 AM_INIT_AUTOMAKE
 AC_CANONICAL_HOST
@@ -928,10 +928,18 @@ AC_SUBST([TAP_WIN_MIN_MINOR])
 
 AM_CONDITIONAL([WIN32], [test "${WIN32}" = "yes"])
 
-AC_CONFIG_FILES([t_client.sh], [chmod +x t_client.sh])
 AC_CONFIG_FILES([
 	Makefile
-	openvpn.spec
-	service-win32/Makefile
+	distro/Makefile
+	distro/rpm/Makefile
+	distro/rpm/openvpn.spec
+	include/Makefile
+	src/Makefile
+	src/openvpn/Makefile
+	src/openvpnserv/Makefile
+	tests/Makefile
+	sample/Makefile
+	doc/Makefile
 ])
+AC_CONFIG_FILES([tests/t_client.sh], [chmod +x tests/t_client.sh])
 AC_OUTPUT

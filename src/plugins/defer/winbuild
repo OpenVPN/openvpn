@@ -5,7 +5,7 @@
 #
 
 # This directory is where we will look for openvpn-plugin.h
-INCLUDE="-I.."
+INCLUDE="-I../../../build"
 
 CC_FLAGS="-O2 -Wall"
 

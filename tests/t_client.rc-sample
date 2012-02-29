@@ -7,9 +7,10 @@
 #
 # define these - if empty, no tests will run
 #
-CA_CERT="/home/openvpn-test-ca/keys/ca.crt"
-CLIENT_KEY="/home/openvpn-test-ca/keys/client-test.key"
-CLIENT_CERT="/home/openvpn-test-ca/keys/client-test.crt"
+top_srcdir="${top_srcdir:-..}"
+CA_CERT="${top_srcdir}/sample/sample-keys/ca.crt"
+CLIENT_KEY="${top_srcdir}/sample/sample-keys/client.key"
+CLIENT_CERT="${top_srcdir}/sample/sample-keys/client.crt"
 #
 # remote host (used as macro below)
 #

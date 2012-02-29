@@ -68,6 +68,13 @@ support for dynamic IP addresses and DHCP,
 scalability to hundreds or thousands of users,
 and portability to most major OS platforms.
 
+%package devel
+Summary:	OpenVPN is a robust and highly flexible VPN daemon by James Yonan.
+Group:		Applications/Internet
+Requires:      %{name}
+%description devel
+Development support for OpenVPN.
+
 #
 # Define vendor type
 #
@@ -99,17 +106,22 @@ and portability to most major OS platforms.
 %setup -q
 
 %build
-%configure --disable-dependency-tracking %{?with_password_save:--enable-password-save} %{?without_lzo:--disable-lzo} %{?with_kerberos:--with-ssl-headers=/usr/kerberos/include}
+%configure \
+	--disable-dependency-tracking \
+	--docdir="%{_docdir}/%{name}-%{version}" \
+	%{?with_password_save:--enable-password-save} \
+	%{?without_lzo:--disable-lzo} \
+	%{?with_kerberos:--with-ssl-headers=/usr/kerberos/include}
 %__make
 
 # Build down-root plugin
-pushd plugins/down-root
+pushd src/plugins/down-root
 %__make
 popd
 
 # Build auth-pam plugin
 %if %{build_auth_pam}
-pushd plugins/auth-pam
+pushd src/plugins/auth-pam
 %__make
 popd
 %endif
@@ -124,17 +136,15 @@ popd
 
 # Install init script
 %if "%{VENDOR}" == "SuSE"
-%__install -c -d -m 755 %{buildroot}/etc/init.d
-%__sed -e 's#openvpn=\"/usr/local/sbin/openvpn\"#openvpn=\"/usr/sbin/openvpn\"#' < suse/%{name}.init > %{_tmppath}/%{name}.init
-%__install -c -m 755 %{_tmppath}/%{name}.init %{buildroot}/etc/init.d/%{name}
-%__rm %{_tmppath}/%{name}.init 
+%__install -c -d -m 755 "%{buildroot}/etc/init.d"
+%__install -c -m 755 "distro/rpm/%{name}.init.d.suse"  "%{buildroot}/etc/init.d/%{name}"
 %else
-%__install -c -d -m 755 %{buildroot}/etc/rc.d/init.d
-%__install -c -m 755 sample-scripts/%{name}.init %{buildroot}/etc/rc.d/init.d/%{name}
+%__install -c -d -m 755 "%{buildroot}/etc/rc.d/init.d"
+%__install -c -m 755 distro/rpm/%{name}.init.d.rhel  "%{buildroot}/etc/rc.d/init.d/%{name}"
 %endif
 
 # Install /etc/openvpn
-%__install -c -d -m 755 %{buildroot}/etc/%{name}
+%__install -c -d -m 755 "%{buildroot}/etc/%{name}"
 
 #
 # Build /usr/share/openvpn
@@ -146,23 +156,23 @@ popd
 # Install the plugins
 #
 
-%__mkdir_p %{buildroot}%{_datadir}/%{name}/plugins/lib
+%__mkdir_p "%{buildroot}%{_datadir}/%{name}/plugins/lib"
 
 for pi in auth-pam down-root; do
-  %__mv -f plugins/$pi/README plugins/README.$pi
-  if [ -e plugins/$pi/openvpn-$pi.so ]; then
-    %__install -c -m 755 plugins/$pi/openvpn-$pi.so %{buildroot}%{_datadir}/openvpn/plugins/lib/openvpn-$pi.so
+  %__mv -f src/plugins/$pi/README src/plugins/README.$pi
+  if [ -e src/plugins/$pi/openvpn-$pi.so ]; then
+    %__install -c -m 755 src/plugins/$pi/openvpn-$pi.so "%{buildroot}%{_datadir}/openvpn/plugins/lib/openvpn-$pi.so"
   fi
 done
 
-%__mv -f plugins/README plugins/README.plugins
+%__mv -f src/plugins/README src/plugins/README.plugins
 
 #
 # Clean section
 #
 
 %clean
-[ %{buildroot} != "/" ] && rm -rf %{buildroot}
+[ %{buildroot} != "/" ] && rm -rf "%{buildroot}"
 
 #
 # On Linux 2.4, make the device node
@@ -215,7 +225,11 @@ fi
 %endif
 
 # Install extra %doc stuff
-%doc contrib/ sample-*/ plugins/README.*
+%doc contrib/ sample/ src/plugins/README.*
+
+%files devel
+%defattr(-,root,root)
+%{_includedir}/*
 
 %changelog
 * Thu Jul 30 2009 David Sommerseth <dazo@users.sourceforge.net>
