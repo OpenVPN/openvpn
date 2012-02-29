@@ -25,15 +25,6 @@
 #ifndef SYSHEAD_H
 #define SYSHEAD_H
 
-/*
- * Only include if not during configure
- */
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#elif defined(_MSC_VER)
-#include "config-msvc.h"
-#endif
-
 #include "compat.h"
 
 /* branch prediction hints */

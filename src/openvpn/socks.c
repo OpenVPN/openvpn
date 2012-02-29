@@ -30,6 +30,12 @@
  *   (Pierre Bourdon <delroth@gmail.com>)
  */
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#elif defined(_MSC_VER)
+#include "config-msvc.h"
+#endif
+
 #include "syshead.h"
 
 #ifdef ENABLE_SOCKS

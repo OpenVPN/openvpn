@@ -26,6 +26,12 @@
  * Support routines for adding/deleting network routes.
  */
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#elif defined(_MSC_VER)
+#include "config-msvc.h"
+#endif
+
 #include "syshead.h"
 
 #include "common.h"

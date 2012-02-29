@@ -27,6 +27,12 @@
  * @file Control Channel PolarSSL Backend
  */
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#elif defined(_MSC_VER)
+#include "config-msvc.h"
+#endif
+
 #include "syshead.h"
 
 #if defined(ENABLE_SSL) && defined(ENABLE_CRYPTO_POLARSSL)

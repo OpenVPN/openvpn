@@ -2,6 +2,12 @@
  * Support routine for configuring link layer address 
  */
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#elif defined(_MSC_VER)
+#include "config-msvc.h"
+#endif
+
 #include "syshead.h"
 #include "error.h"
 #include "misc.h"
