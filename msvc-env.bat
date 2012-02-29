@@ -23,7 +23,9 @@ if "%OPENVPN_DEPROOT%" == "" set OPENVPN_DEPROOT=c:\Temp\openvpn-deps
 if "%OPENSSL_HOME%" == "" set OPENSSL_HOME=%OPENVPN_DEPROOT%
 if "%LZO_HOME%" == "" set LZO_HOME=%OPENVPN_DEPROOT%
 if "%PKCS11H_HOME%" == "" set PKCS11H_HOME=%OPENVPN_DEPROOT%
+if "%TAP_WINDOWS_HOME%" == "" set TAP_WINDOWS_HOME=%OPENVPN_DEPROOT%
 
 if not exist "%OPENSSL_HOME%" echo WARNING: openssl '%OPENSSL_HOME%' does not exist
 if not exist "%LZO_HOME%" echo WARNING: lzo '%LZO_HOME%' does not exist
 if not exist "%PKCS11H_HOME%" echo WARNING: pkcs11-helper '%PKCS11H_HOME%' does not exist
+if not exist "%TAP_WINDOWS_HOME%" echo WARNING: tap-windows '%TAP_WINDOWS_HOME%' does not exist

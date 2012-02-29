@@ -12,6 +12,4 @@
 MAINTAINERCLEANFILES = \
 	$(srcdir)/Makefile.in
 
-dist_noinst_HEADERS = tap-windows.h
-
 include_HEADERS = openvpn-plugin.h

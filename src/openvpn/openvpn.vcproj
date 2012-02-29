@@ -41,7 +41,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="$(SOURCEBASE);$(SOURCEBASE)/src/compat;$(SOURCEBASE)/include;$(OPENSSL_HOME)/include;$(LZO_HOME)/include;$(PKCS11H_HOME)/include"
+				AdditionalIncludeDirectories="$(SOURCEBASE);$(SOURCEBASE)/src/compat;$(SOURCEBASE)/include;$(TAP_WINDOWS_HOME)/include;$(OPENSSL_HOME)/include;$(LZO_HOME)/include;$(PKCS11H_HOME)/include"
 				PreprocessorDefinitions="WIN32;_DEBUG;_CONSOLE;$(CPPFLAGS)"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
@@ -118,7 +118,7 @@
 				Name="VCCLCompilerTool"
 				Optimization="2"
 				EnableIntrinsicFunctions="true"
-				AdditionalIncludeDirectories="$(SOURCEBASE);$(SOURCEBASE)/src/compat;$(SOURCEBASE)/include;$(OPENSSL_HOME)/include;$(LZO_HOME)/include;$(PKCS11H_HOME)/include"
+				AdditionalIncludeDirectories="$(SOURCEBASE);$(SOURCEBASE)/src/compat;$(SOURCEBASE)/include;$(TAP_WINDOWS_HOME)/include;$(OPENSSL_HOME)/include;$(LZO_HOME)/include;$(PKCS11H_HOME)/include"
 				PreprocessorDefinitions="WIN32;NDEBUG;_CONSOLE;$(CPPFLAGS)"
 				RuntimeLibrary="2"
 				EnableFunctionLevelLinking="true"

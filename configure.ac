@@ -666,6 +666,18 @@ PKG_CHECK_MODULES(
 	)]
 )
 
+AC_ARG_VAR([TAP_WINDOWS_CFLAGS], [C compiler flags for TAP-Windows])
+if test "${WIN32}" = "yes"; then
+	old_CFLAGS="${CFLAGS}"
+	CFLAGS="${CFLAGS} ${TAP_WINDOWS_CFLAGS}"
+	AC_CHECK_HEADERS(
+		[tap-windows.h],
+		,
+		[AC_MSG_ERROR([tap-windows.h is required but missing])]
+	)
+	CFLAGS="${old_CFLAGS}"
+fi
+
 if test "${have_openssl_crypto}" = "yes"; then
 	saved_CFLAGS="${CFLAGS}"
 	saved_LIBS="${LIBS}"
