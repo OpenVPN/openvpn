@@ -260,7 +260,7 @@ struct options
   const char *ifconfig_ipv6_remote;
   bool ifconfig_noexec;
   bool ifconfig_nowarn;
-#ifdef HAVE_GETTIMEOFDAY
+#ifdef ENABLE_FEATURE_SHAPER
   int shaper;
 #endif
 
@@ -680,7 +680,7 @@ struct options
 #define ROUTE_OPTION_FLAGS(o) (0)
 #endif
 
-#ifdef HAVE_GETTIMEOFDAY
+#ifdef ENABLE_FEATURE_SHAPER
 #define SHAPER_DEFINED(opt) ((opt)->shaper)
 #else
 #define SHAPER_DEFINED(opt) (false)

@@ -27,7 +27,7 @@
 
 /*#define SHAPER_DEBUG*/
 
-#ifdef HAVE_GETTIMEOFDAY
+#ifdef ENABLE_FEATURE_SHAPER
 
 #include "basic.h"
 #include "integer.h"
@@ -173,6 +173,6 @@ shaper_change_pct (struct shaper *s, int pct)
 }
 #endif
 
-#endif /* HAVE_GETTIMEOFDAY */
+#endif /* ENABLE_FEATURE_SHAPER */
 
 #endif

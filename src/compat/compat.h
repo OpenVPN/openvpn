@@ -25,6 +25,15 @@
 #ifndef COMPAT_H
 #define COMPAT_H
 
+#ifdef HAVE_WINSOCK2_H
+/* timeval */
+#include <winsock2.h>
+#endif
+
+#ifdef HAVE_SYS_TIME_H
+#include <sys/time.h>
+#endif
+
 #ifndef HAVE_DIRNAME
 char * dirname(char *str);
 #endif /* HAVE_DIRNAME */
@@ -32,5 +41,9 @@ char * dirname(char *str);
 #ifndef HAVE_BASENAME
 char * basename(char *str);
 #endif /* HAVE_BASENAME */
+
+#ifndef HAVE_GETTIMEOFDAY
+int gettimeofday (struct timeval *tv, void *tz);
+#endif
 
 #endif /* COMPAT_H */

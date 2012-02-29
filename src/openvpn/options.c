@@ -1455,7 +1455,7 @@ show_settings (const struct options *o)
   SHOW_INT (ifconfig_ipv6_netbits);
   SHOW_STR (ifconfig_ipv6_remote);
 
-#ifdef HAVE_GETTIMEOFDAY
+#ifdef ENABLE_FEATURE_SHAPER
   SHOW_INT (shaper);
 #endif
 #ifdef ENABLE_OCC
@@ -4833,7 +4833,7 @@ add_option (struct options *options,
     }
   else if (streq (p[0], "shaper") && p[1])
     {
-#ifdef HAVE_GETTIMEOFDAY
+#ifdef ENABLE_FEATURE_SHAPER
       int shaper;
 
       VERIFY_PERMISSION (OPT_P_SHAPER);
@@ -4845,11 +4845,11 @@ add_option (struct options *options,
 	  goto err;
 	}
       options->shaper = shaper;
-#else /* HAVE_GETTIMEOFDAY */
+#else /* ENABLE_FEATURE_SHAPER */
       VERIFY_PERMISSION (OPT_P_GENERAL);
       msg (msglevel, "--shaper requires the gettimeofday() function which is missing");
       goto err;
-#endif /* HAVE_GETTIMEOFDAY */
+#endif /* ENABLE_FEATURE_SHAPER */
     }
   else if (streq (p[0], "port") && p[1])
     {

@@ -36,7 +36,7 @@
 
 time_t now = 0;            /* GLOBAL */
 
-#if TIME_BACKTRACK_PROTECTION && defined(HAVE_GETTIMEOFDAY)
+#if TIME_BACKTRACK_PROTECTION
 
 static time_t now_adj = 0; /* GLOBAL */
 time_t now_usec = 0;       /* GLOBAL */
@@ -76,7 +76,7 @@ update_now_usec (struct timeval *tv)
     now_usec = tv->tv_usec;
 }
 
-#endif /* TIME_BACKTRACK_PROTECTION && defined(HAVE_GETTIMEOFDAY) */
+#endif /* TIME_BACKTRACK_PROTECTION */
 
 /* 
  * Return a numerical string describing a struct timeval.
@@ -120,13 +120,7 @@ time_string (time_t t, int usec, bool show_usec, struct gc_arena *gc)
     }
   else
     {
-#ifdef HAVE_GETTIMEOFDAY
-      if (gettimeofday (&tv, NULL))
-#endif
-	{
-	  tv.tv_sec = time (NULL);
-	  tv.tv_usec = 0;
-	}
+      gettimeofday (&tv, NULL);
     }
 
   t = tv.tv_sec;
@@ -184,78 +178,6 @@ frequency_limit_event_allowed (struct frequency_limit *f)
   else
     return true;
 }
-
-#ifdef WIN32
-
-static time_t gtc_base = 0;
-static DWORD gtc_last = 0;
-static time_t last_sec = 0;
-static unsigned int last_msec = 0;
-static bool bt_last = false;
-
-static void
-gettimeofday_calibrate (void)
-{
-  const time_t t = time(NULL);
-  const DWORD gtc = GetTickCount();
-  gtc_base = t - gtc/1000;
-  gtc_last = gtc;
-}
-
-/*
- * Rewritten by JY for OpenVPN 2.1, after I realized that
- * QueryPerformanceCounter takes nearly 2 orders of magnitude
- * more processor cycles than GetTickCount.
- */
-int
-gettimeofday (struct timeval *tv, void *tz)
-{
-  const DWORD gtc = GetTickCount();
-  bool bt = false;
-  time_t sec;
-  unsigned int msec;
-  const int backtrack_hold_seconds = 10;
-
-  /* recalibrate at the dreaded 49.7 day mark */
-  if (!gtc_base || gtc < gtc_last)
-    gettimeofday_calibrate ();
-  gtc_last = gtc;
-
-  sec = gtc_base + gtc / 1000;
-  msec = gtc % 1000;
-
-  if (sec == last_sec)
-    {
-      if (msec < last_msec)
-	{
-	  msec = last_msec;
-	  bt = true;
-	}
-    }
-  else if (sec < last_sec)
-    {
-      /* We try to dampen out backtracks of less than backtrack_hold_seconds.
-	 Larger backtracks will be passed through and dealt with by the
-	 TIME_BACKTRACK_PROTECTION code (if enabled) */
-      if (sec > last_sec - backtrack_hold_seconds)
-	{
-	  sec = last_sec;
-	  msec = last_msec;
-	}
-      bt = true;
-    }
-
-  tv->tv_sec = last_sec = sec;
-  tv->tv_usec = (last_msec = msec) * 1000;
-
-  if (bt && !bt_last)
-    gettimeofday_calibrate ();
-  bt_last = bt;
-
-  return 0;
-}
-
-#endif /* WIN32 */
 
 #ifdef TIME_TEST
 void

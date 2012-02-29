@@ -20,4 +20,5 @@ noinst_LTLIBRARIES = libcompat.la
 libcompat_la_SOURCES = \
 	compat.h \
 	compat-dirname.c \
-	compat-basename.c
+	compat-basename.c \
+	compat-gettimeofday.c

@@ -32,7 +32,7 @@
 #include "shaper.h"
 #include "memdbg.h"
 
-#ifdef HAVE_GETTIMEOFDAY
+#ifdef ENABLE_FEATURE_SHAPER
 
 /*
  * We want to wake up in delay microseconds.  If timeval is larger
@@ -98,4 +98,4 @@ shaper_msg (struct shaper *s)
 
 #else
 static void dummy(void) {}
-#endif /* HAVE_GETTIMEOFDAY */
+#endif /* ENABLE_FEATURE_SHAPER */

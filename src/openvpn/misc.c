@@ -720,7 +720,6 @@ openvpn_popen (const struct argv *a,  const struct env_set *es)
 void
 init_random_seed(void)
 {
-#ifdef HAVE_GETTIMEOFDAY
   struct timeval tv;
 
   if (!gettimeofday (&tv, NULL))
@@ -728,10 +727,6 @@ init_random_seed(void)
       const unsigned int seed = (unsigned int) tv.tv_sec ^ tv.tv_usec;
       srandom (seed);
     }
-#else /* HAVE_GETTIMEOFDAY */
-  const time_t current = time (NULL);
-  srandom ((unsigned int)current);
-#endif /* HAVE_GETTIMEOFDAY */
 }
 
 /* thread-safe strerror */

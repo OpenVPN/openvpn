@@ -1180,7 +1180,7 @@ do_init_timers (struct context *c, bool deferred)
 static void
 do_init_traffic_shaper (struct context *c)
 {
-#ifdef HAVE_GETTIMEOFDAY
+#ifdef ENABLE_FEATURE_SHAPER
   /* initialize traffic shaper (i.e. transmit bandwidth limiter) */
   if (c->options.shaper)
     {
@@ -3056,7 +3056,7 @@ do_setup_fast_io (struct context *c)
 	msg (M_INFO, "NOTE: --fast-io is disabled since we are not using UDP");
       else
 	{
-#ifdef HAVE_GETTIMEOFDAY
+#ifdef ENABLE_FEATURE_SHAPER
 	  if (c->options.shaper)
 	    msg (M_INFO, "NOTE: --fast-io is disabled since we are using --shaper");
 	  else

@@ -541,7 +541,6 @@ m4_define(
 	[setsockopt getsockopt getsockname poll]dnl
 )
 if test "${WIN32}" = "yes"; then
-	AC_DEFINE([HAVE_GETTIMEOFDAY], [1], [We fake gettimeofday for win32 at otime.c])
 	m4_foreach(
 		[F],
 		m4_split(SOCKET_FUNCS SOCKET_OPT_FUNCS),

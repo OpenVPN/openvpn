@@ -269,7 +269,7 @@ struct context_2
   struct frame frame_fragment_omit;
 #endif
 
-#ifdef HAVE_GETTIMEOFDAY
+#ifdef ENABLE_FEATURE_SHAPER
   /*
    * Traffic shaper object.
    */

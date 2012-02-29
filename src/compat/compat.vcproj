@@ -158,6 +158,10 @@
 				RelativePath=".\compat-dirname.c"
 				>
 			</File>
+			<File
+				RelativePath=".\compat-gettimeofday.c"
+				>
+			</File>
 		</Filter>
 		<Filter
 			Name="Header Files"

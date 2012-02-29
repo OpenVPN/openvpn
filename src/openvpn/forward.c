@@ -1094,7 +1094,7 @@ process_outgoing_link (struct context *c)
 	   * Let the traffic shaper know how many bytes
 	   * we wrote.
 	   */
-#ifdef HAVE_GETTIMEOFDAY
+#ifdef ENABLE_FEATURE_SHAPER
 	  if (c->options.shaper)
 	    shaper_wrote_bytes (&c->c2.shaper, BLEN (&c->c2.to_link)
 				+ datagram_overhead (c->options.ce.proto));
@@ -1383,7 +1383,7 @@ io_wait_dowork (struct context *c, const unsigned int flags)
 	   * quota, don't send -- instead compute the delay we must wait
 	   * until it will be OK to send the packet.
 	   */
-#ifdef HAVE_GETTIMEOFDAY
+#ifdef ENABLE_FEATURE_SHAPER
 	  int delay = 0;
 
 	  /* set traffic shaping delay in microseconds */
@@ -1398,9 +1398,9 @@ io_wait_dowork (struct context *c, const unsigned int flags)
 	    {
 	      shaper_soonest_event (&c->c2.timeval, delay);
 	    }
-#else /* HAVE_GETTIMEOFDAY */
+#else /* ENABLE_FEATURE_SHAPER */
 	  socket |= EVENT_WRITE;
-#endif /* HAVE_GETTIMEOFDAY */
+#endif /* ENABLE_FEATURE_SHAPER */
 	}
       else
 	{

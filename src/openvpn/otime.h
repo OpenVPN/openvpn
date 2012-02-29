@@ -41,10 +41,6 @@ struct frequency_limit *frequency_limit_init (int max, int per);
 void frequency_limit_free (struct frequency_limit *f);
 bool frequency_limit_event_allowed (struct frequency_limit *f);
 
-#ifdef WIN32
-int gettimeofday(struct timeval *tv, void *tz);
-#endif
-
 /* format a time_t as ascii, or use current time if 0 */
 const char* time_string (time_t t, int usec, bool show_usec, struct gc_arena *gc);
 
@@ -57,7 +53,7 @@ extern time_t now; /* updated frequently to time(NULL) */
 
 void time_test (void);
 
-#if TIME_BACKTRACK_PROTECTION && defined(HAVE_GETTIMEOFDAY)
+#if TIME_BACKTRACK_PROTECTION
 
 void update_now (const time_t system_time);
 
@@ -89,12 +85,13 @@ update_time (void)
 #endif
 }
 
-#else /* !(TIME_BACKTRACK_PROTECTION && defined(HAVE_GETTIMEOFDAY)) */
+#else /* !TIME_BACKTRACK_PROTECTION */
 
 static inline void
 update_time (void)
 {
-#if defined(WIN32) && defined(HAVE_GETTIMEOFDAY)
+#if defined(WIN32)
+  /* on WIN32, gettimeofday is faster than time(NULL) */
   struct timeval tv;
   if (!gettimeofday (&tv, NULL))
     {
@@ -108,17 +105,13 @@ update_time (void)
 #endif
 }
 
-#ifdef HAVE_GETTIMEOFDAY
-
 static inline int
 openvpn_gettimeofday (struct timeval *tv, void *tz)
 {
   return gettimeofday (tv, tz);
 }
 
-#endif
-
-#endif /* TIME_BACKTRACK_PROTECTION && defined(HAVE_GETTIMEOFDAY) */
+#endif /* TIME_BACKTRACK_PROTECTION */
 
 static inline time_t
 openvpn_time (time_t *t)
