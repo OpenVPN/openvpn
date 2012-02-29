@@ -2282,8 +2282,10 @@ do_init_crypto_tls (struct context *c, const unsigned int flags)
   to.x509_track = options->x509_track;
 #endif
 
+#if P2MP
 #ifdef ENABLE_CLIENT_CR
   to.sci = &options->sc_info;
+#endif
 #endif
 
   /* TLS handshake authentication (--tls-auth) */
