@@ -17,7 +17,9 @@ MAINTAINERCLEANFILES = \
 EXTRA_DIST = \
 	openvpn.vcproj
 
-INCLUDES = -I$(top_srcdir)/include
+INCLUDES = \
+	-I$(top_srcdir)/include \
+	-I$(top_srcdir)/src/compat
 
 AM_CFLAGS = \
 	$(OPTIONAL_CRYPTO_CFLAGS) \
@@ -33,7 +35,6 @@ openvpn_SOURCES = \
 	circ_list.h \
 	clinat.c clinat.h \
 	common.h \
-	compat.h compat.c \
 	crypto.c crypto.h crypto_backend.h \
 	crypto_openssl.c crypto_openssl.h \
 	crypto_polarssl.c crypto_polarssl.h \
@@ -104,6 +105,7 @@ openvpn_SOURCES = \
 	win32.h win32.c \
 	cryptoapi.h cryptoapi.c
 openvpn_LDADD = \
+	$(top_builddir)/src/compat/libcompat.la \
 	$(SOCKETS_LIBS) \
 	$(OPTIONAL_LZO_LIBS) \
 	$(OPTIONAL_PKCS11_HELPER_LIBS) \

@@ -25,10 +25,6 @@
 #ifndef COMPAT_H
 #define COMPAT_H
 
-#if defined(HAVE_BASENAME) || defined(HAVE_DIRNAME)
-#include <libgen.h>
-#endif
-
 #ifndef HAVE_DIRNAME
 char * dirname(char *str);
 #endif /* HAVE_DIRNAME */

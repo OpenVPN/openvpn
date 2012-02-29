@@ -13,6 +13,11 @@ MAINTAINERCLEANFILES = \
 	$(srcdir)/Makefile.in
 
 EXTRA_DIST = \
-	plugins
+	compat.vcproj
 
-SUBDIRS = compat openvpn openvpnserv
+noinst_LTLIBRARIES = libcompat.la
+
+libcompat_la_SOURCES = \
+	compat.h \
+	compat-dirname.c \
+	compat-basename.c

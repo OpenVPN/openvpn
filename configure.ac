@@ -365,7 +365,7 @@ AC_CHECK_HEADERS([ \
 AC_CHECK_HEADERS([ \
 	sys/time.h sys/un.h sys/ioctl.h sys/stat.h \
 	sys/mman.h sys/file.h \
-	unistd.h signal.h  \
+	unistd.h signal.h libgen.h \
 	syslog.h pwd.h grp.h \
 	net/if_tun.h net/tun/if_tun.h stropts.h \
 	sys/sockio.h \
@@ -914,6 +914,7 @@ AC_CONFIG_FILES([
 	distro/rpm/openvpn.spec
 	include/Makefile
 	src/Makefile
+	src/compat/Makefile
 	src/openvpn/Makefile
 	src/openvpnserv/Makefile
 	tests/Makefile

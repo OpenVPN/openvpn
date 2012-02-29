@@ -28,12 +28,12 @@
 #include "config-msvc.h"
 #endif
 
-#include "syshead.h"
+
+#ifndef HAVE_DIRNAME
+
 #include "compat.h"
 #include <string.h>
 
-
-#ifndef HAVE_DIRNAME
 /* Unoptimised version of glibc memrchr().
  * This is considered fast enough, as only this compat
  * version of dirname() depends on it.
@@ -115,21 +115,5 @@ dirname (char *path)
 
   return path;
 }
+
 #endif /* HAVE_DIRNAME */
-
-
-#ifndef HAVE_BASENAME
-/* Modified version based on glibc-2.14.1 by Roland McGrath <roland@gnu.org>
- * This version is extended to handle both / and \ in path names
- */
-char *
-basename (char *filename)
-{
-  char *p = strrchr (filename, '/');
-  if (!p) {
-    /* If NULL, check for \ instead ... might be Windows a path */
-    p = strrchr (filename, '\\');
-  }
-  return p ? p + 1 : (char *) filename;
-}
-#endif /* HAVE_BASENAME */

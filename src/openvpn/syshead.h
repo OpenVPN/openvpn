@@ -181,6 +181,10 @@
 #include <selinux/selinux.h>
 #endif
 
+#if defined(HAVE_LIBGEN_H)
+#include <libgen.h>
+#endif
+
 #ifdef TARGET_SOLARIS
 #ifdef HAVE_STRINGS_H
 #include <strings.h>
