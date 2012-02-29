@@ -101,7 +101,6 @@ and portability to most major OS platforms.
 %build
 %configure --disable-dependency-tracking %{?with_password_save:--enable-password-save} %{?without_lzo:--disable-lzo} %{?with_kerberos:--with-ssl-headers=/usr/kerberos/include}
 %__make
-%__strip %{name}
 
 # Build down-root plugin
 pushd plugin/down-root
