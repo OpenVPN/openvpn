@@ -4492,7 +4492,7 @@ dhcp_masq_addr (const in_addr_t local, const in_addr_t netmask, const int offset
     msg (M_FATAL, "ERROR: There is a clash between the --ifconfig local address and the internal DHCP server address -- both are set to %s -- please use the --ip-win32 dynamic option to choose a different free address from the --ifconfig subnet for the internal DHCP server", print_in_addr_t (dsa, 0, &gc));
 
   if ((local & netmask) != (dsa & netmask))
-    msg (M_FATAL, "ERROR: --tap-win32 dynamic [offset] : offset is outside of --ifconfig subnet");
+    msg (M_FATAL, "ERROR: --ip-win32 dynamic [offset] : offset is outside of --ifconfig subnet");
 
   gc_free (&gc);
   return htonl(dsa);
