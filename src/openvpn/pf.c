@@ -504,8 +504,8 @@ pf_check_reload (struct context *c)
       && c->c2.pf.filename
       && event_timeout_trigger (&c->c2.pf.reload, &c->c2.timeval, ETT_DEFAULT))
     {
-      openvpn_stat_t s;
-      if (!openvpn_stat (c->c2.pf.filename, &s))
+      platform_stat_t s;
+      if (!platform_stat (c->c2.pf.filename, &s))
 	{
 	  if (s.st_mtime > c->c2.pf.file_last_mod)
 	    {
@@ -605,7 +605,7 @@ pf_destroy_context (struct pf_context *pfc)
 #ifdef PLUGIN_PF
   if (pfc->filename)
     {
-      delete_file (pfc->filename);
+      platform_unlink (pfc->filename);
       free (pfc->filename);
     }
 #endif

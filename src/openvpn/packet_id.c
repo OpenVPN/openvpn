@@ -368,7 +368,7 @@ packet_id_persist_load (struct packet_id_persist *p, const char *filename)
   if (!packet_id_persist_enabled (p))
     {
       /* open packet-id persist file for both read and write */
-      p->fd = openvpn_open (filename,
+      p->fd = platform_open (filename,
                             O_CREAT | O_RDWR | O_BINARY,
                             S_IRUSR | S_IWUSR);
       if (p->fd == -1)

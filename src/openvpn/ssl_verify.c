@@ -517,7 +517,7 @@ verify_cert_call_command(const char *verify_command, struct env_set *es,
   if (verify_export_cert)
     {
        if (tmp_file)
-          delete_file(tmp_file);
+          platform_unlink(tmp_file);
     }
 
   gc_free(&gc);
@@ -551,7 +551,7 @@ verify_check_crl_dir(const char *crl_dir, openvpn_x509_cert_t *cert)
       x509_free_serial(serial);
       return FAILURE;
     }
-  fd = openvpn_open (fn, O_RDONLY, 0);
+  fd = platform_open (fn, O_RDONLY, 0);
   if (fd >= 0)
     {
       msg (D_HANDSHAKE, "VERIFY CRL: certificate serial number %s is revoked", serial);
@@ -735,7 +735,7 @@ key_state_rm_auth_control_file (struct key_state *ks)
 {
   if (ks && ks->auth_control_file)
     {
-      delete_file (ks->auth_control_file);
+      platform_unlink (ks->auth_control_file);
       free (ks->auth_control_file);
       ks->auth_control_file = NULL;
     }
@@ -987,7 +987,7 @@ verify_user_pass_script (struct tls_session *session, const struct user_pass *up
 
  done:
   if (tmp_file && strlen (tmp_file) > 0)
-    delete_file (tmp_file);
+    platform_unlink (tmp_file);
 
   argv_reset (&argv);
   gc_free (&gc);

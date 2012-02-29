@@ -1146,7 +1146,7 @@ man_dispatch_command (struct management *man, struct status_output *so, const ch
     }
   else if (streq (p[0], "pid"))
     {
-      msg (M_CLIENT, "SUCCESS: pid=%d", openvpn_getpid ());
+      msg (M_CLIENT, "SUCCESS: pid=%d", platform_getpid ());
     }
 #ifdef MANAGEMENT_DEF_AUTH
   else if (streq (p[0], "nclients"))
@@ -1429,7 +1429,7 @@ man_record_peer_info (struct management *man)
 	    {
 	      const in_addr_t a = ntohl (addr.sin_addr.s_addr);
 	      const int p = ntohs (addr.sin_port);
-	      FILE *fp = openvpn_fopen (man->settings.write_peer_info_file, "w");
+	      FILE *fp = platform_fopen (man->settings.write_peer_info_file, "w");
 	      if (fp)
 		{
 		  fprintf (fp, "%s\n%d\n", print_in_addr_t (a, 0, &gc), p);
@@ -2013,17 +2013,17 @@ man_settings_init (struct man_settings *ms,
        */
       if (client_user)
 	{
-	  struct user_state s;
-	  get_user (client_user, &s);
-	  ms->client_uid = user_state_uid (&s);
+	  struct platform_state_user s;
+	  platform_user_get (client_user, &s);
+	  ms->client_uid = platform_state_user_uid (&s);
 	  msg (D_MANAGEMENT, "MANAGEMENT: client_uid=%d", ms->client_uid);
 	  ASSERT (ms->client_uid >= 0);
 	}
       if (client_group)
 	{
-	  struct group_state s;
-	  get_group (client_group, &s);
-	  ms->client_gid = group_state_gid (&s);
+	  struct platform_state_group s;
+	  platform_group_get (client_group, &s);
+	  ms->client_gid = platform_state_group_gid (&s);
 	  msg (D_MANAGEMENT, "MANAGEMENT: client_gid=%d", ms->client_gid);
 	  ASSERT (ms->client_gid >= 0);
 	}

@@ -1452,7 +1452,7 @@ multi_client_connect_post (struct multi_context *m,
 			     option_types_found,
 			     mi->context.c2.es);
 
-      if (!delete_file (dc_file))
+      if (!platform_unlink (dc_file))
 	msg (D_MULTI_ERRORS, "MULTI: problem deleting temporary file: %s",
 	     dc_file);
 

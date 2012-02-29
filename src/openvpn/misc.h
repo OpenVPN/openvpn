@@ -29,6 +29,7 @@
 #include "common.h"
 #include "integer.h"
 #include "buffer.h"
+#include "platform.h"
 
 /* socket descriptor passed by inetd/xinetd server to us */
 #define INETD_SOCKET_DESCRIPTOR 0
@@ -58,37 +59,6 @@ struct env_set {
   struct env_item *list;
 };
 
-/* Get/Set UID of process */
-
-struct user_state {
-#if defined(HAVE_GETPWNAM) && defined(HAVE_SETUID)
-  const char *username;
-  struct passwd *pw;
-#else
-  int dummy;
-#endif
-};
-
-bool get_user (const char *username, struct user_state *state);
-void set_user (const struct user_state *state);
-
-/* Get/Set GID of process */
-
-struct group_state {
-#if defined(HAVE_GETGRNAM) && defined(HAVE_SETGID)
-  const char *groupname;
-  struct group *gr;
-#else
-  int dummy;
-#endif
-};
-
-bool get_group (const char *groupname, struct group_state *state);
-void set_group (const struct group_state *state);
-
-void set_nice (int niceval);
-void do_chroot (const char *path);
-
 void run_up_down (const char *command,
 		  const struct plugin_list *plugins,
 		  int plugin_type,
@@ -111,9 +81,6 @@ struct pid_state {
 
 void get_pid_file (const char* filename, struct pid_state *state);
 void write_pid (const struct pid_state *state);
-unsigned int openvpn_getpid (void);
-
-void do_mlockall (bool print_msg); /* Disable paging */
 
 /* check file protections */
 void warn_if_group_others_accessible(const char* filename);
@@ -122,9 +89,6 @@ void warn_if_group_others_accessible(const char* filename);
 #define S_SCRIPT (1<<0)
 #define S_FATAL  (1<<1)
 
-/* interpret the status code returned by system()/execve() */
-bool system_ok(int);
-bool system_executed (int stat);
 const char *system_error_message (int, struct gc_arena *gc);
 
 /* wrapper around the execve() call */
@@ -133,7 +97,6 @@ int openvpn_execve (const struct argv *a, const struct env_set *es, const unsign
 bool openvpn_execve_check (const struct argv *a, const struct env_set *es, const unsigned int flags, const char *error_message);
 bool openvpn_execve_allowed (const unsigned int flags);
 int openvpn_system (const char *command, const struct env_set *es, unsigned int flags);
-int openvpn_access (const char *path, int mode);
 
 static inline bool
 openvpn_run_script (const struct argv *a, const struct env_set *es, const unsigned int flags, const char *hook)
@@ -144,37 +107,6 @@ openvpn_run_script (const struct argv *a, const struct env_set *es, const unsign
   return openvpn_execve_check(a, es, flags | S_SCRIPT, msg);
 }
 
-#ifdef WIN32
-FILE * openvpn_fopen (const char *path, const char *mode);
-#else
-static inline FILE *
-openvpn_fopen (const char *path, const char *mode)
-{
-  return fopen (path, mode);
-}
-#endif
-
-#ifdef WIN32
-int openvpn_open (const char *path, int flags, int mode);
-#else
-static inline int
-openvpn_open (const char *path, int flags, mode_t mode)
-{
-  return open (path, flags, mode);
-}
-#endif
-
-#ifdef WIN32
-typedef struct _stat openvpn_stat_t;
-int openvpn_stat (const char *path, openvpn_stat_t *buf);
-#else
-typedef struct stat openvpn_stat_t;
-static inline int
-openvpn_stat (const char *path, openvpn_stat_t *buf)
-{
-  return stat (path, buf);
-}
-#endif
 
 #ifdef HAVE_STRERROR
 /* a thread-safe version of strerror */
@@ -183,9 +115,6 @@ const char* strerror_ts (int errnum, struct gc_arena *gc);
 
 /* Set standard file descriptors to /dev/null */
 void set_std_files_to_null (bool stdin_only);
-
-/* Wrapper for chdir library function */
-int openvpn_chdir (const char* dir);
 
 /* dup inetd/xinetd socket descriptor and save */
 extern int inetd_socket_descriptor;
@@ -242,12 +171,6 @@ const char **make_extended_arg_array (char **p, struct gc_arena *gc);
 int count_netmask_bits(const char *);
 unsigned int count_bits(unsigned int );
 
-/* go to sleep for n milliseconds */
-void sleep_milliseconds (unsigned int n);
-
-/* go to sleep indefinitely */
-void sleep_until_signal (void);
-
 /* an analogue to the random() function, but use OpenSSL functions if available */
 #ifdef ENABLE_CRYPTO
 long int get_random(void);
@@ -263,9 +186,6 @@ const char *create_temp_file (const char *directory, const char *prefix, struct 
 
 /* put a directory and filename together */
 const char *gen_path (const char *directory, const char *filename, struct gc_arena *gc);
-
-/* delete a file, return true if succeeded */
-bool delete_file (const char *filename);
 
 /* return true if pathname is absolute */
 bool absolute_pathname (const char *pathname);
@@ -447,29 +367,5 @@ void argv_printf_cat (struct argv *a, const char *format, ...)
 #endif
 #endif
   ;
-
-/*
- * Extract UID or GID
- */
-
-static inline int
-user_state_uid (const struct user_state *s)
-{
-#if defined(HAVE_GETPWNAM) && defined(HAVE_SETUID)
-  if (s->pw)
-    return s->pw->pw_uid;
-#endif
-  return -1;
-}
-
-static inline int
-group_state_gid (const struct group_state *s)
-{
-#if defined(HAVE_GETGRNAM) && defined(HAVE_SETGID)
-  if (s->gr)
-    return s->gr->gr_gid;
-#endif
-  return -1;
-}
 
 #endif

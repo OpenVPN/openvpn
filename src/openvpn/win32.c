@@ -976,33 +976,6 @@ wide_string (const char* utf8, struct gc_arena *gc)
   return ucs16;
 }
 
-FILE *
-openvpn_fopen (const char *path, const char *mode)
-{
-  struct gc_arena gc = gc_new ();
-  FILE *f = _wfopen (wide_string (path, &gc), wide_string (mode, &gc));
-  gc_free (&gc);
-  return f;
-}
-
-int
-openvpn_open (const char *path, int flags, int mode)
-{
-  struct gc_arena gc = gc_new ();
-  int fd = _wopen (wide_string (path, &gc), flags, mode);
-  gc_free (&gc);
-  return fd;
-}
-
-int
-openvpn_stat (const char *path, openvpn_stat_t *buf)
-{
-  struct gc_arena gc = gc_new ();
-  int res = _wstat (wide_string (path, &gc), buf);
-  gc_free (&gc);
-  return res;
-}
-
 /*
  * call ourself in another process
  */

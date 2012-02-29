@@ -640,7 +640,7 @@ x_check_status (int status,
 		 my_errno);
 
 	  if (x_cs_err_delay_ms)
-	    sleep_milliseconds (x_cs_err_delay_ms);
+	    platform_sleep_milliseconds (x_cs_err_delay_ms);
 	}
       gc_free (&gc);
     }

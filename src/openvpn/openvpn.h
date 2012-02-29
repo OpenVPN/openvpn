@@ -143,8 +143,8 @@ struct context_0
   /* workspace for --user/--group */
   bool uid_gid_specified;
   bool uid_gid_set;
-  struct user_state user_state;
-  struct group_state group_state;
+  struct platform_state_user platform_state_user;
+  struct platform_state_group platform_state_group;
 };
 
 

@@ -1545,22 +1545,22 @@ tuncfg (const char *dev, const char *dev_type, const char *dev_node, int persist
     msg (M_ERR, "Cannot ioctl TUNSETPERSIST(%d) %s", persist_mode, dev);
   if (username != NULL)
     {
-      struct user_state user_state;
+      struct platform_state_user platform_state_user;
 
-      if (!get_user (username, &user_state))
+      if (!platform_user_get (username, &platform_state_user))
         msg (M_ERR, "Cannot get user entry for %s", username);
       else
-        if (ioctl (tt->fd, TUNSETOWNER, user_state.pw->pw_uid) < 0)
+        if (ioctl (tt->fd, TUNSETOWNER, platform_state_user.pw->pw_uid) < 0)
           msg (M_ERR, "Cannot ioctl TUNSETOWNER(%s) %s", username, dev);
     }
   if (groupname != NULL)
     {
-      struct group_state group_state;
+      struct platform_state_group platform_state_group;
 
-      if (!get_group (groupname, &group_state))
+      if (!platform_group_get (groupname, &platform_state_group))
         msg (M_ERR, "Cannot get group entry for %s", groupname);
       else
-        if (ioctl (tt->fd, TUNSETGROUP, group_state.gr->gr_gid) < 0)
+        if (ioctl (tt->fd, TUNSETGROUP, platform_state_group.gr->gr_gid) < 0)
           msg (M_ERR, "Cannot ioctl TUNSETOWNER(%s) %s", groupname, dev);
     }
   close_tun (tt);

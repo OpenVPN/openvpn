@@ -56,122 +56,6 @@ int script_security = SSEC_BUILT_IN; /* GLOBAL */
 /* contains SM_x value defined in misc.h */
 int script_method = SM_EXECVE; /* GLOBAL */
 
-/* Redefine the top level directory of the filesystem
-   to restrict access to files for security */
-void
-do_chroot (const char *path)
-{
-  if (path)
-    {
-#ifdef HAVE_CHROOT
-      const char *top = "/";
-      if (chroot (path))
-	msg (M_ERR, "chroot to '%s' failed", path);
-      if (openvpn_chdir (top))
-	msg (M_ERR, "cd to '%s' failed", top);
-      msg (M_INFO, "chroot to '%s' and cd to '%s' succeeded", path, top);
-#else
-      msg (M_FATAL, "Sorry but I can't chroot to '%s' because this operating system doesn't appear to support the chroot() system call", path);
-#endif
-    }
-}
-
-/* Get/Set UID of process */
-
-bool
-get_user (const char *username, struct user_state *state)
-{
-  bool ret = false;
-  CLEAR (*state);
-  if (username)
-    {
-#if defined(HAVE_GETPWNAM) && defined(HAVE_SETUID)
-      state->pw = getpwnam (username);
-      if (!state->pw)
-	msg (M_ERR, "failed to find UID for user %s", username);
-      state->username = username;
-      ret = true;
-#else
-      msg (M_FATAL, "cannot get UID for user %s -- platform lacks getpwname() or setuid() system calls", username);
-#endif
-    }
-  return ret;
-}
-
-void
-set_user (const struct user_state *state)
-{
-#if defined(HAVE_GETPWNAM) && defined(HAVE_SETUID)
-  if (state->username && state->pw)
-    {
-      if (setuid (state->pw->pw_uid))
-	msg (M_ERR, "setuid('%s') failed", state->username);
-      msg (M_INFO, "UID set to %s", state->username);
-    }
-#endif
-}
-
-/* Get/Set GID of process */
-
-bool
-get_group (const char *groupname, struct group_state *state)
-{
-  bool ret = false;
-  CLEAR (*state);
-  if (groupname)
-    {
-#if defined(HAVE_GETGRNAM) && defined(HAVE_SETGID)
-      state->gr = getgrnam (groupname);
-      if (!state->gr)
-	msg (M_ERR, "failed to find GID for group %s", groupname);
-      state->groupname = groupname;
-      ret = true;
-#else
-      msg (M_FATAL, "cannot get GID for group %s -- platform lacks getgrnam() or setgid() system calls", groupname);
-#endif
-    }
-  return ret;
-}
-
-void
-set_group (const struct group_state *state)
-{
-#if defined(HAVE_GETGRNAM) && defined(HAVE_SETGID)
-  if (state->groupname && state->gr)
-    {
-      if (setgid (state->gr->gr_gid))
-	msg (M_ERR, "setgid('%s') failed", state->groupname);
-      msg (M_INFO, "GID set to %s", state->groupname);
-#ifdef HAVE_SETGROUPS
-      {
-        gid_t gr_list[1];
-	gr_list[0] = state->gr->gr_gid;
-	if (setgroups (1, gr_list))
-	  msg (M_ERR, "setgroups('%s') failed", state->groupname);
-      }
-#endif
-    }
-#endif
-}
-
-/* Change process priority */
-void
-set_nice (int niceval)
-{
-  if (niceval)
-    {
-#ifdef HAVE_NICE
-      errno = 0;
-      if (nice (niceval) < 0 && errno != 0)
-	msg (M_WARN | M_ERRNO, "WARNING: nice %d failed: %s", niceval, strerror(errno));
-      else
-	msg (M_INFO, "nice %d succeeded", niceval);
-#else
-      msg (M_WARN, "WARNING: nice %d failed (function not implemented)", niceval);
-#endif
-    }
-}
-
 /*
  * Pass tunnel endpoint and MTU parms to a user-supplied script.
  * Used to execute the up/down script/plugins.
@@ -253,7 +137,7 @@ get_pid_file (const char* filename, struct pid_state *state)
   CLEAR (*state);
   if (filename)
     {
-      state->fp = openvpn_fopen (filename, "w");
+      state->fp = platform_fopen (filename, "w");
       if (!state->fp)
 	msg (M_ERR, "Open error on pid file %s", filename);
       state->filename = filename;
@@ -266,40 +150,11 @@ write_pid (const struct pid_state *state)
 {
   if (state->filename && state->fp)
     {
-      unsigned int pid = openvpn_getpid (); 
+      unsigned int pid = platform_getpid (); 
       fprintf(state->fp, "%u\n", pid);
       if (fclose (state->fp))
 	msg (M_ERR, "Close error on pid file %s", state->filename);
     }
-}
-
-/* Get current PID */
-unsigned int
-openvpn_getpid ()
-{
-#ifdef WIN32
-  return (unsigned int) GetCurrentProcessId ();
-#else
-#ifdef HAVE_GETPID
-  return (unsigned int) getpid ();
-#else
-  return 0;
-#endif
-#endif
-}
-
-/* Disable paging */
-void
-do_mlockall(bool print_msg)
-{
-#ifdef HAVE_MLOCKALL
-  if (mlockall (MCL_CURRENT | MCL_FUTURE))
-    msg (M_WARN | M_ERRNO, "WARNING: mlockall call failed");
-  else if (print_msg)
-    msg (M_INFO, "mlockall call succeeded");
-#else
-  msg (M_WARN, "WARNING: mlockall call failed (function not implemented)");
-#endif
 }
 
 /*
@@ -321,27 +176,6 @@ set_std_files_to_null (bool stdin_only)
       if (fd > 2)
 	close (fd);
     }
-#endif
-}
-
-/*
- * Wrapper for chdir library function
- */
-int
-openvpn_chdir (const char* dir)
-{
-#ifdef HAVE_CHDIR
-#ifdef WIN32
-  int res;
-  struct gc_arena gc = gc_new ();
-  res = _wchdir (wide_string (dir, &gc));
-  gc_free (&gc);
-  return res;
-#else
-  return chdir (dir);
-#endif
-#else
-  return -1;
 #endif
 }
 
@@ -391,32 +225,6 @@ warn_if_group_others_accessible (const char* filename)
 }
 
 /*
- * convert system() return into a success/failure value
- */
-bool
-system_ok (int stat)
-{
-#ifdef WIN32
-  return stat == 0;
-#else
-  return stat != -1 && WIFEXITED (stat) && WEXITSTATUS (stat) == 0;
-#endif
-}
-
-/*
- * did system() call execute the given command?
- */
-bool
-system_executed (int stat)
-{
-#ifdef WIN32
-  return stat != -1;
-#else
-  return stat != -1 && WEXITSTATUS (stat) != 127;
-#endif
-}
-
-/*
  * Print an error message based on the status code returned by system().
  */
 const char *
@@ -456,7 +264,7 @@ openvpn_execve_check (const struct argv *a, const struct env_set *es, const unsi
   const int stat = openvpn_execve (a, es, flags);
   int ret = false;
 
-  if (system_ok (stat))
+  if (platform_system_ok (stat))
     ret = true;
   else
     {
@@ -554,7 +362,6 @@ openvpn_system (const char *command, const struct env_set *es, unsigned int flag
 {
 #ifdef HAVE_SYSTEM
   int ret;
-  struct gc_arena gc;
 
   perf_push (PERF_SCRIPT);
 
@@ -573,13 +380,7 @@ openvpn_system (const char *command, const struct env_set *es, unsigned int flag
   /*
    * execute the command
    */
-#ifdef WIN32
-  gc = gc_new ();
-  ret = _wsystem (wide_string (command, &gc));
-  gc_free (&gc);
-#else
-  ret = system (command);
-#endif
+  ret = platform_system(command);
 
   /* debugging */
   dmsg (D_SCRIPT, "SYSTEM return=%u", ret);
@@ -596,19 +397,6 @@ openvpn_system (const char *command, const struct env_set *es, unsigned int flag
 #else
   msg (M_FATAL, "Sorry but I can't execute the shell command '%s' because this operating system doesn't appear to support the system() call", command);
   return -1; /* NOTREACHED */
-#endif
-}
-
-int
-openvpn_access (const char *path, int mode)
-{
-#ifdef WIN32
-  struct gc_arena gc = gc_new ();
-  int ret = _waccess (wide_string (path, &gc), mode);
-  gc_free (&gc);
-  return ret;
-#else
-  return access (path, mode);
 #endif
 }
 
@@ -981,7 +769,7 @@ env_set_remove_from_environment (const struct env_set *es)
 
 static struct env_item *global_env = NULL; /* GLOBAL */
 
-static void
+void
 manage_env (char *str)
 {
   remove_env_item (str, true, &global_env);
@@ -1078,27 +866,11 @@ setenv_str_ex (struct env_set *es,
     }
   else
     {
-#if defined(WIN32)
+      char *str = construct_name_value (name_tmp, val_tmp, NULL);
+      if (platform_putenv(str))
       {
-        if (!SetEnvironmentVariableW (wide_string (name_tmp, &gc),
-                                      wide_string (val_tmp, &gc)))
-	  msg (M_WARN | M_ERRNO, "SetEnvironmentVariable failed, name='%s', value='%s'",
-	       name_tmp,
-	       val_tmp ? val_tmp : "NULL");
+        msg (M_WARN | M_ERRNO, "putenv('%s') failed", str);
       }
-#elif defined(HAVE_PUTENV)
-      {
-	char *str = construct_name_value (name_tmp, val_tmp, NULL);
-	int status;
-
-	status = putenv (str);
-	/*msg (M_INFO, "PUTENV '%s'", str);*/
-	if (!status)
-	  manage_env (str);
-	if (status)
-	  msg (M_WARN | M_ERRNO, "putenv('%s') failed", str);
-      }
-#endif
     }
 
   gc_free (&gc);
@@ -1162,35 +934,6 @@ count_netmask_bits(const char *dotted_quad)
   return ((int)result);
 }
 
-/*
- * Go to sleep for n milliseconds.
- */
-void
-sleep_milliseconds (unsigned int n)
-{
-#ifdef WIN32
-  Sleep (n);
-#else
-  struct timeval tv;
-  tv.tv_sec = n / 1000;
-  tv.tv_usec = (n % 1000) * 1000;
-  select (0, NULL, NULL, NULL, &tv);
-#endif
-}
-
-/*
- * Go to sleep indefinitely.
- */
-void
-sleep_until_signal (void)
-{
-#ifdef WIN32
-  ASSERT (0);
-#else
-  select (0, NULL, NULL, NULL, NULL);
-#endif
-}
-
 /* return true if filename can be opened for read */
 bool
 test_file (const char *filename)
@@ -1198,7 +941,7 @@ test_file (const char *filename)
   bool ret = false;
   if (filename)
     {
-      FILE *fp = openvpn_fopen (filename, "r");
+      FILE *fp = platform_fopen (filename, "r");
       if (fp)
 	{
 	  fclose (fp);
@@ -1246,7 +989,7 @@ create_temp_file (const char *directory, const char *prefix, struct gc_arena *gc
 
       /* Atomically create the file.  Errors out if the file already
          exists.  */
-      fd = openvpn_open (retfname, O_CREAT | O_EXCL | O_WRONLY, S_IRUSR | S_IWUSR);
+      fd = platform_open (retfname, O_CREAT | O_EXCL | O_WRONLY, S_IRUSR | S_IWUSR);
       if (fd != -1)
         {
           close (fd);
@@ -1340,22 +1083,6 @@ gen_path (const char *directory, const char *filename, struct gc_arena *gc)
     }
   else
     return NULL;
-}
-
-/* delete a file, return true if succeeded */
-bool
-delete_file (const char *filename)
-{
-#if defined(WIN32)
-  struct gc_arena gc = gc_new ();
-  BOOL ret = DeleteFileW (wide_string (filename, &gc));
-  gc_free (&gc);
-  return (ret != 0);
-#elif defined(HAVE_UNLINK)
-  return (unlink (filename) == 0);
-#else
-  return false;
-#endif
 }
 
 bool
@@ -1524,7 +1251,7 @@ get_user_pass_cr (struct user_pass *up,
 
 	  warn_if_group_others_accessible (auth_file);
 
-	  fp = openvpn_fopen (auth_file, "r");
+	  fp = platform_fopen (auth_file, "r");
 	  if (!fp)
 	    msg (M_ERR, "Error opening '%s' auth file: %s", prefix, auth_file);
 

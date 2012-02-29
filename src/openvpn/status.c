@@ -78,17 +78,17 @@ status_open (const char *filename,
           switch (so->flags)
             {
             case STATUS_OUTPUT_WRITE:
-              so->fd = openvpn_open (filename,
+              so->fd = platform_open (filename,
                                      O_CREAT | O_TRUNC | O_WRONLY,
                                      S_IRUSR | S_IWUSR);
               break;
             case STATUS_OUTPUT_READ:
-              so->fd = openvpn_open (filename,
+              so->fd = platform_open (filename,
                                      O_RDONLY,
                                      S_IRUSR | S_IWUSR);
               break;
             case STATUS_OUTPUT_READ|STATUS_OUTPUT_WRITE:
-              so->fd = openvpn_open (filename,
+              so->fd = platform_open (filename,
                                      O_CREAT | O_RDWR,
                                      S_IRUSR | S_IWUSR);
               break;

@@ -347,6 +347,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\platform.c"
+				>
+			</File>
+			<File
 				RelativePath=".\plugin.c"
 				>
 			</File>
@@ -646,6 +650,10 @@
 			</File>
 			<File
 				RelativePath=".\pkcs11_backend.h"
+				>
+			</File>
+			<File
+				RelativePath=".\platform.h"
 				>
 			</File>
 			<File

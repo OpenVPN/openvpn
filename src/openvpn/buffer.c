@@ -1080,7 +1080,7 @@ buffer_list_advance (struct buffer_list *ol, int n)
 struct buffer_list *
 buffer_list_file (const char *fn, int max_line_len)
 {
-  FILE *fp = openvpn_fopen (fn, "r");
+  FILE *fp = platform_fopen (fn, "r");
   struct buffer_list *bl = NULL;
 
   if (fp)

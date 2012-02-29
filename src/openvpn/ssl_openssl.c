@@ -280,7 +280,7 @@ tls_ctx_load_pkcs12(struct tls_root_ctx *ctx, const char *pkcs12_file,
 #endif
     {
       /* Load the PKCS #12 file */
-      if (!(fp = openvpn_fopen(pkcs12_file, "rb")))
+      if (!(fp = platform_fopen(pkcs12_file, "rb")))
 	msg(M_SSLERR, "Error opening file %s", pkcs12_file);
       p12 = d2i_PKCS12_fp(fp, NULL);
       fclose(fp);

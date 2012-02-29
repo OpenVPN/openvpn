@@ -935,7 +935,7 @@ do_genkey (const struct options * options)
 	       "shared secret output file (--secret)");
 
       if (options->mlock)	/* should we disable paging? */
-	do_mlockall (true);
+	platform_mlockall (true);
 
       nbits_written = write_key_file (2, options->shared_secret_file);
 
@@ -1022,7 +1022,7 @@ do_uid_gid_chroot (struct context *c, bool no_delay)
       if (c->options.chroot_dir)
 	{
 	  if (no_delay)
-	    do_chroot (c->options.chroot_dir);
+	    platform_chroot (c->options.chroot_dir);
 	  else
 	    msg (M_INFO, "NOTE: chroot %s", why_not);
 	}
@@ -1030,8 +1030,8 @@ do_uid_gid_chroot (struct context *c, bool no_delay)
       /* set user and/or group that we want to setuid/setgid to */
       if (no_delay)
 	{
-	  set_group (&c0->group_state);
-	  set_user (&c0->user_state);
+	  platform_group_set (&c0->platform_state_group);
+	  platform_user_set (&c0->platform_state_user);
 	  c0->uid_gid_set = true;
 	}
       else if (c0->uid_gid_specified)
@@ -2780,8 +2780,8 @@ do_init_first_time (struct context *c)
       
       /* get user and/or group that we want to setuid/setgid to */
       c0->uid_gid_specified =
-	get_group (c->options.groupname, &c0->group_state) |
-	get_user (c->options.username, &c0->user_state);
+	platform_group_get (c->options.groupname, &c0->platform_state_group) |
+	platform_user_get (c->options.username, &c0->platform_state_user);
 
       /* get --writepid file descriptor */
       get_pid_file (c->options.writepid, &c0->pid_state);
@@ -2791,13 +2791,13 @@ do_init_first_time (struct context *c)
 
       /* should we disable paging? */
       if (c->options.mlock && c->did_we_daemonize)
-	do_mlockall (true);	/* call again in case we daemonized */
+	platform_mlockall (true);	/* call again in case we daemonized */
 
       /* save process ID in a file */
       write_pid (&c0->pid_state);
 
       /* should we change scheduling priority? */
-      set_nice (c->options.nice);
+      platform_nice (c->options.nice);
     }
 }
 
@@ -3342,7 +3342,7 @@ init_instance (struct context *c, const struct env_set *env, const unsigned int 
 
   /* should we disable paging? */
   if (c->first_time && options->mlock)
-    do_mlockall (true);
+    platform_mlockall (true);
 
 #if P2MP
   /* get passwords if undefined */

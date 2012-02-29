@@ -920,7 +920,7 @@ setenv_settings (struct env_set *es, const struct options *o)
   setenv_int (es, "daemon", o->daemon);
   setenv_int (es, "daemon_log_redirect", o->log);
   setenv_unsigned (es, "daemon_start_time", time(NULL));
-  setenv_int (es, "daemon_pid", openvpn_getpid());
+  setenv_int (es, "daemon_pid", platform_getpid());
 
 #ifdef ENABLE_CONNECTION
   if (o->connection_list)
@@ -2640,18 +2640,18 @@ check_file_access(const int type, const char *file, const int mode, const char *
       char *fullpath = strdup(file);  /* POSIX dirname() implementaion may modify its arguments */
       char *dirpath = dirname(fullpath);
 
-      if (openvpn_access (dirpath, mode|X_OK) != 0)
+      if (platform_access (dirpath, mode|X_OK) != 0)
           errcode = errno;
       free(fullpath);
     }
 
   /* Is the file itself accessible? */
-  if (!errcode && (type & CHKACC_FILE) && (openvpn_access (file, mode) != 0) )
+  if (!errcode && (type & CHKACC_FILE) && (platform_access (file, mode) != 0) )
       errcode = errno;
 
   /* If the file exists and is accessible, is it writable? */
-  if (!errcode && (type & CHKACC_FILEXSTWR) && (openvpn_access (file, F_OK) == 0) )
-    if (openvpn_access (file, W_OK) != 0)
+  if (!errcode && (type & CHKACC_FILEXSTWR) && (platform_access (file, F_OK) == 0) )
+    if (platform_access (file, W_OK) != 0)
       errcode = errno;
 
   /* Scream if an error is found */
@@ -3755,7 +3755,7 @@ read_config_file (struct options *options,
       if (streq (file, "stdin"))
 	fp = stdin;
       else
-	fp = openvpn_fopen (file, "r");
+	fp = platform_fopen (file, "r");
       if (fp)
 	{
 	  line_num = 0;
@@ -4528,7 +4528,7 @@ add_option (struct options *options,
   else if (streq (p[0], "cd") && p[1])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
-      if (openvpn_chdir (p[1]))
+      if (platform_chdir (p[1]))
 	{
 	  msg (M_ERR, "cd to '%s' failed", p[1]);
 	  goto err;
