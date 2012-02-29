@@ -9,18 +9,7 @@
 #  Copyright (C) 2006-2012 Alon Bar-Lev <alon.barlev@gmail.com>
 #
 
-include $(top_srcdir)/build/ltrc.inc
+MAINTAINERCLEANFILES = \
+	$(srcdir)/Makefile.in
 
-MAINTAINERCLEANFILES = $(srcdir)/Makefile.in
-
-EXTRA_DIST = \
-	openvpnserv.vcproj
-
-if WIN32
-sbin_PROGRAMS = openvpnserv
-endif
-
-openvpnserv_SOURCES = \
-	openvpnserv.c \
-	service.h service.c \
-	openvpnserv_resources.rc
+SUBDIRS = msvc-generate

@@ -282,7 +282,8 @@ case "$host" in
 	*-mingw*)
 		AC_DEFINE([TARGET_WIN32], [1], [Are we running WIN32?])
 		AC_DEFINE_UNQUOTED([TARGET_PREFIX], ["W"], [Target prefix])
-		CPPFLAGS="${CPPFLAGS} -DWIN32_LEAN_AND_MEAN -DWINVER=0x0501"
+		CPPFLAGS="${CPPFLAGS} -DWIN32_LEAN_AND_MEAN"
+		CPPFLAGS="${CPPFLAGS} -DNTDDI_VERSION=NTDDI_WINXP -D_WIN32_WINNT=_WIN32_WINNT_WINXP"
 		WIN32=yes
 		;;
 	*-*-dragonfly*)
@@ -906,6 +907,8 @@ AM_CONDITIONAL([WIN32], [test "${WIN32}" = "yes"])
 AC_CONFIG_FILES([
 	Makefile
 	build/Makefile
+	build/msvc/Makefile
+	build/msvc/msvc-generate/Makefile
 	distro/Makefile
 	distro/rpm/Makefile
 	distro/rpm/openvpn.spec

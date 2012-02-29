@@ -2,12 +2,18 @@
 *.dll
 *.exe
 *.exe.*
-*.mak
 *.obj
 *.pyc
 *.so
 *~
 *.idb
+*.suo
+*.ncb
+*.vcproj.*
+*.log
+Release
+Debug
+Win32-Output
 .deps
 Makefile
 Makefile.in
@@ -33,6 +39,9 @@ m4/ltsugar.m4
 m4/ltversion.m4
 m4/lt~obsolete.m4
 
+msvc-env-local.bat
+config-msvc-local.h
+config-msvc-version.h
 doc/openvpn.8.html
 distro/rpm/openvpn.spec
 tests/t_client.sh

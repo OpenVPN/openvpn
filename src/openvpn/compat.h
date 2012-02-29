@@ -25,8 +25,6 @@
 #ifndef COMPAT_H
 #define COMPAT_H
 
-#include "config.h"
-
 #if defined(HAVE_BASENAME) || defined(HAVE_DIRNAME)
 #include <libgen.h>
 #endif

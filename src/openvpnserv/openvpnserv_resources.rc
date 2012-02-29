@@ -1,7 +1,7 @@
 #ifdef HAVE_CONFIG_H
 #include <config.h>
 #else
-#include <config-msc-version.h>
+#include <config-msvc-version.h>
 #endif
 #include <winresrc.h>
 

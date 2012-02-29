@@ -54,10 +54,18 @@ dist_noinst_DATA = \
 	.gitignore \
 	PORTS \
 	README.IPv6 TODO.IPv6 \
-	README.polarssl
+	README.polarssl \
+	openvpn.sln \
+	msvc-env.bat \
+	msvc-dev.bat \
+	msvc-build.bat
 
 if WIN32
 dist_doc_DATA += INSTALL-win32.txt
 else
 dist_noinst_DATA += INSTALL-win32.txt
 endif
+
+dist_noinst_HEADERS = \
+	config-msvc.h \
+	config-msvc-version.h.in

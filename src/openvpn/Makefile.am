@@ -14,6 +14,9 @@ include $(top_srcdir)/build/ltrc.inc
 MAINTAINERCLEANFILES = \
 	$(srcdir)/Makefile.in
 
+EXTRA_DIST = \
+	openvpn.vcproj
+
 INCLUDES = -I$(top_srcdir)/include
 
 AM_CFLAGS = \

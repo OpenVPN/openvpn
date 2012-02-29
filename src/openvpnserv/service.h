@@ -57,8 +57,6 @@ Copyright (C) 1993 - 2000.  Microsoft Corporation.  All rights reserved.
 extern "C" {
 #endif
 
-#include "config.h"
-
 //////////////////////////////////////////////////////////////////////////////
 //// todo: change to desired strings
 ////

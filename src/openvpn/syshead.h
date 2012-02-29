@@ -28,11 +28,13 @@
 /*
  * Only include if not during configure
  */
-#ifndef PACKAGE_NAME
+#ifdef HAVE_CONFIG_H
 #include "config.h"
-#include "compat.h"
+#elif defined(_MSC_VER)
+#include "config-msvc.h"
 #endif
 
+#include "compat.h"
 
 /* branch prediction hints */
 #if defined(__GNUC__)
@@ -100,6 +102,14 @@
 
 #ifdef HAVE_FCNTL_H
 #include <fcntl.h>
+#endif
+
+#ifdef HAVE_DIRECT_H
+#include <direct.h>
+#endif
+
+#ifdef HAVE_IO_H
+#include <io.h>
 #endif
 
 #ifdef HAVE_SYS_FILE_H

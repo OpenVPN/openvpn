@@ -611,7 +611,7 @@ window_title_generate (const char *title)
   struct buffer out = alloc_buf_gc (256, &gc);
   if (!title)
     title = "";
-  buf_printf (&out, "[%s] " PACKAGE_NAME " " VERSION " F4:EXIT F1:USR1 F2:USR2 F3:HUP", title);
+  buf_printf (&out, "[%s] " PACKAGE_NAME " " PACKAGE_VERSION " F4:EXIT F1:USR1 F2:USR2 F3:HUP", title);
   SetConsoleTitle (BSTR (&out));
   gc_free (&gc);
 }

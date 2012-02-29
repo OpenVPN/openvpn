@@ -33,7 +33,11 @@
  * This code is designed to be built with the mingw compiler.
  */
 
+#ifdef HAVE_CONFIG_H
 #include "config.h"
+#elif defined(_MSC_VER)
+#include "config-msvc.h"
+#endif
 #include <windows.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -196,7 +200,7 @@ match (const WIN32_FIND_DATA *find, const char *ext)
   if (i < 1)
     return false;
 
-  return find->cFileName[i] == '.' && !strcasecmp (find->cFileName + i + 1, ext);
+  return find->cFileName[i] == '.' && !_stricmp (find->cFileName + i + 1, ext);
 }
 
 /*
@@ -331,15 +335,15 @@ VOID ServiceStart (DWORD dwArgc, LPTSTR *lpszArgv)
 
   /* set process priority */
   priority = NORMAL_PRIORITY_CLASS;
-  if (!strcasecmp (priority_string, "IDLE_PRIORITY_CLASS"))
+  if (!_stricmp (priority_string, "IDLE_PRIORITY_CLASS"))
     priority = IDLE_PRIORITY_CLASS;
-  else if (!strcasecmp (priority_string, "BELOW_NORMAL_PRIORITY_CLASS"))
+  else if (!_stricmp (priority_string, "BELOW_NORMAL_PRIORITY_CLASS"))
     priority = BELOW_NORMAL_PRIORITY_CLASS;
-  else if (!strcasecmp (priority_string, "NORMAL_PRIORITY_CLASS"))
+  else if (!_stricmp (priority_string, "NORMAL_PRIORITY_CLASS"))
     priority = NORMAL_PRIORITY_CLASS;
-  else if (!strcasecmp (priority_string, "ABOVE_NORMAL_PRIORITY_CLASS"))
+  else if (!_stricmp (priority_string, "ABOVE_NORMAL_PRIORITY_CLASS"))
     priority = ABOVE_NORMAL_PRIORITY_CLASS;
-  else if (!strcasecmp (priority_string, "HIGH_PRIORITY_CLASS"))
+  else if (!_stricmp (priority_string, "HIGH_PRIORITY_CLASS"))
     priority = HIGH_PRIORITY_CLASS;
   else
     {
