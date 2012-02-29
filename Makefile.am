@@ -24,7 +24,6 @@
 #
 
 LDADD = @LIBOBJS@
-.PHONY: plugin
 
 # This option prevents autoreconf from overriding our COPYING and
 # INSTALL targets:
@@ -49,7 +48,7 @@ EXTRA_DIST = \
 	tap-win32 \
 	contrib \
 	debug \
-	plugin \
+	plugins \
 	win
 
 SUBDIRS = \
