@@ -43,10 +43,6 @@
 # define unlikely(x)    (x)
 #endif
 
-#if defined(_WIN32) && !defined(WIN32)
-#define WIN32
-#endif
-
 #ifdef WIN32
 #include <windows.h>
 #include <winsock2.h>
@@ -78,22 +74,15 @@
 #endif
 #endif
 
-#ifdef TIME_WITH_SYS_TIME
-# include <sys/time.h>
-# include <time.h>
-#else
-# ifdef HAVE_SYS_TIME_H
-#  include <sys/time.h>
-# else
-#  include <time.h>
-# endif
+#ifdef HAVE_SYS_TIME_H
+#include <sys/time.h>
+#endif
+
+#ifdef HAVE_TIME_H
+#include <time.h>
 #endif
 
 #ifdef HAVE_SYS_SOCKET_H
-# if defined(TARGET_LINUX) && !defined(_GNU_SOURCE)
-   /* needed for peercred support on glibc-2.8 */
-#  define _GNU_SOURCE
-# endif
 #include <sys/socket.h>
 #endif
 
@@ -121,7 +110,9 @@
 #include <stdlib.h>
 #endif
 
-#ifdef HAVE_STDINT_H
+#ifdef HAVE_INTTYPES_H
+#include <inttypes.h>
+#elif defined(HAVE_STDINT_H)
 #include <stdint.h>
 #endif
 
@@ -487,7 +478,7 @@ socket_defined (const socket_descriptor_t sd)
  * instead of system()?
  */
 #if defined(HAVE_EXECVE) && defined(HAVE_FORK)
-#define ENABLE_EXECVE
+#define ENABLE_FEATURE_EXECVE
 #endif
 
 /*
@@ -525,14 +516,14 @@ socket_defined (const socket_descriptor_t sd)
 /*
  * Enable deferred authentication?
  */
-#if defined(CONFIGURE_DEF_AUTH) && P2MP_SERVER && defined(ENABLE_PLUGIN)
+#if defined(ENABLE_DEF_AUTH) && P2MP_SERVER && defined(ENABLE_PLUGIN)
 #define PLUGIN_DEF_AUTH
 #endif
-#if defined(CONFIGURE_DEF_AUTH) && P2MP_SERVER && defined(ENABLE_MANAGEMENT)
+#if defined(ENABLE_DEF_AUTH) && P2MP_SERVER && defined(ENABLE_MANAGEMENT)
 #define MANAGEMENT_DEF_AUTH
 #endif
-#if defined(PLUGIN_DEF_AUTH) || defined(MANAGEMENT_DEF_AUTH)
-#define ENABLE_DEF_AUTH
+#if !defined(PLUGIN_DEF_AUTH) && !defined(MANAGEMENT_DEF_AUTH)
+#undef ENABLE_DEF_AUTH
 #endif
 
 /*
@@ -553,14 +544,14 @@ socket_defined (const socket_descriptor_t sd)
 /*
  * Enable packet filter?
  */
-#if defined(CONFIGURE_PF) && P2MP_SERVER && defined(ENABLE_PLUGIN) && defined(HAVE_STAT)
+#if defined(ENABLE_PF) && P2MP_SERVER && defined(ENABLE_PLUGIN) && defined(HAVE_STAT)
 #define PLUGIN_PF
 #endif
-#if defined(CONFIGURE_PF) && P2MP_SERVER && defined(MANAGEMENT_DEF_AUTH)
+#if defined(ENABLE_PF) && P2MP_SERVER && defined(MANAGEMENT_DEF_AUTH)
 #define MANAGEMENT_PF
 #endif
-#if defined(PLUGIN_PF) || defined(MANAGEMENT_PF)
-#define ENABLE_PF
+#if !defined(PLUGIN_PF) && !defined(MANAGEMENT_PF)
+#undef ENABLE_PF
 #endif
 
 /*

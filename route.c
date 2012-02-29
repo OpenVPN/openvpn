@@ -1308,8 +1308,8 @@ add_route (struct route *r,
     goto done;
 
 #if defined(TARGET_LINUX)
-#ifdef CONFIG_FEATURE_IPROUTE
-  /* FIXME -- add on-link support for CONFIG_FEATURE_IPROUTE */
+#ifdef ENABLE_IPROUTE
+  /* FIXME -- add on-link support for ENABLE_IPROUTE */
   argv_printf (&argv, "%s route add %s/%d via %s",
   	      iproute_path,
 	      network,
@@ -1330,7 +1330,7 @@ add_route (struct route *r,
   else
     argv_printf_cat (&argv, "gw %s", gateway);
 
-#endif  /*CONFIG_FEATURE_IPROUTE*/
+#endif  /*ENABLE_IPROUTE*/
   argv_msg (D_ROUTE, &argv);
   status = openvpn_execve_check (&argv, es, 0, "ERROR: Linux route add command failed");
 
@@ -1566,7 +1566,7 @@ add_route_ipv6 (struct route_ipv6 *r6, const struct tuntap *tt, unsigned int fla
    */
 
 #if defined(TARGET_LINUX)
-#ifdef CONFIG_FEATURE_IPROUTE
+#ifdef ENABLE_IPROUTE
   argv_printf (&argv, "%s -6 route add %s/%d dev %s",
   	      iproute_path,
 	      network,
@@ -1583,7 +1583,7 @@ add_route_ipv6 (struct route_ipv6 *r6, const struct tuntap *tt, unsigned int fla
 	      device);
   if (r6->metric_defined)
     argv_printf_cat (&argv, " metric %d", r6->metric);
-#endif  /*CONFIG_FEATURE_IPROUTE*/
+#endif  /*ENABLE_IPROUTE*/
   argv_msg (D_ROUTE, &argv);
   status = openvpn_execve_check (&argv, es, 0, "ERROR: Linux route -6/-A inet6 add command failed");
 
@@ -1717,7 +1717,7 @@ delete_route (struct route *r,
     goto done;
 
 #if defined(TARGET_LINUX)
-#ifdef CONFIG_FEATURE_IPROUTE
+#ifdef ENABLE_IPROUTE
   argv_printf (&argv, "%s route del %s/%d",
   	      iproute_path,
 	      network,
@@ -1727,7 +1727,7 @@ delete_route (struct route *r,
 	       ROUTE_PATH,
 	       network,
 	       netmask);
-#endif /*CONFIG_FEATURE_IPROUTE*/
+#endif /*ENABLE_IPROUTE*/
   if (r->flags & RT_METRIC_DEFINED)
     argv_printf_cat (&argv, "metric %d", r->metric);
   argv_msg (D_ROUTE, &argv);
@@ -1876,7 +1876,7 @@ delete_route_ipv6 (const struct route_ipv6 *r6, const struct tuntap *tt, unsigne
   msg( M_INFO, "delete_route_ipv6(%s/%d)", network, r6->netbits );
 
 #if defined(TARGET_LINUX)
-#ifdef CONFIG_FEATURE_IPROUTE
+#ifdef ENABLE_IPROUTE
   argv_printf (&argv, "%s -6 route del %s/%d dev %s",
   	      iproute_path,
 	      network,
@@ -1888,7 +1888,7 @@ delete_route_ipv6 (const struct route_ipv6 *r6, const struct tuntap *tt, unsigne
 	      network,
 	      r6->netbits,
 	      device);
-#endif  /*CONFIG_FEATURE_IPROUTE*/
+#endif  /*ENABLE_IPROUTE*/
   argv_msg (D_ROUTE, &argv);
   openvpn_execve_check (&argv, es, 0, "ERROR: Linux route -6/-A inet6 del command failed");
 

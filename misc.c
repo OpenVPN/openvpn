@@ -39,7 +39,7 @@
 
 #include "memdbg.h"
 
-#ifdef CONFIG_FEATURE_IPROUTE
+#ifdef ENABLE_IPROUTE
 const char *iproute_path = IPROUTE_PATH; /* GLOBAL */
 #endif
 
@@ -519,7 +519,7 @@ openvpn_execve (const struct argv *a, const struct env_set *es, const unsigned i
 
   if (a && a->argv[0])
     {
-#if defined(ENABLE_EXECVE)
+#if defined(ENABLE_FEATURE_EXECVE)
       if (openvpn_execve_allowed (flags))
 	{
 	  if (script_method == SM_EXECVE)
@@ -651,7 +651,7 @@ openvpn_popen (const struct argv *a,  const struct env_set *es)
 
   if (a && a->argv[0])
     {
-#if defined(ENABLE_EXECVE)
+#if defined(ENABLE_FEATURE_EXECVE)
       if (script_security >= SSEC_BUILT_IN)
 	{
 	      const char *cmd = a->argv[0];
@@ -1785,28 +1785,6 @@ get_auth_challenge (const char *auth_challenge, struct gc_arena *gc)
 
 #if AUTO_USERID
 
-static const char *
-get_platform_prefix (void)
-{
-#if defined(TARGET_LINUX)
-  return "L";
-#elif defined(TARGET_SOLARIS)
-  return "S";
-#elif defined(TARGET_OPENBSD)
-  return "O";
-#elif defined(TARGET_DARWIN)
-  return "M";
-#elif defined(TARGET_NETBSD)
-  return "N";
-#elif defined(TARGET_FREEBSD)
-  return "F";
-#elif defined(WIN32)
-  return "W";
-#else
-  return "X";
-#endif
-}
-
 void
 get_user_pass_auto_userid (struct user_pass *up, const char *tag)
 {
@@ -1821,7 +1799,7 @@ get_user_pass_auto_userid (struct user_pass *up, const char *tag)
 
   CLEAR (*up);
   buf_set_write (&buf, (uint8_t*)up->username, USER_PASS_LEN);
-  buf_printf (&buf, "%s", get_platform_prefix ());
+  buf_printf (&buf, "%s", TARGET_PREFIX);
   if (get_default_gateway_mac_addr (macaddr))
     {
       dmsg (D_AUTO_USERID, "GUPAU: macaddr=%s", format_hex_ex (macaddr, sizeof (macaddr), 0, 1, ":", &gc));

@@ -51,17 +51,6 @@ void uninit_win32 (void);
 
 void set_pause_exit_win32 (void);
 
-/*
- * Use keyboard input or events
- * to simulate incoming signals
- */
-
-#define SIGUSR1   1
-#define SIGUSR2   2
-#define SIGHUP    3
-#define SIGTERM   4
-#define SIGINT    5
-
 struct security_attributes
 {
   SECURITY_ATTRIBUTES sa;

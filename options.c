@@ -181,7 +181,7 @@ static const char usage_message[] =
   "--lladdr hw     : Set the link layer address of the tap device.\n"
   "--topology t    : Set --dev tun topology: 'net30', 'p2p', or 'subnet'.\n"
   "--tun-ipv6      : Build tun link capable of forwarding IPv6 traffic.\n"
-#ifdef CONFIG_FEATURE_IPROUTE
+#ifdef ENABLE_IPROUTE
   "--iproute cmd   : Use this command instead of default " IPROUTE_PATH ".\n"
 #endif
   "--ifconfig l rn : TUN: configure device to use IP address l as a local\n"
@@ -292,7 +292,7 @@ static const char usage_message[] =
   "                  or --fragment max value, whichever is lower.\n"
   "--sndbuf size   : Set the TCP/UDP send buffer size.\n"
   "--rcvbuf size   : Set the TCP/UDP receive buffer size.\n"
-#if defined(TARGET_LINUX) && defined(HAVE_SO_MARK)
+#if defined(TARGET_LINUX) && HAVE_DECL_SO_MARK
   "--mark value    : Mark encrypted packets being sent with value. The mark value\n"
   "                  can be matched in policy routing and packetfilter rules.\n"
 #endif
@@ -1506,7 +1506,7 @@ show_settings (const struct options *o)
 #endif
   SHOW_INT (rcvbuf);
   SHOW_INT (sndbuf);
-#if defined(TARGET_LINUX) && defined(HAVE_SO_MARK)
+#if defined(TARGET_LINUX) && HAVE_DECL_SO_MARK
   SHOW_INT (mark);
 #endif
   SHOW_INT (sockflags);
@@ -3188,7 +3188,7 @@ options_cmp_equal_safe (char *actual, const char *expected, size_t actual_n)
   if (actual_n > 0)
     {
       actual[actual_n - 1] = 0;
-#ifndef STRICT_OPTIONS_CHECK
+#ifndef ENABLE_STRICT_OPTIONS_CHECK
       if (strncmp (actual, expected, 2))
 	{
 	  msg (D_SHOW_OCC, "NOTE: Options consistency check may be skewed by version differences");
@@ -4307,7 +4307,7 @@ add_option (struct options *options,
       VERIFY_PERMISSION (OPT_P_UP);
       options->tun_ipv6 = true;
     }
-#ifdef CONFIG_FEATURE_IPROUTE
+#ifdef ENABLE_IPROUTE
   else if (streq (p[0], "iproute") && p[1])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
@@ -4798,7 +4798,7 @@ add_option (struct options *options,
     }
   else if (streq (p[0], "mark") && p[1])
     {
-#if defined(TARGET_LINUX) && defined(HAVE_SO_MARK)
+#if defined(TARGET_LINUX) && HAVE_DECL_SO_MARK
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->mark = atoi(p[1]);
 #endif

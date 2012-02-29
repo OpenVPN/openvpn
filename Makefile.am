@@ -23,11 +23,9 @@
 #  59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
 
-LDADD = @LIBOBJS@
-
 # This option prevents autoreconf from overriding our COPYING and
 # INSTALL targets:
-AUTOMAKE_OPTIONS = foreign
+AUTOMAKE_OPTIONS = foreign 1.9
 ACLOCAL_AMFLAGS = -I m4
 
 MAINTAINERCLEANFILES = \
@@ -62,11 +60,22 @@ dist_noinst_SCRIPTS = \
 	t_cltsrv-down.sh \
 	configure_h.awk configure_log.awk
 
-dist_noinst_DATA = \
-	openvpn.spec \
+dist_doc_DATA = \
 	COPYRIGHT.GPL \
+	COPYING
+
+dist_noinst_DATA = \
+	.gitignore \
+	openvpn.spec \
 	PORTS \
-	INSTALL-win32.txt
+	README.IPv6 TODO.IPv6 \
+	README.polarssl \
+
+if WIN32
+dist_doc_DATA += INSTALL-win32.txt
+else
+dist_noinst_DATA += INSTALL-win32.txt
+endif
 
 openvpn_SOURCES = \
         base64.c base64.h \
@@ -153,9 +162,6 @@ options.$(OBJEXT): configure.h
 configure.h: Makefile
 	awk -f $(srcdir)/configure_h.awk config.h > $@
 	awk -f $(srcdir)/configure_log.awk config.log >> $@
-
-dist-hook:
-	cd $(distdir) && for i in $(EXTRA_DIST) $(SUBDIRS) ; do find $$i -name .svn -type d -prune -exec rm -rf '{}' ';' ; rm -f `find $$i -type f | grep -E '(^|\/)\.?\#|\~$$|\.s?o$$'` ; done
 
 if WIN32
 dist_noinst_DATA += openvpn.8

@@ -396,7 +396,7 @@ void get_user_pass_auto_userid (struct user_pass *up, const char *tag);
 /*
  * /sbin/ip path, may be overridden
  */
-#ifdef CONFIG_FEATURE_IPROUTE
+#ifdef ENABLE_IPROUTE
 extern const char *iproute_path;
 #endif
 

@@ -673,7 +673,7 @@ do_ifconfig (struct tuntap *tt,
 
 
 #if defined(TARGET_LINUX)
-#ifdef CONFIG_FEATURE_IPROUTE
+#ifdef ENABLE_IPROUTE
 	/*
 	 * Set the MTU for the device
 	 */
@@ -761,7 +761,7 @@ do_ifconfig (struct tuntap *tt,
 	}
       tt->did_ifconfig = true;
 
-#endif /*CONFIG_FEATURE_IPROUTE*/
+#endif /*ENABLE_IPROUTE*/
 #elif defined(TARGET_SOLARIS)
 
       /* Solaris 2.6 (and 7?) cannot set all parameters in one go...
@@ -1574,7 +1574,7 @@ close_tun (struct tuntap *tt)
 	    struct gc_arena gc = gc_new ();
 	    argv_init (&argv);
 
-#ifdef CONFIG_FEATURE_IPROUTE
+#ifdef ENABLE_IPROUTE
 	    if (is_tun_p2p (tt))
 	      {
 		argv_printf (&argv,

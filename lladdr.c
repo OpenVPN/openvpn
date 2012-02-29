@@ -16,7 +16,7 @@ int set_lladdr(const char *ifname, const char *lladdr,
     return -1;
   
 #if defined(TARGET_LINUX)
-#ifdef CONFIG_FEATURE_IPROUTE
+#ifdef ENABLE_IPROUTE
   argv_printf (&argv,
 		    "%s link set addr %s dev %s",
 		    iproute_path, lladdr, ifname);

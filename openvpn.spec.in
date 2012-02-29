@@ -120,14 +120,7 @@ popd
 
 %install
 [ %{buildroot} != "/" ] && rm -rf %{buildroot}
-
-# Install man page
-%__install -c -d -m 755 %{buildroot}%{_mandir}/man8
-%__install -c -m 755 %{name}.8 %{buildroot}%{_mandir}/man8
-
-# Install binary
-%__install -c -d -m 755 %{buildroot}%{_sbindir}
-%__install -c -m 755 %{name} %{buildroot}%{_sbindir}
+%__make install DESTDIR="%{buildroot}"
 
 # Install init script
 %if "%{VENDOR}" == "SuSE"
@@ -211,7 +204,7 @@ fi
 %files
 %defattr(-,root,root)
 %doc AUTHORS ChangeLog COPYING COPYRIGHT.GPL INSTALL NEWS PORTS README 
-%{_mandir}/man8/%{name}.8*
+%{_mandir}
 %{_sbindir}/%{name}
 %{_datadir}/%{name}
 %dir /etc/%{name}
