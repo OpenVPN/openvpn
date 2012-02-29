@@ -1176,7 +1176,7 @@ do_ifconfig (struct tuntap *tt,
 	    break;
 	  case IPW32_SET_NETSH:
 	    if (!strcmp (actual, "NULL"))
-	      msg (M_FATAL, "Error: When using --ip-win32 netsh, if you have more than one TAP-Win32 adapter, you must also specify --dev-node");
+	      msg (M_FATAL, "Error: When using --ip-win32 netsh, if you have more than one TAP-Windows adapter, you must also specify --dev-node");
 
 	    netsh_ifconfig (&tt->options,
 			    actual,
@@ -1195,7 +1195,7 @@ do_ifconfig (struct tuntap *tt,
 	char * saved_actual;
 
 	if (!strcmp (actual, "NULL"))
-	  msg (M_FATAL, "Error: When using --tun-ipv6, if you have more than one TAP-Win32 adapter, you must also specify --dev-node");
+	  msg (M_FATAL, "Error: When using --tun-ipv6, if you have more than one TAP-Windows adapter, you must also specify --dev-node");
 
 	/* example: netsh interface ipv6 set address MyTap 2001:608:8003::d store=active */
 	argv_printf (&argv,
@@ -2786,7 +2786,7 @@ get_tap_reg (struct gc_arena *gc)
 
 	      if (status == ERROR_SUCCESS && data_type == REG_SZ)
 		{
-		  if (!strcmp (component_id, TAP_COMPONENT_ID))
+		  if (!strcmp (component_id, TAP_WIN_COMPONENT_ID))
 		    {
 		      struct tap_reg *reg;
 		      ALLOC_OBJ_CLEAR_GC (reg, struct tap_reg, gc);
@@ -2953,7 +2953,7 @@ void show_valid_win32_tun_subnets (void)
   int col = 0;
 
   printf ("On Windows, point-to-point IP support (i.e. --dev tun)\n");
-  printf ("is emulated by the TAP-Win32 driver.  The major limitation\n");
+  printf ("is emulated by the TAP-Windows driver.  The major limitation\n");
   printf ("imposed by this approach is that the --ifconfig local and\n");
   printf ("remote endpoints must be part of the same 255.255.255.252\n");
   printf ("subnet.  The following list shows examples of endpoint\n");
@@ -2978,7 +2978,7 @@ void show_valid_win32_tun_subnets (void)
 }
 
 void
-show_tap_win32_adapters (int msglev, int warnlev)
+show_tap_win_adapters (int msglev, int warnlev)
 {
   struct gc_arena gc = gc_new ();
 
@@ -2997,7 +2997,7 @@ show_tap_win32_adapters (int msglev, int warnlev)
 
   msg (msglev, "Available TAP-WIN32 adapters [name, GUID]:");
 
-  /* loop through each TAP-Win32 adapter registry entry */
+  /* loop through each TAP-Windows adapter registry entry */
   for (tr = tap_reg; tr != NULL; tr = tr->next)
     {
       links = 0;
@@ -3025,7 +3025,7 @@ show_tap_win32_adapters (int msglev, int warnlev)
 	}
     }
 
-  /* check for TAP-Win32 adapter duplicated GUIDs */
+  /* check for TAP-Windows adapter duplicated GUIDs */
   for (tr = tap_reg; tr != NULL; tr = tr->next)
     {
       for (tr1 = tap_reg; tr1 != NULL; tr1 = tr1->next)
@@ -3037,22 +3037,22 @@ show_tap_win32_adapters (int msglev, int warnlev)
 
   /* warn on registry inconsistencies */
   if (warn_tap_dup)
-    msg (warnlev, "WARNING: Some TAP-Win32 adapters have duplicate GUIDs");
+    msg (warnlev, "WARNING: Some TAP-Windows adapters have duplicate GUIDs");
 
   if (warn_panel_dup)
-    msg (warnlev, "WARNING: Some TAP-Win32 adapters have duplicate links from the Network Connections control panel");
+    msg (warnlev, "WARNING: Some TAP-Windows adapters have duplicate links from the Network Connections control panel");
 
   if (warn_panel_null)
-    msg (warnlev, "WARNING: Some TAP-Win32 adapters have no link from the Network Connections control panel");
+    msg (warnlev, "WARNING: Some TAP-Windows adapters have no link from the Network Connections control panel");
 
   gc_free (&gc);
 }
 
 /*
- * Confirm that GUID is a TAP-Win32 adapter.
+ * Confirm that GUID is a TAP-Windows adapter.
  */
 static bool
-is_tap_win32 (const char *guid, const struct tap_reg *tap_reg)
+is_tap_win (const char *guid, const struct tap_reg *tap_reg)
 {
   const struct tap_reg *tr;
 
@@ -3086,7 +3086,7 @@ name_to_guid (const char *name, const struct tap_reg *tap_reg, const struct pane
 
   for (pr = panel_reg; pr != NULL; pr = pr->next)
     {
-      if (name && !strcmp (pr->name, name) && is_tap_win32 (pr->guid, tap_reg))
+      if (name && !strcmp (pr->name, name) && is_tap_win (pr->guid, tap_reg))
 	return pr->guid;
     }
 
@@ -3094,10 +3094,10 @@ name_to_guid (const char *name, const struct tap_reg *tap_reg, const struct pane
 }
 
 static void
-at_least_one_tap_win32 (const struct tap_reg *tap_reg)
+at_least_one_tap_win (const struct tap_reg *tap_reg)
 {
   if (!tap_reg)
-    msg (M_FATAL, "There are no TAP-Win32 adapters on this system.  You should be able to create a TAP-Win32 adapter by going to Start -> All Programs -> " PACKAGE_NAME " -> Add a new TAP-Win32 virtual ethernet adapter.");
+    msg (M_FATAL, "There are no TAP-Windows adapters on this system.  You should be able to create a TAP-Windows adapter by going to Start -> All Programs -> " PACKAGE_NAME " -> Add a new TAP-Windows virtual ethernet adapter.");
 }
 
 /*
@@ -3181,7 +3181,7 @@ get_device_guid (const char *name,
     }
 
   /* Check if GUID was explicitly specified as --dev-node parameter */
-  if (is_tap_win32 (name, tap_reg))
+  if (is_tap_win (name, tap_reg))
     {
       const char *act = guid_to_name (name, panel_reg);
       buf_printf (&ret, "%s", name);
@@ -3767,7 +3767,7 @@ show_adapters (int msglev)
 }
 
 /*
- * Set a particular TAP-Win32 adapter (or all of them if
+ * Set a particular TAP-Windows adapter (or all of them if
  * adapter_name == NULL) to allow it to be opened from
  * a non-admin account.  This setting will only persist
  * for the lifetime of the device object.
@@ -3789,7 +3789,7 @@ tap_allow_nonadmin_access_handle (const char *device_path, HANDLE hand)
     }
   else
     {
-      msg (M_INFO|M_NOPREFIX, "TAP-Win32 device: %s [Non-admin access allowed]", device_path);
+      msg (M_INFO|M_NOPREFIX, "TAP-Windows device: %s [Non-admin access allowed]", device_path);
     }
 }
 
@@ -3804,7 +3804,7 @@ tap_allow_nonadmin_access (const char *dev_node)
   char actual_buffer[256];
   char device_path[256];
 
-  at_least_one_tap_win32 (tap_reg);
+  at_least_one_tap_win (tap_reg);
 
   if (dev_node)
     {
@@ -3812,13 +3812,13 @@ tap_allow_nonadmin_access (const char *dev_node)
       device_guid = get_device_guid (dev_node, actual_buffer, sizeof (actual_buffer), tap_reg, panel_reg, &gc);
 
       if (!device_guid)
-	msg (M_FATAL, "TAP-Win32 adapter '%s' not found", dev_node);
+	msg (M_FATAL, "TAP-Windows adapter '%s' not found", dev_node);
 
-      /* Open Windows TAP-Win32 adapter */
+      /* Open Windows TAP-Windows adapter */
       openvpn_snprintf (device_path, sizeof(device_path), "%s%s%s",
 			USERMODEDEVICEDIR,
 			device_guid,
-			TAPSUFFIX);
+			TAP_WIN_SUFFIX);
       
       hand = CreateFile (
 			 device_path,
@@ -3853,11 +3853,11 @@ tap_allow_nonadmin_access (const char *dev_node)
 	  if (!device_guid)
 	    break;
 
-	  /* Open Windows TAP-Win32 adapter */
+	  /* Open Windows TAP-Windows adapter */
 	  openvpn_snprintf (device_path, sizeof(device_path), "%s%s%s",
 			    USERMODEDEVICEDIR,
 			    device_guid,
-			    TAPSUFFIX);
+			    TAP_WIN_SUFFIX);
 
 	  hand = CreateFile (
 			     device_path,
@@ -3902,7 +3902,7 @@ dhcp_release_by_adapter_index(const DWORD adapter_index)
 	  ret = true;
 	}
       else
-	msg (M_WARN, "NOTE: Release of DHCP-assigned IP address lease on TAP-Win32 adapter failed: %s (code=%u)",
+	msg (M_WARN, "NOTE: Release of DHCP-assigned IP address lease on TAP-Windows adapter failed: %s (code=%u)",
 	     strerror_win32 (status, &gc),
 	     (unsigned int)status);
     }
@@ -3936,7 +3936,7 @@ dhcp_renew_by_adapter_index (const DWORD adapter_index)
 	  ret = true;
 	}
       else
-	msg (M_WARN, "WARNING: Failed to renew DHCP IP address lease on TAP-Win32 adapter: %s (code=%u)",
+	msg (M_WARN, "WARNING: Failed to renew DHCP IP address lease on TAP-Windows adapter: %s (code=%u)",
 	     strerror_win32 (status, &gc),
 	     (unsigned int)status);
     }
@@ -4281,7 +4281,7 @@ netsh_get_id (const char *dev_node, struct gc_arena *gc)
   struct buffer actual = alloc_buf_gc (256, gc);
   const char *guid;
 
-  at_least_one_tap_win32 (tap_reg);
+  at_least_one_tap_win (tap_reg);
 
   if (dev_node)
     {
@@ -4291,7 +4291,7 @@ netsh_get_id (const char *dev_node, struct gc_arena *gc)
     {
       guid = get_unspecified_device_guid (0, BPTR (&actual), BCAP (&actual), tap_reg, panel_reg, gc);
 
-      if (get_unspecified_device_guid (1, NULL, 0, tap_reg, panel_reg, gc)) /* ambiguous if more than one TAP-Win32 adapter */
+      if (get_unspecified_device_guid (1, NULL, 0, tap_reg, panel_reg, gc)) /* ambiguous if more than one TAP-Windows adapter */
 	guid = NULL;
     }
 
@@ -4304,7 +4304,7 @@ netsh_get_id (const char *dev_node, struct gc_arena *gc)
 }
 
 /*
- * Called iteratively on TAP-Win32 wait-for-initialization polling loop
+ * Called iteratively on TAP-Windows wait-for-initialization polling loop
  */
 void
 tun_standby_init (struct tuntap *tt)
@@ -4535,7 +4535,7 @@ open_tun (const char *dev, const char *dev_type, const char *dev_node, struct tu
     const struct panel_reg *panel_reg = get_panel_reg (&gc);
     char actual_buffer[256];
 
-    at_least_one_tap_win32 (tap_reg);
+    at_least_one_tap_win (tap_reg);
 
     if (dev_node)
       {
@@ -4543,13 +4543,13 @@ open_tun (const char *dev, const char *dev_type, const char *dev_node, struct tu
         device_guid = get_device_guid (dev_node, actual_buffer, sizeof (actual_buffer), tap_reg, panel_reg, &gc);
 
 	if (!device_guid)
-	  msg (M_FATAL, "TAP-Win32 adapter '%s' not found", dev_node);
+	  msg (M_FATAL, "TAP-Windows adapter '%s' not found", dev_node);
 
-        /* Open Windows TAP-Win32 adapter */
+        /* Open Windows TAP-Windows adapter */
         openvpn_snprintf (device_path, sizeof(device_path), "%s%s%s",
    		          USERMODEDEVICEDIR,
 		          device_guid,
-		          TAPSUFFIX);
+		          TAP_WIN_SUFFIX);
 
         tt->hand = CreateFile (
 			       device_path,
@@ -4579,13 +4579,13 @@ open_tun (const char *dev, const char *dev_type, const char *dev_node, struct tu
 						       &gc);
 
 	    if (!device_guid)
-	      msg (M_FATAL, "All TAP-Win32 adapters on this system are currently in use.");
+	      msg (M_FATAL, "All TAP-Windows adapters on this system are currently in use.");
 
-            /* Open Windows TAP-Win32 adapter */
+            /* Open Windows TAP-Windows adapter */
             openvpn_snprintf (device_path, sizeof(device_path), "%s%s%s",
        		  	      USERMODEDEVICEDIR,
 			      device_guid,
-			      TAPSUFFIX);
+			      TAP_WIN_SUFFIX);
 
             tt->hand = CreateFile (
 			 	   device_path,
@@ -4618,20 +4618,20 @@ open_tun (const char *dev, const char *dev_type, const char *dev_node, struct tu
   {
     ULONG info[3];
     CLEAR (info);
-    if (DeviceIoControl (tt->hand, TAP_IOCTL_GET_VERSION,
+    if (DeviceIoControl (tt->hand, TAP_WIN_IOCTL_GET_VERSION,
 			 &info, sizeof (info),
 			 &info, sizeof (info), &len, NULL))
       {
-	msg (D_TUNTAP_INFO, "TAP-Win32 Driver Version %d.%d %s",
+	msg (D_TUNTAP_INFO, "TAP-Windows Driver Version %d.%d %s",
 	     (int) info[0],
 	     (int) info[1],
 	     (info[2] ? "(DEBUG)" : ""));
 
       }
-    if (!(info[0] == TAP_WIN32_MIN_MAJOR && info[1] >= TAP_WIN32_MIN_MINOR))
-      msg (M_FATAL, "ERROR:  This version of " PACKAGE_NAME " requires a TAP-Win32 driver that is at least version %d.%d -- If you recently upgraded your " PACKAGE_NAME " distribution, a reboot is probably required at this point to get Windows to see the new driver.",
-	   TAP_WIN32_MIN_MAJOR,
-	   TAP_WIN32_MIN_MINOR);
+    if (!(info[0] == TAP_WIN_MIN_MAJOR && info[1] >= TAP_WIN_MIN_MINOR))
+      msg (M_FATAL, "ERROR:  This version of " PACKAGE_NAME " requires a TAP-Windows driver that is at least version %d.%d -- If you recently upgraded your " PACKAGE_NAME " distribution, a reboot is probably required at this point to get Windows to see the new driver.",
+	   TAP_WIN_MIN_MAJOR,
+	   TAP_WIN_MIN_MINOR);
 
     /* usage of numeric constants is ugly, but this is really tied to
      * *this* version of the driver
@@ -4655,17 +4655,17 @@ open_tun (const char *dev, const char *dev_type, const char *dev_node, struct tu
   /* get driver MTU */
   {
     ULONG mtu;
-    if (DeviceIoControl (tt->hand, TAP_IOCTL_GET_MTU,
+    if (DeviceIoControl (tt->hand, TAP_WIN_IOCTL_GET_MTU,
 			 &mtu, sizeof (mtu),
 			 &mtu, sizeof (mtu), &len, NULL))
       {
 	tt->post_open_mtu = (int) mtu;
-	msg (D_MTU_INFO, "TAP-Win32 MTU=%d", (int) mtu);
+	msg (D_MTU_INFO, "TAP-Windows MTU=%d", (int) mtu);
       }
   }
 
   /*
-   * Preliminaries for setting TAP-Win32 adapter TCP/IP
+   * Preliminaries for setting TAP-Windows adapter TCP/IP
    * properties via --ip-win32 dynamic or --ip-win32 adaptive.
    */
   if (tt->did_ifconfig_setup)
@@ -4718,11 +4718,11 @@ open_tun (const char *dev, const char *dev_type, const char *dev_node, struct tu
 	  ep[1] = htonl (tt->local & tt->remote_netmask);
 	  ep[2] = htonl (tt->remote_netmask);
 
-	  status = DeviceIoControl (tt->hand, TAP_IOCTL_CONFIG_TUN,
+	  status = DeviceIoControl (tt->hand, TAP_WIN_IOCTL_CONFIG_TUN,
 				    ep, sizeof (ep),
 				    ep, sizeof (ep), &len, NULL);
 
-          msg (status ? M_INFO : M_FATAL, "Set TAP-Win32 TUN subnet mode network/local/netmask = %s/%s/%s [%s]",
+          msg (status ? M_INFO : M_FATAL, "Set TAP-Windows TUN subnet mode network/local/netmask = %s/%s/%s [%s]",
 	       print_in_addr_t (ep[1], IA_NET_ORDER, &gc),
 	       print_in_addr_t (ep[0], IA_NET_ORDER, &gc),
 	       print_in_addr_t (ep[2], IA_NET_ORDER, &gc),
@@ -4734,14 +4734,14 @@ open_tun (const char *dev, const char *dev_type, const char *dev_node, struct tu
 	  ep[0] = htonl (tt->local);
 	  ep[1] = htonl (tt->remote_netmask);
 
-	  if (!DeviceIoControl (tt->hand, TAP_IOCTL_CONFIG_POINT_TO_POINT,
+	  if (!DeviceIoControl (tt->hand, TAP_WIN_IOCTL_CONFIG_POINT_TO_POINT,
 				ep, sizeof (ep),
 				ep, sizeof (ep), &len, NULL))
-	    msg (M_FATAL, "ERROR: The TAP-Win32 driver rejected a DeviceIoControl call to set Point-to-Point mode, which is required for --dev tun");
+	    msg (M_FATAL, "ERROR: The TAP-Windows driver rejected a DeviceIoControl call to set Point-to-Point mode, which is required for --dev tun");
 	}
     }
 
-  /* should we tell the TAP-Win32 driver to masquerade as a DHCP server as a means
+  /* should we tell the TAP-Windows driver to masquerade as a DHCP server as a means
      of setting the adapter address? */
   if (dhcp_masq)
     {
@@ -4776,12 +4776,12 @@ open_tun (const char *dev, const char *dev_type, const char *dev_node, struct tu
       ASSERT (ep[3] > 0);
 
 #ifndef SIMULATE_DHCP_FAILED /* this code is disabled to simulate bad DHCP negotiation */
-      if (!DeviceIoControl (tt->hand, TAP_IOCTL_CONFIG_DHCP_MASQ,
+      if (!DeviceIoControl (tt->hand, TAP_WIN_IOCTL_CONFIG_DHCP_MASQ,
 			    ep, sizeof (ep),
 			    ep, sizeof (ep), &len, NULL))
-	msg (M_FATAL, "ERROR: The TAP-Win32 driver rejected a DeviceIoControl call to set TAP_IOCTL_CONFIG_DHCP_MASQ mode");
+	msg (M_FATAL, "ERROR: The TAP-Windows driver rejected a DeviceIoControl call to set TAP_WIN_IOCTL_CONFIG_DHCP_MASQ mode");
 
-      msg (M_INFO, "Notified TAP-Win32 driver to set a DHCP IP/netmask of %s/%s on interface %s [DHCP-serv: %s, lease-time: %d]",
+      msg (M_INFO, "Notified TAP-Windows driver to set a DHCP IP/netmask of %s/%s on interface %s [DHCP-serv: %s, lease-time: %d]",
 	   print_in_addr_t (tt->local, 0, &gc),
 	   print_in_addr_t (tt->adapter_netmask, 0, &gc),
 	   device_guid,
@@ -4796,10 +4796,10 @@ open_tun (const char *dev, const char *dev_type, const char *dev_node, struct tu
 	  if (build_dhcp_options_string (&buf, &tt->options))
 	    {
 	      msg (D_DHCP_OPT, "DHCP option string: %s", format_hex (BPTR (&buf), BLEN (&buf), 0, &gc));
-	      if (!DeviceIoControl (tt->hand, TAP_IOCTL_CONFIG_DHCP_SET_OPT,
+	      if (!DeviceIoControl (tt->hand, TAP_WIN_IOCTL_CONFIG_DHCP_SET_OPT,
 				    BPTR (&buf), BLEN (&buf),
 				    BPTR (&buf), BLEN (&buf), &len, NULL))
-		msg (M_FATAL, "ERROR: The TAP-Win32 driver rejected a TAP_IOCTL_CONFIG_DHCP_SET_OPT DeviceIoControl call");
+		msg (M_FATAL, "ERROR: The TAP-Windows driver rejected a TAP_WIN_IOCTL_CONFIG_DHCP_SET_OPT DeviceIoControl call");
 	    }
 	  else
 	    msg (M_WARN, "DHCP option string not set due to error");
@@ -4811,10 +4811,10 @@ open_tun (const char *dev, const char *dev_type, const char *dev_node, struct tu
   /* set driver media status to 'connected' */
   {
     ULONG status = TRUE;
-    if (!DeviceIoControl (tt->hand, TAP_IOCTL_SET_MEDIA_STATUS,
+    if (!DeviceIoControl (tt->hand, TAP_WIN_IOCTL_SET_MEDIA_STATUS,
 			  &status, sizeof (status),
 			  &status, sizeof (status), &len, NULL))
-      msg (M_WARN, "WARNING: The TAP-Win32 driver rejected a TAP_IOCTL_SET_MEDIA_STATUS DeviceIoControl call.");
+      msg (M_WARN, "WARNING: The TAP-Windows driver rejected a TAP_WIN_IOCTL_SET_MEDIA_STATUS DeviceIoControl call.");
   }
 
   /* possible wait for adapter to come up */
@@ -4849,7 +4849,7 @@ open_tun (const char *dev, const char *dev_type, const char *dev_node, struct tu
       }
 
     /*
-     * If the TAP-Win32 driver is masquerading as a DHCP server
+     * If the TAP-Windows driver is masquerading as a DHCP server
      * make sure the TCP/IP properties for the adapter are
      * set correctly.
      */
@@ -4857,7 +4857,7 @@ open_tun (const char *dev, const char *dev_type, const char *dev_node, struct tu
       {
 	/* check dhcp enable status */
 	if (dhcp_status (index) == DHCP_STATUS_DISABLED)
-	  msg (M_WARN, "WARNING: You have selected '--ip-win32 dynamic', which will not work unless the TAP-Win32 TCP/IP properties are set to 'Obtain an IP address automatically'");
+	  msg (M_WARN, "WARNING: You have selected '--ip-win32 dynamic', which will not work unless the TAP-Windows TCP/IP properties are set to 'Obtain an IP address automatically'");
 
 	/* force an explicit DHCP lease renewal on TAP adapter? */
 	if (tt->options.dhcp_pre_release)
@@ -4883,7 +4883,7 @@ open_tun (const char *dev, const char *dev_type, const char *dev_node, struct tu
 
 	/* check dhcp enable status */
 	if (dhcp_status (index) == DHCP_STATUS_DISABLED)
-	  msg (M_WARN, "NOTE: You have selected (explicitly or by default) '--ip-win32 ipapi', which has a better chance of working correctly if the TAP-Win32 TCP/IP properties are set to 'Obtain an IP address automatically'");
+	  msg (M_WARN, "NOTE: You have selected (explicitly or by default) '--ip-win32 ipapi', which has a better chance of working correctly if the TAP-Windows TCP/IP properties are set to 'Obtain an IP address automatically'");
 
 	/* delete previously added IP addresses which were not
 	   correctly deleted */
@@ -4917,13 +4917,13 @@ open_tun (const char *dev, const char *dev_type, const char *dev_node, struct tu
 }
 
 const char *
-tap_win32_getinfo (const struct tuntap *tt, struct gc_arena *gc)
+tap_win_getinfo (const struct tuntap *tt, struct gc_arena *gc)
 {
   if (tt && tt->hand != NULL)
     {
       struct buffer out = alloc_buf_gc (256, gc);
       DWORD len;
-      if (DeviceIoControl (tt->hand, TAP_IOCTL_GET_INFO,
+      if (DeviceIoControl (tt->hand, TAP_WIN_IOCTL_GET_INFO,
 			   BSTR (&out), BCAP (&out),
 			   BSTR (&out), BCAP (&out),
 			   &len, NULL))
@@ -4941,12 +4941,12 @@ tun_show_debug (struct tuntap *tt)
     {
       struct buffer out = alloc_buf (1024);
       DWORD len;
-      while (DeviceIoControl (tt->hand, TAP_IOCTL_GET_LOG_LINE,
+      while (DeviceIoControl (tt->hand, TAP_WIN_IOCTL_GET_LOG_LINE,
 			      BSTR (&out), BCAP (&out),
 			      BSTR (&out), BCAP (&out),
 			      &len, NULL))
 	{
-	  msg (D_TAP_WIN32_DEBUG, "TAP-Win32: %s", BSTR (&out));
+	  msg (D_TAP_WIN_DEBUG, "TAP-Windows: %s", BSTR (&out));
 	}
       free_buf (&out);
     }
@@ -4986,7 +4986,7 @@ close_tun (struct tuntap *tt)
 	  DWORD status;
 	  if ((status = DeleteIPAddress (tt->ipapi_context)) != NO_ERROR)
 	    {
-	      msg (M_WARN, "Warning: DeleteIPAddress[%u] failed on TAP-Win32 adapter, status=%u : %s",
+	      msg (M_WARN, "Warning: DeleteIPAddress[%u] failed on TAP-Windows adapter, status=%u : %s",
 		   (unsigned int)tt->ipapi_context,
 		   (unsigned int)status,
 		   strerror_win32 (status, &gc));
@@ -4999,22 +4999,22 @@ close_tun (struct tuntap *tt)
 
       if (tt->hand != NULL)
 	{
-	  dmsg (D_WIN32_IO_LOW, "Attempting CancelIO on TAP-Win32 adapter");
+	  dmsg (D_WIN32_IO_LOW, "Attempting CancelIO on TAP-Windows adapter");
 	  if (!CancelIo (tt->hand))
-	    msg (M_WARN | M_ERRNO, "Warning: CancelIO failed on TAP-Win32 adapter");
+	    msg (M_WARN | M_ERRNO, "Warning: CancelIO failed on TAP-Windows adapter");
 	}
 
-      dmsg (D_WIN32_IO_LOW, "Attempting close of overlapped read event on TAP-Win32 adapter");
+      dmsg (D_WIN32_IO_LOW, "Attempting close of overlapped read event on TAP-Windows adapter");
       overlapped_io_close (&tt->reads);
 
-      dmsg (D_WIN32_IO_LOW, "Attempting close of overlapped write event on TAP-Win32 adapter");
+      dmsg (D_WIN32_IO_LOW, "Attempting close of overlapped write event on TAP-Windows adapter");
       overlapped_io_close (&tt->writes);
 
       if (tt->hand != NULL)
 	{
-	  dmsg (D_WIN32_IO_LOW, "Attempting CloseHandle on TAP-Win32 adapter");
+	  dmsg (D_WIN32_IO_LOW, "Attempting CloseHandle on TAP-Windows adapter");
 	  if (!CloseHandle (tt->hand))
-	    msg (M_WARN | M_ERRNO, "Warning: CloseHandle failed on TAP-Win32 adapter");
+	    msg (M_WARN | M_ERRNO, "Warning: CloseHandle failed on TAP-Windows adapter");
 	}
 
       if (tt->actual_name)

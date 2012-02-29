@@ -44,7 +44,7 @@ SetCompressor lzma
 
 !define VERSION "${PRODUCT_VERSION}${DBG_POSTFIX}"
 
-!define TAP "${PRODUCT_TAP_ID}"
+!define TAP "${PRODUCT_TAP_WIN_COMPONENT_ID}"
 !define TAPDRV "${TAP}.sys"
 
 ; Default service settings
@@ -409,7 +409,7 @@ Section "TAP Virtual Ethernet Adapter" SecTAP
   File "${GEN}\amd64\${TAPDRV}"
 
   # Don't try to install TAP driver signature if it does not exist.
-  File /nonfatal "${GEN}\amd64\${PRODUCT_TAP_ID}.cat"
+  File /nonfatal "${GEN}\amd64\${PRODUCT_TAP_COMPONENT_ID}.cat"
 
 goto tapend
 
@@ -425,7 +425,7 @@ tap-32bit:
   File "${GEN}\i386\${TAPDRV}"
 
   # Don't try to install TAP driver signature if it does not exist.
-  File /nonfatal "${GEN}\i386\${PRODUCT_TAP_ID}.cat"
+  File /nonfatal "${GEN}\i386\${PRODUCT_TAP_COMPONENT_ID}.cat"
 
   tapend:
 
@@ -778,7 +778,7 @@ Section "Uninstall"
   Delete "$INSTDIR\log\README.txt"
 
   Delete "$INSTDIR\driver\OemWin2k.inf"
-  Delete "$INSTDIR\driver\${PRODUCT_TAP_ID}.cat"
+  Delete "$INSTDIR\driver\${PRODUCT_TAP_COMPONENT_ID}.cat"
   Delete "$INSTDIR\driver\${TAPDRV}"
 
   Delete "$INSTDIR\bin\openssl.exe"

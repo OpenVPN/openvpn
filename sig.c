@@ -268,7 +268,7 @@ print_status (const struct context *c, struct status_output *so)
 #ifdef WIN32
   if (tuntap_defined (c->c1.tuntap))
     status_printf (so, "TAP-WIN32 driver status,\"%s\"",
-	 tap_win32_getinfo (c->c1.tuntap, &gc));
+	 tap_win_getinfo (c->c1.tuntap, &gc));
 #endif
 
   status_printf (so, "END");

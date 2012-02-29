@@ -614,8 +614,8 @@ x_check_status (int status,
 	    }
 	}
 #elif defined(WIN32)
-      /* get possible driver error from TAP-Win32 driver */
-      extended_msg = tap_win32_getinfo (tt, &gc);
+      /* get possible driver error from TAP-Windows driver */
+      extended_msg = tap_win_getinfo (tt, &gc);
 #endif
       if (!ignore_sys_error (my_errno))
 	{
@@ -741,7 +741,7 @@ strerror_win32 (DWORD errnum, struct gc_arena *gc)
 #if 1
   switch (errnum) {
     /*
-     * When the TAP-Win32 driver returns STATUS_UNSUCCESSFUL, this code
+     * When the TAP-Windows driver returns STATUS_UNSUCCESSFUL, this code
      * gets returned to user space.
      */
   case ERROR_GEN_FAILURE:

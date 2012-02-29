@@ -1292,7 +1292,7 @@ pre_select (struct context *c)
   c->c2.timeval.tv_usec = 0;
 
 #if defined(WIN32)
-  if (check_debug_level (D_TAP_WIN32_DEBUG))
+  if (check_debug_level (D_TAP_WIN_DEBUG))
     {
       c->c2.timeval.tv_sec = 1;
       if (tuntap_defined (c->c1.tuntap))

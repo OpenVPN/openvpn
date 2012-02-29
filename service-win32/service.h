@@ -69,7 +69,7 @@ extern "C" {
 // displayed name of the service
 #define SZSERVICEDISPLAYNAME PACKAGE_NAME " Service"
 // list of service dependencies - "dep1\0dep2\0\0"
-#define SZDEPENDENCIES       TAP_ID "\0Dhcp\0\0"
+#define SZDEPENDENCIES       TAP_WIN_COMPONENT_ID "\0Dhcp\0\0"
 //////////////////////////////////////////////////////////////////////////////
 
 

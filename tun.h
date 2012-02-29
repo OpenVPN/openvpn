@@ -164,7 +164,7 @@ struct tuntap
   ULONG ipapi_instance;
   in_addr_t adapter_netmask;
 
-  /* Windows adapter index for TAP-Win32 adapter,
+  /* Windows adapter index for TAP-Windows adapter,
      ~0 if undefined */
   DWORD adapter_index;
 
@@ -333,13 +333,13 @@ DWORD adapter_index_of_ip (const IP_ADAPTER_INFO *list,
 			   int *count,
 			   in_addr_t *netmask);
 
-void show_tap_win32_adapters (int msglev, int warnlev);
+void show_tap_win_adapters (int msglev, int warnlev);
 void show_adapters (int msglev);
 
 void tap_allow_nonadmin_access (const char *dev_node);
 
 void show_valid_win32_tun_subnets (void);
-const char *tap_win32_getinfo (const struct tuntap *tt, struct gc_arena *gc);
+const char *tap_win_getinfo (const struct tuntap *tt, struct gc_arena *gc);
 void tun_show_debug (struct tuntap *tt);
 
 bool dhcp_release_by_adapter_index(const DWORD adapter_index);

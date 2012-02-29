@@ -657,7 +657,7 @@ static const char usage_message[] =
   "Windows Specific:\n"
   "--win-sys path    : Pathname of Windows system directory. Default is the pathname\n"
   "                    from SystemRoot environment variable.\n"
-  "--ip-win32 method : When using --ifconfig on Windows, set TAP-Win32 adapter\n"
+  "--ip-win32 method : When using --ifconfig on Windows, set TAP-Windows adapter\n"
   "                    IP address using method = manual, netsh, ipapi,\n"
   "                    dynamic, or adaptive (default = adaptive).\n"
   "                    Dynamic method allows two optional parameters:\n"
@@ -673,7 +673,7 @@ static const char usage_message[] =
   "                    adaptive (default) -- Try ipapi then fall back to exe.\n"
   "                    ipapi -- Use IP helper API.\n"
   "                    exe -- Call the route.exe shell command.\n"
-  "--dhcp-option type [parm] : Set extended TAP-Win32 properties, must\n"
+  "--dhcp-option type [parm] : Set extended TAP-Windows properties, must\n"
   "                    be used with --ip-win32 dynamic.  For options\n"
   "                    which allow multiple addresses,\n"
   "                    --dhcp-option must be repeated.\n"
@@ -704,7 +704,7 @@ static const char usage_message[] =
   "                  after TAP adapter is up and routes have been added.\n"
   "Windows Standalone Options:\n"
   "\n"
-  "--show-adapters : Show all TAP-Win32 adapters.\n"
+  "--show-adapters : Show all TAP-Windows adapters.\n"
   "--show-net      : Show " PACKAGE_NAME "'s view of routing table and net adapter list.\n"
   "--show-valid-subnets : Show valid subnets for --dev tun emulation.\n"
   "--allow-nonadmin [TAP-adapter] : Allow " PACKAGE_NAME " running without admin privileges\n"
@@ -6046,7 +6046,7 @@ add_option (struct options *options,
   else if (streq (p[0], "show-adapters"))
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
-      show_tap_win32_adapters (M_INFO|M_NOPREFIX, M_WARN|M_NOPREFIX);
+      show_tap_win_adapters (M_INFO|M_NOPREFIX, M_WARN|M_NOPREFIX);
       openvpn_exit (OPENVPN_EXIT_STATUS_GOOD); /* exit point */
     }
   else if (streq (p[0], "show-net"))
