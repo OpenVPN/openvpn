@@ -352,13 +352,7 @@ case "$host" in
 		AC_DEFINE_UNQUOTED([TARGET_PREFIX], ["W"], [Target prefix])
 		CPPFLAGS="${CPPFLAGS} -DWIN32_LEAN_AND_MEAN -DWINVER=0x0501"
 		WIN32=yes
-		OPENVPN_ADD_LIBS(-lgdi32)
-		OPENVPN_ADD_LIBS(-lws2_32)
-		OPENVPN_ADD_LIBS(-lwininet)
-		OPENVPN_ADD_LIBS(-lcrypt32)
-		OPENVPN_ADD_LIBS(-liphlpapi)
-		OPENVPN_ADD_LIBS(-lwinmm)
-		OPENVPN_ADD_LIBS(-lshell32)
+		LIBS="${LIBS} -lgdi32 -lws2_32 -lwininet -lcrypt32 -liphlpapi -lwinmm -lshell32"
 		;;
 	*-*-dragonfly*)
 		AC_DEFINE([TARGET_DRAGONFLY], [1], [Are we running on DragonFlyBSD?])
@@ -640,7 +634,7 @@ case "${with_mem_check}" in
 				[dmalloc],
 				[malloc],
 				[
-					OPENVPN_ADD_LIBS(-ldmalloc)
+					LIBS="${LIBS} -ldmalloc"
 					AC_DEFINE(
 						[DMALLOC],
 						[1],
@@ -682,7 +676,7 @@ if test "${WIN32}" != "yes" -a "${enable_plugins}" = "yes"; then
 				[dl],
 				[dlopen],
 				[
-					OPENVPN_ADD_LIBS(-ldl)
+					LIBS="${LIBS} -ldl"
 					AC_DEFINE(USE_LIBDL, 1, [Use libdl for dynamic library loading])
 				],
 				[AC_MSG_RESULT([libdl library not found.])]
@@ -721,7 +715,7 @@ if test "${enable_lzo}" = "yes" && test "${enable_lzo_stub}" = "no"; then
 	if test $havelzolib = 1 ; then break ; fi
 	AC_CHECK_LIB($i, lzo1x_1_15_compress,
           [
-	    OPENVPN_ADD_LIBS(-l$i)
+	    LIBS="${LIBS} -l$i"
 	    AC_DEFINE(USE_LZO, 1, [Use LZO compression library])
 	    AC_DEFINE_UNQUOTED(LZO_VERSION_NUM, "$LZO_H", [LZO version number])
 	    havelzolib=1
@@ -752,7 +746,7 @@ if test "${enable_pkcs11}" = "yes"; then
 	[AC_CHECK_LIB(pkcs11-helper, pkcs11h_initialize,
 	    [
 		   AC_DEFINE(USE_PKCS11, 1, [Enable PKCS11 capability])
-		   OPENVPN_ADD_LIBS(-lpkcs11-helper)
+		   LIBS="${LIBS} -lpkcs11-helper"
 	    ],
 	    [AC_MSG_RESULT([pkcs11-helper library not found.])]
 	)],
@@ -773,7 +767,7 @@ if test "${enable_crypto}" = "yes"; then
           AC_CHECK_LIB($lib, EVP_CIPHER_CTX_init,
                 [
             		cryptofound=1
-            		OPENVPN_ADD_LIBS(-l$lib)
+			LIBS="${LIBS} -l$lib"
     	        ]
           )
        done
@@ -807,7 +801,7 @@ if test "${enable_crypto}" = "yes"; then
         AC_CHECK_HEADER(polarssl/aes.h,
             [AC_CHECK_LIB(polarssl, aes_crypt_cbc,
                 [
-                    OPENVPN_ADD_LIBS(-lpolarssl)
+		    LIBS="${LIBS} -lpolarssl"
                     AC_DEFINE(USE_CRYPTO, 1, [Use crypto library])
                     AC_DEFINE(USE_POLARSSL, 1, [Use PolarSSL library])
                 ],
@@ -831,7 +825,7 @@ if test "${enable_crypto}" = "yes"; then
 	     AC_CHECK_LIB($lib, SSL_CTX_new,
 		   [
 			   sslfound=1
-			   OPENVPN_ADD_LIBS(-l$lib)
+			   LIBS="${LIBS} -l$lib"
 		   ]
 	     )
          done
@@ -845,7 +839,7 @@ if test "${enable_crypto}" = "yes"; then
          AC_CHECK_HEADER(polarssl/ssl.h,
               [AC_CHECK_LIB(polarssl, ssl_init,
               [
-                  OPENVPN_ADD_LIBS(-lpolarssl)
+		  LIBS="${LIBS} -lpolarssl"
                   AC_DEFINE(USE_SSL, 1, [Use SSL library])
                   AC_DEFINE(USE_POLARSSL, 1, [Use PolarSSL library])
               ],
@@ -867,7 +861,7 @@ if test "${enable_selinux}" = "yes"; then
 			[selinux],
 			[setcon],
 			[
-				OPENVPN_ADD_LIBS(-lselinux)
+				LIBS="${LIBS} -lselinux"
 				AC_DEFINE(HAVE_SETCON, 1, [SELinux support])
 			],
 			[AC_MSG_RESULT([SELinux library not found.])]
