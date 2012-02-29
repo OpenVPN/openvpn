@@ -34,6 +34,9 @@ MAINTAINERCLEANFILES = \
 	$(srcdir)/Makefile.in \
 	$(srcdir)/config.h.in $(srcdir)/config.h.in~ $(srcdir)/configure \
 	$(srcdir)/install-sh $(srcdir)/ltmain.sh $(srcdir)/missing \
+	$(srcdir)/m4/libtool.m4 $(srcdir)/m4/lt~obsolete.m4 \
+	$(srcdir)/m4/ltoptions.m4 $(srcdir)/m4/ltsugar.m4 \
+	$(srcdir)/m4/ltversion.m4 \
 	$(srcdir)/depcomp $(srcdir)/aclocal.m4 \
 	$(srcdir)/config.guess $(srcdir)/config.sub
 
@@ -41,7 +44,7 @@ EXTRA_DIST = \
 	contrib \
 	debug
 
-SUBDIRS = distro include src sample doc tests
+SUBDIRS = build distro include src sample doc tests
 
 dist_doc_DATA = \
 	COPYRIGHT.GPL \

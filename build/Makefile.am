@@ -6,18 +6,10 @@
 #             packet compression.
 #
 #  Copyright (C) 2002-2010 OpenVPN Technologies, Inc. <sales@openvpn.net>
-#  Copyright (C) 2006-2012 Alon Bar-Lev <alon.barlev@gmail.com>
 #
 
-include $(top_srcdir)/build/ltrc.inc
+MAINTAINERCLEANFILES = \
+	$(srcdir)/Makefile.in
 
-MAINTAINERCLEANFILES = $(srcdir)/Makefile.in
-
-if WIN32
-sbin_PROGRAMS = openvpnserv
-endif
-
-openvpnserv_SOURCES = \
-	openvpnserv.c \
-	service.h service.c \
-	openvpnserv_resources.rc
+EXTRA_DIST = \
+	ltrc.inc
