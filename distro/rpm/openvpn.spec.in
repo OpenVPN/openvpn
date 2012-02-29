@@ -52,8 +52,8 @@ Requires:      openssl       >= 0.9.6
 %{!?without_pam:BuildRequires: pam-devel}
 %{!?without_pam:Requires:      pam}
 
-%{!?with_pkcs11:BuildRequires: pkcs11-helper-devel}
-%{!?with_pkcs11:Requires:      pkcs11-helper}
+%{?with_pkcs11:BuildRequires: pkcs11-helper-devel}
+%{?with_pkcs11:Requires:      pkcs11-helper}
 
 #
 # Description
@@ -111,6 +111,7 @@ Development support for OpenVPN.
 	--docdir="%{_docdir}/%{name}-%{version}" \
 	%{?with_password_save:--enable-password-save} \
 	%{?without_lzo:--disable-lzo} \
+	%{?with_pkcs11:--enable-pkcs11} \
 	%{?with_kerberos:--with-ssl-headers=/usr/kerberos/include}
 %__make
 

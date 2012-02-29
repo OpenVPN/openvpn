@@ -264,7 +264,7 @@ ssl_purge_auth (const bool auth_user_pass_only)
 {
   if (!auth_user_pass_only)
     {
-#ifdef USE_PKCS11
+#ifdef ENABLE_PKCS11
       pkcs11_logout ();
 #endif
       purge_user_pass (&passbuf, true);

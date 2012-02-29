@@ -16,6 +16,9 @@ MAINTAINERCLEANFILES = \
 
 INCLUDES = -I$(top_srcdir)/include
 
+AM_CFLAGS = \
+	$(OPTIONAL_PKCS11_HELPER_CFLAGS)
+
 sbin_PROGRAMS = openvpn
 
 openvpn_SOURCES = \
@@ -97,6 +100,7 @@ openvpn_SOURCES = \
 	cryptoapi.h cryptoapi.c
 openvpn_LDADD = \
 	$(SOCKETS_LIBS) \
+	$(OPTIONAL_PKCS11_HELPER_LIBS) \
 	$(OPTIONAL_SELINUX_LIBS) \
 	$(OPTIONAL_DL_LIBS)
 if WIN32

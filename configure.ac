@@ -111,9 +111,9 @@ AC_ARG_ENABLE(
 
 AC_ARG_ENABLE(
 	[pkcs11],
-	[AS_HELP_STRING([--disable-pkcs11], [disable pkcs11 support])],
+	[AS_HELP_STRING([--enable-pkcs11], [enable pkcs11 support])],
 	,
-	[enable_pkcs11="yes"]
+	[enable_pkcs11="no"]
 )
 
 AC_ARG_ENABLE(
@@ -250,19 +250,6 @@ AC_ARG_WITH(
 AC_ARG_WITH(
 	[lzo-lib],
 	[AS_HELP_STRING([--with-lzo-lib=DIR], [LZO Library location])],
-	[LDFLAGS="$LDFLAGS -L$withval"] 
-)
-
-AC_ARG_WITH(
-	[pkcs11-helper-headers],
-	[AS_HELP_STRING([--with-pkcs11-helper-headers=DIR], [pkcs11-helper Include files location])],
-	[PKCS11_HELPER_HDR_DIR="$withval"]
-	[CPPFLAGS="$CPPFLAGS -I$withval"] 
-)
-
-AC_ARG_WITH(
-	[pkcs11-helper-lib],
-	[AS_HELP_STRING([--with-pkcs11-helper-lib=DIR], [pkcs11-helper Library location])],
 	[LDFLAGS="$LDFLAGS -L$withval"] 
 )
 
@@ -719,22 +706,12 @@ if test "${enable_lzo_stub}" = "yes"; then
 	AC_DEFINE([LZO_STUB], [1], [Enable LZO stub capability])
 fi
 
-dnl
-dnl enable pkcs11 capability
-dnl
-if test "${enable_pkcs11}" = "yes"; then
-   AC_CHECKING([for pkcs11-helper Library and Header files])
-   AC_CHECK_HEADER(pkcs11-helper-1.0/pkcs11h-core.h,
-	[AC_CHECK_LIB(pkcs11-helper, pkcs11h_initialize,
-	    [
-		   AC_DEFINE(USE_PKCS11, 1, [Enable PKCS11 capability])
-		   LIBS="${LIBS} -lpkcs11-helper"
-	    ],
-	    [AC_MSG_RESULT([pkcs11-helper library not found.])]
-	)],
-	[AC_MSG_RESULT([pkcs11-helper headers not found.])]
-   )
-fi
+PKG_CHECK_MODULES(
+	[PKCS11_HELPER],
+	[libpkcs11-helper-1 >= 1.02],
+	[have_pkcs11_helper="yes"],
+	[]
+)
 
 dnl
 dnl check for SSL-crypto library
@@ -890,6 +867,14 @@ if test "${enable_selinux}" = "yes"; then
 	AC_DEFINE([ENABLE_SELINUX], [1], [SELinux support])
 fi
 
+if test "${enable_pkcs11}" = "yes"; then
+	test "${have_pkcs11_helper}" != "yes" && AC_MSG_ERROR([PKCS11 enabled but libpkcs11-helper is missing])
+	test "${enable_ssl}" != "yes" && AC_MSG_ERROR([PKCS11 can be enabled only if SSL is enabled])
+	OPTIONAL_PKCS11_HELPER_CFLAGS="${PKCS11_HELPER_CFLAGS}"
+	OPTIONAL_PKCS11_HELPER_LIBS="${PKCS11_HELPER_LIBS}"
+	AC_DEFINE([ENABLE_PKCS11], [1], [Enable PKCS11])
+fi
+
 if test "${enable_pedantic}" = "yes"; then
 	enable_strict="yes"
 	CFLAGS="${CFLAGS} -ansi -pedantic"
@@ -917,6 +902,8 @@ AC_SUBST([TAP_WIN_MIN_MINOR])
 
 AC_SUBST([OPTIONAL_DL_LIBS])
 AC_SUBST([OPTIONAL_SELINUX_LIBS])
+AC_SUBST([OPTIONAL_PKCS11_HELPER_CFLAGS])
+AC_SUBST([OPTIONAL_PKCS11_HELPER_LIBS])
 
 AM_CONDITIONAL([WIN32], [test "${WIN32}" = "yes"])
 
