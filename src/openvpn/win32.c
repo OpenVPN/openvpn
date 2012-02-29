@@ -514,7 +514,7 @@ win32_signal_close (struct win32_signal *ws)
 /*
  * Return true if interrupt occurs in service mode.
  */
-static bool
+bool
 win32_service_interrupt (struct win32_signal *ws)
 {
   if (ws->mode == WSO_MODE_SERVICE)
@@ -737,91 +737,6 @@ void
 netcmd_semaphore_release (void)
 {
   semaphore_release (&netcmd_semaphore);
-}
-
-/*
- * Get input from console.
- *
- * Return false on input error, or if service
- * exit event is signaled.
- */
-
-bool
-get_console_input_win32 (const char *prompt, const bool echo, char *input, const int capacity)
-{
-  HANDLE in = INVALID_HANDLE_VALUE;
-  HANDLE err = INVALID_HANDLE_VALUE;
-  DWORD len = 0;
-
-  ASSERT (prompt);
-  ASSERT (input);
-  ASSERT (capacity > 0);
-
-  input[0] = '\0';
-
-  in = GetStdHandle (STD_INPUT_HANDLE);
-  err = get_orig_stderr ();
-
-  if (in != INVALID_HANDLE_VALUE
-      && err != INVALID_HANDLE_VALUE
-      && !win32_service_interrupt (&win32_signal)
-      && WriteFile (err, prompt, strlen (prompt), &len, NULL))
-    {
-      bool is_console = (GetFileType (in) == FILE_TYPE_CHAR);
-      DWORD flags_save = 0;
-      int status = 0;
-      WCHAR *winput;
-
-      if (is_console)
-	{
-	  if (GetConsoleMode (in, &flags_save))
-	    {
-	      DWORD flags = ENABLE_LINE_INPUT | ENABLE_PROCESSED_INPUT;
-	      if (echo)
-		flags |= ENABLE_ECHO_INPUT;
-	      SetConsoleMode (in, flags);
-	    }
-	  else
-	    is_console = 0;
-	}
-
-      if (is_console)
-        {
-          winput = malloc (capacity * sizeof (WCHAR));
-          if (winput == NULL)
-            return false;
-
-          status = ReadConsoleW (in, winput, capacity, &len, NULL);
-          WideCharToMultiByte (CP_UTF8, 0, winput, len, input, capacity, NULL, NULL);
-          free (winput);
-        }
-      else
-        status = ReadFile (in, input, capacity, &len, NULL);
-
-      string_null_terminate (input, (int)len, capacity);
-      chomp (input);
-
-      if (!echo)
-	WriteFile (err, "\r\n", 2, &len, NULL);
-      if (is_console)
-	SetConsoleMode (in, flags_save);
-      if (status && !win32_service_interrupt (&win32_signal))
-	return true;
-    }
-
-  return false;
-}
-
-/* get password from console */
-
-char *
-getpass (const char *prompt)
-{
-  static char line[256];
-  if (get_console_input_win32 (prompt, false, line, sizeof (line)))
-    return line;
-  else
-    return NULL;
 }
 
 /*

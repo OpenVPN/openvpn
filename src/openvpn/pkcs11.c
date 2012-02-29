@@ -40,6 +40,7 @@
 #include "pkcs11.h"
 #include "misc.h"
 #include "otime.h"
+#include "console.h"
 #include "pkcs11_backend.h"
 
 static

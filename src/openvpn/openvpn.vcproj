@@ -191,6 +191,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\console.c"
+				>
+			</File>
+			<File
 				RelativePath=".\crypto.c"
 				>
 			</File>
@@ -454,6 +458,10 @@
 			</File>
 			<File
 				RelativePath=".\common.h"
+				>
+			</File>
+			<File
+				RelativePath=".\console.h"
 				>
 			</File>
 			<File

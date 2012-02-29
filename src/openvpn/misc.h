@@ -128,6 +128,7 @@ bool system_executed (int stat);
 const char *system_error_message (int, struct gc_arena *gc);
 
 /* wrapper around the execve() call */
+int openvpn_popen (const struct argv *a,  const struct env_set *es);
 int openvpn_execve (const struct argv *a, const struct env_set *es, const unsigned int flags);
 bool openvpn_execve_check (const struct argv *a, const struct env_set *es, const unsigned int flags, const char *error_message);
 bool openvpn_execve_allowed (const unsigned int flags);
@@ -321,8 +322,6 @@ struct static_challenge_info {
 struct auth_challenge_info {};
 struct static_challenge_info {};
 #endif
-
-bool get_console_input (const char *prompt, const bool echo, char *input, const int capacity);
 
 /*
  * Flags for get_user_pass and management_query_user_pass

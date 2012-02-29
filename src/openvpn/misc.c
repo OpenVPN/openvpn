@@ -41,6 +41,7 @@
 #include "manage.h"
 #include "crypto.h"
 #include "route.h"
+#include "console.h"
 #include "win32.h"
 
 #include "memdbg.h"
@@ -1371,130 +1372,6 @@ absolute_pathname (const char *pathname)
     }
   else
     return false;
-}
-
-#ifdef HAVE_GETPASS
-
-static FILE *
-open_tty (const bool write)
-{
-  FILE *ret;
-  ret = fopen ("/dev/tty", write ? "w" : "r");
-  if (!ret)
-    ret = write ? stderr : stdin;
-  return ret;
-}
-
-static void
-close_tty (FILE *fp)
-{
-  if (fp != stderr && fp != stdin)
-    fclose (fp);
-}
-
-#endif
-
-/*
- * is systemd running
- */
-
-#if defined(TARGET_LINUX) && defined(ENABLE_SYSTEMD)
-bool
-check_systemd_running ()
-{
-  struct stat a, b;
-
-  /* We simply test whether the systemd cgroup hierarchy is
-   * mounted */
-
-  return (lstat("/sys/fs/cgroup", &a) == 0)
-	  && (lstat("/sys/fs/cgroup/systemd", &b) == 0)
-	  && (a.st_dev != b.st_dev);
-
-}
-
-bool
-get_console_input_systemd (const char *prompt, const bool echo, char *input, const int capacity)
-{
-  int std_out;
-  char cmd[256];
-  bool ret = false;
-  struct argv argv;
-
-  argv_init (&argv);
-  argv_printf (&argv, "/bin/systemd-ask-password");
-  argv_printf_cat (&argv, "%s", prompt);
-
-  if ((std_out = openvpn_popen (&argv, NULL)) < 0) {
-	  return false;
-  }
-  CLEAR (*input);
-  if (read (std_out, input, capacity) != 0)
-    {
-       chomp (input);
-       ret = true;
-    }
-  close (std_out);
-
-  argv_reset (&argv);
-
-  return ret;
-}
-
-
-#endif
-
-/*
- * Get input from console
- */
-bool
-get_console_input (const char *prompt, const bool echo, char *input, const int capacity)
-{
-  bool ret = false;
-  ASSERT (prompt);
-  ASSERT (input);
-  ASSERT (capacity > 0);
-  input[0] = '\0';
-
-#if defined(TARGET_LINUX) && defined(ENABLE_SYSTEMD)
-  if (check_systemd_running ())
-    return get_console_input_systemd (prompt, echo, input, capacity);
-#endif
-
-#if defined(WIN32)
-  return get_console_input_win32 (prompt, echo, input, capacity);
-#elif defined(HAVE_GETPASS)
-  if (echo)
-    {
-      FILE *fp;
-
-      fp = open_tty (true);
-      fprintf (fp, "%s", prompt);
-      fflush (fp);
-      close_tty (fp);
-
-      fp = open_tty (false);
-      if (fgets (input, capacity, fp) != NULL)
-	{
-	  chomp (input);
-	  ret = true;
-	}
-      close_tty (fp);
-    }
-  else
-    {
-      char *gp = getpass (prompt);
-      if (gp)
-	{
-	  strncpynt (input, gp, capacity);
-	  memset (gp, 0, strlen (gp));
-	  ret = true;
-	}
-    }
-#else
-  msg (M_FATAL, "Sorry, but I can't get console input on this OS");
-#endif
-  return ret;
 }
 
 /*

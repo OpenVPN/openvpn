@@ -58,6 +58,7 @@ openvpn_SOURCES = \
 	mbuf.c mbuf.h \
 	memdbg.h \
 	misc.c misc.h \
+	console.c console.h \
 	mroute.c mroute.h \
 	mss.c mss.h \
 	mstats.c mstats.h \
