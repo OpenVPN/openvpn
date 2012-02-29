@@ -37,8 +37,8 @@
 #include "ps.h"
 #include "mstats.h"
 
-#ifdef USE_CRYPTO
-#ifdef USE_OPENSSL
+#ifdef ENABLE_CRYPTO
+#ifdef ENABLE_CRYPTO_OPENSSL
 #include <openssl/err.h>
 #endif
 #endif
@@ -246,8 +246,8 @@ void x_msg (const unsigned int flags, const char *format, ...)
       SWAP;
     }
 
-#ifdef USE_CRYPTO
-#ifdef USE_OPENSSL
+#ifdef ENABLE_CRYPTO
+#ifdef ENABLE_CRYPTO_OPENSSL
   if (flags & M_SSL)
     {
       int nerrs = 0;

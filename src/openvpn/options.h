@@ -80,7 +80,7 @@ struct options_pre_pull
 };
 
 #endif
-#if defined(USE_CRYPTO) && !defined(USE_OPENSSL) && !defined(USE_POLARSSL)
+#if defined(ENABLE_CRYPTO) && !defined(ENABLE_CRYPTO_OPENSSL) && !defined(ENABLE_CRYPTO_POLARSSL)
 # error "At least one of OpenSSL or PolarSSL needs to be defined."
 #endif
 
@@ -211,12 +211,12 @@ struct options
   bool persist_config;
   int persist_mode;
 
-#ifdef USE_CRYPTO
+#ifdef ENABLE_CRYPTO
   const char *key_pass_file;
   bool show_ciphers;
   bool show_digests;
   bool show_engines;
-#ifdef USE_SSL
+#ifdef ENABLE_SSL
   bool show_tls_ciphers;
 #endif
   bool genkey;
@@ -498,7 +498,7 @@ struct options
 #endif
 #endif
 
-#ifdef USE_CRYPTO
+#ifdef ENABLE_CRYPTO
   /* Cipher parms */
   const char *shared_secret_file;
 #if ENABLE_INLINE_FILES
@@ -521,7 +521,7 @@ struct options
   bool use_iv;
   bool test_crypto;
 
-#ifdef USE_SSL
+#ifdef ENABLE_SSL
   /* TLS (control channel) parms */
   bool tls_server;
   bool tls_client;
@@ -605,8 +605,8 @@ struct options
 
   bool tls_exit;
 
-#endif /* USE_SSL */
-#endif /* USE_CRYPTO */
+#endif /* ENABLE_SSL */
+#endif /* ENABLE_CRYPTO */
 
 #ifdef ENABLE_X509_TRACK
   const struct x509_track *x509_track;

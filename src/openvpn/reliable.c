@@ -29,7 +29,7 @@
 
 #include "syshead.h"
 
-#if defined(USE_CRYPTO) && defined(USE_SSL)
+#if defined(ENABLE_CRYPTO) && defined(ENABLE_SSL)
 
 #include "buffer.h"
 #include "error.h"
@@ -748,4 +748,4 @@ reliable_debug_print (const struct reliable *rel, char *desc)
 
 #else
 static void dummy(void) {}
-#endif /* USE_CRYPTO && USE_SSL*/
+#endif /* ENABLE_CRYPTO && ENABLE_SSL*/

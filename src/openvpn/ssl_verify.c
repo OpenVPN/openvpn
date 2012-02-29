@@ -29,14 +29,14 @@
 
 #include "syshead.h"
 
-#if defined(USE_CRYPTO) && defined(USE_SSL)
+#if defined(ENABLE_CRYPTO) && defined(ENABLE_SSL)
 
 #include "misc.h"
 #include "manage.h"
 #include "ssl_verify.h"
 #include "ssl_verify_backend.h"
 
-#ifdef USE_OPENSSL
+#ifdef ENABLE_CRYPTO_OPENSSL
 #include "ssl_verify_openssl.h"
 #endif
 
@@ -296,7 +296,7 @@ print_nsCertType (int type)
  * @param subject the peer's extracted common name
  */
 static result_t
-verify_peer_cert(const struct tls_options *opt, x509_cert_t *peer_cert,
+verify_peer_cert(const struct tls_options *opt, openvpn_x509_cert_t *peer_cert,
     const char *subject, const char *common_name)
 {
   /* verify certificate nsCertType */
@@ -315,7 +315,7 @@ verify_peer_cert(const struct tls_options *opt, x509_cert_t *peer_cert,
 	}
     }
 
-#if OPENSSL_VERSION_NUMBER >= 0x00907000L || USE_POLARSSL
+#if OPENSSL_VERSION_NUMBER >= 0x00907000L || ENABLE_CRYPTO_POLARSSL
 
   /* verify certificate ku */
   if (opt->remote_cert_ku[0] != 0)
@@ -369,7 +369,7 @@ verify_peer_cert(const struct tls_options *opt, x509_cert_t *peer_cert,
  * environment for later verification by scripts and plugins.
  */
 static void
-verify_cert_set_env(struct env_set *es, x509_cert_t *peer_cert, int cert_depth,
+verify_cert_set_env(struct env_set *es, openvpn_x509_cert_t *peer_cert, int cert_depth,
     const char *subject, const char *common_name
 #ifdef ENABLE_X509_TRACK
     , const struct x509_track *x509_track
@@ -425,7 +425,7 @@ verify_cert_set_env(struct env_set *es, x509_cert_t *peer_cert, int cert_depth,
  */
 static result_t
 verify_cert_call_plugin(const struct plugin_list *plugins, struct env_set *es,
-    int cert_depth, x509_cert_t *cert, char *subject)
+    int cert_depth, openvpn_x509_cert_t *cert, char *subject)
 {
   if (plugin_defined (plugins, OPENVPN_PLUGIN_TLS_VERIFY))
     {
@@ -454,7 +454,7 @@ verify_cert_call_plugin(const struct plugin_list *plugins, struct env_set *es,
 }
 
 static const char *
-verify_cert_export_cert(x509_cert_t *peercert, const char *tmp_dir, struct gc_arena *gc)
+verify_cert_export_cert(openvpn_x509_cert_t *peercert, const char *tmp_dir, struct gc_arena *gc)
 {
   FILE *peercert_file;
   const char *peercert_filename="";
@@ -486,7 +486,7 @@ verify_cert_export_cert(x509_cert_t *peercert, const char *tmp_dir, struct gc_ar
  */
 static result_t
 verify_cert_call_command(const char *verify_command, struct env_set *es,
-    int cert_depth, x509_cert_t *cert, char *subject, const char *verify_export_cert)
+    int cert_depth, openvpn_x509_cert_t *cert, char *subject, const char *verify_export_cert)
 {
   const char *tmp_file = NULL;
   int ret;
@@ -533,7 +533,7 @@ verify_cert_call_command(const char *verify_command, struct env_set *es,
  * check peer cert against CRL directory
  */
 static result_t
-verify_check_crl_dir(const char *crl_dir, x509_cert_t *cert)
+verify_check_crl_dir(const char *crl_dir, openvpn_x509_cert_t *cert)
 {
   char fn[256];
   int fd;
@@ -560,7 +560,7 @@ verify_check_crl_dir(const char *crl_dir, x509_cert_t *cert)
 }
 
 result_t
-verify_cert(struct tls_session *session, x509_cert_t *cert, int cert_depth)
+verify_cert(struct tls_session *session, openvpn_x509_cert_t *cert, int cert_depth)
 {
   char *subject = NULL;
   char common_name[TLS_USERNAME_LEN] = {0};
@@ -1215,4 +1215,4 @@ verify_final_auth_checks(struct tls_multi *multi, struct tls_session *session)
       gc_free (&gc);
     }
 }
-#endif /* defined(USE_CRYPTO) && defined(USE_SSL) */
+#endif /* defined(ENABLE_CRYPTO) && defined(ENABLE_SSL) */

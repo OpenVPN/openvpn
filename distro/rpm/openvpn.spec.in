@@ -10,9 +10,6 @@
 #
 # Allow passwords to be read from files
 #   rpmbuild -tb [openvpn.x.tar.gz] --define 'with_password_save 1'
-#
-# Use this on RH9 and RHEL3
-#   rpmbuild -tb [openvpn.x.tar.gz] --define 'with_kerberos 1'
 
 Summary:	OpenVPN is a robust and highly flexible VPN daemon by James Yonan.
 Name:           @PACKAGE@
@@ -111,8 +108,7 @@ Development support for OpenVPN.
 	--docdir="%{_docdir}/%{name}-%{version}" \
 	%{?with_password_save:--enable-password-save} \
 	%{!?without_lzo:--enable-lzo} \
-	%{?with_pkcs11:--enable-pkcs11} \
-	%{?with_kerberos:--with-ssl-headers=/usr/kerberos/include}
+	%{?with_pkcs11:--enable-pkcs11}
 %__make
 
 # Build down-root plugin

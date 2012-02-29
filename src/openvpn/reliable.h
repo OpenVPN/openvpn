@@ -29,7 +29,7 @@
  */
 
 
-#if defined(USE_CRYPTO) && defined(USE_SSL)
+#if defined(ENABLE_CRYPTO) && defined(ENABLE_SSL)
 
 #ifndef RELIABLE_H
 #define RELIABLE_H
@@ -477,4 +477,4 @@ void reliable_ack_debug_print (const struct reliable_ack *ack, char *desc);
 
 
 #endif /* RELIABLE_H */
-#endif /* USE_CRYPTO && USE_SSL */
+#endif /* ENABLE_CRYPTO && ENABLE_SSL */

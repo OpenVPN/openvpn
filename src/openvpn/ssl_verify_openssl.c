@@ -29,7 +29,7 @@
 
 #include "syshead.h"
 
-#if defined(USE_SSL) && defined(USE_OPENSSL)
+#if defined(ENABLE_SSL) && defined(ENABLE_CRYPTO_OPENSSL)
 
 #include "ssl_verify.h"
 #include "ssl_verify_backend.h"
@@ -210,7 +210,7 @@ x509_get_username (char *common_name, int cn_len,
 }
 
 char *
-x509_get_serial (x509_cert_t *cert)
+x509_get_serial (openvpn_x509_cert_t *cert)
 {
   ASN1_INTEGER *asn1_i;
   BIGNUM *bignum;
@@ -401,7 +401,7 @@ x509_setenv_track (const struct x509_track *xt, struct env_set *es, const int de
  *  X509_{cert_depth}_{name}={value}
  */
 void
-x509_setenv (struct env_set *es, int cert_depth, x509_cert_t *peer_cert)
+x509_setenv (struct env_set *es, int cert_depth, openvpn_x509_cert_t *peer_cert)
 {
   int i, n;
   int fn_nid;
@@ -449,7 +449,7 @@ x509_setenv (struct env_set *es, int cert_depth, x509_cert_t *peer_cert)
 }
 
 result_t
-x509_verify_ns_cert_type(const x509_cert_t *peer_cert, const int usage)
+x509_verify_ns_cert_type(const openvpn_x509_cert_t *peer_cert, const int usage)
 {
   if (usage == NS_CERT_CHECK_NONE)
     return SUCCESS;
@@ -623,4 +623,4 @@ end:
   return retval;
 }
 
-#endif /* defined(USE_SSL) && defined(USE_OPENSSL) */
+#endif /* defined(ENABLE_SSL) && defined(ENABLE_CRYPTO_OPENSSL) */

@@ -33,11 +33,11 @@
 
 #include "buffer.h"
 
-#ifdef USE_OPENSSL
+#ifdef ENABLE_CRYPTO_OPENSSL
 #include "ssl_openssl.h"
 #include "ssl_verify_openssl.h"
 #endif
-#ifdef USE_POLARSSL
+#ifdef ENABLE_CRYPTO_POLARSSL
 #include "ssl_polarssl.h"
 #include "ssl_verify_polarssl.h"
 #endif
@@ -193,7 +193,7 @@ void tls_ctx_load_cert_file (struct tls_root_ctx *ctx, const char *cert_file,
 #if ENABLE_INLINE_FILES
     const char *cert_file_inline,
 #endif
-    x509_cert_t **x509
+    openvpn_x509_cert_t **x509
     );
 
 /**
@@ -201,7 +201,7 @@ void tls_ctx_load_cert_file (struct tls_root_ctx *ctx, const char *cert_file,
  *
  * @param x509			certificate to free
  */
-void tls_ctx_free_cert_file (x509_cert_t *x509);
+void tls_ctx_free_cert_file (openvpn_x509_cert_t *x509);
 
 /**
  * Load private key file into the given TLS context.
@@ -233,7 +233,7 @@ int tls_ctx_load_priv_file (struct tls_root_ctx *ctx, const char *priv_key_file
  * @return 			1 if an error occurred, 0 if parsing was
  * 				successful.
  */
-int tls_ctx_use_external_private_key (struct tls_root_ctx *ctx, x509_cert_t *cert);
+int tls_ctx_use_external_private_key (struct tls_root_ctx *ctx, openvpn_x509_cert_t *cert);
 
 #endif
 

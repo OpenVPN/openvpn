@@ -56,25 +56,25 @@
 const char title_string[] =
   PACKAGE_STRING
   " " TARGET_ALIAS
-#ifdef USE_CRYPTO
-#ifdef USE_SSL
-#if defined(USE_POLARSSL)
+#ifdef ENABLE_CRYPTO
+#ifdef ENABLE_SSL
+#if defined(ENABLE_CRYPTO_POLARSSL)
   " [SSL (PolarSSL)]"
-#elif defined(USE_OPENSSL)
+#elif defined(ENABLE_CRYPTO_OPENSSL)
   " [SSL (OpenSSL)]"
 #else
   " [SSL]"
-#endif /* defined(USE_POLARSSL) */
-#else /* ! USE_SSL */
-#if defined(USE_POLARSSL)
+#endif /* defined(ENABLE_CRYPTO_POLARSSL) */
+#else /* ! ENABLE_SSL */
+#if defined(ENABLE_CRYPTO_POLARSSL)
   " [CRYPTO (PolarSSL)]"
-#elif defined(USE_OPENSSL)
+#elif defined(ENABLE_CRYPTO_OPENSSL)
   " [CRYPTO (OpenSSL)]"
 #else
   " [CRYPTO]"
-#endif /* defined(USE_POLARSSL) */
-#endif /* USE_SSL */
-#endif /* USE_CRYPTO */
+#endif /* defined(ENABLE_CRYPTO_POLARSSL) */
+#endif /* ENABLE_SSL */
+#endif /* ENABLE_CRYPTO */
 #ifdef ENABLE_LZO
 #ifdef ENABLE_LZO_STUB
   " [LZO (STUB)]"
@@ -503,7 +503,7 @@ static const char usage_message[] =
   "--explicit-exit-notify [n] : On exit/restart, send exit signal to\n"
   "                  server/remote. n = # of retries, default=1.\n"
 #endif
-#ifdef USE_CRYPTO
+#ifdef ENABLE_CRYPTO
   "\n"
   "Data Channel Encryption Options (must be compatible between peers):\n"
   "(These options are meaningful for both Static Key & TLS-mode)\n"
@@ -526,7 +526,7 @@ static const char usage_message[] =
   "--keysize n     : Size of cipher key in bits (optional).\n"
   "                  If unspecified, defaults to cipher-specific default.\n"
 #endif
-#ifndef USE_POLARSSL
+#ifndef ENABLE_CRYPTO_POLARSSL
   "--engine [name] : Enable OpenSSL hardware crypto engine functionality.\n"
 #endif
   "--no-replay     : Disable replay protection.\n"
@@ -539,7 +539,7 @@ static const char usage_message[] =
   "                  using file.\n"
   "--test-crypto   : Run a self-test of crypto features enabled.\n"
   "                  For debugging only.\n"
-#ifdef USE_SSL
+#ifdef ENABLE_SSL
   "\n"
   "TLS Key Negotiation Options:\n"
   "(These options are meaningful only for TLS-mode)\n"
@@ -549,7 +549,7 @@ static const char usage_message[] =
   "                  number, such as 1 (default), 2, etc.\n"
   "--ca file       : Certificate authority file in .pem format containing\n"
   "                  root certificate.\n"
-#ifndef USE_POLARSSL
+#ifndef ENABLE_CRYPTO_POLARSSL
   "--capath dir    : A directory of trusted certificates (CAs"
 #if OPENSSL_VERSION_NUMBER >= 0x00907000L
   " and CRLs).\n"
@@ -557,7 +557,7 @@ static const char usage_message[] =
   ").\n"
   "                  WARNING: no support of CRL available with this version.\n"
 #endif /* OPENSSL_VERSION_NUMBER >= 0x00907000L */
-#endif /* USE_POLARSSL */
+#endif /* ENABLE_CRYPTO_POLARSSL */
   "--dh file       : File containing Diffie Hellman parameters\n"
   "                  in .pem format (for --tls-server only).\n"
   "                  Use \"openssl dhparam -out dh1024.pem 1024\" to generate.\n"
@@ -565,7 +565,7 @@ static const char usage_message[] =
   "                  by a Certificate Authority in --ca file.\n"
   "--extra-certs file : one or more PEM certs that complete the cert chain.\n"
   "--key file      : Local private key in .pem format.\n"
-#ifndef USE_POLARSSL
+#ifndef ENABLE_CRYPTO_POLARSSL
   "--pkcs12 file   : PKCS#12 file containing local private key, local certificate\n"
   "                  and optionally the root CA certificate.\n"
 #endif
@@ -616,7 +616,7 @@ static const char usage_message[] =
   "--x509-track x  : Save peer X509 attribute x in environment for use by\n"
   "                  plugins and management interface.\n"
 #endif
-#if OPENSSL_VERSION_NUMBER >= 0x00907000L || USE_POLARSSL
+#if OPENSSL_VERSION_NUMBER >= 0x00907000L || ENABLE_CRYPTO_POLARSSL
   "--remote-cert-ku v ... : Require that the peer certificate was signed with\n"
   "                  explicit key usage, you can specify more than one value.\n"
   "                  value should be given in hex format.\n"
@@ -626,8 +626,8 @@ static const char usage_message[] =
   "--remote-cert-tls t: Require that peer certificate was signed with explicit\n"
   "                  key usage and extended key usage based on RFC3280 TLS rules.\n"
   "                  t = 'client' | 'server'.\n"
-#endif				/* OPENSSL_VERSION_NUMBER || USE_POLARSSL */
-#endif				/* USE_SSL */
+#endif				/* OPENSSL_VERSION_NUMBER || ENABLE_CRYPTO_POLARSSL */
+#endif				/* ENABLE_SSL */
 #ifdef ENABLE_PKCS11
   "\n"
   "PKCS#11 Options:\n"
@@ -652,7 +652,7 @@ static const char usage_message[] =
   "--show-ciphers  : Show cipher algorithms to use with --cipher option.\n"
   "--show-digests  : Show message digest algorithms to use with --auth option.\n"
   "--show-engines  : Show hardware crypto accelerator engines (if available).\n"
-#ifdef USE_SSL
+#ifdef ENABLE_SSL
   "--show-tls      : Show all TLS ciphers (TLS used only as a control channel).\n"
 #endif
 #ifdef WIN32
@@ -718,7 +718,7 @@ static const char usage_message[] =
   "--genkey        : Generate a random key to be used as a shared secret,\n"
   "                  for use with the --secret option.\n"
   "--secret file   : Write key to file.\n"
-#endif				/* USE_CRYPTO */
+#endif				/* ENABLE_CRYPTO */
 #ifdef TUNSETPERSIST
   "\n"
   "Tun/tap config mode (available with linux 2.4+):\n"
@@ -819,7 +819,7 @@ init_options (struct options *o, const bool init_gc)
   o->scheduled_exit_interval = 5;
   o->server_poll_timeout = 0;
 #endif
-#ifdef USE_CRYPTO
+#ifdef ENABLE_CRYPTO
   o->ciphername = "BF-CBC";
   o->ciphername_defined = true;
   o->authname = "SHA1";
@@ -831,7 +831,7 @@ init_options (struct options *o, const bool init_gc)
   o->replay_time = DEFAULT_TIME_BACKTRACK;
   o->use_iv = true;
   o->key_direction = KEY_DIRECTION_BIDIRECTIONAL;
-#ifdef USE_SSL
+#ifdef ENABLE_SSL
   o->key_method = 2;
   o->tls_timeout = 2;
   o->renegotiate_seconds = 3600;
@@ -840,8 +840,8 @@ init_options (struct options *o, const bool init_gc)
 #ifdef ENABLE_X509ALTUSERNAME
   o->x509_username_field = X509_USERNAME_FIELD_DEFAULT;
 #endif
-#endif /* USE_SSL */
-#endif /* USE_CRYPTO */
+#endif /* ENABLE_SSL */
+#endif /* ENABLE_CRYPTO */
 #ifdef ENABLE_PKCS11
   o->pkcs11_pin_cache_period = -1;
 #endif			/* ENABLE_PKCS11 */
@@ -1050,7 +1050,7 @@ is_stateful_restart (const struct options *o)
   return is_persist_option (o) || connection_list_defined (o);
 }
 
-#ifdef USE_SSL
+#ifdef ENABLE_SSL
 static uint8_t *
 parse_hash_fingerprint(const char *str, int nbytes, int msglevel, struct gc_arena *gc)
 {
@@ -1419,12 +1419,12 @@ show_settings (const struct options *o)
   SHOW_INT (persist_mode);
 #endif
 
-#ifdef USE_CRYPTO
+#ifdef ENABLE_CRYPTO
   SHOW_BOOL (show_ciphers);
   SHOW_BOOL (show_digests);
   SHOW_BOOL (show_engines);
   SHOW_BOOL (genkey);
-#ifdef USE_SSL
+#ifdef ENABLE_SSL
   SHOW_STR (key_pass_file);
   SHOW_BOOL (show_tls_ciphers);
 #endif
@@ -1555,7 +1555,7 @@ show_settings (const struct options *o)
     plugin_option_list_print (o->plugin_list, D_SHOW_PARMS);
 #endif
 
-#ifdef USE_CRYPTO
+#ifdef ENABLE_CRYPTO
   SHOW_STR (shared_secret_file);
   SHOW_INT (key_direction);
   SHOW_BOOL (ciphername_defined);
@@ -1565,9 +1565,9 @@ show_settings (const struct options *o)
   SHOW_STR (prng_hash);
   SHOW_INT (prng_nonce_secret_len);
   SHOW_INT (keysize);
-#ifndef USE_POLARSSL
+#ifndef ENABLE_CRYPTO_POLARSSL
   SHOW_BOOL (engine);
-#endif /* USE_POLARSSL */
+#endif /* ENABLE_CRYPTO_POLARSSL */
   SHOW_BOOL (replay);
   SHOW_BOOL (mute_replay_warnings);
   SHOW_INT (replay_window);
@@ -1576,7 +1576,7 @@ show_settings (const struct options *o)
   SHOW_BOOL (use_iv);
   SHOW_BOOL (test_crypto);
 
-#ifdef USE_SSL
+#ifdef ENABLE_SSL
   SHOW_BOOL (tls_server);
   SHOW_BOOL (tls_client);
   SHOW_INT (key_method);
@@ -1585,7 +1585,7 @@ show_settings (const struct options *o)
   SHOW_STR (dh_file);
   SHOW_STR (cert_file);
   SHOW_STR (priv_key_file);
-#ifndef USE_POLARSSL
+#ifndef ENABLE_CRYPTO_POLARSSL
   SHOW_STR (pkcs12_file);
 #endif
 #ifdef ENABLE_CRYPTOAPI
@@ -1892,7 +1892,7 @@ options_postprocess_verify_ce (const struct options *options, const struct conne
 
   init_options (&defaults, true);
 
-#ifdef USE_CRYPTO
+#ifdef ENABLE_CRYPTO
   if (options->test_crypto)
     {
       notnull (options->shared_secret_file, "key file (--secret)");
@@ -1930,7 +1930,7 @@ options_postprocess_verify_ce (const struct options *options, const struct conne
     msg (M_USAGE, "--inetd nowait can only be used with --proto tcp-server");
 
   if (options->inetd == INETD_NOWAIT
-#if defined(USE_CRYPTO) && defined(USE_SSL)
+#if defined(ENABLE_CRYPTO) && defined(ENABLE_SSL)
       && !(options->tls_server || options->tls_client)
 #endif
       )
@@ -2218,7 +2218,7 @@ options_postprocess_verify_ce (const struct options *options, const struct conne
     }
 #endif /* P2MP_SERVER */
 
-#ifdef USE_CRYPTO
+#ifdef ENABLE_CRYPTO
 
   /*
    * Check consistency of replay options
@@ -2237,7 +2237,7 @@ options_postprocess_verify_ce (const struct options *options, const struct conne
    * SSL/TLS mode sanity checks.
    */
 
-#ifdef USE_SSL
+#ifdef ENABLE_SSL
   if (options->tls_server + options->tls_client +
       (options->shared_secret_file != NULL) > 1)
     msg (M_USAGE, "specify only one of --tls-server, --tls-client, or --secret");
@@ -2286,7 +2286,7 @@ options_postprocess_verify_ce (const struct options *options, const struct conne
 #endif
       if (options->pkcs12_file)
         {
-#ifdef USE_POLARSSL
+#ifdef ENABLE_CRYPTO_POLARSSL
 	  msg(M_USAGE, "Parameter --pkcs12 cannot be used with the PolarSSL version version of OpenVPN.");
 #else
           if (options->ca_path)
@@ -2299,7 +2299,7 @@ options_postprocess_verify_ce (const struct options *options, const struct conne
         }
       else
         {
-#ifdef USE_POLARSSL
+#ifdef ENABLE_CRYPTO_POLARSSL
 	  if (!(options->ca_file))
 	    msg(M_USAGE, "You must define CA file (--ca)");
           if (options->ca_path)
@@ -2348,7 +2348,7 @@ options_postprocess_verify_ce (const struct options *options, const struct conne
       MUST_BE_UNDEF (dh_file);
       MUST_BE_UNDEF (cert_file);
       MUST_BE_UNDEF (priv_key_file);
-#ifndef USE_POLARSSL
+#ifndef ENABLE_CRYPTO_POLARSSL
       MUST_BE_UNDEF (pkcs12_file);
 #endif
       MUST_BE_UNDEF (cipher_list);
@@ -2383,8 +2383,8 @@ options_postprocess_verify_ce (const struct options *options, const struct conne
 	msg (M_USAGE, err, "--pull");
     }
 #undef MUST_BE_UNDEF
-#endif /* USE_CRYPTO */
-#endif /* USE_SSL */
+#endif /* ENABLE_CRYPTO */
+#endif /* ENABLE_SSL */
 
 #if P2MP
   if (options->auth_user_pass_file && !options->pull)
@@ -2667,7 +2667,7 @@ options_postprocess_filechecks (struct options *options)
   bool errs = false;
 
   /* ** SSL/TLS/crypto related files ** */
-#ifdef USE_SSL
+#ifdef ENABLE_SSL
   errs |= check_file_access (CHKACC_FILE|CHKACC_INLINE, options->dh_file, R_OK, "--dh");
   errs |= check_file_access (CHKACC_FILE|CHKACC_INLINE, options->ca_file, R_OK, "--ca");
   errs |= check_file_access (CHKACC_FILE, options->ca_path, R_OK, "--capath");
@@ -2688,20 +2688,20 @@ options_postprocess_filechecks (struct options *options)
 
   errs |= check_file_access (CHKACC_FILE|CHKACC_INLINE, options->tls_auth_file, R_OK,
                              "--tls-auth");
-#endif /* USE_SSL */
-#ifdef USE_CRYPTO
+#endif /* ENABLE_SSL */
+#ifdef ENABLE_CRYPTO
   errs |= check_file_access (CHKACC_FILE|CHKACC_INLINE, options->shared_secret_file, R_OK,
                              "--secret");
   errs |= check_file_access (CHKACC_DIRPATH|CHKACC_FILEXSTWR,
                              options->packet_id_file, R_OK|W_OK, "--replay-persist");
-#endif /* USE_CRYPTO */
+#endif /* ENABLE_CRYPTO */
 
 
   /* ** Password files ** */
-#ifdef USE_SSL
+#ifdef ENABLE_SSL
   errs |= check_file_access (CHKACC_FILE, options->key_pass_file, R_OK,
                              "--askpass");
-#endif /* USE_SSL */
+#endif /* ENABLE_SSL */
 #ifdef ENABLE_MANAGEMENT
   errs |= check_file_access (CHKACC_FILE|CHKACC_ACPTSTDIN,
                              options->management_user_pass, R_OK,
@@ -2726,10 +2726,10 @@ options_postprocess_filechecks (struct options *options)
                              R_OK|W_OK, "--status");
 
   /* ** Config related ** */
-#ifdef USE_SSL
+#ifdef ENABLE_SSL
   errs |= check_file_access (CHKACC_FILE, options->tls_export_cert,
                              R_OK|W_OK|X_OK, "--tls-export-cert");
-#endif /* USE_SSL */
+#endif /* ENABLE_SSL */
 #if P2MP_SERVER
   errs |= check_file_access (CHKACC_FILE, options->client_config_dir,
                              R_OK|X_OK, "--client-config-dir");
@@ -2968,9 +2968,9 @@ options_string (const struct options *o,
     buf_printf (&out, ",mtu-dynamic");
 #endif
 
-#ifdef USE_CRYPTO
+#ifdef ENABLE_CRYPTO
 
-#ifdef USE_SSL
+#ifdef ENABLE_SSL
 #define TLS_CLIENT (o->tls_client)
 #define TLS_SERVER (o->tls_server)
 #else
@@ -3014,7 +3014,7 @@ options_string (const struct options *o,
 	  buf_printf (&out, ",no-iv");
       }
 
-#ifdef USE_SSL
+#ifdef ENABLE_SSL
   /*
    * SSL Options
    */
@@ -3043,12 +3043,12 @@ options_string (const struct options *o,
 	  buf_printf (&out, ",tls-server");
       }
   }
-#endif /* USE_SSL */
+#endif /* ENABLE_SSL */
 
 #undef TLS_CLIENT
 #undef TLS_SERVER
 
-#endif /* USE_CRYPTO */
+#endif /* ENABLE_CRYPTO */
 
   return BSTR (&out);
 }
@@ -3357,7 +3357,7 @@ usage (void)
   struct options o;
   init_options (&o, true);
 
-#if defined(USE_CRYPTO) && defined(USE_SSL)
+#if defined(ENABLE_CRYPTO) && defined(ENABLE_SSL)
   fprintf (fp, usage_message,
 	   title_string,
 	   o.ce.connect_retry_seconds,
@@ -3368,7 +3368,7 @@ usage (void)
            o.replay_window, o.replay_time,
 	   o.tls_timeout, o.renegotiate_seconds,
 	   o.handshake_window, o.transition_window);
-#elif defined(USE_CRYPTO)
+#elif defined(ENABLE_CRYPTO)
   fprintf (fp, usage_message,
 	   title_string,
 	   o.ce.connect_retry_seconds,
@@ -6211,7 +6211,7 @@ add_option (struct options *options,
       options->lzo &= ~LZO_ADAPTIVE;
     }
 #endif /* ENABLE_LZO */
-#ifdef USE_CRYPTO
+#ifdef ENABLE_CRYPTO
   else if (streq (p[0], "show-ciphers"))
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
@@ -6383,7 +6383,7 @@ add_option (struct options *options,
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->test_crypto = true;
     }
-#ifndef USE_POLARSSL
+#ifndef ENABLE_CRYPTO_POLARSSL
   else if (streq (p[0], "engine"))
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
@@ -6394,7 +6394,7 @@ add_option (struct options *options,
       else
 	options->engine = "auto";
     }  
-#endif /* USE_POLARSSL */
+#endif /* ENABLE_CRYPTO_POLARSSL */
 #ifdef HAVE_EVP_CIPHER_CTX_SET_KEY_LENGTH
   else if (streq (p[0], "keysize") && p[1])
     {
@@ -6410,7 +6410,7 @@ add_option (struct options *options,
       options->keysize = keysize;
     }
 #endif
-#ifdef USE_SSL
+#ifdef ENABLE_SSL
   else if (streq (p[0], "show-tls"))
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
@@ -6437,13 +6437,13 @@ add_option (struct options *options,
 	}
 #endif
     }
-#ifndef USE_POLARSSL
+#ifndef ENABLE_CRYPTO_POLARSSL
   else if (streq (p[0], "capath") && p[1])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->ca_path = p[1];
     }
-#endif /* USE_POLARSSL */
+#endif /* ENABLE_CRYPTO_POLARSSL */
   else if (streq (p[0], "dh") && p[1])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
@@ -6500,7 +6500,7 @@ add_option (struct options *options,
 	}
 #endif
     }
-#ifndef USE_POLARSSL
+#ifndef ENABLE_CRYPTO_POLARSSL
   else if (streq (p[0], "pkcs12") && p[1])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
@@ -6512,7 +6512,7 @@ add_option (struct options *options,
 	}
 #endif
     }
-#endif /* USE_POLARSSL */
+#endif /* ENABLE_CRYPTO_POLARSSL */
   else if (streq (p[0], "askpass"))
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
@@ -6574,7 +6574,7 @@ add_option (struct options *options,
       warn_multiple_script (options->tls_verify, "tls-verify");
       options->tls_verify = string_substitute (p[1], ',', ' ', &options->gc);
     }
-#ifndef USE_POLARSSL
+#ifndef ENABLE_CRYPTO_POLARSSL
   else if (streq (p[0], "tls-export-cert") && p[1])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
@@ -6599,7 +6599,7 @@ add_option (struct options *options,
 	  goto err;
 	}
     }
-#if OPENSSL_VERSION_NUMBER >= 0x00907000L || USE_POLARSSL
+#if OPENSSL_VERSION_NUMBER >= 0x00907000L || ENABLE_CRYPTO_POLARSSL
   else if (streq (p[0], "remote-cert-ku"))
     {
       int j;
@@ -6716,8 +6716,8 @@ add_option (struct options *options,
       options->x509_username_field = p[1];
     }
 #endif /* ENABLE_X509ALTUSERNAME */
-#endif /* USE_SSL */
-#endif /* USE_CRYPTO */
+#endif /* ENABLE_SSL */
+#endif /* ENABLE_CRYPTO */
 #ifdef ENABLE_PKCS11
   else if (streq (p[0], "show-pkcs11-ids") && p[1])
     {

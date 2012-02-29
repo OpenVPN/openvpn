@@ -194,7 +194,7 @@ int openvpn_chdir (const char* dir);
 extern int inetd_socket_descriptor;
 void save_inetd_socket_descriptor (void);
 
-/* init random() function, only used as source for weak random numbers, when !USE_CRYPTO */
+/* init random() function, only used as source for weak random numbers, when !ENABLE_CRYPTO */
 void init_random_seed(void);
 
 /* set/delete environmental variable */
@@ -252,7 +252,7 @@ void sleep_milliseconds (unsigned int n);
 void sleep_until_signal (void);
 
 /* an analogue to the random() function, but use OpenSSL functions if available */
-#ifdef USE_CRYPTO
+#ifdef ENABLE_CRYPTO
 long int get_random(void);
 #else
 #define get_random random
@@ -273,7 +273,7 @@ bool delete_file (const char *filename);
 /* return true if pathname is absolute */
 bool absolute_pathname (const char *pathname);
 
-/* prepend a random prefix to hostname (need USE_CRYPTO) */
+/* prepend a random prefix to hostname (need ENABLE_CRYPTO) */
 const char *hostname_randomize(const char *hostname, struct gc_arena *gc);
 
 /*

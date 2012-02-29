@@ -32,7 +32,11 @@
 #define SSL_VERIFY_OPENSSL_H_
 
 #include <openssl/x509.h>
-typedef X509 x509_cert_t;
+
+#ifndef __OPENVPN_X509_CERT_T_DECLARED
+#define __OPENVPN_X509_CERT_T_DECLARED
+typedef X509 openvpn_x509_cert_t;
+#endif
 
 /** @name Function for authenticating a new connection from a remote OpenVPN peer
  *  @{ */

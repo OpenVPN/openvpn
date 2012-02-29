@@ -55,24 +55,24 @@
 
 struct key_schedule
 {
-#ifdef USE_CRYPTO
+#ifdef ENABLE_CRYPTO
   /* which cipher, HMAC digest, and key sizes are we using? */
   struct key_type key_type;
 
   /* pre-shared static key, read from a file */
   struct key_ctx_bi static_key;
 
-#ifdef USE_SSL
+#ifdef ENABLE_SSL
   /* our global SSL context */
   struct tls_root_ctx ssl_ctx;
 
   /* optional authentication HMAC key for TLS control channel */
   struct key_ctx_bi tls_auth_key;
 
-#endif				/* USE_SSL */
-#else				/* USE_CRYPTO */
+#endif				/* ENABLE_SSL */
+#else				/* ENABLE_CRYPTO */
   int dummy;
-#endif				/* USE_CRYPTO */
+#endif				/* ENABLE_CRYPTO */
 };
 
 /*
@@ -99,7 +99,7 @@ struct context_buffers
   struct buffer aux_buf;
 
   /* workspace buffers used by crypto routines */
-#ifdef USE_CRYPTO
+#ifdef ENABLE_CRYPTO
   struct buffer encrypt_buf;
   struct buffer decrypt_buf;
 #endif
@@ -331,12 +331,12 @@ struct context_2
   int occ_mtu_load_n_tries;
 #endif
 
-#ifdef USE_CRYPTO
+#ifdef ENABLE_CRYPTO
 
   /*
    * TLS-mode crypto objects.
    */
-#ifdef USE_SSL
+#ifdef ENABLE_SSL
 
   struct tls_multi *tls_multi;  /**< TLS state structure for this VPN
                                  *   tunnel. */
@@ -358,7 +358,7 @@ struct context_2
   /* throw this signal on TLS errors */
   int tls_exit_signal;
 
-#endif /* USE_SSL */
+#endif /* ENABLE_SSL */
 
   struct crypto_options crypto_options;
                                 /**< Security parameters and crypto state
@@ -370,7 +370,7 @@ struct context_2
   struct packet_id packet_id;
   struct event_timeout packet_id_persist_interval;
 
-#endif /* USE_CRYPTO */
+#endif /* ENABLE_CRYPTO */
 
 #ifdef ENABLE_LZO
   struct lzo_compress_workspace lzo_compwork;
@@ -566,7 +566,7 @@ struct context
  * have been compiled in.
  */
 
-#if defined(USE_CRYPTO) && defined(USE_SSL)
+#if defined(ENABLE_CRYPTO) && defined(ENABLE_SSL)
 #define TLS_MODE(c) ((c)->c2.tls_multi != NULL)
 #define PROTO_DUMP_FLAGS (check_debug_level (D_LINK_RW_VERBOSE) ? (PD_SHOW_DATA|PD_VERBOSE) : 0)
 #define PROTO_DUMP(buf, gc) protocol_dump((buf), \
@@ -579,13 +579,13 @@ struct context
 #define PROTO_DUMP(buf, gc) format_hex (BPTR (buf), BLEN (buf), 80, gc)
 #endif
 
-#ifdef USE_CRYPTO
+#ifdef ENABLE_CRYPTO
 #define MD5SUM(buf, len, gc) md5sum((buf), (len), 0, (gc))
 #else
 #define MD5SUM(buf, len, gc) "[unavailable]"
 #endif
 
-#ifdef USE_CRYPTO
+#ifdef ENABLE_CRYPTO
 #define CIPHER_ENABLED(c) (c->c1.ks.key_type.cipher != NULL)
 #else
 #define CIPHER_ENABLED(c) (false)

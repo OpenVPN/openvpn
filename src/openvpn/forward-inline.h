@@ -35,7 +35,7 @@
 static inline void
 check_tls (struct context *c)
 {
-#if defined(USE_CRYPTO) && defined(USE_SSL)
+#if defined(ENABLE_CRYPTO) && defined(ENABLE_SSL)
   void check_tls_dowork (struct context *c);
   if (c->c2.tls_multi)
     check_tls_dowork (c);
@@ -49,7 +49,7 @@ check_tls (struct context *c)
 static inline void
 check_tls_errors (struct context *c)
 {
-#if defined(USE_CRYPTO) && defined(USE_SSL)
+#if defined(ENABLE_CRYPTO) && defined(ENABLE_SSL)
   void check_tls_errors_co (struct context *c);
   void check_tls_errors_nco (struct context *c);
   if (c->c2.tls_multi && c->c2.tls_exit_signal)
@@ -189,7 +189,7 @@ check_push_request (struct context *c)
 
 #endif
 
-#ifdef USE_CRYPTO
+#ifdef ENABLE_CRYPTO
 /*
  * Should we persist our anti-replay packet ID state to disk?
  */

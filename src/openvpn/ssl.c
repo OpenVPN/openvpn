@@ -41,7 +41,7 @@
 
 #include "syshead.h"
 
-#if defined(USE_CRYPTO) && defined(USE_SSL)
+#if defined(ENABLE_CRYPTO) && defined(ENABLE_SSL)
 
 #include "error.h"
 #include "common.h"
@@ -342,7 +342,7 @@ init_ssl (const struct options *options, struct tls_root_ctx *new_ctx)
 #ifdef MANAGMENT_EXTERNAL_KEY
   else if ((options->management_flags & MF_EXTERNAL_KEY) && options->cert_file)
     {
-      x509_cert_t *my_cert = NULL;
+      openvpn_x509_cert_t *my_cert = NULL;
       tls_ctx_load_cert_file(new_ctx, options->cert_file, options->cert_file_inline,
 	  &my_cert);
       tls_ctx_use_external_private_key(new_ctx, my_cert);
@@ -3370,4 +3370,4 @@ done:
 
 #else
 static void dummy(void) {}
-#endif /* USE_CRYPTO && USE_SSL*/
+#endif /* ENABLE_CRYPTO && ENABLE_SSL*/

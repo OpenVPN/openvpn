@@ -428,7 +428,7 @@ next_connection_entry (struct context *c)
 static void
 init_query_passwords (struct context *c)
 {
-#if defined(USE_CRYPTO) && defined(USE_SSL)
+#if defined(ENABLE_CRYPTO) && defined(ENABLE_SSL)
   /* Certificate password input */
   if (c->options.key_pass_file)
     pem_password_setup (c->options.key_pass_file);
@@ -629,7 +629,7 @@ init_static (void)
 {
   /* configure_path (); */
 
-#if defined(USE_CRYPTO) && defined(DMALLOC)
+#if defined(ENABLE_CRYPTO) && defined(DMALLOC)
   crypto_init_dmalloc();
 #endif
 
@@ -652,7 +652,7 @@ init_static (void)
 
   update_time ();
 
-#ifdef USE_CRYPTO
+#ifdef ENABLE_CRYPTO
   init_ssl_lib ();
 
   /* init PRNG used for IV generation */
@@ -838,7 +838,7 @@ init_static (void)
 void
 uninit_static (void)
 {
-#ifdef USE_CRYPTO
+#ifdef ENABLE_CRYPTO
   free_ssl_lib ();
 #endif
 
@@ -850,7 +850,7 @@ uninit_static (void)
   close_port_share ();
 #endif
 
-#if defined(MEASURE_TLS_HANDSHAKE_STATS) && defined(USE_CRYPTO) && defined(USE_SSL)
+#if defined(MEASURE_TLS_HANDSHAKE_STATS) && defined(ENABLE_CRYPTO) && defined(ENABLE_SSL)
   show_tls_performance_stats ();
 #endif
 }
@@ -891,9 +891,9 @@ print_openssl_info (const struct options *options)
   /*
    * OpenSSL info print mode?
    */
-#ifdef USE_CRYPTO
+#ifdef ENABLE_CRYPTO
   if (options->show_ciphers || options->show_digests || options->show_engines
-#ifdef USE_SSL
+#ifdef ENABLE_SSL
       || options->show_tls_ciphers
 #endif
     )
@@ -904,7 +904,7 @@ print_openssl_info (const struct options *options)
 	show_available_digests ();
       if (options->show_engines)
 	show_available_engines ();
-#ifdef USE_SSL
+#ifdef ENABLE_SSL
       if (options->show_tls_ciphers)
 	show_available_tls_ciphers ();
 #endif
@@ -920,7 +920,7 @@ print_openssl_info (const struct options *options)
 bool
 do_genkey (const struct options * options)
 {
-#ifdef USE_CRYPTO
+#ifdef ENABLE_CRYPTO
   if (options->genkey)
     {
       int nbits_written;
@@ -955,9 +955,9 @@ do_persist_tuntap (const struct options *options)
       notnull (options->dev, "TUN/TAP device (--dev)");
       if (options->ce.remote || options->ifconfig_local
 	  || options->ifconfig_remote_netmask
-#ifdef USE_CRYPTO
+#ifdef ENABLE_CRYPTO
 	  || options->shared_secret_file
-#ifdef USE_SSL
+#ifdef ENABLE_SSL
 	  || options->tls_server || options->tls_client
 #endif
 #endif
@@ -1068,7 +1068,7 @@ const char *
 format_common_name (struct context *c, struct gc_arena *gc)
 {
   struct buffer out = alloc_buf_gc (256, gc);
-#if defined(USE_CRYPTO) && defined(USE_SSL)
+#if defined(ENABLE_CRYPTO) && defined(ENABLE_SSL)
   if (c->c2.tls_multi)
     {
       buf_printf (&out, "[%s] ", tls_common_name (c->c2.tls_multi, false));
@@ -1155,12 +1155,12 @@ do_init_timers (struct context *c, bool deferred)
 #endif
 
       /* initialize packet_id persistence timer */
-#ifdef USE_CRYPTO
+#ifdef ENABLE_CRYPTO
       if (c->options.packet_id_file)
 	event_timeout_init (&c->c2.packet_id_persist_interval, 60, now);
 #endif
 
-#if defined(USE_CRYPTO) && defined(USE_SSL)
+#if defined(ENABLE_CRYPTO) && defined(ENABLE_SSL)
       /* initialize tmp_int optimization that limits the number of times we call
 	 tls_multi_process in the main event loop */
       interval_init (&c->c2.tmp_int, TLS_MULTI_HORIZON, TLS_MULTI_REFRESH);
@@ -1967,20 +1967,20 @@ frame_finalize_options (struct context *c, const struct options *o)
 static void
 key_schedule_free (struct key_schedule *ks, bool free_ssl_ctx)
 {
-#ifdef USE_CRYPTO
+#ifdef ENABLE_CRYPTO
   free_key_ctx_bi (&ks->static_key);
-#ifdef USE_SSL
+#ifdef ENABLE_SSL
   if (tls_ctx_initialised(&ks->ssl_ctx) && free_ssl_ctx)
     {
       tls_ctx_free (&ks->ssl_ctx);
       free_key_ctx_bi (&ks->tls_auth_key);
     }
-#endif /* USE_SSL */
-#endif /* USE_CRYPTO */
+#endif /* ENABLE_SSL */
+#endif /* ENABLE_CRYPTO */
   CLEAR (*ks);
 }
 
-#ifdef USE_CRYPTO
+#ifdef ENABLE_CRYPTO
 
 static void
 init_crypto_pre (struct context *c, const unsigned int flags)
@@ -2091,7 +2091,7 @@ do_init_crypto_static (struct context *c, const unsigned int flags)
 			       options->use_iv);
 }
 
-#ifdef USE_SSL
+#ifdef ENABLE_SSL
 
 /*
  * Initialize the persistent component of OpenVPN's TLS mode,
@@ -2332,10 +2332,10 @@ do_init_finalize_tls_frame (struct context *c)
     }
 }
 
-#endif /* USE_SSL */
-#endif /* USE_CRYPTO */
+#endif /* ENABLE_SSL */
+#endif /* ENABLE_CRYPTO */
 
-#ifdef USE_CRYPTO
+#ifdef ENABLE_CRYPTO
 /*
  * No encryption or authentication.
  */
@@ -2351,20 +2351,20 @@ do_init_crypto_none (const struct context *c)
 static void
 do_init_crypto (struct context *c, const unsigned int flags)
 {
-#ifdef USE_CRYPTO
+#ifdef ENABLE_CRYPTO
   if (c->options.shared_secret_file)
     do_init_crypto_static (c, flags);
-#ifdef USE_SSL
+#ifdef ENABLE_SSL
   else if (c->options.tls_server || c->options.tls_client)
     do_init_crypto_tls (c, flags);
 #endif
   else				/* no encryption or authentication. */
     do_init_crypto_none (c);
-#else /* USE_CRYPTO */
+#else /* ENABLE_CRYPTO */
   msg (M_WARN,
        "******* WARNING *******: " PACKAGE_NAME
        " built without OpenSSL -- encryption and authentication features disabled -- all data will be tunnelled as cleartext");
-#endif /* USE_CRYPTO */
+#endif /* ENABLE_CRYPTO */
 }
 
 static void
@@ -2503,13 +2503,13 @@ do_option_warnings (struct context *c)
 #endif
 #endif
 
-#ifdef USE_CRYPTO
+#ifdef ENABLE_CRYPTO
   if (!o->replay)
     msg (M_WARN, "WARNING: You have disabled Replay Protection (--no-replay) which may make " PACKAGE_NAME " less secure");
   if (!o->use_iv)
     msg (M_WARN, "WARNING: You have disabled Crypto IVs (--no-iv) which may make " PACKAGE_NAME " less secure");
 
-#ifdef USE_SSL
+#ifdef ENABLE_SSL
   if (o->tls_server)
     warn_on_use_of_common_subnets ();
   if (o->tls_client
@@ -2542,7 +2542,7 @@ do_option_warnings (struct context *c)
 static void
 do_init_frame_tls (struct context *c)
 {
-#if defined(USE_CRYPTO) && defined(USE_SSL)
+#if defined(ENABLE_CRYPTO) && defined(ENABLE_SSL)
   do_init_finalize_tls_frame (c);
 #endif
 }
@@ -2559,7 +2559,7 @@ init_context_buffers (const struct frame *frame)
 
   b->aux_buf = alloc_buf (BUF_SIZE (frame));
 
-#ifdef USE_CRYPTO
+#ifdef ENABLE_CRYPTO
   b->encrypt_buf = alloc_buf (BUF_SIZE (frame));
   b->decrypt_buf = alloc_buf (BUF_SIZE (frame));
 #endif
@@ -2586,7 +2586,7 @@ free_context_buffers (struct context_buffers *b)
       free_buf (&b->lzo_decompress_buf);
 #endif
 
-#ifdef USE_CRYPTO
+#ifdef ENABLE_CRYPTO
       free_buf (&b->encrypt_buf);
       free_buf (&b->decrypt_buf);
 #endif
@@ -2735,7 +2735,7 @@ do_compute_occ_strings (struct context *c)
   msg (D_SHOW_OCC, "Expected Remote Options String: '%s'",
        c->c2.options_string_remote);
 
-#ifdef USE_CRYPTO
+#ifdef ENABLE_CRYPTO
   msg (D_SHOW_OCC_HASH, "Local Options hash (VER=%s): '%s'",
        options_string_version (c->c2.options_string_local, &gc),
        md5sum ((uint8_t*)c->c2.options_string_local,
@@ -2746,7 +2746,7 @@ do_compute_occ_strings (struct context *c)
 	       strlen (c->c2.options_string_remote), 9, &gc));
 #endif
 
-#if defined(USE_CRYPTO) && defined(USE_SSL)
+#if defined(ENABLE_CRYPTO) && defined(ENABLE_SSL)
   if (c->c2.tls_multi)
     tls_multi_init_set_options (c->c2.tls_multi,
 				c->c2.options_string_local,
@@ -2832,7 +2832,7 @@ do_close_free_buf (struct context *c)
 static void
 do_close_tls (struct context *c)
 {
-#if defined(USE_CRYPTO) && defined(USE_SSL)
+#if defined(ENABLE_CRYPTO) && defined(ENABLE_SSL)
   if (c->c2.tls_multi)
     {
       tls_multi_free (c->c2.tls_multi, true);
@@ -2888,7 +2888,7 @@ do_close_link_socket (struct context *c)
 static void
 do_close_packet_id (struct context *c)
 {
-#ifdef USE_CRYPTO
+#ifdef ENABLE_CRYPTO
   packet_id_free (&c->c2.packet_id);
   packet_id_persist_save (&c->c1.pid_persist);
   if (!(c->sig->signal_received == SIGUSR1))
@@ -3066,7 +3066,7 @@ do_setup_fast_io (struct context *c)
 static void
 do_signal_on_tls_errors (struct context *c)
 {
-#if defined(USE_CRYPTO) && defined(USE_SSL)
+#if defined(ENABLE_CRYPTO) && defined(ENABLE_SSL)
   if (c->options.tls_exit)
     c->c2.tls_exit_signal = SIGTERM;
   else
@@ -3611,9 +3611,9 @@ inherit_context_child (struct context *dest,
   /* c1 init */
   packet_id_persist_init (&dest->c1.pid_persist);
 
-#ifdef USE_CRYPTO
+#ifdef ENABLE_CRYPTO
   dest->c1.ks.key_type = src->c1.ks.key_type;
-#ifdef USE_SSL
+#ifdef ENABLE_SSL
   /* inherit SSL context */
   dest->c1.ks.ssl_ctx = src->c1.ks.ssl_ctx;
   dest->c1.ks.tls_auth_key = src->c1.ks.tls_auth_key;
@@ -3690,7 +3690,7 @@ inherit_context_top (struct context *dest,
   /* detach plugins */
   dest->plugins_owned = false;
 
-#if defined(USE_CRYPTO) && defined(USE_SSL)
+#if defined(ENABLE_CRYPTO) && defined(ENABLE_SSL)
   dest->c2.tls_multi = NULL;
 #endif
 
@@ -3735,7 +3735,7 @@ close_context (struct context *c, int sig, unsigned int flags)
     context_gc_free (c);
 }
 
-#ifdef USE_CRYPTO
+#ifdef ENABLE_CRYPTO
 
 /*
  * Do a loopback test
@@ -3768,7 +3768,7 @@ test_crypto_thread (void *arg)
 bool
 do_test_crypto (const struct options *o)
 {
-#ifdef USE_CRYPTO
+#ifdef ENABLE_CRYPTO
   if (o->test_crypto)
     {
       struct context c;

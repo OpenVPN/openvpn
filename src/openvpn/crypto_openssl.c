@@ -29,7 +29,7 @@
 
 #include "syshead.h"
 
-#if defined(USE_CRYPTO) && defined(USE_OPENSSL)
+#if defined(ENABLE_CRYPTO) && defined(ENABLE_CRYPTO_OPENSSL)
 
 #include "basic.h"
 #include "buffer.h"
@@ -104,19 +104,7 @@ cipher_ok (const char* name)
 #define EVP_MD_name(e)			OBJ_nid2sn(EVP_MD_type(e))
 #endif
 
-/*
- *
- * OpenSSL engine support. Allows loading/unloading of engines.
- *
- */
-
-#if defined(HAVE_OPENSSL_ENGINE_H) && defined(HAVE_ENGINE_LOAD_BUILTIN_ENGINES) && defined(HAVE_ENGINE_REGISTER_ALL_COMPLETE) && defined(HAVE_ENGINE_CLEANUP)
-#define CRYPTO_ENGINE 1
-#else
-#define CRYPTO_ENGINE 0
-#endif
-
-#if CRYPTO_ENGINE
+#if HAVE_OPENSSL_ENGINE
 #include <openssl/engine.h>
 
 static bool engine_initialized = false; /* GLOBAL */
@@ -173,12 +161,12 @@ setup_engine (const char *engine)
   return e;
 }
 
-#endif /* CRYPTO_ENGINE */
+#endif /* HAVE_OPENSSL_ENGINE */
 
 void
 crypto_init_lib_engine (const char *engine_name)
 {
-#if CRYPTO_ENGINE
+#if HAVE_OPENSSL_ENGINE
   if (!engine_initialized)
     {
       ASSERT (engine_name);
@@ -220,7 +208,7 @@ crypto_uninit_lib (void)
   fclose (fp);
 #endif
 
-#if CRYPTO_ENGINE
+#if HAVE_OPENSSL_ENGINE
   if (engine_initialized)
     {
       ENGINE_cleanup ();
@@ -335,7 +323,7 @@ show_available_digests ()
 void
 show_available_engines ()
 {
-#if CRYPTO_ENGINE /* Only defined for OpenSSL */
+#if HAVE_OPENSSL_ENGINE /* Only defined for OpenSSL */
   ENGINE *e;
 
   printf ("OpenSSL Crypto Engines\n\n");
@@ -741,4 +729,4 @@ hmac_ctx_final (HMAC_CTX *ctx, uint8_t *dst)
   HMAC_Final (ctx, dst, &in_hmac_len);
 }
 
-#endif /* USE_CRYPTO && USE_OPENSSL */
+#endif /* ENABLE_CRYPTO && ENABLE_CRYPTO_OPENSSL */

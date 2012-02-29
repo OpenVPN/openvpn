@@ -55,7 +55,7 @@ typedef enum { SUCCESS=0, FAILURE=1 } result_t;
  *
  * @return 		\c SUCCESS if verification was successful, \c FAILURE on failure.
  */
-result_t verify_cert(struct tls_session *session, x509_cert_t *cert, int cert_depth);
+result_t verify_cert(struct tls_session *session, openvpn_x509_cert_t *cert, int cert_depth);
 
 /*
  * Remember the given certificate hash, allowing the certificate chain to be
@@ -86,7 +86,7 @@ void cert_hash_remember (struct tls_session *session, const int cert_depth,
  *
  * @return 		a string containing the subject
  */
-char *x509_get_subject (x509_cert_t *cert);
+char *x509_get_subject (openvpn_x509_cert_t *cert);
 
 /*
  * Free a subject string as returned by \c verify_get_subject()
@@ -103,7 +103,7 @@ void x509_free_subject (char *subject);
  *
  * @return 		a string containing the SHA1 hash of the certificate
  */
-unsigned char *x509_get_sha1_hash (x509_cert_t *cert);
+unsigned char *x509_get_sha1_hash (openvpn_x509_cert_t *cert);
 
 /*
  * Free a hash as returned by \c verify_get_hash()
@@ -126,7 +126,7 @@ void x509_free_sha1_hash (unsigned char *hash);
  * @return 		\c FAILURE, \c or SUCCESS
  */
 result_t x509_get_username (char *common_name, int cn_len,
-    char * x509_username_field, x509_cert_t *peer_cert);
+    char * x509_username_field, openvpn_x509_cert_t *peer_cert);
 
 /*
  * Return the certificate's serial number.
@@ -138,7 +138,7 @@ result_t x509_get_username (char *common_name, int cn_len,
  *
  * @return 		The certificate's serial number.
  */
-char *x509_get_serial (x509_cert_t *cert);
+char *x509_get_serial (openvpn_x509_cert_t *cert);
 
 /*
  * Free a serial number string as returned by \c verify_get_serial()
@@ -156,7 +156,7 @@ void x509_free_serial (char *serial);
  * @param cert_depth	Depth of the certificate
  * @param cert		Certificate to set the environment for
  */
-void x509_setenv (struct env_set *es, int cert_depth, x509_cert_t *cert);
+void x509_setenv (struct env_set *es, int cert_depth, openvpn_x509_cert_t *cert);
 
 #ifdef ENABLE_X509_TRACK
 
@@ -195,7 +195,7 @@ void x509_track_add (const struct x509_track **ll_head, const char *name,
  * @param cert		Certificate to set the environment for
  */
 void x509_setenv_track (const struct x509_track *xt, struct env_set *es,
-    const int depth, x509_cert_t *x509);
+    const int depth, openvpn_x509_cert_t *x509);
 
 #endif
 
@@ -210,9 +210,9 @@ void x509_setenv_track (const struct x509_track *xt, struct env_set *es,
  * 			the expected bit set. \c FAILURE if the certificate does
  * 			not have NS cert type verification or the wrong bit set.
  */
-result_t x509_verify_ns_cert_type(const x509_cert_t *cert, const int usage);
+result_t x509_verify_ns_cert_type(const openvpn_x509_cert_t *cert, const int usage);
 
-#if OPENSSL_VERSION_NUMBER >= 0x00907000L || USE_POLARSSL
+#if OPENSSL_VERSION_NUMBER >= 0x00907000L || ENABLE_CRYPTO_POLARSSL
 
 /*
  * Verify X.509 key usage extension field.
@@ -224,7 +224,7 @@ result_t x509_verify_ns_cert_type(const x509_cert_t *cert, const int usage);
  * @return 		\c SUCCESS if one of the key usage values matches, \c FAILURE
  * 			if key usage is not enabled, or the values do not match.
  */
-result_t x509_verify_cert_ku (x509_cert_t *x509, const unsigned * const expected_ku,
+result_t x509_verify_cert_ku (openvpn_x509_cert_t *x509, const unsigned * const expected_ku,
     int expected_len);
 
 /*
@@ -240,7 +240,7 @@ result_t x509_verify_cert_ku (x509_cert_t *x509, const unsigned * const expected
  * 			extended key usage fields, \c FAILURE if extended key
  * 			usage is not enabled, or the values do not match.
  */
-result_t x509_verify_cert_eku (x509_cert_t *x509, const char * const expected_oid);
+result_t x509_verify_cert_eku (openvpn_x509_cert_t *x509, const char * const expected_oid);
 
 #endif
 
@@ -253,7 +253,7 @@ result_t x509_verify_cert_eku (x509_cert_t *x509, const char * const expected_oi
  *
  *
  */
-result_t x509_write_pem(FILE *peercert_file, x509_cert_t *peercert);
+result_t x509_write_pem(FILE *peercert_file, openvpn_x509_cert_t *peercert);
 
 /*
  * Check the certificate against a CRL file.
@@ -266,7 +266,7 @@ result_t x509_write_pem(FILE *peercert_file, x509_cert_t *peercert);
  * 			certificate or does not contain an entry for it.
  * 			\c FAILURE otherwise.
  */
-result_t x509_verify_crl(const char *crl_file, x509_cert_t *cert,
+result_t x509_verify_crl(const char *crl_file, openvpn_x509_cert_t *cert,
     const char *subject);
 
 #endif /* SSL_VERIFY_BACKEND_H_ */

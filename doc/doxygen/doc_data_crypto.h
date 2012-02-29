@@ -60,7 +60,7 @@
  *
  * @par Settings that control this module's activity
  * Whether or not the Data Channel Crypto module is active depends on the
- * compile-time \c USE_CRYPTO and \c USE_SSL preprocessor macros.  How it
+ * compile-time \c ENABLE_CRYPTO and \c ENABLE_SSL preprocessor macros.  How it
  * processes packets received from the \link data_control Data Channel
  * Control module\endlink at runtime depends on the associated \c
  * crypto_options structure.  To perform cryptographic operations, the \c

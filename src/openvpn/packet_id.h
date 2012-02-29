@@ -28,7 +28,7 @@
  * attempts to replay them back later.
  */
 
-#ifdef USE_CRYPTO
+#ifdef ENABLE_CRYPTO
 
 #ifndef PACKET_ID_H
 #define PACKET_ID_H
@@ -335,4 +335,4 @@ packet_id_reap_test (struct packet_id_rec *p)
 }
 
 #endif /* PACKET_ID_H */
-#endif /* USE_CRYPTO */
+#endif /* ENABLE_CRYPTO */

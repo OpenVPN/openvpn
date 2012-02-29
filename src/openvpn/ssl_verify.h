@@ -36,10 +36,10 @@
 #include "ssl_common.h"
 
 /* Include OpenSSL-specific code */
-#ifdef USE_OPENSSL
+#ifdef ENABLE_CRYPTO_OPENSSL
 #include "ssl_verify_openssl.h"
 #endif
-#ifdef USE_POLARSSL
+#ifdef ENABLE_CRYPTO_POLARSSL
 #include "ssl_verify_polarssl.h"
 #endif
 

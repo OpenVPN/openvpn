@@ -29,7 +29,7 @@
 
 #include "syshead.h"
 
-#if defined(USE_SSL) && defined(USE_OPENSSL)
+#if defined(ENABLE_SSL) && defined(ENABLE_CRYPTO_OPENSSL)
 
 #include "errlevel.h"
 #include "buffer.h"
@@ -1020,13 +1020,13 @@ key_state_write_plaintext (struct key_state_ssl *ks_ssl, struct buffer *buf)
   int ret = 0;
   perf_push (PERF_BIO_WRITE_PLAINTEXT);
 
-#ifdef USE_OPENSSL
+#ifdef ENABLE_CRYPTO_OPENSSL
   ASSERT (NULL != ks_ssl);
 
   ret = bio_write (ks_ssl->ssl_bio, BPTR(buf), BLEN(buf),
       "tls_write_plaintext");
   bio_write_post (ret, buf);
-#endif /* USE_OPENSSL */
+#endif /* ENABLE_CRYPTO_OPENSSL */
 
   perf_pop ();
   return ret;
@@ -1187,4 +1187,4 @@ get_highest_preference_tls_cipher (char *buf, int size)
   SSL_CTX_free (ctx);
 }
 
-#endif /* defined(USE_SSL) && defined(USE_OPENSSL) */
+#endif /* defined(ENABLE_SSL) && defined(ENABLE_CRYPTO_OPENSSL) */

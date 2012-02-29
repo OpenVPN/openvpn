@@ -29,7 +29,7 @@
 
 #include "syshead.h"
 
-#if defined(USE_SSL) && defined(USE_POLARSSL)
+#if defined(ENABLE_SSL) && defined(ENABLE_CRYPTO_POLARSSL)
 
 #include "errlevel.h"
 #include "ssl_backend.h"
@@ -243,7 +243,7 @@ tls_ctx_load_cert_file (struct tls_root_ctx *ctx, const char *cert_file,
 #if ENABLE_INLINE_FILES
     const char *cert_file_inline,
 #endif
-    x509_cert_t **x509
+    openvpn_x509_cert_t **x509
     )
 {
   ASSERT(NULL != ctx);
@@ -270,7 +270,7 @@ tls_ctx_load_cert_file (struct tls_root_ctx *ctx, const char *cert_file,
 }
 
 void
-tls_ctx_free_cert_file (x509_cert_t *x509)
+tls_ctx_free_cert_file (openvpn_x509_cert_t *x509)
 {
   x509_free(x509);
 }
@@ -334,7 +334,7 @@ tls_ctx_load_priv_file (struct tls_root_ctx *ctx, const char *priv_key_file
 #ifdef MANAGMENT_EXTERNAL_KEY
 
 int
-tls_ctx_use_external_private_key (struct tls_root_ctx *ctx, x509_cert_t *cert)
+tls_ctx_use_external_private_key (struct tls_root_ctx *ctx, openvpn_x509_cert_t *cert)
 {
   msg(M_FATAL, "Use of management external keys not yet supported for PolarSSL.");
   return false;
@@ -865,4 +865,4 @@ get_highest_preference_tls_cipher (char *buf, int size)
   strncpynt (buf, cipher_name, size);
 }
 
-#endif /* defined(USE_SSL) && defined(USE_POLARSSL) */
+#endif /* defined(ENABLE_SSL) && defined(ENABLE_CRYPTO_POLARSSL) */

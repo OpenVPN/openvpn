@@ -29,7 +29,7 @@
 
 #include "syshead.h"
 
-#if defined(ENABLE_PKCS11) && defined(USE_POLARSSL)
+#if defined(ENABLE_PKCS11) && defined(ENABLE_CRYPTO_POLARSSL)
 
 #include "errlevel.h"
 #include "pkcs11_backend.h"
@@ -117,4 +117,4 @@ cleanup:
 
   return ret;
 }
-#endif /* defined(ENABLE_PKCS11) && defined(USE_POLARSSL) */
+#endif /* defined(ENABLE_PKCS11) && defined(ENABLE_CRYPTO_POLARSSL) */

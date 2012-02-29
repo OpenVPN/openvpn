@@ -25,7 +25,7 @@
 
 #include "syshead.h"
 
-#ifdef USE_CRYPTO
+#ifdef ENABLE_CRYPTO
 
 #include "crypto.h"
 #include "error.h"
@@ -712,7 +712,7 @@ test_crypto (const struct crypto_options *co, struct frame* frame)
   gc_free (&gc);
 }
 
-#ifdef USE_SSL
+#ifdef ENABLE_SSL
 
 void
 get_tls_handshake_key (const struct key_type *key_type,
@@ -1373,7 +1373,7 @@ get_random()
   return l;
 }
 
-#ifndef USE_SSL
+#ifndef ENABLE_SSL
 
 void
 init_ssl_lib (void)
@@ -1392,7 +1392,7 @@ free_ssl_lib (void)
   ERR_free_strings ();
 }
 
-#endif /* USE_SSL */
+#endif /* ENABLE_SSL */
 
 /*
  * md5 functions
@@ -1452,4 +1452,4 @@ md5_digest_equal (const struct md5_digest *d1, const struct md5_digest *d2)
   return memcmp(d1->digest, d2->digest, MD5_DIGEST_LENGTH) == 0;
 }
 
-#endif /* USE_CRYPTO */
+#endif /* ENABLE_CRYPTO */

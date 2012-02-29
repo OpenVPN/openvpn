@@ -30,7 +30,7 @@
 #ifndef CRYPTO_H
 #define CRYPTO_H
 
-#ifdef USE_CRYPTO
+#ifdef ENABLE_CRYPTO
 
 #define ALLOW_NON_CBC_CIPHERS
 
@@ -347,7 +347,7 @@ void key2_print (const struct key2* k,
 		 const char* prefix0,
 		 const char* prefix1);
 
-#ifdef USE_SSL
+#ifdef ENABLE_SSL
 
 #define GHK_INLINE  (1<<0)
 void get_tls_handshake_key (const struct key_type *key_type,
@@ -361,7 +361,7 @@ void get_tls_handshake_key (const struct key_type *key_type,
 void init_ssl_lib (void);
 void free_ssl_lib (void);
 
-#endif /* USE_SSL */
+#endif /* ENABLE_SSL */
 
 /*
  * md5 functions
@@ -394,5 +394,5 @@ key_ctx_bi_defined(const struct key_ctx_bi* key)
 }
 
 
-#endif /* USE_CRYPTO */
+#endif /* ENABLE_CRYPTO */
 #endif /* CRYPTO_H */

@@ -81,7 +81,7 @@ show_wait_status (struct context *c)
  * traffic on the control-channel.
  *
  */
-#if defined(USE_CRYPTO) && defined(USE_SSL)
+#if defined(ENABLE_CRYPTO) && defined(ENABLE_SSL)
 void
 check_tls_dowork (struct context *c)
 {
@@ -112,7 +112,7 @@ check_tls_dowork (struct context *c)
 }
 #endif
 
-#if defined(USE_CRYPTO) && defined(USE_SSL)
+#if defined(ENABLE_CRYPTO) && defined(ENABLE_SSL)
 
 void
 check_tls_errors_co (struct context *c)
@@ -232,7 +232,7 @@ check_connection_established_dowork (struct context *c)
 bool
 send_control_channel_string (struct context *c, const char *str, int msglevel)
 {
-#if defined(USE_CRYPTO) && defined(USE_SSL)
+#if defined(ENABLE_CRYPTO) && defined(ENABLE_SSL)
   if (c->c2.tls_multi) {
     struct gc_arena gc = gc_new ();
     bool stat;
@@ -449,8 +449,8 @@ encrypt_sign (struct context *c, bool comp_frag)
 #endif
     }
 
-#ifdef USE_CRYPTO
-#ifdef USE_SSL
+#ifdef ENABLE_CRYPTO
+#ifdef ENABLE_SSL
   /*
    * If TLS mode, get the key we will use to encrypt
    * the packet.
@@ -472,8 +472,8 @@ encrypt_sign (struct context *c, bool comp_frag)
    */
   link_socket_get_outgoing_addr (&c->c2.buf, get_link_socket_info (c),
 				 &c->c2.to_link_addr);
-#ifdef USE_CRYPTO
-#ifdef USE_SSL
+#ifdef ENABLE_CRYPTO
+#ifdef ENABLE_SSL
   /*
    * In TLS mode, prepend the appropriate one-byte opcode
    * to the packet which identifies it as a data channel
@@ -498,7 +498,7 @@ encrypt_sign (struct context *c, bool comp_frag)
 static void
 process_coarse_timers (struct context *c)
 {
-#ifdef USE_CRYPTO
+#ifdef ENABLE_CRYPTO
   /* flush current packet-id to file once per 60
      seconds if --replay-persist was specified */
   check_packet_id_persist_flush (c);
@@ -789,8 +789,8 @@ process_incoming_link (struct context *c)
       if (!link_socket_verify_incoming_addr (&c->c2.buf, lsi, &c->c2.from))
 	link_socket_bad_incoming_addr (&c->c2.buf, lsi, &c->c2.from);
 
-#ifdef USE_CRYPTO
-#ifdef USE_SSL
+#ifdef ENABLE_CRYPTO
+#ifdef ENABLE_SSL
       if (c->c2.tls_multi)
 	{
 	  /*
@@ -820,7 +820,7 @@ process_incoming_link (struct context *c)
       if (c->c2.context_auth != CAS_SUCCEEDED)
 	c->c2.buf.len = 0;
 #endif
-#endif /* USE_SSL */
+#endif /* ENABLE_SSL */
 
       /* authenticate and decrypt the incoming packet */
       decrypt_status = openvpn_decrypt (&c->c2.buf, c->c2.buffers->decrypt_buf, &c->c2.crypto_options, &c->c2.frame);
@@ -833,7 +833,7 @@ process_incoming_link (struct context *c)
 	  goto done;
 	}
 
-#endif /* USE_CRYPTO */
+#endif /* ENABLE_CRYPTO */
 
 #ifdef ENABLE_FRAGMENT
       if (c->c2.fragment)

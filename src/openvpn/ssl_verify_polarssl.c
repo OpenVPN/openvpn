@@ -29,7 +29,7 @@
 
 #include "syshead.h"
 
-#if defined(USE_SSL) && defined(USE_POLARSSL)
+#if defined(ENABLE_SSL) && defined(ENABLE_CRYPTO_POLARSSL)
 
 #include "ssl_verify.h"
 #include <polarssl/sha1.h>
@@ -189,7 +189,7 @@ x509_free_subject (char *subject)
  * X509_{cert_depth}_{name}={value}
  */
 void
-x509_setenv (struct env_set *es, int cert_depth, x509_cert_t *cert)
+x509_setenv (struct env_set *es, int cert_depth, openvpn_x509_cert_t *cert)
 {
   int i;
   unsigned char c;
@@ -422,4 +422,4 @@ end:
   return retval;
 }
 
-#endif /* #if defined(USE_SSL) && defined(USE_POLARSSL) */
+#endif /* #if defined(ENABLE_SSL) && defined(ENABLE_CRYPTO_POLARSSL) */

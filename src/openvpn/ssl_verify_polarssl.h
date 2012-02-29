@@ -35,7 +35,10 @@
 #include "manage.h"
 #include <polarssl/x509.h>
 
-typedef x509_cert x509_cert_t;
+#ifndef __OPENVPN_X509_CERT_T_DECLARED
+#define __OPENVPN_X509_CERT_T_DECLARED
+typedef x509_cert openvpn_x509_cert_t;
+#endif
 
 /** @name Function for authenticating a new connection from a remote OpenVPN peer
  *  @{ */

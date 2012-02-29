@@ -24,15 +24,24 @@
 
 #ifndef OPENVPN_PLUGIN_H_
 #define OPENVPN_PLUGIN_H_
-#ifdef USE_SSL
-#  if defined(SSL_VERIFY_OPENSSL_H_) || defined(SSL_VERIFY_POLARSSL_H_)
-#    define ENABLE_SSL_PLUGIN
-#  else
-#    warning "Neither OpenSSL or PoLarSSL headers included, disabling plugin's SSL support"
-#  endif
-#endif /*USE_SSL*/
 
 #define OPENVPN_PLUGIN_VERSION 3
+
+#ifdef ENABLE_SSL
+#ifdef ENABLE_CRYPTO_POLARSSL
+#include <polarssl/x509.h>
+#ifndef __OPENVPN_X509_CERT_T_DECLARED
+#define __OPENVPN_X509_CERT_T_DECLARED
+typedef x509_cert openvpn_x509_cert_t;
+#endif
+#else
+#include <openssl/x509.h>
+#ifndef __OPENVPN_X509_CERT_T_DECLARED
+#define __OPENVPN_X509_CERT_T_DECLARED
+typedef X509 openvpn_x509_cert_t;
+#endif
+#endif
+#endif
 
 /*
  * Plug-in types.  These types correspond to the set of script callbacks
@@ -268,9 +277,9 @@ struct openvpn_plugin_args_open_return
  * *per_client_context : the per-client context pointer which was returned by
  *        openvpn_plugin_client_constructor_v1, if defined.
  *
- * current_cert_depth : Certificate depth of the certificate being passed over (only if compiled with USE_SSL defined)
+ * current_cert_depth : Certificate depth of the certificate being passed over (only if compiled with ENABLE_SSL defined)
  *
- * *current_cert : X509 Certificate object received from the client (only if compiled with USE_SSL defined)
+ * *current_cert : X509 Certificate object received from the client (only if compiled with ENABLE_SSL defined)
  *
  */
 struct openvpn_plugin_args_func_in
@@ -280,9 +289,9 @@ struct openvpn_plugin_args_func_in
   const char ** const envp;
   openvpn_plugin_handle_t handle;
   void *per_client_context;
-#ifdef ENABLE_SSL_PLUGIN
+#ifdef ENABLE_SSL
   int current_cert_depth;
-  x509_cert_t *current_cert;
+  openvpn_x509_cert_t *current_cert;
 #else
   int __current_cert_depth_disabled; /* Unused, for compatibility purposes only */
   void *__current_cert_disabled; /* Unused, for compatibility purposes only */

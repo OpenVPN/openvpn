@@ -29,7 +29,7 @@
 
 #include "syshead.h"
 
-#if defined(ENABLE_PKCS11) && defined(USE_OPENSSL)
+#if defined(ENABLE_PKCS11) && defined(ENABLE_CRYPTO_OPENSSL)
 
 #include "errlevel.h"
 #include "pkcs11_backend.h"

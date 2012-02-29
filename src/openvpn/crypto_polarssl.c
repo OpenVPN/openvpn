@@ -29,7 +29,7 @@
 
 #include "syshead.h"
 
-#if defined(USE_CRYPTO) && defined(USE_POLARSSL)
+#if defined(ENABLE_CRYPTO) && defined(ENABLE_CRYPTO_POLARSSL)
 
 #include "errlevel.h"
 #include "basic.h"
@@ -557,4 +557,4 @@ hmac_ctx_final (md_context_t *ctx, uint8_t *dst)
   ASSERT(0 == md_hmac_finish(ctx, dst));
 }
 
-#endif /* USE_CRYPTO && USE_POLARSSL */
+#endif /* ENABLE_CRYPTO && ENABLE_CRYPTO_POLARSSL */

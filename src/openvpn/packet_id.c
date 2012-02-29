@@ -33,7 +33,7 @@
 
 #include "syshead.h"
 
-#ifdef USE_CRYPTO
+#ifdef ENABLE_CRYPTO
 
 #include "packet_id.h"
 #include "misc.h"
@@ -593,4 +593,4 @@ packet_id_interactive_test ()
 }
 #endif
 
-#endif /* USE_CRYPTO */
+#endif /* ENABLE_CRYPTO */

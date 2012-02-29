@@ -32,10 +32,10 @@
 
 #include "config.h"
 
-#ifdef USE_OPENSSL
+#ifdef ENABLE_CRYPTO_OPENSSL
 #include "crypto_openssl.h"
 #endif
-#ifdef USE_POLARSSL
+#ifdef ENABLE_CRYPTO_POLARSSL
 #include "crypto_polarssl.h"
 #endif
 #include "basic.h"

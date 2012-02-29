@@ -29,10 +29,10 @@
 #ifndef OPENVPN_PLUGIN_H
 #define OPENVPN_PLUGIN_H
 
-#ifdef USE_OPENSSL
+#ifdef ENABLE_CRYPTO_OPENSSL
 #include "ssl_verify_openssl.h"
 #endif
-#ifdef USE_POLARSSL
+#ifdef ENABLE_CRYPTO_POLARSSL
 #include "ssl_verify_polarssl.h"
 #endif
 #include "openvpn-plugin.h"
@@ -127,9 +127,9 @@ int plugin_call_ssl (const struct plugin_list *pl,
 		 const struct argv *av,
 		 struct plugin_return *pr,
 		 struct env_set *es
-#ifdef USE_SSL
+#ifdef ENABLE_SSL
 		 , int current_cert_depth,
-		 x509_cert_t *current_cert
+		 openvpn_x509_cert_t *current_cert
 #endif
 		);
 
@@ -183,9 +183,9 @@ plugin_call_ssl (const struct plugin_list *pl,
 	     const struct argv *av,
 	     struct plugin_return *pr,
 	     struct env_set *es
-#ifdef USE_SSL
+#ifdef ENABLE_SSL
 	     , int current_cert_depth,
-	     x509_cert_t *current_cert
+	     openvpn_x509_cert_t *current_cert
 #endif
 	    )
 {
@@ -202,7 +202,7 @@ plugin_call(const struct plugin_list *pl,
 	struct env_set *es)
 {
   return plugin_call_ssl(pl, type, av, pr, es
-#ifdef USE_SSL
+#ifdef ENABLE_SSL
       , -1, NULL
 #endif
       );

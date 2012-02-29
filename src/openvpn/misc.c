@@ -1243,7 +1243,7 @@ test_file (const char *filename)
   return ret;
 }
 
-#ifdef USE_CRYPTO
+#ifdef ENABLE_CRYPTO
 
 /* create a temporary filename in directory */
 const char *

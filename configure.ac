@@ -228,19 +228,6 @@ AC_ARG_ENABLE(
 )
 
 AC_ARG_WITH(
-	[ssl-headers],
-	[AS_HELP_STRING([--with-ssl-headers=DIR], [Crypto/SSL Include files location])],
-	[CS_HDR_DIR="$withval"]
-	[CPPFLAGS="$CPPFLAGS -I$withval"] 
-)
-
-AC_ARG_WITH(
-	[ssl-lib],
-	[AS_HELP_STRING([--with-ssl-lib=DIR], [Crypto/SSL Library location])],
-	[LDFLAGS="$LDFLAGS -L$withval"] 
-)
-
-AC_ARG_WITH(
 	[mem-check],
 	[AS_HELP_STRING([--with-mem-check=TYPE], [build with debug memory checking, TYPE=dmalloc|valgrind|ssl])],
 	[
@@ -253,15 +240,15 @@ AC_ARG_WITH(
 )
 
 AC_ARG_WITH(
-	[ssl-type],
-	[AS_HELP_STRING([--with-ssl-type=TYPE], [build with the given SSL library, TYPE = openssl or polarssl])],
+	[crypto-library],
+	[AS_HELP_STRING([--with-crypto-library=library], [build with the given crypto library, TYPE=openssl|polarssl @<:@default=openssl@:>@])],
 	[
 		case "${withval}" in 
 			openssl|polarssl) ;;
-			*) AC_MSG_ERROR([bad value ${withval} for --with-ssl-type]) ;;
+			*) AC_MSG_ERROR([bad value ${withval} for --with-crypto-library]) ;;
 		esac
 	],
-	[with_ssl_type="openssl"]
+	[with_crypto_library="openssl"]
 )
 
 AC_DEFINE_UNQUOTED(TARGET_ALIAS, "${host}", [A string representing our host])
@@ -651,6 +638,76 @@ case "${with_mem_check}" in
 		;;
 esac
 
+PKG_CHECK_MODULES(
+	[OPENSSL_CRYPTO],
+	[libcrypto >= 0.9.6],
+	[have_openssl_crypto="yes"],
+	[AC_CHECK_LIB(
+		[crypto],
+		[RSA_new],
+		[
+			have_openssl_crypto="yes"
+			OPENSSL_CRYPTO_LIBS="-lcrypto"
+		]
+	)]
+)
+
+PKG_CHECK_MODULES(
+	[OPENSSL_SSL],
+	[libssl >= 0.9.6],
+	[have_openssl_ssl="yes"],
+	[AC_CHECK_LIB(
+		[ssl],
+		[SSL_CTX_new],
+		[
+			have_openssl_ssl="yes"
+			OPENSSL_SSL_LIBS="-lssl"
+		]
+	)]
+)
+
+if test "${have_openssl_crypto}" = "yes"; then
+	saved_CFLAGS="${CFLAGS}"
+	saved_LIBS="${LIBS}"
+	CFLAGS="${CFLAGS} ${OPENSSL_CRYPTO_CFLAGS}"
+	LIBS="${LIBS} ${OPENSSL_CRYPTO_LIBS}"
+	AC_CHECK_FUNCS([EVP_CIPHER_CTX_set_key_length])
+	have_openssl_engine="yes"
+	AC_CHECK_FUNCS(
+		[ \
+			ENGINE_load_builtin_engines \
+			ENGINE_register_all_complete \
+			ENGINE_cleanup \
+		],
+		,
+		[have_openssl_engine="no"; break]
+	)
+
+	CFLAGS="${saved_CFLAGS}"
+	LIBS="${saved_LIBS}"
+fi
+
+AC_ARG_VAR([POLARSSL_CFLAGS], [C compiler flags for polarssl])
+AC_ARG_VAR([POLARSSL_LIBS], [linker flags for polarssl])
+have_polarssl_ssl="yes"
+have_polarssl_crypto="yes"
+if test -z "${POLARSSL_LIBS}"; then
+	AC_CHECK_LIB(
+		[polarssl],
+		[ssl_init],
+		[POLARSSL_LIBS="-lpolarssl"],
+		[
+			have_polarssl_ssl="no"
+			AC_CHECK_LIB(
+				[polarssl],
+				[aes_crypt_cbc],
+				,
+				[have_polarssl_crypto="no"]
+			)
+		]
+	)
+fi
+
 AC_ARG_VAR([LZO_CFLAGS], [C compiler flags for lzo])
 AC_ARG_VAR([LZO_LIBS], [linker flags for lzo])
 have_lzo="yes"
@@ -698,103 +755,6 @@ PKG_CHECK_MODULES(
 	[]
 )
 
-dnl
-dnl check for SSL-crypto library
-dnl
-if test "${enable_crypto}" = "yes"; then
-   if test "${with_ssl_type}" = "openssl"; then  
-       AC_CHECKING([for OpenSSL Crypto Library and Header files])
-       AC_CHECK_HEADER(openssl/evp.h,,
-	       [AC_MSG_ERROR([OpenSSL Crypto headers not found.])])
-
-       for lib in crypto eay32; do
-          AC_CHECK_LIB($lib, EVP_CIPHER_CTX_init,
-                [
-            		cryptofound=1
-			LIBS="${LIBS} -l$lib"
-    	        ]
-          )
-       done
-       test -n "$cryptofound" || AC_MSG_ERROR([OpenSSL Crypto library not found.])
-
-       AC_MSG_CHECKING([that OpenSSL Library is at least version 0.9.6])
-       AC_EGREP_CPP(yes,
-         [
-           #include <openssl/evp.h>
-           #if SSLEAY_VERSION_NUMBER >= 0x00906000L
-    	       yes
-           #endif
-         ],
-         [
-           AC_MSG_RESULT([yes])
-           AC_DEFINE(USE_CRYPTO, 1, [Use crypto library])
-           AC_DEFINE(USE_OPENSSL, 1, [Use OpenSSL library])
-           AC_CHECK_FUNCS(EVP_CIPHER_CTX_set_key_length)
-    
-           dnl check for OpenSSL crypto acceleration capability
-           AC_CHECK_HEADERS(openssl/engine.h)
-           AC_CHECK_FUNCS(ENGINE_load_builtin_engines)
-           AC_CHECK_FUNCS(ENGINE_register_all_complete)
-           AC_CHECK_FUNCS(ENGINE_cleanup)
-         ],
-         [AC_MSG_ERROR([OpenSSL crypto Library is too old.])]
-       )
-   fi
-   if test "${with_ssl_type}" = "polarssl"; then
-        AC_CHECKING([for PolarSSL Crypto Library and Header files])
-        AC_CHECK_HEADER(polarssl/aes.h,
-            [AC_CHECK_LIB(polarssl, aes_crypt_cbc,
-                [
-		    LIBS="${LIBS} -lpolarssl"
-                    AC_DEFINE(USE_CRYPTO, 1, [Use crypto library])
-                    AC_DEFINE(USE_POLARSSL, 1, [Use PolarSSL library])
-                ],
-                [AC_MSG_ERROR([PolarSSL Crypto library not found.])]
-            )],
-            [AC_MSG_ERROR([PolarSSL Crypto headers not found.])]
-        )
-    fi
-   dnl
-   dnl check for OpenSSL-SSL library
-   dnl
-
-   if test "${enable_ssl}" = "yes"; then
-      if test "${with_ssl_type}" = "openssl"; then  
-         AC_CHECKING([for OpenSSL SSL Library and Header files])
-         AC_CHECK_HEADER(openssl/ssl.h,,
-	      [AC_MSG_ERROR([OpenSSL SSL headers not found.])]
-         )
-
-         for lib in ssl ssl32; do
-	     AC_CHECK_LIB($lib, SSL_CTX_new,
-		   [
-			   sslfound=1
-			   LIBS="${LIBS} -l$lib"
-		   ]
-	     )
-         done
-
-         test -n "${sslfound}" || AC_MSG_ERROR([OpenSSL SSL library not found.])
-
-         AC_DEFINE(USE_SSL, 1, [Use OpenSSL SSL library])
-      fi
-      if test "${with_ssl_type}" = "polarssl"; then
-         AC_CHECKING([for PolarSSL SSL Library and Header files])
-         AC_CHECK_HEADER(polarssl/ssl.h,
-              [AC_CHECK_LIB(polarssl, ssl_init,
-              [
-		  LIBS="${LIBS} -lpolarssl"
-                  AC_DEFINE(USE_SSL, 1, [Use SSL library])
-                  AC_DEFINE(USE_POLARSSL, 1, [Use PolarSSL library])
-              ],
-              [AC_MSG_ERROR([PolarSSL SSL library not found.])]
-          )],
-              [AC_MSG_ERROR([PolarSSL SSL headers not found.])]
-          )
-       fi
-   fi
-fi
-
 if test -n "${SP_PLATFORM_WINDOWS}"; then
 	AC_DEFINE_UNQUOTED([PATH_SEPARATOR], ['\\\\'], [Path separator]) #"
 	AC_DEFINE_UNQUOTED([PATH_SEPARATOR_STR], ["\\\\"], [Path separator]) #"
@@ -805,7 +765,7 @@ fi
 
 dnl enable --x509-username-field feature if requested
 if test "${enable_x509_alt_username}" = "yes"; then
-	if test "${with_ssl_type}" = "polarssl" ; then
+	if test "${with_crypto_library}" = "polarssl" ; then
 		AC_MSG_ERROR([PolarSSL does not support the --x509-username-field feature])
 	fi
 
@@ -828,6 +788,41 @@ test "${enable_pf}" = "yes" && AC_DEFINE([ENABLE_PF], [1], [Enable internal pack
 test "${enable_strict_options}" = "yes" && AC_DEFINE([ENABLE_STRICT_OPTIONS_CHECK], [1], [Enable strict options check between peers])
 test "${enable_password_save}" = "yes" && AC_DEFINE([ENABLE_PASSWORD_SAVE], [1], [Allow --askpass and --auth-user-pass passwords to be read from a file])
 test "${enable_systemd}" = "yes" && AC_DEFINE([ENABLE_SYSTEMD], [1], [Enable systemd support])
+
+case "${with_crypto_library}" in
+	openssl)
+		have_crypto_crypto="${have_openssl_crypto}"
+		have_crypto_ssl="${have_openssl_ssl}"
+		CRYPTO_CRYPTO_CFLAGS="${OPENSSL_CRYPTO_CFLAGS}"
+		CRYPTO_CRYPTO_LIBS="${OPENSSL_CRYPTO_LIBS}"
+		CRYPTO_SSL_CFLAGS="${OPENSSL_SSL_CFLAGS}"
+		CRYPTO_SSL_LIBS="${OPENSSL_SSL_LIBS}"
+		AC_DEFINE([ENABLE_CRYPTO_OPENSSL], [1], [Use OpenSSL library])
+		test "${have_openssl_engine}" = "yes" && AC_DEFINE([HAVE_OPENSSL_ENGINE], [1], [Use crypto library])
+		;;
+	polarssl)
+		have_crypto_crypto="${have_polarssl_crypto}"
+		have_crypto_ssl="${have_polarssl_ssl}"
+		CRYPTO_CRYPTO_CFLAGS="${POLARSSL_CRYPTO_CFLAGS}"
+		CRYPTO_CRYPTO_LIBS="${POLARSSL_LIBS}"
+		AC_DEFINE([ENABLE_CRYPTO_POLARSSL], [1], [Use PolarSSL library])
+		;;
+esac
+
+if test "${enable_ssl}" = "yes"; then
+	test "${enable_crypto}" != "yes" && AC_MSG_ERROR([crypto must be enabled for ssl])
+	test "${have_crypto_ssl}" != "yes" && AC_MSG_ERROR([${with_ssl_library} ssl is required but missing])
+	OPTIONAL_CRYPTO_CFLAGS="${OPTIONAL_CRYPTO_CFLAGS} ${CRYPTO_SSL_CFLAGS}"
+	OPTIONAL_CRYPTO_LIBS="${OPTIONAL_CRYPTO_LIBS} ${CRYPTO_SSL_LIBS}"
+	AC_DEFINE([ENABLE_SSL], [1], [Enable ssl library])
+fi
+
+if test "${enable_crypto}" = "yes"; then
+	test "${have_crypto_crypto}" != "yes" && AC_MSG_ERROR([${with_crypto_library} crytpo is required but missing])
+	OPTIONAL_CRYPTO_CFLAGS="${OPTIONAL_CRYPTO_CFLAGS} ${CRYPTO_CRYPTO_CFLAGS}"
+	OPTIONAL_CRYPTO_LIBS="${OPTIONAL_CRYPTO_LIBS} ${CRYPTO_CRYPTO_LIBS}"
+	AC_DEFINE([ENABLE_CRYPTO], [1], [Enable crypto library])
+fi
 
 if test "${enable_plugins}" = "yes"; then
 	test "${WIN32}" != "yes" -a -z "${DL_LIBS}" && AC_MSG_ERROR([libdl is required for plugins])
@@ -899,6 +894,8 @@ AC_SUBST([TAP_WIN_MIN_MINOR])
 
 AC_SUBST([OPTIONAL_DL_LIBS])
 AC_SUBST([OPTIONAL_SELINUX_LIBS])
+AC_SUBST([OPTIONAL_CRYPTO_CFLAGS])
+AC_SUBST([OPTIONAL_CRYPTO_LIBS])
 AC_SUBST([OPTIONAL_LZO_CFLAGS])
 AC_SUBST([OPTIONAL_LZO_LIBS])
 AC_SUBST([OPTIONAL_PKCS11_HELPER_CFLAGS])
