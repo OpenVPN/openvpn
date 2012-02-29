@@ -27,7 +27,7 @@
 
 #ifdef WIN32
 #include <winioctl.h>
-#include "tap-win32/common.h"
+#include <tap-windows.h>
 #endif
 
 #include "buffer.h"

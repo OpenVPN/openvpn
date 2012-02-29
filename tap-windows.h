@@ -21,16 +21,8 @@
  *  distribution); if not, write to the Free Software Foundation, Inc.,
  *  59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
-
-//===============================================
-// This file is included both by OpenVPN and
-// the TAP-Win32 driver and contains definitions
-// common to both.
-//===============================================
-
-#ifndef HAVE_CONFIG_H
-#include "autodefs.h"
-#endif
+#ifndef __TAP_H
+#define __TAP_H
 
 //=============
 // TAP IOCTLs
@@ -73,10 +65,4 @@
 #define USERDEVICEDIR     "\\DosDevices\\Global\\"
 #define TAPSUFFIX         ".tap"
 
-//=========================================================
-// TAP_COMPONENT_ID -- This string defines the TAP driver
-// type -- different component IDs can reside in the system
-// simultaneously.
-//=========================================================
-
-#define TAP_COMPONENT_ID TAP_ID
+#endif

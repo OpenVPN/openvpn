@@ -44,7 +44,6 @@ EXTRA_DIST = \
 	sample-keys \
 	sample-scripts \
 	suse \
-	tap-win32 \
 	contrib \
 	debug \
 	plugins \
@@ -147,7 +146,7 @@ openvpn_SOURCES = \
 	ssl_verify_polarssl.c ssl_verify_polarssl.h \
 	status.c status.h \
 	syshead.h \
-	tun.c tun.h \
+	tun.c tun.h tap-windows.h \
 	win32.h win32.c \
 	cryptoapi.h cryptoapi.c
 
