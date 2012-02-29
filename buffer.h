@@ -312,7 +312,11 @@ has_digit (const unsigned char* src)
  */
 bool buf_printf (struct buffer *buf, const char *format, ...)
 #ifdef __GNUC__
-    __attribute__ ((format (printf, 2, 3)))
+#if __USE_MINGW_ANSI_STDIO
+	__attribute__ ((format (gnu_printf, 2, 3)))
+#else
+	__attribute__ ((format (__printf__, 2, 3)))
+#endif
 #endif
     ;
 
@@ -326,7 +330,11 @@ bool buf_puts (struct buffer *buf, const char *str);
  */
 bool openvpn_snprintf(char *str, size_t size, const char *format, ...)
 #ifdef __GNUC__
-    __attribute__ ((format (printf, 3, 4)))
+#if __USE_MINGW_ANSI_STDIO
+	__attribute__ ((format (gnu_printf, 3, 4)))
+#else
+	__attribute__ ((format (__printf__, 3, 4)))
+#endif
 #endif
     ;
 

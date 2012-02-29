@@ -77,7 +77,11 @@ void status_flush (struct status_output *so);
 bool status_close (struct status_output *so);
 void status_printf (struct status_output *so, const char *format, ...)
 #ifdef __GNUC__
-    __attribute__ ((format (printf, 2, 3)))
+#if __USE_MINGW_ANSI_STDIO
+	__attribute__ ((format (gnu_printf, 2, 3)))
+#else
+	__attribute__ ((format (__printf__, 2, 3)))
+#endif
 #endif
     ;
 

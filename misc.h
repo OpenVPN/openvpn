@@ -435,13 +435,21 @@ void argv_printf_arglist (struct argv *a, const char *format, const unsigned int
 
 void argv_printf (struct argv *a, const char *format, ...)
 #ifdef __GNUC__
-  __attribute__ ((format (printf, 2, 3)))
+#if __USE_MINGW_ANSI_STDIO
+	__attribute__ ((format (gnu_printf, 2, 3)))
+#else
+	__attribute__ ((format (__printf__, 2, 3)))
+#endif
 #endif
   ;
 
 void argv_printf_cat (struct argv *a, const char *format, ...)
 #ifdef __GNUC__
-  __attribute__ ((format (printf, 2, 3)))
+#if __USE_MINGW_ANSI_STDIO
+	__attribute__ ((format (gnu_printf, 2, 3)))
+#else
+	__attribute__ ((format (__printf__, 2, 3)))
+#endif
 #endif
   ;
 

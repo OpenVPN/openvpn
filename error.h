@@ -178,7 +178,11 @@ bool dont_mute (unsigned int flags); /* check muting filter */
 
 void x_msg (const unsigned int flags, const char *format, ...)
 #ifdef __GNUC__
-    __attribute__ ((format (printf, 2, 3)))
+#if __USE_MINGW_ANSI_STDIO
+	__attribute__ ((format (gnu_printf, 2, 3)))
+#else
+	__attribute__ ((format (__printf__, 2, 3)))
+#endif
 #endif
     ; /* should be called via msg above */
 
