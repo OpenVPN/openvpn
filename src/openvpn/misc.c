@@ -301,38 +301,6 @@ do_mlockall(bool print_msg)
 #endif
 }
 
-#ifndef HAVE_DAEMON
-
-int
-daemon(int nochdir, int noclose)
-{
-#if defined(HAVE_FORK) && defined(HAVE_SETSID)
-  switch (fork())
-    {
-    case -1:
-      return (-1);
-    case 0:
-      break;
-    default:
-      openvpn_exit (OPENVPN_EXIT_STATUS_GOOD); /* exit point */
-    }
-
-  if (setsid() == -1)
-    return (-1);
-
-  if (!nochdir)
-    openvpn_chdir ("/");
-
-  if (!noclose)
-    set_std_files_to_null (false);
-#else
-  msg (M_FATAL, "Sorry but I can't become a daemon because this operating system doesn't appear to support either the daemon() or fork() system calls");
-#endif
-  return (0);
-}
-
-#endif
-
 /*
  * Set standard file descriptors to /dev/null
  */

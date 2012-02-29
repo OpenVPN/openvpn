@@ -115,10 +115,6 @@ unsigned int openvpn_getpid (void);
 
 void do_mlockall (bool print_msg); /* Disable paging */
 
-#ifndef HAVE_DAEMON
-int daemon (int nochdir, int noclose);
-#endif
-
 /* check file protections */
 void warn_if_group_others_accessible(const char* filename);
 

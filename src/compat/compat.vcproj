@@ -162,6 +162,10 @@
 				RelativePath=".\compat-gettimeofday.c"
 				>
 			</File>
+			<File
+				RelativePath=".\compat-daemon.c"
+				>
+			</File>
 		</Filter>
 		<Filter
 			Name="Header Files"

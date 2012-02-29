@@ -22,32 +22,79 @@
  *  59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#ifndef COMPAT_H
-#define COMPAT_H
-
-#ifdef HAVE_WINSOCK2_H
-/* timeval */
-#include <winsock2.h>
-#endif
-
-#ifdef HAVE_SYS_TIME_H
-#include <sys/time.h>
-#endif
-
-#ifndef HAVE_DIRNAME
-char * dirname(char *str);
-#endif /* HAVE_DIRNAME */
-
-#ifndef HAVE_BASENAME
-char * basename(char *str);
-#endif /* HAVE_BASENAME */
-
-#ifndef HAVE_GETTIMEOFDAY
-int gettimeofday (struct timeval *tv, void *tz);
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#elif defined(_MSC_VER)
+#include "config-msvc.h"
 #endif
 
 #ifndef HAVE_DAEMON
-int daemon(int nochdir, int noclose);
+
+#ifdef HAVE_UNISTD_H
+#include <unistd.h>
 #endif
 
-#endif /* COMPAT_H */
+#ifdef HAVE_STDLIB_H
+#include <stdlib.h>
+#endif
+
+#ifdef HAVE_SYS_TYPES_H
+#include <sys/types.h>
+#endif
+
+#ifdef HAVE_SYS_STAT_H
+#include <sys/stat.h>
+#endif
+
+#ifdef HAVE_FCNTL_H
+#include <fcntl.h>
+#endif
+
+#ifdef HAVE_ERRNO_H
+#include <errno.h>
+#endif
+
+int
+daemon(int nochdir, int noclose)
+{
+#if defined(HAVE_FORK) && defined(HAVE_SETSID)
+	switch (fork()) {
+		case -1:
+			return (-1);
+		case 0:
+		break;
+		default:
+			exit(0);
+	}
+
+	if (setsid() == -1)
+		return (-1);
+
+	if (!nochdir)
+		chdir("/");
+
+	if (!noclose) {
+#if defined(HAVE_DUP) && defined(HAVE_DUP2)
+		int fd;
+		if ((fd = open ("/dev/null", O_RDWR, 0)) != -1) {
+			dup2 (fd, 0);
+			dup2 (fd, 1);
+			dup2 (fd, 2);
+			if (fd > 2) {
+				close (fd);
+			}
+		}
+#endif
+	}
+
+	return 0;
+#else
+	(void)nochdir;
+	(void)noclose;
+	errno = EFAULT;
+	return -1;
+#endif
+}
+
+#endif
+

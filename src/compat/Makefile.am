@@ -21,4 +21,5 @@ libcompat_la_SOURCES = \
 	compat.h \
 	compat-dirname.c \
 	compat-basename.c \
-	compat-gettimeofday.c
+	compat-gettimeofday.c \
+	compat-daemon.c
