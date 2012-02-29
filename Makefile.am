@@ -51,10 +51,7 @@ EXTRA_DIST = \
 	plugins \
 	win
 
-SUBDIRS = \
-	images \
-	service-win32 \
-	install-win32
+SUBDIRS = service-win32
 
 TESTS = t_client.sh t_lpback.sh t_cltsrv.sh
 sbin_PROGRAMS = openvpn

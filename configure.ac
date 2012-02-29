@@ -988,8 +988,5 @@ AC_CONFIG_FILES([t_client.sh], [chmod +x t_client.sh])
 AC_OUTPUT([
 	Makefile
 	openvpn.spec
-	images/Makefile
 	service-win32/Makefile
-	install-win32/Makefile
-	install-win32/settings
 ])
