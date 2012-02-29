@@ -442,16 +442,6 @@ if test "${WIN32}" != "yes"; then
 		[[${SOCKET_INCLUDES}]]
 	)
 
-	AC_CHECK_DECLS(
-		[SO_MARK],
-		,
-		,
-		[[${SOCKET_INCLUDES}]]
-	)
-
-	AC_SEARCH_LIBS([socket], [socket])
-	AC_SEARCH_LIBS([inet_ntoa], [nsl])
-	AC_SEARCH_LIBS([gethostbyname], [resolv nsl])
 	AC_FUNC_FORK
 fi
 
@@ -612,6 +602,23 @@ AC_CHECK_LIB(
 	[DL_LIBS="-ldl"]
 )
 AC_SUBST([DL_LIBS])
+
+AC_CHECK_LIB(
+	[nsl],
+	[inet_ntoa],
+	[SOCKETS_LIBS="${SOCKETS_LIBS} -lnsl"]
+)
+AC_CHECK_LIB(
+	[socket],
+	[socket],
+	[SOCKETS_LIBS="${SOCKETS_LIBS} -lsocket"]
+)
+AC_CHECK_LIB(
+	[resolv],
+	[gethostbyname],
+	[SOCKETS_LIBS="${SOCKETS_LIBS} -lresolv"]
+)
+AC_SUBST([SOCKETS_LIBS])
 
 case "${with_mem_check}" in
 	valgrind)
