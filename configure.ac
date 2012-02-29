@@ -32,6 +32,7 @@ AC_CONFIG_SRCDIR(syshead.h)
 
 dnl Guess host type.
 AC_CANONICAL_HOST
+AC_CONFIG_MACRO_DIR([m4])
 AM_INIT_AUTOMAKE(openvpn, [$PACKAGE_VERSION])
 
 AC_ARG_WITH(cygwin-native,

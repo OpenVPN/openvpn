@@ -28,6 +28,7 @@ LDADD = @LIBOBJS@
 # This option prevents autoreconf from overriding our COPYING and
 # INSTALL targets:
 AUTOMAKE_OPTIONS = foreign
+ACLOCAL_AMFLAGS = -I m4
 
 MAINTAINERCLEANFILES = \
 	config.log config.status \
