@@ -69,3 +69,8 @@ endif
 dist_noinst_HEADERS = \
 	config-msvc.h \
 	config-msvc-version.h.in
+
+if WIN32
+rootdir=$(prefix)
+root_DATA = version.sh
+endif

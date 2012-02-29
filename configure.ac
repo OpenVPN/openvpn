@@ -904,6 +904,7 @@ AC_SUBST([OPTIONAL_PKCS11_HELPER_LIBS])
 AM_CONDITIONAL([WIN32], [test "${WIN32}" = "yes"])
 
 AC_CONFIG_FILES([
+	version.sh
 	Makefile
 	build/Makefile
 	build/msvc/Makefile
