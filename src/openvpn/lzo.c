@@ -36,7 +36,7 @@
 
 #include "memdbg.h"
 
-#ifndef LZO_STUB
+#ifndef ENABLE_LZO_STUB
 /**
  * Perform adaptive compression housekeeping.
  *
@@ -91,7 +91,7 @@ lzo_adaptive_compress_data (struct lzo_adaptive_compress *ac, int n_total, int n
   ac->n_comp += n_comp;
 }
 
-#endif /* LZO_STUB */
+#endif /* ENABLE_LZO_STUB */
 
 void lzo_adjust_frame_parameters (struct frame *frame)
 {
@@ -109,7 +109,7 @@ lzo_compress_init (struct lzo_compress_workspace *lzowork, unsigned int flags)
   CLEAR (*lzowork);
 
   lzowork->flags = flags;
-#ifndef LZO_STUB
+#ifndef ENABLE_LZO_STUB
   lzowork->wmem_size = LZO_WORKSPACE;
 
   if (lzo_init () != LZO_E_OK)
@@ -129,7 +129,7 @@ lzo_compress_uninit (struct lzo_compress_workspace *lzowork)
   if (lzowork)
     {
       ASSERT (lzowork->defined);
-#ifndef LZO_STUB
+#ifndef ENABLE_LZO_STUB
       lzo_free (lzowork->wmem);
       lzowork->wmem = NULL;
 #endif
@@ -140,7 +140,7 @@ lzo_compress_uninit (struct lzo_compress_workspace *lzowork)
 static inline bool
 lzo_compression_enabled (struct lzo_compress_workspace *lzowork)
 {
-#ifndef LZO_STUB
+#ifndef ENABLE_LZO_STUB
   if ((lzowork->flags & (LZO_SELECTED|LZO_ON)) == (LZO_SELECTED|LZO_ON))
     {
       if (lzowork->flags & LZO_ADAPTIVE)
@@ -157,7 +157,7 @@ lzo_compress (struct buffer *buf, struct buffer work,
 	      struct lzo_compress_workspace *lzowork,
 	      const struct frame* frame)
 {
-#ifndef LZO_STUB
+#ifndef ENABLE_LZO_STUB
   lzo_uint zlen = 0;
   int err;
   bool compressed = false;
@@ -168,7 +168,7 @@ lzo_compress (struct buffer *buf, struct buffer work,
   if (buf->len <= 0)
     return;
 
-#ifndef LZO_STUB
+#ifndef ENABLE_LZO_STUB
   /*
    * In order to attempt compression, length must be at least COMPRESS_THRESHOLD,
    * and our adaptive level must give the OK.
@@ -226,7 +226,7 @@ lzo_decompress (struct buffer *buf, struct buffer work,
 		struct lzo_compress_workspace *lzowork,
 		const struct frame* frame)
 {
-#ifndef LZO_STUB
+#ifndef ENABLE_LZO_STUB
   lzo_uint zlen = EXPANDED_SIZE (frame);
   int err;
 #endif
@@ -244,7 +244,7 @@ lzo_decompress (struct buffer *buf, struct buffer work,
 
   if (c == YES_COMPRESS)	/* packet was compressed */
     {
-#ifndef LZO_STUB
+#ifndef ENABLE_LZO_STUB
       ASSERT (buf_safe (&work, zlen));
       err = LZO_DECOMPRESS (BPTR (buf), BLEN (buf), BPTR (&work), &zlen,
 			    lzowork->wmem);
@@ -291,7 +291,7 @@ void lzo_print_stats (const struct lzo_compress_workspace *lzo_compwork, struct 
 {
   ASSERT (lzo_compwork->defined);
 
-#ifndef LZO_STUB
+#ifndef ENABLE_LZO_STUB
   status_printf (so, "pre-compress bytes," counter_format, lzo_compwork->pre_compress);
   status_printf (so, "post-compress bytes," counter_format, lzo_compwork->post_compress);
   status_printf (so, "pre-decompress bytes," counter_format, lzo_compwork->pre_decompress);

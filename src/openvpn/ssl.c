@@ -1652,7 +1652,7 @@ push_peer_info(struct buffer *buf, struct tls_session *session)
       }
 
       /* push LZO status */
-#ifdef LZO_STUB
+#ifdef ENABLE_LZO_STUB
       buf_printf (&out, "IV_LZO_STUB=1\n");
 #endif
 

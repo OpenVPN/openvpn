@@ -39,7 +39,7 @@
  * @{
  */
 
-#ifndef LZO_STUB
+#ifndef ENABLE_LZO_STUB
 #ifdef LZO_HEADER_DIR
 #include "lzo/lzoutil.h"
 #include "lzo/lzo1x.h"
@@ -68,7 +68,7 @@
 
 /**************************************************************************/
 /** @name LZO library interface defines *//** @{ *//***********************/
-#ifndef LZO_STUB
+#ifndef ENABLE_LZO_STUB
 #define LZO_COMPRESS    lzo1x_1_15_compress
                                 /**< LZO library compression function.
                                  *
@@ -90,7 +90,7 @@
                                  *   verify the integrity of incoming
                                  *   packets, you might want to consider
                                  *   using the non-safe version. */
-#endif /* LZO_STUB */
+#endif /* ENABLE_LZO_STUB */
 /** @} name LZO library interface *//**************************************/
 
 
@@ -98,10 +98,10 @@
 /** @name Miscellaneous compression defines *//** @{ *//*******************/
 #define LZO_EXTRA_BUFFER(len) ((len)/8 + 128 + 3)
                                 /**< LZO 2.0 worst-case size expansion. */
-#ifndef LZO_STUB
+#ifndef ENABLE_LZO_STUB
 #define COMPRESS_THRESHOLD 100  /**< Minimum packet size to attempt
                                  *   compression. */
-#endif /* LZO_STUB */
+#endif /* ENABLE_LZO_STUB */
 /** @} name Miscellaneous compression defines *//**************************/
 
 
@@ -119,7 +119,7 @@
 
 /**************************************************************************/
 /** @name Adaptive compression defines *//** @{ *//************************/
-#ifndef LZO_STUB
+#ifndef ENABLE_LZO_STUB
 #define AC_SAMP_SEC    2        /**< Number of seconds in a sample period. */
 #define AC_MIN_BYTES   1000     /**< Minimum number of bytes a sample
                                  *   period must contain for it to be
@@ -129,10 +129,10 @@
                                  *   turned off. */
 #define AC_OFF_SEC     60       /**< Seconds to wait after compression has
                                  *   been turned off before retesting. */
-#endif /* LZO_STUB */
+#endif /* ENABLE_LZO_STUB */
 /** @} name Adaptive compression defines *//*******************************/
 
-#ifndef LZO_STUB
+#ifndef ENABLE_LZO_STUB
 
 /**
  * Adaptive compression state.
@@ -144,7 +144,7 @@ struct lzo_adaptive_compress {
   int n_comp;
 };
 
-#endif /* LZO_STUB */
+#endif /* ENABLE_LZO_STUB */
 
 
 /**
@@ -161,7 +161,7 @@ struct lzo_compress_workspace
 {
   bool defined;
   unsigned int flags;
-#ifndef LZO_STUB
+#ifndef ENABLE_LZO_STUB
   lzo_voidp wmem;
   int wmem_size;
   struct lzo_adaptive_compress ac;

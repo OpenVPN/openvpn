@@ -701,11 +701,6 @@ if test "${enable_lzo}" = "yes" && test "${enable_lzo_stub}" = "no"; then
    fi
 fi
 
-dnl enable multi-client mode
-if test "${enable_lzo_stub}" = "yes"; then
-	AC_DEFINE([LZO_STUB], [1], [Enable LZO stub capability])
-fi
-
 PKG_CHECK_MODULES(
 	[PKCS11_HELPER],
 	[libpkcs11-helper-1 >= 1.02],
@@ -865,6 +860,13 @@ if test "${enable_selinux}" = "yes"; then
 	test -z "${SELINUX_LIBS}" && AC_MSG_ERROR([libselinux required but missing])
 	OPTIONAL_SELINUX_LIBS="${SELINUX_LIBS}"
 	AC_DEFINE([ENABLE_SELINUX], [1], [SELinux support])
+fi
+
+if test "${enable_lzo_stub}" = "yes"; then
+	test "${enable_lzo}" = "yes" && AC_MSG_ERROR([Cannot have both lzo stub and lzo enabled])
+	AC_DEFINE([ENABLE_LZO_STUB], [1], [Enable LZO stub capability])
+	AC_DEFINE([USE_LZO], [1], [Enable LZO compression library])
+	AC_DEFINE([LZO_VERSION_NUM], ["STUB"], [LZO version number])
 fi
 
 if test "${enable_pkcs11}" = "yes"; then
