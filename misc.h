@@ -145,7 +145,7 @@ openvpn_run_script (const struct argv *a, const struct env_set *es, const unsign
 
   openvpn_snprintf(msg, sizeof(msg), "WARNING: Failed running command (%s)", hook);
   return openvpn_execve_check(a, es, flags | S_SCRIPT, msg);
-};
+}
 
 #ifdef WIN32
 FILE * openvpn_fopen (const char *path, const char *mode);
