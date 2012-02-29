@@ -28,10 +28,6 @@
 /*
  * Only include if not during configure
  */
-#ifdef WIN32
-/* PF_INET6: win32 ipv6 exists only after 0x0501 (XP) */
-#define WINVER 0x0501
-#endif
 #ifndef PACKAGE_NAME
 #include "config.h"
 #include "compat.h"
