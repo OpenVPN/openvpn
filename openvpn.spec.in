@@ -222,7 +222,7 @@ fi
 %endif
 
 # Install extra %doc stuff
-%doc contrib/ easy-rsa/ sample-*/ plugins/README.*
+%doc contrib/ sample-*/ plugins/README.*
 
 %changelog
 * Thu Jul 30 2009 David Sommerseth <dazo@users.sourceforge.net>

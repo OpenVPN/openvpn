@@ -1,7 +1,0 @@
-#!/bin/sh
-
-# Build a certificate signing request and private key.  Use this
-# when your root certificate and key is not available locally.
-
-export EASY_RSA="${EASY_RSA:-.}"
-"$EASY_RSA/pkitool" --interact --csr $*

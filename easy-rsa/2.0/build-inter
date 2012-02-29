@@ -1,7 +1,0 @@
-#!/bin/sh
-
-# Make an intermediate CA certificate/private key pair using a locally generated
-# root certificate.
-
-export EASY_RSA="${EASY_RSA:-.}"
-"$EASY_RSA/pkitool" --interact --inter $*

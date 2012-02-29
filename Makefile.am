@@ -40,7 +40,6 @@ MAINTAINERCLEANFILES = \
 CLEANFILES = openvpn.8.html configure.h
 
 EXTRA_DIST = \
-	easy-rsa \
 	sample-config-files \
 	sample-keys \
 	sample-scripts \
