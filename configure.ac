@@ -400,6 +400,16 @@ AC_CHECK_HEADERS([ \
 	netinet/tcp.h arpa/inet.h netdb.h \
 	windows.h winsock2.h ws2tcpip.h \
 ])
+AC_CHECK_HEADERS([ \
+	sys/time.h sys/un.h sys/ioctl.h sys/stat.h \
+	sys/mman.h sys/file.h \
+	unistd.h signal.h  \
+	syslog.h pwd.h grp.h \
+	net/if_tun.h net/tun/if_tun.h stropts.h \
+	sys/sockio.h \
+	sys/uio.h linux/if_tun.h linux/sockios.h \
+	linux/types.h sys/poll.h sys/epoll.h err.h \
+])
 
 SOCKET_INCLUDES="
 #ifdef HAVE_STDLIB_H
@@ -425,25 +435,67 @@ SOCKET_INCLUDES="
 #endif
 "
 
-if test "${WIN32}" != "yes"; then
-	AC_CHECK_HEADERS([ \
-		sys/time.h sys/un.h sys/ioctl.h sys/stat.h \
-		sys/mman.h sys/file.h \
-		syslog.h pwd.h grp.h \
-		net/if_tun.h net/tun/if_tun.h stropts.h \
-		sys/sockio.h \
-		sys/uio.h linux/if_tun.h linux/sockios.h \
-		linux/types.h sys/poll.h sys/epoll.h err.h \
-	])
-	AC_CHECK_HEADERS(
-		[net/if.h netinet/ip.h netinet/if_ether.h resolv.h],
-		,
-		,
-		[[${SOCKET_INCLUDES}]]
-	)
+AC_CHECK_HEADERS(
+	[net/if.h netinet/ip.h netinet/if_ether.h resolv.h],
+	,
+	,
+	[[${SOCKET_INCLUDES}]]
+)
 
-	AC_FUNC_FORK
-fi
+AC_CHECK_TYPES(
+	[in_addr_t],
+	,
+	[AC_DEFINE([in_addr_t], [uint32_t], [Workaround missing in_addr_t])],
+	[[${SOCKET_INCLUDES}]]
+)
+AC_CHECK_TYPE(
+	[struct tun_pi],
+	[AC_DEFINE(HAVE_TUN_PI, 1, [struct tun_pi needed for IPv6 support])],
+	,
+	[[${SOCKET_INCLUDES}]]
+)
+AC_CHECK_TYPE(
+	[struct iphdr],
+	[AC_DEFINE(HAVE_IPHDR, 1, [struct iphdr needed for IPv6 support])],
+	,
+	[[${SOCKET_INCLUDES}]]
+)
+AC_CHECK_TYPE(
+	[struct sock_extended_err],
+	[AC_DEFINE(HAVE_SOCK_EXTENDED_ERR, 1, [struct sock_extended_err needed for extended socket error support])],
+	,
+	[[${SOCKET_INCLUDES}]]
+)
+AC_CHECK_TYPE(
+	[struct msghdr],
+	[AC_DEFINE(HAVE_MSGHDR, 1, [struct msghdr needed for extended socket error support])],
+	,
+	[[${SOCKET_INCLUDES}]]
+)
+AC_CHECK_TYPE(
+	[struct cmsghdr],
+	[AC_DEFINE(HAVE_CMSGHDR, 1, [struct cmsghdr needed for extended socket error support])],
+	,
+	[[${SOCKET_INCLUDES}]]
+)
+AC_CHECK_TYPE(
+	[struct in_pktinfo],
+	[AC_DEFINE(HAVE_IN_PKTINFO, 1, [struct in_pktinfo needed for IP_PKTINFO support])],
+	,
+	[[${SOCKET_INCLUDES}]]
+)
+AC_CHECK_TYPE(
+	[struct sockaddr_in6],
+	,
+	[AC_MSG_ERROR([struct sockaddr_in6 not found, needed for ipv6 transport support.])],
+	[[${SOCKET_INCLUDES}]]
+)
+AC_CHECK_DECLS(
+	[SO_MARK],
+	,
+	,
+	[[${SOCKET_INCLUDES}]]
+)
 
 dnl We emulate signals in Windows
 AC_CHECK_DECLS(
@@ -497,66 +549,13 @@ AC_CHECK_DECLS(
 	]]
 )
 
-AC_CHECK_TYPES(
-	[in_addr_t],
-	,
-	[AC_DEFINE([in_addr_t], [uint32_t], [Workaround missing in_addr_t])],
-	[[${SOCKET_INCLUDES}]]
-)
+AC_FUNC_FORK
 
-dnl check for IPv6 types
-AC_CHECK_TYPE(
-	[struct tun_pi],
-	[AC_DEFINE(HAVE_TUN_PI, 1, [struct tun_pi needed for IPv6 support])],
-	,
-	[[${SOCKET_INCLUDES}]]
-)
-AC_CHECK_TYPE(
-	[struct iphdr],
-	[AC_DEFINE(HAVE_IPHDR, 1, [struct iphdr needed for IPv6 support])],
-	,
-	[[${SOCKET_INCLUDES}]]
-)
-AC_CHECK_TYPE(
-	[struct sock_extended_err],
-	[AC_DEFINE(HAVE_SOCK_EXTENDED_ERR, 1, [struct sock_extended_err needed for extended socket error support])],
-	,
-	[[${SOCKET_INCLUDES}]]
-)
-AC_CHECK_TYPE(
-	[struct msghdr],
-	[AC_DEFINE(HAVE_MSGHDR, 1, [struct msghdr needed for extended socket error support])],
-	,
-	[[${SOCKET_INCLUDES}]]
-)
-AC_CHECK_TYPE(
-	[struct cmsghdr],
-	[AC_DEFINE(HAVE_CMSGHDR, 1, [struct cmsghdr needed for extended socket error support])],
-	,
-	[[${SOCKET_INCLUDES}]]
-)
-AC_CHECK_TYPE(
-	[struct in_pktinfo],
-	[AC_DEFINE(HAVE_IN_PKTINFO, 1, [struct in_pktinfo needed for IP_PKTINFO support])],
-	,
-	[[${SOCKET_INCLUDES}]]
-)
-AC_CHECK_TYPE(
-	[struct sockaddr_in6],
-	,
-	[AC_MSG_ERROR([struct sockaddr_in6 not found, needed for ipv6 transport support.])],
-	[[${SOCKET_INCLUDES}]]
-)
-
-AC_CHECK_FUNCS(
-	[ctime memset vsnprintf strdup],
-	,
-	[AC_MSG_ERROR([Required library function not found])]
-)
 AC_CHECK_FUNCS([ \
 	daemon chroot getpwnam setuid nice system getpid dup dup2 \
 	getpass strerror syslog openlog mlockall getgrnam setgid \
 	setgroups stat flock readv writev time gettimeofday \
+	ctime memset vsnprintf strdup \
 	setsid chdir putenv getpeername unlink \
 	chsize ftruncate execve getpeereid umask basename dirname access \
 	epoll_create \
