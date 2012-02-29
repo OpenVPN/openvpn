@@ -59,9 +59,9 @@ struct plugin {
   unsigned int plugin_type_mask;
   int requested_initialization_point;
 
-#if defined(USE_LIBDL)
+#ifndef WIN32
   void *handle;
-#elif defined(USE_LOAD_LIBRARY)
+#else
   HMODULE module;
 #endif
 

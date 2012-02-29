@@ -156,10 +156,6 @@
 #include <grp.h>
 #endif
 
-#ifdef USE_LIBDL
-#include <dlfcn.h>
-#endif
-
 #ifdef HAVE_NETDB_H
 #include <netdb.h>
 #endif
@@ -504,13 +500,6 @@ socket_defined (const socket_descriptor_t sd)
 #define PORT_SHARE 1
 #else
 #define PORT_SHARE 0
-#endif
-
-/*
- * Do we have a plug-in capability?
- */
-#if defined(USE_LIBDL) || defined(USE_LOAD_LIBRARY)
-#define ENABLE_PLUGIN
 #endif
 
 /*

@@ -395,7 +395,7 @@ AC_CHECK_HEADERS([ \
 	stdio.h stdarg.h \
 	time.h errno.h fcntl.h io.h direct.h \
 	ctype.h sys/types.h sys/socket.h \
-	signal.h unistd.h \
+	signal.h unistd.h dlfcn.h \
 	netinet/in.h netinet/in_systm.h \
 	netinet/tcp.h arpa/inet.h netdb.h \
 	windows.h winsock2.h ws2tcpip.h \
@@ -606,6 +606,13 @@ else
 	AC_CHECK_FUNCS(SOCKET_OPT_FUNCS)
 fi
 
+AC_CHECK_LIB(
+	[dl],
+	[dlopen],
+	[DL_LIBS="-ldl"]
+)
+AC_SUBST([DL_LIBS])
+
 case "${with_mem_check}" in
 	valgrind)
 		AC_CHECK_HEADER(
@@ -656,38 +663,6 @@ case "${with_mem_check}" in
 		)
 		;;
 esac
-
-dnl
-dnl Check for dlopen -- first try libc then libdl.
-dnl
-if test "${WIN32}" != "yes" -a "${enable_plugins}" = "yes"; then
-	AC_CHECK_HEADER(
-		[dlfcn.h],
-		[AC_CHECK_FUNC(
-			[dlopen],
-			[AC_DEFINE(USE_LIBDL, 1, [Use libdl for dynamic library loading])],
-			[AC_CHECK_LIB(
-				[dl],
-				[dlopen],
-				[
-					LIBS="${LIBS} -ldl"
-					AC_DEFINE(USE_LIBDL, 1, [Use libdl for dynamic library loading])
-				],
-				[AC_MSG_RESULT([libdl library not found.])]
-			)],
-		)],
-	)
-	if test "${enable_eurephia}" = "yes"; then
-		AC_DEFINE([ENABLE_EUREPHIA], [1], [Enable support for the eurephia plug-in])
-	fi
-fi
-
-dnl
-dnl Check if LoadLibrary exists on Windows
-dnl
-if test "${WIN32}" = "yes"; then
-	AC_DEFINE(USE_LOAD_LIBRARY, 1, [Use LoadLibrary to load DLLs on Windows])
-fi
 
 dnl
 dnl check for LZO library
@@ -898,6 +873,13 @@ test "${enable_strict_options}" = "yes" && AC_DEFINE([ENABLE_STRICT_OPTIONS_CHEC
 test "${enable_password_save}" = "yes" && AC_DEFINE([ENABLE_PASSWORD_SAVE], [1], [Allow --askpass and --auth-user-pass passwords to be read from a file])
 test "${enable_systemd}" = "yes" && AC_DEFINE([ENABLE_SYSTEMD], [1], [Enable systemd support])
 
+if test "${enable_plugins}" = "yes"; then
+	test "${WIN32}" != "yes" -a -z "${DL_LIBS}" && AC_MSG_ERROR([libdl is required for plugins])
+	OPTIONAL_DL_LIBS="${DL_LIBS}"
+	AC_DEFINE([ENABLE_PLUGIN], [1], [Enable systemd support])
+	test "${enable_eurephia}" = "yes" && AC_DEFINE([ENABLE_EUREPHIA], [1], [Enable support for the eurephia plug-in])
+fi
+
 if test "${enable_iproute2}" = "yes"; then
 	test -z "${IPROUTE}" && AC_MSG_ERROR([ip utility is required but missing])
 	AC_DEFINE([ENABLE_IPROUTE], [1], [enable iproute2 support])
@@ -932,6 +914,8 @@ AC_DEFINE_UNQUOTED([TAP_WIN_MIN_MINOR], [${TAP_WIN_MIN_MINOR}], [The tap-windows
 AC_SUBST([TAP_WIN_COMPONENT_ID])
 AC_SUBST([TAP_WIN_MIN_MAJOR])
 AC_SUBST([TAP_WIN_MIN_MINOR])
+
+AC_SUBST([OPTIONAL_DL_LIBS])
 
 AM_CONDITIONAL([WIN32], [test "${WIN32}" = "yes"])
 

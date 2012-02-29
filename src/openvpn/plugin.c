@@ -26,6 +26,10 @@
 
 #ifdef ENABLE_PLUGIN
 
+#ifdef HAVE_DLFCN_H
+#include <dlfcn.h>
+#endif
+
 #include "buffer.h"
 #include "error.h"
 #include "misc.h"
@@ -160,7 +164,7 @@ plugin_option_list_print (const struct plugin_option_list *list, int msglevel)
 }
 #endif
 
-#if defined(USE_LIBDL)
+#ifndef WIN32
 
 static void
 libdl_resolve_symbol (void *handle, void **dest, const char *symbol, const char *plugin_name, const unsigned int flags)
@@ -170,7 +174,7 @@ libdl_resolve_symbol (void *handle, void **dest, const char *symbol, const char 
     msg (M_FATAL, "PLUGIN: could not find required symbol '%s' in plugin shared object %s: %s", symbol, plugin_name, dlerror());
 }
 
-#elif defined(USE_LOAD_LIBRARY)
+#else
 
 static void
 dll_resolve_symbol (HMODULE module, void **dest, const char *symbol, const char *plugin_name, const unsigned int flags)
@@ -191,7 +195,7 @@ plugin_init_item (struct plugin *p, const struct plugin_option *o)
   p->so_pathname = o->so_pathname;
   p->plugin_type_mask = plugin_supported_types ();
 
-#if defined(USE_LIBDL)
+#ifndef WIN32
 
   p->handle = NULL;
 #if defined(PLUGIN_LIBDIR)
@@ -220,7 +224,7 @@ plugin_init_item (struct plugin *p, const struct plugin_option *o)
 
 # define PLUGIN_SYM(var, name, flags) libdl_resolve_symbol (p->handle, (void*)&p->var, name, p->so_pathname, flags)
 
-#elif defined(USE_LOAD_LIBRARY)
+#else
 
   rel = !absolute_pathname (p->so_pathname);
   p->module = LoadLibraryW (wide_string (p->so_pathname, &gc));
@@ -427,10 +431,10 @@ plugin_close_item (struct plugin *p)
       if (p->plugin_handle)
 	(*p->close)(p->plugin_handle);
 
-#if defined(USE_LIBDL)
+#ifndef WIN32
       if (dlclose (p->handle))
 	msg (M_WARN, "PLUGIN_CLOSE: dlclose() failed on plugin: %s", p->so_pathname);
-#elif defined(USE_LOAD_LIBRARY)
+#elif defined(WIN32)
       if (!FreeLibrary (p->module))
 	msg (M_WARN, "PLUGIN_CLOSE: FreeLibrary() failed on plugin: %s", p->so_pathname);
 #endif
