@@ -316,7 +316,7 @@ static const char usage_message[] =
   "--user user     : Set UID to user after initialization.\n"
   "--group group   : Set GID to group after initialization.\n"
   "--chroot dir    : Chroot to this directory after initialization.\n"
-#ifdef HAVE_SETCON
+#ifdef ENABLE_SELINUX
   "--setcon context: Apply this SELinux context after initialization.\n"
 #endif
   "--cd dir        : Change to this directory before initialization.\n"
@@ -1477,7 +1477,7 @@ show_settings (const struct options *o)
   SHOW_STR (groupname);
   SHOW_STR (chroot_dir);
   SHOW_STR (cd_dir);
-#ifdef HAVE_SETCON
+#ifdef ENABLE_SELINUX
   SHOW_STR (selinux_context);
 #endif
   SHOW_STR (writepid);
@@ -4525,7 +4525,7 @@ add_option (struct options *options,
 	}
       options->cd_dir = p[1];
     }
-#ifdef HAVE_SETCON
+#ifdef ENABLE_SELINUX
   else if (streq (p[0], "setcon") && p[1])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);

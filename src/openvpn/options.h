@@ -310,7 +310,7 @@ struct options
   const char *groupname;
   const char *chroot_dir;
   const char *cd_dir;
-#ifdef HAVE_SETCON
+#ifdef ENABLE_SELINUX
   char *selinux_context;
 #endif
   const char *writepid;

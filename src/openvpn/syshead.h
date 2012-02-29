@@ -176,7 +176,7 @@
 #include <sys/epoll.h>
 #endif
 
-#ifdef HAVE_SETCON
+#ifdef ENABLE_SELINUX
 #include <selinux/selinux.h>
 #endif
 

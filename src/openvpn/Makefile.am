@@ -97,6 +97,7 @@ openvpn_SOURCES = \
 	cryptoapi.h cryptoapi.c
 openvpn_LDADD = \
 	$(SOCKETS_LIBS) \
+	$(OPTIONAL_SELINUX_LIBS) \
 	$(OPTIONAL_DL_LIBS)
 if WIN32
 openvpn_SOURCES += openvpn_win32_resources.rc

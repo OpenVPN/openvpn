@@ -215,7 +215,7 @@ AC_ARG_ENABLE(
 
 AC_ARG_ENABLE(
 	[selinux],
-	[AS_HELP_STRING([--disable-selinux], [disable SELinux support])],
+	[AS_HELP_STRING([--enable-selinux], [enable SELinux support])],
 	,
 	[enable_selinux="no"]
 )
@@ -619,6 +619,13 @@ AC_CHECK_LIB(
 )
 AC_SUBST([SOCKETS_LIBS])
 
+AC_CHECK_LIB(
+	[selinux],
+	[setcon],
+	[SELINUX_LIBS="-lselinux"]
+)
+AC_SUBST([SELINUX_LIBS])
+
 case "${with_mem_check}" in
 	valgrind)
 		AC_CHECK_HEADER(
@@ -826,25 +833,6 @@ if test "${enable_crypto}" = "yes"; then
    fi
 fi
 
-dnl
-dnl check for SELinux library and headers
-dnl
-if test "${enable_selinux}" = "yes"; then
-	AC_CHECK_HEADER(
-		[selinux/selinux.h],
-		[AC_CHECK_LIB(
-			[selinux],
-			[setcon],
-			[
-				LIBS="${LIBS} -lselinux"
-				AC_DEFINE(HAVE_SETCON, 1, [SELinux support])
-			],
-			[AC_MSG_RESULT([SELinux library not found.])]
-		)],
-		[AC_MSG_ERROR([SELinux headers not found.])]
-	)
-fi
-
 if test -n "${SP_PLATFORM_WINDOWS}"; then
 	AC_DEFINE_UNQUOTED([PATH_SEPARATOR], ['\\\\'], [Path separator]) #"
 	AC_DEFINE_UNQUOTED([PATH_SEPARATOR_STR], ["\\\\"], [Path separator]) #"
@@ -896,6 +884,12 @@ else
 	fi
 fi
 
+if test "${enable_selinux}" = "yes"; then
+	test -z "${SELINUX_LIBS}" && AC_MSG_ERROR([libselinux required but missing])
+	OPTIONAL_SELINUX_LIBS="${SELINUX_LIBS}"
+	AC_DEFINE([ENABLE_SELINUX], [1], [SELinux support])
+fi
+
 if test "${enable_pedantic}" = "yes"; then
 	enable_strict="yes"
 	CFLAGS="${CFLAGS} -ansi -pedantic"
@@ -922,6 +916,7 @@ AC_SUBST([TAP_WIN_MIN_MAJOR])
 AC_SUBST([TAP_WIN_MIN_MINOR])
 
 AC_SUBST([OPTIONAL_DL_LIBS])
+AC_SUBST([OPTIONAL_SELINUX_LIBS])
 
 AM_CONDITIONAL([WIN32], [test "${WIN32}" = "yes"])
 

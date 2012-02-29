@@ -1038,7 +1038,7 @@ do_uid_gid_chroot (struct context *c, bool no_delay)
 	mstats_open(c->options.memstats_fn);
 #endif
 
-#ifdef HAVE_SETCON
+#ifdef ENABLE_SELINUX
       /* Apply a SELinux context in order to restrict what OpenVPN can do
        * to _only_ what it is supposed to do after initialization is complete
        * (basically just network I/O operations). Doing it after chroot
@@ -2465,7 +2465,7 @@ do_option_warnings (struct context *c)
     msg (M_WARN, "WARNING: --ping should normally be used with --ping-restart or --ping-exit");
 
   if (o->username || o->groupname || o->chroot_dir
-#ifdef HAVE_SETCON
+#ifdef ENABLE_SELINUX
       || o->selinux_context
 #endif
       )
