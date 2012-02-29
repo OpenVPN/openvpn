@@ -1012,12 +1012,12 @@ openvpn_execve (const struct argv *a, const struct env_set *es, const unsigned i
 		  if (GetExitCodeProcess (proc_info.hProcess, &exit_status))
 		    ret = (int)exit_status;
 		  else
-		    msg (M_WARN|M_ERRNO, "openvpn_execve: GetExitCodeProcess %s failed", cmd);
+		    msg (M_WARN|M_ERRNO, "openvpn_execve: GetExitCodeProcess %S failed", cmd);
 		  CloseHandle (proc_info.hProcess);
 		}
 	      else
 		{
-		  msg (M_WARN|M_ERRNO, "openvpn_execve: CreateProcess %s failed", cmd);
+		  msg (M_WARN|M_ERRNO, "openvpn_execve: CreateProcess %S failed", cmd);
 		}
 	      free (env);
 	      gc_free (&gc);
