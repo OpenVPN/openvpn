@@ -68,7 +68,7 @@
  *
  * @par Settings that control this module's activity
  * Whether or not the Data Channel Compression module is active depends on
- * the compile-time \c USE_LZO preprocessor macro and the runtime flags
+ * the compile-time \c ENABLE_LZO preprocessor macro and the runtime flags
  * stored in \c lzo_compress_workspace.flags of the associated VPN tunnel.
  * The latter are initialized from \c options.lzo, which gets its value
  * from the process's configuration sources, such as its configuration

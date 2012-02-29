@@ -343,7 +343,7 @@ struct options
   /* optimize TUN/TAP/UDP writes */
   bool fast_io;
 
-#ifdef USE_LZO
+#ifdef ENABLE_LZO
   /* LZO_x flags from lzo.h */
   unsigned int lzo;
 #endif

@@ -105,7 +105,7 @@ struct context_buffers
 #endif
 
   /* workspace buffers for LZO compression */
-#ifdef USE_LZO
+#ifdef ENABLE_LZO
   struct buffer lzo_compress_buf;
   struct buffer lzo_decompress_buf;
 #endif
@@ -372,7 +372,7 @@ struct context_2
 
 #endif /* USE_CRYPTO */
 
-#ifdef USE_LZO
+#ifdef ENABLE_LZO
   struct lzo_compress_workspace lzo_compwork;
                                 /**< Compression workspace used by the
                                  *   \link compression Data Channel

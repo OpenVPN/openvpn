@@ -75,8 +75,12 @@ const char title_string[] =
 #endif /* defined(USE_POLARSSL) */
 #endif /* USE_SSL */
 #endif /* USE_CRYPTO */
-#ifdef USE_LZO
-  " [LZO" LZO_VERSION_NUM "]"
+#ifdef ENABLE_LZO
+#ifdef ENABLE_LZO_STUB
+  " [LZO (STUB)]"
+#else
+  " [LZO]"
+#endif
 #endif
 #if EPOLL
   " [EPOLL]"
@@ -354,7 +358,7 @@ static const char usage_message[] =
 #ifdef ENABLE_DEBUG
   "--gremlin mask  : Special stress testing mode (for debugging only).\n"
 #endif
-#ifdef USE_LZO
+#ifdef ENABLE_LZO
   "--comp-lzo      : Use fast LZO compression -- may add up to 1 byte per\n"
   "                  packet for uncompressible data.\n"
   "--comp-noadapt  : Don't use adaptive compression when --comp-lzo\n"
@@ -1512,7 +1516,7 @@ show_settings (const struct options *o)
 
   SHOW_BOOL (fast_io);
 
-#ifdef USE_LZO
+#ifdef ENABLE_LZO
   SHOW_INT (lzo);
 #endif
 
@@ -2954,7 +2958,7 @@ options_string (const struct options *o,
       tt = NULL;
     }
 
-#ifdef USE_LZO
+#ifdef ENABLE_LZO
   if (o->lzo & LZO_SELECTED)
     buf_printf (&out, ",comp-lzo");
 #endif
@@ -6180,7 +6184,7 @@ add_option (struct options *options,
       options->passtos = true;
     }
 #endif
-#ifdef USE_LZO
+#ifdef ENABLE_LZO
   else if (streq (p[0], "comp-lzo"))
     {
       VERIFY_PERMISSION (OPT_P_COMP);
@@ -6206,7 +6210,7 @@ add_option (struct options *options,
       VERIFY_PERMISSION (OPT_P_COMP);
       options->lzo &= ~LZO_ADAPTIVE;
     }
-#endif /* USE_LZO */
+#endif /* ENABLE_LZO */
 #ifdef USE_CRYPTO
   else if (streq (p[0], "show-ciphers"))
     {

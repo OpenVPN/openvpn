@@ -1789,7 +1789,7 @@ do_deferred_options (struct context *c, const unsigned int found)
     }
 #endif
 
-#ifdef USE_LZO
+#ifdef ENABLE_LZO
   if (found & OPT_P_COMP)
     {
       if (lzo_defined (&c->c2.lzo_compwork))
@@ -2370,7 +2370,7 @@ do_init_crypto (struct context *c, const unsigned int flags)
 static void
 do_init_frame (struct context *c)
 {
-#ifdef USE_LZO
+#ifdef ENABLE_LZO
   /*
    * Initialize LZO compression library.
    */
@@ -2393,7 +2393,7 @@ do_init_frame (struct context *c)
       lzo_adjust_frame_parameters (&c->c2.frame_fragment_omit);	/* omit LZO frame delta from final frame_fragment */
 #endif
     }
-#endif /* USE_LZO */
+#endif /* ENABLE_LZO */
 
 #ifdef ENABLE_SOCKS
   /*
@@ -2564,7 +2564,7 @@ init_context_buffers (const struct frame *frame)
   b->decrypt_buf = alloc_buf (BUF_SIZE (frame));
 #endif
 
-#ifdef USE_LZO
+#ifdef ENABLE_LZO
   b->lzo_compress_buf = alloc_buf (BUF_SIZE (frame));
   b->lzo_decompress_buf = alloc_buf (BUF_SIZE (frame));
 #endif
@@ -2581,7 +2581,7 @@ free_context_buffers (struct context_buffers *b)
       free_buf (&b->read_tun_buf);
       free_buf (&b->aux_buf);
 
-#ifdef USE_LZO
+#ifdef ENABLE_LZO
       free_buf (&b->lzo_compress_buf);
       free_buf (&b->lzo_decompress_buf);
 #endif
@@ -3419,7 +3419,7 @@ init_instance (struct context *c, const struct env_set *env, const unsigned int 
       goto sig;
   }
 
-#ifdef USE_LZO
+#ifdef ENABLE_LZO
   /* initialize LZO compression library. */
   if ((options->lzo & LZO_SELECTED) && (c->mode == CM_P2P || child))
     lzo_compress_init (&c->c2.lzo_compwork, options->lzo);
@@ -3536,7 +3536,7 @@ close_instance (struct context *c)
 	/* if xinetd/inetd mode, don't allow restart */
 	do_close_check_if_restart_permitted (c);
 
-#ifdef USE_LZO
+#ifdef ENABLE_LZO
 	if (lzo_defined (&c->c2.lzo_compwork))
 	  lzo_compress_uninit (&c->c2.lzo_compwork);
 #endif

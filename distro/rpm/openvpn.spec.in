@@ -110,7 +110,7 @@ Development support for OpenVPN.
 	--disable-dependency-tracking \
 	--docdir="%{_docdir}/%{name}-%{version}" \
 	%{?with_password_save:--enable-password-save} \
-	%{?without_lzo:--disable-lzo} \
+	%{!?without_lzo:--enable-lzo} \
 	%{?with_pkcs11:--enable-pkcs11} \
 	%{?with_kerberos:--with-ssl-headers=/usr/kerberos/include}
 %__make

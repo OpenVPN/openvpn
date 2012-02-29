@@ -32,7 +32,7 @@
  */
 
 
-#ifdef USE_LZO
+#ifdef ENABLE_LZO
 
 /**
  * @addtogroup compression
@@ -40,11 +40,14 @@
  */
 
 #ifndef ENABLE_LZO_STUB
-#ifdef LZO_HEADER_DIR
+#if defined(HAVE_LZO_LZOUTIL_H)
 #include "lzo/lzoutil.h"
-#include "lzo/lzo1x.h"
-#else
+#elif defined(HAVE_LZOUTIL_H)
 #include "lzoutil.h"
+#endif
+#if defined(HAVE_LZO_LZO1X_H)
+#include "lzo/lzo1x.h"
+#elif defined(HAVE_LZO1X_H)
 #include "lzo1x.h"
 #endif
 #endif
@@ -340,5 +343,5 @@ lzo_defined (const struct lzo_compress_workspace *lzowork)
 /** @} addtogroup compression */
 
 
-#endif /* USE_LZO */
+#endif /* ENABLE_LZO */
 #endif

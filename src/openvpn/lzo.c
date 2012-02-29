@@ -28,7 +28,7 @@
 
 #include "syshead.h"
 
-#ifdef USE_LZO
+#ifdef ENABLE_LZO
 
 #include "lzo.h"
 #include "error.h"
@@ -301,4 +301,4 @@ void lzo_print_stats (const struct lzo_compress_workspace *lzo_compwork, struct 
 
 #else
 static void dummy(void) {}
-#endif /* USE_LZO */
+#endif /* ENABLE_LZO */

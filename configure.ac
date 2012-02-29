@@ -41,9 +41,9 @@ AC_USE_SYSTEM_EXTENSIONS
 
 AC_ARG_ENABLE(
 	[lzo],
-	[AS_HELP_STRING([--disable-lzo], [disable LZO compression support])],
+	[AS_HELP_STRING([--enable-lzo], [enable LZO compression support])],
 	,
-	[enable_lzo="yes"]
+	[enable_lzo="no"]
 )
 
 AC_ARG_ENABLE(
@@ -237,19 +237,6 @@ AC_ARG_WITH(
 AC_ARG_WITH(
 	[ssl-lib],
 	[AS_HELP_STRING([--with-ssl-lib=DIR], [Crypto/SSL Library location])],
-	[LDFLAGS="$LDFLAGS -L$withval"] 
-)
-
-AC_ARG_WITH(
-	[lzo-headers],
-	[AS_HELP_STRING([--with-lzo-headers=DIR], [LZO Include files location])],
-	[LZO_HDR_DIR="$withval"]
-	[CPPFLAGS="$CPPFLAGS -I$withval"] 
-)
-
-AC_ARG_WITH(
-	[lzo-lib],
-	[AS_HELP_STRING([--with-lzo-lib=DIR], [LZO Library location])],
 	[LDFLAGS="$LDFLAGS -L$withval"] 
 )
 
@@ -664,41 +651,44 @@ case "${with_mem_check}" in
 		;;
 esac
 
-dnl
-dnl check for LZO library
-dnl
-if test "${enable_lzo}" = "yes" && test "${enable_lzo_stub}" = "no"; then
-   LZO_H=""
-   AC_CHECKING([for LZO Library and Header files])
-   AC_CHECK_HEADER(lzo/lzo1x.h,
-	[ LZO_H="2"
-	  lzolibs="lzo2 lzo"
-	  AC_DEFINE(LZO_HEADER_DIR, 1, [Use lzo/ directory prefix for LZO header files (for LZO 2.0)])
-	],
-	[ AC_CHECK_HEADER(lzo1x.h, [ LZO_H="1" ; lzolibs=lzo ]) ]
-   )
-
-   if test -n "$LZO_H"; then
-     havelzolib=0
-     for i in $lzolibs ; do
-	if test $havelzolib = 1 ; then break ; fi
-	AC_CHECK_LIB($i, lzo1x_1_15_compress,
-          [
-	    LIBS="${LIBS} -l$i"
-	    AC_DEFINE(USE_LZO, 1, [Use LZO compression library])
-	    AC_DEFINE_UNQUOTED(LZO_VERSION_NUM, "$LZO_H", [LZO version number])
-	    havelzolib=1
-	  ]
-        )
-     done
-     if test $havelzolib = 0 ; then
-       AC_MSG_ERROR([LZO headers were found but LZO library was not found])
-     fi
-   else
-     AC_MSG_RESULT([LZO headers were not found])
-     AC_MSG_RESULT([LZO library available from http://www.oberhumer.com/opensource/lzo/])
-     AC_MSG_ERROR([Or try ./configure --disable-lzo OR ./configure --enable-lzo-stub])
-   fi
+AC_ARG_VAR([LZO_CFLAGS], [C compiler flags for lzo])
+AC_ARG_VAR([LZO_LIBS], [linker flags for lzo])
+have_lzo="yes"
+if test -z "${LZO_LIBS}"; then
+	AC_CHECK_LIB(
+		[lzo2],
+		[lzo1x_1_15_compress],
+		[LZO_LIBS="-llzo2"],
+		[AC_CHECK_LIB(
+			[lzo],
+			[lzo1x_1_15_compress],
+			[LZO_LIBS="-llzo"],
+			[have_lzo="no"]
+		)]
+	)
+fi
+if test "${have_lzo}" = "yes"; then
+	saved_CFLAGS="${CFLAGS}"
+	CFLAGS="${CFLAGS} ${LZO_CFLAGS}"
+	AC_CHECK_HEADERS(
+		[lzo/lzoutil.h],
+		,
+		[AC_CHECK_HEADERS(
+			[lzoutil.h],
+			,
+			[AC_MSG_ERROR([lzoutil.h is missing])]
+		)]
+	)
+	AC_CHECK_HEADERS(
+		[lzo/lzo1x.h],
+		,
+		[AC_CHECK_HEADERS(
+			[lzo1x.h],
+			,
+			[AC_MSG_ERROR([lzo1x.h is missing])]
+		)]
+	)
+	CFLAGS="${saved_CFLAGS}"
 fi
 
 PKG_CHECK_MODULES(
@@ -862,11 +852,16 @@ if test "${enable_selinux}" = "yes"; then
 	AC_DEFINE([ENABLE_SELINUX], [1], [SELinux support])
 fi
 
+if test "${enable_lzo}" = "yes"; then
+	test "${have_lzo}" != "yes" && AC_MSG_ERROR([lzo enabled but missing])
+	OPTIONAL_LZO_CFLAGS="${LZO_CFLAGS}"
+	OPTIONAL_LZO_LIBS="${LZO_LIBS}"
+	AC_DEFINE([ENABLE_LZO], [1], [Enable LZO compression library])
+fi
 if test "${enable_lzo_stub}" = "yes"; then
 	test "${enable_lzo}" = "yes" && AC_MSG_ERROR([Cannot have both lzo stub and lzo enabled])
 	AC_DEFINE([ENABLE_LZO_STUB], [1], [Enable LZO stub capability])
-	AC_DEFINE([USE_LZO], [1], [Enable LZO compression library])
-	AC_DEFINE([LZO_VERSION_NUM], ["STUB"], [LZO version number])
+	AC_DEFINE([ENABLE_LZO], [1], [Enable LZO compression library])
 fi
 
 if test "${enable_pkcs11}" = "yes"; then
@@ -904,6 +899,8 @@ AC_SUBST([TAP_WIN_MIN_MINOR])
 
 AC_SUBST([OPTIONAL_DL_LIBS])
 AC_SUBST([OPTIONAL_SELINUX_LIBS])
+AC_SUBST([OPTIONAL_LZO_CFLAGS])
+AC_SUBST([OPTIONAL_LZO_LIBS])
 AC_SUBST([OPTIONAL_PKCS11_HELPER_CFLAGS])
 AC_SUBST([OPTIONAL_PKCS11_HELPER_LIBS])
 
