@@ -12,11 +12,12 @@ AC_DEFUN([AX_CPP_VARARG_MACRO_GCC], [dnl
 		[VAR],
 		[AC_COMPILE_IFELSE(
 			[AC_LANG_PROGRAM(
-				,
 				[[
 #define macro(a, b...) func(a, b)
 int func(int a, int b, int c);
-int test() { return macro(1, 2, 3); }
+				]],
+				[[
+int i = macro(1, 2, 3);
 				]]
 			)],
 			[VAR=yes],
@@ -50,11 +51,12 @@ AC_DEFUN([AX_CPP_VARARG_MACRO_ISO], [dnl
 		[VAR],
 		[AC_COMPILE_IFELSE(
 			[AC_LANG_PROGRAM(
-				,
 				[[
 #define macro(a, ...) func(a, __VA_ARGS__)
 int func(int a, int b, int c);
-int test() { return macro(1, 2, 3); }
+				]],
+				[[
+int i = macro(1, 2, 3);
 				]]
 			)],
 			[VAR=yes],
