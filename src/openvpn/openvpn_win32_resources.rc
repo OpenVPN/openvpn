@@ -24,11 +24,11 @@ BEGIN
     BEGIN
         BLOCK "040904b0"
         BEGIN
-            VALUE "CompanyName", "OpenVPN.net"
-            VALUE "FileDescription", "OpenVPN"
+            VALUE "CompanyName", "The OpenVPN Project"
+            VALUE "FileDescription", "OpenVPN Daemon"
             VALUE "FileVersion", PACKAGE_VERSION ".0"
             VALUE "InternalName", "OpenVPN"
-            VALUE "LegalCopyright", "Copyright ? OpenVPN Project" 
+            VALUE "LegalCopyright", "Copyright © The OpenVPN Project" 
             VALUE "OriginalFilename", "openvpn.exe"
             VALUE "ProductName", "OpenVPN"
             VALUE "ProductVersion", PACKAGE_VERSION ".0"
