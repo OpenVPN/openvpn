@@ -14,7 +14,8 @@ include $(top_srcdir)/build/ltrc.inc
 MAINTAINERCLEANFILES = $(srcdir)/Makefile.in
 
 EXTRA_DIST = \
-	openvpnserv.vcproj
+	openvpnserv.vcxproj \
+	openvpnserv.vcxproj.filters
 
 if WIN32
 sbin_PROGRAMS = openvpnserv

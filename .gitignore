@@ -10,6 +10,8 @@
 *.suo
 *.ncb
 *.vcproj.*
+*.vcxproj.user
+*.sln.cache
 *.log
 Release
 Debug

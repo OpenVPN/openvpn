@@ -13,6 +13,6 @@ MAINTAINERCLEANFILES = \
 	$(srcdir)/Makefile.in
 
 dist_noinst_DATA = \
-	msvc-generate.vcproj \
+	msvc-generate.vcxproj \
 	Makefile.mak \
 	msvc-generate.js

@@ -15,7 +15,8 @@ MAINTAINERCLEANFILES = \
 	$(srcdir)/Makefile.in
 
 EXTRA_DIST = \
-	openvpn.vcproj
+	openvpn.vcxproj \
+	openvpn.vcxproj.filters
 
 INCLUDES = \
 	-I$(top_srcdir)/include \

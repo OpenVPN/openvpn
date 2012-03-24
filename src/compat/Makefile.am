@@ -13,7 +13,8 @@ MAINTAINERCLEANFILES = \
 	$(srcdir)/Makefile.in
 
 EXTRA_DIST = \
-	compat.vcproj
+	compat.vcxproj \
+	compat.vcxproj.filters
 
 noinst_LTLIBRARIES = libcompat.la
 

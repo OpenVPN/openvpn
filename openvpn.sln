@@ -1,27 +1,13 @@
 ﻿
-Microsoft Visual Studio Solution File, Format Version 10.00
-# Visual Studio 2008
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "openvpnserv", "src\openvpnserv\openvpnserv.vcproj", "{9C91EE0B-817D-420A-A1E6-15A5A9D98BAD}"
-	ProjectSection(ProjectDependencies) = postProject
-		{8598C2C8-34C4-47A1-99B0-7C295A890615} = {8598C2C8-34C4-47A1-99B0-7C295A890615}
-	EndProjectSection
+Microsoft Visual Studio Solution File, Format Version 11.00
+# Visual C++ Express 2010
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "openvpnserv", "src\openvpnserv\openvpnserv.vcxproj", "{9C91EE0B-817D-420A-A1E6-15A5A9D98BAD}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "openvpn", "src\openvpn\openvpn.vcproj", "{29DF226E-4D4E-440F-ADAF-5829CFD4CA94}"
-	ProjectSection(ProjectDependencies) = postProject
-		{4B2E2719-E661-45D7-9203-F6F456B22F19} = {4B2E2719-E661-45D7-9203-F6F456B22F19}
-		{8598C2C8-34C4-47A1-99B0-7C295A890615} = {8598C2C8-34C4-47A1-99B0-7C295A890615}
-	EndProjectSection
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "openvpn", "src\openvpn\openvpn.vcxproj", "{29DF226E-4D4E-440F-ADAF-5829CFD4CA94}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "misc", "misc", "{1AA03DE8-3F08-45B9-B4ED-D7769A445DF3}"
-	ProjectSection(SolutionItems) = preProject
-		config-msvc-version.h.in = config-msvc-version.h.in
-		config-msvc.h = config-msvc.h
-		version.m4 = version.m4
-	EndProjectSection
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "msvc-generate", "build\msvc\msvc-generate\msvc-generate.vcxproj", "{8598C2C8-34C4-47A1-99B0-7C295A890615}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "msvc-generate", "build\msvc\msvc-generate\msvc-generate.vcproj", "{8598C2C8-34C4-47A1-99B0-7C295A890615}"
-EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "compat", "src\compat\compat.vcproj", "{4B2E2719-E661-45D7-9203-F6F456B22F19}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "compat", "src\compat\compat.vcxproj", "{4B2E2719-E661-45D7-9203-F6F456B22F19}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

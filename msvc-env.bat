@@ -6,9 +6,10 @@ rem Put your own settings at msvc-env-local.bat
 if exist msvc-env-local.bat call msvc-env-local.bat
 
 if "%ProgramFiles(x86)%"=="" set ProgramFiles(x86)=%ProgramFiles%
-if "%VS90COMNTOOLS%"=="" set VS90COMNTOOLS=%ProgramFiles(x86)%\Microsoft Visual Studio 9.0\Common7\Tools\
-if "%VSHOME%"=="" set VSHOME=%VS90COMNTOOLS%..\..
-if "%VCHOME%"=="" set VCHOME=%VSHOME%\VC
+if "%VSCOMNTOOLS%"=="" SET VSCOMNTOOLS=%ProgramFiles(x86)%\Microsoft Visual Studio 10.0\Common7\Tools
+if "%VSCOMNTOOLS%"=="" SET VSCOMNTOOLS=%ProgramFiles(x86)%\Microsoft Visual Studio 9.0\Common7\Tools
+if "%VSHOME%"=="" SET VSHOME=%VSCOMNTOOLS%\..\..
+if "%VCHOME%"=="" SET VCHOME=%VSHOME%\VC
 
 set SOURCEBASE=%cd%
 set SOLUTION=openvpn.sln
