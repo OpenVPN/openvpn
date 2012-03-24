@@ -127,8 +127,9 @@ tunnel_point_to_point (struct context *c)
  * @param argc - Commandline argument count.
  * @param argv - Commandline argument values.
  */
+static
 int
-main (int argc, char *argv[])
+openvpn_main (int argc, char *argv[])
 {
   struct context c;
 
@@ -289,3 +290,37 @@ main (int argc, char *argv[])
   openvpn_exit (OPENVPN_EXIT_STATUS_GOOD);  /* exit point */
   return 0;			            /* NOTREACHED */
 }
+
+#ifdef WIN32
+int
+wmain (int argc, wchar_t *wargv[]) {
+  char **argv;
+  int ret;
+  int i;
+
+  if ((argv = calloc(argc+1, sizeof(char*))) == NULL)
+    return 1;
+
+  for (i = 0; i < argc; i++)
+    {
+      int n = WideCharToMultiByte (CP_UTF8, 0, wargv[i], -1, NULL, 0, NULL, NULL);
+      argv[i] = malloc (n);
+      WideCharToMultiByte (CP_UTF8, 0, wargv[i], -1, argv[i], n, NULL, NULL);
+    }
+
+  ret = openvpn_main(argc, argv);
+
+  for (i=0; i < argc; i++ )
+    {
+      free (argv[i]);
+    }
+  free(argv);
+
+  return ret;
+}
+#else
+int
+main (int argc, char *argv[]) {
+	return openvpn_main(argc, argv);
+}
+#endif

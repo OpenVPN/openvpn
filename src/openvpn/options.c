@@ -3866,33 +3866,6 @@ parse_argv (struct options *options,
 {
   int i, j;
 
-#ifdef WIN32
-  /*
-   * Windows replaces Unicode characters in argv[] that are not present
-   * in the current codepage with '?'. Get the wide char command line and
-   * convert it to UTF-8 ourselves.
-   */
-  int wargc;
-  WCHAR **wargv;
-  char **uargv;
-
-  wargv = CommandLineToArgvW (GetCommandLineW (), &wargc);
-  if (wargv == NULL || wargc != argc)
-    usage ();
-
-  uargv = gc_malloc (wargc * sizeof (*uargv), false, &options->gc);
-
-  for (i = 0; i < wargc; i++)
-    {
-      int n = WideCharToMultiByte (CP_UTF8, 0, wargv[i], -1, NULL, 0, NULL, NULL);
-      uargv[i] = gc_malloc (n, false, &options->gc);
-      WideCharToMultiByte (CP_UTF8, 0, wargv[i], -1, uargv[i], n, NULL, NULL);
-    }
-
-  LocalFree (wargv);
-  argv = uargv;
-#endif
-
   /* usage message */
   if (argc <= 1)
     usage ();
