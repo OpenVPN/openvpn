@@ -522,6 +522,33 @@ AC_CHECK_FUNCS([ \
 	chsize ftruncate execve getpeereid umask basename dirname access \
 	epoll_create \
 ])
+
+AC_CHECK_LIB(
+	[dl],
+	[dlopen],
+	[DL_LIBS="-ldl"]
+)
+AC_SUBST([DL_LIBS])
+
+AC_CHECK_LIB(
+	[nsl],
+	[inet_ntoa],
+	[SOCKETS_LIBS="${SOCKETS_LIBS} -lnsl"]
+)
+AC_CHECK_LIB(
+	[socket],
+	[socket],
+	[SOCKETS_LIBS="${SOCKETS_LIBS} -lsocket"]
+)
+AC_CHECK_LIB(
+	[resolv],
+	[gethostbyname],
+	[SOCKETS_LIBS="${SOCKETS_LIBS} -lresolv"]
+)
+AC_SUBST([SOCKETS_LIBS])
+
+old_LIBS="${LIBS}"
+LIBS="${LIBS} ${SOCKETS_LIBS}"
 AC_CHECK_FUNCS([sendmsg recvmsg inet_ntop inet_pton])
 AC_CHECK_FUNCS(
 	[res_init],
@@ -529,7 +556,6 @@ AC_CHECK_FUNCS(
 	,
 	[[#include <resolv.h>]]
 )
-
 # Windows use stdcall for winsock so we cannot auto detect these
 m4_define(
 	[SOCKET_FUNCS],
@@ -555,30 +581,7 @@ else
 	)
 	AC_CHECK_FUNCS(SOCKET_OPT_FUNCS)
 fi
-
-AC_CHECK_LIB(
-	[dl],
-	[dlopen],
-	[DL_LIBS="-ldl"]
-)
-AC_SUBST([DL_LIBS])
-
-AC_CHECK_LIB(
-	[nsl],
-	[inet_ntoa],
-	[SOCKETS_LIBS="${SOCKETS_LIBS} -lnsl"]
-)
-AC_CHECK_LIB(
-	[socket],
-	[socket],
-	[SOCKETS_LIBS="${SOCKETS_LIBS} -lsocket"]
-)
-AC_CHECK_LIB(
-	[resolv],
-	[gethostbyname],
-	[SOCKETS_LIBS="${SOCKETS_LIBS} -lresolv"]
-)
-AC_SUBST([SOCKETS_LIBS])
+LIBS="${old_LIBS}"
 
 AC_CHECK_LIB(
 	[selinux],
