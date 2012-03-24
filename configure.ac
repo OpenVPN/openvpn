@@ -41,9 +41,9 @@ AC_USE_SYSTEM_EXTENSIONS
 
 AC_ARG_ENABLE(
 	[lzo],
-	[AS_HELP_STRING([--enable-lzo], [enable LZO compression support @<:@default=no@:>@])],
+	[AS_HELP_STRING([--disable-lzo], [disable LZO compression support @<:@default=yes@:>@])],
 	,
-	[enable_lzo="no"]
+	[enable_lzo="yes"]
 )
 
 AC_ARG_ENABLE(
