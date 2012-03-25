@@ -2606,7 +2606,7 @@ struct in6_addr add_in6_addr( struct in6_addr base, uint32_t add )
 
 /* set environmental variables for ip/port in *addr */
 void
-setenv_sockaddr (struct env_set *es, const char *name_prefix, const struct openvpn_sockaddr *addr, const bool flags)
+setenv_sockaddr (struct env_set *es, const char *name_prefix, const struct openvpn_sockaddr *addr, const unsigned int flags)
 {
   char name_buf[256];
 
@@ -2643,7 +2643,7 @@ setenv_sockaddr (struct env_set *es, const char *name_prefix, const struct openv
 }
 
 void
-setenv_in_addr_t (struct env_set *es, const char *name_prefix, in_addr_t addr, const bool flags)
+setenv_in_addr_t (struct env_set *es, const char *name_prefix, in_addr_t addr, const unsigned int flags)
 {
   if (addr || !(flags & SA_SET_IF_NONZERO))
     {
@@ -2659,7 +2659,7 @@ void
 setenv_link_socket_actual (struct env_set *es,
 			   const char *name_prefix,
 			   const struct link_socket_actual *act,
-			   const bool flags)
+			   const unsigned int flags)
 {
   setenv_sockaddr (es, name_prefix, &act->dest, flags);
 }

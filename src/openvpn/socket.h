@@ -372,17 +372,17 @@ struct in6_addr add_in6_addr( struct in6_addr base, uint32_t add );
 void setenv_sockaddr (struct env_set *es,
 		      const char *name_prefix,
 		      const struct openvpn_sockaddr *addr,
-		      const bool flags);
+		      const unsigned int flags);
 
 void setenv_in_addr_t (struct env_set *es,
 		       const char *name_prefix,
 		       in_addr_t addr,
-		       const bool flags);
+		       const unsigned int flags);
 
 void setenv_link_socket_actual (struct env_set *es,
 				const char *name_prefix,
 				const struct link_socket_actual *act,
-				const bool flags);
+				const unsigned int flags);
 
 void bad_address_length (int actual, int expected);
 
