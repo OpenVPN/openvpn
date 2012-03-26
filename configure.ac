@@ -395,6 +395,9 @@ SOCKET_INCLUDES="
 #ifdef HAVE_WS2TCPIP_H
 #include <ws2tcpip.h>
 #endif
+#ifdef HAVE_NETINET_IN_SYSTM_H
+#include <netinet/in_systm.h>
+#endif
 "
 
 AC_CHECK_HEADERS(
