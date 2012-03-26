@@ -365,11 +365,9 @@ AC_CHECK_HEADERS([ \
 AC_CHECK_HEADERS([ \
 	sys/time.h sys/un.h sys/ioctl.h sys/stat.h \
 	sys/mman.h sys/file.h \
-	unistd.h signal.h libgen.h \
+	unistd.h signal.h libgen.h stropts.h \
 	syslog.h pwd.h grp.h \
-	net/if_tun.h net/tun/if_tun.h stropts.h \
-	sys/sockio.h \
-	sys/uio.h linux/if_tun.h linux/sockios.h \
+	sys/sockio.h sys/uio.h linux/sockios.h \
 	linux/types.h sys/poll.h sys/epoll.h err.h \
 ])
 
@@ -586,6 +584,20 @@ else
 fi
 LIBS="${old_LIBS}"
 
+AC_ARG_VAR([TAP_CFLAGS], [C compiler flags for tap])
+old_CFLAGS="${CFLAGS}"
+CFLAGS="${CFLAGS} ${TAP_CFLAGS}"
+AC_CHECK_HEADERS(
+	[ \
+		net/if_tun.h net/tun/if_tun.h \
+		linux/if_tun.h \
+		tap-windows.h \
+	],
+	[have_tap_header="yes"]
+)
+CFLAGS="${old_CFLAGS}"
+test "${have_tap_header}" = "yes" || AC_MSG_ERROR([no tap header could be found])
+
 AC_CHECK_LIB(
 	[selinux],
 	[setcon],
@@ -671,18 +683,6 @@ PKG_CHECK_MODULES(
 		]
 	)]
 )
-
-AC_ARG_VAR([TAP_WINDOWS_CFLAGS], [C compiler flags for TAP-Windows])
-if test "${WIN32}" = "yes"; then
-	old_CFLAGS="${CFLAGS}"
-	CFLAGS="${CFLAGS} ${TAP_WINDOWS_CFLAGS}"
-	AC_CHECK_HEADERS(
-		[tap-windows.h],
-		,
-		[AC_MSG_ERROR([tap-windows.h is required but missing])]
-	)
-	CFLAGS="${old_CFLAGS}"
-fi
 
 if test "${have_openssl_crypto}" = "yes"; then
 	saved_CFLAGS="${CFLAGS}"
