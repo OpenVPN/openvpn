@@ -840,7 +840,6 @@ if test "${enable_crypto}" = "yes"; then
 fi
 
 if test "${enable_plugins}" = "yes"; then
-	test "${WIN32}" != "yes" -a -z "${DL_LIBS}" && AC_MSG_ERROR([libdl is required for plugins])
 	OPTIONAL_DL_LIBS="${DL_LIBS}"
 	AC_DEFINE([ENABLE_PLUGIN], [1], [Enable systemd support])
 	test "${enable_eurephia}" = "yes" && AC_DEFINE([ENABLE_EUREPHIA], [1], [Enable support for the eurephia plug-in])
