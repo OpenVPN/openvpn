@@ -1530,7 +1530,7 @@ print_in6_addr_netbits_only( struct in6_addr network_copy, int netbits,
       if ( bits_to_clear >= 8 )
 	{ network_copy.s6_addr[byte--] = 0; bits_to_clear -= 8; }
       else
-	{ network_copy.s6_addr[byte--] &= (~0 << bits_to_clear); bits_to_clear = 0; }
+	{ network_copy.s6_addr[byte--] &= (0xff << bits_to_clear); bits_to_clear = 0; }
     }
 
   return print_in6_addr( network_copy, 0, gc);
