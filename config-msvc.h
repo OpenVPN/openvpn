@@ -30,6 +30,7 @@
 #define HAVE_STRERROR 1
 #define HAVE_STRINGS_H 1
 #define HAVE_STRING_H 1
+#define HAVE_LIMITS_H 1
 #define HAVE_SYSTEM 1
 #define HAVE_TIME 1
 #define HAVE_TIME_H 1

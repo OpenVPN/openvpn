@@ -2386,7 +2386,7 @@ get_default_gateway (struct route_gateway_info *rgi)
       {
 	char line[256];
 	int count = 0;
-	unsigned int lowest_metric = ~0;
+	unsigned int lowest_metric = UINT_MAX;
 	in_addr_t best_gw = 0;
 	bool found = false;
 	while (fgets (line, sizeof (line), fp) != NULL)
