@@ -268,7 +268,7 @@ init_route (struct route *r,
 	    const struct route_option *ro,
 	    const struct route_list *rl)
 {
-  const in_addr_t default_netmask = ~0;
+  const in_addr_t default_netmask = IPV4_NETMASK_HOST;
   bool status;
 
   CLEAR (*r);
@@ -797,7 +797,7 @@ add_bypass_routes (struct route_bypass *rb,
     {
       if (rb->bypass[i])
 	add_route3 (rb->bypass[i],
-		    ~0,
+		    IPV4_NETMASK_HOST,
 		    gateway,
 		    tt,
 		    flags | ROUTE_REF_GW,
@@ -819,7 +819,7 @@ del_bypass_routes (struct route_bypass *rb,
     {
       if (rb->bypass[i])
 	del_route3 (rb->bypass[i],
-		    ~0,
+		    IPV4_NETMASK_HOST,
 		    gateway,
 		    tt,
 		    flags | ROUTE_REF_GW,
@@ -870,7 +870,7 @@ redirect_default_route_to_vpn (struct route_list *rl, const struct tuntap *tt, u
 	       * adding this special /32 route */
 	      if (rl->spec.remote_host != IPV4_INVALID_ADDR) {
 		add_route3 (rl->spec.remote_host,
-			    ~0,
+			    IPV4_NETMASK_HOST,
 			    rl->rgi.gateway.addr,
 			    tt,
 			    flags | ROUTE_REF_GW,
@@ -944,7 +944,7 @@ undo_redirect_default_route_to_vpn (struct route_list *rl, const struct tuntap *
       if (rl->iflags & RL_DID_LOCAL)
 	{
 	  del_route3 (rl->spec.remote_host,
-		      ~0,
+		      IPV4_NETMASK_HOST,
 		      rl->rgi.gateway.addr,
 		      tt,
 		      flags | ROUTE_REF_GW,
@@ -3125,7 +3125,7 @@ netmask_to_netbits (const in_addr_t network, const in_addr_t netmask, int *netbi
 static void
 add_host_route_if_nonlocal (struct route_bypass *rb, const in_addr_t addr)
 {
-  if (test_local_addr(addr, NULL) == TLA_NONLOCAL && addr != 0 && addr != ~0)
+  if (test_local_addr(addr, NULL) == TLA_NONLOCAL && addr != 0 && addr != IPV4_NETMASK_HOST)
     add_bypass_address (rb, addr);
 }
 

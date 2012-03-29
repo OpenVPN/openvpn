@@ -125,7 +125,7 @@ add_subnet (const char *line, const char *prefix, const int line_num, struct pf_
     {
       /* match special "unknown" tag for addresses unrecognized by mroute */
       network.s_addr = htonl(0);
-      netmask = ~0;
+      netmask = IPV4_NETMASK_HOST;
     }
 
   {

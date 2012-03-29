@@ -489,7 +489,7 @@ init_tun (const char *dev,       /* --dev option */
 	  if (tt->type == DEV_TYPE_TAP || (tt->type == DEV_TYPE_TUN && tt->topology == TOP_SUBNET))
 	    check_subnet_conflict (tt->local, tt->remote_netmask, "TUN/TAP adapter");
 	  else if (tt->type == DEV_TYPE_TUN)
-	    check_subnet_conflict (tt->local, ~0, "TUN/TAP adapter");
+	    check_subnet_conflict (tt->local, IPV4_NETMASK_HOST, "TUN/TAP adapter");
 	}
 
       /*

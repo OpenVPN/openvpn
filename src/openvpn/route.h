@@ -317,7 +317,7 @@ netbits_to_netmask (const int netbits)
   const int addrlen = sizeof (in_addr_t) * 8;
   in_addr_t mask = 0;
   if (netbits > 0 && netbits <= addrlen)
-    mask = ~0 << (addrlen-netbits);
+    mask = IPV4_NETMASK_HOST << (addrlen-netbits);
   return mask;
 }
 

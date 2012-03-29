@@ -342,7 +342,7 @@ mroute_addr_mask_host_bits (struct mroute_addr *ma)
 	  if ( bits_to_clear >= 8 )
 	    { ma->addr[byte--] = 0; bits_to_clear -= 8; }
 	  else
-	    { ma->addr[byte--] &= (~0 << bits_to_clear); bits_to_clear = 0; }
+	    { ma->addr[byte--] &= (IPV4_NETMASK_HOST << bits_to_clear); bits_to_clear = 0; }
         }
       ASSERT( bits_to_clear == 0 );
     }
