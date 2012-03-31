@@ -2674,6 +2674,51 @@ check_file_access(const int type, const char *file, const int mode, const char *
 }
 
 /*
+ * Verifies that the path in the "command" that comes after certain script options (e.g., --up) is a
+ * valid file with appropriate permissions.
+ *
+ * "command" consists of a path, optionally followed by a space, which may be
+ * followed by arbitrary arguments. It is NOT a full shell command line -- shell expansion is not
+ * performed.
+ *
+ * The path and arguments in "command" may be single- or double-quoted or escaped.
+ *
+ * The path is extracted from "command", then check_file_access() is called to check it. The
+ * arguments, if any, are ignored.
+ *
+ * Note that the type, mode, and opt arguments to this routine are the same as the corresponding
+ * check_file_access() arguments.
+ */
+static bool
+check_cmd_access(const int type, const char *command, const int mode, const char *opt)
+{
+  struct argv argv;
+  bool return_code;
+
+  /* If no command was set, there are no errors to look for */
+  if (! command)
+      return false;
+
+  /* Extract executable path and arguments */
+  argv = argv_new ();
+  argv_printf (&argv, "%sc", command);
+
+  /* if an executable is specified then check it; otherwise, complain */
+  if (argv.argv[0])
+      return_code = check_file_access(type, argv.argv[0], mode, opt);
+  else
+    {
+      msg (M_NOPREFIX|M_OPTERR, "%s fails with '%s': No path to executable.",
+           opt, command);
+      return_code = true;
+    }
+
+  argv_reset (&argv);
+
+  return return_code;
+}
+
+/*
  * Sanity check of all file/dir options.  Checks that file/dir
  * is accessible by OpenVPN
  */
@@ -2749,27 +2794,29 @@ options_postprocess_filechecks (struct options *options)
 #if P2MP_SERVER
   errs |= check_file_access (CHKACC_FILE, options->client_config_dir,
                              R_OK|X_OK, "--client-config-dir");
-  /* ** Script hooks ** */
-  errs |= check_file_access (CHKACC_FILE, options->client_connect_script,
-                             R_OK|X_OK, "--client-connect script");
-  errs |= check_file_access (CHKACC_FILE, options->client_disconnect_script,
-                             R_OK|X_OK, "--client-disconnect script");
-  errs |= check_file_access (CHKACC_FILE, options->auth_user_pass_verify_script,
-                             R_OK|X_OK, "--auth-user-pass-verify script");
-  errs |= check_file_access (CHKACC_FILE, options->tls_verify,
-                             R_OK|X_OK, "--tls-verify script");
-  errs |= check_file_access (CHKACC_FILE, options->up_script,
-                             R_OK|X_OK, "--up script");
-  errs |= check_file_access (CHKACC_FILE, options->down_script,
-                             R_OK|X_OK, "--down script");
-  errs |= check_file_access (CHKACC_FILE, options->ipchange,
-                             R_OK|X_OK, "--ipchange script");
-  errs |= check_file_access (CHKACC_FILE, options->route_script,
-                             R_OK|X_OK, "--route-up script");
-  errs |= check_file_access (CHKACC_FILE, options->route_predown_script,
-                             R_OK|X_OK, "--route-pre-down script");
-  errs |= check_file_access (CHKACC_FILE, options->learn_address_script,
-                             R_OK|X_OK, "--learn-address script");
+
+  /* ** Script hooks that accept an optionally quoted and/or escaped executable path, ** */
+  /* ** optionally followed by arguments ** */
+  errs |= check_cmd_access (CHKACC_FILE, options->auth_user_pass_verify_script,
+                            R_OK|X_OK, "--auth-user-pass-verify script");
+  errs |= check_cmd_access (CHKACC_FILE, options->client_connect_script,
+                            R_OK|X_OK, "--client-connect script");
+  errs |= check_cmd_access (CHKACC_FILE, options->client_disconnect_script,
+                            R_OK|X_OK, "--client-disconnect script");
+  errs |= check_cmd_access (CHKACC_FILE, options->tls_verify,
+                            R_OK|X_OK, "--tls-verify script");
+  errs |= check_cmd_access (CHKACC_FILE, options->up_script,
+                            R_OK|X_OK, "--up script");
+  errs |= check_cmd_access (CHKACC_FILE, options->down_script,
+                            R_OK|X_OK, "--down script");
+  errs |= check_cmd_access (CHKACC_FILE, options->ipchange,
+                            R_OK|X_OK, "--ipchange script");
+  errs |= check_cmd_access (CHKACC_FILE, options->route_script,
+                            R_OK|X_OK, "--route-up script");
+  errs |= check_cmd_access (CHKACC_FILE, options->route_predown_script,
+                            R_OK|X_OK, "--route-pre-down script");
+  errs |= check_cmd_access (CHKACC_FILE, options->learn_address_script,
+                            R_OK|X_OK, "--learn-address script");
 #endif /* P2MP_SERVER */
 
   if (errs)
