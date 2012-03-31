@@ -612,12 +612,21 @@ option.
 .\"*********************************************************
 .TP
 .B \-\-ipchange cmd
-Execute shell command
+Run command
 .B cmd
 when our remote ip-address is initially authenticated or
 changes.
 
-Execute as:
+.B cmd
+consists of a path to script (or executable program), optionally
+followed by arguments. The path and arguments may be single- or double-quoted
+and/or escaped using a backslash, and should be separated by one or more spaces.
+
+When
+.B cmd
+is executed two arguments are appended after any arguments specified in
+.B cmd
+, as follows:
 
 .B cmd ip_address port_number
 
@@ -631,14 +640,6 @@ script instead.
 
 See the "Environmental Variables" section below for
 additional parameters passed as environmental variables.
-
-Note that
-.B cmd
-can be a shell command with multiple arguments, in which
-case all OpenVPN-generated arguments will be appended
-to
-.B cmd
-to build a command line which will be passed to the script.
 
 If you are running in a dynamic IP address environment where
 the IP addresses of either peer could change without notice,
@@ -1047,17 +1048,32 @@ for the TAP-Win32 adapter to come up before adding routes.
 .\"*********************************************************
 .TP
 .B \-\-route-up cmd
-Execute shell command
+Run command
 .B cmd
 after routes are added, subject to
 .B \-\-route-delay.
 
+.B cmd
+consists of a path to script (or executable program), optionally
+followed by arguments. The path and arguments may be single- or double-quoted
+and/or escaped using a backslash, and should be separated by one or more spaces.
+
 See the "Environmental Variables" section below for
 additional parameters passed as environmental variables.
-
-Note that
+.\"*********************************************************
+.TP
+.B \-\-route-pre-down cmd
+Run command
 .B cmd
-can be a shell command with multiple arguments.
+before routes are removed upon disconnection.
+
+.B cmd
+consists of a path to script (or executable program), optionally
+followed by arguments. The path and arguments may be single- or double-quoted
+and/or escaped using a backslash, and should be separated by one or more spaces.
+
+See the "Environmental Variables" section below for
+additional parameters passed as environmental variables.
 .\"*********************************************************
 .TP
 .B \-\-route-noexec
@@ -1691,10 +1707,19 @@ memory available to other applications.
 .\"*********************************************************
 .TP
 .B \-\-up cmd
-Shell command to run after successful TUN/TAP device open
+Run command
+.B cmd
+after successful TUN/TAP device open
 (pre
 .B \-\-user
-UID change).  The up script is useful for specifying route
+UID change).
+
+.B cmd
+consists of a path to script (or executable program), optionally
+followed by arguments. The path and arguments may be single- or double-quoted
+and/or escaped using a backslash, and should be separated by one or more spaces.
+
+The up command is useful for specifying route
 commands which route IP traffic destined for
 private subnets which exist at the other
 end of the VPN connection into the tunnel.
@@ -1714,13 +1739,11 @@ execute as:
 See the "Environmental Variables" section below for
 additional parameters passed as environmental variables.
 
-Note that
+Note that if
 .B cmd
-can be a shell command with multiple arguments, in which
-case all OpenVPN-generated arguments will be appended
-to
-.B cmd
-to build a command line which will be passed to the shell.
+includes arguments, all OpenVPN-generated arguments will be appended
+to them to build an argument list with which the executable will be
+called.
 
 Typically,
 .B cmd
@@ -1796,12 +1819,20 @@ i.e. the receipt of the first authenticated packet from the peer.
 .\"*********************************************************
 .TP
 .B \-\-down cmd
-Shell command to run after TUN/TAP device close
+Run command
+.B cmd
+after TUN/TAP device close
 (post
 .B \-\-user
 UID change and/or
 .B \-\-chroot
-).  Called with the same parameters and environmental
+).
+.B cmd
+consists of a path to script (or executable program), optionally
+followed by arguments. The path and arguments may be single- or double-quoted
+and/or escaped using a backslash, and should be separated by one or more spaces.
+
+Called with the same parameters and environmental
 variables as the
 .B \-\-up
 option above.
@@ -2029,7 +2060,7 @@ options.
 Become a daemon after all initialization functions are completed.
 This option will cause all message and error output to
 be sent to the syslog file (such as /var/log/messages),
-except for the output of shell scripts and
+except for the output of scripts and
 ifconfig commands,
 which will go to /dev/null unless otherwise redirected.
 The syslog redirection occurs immediately at the point
@@ -2949,20 +2980,29 @@ In the absence of this option, OpenVPN will disconnect a client instance
 upon connection of a new client having the same common name.
 .\"*********************************************************
 .TP
-.B \-\-client-connect script
+.B \-\-client-connect cmd
 Run
-.B script
-on client connection.  The script is passed the common name
+.B command cmd
+on client connection.
+
+.B cmd
+consists of a path to script (or executable program), optionally
+followed by arguments. The path and arguments may be single- or double-quoted
+and/or escaped using a backslash, and should be separated by one or more spaces.
+
+The command is passed the common name
 and IP address of the just-authenticated client
 as environmental variables (see environmental variable section
-below).  The script is also passed
-the pathname of a freshly created temporary file as $1
-(i.e. the first command line argument), to be used by the script
+below).  The command is also passed
+the pathname of a freshly created temporary file as the last argument
+(after any arguments specified in
+.B cmd
+), to be used by the command
 to pass dynamically generated config file directives back to OpenVPN.
 
 If the script wants to generate a dynamic config file
 to be applied on the server when the client connects,
-it should write it to the file named by $1.
+it should write it to the file named by the last argument.
 
 See the
 .B \-\-client-config-dir
@@ -2977,7 +3017,7 @@ returns a non-zero error status, it will cause the client
 to be disconnected.
 .\"*********************************************************
 .TP
-.B \-\-client-disconnect
+.B \-\-client-disconnect cmd
 Like
 .B \-\-client-connect
 but called on client instance shutdown.  Will not be called
@@ -2989,11 +3029,19 @@ successful (0) status returns.
 
 The exception to this rule is if the
 .B \-\-client-disconnect
-script or plugins are cascaded, and at least one client-connect
+command or plugins are cascaded, and at least one client-connect
 function succeeded, then ALL of the client-disconnect functions for
 scripts and plugins will be called on client instance object deletion,
 even in cases where some of the related client-connect functions returned
 an error status.
+
+The
+.B \-\-client-disconnect
+command is passed the same pathname as the corresponding
+.B \-\-client-connect
+command as its last argument. (after any arguments specified in
+.B cmd
+).
 .B 
 .\"*********************************************************
 .TP
@@ -3176,12 +3224,18 @@ and
 .\"*********************************************************
 .TP
 .B \-\-learn-address cmd
-Run script or shell command
+Run command
 .B cmd
 to validate client virtual addresses or routes.
 
 .B cmd
-will be executed with 3 parameters:
+consists of a path to script (or executable program), optionally
+followed by arguments. The path and arguments may be single- or double-quoted
+and/or escaped using a backslash, and should be separated by one or more spaces.
+
+Three arguments will be appended to any arguments in
+.B cmd
+as follows:
 
 .B [1] operation \-\-
 "add", "update", or "delete" based on whether or not
@@ -3215,14 +3269,19 @@ policies with regard to the client's high-level common name,
 rather than the low level client virtual addresses.
 .\"*********************************************************
 .TP
-.B \-\-auth-user-pass-verify script method
+.B \-\-auth-user-pass-verify cmd method
 Require the client to provide a username/password (possibly
 in addition to a client certificate) for authentication.
 
-OpenVPN will execute
-.B script
-as a shell command to validate the username/password
+OpenVPN will run
+.B command cmd
+to validate the username/password
 provided by the client.
+
+.B cmd
+consists of a path to script (or executable program), optionally
+followed by arguments. The path and arguments may be single- or double-quoted
+and/or escaped using a backslash, and should be separated by one or more spaces.
 
 If
 .B method
@@ -4451,7 +4510,7 @@ username/password.  It is always cached.
 .\"*********************************************************
 .TP
 .B \-\-tls-verify cmd
-Execute shell command
+Run command
 .B cmd
 to verify the X509 name of a
 pending TLS connection that has otherwise passed all other
@@ -4464,16 +4523,16 @@ test).
 .B cmd
 should return 0 to allow the TLS handshake to proceed, or 1 to fail.
 
-Note that
 .B cmd
-is a command line and as such may (if enclosed in quotes) contain
-whitespace separated arguments.  The first word of
-.B cmd
-is the shell command to execute and the remaining words are its
-arguments.
+consists of a path to script (or executable program), optionally
+followed by arguments. The path and arguments may be single- or double-quoted
+and/or escaped using a backslash, and should be separated by one or more spaces.
+
 When
 .B cmd
-is executed two arguments are appended, as follows:
+is executed two arguments are appended after any arguments specified in
+.B cmd
+, as follows:
 
 .B cmd certificate_depth subject
 
@@ -6145,7 +6204,7 @@ access any machine on the 10.0.1.0/24 subnet
 over the secure tunnel (or vice versa).
 
 In a production environment, you could put the route command(s)
-in a shell script and execute with the
+in a script and execute with the
 .B \-\-up
 option.
 .\"*********************************************************
