@@ -48,6 +48,7 @@ verify_callback (void *session_obj, x509_cert *cert, int cert_depth,
 {
   struct tls_session *session = (struct tls_session *) session_obj;
   struct gc_arena gc = gc_new();
+  int ret = 1;
 
   ASSERT (cert);
   ASSERT (session);
@@ -68,18 +69,21 @@ verify_callback (void *session_obj, x509_cert *cert, int cert_depth,
 	msg (D_TLS_ERRORS, "VERIFY ERROR: depth=%d, could not extract X509 "
 	      "subject string from certificate", cert_depth);
 
-      gc_free(&gc);
-      return 1;
+      goto cleanup;
     }
+
+  if (SUCCESS != verify_cert(session, cert, cert_depth))
+    goto cleanup;
+
+  ret = 0;
+
+cleanup:
+  gc_free(&gc);
 
   /*
    * PolarSSL expects 1 on failure, 0 on success
    */
-  gc_free(&gc);
-
-  if (SUCCESS == verify_cert(session, cert, cert_depth))
-    return 0;
-  return 1;
+  return ret;
 }
 
 #ifdef ENABLE_X509ALTUSERNAME

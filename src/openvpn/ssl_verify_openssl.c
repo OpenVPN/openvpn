@@ -46,6 +46,7 @@
 int
 verify_callback (int preverify_ok, X509_STORE_CTX * ctx)
 {
+  int ret = 0;
   struct tls_session *session;
   SSL *ssl;
   struct gc_arena gc = gc_new();
@@ -76,17 +77,19 @@ verify_callback (int preverify_ok, X509_STORE_CTX * ctx)
 
       ERR_clear_error();
 
-      gc_free(&gc);
       session->verified = false;
-
-      return 0;
+      goto cleanup;
     }
 
+  if (SUCCESS != verify_cert(session, ctx->current_cert, ctx->error_depth))
+    goto cleanup;
+
+  ret = 1;
+
+cleanup:
   gc_free(&gc);
 
-  if (SUCCESS == verify_cert(session, ctx->current_cert, ctx->error_depth))
-    return 1;
-  return 0;
+  return ret;
 }
 
 #ifdef ENABLE_X509ALTUSERNAME

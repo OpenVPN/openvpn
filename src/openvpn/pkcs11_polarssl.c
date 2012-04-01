@@ -75,7 +75,7 @@ cleanup:
 char *
 pkcs11_certificate_dn (pkcs11h_certificate_t cert, struct gc_arena *gc)
 {
-  int ret = 1;
+  char *ret = NULL;
   char dn[1024] = {0};
 
   x509_cert polar_cert = {0};
@@ -90,14 +90,12 @@ pkcs11_certificate_dn (pkcs11h_certificate_t cert, struct gc_arena *gc)
       goto cleanup;
   }
 
-  ret = 0;
+  ret = string_alloc(dn, gc);
 
 cleanup:
   x509_free(&polar_cert);
 
-  if (ret == 0)
-    return string_alloc(dn, gc);
-  return NULL;
+  return ret;
 }
 
 int

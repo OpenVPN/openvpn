@@ -538,8 +538,9 @@ verify_cert_call_command(const char *verify_command, struct env_set *es,
 static result_t
 verify_check_crl_dir(const char *crl_dir, openvpn_x509_cert_t *cert)
 {
+  result_t ret = FAILURE;
   char fn[256];
-  int fd;
+  int fd = -1;
   struct gc_arena gc = gc_new();
 
   char *serial = x509_get_serial(cert, &gc);
@@ -547,26 +548,29 @@ verify_check_crl_dir(const char *crl_dir, openvpn_x509_cert_t *cert)
   if (!openvpn_snprintf(fn, sizeof(fn), "%s%c%s", crl_dir, OS_SPECIFIC_DIRSEP, serial))
     {
       msg (D_HANDSHAKE, "VERIFY CRL: filename overflow");
-      gc_free(&gc);
-      return FAILURE;
+      goto cleanup;
     }
   fd = platform_open (fn, O_RDONLY, 0);
   if (fd >= 0)
     {
       msg (D_HANDSHAKE, "VERIFY CRL: certificate serial number %s is revoked", serial);
-      close(fd);
-      gc_free(&gc);
-      return FAILURE;
+      goto cleanup;
     }
 
-  gc_free(&gc);
+  ret = SUCCESS;
 
-  return SUCCESS;
+cleanup:
+
+  if (fd != -1)
+    close(fd);
+  gc_free(&gc);
+  return ret;
 }
 
 result_t
 verify_cert(struct tls_session *session, openvpn_x509_cert_t *cert, int cert_depth)
 {
+  result_t ret = FAILURE;
   char *subject = NULL;
   char common_name[TLS_USERNAME_LEN] = {0};
   const struct tls_options *opt;
@@ -583,7 +587,7 @@ verify_cert(struct tls_session *session, openvpn_x509_cert_t *cert, int cert_dep
     {
 	msg (D_TLS_ERRORS, "VERIFY ERROR: depth=%d, could not extract X509 "
 	    "subject string from certificate", cert_depth);
-	goto err;
+	goto cleanup;
     }
 
   /* enforce character class restrictions in X509 name */
@@ -602,7 +606,7 @@ verify_cert(struct tls_session *session, openvpn_x509_cert_t *cert, int cert_dep
 	       opt->x509_username_field,
 		 subject,
 		 TLS_USERNAME_LEN);
-	  goto err;
+	  goto cleanup;
 	}
     }
 
@@ -613,7 +617,7 @@ verify_cert(struct tls_session *session, openvpn_x509_cert_t *cert, int cert_dep
   if (cert_depth >= MAX_CERT_DEPTH)
     {
       msg (D_TLS_ERRORS, "TLS Error: Convoluted certificate chain detected with depth [%d] greater than %d", cert_depth, MAX_CERT_DEPTH);
-      goto err;			/* Reject connection */
+      goto cleanup;			/* Reject connection */
     }
 
   /* verify level 1 cert, i.e. the CA that signed our leaf cert */
@@ -623,7 +627,7 @@ verify_cert(struct tls_session *session, openvpn_x509_cert_t *cert, int cert_dep
       if (memcmp (sha1_hash, opt->verify_hash, SHA_DIGEST_LENGTH))
       {
 	msg (D_TLS_ERRORS, "TLS Error: level-1 certificate hash verification failed");
-	goto err;
+	goto cleanup;
       }
     }
 
@@ -645,16 +649,16 @@ verify_cert(struct tls_session *session, openvpn_x509_cert_t *cert, int cert_dep
 
   /* If this is the peer's own certificate, verify it */
   if (cert_depth == 0 && SUCCESS != verify_peer_cert(opt, cert, subject, common_name))
-    goto err;
+    goto cleanup;
 
   /* call --tls-verify plug-in(s), if registered */
   if (SUCCESS != verify_cert_call_plugin(opt->plugins, opt->es, cert_depth, cert, subject))
-    goto err;
+    goto cleanup;
 
   /* run --tls-verify script */
   if (opt->verify_command && SUCCESS != verify_cert_call_command(opt->verify_command,
       opt->es, cert_depth, cert, subject, opt->verify_export_cert))
-    goto err;
+    goto cleanup;
 
   /* check peer cert against CRL */
   if (opt->crl_file)
@@ -662,26 +666,29 @@ verify_cert(struct tls_session *session, openvpn_x509_cert_t *cert, int cert_dep
       if (opt->ssl_flags & SSLF_CRL_VERIFY_DIR)
       {
 	if (SUCCESS != verify_check_crl_dir(opt->crl_file, cert))
-	  goto err;
+	  goto cleanup;
       }
       else
       {
 	if (SUCCESS != x509_verify_crl(opt->crl_file, cert, subject))
-	  goto err;
+	  goto cleanup;
       }
     }
 
   msg (D_HANDSHAKE, "VERIFY OK: depth=%d, %s", cert_depth, subject);
   session->verified = true;
+  ret = SUCCESS;
 
-  gc_free(&gc);
-  return SUCCESS;
+cleanup:
 
- err:
-  tls_clear_error();
-  session->verified = false;
+  if (ret != SUCCESS)
+    {
+      tls_clear_error(); /* always? */
+      session->verified = false; /* double sure? */
+    }
   gc_free(&gc);
-  return FAILURE;
+
+  return ret;
 }
 
 /* ***************************************************************************

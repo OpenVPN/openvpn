@@ -769,6 +769,7 @@ show_pkcs11_ids (
 	const char * const provider,
 	bool cert_private
 ) {
+	struct gc_arena gc = gc_new();
 	pkcs11h_certificate_id_list_t user_certificates = NULL;
 	pkcs11h_certificate_id_list_t current = NULL;
 	CK_RV rv = CKR_FUNCTION_FAILED;
@@ -834,7 +835,6 @@ show_pkcs11_ids (
 	);
 	for (current = user_certificates;current != NULL; current = current->next) {
 		pkcs11h_certificate_t certificate = NULL;
-		struct gc_arena gc = gc_new();
 		char *dn = NULL;
 		char serial[1024] = {0};
 		char *ser = NULL;
@@ -927,8 +927,6 @@ show_pkcs11_ids (
 			free (ser);
 			ser = NULL;
 		}
-
-		gc_free (&gc);
 	}
 
 cleanup:
@@ -938,6 +936,7 @@ cleanup:
 	}
 
 	pkcs11h_terminate ();
+	gc_free (&gc);
 }
 
 #else
