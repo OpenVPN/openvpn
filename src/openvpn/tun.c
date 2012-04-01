@@ -579,7 +579,7 @@ init_tun_post (struct tuntap *tt,
   overlapped_io_init (&tt->writes, frame, TRUE, true);
   tt->rw_handle.read = tt->reads.overlapped.hEvent;
   tt->rw_handle.write = tt->writes.overlapped.hEvent;
-  tt->adapter_index = ~0;
+  tt->adapter_index = TUN_ADAPTER_INDEX_INVALID;
 #endif
 }
 
@@ -3250,7 +3250,7 @@ get_per_adapter_info (const DWORD index, struct gc_arena *gc)
   IP_PER_ADAPTER_INFO *pi = NULL;
   DWORD status;
 
-  if (index != ~0)
+  if (index != TUN_ADAPTER_INDEX_INVALID)
     {
       if ((status = GetPerAdapterInfo (index, NULL, &size)) != ERROR_BUFFER_OVERFLOW)
 	{
@@ -3327,7 +3327,7 @@ get_interface_info (DWORD index, struct gc_arena *gc)
 const IP_ADAPTER_INFO *
 get_adapter (const IP_ADAPTER_INFO *ai, DWORD index)
 {
-  if (ai && index != (DWORD)~0)
+  if (ai && index != TUN_ADAPTER_INDEX_INVALID)
     {
       const IP_ADAPTER_INFO *a;
 
@@ -3504,7 +3504,7 @@ adapter_index_of_ip (const IP_ADAPTER_INFO *list,
 		     in_addr_t *netmask)
 {
   struct gc_arena gc = gc_new ();
-  DWORD ret = ~0;
+  DWORD ret = TUN_ADAPTER_INDEX_INVALID;
   in_addr_t highest_netmask = 0;
   bool first = true;
 
@@ -3540,7 +3540,7 @@ adapter_index_of_ip (const IP_ADAPTER_INFO *list,
        (int)ret,
        count ? *count : -1);
 
-  if (ret == ~0 && count)
+  if (ret == TUN_ADAPTER_INDEX_INVALID && count)
     *count = 0;
 
   if (netmask)
@@ -3564,7 +3564,7 @@ dhcp_status (DWORD index)
 {
   struct gc_arena gc = gc_new ();
   int ret = DHCP_STATUS_UNDEF;
-  if (index != ~0)
+  if (index != TUN_ADAPTER_INDEX_INVALID)
     {
       const IP_ADAPTER_INFO *ai = get_adapter_info (index, &gc);
 
@@ -3626,15 +3626,15 @@ delete_temp_addresses (DWORD index)
 static DWORD
 get_adapter_index_method_1 (const char *guid)
 {
-  struct gc_arena gc = gc_new ();
-  ULONG index = ~0;
-  DWORD status;
+  DWORD index;
+  ULONG aindex;
   wchar_t wbuf[256];
   _snwprintf (wbuf, SIZE (wbuf), L"\\DEVICE\\TCPIP_%S", guid);
   wbuf [SIZE(wbuf) - 1] = 0;
-  if ((status = GetAdapterIndex (wbuf, &index)) != NO_ERROR)
-    index = ~0;
-  gc_free (&gc);
+  if (GetAdapterIndex (wbuf, &aindex) != NO_ERROR)
+    index = TUN_ADAPTER_INDEX_INVALID;
+  else
+    index = (DWORD)aindex;
   return index;
 }
 
@@ -3642,7 +3642,7 @@ static DWORD
 get_adapter_index_method_2 (const char *guid)
 {
   struct gc_arena gc = gc_new ();
-  DWORD index = ~0;
+  DWORD index = TUN_ADAPTER_INDEX_INVALID;
 
   const IP_ADAPTER_INFO *list = get_adapter_info_list (&gc);
 
@@ -3665,9 +3665,9 @@ get_adapter_index (const char *guid)
 {
   DWORD index;
   index = get_adapter_index_method_1 (guid);
-  if (index == ~0)
+  if (index == TUN_ADAPTER_INDEX_INVALID)
     index = get_adapter_index_method_2 (guid);
-  if (index == ~0)
+  if (index == TUN_ADAPTER_INDEX_INVALID)
     msg (M_INFO, "NOTE: could not get adapter index for %s", guid);
   return index;
 }
@@ -3678,18 +3678,18 @@ get_adapter_index_flexible (const char *name) /* actual name or GUID */
   struct gc_arena gc = gc_new ();
   DWORD index;
   index = get_adapter_index_method_1 (name);
-  if (index == ~0)
+  if (index == TUN_ADAPTER_INDEX_INVALID)
     index = get_adapter_index_method_2 (name);
-  if (index == ~0)
+  if (index == TUN_ADAPTER_INDEX_INVALID)
     {
       const struct tap_reg *tap_reg = get_tap_reg (&gc);
       const struct panel_reg *panel_reg = get_panel_reg (&gc);
       const char *guid = name_to_guid (name, tap_reg, panel_reg);
       index = get_adapter_index_method_1 (guid);
-      if (index == ~0)
+      if (index == TUN_ADAPTER_INDEX_INVALID)
 	index = get_adapter_index_method_2 (guid);
     }
-  if (index == ~0)
+  if (index == TUN_ADAPTER_INDEX_INVALID)
     msg (M_INFO, "NOTE: could not get adapter index for name/GUID '%s'", name);
   gc_free (&gc);
   return index;
@@ -3920,7 +3920,7 @@ dhcp_release_by_adapter_index(const DWORD adapter_index)
 static bool
 dhcp_release (const struct tuntap *tt)
 {
-  if (tt && tt->options.ip_win32_type == IPW32_SET_DHCP_MASQ && tt->adapter_index != ~0)
+  if (tt && tt->options.ip_win32_type == IPW32_SET_DHCP_MASQ && tt->adapter_index != TUN_ADAPTER_INDEX_INVALID)
     return dhcp_release_by_adapter_index (tt->adapter_index);
   else
     return false;
@@ -3953,7 +3953,7 @@ dhcp_renew_by_adapter_index (const DWORD adapter_index)
 static bool
 dhcp_renew (const struct tuntap *tt)
 {
-  if (tt && tt->options.ip_win32_type == IPW32_SET_DHCP_MASQ && tt->adapter_index != ~0)
+  if (tt && tt->options.ip_win32_type == IPW32_SET_DHCP_MASQ && tt->adapter_index != TUN_ADAPTER_INDEX_INVALID)
     return dhcp_renew_by_adapter_index (tt->adapter_index);
   else
     return false;
@@ -4838,7 +4838,7 @@ open_tun (const char *dev, const char *dev_type, const char *dev_node, struct tu
     const DWORD index = tt->adapter_index;
     
     /* flush arp cache */
-    if (index != (DWORD)~0)
+    if (index != TUN_ADAPTER_INDEX_INVALID)
       {
 	DWORD status;
 
@@ -4880,7 +4880,7 @@ open_tun (const char *dev, const char *dev_type, const char *dev_node, struct tu
 	const char *error_suffix = "I am having trouble using the Windows 'IP helper API' to automatically set the IP address -- consider using other --ip-win32 methods (not 'ipapi')";
 
 	/* couldn't get adapter index */
-	if (index == (DWORD)~0)
+	if (index == TUN_ADAPTER_INDEX_INVALID)
 	  {
 	    msg (M_FATAL, "ERROR: unable to get adapter index for interface %s -- %s",
 		 device_guid,

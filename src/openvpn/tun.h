@@ -40,6 +40,8 @@
 
 #ifdef WIN32
 
+#define TUN_ADAPTER_INDEX_INVALID ((DWORD)-1)
+
 /* time constants for --ip-win32 adaptive */
 #define IPW32_SET_ADAPTIVE_DELAY_WINDOW 300
 #define IPW32_SET_ADAPTIVE_TRY_NETSH    20

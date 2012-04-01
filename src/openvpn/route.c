@@ -45,6 +45,10 @@
 
 #include "memdbg.h"
 
+#ifdef WIN32
+#define METRIC_NOT_USED ((DWORD)-1)
+#endif
+
 static void delete_route (struct route *r, const struct tuntap *tt, unsigned int flags, const struct route_gateway_info *rgi, const struct env_set *es);
 
 static void get_bypass_addresses (struct route_bypass *rb, const unsigned int flags);
@@ -1342,7 +1346,7 @@ add_route (struct route *r,
 
 #elif defined (WIN32)
   {
-    DWORD ai = ~0;
+    DWORD ai = TUN_ADAPTER_INDEX_INVALID;
     argv_printf (&argv, "%s%sc ADD %s MASK %s %s",
 		 get_win_sys_path(),
 		 WIN_ROUTE_PATH_SUFFIX,
@@ -2098,7 +2102,7 @@ static const MIB_IPFORWARDROW *
 get_default_gateway_row (const MIB_IPFORWARDTABLE *routes)
 {
   struct gc_arena gc = gc_new ();
-  DWORD lowest_metric = ~0;
+  DWORD lowest_metric = MAXDWORD;
   const MIB_IPFORWARDROW *ret = NULL;
   int i;
   int best = -1;
@@ -2155,7 +2159,7 @@ get_default_gateway (struct route_gateway_info *rgi)
 	{
 	  rgi->flags |= RGI_ADDR_DEFINED;
 	  a_index = adapter_index_of_ip (adapters, rgi->gateway.addr, NULL, &rgi->gateway.netmask);
-	  if (a_index != ~0)
+	  if (a_index != TUN_ADAPTER_INDEX_INVALID)
 	    {
 	      rgi->adapter_index = a_index;
 	      rgi->flags |= (RGI_IFACE_DEFINED|RGI_NETMASK_DEFINED);
@@ -2176,7 +2180,7 @@ static DWORD
 windows_route_find_if_index (const struct route *r, const struct tuntap *tt)
 {
   struct gc_arena gc = gc_new ();
-  DWORD ret = ~0;
+  DWORD ret = TUN_ADAPTER_INDEX_INVALID;
   int count = 0;
   const IP_ADAPTER_INFO *adapters = get_adapter_info_list (&gc);
   const IP_ADAPTER_INFO *tun_adapter = get_tun_adapter (tt, adapters);
@@ -2198,14 +2202,14 @@ windows_route_find_if_index (const struct route *r, const struct tuntap *tt)
     {
       msg (M_WARN, "Warning: route gateway is not reachable on any active network adapters: %s",
 	   print_in_addr_t (r->gateway, 0, &gc));
-      ret = ~0;
+      ret = TUN_ADAPTER_INDEX_INVALID;
     }
   else if (count > 1)
     {
       msg (M_WARN, "Warning: route gateway is ambiguous: %s (%d matches)",
 	   print_in_addr_t (r->gateway, 0, &gc),
 	   count);
-      ret = ~0;
+      ret = TUN_ADAPTER_INDEX_INVALID;
     }
 
   dmsg (D_ROUTE_DEBUG, "DEBUG: route find if: on_tun=%d count=%d index=%d",
@@ -2223,9 +2227,9 @@ add_route_ipapi (const struct route *r, const struct tuntap *tt, DWORD adapter_i
   struct gc_arena gc = gc_new ();
   bool ret = false;
   DWORD status;
-  const DWORD if_index = (adapter_index == ~0) ? windows_route_find_if_index (r, tt) : adapter_index;
+  const DWORD if_index = (adapter_index == TUN_ADAPTER_INDEX_INVALID) ? windows_route_find_if_index (r, tt) : adapter_index;
 
-  if (if_index != ~0)
+  if (if_index != TUN_ADAPTER_INDEX_INVALID)
     {
       MIB_IPFORWARDROW fr;
       CLEAR (fr);
@@ -2239,10 +2243,10 @@ add_route_ipapi (const struct route *r, const struct tuntap *tt, DWORD adapter_i
       fr.dwForwardAge = 0;
       fr.dwForwardNextHopAS = 0;
       fr.dwForwardMetric1 = (r->flags & RT_METRIC_DEFINED) ? r->metric : 1;
-      fr.dwForwardMetric2 = ~0;
-      fr.dwForwardMetric3 = ~0;
-      fr.dwForwardMetric4 = ~0;
-      fr.dwForwardMetric5 = ~0;
+      fr.dwForwardMetric2 = METRIC_NOT_USED;
+      fr.dwForwardMetric3 = METRIC_NOT_USED;
+      fr.dwForwardMetric4 = METRIC_NOT_USED;
+      fr.dwForwardMetric5 = METRIC_NOT_USED;
 
       if ((r->network & r->netmask) != r->network)
 	msg (M_WARN, "Warning: address %s is not a network address in relation to netmask %s",
@@ -2299,7 +2303,7 @@ del_route_ipapi (const struct route *r, const struct tuntap *tt)
   DWORD status;
   const DWORD if_index = windows_route_find_if_index (r, tt);
 
-  if (if_index != ~0)
+  if (if_index != TUN_ADAPTER_INDEX_INVALID)
     {
       MIB_IPFORWARDROW fr;
       CLEAR (fr);
