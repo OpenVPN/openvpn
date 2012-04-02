@@ -828,7 +828,7 @@ case "${with_crypto_library}" in
 	polarssl)
 		have_crypto_crypto="${have_polarssl_crypto}"
 		have_crypto_ssl="${have_polarssl_ssl}"
-		CRYPTO_CRYPTO_CFLAGS="${POLARSSL_CRYPTO_CFLAGS}"
+		CRYPTO_CRYPTO_CFLAGS="${POLARSSL_CFLAGS}"
 		CRYPTO_CRYPTO_LIBS="${POLARSSL_LIBS}"
 		AC_DEFINE([ENABLE_CRYPTO_POLARSSL], [1], [Use PolarSSL library])
 		;;
