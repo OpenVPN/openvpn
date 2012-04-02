@@ -96,4 +96,11 @@ ctr_drbg_context * rand_ctx_get();
 havege_state * rand_ctx_get();
 #endif
 
+#ifdef ENABLE_PREDICTION_RESISTANCE
+/**
+ * Enable prediction resistance on the random number generator.
+ */
+void rand_ctx_enable_prediction_resistance();
+#endif
+
 #endif /* CRYPTO_POLARSSL_H_ */

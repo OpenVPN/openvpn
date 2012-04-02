@@ -545,6 +545,10 @@ static const char usage_message[] =
   "                  using file.\n"
   "--test-crypto   : Run a self-test of crypto features enabled.\n"
   "                  For debugging only.\n"
+#ifdef ENABLE_PREDICTION_RESISTANCE
+  "--use-prediction-resistance: Enable prediction resistance on the random\n"
+  "                             number generator.\n"
+#endif
 #ifdef ENABLE_SSL
   "\n"
   "TLS Key Negotiation Options:\n"
@@ -837,6 +841,9 @@ init_options (struct options *o, const bool init_gc)
   o->replay_time = DEFAULT_TIME_BACKTRACK;
   o->use_iv = true;
   o->key_direction = KEY_DIRECTION_BIDIRECTIONAL;
+#ifdef ENABLE_PREDICTION_RESISTANCE
+  o->use_prediction_resistance = false;
+#endif
 #ifdef ENABLE_SSL
   o->key_method = 2;
   o->tls_timeout = 2;
@@ -1581,6 +1588,9 @@ show_settings (const struct options *o)
   SHOW_STR (packet_id_file);
   SHOW_BOOL (use_iv);
   SHOW_BOOL (test_crypto);
+#ifdef ENABLE_PREDICTION_RESISTANCE
+  SHOW_BOOL (use_prediction_resistance);
+#endif
 
 #ifdef ENABLE_SSL
   SHOW_BOOL (tls_server);
@@ -3018,6 +3028,11 @@ options_string (const struct options *o,
 	  buf_printf (&out, ",no-replay");
 	if (!o->use_iv)
 	  buf_printf (&out, ",no-iv");
+
+#ifdef ENABLE_PREDICTION_RESISTANCE
+        if (o->use_prediction_resistance)
+          buf_printf (&out, ",use-prediction-resistance");
+#endif
       }
 
 #ifdef ENABLE_SSL
@@ -6414,6 +6429,13 @@ add_option (struct options *options,
 	  goto err;
 	}
       options->keysize = keysize;
+    }
+#endif
+#ifdef ENABLE_PREDICTION_RESISTANCE
+  else if (streq (p[0], "use-prediction-resistance"))
+    {
+      VERIFY_PERMISSION (OPT_P_GENERAL);
+      options->use_prediction_resistance = true;
     }
 #endif
 #ifdef ENABLE_SSL

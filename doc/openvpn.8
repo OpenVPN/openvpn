@@ -3846,6 +3846,20 @@ space-saving optimization that uses the unique identifier for
 datagram replay protection as the IV.
 .\"*********************************************************
 .TP
+.B \-\-use-prediction-resistance
+Enable prediction resistance on PolarSSL's RNG.
+
+Enabling prediction resistance causes the RNG to reseed in each
+call for random. Reseeding this often can quickly deplete the kernel
+entropy pool.
+
+If you need this option, please consider running a daemon that adds
+entropy to the kernel pool.
+
+Note that this option only works with PolarSSL versions greater
+than 1.1.
+.\"*********************************************************
+.TP
 .B \-\-test-crypto
 Do a self-test of OpenVPN's crypto options by encrypting and
 decrypting test packets using the data channel encryption options

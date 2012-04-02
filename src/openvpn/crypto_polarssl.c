@@ -219,6 +219,15 @@ havege_state * rand_ctx_get()
 
 #endif /* (POLARSSL_VERSION_NUMBER >= 0x01010000) */
 
+#ifdef ENABLE_PREDICTION_RESISTANCE
+void rand_ctx_enable_prediction_resistance()
+{
+  ctr_drbg_context *cd_ctx = rand_ctx_get();
+
+  ctr_drbg_set_prediction_resistance(cd_ctx, 1);
+}
+#endif /* ENABLE_PREDICTION_RESISTANCE */
+
 int
 rand_bytes (uint8_t *output, int len)
 {

@@ -538,6 +538,14 @@ socket_defined (const socket_descriptor_t sd)
 #define MANAGMENT_EXTERNAL_KEY
 #endif
 
+/* Enable PolarSSL RNG prediction resistance support */
+#ifdef ENABLE_CRYPTO_POLARSSL
+#include <polarssl/version.h>
+#if POLARSSL_VERSION_NUMBER >= 0x01010000
+#define ENABLE_PREDICTION_RESISTANCE
+#endif
+#endif /* ENABLE_CRYPTO_POLARSSL */
+
 /*
  * MANAGEMENT_IN_EXTRA allows the management interface to
  * read multi-line inputs from clients.

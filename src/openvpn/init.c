@@ -2008,6 +2008,12 @@ init_crypto_pre (struct context *c, const unsigned int flags)
 
   if (c->options.mute_replay_warnings)
     c->c2.crypto_options.flags |= CO_MUTE_REPLAY_WARNINGS;
+
+#ifdef ENABLE_PREDICTION_RESISTANCE
+  if (c->options.use_prediction_resistance)
+    rand_ctx_enable_prediction_resistance();
+#endif
+
 }
 
 /*

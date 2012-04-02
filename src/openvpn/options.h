@@ -520,6 +520,9 @@ struct options
   const char *packet_id_file;
   bool use_iv;
   bool test_crypto;
+#ifdef ENABLE_PREDICTION_RESISTANCE
+  bool use_prediction_resistance;
+#endif
 
 #ifdef ENABLE_SSL
   /* TLS (control channel) parms */
