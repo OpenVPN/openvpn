@@ -44,6 +44,9 @@
 #include "manage.h"
 #include "ssl_common.h"
 
+#include <polarssl/sha2.h>
+#include <polarssl/havege.h>
+
 #include "ssl_verify_polarssl.h"
 #include <polarssl/pem.h>
 
@@ -85,9 +88,6 @@ tls_ctx_server_new(struct tls_root_ctx *ctx)
   ASSERT(NULL != ctx);
   CLEAR(*ctx);
 
-  ALLOC_OBJ_CLEAR(ctx->hs, havege_state);
-  havege_init(ctx->hs);
-
   ALLOC_OBJ_CLEAR(ctx->dhm_ctx, dhm_context);
   ALLOC_OBJ_CLEAR(ctx->priv_key, rsa_context);
 
@@ -103,11 +103,7 @@ void
 tls_ctx_client_new(struct tls_root_ctx *ctx)
 {
   ASSERT(NULL != ctx);
-
   CLEAR(*ctx);
-
-  ALLOC_OBJ_CLEAR(ctx->hs, havege_state);
-  havege_init(ctx->hs);
 
   ALLOC_OBJ_CLEAR(ctx->dhm_ctx, dhm_context);
   ALLOC_OBJ_CLEAR(ctx->priv_key, rsa_context);
@@ -142,8 +138,6 @@ tls_ctx_free(struct tls_root_ctx *ctx)
 	  free(ctx->priv_key_pkcs11);
       }
 #endif
-
-      free(ctx->hs);
 
       if (ctx->allowed_ciphers)
 	free(ctx->allowed_ciphers);
@@ -504,6 +498,30 @@ static void my_debug( void *ctx, int level, const char *str )
     }
 }
 
+/*
+ * Further personalise the RNG using a hash of the public key
+ */
+void tls_ctx_personalise_random(struct tls_root_ctx *ctx)
+{
+#if (POLARSSL_VERSION_NUMBER >= 0x01010000)
+  static char old_sha256_hash[32] = {0};
+  char sha256_hash[32] = {0};
+  ctr_drbg_context *cd_ctx = rand_ctx_get();
+
+  if (NULL != ctx->crt_chain)
+    {
+      x509_cert *cert = ctx->crt_chain;
+
+      sha2(cert->tbs.p, cert->tbs.len, sha256_hash, false);
+      if ( 0 != memcmp(old_sha256_hash, sha256_hash, sizeof(sha256_hash)))
+	{
+	  ctr_drbg_update(cd_ctx, sha256_hash, 32);
+	  memcpy(old_sha256_hash, sha256_hash, sizeof(old_sha256_hash));
+	}
+    }
+#endif /* POLARSSL_VERSION_NUMBER >= 0x01010000 */
+}
+
 void key_state_ssl_init(struct key_state_ssl *ks_ssl,
     const struct tls_root_ctx *ssl_ctx, bool is_server, void *session)
 {
@@ -517,7 +535,13 @@ void key_state_ssl_init(struct key_state_ssl *ks_ssl,
       /* Initialise SSL context */
       ssl_set_dbg (ks_ssl->ctx, my_debug, NULL);
       ssl_set_endpoint (ks_ssl->ctx, ssl_ctx->endpoint);
-      ssl_set_rng (ks_ssl->ctx, havege_rand, ssl_ctx->hs);
+
+#if (POLARSSL_VERSION_NUMBER >= 0x01010000)
+      ssl_set_rng (ks_ssl->ctx, ctr_drbg_random, rand_ctx_get());
+#else /* POLARSSL_VERSION_NUMBER >= 0x01010000 */
+      ssl_set_rng (ks_ssl->ctx, havege_rand, rand_ctx_get());
+#endif /* POLARSSL_VERSION_NUMBER >= 0x01010000 */
+
       ALLOC_OBJ_CLEAR (ks_ssl->ssn, ssl_session);
       ssl_set_session (ks_ssl->ctx, 0, 0, ks_ssl->ssn );
       if (ssl_ctx->allowed_ciphers)

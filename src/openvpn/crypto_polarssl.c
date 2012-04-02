@@ -42,11 +42,17 @@
 #include "buffer.h"
 #include "integer.h"
 #include "crypto_backend.h"
+#include "otime.h"
+#include "misc.h"
 
 #include <polarssl/des.h>
 #include <polarssl/md5.h>
 #include <polarssl/cipher.h>
 #include <polarssl/havege.h>
+
+#if (POLARSSL_VERSION_NUMBER >= 0x01010000)
+#include <polarssl/entropy.h>
+#endif
 
 /*
  *
@@ -149,7 +155,6 @@ show_available_engines ()
       "available\n");
 }
 
-
 /*
  *
  * Random number functions, used in cases where we want
@@ -159,29 +164,88 @@ show_available_engines ()
  *
  */
 
-int
-rand_bytes (uint8_t *output, int len)
+/*
+ * Initialise the given ctr_drbg context, using a personalisation string and an
+ * entropy gathering function.
+ */
+#if (POLARSSL_VERSION_NUMBER >= 0x01010000)
+ctr_drbg_context * rand_ctx_get()
+{
+  static entropy_context ec = {0};
+  static ctr_drbg_context cd_ctx = {0};
+  static bool rand_initialised = false;
+
+  if (!rand_initialised)
+    {
+      struct gc_arena gc = gc_new();
+      struct buffer pers_string = alloc_buf_gc(100, &gc);
+
+      /*
+       * Personalisation string, should be as unique as possible (see NIST
+       * 800-90 section 8.7.1). We have very little information at this stage.
+       * Include Program Name, memory address of the context and PID.
+       */
+      buf_printf(&pers_string, "OpenVPN %0u %p %s", platform_getpid(), &cd_ctx, time_string(0, 0, 0, &gc));
+
+      /* Initialise PolarSSL RNG, and built-in entropy sources */
+      entropy_init(&ec);
+
+      if (0 != ctr_drbg_init(&cd_ctx, entropy_func, &ec, BPTR(&pers_string), BLEN(&pers_string)))
+        msg (M_FATAL, "Failed to initialize random generator");
+
+      gc_free(&gc);
+      rand_initialised = true;
+  }
+
+  return &cd_ctx;
+}
+
+#else /* (POLARSSL_VERSION_NUMBER < 0x01010000) */
+
+havege_state * rand_ctx_get()
 {
   static havege_state hs = {0};
-  static bool hs_initialised = false;
-  const int int_size = sizeof(int);
+  static bool rand_initialised = false;
 
-  if (!hs_initialised)
+  if (!rand_initialised)
     {
       /* Initialise PolarSSL RNG */
       havege_init(&hs);
-      hs_initialised = true;
+      rand_initialised = true;
     }
+
+  return &hs;
+}
+
+#endif /* (POLARSSL_VERSION_NUMBER >= 0x01010000) */
+
+int
+rand_bytes (uint8_t *output, int len)
+{
+#if (POLARSSL_VERSION_NUMBER >= 0x01010000)
+  ctr_drbg_context *rng_ctx = rand_ctx_get();
+#else /* (POLARSSL_VERSION_NUMBER >= 0x01010000) */
+  havege_state *rng_ctx = rand_ctx_get();
+#endif /* (POLARSSL_VERSION_NUMBER >= 0x01010000) */
 
   while (len > 0)
     {
-      const int blen 	= min_int (len, int_size);
-      const int rand_int 	= havege_rand(&hs);
+#if (POLARSSL_VERSION_NUMBER >= 0x01010000)
+      const size_t blen = min_int (len, CTR_DRBG_MAX_REQUEST);
+      if (0 != ctr_drbg_random(rng_ctx, output, blen))
+	return 0;
 
+#else /* (POLARSSL_VERSION_NUMBER >= 0x01010000) */
+      const size_t blen = min_int (len, sizeof(int));
+      const int rand_int = havege_rand(rng_ctx);
       memcpy (output, &rand_int, blen);
+
+#endif /* (POLARSSL_VERSION_NUMBER >= 0x01010000) */
+
       output += blen;
       len -= blen;
     }
+
   return 1;
 }
 

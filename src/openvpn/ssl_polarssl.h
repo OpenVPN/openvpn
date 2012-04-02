@@ -30,7 +30,6 @@
 #ifndef SSL_POLARSSL_H_
 #define SSL_POLARSSL_H_
 
-#include <polarssl/havege.h>
 #include <polarssl/ssl.h>
 #include "config.h"
 
@@ -63,7 +62,6 @@ struct tls_root_ctx {
 
     int endpoint; 		/**< Whether or not this is a server or a client */
 
-    havege_state *hs;		/**< HAVEGE random number state */
     dhm_context *dhm_ctx;	/**< Diffie-Helmann-Merkle context */
     x509_cert *crt_chain;	/**< Local Certificate chain */
     x509_cert *ca_chain;	/**< CA chain for remote verification */
