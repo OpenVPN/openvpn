@@ -3,11 +3,11 @@ instructions:
 
 To Build and Install,
 
-	./configure --with-ssl-type=polarssl
+	./configure --with-crypto-library=polarssl
 	make
 	make install
 
-This version depends on at least PolarSSL v0.99.
+This version depends on at least PolarSSL v1.1.
 
 *************************************************************************
 
