@@ -50,9 +50,7 @@
 #include <polarssl/cipher.h>
 #include <polarssl/havege.h>
 
-#if (POLARSSL_VERSION_NUMBER >= 0x01010000)
 #include <polarssl/entropy.h>
-#endif
 
 /*
  *
@@ -168,7 +166,6 @@ show_available_engines ()
  * Initialise the given ctr_drbg context, using a personalisation string and an
  * entropy gathering function.
  */
-#if (POLARSSL_VERSION_NUMBER >= 0x01010000)
 ctr_drbg_context * rand_ctx_get()
 {
   static entropy_context ec = {0};
@@ -200,25 +197,6 @@ ctr_drbg_context * rand_ctx_get()
   return &cd_ctx;
 }
 
-#else /* (POLARSSL_VERSION_NUMBER < 0x01010000) */
-
-havege_state * rand_ctx_get()
-{
-  static havege_state hs = {0};
-  static bool rand_initialised = false;
-
-  if (!rand_initialised)
-    {
-      /* Initialise PolarSSL RNG */
-      havege_init(&hs);
-      rand_initialised = true;
-    }
-
-  return &hs;
-}
-
-#endif /* (POLARSSL_VERSION_NUMBER >= 0x01010000) */
-
 #ifdef ENABLE_PREDICTION_RESISTANCE
 void rand_ctx_enable_prediction_resistance()
 {
@@ -231,25 +209,13 @@ void rand_ctx_enable_prediction_resistance()
 int
 rand_bytes (uint8_t *output, int len)
 {
-#if (POLARSSL_VERSION_NUMBER >= 0x01010000)
   ctr_drbg_context *rng_ctx = rand_ctx_get();
-#else /* (POLARSSL_VERSION_NUMBER >= 0x01010000) */
-  havege_state *rng_ctx = rand_ctx_get();
-#endif /* (POLARSSL_VERSION_NUMBER >= 0x01010000) */
 
   while (len > 0)
     {
-#if (POLARSSL_VERSION_NUMBER >= 0x01010000)
       const size_t blen = min_int (len, CTR_DRBG_MAX_REQUEST);
       if (0 != ctr_drbg_random(rng_ctx, output, blen))
 	return 0;
-
-#else /* (POLARSSL_VERSION_NUMBER >= 0x01010000) */
-      const size_t blen = min_int (len, sizeof(int));
-      const int rand_int = havege_rand(rng_ctx);
-      memcpy (output, &rand_int, blen);
-
-#endif /* (POLARSSL_VERSION_NUMBER >= 0x01010000) */
 
       output += blen;
       len -= blen;

@@ -540,10 +540,7 @@ socket_defined (const socket_descriptor_t sd)
 
 /* Enable PolarSSL RNG prediction resistance support */
 #ifdef ENABLE_CRYPTO_POLARSSL
-#include <polarssl/version.h>
-#if POLARSSL_VERSION_NUMBER >= 0x01010000
 #define ENABLE_PREDICTION_RESISTANCE
-#endif
 #endif /* ENABLE_CRYPTO_POLARSSL */
 
 /*

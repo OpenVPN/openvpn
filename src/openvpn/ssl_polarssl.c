@@ -503,7 +503,6 @@ static void my_debug( void *ctx, int level, const char *str )
  */
 void tls_ctx_personalise_random(struct tls_root_ctx *ctx)
 {
-#if (POLARSSL_VERSION_NUMBER >= 0x01010000)
   static char old_sha256_hash[32] = {0};
   char sha256_hash[32] = {0};
   ctr_drbg_context *cd_ctx = rand_ctx_get();
@@ -519,7 +518,6 @@ void tls_ctx_personalise_random(struct tls_root_ctx *ctx)
 	  memcpy(old_sha256_hash, sha256_hash, sizeof(old_sha256_hash));
 	}
     }
-#endif /* POLARSSL_VERSION_NUMBER >= 0x01010000 */
 }
 
 void key_state_ssl_init(struct key_state_ssl *ks_ssl,
@@ -536,11 +534,7 @@ void key_state_ssl_init(struct key_state_ssl *ks_ssl,
       ssl_set_dbg (ks_ssl->ctx, my_debug, NULL);
       ssl_set_endpoint (ks_ssl->ctx, ssl_ctx->endpoint);
 
-#if (POLARSSL_VERSION_NUMBER >= 0x01010000)
       ssl_set_rng (ks_ssl->ctx, ctr_drbg_random, rand_ctx_get());
-#else /* POLARSSL_VERSION_NUMBER >= 0x01010000 */
-      ssl_set_rng (ks_ssl->ctx, havege_rand, rand_ctx_get());
-#endif /* POLARSSL_VERSION_NUMBER >= 0x01010000 */
 
       ALLOC_OBJ_CLEAR (ks_ssl->ssn, ssl_session);
       ssl_set_session (ks_ssl->ctx, 0, 0, ks_ssl->ssn );

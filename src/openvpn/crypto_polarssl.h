@@ -33,12 +33,7 @@
 #include <polarssl/version.h>
 #include <polarssl/cipher.h>
 #include <polarssl/md.h>
-
-#if (POLARSSL_VERSION_NUMBER >= 0x01010000)
-#  include <polarssl/ctr_drbg.h>
-#else
-#  include <polarssl/havege.h>
-#endif
+#include <polarssl/ctr_drbg.h>
 
 /** Generic cipher key type %context. */
 typedef cipher_info_t cipher_kt_t;
@@ -81,8 +76,6 @@ typedef md_context_t hmac_ctx_t;
 /**
  * Returns a singleton instance of the PolarSSL random number generator.
  *
- * For PolarSSL 1.0, this is the HAVEGE random number generator.
- *
  * For PolarSSL 1.1+, this is the CTR_DRBG random number generator. If it
  * hasn't been initialised yet, the RNG will be initialised using the default
  * entropy sources. Aside from the default platform entropy sources, an
@@ -90,11 +83,7 @@ typedef md_context_t hmac_ctx_t;
  * added. During initialisation, a personalisation string will be added based
  * on the time, the PID, and a pointer to the random context.
  */
-#if (POLARSSL_VERSION_NUMBER >= 0x01010000)
 ctr_drbg_context * rand_ctx_get();
-#else
-havege_state * rand_ctx_get();
-#endif
 
 #ifdef ENABLE_PREDICTION_RESISTANCE
 /**
