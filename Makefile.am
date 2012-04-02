@@ -52,6 +52,7 @@ dist_doc_DATA = \
 
 dist_noinst_DATA = \
 	.gitignore \
+	.gitattributes \
 	PORTS \
 	README.IPv6 TODO.IPv6 \
 	README.polarssl \
