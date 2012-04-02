@@ -392,7 +392,7 @@ init_ssl (const struct options *options, struct tls_root_ctx *new_ctx)
     }
 
 #ifdef ENABLE_CRYPTO_POLARSSL
-  /* Fox-IT hardening: Personalise the random by mixing in the certificate */
+  /* Personalise the random by mixing in the certificate */
   tls_ctx_personalise_random (new_ctx);
 #endif
 
