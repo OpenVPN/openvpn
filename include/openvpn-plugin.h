@@ -43,6 +43,10 @@ typedef X509 openvpn_x509_cert_t;
 #endif
 #endif
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /*
  * Plug-in types.  These types correspond to the set of script callbacks
  * supported by OpenVPN.
@@ -723,5 +727,9 @@ OPENVPN_PLUGIN_DEF openvpn_plugin_handle_t OPENVPN_PLUGIN_FUNC(openvpn_plugin_op
 
 OPENVPN_PLUGIN_DEF int OPENVPN_PLUGIN_FUNC(openvpn_plugin_func_v1)
      (openvpn_plugin_handle_t handle, const int type, const char *argv[], const char *envp[]);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* OPENVPN_PLUGIN_H_ */
