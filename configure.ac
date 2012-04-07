@@ -413,37 +413,37 @@ AC_CHECK_TYPES(
 )
 AC_CHECK_TYPE(
 	[struct tun_pi],
-	[AC_DEFINE(HAVE_TUN_PI, 1, [struct tun_pi needed for IPv6 support])],
+	[AC_DEFINE([HAVE_TUN_PI], [1], [struct tun_pi needed for IPv6 support])],
 	,
 	[[${SOCKET_INCLUDES}]]
 )
 AC_CHECK_TYPE(
 	[struct iphdr],
-	[AC_DEFINE(HAVE_IPHDR, 1, [struct iphdr needed for IPv6 support])],
+	[AC_DEFINE([HAVE_IPHDR], [1], [struct iphdr needed for IPv6 support])],
 	,
 	[[${SOCKET_INCLUDES}]]
 )
 AC_CHECK_TYPE(
 	[struct sock_extended_err],
-	[AC_DEFINE(HAVE_SOCK_EXTENDED_ERR, 1, [struct sock_extended_err needed for extended socket error support])],
+	[AC_DEFINE([HAVE_SOCK_EXTENDED_ERR], [1], [struct sock_extended_err needed for extended socket error support])],
 	,
 	[[${SOCKET_INCLUDES}]]
 )
 AC_CHECK_TYPE(
 	[struct msghdr],
-	[AC_DEFINE(HAVE_MSGHDR, 1, [struct msghdr needed for extended socket error support])],
+	[AC_DEFINE([HAVE_MSGHDR], [1], [struct msghdr needed for extended socket error support])],
 	,
 	[[${SOCKET_INCLUDES}]]
 )
 AC_CHECK_TYPE(
 	[struct cmsghdr],
-	[AC_DEFINE(HAVE_CMSGHDR, 1, [struct cmsghdr needed for extended socket error support])],
+	[AC_DEFINE([HAVE_CMSGHDR], [1], [struct cmsghdr needed for extended socket error support])],
 	,
 	[[${SOCKET_INCLUDES}]]
 )
 AC_CHECK_TYPE(
 	[struct in_pktinfo],
-	[AC_DEFINE(HAVE_IN_PKTINFO, 1, [struct in_pktinfo needed for IP_PKTINFO support])],
+	[AC_DEFINE([HAVE_IN_PKTINFO], [1], [struct in_pktinfo needed for IP_PKTINFO support])],
 	,
 	[[${SOCKET_INCLUDES}]]
 )
