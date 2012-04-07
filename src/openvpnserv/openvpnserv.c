@@ -87,9 +87,9 @@ static HANDLE exit_event = NULL;
 /*
  * Message handling
  */
-#define M_INFO    (0)                                  // informational
-#define M_SYSERR  (MSG_FLAGS_ERROR|MSG_FLAGS_SYS_CODE) // error + system code
-#define M_ERR     (MSG_FLAGS_ERROR)                    // error
+#define M_INFO    (0)                                  /* informational */
+#define M_SYSERR  (MSG_FLAGS_ERROR|MSG_FLAGS_SYS_CODE) /* error + system code */
+#define M_ERR     (MSG_FLAGS_ERROR)                    /* error */
 
 /* write error to event log */
 #define MSG(flags, ...) \
