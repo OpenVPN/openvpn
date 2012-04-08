@@ -501,7 +501,7 @@ packet_id_debug_print (int msglevel,
 
   buf_printf (&out, "%s [%d]", message, value);
   buf_printf (&out, " [%s-%d] [", p->name, p->unit);
-  for (i = 0; i < sl->x_size; ++i)
+  for (i = 0; sl != NULL && i < sl->x_size; ++i)
     {
       char c;
       time_t v;
@@ -538,11 +538,15 @@ packet_id_debug_print (int msglevel,
 	      p->time_backtrack,
 	      p->max_backtrack_stat,
 	      (int)p->initialized);
-  buf_printf (&out, " sl=[%d,%d,%d,%d]",
-	      sl->x_head,
-	      sl->x_size,
-	      sl->x_cap,
-	      sl->x_sizeof);
+  if (sl != NULL)
+    {
+	  buf_printf (&out, " sl=[%d,%d,%d,%d]",
+		      sl->x_head,
+		      sl->x_size,
+		      sl->x_cap,
+		      sl->x_sizeof);
+    }
+
 
   msg (msglevel, "%s", BSTR(&out));
   gc_free (&gc);
