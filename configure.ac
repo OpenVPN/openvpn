@@ -396,6 +396,9 @@ SOCKET_INCLUDES="
 #ifdef HAVE_NETINET_IN_SYSTM_H
 #include <netinet/in_systm.h>
 #endif
+#ifdef HAVE_NETINET_IP_H
+#include <netinet/ip.h>
+#endif
 "
 
 AC_CHECK_HEADERS(
