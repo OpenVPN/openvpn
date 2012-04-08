@@ -1517,7 +1517,7 @@ open_tun (const char *dev, const char *dev_type, const char *dev_node, struct tu
 
 #endif /* HAVE_LINUX_IF_TUN_H */
 
-#ifdef TUNSETPERSIST
+#ifdef ENABLE_FEATURE_TUN_PERSIST
 
 /*
  * This can be removed in future
@@ -1567,7 +1567,7 @@ tuncfg (const char *dev, const char *dev_type, const char *dev_node, int persist
   msg (M_INFO, "Persist state set to: %s", (persist_mode ? "ON" : "OFF"));
 }
 
-#endif /* TUNSETPERSIST */
+#endif /* ENABLE_FEATURE_TUN_PERSIST */
 
 void
 close_tun (struct tuntap *tt)

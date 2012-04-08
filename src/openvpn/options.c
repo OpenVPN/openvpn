@@ -725,7 +725,7 @@ static const char usage_message[] =
   "                  for use with the --secret option.\n"
   "--secret file   : Write key to file.\n"
 #endif				/* ENABLE_CRYPTO */
-#ifdef TUNSETPERSIST
+#ifdef ENABLE_FEATURE_TUN_PERSIST
   "\n"
   "Tun/tap config mode (available with linux 2.4+):\n"
   "--mktun         : Create a persistent tunnel.\n"
@@ -791,7 +791,7 @@ init_options (struct options *o, const bool init_gc)
   o->management_echo_buffer_size = 100;
   o->management_state_buffer_size = 100;
 #endif
-#ifdef TUNSETPERSIST
+#ifdef ENABLE_FEATURE_TUN_PERSIST
   o->persist_mode = 1;
 #endif
 #ifndef WIN32
@@ -1420,7 +1420,7 @@ show_settings (const struct options *o)
   
   SHOW_INT (mode);
 
-#ifdef TUNSETPERSIST
+#ifdef ENABLE_FEATURE_TUN_PERSIST
   SHOW_BOOL (persist_config);
   SHOW_INT (persist_mode);
 #endif
@@ -6788,7 +6788,7 @@ add_option (struct options *options,
       options->pkcs11_id_management = true;
     }
 #endif
-#ifdef TUNSETPERSIST
+#ifdef ENABLE_FEATURE_TUN_PERSIST
   else if (streq (p[0], "rmtun"))
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
