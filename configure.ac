@@ -363,7 +363,7 @@ AC_CHECK_HEADERS([ \
 	windows.h winsock2.h ws2tcpip.h \
 ])
 AC_CHECK_HEADERS([ \
-	sys/time.h sys/un.h sys/ioctl.h sys/stat.h \
+	sys/time.h sys/ioctl.h sys/stat.h \
 	sys/mman.h sys/file.h \
 	unistd.h signal.h libgen.h stropts.h \
 	syslog.h pwd.h grp.h \
@@ -402,7 +402,7 @@ SOCKET_INCLUDES="
 "
 
 AC_CHECK_HEADERS(
-	[net/if.h netinet/ip.h netinet/if_ether.h resolv.h],
+	[net/if.h netinet/ip.h netinet/if_ether.h resolv.h sys/un.h],
 	,
 	,
 	[[${SOCKET_INCLUDES}]]
