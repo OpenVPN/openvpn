@@ -168,6 +168,7 @@ AC_ARG_ENABLE(
 AC_ARG_ENABLE(
 	[password-save],
 	[AS_HELP_STRING([--enable-password-save], [allow --askpass and --auth-user-pass passwords to be read from a file @<:@default=yes@:>@])],
+	,
 	[enable_password_save="no"]
 )
 
