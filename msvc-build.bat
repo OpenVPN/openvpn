@@ -4,6 +4,7 @@ rem Copyright (C) 2008-2012 Alon Bar-Lev <alon.barlev@gmail.com>
 @rem this stupid command needed for SetEnv.cmd to operate
 setlocal ENABLEDELAYEDEXPANSION
 
+cd /d %0\..
 call msvc-env.bat
 
 set PLATFORMS=Win32

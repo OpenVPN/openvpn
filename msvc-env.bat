@@ -1,7 +1,5 @@
 @echo off
 
-cd %0\..
-
 rem Put your own settings at msvc-env-local.bat
 if exist msvc-env-local.bat call msvc-env-local.bat
 

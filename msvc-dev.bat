@@ -1,7 +1,7 @@
 @echo off
 
 setlocal
-cd %0\..
+cd /d %0\..
 call msvc-env.bat
 
 if exist "%VSHOME%\Common7\IDE\VCExpress.exe" (
