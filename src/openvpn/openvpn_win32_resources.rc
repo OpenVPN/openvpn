@@ -5,6 +5,8 @@
 #endif
 #include <winresrc.h>
 
+#pragma code_page(65001) /* UTF8 */
+
 LANGUAGE LANG_NEUTRAL, SUBLANG_NEUTRAL
 
 VS_VERSION_INFO VERSIONINFO
@@ -28,7 +30,7 @@ BEGIN
             VALUE "FileDescription", "OpenVPN Daemon"
             VALUE "FileVersion", PACKAGE_VERSION ".0"
             VALUE "InternalName", "OpenVPN"
-            VALUE "LegalCopyright", "Copyright © The OpenVPN Project" 
+            VALUE "LegalCopyright", "Copyright Â© The OpenVPN Project" 
             VALUE "OriginalFilename", "openvpn.exe"
             VALUE "ProductName", "OpenVPN"
             VALUE "ProductVersion", PACKAGE_VERSION ".0"
