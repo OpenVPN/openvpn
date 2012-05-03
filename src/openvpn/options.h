@@ -749,9 +749,6 @@ bool apply_push_options (struct options *options,
 			 unsigned int *option_types_found,
 			 struct env_set *es);
 
-bool is_persist_option (const struct options *o);
-bool is_stateful_restart (const struct options *o);
-
 void options_detach (struct options *o);
 
 void options_server_import (struct options *o,

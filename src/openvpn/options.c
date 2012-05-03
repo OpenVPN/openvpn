@@ -1050,22 +1050,6 @@ string_substitute (const char *src, int from, int to, struct gc_arena *gc)
   return ret;
 }
 
-bool
-is_persist_option (const struct options *o)
-{
-  return o->persist_tun
-      || o->persist_key
-      || o->persist_local_ip
-      || o->persist_remote_ip
-    ;
-}
-
-bool
-is_stateful_restart (const struct options *o)
-{
-  return is_persist_option (o) || connection_list_defined (o);
-}
-
 #ifdef ENABLE_SSL
 static uint8_t *
 parse_hash_fingerprint(const char *str, int nbytes, int msglevel, struct gc_arena *gc)
