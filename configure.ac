@@ -229,6 +229,12 @@ AC_ARG_ENABLE(
 )
 
 AC_ARG_WITH(
+	[special-build],
+	[AS_HELP_STRING([--with-special-build=STRING], [specify special build string])],
+	[test -n "${withval}" && AC_DEFINE_UNQUOTED([CONFIGURE_SPECIAL_BUILD], ["${withval}"], [special build string])]
+)
+
+AC_ARG_WITH(
 	[mem-check],
 	[AS_HELP_STRING([--with-mem-check=TYPE], [build with debug memory checking, TYPE=no|dmalloc|valgrind|ssl @<:@default=no@:>@])],
 	[

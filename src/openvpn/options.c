@@ -3464,6 +3464,9 @@ usage_version (void)
 #ifdef CONFIGURE_DEFINES
   msg (M_INFO|M_NOPREFIX, "Compile time defines: %s", CONFIGURE_DEFINES);
 #endif
+#ifdef CONFIGURE_SPECIAL_BUILD
+  msg (M_INFO|M_NOPREFIX, "special build: %s", CONFIGURE_SPECIAL_BUILD);
+#endif
 #ifdef CONFIGURE_GIT_REVISION
   msg (M_INFO|M_NOPREFIX, "git revision: %s", CONFIGURE_GIT_REVISION);
 #endif
