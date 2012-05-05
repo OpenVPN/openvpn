@@ -252,7 +252,7 @@ AC_ARG_WITH(
 	[with_crypto_library="openssl"]
 )
 
-AC_DEFINE_UNQUOTED(TARGET_ALIAS, "${host}", [A string representing our host])
+AC_DEFINE_UNQUOTED([TARGET_ALIAS], ["${host}"], [A string representing our host])
 case "$host" in
 	*-*-linux*)
 		AC_DEFINE([TARGET_LINUX], [1], [Are we running on Linux?])
