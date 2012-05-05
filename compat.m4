@@ -43,6 +43,11 @@ ifdef(
 	[AC_DEFUN([AC_USE_SYSTEM_EXTENSIONS], [GNU_SOURCE])]
 )
 ifdef(
+	[AC_PROG_SED],
+	,
+	[AC_DEFUN([AC_PROG_SED], [AC_CHECK_PROGS([SED], [sed])])]
+)
+ifdef(
 	[AC_TYPE_INT8_T],
 	,
 	[
