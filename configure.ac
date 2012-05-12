@@ -365,7 +365,7 @@ AC_CHECK_HEADERS([ \
 ])
 AC_CHECK_HEADERS([ \
 	sys/time.h sys/ioctl.h sys/stat.h \
-	sys/mman.h sys/file.h \
+	sys/mman.h sys/file.h sys/wait.h \
 	unistd.h signal.h libgen.h stropts.h \
 	syslog.h pwd.h grp.h \
 	sys/sockio.h sys/uio.h linux/sockios.h \
