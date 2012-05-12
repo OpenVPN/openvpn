@@ -164,6 +164,10 @@ done
 
 %__mv -f src/plugins/README src/plugins/README.plugins
 
+# Install extra %doc stuff
+cp -r AUTHORS ChangeLog NEWS contrib/ sample/ src/plugins/README.* \
+	"%{buildroot}/%{_docdir}/%{name}-%{version}"
+
 #
 # Clean section
 #
@@ -207,22 +211,21 @@ fi
 #
 # Files section
 #
+# don't use %doc as old rpmbuild removes it[1].
+# [1] http://rpm.org/ticket/836
 
 %files
 %defattr(-,root,root)
-%doc AUTHORS ChangeLog COPYING COPYRIGHT.GPL INSTALL NEWS PORTS README 
 %{_mandir}
 %{_sbindir}/%{name}
 %{_datadir}/%{name}
+%{_docdir}/%{name}-%{version}
 %dir /etc/%{name}
 %if "%{VENDOR}" == "SuSE"
 /etc/init.d/%{name}
 %else
 /etc/rc.d/init.d/%{name}
 %endif
-
-# Install extra %doc stuff
-%doc contrib/ sample/ src/plugins/README.*
 
 %files devel
 %defattr(-,root,root)

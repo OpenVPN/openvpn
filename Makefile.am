@@ -47,6 +47,9 @@ EXTRA_DIST = \
 SUBDIRS = build distro include src sample doc tests
 
 dist_doc_DATA = \
+	README \
+	README.IPv6 \
+	README.polarssl \
 	COPYRIGHT.GPL \
 	COPYING
 
