@@ -12,8 +12,8 @@
 #   rpmbuild -tb [openvpn.x.tar.gz] --define 'with_password_save 1'
 
 Summary:	OpenVPN is a robust and highly flexible VPN daemon by James Yonan.
-Name:           @PACKAGE@
-Version:        @VERSION@
+Name:		@PACKAGE@
+Version:	@VERSION@
 Release:	1
 URL:		http://openvpn.net/
 Source0:	http://prdownloads.sourceforge.net/openvpn/%{name}-%{version}.tar.gz
@@ -30,27 +30,27 @@ BuildRoot:	%{_tmppath}/%{name}-%(id -un)
 
 AutoReq: 0
 
-BuildRequires: openssl-devel >= 0.9.6
-Requires:      openssl       >= 0.9.6
+BuildRequires:	openssl-devel >= 0.9.6
+Requires:	openssl       >= 0.9.6
 
 %if "%{_vendor}" == "Mandrakesoft"
-%{!?without_lzo:BuildRequires: liblzo1-devel >= 1.07}
-%{!?without_lzo:Requires:      liblzo1       >= 1.07}
+%{!?without_lzo:BuildRequires:	liblzo1-devel >= 1.07}
+%{!?without_lzo:Requires:	liblzo1       >= 1.07}
 %else
 %if "%{_vendor}" == "MandrakeSoft"
-%{!?without_lzo:BuildRequires: liblzo1-devel >= 1.07}
-%{!?without_lzo:Requires:      liblzo1       >= 1.07}
+%{!?without_lzo:BuildRequires:	liblzo1-devel >= 1.07}
+%{!?without_lzo:Requires:	liblzo1       >= 1.07}
 %else
-%{!?without_lzo:BuildRequires: lzo-devel >= 1.07}
-%{!?without_lzo:Requires:      lzo       >= 1.07}
+%{!?without_lzo:BuildRequires:	lzo-devel >= 1.07}
+%{!?without_lzo:Requires:	lzo       >= 1.07}
 %endif
 %endif
 
-%{!?without_pam:BuildRequires: pam-devel}
-%{!?without_pam:Requires:      pam}
+%{!?without_pam:BuildRequires:	pam-devel}
+%{!?without_pam:Requires:	pam}
 
-%{?with_pkcs11:BuildRequires: pkcs11-helper-devel}
-%{?with_pkcs11:Requires:      pkcs11-helper}
+%{?with_pkcs11:BuildRequires:	pkcs11-helper-devel}
+%{?with_pkcs11:Requires:	pkcs11-helper}
 
 #
 # Description
@@ -68,7 +68,7 @@ and portability to most major OS platforms.
 %package devel
 Summary:	OpenVPN is a robust and highly flexible VPN daemon by James Yonan.
 Group:		Applications/Internet
-Requires:      %{name}
+Requires:	%{name}
 %description devel
 Development support for OpenVPN.
 
@@ -134,10 +134,10 @@ popd
 # Install init script
 %if "%{VENDOR}" == "SuSE"
 %__install -c -d -m 755 "%{buildroot}/etc/init.d"
-%__install -c -m 755 "distro/rpm/%{name}.init.d.suse"  "%{buildroot}/etc/init.d/%{name}"
+%__install -c -m 755 "distro/rpm/%{name}.init.d.suse" "%{buildroot}/etc/init.d/%{name}"
 %else
 %__install -c -d -m 755 "%{buildroot}/etc/rc.d/init.d"
-%__install -c -m 755 distro/rpm/%{name}.init.d.rhel  "%{buildroot}/etc/rc.d/init.d/%{name}"
+%__install -c -m 755 distro/rpm/%{name}.init.d.rhel "%{buildroot}/etc/rc.d/init.d/%{name}"
 %endif
 
 # Install /etc/openvpn
