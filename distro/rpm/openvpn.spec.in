@@ -30,8 +30,8 @@ BuildRoot:	%{_tmppath}/%{name}-%(id -un)
 
 AutoReq: 0
 
-BuildRequires:	openssl-devel >= 0.9.6
-Requires:	openssl       >= 0.9.6
+BuildRequires:	openssl-devel >= 0.9.7
+Requires:	openssl       >= 0.9.7
 
 %if "%{_vendor}" == "Mandrakesoft"
 %{!?without_lzo:BuildRequires:	liblzo1-devel >= 1.07}
