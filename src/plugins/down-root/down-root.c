@@ -26,6 +26,10 @@
  * OpenVPN plugin module to do privileged down-script execution.
  */
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
@@ -37,7 +41,7 @@
 #include <signal.h>
 #include <syslog.h>
 
-#include "openvpn-plugin.h"
+#include <openvpn-plugin.h>
 
 #define DEBUG(verb) ((verb) >= 7)
 

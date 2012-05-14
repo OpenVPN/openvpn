@@ -17,8 +17,11 @@ CLEANFILES = openvpn.8.html
 dist_doc_DATA = \
 	management-notes.txt
 
+dist_noinst_DATA = \
+	README.plugins
+
 if WIN32
-dist_noinst_DATA = openvpn.8
+dist_noinst_DATA += openvpn.8
 nodist_html_DATA = openvpn.8.html
 openvpn.8.html: $(srcdir)/openvpn.8
 	$(MAN2HTML) < $(srcdir)/openvpn.8 > openvpn.8.html

@@ -26,12 +26,14 @@
  * OpenVPN plugin module to do PAM authentication using a split
  * privilege model.
  */
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
 
-#if DLOPEN_PAM
-#include <dlfcn.h>
-#include "pamdl.h"
-#else
 #include <security/pam_appl.h>
+
+#ifdef USE_PAM_DLOPEN
+#include "pamdl.h"
 #endif
 
 #include <stdio.h>
@@ -46,7 +48,7 @@
 #include <signal.h>
 #include <syslog.h>
 
-#include "openvpn-plugin.h"
+#include <openvpn-plugin.h>
 
 #define DEBUG(verb) ((verb) >= 4)
 
@@ -693,7 +695,7 @@ pam_server (int fd, const char *service, int verb, const struct name_value_list 
 {
   struct user_pass up;
   int command;
-#if DLOPEN_PAM
+#ifdef USE_PAM_DLOPEN
   static const char pam_so[] = "libpam.so";
 #endif
 
@@ -703,7 +705,7 @@ pam_server (int fd, const char *service, int verb, const struct name_value_list 
   if (DEBUG (verb))
     fprintf (stderr, "AUTH-PAM: BACKGROUND: INIT service='%s'\n", service);
 
-#if DLOPEN_PAM
+#ifdef USE_PAM_DLOPEN
   /*
    * Load PAM shared object
    */
@@ -794,7 +796,7 @@ pam_server (int fd, const char *service, int verb, const struct name_value_list 
     }
  done:
 
-#if DLOPEN_PAM
+#ifdef USE_PAM_DLOPEN
   dlclose_pam ();
 #endif
   if (DEBUG (verb))

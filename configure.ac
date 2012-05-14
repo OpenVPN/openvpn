@@ -194,6 +194,27 @@ AC_ARG_ENABLE(
 )
 
 AC_ARG_ENABLE(
+	[plugin-auth-pam],
+	[AS_HELP_STRING([--disable-plugin-auth-pam], [disable auth-pam plugin @<:@default=yes@:>@])],
+	,
+	[enable_plugin_auth_pam="yes"]
+)
+
+AC_ARG_ENABLE(
+	[plugin-down-root],
+	[AS_HELP_STRING([--disable-plugin-down-root], [disable down-root plugin @<:@default=yes@:>@])],
+	,
+	[enable_plugin_down_root="yes"]
+)
+
+AC_ARG_ENABLE(
+	[pam-dlopen],
+	[AS_HELP_STRING([--enable-pam-dlopen], [dlopen libpam @<:@default=no@:>@])],
+	,
+	[enable_pam_dlopen="no"]
+)
+
+AC_ARG_ENABLE(
 	[strict],
 	[AS_HELP_STRING([--enable-strict], [enable strict compiler warnings (debugging option) @<:@default=no@:>@])],
 	,
@@ -257,6 +278,14 @@ AC_ARG_WITH(
 	],
 	[with_crypto_library="openssl"]
 )
+
+AC_ARG_WITH(
+	[plugindir],
+	[AS_HELP_STRING([--with-plugindir], [plugin directory @<:@default=LIBDIR/openvpn@:>@])],
+	,
+	[with_plugindir="\$(libdir)/openvpn/plugins"]
+)
+
 
 AC_DEFINE_UNQUOTED([TARGET_ALIAS], ["${host}"], [A string representing our host])
 case "$host" in
@@ -624,6 +653,16 @@ AC_CHECK_LIB(
 )
 AC_SUBST([SELINUX_LIBS])
 
+AC_ARG_VAR([LIBPAM_CFLAGS], [C compiler flags for libpam])
+AC_ARG_VAR([LIBPAM_LIBS], [linker flags for libpam])
+if test -z "${LIBPAM_LIBS}"; then
+	AC_CHECK_LIB(
+		[pam],
+		[pam_start],
+		[LIBPAM_LIBS="-lpam"]
+	)
+fi
+
 case "${with_mem_check}" in
 	valgrind)
 		AC_CHECK_HEADER(
@@ -894,6 +933,9 @@ if test "${enable_plugins}" = "yes"; then
 	OPTIONAL_DL_LIBS="${DL_LIBS}"
 	AC_DEFINE([ENABLE_PLUGIN], [1], [Enable systemd support])
 	test "${enable_eurephia}" = "yes" && AC_DEFINE([ENABLE_EUREPHIA], [1], [Enable support for the eurephia plug-in])
+else
+	enable_plugin_auth_pam="no"
+	enable_plugin_down_root="no"
 fi
 
 if test "${enable_iproute2}" = "yes"; then
@@ -945,6 +987,17 @@ if test "${WIN32}" = "yes"; then
 	test -z "${MAN2HTML}" && AC_MSG_ERROR([man2html is required for win32])
 fi
 
+if test "${enable_plugin_auth_pam}" = "yes"; then
+	PLUGIN_AUTH_PAM_CFLAGS="${LIBPAM_CFLAGS}"
+	if test "${enable_pam_dlopen}" = "yes"; then
+		AC_DEFINE([USE_PAM_DLOPEN], [1], [dlopen libpam])
+		PLUGIN_AUTH_PAM_LIBS="${DL_LIBS}"
+	else
+		test -z "${LIBPAM_LIBS}" && AC_MSG_ERROR([libpam required but missing])
+		PLUGIN_AUTH_PAM_LIBS="${LIBPAM_LIBS}"
+	fi
+fi
+
 CONFIGURE_DEFINES="`set | grep '^enable_.*=' ; set | grep '^with_.*='`"
 AC_DEFINE_UNQUOTED([CONFIGURE_DEFINES], ["`echo ${CONFIGURE_DEFINES}`"], [Configuration settings])
 
@@ -967,10 +1020,17 @@ AC_SUBST([OPTIONAL_LZO_LIBS])
 AC_SUBST([OPTIONAL_PKCS11_HELPER_CFLAGS])
 AC_SUBST([OPTIONAL_PKCS11_HELPER_LIBS])
 
+AC_SUBST([PLUGIN_AUTH_PAM_CFLAGS])
+AC_SUBST([PLUGIN_AUTH_PAM_LIBS])
+
 AM_CONDITIONAL([WIN32], [test "${WIN32}" = "yes"])
 AM_CONDITIONAL([GIT_CHECKOUT], [test "${GIT_CHECKOUT}" = "yes"])
+AM_CONDITIONAL([ENABLE_PLUGIN_AUTH_PAM], [test "${enable_plugin_auth_pam}" = "yes"])
+AM_CONDITIONAL([ENABLE_PLUGIN_DOWN_ROOT], [test "${enable_plugin_down_root}" = "yes"])
 
+plugindir="${with_plugindir}"
 sampledir="\$(docdir)/sample"
+AC_SUBST([plugindir])
 AC_SUBST([sampledir])
 
 AC_CONFIG_FILES([
@@ -987,6 +1047,9 @@ AC_CONFIG_FILES([
 	src/compat/Makefile
 	src/openvpn/Makefile
 	src/openvpnserv/Makefile
+	src/plugins/Makefile
+	src/plugins/auth-pam/Makefile
+	src/plugins/down-root/Makefile
 	tests/Makefile
 	sample/Makefile
 	doc/Makefile

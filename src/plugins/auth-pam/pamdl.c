@@ -1,4 +1,8 @@
-#if DLOPEN_PAM
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
+#ifdef USE_PAM_DLOPEN
 /*
  * If you want to dynamically load libpam using dlopen() or something,
  * then dlopen( ' this shared object ' ); It takes care of exporting
@@ -73,7 +77,7 @@ int pam_set_item(pam_handle_t *pamh, int item_type, const void *item)
     return real_pam_set_item(pamh, item_type, item);
 }
 
-int pam_get_item(pam_handle_t *pamh, int item_type, const void **item)
+int pam_get_item(const pam_handle_t *pamh, int item_type, const void **item)
 {
     int (*real_pam_get_item)(const pam_handle_t *, int, const void **);
     RESOLVE_PAM_FUNCTION(pam_get_item, int,

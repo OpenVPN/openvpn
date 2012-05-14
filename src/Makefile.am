@@ -12,7 +12,4 @@
 MAINTAINERCLEANFILES = \
 	$(srcdir)/Makefile.in
 
-EXTRA_DIST = \
-	plugins
-
-SUBDIRS = compat openvpn openvpnserv
+SUBDIRS = compat openvpn openvpnserv plugins

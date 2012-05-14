@@ -83,13 +83,6 @@ Development support for OpenVPN.
 %endif
 
 #
-# Should we build the auth-pam module?
-#
-
-%define build_auth_pam 1
-%{?without_pam:%define build_auth_pam 0}
-
-#
 # Other definitions
 #
 
@@ -108,20 +101,9 @@ Development support for OpenVPN.
 	--docdir="%{_docdir}/%{name}-%{version}" \
 	%{?with_password_save:--enable-password-save} \
 	%{!?without_lzo:--enable-lzo} \
-	%{?with_pkcs11:--enable-pkcs11}
+	%{?with_pkcs11:--enable-pkcs11} \
+	%{?without_pam:--disable-plugin-auth-pam}
 %__make
-
-# Build down-root plugin
-pushd src/plugins/down-root
-%__make
-popd
-
-# Build auth-pam plugin
-%if %{build_auth_pam}
-pushd src/plugins/auth-pam
-%__make
-popd
-%endif
 
 #
 # Installation section
@@ -143,29 +125,8 @@ popd
 # Install /etc/openvpn
 %__install -c -d -m 755 "%{buildroot}/etc/%{name}"
 
-#
-# Build /usr/share/openvpn
-#
-
-%__mkdir_p %{buildroot}%{_datadir}/%{name}
-
-#
-# Install the plugins
-#
-
-%__mkdir_p "%{buildroot}%{_datadir}/%{name}/plugins/lib"
-
-for pi in auth-pam down-root; do
-  %__mv -f src/plugins/$pi/README src/plugins/README.$pi
-  if [ -e src/plugins/$pi/openvpn-$pi.so ]; then
-    %__install -c -m 755 src/plugins/$pi/openvpn-$pi.so "%{buildroot}%{_datadir}/openvpn/plugins/lib/openvpn-$pi.so"
-  fi
-done
-
-%__mv -f src/plugins/README src/plugins/README.plugins
-
 # Install extra %doc stuff
-cp -r AUTHORS ChangeLog NEWS contrib/ sample/ src/plugins/README.* \
+cp -r AUTHORS ChangeLog NEWS contrib/ sample/ \
 	"%{buildroot}/%{_docdir}/%{name}-%{version}"
 
 #
@@ -218,7 +179,7 @@ fi
 %defattr(-,root,root)
 %{_mandir}
 %{_sbindir}/%{name}
-%{_datadir}/%{name}
+%{_libdir}/%{name}
 %{_docdir}/%{name}-%{version}
 %dir /etc/%{name}
 %if "%{VENDOR}" == "SuSE"
