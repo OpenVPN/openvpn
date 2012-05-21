@@ -734,6 +734,27 @@ if test -z "${POLARSSL_LIBS}"; then
 	)
 fi
 
+if test "${with_crypto_library}" = "polarssl" ; then
+	AC_MSG_CHECKING([polarssl version])
+	old_CFLAGS="${CFLAGS}"
+	CFLAGS="${POLARSSL_CFLAGS} ${CFLAGS}"
+	AC_COMPILE_IFELSE(
+		[AC_LANG_PROGRAM(
+			[[
+#include <polarssl/version.h>
+			]],
+			[[
+#if POLARSSL_VERSION_NUMBER <= 0x01010000
+#error invalid version
+#endif
+			]]
+		)],
+		[AC_MSG_RESULT([ok])],
+		[AC_MSG_ERROR([invalid polarssl version])]
+	)
+	CFLAGS="${old_CFLAGS}"
+fi
+
 AC_ARG_VAR([LZO_CFLAGS], [C compiler flags for lzo])
 AC_ARG_VAR([LZO_LIBS], [linker flags for lzo])
 have_lzo="yes"
