@@ -14,16 +14,19 @@
 
 srcdir="${srcdir:-.}"
 top_builddir="${top_builddir:-..}"
-if [ -r "${srcdir}"/t_client.rc ] ; then
+if [ -r "${top_builddir}"/t_client.rc ] ; then
+    . "${top_builddir}"/t_client.rc
+elif [ -r "${srcdir}"/t_client.rc ] ; then
     . "${srcdir}"/t_client.rc
 else
-    echo "$0: cannot find 't_client.rc' in ('${srcdir}'). SKIPPING TEST." >&2
+    echo "$0: cannot find 't_client.rc' in build dir ('${top_builddir}')" >&2
+    echo "$0: or source directory ('${srcdir}'). SKIPPING TEST." >&2
     exit 77
 fi
 
 if [ ! -x "${top_builddir}/src/openvpn/openvpn" ]
 then
-    echo "no (executable) openvpn binary in current directory. FAIL." >&2
+    echo "no (executable) openvpn binary in current build tree. FAIL." >&2
     exit 1
 fi
 
@@ -83,7 +86,7 @@ fail()
 get_ifconfig_route()
 {
     # linux / iproute2? (-> if configure got a path)
-    if [ "@IPROUTE@" != "ip" ]
+    if [ "@IPROUTE@" != "" ]
     then
 	echo "-- linux iproute2 --"
 	@IPROUTE@ addr show     | grep -v valid_lft
@@ -236,7 +239,7 @@ do
     trap "$RUN_SUDO kill $opid ; trap - 0 ; exit 1" 1 2 3 15
 
     echo "wait for connection to establish..."
-    sleep 10
+    sleep ${SETUP_TIME_WAIT:-10}
 
     # test whether OpenVPN process is still there
     if $RUN_SUDO kill -0 $opid

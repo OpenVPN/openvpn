@@ -12,13 +12,12 @@
 MAINTAINERCLEANFILES = \
 	$(srcdir)/Makefile.in
 
-test_scripts = t_lpback.sh t_cltsrv.sh
+test_scripts = t_client.sh t_lpback.sh t_cltsrv.sh
 
 TESTS_ENVIRONMENT = top_srcdir="$(top_srcdir)"
 TESTS = $(test_scripts)
 
 dist_noinst_SCRIPTS = \
 	$(test_scripts) \
-	t_cltsrv-down.sh \
-	t_client.sh
+	t_cltsrv-down.sh
 
