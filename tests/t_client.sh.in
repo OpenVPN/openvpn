@@ -86,12 +86,12 @@ fail()
 get_ifconfig_route()
 {
     # linux / iproute2? (-> if configure got a path)
-    if [ "@IPROUTE@" != "" ]
+    if [ -n "@IPROUTE@" ]
     then
 	echo "-- linux iproute2 --"
 	@IPROUTE@ addr show     | grep -v valid_lft
 	@IPROUTE@ route show
-	@IPROUTE@ -6 route show | sed -e 's/expires [0-9]*sec //'
+	@IPROUTE@ -o -6 route show | grep -v ' cache' | sed -e 's/expires [0-9]*sec //'
 	return
     fi
 
