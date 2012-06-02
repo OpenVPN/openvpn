@@ -4017,10 +4017,11 @@ void options_string_import (struct options *options,
 
 #if P2MP
 
-#define VERIFY_PERMISSION(mask) { if (!verify_permission(p[0], (mask), permission_mask, option_types_found, msglevel)) goto err; }
+#define VERIFY_PERMISSION(mask) { if (!verify_permission(p[0], file, (mask), permission_mask, option_types_found, msglevel)) goto err; }
 
 static bool
 verify_permission (const char *name,
+		   const char* file,
 		   const unsigned int type,
 		   const unsigned int allowed,
 		   unsigned int *found,
@@ -4028,7 +4029,7 @@ verify_permission (const char *name,
 {
   if (!(type & allowed))
     {
-      msg (msglevel, "option '%s' cannot be used in this context", name);
+      msg (msglevel, "option '%s' cannot be used in this context (%s)", name, file);
       return false;
     }
   else
