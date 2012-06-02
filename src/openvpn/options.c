@@ -231,7 +231,7 @@ static const char usage_message[] =
   "--route-noexec  : Don't add routes automatically.  Instead pass routes to\n"
   "                  --route-up script using environmental variables.\n"
   "--route-nopull  : When used with --client or --pull, accept options pushed\n"
-  "                  by server EXCEPT for routes.\n"
+  "                  by server EXCEPT for routes and dhcp options.\n"
   "--allow-pull-fqdn : Allow client to pull DNS names from server for\n"
   "                    --ifconfig, --route, and --route-gateway.\n"
   "--redirect-gateway [flags]: Automatically execute routing\n"
