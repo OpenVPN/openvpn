@@ -91,7 +91,7 @@ get_ifconfig_route()
 	echo "-- linux iproute2 --"
 	@IPROUTE@ addr show     | grep -v valid_lft
 	@IPROUTE@ route show
-	@IPROUTE@ -o -6 route show | grep -v ' cache' | sed -e 's/expires [0-9]*sec //'
+	@IPROUTE@ -o -6 route show | grep -v ' cache' | sed -e 's/expires [0-9]*sec//'
 	return
     fi
 
@@ -203,6 +203,9 @@ run_ping_tests()
 # ----------------------------------------------------------
 # main test loop
 # ----------------------------------------------------------
+SUMMARY_OK=
+SUMMARY_FAIL=
+
 for SUF in $TEST_RUN_LIST
 do
     # get config variables
@@ -294,11 +297,18 @@ do
     fi
     if [ "$fail_count" = 0 ] ; then
         echo -e "test run $SUF: all tests OK.\n"
+	SUMMARY_OK="$SUMMARY_OK $SUF"
     else
 	echo -e "test run $SUF: $fail_count test failures. FAIL.\n";
+	SUMMARY_FAIL="$SUMMARY_FAIL $SUF"
 	exit_code=30
     fi
 done
+
+if [ -z "$SUMMARY_OK" ] ; then SUMMARY_OK=" none"; fi
+if [ -z "$SUMMARY_FAIL" ] ; then SUMMARY_FAIL=" none"; fi
+echo "Test sets succeded:$SUMMARY_OK."
+echo "Test sets failed:$SUMMARY_FAIL."
 
 # remove trap handler
 trap - 0 1 2 3 15
