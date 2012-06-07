@@ -749,7 +749,7 @@ if test "${with_crypto_library}" = "polarssl" ; then
 #include <polarssl/version.h>
 			]],
 			[[
-#if POLARSSL_VERSION_NUMBER <= 0x01010000
+#if POLARSSL_VERSION_NUMBER < 0x01010000
 #error invalid version
 #endif
 			]]
