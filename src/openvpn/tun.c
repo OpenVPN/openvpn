@@ -1711,6 +1711,12 @@ open_tun (const char *dev, const char *dev_type, const char *dev_node, struct tu
       msg (M_FATAL, "I don't recognize device %s as a tun or tap device",
 	   dev);
     }
+
+  if ((tt->ip_fd = open (ip_node, O_RDWR, 0)) < 0)
+    msg (M_ERR, "Can't open %s", ip_node);
+
+  if ((tt->fd = open (dev_node, O_RDWR, 0)) < 0)
+    msg (M_ERR, "Can't open %s", dev_node);
   
   /* get unit number */
   if (*dev)
@@ -1721,19 +1727,37 @@ open_tun (const char *dev, const char *dev_type, const char *dev_node, struct tu
       ppa = atoi (ptr);
     }
 
-  if ((tt->ip_fd = open (ip_node, O_RDWR, 0)) < 0)
-    msg (M_ERR, "Can't open %s", ip_node);
-
-  if ((tt->fd = open (dev_node, O_RDWR, 0)) < 0)
-    msg (M_ERR, "Can't open %s", dev_node);
-
   /* Assign a new PPA and get its unit number. */
   strioc_ppa.ic_cmd = TUNNEWPPA;
   strioc_ppa.ic_timout = 0;
   strioc_ppa.ic_len = sizeof(ppa);
   strioc_ppa.ic_dp = (char *)&ppa;
-  if ((ppa = ioctl (tt->fd, I_STR, &strioc_ppa)) < 0)
-    msg (M_ERR, "Can't assign new interface");
+
+  if ( *ptr == '\0' )		/* no number given, try dynamic */
+    {
+      bool found_one = false;
+      while( ! found_one && ppa < 64 )
+	{
+	  int new_ppa = ioctl (tt->fd, I_STR, &strioc_ppa);
+	  if ( new_ppa >= 0 )
+	    {
+	      msg( M_INFO, "open_tun: got dynamic interface '%s%d'", dev_tuntap_type, new_ppa );
+	      ppa = new_ppa;
+	      found_one = true;
+	      break;
+	    }
+	  if ( errno != EEXIST )
+	    msg (M_ERR, "open_tun: unexpected error trying to find free %s interface", dev_tuntap_type );
+	  ppa++;
+	}
+      if ( !found_one )
+	msg (M_ERR, "open_tun: could not find free %s interface, give up.", dev_tuntap_type );
+    }
+  else				/* try this particular one */
+    {
+      if ((ppa = ioctl (tt->fd, I_STR, &strioc_ppa)) < 0)
+        msg (M_ERR, "Can't assign PPA for new interface (%s%d)", dev_tuntap_type, ppa );
+    }
 
   if ((if_fd = open (dev_node, O_RDWR, 0)) < 0)
     msg (M_ERR, "Can't open %s (2)", dev_node);
