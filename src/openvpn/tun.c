@@ -2466,7 +2466,7 @@ read_tun (struct tuntap* tt, uint8_t *buf, int len)
 void
 open_tun (const char *dev, const char *dev_type, const char *dev_node, struct tuntap *tt)
 {
-  open_tun_generic (dev, dev_type, dev_node, false, true, tt);
+  open_tun_generic (dev, dev_type, dev_node, true, true, tt);
 }
 
 void
