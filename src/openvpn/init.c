@@ -1249,7 +1249,7 @@ do_init_route_ipv6_list (const struct options *options,
 {
   const char *gw = NULL;
   int dev = dev_type_enum (options->dev, options->dev_type);
-  int metric = 0;
+  int metric = -1;		/* no metric set */
 
   if (dev != DEV_TYPE_TUN )
     msg( M_WARN, "IPv6 routes on TAP devices are going to fail on some platforms (need gateway spec)" );	/* TODO-GERT */

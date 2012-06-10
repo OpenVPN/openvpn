@@ -600,6 +600,8 @@ void add_route_connected_v6_net(struct tuntap * tt,
     r6.network = tt->local_ipv6;
     r6.netbits = tt->netbits_ipv6;
     r6.gateway = tt->local_ipv6;
+    r6.metric  = 0;			/* connected route */
+    r6.metric_defined = true;
     add_route_ipv6 (&r6, tt, 0, es);
 }
 
@@ -612,6 +614,8 @@ void delete_route_connected_v6_net(struct tuntap * tt,
     r6.network = tt->local_ipv6;
     r6.netbits = tt->netbits_ipv6;
     r6.gateway = tt->local_ipv6;
+    r6.metric  = 0;			/* connected route */
+    r6.metric_defined = true;
     delete_route_ipv6 (&r6, tt, 0, es);
 }
 #endif

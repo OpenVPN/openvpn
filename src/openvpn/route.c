@@ -383,7 +383,6 @@ init_route_ipv6 (struct route_ipv6 *r6,
 	         const struct route_ipv6_option *r6o,
 	         const struct route_ipv6_list *rl6 )
 {
-  r6->option = r6o;
   r6->defined = false;
 
   if ( !get_ipv6_addr( r6o->prefix, &r6->network, &r6->netbits, NULL, M_WARN ))
@@ -410,7 +409,7 @@ init_route_ipv6 (struct route_ipv6 *r6,
   /* metric */
 
   r6->metric_defined = false;
-  r6->metric = 0;
+  r6->metric = -1;
   if (is_route_parm_defined (r6o->metric))
     {
       r6->metric = atoi (r6o->metric);
@@ -700,7 +699,7 @@ init_route_ipv6_list (struct route_ipv6_list *rl6,
 
   rl6->flags = opt6->flags;
 
-  if (default_metric)
+  if (default_metric >= 0 )
     {
       rl6->default_metric = default_metric;
       rl6->default_metric_defined = true;
@@ -1582,7 +1581,7 @@ add_route_ipv6 (struct route_ipv6 *r6, const struct tuntap *tt, unsigned int fla
 	      network,
 	      r6->netbits,
 	      device);
-  if (r6->metric_defined)
+  if (r6->metric_defined && r6->metric > 0 )
     argv_printf_cat (&argv, " metric %d", r6->metric);
 
 #else
@@ -1591,7 +1590,7 @@ add_route_ipv6 (struct route_ipv6 *r6, const struct tuntap *tt, unsigned int fla
 	      network,
 	      r6->netbits,
 	      device);
-  if (r6->metric_defined)
+  if (r6->metric_defined && r6->metric > 0 )
     argv_printf_cat (&argv, " metric %d", r6->metric);
 #endif  /*ENABLE_IPROUTE*/
   argv_msg (D_ROUTE, &argv);
