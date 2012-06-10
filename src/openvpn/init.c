@@ -1251,9 +1251,6 @@ do_init_route_ipv6_list (const struct options *options,
   int dev = dev_type_enum (options->dev, options->dev_type);
   int metric = -1;		/* no metric set */
 
-  if (dev != DEV_TYPE_TUN )
-    msg( M_WARN, "IPv6 routes on TAP devices are going to fail on some platforms (need gateway spec)" );	/* TODO-GERT */
-
   gw = options->ifconfig_ipv6_remote;		/* default GW = remote end */
 #if 0					/* not yet done for IPv6 - TODO!*/
   if ( options->route_ipv6_default_gateway )		/* override? */
