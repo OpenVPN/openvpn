@@ -31,7 +31,6 @@
 #define SSL_POLARSSL_H_
 
 #include <polarssl/ssl.h>
-#include "config.h"
 
 #if defined(ENABLE_PKCS11)
 #include <polarssl/pkcs11.h>
