@@ -90,7 +90,6 @@ struct connection_entry
   int local_port;
   bool local_port_defined;
   int remote_port;
-  bool port_option_used;
   const char *local;
   const char *remote;
   bool remote_float;

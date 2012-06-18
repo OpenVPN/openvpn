@@ -4921,7 +4921,6 @@ add_option (struct options *options,
 	  msg (msglevel, "Bad port number: %s", p[1]);
 	  goto err;
 	}
-      options->ce.port_option_used = true;
       options->ce.local_port = options->ce.remote_port = port;
     }
   else if (streq (p[0], "lport") && p[1])
@@ -4936,7 +4935,6 @@ add_option (struct options *options,
 	  goto err;
 	}
       options->ce.local_port_defined = true;
-      options->ce.port_option_used = true;
       options->ce.local_port = port;
     }
   else if (streq (p[0], "rport") && p[1])
@@ -4950,7 +4948,6 @@ add_option (struct options *options,
 	  msg (msglevel, "Bad remote port number: %s", p[1]);
 	  goto err;
 	}
-      options->ce.port_option_used = true;
       options->ce.remote_port = port;
     }
   else if (streq (p[0], "bind"))
