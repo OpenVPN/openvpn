@@ -138,11 +138,8 @@ void tls_ctx_restrict_ciphers(struct tls_root_ctx *ctx, const char *ciphers);
  * 				"[[INLINE]]" in the case of inline files.
  * @param dh_file_inline	A string containing the parameters
  */
-void tls_ctx_load_dh_params(struct tls_root_ctx *ctx, const char *dh_file
-#if ENABLE_INLINE_FILES
-    , const char *dh_file_inline
-#endif /* ENABLE_INLINE_FILES */
-    );
+void tls_ctx_load_dh_params(struct tls_root_ctx *ctx, const char *dh_file,
+    const char *dh_file_inline);
 
 /**
  * Load PKCS #12 file for key, cert and (optionally) CA certs, and add to
@@ -157,10 +154,7 @@ void tls_ctx_load_dh_params(struct tls_root_ctx *ctx, const char *dh_file
  * 				successful.
  */
 int tls_ctx_load_pkcs12(struct tls_root_ctx *ctx, const char *pkcs12_file,
-#if ENABLE_INLINE_FILES
-    const char *pkcs12_file_inline,
-#endif /* ENABLE_INLINE_FILES */
-    bool load_ca_file
+    const char *pkcs12_file_inline, bool load_ca_file
     );
 
 /**
@@ -190,10 +184,7 @@ void tls_ctx_load_cryptoapi(struct tls_root_ctx *ctx, const char *cryptoapi_cert
  * 				*x509 must be NULL.
  */
 void tls_ctx_load_cert_file (struct tls_root_ctx *ctx, const char *cert_file,
-#if ENABLE_INLINE_FILES
-    const char *cert_file_inline,
-#endif
-    openvpn_x509_cert_t **x509
+    const char *cert_file_inline, openvpn_x509_cert_t **x509
     );
 
 /**
@@ -214,10 +205,8 @@ void tls_ctx_free_cert_file (openvpn_x509_cert_t *x509);
  * @return 			1 if an error occurred, 0 if parsing was
  * 				successful.
  */
-int tls_ctx_load_priv_file (struct tls_root_ctx *ctx, const char *priv_key_file
-#if ENABLE_INLINE_FILES
-    , const char *priv_key_file_inline
-#endif
+int tls_ctx_load_priv_file (struct tls_root_ctx *ctx, const char *priv_key_file,
+    const char *priv_key_file_inline
     );
 
 #ifdef MANAGMENT_EXTERNAL_KEY
@@ -234,8 +223,8 @@ int tls_ctx_load_priv_file (struct tls_root_ctx *ctx, const char *priv_key_file
  * 				successful.
  */
 int tls_ctx_use_external_private_key (struct tls_root_ctx *ctx, openvpn_x509_cert_t *cert);
-
 #endif
+
 
 /**
  * Load certificate authority certificates from the given file or path.
@@ -249,10 +238,7 @@ int tls_ctx_use_external_private_key (struct tls_root_ctx *ctx, openvpn_x509_cer
  * @param ca_path		The path to load the CAs from
  */
 void tls_ctx_load_ca (struct tls_root_ctx *ctx, const char *ca_file,
-#if ENABLE_INLINE_FILES
-    const char *ca_file_inline,
-#endif
-    const char *ca_path, bool tls_server
+    const char *ca_file_inline, const char *ca_path, bool tls_server
     );
 
 /**
@@ -266,10 +252,8 @@ void tls_ctx_load_ca (struct tls_root_ctx *ctx, const char *ca_file,
  * 					"[[INLINE]]" in the case of inline files.
  * @param extra_certs_file_inline	A string containing the certs
  */
-void tls_ctx_load_extra_certs (struct tls_root_ctx *ctx, const char *extra_certs_file
-#if ENABLE_INLINE_FILES
-    , const char *extra_certs_file_inline
-#endif
+void tls_ctx_load_extra_certs (struct tls_root_ctx *ctx, const char *extra_certs_file,
+    const char *extra_certs_file_inline
     );
 
 #ifdef ENABLE_CRYPTO_POLARSSL

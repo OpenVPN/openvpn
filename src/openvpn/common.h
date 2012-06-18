@@ -95,9 +95,7 @@ typedef unsigned long ptr_type;
  * A sort of pseudo-filename for data provided inline within
  * the configuration file.
  */
-#if ENABLE_INLINE_FILES
 #define INLINE_FILE_TAG "[[INLINE]]"
-#endif
 
 /*
  * Script security warning

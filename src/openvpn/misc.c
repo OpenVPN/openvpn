@@ -205,9 +205,7 @@ warn_if_group_others_accessible (const char* filename)
 {
 #ifndef WIN32
 #ifdef HAVE_STAT
-#if ENABLE_INLINE_FILES
   if (strcmp (filename, INLINE_FILE_TAG))
-#endif
     {
       struct stat st;
       if (stat (filename, &st))
@@ -1524,7 +1522,6 @@ make_arg_array (const char *first, const char *parms, struct gc_arena *gc)
   return (const char **)ret;
 }
 
-#if ENABLE_INLINE_FILES
 static const char **
 make_inline_array (const char *str, struct gc_arena *gc)
 {
@@ -1553,7 +1550,6 @@ make_inline_array (const char *str, struct gc_arena *gc)
   ret[i] = NULL;
   return (const char **)ret;
 }
-#endif
 
 static const char **
 make_arg_copy (char **p, struct gc_arena *gc)
@@ -1576,11 +1572,9 @@ const char **
 make_extended_arg_array (char **p, struct gc_arena *gc)
 {
   const int argc = string_array_len ((const char **)p);
-#if ENABLE_INLINE_FILES
   if (!strcmp (p[0], INLINE_FILE_TAG) && argc == 2)
     return make_inline_array (p[1], gc);
   else
-#endif
   if (argc == 0)
     return make_arg_array (NULL, NULL, gc);
   else if (argc == 1)

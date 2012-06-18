@@ -737,7 +737,6 @@ get_tls_handshake_key (const struct key_type *key_type,
       kt.cipher_length = 0;
       kt.cipher = NULL;
 
-#if ENABLE_INLINE_FILES
       if (flags & GHK_INLINE)
 	{
 	  /* key was specified inline, key text is in passphrase_file */
@@ -750,7 +749,6 @@ get_tls_handshake_key (const struct key_type *key_type,
 	    msg (M_FATAL, "INLINE tls-auth file lacks the requisite 2 keys");
 	}
       else
-#endif
       {
 	/* first try to parse as an OpenVPN static key file */
 	read_key_file (&key2, passphrase_file, 0);
@@ -857,7 +855,6 @@ read_key_file (struct key2 *key2, const char *file, const unsigned int flags)
    * Key can be provided as a filename in 'file' or if RKF_INLINE
    * is set, the actual key data itself in ascii form.
    */
-#if ENABLE_INLINE_FILES
   if (flags & RKF_INLINE) /* 'file' is a string containing ascii representation of key */
     {
       size = strlen (file) + 1;
@@ -865,7 +862,6 @@ read_key_file (struct key2 *key2, const char *file, const unsigned int flags)
       error_filename = INLINE_FILE_TAG;
     }
   else /* 'file' is a filename which refers to a file containing the ascii key */
-#endif
     {
       in = alloc_buf_gc (2048, &gc);
       fd = platform_open (file, O_RDONLY, 0);
@@ -979,9 +975,7 @@ read_key_file (struct key2 *key2, const char *file, const unsigned int flags)
     }
 
   /* zero file read buffer if not an inline file */
-#if ENABLE_INLINE_FILES
   if (!(flags & RKF_INLINE))
-#endif
     buf_clear (&in);
 
   if (key2->n)

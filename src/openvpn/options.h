@@ -498,9 +498,7 @@ struct options
 #ifdef ENABLE_CRYPTO
   /* Cipher parms */
   const char *shared_secret_file;
-#if ENABLE_INLINE_FILES
   const char *shared_secret_file_inline;
-#endif
   int key_direction;
   bool ciphername_defined;
   const char *ciphername;
@@ -538,14 +536,12 @@ struct options
   const char *tls_remote;
   const char *crl_file;
 
-#if ENABLE_INLINE_FILES
   const char *ca_file_inline;
   const char *cert_file_inline;
   const char *extra_certs_file_inline;
   char *priv_key_file_inline;
   const char *dh_file_inline;
   const char *pkcs12_file_inline; /* contains the base64 encoding of pkcs12 file */
-#endif
 
   int ns_cert_type; /* set to 0, NS_CERT_CHECK_SERVER, or NS_CERT_CHECK_CLIENT */
   unsigned remote_cert_ku[MAX_PARMS];
@@ -592,9 +588,7 @@ struct options
 
   /* Special authentication MAC for TLS control channel */
   const char *tls_auth_file;		/* shared secret */
-#if ENABLE_INLINE_FILES
   const char *tls_auth_file_inline;
-#endif
 
   /* Allow only one session */
   bool single_session;

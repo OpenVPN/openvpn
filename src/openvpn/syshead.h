@@ -650,17 +650,9 @@ socket_defined (const socket_descriptor_t sd)
 #endif
 
 /*
- * Should we allow ca/cert/key files to be
- * included inline, in the configuration file?
- */
-#define ENABLE_INLINE_FILES 1
-
-/*
  * Support "connection" directive
  */
-#if ENABLE_INLINE_FILES
 #define ENABLE_CONNECTION 1
-#endif
 
 /*
  * Should we include http proxy fallback functionality

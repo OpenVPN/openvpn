@@ -209,10 +209,8 @@ tls_ctx_restrict_ciphers(struct tls_root_ctx *ctx, const char *ciphers)
 }
 
 void
-tls_ctx_load_dh_params (struct tls_root_ctx *ctx, const char *dh_file
-#if ENABLE_INLINE_FILES
-    , const char *dh_file_inline
-#endif /* ENABLE_INLINE_FILES */
+tls_ctx_load_dh_params (struct tls_root_ctx *ctx, const char *dh_file,
+    const char *dh_file_inline
     )
 {
   DH *dh;
@@ -220,14 +218,12 @@ tls_ctx_load_dh_params (struct tls_root_ctx *ctx, const char *dh_file
 
   ASSERT(NULL != ctx);
 
-#if ENABLE_INLINE_FILES
   if (!strcmp (dh_file, INLINE_FILE_TAG) && dh_file_inline)
     {
       if (!(bio = BIO_new_mem_buf ((char *)dh_file_inline, -1)))
 	msg (M_SSLERR, "Cannot open memory BIO for inline DH parameters");
     }
   else
-#endif /* ENABLE_INLINE_FILES */
     {
       /* Get Diffie Hellman Parameters */
       if (!(bio = BIO_new_file (dh_file, "r")))
@@ -250,9 +246,7 @@ tls_ctx_load_dh_params (struct tls_root_ctx *ctx, const char *dh_file
 
 int
 tls_ctx_load_pkcs12(struct tls_root_ctx *ctx, const char *pkcs12_file,
-#if ENABLE_INLINE_FILES
     const char *pkcs12_file_inline,
-#endif /* ENABLE_INLINE_FILES */
     bool load_ca_file
     )
 {
@@ -266,7 +260,6 @@ tls_ctx_load_pkcs12(struct tls_root_ctx *ctx, const char *pkcs12_file,
 
   ASSERT(NULL != ctx);
 
-#if ENABLE_INLINE_FILES
   if (!strcmp (pkcs12_file, INLINE_FILE_TAG) && pkcs12_file_inline)
     {
       BIO *b64 = BIO_new(BIO_f_base64());
@@ -281,7 +274,6 @@ tls_ctx_load_pkcs12(struct tls_root_ctx *ctx, const char *pkcs12_file,
       BIO_free(bio);
     }
   else
-#endif
     {
       /* Load the PKCS #12 file */
       if (!(fp = platform_fopen(pkcs12_file, "rb")))
@@ -371,10 +363,7 @@ tls_ctx_add_extra_certs (struct tls_root_ctx *ctx, BIO *bio)
 
 void
 tls_ctx_load_cert_file (struct tls_root_ctx *ctx, const char *cert_file,
-#if ENABLE_INLINE_FILES
-    const char *cert_file_inline,
-#endif
-    X509 **x509
+    const char *cert_file_inline, X509 **x509
     )
 {
   BIO *in = NULL;
@@ -386,13 +375,11 @@ tls_ctx_load_cert_file (struct tls_root_ctx *ctx, const char *cert_file,
   if (NULL != x509)
     ASSERT (NULL == *x509);
 
-#if ENABLE_INLINE_FILES
   inline_file = (strcmp (cert_file, INLINE_FILE_TAG) == 0);
 
   if (inline_file && cert_file_inline)
     in = BIO_new_mem_buf ((char *)cert_file_inline, -1);
   else
-#endif /* ENABLE_INLINE_FILES */
     in = BIO_new_file (cert_file, "r");
 
   if (in == NULL)
@@ -437,10 +424,8 @@ tls_ctx_free_cert_file (X509 *x509)
 }
 
 int
-tls_ctx_load_priv_file (struct tls_root_ctx *ctx, const char *priv_key_file
-#if ENABLE_INLINE_FILES
-    , const char *priv_key_file_inline
-#endif
+tls_ctx_load_priv_file (struct tls_root_ctx *ctx, const char *priv_key_file,
+    const char *priv_key_file_inline
     )
 {
   int status;
@@ -453,11 +438,9 @@ tls_ctx_load_priv_file (struct tls_root_ctx *ctx, const char *priv_key_file
 
   ssl_ctx = ctx->ctx;
 
-#if ENABLE_INLINE_FILES
   if (!strcmp (priv_key_file, INLINE_FILE_TAG) && priv_key_file_inline)
     in = BIO_new_mem_buf ((char *)priv_key_file_inline, -1);
   else
-#endif /* ENABLE_INLINE_FILES */
     in = BIO_new_file (priv_key_file, "r");
 
   if (!in)
@@ -639,9 +622,7 @@ sk_x509_name_cmp(const X509_NAME * const *a, const X509_NAME * const *b)
 
 void
 tls_ctx_load_ca (struct tls_root_ctx *ctx, const char *ca_file,
-#if ENABLE_INLINE_FILES
     const char *ca_file_inline,
-#endif
     const char *ca_path, bool tls_server
     )
 {
@@ -662,11 +643,9 @@ tls_ctx_load_ca (struct tls_root_ctx *ctx, const char *ca_file,
   /* Try to add certificates and CRLs from ca_file */
   if (ca_file)
     {
-#if ENABLE_INLINE_FILES
       if (!strcmp (ca_file, INLINE_FILE_TAG) && ca_file_inline)
         in = BIO_new_mem_buf ((char *)ca_file_inline, -1);
       else
-#endif
         in = BIO_new_file (ca_file, "r");
 
       if (in)
@@ -739,18 +718,14 @@ tls_ctx_load_ca (struct tls_root_ctx *ctx, const char *ca_file,
 }
 
 void
-tls_ctx_load_extra_certs (struct tls_root_ctx *ctx, const char *extra_certs_file
-#if ENABLE_INLINE_FILES
-    , const char *extra_certs_file_inline
-#endif
+tls_ctx_load_extra_certs (struct tls_root_ctx *ctx, const char *extra_certs_file,
+    const char *extra_certs_file_inline
     )
 {
   BIO *in;
-#if ENABLE_INLINE_FILES
   if (!strcmp (extra_certs_file, INLINE_FILE_TAG) && extra_certs_file_inline)
     in = BIO_new_mem_buf ((char *)extra_certs_file_inline, -1);
   else
-#endif
     in = BIO_new_file (extra_certs_file, "r");
 
   if (in == NULL)

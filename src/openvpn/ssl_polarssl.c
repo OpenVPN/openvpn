@@ -195,20 +195,16 @@ tls_ctx_restrict_ciphers(struct tls_root_ctx *ctx, const char *ciphers)
 }
 
 void
-tls_ctx_load_dh_params (struct tls_root_ctx *ctx, const char *dh_file
-#if ENABLE_INLINE_FILES
-    , const char *dh_file_inline
-#endif /* ENABLE_INLINE_FILES */
+tls_ctx_load_dh_params (struct tls_root_ctx *ctx, const char *dh_file,
+    const char *dh_file_inline
     )
 {
-#if ENABLE_INLINE_FILES
   if (!strcmp (dh_file, INLINE_FILE_TAG) && dh_file_inline)
     {
       if (0 != x509parse_dhm(ctx->dhm_ctx, dh_file_inline, strlen(dh_file_inline)))
 	msg (M_FATAL, "Cannot read inline DH parameters");
   }
 else
-#endif /* ENABLE_INLINE_FILES */
   {
     if (0 != x509parse_dhmfile(ctx->dhm_ctx, dh_file))
       msg (M_FATAL, "Cannot read DH parameters from file %s", dh_file);
@@ -220,9 +216,7 @@ else
 
 int
 tls_ctx_load_pkcs12(struct tls_root_ctx *ctx, const char *pkcs12_file,
-#if ENABLE_INLINE_FILES
     const char *pkcs12_file_inline,
-#endif /* ENABLE_INLINE_FILES */
     bool load_ca_file
     )
 {
@@ -240,9 +234,7 @@ tls_ctx_load_cryptoapi(struct tls_root_ctx *ctx, const char *cryptoapi_cert)
 
 void
 tls_ctx_load_cert_file (struct tls_root_ctx *ctx, const char *cert_file,
-#if ENABLE_INLINE_FILES
     const char *cert_file_inline,
-#endif
     openvpn_x509_cert_t **x509
     )
 {
@@ -250,7 +242,6 @@ tls_ctx_load_cert_file (struct tls_root_ctx *ctx, const char *cert_file,
   if (NULL != x509)
     ASSERT(NULL == *x509);
 
-#if ENABLE_INLINE_FILES
   if (!strcmp (cert_file, INLINE_FILE_TAG) && cert_file_inline)
     {
       if (0 != x509parse_crt(ctx->crt_chain, cert_file_inline,
@@ -258,7 +249,6 @@ tls_ctx_load_cert_file (struct tls_root_ctx *ctx, const char *cert_file,
         msg (M_FATAL, "Cannot load inline certificate file");
     }
   else
-#endif /* ENABLE_INLINE_FILES */
     {
       if (0 != x509parse_crtfile(ctx->crt_chain, cert_file))
 	msg (M_FATAL, "Cannot load certificate file %s", cert_file);
@@ -276,16 +266,13 @@ tls_ctx_free_cert_file (openvpn_x509_cert_t *x509)
 }
 
 int
-tls_ctx_load_priv_file (struct tls_root_ctx *ctx, const char *priv_key_file
-#if ENABLE_INLINE_FILES
-    , const char *priv_key_file_inline
-#endif /* ENABLE_INLINE_FILES */
+tls_ctx_load_priv_file (struct tls_root_ctx *ctx, const char *priv_key_file,
+    const char *priv_key_file_inline
     )
 {
   int status;
   ASSERT(NULL != ctx);
 
-#if ENABLE_INLINE_FILES
   if (!strcmp (priv_key_file, INLINE_FILE_TAG) && priv_key_file_inline)
     {
       status = x509parse_key(ctx->priv_key,
@@ -301,7 +288,6 @@ tls_ctx_load_priv_file (struct tls_root_ctx *ctx, const char *priv_key_file
 	}
     }
   else
-#endif /* ENABLE_INLINE_FILES */
     {
       status = x509parse_keyfile(ctx->priv_key, priv_key_file, NULL);
       if (POLARSSL_ERR_PEM_PASSWORD_REQUIRED == status)
@@ -343,23 +329,19 @@ tls_ctx_use_external_private_key (struct tls_root_ctx *ctx, openvpn_x509_cert_t 
 #endif
 
 void tls_ctx_load_ca (struct tls_root_ctx *ctx, const char *ca_file,
-#if ENABLE_INLINE_FILES
     const char *ca_file_inline,
-#endif
     const char *ca_path, bool tls_server
     )
 {
   if (ca_path)
       msg(M_FATAL, "ERROR: PolarSSL cannot handle the capath directive");
 
-#if ENABLE_INLINE_FILES
   if (ca_file && !strcmp (ca_file, INLINE_FILE_TAG) && ca_file_inline)
     {
       if (0 != x509parse_crt(ctx->ca_chain, ca_file_inline, strlen(ca_file_inline)));
 	msg (M_FATAL, "Cannot load inline CA certificates");
     }
   else
-#endif
     {
       /* Load CA file for verifying peer supplied certificate */
       if (0 != x509parse_crtfile(ctx->ca_chain, ca_file))
@@ -368,15 +350,12 @@ void tls_ctx_load_ca (struct tls_root_ctx *ctx, const char *ca_file,
 }
 
 void
-tls_ctx_load_extra_certs (struct tls_root_ctx *ctx, const char *extra_certs_file
-#if ENABLE_INLINE_FILES
-    , const char *extra_certs_file_inline
-#endif
+tls_ctx_load_extra_certs (struct tls_root_ctx *ctx, const char *extra_certs_file,
+    const char *extra_certs_file_inline
     )
 {
   ASSERT(NULL != ctx);
 
-#if ENABLE_INLINE_FILES
   if (!strcmp (extra_certs_file, INLINE_FILE_TAG) && extra_certs_file_inline)
     {
       if (0 != x509parse_crt(ctx->crt_chain, extra_certs_file_inline,
@@ -384,7 +363,6 @@ tls_ctx_load_extra_certs (struct tls_root_ctx *ctx, const char *extra_certs_file
         msg (M_FATAL, "Cannot load inline extra-certs file");
     }
   else
-#endif /* ENABLE_INLINE_FILES */
     {
       if (0 != x509parse_crtfile(ctx->crt_chain, extra_certs_file))
 	msg (M_FATAL, "Cannot load extra-certs file: %s", extra_certs_file);

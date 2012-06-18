@@ -2053,13 +2053,11 @@ do_init_crypto_static (struct context *c, const unsigned int flags)
 	unsigned int rkf_flags = RKF_MUST_SUCCEED;
 	const char *rkf_file = options->shared_secret_file;
 
-#if ENABLE_INLINE_FILES
 	if (options->shared_secret_file_inline)
 	  {
 	    rkf_file = options->shared_secret_file_inline;
 	    rkf_flags |= RKF_INLINE;
 	  }
-#endif
 	read_key_file (&key2, rkf_file, rkf_flags);
       }
 
@@ -2153,13 +2151,11 @@ do_init_crypto_tls_c1 (struct context *c)
 	  unsigned int flags = 0;
 	  const char *file = options->tls_auth_file;
 
-#if ENABLE_INLINE_FILES
 	  if (options->tls_auth_file_inline)
 	    {
 	      flags |= GHK_INLINE;
 	      file = options->tls_auth_file_inline;
 	    }
-#endif
 	  get_tls_handshake_key (&c->c1.ks.key_type,
 				 &c->c1.ks.tls_auth_key,
 				 file,

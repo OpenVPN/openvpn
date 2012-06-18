@@ -3683,8 +3683,6 @@ bypass_doubledash (char **p)
     *p += 2;
 }
 
-#if ENABLE_INLINE_FILES
-
 struct in_src {
 # define IS_TYPE_FP 1
 # define IS_TYPE_BUF 2
@@ -3777,8 +3775,6 @@ check_inline_file_via_buf (struct buffer *multiline, char *p[], struct gc_arena 
   return check_inline_file (&is, p, gc);
 }
 
-#endif
-
 static void
 add_option (struct options *options,
 	    char *p[],
@@ -3824,9 +3820,7 @@ read_config_file (struct options *options,
 	      if (parse_line (line, p, SIZE (p), file, line_num, msglevel, &options->gc))
 		{
 		  bypass_doubledash (&p[0]);
-#if ENABLE_INLINE_FILES
 		  check_inline_file_via_fp (fp, p, &options->gc);
-#endif
 		  add_option (options, p, file, line_num, level, msglevel, permission_mask, option_types_found, es);
 		}
 	    }
@@ -3869,9 +3863,7 @@ read_config_string (const char *prefix,
       if (parse_line (line, p, SIZE (p), prefix, line_num, msglevel, &options->gc))
 	{
 	  bypass_doubledash (&p[0]);
-#if ENABLE_INLINE_FILES
 	  check_inline_file_via_buf (&multiline, p, &options->gc);
-#endif
 	  add_option (options, p, NULL, line_num, 0, msglevel, permission_mask, option_types_found, es);
 	}
       CLEAR (p);
@@ -6270,13 +6262,11 @@ add_option (struct options *options,
   else if (streq (p[0], "secret") && p[1])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
-#if ENABLE_INLINE_FILES
       if (streq (p[1], INLINE_FILE_TAG) && p[2])
 	{
 	  options->shared_secret_file_inline = p[2];
 	}
       else
-#endif
       if (p[2])
 	{
 	  int key_direction;
@@ -6467,12 +6457,10 @@ add_option (struct options *options,
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->ca_file = p[1];
-#if ENABLE_INLINE_FILES
       if (streq (p[1], INLINE_FILE_TAG) && p[2])
 	{
 	  options->ca_file_inline = p[2];
 	}
-#endif
     }
 #ifndef ENABLE_CRYPTO_POLARSSL
   else if (streq (p[0], "capath") && p[1])
@@ -6485,34 +6473,28 @@ add_option (struct options *options,
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->dh_file = p[1];
-#if ENABLE_INLINE_FILES
       if (streq (p[1], INLINE_FILE_TAG) && p[2])
 	{
 	  options->dh_file_inline = p[2];
 	}
-#endif
     }
   else if (streq (p[0], "cert") && p[1])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->cert_file = p[1];
-#if ENABLE_INLINE_FILES
       if (streq (p[1], INLINE_FILE_TAG) && p[2])
 	{
 	  options->cert_file_inline = p[2];
 	}
-#endif
     }
   else if (streq (p[0], "extra-certs") && p[1])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->extra_certs_file = p[1];
-#if ENABLE_INLINE_FILES
       if (streq (p[1], INLINE_FILE_TAG) && p[2])
 	{
 	  options->extra_certs_file_inline = p[2];
 	}
-#endif
     }
   else if (streq (p[0], "verify-hash") && p[1])
     {
@@ -6530,24 +6512,20 @@ add_option (struct options *options,
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->priv_key_file = p[1];
-#if ENABLE_INLINE_FILES
       if (streq (p[1], INLINE_FILE_TAG) && p[2])
 	{
 	  options->priv_key_file_inline = p[2];
 	}
-#endif
     }
 #ifndef ENABLE_CRYPTO_POLARSSL
   else if (streq (p[0], "pkcs12") && p[1])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->pkcs12_file = p[1];
-#if ENABLE_INLINE_FILES
       if (streq (p[1], INLINE_FILE_TAG) && p[2])
 	{
 	  options->pkcs12_file_inline = p[2];
 	}
-#endif
     }
 #endif /* ENABLE_CRYPTO_POLARSSL */
   else if (streq (p[0], "askpass"))
@@ -6708,13 +6686,11 @@ add_option (struct options *options,
   else if (streq (p[0], "tls-auth") && p[1])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
-#if ENABLE_INLINE_FILES
       if (streq (p[1], INLINE_FILE_TAG) && p[2])
 	{
 	  options->tls_auth_file_inline = p[2];
 	}
       else
-#endif
       if (p[2])
 	{
 	  int key_direction;
