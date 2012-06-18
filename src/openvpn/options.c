@@ -858,6 +858,8 @@ init_options (struct options *o, const bool init_gc)
   o->pkcs11_pin_cache_period = -1;
 #endif			/* ENABLE_PKCS11 */
 
+/* tmp is only used in P2MP server context */
+#if P2MP_SERVER
   /* Set default --tmp-dir */
 #ifdef WIN32
   /* On Windows, find temp dir via enviroment variables */
@@ -869,6 +871,7 @@ init_options (struct options *o, const bool init_gc)
           o->tmp_dir = "/tmp";
   }
 #endif /* WIN32 */
+#endif /* P2MP_SERVER */
 }
 
 void
@@ -2766,8 +2769,6 @@ options_postprocess_filechecks (struct options *options)
                              R_OK|X_OK, "--chroot directory");
   errs |= check_file_access (CHKACC_DIRPATH|CHKACC_FILEXSTWR, options->writepid,
                              R_OK|W_OK, "--writepid");
-  errs |= check_file_access (CHKACC_FILE, options->tmp_dir,
-                             R_OK|W_OK|X_OK, "Temporary directory (--tmp-dir)");
 
   /* ** Log related ** */
   errs |= check_file_access (CHKACC_DIRPATH|CHKACC_FILEXSTWR, options->status_file,
@@ -2781,6 +2782,8 @@ options_postprocess_filechecks (struct options *options)
 #if P2MP_SERVER
   errs |= check_file_access (CHKACC_FILE, options->client_config_dir,
                              R_OK|X_OK, "--client-config-dir");
+  errs |= check_file_access (CHKACC_FILE, options->tmp_dir,
+                             R_OK|W_OK|X_OK, "Temporary directory (--tmp-dir)");
 
   /* ** Script hooks that accept an optionally quoted and/or escaped executable path, ** */
   /* ** optionally followed by arguments ** */

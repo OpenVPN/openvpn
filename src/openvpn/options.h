@@ -399,11 +399,13 @@ struct options
   struct plugin_option_list *plugin_list;
 #endif
 
-  const char *tmp_dir;
+
 
 #if P2MP
 
 #if P2MP_SERVER
+  /* the tmp dir is for now only used in the P2P server context */
+  const char *tmp_dir;
   bool server_defined;
   in_addr_t server_network;
   in_addr_t server_netmask;
