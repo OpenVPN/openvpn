@@ -730,7 +730,7 @@ cleanup:
 }
 
 static
-bool
+PKCS11H_BOOL
 _pkcs11_openvpn_show_pkcs11_ids_pin_prompt (
 	void * const global_data,
 	void * const user_data,
