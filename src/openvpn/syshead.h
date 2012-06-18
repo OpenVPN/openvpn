@@ -650,26 +650,12 @@ socket_defined (const socket_descriptor_t sd)
 #endif
 
 /*
- * Support "connection" directive
- */
-#define ENABLE_CONNECTION 1
-
-/*
  * Should we include http proxy fallback functionality
  */
-#if defined(ENABLE_CONNECTION) && defined(ENABLE_MANAGEMENT) && defined(ENABLE_HTTP_PROXY)
+#if defined(ENABLE_MANAGEMENT) && defined(ENABLE_HTTP_PROXY)
 #define HTTP_PROXY_FALLBACK 1
 #else
 #define HTTP_PROXY_FALLBACK 0
-#endif
-
-/*
- * Should we include --management-query-remote functionality
- */
-#if defined(ENABLE_CONNECTION) && defined(ENABLE_MANAGEMENT)
-#define MANAGEMENT_QUERY_REMOTE 1
-#else
-#define MANAGEMENT_QUERY_REMOTE 0
 #endif
 
 /*

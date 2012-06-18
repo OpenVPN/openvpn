@@ -206,8 +206,6 @@ management_callback_http_proxy_fallback_cmd (void *arg, const char *server, cons
 
 #endif
 
-#if MANAGEMENT_QUERY_REMOTE
-
 static bool
 management_callback_remote_cmd (void *arg, const char **p)
 {
@@ -288,15 +286,12 @@ ce_management_query_remote (struct context *c, const char *remote_ip_hint)
   return ret;
 }
 
-#endif
-
 /*
  * Initialize and possibly randomize connection list.
  */
 static void
 init_connection_list (struct context *c)
 {
-#ifdef ENABLE_CONNECTION
   struct connection_list *l = c->options.connection_list;
   if (l)
     {
@@ -317,7 +312,6 @@ init_connection_list (struct context *c)
 	    }
 	}
     }
-#endif
 }
 
 #if 0 /* fixme -- disable for production */
@@ -350,7 +344,6 @@ show_connection_list (const struct connection_list *l)
 static void
 next_connection_entry (struct context *c)
 {
-#ifdef ENABLE_CONNECTION
   struct connection_list *l = c->options.connection_list;
   if (l)
     {
@@ -404,7 +397,6 @@ next_connection_entry (struct context *c)
 
 	c->options.ce = *ce;
 
-#if MANAGEMENT_QUERY_REMOTE
 	if (ce_defined && management && management_query_remote_enabled(management))
 	  {
 	    /* allow management interface to override connection entry details */
@@ -412,7 +404,6 @@ next_connection_entry (struct context *c)
 	    if (IS_SIG (c))
 	      break;
 	  } else
-#endif
 	if (remote_ip_hint)
 	  c->options.ce.remote = remote_ip_hint;
 
@@ -424,7 +415,6 @@ next_connection_entry (struct context *c)
 #endif
       } while (!ce_defined);
     }
-#endif
   update_options_ce_post (&c->options);
 }
 
@@ -3178,9 +3168,7 @@ init_management_callback_p2p (struct context *c)
 #if HTTP_PROXY_FALLBACK
       cb.http_proxy_fallback_cmd = management_callback_http_proxy_fallback_cmd;
 #endif
-#if MANAGEMENT_QUERY_REMOTE
       cb.remote_cmd = management_callback_remote_cmd;
-#endif
       management_set_callback (management, &cb);
     }
 #endif

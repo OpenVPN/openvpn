@@ -381,9 +381,7 @@ static const char usage_message[] =
   "                      ip/port rather than listen as a TCP server.\n"
   "--management-query-passwords : Query management channel for private key\n"
   "                  and auth-user-pass passwords.\n"
-#if MANAGEMENT_QUERY_REMOTE
   "--management-query-remote : Query management channel for --remote directive.\n"
-#endif
   "--management-hold : Start " PACKAGE_NAME " in a hibernating state, until a client\n"
   "                    of the management interface explicitly starts it.\n"
   "--management-signal : Issue SIGUSR1 when management disconnect event occurs.\n"
@@ -931,7 +929,6 @@ setenv_settings (struct env_set *es, const struct options *o)
   setenv_unsigned (es, "daemon_start_time", time(NULL));
   setenv_int (es, "daemon_pid", platform_getpid());
 
-#ifdef ENABLE_CONNECTION
   if (o->connection_list)
     {
       int i;
@@ -939,7 +936,6 @@ setenv_settings (struct env_set *es, const struct options *o)
 	setenv_connection_entry (es, o->connection_list->array[i], i+1);
     }
   else
-#endif
     setenv_connection_entry (es, &o->ce, 1);
 }
 
@@ -1386,7 +1382,6 @@ show_connection_entries (const struct options *o)
 {
   msg (D_SHOW_PARMS, "Connection profiles [default]:");
   show_connection_entry (&o->ce);
-#ifdef ENABLE_CONNECTION
  if (o->connection_list)
    {
      const struct connection_list *l = o->connection_list;
@@ -1397,7 +1392,6 @@ show_connection_entries (const struct options *o)
 	 show_connection_entry (l->array[i]);
        }
    }
-#endif
   msg (D_SHOW_PARMS, "Connection profiles END");
 }
 
@@ -1822,8 +1816,6 @@ options_postprocess_http_proxy_override (struct options *o)
 
 #endif
 
-#if ENABLE_CONNECTION
-
 static struct connection_list *
 alloc_connection_list_if_undef (struct options *options)
 {
@@ -1871,8 +1863,6 @@ alloc_remote_entry (struct options *options, const int msglevel)
   l->array[l->len++] = e;
   return e;
 }
-
-#endif
 
 void
 connection_entry_load_re (struct connection_entry *ce, const struct remote_entry *re)
@@ -2112,10 +2102,8 @@ options_postprocess_verify_ce (const struct options *options, const struct conne
       if (ce->socks_proxy_server)
 	msg (M_USAGE, "--socks-proxy cannot be used with --mode server");
 #endif
-#ifdef ENABLE_CONNECTION
       if (options->connection_list)
 	msg (M_USAGE, "<connection> cannot be used with --mode server");
-#endif
 #if 0
       if (options->tun_ipv6)
 	msg (M_USAGE, "--tun-ipv6 cannot be used with --mode server");
@@ -2516,7 +2504,6 @@ options_postprocess_mutate_invariant (struct options *options)
 static void
 options_postprocess_verify (const struct options *o)
 {
-#ifdef ENABLE_CONNECTION
   if (o->connection_list)
     {
       int i;
@@ -2524,7 +2511,6 @@ options_postprocess_verify (const struct options *o)
 	options_postprocess_verify_ce (o, o->connection_list->array[i]);
     }
   else
-#endif
     options_postprocess_verify_ce (o, &o->ce);
 }
 
@@ -2541,7 +2527,6 @@ options_postprocess_mutate (struct options *o)
 
   options_postprocess_mutate_invariant (o);
 
-#ifdef ENABLE_CONNECTION
   if (o->remote_list && !o->connection_list)
     {
       /*
@@ -2588,7 +2573,6 @@ options_postprocess_mutate (struct options *o)
 #endif
     }
   else
-#endif
     options_postprocess_mutate_ce (o, &o->ce);  
 
 #if P2MP
@@ -4224,13 +4208,11 @@ add_option (struct options *options,
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->management_flags |= MF_QUERY_PASSWORDS;
     }
-#if MANAGEMENT_QUERY_REMOTE
   else if (streq (p[0], "management-query-remote"))
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->management_flags |= MF_QUERY_REMOTE;
     }
-#endif
   else if (streq (p[0], "management-hold"))
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
@@ -4434,7 +4416,6 @@ add_option (struct options *options,
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->remote_random = true;
     }
-#if ENABLE_CONNECTION
   else if (streq (p[0], "connection") && p[1])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
@@ -4460,14 +4441,11 @@ add_option (struct options *options,
 	  uninit_options (&sub);
 	}
     }
-#endif
-#ifdef ENABLE_CONNECTION
   else if (streq (p[0], "remote-ip-hint") && p[1])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->remote_ip_hint = p[1];
     }
-#endif
 #if HTTP_PROXY_FALLBACK
   else if (streq (p[0], "http-proxy-fallback"))
     {
@@ -4512,7 +4490,6 @@ add_option (struct options *options,
 	      re.proto = proto;
 	    }
 	}
-#ifdef ENABLE_CONNECTION
       if (permission_mask & OPT_P_GENERAL)
 	{
 	  struct remote_entry *e = alloc_remote_entry (options, msglevel);
@@ -4521,7 +4498,6 @@ add_option (struct options *options,
 	  *e = re;
 	}
       else if (permission_mask & OPT_P_CONNECTION)
-#endif
 	{
 	  connection_entry_load_re (&options->ce, &re);
 	}

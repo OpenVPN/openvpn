@@ -133,7 +133,6 @@ struct connection_entry
 # define CE_HTTP_PROXY_FALLBACK (1<<1)
   time_t ce_http_proxy_fallback_timestamp; /* time when fallback http_proxy_options was last updated */
 #endif
-#if MANAGEMENT_QUERY_REMOTE
 # define CE_MAN_QUERY_REMOTE_UNDEF  0
 # define CE_MAN_QUERY_REMOTE_QUERY  1
 # define CE_MAN_QUERY_REMOTE_ACCEPT 2
@@ -141,7 +140,6 @@ struct connection_entry
 # define CE_MAN_QUERY_REMOTE_SKIP   4
 # define CE_MAN_QUERY_REMOTE_MASK   (0x07)
 # define CE_MAN_QUERY_REMOTE_SHIFT  (2)
-#endif
   unsigned int flags;
 };
 
@@ -151,8 +149,6 @@ struct remote_entry
   int remote_port;
   int proto;
 };
-
-#ifdef ENABLE_CONNECTION
 
 #define CONNECTION_LIST_SIZE 64
 
@@ -171,8 +167,6 @@ struct remote_list
   struct remote_entry *array[CONNECTION_LIST_SIZE];
 };
 
-#endif
-
 #if HTTP_PROXY_FALLBACK
 struct hpo_store
 {
@@ -181,13 +175,11 @@ struct hpo_store
 };
 #endif
 
-#if MANAGEMENT_QUERY_REMOTE
 struct remote_host_store
 {
 # define RH_HOST_LEN 80
   char host[RH_HOST_LEN];
 };
-#endif
 
 /* Command line options */
 struct options
@@ -223,13 +215,10 @@ struct options
 
   /* Networking parms */
   struct connection_entry ce;
-
-#ifdef ENABLE_CONNECTION
   char *remote_ip_hint;
   struct connection_list *connection_list;
   struct remote_list *remote_list;
   bool force_connection_list;
-#endif
 
 #if HTTP_PROXY_FALLBACK
   bool http_proxy_fallback;
@@ -237,9 +226,7 @@ struct options
   struct hpo_store *hpo_store; /* used to store dynamic proxy info given by management interface */
 #endif
 
-#if MANAGEMENT_QUERY_REMOTE
   struct remote_host_store *rh_store;
-#endif
 
   bool remote_random;
   const char *ipchange;
@@ -801,20 +788,14 @@ bool get_ipv6_addr( const char * prefix_str, struct in6_addr *network,
 static inline bool
 connection_list_defined (const struct options *o)
 {
-#ifdef ENABLE_CONNECTION
   return o->connection_list != NULL;
-#else
-  return false;
-#endif
 }
 
 static inline void
 connection_list_set_no_advance (struct options *o)
 {
-#ifdef ENABLE_CONNECTION
   if (o->connection_list)
     o->connection_list->no_advance = true;
-#endif
 }
 
 #if HTTP_PROXY_FALLBACK
