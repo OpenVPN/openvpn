@@ -195,16 +195,27 @@ AC_ARG_ENABLE(
 
 AC_ARG_ENABLE(
 	[plugin-auth-pam],
-	[AS_HELP_STRING([--disable-plugin-auth-pam], [disable auth-pam plugin @<:@default=yes@:>@])],
+	[AS_HELP_STRING([--disable-plugin-auth-pam], [disable auth-pam plugin @<:@default=platform specific@:>@])],
 	,
-	[enable_plugin_auth_pam="yes"]
+	[
+		case "$host" in
+			*-*-openbsd*) enable_plugin_auth_pam="no";;
+			*-mingw*) enable_plugin_auth_pam="no";;
+			*) enable_plugin_auth_pam="yes";;
+		esac
+	]
 )
 
 AC_ARG_ENABLE(
 	[plugin-down-root],
-	[AS_HELP_STRING([--disable-plugin-down-root], [disable down-root plugin @<:@default=yes@:>@])],
+	[AS_HELP_STRING([--disable-plugin-down-root], [disable down-root plugin @<:@default=platform specific@:>@])],
 	,
-	[enable_plugin_down_root="yes"]
+	[
+		case "$host" in
+			*-mingw*) enable_plugin_down_root="no";;
+			*) enable_plugin_down_root="yes";;
+		esac
+	]
 )
 
 AC_ARG_ENABLE(
