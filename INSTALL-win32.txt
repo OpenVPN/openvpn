@@ -1,3 +1,28 @@
+UPGRADING FROM 2.3-ALPHA1 AND EARLIER
+
+OpenVPN Windows installer went through major changes in
+2.3-alpha2. To avoid any unexpected behavior, it is strongly
+suggested to upgrade as follows.
+
+First backup configuration files and certificates from your
+current installation; by default they're in
+
+    C:\Program Files\OpenVPN\config (32-bit Windows)
+    C:\Program Files (x86)\OpenVPN\config (64-bit Windows)
+
+After this, stop the openvpn-gui or the openvpn service
+wrapper, if either of them is running and uninstall OpenVPN.
+Finally, remove the OpenVPN install directory entirely (e.g.
+using Windows Explorer as administrator).
+
+Finally, install the new version of OpenVPN and copy over
+your configuration files and certificates, which now go to
+
+    C:\Program Files\OpenVPN\config
+
+provided you did not install the 32-bit version on 64-bit
+Windows.
+
 IMPORTANT NOTE FOR WINDOWS VISTA/7 USERS
 
 Note that on Windows Vista, you will need to run the OpenVPN
