@@ -1,5 +1,161 @@
 OpenVPN Change Log
-Copyright (C) 2002-2011 OpenVPN Technologies, Inc. <sales@openvpn.net>
+Copyright (C) 2002-2012 OpenVPN Technologies, Inc. <sales@openvpn.net>
+
+2012.06.29 -- Version 2.3_alpha2
+Adriaan de Jong (11):
+      Fixed off-by-one in serial length calculation
+      Migrated x509_get_subject to use of the garbage collector
+      Migrated x509_get_serial to use the garbage collector
+      Migrated x509_get_sha1_hash to use the garbage collector
+      Ensure sys/un.h autoconf detection includes sys/socket.h
+      Added support for new PolarSSL 1.1 RNG
+      Added a configuration option to enable prediction resistance in the PolarSSL random number generator.
+      Use POLARSSL_CFLAGS instead of POLARSSL_CRYPTO_CFLAGS in configure.ac
+      Removed support for PolarSSL < 1.1
+      Updated README.polarssl with build system changes.
+      Removed stray "Fox-IT hardening" string.
+
+Alon Bar-Lev (94):
+      build: version should not contain '-'
+      package: rpm: strip should be handled by package management
+      cleanup: options.c: remove redundant include
+      cleanup: remove C++ warnings
+      cleanup: win32.c: wrong printf format
+      cleanup: remove redundant ';'
+      cleanup: crypto_openssl.c: remove support for pre-openssl-0.9.6
+      cleanup: tun.c: fix incorrect option in message (ip-win32)
+      cleanup: memcmp.c: remove unused source
+      fixup: init.c: add missing conditional for ENABLE_CLIENT_CR
+      build: correct place to alter WINVER is at build system
+      Update .gitignore
+      build: handle printf style format in mingw
+      build: rename plugin directory to plugins
+      build: plugins: properly use CC, CFLAGS and LDFLAGS
+      build: we need the sample.ovpn in future
+      Remove install-win32
+      Remove easy-rsa
+      Remove tap-win32
+      cleanup: rename tap-windows function from win32 to win
+      build: remove windows specific build system
+      build: split acinclude.m4 into m4/*
+      build: m4/ax_varargs.m4: cleanup
+      build: m4/ax_emptyarray.m4: cleanup
+      build: m4/ax_socklen_t.m4: cleanup
+      build: autotools: first pass of trivial autotools changes
+      build: autoconf: remove OPENVPN_ADD_LIBS useless macro
+      build: remove awk and non-standard autoconf output processing
+      build: standard directory layout
+      build: add libtool + windows resources for executables
+      build: autoconf: commands as environment
+      build: libdl usage
+      build: properly detect and use socket libs
+      build: autoconf: minor cleanups
+      build: proper selinux detection and usage
+      build: distribute pkg.m4
+      build: proper pkcs11-helper detection and usage
+      build: properly process lzo-stub
+      build: proper lzo detection and usage
+      build: proper crypto detection and usage
+      build: autoconf: update defaults for options
+      build: win-msvc: msbuild format
+      build: move out config.h include from syshead
+      build: split out compat
+      build: move gettimeofday() emulation to compat
+      build: move daemon() emulation into compat
+      build: move inet_ntop(), inet_pton() emulation into compat
+      cleanup: move console related function into its own module
+      build: move wrappers into platform module
+      build: windows: install version.sh to allow installer read version
+      build: distribute samples in windows
+      build: use tap-windows.h as external dependency
+      build: ax_varargs.m4: fixups
+      build: autoconf: misc sockets fixups
+      build: enable lzo by default
+      build: windows: set vendor to openvpn project + cleanups
+      build: assume dlfcn is available on all supported platforms
+      build: openbsd: detect netinet/ip.h correctly
+      build: tap: search for tap header
+      build: msvc: upgrade to Visual Studio 2010 + fixups
+      Enable pedantic in windows compilation
+      cleanup: flags should not be bool
+      cleanup: avoid using ~0 - generic
+      cleanup: avoid using ~0 - ipv6
+      cleanup: avoid using ~0 - netmask
+      cleanup: avoid using ~0 - windows
+      cleanup: gc usage
+      build: fix some statement left from conversion
+      build: properly detect netinet/ip.h structs
+      build: properly detect TUNSETPERSIST
+      cleanup: plugin: support C++ plugin
+      cleanup: remove C++ comments
+      cleanup: add .gitattributes to control eol style explicitly
+      crash: packet_id_debug_print: sl may be null
+      build: use stdbool.h if available
+      build: fix typo in --enable-save-password
+      build: windows: convert resources to UTF-8
+      build: check minimum polarssl version
+      cleanup: update .gitignore
+      cleanup: spec: make space/tab consistent
+      build: spec: we support openssl >= 0.9.7
+      build: insall README* document using build system
+      build: detect sys/wait.h required for *bsd
+      build: add git revision to --version output if build from git repository
+      build: cleanup: yet another forgotten brackets
+      build: update INSTALL to recent changes
+      build: support platforms that does not need explicit tun headers
+      build: do not support <polarssl-1.1.0
+      build: add --with-special-build to provide special build string
+      cleanup: pkcs11.c: resolve wanings
+      build: integrate plugins build into core build
+      build: plugins: set defaults based on platform
+      cleanup: windows: convert argv (UCS-2 to UTF-8) at earliest
+      build: msvc: chdir with change drive to script location
+
+Arne Schwabe (7):
+      Add the query to the error message.
+      Explain that route-nopull also causes the client to ignore dhcp options.
+      Add the name of the context where option is not allowed to the error message.
+      Only use tmpdir if tmp_dir is really used.
+      Completely remove ancient IANA port warning.
+      Remove ENABLE_INLINE_FILES conditionals
+      Remove ENABLE_CONNECTIONS ifdefs
+
+David Sommerseth (5):
+      Clean-up: Presume that Linux is always IPv6 capable at build time
+      Simplify check_cmd_access() function
+      Change version to indicate the master branch is not a version
+      Some filesystems don't like ':', which is a path 'make dist' would use
+      Remove two unused functions
+
+Frank de Brabander (1):
+      Fix reported compile issues on OSX 10.6.8
+
+Gert Doering (10):
+      repair t_client.sh test after build system revolution
+      t_client.sh iproute2 script fixes
+      t_client.sh - fix for iproute2, print summary line
+      Implement search for "first free" tun/tap device on Solaris
+      cleanup and redefine metric handling for IPv6 routes
+      remove "*option" element in "struct route_ipv6"
+      Remove warning about explicit support for IPv6 support not provided MacOS X
+      Add missing pieces to IPv6 route gateway handling.
+      Update TODO.IPv6 list
+      Remove #include "config.h" from ssl_polarssl.h
+
+Heiko Hund (3):
+      remove wrapper code for Windows CryptoAPI function
+      fix warnings in event.c when building for win32-64
+      remove the --auto-proxy option from openvpn
+
+Igor Novgorodov (1):
+      Remove calls to OpenSSL when building with --disable-ssl
+
+Jonathan K. Bullard (2):
+      Fix file access checks on commands
+      Clarified the docs and help screen about what a 'cmd' is
+
+Samuli Seppänen (1):
+      Added notes about upgrading from 2.3-alpha1 and earlier to INSTALL-win32.txt
 
 2012.02.21 -- Version 2.3-alpha1
 Adriaan de Jong (127):
