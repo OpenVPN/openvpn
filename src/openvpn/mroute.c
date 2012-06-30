@@ -52,7 +52,7 @@ mroute_addr_init (struct mroute_addr *addr)
 static inline bool
 is_mac_mcast_addr (const uint8_t *mac)
 {
-  return (bool) mac[0] & 1;
+  return (bool) (mac[0] & 1);
 }
 
 static inline bool
