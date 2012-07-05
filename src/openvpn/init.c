@@ -206,6 +206,7 @@ management_callback_http_proxy_fallback_cmd (void *arg, const char *server, cons
 
 #endif
 
+#ifdef ENABLE_MANAGEMENT
 static bool
 management_callback_remote_cmd (void *arg, const char **p)
 {
@@ -285,6 +286,7 @@ ce_management_query_remote (struct context *c, const char *remote_ip_hint)
   gc_free (&gc);
   return ret;
 }
+#endif /* ENABLE_MANAGEMENT */
 
 /*
  * Initialize and possibly randomize connection list.
@@ -396,7 +398,7 @@ next_connection_entry (struct context *c)
 	  ce_defined = false;
 
 	c->options.ce = *ce;
-
+#ifdef ENABLE_MANAGEMENT
 	if (ce_defined && management && management_query_remote_enabled(management))
 	  {
 	    /* allow management interface to override connection entry details */
@@ -404,6 +406,7 @@ next_connection_entry (struct context *c)
 	    if (IS_SIG (c))
 	      break;
 	  } else
+#endif
 	if (remote_ip_hint)
 	  c->options.ce.remote = remote_ip_hint;
 
@@ -3168,7 +3171,9 @@ init_management_callback_p2p (struct context *c)
 #if HTTP_PROXY_FALLBACK
       cb.http_proxy_fallback_cmd = management_callback_http_proxy_fallback_cmd;
 #endif
+#ifdef ENABLE_MANAGEMENT
       cb.remote_cmd = management_callback_remote_cmd;
+#endif
       management_set_callback (management, &cb);
     }
 #endif
