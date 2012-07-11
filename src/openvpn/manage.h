@@ -171,9 +171,7 @@ struct management_callback
 		     const unsigned long cid,
 		     struct buffer_list *pf_config);   /* ownership transferred */
 #endif
-#if HTTP_PROXY_FALLBACK
-  bool (*http_proxy_fallback_cmd) (void *arg, const char *server, const char *port, const char *flags);
-#endif
+  bool (*proxy_cmd) (void *arg, const char **p);
   bool (*remote_cmd) (void *arg, const char **p);
 };
 
@@ -335,6 +333,7 @@ struct management *management_init (void);
 #endif
 #define MF_UP_DOWN          (1<<10)
 #define MF_QUERY_REMOTE     (1<<11)
+#define MF_QUERY_PROXY      (1<<12)
 
 bool management_open (struct management *man,
 		      const char *addr,
@@ -427,6 +426,12 @@ static inline bool
 management_query_remote_enabled (const struct management *man)
 {
   return BOOL_CAST(man->settings.flags & MF_QUERY_REMOTE);
+}
+
+static inline bool
+management_query_proxy_enabled (const struct management *man)
+{
+  return BOOL_CAST(man->settings.flags & MF_QUERY_PROXY);
 }
 
 #ifdef MANAGEMENT_PF
@@ -553,12 +558,6 @@ management_bytes_server (struct management *man,
 }
 
 #endif /* MANAGEMENT_DEF_AUTH */
-
-#if HTTP_PROXY_FALLBACK
-
-void management_http_proxy_fallback_notify (struct management *man, const char *type, const char *remote_ip_hint);
-
-#endif /* HTTP_PROXY_FALLBACK */
 
 #endif
 #endif

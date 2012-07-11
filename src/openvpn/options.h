@@ -129,10 +129,7 @@ struct connection_entry
 #endif
 
 # define CE_DISABLED (1<<0)
-#if HTTP_PROXY_FALLBACK
-# define CE_HTTP_PROXY_FALLBACK (1<<1)
-  time_t ce_http_proxy_fallback_timestamp; /* time when fallback http_proxy_options was last updated */
-#endif
+# define CE_MAN_QUERY_PROXY (1<<1)
 # define CE_MAN_QUERY_REMOTE_UNDEF  0
 # define CE_MAN_QUERY_REMOTE_QUERY  1
 # define CE_MAN_QUERY_REMOTE_ACCEPT 2
@@ -166,14 +163,6 @@ struct remote_list
   int len;
   struct remote_entry *array[CONNECTION_LIST_SIZE];
 };
-
-#if HTTP_PROXY_FALLBACK
-struct hpo_store
-{
-  struct http_proxy_options hpo;
-  char server[80];
-};
-#endif
 
 struct remote_host_store
 {
@@ -220,10 +209,8 @@ struct options
   struct remote_list *remote_list;
   bool force_connection_list;
 
-#if HTTP_PROXY_FALLBACK
-  bool http_proxy_fallback;
+#if HTTP_PROXY_OVERRIDE
   struct http_proxy_options *http_proxy_override;
-  struct hpo_store *hpo_store; /* used to store dynamic proxy info given by management interface */
 #endif
 
   struct remote_host_store *rh_store;
@@ -797,16 +784,5 @@ connection_list_set_no_advance (struct options *o)
   if (o->connection_list)
     o->connection_list->no_advance = true;
 }
-
-#if HTTP_PROXY_FALLBACK
-
-struct http_proxy_options *
-parse_http_proxy_fallback (struct context *c,
-			   const char *server,
-			   const char *port,
-			   const char *flags,
-			   const int msglevel);
-
-#endif /* HTTP_PROXY_FALLBACK */
 
 #endif

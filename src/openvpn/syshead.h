@@ -650,12 +650,12 @@ socket_defined (const socket_descriptor_t sd)
 #endif
 
 /*
- * Should we include http proxy fallback functionality
+ * Should we include http proxy override functionality
  */
 #if defined(ENABLE_MANAGEMENT) && defined(ENABLE_HTTP_PROXY)
-#define HTTP_PROXY_FALLBACK 1
+#define HTTP_PROXY_OVERRIDE 1
 #else
-#define HTTP_PROXY_FALLBACK 0
+#define HTTP_PROXY_OVERRIDE 0
 #endif
 
 /*

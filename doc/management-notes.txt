@@ -719,6 +719,37 @@ use this command:
 
   remote SKIP
 
+COMMAND -- proxy  (OpenVPN 2.3 or higher)
+--------------------------------------------
+
+Provide proxy server host/port and flags in response to a >PROXY
+notification (client only).  Requires that the --management-query-proxy
+directive is used.
+
+  proxy TYPE HOST PORT ["nct"]
+
+The "proxy" command must only be given in response to a >PROXY
+notification.  Use the "nct" flag if you only want to allow
+non-cleartext auth with the proxy server.  The following >PROXY
+notification indicates that the client config file would ordinarily
+connect to the first --remote configured, vpn.example.com using TCP:
+
+  >PROXY:1,TCP,vpn.example.com
+
+Now, suppose we want to connect to the remote host using the proxy server
+proxy.intranet port 8080 with secure authentication only, if required.
+After receiving the above notification, use this command:
+
+  proxy HTTP proxy.intranet 8080 nct
+
+You can also use the SOCKS keyword to pass a SOCKS server address, like:
+
+  proxy SOCKS fe00::1 1080
+
+To accept connecting to the host and port directly, use this command:
+
+  proxy NONE
+
 OUTPUT FORMAT
 -------------
 

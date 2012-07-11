@@ -46,6 +46,21 @@
 
 #define UP_TYPE_PROXY        "HTTP Proxy"
 
+struct http_proxy_options *
+init_http_proxy_options_once (struct http_proxy_options *hpo,
+                              struct gc_arena *gc)
+{
+  if (!hpo)
+    {
+      ALLOC_OBJ_CLEAR_GC (hpo, struct http_proxy_options, gc);
+      /* http proxy defaults */
+      hpo->timeout = 5;
+      hpo->http_version = "1.0";
+    }
+  return hpo;
+}
+
+
 /* cached proxy username/password */
 static struct user_pass static_proxy_user_pass;
 

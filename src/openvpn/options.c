@@ -381,6 +381,7 @@ static const char usage_message[] =
   "                      ip/port rather than listen as a TCP server.\n"
   "--management-query-passwords : Query management channel for private key\n"
   "                  and auth-user-pass passwords.\n"
+  "--management-query-proxy : Query management channel for proxy information.\n"
   "--management-query-remote : Query management channel for --remote directive.\n"
   "--management-hold : Start " PACKAGE_NAME " in a hibernating state, until a client\n"
   "                    of the management interface explicitly starts it.\n"
@@ -1663,24 +1664,7 @@ show_settings (const struct options *o)
 #undef SHOW_INT
 #undef SHOW_BOOL
 
-#ifdef ENABLE_HTTP_PROXY
-
-struct http_proxy_options *
-init_http_options_if_undefined (struct options *o)
-{
-  if (!o->ce.http_proxy_options)
-    {
-      ALLOC_OBJ_CLEAR_GC (o->ce.http_proxy_options, struct http_proxy_options, &o->gc);
-      /* http proxy defaults */
-      o->ce.http_proxy_options->timeout = 5;
-      o->ce.http_proxy_options->http_version = "1.0";
-    }
-  return o->ce.http_proxy_options;
-}
-
-#endif
-
-#if HTTP_PROXY_FALLBACK
+#if HTTP_PROXY_OVERRIDE
 
 static struct http_proxy_options *
 parse_http_proxy_override (const char *server,
@@ -1717,68 +1701,6 @@ parse_http_proxy_override (const char *server,
     return NULL;
 }
 
-struct http_proxy_options *
-parse_http_proxy_fallback (struct context *c,
-			   const char *server,
-			   const char *port,
-			   const char *flags,
-			   const int msglevel)
-{
-  struct gc_arena gc = gc_new ();
-  struct http_proxy_options *ret = NULL;
-  struct http_proxy_options *hp = parse_http_proxy_override(server, port, flags, msglevel, &gc);
-  if (hp)
-    {
-      struct hpo_store *hpos = c->options.hpo_store;
-      if (!hpos)
-	{
-	  ALLOC_OBJ_CLEAR_GC (hpos, struct hpo_store, &c->options.gc);
-	  c->options.hpo_store = hpos;
-	}
-      hpos->hpo = *hp;
-      hpos->hpo.server = hpos->server;
-      strncpynt(hpos->server, hp->server, sizeof(hpos->server));
-      ret = &hpos->hpo;
-    }
-  gc_free (&gc);
-  return ret;
-}
-
-static void
-http_proxy_warn(const char *name)
-{
-  msg (M_WARN, "Note: option %s ignored because no TCP-based connection profiles are defined", name);
-}
-
-void
-options_postprocess_http_proxy_fallback (struct options *o)
-{
-  struct connection_list *l = o->connection_list;
-  if (l)
-    {
-      int i;
-      for (i = 0; i < l->len; ++i)
-	{
-	  struct connection_entry *ce = l->array[i];
-	  if (ce->proto == PROTO_TCPv4_CLIENT || ce->proto == PROTO_TCPv4)
-	    {
-	      if (l->len < CONNECTION_LIST_SIZE)
-		{
-		  struct connection_entry *newce;
-		  ALLOC_OBJ_GC (newce, struct connection_entry, &o->gc);
-		  *newce = *ce;
-		  newce->flags |= CE_HTTP_PROXY_FALLBACK;
-		  newce->http_proxy_options = NULL;
-		  newce->ce_http_proxy_fallback_timestamp = 0;
-		  l->array[l->len++] = newce;
-		}
-	      return;
-	    }
-	}
-    }
-  http_proxy_warn("http-proxy-fallback");
-}
-
 void
 options_postprocess_http_proxy_override (struct options *o)
 {
@@ -1808,9 +1730,7 @@ options_postprocess_http_proxy_override (struct options *o)
 	    }
 	}
       else
-	{
-	  http_proxy_warn("http-proxy-override");
-	}
+        msg (M_WARN, "Note: option http-proxy-override ignored because no TCP-based connection profiles are defined");
     }
 }
 
@@ -2565,11 +2485,9 @@ options_postprocess_mutate (struct options *o)
       for (i = 0; i < o->connection_list->len; ++i)
 	options_postprocess_mutate_ce (o, o->connection_list->array[i]);
 
-#if HTTP_PROXY_FALLBACK
+#if HTTP_PROXY_OVERRIDE
       if (o->http_proxy_override)
 	options_postprocess_http_proxy_override(o);
-      else if (o->http_proxy_fallback)
-	options_postprocess_http_proxy_fallback(o);
 #endif
     }
   else
@@ -4186,6 +4104,12 @@ add_option (struct options *options,
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->management_flags |= MF_QUERY_REMOTE;
     }
+  else if (streq (p[0], "management-query-proxy"))
+    {
+      VERIFY_PERMISSION (OPT_P_GENERAL);
+      options->management_flags |= MF_QUERY_PROXY;
+      options->force_connection_list = true;
+    }
   else if (streq (p[0], "management-hold"))
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
@@ -4419,13 +4343,7 @@ add_option (struct options *options,
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->remote_ip_hint = p[1];
     }
-#if HTTP_PROXY_FALLBACK
-  else if (streq (p[0], "http-proxy-fallback"))
-    {
-      VERIFY_PERMISSION (OPT_P_GENERAL);
-      options->http_proxy_fallback = true;
-      options->force_connection_list = true;
-    }
+#if HTTP_PROXY_OVERRIDE
   else if (streq (p[0], "http-proxy-override") && p[1] && p[2])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
@@ -4961,7 +4879,7 @@ add_option (struct options *options,
 	    goto err;
 	  }
 	
-	ho = init_http_options_if_undefined (options);
+	ho = init_http_proxy_options_once (options->ce.http_proxy_options, &options->gc);
 	
 	ho->server = p[1];
 	ho->port = port;
@@ -4996,7 +4914,7 @@ add_option (struct options *options,
     {
       struct http_proxy_options *ho;
       VERIFY_PERMISSION (OPT_P_GENERAL|OPT_P_CONNECTION);
-      ho = init_http_options_if_undefined (options);
+      ho = init_http_proxy_options_once (options->ce.http_proxy_options, &options->gc);
       ho->retry = true;
     }
   else if (streq (p[0], "http-proxy-timeout") && p[1])
@@ -5004,7 +4922,7 @@ add_option (struct options *options,
       struct http_proxy_options *ho;
 
       VERIFY_PERMISSION (OPT_P_GENERAL|OPT_P_CONNECTION);
-      ho = init_http_options_if_undefined (options);
+      ho = init_http_proxy_options_once (options->ce.http_proxy_options, &options->gc);
       ho->timeout = positive_atoi (p[1]);
     }
   else if (streq (p[0], "http-proxy-option") && p[1])
@@ -5012,7 +4930,7 @@ add_option (struct options *options,
       struct http_proxy_options *ho;
 
       VERIFY_PERMISSION (OPT_P_GENERAL|OPT_P_CONNECTION);
-      ho = init_http_options_if_undefined (options);
+      ho = init_http_proxy_options_once (options->ce.http_proxy_options, &options->gc);
 
       if (streq (p[1], "VERSION") && p[2])
 	{
