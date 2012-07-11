@@ -316,30 +316,6 @@ init_connection_list (struct context *c)
     }
 }
 
-#if 0 /* fixme -- disable for production */
-static void
-show_connection_list (const struct connection_list *l)
-{
-  int i;
-  dmsg (M_INFO, "CONNECTION_LIST len=%d current=%d",
-	l->len, l->current);
-  for (i = 0; i < l->len; ++i)
-    {
-      dmsg (M_INFO, "[%d] %s:%d proto=%s http_proxy=%d",
-	    i,
-	    l->array[i]->remote,
-	    l->array[i]->remote_port,
-	    proto2ascii(l->array[i]->proto, true),
-	    BOOL_CAST(l->array[i]->http_proxy_options));
-    }
-}
-#else
-static inline void
-show_connection_list (const struct connection_list *l)
-{
-}
-#endif
-
 /*
  * Increment to next connection entry
  */
@@ -374,7 +350,6 @@ next_connection_entry (struct context *c)
 
 	    if (l->current == 0)
 	      newcycle = true;
-	    show_connection_list(l);
 	  }
 
 	ce = l->array[l->current];
