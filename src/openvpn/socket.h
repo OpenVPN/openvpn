@@ -750,7 +750,7 @@ socket_connection_reset (const struct link_socket *sock, int status)
 	return true;
       else if (status < 0)
 	{
-	  const int err = openvpn_errno_socket ();
+	  const int err = openvpn_errno ();
 #ifdef WIN32
 	  return err == WSAECONNRESET || err == WSAECONNABORTED;
 #else

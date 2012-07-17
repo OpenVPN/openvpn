@@ -257,7 +257,7 @@ init_net_event_win32 (struct rw_handle *event, long network_events, socket_descr
   
   /* setup network events to change read event state */
   if (WSAEventSelect (sd, event->read, network_events) != 0)
-    msg (M_FATAL | M_ERRNO_SOCK, "Error: init_net_event_win32: WSAEventSelect call failed");
+    msg (M_FATAL | M_ERRNO, "Error: init_net_event_win32: WSAEventSelect call failed");
 }
 
 long
@@ -266,7 +266,7 @@ reset_net_event_win32 (struct rw_handle *event, socket_descriptor_t sd)
   WSANETWORKEVENTS wne;  
   if (WSAEnumNetworkEvents (sd, event->read, &wne) != 0)
     {
-      msg (M_FATAL | M_ERRNO_SOCK, "Error: reset_net_event_win32: WSAEnumNetworkEvents call failed");
+      msg (M_FATAL | M_ERRNO, "Error: reset_net_event_win32: WSAEnumNetworkEvents call failed");
       return 0; /* NOTREACHED */
     }
   else
@@ -281,7 +281,7 @@ close_net_event_win32 (struct rw_handle *event, socket_descriptor_t sd, unsigned
       if (socket_defined (sd))
 	{
 	  if (WSAEventSelect (sd, event->read, 0) != 0)
-	    msg (M_WARN | M_ERRNO_SOCK, "Warning: close_net_event_win32: WSAEventSelect call failed");
+	    msg (M_WARN | M_ERRNO, "Warning: close_net_event_win32: WSAEventSelect call failed");
 	}
       if (!ResetEvent (event->read))
 	msg (M_WARN | M_ERRNO, "Warning: ResetEvent (read) failed in close_net_event_win32");

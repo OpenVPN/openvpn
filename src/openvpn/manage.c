@@ -1594,7 +1594,7 @@ man_listen (struct management *man)
        * Listen for connection
        */
       if (listen (man->connection.sd_top, 1))
-	msg (M_SOCKERR, "MANAGEMENT: listen() failed");
+	msg (M_ERR, "MANAGEMENT: listen() failed");
 
       /*
        * Set misc socket properties
@@ -1782,7 +1782,7 @@ man_process_command (struct management *man, const char *line)
 static bool
 man_io_error (struct management *man, const char *prefix)
 {
-  const int err = openvpn_errno_socket ();
+  const int err = openvpn_errno ();
 
   if (!ignore_sys_error (err))
     {

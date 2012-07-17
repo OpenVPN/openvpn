@@ -233,7 +233,7 @@ port_share_sendmsg (const socket_descriptor_t sd,
 
       status = sendmsg (sd, &mesg, MSG_NOSIGNAL);
       if (status == -1)
-	msg (M_WARN|M_ERRNO_SOCK, "PORT SHARE: sendmsg failed -- unable to communicate with background process (%d,%d,%d,%d)",
+	msg (M_WARN|M_ERRNO, "PORT SHARE: sendmsg failed -- unable to communicate with background process (%d,%d,%d,%d)",
 	     sd, sd_send, sd_null[0], sd_null[1]
 	     );
 
@@ -419,7 +419,7 @@ proxy_entry_new (struct proxy_connection **list,
   sock_addr_set (&osaddr, server_addr, server_port);
   if ((sd_server = socket (PF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0)
     {
-      msg (M_WARN|M_ERRNO_SOCK, "PORT SHARE PROXY: cannot create socket");
+      msg (M_WARN|M_ERRNO, "PORT SHARE PROXY: cannot create socket");
       return false;
     }
   status = openvpn_connect (sd_server, &osaddr, 5, NULL);
@@ -851,7 +851,7 @@ port_share_open (const char *host,
 	}
       else
 	{
-	  msg (M_SOCKERR, "PORT SHARE: unexpected init recv_control status=%d", status);
+	  msg (M_ERR, "PORT SHARE: unexpected init recv_control status=%d", status);
 	}
     }
   else

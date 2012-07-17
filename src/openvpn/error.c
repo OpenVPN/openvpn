@@ -221,10 +221,7 @@ void x_msg (const unsigned int flags, const char *format, ...)
     return;
 #endif
 
-  if (flags & M_ERRNO_SOCK)
-    e = openvpn_errno_socket ();
-  else
-    e = openvpn_errno ();
+  e = openvpn_errno ();
 
   /*
    * Apply muting filter.
@@ -245,7 +242,7 @@ void x_msg (const unsigned int flags, const char *format, ...)
   va_end (arglist);
   m1[ERR_BUF_SIZE - 1] = 0; /* windows vsnprintf needs this */
 
-  if ((flags & (M_ERRNO|M_ERRNO_SOCK)) && e)
+  if ((flags & M_ERRNO) && e)
     {
       openvpn_snprintf (m2, ERR_BUF_SIZE, "%s: %s (errno=%d)",
 			m1, strerror_ts (e, &gc), e);
@@ -596,7 +593,7 @@ x_check_status (int status,
 		struct link_socket *sock,
 		struct tuntap *tt)
 {
-  const int my_errno = (sock ? openvpn_errno_socket () : (int)openvpn_errno ());
+  const int my_errno = openvpn_errno ();
   const char *extended_msg = NULL;
 
   msg (x_cs_verbose_level, "%s %s returned %d",

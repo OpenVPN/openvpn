@@ -66,7 +66,7 @@ void
 set_nonblock (int fd)
 {
   if (!set_nonblock_action (fd))
-    msg (M_SOCKERR, "Set socket to non-blocking mode failed");
+    msg (M_ERR, "Set socket to non-blocking mode failed");
 }
 
 /* Set a file descriptor to not be passed across execs */
