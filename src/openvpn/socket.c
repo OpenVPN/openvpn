@@ -1165,7 +1165,13 @@ openvpn_connect (socket_descriptor_t sd,
   status = connect (sd, &remote->addr.sa, af_addr_size(remote->addr.sa.sa_family));
   if (status)
     status = openvpn_errno_socket ();
-  if (status == EINPROGRESS)
+  if (
+#ifdef WIN32
+    status == WSAEWOULDBLOCK
+#else
+    status == EINPROGRESS
+#endif
+  )
     {
       while (true)
 	{
