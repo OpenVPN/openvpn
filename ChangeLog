@@ -1,6 +1,19 @@
 OpenVPN Change Log
 Copyright (C) 2002-2012 OpenVPN Technologies, Inc. <sales@openvpn.net>
 
+2012.07.20 -- Version 2.3_alpha3
+Arne Schwabe (1):
+      Fix compiling with --disable-management
+
+Gert Doering (1):
+      Repair "tap server" mode brokenness caused by <stdbool.h> fallout
+
+Heiko Hund (4):
+      make non-blocking connect work on Windows
+      don't treat socket related errors special anymore
+      remove unused show_connection_list debug function
+      add option --management-query-proxy
+
 2012.06.29 -- Version 2.3_alpha2
 Adriaan de Jong (11):
       Fixed off-by-one in serial length calculation
