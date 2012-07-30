@@ -144,12 +144,11 @@ management_callback_proxy_cmd (void *arg, const char **p)
               msg (M_WARN, "HTTP proxy support only works for TCP based connections");
               return false;
             }
-          ho = init_http_proxy_options_once (ce->http_proxy_options, gc);
+          ho = init_http_proxy_options_once (&ce->http_proxy_options, gc);
           ho->server = string_alloc (p[2], gc);
           ho->port = port;
           ho->retry = true;
           ho->auth_retry = (p[4] && streq (p[4], "nct") ? PAR_NCT : PAR_ALL);
-          ce->http_proxy_options = ho;
           ret = true;
 #endif
         }

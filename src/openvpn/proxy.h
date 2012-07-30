@@ -70,7 +70,7 @@ struct http_proxy_info {
   bool queried_creds;
 };
 
-struct http_proxy_options *init_http_proxy_options_once (struct http_proxy_options *hpo,
+struct http_proxy_options *init_http_proxy_options_once (struct http_proxy_options **hpo,
                                                          struct gc_arena *gc);
 
 struct http_proxy_info *http_proxy_new (const struct http_proxy_options *o);

@@ -47,17 +47,17 @@
 #define UP_TYPE_PROXY        "HTTP Proxy"
 
 struct http_proxy_options *
-init_http_proxy_options_once (struct http_proxy_options *hpo,
+init_http_proxy_options_once (struct http_proxy_options **hpo,
                               struct gc_arena *gc)
 {
-  if (!hpo)
+  if (!*hpo)
     {
-      ALLOC_OBJ_CLEAR_GC (hpo, struct http_proxy_options, gc);
+      ALLOC_OBJ_CLEAR_GC (*hpo, struct http_proxy_options, gc);
       /* http proxy defaults */
-      hpo->timeout = 5;
-      hpo->http_version = "1.0";
+      (*hpo)->timeout = 5;
+      (*hpo)->http_version = "1.0";
     }
-  return hpo;
+  return *hpo;
 }
 
 
