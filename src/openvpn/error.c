@@ -201,8 +201,15 @@ int x_msg_line_num; /* GLOBAL */
 
 void x_msg (const unsigned int flags, const char *format, ...)
 {
-  struct gc_arena gc;
   va_list arglist;
+  va_start (arglist, format);
+  x_msg_va (flags, format, arglist);
+  va_end (arglist);
+}
+
+void x_msg_va (const unsigned int flags, const char *format, va_list arglist)
+{
+  struct gc_arena gc;
 #if SYSLOG_CAPABILITY
   int level;
 #endif
@@ -237,9 +244,7 @@ void x_msg (const unsigned int flags, const char *format, ...)
   m1 = (char *) gc_malloc (ERR_BUF_SIZE, false, &gc);
   m2 = (char *) gc_malloc (ERR_BUF_SIZE, false, &gc);
 
-  va_start (arglist, format);
   vsnprintf (m1, ERR_BUF_SIZE, format, arglist);
-  va_end (arglist);
   m1[ERR_BUF_SIZE - 1] = 0; /* windows vsnprintf needs this */
 
   if ((flags & M_ERRNO) && e)

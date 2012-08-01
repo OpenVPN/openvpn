@@ -182,6 +182,8 @@ void x_msg (const unsigned int flags, const char *format, ...)
 #endif
     ; /* should be called via msg above */
 
+void x_msg_va (const unsigned int flags, const char *format, va_list arglist);
+
 /*
  * Function prototypes
  */
