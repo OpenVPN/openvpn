@@ -43,6 +43,8 @@ typedef X509 openvpn_x509_cert_t;
 #endif
 #endif
 
+#include <stdarg.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -145,7 +147,7 @@ typedef void *openvpn_plugin_handle_t;
 /*
  * For Windows (needs to be modified for MSVC)
  */
-#if defined(__MINGW32_VERSION) && !defined(OPENVPN_PLUGIN_H)
+#if defined(WIN32) && !defined(OPENVPN_PLUGIN_H)
 # define OPENVPN_EXPORT __declspec(dllexport)
 #else
 # define OPENVPN_EXPORT
@@ -205,6 +207,59 @@ struct openvpn_plugin_string_list
 #define OPENVPN_PLUGINv3_STRUCTVER 1
 
 /**
+ * Definitions needed for the plug-in callback functions.
+ */
+typedef enum
+{
+  PLOG_ERR    = (1 << 0),  /* Error condition message */
+  PLOG_WARN   = (1 << 1),  /* General warning message */
+  PLOG_NOTE   = (1 << 2),  /* Informational message */
+  PLOG_DEBUG  = (1 << 3),  /* Debug message, displayed if verb >= 7 */
+
+  PLOG_ERRNO  = (1 << 8),  /* Add error description to message */
+  PLOG_NOMUTE = (1 << 9),  /* Mute setting does not apply for message */
+
+} openvpn_plugin_log_flags_t;
+
+
+#ifdef __GNUC__
+#if __USE_MINGW_ANSI_STDIO
+#  define _ovpn_chk_fmt(a, b) __attribute__ ((format(gnu_printf, (a), (b))))
+#else
+#  define _ovpn_chk_fmt(a, b) __attribute__ ((format(__printf__, (a), (b))))
+#endif
+#else
+#  define _ovpn_chk_fmt(a, b)
+#endif
+
+typedef void (*plugin_log_t) (openvpn_plugin_log_flags_t flags,
+                              const char *plugin_name,
+                              const char *format, ...) _ovpn_chk_fmt(3, 4);
+
+typedef void (*plugin_vlog_t) (openvpn_plugin_log_flags_t flags,
+                               const char *plugin_name,
+                               const char *format,
+                               va_list arglist) _ovpn_chk_fmt(3, 0);
+
+#undef _ovpn_chk_fmt
+
+/**
+ * Used by the openvpn_plugin_open_v3() function to pass callback
+ * function pointers to the plug-in.
+ *
+ * plugin_log
+ * plugin_vlog : Use these functions to add information to the OpenVPN log file.
+ *               Messages will only be displayed if the plugin_name parameter
+ *               is set. PLOG_DEBUG messages will only be displayed with plug-in
+ *               debug log verbosity (at the time of writing that's verb >= 7).
+ */
+struct openvpn_plugin_callbacks
+{
+  plugin_log_t    plugin_log;
+  plugin_vlog_t   plugin_vlog;
+};
+
+/**
  * Arguments used to transport variables to the plug-in.
  * The struct openvpn_plugin_args_open_in is only used
  * by the openvpn_plugin_open_v3() function.
@@ -221,12 +276,16 @@ struct openvpn_plugin_string_list
  *        variables in "name=value" format.  Note that for security reasons,
  *        these variables are not actually written to the "official"
  *        environmental variable store of the process.
+ *
+ * callbacks : a pointer to the plug-in callback function struct.
+ *
  */
 struct openvpn_plugin_args_open_in
 {
   const int type_mask;
   const char ** const argv;
   const char ** const envp;
+  struct openvpn_plugin_callbacks *callbacks;
 };
 
 

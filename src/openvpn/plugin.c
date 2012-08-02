@@ -287,6 +287,65 @@ plugin_init_item (struct plugin *p, const struct plugin_option *o)
 }
 
 static void
+plugin_vlog (openvpn_plugin_log_flags_t flags, const char *name, const char *format, va_list arglist)
+{
+  unsigned int msg_flags;
+
+  if (!format)
+    return;
+
+  if (!name || name[0] == '\0')
+    {
+      msg (D_PLUGIN_DEBUG, "PLUGIN: suppressed log message from plugin with unknown name");
+      return;
+    }
+
+  if (flags & PLOG_ERR)
+    msg_flags = M_INFO | M_NONFATAL;
+  else if (flags & PLOG_WARN)
+    msg_flags = M_INFO | M_WARN;
+  else if (flags & PLOG_NOTE)
+    msg_flags = M_INFO;
+  else if (flags & PLOG_DEBUG)
+    msg_flags = D_PLUGIN_DEBUG;
+
+  if (flags & PLOG_ERRNO)
+    msg_flags |= M_ERRNO;
+  if (flags & PLOG_NOMUTE)
+    msg_flags |= M_NOMUTE;
+
+  if (MSG_TEST (msg_flags))
+    {
+      struct gc_arena gc;
+      char* msg_fmt;
+
+      /* Never add instance prefix; not thread safe */
+      msg_flags |= M_NOIPREFIX;
+
+      gc_init (&gc);
+      msg_fmt = gc_malloc (ERR_BUF_SIZE, false, &gc);
+      openvpn_snprintf (msg_fmt, ERR_BUF_SIZE, "PLUGIN %s: %s", name, format);
+      x_msg_va (msg_flags, msg_fmt, arglist);
+
+      gc_free (&gc);
+    }
+}
+
+static void
+plugin_log (openvpn_plugin_log_flags_t flags, const char *name, const char *format, ...)
+{
+  va_list arglist;
+  va_start (arglist, format);
+  plugin_vlog (flags, name, format, arglist);
+  va_end (arglist);
+}
+
+static struct openvpn_plugin_callbacks callbacks = {
+  plugin_log,
+  plugin_vlog
+};
+
+static void
 plugin_open_item (struct plugin *p,
 		  const struct plugin_option *o,
 		  struct openvpn_plugin_string_list **retlist,
@@ -312,7 +371,8 @@ plugin_open_item (struct plugin *p,
       if (p->open3) {
         struct openvpn_plugin_args_open_in args = { p->plugin_type_mask,
                                                     (const char ** const) o->argv,
-                                                    (const char ** const) envp };
+                                                    (const char ** const) envp,
+                                                    &callbacks };
         struct openvpn_plugin_args_open_return retargs;
 
         CLEAR(retargs);
