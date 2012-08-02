@@ -829,11 +829,11 @@ link_socket_update_buffer_sizes (struct link_socket *ls, int rcvbuf, int sndbuf)
  */
 
 socket_descriptor_t
-create_socket_tcp (void)
+create_socket_tcp (int af)
 {
   socket_descriptor_t sd;
 
-  if ((sd = socket (PF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0)
+  if ((sd = socket (af, SOCK_STREAM, IPPROTO_TCP)) < 0)
     msg (M_ERR, "Cannot create TCP socket");
 
 #ifndef WIN32 /* using SO_REUSEADDR on Windows will cause bind to succeed on port conflicts! */
@@ -843,18 +843,6 @@ create_socket_tcp (void)
     if (setsockopt (sd, SOL_SOCKET, SO_REUSEADDR,
 		    (void *) &on, sizeof (on)) < 0)
       msg (M_ERR, "TCP: Cannot setsockopt SO_REUSEADDR on TCP socket");
-  }
-#endif
-
-#if 0
-  /* set socket linger options */
-  {
-    struct linger linger;
-    linger.l_onoff = 1;
-    linger.l_linger = 2;
-    if (setsockopt (sd, SOL_SOCKET, SO_LINGER,
-		    (void *) &linger, sizeof (linger)) < 0)
-      msg (M_ERR, "TCP: Cannot setsockopt SO_LINGER on TCP socket");
   }
 #endif
 
@@ -912,25 +900,6 @@ create_socket_udp6 (const unsigned int flags)
   return sd;
 }
 
-static socket_descriptor_t
-create_socket_tcp6 (void)
-{
-  socket_descriptor_t sd;
-
-  if ((sd = socket (PF_INET6, SOCK_STREAM, IPPROTO_TCP)) < 0)
-    msg (M_ERR, "Cannot create TCP6 socket");
-
-  /* set SO_REUSEADDR on socket */
-  {
-    int on = 1;
-    if (setsockopt (sd, SOL_SOCKET, SO_REUSEADDR,
-		    (void *) &on, sizeof (on)) < 0)
-      msg (M_ERR, "TCP: Cannot setsockopt SO_REUSEADDR on TCP6 socket");
-  }
-
-  return sd;
-}
-
 static void
 create_socket (struct link_socket *sock)
 {
@@ -942,18 +911,18 @@ create_socket (struct link_socket *sock)
 
 #ifdef ENABLE_SOCKS
       if (sock->socks_proxy)
-	sock->ctrl_sd = create_socket_tcp ();
+	sock->ctrl_sd = create_socket_tcp (AF_INET);
 #endif
     }
   else if (sock->info.proto == PROTO_TCPv4_SERVER
 	   || sock->info.proto == PROTO_TCPv4_CLIENT)
     {
-      sock->sd = create_socket_tcp ();
+      sock->sd = create_socket_tcp (AF_INET);
     }
   else if (sock->info.proto == PROTO_TCPv6_SERVER
 	   || sock->info.proto == PROTO_TCPv6_CLIENT)
     {
-      sock->sd = create_socket_tcp6 ();
+      sock->sd = create_socket_tcp (AF_INET6);
     }
   else if (sock->info.proto == PROTO_UDPv6)
     {
@@ -1304,15 +1273,7 @@ socket_connect (socket_descriptor_t *sd,
       if (*signal_received)
 	goto done;
 
-      switch(local->addr.sa.sa_family)
-	{
-	case PF_INET6:
-	  *sd = create_socket_tcp6 ();
-	  break;
-	case PF_INET:
-	  *sd = create_socket_tcp ();
-	  break;
-	}
+	*sd = create_socket_tcp (local->addr.sa.sa_family);
 
       if (bind_local)
         socket_bind (*sd, local, "TCP Client");
@@ -1917,7 +1878,7 @@ link_socket_init_phase2 (struct link_socket *sock,
 	    if (proxy_retry)
 	      {
 		openvpn_close_socket (sock->sd);
-		sock->sd = create_socket_tcp ();
+		sock->sd = create_socket_tcp (AF_INET);
 	      }
 	  } while (proxy_retry);
 	}
