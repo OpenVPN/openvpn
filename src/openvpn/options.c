@@ -1581,6 +1581,12 @@ show_settings (const struct options *o)
   SHOW_STR (ca_path);
   SHOW_STR (dh_file);
   SHOW_STR (cert_file);
+
+#ifdef MANAGMENT_EXTERNAL_KEY
+  if((o->management_flags & MF_EXTERNAL_KEY))
+	SHOW_PARM ("priv_key_file","EXTERNAL_PRIVATE_KEY","%s");
+  else
+#endif
   SHOW_STR (priv_key_file);
 #ifndef ENABLE_CRYPTO_POLARSSL
   SHOW_STR (pkcs12_file);
@@ -2181,6 +2187,11 @@ options_postprocess_verify_ce (const struct options *options, const struct conne
       else
 #endif
 #ifdef ENABLE_CRYPTOAPI
+#ifdef MANAGMENT_EXTERNAL_KEY
+	 if((options->management_flags & MF_EXTERNAL_KEY) && options->priv_key_file)
+		msg (M_USAGE, "--key and --management-external-key are mutually exclusive");
+#endif
+
       if (options->cryptoapi_cert)
 	{
 	  if ((!(options->ca_file)) && (!(options->ca_path)))
@@ -2627,7 +2638,10 @@ options_postprocess_filechecks (struct options *options)
   errs |= check_file_access (CHKACC_FILE|CHKACC_INLINE, options->cert_file, R_OK, "--cert");
   errs |= check_file_access (CHKACC_FILE|CHKACC_INLINE, options->extra_certs_file, R_OK,
                              "--extra-certs");
-  errs |= check_file_access (CHKACC_FILE|CHKACC_INLINE, options->priv_key_file, R_OK,
+#ifdef MANAGMENT_EXTERNAL_KEY
+  if(!options->management_flags & MF_EXTERNAL_KEY)
+#endif
+     errs |= check_file_access (CHKACC_FILE|CHKACC_INLINE, options->priv_key_file, R_OK,
                              "--key");
   errs |= check_file_access (CHKACC_FILE|CHKACC_INLINE, options->pkcs12_file, R_OK,
                              "--pkcs12");
@@ -4141,7 +4155,6 @@ add_option (struct options *options,
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->management_flags |= MF_EXTERNAL_KEY;
-      options->priv_key_file = "EXTERNAL_PRIVATE_KEY";
     }
 #endif
 #ifdef MANAGEMENT_DEF_AUTH
