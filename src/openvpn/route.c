@@ -268,12 +268,14 @@ is_special_addr (const char *addr_str)
 
 static bool
 init_route (struct route *r,
-	    struct resolve_list *network_list,
+	    struct addrinfo **network_list,
 	    const struct route_option *ro,
 	    const struct route_list *rl)
 {
   const in_addr_t default_netmask = IPV4_NETMASK_HOST;
   bool status;
+  int ret;
+  struct in_addr special;
 
   CLEAR (*r);
   r->option = ro;
@@ -284,19 +286,22 @@ init_route (struct route *r,
     {
       goto fail;
     }
-  
-  if (!get_special_addr (rl, ro->network, &r->network, &status))
+
+
+  /* get_special_addr replaces specialaddr with a special ip addr
+     like gw. getaddrinfo is called to convert a a addrinfo struct */
+
+  if(get_special_addr (rl, ro->network, &special.s_addr, &status))
     {
-      r->network = getaddr_multi (
-				  GETADDR_RESOLVE
-				  | GETADDR_HOST_ORDER
-				  | GETADDR_WARN_ON_SIGNAL,
-				  ro->network,
-				  0,
-				  &status,
-				  NULL,
-				  network_list);
+      special.s_addr = htonl(special.s_addr);
+      ret = openvpn_getaddrinfo(0, inet_ntoa(special), 0, NULL,
+                                AF_INET, network_list);
     }
+  else
+    ret = openvpn_getaddrinfo(GETADDR_RESOLVE | GETADDR_WARN_ON_SIGNAL,
+                              ro->network, 0, NULL, AF_INET, network_list);
+
+  status = (ret == 0);
 
   if (!status)
     goto fail;
@@ -642,11 +647,8 @@ init_route_list (struct route_list *rl,
     bool warned = false;
     for (i = 0; i < opt->n; ++i)
       {
-	struct resolve_list netlist;
+        struct addrinfo* netlist;
 	struct route r;
-	int k;
-
-        CLEAR(netlist);		/* init_route() will not always init this */
 
 	if (!init_route (&r,
 			 &netlist,
@@ -655,16 +657,12 @@ init_route_list (struct route_list *rl,
 	  ret = false;
 	else
 	  {
-	    if (!netlist.len)
-	      {
-		netlist.data[0] = r.network;
-		netlist.len = 1;
-	      }
-	    for (k = 0; k < netlist.len; ++k)
+            struct addrinfo* curele;
+            for (curele	= netlist; curele; curele = curele->ai_next)
 	      {
 		if (j < rl->capacity)
 		  {
-		    r.network = netlist.data[k];
+                    r.network = ntohl(((struct sockaddr_in*)(curele)->ai_addr)->sin_addr.s_addr);
 		    rl->routes[j++] = r;
 		  }
 		else
@@ -676,6 +674,7 @@ init_route_list (struct route_list *rl,
 		      }
 		  }
 	      }
+            freeaddrinfo(netlist);
 	  }
       }
     rl->n = j;

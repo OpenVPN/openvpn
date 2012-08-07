@@ -93,220 +93,53 @@ h_errno_msg(int h_errno_err)
  */
 in_addr_t
 getaddr (unsigned int flags,
-	 const char *hostname,
-	 int resolve_retry_seconds,
-	 bool *succeeded,
-	 volatile int *signal_received)
+         const char *hostname,
+         int resolve_retry_seconds,
+         bool *succeeded,
+         volatile int *signal_received)
 {
-  return getaddr_multi (flags, hostname, resolve_retry_seconds, succeeded, signal_received, NULL);
-}
-
-in_addr_t
-getaddr_multi (unsigned int flags,
-	 const char *hostname,
-	 int resolve_retry_seconds,
-	 bool *succeeded,
-	 volatile int *signal_received,
-	 struct resolve_list *reslist)
-{
-  struct in_addr ia;
+  struct addrinfo *ai;
   int status;
-  int sigrec = 0;
-  int msglevel = (flags & GETADDR_FATAL) ? M_FATAL : D_RESOLVE_ERRORS;
-  struct gc_arena gc = gc_new ();
-
-  if (reslist)
-    reslist->len = 0;
-
-  if (flags & GETADDR_RANDOMIZE)
-    hostname = hostname_randomize(hostname, &gc);
-
-  if (flags & GETADDR_MSG_VIRT_OUT)
-    msglevel |= M_MSG_VIRT_OUT;
-
-  CLEAR (ia);
-  if (succeeded)
-    *succeeded = false;
-
-  if ((flags & (GETADDR_FATAL_ON_SIGNAL|GETADDR_WARN_ON_SIGNAL))
-      && !signal_received)
-    signal_received = &sigrec;
-
-  status = openvpn_inet_aton (hostname, &ia); /* parse ascii IP address */
-
-  if (status != OIA_IP) /* parse as IP address failed? */
-    {
-      const int fail_wait_interval = 5; /* seconds */
-      int resolve_retries = (flags & GETADDR_TRY_ONCE) ? 1 : (resolve_retry_seconds / fail_wait_interval);
-      struct hostent *h;
-      const char *fmt;
-      int level = 0;
-
-      CLEAR (ia);
-
-      fmt = "RESOLVE: Cannot resolve host address: %s: %s";
-      if ((flags & GETADDR_MENTION_RESOLVE_RETRY)
-	  && !resolve_retry_seconds)
-	fmt = "RESOLVE: Cannot resolve host address: %s: %s (I would have retried this name query if you had specified the --resolv-retry option.)";
-
-      if (!(flags & GETADDR_RESOLVE) || status == OIA_ERROR)
-	{
-	  msg (msglevel, "RESOLVE: Cannot parse IP address: %s", hostname);
-	  goto done;
-	}
-
-#ifdef ENABLE_MANAGEMENT
-      if (flags & GETADDR_UPDATE_MANAGEMENT_STATE)
-	{
-	  if (management)
-	    management_set_state (management,
-				  OPENVPN_STATE_RESOLVE,
-				  NULL,
-				  (in_addr_t)0,
-				  (in_addr_t)0);
-	}
-#endif
-
-      /*
-       * Resolve hostname
-       */
-      while (true)
-	{
-	  /* try hostname lookup */
-#if defined(HAVE_RES_INIT)
-	  res_init ();
-#endif
-	  h = gethostbyname (hostname);
-
-	  if (signal_received)
-	    {
-	      get_signal (signal_received);
-	      if (*signal_received) /* were we interrupted by a signal? */
-		{
-		  h = NULL;
-		  if (*signal_received == SIGUSR1) /* ignore SIGUSR1 */
-		    {
-		      msg (level, "RESOLVE: Ignored SIGUSR1 signal received during DNS resolution attempt");
-		      *signal_received = 0;
-		    }
-		  else
-		    goto done;
-		}
-	    }
-
-	  /* success? */
-	  if (h)
-	    break;
-
-	  /* resolve lookup failed, should we
-	     continue or fail? */
-
-	  level = msglevel;
-	  if (resolve_retries > 0)
-	    level = D_RESOLVE_ERRORS;
-
-	  msg (level,
-	       fmt,
-	       hostname,
-	       h_errno_msg (h_errno));
-
-	  if (--resolve_retries <= 0)
-	    goto done;
-
-	  openvpn_sleep (fail_wait_interval);
-	}
-
-      if (h->h_addrtype != AF_INET || h->h_length != 4)
-	{
-	    msg (msglevel, "RESOLVE: Sorry, but we only accept IPv4 DNS names: %s", hostname);
-	    goto done;
-	}
-
-      ia.s_addr = *(in_addr_t *) (h->h_addr_list[0]);
-
-      if (ia.s_addr)
-	{
-	  if (h->h_addr_list[1]) /* more than one address returned */
-	    {
-	      int n = 0;
-
-	      /* count address list */
-	      while (h->h_addr_list[n])
-		++n;
-	      ASSERT (n >= 2);
-
-	      msg (D_RESOLVE_ERRORS, "RESOLVE: NOTE: %s resolves to %d addresses",
-		   hostname,
-		   n);
-
-	      /* choose address randomly, for basic load-balancing capability */
-	      /*ia.s_addr = *(in_addr_t *) (h->h_addr_list[get_random () % n]);*/
-
-	      /* choose first address */
-	      ia.s_addr = *(in_addr_t *) (h->h_addr_list[0]);
-
-	      if (reslist)
-		{
-		  int i;
-		  for (i = 0; i < n && i < SIZE(reslist->data); ++i)
-		    {
-		      in_addr_t a = *(in_addr_t *) (h->h_addr_list[i]);
-		      if (flags & GETADDR_HOST_ORDER)
-			a = ntohl(a);
-		      reslist->data[i] = a;
-		    }
-		  reslist->len = i;
-		}
-	    }
-	}
-
-      /* hostname resolve succeeded */
-      if (succeeded)
-	*succeeded = true;
-    }
-  else
-    {
-      /* IP address parse succeeded */
-      if (succeeded)
-	*succeeded = true;
-    }
-
- done:
-  if (signal_received && *signal_received)
-    {
-      int level = 0;
-      if (flags & GETADDR_FATAL_ON_SIGNAL)
-	level = M_FATAL;
-      else if (flags & GETADDR_WARN_ON_SIGNAL)
-	level = M_WARN;
-      msg (level, "RESOLVE: signal received during DNS resolution attempt");
-    }
-
-  gc_free (&gc);
-  return (flags & GETADDR_HOST_ORDER) ? ntohl (ia.s_addr) : ia.s_addr;
+  status = openvpn_getaddrinfo(flags, hostname, resolve_retry_seconds,
+							   signal_received, AF_INET, &ai);
+  if(status==0) {
+    struct in_addr ia;
+    if(succeeded)
+      *succeeded=true;
+    ia = ((struct sockaddr_in*)ai->ai_addr)->sin_addr;
+    freeaddrinfo(ai);
+    return (flags & GETADDR_HOST_ORDER) ? ntohl (ia.s_addr) : ia.s_addr;
+  } else {
+    if(succeeded)
+      *succeeded =false;
+    return 0;
+  }
 }
+
 
 /*
- * Translate IPv6 addr or hostname into struct addrinfo
- * If resolve error, try again for
- * resolve_retry_seconds seconds.
+ * Translate IPv4/IPv6 addr or hostname into struct addrinfo
+ * If resolve error, try again for resolve_retry_seconds seconds.
  */
-bool
-getaddr6 (unsigned int flags,
-	 const char *hostname,
-	 int resolve_retry_seconds,
-	 volatile int *signal_received,
-         int *gai_err,
-	 struct sockaddr_in6 *in6)
+int
+openvpn_getaddrinfo (unsigned int flags,
+                     const char *hostname,
+                     int resolve_retry_seconds,
+                     volatile int *signal_received,
+                     int ai_family,
+                     struct addrinfo **res)
 {
-  bool success;
-  struct addrinfo hints, *ai;
+  struct addrinfo hints;
   int status;
   int sigrec = 0;
   int msglevel = (flags & GETADDR_FATAL) ? M_FATAL : D_RESOLVE_ERRORS;
   struct gc_arena gc = gc_new ();
 
-  ASSERT(in6);
+  ASSERT(res);
+
+#if defined(HAVE_RES_INIT)
+  res_init ();
+#endif
 
   if (!hostname)
     hostname = "::";
@@ -317,151 +150,111 @@ getaddr6 (unsigned int flags,
   if (flags & GETADDR_MSG_VIRT_OUT)
     msglevel |= M_MSG_VIRT_OUT;
 
-  CLEAR (ai);
-  success = false;
-
   if ((flags & (GETADDR_FATAL_ON_SIGNAL|GETADDR_WARN_ON_SIGNAL))
       && !signal_received)
     signal_received = &sigrec;
 
   /* try numeric ipv6 addr first */
   CLEAR(hints);
-  hints.ai_family = AF_INET6;
+  hints.ai_family = ai_family;
   hints.ai_flags = AI_NUMERICHOST;
-  if ((status = getaddrinfo(hostname, NULL, &hints, &ai))==0)
-    {
-      *in6 = *((struct sockaddr_in6 *)(ai->ai_addr));
-      freeaddrinfo(ai);
-      ai = NULL;
-    }
-  if (gai_err)
-    *gai_err = status;
+  hints.ai_socktype = dnsflags_to_socktype(flags);
 
+  status = getaddrinfo(hostname, NULL, &hints, res);
 
-  if (status != 0) /* parse as IPv6 address failed? */
+  if (status != 0) /* parse as numeric address failed? */
     {
       const int fail_wait_interval = 5; /* seconds */
       int resolve_retries = (flags & GETADDR_TRY_ONCE) ? 1 : (resolve_retry_seconds / fail_wait_interval);
       const char *fmt;
       int level = 0;
-      int err;
-
-      ai = NULL;
 
       fmt = "RESOLVE: Cannot resolve host address: %s: %s";
       if ((flags & GETADDR_MENTION_RESOLVE_RETRY)
-	  && !resolve_retry_seconds)
-	fmt = "RESOLVE: Cannot resolve host address: %s: %s (I would have retried this name query if you had specified the --resolv-retry option.)";
+          && !resolve_retry_seconds)
+        fmt = "RESOLVE: Cannot resolve host address: %s: %s (I would have retried this name query if you had specified the --resolv-retry option.)";
 
       if (!(flags & GETADDR_RESOLVE) || status == EAI_FAIL)
-	{
-	  msg (msglevel, "RESOLVE: Cannot parse IPv6 address: %s", hostname);
-	  goto done;
-	}
+        {
+          msg (msglevel, "RESOLVE: Cannot parse IP address: %s", hostname);
+          goto done;
+        }
 
 #ifdef ENABLE_MANAGEMENT
       if (flags & GETADDR_UPDATE_MANAGEMENT_STATE)
-	{
-	  if (management)
-	    management_set_state (management,
-				  OPENVPN_STATE_RESOLVE,
-				  NULL,
-				  (in_addr_t)0,
-				  (in_addr_t)0);
-	}
+        {
+          if (management)
+            management_set_state (management,
+                                  OPENVPN_STATE_RESOLVE,
+                                  NULL,
+                                  (in_addr_t)0,
+                                  (in_addr_t)0);
+        }
 #endif
 
       /*
        * Resolve hostname
        */
       while (true)
-	{
-	  /* try hostname lookup */
-          hints.ai_flags = 0;
-          hints.ai_socktype = dnsflags_to_socktype(flags);
-	  dmsg (D_SOCKET_DEBUG, "GETADDR6 flags=0x%04x ai_family=%d ai_socktype=%d",
-		flags, hints.ai_family, hints.ai_socktype);
-          err = getaddrinfo(hostname, NULL, &hints, &ai);
-
-          if (gai_err)
-            *gai_err = err;
-
-	  if (signal_received)
-	    {
-	      get_signal (signal_received);
-	      if (*signal_received) /* were we interrupted by a signal? */
-		{
-                  if (0 == err) {
-                    ASSERT(ai);
-                    freeaddrinfo(ai);
-                    ai = NULL;
-                  }
-		  if (*signal_received == SIGUSR1) /* ignore SIGUSR1 */
-		    {
-		      msg (level, "RESOLVE: Ignored SIGUSR1 signal received during DNS resolution attempt");
-		      *signal_received = 0;
-		    }
-		  else
-		    goto done;
-		}
-	    }
-
-	  /* success? */
-	  if (0 == err)
-	    break;
-
-	  /* resolve lookup failed, should we
-	     continue or fail? */
-
-	  level = msglevel;
-	  if (resolve_retries > 0)
-	    level = D_RESOLVE_ERRORS;
-
-	  msg (level,
-	       fmt,
-	       hostname,
-	       gai_strerror(err));
-
-	  if (--resolve_retries <= 0)
-	    goto done;
-
-	  openvpn_sleep (fail_wait_interval);
-	}
-
-      ASSERT(ai);
-
-      if (!ai->ai_next)
-        *in6 = *((struct sockaddr_in6*)(ai->ai_addr));
-      else 
-        /* more than one address returned */
         {
-          struct addrinfo *ai_cursor;
-          int n = 0;
-          /* count address list */
-          for (ai_cursor = ai; ai_cursor; ai_cursor = ai_cursor->ai_next) n++;
-          ASSERT (n >= 2);
+          /* try hostname lookup */
+          hints.ai_flags = 0;
+          dmsg (D_SOCKET_DEBUG, "GETADDRINFO flags=0x%04x ai_family=%d ai_socktype=%d",
+                flags, hints.ai_family, hints.ai_socktype);
+          status = getaddrinfo(hostname, NULL, &hints, res);
 
-          msg (D_RESOLVE_ERRORS, "RESOLVE: NOTE: %s resolves to %d ipv6 addresses, choosing one by random",
+          if (signal_received)
+            {
+              get_signal (signal_received);
+              if (*signal_received) /* were we interrupted by a signal? */
+                {
+                  if (0 == status) {
+                    ASSERT(res);
+                    freeaddrinfo(*res);
+                    res = NULL;
+                  }
+                  if (*signal_received == SIGUSR1) /* ignore SIGUSR1 */
+                    {
+                      msg (level, "RESOLVE: Ignored SIGUSR1 signal received during DNS resolution attempt");
+                      *signal_received = 0;
+                    }
+                  else
+                    goto done;
+                }
+            }
+
+          /* success? */
+          if (0 == status)
+            break;
+
+          /* resolve lookup failed, should we
+             continue or fail? */
+          level = msglevel;
+          if (resolve_retries > 0)
+            level = D_RESOLVE_ERRORS;
+
+          msg (level,
+               fmt,
                hostname,
-               n);
+               gai_strerror(status));
 
-          /* choose address randomly, for basic load-balancing capability */
-	  n--;
-          n %= get_random();
-          for (ai_cursor = ai; n; ai_cursor = ai_cursor->ai_next) n--;
-          *in6 = *((struct sockaddr_in6*)(ai_cursor->ai_addr));
+          if (--resolve_retries <= 0)
+            goto done;
+
+          openvpn_sleep (fail_wait_interval);
         }
 
-      freeaddrinfo(ai);
-      ai = NULL;
+      ASSERT(res);
 
       /* hostname resolve succeeded */
-      success = true;
+
+      /* Do not chose an IP Addresse by random or change the order *
+       * of IP addresses, doing so will break RFC 3484 address selection *
+       */
     }
   else
     {
       /* IP address parse succeeded */
-      success = true;
     }
 
  done:
@@ -469,14 +262,14 @@ getaddr6 (unsigned int flags,
     {
       int level = 0;
       if (flags & GETADDR_FATAL_ON_SIGNAL)
-	level = M_FATAL;
+        level = M_FATAL;
       else if (flags & GETADDR_WARN_ON_SIGNAL)
-	level = M_WARN;
+        level = M_WARN;
       msg (level, "RESOLVE: signal received during DNS resolution attempt");
     }
 
   gc_free (&gc);
-  return success;
+  return status;
 }
 
 /*
@@ -652,18 +445,16 @@ update_remote (const char* host,
     case AF_INET6:
       if (host && addr)
         {
-          struct sockaddr_in6 sin6;
-          int success;
-          CLEAR(sin6);
-          success = getaddr6 (
-                                    sf2gaf(GETADDR_RESOLVE|GETADDR_UPDATE_MANAGEMENT_STATE, sockflags),
-                                    host,
-                                    1,
-                                    NULL,
-                                    NULL,
-                                    &sin6);
-          if ( success )
+          int status;
+          struct addrinfo* ai;
+
+		  status = openvpn_getaddrinfo(sf2gaf(GETADDR_RESOLVE|GETADDR_UPDATE_MANAGEMENT_STATE, sockflags), host, 1, NULL, AF_INET6, &ai);
+
+          if ( status ==0 )
             {
+			  struct sockaddr_in6 sin6;
+			  CLEAR(sin6);
+			  sin6 = *((struct sockaddr_in6*)ai->ai_addr);
               if (!IN6_ARE_ADDR_EQUAL(&sin6.sin6_addr, &addr->addr.in6.sin6_addr))
               {
                 int port = addr->addr.in6.sin6_port;
@@ -671,6 +462,7 @@ update_remote (const char* host,
                 addr->addr.in6 = sin6; 
                 addr->addr.in6.sin6_port = port;
               }
+			  freeaddrinfo(ai);
             }
         }
       break;
@@ -1355,25 +1147,27 @@ resolve_bind_local (struct link_socket *sock)
 	  break;
 	case AF_INET6:
 	    {
-	      int success;
+	      int status;
 	      int err;
 	      CLEAR(sock->info.lsa->local.addr.in6);
 	      if (sock->local_host)
 		{
-		  success = getaddr6(GETADDR_RESOLVE | GETADDR_WARN_ON_SIGNAL | GETADDR_FATAL,
-				     sock->local_host,
-				     0,
-				     NULL,
-				     &err,
-				     &sock->info.lsa->local.addr.in6);
+		  struct addrinfo *ai;
+
+		  status = openvpn_getaddrinfo(GETADDR_RESOLVE | GETADDR_WARN_ON_SIGNAL | GETADDR_FATAL,
+									   sock->local_host, 0, NULL, AF_INET6, &ai);
+		  if(status ==0) {
+			  sock->info.lsa->local.addr.in6 = *((struct sockaddr_in6*)(ai->ai_addr));
+			  freeaddrinfo(ai);
+		  }
 		}
 	      else
 		{
 		  sock->info.lsa->local.addr.in6.sin6_family = AF_INET6;
 		  sock->info.lsa->local.addr.in6.sin6_addr = in6addr_any;
-		  success = true;
+		  status = 0;
 		}
-	      if (!success)
+	      if (!status == 0)
 		{
 		  msg (M_FATAL, "getaddr6() failed for local \"%s\": %s",
 		       sock->local_host,
@@ -1430,7 +1224,7 @@ resolve_remote (struct link_socket *sock,
 	    {
 	      unsigned int flags = sf2gaf(GETADDR_RESOLVE|GETADDR_UPDATE_MANAGEMENT_STATE, sock->sockflags);
 	      int retry = 0;
-	      bool status = false;
+	      int status = -1;
 
 	      if (sock->connection_profiles_defined && sock->resolve_retry_seconds == RESOLV_RETRY_INFINITE)
 		{
@@ -1467,40 +1261,27 @@ resolve_remote (struct link_socket *sock,
 		  ASSERT (0);
 		}
 
-              switch(af)
-                {
-                  case AF_INET:
-                    sock->info.lsa->remote.addr.in4.sin_addr.s_addr = getaddr (
-                          flags,
-                          sock->remote_host,
-                          retry,
-                          &status,
-                          signal_received);
-                    break;
-                  case AF_INET6:
-                    status = getaddr6 (
-                        flags,
-                        sock->remote_host,
-                        retry,
-                        signal_received,
-                        NULL,
-                        &sock->info.lsa->remote.addr.in6);
-                    break;
-                }
+		  struct addrinfo* ai;
+		  /* Temporary fix, this need to be changed for dual stack */
+		  status = openvpn_getaddrinfo(flags, sock->remote_host, retry,
+											  signal_received, af, &ai);
+		  if(status == 0) {
+			  sock->info.lsa->remote.addr.in6 = *((struct sockaddr_in6*)(ai->ai_addr));
+			  freeaddrinfo(ai);
 
-	      dmsg (D_SOCKET_DEBUG, "RESOLVE_REMOTE flags=0x%04x phase=%d rrs=%d sig=%d status=%d",
-		   flags,
-		   phase,
-		   retry,
-		   signal_received ? *signal_received : -1,
-		   status);
-
+			  dmsg (D_SOCKET_DEBUG, "RESOLVE_REMOTE flags=0x%04x phase=%d rrs=%d sig=%d status=%d",
+					flags,
+					phase,
+					retry,
+					signal_received ? *signal_received : -1,
+					status);
+		  }
 	      if (signal_received)
 		{
 		  if (*signal_received)
 		    goto done;
 		}
-	      if (!status)
+	      if (status!=0)
 		{
 		  if (signal_received)
 		    *signal_received = SIGUSR1;
