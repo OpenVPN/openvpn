@@ -2431,11 +2431,14 @@ be set to 127.0.0.1
 server to local clients. 
 .TP
 .B \-\-management-client
-Management interface will connect as a TCP client to
+Management interface will connect as a TCP/unix domain client to
 .B IP:port
 specified by
 .B \-\-management
-rather than listen as a TCP server.
+rather than listen as a TCP server or on a unix domain socket.
+
+If the client connection fails to connect or is disconnected,
+a SIGTERM signal will be generated causing OpenVPN to quit.
 .\"*********************************************************
 .TP
 .B \-\-management-query-passwords
@@ -2478,7 +2481,8 @@ command.
 .B \-\-management-signal
 Send SIGUSR1 signal to OpenVPN if management session disconnects.
 This is useful when you wish to disconnect an OpenVPN session on
-user logoff.
+user logoff. For --management-client this option is not needed since
+a disconnect will always generate a SIGTERM.
 .\"*********************************************************
 .TP
 .B \-\-management-log-cache n
