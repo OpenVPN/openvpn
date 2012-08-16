@@ -890,7 +890,7 @@ do_ifconfig (struct tuntap *tt,
 #elif defined(TARGET_OPENBSD)
 
       /*
-       * On OpenBSD, tun interfaces are persistant if created with
+       * On OpenBSD, tun interfaces are persistent if created with
        * "ifconfig tunX create", and auto-destroyed if created by
        * opening "/dev/tunX" (so we just use the /dev/tunX)
        */
@@ -1235,7 +1235,7 @@ do_ifconfig (struct tuntap *tt,
   gc_free (&gc);
 }
 
-void
+static void
 clear_tuntap (struct tuntap *tuntap)
 {
   CLEAR (*tuntap);
@@ -1344,6 +1344,13 @@ open_tun_generic (const char *dev, const char *dev_type, const char *dev_node,
 
       if (!dynamic_opened)
 	{
+	  /* has named device existed before? if so, don't destroy at end */
+	  if ( if_nametoindex( dev ) > 0 )
+	    {
+	      msg (M_INFO, "TUN/TAP device %s exists previously, keep at program end", dev );
+	      tt->persistent_if = true;
+	    }
+
 	  if ((tt->fd = open (tunname, O_RDWR)) < 0)
 	    msg (M_ERR, "Cannot open TUN/TAP dev %s", tunname);
 	}
@@ -2030,7 +2037,7 @@ close_tun (struct tuntap* tt)
 {
   /* only *TAP* devices need destroying, tun devices auto-self-destruct
    */
-  if (tt && tt->type == DEV_TYPE_TUN )
+  if (tt && (tt->type == DEV_TYPE_TUN || tt->persistent_if ) )
     {
       close_tun_generic (tt);
       free(tt);
@@ -2165,7 +2172,7 @@ close_tun (struct tuntap *tt)
 {
   /* only tun devices need destroying, tap devices auto-self-destruct
    */
-  if (tt && tt->type != DEV_TYPE_TUN )
+  if (tt && ( tt->type != DEV_TYPE_TUN || tt->persistent_if ) )
     {
       close_tun_generic (tt);
       free(tt);
@@ -2303,7 +2310,12 @@ open_tun (const char *dev, const char *dev_type, const char *dev_node, struct tu
 void
 close_tun (struct tuntap *tt)
 {
-  if (tt)
+  if (tt && tt->persistent_if )		/* keep pre-existing if around */
+    {
+      close_tun_generic (tt);
+      free (tt);
+    }
+  else if (tt)				/* close and destroy */
     {
       struct gc_arena gc = gc_new ();
       struct argv argv;

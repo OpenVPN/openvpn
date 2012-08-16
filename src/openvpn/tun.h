@@ -137,6 +137,8 @@ struct tuntap
 
   bool ipv6;
 
+  bool persistent_if;		/* if existed before, keep on program end */
+
   struct tuntap_options options; /* options set on command line */
 
   char *actual_name; /* actual name of TUN/TAP dev, usually including unit number */
@@ -201,7 +203,7 @@ tuntap_defined (const struct tuntap *tt)
  * Function prototypes
  */
 
-void clear_tuntap (struct tuntap *tuntap);
+static void clear_tuntap (struct tuntap *tuntap);
 
 void open_tun (const char *dev, const char *dev_type, const char *dev_node,
 	       struct tuntap *tt);
