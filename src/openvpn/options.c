@@ -106,8 +106,7 @@ const char title_string[] =
 #if ENABLE_IP_PKTINFO
   " [MH]"
 #endif
-  " [PF_INET6]"
-  " [IPv6 payload 20110522-1 (2.2.0)]"
+  " [IPv6]"
   " built on " __DATE__
 ;
 
