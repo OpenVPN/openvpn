@@ -234,7 +234,8 @@ do
     fi
 
     echo " run openvpn $openvpn_conf"
-    $RUN_SUDO "${top_builddir}/src/openvpn/openvpn" $openvpn_conf >$LOGDIR/$SUF:openvpn.log &
+    echo "# src/openvpn/openvpn $openvpn_conf" >$LOGDIR/$SUF:openvpn.log
+    $RUN_SUDO "${top_builddir}/src/openvpn/openvpn" $openvpn_conf >>$LOGDIR/$SUF:openvpn.log &
     opid=$!
 
     # make sure openvpn client is terminated in case shell exits
