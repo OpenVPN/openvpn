@@ -73,6 +73,4 @@ int verify_callback (int preverify_ok, X509_STORE_CTX * ctx);
 
 /** @} name Function for authenticating a new connection from a remote OpenVPN peer */
 
-char *_openssl_get_subject (X509 *cert, char *buf, int size);
-
 #endif /* SSL_VERIFY_OPENSSL_H_ */
