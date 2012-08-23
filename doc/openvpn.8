@@ -3621,6 +3621,14 @@ would see nothing
 but random-looking data.
 .\"*********************************************************
 .TP
+.B \-\-key-direction
+Alternative way of specifying the optional direction parameter for the
+.B \-\-tls-auth
+and
+.B \-\-secret
+options. Useful when using inline files (See section on inline files).
+.\"*********************************************************
+.TP
 .B \-\-auth alg
 Authenticate packets with HMAC using message
 digest algorithm
@@ -5901,6 +5909,37 @@ X509_1_C=KG
 .ft
 .fi
 .\"*********************************************************
+.SH INLINE FILE SUPPORT
+OpenVPN allows including files in the main configuration for the
+.B \-\-ca, \-\-cert, \-\-dh, \-\-extra-certs, \-\-key, \-\-pkcs12, \-\-secret
+and
+.B \-\-tls-auth
+options.
+
+Each inline file started by the line
+.B <option>
+and ended by the line
+.B </option>
+
+Here is an example of an inline file usage
+
+.nf
+.ft 3
+.in +4
+<cert>
+-----BEGIN CERTIFICATE-----
+[...]
+-----END CERTIFICATE-----
+</cert>
+.in -4
+.ft
+.fi
+
+When using the inline file feature with
+.B \-\-pkcs12
+the inline file has to be base64 encoded. Encoding of a .p12 file into base64 can be done for example with OpenSSL by running
+.B openssl base64 -in input.p12
+
 .SH SIGNALS
 .TP
 .B SIGHUP
