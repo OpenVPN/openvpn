@@ -1584,6 +1584,10 @@ and
 .B \-\-ping-restart
 in server mode configurations.
 
+The server timeout is set twice the value of the second argument.
+This ensures that a timeout is dectected on client side
+before the server side drops the connection.
+
 For example,
 .B \-\-keepalive 10 60
 expands as follows:
