@@ -448,7 +448,7 @@ struct context_2
   /* --ifconfig endpoints to be pushed to client */
   bool push_reply_deferred;
   bool push_ifconfig_defined;
-  bool sent_push_reply;
+  time_t sent_push_reply_expiry;
   in_addr_t push_ifconfig_local;
   in_addr_t push_ifconfig_remote_netmask;
 #ifdef ENABLE_CLIENT_NAT

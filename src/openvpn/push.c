@@ -416,7 +416,10 @@ process_incoming_push_msg (struct context *c,
 	}
       else if (!c->c2.push_reply_deferred && c->c2.context_auth == CAS_SUCCEEDED)
 	{
-	  if (c->c2.sent_push_reply)
+	  time_t now;
+
+	  openvpn_time(&now);
+	  if (c->c2.sent_push_reply_expiry > now)
 	    {
 	      ret = PUSH_MSG_ALREADY_REPLIED;
 	    }
@@ -425,7 +428,7 @@ process_incoming_push_msg (struct context *c,
 	      if (send_push_reply (c))
 		{
 		  ret = PUSH_MSG_REQUEST;
-		  c->c2.sent_push_reply = true;
+		  c->c2.sent_push_reply_expiry = now + 30;
 		}
 	    }
 	}
