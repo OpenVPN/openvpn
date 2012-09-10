@@ -2176,6 +2176,10 @@ options_postprocess_verify_ce (const struct options *options, const struct conne
 	  msg(M_USAGE, "Parameter --cert cannot be used when --pkcs11-provider is also specified.");
 	if (options->priv_key_file)
 	  msg(M_USAGE, "Parameter --key cannot be used when --pkcs11-provider is also specified.");
+#ifdef MANAGMENT_EXTERNAL_KEY
+	if (options->management_flags & MF_EXTERNAL_KEY)
+	  msg(M_USAGE, "Parameter --management-external-key cannot be used when --pkcs11-provider is also specified.");
+#endif
 	if (options->pkcs12_file)
 	  msg(M_USAGE, "Parameter --pkcs12 cannot be used when --pkcs11-provider is also specified.");
 #ifdef ENABLE_CRYPTOAPI
@@ -2201,6 +2205,10 @@ options_postprocess_verify_ce (const struct options *options, const struct conne
 	    msg(M_USAGE, "Parameter --key cannot be used when --cryptoapicert is also specified.");
           if (options->pkcs12_file)
 	    msg(M_USAGE, "Parameter --pkcs12 cannot be used when --cryptoapicert is also specified.");
+#ifdef MANAGMENT_EXTERNAL_KEY
+          if (options->management_flags & MF_EXTERNAL_KEY)
+	    msg(M_USAGE, "Parameter --management-external-key cannot be used when --cryptoapicert is also specified.");
+#endif
 	}
       else
 #endif
@@ -2215,6 +2223,10 @@ options_postprocess_verify_ce (const struct options *options, const struct conne
 	    msg(M_USAGE, "Parameter --cert cannot be used when --pkcs12 is also specified.");
           if (options->priv_key_file)
 	    msg(M_USAGE, "Parameter --key cannot be used when --pkcs12 is also specified.");
+#ifdef MANAGMENT_EXTERNAL_KEY
+          if (options->management_flags & MF_EXTERNAL_KEY)
+	    msg(M_USAGE, "Parameter --external-management-key cannot be used when --pkcs12 is also specified.");
+#endif
 #endif
         }
       else
@@ -2230,7 +2242,15 @@ options_postprocess_verify_ce (const struct options *options, const struct conne
 #endif
 	  if (pull)
 	    {
-	      const int sum = (options->cert_file != NULL) + (options->priv_key_file != NULL);
+
+	      const int sum = (options->cert_file != NULL) +
+#ifdef MANAGMENT_EXTERNAL_KEY
+			((options->priv_key_file != NULL) || (options->management_flags & MF_EXTERNAL_KEY));
+#else
+		    (options->priv_key_file != NULL);
+#endif
+
+
 	      if (sum == 0)
 		{
 #if P2MP
@@ -2248,6 +2268,9 @@ options_postprocess_verify_ce (const struct options *options, const struct conne
 	  else
 	    {
 	      notnull (options->cert_file, "certificate file (--cert) or PKCS#12 file (--pkcs12)");
+#ifdef MANAGMENT_EXTERNAL_KEY
+          if (!options->management_flags & MF_EXTERNAL_KEY)
+#endif
 	      notnull (options->priv_key_file, "private key file (--key) or PKCS#12 file (--pkcs12)");
 	    }
 	}
