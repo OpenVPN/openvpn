@@ -3403,6 +3403,58 @@ the authenticated username as the common name,
 rather than the common name from the client cert.
 .\"*********************************************************
 .TP
+.B \-\-compat\-names [no\-remapping]
+Until OpenVPN v2.3 the format of the X.509 Subject fields was formatted
+like this:
+.IP
+.B
+/C=US/L=Somewhere/CN=John Doe/emailAddress=john@example.com
+.IP
+In addition the old behavivour was to remap any character other than
+alphanumeric, underscore ('_'), dash ('-'), dot ('.'), and slash ('/') to
+underscore ('_').  The X.509 Subject string as returned by the
+.B tls_id
+environmental variable, could additionally contain colon (':') or equal ('=').
+.IP
+When using the
+.B \-\-compat\-names
+option, this old formatting and remapping will be re-enabled again.  This is
+purely implemented for compatibility reasons when using older plug-ins or
+scripts which does not handle the new formatting or UTF-8 characters.
+.IP
+In OpenVPN v2.3 the formatting of these fields changed into a more
+standardised format.  It now looks like:
+.IP
+.B
+C=US, L=Somewhere, CN=John Doe, emailAddress=john@example.com
+.IP
+The new default format in OpenVPN v2.3 also does not do the character remapping
+which happened earlier.  This new format enables proper support for UTF\-8
+characters in the usernames, X.509 Subject fields and Common Name variables and
+it complies to the RFC 2253, UTF\-8 String Representation of Distinguished
+Names.
+
+As a backwards compatibility for the removed \-\-no\-name\-remapping feature in
+older OpenVPN versions, the
+.B no\-remapping
+mode flag can be used with the
+.B
+\-\-compat\-names
+option.
+When this mode flag is used, the Common Name, Subject, and username strings are
+allowed to include any printable character including space, but excluding
+control characters such as tab, newline, and carriage-return. It ensures
+compatibility with the
+.B \-\-no\-name\-remapping
+option of OpenVPN versions before v2.3.
+
+.B Please note:
+This option will not be around for a long time.  It is only implemented
+to make the transition to the new formatting less intrusive.  It will be
+removed either in OpenVPN v2.4 or v2.5.  So please make sure you start
+the process to support the new formatting as soon as possible.
+.\"*********************************************************
+.TP
 .B \-\-port-share host port [dir]
 When run in TCP server mode, share the OpenVPN port with
 another application, such as an HTTPS server.  If OpenVPN

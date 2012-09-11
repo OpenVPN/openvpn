@@ -254,6 +254,18 @@ x509_get_subject (X509 *cert, struct gc_arena *gc)
   char *subject = NULL;
   int maxlen = 0;
 
+  /*
+   * Generate the subject string in OpenSSL proprietary format,
+   * when in --compat-names mode
+   */
+  if (compat_flag (COMPAT_FLAG_QUERY | COMPAT_NAMES))
+    {
+      subject = gc_malloc (256, false, gc);
+      X509_NAME_oneline (X509_get_subject_name (cert), subject, 256);
+      subject[255] = '\0';
+      return subject;
+    }
+
   subject_bio = BIO_new (BIO_s_mem ());
   if (subject_bio == NULL)
     goto err;

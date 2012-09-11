@@ -368,4 +368,10 @@ void argv_printf_cat (struct argv *a, const char *format, ...)
 #endif
   ;
 
+#define COMPAT_FLAG_QUERY         0       /** compat_flags operator: Query for a flag */
+#define COMPAT_FLAG_SET           (1<<0)  /** compat_flags operator: Set a compat flag */
+#define COMPAT_NAMES              (1<<1)  /** compat flag: --compat-names set */
+#define COMPAT_NO_NAME_REMAPPING  (1<<2)  /** compat flag: --compat-names without char remapping */
+bool compat_flag (unsigned int flag);
+
 #endif
