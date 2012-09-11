@@ -760,7 +760,7 @@ do_ifconfig (struct tuntap *tt,
       if ( do_ipv6 )
 	{
 	  argv_printf (&argv,
-			  "%s %s inet6 add %s/%d",
+			  "%s %s add %s/%d",
 			  IFCONFIG_PATH,
 			  actual,
 			  ifconfig_ipv6_local,
