@@ -1,7 +1,7 @@
 dnl define the OpenVPN version
 define([PRODUCT_NAME], [OpenVPN])
 define([PRODUCT_TARNAME], [openvpn])
-define([PRODUCT_VERSION], [2.3_alpha3])
+define([PRODUCT_VERSION], [2.3_beta1])
 define([PRODUCT_BUGREPORT], [openvpn-users@lists.sourceforge.net])
 define([PRODUCT_VERSION_RESOURCE], [2,3,0,0])
 dnl define the TAP version

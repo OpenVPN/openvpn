@@ -1,6 +1,33 @@
 OpenVPN Change Log
 Copyright (C) 2002-2012 OpenVPN Technologies, Inc. <sales@openvpn.net>
 
+2012.09.12 -- Version 2.3_beta1
+Arne Schwabe (7):
+      Fixes error: --key fails with EXTERNAL_PRIVATE_KEY: No such file or directory if --management-external-key is used
+      Merge almost identical create_socket_tcp and create_socket_tcp6
+      Document the inlining of files in openvpn and document key-direction
+      Merge getaddr_multi and getaddr6 into one function
+      Document --management-client and --management-signal a bit better
+      Document that keep alive will double the second value in server mode and give a short explanation why the value is chosen.
+      Add checks for external-key-managements
+
+David Sommerseth (1):
+      Fix reconnect issues when --push and UDP is used on the server
+
+Gert Doering (4):
+      Reduce --version string detail about IPv6 to just "[IPv6]".
+      Put actual OpenVPN command line on top of corresponding log file.
+      Keep pre-existing tun/tap devices around on *BSD
+      make "ipv6 ifconfig" on linux compatible with busybox ifconfig
+
+Heiko Hund (6):
+      fix regression with --http-proxy[-*] options
+      add x_msg_va() log function
+      add API for plug-ins to write to openvpn log
+      remove stale _openssl_get_subject() prototype
+      remove unused flag SSLF_NO_NAME_REMAPPING
+      Add --compat-names option
+
 2012.07.20 -- Version 2.3_alpha3
 Arne Schwabe (1):
       Fix compiling with --disable-management
