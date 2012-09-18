@@ -444,10 +444,10 @@ encrypt_sign (struct context *c, bool comp_frag)
 
   if (comp_frag)
     {
-#ifdef ENABLE_LZO
+#ifdef USE_COMP
       /* Compress the packet. */
-      if (lzo_defined (&c->c2.lzo_compwork))
-	lzo_compress (&c->c2.buf, b->lzo_compress_buf, &c->c2.lzo_compwork, &c->c2.frame);
+      if (c->c2.comp_context)
+	(*c->c2.comp_context->alg.compress)(&c->c2.buf, b->compress_buf, c->c2.comp_context, &c->c2.frame);
 #endif
 #ifdef ENABLE_FRAGMENT
       if (c->c2.fragment)
@@ -846,10 +846,10 @@ process_incoming_link (struct context *c)
 	fragment_incoming (c->c2.fragment, &c->c2.buf, &c->c2.frame_fragment);
 #endif
 
-#ifdef ENABLE_LZO
+#ifdef USE_COMP
       /* decompress the incoming packet */
-      if (lzo_defined (&c->c2.lzo_compwork))
-	lzo_decompress (&c->c2.buf, c->c2.buffers->lzo_decompress_buf, &c->c2.lzo_compwork, &c->c2.frame);
+      if (c->c2.comp_context)
+	(*c->c2.comp_context->alg.decompress)(&c->c2.buf, c->c2.buffers->decompress_buf, c->c2.comp_context, &c->c2.frame);
 #endif
 
 #ifdef PACKET_TRUNCATION_CHECK

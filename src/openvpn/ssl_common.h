@@ -285,6 +285,11 @@ struct tls_options
   struct env_set *es;
   const struct plugin_list *plugins;
 
+  /* compression parms */
+#ifdef USE_COMP
+  struct compress_options comp_options;
+#endif
+
   /* configuration file boolean options */
 # define SSLF_CLIENT_CERT_NOT_REQUIRED (1<<0)
 # define SSLF_USERNAME_AS_COMMON_NAME  (1<<1)

@@ -713,6 +713,13 @@ socket_defined (const socket_descriptor_t sd)
 #define ENABLE_CLIENT_NAT
 
 /*
+ * Compression support
+ */
+#if defined(ENABLE_SNAPPY) || defined(ENABLE_LZO) || defined(ENABLE_COMP_STUB)
+#define USE_COMP
+#endif
+
+/*
  * Enable --memstats option
  */
 #ifdef TARGET_LINUX

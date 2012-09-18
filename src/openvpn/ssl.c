@@ -1811,9 +1811,9 @@ push_peer_info(struct buffer *buf, struct tls_session *session)
 	  buf_printf (&out, "IV_HWADDR=%s\n", format_hex_ex (rgi.hwaddr, 6, 0, 1, ":", &gc));
       }
 
-      /* push LZO status */
-#ifdef ENABLE_LZO_STUB
-      buf_printf (&out, "IV_LZO_STUB=1\n");
+      /* push compression status */
+#ifdef USE_COMP
+      comp_generate_peer_info_string(&session->opt->comp_options, &out);
 #endif
 
       /* push env vars that begin with UV_ */

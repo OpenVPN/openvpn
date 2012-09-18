@@ -39,7 +39,7 @@
 #include "plugin.h"
 #include "manage.h"
 #include "proxy.h"
-#include "lzo.h"
+#include "comp.h"
 #include "pushlist.h"
 #include "clinat.h"
 
@@ -312,9 +312,8 @@ struct options
   /* optimize TUN/TAP/UDP writes */
   bool fast_io;
 
-#ifdef ENABLE_LZO
-  /* LZO_x flags from lzo.h */
-  unsigned int lzo;
+#ifdef USE_COMP
+  struct compress_options comp;
 #endif
 
   /* buffer sizes */

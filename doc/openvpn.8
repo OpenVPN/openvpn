@@ -2352,11 +2352,31 @@ consecutive messages in the same category.  This is useful to
 limit repetitive logging of similar message types.
 .\"*********************************************************
 .TP
+.B \-\-compress [algorithm]
+Enable a compression algorithm.
+
+The
+.B algorithm
+parameter may be "snappy", "lzo", or empty.  Snappy and LZO
+are different compression algorithms, with Snappy generally
+offering the best performance.
+
+If the
+.B algorithm
+parameter is empty, compression will be turned off, but the packet
+framing for compression will still be enabled, allowing a different
+setting to be pushed later.
+.\"*********************************************************
+.TP
 .B \-\-comp-lzo [mode]
-Use fast LZO compression \-\- may add up to 1 byte per
+Use LZO compression \-\- may add up to 1 byte per
 packet for incompressible data.
 .B mode
 may be "yes", "no", or "adaptive" (default).
+
+This option is deprecated in favor of the newer
+.B --compress
+option.
 
 In a server mode setup, it is possible to selectively turn
 compression on or off for individual clients.

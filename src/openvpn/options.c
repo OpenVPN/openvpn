@@ -87,13 +87,17 @@ const char title_string[] =
 #endif /* defined(ENABLE_CRYPTO_POLARSSL) */
 #endif /* ENABLE_SSL */
 #endif /* ENABLE_CRYPTO */
+#ifdef USE_COMP
 #ifdef ENABLE_LZO
-#ifdef ENABLE_LZO_STUB
-  " [LZO (STUB)]"
-#else
   " [LZO]"
 #endif
+#ifdef ENABLE_SNAPPY
+  " [SNAPPY]"
 #endif
+#ifdef ENABLE_COMP_STUB
+  " [COMP_STUB]"
+#endif
+#endif /* USE_COMP */
 #if EPOLL
   " [EPOLL]"
 #endif
@@ -365,11 +369,14 @@ static const char usage_message[] =
 #ifdef ENABLE_DEBUG
   "--gremlin mask  : Special stress testing mode (for debugging only).\n"
 #endif
-#ifdef ENABLE_LZO
-  "--comp-lzo      : Use fast LZO compression -- may add up to 1 byte per\n"
+#if defined(USE_COMP)
+  "--compress alg  : Use compression algorithm alg\n"
+#if defined(ENABLE_LZO)
+  "--comp-lzo      : Use LZO compression -- may add up to 1 byte per\n"
   "                  packet for uncompressible data.\n"
   "--comp-noadapt  : Don't use adaptive compression when --comp-lzo\n"
   "                  is specified.\n"
+#endif
 #endif
 #ifdef ENABLE_MANAGEMENT
   "--management ip port [pass] : Enable a TCP server on ip:port to handle\n"
@@ -1514,8 +1521,9 @@ show_settings (const struct options *o)
 
   SHOW_BOOL (fast_io);
 
-#ifdef ENABLE_LZO
-  SHOW_INT (lzo);
+#ifdef USE_COMP
+  SHOW_INT (comp.alg);
+  SHOW_INT (comp.flags);
 #endif
 
   SHOW_STR (route_script);
@@ -2886,6 +2894,7 @@ pre_pull_restore (struct options *o)
  *                 the other end of the connection]
  *
  * --comp-lzo
+ * --compress alg
  * --fragment
  *
  * Crypto Options:
@@ -2967,9 +2976,9 @@ options_string (const struct options *o,
       tt = NULL;
     }
 
-#ifdef ENABLE_LZO
-  if (o->lzo & LZO_SELECTED)
-    buf_printf (&out, ",comp-lzo");
+#ifdef USE_COMP
+  if (o->comp.alg != COMP_ALG_UNDEF)
+    buf_printf (&out, ",comp-lzo"); /* for compatibility, this simply indicates that compression context is active, not necessarily LZO per-se */
 #endif
 
 #ifdef ENABLE_FRAGMENT
@@ -6137,18 +6146,31 @@ add_option (struct options *options,
       options->passtos = true;
     }
 #endif
-#ifdef ENABLE_LZO
+#if defined(USE_COMP)
   else if (streq (p[0], "comp-lzo"))
     {
       VERIFY_PERMISSION (OPT_P_COMP);
-      if (p[1])
+
+#if defined(ENABLE_LZO)
+      if (p[1] && streq (p[1], "no"))
+#endif
+	{
+	  options->comp.alg = COMP_ALG_STUB;
+	  options->comp.flags = 0;
+	}
+#if defined(ENABLE_LZO)
+      else if (p[1])
 	{
 	  if (streq (p[1], "yes"))
-	    options->lzo = LZO_SELECTED|LZO_ON;
-	  else if (streq (p[1], "no"))
-	    options->lzo = LZO_SELECTED;
+	    {
+	      options->comp.alg = COMP_ALG_LZO;
+	      options->comp.flags = 0;
+	    }
 	  else if (streq (p[1], "adaptive"))
-	    options->lzo = LZO_SELECTED|LZO_ON|LZO_ADAPTIVE;
+	    {
+	      options->comp.alg = COMP_ALG_LZO;
+	      options->comp.flags = COMP_F_ADAPTIVE;
+	    }
 	  else
 	    {
 	      msg (msglevel, "bad comp-lzo option: %s -- must be 'yes', 'no', or 'adaptive'", p[1]);
@@ -6156,14 +6178,54 @@ add_option (struct options *options,
 	    }
 	}
       else
-	options->lzo = LZO_SELECTED|LZO_ON|LZO_ADAPTIVE;
+	{
+	  options->comp.alg = COMP_ALG_LZO;
+	  options->comp.flags = COMP_F_ADAPTIVE;
+	}
+#endif
     }
   else if (streq (p[0], "comp-noadapt"))
     {
       VERIFY_PERMISSION (OPT_P_COMP);
-      options->lzo &= ~LZO_ADAPTIVE;
+      options->comp.flags &= ~COMP_F_ADAPTIVE;
     }
-#endif /* ENABLE_LZO */
+  else if (streq (p[0], "compress"))
+    {
+      VERIFY_PERMISSION (OPT_P_COMP);
+      if (p[1])
+	{
+	  if (streq (p[1], "stub"))
+	    {
+	      options->comp.alg = COMP_ALG_STUB;
+	      options->comp.flags = (COMP_F_SWAP|COMP_F_ADVERTISE_STUBS_ONLY);
+	    }
+#if defined(ENABLE_LZO)
+	  else if (streq (p[1], "lzo"))
+	    {
+	      options->comp.alg = COMP_ALG_LZO;
+	      options->comp.flags = 0;
+	    }
+#endif
+#if defined(ENABLE_SNAPPY)
+	  else if (streq (p[1], "snappy"))
+	    {
+	      options->comp.alg = COMP_ALG_SNAPPY;
+	      options->comp.flags = COMP_F_SWAP;
+	    }
+#endif
+	  else
+	    {
+	      msg (msglevel, "bad comp option: %s", p[1]);
+	      goto err;
+	    }
+	}
+      else
+	{
+	  options->comp.alg = COMP_ALG_STUB;
+	  options->comp.flags = COMP_F_SWAP;
+	}
+    }
+#endif /* USE_COMP */
 #ifdef ENABLE_CRYPTO
   else if (streq (p[0], "show-ciphers"))
     {

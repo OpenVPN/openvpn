@@ -46,11 +46,16 @@ AC_ARG_ENABLE(
 	[enable_lzo="yes"]
 )
 
-AC_ARG_ENABLE(
-	[lzo-stub],
-	[AS_HELP_STRING([--enable-lzo-stub], [don't compile LZO compression support but still allow limited interoperability with LZO-enabled peers @<:@default=no@:>@])],
-	,
-	[enable_lzo_stub="no"]
+AC_ARG_ENABLE(snappy,
+	[  --disable-snappy        Disable Snappy compression support],
+	[enable_snappy="$enableval"],
+	[enable_snappy="yes"]
+)
+
+AC_ARG_ENABLE(comp-stub,
+	[  --enable-comp-stub      Don't compile compression support but still allow limited interoperability with compression-enabled peers],
+	[enable_comp_stub="$enableval"],
+	[enable_comp_stub="no"]
 )
 
 AC_ARG_ENABLE(
@@ -895,6 +900,46 @@ if test "${have_lzo}" = "yes"; then
 	CFLAGS="${saved_CFLAGS}"
 fi
 
+dnl
+dnl check for Snappy library
+dnl
+
+AC_ARG_VAR([SNAPPY_CFLAGS], [C compiler flags for snappy])
+AC_ARG_VAR([SNAPPY_LIBS], [linker flags for snappy])
+if test "$enable_snappy" = "yes" && test "$enable_comp_stub" = "no"; then
+    AC_CHECKING([for Snappy Library and Header files])
+    havesnappylib=1
+
+    # if SNAPPY_LIBS is set, we assume it will work, otherwise test
+    if test -z "${SNAPPY_LIBS}"; then
+	AC_CHECK_LIB(snappy, snappy_compress,
+	    [ SNAPPY_LIBS="-lsnappy" ],
+	    [
+	        AC_MSG_RESULT([Snappy library not found.])
+	        havesnappylib=0
+	    ])
+    fi
+
+    saved_CFLAGS="${CFLAGS}"
+    CFLAGS="${CFLAGS} ${SNAPPY_CFLAGS}"
+    AC_CHECK_HEADER(snappy-c.h,
+       ,
+       [
+	   AC_MSG_RESULT([Snappy headers not found.])
+	   havesnappylib=0
+       ])
+
+    if test $havesnappylib = 0 ; then
+	AC_MSG_RESULT([Snappy library available from http://code.google.com/p/snappy/])
+        AC_MSG_ERROR([Or try ./configure --disable-snappy OR ./configure --enable-comp-stub])
+    fi
+    OPTIONAL_SNAPPY_CFLAGS="${SNAPPY_CFLAGS}"
+    OPTIONAL_SNAPPY_LIBS="${SNAPPY_LIBS}"
+    AC_DEFINE(ENABLE_SNAPPY, 1, [Enable Snappy compression library])
+    CFLAGS="${saved_CFLAGS}"
+fi
+
+
 AC_MSG_CHECKING([git checkout])
 GIT_CHECKOUT="no"
 if test -n "${GIT}" -a -d "${srcdir}/.git"; then
@@ -1003,10 +1048,10 @@ if test "${enable_lzo}" = "yes"; then
 	OPTIONAL_LZO_LIBS="${LZO_LIBS}"
 	AC_DEFINE([ENABLE_LZO], [1], [Enable LZO compression library])
 fi
-if test "${enable_lzo_stub}" = "yes"; then
-	test "${enable_lzo}" = "yes" && AC_MSG_ERROR([Cannot have both lzo stub and lzo enabled])
-	AC_DEFINE([ENABLE_LZO_STUB], [1], [Enable LZO stub capability])
-	AC_DEFINE([ENABLE_LZO], [1], [Enable LZO compression library])
+if test "${enable_comp_stub}" = "yes"; then
+	test "${enable_lzo}" = "yes" && AC_MSG_ERROR([Cannot have both comp stub and lzo enabled (use --disable-lzo)])
+	test "${enable_snappy}" = "yes" && AC_MSG_ERROR([Cannot have both comp stub and snappy enabled (use --disable-snappy)])
+	AC_DEFINE([ENABLE_COMP_STUB], [1], [Enable compression stub capability])
 fi
 
 if test "${enable_pkcs11}" = "yes"; then
@@ -1060,6 +1105,8 @@ AC_SUBST([OPTIONAL_CRYPTO_CFLAGS])
 AC_SUBST([OPTIONAL_CRYPTO_LIBS])
 AC_SUBST([OPTIONAL_LZO_CFLAGS])
 AC_SUBST([OPTIONAL_LZO_LIBS])
+AC_SUBST([OPTIONAL_SNAPPY_CFLAGS])
+AC_SUBST([OPTIONAL_SNAPPY_LIBS])
 AC_SUBST([OPTIONAL_PKCS11_HELPER_CFLAGS])
 AC_SUBST([OPTIONAL_PKCS11_HELPER_LIBS])
 

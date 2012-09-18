@@ -265,9 +265,9 @@ print_status (const struct context *c, struct status_output *so)
   status_printf (so, "TCP/UDP read bytes," counter_format, c->c2.link_read_bytes);
   status_printf (so, "TCP/UDP write bytes," counter_format, c->c2.link_write_bytes);
   status_printf (so, "Auth read bytes," counter_format, c->c2.link_read_bytes_auth);
-#ifdef ENABLE_LZO
-  if (lzo_defined (&c->c2.lzo_compwork))
-    lzo_print_stats (&c->c2.lzo_compwork, so);
+#ifdef USE_COMP
+  if (c->c2.comp_context)
+    comp_print_stats (c->c2.comp_context, so);
 #endif
 #ifdef PACKET_TRUNCATION_CHECK
   status_printf (so, "TUN read truncations," counter_format, c->c2.n_trunc_tun_read);

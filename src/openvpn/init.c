@@ -1770,14 +1770,12 @@ do_deferred_options (struct context *c, const unsigned int found)
     }
 #endif
 
-#ifdef ENABLE_LZO
+#ifdef USE_COMP
   if (found & OPT_P_COMP)
     {
-      if (lzo_defined (&c->c2.lzo_compwork))
-	{
-	  msg (D_PUSH, "OPTIONS IMPORT: LZO parms modified");
-	  lzo_modify_flags (&c->c2.lzo_compwork, c->options.lzo);
-	}
+      msg (D_PUSH, "OPTIONS IMPORT: compression parms modified");
+      comp_uninit (c->c2.comp_context);
+      c->c2.comp_context = comp_init (&c->options.comp);
     }
 #endif
 
@@ -2272,6 +2270,10 @@ do_init_crypto_tls (struct context *c, const unsigned int flags)
 #endif
 #endif
 
+#ifdef USE_COMP
+  to.comp_options = options->comp;
+#endif
+
   /* TLS handshake authentication (--tls-auth) */
   if (options->tls_auth_file)
     {
@@ -2354,30 +2356,50 @@ do_init_crypto (struct context *c, const unsigned int flags)
 static void
 do_init_frame (struct context *c)
 {
-#ifdef ENABLE_LZO
+#ifdef USE_COMP
   /*
-   * Initialize LZO compression library.
+   * modify frame parameters if compression is enabled
    */
-  if (c->options.lzo & LZO_SELECTED)
+  if (comp_enabled(&c->options.comp))
     {
-      lzo_adjust_frame_parameters (&c->c2.frame);
+      comp_add_to_extra_frame (&c->c2.frame);
 
+#if !defined(ENABLE_SNAPPY)
       /*
-       * LZO usage affects buffer alignment.
+       * Compression usage affects buffer alignment when non-swapped algs
+       * such as LZO is used.
+       * Newer algs like Snappy and comp-stub with COMP_F_SWAP don't need
+       * any special alignment because of the control-byte swap approach.
+       * LZO alignment (on the other hand) is problematic because
+       * the presence of the control byte means that either the output of
+       * decryption must be written to an unaligned buffer, or the input
+       * to compression (or packet dispatch if packet is uncompressed)
+       * must be read from an unaligned buffer.
+       * This code tries to align the input to compression (or packet
+       * dispatch if packet is uncompressed) at the cost of requiring
+       * decryption output to be written to an unaligned buffer, so
+       * it's more of a tradeoff than an optimal solution and we don't
+       * include it when we are doing a modern build with Snappy.
+       * Strictly speaking, on the server it would be better to execute
+       * this code for every connection after we decide the compression
+       * method, but currently the frame code doesn't appear to be
+       * flexible enough for this, since the frame is already established
+       * before it is known which compression options will be pushed.
        */
-      if (CIPHER_ENABLED (c))
+      if (comp_unswapped_prefix (&c->options.comp) && CIPHER_ENABLED (c))
 	{
-	  frame_add_to_align_adjust (&c->c2.frame, LZO_PREFIX_LEN);
+	  frame_add_to_align_adjust (&c->c2.frame, COMP_PREFIX_LEN);
 	  frame_or_align_flags (&c->c2.frame,
 				FRAME_HEADROOM_MARKER_FRAGMENT
 				|FRAME_HEADROOM_MARKER_DECRYPT);
 	}
+#endif
 
 #ifdef ENABLE_FRAGMENT
-      lzo_adjust_frame_parameters (&c->c2.frame_fragment_omit);	/* omit LZO frame delta from final frame_fragment */
+      comp_add_to_extra_frame (&c->c2.frame_fragment_omit); /* omit compression frame delta from final frame_fragment */
 #endif
     }
-#endif /* ENABLE_LZO */
+#endif /* USE_COMP */
 
 #ifdef ENABLE_SOCKS
   /*
@@ -2405,6 +2427,17 @@ do_init_frame (struct context *c)
    * make sure values are rational, etc.
    */
   frame_finalize_options (c, NULL);
+
+#ifdef USE_COMP
+  /*
+   * Modify frame parameters if compression is compiled in.
+   * Should be called after frame_finalize_options.
+   */
+  comp_add_to_extra_buffer (&c->c2.frame);
+#ifdef ENABLE_FRAGMENT
+  comp_add_to_extra_buffer (&c->c2.frame_fragment_omit); /* omit compression frame delta from final frame_fragment */
+#endif
+#endif /* USE_COMP */
 
 #ifdef ENABLE_FRAGMENT
   /*
@@ -2537,9 +2570,9 @@ init_context_buffers (const struct frame *frame)
   b->decrypt_buf = alloc_buf (BUF_SIZE (frame));
 #endif
 
-#ifdef ENABLE_LZO
-  b->lzo_compress_buf = alloc_buf (BUF_SIZE (frame));
-  b->lzo_decompress_buf = alloc_buf (BUF_SIZE (frame));
+#ifdef USE_COMP
+  b->compress_buf = alloc_buf (BUF_SIZE (frame));
+  b->decompress_buf = alloc_buf (BUF_SIZE (frame));
 #endif
 
   return b;
@@ -2554,9 +2587,9 @@ free_context_buffers (struct context_buffers *b)
       free_buf (&b->read_tun_buf);
       free_buf (&b->aux_buf);
 
-#ifdef ENABLE_LZO
-      free_buf (&b->lzo_compress_buf);
-      free_buf (&b->lzo_decompress_buf);
+#ifdef USE_COMP
+      free_buf (&b->compress_buf);
+      free_buf (&b->decompress_buf);
 #endif
 
 #ifdef ENABLE_CRYPTO
@@ -3388,10 +3421,10 @@ init_instance (struct context *c, const struct env_set *env, const unsigned int 
       goto sig;
   }
 
-#ifdef ENABLE_LZO
-  /* initialize LZO compression library. */
-  if ((options->lzo & LZO_SELECTED) && (c->mode == CM_P2P || child))
-    lzo_compress_init (&c->c2.lzo_compwork, options->lzo);
+#ifdef USE_COMP
+  /* initialize compression library. */
+  if (comp_enabled(&options->comp) && (c->mode == CM_P2P || child))
+    c->c2.comp_context = comp_init (&options->comp);
 #endif
 
   /* initialize MTU variables */
@@ -3505,9 +3538,12 @@ close_instance (struct context *c)
 	/* if xinetd/inetd mode, don't allow restart */
 	do_close_check_if_restart_permitted (c);
 
-#ifdef ENABLE_LZO
-	if (lzo_defined (&c->c2.lzo_compwork))
-	  lzo_compress_uninit (&c->c2.lzo_compwork);
+#ifdef USE_COMP
+	if (c->c2.comp_context)
+	  {
+	    comp_uninit (c->c2.comp_context);
+	    c->c2.comp_context = NULL;
+	  }
 #endif
 
 	/* free buffers */
@@ -3631,6 +3667,10 @@ inherit_context_child (struct context *dest,
       dest->c2.link_socket_info->lsa = &dest->c1.link_socket_addr;
       dest->c2.link_socket_info->connection_established = false;
     }
+
+#ifdef USE_COMP
+  dest->c2.comp_context = NULL;
+#endif
 }
 
 void
@@ -3679,6 +3719,10 @@ inherit_context_top (struct context *dest,
   dest->c2.event_set = NULL;
   if (proto_is_dgram(src->options.ce.proto))
     do_event_set_init (dest, false);
+
+#ifdef USE_COMP
+  dest->c2.comp_context = NULL;
+#endif
 }
 
 void

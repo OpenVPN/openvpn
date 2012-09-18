@@ -31,7 +31,7 @@
 #include "crypto.h"
 #include "ssl.h"
 #include "packet_id.h"
-#include "lzo.h"
+#include "comp.h"
 #include "tun.h"
 #include "interval.h"
 #include "status.h"
@@ -104,10 +104,10 @@ struct context_buffers
   struct buffer decrypt_buf;
 #endif
 
-  /* workspace buffers for LZO compression */
-#ifdef ENABLE_LZO
-  struct buffer lzo_compress_buf;
-  struct buffer lzo_decompress_buf;
+  /* workspace buffers for compression */
+#ifdef USE_COMP
+  struct buffer compress_buf;
+  struct buffer decompress_buf;
 #endif
 
   /*
@@ -372,9 +372,9 @@ struct context_2
 
 #endif /* ENABLE_CRYPTO */
 
-#ifdef ENABLE_LZO
-  struct lzo_compress_workspace lzo_compwork;
-                                /**< Compression workspace used by the
+#ifdef USE_COMP
+  struct compress_context *comp_context;
+                                /**< Compression context used by the
                                  *   \link compression Data Channel
                                  *   Compression module\endlink. */
 #endif
