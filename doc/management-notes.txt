@@ -750,6 +750,34 @@ To accept connecting to the host and port directly, use this command:
 
   proxy NONE
 
+COMMAND -- rsa-sig (OpenVPN 2.3 or higher)
+------------------------------------------
+Provides support for external storage of the private key. Requires the
+--management-external-key option. This option can be used instead of "key"
+in client mode, and allows the client to run without the need to load the
+actual private key. When the SSL protocol needs to perform an RSA sign
+operation, the data to be signed will be sent to the management interface
+via a notification as follows:
+
+>RSA_SIGN:[BASE64_DATA]
+
+The management interface client should then sign BASE64_DATA
+using the private key and return the SSL signature as follows:
+
+rsa-sig
+[BASE64_SIG_LINE]
+.
+.
+.
+END
+
+Base64 encoded output of RSA_sign(NID_md5_sha1,... will provide a
+correct signature.
+
+This capability is intended to allow the use of arbitrarycryptographic
+service providers with OpenVPN via the management interface.
+
+
 OUTPUT FORMAT
 -------------
 
