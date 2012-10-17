@@ -37,6 +37,7 @@ stamp-h1
 install-sh
 missing
 ltmain.sh
+libtool
 m4/libtool.m4
 m4/ltoptions.m4
 m4/ltsugar.m4
@@ -50,5 +51,6 @@ config-msvc-version.h
 doc/openvpn.8.html
 distro/rpm/openvpn.spec
 tests/t_client.sh
+tests/t_client-*-20??????-??????/
 src/openvpn/openvpn
 config-version.h
