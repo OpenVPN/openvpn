@@ -2192,13 +2192,15 @@ options_postprocess_verify_ce (const struct options *options, const struct conne
        }
       else
 #endif
-#ifdef ENABLE_CRYPTOAPI
 #ifdef MANAGMENT_EXTERNAL_KEY
 	 if((options->management_flags & MF_EXTERNAL_KEY) && options->priv_key_file)
-		msg (M_USAGE, "--key and --management-external-key are mutually exclusive");
+	   {
+		 msg (M_USAGE, "--key and --management-external-key are mutually exclusive");
+	   }
+	 else
 #endif
-
-      if (options->cryptoapi_cert)
+#ifdef ENABLE_CRYPTOAPI
+     if (options->cryptoapi_cert)
 	{
 	  if ((!(options->ca_file)) && (!(options->ca_path)))
 	    msg(M_USAGE, "You must define CA file (--ca) or CA path (--capath)");
