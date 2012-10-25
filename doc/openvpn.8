@@ -1886,7 +1886,7 @@ is a safety precaution to prevent a LD_PRELOAD style attack
 from a malicious or compromised server.
 .\"*********************************************************
 .TP
-.B \-\-script-security level [method]
+.B \-\-script-security level
 This directive offers policy-level control over OpenVPN's usage of external programs
 and scripts.  Lower
 .B level
@@ -1905,24 +1905,40 @@ Allow calling of built-in executables and user-defined scripts.
 .B 3 \-\-
 Allow passwords to be passed to scripts via environmental variables (potentially unsafe).
 
-The
+OpenVPN releases before v2.3 also supported a
 .B method
-parameter indicates how OpenVPN should call external commands and scripts.
-Settings for
-.B method:
+flag which indicated how OpenVPN should call external commands and scripts.  This
+could be either
+.B execve
+or 
+.B system. 
+As of OpenVPN v2.3, this flag is no longer accepted.  In most *nix environments the execve()
+approach has been used without any issues.
 
-.B execve \-\-
-(default) Use execve() function on Unix family OSes and CreateProcess() on Windows.
-.br
-.B system \-\-
-Use system() function (deprecated and less safe since the external program command
-line is subject to shell expansion).
+To run scripts in Windows in earlier OpenVPN
+versions you needed to either add a full path to the script interpreter which can parse the
+script or use the
+.B system
+flag to run these scripts.  As of OpenVPN v2.3 it is now a strict requirement to have
+full path to the script interpreter when running non-executables files.
+This is not needed for executable files, such as .exe, .com, .bat or .cmd files.  For
+example, if you have a Visual Basic script, you must use this syntax now:
 
-The
-.B \-\-script-security
-option was introduced in OpenVPN 2.1_rc9.  For configuration file compatibility
-with previous OpenVPN versions, use:
-.B \-\-script-security 3 system
+.nf
+.ft 3
+.in +4
+\-\-up 'C:\\\\Windows\\\\System32\\\\wscript.exe C:\\\\Program\\ Files\\\\OpenVPN\\\\config\\\\my-up-script.vbs'
+.in -4
+.ft
+.fi
+
+Please note the single quote marks and the escaping of the backslashes (\\) and
+the space character.
+
+The reason the support for the
+.B system
+flag was removed is due to the security implications with shell expansions
+when executing scripts via the system() call.
 .\"*********************************************************
 .TP
 .B \-\-disable-occ

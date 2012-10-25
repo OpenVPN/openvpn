@@ -248,7 +248,7 @@ static const char usage_message[] =
   "--setenv name value : Set a custom environmental variable to pass to script.\n"
   "--setenv FORWARD_COMPATIBLE 1 : Relax config file syntax checking to allow\n"
   "                  directives for future OpenVPN versions to be ignored.\n"
-  "--script-security level mode : mode='execve' (default) or 'system', level=\n"
+  "--script-security level: Where level can be:\n"
   "                  0 -- strictly no calling of external programs\n"
   "                  1 -- (default) only call built-ins such as ifconfig\n"
   "                  2 -- allow calling of built-ins and scripts\n"
@@ -5293,20 +5293,6 @@ add_option (struct options *options,
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       script_security = atoi (p[1]);
-      if (p[2])
-	{
-	  if (streq (p[2], "execve"))
-	    script_method = SM_EXECVE;
-	  else if (streq (p[2], "system"))
-	    script_method = SM_SYSTEM;
-	  else
-	    {
-	      msg (msglevel, "unknown --script-security method: %s", p[2]);
-	      goto err;
-	    }
-	}
-      else
-	script_method = SM_EXECVE;
     }
   else if (streq (p[0], "mssfix"))
     {

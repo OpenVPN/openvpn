@@ -96,7 +96,6 @@ int openvpn_popen (const struct argv *a,  const struct env_set *es);
 int openvpn_execve (const struct argv *a, const struct env_set *es, const unsigned int flags);
 bool openvpn_execve_check (const struct argv *a, const struct env_set *es, const unsigned int flags, const char *error_message);
 bool openvpn_execve_allowed (const unsigned int flags);
-int openvpn_system (const char *command, const struct env_set *es, unsigned int flags);
 
 static inline bool
 openvpn_run_script (const struct argv *a, const struct env_set *es, const unsigned int flags, const char *hook)
@@ -321,10 +320,6 @@ extern const char *iproute_path;
 #define SSEC_SCRIPTS   2 /* allow calling of built-in programs and user-defined scripts */
 #define SSEC_PW_ENV    3 /* allow calling of built-in programs and user-defined scripts that may receive a password as an environmental variable */
 extern int script_security; /* GLOBAL */
-
-#define SM_EXECVE 0      /* call external programs with execve() or CreateProcess() */
-#define SM_SYSTEM 1      /* call external programs with system() */
-extern int script_method; /* GLOBAL */
 
 /* return the next largest power of 2 */
 size_t adjust_power_of_2 (size_t u);

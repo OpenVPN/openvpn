@@ -205,7 +205,7 @@ platform_chdir (const char* dir)
 }
 
 /*
- * convert system() return into a success/failure value
+ * convert execve() return into a success/failure value
  */
 bool
 platform_system_ok (int stat)
@@ -214,19 +214,6 @@ platform_system_ok (int stat)
   return stat == 0;
 #else
   return stat != -1 && WIFEXITED (stat) && WEXITSTATUS (stat) == 0;
-#endif
-}
-
-/*
- * did system() call execute the given command?
- */
-bool
-platform_system_executed (int stat)
-{
-#ifdef WIN32
-  return stat != -1;
-#else
-  return stat != -1 && WEXITSTATUS (stat) != 127;
 #endif
 }
 
@@ -286,18 +273,6 @@ platform_unlink (const char *filename)
 #else
   return false;
 #endif
-}
-
-int platform_system(const char *command) {
-  int ret;
-#ifdef WIN32
-  struct gc_arena gc = gc_new ();
-  ret = _wsystem (wide_string (command, &gc));
-  gc_free (&gc);
-#else
-  ret = system (command);
-#endif
-  return ret;
 }
 
 int platform_putenv(char *string)
