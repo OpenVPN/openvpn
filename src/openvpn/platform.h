@@ -113,10 +113,8 @@ void platform_mlockall (bool print_msg); /* Disable paging */
 
 int platform_chdir (const char* dir);
 
-/* interpret the status code returned by system()/execve() */
+/* interpret the status code returned by execve() */
 bool platform_system_ok (int stat);
-bool platform_system_executed (int stat);
-int platform_system(const char *command);
 
 int platform_access (const char *path, int mode);
 

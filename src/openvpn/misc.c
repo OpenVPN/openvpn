@@ -53,9 +53,6 @@ const char *iproute_path = IPROUTE_PATH; /* GLOBAL */
 /* contains an SSEC_x value defined in misc.h */
 int script_security = SSEC_BUILT_IN; /* GLOBAL */
 
-/* contains SM_x value defined in misc.h */
-int script_method = SM_EXECVE; /* GLOBAL */
-
 /*
  * Pass tunnel endpoint and MTU parms to a user-supplied script.
  * Used to execute the up/down script/plugins.
@@ -303,36 +300,25 @@ openvpn_execve (const struct argv *a, const struct env_set *es, const unsigned i
 #if defined(ENABLE_FEATURE_EXECVE)
       if (openvpn_execve_allowed (flags))
 	{
-	  if (script_method == SM_EXECVE)
-	    {
-	      const char *cmd = a->argv[0];
-	      char *const *argv = a->argv;
-	      char *const *envp = (char *const *)make_env_array (es, true, &gc);
-	      pid_t pid;
+          const char *cmd = a->argv[0];
+          char *const *argv = a->argv;
+          char *const *envp = (char *const *)make_env_array (es, true, &gc);
+          pid_t pid;
 
-	      pid = fork ();
-	      if (pid == (pid_t)0) /* child side */
-		{
-		  execve (cmd, argv, envp);
-		  exit (127);
-		}
-	      else if (pid < (pid_t)0) /* fork failed */
-		msg (M_ERR, "openvpn_execve: unable to fork");
-	      else /* parent side */
-		{
-		  if (waitpid (pid, &ret, 0) != pid)
-		    ret = -1;
-		}
-	    }
-	  else if (script_method == SM_SYSTEM)
-	    {
-	      ret = openvpn_system (argv_system_str (a), es, flags);
-	    }
-	  else
-	    {
-	      ASSERT (0);
-	    }
-	}
+          pid = fork ();
+          if (pid == (pid_t)0) /* child side */
+            {
+              execve (cmd, argv, envp);
+              exit (127);
+            }
+          else if (pid < (pid_t)0) /* fork failed */
+            msg (M_ERR, "openvpn_execve: unable to fork");
+          else /* parent side */
+            {
+              if (waitpid (pid, &ret, 0) != pid)
+                ret = -1;
+            }
+        }
       else if (!warn_shown && (script_security < SSEC_SCRIPTS))
 	{
 	  msg (M_WARN, SCRIPT_SECURITY_WARNING);
@@ -351,52 +337,6 @@ openvpn_execve (const struct argv *a, const struct env_set *es, const unsigned i
   return ret;
 }
 #endif
-
-/*
- * Wrapper around the system() call.
- */
-int
-openvpn_system (const char *command, const struct env_set *es, unsigned int flags)
-{
-#ifdef HAVE_SYSTEM
-  int ret;
-
-  perf_push (PERF_SCRIPT);
-
-  /*
-   * add env_set to environment.
-   */
-  if (flags & S_SCRIPT)
-    env_set_add_to_environment (es);
-
-
-  /* debugging */
-  dmsg (D_SCRIPT, "SYSTEM[%u] '%s'", flags, command);
-  if (flags & S_SCRIPT)
-    env_set_print (D_SCRIPT, es);
-
-  /*
-   * execute the command
-   */
-  ret = platform_system(command);
-
-  /* debugging */
-  dmsg (D_SCRIPT, "SYSTEM return=%u", ret);
-
-  /*
-   * remove env_set from environment
-   */
-  if (flags & S_SCRIPT)
-    env_set_remove_from_environment (es);
-
-  perf_pop ();
-  return ret;
-
-#else
-  msg (M_FATAL, "Sorry but I can't execute the shell command '%s' because this operating system doesn't appear to support the system() call", command);
-  return -1; /* NOTREACHED */
-#endif
-}
 
 /*
  * Run execve() inside a fork(), duping stdout.  Designed to replicate the semantics of popen() but
