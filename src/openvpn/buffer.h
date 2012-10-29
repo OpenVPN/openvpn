@@ -736,6 +736,11 @@ const char *np (const char *str);
 #define CC_REVERSE_QUOTE      (1<<23)
 #define CC_AT                 (1<<24)
 #define CC_EQUAL              (1<<25)
+#define CC_LESS_THAN          (1<<26)
+#define CC_GREATER_THAN       (1<<27)
+#define CC_PIPE               (1<<28)
+#define CC_QUESTION_MARK      (1<<29)
+#define CC_ASTERISK           (1<<30)
 
 /* macro classes */
 #define CC_NAME               (CC_ALNUM|CC_UNDERBAR)
