@@ -98,7 +98,9 @@ plugin_type_name (const int type)
     case OPENVPN_PLUGIN_TLS_FINAL:
       return "PLUGIN_TLS_FINAL";
     case OPENVPN_PLUGIN_ENABLE_PF:
-      return "OPENVPN_PLUGIN_ENABLE_PF";
+      return "PLUGIN_ENABLE_PF";
+    case OPENVPN_PLUGIN_ROUTE_PREDOWN:
+      return "PLUGIN_ROUTE_PREDOWN";
     default:
       return "PLUGIN_???";
     }
