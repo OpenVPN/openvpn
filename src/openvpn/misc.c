@@ -1056,7 +1056,13 @@ hostname_randomize(const char *hostname, struct gc_arena *gc)
 const char *
 gen_path (const char *directory, const char *filename, struct gc_arena *gc)
 {
-  const char *safe_filename = string_mod_const (filename, CC_ALNUM|CC_UNDERBAR|CC_DASH|CC_DOT|CC_AT, 0, '_', gc);
+#if WIN32
+  const int CC_PATH_RESERVED = CC_LESS_THAN|CC_GREATER_THAN|CC_COLON|
+    CC_DOUBLE_QUOTE|CC_SLASH|CC_BACKSLASH|CC_PIPE|CC_QUESTION_MARK|CC_ASTERISK;
+#else
+  const int CC_PATH_RESERVED = CC_SLASH;
+#endif
+  const char *safe_filename = string_mod_const (filename, CC_PRINT, CC_PATH_RESERVED, '_', gc);
 
   if (safe_filename
       && strcmp (safe_filename, ".")

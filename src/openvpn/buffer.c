@@ -782,6 +782,16 @@ char_class (const unsigned char c, const unsigned int flags)
     return true;
   if ((flags & CC_EQUAL) && c == '=')
     return true;
+  if ((flags & CC_LESS_THAN) && c == '<')
+    return true;
+  if ((flags & CC_GREATER_THAN) && c == '>')
+    return true;
+  if ((flags & CC_PIPE) && c == '|')
+    return true;
+  if ((flags & CC_QUESTION_MARK) && c == '?')
+    return true;
+  if ((flags & CC_ASTERISK) && c == '*')
+    return true;
 
   return false;
 }
