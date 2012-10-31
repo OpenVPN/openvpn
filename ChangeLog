@@ -1,6 +1,25 @@
 OpenVPN Change Log
 Copyright (C) 2002-2012 OpenVPN Technologies, Inc. <sales@openvpn.net>
 
+2012.10.31 -- Version 2.3_rc1
+Adriaan de Jong (1):
+      Fixed a bug where PolarSSL gave an error when using an inline file tag.
+
+Arne Schwabe (2):
+      Document man agent-external-key
+      Options parsing demands unnecessary configuration if PKCS11 is used
+
+David Sommerseth (2):
+      Make git ignore some more files
+      Remove the support for using system() when executing external programs or scripts
+
+Heiko Hund (2):
+      Fix display of plugin hook types
+      Support UTF-8 --client-config-dir
+
+Kenneth Rose (1):
+      Fix v3 plugins to support returning values back to OpenVPN.
+
 2012.09.12 -- Version 2.3_beta1
 Arne Schwabe (7):
       Fixes error: --key fails with EXTERNAL_PRIVATE_KEY: No such file or directory if --management-external-key is used
