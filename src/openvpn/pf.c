@@ -606,7 +606,6 @@ pf_destroy_context (struct pf_context *pfc)
   if (pfc->filename)
     {
       platform_unlink (pfc->filename);
-      free (pfc->filename);
     }
 #endif
   if (pfc->pfs)
