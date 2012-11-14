@@ -887,7 +887,7 @@ show_pkcs11_ids (
 		      (dn = pkcs11_certificate_dn (
 				certificate,
 				&gc
-		      ))
+		      )) == NULL
 		) {
 			goto cleanup1;
 		}
