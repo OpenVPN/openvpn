@@ -287,13 +287,13 @@ virtual_output_callback_func (void *arg, const unsigned int flags, const char *s
 
 # define AF_DID_PUSH  (1<<0)
 # define AF_DID_RESET (1<<1)
-  unsigned int action_flags = 0;
 
   if (!recursive_level) /* don't allow recursion */
     {
       struct gc_arena gc = gc_new ();
       struct log_entry e;
       const char *out = NULL;
+      unsigned int action_flags = 0;
 
       ++recursive_level;
 
@@ -334,14 +334,15 @@ virtual_output_callback_func (void *arg, const unsigned int flags, const char *s
 	    }
 	}
 
-      --recursive_level;
       gc_free (&gc);
-    }
 
-  if (action_flags & AF_DID_PUSH)
-    man_output_list_push_finalize (man);
-  if (action_flags & AF_DID_RESET)
-    man_reset_client_socket (man, true);
+      if (action_flags & AF_DID_PUSH)
+        man_output_list_push_finalize (man);
+      if (action_flags & AF_DID_RESET)
+        man_reset_client_socket (man, true);
+
+      --recursive_level;
+    }
 }
 
 /*
