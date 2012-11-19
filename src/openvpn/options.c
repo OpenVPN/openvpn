@@ -5141,6 +5141,11 @@ add_option (struct options *options,
 	  msg (msglevel, "--max-routes parameter is out of range");
 	  goto err;
 	}
+      if (options->routes || options->routes_ipv6)
+        {
+          msg (msglevel, "--max-routes must to be specifed before any route/route-ipv6/redirect-gateway option");
+          goto err;
+        }
       options->max_routes = max_routes;
     }
   else if (streq (p[0], "route-gateway") && p[1])
