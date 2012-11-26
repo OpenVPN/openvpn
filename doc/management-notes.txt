@@ -774,7 +774,7 @@ END
 Base64 encoded output of RSA_sign(NID_md5_sha1,... will provide a
 correct signature.
 
-This capability is intended to allow the use of arbitrarycryptographic
+This capability is intended to allow the use of arbitrary cryptographic
 service providers with OpenVPN via the management interface.
 
 
