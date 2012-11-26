@@ -2274,7 +2274,7 @@ options_postprocess_verify_ce (const struct options *options, const struct conne
 	    {
 	      notnull (options->cert_file, "certificate file (--cert) or PKCS#12 file (--pkcs12)");
 #ifdef MANAGMENT_EXTERNAL_KEY
-          if (!options->management_flags & MF_EXTERNAL_KEY)
+          if (!(options->management_flags & MF_EXTERNAL_KEY))
 #endif
 	      notnull (options->priv_key_file, "private key file (--key) or PKCS#12 file (--pkcs12)");
 	    }
@@ -2666,7 +2666,7 @@ options_postprocess_filechecks (struct options *options)
   errs |= check_file_access (CHKACC_FILE|CHKACC_INLINE, options->extra_certs_file, R_OK,
                              "--extra-certs");
 #ifdef MANAGMENT_EXTERNAL_KEY
-  if(!options->management_flags & MF_EXTERNAL_KEY)
+  if(!(options->management_flags & MF_EXTERNAL_KEY))
 #endif
      errs |= check_file_access (CHKACC_FILE|CHKACC_INLINE, options->priv_key_file, R_OK,
                              "--key");
