@@ -934,7 +934,7 @@ if test "${enable_ssl}" = "yes"; then
 fi
 
 if test "${enable_crypto}" = "yes"; then
-	test "${have_crypto_crypto}" != "yes" && AC_MSG_ERROR([${with_crypto_library} crytpo is required but missing])
+	test "${have_crypto_crypto}" != "yes" && AC_MSG_ERROR([${with_crypto_library} crypto is required but missing])
 	OPTIONAL_CRYPTO_CFLAGS="${OPTIONAL_CRYPTO_CFLAGS} ${CRYPTO_CRYPTO_CFLAGS}"
 	OPTIONAL_CRYPTO_LIBS="${OPTIONAL_CRYPTO_LIBS} ${CRYPTO_CRYPTO_LIBS}"
 	AC_DEFINE([ENABLE_CRYPTO], [1], [Enable crypto library])
