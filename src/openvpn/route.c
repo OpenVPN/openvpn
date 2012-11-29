@@ -2701,7 +2701,7 @@ get_default_gateway (struct route_gateway_info *rgi)
 
   if (write(s, (char *)&m_rtmsg, l) < 0)
     {
-      warn("writing to routing socket");
+      msg(M_WARN|M_ERRNO, "Could not retrieve default gateway from route socket:");
       gc_free (&gc);
       close(s);
       return;
@@ -3067,7 +3067,7 @@ get_default_gateway (struct route_gateway_info *rgi)
 
   if (write(s, (char *)&m_rtmsg, l) < 0)
     {
-      warn("writing to routing socket");
+      msg(M_WARN|M_ERRNO, "Could not retrieve default gateway from route socket:");
       gc_free (&gc);
       close(s);
       return;
