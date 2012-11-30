@@ -478,11 +478,6 @@ bool unix_socket_get_peer_uid_gid (const socket_descriptor_t sd, int *uid, int *
 #define GETADDR_UPDATE_MANAGEMENT_STATE (1<<8)
 #define GETADDR_RANDOMIZE             (1<<9)
 
-/* [ab]use flags bits to get socktype info downstream */
-/* TODO(jjo): resolve tradeoff between hackiness|args-overhead */
-#define GETADDR_DGRAM                 (1<<10)
-#define dnsflags_to_socktype(flags) ((flags & GETADDR_DGRAM) ? SOCK_DGRAM : SOCK_STREAM)
-
 in_addr_t getaddr (unsigned int flags,
 		   const char *hostname,
 		   int resolve_retry_seconds,
