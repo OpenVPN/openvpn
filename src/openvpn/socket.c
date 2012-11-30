@@ -158,7 +158,7 @@ openvpn_getaddrinfo (unsigned int flags,
   CLEAR(hints);
   hints.ai_family = ai_family;
   hints.ai_flags = AI_NUMERICHOST;
-  hints.ai_socktype = dnsflags_to_socktype(flags);
+  hints.ai_socktype = SOCK_STREAM;
 
   status = getaddrinfo(hostname, NULL, &hints, res);
 
