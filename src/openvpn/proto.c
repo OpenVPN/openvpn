@@ -36,11 +36,12 @@
 #include "memdbg.h"
 
 /*
- * If raw tunnel packet is IPv4, return true and increment
+ * If raw tunnel packet is IPv<X>, return true and increment
  * buffer offset to start of IP header.
  */
+static
 bool
-is_ipv4 (int tunnel_type, struct buffer *buf)
+is_ipv_X ( int tunnel_type, struct buffer *buf, int ip_ver )
 {
   int offset;
   const struct openvpn_iphdr *ih;
@@ -68,10 +69,22 @@ is_ipv4 (int tunnel_type, struct buffer *buf)
 
   ih = (const struct openvpn_iphdr *) (BPTR (buf) + offset);
 
-  if (OPENVPN_IPH_GET_VER (ih->version_len) == 4)
+  /* IP version is stored in the same bits for IPv4 or IPv6 header */
+  if (OPENVPN_IPH_GET_VER (ih->version_len) == ip_ver)
     return buf_advance (buf, offset);
   else
     return false;
+}
+
+bool
+is_ipv4 (int tunnel_type, struct buffer *buf)
+{
+    return is_ipv_X( tunnel_type, buf, 4 );
+}
+bool
+is_ipv6 (int tunnel_type, struct buffer *buf)
+{
+    return is_ipv_X( tunnel_type, buf, 6 );
 }
 
 #ifdef PACKET_TRUNCATION_CHECK

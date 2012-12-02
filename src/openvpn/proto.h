@@ -219,10 +219,11 @@ struct ip_tcp_udp_hdr {
                              - sizeof(struct openvpn_tcphdr))
 
 /*
- * If raw tunnel packet is IPv4, return true and increment
+ * If raw tunnel packet is IPv4 or IPv6, return true and increment
  * buffer offset to start of IP header.
  */
 bool is_ipv4 (int tunnel_type, struct buffer *buf);
+bool is_ipv6 (int tunnel_type, struct buffer *buf);
 
 #ifdef PACKET_TRUNCATION_CHECK
 void ipv4_packet_size_verify (const uint8_t *data,

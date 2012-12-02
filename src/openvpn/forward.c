@@ -985,9 +985,9 @@ process_incoming_tun (struct context *c)
     {
       /*
        * The --passtos and --mssfix options require
-       * us to examine the IPv4 header.
+       * us to examine the IP header (IPv4 or IPv6).
        */
-      process_ipv4_header (c, PIPV4_PASSTOS|PIPV4_MSSFIX|PIPV4_CLIENT_NAT, &c->c2.buf);
+      process_ip_header (c, PIPV4_PASSTOS|PIP_MSSFIX|PIPV4_CLIENT_NAT, &c->c2.buf);
 
 #ifdef PACKET_TRUNCATION_CHECK
       /* if (c->c2.buf.len > 1) --c->c2.buf.len; */
@@ -1009,10 +1009,10 @@ process_incoming_tun (struct context *c)
 }
 
 void
-process_ipv4_header (struct context *c, unsigned int flags, struct buffer *buf)
+process_ip_header (struct context *c, unsigned int flags, struct buffer *buf)
 {
   if (!c->options.ce.mssfix)
-    flags &= ~PIPV4_MSSFIX;
+    flags &= ~PIP_MSSFIX;
 #if PASSTOS_CAPABILITY
   if (!c->options.passtos)
     flags &= ~PIPV4_PASSTOS;
@@ -1027,9 +1027,9 @@ process_ipv4_header (struct context *c, unsigned int flags, struct buffer *buf)
        * us to examine the IPv4 header.
        */
 #if PASSTOS_CAPABILITY
-      if (flags & (PIPV4_PASSTOS|PIPV4_MSSFIX))
+      if (flags & (PIPV4_PASSTOS|PIP_MSSFIX))
 #else
-      if (flags & PIPV4_MSSFIX)
+      if (flags & PIP_MSSFIX)
 #endif
 	{
 	  struct buffer ipbuf = *buf;
@@ -1042,8 +1042,8 @@ process_ipv4_header (struct context *c, unsigned int flags, struct buffer *buf)
 #endif
 			  
 	      /* possibly alter the TCP MSS */
-	      if (flags & PIPV4_MSSFIX)
-		mss_fixup (&ipbuf, MTU_TO_MSS (TUN_MTU_SIZE_DYNAMIC (&c->c2.frame)));
+	      if (flags & PIP_MSSFIX)
+		mss_fixup_ipv4 (&ipbuf, MTU_TO_MSS (TUN_MTU_SIZE_DYNAMIC (&c->c2.frame)));
 
 #ifdef ENABLE_CLIENT_NAT
 	      /* possibly do NAT on packet */
@@ -1060,6 +1060,12 @@ process_ipv4_header (struct context *c, unsigned int flags, struct buffer *buf)
 		  if (dhcp_router)
 		    route_list_add_vpn_gateway (c->c1.route_list, c->c2.es, dhcp_router);
 		}
+	    }
+	  else if (is_ipv6 (TUNNEL_TYPE (c->c1.tuntap), &ipbuf))
+	    {
+	      /* possibly alter the TCP MSS */
+	      if (flags & PIP_MSSFIX)
+		mss_fixup_ipv6 (&ipbuf, MTU_TO_MSS (TUN_MTU_SIZE_DYNAMIC (&c->c2.frame)));
 	    }
 	}
     }
@@ -1217,9 +1223,9 @@ process_outgoing_tun (struct context *c)
 
   /*
    * The --mssfix option requires
-   * us to examine the IPv4 header.
+   * us to examine the IP header (IPv4 or IPv6).
    */
-  process_ipv4_header (c, PIPV4_MSSFIX|PIPV4_EXTRACT_DHCP_ROUTER|PIPV4_CLIENT_NAT|PIPV4_OUTGOING, &c->c2.to_tun);
+  process_ip_header (c, PIP_MSSFIX|PIPV4_EXTRACT_DHCP_ROUTER|PIPV4_CLIENT_NAT|PIPV4_OUTGOING, &c->c2.to_tun);
 
   if (c->c2.to_tun.len <= MAX_RW_SIZE_TUN (&c->c2.frame))
     {

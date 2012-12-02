@@ -38,8 +38,13 @@
  * problems which arise from protocol
  * encapsulation.
  */
+
+/*
+ * IPv4 packet: find TCP header, check flags for "SYN"
+ *              if yes, hand to mss_fixup_dowork()
+ */
 void
-mss_fixup (struct buffer *buf, int maxmss)
+mss_fixup_ipv4 (struct buffer *buf, int maxmss)
 {
   const struct openvpn_iphdr *pip;
   int hlen;
@@ -68,6 +73,56 @@ mss_fixup (struct buffer *buf, int maxmss)
 	}
     }
 }
+
+/*
+ * IPv6 packet: find TCP header, check flags for "SYN"
+ *              if yes, hand to mss_fixup_dowork()
+ *              (IPv6 header structure is sufficiently different from IPv4...)
+ */
+void
+mss_fixup_ipv6 (struct buffer *buf, int maxmss)
+{
+  const struct openvpn_ipv6hdr *pip6;
+  struct buffer newbuf;
+
+  if (BLEN (buf) < (int) sizeof (struct openvpn_ipv6hdr))
+    return;
+
+  verify_align_4 (buf);
+  pip6 = (struct openvpn_ipv6hdr *) BPTR (buf);
+
+  /* do we have the full IPv6 packet?
+   * "payload_len" does not include IPv6 header (+40 bytes)
+   */
+  if (BLEN (buf) != (int) ntohs(pip6->payload_len)+40 )
+    return;
+
+  /* follow header chain until we reach final header, then check for TCP
+   *
+   * An IPv6 packet could, theoretically, have a chain of multiple headers
+   * before the final header (TCP, UDP, ...), so we'd need to walk that
+   * chain (see RFC 2460 and RFC 6564 for details).
+   *
+   * In practice, "most typically used" extention headers (AH, routing,
+   * fragment, mobility) are very unlikely to be seen inside an OpenVPN
+   * tun, so for now, we only handle the case of "single next header = TCP"
+   */
+  if ( pip6->nexthdr != OPENVPN_IPPROTO_TCP )
+    return;
+
+  newbuf = *buf;
+  if ( buf_advance( &newbuf, 40 ) )
+    {
+      struct openvpn_tcphdr *tc = (struct openvpn_tcphdr *) BPTR (&newbuf);
+      if (tc->flags & OPENVPN_TCPH_SYN_MASK)
+	    mss_fixup_dowork (&newbuf, (uint16_t) maxmss-20);
+    }
+}
+
+/*
+ * change TCP MSS option in SYN/SYN-ACK packets, if present
+ * this is generic for IPv4 and IPv6, as the TCP header is the same
+ */
 
 void
 mss_fixup_dowork (struct buffer *buf, uint16_t maxmss)
