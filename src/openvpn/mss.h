@@ -28,7 +28,8 @@
 #include "proto.h"
 #include "error.h"
 
-void mss_fixup (struct buffer *buf, int maxmss);
+void mss_fixup_ipv4 (struct buffer *buf, int maxmss);
+void mss_fixup_ipv6 (struct buffer *buf, int maxmss);
 void mss_fixup_dowork (struct buffer *buf, uint16_t maxmss);
 
 #endif

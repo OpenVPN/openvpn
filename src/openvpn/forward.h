@@ -228,12 +228,12 @@ void process_outgoing_tun (struct context *c);
 bool send_control_channel_string (struct context *c, const char *str, int msglevel);
 
 #define PIPV4_PASSTOS         (1<<0)
-#define PIPV4_MSSFIX          (1<<1)
+#define PIP_MSSFIX            (1<<1)         /* v4 and v6 */
 #define PIPV4_OUTGOING        (1<<2)
 #define PIPV4_EXTRACT_DHCP_ROUTER (1<<3)
 #define PIPV4_CLIENT_NAT      (1<<4)
 
-void process_ipv4_header (struct context *c, unsigned int flags, struct buffer *buf);
+void process_ip_header (struct context *c, unsigned int flags, struct buffer *buf);
 
 #if P2MP
 void schedule_exit (struct context *c, const int n_seconds, const int signal);
