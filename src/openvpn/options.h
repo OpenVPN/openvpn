@@ -108,6 +108,7 @@ struct connection_entry
   int socks_proxy_port;
   const char *socks_proxy_authfile;
   bool socks_proxy_retry;
+  int socks_proxy_timeout;
 #endif
 
   int tun_mtu;           /* MTU of tun device */

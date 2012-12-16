@@ -358,8 +358,9 @@ block:
 .B proto,
 .B remote,
 .B rport,
-.B socks-proxy, and
-.B socks-proxy-retry.
+.B socks-proxy,
+.B socks-proxy-retry, and
+.B socks-proxy-timeout.
 
 A defaulting mechanism exists for specifying options to apply to
 all
@@ -558,6 +559,10 @@ and port
 .B \-\-socks-proxy-retry
 Retry indefinitely on Socks proxy errors.  If a Socks proxy error
 occurs, simulate a SIGUSR1 reset.
+.\"*********************************************************
+.TP
+.B \-\-socks-proxy-timeout
+Timeout for connections through Socks proxy. (default=5)
 .\"*********************************************************
 .TP
 .B \-\-resolv-retry n
