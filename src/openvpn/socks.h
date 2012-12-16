@@ -44,6 +44,7 @@ struct socks_proxy_info {
   char server[128];
   int port;
   char authfile[256];
+  int timeout;
 };
 
 void socks_adjust_frame_parameters (struct frame *frame, int proto);
@@ -51,7 +52,8 @@ void socks_adjust_frame_parameters (struct frame *frame, int proto);
 struct socks_proxy_info *socks_proxy_new (const char *server,
 					  int port,
 					  const char *authfile,
-					  bool retry);
+					  bool retry,
+					  int timeout);
 
 void socks_proxy_close (struct socks_proxy_info *sp);
 

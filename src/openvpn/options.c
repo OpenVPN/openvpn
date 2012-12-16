@@ -158,6 +158,7 @@ static const char usage_message[] =
   "                  up is a file containing username/password on 2 lines, or\n"
   "                  'stdin' to prompt for console.\n"
   "--socks-proxy-retry : Retry indefinitely on Socks proxy errors.\n"
+  "--socks-proxy-timeout n : Socks proxy timeout in seconds, default=5.\n"
 #endif
   "--resolv-retry n: If hostname resolve fails for --remote, retry\n"
   "                  resolve for n seconds before failing (disabled by default).\n"
@@ -870,6 +871,10 @@ init_options (struct options *o, const bool init_gc)
   }
 #endif /* WIN32 */
 #endif /* P2MP_SERVER */
+#ifdef ENABLE_SOCKS
+  /* previously hardcoded in socks.c */
+  o->ce.socks_proxy_timeout=5;
+#endif /* ENABLE_SOCKS */
 }
 
 void
@@ -1356,6 +1361,7 @@ show_connection_entry (const struct connection_entry *o)
   SHOW_STR (socks_proxy_server);
   SHOW_INT (socks_proxy_port);
   SHOW_BOOL (socks_proxy_retry);
+  SHOW_INT (socks_proxy_timeout);
 #endif
   SHOW_INT (tun_mtu);
   SHOW_BOOL (tun_mtu_defined);
@@ -5008,6 +5014,17 @@ add_option (struct options *options,
 	}
       options->ce.socks_proxy_server = p[1];
       options->ce.socks_proxy_authfile = p[3]; /* might be NULL */
+    }
+  else if (streq (p[0], "socks-proxy-timeout") && p[1])
+    {
+      VERIFY_PERMISSION (OPT_P_GENERAL|OPT_P_CONNECTION);
+
+      if (p[1])
+	{
+	  int timeout;
+          timeout = positive_atoi (p[1]);
+          options->ce.socks_proxy_timeout = timeout;
+	}
     }
   else if (streq (p[0], "socks-proxy-retry"))
     {

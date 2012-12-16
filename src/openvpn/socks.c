@@ -63,7 +63,8 @@ struct socks_proxy_info *
 socks_proxy_new (const char *server,
 		 int port,
 		 const char *authfile,
-		 bool retry)
+		 bool retry,
+		 int timeout)
 {
   struct socks_proxy_info *p;
 
@@ -81,6 +82,7 @@ socks_proxy_new (const char *server,
     p->authfile[0] = 0;
 
   p->retry = retry;
+  p->timeout = timeout;
   p->defined = true;
 
   return p;
@@ -100,7 +102,6 @@ socks_username_password_auth (struct socks_proxy_info *p,
   char to_send[516];
   char buf[2];
   int len = 0;
-  const int timeout_sec = 5;
   struct user_pass creds;
   ssize_t size;
 
@@ -134,7 +135,7 @@ socks_username_password_auth (struct socks_proxy_info *p,
 
       FD_ZERO (&reads);
       FD_SET (sd, &reads);
-      tv.tv_sec = timeout_sec;
+      tv.tv_sec = p->timeout;
       tv.tv_usec = 0;
 
       status = select (sd + 1, &reads, NULL, NULL, &tv);
@@ -188,7 +189,6 @@ socks_handshake (struct socks_proxy_info *p,
 {
   char buf[2];
   int len = 0;
-  const int timeout_sec = 5;
 
   /* VER = 5, NMETHODS = 2, METHODS = [0 (no auth), 2 (plain login)] */
   const ssize_t size = send (sd, "\x05\x02\x00\x02", 4, MSG_NOSIGNAL);
@@ -208,7 +208,7 @@ socks_handshake (struct socks_proxy_info *p,
 
       FD_ZERO (&reads);
       FD_SET (sd, &reads);
-      tv.tv_sec = timeout_sec;
+      tv.tv_sec = p->timeout;
       tv.tv_usec = 0;
 
       status = select (sd + 1, &reads, NULL, NULL, &tv);
@@ -282,13 +282,13 @@ socks_handshake (struct socks_proxy_info *p,
 static bool
 recv_socks_reply (socket_descriptor_t sd,
 		  struct openvpn_sockaddr *addr,
-		  volatile int *signal_received)
+		  volatile int *signal_received,
+		  int timeout)
 {
   char atyp = '\0';
   int alen = 0;
   int len = 0;
   char buf[22];
-  const int timeout_sec = 5;
 
   if (addr != NULL)
     {
@@ -307,7 +307,7 @@ recv_socks_reply (socket_descriptor_t sd,
 
       FD_ZERO (&reads);
       FD_SET (sd, &reads);
-      tv.tv_sec = timeout_sec;
+      tv.tv_sec = timeout;
       tv.tv_usec = 0;
 
       status = select (sd + 1, &reads, NULL, NULL, &tv);
@@ -427,7 +427,7 @@ establish_socks_proxy_passthru (struct socks_proxy_info *p,
   }
 
   /* receive reply from Socks proxy and discard */
-  if (!recv_socks_reply (sd, NULL, signal_received))
+  if (!recv_socks_reply (sd, NULL, signal_received, p->timeout))
     goto error;
 
   return;
@@ -465,7 +465,7 @@ establish_socks_proxy_udpassoc (struct socks_proxy_info *p,
 
   /* receive reply from Socks proxy */
   CLEAR (*relay_addr);
-  if (!recv_socks_reply (ctrl_sd, relay_addr, signal_received))
+  if (!recv_socks_reply (ctrl_sd, relay_addr, signal_received, p->timeout))
     goto error;
 
   return;
