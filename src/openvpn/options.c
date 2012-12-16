@@ -2917,7 +2917,11 @@ options_string (const struct options *o,
   buf_printf (&out, ",link-mtu %d", EXPANDED_SIZE (frame));
   buf_printf (&out, ",tun-mtu %d", PAYLOAD_SIZE (frame));
   buf_printf (&out, ",proto %s", proto2ascii (proto_remote (o->ce.proto, remote), true));
-  if (o->tun_ipv6)
+
+  /* send tun_ipv6 only in peer2peer mode - in client/server mode, it
+   * is usually pushed by the server, triggering a non-helpful warning
+   */
+  if (o->tun_ipv6 && o->mode == MODE_POINT_TO_POINT && !PULL_DEFINED(o))
     buf_printf (&out, ",tun-ipv6");
 
   /*
@@ -3097,6 +3101,15 @@ options_warning_safe_scan2 (const int msglevel,
 			    const char *b1_name,
 			    const char *b2_name)
 {
+  /* we will stop sending 'proto xxx' in OCC in a future version
+   * (because it's not useful), and to reduce questions when
+   * interoperating, we start not-printing a warning about it today
+   */
+  if (strncmp(p1, "proto ", 6) == 0 )
+    {
+      return;
+    }
+
   if (strlen (p1) > 0)
     {
       struct gc_arena gc = gc_new ();
