@@ -1,6 +1,29 @@
 OpenVPN Change Log
 Copyright (C) 2002-2012 OpenVPN Technologies, Inc. <sales@openvpn.net>
 
+2012.12.17 -- Version 2.3_rc2
+Adriaan de Jong (1):
+      Fix --show-pkcs11-ids (Bug #239)
+
+Arne Schwabe (4):
+      Error message if max-routes used incorrectly
+      Properly require --key even if defined(MANAGMENT_EXTERNAL_KEY)
+      Remove dnsflags_to_socktype, it is not used anywhere
+      Fix the proto is used inconsistently warning
+
+David Sommerseth (3):
+      Fix double-free issue in pf_destroy_context()
+      The get_default_gateway() function uses warn() instead of msg()
+      Avoid recursion in virtual_output_callback_func()
+
+Gert Doering (2):
+      Implement --mssfix handling for IPv6 packets.
+      Fix option inconsistency warnings about "proto" and "tun-ipv6"
+
+Joachim Schipper (2):
+      doc/management-notes.txt: fix typo
+      Fix typo in ./configure message
+
 2012.10.31 -- Version 2.3_rc1
 Adriaan de Jong (1):
       Fixed a bug where PolarSSL gave an error when using an inline file tag.
