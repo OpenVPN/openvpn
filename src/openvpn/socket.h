@@ -237,7 +237,11 @@ struct link_socket
 
 #if PASSTOS_CAPABILITY
   /* used to get/set TOS. */
+#if defined(TARGET_LINUX)
   uint8_t ptos;
+#else /* all the BSDs, Solaris, MacOS use plain "int" -> see "man ip" there */
+  int  ptos;
+#endif
   bool ptos_defined;
 #endif
 
