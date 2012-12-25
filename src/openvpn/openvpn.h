@@ -474,6 +474,7 @@ struct context_2
   bool did_pre_pull_restore;
 
   /* hash of pulled options, so we can compare when options change */
+  bool pulled_options_md5_init_done;
   struct md5_state pulled_options_state;
   struct md5_digest pulled_options_digest;
 
