@@ -1,6 +1,11 @@
 OpenVPN Change Log
 Copyright (C) 2002-2012 OpenVPN Technologies, Inc. <sales@openvpn.net>
 
+2013.01.07 -- Version 2.3.0
+Gert Doering (2):
+      Fix parameter type for IP_TOS setsockopt on non-Linux systems.
+      Fix client crash on double PUSH_REPLY.
+
 2012.12.17 -- Version 2.3_rc2
 Adriaan de Jong (1):
       Fix --show-pkcs11-ids (Bug #239)
