@@ -2774,8 +2774,8 @@ options_postprocess_filechecks (struct options *options)
 
   /* ** Password files ** */
 #ifdef ENABLE_SSL
-  errs |= check_file_access (CHKACC_FILE, options->key_pass_file, R_OK,
-                             "--askpass");
+  errs |= check_file_access (CHKACC_FILE|CHKACC_ACPTSTDIN,
+			     options->key_pass_file, R_OK, "--askpass");
 #endif /* ENABLE_SSL */
 #ifdef ENABLE_MANAGEMENT
   errs |= check_file_access (CHKACC_FILE|CHKACC_ACPTSTDIN,
