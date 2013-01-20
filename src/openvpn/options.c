@@ -5488,9 +5488,9 @@ add_option (struct options *options,
 	  msg (msglevel, "error parsing --ifconfig-ipv6-pool parameters");
 	  goto err;
 	}
-      if ( netbits != 64 )
+      if ( netbits < 64 || netbits > 112 )
 	{
-	  msg( msglevel, "--ifconfig-ipv6-pool settings: only /64 supported right now (not /%d)", netbits );
+	  msg( msglevel, "--ifconfig-ipv6-pool settings: only /64../112 supported right now (not /%d)", netbits );
 	  goto err;
 	}
 
