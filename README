@@ -40,36 +40,33 @@ Other Files & Directories:
 * configure.ac -- script to rebuild our configure
   script and makefile.
 
-* openvpn.spec -- RPM Spec file
-  To build an OpenVPN binary RPM, use the command:
-
-	rpmbuild -tb [tarball]
-
-  When you install the binary RPM, it will automatically
-  install sample-scripts/openvpn.init (see below)
-
-* sample-scripts/openvpn.init
-
-  A sample init script for OpenVPN.  See the file for
-  comments and additional information.
-
-* sample-scripts/verify-cn
+* sample/sample-scripts/verify-cn
 
   A sample perl script which can be used with OpenVPN's
   --tls-verify option to provide a customized authentication
   test on embedded X509 certificate fields.
 
-* sample-keys/
+* sample/sample-keys/
 
   Sample RSA keys and certificates.  DON'T USE THESE FILES
   FOR ANYTHING OTHER THAN TESTING BECAUSE THEY ARE TOTALLY INSECURE.
 
-* sample-config-files/
+* sample/sample-config-files/
 
   A collection of OpenVPN config files and scripts from
   the HOWTO at http://openvpn.net/howto.html
 
-* easy-rsa/
+*************************************************************************
 
-  A simple guide to RSA key management, scripts included.
-  Also see http://openvpn.net/easyrsa.html
+Note that easy-rsa and tap-windows are now maintained in their own subprojects.
+Their source code is available here:
+
+  https://github.com/OpenVPN/easy-rsa
+  https://github.com/OpenVPN/tap-windows
+
+The old cross-compilation environment (domake-win) and the Python-based
+buildsystem have been replaced with openvpn-build:
+
+  https://github.com/OpenVPN/openvpn-build
+
+See the INSTALL file for usage information.
