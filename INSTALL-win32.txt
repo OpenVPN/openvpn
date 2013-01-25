@@ -46,3 +46,32 @@ the lower-right corner of the screen. Right click on the
 system tray icon, and a menu should appear showing the names
 of your OpenVPN configuration files, and giving you the
 option to connect.
+
+BUILDING OPENVPN FOR WINDOWS
+
+Official OpenVPN Windows releases are cross-compiled on Linux using the
+openvpn-build buildsystem:
+
+    https://community.openvpn.net/openvpn/wiki/BuildingUsingGenericBuildsystem
+
+First setup the build environment as shown in the above article. Then fetch the
+openvpn-build repository:
+
+    git clone https://github.com/OpenVPN/openvpn-build.git
+
+Review the build configuration:
+
+    openvpn-build/generic/build.vars
+    openvpn-build/windows-nsis/build-complete.vars
+
+Build (unsigned):
+
+    cd openvpn-build/windows-nsis
+    ./build-complete
+
+Build (signed):
+
+    cd openvpn-build/windows-nsis
+    ./build-complete --sign --sign-pkcs12=<pkcs12-file>\
+    --sign-pkcs12-pass=<pkcs12-file-password> \
+    --sign-timestamp="<timestamp-url>"
