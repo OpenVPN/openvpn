@@ -33,6 +33,7 @@
 #include "status.h"
 #include "perf.h"
 #include "misc.h"
+#include "fdmisc.h"
 
 #include "memdbg.h"
 
@@ -98,6 +99,7 @@ status_open (const char *filename,
 	  if (so->fd >= 0)
 	    {
 	      so->filename = string_alloc (filename, NULL);
+             set_cloexec (so->fd);
 
 	      /* allocate read buffer */
 	      if (so->flags & STATUS_OUTPUT_READ)
