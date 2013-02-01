@@ -34,6 +34,7 @@
 #include "error.h"
 #include "integer.h"
 #include "event.h"
+#include "fdmisc.h"
 
 #include "memdbg.h"
 
@@ -581,6 +582,8 @@ ep_init (int *maxevents, unsigned int flags)
   fd = epoll_create (*maxevents);
   if (fd < 0)
     return NULL;
+
+  set_cloexec (fd);
 
   ALLOC_OBJ_CLEAR (eps, struct ep_set);
 
