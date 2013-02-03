@@ -275,34 +275,6 @@ platform_unlink (const char *filename)
 #endif
 }
 
-int platform_putenv(char *string)
-{
-  int status;
-#if defined(WIN32)
-  struct gc_arena gc = gc_new ();
-  char *s = string_alloc(string, &gc);
-  char *value = strchr(s, '=');
-  if (value!=NULL)
-    {
-      *value = '\0';
-      value++;
-      if (*value == '\0')
-        value = NULL;
-    }
-
-  status = SetEnvironmentVariableW (wide_string (s, &gc),
-      wide_string (value, &gc)) ? 1: 0;
-  gc_free (&gc);
-#elif defined(HAVE_PUTENV)
-  void manage_env (char *str); /* TODO: Resolve properly */
-  status = putenv (string);
-  if (!status)
-    manage_env (string);
-#endif
-
-  return status;
-}
-
 FILE *
 platform_fopen (const char *path, const char *mode)
 {
