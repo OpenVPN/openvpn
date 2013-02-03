@@ -707,13 +707,6 @@ env_set_remove_from_environment (const struct env_set *es)
 
 static struct env_item *global_env = NULL; /* GLOBAL */
 
-void
-manage_env (char *str)
-{
-  remove_env_item (str, true, &global_env);
-  add_env_item (str, false, &global_env, NULL);
-}
-
 #endif
 
 /* add/modify/delete environmental strings */
@@ -789,27 +782,18 @@ setenv_str_ex (struct env_set *es,
   if (value)
     val_tmp = string_mod_const (value, value_include, value_exclude, value_replace, &gc);
 
-  if (es)
+  ASSERT (es);
+
+  if (val_tmp)
     {
-      if (val_tmp)
-	{
-	  const char *str = construct_name_value (name_tmp, val_tmp, &gc);
-	  env_set_add (es, str);
+      const char *str = construct_name_value (name_tmp, val_tmp, &gc);
+      env_set_add (es, str);
 #if DEBUG_VERBOSE_SETENV
-	  msg (M_INFO, "SETENV_ES '%s'", str);
+      msg (M_INFO, "SETENV_ES '%s'", str);
 #endif
-	}
-      else
-	env_set_del (es, name_tmp);
     }
   else
-    {
-      char *str = construct_name_value (name_tmp, val_tmp, NULL);
-      if (platform_putenv(str))
-      {
-        msg (M_WARN | M_ERRNO, "putenv('%s') failed", str);
-      }
-    }
+    env_set_del (es, name_tmp);
 
   gc_free (&gc);
 }
