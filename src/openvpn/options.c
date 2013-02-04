@@ -3771,9 +3771,13 @@ read_config_file (struct options *options,
 	  line_num = 0;
 	  while (fgets(line, sizeof (line), fp))
 	    {
+              int offset = 0;
 	      CLEAR (p);
 	      ++line_num;
-	      if (parse_line (line, p, SIZE (p), file, line_num, msglevel, &options->gc))
+              /* Ignore UTF-8 BOM at start of stream */
+              if (line_num == 1 && strncmp (line, "\xEF\xBB\xBF", 3) == 0)
+                offset = 3;
+              if (parse_line (line + offset, p, SIZE (p), file, line_num, msglevel, &options->gc))
 		{
 		  bypass_doubledash (&p[0]);
 		  check_inline_file_via_fp (fp, p, &options->gc);
