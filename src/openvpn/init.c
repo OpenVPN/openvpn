@@ -182,8 +182,9 @@ ce_management_query_proxy (struct context *c)
   update_time();
   if (management)
     {
+      struct buffer out;
       gc = gc_new ();
-      struct buffer out = alloc_buf_gc (256, &gc);
+      out = alloc_buf_gc (256, &gc);
       buf_printf (&out, ">PROXY:%u,%s,%s", (l ? l->current : 0) + 1,
                   (proto_is_udp (ce->proto) ? "UDP" : "TCP"), np (ce->remote));
       management_notify_generic (management, BSTR (&out));
