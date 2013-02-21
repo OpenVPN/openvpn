@@ -290,7 +290,7 @@ void print_default_gateway(const int msglevel, const struct route_gateway_info *
 #define TLA_LOCAL           2
 int test_local_addr (const in_addr_t addr, const struct route_gateway_info *rgi);
 
-#ifdef ENABLE_DEBUG
+#ifndef ENABLE_SMALL
 void print_route_options (const struct route_option_list *rol,
 			  int level);
 #endif

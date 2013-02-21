@@ -881,7 +881,7 @@ uninit_options (struct options *o)
     }
 }
 
-#ifdef ENABLE_DEBUG
+#ifndef ENABLE_SMALL
 
 #define SHOW_PARM(name, value, format) msg(D_SHOW_PARMS, "  " #name " = " format, (value))
 #define SHOW_STR(var)       SHOW_PARM(var, (o->var ? o->var : "[UNDEF]"), "'%s'")
@@ -1081,7 +1081,7 @@ parse_hash_fingerprint(const char *str, int nbytes, int msglevel, struct gc_aren
 
 #ifdef WIN32
 
-#ifdef ENABLE_DEBUG
+#ifndef ENABLE_SMALL
 
 static void
 show_dhcp_option_addrs (const char *name, const in_addr_t *array, int len)
@@ -1153,7 +1153,7 @@ dhcp_option_address_parse (const char *name, const char *parm, in_addr_t *array,
 
 #if P2MP
 
-#ifdef ENABLE_DEBUG
+#ifndef ENABLE_SMALL
 
 static void
 show_p2mp_parms (const struct options *o)
@@ -1225,7 +1225,7 @@ show_p2mp_parms (const struct options *o)
   gc_free (&gc);
 }
 
-#endif /* ENABLE_DEBUG */
+#endif /* ! ENABLE_SMALL */
 
 #if P2MP_SERVER
 
@@ -1279,7 +1279,7 @@ option_iroute_ipv6 (struct options *o,
 #endif /* P2MP_SERVER */
 #endif /* P2MP */
 
-#if defined(ENABLE_HTTP_PROXY) && defined(ENABLE_DEBUG)
+#if defined(ENABLE_HTTP_PROXY) && !defined(ENABLE_SMALL)
 static void
 show_http_proxy_options (const struct http_proxy_options *o)
 {
@@ -1332,7 +1332,7 @@ cnol_check_alloc (struct options *options)
 }
 #endif
 
-#ifdef ENABLE_DEBUG
+#ifndef ENABLE_SMALL
 static void
 show_connection_entry (const struct connection_entry *o)
 {
@@ -1400,7 +1400,7 @@ show_connection_entries (const struct options *o)
 void
 show_settings (const struct options *o)
 {
-#ifdef ENABLE_DEBUG
+#ifndef ENABLE_SMALL
   msg (D_SHOW_PARMS, "Current Parameter Settings:");
 
   SHOW_STR (config);
