@@ -1089,7 +1089,7 @@ delete_routes (struct route_list *rl, struct route_ipv6_list *rl6,
     }
 }
 
-#ifdef ENABLE_DEBUG
+#ifndef ENABLE_SMALL
 
 static const char *
 show_opt (const char *option)

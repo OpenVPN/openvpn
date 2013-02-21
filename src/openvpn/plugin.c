@@ -155,7 +155,7 @@ plugin_option_list_add (struct plugin_option_list *list, char **p, struct gc_are
     return false;
 }
 
-#ifdef ENABLE_DEBUG
+#ifndef ENABLE_SMALL
 void
 plugin_option_list_print (const struct plugin_option_list *list, int msglevel)
 {
