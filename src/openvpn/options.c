@@ -6528,6 +6528,12 @@ add_option (struct options *options,
   else if (streq (p[0], "tls-remote") && p[1])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
+      /*
+       * Enable legacy openvpn format for DNs that have not been converted
+       * yet and X.509 common names (not containing an '=' or ', ')
+       */
+      if (p[1][0] == '/' || !strchr (p[1], '=') || !strstr (p[1], ", "))
+        compat_flag (COMPAT_FLAG_SET | COMPAT_NAMES);
       options->tls_remote = p[1];
     }
   else if (streq (p[0], "ns-cert-type") && p[1])
