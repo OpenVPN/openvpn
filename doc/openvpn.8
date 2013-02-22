@@ -3462,25 +3462,39 @@ characters in the usernames, X.509 Subject fields and Common Name variables and
 it complies to the RFC 2253, UTF\-8 String Representation of Distinguished
 Names.
 
-As a backwards compatibility for the removed \-\-no\-name\-remapping feature in
-older OpenVPN versions, the
+The
 .B no\-remapping
 mode flag can be used with the
 .B
 \-\-compat\-names
-option.
-When this mode flag is used, the Common Name, Subject, and username strings are
-allowed to include any printable character including space, but excluding
-control characters such as tab, newline, and carriage-return. It ensures
-compatibility with the
-.B \-\-no\-name\-remapping
-option of OpenVPN versions before v2.3.
+option to be compatible with the now deprecated \-\-no\-name\-remapping feature
+present in older OpenVPN versions. When this mode flag is used, the Common Name,
+Subject, and username strings are allowed to include any printable character
+including space, but excluding control characters such as tab, newline, and
+carriage-return.
 
 .B Please note:
 This option will not be around for a long time.  It is only implemented
 to make the transition to the new formatting less intrusive.  It will be
 removed either in OpenVPN v2.4 or v2.5.  So please make sure you start
 the process to support the new formatting as soon as possible.
+.\"*********************************************************
+.TP
+.B \-\-no\-name\-remapping (DEPRECATED)
+The
+.B \-\-no\-name\-remapping
+option is an alias for
+.B \-\-compat\-names\ no\-remapping.
+It ensures compatibility with configurations using the
+.B \-\-no\-name\-remapping
+option.
+
+.B Please note:
+This option is now deprecated.  It will be removed either in OpenVPN v2.4
+or v2.5.  So please make sure you support the new X.509 name formatting
+described with the
+.B \-\-compat\-names
+option as soon as possible.
 .\"*********************************************************
 .TP
 .B \-\-port-share host port [dir]

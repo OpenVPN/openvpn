@@ -5561,13 +5561,6 @@ add_option (struct options *options,
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->ssl_flags |= SSLF_AUTH_USER_PASS_OPTIONAL;
     }
-  else if (streq (p[0], "compat-names"))
-    {
-      VERIFY_PERMISSION (OPT_P_GENERAL);
-      compat_flag (COMPAT_FLAG_SET | COMPAT_NAMES);
-      if (p[1] && streq (p[1], "no-remapping"))
-        compat_flag (COMPAT_FLAG_SET | COMPAT_NO_NAME_REMAPPING);
-    }
   else if (streq (p[0], "opt-verify"))
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
@@ -6518,6 +6511,20 @@ add_option (struct options *options,
       options->tls_export_cert = p[1];
     }
 #endif
+  else if (streq (p[0], "compat-names"))
+    {
+      VERIFY_PERMISSION (OPT_P_GENERAL);
+      compat_flag (COMPAT_FLAG_SET | COMPAT_NAMES);
+      if (p[1] && streq (p[1], "no-remapping"))
+        compat_flag (COMPAT_FLAG_SET | COMPAT_NO_NAME_REMAPPING);
+    }
+  else if (streq (p[0], "no-name-remapping"))
+    {
+      VERIFY_PERMISSION (OPT_P_GENERAL);
+      msg (M_WARN, "DEPRECATED OPTION: --no-name-remapping, please update your configuration");
+      compat_flag (COMPAT_FLAG_SET | COMPAT_NAMES);
+      compat_flag (COMPAT_FLAG_SET | COMPAT_NO_NAME_REMAPPING);
+    }
   else if (streq (p[0], "tls-remote") && p[1])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
