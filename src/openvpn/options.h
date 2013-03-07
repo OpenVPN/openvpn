@@ -506,8 +506,9 @@ struct options
   const char *pkcs12_file;
   const char *cipher_list;
   const char *tls_verify;
+  int verify_x509_type;
+  const char *verify_x509_name;
   const char *tls_export_cert;
-  const char *tls_remote;
   const char *crl_file;
 
   const char *ca_file_inline;

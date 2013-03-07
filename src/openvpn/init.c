@@ -2205,7 +2205,8 @@ do_init_crypto_tls (struct context *c, const unsigned int flags)
 
   to.verify_command = options->tls_verify;
   to.verify_export_cert = options->tls_export_cert;
-  to.verify_x509name = options->tls_remote;
+  to.verify_x509_type = (options->verify_x509_type & 0xff);
+  to.verify_x509_name = options->verify_x509_name;
   to.crl_file = options->crl_file;
   to.ssl_flags = options->ssl_flags;
   to.ns_cert_type = options->ns_cert_type;
@@ -2467,12 +2468,10 @@ do_option_warnings (struct context *c)
     warn_on_use_of_common_subnets ();
   if (o->tls_client
       && !o->tls_verify
-      && !o->tls_remote
+      && o->verify_x509_type == VERIFY_X509_NONE
       && !(o->ns_cert_type & NS_CERT_CHECK_SERVER)
       && !o->remote_cert_eku)
     msg (M_WARN, "WARNING: No server certificate verification method has been enabled.  See http://openvpn.net/howto.html#mitm for more info.");
-  if (o->tls_remote)
-    msg (M_WARN, "WARNING: Make sure you understand the semantics of --tls-remote before using it (see the man page).");
 #endif
 #endif
 
