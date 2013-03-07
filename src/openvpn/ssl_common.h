@@ -245,7 +245,8 @@ struct tls_options
   /* cert verification parms */
   const char *verify_command;
   const char *verify_export_cert;
-  const char *verify_x509name;
+  int verify_x509_type;
+  const char *verify_x509_name;
   const char *crl_file;
   int ns_cert_type;
   unsigned remote_cert_ku[MAX_PARMS];

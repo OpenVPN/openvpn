@@ -369,16 +369,21 @@ verify_peer_cert(const struct tls_options *opt, openvpn_x509_cert_t *peer_cert,
 
 #endif /* OPENSSL_VERSION_NUMBER */
 
-  /* verify X509 name or common name against --tls-remote */
-  if (opt->verify_x509name && strlen (opt->verify_x509name) > 0)
+  /* verify X509 name or username against --verify-x509-[user]name */
+  if (opt->verify_x509_type != VERIFY_X509_NONE)
     {
-      if (strcmp (opt->verify_x509name, subject) == 0
-	  || strncmp (opt->verify_x509name, common_name, strlen (opt->verify_x509name)) == 0)
+      if ( (opt->verify_x509_type == VERIFY_X509_SUBJECT_DN
+            && strcmp (opt->verify_x509_name, subject) == 0)
+        || (opt->verify_x509_type == VERIFY_X509_SUBJECT_RDN
+            && strcmp (opt->verify_x509_name, common_name) == 0)
+        || (opt->verify_x509_type == VERIFY_X509_SUBJECT_RDN_PREFIX
+            && strncmp (opt->verify_x509_name, common_name,
+                        strlen (opt->verify_x509_name)) == 0) )
 	msg (D_HANDSHAKE, "VERIFY X509NAME OK: %s", subject);
       else
 	{
 	  msg (D_HANDSHAKE, "VERIFY X509NAME ERROR: %s, must be %s",
-	       subject, opt->verify_x509name);
+	       subject, opt->verify_x509_name);
 	  return FAILURE;		/* Reject connection */
 	}
     }

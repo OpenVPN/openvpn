@@ -62,6 +62,12 @@ struct cert_hash_set {
   struct cert_hash *ch[MAX_CERT_DEPTH]; /**< Array of certificate hashes */
 };
 
+#define VERIFY_X509_NONE                0
+#define VERIFY_X509_SUBJECT_DN          1
+#define VERIFY_X509_SUBJECT_RDN         2
+#define VERIFY_X509_SUBJECT_RDN_PREFIX  3
+#define TLS_REMOTE_SUBJECT_DN           1 + 0x100
+#define TLS_REMOTE_SUBJECT_RDN_PREFIX   3 + 0x100
 
 #define TLS_AUTHENTICATION_SUCCEEDED  0
 #define TLS_AUTHENTICATION_FAILED     1

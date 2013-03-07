@@ -614,8 +614,8 @@ static const char usage_message[] =
   "--tls-export-cert [directory] : Get peer cert in PEM format and store it \n"
   "                  in an openvpn temporary file in [directory]. Peer cert is \n"
   "                  stored before tls-verify script execution and deleted after.\n"
-  "--tls-remote x509name: Accept connections only from a host with X509 name\n"
-  "                  x509name. The remote host must also pass all other tests\n"
+  "--verify-x509-name name: Accept connections only from a host with X509 subject\n"
+  "                  DN name. The remote host must also pass all other tests\n"
   "                  of verification.\n"
   "--ns-cert-type t: Require that peer certificate was signed with an explicit\n"
   "                  nsCertType designation t = 'client' | 'server'.\n"
@@ -1596,7 +1596,8 @@ show_settings (const struct options *o)
   SHOW_STR (cipher_list);
   SHOW_STR (tls_verify);
   SHOW_STR (tls_export_cert);
-  SHOW_STR (tls_remote);
+  SHOW_INT (verify_x509_type);
+  SHOW_STR (verify_x509_name);
   SHOW_STR (crl_file);
   SHOW_INT (ns_cert_type);
   {
@@ -2130,7 +2131,6 @@ options_postprocess_verify_ce (const struct options *options, const struct conne
 
       if (options->stale_routes_check_interval)
         msg (M_USAGE, "--stale-routes-check requires --mode server");
-
       if (compat_flag (COMPAT_FLAG_QUERY | COMPAT_NO_NAME_REMAPPING))
         msg (M_USAGE, "--compat-x509-names no-remapping requires --mode server");
     }
@@ -2302,7 +2302,7 @@ options_postprocess_verify_ce (const struct options *options, const struct conne
       MUST_BE_UNDEF (cipher_list);
       MUST_BE_UNDEF (tls_verify);
       MUST_BE_UNDEF (tls_export_cert);
-      MUST_BE_UNDEF (tls_remote);
+      MUST_BE_UNDEF (verify_x509_name);
       MUST_BE_UNDEF (tls_timeout);
       MUST_BE_UNDEF (renegotiate_bytes);
       MUST_BE_UNDEF (renegotiate_packets);
@@ -6514,27 +6514,97 @@ add_option (struct options *options,
   else if (streq (p[0], "compat-names"))
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
+      if (options->verify_x509_type != VERIFY_X509_NONE &&
+          options->verify_x509_type != TLS_REMOTE_SUBJECT_DN &&
+          options->verify_x509_type != TLS_REMOTE_SUBJECT_RDN_PREFIX)
+        {
+          msg (msglevel, "you cannot use --compat-names with --verify-x509-name");
+          goto err;
+        }
+      msg (M_WARN, "DEPRECATED OPTION: --compat-names, please update your configuration");
       compat_flag (COMPAT_FLAG_SET | COMPAT_NAMES);
+#if P2MP_SERVER
       if (p[1] && streq (p[1], "no-remapping"))
         compat_flag (COMPAT_FLAG_SET | COMPAT_NO_NAME_REMAPPING);
     }
   else if (streq (p[0], "no-name-remapping"))
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
+      if (options->verify_x509_type != VERIFY_X509_NONE &&
+          options->verify_x509_type != TLS_REMOTE_SUBJECT_DN &&
+          options->verify_x509_type != TLS_REMOTE_SUBJECT_RDN_PREFIX)
+        {
+          msg (msglevel, "you cannot use --no-name-remapping with --verify-x509-name");
+          goto err;
+        }
       msg (M_WARN, "DEPRECATED OPTION: --no-name-remapping, please update your configuration");
       compat_flag (COMPAT_FLAG_SET | COMPAT_NAMES);
       compat_flag (COMPAT_FLAG_SET | COMPAT_NO_NAME_REMAPPING);
+#endif
     }
   else if (streq (p[0], "tls-remote") && p[1])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
-      /*
-       * Enable legacy openvpn format for DNs that have not been converted
-       * yet and X.509 common names (not containing an '=' or ', ')
-       */
-      if (p[1][0] == '/' || !strchr (p[1], '=') || !strstr (p[1], ", "))
-        compat_flag (COMPAT_FLAG_SET | COMPAT_NAMES);
-      options->tls_remote = p[1];
+
+      if (options->verify_x509_type != VERIFY_X509_NONE &&
+          options->verify_x509_type != TLS_REMOTE_SUBJECT_DN &&
+          options->verify_x509_type != TLS_REMOTE_SUBJECT_RDN_PREFIX)
+        {
+          msg (msglevel, "you cannot use --tls-remote with --verify-x509-name");
+          goto err;
+        }
+      msg (M_WARN, "DEPRECATED OPTION: --tls-remote, please update your configuration");
+
+      if (strlen (p[1]))
+        {
+          int is_username = (!strchr (p[1], '=') || !strstr (p[1], ", "));
+          int type = TLS_REMOTE_SUBJECT_DN;
+          if (p[1][0] != '/' && is_username)
+            type = TLS_REMOTE_SUBJECT_RDN_PREFIX;
+
+          /*
+           * Enable legacy openvpn format for DNs that have not been converted
+           * yet and --x509-username-field (not containing an '=' or ', ')
+           */
+          if (p[1][0] == '/' || is_username)
+            compat_flag (COMPAT_FLAG_SET | COMPAT_NAMES);
+
+          options->verify_x509_type = type;
+          options->verify_x509_name = p[1];
+        }
+    }
+  else if (streq (p[0], "verify-x509-name") && p[1] && strlen (p[1]))
+    {
+      int type = VERIFY_X509_SUBJECT_DN;
+      VERIFY_PERMISSION (OPT_P_GENERAL);
+      if (options->verify_x509_type == TLS_REMOTE_SUBJECT_DN ||
+          options->verify_x509_type == TLS_REMOTE_SUBJECT_RDN_PREFIX)
+        {
+          msg (msglevel, "you cannot use --verify-x509-name with --tls-remote");
+          goto err;
+        }
+      if (compat_flag (COMPAT_FLAG_QUERY | COMPAT_NAMES))
+        {
+          msg (msglevel, "you cannot use --verify-x509-name with "
+                         "--compat-names or --no-name-remapping");
+          goto err;
+        }
+      if (p[2])
+        {
+          if (streq (p[2], "subject"))
+            type = VERIFY_X509_SUBJECT_DN;
+          else if (streq (p[2], "name"))
+            type = VERIFY_X509_SUBJECT_RDN;
+          else if (streq (p[2], "name-prefix"))
+            type = VERIFY_X509_SUBJECT_RDN_PREFIX;
+          else
+            {
+              msg (msglevel, "unknown X.509 name type: %s", p[2]);
+              goto err;
+            }
+        }
+      options->verify_x509_type = type;
+      options->verify_x509_name = p[1];
     }
   else if (streq (p[0], "ns-cert-type") && p[1])
     {
