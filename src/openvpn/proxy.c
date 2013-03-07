@@ -499,7 +499,7 @@ establish_http_proxy_passthru (struct http_proxy_info *p,
 {
   struct gc_arena gc = gc_new ();
   char buf[512];
-  char buf2[128];
+  char buf2[129];
   char get[80];
   int status;
   int nparms;
@@ -622,7 +622,7 @@ establish_http_proxy_passthru (struct http_proxy_info *p,
 
               openvpn_snprintf (get, sizeof get, "%%*s NTLM %%%ds", (int) sizeof (buf2) - 1);
               nparms = sscanf (buf, get, buf2);
-              buf2[127] = 0; /* we only need the beginning - ensure it's null terminated. */
+              buf2[128] = 0; /* we only need the beginning - ensure it's null terminated. */
 
               /* check for "Proxy-Authenticate: NTLM TlRM..." */
               if (nparms == 1)
