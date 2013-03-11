@@ -83,7 +83,7 @@ mbuf_defined (const struct mbuf_set *ms)
   return ms && ms->len;
 }
 
-static inline bool
+static inline unsigned int
 mbuf_len (const struct mbuf_set *ms)
 {
   return ms->len;
