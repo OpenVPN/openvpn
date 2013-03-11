@@ -689,16 +689,6 @@ bool buf_string_compare_advance (struct buffer *src, const char *match);
 int buf_substring_len (const struct buffer *buf, int delim);
 
 /*
- * Bitwise operations
- */
-static inline void
-xor (uint8_t *dest, const uint8_t *src, int len)
-{
-  while (len-- > 0)
-    *dest++ ^= *src++;
-}
-
-/*
  * Print a string which might be NULL
  */
 const char *np (const char *str);
