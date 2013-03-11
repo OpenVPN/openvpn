@@ -73,6 +73,8 @@ static void solaris_error_close (struct tuntap *tt, const struct env_set *es, co
 #include <stropts.h>
 #endif
 
+static void clear_tuntap (struct tuntap *tuntap);
+
 bool
 is_dev_type (const char *dev, const char *dev_type, const char *match_type)
 {
