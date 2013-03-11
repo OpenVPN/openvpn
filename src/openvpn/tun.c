@@ -300,16 +300,6 @@ warn_on_use_of_common_subnets (void)
 }
 
 /*
- * Complain if --dev tap and --ifconfig is used on an OS for which
- * we don't have a custom tap ifconfig template below.
- */
-static void
-no_tap_ifconfig ()
-{
-  msg (M_FATAL, "Sorry but you cannot use --dev tap and --ifconfig together on this OS because I have not yet been programmed to understand the appropriate ifconfig syntax to use for TAP-style devices on this OS.  Your best alternative is to use an --up script and do the ifconfig command manually.");
-}
-
-/*
  * Return a string to be used for options compatibility check
  * between peers.
  */
