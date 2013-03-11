@@ -203,8 +203,6 @@ tuntap_defined (const struct tuntap *tt)
  * Function prototypes
  */
 
-static void clear_tuntap (struct tuntap *tuntap);
-
 void open_tun (const char *dev, const char *dev_type, const char *dev_node,
 	       struct tuntap *tt);
 
