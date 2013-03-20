@@ -4672,6 +4672,12 @@ add_option (struct options *options,
     {
       VERIFY_PERMISSION (OPT_P_MESSAGES);
       options->verbosity = positive_atoi (p[1]);
+#if !defined(ENABLE_DEBUG) && !defined(ENABLE_SMALL)
+      /* Warn when a debug verbosity is supplied when built without debug support */
+      if (options->verbosity >= 7)
+        msg (M_WARN, "NOTE: debug verbosity (--verb %d) is enabled but this build lacks debug support.",
+	    options->verbosity);
+#endif
     }
   else if (streq (p[0], "mute") && p[1])
     {
