@@ -144,6 +144,25 @@ tls_ctx_set_options (struct tls_root_ctx *ctx, unsigned int ssl_flags)
 {
 }
 
+static const char *
+tls_translate_cipher_name (const char * cipher_name) {
+  const tls_cipher_name_pair * pair = tls_get_cipher_name_pair(cipher_name, strlen(cipher_name));
+
+  if (NULL == pair)
+    {
+      // No translation found, return original
+      return cipher_name;
+    }
+
+  if (0 != strcmp(cipher_name, pair->iana_name))
+    {
+      // Deprecated name found, notify user
+      msg(M_WARN, "Deprecated cipher suite name '%s', please use IANA name '%s'", pair->openssl_name, pair->iana_name);
+    }
+
+  return pair->iana_name;
+}
+
 void
 tls_ctx_restrict_ciphers(struct tls_root_ctx *ctx, const char *ciphers)
 {
@@ -169,7 +188,8 @@ tls_ctx_restrict_ciphers(struct tls_root_ctx *ctx, const char *ciphers)
   token = strtok (tmp_ciphers, ":");
   while(token)
     {
-      ctx->allowed_ciphers[i] = ssl_get_ciphersuite_id (token);
+      ctx->allowed_ciphers[i] = ssl_get_ciphersuite_id (
+	  tls_translate_cipher_name (token));
       if (0 != ctx->allowed_ciphers[i])
 	i++;
       token = strtok (NULL, ":");
