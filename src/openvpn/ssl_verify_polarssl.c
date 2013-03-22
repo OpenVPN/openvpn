@@ -63,10 +63,10 @@ verify_callback (void *session_obj, x509_cert *cert, int cert_depth,
       char *subject = x509_get_subject(cert, &gc);
 
       if (subject)
-	msg (D_TLS_ERRORS, "VERIFY ERROR: depth=%d, %s", cert_depth, subject);
+	msg (D_TLS_ERRORS, "VERIFY ERROR: depth=%d, flags=%x, %s", cert_depth, *flags, subject);
       else
-	msg (D_TLS_ERRORS, "VERIFY ERROR: depth=%d, could not extract X509 "
-	      "subject string from certificate", cert_depth);
+	msg (D_TLS_ERRORS, "VERIFY ERROR: depth=%d, flags=%x, could not extract X509 "
+	      "subject string from certificate", *flags, cert_depth);
 
       /* Leave flags set to non-zero to indicate that the cert is not ok */
     }
