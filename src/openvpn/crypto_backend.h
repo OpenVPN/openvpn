@@ -63,6 +63,18 @@ void crypto_init_lib_engine (const char *engine_name);
 void crypto_init_dmalloc (void);
 #endif /* DMALLOC */
 
+/**
+ * Translate a data channel cipher name from the OpenVPN config file
+ * 'language' to the crypto library specific name.
+ */
+const char * translate_cipher_name_from_openvpn (const char *cipher_name);
+
+/**
+ * Translate a data channel cipher name from the crypto library specific name
+ * to the OpenVPN config file 'language'.
+ */
+const char * translate_cipher_name_from_openvpn (const char *cipher_name);
+
 void show_available_ciphers (void);
 
 void show_available_digests (void);
