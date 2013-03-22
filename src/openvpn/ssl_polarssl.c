@@ -65,23 +65,6 @@ tls_clear_error()
 {
 }
 
-static int default_ciphersuites[] =
-{
-    SSL_EDH_RSA_AES_256_SHA,
-    SSL_EDH_RSA_CAMELLIA_256_SHA,
-    SSL_EDH_RSA_AES_128_SHA,
-    SSL_EDH_RSA_CAMELLIA_128_SHA,
-    SSL_EDH_RSA_DES_168_SHA,
-    SSL_RSA_AES_256_SHA,
-    SSL_RSA_CAMELLIA_256_SHA,
-    SSL_RSA_AES_128_SHA,
-    SSL_RSA_CAMELLIA_128_SHA,
-    SSL_RSA_DES_168_SHA,
-    SSL_RSA_RC4_128_SHA,
-    SSL_RSA_RC4_128_MD5,
-    0
-};
-
 void
 tls_ctx_server_new(struct tls_root_ctx *ctx)
 {
@@ -514,20 +497,17 @@ void key_state_ssl_init(struct key_state_ssl *ks_ssl,
 
       ssl_set_rng (ks_ssl->ctx, ctr_drbg_random, rand_ctx_get());
 
-      ALLOC_OBJ_CLEAR (ks_ssl->ssn, ssl_session);
-      ssl_set_session (ks_ssl->ctx, 0, 0, ks_ssl->ssn );
       if (ssl_ctx->allowed_ciphers)
 	ssl_set_ciphersuites (ks_ssl->ctx, ssl_ctx->allowed_ciphers);
-      else
-	ssl_set_ciphersuites (ks_ssl->ctx, default_ciphersuites);
 
       /* Initialise authentication information */
       if (is_server)
 	ssl_set_dh_param_ctx (ks_ssl->ctx, ssl_ctx->dhm_ctx );
 #if defined(ENABLE_PKCS11)
       if (ssl_ctx->priv_key_pkcs11 != NULL)
-	ssl_set_own_cert_pkcs11( ks_ssl->ctx, ssl_ctx->crt_chain,
-	    ssl_ctx->priv_key_pkcs11 );
+	ssl_set_own_cert_alt( ks_ssl->ctx, ssl_ctx->crt_chain,
+	    ssl_ctx->priv_key_pkcs11, ssl_pkcs11_decrypt, ssl_pkcs11_sign,
+	    ssl_pkcs11_key_len );
       else
 #endif
 	ssl_set_own_cert( ks_ssl->ctx, ssl_ctx->crt_chain, ssl_ctx->priv_key );
@@ -543,7 +523,6 @@ void key_state_ssl_init(struct key_state_ssl *ks_ssl,
       ALLOC_OBJ_CLEAR (ks_ssl->ct_out, endless_buffer);
       ssl_set_bio (ks_ssl->ctx, endless_buf_read, ks_ssl->ct_in,
 	  endless_buf_write, ks_ssl->ct_out);
-
     }
 }
 
@@ -556,8 +535,6 @@ key_state_ssl_free(struct key_state_ssl *ks_ssl)
 	  ssl_free(ks_ssl->ctx);
 	  free(ks_ssl->ctx);
 	}
-      if (ks_ssl->ssn)
-	free(ks_ssl->ssn);
       if (ks_ssl->ct_in) {
 	buf_free_entries(ks_ssl->ct_in);
 	free(ks_ssl->ct_in);
@@ -818,7 +795,7 @@ key_state_read_plaintext (struct key_state_ssl *ks, struct buffer *buf,
 void
 print_details (struct key_state_ssl * ks_ssl, const char *prefix)
 {
-  x509_cert *cert;
+  const x509_cert *cert;
   char s1[256];
   char s2[256];
 
@@ -828,7 +805,7 @@ print_details (struct key_state_ssl * ks_ssl, const char *prefix)
 		    ssl_get_version (ks_ssl->ctx),
 		    ssl_get_ciphersuite(ks_ssl->ctx));
 
-  cert = ks_ssl->ctx->peer_cert;
+  cert = ssl_get_peer_cert(ks_ssl->ctx);
   if (cert != NULL)
     {
       openvpn_snprintf (s2, sizeof (s2), ", " counter_format " bit RSA", (counter_type) cert->rsa.len * 8);

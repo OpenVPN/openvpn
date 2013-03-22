@@ -114,7 +114,7 @@ show_available_ciphers ()
 
       if (info && info->mode == POLARSSL_MODE_CBC)
 	printf ("%s %d bit default key\n",
-		info->name, info->key_length);
+		info->name, cipher_kt_key_size(info) * 8);
 
       ciphers++;
     }
@@ -339,6 +339,9 @@ cipher_kt_key_size (const cipher_info_t *cipher_kt)
 {
   if (NULL == cipher_kt)
     return 0;
+  if (POLARSSL_CIPHER_ID_BLOWFISH == cipher_kt->base->cipher)
+    return 128/8; /* Override PolarSSL 32 bit default key size with sane 128 bit default */
+
   return cipher_kt->key_length/8;
 }
 

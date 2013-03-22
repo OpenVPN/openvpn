@@ -30,7 +30,6 @@
 #ifndef CRYPTO_POLARSSL_H_
 #define CRYPTO_POLARSSL_H_
 
-#include <polarssl/version.h>
 #include <polarssl/cipher.h>
 #include <polarssl/md.h>
 #include <polarssl/ctr_drbg.h>
@@ -60,7 +59,7 @@ typedef md_context_t hmac_ctx_t;
 #define OPENVPN_MODE_OFB 	POLARSSL_MODE_OFB
 
 /** Cipher is in CFB mode */
-#define OPENVPN_MODE_CFB 	POLARSSL_MODE_CFB128
+#define OPENVPN_MODE_CFB 	POLARSSL_MODE_CFB
 
 /** Cipher should encrypt */
 #define OPENVPN_OP_ENCRYPT 	POLARSSL_ENCRYPT
