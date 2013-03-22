@@ -726,6 +726,13 @@ case "${with_mem_check}" in
 esac
 
 PKG_CHECK_MODULES(
+	[PKCS11_HELPER],
+	[libpkcs11-helper-1 >= 1.02],
+	[have_pkcs11_helper="yes"],
+	[]
+)
+
+PKG_CHECK_MODULES(
 	[OPENSSL_CRYPTO],
 	[libcrypto >= 0.9.6],
 	[have_openssl_crypto="yes"],
@@ -789,9 +796,11 @@ if test -z "${POLARSSL_LIBS}"; then
 				[polarssl],
 				[aes_crypt_cbc],
 				,
-				[have_polarssl_crypto="no"]
+				[have_polarssl_crypto="no"],
+				[${PKCS11_HELPER_LIBS}]
 			)
-		]
+		],
+		[${PKCS11_HELPER_LIBS}]
 	)
 fi
 
@@ -806,14 +815,44 @@ if test "${with_crypto_library}" = "polarssl" ; then
 			]],
 			[[
 #if POLARSSL_VERSION_NUMBER < 0x01020500
-#error invalid version PolarSSL-1.2.5 or newer required
+#error invalid version
 #endif
 			]]
 		)],
 		[AC_MSG_RESULT([ok])],
-		[AC_MSG_ERROR([invalid polarssl version])]
+		[AC_MSG_ERROR([PolarSSL 1.2.5 or newer required])]
 	)
+
+	polarssl_with_pkcs11="no"
+	AC_COMPILE_IFELSE(
+		[AC_LANG_PROGRAM(
+			[[
+#include <polarssl/config.h>
+			]],
+			[[
+#ifndef POLARSSL_PKCS11_C
+#error pkcs11 wrapper missing
+#endif
+			]]
+		)],
+		polarssl_with_pkcs11="yes")
 	CFLAGS="${old_CFLAGS}"
+
+	AC_MSG_CHECKING([polarssl pkcs11 support])
+	if test "${enable_pkcs11}" = "yes"; then
+		if test "${polarssl_with_pkcs11}" = "yes"; then
+			AC_MSG_RESULT([ok])
+		else
+			AC_MSG_ERROR([polarssl has no pkcs11 wrapper compiled in])
+		fi
+	else
+		if test "${polarssl_with_pkcs11}" != "yes"; then
+			AC_MSG_RESULT([ok])
+		else
+			AC_MSG_ERROR([PolarSSL compiled with PKCS11, while OpenVPN is not])
+		fi
+	fi
+
 fi
 
 AC_ARG_VAR([LZO_CFLAGS], [C compiler flags for lzo])
@@ -855,13 +894,6 @@ if test "${have_lzo}" = "yes"; then
 	)
 	CFLAGS="${saved_CFLAGS}"
 fi
-
-PKG_CHECK_MODULES(
-	[PKCS11_HELPER],
-	[libpkcs11-helper-1 >= 1.02],
-	[have_pkcs11_helper="yes"],
-	[]
-)
 
 AC_MSG_CHECKING([git checkout])
 GIT_CHECKOUT="no"
