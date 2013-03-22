@@ -73,7 +73,6 @@ struct tls_root_ctx {
 
 struct key_state_ssl {
         ssl_context *ctx;
-        ssl_session *ssn;
         endless_buffer *ct_in;
         endless_buffer *ct_out;
 };
