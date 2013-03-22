@@ -43,6 +43,15 @@
 #endif
 
 
+/**
+ * Get a tls_cipher_name_pair containing OpenSSL and IANA names for supplied TLS cipher name
+ *
+ * @param cipher_name	Can be either OpenSSL or IANA cipher name
+ * @return		tls_cipher_name_pair* if found, NULL otherwise
+ */
+typedef struct { const char *openssl_name; const char *iana_name; } tls_cipher_name_pair;
+const tls_cipher_name_pair *tls_get_cipher_name_pair (const char *cipher_name, size_t len);
+
 /*
  *
  * Functions implemented in ssl.c for use by the backend SSL library

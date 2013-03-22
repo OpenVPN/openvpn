@@ -202,10 +202,69 @@ tls_ctx_set_options (struct tls_root_ctx *ctx, unsigned int ssl_flags)
 void
 tls_ctx_restrict_ciphers(struct tls_root_ctx *ctx, const char *ciphers)
 {
+  size_t begin_of_cipher, end_of_cipher;
+
+  const char *current_cipher;
+  size_t current_cipher_len;
+
+  const tls_cipher_name_pair *cipher_pair;
+
+  const size_t openssl_ciphers_size = 4096;
+  char openssl_ciphers[openssl_ciphers_size];
+  size_t openssl_ciphers_len = 0;
+  openssl_ciphers[0] = '\0';
+
   ASSERT(NULL != ctx);
 
-  if(!SSL_CTX_set_cipher_list(ctx->ctx, ciphers))
-    msg(M_SSLERR, "Failed to set restricted TLS cipher list: %s", ciphers);
+  // Translate IANA cipher suite names to OpenSSL names
+  for (begin_of_cipher = 0; begin_of_cipher < strlen(ciphers); begin_of_cipher = end_of_cipher+1) {
+      end_of_cipher = strcspn(&ciphers[begin_of_cipher], ":");
+      cipher_pair = tls_get_cipher_name_pair(&ciphers[begin_of_cipher], end_of_cipher - begin_of_cipher);
+
+      if (NULL == cipher_pair)
+        {
+          // No translation found, use original
+          current_cipher = &ciphers[begin_of_cipher];
+          current_cipher_len = end_of_cipher - begin_of_cipher;
+
+          // Issue warning on missing translation
+          // %.*s format specifier expects length of type int, so guarantee
+          // that length is small enough and cast to int.
+          msg (M_WARN, "No valid translation found for TLS cipher '%.*s'",
+              (int) MIN(current_cipher_len, 256), current_cipher);
+        }
+      else
+	{
+	  // Use OpenSSL name
+          current_cipher = cipher_pair->openssl_name;
+          current_cipher_len = strlen(current_cipher);
+
+	  if (end_of_cipher - begin_of_cipher == current_cipher_len &&
+	      0 == memcmp (&ciphers[begin_of_cipher], cipher_pair->openssl_name, end_of_cipher - begin_of_cipher))
+	    {
+	      // Non-IANA name used, show warning
+	      msg (M_WARN, "Deprecated TLS cipher name '%s', please use IANA name '%s'", cipher_pair->openssl_name, cipher_pair->iana_name);
+	    }
+	}
+
+      // Make sure new cipher name fits in cipher string
+      if (((openssl_ciphers_size-1) - openssl_ciphers_len) < current_cipher_len) {
+	msg(M_SSLERR, "Failed to set restricted TLS cipher list, too long (>%zu).", openssl_ciphers_size-1);
+      }
+
+      // Concatenate cipher name to OpenSSL cipher string
+      memcpy(&openssl_ciphers[openssl_ciphers_len], current_cipher, current_cipher_len);
+      openssl_ciphers_len += current_cipher_len;
+      openssl_ciphers[openssl_ciphers_len] = ':';
+      openssl_ciphers_len++;
+  }
+
+  if (openssl_ciphers_len > 0)
+    openssl_ciphers[openssl_ciphers_len-1] = '\0';
+
+  // Set OpenSSL cipher list
+  if(!SSL_CTX_set_cipher_list(ctx->ctx, openssl_ciphers))
+    msg(M_SSLERR, "Failed to set restricted TLS cipher list: %s", openssl_ciphers);
 }
 
 void
@@ -1131,6 +1190,8 @@ show_available_tls_ciphers ()
   SSL_CTX *ctx;
   SSL *ssl;
   const char *cipher_name;
+  const char *print_name;
+  const tls_cipher_name_pair *pair;
   int priority = 0;
 
   ctx = SSL_CTX_new (TLSv1_method ());
@@ -1144,7 +1205,17 @@ show_available_tls_ciphers ()
   printf ("Available TLS Ciphers,\n");
   printf ("listed in order of preference:\n\n");
   while ((cipher_name = SSL_get_cipher_list (ssl, priority++)))
-    printf ("%s\n", cipher_name);
+    {
+      pair = tls_get_cipher_name_pair(cipher_name, strlen(cipher_name));
+
+      if (NULL == pair) {
+          // No translation found, print warning
+	  printf ("%s (No IANA name known to OpenVPN, use OpenSSL name.)\n", cipher_name);
+      } else {
+	  printf ("%s\n", pair->iana_name);
+      }
+
+    }
   printf ("\n");
 
   SSL_free (ssl);
