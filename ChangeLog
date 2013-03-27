@@ -1,6 +1,59 @@
 OpenVPN Change Log
 Copyright (C) 2002-2012 OpenVPN Technologies, Inc. <sales@openvpn.net>
 
+2013.03.29 -- Version 2.3.1
+Arne Schwabe (4):
+      Remove dead code path and putenv functionality
+      Remove unused function xor
+      Move static prototype definition from header into c file
+      Remove unused function no_tap_ifconfig
+
+Christian Hesse (1):
+      fix build with automake 1.13(.1)
+
+Christian Niessner (1):
+      Fix corner case in NTLM authentication (trac #172)
+
+Gert Doering (5):
+      Update README.IPv6 to match what is in 2.3.0
+      Repair "tcp server queue overflow" brokenness, more <stdbool.h> fallout.
+      Permit pool size of /64.../112 for ifconfig-ipv6-pool
+      Add MIN() compatibility macro
+      Fix directly connected routes for "topology subnet" on Solaris.
+
+Heiko Hund (5):
+      close more file descriptors on exec
+      Ignore UTF-8 byte order mark
+      reintroduce --no-name-remapping option
+      make --tls-remote compatible with pre 2.3 configs
+      add new option for X.509 name verification
+
+Jan Just Keijser (1):
+      man page patch for missing options
+
+Josh Cepek (2):
+      Fix parameter listing in non-debug builds at verb 4
+      (updated) [PATCH] Warn when using verb levels >=7 without debug
+
+Matthias Andree (1):
+      Enable TCP_NODELAY configuration on FreeBSD.
+
+Samuli Seppänen (4):
+      Removed ChangeLog.IPv6
+      Added cross-compilation information INSTALL-win32.txt
+      Updated README
+      Cleaned up and updated INSTALL
+
+Steffan Karger (7):
+      PolarSSL-1.2 support
+      Improve PolarSSL key_state_read_{cipher, plain}text messages
+      Improve verify_callback messages
+      Config compatibility patch. Added translate_cipher_name.
+      Switch to IANA names for TLS ciphers.
+      Fixed autoconf script to properly detect missing pkcs11 with polarssl.
+      Use constant time memcmp when comparing HMACs in openvpn_decrypt.
+
+
 2013.01.07 -- Version 2.3.0
 Gert Doering (2):
       Fix parameter type for IP_TOS setsockopt on non-Linux systems.
