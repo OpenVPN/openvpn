@@ -217,8 +217,9 @@ tls_ctx_restrict_ciphers(struct tls_root_ctx *ctx, const char *ciphers)
   ASSERT(NULL != ctx);
 
   // Translate IANA cipher suite names to OpenSSL names
-  for (begin_of_cipher = 0; begin_of_cipher < strlen(ciphers); begin_of_cipher = end_of_cipher+1) {
-      end_of_cipher = strcspn(&ciphers[begin_of_cipher], ":");
+  begin_of_cipher = end_of_cipher = 0;
+  for (; begin_of_cipher < strlen(ciphers); begin_of_cipher = end_of_cipher) {
+      end_of_cipher += strcspn(&ciphers[begin_of_cipher], ":");
       cipher_pair = tls_get_cipher_name_pair(&ciphers[begin_of_cipher], end_of_cipher - begin_of_cipher);
 
       if (NULL == cipher_pair)
@@ -257,6 +258,8 @@ tls_ctx_restrict_ciphers(struct tls_root_ctx *ctx, const char *ciphers)
       openssl_ciphers_len += current_cipher_len;
       openssl_ciphers[openssl_ciphers_len] = ':';
       openssl_ciphers_len++;
+
+      end_of_cipher++;
   }
 
   if (openssl_ciphers_len > 0)
