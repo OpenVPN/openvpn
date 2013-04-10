@@ -88,6 +88,7 @@ struct multi_instance {
   bool socket_set_called;
 
   in_addr_t reporting_addr;       /* IP address shown in status listing */
+  struct in6_addr reporting_addr_ipv6;  /* IPv6 address in status listing */
 
   bool did_open_context;
   bool did_real_hash;

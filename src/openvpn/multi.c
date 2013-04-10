@@ -807,8 +807,8 @@ multi_print_status (struct multi_context *m, struct status_output *so, const int
 	   */
 	  status_printf (so, "TITLE%c%s", sep, title_string);
 	  status_printf (so, "TIME%c%s%c%u", sep, time_string (now, 0, false, &gc_top), sep, (unsigned int)now);
-	  status_printf (so, "HEADER%cCLIENT_LIST%cCommon Name%cReal Address%cVirtual Address%cBytes Received%cBytes Sent%cConnected Since%cConnected Since (time_t)%cUsername%cClient ID",
-			 sep, sep, sep, sep, sep, sep, sep, sep, sep, sep);
+	  status_printf (so, "HEADER%cCLIENT_LIST%cCommon Name%cReal Address%cVirtual Address%cVirtual IPv6 Address%cBytes Received%cBytes Sent%cConnected Since%cConnected Since (time_t)%cUsername%cClient ID",
+			 sep, sep, sep, sep, sep, sep, sep, sep, sep, sep, sep);
 	  hash_iterator_init (m->hash, &hi);
 	  while ((he = hash_iterator_next (&hi)))
 	    {
@@ -817,7 +817,7 @@ multi_print_status (struct multi_context *m, struct status_output *so, const int
 
 	      if (!mi->halt)
 		{
-		  status_printf (so, "CLIENT_LIST%c%s%c%s%c%s%c" counter_format "%c" counter_format "%c%s%c%u%c%s%c"
+		  status_printf (so, "CLIENT_LIST%c%s%c%s%c%s%c%s%c" counter_format "%c" counter_format "%c%s%c%u%c%s%c"
 #ifdef MANAGEMENT_DEF_AUTH
 				 "%lu",
 #else
@@ -826,6 +826,7 @@ multi_print_status (struct multi_context *m, struct status_output *so, const int
 				 sep, tls_common_name (mi->context.c2.tls_multi, false),
 				 sep, mroute_addr_print (&mi->real, &gc),
 				 sep, print_in_addr_t (mi->reporting_addr, IA_EMPTY_IF_UNDEF, &gc),
+				 sep, print_in6_addr (mi->reporting_addr_ipv6, IA_EMPTY_IF_UNDEF, &gc),
 				 sep, mi->context.c2.link_read_bytes,
 				 sep, mi->context.c2.link_write_bytes,
 				 sep, time_string (mi->created, 0, false, &gc),
@@ -1857,6 +1858,7 @@ multi_connection_established (struct multi_context *m, struct multi_instance *mi
 
 	  /* set our client's VPN endpoint for status reporting purposes */
 	  mi->reporting_addr = mi->context.c2.push_ifconfig_local;
+	  mi->reporting_addr_ipv6 = mi->context.c2.push_ifconfig_ipv6_local;
 
 	  /* set context-level authentication flag */
 	  mi->context.c2.context_auth = CAS_SUCCEEDED;
