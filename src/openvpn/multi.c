@@ -817,7 +817,12 @@ multi_print_status (struct multi_context *m, struct status_output *so, const int
 
 	      if (!mi->halt)
 		{
-		  status_printf (so, "CLIENT_LIST%c%s%c%s%c%s%c" counter_format "%c" counter_format "%c%s%c%u%c%s%c%u",
+		  status_printf (so, "CLIENT_LIST%c%s%c%s%c%s%c" counter_format "%c" counter_format "%c%s%c%u%c%s%c"
+#ifdef MANAGEMENT_DEF_AUTH
+				 "%lu",
+#else
+				 "",
+#endif
 				 sep, tls_common_name (mi->context.c2.tls_multi, false),
 				 sep, mroute_addr_print (&mi->real, &gc),
 				 sep, print_in_addr_t (mi->reporting_addr, IA_EMPTY_IF_UNDEF, &gc),
@@ -826,7 +831,11 @@ multi_print_status (struct multi_context *m, struct status_output *so, const int
 				 sep, time_string (mi->created, 0, false, &gc),
 				 sep, (unsigned int)mi->created,
 				 sep, tls_username (mi->context.c2.tls_multi, false),
-                 sep, mi->context.c2.mda_context.cid);
+#ifdef MANAGEMENT_DEF_AUTH
+				 sep, mi->context.c2.mda_context.cid);
+#else
+				 sep);
+#endif
 		}
 	      gc_free (&gc);
 	    }
