@@ -194,7 +194,8 @@ crypto_init_lib_engine (const char *engine_name)
 void
 crypto_init_lib (void)
 {
-#ifndef USE_SSL
+#ifndef ENABLE_SSL
+  /* If SSL is enabled init is taken care of in ssl_openssl.c */
 #ifndef ENABLE_SMALL
   ERR_load_crypto_strings ();
 #endif
@@ -215,7 +216,8 @@ crypto_init_lib (void)
 void
 crypto_uninit_lib (void)
 {
-#ifndef USE_SSL
+#ifndef ENABLE_SSL
+  /* If SSL is enabled cleanup is taken care of in ssl_openssl.c */
   EVP_cleanup ();
 #ifndef ENABLE_SMALL
   ERR_free_strings ();
