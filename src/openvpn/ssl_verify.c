@@ -1027,7 +1027,9 @@ static int
 verify_user_pass_plugin (struct tls_session *session, const struct user_pass *up, const char *raw_username)
 {
   int retval = OPENVPN_PLUGIN_FUNC_ERROR;
+#ifdef PLUGIN_DEF_AUTH
   struct key_state *ks = &session->key[KS_PRIMARY]; 	   /* primary key */
+#endif
 
   /* Is username defined? */
   if ((session->opt->ssl_flags & SSLF_AUTH_USER_PASS_OPTIONAL) || strlen (up->username))

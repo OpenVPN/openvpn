@@ -1205,7 +1205,6 @@ do_init_route_ipv6_list (const struct options *options,
 		    struct env_set *es)
 {
   const char *gw = NULL;
-  int dev = dev_type_enum (options->dev, options->dev_type);
   int metric = -1;		/* no metric set */
 
   gw = options->ifconfig_ipv6_remote;		/* default GW = remote end */

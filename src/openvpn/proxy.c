@@ -439,7 +439,6 @@ struct http_proxy_info *
 http_proxy_new (const struct http_proxy_options *o)
 {
   struct http_proxy_info *p;
-  struct http_proxy_options opt;
 
   if (!o || !o->server)
     msg (M_FATAL, "HTTP_PROXY: server not specified");

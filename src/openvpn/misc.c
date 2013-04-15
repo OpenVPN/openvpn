@@ -701,14 +701,6 @@ env_set_remove_from_environment (const struct env_set *es)
     }
 }
 
-#ifdef HAVE_PUTENV
-
-/* companion functions to putenv */
-
-static struct env_item *global_env = NULL; /* GLOBAL */
-
-#endif
-
 /* add/modify/delete environmental strings */
 
 void

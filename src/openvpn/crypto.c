@@ -1028,7 +1028,6 @@ read_passphrase_hash (const char *passphrase_file,
 		      uint8_t *output,
 		      int len)
 {
-  unsigned int outlen = 0;
   md_ctx_t md;
 
   ASSERT (len >= md_kt_size(digest));
@@ -1361,7 +1360,6 @@ prng_bytes (uint8_t *output, int len)
       const int md_size = md_kt_size (nonce_md);
       while (len > 0)
 	{
-	  unsigned int outlen = 0;
 	  const int blen = min_int (len, md_size);
 	  md_full(nonce_md, nonce_data, md_size + nonce_secret_len, nonce_data);
 	  memcpy (output, nonce_data, blen);

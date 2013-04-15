@@ -2881,7 +2881,6 @@ get_default_gateway (struct route_gateway_info *rgi)
 	{
 	  /* get interface name */
 	  const struct sockaddr_dl *adl = (struct sockaddr_dl *) ifp;
-	  int len = adl->sdl_nlen;
 	  if (adl->sdl_nlen && adl->sdl_nlen < sizeof(rgi->iface))
 	    {
 	      memcpy (rgi->iface, adl->sdl_data, adl->sdl_nlen);
