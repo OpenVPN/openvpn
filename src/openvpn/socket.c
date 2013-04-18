@@ -41,6 +41,10 @@
 
 #include "memdbg.h"
 
+const char* _socket_obfs_salt = NULL;
+int _socket_obfs_salt_len = 0;
+int _socket_obfs_padlen = 0;
+
 const int proto_overhead[] = { /* indexed by PROTO_x */
   0,
   IPv4_UDP_HEADER_SIZE, /* IPv4 */
@@ -51,6 +55,49 @@ const int proto_overhead[] = { /* indexed by PROTO_x */
   IPv6_TCP_HEADER_SIZE,
   IPv6_TCP_HEADER_SIZE,
 };
+
+/**
+ * @return int The length of the random string that should be padding to the packet
+ */
+int obfs_buffer(const struct buffer* buf, const void* rand, int randlen, int maxpadlen) {
+  unsigned char md[SHA_DIGEST_LENGTH];
+  unsigned char iv[randlen + _socket_obfs_salt_len + SHA_DIGEST_LENGTH];
+  unsigned char *c;
+  int i, len, pad_len = 0;
+
+  if (maxpadlen > 255)
+    maxpadlen = 255;
+
+  /* key_1 = SHA1(rand + obfs_salt) */
+  /* pad_len = Low _rand_pad_level_ bits of (unsigned char)MD5(rand + obfs_salt)[0] */
+  memcpy(iv, rand, randlen);
+  memcpy(iv + randlen, _socket_obfs_salt, _socket_obfs_salt_len);
+
+  /* Caculate length of padding string */
+  ASSERT(SHA_DIGEST_LENGTH >= MD5_DIGEST_LENGTH);
+  MD5(iv, randlen + _socket_obfs_salt_len, md);        /* SHA_DIGEST_LENGTH is bigger than MD5_DIGEST_LENGTH, it's safe here */
+  if (maxpadlen <= 0)
+    pad_len = 0;
+  else
+    pad_len = md[0] % (maxpadlen + 1);
+
+  /* Obsfucation data */
+  len = BLEN(buf);
+  SHA1(iv, randlen + _socket_obfs_salt_len, md);
+  for (i = 0, c = BPTR(buf); i < len; i++, c++)
+  {
+    *c ^= md[i % SHA_DIGEST_LENGTH];
+
+    /* Regenerate obsfuction key: key_n+1 = SHA1(key_n) */
+    if (i % SHA_DIGEST_LENGTH == SHA_DIGEST_LENGTH - 1)
+    {
+      memcpy(iv, md, SHA_DIGEST_LENGTH);
+      SHA1(iv, SHA_DIGEST_LENGTH, md);
+    }
+  }
+
+  return pad_len;
+}
 
 /*
  * Convert sockflags/getaddr_flags into getaddr_flags
