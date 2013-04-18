@@ -36,6 +36,10 @@
 #include "socks.h"
 #include "misc.h"
 
+extern int _socket_obfs_salt_len;
+extern int _socket_obfs_padlen;
+int obfs_buffer(const struct buffer* buf, const void* rand, int randlen, int rand_pad_level);
+
 /*
  * OpenVPN's default port number as assigned by IANA.
  */
@@ -877,28 +881,56 @@ link_socket_read (struct link_socket *sock,
 		  int maxsize,
 		  struct link_socket_actual *from)
 {
+  int res;
+  struct buffer tbuf;
   if (proto_is_udp(sock->info.proto)) /* unified UDPv4 and UDPv6 */
     {
-      int res;
-
 #ifdef WIN32
       res = link_socket_read_udp_win32 (sock, buf, from);
 #else
       res = link_socket_read_udp_posix (sock, buf, maxsize, from);
 #endif
-      return res;
+
     }
   else if (proto_is_tcp(sock->info.proto)) /* unified TCPv4 and TCPv6 */
     {
       /* from address was returned by accept */
       addr_copy_sa(&from->dest, &sock->info.lsa->actual.dest);
-      return link_socket_read_tcp (sock, buf);
+      res = link_socket_read_tcp (sock, buf);
     }
   else
     {
       ASSERT (0);
       return -1; /* NOTREACHED */
     }
+    /* Decode obsfucated traffic */
+    if (_socket_obfs_salt_len > 0 && BLEN(buf) > 4)
+    {
+      int r;
+      int pad_len = 0;
+
+      memcpy((void*)&r, BPTR(buf), 4);
+
+      //msg(M_DEBUG, "1, read buflen=%d", BLEN(buf));
+
+      tbuf = alloc_buf(BLEN(buf) - 4);
+      buf_copy_range(&tbuf, 0, buf, 4, BLEN(buf) - 4);
+      pad_len = obfs_buffer(&tbuf, &r, 4, _socket_obfs_padlen);
+
+      /* Remove padding random string */
+      buf_clear(buf);
+      buf_prepend(buf, BLEN(&tbuf) - pad_len);
+      buf_copy_range(buf, 0, &tbuf, 0, BLEN(&tbuf) - pad_len);
+
+      //msg(M_DEBUG, "1, read buflen=%d, padlen=%d", BLEN(buf), pad_len);
+
+      free_buf(&tbuf);
+
+      res -= 4;
+      res -= pad_len;
+
+    }
+    return res;
 }
 
 /*
@@ -984,6 +1016,34 @@ link_socket_write (struct link_socket *sock,
 		   struct buffer *buf,
 		   struct link_socket_actual *to)
 {
+  struct buffer tbuf;
+  /* Obsfucate traffic */
+  if (_socket_obfs_salt_len > 0)
+  {
+    int pad_len, i;
+    int r = rand();
+
+    //msg(M_DEBUG, "1, write buflen=%d", BLEN(buf));
+
+    pad_len = obfs_buffer(buf, &r, sizeof(r), _socket_obfs_padlen);
+
+    tbuf = alloc_buf(BLEN(buf) + 4 + pad_len);
+    buf_write(&tbuf, (void*)&r, 4);
+    buf_copy_range(&tbuf, 4, buf, 0, BLEN(buf));
+    for (i = 0; i < pad_len; i++)
+    {
+      if (unlikely(i % 4 == 0))
+       r = rand();
+
+      buf_write(&tbuf, (void*)&r + i % 4, 1);
+    }
+
+    buf_copy_range(buf, 0, &tbuf, 0, BLEN(&tbuf));
+
+    //msg(M_DEBUG, "2, write buflen=%d", BLEN(buf));
+
+    free_buf(&tbuf);
+  }
   if (proto_is_udp(sock->info.proto)) /* unified UDPv4 and UDPv6 */
     {
       return link_socket_write_udp (sock, buf, to);
