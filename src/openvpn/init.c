@@ -3667,10 +3667,6 @@ inherit_context_child (struct context *dest,
       dest->c2.link_socket_info->lsa = &dest->c1.link_socket_addr;
       dest->c2.link_socket_info->connection_established = false;
     }
-
-#ifdef USE_COMP
-  dest->c2.comp_context = NULL;
-#endif
 }
 
 void
