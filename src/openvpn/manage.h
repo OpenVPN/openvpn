@@ -299,6 +299,10 @@ struct man_connection {
 #ifdef MANAGMENT_EXTERNAL_KEY
   struct buffer_list *rsa_sig;
 #endif
+#ifdef TARGET_ANDROID
+  int fdtosend;
+  int lastfdreceived;
+#endif
 };
 
 struct management
