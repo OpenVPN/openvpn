@@ -1429,6 +1429,13 @@ do_open_tun (struct context *c)
 	  do_ifconfig (c->c1.tuntap, guess, TUN_MTU_SIZE (&c->c2.frame), c->c2.es);
 	}
 
+      /* possibly add routes */
+      if (route_order() == ROUTE_BEFORE_TUN) {
+        /* Ignore route_delay, would cause ROUTE_BEFORE_TUN to be ignored */
+        do_route (&c->options, c->c1.route_list, c->c1.route_ipv6_list,
+                  c->c1.tuntap, c->plugins, c->c2.es);
+      }
+
       /* open the tun device */
       open_tun (c->options.dev, c->options.dev_type, c->options.dev_node,
 		c->c1.tuntap);
@@ -1460,7 +1467,7 @@ do_open_tun (struct context *c)
 		   c->c2.es);
 
       /* possibly add routes */
-      if (!c->options.route_delay_defined)
+      if ((route_order() == ROUTE_AFTER_TUN) && (!c->options.route_delay_defined))
 	do_route (&c->options, c->c1.route_list, c->c1.route_ipv6_list,
 		  c->c1.tuntap, c->plugins, c->c2.es);
 
@@ -1668,7 +1675,7 @@ do_up (struct context *c, bool pulled_options, unsigned int option_types_found)
 #endif
 
 	  /* if --route-delay was specified, start timer */
-	  if (c->options.route_delay_defined)
+	  if ((route_order() == ROUTE_AFTER_TUN) && c->options.route_delay_defined)
 	    {
 	      event_timeout_init (&c->c2.route_wakeup, c->options.route_delay, now);
 	      event_timeout_init (&c->c2.route_wakeup_expire, c->options.route_delay + c->options.route_delay_window, now);

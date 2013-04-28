@@ -297,6 +297,17 @@ ifconfig_order(void)
 #endif
 }
 
+#define ROUTE_BEFORE_TUN 0
+#define ROUTE_AFTER_TUN 1
+#define ROUTE_ORDER_DEFAULT ROUTE_AFTER_TUN
+
+static inline int
+route_order(void)
+{
+    return ROUTE_ORDER_DEFAULT;
+}
+
+
 #ifdef WIN32
 
 #define TUN_PASS_BUFFER
