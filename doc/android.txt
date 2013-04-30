@@ -1,0 +1,76 @@
+This file documents the support in OpenVPN for Android 4.0 and up.
+
+This support is primarily used in the "OpenVPN for Android" app
+(http://code.google.com/p/ics-openvpn/). For building see the developer
+README: http://code.google.com/p/ics-openvpn/source/browse/README.txt.
+
+Android provides the VPNService API
+(http://developer.android.com/reference/android/net/VpnService.html)
+which allows establishing VPN connections without rooting the device.
+
+Since all the interfaces are are Android specific the calls to this
+interface are made from the UI instead of OpenVPN directly. The API
+needs the following parameters:
+
+- IP and netmask of tun interface
+- Networks that should be routed to the tun interface
+- DNS Servers and DNS Domain
+- MTU
+
+All IPs/Routes are in CIDR style. Non CIDR routes are not supported.
+Notable is the lack of support for setting routes to other interfaces
+usually used to avoid the server connection going over the tun
+interface. The Android VPNService API has the concept of protecting
+a socket from being routed over a interface. Calling protect (fd)
+will internally bind the socket to the interface used for the
+external connection (usually WiFi or mobile data).
+
+To use OpenVPN with the VPNService API OpenVPN must be build with
+the TARGET_ANDROID compile option. Also the UI must use a UNIX
+domain socket to connect to OpenVPN. When compiled as TARGET_ANDROID
+OpenVPN will use management callbacks instead of executing traditional
+ifconfig/route commands use the need-ok callback mechanism which
+will ask
+
+> NEED-OK command
+
+where command can be:
+
+IFCONFIG6 IPv6/netmask
+IFCONFIG local remoteOrNetmask MTU topology
+
+To tell the UI which IPs addresses OpenVPN expects on the interface.
+Topology is one of "net30","p2p","subnet" or "undef".
+
+ROUTE6 network/netmask
+ROUTE network netmask
+
+To tell the UI which routes should be set on the tun interface.
+
+DNSSERVER serverip
+DNSDOMAIN searchdomain
+
+To set the DNS server and search domain.
+
+The GUI will then respond with a "needok 'command' ok' or "needok
+'command' cancel', e.g. "needok 'IFCONFIG' ok".
+
+To protect a socket the OpenVPN will send a PROTECTFD to the UI.
+When sending the PROTECTFD command command to the UI it will send
+the fd of the socket as ancillary message over the UNIX socket.
+The UI will then call protect(fd) on the received socket protecting
+it from being routed over the VPN.
+
+When opening a tun device the OpenVPN process will first send all
+route, ifconfig and DNS related configuration to the UI and after
+that calls the OPENTUN command to receive a tun fd with the requested
+configuration. The UI will than use the collected information to
+call the VPNService's establish() method to receive a fd which in
+turn is send to the OpenVPN process as ancillary message to the
+"needok 'OPENTUN' ok' response.
+
+The OpenVPN for Android UI extensively uses other features that
+are not specific to Android but are rarely used on other platform.
+For example using SIGUSR1 and management-hold to restart, pause,
+continue the VPN on network changes or the external key management
+--management-external-key option and inline files.
