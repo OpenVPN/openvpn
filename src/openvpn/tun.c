@@ -48,6 +48,7 @@
 #include "win32.h"
 
 #include "memdbg.h"
+#include <string.h>
 
 #ifdef WIN32
 
@@ -764,6 +765,34 @@ do_ifconfig (struct tuntap *tt,
       tt->did_ifconfig = true;
 
 #endif /*ENABLE_IPROUTE*/
+#elif defined(TARGET_ANDROID)
+
+      if (do_ipv6) {
+          struct buffer out6 = alloc_buf_gc (64, &gc);
+          buf_printf (&out6, "%s/%d", ifconfig_ipv6_local,tt->netbits_ipv6);
+          management_android_control(management, "IFCONFIG6",buf_bptr(&out6));
+      }
+
+      struct buffer out = alloc_buf_gc (64, &gc);
+
+      char* top;
+      switch(tt->topology) {
+      case TOP_NET30:
+          top="net30";
+          break;
+      case TOP_P2P:
+          top="p2p";
+          break;
+      case TOP_SUBNET:
+          top="subnet";
+          break;
+      default:
+          top="undef";
+      }
+
+      buf_printf (&out, "%s %s %d %s", ifconfig_local, ifconfig_remote_netmask, tun_mtu, top);
+      management_android_control (management, "IFCONFIG", buf_bptr(&out));
+
 #elif defined(TARGET_SOLARIS)
 
       /* Solaris 2.6 (and 7?) cannot set all parameters in one go...
@@ -1368,8 +1397,62 @@ close_tun_generic (struct tuntap *tt)
 
 #endif
 
-#if defined(TARGET_LINUX)
+#if defined (TARGET_ANDROID)
+void
+open_tun (const char *dev, const char *dev_type, const char *dev_node, struct tuntap *tt)
+{
+#define ANDROID_TUNNAME "vpnservice-tun"
+  int i;
+  struct user_pass up;
+  struct gc_arena gc = gc_new ();
+  bool opentun;
 
+  for (i = 0; i < tt->options.dns_len; ++i) {
+    management_android_control (management, "DNSSERVER",
+                                print_in_addr_t(tt->options.dns[i], 0, &gc));
+  }
+
+  if(tt->options.domain)
+    management_android_control (management, "DNSDOMAIN", tt->options.domain);
+
+  opentun = management_android_control (management, "OPENTUN", dev);
+
+  /* Pick up the fd from management interface after calling the OPENTUN command */
+  tt->fd = management->connection.lastfdreceived;
+  management->connection.lastfdreceived=-1;
+
+  /* Set the actual name to a dummy name */
+  tt->actual_name = string_alloc (ANDROID_TUNNAME, NULL);
+
+  if ((tt->fd < 0) || !opentun)
+    msg (M_ERR, "ERROR: Cannot open TUN");
+
+  gc_free (&gc);
+}
+
+void
+close_tun (struct tuntap *tt)
+{
+    if (tt)
+    {
+        close_tun_generic (tt);
+        free (tt);
+    }
+}
+
+int
+write_tun (struct tuntap* tt, uint8_t *buf, int len)
+{
+    return write (tt->fd, buf, len);
+}
+
+int
+read_tun (struct tuntap* tt, uint8_t *buf, int len)
+{
+    return read (tt->fd, buf, len);
+}
+
+#elif defined(TARGET_LINUX)
 #ifdef HAVE_LINUX_IF_TUN_H	/* New driver support */
 
 #ifndef HAVE_LINUX_SOCKIOS_H

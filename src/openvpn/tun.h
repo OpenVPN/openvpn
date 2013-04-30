@@ -38,7 +38,7 @@
 #include "proto.h"
 #include "misc.h"
 
-#ifdef WIN32
+#if defined(WIN32) || defined(TARGET_ANDROID)
 
 #define TUN_ADAPTER_INDEX_INVALID ((DWORD)-1)
 
@@ -292,6 +292,8 @@ ifconfig_order(void)
   return IFCONFIG_AFTER_TUN_OPEN;
 #elif defined(WIN32)
   return IFCONFIG_BEFORE_TUN_OPEN;
+#elif defined(TARGET_ANDROID)
+  return IFCONFIG_BEFORE_TUN_OPEN;
 #else
   return IFCONFIG_DEFAULT;
 #endif
@@ -304,7 +306,11 @@ ifconfig_order(void)
 static inline int
 route_order(void)
 {
+#if defined(TARGET_ANDROID)
+    return ROUTE_BEFORE_TUN;
+#else
     return ROUTE_ORDER_DEFAULT;
+#endif
 }
 
 

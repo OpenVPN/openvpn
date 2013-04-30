@@ -376,6 +376,10 @@ bool management_query_user_pass (struct management *man,
 				 const unsigned int flags,
 				 const char *static_challenge);
 
+#ifdef TARGET_ANDROID
+bool management_android_control (struct management *man, const char *command, const char *msg);
+#endif
+
 bool management_should_daemonize (struct management *man);
 bool management_would_hold (struct management *man);
 bool management_hold (struct management *man);

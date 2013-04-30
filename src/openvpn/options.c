@@ -1125,7 +1125,9 @@ show_tuntap_options (const struct tuntap_options *o)
 }
 
 #endif
+#endif
 
+#if defined(WIN32) || defined(TARGET_ANDROID)
 static void
 dhcp_option_address_parse (const char *name, const char *parm, in_addr_t *array, int *len, int msglevel)
 {
@@ -5935,6 +5937,8 @@ add_option (struct options *options,
       to->ip_win32_type = index;
       to->ip_win32_defined = true; 
     }
+#endif
+#if defined(WIN32) || defined(TARGET_ANDROID)
   else if (streq (p[0], "dhcp-option") && p[1])
     {
       struct tuntap_options *o = &options->tuntap_options;
@@ -5986,6 +5990,8 @@ add_option (struct options *options,
 	}
       o->dhcp_options = true;
     }
+#endif
+#ifdef WIN32
   else if (streq (p[0], "show-adapters"))
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);

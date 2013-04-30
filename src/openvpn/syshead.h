@@ -212,7 +212,7 @@
 #include <net/if_tap.h>
 #endif
 
-#ifdef TARGET_LINUX
+#if defined(TARGET_LINUX) || defined (TARGET_ANDROID)
 
 #if defined(HAVE_NETINET_IF_ETHER_H)
 #include <netinet/if_ether.h>

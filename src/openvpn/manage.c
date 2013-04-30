@@ -1849,6 +1849,20 @@ static ssize_t man_recv_with_fd (int fd, void *ptr, size_t nbytes, int flags, in
 
   return (n);
 }
+
+/*
+ * The android control method will instruct the GUI part of openvpn to do
+ * the route/ifconfig/open tun command.   See doc/android.txt for details.
+ */
+bool management_android_control (struct management *man, const char *command, const char *msg)
+{
+  struct user_pass up;
+  CLEAR(up);
+  strncpy (up.username, msg, sizeof(up.username)-1);
+
+  management_query_user_pass(management, &up , command, GET_USER_PASS_NEED_OK,(void*) 0);
+  return strcmp ("ok", up.password)==0;
+}
 #endif
 
 static int

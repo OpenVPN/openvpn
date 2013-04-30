@@ -38,6 +38,7 @@
 #include "ps.h"
 #include "manage.h"
 #include "misc.h"
+#include "manage.h"
 
 #include "memdbg.h"
 
@@ -725,6 +726,15 @@ create_socket (struct link_socket *sock)
     {
       ASSERT (0);
     }
+#ifdef TARGET_ANDROID
+  /* pass socket FD to management interface to pass on to VPNService API
+   * as "protected socket" (exempt from being routed into tunnel)
+   */
+
+  management->connection.fdtosend = sock->sd;
+  management_android_control (management, "PROTECTFD", __func__);
+#endif
+
 }
 
 /*
