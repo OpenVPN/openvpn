@@ -1835,6 +1835,8 @@ options_postprocess_verify_ce (const struct options *options, const struct conne
    */
   if (ce->proto == PROTO_TCPv4)
     msg (M_USAGE, "--proto tcp is ambiguous in this context.  Please specify --proto tcp-server or --proto tcp-client");
+  if (ce->proto == PROTO_TCPv6)
+    msg (M_USAGE, "--proto tcp6 is ambiguous in this context.  Please specify --proto tcp6-server or --proto tcp6-client");
 
   /*
    * Sanity check on daemon/inetd modes
@@ -2357,6 +2359,8 @@ options_postprocess_mutate_ce (struct options *o, struct connection_entry *ce)
     {
       if (ce->proto == PROTO_TCPv4)
 	ce->proto = PROTO_TCPv4_SERVER;
+      else if (ce->proto == PROTO_TCPv6)
+	ce->proto = PROTO_TCPv6_SERVER;
     }
 #endif
 #if P2MP
