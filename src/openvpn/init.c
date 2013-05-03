@@ -1145,13 +1145,14 @@ do_init_traffic_shaper (struct context *c)
 }
 
 /*
- * Allocate a route list structure if at least one
- * --route option was specified.
+ * Allocate route list structures for IPv4 and IPv6
+ * (we do this for IPv4 even if no --route option has been seen, as other
+ * parts of OpenVPN might want to fill the route-list with info, e.g. DHCP)
  */
 static void
 do_alloc_route_list (struct context *c)
 {
-  if (c->options.routes && !c->c1.route_list)
+  if (!c->c1.route_list)
     c->c1.route_list = new_route_list (c->options.max_routes, &c->gc);
   if (c->options.routes_ipv6 && !c->c1.route_ipv6_list)
     c->c1.route_ipv6_list = new_route_ipv6_list (c->options.max_routes, &c->gc);

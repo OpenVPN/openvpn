@@ -503,6 +503,7 @@ route_list_add_vpn_gateway (struct route_list *rl,
 			    struct env_set *es,
 			    const in_addr_t addr)
 {
+  ASSERT(rl);
   rl->spec.remote_endpoint = addr;
   rl->spec.flags |= RTSA_REMOTE_ENDPOINT;
   setenv_route_addr (es, "vpn_gateway", rl->spec.remote_endpoint, -1);
