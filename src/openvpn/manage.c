@@ -2462,33 +2462,6 @@ management_notify_generic (struct management *man, const char *str)
 
 #ifdef MANAGEMENT_DEF_AUTH
 
-static bool
-validate_peer_info_line(const char *line)
-{
-  uint8_t c;
-  int state = 0;
-  while ((c=*line++))
-    {
-      switch (state)
-	{
-	case 0:
-	case 1:
-	  if (c == '=' && state == 1)
-	    state = 2;
-	  else if (isalnum(c) || c == '_')
-	    state = 1;
-	  else
-	    return false;
-	case 2:
-	  if (isprint(c))
-	    ;
-	  else
-	    return false;
-	}
-    }
-  return (state == 2);
-}
-
 static void
 man_output_peer_info_env (struct management *man, struct man_def_auth_context *mdac)
 {
@@ -2527,7 +2500,8 @@ management_notify_client_needing_auth (struct management *management,
 	mode = "REAUTH";
       msg (M_CLIENT, ">CLIENT:%s,%lu,%u", mode, mdac->cid, mda_key_id);
       man_output_extra_env (management, "CLIENT");
-      man_output_peer_info_env(management, mdac);
+      if (management->connection.env_filter_level>0)
+        man_output_peer_info_env(management, mdac);
       man_output_env (es, true, management->connection.env_filter_level, "CLIENT");
       mdac->flags |= DAF_INITIAL_AUTH;
     }

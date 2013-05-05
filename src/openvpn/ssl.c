@@ -1106,6 +1106,8 @@ tls_multi_free (struct tls_multi *multi, bool clear)
 #ifdef MANAGEMENT_DEF_AUTH
   man_def_auth_set_client_reason(multi, NULL);  
 
+#endif
+#ifdef P2MP_SERVER
   free (multi->peer_info);
 #endif
 
@@ -1997,6 +1999,7 @@ key_method_2_read (struct buffer *buf, struct tls_multi *multi, struct tls_sessi
 
   struct gc_arena gc = gc_new ();
   char *options;
+  struct user_pass *up;
 
   /* allocate temporary objects */
   ALLOC_ARRAY_CLEAR_GC (options, char, TLS_OPTIONS_LEN, &gc);
@@ -2032,15 +2035,25 @@ key_method_2_read (struct buffer *buf, struct tls_multi *multi, struct tls_sessi
 
   ks->authenticated = false;
 
+  /* always extract username + password fields from buf, even if not
+   * authenticating for it, because otherwise we can't get at the
+   * peer_info data which follows behind
+   */
+  ALLOC_OBJ_CLEAR_GC (up, struct user_pass, &gc);
+  username_status = read_string (buf, up->username, USER_PASS_LEN);
+  password_status = read_string (buf, up->password, USER_PASS_LEN);
+
+#ifdef P2MP_SERVER
+  /* get peer info from control channel */
+  free (multi->peer_info);
+  multi->peer_info = read_string_alloc (buf);
+  if ( multi->peer_info )
+      multi_output_peer_info_env (session->opt->es, multi->peer_info);
+#endif
+
   if (verify_user_pass_enabled(session))
     {
       /* Perform username/password authentication */
-      struct user_pass *up;
-
-      ALLOC_OBJ_CLEAR_GC (up, struct user_pass, &gc);
-      username_status = read_string (buf, up->username, USER_PASS_LEN);
-      password_status = read_string (buf, up->password, USER_PASS_LEN);
-
       if (!username_status || !password_status)
 	{
 	  CLEAR (*up);
@@ -2051,14 +2064,7 @@ key_method_2_read (struct buffer *buf, struct tls_multi *multi, struct tls_sessi
 	    }
 	}
 
-#ifdef MANAGEMENT_DEF_AUTH
-      /* get peer info from control channel */
-      free (multi->peer_info);
-      multi->peer_info = read_string_alloc (buf);
-#endif
-
       verify_user_pass(up, multi, session);
-      CLEAR (*up);
     }
   else
     {
@@ -2071,6 +2077,9 @@ key_method_2_read (struct buffer *buf, struct tls_multi *multi, struct tls_sessi
 	}
       ks->authenticated = true;
     }
+
+  /* clear username and password from memory */
+  CLEAR (*up);
 
   /* Perform final authentication checks */
   if (ks->authenticated)
