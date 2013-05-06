@@ -399,13 +399,6 @@
 #endif
 
 /*
- * do we have the MIN() macro?
- */
-#ifndef MIN
-#define MIN(a,b) (((a)<(b))?(a):(b))
-#endif
-
-/*
  * Do we have the capability to report extended socket errors?
  */
 #if defined(HAVE_LINUX_TYPES_H) && defined(HAVE_LINUX_ERRQUEUE_H) && defined(HAVE_SOCK_EXTENDED_ERR) && defined(HAVE_MSGHDR) && defined(HAVE_CMSGHDR) && defined(CMSG_FIRSTHDR) && defined(CMSG_NXTHDR) && defined(IP_RECVERR) && defined(MSG_ERRQUEUE) && defined(SOL_IP) && defined(HAVE_IOVEC)
