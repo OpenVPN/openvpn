@@ -879,7 +879,10 @@ openvpn_execve (const struct argv *a, const struct env_set *es, const unsigned i
           start_info.dwFlags = STARTF_USESHOWWINDOW;
           start_info.wShowWindow = SW_HIDE;
 
-          if (CreateProcessW (cmd, cl, NULL, NULL, FALSE, 0, env, NULL, &start_info, &proc_info))
+          /* this allows console programs to run, and is ignored otherwise */
+          DWORD proc_flags = CREATE_NO_WINDOW;
+
+          if (CreateProcessW (cmd, cl, NULL, NULL, FALSE, proc_flags, env, NULL, &start_info, &proc_info))
             {
               DWORD exit_status = 0;
               CloseHandle (proc_info.hThread);
