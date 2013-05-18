@@ -5379,7 +5379,11 @@ if no gateway is specified.
 .TP
 .B --route-ipv6 ipv6addr/bits [gateway] [metric]
 setup IPv6 routing in the system to send the specified IPv6 network
-into OpenVPN's ``tun'' device
+into OpenVPN's ``tun''.  The gateway parameter is only used for
+IPv6 routes across ``tap'' devices, and if missing, the ``ipv6remote''
+field from
+.B --ifconfig-ipv6
+is used.
 .TP
 .B --server-ipv6 ipv6addr/bits
 convenience-function to enable a number of IPv6 related options at

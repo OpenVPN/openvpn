@@ -219,7 +219,7 @@ static const char usage_message[] =
   "--route-ipv6 network/bits [gateway] [metric] :\n"
   "                  Add IPv6 route to routing table after connection\n"
   "                  is established.  Multiple routes can be specified.\n"
-  "                  gateway default: taken from --route-ipv6-gateway or --ifconfig\n"
+  "                  gateway default: taken from 'remote' in --ifconfig-ipv6\n"
   "--max-routes n :  Specify the maximum number of routes that may be defined\n"
   "                  or pulled from a server.\n"
   "--route-gateway gw|'dhcp' : Specify a default gateway for use with --route.\n"
