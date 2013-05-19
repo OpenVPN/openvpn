@@ -1015,7 +1015,7 @@ bio_read (BIO *bio, struct buffer *buf, int maxlen, const char *desc)
 }
 
 void
-key_state_ssl_init(struct key_state_ssl *ks_ssl, const struct tls_root_ctx *ssl_ctx, bool is_server, void *session)
+key_state_ssl_init(struct key_state_ssl *ks_ssl, const struct tls_root_ctx *ssl_ctx, bool is_server, struct tls_session *session)
 {
   ASSERT(NULL != ssl_ctx);
   ASSERT(ks_ssl);

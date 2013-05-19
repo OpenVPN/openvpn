@@ -42,6 +42,10 @@
 #include "ssl_verify_polarssl.h"
 #endif
 
+/**
+ *  prototype for struct tls_session from ssl_common.h
+ */
+struct tls_session;
 
 /**
  * Get a tls_cipher_name_pair containing OpenSSL and IANA names for supplied TLS cipher name
@@ -291,7 +295,7 @@ void tls_ctx_personalise_random(struct tls_root_ctx *ctx);
  * @param session	The session associated with the given key_state
  */
 void key_state_ssl_init(struct key_state_ssl *ks_ssl,
-    const struct tls_root_ctx *ssl_ctx, bool is_server, void *session);
+    const struct tls_root_ctx *ssl_ctx, bool is_server, struct tls_session *session);
 
 /**
  * Free the SSL channel part of the given key state.
