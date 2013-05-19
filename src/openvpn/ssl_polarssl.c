@@ -502,7 +502,7 @@ void tls_ctx_personalise_random(struct tls_root_ctx *ctx)
 }
 
 void key_state_ssl_init(struct key_state_ssl *ks_ssl,
-    const struct tls_root_ctx *ssl_ctx, bool is_server, void *session)
+    const struct tls_root_ctx *ssl_ctx, bool is_server, struct tls_session *session)
 {
   ASSERT(NULL != ssl_ctx);
   ASSERT(ks_ssl);
