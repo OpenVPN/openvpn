@@ -1775,7 +1775,7 @@ push_peer_info(struct buffer *buf, struct tls_session *session)
   bool ret = false;
 
 #ifdef ENABLE_PUSH_PEER_INFO
-  if (session->opt->push_peer_info) /* write peer info */
+  if (session->opt->push_peer_info_detail > 0)
     {
       struct env_set *es = session->opt->es;
       struct env_item *e;
@@ -1801,26 +1801,27 @@ push_peer_info(struct buffer *buf, struct tls_session *session)
       buf_printf (&out, "IV_PLAT=win\n");
 #endif
 
-      /* push mac addr */
-      {
-	struct route_gateway_info rgi;
-	get_default_gateway (&rgi);
-	if (rgi.flags & RGI_HWADDR_DEFINED)
-	  buf_printf (&out, "IV_HWADDR=%s\n", format_hex_ex (rgi.hwaddr, 6, 0, 1, ":", &gc));
-      }
-
       /* push LZO status */
 #ifdef ENABLE_LZO_STUB
       buf_printf (&out, "IV_LZO_STUB=1\n");
 #endif
 
-      /* push env vars that begin with UV_ */
-      for (e=es->list; e != NULL; e=e->next)
-	{
-	  if (e->string)
+      if (session->opt->push_peer_info_detail >= 2)
+        {
+	  /* push mac addr */
+	  struct route_gateway_info rgi;
+	  get_default_gateway (&rgi);
+	  if (rgi.flags & RGI_HWADDR_DEFINED)
+	    buf_printf (&out, "IV_HWADDR=%s\n", format_hex_ex (rgi.hwaddr, 6, 0, 1, ":", &gc));
+
+	  /* push env vars that begin with UV_ */
+	  for (e=es->list; e != NULL; e=e->next)
 	    {
-	      if (!strncmp(e->string, "UV_", 3) && buf_safe(&out, strlen(e->string)+1))
-		buf_printf (&out, "%s\n", e->string);
+	      if (e->string)
+		{
+		  if (!strncmp(e->string, "UV_", 3) && buf_safe(&out, strlen(e->string)+1))
+		    buf_printf (&out, "%s\n", e->string);
+		}
 	    }
 	}
 
