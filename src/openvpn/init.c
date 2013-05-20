@@ -2213,7 +2213,12 @@ do_init_crypto_tls (struct context *c, const unsigned int flags)
   to.renegotiate_seconds = options->renegotiate_seconds;
   to.single_session = options->single_session;
 #ifdef ENABLE_PUSH_PEER_INFO
-  to.push_peer_info = options->push_peer_info;
+  if (options->push_peer_info)		/* all there is */
+    to.push_peer_info_detail = 2;
+  else if (options->pull)		/* pull clients send some details */
+    to.push_peer_info_detail = 1;
+  else					/* default: no peer-info at all */
+    to.push_peer_info_detail = 0;
 #endif
 
   /* should we not xmit any packets until we get an initial

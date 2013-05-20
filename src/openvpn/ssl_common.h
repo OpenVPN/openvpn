@@ -233,7 +233,7 @@ struct tls_options
   bool disable_occ;
 #endif
 #ifdef ENABLE_PUSH_PEER_INFO
-  bool push_peer_info;
+  int push_peer_info_detail;
 #endif
   int transition_window;
   int handshake_window;
