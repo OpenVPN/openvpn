@@ -5073,8 +5073,7 @@ add_option (struct options *options,
 #ifdef ENABLE_OCC
   else if (streq (p[0], "explicit-exit-notify"))
     {
-      VERIFY_PERMISSION (OPT_P_GENERAL|OPT_P_CONNECTION);
-/*      VERIFY_PERMISSION (OPT_P_EXPLICIT_NOTIFY); */
+      VERIFY_PERMISSION (OPT_P_GENERAL|OPT_P_CONNECTION|OPT_P_EXPLICIT_NOTIFY);
       if (p[1])
 	{
 	  options->ce.explicit_exit_notification = positive_atoi (p[1]);
