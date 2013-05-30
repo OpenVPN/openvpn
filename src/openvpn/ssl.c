@@ -2043,7 +2043,7 @@ key_method_2_read (struct buffer *buf, struct tls_multi *multi, struct tls_sessi
   username_status = read_string (buf, up->username, USER_PASS_LEN);
   password_status = read_string (buf, up->password, USER_PASS_LEN);
 
-#ifdef P2MP_SERVER
+#if P2MP_SERVER
   /* get peer info from control channel */
   free (multi->peer_info);
   multi->peer_info = read_string_alloc (buf);

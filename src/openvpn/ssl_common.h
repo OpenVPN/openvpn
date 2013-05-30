@@ -485,7 +485,7 @@ struct tls_multi
   time_t tas_last;
 #endif
 
-#ifdef P2MP_SERVER
+#if P2MP_SERVER
   /*
    * A multi-line string of general-purpose info received from peer
    * over control channel.
