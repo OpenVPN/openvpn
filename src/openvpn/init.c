@@ -2553,7 +2553,7 @@ do_option_warnings (struct context *c)
      else if (script_security >= SSEC_PW_ENV)
        msg (M_WARN, "WARNING: the current --script-security setting may allow passwords to be passed to scripts via environmental variables");
      else
-       msg (M_WARN, "NOTE: " PACKAGE_NAME " 2.1+ requires '--script-security 2' or higher to call user-defined scripts or executables");
+       msg (M_WARN, "NOTE: starting with " PACKAGE_NAME " 2.1, '--script-security 2' or higher is required to call user-defined scripts or executables");
    }
 }
 
