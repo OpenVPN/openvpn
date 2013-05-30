@@ -2542,12 +2542,19 @@ do_option_warnings (struct context *c)
     msg (M_WARN, "NOTE: --connect-timeout option is not supported on this OS");
 #endif
 
-  if (script_security >= SSEC_SCRIPTS)
-    msg (M_WARN, "NOTE: the current --script-security setting may allow this configuration to call user-defined scripts");
-  else if (script_security >= SSEC_PW_ENV)
-    msg (M_WARN, "WARNING: the current --script-security setting may allow passwords to be passed to scripts via environmental variables");
-  else
-    msg (M_WARN, "NOTE: " PACKAGE_NAME " 2.1 requires '--script-security 2' or higher to call user-defined scripts or executables");
+ /* Check if a script is used and print approiate warnings */
+ if (o->up_script || o->ipchange || o->down_script || o->route_script
+     || o->route_predown_script || o->auth_user_pass_verify_script
+     || o->client_disconnect_script || o->client_connect_script
+     || o->learn_address_script || o->tls_verify)
+   {
+     if (script_security >= SSEC_SCRIPTS)
+       msg (M_WARN, "NOTE: the current --script-security setting may allow this configuration to call user-defined scripts");
+     else if (script_security >= SSEC_PW_ENV)
+       msg (M_WARN, "WARNING: the current --script-security setting may allow passwords to be passed to scripts via environmental variables");
+     else
+       msg (M_WARN, "NOTE: " PACKAGE_NAME " 2.1+ requires '--script-security 2' or higher to call user-defined scripts or executables");
+   }
 }
 
 static void
