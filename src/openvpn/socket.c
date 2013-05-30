@@ -2786,6 +2786,7 @@ link_socket_write_udp_posix_sendmsg (struct link_socket *sock,
   struct iovec iov;
   struct msghdr mesg;
   struct cmsghdr *cmsg;
+  union openvpn_pktinfo opi;
 
   iov.iov_base = BPTR (buf);
   iov.iov_len = BLEN (buf);
@@ -2795,11 +2796,10 @@ link_socket_write_udp_posix_sendmsg (struct link_socket *sock,
     {
     case AF_INET:
       {
-        struct openvpn_in4_pktinfo msgpi4;
         mesg.msg_name = &to->dest.addr.sa;
         mesg.msg_namelen = sizeof (struct sockaddr_in);
-        mesg.msg_control = &msgpi4;
-        mesg.msg_controllen = sizeof msgpi4;
+        mesg.msg_control = &opi;
+        mesg.msg_controllen = sizeof (struct openvpn_in4_pktinfo);
         mesg.msg_flags = 0;
         cmsg = CMSG_FIRSTHDR (&mesg);
         cmsg->cmsg_len = sizeof (struct openvpn_in4_pktinfo);
@@ -2824,12 +2824,11 @@ link_socket_write_udp_posix_sendmsg (struct link_socket *sock,
       }
     case AF_INET6:
       {
-        struct openvpn_in6_pktinfo msgpi6;
         struct in6_pktinfo *pkti6;
         mesg.msg_name = &to->dest.addr.sa;
         mesg.msg_namelen = sizeof (struct sockaddr_in6);
-        mesg.msg_control = &msgpi6;
-        mesg.msg_controllen = sizeof msgpi6;
+        mesg.msg_control = &opi;
+        mesg.msg_controllen = sizeof (struct openvpn_in6_pktinfo);
         mesg.msg_flags = 0;
         cmsg = CMSG_FIRSTHDR (&mesg);
         cmsg->cmsg_len = sizeof (struct openvpn_in6_pktinfo);
