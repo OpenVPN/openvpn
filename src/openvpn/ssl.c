@@ -1107,7 +1107,7 @@ tls_multi_free (struct tls_multi *multi, bool clear)
   man_def_auth_set_client_reason(multi, NULL);  
 
 #endif
-#ifdef P2MP_SERVER
+#if P2MP_SERVER
   free (multi->peer_info);
 #endif
 
