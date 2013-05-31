@@ -1,6 +1,38 @@
 OpenVPN Change Log
 Copyright (C) 2002-2012 OpenVPN Technologies, Inc. <sales@openvpn.net>
 
+2013.05.31 -- Version 2.3.2
+Arne Schwabe (3):
+      Only print script warnings when a script is used. Remove stray mention of script-security system.
+      Move settings of user script into set_user_script function
+      Move checking of script file access into set_user_script
+
+Davide Brini (1):
+      Provide more accurate warning message
+
+Gert Doering (2):
+      Fix NULL-pointer crash in route_list_add_vpn_gateway().
+      Fix problem with UDP tunneling due to mishandled pktinfo structures.
+
+James Yonan (1):
+      Always push basic set of peer info values to server.
+
+Jan Just Keijser (1):
+      make 'explicit-exit-notify' pullable again
+
+Josh Cepek (2):
+      Fix proto tcp6 for server & non-P2MP modes
+      Fix Windows script execution when called from script hooks
+
+Steffan Karger (2):
+      Fixed tls-cipher translation bug in openssl-build
+      Fixed usage of stale define USE_SSL to ENABLE_SSL
+
+svimik (1):
+      Fix segfault when enabling pf plug-ins
+
+
+
 2013.03.29 -- Version 2.3.1
 Arne Schwabe (4):
       Remove dead code path and putenv functionality
