@@ -96,13 +96,6 @@ AC_ARG_ENABLE(
 )
 
 AC_ARG_ENABLE(
-	[eurephia],
-	[AS_HELP_STRING([--disable-eurephia], [disable support for the eurephia plug-in @<:@default=yes@:>@])],
-	,
-	[enable_eurephia="yes"]
-)
-
-AC_ARG_ENABLE(
 	[management],
 	[AS_HELP_STRING([--disable-management], [disable management server support @<:@default=yes@:>@])],
 	,
@@ -975,7 +968,6 @@ fi
 if test "${enable_plugins}" = "yes"; then
 	OPTIONAL_DL_LIBS="${DL_LIBS}"
 	AC_DEFINE([ENABLE_PLUGIN], [1], [Enable systemd support])
-	test "${enable_eurephia}" = "yes" && AC_DEFINE([ENABLE_EUREPHIA], [1], [Enable support for the eurephia plug-in])
 else
 	enable_plugin_auth_pam="no"
 	enable_plugin_down_root="no"
