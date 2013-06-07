@@ -1012,7 +1012,7 @@ fi
 
 if test "${enable_plugins}" = "yes"; then
 	OPTIONAL_DL_LIBS="${DL_LIBS}"
-	AC_DEFINE([ENABLE_PLUGIN], [1], [Enable systemd support])
+	AC_DEFINE([ENABLE_PLUGIN], [1], [Enable plug-in support])
 else
 	enable_plugin_auth_pam="no"
 	enable_plugin_down_root="no"
