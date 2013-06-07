@@ -5952,6 +5952,16 @@ Set prior to execution of the
 script.
 .\"*********************************************************
 .TP
+.B tls_digest_{n}
+Contains the certificate SHA1 fingerprint/digest hash value,
+where
+.B n
+is the verification level.  Only set for TLS connections.  Set prior
+to execution of
+.B \-\-tls-verify
+script.
+.\"*********************************************************
+.TP
 .B tls_id_{n}
 A series of certificate fields from the remote peer,
 where
