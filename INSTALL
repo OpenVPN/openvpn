@@ -169,8 +169,6 @@ OPTIONS for ./configure:
   --disable-server        disable server support only (but retain client
                           support) [default=yes]
   --disable-plugins       disable plug-in support [default=yes]
-  --disable-eurephia      disable support for the eurephia plug-in
-                          [default=yes]
   --disable-management    disable management server support [default=yes]
   --enable-pkcs11         enable pkcs11 support [default=no]
   --disable-socks         disable Socks support [default=yes]
