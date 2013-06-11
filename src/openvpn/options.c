@@ -4031,7 +4031,18 @@ add_option (struct options *options,
   const bool pull_mode = BOOL_CAST (permission_mask & OPT_P_PULL_MODE);
   int msglevel_fc = msglevel_forward_compatible (options, msglevel);
 
-  ASSERT (MAX_PARMS >= 5);
+  ASSERT (MAX_PARMS >= 7);
+
+  /*
+   * If directive begins with "setenv opt" prefix, don't raise an error if
+   * directive is unrecognized.
+   */
+  if (streq (p[0], "setenv") && p[1] && streq (p[1], "opt") && !(permission_mask & OPT_P_PULL_MODE))
+    {
+      p += 2;
+      msglevel_fc = M_WARN;
+    }
+
   if (!file)
     {
       file = "[CMD-LINE]";

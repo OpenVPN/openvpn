@@ -1891,6 +1891,11 @@ reasons for having OpenVPN fail if it detects problems in a
 config file.  Having said that, there are valid reasons for wanting
 new software features to gracefully degrade when encountered by
 older software versions.
+
+It is also possible to tag a single directive so as not to trigger
+a fatal error if the directive isn't recognized.  To do this,
+prepend the following before the directive:
+.B setenv opt
 .\"*********************************************************
 .TP
 .B \-\-setenv-safe name value
