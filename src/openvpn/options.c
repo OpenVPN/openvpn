@@ -577,6 +577,9 @@ static const char usage_message[] =
   "                  by a Certificate Authority in --ca file.\n"
   "--extra-certs file : one or more PEM certs that complete the cert chain.\n"
   "--key file      : Local private key in .pem format.\n"
+  "--tls-version-min <version> ['or-highest'] : sets the minimum TLS version we\n"
+  "    will accept from the peer.  If version is unrecognized and 'or-highest'\n"
+  "    is specified, require max TLS version supported by SSL implementation.\n"
 #ifndef ENABLE_CRYPTO_POLARSSL
   "--pkcs12 file   : PKCS#12 file containing local private key, local certificate\n"
   "                  and optionally the root CA certificate.\n"
@@ -6500,6 +6503,19 @@ add_option (struct options *options,
 	{
 	  options->priv_key_file_inline = p[2];
 	}
+    }
+  else if (streq (p[0], "tls-version-min") && p[1])
+    {
+      int ver;
+      VERIFY_PERMISSION (OPT_P_GENERAL);
+      ver = tls_version_min_parse(p[1], p[2]);
+      if (ver == TLS_VER_BAD)
+	{
+	  msg (msglevel, "unknown tls-version-min parameter: %s", p[1]);
+          goto err;
+	}
+      options->ssl_flags &= ~(SSLF_TLS_VERSION_MASK << SSLF_TLS_VERSION_SHIFT);
+      options->ssl_flags |= (ver << SSLF_TLS_VERSION_SHIFT);
     }
 #ifndef ENABLE_CRYPTO_POLARSSL
   else if (streq (p[0], "pkcs12") && p[1])

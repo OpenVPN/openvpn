@@ -114,7 +114,7 @@ tls_ctx_server_new(struct tls_root_ctx *ctx)
 {
   ASSERT(NULL != ctx);
 
-  ctx->ctx = SSL_CTX_new (TLSv1_server_method ());
+  ctx->ctx = SSL_CTX_new (SSLv23_server_method ());
 
   if (ctx->ctx == NULL)
     msg (M_SSLERR, "SSL_CTX_new TLSv1_server_method");
@@ -127,7 +127,7 @@ tls_ctx_client_new(struct tls_root_ctx *ctx)
 {
   ASSERT(NULL != ctx);
 
-  ctx->ctx = SSL_CTX_new (TLSv1_client_method ());
+  ctx->ctx = SSL_CTX_new (SSLv23_client_method ());
 
   if (ctx->ctx == NULL)
     msg (M_SSLERR, "SSL_CTX_new TLSv1_client_method");
@@ -174,13 +174,46 @@ info_callback (INFO_CALLBACK_SSL_CONST SSL * s, int where, int ret)
     }
 }
 
+/*
+ * Return maximum TLS version supported by local OpenSSL library.
+ * Assume that presence of SSL_OP_NO_TLSvX macro indicates that
+ * TLSvX is supported.
+ */
+int
+tls_version_max(void)
+{
+#if defined(SSL_OP_NO_TLSv1_2)
+  return TLS_VER_1_2;
+#elif defined(SSL_OP_NO_TLSv1_1)
+  return TLS_VER_1_1;
+#else
+  return TLS_VER_1_0;
+#endif
+}
+
 void
 tls_ctx_set_options (struct tls_root_ctx *ctx, unsigned int ssl_flags)
 {
   ASSERT(NULL != ctx);
 
+  /* process SSL options including minimum TLS version we will accept from peer */
+  {
+    long sslopt = SSL_OP_SINGLE_DH_USE | SSL_OP_NO_SSLv2 | SSL_OP_NO_SSLv3;
+    const int tls_version_min = (ssl_flags >> SSLF_TLS_VERSION_SHIFT) & SSLF_TLS_VERSION_MASK;
+    if (tls_version_min > TLS_VER_1_0)
+      sslopt |= SSL_OP_NO_TLSv1;
+#ifdef SSL_OP_NO_TLSv1_1
+    if (tls_version_min > TLS_VER_1_1)
+      sslopt |= SSL_OP_NO_TLSv1_1;
+#endif
+#ifdef SSL_OP_NO_TLSv1_2
+    if (tls_version_min > TLS_VER_1_2)
+      sslopt |= SSL_OP_NO_TLSv1_2;
+#endif
+    SSL_CTX_set_options (ctx->ctx, sslopt);
+  }
+
   SSL_CTX_set_session_cache_mode (ctx->ctx, SSL_SESS_CACHE_OFF);
-  SSL_CTX_set_options (ctx->ctx, SSL_OP_SINGLE_DH_USE);
   SSL_CTX_set_default_passwd_cb (ctx->ctx, pem_password_callback);
 
   /* Require peer certificate verification */

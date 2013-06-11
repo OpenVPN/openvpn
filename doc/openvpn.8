@@ -4246,6 +4246,15 @@ when you built your peer's certificate (see
 above).
 .\"*********************************************************
 .TP
+.B \-\-tls-version-min version ['or-highest']
+Sets the minimum
+TLS version we will accept from the peer (default is "1.0").
+Examples for version
+include "1.0", "1.1", or "1.2".  If 'or-highest' is specified
+and version is not recognized, we will only accept the highest TLS
+version supported by the local SSL implementation.
+.\"*********************************************************
+.TP
 .B \-\-pkcs12 file
 Specify a PKCS #12 file containing local private key,
 local certificate, and root CA certificate.
