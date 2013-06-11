@@ -101,6 +101,29 @@ void tls_free_lib();
 void tls_clear_error();
 
 /**
+ * Parse a TLS version specifier
+ *
+ * @param vstr		The TLS version string
+ * @param extra	        An optional extra parameter, may be NULL
+ *
+ * @return 		One of the TLS_VER_x constants or TLS_VER_BAD
+ *                      if a parse error should be flagged.
+ */
+#define TLS_VER_BAD   -1
+#define TLS_VER_1_0    0 /* default */
+#define TLS_VER_1_1    1
+#define TLS_VER_1_2    2
+int tls_version_min_parse(const char *vstr, const char *extra);
+
+/**
+ * Return the maximum TLS version (as a TLS_VER_x constant)
+ * supported by current SSL implementation
+ *
+ * @return 		One of the TLS_VER_x constants (but not TLS_VER_BAD).
+ */
+int tls_version_max(void);
+
+/**
  * Initialise a library-specific TLS context for a server.
  *
  * @param ctx		TLS context to initialise

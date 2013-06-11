@@ -285,12 +285,14 @@ struct tls_options
   struct env_set *es;
   const struct plugin_list *plugins;
 
-  /* configuration file boolean options */
+  /* configuration file SSL-related boolean and low-permutation options */
 # define SSLF_CLIENT_CERT_NOT_REQUIRED (1<<0)
 # define SSLF_USERNAME_AS_COMMON_NAME  (1<<1)
 # define SSLF_AUTH_USER_PASS_OPTIONAL  (1<<2)
 # define SSLF_OPT_VERIFY               (1<<4)
 # define SSLF_CRL_VERIFY_DIR           (1<<5)
+# define SSLF_TLS_VERSION_SHIFT        6
+# define SSLF_TLS_VERSION_MASK         0xF /* (uses bit positions 6 to 9) */
   unsigned int ssl_flags;
 
 #ifdef MANAGEMENT_DEF_AUTH

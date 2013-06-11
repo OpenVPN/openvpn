@@ -444,6 +444,27 @@ ssl_put_auth_challenge (const char *cr_str)
 #endif
 
 /*
+ * Parse a TLS version string, returning a TLS_VER_x constant.
+ * If version string is not recognized and extra == "or-highest",
+ * return tls_version_max().
+ */
+int
+tls_version_min_parse(const char *vstr, const char *extra)
+{
+  const int max_version = tls_version_max();
+  if (!strcmp(vstr, "1.0") && TLS_VER_1_0 <= max_version)
+    return TLS_VER_1_0;
+  else if (!strcmp(vstr, "1.1") && TLS_VER_1_1 <= max_version)
+    return TLS_VER_1_1;
+  else if (!strcmp(vstr, "1.2") && TLS_VER_1_2 <= max_version)
+    return TLS_VER_1_2;
+  else if (extra && !strcmp(extra, "or-highest"))
+    return max_version;
+  else
+    return TLS_VER_BAD;
+}
+
+/*
  * Initialize SSL context.
  * All files are in PEM format.
  */

@@ -501,6 +501,18 @@ void tls_ctx_personalise_random(struct tls_root_ctx *ctx)
     }
 }
 
+int
+tls_version_max(void)
+{
+#if defined(SSL_MAJOR_VERSION_3) && defined(SSL_MINOR_VERSION_3)
+  return TLS_VER_1_2;
+#elif defined(SSL_MAJOR_VERSION_3) && defined(SSL_MINOR_VERSION_2)
+  return TLS_VER_1_1;
+#else
+  return TLS_VER_1_0;
+#endif
+}
+
 void key_state_ssl_init(struct key_state_ssl *ks_ssl,
     const struct tls_root_ctx *ssl_ctx, bool is_server, struct tls_session *session)
 {
@@ -549,6 +561,34 @@ void key_state_ssl_init(struct key_state_ssl *ks_ssl,
 
       /* TODO: PolarSSL does not currently support sending the CA chain to the client */
       ssl_set_ca_chain (ks_ssl->ctx, ssl_ctx->ca_chain, NULL, NULL );
+
+      /* Initialize minimum TLS version */
+      {
+	const int tls_version_min = (session->opt->ssl_flags >> SSLF_TLS_VERSION_SHIFT) & SSLF_TLS_VERSION_MASK;
+	int polar_major;
+	int polar_minor;
+	switch (tls_version_min)
+	  {
+	  case TLS_VER_1_0:
+	  default:
+	    polar_major = SSL_MAJOR_VERSION_3;
+	    polar_minor = SSL_MINOR_VERSION_1;
+	    break;
+#if defined(SSL_MAJOR_VERSION_3) && defined(SSL_MINOR_VERSION_2)
+	  case TLS_VER_1_1:
+	    polar_major = SSL_MAJOR_VERSION_3;
+	    polar_minor = SSL_MINOR_VERSION_2;
+	    break;
+#endif
+#if defined(SSL_MAJOR_VERSION_3) && defined(SSL_MINOR_VERSION_3)
+	  case TLS_VER_1_2:
+	    polar_major = SSL_MAJOR_VERSION_3;
+	    polar_minor = SSL_MINOR_VERSION_3;
+	    break;
+#endif
+	  }
+	ssl_set_min_version(ks_ssl->ctx, polar_major, polar_minor);
+      }
 
       /* Initialise BIOs */
       ALLOC_OBJ_CLEAR (ks_ssl->ct_in, endless_buffer);
