@@ -181,6 +181,9 @@ struct tuntap
   int ip_fd;
 #endif
 
+#ifdef HAVE_NET_IF_UTUN_H
+  bool is_utun;
+#endif
   /* used for printing status info only */
   unsigned int rwflags_debug;
 

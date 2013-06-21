@@ -805,6 +805,17 @@ also specify
 or
 .B \-\-dev-type tap.
 
+Under Mac OS X this option can be used to specify the default tun
+implementation. Using
+.B \-\-dev\-node utun
+forces usage of the native Darwin tun kernel support. Use
+.B \-\-dev\-node utunN
+to select a specific utun instance. To force using the tun.kext (/dev/tunX) use
+.B \-\-dev\-node tun
+. When not specifying a
+.B \-\-dev\-node
+option openvpn will first try to open utun, and fall back to tun.kext.
+
 On Windows systems, select the TAP-Win32 adapter which
 is named
 .B node
