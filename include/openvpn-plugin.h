@@ -201,10 +201,15 @@ struct openvpn_plugin_string_list
  *
  * Version   Comment
  *    1      Initial plugin v3 structures providing the same API as
- *           the v2 plugin interface + X509 certificate information.
+ *           the v2 plugin interface, X509 certificate information +
+ *           a logging API for plug-ins.
+ *
+ *    2      Added ssl_api member in struct openvpn_plugin_args_open_in
+ *           which identifies the SSL implementation OpenVPN is compiled
+ *           against.
  *
  */
-#define OPENVPN_PLUGINv3_STRUCTVER 1
+#define OPENVPN_PLUGINv3_STRUCTVER 2
 
 /**
  * Definitions needed for the plug-in callback functions.
@@ -260,6 +265,18 @@ struct openvpn_plugin_callbacks
 };
 
 /**
+ * Used by the openvpn_plugin_open_v3() function to indicate to the
+ * plug-in what kind of SSL implementation OpenVPN uses.  This is
+ * to avoid SEGV issues when OpenVPN is complied against PolarSSL
+ * and the plug-in against OpenSSL.
+ */
+typedef enum {
+  SSLAPI_NONE,
+  SSLAPI_OPENSSL,
+  SSLAPI_POLARSSL
+} ovpnSSLAPI;
+
+/**
  * Arguments used to transport variables to the plug-in.
  * The struct openvpn_plugin_args_open_in is only used
  * by the openvpn_plugin_open_v3() function.
@@ -286,6 +303,7 @@ struct openvpn_plugin_args_open_in
   const char ** const argv;
   const char ** const envp;
   struct openvpn_plugin_callbacks *callbacks;
+  const ovpnSSLAPI ssl_api;
 };
 
 
@@ -557,7 +575,8 @@ OPENVPN_PLUGIN_DEF int OPENVPN_PLUGIN_FUNC(openvpn_plugin_func_v2)
  * ARGUMENTS
  *
  * version : fixed value, defines the API version of the OpenVPN plug-in API.  The plug-in
- *	     should validate that this value is matching the OPENVPN_PLUGIN_VERSION value.
+ *	     should validate that this value is matching the OPENVPN_PLUGINv3_STRUCTVER
+ *	     value.
  *
  * arguments : Structure with all arguments available to the plug-in.
  *

@@ -40,8 +40,8 @@
 #include "error.h"
 #include "misc.h"
 #include "plugin.h"
+#include "ssl_backend.h"
 #include "win32.h"
-
 #include "memdbg.h"
 
 #define PLUGIN_SYMBOL_REQUIRED (1<<0)
@@ -374,7 +374,8 @@ plugin_open_item (struct plugin *p,
         struct openvpn_plugin_args_open_in args = { p->plugin_type_mask,
                                                     (const char ** const) o->argv,
                                                     (const char ** const) envp,
-                                                    &callbacks };
+                                                    &callbacks,
+                                                    SSLAPI };
         struct openvpn_plugin_args_open_return retargs;
 
         CLEAR(retargs);

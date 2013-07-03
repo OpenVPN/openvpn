@@ -85,6 +85,11 @@ openvpn_plugin_open_v3 (const int v3structver,
     return OPENVPN_PLUGIN_FUNC_ERROR;
   }
 
+  if( args->ssl_api != SSLAPI_OPENSSL ) {
+    printf("This plug-in can only be used against OpenVPN with OpenSSL\n");
+    return OPENVPN_PLUGIN_FUNC_ERROR;
+  }
+
   /*  Which callbacks to intercept.  */
   ret->type_mask =
     OPENVPN_PLUGIN_MASK (OPENVPN_PLUGIN_UP) |

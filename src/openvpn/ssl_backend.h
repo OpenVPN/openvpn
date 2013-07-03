@@ -36,10 +36,17 @@
 #ifdef ENABLE_CRYPTO_OPENSSL
 #include "ssl_openssl.h"
 #include "ssl_verify_openssl.h"
+#define SSLAPI SSLAPI_OPENSSL
 #endif
 #ifdef ENABLE_CRYPTO_POLARSSL
 #include "ssl_polarssl.h"
 #include "ssl_verify_polarssl.h"
+#define SSLAPI SSLAPI_POLARSSL
+#endif
+
+/* Ensure that SSLAPI got a sane value if SSL is disabled or unknown */
+#ifndef SSLAPI
+#define SSLAPI SSLAPI_NONE
 #endif
 
 /**
