@@ -6,7 +6,7 @@
 #
 
 # This directory is where we will look for openvpn-plugin.h
-CPPFLAGS="${CPPFLAGS:--I../../..}"
+CPPFLAGS="${CPPFLAGS:--I../../../include}"
 
 CC="${CC:-gcc}"
 CFLAGS="${CFLAGS:--O2 -Wall -g}"
