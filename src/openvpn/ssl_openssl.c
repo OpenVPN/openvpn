@@ -743,7 +743,7 @@ tls_ctx_load_ca (struct tls_root_ctx *ctx, const char *ca_file,
   X509_STORE *store = NULL;
   X509_NAME *xn = NULL;
   BIO *in = NULL;
-  int i, added = 0;
+  int i, added = 0, prev = 0;
 
   ASSERT(NULL != ctx);
 
@@ -769,6 +769,11 @@ tls_ctx_load_ca (struct tls_root_ctx *ctx, const char *ca_file,
               X509_INFO *info = sk_X509_INFO_value (info_stack, i);
               if (info->crl)
                   X509_STORE_add_crl (store, info->crl);
+
+              if (tls_server && !info->x509)
+                {
+                  msg (M_SSLERR, "X509 name was missing in TLS mode");
+                }
 
               if (info->x509)
                 {
@@ -799,6 +804,15 @@ tls_ctx_load_ca (struct tls_root_ctx *ctx, const char *ca_file,
                       sk_X509_NAME_push (cert_names, xn);
                     }
                 }
+
+              if (tls_server) {
+                int cnum = sk_X509_NAME_num (cert_names);
+                if (cnum != (prev + 1)) {
+                  msg (M_WARN, "Cannot load CA certificate file %s (entry %d did not validate)", np(ca_file), added);
+                }
+                prev = cnum;
+              }
+
             }
           sk_X509_INFO_pop_free (info_stack, X509_INFO_free);
         }
@@ -806,8 +820,15 @@ tls_ctx_load_ca (struct tls_root_ctx *ctx, const char *ca_file,
       if (tls_server)
         SSL_CTX_set_client_CA_list (ctx->ctx, cert_names);
 
-      if (!added || (tls_server && sk_X509_NAME_num (cert_names) != added))
-        msg (M_SSLERR, "Cannot load CA certificate file %s", np(ca_file));
+      if (!added)
+        msg (M_SSLERR, "Cannot load CA certificate file %s (no entries were read)", np(ca_file));
+
+      if (tls_server) {
+        int cnum = sk_X509_NAME_num (cert_names);
+        if (cnum != added)
+          msg (M_SSLERR, "Cannot load CA certificate file %s (only %d of %d entries were valid X509 names)", np(ca_file), cnum, added);
+      }
+
       if (in)
         BIO_free (in);
     }
