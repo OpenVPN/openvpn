@@ -2062,7 +2062,7 @@ key_method_2_read (struct buffer *buf, struct tls_multi *multi, struct tls_sessi
   free (multi->peer_info);
   multi->peer_info = read_string_alloc (buf);
   if ( multi->peer_info )
-      multi_output_peer_info_env (session->opt->es, multi->peer_info);
+      output_peer_info_env (session->opt->es, multi->peer_info);
 #endif
 
   if (verify_user_pass_enabled(session))

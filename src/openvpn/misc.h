@@ -369,4 +369,11 @@ void argv_printf_cat (struct argv *a, const char *format, ...)
 #define COMPAT_NO_NAME_REMAPPING  (1<<2)  /** compat flag: --compat-names without char remapping */
 bool compat_flag (unsigned int flag);
 
+#if P2MP_SERVER
+/* helper to parse peer_info received from multi client, validate
+ * (this is untrusted data) and put into environment */
+bool validate_peer_info_line(char *line);
+void output_peer_info_env (struct env_set *es, const char * peer_info);
+#endif /* P2MP_SERVER */
+
 #endif

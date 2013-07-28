@@ -870,6 +870,9 @@ openvpn_execve (const struct argv *a, const struct env_set *es, const unsigned i
           WCHAR *cl = wide_cmd_line (a, &gc);
           WCHAR *cmd = wide_string (a->argv[0], &gc);
 
+          /* this allows console programs to run, and is ignored otherwise */
+          DWORD proc_flags = CREATE_NO_WINDOW;
+
           CLEAR (start_info);
           CLEAR (proc_info);
 
@@ -878,9 +881,6 @@ openvpn_execve (const struct argv *a, const struct env_set *es, const unsigned i
           start_info.cb = sizeof(start_info);
           start_info.dwFlags = STARTF_USESHOWWINDOW;
           start_info.wShowWindow = SW_HIDE;
-
-          /* this allows console programs to run, and is ignored otherwise */
-          DWORD proc_flags = CREATE_NO_WINDOW;
 
           if (CreateProcessW (cmd, cl, NULL, NULL, FALSE, proc_flags, env, NULL, &start_info, &proc_info))
             {

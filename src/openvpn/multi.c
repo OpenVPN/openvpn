@@ -1562,58 +1562,6 @@ multi_client_connect_mda (struct multi_context *m,
 
 #endif
 
-/* helper to parse peer_info received from multi client, validate
- * (this is untrusted data) and put into environment
- */
-bool
-validate_peer_info_line(char *line)
-{
-  uint8_t c;
-  int state = 0;
-  while (*line)
-    {
-      c = *line;
-      switch (state)
-	{
-	case 0:
-	case 1:
-	  if (c == '=' && state == 1)
-	    state = 2;
-	  else if (isalnum(c) || c == '_')
-	    state = 1;
-	  else
-	    return false;
-	case 2:
-	  /* after the '=', replace non-printable or shell meta with '_' */
-	  if (!isprint(c) || isspace(c) ||
-	       c == '$' || c == '(' || c == '`' )
-	    *line = '_';
-	}
-      line++;
-    }
-  return (state == 2);
-}
-
-void
-multi_output_peer_info_env (struct env_set *es, const char * peer_info)
-{
-  char line[256];
-  struct buffer buf;
-  buf_set_read (&buf, (const uint8_t *) peer_info, strlen(peer_info));
-  while (buf_parse (&buf, '\n', line, sizeof (line)))
-    {
-      chomp (line);
-      if (validate_peer_info_line(line) &&
-            (strncmp(line, "IV_", 3) == 0 || strncmp(line, "UV_", 3) == 0) )
-	{
-	  msg (M_INFO, "peer info: %s", line);
-	  env_set_add(es, line);
-	}
-      else
-	msg (M_WARN, "validation failed on peer_info line received from client");
-    }
-}
-
 static void
 multi_client_connect_setenv (struct multi_context *m,
 			     struct multi_instance *mi)

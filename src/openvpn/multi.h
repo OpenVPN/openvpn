@@ -312,9 +312,6 @@ void multi_close_instance_on_signal (struct multi_context *m, struct multi_insta
 void init_management_callback_multi (struct multi_context *m);
 void uninit_management_callback_multi (struct multi_context *m);
 
-bool validate_peer_info_line(char *line);
-void multi_output_peer_info_env (struct env_set *es, const char * peer_info);
-
 /*
  * Return true if our output queue is not full
  */
