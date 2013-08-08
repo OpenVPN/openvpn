@@ -49,14 +49,17 @@
 #include "proxy.h"
 
 #include "memdbg.h"
+#include "openvpn.h"
 
 #define UP_TYPE_SOCKS		"SOCKS Proxy"
 
+/* See \c socks_process_outgoing_udp for motivation. */
 void
 socks_adjust_frame_parameters (struct frame *frame, int proto)
 {
   if (proto == PROTO_UDPv4)
-    frame_add_to_extra_link (frame, 10);
+    // TODO no access to remote_host at this time, so have to assume the worst
+    frame_add_to_extra_link (frame, 255 + 7);
 }
 
 struct socks_proxy_info *
@@ -510,33 +513,46 @@ socks_process_incoming_udp (struct buffer *buf,
 }
 
 /*
- * Add a 10 byte socks header prior to UDP write.
- * *to is the destination address.
+ * Add a socks header prior to UDP write.
  *
  * Run before UDP write.
  * Returns the size of the header.
  */
 int
-socks_process_outgoing_udp (struct buffer *buf,
-			    const struct link_socket_actual *to)
+socks_process_outgoing_udp (struct context *c)
 {
+  struct link_socket_actual *to = c->c2.to_link_addr;
+  const char *host = c->c2.link_socket->remote_host;
   /* 
-   * Get a 10 byte subset buffer prepended to buf --
+   * Get a subset buffer prepended to buf --
    * we expect these bytes will be here because
    * we allocated frame space in socks_adjust_frame_parameters.
    */
-  struct buffer head = buf_sub (buf, 10, true);
+  int len = c->c2.socks_sent_hostname || ip_addr_dotted_quad_safe(host) ? /* use ATYP = IP V4 */ 0 : strlen(host);
+  c->c2.socks_sent_hostname = true; // only ever use ATYP = DOMAINNAME once per connection
+  int size = len ? len + 7 : 10;
+  struct buffer head = buf_sub (&c->c2.to_link, size, true);
 
   /* crash if not enough headroom in buf */
   ASSERT (buf_defined (&head));
 
   buf_write_u16 (&head, 0);	/* RSV = 0 */
   buf_write_u8 (&head, 0);	/* FRAG = 0 */
-  buf_write_u8 (&head, '\x01'); /* ATYP = 1 (IP V4) */
-  buf_write (&head, &to->dest.addr.in4.sin_addr, sizeof (to->dest.addr.in4.sin_addr));
-  buf_write (&head, &to->dest.addr.in4.sin_port, sizeof (to->dest.addr.in4.sin_port));
+  if (len)
+    {
+      msg(M_INFO, "Sending hostname %s to SOCKS5 proxy", host);
+      buf_write_u8(&head, '\x03'); /* ATYP = 3 (DOMAINNAME) */
+      buf_write_u8(&head, len);
+      buf_write(&head, host, len);
+    }
+  else
+    {
+      buf_write_u8(&head, '\x01'); /* ATYP = 1 (IP V4) */
+      buf_write(&head, &to->dest.addr.in4.sin_addr, /* 4 */sizeof (to->dest.addr.in4.sin_addr));
+    }
+  buf_write (&head, &to->dest.addr.in4.sin_port, /* 2 */sizeof (to->dest.addr.in4.sin_port));
 
-  return 10;
+  return size;
 }
 
 #else

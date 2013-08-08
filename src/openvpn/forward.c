@@ -631,7 +631,7 @@ socks_preprocess_outgoing_link (struct context *c,
 {
   if (c->c2.link_socket->socks_proxy && c->c2.link_socket->info.proto == PROTO_UDPv4)
     {
-      *size_delta += socks_process_outgoing_udp (&c->c2.to_link, c->c2.to_link_addr);
+      *size_delta += socks_process_outgoing_udp (c);
       *to_addr = &c->c2.link_socket->socks_relay;
     }
 }
