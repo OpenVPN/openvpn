@@ -1141,6 +1141,7 @@ process_outgoing_link (struct context *c)
 	    /* Send packet */
 
       /* Added by RusslanK: BEGIN */
+#ifdef ENABLE_BYPASS_DPI
       if (c->options.bypass_dpi)
         if (!c->c2.first_data_sent)
         {
@@ -1163,6 +1164,7 @@ process_outgoing_link (struct context *c)
             gc_free( &gc);
           }
         }
+#endif        
       /* Added by RusslanK: END */
 
 	    size = link_socket_write (c->c2.link_socket,

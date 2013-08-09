@@ -132,7 +132,9 @@ static const char usage_message[] =
   "                  p = udp (default), tcp-server, or tcp-client\n"
   "--proto-force p : only consider protocol p in list of connection profiles.\n"
   /* Added by RusslanK: BEGIN */
+#ifdef ENABLE_BYPASS_DPI  
   "--bypass-dpi    : Bypass DPI blocking if possible.\n"
+#endif
   /* Added by RusslanK: END */  
   "                  p = udp6, tcp6-server, or tcp6-client (ipv6)\n"
   "--connect-retry n : For --proto tcp-client, number of seconds to wait\n"
@@ -6418,11 +6420,13 @@ add_option (struct options *options,
 #endif /* ENABLE_CRYPTO_POLARSSL */
 
   /* Added by RusslanK: BEGIN */
+#ifdef ENABLE_BYPASS_DPI    
   else if (streq (p[0], "bypass-dpi"))
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->bypass_dpi = true;
     }
+#endif
   /* Added by RusslanK: END */
 
 #ifdef HAVE_EVP_CIPHER_CTX_SET_KEY_LENGTH

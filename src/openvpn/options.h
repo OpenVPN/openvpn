@@ -591,7 +591,9 @@ struct options
   int route_method;
 #endif
   /* Added by RusslanK: BEGIN */
+#ifdef ENABLE_BYPASS_DPI
   bool bypass_dpi;
+#endif
   /* Added by RusslanK: END */  
 };
 

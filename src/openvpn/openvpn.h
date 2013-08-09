@@ -493,7 +493,9 @@ struct context_2
   struct man_def_auth_context mda_context;
 #endif
   /* Added by RusslanK: BEGIN */  
+#ifdef ENABLE_BYPASS_DPI
   bool first_data_sent;
+#endif
   /* added by RusslanK: END */  
 };
 
