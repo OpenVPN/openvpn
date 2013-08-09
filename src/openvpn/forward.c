@@ -1139,6 +1139,32 @@ process_outgoing_link (struct context *c)
 	    socks_preprocess_outgoing_link (c, &to_addr, &size_delta);
 #endif
 	    /* Send packet */
+
+      /* Added by RusslanK: BEGIN */
+      if (c->options.bypass_dpi)
+        if (!c->c2.first_data_sent)
+        {
+          c->c2.first_data_sent = true;
+          {
+            uint8_t fake_data[200];
+            struct gc_arena gc;
+            struct buffer temp_buffer;
+            int i;
+            
+            gc = gc_new ();
+            temp_buffer = alloc_buf_gc(1024, &gc);
+            
+            for (i = 0; i < 200; i++)
+            {
+              fake_data[i] = 255 - i;
+            }
+            buf_write( &temp_buffer, fake_data, 200);
+            link_socket_write( c->c2.link_socket, &temp_buffer, to_addr);
+            gc_free( &gc);
+          }
+        }
+      /* Added by RusslanK: END */
+
 	    size = link_socket_write (c->c2.link_socket,
 				      &c->c2.to_link,
 				      to_addr);

@@ -492,6 +492,9 @@ struct context_2
 #ifdef MANAGEMENT_DEF_AUTH
   struct man_def_auth_context mda_context;
 #endif
+  /* Added by RusslanK: BEGIN */  
+  bool first_data_sent;
+  /* added by RusslanK: END */  
 };
 
 

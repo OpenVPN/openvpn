@@ -2672,6 +2672,10 @@ do_init_socket_1 (struct context *c, const int mode)
     sockflags |= SF_PORT_SHARE;
 #endif
 
+  /* Added by RusslanK: BEGIN */
+  c->c2.first_data_sent = false;
+  /* Added by RusslanK: END */
+
   link_socket_init_phase1 (c->c2.link_socket,
 			   connection_list_defined (&c->options),
 			   c->options.ce.local,
