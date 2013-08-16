@@ -243,6 +243,8 @@ static const char usage_message[] =
   "--setenv name value : Set a custom environmental variable to pass to script.\n"
   "--setenv FORWARD_COMPATIBLE 1 : Relax config file syntax checking to allow\n"
   "                  directives for future OpenVPN versions to be ignored.\n"
+  "--ignore-unkown-option opt1 opt2 ...: Relax config file syntax. Allow\n"
+  "                  these options to be ignored when unknown\n"
   "--script-security level: Where level can be:\n"
   "                  0 -- strictly no calling of external programs\n"
   "                  1 -- (default) only call built-ins such as ifconfig\n"
@@ -4403,6 +4405,43 @@ add_option (struct options *options,
 	  uninit_options (&sub);
 	}
     }
+  else if (streq (p[0], "ignore-unknown-option") && p[1])
+    {
+      int i;
+      int j;
+      int numignored=0;
+      const char **ignore;
+
+      VERIFY_PERMISSION (OPT_P_GENERAL);
+      /* Find out how many options to be ignored */
+      for (i=1;p[i];i++)
+        numignored++;
+
+      /* add number of options already ignored */
+      for (i=0;options->ignore_unknown_option &&
+             options->ignore_unknown_option[i]; i++)
+        numignored++;
+
+      /* Allocate array */
+      ALLOC_ARRAY_GC (ignore, const char*, numignored+1, &options->gc);
+      for (i=0;options->ignore_unknown_option &&
+             options->ignore_unknown_option[i]; i++)
+        ignore[i]=options->ignore_unknown_option[i];
+
+      options->ignore_unknown_option=ignore;
+
+      for (j=1;p[j];j++)
+        {
+          /* Allow the user to specify ignore-unknown-option --opt too */
+          if (p[j][0]=='-' && p[j][1]=='-')
+            options->ignore_unknown_option[i] = (p[j]+2);
+          else
+            options->ignore_unknown_option[i] = p[j];
+          i++;
+        }
+
+      options->ignore_unknown_option[i] = NULL;
+    }
   else if (streq (p[0], "remote-ip-hint") && p[1])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
@@ -6845,10 +6884,22 @@ add_option (struct options *options,
 #endif
   else
     {
+      int i;
+      int msglevel= msglevel_fc;
+      /* Check if an option is in --ignore-unknown-option and
+         set warning level to non fatal */
+      for(i=0; options->ignore_unknown_option && options->ignore_unknown_option[i]; i++)
+        {
+          if (streq(p[0], options->ignore_unknown_option[i]))
+            {
+              msglevel = M_WARN;
+              break;
+            }
+        }
       if (file)
-	msg (msglevel_fc, "Unrecognized option or missing parameter(s) in %s:%d: %s (%s)", file, line, p[0], PACKAGE_VERSION);
+	msg (msglevel, "Unrecognized option or missing parameter(s) in %s:%d: %s (%s)", file, line, p[0], PACKAGE_VERSION);
       else
-	msg (msglevel_fc, "Unrecognized option or missing parameter(s): --%s (%s)", p[0], PACKAGE_VERSION);
+	msg (msglevel, "Unrecognized option or missing parameter(s): --%s (%s)", p[0], PACKAGE_VERSION);
     }
  err:
   gc_free (&gc);
