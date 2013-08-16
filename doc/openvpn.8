@@ -1896,6 +1896,9 @@ It is also possible to tag a single directive so as not to trigger
 a fatal error if the directive isn't recognized.  To do this,
 prepend the following before the directive:
 .B setenv opt
+
+See also
+.B \-\-ignore-unknown-option
 .\"*********************************************************
 .TP
 .B \-\-setenv-safe name value
@@ -1907,6 +1910,25 @@ This directive is designed to be pushed by the server to clients,
 and the prepending of "OPENVPN_" to the environmental variable
 is a safety precaution to prevent a LD_PRELOAD style attack
 from a malicious or compromised server.
+.\"*********************************************************
+.TP
+.B \-\-ignore-unknown-option opt1 opt2 opt3 ... optN
+When one of options
+.B opt1 ... optN
+is encountered in the configuration file the configuration
+file parsing does not fail if this OpenVPN version does not
+support the option. Multiple
+.B \-\-ignore-unknown-option
+options can be given to support a larger number of options to ignore.
+
+This option should be used with caution, as there are good security
+reasons for having OpenVPN fail if it detects problems in a
+config file. Having said that, there are valid reasons for wanting
+new software features to gracefully degrade when encountered by
+older software versions.
+
+.B \-\-ignore-unknown-option
+is available since OpenVPN 2.3.3.
 .\"*********************************************************
 .TP
 .B \-\-script-security level
