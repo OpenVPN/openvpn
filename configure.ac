@@ -749,7 +749,9 @@ PKG_CHECK_MODULES(
 		[
 			have_openssl_ssl="yes"
 			OPENSSL_SSL_LIBS="-lssl"
-		]
+		],
+		[],
+		[-lcrypto]
 	)]
 )
 
