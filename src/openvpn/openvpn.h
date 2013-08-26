@@ -291,6 +291,11 @@ struct context_2
   counter_type n_trunc_post_decrypt;
 #endif
 
+#ifdef ENABLE_SOCKS
+  /* Set to true after first UDP packet sent over SOCKS, so we only send ATYP=DOMAINNAME once */
+  bool socks_sent_hostname;
+#endif
+
   /*
    * Timer objects for ping and inactivity
    * timeout features.

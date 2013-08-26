@@ -70,8 +70,7 @@ void establish_socks_proxy_udpassoc (struct socks_proxy_info *p,
 void socks_process_incoming_udp (struct buffer *buf,
 				struct link_socket_actual *from);
 
-int socks_process_outgoing_udp (struct buffer *buf,
-				const struct link_socket_actual *to);
+int socks_process_outgoing_udp (struct context *c);
 
 #endif
 #endif
