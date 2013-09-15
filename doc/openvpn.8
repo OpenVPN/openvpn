@@ -554,12 +554,15 @@ Set HTTP "User-Agent" string to
 .B user-agent.
 .\"*********************************************************
 .TP
-.B \-\-socks-proxy server [port]
+.B \-\-socks-proxy server [port] [authfile]
 Connect to remote host through a Socks5 proxy at address
 .B server
 and port
 .B port
 (default=1080).
+.B authfile
+(optional) is a file containing a username and password on 2 lines, or
+"stdin" to prompt from console.
 .\"*********************************************************
 .TP
 .B \-\-socks-proxy-retry
