@@ -215,27 +215,13 @@ void tls_ctx_load_cryptoapi(struct tls_root_ctx *ctx, const char *cryptoapi_cert
  * Load certificate file into the given TLS context. If the given certificate
  * file contains a certificate chain, load the whole chain.
  *
- * If the x509 parameter is not NULL, the certificate will be returned in it.
- *
  * @param ctx			TLS context to use
  * @param cert_file		The file name to load the certificate from, or
  * 				"[[INLINE]]" in the case of inline files.
  * @param cert_file_inline	A string containing the certificate
- * @param x509			An optional certificate, if x509 is NULL,
- * 				do nothing, if x509 is not NULL, *x509 will be
- * 				allocated and filled with the loaded certificate.
- * 				*x509 must be NULL.
  */
 void tls_ctx_load_cert_file (struct tls_root_ctx *ctx, const char *cert_file,
-    const char *cert_file_inline, openvpn_x509_cert_t **x509
-    );
-
-/**
- * Free the given certificate
- *
- * @param x509			certificate to free
- */
-void tls_ctx_free_cert_file (openvpn_x509_cert_t *x509);
+    const char *cert_file_inline);
 
 /**
  * Load private key file into the given TLS context.
@@ -255,17 +241,19 @@ int tls_ctx_load_priv_file (struct tls_root_ctx *ctx, const char *priv_key_file,
 #ifdef MANAGMENT_EXTERNAL_KEY
 
 /**
- * Tell the management interface to load the external private key matching
- * the given certificate.
+ * Tell the management interface to load the given certificate and the external
+ * private key matching the given certificate.
  *
  * @param ctx			TLS context to use
- * @param cert			The certificate file to load the private key for
+ * @param cert_file		The file name to load the certificate from, or
  * 				"[[INLINE]]" in the case of inline files.
+ * @param cert_file_inline	A string containing the certificate
  *
  * @return 			1 if an error occurred, 0 if parsing was
  * 				successful.
  */
-int tls_ctx_use_external_private_key (struct tls_root_ctx *ctx, openvpn_x509_cert_t *cert);
+int tls_ctx_use_external_private_key (struct tls_root_ctx *ctx,
+    const char *cert_file, const char *cert_file_inline);
 #endif
 
 

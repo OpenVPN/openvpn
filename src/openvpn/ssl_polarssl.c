@@ -237,13 +237,10 @@ tls_ctx_load_cryptoapi(struct tls_root_ctx *ctx, const char *cryptoapi_cert)
 
 void
 tls_ctx_load_cert_file (struct tls_root_ctx *ctx, const char *cert_file,
-    const char *cert_file_inline,
-    openvpn_x509_cert_t **x509
+    const char *cert_file_inline
     )
 {
   ASSERT(NULL != ctx);
-  if (NULL != x509)
-    ASSERT(NULL == *x509);
 
   if (!strcmp (cert_file, INLINE_FILE_TAG) && cert_file_inline)
     {
@@ -256,16 +253,6 @@ tls_ctx_load_cert_file (struct tls_root_ctx *ctx, const char *cert_file,
       if (0 != x509parse_crtfile(ctx->crt_chain, cert_file))
 	msg (M_FATAL, "Cannot load certificate file %s", cert_file);
     }
-  if (x509)
-    {
-      *x509 = ctx->crt_chain;
-    }
-}
-
-void
-tls_ctx_free_cert_file (openvpn_x509_cert_t *x509)
-{
-  x509_free(x509);
 }
 
 int
@@ -322,8 +309,9 @@ tls_ctx_load_priv_file (struct tls_root_ctx *ctx, const char *priv_key_file,
 
 #ifdef MANAGMENT_EXTERNAL_KEY
 
-int
-tls_ctx_use_external_private_key (struct tls_root_ctx *ctx, openvpn_x509_cert_t *cert)
+tls_ctx_use_external_private_key (struct tls_root_ctx *ctx,
+    const char *cert_file, const char *cert_file_inline
+    )
 {
   msg(M_FATAL, "Use of management external keys not yet supported for PolarSSL.");
   return false;

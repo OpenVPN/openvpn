@@ -474,9 +474,10 @@ tls_ctx_add_extra_certs (struct tls_root_ctx *ctx, BIO *bio)
     }
 }
 
-void
-tls_ctx_load_cert_file (struct tls_root_ctx *ctx, const char *cert_file,
-    const char *cert_file_inline, X509 **x509
+/* Like tls_ctx_load_cert, but returns a copy of the certificate in **X509 */
+static void
+tls_ctx_load_cert_file_and_copy (struct tls_root_ctx *ctx,
+    const char *cert_file, const char *cert_file_inline, X509 **x509
     )
 {
   BIO *in = NULL;
@@ -528,6 +529,13 @@ end:
     *x509 = x;
   else if (x)
     X509_free (x);
+}
+
+void
+tls_ctx_load_cert_file (struct tls_root_ctx *ctx, const char *cert_file,
+    const char *cert_file_inline)
+{
+  tls_ctx_load_cert_file_ext(ctx, cert_file, cert_file_inline, NULL);
 }
 
 void
@@ -667,14 +675,18 @@ rsa_priv_enc(int flen, const unsigned char *from, unsigned char *to, RSA *rsa, i
 }
 
 int
-tls_ctx_use_external_private_key (struct tls_root_ctx *ctx, X509 *cert)
+tls_ctx_use_external_private_key (struct tls_root_ctx *ctx,
+    const char *cert_file, const char *cert_file_inline)
 {
   RSA *rsa = NULL;
   RSA *pub_rsa;
   RSA_METHOD *rsa_meth;
+  X509 *cert = NULL;
 
   ASSERT (NULL != ctx);
   ASSERT (NULL != cert);
+
+  tls_ctx_load_cert_file_ext(ctx, cert_file, cert_file_inline, &cert);
 
   /* allocate custom RSA method object */
   ALLOC_OBJ_CLEAR (rsa_meth, RSA_METHOD);
@@ -710,10 +722,13 @@ tls_ctx_use_external_private_key (struct tls_root_ctx *ctx, X509 *cert)
   if (!SSL_CTX_use_RSAPrivateKey(ctx->ctx, rsa))
     goto err;
 
+  X509_free(cert);
   RSA_free(rsa); /* doesn't necessarily free, just decrements refcount */
   return 1;
 
  err:
+  if (cert)
+    X509_free(cert);
   if (rsa)
     RSA_free(rsa);
   else
