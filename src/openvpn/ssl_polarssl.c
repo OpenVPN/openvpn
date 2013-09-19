@@ -121,6 +121,10 @@ tls_ctx_free(struct tls_root_ctx *ctx)
 	  free(ctx->priv_key_pkcs11);
       }
 #endif
+#if defined(MANAGMENT_EXTERNAL_KEY)
+      if (ctx->external_key != NULL)
+          free(ctx->external_key);
+#endif
 
       if (ctx->allowed_ciphers)
 	free(ctx->allowed_ciphers);
@@ -309,14 +313,95 @@ tls_ctx_load_priv_file (struct tls_root_ctx *ctx, const char *priv_key_file,
 
 #ifdef MANAGMENT_EXTERNAL_KEY
 
+
+struct external_context {
+  size_t signature_length;
+};
+
+int
 tls_ctx_use_external_private_key (struct tls_root_ctx *ctx,
-    const char *cert_file, const char *cert_file_inline
-    )
+    const char *cert_file, const char *cert_file_inline)
 {
-  msg(M_FATAL, "Use of management external keys not yet supported for PolarSSL.");
-  return false;
+  ASSERT(NULL != ctx);
+
+  tls_ctx_load_cert_file(ctx, cert_file, cert_file_inline);
+
+  if (ctx->crt_chain == NULL)
+    return 0;
+
+  /* Most of the initialization happens in key_state_ssl_init() */
+  ALLOC_OBJ_CLEAR (ctx->external_key, struct external_context);
+  ctx->external_key->signature_length = ctx->crt_chain->rsa.len;
+
+  return 1;
 }
 
+static inline int external_pkcs1_sign( void *ctx_voidptr,
+    int (*f_rng)(void *, unsigned char *, size_t), void *p_rng, int mode,
+    int hash_id, unsigned int hashlen, const unsigned char *hash,
+    unsigned char *sig )
+{
+  struct external_context * const ctx = ctx_voidptr;
+  char *in_b64 = NULL;
+  char *out_b64 = NULL;
+  int rv;
+
+  ASSERT(NULL != ctx);
+
+  if (RSA_PRIVATE != mode)
+    {
+      rv = POLARSSL_ERR_RSA_BAD_INPUT_DATA;
+      goto done;
+    }
+
+  /*
+   * Normally (i.e. rsa_pkcs1_sign()), the padding is set in the context, and
+   * we have padding-specific code to handle various hash_id's here. Since the
+   * management client will RSA-sign the bytes we present without further
+   * processing, we only support SIG_RSA_RAW (PolarSSL's equivalent of
+   * OpenSSL's NID_md5_sha1).
+   */
+  ASSERT(hash_id == SIG_RSA_RAW);
+  /* convert 'from' to base64 */
+  if (openvpn_base64_encode (hash, hashlen, &in_b64) <= 0)
+    {
+      rv = POLARSSL_ERR_RSA_BAD_INPUT_DATA;
+      goto done;
+    }
+
+  /* call MI for signature */
+  if (management)
+    out_b64 = management_query_rsa_sig (management, in_b64);
+  if (!out_b64)
+    {
+      rv = POLARSSL_ERR_RSA_PRIVATE_FAILED;
+      goto done;
+    }
+
+  /* decode base64 signature to binary and verify length */
+  if ( openvpn_base64_decode (out_b64, sig, ctx->signature_length) !=
+       ctx->signature_length )
+    {
+      rv = POLARSSL_ERR_RSA_PRIVATE_FAILED;
+      goto done;
+    }
+
+  rv = 0;
+
+ done:
+  if (in_b64)
+    free (in_b64);
+  if (out_b64)
+    free (out_b64);
+  return rv;
+}
+
+static inline size_t external_key_len(void *vctx)
+{
+  struct external_context * const ctx = vctx;
+
+  return ctx->signature_length;
+}
 #endif
 
 void tls_ctx_load_ca (struct tls_root_ctx *ctx, const char *ca_file,
@@ -528,6 +613,13 @@ void key_state_ssl_init(struct key_state_ssl *ks_ssl,
 	ssl_set_own_cert_alt( ks_ssl->ctx, ssl_ctx->crt_chain,
 	    ssl_ctx->priv_key_pkcs11, ssl_pkcs11_decrypt, ssl_pkcs11_sign,
 	    ssl_pkcs11_key_len );
+      else
+#endif
+#if defined(MANAGMENT_EXTERNAL_KEY)
+      if (ssl_ctx->external_key != NULL)
+        ssl_set_own_cert_alt( ks_ssl->ctx, ssl_ctx->crt_chain,
+	   ssl_ctx->external_key, NULL, external_pkcs1_sign,
+	   external_key_len );
       else
 #endif
 	ssl_set_own_cert( ks_ssl->ctx, ssl_ctx->crt_chain, ssl_ctx->priv_key );
