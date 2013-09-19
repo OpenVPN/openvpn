@@ -7,6 +7,7 @@
  *
  *  Copyright (C) 2002-2010 OpenVPN Technologies, Inc. <sales@openvpn.net>
  *  Copyright (C) 2010 Fox Crypto B.V. <openvpn@fox-it.com>
+ *  Copyright (C) 2006-2010, Brainspark B.V.
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -345,6 +346,8 @@ static inline int external_pkcs1_sign( void *ctx_voidptr,
   char *in_b64 = NULL;
   char *out_b64 = NULL;
   int rv;
+  unsigned char * const p = sig;
+  size_t asn_len;
 
   ASSERT(NULL != ctx);
 
@@ -355,15 +358,74 @@ static inline int external_pkcs1_sign( void *ctx_voidptr,
     }
 
   /*
-   * Normally (i.e. rsa_pkcs1_sign()), the padding is set in the context, and
-   * we have padding-specific code to handle various hash_id's here. Since the
-   * management client will RSA-sign the bytes we present without further
-   * processing, we only support SIG_RSA_RAW (PolarSSL's equivalent of
-   * OpenSSL's NID_md5_sha1).
+   * Support a wide range of hashes. TLSv1.1 and before only need SIG_RSA_RAW,
+   * but TLSv1.2 needs the full suite of hashes.
+   *
+   * This code has been taken from PolarSSL pkcs11_sign(), under the GPLv2.0+.
    */
-  ASSERT(hash_id == SIG_RSA_RAW);
+  switch( hash_id )
+  {
+      case SIG_RSA_RAW:
+          asn_len = 0;
+          memcpy( p, hash, hashlen );
+          break;
+
+      case SIG_RSA_MD2:
+          asn_len = OID_SIZE(ASN1_HASH_MDX);
+          memcpy( p, ASN1_HASH_MDX, asn_len );
+          memcpy( p + asn_len, hash, hashlen );
+          p[13] = 2; break;
+
+      case SIG_RSA_MD4:
+          asn_len = OID_SIZE(ASN1_HASH_MDX);
+          memcpy( p, ASN1_HASH_MDX, asn_len );
+          memcpy( p + asn_len, hash, hashlen );
+          p[13] = 4; break;
+
+      case SIG_RSA_MD5:
+          asn_len = OID_SIZE(ASN1_HASH_MDX);
+          memcpy( p, ASN1_HASH_MDX, asn_len );
+          memcpy( p + asn_len, hash, hashlen );
+          p[13] = 5; break;
+
+      case SIG_RSA_SHA1:
+          asn_len = OID_SIZE(ASN1_HASH_SHA1);
+          memcpy( p, ASN1_HASH_SHA1, asn_len );
+          memcpy( p + 15, hash, hashlen );
+          break;
+
+      case SIG_RSA_SHA224:
+          asn_len = OID_SIZE(ASN1_HASH_SHA2X);
+          memcpy( p, ASN1_HASH_SHA2X, asn_len );
+          memcpy( p + asn_len, hash, hashlen );
+          p[1] += hashlen; p[14] = 4; p[18] += hashlen; break;
+
+      case SIG_RSA_SHA256:
+          asn_len = OID_SIZE(ASN1_HASH_SHA2X);
+          memcpy( p, ASN1_HASH_SHA2X, asn_len );
+          memcpy( p + asn_len, hash, hashlen );
+          p[1] += hashlen; p[14] = 1; p[18] += hashlen; break;
+
+      case SIG_RSA_SHA384:
+          asn_len = OID_SIZE(ASN1_HASH_SHA2X);
+          memcpy( p, ASN1_HASH_SHA2X, asn_len );
+          memcpy( p + asn_len, hash, hashlen );
+          p[1] += hashlen; p[14] = 2; p[18] += hashlen; break;
+
+      case SIG_RSA_SHA512:
+          asn_len = OID_SIZE(ASN1_HASH_SHA2X);
+          memcpy( p, ASN1_HASH_SHA2X, asn_len );
+          memcpy( p + asn_len, hash, hashlen );
+          p[1] += hashlen; p[14] = 3; p[18] += hashlen; break;
+
+  /* End of copy */
+      default:
+          rv = POLARSSL_ERR_RSA_BAD_INPUT_DATA;
+	  goto done;
+  }
+
   /* convert 'from' to base64 */
-  if (openvpn_base64_encode (hash, hashlen, &in_b64) <= 0)
+  if (openvpn_base64_encode (sig, asn_len + hashlen, &in_b64) <= 0)
     {
       rv = POLARSSL_ERR_RSA_BAD_INPUT_DATA;
       goto done;
