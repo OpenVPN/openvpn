@@ -3141,9 +3141,9 @@ get_panel_reg (struct gc_arena *gc)
       char enum_name[256];
       char connection_string[256];
       HKEY connection_key;
-      char name_data[256];
+      WCHAR name_data[256];
       DWORD name_type;
-      const char name_string[] = "Name";
+      const WCHAR name_string[] = L"Name";
 
       len = sizeof (enum_name);
       status = RegEnumKeyEx(
@@ -3177,12 +3177,12 @@ get_panel_reg (struct gc_arena *gc)
       else
 	{
 	  len = sizeof (name_data);
-	  status = RegQueryValueEx(
+	  status = RegQueryValueExW(
 				   connection_key,
 				   name_string,
 				   NULL,
 				   &name_type,
-				   name_data,
+				   (LPBYTE) name_data,
 				   &len);
 
 	  if (status != ERROR_SUCCESS || name_type != REG_SZ)
@@ -3190,10 +3190,15 @@ get_panel_reg (struct gc_arena *gc)
 		 NETWORK_CONNECTIONS_KEY, connection_string, name_string);
 	  else
 	    {
+              int n;
+              LPSTR name;
 	      struct panel_reg *reg;
 
 	      ALLOC_OBJ_CLEAR_GC (reg, struct panel_reg, gc);
-	      reg->name = string_alloc (name_data, gc);
+              n = WideCharToMultiByte (CP_UTF8, 0, name_data, -1, NULL, 0, NULL, NULL);
+              name = gc_malloc (n, false, gc);
+              WideCharToMultiByte (CP_UTF8, 0, name_data, -1, name, n, NULL, NULL);
+              reg->name = name;
 	      reg->guid = string_alloc (enum_name, gc);
 		      
 	      /* link into return list */
