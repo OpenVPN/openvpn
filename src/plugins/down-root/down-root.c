@@ -233,7 +233,7 @@ build_command_line (const char *argv[])
     {
       for (i = 0; argv[i]; ++i)
 	{
-	  size += (strlen (argv[i]) + 1); /* string length plus trailing space */
+	  size += (strlen (argv[i]) + 3); /* string length plus quotes and trailing space */
 	  ++n;
 	}
     }
@@ -251,7 +251,9 @@ build_command_line (const char *argv[])
   /* build string */
   for (i = 0; i < n; ++i)
     {
+      strcat (string, "\"");
       strcat (string, argv[i]);
+      strcat (string, "\"");
       if (i + 1 < n)
 	strcat (string, " ");
     }
@@ -455,7 +457,6 @@ openvpn_plugin_abort_v1 (openvpn_plugin_handle_t handle)
 static void
 down_root_server (const int fd, char *command, const char *argv[], const char *envp[], const int verb)
 {
-  const char *p[3];
   char *command_line = NULL;
   char *argv_cat = NULL;
   int i;
@@ -482,10 +483,12 @@ down_root_server (const int fd, char *command, const char *argv[], const char *e
     argv_cat = build_command_line (&argv[1]);
   else
     argv_cat = build_command_line (NULL);
-  p[0] = command;
-  p[1] = argv_cat;
-  p[2] = NULL;
-  command_line = build_command_line (p);
+
+  command_line = (char *) malloc (strlen(command) + strlen(argv_cat) + 2);
+  *command_line = '\0';
+  strcat(command_line, command);
+  strcat(command_line, " ");
+  strcat(command_line, argv_cat);
 
   /*
    * Save envp in environment
