@@ -809,13 +809,13 @@ if test "${with_crypto_library}" = "polarssl" ; then
 #include <polarssl/version.h>
 			]],
 			[[
-#if POLARSSL_VERSION_NUMBER < 0x01020500
+#if POLARSSL_VERSION_NUMBER < 0x01020A00
 #error invalid version
 #endif
 			]]
 		)],
 		[AC_MSG_RESULT([ok])],
-		[AC_MSG_ERROR([PolarSSL 1.2.5 or newer required])]
+		[AC_MSG_ERROR([PolarSSL 1.2.10 or newer required])]
 	)
 
 	polarssl_with_pkcs11="no"
