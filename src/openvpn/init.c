@@ -2973,7 +2973,7 @@ do_close_ifconfig_pool_persist (struct context *c)
 static void
 do_inherit_env (struct context *c, const struct env_set *src)
 {
-  c->c2.es = env_set_create (&c->c2.gc);
+  c->c2.es = env_set_create (NULL);
   c->c2.es_owned = true;
   env_set_inherit (c->c2.es, src);
 }
