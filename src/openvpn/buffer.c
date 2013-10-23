@@ -327,19 +327,28 @@ gc_malloc (size_t size, bool clear, struct gc_arena *a)
 #endif
 {
   void *ret;
-  struct gc_entry *e;
-  ASSERT (NULL != a);
-
+  if (a)
+    {
+      struct gc_entry *e;
 #ifdef DMALLOC
-  e = (struct gc_entry *) openvpn_dmalloc (file, line, size + sizeof (struct gc_entry));
+      e = (struct gc_entry *) openvpn_dmalloc (file, line, size + sizeof (struct gc_entry));
 #else
-  e = (struct gc_entry *) malloc (size + sizeof (struct gc_entry));
+      e = (struct gc_entry *) malloc (size + sizeof (struct gc_entry));
 #endif
-  check_malloc_return (e);
-  ret = (char *) e + sizeof (struct gc_entry);
-  e->next = a->list;
-  a->list = e;
-
+      check_malloc_return (e);
+      ret = (char *) e + sizeof (struct gc_entry);
+      e->next = a->list;
+      a->list = e;
+    }
+  else
+    {
+#ifdef DMALLOC
+      ret = openvpn_dmalloc (file, line, size);
+#else
+      ret = malloc (size);
+#endif
+      check_malloc_return (ret);
+    }
 #ifndef ZERO_BUFFER_ON_ALLOC
   if (clear)
 #endif
