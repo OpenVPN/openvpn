@@ -38,6 +38,12 @@
 #define HTTP_AUTH_NTLM2  4
 #define HTTP_AUTH_N      5 /* number of HTTP_AUTH methods */
 
+struct http_custom_header {
+  const char *name;
+  const char *content;
+};
+
+#define MAX_CUSTOM_HTTP_HEADER 10
 struct http_proxy_options {
   const char *server;
   int port;
@@ -53,6 +59,7 @@ struct http_proxy_options {
   const char *auth_file;
   const char *http_version;
   const char *user_agent;
+  struct http_custom_header custom_headers[MAX_CUSTOM_HTTP_HEADER];
 };
 
 struct http_proxy_options_simple {

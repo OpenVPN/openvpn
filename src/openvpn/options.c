@@ -1295,6 +1295,7 @@ option_iroute_ipv6 (struct options *o,
 static void
 show_http_proxy_options (const struct http_proxy_options *o)
 {
+  int i;
   msg (D_SHOW_PARMS, "BEGIN http_proxy");
   SHOW_STR (server);
   SHOW_INT (port);
@@ -1304,6 +1305,15 @@ show_http_proxy_options (const struct http_proxy_options *o)
   SHOW_INT (timeout);
   SHOW_STR (http_version);
   SHOW_STR (user_agent);
+  for  (i=0; i < MAX_CUSTOM_HTTP_HEADER && o->custom_headers[i].name;i++)
+    {
+      if (o->custom_headers[i].content)
+	msg (D_SHOW_PARMS, "  custom_header[%d] = %s: %s", i,
+	       o->custom_headers[i].name, o->custom_headers[i].content);
+      else
+	msg (D_SHOW_PARMS, "  custom_header[%d] = %s", i,
+	     o->custom_headers[i].name);
+    }
   msg (D_SHOW_PARMS, "END http_proxy");
 }
 #endif
@@ -5060,6 +5070,33 @@ add_option (struct options *options,
       else if (streq (p[1], "AGENT") && p[2])
 	{
 	  ho->user_agent = p[2];
+	}
+      else if ((streq (p[1], "EXT1") || streq(p[1], "EXT2") || streq(p[1], "CUSTOM-HEADER"))
+	       && p[2])
+	{
+	  /* In the wild patched versions use both EXT1/2 and CUSTOM-HEADER
+	   * with either two argument or one */
+
+	  struct http_custom_header *custom_header = NULL;
+	  int i;
+	  /* Find the first free header */
+	  for (i=0; i < MAX_CUSTOM_HTTP_HEADER; i++) {
+	    if (!ho->custom_headers[i].name) {
+	      custom_header = &ho->custom_headers[i];
+	      break;
+	    }
+	  }
+	  if (!custom_header)
+	    {
+	      msg (msglevel, "Cannot use more than %d http-proxy-option CUSTOM-HEADER : '%s'", MAX_CUSTOM_HTTP_HEADER, p[1]);
+	    }
+	  else
+	    {
+	      /* We will save p[2] and p[3], the proxy code will detect if
+	       * p[3] is NULL */
+	      custom_header->name = p[2];
+	      custom_header->content = p[3];
+	    }
 	}
       else
 	{
