@@ -725,7 +725,7 @@ esac
 
 PKG_CHECK_MODULES(
 	[PKCS11_HELPER],
-	[libpkcs11-helper-1 >= 1.02],
+	[libpkcs11-helper-1 >= 1.11],
 	[have_pkcs11_helper="yes"],
 	[]
 )

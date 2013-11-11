@@ -49,7 +49,7 @@ pkcs11_init_tls_session(pkcs11h_certificate_t certificate,
   int ret = 1;
 
   X509 *x509 = NULL;
-  RSA *rsa = NULL;
+  EVP_PKEY *evp = NULL;
   pkcs11h_openssl_session_t openssl_session = NULL;
 
   if ((openssl_session = pkcs11h_openssl_createSession (certificate)) == NULL)
@@ -63,9 +63,9 @@ pkcs11_init_tls_session(pkcs11h_certificate_t certificate,
    */
   certificate = NULL;
 
-  if ((rsa = pkcs11h_openssl_session_getRSA (openssl_session)) == NULL)
+  if ((evp = pkcs11h_openssl_session_getEVP (openssl_session)) == NULL)
     {
-      msg (M_WARN, "PKCS#11: Unable get rsa object");
+      msg (M_WARN, "PKCS#11: Unable get evp object");
       goto cleanup;
     }
 
@@ -75,7 +75,7 @@ pkcs11_init_tls_session(pkcs11h_certificate_t certificate,
       goto cleanup;
     }
 
-  if (!SSL_CTX_use_RSAPrivateKey (ssl_ctx->ctx, rsa))
+  if (!SSL_CTX_use_PrivateKey (ssl_ctx->ctx, evp))
     {
       msg (M_WARN, "PKCS#11: Cannot set private key for openssl");
       goto cleanup;
@@ -108,10 +108,10 @@ cleanup:
       x509 = NULL;
     }
 
-  if (rsa != NULL)
+  if (evp != NULL)
     {
-      RSA_free (rsa);
-      rsa = NULL;
+      EVP_PKEY_free (evp);
+      evp = NULL;
     }
 
   if (openssl_session != NULL)
