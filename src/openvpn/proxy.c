@@ -492,7 +492,7 @@ bool
 add_proxy_headers (struct http_proxy_info *p,
 		  socket_descriptor_t sd, /* already open to proxy */
 		  const char *host,	  /* openvpn server remote */
-		  const char *port	  /* openvpn server port */
+		  const int port	  /* openvpn server port */
 		  )
 {
   char buf[512];
