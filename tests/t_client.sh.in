@@ -24,6 +24,18 @@ else
     exit 77
 fi
 
+# Check for external dependencies
+which fping > /dev/null
+if [ $? -ne 0 ]; then
+    echo "$0: fping is not available in \$PATH"
+    exit 77
+fi
+which fping6 > /dev/null
+if [ $? -ne 0 ]; then
+    echo "$0: fping6 is not available in \$PATH"
+    exit 77
+fi
+
 if [ ! -x "${top_builddir}/src/openvpn/openvpn" ]
 then
     echo "no (executable) openvpn binary in current build tree. FAIL." >&2
