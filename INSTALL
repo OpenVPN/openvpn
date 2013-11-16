@@ -87,6 +87,10 @@ OPTIONAL (for developers only):
       -- available from http://www.gnu.org/software/software.html
   (2) Dmalloc library
       -- available from http://dmalloc.com/
+  (3) If using t_client.sh test framework, fping/fping6 is needed
+      -- Available from http://www.fping.org/
+      Note: t_client.sh needs an external configured OpenVPN server.
+      See t_client.rc-sample for more info.
 
 *************************************************************************
 

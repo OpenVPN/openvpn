@@ -27,12 +27,12 @@ fi
 # Check for external dependencies
 which fping > /dev/null
 if [ $? -ne 0 ]; then
-    echo "$0: fping is not available in \$PATH"
+    echo "$0: fping is not available in \$PATH" >&2
     exit 77
 fi
 which fping6 > /dev/null
 if [ $? -ne 0 ]; then
-    echo "$0: fping6 is not available in \$PATH"
+    echo "$0: fping6 is not available in \$PATH" >&2
     exit 77
 fi
 
