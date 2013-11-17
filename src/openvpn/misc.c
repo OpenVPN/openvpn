@@ -934,32 +934,23 @@ create_temp_file (const char *directory, const char *prefix, struct gc_arena *gc
 }
 
 /*
- * Add a random string to first DNS label of hostname to prevent DNS caching.
+ * Prepend a random string to hostname to prevent DNS caching.
  * For example, foo.bar.gov would be modified to <random-chars>.foo.bar.gov.
- * Of course, this requires explicit support in the DNS server.
+ * Of course, this requires explicit support in the DNS server (wildcard).
  */
 const char *
 hostname_randomize(const char *hostname, struct gc_arena *gc)
 {
 # define n_rnd_bytes 6
 
-  char *hst = string_alloc(hostname, gc);
-  char *dot = strchr(hst, '.');
+  uint8_t rnd_bytes[n_rnd_bytes];
+  const char *rnd_str;
+  struct buffer hname = alloc_buf_gc (strlen(hostname)+sizeof(rnd_bytes)*2+4, gc);
 
-  if (dot)
-    {
-      uint8_t rnd_bytes[n_rnd_bytes];
-      const char *rnd_str;
-      struct buffer hname = alloc_buf_gc (strlen(hostname)+sizeof(rnd_bytes)*2+4, gc);
-
-      *dot++ = '\0';
-      prng_bytes (rnd_bytes, sizeof (rnd_bytes));
-      rnd_str = format_hex_ex (rnd_bytes, sizeof (rnd_bytes), 40, 0, NULL, gc);
-      buf_printf(&hname, "%s-0x%s.%s", hst, rnd_str, dot);
-      return BSTR(&hname);
-    }
-  else
-    return hostname;
+  prng_bytes (rnd_bytes, sizeof (rnd_bytes));
+  rnd_str = format_hex_ex (rnd_bytes, sizeof (rnd_bytes), 40, 0, NULL, gc);
+  buf_printf(&hname, "%s.%s", rnd_str, hostname);
+  return BSTR(&hname);
 # undef n_rnd_bytes
 }
 
