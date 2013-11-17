@@ -274,7 +274,7 @@ failover capability.
 .\"*********************************************************
 .TP
 .B \-\-remote-random-hostname
-Add a random string (6 characters) to first DNS label of hostname to prevent
+Prepend a random string (6 bytes, 12 hex characters) to hostname to prevent
 DNS caching.  For example, "foo.bar.gov" would be modified to
 "<random-chars>.foo.bar.gov".
 .\"*********************************************************
