@@ -996,19 +996,27 @@ set_win_sys_path_via_env (struct env_set *es)
 const char *
 win_get_tempdir()
 {
-  static char buf[MAX_PATH];
-  char *tmpdir = buf;
+  static char tmpdir[MAX_PATH];
+  WCHAR wtmpdir[MAX_PATH];
 
-  CLEAR(buf);
+  if (!GetTempPathW(_countof(wtmpdir), wtmpdir))
+    {
+      /* Warn if we can't find a valid temporary directory, which should
+       * be unlikely.
+       */
+      msg (M_WARN, "Could not find a suitable temporary directory."
+          " (GetTempPath() failed).  Consider using --tmp-dir");
+      return NULL;
+    }
 
-  if (!GetTempPath(sizeof(buf),buf)) {
-    /* Warn if we can't find a valid temporary directory, which should
-     * be unlikely.
-     */
-    msg (M_WARN, "Could not find a suitable temporary directory."
-         " (GetTempPath() failed).  Consider to use --tmp-dir");
-    tmpdir = NULL;
-  }
+  if (WideCharToMultiByte (CP_UTF8, 0, wtmpdir, -1, NULL, 0, NULL, NULL) > sizeof (tmpdir))
+    {
+      msg (M_WARN, "Could not get temporary directory. Path is too long."
+          "  Consider using --tmp-dir");
+      return NULL;
+    }
+
+  WideCharToMultiByte (CP_UTF8, 0, wtmpdir, -1, tmpdir, sizeof (tmpdir), NULL, NULL);
   return tmpdir;
 }
 #endif
