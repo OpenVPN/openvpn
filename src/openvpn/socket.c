@@ -1419,7 +1419,7 @@ link_socket_init_phase1 (struct link_socket *sock,
   /* are we running in HTTP proxy mode? */
   else if (sock->http_proxy)
     {
-      ASSERT (sock->info.proto == PROTO_TCP_CLIENT && sock->info.af == AF_INET);
+      ASSERT (sock->info.proto == PROTO_TCP_CLIENT);
       ASSERT (!sock->inetd);
 
       /* the proxy server */
@@ -1435,7 +1435,6 @@ link_socket_init_phase1 (struct link_socket *sock,
   /* or in Socks proxy mode? */
   else if (sock->socks_proxy)
     {
-      ASSERT (sock->info.af == AF_INET);
       ASSERT (!sock->inetd);
 
       /* the proxy server */
@@ -1454,7 +1453,7 @@ link_socket_init_phase1 (struct link_socket *sock,
     }
 
   /* bind behavior for TCP server vs. client */
-  if (sock->info.proto == PROTO_TCP_SERVER && sock->info.af==AF_INET)
+  if (sock->info.proto == PROTO_TCP_SERVER)
     {
       if (sock->mode == LS_MODE_TCP_ACCEPT_FROM)
 	sock->bind_local = false;
