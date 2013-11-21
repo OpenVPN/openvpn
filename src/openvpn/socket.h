@@ -347,14 +347,26 @@ void sd_close (socket_descriptor_t *sd);
 #define PS_SHOW_PKTINFO         (1<<2)
 #define PS_DONT_SHOW_ADDR       (1<<3)
 
-const char *print_sockaddr_ex (const struct openvpn_sockaddr *addr,
+const char *print_sockaddr_ex (const struct sockaddr *addr,
 			       const char* separator,
 			       const unsigned int flags,
 			       struct gc_arena *gc);
 
+static inline
+const char *print_openvpn_sockaddr_ex (const struct openvpn_sockaddr *addr,
+			       const char* separator,
+			       const unsigned int flags,
+			       struct gc_arena *gc)
+{
+    return print_sockaddr_ex(&addr->addr.sa, separator, flags, gc);
+}
 
+static inline
 const char *print_sockaddr (const struct openvpn_sockaddr *addr,
-			    struct gc_arena *gc);
+			    struct gc_arena *gc)
+{
+    return print_sockaddr_ex (&addr->addr.sa, ":", PS_SHOW_PORT, gc);
+}
 
 const char *print_link_socket_actual_ex (const struct link_socket_actual *act,
 					 const char* separator,
