@@ -208,18 +208,20 @@ openvpn_getaddrinfo (unsigned int flags,
               get_signal (signal_received);
               if (*signal_received) /* were we interrupted by a signal? */
                 {
-                  if (0 == status) {
-                    ASSERT(res);
-                    freeaddrinfo(*res);
-                    res = NULL;
-                  }
                   if (*signal_received == SIGUSR1) /* ignore SIGUSR1 */
                     {
                       msg (level, "RESOLVE: Ignored SIGUSR1 signal received during DNS resolution attempt");
                       *signal_received = 0;
                     }
                   else
-                    goto done;
+                    {
+                      if (0 == status) {
+                          ASSERT(res);
+                          freeaddrinfo(*res);
+                          res = NULL;
+                      }
+                      goto done;
+                    }
                 }
             }
 
