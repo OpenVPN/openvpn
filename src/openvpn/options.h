@@ -87,9 +87,9 @@ struct options_pre_pull
 struct connection_entry
 {
   int proto;
-  int local_port;
+  const char* local_port;
   bool local_port_defined;
-  int remote_port;
+  const char* remote_port;
   const char *local;
   const char *remote;
   bool remote_float;
@@ -105,7 +105,7 @@ struct connection_entry
 #endif  
 #ifdef ENABLE_SOCKS
   const char *socks_proxy_server;
-  int socks_proxy_port;
+  const char *socks_proxy_port;
   const char *socks_proxy_authfile;
   bool socks_proxy_retry;
 #endif
@@ -143,7 +143,7 @@ struct connection_entry
 struct remote_entry
 {
   const char *remote;
-  int remote_port;
+  const char *remote_port;
   int proto;
 };
 
@@ -168,6 +168,8 @@ struct remote_host_store
 {
 # define RH_HOST_LEN 80
   char host[RH_HOST_LEN];
+#define RH_PORT_LEN 20
+  char port[RH_PORT_LEN];
 };
 
 /* Command line options */
@@ -356,7 +358,7 @@ struct options
 
 #ifdef ENABLE_MANAGEMENT
   const char *management_addr;
-  int management_port;
+  const char *management_port;
   const char *management_user_pass;
   int management_log_history_cache;
   int management_echo_buffer_size;
@@ -451,7 +453,7 @@ struct options
   bool auth_user_pass_verify_script_via_file;
 #if PORT_SHARE
   char *port_share_host;
-  int port_share_port;
+  char *port_share_port;
   const char *port_share_journal_dir;
 #endif
 #endif

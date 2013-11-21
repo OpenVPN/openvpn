@@ -42,14 +42,14 @@ struct socks_proxy_info {
   bool retry;
 
   char server[128];
-  int port;
+  const char *port;
   char authfile[256];
 };
 
 void socks_adjust_frame_parameters (struct frame *frame, int proto);
 
 struct socks_proxy_info *socks_proxy_new (const char *server,
-					  int port,
+					  const char *port,
 					  const char *authfile,
 					  bool retry);
 
@@ -58,7 +58,7 @@ void socks_proxy_close (struct socks_proxy_info *sp);
 void establish_socks_proxy_passthru (struct socks_proxy_info *p,
 				     socket_descriptor_t sd, /* already open to proxy */
 				     const char *host,       /* openvpn server remote */
-				     const int port,         /* openvpn server port */
+				     const char *servname,         /* openvpn server port */
 				     volatile int *signal_received);
 
 void establish_socks_proxy_udpassoc (struct socks_proxy_info *p,

@@ -101,8 +101,8 @@ getaddr (unsigned int flags,
 {
   struct addrinfo *ai;
   int status;
-  status = openvpn_getaddrinfo(flags, hostname, resolve_retry_seconds,
-							   signal_received, AF_INET, &ai);
+  status = openvpn_getaddrinfo (flags & ~GETADDR_HOST_ORDER, hostname, NULL,
+                                resolve_retry_seconds, signal_received, AF_INET, &ai);
   if(status==0) {
     struct in_addr ia;
     if(succeeded)
@@ -125,6 +125,7 @@ getaddr (unsigned int flags,
 int
 openvpn_getaddrinfo (unsigned int flags,
                      const char *hostname,
+                     const char *servname,
                      int resolve_retry_seconds,
                      volatile int *signal_received,
                      int ai_family,
@@ -135,6 +136,8 @@ openvpn_getaddrinfo (unsigned int flags,
   int sigrec = 0;
   int msglevel = (flags & GETADDR_FATAL) ? M_FATAL : D_RESOLVE_ERRORS;
   struct gc_arena gc = gc_new ();
+  const char *print_hostname;
+  const char *print_servname;
 
   ASSERT(res);
 
@@ -142,8 +145,19 @@ openvpn_getaddrinfo (unsigned int flags,
   res_init ();
 #endif
 
-  if (!hostname)
-    hostname = "::";
+  ASSERT (hostname || servname);
+  ASSERT (!(flags & GETADDR_HOST_ORDER));
+
+  if(hostname)
+    print_hostname = hostname;
+  else
+    print_hostname = "undefined";
+
+  if(servname)
+    print_servname = servname;
+  else
+    print_servname = "";
+
 
   if (flags & GETADDR_RANDOMIZE)
     hostname = hostname_randomize(hostname, &gc);
@@ -161,7 +175,10 @@ openvpn_getaddrinfo (unsigned int flags,
   hints.ai_flags = AI_NUMERICHOST;
   hints.ai_socktype = SOCK_STREAM;
 
-  status = getaddrinfo(hostname, NULL, &hints, res);
+  if(flags & GETADDR_PASSIVE)
+      hints.ai_flags |= AI_PASSIVE;
+
+  status = getaddrinfo(hostname, servname, &hints, res);
 
   if (status != 0) /* parse as numeric address failed? */
     {
@@ -177,7 +194,8 @@ openvpn_getaddrinfo (unsigned int flags,
 
       if (!(flags & GETADDR_RESOLVE) || status == EAI_FAIL)
         {
-          msg (msglevel, "RESOLVE: Cannot parse IP address: %s", hostname);
+          msg (msglevel, "RESOLVE: Cannot parse IP address: %s:%s",
+               print_hostname,print_servname);
           goto done;
         }
 
@@ -199,10 +217,10 @@ openvpn_getaddrinfo (unsigned int flags,
       while (true)
         {
           /* try hostname lookup */
-          hints.ai_flags = 0;
+          hints.ai_flags &= ~AI_NUMERICHOST;
           dmsg (D_SOCKET_DEBUG, "GETADDRINFO flags=0x%04x ai_family=%d ai_socktype=%d",
                 flags, hints.ai_family, hints.ai_socktype);
-          status = getaddrinfo(hostname, NULL, &hints, res);
+          status = getaddrinfo(hostname, servname, &hints, res);
 
           if (signal_received)
             {
@@ -236,7 +254,8 @@ openvpn_getaddrinfo (unsigned int flags,
 
           msg (level,
                fmt,
-               hostname,
+               print_hostname,
+               print_servname,
                gai_strerror(status));
 
           if (--resolve_retries <= 0)
@@ -449,7 +468,8 @@ update_remote (const char* host,
           int status;
           struct addrinfo* ai;
 
-		  status = openvpn_getaddrinfo(sf2gaf(GETADDR_RESOLVE|GETADDR_UPDATE_MANAGEMENT_STATE, sockflags), host, 1, NULL, AF_INET6, &ai);
+          status = openvpn_getaddrinfo(sf2gaf(GETADDR_RESOLVE|GETADDR_UPDATE_MANAGEMENT_STATE, sockflags),
+                                       host, NULL, 1, NULL, AF_INET6, &ai);
 
           if ( status ==0 )
             {
@@ -1141,53 +1161,30 @@ resolve_bind_local (struct link_socket *sock)
   /* resolve local address if undefined */
   if (!addr_defined (&sock->info.lsa->local))
     {
-      /* may return AF_{INET|INET6} guessed from local_host */
-      switch(addr_guess_family(sock->info.proto, sock->local_host))
-	{
-	case AF_INET:
-	  sock->info.lsa->local.addr.in4.sin_family = AF_INET;
-	  sock->info.lsa->local.addr.in4.sin_addr.s_addr =
-	    (sock->local_host ? getaddr (GETADDR_RESOLVE | GETADDR_WARN_ON_SIGNAL | GETADDR_FATAL,
-					 sock->local_host,
-					 0,
-					 NULL,
-					 NULL)
-	     : htonl (INADDR_ANY));
-	  sock->info.lsa->local.addr.in4.sin_port = htons (sock->local_port);
-	  break;
-	case AF_INET6:
-	    {
-	      int status;
-	      CLEAR(sock->info.lsa->local.addr.in6);
-	      if (sock->local_host)
-		{
-		  struct addrinfo *ai;
+      int status;
+      struct addrinfo *ai;
 
-		  status = openvpn_getaddrinfo(GETADDR_RESOLVE | GETADDR_WARN_ON_SIGNAL | GETADDR_FATAL,
-									   sock->local_host, 0, NULL, AF_INET6, &ai);
-		  if(status ==0) {
-			  sock->info.lsa->local.addr.in6 = *((struct sockaddr_in6*)(ai->ai_addr));
-			  freeaddrinfo(ai);
-		  }
-		}
-	      else
-		{
-		  sock->info.lsa->local.addr.in6.sin6_family = AF_INET6;
-		  sock->info.lsa->local.addr.in6.sin6_addr = in6addr_any;
-		  status = 0;
-		}
-	      if (!status == 0)
-		{
-		  msg (M_FATAL, "getaddr6() failed for local \"%s\": %s",
-		       sock->local_host,
-		       gai_strerror(status));
-		}
-	      sock->info.lsa->local.addr.in6.sin6_port = htons (sock->local_port);
-	    }
-	  break;
-	}
+      /* may return AF_{INET|INET6} guessed from local_host */
+      const int af = addr_guess_family(sock->info.proto, sock->local_host);
+      status = openvpn_getaddrinfo(GETADDR_RESOLVE | GETADDR_WARN_ON_SIGNAL | GETADDR_FATAL | GETADDR_PASSIVE,
+                                   sock->local_host, sock->local_port, 0, NULL, af, &ai);
+      if(status ==0) {
+        switch(af) {
+        case AF_INET:
+          sock->info.lsa->local.addr.in4 =  *((struct sockaddr_in*)(ai->ai_addr));
+
+        case AF_INET6:
+          sock->info.lsa->local.addr.in6 = *((struct sockaddr_in6*)(ai->ai_addr));
+          break;
+          freeaddrinfo(ai);
+        }
+      } else {
+        msg (M_FATAL, "getaddrinfo() failed for local \"%s:%s\": %s",
+             sock->local_host, sock->local_port,
+             gai_strerror(status));
+      }
     }
-  
+
   /* bind to local address/port */
   if (sock->bind_local)
     {
@@ -1272,8 +1269,8 @@ resolve_remote (struct link_socket *sock,
 		}
 
 		  /* Temporary fix, this need to be changed for dual stack */
-		  status = openvpn_getaddrinfo(flags, sock->remote_host, retry,
-											  signal_received, af, &ai);
+		  status = openvpn_getaddrinfo(flags, sock->remote_host, sock->remote_port,
+                                               retry, signal_received, af, &ai);
 		  if(status == 0) {
 			  sock->info.lsa->remote.addr.in6 = *((struct sockaddr_in6*)(ai->ai_addr));
 			  freeaddrinfo(ai);
@@ -1297,15 +1294,6 @@ resolve_remote (struct link_socket *sock,
 		  goto done;
 		}
 	    }
-          switch(af)
-            {
-              case AF_INET:
-                sock->info.lsa->remote.addr.in4.sin_port = htons (sock->remote_port);
-                break;
-              case AF_INET6:
-                sock->info.lsa->remote.addr.in6.sin6_port = htons (sock->remote_port);
-                break;
-            }
 	}
   
       /* should we re-use previous active remote address? */
@@ -1348,9 +1336,9 @@ void
 link_socket_init_phase1 (struct link_socket *sock,
 			 const bool connection_profiles_defined,
 			 const char *local_host,
-			 int local_port,
+			 const char *local_port,
 			 const char *remote_host,
-			 int remote_port,
+			 const char *remote_port,
 			 int proto,
 			 int mode,
 			 const struct link_socket *accept_from,
@@ -1497,7 +1485,8 @@ link_socket_init_phase1 (struct link_socket *sock,
       /* set socket to --mark packets with given value */
       socket_set_mark (sock->sd, mark);
 
-      resolve_bind_local (sock);
+      if(sock->bind_local)
+          resolve_bind_local (sock);
       resolve_remote (sock, 1, NULL, NULL);
     }
 }

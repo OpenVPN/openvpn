@@ -443,7 +443,7 @@ http_proxy_new (const struct http_proxy_options *o)
   if (!o || !o->server)
     msg (M_FATAL, "HTTP_PROXY: server not specified");
 
-  ASSERT (legal_ipv4_port (o->port));
+  ASSERT ( o->port);
 
   ALLOC_OBJ_CLEAR (p, struct http_proxy_info);
   p->options = *o;
@@ -492,7 +492,7 @@ bool
 add_proxy_headers (struct http_proxy_info *p,
 		  socket_descriptor_t sd, /* already open to proxy */
 		  const char *host,	  /* openvpn server remote */
-		  const int port	  /* openvpn server port */
+		  const char* port	  /* openvpn server port */
 		  )
 {
   char buf[512];
@@ -553,7 +553,7 @@ bool
 establish_http_proxy_passthru (struct http_proxy_info *p,
 			       socket_descriptor_t sd, /* already open to proxy */
 			       const char *host,       /* openvpn server remote */
-			       const int port,         /* openvpn server port */
+			       const char *port,         /* openvpn server port */
 			       struct buffer *lookahead,
 			       volatile int *signal_received)
 {
@@ -581,7 +581,7 @@ establish_http_proxy_passthru (struct http_proxy_info *p,
   else
     {
       /* format HTTP CONNECT message */
-      openvpn_snprintf (buf, sizeof(buf), "CONNECT %s:%d HTTP/%s",
+      openvpn_snprintf (buf, sizeof(buf), "CONNECT %s:%s HTTP/%s",
 			host,
 			port,
 			p->options.http_version);
@@ -692,7 +692,7 @@ establish_http_proxy_passthru (struct http_proxy_info *p,
           /* now send the phase 3 reply */
 
           /* format HTTP CONNECT message */
-          openvpn_snprintf (buf, sizeof(buf), "CONNECT %s:%d HTTP/%s",
+          openvpn_snprintf (buf, sizeof(buf), "CONNECT %s:%s HTTP/%s",
 			    host,
 			    port,
 			    p->options.http_version);
@@ -777,7 +777,7 @@ establish_http_proxy_passthru (struct http_proxy_info *p,
 
 
 	      /* build the digest response */
-	      openvpn_snprintf (uri, sizeof(uri), "%s:%d",
+	      openvpn_snprintf (uri, sizeof(uri), "%s:%s",
 				host,
 				port);
 

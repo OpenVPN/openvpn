@@ -61,7 +61,7 @@ socks_adjust_frame_parameters (struct frame *frame, int proto)
 
 struct socks_proxy_info *
 socks_proxy_new (const char *server,
-		 int port,
+		 const char *port,
 		 const char *authfile,
 		 bool retry)
 {
@@ -70,7 +70,7 @@ socks_proxy_new (const char *server,
   ALLOC_OBJ_CLEAR (p, struct socks_proxy_info);
 
   ASSERT (server);
-  ASSERT (legal_ipv4_port (port));
+  ASSERT (port);
 
   strncpynt (p->server, server, sizeof (p->server));
   p->port = port;
@@ -389,11 +389,27 @@ recv_socks_reply (socket_descriptor_t sd,
   return true;
 }
 
+static int
+port_from_servname(const char* servname)
+{
+    int port =0;
+    port = atoi(servname);
+    if(port >0 && port < 65536)
+        return port;
+
+    struct  servent* service;
+    service = getservbyname(servname, NULL);
+    if(service)
+        return service->s_port;
+
+    return 0;
+}
+
 void
 establish_socks_proxy_passthru (struct socks_proxy_info *p,
 			        socket_descriptor_t sd, /* already open to proxy */
 			        const char *host,       /* openvpn server remote */
-			        const int port,         /* openvpn server port */
+			        const char *servname,   /* openvpn server port */
 			        volatile int *signal_received)
 {
   char buf[128];
@@ -414,6 +430,13 @@ establish_socks_proxy_passthru (struct socks_proxy_info *p,
   buf[4] = (char) len;
   memcpy(buf + 5, host, len);
 
+  int port = port_from_servname (servname);
+  if (port ==0)
+    {
+      msg (D_LINK_ERRORS, "establish_socks_proxy_passthrough: Cannot convert %s to port number", servname);
+      goto error;
+    }
+
   buf[5 + len] = (char) (port >> 8);
   buf[5 + len + 1] = (char) (port & 0xff);
 
@@ -425,6 +448,7 @@ establish_socks_proxy_passthru (struct socks_proxy_info *p,
 	goto error;
       }
   }
+
 
   /* receive reply from Socks proxy and discard */
   if (!recv_socks_reply (sd, NULL, signal_received))

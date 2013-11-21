@@ -46,7 +46,7 @@ struct http_custom_header {
 #define MAX_CUSTOM_HTTP_HEADER 10
 struct http_proxy_options {
   const char *server;
-  int port;
+  const char *port;
   bool retry;
   int timeout;
 
@@ -64,7 +64,7 @@ struct http_proxy_options {
 
 struct http_proxy_options_simple {
   const char *server;
-  int port;
+  const char *port;
   int auth_retry;
 };
 
@@ -87,7 +87,7 @@ void http_proxy_close (struct http_proxy_info *hp);
 bool establish_http_proxy_passthru (struct http_proxy_info *p,
 				    socket_descriptor_t sd, /* already open to proxy */
 				    const char *host,       /* openvpn server remote */
-				    const int port,         /* openvpn server port */
+				    const char *port,         /* openvpn server port */
 				    struct buffer *lookahead,
 				    volatile int *signal_received);
 

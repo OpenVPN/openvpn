@@ -2058,7 +2058,7 @@ man_persist_close (struct man_persist *mp)
 static void
 man_settings_init (struct man_settings *ms,
 		   const char *addr,
-		   const int port,
+		   const char *port,
 		   const char *pass_file,
 		   const char *client_user,
 		   const char *client_group,
@@ -2111,12 +2111,6 @@ man_settings_init (struct man_settings *ms,
       else
 #endif
 	{
-	  /*
-	   * Initialize socket address
-	   */
-	  ms->local.addr.in4.sin_family = AF_INET;
-	  ms->local.addr.in4.sin_addr.s_addr = 0;
-	  ms->local.addr.in4.sin_port = htons (port);
 
 	  /*
 	   * Run management over tunnel, or
@@ -2128,8 +2122,13 @@ man_settings_init (struct man_settings *ms,
 	    }
 	  else
 	    {
-	      ms->local.addr.in4.sin_addr.s_addr = getaddr
-		(GETADDR_RESOLVE|GETADDR_WARN_ON_SIGNAL|GETADDR_FATAL, addr, 0, NULL, NULL);
+              struct addrinfo* ai;
+              int status = openvpn_getaddrinfo(GETADDR_RESOLVE|GETADDR_WARN_ON_SIGNAL|GETADDR_FATAL,
+                                               addr, port, 0, NULL, AF_INET, &ai);
+              ASSERT(status==0);
+              ms->local.addr.in4 = *((struct sockaddr_in*)ai->ai_addr);
+              freeaddrinfo(ai);
+
 	    }
 	}
       
@@ -2248,7 +2247,7 @@ management_init (void)
 bool
 management_open (struct management *man,
 		 const char *addr,
-		 const int port,
+		 const char *port,
 		 const char *pass_file,
 		 const char *client_user,
 		 const char *client_group,

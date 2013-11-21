@@ -341,7 +341,7 @@ struct management *management_init (void);
 
 bool management_open (struct management *man,
 		      const char *addr,
-		      const int port,
+		      const char *port,
 		      const char *pass_file,
 		      const char *client_user,
 		      const char *client_group,

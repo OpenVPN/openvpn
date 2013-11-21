@@ -44,7 +44,7 @@ struct port_share {
 extern struct port_share *port_share;
 
 struct port_share *port_share_open (const char *host,
-				    const int port,
+				    const char *port,
 				    const int max_initial_buf,
 				    const char *journal_dir);
 

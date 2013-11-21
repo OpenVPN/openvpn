@@ -294,12 +294,12 @@ init_route (struct route *r,
   if(get_special_addr (rl, ro->network, &special.s_addr, &status))
     {
       special.s_addr = htonl(special.s_addr);
-      ret = openvpn_getaddrinfo(0, inet_ntoa(special), 0, NULL,
+      ret = openvpn_getaddrinfo(0, inet_ntoa(special), NULL, 0, NULL,
                                 AF_INET, network_list);
     }
   else
     ret = openvpn_getaddrinfo(GETADDR_RESOLVE | GETADDR_WARN_ON_SIGNAL,
-                              ro->network, 0, NULL, AF_INET, network_list);
+                              ro->network, NULL, 0, NULL, AF_INET, network_list);
 
   status = (ret == 0);
 

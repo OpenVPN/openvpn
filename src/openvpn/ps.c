@@ -403,8 +403,7 @@ proxy_connection_io_requeue (struct proxy_connection *pc, const int rwflags_new,
 static bool
 proxy_entry_new (struct proxy_connection **list,
 		 struct event_set *es,
-		 const in_addr_t server_addr,
-		 const int server_port,
+		 const struct sockaddr_in server_addr,
 		 const socket_descriptor_t sd_client,
 		 struct buffer *initial_data,
 		 const char *journal_dir)
@@ -416,7 +415,7 @@ proxy_entry_new (struct proxy_connection **list,
   struct proxy_connection *cp;
 
   /* connect to port share server */
-  sock_addr_set (&osaddr, server_addr, server_port);
+  osaddr.addr.in4 = server_addr;
   if ((sd_server = socket (PF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0)
     {
       msg (M_WARN|M_ERRNO, "PORT SHARE PROXY: cannot create socket");
@@ -482,8 +481,7 @@ static bool
 control_message_from_parent (const socket_descriptor_t sd_control,
 			     struct proxy_connection **list,
 			     struct event_set *es,
-			     const in_addr_t server_addr,
-			     const int server_port,
+			     const struct sockaddr_in server_addr,
 			     const int max_initial_buf,
 			     const char *journal_dir)
 {
@@ -539,7 +537,6 @@ control_message_from_parent (const socket_descriptor_t sd_control,
 	      if (proxy_entry_new (list,
 				   es,
 				   server_addr,
-				   server_port,
 				   received_fd,
 				   &buf,
 				   journal_dir))
@@ -716,8 +713,7 @@ proxy_connection_io_dispatch (struct proxy_connection *pc,
  * This is the main function for the port share proxy background process.
  */
 static void
-port_share_proxy (const in_addr_t hostaddr,
-		  const int port,
+port_share_proxy (const struct sockaddr_in hostaddr,
 		  const socket_descriptor_t sd_control,
 		  const int max_initial_buf,
 		  const char *journal_dir)
@@ -754,7 +750,7 @@ port_share_proxy (const in_addr_t hostaddr,
 		  const struct event_set_return *e = &esr[i];
 		  if (e->arg == sd_control_marker)
 		    {
-		      if (!control_message_from_parent (sd_control, &list, es, hostaddr, port, max_initial_buf, journal_dir))
+		      if (!control_message_from_parent (sd_control, &list, es, hostaddr, max_initial_buf, journal_dir))
 			goto done;
 		    }
 		  else
@@ -789,14 +785,16 @@ port_share_proxy (const in_addr_t hostaddr,
  */
 struct port_share *
 port_share_open (const char *host,
-		 const int port,
+		 const char *port,
 		 const int max_initial_buf,
 		 const char *journal_dir)
 {
   pid_t pid;
   socket_descriptor_t fd[2];
-  in_addr_t hostaddr;
+  struct sockaddr_in hostaddr;
   struct port_share *ps;
+  int status;
+  struct addrinfo* ai;
 
   ALLOC_OBJ_CLEAR (ps, struct port_share);
   ps->foreground_fd = -1;
@@ -805,7 +803,12 @@ port_share_open (const char *host,
   /*
    * Get host's IP address
    */
-  hostaddr = getaddr (GETADDR_RESOLVE|GETADDR_HOST_ORDER|GETADDR_FATAL, host, 0, NULL, NULL);
+
+  status = openvpn_getaddrinfo (GETADDR_RESOLVE|GETADDR_HOST_ORDER|GETADDR_FATAL,
+                                 host, port,  0, NULL, AF_INET, &ai);
+  ASSERT (status==0);
+  hostaddr = *((struct sockaddr_in*) ai->ai_addr);
+  freeaddrinfo(ai);
 
   /*
    * Make a socket for foreground and background processes
@@ -881,7 +884,7 @@ port_share_open (const char *host,
       prng_init (NULL, 0);
 
       /* execute the event loop */
-      port_share_proxy (hostaddr, port, fd[1], max_initial_buf, journal_dir);
+      port_share_proxy (hostaddr, fd[1], max_initial_buf, journal_dir);
 
       openvpn_close_socket (fd[1]);
 

@@ -169,8 +169,8 @@ static const char usage_message[] =
   "--ipchange cmd  : Run command cmd on remote ip address initial\n"
   "                  setting or change -- execute as: cmd ip-address port#\n"
   "--port port     : TCP/UDP port # for both local and remote.\n"
-  "--lport port    : TCP/UDP port # for local (default=%d). Implies --bind.\n"
-  "--rport port    : TCP/UDP port # for remote (default=%d).\n"
+  "--lport port    : TCP/UDP port # for local (default=%s). Implies --bind.\n"
+  "--rport port    : TCP/UDP port # for remote (default=%s).\n"
   "--bind          : Bind to local address and port. (This is the default unless\n"
   "                  --proto tcp-client"
 #ifdef ENABLE_HTTP_PROXY
@@ -909,22 +909,22 @@ setenv_connection_entry (struct env_set *es,
 {
   setenv_str_i (es, "proto", proto2ascii (e->proto, false), i);
   setenv_str_i (es, "local", e->local, i);
-  setenv_int_i (es, "local_port", e->local_port, i);
+  setenv_str_i (es, "local_port", e->local_port, i);
   setenv_str_i (es, "remote", e->remote, i);
-  setenv_int_i (es, "remote_port", e->remote_port, i);
+  setenv_str_i (es, "remote_port", e->remote_port, i);
 
 #ifdef ENABLE_HTTP_PROXY
   if (e->http_proxy_options)
     {
       setenv_str_i (es, "http_proxy_server", e->http_proxy_options->server, i);
-      setenv_int_i (es, "http_proxy_port", e->http_proxy_options->port, i);
+      setenv_str_i (es, "http_proxy_port", e->http_proxy_options->port, i);
     }
 #endif
 #ifdef ENABLE_SOCKS
   if (e->socks_proxy_server)
     {
       setenv_str_i (es, "socks_proxy_server", e->socks_proxy_server, i);
-      setenv_int_i (es, "socks_proxy_port", e->socks_proxy_port, i);
+      setenv_str_i (es, "socks_proxy_port", e->socks_proxy_port, i);
     }
 #endif
 }
@@ -1226,7 +1226,7 @@ show_p2mp_parms (const struct options *o)
   SHOW_BOOL (auth_user_pass_verify_script_via_file);
 #if PORT_SHARE
   SHOW_STR (port_share_host);
-  SHOW_INT (port_share_port);
+  SHOW_STR (port_share_port);
 #endif
 #endif /* P2MP_SERVER */
 
@@ -1298,7 +1298,7 @@ show_http_proxy_options (const struct http_proxy_options *o)
   int i;
   msg (D_SHOW_PARMS, "BEGIN http_proxy");
   SHOW_STR (server);
-  SHOW_INT (port);
+  SHOW_STR (port);
   SHOW_STR (auth_method_string);
   SHOW_STR (auth_file);
   SHOW_BOOL (retry);
@@ -1360,9 +1360,9 @@ show_connection_entry (const struct connection_entry *o)
 {
   msg (D_SHOW_PARMS, "  proto = %s", proto2ascii (o->proto, false));
   SHOW_STR (local);
-  SHOW_INT (local_port);
+  SHOW_STR (local_port);
   SHOW_STR (remote);
-  SHOW_INT (remote_port);
+  SHOW_STR (remote_port);
   SHOW_BOOL (remote_float);
   SHOW_BOOL (bind_defined);
   SHOW_BOOL (bind_local);
@@ -1376,7 +1376,7 @@ show_connection_entry (const struct connection_entry *o)
 #endif
 #ifdef ENABLE_SOCKS
   SHOW_STR (socks_proxy_server);
-  SHOW_INT (socks_proxy_port);
+  SHOW_STR (socks_proxy_port);
   SHOW_BOOL (socks_proxy_retry);
 #endif
   SHOW_INT (tun_mtu);
@@ -1557,7 +1557,7 @@ show_settings (const struct options *o)
 
 #ifdef ENABLE_MANAGEMENT
   SHOW_STR (management_addr);
-  SHOW_INT (management_port);
+  SHOW_STR (management_port);
   SHOW_STR (management_user_pass);
   SHOW_INT (management_log_history_cache);
   SHOW_INT (management_echo_buffer_size);
@@ -1705,17 +1705,9 @@ parse_http_proxy_override (const char *server,
   if (server && port)
     {
       struct http_proxy_options *ho;
-      const int int_port = atoi(port);
-
-      if (!legal_ipv4_port (int_port))
-	{
-	  msg (msglevel, "Bad http-proxy port number: %s", port);
-	  return NULL;
-	}
-
       ALLOC_OBJ_CLEAR_GC (ho, struct http_proxy_options, gc);
       ho->server = string_alloc(server, gc);
-      ho->port = int_port;
+      ho->port = port;
       ho->retry = true;
       ho->timeout = 5;
       if (flags && !strcmp(flags, "nct"))
@@ -1818,7 +1810,7 @@ connection_entry_load_re (struct connection_entry *ce, const struct remote_entry
 {
   if (re->remote)
     ce->remote = re->remote;
-  if (re->remote_port >= 0)
+  if (re->remote_port)
     ce->remote_port = re->remote_port;
   if (re->proto >= 0)
     ce->proto = re->proto;
@@ -1922,7 +1914,7 @@ options_postprocess_verify_ce (const struct options *options, const struct conne
 
   if (proto_is_net(ce->proto)
       && string_defined_equal (ce->local, ce->remote)
-      && ce->local_port == ce->remote_port)
+      && string_defined_equal (ce->local_port, ce->remote_port))
     msg (M_USAGE, "--remote and --local addresses are the same");
   
   if (string_defined_equal (ce->remote, options->ifconfig_local)
@@ -2400,7 +2392,7 @@ options_postprocess_mutate_ce (struct options *o, struct connection_entry *ce)
 #endif
 
   if (!ce->bind_local)
-    ce->local_port = 0;
+    ce->local_port = NULL;
 
   /* if protocol forcing is enabled, disable all protocols except for the forced one */
   if (o->proto_force >= 0 && proto_is_tcp(o->proto_force) != proto_is_tcp(ce->proto))
@@ -4144,8 +4136,6 @@ add_option (struct options *options,
 #ifdef ENABLE_MANAGEMENT
   else if (streq (p[0], "management") && p[1] && p[2])
     {
-      int port = 0;
-
       VERIFY_PERMISSION (OPT_P_GENERAL);
       if (streq (p[2], "unix"))
 	{
@@ -4156,18 +4146,9 @@ add_option (struct options *options,
 	  goto err;
 #endif
 	}
-      else
-	{
-	  port = atoi (p[2]);
-	  if (!legal_ipv4_port (port))
-	    {
-	      msg (msglevel, "port number associated with --management directive is out of range");
-	      goto err;
-	    }
-	}
 
       options->management_addr = p[1];
-      options->management_port = port;
+      options->management_port = p[2];
       if (p[3])
 	{
 	  options->management_user_pass = p[3];
@@ -4481,20 +4462,14 @@ add_option (struct options *options,
   else if (streq (p[0], "remote") && p[1])
     {
       struct remote_entry re;
-      re.remote = NULL;
-      re.remote_port = re.proto = -1;
+      re.remote = re.remote_port= NULL;
+      re.proto = -1;
 
       VERIFY_PERMISSION (OPT_P_GENERAL|OPT_P_CONNECTION);
       re.remote = p[1];
       if (p[2])
 	{
-	  const int port = atoi (p[2]);
-	  if (!legal_ipv4_port (port))
-	    {
-	      msg (msglevel, "remote: port number associated with host %s is out of range", p[1]);
-	      goto err;
-	    }
-	  re.remote_port = port;
+	  re.remote_port = p[2];
 	  if (p[3])
 	    {
 	      const int proto = ascii2proto (p[3]);
@@ -4902,43 +4877,19 @@ add_option (struct options *options,
     }
   else if (streq (p[0], "port") && p[1])
     {
-      int port;
-
       VERIFY_PERMISSION (OPT_P_GENERAL|OPT_P_CONNECTION);
-      port = atoi (p[1]);
-      if (!legal_ipv4_port (port))
-	{
-	  msg (msglevel, "Bad port number: %s", p[1]);
-	  goto err;
-	}
-      options->ce.local_port = options->ce.remote_port = port;
+      options->ce.local_port = options->ce.remote_port = p[1];
     }
   else if (streq (p[0], "lport") && p[1])
     {
-      int port;
-
       VERIFY_PERMISSION (OPT_P_GENERAL|OPT_P_CONNECTION);
-      port = atoi (p[1]);
-      if ((port != 0) && !legal_ipv4_port (port))
-	{
-	  msg (msglevel, "Bad local port number: %s", p[1]);
-	  goto err;
-	}
       options->ce.local_port_defined = true;
-      options->ce.local_port = port;
+      options->ce.local_port = p[1];
     }
   else if (streq (p[0], "rport") && p[1])
     {
-      int port;
-
       VERIFY_PERMISSION (OPT_P_GENERAL|OPT_P_CONNECTION);
-      port = atoi (p[1]);
-      if (!legal_ipv4_port (port))
-	{
-	  msg (msglevel, "Bad remote port number: %s", p[1]);
-	  goto err;
-	}
-      options->ce.remote_port = port;
+      options->ce.remote_port = p[1];
     }
   else if (streq (p[0], "bind"))
     {
@@ -4997,23 +4948,16 @@ add_option (struct options *options,
       VERIFY_PERMISSION (OPT_P_GENERAL|OPT_P_CONNECTION);
 
       {
-	int port;
 	if (!p[2])
 	  {
 	    msg (msglevel, "http-proxy port number not defined");
-	    goto err;
-	  }
-	port = atoi (p[2]);
-	if (!legal_ipv4_port (port))
-	  {
-	    msg (msglevel, "Bad http-proxy port number: %s", p[2]);
 	    goto err;
 	  }
 	
 	ho = init_http_proxy_options_once (&options->ce.http_proxy_options, &options->gc);
 	
 	ho->server = p[1];
-	ho->port = port;
+	ho->port = p[2];
       }
 
       if (p[3])
@@ -5110,19 +5054,12 @@ add_option (struct options *options,
       VERIFY_PERMISSION (OPT_P_GENERAL|OPT_P_CONNECTION);
 
       if (p[2])
-	{
-	  int port;
-          port = atoi (p[2]);
-          if (!legal_ipv4_port (port))
-	    {
-	      msg (msglevel, "Bad socks-proxy port number: %s", p[2]);
-	      goto err;
-	    }
-          options->ce.socks_proxy_port = port;
+        {
+          options->ce.socks_proxy_port = p[2];
 	}
       else
 	{
-	  options->ce.socks_proxy_port = 1080;
+	  options->ce.socks_proxy_port = "1080";
 	}
       options->ce.socks_proxy_server = p[1];
       options->ce.socks_proxy_authfile = p[3]; /* might be NULL */
@@ -5755,18 +5692,9 @@ add_option (struct options *options,
 #if PORT_SHARE
   else if (streq (p[0], "port-share") && p[1] && p[2])
     {
-      int port;
-
       VERIFY_PERMISSION (OPT_P_GENERAL);
-      port = atoi (p[2]);
-      if (!legal_ipv4_port (port))
-	{
-	  msg (msglevel, "port number associated with --port-share directive is out of range");
-	  goto err;
-	}
-
       options->port_share_host = p[1];
-      options->port_share_port = port;
+      options->port_share_port = p[2];
       options->port_share_journal_dir = p[3];
     }
 #endif

@@ -39,7 +39,7 @@
 /*
  * OpenVPN's default port number as assigned by IANA.
  */
-#define OPENVPN_PORT 1194
+#define OPENVPN_PORT "1194"
 
 /*
  * Maximum size passed passed to setsockopt SNDBUF/RCVBUF
@@ -179,9 +179,9 @@ struct link_socket
   bool connection_profiles_defined;
 
   const char *remote_host;
-  int remote_port;
+  const char *remote_port;
   const char *local_host;
-  int local_port;
+  const char *local_port;
   bool bind_local;
 
 # define INETD_NONE   0
@@ -232,7 +232,7 @@ struct link_socket
 #if defined(ENABLE_HTTP_PROXY) || defined(ENABLE_SOCKS)
   /* The OpenVPN server we will use the proxy to connect to */
   const char *proxy_dest_host;
-  int proxy_dest_port;
+  const char *proxy_dest_port;
 #endif
 
 #if PASSTOS_CAPABILITY
@@ -299,9 +299,9 @@ void
 link_socket_init_phase1 (struct link_socket *sock,
 			 const bool connection_profiles_defined,
 			 const char *local_host,
-			 int local_port,
+			 const char *local_port,
 			 const char *remote_host,
-			 int remote_port,
+			 const char *remote_port,
 			 int proto,
 			 int mode,
 			 const struct link_socket *accept_from,
@@ -481,6 +481,7 @@ bool unix_socket_get_peer_uid_gid (const socket_descriptor_t sd, int *uid, int *
 #define GETADDR_TRY_ONCE              (1<<7)
 #define GETADDR_UPDATE_MANAGEMENT_STATE (1<<8)
 #define GETADDR_RANDOMIZE             (1<<9)
+#define GETADDR_PASSIVE               (1<<10)
 
 in_addr_t getaddr (unsigned int flags,
 		   const char *hostname,
@@ -490,6 +491,7 @@ in_addr_t getaddr (unsigned int flags,
 
 int openvpn_getaddrinfo (unsigned int flags,
                          const char *hostname,
+                         const char *servname,
                          int resolve_retry_seconds,
                          volatile int *signal_received,
                          int ai_family,
@@ -542,12 +544,6 @@ datagram_overhead (int proto)
 /*
  * Misc inline functions
  */
-
-static inline bool
-legal_ipv4_port (int port)
-{
-  return port > 0 && port < 65536;
-}
 
 static inline bool
 link_socket_proto_connection_oriented (int proto)

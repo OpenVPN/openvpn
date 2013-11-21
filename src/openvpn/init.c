@@ -125,13 +125,6 @@ management_callback_proxy_cmd (void *arg, const char **p)
     ret = true;
   else if (p[2] && p[3])
     {
-      const int port = atoi(p[3]);
-      if (!legal_ipv4_port (port))
-        {
-          msg (M_WARN, "Bad proxy port number: %s", p[3]);
-          return false;
-        }
-
       if (streq (p[1], "HTTP"))
         {
 #ifndef ENABLE_HTTP_PROXY
@@ -146,7 +139,7 @@ management_callback_proxy_cmd (void *arg, const char **p)
             }
           ho = init_http_proxy_options_once (&ce->http_proxy_options, gc);
           ho->server = string_alloc (p[2], gc);
-          ho->port = port;
+          ho->port = string_alloc (p[3], gc);
           ho->retry = true;
           ho->auth_retry = (p[4] && streq (p[4], "nct") ? PAR_NCT : PAR_ALL);
           ret = true;
@@ -158,7 +151,7 @@ management_callback_proxy_cmd (void *arg, const char **p)
           msg (M_WARN, "SOCKS proxy support is not available");
 #else
           ce->socks_proxy_server = string_alloc (p[2], gc);
-          ce->socks_proxy_port = port;
+          ce->socks_proxy_port = p[3];
           ret = true;
 #endif
         }
@@ -227,8 +220,7 @@ management_callback_remote_cmd (void *arg, const char **p)
 	}
       else if (!strcmp(p[1], "MOD") && p[2] && p[3])
 	{
-	  const int port = atoi(p[3]);
-	  if (strlen(p[2]) < RH_HOST_LEN && legal_ipv4_port(port))
+	  if (strlen(p[2]) < RH_HOST_LEN && strlen(p[3]) < RH_PORT_LEN)
 	    {
 	      struct remote_host_store *rhs = c->options.rh_store;
 	      if (!rhs)
@@ -237,8 +229,10 @@ management_callback_remote_cmd (void *arg, const char **p)
 		  c->options.rh_store = rhs;
 		}
 	      strncpynt(rhs->host, p[2], RH_HOST_LEN);
+              strncpynt(rhs->port, p[3], RH_PORT_LEN);
+
 	      ce->remote = rhs->host;
-	      ce->remote_port = port;
+	      ce->remote_port = rhs->port;
 	      flags = CE_MAN_QUERY_REMOTE_MOD;
 	      ret = true;
 	    }
@@ -262,7 +256,7 @@ ce_management_query_remote (struct context *c, const char *remote_ip_hint)
   if (management)
     {
       struct buffer out = alloc_buf_gc (256, &gc);
-      buf_printf (&out, ">REMOTE:%s,%d,%s", np(ce->remote), ce->remote_port, proto2ascii(ce->proto, false));
+      buf_printf (&out, ">REMOTE:%s,%s,%s", np(ce->remote), ce->remote_port, proto2ascii(ce->proto, false));
       management_notify_generic(management, BSTR (&out));
       ce->flags &= ~(CE_MAN_QUERY_REMOTE_MASK<<CE_MAN_QUERY_REMOTE_SHIFT);
       ce->flags |= (CE_MAN_QUERY_REMOTE_QUERY<<CE_MAN_QUERY_REMOTE_SHIFT);
