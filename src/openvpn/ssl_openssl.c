@@ -535,7 +535,7 @@ void
 tls_ctx_load_cert_file (struct tls_root_ctx *ctx, const char *cert_file,
     const char *cert_file_inline)
 {
-  tls_ctx_load_cert_file_ext(ctx, cert_file, cert_file_inline, NULL);
+  tls_ctx_load_cert_file_and_copy (ctx, cert_file, cert_file_inline, NULL);
 }
 
 void
@@ -686,7 +686,7 @@ tls_ctx_use_external_private_key (struct tls_root_ctx *ctx,
   ASSERT (NULL != ctx);
   ASSERT (NULL != cert);
 
-  tls_ctx_load_cert_file_ext(ctx, cert_file, cert_file_inline, &cert);
+  tls_ctx_load_cert_file_and_copy (ctx, cert_file, cert_file_inline, &cert);
 
   /* allocate custom RSA method object */
   ALLOC_OBJ_CLEAR (rsa_meth, RSA_METHOD);
