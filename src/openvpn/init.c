@@ -131,9 +131,7 @@ management_callback_proxy_cmd (void *arg, const char **p)
           msg (M_WARN, "HTTP proxy support is not available");
 #else
           struct http_proxy_options *ho;
-          if (ce->proto != PROTO_TCPv4 && ce->proto != PROTO_TCPv4_CLIENT &&
-              ce->proto != PROTO_TCPv6 && ce->proto != PROTO_TCPv6_CLIENT)
-            {
+          if (ce->proto != PROTO_TCP && ce->proto != PROTO_TCP_CLIENT )            {
               msg (M_WARN, "HTTP proxy support only works for TCP based connections");
               return false;
             }
@@ -256,7 +254,7 @@ ce_management_query_remote (struct context *c, const char *remote_ip_hint)
   if (management)
     {
       struct buffer out = alloc_buf_gc (256, &gc);
-      buf_printf (&out, ">REMOTE:%s,%s,%s", np(ce->remote), ce->remote_port, proto2ascii(ce->proto, false));
+      buf_printf (&out, ">REMOTE:%s,%s,%s", np(ce->remote), ce->remote_port, proto2ascii(ce->proto, ce->af, false));
       management_notify_generic(management, BSTR (&out));
       ce->flags &= ~(CE_MAN_QUERY_REMOTE_MASK<<CE_MAN_QUERY_REMOTE_SHIFT);
       ce->flags |= (CE_MAN_QUERY_REMOTE_QUERY<<CE_MAN_QUERY_REMOTE_SHIFT);
@@ -1847,17 +1845,14 @@ socket_restart_pause (struct context *c)
 
   switch (c->options.ce.proto)
     {
-    case PROTO_UDPv4:
-    case PROTO_UDPv6:
+    case PROTO_UDP:
       if (proxy)
 	sec = c->options.ce.connect_retry_seconds;
       break;
-    case PROTO_TCPv4_SERVER:
-    case PROTO_TCPv6_SERVER:
+    case PROTO_TCP_SERVER:
       sec = 1;
       break;
-    case PROTO_TCPv4_CLIENT:
-    case PROTO_TCPv6_CLIENT:
+    case PROTO_TCP_CLIENT:
       sec = c->options.ce.connect_retry_seconds;
       break;
     }
@@ -2218,7 +2213,7 @@ do_init_crypto_tls (struct context *c, const unsigned int flags)
 
   /* should we not xmit any packets until we get an initial
      response from client? */
-  if (to.server && options->ce.proto == PROTO_TCPv4_SERVER)
+  if (to.server && options->ce.proto == PROTO_TCP_SERVER)
     to.xmit_hold = true;
 
 #ifdef ENABLE_OCC
@@ -2675,6 +2670,7 @@ do_init_socket_1 (struct context *c, const int mode)
 			   c->options.ce.remote,
 			   c->options.ce.remote_port,
 			   c->options.ce.proto,
+			   c->options.ce.af,
 			   mode,
 			   c->c2.accept_from,
 #ifdef ENABLE_HTTP_PROXY
@@ -3331,8 +3327,7 @@ init_instance (struct context *c, const struct env_set *env, const unsigned int 
   /* link_socket_mode allows CM_CHILD_TCP
      instances to inherit acceptable fds
      from a top-level parent */
-  if (c->options.ce.proto == PROTO_TCPv4_SERVER
-      || c->options.ce.proto == PROTO_TCPv6_SERVER)
+  if (c->options.ce.proto == PROTO_TCP_SERVER)
     {
       if (c->mode == CM_TOP)
 	link_socket_mode = LS_MODE_TCP_LISTEN;

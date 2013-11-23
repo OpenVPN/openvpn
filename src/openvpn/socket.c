@@ -717,7 +717,7 @@ static void
 create_socket (struct link_socket *sock)
 {
   /* create socket */
-  if (sock->info.proto == PROTO_UDPv4)
+  if (sock->info.proto == PROTO_UDP && sock->info.af == AF_INET)
     {
       sock->sd = create_socket_udp (sock->sockflags);
       sock->sockflags |= SF_GETADDRINFO_DGRAM;
@@ -727,17 +727,12 @@ create_socket (struct link_socket *sock)
 	sock->ctrl_sd = create_socket_tcp (AF_INET);
 #endif
     }
-  else if (sock->info.proto == PROTO_TCPv4_SERVER
-	   || sock->info.proto == PROTO_TCPv4_CLIENT)
+  else if (sock->info.proto == PROTO_TCP_SERVER
+	   || sock->info.proto == PROTO_TCP_CLIENT)
     {
-      sock->sd = create_socket_tcp (AF_INET);
+      sock->sd = create_socket_tcp (sock->info.af);
     }
-  else if (sock->info.proto == PROTO_TCPv6_SERVER
-	   || sock->info.proto == PROTO_TCPv6_CLIENT)
-    {
-      sock->sd = create_socket_tcp (AF_INET6);
-    }
-  else if (sock->info.proto == PROTO_UDPv6)
+  else if (sock->info.proto == PROTO_UDP && sock->info.af == AF_INET6)
     {
       sock->sd = create_socket_udp6 (sock->sockflags);
       sock->sockflags |= SF_GETADDRINFO_DGRAM;
@@ -1165,7 +1160,7 @@ resolve_bind_local (struct link_socket *sock)
       struct addrinfo *ai;
 
       /* may return AF_{INET|INET6} guessed from local_host */
-      const int af = addr_guess_family(sock->info.proto, sock->local_host);
+      const int af = addr_guess_family(sock->info.af, sock->local_host);
       status = openvpn_getaddrinfo(GETADDR_RESOLVE | GETADDR_WARN_ON_SIGNAL | GETADDR_FATAL | GETADDR_PASSIVE,
                                    sock->local_host, sock->local_port, 0, NULL, af, &ai);
       if(status ==0) {
@@ -1189,7 +1184,7 @@ resolve_bind_local (struct link_socket *sock)
   if (sock->bind_local)
     {
 #ifdef ENABLE_SOCKS
-      if (sock->socks_proxy && sock->info.proto == PROTO_UDPv4)
+      if (sock->socks_proxy && sock->info.proto == PROTO_UDP && sock->info.af == AF_INET)
           socket_bind (sock->ctrl_sd, &sock->info.lsa->local, "SOCKS");
       else
 #endif
@@ -1212,7 +1207,7 @@ resolve_remote (struct link_socket *sock,
       /* resolve remote address if undefined */
       if (!addr_defined (&sock->info.lsa->remote))
 	{
-          af = addr_guess_family(sock->info.proto, sock->remote_host);
+          af = addr_guess_family(sock->info.af, sock->remote_host);
           switch(af)
             {
               case AF_INET:
@@ -1340,6 +1335,7 @@ link_socket_init_phase1 (struct link_socket *sock,
 			 const char *remote_host,
 			 const char *remote_port,
 			 int proto,
+			 sa_family_t af,
 			 int mode,
 			 const struct link_socket *accept_from,
 #ifdef ENABLE_HTTP_PROXY
@@ -1402,6 +1398,7 @@ link_socket_init_phase1 (struct link_socket *sock,
   sock->sockflags = sockflags;
 
   sock->info.proto = proto;
+  sock->info.af = af;
   sock->info.remote_float = remote_float;
   sock->info.lsa = lsa;
   sock->info.ipchange_command = ipchange_command;
@@ -1411,9 +1408,7 @@ link_socket_init_phase1 (struct link_socket *sock,
   if (mode == LS_MODE_TCP_ACCEPT_FROM)
     {
       ASSERT (accept_from);
-      ASSERT (sock->info.proto == PROTO_TCPv4_SERVER
-	      || sock->info.proto == PROTO_TCPv6_SERVER
-	     );
+      ASSERT (sock->info.proto == PROTO_TCP_SERVER);
       ASSERT (!sock->inetd);
       sock->sd = accept_from->sd;
     }
@@ -1424,7 +1419,7 @@ link_socket_init_phase1 (struct link_socket *sock,
   /* are we running in HTTP proxy mode? */
   else if (sock->http_proxy)
     {
-      ASSERT (sock->info.proto == PROTO_TCPv4_CLIENT);
+      ASSERT (sock->info.proto == PROTO_TCP_CLIENT && sock->info.af == AF_INET);
       ASSERT (!sock->inetd);
 
       /* the proxy server */
@@ -1440,7 +1435,7 @@ link_socket_init_phase1 (struct link_socket *sock,
   /* or in Socks proxy mode? */
   else if (sock->socks_proxy)
     {
-      ASSERT (sock->info.proto == PROTO_TCPv4_CLIENT || sock->info.proto == PROTO_UDPv4);
+      ASSERT (sock->info.af == AF_INET);
       ASSERT (!sock->inetd);
 
       /* the proxy server */
@@ -1459,7 +1454,7 @@ link_socket_init_phase1 (struct link_socket *sock,
     }
 
   /* bind behavior for TCP server vs. client */
-  if (sock->info.proto == PROTO_TCPv4_SERVER)
+  if (sock->info.proto == PROTO_TCP_SERVER && sock->info.af==AF_INET)
     {
       if (sock->mode == LS_MODE_TCP_ACCEPT_FROM)
 	sock->bind_local = false;
@@ -1470,8 +1465,7 @@ link_socket_init_phase1 (struct link_socket *sock,
   /* were we started by inetd or xinetd? */
   if (sock->inetd)
     {
-      ASSERT (sock->info.proto != PROTO_TCPv4_CLIENT
-	      && sock->info.proto != PROTO_TCPv6_CLIENT);
+      ASSERT (sock->info.proto != PROTO_TCP_CLIENT);
       ASSERT (socket_defined (inetd_socket_descriptor));
       sock->sd = inetd_socket_descriptor;
     }
@@ -1524,8 +1518,7 @@ link_socket_init_phase2 (struct link_socket *sock,
   /* were we started by inetd or xinetd? */
   if (sock->inetd)
     {
-      if (sock->info.proto == PROTO_TCPv4_SERVER
-	  || sock->info.proto == PROTO_TCPv6_SERVER) {
+      if (sock->info.proto == PROTO_TCP_SERVER) {
 	/* AF_INET as default (and fallback) for inetd */
 	sock->info.lsa->actual.dest.addr.sa.sa_family = AF_INET;
 #ifdef HAVE_GETSOCKNAME
@@ -1536,11 +1529,11 @@ link_socket_init_phase2 (struct link_socket *sock,
 	    if (getsockname (sock->sd, (struct sockaddr *)&local_addr, &addrlen) == 0) {
 	      sock->info.lsa->actual.dest.addr.sa.sa_family = local_addr.addr.sa.sa_family;
 	      dmsg (D_SOCKET_DEBUG, "inetd(%s): using sa_family=%d from getsockname(%d)",
-		    proto2ascii(sock->info.proto, false), local_addr.addr.sa.sa_family,
+		    proto2ascii(sock->info.proto, sock->info.af, false), local_addr.addr.sa.sa_family,
 		    sock->sd);
 	    } else
 	      msg (M_WARN, "inetd(%s): getsockname(%d) failed, using AF_INET",
-		   proto2ascii(sock->info.proto, false), sock->sd);
+		   proto2ascii(sock->info.proto, sock->info.af, false), sock->sd);
 	  }
 #else
 	msg (M_WARN, "inetd(%s): this OS does not provide the getsockname() "
@@ -1569,8 +1562,7 @@ link_socket_init_phase2 (struct link_socket *sock,
 	goto done;
 
       /* TCP client/server */
-      if (sock->info.proto == PROTO_TCPv4_SERVER
-	  ||sock->info.proto == PROTO_TCPv6_SERVER)
+      if (sock->info.proto == PROTO_TCP_SERVER)
 	{
 	  switch (sock->mode)
 	    {
@@ -1605,8 +1597,7 @@ link_socket_init_phase2 (struct link_socket *sock,
 	      ASSERT (0);
 	    }
 	}
-      else if (sock->info.proto == PROTO_TCPv4_CLIENT
-	       ||sock->info.proto == PROTO_TCPv6_CLIENT)
+      else if (sock->info.proto == PROTO_TCP_CLIENT)
 	{
 
 #ifdef GENERAL_PROXY_SUPPORT
@@ -1662,7 +1653,7 @@ link_socket_init_phase2 (struct link_socket *sock,
 	  } while (proxy_retry);
 	}
 #ifdef ENABLE_SOCKS
-      else if (sock->info.proto == PROTO_UDPv4 && sock->socks_proxy)
+      else if (sock->info.proto == PROTO_UDP && sock->socks_proxy && sock->info.af == AF_INET)
 	{
 	  socket_connect (&sock->ctrl_sd,
                           &sock->info.lsa->local,
@@ -1741,16 +1732,16 @@ link_socket_init_phase2 (struct link_socket *sock,
     const int msglevel = (sock->mode == LS_MODE_TCP_ACCEPT_FROM) ? D_INIT_MEDIUM : M_INFO;
 
     if (sock->inetd)
-      msg (msglevel, "%s link local: [inetd]", proto2ascii (sock->info.proto, true));
+      msg (msglevel, "%s link local: [inetd]", proto2ascii (sock->info.proto, sock->info.af, true));
     else
       msg (msglevel, "%s link local%s: %s",
-	   proto2ascii (sock->info.proto, true),
+	   proto2ascii (sock->info.proto, sock->info.af, true),
 	   (sock->bind_local ? " (bound)" : ""),
 	   print_openvpn_sockaddr_ex (&sock->info.lsa->local, ":", sock->bind_local ? PS_SHOW_PORT : 0, &gc));
 
     /* print active remote address */
     msg (msglevel, "%s link remote: %s",
-	 proto2ascii (sock->info.proto, true),
+	 proto2ascii (sock->info.proto, sock->info.af, true),
 	 print_link_socket_actual_ex (&sock->info.lsa->actual,
 				      ":",
 				      PS_SHOW_PORT_IF_DEFINED,
@@ -2003,7 +1994,7 @@ stream_buf_init (struct stream_buf *sb,
   sb->residual = alloc_buf (sb->maxlen);
   sb->error = false;
 #if PORT_SHARE
-  sb->port_share_state = ((sockflags & SF_PORT_SHARE) && (proto == PROTO_TCPv4_SERVER))
+  sb->port_share_state = ((sockflags & SF_PORT_SHARE) && (proto == PROTO_TCP_SERVER))
     ? PS_ENABLED
     : PS_DISABLED;
 #endif
@@ -2412,22 +2403,21 @@ setenv_link_socket_actual (struct env_set *es,
 struct proto_names {
   const char *short_form;
   const char *display_form;
-  bool	is_dgram;
-  bool	is_net;
-  unsigned short proto_af;
+  sa_family_t proto_af;
+  int proto;
 };
 
 /* Indexed by PROTO_x */
-static const struct proto_names proto_names[PROTO_N] = {
-  {"proto-uninitialized",        "proto-NONE",0,0, AF_UNSPEC},
-  {"udp",        "UDPv4",1,1, AF_INET},
-  {"tcp-server", "TCPv4_SERVER",0,1, AF_INET},
-  {"tcp-client", "TCPv4_CLIENT",0,1, AF_INET},
-  {"tcp",        "TCPv4",0,1, AF_INET},
-  {"udp6"       ,"UDPv6",1,1, AF_INET6},
-  {"tcp6-server","TCPv6_SERVER",0,1, AF_INET6},
-  {"tcp6-client","TCPv6_CLIENT",0,1, AF_INET6},
-  {"tcp6"       ,"TCPv6",0,1, AF_INET6},
+static const struct proto_names proto_names[] = {
+  {"proto-uninitialized",        "proto-NONE", AF_UNSPEC, PROTO_NONE},
+  {"udp",        "UDPv4", AF_INET, PROTO_UDP},
+  {"tcp-server", "TCPv4_SERVER", AF_INET, PROTO_TCP_SERVER},
+  {"tcp-client", "TCPv4_CLIENT", AF_INET, PROTO_TCP_CLIENT},
+  {"tcp",        "TCPv4", AF_INET, PROTO_TCP},
+  {"udp6"       ,"UDPv6", AF_INET6, PROTO_UDP},
+  {"tcp6-server","TCPv6_SERVER", AF_INET6, PROTO_TCP_SERVER},
+  {"tcp6-client","TCPv6_CLIENT", AF_INET6, PROTO_TCP_CLIENT},
+  {"tcp6"       ,"TCPv6", AF_INET6, PROTO_TCP},
 };
 
 bool
@@ -2435,59 +2425,66 @@ proto_is_net(int proto)
 {
   if (proto < 0 || proto >= PROTO_N)
     ASSERT(0);
-  return proto_names[proto].is_net;
+    return proto != PROTO_NONE;
 }
 bool
 proto_is_dgram(int proto)
 {
-  if (proto < 0 || proto >= PROTO_N)
-    ASSERT(0);
-  return proto_names[proto].is_dgram;
+    return proto_is_udp(proto);
 }
+
 bool
 proto_is_udp(int proto)
 {
   if (proto < 0 || proto >= PROTO_N)
     ASSERT(0);
-  return proto_names[proto].is_dgram&&proto_names[proto].is_net;
+  return proto == PROTO_UDP;
 }
+
 bool
 proto_is_tcp(int proto)
 {
   if (proto < 0 || proto >= PROTO_N)
     ASSERT(0);
-  return (!proto_names[proto].is_dgram)&&proto_names[proto].is_net;
-}
-
-unsigned short 
-proto_sa_family(int proto)
-{
-  if (proto < 0 || proto >= PROTO_N)
-    ASSERT(0);
-  return proto_names[proto].proto_af;
+  return proto == PROTO_TCP_CLIENT || proto == PROTO_TCP_SERVER || proto == PROTO_TCP_CLIENT;
 }
 
 int
 ascii2proto (const char* proto_name)
 {
   int i;
-  ASSERT (PROTO_N == SIZE (proto_names));
-  for (i = 0; i < PROTO_N; ++i)
+  for (i = 0; i < SIZE (proto_names); ++i)
     if (!strcmp (proto_name, proto_names[i].short_form))
-      return i;
+      return proto_names[i].proto;
   return -1;
 }
 
-const char *
-proto2ascii (int proto, bool display_form)
+sa_family_t
+ascii2af (const char* proto_name)
 {
-  ASSERT (PROTO_N == SIZE (proto_names));
-  if (proto < 0 || proto >= PROTO_N)
-    return "[unknown protocol]";
-  else if (display_form)
-    return proto_names[proto].display_form;
-  else
-    return proto_names[proto].short_form;
+    int i;
+    for (i = 0; i < SIZE (proto_names); ++i)
+        if (!strcmp (proto_name, proto_names[i].short_form))
+            return proto_names[i].proto_af;
+    return 0;
+}
+
+const char *
+proto2ascii (int proto, sa_family_t af, bool display_form)
+{
+  unsigned int i;
+  for (i = 0; i < SIZE (proto_names); ++i)
+    {
+      if(proto_names[i].proto_af == af && proto_names[i].proto == proto)
+        {
+          if(display_form)
+              return proto_names[i].display_form;
+          else
+              return proto_names[i].short_form;
+        }
+    }
+
+  return "[unknown protocol]";
 }
 
 const char *
@@ -2496,23 +2493,22 @@ proto2ascii_all (struct gc_arena *gc)
   struct buffer out = alloc_buf_gc (256, gc);
   int i;
 
-  ASSERT (PROTO_N == SIZE (proto_names));
-  for (i = 0; i < PROTO_N; ++i)
+  for (i = 0; i < SIZE (proto_names); ++i)
     {
       if (i)
 	buf_printf(&out, " ");
-      buf_printf(&out, "[%s]", proto2ascii(i, false));
+      buf_printf(&out, "[%s]", proto_names[i].short_form);
     }
   return BSTR (&out);
 }
 
 int
-addr_guess_family(int proto, const char *name) 
+addr_guess_family(sa_family_t af, const char *name)
 {
   unsigned short ret;
-  if (proto)
+  if (af)
     {
-      return proto_sa_family(proto);	/* already stamped */
+      return af;	/* already stamped */
     } 
   else
     {
@@ -2561,20 +2557,8 @@ proto_remote (int proto, bool remote)
     {
       switch (proto)
       {
-      case PROTO_TCPv4_SERVER: return PROTO_TCPv4_CLIENT;
-      case PROTO_TCPv4_CLIENT: return PROTO_TCPv4_SERVER;
-      case PROTO_TCPv6_SERVER: return PROTO_TCPv4_CLIENT;
-      case PROTO_TCPv6_CLIENT: return PROTO_TCPv4_SERVER;
-      case PROTO_UDPv6: return PROTO_UDPv4;
-      }
-    }
-  else
-    {
-      switch (proto)
-      {
-      case PROTO_TCPv6_SERVER: return PROTO_TCPv4_SERVER;
-      case PROTO_TCPv6_CLIENT: return PROTO_TCPv4_CLIENT;
-      case PROTO_UDPv6: return PROTO_UDPv4;
+	case PROTO_TCP_SERVER: return PROTO_TCP_CLIENT;
+	case PROTO_TCP_CLIENT: return PROTO_TCP_SERVER;
       }
     }
   return proto;
@@ -2725,12 +2709,12 @@ link_socket_read_udp_posix (struct link_socket *sock,
 			    struct link_socket_actual *from)
 {
   socklen_t fromlen = sizeof (from->dest.addr);
-  socklen_t expectedlen = af_addr_size(proto_sa_family(sock->info.proto));
+  socklen_t expectedlen = af_addr_size(sock->info.af);
   addr_zero_host(&from->dest);
   ASSERT (buf_safe (buf, maxsize));
 #if ENABLE_IP_PKTINFO
   /* Both PROTO_UDPv4 and PROTO_UDPv6 */
-  if (proto_is_udp(sock->info.proto) && sock->sockflags & SF_USE_IP_PKTINFO)
+  if (sock->info.proto == PROTO_UDP && sock->sockflags & SF_USE_IP_PKTINFO)
     fromlen = link_socket_read_udp_posix_recvmsg (sock, buf, maxsize, from);
   else
 #endif
@@ -2876,10 +2860,10 @@ socket_recv_queue (struct link_socket *sock, int maxsize)
       if (proto_is_udp(sock->info.proto))
 	{
 	  sock->reads.addr_defined = true;
-	  if (sock->info.proto == PROTO_UDPv6)
-	    sock->reads.addrlen = sizeof (sock->reads.addr6);
-	  else
+	  if (sock->info.af == AF_INET)
 	    sock->reads.addrlen = sizeof (sock->reads.addr);
+	  else
+	    sock->reads.addrlen = sizeof (sock->reads.addr6);
 	  status = WSARecvFrom(
 			       sock->sd,
 			       wsabuf,
@@ -2975,7 +2959,7 @@ socket_send_queue (struct link_socket *sock, struct buffer *buf, const struct li
 	{
 	  /* set destination address for UDP writes */
 	  sock->writes.addr_defined = true;
-	  if (sock->info.proto == PROTO_UDPv6)
+	  if (sock->info.af == AF_INET6)
 	    {
 	      sock->writes.addr6 = to->dest.addr.in6;
 	      sock->writes.addrlen = sizeof (sock->writes.addr6);

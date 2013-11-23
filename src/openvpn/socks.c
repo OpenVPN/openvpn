@@ -55,7 +55,7 @@
 void
 socks_adjust_frame_parameters (struct frame *frame, int proto)
 {
-  if (proto == PROTO_UDPv4)
+  if (proto == PROTO_UDP)
     frame_add_to_extra_link (frame, 10);
 }
 

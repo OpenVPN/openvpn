@@ -87,6 +87,7 @@ struct options_pre_pull
 struct connection_entry
 {
   int proto;
+  sa_family_t af;
   const char* local_port;
   bool local_port_defined;
   const char* remote_port;
@@ -145,6 +146,7 @@ struct remote_entry
   const char *remote;
   const char *remote_port;
   int proto;
+  sa_family_t af;
 };
 
 #define CONNECTION_LIST_SIZE 64

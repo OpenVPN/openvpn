@@ -620,7 +620,7 @@ check_timeout_random_component (struct context *c)
 static inline void
 socks_postprocess_incoming_link (struct context *c)
 {
-  if (c->c2.link_socket->socks_proxy && c->c2.link_socket->info.proto == PROTO_UDPv4)
+  if (c->c2.link_socket->socks_proxy && c->c2.link_socket->info.proto == PROTO_UDP)
     socks_process_incoming_udp (&c->c2.buf, &c->c2.from);
 }
 
@@ -629,7 +629,7 @@ socks_preprocess_outgoing_link (struct context *c,
 				struct link_socket_actual **to_addr,
 				int *size_delta)
 {
-  if (c->c2.link_socket->socks_proxy && c->c2.link_socket->info.proto == PROTO_UDPv4)
+  if (c->c2.link_socket->socks_proxy && c->c2.link_socket->info.proto == PROTO_UDP)
     {
       *size_delta += socks_process_outgoing_udp (&c->c2.to_link, c->c2.to_link_addr);
       *to_addr = &c->c2.link_socket->socks_relay;
@@ -778,7 +778,7 @@ process_incoming_link (struct context *c)
     fprintf (stderr, "R");
 #endif
   msg (D_LINK_RW, "%s READ [%d] from %s: %s",
-       proto2ascii (lsi->proto, true),
+       proto2ascii (lsi->proto, lsi->af, true),
        BLEN (&c->c2.buf),
        print_link_socket_actual (&c->c2.from, &gc),
        PROTO_DUMP (&c->c2.buf, &gc));
@@ -1122,7 +1122,7 @@ process_outgoing_link (struct context *c)
 	    fprintf (stderr, "W");
 #endif
 	  msg (D_LINK_RW, "%s WRITE [%d] to %s: %s",
-	       proto2ascii (c->c2.link_socket->info.proto, true),
+	       proto2ascii (c->c2.link_socket->info.proto, c->c2.link_socket->info.af, true),
 	       BLEN (&c->c2.to_link),
 	       print_link_socket_actual (c->c2.to_link_addr, &gc),
 	       PROTO_DUMP (&c->c2.to_link, &gc));

@@ -110,6 +110,7 @@ struct link_socket_info
   const struct plugin_list *plugins;
   bool remote_float;  
   int proto;                    /* Protocol (PROTO_x defined below) */
+  sa_family_t af;                       /* Address family like AF_INET, AF_INET6 or AF_UNSPEC*/
   int mtu_changed;              /* Set to true when mtu value is changed */
 };
 
@@ -303,6 +304,7 @@ link_socket_init_phase1 (struct link_socket *sock,
 			 const char *remote_host,
 			 const char *remote_port,
 			 int proto,
+			 sa_family_t af,
 			 int mode,
 			 const struct link_socket *accept_from,
 #ifdef ENABLE_HTTP_PROXY
@@ -519,19 +521,16 @@ int openvpn_getaddrinfo (unsigned int flags,
  */
 enum proto_num {
 	PROTO_NONE, /* catch for uninitialized */
-	PROTO_UDPv4,
-	PROTO_TCPv4_SERVER,
-	PROTO_TCPv4_CLIENT,
-	PROTO_TCPv4,
-	PROTO_UDPv6,
-	PROTO_TCPv6_SERVER,
-	PROTO_TCPv6_CLIENT,
-	PROTO_TCPv6,
+	PROTO_UDP,
+	PROTO_TCP,
+	PROTO_TCP_SERVER,
+	PROTO_TCP_CLIENT,
 	PROTO_N
 };
 
 int ascii2proto (const char* proto_name);
-const char *proto2ascii (int proto, bool display_form);
+sa_family_t ascii2af (const char* proto_name);
+const char *proto2ascii (int proto, sa_family_t af, bool display_form);
 const char *proto2ascii_all (struct gc_arena *gc);
 int proto_remote (int proto, bool remote);
 const char *addr_family_name(int af);
@@ -697,9 +696,9 @@ addr_inet4or6(struct sockaddr *addr)
 	return addr->sa_family == AF_INET || addr->sa_family == AF_INET6;
 }
 
-int addr_guess_family(int proto, const char *name);
+int addr_guess_family(sa_family_t af,const char *name);
 static inline int
-af_addr_size(unsigned short af)
+af_addr_size(sa_family_t af)
 {
    switch(af) {
      case AF_INET: return sizeof (struct sockaddr_in);

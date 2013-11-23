@@ -777,7 +777,8 @@ init_options (struct options *o, const bool init_gc)
     }
   o->mode = MODE_POINT_TO_POINT;
   o->topology = TOP_NET30;
-  o->ce.proto = PROTO_UDPv4;
+  o->ce.proto = PROTO_UDP;
+  o->ce.af = AF_INET;
   o->ce.connect_retry_seconds = 5;
   o->ce.connect_timeout = 10;
   o->ce.connect_retry_max = 0;
@@ -907,7 +908,7 @@ setenv_connection_entry (struct env_set *es,
 			 const struct connection_entry *e,
 			 const int i)
 {
-  setenv_str_i (es, "proto", proto2ascii (e->proto, false), i);
+  setenv_str_i (es, "proto", proto2ascii (e->proto, e->af, false), i);
   setenv_str_i (es, "local", e->local, i);
   setenv_str_i (es, "local_port", e->local_port, i);
   setenv_str_i (es, "remote", e->remote, i);
@@ -1358,7 +1359,7 @@ cnol_check_alloc (struct options *options)
 static void
 show_connection_entry (const struct connection_entry *o)
 {
-  msg (D_SHOW_PARMS, "  proto = %s", proto2ascii (o->proto, false));
+  msg (D_SHOW_PARMS, "  proto = %s", proto2ascii (o->proto, o->af, false));
   SHOW_STR (local);
   SHOW_STR (local_port);
   SHOW_STR (remote);
@@ -1733,7 +1734,7 @@ options_postprocess_http_proxy_override (struct options *o)
       for (i = 0; i < l->len; ++i)
 	{
 	  struct connection_entry *ce = l->array[i];
-	  if (ce->proto == PROTO_TCPv4_CLIENT || ce->proto == PROTO_TCPv4)
+	  if (ce->proto == PROTO_TCP_CLIENT || ce->proto == PROTO_TCP)
 	    {
 	      ce->http_proxy_options = o->http_proxy_override;
 	      succeed = true;
@@ -1744,7 +1745,7 @@ options_postprocess_http_proxy_override (struct options *o)
 	  for (i = 0; i < l->len; ++i)
 	    {
 	      struct connection_entry *ce = l->array[i];
-	      if (ce->proto == PROTO_UDPv4)
+	      if (ce->proto == PROTO_UDP)
 		{
 		  ce->flags |= CE_DISABLED;
 		}
@@ -1814,6 +1815,8 @@ connection_entry_load_re (struct connection_entry *ce, const struct remote_entry
     ce->remote_port = re->remote_port;
   if (re->proto >= 0)
     ce->proto = re->proto;
+  if (re->af > 0)
+    ce->af = re->af;
 }
 
 static void
@@ -1843,10 +1846,8 @@ options_postprocess_verify_ce (const struct options *options, const struct conne
    * If "proto tcp" is specified, make sure we know whether it is
    * tcp-client or tcp-server.
    */
-  if (ce->proto == PROTO_TCPv4)
+  if (ce->proto == PROTO_TCP)
     msg (M_USAGE, "--proto tcp is ambiguous in this context.  Please specify --proto tcp-server or --proto tcp-client");
-  if (ce->proto == PROTO_TCPv6)
-    msg (M_USAGE, "--proto tcp6 is ambiguous in this context.  Please specify --proto tcp6-server or --proto tcp6-client");
 
   /*
    * Sanity check on daemon/inetd modes
@@ -1858,10 +1859,10 @@ options_postprocess_verify_ce (const struct options *options, const struct conne
   if (options->inetd && (ce->local || ce->remote))
     msg (M_USAGE, "--local or --remote cannot be used with --inetd");
 
-  if (options->inetd && ce->proto == PROTO_TCPv4_CLIENT)
+  if (options->inetd && ce->proto == PROTO_TCP_CLIENT)
     msg (M_USAGE, "--proto tcp-client cannot be used with --inetd");
 
-  if (options->inetd == INETD_NOWAIT && ce->proto != PROTO_TCPv4_SERVER)
+  if (options->inetd == INETD_NOWAIT && ce->proto != PROTO_TCP_SERVER)
     msg (M_USAGE, "--inetd nowait can only be used with --proto tcp-server");
 
   if (options->inetd == INETD_NOWAIT
@@ -1882,13 +1883,11 @@ options_postprocess_verify_ce (const struct options *options, const struct conne
    * Sanity check on TCP mode options
    */
 
-  if (ce->connect_retry_defined && ce->proto != PROTO_TCPv4_CLIENT
-      && ce->proto != PROTO_TCPv6_CLIENT)
+  if (ce->connect_retry_defined && ce->proto != PROTO_TCP_CLIENT)
     msg (M_USAGE, "--connect-retry doesn't make sense unless also used with "
 	 "--proto tcp-client or tcp6-client");
 
-  if (ce->connect_timeout_defined && ce->proto != PROTO_TCPv4_CLIENT
-      && ce->proto != PROTO_TCPv6_CLIENT)
+  if (ce->connect_timeout_defined && ce->proto != PROTO_TCP_CLIENT)
     msg (M_USAGE, "--connect-timeout doesn't make sense unless also used with "
 	 "--proto tcp-client or tcp6-client");
 
@@ -1987,12 +1986,11 @@ options_postprocess_verify_ce (const struct options *options, const struct conne
     msg (M_USAGE, "--explicit-exit-notify can only be used with --proto udp");
 #endif
 
-  if (!ce->remote && (ce->proto == PROTO_TCPv4_CLIENT 
-		      || ce->proto == PROTO_TCPv6_CLIENT))
+  if (!ce->remote && ce->proto == PROTO_TCP_CLIENT)
     msg (M_USAGE, "--remote MUST be used in TCP Client mode");
 
 #ifdef ENABLE_HTTP_PROXY
-  if ((ce->http_proxy_options) && ce->proto != PROTO_TCPv4_CLIENT)
+  if ((ce->http_proxy_options) && ce->proto != PROTO_TCP_CLIENT)
     msg (M_USAGE, "--http-proxy MUST be used in TCP Client mode (i.e. --proto tcp-client)");
 #endif
 
@@ -2002,12 +2000,11 @@ options_postprocess_verify_ce (const struct options *options, const struct conne
 #endif
 
 #ifdef ENABLE_SOCKS
-  if (ce->socks_proxy_server && ce->proto == PROTO_TCPv4_SERVER)
+  if (ce->socks_proxy_server && ce->proto == PROTO_TCP_SERVER)
     msg (M_USAGE, "--socks-proxy can not be used in TCP Server mode");
 #endif
 
-  if ((ce->proto == PROTO_TCPv4_SERVER || ce->proto == PROTO_TCPv6_SERVER)
-      && connection_list_defined (options))
+  if (ce->proto == PROTO_TCP_SERVER && connection_list_defined (options))
     msg (M_USAGE, "TCP server mode allows at most one --remote address");
 
 #if P2MP_SERVER
@@ -2021,13 +2018,12 @@ options_postprocess_verify_ce (const struct options *options, const struct conne
 	msg (M_USAGE, "--mode server only works with --dev tun or --dev tap");
       if (options->pull)
 	msg (M_USAGE, "--pull cannot be used with --mode server");
-      if (!(proto_is_udp(ce->proto) || ce->proto == PROTO_TCPv4_SERVER
-	    || ce->proto == PROTO_TCPv6_SERVER))
+      if (!(proto_is_udp(ce->proto) || ce->proto == PROTO_TCP_SERVER))
 	msg (M_USAGE, "--mode server currently only supports "
 	     "--proto udp or --proto tcp-server or proto tcp6-server");
 #if PORT_SHARE
       if ((options->port_share_host || options->port_share_port) && 
-	  (ce->proto != PROTO_TCPv4_SERVER && ce->proto != PROTO_TCPv6_SERVER))
+	  (ce->proto != PROTO_TCP_SERVER))
 	msg (M_USAGE, "--port-share only works in TCP server mode "
 	     "(--proto tcp-server or tcp6-server)");
 #endif
@@ -2057,8 +2053,7 @@ options_postprocess_verify_ce (const struct options *options, const struct conne
 	msg (M_USAGE, "--inetd cannot be used with --mode server");
       if (options->ipchange)
 	msg (M_USAGE, "--ipchange cannot be used with --mode server (use --client-connect instead)");
-      if (!(proto_is_dgram(ce->proto) || ce->proto == PROTO_TCPv4_SERVER
-	    || ce->proto == PROTO_TCPv6_SERVER))
+      if (!(proto_is_dgram(ce->proto) || ce->proto == PROTO_TCP_SERVER))
 	msg (M_USAGE, "--mode server currently only supports "
 	     "--proto udp or --proto tcp-server or --proto tcp6-server");
       if (!proto_is_udp(ce->proto) && (options->cf_max || options->cf_per))
@@ -2367,27 +2362,23 @@ options_postprocess_mutate_ce (struct options *o, struct connection_entry *ce)
 #if P2MP_SERVER
   if (o->server_defined || o->server_bridge_defined || o->server_bridge_proxy_dhcp)
     {
-      if (ce->proto == PROTO_TCPv4)
-	ce->proto = PROTO_TCPv4_SERVER;
-      else if (ce->proto == PROTO_TCPv6)
-	ce->proto = PROTO_TCPv6_SERVER;
+      if (ce->proto == PROTO_TCP)
+	ce->proto = PROTO_TCP_SERVER;
     }
 #endif
 #if P2MP
   if (o->client)
     {
-      if (ce->proto == PROTO_TCPv4)
-	ce->proto = PROTO_TCPv4_CLIENT;
-      else if (ce->proto == PROTO_TCPv6)
-	ce->proto = PROTO_TCPv6_CLIENT;
+      if (ce->proto == PROTO_TCP)
+	ce->proto = PROTO_TCP_CLIENT;
     }
 #endif
 
-  if (ce->proto == PROTO_TCPv4_CLIENT && !ce->local && !ce->local_port_defined && !ce->bind_defined)
+  if (ce->proto == PROTO_TCP_CLIENT && !ce->local && !ce->local_port_defined && !ce->bind_defined)
     ce->bind_local = false;
 
 #ifdef ENABLE_SOCKS
-  if (ce->proto == PROTO_UDPv4 && ce->socks_proxy_server && !ce->local && !ce->local_port_defined && !ce->bind_defined)
+  if (ce->proto == PROTO_UDP && ce->socks_proxy_server && !ce->local && !ce->local_port_defined && !ce->bind_defined)
     ce->bind_local = false;
 #endif
 
@@ -2395,7 +2386,7 @@ options_postprocess_mutate_ce (struct options *o, struct connection_entry *ce)
     ce->local_port = NULL;
 
   /* if protocol forcing is enabled, disable all protocols except for the forced one */
-  if (o->proto_force >= 0 && proto_is_tcp(o->proto_force) != proto_is_tcp(ce->proto))
+  if (o->proto_force >= 0 && o->proto_force != ce->proto)
     ce->flags |= CE_DISABLED;
 
   /*
@@ -2914,7 +2905,7 @@ options_string (const struct options *o,
   buf_printf (&out, ",dev-type %s", dev_type_string (o->dev, o->dev_type));
   buf_printf (&out, ",link-mtu %d", EXPANDED_SIZE (frame));
   buf_printf (&out, ",tun-mtu %d", PAYLOAD_SIZE (frame));
-  buf_printf (&out, ",proto %s", proto2ascii (proto_remote (o->ce.proto, remote), true));
+  buf_printf (&out, ",proto %s", proto2ascii (proto_remote (o->ce.proto, remote),o->ce.af, true));
 
   /* send tun_ipv6 only in peer2peer mode - in client/server mode, it
    * is usually pushed by the server, triggering a non-helpful warning
@@ -4464,6 +4455,7 @@ add_option (struct options *options,
       struct remote_entry re;
       re.remote = re.remote_port= NULL;
       re.proto = -1;
+      re.af=0;
 
       VERIFY_PERMISSION (OPT_P_GENERAL|OPT_P_CONNECTION);
       re.remote = p[1];
@@ -4473,12 +4465,14 @@ add_option (struct options *options,
 	  if (p[3])
 	    {
 	      const int proto = ascii2proto (p[3]);
+	      const sa_family_t af = ascii2af (p[3]);
 	      if (proto < 0)
 		{
 		  msg (msglevel, "remote: bad protocol associated with host %s: '%s'", p[1], p[3]);
 		  goto err;
 		}
 	      re.proto = proto;
+	      re.af = af;
 	    }
 	}
       if (permission_mask & OPT_P_GENERAL)
@@ -4916,8 +4910,10 @@ add_option (struct options *options,
   else if (streq (p[0], "proto") && p[1])
     {
       int proto;
+      sa_family_t af;
       VERIFY_PERMISSION (OPT_P_GENERAL|OPT_P_CONNECTION);
       proto = ascii2proto (p[1]);
+      af = ascii2af(p[1]);
       if (proto < 0)
 	{
 	  msg (msglevel, "Bad protocol: '%s'.  Allowed protocols with --proto option: %s",
@@ -4926,6 +4922,7 @@ add_option (struct options *options,
 	  goto err;
 	}
       options->ce.proto = proto;
+      options->ce.af = af;
     }
   else if (streq (p[0], "proto-force") && p[1])
     {
