@@ -5,7 +5,7 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2002-2010 OpenVPN Technologies, Inc. <sales@openvpn.net>
+ *  Copyright (C) 2002-2013 OpenVPN Technologies, Inc. <sales@openvpn.net>
  *  Copyright (C) 2008-2013 David Sommerseth <dazo@users.sourceforge.net>
  *
  *  This program is free software; you can redistribute it and/or modify
@@ -2599,6 +2599,44 @@ check_file_access(const int type, const char *file, const int mode, const char *
   return (errcode != 0 ? true : false);
 }
 
+/* A wrapper for check_file_access() which also takes a chroot directory.
+ * If chroot is NULL, behaviour is exactly the same as calling check_file_access() directly,
+ * otherwise it will look for the file inside the given chroot directory instead.
+ */
+static bool
+check_file_access_chroot(const char *chroot, const int type, const char *file, const int mode, const char *opt)
+{
+  bool ret = false;
+
+  /* If no file configured, no errors to look for */
+  if (!file)
+      return false;
+
+  /* If chroot is set, look for the file/directory inside the chroot */
+  if( chroot )
+    {
+      struct gc_arena gc = gc_new();
+      struct buffer chroot_file;
+      int len = 0;
+
+      /* Build up a new full path including chroot directory */
+      len = strlen(chroot) + strlen(PATH_SEPARATOR_STR) + strlen(file) + 1;
+      chroot_file = alloc_buf_gc(len, &gc);
+      buf_printf(&chroot_file, "%s%s%s", chroot, PATH_SEPARATOR_STR, file);
+      ASSERT (chroot_file.len > 0);
+
+      ret = check_file_access(type, BSTR(&chroot_file), mode, opt);
+      gc_free(&gc);
+    }
+  else
+    {
+      /* No chroot in play, just call core file check function */
+      ret = check_file_access(type, file, mode, opt);
+    }
+  return ret;
+}
+
+
 /*
  * Verifies that the path in the "command" that comes after certain script options (e.g., --up) is a
  * valid file with appropriate permissions.
@@ -2616,7 +2654,7 @@ check_file_access(const int type, const char *file, const int mode, const char *
  * check_file_access() arguments.
  */
 static bool
-check_cmd_access(const char *command, const char *opt)
+check_cmd_access(const char *command, const char *opt, const char *chroot)
 {
   struct argv argv;
   bool return_code;
@@ -2635,7 +2673,7 @@ check_cmd_access(const char *command, const char *opt)
      * only requires X_OK to function on Unix - a scenario not unlikely to
      * be seen on suid binaries.
      */
-    return_code = check_file_access(CHKACC_FILE, argv.argv[0], X_OK, opt);
+    return_code = check_file_access_chroot(chroot, CHKACC_FILE, argv.argv[0], X_OK, opt);
   else
     {
       msg (M_NOPREFIX|M_OPTERR, "%s fails with '%s': No path to executable.",
@@ -2661,7 +2699,7 @@ options_postprocess_filechecks (struct options *options)
 #ifdef ENABLE_SSL
   errs |= check_file_access (CHKACC_FILE|CHKACC_INLINE, options->dh_file, R_OK, "--dh");
   errs |= check_file_access (CHKACC_FILE|CHKACC_INLINE, options->ca_file, R_OK, "--ca");
-  errs |= check_file_access (CHKACC_FILE, options->ca_path, R_OK, "--capath");
+  errs |= check_file_access_chroot (options->chroot_dir, CHKACC_FILE, options->ca_path, R_OK, "--capath");
   errs |= check_file_access (CHKACC_FILE|CHKACC_INLINE, options->cert_file, R_OK, "--cert");
   errs |= check_file_access (CHKACC_FILE|CHKACC_INLINE, options->extra_certs_file, R_OK,
                              "--extra-certs");
@@ -2674,10 +2712,10 @@ options_postprocess_filechecks (struct options *options)
                              "--pkcs12");
 
   if (options->ssl_flags & SSLF_CRL_VERIFY_DIR)
-    errs |= check_file_access (CHKACC_FILE, options->crl_file, R_OK|X_OK,
+    errs |= check_file_access_chroot (options->chroot_dir, CHKACC_FILE, options->crl_file, R_OK|X_OK,
                                "--crl-verify directory");
   else
-    errs |= check_file_access (CHKACC_FILE, options->crl_file, R_OK,
+    errs |= check_file_access_chroot (options->chroot_dir, CHKACC_FILE, options->crl_file, R_OK,
                                "--crl-verify");
 
   errs |= check_file_access (CHKACC_FILE|CHKACC_INLINE, options->tls_auth_file, R_OK,
@@ -2719,13 +2757,13 @@ options_postprocess_filechecks (struct options *options)
 
   /* ** Config related ** */
 #ifdef ENABLE_SSL
-  errs |= check_file_access (CHKACC_FILE, options->tls_export_cert,
+  errs |= check_file_access_chroot (options->chroot_dir, CHKACC_FILE, options->tls_export_cert,
                              R_OK|W_OK|X_OK, "--tls-export-cert");
 #endif /* ENABLE_SSL */
 #if P2MP_SERVER
-  errs |= check_file_access (CHKACC_FILE, options->client_config_dir,
+  errs |= check_file_access_chroot (options->chroot_dir, CHKACC_FILE, options->client_config_dir,
                              R_OK|X_OK, "--client-config-dir");
-  errs |= check_file_access (CHKACC_FILE, options->tmp_dir,
+  errs |= check_file_access_chroot (options->chroot_dir, CHKACC_FILE, options->tmp_dir,
                              R_OK|W_OK|X_OK, "Temporary directory (--tmp-dir)");
 
 #endif /* P2MP_SERVER */
@@ -3990,7 +4028,8 @@ static void
 set_user_script (struct options *options,
 		 const char **script,
 		 const char *new_script,
-		 const char *type)
+		 const char *type,
+		 bool in_chroot)
 {
   if (*script) {
     msg (M_WARN, "Multiple --%s scripts defined.  "
@@ -4005,8 +4044,9 @@ set_user_script (struct options *options,
     openvpn_snprintf (script_name, sizeof(script_name),
                       "--%s script", type);
 
-    if (check_cmd_access (*script, script_name))
+    if (check_cmd_access (*script, script_name, (in_chroot ? options->chroot_dir : NULL)))
       msg (M_USAGE, "Please correct this error.");
+
   }
 #endif
 }
@@ -4502,7 +4542,7 @@ add_option (struct options *options,
       set_user_script (options,
 		       &options->ipchange,
 		       string_substitute (p[1], ',', ' ', &options->gc),
-		       "ipchange");
+		       "ipchange", true);
     }
   else if (streq (p[0], "float"))
     {
@@ -4548,14 +4588,14 @@ add_option (struct options *options,
       VERIFY_PERMISSION (OPT_P_SCRIPT);
       if (!no_more_than_n_args (msglevel, p, 2, NM_QUOTE_HINT))
 	goto err;
-      set_user_script (options, &options->up_script, p[1], "up");
+      set_user_script (options, &options->up_script, p[1], "up", false);
     }
   else if (streq (p[0], "down") && p[1])
     {
       VERIFY_PERMISSION (OPT_P_SCRIPT);
       if (!no_more_than_n_args (msglevel, p, 2, NM_QUOTE_HINT))
 	goto err;
-      set_user_script (options, &options->down_script, p[1], "down");
+      set_user_script (options, &options->down_script, p[1], "down", true);
     }
   else if (streq (p[0], "down-pre"))
     {
@@ -5230,7 +5270,7 @@ add_option (struct options *options,
       VERIFY_PERMISSION (OPT_P_SCRIPT);
       if (!no_more_than_n_args (msglevel, p, 2, NM_QUOTE_HINT))
 	goto err;
-      set_user_script (options, &options->route_script, p[1], "route-up");
+      set_user_script (options, &options->route_script, p[1], "route-up", false);
     }
   else if (streq (p[0], "route-pre-down") && p[1])
     {
@@ -5240,7 +5280,7 @@ add_option (struct options *options,
       set_user_script (options,
 		       &options->route_predown_script,
 		       p[1],
-		       "route-pre-down");
+		       "route-pre-down", true);
     }
   else if (streq (p[0], "route-noexec"))
     {
@@ -5609,7 +5649,7 @@ add_option (struct options *options,
 	}
       set_user_script (options,
 		       &options->auth_user_pass_verify_script,
-		       p[1], "auth-user-pass-verify");
+		       p[1], "auth-user-pass-verify", true);
     }
   else if (streq (p[0], "client-connect") && p[1])
     {
@@ -5617,7 +5657,7 @@ add_option (struct options *options,
       if (!no_more_than_n_args (msglevel, p, 2, NM_QUOTE_HINT))
 	goto err;
       set_user_script (options, &options->client_connect_script,
-		       p[1], "client-connect");
+		       p[1], "client-connect", true);
     }
   else if (streq (p[0], "client-disconnect") && p[1])
     {
@@ -5625,7 +5665,7 @@ add_option (struct options *options,
       if (!no_more_than_n_args (msglevel, p, 2, NM_QUOTE_HINT))
 	goto err;
       set_user_script (options, &options->client_disconnect_script,
-		       p[1], "client-disconnect");
+		       p[1], "client-disconnect", true);
     }
   else if (streq (p[0], "learn-address") && p[1])
     {
@@ -5633,7 +5673,7 @@ add_option (struct options *options,
       if (!no_more_than_n_args (msglevel, p, 2, NM_QUOTE_HINT))
 	goto err;
       set_user_script (options, &options->learn_address_script,
-		       p[1], "learn-address");
+		       p[1], "learn-address", true);
     }
   else if (streq (p[0], "tmp-dir") && p[1])
     {
@@ -6584,7 +6624,7 @@ add_option (struct options *options,
 	goto err;
       set_user_script (options, &options->tls_verify,
 		       string_substitute (p[1], ',', ' ', &options->gc),
-		       "tls-verify");
+		       "tls-verify", true);
     }
 #ifndef ENABLE_CRYPTO_POLARSSL
   else if (streq (p[0], "tls-export-cert") && p[1])
