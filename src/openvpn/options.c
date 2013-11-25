@@ -4435,11 +4435,6 @@ add_option (struct options *options,
 
       options->ignore_unknown_option[i] = NULL;
     }
-  else if (streq (p[0], "remote-ip-hint") && p[1])
-    {
-      VERIFY_PERMISSION (OPT_P_GENERAL);
-      options->remote_ip_hint = p[1];
-    }
 #if HTTP_PROXY_OVERRIDE
   else if (streq (p[0], "http-proxy-override") && p[1] && p[2])
     {

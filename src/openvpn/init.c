@@ -245,7 +245,7 @@ management_callback_remote_cmd (void *arg, const char **p)
 }
 
 static bool
-ce_management_query_remote (struct context *c, const char *remote_ip_hint)
+ce_management_query_remote (struct context *c)
 {
   struct gc_arena gc = gc_new ();
   volatile struct connection_entry *ce = &c->options.ce;
@@ -270,8 +270,6 @@ ce_management_query_remote (struct context *c, const char *remote_ip_hint)
     }
   {
     const int flags = ((ce->flags>>CE_MAN_QUERY_REMOTE_SHIFT) & CE_MAN_QUERY_REMOTE_MASK);
-    if (flags == CE_MAN_QUERY_REMOTE_ACCEPT && remote_ip_hint)
-      ce->remote = remote_ip_hint;
     ret = (flags != CE_MAN_QUERY_REMOTE_SKIP);
   }
   gc_free (&gc);
@@ -321,9 +319,6 @@ next_connection_entry (struct context *c)
       int n_cycles = 0;
 
       do {
-	const char *remote_ip_hint = NULL;
-	bool newcycle = false;
-
 	ce_defined = true;
 	if (l->no_advance && l->current >= 0)
 	  {
@@ -338,15 +333,9 @@ next_connection_entry (struct context *c)
 		if (++n_cycles >= 2)
 		  msg (M_FATAL, "No usable connection profiles are present");
 	      }
-
-	    if (l->current == 0)
-	      newcycle = true;
 	  }
 
 	ce = l->array[l->current];
-
-	if (c->options.remote_ip_hint && !l->n_cycles)
-	  remote_ip_hint = c->options.remote_ip_hint;
 
 	if (ce->flags & CE_DISABLED)
 	  ce_defined = false;
@@ -356,14 +345,12 @@ next_connection_entry (struct context *c)
 	if (ce_defined && management && management_query_remote_enabled(management))
 	  {
 	    /* allow management interface to override connection entry details */
-	    ce_defined = ce_management_query_remote(c, remote_ip_hint);
+	    ce_defined = ce_management_query_remote(c);
 	    if (IS_SIG (c))
 	      break;
 	  }
         else
 #endif
-	if (remote_ip_hint)
-	  c->options.ce.remote = remote_ip_hint;
 
 #ifdef ENABLE_MANAGEMENT
         if (ce_defined && management && management_query_proxy_enabled (management))

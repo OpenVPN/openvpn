@@ -210,7 +210,6 @@ struct options
 
   /* Networking parms */
   struct connection_entry ce;
-  char *remote_ip_hint;
   struct connection_list *connection_list;
   struct remote_list *remote_list;
   bool force_connection_list;
