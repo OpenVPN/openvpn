@@ -2690,6 +2690,7 @@ do_init_socket_1 (struct context *c, const int mode)
 			   c->options.ce.remote_port,
 			   c->options.ce.proto,
 			   c->options.ce.af,
+			   c->options.ce.bind_ipv6_only,
 			   mode,
 			   c->c2.accept_from,
 #ifdef ENABLE_HTTP_PROXY

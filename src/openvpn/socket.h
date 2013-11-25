@@ -118,6 +118,7 @@ struct link_socket_info
   bool remote_float;  
   int proto;                    /* Protocol (PROTO_x defined below) */
   sa_family_t af;                       /* Address family like AF_INET, AF_INET6 or AF_UNSPEC*/
+  bool bind_ipv6_only;
   int mtu_changed;              /* Set to true when mtu value is changed */
 };
 
@@ -289,7 +290,8 @@ struct link_socket *link_socket_new (void);
 void socket_bind (socket_descriptor_t sd,
 		  struct addrinfo *local,
                   int af_family,
-		  const char *prefix);
+		  const char *prefix,
+                  bool ipv6only);
 
 int openvpn_connect (socket_descriptor_t sd,
 		     const struct sockaddr *remote,
@@ -308,6 +310,7 @@ link_socket_init_phase1 (struct link_socket *sock,
 			 const char *remote_port,
 			 int proto,
 			 sa_family_t af,
+			 bool bind_ipv6_only,
 			 int mode,
 			 const struct link_socket *accept_from,
 #ifdef ENABLE_HTTP_PROXY

@@ -95,6 +95,7 @@ struct connection_entry
   const char *remote;
   bool remote_float;
   bool bind_defined;
+  bool bind_ipv6_only;
   bool bind_local;
   int connect_retry_seconds;
   int connect_timeout;

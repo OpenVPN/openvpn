@@ -1570,7 +1570,7 @@ man_listen (struct management *man)
 	{
 	  man->connection.sd_top = create_socket_tcp (AF_INET);
 	  socket_bind (man->connection.sd_top, man->settings.local,
-                       AF_INET, "MANAGEMENT");
+                       AF_INET, "MANAGEMENT", true);
 	}
 
       /*

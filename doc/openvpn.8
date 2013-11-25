@@ -684,7 +684,7 @@ TCP/UDP port number or name for bind.
 TCP/UDP port number or name for remote.
 .\"*********************************************************
 .TP
-.B \-\-bind
+.B \-\-bind [ipv6only]
 Bind to local address and port. This is the default unless any of 
 .B \-\-proto tcp-client
 ,
@@ -692,6 +692,12 @@ Bind to local address and port. This is the default unless any of
 or
 .B \-\-socks-proxy
 are used.
+
+If the
+.B ipv6only
+keyword is present OpenVPN will bind only to IPv6 (as oposed
+to IPv6 and IPv4) when a IPv6 socket is opened.
+
 .\"*********************************************************
 .TP
 .B \-\-nobind

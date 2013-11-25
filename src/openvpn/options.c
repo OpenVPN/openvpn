@@ -779,6 +779,7 @@ init_options (struct options *o, const bool init_gc)
   o->topology = TOP_NET30;
   o->ce.proto = PROTO_UDP;
   o->ce.af = AF_UNSPEC;
+  o->ce.bind_ipv6_only = false;
   o->ce.connect_retry_seconds = 5;
   o->ce.connect_timeout = 10;
   o->connect_retry_max = 0;
@@ -4870,6 +4871,9 @@ add_option (struct options *options,
     {
       VERIFY_PERMISSION (OPT_P_GENERAL|OPT_P_CONNECTION);
       options->ce.bind_defined = true;
+      if (p[1] && streq (p[1], "ipv6only"))
+          options->ce.bind_ipv6_only=true;
+
     }
   else if (streq (p[0], "nobind"))
     {

@@ -662,11 +662,10 @@ create_socket (struct link_socket *sock)
 {
   /* create socket, use information carried over from getaddrinfo */
   const int ai_proto = sock->info.lsa->actual.ai_protocol;
-  const int ai_family = sock->info.lsa->actual.ai_family;
+  int ai_family = sock->info.lsa->actual.ai_family;
 
   ASSERT (sock->info.af == AF_UNSPEC  || sock->info.af == ai_family);
 
-    
   if (ai_proto == IPPROTO_UDP)
     {
       sock->sd = create_socket_udp (ai_family, sock->sockflags);
@@ -880,7 +879,8 @@ void
 socket_bind (socket_descriptor_t sd,
              struct addrinfo *local,
              int ai_family,
-	     const char *prefix)
+	     const char *prefix,
+             bool ipv6only)
 {
   struct gc_arena gc = gc_new ();
 
@@ -891,8 +891,10 @@ socket_bind (socket_descriptor_t sd,
    * What is the correct way to deal with it?
    */
 
-  ASSERT(local);
   struct addrinfo* cur;
+
+  ASSERT(local);
+
 
   /* find the first addrinfo with correct ai_family */
   for (cur = local; cur; cur=cur->ai_next)
@@ -904,6 +906,15 @@ socket_bind (socket_descriptor_t sd,
       msg (M_FATAL, "%s: Socket bind failed: Addr to bind has no %s record",
            prefix, addr_family_name(ai_family));
 
+  if (ai_family == AF_INET6)
+    {
+      int v6only = ipv6only ? 0: 1;	/* setsockopt must have an "int" */
+
+      if (setsockopt(sd, IPPROTO_IPV6, IPV6_V6ONLY, &v6only, sizeof(v6only)))
+	{
+	  msg (M_NONFATAL|M_ERRNO, "Setting IPV6_V6ONLY=%d failed", v6only);
+	}
+    }
   if (bind (sd, cur->ai_addr, cur->ai_addrlen))
     {
       const int errnum = openvpn_errno ();
@@ -1153,11 +1164,12 @@ static void bind_local (struct link_socket *sock)
 #ifdef ENABLE_SOCKS
         if (sock->socks_proxy && sock->info.proto == PROTO_UDP)
             socket_bind (sock->ctrl_sd, sock->info.lsa->bind_local,
-                         sock->info.lsa->actual.ai_family, "SOCKS");
+                         sock->info.lsa->actual.ai_family, "SOCKS", false);
         else
 #endif
             socket_bind (sock->sd, sock->info.lsa->bind_local,
-                         sock->info.lsa->actual.ai_family,  "TCP/UDP");
+                         sock->info.lsa->actual.ai_family,
+                         "TCP/UDP", sock->info.bind_ipv6_only);
       }
 }
 
@@ -1294,11 +1306,12 @@ create_new_socket (struct link_socket* sock)
       resolve_bind_local (sock, sock->info.af);
   }
   resolve_remote (sock, 1, NULL, NULL);
+
   /*
    * In P2P or server mode we must create the socket even when resolving
    * the remote site fails/is not specified. */
 
-  if (sock->info.af && sock->info.lsa->actual.ai_family==0 && sock->bind_local)
+  if (sock->info.lsa->actual.ai_family==0 && sock->bind_local)
     {
       /* Copy sock parameters from bind addr */
       set_actual_address (&sock->info.lsa->actual, sock->info.lsa->bind_local);
@@ -1309,7 +1322,7 @@ create_new_socket (struct link_socket* sock)
   /*
    * Create the socket early if socket should be bound
    */
-  if (sock->bind_local && sock->info.lsa->actual.ai_family)
+  if (sock->bind_local)
     {
       create_socket (sock);
 
@@ -1328,6 +1341,7 @@ link_socket_init_phase1 (struct link_socket *sock,
 			 const char *remote_port,
 			 int proto,
 			 sa_family_t af,
+			 bool bind_ipv6_only,
 			 int mode,
 			 const struct link_socket *accept_from,
 #ifdef ENABLE_HTTP_PROXY
@@ -1388,6 +1402,7 @@ link_socket_init_phase1 (struct link_socket *sock,
   sock->info.af = af;
   sock->info.remote_float = remote_float;
   sock->info.lsa = lsa;
+  sock->info.bind_ipv6_only = bind_ipv6_only;
   sock->info.ipchange_command = ipchange_command;
   sock->info.plugins = plugins;
 
