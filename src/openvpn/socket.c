@@ -1207,22 +1207,8 @@ resolve_remote (struct link_socket *sock,
   if (!sock->did_resolve_remote)
     {
       /* resolve remote address if undefined */
-      if (!addr_defined (&sock->info.lsa->remote))
+      if (!sock->info.lsa->remote_list)
 	{
-          af = addr_guess_family(sock->info.af, sock->remote_host);
-          switch(af)
-            {
-              case AF_INET:
-                sock->info.lsa->remote.addr.in4.sin_family = AF_INET;
-                sock->info.lsa->remote.addr.in4.sin_addr.s_addr = 0;
-                break;
-              case AF_INET6:
-                CLEAR(sock->info.lsa->remote.addr.in6);
-                sock->info.lsa->remote.addr.in6.sin6_family = AF_INET6;
-                sock->info.lsa->remote.addr.in6.sin6_addr = in6addr_any;
-                break;
-            }
-
 	  if (sock->remote_host)
 	    {
 	      unsigned int flags = sf2gaf(GETADDR_RESOLVE|GETADDR_UPDATE_MANAGEMENT_STATE, sock->sockflags);
@@ -1269,8 +1255,7 @@ resolve_remote (struct link_socket *sock,
 		  status = openvpn_getaddrinfo(flags, sock->remote_host, sock->remote_port,
                                                retry, signal_received, af, &ai);
 		  if(status == 0) {
-			  sock->info.lsa->remote.addr.in6 = *((struct sockaddr_in6*)(ai->ai_addr));
-			  freeaddrinfo(ai);
+                          sock->info.lsa->remote_list = ai;
 
 			  dmsg (D_SOCKET_DEBUG, "RESOLVE_REMOTE flags=0x%04x phase=%d rrs=%d sig=%d status=%d",
 					flags,
@@ -1304,7 +1289,17 @@ resolve_remote (struct link_socket *sock,
       else
 	{
 	  CLEAR (sock->info.lsa->actual);
-	  sock->info.lsa->actual.dest = sock->info.lsa->remote;
+	  /* TODO(schwabe) will only use first address als dest address */
+	  if(sock->info.lsa->remote_list) {
+	      if (sock->info.lsa->remote_list->ai_family == AF_INET)
+		  sock->info.lsa->actual.dest.addr.in4 =
+		  *((struct sockaddr_in*) sock->info.lsa->remote_list->ai_addr);
+	      else if (sock->info.lsa->remote_list->ai_family == AF_INET6)
+		  sock->info.lsa->actual.dest.addr.in6 =
+		  *((struct sockaddr_in6*) sock->info.lsa->remote_list->ai_addr);
+	      else
+		  ASSERT(0);
+	    }
 	}
 
       /* remember that we finished */
@@ -1718,7 +1713,8 @@ phase2_socks_client (struct link_socket *sock, bool *remote_changed,
     sock->did_resolve_remote = false;
 
     addr_zero_host(&sock->info.lsa->actual.dest);
-    addr_zero_host(&sock->info.lsa->remote);
+    if (sock->info.lsa->remote_list)
+	freeaddrinfo(sock->info.lsa->remote_list);
 
     resolve_remote (sock, 1, NULL, signal_received);
 }
@@ -1792,7 +1788,9 @@ link_socket_init_phase2 (struct link_socket *sock,
       if (remote_changed)
 	{
 	  msg (M_INFO, "TCP/UDP: Dynamic remote address changed during TCP connection establishment");
-	  addr_copy_host(&sock->info.lsa->remote, &sock->info.lsa->actual.dest);
+	  /* TODO(schwabe) handle multiple addresses */
+	  ASSERT(0);
+	  addr_copy_host(&sock->info.lsa->remote_list->ai_addr, &sock->info.lsa->actual.dest);
 	}
     }
 
@@ -1936,6 +1934,10 @@ link_socket_bad_incoming_addr (struct buffer *buf,
 			       const struct link_socket_actual *from_addr)
 {
   struct gc_arena gc = gc_new ();
+  struct openvpn_sockaddr firstremoteaddr;
+
+  /* TODO(schwabe) Fix this and print all remote addresses */
+  firstremoteaddr.addr.in6 = *(struct sockaddr_in6*)info->lsa->remote_list->ai_addr;
 
   switch(from_addr->dest.addr.sa.sa_family)
     {
@@ -1945,7 +1947,7 @@ link_socket_bad_incoming_addr (struct buffer *buf,
 	   "TCP/UDP: Incoming packet rejected from %s[%d], expected peer address: %s (allow this incoming source address/port by removing --remote or adding --float)",
 	   print_link_socket_actual (from_addr, &gc),
 	   (int)from_addr->dest.addr.sa.sa_family,
-	   print_sockaddr (&info->lsa->remote, &gc));
+	   print_sockaddr (&firstremoteaddr, &gc));
       break;
     }
   buf->len = 0;
@@ -1971,13 +1973,14 @@ link_socket_current_remote (const struct link_socket_info *info)
  * by now just ignore it
  *
  */
+/* TODO(schwabe) what to do for a remote with multiple IPs? */
   if (lsa->actual.dest.addr.sa.sa_family != AF_INET)
     return IPV4_INVALID_ADDR;
 
   if (link_socket_actual_defined (&lsa->actual))
     return ntohl (lsa->actual.dest.addr.in4.sin_addr.s_addr);
-  else if (addr_defined (&lsa->remote))
-    return ntohl (lsa->remote.addr.in4.sin_addr.s_addr);
+  else if (lsa->remote_list)
+    return ntohl (((struct sockaddr_in*)lsa->remote_list->ai_addr)->sin_addr.s_addr);
   else
     return 0;
 }
@@ -2816,7 +2819,7 @@ link_socket_write_udp_posix_sendmsg (struct link_socket *sock,
   iov.iov_len = BLEN (buf);
   mesg.msg_iov = &iov;
   mesg.msg_iovlen = 1;
-  switch (sock->info.lsa->remote.addr.sa.sa_family)
+  switch (sock->info.lsa->remote_list->ai_family)
     {
     case AF_INET:
       {

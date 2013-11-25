@@ -233,7 +233,7 @@ struct tuntap *init_tun (const char *dev,       /* --dev option */
 			 int ifconfig_ipv6_netbits_parm,           /* --ifconfig parm 1 / bits */
 			 const char *ifconfig_ipv6_remote_parm,    /* --ifconfig parm 2 / IPv6 */
 			 in_addr_t local_public,
-			 in_addr_t remote_public,
+			 struct addrinfo *remote_public,
 			 const bool strict_warn,
 			 struct env_set *es);
 

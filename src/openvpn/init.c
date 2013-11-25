@@ -1356,7 +1356,7 @@ do_init_tun (struct context *c)
 			   c->options.ifconfig_ipv6_netbits,
 			   c->options.ifconfig_ipv6_remote,
 			   addr_host (&c->c1.link_socket_addr.local),
-			   addr_host (&c->c1.link_socket_addr.remote),
+			   c->c1.link_socket_addr.remote_list,
 			   !c->options.ifconfig_nowarn,
 			   c->c2.es);
 
@@ -2867,7 +2867,8 @@ do_close_link_socket (struct context *c)
 
   if (!(c->sig->signal_received == SIGUSR1 && c->options.persist_remote_ip))
     {
-      CLEAR (c->c1.link_socket_addr.remote);
+      if (c->c1.link_socket_addr.remote_list)
+        freeaddrinfo(c->c1.link_socket_addr.remote_list);
       CLEAR (c->c1.link_socket_addr.actual);
     }
 
