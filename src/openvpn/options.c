@@ -2905,7 +2905,7 @@ options_string (const struct options *o,
   buf_printf (&out, ",dev-type %s", dev_type_string (o->dev, o->dev_type));
   buf_printf (&out, ",link-mtu %d", EXPANDED_SIZE (frame));
   buf_printf (&out, ",tun-mtu %d", PAYLOAD_SIZE (frame));
-  buf_printf (&out, ",proto %s", proto2ascii (proto_remote (o->ce.proto, remote),o->ce.af, true));
+  buf_printf (&out, ",proto %s",  proto_remote (o->ce.proto, remote));
 
   /* send tun_ipv6 only in peer2peer mode - in client/server mode, it
    * is usually pushed by the server, triggering a non-helpful warning

@@ -2599,19 +2599,21 @@ addr_family_name (int af)
  * has always sent UDPv4, TCPv4 over the wire. Keep these
  * strings for backward compatbility
  */
-int
+const char*
 proto_remote (int proto, bool remote)
 {
   ASSERT (proto >= 0 && proto < PROTO_N);
-  if (remote)
-    {
-      switch (proto)
-      {
-	case PROTO_TCP_SERVER: return PROTO_TCP_CLIENT;
-	case PROTO_TCP_CLIENT: return PROTO_TCP_SERVER;
-      }
-    }
-  return proto;
+  if (proto == PROTO_UDP)
+	return "UDPv4";
+
+  if ( (remote && proto == PROTO_TCP_CLIENT) ||
+       (!remote && proto == PROTO_TCP_SERVER))
+	return "TCPv4_SERVER";
+  if ( (remote && proto == PROTO_TCP_SERVER) ||
+       (!remote && proto == PROTO_TCP_CLIENT))
+	return "TCPv4_CLIENT";
+
+  ASSERT (0);
 }
 
 /*

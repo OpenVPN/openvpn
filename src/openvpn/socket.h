@@ -532,7 +532,7 @@ int ascii2proto (const char* proto_name);
 sa_family_t ascii2af (const char* proto_name);
 const char *proto2ascii (int proto, sa_family_t af, bool display_form);
 const char *proto2ascii_all (struct gc_arena *gc);
-int proto_remote (int proto, bool remote);
+const char *proto_remote (int proto, bool remote);
 const char *addr_family_name(int af);
 
 /*
