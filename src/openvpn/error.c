@@ -259,7 +259,7 @@ void x_msg_va (const unsigned int flags, const char *format, va_list arglist)
   if (flags & M_SSL)
     {
       int nerrs = 0;
-      int err;
+      size_t err;
       while ((err = ERR_get_error ()))
 	{
 	  openvpn_snprintf (m2, ERR_BUF_SIZE, "%s: %s",

@@ -330,8 +330,8 @@ journal_add (const char *journal_dir, struct proxy_connection *pc, struct proxy_
   if (!getpeername (pc->sd, (struct sockaddr *) &from.addr.sa, &slen)
       && !getsockname (cp->sd, (struct sockaddr *) &to.addr.sa, &dlen))
     {
-      const char *f = print_sockaddr (&from, &gc);
-      const char *t = print_sockaddr (&to, &gc);
+      const char *f = print_openvpn_sockaddr (&from, &gc);
+      const char *t = print_openvpn_sockaddr (&to, &gc);
       fnlen =  strlen(journal_dir) + strlen(t) + 2;
       jfn = (char *) malloc(fnlen);
       check_malloc_return (jfn);
@@ -408,20 +408,18 @@ proxy_entry_new (struct proxy_connection **list,
 		 struct buffer *initial_data,
 		 const char *journal_dir)
 {
-  struct openvpn_sockaddr osaddr;
   socket_descriptor_t sd_server;
   int status;
   struct proxy_connection *pc;
   struct proxy_connection *cp;
 
   /* connect to port share server */
-  osaddr.addr.in4 = server_addr;
   if ((sd_server = socket (PF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0)
     {
       msg (M_WARN|M_ERRNO, "PORT SHARE PROXY: cannot create socket");
       return false;
     }
-  status = openvpn_connect (sd_server, &osaddr, 5, NULL);
+  status = openvpn_connect (sd_server,(const struct sockaddr*)  &server_addr, 5, NULL);
   if (status)
     {
       msg (M_WARN, "PORT SHARE PROXY: connect to port-share server failed");

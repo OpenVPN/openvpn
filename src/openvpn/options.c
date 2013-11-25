@@ -778,10 +778,10 @@ init_options (struct options *o, const bool init_gc)
   o->mode = MODE_POINT_TO_POINT;
   o->topology = TOP_NET30;
   o->ce.proto = PROTO_UDP;
-  o->ce.af = AF_INET;
+  o->ce.af = AF_UNSPEC;
   o->ce.connect_retry_seconds = 5;
   o->ce.connect_timeout = 10;
-  o->ce.connect_retry_max = 0;
+  o->connect_retry_max = 0;
   o->ce.local_port = o->ce.remote_port = OPENVPN_PORT;
   o->verbosity = 1;
   o->status_file_update_freq = 60;
@@ -1369,7 +1369,6 @@ show_connection_entry (const struct connection_entry *o)
   SHOW_BOOL (bind_local);
   SHOW_INT (connect_retry_seconds);
   SHOW_INT (connect_timeout);
-  SHOW_INT (connect_retry_max);
 
 #ifdef ENABLE_HTTP_PROXY
   if (o->http_proxy_options)
@@ -1446,6 +1445,7 @@ show_settings (const struct options *o)
 #endif
 #endif
 
+  SHOW_INT (connect_retry_max);
   show_connection_entries (o);
 
   SHOW_BOOL (remote_random);
@@ -1727,32 +1727,31 @@ void
 options_postprocess_http_proxy_override (struct options *o)
 {
   const struct connection_list *l = o->connection_list;
-   if (l)
+  int i;
+  bool succeed = false;
+  for (i = 0; i < l->len; ++i)
     {
-      int i;
-      bool succeed = false;
+      struct connection_entry *ce = l->array[i];
+      if (ce->proto == PROTO_TCP_CLIENT || ce->proto == PROTO_TCP)
+        {
+          ce->http_proxy_options = o->http_proxy_override;
+          succeed = true;
+        }
+    }
+  if (succeed)
+    {
       for (i = 0; i < l->len; ++i)
-	{
-	  struct connection_entry *ce = l->array[i];
-	  if (ce->proto == PROTO_TCP_CLIENT || ce->proto == PROTO_TCP)
-	    {
-	      ce->http_proxy_options = o->http_proxy_override;
-	      succeed = true;
-	    }
-	}
-      if (succeed)
-	{
-	  for (i = 0; i < l->len; ++i)
-	    {
-	      struct connection_entry *ce = l->array[i];
-	      if (ce->proto == PROTO_UDP)
-		{
-		  ce->flags |= CE_DISABLED;
-		}
-	    }
-	}
-      else
-        msg (M_WARN, "Note: option http-proxy-override ignored because no TCP-based connection profiles are defined");
+        {
+          struct connection_entry *ce = l->array[i];
+          if (ce->proto == PROTO_UDP)
+            {
+              ce->flags |= CE_DISABLED;
+            }
+        }
+    }
+  else
+    {
+      msg (M_WARN, "Note: option http-proxy-override ignored because no TCP-based connection profiles are defined");
     }
 }
 
@@ -1882,11 +1881,6 @@ options_postprocess_verify_ce (const struct options *options, const struct conne
   /*
    * Sanity check on TCP mode options
    */
-
-  if (ce->connect_retry_defined && ce->proto != PROTO_TCP_CLIENT)
-    msg (M_USAGE, "--connect-retry doesn't make sense unless also used with "
-	 "--proto tcp-client or tcp6-client");
-
   if (ce->connect_timeout_defined && ce->proto != PROTO_TCP_CLIENT)
     msg (M_USAGE, "--connect-timeout doesn't make sense unless also used with "
 	 "--proto tcp-client or tcp6-client");
@@ -2004,7 +1998,7 @@ options_postprocess_verify_ce (const struct options *options, const struct conne
     msg (M_USAGE, "--socks-proxy can not be used in TCP Server mode");
 #endif
 
-  if (ce->proto == PROTO_TCP_SERVER && connection_list_defined (options))
+  if (ce->proto == PROTO_TCP_SERVER && (options->connection_list->len > 1))
     msg (M_USAGE, "TCP server mode allows at most one --remote address");
 
 #if P2MP_SERVER
@@ -2041,8 +2035,12 @@ options_postprocess_verify_ce (const struct options *options, const struct conne
       if (ce->socks_proxy_server)
 	msg (M_USAGE, "--socks-proxy cannot be used with --mode server");
 #endif
-      if (options->connection_list)
-	msg (M_USAGE, "<connection> cannot be used with --mode server");
+      /* <connection> blocks force to have a remote embedded, so we check for the
+       * --remote and bail out if it  is present */
+       if (options->connection_list->len >1 ||
+                  options->connection_list->array[0]->remote)
+          msg (M_USAGE, "<connection> cannot be used with --mode server");
+
 #if 0
       if (options->tun_ipv6)
 	msg (M_USAGE, "--tun-ipv6 cannot be used with --mode server");
@@ -2485,6 +2483,7 @@ options_postprocess_verify (const struct options *o)
 static void
 options_postprocess_mutate (struct options *o)
 {
+  int i;
   /*
    * Process helper-type options which map to other, more complex
    * sequences of options.
@@ -2498,48 +2497,38 @@ options_postprocess_mutate (struct options *o)
   if (o->remote_list && !o->connection_list)
     {
       /*
-       * For compatibility with 2.0.x, map multiple --remote options
-       * into connection list (connection lists added in 2.1).
+       * Convert remotes into connection list
        */
-      if (o->remote_list->len > 1 || o->force_connection_list)
-	{
-	  const struct remote_list *rl = o->remote_list;
-	  int i;
-	  for (i = 0; i < rl->len; ++i)
-	    {
-	      const struct remote_entry *re = rl->array[i];
-	      struct connection_entry ce = o->ce;
-	      struct connection_entry *ace;
+      const struct remote_list *rl = o->remote_list;
+      for (i = 0; i < rl->len; ++i)
+        {
+          const struct remote_entry *re = rl->array[i];
+          struct connection_entry ce = o->ce;
+          struct connection_entry *ace;
 
-	      ASSERT (re->remote);
-	      connection_entry_load_re (&ce, re);
-	      ace = alloc_connection_entry (o, M_USAGE);
-	      ASSERT (ace);
-	      *ace = ce;
-	    }
-	}
-      else if (o->remote_list->len == 1) /* one --remote option specified */
-	{
-	  connection_entry_load_re (&o->ce, o->remote_list->array[0]);
-	}
-      else
-	{
-	  ASSERT (0);
-	}
+          ASSERT (re->remote);
+          connection_entry_load_re (&ce, re);
+          ace = alloc_connection_entry (o, M_USAGE);
+          ASSERT (ace);
+          *ace = ce;
+        }
     }
-  if (o->connection_list)
+  else if(!o->remote_list && !o->connection_list)
     {
-      int i;
-      for (i = 0; i < o->connection_list->len; ++i)
+      struct connection_entry *ace;
+      ace = alloc_connection_entry (o, M_USAGE);
+      ASSERT (ace);
+      *ace = o->ce;
+    }
+
+  ASSERT (o->connection_list);
+  for (i = 0; i < o->connection_list->len; ++i)
 	options_postprocess_mutate_ce (o, o->connection_list->array[i]);
 
 #if HTTP_PROXY_OVERRIDE
-      if (o->http_proxy_override)
+  if (o->http_proxy_override)
 	options_postprocess_http_proxy_override(o);
 #endif
-    }
-  else
-    options_postprocess_mutate_ce (o, &o->ce);  
 
 #if P2MP
   /*
@@ -4169,7 +4158,6 @@ add_option (struct options *options,
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->management_flags |= MF_QUERY_PROXY;
-      options->force_connection_list = true;
     }
   else if (streq (p[0], "management-hold"))
     {
@@ -4442,7 +4430,6 @@ add_option (struct options *options,
       options->http_proxy_override = parse_http_proxy_override(p[1], p[2], p[3], msglevel, &options->gc);
       if (!options->http_proxy_override)
 	goto err;
-      options->force_connection_list = true;
     }
 #endif
   else if (streq (p[0], "remote") && p[1])
@@ -4494,7 +4481,6 @@ add_option (struct options *options,
     {
       VERIFY_PERMISSION (OPT_P_GENERAL|OPT_P_CONNECTION);
       options->ce.connect_retry_seconds = positive_atoi (p[1]);
-      options->ce.connect_retry_defined = true;
     }
   else if (streq (p[0], "connect-timeout") && p[1])
     {
@@ -4505,7 +4491,7 @@ add_option (struct options *options,
   else if (streq (p[0], "connect-retry-max") && p[1])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL|OPT_P_CONNECTION);
-      options->ce.connect_retry_max = positive_atoi (p[1]);
+      options->connect_retry_max = positive_atoi (p[1]);
     }
   else if (streq (p[0], "ipchange") && p[1])
     {
@@ -4930,7 +4916,6 @@ add_option (struct options *options,
 	  goto err;
 	}
       options->proto_force = proto_force;
-      options->force_connection_list = true;
     }
 #ifdef ENABLE_HTTP_PROXY
   else if (streq (p[0], "http-proxy") && p[1])

@@ -81,6 +81,11 @@ struct openvpn_sockaddr
 struct link_socket_actual
 {
   /*int dummy;*/ /* add offset to force a bug if dest not explicitly dereferenced */
+ int ai_family;	/* PF_xxx */
+ int ai_socktype;	/* SOCK_xxx */
+ int ai_protocol;	/* 0 or IPPROTO_xxx for IPv4 and IPv6 */
+
+
   struct openvpn_sockaddr dest;
 #if ENABLE_IP_PKTINFO
   union {
@@ -97,8 +102,10 @@ struct link_socket_actual
 /* IP addresses which are persistant across SIGUSR1s */
 struct link_socket_addr
 {
-  struct openvpn_sockaddr local;
-  struct addrinfo* remote_list;   /* initial remote */
+  struct addrinfo* bind_local;
+  struct addrinfo* remote_list;   /* complete remote list */
+  struct addrinfo* current_remote;  /* remote used in the
+                                     current connection attempt */
   struct link_socket_actual actual; /* reply to this address */
 };
 
@@ -176,9 +183,6 @@ struct link_socket
   /* used for long-term queueing of pre-accepted socket listen */
   bool listen_persistent_queued;
 
-  /* Does config file contain any <connection> ... </connection> blocks? */
-  bool connection_profiles_defined;
-
   const char *remote_host;
   const char *remote_port;
   const char *local_host;
@@ -196,9 +200,7 @@ struct link_socket
   int mode;
 
   int resolve_retry_seconds;
-  int connect_retry_seconds;
   int connect_timeout;
-  int connect_retry_max;
   int mtu_discover_type;
 
   struct socket_buffer_size socket_buffer_sizes;
@@ -213,6 +215,7 @@ struct link_socket
 # define SF_HOST_RANDOMIZE (1<<3)
 # define SF_GETADDRINFO_DGRAM (1<<4)
   unsigned int sockflags;
+  int mark;
 
   /* for stream sockets */
   struct stream_buf stream_buf;
@@ -284,11 +287,12 @@ int socket_finalize (
 struct link_socket *link_socket_new (void);
 
 void socket_bind (socket_descriptor_t sd,
-		  struct openvpn_sockaddr *local,
+		  struct addrinfo *local,
+                  int af_family,
 		  const char *prefix);
 
 int openvpn_connect (socket_descriptor_t sd,
-		     struct openvpn_sockaddr *remote,
+		     const struct sockaddr *remote,
 		     int connect_timeout,
 		     volatile int *signal_received);
 
@@ -298,7 +302,6 @@ int openvpn_connect (socket_descriptor_t sd,
 
 void
 link_socket_init_phase1 (struct link_socket *sock,
-			 const bool connection_profiles_defined,
 			 const char *local_host,
 			 const char *local_port,
 			 const char *remote_host,
@@ -323,9 +326,7 @@ link_socket_init_phase1 (struct link_socket *sock,
 			 const char *ipchange_command,
 			 const struct plugin_list *plugins,
 			 int resolve_retry_seconds,
-			 int connect_retry_seconds,
 			 int connect_timeout,
-			 int connect_retry_max,
 			 int mtu_discover_type,
 			 int rcvbuf,
 			 int sndbuf,
@@ -334,7 +335,7 @@ link_socket_init_phase1 (struct link_socket *sock,
 
 void link_socket_init_phase2 (struct link_socket *sock,
 			      const struct frame *frame,
-			      volatile int *signal_received);
+			      struct signal_info *sig_info);
 
 void socket_adjust_frame_parameters (struct frame *frame, int proto);
 
@@ -364,11 +365,20 @@ const char *print_openvpn_sockaddr_ex (const struct openvpn_sockaddr *addr,
 }
 
 static inline
-const char *print_sockaddr (const struct openvpn_sockaddr *addr,
+const char *print_openvpn_sockaddr (const struct openvpn_sockaddr *addr,
 			    struct gc_arena *gc)
 {
     return print_sockaddr_ex (&addr->addr.sa, ":", PS_SHOW_PORT, gc);
 }
+
+static inline
+const char *print_sockaddr (const struct sockaddr *addr,
+                                    struct gc_arena *gc)
+{
+    return print_sockaddr_ex (addr, ":", PS_SHOW_PORT, gc);
+}
+
+
 
 const char *print_link_socket_actual_ex (const struct link_socket_actual *act,
 					 const char* separator,
@@ -419,6 +429,9 @@ void link_socket_connection_initiated (const struct buffer *buf,
 void link_socket_bad_incoming_addr (struct buffer *buf,
 				    const struct link_socket_info *info,
 				    const struct link_socket_actual *from_addr);
+
+void set_actual_address (struct link_socket_actual* actual,
+                         struct addrinfo* ai);
 
 void link_socket_bad_outgoing_addr (void);
 
@@ -496,6 +509,7 @@ bool unix_socket_get_peer_uid_gid (const socket_descriptor_t sd, int *uid, int *
 #define GETADDR_UPDATE_MANAGEMENT_STATE (1<<8)
 #define GETADDR_RANDOMIZE             (1<<9)
 #define GETADDR_PASSIVE               (1<<10)
+#define GETADDR_DATAGRAM              (1<<11)
 
 in_addr_t getaddr (unsigned int flags,
 		   const char *hostname,
@@ -741,19 +755,6 @@ addr_copy_sa(struct openvpn_sockaddr *dst, const struct openvpn_sockaddr *src)
   dst->addr = src->addr;
 }
 
-static inline void
-addr_copy_host(struct openvpn_sockaddr *dst, const struct openvpn_sockaddr *src)
-{
-   switch(src->addr.sa.sa_family) {
-     case AF_INET:
-       dst->addr.in4.sin_addr.s_addr = src->addr.in4.sin_addr.s_addr;
-       break;
-     case AF_INET6: 
-       dst->addr.in6.sin6_addr = src->addr.in6.sin6_addr;
-       break;
-   }
-}
-
 static inline bool
 addr_inet4or6(struct sockaddr *addr)
 {
@@ -838,7 +839,7 @@ link_socket_verify_incoming_addr (struct buffer *buf,
 	case AF_INET:
 	  if (!link_socket_actual_defined (from_addr))
 	    return false;
-	  if (info->remote_float || !info->lsa->remote_list)
+	  if (info->remote_float || (!info->lsa->remote_list))
 	    return true;
 	  if (addrlist_match_proto (&from_addr->dest, info->lsa->remote_list, info->proto))
 	    return true;
@@ -877,13 +878,15 @@ link_socket_set_outgoing_addr (const struct buffer *buf,
     {
       struct link_socket_addr *lsa = info->lsa;
       if (
-	  /* new or changed address? */
-	  (!info->connection_established
-	   || !addr_match_proto (&act->dest, &lsa->actual.dest, info->proto))
-	  /* address undef or address == remote or --float */
-	  && (info->remote_float
-	      || !lsa->remote_list
-	      || addrlist_match_proto (&act->dest, lsa->remote_list, info->proto))
+	   /* new or changed address? */
+	   (!info->connection_established
+	    || !addr_match_proto (&act->dest, &lsa->actual.dest, info->proto)
+	    )
+	   &&
+	   /* address undef or address == remote or --float */
+	   (info->remote_float ||
+	       (!lsa->remote_list || addrlist_match_proto (&act->dest, lsa->remote_list, info->proto))
+	    )
 	  )
 	{
 	  link_socket_connection_initiated (buf, info, act, common_name, es);
@@ -1007,13 +1010,13 @@ link_socket_write_win32 (struct link_socket *sock,
 
 #else
 
-static inline int
+static inline size_t
 link_socket_write_udp_posix (struct link_socket *sock,
 			     struct buffer *buf,
 			     struct link_socket_actual *to)
 {
 #if ENABLE_IP_PKTINFO
-  int link_socket_write_udp_posix_sendmsg (struct link_socket *sock,
+  size_t link_socket_write_udp_posix_sendmsg (struct link_socket *sock,
 					   struct buffer *buf,
 					   struct link_socket_actual *to);
 
@@ -1027,7 +1030,7 @@ link_socket_write_udp_posix (struct link_socket *sock,
 		   (socklen_t) af_addr_size(to->dest.addr.sa.sa_family));
 }
 
-static inline int
+static inline size_t
 link_socket_write_tcp_posix (struct link_socket *sock,
 			     struct buffer *buf,
 			     struct link_socket_actual *to)
@@ -1037,7 +1040,7 @@ link_socket_write_tcp_posix (struct link_socket *sock,
 
 #endif
 
-static inline int
+static inline size_t
 link_socket_write_udp (struct link_socket *sock,
 		       struct buffer *buf,
 		       struct link_socket_actual *to)

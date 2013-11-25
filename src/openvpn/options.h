@@ -97,8 +97,6 @@ struct connection_entry
   bool bind_defined;
   bool bind_local;
   int connect_retry_seconds;
-  bool connect_retry_defined;
-  int connect_retry_max;
   int connect_timeout;
   bool connect_timeout_defined;
 #ifdef ENABLE_HTTP_PROXY
@@ -155,8 +153,6 @@ struct connection_list
 {
   int len;
   int current;
-  int n_cycles;
-  bool no_advance;
   struct connection_entry *array[CONNECTION_LIST_SIZE];
 };
 
@@ -209,10 +205,15 @@ struct options
 #endif
 
   /* Networking parms */
+  int connect_retry_max;
   struct connection_entry ce;
   struct connection_list *connection_list;
+
   struct remote_list *remote_list;
-  bool force_connection_list;
+  /* Do not advanced the connection or remote addr list*/
+  bool no_advance;
+  /* Counts the number of unsuccessful connection attempts */
+  unsigned int unsuccessful_attempts;
 
 #if HTTP_PROXY_OVERRIDE
   struct http_proxy_options *http_proxy_override;
@@ -775,20 +776,5 @@ bool get_ipv6_addr( const char * prefix_str, struct in6_addr *network,
 		    unsigned int * netbits, char ** printable_ipv6, 
 		    int msglevel );
 
-/*
- * inline functions
- */
-static inline bool
-connection_list_defined (const struct options *o)
-{
-  return o->connection_list != NULL;
-}
-
-static inline void
-connection_list_set_no_advance (struct options *o)
-{
-  if (o->connection_list)
-    o->connection_list->no_advance = true;
-}
 
 #endif

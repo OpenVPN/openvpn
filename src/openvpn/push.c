@@ -49,7 +49,8 @@ void
 receive_auth_failed (struct context *c, const struct buffer *buffer)
 {
   msg (M_VERB0, "AUTH: Received control message: %s", BSTR(buffer));
-  connection_list_set_no_advance(&c->options);
+  c->options.no_advance=true;
+
   if (c->options.pull)
     {
       switch (auth_retry_get ())

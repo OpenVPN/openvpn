@@ -212,7 +212,7 @@ struct man_persist {
 struct man_settings {
   bool defined;
   unsigned int flags; /* MF_x flags */
-  struct openvpn_sockaddr local;
+  struct addrinfo* local;
 #if UNIX_SOCK_SUPPORT
   struct sockaddr_un local_unix;
 #endif

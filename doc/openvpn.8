@@ -221,6 +221,9 @@ options.
 indicates the protocol to use when connecting with the
 remote, and may be "tcp" or "udp".
 
+For forcing IPv4 or IPv6 connection suffix tcp or udp
+with 4/6 like udp4/udp6/tcp4/tcp6.
+
 The client will move on to the next host in the list,
 in the event of connection failure.
 Note that at any given time, the OpenVPN client
@@ -463,13 +466,9 @@ possess a built-in reliability layer.
 .\"*********************************************************
 .TP
 .B \-\-connect-retry n
-For
-.B \-\-proto tcp-client,
-take
+Wait
 .B n
-as the
-number of seconds to wait
-between connection retries (default=5).
+seconds  between connection attempts (default=5).
 .\"*********************************************************
 .TP
 .B \-\-connect-timeout n
@@ -481,12 +480,15 @@ seconds (default=10).
 .\"*********************************************************
 .TP
 .B \-\-connect-retry-max n
-For
-.B \-\-proto tcp-client,
-take
 .B n
-as the
-number of retries of connection attempt (default=infinite).
+specifies the number of times all
+.B \-\-remote
+respectively
+.B <connection>
+statements are tried. Specifiying
+.B n
+as one would try each entry exactly once. A sucessful connection
+resets the counter. (default=umlimited).
 .\"*********************************************************
 .TP
 .B \-\-show-proxy-settings

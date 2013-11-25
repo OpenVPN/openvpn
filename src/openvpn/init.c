@@ -284,25 +284,35 @@ static void
 init_connection_list (struct context *c)
 {
   struct connection_list *l = c->options.connection_list;
-  if (l)
+
+  l->current = -1;
+  if (c->options.remote_random)
     {
-      l->current = -1;
-      if (c->options.remote_random)
-	{
-	  int i;
-	  for (i = 0; i < l->len; ++i)
-	    {
-	      const int j = get_random () % l->len;
-	      if (i != j)
-		{
-		  struct connection_entry *tmp;
-		  tmp = l->array[i];
-		  l->array[i] = l->array[j];
-		  l->array[j] = tmp;
-		}
-	    }
-	}
+      int i;
+      for (i = 0; i < l->len; ++i)
+        {
+          const int j = get_random () % l->len;
+          if (i != j)
+            {
+              struct connection_entry *tmp;
+              tmp = l->array[i];
+              l->array[i] = l->array[j];
+              l->array[j] = tmp;
+            }
+        }
     }
+}
+
+/*
+ * Clear the remote address list
+ */
+static void clear_remote_addrlist (struct link_socket_addr *lsa)
+{
+    if (lsa->remote_list) {
+        freeaddrinfo(lsa->remote_list);
+    }
+    lsa->remote_list = NULL;
+    lsa->current_remote = NULL;
 }
 
 /*
@@ -312,56 +322,89 @@ static void
 next_connection_entry (struct context *c)
 {
   struct connection_list *l = c->options.connection_list;
-  if (l)
-    {
-      bool ce_defined;
-      struct connection_entry *ce;
-      int n_cycles = 0;
+  bool ce_defined;
+  struct connection_entry *ce;
+  int n_cycles = 0;
 
-      do {
-	ce_defined = true;
-	if (l->no_advance && l->current >= 0)
-	  {
-	    l->no_advance = false;
-	  }
-	else
-	  {
-	    if (++l->current >= l->len)
-	      {
-		l->current = 0;
-		++l->n_cycles;
-		if (++n_cycles >= 2)
-		  msg (M_FATAL, "No usable connection profiles are present");
-	      }
-	  }
-
-	ce = l->array[l->current];
-
-	if (ce->flags & CE_DISABLED)
-	  ce_defined = false;
-
-	c->options.ce = *ce;
-#ifdef ENABLE_MANAGEMENT
-	if (ce_defined && management && management_query_remote_enabled(management))
-	  {
-	    /* allow management interface to override connection entry details */
-	    ce_defined = ce_management_query_remote(c);
-	    if (IS_SIG (c))
-	      break;
-	  }
-        else
-#endif
-
-#ifdef ENABLE_MANAGEMENT
-        if (ce_defined && management && management_query_proxy_enabled (management))
+  do {
+    ce_defined = true;
+    if (c->options.no_advance && l->current >= 0)
+      {
+        c->options.no_advance = false;
+      }
+    else
+      {
+        /* Check if there is another resolved address to try for
+         * the current connection */
+        if (c->c1.link_socket_addr.current_remote &&
+            c->c1.link_socket_addr.current_remote->ai_next)
           {
-            ce_defined = ce_management_query_proxy (c);
-            if (IS_SIG (c))
-              break;
+            c->c1.link_socket_addr.current_remote =
+                c->c1.link_socket_addr.current_remote->ai_next;
           }
+        else
+          {
+            /* FIXME (schwabe) fix the persist-remote-ip option for real,
+             * this is broken probably ever since connection lists and multiple
+             * remote existed
+             */
+
+            if (!c->options.persist_remote_ip)
+                clear_remote_addrlist (&c->c1.link_socket_addr);
+            else
+                c->c1.link_socket_addr.current_remote =
+                c->c1.link_socket_addr.remote_list;
+
+            /*
+             * Increase the number of connection attempts
+             * If this is connect-retry-max * size(l)
+             * OpenVPN will quit
+             */
+
+            c->options.unsuccessful_attempts++;
+
+            if (++l->current >= l->len)
+              {
+
+                l->current = 0;
+                if (++n_cycles >= 2)
+                    msg (M_FATAL, "No usable connection profiles are present");
+              }
+          }
+      }
+
+    ce = l->array[l->current];
+
+    if (ce->flags & CE_DISABLED)
+      ce_defined = false;
+
+    c->options.ce = *ce;
+#ifdef ENABLE_MANAGEMENT
+    if (ce_defined && management && management_query_remote_enabled(management))
+      {
+        /* allow management interface to override connection entry details */
+        ce_defined = ce_management_query_remote(c);
+        if (IS_SIG (c))
+          break;
+      }
+    else
 #endif
-      } while (!ce_defined);
-    }
+
+#ifdef ENABLE_MANAGEMENT
+      if (ce_defined && management && management_query_proxy_enabled (management))
+        {
+          ce_defined = ce_management_query_proxy (c);
+          if (IS_SIG (c))
+            break;
+        }
+#endif
+  } while (!ce_defined);
+
+  /* Check if this connection attempt would bring us over the limit */
+  if (c->options.connect_retry_max > 0 &&
+      c->options.unsuccessful_attempts > (l->len  * c->options.connect_retry_max))
+      msg(M_FATAL, "All connections have been connect-retry-max (%d) times unsuccessful, exiting",
+          c->options.connect_retry_max);
   update_options_ce_post (&c->options);
 }
 
@@ -395,12 +438,6 @@ init_query_passwords (struct context *c)
  */
 
 #ifdef GENERAL_PROXY_SUPPORT
-
-static int
-proxy_scope (struct context *c)
-{
-  return connection_list_defined (&c->options) ? 2 : 1;
-}
 
 static void
 uninit_proxy_dowork (struct context *c)
@@ -463,17 +500,15 @@ init_proxy_dowork (struct context *c)
 }
 
 static void
-init_proxy (struct context *c, const int scope)
+init_proxy (struct context *c)
 {
-  if (scope == proxy_scope (c))
-    init_proxy_dowork (c);
+  init_proxy_dowork (c);
 }
 
 static void
 uninit_proxy (struct context *c)
 {
-  if (c->sig->signal_received != SIGUSR1 || proxy_scope (c) == 2)
-    uninit_proxy_dowork (c);
+   uninit_proxy_dowork (c);
 }
 
 #else
@@ -525,8 +560,6 @@ context_init_1 (struct context *c)
  }
 #endif
 
-  /* initialize HTTP or SOCKS proxy object at scope level 1 */
-  init_proxy (c, 1);
 }
 
 void
@@ -1222,6 +1255,9 @@ initialization_sequence_completed (struct context *c, const unsigned int flags)
 {
   static const char message[] = "Initialization Sequence Completed";
 
+  /* Reset the unsuccessful connection counter on complete initialisation */
+  c->options.unsuccessful_attempts=0;
+
   /* If we delayed UID/GID downgrade or chroot, do it now */
   do_uid_gid_chroot (c, true);
 
@@ -1239,9 +1275,9 @@ initialization_sequence_completed (struct context *c, const unsigned int flags)
   else
     msg (M_INFO, "%s", message);
 
-  /* Flag connection_list that we initialized */
-  if ((flags & (ISC_ERRORS|ISC_SERVER)) == 0 && connection_list_defined (&c->options))
-    connection_list_set_no_advance (&c->options);
+  /* Flag that we initialized */
+  if ((flags & (ISC_ERRORS|ISC_SERVER)) == 0)
+    c->options.no_advance=true;
 
 #ifdef WIN32
   fork_register_dns_action (c->c1.tuntap);
@@ -1355,7 +1391,7 @@ do_init_tun (struct context *c)
 			   c->options.ifconfig_ipv6_local,
 			   c->options.ifconfig_ipv6_netbits,
 			   c->options.ifconfig_ipv6_remote,
-			   addr_host (&c->c1.link_socket_addr.local),
+			   c->c1.link_socket_addr.bind_local,
 			   c->c1.link_socket_addr.remote_list,
 			   !c->options.ifconfig_nowarn,
 			   c->c2.es);
@@ -1545,7 +1581,7 @@ do_close_tun (struct context *c, bool force)
 
 	  /* delete any routes we added */
 	  if (c->c1.route_list || c->c1.route_ipv6_list )
-            {
+           {
               run_up_down (c->options.route_predown_script,
                            c->plugins,
                            OPENVPN_PLUGIN_ROUTE_PREDOWN,
@@ -1832,13 +1868,10 @@ socket_restart_pause (struct context *c)
 
   switch (c->options.ce.proto)
     {
-    case PROTO_UDP:
-      if (proxy)
-	sec = c->options.ce.connect_retry_seconds;
-      break;
     case PROTO_TCP_SERVER:
       sec = 1;
       break;
+    case PROTO_UDP:
     case PROTO_TCP_CLIENT:
       sec = c->options.ce.connect_retry_seconds;
       break;
@@ -2651,7 +2684,6 @@ do_init_socket_1 (struct context *c, const int mode)
 #endif
 
   link_socket_init_phase1 (c->c2.link_socket,
-			   connection_list_defined (&c->options),
 			   c->options.ce.local,
 			   c->options.ce.local_port,
 			   c->options.ce.remote,
@@ -2676,9 +2708,7 @@ do_init_socket_1 (struct context *c, const int mode)
 			   c->options.ipchange,
 			   c->plugins,
 			   c->options.resolve_retry_seconds,
-			   c->options.ce.connect_retry_seconds,
 			   c->options.ce.connect_timeout,
-			   c->options.ce.connect_retry_max,
 			   c->options.ce.mtu_discover_type,
 			   c->options.rcvbuf,
 			   c->options.sndbuf,
@@ -2693,7 +2723,7 @@ static void
 do_init_socket_2 (struct context *c)
 {
   link_socket_init_phase2 (c->c2.link_socket, &c->c2.frame,
-			   &c->sig->signal_received);
+			   c->sig);
 }
 
 /*
@@ -2865,15 +2895,30 @@ do_close_link_socket (struct context *c)
       c->c2.link_socket = NULL;
     }
 
-  if (!(c->sig->signal_received == SIGUSR1 && c->options.persist_remote_ip))
+    
+  /* Preserve the resolved list of remote if the user request to or if we want
+   * reconnect to the same host again or there are still addresses that need
+   * to be tried */
+  if (!(c->sig->signal_received == SIGUSR1 &&
+        ( (c->options.persist_remote_ip)
+         ||
+         ( c->sig->source != SIG_SOURCE_HARD &&
+          ((c->c1.link_socket_addr.current_remote && c->c1.link_socket_addr.current_remote->ai_next)
+           || c->options.no_advance))
+         )))
     {
-      if (c->c1.link_socket_addr.remote_list)
-        freeaddrinfo(c->c1.link_socket_addr.remote_list);
-      CLEAR (c->c1.link_socket_addr.actual);
+      clear_remote_addrlist(&c->c1.link_socket_addr);
     }
 
-  if (!(c->sig->signal_received == SIGUSR1 && c->options.persist_local_ip))
-    CLEAR (c->c1.link_socket_addr.local);
+    /* Clear the remote actual address when persist_remote_ip is not in use */
+    if (!(c->sig->signal_received == SIGUSR1 && c->options.persist_remote_ip))
+      CLEAR (c->c1.link_socket_addr.actual);
+
+  if (!(c->sig->signal_received == SIGUSR1 && c->options.persist_local_ip)) {
+    if (c->c1.link_socket_addr.bind_local)
+        freeaddrinfo(c->c1.link_socket_addr.bind_local);
+    c->c1.link_socket_addr.bind_local=NULL;
+  }
 }
 
 /*
@@ -3296,7 +3341,7 @@ init_instance (struct context *c, const struct env_set *env, const unsigned int 
   /* signals caught here will abort */
   c->sig->signal_received = 0;
   c->sig->signal_text = NULL;
-  c->sig->hard = false;
+  c->sig->source = SIG_SOURCE_SOFT;
 
   if (c->mode == CM_P2P)
     init_management_callback_p2p (c);
@@ -3382,7 +3427,7 @@ init_instance (struct context *c, const struct env_set *env, const unsigned int 
     do_event_set_init (c, false);
 
   /* initialize HTTP or SOCKS proxy object at scope level 2 */
-  init_proxy (c, 2);
+  init_proxy (c);
 
   /* allocate our socket object */
   if (c->mode == CM_P2P || c->mode == CM_TOP || c->mode == CM_CHILD_TCP)
@@ -3720,7 +3765,7 @@ close_context (struct context *c, int sig, unsigned int flags)
   if (c->sig->signal_received == SIGUSR1)
     {
       if ((flags & CC_USR1_TO_HUP)
-	  || (c->sig->hard && (flags & CC_HARD_USR1_TO_HUP)))
+	  || (c->sig->source == SIG_SOURCE_HARD && (flags & CC_HARD_USR1_TO_HUP)))
 	c->sig->signal_received = SIGHUP;
     }
 
@@ -3746,6 +3791,7 @@ test_crypto_thread (void *arg)
   ASSERT (options->test_crypto);
   init_verb_mute (c, IVM_LEVEL_1);
   context_init_1 (c);
+  next_connection_entry(c);
   do_init_crypto_static (c, 0);
 
   frame_finalize_options (c, options);

@@ -97,14 +97,14 @@ void
 throw_signal (const int signum)
 {
   siginfo_static.signal_received = signum;
-  siginfo_static.hard = true;
+  siginfo_static.source = SIG_SOURCE_HARD;
 }
 
 void
 throw_signal_soft (const int signum, const char *signal_text)
 {
   siginfo_static.signal_received = signum;
-  siginfo_static.hard = false;
+  siginfo_static.source = SIG_SOURCE_SOFT;
   siginfo_static.signal_text = signal_text;
 }
 
@@ -115,7 +115,7 @@ signal_reset (struct signal_info *si)
     {
       si->signal_received = 0;
       si->signal_text = NULL;
-      si->hard = false;
+      si->source = SIG_SOURCE_SOFT;
     }
 }
 
@@ -124,9 +124,23 @@ print_signal (const struct signal_info *si, const char *title, int msglevel)
 {
   if (si)
     {
-      const char *hs = (si->hard ? "hard" : "soft");
       const char *type = (si->signal_text ? si->signal_text : "");
       const char *t = (title ? title : "process");
+      const char *hs;
+      switch (si->source)
+        {
+        case SIG_SOURCE_SOFT:
+          hs= "soft";
+          break;
+        case SIG_SOURCE_HARD:
+          hs = "hard";
+          break;
+        case SIG_SOURCE_CONNECTION_FAILED:
+          hs = "connection failed(soft)";
+          break;
+        default:
+          ASSERT(0);
+        }
 
       switch (si->signal_received)
 	{
