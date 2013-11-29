@@ -780,9 +780,10 @@ tls_ctx_use_external_private_key (struct tls_root_ctx *ctx,
   X509 *cert = NULL;
 
   ASSERT (NULL != ctx);
-  ASSERT (NULL != cert);
 
   tls_ctx_load_cert_file_and_copy (ctx, cert_file, cert_file_inline, &cert);
+
+  ASSERT (NULL != cert);
 
   /* allocate custom RSA method object */
   ALLOC_OBJ_CLEAR (rsa_meth, RSA_METHOD);
