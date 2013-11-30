@@ -908,8 +908,9 @@ socket_bind (socket_descriptor_t sd,
 
   if (ai_family == AF_INET6)
     {
-      int v6only = ipv6only ? 0: 1;	/* setsockopt must have an "int" */
+      int v6only = ipv6only ? 1: 0;	/* setsockopt must have an "int" */
 
+      msg (M_INFO, "setsockopt(IPV6_V6ONLY=%d)", v6only);
       if (setsockopt(sd, IPPROTO_IPV6, IPV6_V6ONLY, &v6only, sizeof(v6only)))
 	{
 	  msg (M_NONFATAL|M_ERRNO, "Setting IPV6_V6ONLY=%d failed", v6only);
