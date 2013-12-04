@@ -62,7 +62,6 @@ get_console_input_win32 (const char *prompt, const bool echo, char *input, const
   err = get_orig_stderr ();
 
   if (in != INVALID_HANDLE_VALUE
-      && err != INVALID_HANDLE_VALUE
       && !win32_service_interrupt (&win32_signal)
       && WriteFile (err, prompt, strlen (prompt), &len, NULL))
     {

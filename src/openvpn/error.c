@@ -454,12 +454,12 @@ close_syslog ()
 
 #ifdef WIN32
 
-static HANDLE orig_stderr;
+static HANDLE orig_stderr = INVALID_HANDLE_VALUE;
 
 HANDLE
 get_orig_stderr (void)
 {
-  if (orig_stderr)
+  if (orig_stderr != INVALID_HANDLE_VALUE)
     return orig_stderr;
   else
     return GetStdHandle (STD_ERROR_HANDLE);
