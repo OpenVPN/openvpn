@@ -325,6 +325,7 @@ static const char usage_message[] =
   "--down-pre      : Run --down command before TUN/TAP close.\n"
   "--up-restart    : Run up/down commands for all restarts including those\n"
   "                  caused by --ping-restart or SIGUSR1\n"
+  "--custom cmd    : Run command cmd after receiving a custom command.\n"
   "--user user     : Set UID to user after initialization.\n"
   "--group group   : Set GID to group after initialization.\n"
   "--chroot dir    : Chroot to this directory after initialization.\n"
@@ -1504,6 +1505,7 @@ show_settings (const struct options *o)
   SHOW_STR (writepid);
   SHOW_STR (up_script);
   SHOW_STR (down_script);
+  SHOW_STR (custom_script);
   SHOW_BOOL (down_pre);
   SHOW_BOOL (up_restart);
   SHOW_BOOL (up_delay);
@@ -4556,6 +4558,14 @@ add_option (struct options *options,
       if (!no_more_than_n_args (msglevel, p, 2, NM_QUOTE_HINT))
 	goto err;
       set_user_script (options, &options->down_script, p[1], "down");
+    }
+  else if (streq (p[0], "custom") && p[1])
+    {
+      VERIFY_PERMISSION (OPT_P_SCRIPT);
+      if (!no_more_than_n_args (msglevel, p, 2, NM_QUOTE_HINT))
+	goto err;
+      warn_multiple_script (options->custom_script, "custom");
+      options->custom_script = p[1];
     }
   else if (streq (p[0], "down-pre"))
     {

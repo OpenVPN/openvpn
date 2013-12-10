@@ -292,6 +292,7 @@ struct options
   const char *writepid;
   const char *up_script;
   const char *down_script;
+  const char *custom_script;
   bool user_script_used;
   bool down_pre;
   bool up_delay;

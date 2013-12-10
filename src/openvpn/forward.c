@@ -138,6 +138,32 @@ check_tls_errors_nco (struct context *c)
 #if P2MP
 
 /*
+ * Execute the custom script when the CUSTOM control message is received.
+ */
+void
+process_custom_control_message(struct context *c, const struct buffer *buf, int adv)
+{
+    struct argv argv = argv_new ();
+    char *pch;
+    argv_printf (&argv, "%sc",
+           c->options.custom_script);
+    /* split buf into args */
+    pch = BSTR(buf) + adv;
+    if (*pch == ' ')
+        pch++;
+    if (strlen(pch) > 0) {
+        char *saveptr;
+        pch = strtok_r (pch, " ", &saveptr);
+        while (pch != NULL) {
+            argv_printf_cat(&argv, "%s", pch);
+            pch = strtok_r (NULL, " ", &saveptr);
+        }
+    }
+    openvpn_run_script (&argv, c->c2.es, 0, "--custom");
+    argv_reset (&argv);
+}
+
+/*
  * Handle incoming configuration
  * messages on the control channel.
  */
@@ -165,6 +191,8 @@ check_incoming_control_channel_dowork (struct context *c)
 	    server_pushed_signal (c, &buf, true, 7);
 	  else if (buf_string_match_head_str (&buf, "HALT"))
 	    server_pushed_signal (c, &buf, false, 4);
+	  else if (buf_string_match_head_str (&buf, "CUSTOM"))
+        process_custom_control_message(c, &buf, 6);
 	  else
 	    msg (D_PUSH_ERRORS, "WARNING: Received unknown control message: %s", BSTR (&buf));
 	}
