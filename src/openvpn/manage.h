@@ -155,6 +155,8 @@ struct management_callback
   int (*kill_by_addr) (void *arg, const in_addr_t addr, const int port);
   void (*delete_event) (void *arg, event_t event);
   int (*n_clients) (void *arg);
+  int (*control_by_cn) (void *arg, const char *common_name, const char *msg);
+  int (*control_by_addr) (void *arg, const in_addr_t addr, const int port, const char *msg);
 #ifdef MANAGEMENT_DEF_AUTH
   bool (*kill_by_cid) (void *arg, const unsigned long cid, const char *kill_msg);
   bool (*client_auth) (void *arg,

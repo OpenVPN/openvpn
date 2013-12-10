@@ -95,6 +95,8 @@ man_help ()
   msg (M_CLIENT, "remote type [host port] : Override remote directive, type=ACCEPT|MOD|SKIP.");
   msg (M_CLIENT, "proxy type [host port flags] : Enter dynamic proxy server info.");
   msg (M_CLIENT, "pid                    : Show process ID of the current OpenVPN process.");
+  msg (M_CLIENT, "control cn CMD         : Send a control message to the client instance(s) having common name cn.");
+  msg (M_CLIENT, "control IP:port CMD    : Send a control message to the client instance connecting from IP:port.");
 #ifdef ENABLE_PKCS11
   msg (M_CLIENT, "pkcs11-id-count        : Get number of available PKCS#11 identities.");
   msg (M_CLIENT, "pkcs11-id-get index    : Get PKCS#11 identity at index.");
@@ -525,6 +527,101 @@ man_kill (struct management *man, const char *victim)
 
   gc_free (&gc);
 }
+
+
+static void
+man_control (struct management *man, const char *victim, const char *cmd, const char **params, int nparms)
+{
+  struct gc_arena gc = gc_new ();
+  int i = 0;
+  int msg_length = 0;
+  struct buffer msg;
+
+  /* concatenate the cmd and the params */
+  msg_length = strlen(cmd) + 1;
+  for (i = 0; i<nparms; i++) 
+    {
+      msg_length += strlen(params[i]) + 1;
+    }
+  msg = alloc_buf_gc (msg_length, &gc);
+  buf_printf (&msg, "%s", cmd);
+  for (i = 0; i<nparms; i++) 
+    {
+      buf_printf (&msg, " %s", params[i]);
+    }
+
+  if (man->persist.callback.kill_by_cn && man->persist.callback.kill_by_addr)
+    {
+      struct buffer buf;
+      char p1[128];
+      char p2[128];
+      int n_notified;
+
+      buf_set_read (&buf, (uint8_t*) victim, strlen (victim) + 1);
+      buf_parse (&buf, ':', p1, sizeof (p1));
+      buf_parse (&buf, ':', p2, sizeof (p2));
+
+      if (strlen (p1) && strlen (p2))
+	{
+	  /* IP:port specified */
+	  bool status;
+	  const in_addr_t addr = getaddr (GETADDR_HOST_ORDER|GETADDR_MSG_VIRT_OUT, p1, 0, &status, NULL);
+	  if (status)
+	    {
+	      const int port = atoi (p2);
+	      if (port > 0 && port < 65536)
+		{
+		  n_notified = (*man->persist.callback.control_by_addr) (man->persist.callback.arg, addr, port, BSTR(&msg));
+		  if (n_notified > 0)
+		    {
+		      msg (M_CLIENT, "SUCCESS: %d client(s) at address %s:%d received the control message",
+			   n_notified,
+			   print_in_addr_t (addr, 0, &gc),
+			   port);
+		    }
+		  else
+		    {
+		      msg (M_CLIENT, "ERROR: client at address %s:%d not found",
+			   print_in_addr_t (addr, 0, &gc),
+			   port);
+		    }
+		}
+	      else
+		{
+		  msg (M_CLIENT, "ERROR: port number is out of range: %s", p2);
+		}
+	    }
+	  else
+	    {
+	      msg (M_CLIENT, "ERROR: error parsing IP address: %s", p1);
+	    }
+	}
+      else if (strlen (p1))
+	{
+	  /* common name specified */
+	  n_notified = (*man->persist.callback.control_by_cn) (man->persist.callback.arg, p1, BSTR(&msg));
+	  if (n_notified > 0)
+	    {
+	      msg (M_CLIENT, "SUCCESS: common name '%s' found, %d client(s) received the control message", p1, n_notified);
+	    }
+	  else
+	    {
+	      msg (M_CLIENT, "ERROR: common name '%s' not found", p1);
+	    }
+	}
+      else
+	{
+	  msg (M_CLIENT, "ERROR: control parse");
+	}
+    }
+  else
+    {
+      msg (M_CLIENT, "ERROR: The 'control' command is not supported by the current daemon mode");
+    }
+
+  gc_free (&gc);
+}
+
 
 /*
  * General-purpose history command handler
@@ -1276,6 +1373,11 @@ man_dispatch_command (struct management *man, struct status_output *so, const ch
     {
       if (man_need (man, p, 1, 0))
 	man_bytecount (man, atoi(p[1]));
+    }
+  else if (streq (p[0], "control"))
+    {
+      if (man_need (man, p, 2, MN_AT_LEAST))
+	man_control (man, p[1], p[2], p + 3, nparms - 3);
     }
 #ifdef MANAGEMENT_DEF_AUTH
   else if (streq (p[0], "client-kill"))
