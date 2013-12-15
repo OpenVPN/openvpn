@@ -103,8 +103,17 @@ tmp_rsa_cb (SSL * s, int is_export, int keylength)
   static RSA *rsa_tmp = NULL;
   if (rsa_tmp == NULL)
     {
+      int ret = -1;
+      BIGNUM *bn = BN_new();
+      rsa_tmp = RSA_new();
+
       msg (D_HANDSHAKE, "Generating temp (%d bit) RSA key", keylength);
-      rsa_tmp = RSA_generate_key (keylength, RSA_F4, NULL, NULL);
+
+      if(!bn || !BN_set_word(bn, RSA_F4) ||
+	  !RSA_generate_key_ex(rsa_tmp, keylength, bn, NULL))
+	msg(M_SSLERR, "Failed to generate temp RSA key");
+
+      if (bn) BN_free( bn );
     }
   return (rsa_tmp);
 }
