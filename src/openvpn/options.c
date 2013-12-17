@@ -3844,7 +3844,7 @@ read_config_string (const char *prefix,
 	{
 	  bypass_doubledash (&p[0]);
 	  check_inline_file_via_buf (&multiline, p, &options->gc);
-	  add_option (options, p, NULL, line_num, 0, msglevel, permission_mask, option_types_found, es);
+	  add_option (options, p, prefix, line_num, 0, msglevel, permission_mask, option_types_found, es);
 	}
       CLEAR (p);
     }
@@ -3964,27 +3964,43 @@ void options_string_import (struct options *options,
 
 #if P2MP
 
-#define VERIFY_PERMISSION(mask) { if (!verify_permission(p[0], file, (mask), permission_mask, option_types_found, msglevel)) goto err; }
+#define VERIFY_PERMISSION(mask) { if (!verify_permission(p[0], file, line, (mask), permission_mask, option_types_found, msglevel, options)) goto err; }
 
 static bool
 verify_permission (const char *name,
 		   const char* file,
+		   int line,
 		   const unsigned int type,
 		   const unsigned int allowed,
 		   unsigned int *found,
-		   const int msglevel)
+		   const int msglevel,
+		   struct options* options)
 {
   if (!(type & allowed))
     {
       msg (msglevel, "option '%s' cannot be used in this context (%s)", name, file);
       return false;
     }
-  else
+
+  if (found)
+    *found |= type;
+
+#ifndef ENABLE_SMALL
+  /* Check if this options is allowed in connection block,
+   * but we are currently not in a connection block
+   * Parsing a connection block uses a temporary options struct without
+   * connection_list
+   */
+
+  if ((type & OPT_P_CONNECTION) && options->connection_list)
     {
-      if (found)
-	*found |= type;
-      return true;
+      if (file)
+	msg (M_WARN, "Option '%s' in %s:%d is ignored by previous <connection> blocks ", name, file, line);
+      else
+	msg (M_WARN, "Option '%s' is ignored by previous <connection> blocks", name);
     }
+#endif
+  return true;
 }
 
 #else
