@@ -169,6 +169,9 @@ static const char usage_message[] =
   "                  Set n=\"infinite\" to retry indefinitely.\n"
   "--float         : Allow remote to change its IP address/port, such as through\n"
   "                  DHCP (this is the default if --remote is not used).\n"
+#ifdef ENABLE_CRYPTO
+  "                  In server mode a valid/default auth algo is needed.\n"
+#endif
   "--ipchange cmd  : Run command cmd on remote ip address initial\n"
   "                  setting or change -- execute as: cmd ip-address port#\n"
   "--port port     : TCP/UDP port # for both local and remote.\n"

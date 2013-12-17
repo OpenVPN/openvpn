@@ -3462,6 +3462,34 @@ tls_rec_payload (struct tls_multi *multi,
   return ret;
 }
 
+/* Update the remote_addr, needed if a client floats. */
+void
+tls_update_remote_addr (struct tls_multi *multi,
+               const struct link_socket_actual *from)
+{
+  struct gc_arena gc = gc_new ();
+  int i;
+  
+  for (i = 0; i < KEY_SCAN_SIZE; ++i)
+    {
+      struct key_state *ks = multi->key_scan[i];
+      if (DECRYPT_KEY_ENABLED (multi, ks)
+         && ks->authenticated
+         && link_socket_actual_defined(&ks->remote_addr)
+      )
+       {
+         if (link_socket_actual_match (from, &ks->remote_addr))
+           continue;
+          dmsg (D_TLS_KEYSELECT,
+              "TLS: tls_update_remote_addr from IP=%s to IP=%s",
+              print_link_socket_actual (&ks->remote_addr, &gc),
+              print_link_socket_actual (from, &gc));
+          memcpy(&ks->remote_addr, from, sizeof(*from));	
+       }
+    }
+  gc_free (&gc);
+}
+
 /*
  * Dump a human-readable rendition of an openvpn packet
  * into a garbage collectable string which is returned.

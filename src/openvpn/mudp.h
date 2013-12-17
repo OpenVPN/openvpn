@@ -67,5 +67,23 @@ void tunnel_server_udp (struct context *top);
  */
 struct multi_instance *multi_get_create_instance_udp (struct multi_context *m);
 
+
+/**************************************************************************/
+/**
+ * Find a client instance based on the HMAC, if auth is used.
+ * @ingroup external_multiplexer
+ *
+ * Find a client instance based on the HMAC, if auth is used. The function 
+ * iterates over all peers to find a fitting instance. The found instance is
+ * updated with the current peer address.
+ *  
+ * @param m            - The single multi_context structure.
+ * @param mi           - The multi_instance structure.
+ * @param real         - The mroute_addr structure.
+ *
+ * @return Boolen, true if peer found, false if not.
+ */
+bool multi_find_instance_udp (struct multi_context *m,  struct multi_instance *mi, struct mroute_addr real);
+
 #endif
 #endif

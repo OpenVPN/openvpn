@@ -431,6 +431,12 @@ bool tls_send_payload (struct tls_multi *multi,
 bool tls_rec_payload (struct tls_multi *multi,
 		      struct buffer *buf);
 
+/*
+ * Update remote address of a tls_multi structure
+ */
+void tls_update_remote_addr (struct tls_multi *multi,
+                 const struct link_socket_actual *from);
+                 
 #ifdef MANAGEMENT_DEF_AUTH
 static inline char *
 tls_get_peer_info(const struct tls_multi *multi)

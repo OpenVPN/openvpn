@@ -57,6 +57,8 @@
 #define PERF_PROC_OUT_TUN           18
 #define PERF_PROC_OUT_TUN_MTCP      19
 #define PERF_N                      20
+#define PERF_MULTI_FIND_INSTANCE    21
+
 
 #ifdef ENABLE_PERFORMANCE_METRICS
 

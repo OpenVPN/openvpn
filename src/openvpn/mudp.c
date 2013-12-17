@@ -63,6 +63,12 @@ multi_get_create_instance_udp (struct multi_context *m)
 	{
 	  mi = (struct multi_instance *) he->value;
 	}
+      else if (multi_find_instance_udp (m,  mi, real))
+        {
+          /* found instance */
+          msg (D_MULTI_LOW, "MULTI: Floated with HMAC authentication to a new client address: %s", 
+               print_link_socket_actual (&m->top.c2.from, &gc));
+        }
       else
 	{
 	  if (!m->top.c2.tls_auth_standalone
@@ -108,6 +114,112 @@ multi_get_create_instance_udp (struct multi_context *m)
   gc_free (&gc);
   ASSERT (!(mi && mi->halt));
   return mi;
+}
+
+/*
+ * Find a client instance based on the HMAC, if auth is used. The function 
+ * iterates over all peers to find a fitting instance. The found instance is
+ * updated with the current peer address.
+ * If the instance doesn't exist, return false.
+ */
+bool
+multi_find_instance_udp (struct multi_context *m,  struct multi_instance *mi, 
+                         struct mroute_addr real)
+{
+  struct gc_arena gc = gc_new ();
+  struct hash *hash = m->hash;
+  struct hash_element *he;
+  const uint32_t hv = hash_value (hash, &real);
+  struct hash_bucket *bucket = hash_bucket (hash, hv);
+  struct hash_iterator hi;
+  struct mroute_addr real_old;
+  int op;
+  uint8_t c;
+  
+  perf_push (PERF_MULTI_FIND_INSTANCE);
+  
+  /* try to detect client floating */
+  if (!m->top.options.ce.remote_float 
+      || !m->top.options.authname_defined)
+   goto err;
+
+  /* minimum size 1 byte */
+  if (m->top.c2.buf.len < 1)
+    goto err;
+
+  /* Only accept DATA_V1 opcode */
+  c = *BPTR (&m->top.c2.buf);
+  op = c >> P_OPCODE_SHIFT;
+  if (op != P_DATA_V1)
+    goto err;
+
+  hash_iterator_init (hash, &hi);
+  while ((he = hash_iterator_next (&hi)))
+    {
+      mi = (struct multi_instance *) he->value;
+    
+      /* verify if this instance allows hmac verification */
+      if (!crypto_test_hmac (&m->top.c2.buf, &mi->context.c2.crypto_options))
+        continue;
+
+      generate_prefix (mi);
+      msg (D_MULTI_MEDIUM, "MULTI: Detected floating by hmac test, new client address: %s", 
+           print_link_socket_actual (&m->top.c2.from, &gc));
+
+      /* update address */
+      real_old = mi->real;
+      memcpy(&mi->real, &real, sizeof(real));
+
+      mi->context.c2.from = m->top.c2.from;             
+      mi->context.c2.to_link_addr = &mi->context.c2.from;
+  
+      /* switch to new log prefix */
+      generate_prefix (mi);
+  
+      /* inherit buffers */
+      mi->context.c2.buffers = m->top.c2.buffers;
+
+      /* inherit parent link_socket and link_socket_info */
+      mi->context.c2.link_socket = m->top.c2.link_socket;
+      mi->context.c2.link_socket_info->lsa->actual = m->top.c2.from;
+    
+      /* fix remote_addr in tls structure */
+      tls_update_remote_addr (mi->context.c2.tls_multi, &mi->context.c2.from);
+
+      mi->did_open_context = true;
+      if (IS_SIG (&mi->context))
+        goto errloop;
+
+      /* remove and readd this instance under the new address */
+      hash_iterator_delete_element (&hi);
+      hash_add_fast (hash, bucket, &mi->real, hv, mi);
+      hash_remove (m->iter, &real_old);
+      hash_add (m->iter, &mi->real, mi, false);
+#ifdef MANAGEMENT_DEF_AUTH
+      hash_remove (m->cid_hash, &mi->context.c2.mda_context.cid);
+      hash_add (m->cid_hash, &mi->context.c2.mda_context.cid, mi, false);
+#endif
+
+      /* enforce update */
+      mi->did_real_hash = true;
+      mi->did_iter = true;
+#ifdef MANAGEMENT_DEF_AUTH
+      mi->did_cid_hash = true;
+#endif
+      
+      /* cleanup */
+      hash_iterator_free (&hi);
+      perf_pop ();
+      gc_free (&gc);
+      return true;
+   }
+
+  errloop:   
+    hash_iterator_free (&hi);
+  err:
+    perf_pop ();
+    gc_free (&gc);
+    return false;
 }
 
 /*

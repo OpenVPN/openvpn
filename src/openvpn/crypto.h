@@ -279,6 +279,10 @@ bool openvpn_decrypt (struct buffer *buf, struct buffer work,
 		      const struct crypto_options *opt,
 		      const struct frame* frame);
 
+
+bool crypto_test_hmac (struct buffer *buf,
+           const struct crypto_options *opt);
+           
 /** @} name Functions for performing security operations on data channel packets */
 
 void crypto_adjust_frame_parameters(struct frame *frame,

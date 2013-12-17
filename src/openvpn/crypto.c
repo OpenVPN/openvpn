@@ -389,6 +389,61 @@ openvpn_decrypt (struct buffer *buf, struct buffer work,
 }
 
 /*
+ * This verifies if a packet and its HMAC fit to a crypto context.
+ *
+ * On success true is returned.
+ */
+bool
+crypto_test_hmac (struct buffer *buf,
+          const struct crypto_options *opt)
+{
+  struct gc_arena gc;
+  gc_init (&gc);
+  int offset = 1;
+
+  if (buf->len > 0 && opt->key_ctx_bi)
+    {
+      struct key_ctx *ctx = &opt->key_ctx_bi->decrypt;
+
+      /* Verify the HMAC */
+      if (ctx->hmac)
+        {
+          int hmac_len;
+          uint8_t local_hmac[MAX_HMAC_KEY_LENGTH]; /* HMAC of ciphertext computed locally */
+
+          hmac_ctx_reset(ctx->hmac);
+
+          /* Assume the length of the input HMAC */
+          hmac_len = hmac_ctx_size (ctx->hmac);
+
+          /* Authentication fails if insufficient data in packet for HMAC */
+          if ((buf->len - offset) < hmac_len) 
+            {
+              gc_free (&gc);
+              return false;
+            }
+
+          hmac_ctx_update (ctx->hmac, BPTR (buf) + offset + hmac_len, BLEN (buf) - offset - hmac_len);
+          hmac_ctx_final (ctx->hmac, local_hmac);
+
+          /* Compare locally computed HMAC with packet HMAC */
+          if (memcmp (local_hmac, BPTR (buf) + offset, hmac_len))
+            {
+              gc_free (&gc);
+              return false;
+            }
+            
+          gc_free (&gc);
+          return true;
+        }
+    }
+
+  gc_free (&gc);
+  return false;
+}
+
+
+/*
  * How many bytes will we add to frame buffer for a given
  * set of crypto options?
  */
