@@ -2708,6 +2708,65 @@ management_callback_kill_by_addr (void *arg, const in_addr_t addr, const int por
   return count;
 }
 
+static int
+management_callback_control_by_cn (void *arg, const char *del_cn, const char *msg)
+{
+  struct multi_context *m = (struct multi_context *) arg;
+  struct hash_iterator hi;
+  struct hash_element *he;
+  int count = 0;
+
+  hash_iterator_init (m->iter, &hi);
+  while ((he = hash_iterator_next (&hi)))
+    {
+      struct multi_instance *mi = (struct multi_instance *) he->value;
+      if (!mi->halt)
+	{
+	  const char *cn = tls_common_name (mi->context.c2.tls_multi, false);
+	  if (cn && !strcmp (cn, del_cn))
+	    {
+          send_control_channel_string (&mi->context, msg, D_PUSH);
+          multi_schedule_context_wakeup(m, mi);
+	      ++count;
+	    }
+	}
+    }
+  hash_iterator_free (&hi);
+  return count;
+}
+
+static int
+management_callback_control_by_addr (void *arg, const in_addr_t addr, const int port, const char *msg)
+{
+  struct multi_context *m = (struct multi_context *) arg;
+  struct hash_iterator hi;
+  struct hash_element *he;
+  struct openvpn_sockaddr saddr;
+  struct mroute_addr maddr;
+  int count = 0;
+
+  CLEAR (saddr);
+  saddr.addr.in4.sin_family = AF_INET;
+  saddr.addr.in4.sin_addr.s_addr = htonl (addr);
+  saddr.addr.in4.sin_port = htons (port);
+  if (mroute_extract_openvpn_sockaddr (&maddr, &saddr, true))
+    {
+      hash_iterator_init (m->iter, &hi);
+      while ((he = hash_iterator_next (&hi)))
+	{
+	  struct multi_instance *mi = (struct multi_instance *) he->value;
+	  if (!mi->halt && mroute_addr_equal (&maddr, &mi->real))
+	    {
+          send_control_channel_string (&mi->context, msg, D_PUSH);
+          multi_schedule_context_wakeup(m, mi);
+	      ++count;
+	    }
+	}
+      hash_iterator_free (&hi);
+    }
+  return count;
+}
+
 static void
 management_delete_event (void *arg, event_t event)
 {
@@ -2841,6 +2900,8 @@ init_management_callback_multi (struct multi_context *m)
       cb.kill_by_addr = management_callback_kill_by_addr;
       cb.delete_event = management_delete_event;
       cb.n_clients = management_callback_n_clients;
+      cb.control_by_cn = management_callback_control_by_cn;
+      cb.control_by_addr = management_callback_control_by_addr;
 #ifdef MANAGEMENT_DEF_AUTH
       cb.kill_by_cid = management_kill_by_cid;
       cb.client_auth = management_client_auth;
