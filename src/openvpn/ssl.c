@@ -506,6 +506,12 @@ init_ssl (const struct options *options, struct tls_root_ctx *new_ctx)
       tls_ctx_load_cryptoapi(new_ctx, options->cryptoapi_cert);
     }
 #endif
+#ifdef ENABLE_KEYCHAIN
+  else if (options->keychain_cert)
+    {
+      tls_ctx_load_keychain(new_ctx, options->keychain_cert);
+    }
+#endif
 #ifdef MANAGMENT_EXTERNAL_KEY
   else if ((options->management_flags & MF_EXTERNAL_KEY) && options->cert_file)
     {

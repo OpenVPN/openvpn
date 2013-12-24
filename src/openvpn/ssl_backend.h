@@ -205,11 +205,22 @@ int tls_ctx_load_pkcs12(struct tls_root_ctx *ctx, const char *pkcs12_file,
  * context.
  *
  * @param ctx			TLS context to use
- * @param crypto_api_cert	String representing the certificate to load.
+ * @param cryptoapi_cert	String representing the certificate to load.
  */
 #ifdef ENABLE_CRYPTOAPI
 void tls_ctx_load_cryptoapi(struct tls_root_ctx *ctx, const char *cryptoapi_cert);
-#endif /* WIN32 */
+#endif /* ENABLE_CRYPTOAPI */
+
+/**
+ * Use Apple Mac OS X Keychain for key and cert, and add to library-specific TLS
+ * context.
+ *
+ * @param ctx			TLS context to use
+ * @param keychain_cert	String representing the certificate to load.
+ */
+#ifdef ENABLE_KEYCHAIN
+void tls_ctx_load_keychain(struct tls_root_ctx *ctx, const char *keychain_cert);
+#endif /* ENABLE_KEYCHAIN */
 
 /**
  * Load certificate file into the given TLS context. If the given certificate

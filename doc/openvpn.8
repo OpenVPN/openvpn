@@ -4418,6 +4418,64 @@ Certificate Store GUI.
 
 .\"*********************************************************
 .TP
+.B --keychaincert select-string
+Load the certificate and private key from the
+Mac OS X Keychain (Mac OS X Only).
+
+Use this option instead of
+.B --cert
+and
+.B --key.
+
+This makes it possible to use any smart card supported by Mac OS X using the tokend interface, but also any
+kind of certificate, residing in the Keychain, where you have access to
+the private key.  This option has been tested on the client side with an Aladdin eToken
+on Mac OS X Leopard and with software certificates stored in the Keychain on Mac OS X Leopard and
+Mac OS X Snow Leopard.  As of this writing (4/27/10) Aladdin has not yet released Snow Leopard drivers.
+
+To select a certificate based on a string search in the
+certificate's subject and/or issuer:
+
+.B keychaincert
+"SUBJECT:c=US/o=Apple Inc./ou=me.com/cn=username ISSUER:c=US/o=Apple Computer, Inc./ou=Apple Computer Certificate Authority/cn=Apple .Mac Certificate Authority"
+
+.I "Distinguished Name Component Abbreviations:" 
+.br
+o = organization
+.br
+ou = organizational unit
+.br
+c = country
+.br
+l = locality
+.br
+st = state
+.br
+cn = common name
+.br
+e = email
+.br
+
+All of the distinguished name components are optional, although you do need to specify at least one of them.  You can 
+add spaces around the '/' and '=' characters, e.g. "SUBJECT: c = US / o = Apple Inc.".  You do not need to specify
+both the subject and the issuer, one or the other will work fine.  The identity searching algorithm will return the first
+certificate it finds that matches all of the criteria you have specified.  You can also include the MD5 and/or SHA1 thumbprints 
+along with the subject and issuer (see example of thumbprint search criteria below).  
+
+To select a certificate based on certificate's MD5 or SHA1 thumbprint:
+
+.B keychaincert
+"SHA1: 30 F7 3A 7A B7 73 2A 98 54 33 4A A7 00 6F 6E AC EC D1 EF 02 MD5: D5 F5 11 F1 38 EB 5F 4D CF 23 B6 94 E8 33 D8 B5"
+
+Again, you can include both the SHA1 and the MD5 thumbprints, but you can also use just one of them.  The thumbprint hex
+strings can easily be copy-and-pasted from the OS X Keychain Access GUI in the Applications/Utilities folder.  The hex string comparison is
+not case sensitive.
+
+Note that this option cannot be used with the --daemon option.  Mac OS X needs to present the user with an authentication GUI when the Keychain
+is accessed by openvpn and the --daemon option will prevent the GUI from being shown and therefore cause the authentication to silently fail.
+
+.\"*********************************************************
+.TP
 .B \-\-key-method m
 Use data channel key negotiation method
 .B m.

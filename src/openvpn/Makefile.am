@@ -128,3 +128,6 @@ if WIN32
 openvpn_SOURCES += openvpn_win32_resources.rc
 openvpn_LDADD += -lgdi32 -lws2_32 -lwininet -lcrypt32 -liphlpapi -lwinmm
 endif
+if MACOSX
+openvpn_LDADD += -framework CoreFoundation -framework Security
+endif

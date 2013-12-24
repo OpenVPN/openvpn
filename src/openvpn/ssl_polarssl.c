@@ -238,7 +238,15 @@ tls_ctx_load_cryptoapi(struct tls_root_ctx *ctx, const char *cryptoapi_cert)
 {
   msg(M_FATAL, "Windows CryptoAPI not yet supported for PolarSSL.");
 }
-#endif /* WIN32 */
+#endif /* ENABLE_CRYPTOAPI */
+
+#ifdef ENABLE_KEYCHAIN
+void
+tls_ctx_load_keychain(struct tls_root_ctx *ctx, const char *keychain_cert)
+{
+  msg(M_FATAL, "Apple Mac OS X Keychain not yet supported for PolarSSL.");
+}
+#endif /* ENABLE_KEYCHAIN */
 
 void
 tls_ctx_load_cert_file (struct tls_root_ctx *ctx, const char *cert_file,
