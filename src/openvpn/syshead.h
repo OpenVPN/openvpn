@@ -623,10 +623,17 @@ socket_defined (const socket_descriptor_t sd)
 #endif
 
 /*
- * Do we have CryptoAPI capability?
+ * Do we have Microsoft CryptoAPI capability?
  */
 #if defined(WIN32) && defined(ENABLE_CRYPTO) && defined(ENABLE_SSL) && defined(ENABLE_CRYPTO_OPENSSL)
 #define ENABLE_CRYPTOAPI
+#endif
+
+/*
+ * Do we have Apple Keychain capability?
+ */
+#if defined(__APPLE__) && defined(ENABLE_CRYPTO) && defined(ENABLE_SSL) && defined(ENABLE_CRYPTO_OPENSSL)
+#define ENABLE_KEYCHAIN
 #endif
 
 /*

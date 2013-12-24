@@ -594,9 +594,13 @@ static const char usage_message[] =
   "                        Default is CN.\n"
 #endif
   "--verify-hash   : Specify SHA1 fingerprint for level-1 cert.\n"
-#ifdef WIN32
+#ifdef ENABLE_CRYPTOAPI
   "--cryptoapicert select-string : Load the certificate and private key from the\n"
   "                  Windows Certificate System Store.\n"
+#endif
+#ifdef ENABLE_KEYCHAIN
+  "--keychaincert select-string : Load the certificate and private key from the\n"
+  "                  Mac OS X Keychain Store.\n"
 #endif
   "--tls-cipher l  : A list l of allowable TLS ciphers separated by : (optional).\n"
   "                : Use --show-tls to see a list of supported TLS ciphers.\n"
@@ -1621,6 +1625,9 @@ show_settings (const struct options *o)
 #ifdef ENABLE_CRYPTOAPI
   SHOW_STR (cryptoapi_cert);
 #endif
+#ifdef ENABLE_KEYCHAIN
+  SHOW_STR (keychain_cert);
+#endif
   SHOW_STR (cipher_list);
   SHOW_STR (tls_verify);
   SHOW_STR (tls_export_cert);
@@ -2203,6 +2210,10 @@ options_postprocess_verify_ce (const struct options *options, const struct conne
 	if (options->cryptoapi_cert)
 	  msg(M_USAGE, "Parameter --cryptoapicert cannot be used when --pkcs11-provider is also specified.");
 #endif
+#ifdef ENABLE_KEYCHAIN
+	if (options->keychain_cert)
+	  msg(M_USAGE, "Parameter --keychaincert cannot be used when --pkcs11-provider is also specified.");
+#endif
        }
       else
 #endif
@@ -2227,6 +2238,24 @@ options_postprocess_verify_ce (const struct options *options, const struct conne
 #ifdef MANAGMENT_EXTERNAL_KEY
           if (options->management_flags & MF_EXTERNAL_KEY)
 	    msg(M_USAGE, "Parameter --management-external-key cannot be used when --cryptoapicert is also specified.");
+#endif
+	}
+      else
+#endif
+#ifdef ENABLE_KEYCHAIN
+     if (options->keychain_cert)
+	{
+	  if ((!(options->ca_file)) && (!(options->ca_path)))
+	    msg(M_USAGE, "You must define CA file (--ca) or CA path (--capath)");
+          if (options->cert_file)
+	    msg(M_USAGE, "Parameter --cert cannot be used when --keychaincert is also specified.");
+          if (options->priv_key_file)
+	    msg(M_USAGE, "Parameter --key cannot be used when --keychaincert is also specified.");
+          if (options->pkcs12_file)
+	    msg(M_USAGE, "Parameter --pkcs12 cannot be used when --keychaincert is also specified.");
+#ifdef MANAGMENT_EXTERNAL_KEY
+          if (options->management_flags & MF_EXTERNAL_KEY)
+	    msg(M_USAGE, "Parameter --management-external-key cannot be used when --keychaincert is also specified.");
 #endif
 	}
       else
@@ -6558,6 +6587,13 @@ add_option (struct options *options,
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->cryptoapi_cert = p[1];
+    }
+#endif
+#ifdef ENABLE_KEYCHAIN
+  else if (streq (p[0], "keychaincert") && p[1])
+    {
+      VERIFY_PERMISSION (OPT_P_GENERAL);
+      options->keychain_cert = p[1];
     }
 #endif
   else if (streq (p[0], "key") && p[1])
