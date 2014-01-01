@@ -1033,9 +1033,15 @@ print_details (struct key_state_ssl * ks_ssl, const char *prefix)
 }
 
 void
-show_available_tls_ciphers ()
+show_available_tls_ciphers (const char *cipher_list)
 {
+  struct tls_root_ctx tls_ctx;
   const int *ciphers = ssl_list_ciphersuites();
+
+  if (cipher_list) {
+    tls_ctx_restrict_ciphers(&tls_ctx, cipher_list);
+    ciphers = tls_ctx.allowed_ciphers;
+  }
 
 #ifndef ENABLE_SMALL
   printf ("Available TLS Ciphers,\n");

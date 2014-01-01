@@ -454,8 +454,10 @@ void print_details (struct key_state_ssl * ks_ssl, const char *prefix);
 /*
  * Show the TLS ciphers that are available for us to use in the OpenSSL
  * library.
+ *
+ * @param		- list of allowed TLS cipher, or NULL.
  */
-void show_available_tls_ciphers ();
+void show_available_tls_ciphers (const char *tls_ciphers);
 
 /*
  * The OpenSSL library has a notion of preference in TLS ciphers.  Higher
