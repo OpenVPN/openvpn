@@ -93,22 +93,6 @@ tls_clear_error()
   ERR_clear_error ();
 }
 
-/*
- * OpenSSL callback to get a temporary RSA key, mostly
- * used for export ciphers.
- */
-static RSA *
-tmp_rsa_cb (SSL * s, int is_export, int keylength)
-{
-  static RSA *rsa_tmp = NULL;
-  if (rsa_tmp == NULL)
-    {
-      msg (D_HANDSHAKE, "Generating temp (%d bit) RSA key", keylength);
-      rsa_tmp = RSA_generate_key (keylength, RSA_F4, NULL, NULL);
-    }
-  return (rsa_tmp);
-}
-
 void
 tls_ctx_server_new(struct tls_root_ctx *ctx)
 {
@@ -118,8 +102,6 @@ tls_ctx_server_new(struct tls_root_ctx *ctx)
 
   if (ctx->ctx == NULL)
     msg (M_SSLERR, "SSL_CTX_new SSLv23_server_method");
-
-  SSL_CTX_set_tmp_rsa_callback (ctx->ctx, tmp_rsa_cb);
 }
 
 void
