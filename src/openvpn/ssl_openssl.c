@@ -117,7 +117,7 @@ tls_ctx_server_new(struct tls_root_ctx *ctx)
   ctx->ctx = SSL_CTX_new (SSLv23_server_method ());
 
   if (ctx->ctx == NULL)
-    msg (M_SSLERR, "SSL_CTX_new TLSv1_server_method");
+    msg (M_SSLERR, "SSL_CTX_new SSLv23_server_method");
 
   SSL_CTX_set_tmp_rsa_callback (ctx->ctx, tmp_rsa_cb);
 }
@@ -130,7 +130,7 @@ tls_ctx_client_new(struct tls_root_ctx *ctx)
   ctx->ctx = SSL_CTX_new (SSLv23_client_method ());
 
   if (ctx->ctx == NULL)
-    msg (M_SSLERR, "SSL_CTX_new TLSv1_client_method");
+    msg (M_SSLERR, "SSL_CTX_new SSLv23_client_method");
 }
 
 void
