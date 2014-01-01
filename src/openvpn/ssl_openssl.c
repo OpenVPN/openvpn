@@ -1282,7 +1282,7 @@ show_available_tls_ciphers ()
   const tls_cipher_name_pair *pair;
   int priority = 0;
 
-  ctx = SSL_CTX_new (TLSv1_method ());
+  ctx = SSL_CTX_new (SSLv23_method ());
   if (!ctx)
     msg (M_SSLERR, "Cannot create SSL_CTX object");
 
@@ -1317,7 +1317,7 @@ get_highest_preference_tls_cipher (char *buf, int size)
   SSL *ssl;
   const char *cipher_name;
 
-  ctx = SSL_CTX_new (TLSv1_method ());
+  ctx = SSL_CTX_new (SSLv23_method ());
   if (!ctx)
     msg (M_SSLERR, "Cannot create SSL_CTX object");
   ssl = SSL_new (ctx);
