@@ -866,7 +866,7 @@ print_openssl_info (const struct options *options)
 	show_available_engines ();
 #ifdef ENABLE_SSL
       if (options->show_tls_ciphers)
-	show_available_tls_ciphers ();
+	show_available_tls_ciphers (options->cipher_list);
 #endif
       return true;
     }

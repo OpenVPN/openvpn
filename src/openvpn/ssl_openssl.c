@@ -1284,22 +1284,25 @@ print_details (struct key_state_ssl * ks_ssl, const char *prefix)
 }
 
 void
-show_available_tls_ciphers ()
+show_available_tls_ciphers (const char *cipher_list)
 {
-  SSL_CTX *ctx;
+  struct tls_root_ctx tls_ctx;
   SSL *ssl;
   const char *cipher_name;
   const char *print_name;
   const tls_cipher_name_pair *pair;
   int priority = 0;
 
-  ctx = SSL_CTX_new (SSLv23_method ());
-  if (!ctx)
+  tls_ctx.ctx = SSL_CTX_new (SSLv23_method ());
+  if (!tls_ctx.ctx)
     msg (M_SSLERR, "Cannot create SSL_CTX object");
 
-  ssl = SSL_new (ctx);
+  ssl = SSL_new (tls_ctx.ctx);
   if (!ssl)
     msg (M_SSLERR, "Cannot create SSL object");
+
+  if (cipher_list)
+    tls_ctx_restrict_ciphers(&tls_ctx, cipher_list);
 
   printf ("Available TLS Ciphers,\n");
   printf ("listed in order of preference:\n\n");
@@ -1318,7 +1321,7 @@ show_available_tls_ciphers ()
   printf ("\n");
 
   SSL_free (ssl);
-  SSL_CTX_free (ctx);
+  SSL_CTX_free (tls_ctx.ctx);
 }
 
 void
