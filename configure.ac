@@ -970,8 +970,9 @@ if test "$enable_lz4" = "yes" && test "$enable_comp_stub" = "no"; then
        ])
 
     if test $havelz4lib = 0 ; then
-	AC_MSG_RESULT([LZ4 library available from http://code.google.com/p/lz4/])
-        AC_MSG_ERROR([Or try ./configure --disable-lz4 OR ./configure --enable-comp-stub])
+	AC_MSG_RESULT([LZ4 library or header not found, using version in src/compat/compat-lz4.*])
+	AC_DEFINE([NEED_COMPAT_LZ4], [1], [use copy of LZ4 source in compat/])
+	LZ4_LIBS=""
     fi
     OPTIONAL_LZ4_CFLAGS="${LZ4_CFLAGS}"
     OPTIONAL_LZ4_LIBS="${LZ4_LIBS}"
