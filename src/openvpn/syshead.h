@@ -625,7 +625,7 @@ socket_defined (const socket_descriptor_t sd)
 /*
  * Do we have Apple Keychain capability?
  */
-#if defined(__APPLE__) && defined(ENABLE_CRYPTO) && defined(ENABLE_SSL) && defined(ENABLE_CRYPTO_OPENSSL)
+#if defined(MACOSX) && defined(ENABLE_CRYPTO) && defined(ENABLE_SSL) && defined(ENABLE_CRYPTO_OPENSSL)
 #define ENABLE_KEYCHAIN
 #endif
 
