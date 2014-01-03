@@ -183,7 +183,7 @@ tun0: flags=8051<UP,POINTOPOINT,RUNNING,MULTICAST> mtu 1500
 TODO for IPv6 transport support
 -------------------------------
 
-[ Last updated: 10-Jun-2012. ]
+[ Last updated: 2014-01-03. ]
 
 * All platforms:
   o mgmt console: as currently passes straight in_addr_t bits around
@@ -191,19 +191,25 @@ TODO for IPv6 transport support
   o make possible to get AF from getaddrinfo() answer, ie allow openvpn to
     use ipv4/6 if DNS returns A/AAAA without specifying protocol.
     Hard: requires deep changes in initialization/calling logic
+    - Done by dual stack patches
 
   o use AI_PASSIVE
+    - Done by dual stack patches
 
   o the getaddr()/getaddr6() interface is not prepared for handling socktype
     "tagging", currently I abuse the sockflags bits for getting the ai_socktype
     downstream.
+    - Still done by flags, seems clean enough.
 
   o implement comparison for mapped addesses: server in dual stack
     listening IPv6 must permit incoming streams from allowed IPv4 peer,
     currently you need to pass eg:  --remote ffff::1.2.3.4
-
+    - OpenVPN will compare all address of a remote
+      but will still fail on mapped addresses
 
 * win32:
   o find out about mapped addresses, as I can't make it work
     with bound at ::1 and connect to 127.0.0.1
+    - Should be fixed by 8832c6c - "Implement listing on IPv4/IPv6 dual 
+      socket on all platform"
 
