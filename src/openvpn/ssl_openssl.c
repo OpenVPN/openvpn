@@ -217,6 +217,13 @@ tls_ctx_set_options (struct tls_root_ctx *ctx, unsigned int ssl_flags)
 void
 tls_ctx_restrict_ciphers(struct tls_root_ctx *ctx, const char *ciphers)
 {
+  if (ciphers == NULL)
+    {
+      /* Nothing to do */
+      return;
+    }
+
+  /* Parse supplied cipher list and pass on to OpenSSL */
   size_t begin_of_cipher, end_of_cipher;
 
   const char *current_cipher;
@@ -1272,8 +1279,7 @@ show_available_tls_ciphers (const char *cipher_list)
   if (!ssl)
     msg (M_SSLERR, "Cannot create SSL object");
 
-  if (cipher_list)
-    tls_ctx_restrict_ciphers(&tls_ctx, cipher_list);
+  tls_ctx_restrict_ciphers(&tls_ctx, cipher_list);
 
   printf ("Available TLS Ciphers,\n");
   printf ("listed in order of preference:\n\n");
