@@ -2866,6 +2866,7 @@ pre_pull_restore (struct options *o)
     }
 
   o->push_continuation = 0;
+  o->push_option_types_found = 0;
 }
 
 #endif
