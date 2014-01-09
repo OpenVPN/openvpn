@@ -66,6 +66,14 @@ comp_init(const struct compress_options *opt)
       (*compctx->alg.compress_init)(compctx);
       break;
 #endif
+#ifdef ENABLE_LZ4
+    case COMP_ALG_LZ4:
+      ALLOC_OBJ_CLEAR (compctx, struct compress_context);
+      compctx->flags = opt->flags;
+      compctx->alg = lz4_alg;
+      (*compctx->alg.compress_init)(compctx);
+      break;
+#endif
     }
   return compctx;
 }
@@ -118,6 +126,9 @@ comp_generate_peer_info_string(const struct compress_options *opt, struct buffer
       bool lzo_avail = false;
       if (!(opt->flags & COMP_F_ADVERTISE_STUBS_ONLY))
 	{
+#if defined(ENABLE_LZ4)
+	  buf_printf (out, "IV_LZ4=1\n");
+#endif
 #if defined(ENABLE_SNAPPY)
 	  buf_printf (out, "IV_SNAPPY=1\n");
 #endif

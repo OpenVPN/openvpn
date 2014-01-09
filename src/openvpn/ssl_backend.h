@@ -167,8 +167,9 @@ void tls_ctx_set_options (struct tls_root_ctx *ctx, unsigned int ssl_flags);
 /**
  * Restrict the list of ciphers that can be used within the TLS context.
  *
- * @param ctx		TLS context to restrict
- * @param ciphers	String containing : delimited cipher names.
+ * @param ctx		TLS context to restrict, must be valid.
+ * @param ciphers	String containing : delimited cipher names, or NULL to use
+ *					sane defaults.
  */
 void tls_ctx_restrict_ciphers(struct tls_root_ctx *ctx, const char *ciphers);
 
@@ -465,8 +466,10 @@ void print_details (struct key_state_ssl * ks_ssl, const char *prefix);
 /*
  * Show the TLS ciphers that are available for us to use in the OpenSSL
  * library.
+ *
+ * @param		- list of allowed TLS cipher, or NULL.
  */
-void show_available_tls_ciphers ();
+void show_available_tls_ciphers (const char *tls_ciphers);
 
 /*
  * The OpenSSL library has a notion of preference in TLS ciphers.  Higher

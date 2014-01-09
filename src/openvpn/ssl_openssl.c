@@ -97,22 +97,6 @@ tls_clear_error()
   ERR_clear_error ();
 }
 
-/*
- * OpenSSL callback to get a temporary RSA key, mostly
- * used for export ciphers.
- */
-static RSA *
-tmp_rsa_cb (SSL * s, int is_export, int keylength)
-{
-  static RSA *rsa_tmp = NULL;
-  if (rsa_tmp == NULL)
-    {
-      msg (D_HANDSHAKE, "Generating temp (%d bit) RSA key", keylength);
-      rsa_tmp = RSA_generate_key (keylength, RSA_F4, NULL, NULL);
-    }
-  return (rsa_tmp);
-}
-
 void
 tls_ctx_server_new(struct tls_root_ctx *ctx)
 {
@@ -121,9 +105,7 @@ tls_ctx_server_new(struct tls_root_ctx *ctx)
   ctx->ctx = SSL_CTX_new (SSLv23_server_method ());
 
   if (ctx->ctx == NULL)
-    msg (M_SSLERR, "SSL_CTX_new TLSv1_server_method");
-
-  SSL_CTX_set_tmp_rsa_callback (ctx->ctx, tmp_rsa_cb);
+    msg (M_SSLERR, "SSL_CTX_new SSLv23_server_method");
 }
 
 void
@@ -134,7 +116,7 @@ tls_ctx_client_new(struct tls_root_ctx *ctx)
   ctx->ctx = SSL_CTX_new (SSLv23_client_method ());
 
   if (ctx->ctx == NULL)
-    msg (M_SSLERR, "SSL_CTX_new TLSv1_client_method");
+    msg (M_SSLERR, "SSL_CTX_new SSLv23_client_method");
 }
 
 void
@@ -239,6 +221,15 @@ tls_ctx_set_options (struct tls_root_ctx *ctx, unsigned int ssl_flags)
 void
 tls_ctx_restrict_ciphers(struct tls_root_ctx *ctx, const char *ciphers)
 {
+  if (ciphers == NULL)
+    {
+      /* Use sane default */
+      if(!SSL_CTX_set_cipher_list(ctx->ctx, "DEFAULT:!EXP"))
+        msg(M_SSLERR, "Failed to set default TLS cipher list.");
+      return;
+    }
+
+  /* Parse supplied cipher list and pass on to OpenSSL */
   size_t begin_of_cipher, end_of_cipher;
 
   const char *current_cipher;
@@ -1291,21 +1282,23 @@ print_details (struct key_state_ssl * ks_ssl, const char *prefix)
 }
 
 void
-show_available_tls_ciphers ()
+show_available_tls_ciphers (const char *cipher_list)
 {
-  SSL_CTX *ctx;
+  struct tls_root_ctx tls_ctx;
   SSL *ssl;
   const char *cipher_name;
   const tls_cipher_name_pair *pair;
   int priority = 0;
 
-  ctx = SSL_CTX_new (TLSv1_method ());
-  if (!ctx)
+  tls_ctx.ctx = SSL_CTX_new (SSLv23_method ());
+  if (!tls_ctx.ctx)
     msg (M_SSLERR, "Cannot create SSL_CTX object");
 
-  ssl = SSL_new (ctx);
+  ssl = SSL_new (tls_ctx.ctx);
   if (!ssl)
     msg (M_SSLERR, "Cannot create SSL object");
+
+  tls_ctx_restrict_ciphers(&tls_ctx, cipher_list);
 
   printf ("Available TLS Ciphers,\n");
   printf ("listed in order of preference:\n\n");
@@ -1324,7 +1317,7 @@ show_available_tls_ciphers ()
   printf ("\n");
 
   SSL_free (ssl);
-  SSL_CTX_free (ctx);
+  SSL_CTX_free (tls_ctx.ctx);
 }
 
 void
@@ -1334,7 +1327,7 @@ get_highest_preference_tls_cipher (char *buf, int size)
   SSL *ssl;
   const char *cipher_name;
 
-  ctx = SSL_CTX_new (TLSv1_method ());
+  ctx = SSL_CTX_new (SSLv23_method ());
   if (!ctx)
     msg (M_SSLERR, "Cannot create SSL_CTX object");
   ssl = SSL_new (ctx);

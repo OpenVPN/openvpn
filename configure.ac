@@ -52,6 +52,12 @@ AC_ARG_ENABLE(snappy,
 	[enable_snappy="yes"]
 )
 
+AC_ARG_ENABLE(lz4,
+	[  --disable-lz4           Disable LZ4 compression support],
+	[enable_lz4="$enableval"],
+	[enable_lz4="yes"]
+)
+
 AC_ARG_ENABLE(comp-stub,
 	[  --enable-comp-stub      Don't compile compression support but still allow limited interoperability with compression-enabled peers],
 	[enable_comp_stub="$enableval"],
@@ -935,6 +941,48 @@ if test "$enable_snappy" = "yes" && test "$enable_comp_stub" = "no"; then
     CFLAGS="${saved_CFLAGS}"
 fi
 
+dnl
+dnl check for LZ4 library
+dnl
+
+AC_ARG_VAR([LZ4_CFLAGS], [C compiler flags for lz4])
+AC_ARG_VAR([LZ4_LIBS], [linker flags for lz4])
+if test "$enable_lz4" = "yes" && test "$enable_comp_stub" = "no"; then
+    AC_CHECKING([for LZ4 Library and Header files])
+    havelz4lib=1
+
+    # if LZ4_LIBS is set, we assume it will work, otherwise test
+    if test -z "${LZ4_LIBS}"; then
+	AC_CHECK_LIB(lz4, LZ4_compress,
+	    [ LZ4_LIBS="-llz4" ],
+	    [
+	        AC_MSG_RESULT([LZ4 library not found.])
+	        havelz4lib=0
+	    ])
+    fi
+
+    saved_CFLAGS="${CFLAGS}"
+    CFLAGS="${CFLAGS} ${LZ4_CFLAGS}"
+    AC_CHECK_HEADER(lz4.h,
+       ,
+       [
+	   AC_MSG_RESULT([LZ4 headers not found.])
+	   havelz4lib=0
+       ])
+
+    if test $havelz4lib = 0 ; then
+	AC_MSG_RESULT([LZ4 library or header not found, using version in src/compat/compat-lz4.*])
+	AC_DEFINE([NEED_COMPAT_LZ4], [1], [use copy of LZ4 source in compat/])
+	LZ4_LIBS=""
+    fi
+    OPTIONAL_LZ4_CFLAGS="${LZ4_CFLAGS}"
+    OPTIONAL_LZ4_LIBS="${LZ4_LIBS}"
+    AC_DEFINE(ENABLE_LZ4, 1, [Enable LZ4 compression library])
+    CFLAGS="${saved_CFLAGS}"
+fi
+
+
+
 
 AC_MSG_CHECKING([git checkout])
 GIT_CHECKOUT="no"
@@ -1046,6 +1094,7 @@ fi
 if test "${enable_comp_stub}" = "yes"; then
 	test "${enable_lzo}" = "yes" && AC_MSG_ERROR([Cannot have both comp stub and lzo enabled (use --disable-lzo)])
 	test "${enable_snappy}" = "yes" && AC_MSG_ERROR([Cannot have both comp stub and snappy enabled (use --disable-snappy)])
+	test "${enable_lz4}" = "yes" && AC_MSG_ERROR([Cannot have both comp stub and LZ4 enabled (use --disable-lz4)])
 	AC_DEFINE([ENABLE_COMP_STUB], [1], [Enable compression stub capability])
 fi
 
@@ -1102,6 +1151,8 @@ AC_SUBST([OPTIONAL_LZO_CFLAGS])
 AC_SUBST([OPTIONAL_LZO_LIBS])
 AC_SUBST([OPTIONAL_SNAPPY_CFLAGS])
 AC_SUBST([OPTIONAL_SNAPPY_LIBS])
+AC_SUBST([OPTIONAL_LZ4_CFLAGS])
+AC_SUBST([OPTIONAL_LZ4_LIBS])
 AC_SUBST([OPTIONAL_PKCS11_HELPER_CFLAGS])
 AC_SUBST([OPTIONAL_PKCS11_HELPER_LIBS])
 

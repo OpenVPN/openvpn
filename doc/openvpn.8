@@ -274,7 +274,7 @@ failover capability.
 .\"*********************************************************
 .TP
 .B \-\-remote-random-hostname
-Add a random string (6 characters) to first DNS label of hostname to prevent
+Prepend a random string (6 bytes, 12 hex characters) to hostname to prevent
 DNS caching.  For example, "foo.bar.gov" would be modified to
 "<random-chars>.foo.bar.gov".
 .\"*********************************************************
@@ -2417,9 +2417,11 @@ Enable a compression algorithm.
 
 The
 .B algorithm
-parameter may be "snappy", "lzo", or empty.  Snappy and LZO
+parameter may be "snappy", "lzo", "lz4", or empty.  Snappy, LZO and LZ4
 are different compression algorithms, with Snappy generally
-offering the best performance.
+offering the best performance while LZ4 is faster with less CPU usage.
+For backwards compatibility with OpenVPN versions before 2.4, use "lzo"
+(which is identical to the older option "\-\-comp-lzo yes").
 
 If the
 .B algorithm
