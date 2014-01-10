@@ -1331,7 +1331,7 @@ tls1_P_hash(const md_kt_t *md_kt,
 	    int olen)
 {
   struct gc_arena gc = gc_new ();
-  int chunk,n;
+  int chunk;
   hmac_ctx_t ctx;
   hmac_ctx_t ctx_tmp;
   uint8_t A1[MAX_HMAC_KEY_LENGTH];
@@ -1357,7 +1357,6 @@ tls1_P_hash(const md_kt_t *md_kt,
   hmac_ctx_update(&ctx,seed,seed_len);
   hmac_ctx_final(&ctx, A1);
 
-  n=0;
   for (;;)
     {
       hmac_ctx_reset(&ctx);
