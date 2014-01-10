@@ -125,10 +125,8 @@ void mroute_addr_mask_host_bits (struct mroute_addr *ma);
 
 struct mroute_helper *mroute_helper_init (int ageable_ttl_secs);
 void mroute_helper_free (struct mroute_helper *mh);
-void mroute_helper_add_iroute (struct mroute_helper *mh, const struct iroute *ir);
-void mroute_helper_del_iroute (struct mroute_helper *mh, const struct iroute *ir);
-void mroute_helper_add_iroute6 (struct mroute_helper *mh, const struct iroute_ipv6 *ir6);
-void mroute_helper_del_iroute6 (struct mroute_helper *mh, const struct iroute_ipv6 *ir6);
+void mroute_helper_add_iroute46 (struct mroute_helper *mh, int netbits);
+void mroute_helper_del_iroute46 (struct mroute_helper *mh, int netbits);
 
 /*
  * Given a raw packet in buf, return the src and dest
