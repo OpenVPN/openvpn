@@ -127,8 +127,6 @@ x509_get_username (char *cn, int cn_len,
 char *
 backend_x509_get_serial (openvpn_x509_cert_t *cert, struct gc_arena *gc)
 {
-  int ret = 0;
-  int i = 0;
   char *buf = NULL;
   size_t buflen = 0;
   mpi serial_mpi = { 0 };
