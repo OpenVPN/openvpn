@@ -110,7 +110,7 @@ struct route_ipv6_option_list {
   struct route_ipv6_option routes_ipv6[EMPTY_ARRAY_SIZE];
 };
 
-struct route {
+struct route_ipv4 {
 # define RT_DEFINED        (1<<0)
 # define RT_ADDED          (1<<1)
 # define RT_METRIC_DEFINED (1<<2)
@@ -190,7 +190,7 @@ struct route_list {
   unsigned int flags;     /* RG_x flags */
   int capacity;
   int n;
-  struct route routes[EMPTY_ARRAY_SIZE];
+  struct route_ipv4 routes[EMPTY_ARRAY_SIZE];
 };
 
 #if P2MP
@@ -223,7 +223,7 @@ struct route_ipv6_list *new_route_ipv6_list (const int max_routes, struct gc_are
 void add_route_ipv6 (struct route_ipv6 *r, const struct tuntap *tt, unsigned int flags, const struct env_set *es);
 void delete_route_ipv6 (const struct route_ipv6 *r, const struct tuntap *tt, unsigned int flags, const struct env_set *es);
 
-void add_route (struct route *r,
+void add_route (struct route_ipv4 *r,
 		const struct tuntap *tt,
 		unsigned int flags,
 		const struct route_gateway_info *rgi,
@@ -301,8 +301,8 @@ void print_routes (const struct route_list *rl, int level);
 
 void show_routes (int msglev);
 bool test_routes (const struct route_list *rl, const struct tuntap *tt);
-bool add_route_ipapi (const struct route *r, const struct tuntap *tt, DWORD adapter_index);
-bool del_route_ipapi (const struct route *r, const struct tuntap *tt);
+bool add_route_ipapi (const struct route_ipv4 *r, const struct tuntap *tt, DWORD adapter_index);
+bool del_route_ipapi (const struct route_ipv4 *r, const struct tuntap *tt);
 
 #else
 static inline bool test_routes (const struct route_list *rl, const struct tuntap *tt) { return true; }
