@@ -2597,53 +2597,7 @@ get_default_gateway (struct route_gateway_info *rgi)
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
-
-/* all of this is taken from <net/route.h> in FreeBSD */
-#define RTA_DST     0x1
-#define RTA_GATEWAY 0x2
-#define RTA_NETMASK 0x4
-
-#define RTM_GET     0x4
-#define RTM_VERSION 5
-
-#define RTF_UP      0x1
-#define RTF_GATEWAY 0x2
-
-/*
- * These numbers are used by reliable protocols for determining
- * retransmission behavior and are included in the routing structure.
- */
-struct rt_metrics {
-        u_long  rmx_locks;      /* Kernel must leave these values alone */
-        u_long  rmx_mtu;        /* MTU for this path */
-        u_long  rmx_hopcount;   /* max hops expected */
-        u_long  rmx_expire;     /* lifetime for route, e.g. redirect */
-        u_long  rmx_recvpipe;   /* inbound delay-bandwidth product */
-        u_long  rmx_sendpipe;   /* outbound delay-bandwidth product */
-        u_long  rmx_ssthresh;   /* outbound gateway buffer limit */
-        u_long  rmx_rtt;        /* estimated round trip time */
-        u_long  rmx_rttvar;     /* estimated rtt variance */
-        u_long  rmx_pksent;     /* packets sent using this route */
-        u_long  rmx_filler[4];  /* will be used for T/TCP later */
-};
-
-/*
- * Structures for routing messages.
- */
-struct rt_msghdr {
-        u_short rtm_msglen;     /* to skip over non-understood messages */
-        u_char  rtm_version;    /* future binary compatibility */
-        u_char  rtm_type;       /* message type */
-        u_short rtm_index;      /* index for associated ifp */
-        int     rtm_flags;      /* flags, incl. kern & message, e.g. DONE */
-        int     rtm_addrs;      /* bitmask identifying sockaddrs in msg */
-        pid_t   rtm_pid;        /* identify sender */
-        int     rtm_seq;        /* for sender to identify action */
-        int     rtm_errno;      /* why failed */
-        int     rtm_use;        /* from rtentry */
-        u_long  rtm_inits;      /* which metrics we are initializing */
-        struct  rt_metrics rtm_rmx; /* metrics themselves */
-};
+#include <net/route.h>
 
 struct {
   struct rt_msghdr m_rtm;
@@ -2963,52 +2917,7 @@ get_default_gateway (struct route_gateway_info *rgi)
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
-
-/* all of this is taken from <net/route.h> in OpenBSD 3.6 */
-#define RTA_DST		0x1	/* destination sockaddr present */
-#define RTA_GATEWAY	0x2	/* gateway sockaddr present */
-#define RTA_NETMASK	0x4	/* netmask sockaddr present */
-
-#define RTM_GET		0x4	/* Report Metrics */
-
-#define RTM_VERSION	3	/* Up the ante and ignore older versions */
-
-#define	RTF_UP		0x1		/* route usable */
-#define	RTF_GATEWAY	0x2		/* destination is a gateway */
-
-/*
- * Huge version for userland compatibility.
- */
-struct rt_metrics {
-	u_long	rmx_locks;	/* Kernel must leave these values alone */
-	u_long	rmx_mtu;	/* MTU for this path */
-	u_long	rmx_hopcount;	/* max hops expected */
-	u_long	rmx_expire;	/* lifetime for route, e.g. redirect */
-	u_long	rmx_recvpipe;	/* inbound delay-bandwidth product */
-	u_long	rmx_sendpipe;	/* outbound delay-bandwidth product */
-	u_long	rmx_ssthresh;	/* outbound gateway buffer limit */
-	u_long	rmx_rtt;	/* estimated round trip time */
-	u_long	rmx_rttvar;	/* estimated rtt variance */
-	u_long	rmx_pksent;	/* packets sent using this route */
-};
-
-/*
- * Structures for routing messages.
- */
-struct rt_msghdr {
-	u_short	rtm_msglen;	/* to skip over non-understood messages */
-	u_char	rtm_version;	/* future binary compatibility */
-	u_char	rtm_type;	/* message type */
-	u_short	rtm_index;	/* index for associated ifp */
-	int	rtm_flags;	/* flags, incl. kern & message, e.g. DONE */
-	int	rtm_addrs;	/* bitmask identifying sockaddrs in msg */
-	pid_t	rtm_pid;	/* identify sender */
-	int	rtm_seq;	/* for sender to identify action */
-	int	rtm_errno;	/* why failed */
-	int	rtm_use;	/* from rtentry */
-	u_long	rtm_inits;	/* which metrics we are initializing */
-	struct	rt_metrics rtm_rmx; /* metrics themselves */
-};
+#include <net/route.h>
 
 struct {
   struct rt_msghdr m_rtm;
