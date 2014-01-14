@@ -2583,118 +2583,9 @@ get_default_gateway (struct route_gateway_info *rgi)
   gc_free (&gc);
 }
 
-#elif defined(TARGET_FREEBSD)||defined(TARGET_DRAGONFLY)
-
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <net/route.h>
-
-struct {
-  struct rt_msghdr m_rtm;
-  char       m_space[512];
-} m_rtmsg;
-
-#define ROUNDUP(a) \
-        ((a) > 0 ? (1 + (((a) - 1) | (sizeof(long) - 1))) : sizeof(long))
-
-/*
- * FIXME -- add support for netmask, hwaddr, and iface
- */
-void
-get_default_gateway (struct route_gateway_info *rgi)
-{
-  struct gc_arena gc = gc_new ();
-  int s, seq, l, pid, rtm_addrs, i;
-  struct sockaddr so_dst, so_mask;
-  char *cp = m_rtmsg.m_space; 
-  struct sockaddr *gate = NULL, *sa;
-  struct  rt_msghdr *rtm_aux;
-
-#define NEXTADDR(w, u) \
-        if (rtm_addrs & (w)) {\
-            l = ROUNDUP(u.sa_len); memmove(cp, &(u), l); cp += l;\
-        }
-
-#define ADVANCE(x, n) (x += ROUNDUP((n)->sa_len))
-
-#define rtm m_rtmsg.m_rtm
-
-  CLEAR(*rgi);
-
-  pid = getpid();
-  seq = 0;
-  rtm_addrs = RTA_DST | RTA_NETMASK;
-
-  bzero(&so_dst, sizeof(so_dst));
-  bzero(&so_mask, sizeof(so_mask));
-  bzero(&rtm, sizeof(struct rt_msghdr));
-
-  rtm.rtm_type = RTM_GET;
-  rtm.rtm_flags = RTF_UP | RTF_GATEWAY;
-  rtm.rtm_version = RTM_VERSION;
-  rtm.rtm_seq = ++seq;
-  rtm.rtm_addrs = rtm_addrs; 
-
-  so_dst.sa_family = AF_INET;
-  so_dst.sa_len = sizeof(struct sockaddr_in);
-  so_mask.sa_family = AF_INET;
-  so_mask.sa_len = sizeof(struct sockaddr_in);
-
-  NEXTADDR(RTA_DST, so_dst);
-  NEXTADDR(RTA_NETMASK, so_mask);
-
-  rtm.rtm_msglen = l = cp - (char *)&m_rtmsg;
-
-  s = socket(PF_ROUTE, SOCK_RAW, 0);
-
-  if (write(s, (char *)&m_rtmsg, l) < 0)
-    {
-      msg(M_WARN|M_ERRNO, "Could not retrieve default gateway from route socket:");
-      gc_free (&gc);
-      close(s);
-      return;
-    }
-
-  do {
-    l = read(s, (char *)&m_rtmsg, sizeof(m_rtmsg));
-  } while (l > 0 && (rtm.rtm_seq != seq || rtm.rtm_pid != pid));
-                        
-  close(s);
-
-  rtm_aux = &rtm;
-
-  cp = ((char *)(rtm_aux + 1));
-  if (rtm_aux->rtm_addrs) {
-    for (i = 1; i; i <<= 1)
-      if (i & rtm_aux->rtm_addrs) {
-	sa = (struct sockaddr *)cp;
-	if (i == RTA_GATEWAY )
-	  gate = sa;
-	ADVANCE(cp, sa);
-      }
-  }
-  else
-    {
-      gc_free (&gc);
-      return;
-    }
-
-
-  if (gate != NULL )
-    {
-      rgi->gateway.addr = ntohl(((struct sockaddr_in *)gate)->sin_addr.s_addr);
-      rgi->flags |= RGI_ADDR_DEFINED;
-
-      gc_free (&gc);
-    }
-  else
-    {
-      gc_free (&gc);
-    }
-}
-
-#elif defined(TARGET_DARWIN)
+#elif defined(TARGET_DARWIN) || \
+	defined(TARGET_FREEBSD) || defined(TARGET_DRAGONFLY) || \
+	defined(TARGET_OPENBSD) || defined(TARGET_NETBSD)
 
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -2707,8 +2598,25 @@ struct rtmsg {
   char       m_space[512];
 };
 
-#define ROUNDUP(a) \
+/* the route socket code is identical for all 4 supported BSDs and for
+ * MacOS X (Darwin), with one crucial difference: when going from
+ * 32 bit to 64 bit, the BSDs increased the structure size but kept
+ * source code compatibility by keeping the use of "long", while
+ * MacOS X decided to keep binary compatibility by *changing* the API
+ * to use "uint32_t", thus 32 bit on all OS X variants
+ *
+ * We used to have a large amount of duplicate code here which really
+ * differed only in this (long) vs. (uint32_t) - IMHO, worse than
+ * having a combined block for all BSDs with this single #ifdef inside
+ */
+
+#if defined(TARGET_DARWIN)
+# define ROUNDUP(a) \
         ((a) > 0 ? (1 + (((a) - 1) | (sizeof(uint32_t) - 1))) : sizeof(uint32_t))
+#else
+# define ROUNDUP(a) \
+        ((a) > 0 ? (1 + (((a) - 1) | (sizeof(long) - 1))) : sizeof(long))
+#endif
 
 #define NEXTADDR(w, u) \
         if (rtm_addrs & (w)) {\
@@ -2901,118 +2809,6 @@ get_default_gateway (struct route_gateway_info *rgi)
 }
 
 #undef max
-
-#elif defined(TARGET_OPENBSD) || defined(TARGET_NETBSD)
-
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <net/route.h>
-
-struct {
-  struct rt_msghdr m_rtm;
-  char       m_space[512];
-} m_rtmsg;
-
-#define ROUNDUP(a) \
-        ((a) > 0 ? (1 + (((a) - 1) | (sizeof(long) - 1))) : sizeof(long))
-
-/*
- * FIXME -- add support for netmask, hwaddr, and iface
- */
-void
-get_default_gateway (struct route_gateway_info *rgi)
-{
-  struct gc_arena gc = gc_new ();
-  int s, seq, l, rtm_addrs, i;
-  pid_t pid;
-  struct sockaddr so_dst, so_mask;
-  char *cp = m_rtmsg.m_space; 
-  struct sockaddr *gate = NULL, *sa;
-  struct  rt_msghdr *rtm_aux;
-
-#define NEXTADDR(w, u) \
-        if (rtm_addrs & (w)) {\
-            l = ROUNDUP(u.sa_len); memmove(cp, &(u), l); cp += l;\
-        }
-
-#define ADVANCE(x, n) (x += ROUNDUP((n)->sa_len))
-
-#define rtm m_rtmsg.m_rtm
-
-  CLEAR(*rgi);
-
-  pid = getpid();
-  seq = 0;
-  rtm_addrs = RTA_DST | RTA_NETMASK;
-
-  bzero(&so_dst, sizeof(so_dst));
-  bzero(&so_mask, sizeof(so_mask));
-  bzero(&rtm, sizeof(struct rt_msghdr));
-
-  rtm.rtm_type = RTM_GET;
-  rtm.rtm_flags = RTF_UP | RTF_GATEWAY;
-  rtm.rtm_version = RTM_VERSION;
-  rtm.rtm_seq = ++seq;
-  rtm.rtm_addrs = rtm_addrs; 
-
-  so_dst.sa_family = AF_INET;
-  so_dst.sa_len = sizeof(struct sockaddr_in);
-  so_mask.sa_family = AF_INET;
-  so_mask.sa_len = sizeof(struct sockaddr_in);
-
-  NEXTADDR(RTA_DST, so_dst);
-  NEXTADDR(RTA_NETMASK, so_mask);
-
-  rtm.rtm_msglen = l = cp - (char *)&m_rtmsg;
-
-  s = socket(PF_ROUTE, SOCK_RAW, 0);
-
-  if (write(s, (char *)&m_rtmsg, l) < 0)
-    {
-      msg(M_WARN|M_ERRNO, "Could not retrieve default gateway from route socket:");
-      gc_free (&gc);
-      close(s);
-      return;
-    }
-
-  do {
-    l = read(s, (char *)&m_rtmsg, sizeof(m_rtmsg));
-  } while (l > 0 && (rtm.rtm_seq != seq || rtm.rtm_pid != pid));
-                        
-  close(s);
-
-  rtm_aux = &rtm;
-
-  cp = ((char *)(rtm_aux + 1));
-  if (rtm_aux->rtm_addrs) {
-    for (i = 1; i; i <<= 1)
-      if (i & rtm_aux->rtm_addrs) {
-	sa = (struct sockaddr *)cp;
-	if (i == RTA_GATEWAY )
-	  gate = sa;
-	ADVANCE(cp, sa);
-      }
-  }
-  else
-    {
-      gc_free (&gc);
-      return;
-    }
-
-
-  if (gate != NULL )
-    {
-      rgi->gateway.addr = ntohl(((struct sockaddr_in *)gate)->sin_addr.s_addr);
-      rgi->flags |= RGI_ADDR_DEFINED;
-
-      gc_free (&gc);
-    }
-  else
-    {
-      gc_free (&gc);
-    }
-}
 
 #else
 
