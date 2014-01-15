@@ -686,7 +686,7 @@ fi
 
 case "${with_mem_check}" in
 	valgrind)
-		AC_CHECK_HEADER(
+		AC_CHECK_HEADERS(
 			[valgrind/memcheck.h],
 			[
 				CFLAGS="${CFLAGS} -g -fno-inline"
@@ -700,7 +700,7 @@ case "${with_mem_check}" in
 		)
 		;;
 	dmalloc)
-		AC_CHECK_HEADER(
+		AC_CHECK_HEADERS(
 			[dmalloc.h],
 			[AC_CHECK_LIB(
 				[dmalloc],
@@ -929,7 +929,7 @@ if test "$enable_snappy" = "yes" && test "$enable_comp_stub" = "no"; then
 
     saved_CFLAGS="${CFLAGS}"
     CFLAGS="${CFLAGS} ${SNAPPY_CFLAGS}"
-    AC_CHECK_HEADER(snappy-c.h,
+    AC_CHECK_HEADERS(snappy-c.h,
        ,
        [
 	   AC_MSG_RESULT([Snappy headers not found.])
@@ -968,7 +968,7 @@ if test "$enable_lz4" = "yes" && test "$enable_comp_stub" = "no"; then
 
     saved_CFLAGS="${CFLAGS}"
     CFLAGS="${CFLAGS} ${LZ4_CFLAGS}"
-    AC_CHECK_HEADER(lz4.h,
+    AC_CHECK_HEADERS(lz4.h,
        ,
        [
 	   AC_MSG_RESULT([LZ4 headers not found.])
