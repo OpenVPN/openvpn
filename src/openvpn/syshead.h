@@ -37,6 +37,18 @@
 # define unlikely(x)    (x)
 #endif
 
+#ifdef TARGET_WIN32
+#ifndef WIN32
+#define WIN32
+#endif
+#endif
+
+#ifdef TARGET_DARWIN
+#ifndef MACOSX
+#define MACOSX
+#endif
+#endif
+
 #ifdef WIN32
 #include <windows.h>
 #include <winsock2.h>

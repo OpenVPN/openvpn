@@ -48,8 +48,7 @@
 CFStringRef kCertDataSubjectName = CFSTR("subject"),
     kCertDataIssuerName = CFSTR("issuer"), kCertDataSha1Name = CFSTR("SHA1"),
     kCertDataMd5Name = CFSTR("MD5"), kCertNameFwdSlash = CFSTR("/"),
-    kCertNameEquals = CFSTR("="),
-    CFStringRef kCertNameOrganization = CFSTR("o"),
+    kCertNameEquals = CFSTR("="), kCertNameOrganization = CFSTR("o"),
     kCertNameOrganizationalUnit = CFSTR("ou"), kCertNameCountry = CFSTR("c"),
     kCertNameLocality = CFSTR("l"), kCertNameState = CFSTR("st"),
     kCertNameCommonName = CFSTR("cn"), kCertNameEmail = CFSTR("e"),
@@ -718,7 +717,7 @@ void extractCertificateFromIdentity(SecIdentityRef identity, void **blob, size_t
     CFRelease(certificate);
 
     *blob = cssmCertData.Data;
-    *length = cssmCertData.Length;
+    *size = cssmCertData.Length;
 }
 
 SecIdentityRef findIdentityByString(const char *description)
