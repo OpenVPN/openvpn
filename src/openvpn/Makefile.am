@@ -18,7 +18,7 @@ EXTRA_DIST = \
 	openvpn.vcxproj \
 	openvpn.vcxproj.filters
 
-INCLUDES = \
+AM_CPPFLAGS = \
 	-I$(top_srcdir)/include \
 	-I$(top_srcdir)/src/compat
 
@@ -116,7 +116,9 @@ openvpn_SOURCES = \
 	syshead.h \
 	tun.c tun.h \
 	win32.h win32.c \
-	cryptoapi.h cryptoapi.c
+	cryptoapi.h cryptoapi.c \
+	keychain.h keychain.c \
+	macosx.h macosx.c
 openvpn_LDADD = \
 	$(top_builddir)/src/compat/libcompat.la \
 	$(SOCKETS_LIBS) \
@@ -132,5 +134,5 @@ openvpn_SOURCES += openvpn_win32_resources.rc
 openvpn_LDADD += -lgdi32 -lws2_32 -lwininet -lcrypt32 -liphlpapi -lwinmm
 endif
 if MACOSX
-openvpn_LDADD += -framework CoreFoundation -framework Security
+openvpn_LDFLAGS = -framework CoreFoundation -framework Security
 endif
