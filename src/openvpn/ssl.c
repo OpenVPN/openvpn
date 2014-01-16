@@ -1337,7 +1337,7 @@ tls1_P_hash(const md_kt_t *md_kt,
 	    int olen)
 {
   struct gc_arena gc = gc_new ();
-  int chunk,n;
+  int chunk;
   hmac_ctx_t ctx;
   hmac_ctx_t ctx_tmp;
   uint8_t A1[MAX_HMAC_KEY_LENGTH];
@@ -1363,7 +1363,6 @@ tls1_P_hash(const md_kt_t *md_kt,
   hmac_ctx_update(&ctx,seed,seed_len);
   hmac_ctx_final(&ctx, A1);
 
-  n=0;
   for (;;)
     {
       hmac_ctx_reset(&ctx);
@@ -1831,13 +1830,13 @@ push_peer_info(struct buffer *buf, struct tls_session *session)
 	    buf_printf (&out, "IV_HWADDR=%s\n", format_hex_ex (rgi.hwaddr, 6, 0, 1, ":", &gc));
         }
 
-      /* push env vars that begin with UV_ and IV_OPENVPN_GUI_VERSION */
+      /* push env vars that begin with UV_ and IV_GUI_VER */
       for (e=es->list; e != NULL; e=e->next)
 	{
 	  if (e->string)
 	    {
 	      if (((strncmp(e->string, "UV_", 3)==0 && session->opt->push_peer_info_detail >= 2)
-		   || (strncmp(e->string,"IV_OPENVPN_GUI_VERSION=",sizeof("IV_OPENVPN_GUI_VERSION=")-1)==0))
+		   || (strncmp(e->string,"IV_GUI_VER=",sizeof("IV_GUI_VER=")-1)==0))
 		  && buf_safe(&out, strlen(e->string)+1))
 		buf_printf (&out, "%s\n", e->string);
 	    }

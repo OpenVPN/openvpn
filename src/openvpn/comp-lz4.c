@@ -64,7 +64,6 @@ lz4_compress (struct buffer *buf, struct buffer work,
 	       struct compress_context *compctx,
 	       const struct frame* frame)
 {
-  int result;
   bool compressed = false;
 
   if (buf->len <= 0)

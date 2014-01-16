@@ -2454,7 +2454,9 @@ options_postprocess_mutate_ce (struct options *o, struct connection_entry *ce)
 static void
 options_postprocess_mutate_invariant (struct options *options)
 {
+#ifdef WIN32
   const int dev = dev_type_enum (options->dev, options->dev_type);
+#endif
 
   /*
    * In forking TCP server mode, you don't need to ifconfig

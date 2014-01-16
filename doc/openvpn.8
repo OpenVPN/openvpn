@@ -2097,6 +2097,16 @@ In many cases, the
 parameter can point to an empty directory, however
 complications can result when scripts or restarts
 are executed after the chroot operation.
+
+Note: if OpenVPN is built using the PolarSSL SSL
+library,
+.B \-\-chroot
+will only work if a /dev/urandom device node is available
+inside the chroot directory
+.B dir.
+This is due to the way PolarSSL works (it wants to open
+/dev/urandom every time randomness is needed, not just once
+at startup) and nothing OpenVPN can influence.
 .\"*********************************************************
 .TP
 .B \-\-setcon context

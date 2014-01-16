@@ -125,8 +125,6 @@ x509_get_username (char *cn, int cn_len,
 char *
 x509_get_serial (x509_cert *cert, struct gc_arena *gc)
 {
-  int ret = 0;
-  int i = 0;
   char *buf = NULL;
   size_t len = cert->serial.len * 3 + 1;
 
