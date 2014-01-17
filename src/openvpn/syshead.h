@@ -426,6 +426,13 @@
 #endif
 
 /*
+ * Define type sa_family_t if it isn't defined in the socket headers
+ */
+#ifndef HAVE_SA_FAMILY_T
+typedef unsigned short sa_family_t;
+#endif
+
+/*
  * Disable ESEC
  */
 #if 0

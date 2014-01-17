@@ -501,6 +501,12 @@ AC_CHECK_TYPE(
 	[[${SOCKET_INCLUDES}]]
 )
 AC_CHECK_TYPE(
+        [sa_family_t],
+        [AC_DEFINE([HAVE_SA_FAMILY_T], [1], [sa_family_t, needed to hold AF_* info])],
+        ,
+        [[${SOCKET_INCLUDES}]]
+)
+AC_CHECK_TYPE(
 	[struct sockaddr_in6],
 	,
 	[AC_MSG_ERROR([struct sockaddr_in6 not found, needed for ipv6 transport support.])],
