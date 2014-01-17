@@ -517,7 +517,7 @@ win32_signal_get (struct win32_signal *ws)
       if (ret)
 	{
 	  siginfo_static.signal_received = ret;
-	  siginfo_static.hard = true;
+	  siginfo_static.source = SIG_SOURCE_HARD;
 	}
     }
   return ret;
