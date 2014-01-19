@@ -2801,11 +2801,11 @@ link_socket_write_udp_posix_sendmsg (struct link_socket *sock,
         mesg.msg_name = &to->dest.addr.sa;
         mesg.msg_namelen = sizeof (struct sockaddr_in);
         mesg.msg_control = &opi;
-        mesg.msg_controllen = sizeof (struct openvpn_in4_pktinfo);
         mesg.msg_flags = 0;
+#ifdef HAVE_IN_PKTINFO
+        mesg.msg_controllen = sizeof (struct openvpn_in4_pktinfo);
         cmsg = CMSG_FIRSTHDR (&mesg);
         cmsg->cmsg_len = sizeof (struct openvpn_in4_pktinfo);
-#ifdef HAVE_IN_PKTINFO
         cmsg->cmsg_level = SOL_IP;
         cmsg->cmsg_type = IP_PKTINFO;
 	{
@@ -2816,6 +2816,10 @@ link_socket_write_udp_posix_sendmsg (struct link_socket *sock,
         pkti->ipi_addr.s_addr = 0;
 	}
 #elif defined(IP_RECVDSTADDR)
+	ASSERT( CMSG_SPACE(sizeof (struct in_addr)) <= sizeof(opi) );
+        mesg.msg_controllen = CMSG_SPACE(sizeof (struct in_addr));
+        cmsg = CMSG_FIRSTHDR (&mesg);
+        cmsg->cmsg_len = CMSG_LEN(sizeof(struct in_addr));
         cmsg->cmsg_level = IPPROTO_IP;
         cmsg->cmsg_type = IP_RECVDSTADDR;
         *(struct in_addr *) CMSG_DATA (cmsg) = to->pi.in4;
