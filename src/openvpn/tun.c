@@ -909,7 +909,7 @@ do_ifconfig (struct tuntap *tt,
       if (!tun && tt->topology == TOP_SUBNET)
 	{
 	  /* Add a network route for the local tun interface */
-	  struct route r;
+	  struct route_ipv4 r;
 	  CLEAR (r);      
 	  r.flags = RT_DEFINED | RT_METRIC_DEFINED;
 	  r.network = tt->local & tt->remote_netmask;
@@ -1106,7 +1106,7 @@ do_ifconfig (struct tuntap *tt,
       /* Add a network route for the local tun interface */
       if (!tun && tt->topology == TOP_SUBNET)
 	{
-	  struct route r;
+	  struct route_ipv4 r;
 	  CLEAR (r);
 	  r.flags = RT_DEFINED;
 	  r.network = tt->local & tt->remote_netmask;
@@ -1172,7 +1172,7 @@ do_ifconfig (struct tuntap *tt,
 	/* Add a network route for the local tun interface */
       if (!tun && tt->topology == TOP_SUBNET)
         {
-          struct route r;
+          struct route_ipv4 r;
           CLEAR (r);
           r.flags = RT_DEFINED;
           r.network = tt->local & tt->remote_netmask;
