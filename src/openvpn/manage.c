@@ -3015,7 +3015,8 @@ management_event_loop_n_seconds (struct management *man, int sec)
 	    man_check_for_signals (&signal_received);
 	  if (signal_received)
 	    return;
-	} while (expire);
+	  update_time();
+	} while (expire && expire > now);
 
       /* revert state */
       man->persist.standalone_disabled = standalone_disabled_save;
