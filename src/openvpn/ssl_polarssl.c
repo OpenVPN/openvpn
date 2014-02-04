@@ -261,8 +261,13 @@ tls_ctx_load_cert_file (struct tls_root_ctx *ctx, const char *cert_file,
     }
   else
     {
-      if (0 != x509_crt_parse_file(ctx->crt_chain, cert_file))
-	msg (M_FATAL, "Cannot load certificate file %s", cert_file);
+      int retval = x509_crt_parse_file(ctx->crt_chain, cert_file);
+      if (0 != retval)
+	{
+	  char errstr[128];
+	  polarssl_strerror(retval, errstr, sizeof(errstr));
+	  msg (M_FATAL, "Cannot load certificate file %s (%s)", cert_file, errstr);
+	}
     }
 }
 
@@ -495,8 +500,13 @@ void tls_ctx_load_ca (struct tls_root_ctx *ctx, const char *ca_file,
   else
     {
       /* Load CA file for verifying peer supplied certificate */
-      if (0 != x509_crt_parse_file(ctx->ca_chain, ca_file))
-	msg (M_FATAL, "Cannot load CA certificate file %s", ca_file);
+      int retval = x509_crt_parse_file(ctx->ca_chain, ca_file);
+      if (0 != retval)
+	{
+	  char errstr[128];
+	  polarssl_strerror(retval, errstr, sizeof(errstr));
+	  msg (M_FATAL, "Cannot load CA certificate file %s (%s)", ca_file, errstr);
+	}
     }
 }
 
