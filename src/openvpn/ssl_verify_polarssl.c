@@ -38,12 +38,13 @@
 #if defined(ENABLE_SSL) && defined(ENABLE_CRYPTO_POLARSSL)
 
 #include "ssl_verify.h"
+#include <polarssl/oid.h>
 #include <polarssl/sha1.h>
 
 #define MAX_SUBJECT_LENGTH 256
 
 int
-verify_callback (void *session_obj, x509_cert *cert, int cert_depth,
+verify_callback (void *session_obj, x509_crt *cert, int cert_depth,
     int *flags)
 {
   struct tls_session *session = (struct tls_session *) session_obj;
@@ -88,8 +89,8 @@ verify_callback (void *session_obj, x509_cert *cert, int cert_depth,
 #endif
 
 result_t
-x509_get_username (char *cn, int cn_len,
-    char *x509_username_field, x509_cert *cert)
+backend_x509_get_username (char *cn, int cn_len,
+    char *x509_username_field, x509_crt *cert)
 {
   x509_name *name;
 
@@ -100,7 +101,7 @@ x509_get_username (char *cn, int cn_len,
   /* Find common name */
   while( name != NULL )
   {
-      if( memcmp( name->oid.p, OID_CN, OID_SIZE(OID_CN) ) == 0)
+      if( memcmp( name->oid.p, OID_AT_CN, OID_SIZE(OID_AT_CN) ) == 0)
 	break;
 
       name = name->next;
@@ -123,21 +124,21 @@ x509_get_username (char *cn, int cn_len,
 }
 
 char *
-x509_get_serial (x509_cert *cert, struct gc_arena *gc)
+backend_x509_get_serial (x509_crt *cert, struct gc_arena *gc)
 {
   char *buf = NULL;
   size_t len = cert->serial.len * 3 + 1;
 
   buf = gc_malloc(len, true, gc);
 
-  if(x509parse_serial_gets(buf, len-1, &cert->serial) < 0)
+  if(x509_serial_gets(buf, len-1, &cert->serial) < 0)
     buf = NULL;
 
   return buf;
 }
 
 unsigned char *
-x509_get_sha1_hash (x509_cert *cert, struct gc_arena *gc)
+x509_get_sha1_hash (x509_crt *cert, struct gc_arena *gc)
 {
   unsigned char *sha1_hash = gc_malloc(SHA_DIGEST_LENGTH, false, gc);
   sha1(cert->tbs.p, cert->tbs.len, sha1_hash);
@@ -145,14 +146,14 @@ x509_get_sha1_hash (x509_cert *cert, struct gc_arena *gc)
 }
 
 char *
-x509_get_subject(x509_cert *cert, struct gc_arena *gc)
+x509_get_subject(x509_crt *cert, struct gc_arena *gc)
 {
   char tmp_subject[MAX_SUBJECT_LENGTH] = {0};
   char *subject = NULL;
 
   int ret = 0;
 
-  ret = x509parse_dn_gets( tmp_subject, MAX_SUBJECT_LENGTH-1, &cert->subject );
+  ret = x509_dn_gets( tmp_subject, MAX_SUBJECT_LENGTH-1, &cert->subject );
   if (ret > 0)
     {
       /* Allocate the required space for the subject */
@@ -182,70 +183,28 @@ x509_setenv (struct env_set *es, int cert_depth, openvpn_x509_cert_t *cert)
   while( name != NULL )
     {
       char name_expand[64+8];
+      const char *shortname;
 
-      if( name->oid.len == 2 && memcmp( name->oid.p, OID_X520, 2 ) == 0 )
+      if( 0 == oid_get_attr_short_name(&name->oid, &shortname) )
 	{
-	  switch( name->oid.p[2] )
-	    {
-	    case X520_COMMON_NAME:
-		openvpn_snprintf (name_expand, sizeof(name_expand), "X509_%d_CN",
-		    cert_depth); break;
-
-	    case X520_COUNTRY:
-		openvpn_snprintf (name_expand, sizeof(name_expand), "X509_%d_C",
-		    cert_depth); break;
-
-	    case X520_LOCALITY:
-		openvpn_snprintf (name_expand, sizeof(name_expand), "X509_%d_L",
-		    cert_depth); break;
-
-	    case X520_STATE:
-		openvpn_snprintf (name_expand, sizeof(name_expand), "X509_%d_ST",
-		    cert_depth); break;
-
-	    case X520_ORGANIZATION:
-		openvpn_snprintf (name_expand, sizeof(name_expand), "X509_%d_O",
-		    cert_depth); break;
-
-	    case X520_ORG_UNIT:
-		openvpn_snprintf (name_expand, sizeof(name_expand), "X509_%d_OU",
-		    cert_depth); break;
-
-	    default:
-		openvpn_snprintf (name_expand, sizeof(name_expand),
-		    "X509_%d_0x%02X", cert_depth, name->oid.p[2]);
-		break;
-	    }
+	  openvpn_snprintf (name_expand, sizeof(name_expand), "X509_%d_%s",
+	      cert_depth, shortname);
 	}
-	else if( name->oid.len == 8 && memcmp( name->oid.p, OID_PKCS9, 8 ) == 0 )
-	  {
-	    switch( name->oid.p[8] )
-	      {
-		case PKCS9_EMAIL:
-		  openvpn_snprintf (name_expand, sizeof(name_expand),
-		      "X509_%d_emailAddress", cert_depth); break;
-
-		default:
-		  openvpn_snprintf (name_expand, sizeof(name_expand),
-		      "X509_%d_0x%02X", cert_depth, name->oid.p[8]);
-		  break;
-	      }
-	  }
-	else
-	  {
-	    openvpn_snprintf (name_expand, sizeof(name_expand), "X509_%d_\?\?",
-		cert_depth);
-	  }
-
-	for( i = 0; i < name->val.len; i++ )
+      else
 	{
-	    if( i >= (int) sizeof( s ) - 1 )
-		break;
+	  openvpn_snprintf (name_expand, sizeof(name_expand), "X509_%d_\?\?",
+	      cert_depth);
+	}
 
-	    c = name->val.p[i];
-	    if( c < 32 || c == 127 || ( c > 128 && c < 160 ) )
-		 s[i] = '?';
-	    else s[i] = c;
+      for( i = 0; i < name->val.len; i++ )
+	{
+	  if( i >= (int) sizeof( s ) - 1 )
+	      break;
+
+	  c = name->val.p[i];
+	  if( c < 32 || c == 127 || ( c > 128 && c < 160 ) )
+	       s[i] = '?';
+	  else s[i] = c;
 	}
 	s[i] = '\0';
 
@@ -259,7 +218,7 @@ x509_setenv (struct env_set *es, int cert_depth, openvpn_x509_cert_t *cert)
 }
 
 result_t
-x509_verify_ns_cert_type(const x509_cert *cert, const int usage)
+x509_verify_ns_cert_type(const x509_crt *cert, const int usage)
 {
   if (usage == NS_CERT_CHECK_NONE)
     return SUCCESS;
@@ -274,7 +233,7 @@ x509_verify_ns_cert_type(const x509_cert *cert, const int usage)
 }
 
 result_t
-x509_verify_cert_ku (x509_cert *cert, const unsigned * const expected_ku,
+x509_verify_cert_ku (x509_crt *cert, const unsigned * const expected_ku,
     int expected_len)
 {
   result_t fFound = FAILURE;
@@ -307,7 +266,7 @@ x509_verify_cert_ku (x509_cert *cert, const unsigned * const expected_ku,
 }
 
 result_t
-x509_verify_cert_eku (x509_cert *cert, const char * const expected_oid)
+x509_verify_cert_eku (x509_crt *cert, const char * const expected_oid)
 {
   result_t fFound = FAILURE;
 
@@ -357,7 +316,7 @@ x509_verify_cert_eku (x509_cert *cert, const char * const expected_oid)
 }
 
 result_t
-x509_write_pem(FILE *peercert_file, x509_cert *peercert)
+x509_write_pem(FILE *peercert_file, x509_crt *peercert)
 {
     msg (M_WARN, "PolarSSL does not support writing peer certificate in PEM format");
     return FAILURE;
@@ -367,12 +326,12 @@ x509_write_pem(FILE *peercert_file, x509_cert *peercert)
  * check peer cert against CRL
  */
 result_t
-x509_verify_crl(const char *crl_file, x509_cert *cert, const char *subject)
+x509_verify_crl(const char *crl_file, x509_crt *cert, const char *subject)
 {
   result_t retval = FAILURE;
   x509_crl crl = {0};
 
-  if (x509parse_crlfile(&crl, crl_file) != 0)
+  if (x509_crl_parse_file(&crl, crl_file) != 0)
     {
       msg (M_ERR, "CRL: cannot read CRL from file %s", crl_file);
       goto end;
@@ -387,7 +346,7 @@ x509_verify_crl(const char *crl_file, x509_cert *cert, const char *subject)
       goto end;
     }
 
-  if (0 != x509parse_revoked(cert, &crl))
+  if (0 != x509_crt_revoked(cert, &crl))
     {
       msg (D_HANDSHAKE, "CRL CHECK FAILED: %s is REVOKED", subject);
       goto end;

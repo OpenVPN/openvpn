@@ -33,11 +33,11 @@
 #include "syshead.h"
 #include "misc.h"
 #include "manage.h"
-#include <polarssl/x509.h>
+#include <polarssl/x509_crt.h>
 
 #ifndef __OPENVPN_X509_CERT_T_DECLARED
 #define __OPENVPN_X509_CERT_T_DECLARED
-typedef x509_cert openvpn_x509_cert_t;
+typedef x509_crt openvpn_x509_cert_t;
 #endif
 
 /** @name Function for authenticating a new connection from a remote OpenVPN peer
@@ -72,7 +72,7 @@ typedef x509_cert openvpn_x509_cert_t;
  *
  * @return The return value is 0 unless a fatal error occurred.
  */
-int verify_callback (void *session_obj, x509_cert *cert, int cert_depth,
+int verify_callback (void *session_obj, x509_crt *cert, int cert_depth,
     int *flags);
 
 /** @} name Function for authenticating a new connection from a remote OpenVPN peer */

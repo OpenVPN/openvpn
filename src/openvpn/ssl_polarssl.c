@@ -45,12 +45,12 @@
 #include "manage.h"
 #include "ssl_common.h"
 
-#include <polarssl/sha2.h>
 #include <polarssl/havege.h>
 
 #include "ssl_verify_polarssl.h"
 #include <polarssl/error.h>
 #include <polarssl/pem.h>
+#include <polarssl/sha256.h>
 
 void
 tls_init_lib()
@@ -74,10 +74,10 @@ tls_ctx_server_new(struct tls_root_ctx *ctx)
   CLEAR(*ctx);
 
   ALLOC_OBJ_CLEAR(ctx->dhm_ctx, dhm_context);
-  ALLOC_OBJ_CLEAR(ctx->priv_key, rsa_context);
+  ALLOC_OBJ_CLEAR(ctx->priv_key, pk_context);
 
-  ALLOC_OBJ_CLEAR(ctx->ca_chain, x509_cert);
-  ALLOC_OBJ_CLEAR(ctx->crt_chain, x509_cert);
+  ALLOC_OBJ_CLEAR(ctx->ca_chain, x509_crt);
+  ALLOC_OBJ_CLEAR(ctx->crt_chain, x509_crt);
 
 
   ctx->endpoint = SSL_IS_SERVER;
@@ -91,10 +91,10 @@ tls_ctx_client_new(struct tls_root_ctx *ctx)
   CLEAR(*ctx);
 
   ALLOC_OBJ_CLEAR(ctx->dhm_ctx, dhm_context);
-  ALLOC_OBJ_CLEAR(ctx->priv_key, rsa_context);
+  ALLOC_OBJ_CLEAR(ctx->priv_key, pk_context);
 
-  ALLOC_OBJ_CLEAR(ctx->ca_chain, x509_cert);
-  ALLOC_OBJ_CLEAR(ctx->crt_chain, x509_cert);
+  ALLOC_OBJ_CLEAR(ctx->ca_chain, x509_crt);
+  ALLOC_OBJ_CLEAR(ctx->crt_chain, x509_crt);
 
   ctx->endpoint = SSL_IS_CLIENT;
   ctx->initialised = true;
@@ -105,13 +105,13 @@ tls_ctx_free(struct tls_root_ctx *ctx)
 {
   if (ctx)
     {
-      rsa_free(ctx->priv_key);
+      pk_free(ctx->priv_key);
       free(ctx->priv_key);
 
-      x509_free(ctx->ca_chain);
+      x509_crt_free(ctx->ca_chain);
       free(ctx->ca_chain);
 
-      x509_free(ctx->crt_chain);
+      x509_crt_free(ctx->crt_chain);
       free(ctx->crt_chain);
 
       dhm_free(ctx->dhm_ctx);
@@ -215,12 +215,12 @@ tls_ctx_load_dh_params (struct tls_root_ctx *ctx, const char *dh_file,
 {
   if (!strcmp (dh_file, INLINE_FILE_TAG) && dh_file_inline)
     {
-      if (0 != x509parse_dhm(ctx->dhm_ctx, dh_file_inline, strlen(dh_file_inline)))
+      if (0 != dhm_parse_dhm(ctx->dhm_ctx, dh_file_inline, strlen(dh_file_inline)))
 	msg (M_FATAL, "Cannot read inline DH parameters");
   }
 else
   {
-    if (0 != x509parse_dhmfile(ctx->dhm_ctx, dh_file))
+    if (0 != dhm_parse_dhmfile(ctx->dhm_ctx, dh_file))
       msg (M_FATAL, "Cannot read DH parameters from file %s", dh_file);
   }
 
@@ -255,13 +255,13 @@ tls_ctx_load_cert_file (struct tls_root_ctx *ctx, const char *cert_file,
 
   if (!strcmp (cert_file, INLINE_FILE_TAG) && cert_file_inline)
     {
-      if (0 != x509parse_crt(ctx->crt_chain, cert_file_inline,
+      if (0 != x509_crt_parse(ctx->crt_chain, cert_file_inline,
 	  strlen(cert_file_inline)))
         msg (M_FATAL, "Cannot load inline certificate file");
     }
   else
     {
-      if (0 != x509parse_crtfile(ctx->crt_chain, cert_file))
+      if (0 != x509_crt_parse_file(ctx->crt_chain, cert_file))
 	msg (M_FATAL, "Cannot load certificate file %s", cert_file);
     }
 }
@@ -276,26 +276,27 @@ tls_ctx_load_priv_file (struct tls_root_ctx *ctx, const char *priv_key_file,
 
   if (!strcmp (priv_key_file, INLINE_FILE_TAG) && priv_key_file_inline)
     {
-      status = x509parse_key(ctx->priv_key,
+      status = pk_parse_key(ctx->priv_key,
 	  priv_key_file_inline, strlen(priv_key_file_inline),
 	  NULL, 0);
+
       if (POLARSSL_ERR_PEM_PASSWORD_REQUIRED == status)
 	{
 	  char passbuf[512] = {0};
 	  pem_password_callback(passbuf, 512, 0, NULL);
-	  status = x509parse_key(ctx->priv_key,
+	  status = pk_parse_key(ctx->priv_key,
 	      priv_key_file_inline, strlen(priv_key_file_inline),
 	      (unsigned char *) passbuf, strlen(passbuf));
 	}
     }
   else
     {
-      status = x509parse_keyfile(ctx->priv_key, priv_key_file, NULL);
+      status = pk_parse_keyfile(ctx->priv_key, priv_key_file, NULL);
       if (POLARSSL_ERR_PEM_PASSWORD_REQUIRED == status)
 	{
 	  char passbuf[512] = {0};
 	  pem_password_callback(passbuf, 512, 0, NULL);
-	  status = x509parse_keyfile(ctx->priv_key, priv_key_file, passbuf);
+	  status = pk_parse_keyfile(ctx->priv_key, priv_key_file, passbuf);
 	}
     }
   if (0 != status)
@@ -338,30 +339,48 @@ tls_ctx_use_external_private_key (struct tls_root_ctx *ctx,
 
   /* Most of the initialization happens in key_state_ssl_init() */
   ALLOC_OBJ_CLEAR (ctx->external_key, struct external_context);
-  ctx->external_key->signature_length = ctx->crt_chain->rsa.len;
+  ctx->external_key->signature_length = pk_get_len(&ctx->crt_chain->pk);
 
   return 1;
 }
 
+/**
+ * external_pkcs1_sign implements a PolarSSL rsa_sign_func callback, that uses
+ * the management interface to request an RSA signature for the supplied hash.
+ *
+ * @param ctx_voidptr   Management external key context.
+ * @param f_rng         (Unused)
+ * @param p_rng         (Unused)
+ * @param mode          RSA mode (should be RSA_PRIVATE).
+ * @param md_alg        Message digest ('hash') algorithm type.
+ * @param hashlen       Length of hash (overridden by length specified by md_alg
+ *                      if md_alg != POLARSSL_MD_NONE).
+ * @param hash          The digest ('hash') to sign. Should have a size
+ *                      matching the length of md_alg (if != POLARSSL_MD_NONE),
+ *                      or hashlen otherwise.
+ * @param sig           Buffer that returns the signature. Should be at least of
+ *                      size ctx->signature_length.
+ *
+ * @return 0 on success, non-zero polarssl error code on failure.
+ */
 static inline int external_pkcs1_sign( void *ctx_voidptr,
     int (*f_rng)(void *, unsigned char *, size_t), void *p_rng, int mode,
-    int hash_id, unsigned int hashlen, const unsigned char *hash,
+    md_type_t md_alg, unsigned int hashlen, const unsigned char *hash,
     unsigned char *sig )
 {
   struct external_context * const ctx = ctx_voidptr;
   char *in_b64 = NULL;
   char *out_b64 = NULL;
   int rv;
-  unsigned char * const p = sig;
-  size_t asn_len;
+  unsigned char *p = sig;
+  size_t asn_len = 0, oid_size = 0, sig_len = 0;
+  const char *oid = NULL;
 
-  ASSERT(NULL != ctx);
+  if( NULL == ctx )
+    return POLARSSL_ERR_RSA_BAD_INPUT_DATA;
 
-  if (RSA_PRIVATE != mode)
-    {
-      rv = POLARSSL_ERR_RSA_BAD_INPUT_DATA;
-      goto done;
-    }
+  if( RSA_PRIVATE != mode )
+    return POLARSSL_ERR_RSA_BAD_INPUT_DATA;
 
   /*
    * Support a wide range of hashes. TLSv1.1 and before only need SIG_RSA_RAW,
@@ -369,66 +388,53 @@ static inline int external_pkcs1_sign( void *ctx_voidptr,
    *
    * This code has been taken from PolarSSL pkcs11_sign(), under the GPLv2.0+.
    */
-  switch( hash_id )
-  {
-      case SIG_RSA_RAW:
-          asn_len = 0;
-          memcpy( p, hash, hashlen );
-          break;
+  if( md_alg != POLARSSL_MD_NONE )
+    {
+      const md_info_t *md_info = md_info_from_type( md_alg );
+      if( md_info == NULL )
+        return( POLARSSL_ERR_RSA_BAD_INPUT_DATA );
 
-      case SIG_RSA_MD2:
-          asn_len = OID_SIZE(ASN1_HASH_MDX);
-          memcpy( p, ASN1_HASH_MDX, asn_len );
-          memcpy( p + asn_len, hash, hashlen );
-          p[13] = 2; break;
+      if( oid_get_oid_by_md( md_alg, &oid, &oid_size ) != 0 )
+        return( POLARSSL_ERR_RSA_BAD_INPUT_DATA );
 
-      case SIG_RSA_MD4:
-          asn_len = OID_SIZE(ASN1_HASH_MDX);
-          memcpy( p, ASN1_HASH_MDX, asn_len );
-          memcpy( p + asn_len, hash, hashlen );
-          p[13] = 4; break;
+      hashlen = md_get_size( md_info );
+      asn_len = 10 + oid_size;
+    }
 
-      case SIG_RSA_MD5:
-          asn_len = OID_SIZE(ASN1_HASH_MDX);
-          memcpy( p, ASN1_HASH_MDX, asn_len );
-          memcpy( p + asn_len, hash, hashlen );
-          p[13] = 5; break;
+  sig_len = ctx->signature_length;
+  if ( (SIZE_MAX - hashlen) < asn_len || (hashlen + asn_len) > sig_len )
+    return POLARSSL_ERR_RSA_BAD_INPUT_DATA;
 
-      case SIG_RSA_SHA1:
-          asn_len = OID_SIZE(ASN1_HASH_SHA1);
-          memcpy( p, ASN1_HASH_SHA1, asn_len );
-          memcpy( p + 15, hash, hashlen );
-          break;
+  if( md_alg != POLARSSL_MD_NONE )
+    {
+      /*
+       * DigestInfo ::= SEQUENCE {
+       *   digestAlgorithm DigestAlgorithmIdentifier,
+       *   digest Digest }
+       *
+       * DigestAlgorithmIdentifier ::= AlgorithmIdentifier
+       *
+       * Digest ::= OCTET STRING
+       */
+      *p++ = ASN1_SEQUENCE | ASN1_CONSTRUCTED;
+      *p++ = (unsigned char) ( 0x08 + oid_size + hashlen );
+      *p++ = ASN1_SEQUENCE | ASN1_CONSTRUCTED;
+      *p++ = (unsigned char) ( 0x04 + oid_size );
+      *p++ = ASN1_OID;
+      *p++ = oid_size & 0xFF;
+      memcpy( p, oid, oid_size );
+      p += oid_size;
+      *p++ = ASN1_NULL;
+      *p++ = 0x00;
+      *p++ = ASN1_OCTET_STRING;
+      *p++ = hashlen;
 
-      case SIG_RSA_SHA224:
-          asn_len = OID_SIZE(ASN1_HASH_SHA2X);
-          memcpy( p, ASN1_HASH_SHA2X, asn_len );
-          memcpy( p + asn_len, hash, hashlen );
-          p[1] += hashlen; p[14] = 4; p[18] += hashlen; break;
-
-      case SIG_RSA_SHA256:
-          asn_len = OID_SIZE(ASN1_HASH_SHA2X);
-          memcpy( p, ASN1_HASH_SHA2X, asn_len );
-          memcpy( p + asn_len, hash, hashlen );
-          p[1] += hashlen; p[14] = 1; p[18] += hashlen; break;
-
-      case SIG_RSA_SHA384:
-          asn_len = OID_SIZE(ASN1_HASH_SHA2X);
-          memcpy( p, ASN1_HASH_SHA2X, asn_len );
-          memcpy( p + asn_len, hash, hashlen );
-          p[1] += hashlen; p[14] = 2; p[18] += hashlen; break;
-
-      case SIG_RSA_SHA512:
-          asn_len = OID_SIZE(ASN1_HASH_SHA2X);
-          memcpy( p, ASN1_HASH_SHA2X, asn_len );
-          memcpy( p + asn_len, hash, hashlen );
-          p[1] += hashlen; p[14] = 3; p[18] += hashlen; break;
-
-  /* End of copy */
-      default:
-          rv = POLARSSL_ERR_RSA_BAD_INPUT_DATA;
-	  goto done;
+      /* Determine added ASN length */
+      asn_len = p - sig;
   }
+
+  /* Copy the hash to be signed */
+  memcpy( p, hash, hashlen );
 
   /* convert 'from' to base64 */
   if (openvpn_base64_encode (sig, asn_len + hashlen, &in_b64) <= 0)
@@ -456,7 +462,7 @@ static inline int external_pkcs1_sign( void *ctx_voidptr,
 
   rv = 0;
 
- done:
+done:
   if (in_b64)
     free (in_b64);
   if (out_b64)
@@ -482,14 +488,14 @@ void tls_ctx_load_ca (struct tls_root_ctx *ctx, const char *ca_file,
 
   if (ca_file && !strcmp (ca_file, INLINE_FILE_TAG) && ca_file_inline)
     {
-      if (0 != x509parse_crt(ctx->ca_chain, (unsigned char *) ca_file_inline,
-          strlen(ca_file_inline)))
+      if (0 != x509_crt_parse(ctx->ca_chain, (unsigned char *) ca_file_inline,
+	  strlen(ca_file_inline)))
 	msg (M_FATAL, "Cannot load inline CA certificates");
     }
   else
     {
       /* Load CA file for verifying peer supplied certificate */
-      if (0 != x509parse_crtfile(ctx->ca_chain, ca_file))
+      if (0 != x509_crt_parse_file(ctx->ca_chain, ca_file))
 	msg (M_FATAL, "Cannot load CA certificate file %s", ca_file);
     }
 }
@@ -503,14 +509,14 @@ tls_ctx_load_extra_certs (struct tls_root_ctx *ctx, const char *extra_certs_file
 
   if (!strcmp (extra_certs_file, INLINE_FILE_TAG) && extra_certs_file_inline)
     {
-      if (0 != x509parse_crt(ctx->crt_chain,
+      if (0 != x509_crt_parse(ctx->crt_chain,
           (unsigned char *) extra_certs_file_inline,
-          strlen(extra_certs_file_inline)))
+	  strlen(extra_certs_file_inline)))
         msg (M_FATAL, "Cannot load inline extra-certs file");
     }
   else
     {
-      if (0 != x509parse_crtfile(ctx->crt_chain, extra_certs_file))
+      if (0 != x509_crt_parse_file(ctx->crt_chain, extra_certs_file))
 	msg (M_FATAL, "Cannot load extra-certs file: %s", extra_certs_file);
     }
 }
@@ -633,9 +639,9 @@ void tls_ctx_personalise_random(struct tls_root_ctx *ctx)
 
   if (NULL != ctx->crt_chain)
     {
-      x509_cert *cert = ctx->crt_chain;
+      x509_crt *cert = ctx->crt_chain;
 
-      sha2(cert->tbs.p, cert->tbs.len, sha256_hash, false);
+      sha256(cert->tbs.p, cert->tbs.len, sha256_hash, false);
       if ( 0 != memcmp(old_sha256_hash, sha256_hash, sizeof(sha256_hash)))
 	{
 	  ctr_drbg_update(cd_ctx, sha256_hash, 32);
@@ -1021,7 +1027,7 @@ key_state_read_plaintext (struct key_state_ssl *ks, struct buffer *buf,
 void
 print_details (struct key_state_ssl * ks_ssl, const char *prefix)
 {
-  const x509_cert *cert;
+  const x509_crt *cert;
   char s1[256];
   char s2[256];
 
@@ -1034,7 +1040,7 @@ print_details (struct key_state_ssl * ks_ssl, const char *prefix)
   cert = ssl_get_peer_cert(ks_ssl->ctx);
   if (cert != NULL)
     {
-      openvpn_snprintf (s2, sizeof (s2), ", " counter_format " bit RSA", (counter_type) cert->rsa.len * 8);
+      openvpn_snprintf (s2, sizeof (s2), ", %zu bit key", pk_get_size(&cert->pk));
     }
 
   msg (D_HANDSHAKE, "%s%s", s1, s2);
