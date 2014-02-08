@@ -60,7 +60,7 @@ is_ipv_X ( int tunnel_type, struct buffer *buf, int ip_ver )
 	  + sizeof (struct openvpn_iphdr)))
 	return false;
       eh = (const struct openvpn_ethhdr *) BPTR (buf);
-      if (ntohs (eh->proto) != OPENVPN_ETH_P_IPV4)
+      if (ntohs (eh->proto) != (ip_ver == 6 ? OPENVPN_ETH_P_IPV6 : OPENVPN_ETH_P_IPV4))
 	return false;
       offset = sizeof (struct openvpn_ethhdr);
     }
