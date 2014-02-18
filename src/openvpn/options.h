@@ -343,7 +343,6 @@ struct options
   int route_delay;
   int route_delay_window;
   bool route_delay_defined;
-  int max_routes;
   struct route_option_list *routes;
   struct route_ipv6_option_list *routes_ipv6;			/* IPv6 */
   bool route_nopull;
@@ -715,7 +714,7 @@ void options_warning (char *actual, const char *expected);
 void options_postprocess (struct options *options);
 
 void pre_pull_save (struct options *o);
-void pre_pull_restore (struct options *o);
+void pre_pull_restore (struct options *o, struct gc_arena *gc);
 
 bool apply_push_options (struct options *options,
 			 struct buffer *buf,

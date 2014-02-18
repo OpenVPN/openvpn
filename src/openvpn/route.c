@@ -92,76 +92,62 @@ add_bypass_address (struct route_bypass *rb, const in_addr_t a)
 }
 
 struct route_option_list *
-new_route_option_list (const int max_routes, struct gc_arena *a)
+new_route_option_list (struct gc_arena *a)
 {
   struct route_option_list *ret;
-  ALLOC_VAR_ARRAY_CLEAR_GC (ret, struct route_option_list, struct route_option, max_routes, a);
-  ret->capacity = max_routes;
+  ALLOC_OBJ_CLEAR_GC (ret, struct route_option_list, a);
+  ret->gc = a;
   return ret;
 }
 
 struct route_ipv6_option_list *
-new_route_ipv6_option_list (const int max_routes, struct gc_arena *a)
+new_route_ipv6_option_list (struct gc_arena *a)
 {
   struct route_ipv6_option_list *ret;
-  ALLOC_VAR_ARRAY_CLEAR_GC (ret, struct route_ipv6_option_list, struct route_ipv6_option, max_routes, a);
-  ret->capacity = max_routes;
+  ALLOC_OBJ_CLEAR_GC (ret, struct route_ipv6_option_list, a);
+  ret->gc = a;
   return ret;
 }
 
+/*
+ * NOTE: structs are cloned/copied shallow by design.
+ * The routes list from src will stay intact since it is allocated using
+ * the options->gc. The cloned/copied lists will share this common tail
+ * to avoid copying the data around between pulls. Pulled routes use
+ * the c2->gc so they get freed immediately after a reconnect.
+ */
 struct route_option_list *
 clone_route_option_list (const struct route_option_list *src, struct gc_arena *a)
 {
-  const size_t rl_size = array_mult_safe (sizeof(struct route_option), src->capacity, sizeof(struct route_option_list));
-  struct route_option_list *ret = gc_malloc (rl_size, false, a);
-  memcpy (ret, src, rl_size);
+  struct route_option_list *ret;
+  ALLOC_OBJ_GC (ret, struct route_option_list, a);
+  *ret = *src;
   return ret;
 }
 
 struct route_ipv6_option_list *
 clone_route_ipv6_option_list (const struct route_ipv6_option_list *src, struct gc_arena *a)
 {
-  const size_t rl_size = array_mult_safe (sizeof(struct route_ipv6_option), src->capacity, sizeof(struct route_ipv6_option_list));
-  struct route_ipv6_option_list *ret = gc_malloc (rl_size, false, a);
-  memcpy (ret, src, rl_size);
+  struct route_ipv6_option_list *ret;
+  ALLOC_OBJ_GC (ret, struct route_ipv6_option_list, a);
+  *ret = *src;
   return ret;
 }
 
 void
-copy_route_option_list (struct route_option_list *dest, const struct route_option_list *src)
+copy_route_option_list (struct route_option_list *dest, const struct route_option_list *src, struct gc_arena *a)
 {
-  const size_t src_size = array_mult_safe (sizeof(struct route_option), src->capacity, sizeof(struct route_option_list));
-  if (src->capacity > dest->capacity)
-    msg (M_FATAL, PACKAGE_NAME " ROUTE: (copy) number of route options in src (%d) is greater than route list capacity in dest (%d)", src->capacity, dest->capacity);
-  memcpy (dest, src, src_size);
+  *dest = *src;
+  dest->gc = a;
 }
 
 void
 copy_route_ipv6_option_list (struct route_ipv6_option_list *dest,
-			     const struct route_ipv6_option_list *src)
+                             const struct route_ipv6_option_list *src,
+                             struct gc_arena *a)
 {
-  const size_t src_size = array_mult_safe (sizeof(struct route_ipv6_option), src->capacity, sizeof(struct route_ipv6_option_list));
-  if (src->capacity > dest->capacity)
-    msg (M_FATAL, PACKAGE_NAME " ROUTE: (copy) number of route options in src (%d) is greater than route list capacity in dest (%d)", src->capacity, dest->capacity);
-  memcpy (dest, src, src_size);
-}
-
-struct route_list *
-new_route_list (const int max_routes, struct gc_arena *a)
-{
-  struct route_list *ret;
-  ALLOC_VAR_ARRAY_CLEAR_GC (ret, struct route_list, struct route_ipv4, max_routes, a);
-  ret->capacity = max_routes;
-  return ret;
-}
-
-struct route_ipv6_list *
-new_route_ipv6_list (const int max_routes, struct gc_arena *a)
-{
-  struct route_ipv6_list *ret;
-  ALLOC_VAR_ARRAY_CLEAR_GC (ret, struct route_ipv6_list, struct route_ipv6, max_routes, a);
-  ret->capacity = max_routes;
-  return ret;
+  *dest = *src;
+  dest->gc = a;
 }
 
 static const char *
@@ -452,15 +438,14 @@ add_route_to_option_list (struct route_option_list *l,
 			  const char *metric)
 {
   struct route_option *ro;
-  if (l->n >= l->capacity)
-    msg (M_FATAL, PACKAGE_NAME " ROUTE: cannot add more than %d routes -- please increase the max-routes option in the client configuration file",
-	 l->capacity);
-  ro = &l->routes[l->n];
+  ALLOC_OBJ_GC (ro, struct route_option, l->gc);
   ro->network = network;
   ro->netmask = netmask;
   ro->gateway = gateway;
   ro->metric = metric;
-  ++l->n;
+  ro->next = l->routes;
+  l->routes = ro;
+
 }
 
 void
@@ -470,32 +455,26 @@ add_route_ipv6_to_option_list (struct route_ipv6_option_list *l,
 			  const char *metric)
 {
   struct route_ipv6_option *ro;
-  if (l->n >= l->capacity)
-    msg (M_FATAL, PACKAGE_NAME " ROUTE: cannot add more than %d IPv6 routes -- please increase the max-routes option in the client configuration file",
-	 l->capacity);
-  ro = &l->routes_ipv6[l->n];
+  ALLOC_OBJ_GC (ro, struct route_ipv6_option, l->gc);
   ro->prefix = prefix;
   ro->gateway = gateway;
   ro->metric = metric;
-  ++l->n;
+  ro->next = l->routes_ipv6;
+  l->routes_ipv6 = ro;
 }
 
 void
 clear_route_list (struct route_list *rl)
 {
-  const int capacity = rl->capacity;
-  const size_t rl_size = array_mult_safe (sizeof(struct route_ipv4), capacity, sizeof(struct route_list));
-  memset(rl, 0, rl_size);
-  rl->capacity = capacity;
+  gc_free (&rl->gc);
+  CLEAR (*rl);
 }
 
 void
 clear_route_ipv6_list (struct route_ipv6_list *rl6)
 {
-  const int capacity = rl6->capacity;
-  const size_t rl6_size = array_mult_safe (sizeof(struct route_ipv6), capacity, sizeof(struct route_ipv6_list));
-  memset(rl6, 0, rl6_size);
-  rl6->capacity = capacity;
+  gc_free (&rl6->gc);
+  CLEAR (*rl6);
 }
 
 void
@@ -516,22 +495,27 @@ add_block_local_item (struct route_list *rl,
 {
   const int rgi_needed = (RGI_ADDR_DEFINED|RGI_NETMASK_DEFINED);
   if ((rl->rgi.flags & rgi_needed) == rgi_needed
-      && rl->rgi.gateway.netmask < 0xFFFFFFFF
-      && (rl->n)+2 <= rl->capacity)
+      && rl->rgi.gateway.netmask < 0xFFFFFFFF)
     {
-      struct route_ipv4 r;
+      struct route_ipv4 *r1, *r2;
       unsigned int l2;
 
+      ALLOC_OBJ_GC (r1, struct route_ipv4, &rl->gc);
+      ALLOC_OBJ_GC (r2, struct route_ipv4, &rl->gc);
+
       /* split a route into two smaller blocking routes, and direct them to target */
-      CLEAR(r);
-      r.flags = RT_DEFINED;
-      r.gateway = target;
-      r.network = gateway->addr & gateway->netmask;
       l2 = ((~gateway->netmask)+1)>>1;
-      r.netmask = ~(l2-1);
-      rl->routes[rl->n++] = r;
-      r.network += l2;
-      rl->routes[rl->n++] = r;
+      r1->flags = RT_DEFINED;
+      r1->gateway = target;
+      r1->network = gateway->addr & gateway->netmask;
+      r1->netmask = ~(l2-1);
+      r1->next = rl->routes;
+      rl->routes = r1;
+
+      *r2 = *r1;
+      r2->network += l2;
+      r2->next = rl->routes;
+      rl->routes = r2;
     }
 }
 
@@ -643,42 +627,29 @@ init_route_list (struct route_list *rl,
 
   /* parse the routes from opt to rl */
   {
-    int i = 0;
-    int j = rl->n;
-    bool warned = false;
-    for (i = 0; i < opt->n; ++i)
+    struct route_option *ro;
+    for (ro = opt->routes; ro; ro = ro->next)
       {
         struct addrinfo* netlist;
 	struct route_ipv4 r;
 
-	if (!init_route (&r,
-			 &netlist,
-			 &opt->routes[i],
-			 rl))
+	if (!init_route (&r, &netlist, ro, rl))
 	  ret = false;
 	else
 	  {
             struct addrinfo* curele;
             for (curele	= netlist; curele; curele = curele->ai_next)
 	      {
-		if (j < rl->capacity)
-		  {
-                    r.network = ntohl(((struct sockaddr_in*)(curele)->ai_addr)->sin_addr.s_addr);
-		    rl->routes[j++] = r;
-		  }
-		else
-		  {
-		    if (!warned)
-		      {
-			msg (M_WARN, PACKAGE_NAME " ROUTE: routes dropped because number of expanded routes is greater than route list capacity (%d)", rl->capacity);
-			warned = true;
-		      }
-		  }
+                struct route_ipv4 *new;
+                ALLOC_OBJ_GC (new, struct route_ipv4, &rl->gc);
+                *new = r;
+                new->network = ntohl (((struct sockaddr_in*)curele->ai_addr)->sin_addr.s_addr);
+                new->next = rl->routes;
+                rl->routes = new;
 	      }
             freeaddrinfo(netlist);
 	  }
       }
-    rl->n = j;
   }
 
   gc_free (&gc);
@@ -729,22 +700,21 @@ init_route_ipv6_list (struct route_ipv6_list *rl6,
     rl6->remote_endpoint_defined = false;
 
 
-  if (!(opt6->n >= 0 && opt6->n <= rl6->capacity))
-    msg (M_FATAL, PACKAGE_NAME " ROUTE6: (init) number of route options (%d) is greater than route list capacity (%d)", opt6->n, rl6->capacity);
-
-  /* parse the routes from opt to rl6 */
+  /* parse the routes from opt6 to rl6 */
   {
-    int i, j = 0;
-    for (i = 0; i < opt6->n; ++i)
+    struct route_ipv6_option *ro6;
+    for (ro6 = opt6->routes_ipv6; ro6; ro6 = ro6->next)
       {
-	if (!init_route_ipv6 (&rl6->routes_ipv6[j],
-			      &opt6->routes_ipv6[i],
-			      rl6 ))
+        struct route_ipv6 *r6;
+        ALLOC_OBJ_GC (r6, struct route_ipv6, &rl6->gc);
+        if (!init_route_ipv6 (r6, ro6, rl6))
 	  ret = false;
 	else
-	  ++j;
+          {
+            r6->next = rl6->routes_ipv6;
+            rl6->routes_ipv6 = r6;
+          }
       }
-    rl6->n = j;
   }
 
   gc_free (&gc);
@@ -1013,10 +983,10 @@ add_routes (struct route_list *rl, struct route_ipv6_list *rl6, const struct tun
   redirect_default_route_to_vpn (rl, tt, flags, es);
   if ( rl && !(rl->iflags & RL_ROUTES_ADDED) )
     {
-      int i;
+      struct route_ipv4 *r;
 
 #ifdef ENABLE_MANAGEMENT
-      if (management && rl->n)
+      if (management && rl->routes)
 	{
 	  management_set_state (management,
 				OPENVPN_STATE_ADD_ROUTES,
@@ -1025,10 +995,9 @@ add_routes (struct route_list *rl, struct route_ipv6_list *rl6, const struct tun
 				0);
 	}
 #endif
-      
-      for (i = 0; i < rl->n; ++i)
+
+      for (r = rl->routes; r; r = r->next)
 	{
-	  struct route_ipv4 *r = &rl->routes[i];
 	  check_subnet_conflict (r->network, r->netmask, "route");
 	  if (flags & ROUTE_DELETE_FIRST)
 	    delete_route (r, tt, flags, &rl->rgi, es);
@@ -1038,11 +1007,9 @@ add_routes (struct route_list *rl, struct route_ipv6_list *rl6, const struct tun
     }
   if (rl6 && !rl6->routes_added)
     {
-      int i;
-
-      for (i = 0; i < rl6->n; ++i)
+      struct route_ipv6 *r;
+      for (r = rl6->routes_ipv6; r; r = r->next)
 	{
-	  struct route_ipv6 *r = &rl6->routes_ipv6[i];
 	  if (flags & ROUTE_DELETE_FIRST)
 	    delete_route_ipv6 (r, tt, flags, es);
 	  add_route_ipv6 (r, tt, flags, es);
@@ -1057,10 +1024,9 @@ delete_routes (struct route_list *rl, struct route_ipv6_list *rl6,
 {
   if ( rl && rl->iflags & RL_ROUTES_ADDED )
     {
-      int i;
-      for (i = rl->n - 1; i >= 0; --i)
+      struct route_ipv4 *r;
+      for (r = rl->routes; r; r = r->next)
 	{
-	  struct route_ipv4 * r = &rl->routes[i];
 	  delete_route (r, tt, flags, &rl->rgi, es);
 	}
       rl->iflags &= ~RL_ROUTES_ADDED;
@@ -1075,10 +1041,9 @@ delete_routes (struct route_list *rl, struct route_ipv6_list *rl6,
 
   if ( rl6 && rl6->routes_added )
     {
-      int i;
-      for (i = rl6->n - 1; i >= 0; --i)
+      struct route_ipv6 *r6;
+      for (r6 = rl6->routes_ipv6; r6; r6 = r6->next)
 	{
-	  const struct route_ipv6 *r6 = &rl6->routes_ipv6[i];
 	  delete_route_ipv6 (r6, tt, flags, es);
 	}
       rl6->routes_added = false;
@@ -1115,12 +1080,12 @@ void
 print_route_options (const struct route_option_list *rol,
 		     int level)
 {
-  int i;
+  struct route_option *ro;
   if (rol->flags & RG_ENABLE)
     msg (level, "  [redirect_default_gateway local=%d]",
 	 (rol->flags & RG_LOCAL) != 0);
-  for (i = 0; i < rol->n; ++i)
-    print_route_option (&rol->routes[i], level);
+  for (ro = rol->routes; ro; ro = ro->next)
+    print_route_option (ro, level);
 }
 
 void
@@ -1165,9 +1130,9 @@ print_route (const struct route_ipv4 *r, int level)
 void
 print_routes (const struct route_list *rl, int level)
 {
-  int i;
-  for (i = 0; i < rl->n; ++i)
-    print_route (&rl->routes[i], level);
+  struct route_ipv4 *r;
+  for (r = rl->routes; r; r = r->next)
+    print_route (r, level);
 }
 
 static void
@@ -1193,9 +1158,10 @@ setenv_route (struct env_set *es, const struct route_ipv4 *r, int i)
 void
 setenv_routes (struct env_set *es, const struct route_list *rl)
 {
-  int i;
-  for (i = 0; i < rl->n; ++i)
-    setenv_route (es, &rl->routes[i], i + 1);
+  int i = 1;
+  struct route_ipv4 *r;
+  for (r = rl->routes; r; r = r->next)
+    setenv_route (es, r, i++);
 }
 
 static void
@@ -1221,9 +1187,10 @@ setenv_route_ipv6 (struct env_set *es, const struct route_ipv6 *r6, int i)
 void
 setenv_routes_ipv6 (struct env_set *es, const struct route_ipv6_list *rl6)
 {
-  int i;
-  for (i = 0; i < rl6->n; ++i)
-    setenv_route_ipv6 (es, &rl6->routes_ipv6[i], i + 1);
+  int i = 1;
+  struct route_ipv6 *r6;
+  for (r6 = rl6->routes_ipv6; r6; r6 = r6->next)
+    setenv_route_ipv6 (es, r6, i++);
 }
 
 /*
@@ -2137,6 +2104,7 @@ test_routes (const struct route_list *rl, const struct tuntap *tt)
   int count = 0;
   int good = 0;
   int ambig = 0;
+  int len = -1;
   bool adapter_up = false;
 
   if (is_adapter_up (tt, adapters))
@@ -2146,9 +2114,9 @@ test_routes (const struct route_list *rl, const struct tuntap *tt)
 
       if (rl)
 	{
-	  int i;
-	  for (i = 0; i < rl->n; ++i)
-	    test_route_helper (&ret, &count, &good, &ambig, adapters, rl->routes[i].gateway);
+	  struct route *r;
+	  for (r = rl->routes, len = 0; r; r = r->next, ++len)
+	    test_route_helper (&ret, &count, &good, &ambig, adapters, r->gateway);
 
 	  if ((rl->flags & RG_ENABLE) && (rl->spec.flags & RTSA_REMOTE_ENDPOINT))
 	    test_route_helper (&ret, &count, &good, &ambig, adapters, rl->spec.remote_endpoint);
@@ -2158,7 +2126,7 @@ test_routes (const struct route_list *rl, const struct tuntap *tt)
   msg (D_ROUTE, "TEST ROUTES: %d/%d succeeded len=%d ret=%d a=%d u/d=%s",
        good,
        count,
-       rl ? rl->n : -1,
+       len,
        (int)ret,
        ambig,
        adapter_up ? "up" : "down");

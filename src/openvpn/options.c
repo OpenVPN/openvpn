@@ -218,8 +218,6 @@ static const char usage_message[] =
   "                  Add IPv6 route to routing table after connection\n"
   "                  is established.  Multiple routes can be specified.\n"
   "                  gateway default: taken from 'remote' in --ifconfig-ipv6\n"
-  "--max-routes n :  Specify the maximum number of routes that may be defined\n"
-  "                  or pulled from a server.\n"
   "--route-gateway gw|'dhcp' : Specify a default gateway for use with --route.\n"
   "--route-metric m : Specify a default metric for use with --route.\n"
   "--route-delay n [w] : Delay n seconds after connection initiation before\n"
@@ -796,7 +794,6 @@ init_options (struct options *o, const bool init_gc)
   o->ce.mtu_discover_type = -1;
   o->ce.mssfix = MSSFIX_DEFAULT;
   o->route_delay_window = 30;
-  o->max_routes = MAX_ROUTES_DEFAULT;
   o->resolve_retry_seconds = RESOLV_RETRY_INFINITE;
   o->proto_force = -1;
 #ifdef ENABLE_OCC
@@ -1340,14 +1337,14 @@ void
 rol_check_alloc (struct options *options)
 {
   if (!options->routes)
-    options->routes = new_route_option_list (options->max_routes, &options->gc);
+    options->routes = new_route_option_list (&options->gc);
 }
 
 void
 rol6_check_alloc (struct options *options)
 {
   if (!options->routes_ipv6)
-    options->routes_ipv6 = new_route_ipv6_option_list (options->max_routes, &options->gc);
+    options->routes_ipv6 = new_route_ipv6_option_list (&options->gc);
 }
 
 #ifdef ENABLE_CLIENT_NAT
@@ -1550,7 +1547,6 @@ show_settings (const struct options *o)
   SHOW_BOOL (route_delay_defined);
   SHOW_BOOL (route_nopull);
   SHOW_BOOL (route_gateway_via_dhcp);
-  SHOW_INT (max_routes);
   SHOW_BOOL (allow_pull_fqdn);
   if (o->routes)
     print_route_options (o->routes, D_SHOW_PARMS);
@@ -2829,7 +2825,7 @@ pre_pull_save (struct options *o)
 }
 
 void
-pre_pull_restore (struct options *o)
+pre_pull_restore (struct options *o, struct gc_arena *gc)
 {
   const struct options_pre_pull *pp = o->pre_pull;
   if (pp)
@@ -2841,7 +2837,7 @@ pre_pull_restore (struct options *o)
       if (pp->routes_defined)
 	{
 	  rol_check_alloc (o);
-	  copy_route_option_list (o->routes, pp->routes);
+	  copy_route_option_list (o->routes, pp->routes, gc);
 	}
       else
 	o->routes = NULL;
@@ -2849,7 +2845,7 @@ pre_pull_restore (struct options *o)
       if (pp->routes_ipv6_defined)
 	{
 	  rol6_check_alloc (o);
-	  copy_route_ipv6_option_list (o->routes_ipv6, pp->routes_ipv6);
+	  copy_route_ipv6_option_list (o->routes_ipv6, pp->routes_ipv6, gc);
 	}
       else
 	o->routes_ipv6 = NULL;
@@ -5227,23 +5223,10 @@ add_option (struct options *options,
 	}
       add_route_ipv6_to_option_list (options->routes_ipv6, p[1], p[2], p[3]);
     }
-  else if (streq (p[0], "max-routes") && p[1])
+  else if (streq (p[0], "max-routes"))
     {
-      int max_routes;
-
-      VERIFY_PERMISSION (OPT_P_GENERAL);
-      max_routes = atoi (p[1]);
-      if (max_routes < 0 || max_routes > 100000000)
-	{
-	  msg (msglevel, "--max-routes parameter is out of range");
-	  goto err;
-	}
-      if (options->routes || options->routes_ipv6)
-        {
-          msg (msglevel, "--max-routes must to be specifed before any route/route-ipv6/redirect-gateway option");
-          goto err;
-        }
-      options->max_routes = max_routes;
+      msg (msglevel, "--max-routes option ignored. The number of routes is unlimited as of version 2.4. "
+           "This option will be removed in a future version, please remove it from your configuration.");
     }
   else if (streq (p[0], "route-gateway") && p[1])
     {

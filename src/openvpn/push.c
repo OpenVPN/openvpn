@@ -456,7 +456,7 @@ process_incoming_push_msg (struct context *c,
 	    }
 	  if (!c->c2.did_pre_pull_restore)
 	    {
-	      pre_pull_restore (&c->options);
+	      pre_pull_restore (&c->options, &c->c2.gc);
 	      c->c2.did_pre_pull_restore = true;
 	    }
 	  if (apply_push_options (&c->options,

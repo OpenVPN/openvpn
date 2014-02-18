@@ -1167,9 +1167,9 @@ static void
 do_alloc_route_list (struct context *c)
 {
   if (!c->c1.route_list)
-    c->c1.route_list = new_route_list (c->options.max_routes, &c->gc);
+    ALLOC_OBJ_CLEAR_GC (c->c1.route_list, struct route_list, &c->gc);
   if (c->options.routes_ipv6 && !c->c1.route_ipv6_list)
-    c->c1.route_ipv6_list = new_route_ipv6_list (c->options.max_routes, &c->gc);
+    ALLOC_OBJ_CLEAR_GC (c->c1.route_ipv6_list, struct route_ipv6_list, &c->gc);
 }
 
 
