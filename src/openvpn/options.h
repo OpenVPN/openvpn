@@ -348,6 +348,7 @@ struct options
   bool route_nopull;
   bool route_gateway_via_dhcp;
   bool allow_pull_fqdn; /* as a client, allow server to push a FQDN for certain parameters */
+  const char *route_table;
 
 #ifdef ENABLE_CLIENT_NAT
   struct client_nat_option_list *client_nat;

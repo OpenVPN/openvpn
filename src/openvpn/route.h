@@ -216,14 +216,15 @@ void copy_route_ipv6_option_list (struct route_ipv6_option_list *dest,
                                   const struct route_ipv6_option_list *src,
                                   struct gc_arena *a);
 
-void add_route_ipv6 (struct route_ipv6 *r, const struct tuntap *tt, unsigned int flags, const struct env_set *es);
-void delete_route_ipv6 (const struct route_ipv6 *r, const struct tuntap *tt, unsigned int flags, const struct env_set *es);
+void add_route_ipv6 (struct route_ipv6 *r, const struct tuntap *tt, unsigned int flags, const struct env_set *es, const char *table);
+void delete_route_ipv6 (const struct route_ipv6 *r, const struct tuntap *tt, unsigned int flags, const struct env_set *es, const char *table);
 
 void add_route (struct route_ipv4 *r,
 		const struct tuntap *tt,
 		unsigned int flags,
 		const struct route_gateway_info *rgi,
-		const struct env_set *es);
+        const struct env_set *es,
+        const char *table);
 
 void add_route_to_option_list (struct route_option_list *l,
 			       const char *network,
@@ -257,13 +258,15 @@ void add_routes (struct route_list *rl,
 		 struct route_ipv6_list *rl6,
 		 const struct tuntap *tt,
 		 unsigned int flags,
-		 const struct env_set *es);
+         const struct env_set *es,
+         const char *table);
 
 void delete_routes (struct route_list *rl,
 		    struct route_ipv6_list *rl6,
 		    const struct tuntap *tt,
 		    unsigned int flags,
-		    const struct env_set *es);
+            const struct env_set *es,
+            const char *table);
 
 void setenv_routes (struct env_set *es, const struct route_list *rl);
 void setenv_routes_ipv6 (struct env_set *es, const struct route_ipv6_list *rl6);

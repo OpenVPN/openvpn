@@ -49,7 +49,7 @@
 #define METRIC_NOT_USED ((DWORD)-1)
 #endif
 
-static void delete_route (struct route_ipv4 *r, const struct tuntap *tt, unsigned int flags, const struct route_gateway_info *rgi, const struct env_set *es);
+static void delete_route (struct route_ipv4 *r, const struct tuntap *tt, unsigned int flags, const struct route_gateway_info *rgi, const struct env_set *es, const char *table);
 
 static void get_bypass_addresses (struct route_bypass *rb, const unsigned int flags);
 
@@ -728,7 +728,8 @@ add_route3 (in_addr_t network,
 	    const struct tuntap *tt,
 	    unsigned int flags,
 	    const struct route_gateway_info *rgi,
-	    const struct env_set *es)
+        const struct env_set *es,
+        const char *table)
 {
   struct route_ipv4 r;
   CLEAR (r);
@@ -736,7 +737,7 @@ add_route3 (in_addr_t network,
   r.network = network;
   r.netmask = netmask;
   r.gateway = gateway;
-  add_route (&r, tt, flags, rgi, es);
+  add_route (&r, tt, flags, rgi, es, table);
 }
 
 static void
@@ -746,7 +747,8 @@ del_route3 (in_addr_t network,
 	    const struct tuntap *tt,
 	    unsigned int flags,
 	    const struct route_gateway_info *rgi,
-	    const struct env_set *es)
+        const struct env_set *es,
+        const char *table)
 {
   struct route_ipv4 r;
   CLEAR (r);
@@ -754,7 +756,7 @@ del_route3 (in_addr_t network,
   r.network = network;
   r.netmask = netmask;
   r.gateway = gateway;
-  delete_route (&r, tt, flags, rgi, es);
+  delete_route (&r, tt, flags, rgi, es, table);
 }
 
 static void
@@ -763,7 +765,8 @@ add_bypass_routes (struct route_bypass *rb,
 		   const struct tuntap *tt,
 		   unsigned int flags,
 		   const struct route_gateway_info *rgi,
-		   const struct env_set *es)
+           const struct env_set *es,
+           const char *table)
 {
   int i;
   for (i = 0; i < rb->n_bypass; ++i)
@@ -775,7 +778,8 @@ add_bypass_routes (struct route_bypass *rb,
 		    tt,
 		    flags | ROUTE_REF_GW,
 		    rgi,
-		    es);
+            es,
+            table);
     }
 }
 
@@ -785,7 +789,8 @@ del_bypass_routes (struct route_bypass *rb,
 		   const struct tuntap *tt,
 		   unsigned int flags,
 		   const struct route_gateway_info *rgi,
-		   const struct env_set *es)
+           const struct env_set *es,
+           const char *table)
 {
   int i;
   for (i = 0; i < rb->n_bypass; ++i)
@@ -797,12 +802,13 @@ del_bypass_routes (struct route_bypass *rb,
 		    tt,
 		    flags | ROUTE_REF_GW,
 		    rgi,
-		    es);
+            es,
+            table);
     }
 }
 
 static void
-redirect_default_route_to_vpn (struct route_list *rl, const struct tuntap *tt, unsigned int flags, const struct env_set *es)
+redirect_default_route_to_vpn (struct route_list *rl, const struct tuntap *tt, unsigned int flags, const struct env_set *es, const char *table)
 {
   const char err[] = "NOTE: unable to redirect default gateway --";
 
@@ -848,7 +854,8 @@ redirect_default_route_to_vpn (struct route_list *rl, const struct tuntap *tt, u
 			    tt,
 			    flags | ROUTE_REF_GW,
 			    &rl->rgi,
-			    es);
+                es,
+                table);
 		rl->iflags |= RL_DID_LOCAL;
 	      } else {
 		dmsg (D_ROUTE, "ROUTE remote_host protocol differs from tunneled");
@@ -856,7 +863,7 @@ redirect_default_route_to_vpn (struct route_list *rl, const struct tuntap *tt, u
 	    }
 
 	  /* route DHCP/DNS server traffic through original default gateway */
-	  add_bypass_routes (&rl->spec.bypass, rl->rgi.gateway.addr, tt, flags, &rl->rgi, es);
+      add_bypass_routes (&rl->spec.bypass, rl->rgi.gateway.addr, tt, flags, &rl->rgi, es, table);
 
 	  if (rl->flags & RG_REROUTE_GW)
 	    {
@@ -869,7 +876,8 @@ redirect_default_route_to_vpn (struct route_list *rl, const struct tuntap *tt, u
 			      tt,
 			      flags,
 			      &rl->rgi,
-			      es);
+                  es,
+                  table);
 
 		  /* add new default route (2nd component) */
 		  add_route3 (0x80000000,
@@ -878,7 +886,8 @@ redirect_default_route_to_vpn (struct route_list *rl, const struct tuntap *tt, u
 			      tt,
 			      flags,
 			      &rl->rgi,
-			      es);
+                  es,
+                  table);
 		}
 	      else
 		{
@@ -889,7 +898,8 @@ redirect_default_route_to_vpn (struct route_list *rl, const struct tuntap *tt, u
 			      tt,
 			      flags | ROUTE_REF_GW,
 			      &rl->rgi,
-			      es);
+                  es,
+                  table);
 
 		  /* add new default route */
 		  add_route3 (0,
@@ -898,7 +908,8 @@ redirect_default_route_to_vpn (struct route_list *rl, const struct tuntap *tt, u
 			      tt,
 			      flags,
 			      &rl->rgi,
-			      es);
+                  es,
+                  table);
 		}
 	    }
 
@@ -909,7 +920,7 @@ redirect_default_route_to_vpn (struct route_list *rl, const struct tuntap *tt, u
 }
 
 static void
-undo_redirect_default_route_to_vpn (struct route_list *rl, const struct tuntap *tt, unsigned int flags, const struct env_set *es)
+undo_redirect_default_route_to_vpn (struct route_list *rl, const struct tuntap *tt, unsigned int flags, const struct env_set *es, const char *table)
 {
   if ( rl && rl->iflags & RL_DID_REDIRECT_DEFAULT_GATEWAY )
     {
@@ -922,12 +933,13 @@ undo_redirect_default_route_to_vpn (struct route_list *rl, const struct tuntap *
 		      tt,
 		      flags | ROUTE_REF_GW,
 		      &rl->rgi,
-		      es);
+              es,
+              table);
 	  rl->iflags &= ~RL_DID_LOCAL;
 	}
 
       /* delete special DHCP/DNS bypass route */
-      del_bypass_routes (&rl->spec.bypass, rl->rgi.gateway.addr, tt, flags, &rl->rgi, es);
+      del_bypass_routes (&rl->spec.bypass, rl->rgi.gateway.addr, tt, flags, &rl->rgi, es, table);
 
       if (rl->flags & RG_REROUTE_GW)
 	{
@@ -940,7 +952,8 @@ undo_redirect_default_route_to_vpn (struct route_list *rl, const struct tuntap *
 			  tt,
 			  flags,
 			  &rl->rgi,
-			  es);
+              es,
+              table);
 
 	      /* delete default route (2nd component) */
 	      del_route3 (0x80000000,
@@ -949,7 +962,8 @@ undo_redirect_default_route_to_vpn (struct route_list *rl, const struct tuntap *
 			  tt,
 			  flags,
 			  &rl->rgi,
-			  es);
+              es,
+              table);
 	    }
 	  else
 	    {
@@ -960,7 +974,8 @@ undo_redirect_default_route_to_vpn (struct route_list *rl, const struct tuntap *
 			  tt,
 			  flags,
 			  &rl->rgi,
-			  es);
+              es,
+              table);
 
 	      /* restore original default route */
 	      add_route3 (0,
@@ -969,7 +984,8 @@ undo_redirect_default_route_to_vpn (struct route_list *rl, const struct tuntap *
 			  tt,
 			  flags | ROUTE_REF_GW,
 			  &rl->rgi,
-			  es);
+              es,
+              table);
 	    }
 	}
 
@@ -978,9 +994,9 @@ undo_redirect_default_route_to_vpn (struct route_list *rl, const struct tuntap *
 }
 
 void
-add_routes (struct route_list *rl, struct route_ipv6_list *rl6, const struct tuntap *tt, unsigned int flags, const struct env_set *es)
+add_routes (struct route_list *rl, struct route_ipv6_list *rl6, const struct tuntap *tt, unsigned int flags, const struct env_set *es, const char *table)
 {
-  redirect_default_route_to_vpn (rl, tt, flags, es);
+  redirect_default_route_to_vpn (rl, tt, flags, es, table);
   if ( rl && !(rl->iflags & RL_ROUTES_ADDED) )
     {
       struct route_ipv4 *r;
@@ -1000,8 +1016,8 @@ add_routes (struct route_list *rl, struct route_ipv6_list *rl6, const struct tun
 	{
 	  check_subnet_conflict (r->network, r->netmask, "route");
 	  if (flags & ROUTE_DELETE_FIRST)
-	    delete_route (r, tt, flags, &rl->rgi, es);
-	  add_route (r, tt, flags, &rl->rgi, es);
+        delete_route (r, tt, flags, &rl->rgi, es, table);
+      add_route (r, tt, flags, &rl->rgi, es, table);
 	}
       rl->iflags |= RL_ROUTES_ADDED;
     }
@@ -1011,8 +1027,8 @@ add_routes (struct route_list *rl, struct route_ipv6_list *rl6, const struct tun
       for (r = rl6->routes_ipv6; r; r = r->next)
 	{
 	  if (flags & ROUTE_DELETE_FIRST)
-	    delete_route_ipv6 (r, tt, flags, es);
-	  add_route_ipv6 (r, tt, flags, es);
+        delete_route_ipv6 (r, tt, flags, es, table);
+      add_route_ipv6 (r, tt, flags, es, table);
 	}
       rl6->routes_added = true;
     }
@@ -1020,19 +1036,19 @@ add_routes (struct route_list *rl, struct route_ipv6_list *rl6, const struct tun
 
 void
 delete_routes (struct route_list *rl, struct route_ipv6_list *rl6,
-	       const struct tuntap *tt, unsigned int flags, const struct env_set *es)
+           const struct tuntap *tt, unsigned int flags, const struct env_set *es, const char *table)
 {
   if ( rl && rl->iflags & RL_ROUTES_ADDED )
     {
       struct route_ipv4 *r;
       for (r = rl->routes; r; r = r->next)
 	{
-	  delete_route (r, tt, flags, &rl->rgi, es);
+      delete_route (r, tt, flags, &rl->rgi, es, table);
 	}
       rl->iflags &= ~RL_ROUTES_ADDED;
     }
 
-   undo_redirect_default_route_to_vpn (rl, tt, flags, es);
+   undo_redirect_default_route_to_vpn (rl, tt, flags, es, table);
 
   if ( rl )
     {
@@ -1044,7 +1060,7 @@ delete_routes (struct route_list *rl, struct route_ipv6_list *rl6,
       struct route_ipv6 *r6;
       for (r6 = rl6->routes_ipv6; r6; r6 = r6->next)
 	{
-	  delete_route_ipv6 (r6, tt, flags, es);
+      delete_route_ipv6 (r6, tt, flags, es, table);
 	}
       rl6->routes_added = false;
     }
@@ -1259,7 +1275,8 @@ add_route (struct route_ipv4 *r,
 	   const struct tuntap *tt,
 	   unsigned int flags,
 	   const struct route_gateway_info *rgi, /* may be NULL */
-	   const struct env_set *es)
+       const struct env_set *es,
+       const char *table)
 {
   struct gc_arena gc;
   struct argv argv;
@@ -1293,6 +1310,8 @@ add_route (struct route_ipv4 *r,
 	      gateway);
   if (r->flags & RT_METRIC_DEFINED)
     argv_printf_cat (&argv, "metric %d", r->metric);
+  if (table)
+    argv_printf_cat (&argv, "table %s", table);
 
 #else
   argv_printf (&argv, "%s add -net %s netmask %s",
@@ -1516,7 +1535,7 @@ print_in6_addr_netbits_only( struct in6_addr network_copy, int netbits,
 }
 
 void
-add_route_ipv6 (struct route_ipv6 *r6, const struct tuntap *tt, unsigned int flags, const struct env_set *es)
+add_route_ipv6 (struct route_ipv6 *r6, const struct tuntap *tt, unsigned int flags, const struct env_set *es, const char *table)
 {
   struct gc_arena gc;
   struct argv argv;
@@ -1575,6 +1594,8 @@ add_route_ipv6 (struct route_ipv6 *r6, const struct tuntap *tt, unsigned int fla
     argv_printf_cat (&argv, "via %s", gateway);
   if (r6->metric_defined && r6->metric > 0 )
     argv_printf_cat (&argv, " metric %d", r6->metric);
+  if (table)
+    argv_printf_cat (&argv, "table %s", table);
 
 #else
   argv_printf (&argv, "%s -A inet6 add %s/%d dev %s",
@@ -1712,7 +1733,8 @@ delete_route (struct route_ipv4 *r,
 	      const struct tuntap *tt,
 	      unsigned int flags,
 	      const struct route_gateway_info *rgi,
-	      const struct env_set *es)
+          const struct env_set *es,
+          const char *table)
 {
   struct gc_arena gc;
   struct argv argv;
@@ -1741,6 +1763,8 @@ delete_route (struct route_ipv4 *r,
   	      iproute_path,
 	      network,
 	      count_netmask_bits(netmask));
+  if (table)
+      argv_printf_cat (&argv, "table %s",table);
 #else
   argv_printf (&argv, "%s del -net %s netmask %s",
 	       ROUTE_PATH,
@@ -1869,7 +1893,7 @@ delete_route (struct route_ipv4 *r,
 }
 
 void
-delete_route_ipv6 (const struct route_ipv6 *r6, const struct tuntap *tt, unsigned int flags, const struct env_set *es)
+delete_route_ipv6 (const struct route_ipv6 *r6, const struct tuntap *tt, unsigned int flags, const struct env_set *es, const char *table)
 {
   struct gc_arena gc;
   struct argv argv;
@@ -1915,6 +1939,8 @@ delete_route_ipv6 (const struct route_ipv6 *r6, const struct tuntap *tt, unsigne
 	      device);
   if (gateway_needed)
     argv_printf_cat (&argv, "via %s", gateway);
+  if (table)
+    argv_printf_cat (&argv, "table %s", table);
 #else
   argv_printf (&argv, "%s -A inet6 del %s/%d dev %s",
 		ROUTE_PATH,

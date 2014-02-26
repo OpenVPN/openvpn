@@ -232,6 +232,8 @@ static const char usage_message[] =
   "                  by server EXCEPT for routes and dhcp options.\n"
   "--allow-pull-fqdn : Allow client to pull DNS names from server for\n"
   "                    --ifconfig, --route, and --route-gateway.\n"
+  "--route-table tbl : Use routing table <tbl> to add routes.\n"
+  "                    This is currently only supported in LINUX.\n"
   "--redirect-gateway [flags]: Automatically execute routing\n"
   "                  commands to redirect all outgoing IP traffic through the\n"
   "                  VPN.  Add 'local' flag if both " PACKAGE_NAME " servers are directly\n"
@@ -1548,9 +1550,10 @@ show_settings (const struct options *o)
   SHOW_BOOL (route_nopull);
   SHOW_BOOL (route_gateway_via_dhcp);
   SHOW_BOOL (allow_pull_fqdn);
+  SHOW_STR (route_table);
   if (o->routes)
     print_route_options (o->routes, D_SHOW_PARMS);
-  
+
 #ifdef ENABLE_CLIENT_NAT
   if (o->client_nat)
     print_client_nat_list(o->client_nat, D_SHOW_PARMS);
@@ -4069,6 +4072,47 @@ set_user_script (struct options *options,
 #endif
 }
 
+#ifdef ENABLE_IPROUTE
+extern const char *iproute_path;
+#endif
+
+static bool
+set_route_table(struct options *options,
+                const char *table_name,
+                struct env_set *es)
+{
+    struct argv argv;
+
+#ifndef TARGET_LINUX
+    msg (M_WARN, "Parameter --route-table is only supported in LINUX.");
+    return false;
+#endif
+
+#ifndef ENABLE_IPROUTE
+    msg (M_ERR, "IPROUTE needed for parameter --route-table.");
+    return false;
+#else
+
+    argv_init (&argv);
+    /* how to suppress stderr out ? */
+    argv_printf (&argv, "%s route show table %s",
+                 iproute_path,
+                 table_name);
+
+    if(!openvpn_execve_check (&argv, es, 0, NULL)) {
+        msg (M_ERR, "Routing table %s not present. ", table_name);
+        return false;
+    }
+    if (options->route_table) {
+        msg (M_WARN, "Multiple --route-table parameters found.  "
+         "The previously configured route table %s is overridden by %s.",
+             options->route_table,
+             table_name);
+    }
+    options->route_table = table_name;
+    return true;
+#endif
+}
 
 static void
 add_option (struct options *options,
@@ -5301,6 +5345,12 @@ add_option (struct options *options,
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->allow_pull_fqdn = true;
+    }
+  else if (streq (p[0], "route-table"))
+    {
+      VERIFY_PERMISSION (OPT_P_GENERAL);
+      if (!set_route_table(options, p[1], es))
+        goto err;
     }
   else if (streq (p[0], "redirect-gateway") || streq (p[0], "redirect-private"))
     {

@@ -1325,7 +1325,7 @@ do_route (const struct options *options,
 {
   if (!options->route_noexec && ( route_list || route_ipv6_list ) )
     {
-      add_routes (route_list, route_ipv6_list, tt, ROUTE_OPTION_FLAGS (options), es);
+      add_routes (route_list, route_ipv6_list, tt, ROUTE_OPTION_FLAGS (options), es, options->route_table);
       setenv_int (es, "redirect_gateway", route_did_redirect_default_gateway(route_list));
     }
 #ifdef ENABLE_MANAGEMENT
@@ -1598,7 +1598,7 @@ do_close_tun (struct context *c, bool force)
                            c->c2.es);
 
               delete_routes (c->c1.route_list, c->c1.route_ipv6_list,
-                             c->c1.tuntap, ROUTE_OPTION_FLAGS (&c->options), c->c2.es);
+                             c->c1.tuntap, ROUTE_OPTION_FLAGS (&c->options), c->c2.es, c->options.route_table);
             }
 
 	  /* actually close tun/tap device based on --down-pre flag */
