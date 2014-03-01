@@ -235,6 +235,19 @@ static const tls_cipher_name_pair tls_cipher_name_translation_table[] = {
     {"SRP-RSA-3DES-EDE-CBC-SHA", "TLS-SRP-SHA-RSA-WITH-3DES-EDE-CBC-SHA"},
     {"SRP-RSA-AES-128-CBC-SHA", "TLS-SRP-SHA-RSA-WITH-AES-128-CBC-SHA"},
     {"SRP-RSA-AES-256-CBC-SHA", "TLS-SRP-SHA-RSA-WITH-AES-256-CBC-SHA"},
+#ifdef ENABLE_CRYPTO_OPENSSL
+    {"DEFAULT", "DEFAULT"},
+    {"ALL", "ALL"},
+    {"HIGH", "HIGH"},
+    {"MEDIUM", "MEDIUM"},
+    {"LOW", "LOW"},
+    {"ECDH", "ECDH"},
+    {"ECDSA", "ECDSA"},
+    {"EDH", "EDH"},
+    {"EXP", "EXP"},
+    {"RSA", "RSA"},
+    {"SRP", "SRP"},
+#endif
     {NULL, NULL}
 };
 
