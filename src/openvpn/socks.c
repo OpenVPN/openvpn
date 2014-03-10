@@ -190,9 +190,12 @@ socks_handshake (struct socks_proxy_info *p,
   int len = 0;
   const int timeout_sec = 5;
 
-  /* VER = 5, NMETHODS = 2, METHODS = [0 (no auth), 2 (plain login)] */
-  const ssize_t size = send (sd, "\x05\x02\x00\x02", 4, MSG_NOSIGNAL);
-  if (size != 4)
+  /* VER = 5, NMETHODS = 1, METHODS = [0 (no auth)] */
+  char method_sel[3] = { 0x05, 0x01, 0x00 };
+  if (p->authfile[0])
+      method_sel[2] = 0x02; /* METHODS = [2 (plain login)] */
+  const ssize_t size = send (sd, method_sel, sizeof (method_sel), MSG_NOSIGNAL);
+  if (size != sizeof (method_sel))
     {
       msg (D_LINK_ERRORS | M_ERRNO, "socks_handshake: TCP port write failed on send()");
       return false;
