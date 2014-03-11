@@ -255,6 +255,13 @@ socks_handshake (struct socks_proxy_info *p,
       return false;
     }
 
+  /* validate that the auth method returned is the one sent */
+  if (buf[1] != method_sel[2])
+    {
+      msg (D_LINK_ERRORS, "socks_handshake: Socks proxy returned unexpected auth");
+      return false;
+    }
+
   /* select the appropriate authentication method */
   switch (buf[1])
     {
