@@ -1979,6 +1979,8 @@ options_postprocess_verify_ce (const struct options *options, const struct conne
 #ifdef ENABLE_HTTP_PROXY
   if ((ce->http_proxy_options) && ce->proto != PROTO_TCPv4_CLIENT)
     msg (M_USAGE, "--http-proxy MUST be used in TCP Client mode (i.e. --proto tcp-client)");
+  if ((ce->http_proxy_options) && !ce->http_proxy_options->server)
+    msg (M_USAGE, "--http-proxy not specified but other http proxy options present");
 #endif
 
 #if defined(ENABLE_HTTP_PROXY) && defined(ENABLE_SOCKS)
