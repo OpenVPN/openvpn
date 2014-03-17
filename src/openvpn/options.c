@@ -5227,8 +5227,10 @@ add_option (struct options *options,
     }
   else if (streq (p[0], "max-routes"))
     {
-      msg (msglevel, "--max-routes option ignored. The number of routes is unlimited as of version 2.4. "
-           "This option will be removed in a future version, please remove it from your configuration.");
+      msg (M_WARN, "DEPRECATED OPTION: --max-routes option ignored."
+	   "The number of routes is unlimited as of version 2.4. "
+	   "This option will be removed in a future version, "
+	   "please remove it from your configuration.");
     }
   else if (streq (p[0], "route-gateway") && p[1])
     {
