@@ -1512,19 +1512,8 @@ create_new_socket (struct link_socket* sock)
       /* clear destination set by set_actual_address */
       CLEAR(sock->info.lsa->actual.dest);
     }
-
-  /*
-   * Create the socket early if socket should be bound
-   */
-  if (sock->bind_local)
-    {
-      create_socket (sock);
-
-      if (sock->bind_local)
-          bind_local(sock);
-    }
-
 }
+
 
 
 /* bind socket if necessary */
@@ -1949,6 +1938,17 @@ link_socket_init_phase2 (struct link_socket *sock,
       /* If socket has not already been created create it now */
       if (sock->sd == SOCKET_UNDEFINED)
 	{
+          /* If we have no --remote and have still not figured out the
+           * protocol family to use we will use the first of the bind */
+          if (sock->bind_local && sock->info.lsa->bind_local
+              && !sock->info.lsa->actual.ai_family && !sock->remote_host)
+          {
+            msg (M_WARN, "Could not determine IPv4/IPv6 protocol. Using %s",
+                 addr_family_name(sock->info.lsa->bind_local->ai_family));
+            set_actual_address(&sock->info.lsa->actual, sock->info.lsa->bind_local);
+
+          }
+
 	  if (sock->info.lsa->actual.ai_family)
 	    {
 	      create_socket (sock);
