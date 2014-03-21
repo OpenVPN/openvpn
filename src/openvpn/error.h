@@ -194,6 +194,8 @@ void error_reset (void);
 void errors_to_stderr (void);
 
 void set_suppress_timestamps (bool suppressed);
+void set_machine_readable_output (bool parsable);
+
 
 #define SDL_CONSTRAIN (1<<0)
 bool set_debug_level (const int level, const unsigned int flags);

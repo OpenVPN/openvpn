@@ -305,6 +305,7 @@ struct options
 
   bool log;
   bool suppress_timestamps;
+  bool machine_readable_output;
   int nice;
   int verbosity;
   int mute;
