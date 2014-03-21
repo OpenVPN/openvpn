@@ -3339,6 +3339,10 @@ init_instance (struct context *c, const struct env_set *env, const unsigned int 
   /* init garbage collection level */
   gc_init (&c->c2.gc);
 
+  /* inherit environmental variables */
+  if (env)
+     do_inherit_env (c, env);
+
   /* signals caught here will abort */
   c->sig->signal_received = 0;
   c->sig->signal_text = NULL;
@@ -3389,10 +3393,6 @@ init_instance (struct context *c, const struct env_set *env, const unsigned int 
   /* warn about inconsistent options */
   if (c->mode == CM_P2P || c->mode == CM_TOP)
     do_option_warnings (c);
-
-  /* inherit environmental variables */
-  if (env)
-    do_inherit_env (c, env);
 
 #ifdef ENABLE_PLUGIN
   /* initialize plugins */
