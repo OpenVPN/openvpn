@@ -598,6 +598,23 @@ addr_defined (const struct openvpn_sockaddr *addr)
     default: return 0;
   }
 }
+
+static inline bool
+addr_local (const struct sockaddr *addr)
+{
+    if (!addr)
+	return false;
+    switch (addr->sa_family) {
+	case AF_INET:
+	    return ((const struct sockaddr_in*)addr)->sin_addr.s_addr == htonl(INADDR_LOOPBACK);
+	case AF_INET6:
+	    return  IN6_IS_ADDR_LOOPBACK(&((const struct sockaddr_in6*)addr)->sin6_addr);
+	default:
+	    return false;
+    }
+}
+
+
 static inline bool
 addr_defined_ipi (const struct link_socket_actual *lsa)
 {

@@ -689,17 +689,24 @@ create_socket (struct link_socket *sock)
 
     /* set socket to --mark packets with given value */
     socket_set_mark (sock->sd, sock->mark);
+}
 
 #ifdef TARGET_ANDROID
+static void protect_fd_nonlocal (int fd, const struct sockaddr* addr)
+{
   /* pass socket FD to management interface to pass on to VPNService API
    * as "protected socket" (exempt from being routed into tunnel)
    */
+  if (addr_local (addr)) {
+    msg(M_DEBUG, "Address is local, not protecting socket fd %d", fd);
+    return;
+  }
 
-  management->connection.fdtosend = sock->sd;
+  msg(M_DEBUG, "Protecting socket fd %d", fd);
+  management->connection.fdtosend = fd;
   management_android_control (management, "PROTECTFD", __func__);
-#endif
-
 }
+#endif
 
 /*
  * Functions used for establishing a TCP stream connection.
@@ -934,6 +941,10 @@ openvpn_connect (socket_descriptor_t sd,
 		 volatile int *signal_received)
 {
   int status = 0;
+
+#ifdef TARGET_ANDROID
+  protect_fd_nonlocal(sd, remote);
+#endif
 
 #ifdef CONNECT_NONBLOCK
   set_nonblock (sd);
@@ -1788,6 +1799,10 @@ link_socket_init_phase2 (struct link_socket *sock,
 	  phase2_socks_client (sock, sig_info);
 #endif
 	}
+#ifdef TARGET_ANDROID
+      if (sock->sd != -1)
+	protect_fd_nonlocal (sock->sd, &sock->info.lsa->actual.dest.addr.sa);
+#endif
       if (sig_info && sig_info->signal_received)
 	goto done;
     }
