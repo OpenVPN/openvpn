@@ -1501,19 +1501,38 @@ open_tun (const char *dev, const char *dev_type, const char *dev_node, struct tu
   struct gc_arena gc = gc_new ();
   bool opentun;
 
+  int oldtunfd = tt->fd;
+
   for (i = 0; i < tt->options.dns_len; ++i) {
     management_android_control (management, "DNSSERVER",
-                                print_in_addr_t(tt->options.dns[i], 0, &gc));
+				print_in_addr_t(tt->options.dns[i], 0, &gc));
   }
 
   if(tt->options.domain)
     management_android_control (management, "DNSDOMAIN", tt->options.domain);
 
-  opentun = management_android_control (management, "OPENTUN", dev);
+  int android_method = managment_android_persisttun_action (management);
 
-  /* Pick up the fd from management interface after calling the OPENTUN command */
-  tt->fd = management->connection.lastfdreceived;
-  management->connection.lastfdreceived=-1;
+  /* Android 4.4 workaround */
+  if (oldtunfd >=0 && android_method == ANDROID_OPEN_AFTER_CLOSE)
+    {
+      close(oldtunfd);
+      openvpn_sleep(2);
+    }
+
+  if (oldtunfd >=0  && android_method == ANDROID_KEEP_OLD_TUN) {
+    /* keep the old fd */
+    opentun = true;
+  } else {
+    opentun = management_android_control (management, "OPENTUN", dev);
+    /* Pick up the fd from management interface after calling the
+     * OPENTUN command */
+    tt->fd = management->connection.lastfdreceived;
+    management->connection.lastfdreceived=-1;
+  }
+
+  if (oldtunfd>=0 && android_method == ANDROID_OPEN_BEFORE_CLOSE)
+    close(oldtunfd);
 
   /* Set the actual name to a dummy name */
   tt->actual_name = string_alloc (ANDROID_TUNNAME, NULL);
