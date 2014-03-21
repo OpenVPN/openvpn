@@ -769,11 +769,15 @@ link_socket_update_buffer_sizes (struct link_socket *ls, int rcvbuf, int sndbuf)
  */
 
 socket_descriptor_t
-create_socket_tcp (int af)
+create_socket_tcp (struct addrinfo* addrinfo)
 {
   socket_descriptor_t sd;
 
-  if ((sd = socket (af, SOCK_STREAM, IPPROTO_TCP)) < 0)
+  ASSERT (addrinfo);
+  ASSERT (addrinfo->ai_socktype == SOCK_STREAM);
+  ASSERT (addrinfo->ai_protocol == IPPROTO_TCP);
+
+  if ((sd = socket (addrinfo->ai_family, addrinfo->ai_socktype, addrinfo->ai_protocol)) < 0)
     msg (M_ERR, "Cannot create TCP socket");
 
 #ifndef WIN32 /* using SO_REUSEADDR on Windows will cause bind to succeed on port conflicts! */
@@ -790,17 +794,21 @@ create_socket_tcp (int af)
 }
 
 static socket_descriptor_t
-create_socket_udp (const int af, const unsigned int flags)
+create_socket_udp (struct addrinfo* addrinfo, const unsigned int flags)
 {
   socket_descriptor_t sd;
 
-  if ((sd = socket (af, SOCK_DGRAM, IPPROTO_UDP)) < 0)
+  ASSERT (addrinfo);
+  ASSERT (addrinfo->ai_socktype == SOCK_DGRAM);
+  ASSERT (addrinfo->ai_protocol == IPPROTO_UDP);
+
+  if ((sd = socket (addrinfo->ai_family, addrinfo->ai_socktype, addrinfo->ai_protocol)) < 0)
     msg (M_ERR, "UDP: Cannot create UDP/UDP6 socket");
 #if ENABLE_IP_PKTINFO
   else if (flags & SF_USE_IP_PKTINFO)
     {
       int pad = 1;
-      if(af == AF_INET)
+      if(addrinfo->ai_family == AF_INET)
         {
 #ifdef IP_PKTINFO
           if (setsockopt (sd, SOL_IP, IP_PKTINFO,
@@ -814,7 +822,7 @@ create_socket_udp (const int af, const unsigned int flags)
 #error ENABLE_IP_PKTINFO is set without IP_PKTINFO xor IP_RECVDSTADDR (fix syshead.h)
 #endif
         }
-      else if (af == AF_INET6 )
+      else if (addrinfo->ai_family == AF_INET6 )
         {
 #ifndef IPV6_RECVPKTINFO /* Some older Darwin platforms require this */
           if (setsockopt (sd, IPPROTO_IPV6, IPV6_PKTINFO,
@@ -830,28 +838,49 @@ create_socket_udp (const int af, const unsigned int flags)
   return sd;
 }
 
-static void
-create_socket (struct link_socket *sock)
+static void bind_local (struct link_socket *sock, const sa_family_t ai_family)
 {
-  /* create socket, use information carried over from getaddrinfo */
-  const int ai_proto = sock->info.lsa->actual.ai_protocol;
-  int ai_family = sock->info.lsa->actual.ai_family;
+    /* bind to local address/port */
+    if (sock->bind_local)
+      {
+#ifdef ENABLE_SOCKS
+        if (sock->socks_proxy && sock->info.proto == PROTO_UDP)
+            socket_bind (sock->ctrl_sd, sock->info.lsa->bind_local,
+			 ai_family, "SOCKS", false);
+        else
+#endif
+            socket_bind (sock->sd, sock->info.lsa->bind_local,
+			 ai_family,
+                         "TCP/UDP", sock->info.bind_ipv6_only);
+      }
+}
 
-  ASSERT (sock->info.af == AF_UNSPEC  || sock->info.af == ai_family);
-
-  if (ai_proto == IPPROTO_UDP)
+static void
+create_socket (struct link_socket* sock, struct addrinfo* addr)
+{
+  if (addr->ai_protocol == IPPROTO_UDP)
     {
-      sock->sd = create_socket_udp (ai_family, sock->sockflags);
+      sock->sd = create_socket_udp (addr, sock->sockflags);
       sock->sockflags |= SF_GETADDRINFO_DGRAM;
 
 #ifdef ENABLE_SOCKS
+      /* Assume that control socket and data socket to the socks proxy
+       * are using the same IP family */
       if (sock->socks_proxy)
-	sock->ctrl_sd = create_socket_tcp (ai_family);
+	{
+	  /* Construct a temporary addrinfo to create the socket,
+	   * currently resolve two remote addresses is not supported,
+	   * TODO: Rewrite the whole resolve_remote */
+	  struct addrinfo addrinfo_tmp = *addr;
+	  addrinfo_tmp.ai_socktype = SOCK_STREAM;
+	  addrinfo_tmp.ai_protocol = IPPROTO_TCP;
+	  sock->ctrl_sd = create_socket_tcp (&addrinfo_tmp);
+	}
 #endif
     }
-  else if (ai_proto == IPPROTO_TCP)
+  else if (addr->ai_protocol == IPPROTO_TCP)
     {
-      sock->sd = create_socket_tcp (ai_family);
+      sock->sd = create_socket_tcp (addr);
     }
   else
     {
@@ -862,6 +891,8 @@ create_socket (struct link_socket *sock)
 
     /* set socket to --mark packets with given value */
     socket_set_mark (sock->sd, sock->mark);
+
+    bind_local (sock, addr->ai_family);
 }
 
 #ifdef TARGET_ANDROID
@@ -1207,21 +1238,15 @@ void set_actual_address (struct link_socket_actual* actual, struct addrinfo* ai)
     else
         ASSERT(0);
 
-    /* Copy addrinfo sock parameters for socket creating */
-    actual->ai_family = ai->ai_family;
-    actual->ai_protocol = ai->ai_protocol;
-    actual->ai_socktype = ai->ai_socktype;
 }
 
 void
-socket_connect (socket_descriptor_t *sd,
-                struct link_socket_addr *lsa,
+socket_connect (socket_descriptor_t* sd,
+                const struct sockaddr* dest,
                 const int connect_timeout,
                 struct signal_info* sig_info)
 {
   struct gc_arena gc = gc_new ();
-  const struct sockaddr *dest = &lsa->actual.dest.addr.sa;
-
   int status;
 
 #ifdef CONNECT_NONBLOCK
@@ -1347,23 +1372,6 @@ resolve_bind_local (struct link_socket *sock, const sa_family_t af)
     }
 
   gc_free (&gc);
-}
-
-static void bind_local (struct link_socket *sock)
-{
-    /* bind to local address/port */
-    if (sock->bind_local)
-      {
-#ifdef ENABLE_SOCKS
-        if (sock->socks_proxy && sock->info.proto == PROTO_UDP)
-            socket_bind (sock->ctrl_sd, sock->info.lsa->bind_local,
-                         sock->info.lsa->actual.ai_family, "SOCKS", false);
-        else
-#endif
-            socket_bind (sock->sd, sock->info.lsa->bind_local,
-                         sock->info.lsa->actual.ai_family,
-                         "TCP/UDP", sock->info.bind_ipv6_only);
-      }
 }
 
 static void
@@ -1493,30 +1501,6 @@ link_socket_new (void)
   return sock;
 }
 
-void
-create_new_socket (struct link_socket* sock)
-{
-   if (sock->bind_local) {
-      resolve_bind_local (sock, sock->info.af);
-  }
-  resolve_remote (sock, 1, NULL, NULL);
-
-  /*
-   * In P2P or server mode we must create the socket even when resolving
-   * the remote site fails/is not specified. */
-
-  if (sock->info.lsa->actual.ai_family==0 && sock->bind_local)
-    {
-      /* Copy sock parameters from bind addr */
-      set_actual_address (&sock->info.lsa->actual, sock->info.lsa->bind_local);
-      /* clear destination set by set_actual_address */
-      CLEAR(sock->info.lsa->actual.dest);
-    }
-}
-
-
-
-/* bind socket if necessary */
 void
 link_socket_init_phase1 (struct link_socket *sock,
 			 const char *local_host,
@@ -1658,7 +1642,10 @@ link_socket_init_phase1 (struct link_socket *sock,
     }
   else if (mode != LS_MODE_TCP_ACCEPT_FROM)
     {
-      create_new_socket (sock);
+      if (sock->bind_local) {
+	  resolve_bind_local (sock, sock->info.af);
+      }
+      resolve_remote (sock, 1, NULL, NULL);
     }
 }
 
@@ -1742,11 +1729,14 @@ linksock_print_addr (struct link_socket *sock)
     msg (msglevel, "%s link local: [inetd]", proto2ascii (sock->info.proto, sock->info.af, true));
   else if (sock->bind_local)
     {
-      /* Socket is always bound on the first matching address */
+      sa_family_t ai_family = sock->info.lsa->actual.dest.addr.sa.sa_family;
+      /* Socket is always bound on the first matching address,
+       * For bound sockets with no remote addr this is the element of
+       * the list */
       struct addrinfo *cur;
       for (cur = sock->info.lsa->bind_local; cur; cur=cur->ai_next)
 	{
-	  if(cur->ai_family == sock->info.lsa->actual.ai_family)
+	  if(!ai_family || ai_family == cur->ai_family)
 	    break;
 	}
       ASSERT (cur);
@@ -1815,8 +1805,9 @@ phase2_tcp_client (struct link_socket *sock, struct signal_info *sig_info)
   const bool proxy_retry = false;
 #endif
   do {
+    ASSERT (sock->info.lsa->current_remote->ai_protocol == IPPROTO_TCP);
     socket_connect (&sock->sd,
-                   sock->info.lsa,
+                   sock->info.lsa->current_remote->ai_addr,
                    sock->connect_timeout,
                    sig_info);
 
@@ -1848,10 +1839,8 @@ phase2_tcp_client (struct link_socket *sock, struct signal_info *sig_info)
 #endif
     if (proxy_retry)
       {
-	/* TODO (schwabe): This code assumes AF_INET for the proxy socket
-         * when retrying a connection */
 	openvpn_close_socket (sock->sd);
-	sock->sd = create_socket_tcp (AF_INET);
+	sock->sd = create_socket_tcp (sock->info.lsa->current_remote);
       }
 
   } while (proxy_retry);
@@ -1863,7 +1852,7 @@ static void
 phase2_socks_client (struct link_socket *sock, struct signal_info *sig_info)
 {
     socket_connect (&sock->ctrl_sd,
-		    sock->info.lsa,
+		    sock->info.lsa->current_remote->ai_addr,
 		    sock->connect_timeout,
 		    sig_info);
 
@@ -1935,33 +1924,34 @@ link_socket_init_phase2 (struct link_socket *sock,
       /* Second chance to resolv/create socket */
       resolve_remote (sock, 2, &remote_dynamic,  &sig_info->signal_received);
 
+      /* If a valid remote has been found, create the socket with its addrinfo */
+      if (sock->info.lsa->current_remote)
+	  create_socket (sock, sock->info.lsa->current_remote);
+
       /* If socket has not already been created create it now */
       if (sock->sd == SOCKET_UNDEFINED)
 	{
-          /* If we have no --remote and have still not figured out the
-           * protocol family to use we will use the first of the bind */
-          if (sock->bind_local && sock->info.lsa->bind_local
-              && !sock->info.lsa->actual.ai_family && !sock->remote_host)
-          {
-            msg (M_WARN, "Could not determine IPv4/IPv6 protocol. Using %s",
-                 addr_family_name(sock->info.lsa->bind_local->ai_family));
-            set_actual_address(&sock->info.lsa->actual, sock->info.lsa->bind_local);
+	  /* If we have no --remote and have still not figured out the
+	   * protocol family to use we will use the first of the bind */
 
-          }
-
-	  if (sock->info.lsa->actual.ai_family)
+	  if (sock->bind_local  && !sock->remote_host && sock->info.lsa->bind_local)
 	    {
-	      create_socket (sock);
-	    }
-	  else
-	    {
-	      msg (M_WARN, "Could not determine IPv4/IPv6 protocol");
-	      sig_info->signal_received = SIGUSR1;
-	      goto done;
-	    }
+	      /* Warn if this is because neither v4 or v6 was specified
+	       * and we should not connect a remote */
+	      if (sock->info.af == AF_UNSPEC)
+		msg (M_WARN, "Could not determine IPv4/IPv6 protocol. Using %s",
+		     addr_family_name(sock->info.lsa->bind_local->ai_family));
 
-	  if (sock->bind_local)
-	    bind_local(sock);
+	      create_socket (sock, sock->info.lsa->bind_local);
+	    }
+	}
+
+      /* Socket still undefined, give a warning and abort connection */
+      if (sock->sd == SOCKET_UNDEFINED)
+	{
+	  msg (M_WARN, "Could not determine IPv4/IPv6 protocol");
+	  sig_info->signal_received = SIGUSR1;
+	  goto done;
 	}
 
       if (sig_info && sig_info->signal_received)
@@ -2801,6 +2791,7 @@ proto_remote (int proto, bool remote)
 	return "TCPv4_CLIENT";
 
   ASSERT (0);
+  return ""; /* Make the compiler happy */
 }
 
 /*
@@ -2936,7 +2927,12 @@ link_socket_read_udp_posix_recvmsg (struct link_socket *sock,
 	  from->pi.in6.ipi6_ifindex = pkti6->ipi6_ifindex;
 	  from->pi.in6.ipi6_addr = pkti6->ipi6_addr;
 	}
+      else if (cmsg != NULL)
+	{
+	  msg(M_WARN, "CMSG received that cannot be parsed (cmsg_level=%d, cmsg_type=%d, cmsg=len=%d)", (int)cmsg->cmsg_level, (int)cmsg->cmsg_type, (int)cmsg->cmsg_len );
+	}
     }
+
   return fromlen;
 }
 #endif
@@ -3003,7 +2999,7 @@ link_socket_write_udp_posix_sendmsg (struct link_socket *sock,
   iov.iov_len = BLEN (buf);
   mesg.msg_iov = &iov;
   mesg.msg_iovlen = 1;
-  switch (to->ai_family)
+  switch (to->dest.addr.sa.sa_family)
     {
     case AF_INET:
       {

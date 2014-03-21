@@ -91,10 +91,6 @@ struct cached_dns_entry {
 struct link_socket_actual
 {
   /*int dummy;*/ /* add offset to force a bug if dest not explicitly dereferenced */
- int ai_family;	/* PF_xxx */
- int ai_socktype;	/* SOCK_xxx */
- int ai_protocol;	/* 0 or IPPROTO_xxx for IPv4 and IPv6 */
-
 
   struct openvpn_sockaddr dest;
 #if ENABLE_IP_PKTINFO
@@ -473,7 +469,7 @@ bool ip_or_dns_addr_safe (const char *addr, const bool allow_fqdn);
 bool mac_addr_safe (const char *mac_addr);
 bool ipv6_addr_safe (const char *ipv6_text_addr);
 
-socket_descriptor_t create_socket_tcp (int af);
+socket_descriptor_t create_socket_tcp (struct addrinfo*);
 
 socket_descriptor_t socket_do_accept (socket_descriptor_t sd,
 				      struct link_socket_actual *act,

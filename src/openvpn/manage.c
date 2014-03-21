@@ -1568,7 +1568,7 @@ man_listen (struct management *man)
       else
 #endif
 	{
-	  man->connection.sd_top = create_socket_tcp (man->settings.local->ai_family);
+	  man->connection.sd_top = create_socket_tcp (man->settings.local);
 	  socket_bind (man->connection.sd_top, man->settings.local,
                        man->settings.local->ai_family, "MANAGEMENT", false);
 	}
@@ -1635,7 +1635,7 @@ man_connect (struct management *man)
   else
 #endif
     {
-      man->connection.sd_cli = create_socket_tcp (AF_INET);
+      man->connection.sd_cli = create_socket_tcp (man->settings.local);
       status = openvpn_connect (man->connection.sd_cli,
 				man->settings.local->ai_addr,
 				5,
