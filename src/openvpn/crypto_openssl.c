@@ -57,33 +57,6 @@
 #warning Some OpenSSL HMAC message digests now support key lengths greater than MAX_HMAC_KEY_LENGTH -- consider increasing MAX_HMAC_KEY_LENGTH
 #endif
 
-/*
- *
- * Workarounds for incompatibilites between OpenSSL libraries.
- * Right now we accept OpenSSL libraries from 0.9.5 to 0.9.7.
- *
- */
-
-#if SSLEAY_VERSION_NUMBER < 0x00907000L
-
-/* Workaround: EVP_CIPHER_mode is defined wrong in OpenSSL 0.9.6 but is fixed in 0.9.7 */
-#undef EVP_CIPHER_mode
-#define EVP_CIPHER_mode(e)                (((e)->flags) & EVP_CIPH_MODE)
-
-#define DES_cblock                        des_cblock
-#define DES_is_weak_key                   des_is_weak_key
-#define DES_check_key_parity              des_check_key_parity
-#define DES_set_odd_parity                des_set_odd_parity
-
-#define HMAC_CTX_init(ctx)                CLEAR (*ctx)
-#define HMAC_Init_ex(ctx,sec,len,md,impl) HMAC_Init(ctx, sec, len, md)
-#define HMAC_CTX_cleanup(ctx)             HMAC_cleanup(ctx)
-#define EVP_MD_CTX_cleanup(md)            CLEAR (*md)
-
-#define INFO_CALLBACK_SSL_CONST
-
-#endif
-
 static inline int
 EVP_CipherInit_ov (EVP_CIPHER_CTX *ctx, const EVP_CIPHER *type, uint8_t *key, uint8_t *iv, int enc)
 {

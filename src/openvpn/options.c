@@ -567,12 +567,7 @@ static const char usage_message[] =
   "                  root certificate.\n"
 #ifndef ENABLE_CRYPTO_POLARSSL
   "--capath dir    : A directory of trusted certificates (CAs"
-#if OPENSSL_VERSION_NUMBER >= 0x00907000L
   " and CRLs).\n"
-#else /* OPENSSL_VERSION_NUMBER >= 0x00907000L */
-  ").\n"
-  "                  WARNING: no support of CRL available with this version.\n"
-#endif /* OPENSSL_VERSION_NUMBER >= 0x00907000L */
 #endif /* ENABLE_CRYPTO_POLARSSL */
   "--dh file       : File containing Diffie Hellman parameters\n"
   "                  in .pem format (for --tls-server only).\n"
@@ -635,7 +630,6 @@ static const char usage_message[] =
   "--x509-track x  : Save peer X509 attribute x in environment for use by\n"
   "                  plugins and management interface.\n"
 #endif
-#if OPENSSL_VERSION_NUMBER >= 0x00907000L || ENABLE_CRYPTO_POLARSSL
   "--remote-cert-ku v ... : Require that the peer certificate was signed with\n"
   "                  explicit key usage, you can specify more than one value.\n"
   "                  value should be given in hex format.\n"
@@ -645,7 +639,6 @@ static const char usage_message[] =
   "--remote-cert-tls t: Require that peer certificate was signed with explicit\n"
   "                  key usage and extended key usage based on RFC3280 TLS rules.\n"
   "                  t = 'client' | 'server'.\n"
-#endif				/* OPENSSL_VERSION_NUMBER || ENABLE_CRYPTO_POLARSSL */
 #endif				/* ENABLE_SSL */
 #ifdef ENABLE_PKCS11
   "\n"
@@ -6780,7 +6773,6 @@ add_option (struct options *options,
 	  goto err;
 	}
     }
-#if OPENSSL_VERSION_NUMBER >= 0x00907000L || ENABLE_CRYPTO_POLARSSL
   else if (streq (p[0], "remote-cert-ku"))
     {
       int j;
@@ -6818,7 +6810,6 @@ add_option (struct options *options,
 	  goto err;
 	}
     }
-#endif	/* OPENSSL_VERSION_NUMBER */
   else if (streq (p[0], "tls-timeout") && p[1])
     {
       VERIFY_PERMISSION (OPT_P_TLS_PARMS);

@@ -337,8 +337,6 @@ verify_peer_cert(const struct tls_options *opt, openvpn_x509_cert_t *peer_cert,
 	}
     }
 
-#if OPENSSL_VERSION_NUMBER >= 0x00907000L || ENABLE_CRYPTO_POLARSSL
-
   /* verify certificate ku */
   if (opt->remote_cert_ku[0] != 0)
     {
@@ -366,8 +364,6 @@ verify_peer_cert(const struct tls_options *opt, openvpn_x509_cert_t *peer_cert,
           return FAILURE;		/* Reject connection */
 	}
     }
-
-#endif /* OPENSSL_VERSION_NUMBER */
 
   /* verify X509 name or username against --verify-x509-[user]name */
   if (opt->verify_x509_type != VERIFY_X509_NONE)

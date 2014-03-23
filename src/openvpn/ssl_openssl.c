@@ -848,11 +848,7 @@ tls_ctx_load_ca (struct tls_root_ctx *ctx, const char *ca_file,
         msg(M_WARN, "WARNING: experimental option --capath %s", ca_path);
       else
         msg(M_SSLERR, "Cannot add lookup at --capath %s", ca_path);
-#if OPENSSL_VERSION_NUMBER >= 0x00907000L
       X509_STORE_set_flags (store, X509_V_FLAG_CRL_CHECK | X509_V_FLAG_CRL_CHECK_ALL);
-#else
-      msg(M_WARN, "WARNING: this version of OpenSSL cannot handle CRL files in capath");
-#endif
     }
 }
 

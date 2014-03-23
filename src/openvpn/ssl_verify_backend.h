@@ -189,8 +189,6 @@ void x509_setenv_track (const struct x509_track *xt, struct env_set *es,
  */
 result_t x509_verify_ns_cert_type(const openvpn_x509_cert_t *cert, const int usage);
 
-#if OPENSSL_VERSION_NUMBER >= 0x00907000L || ENABLE_CRYPTO_POLARSSL
-
 /*
  * Verify X.509 key usage extension field.
  *
@@ -218,8 +216,6 @@ result_t x509_verify_cert_ku (openvpn_x509_cert_t *x509, const unsigned * const 
  * 			usage is not enabled, or the values do not match.
  */
 result_t x509_verify_cert_eku (openvpn_x509_cert_t *x509, const char * const expected_oid);
-
-#endif
 
 /*
  * Store the given certificate in pem format in a temporary file in tmp_dir
