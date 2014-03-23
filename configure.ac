@@ -793,6 +793,21 @@ if test "${have_openssl_crypto}" = "yes"; then
 	LIBS="${saved_LIBS}"
 fi
 
+if test "${have_openssl_ssl}" = "yes"; then
+    AC_MSG_CHECKING([for SSL_OP_NO_TICKET flag in OpenSSL])
+    AC_EGREP_CPP(have_ssl_op_no_ticket, [
+    #include <openssl/ssl.h>
+    #ifdef SSL_OP_NO_TICKET
+    have_ssl_op_no_ticket
+    #endif
+    ], [
+        AC_MSG_RESULT([yes])
+    ], [
+        AC_MSG_RESULT([no])
+        AC_ERROR([OpenVPN 2.4+ requires SSL_OP_NO_TICKET in OpenSSL])
+    ])
+fi
+
 AC_ARG_VAR([POLARSSL_CFLAGS], [C compiler flags for polarssl])
 AC_ARG_VAR([POLARSSL_LIBS], [linker flags for polarssl])
 have_polarssl_ssl="yes"
