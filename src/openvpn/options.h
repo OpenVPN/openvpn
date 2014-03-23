@@ -90,7 +90,7 @@ struct connection_entry
   sa_family_t af;
   const char* local_port;
   bool local_port_defined;
-  const char* remote_port;
+  const char *remote_port;
   const char *local;
   const char *remote;
   bool remote_float;
@@ -278,6 +278,8 @@ struct options
 #endif
 
   int resolve_retry_seconds;    /* If hostname resolve fails, retry for n seconds */
+  bool resolve_in_advance;
+  const char *ip_remote_hint;
 
   struct tuntap_options tuntap_options;
 

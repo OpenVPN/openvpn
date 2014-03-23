@@ -638,6 +638,7 @@ init_route_list (struct route_list *rl,
 	else
 	  {
             struct addrinfo* curele;
+            gc_addspecial(netlist, &gc_freeaddrinfo_callback, &gc);
             for (curele	= netlist; curele; curele = curele->ai_next)
 	      {
                 struct route_ipv4 *new;
@@ -647,7 +648,6 @@ init_route_list (struct route_list *rl,
                 new->next = rl->routes;
                 rl->routes = new;
 	      }
-            freeaddrinfo(netlist);
 	  }
       }
   }

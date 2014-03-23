@@ -131,7 +131,8 @@ management_callback_proxy_cmd (void *arg, const char **p)
           msg (M_WARN, "HTTP proxy support is not available");
 #else
           struct http_proxy_options *ho;
-          if (ce->proto != PROTO_TCP && ce->proto != PROTO_TCP_CLIENT )            {
+          if (ce->proto != PROTO_TCP && ce->proto != PROTO_TCP_CLIENT )
+            {
               msg (M_WARN, "HTTP proxy support only works for TCP based connections");
               return false;
             }
@@ -306,11 +307,10 @@ init_connection_list (struct context *c)
 /*
  * Clear the remote address list
  */
-static void clear_remote_addrlist (struct link_socket_addr *lsa)
+static void clear_remote_addrlist (struct link_socket_addr *lsa, bool free)
 {
-    if (lsa->remote_list) {
-        freeaddrinfo(lsa->remote_list);
-    }
+    if (lsa->remote_list && free)
+      freeaddrinfo(lsa->remote_list);
     lsa->remote_list = NULL;
     lsa->current_remote = NULL;
 }
@@ -348,9 +348,12 @@ next_connection_entry (struct context *c)
              * this is broken probably ever since connection lists and multiple
              * remote existed
              */
-
             if (!c->options.persist_remote_ip)
-                clear_remote_addrlist (&c->c1.link_socket_addr);
+	      {
+		/* close_instance should have cleared the addrinfo objects */
+		ASSERT (c->c1.link_socket_addr.current_remote == NULL);
+		ASSERT (c->c1.link_socket_addr.remote_list == NULL);
+	      }
             else
                 c->c1.link_socket_addr.current_remote =
                 c->c1.link_socket_addr.remote_list;
@@ -2688,6 +2691,7 @@ do_init_socket_1 (struct context *c, const int mode)
 			   c->options.ce.local_port,
 			   c->options.ce.remote,
 			   c->options.ce.remote_port,
+			   c->c1.dns_cache,
 			   c->options.ce.proto,
 			   c->options.ce.af,
 			   c->options.ce.bind_ipv6_only,
@@ -2908,7 +2912,7 @@ do_close_link_socket (struct context *c)
            || c->options.no_advance))
          )))
     {
-      clear_remote_addrlist(&c->c1.link_socket_addr);
+      clear_remote_addrlist(&c->c1.link_socket_addr, !c->options.resolve_in_advance);
     }
 
     /* Clear the remote actual address when persist_remote_ip is not in use */
@@ -2916,8 +2920,9 @@ do_close_link_socket (struct context *c)
       CLEAR (c->c1.link_socket_addr.actual);
 
   if (!(c->sig->signal_received == SIGUSR1 && c->options.persist_local_ip)) {
-    if (c->c1.link_socket_addr.bind_local)
-        freeaddrinfo(c->c1.link_socket_addr.bind_local);
+    if (c->c1.link_socket_addr.bind_local && !c->options.resolve_in_advance)
+	freeaddrinfo(c->c1.link_socket_addr.bind_local);
+
     c->c1.link_socket_addr.bind_local=NULL;
   }
 }
@@ -3355,6 +3360,13 @@ init_instance (struct context *c, const struct env_set *env, const unsigned int 
   if (c->mode == CM_P2P || c->mode == CM_TOP)
     {
       do_startup_pause (c);
+      if (IS_SIG (c))
+	goto sig;
+    }
+
+  if (c->options.resolve_in_advance)
+    {
+      do_preresolve (c);
       if (IS_SIG (c))
 	goto sig;
     }

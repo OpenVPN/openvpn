@@ -39,6 +39,7 @@
 #include "manage.h"
 #include "misc.h"
 #include "manage.h"
+#include "openvpn.h"
 
 #include "memdbg.h"
 
@@ -117,6 +118,178 @@ getaddr (unsigned int flags,
   }
 }
 
+static inline bool
+streqnull (const char* a, const char* b)
+{
+  if (a == NULL && b == NULL)
+    return true;
+  else if (a == NULL || b == NULL)
+    return false;
+  else
+    return streq (a, b);
+}
+
+/*
+  get_cached_dns_entry return 0 on success and -1
+  otherwise. (like getaddrinfo)
+ */
+static int
+get_cached_dns_entry (struct cached_dns_entry* dns_cache,
+		      const char* hostname,
+		      const char* servname,
+		      int ai_family,
+		      int resolve_flags,
+		      struct addrinfo **ai)
+{
+  struct cached_dns_entry *ph;
+  int flags;
+
+  /* Only use flags that are relevant for the structure */
+  flags = resolve_flags & GETADDR_CACHE_MASK;
+
+  for (ph = dns_cache; ph ; ph = ph->next)
+    {
+      if (streqnull (ph->hostname, hostname) &&
+	  streqnull (ph->servname, servname) &&
+	  ph->ai_family == ai_family &&
+	  ph->flags == flags)
+	{
+	  *ai = ph->ai;
+	  return 0;
+	}
+    }
+  return -1;
+}
+
+
+static int
+do_preresolve_host (struct context *c,
+		    const char *hostname,
+		    const char *servname,
+		    const int af,
+		    const int flags)
+{
+  struct addrinfo *ai;
+  int status;
+
+  if (get_cached_dns_entry(c->c1.dns_cache,
+			   hostname,
+			   servname,
+			   af,
+			   flags,
+			   &ai) == 0 )
+    {
+      /* entry already cached, return success */
+      return 0;
+    }
+
+  status = openvpn_getaddrinfo (flags, hostname, servname,
+				c->options.resolve_retry_seconds, NULL,
+				af, &ai);
+  if (status == 0)
+    {
+      struct cached_dns_entry *ph;
+
+      ALLOC_OBJ_CLEAR_GC (ph, struct cached_dns_entry, &c->gc);
+      ph->ai = ai;
+      ph->hostname = hostname;
+      ph->servname = servname;
+      ph->flags = flags & GETADDR_CACHE_MASK;
+
+      if (!c->c1.dns_cache)
+	c->c1.dns_cache = ph;
+      else
+	{
+	  struct cached_dns_entry *prev = c->c1.dns_cache;
+	  while (prev->next)
+	    prev = prev->next;
+	  prev->next = ph;
+	}
+
+      gc_addspecial (ai, &gc_freeaddrinfo_callback, &c->gc);
+
+    }
+  return status;
+}
+
+void
+do_preresolve (struct context *c)
+{
+  int i;
+  struct connection_list *l = c->options.connection_list;
+  const unsigned int preresolve_flags = GETADDR_RESOLVE|
+    GETADDR_UPDATE_MANAGEMENT_STATE|
+    GETADDR_MENTION_RESOLVE_RETRY|
+    GETADDR_FATAL;
+
+
+  for (i = 0; i < l->len; ++i)
+    {
+      int status;
+      const char *remote;
+      int flags = preresolve_flags;
+
+      struct connection_entry* ce = c->options.connection_list->array[i];
+
+      if (proto_is_dgram(ce->proto))
+	  flags |= GETADDR_DATAGRAM;
+
+      if (c->options.sockflags & SF_HOST_RANDOMIZE)
+	  flags |= GETADDR_RANDOMIZE;
+
+      if (c->options.ip_remote_hint)
+	  remote = c->options.ip_remote_hint;
+      else
+	  remote = ce->remote;
+
+      /* HTTP remote hostname does not need to be resolved */
+      if (! ce->http_proxy_options)
+	{
+	  status = do_preresolve_host (c, remote, ce->remote_port, ce->af, flags);
+	  if (status != 0)
+	      goto err;
+	}
+
+      /* Preresolve proxy */
+      if (ce->http_proxy_options)
+	{
+	  status = do_preresolve_host (c,
+				       ce->http_proxy_options->server,
+				       ce->http_proxy_options->port,
+				       ce->af,
+				       preresolve_flags);
+
+	  if (status != 0)
+	      goto err;
+	}
+
+      if (ce->socks_proxy_server)
+	{
+	  status = do_preresolve_host (c,
+				       ce->socks_proxy_server,
+				       ce->socks_proxy_port,
+				       ce->af,
+				       flags);
+	  if (status != 0)
+	      goto err;
+	}
+
+      if (ce->bind_local)
+	{
+	  flags |= GETADDR_PASSIVE;
+	  flags &= ~GETADDR_RANDOMIZE;
+	  status = do_preresolve_host (c, ce->local, ce->local_port, ce->af, flags);
+	  if (status != 0)
+	      goto err;
+
+	}
+
+    }
+    return;
+
+ err:
+  throw_signal_soft (SIGHUP, "Preresolving failed");
+}
 
 /*
  * Translate IPv4/IPv6 addr or hostname into struct addrinfo
@@ -1155,7 +1328,15 @@ resolve_bind_local (struct link_socket *sock, const sa_family_t af)
 	flags |= GETADDR_DATAGRAM;
 
       /* will return AF_{INET|INET6}from local_host */
-      status = openvpn_getaddrinfo(flags, sock->local_host, sock->local_port, 0,
+      status = get_cached_dns_entry (sock->dns_cache,
+				     sock->local_host,
+				     sock->local_port,
+				     af,
+				     flags,
+				     &sock->info.lsa->bind_local);
+
+      if (status)
+	status = openvpn_getaddrinfo(flags, sock->local_host, sock->local_port, 0,
 				   NULL, af, &sock->info.lsa->bind_local);
 
       if(status !=0) {
@@ -1193,103 +1374,104 @@ resolve_remote (struct link_socket *sock,
 {
   struct gc_arena gc = gc_new ();
 
-  if (!sock->did_resolve_remote)
+  /* resolve remote address if undefined */
+  if (!sock->info.lsa->remote_list)
     {
-      /* resolve remote address if undefined */
-      if (!sock->info.lsa->remote_list)
+      if (sock->remote_host)
 	{
-	  if (sock->remote_host)
-	    {
-	      unsigned int flags = sf2gaf(GETADDR_RESOLVE|GETADDR_UPDATE_MANAGEMENT_STATE, sock->sockflags);
-	      int retry = 0;
-	      int status = -1;
-              struct addrinfo* ai;
-              if (proto_is_dgram(sock->info.proto))
-                  flags |= GETADDR_DATAGRAM;
+	  unsigned int flags = sf2gaf(GETADDR_RESOLVE|GETADDR_UPDATE_MANAGEMENT_STATE, sock->sockflags);
+	  int retry = 0;
+	  int status = -1;
+	  struct addrinfo* ai;
+	  if (proto_is_dgram(sock->info.proto))
+	    flags |= GETADDR_DATAGRAM;
 
-	      if (sock->resolve_retry_seconds == RESOLV_RETRY_INFINITE)
+	  if (sock->resolve_retry_seconds == RESOLV_RETRY_INFINITE)
+	    {
+	      if (phase == 2)
+		flags |= (GETADDR_TRY_ONCE | GETADDR_FATAL);
+	      retry = 0;
+	    }
+	  else if (phase == 1)
+	    {
+	      if (sock->resolve_retry_seconds)
 		{
-		  if (phase == 2)
-		    flags |= (GETADDR_TRY_ONCE | GETADDR_FATAL);
 		  retry = 0;
 		}
-	      else if (phase == 1)
+	      else
 		{
-		  if (sock->resolve_retry_seconds)
-		    {
-		      retry = 0;
-		    }
-		  else
-		    {
-		      flags |= (GETADDR_FATAL | GETADDR_MENTION_RESOLVE_RETRY);
-		      retry = 0;
-		    }
+		  flags |= (GETADDR_FATAL | GETADDR_MENTION_RESOLVE_RETRY);
+		  retry = 0;
 		}
-	      else if (phase == 2)
+	    }
+	  else if (phase == 2)
+	    {
+	      if (sock->resolve_retry_seconds)
 		{
-		  if (sock->resolve_retry_seconds)
-		    {
-		      flags |= GETADDR_FATAL;
-		      retry = sock->resolve_retry_seconds;
-		    }
-		  else
-		    {
-		      ASSERT (0);
-		    }
+		  flags |= GETADDR_FATAL;
+		  retry = sock->resolve_retry_seconds;
 		}
 	      else
 		{
 		  ASSERT (0);
 		}
+	    }
+	  else
+	    {
+	      ASSERT (0);
+	    }
 
-	      status = openvpn_getaddrinfo (flags, sock->remote_host, sock->remote_port,
-					    retry, signal_received, sock->info.af, &ai);
 
-	      if(status == 0) {
-		sock->info.lsa->remote_list = ai;
-		sock->info.lsa->current_remote = ai;
+	  status = get_cached_dns_entry (sock->dns_cache,
+					 sock->remote_host,
+					 sock->remote_port,
+					 sock->info.af,
+					 flags, &ai);
+	  if (status)
+	    status = openvpn_getaddrinfo (flags, sock->remote_host, sock->remote_port,
+					  retry, signal_received, sock->info.af, &ai);
 
-		dmsg (D_SOCKET_DEBUG, "RESOLVE_REMOTE flags=0x%04x phase=%d rrs=%d sig=%d status=%d",
-		      flags,
-		      phase,
-		      retry,
-		      signal_received ? *signal_received : -1,
-		      status);
-	      }
-	      if (signal_received)
-		{
-		  if (*signal_received)
-		    goto done;
-		}
+	  if(status == 0) {
+	    sock->info.lsa->remote_list = ai;
+	    sock->info.lsa->current_remote = ai;
+
+	    dmsg (D_SOCKET_DEBUG, "RESOLVE_REMOTE flags=0x%04x phase=%d rrs=%d sig=%d status=%d",
+		  flags,
+		  phase,
+		  retry,
+		  signal_received ? *signal_received : -1,
+		  status);
+	  }
+	  if (signal_received)
+	    {
+	      if (*signal_received)
+		goto done;
+	    }
 	      if (status!=0)
 		{
 		  if (signal_received)
 		    *signal_received = SIGUSR1;
 		  goto done;
 		}
-	    }
 	}
+    }
   
-      /* should we re-use previous active remote address? */
-      if (link_socket_actual_defined (&sock->info.lsa->actual))
+  /* should we re-use previous active remote address? */
+  if (link_socket_actual_defined (&sock->info.lsa->actual))
+    {
+      msg (M_INFO, "TCP/UDP: Preserving recently used remote address: %s",
+	   print_link_socket_actual (&sock->info.lsa->actual, &gc));
+      if (remote_dynamic)
+	*remote_dynamic = NULL;
+    }
+  else
+    {
+      CLEAR (sock->info.lsa->actual);
+      if(sock->info.lsa->current_remote)
 	{
-	  msg (M_INFO, "TCP/UDP: Preserving recently used remote address: %s",
-	       print_link_socket_actual (&sock->info.lsa->actual, &gc));
-	  if (remote_dynamic)
-	    *remote_dynamic = NULL;
+	  set_actual_address (&sock->info.lsa->actual,
+			      sock->info.lsa->current_remote);
 	}
-      else
-	{
-	  CLEAR (sock->info.lsa->actual);
-	  if(sock->info.lsa->current_remote)
-	    {
-	      set_actual_address (&sock->info.lsa->actual,
-				  sock->info.lsa->current_remote);
-	    }
-	}
-
-      /* remember that we finished */
-      sock->did_resolve_remote = true;
     }
 
  done:
@@ -1341,6 +1523,7 @@ create_new_socket (struct link_socket* sock)
       if (sock->bind_local)
           bind_local(sock);
     }
+
 }
 
 
@@ -1351,6 +1534,7 @@ link_socket_init_phase1 (struct link_socket *sock,
 			 const char *local_port,
 			 const char *remote_host,
 			 const char *remote_port,
+			 struct cached_dns_entry *dns_cache,
 			 int proto,
 			 sa_family_t af,
 			 bool bind_ipv6_only,
@@ -1385,6 +1569,7 @@ link_socket_init_phase1 (struct link_socket *sock,
   sock->local_port = local_port;
   sock->remote_host = remote_host;
   sock->remote_port = remote_port;
+  sock->dns_cache = dns_cache;
 
 #ifdef ENABLE_HTTP_PROXY
   sock->http_proxy = http_proxy;
@@ -1564,33 +1749,33 @@ linksock_print_addr (struct link_socket *sock)
   const int msglevel = (sock->mode == LS_MODE_TCP_ACCEPT_FROM) ? D_INIT_MEDIUM : M_INFO;
 
   /* print local address */
-  if (sock->inetd)
+ if (sock->inetd)
     msg (msglevel, "%s link local: [inetd]", proto2ascii (sock->info.proto, sock->info.af, true));
-    else if (sock->bind_local)
-      {
-	/* Socket is always bound on the first matching address */
-	struct addrinfo *cur;
-	for (cur = sock->info.lsa->bind_local; cur; cur=cur->ai_next)
-	  {
-	    if(cur->ai_family == sock->info.lsa->actual.ai_family)
-		break;
-	  }
-	ASSERT (cur);
-	msg (msglevel, "%s link local (bound): %s",
+  else if (sock->bind_local)
+    {
+      /* Socket is always bound on the first matching address */
+      struct addrinfo *cur;
+      for (cur = sock->info.lsa->bind_local; cur; cur=cur->ai_next)
+	{
+	  if(cur->ai_family == sock->info.lsa->actual.ai_family)
+	    break;
+	}
+      ASSERT (cur);
+      msg (msglevel, "%s link local (bound): %s",
 	   proto2ascii (sock->info.proto, sock->info.af, true),
 	   print_sockaddr(cur->ai_addr,&gc));
-      }
-    else
-	msg (msglevel, "%s link local: (not bound)",
-	     proto2ascii (sock->info.proto, sock->info.af, true));
+    }
+  else
+    msg (msglevel, "%s link local: (not bound)",
+	 proto2ascii (sock->info.proto, sock->info.af, true));
 
   /* print active remote address */
   msg (msglevel, "%s link remote: %s",
-	 proto2ascii (sock->info.proto, sock->info.af, true),
-	 print_link_socket_actual_ex (&sock->info.lsa->actual,
-				      ":",
-				      PS_SHOW_PORT_IF_DEFINED,
-				      &gc));
+       proto2ascii (sock->info.proto, sock->info.af, true),
+       print_link_socket_actual_ex (&sock->info.lsa->actual,
+				    ":",
+				    PS_SHOW_PORT_IF_DEFINED,
+				    &gc));
   gc_free(&gc);
 }
 
@@ -1707,7 +1892,6 @@ phase2_socks_client (struct link_socket *sock, struct signal_info *sig_info)
 
     sock->remote_host = sock->proxy_dest_host;
     sock->remote_port = sock->proxy_dest_port;
-    sock->did_resolve_remote = false;
 
     addr_zero_host(&sock->info.lsa->actual.dest);
     if (sock->info.lsa->remote_list)
@@ -2579,30 +2763,6 @@ proto2ascii_all (struct gc_arena *gc)
   return BSTR (&out);
 }
 
-int
-addr_guess_family(sa_family_t af, const char *name)
-{
-  unsigned short ret;
-  if (af)
-    {
-      return af;	/* already stamped */
-    } 
-  else
-    {
-      struct addrinfo hints , *ai;
-      int err;
-      CLEAR(hints);
-      hints.ai_flags = AI_NUMERICHOST;
-      err = getaddrinfo(name, NULL, &hints, &ai);
-      if ( 0 == err )
-	{
-	  ret=ai->ai_family;
-	  freeaddrinfo(ai);
-	  return ret;
-	}
-    }
-  return AF_INET;	/* default */
-}
 const char *
 addr_family_name (int af) 
 {

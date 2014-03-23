@@ -372,6 +372,44 @@ x_gc_free (struct gc_arena *a)
 }
 
 /*
+ * Functions to handle special objects in gc_entries
+ */
+
+void
+x_gc_freespecial (struct gc_arena *a)
+{
+  struct gc_entry_special *e;
+  e = a->list_special;
+  a->list_special = NULL;
+
+  while (e != NULL)
+    {
+      struct gc_entry_special *next = e->next;
+      e->free_fnc (e->addr);
+      free(e);
+      e = next;
+    }
+}
+
+void gc_addspecial (void *addr, void (free_function)(void*), struct gc_arena *a)
+{
+  ASSERT(a);
+  struct gc_entry_special *e;
+#ifdef DMALLOC
+  e = (struct gc_entry_special *) openvpn_dmalloc (file, line, sizeof (struct gc_entry_special));
+#else
+  e = (struct gc_entry_special *) malloc (sizeof (struct gc_entry_special));
+#endif
+  check_malloc_return (e);
+  e->free_fnc = free_function;
+  e->addr = addr;
+
+  e->next = a->list_special;
+  a->list_special = e;
+}
+
+
+/*
  * Transfer src arena to dest, resetting src to an empty arena.
  */
 void

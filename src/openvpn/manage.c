@@ -1568,9 +1568,9 @@ man_listen (struct management *man)
       else
 #endif
 	{
-	  man->connection.sd_top = create_socket_tcp (AF_INET);
+	  man->connection.sd_top = create_socket_tcp (man->settings.local->ai_family);
 	  socket_bind (man->connection.sd_top, man->settings.local,
-                       AF_INET, "MANAGEMENT", true);
+                       man->settings.local->ai_family, "MANAGEMENT", false);
 	}
 
       /*
@@ -2151,8 +2151,14 @@ man_settings_init (struct man_settings *ms,
 	    }
 	  else
 	    {
-              int status = openvpn_getaddrinfo(GETADDR_RESOLVE|GETADDR_WARN_ON_SIGNAL|GETADDR_FATAL,
-                                               addr, port, 0, NULL, AF_INET, &ms->local);
+	      int status;
+	      int resolve_flags = GETADDR_RESOLVE|GETADDR_WARN_ON_SIGNAL|GETADDR_FATAL;
+
+	      if (! (flags & MF_CONNECT_AS_CLIENT))
+		  resolve_flags |= GETADDR_PASSIVE;
+
+              status = openvpn_getaddrinfo (resolve_flags, addr, port, 0,
+					    NULL, AF_UNSPEC, &ms->local);
               ASSERT(status==0);
 	    }
 	}
@@ -2179,6 +2185,8 @@ man_settings_init (struct man_settings *ms,
 static void
 man_settings_close (struct man_settings *ms)
 {
+  if (ms->local)
+    freeaddrinfo(ms->local);
   free (ms->write_peer_info_file);
   CLEAR (*ms);
 }
@@ -2616,7 +2624,7 @@ management_post_tunnel_open (struct management *man, const in_addr_t tun_local_i
       int ret;
 
       ia.s_addr = htonl(tun_local_ip);
-      ret = openvpn_getaddrinfo(0, inet_ntoa(ia), NULL, 0, NULL,
+      ret = openvpn_getaddrinfo(GETADDR_PASSIVE, inet_ntoa(ia), NULL, 0, NULL,
                                 AF_INET, &man->settings.local);
       ASSERT (ret==0);
       man_connection_init (man);

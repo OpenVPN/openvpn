@@ -77,6 +77,16 @@ struct openvpn_sockaddr
   } addr;
 };
 
+/* struct to hold preresolved host names */
+struct cached_dns_entry {
+    const char *hostname;
+    const char *servname;
+    int ai_family;
+    int flags;
+    struct addrinfo *ai;
+    struct cached_dns_entry *next;
+};
+
 /* actual address of remote, based on source address of received packets */
 struct link_socket_actual
 {
@@ -188,6 +198,7 @@ struct link_socket
   const char *remote_port;
   const char *local_host;
   const char *local_port;
+  struct cached_dns_entry *dns_cache;
   bool bind_local;
 
 # define INETD_NONE   0
@@ -207,8 +218,6 @@ struct link_socket
   struct socket_buffer_size socket_buffer_sizes;
 
   int mtu;                      /* OS discovered MTU, or 0 if unknown */
-
-  bool did_resolve_remote;
 
 # define SF_USE_IP_PKTINFO (1<<0)
 # define SF_TCP_NODELAY (1<<1)
@@ -298,6 +307,8 @@ int openvpn_connect (socket_descriptor_t sd,
 		     int connect_timeout,
 		     volatile int *signal_received);
 
+
+
 /*
  * Initialize link_socket object.
  */
@@ -308,6 +319,7 @@ link_socket_init_phase1 (struct link_socket *sock,
 			 const char *local_port,
 			 const char *remote_host,
 			 const char *remote_port,
+			 struct cached_dns_entry *dns_cache,
 			 int proto,
 			 sa_family_t af,
 			 bool bind_ipv6_only,
@@ -339,6 +351,8 @@ link_socket_init_phase1 (struct link_socket *sock,
 void link_socket_init_phase2 (struct link_socket *sock,
 			      const struct frame *frame,
 			      struct signal_info *sig_info);
+
+void do_preresolve(struct context *c);
 
 void socket_adjust_frame_parameters (struct frame *frame, int proto);
 
@@ -513,6 +527,8 @@ bool unix_socket_get_peer_uid_gid (const socket_descriptor_t sd, int *uid, int *
 #define GETADDR_RANDOMIZE             (1<<9)
 #define GETADDR_PASSIVE               (1<<10)
 #define GETADDR_DATAGRAM              (1<<11)
+
+#define GETADDR_CACHE_MASK		GETADDR_DATAGRAM|GETADDR_PASSIVE
 
 in_addr_t getaddr (unsigned int flags,
 		   const char *hostname,
