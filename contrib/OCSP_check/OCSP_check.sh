@@ -97,7 +97,7 @@ if [ $check_depth -eq -1 ] || [ $cur_depth -eq $check_depth ]; then
                     "$nonce" \
                     -CAfile "$verify" \
                     -url "$ocsp_url" \
-                    -serial "0x${serial}" 2>/dev/null)
+                    -serial "${serial}" 2>/dev/null)
 
     if [ $? -eq 0 ]; then
       # check that it's good
