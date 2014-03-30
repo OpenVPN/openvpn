@@ -917,15 +917,16 @@ static void protect_fd_nonlocal (int fd, const struct sockaddr* addr)
  */
 static void
 socket_do_listen (socket_descriptor_t sd,
-		  const struct sockaddr *local,
+		  const struct addrinfo *local,
 		  bool do_listen,
 		  bool do_set_nonblock)
 {
   struct gc_arena gc = gc_new ();
   if (do_listen)
     {
+      ASSERT(local);
       msg (M_INFO, "Listening for incoming TCP connection on %s", 
-	   print_sockaddr (local, &gc));
+	   print_sockaddr (local->ai_addr, &gc));
       if (listen (sd, 1))
 	msg (M_ERR, "TCP: listen() failed");
     }
@@ -1018,7 +1019,7 @@ socket_listen_accept (socket_descriptor_t sd,
   int new_sd = SOCKET_UNDEFINED;
 
   CLEAR (*act);
-  socket_do_listen (sd, local->ai_addr, do_listen, true);
+  socket_do_listen (sd, local, do_listen, true);
 
   while (true)
     {
@@ -1053,7 +1054,7 @@ socket_listen_accept (socket_descriptor_t sd,
 
       if (socket_defined (new_sd))
 	{
-          struct addrinfo* ai;
+          struct addrinfo* ai = NULL;
           if(remote_dynamic)
               openvpn_getaddrinfo(0, remote_dynamic, NULL, 1, NULL,
                                     remote_verify.addr.sa.sa_family, &ai);
@@ -1775,7 +1776,7 @@ phase2_tcp_server (struct link_socket *sock, const char *remote_dynamic,
       break;
     case LS_MODE_TCP_LISTEN:
       socket_do_listen (sock->sd,
-			sock->info.lsa->bind_local->ai_addr,
+			sock->info.lsa->bind_local,
 			true,
 			false);
       break;

@@ -524,7 +524,7 @@ bool unix_socket_get_peer_uid_gid (const socket_descriptor_t sd, int *uid, int *
 #define GETADDR_PASSIVE               (1<<10)
 #define GETADDR_DATAGRAM              (1<<11)
 
-#define GETADDR_CACHE_MASK		GETADDR_DATAGRAM|GETADDR_PASSIVE
+#define GETADDR_CACHE_MASK		(GETADDR_DATAGRAM|GETADDR_PASSIVE)
 
 in_addr_t getaddr (unsigned int flags,
 		   const char *hostname,
