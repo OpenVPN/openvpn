@@ -794,6 +794,8 @@ if test "${have_openssl_crypto}" = "yes"; then
 fi
 
 if test "${have_openssl_ssl}" = "yes"; then
+    saved_CPPFLAGS="${CPPFLAGS}"
+    CPPFLAGS="${CPPFLAGS} ${OPENSSL_CRYPTO_CFLAGS}"
     AC_MSG_CHECKING([for SSL_OP_NO_TICKET flag in OpenSSL])
     AC_EGREP_CPP(have_ssl_op_no_ticket, [
     #include <openssl/ssl.h>
@@ -806,6 +808,7 @@ if test "${have_openssl_ssl}" = "yes"; then
         AC_MSG_RESULT([no])
         AC_ERROR([OpenVPN 2.4+ requires SSL_OP_NO_TICKET in OpenSSL])
     ])
+    CPPFLAGS="${saved_CPPFLAGS}"
 fi
 
 AC_ARG_VAR([POLARSSL_CFLAGS], [C compiler flags for polarssl])
