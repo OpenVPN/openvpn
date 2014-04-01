@@ -2117,7 +2117,7 @@ test_routes (const struct route_list *rl, const struct tuntap *tt)
 
       if (rl)
 	{
-	  struct route *r;
+	  struct route_ipv4 *r;
 	  for (r = rl->routes, len = 0; r; r = r->next, ++len)
 	    test_route_helper (&ret, &count, &good, &ambig, adapters, r->gateway);
 
