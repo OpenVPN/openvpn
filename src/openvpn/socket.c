@@ -775,7 +775,6 @@ create_socket_tcp (struct addrinfo* addrinfo)
 
   ASSERT (addrinfo);
   ASSERT (addrinfo->ai_socktype == SOCK_STREAM);
-  ASSERT (addrinfo->ai_protocol == IPPROTO_TCP);
 
   if ((sd = socket (addrinfo->ai_family, addrinfo->ai_socktype, addrinfo->ai_protocol)) < 0)
     msg (M_ERR, "Cannot create TCP socket");
@@ -800,7 +799,6 @@ create_socket_udp (struct addrinfo* addrinfo, const unsigned int flags)
 
   ASSERT (addrinfo);
   ASSERT (addrinfo->ai_socktype == SOCK_DGRAM);
-  ASSERT (addrinfo->ai_protocol == IPPROTO_UDP);
 
   if ((sd = socket (addrinfo->ai_family, addrinfo->ai_socktype, addrinfo->ai_protocol)) < 0)
     msg (M_ERR, "UDP: Cannot create UDP/UDP6 socket");
@@ -858,7 +856,7 @@ static void bind_local (struct link_socket *sock, const sa_family_t ai_family)
 static void
 create_socket (struct link_socket* sock, struct addrinfo* addr)
 {
-  if (addr->ai_protocol == IPPROTO_UDP)
+  if (addr->ai_protocol == IPPROTO_UDP || addr->ai_socktype == SOCK_DGRAM)
     {
       sock->sd = create_socket_udp (addr, sock->sockflags);
       sock->sockflags |= SF_GETADDRINFO_DGRAM;
@@ -878,7 +876,7 @@ create_socket (struct link_socket* sock, struct addrinfo* addr)
 	}
 #endif
     }
-  else if (addr->ai_protocol == IPPROTO_TCP)
+  else if (addr->ai_protocol == IPPROTO_TCP || addr->ai_socktype == SOCK_STREAM)
     {
       sock->sd = create_socket_tcp (addr);
     }
@@ -1806,7 +1804,6 @@ phase2_tcp_client (struct link_socket *sock, struct signal_info *sig_info)
   const bool proxy_retry = false;
 #endif
   do {
-    ASSERT (sock->info.lsa->current_remote->ai_protocol == IPPROTO_TCP);
     socket_connect (&sock->sd,
                    sock->info.lsa->current_remote->ai_addr,
                    sock->connect_timeout,
