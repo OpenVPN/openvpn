@@ -5196,10 +5196,14 @@ close_tun (struct tuntap *tt)
 	  /* remove route pointing to interface */
 	  delete_route_connected_v6_net(tt, NULL);
 
+	  /* "store=active" is needed in Windows 8(.1) to delete the
+	   * address we added (pointed out by Cedric Tabary).
+	   */
+
 	  /* netsh interface ipv6 delete address \"%s\" %s */
 	  ifconfig_ipv6_local = print_in6_addr (tt->local_ipv6, 0,  &gc);
 	  argv_printf (&argv,
-		    "%s%sc interface ipv6 delete address %s %s",
+		    "%s%sc interface ipv6 delete address %s %s store=active",
 		     get_win_sys_path(),
 		     NETSH_PATH_SUFFIX,
 		     tt->actual_name,
