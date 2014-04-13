@@ -12,4 +12,4 @@ CC="${CC:-gcc}"
 CFLAGS="${CFLAGS:--O2 -Wall -g}"
 
 $CC $CPPFLAGS $CFLAGS -fPIC -c $1.c && \
-$CC $CFLAGS -fPIC -shared ${LDFLAS} -Wl,-soname,$1.so -o $1.so $1.o -lc
+$CC $CFLAGS -fPIC -shared ${LDFLAGS} -Wl,-soname,$1.so -o $1.so $1.o -lc
