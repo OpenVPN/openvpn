@@ -1320,4 +1320,10 @@ get_highest_preference_tls_cipher (char *buf, int size)
   SSL_CTX_free (ctx);
 }
 
+char *
+get_ssl_library_version(void)
+{
+    return SSLeay_version(SSLEAY_VERSION);
+}
+
 #endif /* defined(ENABLE_SSL) && defined(ENABLE_CRYPTO_OPENSSL) */

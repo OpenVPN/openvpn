@@ -466,4 +466,10 @@ void show_available_tls_ciphers (const char *tls_ciphers);
  */
 void get_highest_preference_tls_cipher (char *buf, int size);
 
+/**
+ * return a pointer to a static memory area containing the
+ * name and version number of the SSL library in use
+ */
+char * get_ssl_library_version(void);
+
 #endif /* SSL_BACKEND_H_ */

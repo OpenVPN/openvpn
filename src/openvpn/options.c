@@ -3435,10 +3435,28 @@ usage_small (void)
   openvpn_exit (OPENVPN_EXIT_STATUS_USAGE); /* exit point */
 }
 
+void
+show_library_versions(const unsigned int flags)
+{
+  msg (flags, "library versions: %s%s%s",
+#ifdef ENABLE_SSL
+			get_ssl_library_version(),
+#else
+			"",
+#endif
+#ifdef ENABLE_LZO
+			", LZO ", lzo_version_string()
+#else
+			"", ""
+#endif
+	);
+}
+
 static void
 usage_version (void)
 {
   msg (M_INFO|M_NOPREFIX, "%s", title_string);
+  show_library_versions( M_INFO|M_NOPREFIX );
   msg (M_INFO|M_NOPREFIX, "Originally developed by James Yonan");
   msg (M_INFO|M_NOPREFIX, "Copyright (C) 2002-2010 OpenVPN Technologies, Inc. <sales@openvpn.net>");
 #ifndef ENABLE_SMALL

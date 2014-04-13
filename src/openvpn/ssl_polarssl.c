@@ -1079,4 +1079,14 @@ get_highest_preference_tls_cipher (char *buf, int size)
   strncpynt (buf, cipher_name, size);
 }
 
+char *
+get_ssl_library_version(void)
+{
+    static char polar_version[30];
+    unsigned int pv = version_get_number();
+    sprintf( polar_version, "PolarSSL %d.%d.%d",
+		(pv>>24)&0xff, (pv>>16)&0xff, (pv>>8)&0xff );
+    return polar_version;
+}
+
 #endif /* defined(ENABLE_SSL) && defined(ENABLE_CRYPTO_POLARSSL) */

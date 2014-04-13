@@ -220,6 +220,7 @@ openvpn_main (int argc, char *argv[])
 
 	  /* print version number */
 	  msg (M_INFO, "%s", title_string);
+	  show_library_versions(M_INFO);
 
 	  /* misc stuff */
 	  pre_setup (&c.options);
