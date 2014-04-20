@@ -41,7 +41,7 @@ MAINTAINERCLEANFILES = \
 	$(srcdir)/config.guess $(srcdir)/config.sub
 
 CLEANFILES = \
-	config-version.h
+	config-version.h tests/t_client.sh
 
 EXTRA_DIST = \
 	contrib \
