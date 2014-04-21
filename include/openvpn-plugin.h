@@ -29,10 +29,10 @@
 
 #ifdef ENABLE_SSL
 #ifdef ENABLE_CRYPTO_POLARSSL
-#include <polarssl/x509.h>
+#include <polarssl/x509_crt.h>
 #ifndef __OPENVPN_X509_CERT_T_DECLARED
 #define __OPENVPN_X509_CERT_T_DECLARED
-typedef x509_cert openvpn_x509_cert_t;
+typedef x509_crt openvpn_x509_cert_t;
 #endif
 #else
 #include <openssl/x509.h>
