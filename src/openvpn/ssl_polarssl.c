@@ -228,6 +228,15 @@ else
       (counter_type) 8 * mpi_size(&ctx->dhm_ctx->P));
 }
 
+void
+tls_ctx_load_ecdh_params (struct tls_root_ctx *ctx, const char *curve_name
+    )
+{
+    if (NULL != curve_name)
+      msg(M_WARN, "WARNING: PolarSSL builds do not support specifying an ECDH "
+                  "curve, using default curves.");
+}
+
 int
 tls_ctx_load_pkcs12(struct tls_root_ctx *ctx, const char *pkcs12_file,
     const char *pkcs12_file_inline,
@@ -1081,6 +1090,23 @@ show_available_tls_ciphers (const char *cipher_list)
   printf ("\n");
 
   tls_ctx_free(&tls_ctx);
+}
+
+void
+show_available_curves (void)
+{
+  const ecp_curve_info *pcurve = ecp_curve_list();
+
+  if (NULL == pcurve)
+    msg (M_FATAL, "Cannot retrieve curve list from PolarSSL");
+
+  /* Print curve list */
+  printf ("Available Elliptic curves, listed in order of preference:\n\n");
+  while (POLARSSL_ECP_DP_NONE != pcurve->grp_id)
+    {
+      printf("%s\n", pcurve->name);
+      pcurve++;
+    }
 }
 
 void

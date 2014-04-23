@@ -555,6 +555,10 @@ init_ssl (const struct options *options, struct tls_root_ctx *new_ctx)
       tls_ctx_load_extra_certs(new_ctx, options->extra_certs_file, options->extra_certs_file_inline);
     }
 
+  /* Once keys and cert are loaded, load ECDH parameters */
+  if (options->tls_server)
+    tls_ctx_load_ecdh_params(new_ctx, options->ecdh_curve);
+
   /* Allowable ciphers */
   tls_ctx_restrict_ciphers(new_ctx, options->cipher_list);
 

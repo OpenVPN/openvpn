@@ -201,6 +201,7 @@ struct options
   bool show_engines;
 #ifdef ENABLE_SSL
   bool show_tls_ciphers;
+  bool show_curves;
 #endif
   bool genkey;
 #endif
@@ -515,6 +516,7 @@ struct options
   const char *priv_key_file;
   const char *pkcs12_file;
   const char *cipher_list;
+  const char *ecdh_curve;
   const char *tls_verify;
   int verify_x509_type;
   const char *verify_x509_name;

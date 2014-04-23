@@ -4246,6 +4246,13 @@ included with the OpenVPN distribution.  Diffie Hellman parameters
 may be considered public.
 .\"*********************************************************
 .TP
+.B \-\-ecdh-curve name
+Specify the curve to use for elliptic curve Diffie Hellman. Available
+curves can be listed with
+.B \-\-show-curves
+. The specified curve will only be used for ECDH TLS-ciphers.
+.\"*********************************************************
+.TP
 .B \-\-cert file
 Local peer's signed certificate in .pem format \-\- must be signed
 by a certificate authority whose certificate is in
@@ -5026,6 +5033,13 @@ lowest.
 (Standalone)
 Show currently available hardware-based crypto acceleration
 engines supported by the OpenSSL library.
+.\"*********************************************************
+.TP
+.B \-\-show-curves
+(Standalone)
+Show all available elliptic curves to use with the
+.B \-\-ecdh-curve
+option.
 .\"*********************************************************
 .SS Generate a random key:
 Used only for non-TLS static key encryption mode.

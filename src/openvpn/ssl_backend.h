@@ -186,6 +186,16 @@ void tls_ctx_load_dh_params(struct tls_root_ctx *ctx, const char *dh_file,
     const char *dh_file_inline);
 
 /**
+ * Load Elliptic Curve Parameters, and load them into the library-specific
+ * TLS context.
+ *
+ * @param ctx          TLS context to use
+ * @param curve_name   The name of the elliptic curve to load.
+ */
+void tls_ctx_load_ecdh_params(struct tls_root_ctx *ctx, const char *curve_name
+    );
+
+/**
  * Load PKCS #12 file for key, cert and (optionally) CA certs, and add to
  * library-specific TLS context.
  *
@@ -459,6 +469,11 @@ void print_details (struct key_state_ssl * ks_ssl, const char *prefix);
  * @param		- list of allowed TLS cipher, or NULL.
  */
 void show_available_tls_ciphers (const char *tls_ciphers);
+
+/*
+ * Show the available elliptic curves in the crypto library
+ */
+void show_available_curves (void);
 
 /*
  * The OpenSSL library has a notion of preference in TLS ciphers.  Higher
