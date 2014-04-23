@@ -1,7 +1,6 @@
-Sample RSA keys.
+Sample RSA and EC keys.
 
-See the examples section of the man page
-for usage examples.
+See the examples section of the man page for usage examples.
 
 NOTE: THESE KEYS ARE FOR TESTING PURPOSES ONLY.
       DON'T USE THEM FOR ANY REAL WORK BECAUSE
@@ -12,3 +11,4 @@ client.{crt,key} -- sample client key/cert
 server.{crt,key} -- sample server key/cert (nsCertType=server)
 pass.{crt,key}   -- sample client key/cert with password-encrypted key
                     password = "password"
+ec-*.{crt,key}   -- sample elliptic curve variants of the above
