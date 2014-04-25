@@ -337,7 +337,7 @@ x509_verify_cert_eku (x509_crt *cert, const char * const expected_oid)
 		}
 	    }
 
-	  if (0 == x509_oid_get_numeric_string( oid_num_str,
+	  if (0 < x509_oid_get_numeric_string( oid_num_str,
 	      sizeof (oid_num_str), oid))
 	    {
 	      msg (D_HANDSHAKE, "++ Certificate has EKU (oid) %s, expects %s",
