@@ -2343,18 +2343,22 @@ is NOT specified.
 .\"*********************************************************
 .TP
 .B \-\-multihome
-Configure a multi-homed UDP server.  This option can be used when
-OpenVPN has been configured to listen on all interfaces, and will
-attempt to bind client sessions to the interface on which packets
-are being received, so that outgoing packets will be sent out
-of the same interface.  Note that this option is only relevant for
-UDP servers and currently is only implemented on Linux.
+Configure a multi-homed UDP server.  This option needs to be used when
+a server has more than one IP address (e.g. multiple interfaces, or
+secondary IP addresses), and is not using
+.B \-\-local
+to force binding to one specific address only.  This option will
+add some extra lookups to the packet path to ensure that the UDP reply
+packets are always sent from the address that the client is
+talking to. This is not supported on all platforms, and it adds more
+processing, so it's not enabled by default.
 
-Note: clients connecting to a
-.B \-\-multihome
-server should always use the
-.B \-\-nobind
-option.
+Note: this option is only relevant for UDP servers.
+
+Note 2: if you do an IPv6+IPv4 dual-stack bind on a Linux machine with
+multiple IPv4 address, connections to IPv4 addresses will not work
+right on kernels before 3.14, due to missing kernel support for the
+IPv4-mapped case.
 .\"*********************************************************
 .TP
 .B \-\-echo [parms...]
