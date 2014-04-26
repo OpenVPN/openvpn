@@ -2336,8 +2336,9 @@ Note: this option is only relevant for UDP servers.
 
 Note 2: if you do an IPv6+IPv4 dual-stack bind on a Linux machine with
 multiple IPv4 address, connections to IPv4 addresses will not work
-right on kernels before 3.14, due to missing kernel support for the
-IPv4-mapped case.
+right on kernels before 3.15, due to missing kernel support for the
+IPv4-mapped case (some distributions have ported this to earlier kernel
+versions, though).
 .\"*********************************************************
 .TP
 .B \-\-echo [parms...]
@@ -5413,9 +5414,11 @@ option can be used BEFORE this option to produce debugging information.
 .SS IPv6 Related Options
 .\"*********************************************************
 The following options exist to support IPv6 tunneling in peer-to-peer
-and client-server mode.  As of now, this is just very basic
-documentation of the IPv6-related options. More documentation can be
-found on http://www.greenie.net/ipv6/openvpn.html.
+and client-server mode.  All options are modeled after their IPv4
+counterparts, so more detailed explanations given there apply here
+as well (except for
+.B \-\-topology
+, which has no effect on IPv6).
 .TP
 .B --ifconfig-ipv6 ipv6addr/bits ipv6remote
 configure IPv6 address
@@ -5442,7 +5445,8 @@ pool starts at
 .B ipv6addr
 and increments by +1 for every new client (linear mode).  The
 .B /bits
-setting controls the size of the pool.
+setting controls the size of the pool.  Due to implementation details,
+the pool size must be between /64 and /112.
 .TP
 .B --ifconfig-ipv6-push ipv6addr/bits ipv6remote
 for ccd/ per-client static IPv6 interface configuration, see
