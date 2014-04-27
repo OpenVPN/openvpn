@@ -435,6 +435,11 @@ verify_cert_set_env(struct env_set *es, openvpn_x509_cert_t *peer_cert, int cert
   openvpn_snprintf (envname, sizeof(envname), "tls_serial_%d", cert_depth);
   setenv_str (es, envname, serial);
 
+  /* export serial number in hex as environmental variable */
+  serial = backend_x509_get_serial_hex(peer_cert, &gc);
+  openvpn_snprintf (envname, sizeof(envname), "tls_serial_hex_%d", cert_depth);
+  setenv_str (es, envname, serial);
+
   gc_free(&gc);
 }
 

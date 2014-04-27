@@ -238,6 +238,14 @@ backend_x509_get_serial (openvpn_x509_cert_t *cert, struct gc_arena *gc)
   return serial;
 }
 
+char *
+backend_x509_get_serial_hex (openvpn_x509_cert_t *cert, struct gc_arena *gc)
+{
+  const ASN1_INTEGER *asn1_i = X509_get_serialNumber(cert);
+
+  return format_hex_ex(asn1_i->data, asn1_i->length, 0, 1, ":", gc);
+}
+
 unsigned char *
 x509_get_sha1_hash (X509 *cert, struct gc_arena *gc)
 {
