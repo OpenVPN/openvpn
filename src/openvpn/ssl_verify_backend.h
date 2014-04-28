@@ -113,16 +113,31 @@ result_t x509_get_username (char *common_name, int cn_len,
     char * x509_username_field, openvpn_x509_cert_t *peer_cert);
 
 /*
- * Return the certificate's serial number.
+ * Return the certificate's serial number in decimal string representation.
  *
  * The serial number is returned as a string, since it might be a bignum.
  *
  * @param cert		Certificate to retrieve the serial number from.
  * @param gc		Garbage collection arena to use when allocating string.
  *
- * @return 		The certificate's serial number.
+ * @return 		String representation of the certificate's serial number
+ * 			in decimal notation, or NULL on error.
  */
-char *x509_get_serial (openvpn_x509_cert_t *cert, struct gc_arena *gc);
+char *backend_x509_get_serial (openvpn_x509_cert_t *cert, struct gc_arena *gc);
+
+/*
+ * Return the certificate's serial number in hex string representation.
+ *
+ * The serial number is returned as a string, since it might be a bignum.
+ *
+ * @param cert		Certificate to retrieve the serial number from.
+ * @param gc		Garbage collection arena to use when allocating string.
+ *
+ * @return 		String representation of the certificate's serial number
+ * 			in hex notation, or NULL on error.
+ */
+char *backend_x509_get_serial_hex (openvpn_x509_cert_t *cert,
+    struct gc_arena *gc);
 
 /*
  * Save X509 fields to environment, using the naming convention:
