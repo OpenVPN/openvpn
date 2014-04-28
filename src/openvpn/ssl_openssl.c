@@ -119,11 +119,16 @@ tmp_rsa_cb (SSL * s, int is_export, int keylength)
 }
 
 void
-tls_ctx_server_new(struct tls_root_ctx *ctx)
+tls_ctx_server_new(struct tls_root_ctx *ctx, unsigned int ssl_flags)
 {
+  const int tls_version_min = (ssl_flags >> SSLF_TLS_VERSION_SHIFT) & SSLF_TLS_VERSION_MASK;
+
   ASSERT(NULL != ctx);
 
-  ctx->ctx = SSL_CTX_new (SSLv23_server_method ());
+  if (tls_version_min > TLS_VER_UNSPEC)
+    ctx->ctx = SSL_CTX_new (SSLv23_server_method ());
+  else
+    ctx->ctx = SSL_CTX_new (TLSv1_server_method ());
 
   if (ctx->ctx == NULL)
     msg (M_SSLERR, "SSL_CTX_new SSLv23_server_method");
@@ -132,11 +137,16 @@ tls_ctx_server_new(struct tls_root_ctx *ctx)
 }
 
 void
-tls_ctx_client_new(struct tls_root_ctx *ctx)
+tls_ctx_client_new(struct tls_root_ctx *ctx, unsigned int ssl_flags)
 {
+  const int tls_version_min = (ssl_flags >> SSLF_TLS_VERSION_SHIFT) & SSLF_TLS_VERSION_MASK;
+
   ASSERT(NULL != ctx);
 
-  ctx->ctx = SSL_CTX_new (SSLv23_client_method ());
+  if (tls_version_min > TLS_VER_UNSPEC)
+    ctx->ctx = SSL_CTX_new (SSLv23_client_method ());
+  else
+    ctx->ctx = SSL_CTX_new (TLSv1_client_method ());
 
   if (ctx->ctx == NULL)
     msg (M_SSLERR, "SSL_CTX_new SSLv23_client_method");

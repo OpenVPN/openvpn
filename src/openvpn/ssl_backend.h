@@ -109,10 +109,11 @@ void tls_clear_error();
  * @return 		One of the TLS_VER_x constants or TLS_VER_BAD
  *                      if a parse error should be flagged.
  */
-#define TLS_VER_BAD   -1
-#define TLS_VER_1_0    0 /* default */
-#define TLS_VER_1_1    1
-#define TLS_VER_1_2    2
+#define TLS_VER_BAD    -1
+#define TLS_VER_UNSPEC  0 /* default */
+#define TLS_VER_1_0     1
+#define TLS_VER_1_1     2
+#define TLS_VER_1_2     3
 int tls_version_min_parse(const char *vstr, const char *extra);
 
 /**
@@ -127,15 +128,17 @@ int tls_version_max(void);
  * Initialise a library-specific TLS context for a server.
  *
  * @param ctx		TLS context to initialise
+ * @param ssl_flags     SSLF_x flags from ssl_common.h
  */
-void tls_ctx_server_new(struct tls_root_ctx *ctx);
+void tls_ctx_server_new(struct tls_root_ctx *ctx, unsigned int ssl_flags);
 
 /**
  * Initialises a library-specific TLS context for a client.
  *
  * @param ctx		TLS context to initialise
+ * @param ssl_flags     SSLF_x flags from ssl_common.h
  */
-void tls_ctx_client_new(struct tls_root_ctx *ctx);
+void tls_ctx_client_new(struct tls_root_ctx *ctx, unsigned int ssl_flags);
 
 /**
  * Frees the library-specific TLSv1 context

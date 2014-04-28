@@ -4275,12 +4275,18 @@ above).
 .\"*********************************************************
 .TP
 .B \-\-tls-version-min version ['or-highest']
-Sets the minimum
+Enable TLS version negotiation, and set the minimum
 TLS version we will accept from the peer (default is "1.0").
 Examples for version
 include "1.0", "1.1", or "1.2".  If 'or-highest' is specified
 and version is not recognized, we will only accept the highest TLS
 version supported by the local SSL implementation.
+
+If this options is not set, the code in OpenVPN 2.3.4 will default
+to using TLS 1.0 only, without any version negotiation.  This reverts
+the beaviour to what OpenVPN versions up to 2.3.2 did, as it turned
+out that TLS version negotiation can lead to handshake problems due
+to new signature algorithms in TLS 1.2.
 .\"*********************************************************
 .TP
 .B \-\-pkcs12 file
