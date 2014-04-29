@@ -595,7 +595,7 @@ init_route_list (struct route_list *rl,
   if (rl->rgi.flags & RGI_ADDR_DEFINED)
     {
       setenv_route_addr (es, "net_gateway", rl->rgi.gateway.addr, -1);
-#ifdef ENABLE_DEBUG
+#if defined(ENABLE_DEBUG) && !defined(ENABLE_SMALL)
       print_default_gateway (D_ROUTE, &rl->rgi);
 #endif
     }

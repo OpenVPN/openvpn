@@ -4147,7 +4147,7 @@ add_option (struct options *options,
 
       read_config_file (options, p[1], level, file, line, msglevel, permission_mask, option_types_found, es);
     }
-#ifdef ENABLE_DEBUG
+#if defined(ENABLE_DEBUG) && !defined(ENABLE_SMALL)
   else if (streq (p[0], "show-gateway"))
     {
       struct route_gateway_info rgi;
