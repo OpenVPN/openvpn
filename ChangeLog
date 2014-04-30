@@ -1,6 +1,39 @@
 OpenVPN Change Log
 Copyright (C) 2002-2012 OpenVPN Technologies, Inc. <sales@openvpn.net>
 
+2014.04.30 -- Version 2.3.4
+Arne Schwabe (1):
+      Fix man page and OSCP script: tls_serial_{n} is decimal
+
+Dmitrij Tejblum (1):
+      Fix is_ipv6 in case of tap interface.
+
+Gert Doering (7):
+      IPv6 address/route delete fix for Win8
+      Add SSL library version reporting.
+      Minor t_client.sh cleanups
+      Repair --multihome on FreeBSD for IPv4 sockets.
+      Rewrite manpage section about --multihome
+      More IPv6-related updates to the openvpn man page.
+      Conditionalize calls to print_default_gateway on !ENABLE_SMALL
+
+James Yonan (2):
+      Use native strtoull() with MSVC 2013.
+      When tls-version-min is unspecified, revert to original versioning approach.
+
+Steffan Karger (4):
+      Change signedness of hash in x509_get_sha1_hash(), fixes compiler warning.
+      Fix OCSP_check.sh to also use decimal for stdout verification.
+      Fix build system to accept non-system crypto library locations for plugins.
+      Make serial env exporting consistent amongst OpenSSL and PolarSSL builds.
+
+Yawning Angel (1):
+      Fix SOCKSv5 method selection
+
+kangsterizer (1):
+      Fix typo in sample build script to use LDFLAGS
+
+
 2014.04.08 -- Version 2.3.3
 Alon Bar-Lev (1):
       pkcs11: use generic evp key instead of rsa
