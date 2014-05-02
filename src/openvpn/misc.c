@@ -861,6 +861,12 @@ test_file (const char *filename)
 	  fclose (fp);
 	  ret = true;
 	}
+      else
+	{
+	  if( openvpn_errno () == EACCES ) {
+	    msg( M_WARN | M_ERRNO, "Could not access file '%s'", filename);
+	  }
+	}
     }
 
   dmsg (D_TEST_FILE, "TEST FILE '%s' [%d]",
