@@ -3439,18 +3439,21 @@ usage_small (void)
 void
 show_library_versions(const unsigned int flags)
 {
-  msg (flags, "library versions: %s%s%s",
 #ifdef ENABLE_SSL
-			get_ssl_library_version(),
+#define SSL_LIB_VER_STR get_ssl_library_version()
 #else
-			"",
+#define SSL_LIB_VER_STR ""
 #endif
 #ifdef ENABLE_LZO
-			", LZO ", lzo_version_string()
+#define LZO_LIB_VER_STR ", LZO ", lzo_version_string()
 #else
-			"", ""
+#define LZO_LIB_VER_STR "", ""
 #endif
-	);
+
+  msg (flags, "library versions: %s%s%s", SSL_LIB_VER_STR, LZO_LIB_VER_STR);
+
+#undef SSL_LIB_VER_STR
+#undef LZO_LIB_VER_STR
 }
 
 static void
