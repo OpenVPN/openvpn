@@ -1150,7 +1150,6 @@ resolve_bind_local (struct link_socket *sock)
 	case AF_INET6:
 	    {
 	      int status;
-	      int err;
 	      CLEAR(sock->info.lsa->local.addr.in6);
 	      if (sock->local_host)
 		{
@@ -1173,7 +1172,7 @@ resolve_bind_local (struct link_socket *sock)
 		{
 		  msg (M_FATAL, "getaddr6() failed for local \"%s\": %s",
 		       sock->local_host,
-		       gai_strerror(err));
+		       gai_strerror(status));
 		}
 	      sock->info.lsa->local.addr.in6.sin6_port = htons (sock->local_port);
 	    }
