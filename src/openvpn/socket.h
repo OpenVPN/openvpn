@@ -1023,7 +1023,7 @@ static inline void
 link_socket_set_tos (struct link_socket *ls)
 {
   if (ls && ls->ptos_defined)
-    setsockopt (ls->sd, IPPROTO_IP, IP_TOS, &ls->ptos, sizeof (ls->ptos));
+    setsockopt (ls->sd, IPPROTO_IP, IP_TOS, (const void *)&ls->ptos, sizeof (ls->ptos));
 }
 
 #endif
