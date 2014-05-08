@@ -261,8 +261,7 @@ tls_ctx_restrict_ciphers(struct tls_root_ctx *ctx, const char *ciphers)
 
   const tls_cipher_name_pair *cipher_pair;
 
-  const size_t openssl_ciphers_size = 4096;
-  char openssl_ciphers[openssl_ciphers_size];
+  char openssl_ciphers[4096];
   size_t openssl_ciphers_len = 0;
   openssl_ciphers[0] = '\0';
 
@@ -301,8 +300,8 @@ tls_ctx_restrict_ciphers(struct tls_root_ctx *ctx, const char *ciphers)
 	}
 
       // Make sure new cipher name fits in cipher string
-      if (((openssl_ciphers_size-1) - openssl_ciphers_len) < current_cipher_len) {
-	msg(M_SSLERR, "Failed to set restricted TLS cipher list, too long (>%zu).", openssl_ciphers_size-1);
+      if (((sizeof(openssl_ciphers)-1) - openssl_ciphers_len) < current_cipher_len) {
+	msg(M_SSLERR, "Failed to set restricted TLS cipher list, too long (>%d).", (int)sizeof(openssl_ciphers)-1);
       }
 
       // Concatenate cipher name to OpenSSL cipher string
