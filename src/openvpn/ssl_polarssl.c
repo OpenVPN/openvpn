@@ -1068,7 +1068,7 @@ get_highest_preference_tls_cipher (char *buf, int size)
   strncpynt (buf, cipher_name, size);
 }
 
-char *
+const char *
 get_ssl_library_version(void)
 {
     static char polar_version[30];

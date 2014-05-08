@@ -683,6 +683,8 @@ void notnull (const char *arg, const char *description);
 
 void usage_small (void);
 
+void show_library_versions(const unsigned int flags);
+
 void init_options (struct options *o, const bool init_gc);
 void uninit_options (struct options *o);
 

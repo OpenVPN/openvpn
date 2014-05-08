@@ -1354,7 +1354,7 @@ get_highest_preference_tls_cipher (char *buf, int size)
   SSL_CTX_free (ctx);
 }
 
-char *
+const char *
 get_ssl_library_version(void)
 {
     return SSLeay_version(SSLEAY_VERSION);
