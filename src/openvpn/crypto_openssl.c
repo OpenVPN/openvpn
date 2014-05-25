@@ -96,12 +96,6 @@ EVP_CipherUpdate_ov (EVP_CIPHER_CTX *ctx, uint8_t *out, int *outl, uint8_t *in, 
   return EVP_CipherUpdate (ctx, out, outl, in, inl);
 }
 
-static inline bool
-cipher_ok (const char* name)
-{
-  return true;
-}
-
 #ifndef EVP_CIPHER_name
 #define EVP_CIPHER_name(e)		OBJ_nid2sn(EVP_CIPHER_nid(e))
 #endif
@@ -312,7 +306,7 @@ show_available_ciphers ()
   for (nid = 0; nid < 10000; ++nid)	/* is there a better way to get the size of the nid list? */
     {
       const EVP_CIPHER *cipher = EVP_get_cipherbynid (nid);
-      if (cipher && cipher_ok (OBJ_nid2sn (nid)))
+      if (cipher)
 	{
 	  const unsigned int mode = EVP_CIPHER_mode (cipher);
 	  if (mode == EVP_CIPH_CBC_MODE
@@ -491,7 +485,7 @@ cipher_kt_get (const char *ciphername)
 
   cipher = EVP_get_cipherbyname (ciphername);
 
-  if ((NULL == cipher) || !cipher_ok (OBJ_nid2sn (EVP_CIPHER_nid (cipher))))
+  if (NULL == cipher)
     msg (M_SSLERR, "Cipher algorithm '%s' not found", ciphername);
 
   if (EVP_CIPHER_key_length (cipher) > MAX_CIPHER_KEY_LENGTH)
