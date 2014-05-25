@@ -84,18 +84,6 @@
 
 #endif
 
-static inline int
-EVP_CipherInit_ov (EVP_CIPHER_CTX *ctx, const EVP_CIPHER *type, uint8_t *key, uint8_t *iv, int enc)
-{
-  return EVP_CipherInit (ctx, type, key, iv, enc);
-}
-
-static inline int
-EVP_CipherUpdate_ov (EVP_CIPHER_CTX *ctx, uint8_t *out, int *outl, uint8_t *in, int inl)
-{
-  return EVP_CipherUpdate (ctx, out, outl, in, inl);
-}
-
 #ifndef EVP_CIPHER_name
 #define EVP_CIPHER_name(e)		OBJ_nid2sn(EVP_CIPHER_nid(e))
 #endif
@@ -546,13 +534,13 @@ cipher_ctx_init (EVP_CIPHER_CTX *ctx, uint8_t *key, int key_len,
   CLEAR (*ctx);
 
   EVP_CIPHER_CTX_init (ctx);
-  if (!EVP_CipherInit_ov (ctx, kt, NULL, NULL, enc))
+  if (!EVP_CipherInit (ctx, kt, NULL, NULL, enc))
     msg (M_SSLERR, "EVP cipher init #1");
 #ifdef HAVE_EVP_CIPHER_CTX_SET_KEY_LENGTH
   if (!EVP_CIPHER_CTX_set_key_length (ctx, key_len))
     msg (M_SSLERR, "EVP set key size");
 #endif
-  if (!EVP_CipherInit_ov (ctx, NULL, key, NULL, enc))
+  if (!EVP_CipherInit (ctx, NULL, key, NULL, enc))
     msg (M_SSLERR, "EVP cipher init #2");
 
   /* make sure we used a big enough key */
@@ -586,14 +574,14 @@ cipher_ctx_mode (const EVP_CIPHER_CTX *ctx)
 int
 cipher_ctx_reset (EVP_CIPHER_CTX *ctx, uint8_t *iv_buf)
 {
-  return EVP_CipherInit_ov (ctx, NULL, NULL, iv_buf, -1);
+  return EVP_CipherInit (ctx, NULL, NULL, iv_buf, -1);
 }
 
 int
 cipher_ctx_update (EVP_CIPHER_CTX *ctx, uint8_t *dst, int *dst_len,
     uint8_t *src, int src_len)
 {
-  return EVP_CipherUpdate_ov (ctx, dst, dst_len, src, src_len);
+  return EVP_CipherUpdate (ctx, dst, dst_len, src, src_len);
 }
 
 int
