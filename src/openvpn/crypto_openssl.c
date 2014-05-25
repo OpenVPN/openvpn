@@ -57,14 +57,6 @@
 #warning Some OpenSSL HMAC message digests now support key lengths greater than MAX_HMAC_KEY_LENGTH -- consider increasing MAX_HMAC_KEY_LENGTH
 #endif
 
-#ifndef EVP_CIPHER_name
-#define EVP_CIPHER_name(e)		OBJ_nid2sn(EVP_CIPHER_nid(e))
-#endif
-
-#ifndef EVP_MD_name
-#define EVP_MD_name(e)			OBJ_nid2sn(EVP_MD_type(e))
-#endif
-
 #if HAVE_OPENSSL_ENGINE
 #include <openssl/engine.h>
 
