@@ -199,7 +199,7 @@ tls_ctx_set_options (struct tls_root_ctx *ctx, unsigned int ssl_flags)
   }
 
 #ifdef SSL_MODE_RELEASE_BUFFERS
-  SSL_CTX_set_mode (ctx, SSL_MODE_RELEASE_BUFFERS);
+  SSL_CTX_set_mode (ctx->ctx, SSL_MODE_RELEASE_BUFFERS);
 #endif
   SSL_CTX_set_session_cache_mode (ctx->ctx, SSL_SESS_CACHE_OFF);
   SSL_CTX_set_default_passwd_cb (ctx->ctx, pem_password_callback);
