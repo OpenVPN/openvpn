@@ -244,6 +244,13 @@ AC_ARG_ENABLE(
 )
 
 AC_ARG_ENABLE(
+	[werror],
+	[AS_HELP_STRING([--enable-werror], [promote compiler warnings to errors, will cause builds to fail is the compiler issues warnings (debugging option) @<:@default=no@:>@])],
+	,
+	[enable_werror="no"]
+)
+
+AC_ARG_ENABLE(
 	[strict-options],
 	[AS_HELP_STRING([--enable-strict-options], [enable strict options check between peers (debugging option) @<:@default=no@:>@])],
 	,
@@ -1136,6 +1143,9 @@ if test "${enable_pedantic}" = "yes"; then
 fi
 if test "${enable_strict}" = "yes"; then
 	CFLAGS="${CFLAGS} -Wall -Wno-unused-parameter -Wno-unused-function"
+fi
+if test "${enable_werror}" = "yes"; then
+	CFLAGS="${CFLAGS} -Werror"
 fi
 
 if test "${WIN32}" = "yes"; then
