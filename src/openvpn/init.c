@@ -1860,17 +1860,7 @@ do_hold (struct context *c)
 static void
 socket_restart_pause (struct context *c)
 {
-  bool proxy = false;
   int sec = 2;
-
-#ifdef ENABLE_HTTP_PROXY
-  if (c->options.ce.http_proxy_options)
-    proxy = true;
-#endif
-#ifdef ENABLE_SOCKS
-  if (c->options.ce.socks_proxy_server)
-    proxy = true;
-#endif
 
   switch (c->options.ce.proto)
     {
