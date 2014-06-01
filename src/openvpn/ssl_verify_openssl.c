@@ -37,9 +37,13 @@
 
 #if defined(ENABLE_SSL) && defined(ENABLE_CRYPTO_OPENSSL)
 
+#include "ssl_verify_openssl.h"
+
+#include "error.h"
+#include "ssl_openssl.h"
 #include "ssl_verify.h"
 #include "ssl_verify_backend.h"
-#include "ssl_openssl.h"
+
 #include <openssl/x509v3.h>
 #include <openssl/err.h>
 

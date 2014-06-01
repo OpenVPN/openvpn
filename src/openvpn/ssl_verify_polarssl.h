@@ -31,8 +31,6 @@
 #define SSL_VERIFY_POLARSSL_H_
 
 #include "syshead.h"
-#include "misc.h"
-#include "manage.h"
 #include <polarssl/x509_crt.h>
 
 #ifndef __OPENVPN_X509_CERT_T_DECLARED

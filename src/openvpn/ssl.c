@@ -35,7 +35,6 @@
  * Both the TLS session and the data channel are multiplexed
  * over the same TCP/UDP port.
  */
-
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #elif defined(_MSC_VER)
@@ -48,7 +47,6 @@
 
 #include "error.h"
 #include "common.h"
-#include "integer.h"
 #include "socket.h"
 #include "misc.h"
 #include "fdmisc.h"
@@ -57,8 +55,6 @@
 #include "status.h"
 #include "gremlin.h"
 #include "pkcs11.h"
-#include "list.h"
-#include "base64.h"
 #include "route.h"
 
 #include "ssl.h"
