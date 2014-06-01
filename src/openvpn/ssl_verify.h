@@ -32,7 +32,6 @@
 
 #include "syshead.h"
 #include "misc.h"
-#include "manage.h"
 #include "ssl_common.h"
 
 /* Include OpenSSL-specific code */
@@ -164,25 +163,6 @@ tls_common_name_hash (const struct tls_multi *multi, const char **cn, uint32_t *
 }
 
 #endif
-
-/**
- * Returns whether or not the server should check for username/password
- *
- * @param session	The current TLS session
- *
- * @return 		true if username and password verification is enabled,
- * 			false if not.
- *
- */
-static inline bool verify_user_pass_enabled(struct tls_session *session)
-{
-  return (session->opt->auth_user_pass_verify_script
-        || plugin_defined (session->opt->plugins, OPENVPN_PLUGIN_AUTH_USER_PASS_VERIFY)
-#ifdef MANAGEMENT_DEF_AUTH
-        || management_enable_def_auth (management)
-#endif
-        );
-}
 
 /**
  * Verify the given username and password, using either an external script, a

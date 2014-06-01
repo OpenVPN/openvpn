@@ -837,6 +837,25 @@ static inline void tls_session_set_self_referential_pointers (struct tls_session
   session->tls_auth.packet_id = &session->tls_auth_pid;
 }
 
+/**
+ * Returns whether or not the server should check for username/password
+ *
+ * @param session	The current TLS session
+ *
+ * @return		true if username and password verification is enabled,
+ *			false if not.
+ */
+static inline bool
+tls_session_user_pass_enabled(struct tls_session *session)
+{
+  return (session->opt->auth_user_pass_verify_script
+        || plugin_defined (session->opt->plugins, OPENVPN_PLUGIN_AUTH_USER_PASS_VERIFY)
+#ifdef MANAGEMENT_DEF_AUTH
+        || management_enable_def_auth (management)
+#endif
+        );
+}
+
 
 /** @addtogroup control_processor
  *  @{ */
@@ -2069,7 +2088,7 @@ key_method_2_read (struct buffer *buf, struct tls_multi *multi, struct tls_sessi
       output_peer_info_env (session->opt->es, multi->peer_info);
 #endif
 
-  if (verify_user_pass_enabled(session))
+  if (tls_session_user_pass_enabled(session))
     {
       /* Perform username/password authentication */
       if (!username_status || !password_status)
