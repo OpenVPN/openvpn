@@ -126,7 +126,7 @@ backend_x509_get_username (char *cn, int cn_len,
 }
 
 char *
-backend_x509_get_serial (x509_crt *cert, struct gc_arena *gc)
+backend_x509_get_serial (openvpn_x509_cert_t *cert, struct gc_arena *gc)
 {
   char *buf = NULL;
   size_t buflen = 0;
@@ -164,7 +164,7 @@ backend_x509_get_serial (x509_crt *cert, struct gc_arena *gc)
 }
 
 char *
-backend_x509_get_serial_hex (x509_crt *cert, struct gc_arena *gc)
+backend_x509_get_serial_hex (openvpn_x509_cert_t *cert, struct gc_arena *gc)
 {
   char *buf = NULL;
   size_t len = cert->serial.len * 3 + 1;
