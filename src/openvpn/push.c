@@ -33,6 +33,7 @@
 #include "push.h"
 #include "options.h"
 #include "ssl.h"
+#include "ssl_verify.h"
 #include "manage.h"
 
 #include "memdbg.h"

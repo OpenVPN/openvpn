@@ -39,6 +39,7 @@
 #include "ps.h"
 #include "dhcp.h"
 #include "common.h"
+#include "ssl_verify.h"
 
 #include "memdbg.h"
 

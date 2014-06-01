@@ -38,6 +38,7 @@
 #include "otime.h"
 #include "gremlin.h"
 #include "mstats.h"
+#include "ssl_verify.h"
 
 #include "memdbg.h"
 

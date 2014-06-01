@@ -56,6 +56,7 @@
 #include "helper.h"
 #include "manage.h"
 #include "forward.h"
+#include "ssl_verify.h"
 #include <ctype.h>
 
 #include "memdbg.h"

@@ -44,7 +44,6 @@
 #include "plugin.h"
 
 #include "ssl_common.h"
-#include "ssl_verify.h"
 #include "ssl_backend.h"
 
 /* Used in the TLS PRF function */

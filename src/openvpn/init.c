@@ -43,6 +43,7 @@
 #include "lladdr.h"
 #include "ping.h"
 #include "mstats.h"
+#include "ssl_verify.h"
 
 #include "memdbg.h"
 
