@@ -2161,8 +2161,17 @@ multi_process_incoming_link (struct multi_context *m, struct multi_instance *ins
 	      /* make sure that source address is associated with this client */
 	      else if (multi_get_instance_by_virtual_addr (m, &src, true) != m->pending)
 		{
-		  msg (D_MULTI_DROPPED, "MULTI: bad source address from client [%s], packet dropped",
-		       mroute_addr_print (&src, &gc));
+		  /* IPv6 link-local address (fe80::xxx)? */
+		  if ( (src.type & MR_ADDR_MASK) == MR_ADDR_IPV6 &&
+		        src.addr[0] == 0xfe && src.addr[1] == 0x80 )
+		    {
+		      /* do nothing, for now.  TODO: add address learning */
+		    }
+		  else
+		    {
+		      msg (D_MULTI_DROPPED, "MULTI: bad source address from client [%s], packet dropped",
+		           mroute_addr_print (&src, &gc));
+		    }
 		  c->c2.to_tun.len = 0;
 		}
 	      /* client-to-client communication enabled? */
