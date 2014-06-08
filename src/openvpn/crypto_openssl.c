@@ -263,7 +263,7 @@ show_available_ciphers ()
 	{
 	  const unsigned int mode = EVP_CIPHER_mode (cipher);
 	  if (mode == EVP_CIPH_CBC_MODE
-#ifdef ALLOW_NON_CBC_CIPHERS
+#ifdef ENABLE_OFB_CFB_MODE
 	      || mode == EVP_CIPH_CFB_MODE || mode == EVP_CIPH_OFB_MODE
 #endif
 	      )
