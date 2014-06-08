@@ -416,6 +416,19 @@ cipher_kt_mode (const cipher_info_t *cipher_kt)
   return cipher_kt->mode;
 }
 
+bool
+cipher_kt_mode_cbc(const cipher_kt_t *cipher)
+{
+  return cipher_kt_mode(cipher) == OPENVPN_MODE_CBC;
+}
+
+bool
+cipher_kt_mode_ofb_cfb(const cipher_kt_t *cipher)
+{
+  return (cipher_kt_mode(cipher) == OPENVPN_MODE_OFB ||
+	  cipher_kt_mode(cipher) == OPENVPN_MODE_CFB);
+}
+
 
 /*
  *
@@ -462,6 +475,14 @@ int cipher_ctx_mode (const cipher_context_t *ctx)
   ASSERT(NULL != ctx);
 
   return cipher_kt_mode(ctx->cipher_info);
+}
+
+const cipher_kt_t *
+cipher_ctx_get_cipher_kt (const cipher_ctx_t *ctx)
+{
+  ASSERT(NULL != ctx);
+
+  return ctx->cipher_info;
 }
 
 int cipher_ctx_reset (cipher_context_t *ctx, uint8_t *iv_buf)
