@@ -428,7 +428,7 @@ init_key_type (struct key_type *kt, const char *ciphername,
       {
 	const unsigned int mode = cipher_kt_mode (kt->cipher);
 	if (!(mode == OPENVPN_MODE_CBC
-#ifdef ALLOW_NON_CBC_CIPHERS
+#ifdef ENABLE_OFB_CFB_MODE
 	      || (cfb_ofb_allowed && (mode == OPENVPN_MODE_CFB || mode == OPENVPN_MODE_OFB))
 #endif
 	      ))

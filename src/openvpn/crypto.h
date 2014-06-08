@@ -32,8 +32,6 @@
 
 #ifdef ENABLE_CRYPTO
 
-#define ALLOW_NON_CBC_CIPHERS
-
 #include "crypto_backend.h"
 #include "basic.h"
 #include "buffer.h"
