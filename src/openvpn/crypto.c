@@ -100,10 +100,10 @@ openvpn_encrypt (struct buffer *buf, struct buffer work,
 	{
 	  uint8_t iv_buf[OPENVPN_MAX_IV_LENGTH];
 	  const int iv_size = cipher_ctx_iv_length (ctx->cipher);
-	  const unsigned int mode = cipher_ctx_mode (ctx->cipher);
+	  const cipher_kt_t *cipher_kt = cipher_ctx_get_cipher_kt (ctx->cipher);
 	  int outlen;
 
-	  if (mode == OPENVPN_MODE_CBC)
+	  if (cipher_kt_mode_cbc(cipher_kt))
 	    {
 	      CLEAR (iv_buf);
 
@@ -119,7 +119,7 @@ openvpn_encrypt (struct buffer *buf, struct buffer work,
 		  ASSERT (packet_id_write (&pin, buf, BOOL_CAST (opt->flags & CO_PACKET_ID_LONG_FORM), true));
 		}
 	    }
-	  else if (mode == OPENVPN_MODE_CFB || mode == OPENVPN_MODE_OFB)
+	  else if (cipher_kt_mode_ofb_cfb(cipher_kt))
 	    {
 	      struct packet_id_net pin;
 	      struct buffer b;
@@ -171,7 +171,10 @@ openvpn_encrypt (struct buffer *buf, struct buffer work,
 	  /* Flush the encryption buffer */
 	  ASSERT(cipher_ctx_final(ctx->cipher, BPTR (&work) + outlen, &outlen));
 	  work.len += outlen;
-	  ASSERT (mode != OPENVPN_MODE_CBC || outlen == iv_size);
+
+	  /* For all CBC mode ciphers, check the last block is complete */
+	  ASSERT (cipher_kt_mode (cipher_kt) != OPENVPN_MODE_CBC ||
+	      outlen == iv_size);
 
 	  /* prepend the IV to the ciphertext */
 	  if (opt->flags & CO_USE_IV)
@@ -272,8 +275,8 @@ openvpn_decrypt (struct buffer *buf, struct buffer work,
 
       if (ctx->cipher)
 	{
-	  const unsigned int mode = cipher_ctx_mode (ctx->cipher);
 	  const int iv_size = cipher_ctx_iv_length (ctx->cipher);
+	  const cipher_kt_t *cipher_kt = cipher_ctx_get_cipher_kt (ctx->cipher);
 	  uint8_t iv_buf[OPENVPN_MAX_IV_LENGTH];
 	  int outlen;
 
@@ -320,7 +323,7 @@ openvpn_decrypt (struct buffer *buf, struct buffer work,
 
 	  /* Get packet ID from plaintext buffer or IV, depending on cipher mode */
 	  {
-	    if (mode == OPENVPN_MODE_CBC)
+	    if (cipher_kt_mode_cbc(cipher_kt))
 	      {
 		if (opt->packet_id)
 		  {
@@ -329,7 +332,7 @@ openvpn_decrypt (struct buffer *buf, struct buffer work,
 		    have_pin = true;
 		  }
 	      }
-	    else if (mode == OPENVPN_MODE_CFB || mode == OPENVPN_MODE_OFB)
+	    else if (cipher_kt_mode_ofb_cfb(cipher_kt))
 	      {
 		struct buffer b;
 
@@ -426,10 +429,9 @@ init_key_type (struct key_type *kt, const char *ciphername,
 
       /* check legal cipher mode */
       {
-	const unsigned int mode = cipher_kt_mode (kt->cipher);
-	if (!(mode == OPENVPN_MODE_CBC
+	if (!(cipher_kt_mode_cbc(kt->cipher)
 #ifdef ENABLE_OFB_CFB_MODE
-	      || (cfb_ofb_allowed && (mode == OPENVPN_MODE_CFB || mode == OPENVPN_MODE_OFB))
+	      || (cfb_ofb_allowed && cipher_kt_mode_ofb_cfb(kt->cipher))
 #endif
 	      ))
 #ifdef ENABLE_SMALL
@@ -606,18 +608,10 @@ fixup_key (struct key *key, const struct key_type *kt)
 void
 check_replay_iv_consistency (const struct key_type *kt, bool packet_id, bool use_iv)
 {
-  if (cfb_ofb_mode (kt) && !(packet_id && use_iv))
-    msg (M_FATAL, "--no-replay or --no-iv cannot be used with a CFB or OFB mode cipher");
-}
+  ASSERT(kt);
 
-bool
-cfb_ofb_mode (const struct key_type* kt)
-{
-  if (kt && kt->cipher) {
-      const unsigned int mode = cipher_kt_mode (kt->cipher);
-      return mode == OPENVPN_MODE_CFB || mode == OPENVPN_MODE_OFB;
-  }
-  return false;
+  if (cipher_kt_mode_ofb_cfb(kt->cipher) && !(packet_id && use_iv))
+    msg (M_FATAL, "--no-replay or --no-iv cannot be used with a CFB or OFB mode cipher");
 }
 
 /*

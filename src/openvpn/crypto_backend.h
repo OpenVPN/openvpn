@@ -230,6 +230,26 @@ int cipher_kt_block_size (const cipher_kt_t *cipher_kt);
  */
 int cipher_kt_mode (const cipher_kt_t *cipher_kt);
 
+/**
+ * Check of the supplied cipher is a supported CBC mode cipher.
+ *
+ * @param cipher	Static cipher parameters. May not be NULL.
+ *
+ * @return		true iff the cipher is a CBC mode cipher.
+ */
+bool cipher_kt_mode_cbc(const cipher_kt_t *cipher)
+  __attribute__((nonnull));
+
+/**
+ * Check of the supplied cipher is a supported OFB or CFB mode cipher.
+ *
+ * @param cipher	Static cipher parameters. May not be NULL.
+ *
+ * @return		true iff the cipher is a OFB or CFB mode cipher.
+ */
+bool cipher_kt_mode_ofb_cfb(const cipher_kt_t *cipher)
+  __attribute__((nonnull));
+
 
 /**
  *
@@ -286,6 +306,16 @@ int cipher_ctx_block_size (const cipher_ctx_t *ctx);
  * 			OPENVPN_MODE_OFB or \c OPENVPN_MODE_CFB
  */
 int cipher_ctx_mode (const cipher_ctx_t *ctx);
+
+/**
+ * Returns the static cipher parameters for this context.
+ *
+ * @param ctx 		Cipher's context. May not be NULL.
+ *
+ * @return 		Static cipher parameters for the supplied context.
+ */
+const cipher_kt_t *cipher_ctx_get_cipher_kt (const cipher_ctx_t *ctx)
+  __attribute__((nonnull));
 
 /**
  * Resets the given cipher context, setting the IV to the specified value.
