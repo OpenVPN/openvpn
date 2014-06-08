@@ -40,6 +40,7 @@
 #include "basic.h"
 #include "buffer.h"
 #include "integer.h"
+#include "crypto.h"
 #include "crypto_backend.h"
 #include <openssl/objects.h>
 #include <openssl/evp.h>
@@ -253,7 +254,7 @@ show_available_ciphers ()
 	  "used as a parameter to the --cipher option.  The default\n"
 	  "key size is shown as well as whether or not it can be\n"
           "changed with the --keysize directive.  Using a CBC mode\n"
-	  "is recommended.\n\n");
+	  "is recommended. In static key mode only CBC mode is allowed.\n\n");
 #endif
 
   for (nid = 0; nid < 10000; ++nid)	/* is there a better way to get the size of the nid list? */
@@ -266,11 +267,17 @@ show_available_ciphers ()
 	      || cipher_kt_mode_ofb_cfb(cipher)
 #endif
 	      )
-	    printf ("%s %d bit default key (%s)\n",
-		    OBJ_nid2sn (nid),
-		    EVP_CIPHER_key_length (cipher) * 8,
-		    ((EVP_CIPHER_flags (cipher) & EVP_CIPH_VARIABLE_LENGTH) ?
-		     "variable" : "fixed"));
+	    {
+	      const char *var_key_size =
+		  (EVP_CIPHER_flags (cipher) & EVP_CIPH_VARIABLE_LENGTH) ?
+		       "variable" : "fixed";
+	      const char *ssl_only = cipher_kt_mode_ofb_cfb(cipher) ?
+		  " (TLS client/server mode)" : "";
+
+	      printf ("%s %d bit default key (%s)%s\n", OBJ_nid2sn (nid),
+		      EVP_CIPHER_key_length (cipher) * 8, var_key_size,
+		      ssl_only);
+	    }
 	}
     }
   printf ("\n");
