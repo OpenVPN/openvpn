@@ -134,6 +134,12 @@ get_ifconfig_route()
 	   @NETSTAT@ -rn | awk '$3 !~ /^UHL/ { print $1,$2,$3,$6 }'
 	   return
 	   ;;
+	AIX)
+	   echo "-- AIX --"
+	   @IFCONFIG@ -a | egrep "(flags=|inet)"
+	   @NETSTAT@ -rn | awk '$3 !~ /^UHL/ { print $1,$2,$3,$6 }'
+	   return
+	   ;;
     esac
 
     echo "get_ifconfig_route(): no idea how to get info on your OS.  FAIL." >&2
