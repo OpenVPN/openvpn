@@ -1482,6 +1482,17 @@ add_route (struct route_ipv4 *r,
   argv_msg (D_ROUTE, &argv);
   status = openvpn_execve_check (&argv, es, 0, "ERROR: OpenBSD/NetBSD route add command failed");
 
+#elif defined(TARGET_AIX)
+
+  {
+  int netbits = netmask_to_netbits2(r->netmask);
+  argv_printf (&argv, "%s add -net %s/%d %s",
+		ROUTE_PATH,
+	        network, netbits, gateway);
+  argv_msg (D_ROUTE, &argv);
+  status = openvpn_execve_check (&argv, es, 0, "ERROR: AIX route add command failed");
+  }
+
 #else
   msg (M_FATAL, "Sorry, but I don't know how to do 'route' commands on this operating system.  Try putting your routes in a --route-up script");
 #endif
@@ -1701,6 +1712,14 @@ add_route_ipv6 (struct route_ipv6 *r6, const struct tuntap *tt, unsigned int fla
   argv_msg (D_ROUTE, &argv);
   status = openvpn_execve_check (&argv, es, 0, "ERROR: NetBSD route add -inet6 command failed");
 
+#elif defined(TARGET_AIX)
+
+  argv_printf (&argv, "%s add -inet6 %s/%d %s",
+		ROUTE_PATH,
+	        network, r6->netbits, gateway);
+  argv_msg (D_ROUTE, &argv);
+  status = openvpn_execve_check (&argv, es, 0, "ERROR: AIX route add command failed");
+
 #else
   msg (M_FATAL, "Sorry, but I don't know how to do 'route ipv6' commands on this operating system.  Try putting your routes in a --route-up script");
 #endif
@@ -1859,8 +1878,21 @@ delete_route (struct route_ipv4 *r,
 
   argv_msg (D_ROUTE, &argv);
   openvpn_execve_check (&argv, es, 0, "ERROR: OpenBSD/NetBSD route delete command failed");
+
 #elif defined(TARGET_ANDROID)
   msg (M_NONFATAL, "Sorry, deleting routes on Android is not possible. The VpnService API allows routes to be set on connect only.");
+
+#elif defined(TARGET_AIX)
+
+  {
+  int netbits = netmask_to_netbits2(r->netmask);
+  argv_printf (&argv, "%s delete -net %s/%d %s",
+		ROUTE_PATH,
+	        network, netbits, gateway);
+  argv_msg (D_ROUTE, &argv);
+  openvpn_execve_check (&argv, es, 0, "ERROR: AIX route delete command failed");
+  }
+
 #else
   msg (M_FATAL, "Sorry, but I don't know how to do 'route' commands on this operating system.  Try putting your routes in a --route-up script");
 #endif
@@ -2030,6 +2062,14 @@ delete_route_ipv6 (const struct route_ipv6 *r6, const struct tuntap *tt, unsigne
 
   argv_msg (D_ROUTE, &argv);
   openvpn_execve_check (&argv, es, 0, "ERROR: NetBSD route delete -inet6 command failed");
+
+#elif defined(TARGET_AIX)
+
+  argv_printf (&argv, "%s delete -inet6 %s/%d %s",
+		ROUTE_PATH,
+	        network, r6->netbits, gateway);
+  argv_msg (D_ROUTE, &argv);
+  openvpn_execve_check (&argv, es, 0, "ERROR: AIX route add command failed");
 
 #else
   msg (M_FATAL, "Sorry, but I don't know how to do 'route ipv6' commands on this operating system.  Try putting your routes in a --route-down script");
@@ -2867,6 +2907,26 @@ netmask_to_netbits (const in_addr_t network, const in_addr_t netmask, int *netbi
     }
   return false;
 }
+
+/* similar to netmask_to_netbits(), but don't mess with base address
+ * etc., just convert to netbits - non-mappable masks are returned as "-1"
+ */
+int netmask_to_netbits2 (in_addr_t netmask)
+{
+  int i;
+  const int addrlen = sizeof (in_addr_t) * 8;
+
+  for (i = 0; i <= addrlen; ++i)
+    {
+      in_addr_t mask = netbits_to_netmask (i);
+      if (mask == netmask)
+	{
+	  return i;
+	}
+    }
+  return -1;
+}
+
 
 /*
  * get_bypass_addresses() is used by the redirect-gateway bypass-x
