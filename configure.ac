@@ -349,6 +349,13 @@ case "$host" in
 		AC_DEFINE([TARGET_DRAGONFLY], [1], [Are we running on DragonFlyBSD?])
 		AC_DEFINE_UNQUOTED([TARGET_PREFIX], ["D"], [Target prefix])
 		;;
+	*-aix*)
+		AC_DEFINE([TARGET_AIX], [1], [Are we running AIX?])
+		AC_DEFINE_UNQUOTED([TARGET_PREFIX], ["A"], [Target prefix])
+		ROUTE="/usr/sbin/route"
+		have_tap_header="yes"
+		ac_cv_header_net_if_h="no"	# exists, but breaks things
+		;;
 	*)
 		AC_DEFINE_UNQUOTED([TARGET_PREFIX], ["X"], [Target prefix])
 		have_tap_header="yes"
