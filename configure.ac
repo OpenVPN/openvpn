@@ -800,7 +800,8 @@ if test "${have_openssl_crypto}" = "yes"; then
 	LIBS="${saved_LIBS}"
 fi
 
-if test "${have_openssl_ssl}" = "yes"; then
+if test "${enable_ssl}" = "yes" && test "${with_crypto_library}" = "openssl";
+then
     saved_CPPFLAGS="${CPPFLAGS}"
     CPPFLAGS="${CPPFLAGS} ${OPENSSL_CRYPTO_CFLAGS}"
     AC_MSG_CHECKING([for SSL_OP_NO_TICKET flag in OpenSSL])
