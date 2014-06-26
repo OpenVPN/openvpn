@@ -349,6 +349,14 @@
 
 #endif /* TARGET_DRAGONFLY */
 
+#ifdef TARGET_DARWIN
+
+#ifdef HAVE_NETINET_TCP_H
+#include <netinet/tcp.h>
+#endif
+
+#endif /* TARGET_DARWIN */
+
 #ifdef WIN32
 #include <iphlpapi.h>
 #include <ntddndis.h>
