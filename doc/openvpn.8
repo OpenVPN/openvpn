@@ -1621,7 +1621,7 @@ and
 in server mode configurations.
 
 The server timeout is set twice the value of the second argument.
-This ensures that a timeout is dectected on client side
+This ensures that a timeout is detected on client side
 before the server side drops the connection.
 
 For example,
@@ -2502,7 +2502,7 @@ Normally, adaptive compression is enabled with
 .B \-\-comp-lzo.
 
 Adaptive compression tries to optimize the case where you have
-compression enabled, but you are sending predominantly uncompressible
+compression enabled, but you are sending predominantly incompressible
 (or pre-compressed) packets over the tunnel, such as an FTP or rsync transfer
 of a large, compressed file.  With adaptive compression,
 OpenVPN will periodically sample the compression process to measure its
@@ -3542,7 +3542,7 @@ like this:
 .B
 /C=US/L=Somewhere/CN=John Doe/emailAddress=john@example.com
 .IP
-In addition the old behavivour was to remap any character other than
+In addition the old behaviour was to remap any character other than
 alphanumeric, underscore ('_'), dash ('-'), dot ('.'), and slash ('/') to
 underscore ('_').  The X.509 Subject string as returned by the
 .B tls_id
@@ -4399,7 +4399,7 @@ A different mode can be specified for each provider.
 Mode is encoded as hex number, and can be a mask one of the following:
 
 .B 0
-(default) \-\- Try to determind automatically.
+(default) \-\- Try to determine automatically.
 .br
 .B 1
 \-\- Use sign.
