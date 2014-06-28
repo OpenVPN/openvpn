@@ -4790,12 +4790,44 @@ the tls-verify script returns.  The file name used for the certificate
 is available via the peer_cert environment variable.
 .\"*********************************************************
 .TP
-.B \-\-x509-username-field fieldname
-Field in x509 certificate subject to be used as username (default=CN).
-.B Fieldname
-will be uppercased before matching. When this option is used, the
-.B \-\-verify-x509-username
-option will match against the chosen fieldname instead of the CN.
+.B \-\-x509-username-field [ext:\]fieldname
+Field in the X.509 certificate subject to be used as the username (default=CN).
+Typically, this option is specified with
+.B fieldname
+as either of the following:
+
+.B \-\-x509-username-field
+emailAddress
+.br
+.B \-\-x509-username-field ext:\fRsubjectAltName
+
+The first example uses the value of the "emailAddress" attribute in the
+certificate's Subject field as the username.  The second example uses
+the
+.B ext:
+prefix to signify that the X.509 extension
+.B fieldname
+"subjectAltName" be searched for an rfc822Name (email) field to be used
+as the username.  In cases where there are multiple email addresses
+in
+.B ext:fieldname\fR,
+the last occurrence is chosen.
+
+When this option is used, the
+.B \-\-verify-x509-name
+option will match against the chosen
+.B fieldname
+instead of the Common Name.
+
+.B Please note:
+This option has a feature which will convert an all-lowercase
+.B fieldname
+to uppercase characters, e.g., ou -> OU.  A mixed-case
+.B fieldname
+or one having the
+.B ext:
+prefix will be left as-is.  This automatic upcasing feature
+is deprecated and will be removed in a future release.
 .\"*********************************************************
 .TP
 .B \-\-tls-remote name (DEPRECATED)

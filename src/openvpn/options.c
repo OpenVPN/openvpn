@@ -585,8 +585,8 @@ static const char usage_message[] =
   "                  and optionally the root CA certificate.\n"
 #endif
 #ifdef ENABLE_X509ALTUSERNAME
-  "--x509-username-field : Field used in x509 certificate to be username.\n"
-  "                        Default is CN.\n"
+  "--x509-username-field : Field in x509 certificate containing the username.\n"
+  "                        Default is CN in the Subject field.\n"
 #endif
   "--verify-hash   : Specify SHA1 fingerprint for level-1 cert.\n"
 #ifdef WIN32
@@ -6912,10 +6912,28 @@ add_option (struct options *options,
 #ifdef ENABLE_X509ALTUSERNAME
   else if (streq (p[0], "x509-username-field") && p[1])
     {
+      /* This option used to automatically upcase the fieldname passed as the
+       * option argument, e.g., "ou" became "OU". Now, this "helpfulness" is
+       * fine-tuned by only upcasing Subject field attribute names which consist
+       * of all lower-case characters. Mixed-case attributes such as
+       * "emailAddress" are left as-is. An option parameter having the "ext:"
+       * prefix for matching X.509v3 extended fields will also remain unchanged.
+       */
       char *s = p[1];
+
       VERIFY_PERMISSION (OPT_P_GENERAL);
-      if( strncmp ("ext:",s,4) != 0 )
-        while ((*s = toupper(*s)) != '\0') s++; /* Uppercase if necessary */
+      if (strncmp("ext:", s, 4) != 0)
+	{
+	  size_t i = 0;
+	  while (s[i] && !isupper(s[i])) i++;
+	  if (strlen(s) == i)
+	    {
+	      while ((*s = toupper(*s)) != '\0') s++;
+	      msg(M_WARN, "DEPRECATED FEATURE: automatically upcased the "
+		  "--x509-username-field parameter to '%s'; please update your"
+		  "configuration", p[1]);
+	    }
+	}
       options->x509_username_field = p[1];
     }
 #endif /* ENABLE_X509ALTUSERNAME */
