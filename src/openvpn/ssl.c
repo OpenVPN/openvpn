@@ -996,22 +996,6 @@ reset_session (struct tls_multi *multi, struct tls_session *session)
   tls_session_init (multi, session);
 }
 
-#if 0
-/*
- * Transmit a TLS reset on our untrusted channel.
- */
-static void
-initiate_untrusted_session (struct tls_multi *multi, struct sockaddr_in *to)
-{
-  struct tls_session *session = &multi->session[TM_UNTRUSTED];
-  struct key_state *ks = &session->key[KS_PRIMARY];
-
-  reset_session (multi, session);
-  ks->remote_addr = *to;
-  msg (D_TLS_DEBUG_LOW, "TLS: initiate_untrusted_session: addr=%s", print_sockaddr (to));
-}
-#endif
-
 /*
  * Used to determine in how many seconds we should be
  * called again.
