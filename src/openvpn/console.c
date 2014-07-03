@@ -162,7 +162,7 @@ get_console_input_systemd (const char *prompt, const bool echo, char *input, con
   struct argv argv;
 
   argv_init (&argv);
-  argv_printf (&argv, "/bin/systemd-ask-password");
+  argv_printf (&argv, SYSTEMD_ASK_PASSWORD_PATH);
   argv_printf_cat (&argv, "%s", prompt);
 
   if ((std_out = openvpn_popen (&argv, NULL)) < 0) {
