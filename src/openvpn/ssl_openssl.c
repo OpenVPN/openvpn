@@ -270,7 +270,8 @@ tls_ctx_restrict_ciphers(struct tls_root_ctx *ctx, const char *ciphers)
           current_cipher_len = strlen(current_cipher);
 
 	  if (end_of_cipher - begin_of_cipher == current_cipher_len &&
-	      0 == memcmp (&ciphers[begin_of_cipher], cipher_pair->openssl_name, end_of_cipher - begin_of_cipher))
+	      0 != memcmp (&ciphers[begin_of_cipher], cipher_pair->iana_name,
+		  end_of_cipher - begin_of_cipher))
 	    {
 	      // Non-IANA name used, show warning
 	      msg (M_WARN, "Deprecated TLS cipher name '%s', please use IANA name '%s'", cipher_pair->openssl_name, cipher_pair->iana_name);
