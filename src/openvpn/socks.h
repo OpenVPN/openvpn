@@ -30,8 +30,6 @@
 #ifndef SOCKS_H
 #define SOCKS_H
 
-#ifdef ENABLE_SOCKS
-
 #include "buffer.h"
 
 struct openvpn_sockaddr;
@@ -73,5 +71,4 @@ void socks_process_incoming_udp (struct buffer *buf,
 int socks_process_outgoing_udp (struct buffer *buf,
 				const struct link_socket_actual *to);
 
-#endif
 #endif

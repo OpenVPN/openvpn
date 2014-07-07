@@ -38,8 +38,6 @@
 
 #include "syshead.h"
 
-#ifdef ENABLE_SOCKS
-
 #include "common.h"
 #include "misc.h"
 #include "win32.h"
@@ -574,7 +572,3 @@ socks_process_outgoing_udp (struct buffer *buf,
 
   return 10;
 }
-
-#else
-static void dummy(void) {}
-#endif /* ENABLE_SOCKS */

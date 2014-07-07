@@ -100,15 +100,11 @@ struct connection_entry
   int connect_retry_seconds;
   int connect_timeout;
   bool connect_timeout_defined;
-#ifdef ENABLE_HTTP_PROXY
   struct http_proxy_options *http_proxy_options;
-#endif  
-#ifdef ENABLE_SOCKS
   const char *socks_proxy_server;
   const char *socks_proxy_port;
   const char *socks_proxy_authfile;
   bool socks_proxy_retry;
-#endif
 
   int tun_mtu;           /* MTU of tun device */
   bool tun_mtu_defined;  /* true if user overriding parm with command line option */
@@ -217,7 +213,7 @@ struct options
   /* Counts the number of unsuccessful connection attempts */
   unsigned int unsuccessful_attempts;
 
-#if HTTP_PROXY_OVERRIDE
+#if ENABLE_MANAGEMENT
   struct http_proxy_options *http_proxy_override;
 #endif
 

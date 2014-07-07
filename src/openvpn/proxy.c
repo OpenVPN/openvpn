@@ -42,8 +42,6 @@
 #include "ntlm.h"
 #include "memdbg.h"
 
-#ifdef ENABLE_HTTP_PROXY
-
 #define UP_TYPE_PROXY        "HTTP Proxy"
 
 struct http_proxy_options *
@@ -945,8 +943,3 @@ establish_http_proxy_passthru (struct http_proxy_info *p,
   gc_free (&gc);
   return ret;
 }
-
-#else
-static void dummy(void) {}
-#endif /* ENABLE_HTTP_PROXY */
-

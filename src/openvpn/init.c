@@ -128,9 +128,6 @@ management_callback_proxy_cmd (void *arg, const char **p)
     {
       if (streq (p[1], "HTTP"))
         {
-#ifndef ENABLE_HTTP_PROXY
-          msg (M_WARN, "HTTP proxy support is not available");
-#else
           struct http_proxy_options *ho;
           if (ce->proto != PROTO_TCP && ce->proto != PROTO_TCP_CLIENT )
             {
@@ -143,17 +140,12 @@ management_callback_proxy_cmd (void *arg, const char **p)
           ho->retry = true;
           ho->auth_retry = (p[4] && streq (p[4], "nct") ? PAR_NCT : PAR_ALL);
           ret = true;
-#endif
         }
       else if (streq (p[1], "SOCKS"))
         {
-#ifndef ENABLE_SOCKS
-          msg (M_WARN, "SOCKS proxy support is not available");
-#else
           ce->socks_proxy_server = string_alloc (p[2], gc);
           ce->socks_proxy_port = p[3];
           ret = true;
-#endif
         }
     }
   else
@@ -441,41 +433,30 @@ init_query_passwords (struct context *c)
  * Initialize/Uninitialize HTTP or SOCKS proxy
  */
 
-#ifdef GENERAL_PROXY_SUPPORT
-
 static void
 uninit_proxy_dowork (struct context *c)
 {
-#ifdef ENABLE_HTTP_PROXY
   if (c->c1.http_proxy_owned && c->c1.http_proxy)
     {
       http_proxy_close (c->c1.http_proxy);
       c->c1.http_proxy = NULL;
       c->c1.http_proxy_owned = false;
     }
-#endif
-#ifdef ENABLE_SOCKS
   if (c->c1.socks_proxy_owned && c->c1.socks_proxy)
     {
       socks_proxy_close (c->c1.socks_proxy);
       c->c1.socks_proxy = NULL;
       c->c1.socks_proxy_owned = false;
     }
-#endif
 }
 
 static void
 init_proxy_dowork (struct context *c)
 {
-#ifdef ENABLE_HTTP_PROXY
   bool did_http = false;
-#else
-  const bool did_http = false;
-#endif
 
   uninit_proxy_dowork (c);
 
-#ifdef ENABLE_HTTP_PROXY
   if (c->options.ce.http_proxy_options)
     {
       /* Possible HTTP proxy user/pass input */
@@ -486,10 +467,8 @@ init_proxy_dowork (struct context *c)
 	  c->c1.http_proxy_owned = true;
 	}
     }
-#endif
 
-#ifdef ENABLE_SOCKS
-  if (!did_http && c->options.ce.socks_proxy_server)
+    if (!did_http && c->options.ce.socks_proxy_server)
     {
       c->c1.socks_proxy = socks_proxy_new (c->options.ce.socks_proxy_server,
 					   c->options.ce.socks_proxy_port,
@@ -500,7 +479,6 @@ init_proxy_dowork (struct context *c)
 	  c->c1.socks_proxy_owned = true;
 	}
     }
-#endif
 }
 
 static void
@@ -514,20 +492,6 @@ uninit_proxy (struct context *c)
 {
    uninit_proxy_dowork (c);
 }
-
-#else
-
-static inline void
-init_proxy (struct context *c, const int scope)
-{
-}
-
-static inline void
-uninit_proxy (struct context *c)
-{
-}
-
-#endif
 
 void
 context_init_1 (struct context *c)
@@ -2412,13 +2376,11 @@ do_init_frame (struct context *c)
     }
 #endif /* USE_COMP */
 
-#ifdef ENABLE_SOCKS
   /*
    * Adjust frame size for UDP Socks support.
    */
   if (c->options.ce.socks_proxy_server)
     socks_adjust_frame_parameters (&c->c2.frame, c->options.ce.proto);
-#endif
 
   /*
    * Adjust frame size based on the --tun-mtu-extra parameter.
@@ -2690,12 +2652,8 @@ do_init_socket_1 (struct context *c, const int mode)
 			   c->options.ce.bind_ipv6_only,
 			   mode,
 			   c->c2.accept_from,
-#ifdef ENABLE_HTTP_PROXY
 			   c->c1.http_proxy,
-#endif
-#ifdef ENABLE_SOCKS
 			   c->c1.socks_proxy,
-#endif
 #ifdef ENABLE_DEBUG
 			   c->options.gremlin,
 #endif

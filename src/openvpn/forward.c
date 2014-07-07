@@ -611,8 +611,6 @@ check_timeout_random_component (struct context *c)
     tv_add (&c->c2.timeval, &c->c2.timeout_random_component);
 }
 
-#ifdef ENABLE_SOCKS
-
 /*
  * Handle addition and removal of the 10-byte Socks5 header
  * in UDP packets.
@@ -650,7 +648,6 @@ link_socket_write_post_size_adjust (int *size,
 	*size = 0;
     }
 }
-#endif
 
 /*
  * Output: c->c2.buf
@@ -719,10 +716,8 @@ read_incoming_link (struct context *c)
   /* check recvfrom status */
   check_status (status, "read", c->c2.link_socket, NULL);
 
-#ifdef ENABLE_SOCKS
   /* Remove socks header if applicable */
   socks_postprocess_incoming_link (c);
-#endif
 
   perf_pop ();
 }
@@ -1131,23 +1126,18 @@ process_outgoing_link (struct context *c)
 	  /* Packet send complexified by possible Socks5 usage */
 	  {
 	    struct link_socket_actual *to_addr = c->c2.to_link_addr;
-#ifdef ENABLE_SOCKS
 	    int size_delta = 0;
-#endif
 
-#ifdef ENABLE_SOCKS
 	    /* If Socks5 over UDP, prepend header */
 	    socks_preprocess_outgoing_link (c, &to_addr, &size_delta);
-#endif
+
 	    /* Send packet */
 	    size = link_socket_write (c->c2.link_socket,
 				      &c->c2.to_link,
 				      to_addr);
 
-#ifdef ENABLE_SOCKS
 	    /* Undo effect of prepend */
 	    link_socket_write_post_size_adjust (&size, size_delta, &c->c2.to_link);
-#endif
 	  }
 
 	  if (size > 0)

@@ -34,11 +34,7 @@
 #ifndef _BASE64_H_
 #define _BASE64_H_
 
-#if defined(ENABLE_HTTP_PROXY) || defined(ENABLE_PKCS11) || defined(ENABLE_CLIENT_CR) || defined(MANAGMENT_EXTERNAL_KEY)
-
 int openvpn_base64_encode(const void *data, int size, char **str);
 int openvpn_base64_decode(const char *str, void *data, int size);
-
-#endif
 
 #endif

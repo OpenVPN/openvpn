@@ -28,8 +28,6 @@
 #include "buffer.h"
 #include "misc.h"
 
-#ifdef ENABLE_HTTP_PROXY
-
 /* HTTP CONNECT authentication methods */
 #define HTTP_AUTH_NONE   0
 #define HTTP_AUTH_BASIC  1
@@ -93,7 +91,5 @@ bool establish_http_proxy_passthru (struct http_proxy_info *p,
 
 uint8_t *make_base64_string2 (const uint8_t *str, int str_len, struct gc_arena *gc);
 uint8_t *make_base64_string (const uint8_t *str, struct gc_arena *gc);
-
-#endif /* ENABLE_HTTP_PROXY */
 
 #endif /* PROXY_H */
