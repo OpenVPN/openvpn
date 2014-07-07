@@ -594,11 +594,6 @@ socket_defined (const socket_descriptor_t sd)
 #endif
 
 /*
- * Compile the struct buffer_list code
- */
-#define ENABLE_BUFFER_LIST
-
-/*
  * Should we include OCC (options consistency check) code?
  */
 #ifndef ENABLE_SMALL

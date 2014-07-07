@@ -976,9 +976,6 @@ valign4 (const struct buffer *buf, const char *file, const int line)
 /*
  * struct buffer_list
  */
-
-#ifdef ENABLE_BUFFER_LIST
-
 struct buffer_list *
 buffer_list_new (const int max_size)
 {
@@ -1154,5 +1151,3 @@ buffer_list_file (const char *fn, int max_line_len)
     }
   return bl;
 }
-
-#endif

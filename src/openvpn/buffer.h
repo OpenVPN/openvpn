@@ -904,9 +904,6 @@ check_malloc_return (void *p)
 /*
  * Manage lists of buffers
  */
-
-#ifdef ENABLE_BUFFER_LIST
-
 struct buffer_entry
 {
   struct buffer buf;
@@ -936,7 +933,4 @@ void buffer_list_pop (struct buffer_list *ol);
 void buffer_list_aggregate (struct buffer_list *bl, const size_t max);
 
 struct buffer_list *buffer_list_file (const char *fn, int max_line_len);
-
-#endif
-
 #endif /* BUFFER_H */
