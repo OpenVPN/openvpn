@@ -2660,7 +2660,7 @@ on sufficiently fast hardware.  SSL/TLS authentication must
 be used in this mode.
 .\"*********************************************************
 .TP
-.B \-\-server network netmask
+.B \-\-server network netmask ['nopool']
 A helper directive designed to simplify the configuration
 of OpenVPN's server mode.  This directive will set up an
 OpenVPN server which will allocate addresses to clients
@@ -2695,6 +2695,9 @@ expands as follows:
    if !nopool:
      ifconfig-pool 10.8.0.2 10.8.0.254 255.255.255.0
    push "route-gateway 10.8.0.1"
+   if route-gateway unset:
+     route-gateway 10.8.0.2
+
 .in -4
 .ft
 .fi
