@@ -110,7 +110,7 @@ token_decode(const char *token)
     int i;
     unsigned int val = 0;
     int marker = 0;
-    if (strlen(token) < 4)
+    if (!token[0] || !token[1] || !token[2] || !token[3])
 	return DECODE_ERROR;
     for (i = 0; i < 4; i++) {
 	val *= 64;
