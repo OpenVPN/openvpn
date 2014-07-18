@@ -550,6 +550,10 @@ struct options
   const char *cryptoapi_cert;
 #endif
 
+#ifdef ENABLE_KEYCHAIN
+  const char *keychain_cert;
+#endif
+
   /* data channel key exchange method */
   int key_method;
 

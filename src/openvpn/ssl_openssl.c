@@ -50,6 +50,10 @@
 #include "cryptoapi.h"
 #endif
 
+#ifdef ENABLE_KEYCHAIN
+#include "keychain.h"
+#endif
+
 #include "ssl_verify_openssl.h"
 
 #include <openssl/err.h>
@@ -525,7 +529,20 @@ tls_ctx_load_cryptoapi(struct tls_root_ctx *ctx, const char *cryptoapi_cert)
     msg (M_SSLERR, "Cannot load certificate \"%s\" from Microsoft Certificate Store",
 	   cryptoapi_cert);
 }
-#endif /* WIN32 */
+#endif /* ENABLE_CRYPTOAPI */
+
+#ifdef ENABLE_KEYCHAIN
+void
+tls_ctx_load_keychain(struct tls_root_ctx *ctx, const char *keychain_cert)
+{
+  ASSERT(NULL != ctx);
+
+  /* Load Certificate and Private Key */
+  if (!SSL_CTX_use_Keychain_certificate (ctx->ctx, keychain_cert))
+    msg (M_SSLERR, "Cannot load certificate \"%s\" from Apple Keychain Store",
+	   keychain_cert);
+}
+#endif /* ENABLE_KEYCHAIN */
 
 static void
 tls_ctx_add_extra_certs (struct tls_root_ctx *ctx, BIO *bio)

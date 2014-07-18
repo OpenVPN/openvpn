@@ -37,6 +37,18 @@
 # define unlikely(x)    (x)
 #endif
 
+#ifdef TARGET_WIN32
+#ifndef WIN32
+#define WIN32
+#endif
+#endif
+
+#ifdef TARGET_DARWIN
+#ifndef MACOSX
+#define MACOSX
+#endif
+#endif
+
 #ifdef WIN32
 #include <windows.h>
 #include <winsock2.h>
@@ -626,10 +638,17 @@ socket_defined (const socket_descriptor_t sd)
 #endif
 
 /*
- * Do we have CryptoAPI capability?
+ * Do we have Microsoft CryptoAPI capability?
  */
 #if defined(WIN32) && defined(ENABLE_CRYPTO) && defined(ENABLE_SSL) && defined(ENABLE_CRYPTO_OPENSSL)
 #define ENABLE_CRYPTOAPI
+#endif
+
+/*
+ * Do we have Apple Keychain capability?
+ */
+#if defined(MACOSX) && defined(ENABLE_CRYPTO) && defined(ENABLE_SSL) && defined(ENABLE_CRYPTO_OPENSSL)
+#define ENABLE_KEYCHAIN
 #endif
 
 /*
