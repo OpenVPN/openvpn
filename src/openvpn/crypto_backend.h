@@ -231,7 +231,7 @@ int cipher_kt_block_size (const cipher_kt_t *cipher_kt);
 int cipher_kt_mode (const cipher_kt_t *cipher_kt);
 
 /**
- * Check of the supplied cipher is a supported CBC mode cipher.
+ * Check if the supplied cipher is a supported CBC mode cipher.
  *
  * @param cipher	Static cipher parameters. May not be NULL.
  *
@@ -241,7 +241,7 @@ bool cipher_kt_mode_cbc(const cipher_kt_t *cipher)
   __attribute__((nonnull));
 
 /**
- * Check of the supplied cipher is a supported OFB or CFB mode cipher.
+ * Check if the supplied cipher is a supported OFB or CFB mode cipher.
  *
  * @param cipher	Static cipher parameters. May not be NULL.
  *
