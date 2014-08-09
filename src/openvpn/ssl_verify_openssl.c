@@ -140,8 +140,8 @@ bool extract_x509_extension(X509 *cert, char *fieldname, char *out, int size)
                   }
                 break;
               default:
-                msg (D_TLS_ERRORS, "ASN1 ERROR: can not handle field type %i",
-                     name->type);
+                msg (D_TLS_DEBUG, "%s: ignoring general name field type %i",
+                    __func__, name->type);
                 break;
             }
           }
