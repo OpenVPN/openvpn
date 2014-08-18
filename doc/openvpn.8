@@ -5622,10 +5622,7 @@ Is only accepted if ``\-\-mode server'' or ``\-\-server'' is set.
 Specify an IPv6 address pool for dynamic assignment to clients.  The
 pool starts at
 .B ipv6addr
-and increments by +1 for every new client (linear mode).  The
-.B /bits
-setting controls the size of the pool.  Due to implementation details,
-the pool size must be between /64 and /112.
+and matches the offset determined from the start of the IPv4 pool.
 .TP
 .B \-\-ifconfig\-ipv6\-push ipv6addr/bits ipv6remote
 for ccd/ per-client static IPv6 interface configuration, see

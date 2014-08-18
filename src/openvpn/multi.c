@@ -1354,7 +1354,7 @@ multi_select_virtual_addr (struct multi_context *m, struct multi_instance *mi)
 	      mi->context.c2.push_ifconfig_ipv6_remote = 
 		    mi->context.c1.tuntap->local_ipv6;
 	      mi->context.c2.push_ifconfig_ipv6_netbits = 
-		    mi->context.options.ifconfig_ipv6_pool_netbits;
+		    mi->context.options.ifconfig_ipv6_netbits;
 	      mi->context.c2.push_ifconfig_ipv6_defined = true;
 	    }
 	}
