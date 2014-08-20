@@ -291,7 +291,7 @@ plugin_init_item (struct plugin *p, const struct plugin_option *o)
 static void
 plugin_vlog (openvpn_plugin_log_flags_t flags, const char *name, const char *format, va_list arglist)
 {
-  unsigned int msg_flags;
+  unsigned int msg_flags = 0;
 
   if (!format)
     return;

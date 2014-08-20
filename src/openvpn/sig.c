@@ -126,7 +126,7 @@ print_signal (const struct signal_info *si, const char *title, int msglevel)
     {
       const char *type = (si->signal_text ? si->signal_text : "");
       const char *t = (title ? title : "process");
-      const char *hs;
+      const char *hs = NULL;
       switch (si->source)
         {
         case SIG_SOURCE_SOFT:

@@ -2354,12 +2354,12 @@ print_sockaddr_ex (const struct sockaddr *sa,
 				   struct gc_arena *gc)
 {
   struct buffer out = alloc_buf_gc (128, gc);
-  bool addr_is_defined;
+  bool addr_is_defined = false;
   char hostaddr[NI_MAXHOST] = "";
   char servname[NI_MAXSERV] = "";
   int status;
 
-  socklen_t salen;
+  socklen_t salen = 0;
   switch(sa->sa_family)
     {
     case AF_INET:
