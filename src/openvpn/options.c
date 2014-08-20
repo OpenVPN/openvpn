@@ -2934,8 +2934,8 @@ options_string (const struct options *o,
 		     o->ifconfig_ipv6_local,
 		     o->ifconfig_ipv6_netbits,
 		     o->ifconfig_ipv6_remote,
-		     (in_addr_t)0,
-		     (in_addr_t)0,
+		     NULL,
+		     NULL,
 		     false,
 		     NULL);
       if (tt)
