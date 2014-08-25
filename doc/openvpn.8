@@ -4330,6 +4330,11 @@ and version is not recognized, we will only accept the highest TLS
 version supported by the local SSL implementation.
 .\"*********************************************************
 .TP
+.B \-\-tls-version-max version
+Set the maximum TLS version we will use (default is the highest version
+supported).  Examples for version include "1.0", "1.1", or "1.2".
+.\"*********************************************************
+.TP
 .B \-\-pkcs12 file
 Specify a PKCS #12 file containing local private key,
 local certificate, and root CA certificate.

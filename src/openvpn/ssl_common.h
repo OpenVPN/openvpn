@@ -296,8 +296,10 @@ struct tls_options
 # define SSLF_AUTH_USER_PASS_OPTIONAL  (1<<2)
 # define SSLF_OPT_VERIFY               (1<<4)
 # define SSLF_CRL_VERIFY_DIR           (1<<5)
-# define SSLF_TLS_VERSION_SHIFT        6
-# define SSLF_TLS_VERSION_MASK         0xF /* (uses bit positions 6 to 9) */
+# define SSLF_TLS_VERSION_MIN_SHIFT    6
+# define SSLF_TLS_VERSION_MIN_MASK     0xF /* (uses bit positions 6 to 9) */
+# define SSLF_TLS_VERSION_MAX_SHIFT    10
+# define SSLF_TLS_VERSION_MAX_MASK     0xF /* (uses bit positions 10 to 13) */
   unsigned int ssl_flags;
 
 #ifdef MANAGEMENT_DEF_AUTH
