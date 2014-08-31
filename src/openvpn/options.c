@@ -6877,6 +6877,26 @@ add_option (struct options *options,
 	}
       options->key_method = key_method;
     }
+  else if streq (p[0], "multi-factor-auth-methods")
+    {
+      int i;
+      options->mfa_methods.len = 0;
+      for (i = 1; i < MAX_PARMS; i++)
+        {
+          if (p[i])
+            {
+              options->mfa_methods.len++;
+              options->mfa_methods.method[i-1] = p[i];
+            }
+          else
+            break;
+        }
+      if (options->mfa_methods.len == 0)
+        {
+	  msg (msglevel, "no multi factor authentication method provided");
+	  goto err;
+        }
+    }
 #ifdef ENABLE_X509ALTUSERNAME
   else if (streq (p[0], "x509-username-field") && p[1])
     {
