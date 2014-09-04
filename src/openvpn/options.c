@@ -848,6 +848,7 @@ init_options (struct options *o, const bool init_gc)
   o->handshake_window = 60;
   o->transition_window = 3600;
   o->ecdh_curve = NULL;
+  o->mfa_methods.len = 0;
 #ifdef ENABLE_X509ALTUSERNAME
   o->x509_username_field = X509_USERNAME_FIELD_DEFAULT;
 #endif
@@ -2060,6 +2061,17 @@ options_postprocess_verify_ce (const struct options *options, const struct conne
 	msg (M_USAGE, "--ccd-exclusive must be used with --client-config-dir");
       if (options->key_method != 2)
 	msg (M_USAGE, "--mode server requires --key-method 2");
+      if(options->mfa_methods.len > 0)
+        {
+          int i;
+          for(i=0; i<options->mfa_methods.len; i++)
+            {
+              if(!options->mfa_methods.method[i]->type)
+                msg(M_USAGE, "--mfa-method cannot be used with with --mode server without a type");
+              if(!options->mfa_methods.method[i]->auth_file)
+                msg(M_USAGE, "--mfa-method cannot be used with with --mode server without a script file");
+            }
+        }
 
 	{
 	  const bool ccnr = (options->auth_user_pass_verify_script
@@ -2122,6 +2134,8 @@ options_postprocess_verify_ce (const struct options *options, const struct conne
         msg (M_USAGE, "--stale-routes-check requires --mode server");
       if (compat_flag (COMPAT_FLAG_QUERY | COMPAT_NO_NAME_REMAPPING))
         msg (M_USAGE, "--compat-x509-names no-remapping requires --mode server");
+      if(options->mfa_methods.len > 1)
+        msg(M_USAGE, "--mfa-method cannot be used more than once with --mode client");
     }
 #endif /* P2MP_SERVER */
 
@@ -6877,25 +6891,21 @@ add_option (struct options *options,
 	}
       options->key_method = key_method;
     }
-  else if streq (p[0], "multi-factor-auth-methods")
+  else if(streq (p[0], "mfa-method"))
     {
-      int i;
-      options->mfa_methods.len = 0;
-      for (i = 1; i < MAX_PARMS; i++)
+      if(p[1])
         {
-          if (p[i])
-            {
-              options->mfa_methods.len++;
-              options->mfa_methods.method[i-1] = p[i];
-            }
-          else
-            break;
+          struct mfa_method *method = (struct mfa_method *)malloc(sizeof(struct mfa_method));
+          method->name = p[1];
+          if(p[2])
+            method->type = p[2];
+          if(p[3])
+            method->auth_file = p[3];
+          options->mfa_methods.method[options->mfa_methods.len] = method;
+          options->mfa_methods.len++;
         }
-      if (options->mfa_methods.len == 0)
-        {
-	  msg (msglevel, "no multi factor authentication method provided");
-	  goto err;
-        }
+      else
+        msg(msglevel, "mfa-method directive should also have a method name");
     }
 #ifdef ENABLE_X509ALTUSERNAME
   else if (streq (p[0], "x509-username-field") && p[1])

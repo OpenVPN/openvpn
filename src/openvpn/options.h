@@ -167,10 +167,16 @@ struct remote_host_store
   char port[RH_PORT_LEN];
 };
 
+struct mfa_method
+{
+  char *name;
+  char *type;
+  char *auth_file;
+};
 struct mfa_methods_list
 {
   int len;
-  char *method[MAX_PARMS-1];
+  struct mfa_method  *method[MAX_PARMS-1];
 };
 
 /* Command line options */
