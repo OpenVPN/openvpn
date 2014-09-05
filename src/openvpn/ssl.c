@@ -352,10 +352,33 @@ pem_password_callback (char *buf, int size, int rwflag, void *u)
  */
 
 static bool auth_user_pass_enabled;     /* GLOBAL */
+static bool auth_mfa_enabled;           /* GLOBAL */
 static struct user_pass auth_user_pass; /* GLOBAL */
+#ifdef ENABLE_MFA
+static struct user_pass auth_mfa;       /* GLOBAL */
+#endif
 
 #ifdef ENABLE_CLIENT_CR
 static char *auth_challenge; /* GLOBAL */
+#endif
+
+#ifdef ENABLE_MFA
+void
+auth_mfa_setup (struct mfa_method *mfa)
+{
+  auth_mfa_enabled = true;
+  if (!auth_mfa.defined)
+    {
+      if ((strncmp(mfa->type, MFA_TYPE_OTP, 3)) == 0)
+        {
+          get_user_pass (&auth_mfa, NULL, mfa->name, GET_USER_PASS_PASSWORD_ONLY);
+        }
+      else if ((strncmp(mfa->type, MFA_TYPE_USER_PASS, 9)) == 0)
+        {
+          get_user_pass (&auth_mfa, NULL, mfa->name, 0);
+        }
+    }
+}
 #endif
 
 void

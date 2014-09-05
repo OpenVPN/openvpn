@@ -167,6 +167,10 @@ struct remote_host_store
   char port[RH_PORT_LEN];
 };
 
+#define MFA_TYPE_OTP "otp"
+#define MFA_TYPE_PUSH "push"
+#define MFA_TYPE_USER_PASS "user-pass"
+
 struct mfa_method
 {
   char *name;

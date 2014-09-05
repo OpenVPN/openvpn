@@ -426,6 +426,13 @@ init_query_passwords (struct context *c)
       auth_user_pass_setup (c->options.auth_user_pass_file, NULL);
 #endif
     }
+#ifdef ENABLE_MFA
+  if (c->options.mfa_methods.len > 0 && c->options.tls_client)
+    {
+      /* we are assuming only one active mfa method*/
+      auth_mfa_setup (c->options.mfa_methods.method[0]);
+    }
+#endif
 #endif
 }
 
