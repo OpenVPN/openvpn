@@ -119,7 +119,7 @@
  * Range of key exchange methods
  */
 #define KEY_METHOD_MIN 1
-#define KEY_METHOD_MAX 3
+#define KEY_METHOD_MAX 2
 
 /* key method taken from lower 4 bits */
 #define KEY_METHOD_MASK 0x0F
