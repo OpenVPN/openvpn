@@ -121,7 +121,8 @@ tmp_rsa_cb (SSL * s, int is_export, int keylength)
 void
 tls_ctx_server_new(struct tls_root_ctx *ctx, unsigned int ssl_flags)
 {
-  const int tls_version_min = (ssl_flags >> SSLF_TLS_VERSION_SHIFT) & SSLF_TLS_VERSION_MASK;
+  const int tls_version_min =
+      (ssl_flags >> SSLF_TLS_VERSION_MIN_SHIFT) & SSLF_TLS_VERSION_MIN_MASK;
 
   ASSERT(NULL != ctx);
 
@@ -139,7 +140,8 @@ tls_ctx_server_new(struct tls_root_ctx *ctx, unsigned int ssl_flags)
 void
 tls_ctx_client_new(struct tls_root_ctx *ctx, unsigned int ssl_flags)
 {
-  const int tls_version_min = (ssl_flags >> SSLF_TLS_VERSION_SHIFT) & SSLF_TLS_VERSION_MASK;
+  const int tls_version_min =
+      (ssl_flags >> SSLF_TLS_VERSION_MIN_SHIFT) & SSLF_TLS_VERSION_MIN_MASK;
 
   ASSERT(NULL != ctx);
 
@@ -218,15 +220,22 @@ tls_ctx_set_options (struct tls_root_ctx *ctx, unsigned int ssl_flags)
   /* process SSL options including minimum TLS version we will accept from peer */
   {
     long sslopt = SSL_OP_SINGLE_DH_USE | SSL_OP_NO_TICKET | SSL_OP_NO_SSLv2 | SSL_OP_NO_SSLv3;
-    const int tls_version_min = (ssl_flags >> SSLF_TLS_VERSION_SHIFT) & SSLF_TLS_VERSION_MASK;
-    if (tls_version_min > TLS_VER_1_0)
+    const int tls_ver_min =
+	(ssl_flags >> SSLF_TLS_VERSION_MIN_SHIFT) & SSLF_TLS_VERSION_MIN_MASK;
+    int tls_ver_max =
+	(ssl_flags >> SSLF_TLS_VERSION_MAX_SHIFT) & SSLF_TLS_VERSION_MAX_MASK;
+
+    if (tls_ver_max <= TLS_VER_UNSPEC)
+	tls_ver_max = tls_version_max();
+
+    if (tls_ver_min > TLS_VER_1_0 || tls_ver_max < TLS_VER_1_0)
       sslopt |= SSL_OP_NO_TLSv1;
 #ifdef SSL_OP_NO_TLSv1_1
-    if (tls_version_min > TLS_VER_1_1)
+    if (tls_ver_min > TLS_VER_1_1 || tls_ver_max < TLS_VER_1_1)
       sslopt |= SSL_OP_NO_TLSv1_1;
 #endif
 #ifdef SSL_OP_NO_TLSv1_2
-    if (tls_version_min > TLS_VER_1_2)
+    if (tls_ver_min > TLS_VER_1_2 || tls_ver_max < TLS_VER_1_2)
       sslopt |= SSL_OP_NO_TLSv1_2;
 #endif
     SSL_CTX_set_options (ctx->ctx, sslopt);

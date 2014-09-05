@@ -654,6 +654,40 @@ tls_version_max(void)
 #endif
 }
 
+/**
+ * Convert an OpenVPN tls-version variable to PolarSSl format (i.e. a major and
+ * minor ssl version number).
+ *
+ * @param tls_ver	The tls-version variable to convert.
+ * @param major		Returns the TLS major version in polarssl format.
+ * 			Must be a valid pointer.
+ * @param minor		Returns the TLS minor version in polarssl format.
+ * 			Must be a valid pointer.
+ */
+static void tls_version_to_major_minor(int tls_ver, int *major, int *minor) {
+  ASSERT(major);
+  ASSERT(minor);
+
+  switch (tls_ver)
+  {
+    case TLS_VER_1_0:
+      *major = SSL_MAJOR_VERSION_3;
+      *minor = SSL_MINOR_VERSION_1;
+      break;
+    case TLS_VER_1_1:
+      *major = SSL_MAJOR_VERSION_3;
+      *minor = SSL_MINOR_VERSION_2;
+      break;
+    case TLS_VER_1_2:
+      *major = SSL_MAJOR_VERSION_3;
+      *minor = SSL_MINOR_VERSION_3;
+      break;
+    default:
+      msg(M_FATAL, "%s: invalid TLS version %d", __func__, tls_ver);
+      break;
+  }
+}
+
 void key_state_ssl_init(struct key_state_ssl *ks_ssl,
     const struct tls_root_ctx *ssl_ctx, bool is_server, struct tls_session *session)
 {
@@ -712,30 +746,32 @@ void key_state_ssl_init(struct key_state_ssl *ks_ssl,
 
       /* Initialize minimum TLS version */
       {
-	const int tls_version_min = (session->opt->ssl_flags >> SSLF_TLS_VERSION_SHIFT) & SSLF_TLS_VERSION_MASK;
-	int polar_major;
-	int polar_minor;
-	switch (tls_version_min)
+	const int tls_version_min =
+	    (session->opt->ssl_flags >> SSLF_TLS_VERSION_MIN_SHIFT) &
+	    SSLF_TLS_VERSION_MIN_MASK;
+
+	/* default to TLS 1.0 */
+	int major = SSL_MAJOR_VERSION_3;
+	int minor = SSL_MINOR_VERSION_1;
+
+	if (tls_version_min > TLS_VER_UNSPEC)
+	  tls_version_to_major_minor(tls_version_min, &major, &minor);
+
+	ssl_set_min_version(ks_ssl->ctx, major, minor);
+      }
+
+      /* Initialize maximum TLS version */
+      {
+	const int tls_version_max =
+	    (session->opt->ssl_flags >> SSLF_TLS_VERSION_MAX_SHIFT) &
+	    SSLF_TLS_VERSION_MAX_MASK;
+
+	if (tls_version_max > TLS_VER_UNSPEC)
 	  {
-	  case TLS_VER_1_0:
-	  default:
-	    polar_major = SSL_MAJOR_VERSION_3;
-	    polar_minor = SSL_MINOR_VERSION_1;
-	    break;
-#if defined(SSL_MAJOR_VERSION_3) && defined(SSL_MINOR_VERSION_2)
-	  case TLS_VER_1_1:
-	    polar_major = SSL_MAJOR_VERSION_3;
-	    polar_minor = SSL_MINOR_VERSION_2;
-	    break;
-#endif
-#if defined(SSL_MAJOR_VERSION_3) && defined(SSL_MINOR_VERSION_3)
-	  case TLS_VER_1_2:
-	    polar_major = SSL_MAJOR_VERSION_3;
-	    polar_minor = SSL_MINOR_VERSION_3;
-	    break;
-#endif
+	    int major, minor;
+	    tls_version_to_major_minor(tls_version_max, &major, &minor);
+	    ssl_set_max_version(ks_ssl->ctx, major, minor);
 	  }
-	ssl_set_min_version(ks_ssl->ctx, polar_major, polar_minor);
       }
 
       /* Initialise BIOs */

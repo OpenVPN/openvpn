@@ -572,6 +572,7 @@ static const char usage_message[] =
   "--tls-version-min <version> ['or-highest'] : sets the minimum TLS version we\n"
   "    will accept from the peer.  If version is unrecognized and 'or-highest'\n"
   "    is specified, require max TLS version supported by SSL implementation.\n"
+  "--tls-version-max <version> : sets the maximum TLS version we will use.\n"
 #ifndef ENABLE_CRYPTO_POLARSSL
   "--pkcs12 file   : PKCS#12 file containing local private key, local certificate\n"
   "                  and optionally the root CA certificate.\n"
@@ -6570,14 +6571,29 @@ add_option (struct options *options,
     {
       int ver;
       VERIFY_PERMISSION (OPT_P_GENERAL);
-      ver = tls_version_min_parse(p[1], p[2]);
+      ver = tls_version_parse(p[1], p[2]);
       if (ver == TLS_VER_BAD)
 	{
 	  msg (msglevel, "unknown tls-version-min parameter: %s", p[1]);
           goto err;
 	}
-      options->ssl_flags &= ~(SSLF_TLS_VERSION_MASK << SSLF_TLS_VERSION_SHIFT);
-      options->ssl_flags |= (ver << SSLF_TLS_VERSION_SHIFT);
+      options->ssl_flags &=
+	  ~(SSLF_TLS_VERSION_MIN_MASK << SSLF_TLS_VERSION_MIN_SHIFT);
+      options->ssl_flags |= (ver << SSLF_TLS_VERSION_MIN_SHIFT);
+    }
+  else if (streq (p[0], "tls-version-max") && p[1])
+    {
+      int ver;
+      VERIFY_PERMISSION (OPT_P_GENERAL);
+      ver = tls_version_parse(p[1], NULL);
+      if (ver == TLS_VER_BAD)
+	{
+	  msg (msglevel, "unknown tls-version-max parameter: %s", p[1]);
+          goto err;
+	}
+      options->ssl_flags &=
+	  ~(SSLF_TLS_VERSION_MAX_MASK << SSLF_TLS_VERSION_MAX_SHIFT);
+      options->ssl_flags |= (ver << SSLF_TLS_VERSION_MAX_SHIFT);
     }
 #ifndef ENABLE_CRYPTO_POLARSSL
   else if (streq (p[0], "pkcs12") && p[1])
