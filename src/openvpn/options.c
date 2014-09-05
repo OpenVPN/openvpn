@@ -6893,19 +6893,18 @@ add_option (struct options *options,
     }
   else if(streq (p[0], "mfa-method"))
     {
-      if(p[1])
+      if(p[1] && p[2])
         {
           struct mfa_method *method = (struct mfa_method *)malloc(sizeof(struct mfa_method));
           method->name = p[1];
-          if(p[2])
-            method->type = p[2];
+          method->type = p[2];
           if(p[3])
             method->auth_file = p[3];
           options->mfa_methods.method[options->mfa_methods.len] = method;
           options->mfa_methods.len++;
         }
       else
-        msg(msglevel, "mfa-method directive should also have a method name");
+        msg(msglevel, "mfa-method directive should also have a method name and method type");
     }
 #ifdef ENABLE_X509ALTUSERNAME
   else if (streq (p[0], "x509-username-field") && p[1])
