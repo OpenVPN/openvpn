@@ -365,27 +365,29 @@ openvpn_popen (const struct argv *a,  const struct env_set *es)
 		      pid = fork ();
 		      if (pid == (pid_t)0) /* child side */
 			{
-			  close (pipe_stdout[0]);
+			  close (pipe_stdout[0]);  /* Close read end */
 			  dup2 (pipe_stdout[1],1);
 			  execve (cmd, argv, envp);
 			  exit (127);
 			}
-		      else if (pid < (pid_t)0) /* fork failed */
-			{
-			  msg (M_ERR, "openvpn_popen: unable to fork");
-			}
-		      else /* parent side */
+		      else if (pid > (pid_t)0) /* parent side */
 			{
                           int status = 0;
 
+                          close (pipe_stdout[1]); /* Close write end */
                           waitpid(pid, &status, 0);
                           ret = pipe_stdout[0];
+			}
+		      else /* fork failed */
+			{
+                          close (pipe_stdout[0]);
                           close (pipe_stdout[1]);
+			  msg (M_ERR, "openvpn_popen: unable to fork %s", cmd);
 			}
 	      }
 	      else {
-		      msg (M_WARN, "openvpn_popen: unable to create stdout pipe");
-		      ret = -1;
+                msg (M_WARN, "openvpn_popen: unable to create stdout pipe for %s", cmd);
+                ret = -1;
 	      }
 	}
       else if (!warn_shown && (script_security < SSEC_SCRIPTS))
