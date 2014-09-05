@@ -6897,7 +6897,10 @@ add_option (struct options *options,
         {
           struct mfa_method *method = (struct mfa_method *)malloc(sizeof(struct mfa_method));
           method->name = p[1];
-          method->type = p[2];
+          if(strncmp(p[2], MFA_TYPE_OTP, 3) == 0|| strncmp(p[2], MFA_TYPE_PUSH, 4) == 0 || strncmp(p[2], MFA_TYPE_USER_PASS, 9) == 0) 
+            method->type = p[2];
+          else
+            msg(msglevel, "mfa-method type can only be amongst otp, push and user-pass");
           if(p[3])
             method->auth_file = p[3];
           options->mfa_methods.method[options->mfa_methods.len] = method;
