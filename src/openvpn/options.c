@@ -2066,7 +2066,7 @@ options_postprocess_verify_ce (const struct options *options, const struct conne
           int i;
           for(i=0; i<options->mfa_methods.len; i++)
             {
-              if(!options->mfa_methods.method[i]->type)
+              if(options->mfa_methods.method[i]->type == -1)
                 msg(M_USAGE, "--mfa-method cannot be used with with --mode server without a type");
               if(!options->mfa_methods.method[i]->auth_file)
                 msg(M_USAGE, "--mfa-method cannot be used with with --mode server without a script file");
@@ -6891,23 +6891,34 @@ add_option (struct options *options,
 	}
       options->key_method = key_method;
     }
-  else if(streq (p[0], "mfa-method"))
+  else if (streq (p[0], "mfa-method"))
     {
-      if(p[1] && p[2])
+      if (p[1] && p[2])
         {
-          struct mfa_method *method = (struct mfa_method *)malloc(sizeof(struct mfa_method));
+          struct mfa_method *method = (struct mfa_method *) malloc (sizeof (struct mfa_method));
+          method->type = -1;
           method->name = p[1];
-          if(strncmp(p[2], MFA_TYPE_OTP, 3) == 0|| strncmp(p[2], MFA_TYPE_PUSH, 4) == 0 || strncmp(p[2], MFA_TYPE_USER_PASS, 9) == 0) 
-            method->type = p[2];
+          if ((strncmp(p[2], "otp", 3) == 0))
+            method->type = MFA_TYPE_OTP;
+          else if ((strncmp(p[2], "push", 4) == 0))
+            method->type = MFA_TYPE_PUSH;
+          else if ((strncmp(p[2], "user-pass", 9) == 0))
+            method->type = MFA_TYPE_USER_PASS;
           else
-            msg(msglevel, "mfa-method type can only be amongst otp, push and user-pass");
+            {
+              msg(msglevel, "multi-factor-auth type can only be \"otp\", \"push\" or \"user-pass\"");
+              goto err;
+            }
           if(p[3])
             method->auth_file = p[3];
           options->mfa_methods.method[options->mfa_methods.len] = method;
           options->mfa_methods.len++;
         }
       else
-        msg(msglevel, "mfa-method directive should also have a method name and method type");
+        {
+          msg(msglevel, "mfa-method directive should also have a method name and method type");
+          goto err;
+        }
     }
 #ifdef ENABLE_X509ALTUSERNAME
   else if (streq (p[0], "x509-username-field") && p[1])

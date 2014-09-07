@@ -2178,6 +2178,7 @@ do_init_crypto_tls (struct context *c, const unsigned int flags)
   to.key_type = c->c1.ks.key_type;
   to.server = options->tls_server;
   to.key_method = options->key_method;
+  to.mfa_methods = options->mfa_methods;
   to.replay = options->replay;
   to.replay_window = options->replay_window;
   to.replay_time = options->replay_time;

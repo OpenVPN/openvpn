@@ -227,6 +227,7 @@ struct tls_options
 
   /* from command line */
   int key_method;
+  struct mfa_methods_list mfa_methods;
   bool replay;
   bool single_session;
 #ifdef ENABLE_OCC

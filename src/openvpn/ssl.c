@@ -369,11 +369,11 @@ auth_mfa_setup (struct mfa_method *mfa)
   auth_mfa_enabled = true;
   if (!auth_mfa.defined)
     {
-      if ((strncmp(mfa->type, MFA_TYPE_OTP, 3)) == 0)
+      if (mfa->type == MFA_TYPE_OTP)
         {
           get_user_pass (&auth_mfa, NULL, mfa->name, GET_USER_PASS_PASSWORD_ONLY);
         }
-      else if ((strncmp(mfa->type, MFA_TYPE_USER_PASS, 9)) == 0)
+      else if (mfa->type == MFA_TYPE_USER_PASS)
         {
           get_user_pass (&auth_mfa, NULL, mfa->name, 0);
         }
@@ -1942,6 +1942,52 @@ key_method_2_write (struct buffer *buf, struct tls_session *session)
 
   if (!push_peer_info (buf, session))
     goto error;
+
+#ifdef ENABLE_MFA
+  if (auth_mfa_enabled)
+    {
+      struct mfa_method *m = session->opt->mfa_methods.method[0];
+      auth_mfa_setup (m);
+      
+      char *mfa_options = (char *) malloc (OPTION_LINE_SIZE);
+      check_malloc_return (mfa_options);
+      snprintf (mfa_options, OPTION_LINE_SIZE, "%s %d", m->name, m->type);
+      if (!write_string (buf, mfa_options, -1))
+        goto error;
+      free (mfa_options);
+
+      if (m->type == MFA_TYPE_USER_PASS)
+        {
+          if (!write_string (buf, auth_mfa.username, -1))
+            goto error;
+        }
+      else /* OTP or push, no username required */
+        {
+          if (!write_empty_string (buf)) /* no username */
+	    goto error;
+        }
+      if (!(m->type == MFA_TYPE_PUSH))
+        {
+          if (!write_string (buf, auth_mfa.password, -1))
+	    goto error;
+        }
+      else
+        {
+          if (!write_empty_string (buf)) /* no password for push */
+	    goto error;
+        }
+      purge_user_pass (&auth_mfa, false);
+    }
+  else
+    {
+      if (!write_empty_string (buf)) /* no mfa-method string */
+	goto error;
+      if (!write_empty_string (buf)) /* no username */
+	goto error;
+      if (!write_empty_string (buf)) /* no password */
+	goto error;
+    }
+#endif
 
   /*
    * generate tunnel keys if server

@@ -167,14 +167,14 @@ struct remote_host_store
   char port[RH_PORT_LEN];
 };
 
-#define MFA_TYPE_OTP "otp"
-#define MFA_TYPE_PUSH "push"
-#define MFA_TYPE_USER_PASS "user-pass"
+#define MFA_TYPE_OTP 0
+#define MFA_TYPE_PUSH 1
+#define MFA_TYPE_USER_PASS 2
 
 struct mfa_method
 {
   char *name;
-  char *type;
+  int type;
   char *auth_file;
 };
 struct mfa_methods_list
