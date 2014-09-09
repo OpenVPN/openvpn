@@ -879,7 +879,16 @@ tls_session_user_pass_enabled(struct tls_session *session)
         );
 }
 
-
+#ifdef ENABLE_MFA
+static inline bool
+tls_session_mfa_enabled(struct tls_session *session)
+{
+  if (session->opt->mfa_methods.len > 0 && session->opt->server)
+    return true;
+  else
+    return false; 
+}
+#endif
 /** @addtogroup control_processor
  *  @{ */
 
@@ -1940,9 +1949,6 @@ key_method_2_write (struct buffer *buf, struct tls_session *session)
 	goto error;
     }
 
-  if (!push_peer_info (buf, session))
-    goto error;
-
 #ifdef ENABLE_MFA
   if (auth_mfa_enabled)
     {
@@ -1988,6 +1994,8 @@ key_method_2_write (struct buffer *buf, struct tls_session *session)
 	goto error;
     }
 #endif
+  if (!push_peer_info (buf, session))
+    goto error;
 
   /*
    * generate tunnel keys if server
@@ -2086,13 +2094,17 @@ key_method_2_read (struct buffer *buf, struct tls_multi *multi, struct tls_sessi
 
   int key_method_flags;
   bool username_status, password_status;
+  bool mfa_username_status, mfa_password_status;
+  char *mfa_options_string;
 
   struct gc_arena gc = gc_new ();
   char *options;
   struct user_pass *up;
+  struct user_pass *mfa;
 
   /* allocate temporary objects */
   ALLOC_ARRAY_CLEAR_GC (options, char, TLS_OPTIONS_LEN, &gc);
+  ALLOC_ARRAY_CLEAR_GC (mfa_options_string, char, OPTION_LINE_SIZE, &gc);
 
   ASSERT (session->opt->key_method == 2);
 
@@ -2132,6 +2144,14 @@ key_method_2_read (struct buffer *buf, struct tls_multi *multi, struct tls_sessi
   ALLOC_OBJ_CLEAR_GC (up, struct user_pass, &gc);
   username_status = read_string (buf, up->username, USER_PASS_LEN);
   password_status = read_string (buf, up->password, USER_PASS_LEN);
+
+#ifdef ENABLE_MFA
+  /* get mfa method */
+  read_string (buf, mfa_options_string, OPTION_LINE_SIZE);
+  ALLOC_OBJ_CLEAR_GC (mfa, struct user_pass, &gc);
+  mfa_username_status = read_string (buf, mfa->username, USER_PASS_LEN);
+  mfa_password_status = read_string (buf, mfa->password, USER_PASS_LEN);
+#endif
 
 #if P2MP_SERVER
   /* get peer info from control channel */
@@ -2189,6 +2209,18 @@ key_method_2_read (struct buffer *buf, struct tls_multi *multi, struct tls_sessi
 	  ks->authenticated = false;
 	}
     }
+#endif
+
+#ifdef ENABLE_MFA
+  /*check for MFA options */
+  if (tls_session_mfa_enabled(session))
+  {
+    if (!check_mfa_options (mfa_options_string, session))
+      {
+        msg(D_TLS_ERRORS, "Inconsistent multi-factor-authentication options between client and server");
+        ks->authenticated = false;
+      }
+  }
 #endif
 
   buf_clear (buf);

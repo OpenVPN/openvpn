@@ -3229,6 +3229,29 @@ options_cmp_equal_safe (char *actual, const char *expected, size_t actual_n)
   return ret;
 }
 
+
+bool
+check_mfa_options (char *client_mfa_options, struct tls_session *session)
+{
+  struct gc_arena gc = gc_new ();
+  int length = session->opt->mfa_methods.len; 
+  char *server_options[length];
+  bool ret  = false;
+  int i;
+  for (i = 0 ; i < length; i++) 
+    {
+      ALLOC_ARRAY_CLEAR_GC (server_options[i], char, OPTION_LINE_SIZE, &gc);
+      snprintf (server_options[i], OPTION_LINE_SIZE, "%s %d", session->opt->mfa_methods.method[i]->name, session->opt->mfa_methods.method[i]->type); 
+      if (strncmp (server_options[i], client_mfa_options, strlen(server_options[i])) == 0 )
+        {
+          ret = true;
+          break;
+        }
+    }
+  gc_free (&gc);
+  return ret;
+}
+
 void
 options_warning_safe (char *actual, const char *expected, size_t actual_n)
 {
@@ -6896,6 +6919,7 @@ add_option (struct options *options,
       if (p[1] && p[2])
         {
           struct mfa_method *method = (struct mfa_method *) malloc (sizeof (struct mfa_method));
+          check_malloc_return (method);
           method->type = -1;
           method->name = p[1];
           if ((strncmp(p[2], "otp", 3) == 0))
