@@ -143,14 +143,16 @@ close_tty (FILE *fp)
 static bool
 check_systemd_running ()
 {
-  struct stat a, b;
+  struct stat a, b, c;
 
   /* We simply test whether the systemd cgroup hierarchy is
-   * mounted */
+   * mounted, as well as the systemd-ask-password executable
+   * being available */
 
   return (lstat("/sys/fs/cgroup", &a) == 0)
 	  && (lstat("/sys/fs/cgroup/systemd", &b) == 0)
-	  && (a.st_dev != b.st_dev);
+	  && (a.st_dev != b.st_dev)
+	  && (stat(SYSTEMD_ASK_PASSWORD_PATH, &c) == 0);
 
 }
 
