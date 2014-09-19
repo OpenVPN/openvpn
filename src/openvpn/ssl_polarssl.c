@@ -273,7 +273,7 @@ tls_ctx_load_priv_file (struct tls_root_ctx *ctx, const char *priv_key_file,
       status = x509parse_key(ctx->priv_key,
 	  priv_key_file_inline, strlen(priv_key_file_inline),
 	  NULL, 0);
-      if (POLARSSL_ERR_PEM_PASSWORD_REQUIRED == status)
+      if (POLARSSL_ERR_X509_PASSWORD_REQUIRED == status)
 	{
 	  char passbuf[512] = {0};
 	  pem_password_callback(passbuf, 512, 0, NULL);
@@ -285,7 +285,7 @@ tls_ctx_load_priv_file (struct tls_root_ctx *ctx, const char *priv_key_file,
   else
     {
       status = x509parse_keyfile(ctx->priv_key, priv_key_file, NULL);
-      if (POLARSSL_ERR_PEM_PASSWORD_REQUIRED == status)
+      if (POLARSSL_ERR_X509_PASSWORD_REQUIRED == status)
 	{
 	  char passbuf[512] = {0};
 	  pem_password_callback(passbuf, 512, 0, NULL);
@@ -295,7 +295,7 @@ tls_ctx_load_priv_file (struct tls_root_ctx *ctx, const char *priv_key_file,
   if (0 != status)
     {
 #ifdef ENABLE_MANAGEMENT
-      if (management && (POLARSSL_ERR_PEM_PASSWORD_MISMATCH == status))
+      if (management && (POLARSSL_ERR_X509_PASSWORD_MISMATCH == status))
 	  management_auth_failure (management, UP_TYPE_PRIVATE_KEY, NULL);
 #endif
       msg (M_WARN, "Cannot load private key file %s", priv_key_file);
