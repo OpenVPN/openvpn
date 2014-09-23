@@ -97,12 +97,15 @@ if [ $check_depth -eq -1 ] || [ $cur_depth -eq $check_depth ]; then
                     "$nonce" \
                     -CAfile "$verify" \
                     -url "$ocsp_url" \
-                    -serial "${serial}" 2>/dev/null)
+                    -serial "${serial}" 2>&1)
 
     if [ $? -eq 0 ]; then
-      # check that it's good
+      # check that the reported status of certificate is ok
       if echo "$status" | grep -Fq "^${serial}: good"; then
-        exit 0
+        # check if signature on the OCSP response verified correctly
+        if echo "$status" | grep -Fq "^Response verify OK"; then
+            exit 0
+        fi
       fi
     fi
   fi
