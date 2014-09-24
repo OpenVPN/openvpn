@@ -166,6 +166,10 @@ tls_common_name_hash (const struct tls_multi *multi, const char **cn, uint32_t *
 
 #endif
 
+#ifdef ENABLE_MFA
+#define VERIFY_USER_PASS_CREDENTIALS        0
+#define VERIFY_MFA_CREDENTIALS              1
+#endif
 /**
  * Verify the given username and password, using either an external script, a
  * plugin, or the management interface.
@@ -180,7 +184,11 @@ tls_common_name_hash (const struct tls_multi *multi, const char **cn, uint32_t *
  *
  */
 void verify_user_pass(struct user_pass *up, struct tls_multi *multi,
-    struct tls_session *session);
+    struct tls_session *session
+#ifdef ENABLE_MFA
+    , const unsigned int flags
+#endif
+    );
 
 /**
  * Perform final authentication checks, including locking of the cn, the allowed

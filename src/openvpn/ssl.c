@@ -2174,7 +2174,11 @@ key_method_2_read (struct buffer *buf, struct tls_multi *multi, struct tls_sessi
 	    }
 	}
 
-      verify_user_pass(up, multi, session);
+      verify_user_pass(up, multi, session
+#ifdef ENABLE_MFA
+              , VERIFY_USER_PASS_CREDENTIALS
+#endif
+              );
     }
   else
     {
@@ -2197,6 +2201,23 @@ key_method_2_read (struct buffer *buf, struct tls_multi *multi, struct tls_sessi
       verify_final_auth_checks(multi, session);
     }
 
+#ifdef ENABLE_MFA
+  /*check for MFA options */
+  if (tls_session_mfa_enabled(session))
+  {
+    if (!process_mfa_options (mfa_options_string, session))
+      {
+        msg(D_TLS_ERRORS, "Inconsistent multi-factor-authentication options between client and server");
+        ks->authenticated = false;
+      }
+    else
+      {
+        verify_user_pass(mfa, multi, session, VERIFY_MFA_CREDENTIALS);
+      }
+
+  }
+#endif
+
 #ifdef ENABLE_OCC
   /* check options consistency */
   if (!session->opt->disable_occ &&
@@ -2211,17 +2232,6 @@ key_method_2_read (struct buffer *buf, struct tls_multi *multi, struct tls_sessi
     }
 #endif
 
-#ifdef ENABLE_MFA
-  /*check for MFA options */
-  if (tls_session_mfa_enabled(session))
-  {
-    if (!check_mfa_options (mfa_options_string, session))
-      {
-        msg(D_TLS_ERRORS, "Inconsistent multi-factor-authentication options between client and server");
-        ks->authenticated = false;
-      }
-  }
-#endif
 
   buf_clear (buf);
 

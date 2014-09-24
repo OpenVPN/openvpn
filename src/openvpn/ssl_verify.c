@@ -1121,7 +1121,11 @@ verify_user_pass_management (struct tls_session *session, const struct user_pass
  */
 void
 verify_user_pass(struct user_pass *up, struct tls_multi *multi,
-    struct tls_session *session)
+    struct tls_session *session
+#ifdef ENABLE_MFA
+    , const unsigned int flags
+#endif
+    )
 {
   int s1 = OPENVPN_PLUGIN_FUNC_SUCCESS;
   bool s2 = true;
@@ -1157,11 +1161,30 @@ verify_user_pass(struct user_pass *up, struct tls_multi *multi,
   if (man_def_auth == KMDA_DEF)
     man_def_auth = verify_user_pass_management (session, up, raw_username);
 #endif
-  if (plugin_defined (session->opt->plugins, OPENVPN_PLUGIN_AUTH_USER_PASS_VERIFY))
-    s1 = verify_user_pass_plugin (session, up, raw_username);
-  if (session->opt->auth_user_pass_verify_script)
-    s2 = verify_user_pass_script (session, up);
-
+#ifdef ENABLE_MFA
+  if (flags == VERIFY_USER_PASS_CREDENTIALS)
+    {
+#endif
+      if (plugin_defined (session->opt->plugins, OPENVPN_PLUGIN_AUTH_USER_PASS_VERIFY))
+        s1 = verify_user_pass_plugin (session, up, raw_username);
+      if (session->opt->auth_user_pass_verify_script)
+        s2 = verify_user_pass_script (session, up);
+#ifdef ENABLE_MFA
+    }
+  else if (flags == VERIFY_MFA_CREDENTIALS)
+    {
+      unsigned int plugin_type;
+      if (session->opt->client_mfa_type == MFA_TYPE_OTP )
+        plugin_type = OPENVPN_PLUGIN_AUTH_MFA_OTP_VERIFY;
+      else if (session->opt->client_mfa_type == MFA_TYPE_PUSH )
+        plugin_type = OPENVPN_PLUGIN_AUTH_MFA_PUSH_VERIFY;
+      else if (session->opt->client_mfa_type == MFA_TYPE_USER_PASS )
+        plugin_type = OPENVPN_PLUGIN_AUTH_MFA_USER_PASS_VERIFY;
+      
+      //if (plugin_defined (session->opt->plugins, plugin_type))
+      //  s1 = verfiy_mfa_plugin (session, up, raw_username, mfa_type);
+    }
+#endif
   /* check sizing of username if it will become our common name */
   if ((session->opt->ssl_flags & SSLF_USERNAME_AS_COMMON_NAME) && strlen (up->username) >= TLS_USERNAME_LEN)
     {

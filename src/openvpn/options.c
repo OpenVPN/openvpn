@@ -3229,21 +3229,27 @@ options_cmp_equal_safe (char *actual, const char *expected, size_t actual_n)
   return ret;
 }
 
-
+/*
+ * verifies if the options string by the client has a corresponding option in the server
+ * if option matches with any of the available option, then set session->client_mfa_type
+ */
 bool
-check_mfa_options (char *client_mfa_options, struct tls_session *session)
+process_mfa_options (char *client_mfa_options, struct tls_session *session)
 {
   struct gc_arena gc = gc_new ();
   int length = session->opt->mfa_methods.len; 
-  char *server_options[length];
+  char *server_options;
+  ALLOC_ARRAY_CLEAR_GC (server_options, char, OPTION_LINE_SIZE, &gc);
   bool ret  = false;
   int i;
   for (i = 0 ; i < length; i++) 
     {
-      ALLOC_ARRAY_CLEAR_GC (server_options[i], char, OPTION_LINE_SIZE, &gc);
-      snprintf (server_options[i], OPTION_LINE_SIZE, "%s %d", session->opt->mfa_methods.method[i]->name, session->opt->mfa_methods.method[i]->type); 
-      if (strncmp (server_options[i], client_mfa_options, strlen(server_options[i])) == 0 )
+      snprintf (server_options, OPTION_LINE_SIZE, "%s %d",
+                session->opt->mfa_methods.method[i]->name, 
+                session->opt->mfa_methods.method[i]->type); 
+      if (strncmp (server_options, client_mfa_options, strlen(server_options)) == 0 )
         {
+          session->opt->client_mfa_type = session->opt->mfa_methods.method[i]->type;
           ret = true;
           break;
         }

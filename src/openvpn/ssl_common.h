@@ -229,6 +229,7 @@ struct tls_options
   int key_method;
 #ifdef ENABLE_MFA
   struct mfa_methods_list mfa_methods;
+  int client_mfa_type;
 #endif
   bool replay;
   bool single_session;
