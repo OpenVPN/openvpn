@@ -46,6 +46,9 @@
 
 #include "ssl_verify_backend.h"
 
+/** Maximum length of common name */
+#define TLS_USERNAME_LEN 64
+
 /*
  * Keep track of certificate hashes at various depths
  */

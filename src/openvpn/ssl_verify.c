@@ -46,9 +46,6 @@
 #include "ssl_verify_openssl.h"
 #endif
 
-/** Maximum length of common name */
-#define TLS_USERNAME_LEN 64
-
 /** Legal characters in an X509 name with --compat-names */
 #define X509_NAME_CHAR_CLASS   (CC_ALNUM|CC_UNDERBAR|CC_DASH|CC_DOT|CC_AT|CC_SLASH|CC_COLON|CC_EQUAL)
 
@@ -1023,7 +1020,11 @@ verify_user_pass_script (struct tls_session *session, const struct user_pass *up
  * Verify the username and password using a plugin
  */
 static int
-verify_user_pass_plugin (struct tls_session *session, const struct user_pass *up, const char *raw_username)
+verify_user_pass_plugin (struct tls_session *session, const struct user_pass *up, const char *raw_username
+#ifdef ENABLE_MFA
+        , const unsigned int plugin_type
+#endif
+    )
 {
   int retval = OPENVPN_PLUGIN_FUNC_ERROR;
 #ifdef PLUGIN_DEF_AUTH
@@ -1049,7 +1050,7 @@ verify_user_pass_plugin (struct tls_session *session, const struct user_pass *up
 #endif
 
       /* call command */
-      retval = plugin_call (session->opt->plugins, OPENVPN_PLUGIN_AUTH_USER_PASS_VERIFY, NULL, NULL, session->opt->es);
+      retval = plugin_call (session->opt->plugins, plugin_type, NULL, NULL, session->opt->es);
 
 #ifdef PLUGIN_DEF_AUTH
       /* purge auth control filename (and file itself) for non-deferred returns */
@@ -1166,7 +1167,11 @@ verify_user_pass(struct user_pass *up, struct tls_multi *multi,
     {
 #endif
       if (plugin_defined (session->opt->plugins, OPENVPN_PLUGIN_AUTH_USER_PASS_VERIFY))
-        s1 = verify_user_pass_plugin (session, up, raw_username);
+        s1 = verify_user_pass_plugin (session, up, raw_username
+#ifdef ENABLE_MFA
+                , OPENVPN_PLUGIN_AUTH_USER_PASS_VERIFY
+#endif
+        );
       if (session->opt->auth_user_pass_verify_script)
         s2 = verify_user_pass_script (session, up);
 #ifdef ENABLE_MFA
@@ -1180,9 +1185,9 @@ verify_user_pass(struct user_pass *up, struct tls_multi *multi,
         plugin_type = OPENVPN_PLUGIN_AUTH_MFA_PUSH_VERIFY;
       else if (session->opt->client_mfa_type == MFA_TYPE_USER_PASS )
         plugin_type = OPENVPN_PLUGIN_AUTH_MFA_USER_PASS_VERIFY;
-      
-      //if (plugin_defined (session->opt->plugins, plugin_type))
-      //  s1 = verfiy_mfa_plugin (session, up, raw_username, mfa_type);
+
+      if (plugin_defined (session->opt->plugins, plugin_type))
+        s1 = verify_user_pass_plugin (session, up, raw_username, plugin_type);
     }
 #endif
   /* check sizing of username if it will become our common name */

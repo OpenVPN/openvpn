@@ -2189,11 +2189,44 @@ key_method_2_read (struct buffer *buf, struct tls_multi *multi, struct tls_sessi
 	       "TLS Error: Certificate verification failed (key-method 2)");
 	  goto error;
 	}
+#ifndef ENABLE_MFA
       ks->authenticated = true;
+#endif
     }
 
   /* clear username and password from memory */
   CLEAR (*up);
+
+#ifdef ENABLE_MFA
+  /*check for MFA options */
+  if (tls_session_mfa_enabled(session))
+    {
+      if (!process_mfa_options (mfa_options_string, session))
+        {
+          msg(D_TLS_ERRORS, "Inconsistent multi-factor-authentication options between client and server");
+          ks->authenticated = false;
+        }
+      else
+        {
+            /*
+             * set username to common name in case of OTP and PUSH
+             */
+            if (session->opt->client_mfa_type == MFA_TYPE_OTP 
+                  || session->opt->client_mfa_type == MFA_TYPE_PUSH)
+              {
+                strncpynt(mfa->username, session->common_name, TLS_USERNAME_LEN);
+              }
+            verify_user_pass(mfa, multi, session, VERIFY_MFA_CREDENTIALS);
+        }
+
+    }
+  else
+    {
+      ks->authenticated = true;
+    }
+
+  CLEAR (*mfa);
+#endif
 
   /* Perform final authentication checks */
   if (ks->authenticated)
@@ -2201,22 +2234,6 @@ key_method_2_read (struct buffer *buf, struct tls_multi *multi, struct tls_sessi
       verify_final_auth_checks(multi, session);
     }
 
-#ifdef ENABLE_MFA
-  /*check for MFA options */
-  if (tls_session_mfa_enabled(session))
-  {
-    if (!process_mfa_options (mfa_options_string, session))
-      {
-        msg(D_TLS_ERRORS, "Inconsistent multi-factor-authentication options between client and server");
-        ks->authenticated = false;
-      }
-    else
-      {
-        verify_user_pass(mfa, multi, session, VERIFY_MFA_CREDENTIALS);
-      }
-
-  }
-#endif
 
 #ifdef ENABLE_OCC
   /* check options consistency */
