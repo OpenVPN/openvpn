@@ -6924,6 +6924,11 @@ add_option (struct options *options,
     {
       if (p[1] && p[2])
         {
+          if(options->mfa_methods.len >= MAX_MFA_METHODS - 1)
+            {
+              msg(msglevel, "Maximum number of mfa-method options is %d", MAX_MFA_METHODS);
+              goto err;
+            }
           struct mfa_method *method = (struct mfa_method *) malloc (sizeof (struct mfa_method));
           check_malloc_return (method);
           method->type = -1;
