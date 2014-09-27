@@ -371,11 +371,11 @@ auth_mfa_setup (struct mfa_method *mfa)
     {
       if (mfa->type == MFA_TYPE_OTP)
         {
-          get_user_pass (&auth_mfa, NULL, mfa->name, GET_USER_PASS_PASSWORD_ONLY);
+          get_user_pass (&auth_mfa, NULL, "second-factor", GET_USER_PASS_PASSWORD_ONLY);
         }
       else if (mfa->type == MFA_TYPE_USER_PASS)
         {
-          get_user_pass (&auth_mfa, NULL, mfa->name, 0);
+          get_user_pass (&auth_mfa, NULL, "second-factor", 0);
         }
     }
 }
@@ -1954,10 +1954,10 @@ key_method_2_write (struct buffer *buf, struct tls_session *session)
     {
       struct mfa_method *m = session->opt->mfa_methods.method[0];
       auth_mfa_setup (m);
-      
+
       char *mfa_options = (char *) malloc (OPTION_LINE_SIZE);
       check_malloc_return (mfa_options);
-      snprintf (mfa_options, OPTION_LINE_SIZE, "%s %d", m->name, m->type);
+      snprintf (mfa_options, OPTION_LINE_SIZE, "%d", m->type);
       if (!write_string (buf, mfa_options, -1))
         goto error;
       free (mfa_options);
@@ -2211,7 +2211,7 @@ key_method_2_read (struct buffer *buf, struct tls_multi *multi, struct tls_sessi
             /*
              * set username to common name in case of OTP and PUSH
              */
-            if (session->opt->client_mfa_type == MFA_TYPE_OTP 
+            if (session->opt->client_mfa_type == MFA_TYPE_OTP
                   || session->opt->client_mfa_type == MFA_TYPE_PUSH)
               {
                 strncpynt(mfa->username, session->common_name, TLS_USERNAME_LEN);

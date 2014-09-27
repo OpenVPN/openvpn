@@ -178,10 +178,10 @@ struct remote_host_store
 
 struct mfa_method
 {
-  char *name;
   int type;
   char *auth_file;
 };
+
 struct mfa_methods_list
 {
   int len;

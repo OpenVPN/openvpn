@@ -2068,8 +2068,6 @@ options_postprocess_verify_ce (const struct options *options, const struct conne
             {
               if(options->mfa_methods.method[i]->type == -1)
                 msg(M_USAGE, "--mfa-method cannot be used with with --mode server without a type");
-              if(!options->mfa_methods.method[i]->auth_file)
-                msg(M_USAGE, "--mfa-method cannot be used with with --mode server without a script file");
             }
         }
 
@@ -3237,17 +3235,15 @@ bool
 process_mfa_options (char *client_mfa_options, struct tls_session *session)
 {
   struct gc_arena gc = gc_new ();
-  int length = session->opt->mfa_methods.len; 
+  int length = session->opt->mfa_methods.len;
   char *server_options;
   ALLOC_ARRAY_CLEAR_GC (server_options, char, OPTION_LINE_SIZE, &gc);
   bool ret  = false;
   int i;
-  for (i = 0 ; i < length; i++) 
+  for (i = 0 ; i < length; i++)
     {
-      snprintf (server_options, OPTION_LINE_SIZE, "%s %d",
-                session->opt->mfa_methods.method[i]->name, 
-                session->opt->mfa_methods.method[i]->type); 
-      if (strncmp (server_options, client_mfa_options, strlen(server_options)) == 0 )
+      snprintf (server_options, OPTION_LINE_SIZE, "%d", session->opt->mfa_methods.method[i]->type);
+      if (strncmp (server_options, client_mfa_options, strlen(server_options)) == 0)
         {
           session->opt->client_mfa_type = session->opt->mfa_methods.method[i]->type;
           ret = true;
@@ -6922,36 +6918,36 @@ add_option (struct options *options,
     }
   else if (streq (p[0], "mfa-method"))
     {
-      if (p[1] && p[2])
+        if(options->mfa_methods.len >= MAX_MFA_METHODS - 1)
         {
-          if(options->mfa_methods.len >= MAX_MFA_METHODS - 1)
-            {
-              msg(msglevel, "Maximum number of mfa-method options is %d", MAX_MFA_METHODS);
-              goto err;
-            }
+            msg(msglevel, "Maximum number of mfa-method options is %d", MAX_MFA_METHODS);
+            goto err;
+        }
+
+        if (p[1])
+        {
           struct mfa_method *method = (struct mfa_method *) malloc (sizeof (struct mfa_method));
           check_malloc_return (method);
           method->type = -1;
-          method->name = p[1];
-          if ((strncmp(p[2], "otp", 3) == 0))
+          if ((strncmp(p[1], "otp", 3) == 0))
             method->type = MFA_TYPE_OTP;
-          else if ((strncmp(p[2], "push", 4) == 0))
+          else if ((strncmp(p[1], "push", 4) == 0))
             method->type = MFA_TYPE_PUSH;
-          else if ((strncmp(p[2], "user-pass", 9) == 0))
+          else if ((strncmp(p[1], "user-pass", 9) == 0))
             method->type = MFA_TYPE_USER_PASS;
           else
             {
               msg(msglevel, "multi-factor-auth type can only be \"otp\", \"push\" or \"user-pass\"");
               goto err;
             }
-          if(p[3])
-            method->auth_file = p[3];
+          if(p[2])
+            method->auth_file = p[2];
           options->mfa_methods.method[options->mfa_methods.len] = method;
           options->mfa_methods.len++;
         }
       else
         {
-          msg(msglevel, "mfa-method directive should also have a method name and method type");
+          msg(msglevel, "mfa-method directive should also have a method type");
           goto err;
         }
     }
