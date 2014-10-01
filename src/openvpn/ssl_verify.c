@@ -947,7 +947,11 @@ tls_authenticate_key (struct tls_multi *multi, const unsigned int mda_key_id, co
  * Verify the user name and password using a script
  */
 static bool
-verify_user_pass_script (struct tls_session *session, const struct user_pass *up)
+verify_user_pass_script (struct tls_session *session, const struct user_pass *up
+#ifdef ENABLE_MFA
+        , char * script_file_name
+#endif
+        )
 {
   struct gc_arena gc = gc_new ();
   struct argv argv = argv_new ();
@@ -993,7 +997,11 @@ verify_user_pass_script (struct tls_session *session, const struct user_pass *up
       setenv_untrusted (session);
 
       /* format command line */
+#ifdef ENABLE_MFA
+      argv_printf (&argv, "%sc %s", script_file_name, tmp_file);
+#else
       argv_printf (&argv, "%sc %s", session->opt->auth_user_pass_verify_script, tmp_file);
+#endif
 
       /* call command */
       ret = openvpn_run_script (&argv, session->opt->es, 0,
@@ -1173,7 +1181,11 @@ verify_user_pass(struct user_pass *up, struct tls_multi *multi,
 #endif
         );
       if (session->opt->auth_user_pass_verify_script)
-        s2 = verify_user_pass_script (session, up);
+        s2 = verify_user_pass_script (session, up
+#ifdef ENABLE_MFA
+                , session->opt->auth_user_pass_verify_script
+#endif
+        );
 #ifdef ENABLE_MFA
     }
   else if (flags == VERIFY_MFA_CREDENTIALS)
@@ -1188,6 +1200,9 @@ verify_user_pass(struct user_pass *up, struct tls_multi *multi,
 
       if (plugin_defined (session->opt->plugins, plugin_type))
         s1 = verify_user_pass_plugin (session, up, raw_username, plugin_type);
+      if(session->opt->mfa_methods->auth_file[session->opt->client_mfa_type])
+        s2 = verify_user_pass_script(session, up,
+                session->opt->mfa_methods->auth_file[session->opt->client_mfa_type]);
     }
 #endif
   /* check sizing of username if it will become our common name */
