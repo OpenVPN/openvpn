@@ -848,7 +848,9 @@ init_options (struct options *o, const bool init_gc)
   o->handshake_window = 60;
   o->transition_window = 3600;
   o->ecdh_curve = NULL;
-  o->mfa_methods.len = 0;
+#ifdef ENABLE_MFA
+  CLEAR(o->mfa_methods.supported_types); /* initialize to false */
+#endif
 #ifdef ENABLE_X509ALTUSERNAME
   o->x509_username_field = X509_USERNAME_FIELD_DEFAULT;
 #endif
@@ -2061,15 +2063,6 @@ options_postprocess_verify_ce (const struct options *options, const struct conne
 	msg (M_USAGE, "--ccd-exclusive must be used with --client-config-dir");
       if (options->key_method != 2)
 	msg (M_USAGE, "--mode server requires --key-method 2");
-      if(options->mfa_methods.len > 0)
-        {
-          int i;
-          for(i=0; i<options->mfa_methods.len; i++)
-            {
-              if(options->mfa_methods.method[i]->type == -1)
-                msg(M_USAGE, "--mfa-method cannot be used with with --mode server without a type");
-            }
-        }
 
 	{
 	  const bool ccnr = (options->auth_user_pass_verify_script
@@ -2132,8 +2125,10 @@ options_postprocess_verify_ce (const struct options *options, const struct conne
         msg (M_USAGE, "--stale-routes-check requires --mode server");
       if (compat_flag (COMPAT_FLAG_QUERY | COMPAT_NO_NAME_REMAPPING))
         msg (M_USAGE, "--compat-x509-names no-remapping requires --mode server");
+#ifdef ENABLE_MFA
       if(options->mfa_methods.len > 1)
         msg(M_USAGE, "--mfa-method cannot be used more than once with --mode client");
+#endif
     }
 #endif /* P2MP_SERVER */
 
@@ -3227,6 +3222,7 @@ options_cmp_equal_safe (char *actual, const char *expected, size_t actual_n)
   return ret;
 }
 
+#ifdef ENABLE_MFA
 /*
  * verifies if the options string by the client has a corresponding option in the server
  * if option matches with any of the available option, then set session->client_mfa_type
@@ -3253,6 +3249,7 @@ process_mfa_options (char *client_mfa_options, struct tls_session *session)
   gc_free (&gc);
   return ret;
 }
+#endif
 
 void
 options_warning_safe (char *actual, const char *expected, size_t actual_n)
@@ -6916,6 +6913,7 @@ add_option (struct options *options,
 	}
       options->key_method = key_method;
     }
+#ifdef ENABLE_MFA
   else if (streq (p[0], "mfa-method"))
     {
         if(options->mfa_methods.len >= MAX_MFA_METHODS - 1)
@@ -6926,31 +6924,25 @@ add_option (struct options *options,
 
         if (p[1])
         {
-          struct mfa_method *method = (struct mfa_method *) malloc (sizeof (struct mfa_method));
-          check_malloc_return (method);
-          method->type = -1;
+          int mfa_type;
           if ((strncmp(p[1], "otp", 3) == 0))
-            method->type = MFA_TYPE_OTP;
+            mfa_type = MFA_TYPE_OTP;
           else if ((strncmp(p[1], "push", 4) == 0))
-            method->type = MFA_TYPE_PUSH;
+            mfa_type = MFA_TYPE_PUSH;
           else if ((strncmp(p[1], "user-pass", 9) == 0))
-            method->type = MFA_TYPE_USER_PASS;
+            mfa_type = MFA_TYPE_USER_PASS;
           else
             {
               msg(msglevel, "multi-factor-auth type can only be \"otp\", \"push\" or \"user-pass\"");
               goto err;
             }
+          options->mfa_methods.supported_types[mfa_type] = true;
           if(p[2])
-            method->auth_file = p[2];
-          options->mfa_methods.method[options->mfa_methods.len] = method;
+            options->mfa_methods.auth_file[mfa_type] = true;
           options->mfa_methods.len++;
         }
-      else
-        {
-          msg(msglevel, "mfa-method directive should also have a method type");
-          goto err;
-        }
     }
+#endif
 #ifdef ENABLE_X509ALTUSERNAME
   else if (streq (p[0], "x509-username-field") && p[1])
     {

@@ -169,23 +169,18 @@ struct remote_host_store
 /*
  * Maximum number of MFA options that can be specified
  */
-#define MAX_MFA_METHODS 8
+#define MAX_MFA_METHODS 3
 
 
 #define MFA_TYPE_OTP 0
 #define MFA_TYPE_PUSH 1
 #define MFA_TYPE_USER_PASS 2
 
-struct mfa_method
-{
-  int type;
-  char *auth_file;
-};
-
 struct mfa_methods_list
 {
   int len;
-  struct mfa_method  *method[MAX_MFA_METHODS];
+  bool supported_types[MAX_MFA_METHODS];
+  char *auth_file[MAX_MFA_METHODS];
 };
 
 /* Command line options */
