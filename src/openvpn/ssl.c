@@ -364,16 +364,16 @@ static char *auth_challenge; /* GLOBAL */
 
 #ifdef ENABLE_MFA
 void
-auth_mfa_setup (struct mfa_method *mfa)
+auth_mfa_setup (struct mfa_methods_list *mfa)
 {
   auth_mfa_enabled = true;
   if (!auth_mfa.defined)
     {
-      if (mfa->type == MFA_TYPE_OTP)
+      if (mfa->supported_types[MFA_TYPE_OTP])
         {
           get_user_pass (&auth_mfa, NULL, "second-factor", GET_USER_PASS_PASSWORD_ONLY);
         }
-      else if (mfa->type == MFA_TYPE_USER_PASS)
+      else if (mfa->supported_types[MFA_TYPE_USER_PASS])
         {
           get_user_pass (&auth_mfa, NULL, "second-factor", 0);
         }
@@ -886,7 +886,7 @@ tls_session_mfa_enabled(struct tls_session *session)
   if (session->opt->mfa_methods.len > 0 && session->opt->server)
     return true;
   else
-    return false; 
+    return false;
 }
 #endif
 /** @addtogroup control_processor
@@ -1952,17 +1952,16 @@ key_method_2_write (struct buffer *buf, struct tls_session *session)
 #ifdef ENABLE_MFA
   if (auth_mfa_enabled)
     {
-      struct mfa_method *m = session->opt->mfa_methods.method[0];
+      struct mfa_methods_list *m = &(session->opt->mfa_methods);
       auth_mfa_setup (m);
 
-      char *mfa_options = (char *) malloc (OPTION_LINE_SIZE);
-      check_malloc_return (mfa_options);
-      snprintf (mfa_options, OPTION_LINE_SIZE, "%d", m->type);
-      if (!write_string (buf, mfa_options, -1))
+      int mfa_type = get_enabled_mfa_method(m);
+      if (mfa_type == -1)
         goto error;
-      free (mfa_options);
+      if (!buf_write_u32 (buf, mfa_type))
+        goto error;
 
-      if (m->type == MFA_TYPE_USER_PASS)
+      if (mfa_type == MFA_TYPE_USER_PASS)
         {
           if (!write_string (buf, auth_mfa.username, -1))
             goto error;
@@ -1972,7 +1971,7 @@ key_method_2_write (struct buffer *buf, struct tls_session *session)
           if (!write_empty_string (buf)) /* no username */
 	    goto error;
         }
-      if (!(m->type == MFA_TYPE_PUSH))
+      if (!(mfa_type == MFA_TYPE_PUSH))
         {
           if (!write_string (buf, auth_mfa.password, -1))
 	    goto error;
@@ -2094,17 +2093,18 @@ key_method_2_read (struct buffer *buf, struct tls_multi *multi, struct tls_sessi
 
   int key_method_flags;
   bool username_status, password_status;
-  bool mfa_username_status, mfa_password_status;
-  char *mfa_options_string;
+#ifdef ENABLE_MFA
+  bool mfa_username_status, mfa_password_status, mfa_type_status;
+  int mfa_type;
+  struct user_pass *mfa;
+#endif
 
   struct gc_arena gc = gc_new ();
   char *options;
   struct user_pass *up;
-  struct user_pass *mfa;
 
   /* allocate temporary objects */
   ALLOC_ARRAY_CLEAR_GC (options, char, TLS_OPTIONS_LEN, &gc);
-  ALLOC_ARRAY_CLEAR_GC (mfa_options_string, char, OPTION_LINE_SIZE, &gc);
 
   ASSERT (session->opt->key_method == 2);
 
@@ -2147,7 +2147,12 @@ key_method_2_read (struct buffer *buf, struct tls_multi *multi, struct tls_sessi
 
 #ifdef ENABLE_MFA
   /* get mfa method */
-  read_string (buf, mfa_options_string, OPTION_LINE_SIZE);
+  mfa_type = (int) buf_read_u32 (buf, &mfa_type_status);
+  if (!mfa_type_status)
+    {
+      msg(D_TLS_ERRORS, "Bad MFA-type received");
+      goto error;
+    }
   ALLOC_OBJ_CLEAR_GC (mfa, struct user_pass, &gc);
   mfa_username_status = read_string (buf, mfa->username, USER_PASS_LEN);
   mfa_password_status = read_string (buf, mfa->password, USER_PASS_LEN);
@@ -2201,9 +2206,9 @@ key_method_2_read (struct buffer *buf, struct tls_multi *multi, struct tls_sessi
   /*check for MFA options */
   if (tls_session_mfa_enabled(session))
     {
-      if (!process_mfa_options (mfa_options_string, session))
+      if (!process_mfa_options (mfa_type, session))
         {
-          msg(D_TLS_ERRORS, "Inconsistent multi-factor-authentication options between client and server");
+          msg(D_TLS_ERRORS, "Invalid multi-factor-authentication type");
           ks->authenticated = false;
         }
       else

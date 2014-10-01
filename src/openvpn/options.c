@@ -3224,30 +3224,36 @@ options_cmp_equal_safe (char *actual, const char *expected, size_t actual_n)
 
 #ifdef ENABLE_MFA
 /*
- * verifies if the options string by the client has a corresponding option in the server
- * if option matches with any of the available option, then set session->client_mfa_type
+ * Verifies if the MFA-type sent by the client is supported.
+ * Accordingly, sets the method to be used.
  */
 bool
-process_mfa_options (char *client_mfa_options, struct tls_session *session)
+process_mfa_options (int client_mfa_type, struct tls_session *session)
 {
-  struct gc_arena gc = gc_new ();
-  int length = session->opt->mfa_methods.len;
-  char *server_options;
-  ALLOC_ARRAY_CLEAR_GC (server_options, char, OPTION_LINE_SIZE, &gc);
-  bool ret  = false;
-  int i;
-  for (i = 0 ; i < length; i++)
+  if (!(client_mfa_type >= 0 && client_mfa_type < MAX_MFA_METHODS))
+    return false;
+  if (session->opt->mfa_methods.supported_types[client_mfa_type])
     {
-      snprintf (server_options, OPTION_LINE_SIZE, "%d", session->opt->mfa_methods.method[i]->type);
-      if (strncmp (server_options, client_mfa_options, strlen(server_options)) == 0)
-        {
-          session->opt->client_mfa_type = session->opt->mfa_methods.method[i]->type;
-          ret = true;
-          break;
-        }
+      session->opt->client_mfa_type = client_mfa_type;
+      return true;
     }
-  gc_free (&gc);
-  return ret;
+  else
+    return false;
+}
+
+/*
+ * Returns the first supported MFA method
+ */
+int
+get_enabled_mfa_method (struct mfa_methods_list *m)
+{
+  int i;
+  for (i = 0; i < MAX_MFA_METHODS; i++)
+    {
+      if (m->supported_types[i])
+        return i;
+    }
+  return -1;
 }
 #endif
 
@@ -6916,7 +6922,7 @@ add_option (struct options *options,
 #ifdef ENABLE_MFA
   else if (streq (p[0], "mfa-method"))
     {
-        if(options->mfa_methods.len >= MAX_MFA_METHODS - 1)
+        if(options->mfa_methods.len >= MAX_MFA_METHODS)
         {
             msg(msglevel, "Maximum number of mfa-method options is %d", MAX_MFA_METHODS);
             goto err;
@@ -6938,7 +6944,7 @@ add_option (struct options *options,
             }
           options->mfa_methods.supported_types[mfa_type] = true;
           if(p[2])
-            options->mfa_methods.auth_file[mfa_type] = true;
+            options->mfa_methods.auth_file[mfa_type] = p[2];
           options->mfa_methods.len++;
         }
     }

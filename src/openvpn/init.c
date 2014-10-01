@@ -430,7 +430,7 @@ init_query_passwords (struct context *c)
   if (c->options.mfa_methods.len > 0 && c->options.tls_client)
     {
       /* we are assuming only one active mfa method*/
-      auth_mfa_setup (c->options.mfa_methods.method[0]);
+      auth_mfa_setup (&(c->options.mfa_methods));
     }
 #endif
 #endif

@@ -166,6 +166,8 @@ struct remote_host_store
 #define RH_PORT_LEN 20
   char port[RH_PORT_LEN];
 };
+
+#ifdef ENABLE_MFA
 /*
  * Maximum number of MFA options that can be specified
  */
@@ -182,6 +184,10 @@ struct mfa_methods_list
   bool supported_types[MAX_MFA_METHODS];
   char *auth_file[MAX_MFA_METHODS];
 };
+
+
+int get_enabled_mfa_method (struct mfa_methods_list *m);
+#endif
 
 /* Command line options */
 struct options
