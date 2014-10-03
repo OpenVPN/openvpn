@@ -34,6 +34,10 @@
 #include "buffer.h"
 #include "misc.h"
 
+#ifdef ENABLE_SYSTEMD
+#include <systemd/sd-daemon.h>
+#endif
+
 #ifdef WIN32
 
 #include "win32.h"
@@ -143,15 +147,13 @@ close_tty (FILE *fp)
 static bool
 check_systemd_running ()
 {
-  struct stat a, b, c;
+  struct stat c;
 
   /* We simply test whether the systemd cgroup hierarchy is
    * mounted, as well as the systemd-ask-password executable
    * being available */
 
-  return (lstat("/sys/fs/cgroup", &a) == 0)
-	  && (lstat("/sys/fs/cgroup/systemd", &b) == 0)
-	  && (a.st_dev != b.st_dev)
+  return (sd_booted() > 0)
 	  && (stat(SYSTEMD_ASK_PASSWORD_PATH, &c) == 0);
 
 }
