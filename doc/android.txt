@@ -2,7 +2,7 @@ This file documents the support in OpenVPN for Android 4.0 and up.
 
 This support is primarily used in the "OpenVPN for Android" app
 (http://code.google.com/p/ics-openvpn/). For building see the developer
-README: http://code.google.com/p/ics-openvpn/source/browse/README.txt.
+README: http://code.google.com/p/ics-openvpn/source/browse/doc/README.txt.
 
 Android provides the VPNService API
 (http://developer.android.com/reference/android/net/VpnService.html)
@@ -54,6 +54,21 @@ To set the DNS server and search domain.
 
 The GUI will then respond with a "needok 'command' ok' or "needok
 'command' cancel', e.g. "needok 'IFCONFIG' ok".
+
+PERSIST_TUN_ACTION
+
+In Android 4.4-4.4.2 a bug exists that does not allow to open a new tun fd
+while a tun fd is still open. When OpenVPN wants to open an fd it will do
+this query. The UI should compare the last configuration of
+the tun device with the current tun configuration and reply with either (or
+always respond with OPEN_AFTER_BEFORE/OPEN_BEFORE_CLOSE)
+
+- NOACTION: Keep using the old fd
+- OPEN_AFTER_CLOSE: First close the old fd and then open a new to workaround the bug
+- OPEN_BEFORE_CLOSE: the normal behaviour when the VPN configuration changed
+
+For example the UI could respond with
+needok 'PERSIST_TUN_ACTION' OPEN_AFTER_CLOSE
 
 To protect a socket the OpenVPN will send a PROTECTFD to the UI.
 When sending the PROTECTFD command command to the UI it will send
