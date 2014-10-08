@@ -111,20 +111,23 @@ extern "C" {
  * FUNC: openvpn_plugin_client_destructor_v1 (top-level "generic" client)
  * FUNC: openvpn_plugin_close_v1
  */
-#define OPENVPN_PLUGIN_UP                    0
-#define OPENVPN_PLUGIN_DOWN                  1
-#define OPENVPN_PLUGIN_ROUTE_UP              2
-#define OPENVPN_PLUGIN_IPCHANGE              3
-#define OPENVPN_PLUGIN_TLS_VERIFY            4
-#define OPENVPN_PLUGIN_AUTH_USER_PASS_VERIFY 5
-#define OPENVPN_PLUGIN_CLIENT_CONNECT        6
-#define OPENVPN_PLUGIN_CLIENT_DISCONNECT     7
-#define OPENVPN_PLUGIN_LEARN_ADDRESS         8
-#define OPENVPN_PLUGIN_CLIENT_CONNECT_V2     9
-#define OPENVPN_PLUGIN_TLS_FINAL             10
-#define OPENVPN_PLUGIN_ENABLE_PF             11
-#define OPENVPN_PLUGIN_ROUTE_PREDOWN         12
-#define OPENVPN_PLUGIN_N                     13
+#define OPENVPN_PLUGIN_UP                        0
+#define OPENVPN_PLUGIN_DOWN                      1
+#define OPENVPN_PLUGIN_ROUTE_UP                  2
+#define OPENVPN_PLUGIN_IPCHANGE                  3
+#define OPENVPN_PLUGIN_TLS_VERIFY                4
+#define OPENVPN_PLUGIN_AUTH_USER_PASS_VERIFY     5
+#define OPENVPN_PLUGIN_AUTH_MFA_USER_PASS_VERIFY 6
+#define OPENVPN_PLUGIN_AUTH_MFA_OTP_VERIFY       7
+#define OPENVPN_PLUGIN_AUTH_MFA_PUSH_VERIFY      8
+#define OPENVPN_PLUGIN_CLIENT_CONNECT            9
+#define OPENVPN_PLUGIN_CLIENT_DISCONNECT         10
+#define OPENVPN_PLUGIN_LEARN_ADDRESS             11
+#define OPENVPN_PLUGIN_CLIENT_CONNECT_V2         12
+#define OPENVPN_PLUGIN_TLS_FINAL                 13
+#define OPENVPN_PLUGIN_ENABLE_PF                 14
+#define OPENVPN_PLUGIN_ROUTE_PREDOWN             15
+#define OPENVPN_PLUGIN_N                         16
 
 /*
  * Build a mask out of a set of plug-in types.

@@ -167,6 +167,29 @@ struct remote_host_store
   char port[RH_PORT_LEN];
 };
 
+#ifdef ENABLE_MFA
+/*
+ * Maximum number of MFA options that can be specified
+ */
+#define MAX_MFA_METHODS 3
+
+
+#define MFA_TYPE_OTP 0
+#define MFA_TYPE_PUSH 1
+#define MFA_TYPE_USER_PASS 2
+
+struct mfa_methods_list
+{
+  int len;
+  bool supported_types[MAX_MFA_METHODS];
+  bool auth_mfa_verify_script_via_file[MAX_MFA_METHODS];
+  char *auth_file[MAX_MFA_METHODS];
+};
+
+
+int get_enabled_mfa_method (struct mfa_methods_list *m);
+#endif
+
 /* Command line options */
 struct options
 {
@@ -548,6 +571,7 @@ struct options
 
   /* data channel key exchange method */
   int key_method;
+  struct mfa_methods_list mfa_methods;
 
   /* Per-packet timeout on control channel */
   int tls_timeout;

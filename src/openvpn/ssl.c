@@ -352,10 +352,33 @@ pem_password_callback (char *buf, int size, int rwflag, void *u)
  */
 
 static bool auth_user_pass_enabled;     /* GLOBAL */
+static bool auth_mfa_enabled;           /* GLOBAL */
 static struct user_pass auth_user_pass; /* GLOBAL */
+#ifdef ENABLE_MFA
+static struct user_pass auth_mfa;       /* GLOBAL */
+#endif
 
 #ifdef ENABLE_CLIENT_CR
 static char *auth_challenge; /* GLOBAL */
+#endif
+
+#ifdef ENABLE_MFA
+void
+auth_mfa_setup (struct mfa_methods_list *mfa)
+{
+  auth_mfa_enabled = true;
+  if (!auth_mfa.defined)
+    {
+      if (mfa->supported_types[MFA_TYPE_OTP])
+        {
+          get_user_pass (&auth_mfa, NULL, "second-factor", GET_USER_PASS_PASSWORD_ONLY);
+        }
+      else if (mfa->supported_types[MFA_TYPE_USER_PASS])
+        {
+          get_user_pass (&auth_mfa, NULL, "second-factor", 0);
+        }
+    }
+}
 #endif
 
 void
@@ -856,7 +879,16 @@ tls_session_user_pass_enabled(struct tls_session *session)
         );
 }
 
-
+#ifdef ENABLE_MFA
+static inline bool
+tls_session_mfa_enabled(struct tls_session *session)
+{
+  if (session->opt->mfa_methods.len > 0 && session->opt->server)
+    return true;
+  else
+    return false;
+}
+#endif
 /** @addtogroup control_processor
  *  @{ */
 
@@ -1917,6 +1949,50 @@ key_method_2_write (struct buffer *buf, struct tls_session *session)
 	goto error;
     }
 
+#ifdef ENABLE_MFA
+  if (auth_mfa_enabled)
+    {
+      struct mfa_methods_list *m = &(session->opt->mfa_methods);
+      auth_mfa_setup (m);
+
+      int mfa_type = get_enabled_mfa_method(m);
+      if (mfa_type == -1)
+        goto error;
+      if (!buf_write_u32 (buf, mfa_type))
+        goto error;
+
+      if (mfa_type == MFA_TYPE_USER_PASS)
+        {
+          if (!write_string (buf, auth_mfa.username, -1))
+            goto error;
+        }
+      else /* OTP or push, no username required */
+        {
+          if (!write_empty_string (buf)) /* no username */
+	    goto error;
+        }
+      if (!(mfa_type == MFA_TYPE_PUSH))
+        {
+          if (!write_string (buf, auth_mfa.password, -1))
+	    goto error;
+        }
+      else
+        {
+          if (!write_empty_string (buf)) /* no password for push */
+	    goto error;
+        }
+      purge_user_pass (&auth_mfa, false);
+    }
+  else
+    {
+      if (!write_empty_string (buf)) /* no mfa-method string */
+	goto error;
+      if (!write_empty_string (buf)) /* no username */
+	goto error;
+      if (!write_empty_string (buf)) /* no password */
+	goto error;
+    }
+#endif
   if (!push_peer_info (buf, session))
     goto error;
 
@@ -2017,6 +2093,11 @@ key_method_2_read (struct buffer *buf, struct tls_multi *multi, struct tls_sessi
 
   int key_method_flags;
   bool username_status, password_status;
+#ifdef ENABLE_MFA
+  bool mfa_username_status, mfa_password_status, mfa_type_status;
+  int mfa_type;
+  struct user_pass *mfa;
+#endif
 
   struct gc_arena gc = gc_new ();
   char *options;
@@ -2064,6 +2145,19 @@ key_method_2_read (struct buffer *buf, struct tls_multi *multi, struct tls_sessi
   username_status = read_string (buf, up->username, USER_PASS_LEN);
   password_status = read_string (buf, up->password, USER_PASS_LEN);
 
+#ifdef ENABLE_MFA
+  /* get mfa method */
+  mfa_type = (int) buf_read_u32 (buf, &mfa_type_status);
+  if (!mfa_type_status)
+    {
+      msg(D_TLS_ERRORS, "Bad MFA-type received");
+      goto error;
+    }
+  ALLOC_OBJ_CLEAR_GC (mfa, struct user_pass, &gc);
+  mfa_username_status = read_string (buf, mfa->username, USER_PASS_LEN);
+  mfa_password_status = read_string (buf, mfa->password, USER_PASS_LEN);
+#endif
+
 #if P2MP_SERVER
   /* get peer info from control channel */
   free (multi->peer_info);
@@ -2085,7 +2179,11 @@ key_method_2_read (struct buffer *buf, struct tls_multi *multi, struct tls_sessi
 	    }
 	}
 
-      verify_user_pass(up, multi, session);
+      verify_user_pass(up, multi, session
+#ifdef ENABLE_MFA
+              , VERIFY_USER_PASS_CREDENTIALS
+#endif
+              );
     }
   else
     {
@@ -2096,17 +2194,51 @@ key_method_2_read (struct buffer *buf, struct tls_multi *multi, struct tls_sessi
 	       "TLS Error: Certificate verification failed (key-method 2)");
 	  goto error;
 	}
+#ifndef ENABLE_MFA
       ks->authenticated = true;
+#endif
     }
 
   /* clear username and password from memory */
   CLEAR (*up);
+
+#ifdef ENABLE_MFA
+  /*check for MFA options */
+  if (tls_session_mfa_enabled(session))
+    {
+      if (!process_mfa_options (mfa_type, session))
+        {
+          msg(D_TLS_ERRORS, "Invalid multi-factor-authentication type");
+          ks->authenticated = false;
+        }
+      else
+        {
+            /*
+             * set username to common name in case of OTP and PUSH
+             */
+            if (session->opt->client_mfa_type == MFA_TYPE_OTP
+                  || session->opt->client_mfa_type == MFA_TYPE_PUSH)
+              {
+                strncpynt(mfa->username, session->common_name, TLS_USERNAME_LEN);
+              }
+            verify_user_pass(mfa, multi, session, VERIFY_MFA_CREDENTIALS);
+        }
+
+    }
+  else
+    {
+      ks->authenticated = true;
+    }
+
+  CLEAR (*mfa);
+#endif
 
   /* Perform final authentication checks */
   if (ks->authenticated)
     {
       verify_final_auth_checks(multi, session);
     }
+
 
 #ifdef ENABLE_OCC
   /* check options consistency */
@@ -2121,6 +2253,7 @@ key_method_2_read (struct buffer *buf, struct tls_multi *multi, struct tls_sessi
 	}
     }
 #endif
+
 
   buf_clear (buf);
 

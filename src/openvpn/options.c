@@ -848,6 +848,9 @@ init_options (struct options *o, const bool init_gc)
   o->handshake_window = 60;
   o->transition_window = 3600;
   o->ecdh_curve = NULL;
+#ifdef ENABLE_MFA
+  CLEAR(o->mfa_methods.supported_types); /* initialize to false */
+#endif
 #ifdef ENABLE_X509ALTUSERNAME
   o->x509_username_field = X509_USERNAME_FIELD_DEFAULT;
 #endif
@@ -2122,6 +2125,10 @@ options_postprocess_verify_ce (const struct options *options, const struct conne
         msg (M_USAGE, "--stale-routes-check requires --mode server");
       if (compat_flag (COMPAT_FLAG_QUERY | COMPAT_NO_NAME_REMAPPING))
         msg (M_USAGE, "--compat-x509-names no-remapping requires --mode server");
+#ifdef ENABLE_MFA
+      if(options->mfa_methods.len > 1)
+        msg(M_USAGE, "--mfa-method cannot be used more than once with --mode client");
+#endif
     }
 #endif /* P2MP_SERVER */
 
@@ -3214,6 +3221,41 @@ options_cmp_equal_safe (char *actual, const char *expected, size_t actual_n)
   gc_free (&gc);
   return ret;
 }
+
+#ifdef ENABLE_MFA
+/*
+ * Verifies if the MFA-type sent by the client is supported.
+ * Accordingly, sets the method to be used.
+ */
+bool
+process_mfa_options (int client_mfa_type, struct tls_session *session)
+{
+  if (!(client_mfa_type >= 0 && client_mfa_type < MAX_MFA_METHODS))
+    return false;
+  if (session->opt->mfa_methods.supported_types[client_mfa_type])
+    {
+      session->opt->client_mfa_type = client_mfa_type;
+      return true;
+    }
+  else
+    return false;
+}
+
+/*
+ * Returns the first supported MFA method
+ */
+int
+get_enabled_mfa_method (struct mfa_methods_list *m)
+{
+  int i;
+  for (i = 0; i < MAX_MFA_METHODS; i++)
+    {
+      if (m->supported_types[i])
+        return i;
+    }
+  return -1;
+}
+#endif
 
 void
 options_warning_safe (char *actual, const char *expected, size_t actual_n)
@@ -6877,6 +6919,43 @@ add_option (struct options *options,
 	}
       options->key_method = key_method;
     }
+#ifdef ENABLE_MFA
+  else if (streq (p[0], "mfa-method"))
+    {
+        if(options->mfa_methods.len >= MAX_MFA_METHODS)
+        {
+            msg(msglevel, "Maximum number of mfa-method options is %d", MAX_MFA_METHODS);
+            goto err;
+        }
+
+        if (p[1])
+        {
+          int mfa_type;
+          if (streq(p[1], "otp"))
+            mfa_type = MFA_TYPE_OTP;
+          else if (streq(p[1], "push"))
+            mfa_type = MFA_TYPE_PUSH;
+          else if (streq(p[1], "user-pass"))
+            mfa_type = MFA_TYPE_USER_PASS;
+          else
+            {
+              msg(msglevel, "multi-factor-auth type can only be \"otp\", \"push\" or \"user-pass\"");
+              goto err;
+            }
+          options->mfa_methods.supported_types[mfa_type] = true;
+          if (p[2])
+            options->mfa_methods.auth_file[mfa_type] = p[2];
+          if (p[3])
+            {
+              if (streq(p[3], "via-file"))
+                options->mfa_methods.auth_mfa_verify_script_via_file[mfa_type] = true;
+              else if (streq(p[3], "via-env"))
+                options->mfa_methods.auth_mfa_verify_script_via_file[mfa_type] = false;
+            }
+          options->mfa_methods.len++;
+        }
+    }
+#endif
 #ifdef ENABLE_X509ALTUSERNAME
   else if (streq (p[0], "x509-username-field") && p[1])
     {

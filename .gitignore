@@ -57,3 +57,6 @@ config-version.h
 nbproject
 test-driver
 compile
+
+*.swp
+tags

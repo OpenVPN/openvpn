@@ -79,6 +79,13 @@ AC_ARG_ENABLE(
 )
 
 AC_ARG_ENABLE(
+	[mfa],
+	[AS_HELP_STRING([--disable-mfa], [disable multi factor authentication @<:@default=yes@:>@])],
+	,
+	[enable_mfa="yes"]
+)
+
+AC_ARG_ENABLE(
 	[ssl],
 	[AS_HELP_STRING([--disable-ssl], [disable SSL support for TLS-based key exchange @<:@default=yes@:>@])],
 	,
@@ -1079,6 +1086,11 @@ case "${with_crypto_library}" in
 		AC_DEFINE([ENABLE_CRYPTO_POLARSSL], [1], [Use PolarSSL library])
 		;;
 esac
+
+if test "${enable_mfa}" = "yes"; then
+	test "${enable_ssl}" != "yes" && AC_MSG_ERROR([ssl must be enabled for multi-factor-authentication])
+	AC_DEFINE([ENABLE_MFA], [1], [Enable multi-factor-authentication])
+fi
 
 if test "${enable_ssl}" = "yes"; then
 	test "${enable_crypto}" != "yes" && AC_MSG_ERROR([crypto must be enabled for ssl])

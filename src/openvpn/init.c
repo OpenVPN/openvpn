@@ -426,6 +426,13 @@ init_query_passwords (struct context *c)
       auth_user_pass_setup (c->options.auth_user_pass_file, NULL);
 #endif
     }
+#ifdef ENABLE_MFA
+  if (c->options.mfa_methods.len > 0 && c->options.tls_client)
+    {
+      /* we are assuming only one active mfa method*/
+      auth_mfa_setup (&(c->options.mfa_methods));
+    }
+#endif
 #endif
 }
 
@@ -2171,6 +2178,7 @@ do_init_crypto_tls (struct context *c, const unsigned int flags)
   to.key_type = c->c1.ks.key_type;
   to.server = options->tls_server;
   to.key_method = options->key_method;
+  to.mfa_methods = options->mfa_methods;
   to.replay = options->replay;
   to.replay_window = options->replay_window;
   to.replay_time = options->replay_time;

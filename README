@@ -1,3 +1,6 @@
+This is an ongoing project under Mozilla Winter of Security to add 'true'
+multi-factor authentication support with session resumption to OpenVPN.
+For details visit https://wiki.mozilla.org/Security/Mentorships/MWoS/2014/OpenVPN_MFA
 OpenVPN -- A Secure tunneling daemon
 
 Copyright (C) 2002-2010 OpenVPN Technologies, Inc. This program is free software;
