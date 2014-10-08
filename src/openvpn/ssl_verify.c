@@ -949,7 +949,7 @@ tls_authenticate_key (struct tls_multi *multi, const unsigned int mda_key_id, co
 static bool
 verify_user_pass_script (struct tls_session *session, const struct user_pass *up
 #ifdef ENABLE_MFA
-        , char * script_file_name
+        , const unsigned int flag
 #endif
         )
 {
@@ -963,8 +963,13 @@ verify_user_pass_script (struct tls_session *session, const struct user_pass *up
     {
       /* Set environmental variables prior to calling script */
       setenv_str (session->opt->es, "script_type", "user-pass-verify");
-
+#ifdef ENABLE_MFA
+      if ((flag == VERIFY_MFA_CREDENTIALS &&
+              session->opt->mfa_methods.auth_mfa_verify_script_via_file[session->opt->client_mfa_type]) ||
+              (flag == VERIFY_USER_PASS_CREDENTIALS && session->opt->auth_user_pass_verify_script_via_file))
+#else
       if (session->opt->auth_user_pass_verify_script_via_file)
+#endif
 	{
 	  struct status_output *so;
 
@@ -998,7 +1003,10 @@ verify_user_pass_script (struct tls_session *session, const struct user_pass *up
 
       /* format command line */
 #ifdef ENABLE_MFA
-      argv_printf (&argv, "%sc %s", script_file_name, tmp_file);
+      if (flag == VERIFY_MFA_CREDENTIALS)
+        argv_printf (&argv, "%sc %s", session->opt->mfa_methods.auth_file[session->opt->client_mfa_type], tmp_file);
+      else if (flag == VERIFY_USER_PASS_CREDENTIALS)
+        argv_printf (&argv, "%sc %s", session->opt->auth_user_pass_verify_script, tmp_file);
 #else
       argv_printf (&argv, "%sc %s", session->opt->auth_user_pass_verify_script, tmp_file);
 #endif
@@ -1006,7 +1014,7 @@ verify_user_pass_script (struct tls_session *session, const struct user_pass *up
       /* call command */
       ret = openvpn_run_script (&argv, session->opt->es, 0,
 				"--auth-user-pass-verify");
-
+      printf("\n\nreturn %d\n\n", ret);
       if (!session->opt->auth_user_pass_verify_script_via_file)
 	setenv_del (session->opt->es, "password");
     }
@@ -1183,7 +1191,7 @@ verify_user_pass(struct user_pass *up, struct tls_multi *multi,
       if (session->opt->auth_user_pass_verify_script)
         s2 = verify_user_pass_script (session, up
 #ifdef ENABLE_MFA
-                , session->opt->auth_user_pass_verify_script
+                , flags
 #endif
         );
 #ifdef ENABLE_MFA
@@ -1200,9 +1208,8 @@ verify_user_pass(struct user_pass *up, struct tls_multi *multi,
 
       if (plugin_defined (session->opt->plugins, plugin_type))
         s1 = verify_user_pass_plugin (session, up, raw_username, plugin_type);
-      if(session->opt->mfa_methods->auth_file[session->opt->client_mfa_type])
-        s2 = verify_user_pass_script(session, up,
-                session->opt->mfa_methods->auth_file[session->opt->client_mfa_type]);
+      if(session->opt->mfa_methods.auth_file[session->opt->client_mfa_type])
+        s2 = verify_user_pass_script(session, up, flags);
     }
 #endif
   /* check sizing of username if it will become our common name */

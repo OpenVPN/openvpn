@@ -6931,11 +6931,11 @@ add_option (struct options *options,
         if (p[1])
         {
           int mfa_type;
-          if ((strncmp(p[1], "otp", 3) == 0))
+          if (streq(p[1], "otp"))
             mfa_type = MFA_TYPE_OTP;
-          else if ((strncmp(p[1], "push", 4) == 0))
+          else if (streq(p[1], "push"))
             mfa_type = MFA_TYPE_PUSH;
-          else if ((strncmp(p[1], "user-pass", 9) == 0))
+          else if (streq(p[1], "user-pass"))
             mfa_type = MFA_TYPE_USER_PASS;
           else
             {
@@ -6943,8 +6943,15 @@ add_option (struct options *options,
               goto err;
             }
           options->mfa_methods.supported_types[mfa_type] = true;
-          if(p[2])
+          if (p[2])
             options->mfa_methods.auth_file[mfa_type] = p[2];
+          if (p[3])
+            {
+              if (streq(p[3], "via-file"))
+                options->mfa_methods.auth_mfa_verify_script_via_file[mfa_type] = true;
+              else if (streq(p[3], "via-env"))
+                options->mfa_methods.auth_mfa_verify_script_via_file[mfa_type] = false;
+            }
           options->mfa_methods.len++;
         }
     }

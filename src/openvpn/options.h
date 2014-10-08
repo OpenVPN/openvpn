@@ -182,6 +182,7 @@ struct mfa_methods_list
 {
   int len;
   bool supported_types[MAX_MFA_METHODS];
+  bool auth_mfa_verify_script_via_file[MAX_MFA_METHODS];
   char *auth_file[MAX_MFA_METHODS];
 };
 
