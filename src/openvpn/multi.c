@@ -1452,10 +1452,6 @@ multi_client_connect_post (struct multi_context *m,
 			     option_types_found,
 			     mi->context.c2.es);
 
-      if (!platform_unlink (dc_file))
-	msg (D_MULTI_ERRORS, "MULTI: problem deleting temporary file: %s",
-	     dc_file);
-
       /*
        * If the --client-connect script generates a config file
        * with an --ifconfig-push directive, it will override any
@@ -1698,6 +1694,11 @@ multi_connection_established (struct multi_context *m, struct multi_instance *mi
 	      multi_client_connect_post (m, mi, dc_file, option_permissions_mask, &option_types_found);
 	      ++cc_succeeded_count;
 	    }
+
+	  if (!platform_unlink (dc_file))
+	    msg (D_MULTI_ERRORS, "MULTI: problem deleting temporary file: %s",
+		 dc_file);
+
         script_depr_failed:
 	  argv_reset (&argv);
 	}
@@ -1751,6 +1752,11 @@ multi_connection_established (struct multi_context *m, struct multi_instance *mi
 	    }
 	  else
 	    cc_succeeded = false;
+
+	  if (!platform_unlink (dc_file))
+	    msg (D_MULTI_ERRORS, "MULTI: problem deleting temporary file: %s",
+		 dc_file);
+
         script_failed:
 	  argv_reset (&argv);
 	}
