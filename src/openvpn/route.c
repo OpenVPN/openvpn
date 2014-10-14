@@ -2601,7 +2601,7 @@ get_default_gateway (struct route_gateway_info *rgi)
   gc_free (&gc);
 }
 
-#elif defined(TARGET_FREEBSD)||defined(TARGET_DRAGONFLY)
+#elif defined(TARGET_FREEBSD)||defined(TARGET_DRAGONFLY)||defined(TARGET_SOLARIS)
 
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -2629,12 +2629,26 @@ get_default_gateway (struct route_gateway_info *rgi)
   struct sockaddr *gate = NULL, *sa;
   struct  rt_msghdr *rtm_aux;
 
+#if defined(TARGET_FREEBSD)||defined(TARGET_DRAGONFLY)
+
 #define NEXTADDR(w, u) \
         if (rtm_addrs & (w)) {\
             l = ROUNDUP(u.sa_len); memmove(cp, &(u), l); cp += l;\
         }
 
 #define ADVANCE(x, n) (x += ROUNDUP((n)->sa_len))
+
+#else /* TARGET_SOLARIS */
+
+#define NEXTADDR(w, u) \
+        if (rtm_addrs & (w)) {\
+            l = ROUNDUP(sizeof(struct sockaddr_in)); memmove(cp, &(u), l); cp += l;\
+        }
+
+#define ADVANCE(x, n) (x += ROUNDUP(sizeof(struct sockaddr_in)))
+
+#endif
+
 
 #define rtm m_rtmsg.m_rtm
 
@@ -2655,9 +2669,12 @@ get_default_gateway (struct route_gateway_info *rgi)
   rtm.rtm_addrs = rtm_addrs; 
 
   so_dst.sa_family = AF_INET;
-  so_dst.sa_len = sizeof(struct sockaddr_in);
   so_mask.sa_family = AF_INET;
+
+#if defined(TARGET_FREEBSD)||defined(TARGET_DRAGONFLY)
+  so_dst.sa_len = sizeof(struct sockaddr_in);
   so_mask.sa_len = sizeof(struct sockaddr_in);
+#endif
 
   NEXTADDR(RTA_DST, so_dst);
   NEXTADDR(RTA_NETMASK, so_mask);
