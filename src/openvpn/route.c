@@ -2626,7 +2626,7 @@ get_default_gateway (struct route_gateway_info *rgi)
   gc_free (&gc);
 }
 
-#elif defined(TARGET_DARWIN) || \
+#elif defined(TARGET_DARWIN) || defined(TARGET_SOLARIS) || \
 	defined(TARGET_FREEBSD) || defined(TARGET_DRAGONFLY) || \
 	defined(TARGET_OPENBSD) || defined(TARGET_NETBSD)
 
@@ -2661,12 +2661,21 @@ struct rtmsg {
         ((a) > 0 ? (1 + (((a) - 1) | (sizeof(long) - 1))) : sizeof(long))
 #endif
 
+#if defined(TARGET_SOLARIS)
+#define NEXTADDR(w, u) \
+        if (rtm_addrs & (w)) {\
+            l = ROUNDUP(sizeof(struct sockaddr_in)); memmove(cp, &(u), l); cp += l;\
+        }
+
+#define ADVANCE(x, n) (x += ROUNDUP(sizeof(struct sockaddr_in)))
+#else
 #define NEXTADDR(w, u) \
         if (rtm_addrs & (w)) {\
             l = ROUNDUP(u.sa_len); memmove(cp, &(u), l); cp += l;\
         }
 
 #define ADVANCE(x, n) (x += ROUNDUP((n)->sa_len))
+#endif
 
 #define max(a,b) ((a) > (b) ? (a) : (b))
 
@@ -2703,9 +2712,12 @@ get_default_gateway (struct route_gateway_info *rgi)
   rtm.rtm_addrs = rtm_addrs; 
 
   so_dst.sa_family = AF_INET;
-  so_dst.sa_len = sizeof(struct sockaddr_in);
   so_mask.sa_family = AF_INET;
+
+#ifndef TARGET_SOLARIS
+  so_dst.sa_len = sizeof(struct sockaddr_in);
   so_mask.sa_len = sizeof(struct sockaddr_in);
+#endif
 
   NEXTADDR(RTA_DST, so_dst);
   NEXTADDR(RTA_NETMASK, so_mask);
@@ -2829,7 +2841,12 @@ get_default_gateway (struct route_gateway_info *rgi)
       for (cp = buffer; cp <= buffer + ifc.ifc_len - sizeof(struct ifreq); )
 	{
 	  ifr = (struct ifreq *)cp;
+#if defined(TARGET_SOLARIS)
+	  const size_t len = sizeof(ifr->ifr_name) + sizeof(ifr->ifr_addr);
+#else
 	  const size_t len = sizeof(ifr->ifr_name) + max(sizeof(ifr->ifr_addr), ifr->ifr_addr.sa_len);
+#endif
+
 	  if (!ifr->ifr_addr.sa_family)
 	    break;
 	  if (!strncmp(ifr->ifr_name, rgi->iface, IFNAMSIZ))
