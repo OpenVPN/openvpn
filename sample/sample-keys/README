@@ -1,14 +1,19 @@
-Sample RSA keys.
+Sample RSA and EC keys.
 
-See the examples section of the man page
-for usage examples.
+Run ./gen-sample-keys.sh to generate fresh test keys.
+
+See the examples section of the man page for usage examples.
 
 NOTE: THESE KEYS ARE FOR TESTING PURPOSES ONLY.
       DON'T USE THEM FOR ANY REAL WORK BECAUSE
       THEY ARE TOTALLY INSECURE!
 
-ca.{crt,key}     -- sample CA key/cert
-client.{crt,key} -- sample client key/cert
-server.{crt,key} -- sample server key/cert (nsCertType=server)
-pass.{crt,key}   -- sample client key/cert with password-encrypted key
-                    password = "password"
+ca.{crt,key}        -- sample CA key/cert
+server.{crt,key}    -- sample server key/cert
+client.{crt,key}    -- sample client key/cert
+client-pass.key     -- sample client key with password-encrypted key
+                       password = "password"
+client.p12          -- sample client pkcs12 bundle
+                       password = "password"
+client-ec.{crt,key} -- sample elliptic curve client key/cert
+server-ec.{crt,key} -- sample elliptic curve server key/cert

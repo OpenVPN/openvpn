@@ -17,10 +17,9 @@ dev null
 verb 3
 reneg-sec 10
 tls-server
-dh sample-keys/dh1024.pem
+dh sample-keys/dh2048.pem
 ca sample-keys/ca.crt
 key sample-keys/server.key
 cert sample-keys/server.crt
-cipher DES-EDE3-CBC
 ping 1
 inactive 120 10000000
