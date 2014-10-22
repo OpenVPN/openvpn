@@ -952,6 +952,15 @@ read_incoming_tun (struct context *c)
       return;		  
     }
 
+  /* Was TUN/TAP I/O operation aborted? */
+  if (tuntap_abort(c->c2.buf.len))
+  {
+     register_signal(c, SIGTERM, "tun-abort");
+     msg(M_FATAL, "TUN/TAP I/O operation aborted, exiting");
+     perf_pop();
+     return;
+  }
+
   /* Check the status return from read() */
   check_status (c->c2.buf.len, "read from TUN/TAP", NULL, c->c1.tuntap);
 

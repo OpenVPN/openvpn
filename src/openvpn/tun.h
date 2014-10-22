@@ -374,6 +374,19 @@ tuntap_stop (int status)
   return false;
 }
 
+static inline bool
+tuntap_abort(int status)
+{
+  /*
+   * Typically generated when driver is halted.
+   */
+  if (status < 0)
+    {
+      return openvpn_errno() == ERROR_OPERATION_ABORTED;
+    }
+  return false;
+}
+
 static inline int
 tun_write_win32 (struct tuntap *tt, struct buffer *buf)
 {
@@ -411,6 +424,12 @@ write_tun_buffered (struct tuntap *tt, struct buffer *buf)
 
 static inline bool
 tuntap_stop (int status)
+{
+  return false;
+}
+
+static inline bool
+tuntap_abort(int status)
 {
   return false;
 }
