@@ -17,9 +17,9 @@ dev null
 verb 3
 reneg-sec 10
 tls-client
+remote-cert-tls server
 ca sample-keys/ca.crt
 key sample-keys/client.key
 cert sample-keys/client.crt
-cipher DES-EDE3-CBC
 ping 1
 inactive 120 10000000
