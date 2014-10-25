@@ -101,9 +101,7 @@ static
 bool extract_x509_extension(X509 *cert, char *fieldname, char *out, int size)
 {
   bool retval = false;
-  X509_EXTENSION *pExt;
   char *buf = 0;
-  int length = 0;
   GENERAL_NAMES *extensions;
   int nid = OBJ_txt2nid(fieldname);
 
