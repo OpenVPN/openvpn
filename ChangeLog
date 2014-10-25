@@ -1,5 +1,74 @@
 OpenVPN Change Log
-Copyright (C) 2002-2012 OpenVPN Technologies, Inc. <sales@openvpn.net>
+Copyright (C) 2002-2014 OpenVPN Technologies, Inc. <sales@openvpn.net>
+
+2014.10.24 -- Version 2.3.5
+Andris Kalnozols (2):
+      Fix some typos in the man page.
+      Do not upcase x509-username-field for mixed-case arguments.
+
+Arne Schwabe (1):
+      Fix server routes not working in topology subnet with --server [v3]
+
+David Sommerseth (4):
+      Improve error reporting on file access to --client-config-dir and --ccd-exclusive
+      Don't let openvpn_popen() keep zombies around
+      Add systemd unit file for OpenVPN
+      systemd: Use systemd functions to consider systemd availability
+
+Gert Doering (3):
+      Drop incoming fe80:: packets silently now.
+      Fix t_lpback.sh platform-dependent failures
+      Call init script helpers with explicit path (./)
+
+Heiko Hund (1):
+      refine assertion to allow other modes than CBC
+
+Hubert Kario (2):
+      ocsp_check - signature verification and cert staus results are separate
+      ocsp_check - double check if ocsp didn't report any errors in execution
+
+James Bekkema (1):
+      Fix socket-flag/TCP_NODELAY on Mac OS X
+
+James Yonan (6):
+      Fixed several instances of declarations after statements.
+      In socket.c, fixed issue where uninitialized value (err) is being passed to to gai_strerror.
+      Explicitly cast the third parameter of setsockopt to const void * to avoid warning.
+      MSVC 2008 doesn't support dimensioning an array with a const var nor using %z as a printf format specifier.
+      Define PATH_SEPARATOR for MSVC builds.
+      Fixed some compile issues with show_library_versions()
+
+Jann Horn (1):
+      Remove quadratic complexity from openvpn_base64_decode()
+
+Mike Gilbert (1):
+      Add configure check for the path to systemd-ask-password
+
+Philipp Hagemeister (2):
+      Add topology in sample server configuration file
+      Implement on-link route adding for iproute2
+
+Samuel Thibault (1):
+      Ensure that client-connect files are always deleted
+
+Steffan Karger (13):
+      Remove function without effect (cipher_ok() always returned true).
+      Remove unneeded wrapper functions in crypto_openssl.c
+      Fix bug that incorrectly refuses oid representation eku's in polar builds
+      Update README.polarssl
+      Rename ALLOW_NON_CBC_CIPHERS to ENABLE_OFB_CFB_MODE, and add to configure.
+      Add proper check for crypto modes (CBC or OFB/CFB)
+      Improve --show-ciphers to show if a cipher can be used in static key mode
+      Extend t_lpback tests to test all ciphers reported by --show-ciphers
+      Don't exit daemon if opening or parsing the CRL fails.
+      Fix typo in cipher_kt_mode_{cbc, ofb_cfb}() doxygen.
+      Fix regression with password protected private keys (polarssl)
+      ssl_polarssl.c: fix includes and make casts explicit
+      Remove unused variables from ssl_verify_openssl.c extract_x509_extension()
+
+TDivine (1):
+      Fix "code=995" bug with windows NDIS6 tap driver.
+
 
 2014.04.30 -- Version 2.3.4
 Arne Schwabe (1):
