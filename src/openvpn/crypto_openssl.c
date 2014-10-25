@@ -42,9 +42,12 @@
 #include "integer.h"
 #include "crypto.h"
 #include "crypto_backend.h"
-#include <openssl/objects.h>
-#include <openssl/evp.h>
+
 #include <openssl/des.h>
+#include <openssl/err.h>
+#include <openssl/evp.h>
+#include <openssl/objects.h>
+#include <openssl/ssl.h>
 
 /*
  * Check for key size creepage.
@@ -200,7 +203,18 @@ crypto_print_openssl_errors(const unsigned int flags) {
   size_t err = 0;
 
   while ((err = ERR_get_error ()))
-    msg (flags, "OpenSSL: %s", ERR_error_string (err, NULL));
+    {
+      /* Be more clear about frequently occurring "no shared cipher" error */
+      if (err == ERR_PACK(ERR_LIB_SSL,SSL_F_SSL3_GET_CLIENT_HELLO,
+	  SSL_R_NO_SHARED_CIPHER))
+	{
+	  msg (D_CRYPT_ERRORS, "TLS error: The server has no TLS ciphersuites "
+	      "in common with the client. Your --tls-cipher setting might be "
+	      "too restrictive.");
+	}
+
+      msg (flags, "OpenSSL: %s", ERR_error_string (err, NULL));
+    }
 }
 
 
