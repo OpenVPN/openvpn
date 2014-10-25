@@ -93,10 +93,6 @@ extern int x_msg_line_num;
 
 #define M_ERRNO           (1<<8)	 /* show errno description */
 
-#ifdef ENABLE_CRYPTO_OPENSSL
-#  define M_SSL             (1<<10)	 /* show SSL error */
-#endif
-
 #define M_NOMUTE          (1<<11)        /* don't do mute processing */
 #define M_NOPREFIX        (1<<12)        /* don't show date/time prefix */
 #define M_USAGE_SMALL     (1<<13)        /* fatal options error, call usage_small */
@@ -107,7 +103,6 @@ extern int x_msg_line_num;
 
 /* flag combinations which are frequently used */
 #define M_ERR     (M_FATAL | M_ERRNO)
-#define M_SSLERR  (M_FATAL | M_SSL)
 #define M_USAGE   (M_USAGE_SMALL | M_NOPREFIX | M_OPTERR)
 #define M_CLIENT  (M_MSG_VIRT_OUT | M_NOMUTE | M_NOIPREFIX)
 
