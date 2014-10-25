@@ -354,6 +354,12 @@ ignore_sys_error (const int err)
   return false;
 }
 
+/** Convert fatal errors to nonfatal, don't touch other errors */
+static inline const unsigned int
+nonfatal(const unsigned int err) {
+  return err & M_FATAL ? (err ^ M_FATAL) | M_NONFATAL : err;
+}
+
 #include "errlevel.h"
 
 #endif

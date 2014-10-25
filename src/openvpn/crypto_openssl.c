@@ -195,6 +195,15 @@ crypto_clear_error (void)
   ERR_clear_error ();
 }
 
+void
+crypto_print_openssl_errors(const unsigned int flags) {
+  size_t err = 0;
+
+  while ((err = ERR_get_error ()))
+    msg (flags, "OpenSSL: %s", ERR_error_string (err, NULL));
+}
+
+
 /*
  *
  * OpenSSL memory debugging.  If dmalloc debugging is enabled, tell
