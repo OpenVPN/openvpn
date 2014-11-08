@@ -527,7 +527,7 @@ cipher_kt_mode (const EVP_CIPHER *cipher_kt)
 bool
 cipher_kt_mode_cbc(const cipher_kt_t *cipher)
 {
-  return cipher_kt_mode(cipher) == OPENVPN_MODE_CBC
+  return cipher && cipher_kt_mode(cipher) == OPENVPN_MODE_CBC
 #ifdef EVP_CIPH_FLAG_AEAD_CIPHER
       /* Exclude AEAD cipher modes, they require a different API */
       && !(EVP_CIPHER_flags(cipher) & EVP_CIPH_FLAG_AEAD_CIPHER)
@@ -538,7 +538,7 @@ cipher_kt_mode_cbc(const cipher_kt_t *cipher)
 bool
 cipher_kt_mode_ofb_cfb(const cipher_kt_t *cipher)
 {
-  return (cipher_kt_mode(cipher) == OPENVPN_MODE_OFB ||
+  return cipher && (cipher_kt_mode(cipher) == OPENVPN_MODE_OFB ||
 	  cipher_kt_mode(cipher) == OPENVPN_MODE_CFB)
 #ifdef EVP_CIPH_FLAG_AEAD_CIPHER
       /* Exclude AEAD cipher modes, they require a different API */
