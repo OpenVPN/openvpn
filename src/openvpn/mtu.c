@@ -158,8 +158,7 @@ set_mtu_discover_type (int sd, int mtu_type)
   if (mtu_type >= 0)
     {
 #if defined(HAVE_SETSOCKOPT) && defined(SOL_IP) && defined(IP_MTU_DISCOVER)
-      if (setsockopt
-	  (sd, SOL_IP, IP_MTU_DISCOVER, &mtu_type, sizeof (mtu_type)))
+      if (setsockopt (sd, SOL_IP, IP_MTU_DISCOVER, (void *) &mtu_type, sizeof (mtu_type)))
 	msg (M_ERR, "Error setting IP_MTU_DISCOVER type=%d on TCP/UDP socket",
 	     mtu_type);
 #else
@@ -288,7 +287,7 @@ void
 set_sock_extended_error_passing (int sd)
 {
   int on = 1;
-  if (setsockopt (sd, SOL_IP, IP_RECVERR, &on, sizeof (on)))
+  if (setsockopt (sd, SOL_IP, IP_RECVERR, (void *) &on, sizeof (on)))
     msg (M_WARN | M_ERRNO,
 	 "Note: enable extended error passing on TCP/UDP socket failed (IP_RECVERR)");
 }

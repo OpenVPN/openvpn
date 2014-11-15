@@ -729,7 +729,7 @@ static inline void
 socket_set_mark (int sd, int mark)
 {
 #if defined(TARGET_LINUX) && HAVE_DECL_SO_MARK
-  if (mark && setsockopt (sd, SOL_SOCKET, SO_MARK, &mark, sizeof (mark)) != 0)
+  if (mark && setsockopt (sd, SOL_SOCKET, SO_MARK, (void *) &mark, sizeof (mark)) != 0)
     msg (M_WARN, "NOTE: setsockopt SO_MARK=%d failed", mark);
 #endif
 }
@@ -1117,7 +1117,7 @@ socket_bind (socket_descriptor_t sd,
       int v6only = ipv6only ? 1: 0;	/* setsockopt must have an "int" */
 
       msg (M_INFO, "setsockopt(IPV6_V6ONLY=%d)", v6only);
-      if (setsockopt(sd, IPPROTO_IPV6, IPV6_V6ONLY, &v6only, sizeof(v6only)))
+      if (setsockopt (sd, IPPROTO_IPV6, IPV6_V6ONLY, (void *) &v6only, sizeof(v6only)))
 	{
 	  msg (M_NONFATAL|M_ERRNO, "Setting IPV6_V6ONLY=%d failed", v6only);
 	}

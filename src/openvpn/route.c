@@ -277,7 +277,7 @@ init_route (struct route_ipv4 *r,
   /* get_special_addr replaces specialaddr with a special ip addr
      like gw. getaddrinfo is called to convert a a addrinfo struct */
 
-  if(get_special_addr (rl, ro->network, &special.s_addr, &status))
+  if(get_special_addr (rl, ro->network, (in_addr_t *) &special.s_addr, &status))
     {
       special.s_addr = htonl(special.s_addr);
       ret = openvpn_getaddrinfo(0, inet_ntoa(special), NULL, 0, NULL,
