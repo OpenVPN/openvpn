@@ -2916,6 +2916,7 @@ link_socket_read_udp_posix (struct link_socket *sock,
 #endif
     buf->len = recvfrom (sock->sd, BPTR (buf), maxsize, 0,
 			 &from->dest.addr.sa, &fromlen);
+  /* FIXME: won't do anything when sock->info.af == AF_UNSPEC */
   if (buf->len >= 0 && expectedlen && fromlen != expectedlen)
     bad_address_length (fromlen, expectedlen);
   return buf->len;
@@ -3060,10 +3061,7 @@ socket_recv_queue (struct link_socket *sock, int maxsize)
       if (proto_is_udp(sock->info.proto))
 	{
 	  sock->reads.addr_defined = true;
-	  if (sock->info.af == AF_INET)
-	    sock->reads.addrlen = sizeof (sock->reads.addr);
-	  else
-	    sock->reads.addrlen = sizeof (sock->reads.addr6);
+	  sock->reads.addrlen = sizeof (sock->reads.addr6);
 	  status = WSARecvFrom(
 			       sock->sd,
 			       wsabuf,
@@ -3095,9 +3093,10 @@ socket_recv_queue (struct link_socket *sock, int maxsize)
 
       if (!status) /* operation completed immediately? */
 	{
-	  int addrlen = af_addr_size(sock->info.lsa->local.addr.sa.sa_family);
-	  if (sock->reads.addr_defined && sock->reads.addrlen != addrlen)
-	    bad_address_length (sock->reads.addrlen, addrlen);
+	  /* FIXME: won't do anything when sock->info.af == AF_UNSPEC */
+	  int af_len = af_addr_size (sock->info.af);
+	  if (sock->reads.addr_defined && af_len && sock->reads.addrlen != af_len)
+	    bad_address_length (sock->reads.addrlen, af_len);
 	  sock->reads.iostate = IOSTATE_IMMEDIATE_RETURN;
 
 	  /* since we got an immediate return, we must signal the event object ourselves */
@@ -3159,7 +3158,7 @@ socket_send_queue (struct link_socket *sock, struct buffer *buf, const struct li
 	{
 	  /* set destination address for UDP writes */
 	  sock->writes.addr_defined = true;
-	  if (sock->info.af == AF_INET6)
+	  if (to->dest.addr.sa.sa_family == AF_INET6)
 	    {
 	      sock->writes.addr6 = to->dest.addr.in6;
 	      sock->writes.addrlen = sizeof (sock->writes.addr6);
