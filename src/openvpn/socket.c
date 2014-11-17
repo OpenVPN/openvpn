@@ -1081,6 +1081,14 @@ socket_listen_accept (socket_descriptor_t sd,
   return new_sd;
 }
 
+/* older mingw versions and WinXP do not have this define,
+ * but Vista and up support the functionality - just define it here
+ */
+#ifdef WIN32
+# ifndef IPV6_V6ONLY
+#  define IPV6_V6ONLY 27
+# endif
+#endif
 void
 socket_bind (socket_descriptor_t sd,
              struct addrinfo *local,
@@ -1211,7 +1219,7 @@ openvpn_connect (socket_descriptor_t sd,
 	}
     }
 #else
-  status = connect (sd, &remote->addr.sa, af_addr_size(remote->addr.sa.sa_family));
+  status = connect (sd, remote, af_addr_size(remote->sa_family));
   if (status)
     status = openvpn_errno ();
 #endif
