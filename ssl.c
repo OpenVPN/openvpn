@@ -3751,7 +3751,11 @@ key_method_2_read (struct buffer *buf, struct tls_multi *multi, struct tls_sessi
   ALLOC_ARRAY_CLEAR_GC (options, char, TLS_OPTIONS_LEN, &gc);
 		  
   /* discard leading uint32 */
-  ASSERT (buf_advance (buf, 4));
+  if (!buf_advance (buf, 4)) {
+    msg (D_TLS_ERRORS, "TLS ERROR: Plaintext buffer too short (%d bytes).",
+	buf->len);
+    goto error;
+  }
 
   /* get key method */
   key_method_flags = buf_read_u8 (buf);
