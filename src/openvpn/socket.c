@@ -2666,7 +2666,7 @@ proto_is_tcp(int proto)
 {
   if (proto < 0 || proto >= PROTO_N)
     ASSERT(0);
-  return proto == PROTO_TCP_CLIENT || proto == PROTO_TCP_SERVER || proto == PROTO_TCP_CLIENT;
+  return proto == PROTO_TCP_CLIENT || proto == PROTO_TCP_SERVER;
 }
 
 int
