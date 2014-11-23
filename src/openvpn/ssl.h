@@ -60,6 +60,7 @@
 #define P_CONTROL_V1                   4     /* control channel packet (usually TLS ciphertext) */
 #define P_ACK_V1                       5     /* acknowledgement for packets received */
 #define P_DATA_V1                      6     /* data channel packet */
+#define P_DATA_V2                      9     /* data channel packet with peer-id */
 
 /* indicates key_method >= 2 */
 #define P_CONTROL_HARD_RESET_CLIENT_V2 7     /* initial key from client, forget previous state */
@@ -67,7 +68,7 @@
 
 /* define the range of legal opcodes */
 #define P_FIRST_OPCODE                 1
-#define P_LAST_OPCODE                  8
+#define P_LAST_OPCODE                  9
 
 /* Should we aggregate TLS
  * acknowledgements, and tack them onto
@@ -305,7 +306,8 @@ int tls_multi_process (struct tls_multi *multi,
 bool tls_pre_decrypt (struct tls_multi *multi,
 		      const struct link_socket_actual *from,
 		      struct buffer *buf,
-		      struct crypto_options *opt);
+		      struct crypto_options *opt,
+		      bool floated);
 
 
 /**************************************************************************/
@@ -429,6 +431,15 @@ bool tls_send_payload (struct tls_multi *multi,
  */
 bool tls_rec_payload (struct tls_multi *multi,
 		      struct buffer *buf);
+
+/**
+ * Updates remote address in TLS sessions.
+ *
+ * @param multi - Tunnel to update
+ * @param addr - new address
+ */
+void tls_update_remote_addr (struct tls_multi *multi,
+			     const struct link_socket_actual *addr);
 
 #ifdef MANAGEMENT_DEF_AUTH
 static inline char *

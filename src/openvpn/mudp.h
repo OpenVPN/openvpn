@@ -65,7 +65,7 @@ void tunnel_server_udp (struct context *top);
  *     packet's source address or if one was a newly created successfully.
  *      NULL if one did not yet exist and a new one was not created.
  */
-struct multi_instance *multi_get_create_instance_udp (struct multi_context *m);
+struct multi_instance *multi_get_create_instance_udp (struct multi_context *m, bool *floated);
 
 #endif
 #endif

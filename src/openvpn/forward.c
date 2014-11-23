@@ -722,20 +722,11 @@ read_incoming_link (struct context *c)
   perf_pop ();
 }
 
-/*
- * Input:  c->c2.buf
- * Output: c->c2.to_tun
- */
-
-void
-process_incoming_link (struct context *c)
+bool
+process_incoming_link_part1 (struct context *c, struct link_socket_info *lsi, bool floated)
 {
   struct gc_arena gc = gc_new ();
-  bool decrypt_status;
-  struct link_socket_info *lsi = get_link_socket_info (c);
-  const uint8_t *orig_buf = c->c2.buf.data;
-
-  perf_push (PERF_PROC_IN_LINK);
+  bool decrypt_status = false;
 
   if (c->c2.buf.len > 0)
     {
@@ -805,7 +796,7 @@ process_incoming_link (struct context *c)
 	   * will load crypto_options with the correct encryption key
 	   * and return false.
 	   */
-	  if (tls_pre_decrypt (c->c2.tls_multi, &c->c2.from, &c->c2.buf, &c->c2.crypto_options))
+	  if (tls_pre_decrypt (c->c2.tls_multi, &c->c2.from, &c->c2.buf, &c->c2.crypto_options, floated))
 	    {
 	      interval_action (&c->c2.tmp_int);
 
@@ -832,11 +823,25 @@ process_incoming_link (struct context *c)
 	  /* decryption errors are fatal in TCP mode */
 	  register_signal (c, SIGUSR1, "decryption-error"); /* SOFT-SIGUSR1 -- decryption error in TCP mode */
 	  msg (D_STREAM_ERRORS, "Fatal decryption error (process_incoming_link), restarting");
-	  goto done;
 	}
-
+#else /* ENABLE_CRYPTO */
+      decrypt_status = true;
 #endif /* ENABLE_CRYPTO */
+    }
+  else
+    {
+      buf_reset (&c->c2.to_tun);
+    }
+  gc_free (&gc);
 
+  return decrypt_status;
+}
+
+void
+process_incoming_link_part2 (struct context *c, struct link_socket_info *lsi, const uint8_t *orig_buf)
+{
+  if (c->c2.buf.len > 0)
+    {
 #ifdef ENABLE_FRAGMENT
       if (c->c2.fragment)
 	fragment_incoming (c->c2.fragment, &c->c2.buf, &c->c2.frame_fragment);
@@ -903,9 +908,20 @@ process_incoming_link (struct context *c)
     {
       buf_reset (&c->c2.to_tun);
     }
- done:
+}
+
+void
+process_incoming_link (struct context *c)
+{
+  perf_push (PERF_PROC_IN_LINK);
+
+  struct link_socket_info *lsi = get_link_socket_info (c);
+  const uint8_t *orig_buf = c->c2.buf.data;
+
+  process_incoming_link_part1(c, lsi, false);
+  process_incoming_link_part2(c, lsi, orig_buf);
+
   perf_pop ();
-  gc_free (&gc);
 }
 
 /*

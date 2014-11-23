@@ -125,6 +125,9 @@ struct multi_context {
 # define MC_WORK_THREAD                (MC_MULTI_THREADED_WORKER|MC_MULTI_THREADED_SCHEDULER)
   int thread_mode;
 
+  struct multi_instance** instances;    /**< Array of multi_instances. An instance can be
+                                         * accessed using peer-id as an index. */
+
   struct hash *hash;            /**< VPN tunnel instances indexed by real
                                  *   address of the remote peer. */
   struct hash *vhash;           /**< VPN tunnel instances indexed by
@@ -217,6 +220,16 @@ struct multi_instance *multi_create_instance (struct multi_context *m, const str
 void multi_close_instance (struct multi_context *m, struct multi_instance *mi, bool shutdown);
 
 bool multi_process_timeout (struct multi_context *m, const unsigned int mpp_flags);
+
+/**
+ * Handles peer floating.
+ *
+ * If peer is floated to a taken address, either drops packet
+ * (if peer that owns address has different CN) or disconnects
+ * existing peer. Updates multi_instance with new address,
+ * updates hashtables in multi_context.
+ */
+void multi_process_float (struct multi_context* m, struct multi_instance* mi);
 
 #define MPP_PRE_SELECT             (1<<0)
 #define MPP_CONDITIONAL_PRE_SELECT (1<<1)
@@ -417,6 +430,12 @@ multi_route_defined (const struct multi_context *m,
   else
     return true;
 }
+
+/*
+ * Takes prefix away from multi_instance.
+ */
+void
+ungenerate_prefix (struct multi_instance *mi);
 
 /*
  * Set a msg() function prefix with our current client instance ID.

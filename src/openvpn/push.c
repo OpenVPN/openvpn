@@ -305,6 +305,19 @@ send_push_reply (struct context *c)
   if (multi_push)
     buf_printf (&buf, ",push-continuation 1");
 
+  /* Send peer-id if client supports it */
+  if (c->c2.tls_multi->peer_info)
+    {
+      const char* proto_str = strstr(c->c2.tls_multi->peer_info, "IV_PROTO=");
+      if (proto_str)
+	{
+	  int proto = 0;
+	  int r = sscanf(proto_str, "IV_PROTO=%d", &proto);
+	  if ((r == 1) && (proto >= 2))
+	    buf_printf(&buf, ",peer-id %d", c->c2.tls_multi->peer_id);
+	}
+  }
+
   if (BLEN (&buf) > sizeof(cmd)-1)
     {
       const bool status = send_control_channel_string (c, BSTR (&buf), D_PUSH);

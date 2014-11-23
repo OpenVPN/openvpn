@@ -624,6 +624,8 @@ packet_opcode_name (int op)
       return "P_ACK_V1";
     case P_DATA_V1:
       return "P_DATA_V1";
+    case P_DATA_V2:
+      return "P_DATA_V2";
     default:
       return "P_???";
     }
@@ -1052,6 +1054,9 @@ tls_multi_init (struct tls_options *tls_options)
   ret->key_scan[0] = &ret->session[TM_ACTIVE].key[KS_PRIMARY];
   ret->key_scan[1] = &ret->session[TM_ACTIVE].key[KS_LAME_DUCK];
   ret->key_scan[2] = &ret->session[TM_LAME_DUCK].key[KS_LAME_DUCK];
+
+  /* By default not use P_DATA_V2 */
+  ret->use_peer_id = false;
 
   return ret;
 }
@@ -1825,6 +1830,9 @@ push_peer_info(struct buffer *buf, struct tls_session *session)
 #elif defined(WIN32)
       buf_printf (&out, "IV_PLAT=win\n");
 #endif
+
+      /* support for P_DATA_V2 */
+      buf_printf(&out, "IV_PROTO=2\n");
 
       /* push compression status */
 #ifdef USE_COMP
@@ -2765,7 +2773,8 @@ bool
 tls_pre_decrypt (struct tls_multi *multi,
 		 const struct link_socket_actual *from,
 		 struct buffer *buf,
-		 struct crypto_options *opt)
+		 struct crypto_options *opt,
+		 bool floated)
 {
   struct gc_arena gc = gc_new ();
   bool ret = false;
@@ -2783,8 +2792,9 @@ tls_pre_decrypt (struct tls_multi *multi,
 	key_id = c & P_KEY_ID_MASK;
       }
 
-      if (op == P_DATA_V1)
-	{			/* data channel packet */
+      if ((op == P_DATA_V1) || (op == P_DATA_V2))
+	{
+	  /* data channel packet */
 	  for (i = 0; i < KEY_SCAN_SIZE; ++i)
 	    {
 	      struct key_state *ks = multi->key_scan[i];
@@ -2808,7 +2818,7 @@ tls_pre_decrypt (struct tls_multi *multi,
 #ifdef ENABLE_DEF_AUTH
 		  && !ks->auth_deferred
 #endif
-		  && link_socket_actual_match (from, &ks->remote_addr))
+		  && (floated || link_socket_actual_match (from, &ks->remote_addr)))
 		{
 		  /* return appropriate data channel decrypt key in opt */
 		  opt->key_ctx_bi = &ks->key;
@@ -2816,7 +2826,19 @@ tls_pre_decrypt (struct tls_multi *multi,
 		  opt->pid_persist = NULL;
 		  opt->flags &= multi->opt.crypto_flags_and;
 		  opt->flags |= multi->opt.crypto_flags_or;
+
 		  ASSERT (buf_advance (buf, 1));
+		  if (op == P_DATA_V2)
+		    {
+		      if (buf->len < 4)
+			{
+			  msg (D_TLS_ERRORS, "Protocol error: received P_DATA_V2 from %s but length is < 4",
+				print_link_socket_actual (from, &gc));
+			  goto error;
+			}
+		      ASSERT (buf_advance (buf, 3));
+		    }
+
 		  ++ks->n_packets;
 		  ks->n_bytes += buf->len;
 		  dmsg (D_TLS_KEYSELECT,
@@ -3381,14 +3403,24 @@ tls_post_encrypt (struct tls_multi *multi, struct buffer *buf)
 {
   struct key_state *ks;
   uint8_t *op;
+  uint32_t peer;
 
   ks = multi->save_ks;
   multi->save_ks = NULL;
   if (buf->len > 0)
     {
       ASSERT (ks);
-      ASSERT (op = buf_prepend (buf, 1));
-      *op = (P_DATA_V1 << P_OPCODE_SHIFT) | ks->key_id;
+
+      if (!multi->opt.server && multi->use_peer_id)
+	{
+	  peer = htonl(((P_DATA_V2 << P_OPCODE_SHIFT) | ks->key_id) << 24 | (multi->peer_id & 0xFFFFFF));
+	  ASSERT (buf_write_prepend (buf, &peer, 4));
+	}
+      else
+	{
+	  ASSERT (op = buf_prepend (buf, 1));
+	  *op = (P_DATA_V1 << P_OPCODE_SHIFT) | ks->key_id;
+	}
       ++ks->n_packets;
       ks->n_bytes += buf->len;
     }
@@ -3461,6 +3493,34 @@ tls_rec_payload (struct tls_multi *multi,
   return ret;
 }
 
+void
+tls_update_remote_addr (struct tls_multi *multi, const struct link_socket_actual *addr)
+{
+  struct gc_arena gc = gc_new ();
+  int i, j;
+
+  for (i = 0; i < TM_SIZE; ++i)
+    {
+      struct tls_session *session = &multi->session[i];
+
+      for (j = 0; j < KS_SIZE; ++j)
+	{
+	  struct key_state *ks = &session->key[j];
+
+	  if (!link_socket_actual_defined(&ks->remote_addr) ||
+		link_socket_actual_match (addr, &ks->remote_addr))
+	    continue;
+
+	  dmsg (D_TLS_KEYSELECT, "TLS: tls_update_remote_addr from IP=%s to IP=%s",
+	       print_link_socket_actual (&ks->remote_addr, &gc),
+	       print_link_socket_actual (addr, &gc));
+
+	  ks->remote_addr = *addr;
+	}
+    }
+  gc_free (&gc);
+}
+
 /*
  * Dump a human-readable rendition of an openvpn packet
  * into a garbage collectable string which is returned.
@@ -3495,7 +3555,7 @@ protocol_dump (struct buffer *buffer, unsigned int flags, struct gc_arena *gc)
   key_id = c & P_KEY_ID_MASK;
   buf_printf (&out, "%s kid=%d", packet_opcode_name (op), key_id);
 
-  if (op == P_DATA_V1)
+  if ((op == P_DATA_V1) || (op == P_DATA_V2))
     goto print_data;
 
   /*
