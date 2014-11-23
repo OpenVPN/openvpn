@@ -846,8 +846,8 @@ key_state_write_plaintext (struct key_state_ssl *ks, struct buffer *buf)
 
   if (0 == buf->len)
     {
-      return 0;
       perf_pop ();
+      return 0;
     }
 
   retval = ssl_write(ks->ctx, BPTR(buf), buf->len);
