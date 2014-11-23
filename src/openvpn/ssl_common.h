@@ -490,6 +490,10 @@ struct tls_multi
   time_t tas_last;
 #endif
 
+  /* For P_DATA_V2 */
+  uint32_t peer_id;
+  bool use_peer_id;
+
   /*
    * Our session objects.
    */
