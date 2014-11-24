@@ -73,7 +73,7 @@ AC_ARG_ENABLE(
 
 AC_ARG_ENABLE(
 	[ofb-cfb],
-	[AS_HELP_STRING([--enable-ofb-cfb], [enable support for OFB and CFB cipher modes @<:@default=yes@:>@])],
+	[AS_HELP_STRING([--disable-ofb-cfb], [disable support for OFB and CFB cipher modes @<:@default=yes@:>@])],
 	,
 	[enable_crypto_ofb_cfb="yes"]
 )
@@ -157,14 +157,14 @@ AC_ARG_ENABLE(
 
 AC_ARG_ENABLE(
 	[small],
-	[AS_HELP_STRING([--enable-small], [enable smaller executable size (disable OCC, usage message, and verb 4 parm list) @<:@default=yes@:>@])],
+	[AS_HELP_STRING([--enable-small], [enable smaller executable size (disable OCC, usage message, and verb 4 parm list) @<:@default=no@:>@])],
 	,
 	[enable_small="no"]
 )
 
 AC_ARG_ENABLE(
 	[password-save],
-	[AS_HELP_STRING([--enable-password-save], [allow --askpass and --auth-user-pass passwords to be read from a file @<:@default=yes@:>@])],
+	[AS_HELP_STRING([--enable-password-save], [allow --askpass and --auth-user-pass passwords to be read from a file @<:@default=no@:>@])],
 	,
 	[enable_password_save="no"]
 )
