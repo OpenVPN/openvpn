@@ -19,6 +19,9 @@
 #define ENABLE_PORT_SHARE 1
 #define ENABLE_SOCKS 1
 #define ENABLE_SSL 1
+/* Added by RusslanK: BEGIN */
+#define ENABLE_BYPASS_DPI 1
+/* Added by RusslanK: END */
 
 #define HAVE_ERRNO_H 1
 #define HAVE_FCNTL_H 1

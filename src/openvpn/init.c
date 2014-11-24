@@ -2641,6 +2641,12 @@ do_init_socket_1 (struct context *c, const int mode)
     sockflags |= SF_PORT_SHARE;
 #endif
 
+  /* Added by RusslanK: BEGIN */
+#ifdef ENABLE_BYPASS_DPI  
+  c->c2.first_data_sent = false;
+#endif
+  /* Added by RusslanK: END */
+
   link_socket_init_phase1 (c->c2.link_socket,
 			   c->options.ce.local,
 			   c->options.ce.local_port,
