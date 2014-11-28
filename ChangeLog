@@ -1,6 +1,23 @@
 OpenVPN Change Log
 Copyright (C) 2002-2014 OpenVPN Technologies, Inc. <sales@openvpn.net>
 
+2014.11.28 -- Version 2.3.6
+David Sommerseth (1):
+      systemd: Reworked the systemd unit file to handle server and client configs better
+
+Gert Doering (1):
+      Add client-only support for peer-id.
+
+Samuli Seppänen (1):
+      Fix to --shaper documentation on the man-page
+
+Steffan Karger (4):
+      Fix assertion error when using --cipher none
+      Add --tls-version-max
+      Modernize sample keys and sample configs
+      Drop too-short control channel packets instead of asserting out.
+
+
 2014.10.24 -- Version 2.3.5
 Andris Kalnozols (2):
       Fix some typos in the man page.
