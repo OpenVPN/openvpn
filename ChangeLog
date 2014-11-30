@@ -1,6 +1,24 @@
 OpenVPN Change Log
 Copyright (C) 2002-2011 OpenVPN Technologies, Inc. <sales@openvpn.net>
 
+2014.11.30 -- Version 2.2.3
+Christian Niessner (1):
+      Fix corner case in NTLM authentication (trac #172)
+
+Gert Doering (1):
+      Fix client crash on double PUSH_REPLY.
+
+Jens Wagner (1):
+      Fix spurious ignoring of pushed config options (trac#349).
+
+Matthias Andree (1):
+      Enable TCP_NODELAY configuration on FreeBSD.
+
+Steffan Karger (2):
+      Drop too-short control channel packets instead of asserting out.
+      Use constant time memcmp when comparing HMACs in openvpn_decrypt.
+
+
 2011.12.14 -- Version 2.2.2
 David Sommerseth (1):
       Only warn about non-tackled IPv6 packets once
