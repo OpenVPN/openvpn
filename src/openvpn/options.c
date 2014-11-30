@@ -68,7 +68,6 @@ const char title_string[] =
 #endif
   " " TARGET_ALIAS
 #ifdef ENABLE_CRYPTO
-#ifdef ENABLE_SSL
 #if defined(ENABLE_CRYPTO_POLARSSL)
   " [SSL (PolarSSL)]"
 #elif defined(ENABLE_CRYPTO_OPENSSL)
@@ -76,15 +75,6 @@ const char title_string[] =
 #else
   " [SSL]"
 #endif /* defined(ENABLE_CRYPTO_POLARSSL) */
-#else /* ! ENABLE_SSL */
-#if defined(ENABLE_CRYPTO_POLARSSL)
-  " [CRYPTO (PolarSSL)]"
-#elif defined(ENABLE_CRYPTO_OPENSSL)
-  " [CRYPTO (OpenSSL)]"
-#else
-  " [CRYPTO]"
-#endif /* defined(ENABLE_CRYPTO_POLARSSL) */
-#endif /* ENABLE_SSL */
 #endif /* ENABLE_CRYPTO */
 #ifdef USE_COMP
 #ifdef ENABLE_LZO
@@ -548,7 +538,6 @@ static const char usage_message[] =
   "--use-prediction-resistance: Enable prediction resistance on the random\n"
   "                             number generator.\n"
 #endif
-#ifdef ENABLE_SSL
   "\n"
   "TLS Key Negotiation Options:\n"
   "(These options are meaningful only for TLS-mode)\n"
@@ -633,7 +622,6 @@ static const char usage_message[] =
   "--remote-cert-tls t: Require that peer certificate was signed with explicit\n"
   "                  key usage and extended key usage based on RFC3280 TLS rules.\n"
   "                  t = 'client' | 'server'.\n"
-#endif				/* ENABLE_SSL */
 #ifdef ENABLE_PKCS11
   "\n"
   "PKCS#11 Options:\n"
@@ -658,9 +646,7 @@ static const char usage_message[] =
   "--show-ciphers  : Show cipher algorithms to use with --cipher option.\n"
   "--show-digests  : Show message digest algorithms to use with --auth option.\n"
   "--show-engines  : Show hardware crypto accelerator engines (if available).\n"
-#ifdef ENABLE_SSL
   "--show-tls      : Show all TLS ciphers (TLS used only as a control channel).\n"
-#endif
 #ifdef WIN32
   "\n"
   "Windows Specific:\n"
@@ -846,7 +832,6 @@ init_options (struct options *o, const bool init_gc)
 #ifdef ENABLE_PREDICTION_RESISTANCE
   o->use_prediction_resistance = false;
 #endif
-#ifdef ENABLE_SSL
   o->key_method = 2;
   o->tls_timeout = 2;
   o->renegotiate_seconds = 3600;
@@ -856,7 +841,6 @@ init_options (struct options *o, const bool init_gc)
 #ifdef ENABLE_X509ALTUSERNAME
   o->x509_username_field = X509_USERNAME_FIELD_DEFAULT;
 #endif
-#endif /* ENABLE_SSL */
 #endif /* ENABLE_CRYPTO */
 #ifdef ENABLE_PKCS11
   o->pkcs11_pin_cache_period = -1;
@@ -1047,7 +1031,7 @@ string_substitute (const char *src, int from, int to, struct gc_arena *gc)
   return ret;
 }
 
-#ifdef ENABLE_SSL
+#ifdef ENABLE_CRYPTO
 static uint8_t *
 parse_hash_fingerprint(const char *str, int nbytes, int msglevel, struct gc_arena *gc)
 {
@@ -1430,10 +1414,8 @@ show_settings (const struct options *o)
   SHOW_BOOL (show_digests);
   SHOW_BOOL (show_engines);
   SHOW_BOOL (genkey);
-#ifdef ENABLE_SSL
   SHOW_STR (key_pass_file);
   SHOW_BOOL (show_tls_ciphers);
-#endif
 #endif
 
   SHOW_INT (connect_retry_max);
@@ -1588,7 +1570,6 @@ show_settings (const struct options *o)
   SHOW_BOOL (use_prediction_resistance);
 #endif
 
-#ifdef ENABLE_SSL
   SHOW_BOOL (tls_server);
   SHOW_BOOL (tls_client);
   SHOW_INT (key_method);
@@ -1640,8 +1621,7 @@ show_settings (const struct options *o)
   SHOW_BOOL (tls_exit);
 
   SHOW_STR (tls_auth_file);
-#endif
-#endif
+#endif /* ENABLE_CRYPTO */
 
 #ifdef ENABLE_PKCS11
   {
@@ -1857,7 +1837,7 @@ options_postprocess_verify_ce (const struct options *options, const struct conne
     msg (M_USAGE, "--inetd nowait can only be used with --proto tcp-server");
 
   if (options->inetd == INETD_NOWAIT
-#if defined(ENABLE_CRYPTO) && defined(ENABLE_SSL)
+#ifdef ENABLE_CRYPTO
       && !(options->tls_server || options->tls_client)
 #endif
       )
@@ -2150,8 +2130,6 @@ options_postprocess_verify_ce (const struct options *options, const struct conne
   /*
    * SSL/TLS mode sanity checks.
    */
-
-#ifdef ENABLE_SSL
   if (options->tls_server + options->tls_client +
       (options->shared_secret_file != NULL) > 1)
     msg (M_USAGE, "specify only one of --tls-server, --tls-client, or --secret");
@@ -2328,7 +2306,6 @@ options_postprocess_verify_ce (const struct options *options, const struct conne
     }
 #undef MUST_BE_UNDEF
 #endif /* ENABLE_CRYPTO */
-#endif /* ENABLE_SSL */
 
 #if P2MP
   if (options->auth_user_pass_file && !options->pull)
@@ -2707,8 +2684,8 @@ options_postprocess_filechecks (struct options *options)
 {
   bool errs = false;
 
+#ifdef ENABLE_CRYPTO
   /* ** SSL/TLS/crypto related files ** */
-#ifdef ENABLE_SSL
   errs |= check_file_access (CHKACC_FILE|CHKACC_INLINE, options->dh_file, R_OK, "--dh");
   errs |= check_file_access (CHKACC_FILE|CHKACC_INLINE, options->ca_file, R_OK, "--ca");
   errs |= check_file_access_chroot (options->chroot_dir, CHKACC_FILE, options->ca_path, R_OK, "--capath");
@@ -2732,20 +2709,15 @@ options_postprocess_filechecks (struct options *options)
 
   errs |= check_file_access (CHKACC_FILE|CHKACC_INLINE, options->tls_auth_file, R_OK,
                              "--tls-auth");
-#endif /* ENABLE_SSL */
-#ifdef ENABLE_CRYPTO
   errs |= check_file_access (CHKACC_FILE|CHKACC_INLINE, options->shared_secret_file, R_OK,
                              "--secret");
   errs |= check_file_access (CHKACC_DIRPATH|CHKACC_FILEXSTWR,
                              options->packet_id_file, R_OK|W_OK, "--replay-persist");
-#endif /* ENABLE_CRYPTO */
-
 
   /* ** Password files ** */
-#ifdef ENABLE_SSL
   errs |= check_file_access (CHKACC_FILE, options->key_pass_file, R_OK,
                              "--askpass");
-#endif /* ENABLE_SSL */
+#endif /* ENABLE_CRYPTO */
 #ifdef ENABLE_MANAGEMENT
   errs |= check_file_access (CHKACC_FILE|CHKACC_ACPTSTDIN,
                              options->management_user_pass, R_OK,
@@ -2768,10 +2740,10 @@ options_postprocess_filechecks (struct options *options)
                              R_OK|W_OK, "--status");
 
   /* ** Config related ** */
-#ifdef ENABLE_SSL
+#ifdef ENABLE_CRYPTO
   errs |= check_file_access_chroot (options->chroot_dir, CHKACC_FILE, options->tls_export_cert,
                              R_OK|W_OK|X_OK, "--tls-export-cert");
-#endif /* ENABLE_SSL */
+#endif /* ENABLE_CRYPTO */
 #if P2MP_SERVER
   errs |= check_file_access_chroot (options->chroot_dir, CHKACC_FILE, options->client_config_dir,
                              R_OK|X_OK, "--client-config-dir");
@@ -3000,13 +2972,8 @@ options_string (const struct options *o,
 
 #ifdef ENABLE_CRYPTO
 
-#ifdef ENABLE_SSL
 #define TLS_CLIENT (o->tls_client)
 #define TLS_SERVER (o->tls_server)
-#else
-#define TLS_CLIENT (false)
-#define TLS_SERVER (false)
-#endif
 
   /*
    * Key direction
@@ -3049,7 +3016,6 @@ options_string (const struct options *o,
 #endif
       }
 
-#ifdef ENABLE_SSL
   /*
    * SSL Options
    */
@@ -3078,7 +3044,6 @@ options_string (const struct options *o,
 	  buf_printf (&out, ",tls-server");
       }
   }
-#endif /* ENABLE_SSL */
 
 #undef TLS_CLIENT
 #undef TLS_SERVER
@@ -3401,7 +3366,7 @@ usage (void)
   struct options o;
   init_options (&o, true);
 
-#if defined(ENABLE_CRYPTO) && defined(ENABLE_SSL)
+#ifdef ENABLE_CRYPTO
   fprintf (fp, usage_message,
 	   title_string,
 	   o.ce.connect_retry_seconds,
@@ -3412,15 +3377,6 @@ usage (void)
            o.replay_window, o.replay_time,
 	   o.tls_timeout, o.renegotiate_seconds,
 	   o.handshake_window, o.transition_window);
-#elif defined(ENABLE_CRYPTO)
-  fprintf (fp, usage_message,
-	   title_string,
-	   o.ce.connect_retry_seconds,
-	   o.ce.local_port, o.ce.remote_port,
-	   TUN_MTU_DEFAULT, TAP_MTU_EXTRA_DEFAULT,
-	   o.verbosity,
-	   o.authname, o.ciphername,
-           o.replay_window, o.replay_time);
 #else
   fprintf (fp, usage_message,
 	   title_string,
@@ -3446,7 +3402,7 @@ usage_small (void)
 void
 show_library_versions(const unsigned int flags)
 {
-#ifdef ENABLE_SSL
+#ifdef ENABLE_CRYPTO
 #define SSL_LIB_VER_STR get_ssl_library_version()
 #else
 #define SSL_LIB_VER_STR ""
@@ -6517,7 +6473,6 @@ add_option (struct options *options,
       options->use_prediction_resistance = true;
     }
 #endif
-#ifdef ENABLE_SSL
   else if (streq (p[0], "show-tls"))
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
@@ -6954,7 +6909,6 @@ add_option (struct options *options,
       options->x509_username_field = p[1];
     }
 #endif /* ENABLE_X509ALTUSERNAME */
-#endif /* ENABLE_SSL */
 #endif /* ENABLE_CRYPTO */
 #ifdef ENABLE_PKCS11
   else if (streq (p[0], "show-pkcs11-ids"))

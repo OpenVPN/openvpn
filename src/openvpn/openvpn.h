@@ -62,14 +62,11 @@ struct key_schedule
   /* pre-shared static key, read from a file */
   struct key_ctx_bi static_key;
 
-#ifdef ENABLE_SSL
   /* our global SSL context */
   struct tls_root_ctx ssl_ctx;
 
   /* optional authentication HMAC key for TLS control channel */
   struct key_ctx_bi tls_auth_key;
-
-#endif				/* ENABLE_SSL */
 #else				/* ENABLE_CRYPTO */
   int dummy;
 #endif				/* ENABLE_CRYPTO */
@@ -335,8 +332,6 @@ struct context_2
   /*
    * TLS-mode crypto objects.
    */
-#ifdef ENABLE_SSL
-
   struct tls_multi *tls_multi;  /**< TLS state structure for this VPN
                                  *   tunnel. */
 
@@ -356,8 +351,6 @@ struct context_2
 
   /* throw this signal on TLS errors */
   int tls_exit_signal;
-
-#endif /* ENABLE_SSL */
 
   struct crypto_options crypto_options;
                                 /**< Security parameters and crypto state
@@ -566,7 +559,7 @@ struct context
  * have been compiled in.
  */
 
-#if defined(ENABLE_CRYPTO) && defined(ENABLE_SSL)
+#ifdef ENABLE_CRYPTO
 #define TLS_MODE(c) ((c)->c2.tls_multi != NULL)
 #define PROTO_DUMP_FLAGS (check_debug_level (D_LINK_RW_VERBOSE) ? (PD_SHOW_DATA|PD_VERBOSE) : 0)
 #define PROTO_DUMP(buf, gc) protocol_dump((buf), \

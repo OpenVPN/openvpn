@@ -35,7 +35,7 @@
 
 #include "syshead.h"
 
-#if defined(ENABLE_SSL) && defined(ENABLE_CRYPTO_OPENSSL)
+#if defined(ENABLE_CRYPTO) && defined(ENABLE_CRYPTO_OPENSSL)
 
 #include "ssl_verify_openssl.h"
 
@@ -625,4 +625,4 @@ end:
   return retval;
 }
 
-#endif /* defined(ENABLE_SSL) && defined(ENABLE_CRYPTO_OPENSSL) */
+#endif /* defined(ENABLE_CRYPTO) && defined(ENABLE_CRYPTO_OPENSSL) */

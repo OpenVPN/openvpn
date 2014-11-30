@@ -726,8 +726,6 @@ test_crypto (const struct crypto_options *co, struct frame* frame)
   gc_free (&gc);
 }
 
-#ifdef ENABLE_SSL
-
 void
 get_tls_handshake_key (const struct key_type *key_type,
 		       struct key_ctx_bi *ctx,
@@ -799,7 +797,6 @@ get_tls_handshake_key (const struct key_type *key_type,
       CLEAR (*ctx);
     }
 }
-#endif
 
 /* header and footer for static key file */
 static const char static_key_head[] = "-----BEGIN OpenVPN Static key V1-----";
@@ -1321,23 +1318,6 @@ get_random()
     l = -l;
   return l;
 }
-
-#ifndef ENABLE_SSL
-
-void
-init_ssl_lib (void)
-{
-  crypto_init_lib ();
-}
-
-void
-free_ssl_lib (void)
-{
-  crypto_uninit_lib ();
-  prng_uninit();
-}
-
-#endif /* ENABLE_SSL */
 
 /*
  * md5 functions

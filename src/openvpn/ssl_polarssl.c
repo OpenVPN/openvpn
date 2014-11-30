@@ -36,7 +36,7 @@
 
 #include "syshead.h"
 
-#if defined(ENABLE_SSL) && defined(ENABLE_CRYPTO_POLARSSL)
+#if defined(ENABLE_CRYPTO) && defined(ENABLE_CRYPTO_POLARSSL)
 
 #include "errlevel.h"
 #include "ssl_backend.h"
@@ -1171,4 +1171,4 @@ get_ssl_library_version(void)
     return polar_version;
 }
 
-#endif /* defined(ENABLE_SSL) && defined(ENABLE_CRYPTO_POLARSSL) */
+#endif /* defined(ENABLE_CRYPTO) && defined(ENABLE_CRYPTO_POLARSSL) */

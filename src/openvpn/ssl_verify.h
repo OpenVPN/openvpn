@@ -30,7 +30,7 @@
 #ifndef SSL_VERIFY_H_
 #define SSL_VERIFY_H_
 
-#if defined(ENABLE_CRYPTO) && defined(ENABLE_SSL)
+#ifdef ENABLE_CRYPTO
 
 #include "syshead.h"
 #include "misc.h"
@@ -236,6 +236,6 @@ tls_client_reason (struct tls_multi *multi)
 #endif
 }
 
-#endif /* defined(ENABLE_CRYPTO) && defined(ENABLE_SSL) */
+#endif /* ENABLE_CRYPTO */
 
 #endif /* SSL_VERIFY_H_ */

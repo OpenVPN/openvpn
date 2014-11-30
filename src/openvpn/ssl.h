@@ -30,7 +30,7 @@
 #ifndef OPENVPN_SSL_H
 #define OPENVPN_SSL_H
 
-#if defined(ENABLE_CRYPTO) && defined(ENABLE_SSL)
+#if defined(ENABLE_CRYPTO)
 
 #include "basic.h"
 #include "common.h"
@@ -512,6 +512,6 @@ void show_tls_performance_stats(void);
 /*#define EXTRACT_X509_FIELD_TEST*/
 void extract_x509_field_test (void);
 
-#endif /* ENABLE_CRYPTO && ENABLE_SSL */
+#endif /* ENABLE_CRYPTO */
 
 #endif

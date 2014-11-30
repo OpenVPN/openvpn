@@ -420,7 +420,7 @@ plugin_call_item (const struct plugin *p,
 		  const struct argv *av,
 		  struct openvpn_plugin_string_list **retlist,
 		  const char **envp
-#ifdef ENABLE_SSL
+#ifdef ENABLE_CRYPTO
 		  , int certdepth,
 		  openvpn_x509_cert_t *current_cert
 #endif
@@ -449,7 +449,7 @@ plugin_call_item (const struct plugin *p,
                                                     (const char ** const) envp,
                                                     p->plugin_handle,
                                                     per_client_context,
-#ifdef ENABLE_SSL
+#ifdef ENABLE_CRYPTO
 						    (current_cert ? certdepth : -1),
 						    current_cert
 #else
@@ -659,7 +659,7 @@ plugin_call_ssl (const struct plugin_list *pl,
 	     const struct argv *av,
 	     struct plugin_return *pr,
 	     struct env_set *es
-#ifdef ENABLE_SSL
+#ifdef ENABLE_CRYPTO
              , int certdepth,
 	     openvpn_x509_cert_t *current_cert
 #endif
@@ -689,7 +689,7 @@ plugin_call_ssl (const struct plugin_list *pl,
 					       av,
 					       pr ? &pr->list[i] : NULL,
 					       envp
-#ifdef ENABLE_SSL
+#ifdef ENABLE_CRYPTO
 					       ,certdepth,
 					       current_cert
 #endif

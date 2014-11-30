@@ -413,21 +413,12 @@ void key2_print (const struct key2* k,
 		 const char* prefix0,
 		 const char* prefix1);
 
-#ifdef ENABLE_SSL
-
 #define GHK_INLINE  (1<<0)
 void get_tls_handshake_key (const struct key_type *key_type,
 			    struct key_ctx_bi *ctx,
 			    const char *passphrase_file,
 			    const int key_direction,
 			    const unsigned int flags);
-
-#else
-
-void init_ssl_lib (void);
-void free_ssl_lib (void);
-
-#endif /* ENABLE_SSL */
 
 /*
  * md5 functions

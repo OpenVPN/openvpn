@@ -27,7 +27,7 @@
 
 #define OPENVPN_PLUGIN_VERSION 3
 
-#ifdef ENABLE_SSL
+#ifdef ENABLE_CRYPTO
 #ifdef ENABLE_CRYPTO_POLARSSL
 #include <polarssl/x509_crt.h>
 #ifndef __OPENVPN_X509_CERT_T_DECLARED
@@ -358,9 +358,9 @@ struct openvpn_plugin_args_open_return
  * *per_client_context : the per-client context pointer which was returned by
  *        openvpn_plugin_client_constructor_v1, if defined.
  *
- * current_cert_depth : Certificate depth of the certificate being passed over (only if compiled with ENABLE_SSL defined)
+ * current_cert_depth : Certificate depth of the certificate being passed over (only if compiled with ENABLE_CRYPTO defined)
  *
- * *current_cert : X509 Certificate object received from the client (only if compiled with ENABLE_SSL defined)
+ * *current_cert : X509 Certificate object received from the client (only if compiled with ENABLE_CRYPTO defined)
  *
  */
 struct openvpn_plugin_args_func_in
@@ -370,7 +370,7 @@ struct openvpn_plugin_args_func_in
   const char ** const envp;
   openvpn_plugin_handle_t handle;
   void *per_client_context;
-#ifdef ENABLE_SSL
+#ifdef ENABLE_CRYPTO
   int current_cert_depth;
   openvpn_x509_cert_t *current_cert;
 #else

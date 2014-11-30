@@ -88,7 +88,7 @@ show_wait_status (struct context *c)
  * traffic on the control-channel.
  *
  */
-#if defined(ENABLE_CRYPTO) && defined(ENABLE_SSL)
+#ifdef ENABLE_CRYPTO
 void
 check_tls_dowork (struct context *c)
 {
@@ -117,9 +117,6 @@ check_tls_dowork (struct context *c)
   if (wakeup)
     context_reschedule_sec (c, wakeup);
 }
-#endif
-
-#if defined(ENABLE_CRYPTO) && defined(ENABLE_SSL)
 
 void
 check_tls_errors_co (struct context *c)
@@ -133,8 +130,7 @@ check_tls_errors_nco (struct context *c)
 {
   register_signal (c, c->c2.tls_exit_signal, "tls-error"); /* SOFT-SIGUSR1 -- TLS error */
 }
-
-#endif
+#endif /* ENABLE_CRYPTO */
 
 #if P2MP
 
@@ -239,7 +235,7 @@ check_connection_established_dowork (struct context *c)
 bool
 send_control_channel_string (struct context *c, const char *str, int msglevel)
 {
-#if defined(ENABLE_CRYPTO) && defined(ENABLE_SSL)
+#ifdef ENABLE_CRYPTO
   if (c->c2.tls_multi) {
     struct gc_arena gc = gc_new ();
     bool stat;
@@ -264,7 +260,7 @@ send_control_channel_string (struct context *c, const char *str, int msglevel)
     gc_free (&gc);
     return stat;
   }
-#endif
+#endif /* ENABLE_CRYPTO */
   return true;
 }
 
@@ -457,7 +453,6 @@ encrypt_sign (struct context *c, bool comp_frag)
     }
 
 #ifdef ENABLE_CRYPTO
-#ifdef ENABLE_SSL
   /*
    * If TLS mode, get the key we will use to encrypt
    * the packet.
@@ -466,7 +461,6 @@ encrypt_sign (struct context *c, bool comp_frag)
     {
       tls_pre_encrypt (c->c2.tls_multi, &c->c2.buf, &c->c2.crypto_options);
     }
-#endif
 
   /*
    * Encrypt the packet and write an optional
@@ -480,7 +474,6 @@ encrypt_sign (struct context *c, bool comp_frag)
   link_socket_get_outgoing_addr (&c->c2.buf, get_link_socket_info (c),
 				 &c->c2.to_link_addr);
 #ifdef ENABLE_CRYPTO
-#ifdef ENABLE_SSL
   /*
    * In TLS mode, prepend the appropriate one-byte opcode
    * to the packet which identifies it as a data channel
@@ -492,7 +485,6 @@ encrypt_sign (struct context *c, bool comp_frag)
     {
       tls_post_encrypt (c->c2.tls_multi, &c->c2.buf);
     }
-#endif
 #endif
 
   /* if null encryption, copy result to read_tun_buf */
@@ -783,7 +775,6 @@ process_incoming_link_part1 (struct context *c, struct link_socket_info *lsi, bo
 	link_socket_bad_incoming_addr (&c->c2.buf, lsi, &c->c2.from);
 
 #ifdef ENABLE_CRYPTO
-#ifdef ENABLE_SSL
       if (c->c2.tls_multi)
 	{
 	  /*
@@ -813,7 +804,6 @@ process_incoming_link_part1 (struct context *c, struct link_socket_info *lsi, bo
       if (c->c2.context_auth != CAS_SUCCEEDED)
 	c->c2.buf.len = 0;
 #endif
-#endif /* ENABLE_SSL */
 
       /* authenticate and decrypt the incoming packet */
       decrypt_status = openvpn_decrypt (&c->c2.buf, c->c2.buffers->decrypt_buf, &c->c2.crypto_options, &c->c2.frame);

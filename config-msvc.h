@@ -18,7 +18,6 @@
 #define ENABLE_PLUGIN 1
 #define ENABLE_PORT_SHARE 1
 #define ENABLE_SOCKS 1
-#define ENABLE_SSL 1
 
 #define HAVE_ERRNO_H 1
 #define HAVE_FCNTL_H 1

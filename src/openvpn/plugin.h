@@ -127,7 +127,7 @@ int plugin_call_ssl (const struct plugin_list *pl,
 		 const struct argv *av,
 		 struct plugin_return *pr,
 		 struct env_set *es
-#ifdef ENABLE_SSL
+#ifdef ENABLE_CRYPTO
 		 , int current_cert_depth,
 		 openvpn_x509_cert_t *current_cert
 #endif
@@ -183,7 +183,7 @@ plugin_call_ssl (const struct plugin_list *pl,
 	     const struct argv *av,
 	     struct plugin_return *pr,
 	     struct env_set *es
-#ifdef ENABLE_SSL
+#ifdef ENABLE_CRYPTO
 	     , int current_cert_depth,
 	     openvpn_x509_cert_t *current_cert
 #endif
@@ -202,7 +202,7 @@ plugin_call(const struct plugin_list *pl,
 	struct env_set *es)
 {
   return plugin_call_ssl(pl, type, av, pr, es
-#ifdef ENABLE_SSL
+#ifdef ENABLE_CRYPTO
       , -1, NULL
 #endif
       );
