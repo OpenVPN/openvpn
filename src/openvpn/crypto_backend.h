@@ -237,8 +237,7 @@ int cipher_kt_mode (const cipher_kt_t *cipher_kt);
  *
  * @return		true iff the cipher is a CBC mode cipher.
  */
-bool cipher_kt_mode_cbc(const cipher_kt_t *cipher)
-  __attribute__((nonnull));
+bool cipher_kt_mode_cbc(const cipher_kt_t *cipher);
 
 /**
  * Check if the supplied cipher is a supported OFB or CFB mode cipher.
@@ -247,8 +246,7 @@ bool cipher_kt_mode_cbc(const cipher_kt_t *cipher)
  *
  * @return		true iff the cipher is a OFB or CFB mode cipher.
  */
-bool cipher_kt_mode_ofb_cfb(const cipher_kt_t *cipher)
-  __attribute__((nonnull));
+bool cipher_kt_mode_ofb_cfb(const cipher_kt_t *cipher);
 
 
 /**

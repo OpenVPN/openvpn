@@ -35,6 +35,9 @@ CIPHERS=$(${top_builddir}/src/openvpn/openvpn --show-ciphers | \
 # GD, 2014-07-06 do not test RC5-* either (fails on NetBSD w/o libcrypto_rc5)
 CIPHERS=$(echo "$CIPHERS" | egrep -v '^(DES-EDE3-CFB1|DES-CFB1|RC5-)' )
 
+# Also test cipher 'none'
+CIPHERS=${CIPHERS}$(printf "\nnone")
+
 "${top_builddir}/src/openvpn/openvpn" --genkey --secret key.$$
 set +e
 
