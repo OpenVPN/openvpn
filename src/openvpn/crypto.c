@@ -787,6 +787,7 @@ get_tls_handshake_key (const struct key_type *key_type,
 	    msg (M_INFO,
 		 "Control Channel Authentication: using '%s' as a free-form passphrase file",
 		 passphrase_file);
+	    msg (M_WARN, "DEPRECATED OPTION: Using freeform files for tls-auth is deprecated and is not  supported in OpenVPN 2.4 or newer versions");
 	  }
       }
       /* handle key direction */
