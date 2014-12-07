@@ -69,7 +69,5 @@
  *
  * @par Crypto algorithms
  * This module uses the crypto algorithm implementations of the external
- * OpenSSL library.  More precisely, it uses the OpenSSL library's \c
- * EVP_Cipher* and \c HMAC_* set of functions to perform cryptographic
- * operations on data channel packets.
+ * crypto library (currently either OpenSSL (default), or PolarSSL).
  */
