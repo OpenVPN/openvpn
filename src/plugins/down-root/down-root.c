@@ -42,6 +42,7 @@
 #include <signal.h>
 #include <syslog.h>
 #include <errno.h>
+#include <err.h>
 
 #include <openvpn-plugin.h>
 
@@ -457,9 +458,6 @@ openvpn_plugin_abort_v1 (openvpn_plugin_handle_t handle)
 static void
 down_root_server (const int fd, char * const *argv, char * const *envp, const int verb)
 {
-  const char *p[3];
-  int i;
-
   /*
    * Do initialization
    */
