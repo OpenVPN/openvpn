@@ -111,6 +111,10 @@ multi_get_create_instance_udp (struct multi_context *m, bool *floated)
 			      break;
 			    }
 			}
+
+		      /* should not really end up here, since multi_create_instance returns null
+		       * if amount of clients exceeds max_clients */
+		      ASSERT(i < m->max_clients);
 		    }
 		}
 	      else

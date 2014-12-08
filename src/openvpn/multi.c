@@ -403,7 +403,7 @@ multi_instance_string (const struct multi_instance *mi, bool null, struct gc_are
 {
   if (mi)
     {
-      struct buffer out = alloc_buf_gc (256, gc);
+      struct buffer out = alloc_buf_gc (MULTI_PREFIX_MAX_LENGTH, gc);
       const char *cn = tls_common_name (mi->context.c2.tls_multi, true);
 
       if (cn)
@@ -420,21 +420,27 @@ multi_instance_string (const struct multi_instance *mi, bool null, struct gc_are
 void
 generate_prefix (struct multi_instance *mi)
 {
-  mi->msg_prefix = multi_instance_string (mi, true, &mi->gc);
+  struct gc_arena gc = gc_new();
+  const char *prefix = multi_instance_string (mi, true, &gc);
+  if (prefix)
+    strncpynt(mi->msg_prefix, prefix, sizeof(mi->msg_prefix));
+  else
+    mi->msg_prefix[0] = '\0';
   set_prefix (mi);
+  gc_free(&gc);
 }
 
 void
 ungenerate_prefix (struct multi_instance *mi)
 {
-  mi->msg_prefix = NULL;
+  mi->msg_prefix[0] = '\0';
   set_prefix (mi);
 }
 
 static const char *
 mi_prefix (const struct multi_instance *mi)
 {
-  if (mi && mi->msg_prefix)
+  if (mi && mi->msg_prefix[0])
     return mi->msg_prefix;
   else
     return "UNDEF_I";

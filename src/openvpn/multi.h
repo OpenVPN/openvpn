@@ -42,6 +42,8 @@
 #include "mtcp.h"
 #include "perf.h"
 
+#define MULTI_PREFIX_MAX_LENGTH 256
+
 /*
  * Walk (don't run) through the routing table,
  * deleting old entries, and possibly multi_instance
@@ -80,7 +82,7 @@ struct multi_instance {
   struct mroute_addr real;      /**< External network address of the
                                  *   remote peer. */
   ifconfig_pool_handle vaddr_handle;
-  const char *msg_prefix;
+  char msg_prefix[MULTI_PREFIX_MAX_LENGTH];
 
   /* queued outgoing data in Server/TCP mode */
   unsigned int tcp_rwflags;
@@ -445,10 +447,10 @@ static inline void
 set_prefix (struct multi_instance *mi)
 {
 #ifdef MULTI_DEBUG_EVENT_LOOP
-  if (mi->msg_prefix)
+  if (mi->msg_prefix[0])
     printf ("[%s]\n", mi->msg_prefix);
 #endif
-  msg_set_prefix (mi->msg_prefix);
+  msg_set_prefix (mi->msg_prefix[0] ? mi->msg_prefix : NULL);
 }
 
 static inline void
