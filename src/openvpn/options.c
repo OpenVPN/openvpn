@@ -2111,7 +2111,9 @@ options_postprocess_verify_ce (const struct options *options, const struct conne
       if (options->ssl_flags & SSLF_OPT_VERIFY)
 	msg (M_USAGE, "--opt-verify requires --mode server");
       if (options->server_flags & SF_TCP_NODELAY_HELPER)
-	msg (M_USAGE, "--tcp-nodelay requires --mode server");
+	msg (M_WARN, "WARNING: setting tcp-nodelay on the client side will not "
+             "affect the server. To have TCP_NODELAY in both direction use "
+             "tcp-nodelay in the server configuration instead.");
       if (options->auth_user_pass_verify_script)
 	msg (M_USAGE, "--auth-user-pass-verify requires --mode server");
 #if PORT_SHARE
