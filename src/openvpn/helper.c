@@ -534,7 +534,7 @@ helper_tcp_nodelay (struct options *o)
 	}
       else
 	{
-	  ASSERT (0);
+	  o->sockflags |= SF_TCP_NODELAY;
 	}
     }
 #endif
