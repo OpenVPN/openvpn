@@ -1139,6 +1139,13 @@ if test "${enable_pkcs11}" = "yes"; then
 	OPTIONAL_PKCS11_HELPER_CFLAGS="${PKCS11_HELPER_CFLAGS}"
 	OPTIONAL_PKCS11_HELPER_LIBS="${PKCS11_HELPER_LIBS}"
 	AC_DEFINE([ENABLE_PKCS11], [1], [Enable PKCS11])
+	PKG_CHECK_MODULES(
+		[P11KIT],
+		[p11-kit-1],
+		[proxy_module="`$PKG_CONFIG --variable=proxy_module p11-kit-1`"
+		 AC_DEFINE_UNQUOTED([DEFAULT_PKCS11_MODULE], "${proxy_module}", [p11-kit proxy])],
+		[]
+	)
 fi
 
 if test "${enable_pedantic}" = "yes"; then

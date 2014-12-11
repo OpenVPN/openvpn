@@ -4393,6 +4393,16 @@ This option can be used instead of
 .B \-\-cert, \-\-key,
 and
 .B \-\-pkcs12.
+
+If p11-kit is present on the system, its
+.B p11-kit-proxy.so
+module will be loaded by default if either the
+.B \-\-pkcs11\-id
+or
+.B \-\-pkcs11\-id\-management
+options are specified without
+.B \-\-pkcs11\-provider
+being given.
 .\"*********************************************************
 .TP
 .B \-\-pkcs11-private-mode mode...
