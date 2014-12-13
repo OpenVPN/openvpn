@@ -1448,10 +1448,40 @@ multi_set_virtual_addr_env (struct multi_context *m, struct multi_instance *mi)
 	}
     }
 
-    /* TODO: I'm not exactly sure what these environment variables are
-     *       used for, but if we have them for IPv4, we should also have
-     *       them for IPv6, no?
-     */
+  setenv_del (mi->context.c2.es, "ifconfig_ipv6_pool_local_ip");
+  setenv_del (mi->context.c2.es, "ifconfig_ipv6_pool_remote_ip");
+  setenv_del (mi->context.c2.es, "ifconfig_ipv6_pool_netbits");
+
+  /*
+   * Set IPv6 environment variables. Used by client (dis)conenct scripts.
+   * (e.g., creating ND proxy, access lists, etc)
+   */
+  if (mi->context.c2.push_ifconfig_ipv6_defined)
+    {
+      const int tunnel_type = TUNNEL_TYPE (mi->context.c1.tuntap);
+      const int tunnel_topology = TUNNEL_TOPOLOGY (mi->context.c1.tuntap);
+
+      setenv_in6_addr_t (mi->context.c2.es,
+			"ifconfig_ipv6_pool_remote_ip",
+			&mi->context.c2.push_ifconfig_ipv6_local,
+			SA_SET_IF_NONZERO);
+
+      if (tunnel_type == DEV_TYPE_TAP || (tunnel_type == DEV_TYPE_TUN && tunnel_topology == TOP_SUBNET))
+	{
+	  setenv_in6_addr_t (mi->context.c2.es,
+			    "ifconfig_ipv6_pool_netbits",
+			    &mi->context.c2.push_ifconfig_ipv6_netbits,
+			    SA_SET_IF_NONZERO);
+	}
+      else if (tunnel_type == DEV_TYPE_TUN)
+	{
+	  setenv_in6_addr_t (mi->context.c2.es,
+			    "ifconfig_ipv6_pool_local_ip",
+			    &mi->context.c2.push_ifconfig_ipv6_remote,
+			    SA_SET_IF_NONZERO);
+	}
+    }
+
 }
 
 /*
