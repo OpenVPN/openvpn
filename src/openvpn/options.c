@@ -740,7 +740,11 @@ static const char usage_message[] =
 #ifdef ENABLE_PKCS11
   "\n"
   "PKCS#11 standalone options:\n"
-  "--show-pkcs11-ids provider [cert_private] : Show PKCS#11 available ids.\n" 
+#ifdef DEFAULT_PKCS11_MODULE
+  "--show-pkcs11-ids [provider] [cert_private] : Show PKCS#11 available ids.\n"
+#else
+  "--show-pkcs11-ids provider [cert_private] : Show PKCS#11 available ids.\n"
+#endif
   "                                            --verb option can be added *BEFORE* this.\n"
 #endif				/* ENABLE_PKCS11 */
   "\n"
@@ -6930,11 +6934,34 @@ add_option (struct options *options,
 #endif /* ENABLE_SSL */
 #endif /* ENABLE_CRYPTO */
 #ifdef ENABLE_PKCS11
-  else if (streq (p[0], "show-pkcs11-ids") && p[1])
+  else if (streq (p[0], "show-pkcs11-ids"))
     {
       char *provider =  p[1];
       bool cert_private = (p[2] == NULL ? false : ( atoi (p[2]) != 0 ));
 
+#ifdef DEFAULT_PKCS11_MODULE
+      if (!provider)
+	provider = DEFAULT_PKCS11_MODULE;
+      else if (!p[2])
+        {
+	  char *endp = NULL;
+	  int i = strtol(provider, &endp, 10);
+
+	  if (*endp == 0)
+	    {
+	      /* There was one argument, and it was purely numeric.
+		 Interpret it as the cert_private argument */
+	      provider = DEFAULT_PKCS11_MODULE;
+	      cert_private = i;
+	    }
+        }
+#else
+      if (!provider)
+	{
+	  msg (msglevel, "--show-pkcs11-ids requires a provider parameter");
+            goto err;
+	}
+#endif
       VERIFY_PERMISSION (OPT_P_GENERAL);
 
       set_debug_level (options->verbosity, SDL_CONSTRAIN);
