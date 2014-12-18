@@ -5490,10 +5490,16 @@ adapter list.
 .SS PKCS#11 Standalone Options:
 .\"*********************************************************
 .TP
-.B \-\-show-pkcs11-ids provider [cert_private]
+.B \-\-show-pkcs11-ids [provider] [cert_private]
 (Standalone)
 Show PKCS#11 token object list. Specify cert_private as 1
 if certificates are stored as private objects.
+
+If p11-kit is present on the system, the
+.B provider
+argument is optional; if omitted the default
+.B p11-kit-proxy.so
+module will be queried.
 
 .B \-\-verb
 option can be used BEFORE this option to produce debugging information.
