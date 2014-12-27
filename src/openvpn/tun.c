@@ -722,7 +722,7 @@ do_ifconfig (struct tuntap *tt,
 				  iproute_path,
 				  actual,
 				  ifconfig_local,
-				  count_netmask_bits(ifconfig_remote_netmask),
+				  netmask_to_netbits2(tt->remote_netmask),
 				  ifconfig_broadcast
 				  );
 		  argv_msg (M_INFO, &argv);
@@ -1819,7 +1819,7 @@ close_tun (struct tuntap *tt)
 			iproute_path,
 			tt->actual_name,
 			print_in_addr_t (tt->local, 0, &gc),
-			count_netmask_bits(print_in_addr_t (tt->remote_netmask, 0, &gc))
+		        netmask_to_netbits2(tt->remote_netmask)
 			);
 	      }
 #else

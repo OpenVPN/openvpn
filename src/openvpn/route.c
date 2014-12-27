@@ -1288,7 +1288,7 @@ add_route (struct route_ipv4 *r,
   argv_printf (&argv, "%s route add %s/%d",
   	      iproute_path,
 	      network,
-             count_netmask_bits(netmask));
+              netmask_to_netbits2(r->netmask));
 
   if (r->flags & RT_METRIC_DEFINED)
     argv_printf_cat (&argv, "metric %d", r->metric);
@@ -1765,7 +1765,7 @@ delete_route (struct route_ipv4 *r,
   argv_printf (&argv, "%s route del %s/%d",
   	      iproute_path,
 	      network,
-	      count_netmask_bits(netmask));
+              netmask_to_netbits2(r->netmask));
 #else
   argv_printf (&argv, "%s del -net %s netmask %s",
 	       ROUTE_PATH,

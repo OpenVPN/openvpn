@@ -305,6 +305,7 @@ static inline bool test_routes (const struct route_list *rl, const struct tuntap
 #endif
 
 bool netmask_to_netbits (const in_addr_t network, const in_addr_t netmask, int *netbits);
+int netmask_to_netbits2 (in_addr_t netmask);
 
 static inline in_addr_t
 netbits_to_netmask (const int netbits)

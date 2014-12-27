@@ -166,10 +166,6 @@ const char **make_env_array (const struct env_set *es,
 const char **make_arg_array (const char *first, const char *parms, struct gc_arena *gc);
 const char **make_extended_arg_array (char **p, struct gc_arena *gc);
 
-/* convert netmasks for iproute2 */
-int count_netmask_bits(const char *);
-unsigned int count_bits(unsigned int );
-
 /* an analogue to the random() function, but use OpenSSL functions if available */
 #ifdef ENABLE_CRYPTO
 long int get_random(void);
