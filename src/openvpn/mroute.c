@@ -426,8 +426,16 @@ mroute_addr_print_ex (const struct mroute_addr *ma,
 	  break;
 	case MR_ADDR_IPV6:
 	  {
-	    buf_printf (&out, "%s",
-		  print_in6_addr( *(struct in6_addr*)&maddr.addr, 0, gc)); 
+	    if ( IN6_IS_ADDR_V4MAPPED( (struct in6_addr*)&maddr.addr ) )
+	      {
+		buf_printf (&out, "%s",
+		     print_in_addr_t( *(in_addr_t*)(&maddr.addr[12]), IA_NET_ORDER, gc));
+	      }
+	    else
+	      {
+	        buf_printf (&out, "%s",
+		      print_in6_addr( *(struct in6_addr*)&maddr.addr, 0, gc));
+	      }
 	    if (maddr.type & MR_WITH_NETBITS)
 	      {
 		buf_printf (&out, "/%d", maddr.netbits);

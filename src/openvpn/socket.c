@@ -2573,9 +2573,19 @@ setenv_sockaddr (struct env_set *es, const char *name_prefix, const struct openv
 	}
       break;
     case AF_INET6:
-      openvpn_snprintf (name_buf, sizeof (name_buf), "%s_ip6", name_prefix);
-      getnameinfo(&addr->addr.sa, sizeof (struct sockaddr_in6),
-		  buf, sizeof(buf), NULL, 0, NI_NUMERICHOST);
+      if ( IN6_IS_ADDR_V4MAPPED( &addr->addr.in6.sin6_addr ))
+	{
+	  struct in_addr ia;
+	  ia.s_addr = *(in_addr_t *)&addr->addr.in6.sin6_addr.s6_addr[12] ;
+	  openvpn_snprintf (name_buf, sizeof (name_buf), "%s_ip", name_prefix);
+	  openvpn_snprintf (buf, sizeof(buf), "%s", inet_ntoa(ia) );
+	}
+      else
+        {
+	  openvpn_snprintf (name_buf, sizeof (name_buf), "%s_ip6", name_prefix);
+	  getnameinfo(&addr->addr.sa, sizeof (struct sockaddr_in6),
+		      buf, sizeof(buf), NULL, 0, NI_NUMERICHOST);
+	}
       setenv_str (es, name_buf, buf);
 
       if ((flags & SA_IP_PORT) && addr->addr.in6.sin6_port)
