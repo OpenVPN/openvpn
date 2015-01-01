@@ -234,7 +234,7 @@ tls_ctx_restrict_ciphers(struct tls_root_ctx *ctx, const char *ciphers)
   if (ciphers == NULL)
     {
       /* Use sane default (disable export, and unsupported cipher modes) */
-      if(!SSL_CTX_set_cipher_list(ctx->ctx, "DEFAULT:!EXP:!PSK:!SRP"))
+      if(!SSL_CTX_set_cipher_list(ctx->ctx, "DEFAULT:!EXP:!PSK:!SRP:!kRSA"))
 	crypto_msg (M_FATAL, "Failed to set default TLS cipher list.");
       return;
     }

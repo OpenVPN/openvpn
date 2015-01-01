@@ -2134,10 +2134,6 @@ options_postprocess_verify_ce (const struct options *options, const struct conne
       (options->shared_secret_file != NULL) > 1)
     msg (M_USAGE, "specify only one of --tls-server, --tls-client, or --secret");
 
-  if (options->tls_server)
-    {
-      notnull (options->dh_file, "DH file (--dh)");
-    }
   if (options->tls_server || options->tls_client)
     {
 #ifdef ENABLE_PKCS11
@@ -2496,6 +2492,16 @@ options_postprocess_mutate (struct options *o)
   ASSERT (o->connection_list);
   for (i = 0; i < o->connection_list->len; ++i)
 	options_postprocess_mutate_ce (o, o->connection_list->array[i]);
+
+#ifdef ENABLE_CRYPTO
+  if (o->tls_server)
+    {
+      /* Check that DH file is specified, or explicitly disabled */
+      notnull (o->dh_file, "DH file (--dh)");
+      if (streq (o->dh_file, "none"))
+	o->dh_file = NULL;
+    }
+#endif
 
 #if ENABLE_MANAGEMENT
   if (o->http_proxy_override)

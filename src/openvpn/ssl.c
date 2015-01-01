@@ -242,6 +242,7 @@ static const tls_cipher_name_pair tls_cipher_name_translation_table[] = {
     {"EDH", "EDH"},
     {"EXP", "EXP"},
     {"RSA", "RSA"},
+    {"kRSA", "kRSA"},
     {"SRP", "SRP"},
 #endif
     {NULL, NULL}
@@ -483,7 +484,10 @@ init_ssl (const struct options *options, struct tls_root_ctx *new_ctx)
   if (options->tls_server)
     {
       tls_ctx_server_new(new_ctx);
-      tls_ctx_load_dh_params(new_ctx, options->dh_file, options->dh_file_inline);
+
+      if (options->dh_file)
+	tls_ctx_load_dh_params(new_ctx, options->dh_file,
+			       options->dh_file_inline);
     }
   else				/* if client */
     {
