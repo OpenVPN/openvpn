@@ -238,7 +238,7 @@ cert_hash_free (struct cert_hash_set *chs)
     }
 }
 
-static bool
+bool
 cert_hash_compare (const struct cert_hash_set *chs1, const struct cert_hash_set *chs2)
 {
   if (chs1 && chs2)

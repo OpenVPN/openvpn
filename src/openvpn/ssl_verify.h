@@ -137,6 +137,14 @@ const char *tls_common_name (const struct tls_multi* multi, const bool null);
  */
 const char *tls_username (const struct tls_multi *multi, const bool null);
 
+/**
+ * Compares certificates hashes, returns true if hashes are equal.
+ *
+ * @param chs1 cert 1 hash set
+ * @param chs2 cert 2 hash set
+ */
+bool cert_hash_compare (const struct cert_hash_set *chs1, const struct cert_hash_set *chs2);
+
 #ifdef ENABLE_PF
 
 /**

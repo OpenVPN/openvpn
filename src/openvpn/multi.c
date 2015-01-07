@@ -2127,17 +2127,20 @@ void multi_process_float (struct multi_context* m, struct multi_instance* mi)
   const uint32_t hv = hash_value (hash, &real);
   struct hash_bucket *bucket = hash_bucket (hash, hv);
 
+  /* make sure that we don't float to an address taken by another client */
   struct hash_element *he = hash_lookup_fast (hash, bucket, &real, hv);
   if (he)
     {
       struct multi_instance *ex_mi = (struct multi_instance *) he->value;
 
-      const char *cn = tls_common_name (mi->context.c2.tls_multi, true);
-      const char *ex_cn = tls_common_name (ex_mi->context.c2.tls_multi, true);
-      if (cn && ex_cn && strcmp (cn, ex_cn))
+      struct tls_multi *m1 = mi->context.c2.tls_multi;
+      struct tls_multi *m2 = ex_mi->context.c2.tls_multi;
+
+      /* do not float if target address is taken by client with another cert */
+      if (!cert_hash_compare(m1->locked_cert_hash_set, m2->locked_cert_hash_set))
 	{
-	  msg (D_MULTI_MEDIUM, "prevent float to %s",
-		multi_instance_string (ex_mi, false, &gc));
+	  msg (D_MULTI_MEDIUM, "Disallow float to an address taken by another client %s",
+	       multi_instance_string (ex_mi, false, &gc));
 
 	  mi->context.c2.buf.len = 0;
 
