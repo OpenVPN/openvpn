@@ -52,20 +52,19 @@ multi_get_create_instance_udp (struct multi_context *m, bool *floated)
   struct multi_instance *mi = NULL;
   struct hash *hash = m->hash;
 
-  if (mroute_extract_openvpn_sockaddr (&real, &m->top.c2.from.dest, true))
+  if (mroute_extract_openvpn_sockaddr (&real, &m->top.c2.from.dest, true) &&
+      m->top.c2.buf.len > 0)
     {
       struct hash_element *he;
       const uint32_t hv = hash_value (hash, &real);
       struct hash_bucket *bucket = hash_bucket (hash, hv);
       uint8_t* ptr = BPTR(&m->top.c2.buf);
       uint8_t op = ptr[0] >> P_OPCODE_SHIFT;
-      uint32_t peer_id;
-      int i;
 
       /* make sure buffer has enough length to read opcode (1 byte) and peer-id (3 bytes) */
       if (op == P_DATA_V2 && m->top.c2.buf.len >= (1 + 3))
 	{
-	  peer_id = ntohl(*(uint32_t*)ptr) & 0xFFFFFF;
+	  uint32_t peer_id = ntohl(*(uint32_t*)ptr) & 0xFFFFFF;
 	  if ((peer_id < m->max_clients) && (m->instances[peer_id]))
 	    {
 	      mi = m->instances[peer_id];
@@ -99,6 +98,8 @@ multi_get_create_instance_udp (struct multi_context *m, bool *floated)
 		  mi = multi_create_instance (m, &real);
 		  if (mi)
 		    {
+		      int i;
+
 		      hash_add_fast (hash, bucket, &mi->real, hv, mi);
 		      mi->did_real_hash = true;
 
