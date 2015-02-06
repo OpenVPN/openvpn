@@ -319,7 +319,7 @@ void x_msg_va (const unsigned int flags, const char *format, va_list arglist)
 
 	      fprintf (fp, "%lu.%06lu %x %s%s%s%s",
 		       tv.tv_sec,
-		       tv.tv_usec,
+		       (unsigned long)tv.tv_usec,
 		       flags,
 		       prefix,
 		       prefix_sep,
