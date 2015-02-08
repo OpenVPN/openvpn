@@ -258,6 +258,12 @@ frame_headroom (const struct frame *f, const unsigned int flag_mask)
  */
 
 static inline void
+frame_add_to_link_mtu (struct frame *frame, const int increment)
+{
+  frame->link_mtu += increment;
+}
+
+static inline void
 frame_add_to_extra_frame (struct frame *frame, const int increment)
 {
   frame->extra_frame += increment;
