@@ -264,14 +264,16 @@ tls_get_cipher_name_pair (const char * cipher_name, size_t len) {
   return NULL;
 }
 
-/**
- * Max number of bytes we will add for data structures common to both data and
- * control channel packets (1 byte opcode + 3 bytes peer-id).
+/*
+ * Max number of bytes we will add
+ * for data structures common to both
+ * data and control channel packets.
+ * (opcode only).
  */
 void
 tls_adjust_frame_parameters(struct frame *frame)
 {
-  frame_add_to_extra_frame (frame, 1 + 3); /* space for opcode + peer-id */
+  frame_add_to_extra_frame (frame, 1); /* space for opcode */
 }
 
 /*

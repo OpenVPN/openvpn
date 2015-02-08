@@ -1794,6 +1794,19 @@ do_deferred_options (struct context *c, const unsigned int found)
       msg (D_PUSH, "OPTIONS IMPORT: peer-id set");
       c->c2.tls_multi->use_peer_id = true;
       c->c2.tls_multi->peer_id = c->options.peer_id;
+      frame_add_to_extra_frame(&c->c2.frame, +3);	/* peer-id overhead */
+      if ( !c->options.ce.link_mtu_defined )
+	{
+	  frame_add_to_link_mtu(&c->c2.frame, +3);
+	  msg (D_PUSH, "OPTIONS IMPORT: adjusting link_mtu to %d",
+				EXPANDED_SIZE(&c->c2.frame));
+	}
+      else
+	{
+	  msg (M_WARN, "OPTIONS IMPORT: WARNING: peer-id set, but link-mtu"
+                       " fixed by config - reducing tun-mtu to %d, expect"
+                       " MTU problems", TUN_MTU_SIZE(&c->c2.frame) );
+	}
     }
 #endif
 }
@@ -2402,6 +2415,17 @@ do_init_frame (struct context *c)
   comp_add_to_extra_buffer (&c->c2.frame_fragment_omit); /* omit compression frame delta from final frame_fragment */
 #endif
 #endif /* USE_COMP */
+
+  /* packets with peer-id (P_DATA_V2) need 3 extra bytes in frame (on client)
+   * and need link_mtu+3 bytes on socket reception (on server).
+   *
+   * accomodate receive path in f->extra_link, which has the side effect of
+   * also increasing send buffers (BUF_SIZE() macro), which need to be
+   * allocated big enough before receiving peer-id option from server.
+   *
+   * f->extra_frame is adjusted when peer-id option is push-received
+   */
+  frame_add_to_extra_link(&c->c2.frame, 3);
 
 #ifdef ENABLE_FRAGMENT
   /*
