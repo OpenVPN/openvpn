@@ -14,6 +14,9 @@ then
     exit 1
 fi
 
+# Generate static key for tls-auth (or static key mode)
+$(dirname ${0})/../../src/openvpn/openvpn --genkey --secret ta.key
+
 # Create required directories and files
 mkdir -p sample-ca
 rm -f sample-ca/index.txt
