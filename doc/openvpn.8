@@ -2591,6 +2591,15 @@ Allows usage for external private key file instead of
 option (client-only).
 .\"*********************************************************
 .TP
+.B \-\-management-external-cert certificate-hint
+Allows usage for external certificate instead of
+.B \-\-cert
+option (client-only).
+.B certificate-hint
+is an arbitrary string which is passed to a management
+interface client as an argument of NEED-CERTIFICATE notification.
+.\"*********************************************************
+.TP
 .B \-\-management-forget-disconnect
 Make OpenVPN forget passwords when management session
 disconnects.

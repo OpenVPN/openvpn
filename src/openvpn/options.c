@@ -1576,6 +1576,11 @@ show_settings (const struct options *o)
   SHOW_STR (ca_file);
   SHOW_STR (ca_path);
   SHOW_STR (dh_file);
+#ifdef MANAGMENT_EXTERNAL_KEY
+  if((o->management_flags & MF_EXTERNAL_CERT))
+	SHOW_PARM ("cert_file","EXTERNAL_CERT","%s");
+  else
+#endif
   SHOW_STR (cert_file);
 
 #ifdef MANAGMENT_EXTERNAL_KEY
@@ -2152,6 +2157,8 @@ options_postprocess_verify_ce (const struct options *options, const struct conne
 #ifdef MANAGMENT_EXTERNAL_KEY
 	if (options->management_flags & MF_EXTERNAL_KEY)
 	  msg(M_USAGE, "Parameter --management-external-key cannot be used when --pkcs11-provider is also specified.");
+	if (options->management_flags & MF_EXTERNAL_CERT)
+	  msg(M_USAGE, "Parameter --management-external-cert cannot be used when --pkcs11-provider is also specified.");
 #endif
 	if (options->pkcs12_file)
 	  msg(M_USAGE, "Parameter --pkcs12 cannot be used when --pkcs11-provider is also specified.");
@@ -2183,6 +2190,8 @@ options_postprocess_verify_ce (const struct options *options, const struct conne
 #ifdef MANAGMENT_EXTERNAL_KEY
           if (options->management_flags & MF_EXTERNAL_KEY)
 	    msg(M_USAGE, "Parameter --management-external-key cannot be used when --cryptoapicert is also specified.");
+          if (options->management_flags & MF_EXTERNAL_CERT)
+	    msg(M_USAGE, "Parameter --management-external-cert cannot be used when --cryptoapicert is also specified.");
 #endif
 	}
       else
@@ -2200,7 +2209,9 @@ options_postprocess_verify_ce (const struct options *options, const struct conne
 	    msg(M_USAGE, "Parameter --key cannot be used when --pkcs12 is also specified.");
 #ifdef MANAGMENT_EXTERNAL_KEY
           if (options->management_flags & MF_EXTERNAL_KEY)
-	    msg(M_USAGE, "Parameter --external-management-key cannot be used when --pkcs12 is also specified.");
+	    msg(M_USAGE, "Parameter --management-external-key cannot be used when --pkcs12 is also specified.");
+          if (options->management_flags & MF_EXTERNAL_CERT)
+	    msg(M_USAGE, "Parameter --management-external-cert cannot be used when --pkcs12 is also specified.");
 #endif
 #endif
         }
@@ -2242,6 +2253,9 @@ options_postprocess_verify_ce (const struct options *options, const struct conne
 	    }
 	  else
 	    {
+#ifdef MANAGMENT_EXTERNAL_KEY
+          if (!(options->management_flags & MF_EXTERNAL_CERT))
+#endif
 	      notnull (options->cert_file, "certificate file (--cert) or PKCS#12 file (--pkcs12)");
 #ifdef MANAGMENT_EXTERNAL_KEY
           if (!(options->management_flags & MF_EXTERNAL_KEY))
@@ -4243,6 +4257,12 @@ add_option (struct options *options,
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->management_flags |= MF_EXTERNAL_KEY;
+    }
+  else if (streq (p[0], "management-external-cert") && p[1])
+    {
+      VERIFY_PERMISSION (OPT_P_GENERAL);
+      options->management_flags |= MF_EXTERNAL_CERT;
+      options->management_certificate = p[1];
     }
 #endif
 #ifdef MANAGEMENT_DEF_AUTH

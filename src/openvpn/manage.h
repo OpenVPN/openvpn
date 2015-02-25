@@ -268,6 +268,7 @@ struct man_connection {
 # define IEC_CLIENT_AUTH 1
 # define IEC_CLIENT_PF   2
 # define IEC_RSA_SIGN    3
+# define IEC_CERTIFICATE 4
   int in_extra_cmd;
   struct buffer_list *in_extra;
 #ifdef MANAGEMENT_DEF_AUTH
@@ -281,6 +282,8 @@ struct man_connection {
 # define EKS_READY   3
   int ext_key_state;
   struct buffer_list *ext_key_input;
+  int ext_cert_state;
+  struct buffer_list *ext_cert_input;
 #endif
 #endif
   struct event_set *es;
@@ -338,6 +341,7 @@ struct management *management_init (void);
 #define MF_UP_DOWN          (1<<10)
 #define MF_QUERY_REMOTE     (1<<11)
 #define MF_QUERY_PROXY      (1<<12)
+#define MF_EXTERNAL_CERT    (1<<13)
 
 bool management_open (struct management *man,
 		      const char *addr,
@@ -420,6 +424,7 @@ void management_learn_addr (struct management *management,
 #ifdef MANAGMENT_EXTERNAL_KEY
 
 char *management_query_rsa_sig (struct management *man, const char *b64_data);
+char* management_query_cert (struct management *man, const char *cert_name);
 
 #endif
 

@@ -931,6 +931,7 @@ void buffer_list_advance (struct buffer_list *ol, int n);
 void buffer_list_pop (struct buffer_list *ol);
 
 void buffer_list_aggregate (struct buffer_list *bl, const size_t max);
+void buffer_list_aggregate_separator (struct buffer_list *bl, const size_t max, const char *sep);
 
 struct buffer_list *buffer_list_file (const char *fn, int max_line_len);
 #endif /* BUFFER_H */

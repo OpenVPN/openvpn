@@ -777,6 +777,28 @@ correct signature.
 This capability is intended to allow the use of arbitrary cryptographic
 service providers with OpenVPN via the management interface.
 
+COMMAND -- certificate (OpenVPN 2.4 or higher)
+----------------------------------------------
+Provides support for external storage of the certificate. Requires the
+--management-external-cert option. This option can be used instead of "cert"
+in client mode. On SSL protocol initialization a notification will be sent
+to the management interface with a hint as follows:
+
+>NEED-CERTIFICATE:macosx-keychain:subject:o=OpenVPN-TEST
+
+The management interface client should use the hint to obtain the specific
+SSL certificate and then return base64 encoded certificate as follows:
+
+certificate
+[BASE64_CERT_LINE]
+.
+.
+.
+END
+
+This capability is intended to allow the use of certificates
+stored outside of the filesystem (e.g. in Mac OS X Keychain)
+with OpenVPN via the management interface.
 
 OUTPUT FORMAT
 -------------

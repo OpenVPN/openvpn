@@ -520,10 +520,19 @@ init_ssl (const struct options *options, struct tls_root_ctx *new_ctx)
     }
 #endif
 #ifdef MANAGMENT_EXTERNAL_KEY
-  else if ((options->management_flags & MF_EXTERNAL_KEY) && options->cert_file)
+  else if ((options->management_flags & MF_EXTERNAL_KEY) &&
+           (options->cert_file || options->management_flags & MF_EXTERNAL_CERT))
     {
-      tls_ctx_use_external_private_key(new_ctx, options->cert_file,
-	  options->cert_file_inline);
+      if (options->cert_file) {
+        tls_ctx_use_external_private_key(new_ctx, options->cert_file,
+          options->cert_file_inline);
+      } else {
+        char *external_certificate = management_query_cert(management,
+            options->management_certificate);
+        tls_ctx_use_external_private_key(new_ctx, INLINE_FILE_TAG,
+            external_certificate);
+        free(external_certificate);
+      }
     }
 #endif
   else

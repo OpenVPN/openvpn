@@ -113,6 +113,8 @@ man_help ()
 #ifdef MANAGMENT_EXTERNAL_KEY
   msg (M_CLIENT, "rsa-sig                : Enter an RSA signature in response to >RSA_SIGN challenge");
   msg (M_CLIENT, "                         Enter signature base64 on subsequent lines followed by END");
+  msg (M_CLIENT, "certificate            : Enter a client certificate in response to >NEED-CERT challenge");
+  msg (M_CLIENT, "                         Enter certificate base64 on subsequent lines followed by END");
 #endif
   msg (M_CLIENT, "signal s               : Send signal s to daemon,");
   msg (M_CLIENT, "                         s = SIGHUP|SIGTERM|SIGUSR1|SIGUSR2.");
@@ -868,6 +870,12 @@ in_extra_dispatch (struct management *man)
       man->connection.ext_key_input = man->connection.in_extra;
       man->connection.in_extra = NULL;
       return;
+    case IEC_CERTIFICATE:
+      man->connection.ext_cert_state = EKS_READY;
+      buffer_list_free (man->connection.ext_cert_input);
+      man->connection.ext_cert_input = man->connection.in_extra;
+      man->connection.in_extra = NULL;
+      return;
 #endif
     }
    in_extra_reset (&man->connection, IER_RESET);
@@ -1028,6 +1036,20 @@ man_rsa_sig (struct management *man)
     }
   else
     msg (M_CLIENT, "ERROR: The rsa-sig command is not currently available");
+}
+
+static void
+man_certificate (struct management *man)
+{
+  struct man_connection *mc = &man->connection;
+  if (mc->ext_cert_state == EKS_SOLICIT)
+    {
+      mc->ext_cert_state = EKS_INPUT;
+      mc->in_extra_cmd = IEC_CERTIFICATE;
+      in_extra_reset (mc, IER_NEW);
+    }
+  else
+    msg (M_CLIENT, "ERROR: The certificate command is not currently available");
 }
 
 #endif
@@ -1310,6 +1332,10 @@ man_dispatch_command (struct management *man, struct status_output *so, const ch
   else if (streq (p[0], "rsa-sig"))
     {
       man_rsa_sig (man);
+    }
+  else if (streq (p[0], "certificate"))
+    {
+      man_certificate (man);
     }
 #endif
 #ifdef ENABLE_PKCS11
@@ -3097,15 +3123,14 @@ management_query_user_pass (struct management *man,
 
 #ifdef MANAGMENT_EXTERNAL_KEY
 
-char * /* returns allocated base64 signature */
-management_query_rsa_sig (struct management *man,
-			  const char *b64_data)
+int
+management_query_multiline (struct management *man,
+			  const char *b64_data, const char *prompt, const char *cmd, int *state, struct buffer_list **input)
 {
   struct gc_arena gc = gc_new ();
-  char *ret = NULL;
+  int ret = 0;
   volatile int signal_received = 0;
   struct buffer alert_msg = clear_buf();
-  struct buffer *buf;
   const bool standalone_disabled_save = man->persist.standalone_disabled;
   struct man_connection *mc = &man->connection;
 
@@ -3114,10 +3139,15 @@ management_query_rsa_sig (struct management *man,
       man->persist.standalone_disabled = false; /* This is so M_CLIENT messages will be correctly passed through msg() */
       man->persist.special_state_msg = NULL;
 
-      mc->ext_key_state = EKS_SOLICIT;
+      *state = EKS_SOLICIT;
 
-      alert_msg = alloc_buf_gc (strlen(b64_data)+64, &gc);
-      buf_printf (&alert_msg, ">RSA_SIGN:%s", b64_data);
+      if (b64_data) {
+        alert_msg = alloc_buf_gc (strlen(b64_data)+strlen(prompt)+3, &gc);
+        buf_printf (&alert_msg, ">%s:%s", prompt, b64_data);
+      } else {
+        alert_msg = alloc_buf_gc (strlen(prompt)+3, &gc);
+        buf_printf (&alert_msg, ">%s", prompt);
+      }
 
       man_wait_for_client_connection (man, &signal_received, 0, MWCC_OTHER_WAIT);
 
@@ -3135,38 +3165,105 @@ management_query_rsa_sig (struct management *man,
 	    man_check_for_signals (&signal_received);
 	  if (signal_received)
 	    goto done;
-	} while (mc->ext_key_state != EKS_READY);
+	} while (*state != EKS_READY);
 
-      if (buffer_list_defined(mc->ext_key_input))
-	{
-	  buffer_list_aggregate (mc->ext_key_input, 2048);
-	  buf = buffer_list_peek (mc->ext_key_input);
-	  if (buf && BLEN(buf) > 0)
-	    {
-	      ret = (char *) malloc(BLEN(buf)+1);
-	      check_malloc_return(ret);
-	      memcpy(ret, buf->data, BLEN(buf));
-	      ret[BLEN(buf)] = '\0';
-	    }
-	}
+      ret = 1;
     }
 
  done:
-  if (mc->ext_key_state == EKS_READY && ret)
-    msg (M_CLIENT, "SUCCESS: rsa-sig command succeeded");
-  else if (mc->ext_key_state == EKS_INPUT || mc->ext_key_state == EKS_READY)
-    msg (M_CLIENT, "ERROR: rsa-sig command failed");
+  if (*state == EKS_READY && ret)
+    msg (M_CLIENT, "SUCCESS: %s command succeeded", cmd);
+  else if (*state == EKS_INPUT || *state == EKS_READY)
+    msg (M_CLIENT, "ERROR: %s command failed", cmd);
 
   /* revert state */
   man->persist.standalone_disabled = standalone_disabled_save;
   man->persist.special_state_msg = NULL;
   in_extra_reset (mc, IER_RESET);
-  mc->ext_key_state = EKS_UNDEF;
-  buffer_list_free (mc->ext_key_input);
-  mc->ext_key_input = NULL;
+  *state = EKS_UNDEF;
 
   gc_free (&gc);
   return ret;
+}
+
+char * /* returns allocated base64 signature */
+management_query_multiline_flatten_newline (struct management *man,
+    const char *b64_data, const char *prompt, const char *cmd, int *state, struct buffer_list **input)
+{
+  int ok;
+  char *result = NULL;
+  struct buffer *buf;
+
+  ok = management_query_multiline(man, b64_data, prompt, cmd, state, input);
+  if (ok && buffer_list_defined(*input))
+  {
+    buffer_list_aggregate_separator (*input, 10000, "\n");
+    buf = buffer_list_peek (*input);
+    if (buf && BLEN(buf) > 0)
+    {
+      result = (char *) malloc(BLEN(buf)+1);
+      check_malloc_return(result);
+      memcpy(result, buf->data, BLEN(buf));
+      result[BLEN(buf)] = '\0';
+    }
+  }
+
+  buffer_list_free (*input);
+  *input = NULL;
+
+  return result;
+}
+
+char * /* returns allocated base64 signature */
+management_query_multiline_flatten (struct management *man,
+    const char *b64_data, const char *prompt, const char *cmd, int *state, struct buffer_list **input)
+{
+  int ok;
+  char *result = NULL;
+  struct buffer *buf;
+
+  ok = management_query_multiline(man, b64_data, prompt, cmd, state, input);
+  if (ok && buffer_list_defined(*input))
+  {
+    buffer_list_aggregate (*input, 2048);
+    buf = buffer_list_peek (*input);
+    if (buf && BLEN(buf) > 0)
+    {
+      result = (char *) malloc(BLEN(buf)+1);
+      check_malloc_return(result);
+      memcpy(result, buf->data, BLEN(buf));
+      result[BLEN(buf)] = '\0';
+    }
+  }
+
+  buffer_list_free (*input);
+  *input = NULL;
+
+  return result;
+}
+
+char * /* returns allocated base64 signature */
+management_query_rsa_sig (struct management *man,
+			  const char *b64_data)
+{
+  return management_query_multiline_flatten(man, b64_data, "RSA_SIGN", "rsa-sign",
+      &man->connection.ext_key_state, &man->connection.ext_key_input);
+}
+
+
+char* management_query_cert (struct management *man, const char *cert_name)
+{
+  const char prompt_1[] = "NEED-CERTIFICATE:";
+  struct buffer buf_prompt = alloc_buf(strlen(cert_name) + 20);
+  buf_write(&buf_prompt, prompt_1, strlen(prompt_1));
+  buf_write(&buf_prompt, cert_name, strlen(cert_name)+1); // +1 for \0
+
+  char *result;
+  result = management_query_multiline_flatten_newline(management,
+      NULL, (char*)buf_bptr(&buf_prompt), "certificate",
+      &man->connection.ext_cert_state, &man->connection.ext_cert_input);
+  free_buf(&buf_prompt);
+  return result;
 }
 
 #endif

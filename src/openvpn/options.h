@@ -370,6 +370,7 @@ struct options
 
   /* Mask of MF_ values of manage.h */
   unsigned int management_flags;
+  const char *management_certificate;
 #endif
 
 #ifdef ENABLE_PLUGIN

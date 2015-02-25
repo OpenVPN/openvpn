@@ -1066,8 +1066,10 @@ buffer_list_peek (struct buffer_list *ol)
 }
 
 void
-buffer_list_aggregate (struct buffer_list *bl, const size_t max)
+buffer_list_aggregate_separator (struct buffer_list *bl, const size_t max, const char *sep)
 {
+  int sep_len = strlen(sep);
+
   if (bl->head)
     {
       struct buffer_entry *more = bl->head;
@@ -1075,7 +1077,7 @@ buffer_list_aggregate (struct buffer_list *bl, const size_t max)
       int count = 0;
       for (count = 0; more && size <= max; ++count)
 	{
-	  size += BLEN(&more->buf);
+	  size += BLEN(&more->buf) + sep_len;
 	  more = more->next;
 	}
 
@@ -1092,6 +1094,7 @@ buffer_list_aggregate (struct buffer_list *bl, const size_t max)
 	    {
 	      struct buffer_entry *next = e->next;
 	      buf_copy (&f->buf, &e->buf);
+	      buf_write(&f->buf, sep, sep_len);
 	      free_buf (&e->buf);
 	      free (e);
 	      e = next;
@@ -1102,6 +1105,12 @@ buffer_list_aggregate (struct buffer_list *bl, const size_t max)
 	    bl->tail = f;
 	}
     }
+}
+
+void
+buffer_list_aggregate (struct buffer_list *bl, const size_t max)
+{
+  buffer_list_aggregate_separator(bl, max, "");
 }
 
 void
