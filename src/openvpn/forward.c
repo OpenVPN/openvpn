@@ -1093,6 +1093,7 @@ void
 process_outgoing_link (struct context *c)
 {
   struct gc_arena gc = gc_new ();
+  int error_code = 0;
 
   perf_push (PERF_PROC_OUT_LINK);
 
@@ -1180,6 +1181,7 @@ process_outgoing_link (struct context *c)
 	}
 
       /* Check return status */
+      error_code = openvpn_errno();
       check_status (size, "write", c->c2.link_socket, NULL);
 
       if (size > 0)
@@ -1196,6 +1198,14 @@ process_outgoing_link (struct context *c)
       /* if not a ping/control message, indicate activity regarding --inactive parameter */
       if (c->c2.buf.len > 0 )
         register_activity (c, size);
+
+      /* for unreachable network and "connecting" state switch to the next host */
+      if (size < 0 && ENETUNREACH == error_code && !tls_initial_packet_received (c->c2.tls_multi)
+	  && c->options.mode == MODE_POINT_TO_POINT)
+	{
+	  msg (M_INFO, "Network unreachable, restarting");
+	  register_signal (c, SIGUSR1, "network-unreachable");
+	}
     }
   else
     {
