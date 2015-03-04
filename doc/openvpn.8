@@ -4514,6 +4514,9 @@ of security they both support.
 Use
 .B \-\-show-tls
 to see a list of supported TLS ciphers.
+
+The default for --tls-cipher is to use PolarSSL's default cipher list
+when using PolarSSL or "DEFAULT:!EXP:!PSK:!SRP:!kRSA" when using OpenSSL.
 .\"*********************************************************
 .TP
 .B \-\-tls-timeout n
