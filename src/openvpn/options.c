@@ -2352,7 +2352,7 @@ options_postprocess_mutate_ce (struct options *o, struct connection_entry *ce)
     {
 #ifdef ENABLE_FRAGMENT
       if (ce->fragment)
-	o->ce.mssfix = ce->fragment;
+	ce->mssfix = ce->fragment;
 #else
       msg (M_USAGE, "--mssfix must specify a parameter");
 #endif      
