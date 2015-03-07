@@ -2151,8 +2151,11 @@ void multi_process_float (struct multi_context* m, struct multi_instance* mi)
       multi_close_instance(m, ex_mi, false);
     }
 
-    msg (D_MULTI_MEDIUM, "peer %" PRIu32 " floated from %s to %s", mi->context.c2.tls_multi->peer_id,
-        mroute_addr_print (&mi->real, &gc), print_link_socket_actual (&m->top.c2.from, &gc));
+    msg (D_MULTI_MEDIUM, "peer %" PRIu32 " (%s) floated from %s to %s",
+	mi->context.c2.tls_multi->peer_id,
+	tls_common_name (mi->context.c2.tls_multi, false),
+	mroute_addr_print (&mi->real, &gc),
+	print_link_socket_actual (&m->top.c2.from, &gc));
 
     ASSERT (hash_remove(m->hash, &mi->real));
     ASSERT (hash_remove(m->iter, &mi->real));
