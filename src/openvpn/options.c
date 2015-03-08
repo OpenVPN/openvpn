@@ -1254,7 +1254,7 @@ option_iroute_ipv6 (struct options *o,
 
   ALLOC_OBJ_GC (ir, struct iroute_ipv6, &o->gc);
 
-  if ( get_ipv6_addr (prefix_str, &ir->network, &ir->netbits, NULL, msglevel ) < 0 )
+  if ( !get_ipv6_addr (prefix_str, &ir->network, &ir->netbits, NULL, msglevel ))
     {
       msg (msglevel, "in --iroute-ipv6 %s: Bad IPv6 prefix specification",
 	   prefix_str);
