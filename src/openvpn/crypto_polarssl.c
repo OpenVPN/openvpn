@@ -46,6 +46,7 @@
 #include "misc.h"
 
 #include <polarssl/des.h>
+#include <polarssl/error.h>
 #include <polarssl/md5.h>
 #include <polarssl/cipher.h>
 #include <polarssl/havege.h>
@@ -85,6 +86,32 @@ void
 crypto_clear_error (void)
 {
 }
+
+bool polar_log_err(unsigned int flags, int errval, const char *prefix)
+{
+  if (0 != errval)
+    {
+      char errstr[256];
+      polarssl_strerror(errval, errstr, sizeof(errstr));
+
+      if (NULL == prefix) prefix = "PolarSSL error";
+      msg (flags, "%s: %s", prefix, errstr);
+    }
+
+  return 0 == errval;
+}
+
+bool polar_log_func_line(unsigned int flags, int errval, const char *func,
+    int line)
+{
+  char prefix[256];
+
+  if (!openvpn_snprintf(prefix, sizeof(prefix), "%s:%d", func, line))
+    return polar_log_err(flags, errval, func);
+
+  return polar_log_err(flags, errval, prefix);
+}
+
 
 #ifdef DMALLOC
 void
