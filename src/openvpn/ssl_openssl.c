@@ -121,15 +121,15 @@ tmp_rsa_cb (SSL * s, int is_export, int keylength)
 void
 tls_ctx_server_new(struct tls_root_ctx *ctx, unsigned int ssl_flags)
 {
-  const int tls_version_min =
-      (ssl_flags >> SSLF_TLS_VERSION_MIN_SHIFT) & SSLF_TLS_VERSION_MIN_MASK;
+  const int tls_version_max =
+      (ssl_flags >> SSLF_TLS_VERSION_MAX_SHIFT) & SSLF_TLS_VERSION_MAX_MASK;
 
   ASSERT(NULL != ctx);
 
-  if (tls_version_min > TLS_VER_UNSPEC)
-    ctx->ctx = SSL_CTX_new (SSLv23_server_method ());
-  else
+  if (tls_version_max == TLS_VER_1_0)
     ctx->ctx = SSL_CTX_new (TLSv1_server_method ());
+  else
+    ctx->ctx = SSL_CTX_new (SSLv23_server_method ());
 
   if (ctx->ctx == NULL)
     msg (M_SSLERR, "SSL_CTX_new SSLv23_server_method");
@@ -140,15 +140,15 @@ tls_ctx_server_new(struct tls_root_ctx *ctx, unsigned int ssl_flags)
 void
 tls_ctx_client_new(struct tls_root_ctx *ctx, unsigned int ssl_flags)
 {
-  const int tls_version_min =
-      (ssl_flags >> SSLF_TLS_VERSION_MIN_SHIFT) & SSLF_TLS_VERSION_MIN_MASK;
+  const int tls_version_max =
+      (ssl_flags >> SSLF_TLS_VERSION_MAX_SHIFT) & SSLF_TLS_VERSION_MAX_MASK;
 
   ASSERT(NULL != ctx);
 
-  if (tls_version_min > TLS_VER_UNSPEC)
-    ctx->ctx = SSL_CTX_new (SSLv23_client_method ());
-  else
+  if (tls_version_max == TLS_VER_1_0)
     ctx->ctx = SSL_CTX_new (TLSv1_client_method ());
+  else
+    ctx->ctx = SSL_CTX_new (SSLv23_client_method ());
 
   if (ctx->ctx == NULL)
     msg (M_SSLERR, "SSL_CTX_new SSLv23_client_method");
