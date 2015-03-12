@@ -2279,6 +2279,22 @@ do_init_crypto_tls (struct context *c, const unsigned int flags)
   to.comp_options = options->comp;
 #endif
 
+#if defined(ENABLE_CRYPTO_OPENSSL) && OPENSSL_VERSION_NUMBER >= 0x10001000
+  if (options->keying_material_exporter_label)
+    {
+      to.ekm_size = options->keying_material_exporter_length;
+      if (to.ekm_size < 16 || to.ekm_size > 4095)
+          to.ekm_size = 0;
+
+      to.ekm_label = options->keying_material_exporter_label;
+      to.ekm_label_size = strlen(to.ekm_label);
+    }
+  else
+    {
+      to.ekm_size = 0;
+    }
+#endif
+
   /* TLS handshake authentication (--tls-auth) */
   if (options->tls_auth_file)
     {

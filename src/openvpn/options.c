@@ -611,6 +611,10 @@ static const char usage_message[] =
   "--x509-track x  : Save peer X509 attribute x in environment for use by\n"
   "                  plugins and management interface.\n"
 #endif
+#if defined(ENABLE_CRYPTO_OPENSSL) && OPENSSL_VERSION_NUMBER >= 0x10001000
+  "--keying-material-exporter label len : Save Exported Keying Material (RFC5705)\n"
+  "                  of len bytes (min. 16 bytes) using label in environment for use by plugins.\n"
+#endif
   "--remote-cert-ku v ... : Require that the peer certificate was signed with\n"
   "                  explicit key usage, you can specify more than one value.\n"
   "                  value should be given in hex format.\n"
@@ -7066,6 +7070,29 @@ add_option (struct options *options,
       options->use_peer_id = true;
       options->peer_id = atoi(p[1]);
     }
+#if defined(ENABLE_CRYPTO_OPENSSL) && OPENSSL_VERSION_NUMBER >= 0x10001000
+  else if (streq (p[0], "keying-material-exporter") && p[1] && p[2])
+    {
+      int ekm_length = positive_atoi (p[2]);
+
+      VERIFY_PERMISSION (OPT_P_GENERAL);
+
+      if (strncmp(p[1], "EXPORTER", 8))
+        {
+          msg (msglevel, "Keying material exporter label must begin with "
+                         "\"EXPORTER\"");
+          goto err;
+        }
+      if (ekm_length < 16 || ekm_length > 4095)
+        {
+          msg (msglevel, "Invalid keying material exporter length");
+          goto err;
+        }
+
+      options->keying_material_exporter_label = p[1];
+      options->keying_material_exporter_length = ekm_length;
+    }
+#endif
   else
     {
       int i;

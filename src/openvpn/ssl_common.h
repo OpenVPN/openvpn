@@ -317,6 +317,11 @@ struct tls_options
 
   /* --gremlin bits */
   int gremlin;
+
+  /* Keying Material Exporter [RFC 5705] parameters */
+  const char *ekm_label;
+  size_t ekm_label_size;
+  size_t ekm_size;
 };
 
 /** @addtogroup control_processor

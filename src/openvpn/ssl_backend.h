@@ -334,6 +334,19 @@ void key_state_ssl_init(struct key_state_ssl *ks_ssl,
  */
 void key_state_ssl_free(struct key_state_ssl *ks_ssl);
 
+/**
+ * Keying Material Exporters [RFC 5705] allows additional keying material to be
+ * derived from existing TLS channel. This exported keying material can then be
+ * used for a variety of purposes.
+ *
+ * @param ks_ssl       The SSL channel's state info
+ * @param session      The session associated with the given key_state
+ */
+
+void
+key_state_export_keying_material(struct key_state_ssl *ks_ssl,
+    struct tls_session *session) __attribute__((nonnull));
+
 /**************************************************************************/
 /** @addtogroup control_tls
  *  @{ */

@@ -149,6 +149,12 @@ tls_ctx_initialised(struct tls_root_ctx *ctx)
 }
 
 void
+key_state_export_keying_material(struct key_state_ssl *ssl,
+                                 struct tls_session *session)
+{
+}
+
+void
 tls_ctx_set_options (struct tls_root_ctx *ctx, unsigned int ssl_flags)
 {
 }

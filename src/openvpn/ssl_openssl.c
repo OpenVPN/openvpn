@@ -133,6 +133,39 @@ bool tls_ctx_initialised(struct tls_root_ctx *ctx)
   return NULL != ctx->ctx;
 }
 
+void
+key_state_export_keying_material(struct key_state_ssl *ssl,
+                                 struct tls_session *session)
+{
+  if (session->opt->ekm_size > 0)
+    {
+#if (OPENSSL_VERSION_NUMBER >= 0x10001000)
+      unsigned int size = session->opt->ekm_size;
+      unsigned char ekm[size];
+
+      if (SSL_export_keying_material(ssl->ssl, ekm, sizeof(ekm),
+          session->opt->ekm_label, session->opt->ekm_label_size, NULL, 0, 0))
+       {
+         struct gc_arena gc = gc_new();
+         unsigned int len = (size * 2) + 2;
+
+         const char *key = format_hex_ex (ekm, size, len, 0, NULL, &gc);
+         setenv_str (session->opt->es, "exported_keying_material", key);
+
+         dmsg(D_TLS_DEBUG_MED, "%s: exported keying material: %s",
+              __func__, key);
+
+         gc_free(&gc);
+       }
+      else
+       {
+         msg (M_WARN, "WARNING: Export keying material failed!");
+         setenv_del (session->opt->es, "exported_keying_material");
+       }
+#endif
+    }
+}
+
 /*
  * Print debugging information on SSL/TLS session negotiation.
  */

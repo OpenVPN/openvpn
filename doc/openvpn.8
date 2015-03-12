@@ -2757,6 +2757,18 @@ client\-connect), then
 every module and script must return success (0) in order for
 the connection to be authenticated.
 .\"*********************************************************
+.TP
+.B \-\-keying-material-exporter label len
+Save Exported Keying Material [RFC5705] of len bytes (must be
+between 16 and 4095 bytes) using label in environment
+(exported_keying_material) for use by plugins in
+OPENVPN_PLUGIN_TLS_FINAL callback.
+
+Note that exporter labels have the potential to collide with existing PRF
+labels. In order to prevent this, labels MUST begin with "EXPORTER".
+
+This option requires OpenSSL 1.0.1 or newer.
+.\"*********************************************************
 .SS Server Mode
 Starting with OpenVPN 2.0, a multi-client TCP/UDP server mode
 is supported, and can be enabled with the
