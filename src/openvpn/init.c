@@ -942,10 +942,10 @@ do_persist_tuntap (const struct options *options)
  * Return true if we did it.
  */
 static bool
-possibly_become_daemon (const struct options *options, const bool first_time)
+possibly_become_daemon (const struct options *options)
 {
   bool ret = false;
-  if (first_time && options->daemon)
+  if (options->daemon)
     {
       ASSERT (!options->inetd);
       if (daemon (options->cd_dir != NULL, options->log) < 0)
@@ -2776,7 +2776,7 @@ do_init_first_time (struct context *c)
       get_pid_file (c->options.writepid, &c0->pid_state);
 
       /* become a daemon if --daemon */
-      c->did_we_daemonize = possibly_become_daemon (&c->options, c->first_time);
+      c->did_we_daemonize = possibly_become_daemon (&c->options);
 
       /* should we disable paging? */
       if (c->options.mlock && c->did_we_daemonize)
