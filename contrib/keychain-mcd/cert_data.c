@@ -146,6 +146,7 @@ CFArrayRef GetFieldsFromCertificate(SecCertificateRef certificate, CFTypeRef oid
       printErrorMsg("GetFieldsFromCertificate: SecCertificateCopyValues", error);
       CFRelease(keySelection);
       CFRelease(fields);
+      destroyCertName(pCertName);
       return NULL;
   }
   CFDictionaryRef vals = CFDictionaryGetValue(dict, oid);
