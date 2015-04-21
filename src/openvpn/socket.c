@@ -1575,10 +1575,8 @@ link_socket_init_phase1 (struct link_socket *sock,
       sock->sd = accept_from->sd;
     }
 
-  if (false)
-    ;
   /* are we running in HTTP proxy mode? */
-  else if (sock->http_proxy)
+  if (sock->http_proxy)
     {
       ASSERT (sock->info.proto == PROTO_TCP_CLIENT);
       ASSERT (!sock->inetd);
@@ -1793,9 +1791,7 @@ phase2_tcp_client (struct link_socket *sock, struct signal_info *sig_info)
     if (sig_info->signal_received)
       return;
 
-    if (false)
-      ;
-    else if (sock->http_proxy)
+    if (sock->http_proxy)
       {
 	proxy_retry = establish_http_proxy_passthru (sock->http_proxy,
 						     sock->sd,
