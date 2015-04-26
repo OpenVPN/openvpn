@@ -623,6 +623,28 @@ void delete_route_connected_v6_net(struct tuntap * tt,
 }
 #endif
 
+#if defined(TARGET_FREEBSD)||defined(TARGET_DRAGONFLY)
+/* we can't use true subnet mode on tun on all platforms, as that
+ * conflicts with IPv6 (wants to use ND then, which we don't do),
+ * but the OSes want "a remote address that is different from ours"
+ * - so we construct one, normally the first in the subnet, but if
+ * this is the same as ours, use the second one.
+ * The actual address does not matter at all, as the tun interface
+ * is still point to point and no layer 2 resolution is done...
+ */
+
+char *
+create_arbitrary_remote( struct tuntap *tt, struct gc_arena * gc )
+{
+  in_addr_t remote;
+
+  remote = (tt->local & tt->remote_netmask) +1;
+
+  if ( remote == tt->local ) remote ++;
+
+  return print_in_addr_t (remote, 0, &gc);
+}
+#endif
 
 /* execute the ifconfig command through the shell */
 void
@@ -1119,7 +1141,7 @@ do_ifconfig (struct tuntap *tt,
 			  IFCONFIG_PATH,
 			  actual,
 			  ifconfig_local,
-			  ifconfig_local,
+			  create_arbitrary_remote( tt, &gc ),
 			  tun_mtu,
 			  ifconfig_remote_netmask
 			  );
