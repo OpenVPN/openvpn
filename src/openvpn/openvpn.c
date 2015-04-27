@@ -229,6 +229,10 @@ openvpn_main (int argc, char *argv[])
 	  if (do_test_crypto (&c.options))
 	    break;
 	  
+	  /* become a daemon if --daemon */
+	  if (c.first_time)
+	    c.did_we_daemonize = possibly_become_daemon (&c.options);
+
 #ifdef ENABLE_MANAGEMENT
 	  /* open management subsystem */
 	  if (!open_management (&c))

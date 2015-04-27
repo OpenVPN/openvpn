@@ -38,9 +38,6 @@ pkcs11_initialize (
 void
 pkcs11_terminate ();
 
-void
-pkcs11_forkFixup ();
-
 bool
 pkcs11_addProvider (
 	const char * const provider,
