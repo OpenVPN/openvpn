@@ -3698,12 +3698,21 @@ static char *
 read_inline_file (struct in_src *is, const char *close_tag, struct gc_arena *gc)
 {
   char line[OPTION_LINE_SIZE];
-  struct buffer buf = alloc_buf (10000);
+  struct buffer buf = alloc_buf (8*OPTION_LINE_SIZE);
   char *ret;
   while (in_src_get (is, line, sizeof (line)))
     {
       if (!strncmp (line, close_tag, strlen (close_tag)))
 	break;
+      if (!buf_safe (&buf, strlen(line)))
+	{
+	  /* Increase buffer size */
+	  struct buffer buf2 = alloc_buf (buf.capacity * 2);
+	  ASSERT (buf_copy (&buf2, &buf));
+	  buf_clear (&buf);
+	  free_buf (&buf);
+	  buf = buf2;
+	}
       buf_printf (&buf, "%s", line);
     }
   ret = string_alloc (BSTR (&buf), gc);
