@@ -55,6 +55,8 @@ bool do_genkey (const struct options *options);
 
 bool do_persist_tuntap (const struct options *options);
 
+bool possibly_become_daemon (const struct options *options);
+
 void pre_setup (const struct options *options);
 
 void init_instance_handle_signals (struct context *c, const struct env_set *env, const unsigned int flags);

@@ -336,11 +336,6 @@ pkcs11_terminate () {
 	);
 }
 
-void
-pkcs11_forkFixup () {
-	pkcs11h_forkFixup ();
-}
-
 bool
 pkcs11_addProvider (
 	const char * const provider,
