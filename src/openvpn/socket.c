@@ -314,7 +314,7 @@ openvpn_getaddrinfo (unsigned int flags,
 
   ASSERT(res);
 
-#if defined(HAVE_RES_INIT)
+#ifndef WIN32
   res_init ();
 #endif
 

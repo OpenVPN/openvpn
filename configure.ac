@@ -613,12 +613,6 @@ AC_SUBST([SOCKETS_LIBS])
 old_LIBS="${LIBS}"
 LIBS="${LIBS} ${SOCKETS_LIBS}"
 AC_CHECK_FUNCS([sendmsg recvmsg inet_ntop inet_pton])
-AC_CHECK_FUNCS(
-	[res_init],
-	,
-	,
-	[[#include <resolv.h>]]
-)
 # Windows use stdcall for winsock so we cannot auto detect these
 m4_define(
 	[SOCKET_FUNCS],
@@ -645,6 +639,11 @@ else
 	AC_CHECK_FUNCS(SOCKET_OPT_FUNCS)
 fi
 LIBS="${old_LIBS}"
+
+# we assume res_init() always exist, but need to find out *where*...
+AC_SEARCH_LIBS(__res_init, resolv bind, ,
+    AC_SEARCH_LIBS(res_9_init, resolv bind, ,
+	AC_SEARCH_LIBS(res_init, resolv bind, , )))
 
 AC_ARG_VAR([TAP_CFLAGS], [C compiler flags for tap])
 old_CFLAGS="${CFLAGS}"
