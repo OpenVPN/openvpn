@@ -783,6 +783,12 @@ driver supports an
 command which sets a subnet instead of a remote endpoint IP address.
 
 This option exists in OpenVPN 2.1 or higher.
+
+Note: Using
+.B \-\-topology subnet
+changes the interpretation of the arguments of
+.B \-\-ifconfig
+to mean "address netmask", no longer "local remote".
 .\"*********************************************************
 .TP
 .B \-\-tun-ipv6
@@ -846,16 +852,21 @@ May be used in order to execute OpenVPN in unprivileged environment.
 Set TUN/TAP adapter parameters. 
 .B l
 is the IP address of the local VPN endpoint.
-For TUN devices,
+For TUN devices in point-to-point mode,
 .B rn
 is the IP address of the remote VPN endpoint.
-For TAP devices,
+For TAP devices, or TUN devices used with
+.B \-\-topology subnet,
 .B rn
-is the subnet mask of the virtual ethernet segment
+is the subnet mask of the virtual network segment
 which is being created or connected to.
 
 For TUN devices, which facilitate virtual
-point-to-point IP connections,
+point-to-point IP connections (when used in
+.B \-\-topology net30
+or
+.B p2p
+mode),
 the proper usage of
 .B \-\-ifconfig
 is to use two private IP addresses
@@ -870,7 +881,9 @@ you will be pinging across the VPN.
 
 For TAP devices, which provide
 the ability to create virtual
-ethernet segments,
+ethernet segments, or TUN devices in
+.B --topology subnet
+mode (which create virtual "multipoint networks"),
 .B \-\-ifconfig
 is used to set an IP address and
 subnet mask just as a physical
