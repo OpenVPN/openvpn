@@ -887,7 +887,6 @@ do_genkey (const struct options * options)
 bool
 do_persist_tuntap (const struct options *options)
 {
-#ifdef ENABLE_FEATURE_TUN_PERSIST
   if (options->persist_config)
     {
       /* sanity check on options for --mktun or --rmtun */
@@ -901,14 +900,21 @@ do_persist_tuntap (const struct options *options)
 	)
 	msg (M_FATAL|M_OPTERR,
 	     "options --mktun or --rmtun should only be used together with --dev");
+#ifdef ENABLE_FEATURE_TUN_PERSIST
       tuncfg (options->dev, options->dev_type, options->dev_node,
 	      options->persist_mode,
 	      options->username, options->groupname, &options->tuntap_options);
       if (options->persist_mode && options->lladdr)
         set_lladdr(options->dev, options->lladdr, NULL);
       return true;
-    }
+#else
+      msg( M_FATAL|M_OPTERR,
+	"options --mktun and --rmtun are not available on your operating "
+	"system.  Please check 'man tun' (or 'tap'), whether your system "
+        "supports using 'ifconfig %s create' / 'destroy' to create/remove "
+        "persistant tunnel interfaces.", options->dev );
 #endif
+    }
   return false;
 }
 

@@ -7023,7 +7023,6 @@ add_option (struct options *options,
       options->pkcs11_id_management = true;
     }
 #endif
-#ifdef ENABLE_FEATURE_TUN_PERSIST
   else if (streq (p[0], "rmtun"))
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
@@ -7036,7 +7035,6 @@ add_option (struct options *options,
       options->persist_config = true;
       options->persist_mode = 1;
     }
-#endif
   else if (streq (p[0], "peer-id"))
     {
       VERIFY_PERMISSION (OPT_P_PEER_ID);
