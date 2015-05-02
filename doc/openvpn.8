@@ -5032,6 +5032,11 @@ is a directory containing files named as revoked serial numbers
 requests a connection, where the client certificate serial number
 (decimal string) is the name of a file present in the directory,
 it will be rejected.
+
+Note: As the crl file (or directory) is read every time a peer connects,
+if you are dropping root privileges with
+.B --user,
+make sure that this user has sufficient privileges to read the file.
 .\"*********************************************************
 .SS SSL Library information:
 .\"*********************************************************
