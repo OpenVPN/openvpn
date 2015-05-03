@@ -465,7 +465,7 @@ process_incoming_push_msg (struct context *c,
 	  struct buffer buf_orig = buf;
 	  if (!c->c2.pulled_options_md5_init_done)
 	    {
-	      md5_state_init (&c->c2.pulled_options_state);
+	      md_ctx_init(&c->c2.pulled_options_state, md_kt_get("MD5"));
 	      c->c2.pulled_options_md5_init_done = true;
 	    }
 	  if (!c->c2.did_pre_pull_restore)
@@ -482,13 +482,14 @@ process_incoming_push_msg (struct context *c,
 	      {
 	      case 0:
 	      case 1:
-		md5_state_update (&c->c2.pulled_options_state, BPTR(&buf_orig), BLEN(&buf_orig));
-		md5_state_final (&c->c2.pulled_options_state, &c->c2.pulled_options_digest);
+		md_ctx_update (&c->c2.pulled_options_state, BPTR(&buf_orig), BLEN(&buf_orig));
+		md_ctx_final (&c->c2.pulled_options_state, c->c2.pulled_options_digest);
+		md_ctx_cleanup (&c->c2.pulled_options_state);
 	        c->c2.pulled_options_md5_init_done = false;
 		ret = PUSH_MSG_REPLY;
 		break;
 	      case 2:
-		md5_state_update (&c->c2.pulled_options_state, BPTR(&buf_orig), BLEN(&buf_orig));
+		md_ctx_update (&c->c2.pulled_options_state, BPTR(&buf_orig), BLEN(&buf_orig));
 		ret = PUSH_MSG_CONTINUATION;
 		break;
 	      }

@@ -421,26 +421,6 @@ void get_tls_handshake_key (const struct key_type *key_type,
 			    const unsigned int flags);
 
 /*
- * md5 functions
- */
-
-struct md5_state {
-  md_ctx_t ctx;
-};
-
-struct md5_digest {
-  uint8_t digest [MD5_DIGEST_LENGTH];
-};
-
-const char *md5sum(uint8_t *buf, int len, int n_print_chars, struct gc_arena *gc);
-void md5_state_init (struct md5_state *s);
-void md5_state_update (struct md5_state *s, void *data, size_t len);
-void md5_state_final (struct md5_state *s, struct md5_digest *out);
-void md5_digest_clear (struct md5_digest *digest);
-bool md5_digest_defined (const struct md5_digest *digest);
-bool md5_digest_equal (const struct md5_digest *d1, const struct md5_digest *d2);
-
-/*
  * Inline functions
  */
 

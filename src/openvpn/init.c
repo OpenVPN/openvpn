@@ -1330,21 +1330,6 @@ do_route (const struct options *options,
 }
 
 /*
- * Save current pulled options string in the c1 context store, so we can
- * compare against it after possible future restarts.
- */
-#if P2MP
-static void
-save_pulled_options_digest (struct context *c, const struct md5_digest *newdigest)
-{
-  if (newdigest)
-    c->c1.pulled_options_digest_save = *newdigest;
-  else
-    md5_digest_clear (&c->c1.pulled_options_digest_save);
-}
-#endif
-
-/*
  * initialize tun/tap device object
  */
 static void
@@ -1522,7 +1507,7 @@ do_close_tun_simple (struct context *c)
   c->c1.tuntap = NULL;
   c->c1.tuntap_owned = false;
 #if P2MP
-  save_pulled_options_digest (c, NULL); /* delete C1-saved pulled_options_digest */
+  CLEAR (c->c1.pulled_options_digest_save);
 #endif
 }
 
@@ -1634,6 +1619,20 @@ tun_abort()
  * Handle delayed tun/tap interface bringup due to --up-delay or --pull
  */
 
+#if P2MP
+/**
+ * Helper for do_up().  Take two option hashes and return true if they are not
+ * equal, or either one is all-zeroes.
+ */
+static bool
+options_hash_changed_or_zero(const uint8_t (*a)[MD5_DIGEST_LENGTH],
+    const uint8_t (*b)[MD5_DIGEST_LENGTH])
+{
+  const uint8_t zero[MD5_DIGEST_LENGTH] = {0};
+  return memcmp (*a, *b, MD5_DIGEST_LENGTH) || memcmp (*a, zero, MD5_DIGEST_LENGTH);
+}
+#endif /* P2MP */
+
 void
 do_up (struct context *c, bool pulled_options, unsigned int option_types_found)
 {
@@ -1658,8 +1657,8 @@ do_up (struct context *c, bool pulled_options, unsigned int option_types_found)
 	  if (!c->c2.did_open_tun
 	      && PULL_DEFINED (&c->options)
 	      && c->c1.tuntap
-	      && (!md5_digest_defined (&c->c1.pulled_options_digest_save) || !md5_digest_defined (&c->c2.pulled_options_digest)
-		  || !md5_digest_equal (&c->c1.pulled_options_digest_save, &c->c2.pulled_options_digest)))
+	      && options_hash_changed_or_zero (&c->c1.pulled_options_digest_save,
+		  &c->c2.pulled_options_digest))
 	    {
 	      /* if so, close tun, delete routes, then reinitialize tun and add routes */
 	      msg (M_INFO, "NOTE: Pulled options changed on restart, will need to close and reopen TUN/TAP device.");
@@ -1674,7 +1673,8 @@ do_up (struct context *c, bool pulled_options, unsigned int option_types_found)
       if (c->c2.did_open_tun)
 	{
 #if P2MP
-	  save_pulled_options_digest (c, &c->c2.pulled_options_digest);
+	  memcpy(c->c1.pulled_options_digest_save, c->c2.pulled_options_digest,
+	      sizeof(c->c1.pulled_options_digest_save));
 #endif
 
 	  /* if --route-delay was specified, start timer */
@@ -2732,20 +2732,14 @@ do_compute_occ_strings (struct context *c)
   c->c2.options_string_remote =
     options_string (&c->options, &c->c2.frame, c->c1.tuntap, true, &gc);
 
-  msg (D_SHOW_OCC, "Local Options String: '%s'", c->c2.options_string_local);
-  msg (D_SHOW_OCC, "Expected Remote Options String: '%s'",
-       c->c2.options_string_remote);
+  msg (D_SHOW_OCC, "Local Options String (VER=%s): '%s'",
+      options_string_version (c->c2.options_string_local, &gc),
+      c->c2.options_string_local);
+  msg (D_SHOW_OCC, "Expected Remote Options String (VER=%s): '%s'",
+      options_string_version (c->c2.options_string_remote, &gc),
+      c->c2.options_string_remote);
 
 #ifdef ENABLE_CRYPTO
-  msg (D_SHOW_OCC_HASH, "Local Options hash (VER=%s): '%s'",
-       options_string_version (c->c2.options_string_local, &gc),
-       md5sum ((uint8_t*)c->c2.options_string_local,
-	       strlen (c->c2.options_string_local), 9, &gc));
-  msg (D_SHOW_OCC_HASH, "Expected Remote Options hash (VER=%s): '%s'",
-       options_string_version (c->c2.options_string_remote, &gc),
-       md5sum ((uint8_t*)c->c2.options_string_remote,
-	       strlen (c->c2.options_string_remote), 9, &gc));
-
   if (c->c2.tls_multi)
     tls_multi_init_set_options (c->c2.tls_multi,
 				c->c2.options_string_local,
