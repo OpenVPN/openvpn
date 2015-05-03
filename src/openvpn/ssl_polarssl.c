@@ -838,46 +838,18 @@ int
 key_state_write_plaintext (struct key_state_ssl *ks, struct buffer *buf)
 {
   int retval = 0;
-  perf_push (PERF_BIO_WRITE_PLAINTEXT);
 
-  ASSERT (NULL != ks);
   ASSERT (buf);
-  ASSERT (buf->len >= 0);
 
-  if (0 == buf->len)
+  retval = key_state_write_plaintext_const(ks, BPTR(buf), BLEN(buf));
+
+  if (1 == retval)
     {
-      perf_pop ();
-      return 0;
+      memset (BPTR (buf), 0, BLEN (buf)); /* erase data just written */
+      buf->len = 0;
     }
 
-  retval = ssl_write(ks->ctx, BPTR(buf), buf->len);
-
-  if (retval < 0)
-    {
-      perf_pop ();
-      if (POLARSSL_ERR_NET_WANT_WRITE == retval || POLARSSL_ERR_NET_WANT_READ == retval)
-	return 0;
-      msg (D_TLS_ERRORS, "TLS ERROR: write tls_write_plaintext error");
-      return -1;
-    }
-
-  if (retval != buf->len)
-    {
-      msg (D_TLS_ERRORS,
-	  "TLS ERROR: write tls_write_plaintext incomplete %d/%d",
-	  retval, buf->len);
-      perf_pop ();
-      return -1;
-    }
-
-  /* successful write */
-  dmsg (D_HANDSHAKE_VERBOSE, "write tls_write_plaintext %d bytes", retval);
-
-  memset (BPTR (buf), 0, BLEN (buf)); /* erase data just written */
-  buf->len = 0;
-
-  perf_pop ();
-  return 1;
+  return retval;
 }
 
 int
