@@ -738,6 +738,14 @@ void key_state_ssl_init(struct key_state_ssl *ks_ssl,
       if (ssl_ctx->allowed_ciphers)
 	ssl_set_ciphersuites (ks_ssl->ctx, ssl_ctx->allowed_ciphers);
 
+      /* Disable record splitting (for now).  OpenVPN assumes records are sent
+       * unfragmented, and changing that will require thorough review and
+       * testing.  Since OpenVPN is not susceptible to BEAST, we can just
+       * disable record splitting as a quick fix. */
+#if defined(POLARSSL_SSL_CBC_RECORD_SPLITTING)
+      ssl_set_cbc_record_splitting (ks_ssl->ctx, SSL_CBC_RECORD_SPLITTING_DISABLED);
+#endif /* POLARSSL_SSL_CBC_RECORD_SPLITTING */
+
       /* Initialise authentication information */
       if (is_server)
 	ssl_set_dh_param_ctx (ks_ssl->ctx, ssl_ctx->dhm_ctx );
