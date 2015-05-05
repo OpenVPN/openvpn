@@ -1095,7 +1095,7 @@ show_available_tls_ciphers (const char *cipher_list)
       printf ("%s\n", ssl_get_ciphersuite_name(*ciphers));
       ciphers++;
     }
-  printf ("\n");
+  printf ("\n" SHOW_TLS_CIPHER_LIST_WARNING);
 }
 
 void

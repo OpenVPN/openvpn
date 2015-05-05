@@ -1340,7 +1340,7 @@ show_available_tls_ciphers (const char *cipher_list)
       }
 
     }
-  printf ("\n");
+  printf ("\n" SHOW_TLS_CIPHER_LIST_WARNING);
 
   SSL_free (ssl);
   SSL_CTX_free (tls_ctx.ctx);

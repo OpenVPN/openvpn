@@ -4479,14 +4479,28 @@ determines the derivation of the tunnel session keys.
 A list
 .B l
 of allowable TLS ciphers delimited by a colon (":").
-If you require a high level of security,
-you may want to set this parameter manually, to prevent a
-version rollback attack where a man-in-the-middle attacker tries
-to force two peers to negotiate to the lowest level
-of security they both support.
+
+This setting can be used to ensure that certain cipher suites are used (or
+not used) for the TLS connection.  OpenVPN uses TLS to secure the control
+channel, over which the keys that are used to protect the actual VPN traffic
+are exchanged.
+
+The supplied list of ciphers is (after potential OpenSSL/IANA name translation)
+simply supplied to the crypto library.  Please see the OpenSSL and/or PolarSSL
+documentation for details on the cipher list interpretation.
+
 Use
 .B \-\-show\-tls
-to see a list of supported TLS ciphers.
+to see a list of TLS ciphers supported by your crypto library.
+
+Warning!
+.B \-\-tls\-cipher
+is an expert feature, which - if used correcly - can improve the security of
+your VPN connection.  But it is also easy to unwittingly use it to carefully
+align a gun with your foot, or just break your connection.  Use with care!
+
+The default for --tls-cipher is to use PolarSSL's default cipher list
+when using PolarSSL or "DEFAULT:!EXP:!PSK:!SRP:!kRSA" when using OpenSSL.
 .\"*********************************************************
 .TP
 .B \-\-tls\-timeout n
@@ -5057,9 +5071,14 @@ option.
 .TP
 .B \-\-show\-tls
 (Standalone)
-Show all TLS ciphers (TLS used only as a control channel).  The TLS
-ciphers will be sorted from highest preference (most secure) to
-lowest.
+Show all TLS ciphers supported by the crypto library.  OpenVPN uses TLS to
+secure the control channel, over which the keys that are used to protect the
+actual VPN traffic are exchanged.  The TLS ciphers will be sorted from highest
+preference (most secure) to lowest.
+
+Be aware that whether a cipher suite in this list can actually work depends on
+the specific setup of both peers (e.g. both peers must support the cipher, and
+an ECDSA cipher suite will not work if you are using an RSA certificate, etc.).
 .\"*********************************************************
 .TP
 .B \-\-show\-engines
