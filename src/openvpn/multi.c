@@ -1344,7 +1344,7 @@ multi_select_virtual_addr (struct multi_context *m, struct multi_instance *mi)
 
 	  msg( M_INFO, "MULTI_sva: pool returned IPv4=%s, IPv6=%s", 
 	       print_in_addr_t( remote, 0, &gc ),
-	       (mi->context.options.ifconfig_ipv6_pool_defined
+	       (mi->context.options.ifconfig_ipv6_pool_defined && mi->context.options.ccd_enable_ipv6
 		? print_in6_addr( remote_ipv6, 0, &gc )
 		: "(Not enabled)") );
 
@@ -1370,7 +1370,7 @@ multi_select_virtual_addr (struct multi_context *m, struct multi_instance *mi)
 	    msg (D_MULTI_ERRORS, "MULTI: no --ifconfig-pool netmask parameter is available to push to %s",
 		 multi_instance_string (mi, false, &gc));
 
-	  if ( mi->context.options.ifconfig_ipv6_pool_defined )
+	  if ( mi->context.options.ifconfig_ipv6_pool_defined && mi->context.options.ccd_enable_ipv6 )
 	    {
 	      mi->context.c2.push_ifconfig_ipv6_local = remote_ipv6;
 	      mi->context.c2.push_ifconfig_ipv6_remote = 

@@ -5641,6 +5641,10 @@ add_option (struct options *options,
 	}
       options->max_clients = max_clients;
     }
+  else if (streq (p[0], "enable-ipv6"))
+    {
+      options->ccd_enable_ipv6 = true;
+    }
   else if (streq (p[0], "max-routes-per-client") && p[1])
     {
       VERIFY_PERMISSION (OPT_P_INHERIT);
