@@ -2766,7 +2766,7 @@ management_callback_n_clients (void *arg)
 }
 
 static int
-management_callback_kill_by_cn (void *arg, const char *del_cn)
+management_callback_kill_by_cn (void *arg, const char *del_cn, const char *kill_msg)
 {
   struct multi_context *m = (struct multi_context *) arg;
   struct hash_iterator hi;
@@ -2782,7 +2782,9 @@ management_callback_kill_by_cn (void *arg, const char *del_cn)
 	  const char *cn = tls_common_name (mi->context.c2.tls_multi, false);
 	  if (cn && !strcmp (cn, del_cn))
 	    {
-	      multi_signal_instance (m, mi, SIGTERM);
+	      //multi_signal_instance (m, mi, SIGTERM);
+	      send_restart (&mi->context, kill_msg); /* was: multi_signal_instance (m, mi, SIGTERM); */
+	      multi_schedule_context_wakeup(m, mi);
 	      ++count;
 	    }
 	}
@@ -2792,7 +2794,7 @@ management_callback_kill_by_cn (void *arg, const char *del_cn)
 }
 
 static int
-management_callback_kill_by_addr (void *arg, const in_addr_t addr, const int port)
+management_callback_kill_by_addr (void *arg, const in_addr_t addr, const int port, const char *kill_msg)
 {
   struct multi_context *m = (struct multi_context *) arg;
   struct hash_iterator hi;
@@ -2813,7 +2815,9 @@ management_callback_kill_by_addr (void *arg, const in_addr_t addr, const int por
 	  struct multi_instance *mi = (struct multi_instance *) he->value;
 	  if (!mi->halt && mroute_addr_equal (&maddr, &mi->real))
 	    {
-	      multi_signal_instance (m, mi, SIGTERM);
+	      //multi_signal_instance (m, mi, SIGTERM);
+	      send_restart (&mi->context, kill_msg); /* was: multi_signal_instance (m, mi, SIGTERM); */
+	      multi_schedule_context_wakeup(m, mi);
 	      ++count;
 	    }
 	}

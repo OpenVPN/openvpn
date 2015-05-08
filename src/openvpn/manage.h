@@ -151,8 +151,8 @@ struct management_callback
 
   void (*status) (void *arg, const int version, struct status_output *so);
   void (*show_net) (void *arg, const int msglevel);
-  int (*kill_by_cn) (void *arg, const char *common_name);
-  int (*kill_by_addr) (void *arg, const in_addr_t addr, const int port);
+  int (*kill_by_cn) (void *arg, const char *common_name, const char *kill_msg);
+  int (*kill_by_addr) (void *arg, const in_addr_t addr, const int port, const char *kill_msg);
   void (*delete_event) (void *arg, event_t event);
   int (*n_clients) (void *arg);
 #ifdef MANAGEMENT_DEF_AUTH

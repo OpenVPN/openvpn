@@ -452,7 +452,7 @@ man_bytecount_output_server (struct management *man,
 #endif
 
 static void
-man_kill (struct management *man, const char *victim)
+man_kill (struct management *man, const char *victim, const char *kill_msg)
 {
   struct gc_arena gc = gc_new ();
 
@@ -477,7 +477,7 @@ man_kill (struct management *man, const char *victim)
 	      const int port = atoi (p2);
 	      if (port > 0 && port < 65536)
 		{
-		  n_killed = (*man->persist.callback.kill_by_addr) (man->persist.callback.arg, addr, port);
+		  n_killed = (*man->persist.callback.kill_by_addr) (man->persist.callback.arg, addr, port, kill_msg);
 		  if (n_killed > 0)
 		    {
 		      msg (M_CLIENT, "SUCCESS: %d client(s) at address %s:%d killed",
@@ -505,7 +505,7 @@ man_kill (struct management *man, const char *victim)
       else if (strlen (p1))
 	{
 	  /* common name specified */
-	  n_killed = (*man->persist.callback.kill_by_cn) (man->persist.callback.arg, p1);
+	  n_killed = (*man->persist.callback.kill_by_cn) (man->persist.callback.arg, p1, kill_msg);
 	  if (n_killed > 0)
 	    {
 	      msg (M_CLIENT, "SUCCESS: common name '%s' found, %d client(s) killed", p1, n_killed);
@@ -1184,7 +1184,7 @@ man_dispatch_command (struct management *man, struct status_output *so, const ch
   else if (streq (p[0], "kill"))
     {
       if (man_need (man, p, 1, 0))
-	man_kill (man, p[1]);
+	man_kill (man, p[1], p[2]);
     }
   else if (streq (p[0], "verb"))
     {
