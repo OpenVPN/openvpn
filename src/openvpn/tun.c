@@ -1710,9 +1710,9 @@ write_tun (struct tuntap* tt, uint8_t *buf, int len)
       pi.flags = 0;
 
       if(iph->version == 6)
-	pi.proto = htons(ETH_P_IPV6);
+	pi.proto = htons(OPENVPN_ETH_P_IPV6);
       else
-	pi.proto = htons(ETH_P_IP);
+	pi.proto = htons(OPENVPN_ETH_P_IPV4);
 
       vect[0].iov_len = sizeof(pi);
       vect[0].iov_base = &pi;
