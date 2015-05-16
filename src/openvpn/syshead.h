@@ -214,10 +214,6 @@
 
 #if defined(TARGET_LINUX) || defined (TARGET_ANDROID)
 
-#if defined(HAVE_NETINET_IF_ETHER_H)
-#include <netinet/if_ether.h>
-#endif
-
 #ifdef HAVE_LINUX_IF_TUN_H
 #include <linux/if_tun.h>
 #endif
