@@ -661,18 +661,28 @@ peer on its new IP address.
 .\"*********************************************************
 .TP
 .B \-\-port port
-TCP/UDP port number for both local and remote.  The current
+TCP/UDP port number or port name for both local and remote (sets both
+.B \-\-lport
+and
+.B \-\-rport
+options to given port).  The current
 default of 1194 represents the official IANA port number
 assignment for OpenVPN and has been used since version 2.0-beta17.
 Previous versions used port 5000 as the default.
 .\"*********************************************************
 .TP
 .B \-\-lport port
-TCP/UDP port number for bind.
+Set local TCP/UDP port number or name.  Cannot be used together with
+.B \-\-nobind
+option.
 .\"*********************************************************
 .TP
 .B \-\-rport port
-TCP/UDP port number for remote.
+Set TCP/UDP port number or name used by the
+.B \-\-remote
+option. The port can also be set directly using the
+.B \-\-remote
+option.
 .\"*********************************************************
 .TP
 .B \-\-bind
