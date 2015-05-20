@@ -241,6 +241,9 @@ void init_tun_post (struct tuntap *tt,
 		    const struct frame *frame,
 		    const struct tuntap_options *options);
 
+void do_ifconfig_setenv (const struct tuntap *tt,
+		  struct env_set *es);
+
 void do_ifconfig (struct tuntap *tt,
 		  const char *actual,    /* actual device name */
 		  int tun_mtu,
