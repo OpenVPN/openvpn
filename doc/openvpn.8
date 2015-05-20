@@ -1817,6 +1817,12 @@ has been specified, the up script will be called with
 .I restart
 as the last parameter.
 
+NOTE: on restart, OpenVPN will not pass the full set of environment
+variables to the script.  Namely, everything related to routing and
+gateways will not be passed, as nothing needs to be done anyway - all
+the routing setup is already in place.  Additionally, the up\-restart
+script will run with the downgraded UID/GID settings (if configured).
+
 The following standalone example shows how the
 .B \-\-up
 script can be called in both an initialization and restart context.

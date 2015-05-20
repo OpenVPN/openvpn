@@ -1486,6 +1486,9 @@ do_open_tun (struct context *c)
       msg (M_INFO, "Preserving previous TUN/TAP instance: %s",
 	   c->c1.tuntap->actual_name);
 
+      /* explicitly set the ifconfig_* env vars */
+      do_ifconfig_setenv(c->c1.tuntap, c->c2.es);
+
       /* run the up script if user specified --up-restart */
       if (c->options.up_restart)
 	run_up_down (c->options.up_script,
