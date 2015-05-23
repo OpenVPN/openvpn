@@ -2276,6 +2276,7 @@ do_init_crypto_tls (struct context *c, const unsigned int flags)
   to.tmp_dir = options->tmp_dir;
   if (options->ccd_exclusive)
     to.client_config_dir_exclusive = options->client_config_dir;
+  to.auth_user_pass_file = options->auth_user_pass_file;
 #endif
 
 #ifdef ENABLE_X509_TRACK
