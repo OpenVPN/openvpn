@@ -7059,7 +7059,7 @@ add_option (struct options *options,
       options->persist_config = true;
       options->persist_mode = 1;
     }
-  else if (streq (p[0], "peer-id"))
+  else if (streq (p[0], "peer-id") && p[1])
     {
       VERIFY_PERMISSION (OPT_P_PEER_ID);
       options->use_peer_id = true;
