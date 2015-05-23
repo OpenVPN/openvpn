@@ -402,23 +402,27 @@ void
 do_ifconfig_setenv (const struct tuntap *tt, struct env_set *es)
 {
     struct gc_arena gc = gc_new ();
-    bool tun = is_tun_p2p (tt);
     const char *ifconfig_local = print_in_addr_t (tt->local, 0, &gc);
     const char *ifconfig_remote_netmask = print_in_addr_t (tt->remote_netmask, 0, &gc);
 
     /*
      * Set environmental variables with ifconfig parameters.
      */
-    setenv_str (es, "ifconfig_local", ifconfig_local);
-    if (tun)
+    if (tt->did_ifconfig_setup)
     {
-	setenv_str (es, "ifconfig_remote", ifconfig_remote_netmask);
-    }
-    else
-    {
-	const char *ifconfig_broadcast = print_in_addr_t (tt->broadcast, 0, &gc);
-	setenv_str (es, "ifconfig_netmask", ifconfig_remote_netmask);
-	setenv_str (es, "ifconfig_broadcast", ifconfig_broadcast);
+	bool tun = is_tun_p2p (tt);
+
+	setenv_str (es, "ifconfig_local", ifconfig_local);
+	if (tun)
+	{
+	    setenv_str (es, "ifconfig_remote", ifconfig_remote_netmask);
+	}
+	else
+	{
+	    const char *ifconfig_broadcast = print_in_addr_t (tt->broadcast, 0, &gc);
+	    setenv_str (es, "ifconfig_netmask", ifconfig_remote_netmask);
+	    setenv_str (es, "ifconfig_broadcast", ifconfig_broadcast);
+	}
     }
 
     if (tt->did_ifconfig_ipv6_setup)
