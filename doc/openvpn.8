@@ -265,9 +265,9 @@ not match
 If
 .B host
 is a DNS name which resolves to multiple IP addresses,
-one will be randomly
-chosen, providing a sort of basic load-balancing and
-failover capability.
+the first address returned by the system getaddrinfo() function
+will be used (no DNS randomization inside OpenVPN 2.3.x, and
+it will not try multiple addresses).
 .\"*********************************************************
 .TP
 .B \-\-remote\-random\-hostname
