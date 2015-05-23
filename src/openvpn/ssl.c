@@ -1920,9 +1920,9 @@ key_method_2_write (struct buffer *buf, struct tls_session *session)
   if (auth_user_pass_enabled)
     {
 #ifdef ENABLE_CLIENT_CR
-      auth_user_pass_setup (NULL, session->opt->sci);
+      auth_user_pass_setup (session->opt->auth_user_pass_file, session->opt->sci);
 #else
-      auth_user_pass_setup (NULL, NULL);
+      auth_user_pass_setup (session->opt->auth_user_pass_file, NULL);
 #endif
       if (!write_string (buf, auth_user_pass.username, -1))
 	goto error;

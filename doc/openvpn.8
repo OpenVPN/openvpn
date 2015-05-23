@@ -4786,6 +4786,9 @@ when OpenVPN needs a username/password, it will prompt for input
 from stdin, which may be multiple times during the duration of an
 OpenVPN session.
 
+When using \-\-auth\-nocache in combination with a user/password file
+and \-\-chroot or \-\-daemon, make sure to use an absolute path.
+
 This directive does not affect the
 .B \-\-http\-proxy
 username/password.  It is always cached.
