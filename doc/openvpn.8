@@ -3783,6 +3783,10 @@ when polling possible remote servers to connect to
 in a round-robin fashion, spend no more than
 .B n
 seconds waiting for a response before trying the next server.
+As this only makes sense in client-to-server setups, it cannot
+be used in point-to-point setups using
+.B \-\-secret
+symmetrical key mode.
 .\"*********************************************************
 .TP
 .B \-\-explicit\-exit\-notify [n]

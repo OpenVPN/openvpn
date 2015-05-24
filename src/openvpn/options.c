@@ -2310,6 +2310,9 @@ options_postprocess_verify_ce (const struct options *options, const struct conne
       MUST_BE_UNDEF (pkcs11_id);
       MUST_BE_UNDEF (pkcs11_id_management);
 #endif
+#if P2MP
+      MUST_BE_UNDEF (server_poll_timeout);
+#endif
 
       if (pull)
 	msg (M_USAGE, err, "--pull");
