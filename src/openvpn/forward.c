@@ -331,6 +331,7 @@ void
 check_server_poll_timeout_dowork (struct context *c)
 {
   event_timeout_reset (&c->c2.server_poll_interval);
+  ASSERT(c->c2.tls_multi);
   if (!tls_initial_packet_received (c->c2.tls_multi))
     {
       msg (M_INFO, "Server poll timeout, restarting");
