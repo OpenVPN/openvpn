@@ -4271,8 +4271,23 @@ they are distributed with OpenVPN, they are totally insecure.
 .TP
 .B \-\-capath dir
 Directory containing trusted certificates (CAs and CRLs).
-Available with OpenSSL version >= 0.9.7 dev.
 Not available with PolarSSL.
+
+When using the
+.B \-\-capath
+option, you are required to supply valid CRLs for the CAs too.  CAs in the
+capath directory are expected to be named <hash>.<n>.  CRLs are expected to
+be named <hash>.r<n>.  See the
+.B -CApath
+option of
+.B openssl verify
+, and the
+.B -hash
+option of
+.B openssl x509
+and
+.B openssl crl
+for more information.
 .\"*********************************************************
 .TP
 .B \-\-dh file
