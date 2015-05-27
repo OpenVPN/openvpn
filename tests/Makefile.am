@@ -9,6 +9,8 @@
 #  Copyright (C) 2006-2012 Alon Bar-Lev <alon.barlev@gmail.com>
 #
 
+AUTOMAKE_OPTIONS = serial-tests
+
 MAINTAINERCLEANFILES = \
 	$(srcdir)/Makefile.in
 
