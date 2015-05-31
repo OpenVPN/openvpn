@@ -314,10 +314,6 @@ openvpn_getaddrinfo (unsigned int flags,
 
   ASSERT(res);
 
-#ifndef WIN32
-  res_init ();
-#endif
-
   ASSERT (hostname || servname);
   ASSERT (!(flags & GETADDR_HOST_ORDER));
 
@@ -394,6 +390,9 @@ openvpn_getaddrinfo (unsigned int flags,
        */
       while (true)
         {
+#ifndef WIN32
+	  res_init ();
+#endif
           /* try hostname lookup */
           hints.ai_flags &= ~AI_NUMERICHOST;
           dmsg (D_SOCKET_DEBUG, "GETADDRINFO flags=0x%04x ai_family=%d ai_socktype=%d",
