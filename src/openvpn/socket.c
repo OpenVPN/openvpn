@@ -412,10 +412,13 @@ openvpn_getaddrinfo (unsigned int flags,
                     }
                   else
                     {
+		      /* turn success into failure (interrupted syscall) */
                       if (0 == status) {
                           ASSERT(res);
                           freeaddrinfo(*res);
-                          res = NULL;
+                          *res = NULL;
+                          status = EAI_SYSTEM;
+                          errno = EINTR;
                       }
                       goto done;
                     }
