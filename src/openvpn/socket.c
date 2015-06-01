@@ -417,7 +417,7 @@ openvpn_getaddrinfo (unsigned int flags,
                           ASSERT(res);
                           freeaddrinfo(*res);
                           *res = NULL;
-                          status = EAI_SYSTEM;
+                          status = EAI_AGAIN;	/* = temporary failure */
                           errno = EINTR;
                       }
                       goto done;
