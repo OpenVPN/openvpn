@@ -838,7 +838,7 @@ redirect_default_route_to_vpn (struct route_list *rl, const struct tuntap *tt, u
 
   if ( rl && rl->flags & RG_ENABLE )
     {
-      if (!(rl->spec.flags & RTSA_REMOTE_ENDPOINT))
+      if (!(rl->spec.flags & RTSA_REMOTE_ENDPOINT) && (rl->flags & RG_REROUTE_GW))
 	{
 	  msg (M_WARN, "%s VPN gateway parameter (--route-gateway or --ifconfig) is missing", err);
 	}
