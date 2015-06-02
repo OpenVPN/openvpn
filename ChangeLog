@@ -1,5 +1,88 @@
 OpenVPN Change Log
-Copyright (C) 2002-2014 OpenVPN Technologies, Inc. <sales@openvpn.net>
+Copyright (C) 2002-2015 OpenVPN Technologies, Inc. <sales@openvpn.net>
+
+2015.06.02 -- Version 2.3.7
+Alexander Pyhalov (1):
+      Default gateway can't be determined on illumos/Solaris platforms
+
+Arne Schwabe (1):
+      Warn that tls-auth with free form files is going to be removed from OpenVPN 2.4
+
+David Sommerseth (6):
+      autotools: Fix wrong ./configure help screen default values
+      down-root plugin: Replaced system() calls with execve()
+      down-root: Improve error messages
+      plugin, down-root: Fix compiler warnings
+      sockets: Remove the limitation of --tcp-nodelay to be server-only
+      plugins, down-root: Code style clean-up
+
+David Woodhouse (2):
+      pkcs11: Load p11-kit-proxy.so module by default
+      Make 'provider' option to --show-pkcs11-ids optional where p11-kit is present
+
+Felix Janda (1):
+      Use OPENVPN_ETH_P_* so that <netinet/if_ether.h> is unecessary
+
+Gert Doering (17):
+      New approach to handle peer-id related changes to link-mtu (2.3 version)
+      Fix incorrect use of get_ipv6_addr() for iroute options.
+      Print helpful error message on --mktun/--rmtun if not available.
+      explain effect of --topology subnet on --ifconfig
+      Add note about file permissions and --crl-verify to manpage.
+      repair --dev null breakage caused by db950be85d37
+      assume res_init() is always there.
+      Correct note about DNS randomization in openvpn.8
+      Disallow usage of --server-poll-timeout in --secret key mode.
+      slightly enhance documentation about --cipher
+      Enforce "serial-tests" behaviour for tests/Makefile
+      Revert "Enforce "serial-tests" behaviour for tests/Makefile"
+      On signal reception, return EAI_SYSTEM from openvpn_getaddrinfo().
+      Use configure.ac hack to apply serial_test AM option only if supported.
+      Use EAI_AGAIN instead of EAI_SYSTEM for openvpn_getaddrinfo().
+      Move res_init() call to inner openvpn_getaddrinfo() loop
+      Fix FreeBSD ifconfig for topology subnet tunnels.
+
+Guy Yur (1):
+      Fix --redirect-private in --dev tap mode.
+
+Jan Just Keijser (1):
+      include ifconfig_ environment variables in --up-restart env set
+
+Jonathan K. Bullard (1):
+      Fix null pointer dereference in options.c
+
+Lev Stipakov (1):
+      Fix mssfix default value in connection_list context
+
+Matthias Andree (1):
+      Manual page update for Re-enabled TLS version negotiation.
+
+Mike Gilbert (1):
+      Include systemd units in the source tarball (make dist)
+
+Robert Fischer (1):
+      Updated manpage for --rport and --lport
+
+Samuli Seppänen (2):
+      Properly escape dashes on the man-page
+      Improve documentation in --script-security section of the man-page
+
+Steffan Karger (14):
+      Really fix '--cipher none' regression
+      Update doxygen (a bit)
+      Set tls-version-max to 1.1 if cryptoapicert is used
+      Account for peer-id in frame size calculation
+      Disable SSL compression
+      Fix frame size calculation for non-CBC modes.
+      Allow for CN/username of 64 characters (fixes off-by-one)
+      Remove unneeded parameter 'first_time' from possibly_become_daemon()
+      Re-enable TLS version negotiation by default
+      Remove size limit for files inlined in config
+      Improve --tls-cipher and --show-tls man page description
+      Re-read auth-user-pass file on (re)connect if required
+      Clarify --capath option in manpage
+      Call daemon() before initializing crypto library
+
 
 2014.11.28 -- Version 2.3.6
 David Sommerseth (1):
