@@ -4126,13 +4126,18 @@ add_option (struct options *options,
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       usage ();
+      if (p[1])
+        {
+	  msg (msglevel, "--help does not accept any parameters");
+	  goto err;
+        }
     }
-  if (streq (p[0], "version"))
+  if (streq (p[0], "version") && !p[1])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       usage_version ();
     }
-  else if (streq (p[0], "config") && p[1])
+  else if (streq (p[0], "config") && p[1] && !p[2])
     {
       VERIFY_PERMISSION (OPT_P_CONFIG);
 
@@ -4143,7 +4148,7 @@ add_option (struct options *options,
       read_config_file (options, p[1], level, file, line, msglevel, permission_mask, option_types_found, es);
     }
 #if defined(ENABLE_DEBUG) && !defined(ENABLE_SMALL)
-  else if (streq (p[0], "show-gateway"))
+  else if (streq (p[0], "show-gateway") && !p[1])
     {
       struct route_gateway_info rgi;
       VERIFY_PERMISSION (OPT_P_GENERAL);
@@ -4193,7 +4198,7 @@ add_option (struct options *options,
 	msg (M_WARN, "echo/parameter option overflow");
     }
 #ifdef ENABLE_MANAGEMENT
-  else if (streq (p[0], "management") && p[1] && p[2])
+  else if (streq (p[0], "management") && p[1] && p[2] && !p[4])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       if (streq (p[2], "unix"))
@@ -4213,64 +4218,64 @@ add_option (struct options *options,
 	  options->management_user_pass = p[3];
 	}
     }
-  else if (streq (p[0], "management-client-user") && p[1])
+  else if (streq (p[0], "management-client-user") && p[1] && !p[2])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->management_client_user = p[1];
     }
-  else if (streq (p[0], "management-client-group") && p[1])
+  else if (streq (p[0], "management-client-group") && p[1] && !p[2])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->management_client_group = p[1];
     }
-  else if (streq (p[0], "management-query-passwords"))
+  else if (streq (p[0], "management-query-passwords") && !p[1])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->management_flags |= MF_QUERY_PASSWORDS;
     }
-  else if (streq (p[0], "management-query-remote"))
+  else if (streq (p[0], "management-query-remote") && !p[1])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->management_flags |= MF_QUERY_REMOTE;
     }
-  else if (streq (p[0], "management-query-proxy"))
+  else if (streq (p[0], "management-query-proxy") && !p[1])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->management_flags |= MF_QUERY_PROXY;
     }
-  else if (streq (p[0], "management-hold"))
+  else if (streq (p[0], "management-hold") && !p[1])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->management_flags |= MF_HOLD;
     }
-  else if (streq (p[0], "management-signal"))
+  else if (streq (p[0], "management-signal") && !p[1])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->management_flags |= MF_SIGNAL;
     }
-  else if (streq (p[0], "management-forget-disconnect"))
+  else if (streq (p[0], "management-forget-disconnect") && !p[1])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->management_flags |= MF_FORGET_DISCONNECT;
     }
-  else if (streq (p[0], "management-up-down"))
+  else if (streq (p[0], "management-up-down") && !p[1])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->management_flags |= MF_UP_DOWN;
     }
-  else if (streq (p[0], "management-client"))
+  else if (streq (p[0], "management-client") && !p[2])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->management_flags |= MF_CONNECT_AS_CLIENT;
       options->management_write_peer_info_file = p[1];
     }
 #ifdef MANAGMENT_EXTERNAL_KEY
-  else if (streq (p[0], "management-external-key"))
+  else if (streq (p[0], "management-external-key") && !p[1])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->management_flags |= MF_EXTERNAL_KEY;
     }
-  else if (streq (p[0], "management-external-cert") && p[1])
+  else if (streq (p[0], "management-external-cert") && p[1] && !p[2])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->management_flags |= MF_EXTERNAL_CERT;
@@ -4278,27 +4283,27 @@ add_option (struct options *options,
     }
 #endif
 #ifdef MANAGEMENT_DEF_AUTH
-  else if (streq (p[0], "management-client-auth"))
+  else if (streq (p[0], "management-client-auth") && !p[1])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->management_flags |= MF_CLIENT_AUTH;
     }
 #endif
 #ifdef ENABLE_X509_TRACK
-  else if (streq (p[0], "x509-track") && p[1])
+  else if (streq (p[0], "x509-track") && p[1] && !p[2])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       x509_track_add (&options->x509_track, p[1], msglevel, &options->gc);
     }
 #endif
 #ifdef MANAGEMENT_PF
-  else if (streq (p[0], "management-client-pf"))
+  else if (streq (p[0], "management-client-pf") && !p[1])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->management_flags |= (MF_CLIENT_PF | MF_CLIENT_AUTH);
     }
 #endif
-  else if (streq (p[0], "management-log-cache") && p[1])
+  else if (streq (p[0], "management-log-cache") && p[1] && !p[2])
     {
       int cache;
 
@@ -4313,7 +4318,7 @@ add_option (struct options *options,
     }
 #endif
 #ifdef ENABLE_PLUGIN
-  else if (streq (p[0], "plugin") && p[1])
+  else if (streq (p[0], "plugin") && p[1] && !p[2])
     {
       VERIFY_PERMISSION (OPT_P_PLUGIN);
       if (!options->plugin_list)
@@ -4325,7 +4330,7 @@ add_option (struct options *options,
 	}
     }
 #endif
-  else if (streq (p[0], "mode") && p[1])
+  else if (streq (p[0], "mode") && p[1] && !p[2])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       if (streq (p[1], "p2p"))
@@ -4340,22 +4345,22 @@ add_option (struct options *options,
 	  goto err;
 	}
     }
-  else if (streq (p[0], "dev") && p[1])
+  else if (streq (p[0], "dev") && p[1] && !p[2])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->dev = p[1];
     }
-  else if (streq (p[0], "dev-type") && p[1])
+  else if (streq (p[0], "dev-type") && p[1] && !p[2])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->dev_type = p[1];
     }
-  else if (streq (p[0], "dev-node") && p[1])
+  else if (streq (p[0], "dev-node") && p[1] && !p[2])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->dev_node = p[1];
     }
-  else if (streq (p[0], "lladdr") && p[1])
+  else if (streq (p[0], "lladdr") && p[1] && !p[2])
     {
       VERIFY_PERMISSION (OPT_P_UP);
       if (mac_addr_safe (p[1])) /* MAC address only */
@@ -4366,24 +4371,24 @@ add_option (struct options *options,
 	  goto err;
 	}
     }
-  else if (streq (p[0], "topology") && p[1])
+  else if (streq (p[0], "topology") && p[1] && !p[2])
     {
       VERIFY_PERMISSION (OPT_P_UP);
       options->topology = parse_topology (p[1], msglevel);
     }
-  else if (streq (p[0], "tun-ipv6"))
+  else if (streq (p[0], "tun-ipv6") && !p[1])
     {
       VERIFY_PERMISSION (OPT_P_UP);
       options->tun_ipv6 = true;
     }
 #ifdef ENABLE_IPROUTE
-  else if (streq (p[0], "iproute") && p[1])
+  else if (streq (p[0], "iproute") && p[1] && !p[2])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       iproute_path = p[1];
     }
 #endif
-  else if (streq (p[0], "ifconfig") && p[1] && p[2])
+  else if (streq (p[0], "ifconfig") && p[1] && p[2] && !p[3])
     {
       VERIFY_PERMISSION (OPT_P_UP);
       if (ip_or_dns_addr_safe (p[1], options->allow_pull_fqdn) && ip_or_dns_addr_safe (p[2], options->allow_pull_fqdn)) /* FQDN -- may be DNS name */
@@ -4397,7 +4402,7 @@ add_option (struct options *options,
 	  goto err;
 	}
     }
-  else if (streq (p[0], "ifconfig-ipv6") && p[1] && p[2] )
+  else if (streq (p[0], "ifconfig-ipv6") && p[1] && p[2] && !p[3])
     {
       unsigned int netbits;
       char * ipv6_local;
@@ -4426,27 +4431,27 @@ add_option (struct options *options,
 	  goto err;
 	}
     }
-  else if (streq (p[0], "ifconfig-noexec"))
+  else if (streq (p[0], "ifconfig-noexec") && !p[1])
     {
       VERIFY_PERMISSION (OPT_P_UP);
       options->ifconfig_noexec = true;
     }
-  else if (streq (p[0], "ifconfig-nowarn"))
+  else if (streq (p[0], "ifconfig-nowarn") && !p[1])
     {
       VERIFY_PERMISSION (OPT_P_UP);
       options->ifconfig_nowarn = true;
     }
-  else if (streq (p[0], "local") && p[1])
+  else if (streq (p[0], "local") && p[1] && !p[2])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL|OPT_P_CONNECTION);
       options->ce.local = p[1];
     }
-  else if (streq (p[0], "remote-random"))
+  else if (streq (p[0], "remote-random") && !p[1])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->remote_random = true;
     }
-  else if (streq (p[0], "connection") && p[1])
+  else if (streq (p[0], "connection") && p[1] && !p[3])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       if (streq (p[1], INLINE_FILE_TAG) && p[2])
@@ -4509,7 +4514,7 @@ add_option (struct options *options,
       options->ignore_unknown_option[i] = NULL;
     }
 #if ENABLE_MANAGEMENT
-  else if (streq (p[0], "http-proxy-override") && p[1] && p[2])
+  else if (streq (p[0], "http-proxy-override") && p[1] && p[2] && !p[4])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->http_proxy_override = parse_http_proxy_override(p[1], p[2], p[3], msglevel, &options->gc);
@@ -4517,7 +4522,7 @@ add_option (struct options *options,
 	goto err;
     }
 #endif
-  else if (streq (p[0], "remote") && p[1])
+  else if (streq (p[0], "remote") && p[1] && !p[4])
     {
       struct remote_entry re;
       re.remote = re.remote_port= NULL;
@@ -4554,7 +4559,7 @@ add_option (struct options *options,
 	  connection_entry_load_re (&options->ce, &re);
 	}
     }
-  else if (streq (p[0], "resolv-retry") && p[1])
+  else if (streq (p[0], "resolv-retry") && p[1] && !p[2])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       if (streq (p[1], "infinite"))
@@ -4562,7 +4567,7 @@ add_option (struct options *options,
       else
 	options->resolve_retry_seconds = positive_atoi (p[1]);
     }
-  else if (streq (p[0], "preresolve") || streq (p[0], "ip-remote-hint"))
+  else if (streq (p[0], "preresolve") || streq (p[0], "ip-remote-hint") && !p[2])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->resolve_in_advance = true;
@@ -4571,18 +4576,18 @@ add_option (struct options *options,
       if (p[1])
 	options->ip_remote_hint=p[1];
     }
-  else if (streq (p[0], "connect-retry") && p[1])
+  else if (streq (p[0], "connect-retry") && p[1] && !p[2])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL|OPT_P_CONNECTION);
       options->ce.connect_retry_seconds = positive_atoi (p[1]);
     }
-  else if (streq (p[0], "connect-timeout") && p[1])
+  else if (streq (p[0], "connect-timeout") && p[1] && !p[2])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL|OPT_P_CONNECTION);
       options->ce.connect_timeout = positive_atoi (p[1]);
       options->ce.connect_timeout_defined = true;
     }
-  else if (streq (p[0], "connect-retry-max") && p[1])
+  else if (streq (p[0], "connect-retry-max") && p[1] && !p[2])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL|OPT_P_CONNECTION);
       options->connect_retry_max = positive_atoi (p[1]);
@@ -4597,24 +4602,24 @@ add_option (struct options *options,
 		       string_substitute (p[1], ',', ' ', &options->gc),
 		       "ipchange", true);
     }
-  else if (streq (p[0], "float"))
+  else if (streq (p[0], "float") && !p[1])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL|OPT_P_CONNECTION);
       options->ce.remote_float = true;
     }
 #ifdef ENABLE_DEBUG
-  else if (streq (p[0], "gremlin") && p[1])
+  else if (streq (p[0], "gremlin") && p[1] && !p[2])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->gremlin = positive_atoi (p[1]);
     }
 #endif
-  else if (streq (p[0], "chroot") && p[1])
+  else if (streq (p[0], "chroot") && p[1] && !p[2])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->chroot_dir = p[1];
     }
-  else if (streq (p[0], "cd") && p[1])
+  else if (streq (p[0], "cd") && p[1] && !p[2])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       if (platform_chdir (p[1]))
@@ -4625,13 +4630,13 @@ add_option (struct options *options,
       options->cd_dir = p[1];
     }
 #ifdef ENABLE_SELINUX
-  else if (streq (p[0], "setcon") && p[1])
+  else if (streq (p[0], "setcon") && p[1] && !p[2])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->selinux_context = p[1];
     }
 #endif
-  else if (streq (p[0], "writepid") && p[1])
+  else if (streq (p[0], "writepid") && p[1] && !p[2])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->writepid = p[1];
@@ -4650,27 +4655,27 @@ add_option (struct options *options,
 	goto err;
       set_user_script (options, &options->down_script, p[1], "down", true);
     }
-  else if (streq (p[0], "down-pre"))
+  else if (streq (p[0], "down-pre") && !p[1])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->down_pre = true;
     }
-  else if (streq (p[0], "up-delay"))
+  else if (streq (p[0], "up-delay") && !p[1])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->up_delay = true;
     }
-  else if (streq (p[0], "up-restart"))
+  else if (streq (p[0], "up-restart") && !p[1])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->up_restart = true;
     }
-  else if (streq (p[0], "syslog"))
+  else if (streq (p[0], "syslog") && !p[2])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       open_syslog (p[1], false);
     }
-  else if (streq (p[0], "daemon"))
+  else if (streq (p[0], "daemon") && !p[2])
     {
       bool didit = false;
       VERIFY_PERMISSION (OPT_P_GENERAL);
@@ -4688,7 +4693,7 @@ add_option (struct options *options,
 	    }
 	}
     }
-  else if (streq (p[0], "inetd"))
+  else if (streq (p[0], "inetd") && !p[3])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       if (!options->inetd)
@@ -4743,50 +4748,50 @@ add_option (struct options *options,
 	  open_syslog (name, true);
 	}
     }
-  else if (streq (p[0], "log") && p[1])
+  else if (streq (p[0], "log") && p[1] && !p[2])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->log = true;
       redirect_stdout_stderr (p[1], false);
     }
-  else if (streq (p[0], "suppress-timestamps"))
+  else if (streq (p[0], "suppress-timestamps") && !p[1])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->suppress_timestamps = true;
       set_suppress_timestamps(true);
     }
-  else if (streq (p[0], "machine-readable-output"))
+  else if (streq (p[0], "machine-readable-output") && !p[1])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->machine_readable_output = true;
       set_machine_readable_output(true);
     }
-  else if (streq (p[0], "log-append") && p[1])
+  else if (streq (p[0], "log-append") && p[1] && !p[2])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->log = true;
       redirect_stdout_stderr (p[1], true);
     }
 #ifdef ENABLE_MEMSTATS
-  else if (streq (p[0], "memstats") && p[1])
+  else if (streq (p[0], "memstats") && p[1] && !p[2])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->memstats_fn = p[1];
     }
 #endif
-  else if (streq (p[0], "mlock"))
+  else if (streq (p[0], "mlock") && !p[1])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->mlock = true;
     }
 #if ENABLE_IP_PKTINFO
-  else if (streq (p[0], "multihome"))
+  else if (streq (p[0], "multihome") && !p[1])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->sockflags |= SF_USE_IP_PKTINFO;
     }
 #endif
-  else if (streq (p[0], "verb") && p[1])
+  else if (streq (p[0], "verb") && p[1] && !p[2])
     {
       VERIFY_PERMISSION (OPT_P_MESSAGES);
       options->verbosity = positive_atoi (p[1]);
@@ -4797,17 +4802,17 @@ add_option (struct options *options,
 	    options->verbosity);
 #endif
     }
-  else if (streq (p[0], "mute") && p[1])
+  else if (streq (p[0], "mute") && p[1] && !p[2])
     {
       VERIFY_PERMISSION (OPT_P_MESSAGES);
       options->mute = positive_atoi (p[1]);
     }
-  else if (streq (p[0], "errors-to-stderr"))
+  else if (streq (p[0], "errors-to-stderr") && !p[1])
     {
       VERIFY_PERMISSION (OPT_P_MESSAGES);
       errors_to_stderr();
     }
-  else if (streq (p[0], "status") && p[1])
+  else if (streq (p[0], "status") && p[1] && !p[3])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->status_file = p[1];
@@ -4816,7 +4821,7 @@ add_option (struct options *options,
 	  options->status_file_update_freq = positive_atoi (p[2]);
 	}
     }
-  else if (streq (p[0], "status-version") && p[1])
+  else if (streq (p[0], "status-version") && p[1] && !p[2])
     {
       int version;
 
@@ -4829,7 +4834,7 @@ add_option (struct options *options,
 	}
       options->status_file_version = version;
     }
-  else if (streq (p[0], "remap-usr1") && p[1])
+  else if (streq (p[0], "remap-usr1") && p[1] && !p[2])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       if (streq (p[1], "SIGHUP"))
@@ -4842,19 +4847,19 @@ add_option (struct options *options,
 	  goto err;
 	}
     }
-  else if ((streq (p[0], "link-mtu") || streq (p[0], "udp-mtu")) && p[1])
+  else if ((streq (p[0], "link-mtu") || streq (p[0], "udp-mtu")) && p[1] && !p[2])
     {
       VERIFY_PERMISSION (OPT_P_MTU|OPT_P_CONNECTION);
       options->ce.link_mtu = positive_atoi (p[1]);
       options->ce.link_mtu_defined = true;
     }
-  else if (streq (p[0], "tun-mtu") && p[1])
+  else if (streq (p[0], "tun-mtu") && p[1] && !p[2])
     {
       VERIFY_PERMISSION (OPT_P_MTU|OPT_P_CONNECTION);
       options->ce.tun_mtu = positive_atoi (p[1]);
       options->ce.tun_mtu_defined = true;
     }
-  else if (streq (p[0], "tun-mtu-extra") && p[1])
+  else if (streq (p[0], "tun-mtu-extra") && p[1] && !p[2])
     {
       VERIFY_PERMISSION (OPT_P_MTU|OPT_P_CONNECTION);
       options->ce.tun_mtu_extra = positive_atoi (p[1]);
@@ -4867,41 +4872,41 @@ add_option (struct options *options,
       msg (msglevel, "--mtu-dynamic has been replaced by --fragment");
       goto err;
     }
-  else if (streq (p[0], "fragment") && p[1])
+  else if (streq (p[0], "fragment") && p[1] && !p[2])
     {
 /*      VERIFY_PERMISSION (OPT_P_MTU); */
       VERIFY_PERMISSION (OPT_P_MTU|OPT_P_CONNECTION);
       options->ce.fragment = positive_atoi (p[1]);
     }
 #endif
-  else if (streq (p[0], "mtu-disc") && p[1])
+  else if (streq (p[0], "mtu-disc") && p[1] && !p[2])
     {
       VERIFY_PERMISSION (OPT_P_MTU|OPT_P_CONNECTION);
       options->ce.mtu_discover_type = translate_mtu_discover_type_name (p[1]);
     }
 #ifdef ENABLE_OCC
-  else if (streq (p[0], "mtu-test"))
+  else if (streq (p[0], "mtu-test") && !p[1])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->mtu_test = true;
     }
 #endif
-  else if (streq (p[0], "nice") && p[1])
+  else if (streq (p[0], "nice") && p[1] && !p[2])
     {
       VERIFY_PERMISSION (OPT_P_NICE);
       options->nice = atoi (p[1]);
     }
-  else if (streq (p[0], "rcvbuf") && p[1])
+  else if (streq (p[0], "rcvbuf") && p[1] && !p[2])
     {
       VERIFY_PERMISSION (OPT_P_SOCKBUF);
       options->rcvbuf = positive_atoi (p[1]);
     }
-  else if (streq (p[0], "sndbuf") && p[1])
+  else if (streq (p[0], "sndbuf") && p[1] && !p[2])
     {
       VERIFY_PERMISSION (OPT_P_SOCKBUF);
       options->sndbuf = positive_atoi (p[1]);
     }
-  else if (streq (p[0], "mark") && p[1])
+  else if (streq (p[0], "mark") && p[1] && !p[2])
     {
 #if defined(TARGET_LINUX) && HAVE_DECL_SO_MARK
       VERIFY_PERMISSION (OPT_P_GENERAL);
@@ -4920,7 +4925,7 @@ add_option (struct options *options,
 	    msg (msglevel, "unknown socket flag: %s", p[j]);	    
 	}
     }
-  else if (streq (p[0], "txqueuelen") && p[1])
+  else if (streq (p[0], "txqueuelen") && p[1] && !p[2])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
 #ifdef TARGET_LINUX
@@ -4930,7 +4935,7 @@ add_option (struct options *options,
       goto err;
 #endif
     }
-  else if (streq (p[0], "shaper") && p[1])
+  else if (streq (p[0], "shaper") && p[1] && !p[2])
     {
 #ifdef ENABLE_FEATURE_SHAPER
       int shaper;
@@ -4950,23 +4955,23 @@ add_option (struct options *options,
       goto err;
 #endif /* ENABLE_FEATURE_SHAPER */
     }
-  else if (streq (p[0], "port") && p[1])
+  else if (streq (p[0], "port") && p[1] && !p[2])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL|OPT_P_CONNECTION);
       options->ce.local_port = options->ce.remote_port = p[1];
     }
-  else if (streq (p[0], "lport") && p[1])
+  else if (streq (p[0], "lport") && p[1] && !p[2])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL|OPT_P_CONNECTION);
       options->ce.local_port_defined = true;
       options->ce.local_port = p[1];
     }
-  else if (streq (p[0], "rport") && p[1])
+  else if (streq (p[0], "rport") && p[1] && !p[2])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL|OPT_P_CONNECTION);
       options->ce.remote_port = p[1];
     }
-  else if (streq (p[0], "bind"))
+  else if (streq (p[0], "bind") && !p[1])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL|OPT_P_CONNECTION);
       options->ce.bind_defined = true;
@@ -4974,24 +4979,24 @@ add_option (struct options *options,
           options->ce.bind_ipv6_only=true;
 
     }
-  else if (streq (p[0], "nobind"))
+  else if (streq (p[0], "nobind") && !p[1])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL|OPT_P_CONNECTION);
       options->ce.bind_local = false;
     }
-  else if (streq (p[0], "fast-io"))
+  else if (streq (p[0], "fast-io") && !p[1])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->fast_io = true;
     }
-  else if (streq (p[0], "inactive") && p[1])
+  else if (streq (p[0], "inactive") && p[1] && !p[3])
     {
       VERIFY_PERMISSION (OPT_P_TIMER);
       options->inactivity_timeout = positive_atoi (p[1]);
       if (p[2])
 	options->inactivity_minimum_bytes = positive_atoi (p[2]);
     }
-  else if (streq (p[0], "proto") && p[1])
+  else if (streq (p[0], "proto") && p[1] && !p[2])
     {
       int proto;
       sa_family_t af;
@@ -5008,7 +5013,7 @@ add_option (struct options *options,
       options->ce.proto = proto;
       options->ce.af = af;
     }
-  else if (streq (p[0], "proto-force") && p[1])
+  else if (streq (p[0], "proto-force") && p[1] && !p[2])
     {
       int proto_force;
       VERIFY_PERMISSION (OPT_P_GENERAL);
@@ -5020,7 +5025,7 @@ add_option (struct options *options,
 	}
       options->proto_force = proto_force;
     }
-  else if (streq (p[0], "http-proxy") && p[1])
+  else if (streq (p[0], "http-proxy") && p[1] && !p[5])
     {
       struct http_proxy_options *ho;
 
@@ -5064,14 +5069,14 @@ add_option (struct options *options,
 	  ho->auth_method_string = "none";
 	}
     }
-  else if (streq (p[0], "http-proxy-retry"))
+  else if (streq (p[0], "http-proxy-retry") && !p[1])
     {
       struct http_proxy_options *ho;
       VERIFY_PERMISSION (OPT_P_GENERAL|OPT_P_CONNECTION);
       ho = init_http_proxy_options_once (&options->ce.http_proxy_options, &options->gc);
       ho->retry = true;
     }
-  else if (streq (p[0], "http-proxy-timeout") && p[1])
+  else if (streq (p[0], "http-proxy-timeout") && p[1] && !p[2])
     {
       struct http_proxy_options *ho;
 
@@ -5079,18 +5084,18 @@ add_option (struct options *options,
       ho = init_http_proxy_options_once (&options->ce.http_proxy_options, &options->gc);
       ho->timeout = positive_atoi (p[1]);
     }
-  else if (streq (p[0], "http-proxy-option") && p[1])
+  else if (streq (p[0], "http-proxy-option") && p[1] && !p[4])
     {
       struct http_proxy_options *ho;
 
       VERIFY_PERMISSION (OPT_P_GENERAL|OPT_P_CONNECTION);
       ho = init_http_proxy_options_once (&options->ce.http_proxy_options, &options->gc);
 
-      if (streq (p[1], "VERSION") && p[2])
+      if (streq (p[1], "VERSION") && p[2] && !p[3])
 	{
 	  ho->http_version = p[2];
 	}
-      else if (streq (p[1], "AGENT") && p[2])
+      else if (streq (p[1], "AGENT") && p[2] && !p[3])
 	{
 	  ho->user_agent = p[2];
 	}
@@ -5123,10 +5128,10 @@ add_option (struct options *options,
 	}
       else
 	{
-	  msg (msglevel, "Bad http-proxy-option or missing parameter: '%s'", p[1]);
+	  msg (msglevel, "Bad http-proxy-option or missing or extra parameter: '%s'", p[1]);
 	}
     }
-  else if (streq (p[0], "socks-proxy") && p[1])
+  else if (streq (p[0], "socks-proxy") && p[1] && !p[4])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL|OPT_P_CONNECTION);
 
@@ -5141,41 +5146,41 @@ add_option (struct options *options,
       options->ce.socks_proxy_server = p[1];
       options->ce.socks_proxy_authfile = p[3]; /* might be NULL */
     }
-  else if (streq (p[0], "socks-proxy-retry"))
+  else if (streq (p[0], "socks-proxy-retry") && !p[1])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL|OPT_P_CONNECTION);
       options->ce.socks_proxy_retry = true;
     }
-  else if (streq (p[0], "keepalive") && p[1] && p[2])
+  else if (streq (p[0], "keepalive") && p[1] && p[2] && !p[3])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->keepalive_ping = atoi (p[1]);
       options->keepalive_timeout = atoi (p[2]);
     }
-  else if (streq (p[0], "ping") && p[1])
+  else if (streq (p[0], "ping") && p[1] && !p[2])
     {
       VERIFY_PERMISSION (OPT_P_TIMER);
       options->ping_send_timeout = positive_atoi (p[1]);
     }
-  else if (streq (p[0], "ping-exit") && p[1])
+  else if (streq (p[0], "ping-exit") && p[1] && !p[2])
     {
       VERIFY_PERMISSION (OPT_P_TIMER);
       options->ping_rec_timeout = positive_atoi (p[1]);
       options->ping_rec_timeout_action = PING_EXIT;
     }
-  else if (streq (p[0], "ping-restart") && p[1])
+  else if (streq (p[0], "ping-restart") && p[1] && !p[2])
     {
       VERIFY_PERMISSION (OPT_P_TIMER);
       options->ping_rec_timeout = positive_atoi (p[1]);
       options->ping_rec_timeout_action = PING_RESTART;
     }
-  else if (streq (p[0], "ping-timer-rem"))
+  else if (streq (p[0], "ping-timer-rem") && !p[1])
     {
       VERIFY_PERMISSION (OPT_P_TIMER);
       options->ping_timer_remote = true;
     }
 #ifdef ENABLE_OCC
-  else if (streq (p[0], "explicit-exit-notify"))
+  else if (streq (p[0], "explicit-exit-notify") && !p[2])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL|OPT_P_CONNECTION|OPT_P_EXPLICIT_NOTIFY);
       if (p[1])
@@ -5188,35 +5193,35 @@ add_option (struct options *options,
 	}
     }
 #endif
-  else if (streq (p[0], "persist-tun"))
+  else if (streq (p[0], "persist-tun") && !p[1])
     {
       VERIFY_PERMISSION (OPT_P_PERSIST);
       options->persist_tun = true;
     }
-  else if (streq (p[0], "persist-key"))
+  else if (streq (p[0], "persist-key") && !p[1])
     {
       VERIFY_PERMISSION (OPT_P_PERSIST);
       options->persist_key = true;
     }
-  else if (streq (p[0], "persist-local-ip"))
+  else if (streq (p[0], "persist-local-ip") && !p[1])
     {
       VERIFY_PERMISSION (OPT_P_PERSIST_IP);
       options->persist_local_ip = true;
     }
-  else if (streq (p[0], "persist-remote-ip"))
+  else if (streq (p[0], "persist-remote-ip") && !p[1])
     {
       VERIFY_PERMISSION (OPT_P_PERSIST_IP);
       options->persist_remote_ip = true;
     }
 #ifdef ENABLE_CLIENT_NAT
-  else if (streq (p[0], "client-nat") && p[1] && p[2] && p[3] && p[4])
+  else if (streq (p[0], "client-nat") && p[1] && p[2] && p[3] && p[4] && !p[5])
     {
       VERIFY_PERMISSION (OPT_P_ROUTE);
       cnol_check_alloc (options);
       add_client_nat_to_option_list(options->client_nat, p[1], p[2], p[3], p[4], msglevel);
     }
 #endif
-  else if (streq (p[0], "route") && p[1])
+  else if (streq (p[0], "route") && p[1] && !p[5])
     {
       VERIFY_PERMISSION (OPT_P_ROUTE);
       rol_check_alloc (options);
@@ -5240,7 +5245,7 @@ add_option (struct options *options,
 	}
       add_route_to_option_list (options->routes, p[1], p[2], p[3], p[4]);
     }
-  else if (streq (p[0], "route-ipv6") && p[1])
+  else if (streq (p[0], "route-ipv6") && p[1] && !p[4])
     {
       VERIFY_PERMISSION (OPT_P_ROUTE);
       rol6_check_alloc (options);
@@ -5260,14 +5265,14 @@ add_option (struct options *options,
 	}
       add_route_ipv6_to_option_list (options->routes_ipv6, p[1], p[2], p[3]);
     }
-  else if (streq (p[0], "max-routes"))
+  else if (streq (p[0], "max-routes") && !p[2])
     {
       msg (M_WARN, "DEPRECATED OPTION: --max-routes option ignored."
 	   "The number of routes is unlimited as of version 2.4. "
 	   "This option will be removed in a future version, "
 	   "please remove it from your configuration.");
     }
-  else if (streq (p[0], "route-gateway") && p[1])
+  else if (streq (p[0], "route-gateway") && p[1] && !p[2])
     {
       VERIFY_PERMISSION (OPT_P_ROUTE_EXTRAS);
       if (streq (p[1], "dhcp"))
@@ -5287,12 +5292,12 @@ add_option (struct options *options,
 	    }
 	}
     }
-  else if (streq (p[0], "route-metric") && p[1])
+  else if (streq (p[0], "route-metric") && p[1] && !p[2])
     {
       VERIFY_PERMISSION (OPT_P_ROUTE);
       options->route_default_metric = positive_atoi (p[1]);
     }
-  else if (streq (p[0], "route-delay"))
+  else if (streq (p[0], "route-delay") && !p[3])
     {
       VERIFY_PERMISSION (OPT_P_ROUTE_EXTRAS);
       options->route_delay_defined = true;
@@ -5326,17 +5331,17 @@ add_option (struct options *options,
 		       p[1],
 		       "route-pre-down", true);
     }
-  else if (streq (p[0], "route-noexec"))
+  else if (streq (p[0], "route-noexec") && !p[1])
     {
       VERIFY_PERMISSION (OPT_P_SCRIPT);
       options->route_noexec = true;
     }
-  else if (streq (p[0], "route-nopull"))
+  else if (streq (p[0], "route-nopull") && !p[1])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->route_nopull = true;
     }
-  else if (streq (p[0], "allow-pull-fqdn"))
+  else if (streq (p[0], "allow-pull-fqdn") && !p[1])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->allow_pull_fqdn = true;
@@ -5370,15 +5375,15 @@ add_option (struct options *options,
 	}
       options->routes->flags |= RG_ENABLE;
     }
-  else if (streq (p[0], "remote-random-hostname"))
+  else if (streq (p[0], "remote-random-hostname") && !p[1])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->sockflags |= SF_HOST_RANDOMIZE;
     }
-  else if (streq (p[0], "setenv") && p[1])
+  else if (streq (p[0], "setenv") && p[1] && !p[3])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
-      if (streq (p[1], "REMOTE_RANDOM_HOSTNAME"))
+      if (streq (p[1], "REMOTE_RANDOM_HOSTNAME") && !p[2])
 	{
 	  options->sockflags |= SF_HOST_RANDOMIZE;
 	}
@@ -5388,7 +5393,7 @@ add_option (struct options *options,
 	  goto err;
 	}
 #ifdef ENABLE_PUSH_PEER_INFO
-      else if (streq (p[1], "PUSH_PEER_INFO"))
+      else if (streq (p[1], "PUSH_PEER_INFO") && !p[2])
 	{
 	  options->push_peer_info = true;
 	}
@@ -5409,17 +5414,17 @@ add_option (struct options *options,
 	  setenv_str (es, p[1], p[2] ? p[2] : "");
 	}
     }
-  else if (streq (p[0], "setenv-safe") && p[1])
+  else if (streq (p[0], "setenv-safe") && p[1] && !p[3])
     {
       VERIFY_PERMISSION (OPT_P_SETENV);
       setenv_str_safe (es, p[1], p[2] ? p[2] : "");
     }
-  else if (streq (p[0], "script-security") && p[1])
+  else if (streq (p[0], "script-security") && p[1] && !p[2])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       script_security = atoi (p[1]);
     }
-  else if (streq (p[0], "mssfix"))
+  else if (streq (p[0], "mssfix") && !p[2])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL|OPT_P_CONNECTION);
       if (p[1])
@@ -5431,7 +5436,7 @@ add_option (struct options *options,
 
     }
 #ifdef ENABLE_OCC
-  else if (streq (p[0], "disable-occ"))
+  else if (streq (p[0], "disable-occ") && !p[1])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->occ = false;
@@ -5439,7 +5444,7 @@ add_option (struct options *options,
 #endif
 #if P2MP
 #if P2MP_SERVER
-  else if (streq (p[0], "server") && p[1] && p[2])
+  else if (streq (p[0], "server") && p[1] && p[2] && !p[4])
     {
       const int lev = M_WARN;
       bool error = false;
@@ -5468,7 +5473,7 @@ add_option (struct options *options,
 	    }
 	}
     }
-  else if (streq (p[0], "server-ipv6") && p[1] )
+  else if (streq (p[0], "server-ipv6") && p[1] && !p[3])
     {
       const int lev = M_WARN;
       struct in6_addr network;
@@ -5495,7 +5500,7 @@ add_option (struct options *options,
 	  goto err;
 	}
     }
-  else if (streq (p[0], "server-bridge") && p[1] && p[2] && p[3] && p[4])
+  else if (streq (p[0], "server-bridge") && p[1] && p[2] && p[3] && p[4] && !p[5])
     {
       const int lev = M_WARN;
       bool error = false;
@@ -5517,7 +5522,7 @@ add_option (struct options *options,
       options->server_bridge_pool_start = pool_start;
       options->server_bridge_pool_end = pool_end;
     }
-  else if (streq (p[0], "server-bridge") && p[1] && streq (p[1], "nogw"))
+  else if (streq (p[0], "server-bridge") && p[1] && streq (p[1], "nogw") && !p[2])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->server_bridge_proxy_dhcp = true;
@@ -5528,17 +5533,17 @@ add_option (struct options *options,
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->server_bridge_proxy_dhcp = true;
     }
-  else if (streq (p[0], "push") && p[1])
+  else if (streq (p[0], "push") && p[1] && !p[2])
     {
       VERIFY_PERMISSION (OPT_P_PUSH);
       push_options (options, &p[1], msglevel, &options->gc);
     }
-  else if (streq (p[0], "push-reset"))
+  else if (streq (p[0], "push-reset") && !p[1])
     {
       VERIFY_PERMISSION (OPT_P_INSTANCE);
       push_reset (options);
     }
-  else if (streq (p[0], "ifconfig-pool") && p[1] && p[2])
+  else if (streq (p[0], "ifconfig-pool") && p[1] && p[2] && !p[4])
     {
       const int lev = M_WARN;
       bool error = false;
@@ -5565,7 +5570,7 @@ add_option (struct options *options,
       if (netmask)
 	options->ifconfig_pool_netmask = netmask;
     }
-  else if (streq (p[0], "ifconfig-pool-persist") && p[1])
+  else if (streq (p[0], "ifconfig-pool-persist") && p[1] && !p[3])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->ifconfig_pool_persist_filename = p[1];
@@ -5574,12 +5579,12 @@ add_option (struct options *options,
 	  options->ifconfig_pool_persist_refresh_freq = positive_atoi (p[2]);
 	}
     }
-  else if (streq (p[0], "ifconfig-pool-linear"))
+  else if (streq (p[0], "ifconfig-pool-linear") && !p[1])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->topology = TOP_P2P;
     }
-  else if (streq (p[0], "ifconfig-ipv6-pool") && p[1] )
+  else if (streq (p[0], "ifconfig-ipv6-pool") && p[1] && !p[2])
     {
       const int lev = M_WARN;
       struct in6_addr network;
@@ -5601,7 +5606,7 @@ add_option (struct options *options,
       options->ifconfig_ipv6_pool_base = network;
       options->ifconfig_ipv6_pool_netbits = netbits;
     }
-  else if (streq (p[0], "hash-size") && p[1] && p[2])
+  else if (streq (p[0], "hash-size") && p[1] && p[2] && !p[3])
     {
       int real, virtual;
 
@@ -5616,7 +5621,7 @@ add_option (struct options *options,
       options->real_hash_size = real;
       options->virtual_hash_size = real;
     }
-  else if (streq (p[0], "connect-freq") && p[1] && p[2])
+  else if (streq (p[0], "connect-freq") && p[1] && p[2] && !p[3])
     {
       int cf_max, cf_per;
 
@@ -5631,7 +5636,7 @@ add_option (struct options *options,
       options->cf_max = cf_max;
       options->cf_per = cf_per;
     }
-  else if (streq (p[0], "max-clients") && p[1])
+  else if (streq (p[0], "max-clients") && p[1] && !p[2])
     {
       int max_clients;
 
@@ -5644,27 +5649,27 @@ add_option (struct options *options,
 	}
       options->max_clients = max_clients;
     }
-  else if (streq (p[0], "max-routes-per-client") && p[1])
+  else if (streq (p[0], "max-routes-per-client") && p[1] && !p[2])
     {
       VERIFY_PERMISSION (OPT_P_INHERIT);
       options->max_routes_per_client = max_int (atoi (p[1]), 1);
     }
-  else if (streq (p[0], "client-cert-not-required"))
+  else if (streq (p[0], "client-cert-not-required") && !p[1])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->ssl_flags |= SSLF_CLIENT_CERT_NOT_REQUIRED;
     }
-  else if (streq (p[0], "username-as-common-name"))
+  else if (streq (p[0], "username-as-common-name") && !p[1])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->ssl_flags |= SSLF_USERNAME_AS_COMMON_NAME;
     }
-  else if (streq (p[0], "auth-user-pass-optional"))
+  else if (streq (p[0], "auth-user-pass-optional") && !p[1])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->ssl_flags |= SSLF_AUTH_USER_PASS_OPTIONAL;
     }
-  else if (streq (p[0], "opt-verify"))
+  else if (streq (p[0], "opt-verify") && !p[1])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->ssl_flags |= SSLF_OPT_VERIFY;
@@ -5719,22 +5724,22 @@ add_option (struct options *options,
       set_user_script (options, &options->learn_address_script,
 		       p[1], "learn-address", true);
     }
-  else if (streq (p[0], "tmp-dir") && p[1])
+  else if (streq (p[0], "tmp-dir") && p[1] && !p[2])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->tmp_dir = p[1];
     }
-  else if (streq (p[0], "client-config-dir") && p[1])
+  else if (streq (p[0], "client-config-dir") && p[1] && !p[2])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->client_config_dir = p[1];
     }
-  else if (streq (p[0], "ccd-exclusive"))
+  else if (streq (p[0], "ccd-exclusive") && !p[1])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->ccd_exclusive = true;
     }
-  else if (streq (p[0], "bcast-buffers") && p[1])
+  else if (streq (p[0], "bcast-buffers") && p[1] && !p[2])
     {
       int n_bcast_buf;
 
@@ -5744,7 +5749,7 @@ add_option (struct options *options,
 	msg (msglevel, "--bcast-buffers parameter must be > 0");
       options->n_bcast_buf = n_bcast_buf;
     }
-  else if (streq (p[0], "tcp-queue-limit") && p[1])
+  else if (streq (p[0], "tcp-queue-limit") && p[1] && !p[2])
     {
       int tcp_queue_limit;
 
@@ -5755,7 +5760,7 @@ add_option (struct options *options,
       options->tcp_queue_limit = tcp_queue_limit;
     }
 #if PORT_SHARE
-  else if (streq (p[0], "port-share") && p[1] && p[2])
+  else if (streq (p[0], "port-share") && p[1] && p[2] && !p[4])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->port_share_host = p[1];
@@ -5763,17 +5768,17 @@ add_option (struct options *options,
       options->port_share_journal_dir = p[3];
     }
 #endif
-  else if (streq (p[0], "client-to-client"))
+  else if (streq (p[0], "client-to-client") && !p[1])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->enable_c2c = true;
     }
-  else if (streq (p[0], "duplicate-cn"))
+  else if (streq (p[0], "duplicate-cn") && !p[1])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->duplicate_cn = true;
     }
-  else if (streq (p[0], "iroute") && p[1])
+  else if (streq (p[0], "iroute") && p[1] && !p[3])
     {
       const char *netmask = NULL;
 
@@ -5784,12 +5789,12 @@ add_option (struct options *options,
 	}
       option_iroute (options, p[1], netmask, msglevel);
     }
-  else if (streq (p[0], "iroute-ipv6") && p[1])
+  else if (streq (p[0], "iroute-ipv6") && p[1] && !p[2])
     {
       VERIFY_PERMISSION (OPT_P_INSTANCE);
       option_iroute_ipv6 (options, p[1], msglevel);
     }
-  else if (streq (p[0], "ifconfig-push") && p[1] && p[2])
+  else if (streq (p[0], "ifconfig-push") && p[1] && p[2] && !p[4])
     {
       in_addr_t local, remote_netmask;
 
@@ -5812,7 +5817,7 @@ add_option (struct options *options,
 	  goto err;
 	}
     }
-  else if (streq (p[0], "ifconfig-push-constraint") && p[1] && p[2])
+  else if (streq (p[0], "ifconfig-push-constraint") && p[1] && p[2] && !p[3])
     {
       in_addr_t network, netmask;
 
@@ -5831,7 +5836,7 @@ add_option (struct options *options,
 	  goto err;
 	}
     }
-  else if (streq (p[0], "ifconfig-ipv6-push") && p[1] )
+  else if (streq (p[0], "ifconfig-ipv6-push") && p[1] && !p[3])
     {
       struct in6_addr local, remote;
       unsigned int netbits;
@@ -5868,17 +5873,17 @@ add_option (struct options *options,
       options->push_ifconfig_ipv6_netbits = netbits;
       options->push_ifconfig_ipv6_remote = remote;
     }
-  else if (streq (p[0], "disable"))
+  else if (streq (p[0], "disable") && !p[1])
     {
       VERIFY_PERMISSION (OPT_P_INSTANCE);
       options->disable = true;
     }
-  else if (streq (p[0], "tcp-nodelay"))
+  else if (streq (p[0], "tcp-nodelay") && !p[1])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->server_flags |= SF_TCP_NODELAY_HELPER;
     }
-  else if (streq (p[0], "stale-routes-check") && p[1])
+  else if (streq (p[0], "stale-routes-check") && p[1] && !p[3])
     {
       int ageing_time, check_interval;
 
@@ -5899,27 +5904,27 @@ add_option (struct options *options,
     }
 #endif /* P2MP_SERVER */
 
-  else if (streq (p[0], "client"))
+  else if (streq (p[0], "client") && !p[1])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->client = true;
     }
-  else if (streq (p[0], "pull"))
+  else if (streq (p[0], "pull") && !p[1])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->pull = true;
     }
-  else if (streq (p[0], "push-continuation") && p[1])
+  else if (streq (p[0], "push-continuation") && p[1] && !p[2])
     {
       VERIFY_PERMISSION (OPT_P_PULL_MODE);
       options->push_continuation = atoi(p[1]);
     }
-  else if (streq (p[0], "server-poll-timeout") && p[1])
+  else if (streq (p[0], "server-poll-timeout") && p[1] && !p[2])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->server_poll_timeout = positive_atoi(p[1]);
     }
-  else if (streq (p[0], "auth-user-pass"))
+  else if (streq (p[0], "auth-user-pass") && !p[2])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       if (p[1])
@@ -5929,13 +5934,13 @@ add_option (struct options *options,
       else
 	options->auth_user_pass_file = "stdin";
     }
-  else if (streq (p[0], "auth-retry") && p[1])
+  else if (streq (p[0], "auth-retry") && p[1] && !p[2])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       auth_retry_set (msglevel, p[1]);
     }
 #ifdef ENABLE_CLIENT_CR
-  else if (streq (p[0], "static-challenge") && p[1] && p[2])
+  else if (streq (p[0], "static-challenge") && p[1] && p[2] && !p[3])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->sc_info.challenge_text = p[1];
@@ -5945,7 +5950,7 @@ add_option (struct options *options,
 #endif
 #endif
 #ifdef WIN32
-  else if (streq (p[0], "win-sys") && p[1])
+  else if (streq (p[0], "win-sys") && p[1] && !p[2])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       if (streq (p[1], "env"))
@@ -5955,7 +5960,7 @@ add_option (struct options *options,
       else
 	set_win_sys_path (p[1], es);
     }
-  else if (streq (p[0], "route-method") && p[1])
+  else if (streq (p[0], "route-method") && p[1] && !p[2])
     {
       VERIFY_PERMISSION (OPT_P_ROUTE_EXTRAS);
       if (streq (p[1], "adaptive"))
@@ -5970,7 +5975,7 @@ add_option (struct options *options,
 	  goto err;
 	}
     }
-  else if (streq (p[0], "ip-win32") && p[1])
+  else if (streq (p[0], "ip-win32") && p[1] && !p[4])
     {
       const int index = ascii2ipset (p[1]);
       struct tuntap_options *to = &options->tuntap_options;
@@ -6026,7 +6031,7 @@ add_option (struct options *options,
     }
 #endif
 #if defined(WIN32) || defined(TARGET_ANDROID)
-  else if (streq (p[0], "dhcp-option") && p[1])
+  else if (streq (p[0], "dhcp-option") && p[1] && !p[3])
     {
       struct tuntap_options *o = &options->tuntap_options;
       VERIFY_PERMISSION (OPT_P_IPWIN32);
@@ -6066,38 +6071,38 @@ add_option (struct options *options,
 	{
 	  dhcp_option_address_parse ("NBDD", p[2], o->nbdd, &o->nbdd_len, msglevel);
 	}
-      else if (streq (p[1], "DISABLE-NBT"))
+      else if (streq (p[1], "DISABLE-NBT") && !p[2])
 	{
 	  o->disable_nbt = 1;
 	}
       else
 	{
-	  msg (msglevel, "--dhcp-option: unknown option type '%s' or missing parameter", p[1]);
+	  msg (msglevel, "--dhcp-option: unknown option type '%s' or missing or unknown parameter", p[1]);
 	  goto err;
 	}
       o->dhcp_options = true;
     }
 #endif
 #ifdef WIN32
-  else if (streq (p[0], "show-adapters"))
+  else if (streq (p[0], "show-adapters") && !p[1])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       show_tap_win_adapters (M_INFO|M_NOPREFIX, M_WARN|M_NOPREFIX);
       openvpn_exit (OPENVPN_EXIT_STATUS_GOOD); /* exit point */
     }
-  else if (streq (p[0], "show-net"))
+  else if (streq (p[0], "show-net") && !p[1])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       show_routes (M_INFO|M_NOPREFIX);
       show_adapters (M_INFO|M_NOPREFIX);
       openvpn_exit (OPENVPN_EXIT_STATUS_GOOD); /* exit point */
     }
-  else if (streq (p[0], "show-net-up"))
+  else if (streq (p[0], "show-net-up") && !p[1])
     {
       VERIFY_PERMISSION (OPT_P_UP);
       options->show_net_up = true;
     }
-  else if (streq (p[0], "tap-sleep") && p[1])
+  else if (streq (p[0], "tap-sleep") && p[1] && !p[2])
     {
       int s;
       VERIFY_PERMISSION (OPT_P_IPWIN32);
@@ -6109,22 +6114,22 @@ add_option (struct options *options,
 	}
       options->tuntap_options.tap_sleep = s;
     }
-  else if (streq (p[0], "dhcp-renew"))
+  else if (streq (p[0], "dhcp-renew") && !p[1])
     {
       VERIFY_PERMISSION (OPT_P_IPWIN32);
       options->tuntap_options.dhcp_renew = true;
     }
-  else if (streq (p[0], "dhcp-pre-release"))
+  else if (streq (p[0], "dhcp-pre-release") && !p[1])
     {
       VERIFY_PERMISSION (OPT_P_IPWIN32);
       options->tuntap_options.dhcp_pre_release = true;
     }
-  else if (streq (p[0], "dhcp-release"))
+  else if (streq (p[0], "dhcp-release") && !p[1])
     {
       VERIFY_PERMISSION (OPT_P_IPWIN32);
       options->tuntap_options.dhcp_release = true;
     }
-  else if (streq (p[0], "dhcp-internal") && p[1]) /* standalone method for internal use */
+  else if (streq (p[0], "dhcp-internal") && p[1] && !p[2]) /* standalone method for internal use */
     {
       unsigned int adapter_index;
       VERIFY_PERMISSION (OPT_P_GENERAL);
@@ -6137,12 +6142,12 @@ add_option (struct options *options,
 	dhcp_renew_by_adapter_index (adapter_index);
       openvpn_exit (OPENVPN_EXIT_STATUS_GOOD); /* exit point */
     }
-  else if (streq (p[0], "register-dns"))
+  else if (streq (p[0], "register-dns") && !p[1])
     {
       VERIFY_PERMISSION (OPT_P_IPWIN32);
       options->tuntap_options.register_dns = true;
     }
-  else if (streq (p[0], "rdns-internal"))
+  else if (streq (p[0], "rdns-internal") && !p[1])
      /* standalone method for internal use
       *
       * (if --register-dns is set, openvpn needs to call itself in a
@@ -6156,18 +6161,18 @@ add_option (struct options *options,
 	ipconfig_register_dns (NULL);
       openvpn_exit (OPENVPN_EXIT_STATUS_GOOD); /* exit point */
     }
-  else if (streq (p[0], "show-valid-subnets"))
+  else if (streq (p[0], "show-valid-subnets") && !p[1])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       show_valid_win32_tun_subnets ();
       openvpn_exit (OPENVPN_EXIT_STATUS_GOOD); /* exit point */
     }
-  else if (streq (p[0], "pause-exit"))
+  else if (streq (p[0], "pause-exit") && !p[1])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       set_pause_exit_win32 ();
     }
-  else if (streq (p[0], "service") && p[1])
+  else if (streq (p[0], "service") && p[1] && !p[3])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->exit_event_name = p[1];
@@ -6176,52 +6181,52 @@ add_option (struct options *options,
 	  options->exit_event_initial_state = (atoi(p[2]) != 0);
 	}
     }
-  else if (streq (p[0], "allow-nonadmin"))
+  else if (streq (p[0], "allow-nonadmin") && !p[2])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       tap_allow_nonadmin_access (p[1]);
       openvpn_exit (OPENVPN_EXIT_STATUS_GOOD); /* exit point */
     }
-  else if (streq (p[0], "user") && p[1])
+  else if (streq (p[0], "user") && p[1] && !p[2])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       msg (M_WARN, "NOTE: --user option is not implemented on Windows");
     }
-  else if (streq (p[0], "group") && p[1])
+  else if (streq (p[0], "group") && p[1] && !p[2])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       msg (M_WARN, "NOTE: --group option is not implemented on Windows");
     }
 #else
-  else if (streq (p[0], "user") && p[1])
+  else if (streq (p[0], "user") && p[1] && !p[2])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->username = p[1];
     }
-  else if (streq (p[0], "group") && p[1])
+  else if (streq (p[0], "group") && p[1] && !p[2])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->groupname = p[1];
     }
-  else if (streq (p[0], "dhcp-option") && p[1])
+  else if (streq (p[0], "dhcp-option") && p[1] && !p[3])
     {
       VERIFY_PERMISSION (OPT_P_IPWIN32);
       foreign_option (options, p, 3, es);
     }
-  else if (streq (p[0], "route-method") && p[1]) /* ignore when pushed to non-Windows OS */
+  else if (streq (p[0], "route-method") && p[1] && !p[2]) /* ignore when pushed to non-Windows OS */
     {
       VERIFY_PERMISSION (OPT_P_ROUTE_EXTRAS);
     }
 #endif
 #if PASSTOS_CAPABILITY
-  else if (streq (p[0], "passtos"))
+  else if (streq (p[0], "passtos") && !p[1])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->passtos = true;
     }
 #endif
 #if defined(USE_COMP)
-  else if (streq (p[0], "comp-lzo"))
+  else if (streq (p[0], "comp-lzo") && !p[2])
     {
       VERIFY_PERMISSION (OPT_P_COMP);
 
@@ -6258,12 +6263,12 @@ add_option (struct options *options,
 	}
 #endif
     }
-  else if (streq (p[0], "comp-noadapt"))
+  else if (streq (p[0], "comp-noadapt") && !p[1])
     {
       VERIFY_PERMISSION (OPT_P_COMP);
       options->comp.flags &= ~COMP_F_ADAPTIVE;
     }
-  else if (streq (p[0], "compress"))
+  else if (streq (p[0], "compress") && !p[2])
     {
       VERIFY_PERMISSION (OPT_P_COMP);
       if (p[1])
@@ -6308,22 +6313,22 @@ add_option (struct options *options,
     }
 #endif /* USE_COMP */
 #ifdef ENABLE_CRYPTO
-  else if (streq (p[0], "show-ciphers"))
+  else if (streq (p[0], "show-ciphers") && !p[1])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->show_ciphers = true;
     }
-  else if (streq (p[0], "show-digests"))
+  else if (streq (p[0], "show-digests") && !p[1])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->show_digests = true;
     }
-  else if (streq (p[0], "show-engines"))
+  else if (streq (p[0], "show-engines") && !p[1])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->show_engines = true;
     }
-  else if (streq (p[0], "key-direction") && p[1])
+  else if (streq (p[0], "key-direction") && p[1] && !p[2])
     {
       int key_direction;
 
@@ -6333,7 +6338,7 @@ add_option (struct options *options,
       else
 	goto err;
     }
-  else if (streq (p[0], "secret") && p[1])
+  else if (streq (p[0], "secret") && p[1] && !p[3])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       if (streq (p[1], INLINE_FILE_TAG) && p[2])
@@ -6353,12 +6358,12 @@ add_option (struct options *options,
 	}
       options->shared_secret_file = p[1];
     }
-  else if (streq (p[0], "genkey"))
+  else if (streq (p[0], "genkey") && !p[1])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->genkey = true;
     }
-  else if (streq (p[0], "auth") && p[1])
+  else if (streq (p[0], "auth") && p[1] && !p[2])
     {
       VERIFY_PERMISSION (OPT_P_CRYPTO);
       options->authname_defined = true;
@@ -6369,12 +6374,12 @@ add_option (struct options *options,
 	  options->authname = NULL;
 	}
     }
-  else if (streq (p[0], "auth"))
+  else if (streq (p[0], "auth") && !p[1])
     {
       VERIFY_PERMISSION (OPT_P_CRYPTO);
       options->authname_defined = true;
     }
-  else if (streq (p[0], "cipher") && p[1])
+  else if (streq (p[0], "cipher") && p[1] && !p[2])
     {
       VERIFY_PERMISSION (OPT_P_CRYPTO);
       options->ciphername_defined = true;
@@ -6385,12 +6390,12 @@ add_option (struct options *options,
 	  options->ciphername = NULL;
 	}
     }
-  else if (streq (p[0], "cipher"))
+  else if (streq (p[0], "cipher") && !p[1])
     {
       VERIFY_PERMISSION (OPT_P_CRYPTO);
       options->ciphername_defined = true;
     }
-  else if (streq (p[0], "prng") && p[1])
+  else if (streq (p[0], "prng") && p[1] && !p[3])
     {
       VERIFY_PERMISSION (OPT_P_CRYPTO);
       if (streq (p[1], "none"))
@@ -6412,12 +6417,12 @@ add_option (struct options *options,
 	    }
 	}
     }
-  else if (streq (p[0], "no-replay"))
+  else if (streq (p[0], "no-replay") && !p[1])
     {
       VERIFY_PERMISSION (OPT_P_CRYPTO);
       options->replay = false;
     }
-  else if (streq (p[0], "replay-window"))
+  else if (streq (p[0], "replay-window") && !p[3])
     {
       VERIFY_PERMISSION (OPT_P_CRYPTO);
       if (p[1])
@@ -6457,28 +6462,28 @@ add_option (struct options *options,
 	  goto err;
 	}
     }
-  else if (streq (p[0], "mute-replay-warnings"))
+  else if (streq (p[0], "mute-replay-warnings") && !p[1])
     {
       VERIFY_PERMISSION (OPT_P_CRYPTO);
       options->mute_replay_warnings = true;
     }
-  else if (streq (p[0], "no-iv"))
+  else if (streq (p[0], "no-iv") && !p[1])
     {
       VERIFY_PERMISSION (OPT_P_CRYPTO);
       options->use_iv = false;
     }
-  else if (streq (p[0], "replay-persist") && p[1])
+  else if (streq (p[0], "replay-persist") && p[1] && !p[2])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->packet_id_file = p[1];
     }
-  else if (streq (p[0], "test-crypto"))
+  else if (streq (p[0], "test-crypto") && !p[1])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->test_crypto = true;
     }
 #ifndef ENABLE_CRYPTO_POLARSSL
-  else if (streq (p[0], "engine"))
+  else if (streq (p[0], "engine") && !p[2])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       if (p[1])
@@ -6490,7 +6495,7 @@ add_option (struct options *options,
     }  
 #endif /* ENABLE_CRYPTO_POLARSSL */
 #ifdef HAVE_EVP_CIPHER_CTX_SET_KEY_LENGTH
-  else if (streq (p[0], "keysize") && p[1])
+  else if (streq (p[0], "keysize") && p[1] && !p[2])
     {
       int keysize;
 
@@ -6505,38 +6510,38 @@ add_option (struct options *options,
     }
 #endif
 #ifdef ENABLE_PREDICTION_RESISTANCE
-  else if (streq (p[0], "use-prediction-resistance"))
+  else if (streq (p[0], "use-prediction-resistance") && !p[1])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->use_prediction_resistance = true;
     }
 #endif
-  else if (streq (p[0], "show-tls"))
+  else if (streq (p[0], "show-tls") && !p[1])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->show_tls_ciphers = true;
     }
-  else if (streq (p[0], "show-curves"))
+  else if (streq (p[0], "show-curves") && !p[1])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->show_curves = true;
     }
-  else if (streq (p[0], "ecdh-curve") && p[1])
+  else if (streq (p[0], "ecdh-curve") && p[1] && !p[2])
     {
       VERIFY_PERMISSION (OPT_P_CRYPTO);
       options->ecdh_curve= p[1];
     }
-  else if (streq (p[0], "tls-server"))
+  else if (streq (p[0], "tls-server") && !p[1])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->tls_server = true;
     }
-  else if (streq (p[0], "tls-client"))
+  else if (streq (p[0], "tls-client") && !p[1])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->tls_client = true;
     }
-  else if (streq (p[0], "ca") && p[1])
+  else if (streq (p[0], "ca") && p[1] && ((streq (p[1], INLINE_FILE_TAG) && p[2]) || !p[2]) && !p[3])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->ca_file = p[1];
@@ -6546,13 +6551,13 @@ add_option (struct options *options,
 	}
     }
 #ifndef ENABLE_CRYPTO_POLARSSL
-  else if (streq (p[0], "capath") && p[1])
+  else if (streq (p[0], "capath") && p[1] && !p[2])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->ca_path = p[1];
     }
 #endif /* ENABLE_CRYPTO_POLARSSL */
-  else if (streq (p[0], "dh") && p[1])
+  else if (streq (p[0], "dh") && p[1] && ((streq (p[1], INLINE_FILE_TAG) && p[2]) || !p[2]) && !p[3])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->dh_file = p[1];
@@ -6561,7 +6566,7 @@ add_option (struct options *options,
 	  options->dh_file_inline = p[2];
 	}
     }
-  else if (streq (p[0], "cert") && p[1])
+  else if (streq (p[0], "cert") && p[1] && ((streq (p[1], INLINE_FILE_TAG) && p[2]) || !p[2]) && !p[3])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->cert_file = p[1];
@@ -6570,7 +6575,7 @@ add_option (struct options *options,
 	  options->cert_file_inline = p[2];
 	}
     }
-  else if (streq (p[0], "extra-certs") && p[1])
+  else if (streq (p[0], "extra-certs") && p[1] && ((streq (p[1], INLINE_FILE_TAG) && p[2]) || !p[2]) && !p[3])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->extra_certs_file = p[1];
@@ -6579,19 +6584,19 @@ add_option (struct options *options,
 	  options->extra_certs_file_inline = p[2];
 	}
     }
-  else if (streq (p[0], "verify-hash") && p[1])
+  else if (streq (p[0], "verify-hash") && p[1] && !p[2])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->verify_hash = parse_hash_fingerprint(p[1], SHA_DIGEST_LENGTH, msglevel, &options->gc);
     }
 #ifdef ENABLE_CRYPTOAPI
-  else if (streq (p[0], "cryptoapicert") && p[1])
+  else if (streq (p[0], "cryptoapicert") && p[1] && !p[2])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->cryptoapi_cert = p[1];
     }
 #endif
-  else if (streq (p[0], "key") && p[1])
+  else if (streq (p[0], "key") && p[1] && ((streq (p[1], INLINE_FILE_TAG) && p[2]) || !p[2]) && !p[3])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->priv_key_file = p[1];
@@ -6600,7 +6605,7 @@ add_option (struct options *options,
 	  options->priv_key_file_inline = p[2];
 	}
     }
-  else if (streq (p[0], "tls-version-min") && p[1])
+  else if (streq (p[0], "tls-version-min") && p[1] && !p[3])
     {
       int ver;
       VERIFY_PERMISSION (OPT_P_GENERAL);
@@ -6614,7 +6619,7 @@ add_option (struct options *options,
 	  ~(SSLF_TLS_VERSION_MIN_MASK << SSLF_TLS_VERSION_MIN_SHIFT);
       options->ssl_flags |= (ver << SSLF_TLS_VERSION_MIN_SHIFT);
     }
-  else if (streq (p[0], "tls-version-max") && p[1])
+  else if (streq (p[0], "tls-version-max") && p[1] && !p[2])
     {
       int ver;
       VERIFY_PERMISSION (OPT_P_GENERAL);
@@ -6629,7 +6634,7 @@ add_option (struct options *options,
       options->ssl_flags |= (ver << SSLF_TLS_VERSION_MAX_SHIFT);
     }
 #ifndef ENABLE_CRYPTO_POLARSSL
-  else if (streq (p[0], "pkcs12") && p[1])
+  else if (streq (p[0], "pkcs12") && p[1] && ((streq (p[1], INLINE_FILE_TAG) && p[2]) || !p[2]) && !p[3])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->pkcs12_file = p[1];
@@ -6639,7 +6644,7 @@ add_option (struct options *options,
 	}
     }
 #endif /* ENABLE_CRYPTO_POLARSSL */
-  else if (streq (p[0], "askpass"))
+  else if (streq (p[0], "askpass") && !p[2])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       if (p[1])
@@ -6649,12 +6654,12 @@ add_option (struct options *options,
       else
 	options->key_pass_file = "stdin";	
     }
-  else if (streq (p[0], "auth-nocache"))
+  else if (streq (p[0], "auth-nocache") && !p[1])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       ssl_set_auth_nocache ();
     }
-  else if (streq (p[0], "auth-token") && p[1])
+  else if (streq (p[0], "auth-token") && p[1] && !p[2])
     {
       VERIFY_PERMISSION (OPT_P_ECHO);
       ssl_set_auth_token(p[1]);
@@ -6663,29 +6668,29 @@ add_option (struct options *options,
 	management_auth_token (management, p[1]);
 #endif
     }
-  else if (streq (p[0], "single-session"))
+  else if (streq (p[0], "single-session") && !p[1])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->single_session = true;
     }
 #ifdef ENABLE_PUSH_PEER_INFO
-  else if (streq (p[0], "push-peer-info"))
+  else if (streq (p[0], "push-peer-info") && !p[1])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->push_peer_info = true;
     }
 #endif
-  else if (streq (p[0], "tls-exit"))
+  else if (streq (p[0], "tls-exit") && !p[1])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->tls_exit = true;
     }
-  else if (streq (p[0], "tls-cipher") && p[1])
+  else if (streq (p[0], "tls-cipher") && p[1] && !p[2])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->cipher_list = p[1];
     }
-  else if (streq (p[0], "crl-verify") && p[1])
+  else if (streq (p[0], "crl-verify") && p[1] && ((p[2] && streq(p[2], "dir")) || !p[2]) && !p[3])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       if (p[2] && streq(p[2], "dir"))
@@ -6702,13 +6707,17 @@ add_option (struct options *options,
 		       "tls-verify", true);
     }
 #ifndef ENABLE_CRYPTO_POLARSSL
-  else if (streq (p[0], "tls-export-cert") && p[1])
+  else if (streq (p[0], "tls-export-cert") && p[1] && !p[2])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->tls_export_cert = p[1];
     }
 #endif
-  else if (streq (p[0], "compat-names"))
+#if P2MP_SERVER
+  else if (streq (p[0], "compat-names") && ((p[1] && streq (p[1], "no-remapping")) || !p[1]) && !p[2])
+#else
+  else if (streq (p[0], "compat-names") && !p[1])
+#endif
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       if (options->verify_x509_type != VERIFY_X509_NONE &&
@@ -6724,7 +6733,7 @@ add_option (struct options *options,
       if (p[1] && streq (p[1], "no-remapping"))
         compat_flag (COMPAT_FLAG_SET | COMPAT_NO_NAME_REMAPPING);
     }
-  else if (streq (p[0], "no-name-remapping"))
+  else if (streq (p[0], "no-name-remapping") && !p[1])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       if (options->verify_x509_type != VERIFY_X509_NONE &&
@@ -6739,7 +6748,7 @@ add_option (struct options *options,
       compat_flag (COMPAT_FLAG_SET | COMPAT_NO_NAME_REMAPPING);
 #endif
     }
-  else if (streq (p[0], "tls-remote") && p[1])
+  else if (streq (p[0], "tls-remote") && p[1] && !p[2])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
 
@@ -6770,7 +6779,7 @@ add_option (struct options *options,
           options->verify_x509_name = p[1];
         }
     }
-  else if (streq (p[0], "verify-x509-name") && p[1] && strlen (p[1]))
+  else if (streq (p[0], "verify-x509-name") && p[1] && strlen (p[1]) && !p[3])
     {
       int type = VERIFY_X509_SUBJECT_DN;
       VERIFY_PERMISSION (OPT_P_GENERAL);
@@ -6803,7 +6812,7 @@ add_option (struct options *options,
       options->verify_x509_type = type;
       options->verify_x509_name = p[1];
     }
-  else if (streq (p[0], "ns-cert-type") && p[1])
+  else if (streq (p[0], "ns-cert-type") && p[1] && !p[2])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       if (streq (p[1], "server"))
@@ -6825,12 +6834,12 @@ add_option (struct options *options,
       for (j = 1; j < MAX_PARMS && p[j] != NULL; ++j)
 	sscanf (p[j], "%x", &(options->remote_cert_ku[j-1]));
     }
-  else if (streq (p[0], "remote-cert-eku") && p[1])
+  else if (streq (p[0], "remote-cert-eku") && p[1] && !p[2])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->remote_cert_eku = p[1];
     }
-  else if (streq (p[0], "remote-cert-tls") && p[1])
+  else if (streq (p[0], "remote-cert-tls") && p[1] && !p[2])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
 
@@ -6853,37 +6862,37 @@ add_option (struct options *options,
 	  goto err;
 	}
     }
-  else if (streq (p[0], "tls-timeout") && p[1])
+  else if (streq (p[0], "tls-timeout") && p[1] && !p[2])
     {
       VERIFY_PERMISSION (OPT_P_TLS_PARMS);
       options->tls_timeout = positive_atoi (p[1]);
     }
-  else if (streq (p[0], "reneg-bytes") && p[1])
+  else if (streq (p[0], "reneg-bytes") && p[1] && !p[2])
     {
       VERIFY_PERMISSION (OPT_P_TLS_PARMS);
       options->renegotiate_bytes = positive_atoi (p[1]);
     }
-  else if (streq (p[0], "reneg-pkts") && p[1])
+  else if (streq (p[0], "reneg-pkts") && p[1] && !p[2])
     {
       VERIFY_PERMISSION (OPT_P_TLS_PARMS);
       options->renegotiate_packets = positive_atoi (p[1]);
     }
-  else if (streq (p[0], "reneg-sec") && p[1])
+  else if (streq (p[0], "reneg-sec") && p[1] && !p[2])
     {
       VERIFY_PERMISSION (OPT_P_TLS_PARMS);
       options->renegotiate_seconds = positive_atoi (p[1]);
     }
-  else if (streq (p[0], "hand-window") && p[1])
+  else if (streq (p[0], "hand-window") && p[1] && !p[2])
     {
       VERIFY_PERMISSION (OPT_P_TLS_PARMS);
       options->handshake_window = positive_atoi (p[1]);
     }
-  else if (streq (p[0], "tran-window") && p[1])
+  else if (streq (p[0], "tran-window") && p[1] && !p[2])
     {
       VERIFY_PERMISSION (OPT_P_TLS_PARMS);
       options->transition_window = positive_atoi (p[1]);
     }
-  else if (streq (p[0], "tls-auth") && p[1])
+  else if (streq (p[0], "tls-auth") && p[1] && !p[3])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       if (streq (p[1], INLINE_FILE_TAG) && p[2])
@@ -6903,7 +6912,7 @@ add_option (struct options *options,
 	}
       options->tls_auth_file = p[1];
     }
-  else if (streq (p[0], "key-method") && p[1])
+  else if (streq (p[0], "key-method") && p[1] && !p[2])
     {
       int key_method;
 
@@ -6920,7 +6929,7 @@ add_option (struct options *options,
       options->key_method = key_method;
     }
 #ifdef ENABLE_X509ALTUSERNAME
-  else if (streq (p[0], "x509-username-field") && p[1])
+  else if (streq (p[0], "x509-username-field") && p[1] && !p[2])
     {
       /* This option used to automatically upcase the fieldname passed as the
        * option argument, e.g., "ou" became "OU". Now, this "helpfulness" is
@@ -6949,7 +6958,7 @@ add_option (struct options *options,
 #endif /* ENABLE_X509ALTUSERNAME */
 #endif /* ENABLE_CRYPTO */
 #ifdef ENABLE_PKCS11
-  else if (streq (p[0], "show-pkcs11-ids"))
+  else if (streq (p[0], "show-pkcs11-ids") && !p[3])
     {
       char *provider =  p[1];
       bool cert_private = (p[2] == NULL ? false : ( atoi (p[2]) != 0 ));
@@ -7019,35 +7028,35 @@ add_option (struct options *options,
       for (j = 1; j < MAX_PARMS && p[j] != NULL; ++j)
         options->pkcs11_cert_private[j-1] = atoi (p[j]) != 0 ? 1 : 0;
     }
-   else if (streq (p[0], "pkcs11-pin-cache") && p[1])
+   else if (streq (p[0], "pkcs11-pin-cache") && p[1] && !p[2])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->pkcs11_pin_cache_period = atoi (p[1]);
     }
-  else if (streq (p[0], "pkcs11-id") && p[1])
+  else if (streq (p[0], "pkcs11-id") && p[1] && !p[2])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->pkcs11_id = p[1];
     }
-  else if (streq (p[0], "pkcs11-id-management"))
+  else if (streq (p[0], "pkcs11-id-management") && !p[1])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->pkcs11_id_management = true;
     }
 #endif
-  else if (streq (p[0], "rmtun"))
+  else if (streq (p[0], "rmtun") && !p[1])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->persist_config = true;
       options->persist_mode = 0;
     }
-  else if (streq (p[0], "mktun"))
+  else if (streq (p[0], "mktun") && !p[1])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->persist_config = true;
       options->persist_mode = 1;
     }
-  else if (streq (p[0], "peer-id") && p[1])
+  else if (streq (p[0], "peer-id") && p[1] && !p[2])
     {
       VERIFY_PERMISSION (OPT_P_PEER_ID);
       options->use_peer_id = true;
@@ -7068,9 +7077,9 @@ add_option (struct options *options,
             }
         }
       if (file)
-	msg (msglevel, "Unrecognized option or missing parameter(s) in %s:%d: %s (%s)", file, line, p[0], PACKAGE_VERSION);
+	msg (msglevel, "Unrecognized option or missing or extra parameter(s) in %s:%d: %s (%s)", file, line, p[0], PACKAGE_VERSION);
       else
-	msg (msglevel, "Unrecognized option or missing parameter(s): --%s (%s)", p[0], PACKAGE_VERSION);
+	msg (msglevel, "Unrecognized option or missing or extra parameter(s): --%s (%s)", p[0], PACKAGE_VERSION);
     }
  err:
   gc_free (&gc);
