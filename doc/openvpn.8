@@ -2007,6 +2007,11 @@ or
 As of OpenVPN v2.3, this flag is no longer accepted.  In most *nix environments the execve()
 approach has been used without any issues.
 
+Some directives such as \-\-up allow options to be passed to the external
+script. In these cases make sure the script name does not contain any spaces or
+the configuration parser will choke because it can't determine where the script
+name ends and script options start.
+
 To run scripts in Windows in earlier OpenVPN
 versions you needed to either add a full path to the script interpreter which can parse the
 script or use the
