@@ -201,8 +201,6 @@ helper_client_server (struct options *o)
 	o->ifconfig_ipv6_pool_netbits = o->server_netbits_ipv6;
 
 	o->tun_ipv6 = true;
-
-	push_option( o, "tun-ipv6", M_USAGE );
      }
 
   /*

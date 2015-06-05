@@ -412,6 +412,7 @@ struct options
   const char *ifconfig_pool_persist_filename;
   int ifconfig_pool_persist_refresh_freq;
 
+  bool   ccd_enable_ipv6;
   bool   ifconfig_ipv6_pool_defined;			/* IPv6 */
   struct in6_addr ifconfig_ipv6_pool_base;		/* IPv6 */
   int    ifconfig_ipv6_pool_netbits;			/* IPv6 */
