@@ -137,9 +137,6 @@ struct context_persist
  */
 struct context_0
 {
-  /* workspace for get_pid_file/write_pid */
-  struct pid_state pid_state;
-
   /* workspace for --user/--group */
   bool uid_gid_specified;
   bool uid_gid_set;

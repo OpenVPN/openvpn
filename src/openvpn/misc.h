@@ -73,14 +73,7 @@ void run_up_down (const char *command,
 		  const char *script_type,
 		  struct env_set *es);
 
-/* workspace for get_pid_file/write_pid */
-struct pid_state {
-  FILE *fp;
-  const char *filename;
-};
-
-void get_pid_file (const char* filename, struct pid_state *state);
-void write_pid (const struct pid_state *state);
+void write_pid (const char *filename);
 
 /* check file protections */
 void warn_if_group_others_accessible(const char* filename);

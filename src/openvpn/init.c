@@ -2775,15 +2775,9 @@ do_init_first_time (struct context *c)
 	platform_group_get (c->options.groupname, &c0->platform_state_group) |
 	platform_user_get (c->options.username, &c0->platform_state_user);
 
-      /* get --writepid file descriptor */
-      get_pid_file (c->options.writepid, &c0->pid_state);
-
       /* perform postponed chdir if --daemon */
       if (c->did_we_daemonize && c->options.cd_dir == NULL)
 	platform_chdir("/");
-
-      /* save process ID in a file */
-      write_pid (&c0->pid_state);
 
       /* should we change scheduling priority? */
       platform_nice (c->options.nice);
