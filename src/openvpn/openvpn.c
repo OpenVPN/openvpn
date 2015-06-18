@@ -231,7 +231,10 @@ openvpn_main (int argc, char *argv[])
 	  
 	  /* become a daemon if --daemon */
 	  if (c.first_time)
-	    c.did_we_daemonize = possibly_become_daemon (&c.options);
+	    {
+	      c.did_we_daemonize = possibly_become_daemon (&c.options);
+	      write_pid (c.options.writepid);
+	    }
 
 #ifdef ENABLE_MANAGEMENT
 	  /* open management subsystem */

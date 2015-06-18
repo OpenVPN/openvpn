@@ -127,30 +127,21 @@ run_up_down (const char *command,
   gc_free (&gc);
 }
 
-/* Get the file we will later write our process ID to */
-void
-get_pid_file (const char* filename, struct pid_state *state)
-{
-  CLEAR (*state);
-  if (filename)
-    {
-      state->fp = platform_fopen (filename, "w");
-      if (!state->fp)
-	msg (M_ERR, "Open error on pid file %s", filename);
-      state->filename = filename;
-    }
-}
-
 /* Write our PID to a file */
 void
-write_pid (const struct pid_state *state)
+write_pid (const char *filename)
 {
-  if (state->filename && state->fp)
+  if (filename)
     {
-      unsigned int pid = platform_getpid (); 
-      fprintf(state->fp, "%u\n", pid);
-      if (fclose (state->fp))
-	msg (M_ERR, "Close error on pid file %s", state->filename);
+      unsigned int pid = 0;
+      FILE *fp = platform_fopen (filename, "w");
+      if (!fp)
+	msg (M_ERR, "Open error on pid file %s", filename);
+
+      pid = platform_getpid ();
+      fprintf(fp, "%u\n", pid);
+      if (fclose (fp))
+	msg (M_ERR, "Close error on pid file %s", filename);
     }
 }
 
