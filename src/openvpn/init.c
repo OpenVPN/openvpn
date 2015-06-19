@@ -1064,6 +1064,10 @@ do_init_timers (struct context *c, bool deferred)
   if (c->options.inactivity_timeout)
     event_timeout_init (&c->c2.inactivity_interval, c->options.inactivity_timeout, now);
 
+  /* initialize session timeout */
+  if (c->options.session_timeout)
+    event_timeout_init (&c->c2.session_interval, c->options.session_timeout, now);
+
   /* initialize pings */
 
   if (c->options.ping_send_timeout)

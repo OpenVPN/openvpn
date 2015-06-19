@@ -322,6 +322,16 @@ check_inactivity_timeout_dowork (struct context *c)
   register_signal (c, SIGTERM, "inactive");
 }
 
+/*
+ * Should we exit due to session timeout?
+ */
+void
+check_session_timeout_dowork (struct context *c)
+{
+  msg (M_INFO, "Session timeout (--session), exiting");
+  register_signal (c, SIGTERM, "session");
+}
+
 #if P2MP
 
 void
@@ -527,6 +537,11 @@ process_coarse_timers (struct context *c)
   if (c->sig->signal_received)
     return;
 
+  /* possibly exit due to --session */
+  check_session_timeout (c);
+  if (c->sig->signal_received)
+    return;
+  
   /* restart if ping not received */
   check_ping_restart (c);
   if (c->sig->signal_received)

@@ -299,6 +299,9 @@ struct context_2
   struct event_timeout inactivity_interval;
   int inactivity_bytes;
 
+  /* --session */
+  struct event_timeout session_interval;
+  
 #ifdef ENABLE_OCC
   /* the option strings must match across peers */
   char *options_string_local;

@@ -118,6 +118,19 @@ check_inactivity_timeout (struct context *c)
     check_inactivity_timeout_dowork (c);
 }
 
+/*
+ * Should we exit due to session timeout?
+ */
+static inline void
+check_session_timeout (struct context *c)
+{
+  void check_session_timeout_dowork (struct context *c);
+
+  if (c->options.session_timeout
+      && event_timeout_trigger (&c->c2.session_interval, &c->c2.timeval, ETT_DEFAULT))
+    check_session_timeout_dowork (c);
+}
+
 #if P2MP
 
 static inline void
