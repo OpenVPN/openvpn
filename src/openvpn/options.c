@@ -3703,10 +3703,15 @@ read_inline_file (struct in_src *is, const char *close_tag, struct gc_arena *gc)
   char line[OPTION_LINE_SIZE];
   struct buffer buf = alloc_buf (8*OPTION_LINE_SIZE);
   char *ret;
+  bool endtagfound = false;
+
   while (in_src_get (is, line, sizeof (line)))
     {
       if (!strncmp (line, close_tag, strlen (close_tag)))
-	break;
+	{
+	  endtagfound = true;
+	  break;
+	}
       if (!buf_safe (&buf, strlen(line)))
 	{
 	  /* Increase buffer size */
@@ -3718,6 +3723,8 @@ read_inline_file (struct in_src *is, const char *close_tag, struct gc_arena *gc)
 	}
       buf_printf (&buf, "%s", line);
     }
+  if (!endtagfound)
+    msg (M_FATAL, "ERROR: Endtag %s missing", close_tag);
   ret = string_alloc (BSTR (&buf), gc);
   buf_clear (&buf);
   free_buf (&buf);
