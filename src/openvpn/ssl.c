@@ -301,8 +301,9 @@ tls_init_control_channel_frame_parameters(const struct frame *data_channel_frame
   reliable_ack_adjust_frame_parameters (frame, CONTROL_SEND_ACK_MAX);
   frame_add_to_extra_frame (frame, SID_SIZE + sizeof (packet_id_type));
 
-  /* set dynamic link MTU to minimum value */
-  frame_set_mtu_dynamic (frame, 0, SET_MTU_TUN);
+  /* set dynamic link MTU to cap control channel packets at 1250 bytes */
+  ASSERT (TUN_LINK_DELTA (frame) < min_int (frame->link_mtu, 1250));
+  frame->link_mtu_dynamic = min_int (frame->link_mtu, 1250) - TUN_LINK_DELTA (frame);
 }
 
 void
