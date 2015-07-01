@@ -45,6 +45,10 @@
 #define srandom srand
 #endif
 
+#ifdef _MSC_VER // Visual Studio
+#define __func__ __FUNCTION__
+#endif
+
 #if defined(__APPLE__)
 #if __ENVIRONMENT_MAC_OS_X_VERSION_MIN_REQUIRED__ >= 1070
 #define __APPLE_USE_RFC_3542  1
