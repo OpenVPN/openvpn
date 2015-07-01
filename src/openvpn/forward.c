@@ -212,8 +212,8 @@ check_connection_established_dowork (struct context *c)
 					0);
 		}
 #endif
-	      /* send push request in 1 sec */
-	      event_timeout_init (&c->c2.push_request_interval, 1, now);
+	      /* fire up push request right away (already 1s delayed) */
+	      event_timeout_init (&c->c2.push_request_interval, 0, now);
 	      reset_coarse_timers (c);
 	    }
 	  else
