@@ -63,6 +63,11 @@ void init_instance_handle_signals (struct context *c, const struct env_set *env,
 
 void init_instance (struct context *c, const struct env_set *env, const unsigned int flags);
 
+/**
+ * Query for private key and auth-user-pass username/passwords.
+ */
+void init_query_passwords (const struct context *c);
+
 void do_route (const struct options *options,
 	       struct route_list *route_list,
 	       struct route_ipv6_list *route_ipv6_list,

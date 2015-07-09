@@ -228,7 +228,10 @@ openvpn_main (int argc, char *argv[])
 	  /* test crypto? */
 	  if (do_test_crypto (&c.options))
 	    break;
-	  
+
+	  /* Query passwords before becoming a daemon */
+	  init_query_passwords (&c);
+
 	  /* become a daemon if --daemon */
 	  if (c.first_time)
 	    {
