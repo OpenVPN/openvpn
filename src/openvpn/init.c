@@ -389,8 +389,8 @@ next_connection_entry (struct context *c)
 /*
  * Query for private key and auth-user-pass username/passwords
  */
-static void
-init_query_passwords (struct context *c)
+void
+init_query_passwords (const struct context *c)
 {
 #if defined(ENABLE_CRYPTO) && defined(ENABLE_SSL)
   /* Certificate password input */
@@ -519,8 +519,6 @@ context_init_1 (struct context *c)
   packet_id_persist_init (&c->c1.pid_persist);
 
   init_connection_list (c);
-
-  init_query_passwords (c);
 
 #if defined(ENABLE_PKCS11)
   if (c->first_time) {
