@@ -49,6 +49,13 @@ typedef X509 openvpn_x509_cert_t;
 extern "C" {
 #endif
 
+/* Provide some basic version information to plug-ins at OpenVPN compile time
+ * This is will not be the complete version
+ */
+#define OPENVPN_VERSION_MAJOR @OPENVPN_VERSION_MAJOR@
+#define OPENVPN_VERSION_MINOR @OPENVPN_VERSION_MINOR@
+#define OPENVPN_VERSION_PATCH "@OPENVPN_VERSION_PATCH@"
+
 /*
  * Plug-in types.  These types correspond to the set of script callbacks
  * supported by OpenVPN.
