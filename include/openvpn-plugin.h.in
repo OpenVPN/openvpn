@@ -215,8 +215,11 @@ struct openvpn_plugin_string_list
  *           which identifies the SSL implementation OpenVPN is compiled
  *           against.
  *
+ *    3      Added ovpn_version, ovpn_version_major, ovpn_version_minor
+ *           and ovpn_version_patch to provide the runtime version of
+ *           OpenVPN to plug-ins.
  */
-#define OPENVPN_PLUGINv3_STRUCTVER 2
+#define OPENVPN_PLUGINv3_STRUCTVER 3
 
 /**
  * Definitions needed for the plug-in callback functions.
@@ -311,6 +314,10 @@ struct openvpn_plugin_args_open_in
   const char ** const envp;
   struct openvpn_plugin_callbacks *callbacks;
   const ovpnSSLAPI ssl_api;
+  const char *ovpn_version;
+  const unsigned int ovpn_version_major;
+  const unsigned int ovpn_version_minor;
+  const char * const ovpn_version_patch;
 };
 
 

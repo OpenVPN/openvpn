@@ -27,6 +27,9 @@
 #elif defined(_MSC_VER)
 #include "config-msvc.h"
 #endif
+#ifdef HAVE_CONFIG_VERSION_H
+#include "config-version.h"
+#endif
 
 #include "syshead.h"
 
@@ -347,6 +350,17 @@ static struct openvpn_plugin_callbacks callbacks = {
   plugin_vlog
 };
 
+
+/* Provide a wrapper macro for a version patch level string to plug-ins.
+ * This is located here purely to not make the code too messy with #ifndef
+ * inside a struct declaration
+ */
+#ifndef CONFIGURE_GIT_REVISION
+# define _OPENVPN_PATCH_LEVEL OPENVPN_VERSION_PATCH
+#else
+# define _OPENVPN_PATCH_LEVEL "git:" CONFIGURE_GIT_REVISION CONFIGURE_GIT_FLAGS
+#endif
+
 static void
 plugin_open_item (struct plugin *p,
 		  const struct plugin_option *o,
@@ -375,7 +389,12 @@ plugin_open_item (struct plugin *p,
                                                     (const char ** const) o->argv,
                                                     (const char ** const) envp,
                                                     &callbacks,
-                                                    SSLAPI };
+                                                    SSLAPI,
+                                                    PACKAGE_VERSION,
+                                                    OPENVPN_VERSION_MAJOR,
+                                                    OPENVPN_VERSION_MINOR,
+                                                    _OPENVPN_PATCH_LEVEL
+        };
         struct openvpn_plugin_args_open_return retargs;
 
         CLEAR(retargs);
