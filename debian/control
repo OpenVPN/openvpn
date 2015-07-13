@@ -1,0 +1,28 @@
+Source: openvpn
+Section: net
+Priority: optional
+Maintainer: Alberto Gonzalez Iniesta <agi@inittab.org>
+Build-Depends: debhelper (>= 7.0.50~), libssl-dev (>> 0.9.8g-9), liblzo2-dev, libpam0g-dev, libpkcs11-helper1-dev, pkg-config, dpkg-dev (>= 1.16.1), iproute2 [linux-any], net-tools [!linux-any], dh-systemd (>= 1.5)
+Standards-Version: 3.9.5
+Homepage: http://www.openvpn.net/
+Vcs-Git: git://anonscm.debian.org/collab-maint/openvpn.git
+Vcs-Browser: http://anonscm.debian.org/gitweb/?p=collab-maint/openvpn.git
+
+Package: openvpn
+Architecture: any
+Depends: debconf | debconf-2.0, ${shlibs:Depends}, ${misc:Depends}, initscripts (>= 2.88dsf-13.3), iproute2 [linux-any], net-tools [!linux-any]
+Suggests: openssl, resolvconf
+Recommends: easy-rsa
+Description: virtual private network daemon
+ OpenVPN is an application to securely tunnel IP networks over a
+ single UDP or TCP port. It can be used to access remote sites, make
+ secure point-to-point connections, enhance wireless security, etc.
+ .
+ OpenVPN uses all of the encryption, authentication, and certification
+ features provided by the OpenSSL library (any cipher, key size, or
+ HMAC digest).
+ .
+ OpenVPN may use static, pre-shared keys or TLS-based dynamic key exchange. It
+ also supports VPNs with dynamic endpoints (DHCP or dial-up clients), tunnels
+ over NAT or connection-oriented stateful firewalls (such as Linux's iptables).
+

@@ -1,0 +1,36 @@
+# This is the configuration file for /etc/init.d/openvpn
+
+#
+# Start only these VPNs automatically via init script.
+# Allowed values are "all", "none" or space separated list of
+# names of the VPNs. If empty, "all" is assumed.
+# The VPN name refers to the VPN configutation file name.
+# i.e. "home" would be /etc/openvpn/home.conf
+#
+# If you're running systemd, changing this variable will
+# require running "systemctl daemon-reload" followed by
+# a restart of the openvpn service (if you removed entries
+# you may have to stop those manually)
+#
+#AUTOSTART="all"
+#AUTOSTART="none"
+#AUTOSTART="home office"
+#
+# WARNING: If you're running systemd the rest of the
+# options in this file are ignored.
+#
+# Refresh interval (in seconds) of default status files
+# located in /var/run/openvpn.$NAME.status
+# Defaults to 10, 0 disables status file generation
+#
+#STATUSREFRESH=10
+#STATUSREFRESH=0
+# Optional arguments to openvpn's command line
+OPTARGS=""
+#
+# If you need openvpn running after sendsigs, i.e.
+# to let umountnfs work over the vpn, set OMIT_SENDSIGS
+# to 1 and include umountnfs as Required-Stop: in openvpn's
+# init.d script (remember to run insserv after that)
+#
+OMIT_SENDSIGS=0

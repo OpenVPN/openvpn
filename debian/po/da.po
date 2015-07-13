@@ -1,0 +1,70 @@
+# Danish translation for openvpn.
+# Copyright (C) 2010 topenvpn og nedenstående oversættere.
+# This file is distributed under the same license as the openvpn package.
+# Claus Hindsgaul <claus.hindsgaul@gmail.com>, 2004, 2005, 2006.
+# Joe Hansen (joedalton2@yahoo.dk), 2010.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: openvpn\n"
+"Report-Msgid-Bugs-To: openvpn@packages.debian.org\n"
+"POT-Creation-Date: 2011-05-10 17:48+0200\n"
+"PO-Revision-Date: 2010-12-30 19:25+0200\n"
+"Last-Translator: Joe Hansen <joedalton2@yahoo.dk>\n"
+"Language-Team: Danish <debian-l10n-danish@lists.debian.org>\n"
+"Language: da\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#. Type: boolean
+#. Description
+#: ../templates:2001
+msgid "Create the TUN/TAP device?"
+msgstr "Opret TUN/TAP-enheden?"
+
+#. Type: boolean
+#. Description
+#: ../templates:2001
+msgid ""
+"If you choose this option, the /dev/net/tun device needed by OpenVPN will be "
+"created."
+msgstr ""
+"Hvis du vælger denne indstilling, vil enheden /dev/net/tun krævet af OpenVPN "
+"blive oprettet."
+
+#. Type: boolean
+#. Description
+#: ../templates:2001
+msgid "You should not choose this option if you're using devfs."
+msgstr "Du bør ikke vælge denne indstilling, hvis du bruger devfs."
+
+#~ msgid "Vulnerable random number generator"
+#~ msgstr "Sårbar tilfældighedsgenerator"
+
+#~ msgid ""
+#~ "A weakness has been discovered in the random number generator used by "
+#~ "OpenSSL on Ubuntu and Debian systems.  As a result of this weakness, "
+#~ "certain encryption keys are generated much more frequently than they "
+#~ "should be, such that an attacker could guess the key through a brute-"
+#~ "force attack given minimal knowledge of the system."
+#~ msgstr ""
+#~ "En svaghed er blevet opdaget i tilfældighedsgeneratoren brugt af OpenSSL "
+#~ "på Ubuntu- og Debiansystemer. Som en følge af denne svaghed, bliver "
+#~ "bestemte krypteringsnøgler oprettet oftere end de burde, hvormed en "
+#~ "angriber kan gætte nøglen via et brute force-angreb og minimal viden om "
+#~ "systemet."
+
+#~ msgid ""
+#~ "Any keys created on a vulnerable system may be affected by this problem. "
+#~ "The 'openssl-vulnkey' command may be used as a partial test for RSA keys "
+#~ "with certain bit sizes, and the 'openvpn-vulnkey' for OpenVPN shared "
+#~ "secret keys. Users are urged to verify their keys or simply regenerate "
+#~ "any server or client certificates and keys in use on the system."
+#~ msgstr ""
+#~ "Alle nøgler oprettet på et sårbart system kan være påvirket af dette "
+#~ "problem. Kommandoen »openssl-vulnkey« kan bruges som en delvis test for "
+#~ "RSA-nøgler med bestemte bitstørrelser, og »openvpn-vulnkey« for delte og "
+#~ "hemmelige OpenVPN-nøgler. Det anbefales stærkt, at brugere verificerer "
+#~ "deres nøgler eller simpelthen gendanner alle server- eller "
+#~ "klientcertifikater og -nøgler, som er i brug på deres system."

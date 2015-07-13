@@ -1,0 +1,2 @@
+version=3
+http://swupdate.openvpn.net/community/releases/ openvpn-(.*)\.tar\.gz

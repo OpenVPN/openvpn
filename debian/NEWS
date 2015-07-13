@@ -1,0 +1,75 @@
+openvpn (2.3~rc1-1) experimental; urgency=low
+    
+    auth-pam and down-root plugins renamed to:
+    openvpn-plugin-auth-pam.so
+    openvpn-plugin-down-root.so
+
+ -- Alberto Gonzalez Iniesta <agi@inittab.org>  Tue, 06 Nov 2012 13:22:13 +0100
+
+openvpn (2.1~rc15-1) unstable; urgency=low
+
+    The openvpn utility changed its handling of pkcs11 certificates when it
+    switched from built-in code to the pkcs11-helper library (package
+    libpkcs11-helper1 on Debian). This means that you will have to update your
+    openvpn configuration files if you are using such certificates. For
+    example, a stanza in a configuration file might previously have referred to
+    a given pkcs11 certificate like this:
+
+      pkcs11-providers /usr/lib/opensc-pkcs11.so
+      pkcs11-slot-type id
+      pkcs11-slot 0
+      pkcs11-id-type label
+      pkcs11-id "YOUR_LABEL"
+
+    This stanza has to be rewritten now in the following way:
+
+      pkcs11-providers /usr/lib/opensc-pkcs11.so
+      pkcs11-id 'YOUR_PKCS11_SERIALIZED_ID'
+
+    The pkcs11-slot, pkcs11-slot-type, pkcs11-id-type options are obsolete;
+    a long ID string that is unique for each certificate is now used as the
+    only identifier. Note that YOUR_PKCS11_SERIALIZED_ID will almost
+    certainly be different from YOUR_LABEL that you used previously with the
+    pkcs11-id option. To find out the correct serialized ID(s) for your
+    certificate(s), you have to query the pkcs11-provider library:
+
+      $ openvpn --show-pkcs11-ids /usr/lib/opensc-pkcs11.so 
+    
+    The following objects are available for use.
+    Each object shown below may be used as parameter to --pkcs11-id option
+    please remember to use single quote mark.
+    
+      Certificate
+           DN:             /CN=YOUR_USER
+           Serial:         SERIAL_NUMBER
+           Serialized id:  YOUR_PKCS11_SERIALIZED_ID
+
+    You have to paste YOUR_PKCS11_SERIALIZED_ID as seen in this output into
+    your openvpn configuration file and make sure that the string is enclosed
+    in single quotation marks.
+
+    The example above assumes that your cryptographic token can be accessed
+    via the opensc-pkcs11.so library from libopensc2. If you have to use
+    another library, for example a proprietary driver from the vendor of your
+    token, then you have to adapt both the stanza in the configuration file
+    and the path given on the command line accordingly.
+
+    Florian Kulzer
+
+ -- Alberto Gonzalez Iniesta <agi@inittab.org>  Thu, 30 Apr 2009 12:35:05 +0200
+
+openvpn (2.1~rc9-3) unstable; urgency=low
+
+    Calling of external commands/scripts 
+
+    Starting with version 2.1~rc9, openvpn has a new option to control the
+    ability to execute external commands (--script-security).
+
+    By default (script-security 1) it will only allow the execution of
+    built-in commands (ip, ifconfig, route,...). If you require the execution
+    of external commands, such as /etc/openvpn/update-resolv-conf, you'll have
+    to include the following option in your configuration file:
+    script-security 2
+
+ -- Alberto Gonzalez Iniesta <agi@inittab.org>  Sat, 16 Aug 2008 13:34:24 +0200
+

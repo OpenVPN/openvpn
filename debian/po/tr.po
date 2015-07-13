@@ -1,0 +1,40 @@
+# Turkish translation of openvpn package
+# Copyright (C) 2014 Mert Dirik
+# This file is distributed under the same license as the openvpn package.
+# Mert Dirik <mertdirik@gmail.com>, 2014.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: openvpn 2.3.2-9\n"
+"Report-Msgid-Bugs-To: openvpn@packages.debian.org\n"
+"POT-Creation-Date: 2011-05-10 17:48+0200\n"
+"PO-Revision-Date: 2014-08-30 22:55+0200\n"
+"Last-Translator: Mert Dirik <mertdirik@gmail.com>\n"
+"Language-Team: Debian L10n Turkish <debian-l10n-turkish@lists.debian.org>\n"
+"Language: tr\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Generator: Poedit 1.5.4\n"
+
+#. Type: boolean
+#. Description
+#: ../templates:2001
+msgid "Create the TUN/TAP device?"
+msgstr "TUN/TAP aygıtı oluşturulsun mu?"
+
+#. Type: boolean
+#. Description
+#: ../templates:2001
+msgid ""
+"If you choose this option, the /dev/net/tun device needed by OpenVPN will be "
+"created."
+msgstr ""
+"Bu seçeneği seçtiğiniz takdirde OpenVPN'in gereksinim duyduğu /dev/net/tun "
+"aygıtı oluşturulacak."
+
+#. Type: boolean
+#. Description
+#: ../templates:2001
+msgid "You should not choose this option if you're using devfs."
+msgstr "devfs kullanıyorsanız bu seçeneği seçmeyin."

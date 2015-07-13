@@ -1,0 +1,238 @@
+In this file:
+
+- 'writepid' option warning
+- Multiple tunnels
+- Starting or stopping multiple tunnels with a single command
+- Compatibility notes on 2.x vs 1.x #
+- Changes in string remapping (affects tls-remote certificate names)
+- plugin support
+- Using resolvconf
+- Out of memory issues
+- LDAP+TLS authentication runs into file exhaustion
+- Possible consequences of the 'chroot' option
+- Disabling all.send_redirects on tun + topology subnet setups
+
+
+openvpn for Debian
+------------------
+
+Documentation to get OpenVPN to work is mostly on the openvpn(8) man page.
+You'll find example configuration files and additional docs in the 
+/usr/share/doc/openvpn/examples directory.
+
+OpenVPN requires TUN/TAP driver support in the kernel. You'll also need a 
+tun device file. If it's not present on your system, you may create one
+with these commands (as root):
+# mkdir /dev/net
+# mknod /dev/net/tun c 10 200
+
+'writepid' option warning
+-------------------------
+
+Don't specify a 'writepid' option in the .conf files, or the init.d 
+script won't be able to stop/reload the tunnels.
+
+Multiple tunnels
+----------------
+
+When OpenVPN is started by /etc/init.d/openvpn the default is to start
+a separate openvpn daemon for each .conf configuration file in the
+/etc/openvpn directory.  The /etc/default/openvpn file may be used to
+alter this behavior.
+
+[UPDATE: with OpenVPN 2.0 one openvpn daemon can serve multiple clients. That
+way multiple instances of openvpn are no longer required to achieve this, and
+one configuration file should be enough for these cases. Take a look at the
+'Multi-Client Server options' on the man page]
+
+Be sure that each .conf file defines a different local port
+number with the "port" or "lport" options; see the openvpn
+man page for more information.
+
+Starting or stopping multiple tunnels with a single command
+-----------------------------------------------------------
+
+It is now possible to specify multiple tunnel names to the init.d script.
+Just put the names after the action (start|stop), like this:
+
+/etc/init.d/openvpn start vpn1 vpn4 vpn5
+
+This only works with sysvinit(-core), if you're running systemd, you cannot
+pass arguments to init.d scripts. 
+
+In order to start/stop a particular VPN you may use:
+# service openvpn@VPN_NAME start
+or
+# systemctl start openvpn@VPN_NAME
+
+/etc/network/interfaces
+-----------------------
+
+/etc/network/interfaces can be configured to start and stop openvpn when the
+underlying network interface is brought up and down. To do so add a line such
+as "openvpn vpn1" to the stanza for the underlying network interface, where
+"vpn1" is the name of the vpn to start and stop.
+
+It is possible to control vpn interfaces using the standard ifup/ifdown
+commands. This is helpful in case you want tunnels to be started right
+after physical networks, so any network filesystems listed in fstab can be
+mounted during the standard boot sequence. In order to do this several
+steps need to be taken:
+
+-   Select a specific tun/tap device name using the 'dev' option in your
+    config file (e.g. dev tun_work). This will ensure that the name you
+    use in /etc/network/interfaces will always match the one this vpn 
+    will utilize.
+    
+-   Create a 'manual' type interface entry in /etc/network/interfaces. 
+    There should be only one option - openvpn, which takes a config file
+    name as the argument (without the .conf suffix) For example:
+    
+    auto tun_work
+    iface tun_work inet manual
+        openvpn work_vpn
+
+-   You should prevent openvpn from trying to start this tunnel when its
+    own init script runs, since the interface is already up. This is done 
+    in /etc/default/openvpn by changing the AUTOSTART option as described 
+    in the same file
+
+
+If you'd like to use a bridged setup (utilizing a tap device) Debian provides
+some helper tools in the bridge-utils package to help you setting up your
+bridge via /etc/network/interfaces.
+
+An easy example, creating a bridge interface 'br0' from 'eth0' and 'tap0',
+can look like this:
+
+      auto lo br0 eth1
+      allow-hotplug eth0
+
+      iface br0 inet static
+      address 192.168.1.1
+      network 192.168.1.0
+      netmask 255.255.255.0
+      broadcast 192.168.1.255
+      bridge_ports eth0 tap0
+      pre-up openvpn --mktun --dev tap0
+
+It's recommended to read the manpage - man 5 bridge-utils-interfaces - aswell.
+
+
+#####################################
+# Compatibility notes on 2.x vs 1.x #
+#####################################
+
+In version 2.0, --tun-mtu 1500 --mssfix 1450 is now the default. In 1.x the
+default is --link-mtu 1300 for tun interfaces and --tun-mtu 1500 for tap
+interfaces, with --mssfix disabled).
+
+Also in version 2.0, when using TLS, --key-method 2 is now the default, 
+it was 1 in versions 1.x.
+
+To sum up, to make 2.0 work with 1.x put the following in the 1.x configuration
+files:
+
+  tun-mtu 1500
+  tun-mtu-extra 32
+  mssfix 1450
+  key-method 2   ## (if you're using TLS)
+
+
+Or, in case you'd rather not modify the 1.x configuration, set the 2.x side
+configuration like this:
+
+If using TLS:
+  key-method 1
+If "dev tun":
+  link-mtu 1300
+If "dev tap":
+  tun-mtu 1500
+  tun-mtu-extra 32
+
+OpenVPN 1.x won't be able to act as a client against a OpenVPN 2.x 
+acting as multiple client server. OpenVPN 1.x can only work with 2.x
+in point-to-point tunnels.
+
+Changes in string remapping
+---------------------------
+
+Quoting James Yonan:
+"Prior to 2.0-beta12, the string remapping code was a bit ad-hoc.  Since then
+I've tried to unify all string remapping towards a consistent model which
+remaps illegal chars to '_'.  The choice of underbar is arbitrary -- any inert
+character will do."
+
+So, you must use '_' instead of '.' to represent spaces in certificates names
+from now on.
+
+plugin support
+--------------
+
+Plugins are now included in the package. They get installed in /usr/lib/openvpn.
+Info on what they are and what they do in README.auth-pam and README.down-root.
+Append /usr/lib/openvpn/ to the plugin name in the plugin option. 
+i.e. 
+	plugin /usr/lib/openvpn/openvpn-auth-pam.so [service-type]
+
+Using resolvconf
+----------------
+
+Have a look at the shell script /etc/openvpn/update-resolv-conf
+It parses DHCP options from openvpn to update /etc/resolv.conf 
+To use set as 'up' and 'down' script in your openvpn *.conf:   
+
+up /etc/openvpn/update-resolv-conf
+down /etc/openvpn/update-resolv-conf
+
+You will need to install resolvconf package.
+
+Out of Memory issues
+-------------------
+
+You might run into issues with openvpn complaining about out of memory. The
+reason for this behavior is that openvpn uses mlockall to pin all of its
+pages into memory. To correct this issue you can put a "ulimit -l
+<reasonable number>" in the openvpn init script.
+
+LDAP+TLS authentication runs into file exhaustion
+-------------------------------------------------
+
+When LDAP is used with TLS support a file handle to /dev/urandom is created but
+never released on every authentication. This is due to a bug in libgcrypt. 
+
+Lars Ellenberg provided the following worked around: 
+Append LD_PRELOAD=/lib/security/pam_ldap.so before the call to openvpn (in the
+init.d script). ie:
+
+..... (around line 58 of the init.d script)....
+LD_PRELOAD=/lib/security/pam_ldap.so start-stop-daemon --start --quiet --oknodo 
+
+Thanks Andreas Metzler, Lars Ellenberg, Simon Josefsson & chantra for folling
+this issue.
+
+
+Possible consequences of the 'chroot' option
+--------------------------------------------
+
+When running OpenVPN on a chroot environment you have to take into account that
+things as /dev/log may change (i.e. when syslog is reloaded by logrotate) and
+that may result in OpenVPN not logging anymore.
+
+Christian Schneider suggested this solution:
+Create an additional "dev/log" socket in the jail by "-a" option to sysklogd or
+"$AddUnixListenSocket" parameter in /etc/rsyslog.conf, respectively
+
+Kudos to him, for finding out and proposing a solution.
+
+
+Disabling all.send_redirects on tun + topology subnet setups
+------------------------------------------------------------
+
+If any of your VPNs uses "dev tun" and "topology subnet" but does not use
+"client-to-client", OpenVPN's init.d script will disable all.send_redirects
+(set it to 0) to avoid sending ICMP redirects trough the tun interfaces (and
+confusing clients).
+
+
+ -- Alberto Gonzalez Iniesta <agi@inittab.org>  Fri, 24 Feb 2012 11:03:50 +0100

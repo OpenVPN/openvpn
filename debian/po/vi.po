@@ -1,0 +1,152 @@
+# Vietnamese translation for openvpn.
+# Copyright © 2008 Free Software Foundation, Inc.
+# Clytie Siddall <clytie@riverland.net.au>, 2005-2008.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: openvpn 2.1~rc7-2\n"
+"Report-Msgid-Bugs-To: openvpn@packages.debian.org\n"
+"POT-Creation-Date: 2011-05-10 17:48+0200\n"
+"PO-Revision-Date: 2008-05-24 15:54+0930\n"
+"Last-Translator: Clytie Siddall <clytie@riverland.net.au>\n"
+"Language-Team: Vietnamese <vi-VN@googlegroups.com>\n"
+"Language: vi\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"X-Generator: LocFactoryEditor 1.7b3\n"
+
+#. Type: boolean
+#. Description
+#: ../templates:2001
+msgid "Create the TUN/TAP device?"
+msgstr "Tạo thiết bị TUN/TAP không?"
+
+#. Type: boolean
+#. Description
+#: ../templates:2001
+msgid ""
+"If you choose this option, the /dev/net/tun device needed by OpenVPN will be "
+"created."
+msgstr "Bật tùy chọn này thì tạo thiết bị « /dev/net/tun » được OpenVPN cần."
+
+#. Type: boolean
+#. Description
+#: ../templates:2001
+msgid "You should not choose this option if you're using devfs."
+msgstr "Không nên bật tùy chọn này nếu bạn đang dùng devfs."
+
+#~ msgid "Vulnerable random number generator"
+#~ msgstr "Cơ chế tạo ra số ngẫu nhiên còn có thể lạm dụng"
+
+#~ msgid ""
+#~ "A weakness has been discovered in the random number generator used by "
+#~ "OpenSSL on Ubuntu and Debian systems.  As a result of this weakness, "
+#~ "certain encryption keys are generated much more frequently than they "
+#~ "should be, such that an attacker could guess the key through a brute-"
+#~ "force attack given minimal knowledge of the system."
+#~ msgstr ""
+#~ "Một sở đoản đã được phát hiện trong cơ chế tạo ra số ngẫu nhiên được "
+#~ "OpenSSL dùng trên hệ thống Ubuntu và Debian. Kết quả của sở đoản này là "
+#~ "một số khoá mật mã được tạo rất nhiều lần hơn số nên tạo, thì cho phép "
+#~ "người tấn công đoán khoá thông qua một sự tấn công sức mạnh vũ phu, không "
+#~ "cần biết nhiều về hệ thống đó."
+
+#~ msgid ""
+#~ "Any keys created on a vulnerable system may be affected by this problem. "
+#~ "The 'openssl-vulnkey' command may be used as a partial test for RSA keys "
+#~ "with certain bit sizes, and the 'openvpn-vulnkey' for OpenVPN shared "
+#~ "secret keys. Users are urged to verify their keys or simply regenerate "
+#~ "any server or client certificates and keys in use on the system."
+#~ msgstr ""
+#~ "Bất cứ khoá nào được tạo trên hệ thống sử dụng gói OpenSSL của Debian thì "
+#~ "bị vấn đề này ảnh hưởng. Có thể sử dụng câu lệnh « openssl-vulnkey » làm "
+#~ "phép thử bộ phận phát hiện khoá RSA có một số kích cỡ cụ thể, và câu lệnh "
+#~ "« openvpn-vulnkey » phát hiện khoá mật chia sẻ OpenVPN. Khuyên mọi người "
+#~ "dùng thẩm tra các khoá hoặc đơn giản tạo ra bất cứ khoá hay chứng nhận "
+#~ "nào kiểu máy phục vụ hay trình khách được dùng trên hệ thống đó."
+
+#~ msgid "Would you like to start openvpn sooner?"
+#~ msgstr "Bạn có muốn khởi chạy trình openvpn sớm hơn không?"
+
+#~ msgid ""
+#~ "Previous versions of openvpn started at the same time as most of other "
+#~ "services. This means that most of these services couldn't use openvpn "
+#~ "since it may have been unavailable when they started. Newer versions of "
+#~ "the openvpn package will start earlier. (i.e. a S16openvpn link in rc"
+#~ "[235].d instead of a S20openvpn)"
+#~ msgstr ""
+#~ "Phiên bản trước của trình openvpn đã khởi chạy cùng lúc với phần lớn dịch "
+#~ "vụ khác. Có nghĩa là phần lớn dịch vụ này không thể dùng openvpn, vì nó "
+#~ "có lẽ không sẵn sàng khi mỗi dịch vụ khởi chạy. Phiên bản mới hơn của gói "
+#~ "openvn sẽ khởi chạy sớm hơn trong những cấp khởi chạy Debian (tức là một "
+#~ "liên kết « S16openvpn » trong « rc[235].d » thay vào « S20openvpn »)."
+
+#~ msgid ""
+#~ "If you accept here, the package upgrade will make this change for you. If "
+#~ "you refuse, nothing will change, and openvpn will be working just like it "
+#~ "did before."
+#~ msgstr ""
+#~ "Chấp nhận ở đây thì tiến trình nâng cấp gói sẽ làm thay đổi này cho bạn. "
+#~ "Từ chối thì không thay đổi gì: openvpn sẽ hoạt động đúng như trước."
+
+#~ msgid "Stop OpenVPN when upgraded?"
+#~ msgstr "Nâng cấp thì dừng OpenVPN không?"
+
+#~ msgid ""
+#~ "The upgrade process stops the running daemon before  installing the new "
+#~ "version. If you are installing or upgrading the system remotely, that "
+#~ "could break the upgrade process."
+#~ msgstr ""
+#~ "Tiến trình nâng cấp sẽ dừng chạy trình nền trước khi cài đặt phiên bản "
+#~ "mới. Nếu bạn đang cài đặt hoặc nâng cấp hệ thống từ xa, tiến trình nâng "
+#~ "cấp có thể bị phá vỡ."
+
+#~ msgid ""
+#~ "Unless upgrades are performed locally, you should choose to not stop "
+#~ "OpenVPN before it is upgraded. The installation process will restart it "
+#~ "once the upgrade is completed."
+#~ msgstr ""
+#~ "Nếu không nâng cấp cục bộ, bạn nên chọn không dừng OpenVPN trước khi nâng "
+#~ "cấp nó. Tiến trình cài đặt sẽ khởi chạy lại một khi nâng cấp xong."
+
+#~ msgid "This option will take effect for the next upgrade."
+#~ msgstr "Tùy chọn này sẽ có tác động việc nâng cấp kế tiếp."
+
+#~ msgid "Default port has changed"
+#~ msgstr "Cổng mặc định đã thay đổi"
+
+#~ msgid ""
+#~ "OpenVPN's default port has changed from 5000 to 1194 (IANA assigned). If "
+#~ "you don't specify the port to be used on your VPNs, this upgrade may "
+#~ "break them."
+#~ msgstr ""
+#~ "Cổng mặc định của trình Openvpn đã thay đổi từ số 5000 thành số 1194 (do "
+#~ "IANA gán). Nếu bạn không ghi rõ cổng cần dùng trên VPN, tiến trình nâng "
+#~ "cấp này có thể phá vỡ nó."
+
+#~ msgid ""
+#~ "Use the option 'port 5000' if you want to keep the old port "
+#~ "configuration, or take a look at your firewall rules to allow the new "
+#~ "default port configuration to work."
+#~ msgstr ""
+#~ "Hãy dùng tùy chọn « port 5000 » (cổng số 5000) nếu bạn muốn giữ cấu hình "
+#~ "cổng cũ, hoặc hãy kiểm tra xem những quy tắc bức tường lửa là đúng, để "
+#~ "cho phép cấu hình cổng mặc định hoạt động được."
+
+#~ msgid "Would you like to stop openvpn later?"
+#~ msgstr "Bạn có muốn ngừng chạy trình openvpn trễ hơn không?"
+
+#~ msgid ""
+#~ "Previous versions of openvpn stopped at the same time as most of other "
+#~ "services. This meant that some of services stopping later couldn't use  "
+#~ "openvpn since it may have been stopped before them. Newer versions of the "
+#~ "openvpn package will stop the service later. (i.e. a K80openvpn link in  "
+#~ "rc[06].d instead of a K20openvpn)"
+#~ msgstr ""
+#~ "Phiên bản trước của trình openvpn đã ngừng chạy cùng lúc với phần lớn "
+#~ "dịch vụ khác. Có nghĩa là phần lớn dịch vụ này không thể dùng openvpn, vì "
+#~ "nó có lẽ đã ngừng trước chúng. Phiên bản mới hơn của gói openvn sẽ ngừng "
+#~ "chạy dịch vụ trễ hơn trong những cấp ngừng chạy Debian (tức là một liên "
+#~ "kết « K80openvpn » trong « rc[235].d » thay vào « K20openvpn »)."

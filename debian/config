@@ -1,0 +1,21 @@
+#!/bin/sh
+# Copyright 2003 Alberto Gonzalez Iniesta <agi@agi.as>
+# Licensed under the GNU General Public License, version 2.  See the file
+# /usr/share/common-licenses/GPL or <http://www.gnu.org/copyleft/gpl.txt>.
+#
+set -e
+test $DEBIAN_SCRIPT_DEBUG && set -v -x
+
+# Use debconf
+. /usr/share/debconf/confmodule
+
+# Do we want to create /dev/net/tun?
+if [ ! -e /run/udev ] && [ ! -e /dev/net/tun ]; then
+  db_input medium openvpn/create_tun || true
+  db_go
+fi
+
+db_stop
+
+exit 0
+# vim: set ai et sts=2 sw=2 tw=0:

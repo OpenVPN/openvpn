@@ -1,0 +1,1184 @@
+openvpn (2.3.6-5) unstable; urgency=high
+
+  * Support client disconnect.
+
+ -- Yafeng Shan <yafeng.shan@gmail.com>  Mon, 01 Jul 2015 16:10:37 +0100
+
+openvpn (2.3.4-5) unstable; urgency=high
+
+  * Apply upstream patch that fixes possible DoS by authenticated
+    clients. CVE-2014-8104
+  * Patch sample certs since they were expired and made the package
+    build fail. (Closes: #770835)
+
+ -- Alberto Gonzalez Iniesta <agi@inittab.org>  Mon, 01 Dec 2014 16:10:37 +0100
+
+openvpn (2.3.4-4) unstable; urgency=medium
+
+  * Use dh-systemd in order to enable the service unit.
+    (Closes: #768411)
+  * Add comment on /etc/default/openvpn file about options
+    not supported on systemd. (Closes: #768384)
+
+ -- Alberto Gonzalez Iniesta <agi@inittab.org>  Fri, 07 Nov 2014 13:59:54 +0100
+
+openvpn (2.3.4-3) unstable; urgency=medium
+
+  * Apply patch by Samuel Thibault to clean up temporary files.
+    (Closes: #764651). Thanks Samuel!
+
+ -- Alberto Gonzalez Iniesta <agi@inittab.org>  Mon, 13 Oct 2014 18:24:03 +0200
+
+openvpn (2.3.4-2) unstable; urgency=medium
+
+  * openvpn.service. Remove ExecStop, add ExecReload.
+    Fixes reload of openvpn service. (Closes: #763411)
+
+ -- Alberto Gonzalez Iniesta <agi@inittab.org>  Tue, 30 Sep 2014 13:05:45 +0200
+
+openvpn (2.3.4-1) unstable; urgency=medium
+
+  * Upload to unstable.
+  * New upstream release. (Closes: #752568)
+  * Add Turkish debconf translation. (Closes: #759879)
+  * Replace openvpn-systemd-helper with a systemd generator.
+    Thanks Ondřej Surý, Ansgar Burchardt and postgresql-common for
+    the ideas, help and inspiration.
+  * Bumped Standards-Version to 3.9.5
+  * debian/control: Add Vcs-*
+
+ -- Alberto Gonzalez Iniesta <agi@inittab.org>  Tue, 02 Sep 2014 12:06:06 +0200
+
+openvpn (2.3.3-1) experimental; urgency=medium
+
+  * Install tmpfiles.d configuration to create /run/openvpn in
+    systemd. Properly fixing #741938.
+  * Add reload to openvpn@.service. (Closes: #747840)
+  * New upstream release
+  * New openvpn.service to override LSB script when running systemd.
+    (Closes: #700888)
+  * Apply patch from upstream's BTS to improve systemd detection.
+    (Closes: #747265)
+
+ -- Alberto Gonzalez Iniesta <agi@inittab.org>  Mon, 17 Mar 2014 19:40:12 +0100
+
+openvpn (2.3.2-9) unstable; urgency=medium
+
+  * Create /run/openvpn in init script even if no VPN is
+    autostarted by it. (Closes: #741938)
+  * Fix systemd detection based on /run/systemd/system.
+
+ -- Alberto Gonzalez Iniesta <agi@inittab.org>  Mon, 17 Mar 2014 15:40:02 +0100
+
+openvpn (2.3.2-8) unstable; urgency=medium
+
+  * Add support for systemd. (Closes: #700888)
+    Add openvpn@.service and --enable-systemd to ./configure.
+
+ -- Alberto Gonzalez Iniesta <agi@inittab.org>  Fri, 14 Mar 2014 12:59:57 +0100
+
+openvpn (2.3.2-7) unstable; urgency=low
+
+  * Fix postinst when no *.pid files exist in /run/sendsigs.omit.d/.
+    (Closes: #730679)
+
+ -- Alberto Gonzalez Iniesta <agi@inittab.org>  Thu, 28 Nov 2013 13:05:31 +0100
+
+openvpn (2.3.2-6) unstable; urgency=low
+
+  * Move PID and status files to openvpn subdir in /run.
+    (Closes: #614036). Thanks Stephen Gildea for the patch and Simon Deziel
+    for the upgrade path.
+  * Add --enable-x509-alt-username option to ./configure
+
+ -- Alberto Gonzalez Iniesta <agi@inittab.org>  Wed, 27 Nov 2013 13:58:33 +0100
+
+openvpn (2.3.2-5) unstable; urgency=low
+
+  * Patch init script to fix race conditions on restarts.
+    (Closes: #716794). Thanks Simon Deziel for the patch.
+  * Improve update-resolv-conf script. Thanks Thomas Hood
+    for the patch. (Closes: #721082)
+
+ -- Alberto Gonzalez Iniesta <agi@inittab.org>  Mon, 15 Jul 2013 16:10:59 +0200
+
+openvpn (2.3.2-4) unstable; urgency=low
+
+  * Fix depends on iproute to iproute2.
+
+ -- Alberto Gonzalez Iniesta <agi@inittab.org>  Fri, 21 Jun 2013 11:17:52 +0200
+
+openvpn (2.3.2-3) unstable; urgency=low
+
+  * Add iproute2 support on linux archs.
+  * Add versioned Build-Depends on dpkg-dev since --export=configure
+    is used. (Closes: #697560)
+
+ -- Alberto Gonzalez Iniesta <agi@inittab.org>  Thu, 20 Jun 2013 13:23:24 +0200
+
+openvpn (2.3.2-2) unstable; urgency=low
+
+  * Add pkg-config to Build-Depends while waiting for libpkcs11-helper1-dev's
+    maintainter to decide if he includes pkg-config as a Depends.
+    Thanks Roland Stigge for finding out. (Closes: #711076)
+
+ -- Alberto Gonzalez Iniesta <agi@inittab.org>  Wed, 05 Jun 2013 16:39:27 +0200
+
+openvpn (2.3.2-1) unstable; urgency=low
+
+  * New upstream version.
+    Less messages about script security (Closes: #573129)
+  * Add --enable-pkcs11 to configure to avoid losing PKCS11.
+    Thanks Jaak Pruulmann-Vengerfeldt for noticing before the
+    upload! (Closes: #710085)
+
+ -- Alberto Gonzalez Iniesta <agi@inittab.org>  Mon, 03 Jun 2013 18:48:44 +0200
+
+openvpn (2.3.1-2) unstable; urgency=low
+
+  * Add net-tools to Build-Depends. (Closes: #709108)
+
+ -- Alberto Gonzalez Iniesta <agi@inittab.org>  Tue, 21 May 2013 12:31:39 +0200
+
+openvpn (2.3.1-1) unstable; urgency=low
+
+  * New upstream version. Fixes use of non-constant-time memcmp in HMAC
+    comparison. CVE-2013-2061 (Closes: #707329)
+
+ -- Alberto Gonzalez Iniesta <agi@inittab.org>  Fri, 17 May 2013 11:54:31 +0200
+
+openvpn (2.3.0-1) experimental; urgency=low
+
+  * New upstream release
+  * Add easy-rsa to Recommends
+
+ -- Alberto Gonzalez Iniesta <agi@inittab.org>  Mon, 12 Nov 2012 16:56:47 +0100
+
+openvpn (2.3~rc1-1) experimental; urgency=low
+
+  * Upload to experimental
+  * New upstream release with reworked build system
+
+ -- Alberto Gonzalez Iniesta <agi@inittab.org>  Mon, 05 Nov 2012 16:31:15 +0100
+
+openvpn (2.2.1-8) unstable; urgency=low
+
+  * Enable "PIE" and "BINDOW" hardening flags.
+
+ -- Alberto Gonzalez Iniesta <agi@inittab.org>  Fri, 23 Mar 2012 10:40:39 +0100
+
+openvpn (2.2.1-7) unstable; urgency=low
+
+  * Add dpkg-buildflags call on plugins built too.
+    Thanks Simon Ruderich for finding out, the nice patch and
+    clarification. (Closes: #655130)
+
+ -- Alberto Gonzalez Iniesta <agi@inittab.org>  Fri, 16 Mar 2012 10:49:28 +0100
+
+openvpn (2.2.1-6) unstable; urgency=low
+
+  * /run transition: Replaced usage of /dev/.udev with /run/udev,
+    when checking for the usage of udev. Depend on initscripts
+    (>= 2.88dsf-13.3) to guarantee the existence of /run/udev
+    in case udev is being used. (Closes: #644321)
+    Patch by Pieter du Preez.
+
+ -- Alberto Gonzalez Iniesta <agi@inittab.org>  Fri, 09 Mar 2012 13:44:50 +0100
+
+openvpn (2.2.1-5) unstable; urgency=low
+
+  * Avoid sending ICMP redirects when using tun devices and "subnet"
+    topology. Thanks Simon Deziel for testing and the patch.
+    (Closes: #656241)
+    The init.d script will set all.send_redirects=0 when using "dev tun"
+    and "topology subnet". More info in README.Debian.
+  * Several manpage fixes
+
+ -- Alberto Gonzalez Iniesta <agi@inittab.org>  Thu, 23 Feb 2012 17:25:54 +0100
+
+openvpn (2.2.1-4) unstable; urgency=low
+
+  * Use dpkg-buildflags to fill CFLAGS in ./configure. (Closes: #655130)
+  * debian/rules: Moved to dh.
+  * debian/rules: Changed DEB_BUILD_ARCH_OS with DEB_HOST_ARCH_OS.
+  * Removed quilt Build-Depends.
+  * debian/openvpn.default: Clarify what "vpn name" refers to.
+    (Closes: #657610)
+
+ -- Alberto Gonzalez Iniesta <agi@inittab.org>  Wed, 08 Feb 2012 16:31:32 +0100
+
+openvpn (2.2.1-3) unstable; urgency=low
+
+  * The iproute fiasco release.
+  * Remove --enable-iproute2 dependency since it's only available in Linux.
+    Write that in the changelog so I don't forget _again_ why iproute is not
+    set... (Closes: #652702)
+
+ -- Alberto Gonzalez Iniesta <agi@inittab.org>  Tue, 20 Dec 2011 13:06:05 +0100
+
+openvpn (2.2.1-2) unstable; urgency=low
+
+  * debian/rules: Force path to 'ip' command so that it's set correctly even
+    if not present (in the buildd). (Closes: #652702)
+  * Fix OMIT_SENDSIGS logic on init.d script. (Closes: #652703)
+
+ -- Alberto Gonzalez Iniesta <agi@inittab.org>  Tue, 20 Dec 2011 07:21:07 +0100
+
+openvpn (2.2.1-1) unstable; urgency=low
+
+  * New upstream release
+  * Added OMIT_SENDSIGS option in init.d script to let openvpn run after
+    sendsigs on system reboot or shutdown. (Closes: #636864)
+  * Configure with --enable-iproute2.
+  * Change path to route on kFreeBSD. (Closes: #646221) Thanks Robert Millan.
+
+
+ -- Alberto Gonzalez Iniesta <agi@inittab.org>  Tue, 13 Dec 2011 11:04:22 +0100
+
+openvpn (2.2.0-2) unstable; urgency=low
+
+  * Upload to unstable
+  * debian/control: added Homepage field
+  * Added debian/watch file
+  * debian/patches: Added descriptions/authors/etc. to patches
+
+ -- Alberto Gonzalez Iniesta <agi@inittab.org>  Wed, 15 Jun 2011 12:28:15 +0200
+
+openvpn (2.2.0-1) experimental; urgency=low
+
+  * New upstream release (Closes: #625281)
+  * Removed Depends on open(ssl|vpn)-blacklist, since 
+    debian_openssl_vulnkeys.patch is no longer used.
+    Removed templates referring it too.
+  * Removed manpage_dash_escaping.patch, applied upstream
+  * Removed attemping_typo, applied upstream
+  * Removed counter_type_for_bytes.patch, applied upstream
+  * Removed eurephia.patch, applied upstream
+  * Updated JuanJo's & Gert's IPv6 patches
+  * Removed versioned Depends on libssl (Closes: #623503)
+  * Improved kFreeBSD support. Thanks Gonéri Le Bouder for the patch
+    (Closes: #626062)
+  * Updated Dutch debconf templates. (Closes: #625526)
+
+ -- Alberto Gonzalez Iniesta <agi@inittab.org>  Tue, 10 May 2011 16:17:00 +0200
+
+openvpn (2.1.3-5) experimental; urgency=low
+
+  * Upload to experimental.
+  * Add ipv6 payload patch by Gert Doering. (Closes: #604071)
+
+ -- Alberto Gonzalez Iniesta <agi@inittab.org>  Tue, 22 Mar 2011 10:57:18 +0100
+
+openvpn (2.1.3-4) unstable; urgency=low
+
+  * Updated JuanJo's IPv6 patch. Now really fixes use from xinetd.
+    Thanks JuanJo & Christian Weinberger for testing it (Closes: #574164)
+  * Removed debian_openssl_vulnkeys.patch since we're Etch + 2 now.
+    (Closes: #484105, #487994)
+
+ -- Alberto Gonzalez Iniesta <agi@inittab.org>  Tue, 22 Mar 2011 10:04:21 +0100
+
+openvpn (2.1.3-3) unstable; urgency=low
+
+  * Updated JuanJo's IPv6 patch.
+    Fixes use from xinetd (Closes: #574164)
+  * Patched update-resolv-conf to support multiple DNS search domains.
+    Thanks Jeremy Zawodny and Dave Walker for the patch.
+    (Closes: #617740)
+  * Added a note about bridge-utils helpers in README.Debian.
+    Thanks Sven Hoexter. (Closes: #599192)
+  * Updated Danish debconf templates. (Closes: #608425)
+
+ -- Alberto Gonzalez Iniesta <agi@inittab.org>  Fri, 11 Mar 2011 13:08:12 +0100
+
+openvpn (2.1.3-2) unstable; urgency=low
+
+  * Applied upstream patch to solve random routes added when using
+    'remote_host'. (Closes: #600166)
+
+ -- Alberto Gonzalez Iniesta <agi@inittab.org>  Thu, 21 Oct 2010 12:21:33 +0200
+
+openvpn (2.1.3-1) unstable; urgency=low
+
+  * New upstream release (Closes: #595684)
+  * Fixed multiple building in a row (Closes: #592086)
+  * Added handling of newer DEB_BUILD_OPTIONS.
+    Thanks Lionel Elie Mamane for the patch. (Closes: #592098)
+  * Updated IPv6 patch from JuanJo Ciarlante.
+    Fixes --multihome option. (Closes: #562099)
+
+ -- Alberto Gonzalez Iniesta <agi@inittab.org>  Wed, 29 Sep 2010 13:07:37 +0200
+
+openvpn (2.1.0-3) unstable; urgency=low
+
+  * The 'happy birthday to me' release
+  * Fixed client hang when server does not push anything. (Closes: #587414)
+    Thanks Thierry Carrez for the heads up.
+  * Document possible problems when using 'chroot' option
+
+ -- Alberto Gonzalez Iniesta <agi@inittab.org>  Fri, 09 Jul 2010 12:22:09 +0200
+
+openvpn (2.1.0-2) unstable; urgency=low
+
+  * Patched ssl.[ch] to fix integer overflow. (Closes: #576827)
+    Thanks David Sommerseth for the patch.
+  * Fixed manpage typo. (Closes: #576823)
+  * Bloat the init.d script with more dependencies required by the
+    new init systems. Sucky. (Closes: #568647, #553338)
+  * Reworded README.Debian (Closes: #550164)
+  * Switch to dpkg-source 3.0 (quilt) format
+
+ -- Alberto Gonzalez Iniesta <agi@inittab.org>  Sat, 10 Apr 2010 17:26:42 +0200
+
+openvpn (2.1.0-1) unstable; urgency=low
+
+  * New upstream release
+  * init.d script: added soft-restart to the options output. (Closes: #558174)
+  * debian/control: Promoted net-tools from Recommends to Depends.
+    (Closes: #557906)
+
+ -- Alberto Gonzalez Iniesta <agi@inittab.org>  Fri, 11 Dec 2009 12:08:50 +0100
+
+openvpn (2.1~rc22-1) unstable; urgency=low
+
+  * New upstream release
+  * Added a note on LDAP+TLS problems in README.Debian
+
+ -- Alberto Gonzalez Iniesta <agi@inittab.org>  Fri, 04 Dec 2009 16:33:02 +0100
+
+openvpn (2.1~rc21-2) unstable; urgency=low
+
+  * debian/patches: Added eurephia.patch to support eurephia plug-in.
+  * debian/patches: updated openvpn over ipv6 support to v0.4.10
+
+ -- Alberto Gonzalez Iniesta <agi@inittab.org>  Thu, 19 Nov 2009 18:00:27 +0100
+
+openvpn (2.1~rc21-1) unstable; urgency=low
+
+  * New upstream release
+
+ -- Alberto Gonzalez Iniesta <agi@inittab.org>  Thu, 12 Nov 2009 12:19:26 +0100
+
+openvpn (2.1~rc20-3) unstable; urgency=low
+
+  * Updated debian_openssl_vulnkeys.patch to fix false vulnerable
+    key detection. (Closes: #483139).
+    Thanks a lot Kees Cook and Jamie Strandboge for working on this!
+
+ -- Alberto Gonzalez Iniesta <agi@inittab.org>  Wed, 04 Nov 2009 17:18:03 +0100
+
+openvpn (2.1~rc20-2) unstable; urgency=low
+
+  * init.d script: Added X-Interactive header. (Closes: #549424)
+  * patches/jjo-ipv6-support.patch: Added ipv6 support. (Closes: #307846)
+    Patch from JuanJo Ciarlante.
+
+ -- Alberto Gonzalez Iniesta <agi@inittab.org>  Tue, 06 Oct 2009 13:04:07 +0200
+
+openvpn (2.1~rc20-1) unstable; urgency=low
+
+  * New upstream version.
+    - Fixes redirect-gateway option parsing. (Closes: #541450)
+  * Changed init.d Provides from 'vpn' to 'openvpn'. (Closes: #497563)
+
+ -- Alberto Gonzalez Iniesta <agi@inittab.org>  Fri, 02 Oct 2009 17:24:38 +0200
+
+openvpn (2.1~rc19-2) unstable; urgency=low
+
+  * Fixed init.d script to depend on $remote_fs and $syslog (Closes: #539764)
+  * Added debian/README.source
+  * Bumped Standards-Version to 3.8.3
+
+ -- Alberto Gonzalez Iniesta <agi@inittab.org>  Sun, 30 Aug 2009 20:20:11 +0200
+
+openvpn (2.1~rc19-1) unstable; urgency=low
+
+  * New upstream version
+    - Removed remote_env.patch, applied upstream
+    - trusted_ip is exported again. (Closes: #524979)
+  * Bumped Standards-Version to 3.8.2
+
+ -- Alberto Gonzalez Iniesta <agi@inittab.org>  Tue, 21 Jul 2009 17:00:56 +0200
+
+openvpn (2.1~rc15-1) unstable; urgency=low
+
+  * New upstream version (Closes: #515575)
+  * remote_env.patch: patched options.c to fix remote* enviroment vars.
+  * openvpn-pkcs11warn.patch: warn on deprecated pkcs11 options.
+    Thanks A LOT to Florian Kulzer for the README.Debian text & patch!
+    (Closes: #475353)
+  * Removed lladdr-is-not-ip.patch, since it was included upstream.
+  * init.d script: Use start-stop-daemon to avoid failure on start when
+    a PID file is not deleted. (Closes: #445061)
+  * init.d script: Added 'status' action. Thanks Thierry Carrez for
+    the patch. (Closes: #498493)
+  * Updated debian/copyright: Point to GPL-2
+  * Updated debian/control: Added ${misc:Depends}
+  * Bumped Standards-Version to 3.8.1
+  * Moved to debhelper compat 7.
+
+ -- Alberto Gonzalez Iniesta <agi@inittab.org>  Thu, 30 Apr 2009 12:35:05 +0200
+
+openvpn (2.1~rc11-1) unstable; urgency=low
+
+  * New upstream version
+    - Fixes TLS negotiation problems (Closes: #496649)
+  * Patched options.c, socket.c and socket.h to correctly check
+    for MAC addresses on lladdr parm. (Closes: #496141)
+    Thanks hoverhell@gmail.com for the patch.
+  * init.d script: exit with 0 status when trying to start
+    an already running VPN. (Closes: #499247)
+
+ -- Alberto Gonzalez Iniesta <agi@inittab.org>  Wed, 17 Sep 2008 13:43:22 +0200
+
+openvpn (2.1~rc10-1) unstable; urgency=low
+
+  * New upstream version.
+    - Fixed calls to external commands with arguments.
+      (Closes: #495964, #496314, #497411)
+
+ -- Alberto Gonzalez Iniesta <agi@inittab.org>  Thu, 11 Sep 2008 16:58:37 +0200
+
+openvpn (2.1~rc9-3) unstable; urgency=low
+
+  * debian/rules: run ./configure with path to 'route', for
+    those build daemons without 'route'. (Closes: #495082)
+  * Created NEWS.Debian with info on new option script-security.
+    (Closes: #494998)
+
+ -- Alberto Gonzalez Iniesta <agi@inittab.org>  Sat, 16 Aug 2008 13:34:24 +0200
+
+openvpn (2.1~rc9-2) unstable; urgency=low
+
+  * debian/rules: run ./configure with path to ifconfig, for
+    those build daemons without ifconfig. (Closes: #494918)
+
+ -- Alberto Gonzalez Iniesta <agi@inittab.org>  Wed, 13 Aug 2008 13:37:01 +0200
+
+openvpn (2.1~rc9-1) unstable; urgency=high
+
+  * New upstream version.
+  * Urgency high since it fixes a security bug in versions
+    2.1-beta14 to 2.1-rc8. CVE-2008-3459. (Closes: #493488)
+  * Added sample-scripts/ to examples directory.
+  * Thanks Tristan Hill for rewritten debian_openssl_vulnkeys.patch
+
+ -- Alberto Gonzalez Iniesta <agi@inittab.org>  Mon, 11 Aug 2008 19:40:11 +0200
+
+openvpn (2.1~rc8-1) unstable; urgency=low
+
+  * New upstream version
+  * Added Build-dep on libpkcs11-helper1 to re-enable PKCS#11
+    support. Sorry for the delay Florian :) (Closes: #475353)
+
+ -- Alberto Gonzalez Iniesta <agi@inittab.org>  Wed, 23 Jul 2008 10:38:13 +0200
+
+openvpn (2.1~rc7-6) unstable; urgency=low
+
+  * debian/control: Add Recommends on net-tools. (Closes: #469522)
+  * init.d script: clean up. (Closes: #486678)
+  * init.d script: Added soft-restart option to send SIGUSR1 to running
+    VPNs. (Closes: #414252)
+  * Added bash_completion for init.d script. (Closes: #394289)
+  * Removed obsolete templates and its associated code. (Closes: #459531)
+  * Removed stop before upgrade question, always restar after the upgrade
+    not in between. (Closes: #371148)
+  * New patch to correct spelling error in socket.c. (Closes: #487957)
+  * Added OPTARGS to init.d script and /etc/default/openvpn so that
+    Stanislav Maslovski does not have to edit this on every upgrade :)
+    (Closes: #488675)
+
+ -- Alberto Gonzalez Iniesta <agi@inittab.org>  Tue, 24 Jun 2008 15:46:15 +0200
+
+openvpn (2.1~rc7-5) unstable; urgency=low
+
+  * init.d script: Set default exit code to 0 when undefined.
+    (Closes: #486441)
+
+ -- Alberto Gonzalez Iniesta <agi@inittab.org>  Mon, 16 Jun 2008 16:59:02 +0200
+
+openvpn (2.1~rc7-4) unstable; urgency=low
+
+  * The 'Miriam helped me move to quilt' release
+  * Moved all the patches to debian/patches
+  * debian/control: Added Build-Dep on quilt
+  * Applied patch by Jamie Strandboge to fix openssl-vulnkey
+    extra passphrase prompts. Thanks Jamie.
+    (Closes: #483020, #483500, #486129)
+  * Updated Portuguese debconf templates. (Closes: #484007)
+
+  [ Martin Pitt ]
+  * Added note on Out Of Memory issues. (Closes: #484113)
+  * Avoid asking about the tun device creation if using udev.
+    (Closes: #484111)
+  * Reworked init.d script to use LSB functions. (Closes: #484110)
+
+ -- Alberto Gonzalez Iniesta <agi@inittab.org>  Sat, 14 Jun 2008 19:00:40 +0200
+
+openvpn (2.1~rc7-3) unstable; urgency=low
+
+  * The 'Thanks the transtalors' release
+  * Updated Japanese debconf templates. (Closes: #483848)
+  * Updated Russian debconf templates. (Closes: #483693)
+  * Updated Brazilian Portuguese debconf templates. (Closes: #483686)
+  * Updated German debconf templates. (Closes: #483610)
+  * Updated French debconf templates. (Closes: #483104)
+  * Updated Spanish debconf templates. (Closes: #482939)
+  * Updated Italian debconf templates. (Closes: #482809)
+  * Updated Finnish debconf templates. (Closes: #482763)
+  * Updated Swedish debconf templates. (Closes: #482677)
+  * Updated Vietnamese debconf templates. (Closes: #482640)
+  * Updated Galician debconf templates. (Closes: #482461)
+  * Updated Czech debconf templates. (Closes: #482430)
+  * Updated Basque debconf templates. (Closes: #482398)
+  * Updated path to openssl-vulnkey. (Closes: #483723)
+
+ -- Alberto Gonzalez Iniesta <agi@inittab.org>  Sun, 01 Jun 2008 21:11:17 +0200
+
+openvpn (2.1~rc7-2) unstable; urgency=high
+
+  * init.c: Warn of use of known vulnerable weak SSL/TLS
+    and shared secret keys caused by Debian openssl bug.
+    Patch taken from Ubuntu. CVE-2008-0166
+  * debian/(templates|postinst): Add warning on vulnerable 
+    secrect/key files.
+  * debian/control: Add dependencies on openssl-blacklist and
+    openvpn-blacklist. Bumped dependency on libssl version.
+
+ -- Alberto Gonzalez Iniesta <agi@inittab.org>  Fri, 16 May 2008 00:45:23 +0200
+
+openvpn (2.1~rc7-1) unstable; urgency=low
+
+  * New upstream release (Closes: #464181)
+    - Slashes in X509 common name allowed (Closes: #452274)
+  * init.d script: Removed /dev/null stdin redirection, so passphrases
+    can be typed in. (Closes: #454371)
+  * Set FD_CLOEXEC in socket initialization BEFORE running the 'up script'
+    Thanks a lot Julien Cristau for finding this out and sending the
+    patch (Closes: #367716)
+  * Added multiple VPN configuration in /e/n/interfaces.
+    Thanks Sam Couter for the patch (Closes: #472924)
+  * Bumped Standards-Version to 3.7.3
+  * Debconf templates and debian/control reviewed by the debian-l10n-
+    english team as part of the Smith review project. (Closes: #462048)
+  * Updated Vietnamese debconf templates. (Closes: #465535)
+  * Updated German debconf templates. (Closes: #465317)
+  * Updated Brazilian Portuguese debconf templates. (Closes: #465440)
+  * Updated Japanese debconf templates. (Closes: #462736)
+  * Updated Portuguese debconf templates. (Closes: #462795)
+  * Updated Swedish debconf templates. (Closes: #462979)
+  * Updated Galician debconf templates. (Closes: #462990)
+  * Updated Spanish debconf templates. (Closes: #463047)
+  * Updated French debconf templates. (Closes: #463636)
+  * Updated Italian debconf templates. (Closes: #463703)
+  * Updated Finnish debconf templates. (Closes: #463952)
+  * Updated Czech debconf templates. (Closes: #464221)
+  * Updated Russian debconf templates. (Closes: #464666)
+  * Updated Norwegian Bokmål debconf templates. (Closes: #462811)
+
+ -- Alberto Gonzalez Iniesta <agi@inittab.org>  Sat, 02 Feb 2008 22:41:31 +0100
+
+openvpn (2.1~rc4-2) unstable; urgency=low
+
+  * Upload to unstable. New upstream fixes:
+     - Bug with: Assertion failed at multi.c. (Closes: #411633)
+     - Hangs with tcp clients goin down with new option:
+       --connect-timeout. (Closes: #296834)
+  * Use rm -f to remove PIDFILE, in case rm wants to ask.
+    (Closes: #429932)
+  * Updated Vietnamese debconf templates. (Closes: #427048)
+    Thanks Clytie Siddall.
+  * Added note on resolvconf use with openvpn. (Closes: #451319)
+
+ -- Alberto Gonzalez Iniesta <agi@inittab.org>  Sat, 08 Dec 2007 21:58:05 +0100
+
+openvpn (2.1~rc4-1) experimental; urgency=low
+
+  * New upstream release
+
+ -- Alberto Gonzalez Iniesta <agi@inittab.org>  Mon, 22 Oct 2007 20:59:46 +0200
+
+openvpn (2.1~rc2-1) experimental; urgency=low
+
+  * Just forward-push the Debian patches to the new version,
+    and upload to experimental (with permission of the maintainer).
+
+ -- Andreas Barth <aba@not.so.argh.org>  Thu, 19 Apr 2007 18:23:59 +0200
+
+openvpn (2.0.9-8) unstable; urgency=low
+
+  * Install /etc/openvpn/update-resolv-conf with correct permissions
+
+ -- Alberto Gonzalez Iniesta <agi@inittab.org>  Sat, 19 May 2007 18:12:12 +0200
+
+openvpn (2.0.9-7) unstable; urgency=low
+
+  * Added script to update resolv.conf with server's settings.
+    The script is located in the /etc/openvpn/ directory.
+    Thanks a lot Christof Lauber for the script.
+    Added resolvconf to Suggests.
+  * Added LSB section to the init.d script.
+
+ -- Alberto Gonzalez Iniesta <agi@inittab.org>  Sat, 19 May 2007 17:48:23 +0200
+
+openvpn (2.0.9-6) unstable; urgency=low
+
+  * Fixed init.d script to avoid running multiple instances of the
+    same VPN. Thanks Keith Kyzivat for pushing me into looking
+    again into this issue. (Closes: #326080)
+  * Included patch to README.Debian from Peter Rabbitson describing
+    /etc/network/interfaces integration. (Closes: #413732)
+  * Also included joeyh's suggestion on the previous subject.
+    (Closes: 419797)
+  * Avoid restarting a vpn instead of reloading it due to wrong 
+    detection of 'user' option in init.d script. Thanks Josip Rodin.
+    (Closes: 403503)
+  * Added Russian debconf translation. (Closes: #414088)
+    Thanks Yuriy Talakan.
+  * Built against liblzo2 instead of liblzo. (Closes: #423366)
+
+ -- Alberto Gonzalez Iniesta <agi@inittab.org>  Tue, 15 May 2007 23:53:26 +0200
+
+openvpn (2.0.9-5) unstable; urgency=low
+
+  * Added Galician debconf translation. (Closes: #412492)
+    Thanks Jacobo Tarrio
+
+ -- Alberto Gonzalez Iniesta <agi@inittab.org>  Wed, 28 Feb 2007 00:36:14 +0100
+
+openvpn (2.0.9-4) unstable; urgency=low
+
+  * Updated Swedish debconf translation. (Closes: #407851)
+    Thanks Andreas Henriksson
+
+ -- Alberto Gonzalez Iniesta <agi@inittab.org>  Sun, 21 Jan 2007 22:24:58 +0100
+
+openvpn (2.0.9-3) unstable; urgency=low
+
+  * Fixed type in Portuguese debconf translation.
+  * debian/templates. Changed default value for init.d change
+    question to false. (Closes: #403317)
+
+ -- Alberto Gonzalez Iniesta <agi@inittab.org>  Fri, 22 Dec 2006 19:36:05 +0100
+
+openvpn (2.0.9-2) unstable; urgency=low
+
+  * Updated Spanish debconf translation. (Closes: #393796)
+  * Updated German debconf translation. (Closes: #397019)
+  * Updated Japanese debconf translation. (Closes: #392627)
+  * Added Italian debconf translation. (Closes: #398050)
+  * Added Portuguese debconf translation. (Closes: #400685)
+
+ -- Alberto Gonzalez Iniesta <agi@inittab.org>  Fri,  8 Dec 2006 12:28:34 +0100
+
+openvpn (2.0.9-1) unstable; urgency=low
+
+  * New upstream release. No changes in *NIX source code.
+    Updating to avoid 'New upstream, blah, blah'.
+  * debian/control: Fixed spelling error in description
+    (Closes: #390242)
+  * debian/copyright: Updated project's homepage and author's
+    email address. (Closes: #388466)
+  * debian/copyright: Updated the FSF address.
+  * Updated Dutch debconf translation. (Closes: #389982, 379802)
+    Thanks Kurt De Bree
+  * Updated Czech debconf translation. (Closes: #384755)
+    Thanks Miroslav Kure
+
+ -- Alberto Gonzalez Iniesta <agi@inittab.org>  Tue, 10 Oct 2006 12:17:57 +0200
+
+openvpn (2.0.7-1) unstable; urgency=low
+
+  * The 'Translators, translators, translators' release.
+  * New upstream version.
+  * Added Dutch debconf translation. (Closes: #370073)
+    Thanks Kurt De Bree
+  * Updated Danish debconf translation. (Closes: #369772, #376704)
+    Thanks Claus Hindsgaul
+  * Updated French debconf translation. (Closes: #373191)
+    Thanks Michel Grentzinger
+
+ -- Alberto Gonzalez Iniesta <agi@inittab.org>  Sat, 22 Jul 2006 20:44:52 +0200
+
+openvpn (2.0.6-2) unstable; urgency=low
+
+  * The "Mañana" Release.
+  * debian/control: Added Suggests: openssl (Closes: #368256)
+  * debian/postinst: Run the init.d script with 'start' when doing
+    a fresh install or stop2upgrade=true. (Closes: #366085, #338956)
+  * Updated Czech debconf translation (Closes: #333989)
+    Thanks Miroslav Kure.
+  * Bumped Standards-Version to 3.7.2.0, no change. 
+  * debian/rules: Avoid compressing 'pkitool' (Closes: #354478)
+  * debian/templates: Corrected typo on init scripts order change.
+    (Closes: #351664)
+  * Updated German debconf translation (Closes: #345853)
+    Thanks Erik Schanze.
+
+ -- Alberto Gonzalez Iniesta <agi@inittab.org>  Mon, 22 May 2006 03:08:10 +0200
+
+openvpn (2.0.6-1) unstable; urgency=high
+
+  * New upstream release. Urgency high due to security fix.
+    - Disallow "setenv" to be pushed to clients from the server.
+      (Closes: #360559)
+
+ -- Alberto Gonzalez Iniesta <agi@inittab.org>  Wed,  5 Apr 2006 12:17:26 +0200
+
+openvpn (2.0.5-1) unstable; urgency=high
+
+  * New upstream release. Urgency high due to security issues.
+      - DoS vulnerability on the server in TCP mode.
+        (CVE-2005-3409) (Closes: #337334)
+      - Format string vulnerability in the foreign_option
+        function in options.c could potentially allow a malicious
+        or compromised server to execute arbitrary code on the
+        client.  (CVE-2005-3393) (Closes: #336751)
+
+ -- Alberto Gonzalez Iniesta <agi@inittab.org>  Mon,  7 Nov 2005 10:13:55 +0100
+
+openvpn (2.0.2-2) unstable; urgency=low
+
+  * debian/control: fix Depends on debconf. (Closes: #332056)
+  * Bumped Standards-Version to 3.6.2.0, no change.
+  * Updated Danish debconf translation. (Closes: #326907)
+  * Updated French debconf translation. (Closes: #328076)
+  * Added Swedish debconf translation. (Closes: #332785)
+
+ -- Alberto Gonzalez Iniesta <agi@inittab.org>  Sun,  9 Oct 2005 18:42:34 +0200
+
+openvpn (2.0.2-1) unstable; urgency=low
+
+  * The [VAC] upload. Thanks Vorbis Gdynia for the free internet access :)
+  * New upstream release (Closes: #323594)
+  * Fixed use of backslash in username authentication. (Closes: #309787)
+  * Fixes several DoS vulnerabilities: CAN-2005-2531 CAN-2005-2532 
+    CAN-2005-2533 CAN-2005-2534. (Closes: #324167)
+  * Changed group option from 'nobody' to 'nogroup' in all the 
+    *example* files... (Closes: #317987)
+  * Included openvpn-plugin.h to allow building third party plugins.
+    (Closes: #316139)
+  * Stop openvpn's daemon later to allow some services stopping later to use
+    it. Added debconf template to ask permission to make the change
+    on older installations. (Closes: #312371)
+  * Workaround to fix proper daemonize when 'log' option is used.
+    (Closes: #309944) Thanks Jason Lunz for the patch.
+  * Modified output of init.d script to make it more friendly when
+    passphrase for a tunnel certificate is asked.
+    Thanks Pavel Vávra for the patch.
+
+ -- Alberto Gonzalez Iniesta <agi@inittab.org>  Sun, 28 Aug 2005 13:05:49 +0200
+
+openvpn (2.0-4) unstable; urgency=low
+
+  * The 'It was about time I could make a new upload' release
+  * Rewrote some debconf templates (Closes: #316694).
+    Thanks Clytie Siddall for the corrections.
+  * Included Vietnamese debconf translation. (Closes: #316695)
+  * debian/rules: exclude openssl.cnf from being compress.
+    (Closes: #315764)
+
+ -- Alberto Gonzalez Iniesta <agi@inittab.org>  Wed,  6 Jul 2005 09:22:16 +0200
+
+openvpn (2.0-3) unstable; urgency=low
+
+  * postinst: call 'restart' when 'cond-restart' fails due to user
+    not upgrading the init.d script. (Closes: #308926)
+
+ -- Alberto Gonzalez Iniesta <agi@inittab.org>  Sat, 28 May 2005 12:52:16 +0200
+
+openvpn (2.0-2) unstable; urgency=low
+
+  * Added '-f' to rm when deleting the status file. This eliminates
+    the need to test if it exists and saves the init.d script from
+    failing.  (Closes: #306588)
+  * Modified pam plugin to load libpam.so.0 instead of libpam.so.
+    (Closes: #306335)
+
+ -- Alberto Gonzalez Iniesta <agi@inittab.org>  Wed,  4 May 2005 15:02:45 +0200
+
+openvpn (2.0-1) unstable; urgency=low
+
+  * The 'This-is-the-real-2.0' release
+  * New upstream version.
+  * openvpn.8: s/--/\\-\\-/g a.k.a escaped dashes to make it possible
+    to search for options with UTF charsets. (Closes: #296133)
+  * Improved init.d script output.  (Closes: #297997)
+    Thanks Thomas Hood for the patch.
+  * debian/control. Rewrote Description: field.
+    Now it's more useful and complete. (Closes: #304895)
+  * init.d script: 
+     - Fixed restarting of multiple VPNs
+     - Fixed TAB converted to spaces.
+     - Remove status file on VPN stop
+     - Respect 'status' option if given in the config file
+     - New /etc/default/openvpn configuration file that allows
+       control on which VPNs are automatically started and also
+       controls status file refresh interval
+     Thanks Philipp A. Hartmann for the nice patch. (Closes: #294332)
+   * init.d script: Added cond-restart to only restart VPNs in use.
+     postint: Call init.d script with cond-restart instead of restart.
+     (Closes: #280464)
+   * init.d script: change order of --config and --cd to permit
+     nested 'configs'. (Closes: #299082)
+
+ -- Alberto Gonzalez Iniesta <agi@inittab.org>  Mon, 18 Apr 2005 09:07:05 +0200
+
+openvpn (1.99+2.rc20-1) unstable; urgency=low
+
+  * New upstream release
+
+ -- Alberto Gonzalez Iniesta <agi@inittab.org>  Mon,  4 Apr 2005 23:05:23 +0200
+
+openvpn (1.99+2.rc18-1) unstable; urgency=low
+
+  * New upstream release (Closes: #301949)
+
+ -- Alberto Gonzalez Iniesta <agi@inittab.org>  Tue, 29 Mar 2005 12:56:42 +0200
+
+openvpn (1.99+2.rc16-1) unstable; urgency=low
+
+  * New upstream release
+
+ -- Alberto Gonzalez Iniesta <agi@inittab.org>  Sun, 20 Feb 2005 20:24:25 +0100
+
+openvpn (1.99+2.rc12-1) unstable; urgency=low
+
+  * New upstream release
+
+ -- Alberto Gonzalez Iniesta <agi@inittab.org>  Sun,  6 Feb 2005 11:49:44 +0100
+
+openvpn (1.99+2.rc11-2) unstable; urgency=low
+
+  * Added --enable-password-save to configure call to allow 
+    --askpass and --auth-user-pass passwords to be read from a file.
+
+ -- Alberto Gonzalez Iniesta <agi@inittab.org>  Thu,  3 Feb 2005 18:19:28 +0100
+
+openvpn (1.99+2.rc11-1) unstable; urgency=low
+
+  * New upstream release
+  * Added --status line to init.d script (Closes: #293144)
+
+ -- Alberto Gonzalez Iniesta <agi@inittab.org>  Thu,  3 Feb 2005 09:28:06 +0100
+
+openvpn (1.99+2.rc10-1) unstable; urgency=low
+
+  * New upstream release
+  * Updated pt_BR debconf translation (Closes: #292079)
+
+ -- Alberto Gonzalez Iniesta <agi@inittab.org>  Fri, 28 Jan 2005 14:44:42 +0100
+
+openvpn (1.99+2.rc6-1) unstable; urgency=low
+
+  * The 'Three Wise Men' release.
+  * New upstream release.
+  * Update README.Debian with comments on changed string remapping.
+    Thanks ron@debian.org for noting this first. (Closes: #288669)
+
+ -- Alberto Gonzalez Iniesta <agi@inittab.org>  Wed,  5 Jan 2005 19:03:11 +0100
+
+openvpn (1.99+2.beta19-1) unstable; urgency=low
+
+  * New upstream release.
+  * Updated README.Debian with info on plugins.
+
+ -- Alberto Gonzalez Iniesta <agi@inittab.org>  Sun,  5 Dec 2004 11:57:03 +0100
+
+openvpn (1.99+2.beta18-2) unstable; urgency=low
+
+  * Built and installed plugins. Thanks Michael Renner for noticing.
+    (Closes: #284224)
+  * Added Build-Depends on libpam0g-dev, required by auth-pam plugin.
+
+ -- Alberto Gonzalez Iniesta <agi@inittab.org>  Sun,  5 Dec 2004 10:19:45 +0100
+
+openvpn (1.99+2.beta18-1) unstable; urgency=low
+
+  * New upstream release. Corrects --mssfix behaviour (Closes: #280893)
+  * Included Czech debconf translation. (Closes: #282995)
+
+ -- Alberto Gonzalez Iniesta <agi@inittab.org>  Mon, 29 Nov 2004 10:56:07 +0100
+
+openvpn (1.99+2.beta17-2) unstable; urgency=low
+
+  * Updated (German|Danish|French|Japanese) debconf translations.
+    (Closes: #281235, #282095, #282216, #282881)
+
+ -- Alberto Gonzalez Iniesta <agi@inittab.org>  Wed, 24 Nov 2004 08:15:29 +0100
+
+openvpn (1.99+2.beta17-1) unstable; urgency=low
+
+  * New upstream version. Includes fix for the --key-method 1 bug.
+  * WARNING: This version changes the default port (5000 previously)
+    to 1194 (assigned by INANA). This will affect you if you don't
+    have a 'port' option specified in your configuration files.
+    Added a debconf note about it.
+  * Updated es.po.
+
+ -- Alberto Gonzalez Iniesta <agi@inittab.org>  Fri, 12 Nov 2004 15:32:56 +0100
+
+openvpn (1.99+2.beta16-2) unstable; urgency=low
+
+  * Patched ssl.c to fix bug in --key-method 1, that prevented 
+    OpenVPN 2.x from working with 1.x using that method.
+    Thanks James for the prompt answer & patch.
+    Thanks weasel for finding it out.
+
+ -- Alberto Gonzalez Iniesta <agi@inittab.org>  Mon,  8 Nov 2004 11:59:12 +0100
+
+openvpn (1.99+2.beta16-1) unstable; urgency=low
+
+  * New upstream releases. Fixes the "Assertion failed at crypto.c"
+    (Closes: #265632, #270005)
+
+ -- Alberto Gonzalez Iniesta <agi@inittab.org>  Sun,  7 Nov 2004 17:46:09 +0100
+
+openvpn (1.99+2.beta15-5) unstable; urgency=low
+
+  * Updated README.Debian with clearer 2.x vs 1.x interoperability
+    instructions.
+
+ -- Alberto Gonzalez Iniesta <agi@inittab.org>  Sun,  7 Nov 2004 10:26:03 +0100
+
+openvpn (1.99+2.beta15-4) unstable; urgency=low
+
+  * Put if-{up,down}.d scripts back in place, this time they work.
+    Just remember to quote shell vars when checking if they are empty.
+    [ -n "$VAR" ] -> Good     [ -n $VAR ] -> BAD
+    Note to self, don't trust people's patches even if they are DD.
+
+ -- Alberto Gonzalez Iniesta <agi@inittab.org>  Thu,  4 Nov 2004 08:33:45 +0100
+
+openvpn (1.99+2.beta15-3) unstable; urgency=low
+
+  * Removed if-{up,down}.d scripts until I get to know how they work.
+
+ -- Alberto Gonzalez Iniesta <agi@inittab.org>  Wed,  3 Nov 2004 20:58:41 +0100
+
+openvpn (1.99+2.beta15-2) unstable; urgency=low
+
+  * Corrected names of if-{up,down}.d scripts. Duh!
+
+ -- Alberto Gonzalez Iniesta <agi@inittab.org>  Wed,  3 Nov 2004 10:21:52 +0100
+
+openvpn (1.99+2.beta15-1) unstable; urgency=low
+
+  * New upstream release.
+  * Renamed package to 1.99 to make it clearer that we're using
+    version 2.0 and not 1.6. Some people rather talk about this on IRC
+    and not tell the maintainer directly.
+  * Added Brazilian Portuguese debconf templates. (Closes: #279351)
+  * Modified init.d script so that specifying a daemon option in a
+    VPN configuration won't make it fail. 
+    Thanks Christoph Biedl for the patch. (Closes: #278302)
+  * Added scripts to allow specifying 'openvpn name' in
+    /etc/network/interfaces to have the tunnel created and destroyed with
+    the device it runs over. Thanks Joachim Breitner for the patch.
+    (Closes: #273481)
+  * Modified init.d script so that multiple VPNs can be started or stopped
+    with a single command. (See README.Debian)
+
+ -- Alberto Gonzalez Iniesta <agi@inittab.org>  Tue,  2 Nov 2004 12:49:41 +0100
+
+openvpn (1.6.0+2.beta14-1) unstable; urgency=low
+
+  * New upstream release.
+
+ -- Alberto Gonzalez Iniesta <agi@inittab.org>  Wed, 20 Oct 2004 09:13:09 +0200
+
+openvpn (1.6.0+2.beta12-1) unstable; urgency=low
+
+  * New upstream release.
+  * Added comments about compatibility issues between openvpn 2.x and 1.x
+    to README.Debian (Closes: #276799)
+  * Changed maintainer email address.
+
+ -- Alberto Gonzalez Iniesta <agi@inittab.org>  Mon, 18 Oct 2004 09:01:23 +0200
+
+openvpn (1.6.0+2.beta11-1) unstable; urgency=low
+
+  * New upstream release. (Closes: #269631)
+  * I decided to get OpenVPN 2 into sid, and hopefully into Sarge since
+    the current beta works pretty well and adds important features I don't
+    want missing in Sarge.
+  * Updated README.Debian
+
+ -- Alberto Gonzalez Iniesta <agi@agi.as>  Fri, 15 Oct 2004 11:52:58 +0200
+
+openvpn (1.6.0-5) unstable; urgency=low
+
+  * Added German and Japanese debconf templates.
+    (Closes: #266927, #270477)
+
+ -- Alberto Gonzalez Iniesta <agi@agi.as>  Fri, 10 Sep 2004 08:31:54 +0200
+
+openvpn (1.6.0-4) unstable; urgency=low
+
+  * Updated French and Danish debconf templates
+    (Closes: #254064, #256053)
+
+ -- Alberto Gonzalez Iniesta <agi@agi.as>  Mon, 28 Jun 2004 09:51:44 +0200
+
+openvpn (1.6.0-3) unstable; urgency=low
+
+  * Included Catalan debconf templates. (Closes: #248750)
+    Thanks Aleix Badia i Bosch.
+  * Added debconf question on whether the daemon should be stopped at
+    the begining of and upgrade or not. Thus being more reliable on
+    remote upgrades. (Closes: #250558)
+
+ -- Alberto Gonzalez Iniesta <agi@agi.as>  Thu, 10 Jun 2004 15:59:39 +0200
+
+openvpn (1.6.0-2) unstable; urgency=low
+
+  * Recover init.d modification suggested by Kai Henningsen to get
+    different syslog names for each VPN. How the fuck did that get lost?
+
+ -- Alberto Gonzalez Iniesta <agi@agi.as>  Fri, 28 May 2004 16:51:04 +0200
+
+openvpn (1.6.0-1) unstable; urgency=low
+
+  * New upstream release
+
+ -- Alberto Gonzalez Iniesta <agi@agi.as>  Mon, 10 May 2004 08:59:37 +0200
+
+openvpn (1.5.0-3) unstable; urgency=low
+
+  * Included Danish debconf template. Thanks Claus Hindsgau.
+    (Closes: #234944)
+
+ -- Alberto Gonzalez Iniesta <agi@agi.as>  Tue,  9 Mar 2004 16:36:33 +0100
+
+openvpn (1.5.0-2) unstable; urgency=low
+
+  * Modified init.d script to permit different syslog names for each
+    VPN. Thanks Kai Henningsen for the tip. (Closes: #227376)
+  * Moved 'verify-cn' script to /usr to make weasel happier ;)
+    (Closes: #221995)
+  * Moved to gettext-based debconf templated. Added French translation.
+    Thanks Michel Grentzinger for the patches.
+    (Closes: #219015, #219016)
+  * Fixed spanish translation that was a complete mess.
+    (Closes: Fri-Sun)
+
+ -- Alberto Gonzalez Iniesta <agi@agi.as>  Thu, 15 Jan 2004 18:08:24 +0100
+
+openvpn (1.5.0-1) unstable; urgency=low
+
+  * New upstream release
+  * Moved to debhelper compatibility 4. Created debian/compat.
+
+ -- Alberto Gonzalez Iniesta <agi@agi.as>  Sat, 22 Nov 2003 18:18:50 +0100
+
+openvpn (1.4.3-3) unstable; urgency=low
+
+  * Added quotes around $2 in dpkg --compare-versions (config and postinst)
+    and check if $2 actually has a value.
+    This way it won't fail if $2 is not set. Duh! (Closes: #214848)
+
+ -- Alberto Gonzalez Iniesta <agi@agi.as>  Thu,  9 Oct 2003 11:01:31 +0200
+
+openvpn (1.4.3-2) unstable; urgency=low
+
+  * Moved initscripts sequence number to S16 from S20. This will make
+    openvpn start earlier and be ready for other services. (Closes: #209225)
+  * Added Depends: on debconf, it's used in the maintainer's scripts now.
+  * Added debconf template to ask for the creation of the TUN/TAP device 
+    node. (Closes: #211198)
+
+ -- Alberto Gonzalez Iniesta <agi@agi.as>  Thu,  2 Oct 2003 21:39:46 +0200
+
+openvpn (1.4.3-1) unstable; urgency=low
+
+  * New upstream release
+  * Bumped Standards-Version to 3.6.1.0, no change. 
+  * Patched init.d script to support single vpn stop/start/restart.
+    Thanks to Richard Mueller and Norbert Tretkowski (Closes: #204100)
+
+ -- Alberto Gonzalez Iniesta <agi@agi.as>  Tue, 30 Sep 2003 20:04:37 +0200
+
+openvpn (1.4.1.4-1) unstable; urgency=low
+
+  * New upstream release. Backed out --dev-name patch,
+    modified --dev to offer equivalent functionality
+    (Closes: #194910)
+  * Updated README.Debian. Thanks to John R. Shearer
+
+ -- Alberto Gonzalez Iniesta <agi@agi.as>  Tue, 17 Jun 2003 11:08:17 +0200
+
+openvpn (1.4.1-1) unstable; urgency=low
+
+  * New upstream release
+
+ -- Alberto Gonzalez Iniesta <agi@agi.as>  Fri, 16 May 2003 17:14:41 +0200
+
+openvpn (1.4.0-2) unstable; urgency=low
+
+  * Patch from James Yonan to use 2.2.x TUN interface if 2.4.x fails.
+    (Closes: #182020)
+
+ -- Alberto Gonzalez Iniesta <agi@agi.as>  Sun, 11 May 2003 10:24:51 +0200
+
+openvpn (1.4.0-1) unstable; urgency=low
+
+  * New upstream release (Closes: #179551)
+  * Re-enabled liblzo support. LZO's author made an exception in LZO's 
+    license that permits OpenVPN to use LZO and OpenSSL. See copyright
+    file.
+
+ -- Alberto Gonzalez Iniesta <agi@agi.as>  Thu,  8 May 2003 09:21:53 +0200
+
+openvpn (1.3.2-3) unstable; urgency=low
+
+  * Removed executable permissions from generated secret files.
+    (Closes: #178849)
+
+ -- Alberto Gonzalez Iniesta <agi@agi.as>  Thu,  6 Feb 2003 10:04:11 +0100
+
+openvpn (1.3.2-2) unstable; urgency=low
+
+  * Disabled liblzo1 support to fix license issues with Openssl. 
+    (Closes: #177497)
+  * Bumped Standards-Version to 3.5.8, no change. 
+
+ -- Alberto Gonzalez Iniesta <agi@agi.as>  Mon, 20 Jan 2003 16:09:16 +0100
+
+openvpn (1.3.2-1) unstable; urgency=low
+
+  * New upstream release
+
+ -- Alberto Gonzalez Iniesta <agi@agi.as>  Mon, 28 Oct 2002 14:22:10 +0100
+
+openvpn (1.3.0-2) unstable; urgency=low
+
+  * Modified init.d script so it's not dependent on bash. (Closes: #161525)
+
+ -- Alberto Gonzalez Iniesta <agi@agi.as>  Sat, 21 Sep 2002 12:23:46 +0200
+
+openvpn (1.3.0-1) unstable; urgency=low
+
+  * New upstream release
+
+ -- Alberto Gonzalez Iniesta <agi@agi.as>  Wed, 10 Jul 2002 12:50:50 +0200
+
+openvpn (1.2.1-1) unstable; urgency=low
+
+  * New upstream release
+  * Added init.d script
+
+ -- Alberto Gonzalez Iniesta <agi@agi.as>  Fri, 21 Jun 2002 14:05:42 +0200
+
+openvpn (1.2.0-2) unstable; urgency=low
+
+  * Modified configure(.ac) pthread library handling to work with GCC 3.0.
+    Thanks to Lamont Jones for the patch. (Closes: #148120)
+
+ -- Alberto Gonzalez Iniesta <agi@agi.as>  Sat, 25 May 2002 11:41:59 +0200
+
+openvpn (1.2.0-1) unstable; urgency=low
+
+  * Initial Release. (Closes: #140463)
+
+ -- Alberto Gonzalez Iniesta <agi@agi.as>  Thu, 23 May 2002 11:00:37 +0200
+

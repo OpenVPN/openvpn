@@ -1,0 +1,161 @@
+#
+#    Translators, if you are not familiar with the PO format, gettext
+#    documentation is worth reading, especially sections dedicated to
+#    this format, e.g. by running:
+#         info -n '(gettext)PO Files'
+#         info -n '(gettext)Header Entry'
+#
+#    Some information specific to po-debconf are available at
+#            /usr/share/doc/po-debconf/README-trans
+#         or http://www.debian.org/intl/l10n/po-debconf/README-trans
+#
+#    Developers do not need to manually edit POT or PO files.
+#
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: openvpn 2.1~rc7-2\n"
+"Report-Msgid-Bugs-To: openvpn@packages.debian.org\n"
+"POT-Creation-Date: 2011-05-10 17:48+0200\n"
+"PO-Revision-Date: 2008-05-30 23:52+0900\n"
+"Last-Translator: Hideki Yamane (Debian-JP) <henrich@debian.or.jp>\n"
+"Language-Team: Japanese <debian-japanese@lists.debian.org>\n"
+"Language: ja\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#. Type: boolean
+#. Description
+#: ../templates:2001
+msgid "Create the TUN/TAP device?"
+msgstr "TUN/TAP デバイスを作成しますか?"
+
+#. Type: boolean
+#. Description
+#: ../templates:2001
+msgid ""
+"If you choose this option, the /dev/net/tun device needed by OpenVPN will be "
+"created."
+msgstr ""
+"ここで「はい」と答えると、openvpn が必要とする /dev/net/tun デバイスを作成し"
+"ます。"
+
+#. Type: boolean
+#. Description
+#: ../templates:2001
+msgid "You should not choose this option if you're using devfs."
+msgstr "devfs を使っている場合は「いいえ」と答えてください。"
+
+#~ msgid "Vulnerable random number generator"
+#~ msgstr "脆弱な乱数生成器について"
+
+#~ msgid ""
+#~ "A weakness has been discovered in the random number generator used by "
+#~ "OpenSSL on Ubuntu and Debian systems.  As a result of this weakness, "
+#~ "certain encryption keys are generated much more frequently than they "
+#~ "should be, such that an attacker could guess the key through a brute-"
+#~ "force attack given minimal knowledge of the system."
+#~ msgstr ""
+#~ "Ubuntu および Debian のシステムの OpenSSL で利用されている乱数生成器に弱点"
+#~ "が見つかりました。この弱点によって、本来あるべきより頻繁に特定の暗号鍵が生"
+#~ "成されてしまうことになり、システムについてほんの少しだけ知識を得るだけで、"
+#~ "攻撃者が総当たり攻撃によって鍵を推測できてしまいます。"
+
+#~ msgid ""
+#~ "Any keys created on a vulnerable system may be affected by this problem. "
+#~ "The 'openssl-vulnkey' command may be used as a partial test for RSA keys "
+#~ "with certain bit sizes, and the 'openvpn-vulnkey' for OpenVPN shared "
+#~ "secret keys. Users are urged to verify their keys or simply regenerate "
+#~ "any server or client certificates and keys in use on the system."
+#~ msgstr ""
+#~ "脆弱性があるシステムで生成された全ての鍵がこの問題の影響を受けます。特定の"
+#~ "ビット数の RSA 鍵については 'openssl-vulnkey' コマンドが、OpenVPN の共有秘"
+#~ "密鍵には 'openvpn-vulnkey' コマンドが部分的なテストとして利用できます。"
+#~ "ユーザには鍵の確認を行うか、システムで利用しているサーバ／クライアント証明"
+#~ "書及び鍵を単に再生成することをお勧めします。"
+
+#~ msgid "Would you like to start openvpn sooner?"
+#~ msgstr "openvpn をすぐに起動しますか?"
+
+#~ msgid ""
+#~ "Previous versions of openvpn started at the same time as most of other "
+#~ "services. This means that most of these services couldn't use openvpn "
+#~ "since it may have been unavailable when they started. Newer versions of "
+#~ "the openvpn package will start earlier. (i.e. a S16openvpn link in rc"
+#~ "[235].d instead of a S20openvpn)"
+#~ msgstr ""
+#~ "openvpn の以前のバージョンでは他の大半のサービスと同時に起動していました。"
+#~ "これは、これらのサービスの大半が起動時に openvpn が利用できない状態のた"
+#~ "め、openvpn を利用できないのを意味します。新しいバージョンの openvpn パッ"
+#~ "ケージはすぐに起動するようになっています。(つまり、rc[235].d では "
+#~ "S20openvpn ではなく S16openvpn にリンクしています)"
+
+#~ msgid ""
+#~ "If you accept here, the package upgrade will make this change for you. If "
+#~ "you refuse, nothing will change, and openvpn will be working just like it "
+#~ "did before."
+#~ msgstr ""
+#~ "ここで「はい」と答えると、パッケージのアップグレードでこの変更を行います。"
+#~ "「いいえ」と答えた場合、何も変更されず、openvpn は以前同様に動作します。"
+
+#~ msgid "Stop OpenVPN when upgraded?"
+#~ msgstr "アップグレードの際に openvpn を停止しますか?"
+
+#~ msgid ""
+#~ "The upgrade process stops the running daemon before  installing the new "
+#~ "version. If you are installing or upgrading the system remotely, that "
+#~ "could break the upgrade process."
+#~ msgstr ""
+#~ "アップグレード作業では、新バージョンをインストールする前に動作しているデー"
+#~ "モンを停止します。リモートからシステムをインストール／アップグレードしてい"
+#~ "る場合は、アップグレードは途中で中断される可能性があります。"
+
+#~ msgid ""
+#~ "Unless upgrades are performed locally, you should choose to not stop "
+#~ "OpenVPN before it is upgraded. The installation process will restart it "
+#~ "once the upgrade is completed."
+#~ msgstr ""
+#~ "アップグレードをローカルで実行してないのであれば、アップグレードの前に "
+#~ "openvpn は停止「しない」ようにしてください。インストール作業が一旦完了する"
+#~ "と再起動を行います。"
+
+#~ msgid "This option will take effect for the next upgrade."
+#~ msgstr "このオプションは次回のアップグレード時に使われます。"
+
+#~ msgid "Default port has changed"
+#~ msgstr "標準ポートが変更されました"
+
+#~ msgid ""
+#~ "OpenVPN's default port has changed from 5000 to 1194 (IANA assigned). If "
+#~ "you don't specify the port to be used on your VPNs, this upgrade may "
+#~ "break them."
+#~ msgstr ""
+#~ "OpenVPN の標準ポートが 5000 から (IANA によって割り当てられた) 1194 に変更"
+#~ "されました。VPN 接続で利用するポートを明示的に指定していない場合は、この"
+#~ "アップグレードによって接続ができなくなります。"
+
+#~ msgid ""
+#~ "Use the option 'port 5000' if you want to keep the old port "
+#~ "configuration, or take a look at your firewall rules to allow the new "
+#~ "default port configuration to work."
+#~ msgstr ""
+#~ "以前のポート設定をそのまま使い続けたい場合は 'port 5000' オプションを利用"
+#~ "してっください。それ以外の場合はファイアウォールのルールを見直し、新しい標"
+#~ "準ポート設定で動作するようにしてください。"
+
+#~ msgid "Would you like to stop openvpn later?"
+#~ msgstr "openvpn が遅れて停止するようにしますか?"
+
+#~ msgid ""
+#~ "Previous versions of openvpn stopped at the same time as most of other "
+#~ "services. This meant that some of services stopping later couldn't use  "
+#~ "openvpn since it may have been stopped before them. Newer versions of the "
+#~ "openvpn package will stop the service later. (i.e. a K80openvpn link in  "
+#~ "rc[06].d instead of a K20openvpn)"
+#~ msgstr ""
+#~ "openvpn の以前のバージョンでは、他の大半のサービスと同時に終了していまし"
+#~ "た。これは、遅れて終了するサービスの幾つかは、openvpn がサービスより前に停"
+#~ "止されてしまうので、openvpn を利用できなかったということを意味しています。"
+#~ "新しいバージョンの openvpn パッケージは遅れて停止するようになっています。"
+#~ "(つまり、rc[06].d で K20openvpn ではなく K80openvpn にリンクしています)"

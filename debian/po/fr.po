@@ -1,0 +1,161 @@
+# Translation of openvpn debconf templates to French
+# Copyright (C) 2008 Michel Grentzinger <mic.grentz@online.fr>
+# This file is distributed under the same license as the openvpn package.
+#
+#
+# Michel Grentzinger <mic.grentz@online.fr>, 2008.
+# Christian Perrier, <bubulle@debian.org>, 2008.
+msgid ""
+msgstr ""
+"Project-Id-Version: openvpn\n"
+"Report-Msgid-Bugs-To: openvpn@packages.debian.org\n"
+"POT-Creation-Date: 2011-05-10 17:48+0200\n"
+"PO-Revision-Date: 2008-05-27 21:15+0200\n"
+"Last-Translator: Michel Grentzinger <mic.grentz@online.fr>\n"
+"Language-Team:  <fr@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Generator: KBabel 1.11.4\n"
+
+#. Type: boolean
+#. Description
+#: ../templates:2001
+msgid "Create the TUN/TAP device?"
+msgstr "Faut-il créer le périphérique TUN/TAP ?"
+
+#. Type: boolean
+#. Description
+#: ../templates:2001
+msgid ""
+"If you choose this option, the /dev/net/tun device needed by OpenVPN will be "
+"created."
+msgstr ""
+"Si vous choississez cette option, le périphérique TUN/TAP /dev/net/tun "
+"nécessaire pour OpenVPN sera créé."
+
+#. Type: boolean
+#. Description
+#: ../templates:2001
+msgid "You should not choose this option if you're using devfs."
+msgstr "Vous ne devriez pas choisir cette option si vous utilisez devfs."
+
+#~ msgid "Vulnerable random number generator"
+#~ msgstr "Générateur de nombres aléatoires vulnérable"
+
+#~ msgid ""
+#~ "A weakness has been discovered in the random number generator used by "
+#~ "OpenSSL on Ubuntu and Debian systems.  As a result of this weakness, "
+#~ "certain encryption keys are generated much more frequently than they "
+#~ "should be, such that an attacker could guess the key through a brute-"
+#~ "force attack given minimal knowledge of the system."
+#~ msgstr ""
+#~ "Une faille a été découverte dans le générateur de nombres aléatoires "
+#~ "d'OpenSSL dans Debian et les distributions dérivées. Cela implique que "
+#~ "certaines clés sont générées plus souvent que d'autres, permettant à une "
+#~ "attaque par force brute de réussir à trouver une clé de chiffrement même "
+#~ "avec une connaissance minimale du système."
+
+#~ msgid ""
+#~ "Any keys created on a vulnerable system may be affected by this problem. "
+#~ "The 'openssl-vulnkey' command may be used as a partial test for RSA keys "
+#~ "with certain bit sizes, and the 'openvpn-vulnkey' for OpenVPN shared "
+#~ "secret keys. Users are urged to verify their keys or simply regenerate "
+#~ "any server or client certificates and keys in use on the system."
+#~ msgstr ""
+#~ "Toutes les clés créées sur un système vulnérable sont potentiellement "
+#~ "touchées par ce problème. La commande « openssl-vulnkey » peut être "
+#~ "utilisée pour trouver certaines des clés RSA vulnérables d'une certaine "
+#~ "taille. De même la commande « openvpn-vulnkey » peut rechercher de telles "
+#~ "clés secrètes partagées d'OpenVPN. Il est très fortement conseillé de "
+#~ "vérifier les clés de chiffrement ou de simplement recréer les certificats "
+#~ "des serveurs et des clients, ainsi que les clés utilisées sur le système."
+
+#~ msgid "Would you like to start openvpn sooner?"
+#~ msgstr "Faut-il démarrer openvpn dès que possible ?"
+
+#~ msgid ""
+#~ "Previous versions of openvpn started at the same time as most of other "
+#~ "services. This means that most of these services couldn't use openvpn "
+#~ "since it may have been unavailable when they started. Newer versions of "
+#~ "the openvpn package will start earlier. (i.e. a S16openvpn link in rc"
+#~ "[235].d instead of a S20openvpn)"
+#~ msgstr ""
+#~ "Les précédentes versions d'openvpn démarraient en même temps que la "
+#~ "plupart des autres services. Cela signifie que la majorité de ces "
+#~ "services ne peuvent pas utiliser openvpn puisqu'il n'est pas encore "
+#~ "disponible lorsqu'ils démarrent. Les versions récentes du paquet openvpn "
+#~ "démarrent plus tôt (c.-à-d. que le lien dans rc[235].d est S16openvpn au "
+#~ "lieu de S20openvpn)."
+
+#~ msgid ""
+#~ "If you accept here, the package upgrade will make this change for you. If "
+#~ "you refuse, nothing will change, and openvpn will be working just like it "
+#~ "did before."
+#~ msgstr ""
+#~ "Si vous choisissez cette option, cette modification sera effectuée lors "
+#~ "de la mise à jour du paquet. Sinon, rien ne sera modifié, et openvpn "
+#~ "fonctionnera comme auparavant."
+
+#~ msgid "Stop OpenVPN when upgraded?"
+#~ msgstr "Faut-il arrêter OpenVPN lors des mises à jour ?"
+
+#~ msgid ""
+#~ "The upgrade process stops the running daemon before  installing the new "
+#~ "version. If you are installing or upgrading the system remotely, that "
+#~ "could break the upgrade process."
+#~ msgstr ""
+#~ "La mise à jour arrête le démon en cours d'exécution avant d'installer la "
+#~ "nouvelle version. Si vous installez ou mettez à jour le système à "
+#~ "distance, cela peut causer l'interruption de la mise à jour."
+
+#~ msgid ""
+#~ "Unless upgrades are performed locally, you should choose to not stop "
+#~ "OpenVPN before it is upgraded. The installation process will restart it "
+#~ "once the upgrade is completed."
+#~ msgstr ""
+#~ "Sauf pour les mises à jour effectuées localement, vous ne devriez pas "
+#~ "arrêter OpenVPN avant sa mise à jour. Le processus d'installation le "
+#~ "redémarrera une fois cette opération terminée."
+
+#~ msgid "This option will take effect for the next upgrade."
+#~ msgstr "Cette option prendra effet à la prochaine mise à jour."
+
+#~ msgid "Default port has changed"
+#~ msgstr "Changement du port par défaut"
+
+#~ msgid ""
+#~ "OpenVPN's default port has changed from 5000 to 1194 (IANA assigned). If "
+#~ "you don't specify the port to be used on your VPNs, this upgrade may "
+#~ "break them."
+#~ msgstr ""
+#~ "Le port par défaut d'OpenVPN est passé de 5000 à 1194 (valeur choisie par "
+#~ "l'IANA). Si vous n'indiquez pas le port à utiliser sur vos réseaux privés "
+#~ "virtuels, cette mise à niveau peut les rendre inutilisables."
+
+#~ msgid ""
+#~ "Use the option 'port 5000' if you want to keep the old port "
+#~ "configuration, or take a look at your firewall rules to allow the new "
+#~ "default port configuration to work."
+#~ msgstr ""
+#~ "Vous devriez utiliser l'option « port 5000 » si vous souhaitez continuer "
+#~ "à utiliser l'ancien port, ou vérifier les réglages du pare-feu pour vous "
+#~ "assurer que la configuration avec le nouveau port pourra fonctionner."
+
+#~ msgid "Would you like to stop openvpn later?"
+#~ msgstr "Faut-il arrêter openvpn dès que possible ?"
+
+#~ msgid ""
+#~ "Previous versions of openvpn stopped at the same time as most of other "
+#~ "services. This meant that some of services stopping later couldn't use  "
+#~ "openvpn since it may have been stopped before them. Newer versions of the "
+#~ "openvpn package will stop the service later. (i.e. a K80openvpn link in  "
+#~ "rc[06].d instead of a K20openvpn)"
+#~ msgstr ""
+#~ "Les précédentes versions d'openvpn se terminaient en même temps que la "
+#~ "plupart des autres services. Cela signifie que la majorité de ces "
+#~ "services ne peuvent pas utiliser openvpn puisque ce dernier est déjà "
+#~ "arrêté avant qu'ils ne s'arrêtent à leur tour. Les versions récentes du "
+#~ "paquet openvpn s'arrêtent plus tard (c.-à-d. que le lien dans rc[06].d "
+#~ "est K80openvpn au lieu de K20openvpn)."

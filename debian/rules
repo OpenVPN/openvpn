@@ -1,0 +1,75 @@
+#!/usr/bin/make -f
+
+ifeq ($(DEB_HOST_ARCH_OS), kfreebsd)
+# Avoid the /sbin/route wrapper which doesn't provide FreeBSD CLI as expected
+ROUTE_ARGS	:= --with-route-path=/lib/freebsd/route
+else
+ROUTE_ARGS	:= --with-route-path=/sbin/route --with-iproute-path=/sbin/ip --enable-iproute2
+endif
+
+#export DH_VERBOSE=1
+export DEB_BUILD_MAINT_OPTIONS = hardening=+all
+
+%:
+	dh $@ --with systemd
+
+override_dh_auto_configure:
+	dh_auto_configure -- $(shell dpkg-buildflags --export=configure) --enable-password-save --host=$(DEB_HOST_GNU_TYPE) --build=$(DEB_BUILD_GNU_TYPE) --prefix=/usr --mandir=\$${prefix}/share/man --with-ifconfig-path=/sbin/ifconfig $(ROUTE_ARGS) --with-plugindir=\$${prefix}/lib/openvpn --includedir=\$${prefix}/include/openvpn --enable-pkcs11 --enable-x509-alt-username --enable-systemd
+
+
+override_dh_auto_build:
+	dh_auto_build
+	# The one shipped in the tarball gets rebuild (chaging /bin/sh in some cases)
+	#sed -i -e '1s%.*%#!/bin/sh%' tests/t_client.sh
+	# make plugins
+	# $(MAKE) -C plugin/auth-pam/ $(shell dpkg-buildflags --export=configure)
+	# $(MAKE) -C plugin/down-root/ $(shell dpkg-buildflags --export=configure)
+
+# we may not want to run dh_auto_test
+#override_dh_auto_test:
+
+override_dh_auto_clean:
+	# These two get deleted on "make clean", but come in the tarball
+	# hack to keep them around after "make clean"
+	-test -f distro/rpm/openvpn.spec.not || mv distro/rpm/openvpn.spec distro/rpm/openvpn.spec.not
+	-test -f tests/t_client.sh.not || mv tests/t_client.sh tests/t_client.sh.not
+	dh_auto_clean
+	-test -f distro/rpm/openvpn.spec.not && mv distro/rpm/openvpn.spec.not distro/rpm/openvpn.spec
+	-test -f tests/t_client.sh.not && mv tests/t_client.sh.not tests/t_client.sh
+	# clean plugins
+	# $(MAKE) -C plugin/auth-pam/ clean
+	# $(MAKE) -C plugin/down-root/ clean
+
+override_dh_clean:
+	dh_clean -X win/openvpn.nsi.orig
+
+override_dh_auto_install:
+	dh_auto_install
+	install -m 755 sample/sample-scripts/verify-cn $(CURDIR)/debian/openvpn/usr/share/openvpn
+	install -m 755 debian/openvpn.if-up.d $(CURDIR)/debian/openvpn/etc/network/if-up.d/openvpn
+	install -m 755 debian/openvpn.if-down.d $(CURDIR)/debian/openvpn/etc/network/if-down.d/openvpn
+	# remove unwanted plugin files
+	rm -f $(CURDIR)/debian/openvpn/usr/lib/openvpn/*.la
+	# resolvconf script
+	install -m 755 debian/update-resolv-conf $(CURDIR)/debian/openvpn/etc/openvpn/update-resolv-conf
+	# bash completion
+	install -m 644 debian/openvpn.bash_completion $(CURDIR)/debian/openvpn/etc/bash_completion.d/openvpn
+
+override_dh_installexamples:
+	dh_installexamples
+	## remove windoze stuff
+	rm -rf $(CURDIR)/debian/openvpn/usr/share/doc/openvpn/examples/easy-rsa/Windows
+	rm -rf $(CURDIR)/debian/openvpn/usr/share/doc/openvpn/sample
+	# clean permissions to make lintian happy
+	# chmod a-x $(CURDIR)/debian/openvpn/usr/share/doc/openvpn/examples/easy-rsa/2.0/vars
+	# chmod a-x $(CURDIR)/debian/openvpn/usr/share/doc/openvpn/examples/easy-rsa/2.0/openssl-*.cnf
+
+override_dh_installinit:
+	dh_installinit --no-start -- defaults 16 80
+
+override_dh_compress:
+	dh_compress --exclude=.cnf --exclude=pkitool
+
+override_dh_systemd_start:
+	dh_systemd_start --restart-after-upgrade
+

@@ -1,0 +1,99 @@
+# openvpn (debconf) translation to Catalan.
+# Copyright (C) 2004 Free Software Foundation, Inc.
+# Aleix Badia i Bosch <abadia@ica.es>, 2004
+# Josep Lladonosa i Capell <jep@veinat.net>, 2004
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: openvpn_1.5.0-2_templates\n"
+"Report-Msgid-Bugs-To: openvpn@packages.debian.org\n"
+"POT-Creation-Date: 2011-05-10 17:48+0200\n"
+"PO-Revision-Date: 2004-04-08 20:24+0200\n"
+"Last-Translator: Aleix Badia i Bosch <abadia@ica.es>\n"
+"Language-Team: Catalan <debian-l10n-catalan@lists.debian.org>\n"
+"Language: ca\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#. Type: boolean
+#. Description
+#: ../templates:2001
+msgid "Create the TUN/TAP device?"
+msgstr ""
+
+#. Type: boolean
+#. Description
+#: ../templates:2001
+msgid ""
+"If you choose this option, the /dev/net/tun device needed by OpenVPN will be "
+"created."
+msgstr ""
+
+#. Type: boolean
+#. Description
+#: ../templates:2001
+msgid "You should not choose this option if you're using devfs."
+msgstr ""
+
+#~ msgid "Would you like to start openvpn sooner?"
+#~ msgstr "Voldríeu iniciar l'openvpn abans?"
+
+#, fuzzy
+#~ msgid ""
+#~ "Previous versions of openvpn started at the same time as most of other "
+#~ "services. This means that most of these services couldn't use openvpn "
+#~ "since it may have been unavailable when they started. Newer versions of "
+#~ "the openvpn package will start earlier. (i.e. a S16openvpn link in rc"
+#~ "[235].d instead of a S20openvpn)"
+#~ msgstr ""
+#~ "Les versions anteriors de l'openvpn s'iniciaven al mateix temps que la "
+#~ "majoria de serveis. Aquesta característica implica que la majoria de "
+#~ "serveis no poguessin utilitzar l'openvpn al no estar disponible. Les "
+#~ "noves versions de l'openvpn s'iniciaran abans (ex. un enllaç S18openvpn a "
+#~ "rc[235].d en comptes d'un S20openvpn)"
+
+#~ msgid ""
+#~ "If you accept here, the package upgrade will make this change for you. If "
+#~ "you refuse, nothing will change, and openvpn will be working just like it "
+#~ "did before."
+#~ msgstr ""
+#~ "Si ho accepteu, l'actualització del paquet ho modificarà per vosaltres. "
+#~ "Si no ho accepteu, no canviarà res i l'openvpn s'executarà tal i com ho "
+#~ "feia anteriorment."
+
+#, fuzzy
+#~ msgid "Would you like to stop openvpn later?"
+#~ msgstr "Voldríeu iniciar l'openvpn abans?"
+
+#, fuzzy
+#~ msgid ""
+#~ "Previous versions of openvpn stopped at the same time as most of other "
+#~ "services. This meant that some of services stopping later couldn't use  "
+#~ "openvpn since it may have been stopped before them. Newer versions of the "
+#~ "openvpn package will stop the service later. (i.e. a K80openvpn link in  "
+#~ "rc[06].d instead of a K20openvpn)"
+#~ msgstr ""
+#~ "Les versions anteriors de l'openvpn s'iniciaven al mateix temps que la "
+#~ "majoria de serveis. Aquesta característica implica que la majoria de "
+#~ "serveis no poguessin utilitzar l'openvpn al no estar disponible. Les "
+#~ "noves versions de l'openvpn s'iniciaran abans (ex. un enllaç S18openvpn a "
+#~ "rc[235].d en comptes d'un S20openvpn)"
+
+#~ msgid "Would you like a TUN/TAP device to be created?"
+#~ msgstr "Voleu que es creï un dispositiu TUN/TAP?"
+
+#~ msgid ""
+#~ "If you accept here, the package will make a special device called /dev/"
+#~ "net/tun for openvpn's use. If you refuse, the device won't be made now. "
+#~ "Read README.Debian for details on how to make it. If you are using devfs "
+#~ "refuse here."
+#~ msgstr ""
+#~ "Si ho accepteu, el paquet crearà un dispositiu especial anomenat /dev/net/"
+#~ "tun per a l'openvpn. Si no ho accepteu, no es crearà el dispositiu. Per a "
+#~ "més a informació sobre el procés llegiu el fitxer README.Debian. Si esteu "
+#~ "utilitzant devfs, refuseu l'opció."
+
+#, fuzzy
+#~ msgid "Would you like to stop openvpn before it gets upgraded?"
+#~ msgstr "Voldríeu iniciar l'openvpn abans?"

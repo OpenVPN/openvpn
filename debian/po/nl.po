@@ -1,0 +1,70 @@
+# Dutch translation of openvpn debconf templates.
+# Copyright (C) 2006-2011 THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the openvpn package.
+# Kurt De Bree <kdebree@telenet.be>, 2006.
+# Jeroen Schot <schot@a-eskwadraat.nl>, 2011.
+msgid ""
+msgstr ""
+"Project-Id-Version: openvpn_2.1.3-4\n"
+"Report-Msgid-Bugs-To: openvpn@packages.debian.org\n"
+"POT-Creation-Date: 2011-05-10 17:48+0200\n"
+"PO-Revision-Date: 2011-05-04 08:24+0200\n"
+"Last-Translator: Jeroen Schot <schot@a-eskwadraat.nl>\n"
+"Language-Team: Debian l10n Dutch <debian-l10n-dutch@lists.debian.org>\n"
+"Language: nl\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#. Type: boolean
+#. Description
+#: ../templates:2001
+msgid "Create the TUN/TAP device?"
+msgstr "TUN/TAP-apparaat aanmaken?"
+
+#. Type: boolean
+#. Description
+#: ../templates:2001
+msgid ""
+"If you choose this option, the /dev/net/tun device needed by OpenVPN will be "
+"created."
+msgstr ""
+"Als u voor deze optie kiest wordt het door OpenVPN benodigde /dev/net/tun-"
+"apparaat aangemaakt."
+
+#. Type: boolean
+#. Description
+#: ../templates:2001
+msgid "You should not choose this option if you're using devfs."
+msgstr "Kies niet voor deze optie als u gebruik maakt van devfs."
+
+#~ msgid "Vulnerable random number generator"
+#~ msgstr "Kwetsbare toevalsgenerator (RNG)"
+
+#~ msgid ""
+#~ "A weakness has been discovered in the random number generator used by "
+#~ "OpenSSL on Ubuntu and Debian systems.  As a result of this weakness, "
+#~ "certain encryption keys are generated much more frequently than they "
+#~ "should be, such that an attacker could guess the key through a brute-"
+#~ "force attack given minimal knowledge of the system."
+#~ msgstr ""
+#~ "Er is een zwakke plek ontdekt in de toevalsgenerator die door OpenSSL op "
+#~ "Ubuntu- en Debiansystemen wordt gebruikt. Als een gevolg hiervan worden "
+#~ "sommige sleutels veel vaker gegenereerd dan zou moeten, waardoor een "
+#~ "aanvaller de sleutel met een brute force-aanval kan raden met minimale "
+#~ "kennis van het systeem."
+
+#~ msgid ""
+#~ "Any keys created on a vulnerable system may be affected by this problem. "
+#~ "The 'openssl-vulnkey' command may be used as a partial test for RSA keys "
+#~ "with certain bit sizes, and the 'openvpn-vulnkey' for OpenVPN shared "
+#~ "secret keys. Users are urged to verify their keys or simply regenerate "
+#~ "any server or client certificates and keys in use on the system."
+#~ msgstr ""
+#~ "Elke sleutel die op een kwetsbaar systeem is aangemaakt kan hierdoor "
+#~ "getroffen zijn. U kunt het commando 'openssl-vulnkey' gebruiken als een "
+#~ "gedeeltelijke test voor RSA-sleutels met een bepaalde lengte en het "
+#~ "commando 'openvpn-vulnkey' voor gedeelde geheime sleutels van OpenVPN. "
+#~ "Gebruikers wordt dringend verzocht om hun sleutels te controleren of alle "
+#~ "server/client-certificaten en sleutels op dit systeem opnieuw te "
+#~ "genereren."

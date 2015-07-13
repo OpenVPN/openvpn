@@ -1,0 +1,10 @@
+etc/openvpn
+etc/network/if-up.d
+etc/network/if-down.d
+etc/bash_completion.d
+usr/sbin
+usr/share/man/man8
+usr/share/doc/openvpn
+usr/share/openvpn
+usr/lib/openvpn
+usr/include/openvpn

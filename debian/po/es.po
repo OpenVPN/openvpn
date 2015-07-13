@@ -1,0 +1,211 @@
+# openvpn po-debconf translation to spanish
+# Copyright (C) 2004 Software in the Public Interest
+# This file is distributed under the same license as the postfix package.
+#
+# Changes:
+# - Initial translation
+#       Rudy Godoy <rudy@kernel-panik.org>, 2006
+#
+#
+#  Traductores, si no conoce el formato PO, merece la pena leer la
+#  documentación de gettext, especialmente las secciones dedicadas a este
+#  formato, por ejemplo ejecutando:
+#         info -n '(gettext)PO Files'
+#         info -n '(gettext)Header Entry'
+#
+# Equipo de traducción al español, por favor lean antes de traducir
+# los siguientes documentos:
+#
+# - El proyecto de traducción de Debian al español
+#   http://www.debian.org/intl/spanish/coordinacion
+#   especialmente las notas de traducción en
+#   http://www.debian.org/intl/spanish/notas
+#
+# - La guía de traducción de po's de debconf:
+#   /usr/share/doc/po-debconf/README-trans
+#   o http://www.debian.org/intl/l10n/po-debconf/README-trans
+#
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: openvpn 2.0.9\n"
+"Report-Msgid-Bugs-To: openvpn@packages.debian.org\n"
+"POT-Creation-Date: 2011-05-10 17:48+0200\n"
+"PO-Revision-Date: 2008-05-25 18:19-0500\n"
+"Last-Translator: Rudy Godoy <rudy@debian.org>\n"
+"Language-Team: Debian l10n Spanish <debian-l10n-spanish@lists.debian.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=ISO-8859-15\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#. Type: boolean
+#. Description
+#: ../templates:2001
+msgid "Create the TUN/TAP device?"
+msgstr "¿Crear dispositivo TUN/TAP?"
+
+#. Type: boolean
+#. Description
+#: ../templates:2001
+msgid ""
+"If you choose this option, the /dev/net/tun device needed by OpenVPN will be "
+"created."
+msgstr ""
+"Si elije esta opción, se creará el dispositivo «/dev/net/tun» requerido por "
+"OpenVPN."
+
+#. Type: boolean
+#. Description
+#: ../templates:2001
+msgid "You should not choose this option if you're using devfs."
+msgstr "No elija esta opción si está utilizando devfs."
+
+#~ msgid "Vulnerable random number generator"
+#~ msgstr "Vulnerabilidad de generador de número aleatorio"
+
+#~ msgid ""
+#~ "A weakness has been discovered in the random number generator used by "
+#~ "OpenSSL on Ubuntu and Debian systems.  As a result of this weakness, "
+#~ "certain encryption keys are generated much more frequently than they "
+#~ "should be, such that an attacker could guess the key through a brute-"
+#~ "force attack given minimal knowledge of the system."
+#~ msgstr ""
+#~ "Se ha descubierto un problema en el generador de número aleatorio "
+#~ "utilizado por OpenSSL en los sistemas Debian y Ubuntu. Como resultado de "
+#~ "esto, ciertas claves de cifrado se generan de forma mucho más frecuente "
+#~ "de las que deberían, esto posibilita que un atacante pueda adivinar la "
+#~ "clave mediante un ataque de fuerza bruta si posee información básica "
+#~ "sobre el sistema objetivo."
+
+#~ msgid ""
+#~ "Any keys created on a vulnerable system may be affected by this problem. "
+#~ "The 'openssl-vulnkey' command may be used as a partial test for RSA keys "
+#~ "with certain bit sizes, and the 'openvpn-vulnkey' for OpenVPN shared "
+#~ "secret keys. Users are urged to verify their keys or simply regenerate "
+#~ "any server or client certificates and keys in use on the system."
+#~ msgstr ""
+#~ "Todas las claves creadas en un sistema vulnerable están afectas por este "
+#~ "problema. Puede utilizar la orden «openssl-vulnkey» para realizar una "
+#~ "prueba parcial para claves RSA con cierto tamaño y la orden «openvpn-"
+#~ "vulnkey» para claves secretas compartidas de OpenVPN. Se insta a los "
+#~ "usuarios a verificar sus claves o simplemente volver a generar cualquier "
+#~ "clave y certificado de cliente y servidor que se usa en el sistema."
+
+#~ msgid "Would you like to start openvpn sooner?"
+#~ msgstr "¿Desea iniciar openvpn más pronto?"
+
+#~ msgid ""
+#~ "Previous versions of openvpn started at the same time as most of other "
+#~ "services. This means that most of these services couldn't use openvpn "
+#~ "since it may have been unavailable when they started. Newer versions of "
+#~ "the openvpn package will start earlier. (i.e. a S16openvpn link in rc"
+#~ "[235].d instead of a S20openvpn)"
+#~ msgstr ""
+#~ "Las versiones antiguas de openvpn arrancaban al mismo tiempo que otros\n"
+#~ "servicios. Esto significa que muchos de estos servicios no podían usar\n"
+#~ "openvpn puesto que éste podía no estar disponible cuando arrancaban. Las\n"
+#~ "versiones recientes de openvpn arrancarán mucho antes. (es decir, un\n"
+#~ "enlace S18openvpn en rc[2345].d en vez de S20openvpn)"
+
+#~ msgid ""
+#~ "If you accept here, the package upgrade will make this change for you. If "
+#~ "you refuse, nothing will change, and openvpn will be working just like it "
+#~ "did before."
+#~ msgstr ""
+#~ "Si acepta ahora, la actualización del paquete activará este cambio. Si\n"
+#~ "no acepta, no se cambiará nada, y openvpn funcionará como lo hacia\n"
+#~ "hasta ahora."
+
+#~ msgid "Stop OpenVPN when upgraded?"
+#~ msgstr "¿Parar OpenVPN cuando se actualice?"
+
+#~ msgid ""
+#~ "The upgrade process stops the running daemon before  installing the new "
+#~ "version. If you are installing or upgrading the system remotely, that "
+#~ "could break the upgrade process."
+#~ msgstr ""
+#~ "El proceso de actualización para el demonio antes de instalar la nueva "
+#~ "versión. Si está instalado o actualizando el sistema remotamente, esto "
+#~ "podría interrumpir el proceso de actualización."
+
+#~ msgid ""
+#~ "Unless upgrades are performed locally, you should choose to not stop "
+#~ "OpenVPN before it is upgraded. The installation process will restart it "
+#~ "once the upgrade is completed."
+#~ msgstr ""
+#~ "A menos de que haga las actualizaciones de forma local, se aconseja no\n"
+#~ "parar openvpn antes de que se actualice. El proceso de instalación lo\n"
+#~ "reiniciara una vez que haya finalizado la actualización."
+
+#~ msgid "This option will take effect for the next upgrade."
+#~ msgstr "Esta opción tomará efecto a partir de la siguiente actualización."
+
+#~ msgid "Default port has changed"
+#~ msgstr "El puerto predeterminado ha cambiado"
+
+#~ msgid ""
+#~ "OpenVPN's default port has changed from 5000 to 1194 (IANA assigned). If "
+#~ "you don't specify the port to be used on your VPNs, this upgrade may "
+#~ "break them."
+#~ msgstr ""
+#~ "El puerto predeterminado de OpenVPN ha cambiado del 5000 al 1194 (por\n"
+#~ "asignación de IANA). Si no especifica el puerto a usar en sus VPNs,\n"
+#~ "esto podría podría inutilizarlas."
+
+#~ msgid ""
+#~ "Use the option 'port 5000' if you want to keep the old port "
+#~ "configuration, or take a look at your firewall rules to allow the new "
+#~ "default port configuration to work."
+#~ msgstr ""
+#~ "Use la opción «port 5000» si quiere continuar usando el antiguo\n"
+#~ "puerto, o compruebe las reglas de su cortafuegos para permitir el\n"
+#~ "funcionamiento con el nuevo puerto predeterminado."
+
+#~ msgid "Would you like to stop openvpn later?"
+#~ msgstr "¿Desearía parar openvpn después?"
+
+#~ msgid ""
+#~ "Previous versions of openvpn stopped at the same time as most of other "
+#~ "services. This meant that some of services stopping later couldn't use  "
+#~ "openvpn since it may have been stopped before them. Newer versions of the "
+#~ "openvpn package will stop the service later. (i.e. a K80openvpn link in  "
+#~ "rc[06].d instead of a K20openvpn)"
+#~ msgstr ""
+#~ "Las versiones antiguas de openvpn paraban al mismo tiempo que la\n"
+#~ "mayoría de otros servicios. Esto significa que algunos de estos\n"
+#~ "servicios que se paraban después no podían usar openvpn ya que éste\n"
+#~ "podía haber sido parado antes. Las versiones recientes del paquete\n"
+#~ "openvpn pararán el servicio después. (es decir, un enlace K80openvpn\n"
+#~ "en rc[06].d en lugar de K20openvpn)"
+
+#~ msgid "Would you like a TUN/TAP device to be created?"
+#~ msgstr "¿Desea que la instalación cree un dispositivo TUN/TAP?"
+
+#~ msgid ""
+#~ "If you accept here, the package will make a special device called /dev/"
+#~ "net/tun for openvpn's use. If you refuse, the device won't be made now. "
+#~ "Read README.Debian for details on how to make it. If you are using devfs "
+#~ "refuse here."
+#~ msgstr ""
+#~ "Si acepta, el paquete creará un dispositivo especial llamado\n"
+#~ "/dev/net/tun necesario para el funcionamiento de openvpn. Si rechaza\n"
+#~ "esta opción, el dispositivo no se creará ahora. Lea el fichero\n"
+#~ "README.Debian para saber como crearlo. Si está usando devfs no elija\n"
+#~ "esta opción"
+
+#~ msgid "Would you like to stop openvpn before it gets upgraded?"
+#~ msgstr "¿Desea parar openvpn antes de actualizar?"
+
+#~ msgid ""
+#~ "In some cases you may be upgrading openvpn in a remote server using a VPN "
+#~ "to do so. The upgrade process stops the running daemon before  installing "
+#~ "the new version, in that case you may lose your connection, the upgrade "
+#~ "may be interrupted, and you may not be able to reconnect to the remote "
+#~ "host."
+#~ msgstr ""
+#~ "En algunos casos, puede estar actualizando openvpn en un servidor\n"
+#~ "remoto utilizando la propia VPN. El proceso de actualización para el\n"
+#~ "demonio openvpn antes de instalar la nueva versión, en ese caso podría\n"
+#~ "perder la conexión y la actualización quedar interrumpida. Esto podría\n"
+#~ "impedirle que pueda volver a conectar a la máquina remota."

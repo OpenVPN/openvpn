@@ -1,0 +1,124 @@
+# translation of nb.po_[u4VNua].po to Norwegian Bokmål
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+#
+# Bjørn Steensrud <bjornst@skogkatt.homelinux.org>, 2008.
+msgid ""
+msgstr ""
+"Project-Id-Version: nb.po_[u4VNua]\n"
+"Report-Msgid-Bugs-To: openvpn@packages.debian.org\n"
+"POT-Creation-Date: 2011-05-10 17:48+0200\n"
+"PO-Revision-Date: 2008-01-27 20:45+0100\n"
+"Last-Translator: Bjørn Steensrud <bjornst@skogkatt.homelinux.org>\n"
+"Language-Team: Norwegian Bokmål <i18n-nb@lister.ping.uio.no>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Generator: KBabel 1.11.4\n"
+
+#. Type: boolean
+#. Description
+#: ../templates:2001
+msgid "Create the TUN/TAP device?"
+msgstr "Skal TUN/TAP-enheten opprettes?"
+
+#. Type: boolean
+#. Description
+#: ../templates:2001
+msgid ""
+"If you choose this option, the /dev/net/tun device needed by OpenVPN will be "
+"created."
+msgstr ""
+"Hvis du velger dette, så opprettes enheten /dev/net/tun/ som OpenVPN trenger."
+
+#. Type: boolean
+#. Description
+#: ../templates:2001
+msgid "You should not choose this option if you're using devfs."
+msgstr "Ikke velg dette derson du bruker devfs."
+
+#~ msgid "Would you like to start openvpn sooner?"
+#~ msgstr "Vil du starte openvpn tidligere?"
+
+#~ msgid ""
+#~ "Previous versions of openvpn started at the same time as most of other "
+#~ "services. This means that most of these services couldn't use openvpn "
+#~ "since it may have been unavailable when they started. Newer versions of "
+#~ "the openvpn package will start earlier. (i.e. a S16openvpn link in rc"
+#~ "[235].d instead of a S20openvpn)"
+#~ msgstr ""
+#~ "Tidligere versjoner av openvpn startet på samme tid som de fleste andre "
+#~ "tjenester. Det betyr at de fleste av disse tjenestene ikke kunne bruke "
+#~ "openvpn, siden den kanskje ikke var tilgjengelig da de startet. Nyere "
+#~ "versjoner av openvpn-pakka starter tidligere. (dvs. en lenke i rc[235].d "
+#~ "som heter S16openvpn i stedet for S20.openvpn)"
+
+#~ msgid ""
+#~ "If you accept here, the package upgrade will make this change for you. If "
+#~ "you refuse, nothing will change, and openvpn will be working just like it "
+#~ "did before."
+#~ msgstr ""
+#~ "Hvis du godtar her, så vil pakkeoppgraderingen gjøre denne endringen for "
+#~ "deg. Hvis du avviser, så blir ingenting endret og openvpn fortsetter å "
+#~ "virke akkurat som den gjorde før."
+
+#~ msgid "Stop OpenVPN when upgraded?"
+#~ msgstr "Skal OpenVPN stoppes når den er oppgradert?"
+
+#~ msgid ""
+#~ "The upgrade process stops the running daemon before  installing the new "
+#~ "version. If you are installing or upgrading the system remotely, that "
+#~ "could break the upgrade process."
+#~ msgstr ""
+#~ "Oppgraderingsprosessen stopper den kjørende daemonen før den nye "
+#~ "versjonen installeres. Hvis du installerer eller oppdaterer systemet over "
+#~ "nettverket, så kan det ødelegge oppgraderingsprosessen."
+
+#~ msgid ""
+#~ "Unless upgrades are performed locally, you should choose to not stop "
+#~ "OpenVPN before it is upgraded. The installation process will restart it "
+#~ "once the upgrade is completed."
+#~ msgstr ""
+#~ "Hvis oppgraderinger ikke gjøres lokalt, så bør du velge å ikke stoppe "
+#~ "OpenVPN før den oppgraderes. Installasjonsprosessen starter OpenVPN på "
+#~ "nytt når oppgraderingen er fullført."
+
+#~ msgid "This option will take effect for the next upgrade."
+#~ msgstr "Dette valget får virkning for neste oppgradering."
+
+#~ msgid "Default port has changed"
+#~ msgstr "Standardporten er endret"
+
+#~ msgid ""
+#~ "OpenVPN's default port has changed from 5000 to 1194 (IANA assigned). If "
+#~ "you don't specify the port to be used on your VPNs, this upgrade may "
+#~ "break them."
+#~ msgstr ""
+#~ "OpenVPNs standartport er endret fra 5000 til 1194 (tilordnet av IANA). "
+#~ "Hvis du ikke oppgir porten som skal brukes på dine VPN-tilkoblinger, så "
+#~ "kan denne oppgraderingen ødelegge dem."
+
+#~ msgid ""
+#~ "Use the option 'port 5000' if you want to keep the old port "
+#~ "configuration, or take a look at your firewall rules to allow the new "
+#~ "default port configuration to work."
+#~ msgstr ""
+#~ "Bruk valget «port 5000» hvis du vil beholde det gamle port-oppsettet, "
+#~ "eller juster brannmur-reglene slik at den nye standardporten kan virke."
+
+#~ msgid "Would you like to stop openvpn later?"
+#~ msgstr "Vil du stoppe openvpn senere?"
+
+#~ msgid ""
+#~ "Previous versions of openvpn stopped at the same time as most of other "
+#~ "services. This meant that some of services stopping later couldn't use  "
+#~ "openvpn since it may have been stopped before them. Newer versions of the "
+#~ "openvpn package will stop the service later. (i.e. a K80openvpn link in  "
+#~ "rc[06].d instead of a K20openvpn)"
+#~ msgstr ""
+#~ "Tidligere versjoner av openvpn stoppet på samme tid som de fleste andre "
+#~ "tjenester. Det betydde at noen tjenester som stoppet senere ikke kunne "
+#~ "bruke openvpn siden den kan ha stoppet før dem. Nyere versjoner av "
+#~ "openvpn-pakka vil stoppe tjenesten senere. (dvs. en lenke i rc[06].d som "
+#~ "hete K80openvpn i stedet for K20openvpn)"

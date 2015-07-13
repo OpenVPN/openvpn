@@ -1,0 +1,90 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: openvpn\n"
+"Report-Msgid-Bugs-To: openvpn@packages.debian.org\n"
+"POT-Creation-Date: 2011-05-10 17:48+0200\n"
+"PO-Revision-Date: 2008-05-24 23:40+0200\n"
+"Last-Translator: Esko Arajärvi <edu@iki.fi>\n"
+"Language-Team: Finnish <debian-l10n-finnish@lists.debian.org>\n"
+"Language: fi\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Poedit-Language: Finnish\n"
+"X-Poedit-Country: FINLAND\n"
+
+#. Type: boolean
+#. Description
+#: ../templates:2001
+msgid "Create the TUN/TAP device?"
+msgstr "Luodaanko TUN/TAP-laite?"
+
+#. Type: boolean
+#. Description
+#: ../templates:2001
+msgid ""
+"If you choose this option, the /dev/net/tun device needed by OpenVPN will be "
+"created."
+msgstr ""
+"Jos valitset tämän vaihtoehdon, OpenVPN:n tarvitsema laite /dev/net/tun "
+"luodaan."
+
+#. Type: boolean
+#. Description
+#: ../templates:2001
+msgid "You should not choose this option if you're using devfs."
+msgstr "Tätä vaihtoehtoa ei tulisi valita, jos käytössä on devfs."
+
+#~ msgid "Vulnerable random number generator"
+#~ msgstr "Haavoittuva satunnaislukugeneraattori"
+
+#~ msgid ""
+#~ "A weakness has been discovered in the random number generator used by "
+#~ "OpenSSL on Ubuntu and Debian systems.  As a result of this weakness, "
+#~ "certain encryption keys are generated much more frequently than they "
+#~ "should be, such that an attacker could guess the key through a brute-"
+#~ "force attack given minimal knowledge of the system."
+#~ msgstr ""
+#~ "Debianissa ja Ubuntussa käytössä olleesta ohjelman OpenSSL "
+#~ "satunnaislukugeneraattorista on löydetty heikkous. Siitä johtuen tietyt "
+#~ "salausavaimet luodaan huomattavasti useammin kuin olisi tarkoitus ja "
+#~ "hyökkääjä voi arvata avaimen järjestelmällisellä kokeilulla vähäisillä "
+#~ "tiedoilla järjestelmästä."
+
+#~ msgid ""
+#~ "Any keys created on a vulnerable system may be affected by this problem. "
+#~ "The 'openssl-vulnkey' command may be used as a partial test for RSA keys "
+#~ "with certain bit sizes, and the 'openvpn-vulnkey' for OpenVPN shared "
+#~ "secret keys. Users are urged to verify their keys or simply regenerate "
+#~ "any server or client certificates and keys in use on the system."
+#~ msgstr ""
+#~ "Tämä saattaa vaikuttaa mihin tahansa haavoittuvaisessa järjestelmässä "
+#~ "luotuun avaimeen. Komennolla ”openssl-vulnkey” voidaan osittain testata "
+#~ "tietyt kokoiset RSA-avaimet ja komennolla ”openvpn-vulnkey” OpenVPN:n "
+#~ "jaetut salaiset avaimet. Käyttäjiä kehoitetaan tarkistamaan avaimensa tai "
+#~ "yksinkertaisesti luomaan uudet palvelin- ja asiakasvarmenteet ja -avaimet "
+#~ "järjestelmään."
+
+#~ msgid "Stop OpenVPN when upgraded?"
+#~ msgstr "Pysäytetäänkö OpenVPN päivitettäessä?"
+
+#~ msgid ""
+#~ "The upgrade process stops the running daemon before  installing the new "
+#~ "version. If you are installing or upgrading the system remotely, that "
+#~ "could break the upgrade process."
+#~ msgstr ""
+#~ "Päivitysprosessi pysäyttää taustaohjelman ennen uuden version "
+#~ "asentamista. Jos asennat tai päivität järjestelmää etäyhteyden kautta, "
+#~ "tämä saattaa rikkoa päivitysprosessin."
+
+#~ msgid ""
+#~ "Unless upgrades are performed locally, you should choose to not stop "
+#~ "OpenVPN before it is upgraded. The installation process will restart it "
+#~ "once the upgrade is completed."
+#~ msgstr ""
+#~ "Älä pysäytä OpenVPN:ää ennen kuin se on päivitetty, ellet päivitä sitä "
+#~ "paikallisesti. Asennusprosessi käynnistää sen uudelleen, kun päivitys on "
+#~ "valmis."
+
+#~ msgid "This option will take effect for the next upgrade."
+#~ msgstr "Tämä valinta otetaan huomioon seuraavasta päivityksestä alkaen."
