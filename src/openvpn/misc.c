@@ -1056,6 +1056,10 @@ get_user_pass_cr (struct user_pass *up,
        */
       else if (from_stdin)
 	{
+	  /* did we --daemon'ize before asking for passwords? */
+	  if ( !isatty(0) && !isatty(2) )
+	    { msg(M_FATAL, "neither stdin nor stderr are a tty device, can't ask for %s password.  If you used --daemon, you need to use --askpass to make passphrase-protected keys work, and you can not use --auth-nocache.", prefix ); }
+
 #ifdef ENABLE_CLIENT_CR
 	  if (auth_challenge && (flags & GET_USER_PASS_DYNAMIC_CHALLENGE))
 	    {
