@@ -2198,6 +2198,22 @@ openvpn command for a fairly reliable indication of whether the command
 has correctly initialized and entered the packet forwarding event loop.
 
 In OpenVPN, the vast majority of errors which occur after initialization are non-fatal.
+
+Note: as soon as OpenVPN has daemonized, it can not ask for usernames,
+passwords, or key pass phrases anymore.  This has certain consequences,
+namely that using a password-protected private key will fail unless the
+.B \-\-askpass
+option is used to tell OpenVPN to ask for the pass phrase (this
+requirement is new in 2.3.7, and is a consequence of calling daemon()
+before initializing the crypto layer).
+
+Further, using
+.B \-\-daemon
+together with
+.B \-\-auth-user-pass
+(entered on console) and
+.B \-\-auth-nocache
+will fail as soon as key renegotiation (and reauthentication) occurs.
 .\"*********************************************************
 .TP
 .B \-\-syslog [progname]
