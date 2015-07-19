@@ -4325,7 +4325,7 @@ add_option (struct options *options,
     }
 #endif
 #ifdef ENABLE_PLUGIN
-  else if (streq (p[0], "plugin") && p[1] && !p[2])
+  else if (streq (p[0], "plugin") && p[1] && !p[3])
     {
       VERIFY_PERMISSION (OPT_P_PLUGIN);
       if (!options->plugin_list)
