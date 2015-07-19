@@ -15,6 +15,7 @@ CapabilityBoundingSet=CAP_IPC_LOCK CAP_NET_ADMIN CAP_NET_BIND_SERVICE CAP_NET_RA
 LimitNPROC=10
 DeviceAllow=/dev/null rw
 DeviceAllow=/dev/net/tun rw
+KillMode=mixed
 
 [Install]
 WantedBy=multi-user.target
