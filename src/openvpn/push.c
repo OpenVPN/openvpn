@@ -483,7 +483,7 @@ process_incoming_push_msg (struct context *c,
 	      case 0:
 	      case 1:
 		md_ctx_update (&c->c2.pulled_options_state, BPTR(&buf_orig), BLEN(&buf_orig));
-		md_ctx_final (&c->c2.pulled_options_state, c->c2.pulled_options_digest);
+		md_ctx_final (&c->c2.pulled_options_state, c->c2.pulled_options_digest.digest);
 		md_ctx_cleanup (&c->c2.pulled_options_state);
 	        c->c2.pulled_options_md5_init_done = false;
 		ret = PUSH_MSG_REPLY;

@@ -1620,11 +1620,12 @@ tun_abort()
  * equal, or either one is all-zeroes.
  */
 static bool
-options_hash_changed_or_zero(const uint8_t (*a)[MD5_DIGEST_LENGTH],
-    const uint8_t (*b)[MD5_DIGEST_LENGTH])
+options_hash_changed_or_zero(const struct md5_digest *a,
+    const struct md5_digest *b)
 {
-  const uint8_t zero[MD5_DIGEST_LENGTH] = {0};
-  return memcmp (*a, *b, MD5_DIGEST_LENGTH) || memcmp (*a, zero, MD5_DIGEST_LENGTH);
+  const struct md5_digest zero = {{0}};
+  return memcmp (a, b, sizeof(struct md5_digest)) ||
+      memcmp (a, &zero, sizeof(struct md5_digest));
 }
 #endif /* P2MP */
 
@@ -1668,8 +1669,7 @@ do_up (struct context *c, bool pulled_options, unsigned int option_types_found)
       if (c->c2.did_open_tun)
 	{
 #if P2MP
-	  memcpy(c->c1.pulled_options_digest_save, c->c2.pulled_options_digest,
-	      sizeof(c->c1.pulled_options_digest_save));
+	  c->c1.pulled_options_digest_save = c->c2.pulled_options_digest;
 #endif
 
 	  /* if --route-delay was specified, start timer */

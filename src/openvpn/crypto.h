@@ -108,6 +108,11 @@
 #include "packet_id.h"
 #include "mtu.h"
 
+/** Wrapper struct to pass around MD5 digests */
+struct md5_digest {
+  uint8_t digest[MD5_DIGEST_LENGTH];
+};
+
 /*
  * Defines a key type and key length for both cipher and HMAC.
  */
