@@ -10,7 +10,7 @@
 #
 
 MAINTAINERCLEANFILES = \
-	$(srcdir)/Makefile.in
+	$(srcdir)/Makefile.in \
 	$(srcdir)/openvpn-plugin.h.in
 
 include_HEADERS = openvpn-plugin.h
