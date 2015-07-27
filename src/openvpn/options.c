@@ -3766,7 +3766,7 @@ read_inline_file (struct in_src *is, const char *close_tag, struct gc_arena *gc)
 	  endtagfound = true;
 	  break;
 	}
-      if (!buf_safe (&buf, strlen(line)))
+      if (!buf_safe (&buf, strlen(line)+1))
 	{
 	  /* Increase buffer size */
 	  struct buffer buf2 = alloc_buf (buf.capacity * 2);

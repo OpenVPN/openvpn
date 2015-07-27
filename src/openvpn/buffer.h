@@ -308,7 +308,10 @@ has_digit (const unsigned char* src)
 }
 
 /*
- * printf append to a buffer with overflow check
+ * printf append to a buffer with overflow check,
+ * due to usage of vsnprintf, it will leave space for
+ * a final null character and thus use only
+ * capacity - 1
  */
 bool buf_printf (struct buffer *buf, const char *format, ...)
 #ifdef __GNUC__
