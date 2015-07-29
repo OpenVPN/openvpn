@@ -166,11 +166,11 @@ openvpn_encrypt (struct buffer *buf, struct buffer work,
 
 	  /* Encrypt packet ID, payload */
 	  ASSERT (cipher_ctx_update (ctx->cipher, BPTR (&work), &outlen, BPTR (buf), BLEN (buf)));
-	  work.len += outlen;
+	  ASSERT (buf_inc_len(&work, outlen));
 
 	  /* Flush the encryption buffer */
-	  ASSERT(cipher_ctx_final(ctx->cipher, BPTR (&work) + outlen, &outlen));
-	  work.len += outlen;
+	  ASSERT (cipher_ctx_final(ctx->cipher, BPTR (&work) + outlen, &outlen));
+	  ASSERT (buf_inc_len(&work, outlen));
 
 	  /* For all CBC mode ciphers, check the last block is complete */
 	  ASSERT (cipher_kt_mode (cipher_kt) != OPENVPN_MODE_CBC ||
@@ -305,18 +305,18 @@ openvpn_decrypt (struct buffer *buf, struct buffer work,
 	    CRYPT_ERROR ("cipher init failed");
 
 	  /* Buffer overflow check (should never happen) */
-	  if (!buf_safe (&work, buf->len))
-	    CRYPT_ERROR ("buffer overflow");
+	  if (!buf_safe (&work, buf->len + cipher_ctx_block_size(ctx->cipher)))
+	    CRYPT_ERROR ("potential buffer overflow");
 
 	  /* Decrypt packet ID, payload */
 	  if (!cipher_ctx_update (ctx->cipher, BPTR (&work), &outlen, BPTR (buf), BLEN (buf)))
 	    CRYPT_ERROR ("cipher update failed");
-	  work.len += outlen;
+	  ASSERT (buf_inc_len(&work, outlen));
 
 	  /* Flush the decryption buffer */
 	  if (!cipher_ctx_final (ctx->cipher, BPTR (&work) + outlen, &outlen))
 	    CRYPT_ERROR ("cipher final failed");
-	  work.len += outlen;
+	  ASSERT (buf_inc_len(&work, outlen));
 
 	  dmsg (D_PACKET_CONTENT, "DECRYPT TO: %s",
 	       format_hex (BPTR (&work), BLEN (&work), 80, &gc));
@@ -413,9 +413,8 @@ crypto_adjust_frame_parameters(struct frame *frame,
       if (use_iv)
 	crypto_overhead += cipher_kt_iv_size (kt->cipher);
 
-      if (cipher_kt_mode_cbc (kt->cipher))
-	/* worst case padding expansion */
-	crypto_overhead += cipher_kt_block_size (kt->cipher);
+      /* extra block required by cipher_ctx_update() */
+      crypto_overhead += cipher_kt_block_size (kt->cipher);
     }
 
   crypto_overhead += kt->hmac_length;

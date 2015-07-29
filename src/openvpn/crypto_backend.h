@@ -333,7 +333,7 @@ int cipher_ctx_reset (cipher_ctx_t *ctx, uint8_t *iv_buf);
  * Note that if a complete block cannot be written, data is cached in the
  * context, and emitted at a later call to \c cipher_ctx_update, or by a call
  * to \c cipher_ctx_final(). This implies that dst should have enough room for
- * src_len + \c cipher_ctx_block_size() - 1.
+ * src_len + \c cipher_ctx_block_size().
  *
  * @param ctx 		Cipher's context. May not be NULL.
  * @param dst		Destination buffer
