@@ -172,6 +172,7 @@ struct multi_context {
    * Timer object for stale route check
    */
   struct event_timeout stale_routes_check_et;
+  bool enable_spoofing;
 };
 
 /*

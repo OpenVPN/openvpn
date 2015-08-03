@@ -598,6 +598,8 @@ struct options
 
   bool use_peer_id;
   uint32_t peer_id;
+
+  bool enable_spoofing;
 };
 
 #define streq(x, y) (!strcmp((x), (y)))
