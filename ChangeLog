@@ -1,6 +1,29 @@
 OpenVPN Change Log
 Copyright (C) 2002-2015 OpenVPN Technologies, Inc. <sales@openvpn.net>
 
+2015.08.03 -- Version 2.3.8
+Arne Schwabe (2):
+      Report missing endtags of inline files as warnings
+      Fix commit e473b7c if an inline file happens to have a line break exactly at buffer limit
+
+Gert Doering (2):
+      Produce a meaningful error message if --daemon gets in the way of asking for passwords.
+      Document --daemon changes and consequences (--askpass, --auth-nocache).
+
+Holger Kummert (1):
+      Del ipv6 addr on close of linux tun interface
+
+James Geboski (1):
+      Fix --askpass not allowing for password input via stdin
+
+Steffan Karger (5):
+      write pid file immediately after daemonizing
+      Make __func__ work with Visual Studio too
+      fix regression: query password before becoming daemon
+      Fix using management interface to get passwords.
+      Fix overflow check in openvpn_decrypt()
+
+
 2015.06.02 -- Version 2.3.7
 Alexander Pyhalov (1):
       Default gateway can't be determined on illumos/Solaris platforms
