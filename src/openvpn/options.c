@@ -1582,6 +1582,7 @@ show_settings (const struct options *o)
   else
 #endif
   SHOW_STR (cert_file);
+  SHOW_STR (extra_certs_file);
 
 #ifdef MANAGMENT_EXTERNAL_KEY
   if((o->management_flags & MF_EXTERNAL_KEY))
@@ -4574,7 +4575,7 @@ add_option (struct options *options,
       else
 	options->resolve_retry_seconds = positive_atoi (p[1]);
     }
-  else if (streq (p[0], "preresolve") || streq (p[0], "ip-remote-hint") && !p[2])
+  else if ((streq (p[0], "preresolve") || streq (p[0], "ip-remote-hint")) && !p[2])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->resolve_in_advance = true;
