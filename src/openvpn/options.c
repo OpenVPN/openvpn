@@ -1585,6 +1585,7 @@ show_settings (const struct options *o)
   SHOW_STR (ca_path);
   SHOW_STR (dh_file);
   SHOW_STR (cert_file);
+  SHOW_STR (extra_certs_file);
 
 #ifdef MANAGMENT_EXTERNAL_KEY
   if((o->management_flags & MF_EXTERNAL_KEY))
