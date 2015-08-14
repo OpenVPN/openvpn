@@ -107,11 +107,11 @@ copy_client_nat_option_list (struct client_nat_option_list *dest,
 
 void
 add_client_nat_to_option_list (struct client_nat_option_list *dest,
-			      const char *type,
-			      const char *network,
-			      const char *netmask,
-			      const char *foreign_network,
-			      int msglevel)
+            const char *type,
+            const char *network,
+            const char *netmask,
+            const char *foreign_network,
+            int msglevel)
 {
   struct client_nat_entry e;
   bool ok;
@@ -126,12 +126,19 @@ add_client_nat_to_option_list (struct client_nat_option_list *dest,
       return;
     }
 
-  e.network = getaddr(0, network, 0, &ok, NULL);
-  if (!ok)
+  if (network && !strcmp(network, "localhost"))
     {
-      msg(msglevel, "client-nat: bad network: %s", network);
-      return;
+      msg (M_INFO, "*** client-nat localhost detected...");
+      e.network = 0xFFFFFFFF;
+    } else {
+      e.network = getaddr(0, network, 0, &ok, NULL);
+      if (!ok)
+      {
+        msg(msglevel, "client-nat: bad network: %s", network);
+        return;
+      }
     }
+    
   e.netmask = getaddr(0, netmask, 0, &ok, NULL);
   if (!ok)
     {
@@ -147,6 +154,7 @@ add_client_nat_to_option_list (struct client_nat_option_list *dest,
 
   add_entry(dest, &e);
 }
+
 
 #if 0
 static void
@@ -264,6 +272,37 @@ client_nat_transform (const struct client_nat_option_list *list,
 	    }
 	}
     }
+}
+
+/*
+* Replaces the localhost token with the IP received from OpenVPN
+*/
+bool 
+update_localhost_nat(struct client_nat_option_list *dest, in_addr_t local_ip)
+{
+  int i;
+  bool ret = false;
+
+  if (!dest)
+    return ret;
+
+  for (i=0; i <= dest->n; i++) 
+    {
+      struct client_nat_entry *nat_entry = &dest->entries[i];
+      if (nat_entry && nat_entry->network == 0xFFFFFFFF) 
+        {
+          struct in_addr addr;
+          
+          nat_entry->network = ntohl(local_ip);
+          addr.s_addr = nat_entry->network;
+          char *dot_ip = inet_ntoa(addr);
+
+          msg (M_INFO, "Updating NAT table from localhost to: %s", dot_ip); 
+          ret = true;
+        }
+    }
+
+  return ret;
 }
 
 #endif
