@@ -833,7 +833,9 @@ client_nat_ftp_transform(struct buffer *ipbuf,
           if (OPENVPN_TCPH_FIN_MASK & hdr->u.tcp.flags) 
             {
               entry->marked_to_remove = 1;
+#if DEBUG_DELTA
               msg (M_INFO, "Delta marked to be removed!");
+#endif
             }
   
           ret = 1; 
