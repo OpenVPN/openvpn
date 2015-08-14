@@ -236,6 +236,7 @@ static const char usage_message[] =
   "                  the default gateway.  Useful when pushing private subnets.\n"
 #ifdef ENABLE_CLIENT_NAT
   "--client-nat snat|dnat network netmask alias : on client add 1-to-1 NAT rule.\n"
+  "--enable-nat-ftp-support : Enable NAT FTP Support, updating the IP address on FTP PORT commands or PASV responses\n"  
 #endif
 #ifdef ENABLE_PUSH_PEER_INFO
   "--push-peer-info : (client only) push client info to server.\n"
@@ -789,6 +790,11 @@ init_options (struct options *o, const bool init_gc)
   o->max_routes = MAX_ROUTES_DEFAULT;
   o->resolve_retry_seconds = RESOLV_RETRY_INFINITE;
   o->proto_force = -1;
+
+#ifdef ENABLE_CLIENT_NAT
+  o->enable_nat_ftp_support = false;
+#endif
+  
 #ifdef ENABLE_OCC
   o->occ = true;
 #endif
@@ -1535,6 +1541,8 @@ show_settings (const struct options *o)
 #ifdef ENABLE_CLIENT_NAT
   if (o->client_nat)
     print_client_nat_list(o->client_nat, D_SHOW_PARMS);
+
+  SHOW_BOOL(enable_nat_ftp_support);
 #endif
 
 #ifdef ENABLE_MANAGEMENT
@@ -5286,6 +5294,10 @@ add_option (struct options *options,
       VERIFY_PERMISSION (OPT_P_ROUTE);
       cnol_check_alloc (options);
       add_client_nat_to_option_list(options->client_nat, p[1], p[2], p[3], p[4], msglevel);
+    }
+  else if (streq (p[0], "enable_nat_ftp_support"))
+    {
+      options->enable_nat_ftp_support = true;
     }
 #endif
   else if (streq (p[0], "route") && p[1])

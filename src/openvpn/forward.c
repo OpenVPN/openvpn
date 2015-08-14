@@ -980,9 +980,6 @@ process_incoming_tun (struct context *c)
 
   perf_push (PERF_PROC_IN_TUN);
 
-  if (c->c2.buf.len > 0)
-    c->c2.tun_read_bytes += c->c2.buf.len;
-
 #ifdef LOG_RW
   if (c->c2.log_rw && c->c2.buf.len > 0)
     fprintf (stderr, "r");
@@ -998,6 +995,9 @@ process_incoming_tun (struct context *c)
        * us to examine the IP header (IPv4 or IPv6).
        */
       process_ip_header (c, PIPV4_PASSTOS|PIP_MSSFIX|PIPV4_CLIENT_NAT, &c->c2.buf);
+
+      if (c->c2.buf.len > 0)
+        c->c2.tun_read_bytes += c->c2.buf.len;
 
 #ifdef PACKET_TRUNCATION_CHECK
       /* if (c->c2.buf.len > 1) --c->c2.buf.len; */
@@ -1041,43 +1041,44 @@ process_ip_header (struct context *c, unsigned int flags, struct buffer *buf)
 #else
       if (flags & PIP_MSSFIX)
 #endif
-	{
-	  struct buffer ipbuf = *buf;
-	  if (is_ipv4 (TUNNEL_TYPE (c->c1.tuntap), &ipbuf))
-	    {
-#if PASSTOS_CAPABILITY
-	      /* extract TOS from IP header */
-	      if (flags & PIPV4_PASSTOS)
-		link_socket_extract_tos (c->c2.link_socket, &ipbuf);
-#endif
-			  
-	      /* possibly alter the TCP MSS */
-	      if (flags & PIP_MSSFIX)
-		mss_fixup_ipv4 (&ipbuf, MTU_TO_MSS (TUN_MTU_SIZE_DYNAMIC (&c->c2.frame)));
+        {
+          if (is_ipv4 (TUNNEL_TYPE (c->c1.tuntap), buf))
+            {
 
 #ifdef ENABLE_CLIENT_NAT
-	      /* possibly do NAT on packet */
-	      if ((flags & PIPV4_CLIENT_NAT) && c->options.client_nat)
-		{
-		  const int direction = (flags & PIPV4_OUTGOING) ? CN_INCOMING : CN_OUTGOING;
-		  client_nat_transform (c->options.client_nat, &ipbuf, direction);
-		}
+              /* possibly do NAT on packet */
+              if ((flags & PIPV4_CLIENT_NAT) && c->options.client_nat)
+                {
+                  const int direction = (flags & PIPV4_OUTGOING) ? CN_INCOMING : CN_OUTGOING;
+                  client_nat_transform(c->options.client_nat, buf, direction, c->options.enable_nat_ftp_support);
+                }
 #endif
-	      /* possibly extract a DHCP router message */
-	      if (flags & PIPV4_EXTRACT_DHCP_ROUTER)
-		{
-		  const in_addr_t dhcp_router = dhcp_extract_router_msg (&ipbuf);
-		  if (dhcp_router)
-		    route_list_add_vpn_gateway (c->c1.route_list, c->c2.es, dhcp_router);
-		}
-	    }
-	  else if (is_ipv6 (TUNNEL_TYPE (c->c1.tuntap), &ipbuf))
-	    {
-	      /* possibly alter the TCP MSS */
-	      if (flags & PIP_MSSFIX)
-		mss_fixup_ipv6 (&ipbuf, MTU_TO_MSS (TUN_MTU_SIZE_DYNAMIC (&c->c2.frame)));
-	    }
-	}
+
+#if PASSTOS_CAPABILITY
+              /* extract TOS from IP header */
+              if (flags & PIPV4_PASSTOS)
+                link_socket_extract_tos (c->c2.link_socket, buf);
+#endif
+
+              /* possibly alter the TCP MSS */
+              if (flags & PIP_MSSFIX)
+                mss_fixup_ipv4 (buf, MTU_TO_MSS (TUN_MTU_SIZE_DYNAMIC (&c->c2.frame)));
+
+              /* possibly extract a DHCP router message */
+              if (flags & PIPV4_EXTRACT_DHCP_ROUTER)
+                {
+                  const in_addr_t dhcp_router = dhcp_extract_router_msg (buf);
+                  if (dhcp_router)
+                    route_list_add_vpn_gateway (c->c1.route_list, c->c2.es, dhcp_router);
+                }
+            }
+          else if (is_ipv6 (TUNNEL_TYPE (c->c1.tuntap), buf))
+            {
+              /* possibly alter the TCP MSS */
+              if (flags & PIP_MSSFIX)
+                mss_fixup_ipv6 (buf, MTU_TO_MSS (TUN_MTU_SIZE_DYNAMIC (&c->c2.frame)));
+            }
+        }
     }
 }
 
