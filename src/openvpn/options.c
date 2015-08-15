@@ -5295,7 +5295,7 @@ add_option (struct options *options,
       cnol_check_alloc (options);
       add_client_nat_to_option_list(options->client_nat, p[1], p[2], p[3], p[4], msglevel);
     }
-  else if (streq (p[0], "enable_nat_ftp_support"))
+  else if (streq (p[0], "enable-nat-ftp-support"))
     {
       options->enable_nat_ftp_support = true;
     }
