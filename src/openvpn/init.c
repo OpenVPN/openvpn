@@ -1457,6 +1457,10 @@ do_open_tun (struct context *c)
 			       c->c1.tuntap->post_open_mtu,
 			       SET_MTU_TUN | SET_MTU_UPPER_BOUND);
 
+#ifdef ENABLE_CLIENT_NAT
+      update_localhost_nat(c->options.client_nat, c->c1.tuntap->local);
+#endif
+
       ret = true;
       static_context = c;
 #ifndef TARGET_ANDROID

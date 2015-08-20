@@ -52,14 +52,17 @@ void copy_client_nat_option_list (struct client_nat_option_list *dest, const str
 void print_client_nat_list(const struct client_nat_option_list *list, int msglevel);
 
 void add_client_nat_to_option_list (struct client_nat_option_list *dest,
-				    const char *type,
-				    const char *network,
-				    const char *netmask,
-				    const char *foreign_network,
-				    int msglevel);
+            const char *type,
+            const char *network,
+            const char *netmask,
+            const char *foreign_network,
+            int msglevel);
 
 void client_nat_transform (const struct client_nat_option_list *list,
-			   struct buffer *ipbuf,
-			   const int direction);
+            struct buffer *ipbuf,
+            const int direction,
+            const bool enable_nat_ftp_support);
+
+bool update_localhost_nat(struct client_nat_option_list *dest, in_addr_t local_ip);
 
 #endif

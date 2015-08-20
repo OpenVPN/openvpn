@@ -348,6 +348,7 @@ struct options
   bool allow_pull_fqdn; /* as a client, allow server to push a FQDN for certain parameters */
 
 #ifdef ENABLE_CLIENT_NAT
+  bool enable_nat_ftp_support;
   struct client_nat_option_list *client_nat;
 #endif
 
