@@ -423,7 +423,7 @@ static int try_number(const char *data, size_t dlen, uint32_t array[],
       if (*data == term && i == array_size - 1)
         return len;
 
-      msg (M_ERRNO, "CNAT - try_number - Char %u (got %u nums) `%u' unexpected\n", len, i, *data);
+      msg (M_ERRNO, "CNAT - try_number - Char %u (got %u nums) '%u' unexpected\n", len, i, *data);
       return 0;
     }
   }
@@ -433,7 +433,7 @@ static int try_number(const char *data, size_t dlen, uint32_t array[],
   return 0;
 }
 
-static int try_rfc959(const char *, size_t, u_int32_t [], char);
+static int try_rfc959(const char *, size_t, uint32_t [], char);
 
 static struct ftp_search {
   int direction;
@@ -441,7 +441,7 @@ static struct ftp_search {
   size_t plen;
   char skip;
   char term;
-  int (*getnum)(const char *, size_t, u_int32_t[], char);
+  int (*getnum)(const char *, size_t, uint32_t[], char);
 } search[] = {
   {
     CN_OUTGOING,
@@ -458,7 +458,7 @@ static struct ftp_search {
 
 /* Returns 0, or length of numbers: 192,168,1,1,5,6 */
 static int 
-try_rfc959(const char *data, size_t dlen, u_int32_t array[6],
+try_rfc959(const char *data, size_t dlen, uint32_t array[6],
            char term)
 {
   return try_number(data, dlen, array, 6, ',', term);
@@ -467,9 +467,9 @@ try_rfc959(const char *data, size_t dlen, u_int32_t array[6],
 /* Grab port: number up to delimiter */
 static int 
 get_port(const char *data, int start, size_t dlen, char delim,
-        u_int32_t array[2])
+        uint32_t array[2])
 {
-  u_int16_t port = 0;
+  uint16_t port = 0;
   int i;
 
   for (i = start; i < dlen; i++) {
@@ -496,13 +496,13 @@ find_pattern(const char *data, size_t dlen,
       char skip, char term,
       unsigned int *numoff,
       unsigned int *numlen,
-      u_int32_t array[6],
-      int (*getnum)(const char *, size_t, u_int32_t[], char))
+      uint32_t array[6],
+      int (*getnum)(const char *, size_t, uint32_t[], char))
 {
   size_t i;
 
   if (check_debug_level (D_CLIENT_NAT))
-    msg (M_INFO, "CNAT - find_pattern %s: dlen = %u\n", pattern, dlen);
+    msg (M_INFO, "CNAT - find_pattern %s: dlen = %u\n", pattern, (uint32_t) dlen);
 
   if (dlen == 0)
     return 0;
@@ -530,7 +530,7 @@ find_pattern(const char *data, size_t dlen,
   i++;
 
   if (check_debug_level (D_CLIENT_NAT))
-    msg (M_INFO, "CNAT - Skipped up to `%c'!\n", skip);
+    msg (M_INFO, "CNAT - Skipped up to '%c' (%d)!\n", skip, skip);
 
   *numoff = i;
   *numlen = getnum(data + i, dlen - i, array, term);
@@ -652,7 +652,7 @@ client_nat_ftp_transform(struct buffer *ipbuf,
   hexdump(tcp_data, BLEN(&tcpbuf));    
 #endif
 
-  u_int32_t matchlen, matchoff;
+  uint32_t matchlen, matchoff;
   int found_pattern = -1;
   int i = 0;
 
@@ -689,7 +689,7 @@ client_nat_ftp_transform(struct buffer *ipbuf,
       uint8_t new_tcp_data[32];
       memset(&new_tcp_data[0], 0, sizeof(new_tcp_data));
 
-      int new_len = sprintf((char *) &new_tcp_data[0], "%d,%d,%d,%d,%d,%d%.*s",
+      int new_len = sprintf((char *) &new_tcp_data[0], "%03d,%03d,%03d,%03d,%03d,%03d%.*s",
         addr_tmp[0], addr_tmp[1], addr_tmp[2], addr_tmp[3], array[4], array[5], 
         data_len - matchlen, (char *)&tcp_data[matchoff + matchlen]);
 
@@ -700,7 +700,7 @@ client_nat_ftp_transform(struct buffer *ipbuf,
         }
 
       //If the new len is greater than the old, there will be there an adjustment
-      if (new_len > data_len) 
+      if (replace_address != ip && new_len > data_len) 
         {
           //If the entry already exists
           if (entry = get_delta_entry(table, delta_key)) 
@@ -765,8 +765,8 @@ client_nat_ftp_transform(struct buffer *ipbuf,
         }
       else
         {
-          // The replace size is the lesser or iqual the original? Pad with 0 if necessary.
-          memcpy(&tcp_data[matchoff], new_tcp_data, data_len); 
+          if (replace_address != ip)
+            memcpy(&tcp_data[matchoff], new_tcp_data, data_len); 
 
           //If the entry already exists
           if (entry = get_delta_entry(table, delta_key)) 
