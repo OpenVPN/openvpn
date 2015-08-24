@@ -236,7 +236,9 @@ static const char usage_message[] =
   "                  the default gateway.  Useful when pushing private subnets.\n"
 #ifdef ENABLE_CLIENT_NAT
   "--client-nat snat|dnat network netmask alias : on client add 1-to-1 NAT rule.\n"
-  "--enable-nat-ftp-support : Enable NAT FTP Support, updating the IP address on FTP PORT commands or PASV responses\n"  
+  "--enable-nat-ftp-support : Enable NAT FTP Support, replacing the IP address on FTP PORT commands or PASV responses?\n"  
+  "                  'no'    -- No, disable this feature.\n"
+  "                  'yes'   -- Yes, enable this feature (Enabled by default on Windows).\n"
 #endif
 #ifdef ENABLE_PUSH_PEER_INFO
   "--push-peer-info : (client only) push client info to server.\n"
@@ -792,7 +794,11 @@ init_options (struct options *o, const bool init_gc)
   o->proto_force = -1;
 
 #ifdef ENABLE_CLIENT_NAT
+#ifdef WIN32
+  o->enable_nat_ftp_support = true;
+#else
   o->enable_nat_ftp_support = false;
+#endif
 #endif
   
 #ifdef ENABLE_OCC
@@ -5297,7 +5303,18 @@ add_option (struct options *options,
     }
   else if (streq (p[0], "enable-nat-ftp-support"))
     {
-      options->enable_nat_ftp_support = true;
+      if (p[1])
+        {
+          if (streq (p[1], "yes"))
+            options->enable_nat_ftp_support = true;
+          else if (streq (p[1], "no"))
+            options->enable_nat_ftp_support = false;
+          else
+            {
+              msg (msglevel, "bad enable-nat-ftp-support option: %s -- must be 'yes' or 'no'", p[1]);
+              goto err;
+            }
+        }
     }
 #endif
   else if (streq (p[0], "route") && p[1])
