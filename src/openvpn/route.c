@@ -578,7 +578,7 @@ init_route_list (struct route_list *rl,
     {
       setenv_route_addr (es, "net_gateway", rl->rgi.gateway.addr, -1);
 #if defined(ENABLE_DEBUG) && !defined(ENABLE_SMALL)
-      print_default_gateway (D_ROUTE, &rl->rgi);
+      print_default_gateway (D_ROUTE, &rl->rgi, NULL);
 #endif
     }
   else
@@ -1084,10 +1084,12 @@ print_route_options (const struct route_option_list *rol,
 }
 
 void
-print_default_gateway(const int msglevel, const struct route_gateway_info *rgi)
+print_default_gateway(const int msglevel,
+	              const struct route_gateway_info *rgi,
+	              const struct route_ipv6_gateway_info *rgi6)
 {
   struct gc_arena gc = gc_new ();
-  if (rgi->flags & RGI_ADDR_DEFINED)
+  if (rgi && (rgi->flags & RGI_ADDR_DEFINED))
     {
       struct buffer out = alloc_buf_gc (256, &gc);
       buf_printf (&out, "ROUTE_GATEWAY");
@@ -1106,6 +1108,28 @@ print_default_gateway(const int msglevel, const struct route_gateway_info *rgi)
 #endif
       if (rgi->flags & RGI_HWADDR_DEFINED)
 	buf_printf (&out, " HWADDR=%s", format_hex_ex (rgi->hwaddr, 6, 0, 1, ":", &gc));
+      msg (msglevel, "%s", BSTR (&out));
+    }
+
+  if (rgi6 && (rgi6->flags & RGI_ADDR_DEFINED))
+    {
+      struct buffer out = alloc_buf_gc (256, &gc);
+      buf_printf (&out, "ROUTE6_GATEWAY");
+      if (rgi6->flags & RGI_ON_LINK)
+	buf_printf (&out, " ON_LINK");
+      else
+	buf_printf (&out, " %s", print_in6_addr (rgi6->gateway.addr_ipv6, 0, &gc));
+      if (rgi6->flags & RGI_NETMASK_DEFINED)
+	buf_printf (&out, "/%d", rgi6->gateway.netbits_ipv6);
+#ifdef WIN32
+      if (rgi6->flags & RGI_IFACE_DEFINED)
+	buf_printf (&out, " I=%u", (unsigned int)rgi6->adapter_index);
+#else
+      if (rgi6->flags & RGI_IFACE_DEFINED)
+	buf_printf (&out, " IFACE=%s", rgi6->iface);
+#endif
+      if (rgi6->flags & RGI_HWADDR_DEFINED)
+	buf_printf (&out, " HWADDR=%s", format_hex_ex (rgi6->hwaddr, 6, 0, 1, ":", &gc));
       msg (msglevel, "%s", BSTR (&out));
     }
   gc_free (&gc);
@@ -2308,6 +2332,17 @@ windows_route_find_if_index (const struct route_ipv4 *r, const struct tuntap *tt
   return ret;
 }
 
+/* IPv6 implementation using GetIpForwardTable2() and dynamic linking (TBD)
+ * https://msdn.microsoft.com/en-us/library/windows/desktop/aa814416(v=vs.85).aspx
+ */
+void
+get_default_gateway_ipv6(struct route_ipv6_gateway_info *rgi6,
+			 struct in6_addr *dest)
+{
+    msg(D_ROUTE, "no support for get_default_gateway_ipv6() on this system (windows)");
+    CLEAR(*rgi6);
+}
+
 bool
 add_route_ipapi (const struct route_ipv4 *r, const struct tuntap *tt, DWORD adapter_index)
 {
@@ -2624,6 +2659,24 @@ get_default_gateway (struct route_gateway_info *rgi)
   gc_free (&gc);
 }
 
+/* IPv6 implementation using netlink (TBD)
+ */
+void
+get_default_gateway_ipv6(struct route_ipv6_gateway_info *rgi6,
+			 struct in6_addr *dest)
+{
+    msg(D_ROUTE, "no support for get_default_gateway_ipv6() on this system (Linux and Android)");
+    CLEAR(*rgi6);
+    struct in6_addr g = IN6ADDR_LOOPBACK_INIT;
+
+    rgi6->flags = RGI_ADDR_DEFINED | RGI_IFACE_DEFINED | RGI_HWADDR_DEFINED |
+		RGI_NETMASK_DEFINED;
+    rgi6->gateway.addr_ipv6 = g;
+    rgi6->gateway.netbits_ipv6 = 64;
+    memcpy( rgi6->hwaddr, "\1\2\3\4\5\6", 6 );
+    strcpy( rgi6->iface, "eth1" );
+}
+
 #elif defined(TARGET_DARWIN) || defined(TARGET_SOLARIS) || \
 	defined(TARGET_FREEBSD) || defined(TARGET_DRAGONFLY) || \
 	defined(TARGET_OPENBSD) || defined(TARGET_NETBSD)
@@ -2866,6 +2919,16 @@ get_default_gateway (struct route_gateway_info *rgi)
   gc_free (&gc);
 }
 
+/* BSD implementation using routing socket (as does IPv4) (TBD)
+ */
+void
+get_default_gateway_ipv6(struct route_ipv6_gateway_info *rgi6,
+			 struct in6_addr *dest)
+{
+    msg(D_ROUTE, "no support for get_default_gateway_ipv6() on this system (BSD and OSX)");
+    CLEAR(*rgi6);
+}
+
 #undef max
 
 #else
@@ -2898,6 +2961,13 @@ void
 get_default_gateway (struct route_gateway_info *rgi)
 {
   CLEAR(*rgi);
+}
+void
+get_default_gateway_ipv6(struct route_ipv6_gateway_info *rgi6,
+			 struct in6_addr *dest)
+{
+    msg(D_ROUTE, "no support for get_default_gateway_ipv6() on this system");
+    CLEAR(*rgi6);
 }
 
 #endif

@@ -5616,6 +5616,15 @@ module will be queried.
 .B \-\-verb
 option can be used BEFORE this option to produce debugging information.
 .\"*********************************************************
+.SS Standalone Debug Options:
+.\"*********************************************************
+.TP
+.B \-\-show\-gateway [v6target]
+(Standalone)
+Show current IPv4 and IPv6 default gateway and interface towards the
+gateway (if the protocol in question is enabled).  If an IPv6 address
+is passed as argument, the IPv6 route for this host is reported.
+.\"*********************************************************
 .SS IPv6 Related Options
 .\"*********************************************************
 The following options exist to support IPv6 tunneling in peer-to-peer

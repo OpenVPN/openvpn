@@ -639,8 +639,10 @@ init_static (void)
 #ifdef TEST_GET_DEFAULT_GATEWAY
   {
     struct route_gateway_info rgi;
+    struct route_ipv6_gateway_info rgi6;
     get_default_gateway(&rgi);
-    print_default_gateway(M_INFO, &rgi);
+    get_default_gateway_ipv6(&rgi6, NULL);
+    print_default_gateway(M_INFO, &rgi, &rgi6);
     return false;
   }
 #endif

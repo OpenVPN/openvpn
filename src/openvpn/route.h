@@ -300,7 +300,11 @@ void setenv_routes_ipv6 (struct env_set *es, const struct route_ipv6_list *rl6);
 bool is_special_addr (const char *addr_str);
 
 void get_default_gateway (struct route_gateway_info *rgi);
-void print_default_gateway(const int msglevel, const struct route_gateway_info *rgi);
+void get_default_gateway_ipv6 (struct route_ipv6_gateway_info *rgi,
+				struct in6_addr *dest);
+void print_default_gateway(const int msglevel,
+                           const struct route_gateway_info *rgi,
+                           const struct route_ipv6_gateway_info *rgi6);
 
 /*
  * Test if addr is reachable via a local interface (return ILA_LOCAL),

@@ -4156,12 +4156,17 @@ add_option (struct options *options,
       read_config_file (options, p[1], level, file, line, msglevel, permission_mask, option_types_found, es);
     }
 #if defined(ENABLE_DEBUG) && !defined(ENABLE_SMALL)
-  else if (streq (p[0], "show-gateway") && !p[1])
+  else if (streq (p[0], "show-gateway") && !p[2])
     {
       struct route_gateway_info rgi;
+      struct route_ipv6_gateway_info rgi6;
+      struct in6_addr remote = IN6ADDR_ANY_INIT;
       VERIFY_PERMISSION (OPT_P_GENERAL);
+      if (p[1])
+	  get_ipv6_addr (p[1], &remote, NULL, NULL, M_WARN);
       get_default_gateway(&rgi);
-      print_default_gateway(M_INFO, &rgi);
+      get_default_gateway_ipv6(&rgi6, &remote);
+      print_default_gateway(M_INFO, &rgi, &rgi6);
       openvpn_exit (OPENVPN_EXIT_STATUS_GOOD); /* exit point */
     }
 #endif
