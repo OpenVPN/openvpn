@@ -177,6 +177,34 @@ struct route_gateway_info {
   struct route_gateway_address addrs[RGI_N_ADDRESSES]; /* local addresses attached to iface */
 };
 
+struct route_ipv6_gateway_address {
+  struct in6_addr addr_ipv6;
+  int netbits_ipv6;
+};
+
+struct route_ipv6_gateway_info {
+/* RGI_ flags used as in route_gateway_info */
+  unsigned int flags;
+
+  /* gateway interface */
+# ifdef WIN32
+  DWORD adapter_index;  /* interface or ~0 if undefined */
+#else
+  char iface[16]; /* interface name (null terminated), may be empty */
+#endif
+
+  /* gateway interface hardware address */
+  uint8_t hwaddr[6];
+
+  /* gateway/router address */
+  struct route_ipv6_gateway_address gateway;
+
+  /* address/netmask pairs bound to interface */
+# define RGI_N_ADDRESSES 8
+  int n_addrs; /* len of addrs, may be 0 */
+  struct route_ipv6_gateway_address addrs[RGI_N_ADDRESSES]; /* local addresses attached to iface */
+};
+
 struct route_list {
 # define RL_DID_REDIRECT_DEFAULT_GATEWAY (1<<0)
 # define RL_DID_LOCAL                    (1<<1)
