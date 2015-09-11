@@ -1805,16 +1805,24 @@ add_route_ipv6 (struct route_ipv6 *r6, const struct tuntap *tt, unsigned int fla
 
   /* example: route add -inet6 2001:db8::/32 somegateway 0 */
 
-  /* for some weird reason, this does not work for me unless I set
+  /* for some reason, routes to tun/tap do not work for me unless I set
    * "metric 0" - otherwise, the routes will be nicely installed, but
-   * packets will just disappear somewhere.  So we use "0" now...
+   * packets will just disappear somewhere.  So we always use "0" now,
+   * unless the route points to "gateway on other interface"...
+   *
+   * (Note: OpenSolaris can not specify host%interface gateways, so we just
+   * use the GW addresses - it seems to still work for fe80:: addresses,
+   * however this is done internally.  NUD maybe?)
    */
-
-  argv_printf (&argv, "%s add -inet6 %s/%d %s 0",
+  argv_printf (&argv, "%s add -inet6 %s/%d %s",
 		ROUTE_PATH,
 		network,
 		r6->netbits,
 		gateway );
+
+  /* on tun/tap, not "elsewhere"? -> metric 0 */
+  if ( !r6->iface )
+     argv_printf_cat (&argv, "0");
 
   argv_msg (D_ROUTE, &argv);
   status = openvpn_execve_check (&argv, es, 0, "ERROR: Solaris route add -inet6 command failed");
@@ -2188,7 +2196,6 @@ delete_route_ipv6 (const struct route_ipv6 *r6, const struct tuntap *tt, unsigne
 #elif defined (TARGET_SOLARIS)
 
   /* example: route delete -inet6 2001:db8::/32 somegateway */
-  /* GERT-TODO: this is untested, but should work */
 
   argv_printf (&argv, "%s delete -inet6 %s/%d %s",
 		ROUTE_PATH,
