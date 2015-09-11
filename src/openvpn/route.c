@@ -1767,6 +1767,14 @@ add_route_ipv6 (struct route_ipv6 *r6, const struct tuntap *tt, unsigned int fla
 
 #elif defined (WIN32)
 
+  if ( r6->adapter_index )		/* vpn server special route */
+    {
+      struct buffer out = alloc_buf_gc (64, &gc);
+      buf_printf (&out, "interface=%d", r6->adapter_index );
+      device = buf_bptr(&out);
+      gateway_needed = true;
+    }
+
   /* netsh interface ipv6 add route 2001:db8::/32 MyTunDevice */
   argv_printf (&argv, "%s%sc interface ipv6 add route %s/%d %s",
 	       get_win_sys_path(),
@@ -1782,7 +1790,7 @@ add_route_ipv6 (struct route_ipv6 *r6, const struct tuntap *tt, unsigned int fla
    */
   if ( tt->type == DEV_TYPE_TUN && !gateway_needed )
 	argv_printf_cat( &argv, " %s", "fe80::8" );
-  else
+  else if ( !IN6_IS_ADDR_UNSPECIFIED(&r6->gateway) )
 	argv_printf_cat( &argv, " %s", gateway );
 
 #if 0
@@ -2157,6 +2165,14 @@ delete_route_ipv6 (const struct route_ipv6 *r6, const struct tuntap *tt, unsigne
 
 #elif defined (WIN32)
 
+  if ( r6->adapter_index )		/* vpn server special route */
+    {
+      struct buffer out = alloc_buf_gc (64, &gc);
+      buf_printf (&out, "interface=%d", r6->adapter_index );
+      device = buf_bptr(&out);
+      gateway_needed = true;
+    }
+
   /* netsh interface ipv6 delete route 2001:db8::/32 MyTunDevice */
   argv_printf (&argv, "%s%sc interface ipv6 delete route %s/%d %s",
 	       get_win_sys_path(),
@@ -2171,9 +2187,9 @@ delete_route_ipv6 (const struct route_ipv6 *r6, const struct tuntap *tt, unsigne
    *   knows about and will answer ND (neighbor discovery) packets for
    * (and "route deletion without specifying next-hop" does not work...)
    */
-  if ( tt->type == DEV_TYPE_TUN )
+  if ( tt->type == DEV_TYPE_TUN && !gateway_needed )
 	argv_printf_cat( &argv, " %s", "fe80::8" );
-  else
+  else if ( !IN6_IS_ADDR_UNSPECIFIED(&r6->gateway) )
 	argv_printf_cat( &argv, " %s", gateway );
 
 #if 0
@@ -2497,15 +2513,79 @@ windows_route_find_if_index (const struct route_ipv4 *r, const struct tuntap *tt
   return ret;
 }
 
-/* IPv6 implementation using GetIpForwardTable2() and dynamic linking (TBD)
- * https://msdn.microsoft.com/en-us/library/windows/desktop/aa814416(v=vs.85).aspx
+/* IPv6 implementation using GetBestRoute2()
+ *   (TBD: dynamic linking so the binary can still run on XP?)
+ * https://msdn.microsoft.com/en-us/library/windows/desktop/aa365922(v=vs.85).aspx
+ * https://msdn.microsoft.com/en-us/library/windows/desktop/aa814411(v=vs.85).aspx
  */
 void
 get_default_gateway_ipv6(struct route_ipv6_gateway_info *rgi6,
 			 const struct in6_addr *dest)
 {
-    msg(D_ROUTE, "no support for get_default_gateway_ipv6() on this system (windows)");
+    struct gc_arena gc = gc_new ();
+    MIB_IPFORWARD_ROW2 BestRoute;
+    SOCKADDR_INET DestinationAddress, BestSourceAddress;
+    DWORD BestIfIndex;
+    DWORD status;
+    NET_LUID InterfaceLuid;
+
     CLEAR(*rgi6);
+    CLEAR(InterfaceLuid);		// cleared = not used for lookup
+    CLEAR(DestinationAddress);
+
+    DestinationAddress.si_family = AF_INET6;
+    if ( dest )
+    {
+        DestinationAddress.Ipv6.sin6_addr = *dest;
+    }
+
+    status = GetBestInterfaceEx( &DestinationAddress, &BestIfIndex );
+
+    if (status != NO_ERROR)
+    {
+	msg (D_ROUTE, "NOTE: GetBestInterfaceEx returned error: %s (code=%u)",
+	       strerror_win32 (status, &gc),
+	       (unsigned int)status);
+	goto done;
+    }
+
+    msg( D_ROUTE, "GetBestInterfaceEx() returned if=%d", (int) BestIfIndex );
+
+    status = GetBestRoute2( &InterfaceLuid, BestIfIndex, NULL,
+                            &DestinationAddress, 0,
+                            &BestRoute, &BestSourceAddress );
+
+    if (status != NO_ERROR)
+    {
+	msg (D_ROUTE, "NOTE: GetIpForwardEntry2 returned error: %s (code=%u)",
+	       strerror_win32 (status, &gc),
+	       (unsigned int)status);
+	goto done;
+    }
+
+    msg( D_ROUTE, "GDG6: II=%d DP=%s/%d NH=%s",
+	BestRoute.InterfaceIndex,
+	print_in6_addr( BestRoute.DestinationPrefix.Prefix.Ipv6.sin6_addr, 0, &gc),
+	BestRoute.DestinationPrefix.PrefixLength,
+	print_in6_addr( BestRoute.NextHop.Ipv6.sin6_addr, 0, &gc) );
+    msg( D_ROUTE, "GDG6: Metric=%d, Loopback=%d, AA=%d, I=%d",
+	(int) BestRoute.Metric,
+	(int) BestRoute.Loopback,
+	(int) BestRoute.AutoconfigureAddress,
+	(int) BestRoute.Immortal );
+
+    rgi6->gateway.addr_ipv6 = BestRoute.NextHop.Ipv6.sin6_addr;
+    rgi6->adapter_index     = BestRoute.InterfaceIndex;
+    rgi6->flags |= RGI_ADDR_DEFINED | RGI_IFACE_DEFINED;
+
+    /* on-link is signalled by receiving an empty (::) NextHop */
+    if ( IN6_IS_ADDR_UNSPECIFIED(&BestRoute.NextHop.Ipv6.sin6_addr) )
+      {
+	rgi6->flags |= RGI_ON_LINK;
+      }
+
+  done:
+    gc_free (&gc);
 }
 
 bool

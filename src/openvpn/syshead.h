@@ -358,8 +358,13 @@
 #endif /* TARGET_DARWIN */
 
 #ifdef WIN32
-#include <iphlpapi.h>
+ // Missing declarations for MinGW 32.
+ // #if !defined(__MINGW64_VERSION_MAJOR) || __MINGW64_VERSION_MAJOR < 2
+ typedef int MIB_TCP_STATE;
+ // #endif
+#include <naptypes.h>
 #include <ntddndis.h>
+#include <iphlpapi.h>
 #include <wininet.h>
 #include <shellapi.h>
 /* The following two headers are needed of PF_INET6 */
