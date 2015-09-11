@@ -387,7 +387,7 @@ init_route_ipv6 (struct route_ipv6 *r6,
 	  msg( M_WARN, PACKAGE_NAME "ROUTE6: cannot parse gateway spec '%s'", r6o->gateway );
         }
     }
-  else if (rl6->remote_endpoint_defined)
+  else if (rl6->spec_flags & RTSA_REMOTE_ENDPOINT)
     {
       r6->gateway = rl6->remote_endpoint_ipv6;
     }
@@ -412,7 +412,7 @@ init_route_ipv6 (struct route_ipv6 *r6,
 	}
       r6->flags |= RT_METRIC_DEFINED;
     }
-  else if (rl6->default_metric_defined)
+  else if (rl6->spec_flags & RTSA_DEFAULT_METRIC)
     {
       r6->metric = rl6->default_metric;
       r6->flags |= RT_METRIC_DEFINED;
@@ -671,7 +671,7 @@ init_route_ipv6_list (struct route_ipv6_list *rl6,
   if (default_metric >= 0 )
     {
       rl6->default_metric = default_metric;
-      rl6->default_metric_defined = true;
+      rl6->spec_flags |= RTSA_DEFAULT_METRIC;
     }
 
   /* "default_gateway" is stuff for "redirect-gateway", which we don't
@@ -686,7 +686,7 @@ init_route_ipv6_list (struct route_ipv6_list *rl6,
       if ( inet_pton( AF_INET6, remote_endpoint, 
 			&rl6->remote_endpoint_ipv6) == 1 )
         {
-	  rl6->remote_endpoint_defined = true;
+	  rl6->spec_flags |= RTSA_REMOTE_ENDPOINT;
         }
       else
 	{
@@ -694,9 +694,6 @@ init_route_ipv6_list (struct route_ipv6_list *rl6,
           ret = false;
 	}
     }
-  else
-    rl6->remote_endpoint_defined = false;
-
 
   /* parse the routes from opt6 to rl6 */
   {
@@ -1003,7 +1000,7 @@ add_routes (struct route_list *rl, struct route_ipv6_list *rl6, const struct tun
 	}
       rl->iflags |= RL_ROUTES_ADDED;
     }
-  if (rl6 && !rl6->routes_added)
+  if (rl6 && !(rl6->iflags & RL_ROUTES_ADDED) )
     {
       struct route_ipv6 *r;
       for (r = rl6->routes_ipv6; r; r = r->next)
@@ -1012,7 +1009,7 @@ add_routes (struct route_list *rl, struct route_ipv6_list *rl6, const struct tun
 	    delete_route_ipv6 (r, tt, flags, es);
 	  add_route_ipv6 (r, tt, flags, es);
 	}
-      rl6->routes_added = true;
+      rl6->iflags |= RL_ROUTES_ADDED;
     }
 }
 
@@ -1037,14 +1034,14 @@ delete_routes (struct route_list *rl, struct route_ipv6_list *rl6,
       clear_route_list (rl);
     }
 
-  if ( rl6 && rl6->routes_added )
+  if ( rl6 && (rl6->iflags & RL_ROUTES_ADDED) )
     {
       struct route_ipv6 *r6;
       for (r6 = rl6->routes_ipv6; r6; r6 = r6->next)
 	{
 	  delete_route_ipv6 (r6, tt, flags, es);
 	}
-      rl6->routes_added = false;
+      rl6->iflags &= ~RL_ROUTES_ADDED;
     }
 
   if ( rl6 )

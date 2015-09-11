@@ -103,7 +103,7 @@ struct route_ipv6_option {
 };
 
 struct route_ipv6_option_list {
-  unsigned int flags;
+  unsigned int flags;		/* RG_x flags, see route_option-list */
   struct route_ipv6_option *routes_ipv6;
   struct gc_arena *gc;
 };
@@ -131,14 +131,14 @@ struct route_ipv6 {
 };
 
 struct route_ipv6_list {
-  bool routes_added;
-  unsigned int flags;
+  unsigned int iflags;			/* RL_ flags, see route_list */
+
+  unsigned int spec_flags;		/* RTSA_ flags, route_special_addr */
+  struct in6_addr remote_endpoint_ipv6;	/* inside tun */
+  struct in6_addr remote_host_ipv6;	/* --remote address */
   int default_metric;
-  bool default_metric_defined;
-  struct in6_addr remote_endpoint_ipv6;
-  bool remote_endpoint_defined;
-  bool did_redirect_default_gateway;			/* TODO (?) */
-  bool did_local;					/* TODO (?) */
+
+  unsigned int flags;			/* RG_x flags, see route_option_list */
   struct route_ipv6 *routes_ipv6;
   struct gc_arena gc;
 };
