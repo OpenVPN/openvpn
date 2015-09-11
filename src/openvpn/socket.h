@@ -419,6 +419,8 @@ void bad_address_length (int actual, int expected);
  */
 #define IPV4_INVALID_ADDR 0xffffffff
 in_addr_t link_socket_current_remote (const struct link_socket_info *info);
+const struct in6_addr * link_socket_current_remote_ipv6
+				     (const struct link_socket_info *info);
 
 void link_socket_connection_initiated (const struct buffer *buf,
 				       struct link_socket_info *info,

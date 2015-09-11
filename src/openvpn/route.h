@@ -128,19 +128,12 @@ struct route_ipv6 {
   unsigned int netbits;
   struct in6_addr gateway;
   int metric;
-};
-
-struct route_ipv6_list {
-  unsigned int iflags;			/* RL_ flags, see route_list */
-
-  unsigned int spec_flags;		/* RTSA_ flags, route_special_addr */
-  struct in6_addr remote_endpoint_ipv6;	/* inside tun */
-  struct in6_addr remote_host_ipv6;	/* --remote address */
-  int default_metric;
-
-  unsigned int flags;			/* RG_x flags, see route_option_list */
-  struct route_ipv6 *routes_ipv6;
-  struct gc_arena gc;
+  /* gateway interface */
+# ifdef WIN32
+  DWORD adapter_index;		/* interface or ~0 if undefined */
+#else
+  char * iface;			/* interface name (null terminated) */
+#endif
 };
 
 
@@ -218,6 +211,20 @@ struct route_list {
   struct gc_arena gc;
 };
 
+struct route_ipv6_list {
+  unsigned int iflags;			/* RL_ flags, see route_list */
+
+  unsigned int spec_flags;		/* RTSA_ flags, route_special_addr */
+  struct in6_addr remote_endpoint_ipv6;	/* inside tun */
+  struct in6_addr remote_host_ipv6;	/* --remote address */
+  int default_metric;
+
+  struct route_ipv6_gateway_info rgi6;
+  unsigned int flags;			/* RG_x flags, see route_option_list */
+  struct route_ipv6 *routes_ipv6;
+  struct gc_arena gc;
+};
+
 #if P2MP
 /* internal OpenVPN route */
 struct iroute {
@@ -274,6 +281,7 @@ bool init_route_ipv6_list (struct route_ipv6_list *rl6,
 		      const struct route_ipv6_option_list *opt6,
 		      const char *remote_endpoint,
 		      int default_metric,
+		      const struct in6_addr *remote_host,
 		      struct env_set *es);
 
 void route_list_add_vpn_gateway (struct route_list *rl,
@@ -301,7 +309,7 @@ bool is_special_addr (const char *addr_str);
 
 void get_default_gateway (struct route_gateway_info *rgi);
 void get_default_gateway_ipv6 (struct route_ipv6_gateway_info *rgi,
-				struct in6_addr *dest);
+				const struct in6_addr *dest);
 void print_default_gateway(const int msglevel,
                            const struct route_gateway_info *rgi,
                            const struct route_ipv6_gateway_info *rgi6);

@@ -660,19 +660,59 @@ init_route_list (struct route_list *rl,
   return ret;
 }
 
+/* check whether an IPv6 host address is covered by a given route_ipv6
+ * (not the most beautiful implementation in the world, but portable and
+ * "good enough")
+ */
+static bool
+route_ipv6_match_host( const struct route_ipv6 *r6,
+		       const struct in6_addr *host )
+{
+    unsigned int bits = r6->netbits;
+    int i;
+    unsigned int mask;
+
+    if ( bits>128 )
+	return false;
+
+    for( i=0; bits >= 8; i++, bits -= 8 )
+    {
+	if ( r6->network.s6_addr[i] != host->s6_addr[i] )
+	    return false;
+    }
+
+    if ( bits == 0 )
+	return true;
+
+    mask = 0xff << (8-bits);
+
+    if ( (r6->network.s6_addr[i] & mask) == (host->s6_addr[i] & mask ))
+	return true;
+
+    return false;
+}
+
 bool
 init_route_ipv6_list (struct route_ipv6_list *rl6,
 		 const struct route_ipv6_option_list *opt6,
 		 const char *remote_endpoint,
 		 int default_metric,
+		 const struct in6_addr *remote_host_ipv6,
 		 struct env_set *es)
 {
   struct gc_arena gc = gc_new ();
   bool ret = true;
+  bool need_remote_ipv6_route;
 
   clear_route_ipv6_list (rl6);
 
   rl6->flags = opt6->flags;
+
+  if (remote_host_ipv6)
+    {
+      rl6->remote_host_ipv6 = *remote_host_ipv6;
+      rl6->spec_flags |= RTSA_REMOTE_HOST;
+    }
 
   if (default_metric >= 0 )
     {
@@ -680,9 +720,18 @@ init_route_ipv6_list (struct route_ipv6_list *rl6,
       rl6->spec_flags |= RTSA_DEFAULT_METRIC;
     }
 
-  /* "default_gateway" is stuff for "redirect-gateway", which we don't
-   * do for IPv6 yet -> TODO
-   */
+  msg (D_ROUTE, "GDG6: remote_host_ipv6=%s",
+	remote_host_ipv6?  print_in6_addr (*remote_host_ipv6, 0, &gc): "n/a" );
+
+  get_default_gateway_ipv6 (&rl6->rgi6, remote_host_ipv6);
+  if (rl6->rgi6.flags & RGI_ADDR_DEFINED)
+    {
+      setenv_str (es, "net_gateway_ipv6", print_in6_addr (rl6->rgi6.gateway.addr_ipv6, 0, &gc));
+#if defined(ENABLE_DEBUG) && !defined(ENABLE_SMALL)
+      print_default_gateway (D_ROUTE, NULL, &rl6->rgi6);
+#endif
+    }
+  else
     {
       dmsg (D_ROUTE, "ROUTE6: default_gateway=UNDEF");
     }
@@ -696,12 +745,16 @@ init_route_ipv6_list (struct route_ipv6_list *rl6,
         }
       else
 	{
-	  msg (M_WARN, PACKAGE_NAME " ROUTE: failed to parse/resolve default gateway: %s", remote_endpoint);
+	  msg (M_WARN, PACKAGE_NAME " ROUTE: failed to parse/resolve VPN endpoint: %s", remote_endpoint);
           ret = false;
 	}
     }
 
-  /* parse the routes from opt6 to rl6 */
+  /* parse the routes from opt6 to rl6
+   * discovering potential overlaps with remote_host_ipv6 in the process
+   */
+  need_remote_ipv6_route = false;
+
   {
     struct route_ipv6_option *ro6;
     for (ro6 = opt6->routes_ipv6; ro6; ro6 = ro6->next)
@@ -714,9 +767,48 @@ init_route_ipv6_list (struct route_ipv6_list *rl6,
           {
             r6->next = rl6->routes_ipv6;
             rl6->routes_ipv6 = r6;
+
+	    if ( remote_host_ipv6 &&
+		  route_ipv6_match_host( r6, remote_host_ipv6 ) )
+	      {
+		need_remote_ipv6_route = true;
+		msg (D_ROUTE, "ROUTE6: %s/%d overlaps IPv6 remote %s, adding host route to VPN endpoint",
+			print_in6_addr (r6->network, 0, &gc), r6->netbits,
+			print_in6_addr (*remote_host_ipv6, 0, &gc));
+	      }
           }
       }
   }
+
+  /* add VPN server host route if needed */
+  if ( need_remote_ipv6_route )
+    {
+      if ( (rl6->rgi6.flags & (RGI_ADDR_DEFINED|RGI_IFACE_DEFINED) ) ==
+				    (RGI_ADDR_DEFINED|RGI_IFACE_DEFINED) )
+        {
+	  struct route_ipv6 *r6;
+	  ALLOC_OBJ_CLEAR_GC (r6, struct route_ipv6, &rl6->gc);
+
+	  r6->network = *remote_host_ipv6;
+	  r6->netbits = 128;
+	  if ( !(rl6->rgi6.flags & RGI_ON_LINK) )
+	    { r6->gateway = rl6->rgi6.gateway.addr_ipv6; }
+	  r6->metric = 1;
+#ifdef WIN32
+	  r6->adapter_index = rl6->rgi6.adapter_index;
+#else
+	  r6->iface = rl6->rgi6.iface;
+#endif
+	  r6->flags = RT_DEFINED | RT_METRIC_DEFINED;
+
+	  r6->next = rl6->routes_ipv6;
+	  rl6->routes_ipv6 = r6;
+	}
+      else
+        {
+	  msg (M_WARN, "ROUTE6: IPv6 route overlaps with IPv6 remote address, but could not determine IPv6 gateway address + interface, expect failure\n" );
+	}
+    }
 
   gc_free (&gc);
   return ret;
@@ -1574,6 +1666,15 @@ add_route_ipv6 (struct route_ipv6 *r6, const struct tuntap *tt, unsigned int fla
   if (! (r6->flags & RT_DEFINED) )
     return;
 
+#ifndef WIN32
+  if ( r6->iface != NULL )		/* vpn server special route */
+    {
+      device = r6->iface;
+      if ( !IN6_IS_ADDR_UNSPECIFIED(&r6->gateway) )
+	  gateway_needed = true;
+    }
+#endif
+
   gc_init (&gc);
   argv_init (&argv);
 
@@ -1655,7 +1756,7 @@ add_route_ipv6 (struct route_ipv6 *r6, const struct tuntap *tt, unsigned int fla
    * - in TUN mode we use a special-case link-local address that the tapdrvr
    *   knows about and will answer ND (neighbor discovery) packets for
    */
-  if ( tt->type == DEV_TYPE_TUN )
+  if ( tt->type == DEV_TYPE_TUN && !gateway_needed )
 	argv_printf_cat( &argv, " %s", "fe80::8" );
   else
 	argv_printf_cat( &argv, " %s", gateway );
@@ -1947,6 +2048,14 @@ delete_route_ipv6 (const struct route_ipv6 *r6, const struct tuntap *tt, unsigne
 
   if ((r6->flags & (RT_DEFINED|RT_ADDED)) != (RT_DEFINED|RT_ADDED))
     return;
+
+#ifndef WIN32
+  if ( r6->iface != NULL )		/* vpn server special route */
+    {
+      device = r6->iface;
+      gateway_needed = true;
+    }
+#endif
 
   gc_init (&gc);
   argv_init (&argv);
@@ -2344,7 +2453,7 @@ windows_route_find_if_index (const struct route_ipv4 *r, const struct tuntap *tt
  */
 void
 get_default_gateway_ipv6(struct route_ipv6_gateway_info *rgi6,
-			 struct in6_addr *dest)
+			 const struct in6_addr *dest)
 {
     msg(D_ROUTE, "no support for get_default_gateway_ipv6() on this system (windows)");
     CLEAR(*rgi6);
@@ -2693,7 +2802,7 @@ struct rtreq {
 
 void
 get_default_gateway_ipv6(struct route_ipv6_gateway_info *rgi6,
-			 struct in6_addr *dest)
+			 const struct in6_addr *dest)
 {
     int nls = -1;
     struct rtreq rtreq;
@@ -2811,7 +2920,8 @@ get_default_gateway_ipv6(struct route_ipv6_gateway_info *rgi6,
               RGI_IFACE_DEFINED )
     {
 	rgi6->flags |= (RGI_ADDR_DEFINED | RGI_ON_LINK);
-	rgi6->gateway.addr_ipv6 = *dest;
+	if ( dest )
+	    rgi6->gateway.addr_ipv6 = *dest;
     }
 
   done:
@@ -3065,7 +3175,7 @@ get_default_gateway (struct route_gateway_info *rgi)
  */
 void
 get_default_gateway_ipv6(struct route_ipv6_gateway_info *rgi6,
-			 struct in6_addr *dest)
+			 const struct in6_addr *dest)
 {
     msg(D_ROUTE, "no support for get_default_gateway_ipv6() on this system (BSD and OSX)");
     CLEAR(*rgi6);
@@ -3106,7 +3216,7 @@ get_default_gateway (struct route_gateway_info *rgi)
 }
 void
 get_default_gateway_ipv6(struct route_ipv6_gateway_info *rgi6,
-			 struct in6_addr *dest)
+			 const struct in6_addr *dest)
 {
     msg(D_ROUTE, "no support for get_default_gateway_ipv6() on this system");
     CLEAR(*rgi6);

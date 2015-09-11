@@ -1179,6 +1179,7 @@ do_init_route_list (const struct options *options,
 static void
 do_init_route_ipv6_list (const struct options *options,
 		    struct route_ipv6_list *route_ipv6_list,
+		    const struct link_socket_info *link_socket_info,
 		    bool fatal,
 		    struct env_set *es)
 {
@@ -1198,6 +1199,7 @@ do_init_route_ipv6_list (const struct options *options,
 			options->routes_ipv6,
 			gw,
 			metric,
+			link_socket_current_remote_ipv6 (link_socket_info),
 			es))
     {
       if (fatal)
@@ -1391,7 +1393,7 @@ do_open_tun (struct context *c)
       if (c->options.routes && c->c1.route_list && c->c2.link_socket)
 	do_init_route_list (&c->options, c->c1.route_list, &c->c2.link_socket->info, false, c->c2.es);
       if (c->options.routes_ipv6 && c->c1.route_ipv6_list )
-	do_init_route_ipv6_list (&c->options, c->c1.route_ipv6_list, false, c->c2.es);
+	do_init_route_ipv6_list (&c->options, c->c1.route_ipv6_list, &c->c2.link_socket->info, false, c->c2.es);
 
       /* do ifconfig */
       if (!c->options.ifconfig_noexec

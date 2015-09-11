@@ -2126,6 +2126,28 @@ link_socket_current_remote (const struct link_socket_info *info)
     return 0;
 }
 
+const struct in6_addr *
+link_socket_current_remote_ipv6 (const struct link_socket_info *info)
+{
+  const struct link_socket_addr *lsa = info->lsa;
+
+/* This logic supports "redirect-gateway" semantic,
+ * for PF_INET6 routes over PF_INET6 endpoints
+ *
+ * For --remote entries with multiple addresses this
+ * only return the actual endpoint we have sucessfully connected to
+ */
+  if (lsa->actual.dest.addr.sa.sa_family != AF_INET6)
+    return NULL;
+
+  if (link_socket_actual_defined (&lsa->actual))
+    return &(lsa->actual.dest.addr.in6.sin6_addr);
+  else if (lsa->current_remote)
+    return &(((struct sockaddr_in6*)lsa->current_remote->ai_addr) ->sin6_addr);
+  else
+    return NULL;
+}
+
 /*
  * Return a status string describing socket state.
  */
