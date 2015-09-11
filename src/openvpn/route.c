@@ -374,7 +374,7 @@ init_route_ipv6 (struct route_ipv6 *r6,
 	         const struct route_ipv6_option *r6o,
 	         const struct route_ipv6_list *rl6 )
 {
-  r6->defined = false;
+  CLEAR (*r6);
 
   if ( !get_ipv6_addr( r6o->prefix, &r6->network, &r6->netbits, NULL, M_WARN ))
     goto fail;
@@ -399,7 +399,6 @@ init_route_ipv6 (struct route_ipv6 *r6,
 
   /* metric */
 
-  r6->metric_defined = false;
   r6->metric = -1;
   if (is_route_parm_defined (r6o->metric))
     {
@@ -411,22 +410,21 @@ init_route_ipv6 (struct route_ipv6 *r6,
 	       r6o->metric);
 	  goto fail;
 	}
-      r6->metric_defined = true;
+      r6->flags |= RT_METRIC_DEFINED;
     }
   else if (rl6->default_metric_defined)
     {
       r6->metric = rl6->default_metric;
-      r6->metric_defined = true;
+      r6->flags |= RT_METRIC_DEFINED;
     }
 
-  r6->defined = true;
+  r6->flags |= RT_DEFINED;
 
   return true;
 
  fail:
   msg (M_WARN, PACKAGE_NAME " ROUTE: failed to parse/resolve route for host/network: %s",
        r6o->prefix);
-  r6->defined = false;
   return false;
 }
 
@@ -1168,7 +1166,7 @@ static void
 setenv_route_ipv6 (struct env_set *es, const struct route_ipv6 *r6, int i)
 {
   struct gc_arena gc = gc_new ();
-  if (r6->defined)
+  if (r6->flags & RT_DEFINED)
     {
       struct buffer name1 = alloc_buf_gc( 256, &gc );
       struct buffer val = alloc_buf_gc( 256, &gc );
@@ -1545,7 +1543,7 @@ add_route_ipv6 (struct route_ipv6 *r6, const struct tuntap *tt, unsigned int fla
 
   bool gateway_needed = false;
 
-  if (!r6->defined)
+  if (! (r6->flags & RT_DEFINED) )
     return;
 
   gc_init (&gc);
@@ -1576,7 +1574,7 @@ add_route_ipv6 (struct route_ipv6 *r6, const struct tuntap *tt, unsigned int fla
    * gateway unless the route is to be an on-link network
    */
   if ( tt->type == DEV_TYPE_TAP &&
-                  !(r6->metric_defined && r6->metric == 0 ) )
+                  !( (r6->flags & RT_METRIC_DEFINED) && r6->metric == 0 ) )
     {
       gateway_needed = true;
     }
@@ -1590,7 +1588,7 @@ add_route_ipv6 (struct route_ipv6 *r6, const struct tuntap *tt, unsigned int fla
 	      device);
   if (gateway_needed)
     argv_printf_cat (&argv, "via %s", gateway);
-  if (r6->metric_defined && r6->metric > 0 )
+  if ( (r6->flags & RT_METRIC_DEFINED) && r6->metric > 0 )
     argv_printf_cat (&argv, " metric %d", r6->metric);
 
 #else
@@ -1601,7 +1599,7 @@ add_route_ipv6 (struct route_ipv6 *r6, const struct tuntap *tt, unsigned int fla
 	      device);
   if (gateway_needed)
     argv_printf_cat (&argv, "gw %s", gateway);
-  if (r6->metric_defined && r6->metric > 0 )
+  if ( (r6->flags & RT_METRIC_DEFINED) && r6->metric > 0 )
     argv_printf_cat (&argv, " metric %d", r6->metric);
 #endif  /*ENABLE_IPROUTE*/
   argv_msg (D_ROUTE, &argv);
@@ -1635,7 +1633,7 @@ add_route_ipv6 (struct route_ipv6 *r6, const struct tuntap *tt, unsigned int fla
 	argv_printf_cat( &argv, " %s", gateway );
 
 #if 0
-  if (r->metric_defined)
+  if (r6->flags & RT_METRIC_DEFINED)
     argv_printf_cat (&argv, " METRIC %d", r->metric);
 #endif
 
@@ -1727,7 +1725,10 @@ add_route_ipv6 (struct route_ipv6 *r6, const struct tuntap *tt, unsigned int fla
   msg (M_FATAL, "Sorry, but I don't know how to do 'route ipv6' commands on this operating system.  Try putting your routes in a --route-up script");
 #endif
 
-  r6->defined = status;
+  if (status)
+    r6->flags |= RT_ADDED;
+  else
+    r6->flags &= ~RT_ADDED;
   argv_reset (&argv);
   gc_free (&gc);
 }
@@ -1916,7 +1917,7 @@ delete_route_ipv6 (const struct route_ipv6 *r6, const struct tuntap *tt, unsigne
   const char *device = tt->actual_name;
   bool gateway_needed = false;
 
-  if (!r6->defined)
+  if ((r6->flags & (RT_DEFINED|RT_ADDED)) != (RT_DEFINED|RT_ADDED))
     return;
 
   gc_init (&gc);
@@ -1938,7 +1939,7 @@ delete_route_ipv6 (const struct route_ipv6 *r6, const struct tuntap *tt, unsigne
    * delete, otherwise some OSes will refuse to delete the route
    */
   if ( tt->type == DEV_TYPE_TAP &&
-                  !(r6->metric_defined && r6->metric == 0 ) )
+                  !( (r6->flags & RT_METRIC_DEFINED) && r6->metric == 0 ) )
     {
       gateway_needed = true;
     }
@@ -1961,7 +1962,7 @@ delete_route_ipv6 (const struct route_ipv6 *r6, const struct tuntap *tt, unsigne
 	      device);
   if (gateway_needed)
     argv_printf_cat (&argv, "gw %s", gateway);
-  if (r6->metric_defined && r6->metric > 0 )
+  if ( (r6->flags & RT_METRIC_DEFINED) && r6->metric > 0 )
     argv_printf_cat (&argv, " metric %d", r6->metric);
 #endif  /*ENABLE_IPROUTE*/
   argv_msg (D_ROUTE, &argv);
@@ -1989,7 +1990,7 @@ delete_route_ipv6 (const struct route_ipv6 *r6, const struct tuntap *tt, unsigne
 	argv_printf_cat( &argv, " %s", gateway );
 
 #if 0
-  if (r->metric_defined)
+  if (r6->flags & RT_METRIC_DEFINED)
     argv_printf_cat (&argv, "METRIC %d", r->metric);
 #endif
 

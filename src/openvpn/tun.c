@@ -607,12 +607,11 @@ void add_route_connected_v6_net(struct tuntap * tt,
 {
     struct route_ipv6 r6;
 
-    r6.defined = true;
     r6.network = tt->local_ipv6;
     r6.netbits = tt->netbits_ipv6;
     r6.gateway = tt->local_ipv6;
     r6.metric  = 0;			/* connected route */
-    r6.metric_defined = true;
+    r6.flags   = RT_DEFINED | RT_METRIC_DEFINED;
     add_route_ipv6 (&r6, tt, 0, es);
 }
 
@@ -621,12 +620,11 @@ void delete_route_connected_v6_net(struct tuntap * tt,
 {
     struct route_ipv6 r6;
 
-    r6.defined = true;
     r6.network = tt->local_ipv6;
     r6.netbits = tt->netbits_ipv6;
     r6.gateway = tt->local_ipv6;
     r6.metric  = 0;			/* connected route */
-    r6.metric_defined = true;
+    r6.flags   = RT_DEFINED | RT_ADDED | RT_METRIC_DEFINED;
     delete_route_ipv6 (&r6, tt, 0, es);
 }
 #endif

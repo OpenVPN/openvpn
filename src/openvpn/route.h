@@ -123,11 +123,10 @@ struct route_ipv4 {
 
 struct route_ipv6 {
   struct route_ipv6 *next;
-  bool defined;
+  unsigned int flags;				/* RT_ flags, see route_ipv4 */
   struct in6_addr network;
   unsigned int netbits;
   struct in6_addr gateway;
-  bool metric_defined;
   int metric;
 };
 
