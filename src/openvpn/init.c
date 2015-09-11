@@ -1195,6 +1195,21 @@ do_init_route_ipv6_list (const struct options *options,
   if (options->route_default_metric)
     metric = options->route_default_metric;
 
+  /* redirect (IPv6) gateway to VPN?  if yes, add a few more specifics
+   */
+  if ( options->routes_ipv6->flags & RG_REROUTE_GW )
+    {
+      char *opt_list[] = { "::/3", "2000::/4", "3000::/4", "fc00::/7", NULL };
+      int i;
+
+      for (i=0; opt_list[i]; i++)
+	{
+	  add_route_ipv6_to_option_list( options->routes_ipv6,
+		      string_alloc (opt_list[i], options->routes_ipv6->gc),
+		      NULL, NULL );
+	}
+    }
+
   if (!init_route_ipv6_list (route_ipv6_list,
 			options->routes_ipv6,
 			gw,

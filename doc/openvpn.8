@@ -1240,6 +1240,17 @@ on non-Windows clients).
 Block access to local LAN when the tunnel is active, except for
 the LAN gateway itself.  This is accomplished by routing the local
 LAN (except for the LAN gateway address) into the tunnel.
+
+.B ipv6 --
+Redirect IPv6 routing into the tunnel.  This works similar to the
+.B def1
+flag, that is, more specific IPv6 routes are added (2000::/4, 3000::/4),
+covering the whole IPv6 unicast space.
+
+.B !ipv4 --
+Do not redirect IPv4 traffic - typically used in the flag pair
+.B "ipv6 !ipv4"
+to redirect IPv6-only.
 .\"*********************************************************
 .TP
 .B \-\-link\-mtu n

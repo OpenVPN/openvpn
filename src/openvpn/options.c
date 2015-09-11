@@ -5366,6 +5366,13 @@ add_option (struct options *options,
 	    options->routes->flags |= RG_BYPASS_DNS;
 	  else if (streq (p[j], "block-local"))
 	    options->routes->flags |= RG_BLOCK_LOCAL;
+	  else if (streq (p[j], "ipv6"))
+	    {
+	      rol6_check_alloc (options);
+	      options->routes_ipv6->flags |= RG_REROUTE_GW;
+	    }
+	  else if (streq (p[j], "!ipv4"))
+	    options->routes->flags &= ~RG_REROUTE_GW;
 	  else
 	    {
 	      msg (msglevel, "unknown --%s flag: %s", p[0], p[j]);
