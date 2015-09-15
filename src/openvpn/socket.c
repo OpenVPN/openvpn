@@ -71,23 +71,6 @@ sf2gaf(const unsigned int getaddr_flags,
  * Functions related to the translation of DNS names to IP addresses.
  */
 
-static const char*
-h_errno_msg(int h_errno_err)
-{
-  switch (h_errno_err)
-    {
-    case HOST_NOT_FOUND:
-      return "[HOST_NOT_FOUND] The specified host is unknown.";
-    case NO_DATA:
-      return "[NO_DATA] The requested name is valid but does not have an IP address.";
-    case NO_RECOVERY:
-      return "[NO_RECOVERY] A non-recoverable name server error occurred.";
-    case TRY_AGAIN:
-      return "[TRY_AGAIN] A temporary error occurred on an authoritative name server.";
-    }
-  return "[unknown h_errno value]";
-}
-
 /*
  * Translate IP addr or hostname to in_addr_t.
  * If resolve error, try again for
