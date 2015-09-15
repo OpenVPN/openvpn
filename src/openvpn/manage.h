@@ -173,6 +173,9 @@ struct management_callback
 #endif
   bool (*proxy_cmd) (void *arg, const char **p);
   bool (*remote_cmd) (void *arg, const char **p);
+#ifdef TARGET_ANDROID
+  int (*network_change) (void *arg);
+#endif
 };
 
 /*
