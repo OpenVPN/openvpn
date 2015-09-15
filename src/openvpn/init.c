@@ -3162,14 +3162,14 @@ management_show_net_callback (void *arg, const int msglevel)
 
 #ifdef TARGET_ANDROID
 int
-management_callback_network_change (void *arg)
+management_callback_network_change (void *arg, bool samenetwork)
 {
     /* Check if the client should translate the network change to a SIGUSR1 to
      reestablish the connection or just reprotect the socket
 
      At the moment just assume that, for all settings that use pull (not
      --static) and are not using peer-id reestablishing the connection is
-     required
+     required (unless the network is the same)
 
      The function returns -1 on invalid fd and -2 if the socket cannot be
      reused. On the -2 return value the man_network_change function triggers
@@ -3184,7 +3184,7 @@ management_callback_network_change (void *arg)
     return -1;
 
   socketfd = c->c2.link_socket->sd;
-  if (!c->options.pull || c->c2.tls_multi->use_peer_id)
+  if (!c->options.pull || c->c2.tls_multi->use_peer_id || samenetwork)
     return socketfd;
   else
     return -2;

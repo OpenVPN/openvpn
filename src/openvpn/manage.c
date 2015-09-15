@@ -1129,7 +1129,7 @@ man_remote (struct management *man, const char **p)
 
 #ifdef TARGET_ANDROID
 static void
-man_network_change (struct management *man)
+man_network_change (struct management *man, bool samenetwork)
 {
   /* Called to signal the OpenVPN that the network configuration has changed and
      the client should either float or reconnect.
@@ -1138,7 +1138,8 @@ man_network_change (struct management *man)
   */
   if (man->persist.callback.network_change)
     {
-      int fd = (*man->persist.callback.network_change)(man->persist.callback.arg);
+      int fd = (*man->persist.callback.network_change)
+	(man->persist.callback.arg, samenetwork);
       man->connection.fdtosend = fd;
       msg (M_CLIENT, "PROTECTFD: fd '%d' sent to be protected", fd);
       if (fd == -2)
@@ -1193,7 +1194,11 @@ man_dispatch_command (struct management *man, struct status_output *so, const ch
 #ifdef TARGET_ANDROID
   else if (streq (p[0], "network-change"))
     {
-      man_network_change(man);
+      bool samenetwork = false;
+      if (p[1] && streq(p[1], "samenetwork"))
+	samenetwork = true;
+
+      man_network_change(man, samenetwork);
     }
 #endif
   else if (streq (p[0], "load-stats"))
