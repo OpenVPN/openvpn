@@ -702,11 +702,6 @@ socket_defined (const socket_descriptor_t sd)
 #endif
 
 /*
- * Do we support internal client-side NAT?
- */
-#define ENABLE_CLIENT_NAT
-
-/*
  * Compression support
  */
 #if defined(ENABLE_SNAPPY) || defined(ENABLE_LZO) || defined(ENABLE_LZ4) || \

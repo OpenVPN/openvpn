@@ -440,9 +440,7 @@ struct context_2
   time_t sent_push_reply_expiry;
   in_addr_t push_ifconfig_local;
   in_addr_t push_ifconfig_remote_netmask;
-#ifdef ENABLE_CLIENT_NAT
   in_addr_t push_ifconfig_local_alias;
-#endif
 
   bool            push_ifconfig_ipv6_defined;
   struct in6_addr push_ifconfig_ipv6_local;

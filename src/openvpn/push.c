@@ -294,10 +294,8 @@ send_push_reply (struct context *c)
   if (c->c2.push_ifconfig_defined && c->c2.push_ifconfig_local && c->c2.push_ifconfig_remote_netmask)
     {
       in_addr_t ifconfig_local = c->c2.push_ifconfig_local;
-#ifdef ENABLE_CLIENT_NAT
       if (c->c2.push_ifconfig_local_alias)
 	ifconfig_local = c->c2.push_ifconfig_local_alias;
-#endif
       buf_printf (&buf, ",ifconfig %s %s",
 		  print_in_addr_t (ifconfig_local, 0, &gc),
 		  print_in_addr_t (c->c2.push_ifconfig_remote_netmask, 0, &gc));

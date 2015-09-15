@@ -30,8 +30,6 @@
 
 #include "syshead.h"
 
-#if defined(ENABLE_CLIENT_NAT)
-
 #include "clinat.h"
 #include "proto.h"
 #include "socket.h"
@@ -265,5 +263,3 @@ client_nat_transform (const struct client_nat_option_list *list,
 	}
     }
 }
-
-#endif
