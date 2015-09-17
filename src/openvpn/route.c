@@ -768,6 +768,11 @@ init_route_ipv6_list (struct route_ipv6_list *rl6,
             r6->next = rl6->routes_ipv6;
             rl6->routes_ipv6 = r6;
 
+#ifndef TARGET_ANDROID
+	    /* On Android the VPNService protect function call will take of
+	     * avoiding routing loops, so ignore this part and let
+	     * need_remote_ipv6_route always evaluate to false
+	     */
 	    if ( remote_host_ipv6 &&
 		  route_ipv6_match_host( r6, remote_host_ipv6 ) )
 	      {
@@ -776,7 +781,8 @@ init_route_ipv6_list (struct route_ipv6_list *rl6,
 			print_in6_addr (r6->network, 0, &gc), r6->netbits,
 			print_in6_addr (*remote_host_ipv6, 0, &gc));
 	      }
-          }
+#endif
+	  }
       }
   }
 
