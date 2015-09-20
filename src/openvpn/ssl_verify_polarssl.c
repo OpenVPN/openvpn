@@ -413,6 +413,8 @@ x509_verify_crl(const char *crl_file, x509_cert *cert, const char *subject)
 {
   result_t retval = FAILURE;
   x509_crl crl = {0};
+  struct gc_arena gc = gc_new();
+  char *serial;
 
   int polar_retval = x509parse_crlfile(&crl, crl_file);
   if (polar_retval != 0)
@@ -434,7 +436,8 @@ x509_verify_crl(const char *crl_file, x509_cert *cert, const char *subject)
 
   if (0 != x509parse_revoked(cert, &crl))
     {
-      msg (D_HANDSHAKE, "CRL CHECK FAILED: %s is REVOKED", subject);
+      serial = backend_x509_get_serial_hex(cert, &gc);
+      msg (D_HANDSHAKE, "CRL CHECK FAILED: %s (serial %s) is REVOKED", subject, (serial ? serial : "NOT AVAILABLE"));
       goto end;
     }
 
@@ -442,6 +445,7 @@ x509_verify_crl(const char *crl_file, x509_cert *cert, const char *subject)
   msg (D_HANDSHAKE, "CRL CHECK OK: %s",subject);
 
 end:
+  gc_free(&gc);
   x509_crl_free(&crl);
   return retval;
 }
