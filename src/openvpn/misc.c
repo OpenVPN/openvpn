@@ -1615,7 +1615,7 @@ argv_extract_cmd_name (const char *path)
 {
   if (path)
     {
-      char *path_cp = strdup(path); /* POSIX basename() implementaions may modify its arguments */
+      char *path_cp = string_alloc(path, NULL); /* POSIX basename() implementaions may modify its arguments */
       const char *bn = basename (path_cp);
       if (bn)
 	{

@@ -898,7 +898,7 @@ gc_reset (struct gc_arena *a)
 }
 
 static inline void
-check_malloc_return (void *p)
+check_malloc_return (const void *p)
 {
   if (!p)
     out_of_memory ();

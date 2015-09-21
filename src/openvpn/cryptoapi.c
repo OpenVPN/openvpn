@@ -46,6 +46,8 @@
 #include <ctype.h>
 #include <assert.h>
 
+#include "buffer.h"
+
 /* MinGW w32api 3.17 is still incomplete when it comes to CryptoAPI while
  * MinGW32-w64 defines all macros used. This is a hack around that problem.
  */
@@ -116,7 +118,7 @@ static char *ms_error_text(DWORD ms_err)
 	(LPTSTR) &lpMsgBuf, 0, NULL);
     if (lpMsgBuf) {
 	char *p;
-	rv = strdup(lpMsgBuf);
+	rv = string_alloc(lpMsgBuf, NULL);
 	LocalFree(lpMsgBuf);
 	/* trim to the left */
 	if (rv)

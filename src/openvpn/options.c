@@ -2578,7 +2578,7 @@ check_file_access(const int type, const char *file, const int mode, const char *
   /* Is the directory path leading to the given file accessible? */
   if (type & CHKACC_DIRPATH)
     {
-      char *fullpath = strdup(file);  /* POSIX dirname() implementaion may modify its arguments */
+      char *fullpath = string_alloc (file, NULL);  /* POSIX dirname() implementaion may modify its arguments */
       char *dirpath = dirname(fullpath);
 
       if (platform_access (dirpath, mode|X_OK) != 0)
