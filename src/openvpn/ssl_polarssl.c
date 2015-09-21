@@ -191,7 +191,7 @@ tls_ctx_restrict_ciphers(struct tls_root_ctx *ctx, const char *ciphers)
 
   /* Parse allowed ciphers, getting IDs */
   i = 0;
-  tmp_ciphers_orig = tmp_ciphers = strdup(ciphers);
+  tmp_ciphers_orig = tmp_ciphers = string_alloc (ciphers, NULL);
 
   token = strtok (tmp_ciphers, ":");
   while(token)
