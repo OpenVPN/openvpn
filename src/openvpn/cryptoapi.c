@@ -164,6 +164,7 @@ static void err_put_ms_error(DWORD ms_err, int func, const char *file, int line)
 	    err_map[i].ms_err = ms_err;
 	    err_map[i].err = esd->error = i + 100;
 	    esd->string = ms_error_text(ms_err);
+	    check_malloc_return(esd->string);
 	    ERR_load_strings(ERR_LIB_CRYPTOAPI, esd);
 	    ERR_PUT_error(ERR_LIB_CRYPTOAPI, func, err_map[i].err, file, line);
 	    break;
