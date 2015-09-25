@@ -3195,7 +3195,7 @@ test_local_addr (const in_addr_t addr, const struct route_gateway_info *rgi)
 {
   struct gc_arena gc = gc_new ();
   const in_addr_t nonlocal_netmask = 0x80000000L; /* routes with netmask <= to this are considered non-local */
-  bool ret = TLA_NONLOCAL;
+  int ret = TLA_NONLOCAL;
 
   /* get full routing table */
   const MIB_IPFORWARDTABLE *rt = get_windows_routing_table (&gc);
