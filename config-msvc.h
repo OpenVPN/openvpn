@@ -90,7 +90,10 @@
 
 #define strncasecmp strnicmp
 #define strcasecmp _stricmp
+
+#if _MSC_VER<1900
 #define snprintf _snprintf
+#endif
 
 #if _MSC_VER < 1800
 #define strtoull strtoul
