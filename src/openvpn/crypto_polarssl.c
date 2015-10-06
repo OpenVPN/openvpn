@@ -261,7 +261,8 @@ ctr_drbg_context * rand_ctx_get()
       /* Initialise PolarSSL RNG, and built-in entropy sources */
       entropy_init(&ec);
 
-      if (0 != ctr_drbg_init(&cd_ctx, entropy_func, &ec, BPTR(&pers_string), BLEN(&pers_string)))
+      if (!polar_ok(ctr_drbg_init(&cd_ctx, entropy_func, &ec,
+		    BPTR(&pers_string), BLEN(&pers_string))))
         msg (M_FATAL, "Failed to initialize random generator");
 
       gc_free(&gc);
@@ -472,10 +473,10 @@ cipher_ctx_init (cipher_context_t *ctx, uint8_t *key, int key_len,
 
   CLEAR (*ctx);
 
-  if (0 != cipher_init_ctx(ctx, kt))
+  if (!polar_ok(cipher_init_ctx(ctx, kt)))
     msg (M_FATAL, "PolarSSL cipher context init #1");
 
-  if (0 != cipher_setkey(ctx, key, key_len*8, enc))
+  if (!polar_ok(cipher_setkey(ctx, key, key_len*8, enc)))
     msg (M_FATAL, "PolarSSL cipher set key");
 
   /* make sure we used a big enough key */
@@ -484,7 +485,7 @@ cipher_ctx_init (cipher_context_t *ctx, uint8_t *key, int key_len,
 
 void cipher_ctx_cleanup (cipher_context_t *ctx)
 {
-  cipher_free_ctx(ctx);
+  ASSERT (polar_ok(cipher_free_ctx(ctx)));
 }
 
 int cipher_ctx_iv_length (const cipher_context_t *ctx)
@@ -514,36 +515,38 @@ cipher_ctx_get_cipher_kt (const cipher_ctx_t *ctx)
 
 int cipher_ctx_reset (cipher_context_t *ctx, uint8_t *iv_buf)
 {
-  int retval = cipher_reset(ctx);
+  if (!polar_ok(cipher_reset(ctx)))
+    return 0;
 
-  if (0 == retval)
-    retval = cipher_set_iv(ctx, iv_buf, ctx->cipher_info->iv_size);
+  if (!polar_ok(cipher_set_iv(ctx, iv_buf, ctx->cipher_info->iv_size)))
+    return 0;
 
-  return 0 == retval;
+  return 1;
 }
 
 int cipher_ctx_update (cipher_context_t *ctx, uint8_t *dst, int *dst_len,
     uint8_t *src, int src_len)
 {
-  int retval = 0;
   size_t s_dst_len = *dst_len;
 
-  retval = cipher_update(ctx, src, (size_t)src_len, dst, &s_dst_len);
+  if (!polar_ok(cipher_update(ctx, src, (size_t)src_len, dst, &s_dst_len)))
+    return 0;
 
   *dst_len = s_dst_len;
 
-  return 0 == retval;
+  return 1;
 }
 
 int cipher_ctx_final (cipher_context_t *ctx, uint8_t *dst, int *dst_len)
 {
-  int retval = 0;
   size_t s_dst_len = *dst_len;
 
-  retval = cipher_finish(ctx, dst, &s_dst_len);
+  if (!polar_ok(cipher_finish(ctx, dst, &s_dst_len)))
+    return 0;
+
   *dst_len = s_dst_len;
 
-  return 0 == retval;
+  return 1;
 }
 
 void
@@ -553,8 +556,8 @@ cipher_des_encrypt_ecb (const unsigned char key[DES_KEY_LENGTH],
 {
     des_context ctx;
 
-    des_setkey_enc(&ctx, key);
-    des_crypt_ecb(&ctx, src, dst);
+    ASSERT (polar_ok(des_setkey_enc(&ctx, key)));
+    ASSERT (polar_ok(des_crypt_ecb(&ctx, src, dst)));
 }
 
 
