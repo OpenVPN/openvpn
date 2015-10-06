@@ -272,7 +272,7 @@ tls_ctx_restrict_ciphers(struct tls_root_ctx *ctx, const char *ciphers)
           // Issue warning on missing translation
           // %.*s format specifier expects length of type int, so guarantee
           // that length is small enough and cast to int.
-          msg (M_WARN, "No valid translation found for TLS cipher '%.*s'",
+          msg (D_LOW, "No valid translation found for TLS cipher '%.*s'",
                  constrain_int(current_cipher_len, 0, 256), current_cipher);
         }
       else

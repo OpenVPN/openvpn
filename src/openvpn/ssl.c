@@ -232,18 +232,19 @@ static const tls_cipher_name_pair tls_cipher_name_translation_table[] = {
     {"SRP-RSA-AES-128-CBC-SHA", "TLS-SRP-SHA-RSA-WITH-AES-128-CBC-SHA"},
     {"SRP-RSA-AES-256-CBC-SHA", "TLS-SRP-SHA-RSA-WITH-AES-256-CBC-SHA"},
 #ifdef ENABLE_CRYPTO_OPENSSL
+    /* OpenSSL-specific group names */
     {"DEFAULT", "DEFAULT"},
     {"ALL", "ALL"},
-    {"HIGH", "HIGH"},
-    {"MEDIUM", "MEDIUM"},
-    {"LOW", "LOW"},
-    {"ECDH", "ECDH"},
-    {"ECDSA", "ECDSA"},
-    {"EDH", "EDH"},
-    {"EXP", "EXP"},
-    {"RSA", "RSA"},
-    {"kRSA", "kRSA"},
-    {"SRP", "SRP"},
+    {"HIGH", "HIGH"}, {"!HIGH", "!HIGH"},
+    {"MEDIUM", "MEDIUM"}, {"!MEDIUM", "!MEDIUM"},
+    {"LOW", "LOW"}, {"!LOW", "!LOW"},
+    {"ECDH", "ECDH"}, {"!ECDH", "!ECDH"},
+    {"ECDSA", "ECDSA"}, {"!ECDSA", "!ECDSA"},
+    {"EDH", "EDH"}, {"!EDH", "!EDH"},
+    {"EXP", "EXP"}, {"!EXP", "!EXP"},
+    {"RSA", "RSA"}, {"!RSA", "!RSA"},
+    {"kRSA", "kRSA"}, {"!kRSA", "!kRSA"},
+    {"SRP", "SRP"}, {"!SRP", "!SRP"},
 #endif
     {NULL, NULL}
 };
