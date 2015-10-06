@@ -128,3 +128,8 @@ typedef __int8		int8_t;
 #include <config-msvc-local.h>
 #endif
 
+// Vista and above has implementation of inet_ntop / inet_pton
+#if _WIN32_WINNT >= _WIN32_WINNT_VISTA
+    #define HAVE_INET_NTOP
+    #define HAVE_INET_PTON
+#endif
