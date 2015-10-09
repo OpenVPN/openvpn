@@ -3588,8 +3588,31 @@ to empty strings ("").  The authentication module/script MUST have logic
 to detect this condition and respond accordingly.
 .\"*********************************************************
 .TP
-.B \-\-client\-cert\-not\-required
+.B \-\-client\-cert\-not\-required (DEPRECATED)
 Don't require client certificate, client will authenticate
+using username/password only.  Be aware that using this directive
+is less secure than requiring certificates from all clients.
+
+
+.B Please note:
+This option is now deprecated and will be removed in OpenVPN v2.5.
+It is replaced by
+.B \-\-verify\-client\-cert
+which allows for more flexibility. The option
+.B \-\-verify\-client\-cert none
+is functionally equivalent to
+.B \-\-client\-cert\-not\-required
+.
+
+.\"*********************************************************
+.TP
+.B \-\-verify\-client\-cert none|optional|require
+Specify whether the client is required to supply a valid certificate.
+
+Possible options are
+
+.B none
+: a client certificate is not required. the client need to authenticate
 using username/password only.  Be aware that using this directive
 is less secure than requiring certificates from all clients.
 
@@ -3599,7 +3622,29 @@ entire responsibility of authentication will rest on your
 script, so keep in mind that bugs in your script
 could potentially compromise the security of your VPN.
 
-If you don't use this directive, but you also specify an
+.B \-\-verify\-client\-cert none
+is functionally equivalent to
+.B \-\-client\-cert\-not\-required.
+
+.B optional
+: a client may present a certificate but it is not required to do so.
+When using this directive, you should also use a
+.B \-\-auth\-user\-pass\-verify
+script to ensure that clients are authenticated using a
+certificate, a username and password, or possibly even both.
+
+Again, the entire responsibility of authentication will rest on your
+.B \-\-auth\-user\-pass\-verify
+script, so keep in mind that bugs in your script
+could potentially compromise the security of your VPN.
+
+.B require
+: this is the default option. A client is required to present a
+certificate, otherwise VPN access is refused.
+
+If you don't use this directive (or use
+.B \-\-verify\-client\-cert require
+) but you also specify an
 .B \-\-auth\-user\-pass\-verify
 script, then OpenVPN will perform double authentication.  The
 client certificate verification AND the

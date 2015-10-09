@@ -293,8 +293,9 @@ struct tls_options
 
   /* configuration file SSL-related boolean and low-permutation options */
 # define SSLF_CLIENT_CERT_NOT_REQUIRED (1<<0)
-# define SSLF_USERNAME_AS_COMMON_NAME  (1<<1)
-# define SSLF_AUTH_USER_PASS_OPTIONAL  (1<<2)
+# define SSLF_CLIENT_CERT_OPTIONAL     (1<<1)
+# define SSLF_USERNAME_AS_COMMON_NAME  (1<<2)
+# define SSLF_AUTH_USER_PASS_OPTIONAL  (1<<3)
 # define SSLF_OPT_VERIFY               (1<<4)
 # define SSLF_CRL_VERIFY_DIR           (1<<5)
 # define SSLF_TLS_VERSION_MIN_SHIFT    6

@@ -432,6 +432,9 @@ static const char usage_message[] =
   "                  Only valid in a client-specific config file.\n"
   "--client-cert-not-required : Don't require client certificate, client\n"
   "                  will authenticate using username/password.\n"
+  "--verify-client-cert [none|optional|require] : perform no, optional or\n"
+  "                  mandatory client certificate verification.\n"
+  "                  Default is to require the client to supply a certificate.\n"
   "--username-as-common-name  : For auth-user-pass authentication, use\n"
   "                  the authenticated username as the common name,\n"
   "                  rather than the common name from the client cert.\n"
@@ -2081,8 +2084,8 @@ options_postprocess_verify_ce (const struct options *options, const struct conne
 	msg (M_USAGE, "--duplicate-cn requires --mode server");
       if (options->cf_max || options->cf_per)
 	msg (M_USAGE, "--connect-freq requires --mode server");
-      if (options->ssl_flags & SSLF_CLIENT_CERT_NOT_REQUIRED)
-	msg (M_USAGE, "--client-cert-not-required requires --mode server");
+      if (options->ssl_flags & SSLF_CLIENT_CERT_NOT_REQUIRED || options->ssl_flags & SSLF_CLIENT_CERT_OPTIONAL)
+	msg (M_USAGE, "--client-cert-not-required and --verify-client-cert require --mode server");
       if (options->ssl_flags & SSLF_USERNAME_AS_COMMON_NAME)
 	msg (M_USAGE, "--username-as-common-name requires --mode server");
       if (options->ssl_flags & SSLF_AUTH_USER_PASS_OPTIONAL)
@@ -5664,6 +5667,27 @@ add_option (struct options *options,
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->ssl_flags |= SSLF_CLIENT_CERT_NOT_REQUIRED;
+      msg (M_WARN, "DEPRECATED OPTION: --client-cert-not-required, use --verify-client-cert instead");
+    }
+  else if (streq (p[0], "verify-client-cert") && !p[2])
+    {
+      VERIFY_PERMISSION (OPT_P_GENERAL);
+
+      /* Reset any existing flags */
+      options->ssl_flags &= ~SSLF_CLIENT_CERT_OPTIONAL;
+      options->ssl_flags &= ~SSLF_CLIENT_CERT_NOT_REQUIRED;
+      if (p[1])
+	{
+	  if (streq (p[1], "none"))
+	      options->ssl_flags |= SSLF_CLIENT_CERT_NOT_REQUIRED;
+	  else if (streq (p[1], "optional"))
+	      options->ssl_flags |= SSLF_CLIENT_CERT_OPTIONAL;
+	  else if (!streq (p[1], "require"))
+	    {
+	      msg (msglevel, "parameter to --verify-client-cert must be 'none', 'optional' or 'require'");
+	      goto err;
+	    }
+	}
     }
   else if (streq (p[0], "username-as-common-name") && !p[1])
     {
