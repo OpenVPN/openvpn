@@ -1384,6 +1384,9 @@ io_wait_dowork (struct context *c, const unsigned int flags)
 #ifdef ENABLE_MANAGEMENT
   static int management_shift = 6; /* depends on MANAGEMENT_READ and MANAGEMENT_WRITE */
 #endif
+#ifdef ENABLE_ASYNC_PUSH
+  static int file_shift = 8;       /* listening inotify events */
+#endif
 
   /*
    * Decide what kind of events we want to wait for.
@@ -1476,6 +1479,11 @@ io_wait_dowork (struct context *c, const unsigned int flags)
 #ifdef ENABLE_MANAGEMENT
   if (management)
     management_socket_set (management, c->c2.event_set, (void*)&management_shift, NULL);
+#endif
+
+#ifdef ENABLE_ASYNC_PUSH
+  /* arm inotify watcher */
+  event_ctl (c->c2.event_set, c->c2.inotify_fd, EVENT_READ, (void*)&file_shift);
 #endif
 
   /*

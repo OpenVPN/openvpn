@@ -40,6 +40,8 @@
 void incoming_push_message (struct context *c,
 			    const struct buffer *buffer);
 
+int process_incoming_push_request (struct context *c);
+
 int process_incoming_push_msg (struct context *c,
 			       const struct buffer *buffer,
 			       bool honor_received_options,

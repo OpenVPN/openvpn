@@ -411,6 +411,46 @@ push_reset (struct options *o)
 #endif
 
 int
+process_incoming_push_request (struct context *c)
+{
+  int ret = PUSH_MSG_ERROR;
+
+#ifdef ENABLE_ASYNC_PUSH
+  c->c2.push_request_received = true;
+#endif
+  if (tls_authentication_status (c->c2.tls_multi, 0) == TLS_AUTHENTICATION_FAILED || c->c2.context_auth == CAS_FAILED)
+    {
+      const char *client_reason = tls_client_reason (c->c2.tls_multi);
+      send_auth_failed (c, client_reason);
+      ret = PUSH_MSG_AUTH_FAILURE;
+    }
+  else if (!c->c2.push_reply_deferred && c->c2.context_auth == CAS_SUCCEEDED)
+    {
+      time_t now;
+
+      openvpn_time (&now);
+      if (c->c2.sent_push_reply_expiry > now)
+	{
+	  ret = PUSH_MSG_ALREADY_REPLIED;
+	}
+      else
+	{
+	  if (send_push_reply (c))
+	    {
+	      ret = PUSH_MSG_REQUEST;
+	      c->c2.sent_push_reply_expiry = now + 30;
+	    }
+	}
+    }
+  else
+    {
+      ret = PUSH_MSG_REQUEST_DEFERRED;
+    }
+
+  return ret;
+}
+
+int
 process_incoming_push_msg (struct context *c,
 			   const struct buffer *buffer,
 			   bool honor_received_options,
@@ -423,34 +463,7 @@ process_incoming_push_msg (struct context *c,
 #if P2MP_SERVER
   if (buf_string_compare_advance (&buf, "PUSH_REQUEST"))
     {
-      if (tls_authentication_status (c->c2.tls_multi, 0) == TLS_AUTHENTICATION_FAILED || c->c2.context_auth == CAS_FAILED)
-	{
-	  const char *client_reason = tls_client_reason (c->c2.tls_multi);
-	  send_auth_failed (c, client_reason);
-	  ret = PUSH_MSG_AUTH_FAILURE;
-	}
-      else if (!c->c2.push_reply_deferred && c->c2.context_auth == CAS_SUCCEEDED)
-	{
-	  time_t now;
-
-	  openvpn_time(&now);
-	  if (c->c2.sent_push_reply_expiry > now)
-	    {
-	      ret = PUSH_MSG_ALREADY_REPLIED;
-	    }
-	  else
-	    {
-	      if (send_push_reply (c))
-		{
-		  ret = PUSH_MSG_REQUEST;
-		  c->c2.sent_push_reply_expiry = now + 30;
-		}
-	    }
-	}
-      else
-	{
-	  ret = PUSH_MSG_REQUEST_DEFERRED;
-	}
+      ret = process_incoming_push_request(c);
     }
   else
 #endif

@@ -62,6 +62,10 @@
 # define MTCP_MANAGEMENT ((void*)4)
 #endif
 
+#ifdef ENABLE_ASYNC_PUSH
+#define MTCP_FILE_CLOSE_WRITE ((void*)5)
+#endif
+
 #define MTCP_N           ((void*)16) /* upper bound on MTCP_x */
 
 struct ta_iow_flags
@@ -245,6 +249,12 @@ multi_tcp_wait (const struct context *c,
   if (management)
     management_socket_set (management, mtcp->es, MTCP_MANAGEMENT, &mtcp->management_persist_flags);
 #endif
+
+#ifdef ENABLE_ASYNC_PUSH
+  /* arm inotify watcher */
+  event_ctl (mtcp->es, c->c2.inotify_fd, EVENT_READ, MTCP_FILE_CLOSE_WRITE);
+#endif
+
   status = event_wait (mtcp->es, &c->c2.timeval, mtcp->esr, mtcp->maxevents);
   update_time ();
   mtcp->n_esr = 0;
@@ -636,6 +646,12 @@ multi_tcp_process_io (struct multi_context *m)
 	    {
 	      get_signal (&m->top.sig->signal_received);
 	    }
+#ifdef ENABLE_ASYNC_PUSH
+	  else if (e->arg == MTCP_FILE_CLOSE_WRITE)
+	    {
+	      multi_process_file_closed (m, MPP_PRE_SELECT | MPP_RECORD_TOUCH);
+	    }
+#endif
 	}
       if (IS_SIG (&m->top))
 	break;
@@ -684,6 +700,14 @@ tunnel_server_tcp (struct context *top)
   /* finished with initialization */
   initialization_sequence_completed (top, ISC_SERVER); /* --mode server --proto tcp-server */
 
+#ifdef ENABLE_ASYNC_PUSH
+  multi.top.c2.inotify_fd = inotify_init();
+  if (multi.top.c2.inotify_fd < 0)
+    {
+      msg (D_MULTI_ERRORS, "MULTI: inotify_init error: %s", strerror(errno));
+    }
+#endif
+
   /* per-packet event loop */
   while (true)
     {
@@ -711,6 +735,10 @@ tunnel_server_tcp (struct context *top)
 
       perf_pop ();
     }
+
+#ifdef ENABLE_ASYNC_PUSH
+  close(top->c2.inotify_fd);
+#endif
 
   /* shut down management interface */
   uninit_management_callback_multi (&multi);
