@@ -1199,13 +1199,16 @@ process_outgoing_link (struct context *c)
       if (c->c2.buf.len > 0 )
         register_activity (c, size);
 
+
+#ifdef ENABLE_CRYPTO
       /* for unreachable network and "connecting" state switch to the next host */
-      if (size < 0 && ENETUNREACH == error_code && !tls_initial_packet_received (c->c2.tls_multi)
-	  && c->options.mode == MODE_POINT_TO_POINT)
+      if (size < 0 && ENETUNREACH == error_code && c->c2.tls_multi &&
+          !tls_initial_packet_received (c->c2.tls_multi) && c->options.mode == MODE_POINT_TO_POINT)
 	{
 	  msg (M_INFO, "Network unreachable, restarting");
 	  register_signal (c, SIGUSR1, "network-unreachable");
 	}
+#endif
     }
   else
     {
