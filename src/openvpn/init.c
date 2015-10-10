@@ -2379,11 +2379,11 @@ do_init_frame (struct context *c)
     {
       comp_add_to_extra_frame (&c->c2.frame);
 
-#if !defined(ENABLE_SNAPPY) && !defined(ENABLE_LZ4)
+#if !defined(ENABLE_LZ4)
       /*
        * Compression usage affects buffer alignment when non-swapped algs
        * such as LZO is used.
-       * Newer algs like Snappy and comp-stub with COMP_F_SWAP don't need
+       * Newer algs like LZ4 and comp-stub with COMP_F_SWAP don't need
        * any special alignment because of the control-byte swap approach.
        * LZO alignment (on the other hand) is problematic because
        * the presence of the control byte means that either the output of
@@ -2394,7 +2394,7 @@ do_init_frame (struct context *c)
        * dispatch if packet is uncompressed) at the cost of requiring
        * decryption output to be written to an unaligned buffer, so
        * it's more of a tradeoff than an optimal solution and we don't
-       * include it when we are doing a modern build with Snappy or LZ4.
+       * include it when we are doing a modern build with LZ4.
        * Strictly speaking, on the server it would be better to execute
        * this code for every connection after we decide the compression
        * method, but currently the frame code doesn't appear to be

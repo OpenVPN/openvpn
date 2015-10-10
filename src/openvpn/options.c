@@ -80,9 +80,6 @@ const char title_string[] =
 #ifdef ENABLE_LZO
   " [LZO]"
 #endif
-#ifdef ENABLE_SNAPPY
-  " [SNAPPY]"
-#endif
 #ifdef ENABLE_LZ4
   " [LZ4]"
 #endif
@@ -6294,13 +6291,6 @@ add_option (struct options *options,
 	    {
 	      options->comp.alg = COMP_ALG_LZO;
 	      options->comp.flags = 0;
-	    }
-#endif
-#if defined(ENABLE_SNAPPY)
-	  else if (streq (p[1], "snappy"))
-	    {
-	      options->comp.alg = COMP_ALG_SNAPPY;
-	      options->comp.flags = COMP_F_SWAP;
 	    }
 #endif
 #if defined(ENABLE_LZ4)

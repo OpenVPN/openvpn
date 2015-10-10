@@ -24,7 +24,7 @@
 
 /*
  * Generic compression support.  Currently we support
- * Snappy, LZO 2 and LZ4.
+ * LZO 2 and LZ4.
  */
 #ifndef OPENVPN_COMP_H
 #define OPENVPN_COMP_H
@@ -40,7 +40,7 @@
 #define COMP_ALG_UNDEF  0
 #define COMP_ALG_STUB   1 /* support compression command byte and framing without actual compression */
 #define COMP_ALG_LZO    2 /* LZO algorithm */
-#define COMP_ALG_SNAPPY 3 /* Snappy algorithm */
+#define COMP_ALG_SNAPPY 3 /* Snappy algorithm (no longer supported) */
 #define COMP_ALG_LZ4    4 /* LZ4 algorithm */
 
 /* Compression flags */
@@ -101,10 +101,6 @@ struct compress_alg
 #include "lzo.h"
 #endif
 
-#ifdef ENABLE_SNAPPY
-#include "snappy.h"
-#endif
-
 #ifdef ENABLE_LZ4
 #include "comp-lz4.h"
 #endif
@@ -126,9 +122,6 @@ union compress_workspace_union
 {
 #ifdef ENABLE_LZO
   struct lzo_compress_workspace lzo;
-#endif
-#ifdef ENABLE_SNAPPY
-  struct snappy_workspace snappy;
 #endif
 #ifdef ENABLE_LZ4
   struct lz4_workspace lz4;

@@ -66,12 +66,6 @@ AC_ARG_ENABLE(
 	[enable_lzo="yes"]
 )
 
-AC_ARG_ENABLE(snappy,
-	[  --disable-snappy        Disable Snappy compression support],
-	[enable_snappy="$enableval"],
-	[enable_snappy="yes"]
-)
-
 AC_ARG_ENABLE(lz4,
 	[  --disable-lz4           Disable LZ4 compression support],
 	[enable_lz4="$enableval"],
@@ -952,45 +946,6 @@ if test "${have_lzo}" = "yes"; then
 fi
 
 dnl
-dnl check for Snappy library
-dnl
-
-AC_ARG_VAR([SNAPPY_CFLAGS], [C compiler flags for snappy])
-AC_ARG_VAR([SNAPPY_LIBS], [linker flags for snappy])
-if test "$enable_snappy" = "yes" && test "$enable_comp_stub" = "no"; then
-    AC_CHECKING([for Snappy Library and Header files])
-    havesnappylib=1
-
-    # if SNAPPY_LIBS is set, we assume it will work, otherwise test
-    if test -z "${SNAPPY_LIBS}"; then
-	AC_CHECK_LIB(snappy, snappy_compress,
-	    [ SNAPPY_LIBS="-lsnappy" ],
-	    [
-	        AC_MSG_RESULT([Snappy library not found.])
-	        havesnappylib=0
-	    ])
-    fi
-
-    saved_CFLAGS="${CFLAGS}"
-    CFLAGS="${CFLAGS} ${SNAPPY_CFLAGS}"
-    AC_CHECK_HEADERS(snappy-c.h,
-       ,
-       [
-	   AC_MSG_RESULT([Snappy headers not found.])
-	   havesnappylib=0
-       ])
-
-    if test $havesnappylib = 0 ; then
-	AC_MSG_RESULT([Snappy library available from http://code.google.com/p/snappy/])
-        AC_MSG_ERROR([Or try ./configure --disable-snappy OR ./configure --enable-comp-stub])
-    fi
-    OPTIONAL_SNAPPY_CFLAGS="${SNAPPY_CFLAGS}"
-    OPTIONAL_SNAPPY_LIBS="${SNAPPY_LIBS}"
-    AC_DEFINE(ENABLE_SNAPPY, 1, [Enable Snappy compression library])
-    CFLAGS="${saved_CFLAGS}"
-fi
-
-dnl
 dnl check for LZ4 library
 dnl
 
@@ -1154,7 +1109,6 @@ if test "${enable_lzo}" = "yes"; then
 fi
 if test "${enable_comp_stub}" = "yes"; then
 	test "${enable_lzo}" = "yes" && AC_MSG_ERROR([Cannot have both comp stub and lzo enabled (use --disable-lzo)])
-	test "${enable_snappy}" = "yes" && AC_MSG_ERROR([Cannot have both comp stub and snappy enabled (use --disable-snappy)])
 	test "${enable_lz4}" = "yes" && AC_MSG_ERROR([Cannot have both comp stub and LZ4 enabled (use --disable-lz4)])
 	AC_DEFINE([ENABLE_COMP_STUB], [1], [Enable compression stub capability])
 fi
@@ -1220,8 +1174,6 @@ AC_SUBST([OPTIONAL_CRYPTO_CFLAGS])
 AC_SUBST([OPTIONAL_CRYPTO_LIBS])
 AC_SUBST([OPTIONAL_LZO_CFLAGS])
 AC_SUBST([OPTIONAL_LZO_LIBS])
-AC_SUBST([OPTIONAL_SNAPPY_CFLAGS])
-AC_SUBST([OPTIONAL_SNAPPY_LIBS])
 AC_SUBST([OPTIONAL_LZ4_CFLAGS])
 AC_SUBST([OPTIONAL_LZ4_LIBS])
 AC_SUBST([OPTIONAL_SYSTEMD_LIBS])
