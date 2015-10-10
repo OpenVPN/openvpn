@@ -1676,7 +1676,7 @@ phase2_set_socket_flags (struct link_socket* sock)
     set_cloexec (sock->ctrl_sd);
 
   /* set Path MTU discovery options on the socket */
-  set_mtu_discover_type (sock->sd, sock->mtu_discover_type);
+  set_mtu_discover_type (sock->sd, sock->mtu_discover_type, sock->info.af);
 
 #if EXTENDED_SOCKET_ERROR_CAPABILITY
   /* if the OS supports it, enable extended error passing on the socket */
