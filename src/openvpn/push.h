@@ -37,9 +37,6 @@
 #define PUSH_MSG_CONTINUATION     5
 #define PUSH_MSG_ALREADY_REPLIED  6
 
-void incoming_push_message (struct context *c,
-			    const struct buffer *buffer);
-
 int process_incoming_push_request (struct context *c);
 
 int process_incoming_push_msg (struct context *c,
@@ -55,6 +52,8 @@ void receive_auth_failed (struct context *c, const struct buffer *buffer);
 void server_pushed_signal (struct context *c, const struct buffer *buffer, const bool restart, const int adv);
 
 #if P2MP_SERVER
+
+void incoming_push_message (struct context *c, const struct buffer *buffer);
 
 void clone_push_list (struct options *o);
 

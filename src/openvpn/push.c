@@ -410,6 +410,7 @@ push_reset (struct options *o)
 }
 #endif
 
+#if P2MP_SERVER
 int
 process_incoming_push_request (struct context *c)
 {
@@ -449,6 +450,7 @@ process_incoming_push_request (struct context *c)
 
   return ret;
 }
+#endif
 
 int
 process_incoming_push_msg (struct context *c,
