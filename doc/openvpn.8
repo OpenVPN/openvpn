@@ -3683,7 +3683,8 @@ over the client's routing table.
 .B \-\-auth\-user\-pass [up]
 Authenticate with server using username/password.
 .B up
-is a file containing username/password on 2 lines (Note: OpenVPN
+is a file containing username/password on 2 lines. If the
+password line is missing, OpenVPN will prompt for one. (Note: OpenVPN
 will only read passwords from a file if it has been built
 with the \-\-enable\-password\-save configure option, or on Windows
 by defining ENABLE_PASSWORD_SAVE in win/settings.in).
