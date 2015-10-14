@@ -3756,13 +3756,13 @@ static char *
 read_inline_file (struct in_src *is, const char *close_tag, struct gc_arena *gc)
 {
   char line[OPTION_LINE_SIZE];
-  char *line_ptr = line;
   struct buffer buf = alloc_buf (8*OPTION_LINE_SIZE);
   char *ret;
   bool endtagfound = false;
 
   while (in_src_get (is, line, sizeof (line)))
     {
+      char *line_ptr = line;
       /* Remove leading spaces */
       while (isspace(*line_ptr)) line_ptr++;
       if (!strncmp (line_ptr, close_tag, strlen (close_tag)))
