@@ -623,12 +623,9 @@ static void
 socket_set_sndbuf (int sd, int size)
 {
 #if defined(HAVE_SETSOCKOPT) && defined(SOL_SOCKET) && defined(SO_SNDBUF)
-  if (size > 0 && size < SOCKET_SND_RCV_BUF_MAX)
+  if (setsockopt (sd, SOL_SOCKET, SO_SNDBUF, (void *) &size, sizeof (size)) != 0)
     {
-      if (setsockopt (sd, SOL_SOCKET, SO_SNDBUF, (void *) &size, sizeof (size)) != 0)
-	{
-	  msg (M_WARN, "NOTE: setsockopt SO_SNDBUF=%d failed", size);
-	}
+      msg (M_WARN, "NOTE: setsockopt SO_SNDBUF=%d failed", size);
     }
 #endif
 }
@@ -652,13 +649,10 @@ static bool
 socket_set_rcvbuf (int sd, int size)
 {
 #if defined(HAVE_SETSOCKOPT) && defined(SOL_SOCKET) && defined(SO_RCVBUF)
-  if (size > 0 && size < SOCKET_SND_RCV_BUF_MAX)
+  if (setsockopt (sd, SOL_SOCKET, SO_RCVBUF, (void *) &size, sizeof (size)) != 0)
     {
-      if (setsockopt (sd, SOL_SOCKET, SO_RCVBUF, (void *) &size, sizeof (size)) != 0)
-	{
-	  msg (M_WARN, "NOTE: setsockopt SO_RCVBUF=%d failed", size);
-	  return false;
-	}
+      msg (M_WARN, "NOTE: setsockopt SO_RCVBUF=%d failed", size);
+      return false;
     }
   return true;
 #endif
