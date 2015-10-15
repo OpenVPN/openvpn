@@ -2286,7 +2286,7 @@ void multi_process_float (struct multi_context* m, struct multi_instance* mi)
       /* do not float if target address is taken by client with another cert */
       if (!cert_hash_compare(m1->locked_cert_hash_set, m2->locked_cert_hash_set))
 	{
-	  msg (D_MULTI_MEDIUM, "Disallow float to an address taken by another client %s",
+	  msg (D_MULTI_LOW, "Disallow float to an address taken by another client %s",
 	       multi_instance_string (ex_mi, false, &gc));
 
 	  mi->context.c2.buf.len = 0;

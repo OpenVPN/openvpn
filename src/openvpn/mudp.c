@@ -79,7 +79,7 @@ multi_get_create_instance_udp (struct multi_context *m, bool *floated)
 	      {
 		/* reset prefix, since here we are not sure peer is the one it claims to be */
 		ungenerate_prefix(mi);
-		msg (D_MULTI_ERRORS, "Untrusted peer %" PRIu32 " wants to float to %s", peer_id,
+		msg (D_MULTI_MEDIUM, "Float requested for peer %" PRIu32 " to %s", peer_id,
 			mroute_addr_print (&real, &gc));
 	      }
 	    }
