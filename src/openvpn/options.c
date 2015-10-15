@@ -2049,8 +2049,8 @@ options_postprocess_verify_ce (const struct options *options, const struct conne
 			     || PLUGIN_OPTION_LIST (options)
 			     || MAN_CLIENT_AUTH_ENABLED (options));
 	  const char *postfix = "must be used with --management-client-auth, an --auth-user-pass-verify script, or plugin";
-	  if ((options->ssl_flags & SSLF_CLIENT_CERT_NOT_REQUIRED) && !ccnr)
-	    msg (M_USAGE, "--client-cert-not-required %s", postfix);
+	  if ((options->ssl_flags & (SSLF_CLIENT_CERT_NOT_REQUIRED|SSLF_CLIENT_CERT_OPTIONAL)) && !ccnr)
+	    msg (M_USAGE, "--verify-client-cert none|optional %s", postfix);
 	  if ((options->ssl_flags & SSLF_USERNAME_AS_COMMON_NAME) && !ccnr)
 	    msg (M_USAGE, "--username-as-common-name %s", postfix);
 	  if ((options->ssl_flags & SSLF_AUTH_USER_PASS_OPTIONAL) && !ccnr)
@@ -2084,7 +2084,7 @@ options_postprocess_verify_ce (const struct options *options, const struct conne
 	msg (M_USAGE, "--duplicate-cn requires --mode server");
       if (options->cf_max || options->cf_per)
 	msg (M_USAGE, "--connect-freq requires --mode server");
-      if (options->ssl_flags & SSLF_CLIENT_CERT_NOT_REQUIRED || options->ssl_flags & SSLF_CLIENT_CERT_OPTIONAL)
+      if (options->ssl_flags & (SSLF_CLIENT_CERT_NOT_REQUIRED|SSLF_CLIENT_CERT_OPTIONAL))
 	msg (M_USAGE, "--client-cert-not-required and --verify-client-cert require --mode server");
       if (options->ssl_flags & SSLF_USERNAME_AS_COMMON_NAME)
 	msg (M_USAGE, "--username-as-common-name requires --mode server");
@@ -2131,6 +2131,13 @@ options_postprocess_verify_ce (const struct options *options, const struct conne
   if (options->tls_server + options->tls_client +
       (options->shared_secret_file != NULL) > 1)
     msg (M_USAGE, "specify only one of --tls-server, --tls-client, or --secret");
+
+  if (options->ssl_flags & (SSLF_CLIENT_CERT_NOT_REQUIRED|SSLF_CLIENT_CERT_OPTIONAL))
+    {
+      msg (M_WARN, "WARNING: POTENTIALLY DANGEROUS OPTION "
+	  "--verify-client-cert none|optional (or --client-cert-not-required) "
+	  "may accept clients which do not present a certificate");
+    }
 
   if (options->tls_server || options->tls_client)
     {

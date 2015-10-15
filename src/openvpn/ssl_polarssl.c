@@ -776,18 +776,16 @@ void key_state_ssl_init(struct key_state_ssl *ks_ssl,
 
       /* Initialise SSL verification */
 #if P2MP_SERVER
-      if (session->opt->ssl_flags & SSLF_CLIENT_CERT_NOT_REQUIRED)
+      if (session->opt->ssl_flags & SSLF_CLIENT_CERT_OPTIONAL)
 	{
-	  msg (M_WARN, "WARNING: POTENTIALLY DANGEROUS OPTION "
-	   "--client-cert-not-required may accept clients which do not present "
-	   "a certificate");
+	  ssl_set_authmode(ks_ssl->ctx, SSL_VERIFY_OPTIONAL);
 	}
-      else
+      else if (!(session->opt->ssl_flags & SSLF_CLIENT_CERT_NOT_REQUIRED))
 #endif
       {
 	ssl_set_authmode (ks_ssl->ctx, SSL_VERIFY_REQUIRED);
-	ssl_set_verify (ks_ssl->ctx, verify_callback, session);
       }
+      ssl_set_verify (ks_ssl->ctx, verify_callback, session);
 
       /* TODO: PolarSSL does not currently support sending the CA chain to the client */
       ssl_set_ca_chain (ks_ssl->ctx, ssl_ctx->ca_chain, NULL, NULL );

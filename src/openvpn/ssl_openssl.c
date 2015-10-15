@@ -255,14 +255,12 @@ tls_ctx_set_options (struct tls_root_ctx *ctx, unsigned int ssl_flags)
 #if P2MP_SERVER
   if (ssl_flags & SSLF_CLIENT_CERT_NOT_REQUIRED)
     {
-      msg (M_WARN, "WARNING: POTENTIALLY DANGEROUS OPTION "
-	  "--client-cert-not-required and --verify-client-cert none "
-      "may accept clients which do not present a certificate");
-
       flags = 0;
     }
   else if (ssl_flags & SSLF_CLIENT_CERT_OPTIONAL)
-    flags = SSL_VERIFY_PEER;
+    {
+      flags = SSL_VERIFY_PEER;
+    }
 #endif
   SSL_CTX_set_verify (ctx->ctx, flags, verify_callback);
 
