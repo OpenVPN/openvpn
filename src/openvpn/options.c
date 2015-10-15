@@ -800,10 +800,6 @@ init_options (struct options *o, const bool init_gc)
 #ifdef ENABLE_FEATURE_TUN_PERSIST
   o->persist_mode = 1;
 #endif
-#ifndef WIN32
-  o->rcvbuf = 65536;
-  o->sndbuf = 65536;
-#endif
 #ifdef TARGET_LINUX
   o->tuntap_options.txqueuelen = 100;
 #endif
