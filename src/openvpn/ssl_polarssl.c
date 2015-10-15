@@ -77,11 +77,8 @@ tls_ctx_server_new(struct tls_root_ctx *ctx)
   CLEAR(*ctx);
 
   ALLOC_OBJ_CLEAR(ctx->dhm_ctx, dhm_context);
-  ALLOC_OBJ_CLEAR(ctx->priv_key, pk_context);
 
   ALLOC_OBJ_CLEAR(ctx->ca_chain, x509_crt);
-  ALLOC_OBJ_CLEAR(ctx->crt_chain, x509_crt);
-
 
   ctx->endpoint = SSL_IS_SERVER;
   ctx->initialised = true;
@@ -94,10 +91,7 @@ tls_ctx_client_new(struct tls_root_ctx *ctx)
   CLEAR(*ctx);
 
   ALLOC_OBJ_CLEAR(ctx->dhm_ctx, dhm_context);
-  ALLOC_OBJ_CLEAR(ctx->priv_key, pk_context);
-
   ALLOC_OBJ_CLEAR(ctx->ca_chain, x509_crt);
-  ALLOC_OBJ_CLEAR(ctx->crt_chain, x509_crt);
 
   ctx->endpoint = SSL_IS_CLIENT;
   ctx->initialised = true;
@@ -109,16 +103,20 @@ tls_ctx_free(struct tls_root_ctx *ctx)
   if (ctx)
     {
       pk_free(ctx->priv_key);
-      free(ctx->priv_key);
+      if (ctx->priv_key)
+	free(ctx->priv_key);
 
       x509_crt_free(ctx->ca_chain);
-      free(ctx->ca_chain);
+      if (ctx->ca_chain)
+	free(ctx->ca_chain);
 
       x509_crt_free(ctx->crt_chain);
-      free(ctx->crt_chain);
+      if (ctx->crt_chain)
+	free(ctx->crt_chain);
 
       dhm_free(ctx->dhm_ctx);
-      free(ctx->dhm_ctx);
+      if (ctx->dhm_ctx)
+	free(ctx->dhm_ctx);
 
 #if defined(ENABLE_PKCS11)
       if (ctx->priv_key_pkcs11 != NULL) {
@@ -272,6 +270,11 @@ tls_ctx_load_cert_file (struct tls_root_ctx *ctx, const char *cert_file,
 {
   ASSERT(NULL != ctx);
 
+  if (!ctx->crt_chain)
+    {
+      ALLOC_OBJ_CLEAR(ctx->crt_chain, x509_crt);
+    }
+
   if (!strcmp (cert_file, INLINE_FILE_TAG) && cert_inline)
     {
       if (!polar_ok(x509_crt_parse(ctx->crt_chain,
@@ -294,6 +297,11 @@ tls_ctx_load_priv_file (struct tls_root_ctx *ctx, const char *priv_key_file,
 {
   int status;
   ASSERT(NULL != ctx);
+
+  if (!ctx->priv_key)
+    {
+      ALLOC_OBJ_CLEAR(ctx->priv_key, pk_context);
+    }
 
   if (!strcmp (priv_key_file, INLINE_FILE_TAG) && priv_key_inline)
     {
@@ -526,6 +534,11 @@ tls_ctx_load_extra_certs (struct tls_root_ctx *ctx, const char *extra_certs_file
     )
 {
   ASSERT(NULL != ctx);
+
+  if (!ctx->crt_chain)
+    {
+      ALLOC_OBJ_CLEAR (ctx->crt_chain, x509_crt);
+    }
 
   if (!strcmp (extra_certs_file, INLINE_FILE_TAG) && extra_certs_inline)
     {
