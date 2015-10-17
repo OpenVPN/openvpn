@@ -973,31 +973,30 @@ do_uid_gid_chroot (struct context *c, bool no_delay)
   static const char why_not[] = "will be delayed because of --client, --pull, or --up-delay";
   struct context_0 *c0 = c->c0;
 
-  if (c->first_time && c0 && !c0->uid_gid_set)
+  if (c0 && !c0->uid_gid_chroot_set)
     {
       /* chroot if requested */
       if (c->options.chroot_dir)
 	{
 	  if (no_delay)
 	    platform_chroot (c->options.chroot_dir);
-	  else
+	  else if (c->first_time)
 	    msg (M_INFO, "NOTE: chroot %s", why_not);
 	}
 
-      /* set user and/or group that we want to setuid/setgid to */
-      if (no_delay)
+      /* set user and/or group if we want to setuid/setgid */
+      if (c0->uid_gid_specified)
 	{
-	  platform_group_set (&c0->platform_state_group);
-	  platform_user_set (&c0->platform_state_user);
-	  c0->uid_gid_set = true;
-	}
-      else if (c0->uid_gid_specified)
-	{
-	  msg (M_INFO, "NOTE: UID/GID downgrade %s", why_not);
+	  if (no_delay) {
+	    platform_group_set (&c0->platform_state_group);
+	    platform_user_set (&c0->platform_state_user);
+	  }
+	  else if (c->first_time)
+	    msg (M_INFO, "NOTE: UID/GID downgrade %s", why_not);
 	}
 
 #ifdef ENABLE_MEMSTATS
-      if (c->options.memstats_fn)
+      if (c->first_time && c->options.memstats_fn)
 	mstats_open(c->options.memstats_fn);
 #endif
 
@@ -1016,10 +1015,16 @@ do_uid_gid_chroot (struct context *c, bool no_delay)
 	    else
 	      msg (M_INFO, "setcon to '%s' succeeded", c->options.selinux_context);
 	  }
-	  else
+	  else if (c->first_time)
 	    msg (M_INFO, "NOTE: setcon %s", why_not);
 	}
 #endif
+
+      /* Privileges are going to be dropped by now (if requested), be sure
+       * to prevent any future privilege dropping attempts from now on.
+       */
+      if (no_delay)
+	c0->uid_gid_chroot_set = true;
     }
 }
 
