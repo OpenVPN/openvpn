@@ -642,6 +642,9 @@ my_conv (int n, const struct pam_message **msg_array,
 
   if (ret == PAM_SUCCESS)
     *response_array = aresp;
+  else
+    free(aresp);
+
   return ret;
 }
 
