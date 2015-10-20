@@ -1447,31 +1447,24 @@ show_available_curves()
   size_t n = 0;
 
   crv_len = EC_get_builtin_curves(NULL, 0);
+  ALLOC_ARRAY(curves, EC_builtin_curve, crv_len);
+  if (EC_get_builtin_curves(curves, crv_len))
+  {
+    printf ("Available Elliptic curves:\n");
+    for (n = 0; n < crv_len; n++)
+    {
+      const char *sname;
+      sname   = OBJ_nid2sn(curves[n].nid);
+      if (sname == NULL) sname = "";
 
-  curves = OPENSSL_malloc((int)(sizeof(EC_builtin_curve) * crv_len));
-
-  if (curves == NULL)
-    crypto_msg (M_FATAL, "Cannot create EC_builtin_curve object");
+      printf("%s\n", sname);
+    }
+  }
   else
   {
-    if (EC_get_builtin_curves(curves, crv_len))
-    {
-      printf ("Available Elliptic curves:\n");
-      for (n = 0; n < crv_len; n++)
-      {
-        const char *sname;
-        sname   = OBJ_nid2sn(curves[n].nid);
-        if (sname == NULL) sname = "";
-
-        printf("%s\n", sname);
-      }
-    }
-    else
-    {
-      crypto_msg (M_FATAL, "Cannot get list of builtin curves");
-    }
-    OPENSSL_free(curves);
+    crypto_msg (M_FATAL, "Cannot get list of builtin curves");
   }
+  free(curves);
 #else
   msg (M_WARN, "Your OpenSSL library was built without elliptic curve support. "
 	       "No curves available.");
