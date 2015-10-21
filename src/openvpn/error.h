@@ -213,7 +213,7 @@ FILE *msg_fp(const unsigned int flags);
 /* Fatal logic errors */
 #define ASSERT(x) do { if (!(x)) assert_failed(__FILE__, __LINE__); } while (false)
 
-void assert_failed (const char *filename, int line);
+void assert_failed (const char *filename, int line) __attribute__((__noreturn__));
 
 #ifdef ENABLE_DEBUG
 void crash (void); /* force a segfault (debugging only) */
