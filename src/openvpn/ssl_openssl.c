@@ -141,12 +141,12 @@ key_state_export_keying_material(struct key_state_ssl *ssl,
     {
 #if (OPENSSL_VERSION_NUMBER >= 0x10001000)
       unsigned int size = session->opt->ekm_size;
-      unsigned char ekm[size];
+      struct gc_arena gc = gc_new();
+      unsigned char* ekm = (unsigned char*) gc_malloc(size, true, &gc);
 
       if (SSL_export_keying_material(ssl->ssl, ekm, sizeof(ekm),
           session->opt->ekm_label, session->opt->ekm_label_size, NULL, 0, 0))
        {
-         struct gc_arena gc = gc_new();
          unsigned int len = (size * 2) + 2;
 
          const char *key = format_hex_ex (ekm, size, len, 0, NULL, &gc);
@@ -154,14 +154,13 @@ key_state_export_keying_material(struct key_state_ssl *ssl,
 
          dmsg(D_TLS_DEBUG_MED, "%s: exported keying material: %s",
               __func__, key);
-
-         gc_free(&gc);
        }
       else
        {
          msg (M_WARN, "WARNING: Export keying material failed!");
          setenv_del (session->opt->es, "exported_keying_material");
        }
+      gc_free(&gc);
 #endif
     }
 }
