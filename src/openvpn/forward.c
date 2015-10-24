@@ -457,43 +457,41 @@ encrypt_sign (struct context *c, bool comp_frag)
     }
 
 #ifdef ENABLE_CRYPTO
-  /*
-   * If TLS mode, get the key we will use to encrypt
-   * the packet.
-   */
+  /* initialize work buffer with FRAME_HEADROOM bytes of prepend capacity */
+  ASSERT (buf_init (&b->encrypt_buf, FRAME_HEADROOM (&c->c2.frame)));
+
   if (c->c2.tls_multi)
     {
+      /* Get the key we will use to encrypt the packet. */
       tls_pre_encrypt (c->c2.tls_multi, &c->c2.buf, &co);
+      /* If using P_DATA_V2, prepend the 1-byte opcode and 3-byte peer-id to the
+       * packet before openvpn_encrypt(), so we can authenticate the opcode too.
+       */
+      if (c->c2.buf.len > 0 && !c->c2.tls_multi->opt.server && c->c2.tls_multi->use_peer_id)
+	tls_prepend_opcode_v2 (c->c2.tls_multi, &b->encrypt_buf);
     }
   else
     {
       co = &c->c2.crypto_options;
     }
 
-  /*
-   * Encrypt the packet and write an optional
-   * HMAC signature.
-   */
-  openvpn_encrypt (&c->c2.buf, b->encrypt_buf, co, &c->c2.frame);
+  /* Encrypt and authenticate the packet */
+  openvpn_encrypt (&c->c2.buf, b->encrypt_buf, co);
+
+  /* Do packet administration */
+  if (c->c2.tls_multi)
+    {
+      if (c->c2.buf.len > 0 && (c->c2.tls_multi->opt.server || !c->c2.tls_multi->use_peer_id))
+        tls_prepend_opcode_v1(c->c2.tls_multi, &c->c2.buf);
+      tls_post_encrypt (c->c2.tls_multi, &c->c2.buf);
+    }
 #endif
+
   /*
    * Get the address we will be sending the packet to.
    */
   link_socket_get_outgoing_addr (&c->c2.buf, get_link_socket_info (c),
 				 &c->c2.to_link_addr);
-#ifdef ENABLE_CRYPTO
-  /*
-   * In TLS mode, prepend the appropriate one-byte opcode
-   * to the packet which identifies it as a data channel
-   * packet and gives the low-permutation version of
-   * the key-id to the recipient so it knows which
-   * decrypt key to use.
-   */
-  if (c->c2.tls_multi)
-    {
-      tls_post_encrypt (c->c2.tls_multi, &c->c2.buf);
-    }
-#endif
 
   /* if null encryption, copy result to read_tun_buf */
   buffer_turnover (orig_buf, &c->c2.to_link, &c->c2.buf, &b->read_tun_buf);
@@ -780,6 +778,7 @@ process_incoming_link_part1 (struct context *c, struct link_socket_info *lsi, bo
   if (c->c2.buf.len > 0)
     {
       struct crypto_options *co = NULL;
+      const uint8_t *ad_start = NULL;
       if (!link_socket_verify_incoming_addr (&c->c2.buf, lsi, &c->c2.from))
 	link_socket_bad_incoming_addr (&c->c2.buf, lsi, &c->c2.from);
 
@@ -796,7 +795,8 @@ process_incoming_link_part1 (struct context *c, struct link_socket_info *lsi, bo
 	   * will load crypto_options with the correct encryption key
 	   * and return false.
 	   */
-	  if (tls_pre_decrypt (c->c2.tls_multi, &c->c2.from, &c->c2.buf, &co, floated))
+	  if (tls_pre_decrypt (c->c2.tls_multi, &c->c2.from, &c->c2.buf, &co,
+	      floated, &ad_start))
 	    {
 	      interval_action (&c->c2.tmp_int);
 
@@ -819,7 +819,8 @@ process_incoming_link_part1 (struct context *c, struct link_socket_info *lsi, bo
 #endif
 
       /* authenticate and decrypt the incoming packet */
-      decrypt_status = openvpn_decrypt (&c->c2.buf, c->c2.buffers->decrypt_buf, co, &c->c2.frame);
+      decrypt_status = openvpn_decrypt (&c->c2.buf, c->c2.buffers->decrypt_buf,
+	  co, &c->c2.frame, ad_start);
 
       if (!decrypt_status && link_socket_connection_oriented (c->c2.link_socket))
 	{

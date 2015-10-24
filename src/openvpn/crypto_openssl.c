@@ -258,12 +258,12 @@ show_available_ciphers ()
   int nid;
 
 #ifndef ENABLE_SMALL
-  printf ("The following ciphers and cipher modes are available\n"
-	  "for use with " PACKAGE_NAME ".  Each cipher shown below may be\n"
-	  "used as a parameter to the --cipher option.  The default\n"
-	  "key size is shown as well as whether or not it can be\n"
-          "changed with the --keysize directive.  Using a CBC mode\n"
-	  "is recommended. In static key mode only CBC mode is allowed.\n\n");
+  printf ("The following ciphers and cipher modes are available for use\n"
+	  "with " PACKAGE_NAME ".  Each cipher shown below may be use as a\n"
+	  "parameter to the --cipher option.  The default key size is\n"
+	  "shown as well as whether or not it can be changed with the\n"
+          "--keysize directive.  Using a CBC or GCM mode is recommended.\n"
+	  "In static key mode only CBC mode is allowed.\n\n");
 #endif
 
   for (nid = 0; nid < 10000; ++nid)	/* is there a better way to get the size of the nid list? */
@@ -275,13 +275,16 @@ show_available_ciphers ()
 #ifdef ENABLE_OFB_CFB_MODE
 	      || cipher_kt_mode_ofb_cfb(cipher)
 #endif
+#ifdef HAVE_AEAD_CIPHER_MODES
+	      || cipher_kt_mode_aead(cipher)
+#endif
 	      )
 	    {
 	      const char *var_key_size =
 		  (EVP_CIPHER_flags (cipher) & EVP_CIPH_VARIABLE_LENGTH) ?
 		       "variable" : "fixed";
-	      const char *ssl_only = cipher_kt_mode_ofb_cfb(cipher) ?
-		  " (TLS client/server mode)" : "";
+	      const char *ssl_only = cipher_kt_mode_cbc(cipher) ?
+		  "" : " (TLS client/server mode)";
 
 	      printf ("%s %d bit default key (%s)%s\n", OBJ_nid2sn (nid),
 		      EVP_CIPHER_key_length (cipher) * 8, var_key_size,
@@ -500,6 +503,15 @@ cipher_kt_block_size (const EVP_CIPHER *cipher_kt)
 }
 
 int
+cipher_kt_tag_size (const EVP_CIPHER *cipher_kt)
+{
+  if (cipher_kt_mode_aead(cipher_kt))
+    return OPENVPN_AEAD_TAG_LENGTH;
+  else
+    return 0;
+}
+
+int
 cipher_kt_mode (const EVP_CIPHER *cipher_kt)
 {
   ASSERT(NULL != cipher_kt);
@@ -527,6 +539,16 @@ cipher_kt_mode_ofb_cfb(const cipher_kt_t *cipher)
       && !(EVP_CIPHER_flags(cipher) & EVP_CIPH_FLAG_AEAD_CIPHER)
 #endif
     ;
+}
+
+bool
+cipher_kt_mode_aead(const cipher_kt_t *cipher)
+{
+#ifdef HAVE_AEAD_CIPHER_MODES
+  return cipher && (cipher_kt_mode(cipher) == OPENVPN_MODE_GCM);
+#else
+  return false;
+#endif
 }
 
 /*
@@ -570,6 +592,15 @@ cipher_ctx_iv_length (const EVP_CIPHER_CTX *ctx)
   return EVP_CIPHER_CTX_iv_length (ctx);
 }
 
+int cipher_ctx_get_tag (EVP_CIPHER_CTX *ctx, uint8_t *tag_buf, int tag_size)
+{
+#ifdef HAVE_AEAD_CIPHER_MODES
+  return EVP_CIPHER_CTX_ctrl (ctx, EVP_CTRL_GCM_GET_TAG, tag_size, tag_buf);
+#else
+  ASSERT (0);
+#endif
+}
+
 int
 cipher_ctx_block_size(const EVP_CIPHER_CTX *ctx)
 {
@@ -596,6 +627,19 @@ cipher_ctx_reset (EVP_CIPHER_CTX *ctx, uint8_t *iv_buf)
 }
 
 int
+cipher_ctx_update_ad (EVP_CIPHER_CTX *ctx, const uint8_t *src, int src_len)
+{
+#ifdef HAVE_AEAD_CIPHER_MODES
+  int len;
+  if (!EVP_CipherUpdate (ctx, NULL, &len, src, src_len))
+    crypto_msg(M_FATAL, "%s: EVP_CipherUpdate() failed", __func__);
+  return 1;
+#else
+  ASSERT (0);
+#endif
+}
+
+int
 cipher_ctx_update (EVP_CIPHER_CTX *ctx, uint8_t *dst, int *dst_len,
     uint8_t *src, int src_len)
 {
@@ -610,6 +654,20 @@ cipher_ctx_final (EVP_CIPHER_CTX *ctx, uint8_t *dst, int *dst_len)
   return EVP_CipherFinal (ctx, dst, dst_len);
 }
 
+int
+cipher_ctx_final_check_tag (EVP_CIPHER_CTX *ctx, uint8_t *dst, int *dst_len,
+    uint8_t *tag, size_t tag_len)
+{
+#ifdef HAVE_AEAD_CIPHER_MODES
+  ASSERT (tag_len < SIZE_MAX);
+  if (!EVP_CIPHER_CTX_ctrl (ctx, EVP_CTRL_GCM_SET_TAG, tag_len, tag))
+    return 0;
+
+  return cipher_ctx_final (ctx, dst, dst_len);
+#else
+  ASSERT (0);
+#endif
+}
 
 void
 cipher_des_encrypt_ecb (const unsigned char key[DES_KEY_LENGTH],

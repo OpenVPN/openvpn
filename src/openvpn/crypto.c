@@ -83,9 +83,101 @@ memcmp_constant_time (const void *a, const void *b, size_t size) {
   return ret;
 }
 
-void
-openvpn_encrypt (struct buffer *buf, struct buffer work,
-		 struct crypto_options *opt, const struct frame* frame)
+static void
+openvpn_encrypt_aead (struct buffer *buf, struct buffer work,
+	 struct crypto_options *opt) {
+  struct gc_arena gc;
+  int outlen = 0;
+  const struct key_ctx *ctx = &opt->key_ctx_bi.encrypt;
+  uint8_t *mac_out = NULL;
+  const cipher_kt_t *cipher_kt = cipher_ctx_get_cipher_kt (ctx->cipher);
+  const int mac_len = cipher_kt_tag_size (cipher_kt);
+
+  /* IV, packet-ID and implicit IV required for this mode. */
+  ASSERT (ctx->cipher);
+  ASSERT (cipher_kt_mode_aead (cipher_kt));
+  ASSERT (opt->flags & CO_USE_IV);
+  ASSERT (packet_id_initialized(&opt->packet_id));
+
+  gc_init (&gc);
+
+  /* Prepare IV */
+  {
+    struct buffer iv_buffer;
+    struct packet_id_net pin;
+    uint8_t iv[OPENVPN_MAX_IV_LENGTH];
+    const int iv_len = cipher_ctx_iv_length (ctx->cipher);
+
+    ASSERT (iv_len >= OPENVPN_AEAD_MIN_IV_LEN && iv_len <= OPENVPN_MAX_IV_LENGTH);
+
+    memset(iv, 0, sizeof(iv));
+    buf_set_write (&iv_buffer, iv, iv_len);
+
+    /* IV starts with packet id to make the IV unique for packet */
+    packet_id_alloc_outgoing (&opt->packet_id.send, &pin, false);
+    ASSERT (packet_id_write (&pin, &iv_buffer, false, false));
+
+    /* Remainder of IV consists of implicit part (unique per session) */
+    ASSERT (buf_write (&iv_buffer, ctx->implicit_iv, ctx->implicit_iv_len));
+    ASSERT (iv_buffer.len == iv_len);
+
+    /* Write explicit part of IV to work buffer */
+    ASSERT (buf_write(&work, iv, iv_len - ctx->implicit_iv_len));
+    dmsg (D_PACKET_CONTENT, "ENCRYPT IV: %s", format_hex (iv, iv_len, 0, &gc));
+
+    /* Init cipher_ctx with IV.  key & keylen are already initialized */
+    ASSERT (cipher_ctx_reset(ctx->cipher, iv));
+  }
+
+  /* Reserve space for authentication tag */
+  mac_out = buf_write_alloc (&work, mac_len);
+  ASSERT (mac_out);
+
+  dmsg (D_PACKET_CONTENT, "ENCRYPT FROM: %s", format_hex (BPTR (buf), BLEN (buf), 80, &gc));
+
+  /* Buffer overflow check */
+  if (!buf_safe (&work, buf->len + cipher_ctx_block_size(ctx->cipher)))
+    {
+      msg (D_CRYPT_ERRORS,
+	  "ENCRYPT: buffer size error, bc=%d bo=%d bl=%d wc=%d wo=%d wl=%d",
+	  buf->capacity, buf->offset, buf->len, work.capacity, work.offset,
+	  work.len);
+      goto err;
+    }
+
+  /* For AEAD ciphers, authenticate Additional Data, including opcode */
+  ASSERT (cipher_ctx_update_ad (ctx->cipher, BPTR (&work), BLEN (&work) - mac_len));
+  dmsg (D_PACKET_CONTENT, "ENCRYPT AD: %s",
+      format_hex (BPTR (&work), BLEN (&work) - mac_len, 0, &gc));
+
+  /* Encrypt packet ID, payload */
+  ASSERT (cipher_ctx_update (ctx->cipher, BEND (&work), &outlen, BPTR (buf), BLEN (buf)));
+  ASSERT (buf_inc_len (&work, outlen));
+
+  /* Flush the encryption buffer */
+  ASSERT (cipher_ctx_final (ctx->cipher, BEND (&work), &outlen));
+  ASSERT (buf_inc_len (&work, outlen));
+
+  /* Write authentication tag */
+  ASSERT (cipher_ctx_get_tag (ctx->cipher, mac_out, mac_len));
+
+  dmsg (D_PACKET_CONTENT, "ENCRYPT TO: %s", format_hex (BPTR (buf), BLEN (buf), 80, &gc));
+
+  *buf = work;
+
+cleanup:
+  gc_free (&gc);
+  return;
+
+err:
+  crypto_clear_error();
+  buf->len = 0;
+  goto cleanup;
+}
+
+static void
+openvpn_encrypt_v1 (struct buffer *buf, struct buffer work,
+		 struct crypto_options *opt)
 {
   struct gc_arena gc;
   gc_init (&gc);
@@ -103,9 +195,6 @@ openvpn_encrypt (struct buffer *buf, struct buffer work,
 	  const int iv_size = cipher_ctx_iv_length (ctx->cipher);
 	  const cipher_kt_t *cipher_kt = cipher_ctx_get_cipher_kt (ctx->cipher);
 	  int outlen;
-
-	  /* initialize work buffer with FRAME_HEADROOM bytes of prepend capacity */
-	  ASSERT (buf_init (&work, FRAME_HEADROOM (frame)));
 
 	  /* Reserve space for HMAC */
 	  if (ctx->hmac)
@@ -232,6 +321,22 @@ err:
   return;
 }
 
+void
+openvpn_encrypt (struct buffer *buf, struct buffer work,
+		 struct crypto_options *opt)
+{
+  if (buf->len > 0 && opt)
+    {
+      const cipher_kt_t *cipher_kt =
+	  cipher_ctx_get_cipher_kt(opt->key_ctx_bi.encrypt.cipher);
+
+      if (cipher_kt_mode_aead (cipher_kt))
+	openvpn_encrypt_aead(buf, work, opt);
+      else
+	openvpn_encrypt_v1(buf, work, opt);
+    }
+}
+
 /**
  * Check packet ID for replay, and perform replay administration.
  *
@@ -275,8 +380,141 @@ static bool crypto_check_replay(struct crypto_options *opt,
  * On success, buf is set to point to plaintext, true
  * is returned.
  */
-bool
-openvpn_decrypt (struct buffer *buf, struct buffer work,
+static bool
+openvpn_decrypt_aead (struct buffer *buf, struct buffer work,
+    struct crypto_options *opt, const struct frame* frame,
+    const uint8_t *ad_start)
+{
+  static const char error_prefix[] = "AEAD Decrypt error";
+  struct packet_id_net pin = { 0 };
+  const struct key_ctx *ctx = &opt->key_ctx_bi.decrypt;
+  const cipher_kt_t *cipher_kt = cipher_ctx_get_cipher_kt (ctx->cipher);
+  uint8_t *tag_ptr = NULL;
+  int tag_size = 0;
+  int outlen;
+  struct gc_arena gc;
+
+  gc_init (&gc);
+
+  ASSERT (opt);
+  ASSERT (buf->len > 0);
+  ASSERT (ctx->cipher);
+  ASSERT (cipher_kt_mode_aead (cipher_kt));
+
+  dmsg (D_PACKET_CONTENT, "DECRYPT FROM: %s",
+      format_hex (BPTR (buf), BLEN (buf), 80, &gc));
+
+  ASSERT (ad_start >= buf->data && ad_start <= BPTR (buf));
+
+  ASSERT (buf_init (&work, FRAME_HEADROOM_ADJ (frame, FRAME_HEADROOM_MARKER_DECRYPT)));
+
+  /* IV and Packet ID required for this mode */
+  ASSERT (packet_id_initialized (&opt->packet_id));
+  ASSERT (opt->flags & CO_USE_IV);
+
+  /* Combine IV from explicit part from packet and implicit part from context */
+  {
+    uint8_t iv[OPENVPN_MAX_IV_LENGTH] = { 0 };
+    const int iv_len = cipher_ctx_iv_length (ctx->cipher);
+    const size_t packet_iv_len = iv_len - ctx->implicit_iv_len;
+
+    ASSERT (ctx->implicit_iv_len <= iv_len);
+    if (buf->len + ctx->implicit_iv_len < iv_len)
+      CRYPT_ERROR ("missing IV info");
+
+    memcpy (iv, BPTR(buf), packet_iv_len);
+    memcpy (iv + packet_iv_len, ctx->implicit_iv, ctx->implicit_iv_len);
+
+    dmsg (D_PACKET_CONTENT, "DECRYPT IV: %s", format_hex (iv, iv_len, 0, &gc));
+
+    /* Load IV, ctx->cipher was already initialized with key & keylen */
+    if (!cipher_ctx_reset (ctx->cipher, iv))
+      {
+        CRYPT_ERROR ("cipher init failed");
+      }
+  }
+
+  /* Read packet ID from packet */
+  if (!packet_id_read (&pin, buf, false))
+    {
+      CRYPT_ERROR ("error reading packet-id");
+    }
+
+  /* keep the tag value to feed in later */
+  tag_size = cipher_kt_tag_size(cipher_kt);
+  if (buf->len < tag_size)
+    {
+      CRYPT_ERROR ("missing tag");
+    }
+  tag_ptr = BPTR(buf);
+  ASSERT (buf_advance (buf, tag_size));
+  dmsg (D_PACKET_CONTENT, "DECRYPT MAC: %s", format_hex (tag_ptr, tag_size, 0, &gc));
+
+  if (buf->len < 1)
+    {
+      CRYPT_ERROR ("missing payload");
+    }
+
+  dmsg (D_PACKET_CONTENT, "DECRYPT FROM: %s", format_hex (BPTR(buf), BLEN(buf), 0, &gc));
+
+  /* Buffer overflow check (should never fail) */
+  if (!buf_safe (&work, buf->len + cipher_ctx_block_size(ctx->cipher)))
+    {
+      CRYPT_ERROR ("potential buffer overflow");
+    }
+
+  {
+    /* feed in tag and the authenticated data */
+    const int ad_size = BPTR (buf) - ad_start - tag_size;
+    ASSERT (cipher_ctx_update_ad (ctx->cipher, ad_start, ad_size));
+    dmsg (D_PACKET_CONTENT, "DECRYPT AD: %s",
+	format_hex (BPTR (buf) - ad_size - tag_size, ad_size, 0, &gc));
+  }
+
+  /* Decrypt and authenticate packet */
+  if (!cipher_ctx_update (ctx->cipher, BPTR (&work), &outlen, BPTR (buf),
+      BLEN (buf)))
+    {
+      CRYPT_ERROR ("cipher update failed");
+    }
+  ASSERT (buf_inc_len (&work, outlen));
+  if (!cipher_ctx_final_check_tag (ctx->cipher, BPTR (&work) + outlen,
+      &outlen, tag_ptr, tag_size))
+    {
+      CRYPT_ERROR ("cipher final failed");
+    }
+  ASSERT (buf_inc_len (&work, outlen));
+
+  dmsg (D_PACKET_CONTENT, "DECRYPT TO: %s",
+       format_hex (BPTR (&work), BLEN (&work), 80, &gc));
+
+  if (!crypto_check_replay (opt, &pin, error_prefix, &gc))
+    {
+      goto error_exit;
+    }
+
+  *buf = work;
+
+  gc_free (&gc);
+  return true;
+
+ error_exit:
+  crypto_clear_error();
+  buf->len = 0;
+  gc_free (&gc);
+  return false;
+}
+
+/*
+ * If (opt->flags & CO_USE_IV) is not NULL, we will read an IV from the packet.
+ *
+ * Set buf->len to 0 and return false on decrypt error.
+ *
+ * On success, buf is set to point to plaintext, true
+ * is returned.
+ */
+static bool
+openvpn_decrypt_v1 (struct buffer *buf, struct buffer work,
 		 struct crypto_options *opt, const struct frame* frame)
 {
   static const char error_prefix[] = "Authenticate/Decrypt packet error";
@@ -425,6 +663,33 @@ openvpn_decrypt (struct buffer *buf, struct buffer work,
   return false;
 }
 
+
+bool
+openvpn_decrypt (struct buffer *buf, struct buffer work,
+		 struct crypto_options *opt, const struct frame* frame,
+		 const uint8_t *ad_start)
+{
+  bool ret = false;
+
+  if (buf->len > 0 && opt)
+    {
+      const struct key_ctx *ctx = &opt->key_ctx_bi.decrypt;
+      if (cipher_kt_mode_aead (cipher_ctx_get_cipher_kt (ctx->cipher)))
+	{
+	  ret = openvpn_decrypt_aead (buf, work, opt, frame, ad_start);
+	}
+      else
+	{
+	  ret = openvpn_decrypt_v1 (buf, work, opt, frame);
+	}
+    }
+  else
+    {
+      ret = true;
+    }
+  return ret;
+}
+
 /*
  * How many bytes will we add to frame buffer for a given
  * set of crypto options?
@@ -447,6 +712,9 @@ crypto_adjust_frame_parameters(struct frame *frame,
       if (use_iv)
 	crypto_overhead += cipher_kt_iv_size (kt->cipher);
 
+      if (cipher_kt_mode_aead (kt->cipher))
+	crypto_overhead += cipher_kt_tag_size (kt->cipher);
+
       /* extra block required by cipher_ctx_update() */
       crypto_overhead += cipher_kt_block_size (kt->cipher);
     }
@@ -466,8 +734,10 @@ void
 init_key_type (struct key_type *kt, const char *ciphername,
 	       bool ciphername_defined, const char *authname,
 	       bool authname_defined, int keysize,
-	       bool cfb_ofb_allowed, bool warn)
+	       bool tls_mode, bool warn)
 {
+  bool aead_cipher = false;
+
   CLEAR (*kt);
   if (ciphername && ciphername_defined)
     {
@@ -477,14 +747,14 @@ init_key_type (struct key_type *kt, const char *ciphername,
 	kt->cipher_length = keysize;
 
       /* check legal cipher mode */
-      {
-	if (!(cipher_kt_mode_cbc(kt->cipher)
+      aead_cipher = cipher_kt_mode_aead(kt->cipher);
+      if (!(cipher_kt_mode_cbc(kt->cipher)
+	    || (tls_mode && aead_cipher)
 #ifdef ENABLE_OFB_CFB_MODE
-	      || (cfb_ofb_allowed && cipher_kt_mode_ofb_cfb(kt->cipher))
+	    || (tls_mode && cipher_kt_mode_ofb_cfb(kt->cipher))
 #endif
-	      ))
-	  msg (M_FATAL, "Cipher '%s' mode not supported", ciphername);
-      }
+	    ))
+	msg (M_FATAL, "Cipher '%s' mode not supported", ciphername);
     }
   else
     {
@@ -493,10 +763,12 @@ init_key_type (struct key_type *kt, const char *ciphername,
     }
   if (authname && authname_defined)
     {
-      kt->digest = md_kt_get (authname);
-      kt->hmac_length = md_kt_size (kt->digest);
+      if (!aead_cipher) { /* Ignore auth for AEAD ciphers */
+	kt->digest = md_kt_get (authname);
+	kt->hmac_length = md_kt_size (kt->digest);
+      }
     }
-  else
+  else if (!aead_cipher)
     {
       if (warn)
 	msg (M_WARN, "******* WARNING *******: null MAC specified, no authentication will be used");
@@ -566,6 +838,7 @@ free_key_ctx (struct key_ctx *ctx)
       free(ctx->hmac);
       ctx->hmac = NULL;
     }
+  ctx->implicit_iv_len = 0;
 }
 
 void
@@ -574,7 +847,6 @@ free_key_ctx_bi (struct key_ctx_bi *ctx)
   free_key_ctx(&ctx->encrypt);
   free_key_ctx(&ctx->decrypt);
 }
-
 
 static bool
 key_is_zero (struct key *key, const struct key_type *kt)
@@ -655,8 +927,10 @@ check_replay_iv_consistency (const struct key_type *kt, bool packet_id, bool use
 {
   ASSERT(kt);
 
-  if (cipher_kt_mode_ofb_cfb(kt->cipher) && !(packet_id && use_iv))
-    msg (M_FATAL, "--no-replay or --no-iv cannot be used with a CFB or OFB mode cipher");
+  if (!(packet_id && use_iv) && (cipher_kt_mode_ofb_cfb(kt->cipher) ||
+      cipher_kt_mode_aead(kt->cipher)))
+    msg (M_FATAL, "--no-replay or --no-iv cannot be used with a CFB, OFB or "
+	"AEAD mode cipher");
 }
 
 /*
@@ -735,6 +1009,30 @@ test_crypto (struct crypto_options *co, struct frame* frame)
   /* init work */
   ASSERT (buf_init (&work, FRAME_HEADROOM (frame)));
 
+#ifdef HAVE_AEAD_CIPHER_MODES
+  /* init implicit IV */
+  {
+    const cipher_kt_t *cipher =
+	cipher_ctx_get_cipher_kt(co->key_ctx_bi.encrypt.cipher);
+
+    if (cipher_kt_mode_aead(cipher))
+      {
+	size_t impl_iv_len = cipher_kt_iv_size(cipher) - sizeof(packet_id_type);
+	ASSERT (cipher_kt_iv_size(cipher) <= OPENVPN_MAX_IV_LENGTH);
+	ASSERT (cipher_kt_iv_size(cipher) >= OPENVPN_AEAD_MIN_IV_LEN);
+
+	/* Generate dummy implicit IV */
+	ASSERT (rand_bytes(co->key_ctx_bi.encrypt.implicit_iv,
+	    OPENVPN_MAX_IV_LENGTH));
+	co->key_ctx_bi.encrypt.implicit_iv_len = impl_iv_len;
+
+	memcpy(co->key_ctx_bi.decrypt.implicit_iv,
+	    co->key_ctx_bi.encrypt.implicit_iv, OPENVPN_MAX_IV_LENGTH);
+	co->key_ctx_bi.decrypt.implicit_iv_len = impl_iv_len;
+      }
+  }
+#endif
+
   msg (M_INFO, "Entering " PACKAGE_NAME " crypto self-test mode.");
   for (i = 1; i <= TUN_MTU_SIZE (frame); ++i)
     {
@@ -754,11 +1052,14 @@ test_crypto (struct crypto_options *co, struct frame* frame)
       buf = work;
       memcpy (buf_write_alloc (&buf, BLEN (&src)), BPTR (&src), BLEN (&src));
 
+      /* initialize work buffer with FRAME_HEADROOM bytes of prepend capacity */
+      ASSERT (buf_init (&encrypt_workspace, FRAME_HEADROOM (frame)));
+
       /* encrypt */
-      openvpn_encrypt (&buf, encrypt_workspace, co, frame);
+      openvpn_encrypt (&buf, encrypt_workspace, co);
 
       /* decrypt */
-      openvpn_decrypt (&buf, decrypt_workspace, co, frame);
+      openvpn_decrypt (&buf, decrypt_workspace, co, frame, BPTR (&buf));
 
       /* compare */
       if (buf.len != src.len)

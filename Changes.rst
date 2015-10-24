@@ -37,6 +37,13 @@ Windows version
     Windows version is detected, logged and possibly signalled to server
     (IV_PLAT_VER=<nn> if --push-peer-info is set on client)
 
+AEAD (GCM) data channel cipher support
+    The data channel now supports AEAD ciphers (currently only GCM).  The AEAD
+    packet format has a smaller overhead than the CBC packet format, (e.g. 20
+    bytes per packet for AES-128-GCM instead of 36 bytes per packet for
+    AES-128-CBC + HMAC-SHA1).
+
+
 User-visible Changes
 --------------------
 - For certificate DNs with duplicate fields, e.g. "OU=one,OU=two", both fields

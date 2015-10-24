@@ -174,21 +174,28 @@ show_available_ciphers ()
   const int *ciphers = cipher_list();
 
 #ifndef ENABLE_SMALL
-  printf ("The following ciphers and cipher modes are available\n"
-	  "for use with " PACKAGE_NAME ".  Each cipher shown below may be\n"
-	  "used as a parameter to the --cipher option.  The default\n"
-	  "key size is shown as well as whether or not it can be\n"
-          "changed with the --keysize directive.  Using a CBC mode\n"
-	  "is recommended.\n\n");
+  printf ("The following ciphers and cipher modes are available for use\n"
+	  "with " PACKAGE_NAME ".  Each cipher shown below may be used as a\n"
+	  "parameter to the --cipher option.  Using a CBC or GCM mode is\n"
+	  "recommended.  In static key mode only CBC mode is allowed.\n\n");
 #endif
 
   while (*ciphers != 0)
     {
-      const cipher_info_t *info = cipher_info_from_type(*ciphers);
+      const cipher_kt_t *info = cipher_info_from_type(*ciphers);
 
-      if (info && info->mode == POLARSSL_MODE_CBC)
-	printf ("%s %d bit default key\n",
-		cipher_kt_name(info), cipher_kt_key_size(info) * 8);
+      if (info && (cipher_kt_mode_cbc(info)
+#ifdef HAVE_AEAD_CIPHER_MODES
+          || cipher_kt_mode_aead(info)
+#endif
+          ))
+	{
+	  const char *ssl_only = cipher_kt_mode_cbc(info) ?
+	      "" : " (TLS client/server mode)";
+
+	  printf ("%s %d bit default key%s\n",
+	      cipher_kt_name(info), cipher_kt_key_size(info) * 8, ssl_only);
+	}
 
       ciphers++;
     }
@@ -436,6 +443,16 @@ cipher_kt_block_size (const cipher_info_t *cipher_kt)
 }
 
 int
+cipher_kt_tag_size (const cipher_info_t *cipher_kt)
+{
+#ifdef HAVE_AEAD_CIPHER_MODES
+  if (cipher_kt && cipher_kt_mode_aead(cipher_kt))
+    return OPENVPN_AEAD_TAG_LENGTH;
+#endif
+  return 0;
+}
+
+int
 cipher_kt_mode (const cipher_info_t *cipher_kt)
 {
   ASSERT(NULL != cipher_kt);
@@ -453,6 +470,12 @@ cipher_kt_mode_ofb_cfb(const cipher_kt_t *cipher)
 {
   return cipher && (cipher_kt_mode(cipher) == OPENVPN_MODE_OFB ||
 	  cipher_kt_mode(cipher) == OPENVPN_MODE_CFB);
+}
+
+bool
+cipher_kt_mode_aead(const cipher_kt_t *cipher)
+{
+  return cipher && cipher_kt_mode(cipher) == OPENVPN_MODE_GCM;
 }
 
 
@@ -491,6 +514,21 @@ int cipher_ctx_iv_length (const cipher_context_t *ctx)
   return cipher_get_iv_size(ctx);
 }
 
+int cipher_ctx_get_tag (cipher_ctx_t *ctx, uint8_t* tag, int tag_len)
+{
+#ifdef HAVE_AEAD_CIPHER_MODES
+  if (tag_len > SIZE_MAX)
+    return 0;
+
+  if (!polar_ok (cipher_write_tag (ctx, (unsigned char *) tag, tag_len)))
+    return 0;
+
+  return 1;
+#else
+  ASSERT(0);
+#endif /* HAVE_AEAD_CIPHER_MODES */
+}
+
 int cipher_ctx_block_size(const cipher_context_t *ctx)
 {
   return cipher_get_block_size(ctx);
@@ -520,6 +558,21 @@ int cipher_ctx_reset (cipher_context_t *ctx, uint8_t *iv_buf)
   return 1;
 }
 
+int cipher_ctx_update_ad (cipher_ctx_t *ctx, const uint8_t *src, int src_len)
+{
+#ifdef HAVE_AEAD_CIPHER_MODES
+  if (src_len > SIZE_MAX)
+    return 0;
+
+  if (!polar_ok (cipher_update_ad (ctx, src, src_len)))
+    return 0;
+
+  return 1;
+#else
+  ASSERT(0);
+#endif /* HAVE_AEAD_CIPHER_MODES */
+}
+
 int cipher_ctx_update (cipher_context_t *ctx, uint8_t *dst, int *dst_len,
     uint8_t *src, int src_len)
 {
@@ -543,6 +596,31 @@ int cipher_ctx_final (cipher_context_t *ctx, uint8_t *dst, int *dst_len)
   *dst_len = s_dst_len;
 
   return 1;
+}
+
+int cipher_ctx_final_check_tag (cipher_context_t *ctx, uint8_t *dst,
+    int *dst_len, uint8_t *tag, size_t tag_len)
+{
+#ifdef HAVE_AEAD_CIPHER_MODES
+  if (POLARSSL_DECRYPT != ctx->operation)
+    return 0;
+
+  if (tag_len > SIZE_MAX)
+    return 0;
+
+  if (!cipher_ctx_final (ctx, dst, dst_len))
+    {
+      msg (D_CRYPT_ERRORS, "%s: cipher_ctx_final() failed", __func__);
+      return 0;
+    }
+
+  if (!polar_ok (cipher_check_tag (ctx, (const unsigned char *) tag, tag_len)))
+    return 0;
+
+  return 1;
+#else
+  ASSERT(0);
+#endif /* HAVE_AEAD_CIPHER_MODES */
 }
 
 void

@@ -61,6 +61,9 @@ typedef md_context_t hmac_ctx_t;
 /** Cipher is in CFB mode */
 #define OPENVPN_MODE_CFB 	POLARSSL_MODE_CFB
 
+/** Cipher is in GCM mode */
+#define OPENVPN_MODE_GCM	POLARSSL_MODE_GCM
+
 /** Cipher should encrypt */
 #define OPENVPN_OP_ENCRYPT 	POLARSSL_ENCRYPT
 

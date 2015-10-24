@@ -61,6 +61,13 @@ typedef HMAC_CTX hmac_ctx_t;
 /** Cipher is in CFB mode */
 #define OPENVPN_MODE_CFB 	EVP_CIPH_CFB_MODE
 
+#ifdef HAVE_AEAD_CIPHER_MODES
+
+/** Cipher is in GCM mode */
+#define OPENVPN_MODE_GCM 	EVP_CIPH_GCM_MODE
+
+#endif /* HAVE_AEAD_CIPHER_MODES */
+
 /** Cipher should encrypt */
 #define OPENVPN_OP_ENCRYPT 	1
 

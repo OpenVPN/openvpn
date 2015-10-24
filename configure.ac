@@ -821,6 +821,13 @@ if test "${with_crypto_library}" = "openssl"; then
 		AC_DEFINE([HAVE_OPENSSL_ENGINE], [1], [OpenSSL engine support available])
 	fi
 
+	have_crypto_aead_modes="yes"
+	AC_CHECK_FUNCS(
+		[EVP_aes_256_gcm],
+		,
+		[have_crypto_aead_modes="no"; break]
+	)
+
 	CFLAGS="${saved_CFLAGS}"
 	LIBS="${saved_LIBS}"
 
@@ -897,9 +904,19 @@ elif test "${with_crypto_library}" = "polarssl"; then
 			AC_MSG_ERROR([PolarSSL compiled with PKCS11, while OpenVPN is not])
 		fi
 	fi
+
+	have_crypto_aead_modes="yes"
+	AC_CHECK_FUNCS(
+		[ \
+			cipher_write_tag \
+			cipher_check_tag \
+		],
+		,
+		[have_crypto_aead_modes="no"; break]
+	)
+
 	CFLAGS="${saved_CFLAGS}"
 	LIBS="${saved_LIBS}"
-
 	have_crypto="yes"
 	AC_DEFINE([ENABLE_CRYPTO_POLARSSL], [1], [Use PolarSSL library])
 	CRYPTO_CFLAGS="${POLARSSL_CFLAGS}"
@@ -1054,6 +1071,7 @@ test "${enable_strict_options}" = "yes" && AC_DEFINE([ENABLE_STRICT_OPTIONS_CHEC
 if test "${enable_crypto}" = "yes"; then
 	test "${have_crypto}" != "yes" && AC_MSG_ERROR([${with_crypto_library} crypto is required but missing])
 	test "${enable_crypto_ofb_cfb}" = "yes" && AC_DEFINE([ENABLE_OFB_CFB_MODE], [1], [Enable OFB and CFB cipher modes])
+	test "${have_crypto_aead_modes}" = "yes" && AC_DEFINE([HAVE_AEAD_CIPHER_MODES], [1], [Use crypto library])
 	OPTIONAL_CRYPTO_CFLAGS="${OPTIONAL_CRYPTO_CFLAGS} ${CRYPTO_CFLAGS}"
 	OPTIONAL_CRYPTO_LIBS="${OPTIONAL_CRYPTO_LIBS} ${CRYPTO_LIBS}"
 	AC_DEFINE([ENABLE_CRYPTO], [1], [Enable crypto library])
