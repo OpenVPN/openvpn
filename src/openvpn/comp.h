@@ -42,6 +42,7 @@
 #define COMP_ALG_LZO    2 /* LZO algorithm */
 #define COMP_ALG_SNAPPY 3 /* Snappy algorithm (no longer supported) */
 #define COMP_ALG_LZ4    4 /* LZ4 algorithm */
+#define COMP_ALG_ZSTD   5 /* ZStandard algorithm */
 
 /* Compression flags */
 #define COMP_F_ADAPTIVE   (1<<0) /* COMP_ALG_LZO only */
@@ -66,8 +67,9 @@
  * LZO:    len + len/8 + 128 + 3
  * Snappy: len + len/6 + 32
  * LZ4:    len + len/255 + 16  (LZ4_COMPRESSBOUND(len))
+ * Zstandard: len + len/128 + 512 + 12  (ZSTD_compressBound(len))
  */
-#define COMP_EXTRA_BUFFER(len) ((len)/6 + 128 + 3 + COMP_PREFIX_LEN)
+#define COMP_EXTRA_BUFFER(len) ((len)/8 + 512 + 12 + COMP_PREFIX_LEN)
 
 /*
  * Don't try to compress any packet smaller than this.
@@ -105,6 +107,10 @@ struct compress_alg
 #include "comp-lz4.h"
 #endif
 
+#ifdef ENABLE_ZSTD
+#include "comp-zstd.h"
+#endif
+
 /*
  * Information that basically identifies a compression
  * algorithm and related flags.
@@ -125,6 +131,9 @@ union compress_workspace_union
 #endif
 #ifdef ENABLE_LZ4
   struct lz4_workspace lz4;
+#endif
+#ifdef ENABLE_ZSTD
+  struct zstd_workspace zstd;
 #endif
 };
 
