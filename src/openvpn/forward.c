@@ -956,8 +956,9 @@ read_incoming_tun (struct context *c)
   /* Was TUN/TAP I/O operation aborted? */
   if (tuntap_abort(c->c2.buf.len))
   {
-     register_signal(c, SIGTERM, "tun-abort");
-     msg(M_FATAL, "TUN/TAP I/O operation aborted, exiting");
+     register_signal(c, SIGHUP, "tun-abort");
+     c->persist.restart_sleep_seconds = 10;
+     msg(M_INFO, "TUN/TAP I/O operation aborted, restarting");
      perf_pop();
      return;
   }
