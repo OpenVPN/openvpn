@@ -648,7 +648,7 @@ init_route_list (struct route_list *rl,
     bool warned = false;
     for (i = 0; i < opt->n; ++i)
       {
-        struct addrinfo* netlist;
+        struct addrinfo* netlist = NULL;
 	struct route_ipv4 r;
 
 	if (!init_route (&r,
@@ -675,8 +675,9 @@ init_route_list (struct route_list *rl,
 		      }
 		  }
 	      }
-            freeaddrinfo(netlist);
 	  }
+	if (netlist)
+	  freeaddrinfo(netlist);
       }
     rl->n = j;
   }
