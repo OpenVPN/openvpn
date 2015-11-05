@@ -139,19 +139,22 @@ bool dont_mute (unsigned int flags); /* check muting filter */
 
 #define MSG_TEST(flags) (unlikely((((unsigned int)flags) & M_DEBUG_LEVEL) <= x_debug_level) && dont_mute (flags))
 
+/* Macro to ensure (and teach static analysis tools) we exit on fatal errors */
+#define EXIT_FATAL(flags) do { if ((flags) & M_FATAL) _exit(1); } while (false)
+
 #if defined(HAVE_CPP_VARARG_MACRO_ISO) && !defined(__LCLINT__)
 # define HAVE_VARARG_MACROS
-# define msg(flags, ...) do { if (MSG_TEST(flags)) x_msg((flags), __VA_ARGS__); } while (false)
+# define msg(flags, ...) do { if (MSG_TEST(flags)) x_msg((flags), __VA_ARGS__); EXIT_FATAL(flags); } while (false)
 # ifdef ENABLE_DEBUG
-#  define dmsg(flags, ...) do { if (MSG_TEST(flags)) x_msg((flags), __VA_ARGS__); } while (false)
+#  define dmsg(flags, ...) do { if (MSG_TEST(flags)) x_msg((flags), __VA_ARGS__); EXIT_FATAL(flags); } while (false)
 # else
 #  define dmsg(flags, ...)
 # endif
 #elif defined(HAVE_CPP_VARARG_MACRO_GCC) && !defined(__LCLINT__)
 # define HAVE_VARARG_MACROS
-# define msg(flags, args...) do { if (MSG_TEST(flags)) x_msg((flags), args); } while (false)
+# define msg(flags, args...) do { if (MSG_TEST(flags)) x_msg((flags), args); EXIT_FATAL(flags); } while (false)
 # ifdef ENABLE_DEBUG
-#  define dmsg(flags, args...) do { if (MSG_TEST(flags)) x_msg((flags), args); } while (false)
+#  define dmsg(flags, args...) do { if (MSG_TEST(flags)) x_msg((flags), args); EXIT_FATAL(flags); } while (false)
 # else
 #  define dmsg(flags, args...)
 # endif
