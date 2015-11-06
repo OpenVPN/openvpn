@@ -634,7 +634,7 @@ init_route_list (struct route_list *rl,
     struct route_option *ro;
     for (ro = opt->routes; ro; ro = ro->next)
       {
-        struct addrinfo* netlist;
+        struct addrinfo* netlist = NULL;
 	struct route_ipv4 r;
 
 	if (!init_route (&r, &netlist, ro, rl))
@@ -642,7 +642,6 @@ init_route_list (struct route_list *rl,
 	else
 	  {
             struct addrinfo* curele;
-            gc_addspecial(netlist, &gc_freeaddrinfo_callback, &gc);
             for (curele	= netlist; curele; curele = curele->ai_next)
 	      {
                 struct route_ipv4 *new;
@@ -653,6 +652,8 @@ init_route_list (struct route_list *rl,
                 rl->routes = new;
 	      }
 	  }
+	if (netlist)
+	  gc_addspecial(netlist, &gc_freeaddrinfo_callback, &gc);
       }
   }
 
