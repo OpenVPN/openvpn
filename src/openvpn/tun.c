@@ -635,7 +635,7 @@ void delete_route_connected_v6_net(struct tuntap * tt,
  * is still point to point and no layer 2 resolution is done...
  */
 
-char *
+const char *
 create_arbitrary_remote( struct tuntap *tt, struct gc_arena * gc )
 {
   in_addr_t remote;
@@ -644,7 +644,7 @@ create_arbitrary_remote( struct tuntap *tt, struct gc_arena * gc )
 
   if ( remote == tt->local ) remote ++;
 
-  return print_in_addr_t (remote, 0, &gc);
+  return print_in_addr_t (remote, 0, gc);
 }
 #endif
 
