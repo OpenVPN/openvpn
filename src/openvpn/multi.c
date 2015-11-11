@@ -1780,6 +1780,7 @@ multi_connection_established (struct multi_context *m, struct multi_instance *mi
 	{
 	  msg (D_MULTI_ERRORS, "MULTI: client has been rejected due to 'disable' directive");
 	  cc_succeeded = false;
+	  cc_succeeded_count = 0;
 	}
 
       if (cc_succeeded)
