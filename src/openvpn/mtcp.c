@@ -37,6 +37,10 @@
 
 #include "memdbg.h"
 
+#ifdef HAVE_SYS_INOTIFY_H
+#include <sys/inotify.h>
+#endif
+
 /*
  * TCP States
  */
