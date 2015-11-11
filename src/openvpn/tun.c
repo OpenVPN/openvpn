@@ -67,6 +67,8 @@ static void netsh_command (const struct argv *a, int n);
 
 static const char *netsh_get_id (const char *dev_node, struct gc_arena *gc);
 
+static DWORD get_adapter_index_flexible (const char *name);
+
 #endif
 
 #ifdef TARGET_SOLARIS
@@ -1301,18 +1303,20 @@ do_ifconfig (struct tuntap *tt,
     if ( do_ipv6 )
       {
 	char * saved_actual;
+	char iface[64];
 
 	if (!strcmp (actual, "NULL"))
 	  msg (M_FATAL, "Error: When using --tun-ipv6, if you have more than one TAP-Windows adapter, you must also specify --dev-node");
 
-	/* example: netsh interface ipv6 set address MyTap 2001:608:8003::d store=active */
+	openvpn_snprintf(iface, sizeof(iface), "interface=%lu", get_adapter_index_flexible(actual));
+
+	/* example: netsh interface ipv6 set address interface=42 2001:608:8003::d store=active */
 	argv_printf (&argv,
-		    "%s%sc interface ipv6 set address %s %s store=active",
+		     "%s%sc interface ipv6 set address %s %s store=active",
 		     get_win_sys_path(),
 		     NETSH_PATH_SUFFIX,
-		     actual,
-		     ifconfig_ipv6_local );
-
+		     iface,
+		     ifconfig_ipv6_local);
 	netsh_command (&argv, 4);
 
 	/* explicit route needed */
