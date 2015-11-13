@@ -763,7 +763,12 @@ win_safe_filename (const char *fn)
 static char *
 env_block (const struct env_set *es)
 {
-  char * force_path = "PATH=C:\\Windows\\System32;C:\\WINDOWS;C:\\WINDOWS\\System32\\Wbem";
+  char force_path[256];
+  char *sysroot = get_win_sys_path();
+
+  if (!openvpn_snprintf(force_path, sizeof(force_path), "PATH=%s\\System32;%s;%s\\System32\\Wbem",
+                        sysroot, sysroot, sysroot))
+    msg(M_WARN, "env_block: default path truncated to %s", force_path);
 
   if (es)
     {
