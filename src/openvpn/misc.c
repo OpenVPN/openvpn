@@ -1003,7 +1003,9 @@ get_user_pass_cr (struct user_pass *up,
 
   if (!up->defined)
     {
-      const bool from_stdin = (!auth_file || !strcmp (auth_file, "stdin"));
+      bool from_authfile = (auth_file && strcmp (auth_file, "stdin") != 0);
+      bool username_from_stdin = !from_authfile;
+      bool password_from_stdin = !from_authfile;
 
       if (flags & GET_USER_PASS_PREVIOUS_CREDS_FAILED)
 	msg (M_WARN, "Note: previous '%s' credentials failed", prefix);
@@ -1013,7 +1015,7 @@ get_user_pass_cr (struct user_pass *up,
        * Get username/password from management interface?
        */
       if (management
-	  && ((auth_file && streq (auth_file, "management")) || (from_stdin && (flags & GET_USER_PASS_MANAGEMENT)))
+	  && ((auth_file && streq (auth_file, "management")) || (username_from_stdin && (flags & GET_USER_PASS_MANAGEMENT)))
 	  && management_query_user_pass_enabled (management))
 	{
 	  const char *sc = NULL;
@@ -1050,11 +1052,61 @@ get_user_pass_cr (struct user_pass *up,
 	  if (!strlen (up->password))
 	    strcpy (up->password, "ok");
 	}
-	  
+      else if (from_authfile)
+	{
+	  /*
+	   * Try to get username/password from a file.
+	   */
+	  FILE *fp;
+	  char password_buf[USER_PASS_LEN] = { '\0' };
+
+	  warn_if_group_others_accessible (auth_file);
+
+	  fp = platform_fopen (auth_file, "r");
+	  if (!fp)
+	    msg (M_ERR, "Error opening '%s' auth file: %s", prefix, auth_file);
+
+	  if ((flags & GET_USER_PASS_PASSWORD_ONLY) == 0)
+	    {
+	      /* Read username first */
+	      if (fgets (up->username, USER_PASS_LEN, fp) == NULL)
+		msg (M_FATAL, "Error reading username from %s authfile: %s",
+		     prefix,
+		     auth_file);
+	    }
+	  chomp (up->username);
+
+	  if (fgets (password_buf, USER_PASS_LEN, fp) != NULL)
+	    {
+#ifndef ENABLE_PASSWORD_SAVE
+	      /*
+	       * Unless ENABLE_PASSWORD_SAVE is defined, don't allow sensitive passwords
+	       * to be read from a file.
+	       */
+	      if (flags & GET_USER_PASS_SENSITIVE)
+	        msg (M_FATAL, "Sorry, '%s' password cannot be read from a file", prefix);
+#endif
+	      chomp (password_buf);
+	    }
+
+	  if (flags & GET_USER_PASS_PASSWORD_ONLY && !password_buf[0])
+		msg (M_FATAL, "Error reading password from %s authfile: %s", prefix, auth_file);
+
+	  if (password_buf[0])
+	    strncpy(up->password, password_buf, USER_PASS_LEN);
+	  else
+	    password_from_stdin = 1;
+
+	  fclose (fp);
+
+	  if (!(flags & GET_USER_PASS_PASSWORD_ONLY) && strlen (up->username) == 0)
+	    msg (M_FATAL, "ERROR: username from %s authfile '%s' is empty", prefix, auth_file);
+	}
+
       /*
        * Get username/password from standard input?
        */
-      else if (from_stdin)
+      if (username_from_stdin || password_from_stdin)
 	{
 #ifndef WIN32
 	  /* did we --daemon'ize before asking for passwords? */
@@ -1092,7 +1144,7 @@ get_user_pass_cr (struct user_pass *up,
 	      buf_printf (&user_prompt, "Enter %s Username:", prefix);
 	      buf_printf (&pass_prompt, "Enter %s Password:", prefix);
 
-	      if (!(flags & GET_USER_PASS_PASSWORD_ONLY))
+	      if (username_from_stdin && !(flags & GET_USER_PASS_PASSWORD_ONLY))
 		{
 		  if (!get_console_input (BSTR (&user_prompt), true, up->username, USER_PASS_LEN))
 		    msg (M_FATAL, "ERROR: could not read %s username from stdin", prefix);
@@ -1100,7 +1152,7 @@ get_user_pass_cr (struct user_pass *up,
 		    msg (M_FATAL, "ERROR: %s username is empty", prefix);
 		}
 
-	      if (!get_console_input (BSTR (&pass_prompt), false, up->password, USER_PASS_LEN))
+	      if (password_from_stdin && !get_console_input (BSTR (&pass_prompt), false, up->password, USER_PASS_LEN))
 		msg (M_FATAL, "ERROR: could not not read %s password from stdin", prefix);
 
 #ifdef ENABLE_CLIENT_CR
@@ -1125,52 +1177,6 @@ get_user_pass_cr (struct user_pass *up,
 		}
 #endif
 	    }
-	}
-      else
-	{
-	  /*
-	   * Get username/password from a file.
-	   */
-	  FILE *fp;
-      
-#ifndef ENABLE_PASSWORD_SAVE
-	  /*
-	   * Unless ENABLE_PASSWORD_SAVE is defined, don't allow sensitive passwords
-	   * to be read from a file.
-	   */
-	  if (flags & GET_USER_PASS_SENSITIVE)
-	    msg (M_FATAL, "Sorry, '%s' password cannot be read from a file", prefix);
-#endif
-
-	  warn_if_group_others_accessible (auth_file);
-
-	  fp = platform_fopen (auth_file, "r");
-	  if (!fp)
-	    msg (M_ERR, "Error opening '%s' auth file: %s", prefix, auth_file);
-
-	  if (flags & GET_USER_PASS_PASSWORD_ONLY)
-	    {
-	      if (fgets (up->password, USER_PASS_LEN, fp) == NULL)
-		msg (M_FATAL, "Error reading password from %s authfile: %s",
-		     prefix,
-		     auth_file);
-	    }
-	  else
-	    {
-	      if (fgets (up->username, USER_PASS_LEN, fp) == NULL
-		  || fgets (up->password, USER_PASS_LEN, fp) == NULL)
-		msg (M_FATAL, "Error reading username and password (must be on two consecutive lines) from %s authfile: %s",
-		     prefix,
-		     auth_file);
-	    }
-      
-	  fclose (fp);
-      
-	  chomp (up->username);
-	  chomp (up->password);
-      
-	  if (!(flags & GET_USER_PASS_PASSWORD_ONLY) && strlen (up->username) == 0)
-	    msg (M_FATAL, "ERROR: username from %s authfile '%s' is empty", prefix, auth_file);
 	}
 
       string_mod (up->username, CC_PRINT, CC_CRLF, 0);
