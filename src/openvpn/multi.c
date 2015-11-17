@@ -429,6 +429,8 @@ multi_init (struct multi_context *m, struct context *t, bool tcp_mode, int threa
         t->options.stale_routes_check_interval, t->options.stale_routes_ageing_time);
       event_timeout_init (&m->stale_routes_check_et, t->options.stale_routes_check_interval, 0);
     }
+
+  m->deferred_shutdown_signal.signal_received = 0;
 }
 
 const char *
@@ -2721,10 +2723,18 @@ multi_process_timeout (struct multi_context *m, const unsigned int mpp_flags)
   /* instance marked for wakeup? */
   if (m->earliest_wakeup)
     {
-      set_prefix (m->earliest_wakeup);
-      ret = multi_process_post (m, m->earliest_wakeup, mpp_flags);
+      if (m->earliest_wakeup == (struct multi_instance*)&m->deferred_shutdown_signal)
+	{
+	  schedule_remove_entry(m->schedule, (struct schedule_entry*) &m->deferred_shutdown_signal);
+	  throw_signal(m->deferred_shutdown_signal.signal_received);
+	}
+      else
+	{
+	  set_prefix (m->earliest_wakeup);
+	  ret = multi_process_post (m, m->earliest_wakeup, mpp_flags);
+	  clear_prefix ();
+	}
       m->earliest_wakeup = NULL;
-      clear_prefix ();
     }
   return ret;
 }
@@ -2849,6 +2859,48 @@ multi_top_free (struct multi_context *m)
   free_context_buffers (m->top.c2.buffers);
 }
 
+static bool
+is_exit_restart(int sig)
+{
+  return (sig == SIGUSR1 || sig == SIGTERM || sig == SIGHUP || sig == SIGINT);
+}
+
+static void
+multi_push_restart_schedule_exit(struct multi_context *m, bool next_server)
+{
+  struct hash_iterator hi;
+  struct hash_element *he;
+  struct timeval tv;
+
+  /* tell all clients to restart */
+  hash_iterator_init (m->iter, &hi);
+  while ((he = hash_iterator_next (&hi)))
+    {
+      struct multi_instance *mi = (struct multi_instance *) he->value;
+      if (!mi->halt)
+        {
+	  send_control_channel_string (&mi->context, next_server ? "RESTART,[N]" : "RESTART", D_PUSH);
+	  multi_schedule_context_wakeup(m, mi);
+        }
+    }
+  hash_iterator_free (&hi);
+
+  /* reschedule signal */
+  ASSERT (!openvpn_gettimeofday (&m->deferred_shutdown_signal.wakeup, NULL));
+  tv.tv_sec = 2;
+  tv.tv_usec = 0;
+  tv_add (&m->deferred_shutdown_signal.wakeup, &tv);
+
+  m->deferred_shutdown_signal.signal_received = m->top.sig->signal_received;
+
+  schedule_add_entry (m->schedule,
+		      (struct schedule_entry *) &m->deferred_shutdown_signal,
+		      &m->deferred_shutdown_signal.wakeup,
+		      compute_wakeup_sigma (&m->deferred_shutdown_signal.wakeup));
+
+  m->top.sig->signal_received = 0;
+}
+
 /*
  * Return true if event loop should break,
  * false if it should continue.
@@ -2862,6 +2914,14 @@ multi_process_signal (struct multi_context *m)
       multi_print_status (m, so, m->status_file_version);
       status_close (so);
       m->top.sig->signal_received = 0;
+      return false;
+    }
+  else if (proto_is_dgram(m->top.options.ce.proto) &&
+      is_exit_restart(m->top.sig->signal_received) &&
+      (m->deferred_shutdown_signal.signal_received == 0) &&
+      m->top.options.ce.explicit_exit_notification != 0)
+    {
+      multi_push_restart_schedule_exit(m, m->top.options.ce.explicit_exit_notification == 2);
       return false;
     }
   return true;

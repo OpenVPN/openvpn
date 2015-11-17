@@ -57,6 +57,13 @@ struct multi_reap
 };
 
 
+struct deferred_signal_schedule_entry
+{
+  struct schedule_entry se;
+  int signal_received;
+  struct timeval wakeup;
+};
+
 /**
  * Server-mode state structure for one single VPN tunnel.
  *
@@ -181,6 +188,8 @@ struct multi_context {
   /* mapping between inotify watch descriptors and multi_instances */
   struct hash *inotify_watchers;
 #endif
+
+  struct deferred_signal_schedule_entry deferred_shutdown_signal;
 };
 
 /*

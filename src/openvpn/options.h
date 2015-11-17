@@ -118,9 +118,7 @@ struct connection_entry
   int mssfix;            /* Upper bound on TCP MSS */
   bool mssfix_default;   /* true if --mssfix was supplied without a parameter */
 
-#ifdef ENABLE_OCC
-  int explicit_exit_notification;  /* Explicitly tell peer when we are exiting via OCC_EXIT message */
-#endif
+  int explicit_exit_notification;  /* Explicitly tell peer when we are exiting via OCC_EXIT or [RESTART] message */
 
 # define CE_DISABLED (1<<0)
 # define CE_MAN_QUERY_PROXY (1<<1)

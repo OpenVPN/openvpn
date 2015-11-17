@@ -3887,7 +3887,18 @@ option will tell the server to immediately close its client instance object
 rather than waiting for a timeout.  The
 .B n
 parameter (default=1) controls the maximum number of attempts that the client
-will try to resend the exit notification message.  OpenVPN will not send any exit
+will try to resend the exit notification message.
+
+In UDP server mode, send RESTART control channel command to connected clients. The
+.B n
+parameter (default=1) controls client behavior. With
+.B n
+= 1 client will attempt to reconnect
+to the same server, with
+.B n
+= 2 client will advance to the next server.
+
+OpenVPN will not send any exit
 notifications unless this option is enabled.
 .\"*********************************************************
 .SS Data Channel Encryption Options:

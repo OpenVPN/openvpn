@@ -469,6 +469,9 @@ static const char usage_message[] =
   "--stale-routes-check n [t] : Remove routes with a last activity timestamp\n"
   "                             older than n seconds. Run this check every t\n"
   "                             seconds (defaults to n).\n"
+  "--explicit-exit-notify [n] : In UDP server mode send [RESTART] command on exit/restart to connected\n"
+  "                             clients. n = 1 - reconnect to same server,\n"
+  "                             2 - advance to next server, default=1.\n"
 #if PORT_SHARE
   "--port-share host port [dir] : When run in TCP mode, proxy incoming HTTPS\n"
   "                  sessions to a web server at host:port.  dir specifies an\n"
@@ -2022,10 +2025,6 @@ options_postprocess_verify_ce (const struct options *options, const struct conne
 	msg (M_USAGE, "--connect-freq only works with --mode server --proto udp.  Try --max-clients instead.");
       if (!(dev == DEV_TYPE_TAP || (dev == DEV_TYPE_TUN && options->topology == TOP_SUBNET)) && options->ifconfig_pool_netmask)
 	msg (M_USAGE, "The third parameter to --ifconfig-pool (netmask) is only valid in --dev tap mode");
-#ifdef ENABLE_OCC
-      if (ce->explicit_exit_notification)
-	msg (M_USAGE, "--explicit-exit-notify cannot be used with --mode server");
-#endif
       if (options->routes && (options->routes->flags & RG_ENABLE))
 	msg (M_USAGE, "--redirect-gateway cannot be used with --mode server (however --push \"redirect-gateway\" is fine)");
       if (options->route_delay_defined)
