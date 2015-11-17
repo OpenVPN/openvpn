@@ -324,6 +324,53 @@ net_event_win32_close (struct net_event_win32 *ne)
  * (2) Service mode -- map Windows event object to SIGTERM
  */
 
+static void
+win_trigger_event(struct win32_signal *ws)
+{
+  if (ws->mode == WSO_MODE_SERVICE && HANDLE_DEFINED(ws->in.read))
+    SetEvent (ws->in.read);
+  else /* generate a key-press event */
+    {
+      DWORD tmp;
+      INPUT_RECORD ir;
+      HANDLE stdin_handle = GetStdHandle(STD_INPUT_HANDLE);
+
+      CLEAR(ir);
+      ir.EventType = KEY_EVENT;
+      ir.Event.KeyEvent.bKeyDown = true;
+      if (!stdin_handle || !WriteConsoleInput(stdin_handle, &ir, 1, &tmp))
+        msg(M_WARN|M_ERRNO, "WARN: win_trigger_event: WriteConsoleInput");
+    }
+}
+
+/*
+ * Callback to handle console ctrl events
+ */
+static bool WINAPI
+win_ctrl_handler (DWORD signum)
+{
+  msg(D_LOW, "win_ctrl_handler: signal received (code=%lu)", (unsigned long) signum);
+
+  if (siginfo_static.signal_received == SIGTERM)
+     return true;
+
+  switch (signum)
+    {
+    case CTRL_C_EVENT:
+    case CTRL_BREAK_EVENT:
+      throw_signal(SIGTERM);
+      /* trigget the win32_signal to interrupt the event loop */
+      win_trigger_event(&win32_signal);
+      return true;
+      break;
+    default:
+      msg(D_LOW, "win_ctrl_handler: signal (code=%lu) not handled", (unsigned long) signum);
+      break;
+    }
+  /* pass all other signals to the next handler */
+  return false;
+}
+
 void
 win32_signal_clear (struct win32_signal *ws)
 {
@@ -403,6 +450,9 @@ win32_signal_open (struct win32_signal *ws,
 	    ws->mode = WSO_MODE_SERVICE;
 	}
     }
+    /* set the ctrl handler in both console and service modes */
+    if (!SetConsoleCtrlHandler ((PHANDLER_ROUTINE) win_ctrl_handler, true))
+       msg (M_WARN|M_ERRNO, "WARN: SetConsoleCtrlHandler failed");
 }
 
 static bool
@@ -512,6 +562,9 @@ win32_signal_get (struct win32_signal *ws)
 	    case 0x3E: /* F4 -> TERM */
 	      ret = SIGTERM;
 	      break;
+           case 0x03: /* CTRL-C -> TERM */
+             ret = SIGTERM;
+             break;
 	    }
 	}
       if (ret)
