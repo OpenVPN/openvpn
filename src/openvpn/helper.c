@@ -167,7 +167,7 @@ helper_client_server (struct options *o)
    * push "tun-ipv6"
    * ifconfig-ipv6 2001:db8::1 2001:db8::2
    * if !nopool: 
-   *   ifconfig-ipv6-pool 2001:db8::1:0/64
+   *   ifconfig-ipv6-pool 2001:db8::1000/64
    * 
    */
    if ( o->server_ipv6_defined )
