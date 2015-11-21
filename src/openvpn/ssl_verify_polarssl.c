@@ -319,8 +319,7 @@ x509_verify_cert_eku (x509_crt *cert, const char * const expected_oid)
 	  char oid_num_str[1024];
 	  const char *oid_str;
 
-	  oid_str = x509_oid_get_description(oid);
-	  if (oid_str != NULL)
+	  if (0 == oid_get_extended_key_usage( oid, &oid_str ))
 	    {
 	      msg (D_HANDSHAKE, "++ Certificate has EKU (str) %s, expects %s",
 		  oid_str, expected_oid);
@@ -331,7 +330,7 @@ x509_verify_cert_eku (x509_crt *cert, const char * const expected_oid)
 		}
 	    }
 
-	  if (0 < x509_oid_get_numeric_string( oid_num_str,
+	  if (0 < oid_get_numeric_string( oid_num_str,
 	      sizeof (oid_num_str), oid))
 	    {
 	      msg (D_HANDSHAKE, "++ Certificate has EKU (oid) %s, expects %s",

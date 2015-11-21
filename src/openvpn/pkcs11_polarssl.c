@@ -62,6 +62,12 @@ pkcs11_init_tls_session(pkcs11h_certificate_t certificate,
       goto cleanup;
   }
 
+  ALLOC_OBJ_CLEAR (ssl_ctx->priv_key, pk_context);
+  if (!polar_ok(pk_init_ctx_rsa_alt(ssl_ctx->priv_key, ssl_ctx->priv_key_pkcs11,
+	ssl_pkcs11_decrypt, ssl_pkcs11_sign, ssl_pkcs11_key_len))) {
+      goto cleanup;
+  }
+
   ret = 0;
 
 cleanup:

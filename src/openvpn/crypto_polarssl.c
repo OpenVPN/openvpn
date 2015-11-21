@@ -485,7 +485,7 @@ cipher_ctx_init (cipher_context_t *ctx, uint8_t *key, int key_len,
 
 void cipher_ctx_cleanup (cipher_context_t *ctx)
 {
-  ASSERT (polar_ok(cipher_free_ctx(ctx)));
+  cipher_free(ctx);
 }
 
 int cipher_ctx_iv_length (const cipher_context_t *ctx)
@@ -649,7 +649,7 @@ void
 md_ctx_final (md_context_t *ctx, uint8_t *dst)
 {
   ASSERT(0 == md_finish(ctx, dst));
-  ASSERT(0 == md_free_ctx(ctx));
+  md_free(ctx);
 }
 
 
@@ -680,7 +680,7 @@ hmac_ctx_init (md_context_t *ctx, const uint8_t *key, int key_len, const md_info
 void
 hmac_ctx_cleanup(md_context_t *ctx)
 {
-  ASSERT(0 == md_free_ctx(ctx));
+  md_free(ctx);
 }
 
 int

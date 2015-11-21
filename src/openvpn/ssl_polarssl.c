@@ -355,24 +355,6 @@ struct external_context {
   size_t signature_length;
 };
 
-int
-tls_ctx_use_external_private_key (struct tls_root_ctx *ctx,
-    const char *cert_file, const char *cert_file_inline)
-{
-  ASSERT(NULL != ctx);
-
-  tls_ctx_load_cert_file(ctx, cert_file, cert_file_inline);
-
-  if (ctx->crt_chain == NULL)
-    return 0;
-
-  /* Most of the initialization happens in key_state_ssl_init() */
-  ALLOC_OBJ_CLEAR (ctx->external_key, struct external_context);
-  ctx->external_key->signature_length = pk_get_len(&ctx->crt_chain->pk);
-
-  return 1;
-}
-
 /**
  * external_pkcs1_sign implements a PolarSSL rsa_sign_func callback, that uses
  * the management interface to request an RSA signature for the supplied hash.
@@ -504,6 +486,28 @@ static inline size_t external_key_len(void *vctx)
   struct external_context * const ctx = vctx;
 
   return ctx->signature_length;
+}
+
+int
+tls_ctx_use_external_private_key (struct tls_root_ctx *ctx,
+    const char *cert_file, const char *cert_file_inline)
+{
+  ASSERT(NULL != ctx);
+
+  tls_ctx_load_cert_file(ctx, cert_file, cert_file_inline);
+
+  if (ctx->crt_chain == NULL)
+    return 0;
+
+  ALLOC_OBJ_CLEAR (ctx->external_key, struct external_context);
+  ctx->external_key->signature_length = pk_get_len(&ctx->crt_chain->pk);
+
+  ALLOC_OBJ_CLEAR (ctx->priv_key, pk_context);
+  if (!polar_ok(pk_init_ctx_rsa_alt(ctx->priv_key, ctx->external_key,
+	    NULL, external_pkcs1_sign, external_key_len)))
+    return 0;
+
+  return 1;
 }
 #endif
 
@@ -757,22 +761,9 @@ void key_state_ssl_init(struct key_state_ssl *ks_ssl,
       /* Initialise authentication information */
       if (is_server)
 	polar_ok(ssl_set_dh_param_ctx(ks_ssl->ctx, ssl_ctx->dhm_ctx));
-#if defined(ENABLE_PKCS11)
-      if (ssl_ctx->priv_key_pkcs11 != NULL)
-	polar_ok(ssl_set_own_cert_alt(ks_ssl->ctx, ssl_ctx->crt_chain,
-	    ssl_ctx->priv_key_pkcs11, ssl_pkcs11_decrypt, ssl_pkcs11_sign,
-	    ssl_pkcs11_key_len));
-      else
-#endif
-#if defined(MANAGMENT_EXTERNAL_KEY)
-      if (ssl_ctx->external_key != NULL)
-	polar_ok(ssl_set_own_cert_alt(ks_ssl->ctx, ssl_ctx->crt_chain,
-	   ssl_ctx->external_key, NULL, external_pkcs1_sign,
-	   external_key_len));
-      else
-#endif
-	polar_ok(ssl_set_own_cert(ks_ssl->ctx, ssl_ctx->crt_chain,
-	    ssl_ctx->priv_key));
+
+      polar_ok(ssl_set_own_cert(ks_ssl->ctx, ssl_ctx->crt_chain,
+	  ssl_ctx->priv_key));
 
       /* Initialise SSL verification */
 #if P2MP_SERVER
