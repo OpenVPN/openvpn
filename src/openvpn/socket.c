@@ -1887,8 +1887,11 @@ link_socket_init_phase2 (struct link_socket *sock,
 	      /* Warn if this is because neither v4 or v6 was specified
 	       * and we should not connect a remote */
 	      if (sock->info.af == AF_UNSPEC)
-		msg (M_WARN, "Could not determine IPv4/IPv6 protocol. Using %s",
+	        {
+		  msg (M_WARN, "Could not determine IPv4/IPv6 protocol. Using %s",
 		     addr_family_name(sock->info.lsa->bind_local->ai_family));
+		  sock->info.af = sock->info.lsa->bind_local->ai_family;
+		}
 
 	      create_socket (sock, sock->info.lsa->bind_local);
 	    }
