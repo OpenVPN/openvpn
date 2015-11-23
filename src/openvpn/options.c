@@ -963,13 +963,11 @@ get_ip_addr (const char *ip_string, int msglevel, bool *error)
  * "/nn" is optional, default to /64 if missing
  *
  * return true if parsing succeeded, modify *network and *netbits
- * return address part without "/nn" in *printable_ipv6 (if != NULL)
  */
 bool
 get_ipv6_addr( const char * prefix_str, struct in6_addr *network,
-	       unsigned int * netbits, char ** printable_ipv6, int msglevel )
+	       unsigned int * netbits, int msglevel)
 {
-    int rc;
     char * sep, * endp;
     int bits;
     struct in6_addr t_network;
@@ -996,20 +994,13 @@ get_ipv6_addr( const char * prefix_str, struct in6_addr *network,
 
     if ( sep != NULL ) *sep = '\0';
 
-    rc = inet_pton( AF_INET6, prefix_str, &t_network );
-
-    if ( rc == 1 && printable_ipv6 != NULL )
-      {
-	*printable_ipv6 = string_alloc( prefix_str, NULL );
-      }
-
-    if ( sep != NULL ) *sep = '/';
-
-    if ( rc != 1 )
+    if ( inet_pton( AF_INET6, prefix_str, &t_network ) != 1 )
       {
 	msg (msglevel, "IPv6 prefix '%s': invalid IPv6 address", prefix_str);
 	return false;
       }
+
+    if ( sep != NULL ) *sep = '/';
 
     if ( netbits != NULL )
       {
@@ -1022,12 +1013,35 @@ get_ipv6_addr( const char * prefix_str, struct in6_addr *network,
     return true;		/* parsing OK, values set */
 }
 
+/**
+ * Returns newly allocated string containing address part without "/nn".
+ *
+ * If gc != NULL, the allocated memory is registered in the supplied gc.
+ */
+static char *
+get_ipv6_addr_no_netbits (const char *addr, struct gc_arena *gc)
+{
+  const char *end = strchr (addr, '/');
+  char *ret = NULL;
+  if (NULL == end)
+    {
+      ret = string_alloc (addr, gc);
+    }
+  else
+    {
+      size_t len = end - addr;
+      ret = gc_malloc (len + 1, true, gc);
+      memcpy (ret, addr, len);
+    }
+  return ret;
+}
+
 static bool ipv6_addr_safe_hexplusbits( const char * ipv6_prefix_spec )
 {
     struct in6_addr t_addr;
     unsigned int t_bits;
 
-    return get_ipv6_addr( ipv6_prefix_spec, &t_addr, &t_bits, NULL, M_WARN );
+    return get_ipv6_addr( ipv6_prefix_spec, &t_addr, &t_bits, M_WARN );
 }
 
 static char *
@@ -1269,7 +1283,7 @@ option_iroute_ipv6 (struct options *o,
 
   ALLOC_OBJ_GC (ir, struct iroute_ipv6, &o->gc);
 
-  if ( !get_ipv6_addr (prefix_str, &ir->network, &ir->netbits, NULL, msglevel ))
+  if ( !get_ipv6_addr (prefix_str, &ir->network, &ir->netbits, msglevel ))
     {
       msg (msglevel, "in --iroute-ipv6 %s: Bad IPv6 prefix specification",
 	   prefix_str);
@@ -4469,10 +4483,9 @@ add_option (struct options *options,
   else if (streq (p[0], "ifconfig-ipv6") && p[1] && p[2] )
     {
       unsigned int netbits;
-      char * ipv6_local;
 
       VERIFY_PERMISSION (OPT_P_UP);
-      if ( get_ipv6_addr( p[1], NULL, &netbits, &ipv6_local, msglevel ) &&
+      if ( get_ipv6_addr( p[1], NULL, &netbits, msglevel ) &&
            ipv6_addr_safe( p[2] ) )
         {
 	  if ( netbits < 64 || netbits > 124 )
@@ -4481,11 +4494,7 @@ add_option (struct options *options,
 	      goto err;
 	    }
 
-          if (options->ifconfig_ipv6_local)
-            /* explicitly ignoring this is a const char */
-            free ((char *) options->ifconfig_ipv6_local);
-
-	  options->ifconfig_ipv6_local = ipv6_local;
+	  options->ifconfig_ipv6_local = get_ipv6_addr_no_netbits (p[1], &options->gc);
 	  options->ifconfig_ipv6_netbits = netbits;
 	  options->ifconfig_ipv6_remote = p[2];
         }
@@ -5560,7 +5569,7 @@ add_option (struct options *options,
       unsigned int netbits = 0;
 
       VERIFY_PERMISSION (OPT_P_GENERAL);
-      if ( ! get_ipv6_addr (p[1], &network, &netbits, NULL, lev) )
+      if ( ! get_ipv6_addr (p[1], &network, &netbits, lev) )
 	{
 	  msg (msglevel, "error parsing --server-ipv6 parameter");
 	  goto err;
@@ -5671,7 +5680,7 @@ add_option (struct options *options,
       unsigned int netbits = 0;
 
       VERIFY_PERMISSION (OPT_P_GENERAL);
-      if ( ! get_ipv6_addr (p[1], &network, &netbits, NULL, lev ) )
+      if ( ! get_ipv6_addr (p[1], &network, &netbits, lev ) )
 	{
 	  msg (msglevel, "error parsing --ifconfig-ipv6-pool parameters");
 	  goto err;
@@ -5932,7 +5941,7 @@ add_option (struct options *options,
 
       VERIFY_PERMISSION (OPT_P_INSTANCE);
 
-      if ( ! get_ipv6_addr( p[1], &local, &netbits, NULL, msglevel ) )
+      if ( ! get_ipv6_addr( p[1], &local, &netbits, msglevel ) )
 	{
 	  msg (msglevel, "cannot parse --ifconfig-ipv6-push addresses");
 	  goto err;
@@ -5940,7 +5949,7 @@ add_option (struct options *options,
 
       if ( p[2] )
 	{
-	  if ( !get_ipv6_addr( p[2], &remote, NULL, NULL, msglevel ) )
+	  if ( !get_ipv6_addr( p[2], &remote, NULL, msglevel ) )
 	    {
 	      msg( msglevel, "cannot parse --ifconfig-ipv6-push addresses");
 	      goto err;
@@ -5950,7 +5959,7 @@ add_option (struct options *options,
 	{
 	  if ( ! options->ifconfig_ipv6_local ||
 	       ! get_ipv6_addr( options->ifconfig_ipv6_local, &remote, 
-				NULL, NULL, msglevel ) )
+				NULL, msglevel ) )
 	    {
 	      msg( msglevel, "second argument to --ifconfig-ipv6-push missing and no global --ifconfig-ipv6 address set");
 	      goto err;

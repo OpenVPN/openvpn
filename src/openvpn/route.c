@@ -390,7 +390,7 @@ init_route_ipv6 (struct route_ipv6 *r6,
 {
   r6->defined = false;
 
-  if ( !get_ipv6_addr( r6o->prefix, &r6->network, &r6->netbits, NULL, M_WARN ))
+  if ( !get_ipv6_addr( r6o->prefix, &r6->network, &r6->netbits, M_WARN ))
     goto fail;
 
   /* gateway */
