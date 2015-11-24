@@ -2393,7 +2393,6 @@ close_tun (struct tuntap *tt)
     }
   else if (tt)				/* close and destroy */
     {
-      struct gc_arena gc = gc_new ();
       struct argv argv;
 
       /* setup command, close tun dev (clears tt->actual_name!), run command
