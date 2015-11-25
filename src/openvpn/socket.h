@@ -378,6 +378,11 @@ void setenv_in_addr_t (struct env_set *es,
 		       in_addr_t addr,
 		       const unsigned int flags);
 
+void setenv_in6_addr (struct env_set *es,
+                      const char *name_prefix,
+                      const struct in6_addr *addr,
+                      const unsigned int flags);
+
 void setenv_link_socket_actual (struct env_set *es,
 				const char *name_prefix,
 				const struct link_socket_actual *act,

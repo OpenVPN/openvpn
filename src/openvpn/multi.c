@@ -1426,10 +1426,24 @@ multi_set_virtual_addr_env (struct multi_context *m, struct multi_instance *mi)
 	}
     }
 
-    /* TODO: I'm not exactly sure what these environment variables are
-     *       used for, but if we have them for IPv4, we should also have
-     *       them for IPv6, no?
-     */
+  setenv_del (mi->context.c2.es, "ifconfig_pool_local_ip6");
+  setenv_del (mi->context.c2.es, "ifconfig_pool_remote_ip6");
+  setenv_del (mi->context.c2.es, "ifconfig_pool_ip6_netbits");
+
+  if (mi->context.c1.tuntap->ipv6 && mi->context.c2.push_ifconfig_ipv6_defined)
+    {
+      setenv_in6_addr (mi->context.c2.es,
+                       "ifconfig_pool_remote",
+                       &mi->context.c2.push_ifconfig_ipv6_local,
+                       SA_SET_IF_NONZERO);
+      setenv_in6_addr (mi->context.c2.es,
+                       "ifconfig_pool_local",
+                       &mi->context.c2.push_ifconfig_ipv6_remote,
+                       SA_SET_IF_NONZERO);
+      setenv_int (mi->context.c2.es,
+                  "ifconfig_pool_ip6_netbits",
+                  mi->context.c2.push_ifconfig_ipv6_netbits);
+    }
 }
 
 /*

@@ -2410,6 +2410,22 @@ setenv_in_addr_t (struct env_set *es, const char *name_prefix, in_addr_t addr, c
 }
 
 void
+setenv_in6_addr (struct env_set *es,
+                 const char *name_prefix,
+                 const struct in6_addr *addr,
+                 const unsigned int flags)
+{
+  if (!IN6_IS_ADDR_UNSPECIFIED (addr) || !(flags & SA_SET_IF_NONZERO))
+    {
+      struct openvpn_sockaddr si;
+      CLEAR (si);
+      si.addr.in6.sin6_family = AF_INET6;
+      si.addr.in6.sin6_addr = *addr;
+      setenv_sockaddr (es, name_prefix, &si, flags);
+    }
+}
+
+void
 setenv_link_socket_actual (struct env_set *es,
 			   const char *name_prefix,
 			   const struct link_socket_actual *act,
