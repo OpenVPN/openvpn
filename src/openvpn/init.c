@@ -44,6 +44,7 @@
 #include "ping.h"
 #include "mstats.h"
 #include "ssl_verify.h"
+#include "forward-inline.h"
 
 #include "memdbg.h"
 
@@ -1273,26 +1274,48 @@ initialization_sequence_completed (struct context *c, const unsigned int flags)
   /* Tell management interface that we initialized */
   if (management)
     {
-      in_addr_t tun_local = 0;
-      in_addr_t tun_remote = 0; /* FKS */
+      in_addr_t *tun_local = NULL;
+      struct in6_addr *tun_local6 = NULL;
+      struct openvpn_sockaddr local, remote;
+      struct link_socket_actual *actual;
+      socklen_t sa_len = sizeof(local);
       const char *detail = "SUCCESS";
-      if (c->c1.tuntap)
-	tun_local = c->c1.tuntap->local;
-      /* TODO(jjo): for ipv6 this will convert some 32bits in the ipv6 addr
-       *            to a meaningless ipv4 address.
-       *            In any case, is somewhat inconsistent to send local tunnel
-       *            addr with remote _endpoint_ addr (?)
-       */
-      tun_remote = htonl (c->c1.link_socket_addr.actual.dest.addr.in4.sin_addr.s_addr);
       if (flags & ISC_ERRORS)
-	detail = "ERROR";
+        detail = "ERROR";
+
+      CLEAR (local);
+      actual = &get_link_socket_info(c)->lsa->actual;
+      remote = actual->dest;
+      getsockname(c->c2.link_socket->sd, &local.addr.sa, &sa_len);
+#if ENABLE_IP_PKTINFO
+      if (!addr_defined(&local))
+        {
+          switch (local.addr.sa.sa_family)
+            {
+            case AF_INET:
+              local.addr.in4.sin_addr = actual->pi.in4.ipi_spec_dst;
+              break;
+            case AF_INET6:
+              local.addr.in6.sin6_addr = actual->pi.in6.ipi6_addr;
+              break;
+            }
+        }
+#endif
+
+      if (c->c1.tuntap)
+        {
+          tun_local = &c->c1.tuntap->local;
+          tun_local6 = &c->c1.tuntap->local_ipv6;
+        }
       management_set_state (management,
 			    OPENVPN_STATE_CONNECTED,
 			    detail,
 			    tun_local,
-			    tun_remote);
+                            tun_local6,
+                            &local,
+                            &remote);
       if (tun_local)
-	management_post_tunnel_open (management, tun_local);
+	management_post_tunnel_open (management, *tun_local);
     }
 #endif
 }
@@ -3288,8 +3311,10 @@ open_management (struct context *c)
 	      management_set_state (management,
 				    OPENVPN_STATE_CONNECTING,
 				    NULL,
-				    (in_addr_t)0,
-				    (in_addr_t)0);
+                                    NULL,
+                                    NULL,
+                                    NULL,
+                                    NULL);
 	    }
 
 	  /* initial management hold, called early, before first context initialization */

@@ -88,7 +88,9 @@ struct log_entry
   time_t timestamp;
   const char *string;
   in_addr_t local_ip;
-  in_addr_t remote_ip;
+  struct in6_addr local_ip6;
+  struct openvpn_sockaddr local_sock;
+  struct openvpn_sockaddr remote_sock;
   union log_entry_union u;
 };
 
@@ -496,8 +498,10 @@ management_enable_def_auth (const struct management *man)
 void management_set_state (struct management *man,
 			   const int state,
 			   const char *detail,
-			   const in_addr_t tun_local_ip,
-			   const in_addr_t tun_remote_ip);
+                           const in_addr_t *tun_local_ip,
+                           const struct in6_addr *tun_local_ip6,
+                           const struct openvpn_sockaddr *local_addr,
+                           const struct openvpn_sockaddr *remote_addr);
 
 /*
  * The management object keeps track of OpenVPN --echo

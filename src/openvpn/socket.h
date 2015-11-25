@@ -344,6 +344,7 @@ void sd_close (socket_descriptor_t *sd);
 #define PS_SHOW_PORT            (1<<1)
 #define PS_SHOW_PKTINFO         (1<<2)
 #define PS_DONT_SHOW_ADDR       (1<<3)
+#define PS_DONT_SHOW_FAMILY     (1<<4)
 
 const char *print_sockaddr_ex (const struct sockaddr *addr,
 			       const char* separator,

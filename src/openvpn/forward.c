@@ -208,8 +208,10 @@ check_connection_established_dowork (struct context *c)
 		  management_set_state (management,
 					OPENVPN_STATE_GET_CONFIG,
 					NULL,
-					0,
-					0);
+                                        NULL,
+                                        NULL,
+                                        NULL,
+                                        NULL);
 		}
 #endif
 	      /* fire up push request right away (already 1s delayed) */

@@ -363,8 +363,10 @@ openvpn_getaddrinfo (unsigned int flags,
             management_set_state (management,
                                   OPENVPN_STATE_RESOLVE,
                                   NULL,
-                                  (in_addr_t)0,
-                                  (in_addr_t)0);
+                                  NULL,
+                                  NULL,
+                                  NULL,
+                                  NULL);
         }
 #endif
 
@@ -1244,8 +1246,10 @@ socket_connect (socket_descriptor_t* sd,
 	management_set_state (management,
 			      OPENVPN_STATE_TCP_CONNECT,
 			      NULL,
-			      (in_addr_t)0,
-			      (in_addr_t)0);
+                              NULL,
+                              NULL,
+                              NULL,
+                              NULL);
 #endif
 
   /* Set the actual address */
@@ -2371,17 +2375,22 @@ print_sockaddr_ex (const struct sockaddr *sa,
   switch(sa->sa_family)
     {
     case AF_INET:
-      buf_puts (&out, "[AF_INET]");
+      if (!(flags & PS_DONT_SHOW_FAMILY))
+        buf_puts (&out, "[AF_INET]");
       salen = sizeof (struct sockaddr_in);
       addr_is_defined = ((struct sockaddr_in*) sa)->sin_addr.s_addr != 0;
       break;
     case AF_INET6:
-      buf_puts (&out, "[AF_INET6]");
+      if (!(flags & PS_DONT_SHOW_FAMILY))
+        buf_puts (&out, "[AF_INET6]");
       salen = sizeof (struct sockaddr_in6);
       addr_is_defined = !IN6_IS_ADDR_UNSPECIFIED(&((struct sockaddr_in6*) sa)->sin6_addr);
       break;
     case AF_UNSPEC:
-      return "[AF_UNSPEC]";
+      if (!(flags & PS_DONT_SHOW_FAMILY))
+        return "[AF_UNSPEC]";
+      else
+        return "";
     default:
       ASSERT(0);
     }

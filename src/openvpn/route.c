@@ -1093,8 +1093,10 @@ add_routes (struct route_list *rl, struct route_ipv6_list *rl6, const struct tun
 	  management_set_state (management,
 				OPENVPN_STATE_ADD_ROUTES,
 				NULL,
-				0,
-				0);
+                                NULL,
+                                NULL,
+                                NULL,
+                                NULL);
 	}
 #endif
 

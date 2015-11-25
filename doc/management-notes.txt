@@ -366,14 +366,23 @@ Command examples:
                   same time enable real-time state notification
 		  of future state transitions.
 
-The output format consists of 4 comma-separated parameters: 
+The output format consists of up to 9 comma-separated parameters:
   (a) the integer unix date/time,
   (b) the state name,
   (c) optional descriptive string (used mostly on RECONNECTING
       and EXITING to show the reason for the disconnect),
-  (d) optional TUN/TAP local IP address (shown for ASSIGN_IP
-      and CONNECTED), and
-  (e) optional address of remote server (OpenVPN 2.1 or higher).
+  (d) optional TUN/TAP local IPv4 address
+  (e) optional address of remote server,
+  (f) optional port of remote server,
+  (g) optional local address,
+  (h) optional local port, and
+  (i) optional TUN/TAP local IPv6 address.
+
+Fields (e)-(h) are shown for CONNECTED state,
+(d) and (i) are shown for ASSIGN_IP and CONNECTED states.
+
+(e) is available starting from OpenVPN 2.1
+(f)-(i) are available starting from OpenVPN 2.4
 
 Real-time state notifications will have a ">STATE:" prefix
 prepended to them.

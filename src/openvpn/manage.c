@@ -2422,8 +2422,10 @@ void
 management_set_state (struct management *man,
 		      const int state,
 		      const char *detail,
-		      const in_addr_t tun_local_ip,
-		      const in_addr_t tun_remote_ip)
+                      const in_addr_t *tun_local_ip,
+                      const struct in6_addr *tun_local_ip6,
+                      const struct openvpn_sockaddr *local,
+                      const struct openvpn_sockaddr *remote)
 {
   if (man->persist.state && (!(man->settings.flags & MF_SERVER) || state < OPENVPN_STATE_CLIENT_BASE))
     {
@@ -2436,9 +2438,15 @@ management_set_state (struct management *man,
       e.timestamp = now;
       e.u.state = state;
       e.string = detail;
-      e.local_ip = tun_local_ip;
-      e.remote_ip = tun_remote_ip;
-      
+      if (tun_local_ip)
+        e.local_ip = *tun_local_ip;
+      if (tun_local_ip6)
+        e.local_ip6 = *tun_local_ip6;
+      if (local)
+        e.local_sock = *local;
+      if (remote)
+        e.remote_sock = *remote;
+
       log_history_add (man->persist.state, &e);
 
       if (man->connection.state_realtime)
@@ -3460,7 +3468,14 @@ log_entry_print (const struct log_entry *e, unsigned int flags, struct gc_arena 
   if (flags & LOG_PRINT_LOCAL_IP)
     buf_printf (&out, ",%s", print_in_addr_t (e->local_ip, IA_EMPTY_IF_UNDEF, gc));
   if (flags & LOG_PRINT_REMOTE_IP)
-    buf_printf (&out, ",%s", print_in_addr_t (e->remote_ip, IA_EMPTY_IF_UNDEF, gc));
+    {
+      buf_printf (&out, ",%s", (!addr_defined (&e->remote_sock) ? "," :
+        print_sockaddr_ex (&e->remote_sock.addr.sa, ",", PS_DONT_SHOW_FAMILY|PS_SHOW_PORT, gc)));
+      buf_printf (&out, ",%s", (!addr_defined (&e->local_sock) ? "," :
+        print_sockaddr_ex (&e->local_sock.addr.sa, ",", PS_DONT_SHOW_FAMILY|PS_SHOW_PORT, gc)));
+    }
+  if (flags & LOG_PRINT_LOCAL_IP && !IN6_IS_ADDR_UNSPECIFIED(&e->local_ip6))
+    buf_printf (&out, ",%s", print_in6_addr (e->local_ip6, IA_EMPTY_IF_UNDEF, gc));
   if (flags & LOG_ECHO_TO_LOG)
     msg (D_MANAGEMENT, "MANAGEMENT: %s", BSTR (&out));
   if (flags & LOG_PRINT_CRLF)
