@@ -1036,8 +1036,8 @@ get_user_pass_cr (struct user_pass *up,
   if (!up->defined)
     {
       bool from_authfile = (auth_file && !streq (auth_file, "stdin"));
-      bool username_from_stdin = !from_authfile;
-      bool password_from_stdin = !from_authfile;
+      bool username_from_stdin = false;
+      bool password_from_stdin = false;
 
       if (flags & GET_USER_PASS_PREVIOUS_CREDS_FAILED)
 	msg (M_WARN, "Note: previous '%s' credentials failed", prefix);
@@ -1133,6 +1133,11 @@ get_user_pass_cr (struct user_pass *up,
 
           if (!(flags & GET_USER_PASS_PASSWORD_ONLY) && strlen (up->username) == 0)
             msg (M_FATAL, "ERROR: username from %s authfile '%s' is empty", prefix, auth_file);
+        }
+      else
+        {
+          username_from_stdin = true;
+          password_from_stdin = true;
         }
 
       /*
