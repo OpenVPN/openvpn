@@ -378,7 +378,12 @@ show_available_engines ()
 
 int rand_bytes(uint8_t *output, int len)
 {
-  return RAND_bytes (output, len);
+  if (unlikely(1 != RAND_bytes (output, len)))
+    {
+      msg(D_CRYPT_ERRORS, "RAND_bytes() failed");
+      return 0;
+    }
+  return 1;
 }
 
 /*
