@@ -1320,7 +1320,7 @@ prng_bytes (uint8_t *output, int len)
 	}
     }
   else
-    rand_bytes (output, len);
+    ASSERT (rand_bytes (output, len));
 }
 
 /* an analogue to the random() function, but use prng_bytes */
