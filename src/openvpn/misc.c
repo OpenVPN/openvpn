@@ -1110,14 +1110,6 @@ get_user_pass_cr (struct user_pass *up,
 
           if (fgets (password_buf, USER_PASS_LEN, fp) != NULL)
             {
-#ifndef ENABLE_PASSWORD_SAVE
-              /*
-               * Unless ENABLE_PASSWORD_SAVE is defined, don't allow sensitive passwords
-               * to be read from a file.
-               */
-              if (flags & GET_USER_PASS_SENSITIVE)
-                msg (M_FATAL, "Sorry, '%s' password cannot be read from a file", prefix);
-#endif
               chomp (password_buf);
             }
 
