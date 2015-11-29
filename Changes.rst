@@ -72,3 +72,6 @@ User-visible Changes
 - proto udp6/tcp6 in server mode will now try to always listen to
   both IPv4 and IPv6 on platforms that allow it. Use bind ipv6only
   to explicitly listen only on IPv6.
+
+- Removed --enable-password-save from configure. This option is now
+  always enabled.
