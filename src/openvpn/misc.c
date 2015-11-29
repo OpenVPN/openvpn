@@ -607,6 +607,16 @@ env_set_add (struct env_set *es, const char *str)
   env_set_add_nolock (es, str);
 }
 
+const char*
+env_set_get (const struct env_set *es, const char *name)
+{
+  const struct env_item *item = es->list;
+  while (item && !env_string_equal(item->string, name)) {
+      item = item->next;
+  }
+  return item ? item->string : NULL;
+}
+
 void
 env_set_print (int msglevel, const struct env_set *es)
 {
@@ -739,6 +749,28 @@ setenv_str_safe (struct env_set *es, const char *name, const char *value)
     setenv_str (es, BSTR(&buf), value);
   else
     msg (M_WARN, "setenv_str_safe: name overflow");
+}
+
+void setenv_str_incr(struct env_set *es, const char *name, const char *value)
+{
+  unsigned int counter = 1;
+  const size_t tmpname_len = strlen(name) + 5; /* 3 digits counter max */
+  char *tmpname = gc_malloc(tmpname_len, true, NULL);
+  strcpy(tmpname, name);
+  while (NULL != env_set_get(es, tmpname) && counter < 1000)
+    {
+      ASSERT (openvpn_snprintf (tmpname, tmpname_len, "%s_%u", name, counter));
+      counter++;
+    }
+  if (counter < 1000)
+    {
+      setenv_str (es, tmpname, value);
+    }
+  else
+    {
+      msg (D_TLS_DEBUG_MED, "Too many same-name env variables, ignoring: %s", name);
+    }
+  free (tmpname);
 }
 
 void

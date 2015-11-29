@@ -133,6 +133,12 @@ void setenv_str (struct env_set *es, const char *name, const char *value);
 void setenv_str_safe (struct env_set *es, const char *name, const char *value);
 void setenv_del (struct env_set *es, const char *name);
 
+/**
+ * Store the supplied name value pair in the env_set.  If the variable with the
+ * supplied name  already exists, append _N to the name, starting at N=1.
+ */
+void setenv_str_incr(struct env_set *es, const char *name, const char *value);
+
 void setenv_int_i (struct env_set *es, const char *name, const int value, const int i);
 void setenv_str_i (struct env_set *es, const char *name, const char *value, const int i);
 
@@ -142,6 +148,7 @@ struct env_set *env_set_create (struct gc_arena *gc);
 void env_set_destroy (struct env_set *es);
 bool env_set_del (struct env_set *es, const char *str);
 void env_set_add (struct env_set *es, const char *str);
+const char* env_set_get (const struct env_set *es, const char *name);
 
 void env_set_print (int msglevel, const struct env_set *es);
 

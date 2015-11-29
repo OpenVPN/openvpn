@@ -448,7 +448,7 @@ x509_setenv (struct env_set *es, int cert_depth, openvpn_x509_cert_t *peer_cert)
 	  objbuf);
       string_mod (name_expand, CC_PRINT, CC_CRLF, '_');
       string_mod ((char*)buf, CC_PRINT, CC_CRLF, '_');
-      setenv_str (es, name_expand, (char*)buf);
+      setenv_str_incr (es, name_expand, (char*)buf);
       free (name_expand);
       OPENSSL_free (buf);
     }

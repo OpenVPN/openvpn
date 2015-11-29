@@ -36,6 +36,13 @@ LZ4 Compression
 
 User-visible Changes
 --------------------
+- For certificate DNs with duplicate fields, e.g. "OU=one,OU=two", both fields
+  are now exported to the environment, where each second and later occurrence
+  of a field get _$N appended to it's field name, starting at N=1.  For the
+  example above, that would result in e.g. X509_0_OU=one, X509_0_OU_1=two.
+  Note that this breaks setups that rely on the fact that OpenVPN would
+  previously (incorrectly) only export the last occurence of a field.
+
 - proto udp and proto tcp specify to use IPv4 and IPv6. The new
   options proto udp4 and tcp4 specify to use IPv4 only.
 
