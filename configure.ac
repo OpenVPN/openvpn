@@ -303,7 +303,7 @@ AC_ARG_WITH(
 
 AC_ARG_WITH(
 	[plugindir],
-	[AS_HELP_STRING([--with-plugindir], [plugin directory @<:@default=LIBDIR/openvpn@:>@])],
+	[AS_HELP_STRING([--with-plugindir], [plugin directory @<:@default=LIBDIR/openvpn/plugins@:>@])],
 	,
 	[with_plugindir="\$(libdir)/openvpn/plugins"]
 )
