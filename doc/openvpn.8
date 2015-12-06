@@ -3800,7 +3800,13 @@ over the client's routing table.
 Authenticate with server using username/password.
 .B up
 is a file containing username/password on 2 lines. If the
-password line is missing, OpenVPN will prompt for one.
+password line is missing or empty, OpenVPN will prompt for one.
+The third line of the file can be used to enter a response to
+a challenge, such as "push", "phone", etc., which can be used
+to eliminate an extra prompt for an unchanging text if your
+challenge/response setup uses push/callback two-factor auth
+(and can be combined with an empty password line to still be
+prompted for your password).
 
 If
 .B up
