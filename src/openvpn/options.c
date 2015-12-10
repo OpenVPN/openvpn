@@ -3869,7 +3869,7 @@ read_config_file (struct options *options,
   const int max_recursive_levels = 10;
   FILE *fp;
   int line_num;
-  char line[OPTION_LINE_SIZE];
+  char line[OPTION_LINE_SIZE+1];
   char *p[MAX_PARMS];
 
   ++level;
@@ -3887,6 +3887,10 @@ read_config_file (struct options *options,
               int offset = 0;
 	      CLEAR (p);
 	      ++line_num;
+          if (strlen(line) == OPTION_LINE_SIZE)
+              msg (msglevel, "In %s:%d: Maximum optione line length (%d) exceeded, line starts with %s",
+                   file, line_num, OPTION_LINE_SIZE, line);
+
               /* Ignore UTF-8 BOM at start of stream */
               if (line_num == 1 && strncmp (line, "\xEF\xBB\xBF", 3) == 0)
                 offset = 3;
