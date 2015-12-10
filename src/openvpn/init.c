@@ -1468,6 +1468,15 @@ do_open_tun (struct context *c)
 		   "up",
 		   c->c2.es);
 
+#if _WIN32_WINNT >= 0x0600
+      if (c->options.block_outside_dns)
+      {
+        dmsg (D_LOW, "Blocking outside DNS");
+        if (!win_wfp_block_dns(c->c1.tuntap->adapter_index))
+            msg (M_FATAL, "Blocking DNS failed!");
+      }
+#endif
+
       /* possibly add routes */
       if (!c->options.route_delay_defined)
 	do_route (&c->options, c->c1.route_list, c->c1.route_ipv6_list,
@@ -1593,6 +1602,14 @@ do_close_tun (struct context *c, bool force)
 					   c->sig->signal_text),
 		       "down",
 		       c->c2.es);
+
+#if _WIN32_WINNT >= 0x0600
+            if (c->options.block_outside_dns)
+            {
+                if (!win_wfp_uninit())
+                    msg (M_FATAL, "Uninitialising WFP failed!");
+            }
+#endif
 
 	  /* actually close tun/tap device based on --down-pre flag */
 	  if (c->options.down_pre)

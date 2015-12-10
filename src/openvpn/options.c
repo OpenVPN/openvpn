@@ -715,6 +715,9 @@ static const char usage_message[] =
   "                       optional parameter controls the initial state of ex.\n"
   "--show-net-up   : Show " PACKAGE_NAME "'s view of routing table and net adapter list\n"
   "                  after TAP adapter is up and routes have been added.\n"
+#if _WIN32_WINNT >= 0x0600
+  "--block-outside-dns   : Block DNS on other network adapters to prevent DNS leaks\n"
+#endif
   "Windows Standalone Options:\n"
   "\n"
   "--show-adapters : Show all TAP-Windows adapters.\n"
@@ -814,6 +817,7 @@ init_options (struct options *o, const bool init_gc)
   o->tuntap_options.dhcp_lease_time = 31536000; /* one year */
   o->tuntap_options.dhcp_masq_offset = 0;       /* use network address as internal DHCP server address */
   o->route_method = ROUTE_METHOD_ADAPTIVE;
+  o->block_outside_dns = false;
 #endif
 #if P2MP_SERVER
   o->real_hash_size = 256;
@@ -1678,6 +1682,9 @@ show_settings (const struct options *o)
 #ifdef WIN32
   SHOW_BOOL (show_net_up);
   SHOW_INT (route_method);
+#if _WIN32_WINNT >= 0x0600
+  SHOW_BOOL (block_outside_dns);
+#endif
   show_tuntap_options (&o->tuntap_options);
 #endif
 #endif
@@ -6245,6 +6252,13 @@ add_option (struct options *options,
       VERIFY_PERMISSION (OPT_P_IPWIN32);
       options->tuntap_options.register_dns = true;
     }
+#if _WIN32_WINNT >= 0x0600
+  else if (streq (p[0], "block-outside-dns") && !p[1])
+    {
+      VERIFY_PERMISSION (OPT_P_IPWIN32);
+      options->block_outside_dns = true;
+    }
+#endif
   else if (streq (p[0], "rdns-internal"))
      /* standalone method for internal use
       *

@@ -1119,8 +1119,8 @@ When used with
 .B \-\-client
 or
 .B \-\-pull,
-accept options pushed by server EXCEPT for routes and dhcp options
-like DNS servers.
+accept options pushed by server EXCEPT for routes, block-outside-dns and dhcp
+options like DNS servers.
 
 When used on the client, this option effectively bars the
 server from adding routes to the client's routing table,
@@ -5446,6 +5446,14 @@ Windows IP Helper API operations are applied to it.
 Output OpenVPN's view of the system routing table and network
 adapter list to the syslog or log file after the TUN/TAP adapter
 has been brought up and any routes have been added.
+.\"*********************************************************
+.TP
+.B \-\-block\-outside\-dns
+Block DNS servers on other network adapters to prevent
+DNS leaks. This option prevents any application from accessing
+TCP or UDP port 53 except one inside the tunnel. It uses
+Windows Filtering Platform (WFP) and works on Windows Vista or
+later.
 .\"*********************************************************
 .TP
 .B \-\-dhcp\-renew
