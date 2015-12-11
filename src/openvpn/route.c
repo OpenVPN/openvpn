@@ -1770,13 +1770,17 @@ add_route_ipv6 (struct route_ipv6 *r6, const struct tuntap *tt, unsigned int fla
 
 #elif defined (WIN32)
 
+  struct buffer out = alloc_buf_gc (64, &gc);
   if ( r6->adapter_index )		/* vpn server special route */
     {
-      struct buffer out = alloc_buf_gc (64, &gc);
       buf_printf (&out, "interface=%d", r6->adapter_index );
-      device = buf_bptr(&out);
       gateway_needed = true;
     }
+  else
+    {
+      buf_printf (&out, "interface=%d", tt->adapter_index );
+    }
+  device = buf_bptr(&out);
 
   /* netsh interface ipv6 add route 2001:db8::/32 MyTunDevice */
   argv_printf (&argv, "%s%sc interface ipv6 add route %s/%d %s",
@@ -2168,13 +2172,17 @@ delete_route_ipv6 (const struct route_ipv6 *r6, const struct tuntap *tt, unsigne
 
 #elif defined (WIN32)
 
+  struct buffer out = alloc_buf_gc (64, &gc);
   if ( r6->adapter_index )		/* vpn server special route */
     {
-      struct buffer out = alloc_buf_gc (64, &gc);
       buf_printf (&out, "interface=%d", r6->adapter_index );
-      device = buf_bptr(&out);
       gateway_needed = true;
     }
+  else
+    {
+      buf_printf (&out, "interface=%d", tt->adapter_index );
+    }
+  device = buf_bptr(&out);
 
   /* netsh interface ipv6 delete route 2001:db8::/32 MyTunDevice */
   argv_printf (&argv, "%s%sc interface ipv6 delete route %s/%d %s",
