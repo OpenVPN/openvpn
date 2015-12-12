@@ -62,6 +62,9 @@ run_up_down (const char *command,
 	     const struct plugin_list *plugins,
 	     int plugin_type,
 	     const char *arg,
+#ifdef WIN32
+	     DWORD adapter_index,
+#endif
 	     const char *dev_type,
 	     int tun_mtu,
 	     int link_mtu,
@@ -82,6 +85,9 @@ run_up_down (const char *command,
   setenv_str (es, "dev", arg);
   if (dev_type)
     setenv_str (es, "dev_type", dev_type);
+#ifdef WIN32
+  setenv_int (es, "dev_idx", adapter_index);
+#endif
 
   if (!ifconfig_local)
     ifconfig_local = "";
