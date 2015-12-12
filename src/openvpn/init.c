@@ -1458,6 +1458,9 @@ do_open_tun (struct context *c)
 		   c->plugins,
 		   OPENVPN_PLUGIN_UP,
 		   c->c1.tuntap->actual_name,
+#ifdef WIN32
+		   c->c1.tuntap->adapter_index,
+#endif
 		   dev_type_string (c->options.dev, c->options.dev_type),
 		   TUN_MTU_SIZE (&c->c2.frame),
 		   EXPANDED_SIZE (&c->c2.frame),
@@ -1507,6 +1510,9 @@ do_open_tun (struct context *c)
 		     c->plugins,
 		     OPENVPN_PLUGIN_UP,
 		     c->c1.tuntap->actual_name,
+#ifdef WIN32
+		     c->c1.tuntap->adapter_index,
+#endif
 		     dev_type_string (c->options.dev, c->options.dev_type),
 		     TUN_MTU_SIZE (&c->c2.frame),
 		     EXPANDED_SIZE (&c->c2.frame),
@@ -1544,6 +1550,9 @@ do_close_tun (struct context *c, bool force)
   if (c->c1.tuntap && c->c1.tuntap_owned)
     {
       const char *tuntap_actual = string_alloc (c->c1.tuntap->actual_name, &gc);
+#ifdef WIN32
+      DWORD adapter_index = c->c1.tuntap->adapter_index;
+#endif
       const in_addr_t local = c->c1.tuntap->local;
       const in_addr_t remote_netmask = c->c1.tuntap->remote_netmask;
 
@@ -1567,6 +1576,9 @@ do_close_tun (struct context *c, bool force)
                            c->plugins,
                            OPENVPN_PLUGIN_ROUTE_PREDOWN,
                            tuntap_actual,
+#ifdef WIN32
+                           adapter_index,
+#endif
                            NULL,
                            TUN_MTU_SIZE (&c->c2.frame),
                            EXPANDED_SIZE (&c->c2.frame),
@@ -1592,6 +1604,9 @@ do_close_tun (struct context *c, bool force)
 		       c->plugins,
 		       OPENVPN_PLUGIN_DOWN,
 		       tuntap_actual,
+#ifdef WIN32
+		       adapter_index,
+#endif
 		       NULL,
 		       TUN_MTU_SIZE (&c->c2.frame),
 		       EXPANDED_SIZE (&c->c2.frame),
@@ -1623,6 +1638,9 @@ do_close_tun (struct context *c, bool force)
 			 c->plugins,
 			 OPENVPN_PLUGIN_DOWN,
 			 tuntap_actual,
+#ifdef WIN32
+			 adapter_index,
+#endif
 			 NULL,
 			 TUN_MTU_SIZE (&c->c2.frame),
 			 EXPANDED_SIZE (&c->c2.frame),

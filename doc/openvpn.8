@@ -5821,6 +5821,17 @@ or
 script execution.
 .\"*********************************************************
 .TP
+.B dev_idx
+On Windows, the device index of the TUN/TAP adapter (to
+be used in netsh.exe calls which sometimes just do not work
+right with interface names).
+Set prior to
+.B \-\-up
+or
+.B \-\-down
+script execution.
+.\"*********************************************************
+.TP
 .B foreign_option_{n}
 An option pushed via
 .B \-\-push
