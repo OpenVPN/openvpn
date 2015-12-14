@@ -271,6 +271,7 @@ const char *win_get_tempdir();
 /* Convert a string from UTF-8 to UCS-2 */
 WCHAR *wide_string (const char* utf8, struct gc_arena *gc);
 
+bool win_wfp_init_funcs();
 bool win_wfp_block_dns(const NET_IFINDEX index);
 bool win_wfp_uninit();
 

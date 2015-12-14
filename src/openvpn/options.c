@@ -715,9 +715,7 @@ static const char usage_message[] =
   "                       optional parameter controls the initial state of ex.\n"
   "--show-net-up   : Show " PACKAGE_NAME "'s view of routing table and net adapter list\n"
   "                  after TAP adapter is up and routes have been added.\n"
-#if _WIN32_WINNT >= 0x0600
   "--block-outside-dns   : Block DNS on other network adapters to prevent DNS leaks\n"
-#endif
   "Windows Standalone Options:\n"
   "\n"
   "--show-adapters : Show all TAP-Windows adapters.\n"
@@ -1682,9 +1680,7 @@ show_settings (const struct options *o)
 #ifdef WIN32
   SHOW_BOOL (show_net_up);
   SHOW_INT (route_method);
-#if _WIN32_WINNT >= 0x0600
   SHOW_BOOL (block_outside_dns);
-#endif
   show_tuntap_options (&o->tuntap_options);
 #endif
 #endif
@@ -6252,11 +6248,20 @@ add_option (struct options *options,
       VERIFY_PERMISSION (OPT_P_IPWIN32);
       options->tuntap_options.register_dns = true;
     }
-#if _WIN32_WINNT >= 0x0600
+#ifdef WIN32
   else if (streq (p[0], "block-outside-dns") && !p[1])
     {
       VERIFY_PERMISSION (OPT_P_IPWIN32);
-      options->block_outside_dns = true;
+      if (win_wfp_init_funcs())
+      {
+        options->block_outside_dns = true;
+      }
+      else
+      {
+        msg (msglevel_fc, "Failed to enable --block-outside-dns. "
+                       "Maybe WFP is not supported on your system?");
+	      goto err;
+      }
     }
 #endif
   else if (streq (p[0], "rdns-internal"))

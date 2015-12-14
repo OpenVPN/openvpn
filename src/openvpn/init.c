@@ -1471,7 +1471,7 @@ do_open_tun (struct context *c)
 		   "up",
 		   c->c2.es);
 
-#if _WIN32_WINNT >= 0x0600
+#ifdef WIN32
       if (c->options.block_outside_dns)
       {
         dmsg (D_LOW, "Blocking outside DNS");
@@ -1618,7 +1618,7 @@ do_close_tun (struct context *c, bool force)
 		       "down",
 		       c->c2.es);
 
-#if _WIN32_WINNT >= 0x0600
+#ifdef WIN32
             if (c->options.block_outside_dns)
             {
                 if (!win_wfp_uninit())

@@ -449,6 +449,9 @@
     <ClInclude Include="win32.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="win32_wfp.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="openvpn_win32_resources.rc">
