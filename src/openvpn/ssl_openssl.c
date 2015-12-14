@@ -353,6 +353,7 @@ tls_ctx_restrict_ciphers(struct tls_root_ctx *ctx, const char *ciphers)
 void
 tls_ctx_check_cert_time (const struct tls_root_ctx *ctx)
 {
+#if OPENSSL_VERSION_NUMBER >= 0x10002000L
   int ret;
   const X509 *cert = SSL_CTX_get0_certificate(ctx->ctx);
 
@@ -375,6 +376,7 @@ tls_ctx_check_cert_time (const struct tls_root_ctx *ctx)
     {
       msg (M_WARN, "WARNING: Your certificate has expired!");
     }
+#endif
 }
 
 void
