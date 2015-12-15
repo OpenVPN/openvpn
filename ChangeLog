@@ -1,6 +1,83 @@
 OpenVPN Change Log
 Copyright (C) 2002-2015 OpenVPN Technologies, Inc. <sales@openvpn.net>
 
+2015.12.15 -- Version 2.3.9
+Arne Schwabe (7):
+      Show extra-certs in current parameters.
+      Fix commit a3160fc1bd7368395745b9cee6e40fb819f5564c
+      Do not set the buffer size by default but rely on the operation system default.
+      Remove --enable-password-save option
+      Reflect enable-password-save change in documentation
+      Also remove second instance of enable-password-save in the man page
+      Detect config lines that are too long and give a warning/error
+
+Boris Lytochkin (1):
+      Log serial number of revoked certificate
+
+Christos Trochalakis (1):
+      Adjust server-ipv6 documentation
+
+David Sommerseth (1):
+      Avoid partial authentication state when using --disabled in CCD configs
+
+Fish (1):
+      Make "block-outside-dns" option platform agnostic
+
+Gert Doering (7):
+      Un-break --auth-user-pass on windows
+      Replace unaligned 16bit access to TCP MSS value with bytewise access
+      Repair test_local_addr() on WIN32
+      Fix possible heap overflow on read accessing getaddrinfo() result.
+      Fix FreeBSD-specific mishandling of gc arena pointer in create_arbitrary_remote()
+      remove unused gc_arena in FreeBSD close_tun()
+      Fix isatty() check for good.
+
+Heiko Hund (1):
+      put virtual IPv6 addresses into env
+
+Lev Stipakov (5):
+      Use adapter index instead of name for windows IPv6 interface config
+      Client-side part for server restart notification
+      Use adapter index for add/delete_route_ipv6
+      Pass adapter index to up/down scripts
+      Fix VS2013 compilation
+
+Lukasz Kutyla (1):
+      Fix privilege drop if first connection attempt fails
+
+Michal Ludvig (1):
+      Support for username-only auth file.
+
+Samuli Seppänen (2):
+      Add CONTRIBUTING.rst
+      Updates to Changes.rst
+
+Selva Nair (4):
+      Fix termination when windows suspends/sleeps
+      Do not hard-code windows systemroot in env_block
+      Handle ctrl-C and ctrl-break events on Windows
+      Unbreak read username password from management
+
+Steffan Karger (11):
+      Replace strdup() calls for string_alloc() calls
+      Check return value of ms_error_text()
+      Increase control channel packet size for faster handshakes
+      hardening: add insurance to exit on a failed ASSERT()
+      Fix memory leak in auth-pam plugin
+      Fix (potential) memory leak in init_route_list()
+      Fix unintialized variable in plugin_vlog()
+      Add macro to ensure we exit on fatal errors
+      Fix memory leak in add_option() by simplifying get_ipv6_addr
+      openssl: properly check return value of RAND_bytes()
+      Fix rand_bytes return value checking
+
+ValdikSS (1):
+      Add Windows DNS Leak fix using WFP ('block-outside-dns')
+
+janjust (1):
+      Fix "White space before end tags can break the config parser"
+
+
 2015.08.03 -- Version 2.3.8
 Arne Schwabe (2):
       Report missing endtags of inline files as warnings
