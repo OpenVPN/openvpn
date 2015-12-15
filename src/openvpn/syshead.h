@@ -47,6 +47,7 @@
 
 #ifdef _MSC_VER // Visual Studio
 #define __func__ __FUNCTION__
+#define __attribute__(x)
 #endif
 
 #if defined(__APPLE__)
