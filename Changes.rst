@@ -30,7 +30,8 @@ Push peer info
 
 PolarSSL support
     Allow use of PolarSSL in OpenVPN as the crypto library, the SSL library and
-    for providing PKCS#11 support.
+    for providing PKCS#11 support (up to 2.3.9 supporting PolarSSL 1.2, starting
+    with 2.3.10, PolarSSL 1.3).
 
 Plug-in API v3
     This is a new, more flexible plug-in API.
@@ -97,6 +98,16 @@ Behavioral changes
 - Make '--win-sys env' default
 
 - Do not randomize resolving of IP addresses in getaddr()
+
+
+Version 2.3.10
+=============
+
+Behavioral changes
+------------------
+
+- PolarSSL support changed from PolarSSL v1.2 to PolarSSL v1.3, 
+  as v1.2 is end-of-support 2015-12-31.
 
 
 Version 2.3.9
