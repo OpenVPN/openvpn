@@ -40,6 +40,7 @@
 #include "errlevel.h"
 #include "pkcs11_backend.h"
 #include <polarssl/pkcs11.h>
+#include <polarssl/x509.h>
 
 int
 pkcs11_init_tls_session(pkcs11h_certificate_t certificate,
@@ -49,20 +50,21 @@ pkcs11_init_tls_session(pkcs11h_certificate_t certificate,
 
   ASSERT (NULL != ssl_ctx);
 
+  ALLOC_OBJ_CLEAR (ssl_ctx->crt_chain, x509_crt);
   if (pkcs11_x509_cert_init(ssl_ctx->crt_chain, certificate)) {
       msg (M_FATAL, "PKCS#11: Cannot retrieve PolarSSL certificate object");
       goto cleanup;
   }
 
-  ssl_ctx->priv_key_pkcs11 = malloc(sizeof(pkcs11_context));
-
-  if (ssl_ctx->priv_key_pkcs11 == NULL) {
-      msg (M_FATAL, "PKCS#11: Cannot allocate PolarSSL private key object");
+  ALLOC_OBJ_CLEAR (ssl_ctx->priv_key_pkcs11, pkcs11_context);
+  if (pkcs11_priv_key_init(ssl_ctx->priv_key_pkcs11, certificate)) {
+      msg (M_FATAL, "PKCS#11: Cannot initialize PolarSSL private key object");
       goto cleanup;
   }
 
-  if (pkcs11_priv_key_init(ssl_ctx->priv_key_pkcs11, certificate)) {
-      msg (M_FATAL, "PKCS#11: Cannot initialize PolarSSL private key object");
+  ALLOC_OBJ_CLEAR (ssl_ctx->priv_key, pk_context);
+  if (0 != pk_init_ctx_rsa_alt(ssl_ctx->priv_key, ssl_ctx->priv_key_pkcs11,
+	ssl_pkcs11_decrypt, ssl_pkcs11_sign, ssl_pkcs11_key_len)) {
       goto cleanup;
   }
 
@@ -78,14 +80,14 @@ pkcs11_certificate_dn (pkcs11h_certificate_t cert, struct gc_arena *gc)
   char *ret = NULL;
   char dn[1024] = {0};
 
-  x509_cert polar_cert = {0};
+  x509_crt polar_cert = {0};
 
   if (pkcs11_x509_cert_init(&polar_cert, cert)) {
       msg (M_FATAL, "PKCS#11: Cannot retrieve PolarSSL certificate object");
       goto cleanup;
   }
 
-  if (-1 == x509parse_dn_gets (dn, sizeof(dn), &polar_cert.subject)) {
+  if (-1 == x509_dn_gets (dn, sizeof(dn), &polar_cert.subject)) {
       msg (M_FATAL, "PKCS#11: PolarSSL cannot parse subject");
       goto cleanup;
   }
@@ -93,7 +95,7 @@ pkcs11_certificate_dn (pkcs11h_certificate_t cert, struct gc_arena *gc)
   ret = string_alloc(dn, gc);
 
 cleanup:
-  x509_free(&polar_cert);
+  x509_crt_free(&polar_cert);
 
   return ret;
 }
@@ -104,14 +106,14 @@ pkcs11_certificate_serial (pkcs11h_certificate_t cert, char *serial,
 {
   int ret = 1;
 
-  x509_cert polar_cert = {0};
+  x509_crt polar_cert = {0};
 
   if (pkcs11_x509_cert_init(&polar_cert, cert)) {
       msg (M_FATAL, "PKCS#11: Cannot retrieve PolarSSL certificate object");
       goto cleanup;
   }
 
-  if (-1 == x509parse_serial_gets (serial, serial_len, &polar_cert.serial)) {
+  if (-1 == x509_serial_gets (serial, serial_len, &polar_cert.serial)) {
       msg (M_FATAL, "PKCS#11: PolarSSL cannot parse serial");
       goto cleanup;
   }
@@ -119,7 +121,7 @@ pkcs11_certificate_serial (pkcs11h_certificate_t cert, char *serial,
   ret = 0;
 
 cleanup:
-  x509_free(&polar_cert);
+  x509_crt_free(&polar_cert);
 
   return ret;
 }

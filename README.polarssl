@@ -7,7 +7,7 @@ To Build and Install,
 	make
 	make install
 
-This version depends on PolarSSL 1.2 (and requires at least 1.2.10).
+This version depends on PolarSSL 1.3 (and requires at least 1.3.8).
 
 *************************************************************************
 

@@ -109,7 +109,7 @@ unsigned char *x509_get_sha1_hash (openvpn_x509_cert_t *cert, struct gc_arena *g
  *
  * @return 		\c FAILURE, \c or SUCCESS
  */
-result_t x509_get_username (char *common_name, int cn_len,
+result_t backend_x509_get_username (char *common_name, int cn_len,
     char * x509_username_field, openvpn_x509_cert_t *peer_cert);
 
 /*
