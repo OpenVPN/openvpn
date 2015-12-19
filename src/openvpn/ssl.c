@@ -556,6 +556,9 @@ init_ssl (const struct options *options, struct tls_root_ctx *new_ctx)
       tls_ctx_load_extra_certs(new_ctx, options->extra_certs_file, options->extra_certs_file_inline);
     }
 
+  /* Check certificate notBefore and notAfter */
+  tls_ctx_check_cert_time(new_ctx);
+
   /* Allowable ciphers */
   if (options->cipher_list)
     {

@@ -205,6 +205,20 @@ tls_ctx_restrict_ciphers(struct tls_root_ctx *ctx, const char *ciphers)
 }
 
 void
+tls_ctx_check_cert_time (const struct tls_root_ctx *ctx)
+{
+  if (x509_time_future (&ctx->crt_chain->valid_from))
+    {
+      msg (M_WARN, "WARNING: Your certificate is not yet valid!");
+    }
+
+  if (x509_time_expired (&ctx->crt_chain->valid_to))
+    {
+      msg (M_WARN, "WARNING: Your certificate has expired!");
+    }
+}
+
+void
 tls_ctx_load_dh_params (struct tls_root_ctx *ctx, const char *dh_file,
     const char *dh_inline
     )

@@ -176,6 +176,15 @@ void tls_ctx_set_options (struct tls_root_ctx *ctx, unsigned int ssl_flags);
 void tls_ctx_restrict_ciphers(struct tls_root_ctx *ctx, const char *ciphers);
 
 /**
+ * Check our certificate notBefore and notAfter fields, and warn if the cert is
+ * either not yet valid or has expired.  Note that this is a non-fatal error,
+ * since we compare against the system time, which might be incorrect.
+ *
+ * @param ctx		TLS context to get our certificate from.
+ */
+void tls_ctx_check_cert_time (const struct tls_root_ctx *ctx);
+
+/**
  * Load Diffie Hellman Parameters, and load them into the library-specific
  * TLS context.
  *

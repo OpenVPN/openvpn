@@ -335,6 +335,35 @@ tls_ctx_restrict_ciphers(struct tls_root_ctx *ctx, const char *ciphers)
 }
 
 void
+tls_ctx_check_cert_time (const struct tls_root_ctx *ctx)
+{
+#if OPENSSL_VERSION_NUMBER >= 0x10002000L
+  int ret;
+  const X509 *cert = SSL_CTX_get0_certificate(ctx->ctx);
+
+  ret = X509_cmp_time (X509_get_notBefore (cert), NULL);
+  if (ret == 0)
+    {
+      msg (D_TLS_DEBUG_MED, "Failed to read certificate notBefore field.");
+    }
+  if (ret > 0)
+    {
+      msg (M_WARN, "WARNING: Your certificate is not yet valid!");
+    }
+
+  ret = X509_cmp_time (X509_get_notAfter (cert), NULL);
+  if (ret == 0)
+    {
+      msg (D_TLS_DEBUG_MED, "Failed to read certificate notAfter field.");
+    }
+  if (ret < 0)
+    {
+      msg (M_WARN, "WARNING: Your certificate has expired!");
+    }
+#endif
+}
+
+void
 tls_ctx_load_dh_params (struct tls_root_ctx *ctx, const char *dh_file,
     const char *dh_file_inline
     )
