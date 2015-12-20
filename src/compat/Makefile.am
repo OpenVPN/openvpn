@@ -15,6 +15,8 @@ MAINTAINERCLEANFILES = \
 EXTRA_DIST = \
 	compat.vcxproj \
 	compat.vcxproj.filters
+	
+AUTOMAKE_OPTIONS = subdir-objects
 
 noinst_LTLIBRARIES = libcompat.la
 
@@ -27,4 +29,5 @@ libcompat_la_SOURCES = \
 	compat-daemon.c \
 	compat-inet_ntop.c \
 	compat-inet_pton.c \
-	compat-lz4.c compat-lz4.h
+	compat-lz4.c compat-lz4.h \
+	compat-zstd/zstd.c compat-zstd/zstd.h

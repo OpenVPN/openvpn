@@ -2446,7 +2446,7 @@ do_init_frame (struct context *c)
     {
       comp_add_to_extra_frame (&c->c2.frame);
 
-#if !defined(ENABLE_LZ4)
+#if !defined(ENABLE_LZ4) && !defined(ENABLE_ZSTD)
       /*
        * Compression usage affects buffer alignment when non-swapped algs
        * such as LZO is used.
@@ -2461,7 +2461,7 @@ do_init_frame (struct context *c)
        * dispatch if packet is uncompressed) at the cost of requiring
        * decryption output to be written to an unaligned buffer, so
        * it's more of a tradeoff than an optimal solution and we don't
-       * include it when we are doing a modern build with LZ4.
+       * include it when we are doing a modern build with LZ4 or Zstd.
        * Strictly speaking, on the server it would be better to execute
        * this code for every connection after we decide the compression
        * method, but currently the frame code doesn't appear to be

@@ -83,6 +83,9 @@ const char title_string[] =
 #ifdef ENABLE_LZ4
   " [LZ4]"
 #endif
+#ifdef ENABLE_ZSTD
+  " [ZSTD]"
+#endif
 #ifdef ENABLE_COMP_STUB
   " [COMP_STUB]"
 #endif
@@ -6348,6 +6351,13 @@ add_option (struct options *options,
 	  else if (streq (p[1], "lz4"))
 	    {
 	      options->comp.alg = COMP_ALG_LZ4;
+	      options->comp.flags = COMP_F_SWAP;
+	    }
+#endif
+#if defined(ENABLE_ZSTD)
+	  else if (streq (p[1], "zstd"))
+	    {
+	      options->comp.alg = COMP_ALG_ZSTD;
 	      options->comp.flags = COMP_F_SWAP;
 	    }
 #endif

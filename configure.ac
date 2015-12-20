@@ -72,6 +72,12 @@ AC_ARG_ENABLE(lz4,
 	[enable_lz4="yes"]
 )
 
+AC_ARG_ENABLE(zstd,
+	[  --disable-zstd          Disable Zstandard compression support],
+	[enable_zstd="$enableval"],
+	[enable_zstd="yes"]
+)
+
 AC_ARG_ENABLE(comp-stub,
 	[  --enable-comp-stub      Don't compile compression support but still allow limited interoperability with compression-enabled peers],
 	[enable_comp_stub="$enableval"],
@@ -985,6 +991,45 @@ if test "$enable_lz4" = "yes" && test "$enable_comp_stub" = "no"; then
     CFLAGS="${saved_CFLAGS}"
 fi
 
+dnl
+dnl check for Zstandard library
+dnl
+
+AC_ARG_VAR([ZSTD_CFLAGS], [C compiler flags for zstd])
+AC_ARG_VAR([ZSTD_LIBS], [linker flags for zstd])
+if test "$enable_zstd" = "yes" && test "$enable_comp_stub" = "no"; then
+    AC_CHECKING([for Zstandard Library and Header files])
+    havezstdlib=1
+
+    # if ZSTD_LIBS is set, we assume it will work, otherwise test
+    if test -z "${ZSTD_LIBS}"; then
+	AC_CHECK_LIB(zstd, ZSTD_compress,
+	    [ ZSTD_LIBS="-lzstd" ],
+	    [
+	        AC_MSG_RESULT([Zstandard library not found.])
+	        havezstdlib=0
+	    ])
+    fi
+
+    saved_CFLAGS="${CFLAGS}"
+    CFLAGS="${CFLAGS} ${ZSTD_CFLAGS}"
+    AC_CHECK_HEADERS(zstd.h,
+       ,
+       [
+	   AC_MSG_RESULT([Zstandard headers not found.])
+	   havezstdlib=0
+       ])
+
+    if test $havezstdlib = 0 ; then
+	AC_MSG_RESULT([Zstandard library or header not found, using version in src/compat/compat-zstd/zstd.*])
+	AC_DEFINE([NEED_COMPAT_ZSTD], [1], [use copy of Zstandard source in compat/compat-zstd/])
+	ZSTD_LIBS=""
+    fi
+    OPTIONAL_ZSTD_CFLAGS="${ZSTD_CFLAGS}"
+    OPTIONAL_ZSTD_LIBS="${ZSTD_LIBS}"
+    AC_DEFINE(ENABLE_ZSTD, 1, [Enable Zstandard compression library])
+    CFLAGS="${saved_CFLAGS}"
+fi
 
 dnl
 dnl Check for systemd
@@ -1109,6 +1154,7 @@ fi
 if test "${enable_comp_stub}" = "yes"; then
 	test "${enable_lzo}" = "yes" && AC_MSG_ERROR([Cannot have both comp stub and lzo enabled (use --disable-lzo)])
 	test "${enable_lz4}" = "yes" && AC_MSG_ERROR([Cannot have both comp stub and LZ4 enabled (use --disable-lz4)])
+	test "${enable_zstd}" = "yes" && AC_MSG_ERROR([Cannot have both comp stub and Zstandard enabled (use --disable-zstd)])
 	AC_DEFINE([ENABLE_COMP_STUB], [1], [Enable compression stub capability])
 fi
 
@@ -1183,6 +1229,8 @@ AC_SUBST([OPTIONAL_LZO_CFLAGS])
 AC_SUBST([OPTIONAL_LZO_LIBS])
 AC_SUBST([OPTIONAL_LZ4_CFLAGS])
 AC_SUBST([OPTIONAL_LZ4_LIBS])
+AC_SUBST([OPTIONAL_ZSTD_CFLAGS])
+AC_SUBST([OPTIONAL_ZSTD_LIBS])
 AC_SUBST([OPTIONAL_SYSTEMD_LIBS])
 AC_SUBST([OPTIONAL_PKCS11_HELPER_CFLAGS])
 AC_SUBST([OPTIONAL_PKCS11_HELPER_LIBS])

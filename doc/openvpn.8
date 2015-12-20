@@ -2495,9 +2495,10 @@ Enable a compression algorithm.
 
 The
 .B algorithm
-parameter may be "lzo", "lz4", or empty.  LZO and LZ4
+parameter may be "lzo", "lz4", "zstd", or empty.  LZO, LZ4, and Zstd
 are different compression algorithms, with LZ4 generally
-offering the best performance with least CPU usage.
+offering the best performance with the least CPU usage, and
+Zstd offering the best compression with more CPU usage.
 For backwards compatibility with OpenVPN versions before 2.4, use "lzo"
 (which is identical to the older option "\-\-comp\-lzo yes").
 
