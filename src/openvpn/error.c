@@ -397,9 +397,12 @@ dont_mute (unsigned int flags)
 }
 
 void
-assert_failed (const char *filename, int line)
+assert_failed (const char *filename, int line, const char *condition)
 {
-  msg (M_FATAL, "Assertion failed at %s:%d", filename, line);
+  if (condition)
+    msg (M_FATAL, "Assertion failed at %s:%d (%s)", filename, line, condition);
+  else
+    msg (M_FATAL, "Assertion failed at %s:%d", filename, line);
   _exit(1);
 }
 

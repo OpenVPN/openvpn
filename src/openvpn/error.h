@@ -214,9 +214,14 @@ const char *msg_flags_string (const unsigned int flags, struct gc_arena *gc);
 FILE *msg_fp(const unsigned int flags);
 
 /* Fatal logic errors */
-#define ASSERT(x) do { if (!(x)) assert_failed(__FILE__, __LINE__); } while (false)
+#ifndef ENABLE_SMALL
+#define ASSERT(x) do { if (!(x)) assert_failed(__FILE__, __LINE__, #x); } while (false)
+#else
+#define ASSERT(x) do { if (!(x)) assert_failed(__FILE__, __LINE__, NULL); } while (false)
+#endif
 
-void assert_failed (const char *filename, int line) __attribute__((__noreturn__));
+void assert_failed (const char *filename, int line, const char *condition)
+  __attribute__((__noreturn__));
 
 #ifdef ENABLE_DEBUG
 void crash (void); /* force a segfault (debugging only) */
