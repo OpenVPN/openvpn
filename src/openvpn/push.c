@@ -74,8 +74,11 @@ receive_auth_failed (struct context *c, const struct buffer *buffer)
 	  if (buf_string_compare_advance (&buf, "AUTH_FAILED,") && BLEN (&buf))
 	    reason = BSTR (&buf);
 	  management_auth_failure (management, UP_TYPE_AUTH, reason);
-	} else
+	}
 #endif
+      /*
+       * Save the dynamic-challenge text even when management is defined
+       */
 	{
 #ifdef ENABLE_CLIENT_CR
 	  struct buffer buf = *buffer;

@@ -1044,6 +1044,7 @@ get_user_pass_cr (struct user_pass *up,
       bool from_authfile = (auth_file && !streq (auth_file, "stdin"));
       bool username_from_stdin = false;
       bool password_from_stdin = false;
+      bool response_from_stdin = true;
 
       if (flags & GET_USER_PASS_PREVIOUS_CREDS_FAILED)
 	msg (M_WARN, "Note: previous '%s' credentials failed", prefix);
@@ -1053,10 +1054,11 @@ get_user_pass_cr (struct user_pass *up,
        * Get username/password from management interface?
        */
       if (management
-	  && ((auth_file && streq (auth_file, "management")) || (!from_authfile && (flags & GET_USER_PASS_MANAGEMENT)))
+          && (!from_authfile && (flags & GET_USER_PASS_MANAGEMENT))
 	  && management_query_user_pass_enabled (management))
 	{
 	  const char *sc = NULL;
+          response_from_stdin = false;
 
 	  if (flags & GET_USER_PASS_PREVIOUS_CREDS_FAILED)
 	    management_auth_failure (management, prefix, "previous auth credentials failed");
@@ -1090,7 +1092,10 @@ get_user_pass_cr (struct user_pass *up,
 	  if (!strlen (up->password))
 	    strcpy (up->password, "ok");
 	}
-      else if (from_authfile)
+      /*
+       * Read from auth file unless this is a dynamic challenge request.
+       */
+      else if (from_authfile && !(flags & GET_USER_PASS_DYNAMIC_CHALLENGE))
         {
           /*
            * Try to get username/password from a file.
@@ -1141,10 +1146,10 @@ get_user_pass_cr (struct user_pass *up,
       /*
        * Get username/password from standard input?
        */
-      if (username_from_stdin || password_from_stdin)
+      if (username_from_stdin || password_from_stdin || response_from_stdin)
 	{
 #ifdef ENABLE_CLIENT_CR
-	  if (auth_challenge && (flags & GET_USER_PASS_DYNAMIC_CHALLENGE))
+          if (auth_challenge && (flags & GET_USER_PASS_DYNAMIC_CHALLENGE) && response_from_stdin)
 	    {
 	      struct auth_challenge_info *ac = get_auth_challenge (auth_challenge, &gc);
 	      if (ac)
@@ -1154,7 +1159,8 @@ get_user_pass_cr (struct user_pass *up,
 
 		  buf_set_write (&packed_resp, (uint8_t*)up->password, USER_PASS_LEN);
 		  msg (M_INFO|M_NOPREFIX, "CHALLENGE: %s", ac->challenge_text);
-		  if (!get_console_input ("Response:", BOOL_CAST(ac->flags&CR_ECHO), response, USER_PASS_LEN))
+                  if (!get_console_input (ac->challenge_text, BOOL_CAST(ac->flags&CR_ECHO),
+                                          response, USER_PASS_LEN))
 		    msg (M_FATAL, "ERROR: could not read challenge response from stdin");
 		  strncpynt (up->username, ac->user, USER_PASS_LEN);
 		  buf_printf (&packed_resp, "CRV1::%s::%s", ac->state_id, response);
@@ -1185,14 +1191,16 @@ get_user_pass_cr (struct user_pass *up,
 		msg (M_FATAL, "ERROR: could not not read %s password from stdin", prefix);
 
 #ifdef ENABLE_CLIENT_CR
-	      if (auth_challenge && (flags & GET_USER_PASS_STATIC_CHALLENGE))
+              if (auth_challenge && (flags & GET_USER_PASS_STATIC_CHALLENGE) && response_from_stdin)
 		{
 		  char *response = (char *) gc_malloc (USER_PASS_LEN, false, &gc);
 		  struct buffer packed_resp;
 		  char *pw64=NULL, *resp64=NULL;
 
 		  msg (M_INFO|M_NOPREFIX, "CHALLENGE: %s", auth_challenge);
-		  if (!get_console_input ("Response:", BOOL_CAST(flags & GET_USER_PASS_STATIC_CHALLENGE_ECHO), response, USER_PASS_LEN))
+
+                  if (!get_console_input (auth_challenge, BOOL_CAST(flags & GET_USER_PASS_STATIC_CHALLENGE_ECHO),
+                                          response, USER_PASS_LEN))
 		    msg (M_FATAL, "ERROR: could not read static challenge response from stdin");
 		  if (openvpn_base64_encode(up->password, strlen(up->password), &pw64) == -1
 		      || openvpn_base64_encode(response, strlen(response), &resp64) == -1)
