@@ -1244,7 +1244,7 @@ do_ifconfig (struct tuntap *tt,
 		     "%s%sc interface ipv6 set address %s %s store=active",
 		     get_win_sys_path(),
 		     NETSH_PATH_SUFFIX,
-		     iface,
+		     win32_version_info() == WIN_XP ? actual : iface,
 		     ifconfig_ipv6_local);
 	netsh_command (&argv, 4);
 

@@ -42,6 +42,7 @@
 #include "manage.h"
 #include "win32.h"
 #include "options.h"
+#include "win32.h"
 
 #include "memdbg.h"
 
@@ -1623,9 +1624,12 @@ add_route_ipv6 (struct route_ipv6 *r6, const struct tuntap *tt, unsigned int fla
 
 #elif defined (WIN32)
 
-  struct buffer out = alloc_buf_gc (64, &gc);
-  buf_printf (&out, "interface=%d", tt->adapter_index );
-  device = buf_bptr(&out);
+  if (win32_version_info() != WIN_XP)
+    {
+      struct buffer out = alloc_buf_gc (64, &gc);
+      buf_printf (&out, "interface=%d", tt->adapter_index );
+      device = buf_bptr(&out);
+    }
 
   /* netsh interface ipv6 add route 2001:db8::/32 MyTunDevice */
   argv_printf (&argv, "%s%sc interface ipv6 add route %s/%d %s",
@@ -1958,9 +1962,12 @@ delete_route_ipv6 (const struct route_ipv6 *r6, const struct tuntap *tt, unsigne
 
 #elif defined (WIN32)
 
-  struct buffer out = alloc_buf_gc (64, &gc);
-  buf_printf (&out, "interface=%d", tt->adapter_index );
-  device = buf_bptr(&out);
+  if (win32_version_info() != WIN_XP)
+    {
+      struct buffer out = alloc_buf_gc (64, &gc);
+      buf_printf (&out, "interface=%d", tt->adapter_index );
+      device = buf_bptr(&out);
+    }
 
   /* netsh interface ipv6 delete route 2001:db8::/32 MyTunDevice */
   argv_printf (&argv, "%s%sc interface ipv6 delete route %s/%d %s",

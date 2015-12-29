@@ -103,11 +103,19 @@ Behavioral changes
 Version 2.3.10
 =============
 
+New features
+------------
+
+- Windows version is detected, logged and possibly signalled to server
+
 Behavioral changes
 ------------------
 
 - PolarSSL support changed from PolarSSL v1.2 to PolarSSL v1.3, 
   as v1.2 is end-of-support 2015-12-31.
+
+- fall back to using interface names for netsh.exe calls on
+  Windows XP (while keeping interface indexes on Windows 7)
 
 
 Version 2.3.9

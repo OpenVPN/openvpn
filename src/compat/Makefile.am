@@ -26,4 +26,5 @@ libcompat_la_SOURCES = \
 	compat-gettimeofday.c \
 	compat-daemon.c \
 	compat-inet_ntop.c \
-	compat-inet_pton.c
+	compat-inet_pton.c \
+	compat-versionhelpers.h

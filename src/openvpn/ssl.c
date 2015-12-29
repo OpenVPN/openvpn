@@ -43,6 +43,7 @@
 #endif
 
 #include "syshead.h"
+#include "win32.h"
 
 #if defined(ENABLE_CRYPTO) && defined(ENABLE_SSL)
 
@@ -1848,6 +1849,9 @@ push_peer_info(struct buffer *buf, struct tls_session *session)
 	  if (rgi.flags & RGI_HWADDR_DEFINED)
 	    buf_printf (&out, "IV_HWADDR=%s\n", format_hex_ex (rgi.hwaddr, 6, 0, 1, ":", &gc));
 	  buf_printf (&out, "IV_SSL=%s\n", get_ssl_library_version() );
+#if defined(WIN32)
+	  buf_printf (&out, "IV_PLAT_VER=%s\n", win32_version_string (&gc, false));
+#endif
         }
 
       /* push env vars that begin with UV_ and IV_GUI_VER */

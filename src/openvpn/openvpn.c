@@ -220,6 +220,9 @@ openvpn_main (int argc, char *argv[])
 
 	  /* print version number */
 	  msg (M_INFO, "%s", title_string);
+#ifdef WIN32
+	  show_windows_version(M_INFO);
+#endif
 	  show_library_versions(M_INFO);
 
 	  /* misc stuff */

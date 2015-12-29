@@ -48,6 +48,12 @@
 
 #include "win32_wfp.h"
 
+#ifdef HAVE_VERSIONHELPERS_H
+#include <versionhelpers.h>
+#else
+#include "compat-versionhelpers.h"
+#endif
+
 /* WFP function pointers. Initialized in win_wfp_init_funcs() */
 func_ConvertInterfaceIndexToLuid ConvertInterfaceIndexToLuid = NULL;
 func_FwpmEngineOpen0 FwpmEngineOpen0 = NULL;
@@ -1287,6 +1293,63 @@ win_wfp_uninit()
         m_hEngineHandle = NULL;
     }
     return true;
+}
+
+int
+win32_version_info()
+{
+    if (!IsWindowsXPOrGreater())
+    {
+        msg (M_FATAL, "Error: Windows version must be XP or greater.");
+    }
+
+    if (!IsWindowsVistaOrGreater())
+    {
+        return WIN_XP;
+    }
+
+    if (!IsWindows7OrGreater())
+    {
+        return WIN_VISTA;
+    }
+
+    if (!IsWindows8OrGreater())
+    {
+        return WIN_7;
+    }
+    else
+    {
+        return WIN_8;
+    }
+}
+
+const char *
+win32_version_string(struct gc_arena *gc, bool add_name)
+{
+    int version = win32_version_info();
+    struct buffer out = alloc_buf_gc (256, gc);
+
+    switch (version)
+    {
+        case WIN_XP:
+            buf_printf (&out, "5.1%s", add_name ? " (Windows XP)" : "");
+            break;
+        case WIN_VISTA:
+            buf_printf (&out, "6.0%s", add_name ? " (Windows Vista)" : "");
+            break;
+        case WIN_7:
+            buf_printf (&out, "6.1%s", add_name ? " (Windows 7)" : "");
+            break;
+        case WIN_8:
+            buf_printf (&out, "6.2%s", add_name ? " (Windows 8 or greater)" : "");
+            break;
+        default:
+            msg (M_NONFATAL, "Unknown Windows version: %d", version);
+            buf_printf (&out, "0.0%s", add_name ? " (unknown)" : "");
+            break;
+    }
+
+    return (const char *)out.data;
 }
 
 #endif

@@ -3489,6 +3489,15 @@ usage_small (void)
   openvpn_exit (OPENVPN_EXIT_STATUS_USAGE); /* exit point */
 }
 
+#ifdef WIN32
+void show_windows_version(const unsigned int flags)
+{
+  struct gc_arena gc = gc_new ();
+  msg (flags, "Windows version %s", win32_version_string (&gc, true));
+  gc_free (&gc);
+}
+#endif
+
 void
 show_library_versions(const unsigned int flags)
 {
@@ -3514,6 +3523,9 @@ usage_version (void)
 {
   msg (M_INFO|M_NOPREFIX, "%s", title_string);
   show_library_versions( M_INFO|M_NOPREFIX );
+#ifdef WIN32
+  show_windows_version( M_INFO|M_NOPREFIX );
+#endif
   msg (M_INFO|M_NOPREFIX, "Originally developed by James Yonan");
   msg (M_INFO|M_NOPREFIX, "Copyright (C) 2002-2010 OpenVPN Technologies, Inc. <sales@openvpn.net>");
 #ifndef ENABLE_SMALL
