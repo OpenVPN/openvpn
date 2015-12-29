@@ -688,6 +688,10 @@ void usage_small (void);
 
 void show_library_versions(const unsigned int flags);
 
+#ifdef WIN32
+void show_windows_version(const unsigned int flags);
+#endif
+
 void init_options (struct options *o, const bool init_gc);
 void uninit_options (struct options *o);
 

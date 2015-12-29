@@ -33,6 +33,9 @@ LZ4 Compression
     Additionally to LZO compression OpenVPN now also supports LZ4
     compression.
 
+Windows version
+    Windows version is detected, logged and possibly signalled to server
+    (IV_PLAT_VER=<nn> if --push-peer-info is set on client)
 
 User-visible Changes
 --------------------

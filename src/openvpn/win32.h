@@ -274,5 +274,18 @@ WCHAR *wide_string (const char* utf8, struct gc_arena *gc);
 bool win_wfp_block_dns(const NET_IFINDEX index);
 bool win_wfp_uninit();
 
+#define WIN_XP 0
+#define WIN_VISTA 1
+#define WIN_7 2
+#define WIN_8 3
+
+int win32_version_info();
+
+/*
+String representation of Windows version number and name, see
+https://msdn.microsoft.com/en-us/library/windows/desktop/ms724832(v=vs.85).aspx
+*/
+const char * win32_version_string(struct gc_arena *gc, bool add_name);
+
 #endif
 #endif
