@@ -42,9 +42,6 @@
 
 #include "memdbg.h"
 
-/* Initial command byte to tell our peer if we compressed */
-#define LZO_COMPRESS_BYTE 0x66
-
 /**
  * Perform adaptive compression housekeeping.
  *

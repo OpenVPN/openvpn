@@ -6344,16 +6344,21 @@ add_option (struct options *options,
       VERIFY_PERMISSION (OPT_P_COMP);
       if (p[1])
 	{
+	  options->comp.flags = 0;
 	  if (streq (p[1], "stub"))
 	    {
 	      options->comp.alg = COMP_ALG_STUB;
 	      options->comp.flags = (COMP_F_SWAP|COMP_F_ADVERTISE_STUBS_ONLY);
 	    }
+	  else if (streq(p[1], "stub-v2"))
+	    {
+	      options->comp.alg = COMP_ALGV2_UNCOMPRESSED;
+	      options->comp.flags = COMP_F_ADVERTISE_STUBS_ONLY;
+	    }
 #if defined(ENABLE_LZO)
 	  else if (streq (p[1], "lzo"))
 	    {
 	      options->comp.alg = COMP_ALG_LZO;
-	      options->comp.flags = 0;
 	    }
 #endif
 #if defined(ENABLE_LZ4)
@@ -6361,6 +6366,10 @@ add_option (struct options *options,
 	    {
 	      options->comp.alg = COMP_ALG_LZ4;
 	      options->comp.flags = COMP_F_SWAP;
+	    }
+	  else if (streq (p[1], "lz4-v2"))
+	    {
+	      options->comp.alg = COMP_ALGV2_LZ4;
 	    }
 #endif
 	  else
