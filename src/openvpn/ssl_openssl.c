@@ -340,14 +340,21 @@ tls_ctx_check_cert_time (const struct tls_root_ctx *ctx)
   int ret;
   const X509 *cert;
 
+  ASSERT (ctx);
+
 #if OPENSSL_VERSION_NUMBER >= 0x10002000L
   /* OpenSSL 1.0.2 and up */
-  cert = SSL_CTX_get0_certificate(ctx->ctx);
+  cert = SSL_CTX_get0_certificate (ctx->ctx);
 #else
   /* OpenSSL 1.0.1 and earlier need an SSL object to get at the certificate */
-  SSL *ssl = SSL_new(ctx->ctx);
-  cert = SSL_get_certificate(ssl);
+  SSL *ssl = SSL_new (ctx->ctx);
+  cert = SSL_get_certificate (ssl);
 #endif
+
+  if (cert == NULL)
+    {
+      goto cleanup; /* Nothing to check if there is no certificate */
+    }
 
   ret = X509_cmp_time (X509_get_notBefore (cert), NULL);
   if (ret == 0)
@@ -368,9 +375,12 @@ tls_ctx_check_cert_time (const struct tls_root_ctx *ctx)
     {
       msg (M_WARN, "WARNING: Your certificate has expired!");
     }
+
+cleanup:
 #if OPENSSL_VERSION_NUMBER < 0x10002000L
-  SSL_free(ssl);
+  SSL_free (ssl);
 #endif
+  return;
 }
 
 void

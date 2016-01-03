@@ -207,6 +207,12 @@ tls_ctx_restrict_ciphers(struct tls_root_ctx *ctx, const char *ciphers)
 void
 tls_ctx_check_cert_time (const struct tls_root_ctx *ctx)
 {
+  ASSERT (ctx);
+  if (ctx->crt_chain == NULL)
+    {
+      return; /* Nothing to check if there is no certificate */
+    }
+
   if (x509_time_future (&ctx->crt_chain->valid_from))
     {
       msg (M_WARN, "WARNING: Your certificate is not yet valid!");
