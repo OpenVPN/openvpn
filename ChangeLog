@@ -1,6 +1,30 @@
 OpenVPN Change Log
 Copyright (C) 2002-2015 OpenVPN Technologies, Inc. <sales@openvpn.net>
 
+2016.01.04 -- Version 2.3.10
+Gert Doering (1):
+      Prepare for v2.3.10 release, list PolarSSL 1.2 to 1.3 upgrade
+
+Jan Just Keijser (1):
+      Make certificate expiry warning patch (091edd8e299686) work on OpenSSL 1.0.1 and earlier.
+
+Lev Stipakov (1):
+      Repair IPv6 netsh calls if Win XP is detected
+
+Phillip Smith (1):
+      Use bob.example.com and alice.example.com to improve clarity of documentation
+
+Steffan Karger (6):
+      Remove unused variables from ssl_verify_polarssl.c's x509_get_serial()
+      Upgrade OpenVPN 2.3 to PolarSSL 1.3
+      Warn user if their certificate has expired
+      Make assert_failed() print the failed condition
+      cleanup: get rid of httpdigest.c type warnings
+      Fix regression in setups without a client certificate
+
+Yegor Yefremov (1):
+      polarssl: fix unreachable code
+
 2015.12.15 -- Version 2.3.9
 Arne Schwabe (7):
       Show extra-certs in current parameters.
