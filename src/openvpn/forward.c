@@ -993,6 +993,68 @@ read_incoming_tun (struct context *c)
   perf_pop ();
 }
 
+/**
+ * Drops UDP packets which OS decided to route via tun.
+ *
+ * On Windows and OS X when netwotk adapter is disabled or
+ * disconnected, platform starts to use tun as external interface.
+ * When packet is sent to tun, it comes to openvpn, encapsulated
+ * and sent to routing table, which sends it again to tun.
+ */
+static void
+drop_if_recursive_routing (struct context *c, struct buffer *buf)
+{
+  bool drop = false;
+  struct openvpn_sockaddr tun_sa = c->c2.to_link_addr->dest;
+
+  if (is_ipv4 (TUNNEL_TYPE (c->c1.tuntap), buf))
+    {
+      const struct openvpn_iphdr *pip;
+
+      /* make sure we got whole IP header */
+      if (BLEN (buf) < (int) sizeof (struct openvpn_iphdr))
+	return;
+
+      /* skip ipv4 packets for ipv6 tun */
+      if (tun_sa.addr.sa.sa_family != AF_INET)
+	return;
+
+      pip = (struct openvpn_iphdr *) BPTR (buf);
+
+      /* drop packets with same dest addr as gateway */
+      if (tun_sa.addr.in4.sin_addr.s_addr == pip->daddr)
+	drop = true;
+    }
+  else if (is_ipv6 (TUNNEL_TYPE (c->c1.tuntap), buf))
+    {
+      const struct openvpn_ipv6hdr *pip6;
+
+      /* make sure we got whole IPv6 header */
+      if (BLEN (buf) < (int) sizeof (struct openvpn_ipv6hdr))
+	return;
+
+      /* skip ipv6 packets for ipv4 tun */
+      if (tun_sa.addr.sa.sa_family != AF_INET6)
+	return;
+
+      /* drop packets with same dest addr as gateway */
+      pip6 = (struct openvpn_ipv6hdr *) BPTR(buf);
+      if (IN6_ARE_ADDR_EQUAL(&tun_sa.addr.in6.sin6_addr, &pip6->daddr))
+	drop = true;
+    }
+
+  if (drop)
+    {
+      struct gc_arena gc = gc_new ();
+
+      c->c2.buf.len = 0;
+
+      msg(D_LOW, "Recursive routing detected, drop tun packet to %s",
+		print_link_socket_actual(c->c2.to_link_addr, &gc));
+      gc_free (&gc);
+    }
+}
+
 /*
  * Input:  c->c2.buf
  * Output: c->c2.to_link
@@ -1018,6 +1080,7 @@ process_incoming_tun (struct context *c)
 
   if (c->c2.buf.len > 0)
     {
+      drop_if_recursive_routing (c, &c->c2.buf);
       /*
        * The --passtos and --mssfix options require
        * us to examine the IP header (IPv4 or IPv6).
