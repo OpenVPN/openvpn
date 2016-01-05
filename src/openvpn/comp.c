@@ -48,7 +48,6 @@ comp_init(const struct compress_options *opt)
       ALLOC_OBJ_CLEAR (compctx, struct compress_context);
       compctx->flags = opt->flags;
       compctx->alg = comp_stub_alg;
-      (*compctx->alg.compress_init)(compctx);
       break;
     case COMP_ALGV2_UNCOMPRESSED:
       ALLOC_OBJ_CLEAR (compctx, struct compress_context);
@@ -60,7 +59,6 @@ comp_init(const struct compress_options *opt)
       ALLOC_OBJ_CLEAR (compctx, struct compress_context);
       compctx->flags = opt->flags;
       compctx->alg = lzo_alg;
-      (*compctx->alg.compress_init)(compctx);
       break;
 #endif
 #ifdef ENABLE_LZ4
@@ -68,7 +66,6 @@ comp_init(const struct compress_options *opt)
       ALLOC_OBJ_CLEAR (compctx, struct compress_context);
       compctx->flags = opt->flags;
       compctx->alg = lz4_alg;
-      (*compctx->alg.compress_init)(compctx);
       break;
     case COMP_ALGV2_LZ4:
       ALLOC_OBJ_CLEAR (compctx, struct compress_context);
@@ -77,6 +74,9 @@ comp_init(const struct compress_options *opt)
       break;
 #endif
     }
+  if (compctx)
+    (*compctx->alg.compress_init)(compctx);
+
   return compctx;
 }
 

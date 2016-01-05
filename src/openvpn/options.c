@@ -6344,7 +6344,6 @@ add_option (struct options *options,
       VERIFY_PERMISSION (OPT_P_COMP);
       if (p[1])
 	{
-	  options->comp.flags = 0;
 	  if (streq (p[1], "stub"))
 	    {
 	      options->comp.alg = COMP_ALG_STUB;
@@ -6359,6 +6358,7 @@ add_option (struct options *options,
 	  else if (streq (p[1], "lzo"))
 	    {
 	      options->comp.alg = COMP_ALG_LZO;
+	      options->comp.flags = 0;
 	    }
 #endif
 #if defined(ENABLE_LZ4)
@@ -6370,6 +6370,7 @@ add_option (struct options *options,
 	  else if (streq (p[1], "lz4-v2"))
 	    {
 	      options->comp.alg = COMP_ALGV2_LZ4;
+	      options->comp.flags = 0;
 	    }
 #endif
 	  else
