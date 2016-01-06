@@ -49,6 +49,7 @@
 #include <polarssl/havege.h>
 
 #include "ssl_verify_polarssl.h"
+#include <polarssl/debug.h>
 #include <polarssl/error.h>
 #include <polarssl/oid.h>
 #include <polarssl/pem.h>
@@ -679,8 +680,8 @@ static int endless_buf_write( void *ctx, const unsigned char *in, size_t len )
 
 static void my_debug( void *ctx, int level, const char *str )
 {
-  int my_loglevel = (level < 2) ? D_TLS_DEBUG_MED : D_TLS_DEBUG;
-  msg (my_loglevel, "PolarSSL alert: %s", str);
+  int my_loglevel = (level < 3) ? D_TLS_DEBUG_MED : D_TLS_DEBUG;
+  msg (my_loglevel, "PolarSSL msg: %s", str);
 }
 
 /*
@@ -762,6 +763,7 @@ void key_state_ssl_init(struct key_state_ssl *ks_ssl,
   if (polar_ok(ssl_init(ks_ssl->ctx)))
     {
       /* Initialise SSL context */
+      debug_set_threshold(3);
       ssl_set_dbg (ks_ssl->ctx, my_debug, NULL);
       ssl_set_endpoint (ks_ssl->ctx, ssl_ctx->endpoint);
 
