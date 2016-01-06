@@ -70,4 +70,29 @@ typedef HMAC_CTX hmac_ctx_t;
 #define DES_KEY_LENGTH 8
 #define MD4_DIGEST_LENGTH 	16
 
+/**
+ * Retrieve any occurred OpenSSL errors and print those errors.
+ *
+ * Note that this function uses the not thread-safe OpenSSL error API.
+ *
+ * @param flags		Flags to indicate error type and priority.
+ */
+void crypto_print_openssl_errors(const unsigned int flags);
+
+/**
+ * Retrieve any OpenSSL errors, then print the supplied error message.
+ *
+ * This is just a convenience wrapper for often occurring situations.
+ *
+ * @param flags		Flags to indicate error type and priority.
+ * @param format	Format string to print.
+ * @param format args	(optional) arguments for the format string.
+ */
+# define crypto_msg(flags, ...) \
+do { \
+  crypto_print_openssl_errors(nonfatal(flags)); \
+  msg((flags), __VA_ARGS__); \
+} while (false)
+
+
 #endif /* CRYPTO_OPENSSL_H_ */
