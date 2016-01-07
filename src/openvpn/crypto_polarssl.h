@@ -91,4 +91,53 @@ ctr_drbg_context * rand_ctx_get();
 void rand_ctx_enable_prediction_resistance();
 #endif
 
+/**
+ * Log the supplied PolarSSL error, prefixed by supplied prefix.
+ *
+ * @param flags		Flags to indicate error type and priority.
+ * @param errval	PolarSSL error code to convert to error message.
+ * @param prefix	Prefix to PolarSSL error message.
+ *
+ * @returns true if no errors are detected, false otherwise.
+ */
+bool polar_log_err(unsigned int flags, int errval, const char *prefix);
+
+/**
+ * Log the supplied PolarSSL error, prefixed by function name and line number.
+ *
+ * @param flags		Flags to indicate error type and priority.
+ * @param errval	PolarSSL error code to convert to error message.
+ * @param func		Function name where error was reported.
+ * @param line		Line number where error was reported.
+ *
+ * @returns true if no errors are detected, false otherwise.
+ */
+bool polar_log_func_line(unsigned int flags, int errval, const char *func,
+    int line);
+
+/** Wraps polar_log_func_line() to prevent function calls for non-errors */
+static inline bool polar_log_func_line_lite(unsigned int flags, int errval,
+    const char *func, int line) {
+  if (errval) {
+    return polar_log_func_line (flags, errval, func, line);
+  }
+  return true;
+}
+
+/**
+ * Check errval and log on error.
+ *
+ * Convenience wrapper to put around polarssl library calls, e.g.
+ *   if (!polar_ok(polarssl_func())) return 0;
+ * or
+ *   ASSERT (polar_ok(polarssl_func()));
+ *
+ * @param errval	PolarSSL error code to convert to error message.
+ *
+ * @returns true if no errors are detected, false otherwise.
+ */
+#define polar_ok(errval) \
+  polar_log_func_line_lite (D_CRYPT_ERRORS, errval, __func__, __LINE__)
+
+
 #endif /* CRYPTO_POLARSSL_H_ */

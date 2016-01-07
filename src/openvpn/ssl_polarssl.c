@@ -49,6 +49,7 @@
 #include <polarssl/havege.h>
 
 #include "ssl_verify_polarssl.h"
+#include <polarssl/debug.h>
 #include <polarssl/error.h>
 #include <polarssl/oid.h>
 #include <polarssl/pem.h>
@@ -231,13 +232,13 @@ tls_ctx_load_dh_params (struct tls_root_ctx *ctx, const char *dh_file,
 {
   if (!strcmp (dh_file, INLINE_FILE_TAG) && dh_inline)
     {
-      if (0 != dhm_parse_dhm(ctx->dhm_ctx, (const unsigned char *) dh_inline,
-	  strlen(dh_inline)))
+      if (!polar_ok(dhm_parse_dhm(ctx->dhm_ctx,
+	  (const unsigned char *) dh_inline, strlen(dh_inline))))
 	msg (M_FATAL, "Cannot read inline DH parameters");
   }
 else
   {
-    if (0 != dhm_parse_dhmfile(ctx->dhm_ctx, dh_file))
+    if (!polar_ok(dhm_parse_dhmfile(ctx->dhm_ctx, dh_file)))
       msg (M_FATAL, "Cannot read DH parameters from file %s", dh_file);
   }
 
@@ -277,14 +278,16 @@ tls_ctx_load_cert_file (struct tls_root_ctx *ctx, const char *cert_file,
 
   if (!strcmp (cert_file, INLINE_FILE_TAG) && cert_inline)
     {
-      if (0 != x509_crt_parse(ctx->crt_chain,
-	  (const unsigned char *) cert_inline, strlen(cert_inline)))
+      if (!polar_ok(x509_crt_parse(ctx->crt_chain,
+	  (const unsigned char *) cert_inline, strlen(cert_inline))))
         msg (M_FATAL, "Cannot load inline certificate file");
     }
   else
     {
-      if (0 != x509_crt_parse_file(ctx->crt_chain, cert_file))
-	msg (M_FATAL, "Cannot load certificate file %s", cert_file);
+      if (!polar_ok(x509_crt_parse_file(ctx->crt_chain, cert_file)))
+	{
+	  msg (M_FATAL, "Cannot load certificate file %s", cert_file);
+	}
     }
 }
 
@@ -326,7 +329,7 @@ tls_ctx_load_priv_file (struct tls_root_ctx *ctx, const char *priv_key_file,
 	  status = pk_parse_keyfile(ctx->priv_key, priv_key_file, passbuf);
 	}
     }
-  if (0 != status)
+  if (!polar_ok(status))
     {
 #ifdef ENABLE_MANAGEMENT
       if (management && (POLARSSL_ERR_PK_PASSWORD_MISMATCH == status))
@@ -403,7 +406,7 @@ static inline int external_pkcs1_sign( void *ctx_voidptr,
       if( md_info == NULL )
         return( POLARSSL_ERR_RSA_BAD_INPUT_DATA );
 
-      if( oid_get_oid_by_md( md_alg, &oid, &oid_size ) != 0 )
+      if (!polar_ok(oid_get_oid_by_md( md_alg, &oid, &oid_size )))
         return( POLARSSL_ERR_RSA_BAD_INPUT_DATA );
 
       hashlen = md_get_size( md_info );
@@ -501,8 +504,8 @@ tls_ctx_use_external_private_key (struct tls_root_ctx *ctx,
   ctx->external_key->signature_length = pk_get_len(&ctx->crt_chain->pk);
 
   ALLOC_OBJ_CLEAR (ctx->priv_key, pk_context);
-  if (0 != pk_init_ctx_rsa_alt(ctx->priv_key, ctx->external_key,
-	    NULL, external_pkcs1_sign, external_key_len))
+  if (!polar_ok (pk_init_ctx_rsa_alt(ctx->priv_key, ctx->external_key,
+	    NULL, external_pkcs1_sign, external_key_len)))
     return 0;
 
   return 1;
@@ -510,23 +513,21 @@ tls_ctx_use_external_private_key (struct tls_root_ctx *ctx,
 #endif
 
 void tls_ctx_load_ca (struct tls_root_ctx *ctx, const char *ca_file,
-    const char *ca_inline,
-    const char *ca_path, bool tls_server
-    )
+    const char *ca_inline, const char *ca_path, bool tls_server)
 {
   if (ca_path)
       msg(M_FATAL, "ERROR: PolarSSL cannot handle the capath directive");
 
   if (ca_file && !strcmp (ca_file, INLINE_FILE_TAG) && ca_inline)
     {
-      if (0 != x509_crt_parse(ctx->ca_chain, (unsigned char *) ca_inline,
-	  strlen(ca_inline)))
+      if (!polar_ok(x509_crt_parse(ctx->ca_chain,
+	  (const unsigned char *) ca_inline, strlen(ca_inline))))
 	msg (M_FATAL, "Cannot load inline CA certificates");
     }
   else
     {
       /* Load CA file for verifying peer supplied certificate */
-      if (0 != x509_crt_parse_file(ctx->ca_chain, ca_file))
+      if (!polar_ok(x509_crt_parse_file(ctx->ca_chain, ca_file)))
 	msg (M_FATAL, "Cannot load CA certificate file %s", ca_file);
     }
 }
@@ -545,14 +546,14 @@ tls_ctx_load_extra_certs (struct tls_root_ctx *ctx, const char *extra_certs_file
 
   if (!strcmp (extra_certs_file, INLINE_FILE_TAG) && extra_certs_inline)
     {
-      if (0 != x509_crt_parse(ctx->crt_chain,
+      if (!polar_ok(x509_crt_parse(ctx->crt_chain,
           (const unsigned char *) extra_certs_inline,
-	  strlen(extra_certs_inline)))
+	  strlen(extra_certs_inline))))
         msg (M_FATAL, "Cannot load inline extra-certs file");
     }
   else
     {
-      if (0 != x509_crt_parse_file(ctx->crt_chain, extra_certs_file))
+      if (!polar_ok(x509_crt_parse_file(ctx->crt_chain, extra_certs_file)))
 	msg (M_FATAL, "Cannot load extra-certs file: %s", extra_certs_file);
     }
 }
@@ -658,10 +659,8 @@ static int endless_buf_write( void *ctx, const unsigned char *in, size_t len )
 
 static void my_debug( void *ctx, int level, const char *str )
 {
-  if (level == 1)
-    {
-      dmsg (D_HANDSHAKE_VERBOSE, "PolarSSL alert: %s", str);
-    }
+  int my_loglevel = (level < 3) ? D_TLS_DEBUG_MED : D_TLS_DEBUG;
+  msg (my_loglevel, "PolarSSL msg: %s", str);
 }
 
 /*
@@ -740,9 +739,10 @@ void key_state_ssl_init(struct key_state_ssl *ks_ssl,
   CLEAR(*ks_ssl);
 
   ALLOC_OBJ_CLEAR(ks_ssl->ctx, ssl_context);
-  if (0 == ssl_init(ks_ssl->ctx))
+  if (polar_ok(ssl_init(ks_ssl->ctx)))
     {
       /* Initialise SSL context */
+      debug_set_threshold(3);
       ssl_set_dbg (ks_ssl->ctx, my_debug, NULL);
       ssl_set_endpoint (ks_ssl->ctx, ssl_ctx->endpoint);
 
@@ -761,9 +761,10 @@ void key_state_ssl_init(struct key_state_ssl *ks_ssl,
 
       /* Initialise authentication information */
       if (is_server)
-	ssl_set_dh_param_ctx (ks_ssl->ctx, ssl_ctx->dhm_ctx);
+	polar_ok (ssl_set_dh_param_ctx (ks_ssl->ctx, ssl_ctx->dhm_ctx));
 
-      ssl_set_own_cert (ks_ssl->ctx, ssl_ctx->crt_chain, ssl_ctx->priv_key);
+      polar_ok (ssl_set_own_cert (ks_ssl->ctx, ssl_ctx->crt_chain,
+	  ssl_ctx->priv_key));
 
       /* Initialise SSL verification */
 #if P2MP_SERVER
@@ -912,7 +913,8 @@ key_state_write_plaintext_const (struct key_state_ssl *ks, const uint8_t *data, 
       perf_pop ();
       if (POLARSSL_ERR_NET_WANT_WRITE == retval || POLARSSL_ERR_NET_WANT_READ == retval)
 	return 0;
-      msg (D_TLS_ERRORS, "TLS ERROR: write tls_write_plaintext_const error");
+      polar_log_err (D_TLS_ERRORS, retval,
+	  "TLS ERROR: write tls_write_plaintext_const error");
       return -1;
     }
 
@@ -938,7 +940,6 @@ key_state_read_ciphertext (struct key_state_ssl *ks, struct buffer *buf,
 {
   int retval = 0;
   int len = 0;
-  char error_message[1024];
 
   perf_push (PERF_BIO_READ_CIPHERTEXT);
 
@@ -964,8 +965,7 @@ key_state_read_ciphertext (struct key_state_ssl *ks, struct buffer *buf,
       perf_pop ();
       if (POLARSSL_ERR_NET_WANT_WRITE == retval || POLARSSL_ERR_NET_WANT_READ == retval)
 	return 0;
-      error_strerror(retval, error_message, sizeof(error_message));
-      msg (D_TLS_ERRORS, "TLS_ERROR: read tls_read_ciphertext error: %d %s", retval, error_message);
+      polar_log_err (D_TLS_ERRORS, retval, "TLS_ERROR: read tls_read_ciphertext error");
       buf->len = 0;
       return -1;
     }
@@ -1008,14 +1008,14 @@ key_state_write_ciphertext (struct key_state_ssl *ks, struct buffer *buf)
 
       if (POLARSSL_ERR_NET_WANT_WRITE == retval || POLARSSL_ERR_NET_WANT_READ == retval)
 	return 0;
-      msg (D_TLS_ERRORS, "TLS ERROR: write tls_write_ciphertext error");
+      polar_log_err (D_TLS_ERRORS, retval,
+	  "TLS ERROR: write tls_write_ciphertext error");
       return -1;
     }
 
   if (retval != buf->len)
     {
-      msg (D_TLS_ERRORS,
-	  "TLS ERROR: write tls_write_ciphertext incomplete %d/%d",
+      msg (D_TLS_ERRORS, "TLS ERROR: write tls_write_ciphertext incomplete %d/%d",
 	  retval, buf->len);
       perf_pop ();
       return -1;
@@ -1037,7 +1037,6 @@ key_state_read_plaintext (struct key_state_ssl *ks, struct buffer *buf,
 {
   int retval = 0;
   int len = 0;
-  char error_message[1024];
 
   perf_push (PERF_BIO_READ_PLAINTEXT);
 
@@ -1062,8 +1061,7 @@ key_state_read_plaintext (struct key_state_ssl *ks, struct buffer *buf,
     {
       if (POLARSSL_ERR_NET_WANT_WRITE == retval || POLARSSL_ERR_NET_WANT_READ == retval)
 	return 0;
-      error_strerror(retval, error_message, sizeof(error_message));
-      msg (D_TLS_ERRORS, "TLS_ERROR: read tls_read_plaintext error: %d %s", retval, error_message);
+      polar_log_err (D_TLS_ERRORS, retval, "TLS_ERROR: read tls_read_plaintext error");
       buf->len = 0;
       perf_pop ();
       return -1;
