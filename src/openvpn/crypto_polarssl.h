@@ -115,6 +115,15 @@ bool polar_log_err(unsigned int flags, int errval, const char *prefix);
 bool polar_log_func_line(unsigned int flags, int errval, const char *func,
     int line);
 
+/** Wraps polar_log_func_line() to prevent function calls for non-errors */
+static inline bool polar_log_func_line_lite(unsigned int flags, int errval,
+    const char *func, int line) {
+  if (errval) {
+    return polar_log_func_line (flags, errval, func, line);
+  }
+  return true;
+}
+
 /**
  * Check errval and log on error.
  *
@@ -128,7 +137,7 @@ bool polar_log_func_line(unsigned int flags, int errval, const char *func,
  * @returns true if no errors are detected, false otherwise.
  */
 #define polar_ok(errval) \
-  polar_log_func_line(D_CRYPT_ERRORS, errval, __func__, __LINE__)
+  polar_log_func_line_lite(D_CRYPT_ERRORS, errval, __func__, __LINE__)
 
 
 #endif /* CRYPTO_POLARSSL_H_ */
