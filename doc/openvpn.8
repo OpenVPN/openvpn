@@ -2139,15 +2139,12 @@ parameter can point to an empty directory, however
 complications can result when scripts or restarts
 are executed after the chroot operation.
 
-Note: if OpenVPN is built using the PolarSSL SSL
-library,
-.B \-\-chroot
-will only work if a /dev/urandom device node is available
-inside the chroot directory
+Note: The SSL library will probably need /dev/urandom to be available inside
+the chroot directory
 .B dir.
-This is due to the way PolarSSL works (it wants to open
-/dev/urandom every time randomness is needed, not just once
-at startup) and nothing OpenVPN can influence.
+This is because SSL libraries occasionally need to collect fresh random.  Newer
+linux kernels and some BSDs implement a getrandom() or getentropy() syscall
+that removes the need for /dev/urandom to be available.
 .\"*********************************************************
 .TP
 .B \-\-setcon context
