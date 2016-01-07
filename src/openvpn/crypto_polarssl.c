@@ -214,7 +214,7 @@ show_available_digests ()
 
       if (info)
 	printf ("%s %d bit default key\n",
-		info->name, info->size * 8);
+		md_get_name(info), md_get_size(info) * 8);
       digests++;
     }
   printf ("\n");
@@ -578,10 +578,10 @@ md_kt_get (const char *digest)
   md = md_info_from_string(digest);
   if (!md)
     msg (M_FATAL, "Message hash algorithm '%s' not found", digest);
-  if (md->size > MAX_HMAC_KEY_LENGTH)
+  if (md_get_size(md) > MAX_HMAC_KEY_LENGTH)
     msg (M_FATAL, "Message hash algorithm '%s' uses a default hash size (%d bytes) which is larger than " PACKAGE_NAME "'s current maximum hash size (%d bytes)",
 	 digest,
-	 md->size,
+	 md_get_size(md),
 	 MAX_HMAC_KEY_LENGTH);
   return md;
 }
