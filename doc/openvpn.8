@@ -1360,7 +1360,11 @@ parameter is interpreted in the same way as the
 .B \-\-link\-mtu
 parameter, i.e. the UDP packet size after encapsulation
 overhead has been added in, but not including
-the UDP header itself.
+the UDP header itself. Resulting packet would be at most 28
+bytes larger for IPv4 and 48 bytes for IPv6 (20/40 bytes for IP
+header and 8 bytes for UDP header). Default value of 1450 allows
+IPv4 packets to be transmitted over a link with MTU 1473 or higher
+without IP level fragmentation.
 
 The
 .B \-\-mssfix
