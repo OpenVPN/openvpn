@@ -345,7 +345,7 @@ tls_ctx_check_cert_time (const struct tls_root_ctx *ctx)
 
   ASSERT (ctx);
 
-#if OPENSSL_VERSION_NUMBER >= 0x10002000L
+#if OPENSSL_VERSION_NUMBER >= 0x10002000L && !defined(LIBRESSL_VERSION_NUMBER)
   /* OpenSSL 1.0.2 and up */
   cert = SSL_CTX_get0_certificate (ctx->ctx);
 #else
@@ -380,7 +380,7 @@ tls_ctx_check_cert_time (const struct tls_root_ctx *ctx)
     }
 
 cleanup:
-#if OPENSSL_VERSION_NUMBER < 0x10002000L
+#if OPENSSL_VERSION_NUMBER < 0x10002000L || defined(LIBRESSL_VERSION_NUMBER)
   SSL_free (ssl);
 #endif
   return;
