@@ -210,14 +210,10 @@ ENVIRONMENT for ./configure:
   MAN2HTML    path to man2html utility
   GIT         path to git utility
   TAP_CFLAGS  C compiler flags for tap
-  OPENSSL_CRYPTO_CFLAGS
-              C compiler flags for OPENSSL_CRYPTO, overriding pkg-config
-  OPENSSL_CRYPTO_LIBS
-              linker flags for OPENSSL_CRYPTO, overriding pkg-config
-  OPENSSL_SSL_CFLAGS
-              C compiler flags for OPENSSL_SSL, overriding pkg-config
-  OPENSSL_SSL_LIBS
-              linker flags for OPENSSL_SSL, overriding pkg-config
+  OPENSSL_CFLAGS
+              C compiler flags for OpenSSL, overriding pkg-config
+  OPENSSL_LIBS
+              linker flags for OpenSSL, overriding pkg-config
   POLARSSL_CFLAGS
               C compiler flags for polarssl
   POLARSSL_LIBS

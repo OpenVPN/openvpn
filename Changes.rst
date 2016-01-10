@@ -78,3 +78,11 @@ User-visible Changes
 
 - Removed --enable-password-save from configure. This option is now
   always enabled.
+
+Maintainer-visible changes
+--------------------------
+- OpenVPN no longer supports building with crypto support, but without TLS
+  support.  As a consequence, OPENSSL_CRYPTO_{CFLAGS,LIBS} and
+  OPENSSL_SSL_{CFLAGS,LIBS} have been merged into OPENSSL_{CFLAGS,LIBS}.  This
+  is particularly relevant for maintainers who build their own OpenSSL library,
+  e.g. when cross-compiling.
