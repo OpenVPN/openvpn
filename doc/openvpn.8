@@ -5455,6 +5455,16 @@ DNS leaks. This option prevents any application from accessing
 TCP or UDP port 53 except one inside the tunnel. It uses
 Windows Filtering Platform (WFP) and works on Windows Vista or
 later.
+
+This option is considered unknown on non-Windows platforms
+and unsupported on Windows XP, resulting in fatal error.
+You may want to use
+.B \-\-setenv opt
+or
+.B \-\-ignore\-unknown\-option
+(not suitable for Windows XP) to ignore said error.
+Note that pushing unknown options from server does not trigger
+fatal errors.
 .\"*********************************************************
 .TP
 .B \-\-dhcp\-renew
