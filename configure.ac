@@ -832,30 +832,28 @@ elif test "${with_crypto_library}" = "polarssl"; then
 	AC_ARG_VAR([POLARSSL_CFLAGS], [C compiler flags for polarssl])
 	AC_ARG_VAR([POLARSSL_LIBS], [linker flags for polarssl])
 
+	saved_CFLAGS="${CFLAGS}"
+	saved_LIBS="${LIBS}"
+
 	if test -z "${POLARSSL_CFLAGS}" -a -z "${POLARSSL_LIBS}"; then
         # if the user did not explicitly specify flags, try to autodetect
 		AC_SEARCH_LIBS(
 			[ssl_init],
-			[mbedtls],
-			[POLARSSL_LIBS=-lmbedtls]
+			[mbedtls polarssl],
 			[
-				AC_SEARCH_LIBS(
-					[ssl_init],
-					[polarssl],
-					[POLARSSL_LIBS=-lpolarssl]
-					[],
-					[${PKCS11_HELPER_LIBS}]
-				)
+				if test "${ac_cv_search_ssl_init}" != "none required"; then
+					POLARSSL_LIBS=${ac_cv_search_ssl_init}
+				fi
 			],
+			[AC_MSG_ERROR([Could not find PolarSSL/mbed TLS.])],
 			[${PKCS11_HELPER_LIBS}]
 		)
 	fi
 
-	AC_MSG_CHECKING([polarssl version])
-	saved_CFLAGS="${CFLAGS}"
-	saved_LIBS="${LIBS}"
 	CFLAGS="${POLARSSL_CFLAGS} ${PKCS11_HELPER_CFLAGS} ${CFLAGS}"
 	LIBS="${POLARSSL_LIBS} ${PKCS11_HELPER_LIBS} ${LIBS}"
+
+	AC_MSG_CHECKING([polarssl version])
 	AC_COMPILE_IFELSE(
 		[AC_LANG_PROGRAM(
 			[[
