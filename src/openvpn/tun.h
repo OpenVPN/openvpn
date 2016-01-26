@@ -58,6 +58,10 @@ struct tuntap_options {
 # define IPW32_SET_N            5
   int ip_win32_type;
 
+#ifdef WIN32
+  HANDLE msg_channel;
+#endif
+
   /* --ip-win32 dynamic options */
   bool dhcp_masq_custom_offset;
   int dhcp_masq_offset;

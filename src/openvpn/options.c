@@ -6015,6 +6015,24 @@ add_option (struct options *options,
     }
 #endif
 #endif
+  else if (streq (p[0], "msg-channel") && p[1])
+    {
+#ifdef WIN32
+      VERIFY_PERMISSION (OPT_P_GENERAL);
+      HANDLE process = GetCurrentProcess ();
+      HANDLE handle = (HANDLE) atoi (p[1]);
+      if (!DuplicateHandle (process, handle, process, &options->msg_channel, 0,
+                            FALSE, DUPLICATE_CLOSE_SOURCE | DUPLICATE_SAME_ACCESS))
+        {
+          msg (msglevel, "could not duplicate service pipe handle");
+          goto err;
+        }
+      options->route_method = ROUTE_METHOD_SERVICE;
+#else
+      msg (msglevel, "--msg-channel is only supported on Windows");
+      goto err;
+#endif
+    }
 #ifdef WIN32
   else if (streq (p[0], "win-sys") && p[1] && !p[2])
     {

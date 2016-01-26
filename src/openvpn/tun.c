@@ -48,6 +48,11 @@
 #include "win32.h"
 
 #include "memdbg.h"
+
+#ifdef WIN32
+#include "openvpn-msg.h"
+#endif
+
 #include <string.h>
 
 #ifdef WIN32
@@ -68,6 +73,64 @@ static void netsh_command (const struct argv *a, int n);
 static const char *netsh_get_id (const char *dev_node, struct gc_arena *gc);
 
 static DWORD get_adapter_index_flexible (const char *name);
+
+static bool
+do_address_service (const bool add, const short family, const struct tuntap *tt)
+{
+  DWORD len;
+  bool ret = false;
+  ack_message_t ack;
+  struct gc_arena gc = gc_new ();
+  HANDLE pipe = tt->options.msg_channel;
+
+  address_message_t addr = {
+    .header = {
+      (add ? msg_add_address : msg_del_address),
+      sizeof (address_message_t),
+      0 },
+    .family = family,
+    .iface = { .index = tt->adapter_index, .name = "" }
+  };
+
+  if (addr.iface.index == TUN_ADAPTER_INDEX_INVALID)
+    {
+      strncpy (addr.iface.name, tt->actual_name, sizeof (addr.iface.name));
+      addr.iface.name[sizeof (addr.iface.name) - 1] = '\0';
+    }
+
+  if (addr.family == AF_INET)
+    {
+      addr.address.ipv4.s_addr = tt->local;
+      addr.prefix_len = 32;
+    }
+  else
+    {
+      addr.address.ipv6 = tt->local_ipv6;
+      addr.prefix_len = tt->netbits_ipv6;
+    }
+
+  if (!WriteFile (pipe, &addr, sizeof (addr), &len, NULL) ||
+      !ReadFile (pipe, &ack, sizeof (ack), &len, NULL))
+    {
+      msg (M_WARN, "TUN: could not talk to service: %s [%lu]",
+           strerror_win32 (GetLastError (), &gc), GetLastError ());
+      goto out;
+    }
+
+  if (ack.error_number != NO_ERROR)
+    {
+      msg (M_WARN, "TUN: %s address failed using service: %s [status=%u if_index=%lu]",
+           (add ? "adding" : "deleting"), strerror_win32 (ack.error_number, &gc),
+           ack.error_number, addr.iface.index);
+      goto out;
+    }
+
+  ret = true;
+
+out:
+  gc_free (&gc);
+  return ret;
+}
 
 #endif
 
@@ -1301,7 +1364,6 @@ do_ifconfig (struct tuntap *tt,
 	tt->did_ifconfig = true;
       }
 
-    /* IPv6 always uses "netsh" interface */
     if ( do_ipv6 )
       {
 	char * saved_actual;
@@ -1314,16 +1376,6 @@ do_ifconfig (struct tuntap *tt,
 	idx = get_adapter_index_flexible(actual);
 	openvpn_snprintf(iface, sizeof(iface), "interface=%lu", idx);
 
-	/* example: netsh interface ipv6 set address interface=42 2001:608:8003::d store=active */
-	argv_printf (&argv,
-		     "%s%sc interface ipv6 set address %s %s store=active",
-		     get_win_sys_path(),
-		     NETSH_PATH_SUFFIX,
-		     iface,
-		     ifconfig_ipv6_local);
-	netsh_command (&argv, 4);
-
-	/* explicit route needed */
 	/* on windows, OpenVPN does ifconfig first, open_tun later, so
 	 * tt->actual_name might not yet be initialized, but routing code
 	 * needs to know interface name - point to "actual", restore later
@@ -1332,6 +1384,24 @@ do_ifconfig (struct tuntap *tt,
 	tt->actual_name = (char*) actual;
 	/* we use adapter_index in add_route_ipv6 */
 	tt->adapter_index = idx;
+
+	if (tt->options.msg_channel)
+	  {
+	    do_address_service (true, AF_INET6, tt);
+	  }
+	else
+	  {
+	    /* example: netsh interface ipv6 set address interface=42 2001:608:8003::d store=active */
+	    argv_printf (&argv,
+			 "%s%sc interface ipv6 set address %s %s store=active",
+			 get_win_sys_path(),
+			 NETSH_PATH_SUFFIX,
+			 iface,
+			 ifconfig_ipv6_local );
+	    netsh_command (&argv, 4);
+	  }
+
+	/* explicit route needed */
 	add_route_connected_v6_net(tt, es);
 	tt->actual_name = saved_actual;
       }
@@ -5403,13 +5473,35 @@ open_tun (const char *dev, const char *dev_type, const char *dev_node, struct tu
     /* flush arp cache */
     if (index != TUN_ADAPTER_INDEX_INVALID)
       {
-	DWORD status;
+        DWORD status = -1;
 
-	if ((status = FlushIpNetTable (index)) == NO_ERROR)
+        if (tt->options.msg_channel)
+          {
+            ack_message_t ack;
+            flush_neighbors_message_t msg = {
+              .header = {
+                msg_flush_neighbors,
+                sizeof (flush_neighbors_message_t),
+                0 },
+              .family = AF_INET,
+              .iface = { .index = index, .name = "" }
+            };
+
+            if (!WriteFile (tt->options.msg_channel, &msg, sizeof (msg), &len, NULL) ||
+                !ReadFile (tt->options.msg_channel, &ack, sizeof (ack), &len, NULL))
+              msg (M_WARN, "TUN: could not talk to service: %s [%lu]",
+                   strerror_win32 (GetLastError (), &gc), GetLastError ());
+
+            status = ack.error_number;
+          }
+        else
+          status = FlushIpNetTable (index);
+
+	if (status == NO_ERROR)
 	  msg (M_INFO, "Successful ARP Flush on interface [%u] %s",
 	       (unsigned int)index,
 	       device_guid);
-	else
+	else if (status != -1)
 	  msg (D_TUNTAP_INFO, "NOTE: FlushIpNetTable failed on interface [%u] %s (status=%u) : %s",
 	       (unsigned int)index,
 	       device_guid,
@@ -5530,28 +5622,35 @@ close_tun (struct tuntap *tt)
     {
       if ( tt->ipv6 && tt->did_ifconfig_ipv6_setup )
         {
-	  const char *ifconfig_ipv6_local;
-	  struct argv argv;
-	  argv_init (&argv);
+          if (tt->options.msg_channel)
+            {
+              do_address_service (false, AF_INET6, tt);
+            }
+          else
+            {
+              const char *ifconfig_ipv6_local;
+              struct argv argv;
+              argv_init (&argv);
 
-	  /* remove route pointing to interface */
-	  delete_route_connected_v6_net(tt, NULL);
+              /* remove route pointing to interface */
+              delete_route_connected_v6_net(tt, NULL);
 
-	  /* "store=active" is needed in Windows 8(.1) to delete the
-	   * address we added (pointed out by Cedric Tabary).
-	   */
+              /* "store=active" is needed in Windows 8(.1) to delete the
+               * address we added (pointed out by Cedric Tabary).
+               */
 
-	  /* netsh interface ipv6 delete address \"%s\" %s */
-	  ifconfig_ipv6_local = print_in6_addr (tt->local_ipv6, 0,  &gc);
-	  argv_printf (&argv,
-		    "%s%sc interface ipv6 delete address %s %s store=active",
-		     get_win_sys_path(),
-		     NETSH_PATH_SUFFIX,
-		     tt->actual_name,
-		     ifconfig_ipv6_local );
+              /* netsh interface ipv6 delete address \"%s\" %s */
+              ifconfig_ipv6_local = print_in6_addr (tt->local_ipv6, 0,  &gc);
+              argv_printf (&argv,
+                           "%s%sc interface ipv6 delete address %s %s store=active",
+                           get_win_sys_path(),
+                           NETSH_PATH_SUFFIX,
+                           tt->actual_name,
+                           ifconfig_ipv6_local);
 
-	  netsh_command (&argv, 1);
-          argv_reset (&argv);
+              netsh_command (&argv, 1);
+              argv_reset (&argv);
+            }
 	}
 #if 1
       if (tt->ipapi_context_defined)

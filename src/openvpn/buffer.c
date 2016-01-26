@@ -254,7 +254,7 @@ buf_puts(struct buffer *buf, const char *str)
  *
  * Return false on overflow.
  *
- * This function is duplicated into service-win32/openvpnserv.c
+ * This functionality is duplicated in src/openvpnserv/common.c
  * Any modifications here should be done to the other place as well.
  */
 

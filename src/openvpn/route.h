@@ -40,6 +40,7 @@
 #define ROUTE_METHOD_ADAPTIVE  0  /* try IP helper first then route.exe */
 #define ROUTE_METHOD_IPAPI     1  /* use IP helper API */
 #define ROUTE_METHOD_EXE       2  /* use route.exe */
+#define ROUTE_METHOD_SERVICE   3  /* use the privileged Windows service */
 #define ROUTE_METHOD_MASK      3
 #endif
 

@@ -581,6 +581,7 @@ struct options
   int foreign_option_index;
 
 #ifdef WIN32
+  HANDLE msg_channel;
   const char *exit_event_name;
   bool exit_event_initial_state;
   bool show_net_up;
