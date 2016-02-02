@@ -3128,7 +3128,8 @@ get_default_gateway (struct route_gateway_info *rgi)
   struct gc_arena gc = gc_new ();
   struct rtmsg m_rtmsg;
   int sockfd = -1;
-  int seq, l, pid, rtm_addrs, i;
+  int seq, l, pid, rtm_addrs;
+  unsigned int i;
   struct sockaddr so_dst, so_mask;
   char *cp = m_rtmsg.m_space; 
   struct sockaddr *gate = NULL, *ifp = NULL, *sa;
@@ -3330,7 +3331,8 @@ get_default_gateway_ipv6(struct route_ipv6_gateway_info *rgi6,
 
     struct rtmsg m_rtmsg;
     int sockfd = -1;
-    int seq, l, pid, rtm_addrs, i;
+    int seq, l, pid, rtm_addrs;
+    unsigned int i;
     struct sockaddr_in6 so_dst, so_mask;
     char *cp = m_rtmsg.m_space;
     struct sockaddr *gate = NULL, *ifp = NULL, *sa;
