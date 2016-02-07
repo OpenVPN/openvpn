@@ -786,7 +786,6 @@ key_state_init (struct tls_session *session, struct key_state *ks)
 		  session->opt->replay_time,
 		  "SSL", ks->key_id);
 
-  ks->crypto_options.key_ctx_bi = &ks->key;
   ks->crypto_options.packet_id = session->opt->replay ? &ks->packet_id : NULL;
   ks->crypto_options.pid_persist = NULL;
   ks->crypto_options.flags = session->opt->crypto_flags;
@@ -819,7 +818,7 @@ key_state_free (struct key_state *ks, bool clear)
 
   key_state_ssl_free(&ks->ks_ssl);
 
-  free_key_ctx_bi (&ks->key);
+  free_key_ctx_bi (&ks->crypto_options.key_ctx_bi);
   free_buf (&ks->plaintext_read_buf);
   free_buf (&ks->plaintext_write_buf);
   free_buf (&ks->ack_write_buf);
@@ -1072,9 +1071,6 @@ tls_multi_init (struct tls_options *tls_options)
   /* get command line derived options */
   ret->opt = *tls_options;
 
-  /* set up pointer to HMAC object for TLS packet authentication */
-  ret->opt.tls_auth.key_ctx_bi = &ret->opt.tls_auth_key;
-
   /* set up list of keys to be scanned by data channel encrypt and decrypt routines */
   ASSERT (SIZE (ret->key_scan) == 3);
   ret->key_scan[0] = &ret->session[TM_ACTIVE].key[KS_PRIMARY];
@@ -1113,8 +1109,7 @@ tls_auth_standalone_init (struct tls_options *tls_options,
   ALLOC_OBJ_CLEAR_GC (tas, struct tls_auth_standalone, gc);
 
   /* set up pointer to HMAC object for TLS packet authentication */
-  tas->tls_auth_key = tls_options->tls_auth_key;
-  tas->tls_auth_options.key_ctx_bi = &tas->tls_auth_key;
+  tas->tls_auth_options.key_ctx_bi = tls_options->tls_auth.key_ctx_bi;
   tas->tls_auth_options.flags |= CO_PACKET_ID_LONG_FORM;
 
   /* get initial frame parms, still need to finalize */
@@ -1197,11 +1192,11 @@ tls_multi_free (struct tls_multi *multi, bool clear)
 static bool
 swap_hmac (struct buffer *buf, const struct crypto_options *co, bool incoming)
 {
-  struct key_ctx *ctx;
+  const struct key_ctx *ctx;
 
   ASSERT (co);
 
-  ctx = (incoming ? &co->key_ctx_bi->decrypt : &co->key_ctx_bi->encrypt);
+  ctx = (incoming ? &co->key_ctx_bi.decrypt : &co->key_ctx_bi.encrypt);
   ASSERT (ctx->hmac);
 
   {
@@ -1265,7 +1260,7 @@ write_control_auth (struct tls_session *session,
   ASSERT (session_id_write_prepend (&session->session_id, buf));
   ASSERT (header = buf_prepend (buf, 1));
   *header = ks->key_id | (opcode << P_OPCODE_SHIFT);
-  if (session->tls_auth.key_ctx_bi->encrypt.hmac)
+  if (session->tls_auth.key_ctx_bi.encrypt.hmac)
     {
       /* no encryption, only write hmac */
       openvpn_encrypt (buf, null, &session->tls_auth, NULL);
@@ -1284,7 +1279,7 @@ read_control_auth (struct buffer *buf,
 {
   struct gc_arena gc = gc_new ();
 
-  if (co->key_ctx_bi->decrypt.hmac)
+  if (co->key_ctx_bi.decrypt.hmac)
     {
       struct buffer null = clear_buf ();
 
@@ -1707,7 +1702,6 @@ key_state_soft_reset (struct tls_session *session)
   ks->must_die = now + session->opt->transition_window; /* remaining lifetime of old key */
   key_state_free (ks_lame, false);
   *ks_lame = *ks;
-  ks_lame->crypto_options.key_ctx_bi = &ks_lame->key;
   ks_lame->crypto_options.packet_id = &ks_lame->packet_id;
 
   key_state_init (session, ks);
@@ -1806,8 +1800,9 @@ key_method_1_write (struct buffer *buf, struct tls_session *session)
       return false;
     }
 
-  init_key_ctx (&ks->key.encrypt, &key, &session->opt->key_type,
-		OPENVPN_OP_ENCRYPT, "Data Channel Encrypt");
+  init_key_ctx (&ks->crypto_options.key_ctx_bi.encrypt, &key,
+		&session->opt->key_type, OPENVPN_OP_ENCRYPT,
+		"Data Channel Encrypt");
   CLEAR (key);
 
   /* send local options string */
@@ -1969,7 +1964,7 @@ key_method_2_write (struct buffer *buf, struct tls_session *session)
     {
       if (ks->authenticated)
 	{
-	  if (!generate_key_expansion (&ks->key,
+	  if (!generate_key_expansion (&ks->crypto_options.key_ctx_bi,
 				       &session->opt->key_type,
 				       ks->key_src,
 				       &ks->session_id_remote,
@@ -2040,8 +2035,9 @@ key_method_1_read (struct buffer *buf, struct tls_session *session)
 
   buf_clear (buf);
 
-  init_key_ctx (&ks->key.decrypt, &key, &session->opt->key_type,
-		OPENVPN_OP_DECRYPT, "Data Channel Decrypt");
+  init_key_ctx (&ks->crypto_options.key_ctx_bi.decrypt, &key,
+		&session->opt->key_type, OPENVPN_OP_DECRYPT,
+		"Data Channel Decrypt");
   CLEAR (key);
   ks->authenticated = true;
   return true;
@@ -2189,7 +2185,7 @@ key_method_2_read (struct buffer *buf, struct tls_multi *multi, struct tls_sessi
    */
   if (!session->opt->server)
     {
-      if (!generate_key_expansion (&ks->key,
+      if (!generate_key_expansion (&ks->crypto_options.key_ctx_bi,
 				   &session->opt->key_type,
 				   ks->key_src,
 				   &session->session_id,

@@ -91,9 +91,9 @@ openvpn_encrypt (struct buffer *buf, struct buffer work,
   struct gc_arena gc;
   gc_init (&gc);
 
-  if (buf->len > 0 && opt->key_ctx_bi)
+  if (buf->len > 0 && opt)
     {
-      struct key_ctx *ctx = &opt->key_ctx_bi->encrypt;
+      const struct key_ctx *ctx = &opt->key_ctx_bi.encrypt;
 
       /* Do Encrypt from buf -> work */
       if (ctx->cipher)
@@ -240,9 +240,9 @@ openvpn_decrypt (struct buffer *buf, struct buffer work,
   struct gc_arena gc;
   gc_init (&gc);
 
-  if (buf->len > 0 && opt->key_ctx_bi)
+  if (buf->len > 0 && opt)
     {
-      struct key_ctx *ctx = &opt->key_ctx_bi->decrypt;
+      const struct key_ctx *ctx = &opt->key_ctx_bi.decrypt;
       struct packet_id_net pin;
       bool have_pin = false;
 

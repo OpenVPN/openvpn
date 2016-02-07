@@ -2134,7 +2134,7 @@ do_init_crypto_static (struct context *c, const unsigned int flags)
     }
 
   /* Get key schedule */
-  c->c2.crypto_options.key_ctx_bi = &c->c1.ks.static_key;
+  c->c2.crypto_options.key_ctx_bi = c->c1.ks.static_key;
 
   /* Compute MTU parameters */
   crypto_adjust_frame_parameters (&c->c2.frame,
@@ -2388,7 +2388,7 @@ do_init_crypto_tls (struct context *c, const unsigned int flags)
   /* TLS handshake authentication (--tls-auth) */
   if (options->tls_auth_file)
     {
-      to.tls_auth_key = c->c1.ks.tls_auth_key;
+      to.tls_auth.key_ctx_bi = c->c1.ks.tls_auth_key;
       to.tls_auth.pid_persist = &c->c1.pid_persist;
       to.tls_auth.flags |= CO_PACKET_ID_LONG_FORM;
       crypto_adjust_frame_parameters (&to.frame,

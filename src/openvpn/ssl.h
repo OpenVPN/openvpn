@@ -136,7 +136,6 @@
  */
 struct tls_auth_standalone
 {
-  struct key_ctx_bi tls_auth_key;
   struct crypto_options tls_auth_options;
   struct frame frame;
 };

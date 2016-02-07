@@ -207,7 +207,7 @@ struct key_ctx_bi
  */
 struct crypto_options
 {
-  struct key_ctx_bi *key_ctx_bi;
+  struct key_ctx_bi key_ctx_bi;
                                 /**< OpenSSL cipher and HMAC contexts for
                                  *   both sending and receiving
                                  *   directions. */
