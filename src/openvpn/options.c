@@ -3039,7 +3039,8 @@ options_string (const struct options *o,
 		       o->authname, o->authname_defined,
 		       o->keysize, true, false);
 
-	buf_printf (&out, ",cipher %s", cipher_kt_name (kt.cipher));
+	buf_printf (&out, ",cipher %s",
+	    translate_cipher_name_to_openvpn(cipher_kt_name (kt.cipher)));
 	buf_printf (&out, ",auth %s", md_kt_name (kt.digest));
 	buf_printf (&out, ",keysize %d", kt.cipher_length * 8);
 	if (o->shared_secret_file)

@@ -41,6 +41,16 @@
 /* TLS uses a tag of 128 bytes, let's do the same for OpenVPN */
 #define OPENVPN_AEAD_TAG_LENGTH 16
 
+/** Struct used in cipher name translation table */
+typedef struct {
+  const char *openvpn_name;	/**< Cipher name used by OpenVPN */
+  const char *lib_name;		/**< Cipher name used by crypto library */
+} cipher_name_pair;
+
+/** Cipher name translation table */
+extern const cipher_name_pair cipher_name_translation_table[];
+extern const size_t cipher_name_translation_table_count;
+
 /*
  * This routine should have additional OpenSSL crypto library initialisations
  * used by both crypto and ssl components of OpenVPN.
@@ -583,5 +593,25 @@ void hmac_ctx_update (hmac_ctx_t *ctx, const uint8_t *src, int src_len);
  * @param dst		buffer to write the HMAC to. May not be NULL.
  */
 void hmac_ctx_final (hmac_ctx_t *ctx, uint8_t *dst);
+
+/**
+ * Translate an OpenVPN cipher name to a crypto library cipher name.
+ *
+ * @param cipher_name	An OpenVPN cipher name
+ *
+ * @return		The corresponding crypto library cipher name, or NULL
+ * 			if no matching cipher name was found.
+ */
+const char * translate_cipher_name_from_openvpn (const char *cipher_name);
+
+/**
+ * Translate a crypto library cipher name to an OpenVPN cipher name.
+ *
+ * @param cipher_name	A crypto library cipher name
+ *
+ * @return		The corresponding OpenVPN cipher name, or NULL if no
+ * 			matching cipher name was found.
+ */
+const char * translate_cipher_name_to_openvpn (const char *cipher_name);
 
 #endif /* CRYPTO_BACKEND_H_ */

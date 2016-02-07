@@ -792,7 +792,7 @@ init_key_ctx (struct key_ctx *ctx, struct key *key,
 
       msg (D_HANDSHAKE, "%s: Cipher '%s' initialized with %d bit key",
           prefix,
-          cipher_kt_name(kt->cipher),
+          translate_cipher_name_to_openvpn(cipher_kt_name(kt->cipher)),
           kt->cipher_length *8);
 
       dmsg (D_SHOW_KEYS, "%s: CIPHER KEY: %s", prefix,
@@ -1662,6 +1662,44 @@ get_random()
   if (l < 0)
     l = -l;
   return l;
+}
+
+static const cipher_name_pair *
+get_cipher_name_pair(const char *cipher_name) {
+  const cipher_name_pair *pair;
+  size_t i = 0;
+
+  /* Search for a cipher name translation */
+  for (; i < cipher_name_translation_table_count; i++)
+    {
+      pair = &cipher_name_translation_table[i];
+      if (0 == strcmp (cipher_name, pair->openvpn_name) ||
+	  0 == strcmp (cipher_name, pair->lib_name))
+	  return pair;
+    }
+
+  /* Nothing found, return null */
+  return NULL;
+}
+
+const char *
+translate_cipher_name_from_openvpn (const char *cipher_name) {
+  const cipher_name_pair *pair = get_cipher_name_pair(cipher_name);
+
+  if (NULL == pair)
+    return cipher_name;
+
+  return pair->lib_name;
+}
+
+const char *
+translate_cipher_name_to_openvpn (const char *cipher_name) {
+  const cipher_name_pair *pair = get_cipher_name_pair(cipher_name);
+
+  if (NULL == pair)
+    return cipher_name;
+
+  return pair->openvpn_name;
 }
 
 #endif /* ENABLE_CRYPTO */

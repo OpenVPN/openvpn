@@ -121,52 +121,15 @@ crypto_init_dmalloc (void)
 }
 #endif /* DMALLOC */
 
-typedef struct { const char * openvpn_name; const char * polarssl_name; } cipher_name_pair;
-cipher_name_pair cipher_name_translation_table[] = {
+const cipher_name_pair cipher_name_translation_table[] = {
     { "BF-CBC", "BLOWFISH-CBC" },
     { "BF-CFB", "BLOWFISH-CFB64" },
     { "CAMELLIA-128-CFB", "CAMELLIA-128-CFB128" },
     { "CAMELLIA-192-CFB", "CAMELLIA-192-CFB128" },
     { "CAMELLIA-256-CFB", "CAMELLIA-256-CFB128" }
 };
-
-const cipher_name_pair *
-get_cipher_name_pair(const char *cipher_name) {
-  cipher_name_pair *pair;
-  size_t i = 0;
-
-  /* Search for a cipher name translation */
-  for (; i < sizeof (cipher_name_translation_table) / sizeof (*cipher_name_translation_table); i++)
-    {
-      pair = &cipher_name_translation_table[i];
-      if (0 == strcmp (cipher_name, pair->openvpn_name) ||
-	  0 == strcmp (cipher_name, pair->polarssl_name))
-	  return pair;
-    }
-
-  /* Nothing found, return null */
-  return NULL;
-}
-
-const char *
-translate_cipher_name_from_openvpn (const char *cipher_name) {
-  const cipher_name_pair *pair = get_cipher_name_pair(cipher_name);
-
-  if (NULL == pair)
-    return cipher_name;
-
-  return pair->polarssl_name;
-}
-
-const char *
-translate_cipher_name_to_openvpn (const char *cipher_name) {
-  const cipher_name_pair *pair = get_cipher_name_pair(cipher_name);
-
-  if (NULL == pair)
-    return cipher_name;
-
-  return pair->openvpn_name;
-}
+const size_t cipher_name_translation_table_count =
+    sizeof (cipher_name_translation_table) / sizeof (*cipher_name_translation_table);
 
 void
 show_available_ciphers ()

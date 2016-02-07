@@ -240,17 +240,14 @@ crypto_init_dmalloc (void)
 }
 #endif /* DMALLOC */
 
-const char *
-translate_cipher_name_from_openvpn (const char *cipher_name) {
-  // OpenSSL doesn't require any translation
-  return cipher_name;
-}
+const cipher_name_pair cipher_name_translation_table[] = {
+    { "AES-128-GCM", "id-aes128-GCM" },
+    { "AES-192-GCM", "id-aes192-GCM" },
+    { "AES-256-GCM", "id-aes256-GCM" },
+};
+const size_t cipher_name_translation_table_count =
+    sizeof (cipher_name_translation_table) / sizeof (*cipher_name_translation_table);
 
-const char *
-translate_cipher_name_to_openvpn (const char *cipher_name) {
-  // OpenSSL doesn't require any translation
-  return cipher_name;
-}
 
 void
 show_available_ciphers ()
@@ -286,9 +283,9 @@ show_available_ciphers ()
 	      const char *ssl_only = cipher_kt_mode_cbc(cipher) ?
 		  "" : " (TLS client/server mode)";
 
-	      printf ("%s %d bit default key (%s)%s\n", OBJ_nid2sn (nid),
-		      EVP_CIPHER_key_length (cipher) * 8, var_key_size,
-		      ssl_only);
+	      printf ("%s %d bit default key (%s)%s\n",
+		  translate_cipher_name_to_openvpn(OBJ_nid2sn (nid)),
+		  EVP_CIPHER_key_length (cipher) * 8, var_key_size, ssl_only);
 	    }
 	}
     }
