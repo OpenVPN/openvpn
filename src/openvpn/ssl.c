@@ -780,13 +780,13 @@ key_state_init (struct tls_session *session, struct key_state *ks)
   reliable_set_timeout (ks->send_reliable, session->opt->packet_timeout);
 
   /* init packet ID tracker */
-  packet_id_init (&ks->packet_id,
-		  session->opt->tcp_mode,
-		  session->opt->replay_window,
-		  session->opt->replay_time,
-		  "SSL", ks->key_id);
+  if (session->opt->replay)
+    {
+      packet_id_init (&ks->crypto_options.packet_id, session->opt->tcp_mode,
+	  session->opt->replay_window, session->opt->replay_time, "SSL",
+	  ks->key_id);
+    }
 
-  ks->crypto_options.packet_id = session->opt->replay ? &ks->packet_id : NULL;
   ks->crypto_options.pid_persist = NULL;
   ks->crypto_options.flags = session->opt->crypto_flags;
   ks->crypto_options.flags &= session->opt->crypto_flags_and;
@@ -842,7 +842,7 @@ key_state_free (struct key_state *ks, bool clear)
   if (ks->key_src)
     free (ks->key_src);
 
-  packet_id_free (&ks->packet_id);
+  packet_id_free (&ks->crypto_options.packet_id);
 
 #ifdef PLUGIN_DEF_AUTH
   key_state_rm_auth_control_file (ks);
@@ -856,13 +856,6 @@ key_state_free (struct key_state *ks, bool clear)
 
 /** @} addtogroup control_processor */
 
-
-/*
- * Must be called if we move a tls_session in memory.
- */
-static inline void tls_session_set_self_referential_pointers (struct tls_session* session) {
-  session->tls_auth.packet_id = &session->tls_auth_pid;
-}
 
 /**
  * Returns whether or not the server should check for username/password
@@ -936,18 +929,15 @@ tls_session_init (struct tls_multi *multi, struct tls_session *session)
   /* Initialize control channel authentication parameters */
   session->tls_auth = session->opt->tls_auth;
 
-  /* Set session internal pointers (also called if session object is moved in memory) */
-  tls_session_set_self_referential_pointers (session);
-
   /* initialize packet ID replay window for --tls-auth */
-  packet_id_init (session->tls_auth.packet_id,
+  packet_id_init (&session->tls_auth.packet_id,
 		  session->opt->tcp_mode,
 		  session->opt->replay_window,
 		  session->opt->replay_time,
 		  "TLS_AUTH", session->key_id);
 
   /* load most recent packet-id to replay protect on --tls-auth */
-  packet_id_persist_load_obj (session->tls_auth.pid_persist, session->tls_auth.packet_id);
+  packet_id_persist_load_obj (session->tls_auth.pid_persist, &session->tls_auth.packet_id);
 
   key_state_init (session, &session->key[KS_PRIMARY]);
 
@@ -974,8 +964,8 @@ tls_session_free (struct tls_session *session, bool clear)
 {
   int i;
 
-  if (session->tls_auth.packet_id)
-    packet_id_free (session->tls_auth.packet_id);
+  if (packet_id_initialized(&session->tls_auth.packet_id))
+    packet_id_free (&session->tls_auth.packet_id);
 
   for (i = 0; i < KS_SIZE; ++i)
     key_state_free (&session->key[i], false);
@@ -1006,7 +996,6 @@ move_session (struct tls_multi* multi, int dest, int src, bool reinit_src)
   ASSERT (dest >= 0 && dest < TM_SIZE);
   tls_session_free (&multi->session[dest], false);
   multi->session[dest] = multi->session[src];
-  tls_session_set_self_referential_pointers (&multi->session[dest]);
 
   if (reinit_src)
     tls_session_init (multi, &multi->session[src]);
@@ -1274,7 +1263,7 @@ write_control_auth (struct tls_session *session,
  */
 static bool
 read_control_auth (struct buffer *buf,
-		   const struct crypto_options *co,
+		   struct crypto_options *co,
 		   const struct link_socket_actual *from)
 {
   struct gc_arena gc = gc_new ();
@@ -1702,7 +1691,6 @@ key_state_soft_reset (struct tls_session *session)
   ks->must_die = now + session->opt->transition_window; /* remaining lifetime of old key */
   key_state_free (ks_lame, false);
   *ks_lame = *ks;
-  ks_lame->crypto_options.packet_id = &ks_lame->packet_id;
 
   key_state_init (session, ks);
   ks->session_id_remote = ks_lame->session_id_remote;
@@ -2257,7 +2245,7 @@ tls_process (struct tls_multi *multi,
 	   && ks->n_bytes >= session->opt->renegotiate_bytes)
        || (session->opt->renegotiate_packets
 	   && ks->n_packets >= session->opt->renegotiate_packets)
-       || (packet_id_close_to_wrapping (&ks->packet_id.send))))
+       || (packet_id_close_to_wrapping (&ks->crypto_options.packet_id.send))))
     {
       msg (D_TLS_DEBUG_LOW,
            "TLS: soft reset sec=%d bytes=" counter_format "/%d pkts=" counter_format "/%d",

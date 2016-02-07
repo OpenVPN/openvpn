@@ -211,7 +211,7 @@ struct crypto_options
                                 /**< OpenSSL cipher and HMAC contexts for
                                  *   both sending and receiving
                                  *   directions. */
-  struct packet_id *packet_id;  /**< Current packet ID state for both
+  struct packet_id packet_id;   /**< Current packet ID state for both
                                  *   sending and receiving directions. */
   struct packet_id_persist *pid_persist;
                                 /**< Persistent packet ID state for
@@ -311,8 +311,7 @@ void free_key_ctx_bi (struct key_ctx_bi *ctx);
  *     error occurred.
  */
 void openvpn_encrypt (struct buffer *buf, struct buffer work,
-		      const struct crypto_options *opt,
-		      const struct frame* frame);
+		      struct crypto_options *opt, const struct frame* frame);
 
 
 /**
@@ -347,8 +346,7 @@ void openvpn_encrypt (struct buffer *buf, struct buffer work,
  *     an error occurred.
  */
 bool openvpn_decrypt (struct buffer *buf, struct buffer work,
-		      const struct crypto_options *opt,
-		      const struct frame* frame);
+		      struct crypto_options *opt, const struct frame* frame);
 
 /** @} name Functions for performing security operations on data channel packets */
 
@@ -397,7 +395,7 @@ void prng_bytes (uint8_t *output, int len);
 
 void prng_uninit ();
 
-void test_crypto (const struct crypto_options *co, struct frame* f);
+void test_crypto (struct crypto_options *co, struct frame* f);
 
 
 /* key direction functions */

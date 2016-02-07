@@ -2076,16 +2076,15 @@ do_init_crypto_static (struct context *c, const unsigned int flags)
   /* Initialize packet ID tracking */
   if (options->replay)
     {
-      packet_id_init (&c->c2.packet_id,
+      packet_id_init (&c->c2.crypto_options.packet_id,
 		      link_socket_proto_connection_oriented (options->ce.proto),
 		      options->replay_window,
 		      options->replay_time,
 		      "STATIC", 0);
-      c->c2.crypto_options.packet_id = &c->c2.packet_id;
       c->c2.crypto_options.pid_persist = &c->c1.pid_persist;
       c->c2.crypto_options.flags |= CO_PACKET_ID_LONG_FORM;
       packet_id_persist_load_obj (&c->c1.pid_persist,
-				  c->c2.crypto_options.packet_id);
+				  &c->c2.crypto_options.packet_id);
     }
 
   if (!key_ctx_bi_defined (&c->c1.ks.static_key))
@@ -3007,7 +3006,7 @@ static void
 do_close_packet_id (struct context *c)
 {
 #ifdef ENABLE_CRYPTO
-  packet_id_free (&c->c2.packet_id);
+  packet_id_free (&c->c2.crypto_options.packet_id);
   packet_id_persist_save (&c->c1.pid_persist);
   if (!(c->sig->signal_received == SIGUSR1))
     packet_id_persist_close (&c->c1.pid_persist);
@@ -3923,13 +3922,13 @@ test_crypto_thread (void *arg)
   test_crypto (&c->c2.crypto_options, &c->c2.frame);
 
   key_schedule_free (&c->c1.ks, true);
-  packet_id_free (&c->c2.packet_id);
+  packet_id_free (&c->c2.crypto_options.packet_id);
 
   context_gc_free (c);
   return NULL;
 }
 
-#endif
+#endif /* ENABLE_CRYPTO */
 
 bool
 do_test_crypto (const struct options *o)

@@ -361,8 +361,6 @@ struct context_2
                                  *   Channel Crypto module\endlink to
                                  *   process data channel packet. */
 
-  /* used to keep track of data channel packet sequence numbers */
-  struct packet_id packet_id;
   struct event_timeout packet_id_persist_interval;
 
 #endif /* ENABLE_CRYPTO */

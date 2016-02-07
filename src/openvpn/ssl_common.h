@@ -160,7 +160,6 @@ struct key_state
   int initial_opcode;		/* our initial P_ opcode */
   struct session_id session_id_remote;   /* peer's random session ID */
   struct link_socket_actual remote_addr; /* peer's IP addr */
-  struct packet_id packet_id;	       /* for data channel, to prevent replay attacks */
 
   struct crypto_options crypto_options;/* data channel crypto options */
 
@@ -366,7 +365,6 @@ struct tls_session
 
   /* authenticate control packets */
   struct crypto_options tls_auth;
-  struct packet_id tls_auth_pid;
 
   int initial_opcode;		/* our initial P_ opcode */
   struct session_id session_id;	/* our random session ID */

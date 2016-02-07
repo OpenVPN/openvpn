@@ -85,8 +85,7 @@ memcmp_constant_time (const void *a, const void *b, size_t size) {
 
 void
 openvpn_encrypt (struct buffer *buf, struct buffer work,
-		 const struct crypto_options *opt,
-		 const struct frame* frame)
+		 struct crypto_options *opt, const struct frame* frame)
 {
   struct gc_arena gc;
   gc_init (&gc);
@@ -111,11 +110,11 @@ openvpn_encrypt (struct buffer *buf, struct buffer work,
 	      if (opt->flags & CO_USE_IV)
 		prng_bytes (iv_buf, iv_size);
 
-	      /* Put packet ID in plaintext buffer or IV, depending on cipher mode */
-	      if (opt->packet_id)
+	      /* Put packet ID in plaintext buffer */
+	      if (packet_id_initialized(&opt->packet_id))
 		{
 		  struct packet_id_net pin;
-		  packet_id_alloc_outgoing (&opt->packet_id->send, &pin, BOOL_CAST (opt->flags & CO_PACKET_ID_LONG_FORM));
+		  packet_id_alloc_outgoing (&opt->packet_id.send, &pin, BOOL_CAST (opt->flags & CO_PACKET_ID_LONG_FORM));
 		  ASSERT (packet_id_write (&pin, buf, BOOL_CAST (opt->flags & CO_PACKET_ID_LONG_FORM), true));
 		}
 	    }
@@ -124,10 +123,11 @@ openvpn_encrypt (struct buffer *buf, struct buffer work,
 	      struct packet_id_net pin;
 	      struct buffer b;
 
-	      ASSERT (opt->flags & CO_USE_IV);    /* IV and packet-ID required */
-	      ASSERT (opt->packet_id); /*  for this mode. */
+	      /* IV and packet-ID required for this mode. */
+	      ASSERT (opt->flags & CO_USE_IV);
+	      ASSERT (packet_id_initialized(&opt->packet_id));
 
-	      packet_id_alloc_outgoing (&opt->packet_id->send, &pin, true);
+	      packet_id_alloc_outgoing (&opt->packet_id.send, &pin, true);
 	      memset (iv_buf, 0, iv_size);
 	      buf_set_write (&b, iv_buf, iv_size);
 	      ASSERT (packet_id_write (&pin, &b, true, false));
@@ -189,10 +189,10 @@ openvpn_encrypt (struct buffer *buf, struct buffer work,
 	}
       else				/* No Encryption */
 	{
-	  if (opt->packet_id)
+	  if (packet_id_initialized(&opt->packet_id))
 	    {
 	      struct packet_id_net pin;
-	      packet_id_alloc_outgoing (&opt->packet_id->send, &pin, BOOL_CAST (opt->flags & CO_PACKET_ID_LONG_FORM));
+	      packet_id_alloc_outgoing (&opt->packet_id.send, &pin, BOOL_CAST (opt->flags & CO_PACKET_ID_LONG_FORM));
 	      ASSERT (packet_id_write (&pin, buf, BOOL_CAST (opt->flags & CO_PACKET_ID_LONG_FORM), true));
 	    }
 	  work = *buf;
@@ -233,8 +233,7 @@ err:
  */
 bool
 openvpn_decrypt (struct buffer *buf, struct buffer work,
-		 const struct crypto_options *opt,
-		 const struct frame* frame)
+		 struct crypto_options *opt, const struct frame* frame)
 {
   static const char error_prefix[] = "Authenticate/Decrypt packet error";
   struct gc_arena gc;
@@ -245,6 +244,9 @@ openvpn_decrypt (struct buffer *buf, struct buffer work,
       const struct key_ctx *ctx = &opt->key_ctx_bi.decrypt;
       struct packet_id_net pin;
       bool have_pin = false;
+
+      dmsg (D_PACKET_CONTENT, "DECRYPT FROM: %s",
+	  format_hex (BPTR (buf), BLEN (buf), 80, &gc));
 
       /* Verify the HMAC */
       if (ctx->hmac)
@@ -325,7 +327,7 @@ openvpn_decrypt (struct buffer *buf, struct buffer work,
 	  {
 	    if (cipher_kt_mode_cbc(cipher_kt))
 	      {
-		if (opt->packet_id)
+		if (packet_id_initialized(&opt->packet_id))
 		  {
 		    if (!packet_id_read (&pin, &work, BOOL_CAST (opt->flags & CO_PACKET_ID_LONG_FORM)))
 		      CRYPT_ERROR ("error reading CBC packet-id");
@@ -336,8 +338,9 @@ openvpn_decrypt (struct buffer *buf, struct buffer work,
 	      {
 		struct buffer b;
 
-		ASSERT (opt->flags & CO_USE_IV);    /* IV and packet-ID required */
-		ASSERT (opt->packet_id); /*  for this mode. */
+		/* IV and packet-ID required for this mode. */
+		ASSERT (opt->flags & CO_USE_IV);
+		ASSERT (packet_id_initialized(&opt->packet_id));
 
 		buf_set_read (&b, iv_buf, iv_size);
 		if (!packet_id_read (&pin, &b, true))
@@ -353,7 +356,7 @@ openvpn_decrypt (struct buffer *buf, struct buffer work,
       else
 	{
 	  work = *buf;
-	  if (opt->packet_id)
+	  if (packet_id_initialized(&opt->packet_id))
 	    {
 	      if (!packet_id_read (&pin, &work, BOOL_CAST (opt->flags & CO_PACKET_ID_LONG_FORM)))
 		CRYPT_ERROR ("error reading packet-id");
@@ -363,12 +366,12 @@ openvpn_decrypt (struct buffer *buf, struct buffer work,
       
       if (have_pin)
 	{
-	  packet_id_reap_test (&opt->packet_id->rec);
-	  if (packet_id_test (&opt->packet_id->rec, &pin))
+	  packet_id_reap_test (&opt->packet_id.rec);
+	  if (packet_id_test (&opt->packet_id.rec, &pin))
 	    {
-	      packet_id_add (&opt->packet_id->rec, &pin);
+	      packet_id_add (&opt->packet_id.rec, &pin);
 	      if (opt->pid_persist && (opt->flags & CO_PACKET_ID_LONG_FORM))
-		packet_id_persist_save_obj (opt->pid_persist, opt->packet_id);
+		packet_id_persist_save_obj (opt->pid_persist, &opt->packet_id);
 	    }
 	  else
 	    {
@@ -688,7 +691,7 @@ key2_print (const struct key2* k,
 }
 
 void
-test_crypto (const struct crypto_options *co, struct frame* frame)
+test_crypto (struct crypto_options *co, struct frame* frame)
 {
   int i, j;
   struct gc_arena gc = gc_new ();
