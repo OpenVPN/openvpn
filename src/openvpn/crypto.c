@@ -751,12 +751,7 @@ get_tls_handshake_key (const struct key_type *key_type,
   if (passphrase_file && key_type->hmac_length)
     {
       struct key2 key2;
-      struct key_type kt = *key_type;
       struct key_direction_state kds;
-
-      /* for control channel we are only authenticating, not encrypting */
-      kt.cipher_length = 0;
-      kt.cipher = NULL;
 
       if (flags & GHK_INLINE)
 	{
@@ -800,9 +795,9 @@ get_tls_handshake_key (const struct key_type *key_type,
 
       /* initialize hmac key in both directions */
 
-      init_key_ctx (&ctx->encrypt, &key2.keys[kds.out_key], &kt, OPENVPN_OP_ENCRYPT,
+      init_key_ctx (&ctx->encrypt, &key2.keys[kds.out_key], key_type, OPENVPN_OP_ENCRYPT,
 		    "Outgoing Control Channel Authentication");
-      init_key_ctx (&ctx->decrypt, &key2.keys[kds.in_key], &kt, OPENVPN_OP_DECRYPT,
+      init_key_ctx (&ctx->decrypt, &key2.keys[kds.in_key], key_type, OPENVPN_OP_DECRYPT,
 		    "Incoming Control Channel Authentication");
 
       CLEAR (key2);

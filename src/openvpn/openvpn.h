@@ -66,6 +66,7 @@ struct key_schedule
   struct tls_root_ctx ssl_ctx;
 
   /* optional authentication HMAC key for TLS control channel */
+  struct key_type tls_auth_key_type;
   struct key_ctx_bi tls_auth_key;
 #else				/* ENABLE_CRYPTO */
   int dummy;

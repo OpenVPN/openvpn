@@ -2206,11 +2206,23 @@ do_init_crypto_tls_c1 (struct context *c)
 	      flags |= GHK_INLINE;
 	      file = options->tls_auth_file_inline;
 	    }
-	  get_tls_handshake_key (&c->c1.ks.key_type,
-				 &c->c1.ks.tls_auth_key,
-				 file,
-				 options->key_direction,
-				 flags);
+
+	  /* Initialize key_type for tls-auth with auth only */
+	  CLEAR (c->c1.ks.tls_auth_key_type);
+	  if (options->authname && options->authname_defined)
+	    {
+	      c->c1.ks.tls_auth_key_type.digest = md_kt_get (options->authname);
+	      c->c1.ks.tls_auth_key_type.hmac_length =
+		  md_kt_size (c->c1.ks.tls_auth_key_type.digest);
+	    }
+	  else
+	    {
+	      msg (M_FATAL, "ERROR: tls-auth enabled, but no valid --auth "
+		  "algorithm specified ('%s')", options->authname);
+	    }
+
+	  get_tls_handshake_key (&c->c1.ks.tls_auth_key_type,
+	      &c->c1.ks.tls_auth_key, file, options->key_direction, flags);
 	}
 
 #if 0 /* was: #if ENABLE_INLINE_FILES --  Note that enabling this code will break restarts */
@@ -2375,7 +2387,7 @@ do_init_crypto_tls (struct context *c, const unsigned int flags)
       to.tls_auth.pid_persist = &c->c1.pid_persist;
       to.tls_auth.flags |= CO_PACKET_ID_LONG_FORM;
       crypto_adjust_frame_parameters (&to.frame,
-				      &c->c1.ks.key_type,
+				      &c->c1.ks.tls_auth_key_type,
 				      false, false, true, true);
     }
 
@@ -3758,6 +3770,7 @@ inherit_context_child (struct context *dest,
   /* inherit SSL context */
   dest->c1.ks.ssl_ctx = src->c1.ks.ssl_ctx;
   dest->c1.ks.tls_auth_key = src->c1.ks.tls_auth_key;
+  dest->c1.ks.tls_auth_key_type = src->c1.ks.tls_auth_key_type;
 #endif
 
   /* options */
