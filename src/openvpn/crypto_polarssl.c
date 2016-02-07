@@ -506,9 +506,7 @@ int cipher_ctx_mode (const cipher_context_t *ctx)
 const cipher_kt_t *
 cipher_ctx_get_cipher_kt (const cipher_ctx_t *ctx)
 {
-  ASSERT(NULL != ctx);
-
-  return ctx->cipher_info;
+  return ctx ? ctx->cipher_info : NULL;
 }
 
 int cipher_ctx_reset (cipher_context_t *ctx, uint8_t *iv_buf)

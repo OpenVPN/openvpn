@@ -308,12 +308,12 @@ int cipher_ctx_mode (const cipher_ctx_t *ctx);
 /**
  * Returns the static cipher parameters for this context.
  *
- * @param ctx 		Cipher's context. May not be NULL.
+ * @param ctx 		Cipher's context.
  *
- * @return 		Static cipher parameters for the supplied context.
+ * @return 		Static cipher parameters for the supplied context, or
+ * 			NULL if unable to determine cipher parameters.
  */
-const cipher_kt_t *cipher_ctx_get_cipher_kt (const cipher_ctx_t *ctx)
-  __attribute__((nonnull));
+const cipher_kt_t *cipher_ctx_get_cipher_kt (const cipher_ctx_t *ctx);
 
 /**
  * Resets the given cipher context, setting the IV to the specified value.

@@ -585,7 +585,7 @@ cipher_ctx_mode (const EVP_CIPHER_CTX *ctx)
 const cipher_kt_t *
 cipher_ctx_get_cipher_kt (const cipher_ctx_t *ctx)
 {
-  return EVP_CIPHER_CTX_cipher(ctx);
+  return ctx ? EVP_CIPHER_CTX_cipher(ctx) : NULL;
 }
 
 
