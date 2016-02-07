@@ -1342,6 +1342,20 @@ win32_version_info()
     }
 }
 
+bool
+win32_is_64bit()
+{
+#if defined(_WIN64)
+    return true;  // 64-bit programs run only on Win64
+#elif defined(_WIN32)
+    // 32-bit programs run on both 32-bit and 64-bit Windows
+    BOOL f64 = FALSE;
+    return IsWow64Process(GetCurrentProcess(), &f64) && f64;
+#else
+    return false; // Win64 does not support Win16
+#endif
+}
+
 const char *
 win32_version_string(struct gc_arena *gc, bool add_name)
 {
@@ -1367,6 +1381,8 @@ win32_version_string(struct gc_arena *gc, bool add_name)
             buf_printf (&out, "0.0%s", add_name ? " (unknown)" : "");
             break;
     }
+
+    buf_printf (&out, win32_is_64bit() ? " 64bit" : " 32bit");
 
     return (const char *)out.data;
 }
