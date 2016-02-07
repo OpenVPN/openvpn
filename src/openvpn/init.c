@@ -2048,14 +2048,6 @@ init_crypto_pre (struct context *c, const unsigned int flags)
 	packet_id_persist_load (&c->c1.pid_persist, c->options.packet_id_file);
     }
 
-  /* Initialize crypto options */
-
-  if (c->options.use_iv)
-    c->c2.crypto_options.flags |= CO_USE_IV;
-
-  if (c->options.mute_replay_warnings)
-    c->c2.crypto_options.flags |= CO_MUTE_REPLAY_WARNINGS;
-
 #ifdef ENABLE_PREDICTION_RESISTANCE
   if (c->options.use_prediction_resistance)
     rand_ctx_enable_prediction_resistance();
@@ -2073,6 +2065,13 @@ do_init_crypto_static (struct context *c, const unsigned int flags)
   ASSERT (options->shared_secret_file);
 
   init_crypto_pre (c, flags);
+
+  /* Initialize flags */
+  if (c->options.use_iv)
+    c->c2.crypto_options.flags |= CO_USE_IV;
+
+  if (c->options.mute_replay_warnings)
+    c->c2.crypto_options.flags |= CO_MUTE_REPLAY_WARNINGS;
 
   /* Initialize packet ID tracking */
   if (options->replay)
@@ -2276,6 +2275,12 @@ do_init_crypto_tls (struct context *c, const unsigned int flags)
 
   /* Set all command-line TLS-related options */
   CLEAR (to);
+
+  if (options->use_iv)
+    to.crypto_flags |= CO_USE_IV;
+
+  if (options->mute_replay_warnings)
+    to.crypto_flags |= CO_MUTE_REPLAY_WARNINGS;
 
   to.crypto_flags_and = ~(CO_PACKET_ID_LONG_FORM);
   if (packet_id_long_form)

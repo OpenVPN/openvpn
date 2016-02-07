@@ -786,6 +786,13 @@ key_state_init (struct tls_session *session, struct key_state *ks)
 		  session->opt->replay_time,
 		  "SSL", ks->key_id);
 
+  ks->crypto_options.key_ctx_bi = &ks->key;
+  ks->crypto_options.packet_id = session->opt->replay ? &ks->packet_id : NULL;
+  ks->crypto_options.pid_persist = NULL;
+  ks->crypto_options.flags = session->opt->crypto_flags;
+  ks->crypto_options.flags &= session->opt->crypto_flags_and;
+  ks->crypto_options.flags |= session->opt->crypto_flags_or;
+
 #ifdef MANAGEMENT_DEF_AUTH
   ks->mda_key_id = session->opt->mda_context->mda_key_id_counter++;
 #endif
@@ -1700,6 +1707,8 @@ key_state_soft_reset (struct tls_session *session)
   ks->must_die = now + session->opt->transition_window; /* remaining lifetime of old key */
   key_state_free (ks_lame, false);
   *ks_lame = *ks;
+  ks_lame->crypto_options.key_ctx_bi = &ks_lame->key;
+  ks_lame->crypto_options.packet_id = &ks_lame->packet_id;
 
   key_state_init (session, ks);
   ks->session_id_remote = ks_lame->session_id_remote;
@@ -2808,7 +2817,7 @@ bool
 tls_pre_decrypt (struct tls_multi *multi,
 		 const struct link_socket_actual *from,
 		 struct buffer *buf,
-		 struct crypto_options *opt,
+		 struct crypto_options **opt,
 		 bool floated)
 {
   struct gc_arena gc = gc_new ();
@@ -2856,12 +2865,7 @@ tls_pre_decrypt (struct tls_multi *multi,
 		  && (floated || link_socket_actual_match (from, &ks->remote_addr)))
 		{
 		  /* return appropriate data channel decrypt key in opt */
-		  opt->key_ctx_bi = &ks->key;
-		  opt->packet_id = multi->opt.replay ? &ks->packet_id : NULL;
-		  opt->pid_persist = NULL;
-		  opt->flags &= multi->opt.crypto_flags_and;
-		  opt->flags |= multi->opt.crypto_flags_or;
-
+		  *opt = &ks->crypto_options;
 		  ASSERT (buf_advance (buf, 1));
 		  if (op == P_DATA_V2)
 		    {
@@ -3251,10 +3255,7 @@ tls_pre_decrypt (struct tls_multi *multi,
 
  done:
   buf->len = 0;
-  opt->key_ctx_bi = NULL;
-  opt->packet_id = NULL;
-  opt->pid_persist = NULL;
-  opt->flags &= multi->opt.crypto_flags_and;
+  *opt = NULL;
   gc_free (&gc);
   return ret;
 
@@ -3380,7 +3381,7 @@ tls_pre_decrypt_lite (const struct tls_auth_standalone *tas,
 /* Choose the key with which to encrypt a data packet */
 void
 tls_pre_encrypt (struct tls_multi *multi,
-		 struct buffer *buf, struct crypto_options *opt)
+		 struct buffer *buf, struct crypto_options **opt)
 {
   multi->save_ks = NULL;
   if (buf->len > 0)
@@ -3409,11 +3410,7 @@ tls_pre_encrypt (struct tls_multi *multi,
 
       if (ks_select)
 	{
-	  opt->key_ctx_bi = &ks_select->key;
-	  opt->packet_id = multi->opt.replay ? &ks_select->packet_id : NULL;
-	  opt->pid_persist = NULL;
-	  opt->flags &= multi->opt.crypto_flags_and;
-	  opt->flags |= multi->opt.crypto_flags_or;
+	  *opt = &ks_select->crypto_options;
 	  multi->save_ks = ks_select;
 	  dmsg (D_TLS_KEYSELECT, "TLS: tls_pre_encrypt: key_id=%d", ks_select->key_id);
 	  return;
@@ -3428,10 +3425,7 @@ tls_pre_encrypt (struct tls_multi *multi,
     }
 
   buf->len = 0;
-  opt->key_ctx_bi = NULL;
-  opt->packet_id = NULL;
-  opt->pid_persist = NULL;
-  opt->flags &= multi->opt.crypto_flags_and;
+  *opt = NULL;
 }
 
 /* Prepend the appropriate opcode to encrypted buffer prior to TCP/UDP send */

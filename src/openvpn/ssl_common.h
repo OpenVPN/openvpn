@@ -162,6 +162,7 @@ struct key_state
   struct link_socket_actual remote_addr; /* peer's IP addr */
   struct packet_id packet_id;	       /* for data channel, to prevent replay attacks */
 
+  struct crypto_options crypto_options;/* data channel crypto options */
   struct key_ctx_bi key;	       /* data channel keys for encrypt/decrypt/hmac */
 
   struct key_source2 *key_src;         /* source entropy for key expansion */
@@ -259,6 +260,7 @@ struct tls_options
   bool pass_config_info;
 
   /* struct crypto_option flags */
+  unsigned int crypto_flags;
   unsigned int crypto_flags_and;
   unsigned int crypto_flags_or;
 
