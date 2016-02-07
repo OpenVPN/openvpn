@@ -232,6 +232,41 @@ err:
   return;
 }
 
+/**
+ * Check packet ID for replay, and perform replay administration.
+ *
+ * @param opt	Crypto options for this packet, contains replay state.
+ * @param pin	Packet ID read from packet.
+ * @param error_prefix	Prefix to use when printing error messages.
+ * @param gc	Garbage collector to use.
+ *
+ * @return true if packet ID is validated to be not a replay, false otherwise.
+ */
+static bool crypto_check_replay(struct crypto_options *opt,
+    const struct packet_id_net *pin, const char *error_prefix,
+    struct gc_arena *gc) {
+  bool ret = false;
+  packet_id_reap_test (&opt->packet_id.rec);
+  if (packet_id_test (&opt->packet_id.rec, pin))
+    {
+      packet_id_add (&opt->packet_id.rec, pin);
+      if (opt->pid_persist && (opt->flags & CO_PACKET_ID_LONG_FORM))
+	packet_id_persist_save_obj (opt->pid_persist, &opt->packet_id);
+      ret = true;
+    }
+  else
+    {
+      if (!(opt->flags & CO_MUTE_REPLAY_WARNINGS))
+	{
+	  msg (D_REPLAY_ERRORS, "%s: bad packet ID (may be a replay): %s -- "
+	      "see the man page entry for --no-replay and --replay-window for "
+	      "more info or silence this warning with --mute-replay-warnings",
+	      error_prefix, packet_id_net_print (pin, true, gc));
+	}
+    }
+  return ret;
+}
+
 /*
  * If (opt->flags & CO_USE_IV) is not NULL, we will read an IV from the packet.
  *
@@ -373,22 +408,9 @@ openvpn_decrypt (struct buffer *buf, struct buffer work,
 	    }
 	}
       
-      if (have_pin)
+      if (have_pin && !crypto_check_replay(opt, &pin, error_prefix, &gc))
 	{
-	  packet_id_reap_test (&opt->packet_id.rec);
-	  if (packet_id_test (&opt->packet_id.rec, &pin))
-	    {
-	      packet_id_add (&opt->packet_id.rec, &pin);
-	      if (opt->pid_persist && (opt->flags & CO_PACKET_ID_LONG_FORM))
-		packet_id_persist_save_obj (opt->pid_persist, &opt->packet_id);
-	    }
-	  else
-	    {
-	      if (!(opt->flags & CO_MUTE_REPLAY_WARNINGS))
-	      msg (D_REPLAY_ERRORS, "%s: bad packet ID (may be a replay): %s -- see the man page entry for --no-replay and --replay-window for more info or silence this warning with --mute-replay-warnings",
-		   error_prefix, packet_id_net_print (&pin, true, &gc));
-	      goto error_exit;
-	    }
+	  goto error_exit;
 	}
       *buf = work;
     }
