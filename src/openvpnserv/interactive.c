@@ -821,7 +821,7 @@ RunOpenvpn (LPVOID p)
   PTOKEN_USER svc_user, ovpn_user;
   HANDLE svc_token = NULL, imp_token = NULL, pri_token = NULL;
   HANDLE stdin_read = NULL, stdin_write = NULL;
-  HANDLE stdout_read = NULL, stdout_write = NULL;
+  HANDLE stdout_write = NULL;
   DWORD pipe_mode, len, exit_code = 0;
   STARTUP_DATA sud = { 0, 0, 0 };
   STARTUPINFOW startup_info;
@@ -970,10 +970,17 @@ RunOpenvpn (LPVOID p)
       goto out;
     }
 
+  /* use /dev/null for stdout of openvpn (client should use --log for output) */
+  stdout_write = CreateFile(_T("NUL"), GENERIC_WRITE, FILE_SHARE_WRITE,
+                            &inheritable, OPEN_EXISTING, 0, NULL);
+  if (stdout_write == INVALID_HANDLE_VALUE)
+    {
+      ReturnLastError (pipe, L"CreateFile for stdout");
+      goto out;
+    }
+
   if (!CreatePipe(&stdin_read, &stdin_write, &inheritable, 0) ||
-      !CreatePipe(&stdout_read, &stdout_write, &inheritable, 0) ||
-      !SetHandleInformation(stdin_write, HANDLE_FLAG_INHERIT, 0) ||
-      !SetHandleInformation(stdout_read, HANDLE_FLAG_INHERIT, 0))
+      !SetHandleInformation(stdin_write, HANDLE_FLAG_INHERIT, 0))
     {
       ReturnLastError (pipe, L"CreatePipe");
       goto out;
@@ -1081,8 +1088,13 @@ RunOpenvpn (LPVOID p)
   if (exit_code == STILL_ACTIVE)
     TerminateProcess (proc_info.hProcess, 1);
   else if (exit_code != 0)
-    ReturnOpenvpnOutput (pipe, stdout_read, 1, &exit_event);
-
+    {
+      WCHAR buf[256];
+      int len = _snwprintf (buf, _countof (buf),
+                         L"OpenVPN exited with error: exit code = %lu", exit_code);
+      buf[_countof (buf) - 1] =  L'\0';
+      ReturnError (pipe, ERROR_OPENVPN_STARTUP, buf, 1, &exit_event);
+    }
   Undo (&undo_lists);
 
 out:
@@ -1098,7 +1110,6 @@ out:
   CloseHandleEx (&proc_info.hThread);
   CloseHandleEx (&stdin_read);
   CloseHandleEx (&stdin_write);
-  CloseHandleEx (&stdout_read);
   CloseHandleEx (&stdout_write);
   CloseHandleEx (&svc_token);
   CloseHandleEx (&imp_token);
