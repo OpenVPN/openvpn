@@ -2896,16 +2896,41 @@ configuration file.  This option will ignore
 options at the global config file level.
 .TP
 .B \-\-push\-peer\-info
-Push additional information about the client to server.  The additional information
-consists of the following data:
+Push additional information about the client to server.
+The following data is always pushed to the server:
 
 IV_VER=<version> -- the client OpenVPN version
 
 IV_PLAT=[linux|solaris|openbsd|mac|netbsd|freebsd|win] -- the client OS platform
 
+IV_LZO_STUB=1 -- if client was built with LZO stub capability
+
+IV_LZ4=1 -- if the client supports LZ4 compressions.
+
+IV_RGI6=1 -- if the client supports
+.B \-\-redirect\-gateway
+for ipv6
+
+IV_PROTO=2 -- if the client supports peer-id floating mechansim
+
+IV_NCP=2 -- negotiable ciphers, client supports
+.B \-\-cipher
+pushed by the server, a value of 2 or greater indicates client
+supports AES-GCM-128 and AES-GCM-256.
+
+IV_UI_VER=<gui_id> <version> -- the UI version of a UI if one is
+running, for example "de.blinkt.openvpn 0.5.47" for the
+Android app.
+
+When
+.B \-\-push\-peer\-info
+is enabled the additional information consists of the following data:
+
 IV_HWADDR=<mac address> -- the MAC address of clients default gateway
 
-IV_LZO_STUB=1 -- if client was built with LZO stub capability
+IV_SSL=<version string> -- the ssl version used by the client, e.g. "OpenSSL 1.0.2f 28 Jan 2016".
+
+IV_PLAT_VER=x.y - the version of the operating system, e.g. 6.1 for Windows 7.
 
 UV_<name>=<value> -- client environment variables whose names start with "UV_"
 .\"*********************************************************
