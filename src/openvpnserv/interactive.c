@@ -33,8 +33,10 @@
 #include <aclapi.h>
 #include <stdio.h>
 #include <sddl.h>
+#include <shellapi.h>
 
 #include "openvpn-msg.h"
+#include "validate.h"
 
 #define IO_TIMEOUT  2000 /*ms*/
 
@@ -292,6 +294,93 @@ ReturnOpenvpnOutput (HANDLE pipe, HANDLE ovpn_output, DWORD count, LPHANDLE even
   free (wide_output);
 }
 
+/*
+ * Validate options against a white list. Also check the config_file is
+ * inside the config_dir. The white list is defined in validate.c
+ * Returns true on success
+ */
+static BOOL
+ValidateOptions (HANDLE pipe, const WCHAR *workdir, const WCHAR *options)
+{
+    WCHAR **argv;
+    int argc;
+    WCHAR buf[256];
+    BOOL ret = FALSE;
+    int i;
+    const WCHAR *msg1 = L"You have specified a config file location (%s relative to %s)"
+                        " that requires admin approval. This error may be avoided"
+                        " by adding your account to the \"%s\" group";
+
+    const WCHAR *msg2 = L"You have specified an option (%s) that may be used"
+                         " only with admin approval. This error may be avoided"
+                         " by adding your account to the \"%s\" group";
+
+    argv = CommandLineToArgvW (options, &argc);
+
+    if (!argv)
+    {
+        ReturnLastError (pipe, L"CommandLineToArgvW");
+        ReturnError (pipe, ERROR_STARTUP_DATA, L"Cannot validate options", 1, &exit_event);
+        goto out;
+    }
+
+    /* Note: argv[0] is the first option */
+    if (argc < 1)  /* no options */
+    {
+        ret = TRUE;
+        goto out;
+    }
+
+    /*
+     * If only one argument, it is the config file
+     */
+    if (argc == 1)
+    {
+        WCHAR *argv_tmp[2] = { L"--config", argv[0] };
+
+        if (!CheckOption (workdir, 2, argv_tmp, &settings))
+        {
+            snwprintf (buf, _countof(buf), msg1, argv[0], workdir,
+                       settings.ovpn_admin_group);
+            buf[_countof(buf) - 1] = L'\0';
+            ReturnError (pipe, ERROR_STARTUP_DATA, buf, 1, &exit_event);
+        }
+        goto out;
+    }
+
+    for (i = 0; i < argc; ++i)
+    {
+        if (!IsOption(argv[i]))
+            continue;
+
+        if (!CheckOption (workdir, argc-i, &argv[i], &settings))
+        {
+            if (wcscmp(L"--config", argv[i]) == 0 && argc-i > 1)
+            {
+                snwprintf (buf, _countof(buf), msg1, argv[i+1], workdir,
+                            settings.ovpn_admin_group);
+                buf[_countof(buf) - 1] = L'\0';
+                ReturnError (pipe, ERROR_STARTUP_DATA, buf, 1, &exit_event);
+            }
+            else
+            {
+                snwprintf (buf, _countof(buf), msg2, argv[i],
+                           settings.ovpn_admin_group);
+                buf[_countof(buf) - 1] = L'\0';
+                ReturnError (pipe, ERROR_STARTUP_DATA, buf, 1, &exit_event);
+            }
+            goto out;
+        }
+    }
+
+    /* all options passed */
+    ret = TRUE;
+
+out:
+    if (argv)
+        LocalFree (argv);
+    return ret;
+}
 
 static BOOL
 GetStartupData (HANDLE pipe, STARTUP_DATA *sud)
@@ -832,6 +921,13 @@ RunOpenvpn (LPVOID p)
   if (!IsValidSid (ovpn_user->User.Sid))
     {
       ReturnLastError (pipe, L"IsValidSid (impersonation token user)");
+      goto out;
+    }
+
+  /* Check user is authorized or options are white-listed */
+  if (!IsAuthorizedUser (ovpn_user->User.Sid, &settings) &&
+      !ValidateOptions (pipe, sud.directory, sud.options))
+    {
       goto out;
     }
 

@@ -23,7 +23,7 @@
  */
 
 #include <service.h>
-
+#include <validate.h>
 /*
  * These are necessary due to certain buggy implementations of (v)snprintf,
  * that don't guarantee null termination for size > 0.
@@ -52,7 +52,6 @@ openvpn_sntprintf (LPTSTR str, size_t size, LPCTSTR format, ...)
     }
   return len;
 }
-
 
 #define REG_KEY  TEXT("SOFTWARE\\" PACKAGE_NAME)
 
@@ -114,6 +113,13 @@ GetOpenvpnSettings (settings_t *s)
   if (error != ERROR_SUCCESS)
     goto out;
 
+  /* read if present, else use default */
+  error = GetRegString (key, TEXT("ovpn_admin_group"), s->ovpn_admin_group, sizeof (s->ovpn_admin_group));
+  if (error != ERROR_SUCCESS)
+  {
+    openvpn_sntprintf(s->ovpn_admin_group, _countof(s->ovpn_admin_group), OVPN_ADMIN_GROUP);
+    error = 0; /* this error is not fatal */
+  }
   /* set process priority */
   if (!_tcsicmp (priority, TEXT("IDLE_PRIORITY_CLASS")))
     s->priority = IDLE_PRIORITY_CLASS;
@@ -194,7 +200,8 @@ MsgToEventLog (DWORD flags, LPCTSTR format, ...)
   if (hEventSource != NULL)
     {
       openvpn_sntprintf (msg[0], _countof (msg[0]),
-                         TEXT("%s error: %s"), APPNAME, err_msg);
+                         TEXT("%s%s: %s"), APPNAME,
+                         (flags & MSG_FLAGS_ERROR) ? TEXT(" error") : TEXT(""), err_msg);
 
       va_start (arglist, format);
       openvpn_vsntprintf (msg[1], _countof (msg[1]), format, arglist);

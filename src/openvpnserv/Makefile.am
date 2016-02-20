@@ -26,7 +26,7 @@ openvpnserv_CFLAGS = \
 	-municode -D_UNICODE \
 	-UNTDDI_VERSION -U_WIN32_WINNT \
 	-D_WIN32_WINNT=_WIN32_WINNT_VISTA
-openvpnserv_LDADD = -ladvapi32 -luserenv -liphlpapi -lws2_32
+openvpnserv_LDADD = -ladvapi32 -luserenv -liphlpapi -lshlwapi -lnetapi32 -lws2_32
 endif
 
 openvpnserv_SOURCES = \
@@ -34,4 +34,5 @@ openvpnserv_SOURCES = \
 	automatic.c \
 	interactive.c \
 	service.c service.h \
+        validate.c validate.h \
 	openvpnserv_resources.rc

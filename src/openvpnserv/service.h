@@ -61,11 +61,13 @@ typedef struct {
   DWORD start_type;
 } openvpn_service_t;
 
+#define MAX_NAME 256
 typedef struct {
   TCHAR exe_path[MAX_PATH];
   TCHAR config_dir[MAX_PATH];
   TCHAR ext_string[16];
   TCHAR log_dir[MAX_PATH];
+  TCHAR ovpn_admin_group[MAX_NAME];
   DWORD priority;
   BOOL append;
 } settings_t;
