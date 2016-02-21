@@ -311,17 +311,6 @@ void free_key_ctx (struct key_ctx *ctx);
 
 void free_key_ctx_bi (struct key_ctx_bi *ctx);
 
-/**
- * Set an implicit IV for a key context.
- *
- * @param ctx	The key context to update
- * @param iv	The implicit IV to load into ctx
- * @param len	The length (in bytes) of iv
- */
-bool key_ctx_set_implicit_iv (struct key_ctx *ctx, const uint8_t *iv,
-    size_t len);
-
-
 
 /**************************************************************************/
 /** @name Functions for performing security operations on data channel packets

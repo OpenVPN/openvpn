@@ -161,9 +161,9 @@ openvpn_encrypt_aead (struct buffer *buf, struct buffer work,
   /* Write authentication tag */
   ASSERT (cipher_ctx_get_tag (ctx->cipher, mac_out, mac_len));
 
-  dmsg (D_PACKET_CONTENT, "ENCRYPT TO: %s", format_hex (BPTR (buf), BLEN (buf), 80, &gc));
-
   *buf = work;
+
+  dmsg (D_PACKET_CONTENT, "ENCRYPT TO: %s", format_hex (BPTR (buf), BLEN (buf), 80, &gc));
 
 cleanup:
   gc_free (&gc);
@@ -397,6 +397,7 @@ openvpn_decrypt_aead (struct buffer *buf, struct buffer work,
   gc_init (&gc);
 
   ASSERT (opt);
+  ASSERT (frame);
   ASSERT (buf->len > 0);
   ASSERT (ctx->cipher);
   ASSERT (cipher_kt_mode_aead (cipher_kt));
