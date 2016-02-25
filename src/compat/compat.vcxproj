@@ -79,6 +79,7 @@
     <ClCompile Include="compat-inet_ntop.c" />
     <ClCompile Include="compat-inet_pton.c" />
     <ClCompile Include="compat-daemon.c" />
+    <ClCompile Include="compat-lz4.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="compat.h" />

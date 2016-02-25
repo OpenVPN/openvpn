@@ -102,6 +102,7 @@
     <ClCompile Include="base64.c" />
     <ClCompile Include="buffer.c" />
     <ClCompile Include="clinat.c" />
+    <ClCompile Include="comp-lz4.c" />
     <ClCompile Include="comp.c" />
     <ClCompile Include="compstub.c" />
     <ClCompile Include="console.c" />
@@ -172,9 +173,10 @@
     <ClInclude Include="buffer.h" />
     <ClInclude Include="circ_list.h" />
     <ClInclude Include="clinat.h" />
+    <ClInclude Include="common.h" />
+    <ClInclude Include="comp-lz4.h" />
     <ClInclude Include="comp.h" />
     <ClInclude Include="compstub.h" />
-    <ClInclude Include="common.h" />
     <ClInclude Include="console.h" />
     <ClInclude Include="crypto.h" />
     <ClInclude Include="crypto_backend.h" />
