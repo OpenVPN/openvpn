@@ -25,6 +25,8 @@
 #include "validate.h"
 
 #include <lmaccess.h>
+#include <shlwapi.h>
+#include <lm.h>
 
 static const WCHAR *white_list[] =
     {
