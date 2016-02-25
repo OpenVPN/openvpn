@@ -105,9 +105,9 @@ if [ $check_depth -eq -1 ] || [ $cur_depth -eq $check_depth ]; then
           exit 1
       fi
       # check that the reported status of certificate is ok
-      if echo "$status" | grep -Fq "^${serial}: good"; then
+      if echo "$status" | grep -Eq "^${serial}: good"; then
         # check if signature on the OCSP response verified correctly
-        if echo "$status" | grep -Fq "^Response verify OK"; then
+        if echo "$status" | grep -Eq "^Response verify OK"; then
             exit 0
         fi
       fi
