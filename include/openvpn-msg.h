@@ -35,7 +35,9 @@ typedef enum {
   msg_del_dns_cfg,
   msg_add_nbt_cfg,
   msg_del_nbt_cfg,
-  msg_flush_neighbors
+  msg_flush_neighbors,
+  msg_add_block_dns,
+  msg_del_block_dns
 } message_type_t;
 
 typedef struct {
@@ -104,5 +106,10 @@ typedef struct {
   message_header_t header;
   int error_number;
 } ack_message_t;
+
+typedef struct {
+  message_header_t header;
+  interface_t iface;
+} block_dns_message_t;
 
 #endif

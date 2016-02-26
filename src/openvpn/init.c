@@ -1508,7 +1508,7 @@ do_open_tun (struct context *c)
       if (c->options.block_outside_dns)
       {
         dmsg (D_LOW, "Blocking outside DNS");
-        if (!win_wfp_block_dns(c->c1.tuntap->adapter_index))
+        if (!win_wfp_block_dns(c->c1.tuntap->adapter_index, c->options.msg_channel))
             msg (M_FATAL, "Blocking DNS failed!");
       }
 #endif
@@ -1656,7 +1656,7 @@ do_close_tun (struct context *c, bool force)
 #if defined(WIN32)
             if (c->options.block_outside_dns)
             {
-                if (!win_wfp_uninit())
+                if (!win_wfp_uninit(c->options.msg_channel))
                     msg (M_FATAL, "Uninitialising WFP failed!");
             }
 #endif

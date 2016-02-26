@@ -37,6 +37,7 @@
 
 #include "openvpn-msg.h"
 #include "validate.h"
+#include "block_dns.h"
 
 #define IO_TIMEOUT  2000 /*ms*/
 
@@ -77,6 +78,7 @@ typedef struct _list_item {
 typedef enum {
   address,
   route,
+  block_dns,
   _undo_type_max
 } undo_type_t;
 typedef list_item_t* undo_lists_t[_undo_type_max];
@@ -601,7 +603,6 @@ out:
   return err;
 }
 
-
 static BOOL
 CmpRoute (LPVOID item, LPVOID route)
 {
@@ -729,6 +730,78 @@ HandleFlushNeighborsMessage (flush_neighbors_message_t *msg)
   return flush_fn (msg->family, msg->iface.index);
 }
 
+static void
+BlockDNSErrHandler (DWORD err, const char *msg)
+{
+  TCHAR buf[256];
+  LPCTSTR err_str;
+
+  if (!err) return;
+
+  err_str = TEXT("Unknown Win32 Error");
+
+  if (FormatMessage (FORMAT_MESSAGE_IGNORE_INSERTS | FORMAT_MESSAGE_FROM_SYSTEM
+                          | FORMAT_MESSAGE_ARGUMENT_ARRAY,
+                          NULL, err, 0, buf, sizeof (buf), NULL))
+    {
+      err_str = buf;
+    }
+
+#ifdef UNICODE
+  MsgToEventLog (M_ERR, L"%S (status = %lu): %s", msg, err, err_str);
+#else
+  MsgToEventLog (M_ERR, "%s (status = %lu): %s", msg, err, err_str);
+#endif
+
+}
+
+/* Use an always-true match_fn to get the head of the list */
+static BOOL
+CmpEngine (LPVOID item, LPVOID any)
+{
+  return TRUE;
+}
+
+static DWORD
+HandleBlockDNSMessage (const block_dns_message_t *msg, undo_lists_t *lists)
+{
+  DWORD err = 0;
+  HANDLE engine = NULL;
+  LPCWSTR exe_path;
+
+#ifdef UNICODE
+  exe_path = settings.exe_path;
+#else
+  WCHAR wide_path[MAX_PATH];
+  MultiByteToWideChar (CP_UTF8, 0, settings.exe_path, MAX_PATH, wide_path, MAX_PATH);
+  exe_path = wide_path;
+#endif
+
+  if (msg->header.type == msg_add_block_dns)
+    {
+      err = add_block_dns_filters (&engine, msg->iface.index, exe_path, BlockDNSErrHandler);
+      if (!err)
+        err = AddListItem (&(*lists)[block_dns], engine);
+    }
+  else
+    {
+      engine = RemoveListItem (&(*lists)[block_dns], CmpEngine, NULL);
+      if (engine)
+        {
+          err = delete_block_dns_filters (engine);
+          engine = NULL;
+        }
+      else
+        MsgToEventLog (M_ERR, TEXT("No previous block DNS filters to delete"));
+    }
+
+  if (err && engine)
+    {
+      delete_block_dns_filters (engine);
+    }
+
+  return err;
+}
 
 static VOID
 HandleMessage (HANDLE pipe, DWORD bytes, DWORD count, LPHANDLE events, undo_lists_t *lists)
@@ -739,6 +812,7 @@ HandleMessage (HANDLE pipe, DWORD bytes, DWORD count, LPHANDLE events, undo_list
     address_message_t address;
     route_message_t route;
     flush_neighbors_message_t flush_neighbors;
+    block_dns_message_t block_dns;
   } msg;
   ack_message_t ack = {
     .header = {
@@ -774,8 +848,15 @@ HandleMessage (HANDLE pipe, DWORD bytes, DWORD count, LPHANDLE events, undo_list
         ack.error_number = HandleFlushNeighborsMessage (&msg.flush_neighbors);
       break;
 
+    case msg_add_block_dns:
+    case msg_del_block_dns:
+      if (msg.header.size == sizeof (msg.block_dns))
+        ack.error_number = HandleBlockDNSMessage (&msg.block_dns, lists);
+      break;
+
     default:
       ack.error_number = ERROR_MESSAGE_TYPE;
+      MsgToEventLog (MSG_FLAGS_ERROR, TEXT("Unknown message type %d"), msg.header.type);
       break;
     }
 
@@ -802,6 +883,11 @@ Undo (undo_lists_t *lists)
 
             case route:
               DeleteRoute (item->data);
+              break;
+
+            case block_dns:
+              delete_block_dns_filters (item->data);
+              item->data = NULL;
               break;
             }
 

@@ -1092,6 +1092,45 @@ win_get_tempdir()
   return tmpdir;
 }
 
+static bool
+win_block_dns_service (bool add, int index, const HANDLE pipe)
+{
+  DWORD len;
+  bool ret = false;
+  ack_message_t ack;
+  struct gc_arena gc = gc_new ();
+
+  block_dns_message_t data = {
+    .header = {
+      (add ? msg_add_block_dns : msg_del_block_dns),
+      sizeof (block_dns_message_t),
+      0 },
+    .iface = { .index = index, .name = "" }
+  };
+
+  if (!WriteFile (pipe, &data, sizeof (data), &len, NULL) ||
+      !ReadFile (pipe, &ack, sizeof (ack), &len, NULL))
+    {
+      msg (M_WARN, "Block_DNS: could not talk to service: %s [%lu]",
+           strerror_win32 (GetLastError (), &gc), GetLastError ());
+      goto out;
+    }
+
+  if (ack.error_number != NO_ERROR)
+    {
+      msg (M_WARN, "Block_DNS: %s block dns filters using service failed: %s [status=0x%x if_index=%d]",
+           (add ? "adding" : "deleting"), strerror_win32 (ack.error_number, &gc),
+           ack.error_number, data.iface.index);
+      goto out;
+    }
+
+  ret = true;
+  msg (M_INFO, "%s outside dns using service succeeded.", (add ? "Blocking" : "Unblocking"));
+out:
+  gc_free (&gc);
+  return ret;
+}
+
 static void
 block_dns_msg_handler (DWORD err, const char *msg)
 {
@@ -1103,7 +1142,7 @@ block_dns_msg_handler (DWORD err, const char *msg)
     }
   else
     {
-      msg (M_WARN, "Error in add_block_dns_filters(): %s : %s [status=%lu]",
+      msg (M_WARN, "Error in add_block_dns_filters(): %s : %s [status=0x%lx]",
            msg, strerror_win32 (err, &gc), err);
     }
 
@@ -1111,11 +1150,18 @@ block_dns_msg_handler (DWORD err, const char *msg)
 }
 
 bool
-win_wfp_block_dns (const NET_IFINDEX index)
+win_wfp_block_dns (const NET_IFINDEX index, const HANDLE msg_channel)
 {
   WCHAR openvpnpath[MAX_PATH];
   bool ret = false;
   DWORD status;
+
+  if (msg_channel)
+    {
+      dmsg (D_LOW, "Using service to add block dns filters");
+      ret = win_block_dns_service (true, index, msg_channel);
+      goto out;
+    }
 
   status = GetModuleFileNameW (NULL, openvpnpath, sizeof(openvpnpath));
   if (status == 0 || status == sizeof(openvpnpath))
@@ -1134,11 +1180,19 @@ out:
 }
 
 bool
-win_wfp_uninit()
+win_wfp_uninit(const HANDLE msg_channel)
 {
     dmsg (D_LOW, "Uninitializing WFP");
 
-    delete_block_dns_filters (m_hEngineHandle);
+    if (msg_channel)
+      {
+        msg (D_LOW, "Using service to delete block dns filters");
+        win_block_dns_service (false, -1, msg_channel);
+      }
+    else
+      {
+        delete_block_dns_filters (m_hEngineHandle);
+      }
 
     return true;
 }
