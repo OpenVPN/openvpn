@@ -43,6 +43,7 @@
 #include "sig.h"
 #include "win32.h"
 #include "misc.h"
+#include "openvpn-msg.h"
 
 #include "memdbg.h"
 
@@ -52,70 +53,10 @@
 #include "compat-versionhelpers.h"
 #endif
 
-/*
- * WFP-related defines and GUIDs.
- */
-#include <fwpmu.h>
-#include <initguid.h>
-#include <fwpmtypes.h>
-#include <iphlpapi.h>
-
-#ifndef FWPM_SESSION_FLAG_DYNAMIC
-#define FWPM_SESSION_FLAG_DYNAMIC 0x00000001
-#endif
-
-// c38d57d1-05a7-4c33-904f-7fbceee60e82
-DEFINE_GUID(
-   FWPM_LAYER_ALE_AUTH_CONNECT_V4,
-   0xc38d57d1,
-   0x05a7,
-   0x4c33,
-   0x90, 0x4f, 0x7f, 0xbc, 0xee, 0xe6, 0x0e, 0x82
-);
-
-// 4a72393b-319f-44bc-84c3-ba54dcb3b6b4
-DEFINE_GUID(
-   FWPM_LAYER_ALE_AUTH_CONNECT_V6,
-   0x4a72393b,
-   0x319f,
-   0x44bc,
-   0x84, 0xc3, 0xba, 0x54, 0xdc, 0xb3, 0xb6, 0xb4
-);
-
-// d78e1e87-8644-4ea5-9437-d809ecefc971
-DEFINE_GUID(
-   FWPM_CONDITION_ALE_APP_ID,
-   0xd78e1e87,
-   0x8644,
-   0x4ea5,
-   0x94, 0x37, 0xd8, 0x09, 0xec, 0xef, 0xc9, 0x71
-);
-
-// c35a604d-d22b-4e1a-91b4-68f674ee674b
-DEFINE_GUID(
-   FWPM_CONDITION_IP_REMOTE_PORT,
-   0xc35a604d,
-   0xd22b,
-   0x4e1a,
-   0x91, 0xb4, 0x68, 0xf6, 0x74, 0xee, 0x67, 0x4b
-);
-
-// 4cd62a49-59c3-4969-b7f3-bda5d32890a4
-DEFINE_GUID(
-   FWPM_CONDITION_IP_LOCAL_INTERFACE,
-   0x4cd62a49,
-   0x59c3,
-   0x4969,
-   0xb7, 0xf3, 0xbd, 0xa5, 0xd3, 0x28, 0x90, 0xa4
-);
+#include "block_dns.h"
 
 /*
- * WFP firewall name.
- */
-WCHAR * FIREWALL_NAME = L"OpenVPN"; /* GLOBAL */
-
-/*
- * WFP handle and GUID.
+ * WFP handle
  */
 static HANDLE m_hEngineHandle = NULL; /* GLOBAL */
 
@@ -1151,165 +1092,54 @@ win_get_tempdir()
   return tmpdir;
 }
 
-bool
-win_wfp_add_filter (HANDLE engineHandle,
-                    const FWPM_FILTER0 *filter,
-                    PSECURITY_DESCRIPTOR sd,
-                    UINT64 *id)
+static void
+block_dns_msg_handler (DWORD err, const char *msg)
 {
-    if (FwpmFilterAdd0(engineHandle, filter, sd, id) != ERROR_SUCCESS)
+  struct gc_arena gc = gc_new ();
+
+  if (err == 0)
     {
-        msg (M_NONFATAL, "Can't add WFP filter");
-        return false;
+      msg (M_INFO, "%s", msg);
     }
-    return true;
+  else
+    {
+      msg (M_WARN, "Error in add_block_dns_filters(): %s : %s [status=%lu]",
+           msg, strerror_win32 (err, &gc), err);
+    }
+
+  gc_free (&gc);
 }
 
 bool
 win_wfp_block_dns (const NET_IFINDEX index)
 {
-    FWPM_SESSION0 session = {0};
-    FWPM_SUBLAYER0 SubLayer = {0};
-    NET_LUID tapluid;
-    UINT64 filterid;
-    WCHAR openvpnpath[MAX_PATH];
-    FWP_BYTE_BLOB *openvpnblob = NULL;
-    FWPM_FILTER0 Filter = {0};
-    FWPM_FILTER_CONDITION0 Condition[2] = {0};
+  WCHAR openvpnpath[MAX_PATH];
+  bool ret = false;
+  DWORD status;
 
-    /* Add temporary filters which don't survive reboots or crashes. */
-    session.flags = FWPM_SESSION_FLAG_DYNAMIC;
-
-    dmsg (D_LOW, "Opening WFP engine");
-
-    if (FwpmEngineOpen0(NULL, RPC_C_AUTHN_WINNT, NULL, &session, &m_hEngineHandle) != ERROR_SUCCESS)
+  status = GetModuleFileNameW (NULL, openvpnpath, sizeof(openvpnpath));
+  if (status == 0 || status == sizeof(openvpnpath))
     {
-        msg (M_NONFATAL, "Can't open WFP engine");
-        return false;
+      msg (M_WARN|M_ERRNO, "block_dns: cannot get executable path");
+      goto out;
     }
 
-    if (UuidCreate(&SubLayer.subLayerKey) != NO_ERROR)
-        return false;
+  status = add_block_dns_filters (&m_hEngineHandle, index, openvpnpath,
+                                 block_dns_msg_handler);
+  ret = (status == 0);
 
-    /* Populate packet filter layer information. */
-    SubLayer.displayData.name = FIREWALL_NAME;
-    SubLayer.displayData.description = FIREWALL_NAME;
-    SubLayer.flags = 0;
-    SubLayer.weight = 0x100;
+out:
 
-    /* Add packet filter to our interface. */
-    dmsg (D_LOW, "Adding WFP sublayer");
-    if (FwpmSubLayerAdd0(m_hEngineHandle, &SubLayer, NULL) != ERROR_SUCCESS)
-    {
-        msg (M_NONFATAL, "Can't add WFP sublayer");
-        return false;
-    }
-
-    dmsg (D_LOW, "Blocking DNS using WFP");
-    if (ConvertInterfaceIndexToLuid(index, &tapluid) != NO_ERROR)
-    {
-        msg (M_NONFATAL, "Can't convert interface index to LUID");
-        return false;
-    }
-    dmsg (D_LOW, "Tap Luid: %I64d", tapluid.Value);
-
-    /* Get OpenVPN path. */
-    GetModuleFileNameW(NULL, openvpnpath, MAX_PATH);
-
-    if (FwpmGetAppIdFromFileName0(openvpnpath, &openvpnblob) != ERROR_SUCCESS)
-        return false;
-
-    /* Prepare filter. */
-    Filter.subLayerKey = SubLayer.subLayerKey;
-    Filter.displayData.name = FIREWALL_NAME;
-    Filter.weight.type = FWP_UINT8;
-    Filter.weight.uint8 = 0xF;
-    Filter.filterCondition = Condition;
-    Filter.numFilterConditions = 2;
-
-    /* First filter. Permit IPv4 DNS queries from OpenVPN itself. */
-    Filter.layerKey = FWPM_LAYER_ALE_AUTH_CONNECT_V4;
-    Filter.action.type = FWP_ACTION_PERMIT;
-
-    Condition[0].fieldKey = FWPM_CONDITION_IP_REMOTE_PORT;
-    Condition[0].matchType = FWP_MATCH_EQUAL;
-    Condition[0].conditionValue.type = FWP_UINT16;
-    Condition[0].conditionValue.uint16 = 53;
-
-    Condition[1].fieldKey = FWPM_CONDITION_ALE_APP_ID;
-    Condition[1].matchType = FWP_MATCH_EQUAL;
-    Condition[1].conditionValue.type = FWP_BYTE_BLOB_TYPE;
-    Condition[1].conditionValue.byteBlob = openvpnblob;
-
-    /* Add filter condition to our interface. */
-    if (!win_wfp_add_filter(m_hEngineHandle, &Filter, NULL, &filterid))
-        goto err;
-    dmsg (D_LOW, "Filter (Permit OpenVPN IPv4 DNS) added with ID=%I64d", filterid);
-
-    /* Second filter. Permit IPv6 DNS queries from OpenVPN itself. */
-    Filter.layerKey = FWPM_LAYER_ALE_AUTH_CONNECT_V6;
-
-    /* Add filter condition to our interface. */
-    if (!win_wfp_add_filter(m_hEngineHandle, &Filter, NULL, &filterid))
-        goto err;
-    dmsg (D_LOW, "Filter (Permit OpenVPN IPv6 DNS) added with ID=%I64d", filterid);
-
-    /* Third filter. Block all IPv4 DNS queries. */
-    Filter.layerKey = FWPM_LAYER_ALE_AUTH_CONNECT_V4;
-    Filter.action.type = FWP_ACTION_BLOCK;
-    Filter.weight.type = FWP_EMPTY;
-    Filter.numFilterConditions = 1;
-
-    if (!win_wfp_add_filter(m_hEngineHandle, &Filter, NULL, &filterid))
-        goto err;
-    dmsg (D_LOW, "Filter (Block IPv4 DNS) added with ID=%I64d", filterid);
-
-    /* Forth filter. Block all IPv6 DNS queries. */
-    Filter.layerKey = FWPM_LAYER_ALE_AUTH_CONNECT_V6;
-
-    if (!win_wfp_add_filter(m_hEngineHandle, &Filter, NULL, &filterid))
-        goto err;
-    dmsg (D_LOW, "Filter (Block IPv6 DNS) added with ID=%I64d", filterid);
-
-    /* Fifth filter. Permit IPv4 DNS queries from TAP. */
-    Filter.layerKey = FWPM_LAYER_ALE_AUTH_CONNECT_V4;
-    Filter.action.type = FWP_ACTION_PERMIT;
-    Filter.numFilterConditions = 2;
-
-    Condition[1].fieldKey = FWPM_CONDITION_IP_LOCAL_INTERFACE;
-    Condition[1].matchType = FWP_MATCH_EQUAL;
-    Condition[1].conditionValue.type = FWP_UINT64;
-    Condition[1].conditionValue.uint64 = &tapluid.Value;
-
-    /* Add filter condition to our interface. */
-    if (!win_wfp_add_filter(m_hEngineHandle, &Filter, NULL, &filterid))
-        goto err;
-    dmsg (D_LOW, "Filter (Permit IPv4 DNS queries from TAP) added with ID=%I64d", filterid);
-
-    /* Sixth filter. Permit IPv6 DNS queries from TAP. */
-    Filter.layerKey = FWPM_LAYER_ALE_AUTH_CONNECT_V6;
-
-    /* Add filter condition to our interface. */
-    if (!win_wfp_add_filter(m_hEngineHandle, &Filter, NULL, &filterid))
-        goto err;
-    dmsg (D_LOW, "Filter (Permit IPv6 DNS queries from TAP) added with ID=%I64d", filterid);
-
-    FwpmFreeMemory0((void **)&openvpnblob);
-    return true;
-
-    err:
-        FwpmFreeMemory0((void **)&openvpnblob);
-        return false;
+  return ret;
 }
 
 bool
 win_wfp_uninit()
 {
     dmsg (D_LOW, "Uninitializing WFP");
-    if (m_hEngineHandle) {
-        FwpmEngineClose0(m_hEngineHandle);
-        m_hEngineHandle = NULL;
-    }
+
+    delete_block_dns_filters (m_hEngineHandle);
+
     return true;
 }
 
