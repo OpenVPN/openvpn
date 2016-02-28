@@ -263,6 +263,12 @@ AC_ARG_ENABLE(
 	[enable_async_push="no"]
 )
 
+AC_ARG_ENABLE(vlan-tagging,
+	[  --disable-vlan-tagging  Disable support for 802.1Q-based VLAN tagging],
+	[VLAN_TAGGING="$enableval"],
+	[VLAN_TAGGING="yes"]
+)
+
 AC_ARG_WITH(
 	[special-build],
 	[AS_HELP_STRING([--with-special-build=STRING], [specify special build string])],
@@ -1294,6 +1300,10 @@ if test "${enable_async_push}" = "yes"; then
 		AC_DEFINE([ENABLE_ASYNC_PUSH], [1], [Enable async push]),
 		AC_MSG_ERROR([inotify.h not found.])
 	)
+fi
+
+if test "$VLAN_TAGGING" = "yes"; then
+   AC_DEFINE(ENABLE_VLAN_TAGGING, 1, [Enable 802.1Q-based VLAN tagging/untagging])
 fi
 
 CONFIGURE_DEFINES="`set | grep '^enable_.*=' ; set | grep '^with_.*='`"
