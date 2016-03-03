@@ -3696,6 +3696,10 @@ init_instance (struct context *c, const struct env_set *env, const unsigned int 
     open_plugins (c, false, OPENVPN_PLUGIN_INIT_POST_DAEMON);
 #endif
 
+  /* finalize the TCP/UDP socket */
+  if (c->mode == CM_P2P || c->mode == CM_TOP || c->mode == CM_CHILD_TCP)
+    do_init_socket_2 (c);
+
   /*
    * Actually do UID/GID downgrade, and chroot, if requested.
    * May be delayed by --client, --pull, or --up-delay.
@@ -3704,10 +3708,6 @@ init_instance (struct context *c, const struct env_set *env, const unsigned int 
 
   /* initialise connect timeout timer */
   do_init_server_poll_timeout(c);
-
-  /* finalize the TCP/UDP socket */
-  if (c->mode == CM_P2P || c->mode == CM_TOP || c->mode == CM_CHILD_TCP)
-    do_init_socket_2 (c);
 
   /* initialize timers */
   if (c->mode == CM_P2P || child)
