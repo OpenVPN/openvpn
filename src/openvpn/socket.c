@@ -1003,7 +1003,7 @@ socket_listen_accept (socket_descriptor_t sd,
       struct timeval tv;
 
       FD_ZERO (&reads);
-      FD_SET (sd, &reads);
+      openvpn_fd_set (sd, &reads);
       tv.tv_sec = 0;
       tv.tv_usec = 0;
 
@@ -1153,7 +1153,7 @@ openvpn_connect (socket_descriptor_t sd,
 	  struct timeval tv;
 
 	  FD_ZERO (&writes);
-	  FD_SET (sd, &writes);
+	  openvpn_fd_set (sd, &writes);
 	  tv.tv_sec = 0;
 	  tv.tv_usec = 0;
 

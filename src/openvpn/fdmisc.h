@@ -22,10 +22,26 @@
  *  59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
+#ifndef FD_MISC_H
+#define FD_MISC_H
+
 #include "basic.h"
+#include "error.h"
+#include "syshead.h"
 
 bool set_nonblock_action (int fd);
 bool set_cloexec_action (int fd);
 
 void set_nonblock (int fd);
 void set_cloexec (int fd);
+
+static inline void openvpn_fd_set(int fd, fd_set *setp)
+{
+#ifndef WIN32 /* The Windows FD_SET() implementation does not overflow */
+  ASSERT (fd >= 0 && fd < FD_SETSIZE);
+#endif
+  FD_SET (fd, setp);
+}
+#undef FD_SET /* prevent direct use of FD_SET() */
+
+#endif /* FD_MISC_H */
