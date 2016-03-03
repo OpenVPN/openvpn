@@ -94,7 +94,7 @@ recv_line (socket_descriptor_t sd,
 	}
 
       FD_ZERO (&reads);
-      FD_SET (sd, &reads);
+      openvpn_fd_set (sd, &reads);
       tv.tv_sec = timeout_sec;
       tv.tv_usec = 0;
 

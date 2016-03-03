@@ -136,7 +136,7 @@ socks_username_password_auth (struct socks_proxy_info *p,
       char c;
 
       FD_ZERO (&reads);
-      FD_SET (sd, &reads);
+      openvpn_fd_set (sd, &reads);
       tv.tv_sec = timeout_sec;
       tv.tv_usec = 0;
 
@@ -215,7 +215,7 @@ socks_handshake (struct socks_proxy_info *p,
       char c;
 
       FD_ZERO (&reads);
-      FD_SET (sd, &reads);
+      openvpn_fd_set (sd, &reads);
       tv.tv_sec = timeout_sec;
       tv.tv_usec = 0;
 
@@ -321,7 +321,7 @@ recv_socks_reply (socket_descriptor_t sd,
       char c;
 
       FD_ZERO (&reads);
-      FD_SET (sd, &reads);
+      openvpn_fd_set (sd, &reads);
       tv.tv_sec = timeout_sec;
       tv.tv_usec = 0;
 

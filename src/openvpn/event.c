@@ -873,18 +873,18 @@ se_ctl (struct event_set *es, event_t event, unsigned int rwflags, void *arg)
       if (ses->fast)
 	{
 	  if (rwflags & EVENT_READ)
-	    FD_SET (event, &ses->readfds);
+	    openvpn_fd_set (event, &ses->readfds);
 	  if (rwflags & EVENT_WRITE)
-	    FD_SET (event, &ses->writefds);
+	    openvpn_fd_set (event, &ses->writefds);
 	}
       else
 	{
 	  if (rwflags & EVENT_READ)
-	    FD_SET (event, &ses->readfds);
+	    openvpn_fd_set (event, &ses->readfds);
 	  else
 	    FD_CLR (event, &ses->readfds);
 	  if (rwflags & EVENT_WRITE)
-	    FD_SET (event, &ses->writefds);
+	    openvpn_fd_set (event, &ses->writefds);
 	  else
 	    FD_CLR (event, &ses->writefds);
 	}
