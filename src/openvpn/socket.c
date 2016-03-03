@@ -1149,6 +1149,12 @@ openvpn_connect (socket_descriptor_t sd,
     {
       while (true)
 	{
+#if POLL
+	  struct pollfd fds[1];
+	  fds[0].fd = sd;
+	  fds[0].events = POLLOUT;
+	  status = poll(fds, 1, 0);
+#else
 	  fd_set writes;
 	  struct timeval tv;
 
@@ -1158,7 +1164,7 @@ openvpn_connect (socket_descriptor_t sd,
 	  tv.tv_usec = 0;
 
 	  status = select (sd + 1, NULL, &writes, NULL, &tv);
-
+#endif
 	  if (signal_received)
 	    {
 	      get_signal (signal_received);
