@@ -256,6 +256,8 @@ struct static_challenge_info {};
 #define GET_USER_PASS_STATIC_CHALLENGE       (1<<8) /* SCRV1 protocol -- static challenge */
 #define GET_USER_PASS_STATIC_CHALLENGE_ECHO  (1<<9) /* SCRV1 protocol -- echo response */
 
+#define GET_USER_PASS_INLINE_CREDS (1<<10)  /* indicates that auth_file is actually inline creds */
+
 bool get_user_pass_cr (struct user_pass *up,
 		       const char *auth_file,
 		       const char *prefix,

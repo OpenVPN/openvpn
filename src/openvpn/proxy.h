@@ -57,6 +57,7 @@ struct http_proxy_options {
   const char *http_version;
   const char *user_agent;
   struct http_custom_header custom_headers[MAX_CUSTOM_HTTP_HEADER];
+  bool inline_creds;
 };
 
 struct http_proxy_options_simple {

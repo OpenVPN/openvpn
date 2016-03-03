@@ -1092,6 +1092,14 @@ get_user_pass_cr (struct user_pass *up,
 	  if (!strlen (up->password))
 	    strcpy (up->password, "ok");
 	}
+      else if (flags & GET_USER_PASS_INLINE_CREDS)
+	{
+	  struct buffer buf;
+	  buf_set_read (&buf, (uint8_t*) auth_file, strlen (auth_file) + 1);
+	  if (!(flags & GET_USER_PASS_PASSWORD_ONLY))
+	    buf_parse (&buf, '\n', up->username, USER_PASS_LEN);
+	  buf_parse (&buf, '\n', up->password, USER_PASS_LEN);
+	}
       /*
        * Read from auth file unless this is a dynamic challenge request.
        */

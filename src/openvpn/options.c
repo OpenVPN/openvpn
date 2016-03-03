@@ -5214,6 +5214,19 @@ add_option (struct options *options,
 	  ho->auth_method_string = "none";
 	}
     }
+  else if (streq (p[0], "http-proxy-user-pass") && p[1])
+    {
+      struct http_proxy_options *ho;
+      VERIFY_PERMISSION (OPT_P_GENERAL);
+      ho = init_http_proxy_options_once (&options->ce.http_proxy_options, &options->gc);
+      if (streq (p[1], INLINE_FILE_TAG) && p[2])
+	{
+	  ho->auth_file = p[2];
+	  ho->inline_creds = true;
+	}
+      else
+	ho->auth_file = p[1];
+    }
   else if (streq (p[0], "http-proxy-retry") && !p[1])
     {
       struct http_proxy_options *ho;

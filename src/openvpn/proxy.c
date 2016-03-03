@@ -241,6 +241,8 @@ get_user_pass_http (struct http_proxy_info *p, const bool force)
       unsigned int flags = GET_USER_PASS_MANAGEMENT;
       if (p->queried_creds)
 	flags |= GET_USER_PASS_PREVIOUS_CREDS_FAILED;
+      if (p->options.inline_creds)
+	flags |= GET_USER_PASS_INLINE_CREDS;
       get_user_pass (&static_proxy_user_pass,
 		     p->options.auth_file,
 		     UP_TYPE_PROXY,
