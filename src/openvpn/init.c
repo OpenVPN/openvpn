@@ -2355,9 +2355,7 @@ do_init_crypto_tls (struct context *c, const unsigned int flags)
   to.auth_user_pass_file = options->auth_user_pass_file;
 #endif
 
-#ifdef ENABLE_X509_TRACK
   to.x509_track = options->x509_track;
-#endif
 
 #if P2MP
 #ifdef ENABLE_CLIENT_CR

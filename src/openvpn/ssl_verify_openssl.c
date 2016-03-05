@@ -303,8 +303,6 @@ err:
 }
 
 
-#ifdef ENABLE_X509_TRACK
-
 /*
  * x509-track implementation -- save X509 fields to environment,
  * using the naming convention:
@@ -434,7 +432,6 @@ x509_setenv_track (const struct x509_track *xt, struct env_set *es, const int de
     }
   gc_free(&gc);
 }
-#endif
 
 /*
  * Save X509 fields to environment, using the naming convention:

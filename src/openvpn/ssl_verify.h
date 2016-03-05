@@ -201,8 +201,6 @@ void verify_user_pass(struct user_pass *up, struct tls_multi *multi,
  */
 void verify_final_auth_checks(struct tls_multi *multi, struct tls_session *session);
 
-#ifdef ENABLE_X509_TRACK
-
 struct x509_track
 {
   const struct x509_track *next;
@@ -211,10 +209,6 @@ struct x509_track
   unsigned int flags;
   int nid;
 };
-
-void x509_track_add (const struct x509_track **ll_head, const char *name, int msglevel, struct gc_arena *gc);
-
-#endif
 
 /*
  * Certificate checking for verify_nsCertType

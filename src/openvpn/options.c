@@ -612,10 +612,8 @@ static const char usage_message[] =
   "                  of verification.\n"
   "--ns-cert-type t: Require that peer certificate was signed with an explicit\n"
   "                  nsCertType designation t = 'client' | 'server'.\n"
-#ifdef ENABLE_X509_TRACK
   "--x509-track x  : Save peer X509 attribute x in environment for use by\n"
   "                  plugins and management interface.\n"
-#endif
 #if defined(ENABLE_CRYPTO_OPENSSL) && OPENSSL_VERSION_NUMBER >= 0x10001000
   "--keying-material-exporter label len : Save Exported Keying Material (RFC5705)\n"
   "                  of len bytes (min. 16 bytes) using label in environment for use by plugins.\n"
@@ -4337,13 +4335,6 @@ add_option (struct options *options,
       options->management_flags |= MF_CLIENT_AUTH;
     }
 #endif
-#ifdef ENABLE_X509_TRACK
-  else if (streq (p[0], "x509-track") && p[1] && !p[2])
-    {
-      VERIFY_PERMISSION (OPT_P_GENERAL);
-      x509_track_add (&options->x509_track, p[1], msglevel, &options->gc);
-    }
-#endif
 #ifdef MANAGEMENT_PF
   else if (streq (p[0], "management-client-pf") && !p[1])
     {
@@ -7025,6 +7016,11 @@ add_option (struct options *options,
 	  goto err;
 	}
       options->key_method = key_method;
+    }
+  else if (streq (p[0], "x509-track") && p[1] && !p[2])
+    {
+      VERIFY_PERMISSION (OPT_P_GENERAL);
+      x509_track_add (&options->x509_track, p[1], msglevel, &options->gc);
     }
 #ifdef ENABLE_X509ALTUSERNAME
   else if (streq (p[0], "x509-username-field") && p[1] && !p[2])

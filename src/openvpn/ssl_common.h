@@ -308,9 +308,7 @@ struct tls_options
   struct man_def_auth_context *mda_context;
 #endif
 
-#ifdef ENABLE_X509_TRACK
   const struct x509_track *x509_track;
-#endif
 
 #ifdef ENABLE_CLIENT_CR
   const struct static_challenge_info *sci;

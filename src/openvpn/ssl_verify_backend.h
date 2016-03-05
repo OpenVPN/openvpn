@@ -150,8 +150,6 @@ char *backend_x509_get_serial_hex (openvpn_x509_cert_t *cert,
  */
 void x509_setenv (struct env_set *es, int cert_depth, openvpn_x509_cert_t *cert);
 
-#ifdef ENABLE_X509_TRACK
-
 /*
  * Start tracking the given attribute.
  *
@@ -188,8 +186,6 @@ void x509_track_add (const struct x509_track **ll_head, const char *name,
  */
 void x509_setenv_track (const struct x509_track *xt, struct env_set *es,
     const int depth, openvpn_x509_cert_t *x509);
-
-#endif
 
 /*
  * Check X.509 Netscape certificate type field, if available.

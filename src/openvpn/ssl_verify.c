@@ -393,22 +393,17 @@ verify_peer_cert(const struct tls_options *opt, openvpn_x509_cert_t *peer_cert,
  */
 static void
 verify_cert_set_env(struct env_set *es, openvpn_x509_cert_t *peer_cert, int cert_depth,
-    const char *subject, const char *common_name
-#ifdef ENABLE_X509_TRACK
-    , const struct x509_track *x509_track
-#endif
-    )
+    const char *subject, const char *common_name,
+    const struct x509_track *x509_track)
 {
   char envname[64];
   char *serial = NULL;
   struct gc_arena gc = gc_new ();
 
   /* Save X509 fields in environment */
-#ifdef ENABLE_X509_TRACK
   if (x509_track)
     x509_setenv_track (x509_track, es, cert_depth, peer_cert);
   else
-#endif
     x509_setenv (es, cert_depth, peer_cert);
 
   /* export subject name string as environmental variable */
@@ -658,11 +653,8 @@ verify_cert(struct tls_session *session, openvpn_x509_cert_t *cert, int cert_dep
   session->verify_maxlevel = max_int (session->verify_maxlevel, cert_depth);
 
   /* export certificate values to the environment */
-  verify_cert_set_env(opt->es, cert, cert_depth, subject, common_name
-#ifdef ENABLE_X509_TRACK
-      , opt->x509_track
-#endif
-      );
+  verify_cert_set_env(opt->es, cert, cert_depth, subject, common_name,
+      opt->x509_track);
 
   /* export current untrusted IP */
   setenv_untrusted (session);

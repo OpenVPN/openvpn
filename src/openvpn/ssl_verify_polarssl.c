@@ -37,7 +37,9 @@
 
 #if defined(ENABLE_CRYPTO) && defined(ENABLE_CRYPTO_POLARSSL)
 
+#include "crypto_polarssl.h"
 #include "ssl_verify.h"
+#include <polarssl/asn1.h>
 #include <polarssl/error.h>
 #include <polarssl/bignum.h>
 #include <polarssl/oid.h>
@@ -195,6 +197,94 @@ x509_get_subject(x509_crt *cert, struct gc_arena *gc)
     }
 
   return subject;
+}
+
+static void
+do_setenv_x509 (struct env_set *es, const char *name, char *value, int depth)
+{
+  char *name_expand;
+  size_t name_expand_size;
+
+  string_mod (value, CC_ANY, CC_CRLF, '?');
+  msg (D_X509_ATTR, "X509 ATTRIBUTE name='%s' value='%s' depth=%d", name, value, depth);
+  name_expand_size = 64 + strlen (name);
+  name_expand = (char *) malloc (name_expand_size);
+  check_malloc_return (name_expand);
+  openvpn_snprintf (name_expand, name_expand_size, "X509_%d_%s", depth, name);
+  setenv_str (es, name_expand, value);
+  free (name_expand);
+}
+
+static char *
+asn1_buf_to_c_string(const asn1_buf *orig, struct gc_arena *gc)
+{
+  size_t i;
+  char *val;
+
+  for (i = 0; i < orig->len; ++i)
+    if (orig->p[i] == '\0')
+      return "ERROR: embedded null value";
+  val = gc_malloc(orig->len+1, false, gc);
+  memcpy(val, orig->p, orig->len);
+  val[orig->len] = '\0';
+  return val;
+}
+
+static void
+do_setenv_name(struct env_set *es, const struct x509_track *xt,
+	       const x509_crt *cert, int depth, struct gc_arena *gc)
+{
+  const x509_name *xn;
+  for (xn = &cert->subject; xn != NULL; xn = xn->next)
+    {
+      const char *xn_short_name = NULL;
+      if (0 == oid_get_attr_short_name (&xn->oid, &xn_short_name) &&
+	  0 == strcmp (xt->name, xn_short_name))
+	{
+	  char *val_str = asn1_buf_to_c_string (&xn->val, gc);
+	  do_setenv_x509 (es, xt->name, val_str, depth);
+	}
+    }
+}
+
+void
+x509_track_add (const struct x509_track **ll_head, const char *name, int msglevel, struct gc_arena *gc)
+{
+  struct x509_track *xt;
+  ALLOC_OBJ_CLEAR_GC (xt, struct x509_track, gc);
+  if (*name == '+')
+    {
+      xt->flags |= XT_FULL_CHAIN;
+      ++name;
+    }
+  xt->name = name;
+  xt->next = *ll_head;
+  *ll_head = xt;
+}
+
+void
+x509_setenv_track (const struct x509_track *xt, struct env_set *es, const int depth, x509_crt *cert)
+{
+  struct gc_arena gc = gc_new();
+  while (xt)
+    {
+      if (depth == 0 || (xt->flags & XT_FULL_CHAIN))
+	{
+	  if (0 == strcmp(xt->name, "SHA1"))
+	    {
+	      /* SHA1 fingerprint is not part of X509 structure */
+	      unsigned char *sha1_hash = x509_get_sha1_hash(cert, &gc);
+	      char *sha1_fingerprint = format_hex_ex(sha1_hash, SHA_DIGEST_LENGTH, 0, 1 | FHE_CAPS, ":", &gc);
+	      do_setenv_x509(es, xt->name, sha1_fingerprint, depth);
+	    }
+	  else
+	    {
+	      do_setenv_name(es, xt, cert, depth, &gc);
+	    }
+	}
+      xt = xt->next;
+    }
+  gc_free(&gc);
 }
 
 /*
