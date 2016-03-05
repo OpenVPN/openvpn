@@ -57,8 +57,6 @@ static BOOL
 CheckConfigPath (const WCHAR *workdir, const WCHAR *fname, const settings_t *s)
 {
     WCHAR tmp[MAX_PATH];
-    WCHAR widepath[MAX_PATH];
-    WCHAR relpath[MAX_PATH];
     const WCHAR *config_file = NULL;
     const WCHAR *config_dir = NULL;
 
@@ -112,6 +110,36 @@ OptionLookup (const WCHAR *name, const WCHAR *white_list[])
 }
 
 /*
+ * The Administrators group may be localized or renamed by admins.
+ * Get the local name of the group using the SID.
+ */
+static BOOL
+GetBuiltinAdminGroupName (WCHAR *name, DWORD nlen)
+{
+    BOOL b = FALSE;
+    PSID admin_sid = NULL;
+    DWORD sid_size = SECURITY_MAX_SID_SIZE;
+    SID_NAME_USE snu;
+
+    WCHAR domain[MAX_NAME];
+    DWORD dlen = _countof(domain);
+
+    admin_sid = malloc(sid_size);
+    if (!admin_sid)
+        return FALSE;
+
+    b = CreateWellKnownSid(WinBuiltinAdministratorsSid, NULL, admin_sid,  &sid_size);
+    if(b)
+    {
+        b = LookupAccountSidW(NULL, admin_sid, name, &nlen, domain, &dlen, &snu);
+    }
+
+    free (admin_sid);
+
+    return b;
+}
+
+/*
  * Check whether user is a member of Administrators group or
  * the group specified in s->ovpn_admin_group
  */
@@ -125,6 +153,7 @@ IsAuthorizedUser (SID *sid, settings_t *s)
     const WCHAR *admin_group[2];
     WCHAR username[MAX_NAME];
     WCHAR domain[MAX_NAME];
+    WCHAR sysadmin_group[MAX_NAME];
     DWORD err, len = MAX_NAME;
     int i;
     BOOL ret = FALSE;
@@ -147,7 +176,17 @@ IsAuthorizedUser (SID *sid, settings_t *s)
         goto out;
     }
 
-    admin_group[0] = SYSTEM_ADMIN_GROUP;
+    if (GetBuiltinAdminGroupName(sysadmin_group, _countof(sysadmin_group)))
+    {
+        admin_group[0] = sysadmin_group;
+    }
+    else
+    {
+        MsgToEventLog (M_SYSERR, TEXT("Failed to get the name of Administrators group. Using the default."));
+        /* use the default value */
+        admin_group[0] = SYSTEM_ADMIN_GROUP;
+    }
+
 #ifdef UNICODE
     admin_group[1] = s->ovpn_admin_group;
 #else
