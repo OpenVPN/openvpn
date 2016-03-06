@@ -248,13 +248,14 @@ result_t x509_write_pem(FILE *peercert_file, openvpn_x509_cert_t *peercert);
  *
  * @param crl_file	File name of the CRL file
  * @param cert		Certificate to verify
+ * @param crl_inline	Contents of the crl file if it is inlined
  * @param subject	Subject of the given certificate
  *
  * @return 		\c SUCCESS if the CRL was not signed by the issuer of the
  * 			certificate or does not contain an entry for it.
  * 			\c FAILURE otherwise.
  */
-result_t x509_verify_crl(const char *crl_file, openvpn_x509_cert_t *cert,
-    const char *subject);
+result_t x509_verify_crl(const char *crl_file, const char *crl_inline,
+                         openvpn_x509_cert_t *cert, const char *subject);
 
 #endif /* SSL_VERIFY_BACKEND_H_ */

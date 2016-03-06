@@ -511,6 +511,7 @@ struct options
   const char *ca_file_inline;
   const char *cert_file_inline;
   const char *extra_certs_file_inline;
+  const char *crl_file_inline;
   char *priv_key_file_inline;
   const char *dh_file_inline;
   const char *pkcs12_file_inline; /* contains the base64 encoding of pkcs12 file */

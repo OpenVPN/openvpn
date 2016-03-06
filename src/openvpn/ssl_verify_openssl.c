@@ -613,7 +613,8 @@ x509_write_pem(FILE *peercert_file, X509 *peercert)
  * check peer cert against CRL
  */
 result_t
-x509_verify_crl(const char *crl_file, X509 *peer_cert, const char *subject)
+x509_verify_crl(const char *crl_file, const char* crl_inline,
+                X509 *peer_cert, const char *subject)
 {
   X509_CRL *crl=NULL;
   X509_REVOKED *revoked;
@@ -623,7 +624,10 @@ x509_verify_crl(const char *crl_file, X509 *peer_cert, const char *subject)
   struct gc_arena gc = gc_new();
   char *serial;
 
-  in = BIO_new_file (crl_file, "r");
+  if (!strcmp (crl_file, INLINE_FILE_TAG) && crl_inline)
+    in = BIO_new_mem_buf ((char *)crl_inline, -1);
+  else
+    in = BIO_new_file (crl_file, "r");
 
   if (in == NULL) {
     msg (M_WARN, "CRL: cannot read: %s", crl_file);

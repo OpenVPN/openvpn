@@ -2323,6 +2323,7 @@ do_init_crypto_tls (struct context *c, const unsigned int flags)
   to.verify_x509_type = (options->verify_x509_type & 0xff);
   to.verify_x509_name = options->verify_x509_name;
   to.crl_file = options->crl_file;
+  to.crl_file_inline = options->crl_file_inline;
   to.ssl_flags = options->ssl_flags;
   to.ns_cert_type = options->ns_cert_type;
   memmove (to.remote_cert_ku, options->remote_cert_ku, sizeof (to.remote_cert_ku));

@@ -690,7 +690,7 @@ verify_cert(struct tls_session *session, openvpn_x509_cert_t *cert, int cert_dep
       }
       else
       {
-	if (SUCCESS != x509_verify_crl(opt->crl_file, cert, subject))
+	if (SUCCESS != x509_verify_crl(opt->crl_file, opt->crl_file_inline, cert, subject))
 	  goto cleanup;
       }
     }

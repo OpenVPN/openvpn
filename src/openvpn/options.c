@@ -2747,8 +2747,8 @@ options_postprocess_filechecks (struct options *options)
     errs |= check_file_access_chroot (options->chroot_dir, CHKACC_FILE, options->crl_file, R_OK|X_OK,
                                "--crl-verify directory");
   else
-    errs |= check_file_access_chroot (options->chroot_dir, CHKACC_FILE, options->crl_file, R_OK,
-                               "--crl-verify");
+    errs |= check_file_access_chroot (options->chroot_dir, CHKACC_FILE|CHKACC_INLINE,
+                                      options->crl_file, R_OK, "--crl-verify");
 
   errs |= check_file_access (CHKACC_FILE|CHKACC_INLINE, options->tls_auth_file, R_OK,
                              "--tls-auth");
@@ -6783,12 +6783,17 @@ add_option (struct options *options,
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->cipher_list = p[1];
     }
-  else if (streq (p[0], "crl-verify") && p[1] && ((p[2] && streq(p[2], "dir")) || !p[2]) && !p[3])
+  else if (streq (p[0], "crl-verify") && p[1] && ((p[2] && streq(p[2], "dir"))
+		  || (p[2] && streq (p[1], INLINE_FILE_TAG) ) || !p[2]) && !p[3])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       if (p[2] && streq(p[2], "dir"))
 	options->ssl_flags |= SSLF_CRL_VERIFY_DIR;
       options->crl_file = p[1];
+      if (streq (p[1], INLINE_FILE_TAG) && p[2])
+	{
+	  options->crl_file_inline = p[2];
+	}
     }
   else if (streq (p[0], "tls-verify") && p[1])
     {

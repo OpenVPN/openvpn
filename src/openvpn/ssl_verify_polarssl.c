@@ -359,18 +359,30 @@ x509_write_pem(FILE *peercert_file, x509_crt *peercert)
  * check peer cert against CRL
  */
 result_t
-x509_verify_crl(const char *crl_file, x509_crt *cert, const char *subject)
+x509_verify_crl(const char *crl_file, const char* crl_inline,
+                x509_crt *cert, const char *subject)
 {
   result_t retval = FAILURE;
   x509_crl crl = {0};
   struct gc_arena gc = gc_new();
   char *serial;
 
-  if (!polar_ok(x509_crl_parse_file(&crl, crl_file)))
+  if (!strcmp (crl_file, INLINE_FILE_TAG) && crl_inline)
     {
-      msg (M_WARN, "CRL: cannot read CRL from file %s", crl_file);
-      goto end;
+      if (!polar_ok(x509_crl_parse(&crl, crl_inline, strlen(crl_inline))))
+        {
+           msg (M_WARN, "CRL: cannot parse inline CRL");
+           goto end;
+        }
     }
+  else
+    {
+      if (!polar_ok(x509_crl_parse_file(&crl, crl_file)))
+      {
+          msg (M_WARN, "CRL: cannot read CRL from file %s", crl_file);
+          goto end;
+      }
+  }
 
   if(cert->issuer_raw.len != crl.issuer_raw.len ||
       memcmp(crl.issuer_raw.p, cert->issuer_raw.p, crl.issuer_raw.len) != 0)
