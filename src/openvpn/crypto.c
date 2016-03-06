@@ -86,6 +86,7 @@ memcmp_constant_time (const void *a, const void *b, size_t size) {
 static void
 openvpn_encrypt_aead (struct buffer *buf, struct buffer work,
 	 struct crypto_options *opt) {
+#ifdef HAVE_AEAD_CIPHER_MODES
   struct gc_arena gc;
   int outlen = 0;
   const struct key_ctx *ctx = &opt->key_ctx_bi.encrypt;
@@ -173,6 +174,9 @@ err:
   crypto_clear_error();
   buf->len = 0;
   goto cleanup;
+#else /* HAVE_AEAD_CIPHER_MODES */
+  ASSERT (0);
+#endif
 }
 
 static void
@@ -385,6 +389,7 @@ openvpn_decrypt_aead (struct buffer *buf, struct buffer work,
     struct crypto_options *opt, const struct frame* frame,
     const uint8_t *ad_start)
 {
+#ifdef HAVE_AEAD_CIPHER_MODES
   static const char error_prefix[] = "AEAD Decrypt error";
   struct packet_id_net pin = { 0 };
   const struct key_ctx *ctx = &opt->key_ctx_bi.decrypt;
@@ -511,6 +516,10 @@ openvpn_decrypt_aead (struct buffer *buf, struct buffer work,
   buf->len = 0;
   gc_free (&gc);
   return false;
+#else /* HAVE_AEAD_CIPHER_MODES */
+  ASSERT (0);
+  return false;
+#endif
 }
 
 /*
