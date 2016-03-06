@@ -1289,7 +1289,7 @@ ServiceStartInteractive (DWORD dwArgc, LPTSTR *lpszArgv)
     goto out;
 
   io_event = InitOverlapped (&overlapped);
-  exit_event = CreateEvent (NULL, FALSE, FALSE, NULL);
+  exit_event = CreateEvent (NULL, TRUE, FALSE, NULL);
   if (!exit_event || !io_event)
     {
       error = MsgToEventLog (M_SYSERR, TEXT("Could not create event"));
@@ -1356,6 +1356,7 @@ ServiceStartInteractive (DWORD dwArgc, LPTSTR *lpszArgv)
             {
               /* exit event signaled */
               CloseHandleEx (&pipe);
+              ResetEvent (exit_event);
               error = NO_ERROR;
               break;
             }
