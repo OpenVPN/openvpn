@@ -1063,16 +1063,15 @@ RunOpenvpn (LPVOID p)
   CloseHandleEx (&stdin_read);
   CloseHandleEx (&svc_pipe);
 
-  DWORD input_size = wcslen (sud.std_input) * 2;
-  if (input_size)
+  DWORD input_size = WideCharToMultiByte (CP_UTF8, 0, sud.std_input, -1, NULL, 0, NULL, NULL);
+  LPSTR input = NULL;
+  if (input_size && (input = malloc (input_size)))
     {
       DWORD written;
-      LPSTR input = malloc (input_size);
       WideCharToMultiByte (CP_UTF8, 0, sud.std_input, -1, input, input_size, NULL, NULL);
       WriteFile (stdin_write, input, strlen (input), &written, NULL);
       free (input);
     }
-
 
   while (TRUE)
     {
