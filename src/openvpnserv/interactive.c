@@ -50,6 +50,9 @@ static SERVICE_STATUS_HANDLE service;
 static SERVICE_STATUS status;
 static HANDLE exit_event = NULL;
 static settings_t settings;
+static HANDLE rdns_semaphore = NULL;
+#define RDNS_TIMEOUT 600  /* seconds to wait for the semaphore */
+
 
 openvpn_service_t interactive_service = {
   interactive,
@@ -803,6 +806,147 @@ HandleBlockDNSMessage (const block_dns_message_t *msg, undo_lists_t *lists)
   return err;
 }
 
+/*
+ * Execute a command and return its exit code. If timeout > 0, terminate
+ * the process if still running after timeout milliseconds. In that case
+ * the return value is the windows error code WAIT_TIMEOUT = 0x102
+ */
+static DWORD
+ExecCommand (const WCHAR *argv0, const WCHAR *cmdline, DWORD timeout)
+{
+  DWORD exit_code;
+  STARTUPINFOW si;
+  PROCESS_INFORMATION pi;
+  DWORD proc_flags = CREATE_NO_WINDOW|CREATE_UNICODE_ENVIRONMENT;
+  WCHAR *cmdline_dup = NULL;
+
+  ZeroMemory (&si, sizeof(si));
+  ZeroMemory (&pi, sizeof(pi));
+
+  si.cb = sizeof(si);
+
+  /* CreateProcess needs a modifiable cmdline: make a copy */
+  cmdline_dup = wcsdup (cmdline);
+  if ( cmdline_dup && CreateProcessW (argv0, cmdline_dup, NULL, NULL, FALSE,
+                                      proc_flags, NULL, NULL, &si, &pi) )
+    {
+      WaitForSingleObject (pi.hProcess, timeout ? timeout : INFINITE);
+      if (!GetExitCodeProcess (pi.hProcess, &exit_code))
+        {
+          MsgToEventLog (M_SYSERR, TEXT("ExecCommand: Error getting exit_code:"));
+          exit_code = GetLastError();
+        }
+      else if (exit_code == STILL_ACTIVE)
+        {
+          exit_code = WAIT_TIMEOUT;  /* Windows error code 0x102 */
+
+          /* kill without impunity */
+          TerminateProcess (pi.hProcess, exit_code);
+          MsgToEventLog (M_ERR, TEXT("ExecCommand: \"%s %s\" killed after timeout"),
+            argv0, cmdline);
+        }
+      else if (exit_code)
+          MsgToEventLog (M_ERR, TEXT("ExecCommand: \"%s %s\" exited with status = %lu"),
+                          argv0, cmdline, exit_code);
+      else
+          MsgToEventLog (M_INFO, TEXT("ExecCommand: \"%s %s\" completed"), argv0, cmdline);
+
+      CloseHandle(pi.hProcess);
+      CloseHandle(pi.hThread);
+    }
+  else
+    {
+      exit_code = GetLastError();
+      MsgToEventLog (M_SYSERR, TEXT("ExecCommand: could not run \"%s %s\" :"),
+                                      argv0, cmdline);
+    }
+
+  free (cmdline_dup);
+  return exit_code;
+}
+
+/*
+ * Entry point for register-dns thread.
+ */
+static DWORD WINAPI
+RegisterDNS (LPVOID unused)
+{
+  DWORD err;
+  DWORD i;
+  WCHAR sys_path[MAX_PATH];
+  DWORD timeout = RDNS_TIMEOUT * 1000; /* in milliseconds */
+
+  /* default paths of net and ipconfig commands */
+  WCHAR net[MAX_PATH]   = L"C:\\Windows\\system32\\net.exe";
+  WCHAR ipcfg[MAX_PATH] = L"C:\\Windows\\system32\\ipconfig.exe";
+
+  struct
+    {
+      WCHAR *argv0;
+      WCHAR *cmdline;
+      DWORD timeout;
+    } cmds [] = {
+                  { net,   L"net stop dnscache",     timeout },
+                  { net,   L"net start dnscache",    timeout },
+                  { ipcfg, L"ipconfig /flushdns",    timeout },
+                  { ipcfg, L"ipconfig /registerdns", timeout },
+                };
+  int ncmds = sizeof (cmds) / sizeof (cmds[0]);
+
+  HANDLE wait_handles[2] = {rdns_semaphore, exit_event};
+
+  if(GetSystemDirectory(sys_path, MAX_PATH))
+    {
+      _snwprintf (net, MAX_PATH, L"%s\\%s", sys_path, L"net.exe");
+      net[MAX_PATH-1] = L'\0';
+
+      _snwprintf (ipcfg, MAX_PATH, L"%s\\%s", sys_path, L"ipconfig.exe");
+      ipcfg[MAX_PATH-1] = L'\0';
+    }
+
+  if (WaitForMultipleObjects (2, wait_handles, FALSE, timeout) == WAIT_OBJECT_0)
+    {
+      /* Semaphore locked */
+      for (i = 0; i < ncmds; ++i)
+        {
+          ExecCommand (cmds[i].argv0, cmds[i].cmdline, cmds[i].timeout);
+        }
+      err = 0;
+      if ( !ReleaseSemaphore (rdns_semaphore, 1, NULL) )
+        err = MsgToEventLog (M_SYSERR, TEXT("RegisterDNS: Failed to release regsiter-dns semaphore:"));
+    }
+  else
+    {
+      MsgToEventLog (M_ERR, TEXT("RegisterDNS: Failed to lock register-dns semaphore"));
+      err = ERROR_SEM_TIMEOUT;  /* Windows error code 0x79 */
+    }
+  return err;
+}
+
+static DWORD
+HandleRegisterDNSMessage (void)
+{
+  DWORD err;
+  HANDLE thread = NULL;
+
+  /* Delegate this job to a sub-thread */
+  thread = CreateThread (NULL, 0, RegisterDNS, NULL, 0, NULL);
+
+  /*
+   * We don't add these thread handles to the undo list -- the thread and
+   * processes it spawns are all supposed to terminate or timeout by themselves.
+   */
+  if (thread)
+    {
+      err = 0;
+      CloseHandle (thread);
+    }
+  else
+    err = GetLastError();
+
+  return err;
+}
+
 static VOID
 HandleMessage (HANDLE pipe, DWORD bytes, DWORD count, LPHANDLE events, undo_lists_t *lists)
 {
@@ -853,6 +997,10 @@ HandleMessage (HANDLE pipe, DWORD bytes, DWORD count, LPHANDLE events, undo_list
       if (msg.header.size == sizeof (msg.block_dns))
         ack.error_number = HandleBlockDNSMessage (&msg.block_dns, lists);
       break;
+
+    case msg_register_dns:
+        ack.error_number = HandleRegisterDNSMessage ();
+        break;
 
     default:
       ack.error_number = ERROR_MESSAGE_TYPE;
@@ -1381,6 +1529,13 @@ ServiceStartInteractive (DWORD dwArgc, LPTSTR *lpszArgv)
       goto out;
     }
 
+  rdns_semaphore = CreateSemaphoreW (NULL, 1, 1, NULL);
+  if (!rdns_semaphore)
+  {
+      error = MsgToEventLog (M_SYSERR, TEXT("Could not create semaphore for register-dns"));
+      goto out;
+  }
+
   error = UpdateWaitHandles (&handles, &handle_count, io_event, exit_event, threads);
   if (error != NO_ERROR)
     goto out;
@@ -1458,6 +1613,7 @@ out:
   FreeWaitHandles (handles);
   CloseHandleEx (&io_event);
   CloseHandleEx (&exit_event);
+  CloseHandleEx (&rdns_semaphore);
 
   status.dwCurrentState = SERVICE_STOPPED;
   status.dwWin32ExitCode = error;

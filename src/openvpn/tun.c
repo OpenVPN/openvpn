@@ -5101,10 +5101,43 @@ fork_dhcp_action (struct tuntap *tt)
     }
 }
 
+static void
+register_dns_service (const struct tuntap *tt)
+{
+  DWORD len;
+  HANDLE msg_channel = tt->options.msg_channel;
+  ack_message_t ack;
+  struct gc_arena gc = gc_new ();
+
+  message_header_t rdns = { msg_register_dns, sizeof(message_header_t), 0 };
+
+  if (!WriteFile (msg_channel, &rdns, sizeof (rdns), &len, NULL) ||
+      !ReadFile (msg_channel, &ack, sizeof (ack), &len, NULL))
+    {
+      msg (M_WARN, "Register_dns: could not talk to service: %s [status=0x%lx]",
+           strerror_win32 (GetLastError (), &gc), GetLastError ());
+    }
+
+  else if (ack.error_number != NO_ERROR)
+    {
+      msg (M_WARN, "Register_dns failed using service: %s [status=0x%x]",
+           strerror_win32 (ack.error_number, &gc), ack.error_number);
+    }
+
+  else
+      msg (M_INFO, "Register_dns request sent to the service");
+
+  gc_free (&gc);
+}
+
 void
 fork_register_dns_action (struct tuntap *tt)
 {
-  if (tt && tt->options.register_dns)
+  if (tt && tt->options.register_dns && tt->options.msg_channel)
+    {
+       register_dns_service (tt);
+    }
+  else if (tt && tt->options.register_dns)
     {
       struct gc_arena gc = gc_new ();
       struct buffer cmd = alloc_buf_gc (256, &gc);

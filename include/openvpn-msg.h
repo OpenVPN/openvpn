@@ -37,7 +37,8 @@ typedef enum {
   msg_del_nbt_cfg,
   msg_flush_neighbors,
   msg_add_block_dns,
-  msg_del_block_dns
+  msg_del_block_dns,
+  msg_register_dns
 } message_type_t;
 
 typedef struct {
