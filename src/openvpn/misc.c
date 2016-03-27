@@ -1648,22 +1648,27 @@ argv_system_str_append (struct argv *a, const char *str, const bool enquote)
 static char *
 argv_extract_cmd_name (const char *path)
 {
+  char *ret = NULL;
   if (path)
     {
       char *path_cp = string_alloc(path, NULL); /* POSIX basename() implementaions may modify its arguments */
       const char *bn = basename (path_cp);
       if (bn)
 	{
-	  char *ret = string_alloc (bn, NULL);
-	  char *dot = strrchr (ret, '.');
+	  char *dot = NULL;
+	  ret = string_alloc (bn, NULL);
+	  dot = strrchr (ret, '.');
 	  if (dot)
 	    *dot = '\0';
 	  free(path_cp);
-	  if (ret[0] != '\0')
-	    return ret;
+	  if (ret[0] == '\0')
+	    {
+	      free(ret);
+	      ret = NULL;
+	    }
 	}
     }
-  return NULL;
+  return ret;
 }
 
 const char *
