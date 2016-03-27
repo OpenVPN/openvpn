@@ -217,7 +217,7 @@ void x_msg_va (const unsigned int flags, const char *format, va_list arglist)
 
 #ifndef HAVE_VARARG_MACROS
   /* the macro has checked this otherwise */
-  if (!MSG_TEST (flags))
+  if (!msg_test (flags))
     return;
 #endif
 

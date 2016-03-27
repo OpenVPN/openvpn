@@ -316,7 +316,7 @@ plugin_vlog (openvpn_plugin_log_flags_t flags, const char *name, const char *for
   if (flags & PLOG_NOMUTE)
     msg_flags |= M_NOMUTE;
 
-  if (MSG_TEST (msg_flags))
+  if (msg_test (msg_flags))
     {
       struct gc_arena gc;
       char* msg_fmt;
