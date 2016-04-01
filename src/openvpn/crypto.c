@@ -166,14 +166,14 @@ openvpn_encrypt_aead (struct buffer *buf, struct buffer work,
 
   dmsg (D_PACKET_CONTENT, "ENCRYPT TO: %s", format_hex (BPTR (buf), BLEN (buf), 80, &gc));
 
-cleanup:
   gc_free (&gc);
   return;
 
 err:
   crypto_clear_error();
   buf->len = 0;
-  goto cleanup;
+  gc_free (&gc);
+  return;
 #else /* HAVE_AEAD_CIPHER_MODES */
   ASSERT (0);
 #endif
@@ -295,7 +295,9 @@ openvpn_encrypt_v1 (struct buffer *buf, struct buffer work,
 	      hmac_start = BPTR(buf);
 	      ASSERT (mac_out = buf_prepend (buf, hmac_ctx_size(ctx->hmac)));
 	    }
-	  buf_write_prepend(buf, BPTR(&work), BLEN(&work));
+	  if (BLEN(&work)) {
+	    buf_write_prepend(buf, BPTR(&work), BLEN(&work));
+	  }
 	  work = *buf;
 	}
 
