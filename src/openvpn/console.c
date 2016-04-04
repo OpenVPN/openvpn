@@ -172,7 +172,7 @@ get_console_input_systemd (const char *prompt, const bool echo, char *input, con
   if ((std_out = openvpn_popen (&argv, NULL)) < 0) {
 	  return false;
   }
-  CLEAR (*input);
+  memset (input, 0, capacity);
   if (read (std_out, input, capacity) != 0)
     {
        chomp (input);
