@@ -175,7 +175,7 @@ unsigned char *
 x509_get_sha1_hash (x509_crt *cert, struct gc_arena *gc)
 {
   unsigned char *sha1_hash = gc_malloc(SHA_DIGEST_LENGTH, false, gc);
-  sha1(cert->tbs.p, cert->tbs.len, sha1_hash);
+  sha1(cert->raw.p, cert->raw.len, sha1_hash);
   return sha1_hash;
 }
 

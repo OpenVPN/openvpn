@@ -63,7 +63,6 @@ User-visible Changes
   In --static mode connect-timeout specifies the timeout for TCP and
   proxy connection establishment
 
-
 - connect-retry now specifies the maximum number of unsucessfully
   trying all remote/connection entries before exiting.
 
@@ -91,6 +90,10 @@ User-visible Changes
 
   * Non-ephemeral key exchange using static (EC)DH keys
   * DSS private keys
+
+- PolarSSL builds: changed the tls_digest_N values exported to the script
+  environment to be equal to the ones exported by OpenSSL builds, namely
+  the certificate fingerprint (was the hash of the 'to be signed' data).
 
 
 Maintainer-visible changes
