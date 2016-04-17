@@ -297,7 +297,7 @@ int read_key (struct key *key, const struct key_type *kt, struct buffer *buf);
 
 void init_key_type (struct key_type *kt, const char *ciphername,
     bool ciphername_defined, const char *authname, bool authname_defined,
-    int keysize, bool cfb_ofb_allowed, bool warn);
+    int keysize, bool tls_mode, bool warn);
 
 /*
  * Key context functions
