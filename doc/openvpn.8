@@ -4555,8 +4555,9 @@ is an expert feature, which - if used correcly - can improve the security of
 your VPN connection.  But it is also easy to unwittingly use it to carefully
 align a gun with your foot, or just break your connection.  Use with care!
 
-The default for --tls-cipher is to use PolarSSL's default cipher list
-when using PolarSSL or "DEFAULT:!EXP:!PSK:!SRP:!kRSA" when using OpenSSL.
+The default for \-\-tls\-cipher is to use PolarSSL's default cipher list
+when using PolarSSL or "DEFAULT:!EXP:!LOW:!MEDIUM:!PSK:!SRP:!kRSA" when using
+OpenSSL.
 .\"*********************************************************
 .TP
 .B \-\-tls\-timeout n

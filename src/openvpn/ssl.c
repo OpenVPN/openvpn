@@ -561,10 +561,7 @@ init_ssl (const struct options *options, struct tls_root_ctx *new_ctx)
   tls_ctx_check_cert_time(new_ctx);
 
   /* Allowable ciphers */
-  if (options->cipher_list)
-    {
-      tls_ctx_restrict_ciphers(new_ctx, options->cipher_list);
-    }
+  tls_ctx_restrict_ciphers(new_ctx, options->cipher_list);
 
 #ifdef ENABLE_CRYPTO_POLARSSL
   /* Personalise the random by mixing in the certificate */

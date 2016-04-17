@@ -267,6 +267,20 @@ tls_ctx_set_options (struct tls_root_ctx *ctx, unsigned int ssl_flags)
 void
 tls_ctx_restrict_ciphers(struct tls_root_ctx *ctx, const char *ciphers)
 {
+  if (ciphers == NULL)
+    {
+      /* Use sane default TLS cipher list */
+      if(!SSL_CTX_set_cipher_list(ctx->ctx,
+	  /* Use openssl's default list as a basis */
+	  "DEFAULT"
+	  /* Disable export ciphers and openssl's 'low' and 'medium' ciphers */
+	  ":!EXP:!LOW:!MEDIUM"
+	  /* Disable unsupported TLS modes */
+	  ":!PSK:!SRP:!kRSA"))
+	crypto_msg (M_FATAL, "Failed to set default TLS cipher list.");
+      return;
+    }
+
   size_t begin_of_cipher, end_of_cipher;
 
   const char *current_cipher;
@@ -1383,8 +1397,7 @@ show_available_tls_ciphers (const char *cipher_list)
   if (!ssl)
     crypto_msg (M_FATAL, "Cannot create SSL object");
 
-  if (cipher_list)
-    tls_ctx_restrict_ciphers(&tls_ctx, cipher_list);
+  tls_ctx_restrict_ciphers(&tls_ctx, cipher_list);
 
   printf ("Available TLS Ciphers,\n");
   printf ("listed in order of preference:\n\n");

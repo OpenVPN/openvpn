@@ -100,6 +100,21 @@ Behavioral changes
 - Do not randomize resolving of IP addresses in getaddr()
 
 
+
+Version 2.3.11
+==============
+
+Behavioral changes
+------------------
+
+- Stricter default TLS cipher list (override with ``--tls-cipher``), that now
+  also disables:
+
+  * Non-ephemeral key exchange using static (EC)DH keys
+  * DSS private keys
+
+
+
 Version 2.3.10
 =============
 
