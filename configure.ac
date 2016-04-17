@@ -291,10 +291,10 @@ AC_ARG_WITH(
 
 AC_ARG_WITH(
 	[crypto-library],
-	[AS_HELP_STRING([--with-crypto-library=library], [build with the given crypto library, TYPE=openssl|polarssl @<:@default=openssl@:>@])],
+	[AS_HELP_STRING([--with-crypto-library=library], [build with the given crypto library, TYPE=openssl|mbedtls @<:@default=openssl@:>@])],
 	[
-		case "${withval}" in 
-			openssl|polarssl) ;;
+		case "${withval}" in
+			openssl|mbedtls) ;;
 			*) AC_MSG_ERROR([bad value ${withval} for --with-crypto-library]) ;;
 		esac
 	],
@@ -835,81 +835,77 @@ if test "${with_crypto_library}" = "openssl"; then
 	AC_DEFINE([ENABLE_CRYPTO_OPENSSL], [1], [Use OpenSSL library])
 	CRYPTO_CFLAGS="${OPENSSL_CFLAGS}"
 	CRYPTO_LIBS="${OPENSSL_LIBS}"
-elif test "${with_crypto_library}" = "polarssl"; then
-	AC_ARG_VAR([POLARSSL_CFLAGS], [C compiler flags for polarssl])
-	AC_ARG_VAR([POLARSSL_LIBS], [linker flags for polarssl])
+elif test "${with_crypto_library}" = "mbedtls"; then
+	AC_ARG_VAR([MBEDTLS_CFLAGS], [C compiler flags for mbedtls])
+	AC_ARG_VAR([MBEDTLS_LIBS], [linker flags for mbedtls])
 
 	saved_CFLAGS="${CFLAGS}"
 	saved_LIBS="${LIBS}"
 
-	if test -z "${POLARSSL_CFLAGS}" -a -z "${POLARSSL_LIBS}"; then
-        # if the user did not explicitly specify flags, try to autodetect
-		AC_SEARCH_LIBS(
-			[ssl_init],
-			[mbedtls polarssl],
-			[
-				if test "${ac_cv_search_ssl_init}" != "none required"; then
-					POLARSSL_LIBS=${ac_cv_search_ssl_init}
-				fi
-			],
-			[AC_MSG_ERROR([Could not find PolarSSL/mbed TLS.])],
+	if test -z "${MBEDTLS_CFLAGS}" -a -z "${MBEDTLS_LIBS}"; then
+	# if the user did not explicitly specify flags, try to autodetect
+		AC_CHECK_LIB(
+			[mbedtls],
+			[mbedtls_ssl_init],
+			[MBEDTLS_LIBS="-lmbedtls -lmbedcrypto -lmbedx509"],
+			[AC_MSG_ERROR([Could not find mbed TLS.])],
 			[${PKCS11_HELPER_LIBS}]
 		)
 	fi
 
-	CFLAGS="${POLARSSL_CFLAGS} ${PKCS11_HELPER_CFLAGS} ${CFLAGS}"
-	LIBS="${POLARSSL_LIBS} ${PKCS11_HELPER_LIBS} ${LIBS}"
+	CFLAGS="${MBEDTLS_CFLAGS} ${PKCS11_HELPER_CFLAGS} ${CFLAGS}"
+	LIBS="${MBEDTLS_LIBS} ${PKCS11_HELPER_LIBS} ${LIBS}"
 
-	AC_MSG_CHECKING([polarssl version])
+	AC_MSG_CHECKING([mbedtls version])
 	AC_COMPILE_IFELSE(
 		[AC_LANG_PROGRAM(
 			[[
-#include <polarssl/version.h>
+#include <mbedtls/version.h>
 			]],
 			[[
-#if POLARSSL_VERSION_NUMBER < 0x01030800 || POLARSSL_VERSION_NUMBER >= 0x01040000
+#if MBEDTLS_VERSION_NUMBER < 0x02000000 || MBEDTLS_VERSION_NUMBER >= 0x03000000
 #error invalid version
 #endif
 			]]
 		)],
 		[AC_MSG_RESULT([ok])],
-		[AC_MSG_ERROR([PolarSSL 1.3.x required and must be 1.3.8 or later])]
+		[AC_MSG_ERROR([mbed TLS 2.y.z required])]
 	)
 
-	polarssl_with_pkcs11="no"
+	mbedtls_with_pkcs11="no"
 	AC_COMPILE_IFELSE(
 		[AC_LANG_PROGRAM(
 			[[
-#include <polarssl/config.h>
+#include <mbedtls/config.h>
 			]],
 			[[
-#ifndef POLARSSL_PKCS11_C
+#ifndef MBEDTLS_PKCS11_C
 #error pkcs11 wrapper missing
 #endif
 			]]
 		)],
-		polarssl_with_pkcs11="yes")
+		mbedtls_with_pkcs11="yes")
 
-	AC_MSG_CHECKING([polarssl pkcs11 support])
+	AC_MSG_CHECKING([mbedtls pkcs11 support])
 	if test "${enable_pkcs11}" = "yes"; then
-		if test "${polarssl_with_pkcs11}" = "yes"; then
+		if test "${mbedtls_with_pkcs11}" = "yes"; then
 			AC_MSG_RESULT([ok])
 		else
-			AC_MSG_ERROR([polarssl has no pkcs11 wrapper compiled in])
+			AC_MSG_ERROR([mbedtls has no pkcs11 wrapper compiled in])
 		fi
 	else
-		if test "${polarssl_with_pkcs11}" != "yes"; then
+		if test "${mbedtls_with_pkcs11}" != "yes"; then
 			AC_MSG_RESULT([ok])
 		else
-			AC_MSG_ERROR([PolarSSL compiled with PKCS11, while OpenVPN is not])
+			AC_MSG_ERROR([mbed TLS compiled with PKCS11, while OpenVPN is not])
 		fi
 	fi
 
 	have_crypto_aead_modes="yes"
 	AC_CHECK_FUNCS(
 		[ \
-			cipher_write_tag \
-			cipher_check_tag \
+			mbedtls_cipher_write_tag \
+			mbedtls_cipher_check_tag \
 		],
 		,
 		[have_crypto_aead_modes="no"; break]
@@ -918,9 +914,9 @@ elif test "${with_crypto_library}" = "polarssl"; then
 	CFLAGS="${saved_CFLAGS}"
 	LIBS="${saved_LIBS}"
 	have_crypto="yes"
-	AC_DEFINE([ENABLE_CRYPTO_POLARSSL], [1], [Use PolarSSL library])
-	CRYPTO_CFLAGS="${POLARSSL_CFLAGS}"
-	CRYPTO_LIBS="${POLARSSL_LIBS}"
+	AC_DEFINE([ENABLE_CRYPTO_MBEDTLS], [1], [Use mbed TLS library])
+	CRYPTO_CFLAGS="${MBEDTLS_CFLAGS}"
+	CRYPTO_LIBS="${MBEDTLS_LIBS}"
 else
 	AC_MSG_ERROR([Invalid crypto library: ${with_crypto_library}])
 fi
@@ -1048,8 +1044,8 @@ fi
 
 dnl enable --x509-username-field feature if requested
 if test "${enable_x509_alt_username}" = "yes"; then
-	if test "${with_crypto_library}" = "polarssl" ; then
-		AC_MSG_ERROR([PolarSSL does not support the --x509-username-field feature])
+	if test "${with_crypto_library}" = "mbedtls" ; then
+		AC_MSG_ERROR([mbed TLS does not support the --x509-username-field feature])
 	fi
 
 	AC_DEFINE([ENABLE_X509ALTUSERNAME], [1], [Enable --x509-username-field feature])

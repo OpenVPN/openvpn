@@ -24,7 +24,7 @@
  */
 
 /**
- * @file Data Channel Cryptography PolarSSL-specific backend interface
+ * @file Data Channel Cryptography mbed TLS-specific backend interface
  */
 
 #ifdef HAVE_CONFIG_H
@@ -35,7 +35,7 @@
 
 #include "syshead.h"
 
-#if defined(ENABLE_CRYPTO) && defined(ENABLE_CRYPTO_POLARSSL)
+#if defined(ENABLE_CRYPTO) && defined(ENABLE_CRYPTO_MBEDTLS)
 
 #include "errlevel.h"
 #include "basic.h"
@@ -45,13 +45,14 @@
 #include "otime.h"
 #include "misc.h"
 
-#include <polarssl/des.h>
-#include <polarssl/error.h>
-#include <polarssl/md5.h>
-#include <polarssl/cipher.h>
-#include <polarssl/havege.h>
+#include <mbedtls/des.h>
+#include <mbedtls/error.h>
+#include <mbedtls/md5.h>
+#include <mbedtls/cipher.h>
+#include <mbedtls/havege.h>
 
-#include <polarssl/entropy.h>
+#include <mbedtls/entropy.h>
+
 
 /*
  *
@@ -62,7 +63,7 @@
 void
 crypto_init_lib_engine (const char *engine_name)
 {
-  msg (M_WARN, "Note: PolarSSL hardware crypto engine functionality is not "
+  msg (M_WARN, "Note: mbed TLS hardware crypto engine functionality is not "
       "available");
 }
 
@@ -87,29 +88,29 @@ crypto_clear_error (void)
 {
 }
 
-bool polar_log_err(unsigned int flags, int errval, const char *prefix)
+bool mbed_log_err(unsigned int flags, int errval, const char *prefix)
 {
   if (0 != errval)
     {
       char errstr[256];
-      polarssl_strerror(errval, errstr, sizeof(errstr));
+      mbedtls_strerror(errval, errstr, sizeof(errstr));
 
-      if (NULL == prefix) prefix = "PolarSSL error";
+      if (NULL == prefix) prefix = "mbed TLS error";
       msg (flags, "%s: %s", prefix, errstr);
     }
 
   return 0 == errval;
 }
 
-bool polar_log_func_line(unsigned int flags, int errval, const char *func,
+bool mbed_log_func_line(unsigned int flags, int errval, const char *func,
     int line)
 {
   char prefix[256];
 
   if (!openvpn_snprintf(prefix, sizeof(prefix), "%s:%d", func, line))
-    return polar_log_err(flags, errval, func);
+    return mbed_log_err(flags, errval, func);
 
-  return polar_log_err(flags, errval, prefix);
+  return mbed_log_err(flags, errval, prefix);
 }
 
 
@@ -117,7 +118,7 @@ bool polar_log_func_line(unsigned int flags, int errval, const char *func,
 void
 crypto_init_dmalloc (void)
 {
-  msg (M_ERR, "Error: dmalloc support is not available for PolarSSL.");
+  msg (M_ERR, "Error: dmalloc support is not available for mbed TLS.");
 }
 #endif /* DMALLOC */
 
@@ -134,7 +135,7 @@ const size_t cipher_name_translation_table_count =
 void
 show_available_ciphers ()
 {
-  const int *ciphers = cipher_list();
+  const int *ciphers = mbedtls_cipher_list();
 
 #ifndef ENABLE_SMALL
   printf ("The following ciphers and cipher modes are available for use\n"
@@ -145,7 +146,7 @@ show_available_ciphers ()
 
   while (*ciphers != 0)
     {
-      const cipher_kt_t *info = cipher_info_from_type(*ciphers);
+      const cipher_kt_t *info = mbedtls_cipher_info_from_type(*ciphers);
 
       if (info && (cipher_kt_mode_cbc(info)
 #ifdef HAVE_AEAD_CIPHER_MODES
@@ -168,7 +169,7 @@ show_available_ciphers ()
 void
 show_available_digests ()
 {
-  const int *digests = md_list();
+  const int *digests = mbedtls_md_list();
 
 #ifndef ENABLE_SMALL
   printf ("The following message digests are available for use with\n"
@@ -180,11 +181,11 @@ show_available_digests ()
 
   while (*digests != 0)
     {
-      const md_info_t *info = md_info_from_type(*digests);
+      const mbedtls_md_info_t *info = mbedtls_md_info_from_type(*digests);
 
       if (info)
-	printf ("%s %d bit default key\n",
-		md_get_name(info), md_get_size(info) * 8);
+	printf ("%s %d bit default key\n", mbedtls_md_get_name(info),
+	    mbedtls_md_get_size(info) * 8);
       digests++;
     }
   printf ("\n");
@@ -193,7 +194,7 @@ show_available_digests ()
 void
 show_available_engines ()
 {
-  printf ("Sorry, PolarSSL hardware crypto engine functionality is not "
+  printf ("Sorry, mbed TLS hardware crypto engine functionality is not "
       "available\n");
 }
 
@@ -210,10 +211,10 @@ show_available_engines ()
  * Initialise the given ctr_drbg context, using a personalisation string and an
  * entropy gathering function.
  */
-ctr_drbg_context * rand_ctx_get()
+mbedtls_ctr_drbg_context * rand_ctx_get()
 {
-  static entropy_context ec = {0};
-  static ctr_drbg_context cd_ctx = {0};
+  static mbedtls_entropy_context ec = {0};
+  static mbedtls_ctr_drbg_context cd_ctx = {0};
   static bool rand_initialised = false;
 
   if (!rand_initialised)
@@ -228,10 +229,11 @@ ctr_drbg_context * rand_ctx_get()
        */
       buf_printf(&pers_string, "OpenVPN %0u %p %s", platform_getpid(), &cd_ctx, time_string(0, 0, 0, &gc));
 
-      /* Initialise PolarSSL RNG, and built-in entropy sources */
-      entropy_init(&ec);
+      /* Initialise mbed TLS RNG, and built-in entropy sources */
+      mbedtls_entropy_init(&ec);
 
-      if (!polar_ok(ctr_drbg_init(&cd_ctx, entropy_func, &ec,
+      mbedtls_ctr_drbg_init(&cd_ctx);
+      if (!mbed_ok(mbedtls_ctr_drbg_seed(&cd_ctx, mbedtls_entropy_func, &ec,
 		    BPTR(&pers_string), BLEN(&pers_string))))
         msg (M_FATAL, "Failed to initialize random generator");
 
@@ -245,21 +247,21 @@ ctr_drbg_context * rand_ctx_get()
 #ifdef ENABLE_PREDICTION_RESISTANCE
 void rand_ctx_enable_prediction_resistance()
 {
-  ctr_drbg_context *cd_ctx = rand_ctx_get();
+  mbedtls_ctr_drbg_context *cd_ctx = rand_ctx_get();
 
-  ctr_drbg_set_prediction_resistance(cd_ctx, 1);
+  mbedtls_ctr_drbg_set_prediction_resistance(cd_ctx, 1);
 }
 #endif /* ENABLE_PREDICTION_RESISTANCE */
 
 int
 rand_bytes (uint8_t *output, int len)
 {
-  ctr_drbg_context *rng_ctx = rand_ctx_get();
+  mbedtls_ctr_drbg_context *rng_ctx = rand_ctx_get();
 
   while (len > 0)
     {
-      const size_t blen = min_int (len, CTR_DRBG_MAX_REQUEST);
-      if (0 != ctr_drbg_random(rng_ctx, output, blen))
+      const size_t blen = min_int (len, MBEDTLS_CTR_DRBG_MAX_REQUEST);
+      if (0 != mbedtls_ctr_drbg_random(rng_ctx, output, blen))
 	return 0;
 
       output += blen;
@@ -277,14 +279,14 @@ rand_bytes (uint8_t *output, int len)
 
 
 int
-key_des_num_cblocks (const cipher_info_t *kt)
+key_des_num_cblocks (const mbedtls_cipher_info_t *kt)
 {
   int ret = 0;
-  if (kt->type == POLARSSL_CIPHER_DES_CBC)
+  if (kt->type == MBEDTLS_CIPHER_DES_CBC)
     ret = 1;
-  if (kt->type == POLARSSL_CIPHER_DES_EDE_CBC)
+  if (kt->type == MBEDTLS_CIPHER_DES_EDE_CBC)
     ret = 2;
-  if (kt->type == POLARSSL_CIPHER_DES_EDE3_CBC)
+  if (kt->type == MBEDTLS_CIPHER_DES_EDE3_CBC)
     ret = 3;
 
   dmsg (D_CRYPTO_DEBUG, "CRYPTO INFO: n_DES_cblocks=%d", ret);
@@ -301,18 +303,18 @@ key_des_check (uint8_t *key, int key_len, int ndc)
 
   for (i = 0; i < ndc; ++i)
     {
-      unsigned char *key = buf_read_alloc(&b, DES_KEY_SIZE);
+      unsigned char *key = buf_read_alloc(&b, MBEDTLS_DES_KEY_SIZE);
       if (!key)
 	{
 	  msg (D_CRYPT_ERRORS, "CRYPTO INFO: check_key_DES: insufficient key material");
 	  goto err;
 	}
-      if (0 != des_key_check_weak(key))
+      if (0 != mbedtls_des_key_check_weak(key))
 	{
 	  msg (D_CRYPT_ERRORS, "CRYPTO INFO: check_key_DES: weak key detected");
 	  goto err;
 	}
-      if (0 != des_key_check_key_parity(key))
+      if (0 != mbedtls_des_key_check_key_parity(key))
 	{
 	  msg (D_CRYPT_ERRORS, "CRYPTO INFO: check_key_DES: bad parity detected");
 	  goto err;
@@ -333,13 +335,13 @@ key_des_fixup (uint8_t *key, int key_len, int ndc)
   buf_set_read (&b, key, key_len);
   for (i = 0; i < ndc; ++i)
     {
-      unsigned char *key = buf_read_alloc(&b, DES_KEY_SIZE);
+      unsigned char *key = buf_read_alloc(&b, MBEDTLS_DES_KEY_SIZE);
       if (!key)
 	{
 	  msg (D_CRYPT_ERRORS, "CRYPTO INFO: fixup_key_DES: insufficient key material");
 	  return;
 	}
-      des_key_set_parity(key);
+      mbedtls_des_key_set_parity(key);
     }
 }
 
@@ -350,29 +352,29 @@ key_des_fixup (uint8_t *key, int key_len, int ndc)
  */
 
 
-const cipher_info_t *
+const mbedtls_cipher_info_t *
 cipher_kt_get (const char *ciphername)
 {
-  const cipher_info_t *cipher = NULL;
+  const mbedtls_cipher_info_t *cipher = NULL;
 
   ASSERT (ciphername);
 
-  cipher = cipher_info_from_string(ciphername);
+  cipher = mbedtls_cipher_info_from_string(ciphername);
 
   if (NULL == cipher)
     msg (M_FATAL, "Cipher algorithm '%s' not found", ciphername);
 
-  if (cipher->key_length/8 > MAX_CIPHER_KEY_LENGTH)
+  if (cipher->key_bitlen/8 > MAX_CIPHER_KEY_LENGTH)
     msg (M_FATAL, "Cipher algorithm '%s' uses a default key size (%d bytes) which is larger than " PACKAGE_NAME "'s current maximum key size (%d bytes)",
 	 ciphername,
-	 cipher->key_length/8,
+	 cipher->key_bitlen/8,
 	 MAX_CIPHER_KEY_LENGTH);
 
   return cipher;
 }
 
 const char *
-cipher_kt_name (const cipher_info_t *cipher_kt)
+cipher_kt_name (const mbedtls_cipher_info_t *cipher_kt)
 {
   if (NULL == cipher_kt)
     return "[null-cipher]";
@@ -381,16 +383,16 @@ cipher_kt_name (const cipher_info_t *cipher_kt)
 }
 
 int
-cipher_kt_key_size (const cipher_info_t *cipher_kt)
+cipher_kt_key_size (const mbedtls_cipher_info_t *cipher_kt)
 {
   if (NULL == cipher_kt)
     return 0;
 
-  return cipher_kt->key_length/8;
+  return cipher_kt->key_bitlen/8;
 }
 
 int
-cipher_kt_iv_size (const cipher_info_t *cipher_kt)
+cipher_kt_iv_size (const mbedtls_cipher_info_t *cipher_kt)
 {
   if (NULL == cipher_kt)
     return 0;
@@ -398,7 +400,7 @@ cipher_kt_iv_size (const cipher_info_t *cipher_kt)
 }
 
 int
-cipher_kt_block_size (const cipher_info_t *cipher_kt)
+cipher_kt_block_size (const mbedtls_cipher_info_t *cipher_kt)
 {
   if (NULL == cipher_kt)
     return 0;
@@ -406,7 +408,7 @@ cipher_kt_block_size (const cipher_info_t *cipher_kt)
 }
 
 int
-cipher_kt_tag_size (const cipher_info_t *cipher_kt)
+cipher_kt_tag_size (const mbedtls_cipher_info_t *cipher_kt)
 {
 #ifdef HAVE_AEAD_CIPHER_MODES
   if (cipher_kt && cipher_kt_mode_aead(cipher_kt))
@@ -416,7 +418,7 @@ cipher_kt_tag_size (const cipher_info_t *cipher_kt)
 }
 
 int
-cipher_kt_mode (const cipher_info_t *cipher_kt)
+cipher_kt_mode (const mbedtls_cipher_info_t *cipher_kt)
 {
   ASSERT(NULL != cipher_kt);
   return cipher_kt->mode;
@@ -432,7 +434,7 @@ bool
 cipher_kt_mode_ofb_cfb(const cipher_kt_t *cipher)
 {
   return cipher && (cipher_kt_mode(cipher) == OPENVPN_MODE_OFB ||
-	  cipher_kt_mode(cipher) == OPENVPN_MODE_CFB);
+      cipher_kt_mode(cipher) == OPENVPN_MODE_CFB);
 }
 
 bool
@@ -450,31 +452,31 @@ cipher_kt_mode_aead(const cipher_kt_t *cipher)
 
 
 void
-cipher_ctx_init (cipher_context_t *ctx, uint8_t *key, int key_len,
-    const cipher_info_t *kt, int enc)
+cipher_ctx_init (mbedtls_cipher_context_t *ctx, uint8_t *key, int key_len,
+    const mbedtls_cipher_info_t *kt, const mbedtls_operation_t operation)
 {
   ASSERT(NULL != kt && NULL != ctx);
 
   CLEAR (*ctx);
 
-  if (!polar_ok(cipher_init_ctx(ctx, kt)))
-    msg (M_FATAL, "PolarSSL cipher context init #1");
+  if (!mbed_ok(mbedtls_cipher_setup(ctx, kt)))
+    msg (M_FATAL, "mbed TLS cipher context init #1");
 
-  if (!polar_ok(cipher_setkey(ctx, key, key_len*8, enc)))
-    msg (M_FATAL, "PolarSSL cipher set key");
+  if (!mbed_ok(mbedtls_cipher_setkey(ctx, key, key_len*8, operation)))
+    msg (M_FATAL, "mbed TLS cipher set key");
 
   /* make sure we used a big enough key */
-  ASSERT (ctx->key_length <= key_len*8);
+  ASSERT (ctx->key_bitlen <= key_len*8);
 }
 
-void cipher_ctx_cleanup (cipher_context_t *ctx)
+void cipher_ctx_cleanup (mbedtls_cipher_context_t *ctx)
 {
-  cipher_free(ctx);
+  mbedtls_cipher_free(ctx);
 }
 
-int cipher_ctx_iv_length (const cipher_context_t *ctx)
+int cipher_ctx_iv_length (const mbedtls_cipher_context_t *ctx)
 {
-  return cipher_get_iv_size(ctx);
+  return mbedtls_cipher_get_iv_size(ctx);
 }
 
 int cipher_ctx_get_tag (cipher_ctx_t *ctx, uint8_t* tag, int tag_len)
@@ -483,7 +485,7 @@ int cipher_ctx_get_tag (cipher_ctx_t *ctx, uint8_t* tag, int tag_len)
   if (tag_len > SIZE_MAX)
     return 0;
 
-  if (!polar_ok (cipher_write_tag (ctx, (unsigned char *) tag, tag_len)))
+  if (!mbed_ok (mbedtls_cipher_write_tag (ctx, (unsigned char *) tag, tag_len)))
     return 0;
 
   return 1;
@@ -492,12 +494,12 @@ int cipher_ctx_get_tag (cipher_ctx_t *ctx, uint8_t* tag, int tag_len)
 #endif /* HAVE_AEAD_CIPHER_MODES */
 }
 
-int cipher_ctx_block_size(const cipher_context_t *ctx)
+int cipher_ctx_block_size(const mbedtls_cipher_context_t *ctx)
 {
-  return cipher_get_block_size(ctx);
+  return mbedtls_cipher_get_block_size(ctx);
 }
 
-int cipher_ctx_mode (const cipher_context_t *ctx)
+int cipher_ctx_mode (const mbedtls_cipher_context_t *ctx)
 {
   ASSERT(NULL != ctx);
 
@@ -510,12 +512,12 @@ cipher_ctx_get_cipher_kt (const cipher_ctx_t *ctx)
   return ctx ? ctx->cipher_info : NULL;
 }
 
-int cipher_ctx_reset (cipher_context_t *ctx, uint8_t *iv_buf)
+int cipher_ctx_reset (mbedtls_cipher_context_t *ctx, uint8_t *iv_buf)
 {
-  if (!polar_ok(cipher_reset(ctx)))
+  if (!mbed_ok(mbedtls_cipher_reset(ctx)))
     return 0;
 
-  if (!polar_ok(cipher_set_iv(ctx, iv_buf, ctx->cipher_info->iv_size)))
+  if (!mbed_ok(mbedtls_cipher_set_iv(ctx, iv_buf, ctx->cipher_info->iv_size)))
     return 0;
 
   return 1;
@@ -527,7 +529,7 @@ int cipher_ctx_update_ad (cipher_ctx_t *ctx, const uint8_t *src, int src_len)
   if (src_len > SIZE_MAX)
     return 0;
 
-  if (!polar_ok (cipher_update_ad (ctx, src, src_len)))
+  if (!mbed_ok (mbedtls_cipher_update_ad (ctx, src, src_len)))
     return 0;
 
   return 1;
@@ -536,12 +538,13 @@ int cipher_ctx_update_ad (cipher_ctx_t *ctx, const uint8_t *src, int src_len)
 #endif /* HAVE_AEAD_CIPHER_MODES */
 }
 
-int cipher_ctx_update (cipher_context_t *ctx, uint8_t *dst, int *dst_len,
-    uint8_t *src, int src_len)
+int cipher_ctx_update (mbedtls_cipher_context_t *ctx, uint8_t *dst,
+    int *dst_len, uint8_t *src, int src_len)
 {
   size_t s_dst_len = *dst_len;
 
-  if (!polar_ok(cipher_update(ctx, src, (size_t)src_len, dst, &s_dst_len)))
+  if (!mbed_ok(mbedtls_cipher_update(ctx, src, (size_t) src_len, dst,
+      &s_dst_len)))
     return 0;
 
   *dst_len = s_dst_len;
@@ -549,11 +552,11 @@ int cipher_ctx_update (cipher_context_t *ctx, uint8_t *dst, int *dst_len,
   return 1;
 }
 
-int cipher_ctx_final (cipher_context_t *ctx, uint8_t *dst, int *dst_len)
+int cipher_ctx_final (mbedtls_cipher_context_t *ctx, uint8_t *dst, int *dst_len)
 {
   size_t s_dst_len = *dst_len;
 
-  if (!polar_ok(cipher_finish(ctx, dst, &s_dst_len)))
+  if (!mbed_ok(mbedtls_cipher_finish(ctx, dst, &s_dst_len)))
     return 0;
 
   *dst_len = s_dst_len;
@@ -561,23 +564,30 @@ int cipher_ctx_final (cipher_context_t *ctx, uint8_t *dst, int *dst_len)
   return 1;
 }
 
-int cipher_ctx_final_check_tag (cipher_context_t *ctx, uint8_t *dst,
+int cipher_ctx_final_check_tag (mbedtls_cipher_context_t *ctx, uint8_t *dst,
     int *dst_len, uint8_t *tag, size_t tag_len)
 {
 #ifdef HAVE_AEAD_CIPHER_MODES
-  if (POLARSSL_DECRYPT != ctx->operation)
+  size_t olen = 0;
+
+  if (MBEDTLS_DECRYPT != ctx->operation)
     return 0;
 
   if (tag_len > SIZE_MAX)
     return 0;
 
-  if (!cipher_ctx_final (ctx, dst, dst_len))
+  if (!mbed_ok (mbedtls_cipher_finish (ctx, dst, &olen)))
     {
       msg (D_CRYPT_ERRORS, "%s: cipher_ctx_final() failed", __func__);
       return 0;
     }
 
-  if (!polar_ok (cipher_check_tag (ctx, (const unsigned char *) tag, tag_len)))
+  if (olen > INT_MAX)
+    return 0;
+  *dst_len = olen;
+
+  if (!mbed_ok (mbedtls_cipher_check_tag (ctx, (const unsigned char *) tag,
+      tag_len)))
     return 0;
 
   return 1;
@@ -591,10 +601,10 @@ cipher_des_encrypt_ecb (const unsigned char key[DES_KEY_LENGTH],
     unsigned char *src,
     unsigned char *dst)
 {
-    des_context ctx;
+  mbedtls_des_context ctx;
 
-    ASSERT (polar_ok(des_setkey_enc(&ctx, key)));
-    ASSERT (polar_ok(des_crypt_ecb(&ctx, src, dst)));
+  ASSERT (mbed_ok(mbedtls_des_setkey_enc(&ctx, key)));
+  ASSERT (mbed_ok(mbedtls_des_crypt_ecb(&ctx, src, dst)));
 }
 
 
@@ -606,37 +616,37 @@ cipher_des_encrypt_ecb (const unsigned char key[DES_KEY_LENGTH],
  */
 
 
-const md_info_t *
+const mbedtls_md_info_t *
 md_kt_get (const char *digest)
 {
-  const md_info_t *md = NULL;
+  const mbedtls_md_info_t *md = NULL;
   ASSERT (digest);
 
-  md = md_info_from_string(digest);
+  md = mbedtls_md_info_from_string(digest);
   if (!md)
     msg (M_FATAL, "Message hash algorithm '%s' not found", digest);
-  if (md_get_size(md) > MAX_HMAC_KEY_LENGTH)
+  if (mbedtls_md_get_size(md) > MAX_HMAC_KEY_LENGTH)
     msg (M_FATAL, "Message hash algorithm '%s' uses a default hash size (%d bytes) which is larger than " PACKAGE_NAME "'s current maximum hash size (%d bytes)",
 	 digest,
-	 md_get_size(md),
+	 mbedtls_md_get_size(md),
 	 MAX_HMAC_KEY_LENGTH);
   return md;
 }
 
 const char *
-md_kt_name (const md_info_t *kt)
+md_kt_name (const mbedtls_md_info_t *kt)
 {
   if (NULL == kt)
     return "[null-digest]";
-  return md_get_name (kt);
+  return mbedtls_md_get_name (kt);
 }
 
 int
-md_kt_size (const md_info_t *kt)
+md_kt_size (const mbedtls_md_info_t *kt)
 {
   if (NULL == kt)
     return 0;
-  return md_get_size(kt);
+  return mbedtls_md_get_size(kt);
 }
 
 /*
@@ -648,45 +658,44 @@ md_kt_size (const md_info_t *kt)
 int
 md_full (const md_kt_t *kt, const uint8_t *src, int src_len, uint8_t *dst)
 {
-  return 0 == md(kt, src, src_len, dst);
+  return 0 == mbedtls_md(kt, src, src_len, dst);
 }
 
 
 void
-md_ctx_init (md_context_t *ctx, const md_info_t *kt)
+md_ctx_init (mbedtls_md_context_t *ctx, const mbedtls_md_info_t *kt)
 {
   ASSERT(NULL != ctx && NULL != kt);
 
-  CLEAR(*ctx);
-
-  ASSERT(0 == md_init_ctx(ctx, kt));
-  ASSERT(0 == md_starts(ctx));
+  mbedtls_md_init(ctx);
+  ASSERT(0 == mbedtls_md_setup(ctx, kt, 0));
+  ASSERT(0 == mbedtls_md_starts(ctx));
 }
 
 void
-md_ctx_cleanup(md_context_t *ctx)
+md_ctx_cleanup(mbedtls_md_context_t *ctx)
 {
 }
 
 int
-md_ctx_size (const md_context_t *ctx)
+md_ctx_size (const mbedtls_md_context_t *ctx)
 {
   if (NULL == ctx)
     return 0;
-  return md_get_size(ctx->md_info);
+  return mbedtls_md_get_size(ctx->md_info);
 }
 
 void
-md_ctx_update (md_context_t *ctx, const uint8_t *src, int src_len)
+md_ctx_update (mbedtls_md_context_t *ctx, const uint8_t *src, int src_len)
 {
-  ASSERT(0 == md_update(ctx, src, src_len));
+  ASSERT(0 == mbedtls_md_update(ctx, src, src_len));
 }
 
 void
-md_ctx_final (md_context_t *ctx, uint8_t *dst)
+md_ctx_final (mbedtls_md_context_t *ctx, uint8_t *dst)
 {
-  ASSERT(0 == md_finish(ctx, dst));
-  md_free(ctx);
+  ASSERT(0 == mbedtls_md_finish(ctx, dst));
+  mbedtls_md_free(ctx);
 }
 
 
@@ -701,49 +710,49 @@ md_ctx_final (md_context_t *ctx, uint8_t *dst)
  * TODO: re-enable dmsg for crypto debug
  */
 void
-hmac_ctx_init (md_context_t *ctx, const uint8_t *key, int key_len, const md_info_t *kt)
+hmac_ctx_init (mbedtls_md_context_t *ctx, const uint8_t *key, int key_len,
+    const mbedtls_md_info_t *kt)
 {
   ASSERT(NULL != kt && NULL != ctx);
 
-  CLEAR(*ctx);
-
-  ASSERT(0 == md_init_ctx(ctx, kt));
-  ASSERT(0 == md_hmac_starts(ctx, key, key_len));
+  mbedtls_md_init(ctx);
+  ASSERT(0 == mbedtls_md_setup(ctx, kt, 1));
+  ASSERT(0 == mbedtls_md_hmac_starts(ctx, key, key_len));
 
   /* make sure we used a big enough key */
-  ASSERT (md_get_size(kt) <= key_len);
+  ASSERT (mbedtls_md_get_size(kt) <= key_len);
 }
 
 void
-hmac_ctx_cleanup(md_context_t *ctx)
+hmac_ctx_cleanup(mbedtls_md_context_t *ctx)
 {
-  md_free(ctx);
+  mbedtls_md_free(ctx);
 }
 
 int
-hmac_ctx_size (const md_context_t *ctx)
+hmac_ctx_size (const mbedtls_md_context_t *ctx)
 {
   if (NULL == ctx)
     return 0;
-  return md_get_size(ctx->md_info);
+  return mbedtls_md_get_size(ctx->md_info);
 }
 
 void
-hmac_ctx_reset (md_context_t *ctx)
+hmac_ctx_reset (mbedtls_md_context_t *ctx)
 {
-  ASSERT(0 == md_hmac_reset(ctx));
+  ASSERT(0 == mbedtls_md_hmac_reset(ctx));
 }
 
 void
-hmac_ctx_update (md_context_t *ctx, const uint8_t *src, int src_len)
+hmac_ctx_update (mbedtls_md_context_t *ctx, const uint8_t *src, int src_len)
 {
-  ASSERT(0 == md_hmac_update(ctx, src, src_len));
+  ASSERT(0 == mbedtls_md_hmac_update(ctx, src, src_len));
 }
 
 void
-hmac_ctx_final (md_context_t *ctx, uint8_t *dst)
+hmac_ctx_final (mbedtls_md_context_t *ctx, uint8_t *dst)
 {
-  ASSERT(0 == md_hmac_finish(ctx, dst));
+  ASSERT(0 == mbedtls_md_hmac_finish(ctx, dst));
 }
 
-#endif /* ENABLE_CRYPTO && ENABLE_CRYPTO_POLARSSL */
+#endif /* ENABLE_CRYPTO && ENABLE_CRYPTO_MBEDTLS */

@@ -38,10 +38,10 @@
 #include "ssl_verify_openssl.h"
 #define SSLAPI SSLAPI_OPENSSL
 #endif
-#ifdef ENABLE_CRYPTO_POLARSSL
+#ifdef ENABLE_CRYPTO_MBEDTLS
 #include "ssl_polarssl.h"
 #include "ssl_verify_polarssl.h"
-#define SSLAPI SSLAPI_POLARSSL
+#define SSLAPI SSLAPI_MBEDTLS
 #endif
 
 /* Ensure that SSLAPI got a sane value if SSL is disabled or unknown */
@@ -308,9 +308,9 @@ void tls_ctx_load_extra_certs (struct tls_root_ctx *ctx, const char *extra_certs
     const char *extra_certs_file_inline
     );
 
-#ifdef ENABLE_CRYPTO_POLARSSL
+#ifdef ENABLE_CRYPTO_MBEDTLS
 /**
- * Add a personalisation string to the PolarSSL RNG, based on the certificate
+ * Add a personalisation string to the mbed TLS RNG, based on the certificate
  * loaded into the given context.
  *
  * @param ctx			TLS context to use

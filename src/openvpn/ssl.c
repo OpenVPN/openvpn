@@ -591,7 +591,7 @@ init_ssl (const struct options *options, struct tls_root_ctx *new_ctx)
   /* Allowable ciphers */
   tls_ctx_restrict_ciphers(new_ctx, options->cipher_list);
 
-#ifdef ENABLE_CRYPTO_POLARSSL
+#ifdef ENABLE_CRYPTO_MBEDTLS
   /* Personalise the random by mixing in the certificate */
   tls_ctx_personalise_random (new_ctx);
 #endif

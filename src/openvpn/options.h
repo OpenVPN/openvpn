@@ -78,8 +78,8 @@ struct options_pre_pull
 };
 
 #endif
-#if defined(ENABLE_CRYPTO) && !defined(ENABLE_CRYPTO_OPENSSL) && !defined(ENABLE_CRYPTO_POLARSSL)
-# error "At least one of OpenSSL or PolarSSL needs to be defined."
+#if defined(ENABLE_CRYPTO) && !defined(ENABLE_CRYPTO_OPENSSL) && !defined(ENABLE_CRYPTO_MBEDTLS)
+# error "At least one of OpenSSL or mbed TLS needs to be defined."
 #endif
 
 struct connection_entry

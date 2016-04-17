@@ -24,51 +24,51 @@
  */
 
 /**
- * @file Data Channel Cryptography PolarSSL-specific backend interface
+ * @file Data Channel Cryptography mbed TLS-specific backend interface
  */
 
-#ifndef CRYPTO_POLARSSL_H_
-#define CRYPTO_POLARSSL_H_
+#ifndef CRYPTO_MBEDTLS_H_
+#define CRYPTO_MBEDTLS_H_
 
-#include <polarssl/cipher.h>
-#include <polarssl/md.h>
-#include <polarssl/ctr_drbg.h>
+#include <mbedtls/cipher.h>
+#include <mbedtls/md.h>
+#include <mbedtls/ctr_drbg.h>
 
 /** Generic cipher key type %context. */
-typedef cipher_info_t cipher_kt_t;
+typedef mbedtls_cipher_info_t cipher_kt_t;
 
 /** Generic message digest key type %context. */
-typedef md_info_t md_kt_t;
+typedef mbedtls_md_info_t md_kt_t;
 
 /** Generic cipher %context. */
-typedef cipher_context_t cipher_ctx_t;
+typedef mbedtls_cipher_context_t cipher_ctx_t;
 
 /** Generic message digest %context. */
-typedef md_context_t md_ctx_t;
+typedef mbedtls_md_context_t md_ctx_t;
 
 /** Generic HMAC %context. */
-typedef md_context_t hmac_ctx_t;
+typedef mbedtls_md_context_t hmac_ctx_t;
 
 /** Maximum length of an IV */
-#define OPENVPN_MAX_IV_LENGTH 	POLARSSL_MAX_IV_LENGTH
+#define OPENVPN_MAX_IV_LENGTH 	MBEDTLS_MAX_IV_LENGTH
 
 /** Cipher is in CBC mode */
-#define OPENVPN_MODE_CBC 	POLARSSL_MODE_CBC
+#define OPENVPN_MODE_CBC 	MBEDTLS_MODE_CBC
 
 /** Cipher is in OFB mode */
-#define OPENVPN_MODE_OFB 	POLARSSL_MODE_OFB
+#define OPENVPN_MODE_OFB 	MBEDTLS_MODE_OFB
 
 /** Cipher is in CFB mode */
-#define OPENVPN_MODE_CFB 	POLARSSL_MODE_CFB
+#define OPENVPN_MODE_CFB 	MBEDTLS_MODE_CFB
 
 /** Cipher is in GCM mode */
-#define OPENVPN_MODE_GCM	POLARSSL_MODE_GCM
+#define OPENVPN_MODE_GCM	MBEDTLS_MODE_GCM
 
 /** Cipher should encrypt */
-#define OPENVPN_OP_ENCRYPT 	POLARSSL_ENCRYPT
+#define OPENVPN_OP_ENCRYPT 	MBEDTLS_ENCRYPT
 
 /** Cipher should decrypt */
-#define OPENVPN_OP_DECRYPT 	POLARSSL_DECRYPT
+#define OPENVPN_OP_DECRYPT 	MBEDTLS_DECRYPT
 
 #define MD4_DIGEST_LENGTH 	16
 #define MD5_DIGEST_LENGTH 	16
@@ -76,16 +76,16 @@ typedef md_context_t hmac_ctx_t;
 #define DES_KEY_LENGTH 8
 
 /**
- * Returns a singleton instance of the PolarSSL random number generator.
+ * Returns a singleton instance of the mbed TLS random number generator.
  *
- * For PolarSSL 1.1+, this is the CTR_DRBG random number generator. If it
+ * For PolarSSL/mbed TLS 1.1+, this is the CTR_DRBG random number generator. If it
  * hasn't been initialised yet, the RNG will be initialised using the default
  * entropy sources. Aside from the default platform entropy sources, an
  * additional entropy source, the HAVEGE random number generator will also be
  * added. During initialisation, a personalisation string will be added based
  * on the time, the PID, and a pointer to the random context.
  */
-ctr_drbg_context * rand_ctx_get();
+mbedtls_ctr_drbg_context *rand_ctx_get();
 
 #ifdef ENABLE_PREDICTION_RESISTANCE
 /**
@@ -95,34 +95,34 @@ void rand_ctx_enable_prediction_resistance();
 #endif
 
 /**
- * Log the supplied PolarSSL error, prefixed by supplied prefix.
+ * Log the supplied mbed TLS error, prefixed by supplied prefix.
  *
  * @param flags		Flags to indicate error type and priority.
- * @param errval	PolarSSL error code to convert to error message.
- * @param prefix	Prefix to PolarSSL error message.
+ * @param errval	mbed TLS error code to convert to error message.
+ * @param prefix	Prefix to mbed TLS error message.
  *
  * @returns true if no errors are detected, false otherwise.
  */
-bool polar_log_err(unsigned int flags, int errval, const char *prefix);
+bool mbed_log_err(unsigned int flags, int errval, const char *prefix);
 
 /**
- * Log the supplied PolarSSL error, prefixed by function name and line number.
+ * Log the supplied mbed TLS error, prefixed by function name and line number.
  *
  * @param flags		Flags to indicate error type and priority.
- * @param errval	PolarSSL error code to convert to error message.
+ * @param errval	mbed TLS error code to convert to error message.
  * @param func		Function name where error was reported.
  * @param line		Line number where error was reported.
  *
  * @returns true if no errors are detected, false otherwise.
  */
-bool polar_log_func_line(unsigned int flags, int errval, const char *func,
+bool mbed_log_func_line(unsigned int flags, int errval, const char *func,
     int line);
 
-/** Wraps polar_log_func_line() to prevent function calls for non-errors */
-static inline bool polar_log_func_line_lite(unsigned int flags, int errval,
+/** Wraps mbed_log_func_line() to prevent function calls for non-errors */
+static inline bool mbed_log_func_line_lite(unsigned int flags, int errval,
     const char *func, int line) {
   if (errval) {
-    return polar_log_func_line (flags, errval, func, line);
+    return mbed_log_func_line (flags, errval, func, line);
   }
   return true;
 }
@@ -130,17 +130,17 @@ static inline bool polar_log_func_line_lite(unsigned int flags, int errval,
 /**
  * Check errval and log on error.
  *
- * Convenience wrapper to put around polarssl library calls, e.g.
- *   if (!polar_ok(polarssl_func())) return 0;
+ * Convenience wrapper to put around mbed TLS library calls, e.g.
+ *   if (!mbed_ok (mbedtls_ssl_func())) return 0;
  * or
- *   ASSERT (polar_ok(polarssl_func()));
+ *   ASSERT (mbed_ok (mbedtls_ssl_func()));
  *
- * @param errval	PolarSSL error code to convert to error message.
+ * @param errval	mbed TLS error code to convert to error message.
  *
  * @returns true if no errors are detected, false otherwise.
  */
-#define polar_ok(errval) \
-  polar_log_func_line_lite(D_CRYPT_ERRORS, errval, __func__, __LINE__)
+#define mbed_ok(errval) \
+  mbed_log_func_line_lite(D_CRYPT_ERRORS, errval, __func__, __LINE__)
 
 
-#endif /* CRYPTO_POLARSSL_H_ */
+#endif /* CRYPTO_MBEDTLS_H_ */

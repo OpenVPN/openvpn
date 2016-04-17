@@ -25,7 +25,7 @@
  */
 
 /**
- * @file Control Channel PolarSSL Backend
+ * @file Control Channel mbed TLS Backend
  */
 
 #ifdef HAVE_CONFIG_H
@@ -36,7 +36,7 @@
 
 #include "syshead.h"
 
-#if defined(ENABLE_CRYPTO) && defined(ENABLE_CRYPTO_POLARSSL)
+#if defined(ENABLE_CRYPTO) && defined(ENABLE_CRYPTO_MBEDTLS)
 
 #include "errlevel.h"
 #include "ssl_backend.h"
@@ -46,15 +46,16 @@
 #include "manage.h"
 #include "ssl_common.h"
 
-#include <polarssl/havege.h>
+#include <mbedtls/havege.h>
 
 #include "ssl_verify_polarssl.h"
-#include <polarssl/debug.h>
-#include <polarssl/error.h>
-#include <polarssl/oid.h>
-#include <polarssl/pem.h>
-#include <polarssl/sha256.h>
-#include <polarssl/version.h>
+#include <mbedtls/debug.h>
+#include <mbedtls/error.h>
+#include <mbedtls/net.h>
+#include <mbedtls/oid.h>
+#include <mbedtls/pem.h>
+#include <mbedtls/sha256.h>
+#include <mbedtls/version.h>
 
 void
 tls_init_lib()
@@ -77,11 +78,11 @@ tls_ctx_server_new(struct tls_root_ctx *ctx)
   ASSERT(NULL != ctx);
   CLEAR(*ctx);
 
-  ALLOC_OBJ_CLEAR(ctx->dhm_ctx, dhm_context);
+  ALLOC_OBJ_CLEAR(ctx->dhm_ctx, mbedtls_dhm_context);
 
-  ALLOC_OBJ_CLEAR(ctx->ca_chain, x509_crt);
+  ALLOC_OBJ_CLEAR(ctx->ca_chain, mbedtls_x509_crt);
 
-  ctx->endpoint = SSL_IS_SERVER;
+  ctx->endpoint = MBEDTLS_SSL_IS_SERVER;
   ctx->initialised = true;
 }
 
@@ -91,10 +92,10 @@ tls_ctx_client_new(struct tls_root_ctx *ctx)
   ASSERT(NULL != ctx);
   CLEAR(*ctx);
 
-  ALLOC_OBJ_CLEAR(ctx->dhm_ctx, dhm_context);
-  ALLOC_OBJ_CLEAR(ctx->ca_chain, x509_crt);
+  ALLOC_OBJ_CLEAR(ctx->dhm_ctx, mbedtls_dhm_context);
+  ALLOC_OBJ_CLEAR(ctx->ca_chain, mbedtls_x509_crt);
 
-  ctx->endpoint = SSL_IS_CLIENT;
+  ctx->endpoint = MBEDTLS_SSL_IS_CLIENT;
   ctx->initialised = true;
 }
 
@@ -103,25 +104,25 @@ tls_ctx_free(struct tls_root_ctx *ctx)
 {
   if (ctx)
     {
-      pk_free(ctx->priv_key);
+      mbedtls_pk_free(ctx->priv_key);
       if (ctx->priv_key)
 	free(ctx->priv_key);
 
-      x509_crt_free(ctx->ca_chain);
+      mbedtls_x509_crt_free(ctx->ca_chain);
       if (ctx->ca_chain)
 	free(ctx->ca_chain);
 
-      x509_crt_free(ctx->crt_chain);
+      mbedtls_x509_crt_free(ctx->crt_chain);
       if (ctx->crt_chain)
 	free(ctx->crt_chain);
 
-      dhm_free(ctx->dhm_ctx);
+      mbedtls_dhm_free(ctx->dhm_ctx);
       if (ctx->dhm_ctx)
 	free(ctx->dhm_ctx);
 
 #if defined(ENABLE_PKCS11)
       if (ctx->priv_key_pkcs11 != NULL) {
-	  pkcs11_priv_key_free(ctx->priv_key_pkcs11);
+	  mbedtls_pkcs11_priv_key_free(ctx->priv_key_pkcs11);
 	  free(ctx->priv_key_pkcs11);
       }
 #endif
@@ -207,7 +208,7 @@ tls_ctx_restrict_ciphers(struct tls_root_ctx *ctx, const char *ciphers)
   token = strtok (tmp_ciphers, ":");
   while(token)
     {
-      ctx->allowed_ciphers[i] = ssl_get_ciphersuite_id (
+      ctx->allowed_ciphers[i] = mbedtls_ssl_get_ciphersuite_id (
 	  tls_translate_cipher_name (token));
       if (0 != ctx->allowed_ciphers[i])
 	i++;
@@ -225,12 +226,12 @@ tls_ctx_check_cert_time (const struct tls_root_ctx *ctx)
       return; /* Nothing to check if there is no certificate */
     }
 
-  if (x509_time_future (&ctx->crt_chain->valid_from))
+  if (mbedtls_x509_time_is_future (&ctx->crt_chain->valid_from))
     {
       msg (M_WARN, "WARNING: Your certificate is not yet valid!");
     }
 
-  if (x509_time_expired (&ctx->crt_chain->valid_to))
+  if (mbedtls_x509_time_is_past (&ctx->crt_chain->valid_to))
     {
       msg (M_WARN, "WARNING: Your certificate has expired!");
     }
@@ -243,18 +244,18 @@ tls_ctx_load_dh_params (struct tls_root_ctx *ctx, const char *dh_file,
 {
   if (!strcmp (dh_file, INLINE_FILE_TAG) && dh_inline)
     {
-      if (!polar_ok(dhm_parse_dhm(ctx->dhm_ctx,
-	  (const unsigned char *) dh_inline, strlen(dh_inline))))
+      if (!mbed_ok(mbedtls_dhm_parse_dhm(ctx->dhm_ctx,
+	  (const unsigned char *) dh_inline, strlen(dh_inline)+1)))
 	msg (M_FATAL, "Cannot read inline DH parameters");
   }
 else
   {
-    if (!polar_ok(dhm_parse_dhmfile(ctx->dhm_ctx, dh_file)))
+    if (!mbed_ok(mbedtls_dhm_parse_dhmfile(ctx->dhm_ctx, dh_file)))
       msg (M_FATAL, "Cannot read DH parameters from file %s", dh_file);
   }
 
   msg (D_TLS_DEBUG_LOW, "Diffie-Hellman initialized with " counter_format " bit key",
-      (counter_type) 8 * mpi_size(&ctx->dhm_ctx->P));
+      (counter_type) 8 * mbedtls_mpi_size(&ctx->dhm_ctx->P));
 }
 
 void
@@ -262,7 +263,7 @@ tls_ctx_load_ecdh_params (struct tls_root_ctx *ctx, const char *curve_name
     )
 {
     if (NULL != curve_name)
-      msg(M_WARN, "WARNING: PolarSSL builds do not support specifying an ECDH "
+      msg(M_WARN, "WARNING: mbed TLS builds do not support specifying an ECDH "
                   "curve, using default curves.");
 }
 
@@ -272,7 +273,7 @@ tls_ctx_load_pkcs12(struct tls_root_ctx *ctx, const char *pkcs12_file,
     bool load_ca_file
     )
 {
-  msg(M_FATAL, "PKCS #12 files not yet supported for PolarSSL.");
+  msg(M_FATAL, "PKCS #12 files not yet supported for mbed TLS.");
   return 0;
 }
 
@@ -280,7 +281,7 @@ tls_ctx_load_pkcs12(struct tls_root_ctx *ctx, const char *pkcs12_file,
 void
 tls_ctx_load_cryptoapi(struct tls_root_ctx *ctx, const char *cryptoapi_cert)
 {
-  msg(M_FATAL, "Windows CryptoAPI not yet supported for PolarSSL.");
+  msg(M_FATAL, "Windows CryptoAPI not yet supported for mbed TLS.");
 }
 #endif /* WIN32 */
 
@@ -293,18 +294,18 @@ tls_ctx_load_cert_file (struct tls_root_ctx *ctx, const char *cert_file,
 
   if (!ctx->crt_chain)
     {
-      ALLOC_OBJ_CLEAR(ctx->crt_chain, x509_crt);
+      ALLOC_OBJ_CLEAR(ctx->crt_chain, mbedtls_x509_crt);
     }
 
   if (!strcmp (cert_file, INLINE_FILE_TAG) && cert_inline)
     {
-      if (!polar_ok(x509_crt_parse(ctx->crt_chain,
-	  (const unsigned char *) cert_inline, strlen(cert_inline))))
+      if (!mbed_ok(mbedtls_x509_crt_parse(ctx->crt_chain,
+	  (const unsigned char *) cert_inline, strlen(cert_inline)+1)))
         msg (M_FATAL, "Cannot load inline certificate file");
     }
   else
     {
-      if (!polar_ok(x509_crt_parse_file(ctx->crt_chain, cert_file)))
+      if (!mbed_ok(mbedtls_x509_crt_parse_file(ctx->crt_chain, cert_file)))
 	{
 	  msg (M_FATAL, "Cannot load certificate file %s", cert_file);
 	}
@@ -321,38 +322,39 @@ tls_ctx_load_priv_file (struct tls_root_ctx *ctx, const char *priv_key_file,
 
   if (!ctx->priv_key)
     {
-      ALLOC_OBJ_CLEAR(ctx->priv_key, pk_context);
+      ALLOC_OBJ_CLEAR(ctx->priv_key, mbedtls_pk_context);
     }
 
   if (!strcmp (priv_key_file, INLINE_FILE_TAG) && priv_key_inline)
     {
-      status = pk_parse_key(ctx->priv_key,
-	  (const unsigned char *) priv_key_inline, strlen(priv_key_inline),
+      status = mbedtls_pk_parse_key(ctx->priv_key,
+	  (const unsigned char *) priv_key_inline, strlen(priv_key_inline)+1,
 	  NULL, 0);
 
-      if (POLARSSL_ERR_PK_PASSWORD_REQUIRED == status)
+      if (MBEDTLS_ERR_PK_PASSWORD_REQUIRED == status)
 	{
 	  char passbuf[512] = {0};
 	  pem_password_callback(passbuf, 512, 0, NULL);
-	  status = pk_parse_key(ctx->priv_key,
-	      (const unsigned char *) priv_key_inline, strlen(priv_key_inline),
-	      (unsigned char *) passbuf, strlen(passbuf));
+	  status = mbedtls_pk_parse_key(ctx->priv_key,
+	      (const unsigned char *) priv_key_inline,
+	      strlen(priv_key_inline)+1, (unsigned char *) passbuf,
+	      strlen(passbuf));
 	}
     }
   else
     {
-      status = pk_parse_keyfile(ctx->priv_key, priv_key_file, NULL);
-      if (POLARSSL_ERR_PK_PASSWORD_REQUIRED == status)
+      status = mbedtls_pk_parse_keyfile(ctx->priv_key, priv_key_file, NULL);
+      if (MBEDTLS_ERR_PK_PASSWORD_REQUIRED == status)
 	{
 	  char passbuf[512] = {0};
 	  pem_password_callback(passbuf, 512, 0, NULL);
-	  status = pk_parse_keyfile(ctx->priv_key, priv_key_file, passbuf);
+	  status = mbedtls_pk_parse_keyfile(ctx->priv_key, priv_key_file, passbuf);
 	}
     }
-  if (!polar_ok(status))
+  if (!mbed_ok(status))
     {
 #ifdef ENABLE_MANAGEMENT
-      if (management && (POLARSSL_ERR_PK_PASSWORD_MISMATCH == status))
+      if (management && (MBEDTLS_ERR_PK_PASSWORD_MISMATCH == status))
 	  management_auth_failure (management, UP_TYPE_PRIVATE_KEY, NULL);
 #endif
       msg (M_WARN, "Cannot load private key file %s", priv_key_file);
@@ -377,7 +379,7 @@ struct external_context {
 };
 
 /**
- * external_pkcs1_sign implements a PolarSSL rsa_sign_func callback, that uses
+ * external_pkcs1_sign implements a mbed TLS rsa_sign_func callback, that uses
  * the management interface to request an RSA signature for the supplied hash.
  *
  * @param ctx_voidptr   Management external key context.
@@ -386,18 +388,18 @@ struct external_context {
  * @param mode          RSA mode (should be RSA_PRIVATE).
  * @param md_alg        Message digest ('hash') algorithm type.
  * @param hashlen       Length of hash (overridden by length specified by md_alg
- *                      if md_alg != POLARSSL_MD_NONE).
+ *                      if md_alg != MBEDTLS_MD_NONE).
  * @param hash          The digest ('hash') to sign. Should have a size
- *                      matching the length of md_alg (if != POLARSSL_MD_NONE),
+ *                      matching the length of md_alg (if != MBEDTLS_MD_NONE),
  *                      or hashlen otherwise.
  * @param sig           Buffer that returns the signature. Should be at least of
  *                      size ctx->signature_length.
  *
- * @return 0 on success, non-zero polarssl error code on failure.
+ * @return 0 on success, non-zero mbed TLS error code on failure.
  */
 static inline int external_pkcs1_sign( void *ctx_voidptr,
     int (*f_rng)(void *, unsigned char *, size_t), void *p_rng, int mode,
-    md_type_t md_alg, unsigned int hashlen, const unsigned char *hash,
+    mbedtls_md_type_t md_alg, unsigned int hashlen, const unsigned char *hash,
     unsigned char *sig )
 {
   struct external_context * const ctx = ctx_voidptr;
@@ -409,35 +411,35 @@ static inline int external_pkcs1_sign( void *ctx_voidptr,
   const char *oid = NULL;
 
   if( NULL == ctx )
-    return POLARSSL_ERR_RSA_BAD_INPUT_DATA;
+    return MBEDTLS_ERR_RSA_BAD_INPUT_DATA;
 
-  if( RSA_PRIVATE != mode )
-    return POLARSSL_ERR_RSA_BAD_INPUT_DATA;
+  if( MBEDTLS_RSA_PRIVATE != mode )
+    return MBEDTLS_ERR_RSA_BAD_INPUT_DATA;
 
   /*
    * Support a wide range of hashes. TLSv1.1 and before only need SIG_RSA_RAW,
    * but TLSv1.2 needs the full suite of hashes.
    *
-   * This code has been taken from PolarSSL pkcs11_sign(), under the GPLv2.0+.
+   * This code has been taken from mbed TLS pkcs11_sign(), under the GPLv2.0+.
    */
-  if( md_alg != POLARSSL_MD_NONE )
+  if( md_alg != MBEDTLS_MD_NONE )
     {
-      const md_info_t *md_info = md_info_from_type( md_alg );
+      const mbedtls_md_info_t *md_info = mbedtls_md_info_from_type( md_alg );
       if( md_info == NULL )
-        return( POLARSSL_ERR_RSA_BAD_INPUT_DATA );
+        return( MBEDTLS_ERR_RSA_BAD_INPUT_DATA );
 
-      if (!polar_ok(oid_get_oid_by_md( md_alg, &oid, &oid_size )))
-        return( POLARSSL_ERR_RSA_BAD_INPUT_DATA );
+      if (!mbed_ok(mbedtls_oid_get_oid_by_md( md_alg, &oid, &oid_size )))
+        return( MBEDTLS_ERR_RSA_BAD_INPUT_DATA );
 
-      hashlen = md_get_size( md_info );
+      hashlen = mbedtls_md_get_size( md_info );
       asn_len = 10 + oid_size;
     }
 
   sig_len = ctx->signature_length;
   if ( (SIZE_MAX - hashlen) < asn_len || (hashlen + asn_len) > sig_len )
-    return POLARSSL_ERR_RSA_BAD_INPUT_DATA;
+    return MBEDTLS_ERR_RSA_BAD_INPUT_DATA;
 
-  if( md_alg != POLARSSL_MD_NONE )
+  if( md_alg != MBEDTLS_MD_NONE )
     {
       /*
        * DigestInfo ::= SEQUENCE {
@@ -448,17 +450,17 @@ static inline int external_pkcs1_sign( void *ctx_voidptr,
        *
        * Digest ::= OCTET STRING
        */
-      *p++ = ASN1_SEQUENCE | ASN1_CONSTRUCTED;
+      *p++ = MBEDTLS_ASN1_SEQUENCE | MBEDTLS_ASN1_CONSTRUCTED;
       *p++ = (unsigned char) ( 0x08 + oid_size + hashlen );
-      *p++ = ASN1_SEQUENCE | ASN1_CONSTRUCTED;
+      *p++ = MBEDTLS_ASN1_SEQUENCE | MBEDTLS_ASN1_CONSTRUCTED;
       *p++ = (unsigned char) ( 0x04 + oid_size );
-      *p++ = ASN1_OID;
+      *p++ = MBEDTLS_ASN1_OID;
       *p++ = oid_size & 0xFF;
       memcpy( p, oid, oid_size );
       p += oid_size;
-      *p++ = ASN1_NULL;
+      *p++ = MBEDTLS_ASN1_NULL;
       *p++ = 0x00;
-      *p++ = ASN1_OCTET_STRING;
+      *p++ = MBEDTLS_ASN1_OCTET_STRING;
       *p++ = hashlen;
 
       /* Determine added ASN length */
@@ -471,7 +473,7 @@ static inline int external_pkcs1_sign( void *ctx_voidptr,
   /* convert 'from' to base64 */
   if (openvpn_base64_encode (sig, asn_len + hashlen, &in_b64) <= 0)
     {
-      rv = POLARSSL_ERR_RSA_BAD_INPUT_DATA;
+      rv = MBEDTLS_ERR_RSA_BAD_INPUT_DATA;
       goto done;
     }
 
@@ -480,7 +482,7 @@ static inline int external_pkcs1_sign( void *ctx_voidptr,
     out_b64 = management_query_rsa_sig (management, in_b64);
   if (!out_b64)
     {
-      rv = POLARSSL_ERR_RSA_PRIVATE_FAILED;
+      rv = MBEDTLS_ERR_RSA_PRIVATE_FAILED;
       goto done;
     }
 
@@ -488,7 +490,7 @@ static inline int external_pkcs1_sign( void *ctx_voidptr,
   if ( openvpn_base64_decode (out_b64, sig, ctx->signature_length) !=
        ctx->signature_length )
     {
-      rv = POLARSSL_ERR_RSA_PRIVATE_FAILED;
+      rv = MBEDTLS_ERR_RSA_PRIVATE_FAILED;
       goto done;
     }
 
@@ -521,10 +523,10 @@ tls_ctx_use_external_private_key (struct tls_root_ctx *ctx,
     return 0;
 
   ALLOC_OBJ_CLEAR (ctx->external_key, struct external_context);
-  ctx->external_key->signature_length = pk_get_len(&ctx->crt_chain->pk);
+  ctx->external_key->signature_length = mbedtls_pk_get_len (&ctx->crt_chain->pk);
 
-  ALLOC_OBJ_CLEAR (ctx->priv_key, pk_context);
-  if (!polar_ok(pk_init_ctx_rsa_alt(ctx->priv_key, ctx->external_key,
+  ALLOC_OBJ_CLEAR (ctx->priv_key, mbedtls_pk_context);
+  if (!mbed_ok (mbedtls_pk_setup_rsa_alt (ctx->priv_key, ctx->external_key,
 	    NULL, external_pkcs1_sign, external_key_len)))
     return 0;
 
@@ -537,18 +539,18 @@ void tls_ctx_load_ca (struct tls_root_ctx *ctx, const char *ca_file,
     )
 {
   if (ca_path)
-      msg(M_FATAL, "ERROR: PolarSSL cannot handle the capath directive");
+      msg(M_FATAL, "ERROR: mbed TLS cannot handle the capath directive");
 
   if (ca_file && !strcmp (ca_file, INLINE_FILE_TAG) && ca_inline)
     {
-      if (!polar_ok(x509_crt_parse(ctx->ca_chain,
-	  (const unsigned char *) ca_inline, strlen(ca_inline))))
+      if (!mbed_ok (mbedtls_x509_crt_parse (ctx->ca_chain,
+	  (const unsigned char *) ca_inline, strlen(ca_inline)+1)))
 	msg (M_FATAL, "Cannot load inline CA certificates");
     }
   else
     {
       /* Load CA file for verifying peer supplied certificate */
-      if (!polar_ok(x509_crt_parse_file(ctx->ca_chain, ca_file)))
+      if (!mbed_ok (mbedtls_x509_crt_parse_file (ctx->ca_chain, ca_file)))
 	msg (M_FATAL, "Cannot load CA certificate file %s", ca_file);
     }
 }
@@ -562,19 +564,19 @@ tls_ctx_load_extra_certs (struct tls_root_ctx *ctx, const char *extra_certs_file
 
   if (!ctx->crt_chain)
     {
-      ALLOC_OBJ_CLEAR (ctx->crt_chain, x509_crt);
+      ALLOC_OBJ_CLEAR (ctx->crt_chain, mbedtls_x509_crt);
     }
 
   if (!strcmp (extra_certs_file, INLINE_FILE_TAG) && extra_certs_inline)
     {
-      if (!polar_ok(x509_crt_parse(ctx->crt_chain,
+      if (!mbed_ok(mbedtls_x509_crt_parse(ctx->crt_chain,
           (const unsigned char *) extra_certs_inline,
-	  strlen(extra_certs_inline))))
+	  strlen(extra_certs_inline)+1)))
         msg (M_FATAL, "Cannot load inline extra-certs file");
     }
   else
     {
-      if (!polar_ok(x509_crt_parse_file(ctx->crt_chain, extra_certs_file)))
+      if (!mbed_ok(mbedtls_x509_crt_parse_file(ctx->crt_chain, extra_certs_file)))
 	msg (M_FATAL, "Cannot load extra-certs file: %s", extra_certs_file);
     }
 }
@@ -609,13 +611,12 @@ static void buf_free_entries(endless_buffer *buf)
   buf->last_block = NULL;
 }
 
-static int endless_buf_read( void * ctx, unsigned char * out, size_t out_len )
+static int endless_buf_read( endless_buffer *in, unsigned char * out, size_t out_len )
 {
-  endless_buffer *in = (endless_buffer *) ctx;
   size_t read_len = 0;
 
   if (in->first_block == NULL)
-    return POLARSSL_ERR_NET_WANT_READ;
+    return MBEDTLS_ERR_SSL_WANT_READ;
 
   while (in->first_block != NULL && read_len < out_len)
     {
@@ -648,18 +649,17 @@ static int endless_buf_read( void * ctx, unsigned char * out, size_t out_len )
   return read_len;
 }
 
-static int endless_buf_write( void *ctx, const unsigned char *in, size_t len )
+static int endless_buf_write( endless_buffer *out, const unsigned char *in, size_t len )
 {
-  endless_buffer *out = (endless_buffer *) ctx;
   buffer_entry *new_block = malloc(sizeof(buffer_entry));
   if (NULL == new_block)
-    return POLARSSL_ERR_NET_SEND_FAILED;
+    return MBEDTLS_ERR_NET_SEND_FAILED;
 
   new_block->data = malloc(len);
   if (NULL == new_block->data)
     {
       free(new_block);
-      return POLARSSL_ERR_NET_SEND_FAILED;
+      return MBEDTLS_ERR_NET_SEND_FAILED;
     }
 
   new_block->length = len;
@@ -678,10 +678,23 @@ static int endless_buf_write( void *ctx, const unsigned char *in, size_t len )
   return len;
 }
 
-static void my_debug( void *ctx, int level, const char *str )
+static int ssl_bio_read( void *ctx, unsigned char *out, size_t out_len)
+{
+  bio_ctx *my_ctx = (bio_ctx *) ctx;
+  return endless_buf_read (&my_ctx->in, out, out_len);
+}
+
+static int ssl_bio_write( void *ctx, const unsigned char *in, size_t in_len)
+{
+  bio_ctx *my_ctx = (bio_ctx *) ctx;
+  return endless_buf_write (&my_ctx->out, in, in_len);
+}
+
+static void my_debug( void *ctx, int level, const char *file, int line,
+    const char *str )
 {
   int my_loglevel = (level < 3) ? D_TLS_DEBUG_MED : D_TLS_DEBUG;
-  msg (my_loglevel, "PolarSSL msg: %s", str);
+  msg (my_loglevel, "mbed TLS msg (%s:%d): %s", file, line, str);
 }
 
 /*
@@ -691,16 +704,16 @@ void tls_ctx_personalise_random(struct tls_root_ctx *ctx)
 {
   static char old_sha256_hash[32] = {0};
   unsigned char sha256_hash[32] = {0};
-  ctr_drbg_context *cd_ctx = rand_ctx_get();
+  mbedtls_ctr_drbg_context *cd_ctx = rand_ctx_get();
 
   if (NULL != ctx->crt_chain)
     {
-      x509_crt *cert = ctx->crt_chain;
+      mbedtls_x509_crt *cert = ctx->crt_chain;
 
-      sha256(cert->tbs.p, cert->tbs.len, sha256_hash, false);
+      mbedtls_sha256(cert->tbs.p, cert->tbs.len, sha256_hash, false);
       if ( 0 != memcmp(old_sha256_hash, sha256_hash, sizeof(sha256_hash)))
 	{
-	  ctr_drbg_update(cd_ctx, sha256_hash, 32);
+	  mbedtls_ctr_drbg_update(cd_ctx, sha256_hash, 32);
 	  memcpy(old_sha256_hash, sha256_hash, sizeof(old_sha256_hash));
 	}
     }
@@ -719,13 +732,13 @@ tls_version_max(void)
 }
 
 /**
- * Convert an OpenVPN tls-version variable to PolarSSl format (i.e. a major and
+ * Convert an OpenVPN tls-version variable to mbed TLS format (i.e. a major and
  * minor ssl version number).
  *
  * @param tls_ver	The tls-version variable to convert.
- * @param major		Returns the TLS major version in polarssl format.
+ * @param major		Returns the TLS major version in mbed TLS format.
  * 			Must be a valid pointer.
- * @param minor		Returns the TLS minor version in polarssl format.
+ * @param minor		Returns the TLS minor version in mbed TLS format.
  * 			Must be a valid pointer.
  */
 static void tls_version_to_major_minor(int tls_ver, int *major, int *minor) {
@@ -735,16 +748,16 @@ static void tls_version_to_major_minor(int tls_ver, int *major, int *minor) {
   switch (tls_ver)
   {
     case TLS_VER_1_0:
-      *major = SSL_MAJOR_VERSION_3;
-      *minor = SSL_MINOR_VERSION_1;
+      *major = MBEDTLS_SSL_MAJOR_VERSION_3;
+      *minor = MBEDTLS_SSL_MINOR_VERSION_1;
       break;
     case TLS_VER_1_1:
-      *major = SSL_MAJOR_VERSION_3;
-      *minor = SSL_MINOR_VERSION_2;
+      *major = MBEDTLS_SSL_MAJOR_VERSION_3;
+      *minor = MBEDTLS_SSL_MINOR_VERSION_2;
       break;
     case TLS_VER_1_2:
-      *major = SSL_MAJOR_VERSION_3;
-      *minor = SSL_MINOR_VERSION_3;
+      *major = MBEDTLS_SSL_MAJOR_VERSION_3;
+      *minor = MBEDTLS_SSL_MINOR_VERSION_3;
       break;
     default:
       msg(M_FATAL, "%s: invalid TLS version %d", __func__, tls_ver);
@@ -759,86 +772,90 @@ void key_state_ssl_init(struct key_state_ssl *ks_ssl,
   ASSERT(ks_ssl);
   CLEAR(*ks_ssl);
 
-  ALLOC_OBJ_CLEAR(ks_ssl->ctx, ssl_context);
-  if (polar_ok(ssl_init(ks_ssl->ctx)))
-    {
-      /* Initialise SSL context */
-      debug_set_threshold(3);
-      ssl_set_dbg (ks_ssl->ctx, my_debug, NULL);
-      ssl_set_endpoint (ks_ssl->ctx, ssl_ctx->endpoint);
+  /* Initialise SSL config */
+  mbedtls_ssl_config_init(&ks_ssl->ssl_config);
+  mbedtls_ssl_config_defaults(&ks_ssl->ssl_config, ssl_ctx->endpoint,
+      MBEDTLS_SSL_TRANSPORT_STREAM, MBEDTLS_SSL_PRESET_DEFAULT);
+  mbedtls_debug_set_threshold(3);
+  mbedtls_ssl_conf_dbg (&ks_ssl->ssl_config, my_debug, NULL);
+  mbedtls_ssl_conf_rng (&ks_ssl->ssl_config, mbedtls_ctr_drbg_random,
+      rand_ctx_get());
 
-      ssl_set_rng (ks_ssl->ctx, ctr_drbg_random, rand_ctx_get());
+  if (ssl_ctx->allowed_ciphers)
+    mbedtls_ssl_conf_ciphersuites (&ks_ssl->ssl_config, ssl_ctx->allowed_ciphers);
 
-      if (ssl_ctx->allowed_ciphers)
-	ssl_set_ciphersuites (ks_ssl->ctx, ssl_ctx->allowed_ciphers);
+  /* Disable record splitting (for now).  OpenVPN assumes records are sent
+   * unfragmented, and changing that will require thorough review and
+   * testing.  Since OpenVPN is not susceptible to BEAST, we can just
+   * disable record splitting as a quick fix. */
+#if defined(MBEDTLS_SSL_CBC_RECORD_SPLITTING)
+  mbedtls_ssl_conf_cbc_record_splitting (&ks_ssl->ssl_config,
+      MBEDTLS_SSL_CBC_RECORD_SPLITTING_DISABLED);
+#endif /* MBEDTLS_SSL_CBC_RECORD_SPLITTING */
 
-      /* Disable record splitting (for now).  OpenVPN assumes records are sent
-       * unfragmented, and changing that will require thorough review and
-       * testing.  Since OpenVPN is not susceptible to BEAST, we can just
-       * disable record splitting as a quick fix. */
-#if defined(POLARSSL_SSL_CBC_RECORD_SPLITTING)
-      ssl_set_cbc_record_splitting (ks_ssl->ctx, SSL_CBC_RECORD_SPLITTING_DISABLED);
-#endif /* POLARSSL_SSL_CBC_RECORD_SPLITTING */
+  /* Initialise authentication information */
+  if (is_server)
+    mbed_ok (mbedtls_ssl_conf_dh_param_ctx(&ks_ssl->ssl_config,
+	ssl_ctx->dhm_ctx));
 
-      /* Initialise authentication information */
-      if (is_server)
-	polar_ok(ssl_set_dh_param_ctx(ks_ssl->ctx, ssl_ctx->dhm_ctx));
+  mbed_ok (mbedtls_ssl_conf_own_cert(&ks_ssl->ssl_config, ssl_ctx->crt_chain,
+      ssl_ctx->priv_key));
 
-      polar_ok(ssl_set_own_cert(ks_ssl->ctx, ssl_ctx->crt_chain,
-	  ssl_ctx->priv_key));
-
-      /* Initialise SSL verification */
+  /* Initialise SSL verification */
 #if P2MP_SERVER
-      if (session->opt->ssl_flags & SSLF_CLIENT_CERT_OPTIONAL)
-	{
-	  ssl_set_authmode(ks_ssl->ctx, SSL_VERIFY_OPTIONAL);
-	}
-      else if (!(session->opt->ssl_flags & SSLF_CLIENT_CERT_NOT_REQUIRED))
-#endif
-      {
-	ssl_set_authmode (ks_ssl->ctx, SSL_VERIFY_REQUIRED);
-      }
-      ssl_set_verify (ks_ssl->ctx, verify_callback, session);
-
-      /* TODO: PolarSSL does not currently support sending the CA chain to the client */
-      ssl_set_ca_chain (ks_ssl->ctx, ssl_ctx->ca_chain, NULL, NULL );
-
-      /* Initialize minimum TLS version */
-      {
-	const int tls_version_min =
-	    (session->opt->ssl_flags >> SSLF_TLS_VERSION_MIN_SHIFT) &
-	    SSLF_TLS_VERSION_MIN_MASK;
-
-	/* default to TLS 1.0 */
-	int major = SSL_MAJOR_VERSION_3;
-	int minor = SSL_MINOR_VERSION_1;
-
-	if (tls_version_min > TLS_VER_UNSPEC)
-	  tls_version_to_major_minor(tls_version_min, &major, &minor);
-
-	ssl_set_min_version(ks_ssl->ctx, major, minor);
-      }
-
-      /* Initialize maximum TLS version */
-      {
-	const int tls_version_max =
-	    (session->opt->ssl_flags >> SSLF_TLS_VERSION_MAX_SHIFT) &
-	    SSLF_TLS_VERSION_MAX_MASK;
-
-	if (tls_version_max > TLS_VER_UNSPEC)
-	  {
-	    int major, minor;
-	    tls_version_to_major_minor(tls_version_max, &major, &minor);
-	    ssl_set_max_version(ks_ssl->ctx, major, minor);
-	  }
-      }
-
-      /* Initialise BIOs */
-      ALLOC_OBJ_CLEAR (ks_ssl->ct_in, endless_buffer);
-      ALLOC_OBJ_CLEAR (ks_ssl->ct_out, endless_buffer);
-      ssl_set_bio (ks_ssl->ctx, endless_buf_read, ks_ssl->ct_in,
-	  endless_buf_write, ks_ssl->ct_out);
+  if (session->opt->ssl_flags & SSLF_CLIENT_CERT_OPTIONAL)
+    {
+      mbedtls_ssl_conf_authmode(&ks_ssl->ssl_config, MBEDTLS_SSL_VERIFY_OPTIONAL);
     }
+  else if (!(session->opt->ssl_flags & SSLF_CLIENT_CERT_NOT_REQUIRED))
+#endif
+  {
+    mbedtls_ssl_conf_authmode (&ks_ssl->ssl_config, MBEDTLS_SSL_VERIFY_REQUIRED);
+  }
+  mbedtls_ssl_conf_verify (&ks_ssl->ssl_config, verify_callback, session);
+
+  /* TODO: mbed TLS does not currently support sending the CA chain to the client */
+  mbedtls_ssl_conf_ca_chain (&ks_ssl->ssl_config, ssl_ctx->ca_chain, NULL );
+
+  /* Initialize minimum TLS version */
+  {
+    const int tls_version_min =
+	(session->opt->ssl_flags >> SSLF_TLS_VERSION_MIN_SHIFT) &
+	SSLF_TLS_VERSION_MIN_MASK;
+
+    /* default to TLS 1.0 */
+    int major = MBEDTLS_SSL_MAJOR_VERSION_3;
+    int minor = MBEDTLS_SSL_MINOR_VERSION_1;
+
+    if (tls_version_min > TLS_VER_UNSPEC)
+      tls_version_to_major_minor(tls_version_min, &major, &minor);
+
+    mbedtls_ssl_conf_min_version(&ks_ssl->ssl_config, major, minor);
+  }
+
+  /* Initialize maximum TLS version */
+  {
+    const int tls_version_max =
+	(session->opt->ssl_flags >> SSLF_TLS_VERSION_MAX_SHIFT) &
+	SSLF_TLS_VERSION_MAX_MASK;
+
+    if (tls_version_max > TLS_VER_UNSPEC)
+      {
+	int major, minor;
+	tls_version_to_major_minor(tls_version_max, &major, &minor);
+	mbedtls_ssl_conf_max_version(&ks_ssl->ssl_config, major, minor);
+      }
+  }
+
+  /* Initialise SSL context */
+  ALLOC_OBJ_CLEAR(ks_ssl->ctx, mbedtls_ssl_context);
+  mbedtls_ssl_init(ks_ssl->ctx);
+  mbedtls_ssl_setup(ks_ssl->ctx, &ks_ssl->ssl_config);
+
+  /* Initialise BIOs */
+  CLEAR (ks_ssl->bio_ctx);
+  mbedtls_ssl_set_bio (ks_ssl->ctx, &ks_ssl->bio_ctx, ssl_bio_write,
+      ssl_bio_read, NULL);
 }
 
 void
@@ -847,17 +864,12 @@ key_state_ssl_free(struct key_state_ssl *ks_ssl)
   if (ks_ssl) {
       if (ks_ssl->ctx)
 	{
-	  ssl_free(ks_ssl->ctx);
+	  mbedtls_ssl_free(ks_ssl->ctx);
 	  free(ks_ssl->ctx);
 	}
-      if (ks_ssl->ct_in) {
-	buf_free_entries(ks_ssl->ct_in);
-	free(ks_ssl->ct_in);
-      }
-      if (ks_ssl->ct_out) {
-	buf_free_entries(ks_ssl->ct_out);
-	free(ks_ssl->ct_out);
-      }
+      mbedtls_ssl_config_free(&ks_ssl->ssl_config);
+      buf_free_entries(&ks_ssl->bio_ctx.in);
+      buf_free_entries(&ks_ssl->bio_ctx.out);
       CLEAR(*ks_ssl);
   }
 }
@@ -897,14 +909,14 @@ key_state_write_plaintext_const (struct key_state_ssl *ks, const uint8_t *data, 
 
   ASSERT (data);
 
-  retval = ssl_write(ks->ctx, data, len);
+  retval = mbedtls_ssl_write(ks->ctx, data, len);
 
   if (retval < 0)
     {
       perf_pop ();
-      if (POLARSSL_ERR_NET_WANT_WRITE == retval || POLARSSL_ERR_NET_WANT_READ == retval)
+      if (MBEDTLS_ERR_SSL_WANT_WRITE == retval || MBEDTLS_ERR_SSL_WANT_READ == retval)
 	return 0;
-      polar_log_err (D_TLS_ERRORS, retval,
+      mbed_log_err (D_TLS_ERRORS, retval,
 	  "TLS ERROR: write tls_write_plaintext_const error");
       return -1;
     }
@@ -948,15 +960,15 @@ key_state_read_ciphertext (struct key_state_ssl *ks, struct buffer *buf,
   if (maxlen < len)
     len = maxlen;
 
-  retval = endless_buf_read(ks->ct_out, BPTR(buf), len);
+  retval = endless_buf_read(&ks->bio_ctx.out, BPTR(buf), len);
 
   /* Error during read, check for retry error */
   if (retval < 0)
     {
       perf_pop ();
-      if (POLARSSL_ERR_NET_WANT_WRITE == retval || POLARSSL_ERR_NET_WANT_READ == retval)
+      if (MBEDTLS_ERR_SSL_WANT_WRITE == retval || MBEDTLS_ERR_SSL_WANT_READ == retval)
 	return 0;
-      polar_log_err (D_TLS_ERRORS, retval, "TLS_ERROR: read tls_read_ciphertext error");
+      mbed_log_err (D_TLS_ERRORS, retval, "TLS_ERROR: read tls_read_ciphertext error");
       buf->len = 0;
       return -1;
     }
@@ -991,15 +1003,15 @@ key_state_write_ciphertext (struct key_state_ssl *ks, struct buffer *buf)
       return 0;
     }
 
-  retval = endless_buf_write(ks->ct_in, BPTR(buf), buf->len);
+  retval = endless_buf_write(&ks->bio_ctx.in, BPTR(buf), buf->len);
 
   if (retval < 0)
     {
       perf_pop ();
 
-      if (POLARSSL_ERR_NET_WANT_WRITE == retval || POLARSSL_ERR_NET_WANT_READ == retval)
+      if (MBEDTLS_ERR_SSL_WANT_WRITE == retval || MBEDTLS_ERR_SSL_WANT_READ == retval)
 	return 0;
-      polar_log_err (D_TLS_ERRORS, retval,
+      mbed_log_err (D_TLS_ERRORS, retval,
 	  "TLS ERROR: write tls_write_ciphertext error");
       return -1;
     }
@@ -1045,14 +1057,14 @@ key_state_read_plaintext (struct key_state_ssl *ks, struct buffer *buf,
   if (maxlen < len)
     len = maxlen;
 
-  retval = ssl_read(ks->ctx, BPTR(buf), len);
+  retval = mbedtls_ssl_read(ks->ctx, BPTR(buf), len);
 
   /* Error during read, check for retry error */
   if (retval < 0)
     {
-      if (POLARSSL_ERR_NET_WANT_WRITE == retval || POLARSSL_ERR_NET_WANT_READ == retval)
+      if (MBEDTLS_ERR_SSL_WANT_WRITE == retval || MBEDTLS_ERR_SSL_WANT_READ == retval)
 	return 0;
-      polar_log_err (D_TLS_ERRORS, retval, "TLS_ERROR: read tls_read_plaintext error");
+      mbed_log_err (D_TLS_ERRORS, retval, "TLS_ERROR: read tls_read_plaintext error");
       buf->len = 0;
       perf_pop ();
       return -1;
@@ -1083,20 +1095,21 @@ key_state_read_plaintext (struct key_state_ssl *ks, struct buffer *buf,
 void
 print_details (struct key_state_ssl * ks_ssl, const char *prefix)
 {
-  const x509_crt *cert;
+  const mbedtls_x509_crt *cert;
   char s1[256];
   char s2[256];
 
   s1[0] = s2[0] = 0;
   openvpn_snprintf (s1, sizeof (s1), "%s %s, cipher %s",
 		    prefix,
-		    ssl_get_version (ks_ssl->ctx),
-		    ssl_get_ciphersuite(ks_ssl->ctx));
+		    mbedtls_ssl_get_version (ks_ssl->ctx),
+		    mbedtls_ssl_get_ciphersuite (ks_ssl->ctx));
 
-  cert = ssl_get_peer_cert(ks_ssl->ctx);
+  cert = mbedtls_ssl_get_peer_cert (ks_ssl->ctx);
   if (cert != NULL)
     {
-      openvpn_snprintf (s2, sizeof (s2), ", %zu bit key", pk_get_size(&cert->pk));
+      openvpn_snprintf (s2, sizeof (s2), ", %zu bit key",
+	  mbedtls_pk_get_bitlen (&cert->pk));
     }
 
   msg (D_HANDSHAKE, "%s%s", s1, s2);
@@ -1106,7 +1119,7 @@ void
 show_available_tls_ciphers (const char *cipher_list)
 {
   struct tls_root_ctx tls_ctx;
-  const int *ciphers = ssl_list_ciphersuites();
+  const int *ciphers = mbedtls_ssl_list_ciphersuites ();
 
   tls_ctx_server_new(&tls_ctx);
   tls_ctx_restrict_ciphers(&tls_ctx, cipher_list);
@@ -1121,7 +1134,7 @@ show_available_tls_ciphers (const char *cipher_list)
 
   while (*ciphers != 0)
     {
-      printf ("%s\n", ssl_get_ciphersuite_name(*ciphers));
+      printf ("%s\n", mbedtls_ssl_get_ciphersuite_name (*ciphers));
       ciphers++;
     }
   printf ("\n" SHOW_TLS_CIPHER_LIST_WARNING);
@@ -1132,14 +1145,14 @@ show_available_tls_ciphers (const char *cipher_list)
 void
 show_available_curves (void)
 {
-  const ecp_curve_info *pcurve = ecp_curve_list();
+  const mbedtls_ecp_curve_info *pcurve = mbedtls_ecp_curve_list ();
 
   if (NULL == pcurve)
-    msg (M_FATAL, "Cannot retrieve curve list from PolarSSL");
+    msg (M_FATAL, "Cannot retrieve curve list from mbed TLS");
 
   /* Print curve list */
   printf ("Available Elliptic curves, listed in order of preference:\n\n");
-  while (POLARSSL_ECP_DP_NONE != pcurve->grp_id)
+  while (MBEDTLS_ECP_DP_NONE != pcurve->grp_id)
     {
       printf("%s\n", pcurve->name);
       pcurve++;
@@ -1150,22 +1163,22 @@ void
 get_highest_preference_tls_cipher (char *buf, int size)
 {
   const char *cipher_name;
-  const int *ciphers = ssl_list_ciphersuites();
+  const int *ciphers = mbedtls_ssl_list_ciphersuites();
   if (*ciphers == 0)
     msg (M_FATAL, "Cannot retrieve list of supported SSL ciphers.");
 
-  cipher_name = ssl_get_ciphersuite_name(*ciphers);
+  cipher_name = mbedtls_ssl_get_ciphersuite_name(*ciphers);
   strncpynt (buf, cipher_name, size);
 }
 
 const char *
 get_ssl_library_version(void)
 {
-    static char polar_version[30];
-    unsigned int pv = version_get_number();
-    sprintf( polar_version, "PolarSSL %d.%d.%d",
+    static char mbedtls_version[30];
+    unsigned int pv = mbedtls_version_get_number();
+    sprintf( mbedtls_version, "mbed TLS %d.%d.%d",
 		(pv>>24)&0xff, (pv>>16)&0xff, (pv>>8)&0xff );
-    return polar_version;
+    return mbedtls_version;
 }
 
-#endif /* defined(ENABLE_CRYPTO) && defined(ENABLE_CRYPTO_POLARSSL) */
+#endif /* defined(ENABLE_CRYPTO) && defined(ENABLE_CRYPTO_MBEDTLS) */

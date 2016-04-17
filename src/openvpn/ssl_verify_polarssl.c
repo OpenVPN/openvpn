@@ -24,7 +24,7 @@
  */
 
 /**
- * @file Control Channel Verification Module PolarSSL backend
+ * @file Control Channel Verification Module mbed TLS backend
  */
 
 #ifdef HAVE_CONFIG_H
@@ -35,21 +35,21 @@
 
 #include "syshead.h"
 
-#if defined(ENABLE_CRYPTO) && defined(ENABLE_CRYPTO_POLARSSL)
+#if defined(ENABLE_CRYPTO) && defined(ENABLE_CRYPTO_MBEDTLS)
 
 #include "crypto_polarssl.h"
 #include "ssl_verify.h"
-#include <polarssl/asn1.h>
-#include <polarssl/error.h>
-#include <polarssl/bignum.h>
-#include <polarssl/oid.h>
-#include <polarssl/sha1.h>
+#include <mbedtls/asn1.h>
+#include <mbedtls/error.h>
+#include <mbedtls/bignum.h>
+#include <mbedtls/oid.h>
+#include <mbedtls/sha1.h>
 
 #define MAX_SUBJECT_LENGTH 256
 
 int
-verify_callback (void *session_obj, x509_crt *cert, int cert_depth,
-    int *flags)
+verify_callback (void *session_obj, mbedtls_x509_crt *cert, int cert_depth,
+    uint32_t *flags)
 {
   struct tls_session *session = (struct tls_session *) session_obj;
   struct gc_arena gc = gc_new();
@@ -77,26 +77,26 @@ verify_callback (void *session_obj, x509_crt *cert, int cert_depth,
     }
   else if (SUCCESS != verify_cert(session, cert, cert_depth))
     {
-      *flags |= BADCERT_OTHER;
+      *flags |= MBEDTLS_X509_BADCERT_OTHER;
     }
 
   gc_free(&gc);
 
   /*
-   * PolarSSL-1.2.0+ expects 0 on anything except fatal errors.
+   * PolarSSL/mbed TLS-1.2.0+ expects 0 on anything except fatal errors.
    */
   return 0;
 }
 
 #ifdef ENABLE_X509ALTUSERNAME
-# warning "X509 alt user name not yet supported for PolarSSL"
+# warning "X509 alt user name not yet supported for mbed TLS"
 #endif
 
 result_t
 backend_x509_get_username (char *cn, int cn_len,
-    char *x509_username_field, x509_crt *cert)
+    char *x509_username_field, mbedtls_x509_crt *cert)
 {
-  x509_name *name;
+  mbedtls_x509_name *name;
 
   ASSERT( cn != NULL );
 
@@ -105,7 +105,8 @@ backend_x509_get_username (char *cn, int cn_len,
   /* Find common name */
   while( name != NULL )
   {
-      if( memcmp( name->oid.p, OID_AT_CN, OID_SIZE(OID_AT_CN) ) == 0)
+      if (0 == memcmp (name->oid.p, MBEDTLS_OID_AT_CN,
+	  MBEDTLS_OID_SIZE (MBEDTLS_OID_AT_CN)))
 	break;
 
       name = name->next;
@@ -131,26 +132,27 @@ backend_x509_get_username (char *cn, int cn_len,
 }
 
 char *
-backend_x509_get_serial (openvpn_x509_cert_t *cert, struct gc_arena *gc)
+backend_x509_get_serial (mbedtls_x509_crt *cert, struct gc_arena *gc)
 {
   char *buf = NULL;
   size_t buflen = 0;
-  mpi serial_mpi = { 0 };
+  mbedtls_mpi serial_mpi = { 0 };
 
-  /* Transform asn1 integer serial into PolarSSL MPI */
-  mpi_init(&serial_mpi);
-  if (!polar_ok(mpi_read_binary(&serial_mpi, cert->serial.p, cert->serial.len)))
+  /* Transform asn1 integer serial into mbed TLS MPI */
+  mbedtls_mpi_init(&serial_mpi);
+  if (!mbed_ok(mbedtls_mpi_read_binary(&serial_mpi, cert->serial.p,
+      cert->serial.len)))
     {
       msg(M_WARN, "Failed to retrieve serial from certificate.");
       return NULL;
     }
 
   /* Determine decimal representation length, allocate buffer */
-  mpi_write_string(&serial_mpi, 10, buf, &buflen);
+  mbedtls_mpi_write_string(&serial_mpi, 10, NULL, 0, &buflen);
   buf = gc_malloc(buflen, true, gc);
 
   /* Write MPI serial as decimal string into buffer */
-  if (!polar_ok(mpi_write_string(&serial_mpi, 10, buf, &buflen)))
+  if (!mbed_ok(mbedtls_mpi_write_string(&serial_mpi, 10, buf, buflen, &buflen)))
     {
       msg(M_WARN, "Failed to write serial to string.");
       return NULL;
@@ -160,36 +162,36 @@ backend_x509_get_serial (openvpn_x509_cert_t *cert, struct gc_arena *gc)
 }
 
 char *
-backend_x509_get_serial_hex (openvpn_x509_cert_t *cert, struct gc_arena *gc)
+backend_x509_get_serial_hex (mbedtls_x509_crt *cert, struct gc_arena *gc)
 {
   char *buf = NULL;
   size_t len = cert->serial.len * 3 + 1;
 
   buf = gc_malloc(len, true, gc);
 
-  if(x509_serial_gets(buf, len-1, &cert->serial) < 0)
+  if(mbedtls_x509_serial_gets(buf, len-1, &cert->serial) < 0)
     buf = NULL;
 
   return buf;
 }
 
 unsigned char *
-x509_get_sha1_hash (x509_crt *cert, struct gc_arena *gc)
+x509_get_sha1_hash (mbedtls_x509_crt *cert, struct gc_arena *gc)
 {
   unsigned char *sha1_hash = gc_malloc(SHA_DIGEST_LENGTH, false, gc);
-  sha1(cert->raw.p, cert->raw.len, sha1_hash);
+  mbedtls_sha1(cert->raw.p, cert->tbs.len, sha1_hash);
   return sha1_hash;
 }
 
 char *
-x509_get_subject(x509_crt *cert, struct gc_arena *gc)
+x509_get_subject(mbedtls_x509_crt *cert, struct gc_arena *gc)
 {
   char tmp_subject[MAX_SUBJECT_LENGTH] = {0};
   char *subject = NULL;
 
   int ret = 0;
 
-  ret = x509_dn_gets( tmp_subject, MAX_SUBJECT_LENGTH-1, &cert->subject );
+  ret = mbedtls_x509_dn_gets( tmp_subject, MAX_SUBJECT_LENGTH-1, &cert->subject );
   if (ret > 0)
     {
       /* Allocate the required space for the subject */
@@ -216,7 +218,7 @@ do_setenv_x509 (struct env_set *es, const char *name, char *value, int depth)
 }
 
 static char *
-asn1_buf_to_c_string(const asn1_buf *orig, struct gc_arena *gc)
+asn1_buf_to_c_string(const mbedtls_asn1_buf *orig, struct gc_arena *gc)
 {
   size_t i;
   char *val;
@@ -232,13 +234,13 @@ asn1_buf_to_c_string(const asn1_buf *orig, struct gc_arena *gc)
 
 static void
 do_setenv_name(struct env_set *es, const struct x509_track *xt,
-	       const x509_crt *cert, int depth, struct gc_arena *gc)
+	       const mbedtls_x509_crt *cert, int depth, struct gc_arena *gc)
 {
-  const x509_name *xn;
+  const mbedtls_x509_name *xn;
   for (xn = &cert->subject; xn != NULL; xn = xn->next)
     {
       const char *xn_short_name = NULL;
-      if (0 == oid_get_attr_short_name (&xn->oid, &xn_short_name) &&
+      if (0 == mbedtls_oid_get_attr_short_name (&xn->oid, &xn_short_name) &&
 	  0 == strcmp (xt->name, xn_short_name))
 	{
 	  char *val_str = asn1_buf_to_c_string (&xn->val, gc);
@@ -263,7 +265,8 @@ x509_track_add (const struct x509_track **ll_head, const char *name, int msgleve
 }
 
 void
-x509_setenv_track (const struct x509_track *xt, struct env_set *es, const int depth, x509_crt *cert)
+x509_setenv_track (const struct x509_track *xt, struct env_set *es,
+    const int depth, mbedtls_x509_crt *cert)
 {
   struct gc_arena gc = gc_new();
   while (xt)
@@ -293,11 +296,11 @@ x509_setenv_track (const struct x509_track *xt, struct env_set *es, const int de
  * X509_{cert_depth}_{name}={value}
  */
 void
-x509_setenv (struct env_set *es, int cert_depth, openvpn_x509_cert_t *cert)
+x509_setenv (struct env_set *es, int cert_depth, mbedtls_x509_crt *cert)
 {
   int i;
   unsigned char c;
-  const x509_name *name;
+  const mbedtls_x509_name *name;
   char s[128];
 
   name = &cert->subject;
@@ -309,7 +312,7 @@ x509_setenv (struct env_set *es, int cert_depth, openvpn_x509_cert_t *cert)
       char name_expand[64+8];
       const char *shortname;
 
-      if( 0 == oid_get_attr_short_name(&name->oid, &shortname) )
+      if( 0 == mbedtls_oid_get_attr_short_name(&name->oid, &shortname) )
 	{
 	  openvpn_snprintf (name_expand, sizeof(name_expand), "X509_%d_%s",
 	      cert_depth, shortname);
@@ -342,27 +345,29 @@ x509_setenv (struct env_set *es, int cert_depth, openvpn_x509_cert_t *cert)
 }
 
 result_t
-x509_verify_ns_cert_type(const x509_crt *cert, const int usage)
+x509_verify_ns_cert_type(const mbedtls_x509_crt *cert, const int usage)
 {
   if (usage == NS_CERT_CHECK_NONE)
     return SUCCESS;
   if (usage == NS_CERT_CHECK_CLIENT)
-    return ((cert->ext_types & EXT_NS_CERT_TYPE)
-	&& (cert->ns_cert_type & NS_CERT_TYPE_SSL_CLIENT)) ? SUCCESS : FAILURE;
+    return ((cert->ext_types & MBEDTLS_X509_EXT_NS_CERT_TYPE)
+	&& (cert->ns_cert_type & MBEDTLS_X509_NS_CERT_TYPE_SSL_CLIENT)) ?
+	    SUCCESS : FAILURE;
   if (usage == NS_CERT_CHECK_SERVER)
-    return ((cert->ext_types & EXT_NS_CERT_TYPE)
-	&& (cert->ns_cert_type & NS_CERT_TYPE_SSL_SERVER)) ? SUCCESS : FAILURE;
+    return ((cert->ext_types & MBEDTLS_X509_EXT_NS_CERT_TYPE)
+	&& (cert->ns_cert_type & MBEDTLS_X509_NS_CERT_TYPE_SSL_SERVER)) ?
+	    SUCCESS : FAILURE;
 
   return FAILURE;
 }
 
 result_t
-x509_verify_cert_ku (x509_crt *cert, const unsigned * const expected_ku,
+x509_verify_cert_ku (mbedtls_x509_crt *cert, const unsigned * const expected_ku,
     int expected_len)
 {
   result_t fFound = FAILURE;
 
-  if(!(cert->ext_types & EXT_KEY_USAGE))
+  if(!(cert->ext_types & MBEDTLS_X509_EXT_KEY_USAGE))
     {
       msg (D_HANDSHAKE, "Certificate does not have key usage extension");
     }
@@ -390,26 +395,26 @@ x509_verify_cert_ku (x509_crt *cert, const unsigned * const expected_ku,
 }
 
 result_t
-x509_verify_cert_eku (x509_crt *cert, const char * const expected_oid)
+x509_verify_cert_eku (mbedtls_x509_crt *cert, const char * const expected_oid)
 {
   result_t fFound = FAILURE;
 
-  if (!(cert->ext_types & EXT_EXTENDED_KEY_USAGE))
+  if (!(cert->ext_types & MBEDTLS_X509_EXT_EXTENDED_KEY_USAGE))
     {
       msg (D_HANDSHAKE, "Certificate does not have extended key usage extension");
     }
   else
     {
-      x509_sequence *oid_seq = &(cert->ext_key_usage);
+      mbedtls_x509_sequence *oid_seq = &(cert->ext_key_usage);
 
       msg (D_HANDSHAKE, "Validating certificate extended key usage");
       while (oid_seq != NULL)
 	{
-	  x509_buf *oid = &oid_seq->buf;
+	  mbedtls_x509_buf *oid = &oid_seq->buf;
 	  char oid_num_str[1024];
 	  const char *oid_str;
 
-	  if (0 == oid_get_extended_key_usage( oid, &oid_str ))
+	  if (0 == mbedtls_oid_get_extended_key_usage( oid, &oid_str ))
 	    {
 	      msg (D_HANDSHAKE, "++ Certificate has EKU (str) %s, expects %s",
 		  oid_str, expected_oid);
@@ -420,7 +425,7 @@ x509_verify_cert_eku (x509_crt *cert, const char * const expected_oid)
 		}
 	    }
 
-	  if (0 < oid_get_numeric_string( oid_num_str,
+	  if (0 < mbedtls_oid_get_numeric_string( oid_num_str,
 	      sizeof (oid_num_str), oid))
 	    {
 	      msg (D_HANDSHAKE, "++ Certificate has EKU (oid) %s, expects %s",
@@ -439,9 +444,9 @@ x509_verify_cert_eku (x509_crt *cert, const char * const expected_oid)
 }
 
 result_t
-x509_write_pem(FILE *peercert_file, x509_crt *peercert)
+x509_write_pem(FILE *peercert_file, mbedtls_x509_crt *peercert)
 {
-    msg (M_WARN, "PolarSSL does not support writing peer certificate in PEM format");
+    msg (M_WARN, "mbed TLS does not support writing peer certificate in PEM format");
     return FAILURE;
 }
 
@@ -449,17 +454,18 @@ x509_write_pem(FILE *peercert_file, x509_crt *peercert)
  * check peer cert against CRL
  */
 result_t
-x509_verify_crl(const char *crl_file, const char* crl_inline,
-                x509_crt *cert, const char *subject)
+x509_verify_crl(const char *crl_file, const char *crl_inline,
+                mbedtls_x509_crt *cert, const char *subject)
 {
   result_t retval = FAILURE;
-  x509_crl crl = {0};
+  mbedtls_x509_crl crl = {0};
   struct gc_arena gc = gc_new();
   char *serial;
 
   if (!strcmp (crl_file, INLINE_FILE_TAG) && crl_inline)
     {
-      if (!polar_ok(x509_crl_parse(&crl, crl_inline, strlen(crl_inline))))
+      if (!mbed_ok(mbedtls_x509_crl_parse(&crl,
+	  (const unsigned char *)crl_inline, strlen(crl_inline)+1)))
         {
            msg (M_WARN, "CRL: cannot parse inline CRL");
            goto end;
@@ -467,7 +473,7 @@ x509_verify_crl(const char *crl_file, const char* crl_inline,
     }
   else
     {
-      if (!polar_ok(x509_crl_parse_file(&crl, crl_file)))
+      if (!mbed_ok(mbedtls_x509_crl_parse_file(&crl, crl_file)))
       {
           msg (M_WARN, "CRL: cannot read CRL from file %s", crl_file);
           goto end;
@@ -483,7 +489,7 @@ x509_verify_crl(const char *crl_file, const char* crl_inline,
       goto end;
     }
 
-  if (!polar_ok(x509_crt_revoked(cert, &crl)))
+  if (!mbed_ok(mbedtls_x509_crt_is_revoked(cert, &crl)))
     {
       serial = backend_x509_get_serial_hex(cert, &gc);
       msg (D_HANDSHAKE, "CRL CHECK FAILED: %s (serial %s) is REVOKED", subject, (serial ? serial : "NOT AVAILABLE"));
@@ -495,8 +501,8 @@ x509_verify_crl(const char *crl_file, const char* crl_inline,
 
 end:
   gc_free(&gc);
-  x509_crl_free(&crl);
+  mbedtls_x509_crl_free(&crl);
   return retval;
 }
 
-#endif /* #if defined(ENABLE_CRYPTO) && defined(ENABLE_CRYPTO_POLARSSL) */
+#endif /* #if defined(ENABLE_CRYPTO) && defined(ENABLE_CRYPTO_MBEDTLS) */

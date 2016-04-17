@@ -24,18 +24,18 @@
  */
 
 /**
- * @file Control Channel Verification Module PolarSSL backend
+ * @file Control Channel Verification Module mbed TLS backend
  */
 
-#ifndef SSL_VERIFY_POLARSSL_H_
-#define SSL_VERIFY_POLARSSL_H_
+#ifndef SSL_VERIFY_MBEDTLS_H_
+#define SSL_VERIFY_MBEDTLS_H_
 
 #include "syshead.h"
-#include <polarssl/x509_crt.h>
+#include <mbedtls/x509_crt.h>
 
 #ifndef __OPENVPN_X509_CERT_T_DECLARED
 #define __OPENVPN_X509_CERT_T_DECLARED
-typedef x509_crt openvpn_x509_cert_t;
+typedef mbedtls_x509_crt openvpn_x509_cert_t;
 #endif
 
 /** @name Function for authenticating a new connection from a remote OpenVPN peer
@@ -50,7 +50,7 @@ typedef x509_crt openvpn_x509_cert_t;
  * determine whether the remote OpenVPN peer's certificate is allowed to
  * connect. It is called for once for every certificate in the chain. The
  * callback functionality is configured in the \c init_ssl() function, which
- * calls the PolarSSL library's \c ssl_set_verify_callback() function with \c
+ * calls the mbed TLS library's \c ssl_set_verify_callback() function with \c
  * verify_callback() as its callback argument.
  *
  * It checks *flags and registers the certificate hash. If these steps succeed,
@@ -59,7 +59,7 @@ typedef x509_crt openvpn_x509_cert_t;
  *
  * @param session_obj  - The OpenVPN \c tls_session associated with this object,
  *                       as set during SSL session setup.
- * @param cert         - The certificate used by PolarSSL.
+ * @param cert         - The certificate used by mbed TLS.
  * @param cert_depth   - The depth of the current certificate in the chain, with
  *                       0 being the actual certificate.
  * @param flags        - Whether the remote OpenVPN peer's certificate
@@ -70,9 +70,9 @@ typedef x509_crt openvpn_x509_cert_t;
  *
  * @return The return value is 0 unless a fatal error occurred.
  */
-int verify_callback (void *session_obj, x509_crt *cert, int cert_depth,
-    int *flags);
+int verify_callback (void *session_obj, mbedtls_x509_crt *cert, int cert_depth,
+    uint32_t *flags);
 
 /** @} name Function for authenticating a new connection from a remote OpenVPN peer */
 
-#endif /* SSL_VERIFY_POLARSSL_H_ */
+#endif /* SSL_VERIFY_MBEDTLS_H_ */

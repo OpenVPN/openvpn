@@ -564,10 +564,10 @@ socket_defined (const socket_descriptor_t sd)
 #define MANAGMENT_EXTERNAL_KEY
 #endif
 
-/* Enable PolarSSL RNG prediction resistance support */
-#ifdef ENABLE_CRYPTO_POLARSSL
+/* Enable mbed TLS RNG prediction resistance support */
+#ifdef ENABLE_CRYPTO_MBEDTLS
 #define ENABLE_PREDICTION_RESISTANCE
-#endif /* ENABLE_CRYPTO_POLARSSL */
+#endif /* ENABLE_CRYPTO_MBEDTLS */
 
 /*
  * MANAGEMENT_IN_EXTRA allows the management interface to

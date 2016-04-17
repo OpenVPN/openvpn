@@ -68,13 +68,13 @@ const char title_string[] =
 #endif
   " " TARGET_ALIAS
 #ifdef ENABLE_CRYPTO
-#if defined(ENABLE_CRYPTO_POLARSSL)
-  " [SSL (PolarSSL)]"
+#if defined(ENABLE_CRYPTO_MBEDTLS)
+  " [SSL (mbed TLS)]"
 #elif defined(ENABLE_CRYPTO_OPENSSL)
   " [SSL (OpenSSL)]"
 #else
   " [SSL]"
-#endif /* defined(ENABLE_CRYPTO_POLARSSL) */
+#endif /* defined(ENABLE_CRYPTO_MBEDTLS) */
 #endif /* ENABLE_CRYPTO */
 #ifdef USE_COMP
 #ifdef ENABLE_LZO
@@ -524,7 +524,7 @@ static const char usage_message[] =
   "--keysize n     : Size of cipher key in bits (optional).\n"
   "                  If unspecified, defaults to cipher-specific default.\n"
 #endif
-#ifndef ENABLE_CRYPTO_POLARSSL
+#ifndef ENABLE_CRYPTO_MBEDTLS
   "--engine [name] : Enable OpenSSL hardware crypto engine functionality.\n"
 #endif
   "--no-replay     : Disable replay protection.\n"
@@ -550,10 +550,10 @@ static const char usage_message[] =
   "                  number, such as 1 (default), 2, etc.\n"
   "--ca file       : Certificate authority file in .pem format containing\n"
   "                  root certificate.\n"
-#ifndef ENABLE_CRYPTO_POLARSSL
+#ifndef ENABLE_CRYPTO_MBEDTLS
   "--capath dir    : A directory of trusted certificates (CAs"
   " and CRLs).\n"
-#endif /* ENABLE_CRYPTO_POLARSSL */
+#endif /* ENABLE_CRYPTO_MBEDTLS */
   "--dh file       : File containing Diffie Hellman parameters\n"
   "                  in .pem format (for --tls-server only).\n"
   "                  Use \"openssl dhparam -out dh1024.pem 1024\" to generate.\n"
@@ -565,7 +565,7 @@ static const char usage_message[] =
   "    will accept from the peer.  If version is unrecognized and 'or-highest'\n"
   "    is specified, require max TLS version supported by SSL implementation.\n"
   "--tls-version-max <version> : sets the maximum TLS version we will use.\n"
-#ifndef ENABLE_CRYPTO_POLARSSL
+#ifndef ENABLE_CRYPTO_MBEDTLS
   "--pkcs12 file   : PKCS#12 file containing local private key, local certificate\n"
   "                  and optionally the root CA certificate.\n"
 #endif
@@ -1569,9 +1569,9 @@ show_settings (const struct options *o)
   SHOW_STR (prng_hash);
   SHOW_INT (prng_nonce_secret_len);
   SHOW_INT (keysize);
-#ifndef ENABLE_CRYPTO_POLARSSL
+#ifndef ENABLE_CRYPTO_MBEDTLS
   SHOW_BOOL (engine);
-#endif /* ENABLE_CRYPTO_POLARSSL */
+#endif /* ENABLE_CRYPTO_MBEDTLS */
   SHOW_BOOL (replay);
   SHOW_BOOL (mute_replay_warnings);
   SHOW_INT (replay_window);
@@ -1603,7 +1603,7 @@ show_settings (const struct options *o)
   else
 #endif
   SHOW_STR (priv_key_file);
-#ifndef ENABLE_CRYPTO_POLARSSL
+#ifndef ENABLE_CRYPTO_MBEDTLS
   SHOW_STR (pkcs12_file);
 #endif
 #ifdef ENABLE_CRYPTOAPI
@@ -2216,8 +2216,8 @@ options_postprocess_verify_ce (const struct options *options, const struct conne
 #endif
       if (options->pkcs12_file)
         {
-#ifdef ENABLE_CRYPTO_POLARSSL
-	  msg(M_USAGE, "Parameter --pkcs12 cannot be used with the PolarSSL version version of OpenVPN.");
+#ifdef ENABLE_CRYPTO_MBEDTLS
+	  msg(M_USAGE, "Parameter --pkcs12 cannot be used with the mbed TLS version version of OpenVPN.");
 #else
           if (options->ca_path)
 	    msg(M_USAGE, "Parameter --capath cannot be used when --pkcs12 is also specified.");
@@ -2235,11 +2235,11 @@ options_postprocess_verify_ce (const struct options *options, const struct conne
         }
       else
         {
-#ifdef ENABLE_CRYPTO_POLARSSL
+#ifdef ENABLE_CRYPTO_MBEDTLS
 	  if (!(options->ca_file))
 	    msg(M_USAGE, "You must define CA file (--ca)");
           if (options->ca_path)
-            msg(M_USAGE, "Parameter --capath cannot be used with the PolarSSL version version of OpenVPN.");
+            msg(M_USAGE, "Parameter --capath cannot be used with the mbed TLS version version of OpenVPN.");
 #else
 	  if ((!(options->ca_file)) && (!(options->ca_path)))
 	    msg(M_USAGE, "You must define CA file (--ca) or CA path (--capath)");
@@ -2298,7 +2298,7 @@ options_postprocess_verify_ce (const struct options *options, const struct conne
       MUST_BE_UNDEF (dh_file);
       MUST_BE_UNDEF (cert_file);
       MUST_BE_UNDEF (priv_key_file);
-#ifndef ENABLE_CRYPTO_POLARSSL
+#ifndef ENABLE_CRYPTO_MBEDTLS
       MUST_BE_UNDEF (pkcs12_file);
 #endif
       MUST_BE_UNDEF (cipher_list);
@@ -6566,7 +6566,7 @@ add_option (struct options *options,
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->test_crypto = true;
     }
-#ifndef ENABLE_CRYPTO_POLARSSL
+#ifndef ENABLE_CRYPTO_MBEDTLS
   else if (streq (p[0], "engine") && !p[2])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
@@ -6577,7 +6577,7 @@ add_option (struct options *options,
       else
 	options->engine = "auto";
     }  
-#endif /* ENABLE_CRYPTO_POLARSSL */
+#endif /* ENABLE_CRYPTO_MBEDTLS */
 #ifdef HAVE_EVP_CIPHER_CTX_SET_KEY_LENGTH
   else if (streq (p[0], "keysize") && p[1] && !p[2])
     {
@@ -6634,13 +6634,13 @@ add_option (struct options *options,
 	  options->ca_file_inline = p[2];
 	}
     }
-#ifndef ENABLE_CRYPTO_POLARSSL
+#ifndef ENABLE_CRYPTO_MBEDTLS
   else if (streq (p[0], "capath") && p[1] && !p[2])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->ca_path = p[1];
     }
-#endif /* ENABLE_CRYPTO_POLARSSL */
+#endif /* ENABLE_CRYPTO_MBEDTLS */
   else if (streq (p[0], "dh") && p[1] && ((streq (p[1], INLINE_FILE_TAG) && p[2]) || !p[2]) && !p[3])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
@@ -6717,7 +6717,7 @@ add_option (struct options *options,
 	  ~(SSLF_TLS_VERSION_MAX_MASK << SSLF_TLS_VERSION_MAX_SHIFT);
       options->ssl_flags |= (ver << SSLF_TLS_VERSION_MAX_SHIFT);
     }
-#ifndef ENABLE_CRYPTO_POLARSSL
+#ifndef ENABLE_CRYPTO_MBEDTLS
   else if (streq (p[0], "pkcs12") && p[1] && ((streq (p[1], INLINE_FILE_TAG) && p[2]) || !p[2]) && !p[3])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
@@ -6727,7 +6727,7 @@ add_option (struct options *options,
 	  options->pkcs12_file_inline = p[2];
 	}
     }
-#endif /* ENABLE_CRYPTO_POLARSSL */
+#endif /* ENABLE_CRYPTO_MBEDTLS */
   else if (streq (p[0], "askpass") && !p[2])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
@@ -6795,7 +6795,7 @@ add_option (struct options *options,
 		       string_substitute (p[1], ',', ' ', &options->gc),
 		       "tls-verify", true);
     }
-#ifndef ENABLE_CRYPTO_POLARSSL
+#ifndef ENABLE_CRYPTO_MBEDTLS
   else if (streq (p[0], "tls-export-cert") && p[1] && !p[2])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);

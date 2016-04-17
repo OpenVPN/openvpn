@@ -28,11 +28,11 @@
 #define OPENVPN_PLUGIN_VERSION 3
 
 #ifdef ENABLE_CRYPTO
-#ifdef ENABLE_CRYPTO_POLARSSL
-#include <polarssl/x509_crt.h>
+#ifdef ENABLE_CRYPTO_MBEDTLS
+#include <mbedtls/x509_crt.h>
 #ifndef __OPENVPN_X509_CERT_T_DECLARED
 #define __OPENVPN_X509_CERT_T_DECLARED
-typedef x509_crt openvpn_x509_cert_t;
+typedef mbedtls_x509_crt openvpn_x509_cert_t;
 #endif
 #else
 #include <openssl/x509.h>
@@ -277,13 +277,13 @@ struct openvpn_plugin_callbacks
 /**
  * Used by the openvpn_plugin_open_v3() function to indicate to the
  * plug-in what kind of SSL implementation OpenVPN uses.  This is
- * to avoid SEGV issues when OpenVPN is complied against PolarSSL
+ * to avoid SEGV issues when OpenVPN is complied against mbed TLS
  * and the plug-in against OpenSSL.
  */
 typedef enum {
   SSLAPI_NONE,
   SSLAPI_OPENSSL,
-  SSLAPI_POLARSSL
+  SSLAPI_MBEDTLS
 } ovpnSSLAPI;
 
 /**

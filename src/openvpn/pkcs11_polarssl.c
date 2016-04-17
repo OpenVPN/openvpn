@@ -24,7 +24,7 @@
  */
 
 /**
- * @file PKCS #11 PolarSSL backend
+ * @file PKCS #11 mbed TLS backend
  */
 
 #ifdef HAVE_CONFIG_H
@@ -35,12 +35,12 @@
 
 #include "syshead.h"
 
-#if defined(ENABLE_PKCS11) && defined(ENABLE_CRYPTO_POLARSSL)
+#if defined(ENABLE_PKCS11) && defined(ENABLE_CRYPTO_MBEDTLS)
 
 #include "errlevel.h"
 #include "pkcs11_backend.h"
-#include <polarssl/pkcs11.h>
-#include <polarssl/x509.h>
+#include <mbedtls/pkcs11.h>
+#include <mbedtls/x509.h>
 
 int
 pkcs11_init_tls_session(pkcs11h_certificate_t certificate,
@@ -50,21 +50,22 @@ pkcs11_init_tls_session(pkcs11h_certificate_t certificate,
 
   ASSERT (NULL != ssl_ctx);
 
-  ALLOC_OBJ_CLEAR (ssl_ctx->crt_chain, x509_crt);
-  if (pkcs11_x509_cert_init(ssl_ctx->crt_chain, certificate)) {
-      msg (M_FATAL, "PKCS#11: Cannot retrieve PolarSSL certificate object");
+  ALLOC_OBJ_CLEAR (ssl_ctx->crt_chain, mbedtls_x509_crt);
+  if (mbedtls_pkcs11_x509_cert_bind(ssl_ctx->crt_chain, certificate)) {
+      msg (M_FATAL, "PKCS#11: Cannot retrieve mbed TLS certificate object");
       goto cleanup;
   }
 
-  ALLOC_OBJ_CLEAR (ssl_ctx->priv_key_pkcs11, pkcs11_context);
-  if (pkcs11_priv_key_init(ssl_ctx->priv_key_pkcs11, certificate)) {
-      msg (M_FATAL, "PKCS#11: Cannot initialize PolarSSL private key object");
+  ALLOC_OBJ_CLEAR (ssl_ctx->priv_key_pkcs11, mbedtls_pkcs11_context);
+  if (mbedtls_pkcs11_priv_key_bind(ssl_ctx->priv_key_pkcs11, certificate)) {
+      msg (M_FATAL, "PKCS#11: Cannot initialize mbed TLS private key object");
       goto cleanup;
   }
 
-  ALLOC_OBJ_CLEAR (ssl_ctx->priv_key, pk_context);
-  if (!polar_ok(pk_init_ctx_rsa_alt(ssl_ctx->priv_key, ssl_ctx->priv_key_pkcs11,
-	ssl_pkcs11_decrypt, ssl_pkcs11_sign, ssl_pkcs11_key_len))) {
+  ALLOC_OBJ_CLEAR (ssl_ctx->priv_key, mbedtls_pk_context);
+  if (!mbed_ok(mbedtls_pk_setup_rsa_alt(ssl_ctx->priv_key,
+      ssl_ctx->priv_key_pkcs11, mbedtls_ssl_pkcs11_decrypt,
+      mbedtls_ssl_pkcs11_sign, mbedtls_ssl_pkcs11_key_len))) {
       goto cleanup;
   }
 
@@ -80,22 +81,22 @@ pkcs11_certificate_dn (pkcs11h_certificate_t cert, struct gc_arena *gc)
   char *ret = NULL;
   char dn[1024] = {0};
 
-  x509_crt polar_cert = {0};
+  mbedtls_x509_crt mbed_crt = {0};
 
-  if (pkcs11_x509_cert_init(&polar_cert, cert)) {
-      msg (M_FATAL, "PKCS#11: Cannot retrieve PolarSSL certificate object");
+  if (mbedtls_pkcs11_x509_cert_bind(&mbed_crt, cert)) {
+      msg (M_FATAL, "PKCS#11: Cannot retrieve mbed TLS certificate object");
       goto cleanup;
   }
 
-  if (-1 == x509_dn_gets (dn, sizeof(dn), &polar_cert.subject)) {
-      msg (M_FATAL, "PKCS#11: PolarSSL cannot parse subject");
+  if (-1 == mbedtls_x509_dn_gets (dn, sizeof(dn), &mbed_crt.subject)) {
+      msg (M_FATAL, "PKCS#11: mbed TLS cannot parse subject");
       goto cleanup;
   }
 
   ret = string_alloc(dn, gc);
 
 cleanup:
-  x509_crt_free(&polar_cert);
+  mbedtls_x509_crt_free(&mbed_crt);
 
   return ret;
 }
@@ -106,23 +107,23 @@ pkcs11_certificate_serial (pkcs11h_certificate_t cert, char *serial,
 {
   int ret = 1;
 
-  x509_crt polar_cert = {0};
+  mbedtls_x509_crt mbed_crt = {0};
 
-  if (pkcs11_x509_cert_init(&polar_cert, cert)) {
-      msg (M_FATAL, "PKCS#11: Cannot retrieve PolarSSL certificate object");
+  if (mbedtls_pkcs11_x509_cert_bind(&mbed_crt, cert)) {
+      msg (M_FATAL, "PKCS#11: Cannot retrieve mbed TLS certificate object");
       goto cleanup;
   }
 
-  if (-1 == x509_serial_gets (serial, serial_len, &polar_cert.serial)) {
-      msg (M_FATAL, "PKCS#11: PolarSSL cannot parse serial");
+  if (-1 == mbedtls_x509_serial_gets (serial, serial_len, &mbed_crt.serial)) {
+      msg (M_FATAL, "PKCS#11: mbed TLS cannot parse serial");
       goto cleanup;
   }
 
   ret = 0;
 
 cleanup:
-  x509_crt_free(&polar_cert);
+  mbedtls_x509_crt_free(&mbed_crt);
 
   return ret;
 }
-#endif /* defined(ENABLE_PKCS11) && defined(ENABLE_CRYPTO_POLARSSL) */
+#endif /* defined(ENABLE_PKCS11) && defined(ENABLE_CRYPTO_MBEDTLS) */

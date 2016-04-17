@@ -33,7 +33,7 @@
 #ifdef ENABLE_CRYPTO_OPENSSL
 #include "crypto_openssl.h"
 #endif
-#ifdef ENABLE_CRYPTO_POLARSSL
+#ifdef ENABLE_CRYPTO_MBEDTLS
 #include "crypto_polarssl.h"
 #endif
 #include "basic.h"
@@ -294,7 +294,7 @@ bool cipher_kt_mode_aead(const cipher_kt_t *cipher);
  * @param key_len 	Length of the key, in bytes
  * @param kt		Static cipher parameters to use
  * @param enc		Whether to encrypt or decrypt (either
- * 			\c POLARSSL_OP_ENCRYPT or \c POLARSSL_OP_DECRYPT).
+ * 			\c MBEDTLS_OP_ENCRYPT or \c MBEDTLS_OP_DECRYPT).
  */
 void cipher_ctx_init (cipher_ctx_t *ctx, uint8_t *key, int key_len,
     const cipher_kt_t *kt, int enc);
