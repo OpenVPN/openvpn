@@ -86,6 +86,13 @@ User-visible Changes
 - Removed --enable-password-save from configure. This option is now
   always enabled.
 
+- Stricter default TLS cipher list (override with ``--tls-cipher``), that now
+  also disables:
+
+  * Non-ephemeral key exchange using static (EC)DH keys
+  * DSS private keys
+
+
 Maintainer-visible changes
 --------------------------
 - OpenVPN no longer supports building with crypto support, but without TLS
