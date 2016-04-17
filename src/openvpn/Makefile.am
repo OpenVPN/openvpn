@@ -46,7 +46,7 @@ openvpn_SOURCES = \
 	comp-lz4.c comp-lz4.h \
 	crypto.c crypto.h crypto_backend.h \
 	crypto_openssl.c crypto_openssl.h \
-	crypto_polarssl.c crypto_polarssl.h \
+	crypto_mbedtls.c crypto_mbedtls.h \
 	dhcp.c dhcp.h \
 	errlevel.h \
 	error.c error.h \
@@ -80,7 +80,7 @@ openvpn_SOURCES = \
 	occ.c occ.h occ-inline.h \
 	pkcs11.c pkcs11.h pkcs11_backend.h \
 	pkcs11_openssl.c \
-	pkcs11_polarssl.c \
+	pkcs11_mbedtls.c \
 	openvpn.c openvpn.h \
 	options.c options.h \
 	otime.c otime.h \
@@ -105,11 +105,11 @@ openvpn_SOURCES = \
 	socks.c socks.h \
 	ssl.c ssl.h  ssl_backend.h \
 	ssl_openssl.c ssl_openssl.h \
-	ssl_polarssl.c ssl_polarssl.h \
+	ssl_mbedtls.c ssl_mbedtls.h \
 	ssl_common.h \
 	ssl_verify.c ssl_verify.h ssl_verify_backend.h \
 	ssl_verify_openssl.c ssl_verify_openssl.h \
-	ssl_verify_polarssl.c ssl_verify_polarssl.h \
+	ssl_verify_mbedtls.c ssl_verify_mbedtls.h \
 	status.c status.h \
 	syshead.h \
 	tun.c tun.h \

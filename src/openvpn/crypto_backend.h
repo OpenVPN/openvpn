@@ -34,7 +34,7 @@
 #include "crypto_openssl.h"
 #endif
 #ifdef ENABLE_CRYPTO_MBEDTLS
-#include "crypto_polarssl.h"
+#include "crypto_mbedtls.h"
 #endif
 #include "basic.h"
 

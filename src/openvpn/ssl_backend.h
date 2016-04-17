@@ -39,8 +39,8 @@
 #define SSLAPI SSLAPI_OPENSSL
 #endif
 #ifdef ENABLE_CRYPTO_MBEDTLS
-#include "ssl_polarssl.h"
-#include "ssl_verify_polarssl.h"
+#include "ssl_mbedtls.h"
+#include "ssl_verify_mbedtls.h"
 #define SSLAPI SSLAPI_MBEDTLS
 #endif
 

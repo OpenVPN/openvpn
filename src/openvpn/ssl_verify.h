@@ -41,7 +41,7 @@
 #include "ssl_verify_openssl.h"
 #endif
 #ifdef ENABLE_CRYPTO_MBEDTLS
-#include "ssl_verify_polarssl.h"
+#include "ssl_verify_mbedtls.h"
 #endif
 
 #include "ssl_verify_backend.h"

@@ -48,7 +48,7 @@
 
 #include <mbedtls/havege.h>
 
-#include "ssl_verify_polarssl.h"
+#include "ssl_verify_mbedtls.h"
 #include <mbedtls/debug.h>
 #include <mbedtls/error.h>
 #include <mbedtls/net.h>

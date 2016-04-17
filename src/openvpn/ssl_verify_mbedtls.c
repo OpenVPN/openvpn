@@ -37,7 +37,7 @@
 
 #if defined(ENABLE_CRYPTO) && defined(ENABLE_CRYPTO_MBEDTLS)
 
-#include "crypto_polarssl.h"
+#include "crypto_mbedtls.h"
 #include "ssl_verify.h"
 #include <mbedtls/asn1.h>
 #include <mbedtls/error.h>
