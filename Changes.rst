@@ -100,23 +100,28 @@ Behavioral changes
 - Do not randomize resolving of IP addresses in getaddr()
 
 
-
 Version 2.3.11
 ==============
 
 Behavioral changes
 ------------------
 
-- Stricter default TLS cipher list (override with ``--tls-cipher``), that now
-  also disables:
+- Stricter default TLS cipher list: disable various old/weak ciphers.
 
-  * Non-ephemeral key exchange using static (EC)DH keys
-  * DSS private keys
+  This can lead to 'no shared cipher' errors if one of the peers only accepts
+  the older/weaker ciphers.  Check your ``--tls-cipher`` settings if this is
+  the case.  Disabled ciphers:
 
+  * Export ciphers (these are broken on purpose...)
+  * Ciphers in the LOW and MEDIUM security cipher list of OpenSSL.
+    The LOW group contains ciphers that are considered insecure (such as DES),
+    and will be completely removed from OpenSSL in 1.1.0, the MEDIUM group
+    contains less-secure ciphers like RC4 and SEED.
+  * Ciphers that were not supported by OpenVPN anyway (cleans up the list)
 
 
 Version 2.3.10
-=============
+==============
 
 New features
 ------------
@@ -126,7 +131,7 @@ New features
 Behavioral changes
 ------------------
 
-- PolarSSL support changed from PolarSSL v1.2 to PolarSSL v1.3, 
+- PolarSSL support changed from PolarSSL v1.2 to PolarSSL v1.3,
   as v1.2 is end-of-support 2015-12-31.
 
 - fall back to using interface names for netsh.exe calls on
