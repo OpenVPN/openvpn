@@ -4,6 +4,9 @@
 #
 # (sample config, copy to t_client.rc and adapt to your environment)
 #
+# This script is also sourced by the example OpenVPN servers (Vagrant files).
+#
+# The example servers can be run for instant remote endpoints for t_client.sh
 #
 # define these - if empty, no tests will run
 #
@@ -21,9 +24,25 @@ else
 fi
 
 #
-# remote host (used as macro below)
+# Configuration for the test server started via vagrant
 #
-REMOTE=mytestserver
+VM_SERVER_KEY="${top_srcdir}/sample/sample-keys/server.key"
+VM_SERVER_CERT="${top_srcdir}/sample/sample-keys/server.crt"
+VM_SERVER_DH="${top_srcdir}/sample/sample-keys//dh2048.pem"
+
+#
+VM_SERVER_IP="10.8.0.1"
+# Passed as --server $VM_SERVER_NET $VM_SERVER_MASK
+VM_SERVER_NET="10.8.0.0"
+VM_SERVER_MASK="255.255.255.0"
+
+#
+# remote host (used as macro below and for the test server in the vm)
+# When the test server (Vagrant) is used, make sure that
+# the IP  equals the IP in Vagrantfile
+REMOTE_IP="192.168.33.67"
+REMOTE_PORT="51194"
+
 #
 # tests to run (list suffixes for config stanzas below)
 #
@@ -66,14 +85,14 @@ OPENVPN_BASE_P2P="..."
 #   specify IPv4+IPv6 addresses expected from server and ping targets
 #
 RUN_TITLE_1="testing tun/udp/ipv4+ipv6"
-OPENVPN_CONF_1="$OPENVPN_BASE_P2MP --dev tun --proto udp --remote $REMOTE --port 51194"
+OPENVPN_CONF_1="$OPENVPN_BASE_P2MP --dev tun --proto udp --remote ${REMOTE_IP} --port ${REMOTE_PORT}"
 PING4_HOSTS_1="10.100.50.1 10.100.0.1"
 PING6_HOSTS_1="2001:db8::1 2001:db8:a050::1"
 
 # Test 2: TCP / p2mp tun
 #
 RUN_TITLE_2="testing tun/tcp/ipv4+ipv6"
-OPENVPN_CONF_2="$OPENVPN_BASE_P2MP --dev tun --proto tcp --remote $REMOTE --port 51194"
+OPENVPN_CONF_2="$OPENVPN_BASE_P2MP --dev tun --proto tcp --remote ${REMOTE_IP} --port ${REMOTE_PORT}"
 PING4_HOSTS_2="10.100.51.1 10.100.0.1"
 PING6_HOSTS_2="2001:db8::1 2001:db8:a051::1"
 #

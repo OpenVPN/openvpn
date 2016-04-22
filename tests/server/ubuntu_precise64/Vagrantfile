@@ -1,0 +1,37 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+
+Vagrant.configure(2) do |config|
+  config.vm.box = "hashicorp/precise64"
+
+  # Create a private network, which allows host-only access to the machine
+  # using a specific IP.
+  #
+  # This IP is used in  t_client.rc (REMOTE_IP). Make sure that both are
+  # the same, if you want to use this Vagrant VM
+  config.vm.network "private_network", ip: "192.168.33.67", netmask: "24"
+
+  # Mount the source root under /openvpn.
+  # TODO: mount read-only
+  config.vm.synced_folder "../../..", "/openvpn"
+  config.vm.synced_folder "../scripts", "/scripts"
+
+  config.vm.provider "virtualbox" do |vb|
+     vb.memory = 1024
+     # for compiling; only works in 64 bit VMs
+     vb.cpus = 2
+     # Faster imports
+     vb.linked_clone = true if Vagrant::VERSION =~ /^1.8/
+  end
+
+   config.vm.provision "shell", inline: <<-SHELL
+
+sudo apt-get update
+sudo apt-get install  -y autoconf g++ make liblzo2-dev libpam0g-dev openssl libtool
+
+echo '/scripts/sync_codebase.sh && /scripts/compile.sh && sudo /scripts/start_server.sh' > ~vagrant/compile_and_run.sh
+chmod 755 ~vagrant/compile_and_run.sh
+chown vagrant:vagrant ~vagrant/compile_and_run.sh
+SHELL
+end
