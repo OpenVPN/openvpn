@@ -12,6 +12,8 @@
 MAINTAINERCLEANFILES = \
 	$(srcdir)/Makefile.in
 
+SUBDIRS = unit_tests
+
 test_scripts = t_client.sh t_lpback.sh t_cltsrv.sh
 
 TESTS_ENVIRONMENT = top_srcdir="$(top_srcdir)"
@@ -21,3 +23,7 @@ dist_noinst_SCRIPTS = \
 	$(test_scripts) \
 	t_cltsrv-down.sh
 
+.PHONY:	unit_tests
+unit_tests:
+	make -C unit_tests
+	make -C unit_tests unit_tests

@@ -1,0 +1,4 @@
+[submodule "vendor/cmocka"]
+	path = vendor/cmocka
+	url = git://git.cryptomilk.org/projects/cmocka.git
+	branch = master
