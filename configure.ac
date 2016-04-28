@@ -1197,6 +1197,19 @@ sampledir="\$(docdir)/sample"
 AC_SUBST([plugindir])
 AC_SUBST([sampledir])
 
+VENDOR_ROOT="\$(abs_top_builddir)/vendor/"
+VENDOR_DIST="\$(abs_top_builddir)/vendor/dist"
+VENDOR_BUILD_ROOT="\$(abs_top_builddir)/vendor/.build"
+AC_SUBST([VENDOR_ROOT])
+AC_SUBST([VENDOR_BUILD_ROOT])
+AC_SUBST([VENDOR_DIST])
+
+TEST_LDFLAGS="-lcmocka -L\$(abs_top_builddir)/vendor/dist/lib -Wl,-rpath,\$(abs_top_builddir)/vendor/dist/lib"
+TEST_CFLAGS="-I\$(top_srcdir)/include -I\$(abs_top_builddir)/vendor/dist/include"
+
+AC_SUBST([TEST_LDFLAGS])
+AC_SUBST([TEST_CFLAGS])
+
 AC_CONFIG_FILES([
 	version.sh
 	Makefile
@@ -1215,6 +1228,11 @@ AC_CONFIG_FILES([
 	src/plugins/auth-pam/Makefile
 	src/plugins/down-root/Makefile
 	tests/Makefile
+        tests/unit_tests/Makefile
+        tests/unit_tests/plugins/Makefile
+        tests/unit_tests/00_compile/Makefile
+        tests/unit_tests/plugins/auth-pam/Makefile
+        vendor/Makefile
 	sample/Makefile
 	doc/Makefile
 ])
