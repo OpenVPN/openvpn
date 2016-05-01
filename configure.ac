@@ -843,7 +843,8 @@ elif test "${with_crypto_library}" = "mbedtls"; then
 	saved_LIBS="${LIBS}"
 
 	if test -z "${MBEDTLS_CFLAGS}" -a -z "${MBEDTLS_LIBS}"; then
-	# if the user did not explicitly specify flags, try to autodetect
+		# if the user did not explicitly specify flags, try to autodetect
+		LIBS="${LIBS} -lmbedtls -lmbedcrypto -lmbedx509"
 		AC_CHECK_LIB(
 			[mbedtls],
 			[mbedtls_ssl_init],
