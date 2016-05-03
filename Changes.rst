@@ -91,9 +91,12 @@ User-visible Changes
   * Non-ephemeral key exchange using static (EC)DH keys
   * DSS private keys
 
-- PolarSSL builds: changed the tls_digest_N values exported to the script
+- mbed TLS builds: changed the tls_digest_N values exported to the script
   environment to be equal to the ones exported by OpenSSL builds, namely
   the certificate fingerprint (was the hash of the 'to be signed' data).
+
+- mbed TLS builds: minimum RSA key size is now 2048 bits.  Shorter keys will
+  not be accepted, both local and from the peer.
 
 
 Maintainer-visible changes

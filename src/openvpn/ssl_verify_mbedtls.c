@@ -65,13 +65,27 @@ verify_callback (void *session_obj, mbedtls_x509_crt *cert, int cert_depth,
   /* did peer present cert which was signed by our root cert? */
   if (*flags != 0)
     {
+      int ret = 0;
+      char errstr[512] = { 0 };
       char *subject = x509_get_subject(cert, &gc);
 
+      ret = mbedtls_x509_crt_verify_info (errstr, sizeof(errstr)-1, "", *flags);
+      if (ret <= 0 && !openvpn_snprintf(errstr, sizeof(errstr),
+	    "Could not retrieve error string, flags=%"PRIx32, *flags))
+	{
+	  errstr[0] = '\0';
+	}
+
       if (subject)
-	msg (D_TLS_ERRORS, "VERIFY ERROR: depth=%d, flags=%x, %s", cert_depth, *flags, subject);
+	{
+	  msg (D_TLS_ERRORS, "VERIFY ERROR: depth=%d, subject=%s: %s",
+	      cert_depth, subject, errstr);
+	}
       else
-	msg (D_TLS_ERRORS, "VERIFY ERROR: depth=%d, flags=%x, could not extract X509 "
-	      "subject string from certificate", *flags, cert_depth);
+	{
+	  msg (D_TLS_ERRORS, "VERIFY ERROR: depth=%d, (could not extract X509 "
+	      "subject string from certificate): %s", cert_depth, errstr);
+	}
 
       /* Leave flags set to non-zero to indicate that the cert is not ok */
     }
