@@ -844,11 +844,11 @@ elif test "${with_crypto_library}" = "mbedtls"; then
 
 	if test -z "${MBEDTLS_CFLAGS}" -a -z "${MBEDTLS_LIBS}"; then
 		# if the user did not explicitly specify flags, try to autodetect
-		LIBS="${LIBS} -lmbedtls -lmbedcrypto -lmbedx509"
+		LIBS="${LIBS} -lmbedtls -lmbedx509 -lmbedcrypto"
 		AC_CHECK_LIB(
 			[mbedtls],
 			[mbedtls_ssl_init],
-			[MBEDTLS_LIBS="-lmbedtls -lmbedcrypto -lmbedx509"],
+			[MBEDTLS_LIBS="-lmbedtls -lmbedx509 -lmbedcrypto"],
 			[AC_MSG_ERROR([Could not find mbed TLS.])],
 			[${PKCS11_HELPER_LIBS}]
 		)
