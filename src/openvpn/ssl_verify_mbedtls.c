@@ -60,7 +60,8 @@ verify_callback (void *session_obj, mbedtls_x509_crt *cert, int cert_depth,
   session->verified = false;
 
   /* Remember certificate hash */
-  cert_hash_remember (session, cert_depth, x509_get_sha1_hash(cert, &gc));
+  struct buffer cert_fingerprint = x509_get_sha256_fingerprint (cert, &gc);
+  cert_hash_remember (session, cert_depth, &cert_fingerprint);
 
   /* did peer present cert which was signed by our root cert? */
   if (*flags != 0)
@@ -196,12 +197,29 @@ backend_x509_get_serial_hex (mbedtls_x509_crt *cert, struct gc_arena *gc)
   return buf;
 }
 
-unsigned char *
-x509_get_sha1_hash (mbedtls_x509_crt *cert, struct gc_arena *gc)
+static struct buffer
+x509_get_fingerprint (const mbedtls_md_info_t *md_info, mbedtls_x509_crt *cert,
+    struct gc_arena *gc)
 {
-  unsigned char *sha1_hash = gc_malloc(SHA_DIGEST_LENGTH, false, gc);
-  mbedtls_sha1(cert->raw.p, cert->tbs.len, sha1_hash);
-  return sha1_hash;
+  const size_t md_size = mbedtls_md_get_size (md_info);
+  struct buffer fingerprint = alloc_buf_gc (md_size, gc);
+  mbedtls_md(md_info, cert->raw.p, cert->tbs.len, BPTR (&fingerprint));
+  ASSERT (buf_inc_len(&fingerprint, md_size));
+  return fingerprint;
+}
+
+struct buffer
+x509_get_sha1_fingerprint (mbedtls_x509_crt *cert, struct gc_arena *gc)
+{
+  return x509_get_fingerprint(mbedtls_md_info_from_type(MBEDTLS_MD_SHA1),
+      cert, gc);
+}
+
+struct buffer
+x509_get_sha256_fingerprint (mbedtls_x509_crt *cert, struct gc_arena *gc)
+{
+  return x509_get_fingerprint(mbedtls_md_info_from_type(MBEDTLS_MD_SHA256),
+      cert, gc);
 }
 
 char *
@@ -294,12 +312,20 @@ x509_setenv_track (const struct x509_track *xt, struct env_set *es,
     {
       if (depth == 0 || (xt->flags & XT_FULL_CHAIN))
 	{
-	  if (0 == strcmp(xt->name, "SHA1"))
+	  if (0 == strcmp(xt->name, "SHA1") || 0 == strcmp(xt->name, "SHA256"))
 	    {
-	      /* SHA1 fingerprint is not part of X509 structure */
-	      unsigned char *sha1_hash = x509_get_sha1_hash(cert, &gc);
-	      char *sha1_fingerprint = format_hex_ex(sha1_hash, SHA_DIGEST_LENGTH, 0, 1 | FHE_CAPS, ":", &gc);
-	      do_setenv_x509(es, xt->name, sha1_fingerprint, depth);
+	      /* Fingerprint is not part of X509 structure */
+	      struct buffer cert_hash;
+	      char *fingerprint;
+
+	      if (0 == strcmp(xt->name, "SHA1"))
+		cert_hash = x509_get_sha1_fingerprint(cert, &gc);
+	      else
+		cert_hash = x509_get_sha256_fingerprint(cert, &gc);
+
+	      fingerprint = format_hex_ex(BPTR(&cert_hash),
+		  BLEN(&cert_hash), 0, 1 | FHE_CAPS, ":", &gc);
+	      do_setenv_x509(es, xt->name, fingerprint, depth);
 	    }
 	  else
 	    {

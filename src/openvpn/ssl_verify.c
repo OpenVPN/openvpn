@@ -191,40 +191,25 @@ tls_username (const struct tls_multi *multi, const bool null)
 }
 
 void
-cert_hash_remember (struct tls_session *session, const int error_depth, const unsigned char *sha1_hash)
+cert_hash_remember (struct tls_session *session, const int error_depth,
+    const struct buffer *cert_hash)
 {
   if (error_depth >= 0 && error_depth < MAX_CERT_DEPTH)
     {
       if (!session->cert_hash_set)
-	ALLOC_OBJ_CLEAR (session->cert_hash_set, struct cert_hash_set);
-      if (!session->cert_hash_set->ch[error_depth])
-	ALLOC_OBJ (session->cert_hash_set->ch[error_depth], struct cert_hash);
-      {
-	struct cert_hash *ch = session->cert_hash_set->ch[error_depth];
-	memcpy (ch->sha1_hash, sha1_hash, SHA_DIGEST_LENGTH);
-      }
-    }
-}
-
-#if 0
-static void
-cert_hash_print (const struct cert_hash_set *chs, int msglevel)
-{
-  struct gc_arena gc = gc_new ();
-  msg (msglevel, "CERT_HASH");
-  if (chs)
-    {
-      int i;
-      for (i = 0; i < MAX_CERT_DEPTH; ++i)
 	{
-	  const struct cert_hash *ch = chs->ch[i];
-	  if (ch)
-	    msg (msglevel, "%d:%s", i, format_hex(ch->sha1_hash, SHA_DIGEST_LENGTH, 0, &gc));
+	  ALLOC_OBJ_CLEAR (session->cert_hash_set, struct cert_hash_set);
 	}
+      if (!session->cert_hash_set->ch[error_depth])
+	{
+	  ALLOC_OBJ (session->cert_hash_set->ch[error_depth], struct cert_hash);
+	}
+
+      struct cert_hash *ch = session->cert_hash_set->ch[error_depth];
+      ASSERT (sizeof (ch->sha256_hash) == BLEN (cert_hash));
+      memcpy (ch->sha256_hash, BPTR (cert_hash), sizeof (ch->sha256_hash));
     }
-  gc_free (&gc);
 }
-#endif
 
 void
 cert_hash_free (struct cert_hash_set *chs)
@@ -251,7 +236,8 @@ cert_hash_compare (const struct cert_hash_set *chs1, const struct cert_hash_set 
 
 	  if (!ch1 && !ch2)
 	    continue;
-	  else if (ch1 && ch2 && !memcmp (ch1->sha1_hash, ch2->sha1_hash, SHA_DIGEST_LENGTH))
+	  else if (ch1 && ch2 && !memcmp (ch1->sha256_hash, ch2->sha256_hash,
+	      sizeof(ch1->sha256_hash)))
 	    continue;
 	  else
 	    return false;
@@ -278,7 +264,8 @@ cert_hash_copy (const struct cert_hash_set *chs)
 	  if (ch)
 	    {
 	      ALLOC_OBJ (dest->ch[i], struct cert_hash);
-	      memcpy (dest->ch[i]->sha1_hash, ch->sha1_hash, SHA_DIGEST_LENGTH);
+	      memcpy (dest->ch[i]->sha256_hash, ch->sha256_hash,
+		  sizeof(dest->ch[i]->sha256_hash));
 	    }
 	}
     }
@@ -416,13 +403,19 @@ verify_cert_set_env(struct env_set *es, openvpn_x509_cert_t *peer_cert, int cert
   setenv_str (es, envname, common_name);
 #endif
 
-  /* export X509 cert SHA1 fingerprint */
+  /* export X509 cert fingerprints */
   {
-    unsigned char *sha1_hash = x509_get_sha1_hash(peer_cert, &gc);
+    struct buffer sha1 = x509_get_sha1_fingerprint(peer_cert, &gc);
+    struct buffer sha256 = x509_get_sha256_fingerprint(peer_cert, &gc);
 
     openvpn_snprintf (envname, sizeof(envname), "tls_digest_%d", cert_depth);
-    setenv_str (es, envname, format_hex_ex(sha1_hash, SHA_DIGEST_LENGTH, 0, 1,
-					  ":", &gc));
+    setenv_str (es, envname,
+	format_hex_ex(BPTR(&sha1), BLEN(&sha1), 0, 1, ":", &gc));
+
+    openvpn_snprintf (envname, sizeof(envname), "tls_digest_sha256_%d",
+	cert_depth);
+    setenv_str (es, envname,
+	format_hex_ex(BPTR(&sha256), BLEN(&sha256), 0, 1, ":", &gc));
   }
 
   /* export serial number as environmental variable */
@@ -638,8 +631,8 @@ verify_cert(struct tls_session *session, openvpn_x509_cert_t *cert, int cert_dep
   /* verify level 1 cert, i.e. the CA that signed our leaf cert */
   if (cert_depth == 1 && opt->verify_hash)
     {
-      unsigned char *sha1_hash = x509_get_sha1_hash(cert, &gc);
-      if (memcmp (sha1_hash, opt->verify_hash, SHA_DIGEST_LENGTH))
+      struct buffer sha1_hash = x509_get_sha1_fingerprint(cert, &gc);
+      if (memcmp (BPTR (&sha1_hash), opt->verify_hash, BLEN(&sha1_hash)))
       {
 	msg (D_TLS_ERRORS, "TLS Error: level-1 certificate hash verification failed");
 	goto cleanup;

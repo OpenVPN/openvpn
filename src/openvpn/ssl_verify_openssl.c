@@ -61,8 +61,8 @@ verify_callback (int preverify_ok, X509_STORE_CTX * ctx)
   session = (struct tls_session *) SSL_get_ex_data (ssl, mydata_index);
   ASSERT (session);
 
-  cert_hash_remember (session, ctx->error_depth,
-      x509_get_sha1_hash(ctx->current_cert, &gc));
+  struct buffer cert_hash = x509_get_sha256_fingerprint(ctx->current_cert, &gc);
+  cert_hash_remember (session, ctx->error_depth, &cert_hash);
 
   /* did peer present cert which was signed by our root cert? */
   if (!preverify_ok)
@@ -248,11 +248,21 @@ backend_x509_get_serial_hex (openvpn_x509_cert_t *cert, struct gc_arena *gc)
   return format_hex_ex(asn1_i->data, asn1_i->length, 0, 1, ":", gc);
 }
 
-unsigned char *
-x509_get_sha1_hash (X509 *cert, struct gc_arena *gc)
+struct buffer
+x509_get_sha1_fingerprint (X509 *cert, struct gc_arena *gc)
 {
-  unsigned char *hash = gc_malloc(SHA_DIGEST_LENGTH, false, gc);
-  memcpy(hash, cert->sha1_hash, SHA_DIGEST_LENGTH);
+  struct buffer hash = alloc_buf_gc(sizeof(cert->sha1_hash), gc);
+  memcpy(BPTR(&hash), cert->sha1_hash, sizeof(cert->sha1_hash));
+  ASSERT (buf_inc_len(&hash, sizeof (cert->sha1_hash)));
+  return hash;
+}
+
+struct buffer
+x509_get_sha256_fingerprint (X509 *cert, struct gc_arena *gc)
+{
+  struct buffer hash = alloc_buf_gc((EVP_sha256())->md_size, gc);
+  X509_digest(cert, EVP_sha256(), BPTR(&hash), NULL);
+  ASSERT (buf_inc_len(&hash, (EVP_sha256())->md_size));
   return hash;
 }
 
@@ -376,10 +386,19 @@ x509_setenv_track (const struct x509_track *xt, struct env_set *es, const int de
 	  switch (xt->nid)
 	    {
 	    case NID_sha1:
+	    case NID_sha256:
 	      {
-		char *sha1_fingerprint = format_hex_ex(x509->sha1_hash,
-                                 SHA_DIGEST_LENGTH, 0, 1 | FHE_CAPS, ":", &gc);
-		do_setenv_x509(es, xt->name, sha1_fingerprint, depth);
+		struct buffer fp_buf;
+		char *fp_str = NULL;
+
+		if (xt->nid == NID_sha1)
+		  fp_buf = x509_get_sha1_fingerprint(x509, &gc);
+		else
+		  fp_buf = x509_get_sha256_fingerprint(x509, &gc);
+
+		fp_str = format_hex_ex(BPTR(&fp_buf), BLEN(&fp_buf), 0,
+		    1 | FHE_CAPS, ":", &gc);
+		do_setenv_x509(es, xt->name, fp_str, depth);
 	      }
 	      break;
 	    default:

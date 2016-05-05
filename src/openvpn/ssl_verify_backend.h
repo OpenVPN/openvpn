@@ -66,10 +66,10 @@ result_t verify_cert(struct tls_session *session, openvpn_x509_cert_t *cert, int
  *
  * @param session	TLS Session associated with this tunnel
  * @param cert_depth	Depth of the current certificate
- * @param sha1_hash	Hash of the current certificate
+ * @param cert_hash	Hash of the current certificate
  */
 void cert_hash_remember (struct tls_session *session, const int cert_depth,
-    const unsigned char *sha1_hash);
+    const struct buffer *cert_hash);
 
 /*
  * Library-specific functions.
@@ -87,14 +87,27 @@ void cert_hash_remember (struct tls_session *session, const int cert_depth,
  */
 char *x509_get_subject (openvpn_x509_cert_t *cert, struct gc_arena *gc);
 
-/* Retrieve the certificate's SHA1 hash.
+/**
+ * Retrieve the certificate's SHA1 fingerprint.
  *
- * @param cert		Certificate to retrieve the hash from.
+ * @param cert		Certificate to retrieve the fingerprint from.
  * @param gc		Garbage collection arena to use when allocating string.
  *
- * @return 		a string containing the SHA1 hash of the certificate
+ * @return 		a string containing the certificate fingerprint
  */
-unsigned char *x509_get_sha1_hash (openvpn_x509_cert_t *cert, struct gc_arena *gc);
+struct buffer x509_get_sha1_fingerprint (openvpn_x509_cert_t *cert,
+    struct gc_arena *gc);
+
+/**
+ * Retrieve the certificate's SHA256 fingerprint.
+ *
+ * @param cert		Certificate to retrieve the fingerprint from.
+ * @param gc		Garbage collection arena to use when allocating string.
+ *
+ * @return 		a string containing the certificate fingerprint
+ */
+struct buffer x509_get_sha256_fingerprint (openvpn_x509_cert_t *cert,
+    struct gc_arena *gc);
 
 /*
  * Retrieve the certificate's username from the specified field.

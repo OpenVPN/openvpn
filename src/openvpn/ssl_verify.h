@@ -55,7 +55,7 @@
 
 /** Structure containing the hash for a single certificate */
 struct cert_hash {
-  unsigned char sha1_hash[SHA_DIGEST_LENGTH]; /**< The SHA1 hash for a certificate */
+  unsigned char sha256_hash[256/8];
 };
 
 /** Structure containing the hashes for a full certificate chain */

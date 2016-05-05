@@ -6443,9 +6443,8 @@ Set prior to execution of the
 script.
 .\"*********************************************************
 .TP
-.B tls_digest_{n}
-Contains the certificate SHA1 fingerprint/digest hash value,
-where
+.B tls_digest_{n} / tls_digest_sha256_{n}
+Contains the certificate SHA1 / SHA256 fingerprint, where
 .B n
 is the verification level.  Only set for TLS connections.  Set prior
 to execution of
