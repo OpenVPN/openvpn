@@ -75,6 +75,10 @@ verify_callback (void *session_obj, mbedtls_x509_crt *cert, int cert_depth,
 	{
 	  errstr[0] = '\0';
 	}
+      else
+	{
+	  chomp(errstr);
+	}
 
       if (subject)
 	{
