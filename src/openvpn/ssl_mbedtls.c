@@ -363,11 +363,12 @@ tls_ctx_load_priv_file (struct tls_root_ctx *ctx, const char *priv_key_file,
 
   warn_if_group_others_accessible (priv_key_file);
 
-  /* TODO: Check Private Key */
-#if 0
-  if (!SSL_CTX_check_private_key (ctx))
-    msg (M_SSLERR, "Private key does not match the certificate");
-#endif
+  if (!mbed_ok(mbedtls_pk_check_pair(&ctx->crt_chain->pk, ctx->priv_key)))
+    {
+      msg (M_WARN, "Private key does not match the certificate");
+      return 1;
+    }
+
   return 0;
 }
 
