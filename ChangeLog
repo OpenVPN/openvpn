@@ -1,6 +1,51 @@
 OpenVPN Change Log
 Copyright (C) 2002-2015 OpenVPN Technologies, Inc. <sales@openvpn.net>
 
+2016.05.09 -- Version 2.3.11
+James Yonan (1):
+      Fixed port-share bug with DoS potential
+
+Jens Neuhalfen (2):
+      Make intent of utun device name validation clear
+      Fix buffer overflow by user supplied data
+
+Leonardo Basilio (1):
+      Correctly report TCP connection timeout on windows.
+
+Lev Stipakov (1):
+      Report Windows bitness
+
+Michael McConville (1):
+      Fix undefined signed shift overflow
+
+Niels Ole Salscheider (1):
+      Fix build with libressl
+
+Samuli Seppänen (1):
+      Improve LZO, PAM and OpenSSL documentation
+
+Selva Nair (2):
+      Ensure input read using systemd-ask-password is null terminated
+      Support reading the challenge-response from console
+
+Steffan Karger (10):
+      openssl: improve logging
+      polarssl: improve logging
+      Update manpage: OpenSSL might also need /dev/urandom inside chroot
+      socks.c: fix check on get_user_pass() return value(s)
+      Fix OCSP_check.sh
+      hardening: add safe FD_SET() wrapper openvpn_fd_set()
+      Fix memory leak in argv_extract_cmd_name()
+      Replace MSG_TEST() macro for static inline msg_test()
+      Restrict default TLS cipher list
+      Various Changes.rst fixes
+
+ValdikSS (3):
+      Clarify mssfix documentation
+      Clarify --block-outside-dns documentation
+      Update --block-outside-dns to work on Windows Vista
+
+
 2016.01.04 -- Version 2.3.10
 Gert Doering (1):
       Prepare for v2.3.10 release, list PolarSSL 1.2 to 1.3 upgrade
