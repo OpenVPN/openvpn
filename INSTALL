@@ -16,6 +16,10 @@ QUICK START:
 
     See INSTALL-win32.txt
 
+  Compile OpenVPN with OpenSSL/LZO built from source tarballs
+
+    See INSTALL-nonstandard.txt
+
 *************************************************************************
 
 To download OpenVPN, go to:
@@ -71,11 +75,26 @@ REQUIRES:
       a virtual point-to-point IP or Ethernet device.  See
       TUN/TAP Driver Configuration section below for more info.
 
+  (2) PAM/PAM-Devel (Pluggable Authentication Modules).  In most
+      Linux distributions, these packages are usually listed as
+      the following (here is what they look like on Fedora):
+
+      pam-1.1.8-18.fc22.x86_64.rpm (64-bit package)
+      pam-devel-1.1.8-18.fc.22.x86_64.rpm (64-bit package)
+
 OPTIONAL (but recommended):
   (1) OpenSSL library, necessary for encryption, version 0.9.8 or higher
-      required, available from http://www.openssl.org/
+      required, available from http://www.openssl.org/.  If you build
+      OpenSSL from source tarball, you will need to let OpenVPN-2.3.x
+      know where the libraries and header files were installed to:
+
+      If you configured OpenSSL with stock options, it will install
+      the headers (i.e. - .h files) in /usr/local/ssl/include and
+      the libraries (i.e. - .a or .so files) in /usr/local/ssl/lib/openssl
+
   (2) PolarSSL library, an alternative for encryption, version 1.1 or higher
       required, available from https://polarssl.org/
+
   (3) LZO real-time compression library, required for link compression,
       available from http://www.oberhumer.com/opensource/lzo/
       OpenBSD users can use ports or packages to install lzo, but remember
