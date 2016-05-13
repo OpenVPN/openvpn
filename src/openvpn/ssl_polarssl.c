@@ -176,7 +176,12 @@ tls_ctx_restrict_ciphers(struct tls_root_ctx *ctx, const char *ciphers)
 {
   char *tmp_ciphers, *tmp_ciphers_orig, *token;
   int i, cipher_count;
-  int ciphers_len = strlen (ciphers);
+  int ciphers_len;
+
+  if (NULL == ciphers)
+    return; /* Nothing to do */
+
+  ciphers_len = strlen (ciphers);
 
   ASSERT (NULL != ctx);
   ASSERT (0 != ciphers_len);
