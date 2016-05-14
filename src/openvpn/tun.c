@@ -68,7 +68,7 @@ static void netsh_ifconfig (const struct tuntap_options *to,
 			    const in_addr_t ip,
 			    const in_addr_t netmask,
 			    const unsigned int flags);
-static void netsh_command (const struct argv *a, int n);
+static void netsh_command (const struct argv *a, int n, int msglevel);
 
 static const char *netsh_get_id (const char *dev_node, struct gc_arena *gc);
 
@@ -1398,7 +1398,7 @@ do_ifconfig (struct tuntap *tt,
 			 NETSH_PATH_SUFFIX,
 			 iface,
 			 ifconfig_ipv6_local );
-	    netsh_command (&argv, 4);
+	    netsh_command (&argv, 4, M_FATAL);
 	  }
 
 	/* explicit route needed */
@@ -4597,7 +4597,7 @@ dhcp_renew (const struct tuntap *tt)
  */
 
 static void
-netsh_command (const struct argv *a, int n)
+netsh_command (const struct argv *a, int n, int msglevel)
 {
   int i;
   for (i = 0; i < n; ++i)
@@ -4612,7 +4612,7 @@ netsh_command (const struct argv *a, int n)
 	return;
       openvpn_sleep (4);
     }
-  msg (M_FATAL, "NETSH: command failed");
+  msg (msglevel, "NETSH: command failed");
 }
 
 void
@@ -4762,7 +4762,7 @@ netsh_ifconfig_options (const char *type,
 		   NETSH_PATH_SUFFIX,
 		   type,
 		   flex_name);
-      netsh_command (&argv, 2);
+      netsh_command (&argv, 2, M_FATAL);
     }
 
   /* add new DNS/WINS settings to TAP interface */
@@ -4783,7 +4783,7 @@ netsh_ifconfig_options (const char *type,
 			 type,
 			 flex_name,
 			 print_in_addr_t (addr_list[i], 0, &gc));
-	    netsh_command (&argv, 2);
+	    netsh_command (&argv, 2, M_FATAL);
 	  
 	    ++count;
 	  }
@@ -4858,7 +4858,7 @@ netsh_ifconfig (const struct tuntap_options *to,
 		       print_in_addr_t (ip, 0, &gc),
 		       print_in_addr_t (netmask, 0, &gc));
 
-	  netsh_command (&argv, 4);
+	  netsh_command (&argv, 4, M_FATAL);
 	}
     }
 
@@ -4904,7 +4904,7 @@ netsh_enable_dhcp (const struct tuntap_options *to,
 	       NETSH_PATH_SUFFIX,
 	       actual_name);
 
-  netsh_command (&argv, 4);
+  netsh_command (&argv, 4, M_FATAL);
 
   argv_reset (&argv);
 }
@@ -5648,7 +5648,7 @@ close_tun (struct tuntap *tt)
                            tt->actual_name,
                            ifconfig_ipv6_local);
 
-              netsh_command (&argv, 1);
+              netsh_command (&argv, 1, M_WARN);
               argv_reset (&argv);
             }
 	}
