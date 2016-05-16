@@ -2965,6 +2965,39 @@ as with a
 configuration file.  This option will ignore
 .B \-\-push
 options at the global config file level.
+.\"*********************************************************
+.TP
+.B \-\-push\-remove opt
+selectively remove all
+.B \-\-push
+options matching "opt" from the option list for a client.  "opt" is matched
+as a substring against the whole option string to-be-pushed to the client, so
+.B \-\-push\-remove route
+would remove all
+.B \-\-push route ...
+and
+.B \-\-push route-ipv6 ...
+statements, while
+.B \-\-push\-remove 'route-ipv6 2001:'
+would only remove IPv6 routes for 2001:... networks.
+
+.B \-\-push\-remove
+can only be used in a client-specific context, like in a
+.B \-\-client\-config\-dir
+file, or
+.B \-\-client\-connect
+script or plugin -- similar to
+.B \-\-push\-reset,
+just more selective.
+
+NOTE: to
+.I change
+an option,
+.B \-\-push\-remove
+can be used to first remove the old value, and then add a new
+.B \-\-push
+option with the new value.
+.\"*********************************************************
 .TP
 .B \-\-push\-peer\-info
 Push additional information about the client to server.  The additional information
@@ -3289,7 +3322,7 @@ without needing to restart the server.
 
 The following
 options are legal in a client-specific context:
-.B \-\-push, \-\-push\-reset, \-\-iroute, \-\-ifconfig\-push,
+.B \-\-push, \-\-push\-reset, \-\-push\-remove, \-\-iroute, \-\-ifconfig\-push,
 and
 .B \-\-config.
 .\"*********************************************************

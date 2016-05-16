@@ -61,6 +61,7 @@ void push_option (struct options *o, const char *opt, int msglevel);
 void push_options (struct options *o, char **p, int msglevel, struct gc_arena *gc);
 
 void push_reset (struct options *o);
+void push_remove_option (struct options *o, const char *p);
 
 void remove_iroutes_from_push_route_list (struct options *o);
 

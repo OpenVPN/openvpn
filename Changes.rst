@@ -5,6 +5,10 @@ Version 2.4.0
 New features
 ------------
 
+push-remove
+    new option to remove options on a per-client basis from the "push" list
+    (more fine-grained than "push-reset")
+
 keying-material-exporter
     Keying Material Exporter [RFC-5705] allow additional keying material to be
     derived from existing TLS channel.

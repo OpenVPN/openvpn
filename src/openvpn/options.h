@@ -432,6 +432,7 @@ struct options
   struct in6_addr push_ifconfig_ipv6_local;		/* IPv6 */
   int 		  push_ifconfig_ipv6_netbits;		/* IPv6 */
   struct in6_addr push_ifconfig_ipv6_remote;		/* IPv6 */
+  bool            push_ifconfig_ipv6_blocked;		/* IPv6 */
   bool enable_c2c;
   bool duplicate_cn;
   int cf_max;

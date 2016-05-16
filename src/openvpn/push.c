@@ -322,7 +322,8 @@ send_push_reply (struct context *c)
 
   buf_printf (&buf, "%s", cmd);
 
-  if ( c->c2.push_ifconfig_ipv6_defined )
+  if ( c->c2.push_ifconfig_ipv6_defined &&
+          !c->options.push_ifconfig_ipv6_blocked )
     {
       /* IPv6 is put into buffer first, could be lengthy */
       buf_printf( &buf, ",ifconfig-ipv6 %s/%d %s",
@@ -483,6 +484,37 @@ push_reset (struct options *o)
 {
   CLEAR (o->push_list);
 }
+
+void
+push_remove_option (struct options *o, const char *p)
+{
+  msg( D_PUSH, "PUSH_REMOVE '%s'", p );
+
+  /* ifconfig-ipv6 is special, as not part of the push list */
+  if ( streq( p, "ifconfig-ipv6" ))
+    {
+      o->push_ifconfig_ipv6_blocked = true;
+      return;
+    }
+
+  if (o && o->push_list.head )
+    {
+      struct push_entry *e = o->push_list.head;
+
+      /* cycle through the push list */
+      while (e)
+	{
+	  if ( e->enable &&
+               strncmp( e->option, p, strlen(p) ) == 0 )
+	    {
+	      msg (D_PUSH, "PUSH_REMOVE removing: '%s'", e->option);
+	      e->enable = false;
+	    }
+
+	  e = e->next;
+	}
+    }
+}
 #endif
 
 #if P2MP_SERVER
@@ -613,7 +645,8 @@ remove_iroutes_from_push_route_list (struct options *o)
 
 	  /* parse the push item */
 	  CLEAR (p);
-	  if (parse_line (e->option, p, SIZE (p), "[PUSH_ROUTE_REMOVE]", 1, D_ROUTE_DEBUG, &gc))
+	  if ( e->enable &&
+               parse_line (e->option, p, SIZE (p), "[PUSH_ROUTE_REMOVE]", 1, D_ROUTE_DEBUG, &gc))
 	    {
 	      /* is the push item a route directive? */
 	      if (p[0] && !strcmp (p[0], "route") && !p[3])
@@ -639,12 +672,12 @@ remove_iroutes_from_push_route_list (struct options *o)
 			}
 		    }
 		}
-	    }
 
-	  /* should we copy the push item? */
-	  e->enable = enable;
-	  if (!enable)
-	    msg (D_PUSH, "REMOVE PUSH ROUTE: '%s'", e->option);
+	      /* should we copy the push item? */
+	      e->enable = enable;
+	      if (!enable)
+		msg (D_PUSH, "REMOVE PUSH ROUTE: '%s'", e->option);
+	    }
 
 	  e = e->next;
 	}

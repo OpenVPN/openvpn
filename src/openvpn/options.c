@@ -5582,6 +5582,11 @@ add_option (struct options *options,
       VERIFY_PERMISSION (OPT_P_INSTANCE);
       push_reset (options);
     }
+  else if (streq (p[0], "push-remove") && p[1] && !p[2])
+    {
+      VERIFY_PERMISSION (OPT_P_INSTANCE);
+      push_remove_option (options,p[1]);
+    }
   else if (streq (p[0], "ifconfig-pool") && p[1] && p[2] && !p[4])
     {
       const int lev = M_WARN;
@@ -5930,6 +5935,7 @@ add_option (struct options *options,
       options->push_ifconfig_ipv6_local = local;
       options->push_ifconfig_ipv6_netbits = netbits;
       options->push_ifconfig_ipv6_remote = remote;
+      options->push_ifconfig_ipv6_blocked = false;
     }
   else if (streq (p[0], "disable") && !p[1])
     {
