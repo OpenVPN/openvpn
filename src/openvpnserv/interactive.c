@@ -597,6 +597,7 @@ HandleAddressMessage (address_message_t *msg, undo_lists_t *lists)
         goto out;
 
       free (RemoveListItem (&(*lists)[address], CmpAddress, addr_row));
+      return err;
     }
 
 out:
@@ -696,6 +697,7 @@ HandleRouteMessage (route_message_t *msg, undo_lists_t *lists)
         goto out;
 
       free (RemoveListItem (&(*lists)[route], CmpRoute, fwd_row));
+      return err;
     }
 
 out:
@@ -1474,9 +1476,13 @@ UpdateWaitHandles (LPHANDLE *handles_ptr, LPDWORD count,
       if (pos == size)
         {
           size += 10;
-          handles = realloc (handles, size * sizeof (HANDLE));
-          if (handles == NULL)
-            return ERROR_OUTOFMEMORY;
+	  void * tmp = realloc (handles, size * sizeof (HANDLE));
+ 	  if (tmp == NULL)
+	  {
+		free(handles);
+		return ERROR_OUTOFMEMORY;
+	  }
+	  handles = tmp;
         }
       handles[pos++] = threads->data;
       threads = threads->next;
