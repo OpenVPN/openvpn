@@ -4,15 +4,19 @@ CONTRIBUTING TO THE OPENVPN PROJECT
 Patches should be written against the Git "master" branch. Some patches may get
 backported to a release branch.
 
-We do not currently accept GitHub pull requests for the core OpenVPN project.
-Instead, all patches must be sent to "openvpn-devel" mailing list for review:
+The preferred procedure to send patches to the "openvpn-devel" mailing list:
 
 - https://lists.sourceforge.net/lists/listinfo/openvpn-devel
 
-The subject line should preferably be prefixed with [PATCH]. To avoid merging
-issues the patches should be generated with git-format-patch or sent using
-git-send-email. Try to split large patches into small, atomic pieces to make
-reviews easier.
+While we do not merge GitHub pull requests as-is, we do allow their use for code
+review purposes. After the patch has been ACKed (reviewed and accepted), it must
+be sent to the mailing list. This last step does not necessarily need to be done
+by the patch author, although that is definitely recommended.
+
+When sending patches to "openvpn-devel" the subject line should be prefixed with
+[PATCH]. To avoid merging issues the patches should be generated with
+git-format-patch or sent using git-send-email. Try to split large patches into
+small, atomic pieces to make reviews easier.
 
 If you want quick feedback on a patch before sending it to openvpn-devel mailing
 list, you can visit the #openvpn-devel channel on irc.freenode.net. Note that
