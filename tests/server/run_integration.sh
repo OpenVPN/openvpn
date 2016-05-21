@@ -147,7 +147,7 @@ colorize() {
 
   msg=${msg/FATAL/${ERROR}FATAL${color}}
   msg=${msg/FAIL/${ERROR}FAIL${color}}
-  echo $msg
+  echo "$msg"
 }
 
 # $1 : Source/Color schema: _S_erver, _C_lient, _I_ntegration (this script)
