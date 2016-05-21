@@ -169,7 +169,7 @@ print_log() {
 
 # Run the test command defined in $TEST_PROGRAM and halt the VM afterwards
 run_test() {
-  echo Starting Client
+  print_log "I" "Starting Client"
 
   #Important: run 'test | format' so that the exit code of test is not lost
   $TEST_PROGRAM 2>&1 | while read client_line
