@@ -12,39 +12,54 @@ TEST_PROGRAM=./launch_t_client.sh
 # keep empty for gracefull shutdoen
 FORCE_VM_SHUTDOWN=--force
 
+# The following values from t_client.rc are used
+#  - RUN_SUDO  : Only used when not already running as root
 
-#
-# t_client.rc
-#
+source_t_client_rc() {
+     srcdir="${srcdir:-..}"
+     top_builddir="${top_builddir:-../..}"
+
+     if [ -r "${top_builddir}"/t_client.rc ] ; then
+         print_log I "sourcing ${top_builddir}/t_client.rc"
+         . "${top_builddir}"/t_client.rc
+     elif [ -r "${srcdir}"/t_client.rc ] ; then
+         print_log I "sourcing ${srcdir}/t_client.rc"
+         . "${srcdir}"/t_client.rc
+     else
+         print_log Iw "t_client.sh neither found at '${top_builddir}/t_client.rc' nor '"${srcdir}"/t_client.rc'"
+         return 1
+     fi
+     return 0
+}
 
 # Make sure we trigger sudo password before starting the background processed
 # they mess up stdin/stdout and make sudo print the password.
 # Does _not_ fail without sudo/root. This is left to t_client.sh
+#
+# POST:
+#  - return code == 0: we are root OR have sucessfully launced sudo
+#  - return code != 0: not
 try_sudo_command_or_root() {
     ID=`id`
     if expr "$ID" : "uid=0" >/dev/null ; then
         print_log I "running as root. sudo not needed"
+        return 0
     else
-        srcdir="${srcdir:-..}"
-        top_builddir="${top_builddir:-../..}"
-
-        if [ -r "${top_builddir}"/t_client.rc ] ; then
-            print_log I "sourcing ${top_builddir}/t_client.rc"
-            . "${top_builddir}"/t_client.rc
-        elif [ -r "${srcdir}"/t_client.rc ] ; then
-            print_log I "sourcing ${srcdir}/t_client.rc"
-            . "${srcdir}"/t_client.rc
-        else
-            print_log Iw "t_client.sh neither found at '${top_builddir}/t_client.rc' nor '"${srcdir}"/t_client.rc'"
-        fi
-
         if [ -z "$RUN_SUDO" ] ; then
             print_log Iw "RUN_SUDO not defined and not running as root. t_client.sh wil propably fail."
+            return 1
         else
             # We have to use sudo. Make sure that we (hopefully) do not have
             # to ask the users password during the test. This is done to
             # prevent timing issues, e.g. when the waits for openvpn to start.
-            "$RUN_SUDO" \true || print_log Iw "'$RUN_SUDO' failed"
+            "$RUN_SUDO" \true
+            local -i sudo_exit_code=$?
+            if [ $sudo_exit_code = 0 ]; then
+                print_log I "sucessfully executed '$RUN_SUDO'"
+            else
+                print_log Iw "Failed to run '$RUN_SUDO'. t_client.sh wil propably fail."
+            fi
+            return $sudo_exit_code
         fi
     fi
 }
@@ -168,6 +183,7 @@ run_test() {
   return $result
 }
 
+source_t_client_rc
 try_sudo_command_or_root
 start_vm
 
