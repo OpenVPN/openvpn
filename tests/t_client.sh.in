@@ -361,18 +361,26 @@ print_test_results(){
     # see here for an explanation on the calling convention:
     #   http://stackoverflow.com/questions/1063347/passing-arrays-as-parameters-in-bash
     local -a test_ids=("${!1}")
-    local -a test_number_of_fails=("${!2}")
+    local -a test_names=("${!2}")
+    local -a test_number_of_fails=("${!3}")
 
     local summary_ok=""
     local summary_fail=""
 
-    for (( i = 0 ; i < ${#test_ids[@]} ; i++ )) do
-        if [ ${test_number_of_fails[$i]} == 0 ]; then
+    local fmt="| %2s | %-35s | %-20s |\n"
+
+    printf "$fmt" "ID" "TEST" "RESULT"
+    printf "$fmt" "--" "-----------------------------------" "--------------------"
+    for (( i = 0 ; i < ${#test_names[@]} ; i++ )) do
+        if [ ${test_number_of_fails[$i]} = 0 ]; then
             summary_ok="$summary_ok ${test_ids[$i]}"
+            printf "$fmt" "${test_ids[$i]}" "${test_names[$i]}" "[OK]"
         else
             summary_fail="$summary_fail ${test_ids[$i]}"
+            printf "$fmt" "${test_ids[$i]}" "${test_names[$i]}" "[FAIL: ${test_number_of_fails[$i]} fails]"
         fi
     done
+    printf "$fmt" "--" "-----------------------------------" "--------------------"
 
     if [ -z "$summary_ok" ] ; then summary_ok=" none"; fi
     if [ -z "$summary_fail" ] ; then summary_fail=" none"; fi
@@ -389,6 +397,7 @@ run_test_loop() {
     local -i any_test_failed=0
     local -i number_of_fails_in_test=0
     local -a test_ids
+    local -a test_names
     local -a test_number_of_fails
     local -i current_test_index=0
 
@@ -405,6 +414,7 @@ run_test_loop() {
         eval ping6_hosts=\"\$PING6_HOSTS_$SUF\"
 
         test_ids[$current_test_index]="$SUF"
+        test_names[$current_test_index]="$test_run_title"
 
         run_test "$test_prep" "$test_cleanup" "$test_run_title" "$openvpn_conf" "$expect_ifconfig4" "$expect_ifconfig6" "$ping4_hosts" "$ping6_hosts"
         number_of_fails_in_test=$?
@@ -416,7 +426,7 @@ run_test_loop() {
         current_test_index=$((current_test_index + 1))
     done
 
-    print_test_results test_ids[@] test_results[@]
+    print_test_results test_ids[@] test_names[@] test_results[@]
 
     return $any_test_failed
 }
