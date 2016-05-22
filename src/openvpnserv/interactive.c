@@ -1460,6 +1460,7 @@ UpdateWaitHandles (LPHANDLE *handles_ptr, LPDWORD count,
   if (handles == NULL)
     {
       handles = malloc (size * sizeof (HANDLE));
+      *handles_ptr = handles;
       if (handles == NULL)
         return ERROR_OUTOFMEMORY;
     }
@@ -1473,16 +1474,22 @@ UpdateWaitHandles (LPHANDLE *handles_ptr, LPDWORD count,
     {
       if (pos == size)
         {
+          LPHANDLE tmp;
           size += 10;
-          handles = realloc (handles, size * sizeof (HANDLE));
-          if (handles == NULL)
-            return ERROR_OUTOFMEMORY;
+          tmp = realloc (handles, size * sizeof (HANDLE));
+          if (tmp == NULL)
+            {
+              size -= 10;
+              *count = pos;
+              return ERROR_OUTOFMEMORY;
+            }
+          handles = tmp;
+          *handles_ptr = handles;
         }
       handles[pos++] = threads->data;
       threads = threads->next;
     }
 
-  *handles_ptr = handles;
   *count = pos;
   return NO_ERROR;
 }
@@ -1502,8 +1509,9 @@ ServiceStartInteractive (DWORD dwArgc, LPTSTR *lpszArgv)
   OVERLAPPED overlapped;
   DWORD error = NO_ERROR;
   list_item_t *threads = NULL;
-  PHANDLE handles;
+  PHANDLE handles = NULL;
   DWORD handle_count;
+  BOOL CmpHandle (LPVOID item, LPVOID hnd) { return item == hnd; }
 
   service = RegisterServiceCtrlHandlerEx (interactive_service.name, ServiceCtrlInteractive, &status);
   if (!service)
@@ -1566,14 +1574,18 @@ ServiceStartInteractive (DWORD dwArgc, LPTSTR *lpszArgv)
           HANDLE thread = CreateThread (NULL, 0, RunOpenvpn, pipe, CREATE_SUSPENDED, NULL);
           if (thread)
             {
-              error = AddListItem (&threads, thread) ||
-                UpdateWaitHandles (&handles, &handle_count, io_event, exit_event, threads);
+              error = AddListItem (&threads, thread);
+              if (!error)
+                error = UpdateWaitHandles (&handles, &handle_count, io_event, exit_event, threads);
               if (error)
                 {
+                  ReturnError (pipe, error, L"Insufficient resources to service new clients", 1, &exit_event);
+                  /* Update wait handles again after removing the last worker thread */
+                  RemoveListItem (&threads, CmpHandle, thread);
+                  UpdateWaitHandles (&handles, &handle_count, io_event, exit_event, threads);
                   TerminateThread (thread, 1);
                   CloseHandleEx (&thread);
                   CloseHandleEx (&pipe);
-                  SetEvent (exit_event);
                 }
               else
                 ResumeThread (thread);
@@ -1590,7 +1602,10 @@ ServiceStartInteractive (DWORD dwArgc, LPTSTR *lpszArgv)
           if (error == WAIT_FAILED)
             {
               MsgToEventLog (M_SYSERR, TEXT("WaitForMultipleObjects failed"));
-              continue;
+              SetEvent (exit_event);
+              /* Give some time for worker threads to exit and then terminate */
+              Sleep (1000);
+              break;
             }
           if (!threads)
             {
@@ -1602,7 +1617,6 @@ ServiceStartInteractive (DWORD dwArgc, LPTSTR *lpszArgv)
             }
 
           /* Worker thread ended */
-          BOOL CmpHandle (LPVOID item, LPVOID hnd) { return item == hnd; }
           HANDLE thread = RemoveListItem (&threads, CmpHandle, handles[error]);
           UpdateWaitHandles (&handles, &handle_count, io_event, exit_event, threads);
           CloseHandleEx (&thread);
