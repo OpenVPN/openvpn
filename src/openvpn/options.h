@@ -163,6 +163,23 @@ struct remote_host_store
   char port[RH_PORT_LEN];
 };
 
+#define PULL_FILTER_LIST_SIZE 64
+struct pull_filter
+{
+# define PUF_TYPE_UNDEF 0
+# define PUF_TYPE_ACCEPT 1
+# define PUF_TYPE_REJECT 2
+  int type;
+  int size;
+  char *filter;
+};
+
+struct pull_filter_list
+{
+  int len;
+  struct pull_filter *array[PULL_FILTER_LIST_SIZE];
+};
+
 /* Command line options */
 struct options
 {
@@ -597,6 +614,8 @@ struct options
   const char *keying_material_exporter_label;
   int keying_material_exporter_length;
 #endif
+
+  struct pull_filter_list *pull_filter_list;
 };
 
 #define streq(x, y) (!strcmp((x), (y)))
