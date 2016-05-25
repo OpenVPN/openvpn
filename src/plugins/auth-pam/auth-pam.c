@@ -39,7 +39,6 @@
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
-#include <stdbool.h>
 #include <unistd.h>
 #include <stdlib.h>
 #include <sys/types.h>
@@ -48,7 +47,7 @@
 #include <fcntl.h>
 #include <signal.h>
 #include <syslog.h>
-#include <stdint.h>
+#include "utils.h"
 
 #include <openvpn-plugin.h>
 
@@ -117,94 +116,6 @@ struct user_pass {
 /* Background process function */
 static void pam_server (int fd, const char *service, int verb, const struct name_value_list *name_value_list);
 
-/*  Read 'tosearch', replace all occurences of 'searchfor' with 'replacewith' and return
- *  a pointer to the NEW string.  Does not modify the input strings.  Will not enter an
- *  infinite loop with clever 'searchfor' and 'replacewith' strings.
- *  Daniel Johnson - Progman2000@usa.net / djohnson@progman.us
- *
- *  Retuns NULL when
- *   - any parameter is NULL
- *   - the worst-case result is to large ( >= SIZE_MAX)
- */
-static char *
-searchandreplace(const char *tosearch, const char *searchfor, const char *replacewith)
-{
-  if (!tosearch || !searchfor || !replacewith) return NULL;
-
-  size_t tosearchlen = strlen(tosearch);
-  size_t replacewithlen = strlen(replacewith);
-  size_t templen = tosearchlen * replacewithlen;
-
-  if (tosearchlen == 0 || strlen(searchfor) == 0 || replacewithlen == 0) {
-    return NULL;
-  }
-
-  bool is_potential_integer_overflow =  (templen == SIZE_MAX) || (templen / tosearchlen != replacewithlen);
-
-  if (is_potential_integer_overflow) {
-       return NULL;
-  }
-
-  // state: all parameters are valid
-
-  const char *searching=tosearch;
-  char *scratch;
-
-  char temp[templen+1];
-  temp[0]=0;
-
-  scratch = strstr(searching,searchfor);
-  if (!scratch) return strdup(tosearch);
-
-  while (scratch) {
-    strncat(temp,searching,scratch-searching);
-    strcat(temp,replacewith);
-
-    searching=scratch+strlen(searchfor);
-    scratch = strstr(searching,searchfor);
-  }
-  return strdup(temp);
-}
-
-/*
- * Given an environmental variable name, search
- * the envp array for its value, returning it
- * if found or NULL otherwise.
- */
-static const char *
-get_env (const char *name, const char *envp[])
-{
-  if (envp)
-    {
-      int i;
-      const int namelen = strlen (name);
-      for (i = 0; envp[i]; ++i)
-	{
-	  if (!strncmp (envp[i], name, namelen))
-	    {
-	      const char *cp = envp[i] + namelen;
-	      if (*cp == '=')
-		return cp + 1;
-	    }
-	}
-    }
-  return NULL;
-}
-
-/*
- * Return the length of a string array
- */
-static int
-string_array_len (const char *array[])
-{
-  int i = 0;
-  if (array)
-    {
-      while (array[i])
-	++i;
-    }
-  return i;
-}
 
 /*
  * Socket read/write functions.

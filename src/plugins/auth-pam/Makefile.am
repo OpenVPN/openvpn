@@ -18,6 +18,7 @@ dist_doc_DATA = README.auth-pam
 endif
 
 openvpn_plugin_auth_pam_la_SOURCES = \
+	utils.c \
 	auth-pam.c \
 	pamdl.c  pamdl.h \
 	auth-pam.exports
