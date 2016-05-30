@@ -13,6 +13,8 @@ For the latest version of OpenVPN, go to:
 
 To Build and Install,
 
+	autoreconf -i
+	autoconf
 	./configure
 	make
 	make install
