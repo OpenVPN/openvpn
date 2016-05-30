@@ -27,6 +27,9 @@ For detailed information on OpenVPN, including examples, see the man page
 For a sample VPN configuration, see
   http://openvpn.net/howto.html
 
+To report an issue, see
+  https://community.openvpn.net/openvpn/report
+
 For a description of OpenVPN's underlying protocol,
   see the file ssl.h included in the source distribution.
 
