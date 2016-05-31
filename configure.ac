@@ -1132,6 +1132,22 @@ TEST_CFLAGS="-I\$(top_srcdir)/include -I\$(abs_top_builddir)/vendor/dist/include
 AC_SUBST([TEST_LDFLAGS])
 AC_SUBST([TEST_CFLAGS])
 
+# Check if cmake is available and cmocka git submodule is initialized,
+# needed for unit testing
+AC_CHECK_PROGS([CMAKE], [cmake])
+if test -n "${CMAKE}"; then
+   if test -f vendor/cmocka/CMakeLists.txt; then
+      AM_CONDITIONAL([CMOCKA_INITIALIZED], [true])
+   else
+      AM_CONDITIONAL([CMOCKA_INITIALIZED], [false])
+      AC_MSG_RESULT([!! WARNING !! The cmoka git submodule has not been initialized or updated.  Unit testing cannot be performed.])
+   fi
+else
+   AC_MSG_RESULT([!! WARNING !! CMake is NOT available.  Unit testing cannot be performed.])
+   AM_CONDITIONAL([CMOCKA_INITIALIZED], [false])
+fi
+
+
 AC_CONFIG_FILES([
 	version.sh
 	Makefile
