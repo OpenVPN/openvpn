@@ -137,7 +137,7 @@ backend_x509_get_serial (openvpn_x509_cert_t *cert, struct gc_arena *gc)
   if (!polar_ok(mpi_read_binary(&serial_mpi, cert->serial.p, cert->serial.len)))
     {
       msg(M_WARN, "Failed to retrieve serial from certificate.");
-      return NULL;
+      goto end;
     }
 
   /* Determine decimal representation length, allocate buffer */
@@ -148,9 +148,12 @@ backend_x509_get_serial (openvpn_x509_cert_t *cert, struct gc_arena *gc)
   if (!polar_ok(mpi_write_string(&serial_mpi, 10, buf, &buflen)))
     {
       msg(M_WARN, "Failed to write serial to string.");
-      return NULL;
+      buf = NULL;
+      goto end;
     }
 
+end:
+  mpi_free(&serial_mpi);
   return buf;
 }
 
