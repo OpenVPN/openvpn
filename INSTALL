@@ -10,6 +10,8 @@ as published by the Free Software Foundation.
 QUICK START:
 
   Unix:
+    autoreconf -i
+    autoconf 
     ./configure && make && make-install
 
   Cross-compile for Windows on Unix
