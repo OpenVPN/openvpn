@@ -162,7 +162,7 @@ backend_x509_get_serial (mbedtls_x509_crt *cert, struct gc_arena *gc)
       cert->serial.len)))
     {
       msg(M_WARN, "Failed to retrieve serial from certificate.");
-      return NULL;
+      goto end;
     }
 
   /* Determine decimal representation length, allocate buffer */
@@ -173,9 +173,12 @@ backend_x509_get_serial (mbedtls_x509_crt *cert, struct gc_arena *gc)
   if (!mbed_ok(mbedtls_mpi_write_string(&serial_mpi, 10, buf, buflen, &buflen)))
     {
       msg(M_WARN, "Failed to write serial to string.");
-      return NULL;
+      buf = NULL;
+      goto end;
     }
 
+end:
+  mbedtls_mpi_free(&serial_mpi);
   return buf;
 }
 
