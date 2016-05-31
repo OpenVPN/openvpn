@@ -15,7 +15,9 @@ distdir:
 
 libcmocka: distdir
 	mkdir -p $(cmockabuild)
+if CMOCKA_INITIALIZED
 	(cd $(cmockabuild) && cmake -DCMAKE_INSTALL_PREFIX=$(cmockainstall) $(cmockasrc) && make && make install)
+endif
 
 check: libcmocka
 
