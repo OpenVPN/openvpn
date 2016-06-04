@@ -69,7 +69,6 @@ install:
   - cd ..
 
 script:
-  - which $CC
   - autoreconf -vi
   - ./configure $CONFIG
   - make > build.log 2>&1 || (cat build.log && exit 1)
