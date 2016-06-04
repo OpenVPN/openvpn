@@ -73,5 +73,5 @@ script:
   - autoreconf -vi
   - ./configure $CONFIG
   - make > build.log 2>&1 || (cat build.log && exit 1)
-  - ldd src/openvpn/openvpn
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then ldd src/openvpn/openvpn; fi
   - make check
