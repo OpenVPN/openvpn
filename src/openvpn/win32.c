@@ -1192,6 +1192,7 @@ win_wfp_uninit(const HANDLE msg_channel)
     else
       {
         delete_block_dns_filters (m_hEngineHandle);
+        m_hEngineHandle = NULL;
       }
 
     return true;
