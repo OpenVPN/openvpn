@@ -1717,7 +1717,7 @@ options_hash_changed_or_zero(const struct md5_digest *a,
 {
   const struct md5_digest zero = {{0}};
   return memcmp (a, b, sizeof(struct md5_digest)) ||
-      memcmp (a, &zero, sizeof(struct md5_digest));
+      !memcmp (a, &zero, sizeof(struct md5_digest));
 }
 #endif /* P2MP */
 
