@@ -15,7 +15,6 @@ env:
     - MBEDTLS_PREFIX=~/opt/mbed
     - MBEDTLS_LIBS="-L$MBEDTLS_PREFIX/lib -lmbedtls -lmbedx509 -lmbedcrypto"
     - MBEDTLS_CFLAGS="-I$MBEDTLS_PREFIX/include"
-    - LD_LIBRARY_PATH=$MBEDTLS_PREFIX/lib:$LD_LIBRARY_PATH
 
 matrix:
   include:
