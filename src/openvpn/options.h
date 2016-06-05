@@ -597,6 +597,8 @@ struct options
   const char *keying_material_exporter_label;
   int keying_material_exporter_length;
 #endif
+
+  struct pull_filter_list *pull_filter_list;
 };
 
 #define streq(x, y) (!strcmp((x), (y)))

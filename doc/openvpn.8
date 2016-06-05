@@ -3830,6 +3830,57 @@ in situations where you don't trust the server to have control
 over the client's routing table.
 .\"*********************************************************
 .TP
+.B \-\-pull\-filter accept|ignore|reject \fItext\fR
+Filter options received from the server if the option starts with
+\fItext\fR.  Runs on client. The action flag
+.B accept
+allows the option,
+.B ignore
+removes it and
+.B reject
+flags an error and triggers a SIGUSR1 restart.
+The filters may be specified multiple times, and each filter is
+applied in the order it is specified. The filtering of each
+option stops as soon as a match is found. Unmatched options are accepted
+by default.
+
+Prefix comparison is used to match \fItext\fR against the
+received option so that
+
+.nf
+.ft 3
+.in +4
+\-\-pull\-filter ignore "route"
+.in -4
+.ft
+.fi
+
+would remove all pushed options starting with
+.B route
+which would include, for example,
+.B route\-gateway.
+Enclose \fItext\fR in quotes to embed spaces.
+
+.nf
+.ft 3
+.in +4
+\-\-pull\-filter accept "route 192.168.1."
+\-\-pull\-filter ignore "route "
+.in -4
+.ft
+.fi
+
+would remove all routes that do not start with 192.168.1.
+
+This option may be used only on clients.
+Note that
+.B reject
+may result in a repeated cycle of failure and reconnect,
+unless multiple remotes are specified and connection to the next remote
+succeeds. To silently ignore an option pushed by the server, use
+.B ignore.
+.\"*********************************************************
+.TP
 .B \-\-auth\-user\-pass [up]
 Authenticate with server using username/password.
 .B up
