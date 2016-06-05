@@ -7,47 +7,60 @@ language: c
 
 compiler:
   - gcc
-  - clang
 
 env:
   global:
+    - JOBS=3
     - MBEDTLS_VERSION=2.2.1
     - MBEDTLS_PREFIX=~/opt/mbed
     - MBEDTLS_LIBS="-L$MBEDTLS_PREFIX/lib -lmbedtls -lmbedx509 -lmbedcrypto"
     - MBEDTLS_CFLAGS="-I$MBEDTLS_PREFIX/include"
+    - OPENSSL_VERSION=1.0.1t
+    - OPENSSL_PREFIX=~/opt/ssl
+    - OPENSSL_LIB=$OPENSSL_PREFIX/lib
+    - OPENSSL_INC=$OPENSSL_PREFIX/include
+    - OPENSSL_CFLAGS="-I$OPENSSL_PREFIX/include"
+    - OPENSSL_LIBS="-L$OPENSSL_PREFIX/lib -lssl -lcrypto"
+    - LD_LIBRARY_PATH=~/opt/ssl/lib:$LD_LIBRARY_PATH
 
 matrix:
   include:
-    - env: CONFIG="--disable-lzo"
+    - env: CONFIG="--with-crypto-library=openssl"
       compiler: gcc
-    - env: CONFIG="--disable-lzo"
+    - env: CONFIG="--with-crypto-library=openssl"
       compiler: clang
-    - env: CONFIG="--with-crypto-library=mbedtls --enable-crypto"
+    - env: CONFIG="--with-crypto-library=openssl --disable-lzo"
       compiler: gcc
-    - env: CONFIG="--with-crypto-library=mbedtls --enable-crypto"
+    - env: CONFIG="--with-crypto-library=openssl --disable-lzo"
       compiler: clang
-    - env: CONFIG=""
+    - env: CONFIG="--with-crypto-library=mbedtls"
+      compiler: gcc
+    - env: CONFIG="--with-crypto-library=mbedtls"
+      compiler: clang
+    - env: CONFIG="--with-crypto-library=openssl"
       os: osx
       osx_image: xcode6.4
       compiler: clang
-    - env: CONFIG="--with-crypto-library=mbedtls --enable-crypto"
+    - env: CONFIG="--with-crypto-library=mbedtls"
       os: osx
       osx_image: xcode7.3
       compiler: clang
-    - env: CONFIG="--with-crypto-library=mbedtls --enable-crypto"
+    - env: CONFIG="--with-crypto-library=mbedtls"
       os: osx
       osx_image: xcode6.4
       compiler: clang
   allow_failures:
     # These currently do not work on OS X but are being worked on by @chipitsine
-    - env: CONFIG=""
+    - env: CONFIG="--with-crypto-library=openssl"
       os: osx
       osx_image: xcode6.4
       compiler: clang
-    - env: CONFIG="--with-crypto-library=mbedtls --enable-crypto"
+    - env: CONFIG="--with-crypto-library=mbedtls"
       os: osx
       osx_image: xcode6.4
       compiler: clang
+  exclude:
+    - compiler: gcc
 
 addons:
   apt:
@@ -71,13 +84,20 @@ install:
   - mkdir ~/bin && ln -s $(which ccache) ~/bin/$CC && export PATH=$HOME/bin:$PATH
   - if [ ! -d download-cache ]; then mkdir download-cache; fi
   - if [ ! -f download-cache/mbedtls-${MBEDTLS_VERSION}-apache.tgz ]; then wget -O download-cache/mbedtls-${MBEDTLS_VERSION}-apache.tgz https://tls.mbed.org/download/mbedtls-${MBEDTLS_VERSION}-apache.tgz; fi
+  - if [ ! -f download-cache/openssl-${OPENSSL_VERSION}.tar.gz ]; then wget -O download-cache/openssl-${OPENSSL_VERSION}.tar.gz https://www.openssl.org/source/openssl-${OPENSSL_VERSION}.tar.gz; fi
   - tar zxf download-cache/mbedtls-${MBEDTLS_VERSION}-apache.tgz
   - cd mbedtls-${MBEDTLS_VERSION} && make > build.log 2>&1 || (cat build.log && exit 1)
   - make install DESTDIR=$MBEDTLS_PREFIX && cd ..
+  - tar zxf download-cache/openssl-${OPENSSL_VERSION}.tar.gz
+  - cd openssl-${OPENSSL_VERSION}/
+  - ./config shared --prefix=$OPENSSL_PREFIX -DPURIFY > build.log 2>&1 || (cat build.log && exit 1)
+  - make -j$JOBS > build.log 2>&1 || (cat build.log && exit 1)
+  - make install_sw > build.log 2>&1 || (cat build.log && exit 1)
+  - cd ..
 
 script:
   - autoreconf -vi
-  - ./configure $CONFIG
-  - make > build.log 2>&1 || (cat build.log && exit 1)
+  - ./configure $CONFIG || (cat config.log && exit 1)
+  - make -j$JOBS > build.log 2>&1 || (cat build.log && exit 1)
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then ldd src/openvpn/openvpn; fi
   - make check
