@@ -3830,6 +3830,32 @@ in situations where you don't trust the server to have control
 over the client's routing table.
 .\"*********************************************************
 .TP
+.B \-\-pull\-filter accept|reject opt
+Filter options matching
+.B opt
+pushed by the server:
+.B accept
+allows the option,
+.B reject
+removes it. May be specified multiple times, and each filter is
+applied in the order it is specified. The filtering of each pushed
+option stops as soon as a match (accept or reject) is found.
+
+Partial matching is used so that
+.B \-\-pull\-filter reject route
+would remove all pushed options starting with
+.B route
+which would include, for example,
+.B route\-gateway.
+.B \-\-pull\-filter accept "route 192.168.1."
+followed by
+.B \-\-pull\-filter reject "route "
+would reject all pushed routes that do not start with
+.B 192.168.1.
+
+May be used only on clients.
+.\"*********************************************************
+.TP
 .B \-\-auth\-user\-pass [up]
 Authenticate with server using username/password.
 .B up

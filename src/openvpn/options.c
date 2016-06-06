@@ -489,6 +489,10 @@ static const char usage_message[] =
   "--pull           : Accept certain config file options from the peer as if they\n"
   "                  were part of the local config file.  Must be specified\n"
   "                  when connecting to a '--mode server' remote host.\n"
+  "--pull-filter accept|reject opt : Selectively accept or reject a speciifed option\n"
+  "                                  pushed by the server. May be specified multiple times\n"
+  "                                  and each filter is applied in order of appearance.\n"
+  "                                  Uses strncmp for matching so partial strings may be used.\n"
   "--auth-retry t  : How to handle auth failures.  Set t to\n"
   "                  none (default), interact, or nointeract.\n"
   "--static-challenge t e : Enable static challenge/response protocol using\n"
@@ -1797,6 +1801,30 @@ alloc_remote_entry (struct options *options, const int msglevel)
   return e;
 }
 
+static struct pull_filter_list *
+alloc_pull_filter_list (struct options *o)
+{
+  if (!o->pull_filter_list)
+    ALLOC_OBJ_CLEAR_GC (o->pull_filter_list, struct pull_filter_list, &o->gc);
+  return o->pull_filter_list;
+}
+
+static struct pull_filter *
+alloc_pull_filter (struct options *o, const int msglevel)
+{
+  struct pull_filter_list *l = alloc_pull_filter_list (o);
+  struct pull_filter *f;
+
+  if (l->len >= PULL_FILTER_LIST_SIZE)
+    {
+      msg (msglevel, "Maximum number of 'pull-filter' options (%d) exceeded", PULL_FILTER_LIST_SIZE);
+      return NULL;
+    }
+  ALLOC_OBJ_GC (f, struct pull_filter, &o->gc);
+  l->array[l->len++] = f;
+  return f;
+}
+
 void
 connection_entry_load_re (struct connection_entry *ce, const struct remote_entry *re)
 {
@@ -2000,6 +2028,8 @@ options_postprocess_verify_ce (const struct options *options, const struct conne
 	msg (M_USAGE, "--mode server only works with --dev tun or --dev tap");
       if (options->pull)
 	msg (M_USAGE, "--pull cannot be used with --mode server");
+      if (options->pull_filter_list)
+	msg (M_USAGE, "--pull-filter cannot be used with --mode server");
       if (!(proto_is_udp(ce->proto) || ce->proto == PROTO_TCP_SERVER))
 	msg (M_USAGE, "--mode server currently only supports "
 	     "--proto udp or --proto tcp-server or proto tcp6-server");
@@ -3964,6 +3994,32 @@ parse_argv (struct options *options,
     }
 }
 
+static bool
+apply_pull_filter (const struct options *o, const char *line)
+{
+  int i;
+  struct pull_filter_list *l = o->pull_filter_list;
+
+  if (!l) return true;
+
+  for (i = 0; i < l->len; i++)
+    {
+      struct pull_filter *f = l->array[i];
+      if (f->type == PUF_TYPE_REJECT && strncmp (f->filter, line, f->size) == 0)
+        {
+          msg (D_PUSH, "Pushed option rejected by filter: '%s'", line);
+          return false;
+        }
+      else if (f->type == PUF_TYPE_ACCEPT && strncmp (f->filter, line, f->size) == 0)
+        {
+          msg (D_LOW, "Pushed option accepted by filter: '%s'", line);
+          return true;
+        }
+    }
+  /* accept by default */
+  return true;
+}
+
 bool
 apply_push_options (struct options *options,
 		    struct buffer *buf,
@@ -3981,6 +4037,10 @@ apply_push_options (struct options *options,
       char *p[MAX_PARMS];
       CLEAR (p);
       ++line_num;
+      if (!apply_pull_filter(options, line))
+        {
+          continue;
+        }
       if (parse_line (line, p, SIZE (p), file, line_num, msglevel, &options->gc))
 	{
 	  add_option (options, p, file, line_num, 0, msglevel, permission_mask, option_types_found, es);
@@ -5372,6 +5432,21 @@ add_option (struct options *options,
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->route_nopull = true;
+    }
+  else if (streq (p[0], "pull-filter") && p[1] && p[2] && !p[3])
+    {
+       VERIFY_PERMISSION (OPT_P_GENERAL)
+       struct pull_filter *f = alloc_pull_filter (options, msglevel);
+       if (!f)
+         goto err;
+       f->type = PUF_TYPE_UNDEF;
+       if (strcmp ("accept", p[1]) == 0)
+         f->type = PUF_TYPE_ACCEPT;
+       else if (strcmp ("reject", p[1]) == 0)
+         f->type = PUF_TYPE_REJECT;
+
+       f->filter = p[2];
+       f->size = strlen(p[2]);
     }
   else if (streq (p[0], "allow-pull-fqdn") && !p[1])
     {

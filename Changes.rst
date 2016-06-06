@@ -5,6 +5,10 @@ Version 2.4.0
 New features
 ------------
 
+pull-filter
+    New option to explicitly allow or reject options pushed by the server.
+    May be used multiple times and is applied in the order specified.
+
 push-remove
     new option to remove options on a per-client basis from the "push" list
     (more fine-grained than "push-reset")
