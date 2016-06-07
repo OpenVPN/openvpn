@@ -21,7 +21,6 @@ env:
     - OPENSSL_INC=$OPENSSL_PREFIX/include
     - OPENSSL_CFLAGS="-I$OPENSSL_PREFIX/include"
     - OPENSSL_LIBS="-L$OPENSSL_PREFIX/lib -lssl -lcrypto"
-    - LD_LIBRARY_PATH=~/opt/ssl/lib:$LD_LIBRARY_PATH
 
 matrix:
   include:
@@ -29,17 +28,26 @@ matrix:
       compiler: gcc
     - env: CONFIG="--with-crypto-library=openssl"
       compiler: clang
-    - env: CONFIG="--with-crypto-library=openssl --disable-lzo"
+    - env: CONFIG="--with-crypto-library=mbedtls"
       compiler: gcc
+    - env: CONFIG="--with-crypto-library=mbedtls"
+      compiler: clang
+    - env: CONFIG="--with-crypto-library=openssl --disable-crypto"
+      compiler: clang
     - env: CONFIG="--with-crypto-library=openssl --disable-lzo"
       compiler: clang
-    - env: CONFIG="--with-crypto-library=mbedtls"
-      compiler: gcc
-    - env: CONFIG="--with-crypto-library=mbedtls"
+    - env: CONFIG="--with-crypto-library=openssl --enable-small"
+      compiler: clang
+    - env: CONFIG="--with-crypto-library=openssl"
+      os: osx
+      osx_image: xcode7.3
       compiler: clang
     - env: CONFIG="--with-crypto-library=mbedtls"
       os: osx
       osx_image: xcode7.3
+      compiler: clang
+  allow_failures:
+    - env: CONFIG="--with-crypto-library=openssl --disable-crypto"
       compiler: clang
   exclude:
     - compiler: gcc
@@ -65,17 +73,8 @@ before_install:
 install:
   - mkdir ~/bin && ln -s $(which ccache) ~/bin/$CC && export PATH=$HOME/bin:$PATH
   - if [ ! -d download-cache ]; then mkdir download-cache; fi
-  - if [ ! -f download-cache/mbedtls-${MBEDTLS_VERSION}-apache.tgz ]; then wget -O download-cache/mbedtls-${MBEDTLS_VERSION}-apache.tgz https://tls.mbed.org/download/mbedtls-${MBEDTLS_VERSION}-apache.tgz; fi
-  - if [ ! -f download-cache/openssl-${OPENSSL_VERSION}.tar.gz ]; then wget -O download-cache/openssl-${OPENSSL_VERSION}.tar.gz https://www.openssl.org/source/openssl-${OPENSSL_VERSION}.tar.gz; fi
-  - tar zxf download-cache/mbedtls-${MBEDTLS_VERSION}-apache.tgz
-  - cd mbedtls-${MBEDTLS_VERSION} && make > build.log 2>&1 || (cat build.log && exit 1)
-  - make install DESTDIR=$MBEDTLS_PREFIX && cd ..
-  - tar zxf download-cache/openssl-${OPENSSL_VERSION}.tar.gz
-  - cd openssl-${OPENSSL_VERSION}/
-  - ./config shared --prefix=$OPENSSL_PREFIX -DPURIFY > build.log 2>&1 || (cat build.log && exit 1)
-  - make > build.log 2>&1 || (cat build.log && exit 1)
-  - make install_sw > build.log 2>&1 || (cat build.log && exit 1)
-  - cd ..
+  - if [[ $CONFIG == *"--with-crypto-library=openssl"* ]]; then .travis/build-openssl-${TRAVIS_OS_NAME}.sh; fi
+  - if [[ $CONFIG == *"--with-crypto-library=mbedtls"* ]]; then .travis/build-mbedtls-${TRAVIS_OS_NAME}.sh; fi
 
 script:
   - autoreconf -vi
