@@ -12,11 +12,11 @@ env:
   global:
     - JOBS=3
     - MBEDTLS_VERSION=2.2.1
-    - MBEDTLS_PREFIX=~/opt/mbed
+    - MBEDTLS_PREFIX=~/opt/mbedtls
     - MBEDTLS_LIBS="-L$MBEDTLS_PREFIX/lib -lmbedtls -lmbedx509 -lmbedcrypto"
     - MBEDTLS_CFLAGS="-I$MBEDTLS_PREFIX/include"
     - OPENSSL_VERSION=1.0.1t
-    - OPENSSL_PREFIX=~/opt/ssl
+    - OPENSSL_PREFIX=~/opt/openssl
     - OPENSSL_LIB=$OPENSSL_PREFIX/lib
     - OPENSSL_INC=$OPENSSL_PREFIX/include
     - OPENSSL_CFLAGS="-I$OPENSSL_PREFIX/include"
