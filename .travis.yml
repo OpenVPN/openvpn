@@ -37,27 +37,9 @@ matrix:
       compiler: gcc
     - env: CONFIG="--with-crypto-library=mbedtls"
       compiler: clang
-    - env: CONFIG="--with-crypto-library=openssl"
-      os: osx
-      osx_image: xcode6.4
-      compiler: clang
     - env: CONFIG="--with-crypto-library=mbedtls"
       os: osx
       osx_image: xcode7.3
-      compiler: clang
-    - env: CONFIG="--with-crypto-library=mbedtls"
-      os: osx
-      osx_image: xcode6.4
-      compiler: clang
-  allow_failures:
-    # These currently do not work on OS X but are being worked on by @chipitsine
-    - env: CONFIG="--with-crypto-library=openssl"
-      os: osx
-      osx_image: xcode6.4
-      compiler: clang
-    - env: CONFIG="--with-crypto-library=mbedtls"
-      os: osx
-      osx_image: xcode6.4
       compiler: clang
   exclude:
     - compiler: gcc
