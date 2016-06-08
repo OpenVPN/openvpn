@@ -2697,7 +2697,6 @@ union openvpn_pktinfo {
 static socklen_t
 link_socket_read_udp_posix_recvmsg (struct link_socket *sock,
 				    struct buffer *buf,
-				    int maxsize,
 				    struct link_socket_actual *from)
 {
   struct iovec iov;
@@ -2706,7 +2705,7 @@ link_socket_read_udp_posix_recvmsg (struct link_socket *sock,
   socklen_t fromlen = sizeof (from->dest.addr);
 
   iov.iov_base = BPTR (buf);
-  iov.iov_len = maxsize;
+  iov.iov_len = buf_forward_capacity_total (buf);
   mesg.msg_iov = &iov;
   mesg.msg_iovlen = 1;
   mesg.msg_name = &from->dest.addr;
@@ -2760,20 +2759,18 @@ link_socket_read_udp_posix_recvmsg (struct link_socket *sock,
 int
 link_socket_read_udp_posix (struct link_socket *sock,
 			    struct buffer *buf,
-			    int maxsize,
 			    struct link_socket_actual *from)
 {
   socklen_t fromlen = sizeof (from->dest.addr);
   socklen_t expectedlen = af_addr_size(proto_sa_family(sock->info.proto));
   addr_zero_host(&from->dest);
-  ASSERT (buf_safe (buf, maxsize));
 #if ENABLE_IP_PKTINFO
   /* Both PROTO_UDPv4 and PROTO_UDPv6 */
   if (proto_is_udp(sock->info.proto) && sock->sockflags & SF_USE_IP_PKTINFO)
-    fromlen = link_socket_read_udp_posix_recvmsg (sock, buf, maxsize, from);
+    fromlen = link_socket_read_udp_posix_recvmsg (sock, buf, from);
   else
 #endif
-    buf->len = recvfrom (sock->sd, BPTR (buf), maxsize, 0,
+    buf->len = recvfrom (sock->sd, BPTR (buf), buf_forward_capacity(buf), 0,
 			 &from->dest.addr.sa, &fromlen);
   if (buf->len >= 0 && expectedlen && fromlen != expectedlen)
     bad_address_length (fromlen, expectedlen);

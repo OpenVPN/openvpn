@@ -865,7 +865,6 @@ link_socket_read_udp_win32 (struct link_socket *sock,
 
 int link_socket_read_udp_posix (struct link_socket *sock,
 				struct buffer *buf,
-				int maxsize,
 				struct link_socket_actual *from);
 
 #endif
@@ -874,7 +873,6 @@ int link_socket_read_udp_posix (struct link_socket *sock,
 static inline int
 link_socket_read (struct link_socket *sock,
 		  struct buffer *buf,
-		  int maxsize,
 		  struct link_socket_actual *from)
 {
   if (proto_is_udp(sock->info.proto)) /* unified UDPv4 and UDPv6 */
@@ -884,7 +882,7 @@ link_socket_read (struct link_socket *sock,
 #ifdef WIN32
       res = link_socket_read_udp_win32 (sock, buf, from);
 #else
-      res = link_socket_read_udp_posix (sock, buf, maxsize, from);
+      res = link_socket_read_udp_posix (sock, buf, from);
 #endif
       return res;
     }

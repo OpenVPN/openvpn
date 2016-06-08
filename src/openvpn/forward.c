@@ -674,7 +674,6 @@ read_incoming_link (struct context *c)
 
   status = link_socket_read (c->c2.link_socket,
 			     &c->c2.buf,
-			     MAX_RW_SIZE_LINK (&c->c2.frame),
 			     &c->c2.from);
 
   if (socket_connection_reset (c->c2.link_socket, status))
