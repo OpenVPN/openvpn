@@ -2859,12 +2859,10 @@ multi_process_per_second_timers_dowork (struct multi_context *m)
 }
 
 void
-multi_top_init (struct multi_context *m, const struct context *top, const bool alloc_buffers)
+multi_top_init (struct multi_context *m, const struct context *top)
 {
   inherit_context_top (&m->top, top);
-  m->top.c2.buffers = NULL;
-  if (alloc_buffers)
-    m->top.c2.buffers = init_context_buffers (&top->c2.frame);
+  m->top.c2.buffers = init_context_buffers (&top->c2.frame);
 }
 
 void

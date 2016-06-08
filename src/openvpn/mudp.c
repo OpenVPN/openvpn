@@ -283,7 +283,7 @@ tunnel_server_udp_single_threaded (struct context *top)
   multi_init (&multi, top, false, MC_SINGLE_THREADED);
 
   /* initialize our cloned top object */
-  multi_top_init (&multi, top, true);
+  multi_top_init (&multi, top);
 
   /* initialize management interface */
   init_management_callback_multi (&multi);

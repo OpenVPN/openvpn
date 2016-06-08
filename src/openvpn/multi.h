@@ -233,7 +233,7 @@ const char *multi_instance_string (const struct multi_instance *mi, bool null, s
 void multi_init (struct multi_context *m, struct context *t, bool tcp_mode, int thread_mode);
 void multi_uninit (struct multi_context *m);
 
-void multi_top_init (struct multi_context *m, const struct context *top, const bool alloc_buffers);
+void multi_top_init (struct multi_context *m, const struct context *top);
 void multi_top_free (struct multi_context *m);
 
 struct multi_instance *multi_create_instance (struct multi_context *m, const struct mroute_addr *real);
