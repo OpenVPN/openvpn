@@ -417,6 +417,10 @@ struct context_2
   time_t update_timeout_random_component;
   struct timeval timeout_random_component;
 
+  /* Timer for everything up to the first packet from the *OpenVPN* server
+   * socks, http proxy, and tcp packets do not count */
+  struct event_timeout server_poll_interval;
+
   /* indicates that the do_up_delay function has run */
   bool do_up_ran;
 
@@ -471,8 +475,6 @@ struct context_2
   bool pulled_options_md5_init_done;
   md_ctx_t pulled_options_state;
   struct md5_digest pulled_options_digest;
-
-  struct event_timeout server_poll_interval;
 
   struct event_timeout scheduled_exit;
   int scheduled_exit_signal;

@@ -106,6 +106,13 @@ User-visible Changes
 - mbed TLS builds: minimum RSA key size is now 2048 bits.  Shorter keys will
   not be accepted, both local and from the peer.
 
+- --http-proxy-timeout and the static non-changeable socks timeout (5s)
+  have been folded into a "unified" --connect-timeout which covers all
+  steps needed to connect to the server, up to the start of the TLS exchange.
+  The default value has been raised to 120s, to handle slow http/socks
+  proxies graciously.  The old "fail TCP fast" behaviour can be achieved by
+  adding "--connect-timeout 10" to the client config.
+
 
 Maintainer-visible changes
 --------------------------

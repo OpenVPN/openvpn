@@ -41,6 +41,7 @@
 #include "httpdigest.h"
 #include "ntlm.h"
 #include "memdbg.h"
+#include "forward.h"
 
 #define UP_TYPE_PROXY        "HTTP Proxy"
 
@@ -52,7 +53,6 @@ init_http_proxy_options_once (struct http_proxy_options **hpo,
     {
       ALLOC_OBJ_CLEAR_GC (*hpo, struct http_proxy_options, gc);
       /* http proxy defaults */
-      (*hpo)->timeout = 5;
       (*hpo)->http_version = "1.0";
     }
   return *hpo;
@@ -255,6 +255,8 @@ clear_user_pass_http (void)
   purge_user_pass (&static_proxy_user_pass, true);
 }
 
+#if 0
+/* function only used in #if 0 debug statement */
 static void
 dump_residual (socket_descriptor_t sd,
 	       int timeout,
@@ -269,6 +271,7 @@ dump_residual (socket_descriptor_t sd,
       msg (D_PROXY, "PROXY HEADER: '%s'", buf);
     }
 }
+#endif
 
 /*
  * Extract the Proxy-Authenticate header from the stream.
@@ -552,6 +555,7 @@ establish_http_proxy_passthru (struct http_proxy_info *p,
 			       socket_descriptor_t sd, /* already open to proxy */
 			       const char *host,       /* openvpn server remote */
 			       const char *port,         /* openvpn server port */
+			       struct event_timeout* server_poll_timeout,
 			       struct buffer *lookahead,
 			       volatile int *signal_received)
 {
@@ -634,7 +638,7 @@ establish_http_proxy_passthru (struct http_proxy_info *p,
 	goto error;
 
       /* receive reply from proxy */
-      if (!recv_line (sd, buf, sizeof(buf), p->options.timeout, true, NULL, signal_received))
+      if (!recv_line (sd, buf, sizeof(buf), get_server_poll_remaining_time (server_poll_timeout), true, NULL, signal_received))
 	goto error;
 
       /* remove trailing CR, LF */
@@ -663,7 +667,7 @@ establish_http_proxy_passthru (struct http_proxy_info *p,
 
           while (true)
             {
-              if (!recv_line (sd, buf, sizeof(buf), p->options.timeout, true, NULL, signal_received))
+              if (!recv_line (sd, buf, sizeof(buf), get_server_poll_remaining_time (server_poll_timeout), true, NULL, signal_received))
                 goto error;
               chomp (buf);
               msg (D_PROXY, "HTTP proxy returned: '%s'", buf);
@@ -730,7 +734,7 @@ establish_http_proxy_passthru (struct http_proxy_info *p,
             goto error;
 
           /* receive reply from proxy */
-          if (!recv_line (sd, buf, sizeof(buf), p->options.timeout, true, NULL, signal_received))
+          if (!recv_line (sd, buf, sizeof(buf), get_server_poll_remaining_time (server_poll_timeout), true, NULL, signal_received))
             goto error;
 
           /* remove trailing CR, LF */
@@ -838,7 +842,7 @@ establish_http_proxy_passthru (struct http_proxy_info *p,
 		goto error;
 
 	      /* receive reply from proxy */
-	      if (!recv_line (sd, buf, sizeof(buf), p->options.timeout, true, NULL, signal_received))
+	      if (!recv_line (sd, buf, sizeof(buf), get_server_poll_remaining_time (server_poll_timeout), true, NULL, signal_received))
 		goto error;
 
 	      /* remove trailing CR, LF */
@@ -862,7 +866,7 @@ establish_http_proxy_passthru (struct http_proxy_info *p,
 	  /* figure out what kind of authentication the proxy needs */
 	  char *pa = NULL;
 	  const int method = get_proxy_authenticate(sd,
-						    p->options.timeout,
+						    get_server_poll_remaining_time (server_poll_timeout),
 						    &pa,
 						    NULL,
 						    signal_received);
@@ -906,7 +910,7 @@ establish_http_proxy_passthru (struct http_proxy_info *p,
       msg (D_LINK_ERRORS, "HTTP proxy returned bad status");
 #if 0
       /* DEBUGGING -- show a multi-line HTTP error response */
-      dump_residual(sd, p->options.timeout, signal_received);
+      dump_residual(sd, get_server_poll_remaining_time (server_poll_timeout), signal_received);
 #endif
       goto error;
     }
@@ -914,7 +918,7 @@ establish_http_proxy_passthru (struct http_proxy_info *p,
   /* SUCCESS */
 
   /* receive line from proxy and discard */
-  if (!recv_line (sd, NULL, 0, p->options.timeout, true, NULL, signal_received))
+  if (!recv_line (sd, NULL, 0, get_server_poll_remaining_time (server_poll_timeout), true, NULL, signal_received))
     goto error;
 
   /*

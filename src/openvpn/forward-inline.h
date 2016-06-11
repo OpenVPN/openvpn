@@ -125,7 +125,7 @@ check_server_poll_timeout (struct context *c)
 {
   void check_server_poll_timeout_dowork (struct context *c);
 
-  if (c->options.server_poll_timeout
+  if (c->options.ce.connect_timeout
       && event_timeout_trigger (&c->c2.server_poll_interval, &c->c2.timeval, ETT_DEFAULT))
     check_server_poll_timeout_dowork (c);
 }

@@ -186,6 +186,15 @@ event_timeout_modify_wakeup (struct event_timeout* et, interval_t n)
 }
 
 /*
+ * Will return the time left for a timeout, this function does not check
+ * if the timeout is actually valid
+ */
+static inline interval_t event_timeout_remaining (struct event_timeout* et)
+{
+   return (int) et->last + et->n - now;
+}
+
+/*
  * This is the principal function for testing and triggering recurring
  * timers and will return true on a timer signal event.
  * If et_const_retry == ETT_DEFAULT and a signal occurs,

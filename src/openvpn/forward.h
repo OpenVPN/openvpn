@@ -103,7 +103,7 @@ void show_wait_status (struct context *c);
  *     once for each remaining fragment with this parameter set to false.
  */
 void encrypt_sign (struct context *c, bool comp_frag);
-
+int get_server_poll_remaining_time (struct event_timeout* server_poll_timeout);
 
 /**********************************************************************/
 /**

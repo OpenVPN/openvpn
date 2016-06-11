@@ -357,7 +357,6 @@ block:
 .B http\-proxy,
 .B http\-proxy\-option,
 .B http\-proxy\-retry,
-.B http\-proxy\-timeout,
 .B link\-mtu,
 .B local,
 .B lport,
@@ -473,14 +472,6 @@ Wait
 seconds  between connection attempts (default=5).
 .\"*********************************************************
 .TP
-.B \-\-connect\-timeout n
-For
-.B \-\-proto tcp\-client,
-set connection timeout to
-.B n
-seconds (default=10).
-.\"*********************************************************
-.TP
 .B \-\-connect\-retry\-max n
 .B n
 specifies the number of times all
@@ -536,12 +527,6 @@ authentication protocols such as HTTP Basic Authentication.
 .B \-\-http\-proxy\-retry
 Retry indefinitely on HTTP proxy errors.  If an HTTP proxy error
 occurs, simulate a SIGUSR1 reset.
-.\"*********************************************************
-.TP
-.B \-\-http\-proxy\-timeout n
-Set proxy timeout to
-.B n
-seconds, default=5.
 .\"*********************************************************
 .TP
 .B \-\-http\-proxy\-option type [parm]
@@ -3976,14 +3961,12 @@ description of the OpenVPN challenge/response protocol.
 .\"*********************************************************
 .TP
 .B \-\-server\-poll\-timeout n
-when polling possible remote servers to connect to
-in a round-robin fashion, spend no more than
+.B \-\-connect\-timeout n
+when connecting to a remote server do not wait for more than
 .B n
 seconds waiting for a response before trying the next server.
-As this only makes sense in client-to-server setups, it cannot
-be used in point-to-point setups using
-.B \-\-secret
-symmetrical key mode.
+The default value is 120s. This timeout includes proxy and TCP
+connect timeouts.
 .\"*********************************************************
 .TP
 .B \-\-explicit\-exit\-notify [n]

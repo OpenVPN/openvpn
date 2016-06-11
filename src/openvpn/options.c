@@ -125,7 +125,6 @@ static const char usage_message[] =
   "                  p = udp6, tcp6-server, or tcp6-client (ipv6)\n"
   "--connect-retry n : For --proto tcp-client, number of seconds to wait\n"
   "                    between connection retries (default=%d).\n"
-  "--connect-timeout n : For --proto tcp-client, connection timeout (in seconds).\n"
   "--connect-retry-max n : Maximum connection attempt retries, default infinite.\n"
   "--http-proxy s p [up] [auth] : Connect to remote host\n"
   "                  through an HTTP proxy at address s and port p.\n"
@@ -137,7 +136,6 @@ static const char usage_message[] =
   "                  determine auth method and query for username/password\n"
   "                  if needed.  auto-nct disables weak proxy auth methods.\n"
   "--http-proxy-retry     : Retry indefinitely on HTTP proxy errors.\n"
-  "--http-proxy-timeout n : Proxy timeout in seconds, default=5.\n"
   "--http-proxy-option type [parm] : Set extended HTTP proxy options.\n"
   "                                  Repeat to set multiple options.\n"
   "                  VERSION version (default=1.0)\n"
@@ -498,7 +496,7 @@ static const char usage_message[] =
   "                  none (default), interact, or nointeract.\n"
   "--static-challenge t e : Enable static challenge/response protocol using\n"
   "                  challenge text t, with e indicating echo flag (0|1)\n"
-  "--server-poll-timeout n : when polling possible remote servers to connect to\n"
+  "--connect-timeout n : when polling possible remote servers to connect to\n"
   "                  in a round-robin fashion, spend no more than n seconds\n"
   "                  waiting for a response before trying the next server.\n"
 #endif
@@ -773,7 +771,7 @@ init_options (struct options *o, const bool init_gc)
   o->ce.af = AF_UNSPEC;
   o->ce.bind_ipv6_only = false;
   o->ce.connect_retry_seconds = 5;
-  o->ce.connect_timeout = 10;
+  o->ce.connect_timeout = 120;
   o->connect_retry_max = 0;
   o->ce.local_port = o->ce.remote_port = OPENVPN_PORT;
   o->verbosity = 1;
@@ -825,7 +823,6 @@ init_options (struct options *o, const bool init_gc)
 #endif
 #if P2MP
   o->scheduled_exit_interval = 5;
-  o->server_poll_timeout = 0;
 #endif
 #ifdef ENABLE_CRYPTO
   o->ciphername = "BF-CBC";
@@ -1333,7 +1330,6 @@ show_http_proxy_options (const struct http_proxy_options *o)
   SHOW_STR (auth_method_string);
   SHOW_STR (auth_file);
   SHOW_BOOL (retry);
-  SHOW_INT (timeout);
   SHOW_STR (http_version);
   SHOW_STR (user_agent);
   for  (i=0; i < MAX_CUSTOM_HTTP_HEADER && o->custom_headers[i].name;i++)
@@ -1754,7 +1750,6 @@ parse_http_proxy_override (const char *server,
       ho->server = string_alloc(server, gc);
       ho->port = port;
       ho->retry = true;
-      ho->timeout = 5;
       if (flags && !strcmp(flags, "nct"))
 	ho->auth_retry = PAR_NCT;
       else
@@ -1951,13 +1946,6 @@ options_postprocess_verify_ce (const struct options *options, const struct conne
   if (options->lladdr && dev != DEV_TYPE_TAP)
     msg (M_USAGE, "--lladdr can only be used in --dev tap mode");
  
-  /*
-   * Sanity check on TCP mode options
-   */
-  if (ce->connect_timeout_defined && ce->proto != PROTO_TCP_CLIENT)
-    msg (M_USAGE, "--connect-timeout doesn't make sense unless also used with "
-	 "--proto tcp-client or tcp6-client");
-
   /*
    * Sanity check on MTU parameters
    */
@@ -2410,9 +2398,6 @@ options_postprocess_verify_ce (const struct options *options, const struct conne
       MUST_BE_UNDEF (pkcs11_private_mode[0]);
       MUST_BE_UNDEF (pkcs11_id);
       MUST_BE_UNDEF (pkcs11_id_management);
-#endif
-#if P2MP
-      MUST_BE_UNDEF (server_poll_timeout);
 #endif
 
       if (pull)
@@ -4741,11 +4726,11 @@ add_option (struct options *options,
       VERIFY_PERMISSION (OPT_P_GENERAL|OPT_P_CONNECTION);
       options->ce.connect_retry_seconds = positive_atoi (p[1]);
     }
-  else if (streq (p[0], "connect-timeout") && p[1] && !p[2])
+  else if ((streq (p[0], "connect-timeout") || streq (p[0], "server-poll-timeout"))
+	    && p[1] && !p[2])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL|OPT_P_CONNECTION);
       options->ce.connect_timeout = positive_atoi (p[1]);
-      options->ce.connect_timeout_defined = true;
     }
   else if (streq (p[0], "connect-retry-max") && p[1] && !p[2])
     {
@@ -5238,11 +5223,9 @@ add_option (struct options *options,
     }
   else if (streq (p[0], "http-proxy-timeout") && p[1] && !p[2])
     {
-      struct http_proxy_options *ho;
-
       VERIFY_PERMISSION (OPT_P_GENERAL|OPT_P_CONNECTION);
-      ho = init_http_proxy_options_once (&options->ce.http_proxy_options, &options->gc);
-      ho->timeout = positive_atoi (p[1]);
+      msg (M_WARN, "DEPRECATED OPTION: http-proxy-timeout: In OpenVPN 2.4 the timeout until a connection to a "
+	   "server is established is managed with a single timeout set by connect-timeout");
     }
   else if (streq (p[0], "http-proxy-option") && p[1] && !p[4])
     {
@@ -5583,12 +5566,10 @@ add_option (struct options *options,
 	  options->push_peer_info = true;
 	}
 #endif
-#if P2MP
       else if (streq (p[1], "SERVER_POLL_TIMEOUT") && p[2])
 	{
-	  options->server_poll_timeout = positive_atoi(p[2]);
+	  options->ce.connect_timeout = positive_atoi(p[2]);
 	}
-#endif
       else
 	{
 	  if (streq (p[1], "FORWARD_COMPATIBLE") && p[2] && streq (p[2], "1"))
@@ -6128,11 +6109,6 @@ add_option (struct options *options,
     {
       VERIFY_PERMISSION (OPT_P_PULL_MODE);
       options->push_continuation = atoi(p[1]);
-    }
-  else if (streq (p[0], "server-poll-timeout") && p[1] && !p[2])
-    {
-      VERIFY_PERMISSION (OPT_P_GENERAL);
-      options->server_poll_timeout = positive_atoi(p[1]);
     }
   else if (streq (p[0], "auth-user-pass") && !p[2])
     {

@@ -40,6 +40,7 @@
 #include "misc.h"
 #include "manage.h"
 #include "openvpn.h"
+#include "forward.h"
 
 #include "memdbg.h"
 
@@ -1519,11 +1520,11 @@ link_socket_init_phase1 (struct link_socket *sock,
 			 const char *ipchange_command,
 			 const struct plugin_list *plugins,
 			 int resolve_retry_seconds,
-			 int connect_timeout,
 			 int mtu_discover_type,
 			 int rcvbuf,
 			 int sndbuf,
 			 int mark,
+			 struct event_timeout* server_poll_timeout,
 			 unsigned int sockflags)
 {
   ASSERT (sock);
@@ -1538,7 +1539,6 @@ link_socket_init_phase1 (struct link_socket *sock,
   sock->bind_local = bind_local;
   sock->inetd = inetd;
   sock->resolve_retry_seconds = resolve_retry_seconds;
-  sock->connect_timeout = connect_timeout;
   sock->mtu_discover_type = mtu_discover_type;
 
 #ifdef ENABLE_DEBUG
@@ -1558,6 +1558,7 @@ link_socket_init_phase1 (struct link_socket *sock,
   sock->info.bind_ipv6_only = bind_ipv6_only;
   sock->info.ipchange_command = ipchange_command;
   sock->info.plugins = plugins;
+  sock->server_poll_timeout = server_poll_timeout;
 
   sock->mode = mode;
   if (mode == LS_MODE_TCP_ACCEPT_FROM)
@@ -1778,7 +1779,7 @@ phase2_tcp_client (struct link_socket *sock, struct signal_info *sig_info)
   do {
     socket_connect (&sock->sd,
                    sock->info.lsa->current_remote->ai_addr,
-                   sock->connect_timeout,
+                   get_server_poll_remaining_time (sock->server_poll_timeout),
                    sig_info);
 
     if (sig_info->signal_received)
@@ -1790,6 +1791,7 @@ phase2_tcp_client (struct link_socket *sock, struct signal_info *sig_info)
 						     sock->sd,
 						     sock->proxy_dest_host,
 						     sock->proxy_dest_port,
+						     sock->server_poll_timeout,
 						     &sock->stream_buf.residual,
 						     &sig_info->signal_received);
       }
@@ -1816,7 +1818,7 @@ phase2_socks_client (struct link_socket *sock, struct signal_info *sig_info)
 {
     socket_connect (&sock->ctrl_sd,
 		    sock->info.lsa->current_remote->ai_addr,
-		    sock->connect_timeout,
+		    get_server_poll_remaining_time (sock->server_poll_timeout),
 		    sig_info);
 
     if (sig_info->signal_received)

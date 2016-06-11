@@ -200,7 +200,6 @@ struct link_socket
   int mode;
 
   int resolve_retry_seconds;
-  int connect_timeout;
   int mtu_discover_type;
 
   struct socket_buffer_size socket_buffer_sizes;
@@ -230,6 +229,10 @@ struct link_socket
   /* The OpenVPN server we will use the proxy to connect to */
   const char *proxy_dest_host;
   const char *proxy_dest_port;
+
+ /* Pointer to the server-poll to trigger the timeout in function which have
+  * their own loop instead of using the main oop */
+  struct event_timeout* server_poll_timeout;
 
 #if PASSTOS_CAPABILITY
   /* used to get/set TOS. */
@@ -319,11 +322,11 @@ link_socket_init_phase1 (struct link_socket *sock,
 			 const char *ipchange_command,
 			 const struct plugin_list *plugins,
 			 int resolve_retry_seconds,
-			 int connect_timeout,
 			 int mtu_discover_type,
 			 int rcvbuf,
 			 int sndbuf,
 			 int mark,
+			 struct event_timeout* server_poll_timeout,
 			 unsigned int sockflags);
 
 void link_socket_init_phase2 (struct link_socket *sock,

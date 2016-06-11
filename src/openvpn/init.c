@@ -1058,6 +1058,19 @@ reset_coarse_timers (struct context *c)
 }
 
 /*
+ * Initialise the server poll timeout timer
+ * This timer is used in the http/socks proxy setup so it needs to be setup
+ * before
+ */
+static void
+do_init_server_poll_timeout (struct context *c)
+{
+    update_time ();
+    if (c->options.ce.connect_timeout)
+	event_timeout_init (&c->c2.server_poll_interval, c->options.ce.connect_timeout, now);
+}
+
+/*
  * Initialize timers
  */
 static void
@@ -1077,11 +1090,6 @@ do_init_timers (struct context *c, bool deferred)
 
   if (c->options.ping_rec_timeout)
     event_timeout_init (&c->c2.ping_rec_interval, c->options.ping_rec_timeout, now);
-
-#if P2MP
-  if (c->options.server_poll_timeout)
-    event_timeout_init (&c->c2.server_poll_interval, c->options.server_poll_timeout, now);
-#endif
 
   if (!deferred)
     {
@@ -1969,11 +1977,6 @@ socket_restart_pause (struct context *c)
 #if P2MP
   if (auth_retry_get () == AR_NOINTERACT)
     sec = 10;
-
-#if 0 /* not really needed because of c->persist.restart_sleep_seconds */
-  if (c->options.server_poll_timeout && sec > 1)
-    sec = 1;
-#endif
 #endif
 
   if (c->persist.restart_sleep_seconds > 0 && c->persist.restart_sleep_seconds > sec)
@@ -2660,11 +2663,6 @@ do_option_warnings (struct context *c)
     msg (M_WARN, "WARNING: No server certificate verification method has been enabled.  See http://openvpn.net/howto.html#mitm for more info.");
 #endif
 
-#ifndef CONNECT_NONBLOCK
-  if (o->ce.connect_timeout_defined)
-    msg (M_WARN, "NOTE: --connect-timeout option is not supported on this OS");
-#endif
-
   /* If a script is used, print appropiate warnings */
   if (o->user_script_used)
    {
@@ -2819,11 +2817,11 @@ do_init_socket_1 (struct context *c, const int mode)
 			   c->options.ipchange,
 			   c->plugins,
 			   c->options.resolve_retry_seconds,
-			   c->options.ce.connect_timeout,
 			   c->options.ce.mtu_discover_type,
 			   c->options.rcvbuf,
 			   c->options.sndbuf,
 			   c->options.mark,
+			   &c->c2.server_poll_interval,
 			   sockflags);
 }
 
@@ -3652,6 +3650,9 @@ init_instance (struct context *c, const struct env_set *env, const unsigned int 
    * May be delayed by --client, --pull, or --up-delay.
    */
   do_uid_gid_chroot (c, c->c2.did_open_tun);
+
+  /* initialise connect timeout timer */
+  do_init_server_poll_timeout(c);
 
   /* finalize the TCP/UDP socket */
   if (c->mode == CM_P2P || c->mode == CM_TOP || c->mode == CM_CHILD_TCP)

@@ -97,7 +97,6 @@ struct connection_entry
   bool bind_local;
   int connect_retry_seconds;
   int connect_timeout;
-  bool connect_timeout_defined;
   struct http_proxy_options *http_proxy_options;
   const char *socks_proxy_server;
   const char *socks_proxy_port;
@@ -457,8 +456,6 @@ struct options
   unsigned int push_option_types_found;
   const char *auth_user_pass_file;
   struct options_pre_pull *pre_pull;
-
-  int server_poll_timeout;
 
   int scheduled_exit_interval;
 
