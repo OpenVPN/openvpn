@@ -777,7 +777,9 @@ void key_state_ssl_init(struct key_state_ssl *ks_ssl,
   mbedtls_ssl_config_init(&ks_ssl->ssl_config);
   mbedtls_ssl_config_defaults(&ks_ssl->ssl_config, ssl_ctx->endpoint,
       MBEDTLS_SSL_TRANSPORT_STREAM, MBEDTLS_SSL_PRESET_DEFAULT);
+#ifdef MBEDTLS_DEBUG_C
   mbedtls_debug_set_threshold(3);
+#endif
   mbedtls_ssl_conf_dbg (&ks_ssl->ssl_config, my_debug, NULL);
   mbedtls_ssl_conf_rng (&ks_ssl->ssl_config, mbedtls_ctr_drbg_random,
       rand_ctx_get());
