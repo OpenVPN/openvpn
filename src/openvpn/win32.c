@@ -119,7 +119,6 @@ init_win32 (void)
     }
   window_title_clear (&window_title);
   win32_signal_clear (&win32_signal);
-  netcmd_semaphore_init ();
 }
 
 void
@@ -765,6 +764,10 @@ void
 netcmd_semaphore_lock (void)
 {
   const int timeout_seconds = 600;
+
+  if (!netcmd_semaphore.hand)
+    netcmd_semaphore_init ();
+
   if (!semaphore_lock (&netcmd_semaphore, timeout_seconds * 1000))
     msg (M_FATAL, "Cannot lock net command semaphore"); 
 }
@@ -773,6 +776,8 @@ void
 netcmd_semaphore_release (void)
 {
   semaphore_release (&netcmd_semaphore);
+  /* netcmd_semaphore has max count of 1 - safe to close after release */
+  semaphore_close (&netcmd_semaphore);
 }
 
 /*
