@@ -51,6 +51,10 @@ AEAD (GCM) data channel cipher support
     bytes per packet for AES-128-GCM instead of 36 bytes per packet for
     AES-128-CBC + HMAC-SHA1).
 
+Http proxy password inside config file
+	Http proxy passwords can be specified with the inline file option
+    http-proxy-user-pass
+
 
 User-visible Changes
 --------------------

@@ -497,7 +497,10 @@ and port
 If HTTP Proxy-Authenticate is required,
 .B authfile
 is a file containing a username and password on 2 lines, or
-"stdin" to prompt from console.
+"stdin" to prompt from console. Its content can also be specified
+in the config file with the
+.B \-\-http\-proxy\-user\-pass
+option. (See section on inline files)
 
 .B auth\-method
 should be one of "none", "basic", or "ntlm".
@@ -6581,7 +6584,7 @@ X509_1_C=KG
 .SH INLINE FILE SUPPORT
 OpenVPN allows including files in the main configuration for the
 .B \-\-ca, \-\-cert, \-\-dh, \-\-extra\-certs, \-\-key, \-\-pkcs12, \-\-secret,
-.B \-\-crl-verify
+.B \-\-crl\-verify, \-\-http\-proxy\-user\-pass
 and
 .B \-\-tls\-auth
 options.
