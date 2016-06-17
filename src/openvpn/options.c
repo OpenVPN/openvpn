@@ -2263,6 +2263,13 @@ options_postprocess_verify_ce (const struct options *options, const struct conne
 	   {
 		 msg (M_USAGE, "--key and --management-external-key are mutually exclusive");
 	   }
+	 else if((options->management_flags & MF_EXTERNAL_CERT))
+	   {
+		 if (options->cert_file)
+		   msg (M_USAGE, "--cert and --management-external-cert are mutually exclusive");
+		 else if(!(options->management_flags & MF_EXTERNAL_KEY))
+		   msg (M_USAGE, "--management-external-cert must be used with --management-external-key");
+	   }
 	 else
 #endif
 #ifdef ENABLE_CRYPTOAPI
@@ -2318,13 +2325,13 @@ options_postprocess_verify_ce (const struct options *options, const struct conne
 	  if (pull)
 	    {
 
-	      const int sum = (options->cert_file != NULL) +
+	      const int sum =
 #ifdef MANAGMENT_EXTERNAL_KEY
-			((options->priv_key_file != NULL) || (options->management_flags & MF_EXTERNAL_KEY));
+		((options->cert_file != NULL) || (options->management_flags & MF_EXTERNAL_CERT))    +
+		((options->priv_key_file != NULL) || (options->management_flags & MF_EXTERNAL_KEY));
 #else
-		    (options->priv_key_file != NULL);
+		(options->cert_file != NULL) + (options->priv_key_file != NULL);
 #endif
-
 
 	      if (sum == 0)
 		{
