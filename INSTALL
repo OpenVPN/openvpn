@@ -30,9 +30,13 @@ To download easy-rsa go to:
 
     https://github.com/OpenVPN/easy-rsa
 
-To download tap-windows driver source code go to:
+To download tap-windows (NDIS 5) driver source code go to:
 
     https://github.com/OpenVPN/tap-windows
+
+To download tap-windows (NDIS 6) driver source code go to:
+
+    https://github.com/OpenVPN/tap-windows6
 
 To get the cross-compilation environment go to:
 
