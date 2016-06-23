@@ -298,13 +298,13 @@ TUN/TAP Driver Configuration:
 
     http://www.whiteboard.ne.jp/~admin2/tuntap/
 
-* Windows XP/2003/Vista/7:
+* Windows
 
   OpenVPN on Windows needs a TUN/TAP kernel driver to work. OpenVPN installers
   include this driver, so installing it separately is not usually required.
-  The driver source code is available here:
-
-    https://github.com/OpenVPN/tap-windows
+  Windows XP/2003 must use the NDIS 5 (tap-windows) driver, whereas on more
+  recent Windows versions it is recommended to use the NDIS 6 driver
+  (tap-windows6) instead.
 
 *************************************************************************
 
