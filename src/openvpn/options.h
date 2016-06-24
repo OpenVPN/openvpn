@@ -101,7 +101,6 @@ struct connection_entry
   const char *socks_proxy_server;
   const char *socks_proxy_port;
   const char *socks_proxy_authfile;
-  bool socks_proxy_retry;
 
   int tun_mtu;           /* MTU of tun device */
   bool tun_mtu_defined;  /* true if user overriding parm with command line option */

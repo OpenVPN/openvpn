@@ -317,13 +317,11 @@ remote 198.19.34.56 443 tcp
 <connection>
 remote 198.19.34.56 443 tcp
 http\-proxy 192.168.0.8 8080
-http\-proxy\-retry
 </connection>
 
 <connection>
 remote 198.19.36.99 443 tcp
 http\-proxy 192.168.0.8 8080
-http\-proxy\-retry
 </connection>
 
 persist\-key
@@ -356,7 +354,6 @@ block:
 .B fragment,
 .B http\-proxy,
 .B http\-proxy\-option,
-.B http\-proxy\-retry,
 .B link\-mtu,
 .B local,
 .B lport,
@@ -368,7 +365,6 @@ block:
 .B remote,
 .B rport,
 .B socks\-proxy,
-.B socks\-proxy\-retry,
 .B tun\-mtu and
 .B tun\-mtu\-extra.
 
@@ -527,11 +523,6 @@ determine the authentication method, but to reject weak
 authentication protocols such as HTTP Basic Authentication.
 .\"*********************************************************
 .TP
-.B \-\-http\-proxy\-retry
-Retry indefinitely on HTTP proxy errors.  If an HTTP proxy error
-occurs, simulate a SIGUSR1 reset.
-.\"*********************************************************
-.TP
 .B \-\-http\-proxy\-option type [parm]
 Set extended HTTP proxy options.
 Repeat to set multiple options.
@@ -562,11 +553,6 @@ and port
 .B authfile
 (optional) is a file containing a username and password on 2 lines, or
 "stdin" to prompt from console.
-.\"*********************************************************
-.TP
-.B \-\-socks\-proxy\-retry
-Retry indefinitely on Socks proxy errors.  If a Socks proxy error
-occurs, simulate a SIGUSR1 reset.
 .\"*********************************************************
 .TP
 .B \-\-resolv\-retry n

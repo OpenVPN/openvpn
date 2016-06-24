@@ -45,7 +45,6 @@ struct http_custom_header {
 struct http_proxy_options {
   const char *server;
   const char *port;
-  bool retry;
 
 # define PAR_NO  0  /* don't support any auth retries */
 # define PAR_ALL 1  /* allow all proxy auth protocols */

@@ -60,8 +60,7 @@ socks_adjust_frame_parameters (struct frame *frame, int proto)
 struct socks_proxy_info *
 socks_proxy_new (const char *server,
 		 const char *port,
-		 const char *authfile,
-		 bool retry)
+		 const char *authfile)
 {
   struct socks_proxy_info *p;
 
@@ -78,7 +77,6 @@ socks_proxy_new (const char *server,
   else
     p->authfile[0] = 0;
 
-  p->retry = retry;
   p->defined = true;
 
   return p;
@@ -470,9 +468,8 @@ establish_socks_proxy_passthru (struct socks_proxy_info *p,
   return;
 
  error:
-  /* on error, should we exit or restart? */
   if (!*signal_received)
-    *signal_received = (p->retry ? SIGUSR1 : SIGTERM); /* SOFT-SIGUSR1 -- socks error */
+    *signal_received = SIGUSR1; /* SOFT-SIGUSR1 -- socks error */
   return;
 }
 
@@ -508,9 +505,8 @@ establish_socks_proxy_udpassoc (struct socks_proxy_info *p,
   return;
 
  error:
-  /* on error, should we exit or restart? */
   if (!*signal_received)
-    *signal_received = (p->retry ? SIGUSR1 : SIGTERM); /* SOFT-SIGUSR1 -- socks error */
+    *signal_received = SIGUSR1; /* SOFT-SIGUSR1 -- socks error */
   return;
 }
 

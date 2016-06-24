@@ -135,7 +135,6 @@ static const char usage_message[] =
   "--http-proxy s p 'auto[-nct]' : Like the above directive, but automatically\n"
   "                  determine auth method and query for username/password\n"
   "                  if needed.  auto-nct disables weak proxy auth methods.\n"
-  "--http-proxy-retry     : Retry indefinitely on HTTP proxy errors.\n"
   "--http-proxy-option type [parm] : Set extended HTTP proxy options.\n"
   "                                  Repeat to set multiple options.\n"
   "                  VERSION version (default=1.0)\n"
@@ -1329,7 +1328,6 @@ show_http_proxy_options (const struct http_proxy_options *o)
   SHOW_STR (port);
   SHOW_STR (auth_method_string);
   SHOW_STR (auth_file);
-  SHOW_BOOL (retry);
   SHOW_STR (http_version);
   SHOW_STR (user_agent);
   for  (i=0; i < MAX_CUSTOM_HTTP_HEADER && o->custom_headers[i].name;i++)
@@ -1397,7 +1395,6 @@ show_connection_entry (const struct connection_entry *o)
     show_http_proxy_options (o->http_proxy_options);
   SHOW_STR (socks_proxy_server);
   SHOW_STR (socks_proxy_port);
-  SHOW_BOOL (socks_proxy_retry);
   SHOW_INT (tun_mtu);
   SHOW_BOOL (tun_mtu_defined);
   SHOW_INT (link_mtu);
@@ -1749,7 +1746,6 @@ parse_http_proxy_override (const char *server,
       ALLOC_OBJ_CLEAR_GC (ho, struct http_proxy_options, gc);
       ho->server = string_alloc(server, gc);
       ho->port = port;
-      ho->retry = true;
       if (flags && !strcmp(flags, "nct"))
 	ho->auth_retry = PAR_NCT;
       else
@@ -5234,12 +5230,12 @@ add_option (struct options *options,
       else
 	ho->auth_file = p[1];
     }
-  else if (streq (p[0], "http-proxy-retry") && !p[1])
+  else if (streq (p[0], "http-proxy-retry") || streq (p[0], "socks-proxy-retry"))
     {
-      struct http_proxy_options *ho;
       VERIFY_PERMISSION (OPT_P_GENERAL|OPT_P_CONNECTION);
-      ho = init_http_proxy_options_once (&options->ce.http_proxy_options, &options->gc);
-      ho->retry = true;
+      msg (M_WARN, "DEPRECATED OPTION: http-proxy-retry and socks-proxy-retry: "
+           "In OpenVPN 2.4 proxy connection retries are handled like regular connections. "
+           "Use connect-retry-max 1 to get a similar behavior as before.");
     }
   else if (streq (p[0], "http-proxy-timeout") && p[1] && !p[2])
     {
@@ -5308,11 +5304,6 @@ add_option (struct options *options,
 	}
       options->ce.socks_proxy_server = p[1];
       options->ce.socks_proxy_authfile = p[3]; /* might be NULL */
-    }
-  else if (streq (p[0], "socks-proxy-retry") && !p[1])
-    {
-      VERIFY_PERMISSION (OPT_P_GENERAL|OPT_P_CONNECTION);
-      options->ce.socks_proxy_retry = true;
     }
   else if (streq (p[0], "keepalive") && p[1] && p[2] && !p[3])
     {

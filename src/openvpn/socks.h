@@ -37,7 +37,6 @@ struct link_socket_actual;
 
 struct socks_proxy_info {
   bool defined;
-  bool retry;
 
   char server[128];
   const char *port;
@@ -48,8 +47,7 @@ void socks_adjust_frame_parameters (struct frame *frame, int proto);
 
 struct socks_proxy_info *socks_proxy_new (const char *server,
 					  const char *port,
-					  const char *authfile,
-					  bool retry);
+					  const char *authfile);
 
 void socks_proxy_close (struct socks_proxy_info *sp);
 

@@ -943,9 +943,8 @@ establish_http_proxy_passthru (struct http_proxy_info *p,
   return ret;
 
  error:
-  /* on error, should we exit or restart? */
   if (!*signal_received)
-    *signal_received = (p->options.retry ? SIGUSR1 : SIGTERM); /* SOFT-SIGUSR1 -- HTTP proxy error */
+    *signal_received = SIGUSR1; /* SOFT-SIGUSR1 -- HTTP proxy error */
   gc_free (&gc);
   return ret;
 }

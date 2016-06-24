@@ -138,7 +138,6 @@ management_callback_proxy_cmd (void *arg, const char **p)
           ho = init_http_proxy_options_once (&ce->http_proxy_options, gc);
           ho->server = string_alloc (p[2], gc);
           ho->port = string_alloc (p[3], gc);
-          ho->retry = true;
           ho->auth_retry = (p[4] && streq (p[4], "nct") ? PAR_NCT : PAR_ALL);
           ret = true;
         }
@@ -473,8 +472,7 @@ init_proxy_dowork (struct context *c)
     {
       c->c1.socks_proxy = socks_proxy_new (c->options.ce.socks_proxy_server,
 					   c->options.ce.socks_proxy_port,
-					   c->options.ce.socks_proxy_authfile,
-					   c->options.ce.socks_proxy_retry);
+					   c->options.ce.socks_proxy_authfile);
       if (c->c1.socks_proxy)
 	{
 	  c->c1.socks_proxy_owned = true;

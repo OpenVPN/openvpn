@@ -117,6 +117,8 @@ User-visible Changes
   proxies graciously.  The old "fail TCP fast" behaviour can be achieved by
   adding "--connect-timeout 10" to the client config.
 
+- --http-proxy-retry and --sock-proxy-retry have been removed. Proxy connections
+    will now behave like regular connection entries and generate a USR1 on failure.
 
 Maintainer-visible changes
 --------------------------
