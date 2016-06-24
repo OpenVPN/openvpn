@@ -611,6 +611,21 @@ init_tun (const char *dev,       /* --dev option */
 	  tt->broadcast = generate_ifconfig_broadcast_addr (tt->local, tt->remote_netmask);
 	}
 
+#ifdef WIN32
+      /*
+       * Make sure that both ifconfig addresses are part of the
+       * same .252 subnet.
+       */
+      if (tun)
+        {
+          verify_255_255_255_252 (tt->local, tt->remote_netmask);
+          tt->adapter_netmask = ~3;
+        }
+      else
+        {
+          tt->adapter_netmask = tt->remote_netmask;
+        }
+#endif
 
       tt->did_ifconfig_setup = true;
     }
@@ -1315,19 +1330,7 @@ do_ifconfig (struct tuntap *tt,
       }
 #elif defined (WIN32)
       {
-	/*
-	 * Make sure that both ifconfig addresses are part of the
-	 * same .252 subnet.
-	 */
-	if (tun)
-	  {
-	    verify_255_255_255_252 (tt->local, tt->remote_netmask);
-	    tt->adapter_netmask = ~3;
-	  }
-	else
-	  {
-	    tt->adapter_netmask = tt->remote_netmask;
-	  }
+        ASSERT (actual != NULL);
 
 	switch (tt->options.ip_win32_type)
 	  {
@@ -1338,9 +1341,6 @@ do_ifconfig (struct tuntap *tt,
 		 print_in_addr_t (tt->adapter_netmask, 0, &gc));
 	    break;
 	  case IPW32_SET_NETSH:
-	    if (!strcmp (actual, "NULL"))
-	      msg (M_FATAL, "Error: When using --ip-win32 netsh, if you have more than one TAP-Windows adapter, you must also specify --dev-node");
-
 	    netsh_ifconfig (&tt->options,
 			    actual,
 			    tt->local,
@@ -1354,25 +1354,6 @@ do_ifconfig (struct tuntap *tt,
 
     if ( do_ipv6 )
       {
-	char * saved_actual;
-	char iface[64];
-	DWORD idx;
-
-	if (!strcmp (actual, "NULL"))
-	  msg (M_FATAL, "Error: When using --tun-ipv6, if you have more than one TAP-Windows adapter, you must also specify --dev-node");
-
-	idx = get_adapter_index_flexible(actual);
-	openvpn_snprintf(iface, sizeof(iface), "interface=%lu", idx);
-
-	/* on windows, OpenVPN does ifconfig first, open_tun later, so
-	 * tt->actual_name might not yet be initialized, but routing code
-	 * needs to know interface name - point to "actual", restore later
-	 */
-	saved_actual = tt->actual_name;
-	tt->actual_name = (char*) actual;
-	/* we use adapter_index in add_route_ipv6 */
-	tt->adapter_index = idx;
-
 	if (tt->options.msg_channel)
 	  {
 	    do_address_service (true, AF_INET6, tt);
@@ -1380,6 +1361,8 @@ do_ifconfig (struct tuntap *tt,
 	else
 	  {
 	    /* example: netsh interface ipv6 set address interface=42 2001:608:8003::d store=active */
+	    char iface[64];
+	    openvpn_snprintf(iface, sizeof(iface), "interface=%lu", tt->adapter_index );
 	    argv_printf (&argv,
 			 "%s%sc interface ipv6 set address %s %s store=active",
 			 get_win_sys_path(),
@@ -1391,7 +1374,6 @@ do_ifconfig (struct tuntap *tt,
 
 	/* explicit route needed */
 	add_route_connected_v6_net(tt, es);
-	tt->actual_name = saved_actual;
       }
 #else
       msg (M_FATAL, "Sorry, but I don't know how to do 'ifconfig' commands on this operating system.  You should ifconfig your TUN/TAP device manually or use an --up script.");

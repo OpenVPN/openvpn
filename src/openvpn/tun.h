@@ -299,7 +299,7 @@ ifconfig_order(void)
 #elif defined(TARGET_NETBSD)
   return IFCONFIG_AFTER_TUN_OPEN;
 #elif defined(WIN32)
-  return IFCONFIG_BEFORE_TUN_OPEN;
+  return IFCONFIG_AFTER_TUN_OPEN;
 #elif defined(TARGET_ANDROID)
   return IFCONFIG_BEFORE_TUN_OPEN;
 #else
