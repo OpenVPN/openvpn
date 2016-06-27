@@ -525,10 +525,10 @@ init_ssl (const struct options *options, struct tls_root_ctx *new_ctx)
 #ifdef ENABLE_PKCS11
   else if (options->pkcs11_providers[0])
     {
-      if (!tls_ctx_use_pkcs11 (new_ctx, options->pkcs11_id_management, options->pkcs11_id))
+      if (!tls_ctx_use_pkcs11 (new_ctx, options->pkcs11_id_management, options->pkcs11_id,
+	    options->ca_pkcs11_id, options->tls_server))
 	{
-	  msg (M_WARN, "Cannot load certificate \"%s\" using PKCS#11 interface",
-	      options->pkcs11_id);
+	  msg (M_WARN, "Cannot initialize PKCS#11 interface");
 	  goto err;
 	}
     }

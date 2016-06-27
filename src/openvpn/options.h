@@ -525,6 +525,7 @@ struct options
   bool pkcs11_protected_authentication[MAX_PARMS];
   bool pkcs11_cert_private[MAX_PARMS];
   int pkcs11_pin_cache_period;
+  const char *ca_pkcs11_id;
   const char *pkcs11_id;
   bool pkcs11_id_management;
 #endif

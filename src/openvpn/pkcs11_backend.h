@@ -64,12 +64,16 @@ int pkcs11_certificate_serial (pkcs11h_certificate_t certificate, char *serial,
  * Load PKCS #11 Certificate's information into the given TLS context
  *
  * @param certificate 	The PKCS #11 helper certificate object
+ * @param ca	 	The PKCS #11 helper CA object
  * @param ssl_ctx	TLS context to use.
+ * @tls_server		True if we need to set the CA name list for the client
  *
  * @return 		1 on failure, 0 on success
  */
 int pkcs11_init_tls_session(pkcs11h_certificate_t certificate,
-    struct tls_root_ctx * const ssl_ctx);
+    pkcs11h_certificate_t ca,
+    struct tls_root_ctx * const ssl_ctx,
+    bool tls_server);
 
 #endif /* defined(ENABLE_PKCS11) */
 #endif /* PKCS11_BACKEND_H_ */

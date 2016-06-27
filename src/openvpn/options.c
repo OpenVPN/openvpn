@@ -1710,6 +1710,7 @@ show_settings (const struct options *o)
   }
   SHOW_INT (pkcs11_pin_cache_period);
   SHOW_STR (pkcs11_id);
+  SHOW_STR (ca_pkcs11_id);
   SHOW_BOOL (pkcs11_id_management);
 #endif			/* ENABLE_PKCS11 */
 
@@ -2229,8 +2230,8 @@ options_postprocess_verify_ce (const struct options *options, const struct conne
 #ifdef ENABLE_PKCS11
       if (options->pkcs11_providers[0])
        {
-        notnull (options->ca_file, "CA file (--ca)");
-
+	if ((!(options->ca_file)) && (!(options->ca_pkcs11_id)))
+	  msg(M_USAGE, "You must define CA file (--ca) or CA PKCS#11 ID (--ca-pkcs11-id)");
 	if (options->pkcs11_id_management && options->pkcs11_id != NULL)
 	  msg(M_USAGE, "Parameter --pkcs11-id cannot be used when --pkcs11-id-management is also specified.");
 	if (!options->pkcs11_id_management && options->pkcs11_id == NULL)
@@ -2400,6 +2401,7 @@ options_postprocess_verify_ce (const struct options *options, const struct conne
       MUST_BE_UNDEF (pkcs11_providers[0]);
       MUST_BE_UNDEF (pkcs11_private_mode[0]);
       MUST_BE_UNDEF (pkcs11_id);
+      MUST_BE_UNDEF (ca_pkcs11_id);
       MUST_BE_UNDEF (pkcs11_id_management);
 #endif
 
@@ -2536,7 +2538,7 @@ options_postprocess_mutate_invariant (struct options *options)
      by default if the user asks for PKCS#11 without otherwise specifying
      the module to use. */
   if (!options->pkcs11_providers[0] &&
-      (options->pkcs11_id || options->pkcs11_id_management))
+      (options->pkcs11_id || options->pkcs11_id_management || options->ca_pkcs11_id))
     options->pkcs11_providers[0] = DEFAULT_PKCS11_MODULE;
 #endif
 }
@@ -7270,6 +7272,11 @@ add_option (struct options *options,
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->pkcs11_id = p[1];
+    }
+  else if (streq (p[0], "ca-pkcs11-id") && p[1] && !p[2])
+    {
+      VERIFY_PERMISSION (OPT_P_GENERAL);
+      options->ca_pkcs11_id = p[1];
     }
   else if (streq (p[0], "pkcs11-id-management") && !p[1])
     {

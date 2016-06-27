@@ -44,11 +44,14 @@
 
 int
 pkcs11_init_tls_session(pkcs11h_certificate_t certificate,
-    struct tls_root_ctx * const ssl_ctx)
+    pkcs11h_certificate_t ca,
+    struct tls_root_ctx * const ssl_ctx,
+    bool tls_server)
 {
   int ret = 1;
 
   X509 *x509 = NULL;
+  X509 *ca_x509 = NULL;
   EVP_PKEY *evp = NULL;
   pkcs11h_openssl_session_t openssl_session = NULL;
 
@@ -86,6 +89,29 @@ pkcs11_init_tls_session(pkcs11h_certificate_t certificate,
       msg (M_WARN, "PKCS#11: Cannot set certificate for openssl");
       goto cleanup;
     }
+
+  if (ca)
+    {
+      X509_STORE *store = NULL;
+
+      store = SSL_CTX_get_cert_store(ssl_ctx->ctx);
+      if (!store)
+        {
+          msg (M_WARN, "Cannot get certificate store");
+          goto cleanup;
+        }
+
+      if ((ca_x509 = pkcs11h_openssl_getX509 (ca)) == NULL)
+        {
+          msg (M_WARN, "PKCS#11: Unable get CA object");
+          goto cleanup;
+        }
+
+      X509_STORE_add_cert (store, ca_x509);
+      if (tls_server)
+        SSL_CTX_add_client_CA (ssl_ctx->ctx, ca_x509);
+    }
+
   ret = 0;
 
 cleanup:
@@ -98,6 +124,11 @@ cleanup:
     certificate = NULL;
   }
 
+  if (ca != NULL) {
+    pkcs11h_certificate_freeCertificate (ca);
+    ca = NULL;
+  }
+
   /*
    * openssl objects have reference
    * count, so release them
@@ -106,6 +137,12 @@ cleanup:
     {
       X509_free (x509);
       x509 = NULL;
+    }
+
+  if (ca_x509 != NULL)
+    {
+      X509_free (ca_x509);
+      ca_x509 = NULL;
     }
 
   if (evp != NULL)
