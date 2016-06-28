@@ -239,11 +239,20 @@ incoming_push_message (struct context *c, const struct buffer *buffer)
     {
       c->options.push_option_types_found |= option_types_found;
 
+      /* delay bringing tun/tap up until --push parms received from remote */
       if (status == PUSH_MSG_REPLY)
-	do_up (c, true, c->options.push_option_types_found ); /* delay bringing tun/tap up until --push parms received from remote */
+	{
+	  if (!do_up (c, true, c->options.push_option_types_found))
+	    {
+	      msg (D_PUSH_ERRORS, "Failed to open tun/tap interface");
+	      register_signal (c, SIGUSR1, "do_up-failed");
+	      goto cleanup;
+	    }
+	}
       event_timeout_clear (&c->c2.push_request_interval);
     }
 
+cleanup:
   gc_free (&gc);
 }
 

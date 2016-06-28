@@ -522,6 +522,8 @@ static const char usage_message[] =
   "--cipher alg    : Encrypt packets with cipher algorithm alg\n"
   "                  (default=%s).\n"
   "                  Set alg=none to disable encryption.\n"
+  "--ncp-ciphers list : List of ciphers that are allowed to be negotiated.\n"
+  "--ncp-disable   : Disable cipher negotiation.\n"
   "--prng alg [nsl] : For PRNG, use digest algorithm alg, and\n"
   "                   nonce_secret_len=nsl.  Set alg=none to disable PRNG.\n"
 #ifdef HAVE_EVP_CIPHER_CTX_SET_KEY_LENGTH
@@ -829,6 +831,12 @@ init_options (struct options *o, const bool init_gc)
 #ifdef ENABLE_CRYPTO
   o->ciphername = "BF-CBC";
   o->ciphername_defined = true;
+#ifdef HAVE_AEAD_CIPHER_MODES /* IV_NCP=2 requires GCM support */
+  o->ncp_enabled = true;
+#else
+  o->ncp_enabled = false;
+#endif
+  o->ncp_ciphers = "AES-256-GCM:AES-128-GCM";
   o->authname = "SHA1";
   o->authname_defined = true;
   o->prng_hash = "SHA1";
@@ -6637,7 +6645,7 @@ add_option (struct options *options,
     }
   else if (streq (p[0], "auth") && p[1] && !p[2])
     {
-      VERIFY_PERMISSION (OPT_P_CRYPTO);
+      VERIFY_PERMISSION (OPT_P_GENERAL);
       options->authname_defined = true;
       options->authname = p[1];
       if (streq (options->authname, "none"))
@@ -6648,12 +6656,12 @@ add_option (struct options *options,
     }
   else if (streq (p[0], "auth") && !p[1])
     {
-      VERIFY_PERMISSION (OPT_P_CRYPTO);
+      VERIFY_PERMISSION (OPT_P_GENERAL);
       options->authname_defined = true;
     }
   else if (streq (p[0], "cipher") && p[1] && !p[2])
     {
-      VERIFY_PERMISSION (OPT_P_CRYPTO);
+      VERIFY_PERMISSION (OPT_P_NCP);
       options->ciphername_defined = true;
       options->ciphername = p[1];
       if (streq (options->ciphername, "none"))
@@ -6664,12 +6672,22 @@ add_option (struct options *options,
     }
   else if (streq (p[0], "cipher") && !p[1])
     {
-      VERIFY_PERMISSION (OPT_P_CRYPTO);
+      VERIFY_PERMISSION (OPT_P_GENERAL);
       options->ciphername_defined = true;
+    }
+  else if (streq (p[0], "ncp-ciphers") && p[1] && !p[2])
+    {
+      VERIFY_PERMISSION (OPT_P_GENERAL);
+      options->ncp_ciphers = p[1];
+    }
+  else if (streq (p[0], "ncp-disable") && !p[1])
+    {
+      VERIFY_PERMISSION (OPT_P_GENERAL);
+      options->ncp_enabled = false;
     }
   else if (streq (p[0], "prng") && p[1] && !p[3])
     {
-      VERIFY_PERMISSION (OPT_P_CRYPTO);
+      VERIFY_PERMISSION (OPT_P_GENERAL);
       if (streq (p[1], "none"))
 	options->prng_hash = NULL;
       else
@@ -6691,12 +6709,12 @@ add_option (struct options *options,
     }
   else if (streq (p[0], "no-replay") && !p[1])
     {
-      VERIFY_PERMISSION (OPT_P_CRYPTO);
+      VERIFY_PERMISSION (OPT_P_GENERAL);
       options->replay = false;
     }
   else if (streq (p[0], "replay-window") && !p[3])
     {
-      VERIFY_PERMISSION (OPT_P_CRYPTO);
+      VERIFY_PERMISSION (OPT_P_GENERAL);
       if (p[1])
 	{
 	  int replay_window;
@@ -6736,12 +6754,12 @@ add_option (struct options *options,
     }
   else if (streq (p[0], "mute-replay-warnings") && !p[1])
     {
-      VERIFY_PERMISSION (OPT_P_CRYPTO);
+      VERIFY_PERMISSION (OPT_P_GENERAL);
       options->mute_replay_warnings = true;
     }
   else if (streq (p[0], "no-iv") && !p[1])
     {
-      VERIFY_PERMISSION (OPT_P_CRYPTO);
+      VERIFY_PERMISSION (OPT_P_GENERAL);
       options->use_iv = false;
     }
   else if (streq (p[0], "replay-persist") && p[1] && !p[2])
@@ -6771,7 +6789,7 @@ add_option (struct options *options,
     {
       int keysize;
 
-      VERIFY_PERMISSION (OPT_P_CRYPTO);
+      VERIFY_PERMISSION (OPT_P_NCP);
       keysize = atoi (p[1]) / 8;
       if (keysize < 0 || keysize > MAX_CIPHER_KEY_LENGTH)
 	{
@@ -6800,7 +6818,7 @@ add_option (struct options *options,
     }
   else if (streq (p[0], "ecdh-curve") && p[1] && !p[2])
     {
-      VERIFY_PERMISSION (OPT_P_CRYPTO);
+      VERIFY_PERMISSION (OPT_P_GENERAL);
       options->ecdh_curve= p[1];
     }
   else if (streq (p[0], "tls-server") && !p[1])

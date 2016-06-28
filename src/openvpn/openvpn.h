@@ -210,6 +210,9 @@ struct context_1
   struct user_pass *auth_user_pass;
                                 /**< Username and password for
                                  *   authentication. */
+
+  const char *ciphername;	/**< Data channel cipher from config file */
+  const char *authname;		/**< Data channel auth from config file */
 #endif
 };
 

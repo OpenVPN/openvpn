@@ -4131,6 +4131,19 @@ Set
 to disable encryption.
 .\"*********************************************************
 .TP
+.B \-\-ncp\-ciphers cipher_list
+Restrict the allowed ciphers to be negotiated to the ciphers in
+.B cipher_list\fR.
+.B cipher_list
+is a colon-separated list of ciphers, and defaults to
+"AES-256-GCM:AES-128-GCM".
+.\"*********************************************************
+.TP
+.B \-\-ncp\-disable
+Disable "negotiable crypto parameters".  This completely disables cipher
+negotiation.
+.\"*********************************************************
+.TP
 .B \-\-keysize n
 Size of cipher key in bits (optional).
 If unspecified, defaults to cipher-specific default.  The

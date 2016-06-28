@@ -1745,7 +1745,7 @@ options_hash_changed_or_zero(const struct md5_digest *a,
 }
 #endif /* P2MP */
 
-void
+bool
 do_up (struct context *c, bool pulled_options, unsigned int option_types_found)
 {
   if (!c->c2.do_up_ran)
@@ -1753,7 +1753,13 @@ do_up (struct context *c, bool pulled_options, unsigned int option_types_found)
       reset_coarse_timers (c);
 
       if (pulled_options && option_types_found)
-	do_deferred_options (c, option_types_found);
+	{
+	  if (!do_deferred_options (c, option_types_found))
+	    {
+	      msg (D_PUSH_ERRORS, "ERROR: Failed to apply push options");
+	      return false;
+	    }
+	}
 
       /* if --up-delay specified, open tun, do ifconfig, and run up script now */
       if (c->options.up_delay || PULL_DEFINED (&c->options))
@@ -1808,6 +1814,7 @@ do_up (struct context *c, bool pulled_options, unsigned int option_types_found)
 	
       c->c2.do_up_ran = true;
     }
+  return true;
 }
 
 /*
@@ -1825,7 +1832,6 @@ pull_permission_mask (const struct context *c)
     | OPT_P_SHAPER
     | OPT_P_TIMER
     | OPT_P_COMP
-    | OPT_P_CRYPTO
     | OPT_P_PERSIST
     | OPT_P_MESSAGES
     | OPT_P_EXPLICIT_NOTIFY
@@ -1836,13 +1842,18 @@ pull_permission_mask (const struct context *c)
   if (!c->options.route_nopull)
     flags |= (OPT_P_ROUTE | OPT_P_IPWIN32);
 
+#ifdef ENABLE_CRYPTO
+  if (c->options.ncp_enabled)
+    flags |= OPT_P_NCP;
+#endif
+
   return flags;
 }
 
 /*
  * Handle non-tun-related pulled options.
  */
-void
+bool
 do_deferred_options (struct context *c, const unsigned int found)
 {
   if (found & OPT_P_MESSAGES)
@@ -1934,15 +1945,18 @@ do_deferred_options (struct context *c, const unsigned int found)
   if (c->options.pull)
     {
       struct tls_session *session = &c->c2.tls_multi->session[TM_ACTIVE];
-      if (found & OPT_P_CRYPTO)
+      if (found & OPT_P_NCP)
 	msg (D_PUSH, "OPTIONS IMPORT: data channel crypto options modified");
       /* Do not regenerate keys if server sends an extra push request */
-      if (!session->key[KS_PRIMARY].crypto_options.key_ctx_bi.initialized)
+      if (!session->key[KS_PRIMARY].crypto_options.key_ctx_bi.initialized &&
+	  !tls_session_update_crypto_params(session, &c->options, &c->c2.frame))
 	{
-	  tls_session_update_crypto_params(session, &c->options, &c->c2.frame);
+	  msg (D_TLS_ERRORS, "OPTIONS ERROR: failed to import crypto options");
+	  return false;
 	}
     }
 #endif
+  return true;
 }
 
 /*
@@ -2272,6 +2286,9 @@ do_init_crypto_tls_c1 (struct context *c)
 	      &c->c1.ks.tls_auth_key, file, options->key_direction, flags);
 	}
 
+      c->c1.ciphername = options->ciphername;
+      c->c1.authname = options->authname;
+
 #if 0 /* was: #if ENABLE_INLINE_FILES --  Note that enabling this code will break restarts */
       if (options->priv_key_file_inline)
 	{
@@ -2348,6 +2365,9 @@ do_init_crypto_tls (struct context *c, const unsigned int flags)
   to.replay_window = options->replay_window;
   to.replay_time = options->replay_time;
   to.tcp_mode = link_socket_proto_connection_oriented (options->ce.proto);
+  to.config_ciphername = c->c1.ciphername;
+  to.config_authname = c->c1.authname;
+  to.ncp_enabled = options->ncp_enabled;
   to.transition_window = options->transition_window;
   to.handshake_window = options->handshake_window;
   to.packet_timeout = options->tls_timeout;

@@ -81,7 +81,7 @@ bool do_test_crypto (const struct options *o);
 
 void context_gc_free (struct context *c);
 
-void do_up (struct context *c,
+bool do_up (struct context *c,
 	    bool pulled_options,
 	    unsigned int option_types_found);
 
@@ -91,7 +91,7 @@ const char *format_common_name (struct context *c, struct gc_arena *gc);
 
 void reset_coarse_timers (struct context *c);
 
-void do_deferred_options (struct context *c, const unsigned int found);
+bool do_deferred_options (struct context *c, const unsigned int found);
 
 void inherit_context_child (struct context *dest,
 			    const struct context *src);

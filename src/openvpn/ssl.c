@@ -1640,6 +1640,24 @@ key_ctx_update_implicit_iv(struct key_ctx *ctx, uint8_t *key, size_t key_len) {
     }
 }
 
+static bool
+item_in_list(const char *item, const char *list)
+{
+  char *tmp_ciphers = string_alloc (list, NULL);
+  char *tmp_ciphers_orig = tmp_ciphers;
+
+  const char *token = strtok (tmp_ciphers, ":");
+  while(token)
+    {
+      if (0 == strcmp (token, item))
+	break;
+      token = strtok (NULL, ":");
+    }
+  free(tmp_ciphers_orig);
+
+  return token != NULL;
+}
+
 bool
 tls_session_update_crypto_params(struct tls_session *session,
     const struct options *options, struct frame *frame)
@@ -1649,6 +1667,15 @@ tls_session_update_crypto_params(struct tls_session *session,
 
   ASSERT (!session->opt->server);
   ASSERT (ks->authenticated);
+
+  if (0 != strcmp(options->ciphername, session->opt->config_ciphername) &&
+      !item_in_list(options->ciphername, options->ncp_ciphers))
+    {
+      msg (D_TLS_ERRORS, "Error: pushed cipher not allowed - %s not in %s or %s",
+	  options->ciphername, session->opt->config_ciphername,
+	  options->ncp_ciphers);
+      return false;
+    }
 
   init_key_type (&session->opt->key_type, options->ciphername,
     options->ciphername_defined, options->authname, options->authname_defined,
@@ -1931,7 +1958,7 @@ push_peer_info(struct buffer *buf, struct tls_session *session)
       buf_printf(&out, "IV_PROTO=2\n");
 
       /* support for Negotiable Crypto Paramters */
-      if (session->opt->pull)
+      if (session->opt->ncp_enabled && session->opt->pull)
 	buf_printf(&out, "IV_NCP=2\n");
 
       /* push compression status */

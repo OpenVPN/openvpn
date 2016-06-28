@@ -273,6 +273,10 @@ struct tls_options
   int replay_time;                     /* --replay-window parm */
   bool tcp_mode;
 
+  const char *config_ciphername;
+  const char *config_authname;
+  bool ncp_enabled;
+
   /* packet authentication for TLS handshake */
   struct crypto_options tls_auth;
 
