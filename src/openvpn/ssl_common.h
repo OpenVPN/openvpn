@@ -236,6 +236,7 @@ struct tls_options
 #ifdef ENABLE_OCC
   bool disable_occ;
 #endif
+  int mode;
   bool pull;
 #ifdef ENABLE_PUSH_PEER_INFO
   int push_peer_info_detail;

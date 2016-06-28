@@ -4137,6 +4137,10 @@ Restrict the allowed ciphers to be negotiated to the ciphers in
 .B cipher_list
 is a colon-separated list of ciphers, and defaults to
 "AES-256-GCM:AES-128-GCM".
+
+For servers, the first cipher from
+.B cipher_list
+will be pushed to clients that support cipher negotiation.
 .\"*********************************************************
 .TP
 .B \-\-ncp\-disable

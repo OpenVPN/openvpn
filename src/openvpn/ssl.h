@@ -497,6 +497,12 @@ tls_get_peer_info(const struct tls_multi *multi)
 }
 #endif
 
+/**
+ * Return the Negotiable Crypto Parameters version advertised in the peer info
+ * string, or 0 if none specified.
+ */
+int tls_peer_info_ncp_ver(const char *peer_info);
+
 /*
  * inline functions
  */

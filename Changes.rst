@@ -55,6 +55,13 @@ Http proxy password inside config file
 	Http proxy passwords can be specified with the inline file option
     http-proxy-user-pass
 
+Cipher negotiation
+    Data channel ciphers are now by default negotiated.  If a client advertises
+    support for Negotiable Crypto Parameters (NCP), the server will choose a
+    cipher (by default AES-256-GCM) for the data channel, and tell the client
+    to use that cipher.  Data channel cipher negotiation can be controlled
+    using --ncp-ciphers and --ncp-disable.
+
 
 User-visible Changes
 --------------------
@@ -123,6 +130,11 @@ User-visible Changes
 - --connect-retry gets an optional second argument that specifies the maximum
   time in seconds to wait between reconnection attempts when an exponential
   backoff is triggered due to repeated retries. Default = 300 seconds.
+
+- Data channel cipher negotiation (see New features section) can override
+  ciphers configured in the config file.  Use --ncp-disable if you don't want
+  that.
+
 
 Maintainer-visible changes
 --------------------------

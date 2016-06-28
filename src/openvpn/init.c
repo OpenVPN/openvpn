@@ -2330,8 +2330,8 @@ do_init_crypto_tls (struct context *c, const unsigned int flags)
   /* In short form, unique datagram identifier is 32 bits, in long form 64 bits */
   packet_id_long_form = cipher_kt_mode_ofb_cfb (c->c1.ks.key_type.cipher);
 
-  /* Compute MTU parameters (postpone if we pull options) */
-  if (c->options.pull)
+  /* Compute MTU parameters (postpone if we push/pull options) */
+  if (c->options.pull || c->options.mode == MODE_SERVER)
     {
       /* Account for worst-case crypto overhead before allocating buffers */
       frame_add_to_extra_frame (&c->c2.frame, crypto_max_overhead());
@@ -2375,6 +2375,7 @@ do_init_crypto_tls (struct context *c, const unsigned int flags)
   to.renegotiate_packets = options->renegotiate_packets;
   to.renegotiate_seconds = options->renegotiate_seconds;
   to.single_session = options->single_session;
+  to.mode = options->mode;
   to.pull = options->pull;
 #ifdef ENABLE_PUSH_PEER_INFO
   if (options->push_peer_info)		/* all there is */

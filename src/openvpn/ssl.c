@@ -1665,10 +1665,10 @@ tls_session_update_crypto_params(struct tls_session *session,
   bool ret = false;
   struct key_state *ks = &session->key[KS_PRIMARY];	/* primary key */
 
-  ASSERT (!session->opt->server);
   ASSERT (ks->authenticated);
 
-  if (0 != strcmp(options->ciphername, session->opt->config_ciphername) &&
+  if (!session->opt->server &&
+      0 != strcmp(options->ciphername, session->opt->config_ciphername) &&
       !item_in_list(options->ciphername, options->ncp_ciphers))
     {
       msg (D_TLS_ERRORS, "Error: pushed cipher not allowed - %s not in %s or %s",
@@ -1695,12 +1695,13 @@ tls_session_update_crypto_params(struct tls_session *session,
       options->ce.tun_mtu_defined, options->ce.tun_mtu);
   frame_print (frame, D_MTU_INFO, "Data Channel MTU parms");
 
+  const struct session_id *client_sid = session->opt->server ?
+      &ks->session_id_remote : &session->session_id;
+  const struct session_id *server_sid = !session->opt->server ?
+      &ks->session_id_remote : &session->session_id;
   if (!generate_key_expansion (&ks->crypto_options.key_ctx_bi,
-			       &session->opt->key_type,
-			       ks->key_src,
-			       &session->session_id,
-			       &ks->session_id_remote,
-			       false))
+      &session->opt->key_type, ks->key_src, client_sid, server_sid,
+      session->opt->server))
     {
       msg (D_TLS_ERRORS, "TLS Error: server generate_key_expansion failed");
       goto cleanup;
@@ -1958,8 +1959,11 @@ push_peer_info(struct buffer *buf, struct tls_session *session)
       buf_printf(&out, "IV_PROTO=2\n");
 
       /* support for Negotiable Crypto Paramters */
-      if (session->opt->ncp_enabled && session->opt->pull)
-	buf_printf(&out, "IV_NCP=2\n");
+      if (session->opt->ncp_enabled &&
+	  (session->opt->mode == MODE_SERVER || session->opt->pull))
+	{
+	  buf_printf(&out, "IV_NCP=2\n");
+	}
 
       /* push compression status */
 #ifdef USE_COMP
@@ -2063,10 +2067,13 @@ key_method_2_write (struct buffer *buf, struct tls_session *session)
   if (!push_peer_info (buf, session))
     goto error;
 
-  /*
-   * generate tunnel keys if server
+  /* Generate tunnel keys if we're a TLS server.
+   * If we're a p2mp server and IV_NCP >= 2 is negotiated, the first key
+   * generation is postponed until after the pull/push, so we can process pushed
+   * cipher directives.
    */
-  if (session->opt->server)
+  if (session->opt->server && !(session->opt->ncp_enabled &&
+	session->opt->mode == MODE_SERVER && ks->key_id <= 0))
     {
       if (ks->authenticated)
 	{
@@ -2218,6 +2225,12 @@ key_method_2_read (struct buffer *buf, struct tls_multi *multi, struct tls_sessi
   multi->peer_info = read_string_alloc (buf);
   if ( multi->peer_info )
       output_peer_info_env (session->opt->es, multi->peer_info);
+
+  if (tls_peer_info_ncp_ver (multi->peer_info) < 2)
+    {
+      /* Peer does not support NCP */
+      session->opt->ncp_enabled = false;
+    }
 #endif
 
   if (tls_session_user_pass_enabled(session))
@@ -3687,6 +3700,20 @@ tls_update_remote_addr (struct tls_multi *multi, const struct link_socket_actual
 	}
     }
   gc_free (&gc);
+}
+
+int
+tls_peer_info_ncp_ver(const char *peer_info)
+{
+  const char *ncpstr = peer_info ? strstr (peer_info, "IV_NCP=") : NULL;
+  if (ncpstr)
+    {
+      int ncp = 0;
+      int r = sscanf(ncpstr, "IV_NCP=%d", &ncp);
+      if (r == 1)
+	return ncp;
+    }
+  return 0;
 }
 
 /*
