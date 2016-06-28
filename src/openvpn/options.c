@@ -2965,6 +2965,38 @@ pre_pull_restore (struct options *o, struct gc_arena *gc)
 
 #ifdef ENABLE_OCC
 
+/**
+ * Calculate the link-mtu to advertise to our peer.  The actual value is not
+ * relevant, because we will possibly perform data channel cipher negotiation
+ * after this, but older clients will log warnings if we do not supply them the
+ * value they expect.  This assumes that the traditional cipher/auth directives
+ * in the config match the config of the peer.
+ */
+static size_t
+calc_options_string_link_mtu(const struct options *o, const struct frame *frame)
+{
+  size_t link_mtu = EXPANDED_SIZE (frame);
+#ifdef ENABLE_CRYPTO
+  if (o->pull || o->mode == MODE_SERVER)
+    {
+      struct frame fake_frame = *frame;
+      struct key_type fake_kt;
+      init_key_type (&fake_kt, o->ciphername, o->ciphername_defined,
+	  o->authname, o->authname_defined, o->keysize, true, false);
+      frame_add_to_extra_frame (&fake_frame, -(crypto_max_overhead()));
+      crypto_adjust_frame_parameters (&fake_frame, &fake_kt,
+	  o->ciphername_defined, o->use_iv, o->replay,
+	  cipher_kt_mode_ofb_cfb (fake_kt.cipher));
+      frame_finalize(&fake_frame, o->ce.link_mtu_defined, o->ce.link_mtu,
+            o->ce.tun_mtu_defined, o->ce.tun_mtu);
+      msg (D_MTU_DEBUG, "%s: link-mtu %zu -> %d", __func__, link_mtu,
+	  EXPANDED_SIZE (&fake_frame));
+      link_mtu = EXPANDED_SIZE (&fake_frame);
+    }
+#endif
+  return link_mtu;
+}
+
 /*
  * Build an options string to represent data channel encryption options.
  * This string must match exactly between peers.  The keysize is checked
@@ -3009,7 +3041,6 @@ pre_pull_restore (struct options *o, struct gc_arena *gc)
  * --tls-server [matched with --tls-client on
  *               the other end of the connection]
  */
-
 char *
 options_string (const struct options *o,
 		const struct frame *frame,
@@ -3027,7 +3058,7 @@ options_string (const struct options *o,
    */
 
   buf_printf (&out, ",dev-type %s", dev_type_string (o->dev, o->dev_type));
-  buf_printf (&out, ",link-mtu %d", EXPANDED_SIZE (frame));
+  buf_printf (&out, ",link-mtu %zu", calc_options_string_link_mtu(o, frame));
   buf_printf (&out, ",tun-mtu %d", PAYLOAD_SIZE (frame));
   buf_printf (&out, ",proto %s",  proto_remote (o->ce.proto, remote));
 

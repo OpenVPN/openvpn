@@ -41,6 +41,12 @@
 /* TLS uses a tag of 128 bytes, let's do the same for OpenVPN */
 #define OPENVPN_AEAD_TAG_LENGTH 16
 
+/* Maximum cipher block size (bytes) */
+#define OPENVPN_MAX_CIPHER_BLOCK_SIZE 32
+
+/* Maximum HMAC digest size (bytes) */
+#define OPENVPN_MAX_HMAC_SIZE 	64
+
 /** Struct used in cipher name translation table */
 typedef struct {
   const char *openvpn_name;	/**< Cipher name used by OpenVPN */

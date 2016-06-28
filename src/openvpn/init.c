@@ -1825,6 +1825,7 @@ pull_permission_mask (const struct context *c)
     | OPT_P_SHAPER
     | OPT_P_TIMER
     | OPT_P_COMP
+    | OPT_P_CRYPTO
     | OPT_P_PERSIST
     | OPT_P_MESSAGES
     | OPT_P_EXPLICIT_NOTIFY
@@ -1926,6 +1927,19 @@ do_deferred_options (struct context *c, const unsigned int found)
 	  msg (M_WARN, "OPTIONS IMPORT: WARNING: peer-id set, but link-mtu"
                        " fixed by config - reducing tun-mtu to %d, expect"
                        " MTU problems", TUN_MTU_SIZE(&c->c2.frame) );
+	}
+    }
+
+  /* process (potentially pushed) crypto options */
+  if (c->options.pull)
+    {
+      struct tls_session *session = &c->c2.tls_multi->session[TM_ACTIVE];
+      if (found & OPT_P_CRYPTO)
+	msg (D_PUSH, "OPTIONS IMPORT: data channel crypto options modified");
+      /* Do not regenerate keys if server sends an extra push request */
+      if (!session->key[KS_PRIMARY].crypto_options.key_ctx_bi.initialized)
+	{
+	  tls_session_update_crypto_params(session, &c->options, &c->c2.frame);
 	}
     }
 #endif
@@ -2043,6 +2057,7 @@ frame_finalize_options (struct context *c, const struct options *o)
 			    |FRAME_HEADROOM_MARKER_READ_STREAM);
     }
   
+  frame_add_to_extra_buffer (&c->c2.frame, PAYLOAD_ALIGN);
   frame_finalize (&c->c2.frame,
 		  o->ce.link_mtu_defined,
 		  o->ce.link_mtu,
@@ -2298,12 +2313,18 @@ do_init_crypto_tls (struct context *c, const unsigned int flags)
   /* In short form, unique datagram identifier is 32 bits, in long form 64 bits */
   packet_id_long_form = cipher_kt_mode_ofb_cfb (c->c1.ks.key_type.cipher);
 
-  /* Compute MTU parameters */
-  crypto_adjust_frame_parameters (&c->c2.frame,
-				  &c->c1.ks.key_type,
-				  options->ciphername_defined,
-				  options->use_iv,
-				  options->replay, packet_id_long_form);
+  /* Compute MTU parameters (postpone if we pull options) */
+  if (c->options.pull)
+    {
+      /* Account for worst-case crypto overhead before allocating buffers */
+      frame_add_to_extra_frame (&c->c2.frame, crypto_max_overhead());
+    }
+  else
+    {
+      crypto_adjust_frame_parameters(&c->c2.frame, &c->c1.ks.key_type,
+	  options->ciphername_defined, options->use_iv, options->replay,
+	  packet_id_long_form);
+    }
   tls_adjust_frame_parameters (&c->c2.frame);
 
   /* Set all command-line TLS-related options */
@@ -2334,6 +2355,7 @@ do_init_crypto_tls (struct context *c, const unsigned int flags)
   to.renegotiate_packets = options->renegotiate_packets;
   to.renegotiate_seconds = options->renegotiate_seconds;
   to.single_session = options->single_session;
+  to.pull = options->pull;
 #ifdef ENABLE_PUSH_PEER_INFO
   if (options->push_peer_info)		/* all there is */
     to.push_peer_info_detail = 2;

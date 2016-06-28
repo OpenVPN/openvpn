@@ -1613,6 +1613,7 @@ generate_key_expansion (struct key_ctx_bi *key,
   key_ctx_update_implicit_iv (&key->decrypt, key2.keys[1-(int)server].hmac,
       MAX_HMAC_KEY_LENGTH);
 
+  key->initialized = true;
   ret = true;
 
  exit:
@@ -1637,6 +1638,50 @@ key_ctx_update_implicit_iv(struct key_ctx *ctx, uint8_t *key, size_t key_len) {
       memcpy (ctx->implicit_iv, key, impl_iv_len);
       ctx->implicit_iv_len = impl_iv_len;
     }
+}
+
+bool
+tls_session_update_crypto_params(struct tls_session *session,
+    const struct options *options, struct frame *frame)
+{
+  bool ret = false;
+  struct key_state *ks = &session->key[KS_PRIMARY];	/* primary key */
+
+  ASSERT (!session->opt->server);
+  ASSERT (ks->authenticated);
+
+  init_key_type (&session->opt->key_type, options->ciphername,
+    options->ciphername_defined, options->authname, options->authname_defined,
+    options->keysize, true, true);
+
+  bool packet_id_long_form = cipher_kt_mode_ofb_cfb (session->opt->key_type.cipher);
+  session->opt->crypto_flags_and &= ~(CO_PACKET_ID_LONG_FORM);
+  if (packet_id_long_form)
+    session->opt->crypto_flags_and = CO_PACKET_ID_LONG_FORM;
+
+  /* Update frame parameters: undo worst-case overhead, add actual overhead */
+  frame_add_to_extra_frame (frame, -(crypto_max_overhead()));
+  crypto_adjust_frame_parameters (frame, &session->opt->key_type,
+      options->ciphername_defined, options->use_iv, options->replay,
+      packet_id_long_form);
+  frame_finalize(frame, options->ce.link_mtu_defined, options->ce.link_mtu,
+      options->ce.tun_mtu_defined, options->ce.tun_mtu);
+  frame_print (frame, D_MTU_INFO, "Data Channel MTU parms");
+
+  if (!generate_key_expansion (&ks->crypto_options.key_ctx_bi,
+			       &session->opt->key_type,
+			       ks->key_src,
+			       &session->session_id,
+			       &ks->session_id_remote,
+			       false))
+    {
+      msg (D_TLS_ERRORS, "TLS Error: server generate_key_expansion failed");
+      goto cleanup;
+    }
+  ret = true;
+cleanup:
+  CLEAR (*ks->key_src);
+  return ret;
 }
 
 static bool
@@ -1884,6 +1929,10 @@ push_peer_info(struct buffer *buf, struct tls_session *session)
 
       /* support for P_DATA_V2 */
       buf_printf(&out, "IV_PROTO=2\n");
+
+      /* support for Negotiable Crypto Paramters */
+      if (session->opt->pull)
+	buf_printf(&out, "IV_NCP=2\n");
 
       /* push compression status */
 #ifdef USE_COMP
@@ -2211,9 +2260,11 @@ key_method_2_read (struct buffer *buf, struct tls_multi *multi, struct tls_sessi
     }
 
   /*
-   * Generate tunnel keys if client
+   * Generate tunnel keys if we're a client.
+   * If --pull is enabled, the first key generation is postponed until after the
+   * pull/push, so we can process pushed cipher directives.
    */
-  if (!session->opt->server)
+  if (!session->opt->server && (!session->opt->pull || ks->key_id > 0))
     {
       if (!generate_key_expansion (&ks->crypto_options.key_ctx_bi,
 				   &session->opt->key_type,
@@ -2225,7 +2276,7 @@ key_method_2_read (struct buffer *buf, struct tls_multi *multi, struct tls_sessi
 	  msg (D_TLS_ERRORS, "TLS Error: client generate_key_expansion failed");
 	  goto error;
 	}
-		      
+
       CLEAR (*ks->key_src);
     }
 
@@ -2891,6 +2942,14 @@ tls_pre_decrypt (struct tls_multi *multi,
 #endif
 		  && (floated || link_socket_actual_match (from, &ks->remote_addr)))
 		{
+		  if (!ks->crypto_options.key_ctx_bi.initialized)
+		    {
+		      msg (D_TLS_DEBUG_LOW,
+			  "Key %s [%d] not initialized (yet), dropping packet.",
+			  print_link_socket_actual (from, &gc), key_id);
+		      goto error_lite;
+		    }
+
 		  /* return appropriate data channel decrypt key in opt */
 		  *opt = &ks->crypto_options;
 		  if (op == P_DATA_V2)
@@ -3428,6 +3487,7 @@ tls_pre_encrypt (struct tls_multi *multi,
 	  struct key_state *ks = multi->key_scan[i];
 	  if (ks->state >= S_ACTIVE
 	      && ks->authenticated
+	      && ks->crypto_options.key_ctx_bi.initialized
 #ifdef ENABLE_DEF_AUTH
 	      && !ks->auth_deferred
 #endif

@@ -78,8 +78,6 @@ frame_finalize (struct frame *frame,
     }
 
   frame->link_mtu_dynamic = frame->link_mtu;
-
-  frame->extra_buffer += PAYLOAD_ALIGN;
 }
 
 /*

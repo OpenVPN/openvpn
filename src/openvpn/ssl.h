@@ -475,6 +475,20 @@ bool tls_rec_payload (struct tls_multi *multi,
 void tls_update_remote_addr (struct tls_multi *multi,
 			     const struct link_socket_actual *addr);
 
+/**
+ * Update TLS session crypto parameters (cipher and auth) and derive data
+ * channel keys based on the supplied options.
+ *
+ * @param session	The TLS session to update.
+ * @param options	The options to use when updating session.
+ * @param frame		The frame options for this session (frame overhead is
+ * 			adjusted based on the selected cipher/auth).
+ *
+ * @return true if updating succeeded, false otherwise.
+ */
+bool tls_session_update_crypto_params(struct tls_session *session,
+    const struct options *options, struct frame *frame);
+
 #ifdef MANAGEMENT_DEF_AUTH
 static inline char *
 tls_get_peer_info(const struct tls_multi *multi)

@@ -35,6 +35,7 @@
 
 #include "crypto.h"
 #include "error.h"
+#include "integer.h"
 #include "misc.h"
 
 #include "memdbg.h"
@@ -709,10 +710,6 @@ openvpn_decrypt (struct buffer *buf, struct buffer work,
   return ret;
 }
 
-/*
- * How many bytes will we add to frame buffer for a given
- * set of crypto options?
- */
 void
 crypto_adjust_frame_parameters(struct frame *frame,
 			       const struct key_type* kt,
@@ -746,6 +743,14 @@ crypto_adjust_frame_parameters(struct frame *frame,
       __func__, crypto_overhead);
 }
 
+size_t
+crypto_max_overhead(void)
+{
+  return packet_id_size(true) + OPENVPN_MAX_IV_LENGTH +
+      OPENVPN_MAX_CIPHER_BLOCK_SIZE +
+      max_int (OPENVPN_MAX_HMAC_SIZE, OPENVPN_AEAD_TAG_LENGTH);
+}
+
 /*
  * Build a struct key_type.
  */
@@ -774,6 +779,9 @@ init_key_type (struct key_type *kt, const char *ciphername,
 #endif
 	    ))
 	msg (M_FATAL, "Cipher '%s' mode not supported", ciphername);
+
+      if (OPENVPN_MAX_CIPHER_BLOCK_SIZE < cipher_kt_block_size(kt->cipher))
+	msg (M_FATAL, "Cipher '%s' not allowed: block size too big.", ciphername);
     }
   else
     {
@@ -785,6 +793,9 @@ init_key_type (struct key_type *kt, const char *ciphername,
       if (!aead_cipher) { /* Ignore auth for AEAD ciphers */
 	kt->digest = md_kt_get (authname);
 	kt->hmac_length = md_kt_size (kt->digest);
+
+	if (OPENVPN_MAX_HMAC_SIZE < kt->hmac_length)
+	  msg (M_FATAL, "HMAC '%s' not allowed: digest size too big.", authname);
       }
     }
   else if (!aead_cipher)

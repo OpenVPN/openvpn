@@ -149,7 +149,12 @@ struct key_source2 {
 struct key_state
 {
   int state;
-  int key_id;			/* inherited from struct tls_session below */
+
+  /**
+   * Key id for this key_state,  inherited from struct tls_session.
+   * @see tls_session::key_id.
+   */
+  int key_id;
 
   struct key_state_ssl ks_ssl;	/* contains SSL object and BIOs for the control channel */
 
@@ -231,6 +236,7 @@ struct tls_options
 #ifdef ENABLE_OCC
   bool disable_occ;
 #endif
+  bool pull;
 #ifdef ENABLE_PUSH_PEER_INFO
   int push_peer_info_detail;
 #endif
@@ -367,7 +373,13 @@ struct tls_session
 
   int initial_opcode;		/* our initial P_ opcode */
   struct session_id session_id;	/* our random session ID */
-  int key_id;			/* increments with each soft reset (for key renegotiation) */
+
+  /**
+   * The current active key id, used to keep track of renegotiations.
+   * key_id increments with each soft reset to KEY_ID_MASK then recycles back
+   * to 1.  This way you know that if key_id is 0, it is the first key.
+   */
+  int key_id;
 
   int limit_next;               /* used for traffic shaping on the control channel */
 
