@@ -49,8 +49,8 @@ static SERVICE_STATUS status;
 
 openvpn_service_t automatic_service = {
   automatic,
-  TEXT(PACKAGE_NAME "Service"),
-  TEXT(PACKAGE_NAME " Service"),
+  TEXT(PACKAGE_NAME "ServiceLegacy"),
+  TEXT(PACKAGE_NAME " Legacy Service"),
   TEXT(SERVICE_DEPENDENCIES),
   SERVICE_DEMAND_START
 };
