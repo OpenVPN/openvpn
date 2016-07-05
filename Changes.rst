@@ -75,8 +75,8 @@ User-visible Changes
   In --static mode connect-timeout specifies the timeout for TCP and
   proxy connection establishment
 
-- connect-retry now specifies the maximum number of unsucessfully
-  trying all remote/connection entries before exiting.
+- connect-retry-max now specifies the maximum number of unsuccessful
+  attempts of each remote/connection entry before exiting.
 
 - sndbuf and recvbuf default now to OS default instead of 64k
 
@@ -119,6 +119,10 @@ User-visible Changes
 
 - --http-proxy-retry and --sock-proxy-retry have been removed. Proxy connections
     will now behave like regular connection entries and generate a USR1 on failure.
+
+- --connect-retry gets an optional second argument that specifies the maximum
+  time in seconds to wait between reconnection attempts when an exponential
+  backoff is triggered due to repeated retries. Default = 300 seconds.
 
 Maintainer-visible changes
 --------------------------

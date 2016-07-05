@@ -462,22 +462,27 @@ application-level UDP protocols, or tunneling protocols which don't
 possess a built-in reliability layer.
 .\"*********************************************************
 .TP
-.B \-\-connect\-retry n
+.B \-\-connect\-retry n [max]
 Wait
 .B n
-seconds  between connection attempts (default=5).
+seconds  between connection attempts (default=5). Repeated reconnection
+attempts are slowed down after 5 retries per remote by doubling the wait
+time after each unsuccessful attempt. The optional argument
+.B max
+specifies the maximum value of wait time in seconds at which it gets
+capped (default=300).
 .\"*********************************************************
 .TP
 .B \-\-connect\-retry\-max n
 .B n
-specifies the number of times all
+specifies the number of times each
 .B \-\-remote
-respectively
+or
 .B <connection>
-statements are tried. Specifiying
+entry is tried. Specifying
 .B n
-as one would try each entry exactly once. A sucessful connection
-resets the counter. (default=umlimited).
+as one would try each entry exactly once. A successful connection
+resets the counter. (default=unlimited).
 .\"*********************************************************
 .TP
 .B \-\-show\-proxy\-settings

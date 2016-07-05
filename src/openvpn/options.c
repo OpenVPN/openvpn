@@ -123,8 +123,10 @@ static const char usage_message[] =
   "                  p = udp (default), tcp-server, or tcp-client\n"
   "--proto-force p : only consider protocol p in list of connection profiles.\n"
   "                  p = udp6, tcp6-server, or tcp6-client (ipv6)\n"
-  "--connect-retry n : For --proto tcp-client, number of seconds to wait\n"
-  "                    between connection retries (default=%d).\n"
+  "--connect-retry n [m] : For client, number of seconds to wait between\n"
+  "                  connection retries (default=%d). On repeated retries\n"
+  "                  the wait time is exponentially increased to a maximum of m\n"
+  "                  (default=%d).\n"
   "--connect-retry-max n : Maximum connection attempt retries, default infinite.\n"
   "--http-proxy s p [up] [auth] : Connect to remote host\n"
   "                  through an HTTP proxy at address s and port p.\n"
@@ -770,6 +772,7 @@ init_options (struct options *o, const bool init_gc)
   o->ce.af = AF_UNSPEC;
   o->ce.bind_ipv6_only = false;
   o->ce.connect_retry_seconds = 5;
+  o->ce.connect_retry_seconds_max = 300;
   o->ce.connect_timeout = 120;
   o->connect_retry_max = 0;
   o->ce.local_port = o->ce.remote_port = OPENVPN_PORT;
@@ -3479,6 +3482,7 @@ usage (void)
   fprintf (fp, usage_message,
 	   title_string,
 	   o.ce.connect_retry_seconds,
+	   o.ce.connect_retry_seconds_max,
 	   o.ce.local_port, o.ce.remote_port,
 	   TUN_MTU_DEFAULT, TAP_MTU_EXTRA_DEFAULT,
 	   o.verbosity,
@@ -4724,10 +4728,24 @@ add_option (struct options *options,
       if (p[1])
 	options->ip_remote_hint=p[1];
     }
-  else if (streq (p[0], "connect-retry") && p[1] && !p[2])
+  else if (streq (p[0], "connect-retry") && p[1] && !p[3])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL|OPT_P_CONNECTION);
       options->ce.connect_retry_seconds = positive_atoi (p[1]);
+      /*
+       * Limit the base value of retry wait interval to 16 bits to avoid
+       * overflow when scaled up for exponential backoff
+       */
+      if (options->ce.connect_retry_seconds > 0xFFFF)
+        {
+          options->ce.connect_retry_seconds = 0xFFFF;
+          msg (M_WARN, "connect retry wait interval truncated to %d",
+            options->ce.connect_retry_seconds);
+        }
+
+      if (p[2])
+         options->ce.connect_retry_seconds_max =
+            max_int (positive_atoi (p[2]), options->ce.connect_retry_seconds);
     }
   else if ((streq (p[0], "connect-timeout") || streq (p[0], "server-poll-timeout"))
 	    && p[1] && !p[2])

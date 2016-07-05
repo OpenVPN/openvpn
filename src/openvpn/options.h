@@ -96,6 +96,7 @@ struct connection_entry
   bool bind_ipv6_only;
   bool bind_local;
   int connect_retry_seconds;
+  int connect_retry_seconds_max;
   int connect_timeout;
   struct http_proxy_options *http_proxy_options;
   const char *socks_proxy_server;
