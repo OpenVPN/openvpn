@@ -573,10 +573,5 @@ multi_set_pending (struct multi_context *m, struct multi_instance *mi)
   m->pending = mi;
 }
 
-static inline void
-multi_release_io_lock (struct multi_context *m)
-{
-}
-
 #endif /* P2MP_SERVER */
 #endif /* MULTI_H */

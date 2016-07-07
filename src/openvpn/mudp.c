@@ -168,7 +168,6 @@ multi_process_io_udp (struct multi_context *m)
   else if (status & SOCKET_READ)
     {
       read_incoming_link (&m->top);
-      multi_release_io_lock (m);
       if (!IS_SIG (&m->top))
 	multi_process_incoming_link (m, NULL, mpp_flags);
     }
@@ -176,7 +175,6 @@ multi_process_io_udp (struct multi_context *m)
   else if (status & TUN_READ)
     {
       read_incoming_tun (&m->top);
-      multi_release_io_lock (m);
       if (!IS_SIG (&m->top))
 	multi_process_incoming_tun (m, mpp_flags);
     }
