@@ -2,7 +2,7 @@ This file documents the support in OpenVPN for Android 4.0 and up.
 
 This support is primarily used in the "OpenVPN for Android" app
 (http://code.google.com/p/ics-openvpn/). For building see the developer
-README: http://code.google.com/p/ics-openvpn/source/browse/doc/README.txt.
+README: https://github.com/schwabe/ics-openvpn/blob/master/doc/README.txt
 
 Android provides the VPNService API
 (http://developer.android.com/reference/android/net/VpnService.html)
@@ -89,3 +89,12 @@ are not specific to Android but are rarely used on other platform.
 For example using SIGUSR1 and management-hold to restart, pause,
 continue the VPN on network changes or the external key management
 --management-external-key option and inline files.
+
+To better support handover between networks, a the management command
+
+network-change [samenetwork]
+
+is used on the Android platform. It tells OpenVPN to do the necessary
+action when the network changes. Currently this is just calling
+the protect callback when using peer-id regardless of the samenetwork.
+Without peer-id OpenVPN will generate USR1 when samenetwork is not set.
