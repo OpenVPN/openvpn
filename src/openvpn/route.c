@@ -1171,7 +1171,7 @@ static const char *
 show_opt (const char *option)
 {
   if (!option)
-    return "nil";
+    return "default (not set)";
   else
     return option;
 }
