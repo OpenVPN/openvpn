@@ -379,7 +379,7 @@ process_received_occ_msg (struct context *c)
 	      && c->c2.max_send_size_local > TUN_MTU_MIN
 	      && (c->c2.max_recv_size_remote < c->c2.max_send_size_local
 		  || c->c2.max_recv_size_local < c->c2.max_send_size_remote))
-	    msg (M_INFO, "NOTE: This connection is unable to accomodate a UDP packet size of %d. Consider using --fragment or --mssfix options as a workaround.",
+	    msg (M_INFO, "NOTE: This connection is unable to accommodate a UDP packet size of %d. Consider using --fragment or --mssfix options as a workaround.",
 		 c->c2.max_send_size_local);
 	}
       event_timeout_clear (&c->c2.occ_mtu_load_test_interval);
