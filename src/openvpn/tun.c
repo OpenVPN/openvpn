@@ -2086,14 +2086,17 @@ open_tun (const char *dev, const char *dev_type, const char *dev_node, struct tu
 
   if ((tt->fd = open (dev_node, O_RDWR, 0)) < 0)
     msg (M_ERR, "Can't open %s", dev_node);
-  
+
   /* get unit number */
-  if (*dev)
+  if(strncmp(dev, "tun", 3) == 0 || strncmp(dev, "tap", 3) == 0)
     {
-      ptr = dev;
-      while (*ptr && !isdigit ((int) *ptr))
-	ptr++;
-      ppa = atoi (ptr);
+      ptr = dev + 3;
+      if (*ptr)
+        {
+          while (*ptr && !isdigit ((int) *ptr))
+            ptr++;
+          ppa = atoi (ptr);
+        }
     }
 
   /* Assign a new PPA and get its unit number. */
