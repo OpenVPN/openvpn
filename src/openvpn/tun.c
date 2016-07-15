@@ -2088,15 +2088,15 @@ open_tun (const char *dev, const char *dev_type, const char *dev_node, struct tu
     msg (M_ERR, "Can't open %s", dev_node);
 
   /* get unit number */
-  if(strncmp(dev, "tun", 3) == 0 || strncmp(dev, "tap", 3) == 0)
+  ptr = dev;
+  while (*ptr)
     {
-      ptr = dev + 3;
-      if (*ptr)
+      if (isdigit((int) *ptr))
         {
-          while (*ptr && !isdigit ((int) *ptr))
-            ptr++;
           ppa = atoi (ptr);
+          break;
         }
+      ptr++;
     }
 
   /* Assign a new PPA and get its unit number. */
@@ -2118,7 +2118,7 @@ open_tun (const char *dev, const char *dev_type, const char *dev_node, struct tu
 	      found_one = true;
 	      break;
 	    }
-	  if ( errno != EEXIST )
+	  if ( errno != EEXIST && ppa != -1 )
 	    msg (M_ERR, "open_tun: unexpected error trying to find free %s interface", dev_tuntap_type );
 	  ppa++;
 	}
