@@ -229,6 +229,7 @@ case "$1" in
                 PID=$(cat $pidf)
                 if [ -e /proc/$PID ]; then
                     echo "openvpn is running. pid: $PID"
+                    exit 0
                 else
                     echo "openvpn is dead but lock file exists: $lock and pid file exists: $pidf"
                     exit 1
