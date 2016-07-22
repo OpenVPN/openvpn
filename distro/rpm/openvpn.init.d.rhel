@@ -224,17 +224,23 @@ case "$1" in
 	fi
 	;;
   status)
-	if [ -f $lock ]; then
-	    for pidf in `/bin/ls $piddir/*.pid 2>/dev/null`; do
-		if [ -s $pidf ]; then
-		    kill -USR2 `cat $pidf` >/dev/null 2>&1
-		fi
-	    done
-	    echo "Status written to /var/log/messages"
-	else
-	    echo "openvpn: service not started"
-	    exit 1
-	fi
+        if [ -f $lock ]; then
+            for pidf in `/bin/ls $piddir/*.pid 2>/dev/null`; do
+                PID=$(cat $pidf)
+                if [ -e /proc/$PID ]; then
+                    echo "openvpn is running. pid: $PID"
+                else
+                    echo "openvpn is dead but lock file exists: $lock and pid file exists: $pidf"
+                    exit 1
+                fi
+            done 
+            echo "openvpn is dead but lock file exists: $lock"
+            exit 2
+        else
+            echo "openvpn: service is not started"
+            exit 3
+        fi
+
         ;;
   *)
 	echo "Usage: openvpn {start|stop|restart|condrestart|reload|reopen|status}"
