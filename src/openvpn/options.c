@@ -6677,12 +6677,12 @@ add_option (struct options *options,
     }
   else if (streq (p[0], "ncp-ciphers") && p[1] && !p[2])
     {
-      VERIFY_PERMISSION (OPT_P_GENERAL);
+      VERIFY_PERMISSION (OPT_P_GENERAL|OPT_P_INSTANCE);
       options->ncp_ciphers = p[1];
     }
   else if (streq (p[0], "ncp-disable") && !p[1])
     {
-      VERIFY_PERMISSION (OPT_P_GENERAL);
+      VERIFY_PERMISSION (OPT_P_GENERAL|OPT_P_INSTANCE);
       options->ncp_enabled = false;
     }
   else if (streq (p[0], "prng") && p[1] && !p[3])
