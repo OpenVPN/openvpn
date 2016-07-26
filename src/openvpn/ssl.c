@@ -1678,8 +1678,7 @@ tls_session_update_crypto_params(struct tls_session *session,
     }
 
   init_key_type (&session->opt->key_type, options->ciphername,
-    options->ciphername_defined, options->authname, options->authname_defined,
-    options->keysize, true, true);
+      options->authname, options->keysize, true, true);
 
   bool packet_id_long_form = cipher_kt_mode_ofb_cfb (session->opt->key_type.cipher);
   session->opt->crypto_flags_and &= ~(CO_PACKET_ID_LONG_FORM);
@@ -1689,8 +1688,7 @@ tls_session_update_crypto_params(struct tls_session *session,
   /* Update frame parameters: undo worst-case overhead, add actual overhead */
   frame_add_to_extra_frame (frame, -(crypto_max_overhead()));
   crypto_adjust_frame_parameters (frame, &session->opt->key_type,
-      options->ciphername_defined, options->use_iv, options->replay,
-      packet_id_long_form);
+      options->use_iv, options->replay, packet_id_long_form);
   frame_finalize(frame, options->ce.link_mtu_defined, options->ce.link_mtu,
       options->ce.tun_mtu_defined, options->ce.tun_mtu);
   frame_print (frame, D_MTU_INFO, "Data Channel MTU parms");

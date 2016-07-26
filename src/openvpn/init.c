@@ -2156,10 +2156,8 @@ do_init_crypto_static (struct context *c, const unsigned int flags)
       struct key_direction_state kds;
 
       /* Get cipher & hash algorithms */
-      init_key_type (&c->c1.ks.key_type, options->ciphername,
-		     options->ciphername_defined, options->authname,
-		     options->authname_defined, options->keysize,
-		     options->test_crypto, true);
+      init_key_type (&c->c1.ks.key_type, options->ciphername, options->authname,
+		     options->keysize, options->test_crypto, true);
 
       /* Read cipher and hmac keys from shared secret file */
       {
@@ -2201,7 +2199,6 @@ do_init_crypto_static (struct context *c, const unsigned int flags)
   /* Compute MTU parameters */
   crypto_adjust_frame_parameters (&c->c2.frame,
 				  &c->c1.ks.key_type,
-				  options->ciphername_defined,
 				  options->use_iv, options->replay, true);
 
   /* Sanity check on IV, sequence number, and cipher mode options */
@@ -2249,9 +2246,8 @@ do_init_crypto_tls_c1 (struct context *c)
 	}
 
       /* Get cipher & hash algorithms */
-      init_key_type (&c->c1.ks.key_type, options->ciphername,
-		     options->ciphername_defined, options->authname,
-		     options->authname_defined, options->keysize, true, true);
+      init_key_type (&c->c1.ks.key_type, options->ciphername, options->authname,
+		     options->keysize, true, true);
 
       /* Initialize PRNG with config-specified digest */
       prng_init (options->prng_hash, options->prng_nonce_secret_len);
@@ -2270,7 +2266,7 @@ do_init_crypto_tls_c1 (struct context *c)
 
 	  /* Initialize key_type for tls-auth with auth only */
 	  CLEAR (c->c1.ks.tls_auth_key_type);
-	  if (options->authname && options->authname_defined)
+	  if (options->authname)
 	    {
 	      c->c1.ks.tls_auth_key_type.digest = md_kt_get (options->authname);
 	      c->c1.ks.tls_auth_key_type.hmac_length =
@@ -2339,8 +2335,7 @@ do_init_crypto_tls (struct context *c, const unsigned int flags)
   else
     {
       crypto_adjust_frame_parameters(&c->c2.frame, &c->c1.ks.key_type,
-	  options->ciphername_defined, options->use_iv, options->replay,
-	  packet_id_long_form);
+	  options->use_iv, options->replay, packet_id_long_form);
     }
   tls_adjust_frame_parameters (&c->c2.frame);
 
@@ -2468,7 +2463,7 @@ do_init_crypto_tls (struct context *c, const unsigned int flags)
       to.tls_auth.flags |= CO_PACKET_ID_LONG_FORM;
       crypto_adjust_frame_parameters (&to.frame,
 				      &c->c1.ks.tls_auth_key_type,
-				      false, false, true, true);
+				      false, true, true);
     }
 
   /* If we are running over TCP, allow for

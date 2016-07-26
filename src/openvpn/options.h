@@ -469,11 +469,9 @@ struct options
   const char *shared_secret_file;
   const char *shared_secret_file_inline;
   int key_direction;
-  bool ciphername_defined;
   const char *ciphername;
   bool ncp_enabled;
   const char *ncp_ciphers;
-  bool authname_defined;
   const char *authname;
   int keysize;
   const char *prng_hash;

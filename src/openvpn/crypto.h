@@ -296,9 +296,20 @@ bool write_key (const struct key *key, const struct key_type *kt,
 
 int read_key (struct key *key, const struct key_type *kt, struct buffer *buf);
 
+/**
+ * Initialize a key_type structure with.
+ *
+ * @param kt          The struct key_type to initialize
+ * @param ciphername  The name of the cipher to use
+ * @param authname    The name of the HMAC digest to use
+ * @param keysize     The length of the cipher key to use, in bytes.  Only valid
+ *                    for ciphers that support variable length keys.
+ * @param tls_mode    Specifies wether we are running in TLS mode, which allows
+ *                    more ciphers than static key mode.
+ * @param warn        Print warnings when null cipher / auth is used.
+ */
 void init_key_type (struct key_type *kt, const char *ciphername,
-    bool ciphername_defined, const char *authname, bool authname_defined,
-    int keysize, bool tls_mode, bool warn);
+    const char *authname, int keysize, bool tls_mode, bool warn);
 
 /*
  * Key context functions
@@ -389,7 +400,6 @@ bool openvpn_decrypt (struct buffer *buf, struct buffer work,
 /** Calculate crypto overhead and adjust frame to account for that */
 void crypto_adjust_frame_parameters(struct frame *frame,
 				    const struct key_type* kt,
-				    bool cipher_defined,
 				    bool use_iv,
 				    bool packet_id,
 				    bool packet_id_long_form);
