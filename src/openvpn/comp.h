@@ -24,7 +24,7 @@
 
 /*
  * Generic compression support.  Currently we support
- * Snappy, LZO 2 and LZ4.
+ * LZO 2 and LZ4.
  */
 #ifndef OPENVPN_COMP_H
 #define OPENVPN_COMP_H
@@ -40,14 +40,24 @@
 #define COMP_ALG_UNDEF  0
 #define COMP_ALG_STUB   1 /* support compression command byte and framing without actual compression */
 #define COMP_ALG_LZO    2 /* LZO algorithm */
-#define COMP_ALG_SNAPPY 3 /* Snappy algorithm */
+#define COMP_ALG_SNAPPY 3 /* Snappy algorithm (no longer supported) */
 #define COMP_ALG_LZ4    4 /* LZ4 algorithm */
+
+
+/* algorithm v2 */
+#define COMP_ALGV2_UNCOMPRESSED 10
+#define COMP_ALGV2_LZ4	    11
+/*
+#define COMP_ALGV2_LZO	    12
+#define COMP_ALGV2_SNAPPY   13
+*/
 
 /* Compression flags */
 #define COMP_F_ADAPTIVE   (1<<0) /* COMP_ALG_LZO only */
 #define COMP_F_ASYM       (1<<1) /* only downlink is compressed, not uplink */
 #define COMP_F_SWAP       (1<<2) /* initial command byte is swapped with last byte in buffer to preserve payload alignment */
 #define COMP_F_ADVERTISE_STUBS_ONLY (1<<3) /* tell server that we only support compression stubs */
+
 
 /*
  * Length of prepended prefix on compressed packets
@@ -57,8 +67,20 @@
 /*
  * Prefix bytes
  */
+
+/* V1 on wire codes */
+/* Initial command byte to tell our peer if we compressed */
+#define LZO_COMPRESS_BYTE 0x66
+#define LZ4_COMPRESS_BYTE 0x69
 #define NO_COMPRESS_BYTE      0xFA
 #define NO_COMPRESS_BYTE_SWAP 0xFB /* to maintain payload alignment, replace this byte with last byte of packet */
+
+/* V2 on wire code */
+#define COMP_ALGV2_INDICATOR_BYTE	0x50
+#define COMP_ALGV2_UNCOMPRESSED_BYTE	0
+#define COMP_ALGV2_LZ4_BYTE		1
+#define COMP_ALGV2_LZO_BYTE		2
+#define COMP_ALGV2_SNAPPY_BYTE		3
 
 /*
  * Compress worst case size expansion (for any algorithm)
@@ -101,10 +123,6 @@ struct compress_alg
 #include "lzo.h"
 #endif
 
-#ifdef ENABLE_SNAPPY
-#include "snappy.h"
-#endif
-
 #ifdef ENABLE_LZ4
 #include "comp-lz4.h"
 #endif
@@ -126,9 +144,6 @@ union compress_workspace_union
 {
 #ifdef ENABLE_LZO
   struct lzo_compress_workspace lzo;
-#endif
-#ifdef ENABLE_SNAPPY
-  struct snappy_workspace snappy;
 #endif
 #ifdef ENABLE_LZ4
   struct lz4_workspace lz4;
@@ -152,6 +167,7 @@ struct compress_context
 };
 
 extern const struct compress_alg comp_stub_alg;
+extern const struct compress_alg compv2_stub_alg;
 
 struct compress_context *comp_init(const struct compress_options *opt);
 
@@ -163,6 +179,8 @@ void comp_add_to_extra_buffer(struct frame *frame);
 void comp_print_stats (const struct compress_context *compctx, struct status_output *so);
 
 void comp_generate_peer_info_string(const struct compress_options *opt, struct buffer *out);
+
+void compv2_escape_data_ifneeded (struct buffer *buf);
 
 static inline bool
 comp_enabled(const struct compress_options *info)

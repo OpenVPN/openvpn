@@ -220,6 +220,10 @@ openvpn_main (int argc, char *argv[])
 
 	  /* print version number */
 	  msg (M_INFO, "%s", title_string);
+#ifdef WIN32
+	  show_windows_version(M_INFO);
+#endif
+	  show_library_versions(M_INFO);
 
 	  /* misc stuff */
 	  pre_setup (&c.options);
@@ -227,11 +231,28 @@ openvpn_main (int argc, char *argv[])
 	  /* test crypto? */
 	  if (do_test_crypto (&c.options))
 	    break;
-	  
+
+	  /* Query passwords before becoming a daemon if we don't use the
+	   * management interface to get them. */
+#ifdef ENABLE_MANAGEMENT
+	  if (!(c.options.management_flags & MF_QUERY_PASSWORDS))
+#endif
+	    init_query_passwords (&c);
+
+	  /* become a daemon if --daemon */
+	  if (c.first_time)
+	    {
+	      c.did_we_daemonize = possibly_become_daemon (&c.options);
+	      write_pid (c.options.writepid);
+	    }
+
 #ifdef ENABLE_MANAGEMENT
 	  /* open management subsystem */
 	  if (!open_management (&c))
 	    break;
+	  /* query for passwords through management interface, if needed */
+	  if (c.options.management_flags & MF_QUERY_PASSWORDS)
+	    init_query_passwords (&c);
 #endif
 
 	  /* set certain options as environmental variables */

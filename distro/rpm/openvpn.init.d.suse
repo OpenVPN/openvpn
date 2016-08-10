@@ -161,7 +161,7 @@ case "$1" in
 	for c in `/bin/ls *.conf 2>/dev/null`; do
 	    bn=${c%%.conf}
 	    if [ -f "$bn.sh" ]; then
-		. $bn.sh
+		. ./$bn.sh
 	    fi
 	    rm -f $piddir/$bn.pid
 	    $openvpn --daemon --writepid $piddir/$bn.pid --config $c --cd $work

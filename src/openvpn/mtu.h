@@ -207,7 +207,7 @@ void frame_print (const struct frame *frame,
 		  int level,
 		  const char *prefix);
 
-void set_mtu_discover_type (int sd, int mtu_type);
+void set_mtu_discover_type (int sd, int mtu_type, sa_family_t proto_af);
 int translate_mtu_discover_type_name (const char *name);
 
 /*
@@ -256,6 +256,12 @@ frame_headroom (const struct frame *f, const unsigned int flag_mask)
 /*
  * frame member adjustment functions
  */
+
+static inline void
+frame_add_to_link_mtu (struct frame *frame, const int increment)
+{
+  frame->link_mtu += increment;
+}
 
 static inline void
 frame_add_to_extra_frame (struct frame *frame, const int increment)

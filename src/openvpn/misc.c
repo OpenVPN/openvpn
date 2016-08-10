@@ -62,6 +62,9 @@ run_up_down (const char *command,
 	     const struct plugin_list *plugins,
 	     int plugin_type,
 	     const char *arg,
+#ifdef WIN32
+	     DWORD adapter_index,
+#endif
 	     const char *dev_type,
 	     int tun_mtu,
 	     int link_mtu,
@@ -82,6 +85,9 @@ run_up_down (const char *command,
   setenv_str (es, "dev", arg);
   if (dev_type)
     setenv_str (es, "dev_type", dev_type);
+#ifdef WIN32
+  setenv_int (es, "dev_idx", adapter_index);
+#endif
 
   if (!ifconfig_local)
     ifconfig_local = "";
@@ -127,30 +133,21 @@ run_up_down (const char *command,
   gc_free (&gc);
 }
 
-/* Get the file we will later write our process ID to */
-void
-get_pid_file (const char* filename, struct pid_state *state)
-{
-  CLEAR (*state);
-  if (filename)
-    {
-      state->fp = platform_fopen (filename, "w");
-      if (!state->fp)
-	msg (M_ERR, "Open error on pid file %s", filename);
-      state->filename = filename;
-    }
-}
-
 /* Write our PID to a file */
 void
-write_pid (const struct pid_state *state)
+write_pid (const char *filename)
 {
-  if (state->filename && state->fp)
+  if (filename)
     {
-      unsigned int pid = platform_getpid (); 
-      fprintf(state->fp, "%u\n", pid);
-      if (fclose (state->fp))
-	msg (M_ERR, "Close error on pid file %s", state->filename);
+      unsigned int pid = 0;
+      FILE *fp = platform_fopen (filename, "w");
+      if (!fp)
+	msg (M_ERR, "Open error on pid file %s", filename);
+
+      pid = platform_getpid ();
+      fprintf(fp, "%u\n", pid);
+      if (fclose (fp))
+	msg (M_ERR, "Close error on pid file %s", filename);
     }
 }
 
@@ -365,24 +362,29 @@ openvpn_popen (const struct argv *a,  const struct env_set *es)
 		      pid = fork ();
 		      if (pid == (pid_t)0) /* child side */
 			{
-			  close (pipe_stdout[0]);
+			  close (pipe_stdout[0]);  /* Close read end */
 			  dup2 (pipe_stdout[1],1);
 			  execve (cmd, argv, envp);
 			  exit (127);
 			}
-		      else if (pid < (pid_t)0) /* fork failed */
+		      else if (pid > (pid_t)0) /* parent side */
 			{
-			  msg (M_ERR, "openvpn_popen: unable to fork");
+                          int status = 0;
+
+                          close (pipe_stdout[1]); /* Close write end */
+                          waitpid(pid, &status, 0);
+                          ret = pipe_stdout[0];
 			}
-		      else /* parent side */
+		      else /* fork failed */
 			{
-                            ret=pipe_stdout[0];
-			    close (pipe_stdout[1]);
+                          close (pipe_stdout[0]);
+                          close (pipe_stdout[1]);
+			  msg (M_ERR, "openvpn_popen: unable to fork %s", cmd);
 			}
 	      }
 	      else {
-		      msg (M_WARN, "openvpn_popen: unable to create stdout pipe");
-		      ret = -1;
+                msg (M_WARN, "openvpn_popen: unable to create stdout pipe for %s", cmd);
+                ret = -1;
 	      }
 	}
       else if (!warn_shown && (script_security < SSEC_SCRIPTS))
@@ -611,6 +613,16 @@ env_set_add (struct env_set *es, const char *str)
   env_set_add_nolock (es, str);
 }
 
+const char*
+env_set_get (const struct env_set *es, const char *name)
+{
+  const struct env_item *item = es->list;
+  while (item && !env_string_equal(item->string, name)) {
+      item = item->next;
+  }
+  return item ? item->string : NULL;
+}
+
 void
 env_set_print (int msglevel, const struct env_set *es)
 {
@@ -745,6 +757,28 @@ setenv_str_safe (struct env_set *es, const char *name, const char *value)
     msg (M_WARN, "setenv_str_safe: name overflow");
 }
 
+void setenv_str_incr(struct env_set *es, const char *name, const char *value)
+{
+  unsigned int counter = 1;
+  const size_t tmpname_len = strlen(name) + 5; /* 3 digits counter max */
+  char *tmpname = gc_malloc(tmpname_len, true, NULL);
+  strcpy(tmpname, name);
+  while (NULL != env_set_get(es, tmpname) && counter < 1000)
+    {
+      ASSERT (openvpn_snprintf (tmpname, tmpname_len, "%s_%u", name, counter));
+      counter++;
+    }
+  if (counter < 1000)
+    {
+      setenv_str (es, tmpname, value);
+    }
+  else
+    {
+      msg (D_TLS_DEBUG_MED, "Too many same-name env variables, ignoring: %s", name);
+    }
+  free (tmpname);
+}
+
 void
 setenv_del (struct env_set *es, const char *name)
 {
@@ -822,32 +856,6 @@ setenv_str_i (struct env_set *es, const char *name, const char *value, const int
   gc_free (&gc);
 }
 
-/*
- * taken from busybox networking/ifupdown.c
- */
-unsigned int
-count_bits(unsigned int a)
-{
-  unsigned int result;
-  result = (a & 0x55) + ((a >> 1) & 0x55);
-  result = (result & 0x33) + ((result >> 2) & 0x33);
-  return((result & 0x0F) + ((result >> 4) & 0x0F));
-}
-
-int
-count_netmask_bits(const char *dotted_quad)
-{
-  unsigned int result, a, b, c, d;
-  /* Found a netmask...  Check if it is dotted quad */
-  if (sscanf(dotted_quad, "%u.%u.%u.%u", &a, &b, &c, &d) != 4)
-    return -1;
-  result = count_bits(a);
-  result += count_bits(b);
-  result += count_bits(c);
-  result += count_bits(d);
-  return ((int)result);
-}
-
 /* return true if filename can be opened for read */
 bool
 test_file (const char *filename)
@@ -860,6 +868,12 @@ test_file (const char *filename)
 	{
 	  fclose (fp);
 	  ret = true;
+	}
+      else
+	{
+	  if( openvpn_errno () == EACCES ) {
+	    msg( M_WARN | M_ERRNO, "Could not access file '%s'", filename);
+	  }
 	}
     }
 
@@ -1027,7 +1041,10 @@ get_user_pass_cr (struct user_pass *up,
 
   if (!up->defined)
     {
-      const bool from_stdin = (!auth_file || !strcmp (auth_file, "stdin"));
+      bool from_authfile = (auth_file && !streq (auth_file, "stdin"));
+      bool username_from_stdin = false;
+      bool password_from_stdin = false;
+      bool response_from_stdin = true;
 
       if (flags & GET_USER_PASS_PREVIOUS_CREDS_FAILED)
 	msg (M_WARN, "Note: previous '%s' credentials failed", prefix);
@@ -1037,10 +1054,11 @@ get_user_pass_cr (struct user_pass *up,
        * Get username/password from management interface?
        */
       if (management
-	  && ((auth_file && streq (auth_file, "management")) || (from_stdin && (flags & GET_USER_PASS_MANAGEMENT)))
+          && (!from_authfile && (flags & GET_USER_PASS_MANAGEMENT))
 	  && management_query_user_pass_enabled (management))
 	{
 	  const char *sc = NULL;
+          response_from_stdin = false;
 
 	  if (flags & GET_USER_PASS_PREVIOUS_CREDS_FAILED)
 	    management_auth_failure (management, prefix, "previous auth credentials failed");
@@ -1074,14 +1092,72 @@ get_user_pass_cr (struct user_pass *up,
 	  if (!strlen (up->password))
 	    strcpy (up->password, "ok");
 	}
-	  
+      else if (flags & GET_USER_PASS_INLINE_CREDS)
+	{
+	  struct buffer buf;
+	  buf_set_read (&buf, (uint8_t*) auth_file, strlen (auth_file) + 1);
+	  if (!(flags & GET_USER_PASS_PASSWORD_ONLY))
+	    buf_parse (&buf, '\n', up->username, USER_PASS_LEN);
+	  buf_parse (&buf, '\n', up->password, USER_PASS_LEN);
+	}
+      /*
+       * Read from auth file unless this is a dynamic challenge request.
+       */
+      else if (from_authfile && !(flags & GET_USER_PASS_DYNAMIC_CHALLENGE))
+        {
+          /*
+           * Try to get username/password from a file.
+           */
+          FILE *fp;
+          char password_buf[USER_PASS_LEN] = { '\0' };
+
+          warn_if_group_others_accessible (auth_file);
+
+          fp = platform_fopen (auth_file, "r");
+          if (!fp)
+            msg (M_ERR, "Error opening '%s' auth file: %s", prefix, auth_file);
+
+          if ((flags & GET_USER_PASS_PASSWORD_ONLY) == 0)
+            {
+              /* Read username first */
+               if (fgets (up->username, USER_PASS_LEN, fp) == NULL)
+                 msg (M_FATAL, "Error reading username from %s authfile: %s",
+                      prefix,
+                      auth_file);
+             }
+          chomp (up->username);
+
+          if (fgets (password_buf, USER_PASS_LEN, fp) != NULL)
+            {
+              chomp (password_buf);
+            }
+
+          if (flags & GET_USER_PASS_PASSWORD_ONLY && !password_buf[0])
+                msg (M_FATAL, "Error reading password from %s authfile: %s", prefix, auth_file);
+
+          if (password_buf[0])
+            strncpy(up->password, password_buf, USER_PASS_LEN);
+          else
+            password_from_stdin = 1;
+
+          fclose (fp);
+
+          if (!(flags & GET_USER_PASS_PASSWORD_ONLY) && strlen (up->username) == 0)
+            msg (M_FATAL, "ERROR: username from %s authfile '%s' is empty", prefix, auth_file);
+        }
+      else
+        {
+          username_from_stdin = true;
+          password_from_stdin = true;
+        }
+
       /*
        * Get username/password from standard input?
        */
-      else if (from_stdin)
+      if (username_from_stdin || password_from_stdin || response_from_stdin)
 	{
 #ifdef ENABLE_CLIENT_CR
-	  if (auth_challenge && (flags & GET_USER_PASS_DYNAMIC_CHALLENGE))
+          if (auth_challenge && (flags & GET_USER_PASS_DYNAMIC_CHALLENGE) && response_from_stdin)
 	    {
 	      struct auth_challenge_info *ac = get_auth_challenge (auth_challenge, &gc);
 	      if (ac)
@@ -1091,7 +1167,8 @@ get_user_pass_cr (struct user_pass *up,
 
 		  buf_set_write (&packed_resp, (uint8_t*)up->password, USER_PASS_LEN);
 		  msg (M_INFO|M_NOPREFIX, "CHALLENGE: %s", ac->challenge_text);
-		  if (!get_console_input ("Response:", BOOL_CAST(ac->flags&CR_ECHO), response, USER_PASS_LEN))
+                  if (!get_console_input (ac->challenge_text, BOOL_CAST(ac->flags&CR_ECHO),
+                                          response, USER_PASS_LEN))
 		    msg (M_FATAL, "ERROR: could not read challenge response from stdin");
 		  strncpynt (up->username, ac->user, USER_PASS_LEN);
 		  buf_printf (&packed_resp, "CRV1::%s::%s", ac->state_id, response);
@@ -1110,7 +1187,7 @@ get_user_pass_cr (struct user_pass *up,
 	      buf_printf (&user_prompt, "Enter %s Username:", prefix);
 	      buf_printf (&pass_prompt, "Enter %s Password:", prefix);
 
-	      if (!(flags & GET_USER_PASS_PASSWORD_ONLY))
+	      if (username_from_stdin && !(flags & GET_USER_PASS_PASSWORD_ONLY))
 		{
 		  if (!get_console_input (BSTR (&user_prompt), true, up->username, USER_PASS_LEN))
 		    msg (M_FATAL, "ERROR: could not read %s username from stdin", prefix);
@@ -1118,18 +1195,20 @@ get_user_pass_cr (struct user_pass *up,
 		    msg (M_FATAL, "ERROR: %s username is empty", prefix);
 		}
 
-	      if (!get_console_input (BSTR (&pass_prompt), false, up->password, USER_PASS_LEN))
+	      if (password_from_stdin && !get_console_input (BSTR (&pass_prompt), false, up->password, USER_PASS_LEN))
 		msg (M_FATAL, "ERROR: could not not read %s password from stdin", prefix);
 
 #ifdef ENABLE_CLIENT_CR
-	      if (auth_challenge && (flags & GET_USER_PASS_STATIC_CHALLENGE))
+              if (auth_challenge && (flags & GET_USER_PASS_STATIC_CHALLENGE) && response_from_stdin)
 		{
 		  char *response = (char *) gc_malloc (USER_PASS_LEN, false, &gc);
 		  struct buffer packed_resp;
 		  char *pw64=NULL, *resp64=NULL;
 
 		  msg (M_INFO|M_NOPREFIX, "CHALLENGE: %s", auth_challenge);
-		  if (!get_console_input ("Response:", BOOL_CAST(flags & GET_USER_PASS_STATIC_CHALLENGE_ECHO), response, USER_PASS_LEN))
+
+                  if (!get_console_input (auth_challenge, BOOL_CAST(flags & GET_USER_PASS_STATIC_CHALLENGE_ECHO),
+                                          response, USER_PASS_LEN))
 		    msg (M_FATAL, "ERROR: could not read static challenge response from stdin");
 		  if (openvpn_base64_encode(up->password, strlen(up->password), &pw64) == -1
 		      || openvpn_base64_encode(response, strlen(response), &resp64) == -1)
@@ -1143,52 +1222,6 @@ get_user_pass_cr (struct user_pass *up,
 		}
 #endif
 	    }
-	}
-      else
-	{
-	  /*
-	   * Get username/password from a file.
-	   */
-	  FILE *fp;
-      
-#ifndef ENABLE_PASSWORD_SAVE
-	  /*
-	   * Unless ENABLE_PASSWORD_SAVE is defined, don't allow sensitive passwords
-	   * to be read from a file.
-	   */
-	  if (flags & GET_USER_PASS_SENSITIVE)
-	    msg (M_FATAL, "Sorry, '%s' password cannot be read from a file", prefix);
-#endif
-
-	  warn_if_group_others_accessible (auth_file);
-
-	  fp = platform_fopen (auth_file, "r");
-	  if (!fp)
-	    msg (M_ERR, "Error opening '%s' auth file: %s", prefix, auth_file);
-
-	  if (flags & GET_USER_PASS_PASSWORD_ONLY)
-	    {
-	      if (fgets (up->password, USER_PASS_LEN, fp) == NULL)
-		msg (M_FATAL, "Error reading password from %s authfile: %s",
-		     prefix,
-		     auth_file);
-	    }
-	  else
-	    {
-	      if (fgets (up->username, USER_PASS_LEN, fp) == NULL
-		  || fgets (up->password, USER_PASS_LEN, fp) == NULL)
-		msg (M_FATAL, "Error reading username and password (must be on two consecutive lines) from %s authfile: %s",
-		     prefix,
-		     auth_file);
-	    }
-      
-	  fclose (fp);
-      
-	  chomp (up->username);
-	  chomp (up->password);
-      
-	  if (!(flags & GET_USER_PASS_PASSWORD_ONLY) && strlen (up->username) == 0)
-	    msg (M_FATAL, "ERROR: username from %s authfile '%s' is empty", prefix, auth_file);
 	}
 
       string_mod (up->username, CC_PRINT, CC_CRLF, 0);
@@ -1631,22 +1664,27 @@ argv_system_str_append (struct argv *a, const char *str, const bool enquote)
 static char *
 argv_extract_cmd_name (const char *path)
 {
+  char *ret = NULL;
   if (path)
     {
-      char *path_cp = strdup(path); /* POSIX basename() implementaions may modify its arguments */
+      char *path_cp = string_alloc(path, NULL); /* POSIX basename() implementaions may modify its arguments */
       const char *bn = basename (path_cp);
       if (bn)
 	{
-	  char *ret = string_alloc (bn, NULL);
-	  char *dot = strrchr (ret, '.');
+	  char *dot = NULL;
+	  ret = string_alloc (bn, NULL);
+	  dot = strrchr (ret, '.');
 	  if (dot)
 	    *dot = '\0';
 	  free(path_cp);
-	  if (ret[0] != '\0')
-	    return ret;
+	  if (ret[0] == '\0')
+	    {
+	      free(ret);
+	      ret = NULL;
+	    }
 	}
     }
-  return NULL;
+  return ret;
 }
 
 const char *

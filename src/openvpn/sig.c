@@ -126,7 +126,7 @@ print_signal (const struct signal_info *si, const char *title, int msglevel)
     {
       const char *type = (si->signal_text ? si->signal_text : "");
       const char *t = (title ? title : "process");
-      const char *hs;
+      const char *hs = NULL;
       switch (si->source)
         {
         case SIG_SOURCE_SOFT:
@@ -189,8 +189,10 @@ signal_restart_status (const struct signal_info *si)
 	management_set_state (management,
 			      state,
 			      si->signal_text ? si->signal_text : signal_name (si->signal_received, true),
-			      (in_addr_t)0,
-			      (in_addr_t)0);
+                              NULL,
+                              NULL,
+                              NULL,
+                              NULL);
     }
 #endif
 }
@@ -374,12 +376,35 @@ process_sigterm (struct context *c)
   return ret;
 }
 
+/**
+ * If a restart signal is received during exit-notification, reset the
+ * signal and return true.
+ */
+static bool
+ignore_restart_signals (struct context *c)
+{
+  bool ret = false;
+#ifdef ENABLE_OCC
+  if ( (c->sig->signal_received == SIGUSR1 || c->sig->signal_received == SIGHUP) &&
+        event_timeout_defined(&c->c2.explicit_exit_notification_interval) )
+    {
+       msg (M_INFO, "Ignoring %s received during exit notification",
+            signal_name(c->sig->signal_received, true));
+       signal_reset (c->sig);
+       ret = true;
+    }
+#endif
+  return ret;
+}
+
 bool
 process_signal (struct context *c)
 {
   bool ret = true;
 
-  if (c->sig->signal_received == SIGTERM || c->sig->signal_received == SIGINT)
+  if (ignore_restart_signals (c))
+    ret = false;
+  else if (c->sig->signal_received == SIGTERM || c->sig->signal_received == SIGINT)
     {
       ret = process_sigterm (c);
     }

@@ -43,13 +43,6 @@
 #include "ps.h"
 #include "mstats.h"
 
-#ifdef ENABLE_CRYPTO
-#ifdef ENABLE_CRYPTO_OPENSSL
-#include <openssl/err.h>
-#endif
-#endif
-
-#include "memdbg.h"
 
 #if SYSLOG_CAPABILITY
 #ifndef LOG_OPENVPN
@@ -81,6 +74,10 @@ static bool std_redir;      /* GLOBAL */
 
 /* Should messages be written to the syslog? */
 static bool use_syslog;     /* GLOBAL */
+
+/* Should stdout/stderr be be parsable and always be prefixed with time
+ * and message flags */
+static bool machine_readable_output;   /* GLOBAL */
 
 /* Should timestamps be included on messages to stdout/stderr? */
 static bool suppress_timestamps; /* GLOBAL */
@@ -155,10 +152,17 @@ set_suppress_timestamps (bool suppressed)
 }
 
 void
+set_machine_readable_output (bool parsable)
+{
+  machine_readable_output = parsable;
+}
+
+void
 error_reset ()
 {
   use_syslog = std_redir = false;
   suppress_timestamps = false;
+  machine_readable_output = false;
   x_debug_level = 1;
   mute_cutoff = 0;
   mute_count = 0;
@@ -224,7 +228,7 @@ void x_msg_va (const unsigned int flags, const char *format, va_list arglist)
 
 #ifndef HAVE_VARARG_MACROS
   /* the macro has checked this otherwise */
-  if (!MSG_TEST (flags))
+  if (!msg_test (flags))
     return;
 #endif
 
@@ -253,28 +257,6 @@ void x_msg_va (const unsigned int flags, const char *format, va_list arglist)
 			m1, strerror_ts (e, &gc), e);
       SWAP;
     }
-
-#ifdef ENABLE_CRYPTO
-#ifdef ENABLE_CRYPTO_OPENSSL
-  if (flags & M_SSL)
-    {
-      int nerrs = 0;
-      size_t err;
-      while ((err = ERR_get_error ()))
-	{
-	  openvpn_snprintf (m2, ERR_BUF_SIZE, "%s: %s",
-			    m1, ERR_error_string (err, NULL));
-	  SWAP;
-	  ++nerrs;
-	}
-      if (!nerrs)
-	{
-	  openvpn_snprintf (m2, ERR_BUF_SIZE, "%s (OpenSSL)", m1);
-	  SWAP;
-	}
-    }
-#endif
-#endif
 
   if (flags & M_OPTERR)
     {
@@ -330,7 +312,22 @@ void x_msg_va (const unsigned int flags, const char *format, va_list arglist)
 	  FILE *fp = msg_fp(flags);
 	  const bool show_usec = check_debug_level (DEBUG_LEVEL_USEC_TIME);
 
-	  if ((flags & M_NOPREFIX) || suppress_timestamps)
+	  if (machine_readable_output)
+	    {
+	      struct timeval tv;
+	      gettimeofday (&tv, NULL);
+
+	      fprintf (fp, "%lu.%06lu %x %s%s%s%s",
+		       tv.tv_sec,
+		       (unsigned long)tv.tv_usec,
+		       flags,
+		       prefix,
+		       prefix_sep,
+		       m1,
+		       "\n");
+
+	    }
+	  else if ((flags & M_NOPREFIX) || suppress_timestamps)
 	    {
 	      fprintf (fp, "%s%s%s%s",
 		       prefix,
@@ -397,9 +394,13 @@ dont_mute (unsigned int flags)
 }
 
 void
-assert_failed (const char *filename, int line)
+assert_failed (const char *filename, int line, const char *condition)
 {
-  msg (M_FATAL, "Assertion failed at %s:%d", filename, line);
+  if (condition)
+    msg (M_FATAL, "Assertion failed at %s:%d (%s)", filename, line, condition);
+  else
+    msg (M_FATAL, "Assertion failed at %s:%d", filename, line);
+  _exit(1);
 }
 
 /*

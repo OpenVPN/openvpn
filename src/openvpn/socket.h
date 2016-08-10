@@ -42,11 +42,6 @@
 #define OPENVPN_PORT "1194"
 
 /*
- * Maximum size passed passed to setsockopt SNDBUF/RCVBUF
- */
-#define SOCKET_SND_RCV_BUF_MAX 1000000
-
-/*
  * Number of seconds that "resolv-retry infinite"
  * represents.
  */
@@ -77,14 +72,20 @@ struct openvpn_sockaddr
   } addr;
 };
 
+/* struct to hold preresolved host names */
+struct cached_dns_entry {
+    const char *hostname;
+    const char *servname;
+    int ai_family;
+    int flags;
+    struct addrinfo *ai;
+    struct cached_dns_entry *next;
+};
+
 /* actual address of remote, based on source address of received packets */
 struct link_socket_actual
 {
   /*int dummy;*/ /* add offset to force a bug if dest not explicitly dereferenced */
- int ai_family;	/* PF_xxx */
- int ai_socktype;	/* SOCK_xxx */
- int ai_protocol;	/* 0 or IPPROTO_xxx for IPv4 and IPv6 */
-
 
   struct openvpn_sockaddr dest;
 #if ENABLE_IP_PKTINFO
@@ -166,10 +167,7 @@ struct link_socket
   struct link_socket_info info;
 
   socket_descriptor_t sd;
-
-#ifdef ENABLE_SOCKS
   socket_descriptor_t ctrl_sd;  /* only used for UDP over Socks */
-#endif
 
 #ifdef WIN32
   struct overlapped_io reads;
@@ -188,6 +186,7 @@ struct link_socket
   const char *remote_port;
   const char *local_host;
   const char *local_port;
+  struct cached_dns_entry *dns_cache;
   bool bind_local;
 
 # define INETD_NONE   0
@@ -201,14 +200,11 @@ struct link_socket
   int mode;
 
   int resolve_retry_seconds;
-  int connect_timeout;
   int mtu_discover_type;
 
   struct socket_buffer_size socket_buffer_sizes;
 
   int mtu;                      /* OS discovered MTU, or 0 if unknown */
-
-  bool did_resolve_remote;
 
 # define SF_USE_IP_PKTINFO (1<<0)
 # define SF_TCP_NODELAY (1<<1)
@@ -223,22 +219,20 @@ struct link_socket
   struct buffer stream_buf_data;
   bool stream_reset;
 
-#ifdef ENABLE_HTTP_PROXY
   /* HTTP proxy */
   struct http_proxy_info *http_proxy;
-#endif
 
-#ifdef ENABLE_SOCKS
   /* Socks proxy */
   struct socks_proxy_info *socks_proxy;
   struct link_socket_actual socks_relay; /* Socks UDP relay address */
-#endif
 
-#if defined(ENABLE_HTTP_PROXY) || defined(ENABLE_SOCKS)
   /* The OpenVPN server we will use the proxy to connect to */
   const char *proxy_dest_host;
   const char *proxy_dest_port;
-#endif
+
+ /* Pointer to the server-poll to trigger the timeout in function which have
+  * their own loop instead of using the main oop */
+  struct event_timeout* server_poll_timeout;
 
 #if PASSTOS_CAPABILITY
   /* used to get/set TOS. */
@@ -298,6 +292,8 @@ int openvpn_connect (socket_descriptor_t sd,
 		     int connect_timeout,
 		     volatile int *signal_received);
 
+
+
 /*
  * Initialize link_socket object.
  */
@@ -308,17 +304,14 @@ link_socket_init_phase1 (struct link_socket *sock,
 			 const char *local_port,
 			 const char *remote_host,
 			 const char *remote_port,
+			 struct cached_dns_entry *dns_cache,
 			 int proto,
 			 sa_family_t af,
 			 bool bind_ipv6_only,
 			 int mode,
 			 const struct link_socket *accept_from,
-#ifdef ENABLE_HTTP_PROXY
 			 struct http_proxy_info *http_proxy,
-#endif
-#ifdef ENABLE_SOCKS
 			 struct socks_proxy_info *socks_proxy,
-#endif
 #ifdef ENABLE_DEBUG
 			 int gremlin,
 #endif
@@ -329,16 +322,18 @@ link_socket_init_phase1 (struct link_socket *sock,
 			 const char *ipchange_command,
 			 const struct plugin_list *plugins,
 			 int resolve_retry_seconds,
-			 int connect_timeout,
 			 int mtu_discover_type,
 			 int rcvbuf,
 			 int sndbuf,
 			 int mark,
+			 struct event_timeout* server_poll_timeout,
 			 unsigned int sockflags);
 
 void link_socket_init_phase2 (struct link_socket *sock,
 			      const struct frame *frame,
 			      struct signal_info *sig_info);
+
+void do_preresolve(struct context *c);
 
 void socket_adjust_frame_parameters (struct frame *frame, int proto);
 
@@ -352,6 +347,7 @@ void sd_close (socket_descriptor_t *sd);
 #define PS_SHOW_PORT            (1<<1)
 #define PS_SHOW_PKTINFO         (1<<2)
 #define PS_DONT_SHOW_ADDR       (1<<3)
+#define PS_DONT_SHOW_FAMILY     (1<<4)
 
 const char *print_sockaddr_ex (const struct sockaddr *addr,
 			       const char* separator,
@@ -410,6 +406,11 @@ void setenv_in_addr_t (struct env_set *es,
 		       in_addr_t addr,
 		       const unsigned int flags);
 
+void setenv_in6_addr (struct env_set *es,
+                      const char *name_prefix,
+                      const struct in6_addr *addr,
+                      const unsigned int flags);
+
 void setenv_link_socket_actual (struct env_set *es,
 				const char *name_prefix,
 				const struct link_socket_actual *act,
@@ -422,6 +423,8 @@ void bad_address_length (int actual, int expected);
  */
 #define IPV4_INVALID_ADDR 0xffffffff
 in_addr_t link_socket_current_remote (const struct link_socket_info *info);
+const struct in6_addr * link_socket_current_remote_ipv6
+				     (const struct link_socket_info *info);
 
 void link_socket_connection_initiated (const struct buffer *buf,
 				       struct link_socket_info *info,
@@ -459,7 +462,7 @@ bool ip_or_dns_addr_safe (const char *addr, const bool allow_fqdn);
 bool mac_addr_safe (const char *mac_addr);
 bool ipv6_addr_safe (const char *ipv6_text_addr);
 
-socket_descriptor_t create_socket_tcp (int af);
+socket_descriptor_t create_socket_tcp (struct addrinfo*);
 
 socket_descriptor_t socket_do_accept (socket_descriptor_t sd,
 				      struct link_socket_actual *act,
@@ -513,6 +516,8 @@ bool unix_socket_get_peer_uid_gid (const socket_descriptor_t sd, int *uid, int *
 #define GETADDR_RANDOMIZE             (1<<9)
 #define GETADDR_PASSIVE               (1<<10)
 #define GETADDR_DATAGRAM              (1<<11)
+
+#define GETADDR_CACHE_MASK		(GETADDR_DATAGRAM|GETADDR_PASSIVE)
 
 in_addr_t getaddr (unsigned int flags,
 		   const char *hostname,
@@ -598,6 +603,23 @@ addr_defined (const struct openvpn_sockaddr *addr)
     default: return 0;
   }
 }
+
+static inline bool
+addr_local (const struct sockaddr *addr)
+{
+    if (!addr)
+	return false;
+    switch (addr->sa_family) {
+	case AF_INET:
+	    return ((const struct sockaddr_in*)addr)->sin_addr.s_addr == htonl(INADDR_LOOPBACK);
+	case AF_INET6:
+	    return  IN6_IS_ADDR_LOOPBACK(&((const struct sockaddr_in6*)addr)->sin6_addr);
+	default:
+	    return false;
+    }
+}
+
+
 static inline bool
 addr_defined_ipi (const struct link_socket_actual *lsa)
 {
@@ -942,7 +964,6 @@ link_socket_read_udp_win32 (struct link_socket *sock,
 
 int link_socket_read_udp_posix (struct link_socket *sock,
 				struct buffer *buf,
-				int maxsize,
 				struct link_socket_actual *from);
 
 #endif
@@ -951,7 +972,6 @@ int link_socket_read_udp_posix (struct link_socket *sock,
 static inline int
 link_socket_read (struct link_socket *sock,
 		  struct buffer *buf,
-		  int maxsize,
 		  struct link_socket_actual *from)
 {
   if (proto_is_udp(sock->info.proto)) /* unified UDPv4 and UDPv6 */
@@ -961,7 +981,7 @@ link_socket_read (struct link_socket *sock,
 #ifdef WIN32
       res = link_socket_read_udp_win32 (sock, buf, from);
 #else
-      res = link_socket_read_udp_posix (sock, buf, maxsize, from);
+      res = link_socket_read_udp_posix (sock, buf, from);
 #endif
       return res;
     }

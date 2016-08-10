@@ -366,14 +366,23 @@ Command examples:
                   same time enable real-time state notification
 		  of future state transitions.
 
-The output format consists of 4 comma-separated parameters: 
+The output format consists of up to 9 comma-separated parameters:
   (a) the integer unix date/time,
   (b) the state name,
   (c) optional descriptive string (used mostly on RECONNECTING
       and EXITING to show the reason for the disconnect),
-  (d) optional TUN/TAP local IP address (shown for ASSIGN_IP
-      and CONNECTED), and
-  (e) optional address of remote server (OpenVPN 2.1 or higher).
+  (d) optional TUN/TAP local IPv4 address
+  (e) optional address of remote server,
+  (f) optional port of remote server,
+  (g) optional local address,
+  (h) optional local port, and
+  (i) optional TUN/TAP local IPv6 address.
+
+Fields (e)-(h) are shown for CONNECTED state,
+(d) and (i) are shown for ASSIGN_IP and CONNECTED states.
+
+(e) is available starting from OpenVPN 2.1
+(f)-(i) are available starting from OpenVPN 2.4
 
 Real-time state notifications will have a ">STATE:" prefix
 prepended to them.
@@ -777,6 +786,28 @@ correct signature.
 This capability is intended to allow the use of arbitrary cryptographic
 service providers with OpenVPN via the management interface.
 
+COMMAND -- certificate (OpenVPN 2.4 or higher)
+----------------------------------------------
+Provides support for external storage of the certificate. Requires the
+--management-external-cert option. This option can be used instead of "cert"
+in client mode. On SSL protocol initialization a notification will be sent
+to the management interface with a hint as follows:
+
+>NEED-CERTIFICATE:macosx-keychain:subject:o=OpenVPN-TEST
+
+The management interface client should use the hint to obtain the specific
+SSL certificate and then return base64 encoded certificate as follows:
+
+certificate
+[BASE64_CERT_LINE]
+.
+.
+.
+END
+
+This capability is intended to allow the use of certificates
+stored outside of the filesystem (e.g. in Mac OS X Keychain)
+with OpenVPN via the management interface.
 
 OUTPUT FORMAT
 -------------

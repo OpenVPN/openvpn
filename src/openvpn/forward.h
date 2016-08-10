@@ -103,7 +103,7 @@ void show_wait_status (struct context *c);
  *     once for each remaining fragment with this parameter set to false.
  */
 void encrypt_sign (struct context *c, bool comp_frag);
-
+int get_server_poll_remaining_time (struct event_timeout* server_poll_timeout);
 
 /**********************************************************************/
 /**
@@ -127,12 +127,11 @@ void encrypt_sign (struct context *c, bool comp_frag);
  */
 void read_incoming_link (struct context *c);
 
-
 /**
- * Process a packet read from the external network interface.
+ * Starts processing a packet read from the external network interface.
  * @ingroup external_multiplexer
  *
- * This function controls the processing of a data channel packet which
+ * This function starts the processing of a data channel packet which
  * has come out of a VPN tunnel.  It's high-level structure is as follows:
  * - Verify that a nonzero length packet has been received from a valid
  *   source address for the given context \a c.
@@ -146,6 +145,25 @@ void read_incoming_link (struct context *c);
  * - Call \c openvpn_decrypt() of the \link data_crypto Data Channel
  *   Crypto module\endlink to authenticate and decrypt the packet using
  *   the security parameters loaded by \c tls_pre_decrypt() above.
+ *
+ * @param c - The context structure of the VPN tunnel associated with the
+ *     packet.
+ * @param lsi - link_socket_info obtained from context before processing.
+ * @param floated - Flag indicates that peer has floated.
+ *
+ * @return true if packet is authenticated, false otherwise.
+ */
+bool process_incoming_link_part1 (struct context *c, struct link_socket_info *lsi, bool floated);
+
+/**
+ * Continues processing a packet read from the external network interface.
+ * @ingroup external_multiplexer
+ *
+ * This function continues the processing of a data channel packet which
+ * has come out of a VPN tunnel. It must be called after
+ * \c process_incoming_link_part1() function.
+ *
+ * It's high-level structure is as follows:
  * - Call \c fragment_incoming() of the \link fragmentation Data Channel
  *   Fragmentation module\endlink to reassemble the packet if it's
  *   fragmented.
@@ -158,9 +176,11 @@ void read_incoming_link (struct context *c);
  *
  * @param c - The context structure of the VPN tunnel associated with the
  *     packet.
+ * @param lsi - link_socket_info obtained from context before processing.
+ * @param orig_buf - Pointer to a buffer data.
+ *
  */
-void process_incoming_link (struct context *c);
-
+void process_incoming_link_part2 (struct context *c, struct link_socket_info *lsi, const uint8_t *orig_buf);
 
 /**
  * Write a packet to the external network interface.

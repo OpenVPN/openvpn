@@ -38,10 +38,10 @@
 #include "ssl_verify_openssl.h"
 #define SSLAPI SSLAPI_OPENSSL
 #endif
-#ifdef ENABLE_CRYPTO_POLARSSL
-#include "ssl_polarssl.h"
-#include "ssl_verify_polarssl.h"
-#define SSLAPI SSLAPI_POLARSSL
+#ifdef ENABLE_CRYPTO_MBEDTLS
+#include "ssl_mbedtls.h"
+#include "ssl_verify_mbedtls.h"
+#define SSLAPI SSLAPI_MBEDTLS
 #endif
 
 /* Ensure that SSLAPI got a sane value if SSL is disabled or unknown */
@@ -109,11 +109,12 @@ void tls_clear_error();
  * @return 		One of the TLS_VER_x constants or TLS_VER_BAD
  *                      if a parse error should be flagged.
  */
-#define TLS_VER_BAD   -1
-#define TLS_VER_1_0    0 /* default */
-#define TLS_VER_1_1    1
-#define TLS_VER_1_2    2
-int tls_version_min_parse(const char *vstr, const char *extra);
+#define TLS_VER_BAD    -1
+#define TLS_VER_UNSPEC  0 /* default */
+#define TLS_VER_1_0     1
+#define TLS_VER_1_1     2
+#define TLS_VER_1_2     3
+int tls_version_parse(const char *vstr, const char *extra);
 
 /**
  * Return the maximum TLS version (as a TLS_VER_x constant)
@@ -174,6 +175,15 @@ void tls_ctx_set_options (struct tls_root_ctx *ctx, unsigned int ssl_flags);
 void tls_ctx_restrict_ciphers(struct tls_root_ctx *ctx, const char *ciphers);
 
 /**
+ * Check our certificate notBefore and notAfter fields, and warn if the cert is
+ * either not yet valid or has expired.  Note that this is a non-fatal error,
+ * since we compare against the system time, which might be incorrect.
+ *
+ * @param ctx		TLS context to get our certificate from.
+ */
+void tls_ctx_check_cert_time (const struct tls_root_ctx *ctx);
+
+/**
  * Load Diffie Hellman Parameters, and load them into the library-specific
  * TLS context.
  *
@@ -184,6 +194,16 @@ void tls_ctx_restrict_ciphers(struct tls_root_ctx *ctx, const char *ciphers);
  */
 void tls_ctx_load_dh_params(struct tls_root_ctx *ctx, const char *dh_file,
     const char *dh_file_inline);
+
+/**
+ * Load Elliptic Curve Parameters, and load them into the library-specific
+ * TLS context.
+ *
+ * @param ctx          TLS context to use
+ * @param curve_name   The name of the elliptic curve to load.
+ */
+void tls_ctx_load_ecdh_params(struct tls_root_ctx *ctx, const char *curve_name
+    );
 
 /**
  * Load PKCS #12 file for key, cert and (optionally) CA certs, and add to
@@ -288,9 +308,9 @@ void tls_ctx_load_extra_certs (struct tls_root_ctx *ctx, const char *extra_certs
     const char *extra_certs_file_inline
     );
 
-#ifdef ENABLE_CRYPTO_POLARSSL
+#ifdef ENABLE_CRYPTO_MBEDTLS
 /**
- * Add a personalisation string to the PolarSSL RNG, based on the certificate
+ * Add a personalisation string to the mbed TLS RNG, based on the certificate
  * loaded into the given context.
  *
  * @param ctx			TLS context to use
@@ -322,6 +342,19 @@ void key_state_ssl_init(struct key_state_ssl *ks_ssl,
  * @param ks_ssl	The SSL channel's state info to free
  */
 void key_state_ssl_free(struct key_state_ssl *ks_ssl);
+
+/**
+ * Keying Material Exporters [RFC 5705] allows additional keying material to be
+ * derived from existing TLS channel. This exported keying material can then be
+ * used for a variety of purposes.
+ *
+ * @param ks_ssl       The SSL channel's state info
+ * @param session      The session associated with the given key_state
+ */
+
+void
+key_state_export_keying_material(struct key_state_ssl *ks_ssl,
+    struct tls_session *session) __attribute__((nonnull));
 
 /**************************************************************************/
 /** @addtogroup control_tls
@@ -461,9 +494,20 @@ void print_details (struct key_state_ssl * ks_ssl, const char *prefix);
 void show_available_tls_ciphers (const char *tls_ciphers);
 
 /*
+ * Show the available elliptic curves in the crypto library
+ */
+void show_available_curves (void);
+
+/*
  * The OpenSSL library has a notion of preference in TLS ciphers.  Higher
  * preference == more secure. Return the highest preference cipher.
  */
 void get_highest_preference_tls_cipher (char *buf, int size);
+
+/**
+ * return a pointer to a static memory area containing the
+ * name and version number of the SSL library in use
+ */
+const char * get_ssl_library_version(void);
 
 #endif /* SSL_BACKEND_H_ */

@@ -35,7 +35,7 @@
 
 #include "syshead.h"
 
-#if defined(ENABLE_CRYPTO) && defined(ENABLE_SSL)
+#ifdef ENABLE_CRYPTO
 
 #include "misc.h"
 #include "manage.h"
@@ -238,7 +238,7 @@ cert_hash_free (struct cert_hash_set *chs)
     }
 }
 
-static bool
+bool
 cert_hash_compare (const struct cert_hash_set *chs1, const struct cert_hash_set *chs2)
 {
   if (chs1 && chs2)
@@ -337,8 +337,6 @@ verify_peer_cert(const struct tls_options *opt, openvpn_x509_cert_t *peer_cert,
 	}
     }
 
-#if OPENSSL_VERSION_NUMBER >= 0x00907000L || ENABLE_CRYPTO_POLARSSL
-
   /* verify certificate ku */
   if (opt->remote_cert_ku[0] != 0)
     {
@@ -366,8 +364,6 @@ verify_peer_cert(const struct tls_options *opt, openvpn_x509_cert_t *peer_cert,
           return FAILURE;		/* Reject connection */
 	}
     }
-
-#endif /* OPENSSL_VERSION_NUMBER */
 
   /* verify X509 name or username against --verify-x509-[user]name */
   if (opt->verify_x509_type != VERIFY_X509_NONE)
@@ -397,22 +393,17 @@ verify_peer_cert(const struct tls_options *opt, openvpn_x509_cert_t *peer_cert,
  */
 static void
 verify_cert_set_env(struct env_set *es, openvpn_x509_cert_t *peer_cert, int cert_depth,
-    const char *subject, const char *common_name
-#ifdef ENABLE_X509_TRACK
-    , const struct x509_track *x509_track
-#endif
-    )
+    const char *subject, const char *common_name,
+    const struct x509_track *x509_track)
 {
   char envname[64];
   char *serial = NULL;
   struct gc_arena gc = gc_new ();
 
   /* Save X509 fields in environment */
-#ifdef ENABLE_X509_TRACK
   if (x509_track)
     x509_setenv_track (x509_track, es, cert_depth, peer_cert);
   else
-#endif
     x509_setenv (es, cert_depth, peer_cert);
 
   /* export subject name string as environmental variable */
@@ -435,8 +426,13 @@ verify_cert_set_env(struct env_set *es, openvpn_x509_cert_t *peer_cert, int cert
   }
 
   /* export serial number as environmental variable */
-  serial = x509_get_serial(peer_cert, &gc);
+  serial = backend_x509_get_serial(peer_cert, &gc);
   openvpn_snprintf (envname, sizeof(envname), "tls_serial_%d", cert_depth);
+  setenv_str (es, envname, serial);
+
+  /* export serial number in hex as environmental variable */
+  serial = backend_x509_get_serial_hex(peer_cert, &gc);
+  openvpn_snprintf (envname, sizeof(envname), "tls_serial_hex_%d", cert_depth);
   setenv_str (es, envname, serial);
 
   gc_free(&gc);
@@ -562,7 +558,7 @@ verify_check_crl_dir(const char *crl_dir, openvpn_x509_cert_t *cert)
   int fd = -1;
   struct gc_arena gc = gc_new();
 
-  char *serial = x509_get_serial(cert, &gc);
+  char *serial = backend_x509_get_serial(cert, &gc);
 
   if (!openvpn_snprintf(fn, sizeof(fn), "%s%c%s", crl_dir, OS_SPECIFIC_DIRSEP, serial))
     {
@@ -591,7 +587,7 @@ verify_cert(struct tls_session *session, openvpn_x509_cert_t *cert, int cert_dep
 {
   result_t ret = FAILURE;
   char *subject = NULL;
-  char common_name[TLS_USERNAME_LEN] = {0};
+  char common_name[TLS_USERNAME_LEN+1] = {0}; /* null-terminated */
   const struct tls_options *opt;
   struct gc_arena gc = gc_new();
 
@@ -614,7 +610,7 @@ verify_cert(struct tls_session *session, openvpn_x509_cert_t *cert, int cert_dep
   string_replace_leading (subject, '-', '_');
 
   /* extract the username (default is CN) */
-  if (SUCCESS != x509_get_username (common_name, TLS_USERNAME_LEN,
+  if (SUCCESS != backend_x509_get_username (common_name, sizeof(common_name),
       opt->x509_username_field, cert))
     {
       if (!cert_depth)
@@ -657,11 +653,8 @@ verify_cert(struct tls_session *session, openvpn_x509_cert_t *cert, int cert_dep
   session->verify_maxlevel = max_int (session->verify_maxlevel, cert_depth);
 
   /* export certificate values to the environment */
-  verify_cert_set_env(opt->es, cert, cert_depth, subject, common_name
-#ifdef ENABLE_X509_TRACK
-      , opt->x509_track
-#endif
-      );
+  verify_cert_set_env(opt->es, cert, cert_depth, subject, common_name,
+      opt->x509_track);
 
   /* export current untrusted IP */
   setenv_untrusted (session);
@@ -689,7 +682,7 @@ verify_cert(struct tls_session *session, openvpn_x509_cert_t *cert, int cert_dep
       }
       else
       {
-	if (SUCCESS != x509_verify_crl(opt->crl_file, cert, subject))
+	if (SUCCESS != x509_verify_crl(opt->crl_file, opt->crl_file_inline, cert, subject))
 	  goto cleanup;
       }
     }
@@ -1162,7 +1155,7 @@ verify_user_pass(struct user_pass *up, struct tls_multi *multi,
     s2 = verify_user_pass_script (session, up);
 
   /* check sizing of username if it will become our common name */
-  if ((session->opt->ssl_flags & SSLF_USERNAME_AS_COMMON_NAME) && strlen (up->username) >= TLS_USERNAME_LEN)
+  if ((session->opt->ssl_flags & SSLF_USERNAME_AS_COMMON_NAME) && strlen (up->username) > TLS_USERNAME_LEN)
     {
       msg (D_TLS_ERRORS, "TLS Auth Error: --username-as-common name specified and username is longer than the maximum permitted Common Name length of %d characters", TLS_USERNAME_LEN);
       s1 = OPENVPN_PLUGIN_FUNC_ERROR;
@@ -1267,4 +1260,4 @@ verify_final_auth_checks(struct tls_multi *multi, struct tls_session *session)
       gc_free (&gc);
     }
 }
-#endif /* defined(ENABLE_CRYPTO) && defined(ENABLE_SSL) */
+#endif /* ENABLE_CRYPTO */

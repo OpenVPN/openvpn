@@ -33,6 +33,7 @@ config.sub
 configure
 configure.h
 depcomp
+doxygen/
 stamp-h1
 install-sh
 missing
@@ -50,10 +51,15 @@ config-msvc-local.h
 config-msvc-version.h
 doc/openvpn.8.html
 distro/rpm/openvpn.spec
+
 tests/t_client.sh
 tests/t_client-*-20??????-??????/
+t_client.rc
+
 src/openvpn/openvpn
+include/openvpn-plugin.h
 config-version.h
 nbproject
 test-driver
 compile
+stamp-h2

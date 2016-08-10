@@ -1,0 +1,68 @@
+OpenVPN plugin examples.                            Daniel Kubec <niel@rtfm.cz>
+
+Examples provided:
+
+keyingmaterialexporter.c   -- Example based on TLS Keying Material Exporters over HTTP [RFC-5705]
+                              (openvpn/doc/keying-material-exporter.txt)
+
+This example demonstrates authenticating a user over HTTP who have already
+established an OpenVPN connecting using the --keying-material-exporter
+feature.
+
+Requires:
+OpenVPN RFC-5705 Support, OpenSSL >= 1.0.1
+
+Files:
+  http-server.py -- Example HTTP Server listen  0.0.0.0:8080
+  http-client.py -- Example HTTP Client connect 10.8.0.1:8080 [GET /$SESSIONID]
+
+  server.ovpn    -- Example HTTP SSO VPN Server configuration
+  client.ovpn    -- Example HTTP SSO VPN Client configuration
+
+  keyingmaterialexporter.c,
+  keyingmaterialexporter.so  -- Example OpenVPN Client and Server plugin
+
+To build:
+  ./build keyingmaterialexporter
+
+To use in OpenVPN:
+
+Enter openvpn/sample/sample-plugins/keyingmaterialexporter directory
+and in separate terminals, start these four processes:
+
+$ openvpn --config ./server.ovpn
+$ openvpn --config ./client.ovpn
+$ ./http-server.py
+$ ./http-client.py
+
+Test:
+
+openvpn --config ./server.ovpn
+##############################
+
+PLUGIN SSO: app session created
+PLUGIN_CALL: POST ./keyingmaterialexporter.so/PLUGIN_TLS_VERIFY status=0
+PLUGIN SSO: app session key:  a5885abc84d361803f58ede1ef9c0adf99e720cd
+PLUGIN SSO: app session file: /tmp/openvpn_sso_a5885abc84d361803f58ede1ef9c0adf99e720cd
+PLUGIN SSO: app session user: Test-Client
+
+openvpn --config ./client.ovpn
+##############################
+PLUGIN SSO: app session created
+PLUGIN_CALL: POST ./keyingmaterialexporter.so/PLUGIN_TLS_VERIFY status=0
+PLUGIN SSO: app session key:  a5885abc84d361803f58ede1ef9c0adf99e720cd
+PLUGIN SSO: app session file: /tmp/openvpn_sso_user
+PLUGIN_CALL: POST ./keyingmaterialexporter.so/PLUGIN_TLS_FINAL status=0
+
+HTTP_SERVER:
+http-server.py
+################
+http server started
+session file: /tmp/openvpn_sso_a5885abc84d361803f58ede1ef9c0adf99e720cd
+10.8.0.1 - - [02/Apr/2015 15:03:33] "GET /a5885abc84d361803f58ede1ef9c0adf99e720cd HTTP/1.1" 200 -
+session user: Test-Client
+session key:  a5885abc84d361803f58ede1ef9c0adf99e720cd
+
+HTTP_SERVER:
+http-client.py
+<html><body><h1>Greetings Test-Client. You are authorized</h1></body></html>

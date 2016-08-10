@@ -35,8 +35,8 @@
 #if defined(ENABLE_PF)
 
 #include "init.h"
-
 #include "memdbg.h"
+#include "ssl_verify.h"
 
 #include "pf-inline.h"
 

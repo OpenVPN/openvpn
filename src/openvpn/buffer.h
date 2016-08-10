@@ -91,6 +91,18 @@ struct gc_entry
                                  *   linked list. */
 };
 
+/**
+ * Gargabe collection entry for a specially allocated structure that needs
+ * a custom free function to be freed like struct addrinfo
+ *
+ */
+struct gc_entry_special
+{
+  struct gc_entry_special *next;
+  void (*free_fnc)(void*);
+  void *addr;
+};
+
 
 /**
  * Garbage collection arena used to keep track of dynamically allocated
@@ -106,6 +118,7 @@ struct gc_arena
 {
   struct gc_entry *list;        /**< First element of the linked list of
                                  *   \c gc_entry structures. */
+  struct gc_entry_special *list_special;
 };
 
 
@@ -163,6 +176,9 @@ struct buffer string_alloc_buf (const char *str, struct gc_arena *gc);
 
 #endif
 
+void gc_addspecial (void *addr, void (*free_function)(void*), struct gc_arena *a);
+
+
 #ifdef BUF_INIT_TRACKING
 #define buf_init(buf, offset) buf_init_debug (buf, offset, __FILE__, __LINE__)
 bool buf_init_debug (struct buffer *buf, int offset, const char *file, int line);
@@ -172,6 +188,11 @@ bool buf_init_debug (struct buffer *buf, int offset, const char *file, int line)
 
 
 /* inline functions */
+inline static void
+gc_freeaddrinfo_callback (void *addr)
+{
+  freeaddrinfo((struct addrinfo*) addr);
+}
 
 static inline bool
 buf_defined (const struct buffer *buf)
@@ -308,7 +329,10 @@ has_digit (const unsigned char* src)
 }
 
 /*
- * printf append to a buffer with overflow check
+ * printf append to a buffer with overflow check,
+ * due to usage of vsnprintf, it will leave space for
+ * a final null character and thus use only
+ * capacity - 1
  */
 bool buf_printf (struct buffer *buf, const char *format, ...)
 #ifdef __GNUC__
@@ -379,9 +403,11 @@ bool buf_parse (struct buffer *buf, const int delim, char *line, const int size)
 /*
  * Hex dump -- Output a binary buffer to a hex string and return it.
  */
+#define FHE_SPACE_BREAK_MASK 0xFF /* space_break parameter in lower 8 bits */
+#define FHE_CAPS 0x100            /* output hex in caps */
 char *
 format_hex_ex (const uint8_t *data, int size, int maxoutput,
-	       int space_break, const char* separator,
+	       unsigned int space_break_flags, const char* separator,
 	       struct gc_arena *gc);
 
 static inline char *
@@ -778,6 +804,7 @@ void character_class_debug (void);
 void gc_transfer (struct gc_arena *dest, struct gc_arena *src);
 
 void x_gc_free (struct gc_arena *a);
+void x_gc_freespecial (struct gc_arena *a);
 
 static inline bool
 gc_defined (struct gc_arena *a)
@@ -789,6 +816,7 @@ static inline void
 gc_init (struct gc_arena *a)
 {
   a->list = NULL;
+  a->list_special = NULL;
 }
 
 static inline void
@@ -801,7 +829,7 @@ static inline struct gc_arena
 gc_new (void)
 {
   struct gc_arena ret;
-  ret.list = NULL;
+  gc_init (&ret);
   return ret;
 }
 
@@ -810,6 +838,8 @@ gc_free (struct gc_arena *a)
 {
   if (a->list)
     x_gc_free (a);
+  if (a->list_special)
+    x_gc_freespecial(a);
 }
 
 static inline void
@@ -870,7 +900,7 @@ gc_reset (struct gc_arena *a)
 }
 
 static inline void
-check_malloc_return (void *p)
+check_malloc_return (const void *p)
 {
   if (!p)
     out_of_memory ();
@@ -879,9 +909,6 @@ check_malloc_return (void *p)
 /*
  * Manage lists of buffers
  */
-
-#ifdef ENABLE_BUFFER_LIST
-
 struct buffer_entry
 {
   struct buffer buf;
@@ -909,9 +936,7 @@ void buffer_list_advance (struct buffer_list *ol, int n);
 void buffer_list_pop (struct buffer_list *ol);
 
 void buffer_list_aggregate (struct buffer_list *bl, const size_t max);
+void buffer_list_aggregate_separator (struct buffer_list *bl, const size_t max, const char *sep);
 
 struct buffer_list *buffer_list_file (const char *fn, int max_line_len);
-
-#endif
-
 #endif /* BUFFER_H */

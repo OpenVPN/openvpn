@@ -258,6 +258,12 @@ bool packet_id_write (const struct packet_id_net *pin, struct buffer *buf, bool 
  * Inline functions.
  */
 
+/** Is this struct packet_id initialized? */
+static inline bool packet_id_initialized (const struct packet_id *pid)
+{
+  return pid->rec.initialized;
+}
+
 /* are we in enabled state? */
 static inline bool
 packet_id_persist_enabled (const struct packet_id_persist *p)

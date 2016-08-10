@@ -12,13 +12,14 @@
 #define ENABLE_FRAGMENT 1
 #define ENABLE_HTTP_PROXY 1
 #define ENABLE_LZO 1
+#define ENABLE_LZ4 1
+#define NEED_COMPAT_LZ4 1
 #define ENABLE_MANAGEMENT 1
 #define ENABLE_MULTIHOME 1
 #define ENABLE_PKCS11 1
 #define ENABLE_PLUGIN 1
 #define ENABLE_PORT_SHARE 1
 #define ENABLE_SOCKS 1
-#define ENABLE_SSL 1
 
 #define HAVE_ERRNO_H 1
 #define HAVE_FCNTL_H 1
@@ -45,6 +46,7 @@
 #define HAVE_SYS_STAT_H 1
 #define HAVE_LZO_LZO1X_H 1
 #define HAVE_LZO_LZOUTIL_H 1
+#define HAVE_VERSIONHELPERS_H 1
 
 #define HAVE_ACCESS 1
 #define HAVE_CHDIR 1
@@ -76,6 +78,9 @@
 
 #define HAVE_OPENSSL_ENGINE 1
 
+#define PATH_SEPARATOR     '\\'
+#define PATH_SEPARATOR_STR "\\"
+
 #ifndef __cplusplus
 #define inline __inline
 #endif
@@ -88,8 +93,14 @@
 
 #define strncasecmp strnicmp
 #define strcasecmp _stricmp
+
+#if _MSC_VER<1900
 #define snprintf _snprintf
+#endif
+
+#if _MSC_VER < 1800
 #define strtoull strtoul
+#endif
 
 #define in_addr_t uint32_t
 #define ssize_t SSIZE_T
@@ -120,3 +131,8 @@ typedef __int8		int8_t;
 #include <config-msvc-local.h>
 #endif
 
+// Vista and above has implementation of inet_ntop / inet_pton
+#if _WIN32_WINNT >= _WIN32_WINNT_VISTA
+    #define HAVE_INET_NTOP
+    #define HAVE_INET_PTON
+#endif

@@ -35,6 +35,7 @@
 
 #include "crypto.h"
 #include "error.h"
+#include "integer.h"
 #include "misc.h"
 
 #include "memdbg.h"
@@ -83,27 +84,132 @@ memcmp_constant_time (const void *a, const void *b, size_t size) {
   return ret;
 }
 
-void
-openvpn_encrypt (struct buffer *buf, struct buffer work,
-		 const struct crypto_options *opt,
-		 const struct frame* frame)
+static void
+openvpn_encrypt_aead (struct buffer *buf, struct buffer work,
+	 struct crypto_options *opt) {
+#ifdef HAVE_AEAD_CIPHER_MODES
+  struct gc_arena gc;
+  int outlen = 0;
+  const struct key_ctx *ctx = &opt->key_ctx_bi.encrypt;
+  uint8_t *mac_out = NULL;
+  const cipher_kt_t *cipher_kt = cipher_ctx_get_cipher_kt (ctx->cipher);
+  const int mac_len = cipher_kt_tag_size (cipher_kt);
+
+  /* IV, packet-ID and implicit IV required for this mode. */
+  ASSERT (ctx->cipher);
+  ASSERT (cipher_kt_mode_aead (cipher_kt));
+  ASSERT (opt->flags & CO_USE_IV);
+  ASSERT (packet_id_initialized(&opt->packet_id));
+
+  gc_init (&gc);
+
+  /* Prepare IV */
+  {
+    struct buffer iv_buffer;
+    struct packet_id_net pin;
+    uint8_t iv[OPENVPN_MAX_IV_LENGTH];
+    const int iv_len = cipher_ctx_iv_length (ctx->cipher);
+
+    ASSERT (iv_len >= OPENVPN_AEAD_MIN_IV_LEN && iv_len <= OPENVPN_MAX_IV_LENGTH);
+
+    memset(iv, 0, sizeof(iv));
+    buf_set_write (&iv_buffer, iv, iv_len);
+
+    /* IV starts with packet id to make the IV unique for packet */
+    packet_id_alloc_outgoing (&opt->packet_id.send, &pin, false);
+    ASSERT (packet_id_write (&pin, &iv_buffer, false, false));
+
+    /* Remainder of IV consists of implicit part (unique per session) */
+    ASSERT (buf_write (&iv_buffer, ctx->implicit_iv, ctx->implicit_iv_len));
+    ASSERT (iv_buffer.len == iv_len);
+
+    /* Write explicit part of IV to work buffer */
+    ASSERT (buf_write(&work, iv, iv_len - ctx->implicit_iv_len));
+    dmsg (D_PACKET_CONTENT, "ENCRYPT IV: %s", format_hex (iv, iv_len, 0, &gc));
+
+    /* Init cipher_ctx with IV.  key & keylen are already initialized */
+    ASSERT (cipher_ctx_reset(ctx->cipher, iv));
+  }
+
+  /* Reserve space for authentication tag */
+  mac_out = buf_write_alloc (&work, mac_len);
+  ASSERT (mac_out);
+
+  dmsg (D_PACKET_CONTENT, "ENCRYPT FROM: %s", format_hex (BPTR (buf), BLEN (buf), 80, &gc));
+
+  /* Buffer overflow check */
+  if (!buf_safe (&work, buf->len + cipher_ctx_block_size(ctx->cipher)))
+    {
+      msg (D_CRYPT_ERRORS,
+	  "ENCRYPT: buffer size error, bc=%d bo=%d bl=%d wc=%d wo=%d wl=%d",
+	  buf->capacity, buf->offset, buf->len, work.capacity, work.offset,
+	  work.len);
+      goto err;
+    }
+
+  /* For AEAD ciphers, authenticate Additional Data, including opcode */
+  ASSERT (cipher_ctx_update_ad (ctx->cipher, BPTR (&work), BLEN (&work) - mac_len));
+  dmsg (D_PACKET_CONTENT, "ENCRYPT AD: %s",
+      format_hex (BPTR (&work), BLEN (&work) - mac_len, 0, &gc));
+
+  /* Encrypt packet ID, payload */
+  ASSERT (cipher_ctx_update (ctx->cipher, BEND (&work), &outlen, BPTR (buf), BLEN (buf)));
+  ASSERT (buf_inc_len (&work, outlen));
+
+  /* Flush the encryption buffer */
+  ASSERT (cipher_ctx_final (ctx->cipher, BEND (&work), &outlen));
+  ASSERT (buf_inc_len (&work, outlen));
+
+  /* Write authentication tag */
+  ASSERT (cipher_ctx_get_tag (ctx->cipher, mac_out, mac_len));
+
+  *buf = work;
+
+  dmsg (D_PACKET_CONTENT, "ENCRYPT TO: %s", format_hex (BPTR (buf), BLEN (buf), 80, &gc));
+
+  gc_free (&gc);
+  return;
+
+err:
+  crypto_clear_error();
+  buf->len = 0;
+  gc_free (&gc);
+  return;
+#else /* HAVE_AEAD_CIPHER_MODES */
+  ASSERT (0);
+#endif
+}
+
+static void
+openvpn_encrypt_v1 (struct buffer *buf, struct buffer work,
+		 struct crypto_options *opt)
 {
   struct gc_arena gc;
   gc_init (&gc);
 
-  if (buf->len > 0 && opt->key_ctx_bi)
+  if (buf->len > 0 && opt)
     {
-      struct key_ctx *ctx = &opt->key_ctx_bi->encrypt;
+      const struct key_ctx *ctx = &opt->key_ctx_bi.encrypt;
+      uint8_t *mac_out = NULL;
+      const uint8_t *hmac_start = NULL;
 
       /* Do Encrypt from buf -> work */
       if (ctx->cipher)
 	{
 	  uint8_t iv_buf[OPENVPN_MAX_IV_LENGTH];
 	  const int iv_size = cipher_ctx_iv_length (ctx->cipher);
-	  const unsigned int mode = cipher_ctx_mode (ctx->cipher);
+	  const cipher_kt_t *cipher_kt = cipher_ctx_get_cipher_kt (ctx->cipher);
 	  int outlen;
 
-	  if (mode == OPENVPN_MODE_CBC)
+	  /* Reserve space for HMAC */
+	  if (ctx->hmac)
+	    {
+	      mac_out = buf_write_alloc (&work, hmac_ctx_size(ctx->hmac));
+	      ASSERT (mac_out);
+	      hmac_start = BEND(&work);
+	    }
+
+	  if (cipher_kt_mode_cbc(cipher_kt))
 	    {
 	      CLEAR (iv_buf);
 
@@ -111,23 +217,24 @@ openvpn_encrypt (struct buffer *buf, struct buffer work,
 	      if (opt->flags & CO_USE_IV)
 		prng_bytes (iv_buf, iv_size);
 
-	      /* Put packet ID in plaintext buffer or IV, depending on cipher mode */
-	      if (opt->packet_id)
+	      /* Put packet ID in plaintext buffer */
+	      if (packet_id_initialized(&opt->packet_id))
 		{
 		  struct packet_id_net pin;
-		  packet_id_alloc_outgoing (&opt->packet_id->send, &pin, BOOL_CAST (opt->flags & CO_PACKET_ID_LONG_FORM));
+		  packet_id_alloc_outgoing (&opt->packet_id.send, &pin, BOOL_CAST (opt->flags & CO_PACKET_ID_LONG_FORM));
 		  ASSERT (packet_id_write (&pin, buf, BOOL_CAST (opt->flags & CO_PACKET_ID_LONG_FORM), true));
 		}
 	    }
-	  else if (mode == OPENVPN_MODE_CFB || mode == OPENVPN_MODE_OFB)
+	  else if (cipher_kt_mode_ofb_cfb(cipher_kt))
 	    {
 	      struct packet_id_net pin;
 	      struct buffer b;
 
-	      ASSERT (opt->flags & CO_USE_IV);    /* IV and packet-ID required */
-	      ASSERT (opt->packet_id); /*  for this mode. */
+	      /* IV and packet-ID required for this mode. */
+	      ASSERT (opt->flags & CO_USE_IV);
+	      ASSERT (packet_id_initialized(&opt->packet_id));
 
-	      packet_id_alloc_outgoing (&opt->packet_id->send, &pin, true);
+	      packet_id_alloc_outgoing (&opt->packet_id.send, &pin, true);
 	      memset (iv_buf, 0, iv_size);
 	      buf_set_write (&b, iv_buf, iv_size);
 	      ASSERT (packet_id_write (&pin, &b, true, false));
@@ -137,12 +244,12 @@ openvpn_encrypt (struct buffer *buf, struct buffer work,
 	      ASSERT (0);
 	    }
 
-	  /* initialize work buffer with FRAME_HEADROOM bytes of prepend capacity */
-	  ASSERT (buf_init (&work, FRAME_HEADROOM (frame)));
-
 	  /* set the IV pseudo-randomly */
 	  if (opt->flags & CO_USE_IV)
-	    dmsg (D_PACKET_CONTENT, "ENCRYPT IV: %s", format_hex (iv_buf, iv_size, 0, &gc));
+            {
+              ASSERT (buf_write(&work, iv_buf, iv_size));
+              dmsg (D_PACKET_CONTENT, "ENCRYPT IV: %s", format_hex (iv_buf, iv_size, 0, &gc));
+            }
 
 	  dmsg (D_PACKET_CONTENT, "ENCRYPT FROM: %s",
 	       format_hex (BPTR (buf), BLEN (buf), 80, &gc));
@@ -165,49 +272,50 @@ openvpn_encrypt (struct buffer *buf, struct buffer work,
 	    }
 
 	  /* Encrypt packet ID, payload */
-	  ASSERT (cipher_ctx_update (ctx->cipher, BPTR (&work), &outlen, BPTR (buf), BLEN (buf)));
-	  work.len += outlen;
+	  ASSERT (cipher_ctx_update (ctx->cipher, BEND (&work), &outlen, BPTR (buf), BLEN (buf)));
+	  ASSERT (buf_inc_len(&work, outlen));
 
 	  /* Flush the encryption buffer */
-	  ASSERT(cipher_ctx_final(ctx->cipher, BPTR (&work) + outlen, &outlen));
-	  work.len += outlen;
-	  ASSERT (outlen == iv_size);
+	  ASSERT (cipher_ctx_final(ctx->cipher, BEND (&work), &outlen));
+	  ASSERT (buf_inc_len(&work, outlen));
 
-	  /* prepend the IV to the ciphertext */
-	  if (opt->flags & CO_USE_IV)
-	    {
-	      uint8_t *output = buf_prepend (&work, iv_size);
-	      ASSERT (output);
-	      memcpy (output, iv_buf, iv_size);
-	    }
-
-	  dmsg (D_PACKET_CONTENT, "ENCRYPT TO: %s",
-	       format_hex (BPTR (&work), BLEN (&work), 80, &gc));
+	  /* For all CBC mode ciphers, check the last block is complete */
+	  ASSERT (cipher_kt_mode (cipher_kt) != OPENVPN_MODE_CBC ||
+	      outlen == iv_size);
 	}
       else				/* No Encryption */
 	{
-	  if (opt->packet_id)
+	  if (packet_id_initialized(&opt->packet_id))
 	    {
 	      struct packet_id_net pin;
-	      packet_id_alloc_outgoing (&opt->packet_id->send, &pin, BOOL_CAST (opt->flags & CO_PACKET_ID_LONG_FORM));
+	      packet_id_alloc_outgoing (&opt->packet_id.send, &pin, BOOL_CAST (opt->flags & CO_PACKET_ID_LONG_FORM));
 	      ASSERT (packet_id_write (&pin, buf, BOOL_CAST (opt->flags & CO_PACKET_ID_LONG_FORM), true));
 	    }
+	  if (ctx->hmac)
+	    {
+	      hmac_start = BPTR(buf);
+	      ASSERT (mac_out = buf_prepend (buf, hmac_ctx_size(ctx->hmac)));
+	    }
+	  if (BLEN(&work)) {
+	    buf_write_prepend(buf, BPTR(&work), BLEN(&work));
+	  }
 	  work = *buf;
 	}
 
       /* HMAC the ciphertext (or plaintext if !cipher) */
       if (ctx->hmac)
 	{
-	  uint8_t *output = NULL;
-
 	  hmac_ctx_reset (ctx->hmac);
-	  hmac_ctx_update (ctx->hmac, BPTR(&work), BLEN(&work));
-	  output = buf_prepend (&work, hmac_ctx_size(ctx->hmac));
-	  ASSERT (output);
-	  hmac_ctx_final (ctx->hmac, output);
+	  hmac_ctx_update (ctx->hmac, hmac_start, BEND(&work) - hmac_start);
+	  hmac_ctx_final (ctx->hmac, mac_out);
+	  dmsg (D_PACKET_CONTENT, "ENCRYPT HMAC: %s",
+	      format_hex (mac_out, hmac_ctx_size(ctx->hmac), 80, &gc));
 	}
 
       *buf = work;
+
+      dmsg (D_PACKET_CONTENT, "ENCRYPT TO: %s",
+	  format_hex (BPTR (&work), BLEN (&work), 80, &gc));
     }
 
   gc_free (&gc);
@@ -220,6 +328,57 @@ err:
   return;
 }
 
+void
+openvpn_encrypt (struct buffer *buf, struct buffer work,
+		 struct crypto_options *opt)
+{
+  if (buf->len > 0 && opt)
+    {
+      const cipher_kt_t *cipher_kt =
+	  cipher_ctx_get_cipher_kt(opt->key_ctx_bi.encrypt.cipher);
+
+      if (cipher_kt_mode_aead (cipher_kt))
+	openvpn_encrypt_aead(buf, work, opt);
+      else
+	openvpn_encrypt_v1(buf, work, opt);
+    }
+}
+
+/**
+ * Check packet ID for replay, and perform replay administration.
+ *
+ * @param opt	Crypto options for this packet, contains replay state.
+ * @param pin	Packet ID read from packet.
+ * @param error_prefix	Prefix to use when printing error messages.
+ * @param gc	Garbage collector to use.
+ *
+ * @return true if packet ID is validated to be not a replay, false otherwise.
+ */
+static bool crypto_check_replay(struct crypto_options *opt,
+    const struct packet_id_net *pin, const char *error_prefix,
+    struct gc_arena *gc) {
+  bool ret = false;
+  packet_id_reap_test (&opt->packet_id.rec);
+  if (packet_id_test (&opt->packet_id.rec, pin))
+    {
+      packet_id_add (&opt->packet_id.rec, pin);
+      if (opt->pid_persist && (opt->flags & CO_PACKET_ID_LONG_FORM))
+	packet_id_persist_save_obj (opt->pid_persist, &opt->packet_id);
+      ret = true;
+    }
+  else
+    {
+      if (!(opt->flags & CO_MUTE_REPLAY_WARNINGS))
+	{
+	  msg (D_REPLAY_ERRORS, "%s: bad packet ID (may be a replay): %s -- "
+	      "see the man page entry for --no-replay and --replay-window for "
+	      "more info or silence this warning with --mute-replay-warnings",
+	      error_prefix, packet_id_net_print (pin, true, gc));
+	}
+    }
+  return ret;
+}
+
 /*
  * If (opt->flags & CO_USE_IV) is not NULL, we will read an IV from the packet.
  *
@@ -228,20 +387,168 @@ err:
  * On success, buf is set to point to plaintext, true
  * is returned.
  */
-bool
-openvpn_decrypt (struct buffer *buf, struct buffer work,
-		 const struct crypto_options *opt,
-		 const struct frame* frame)
+static bool
+openvpn_decrypt_aead (struct buffer *buf, struct buffer work,
+    struct crypto_options *opt, const struct frame* frame,
+    const uint8_t *ad_start)
+{
+#ifdef HAVE_AEAD_CIPHER_MODES
+  static const char error_prefix[] = "AEAD Decrypt error";
+  struct packet_id_net pin = { 0 };
+  const struct key_ctx *ctx = &opt->key_ctx_bi.decrypt;
+  const cipher_kt_t *cipher_kt = cipher_ctx_get_cipher_kt (ctx->cipher);
+  uint8_t *tag_ptr = NULL;
+  int tag_size = 0;
+  int outlen;
+  struct gc_arena gc;
+
+  gc_init (&gc);
+
+  ASSERT (opt);
+  ASSERT (frame);
+  ASSERT (buf->len > 0);
+  ASSERT (ctx->cipher);
+  ASSERT (cipher_kt_mode_aead (cipher_kt));
+
+  dmsg (D_PACKET_CONTENT, "DECRYPT FROM: %s",
+      format_hex (BPTR (buf), BLEN (buf), 80, &gc));
+
+  ASSERT (ad_start >= buf->data && ad_start <= BPTR (buf));
+
+  ASSERT (buf_init (&work, FRAME_HEADROOM_ADJ (frame, FRAME_HEADROOM_MARKER_DECRYPT)));
+
+  /* IV and Packet ID required for this mode */
+  ASSERT (packet_id_initialized (&opt->packet_id));
+  ASSERT (opt->flags & CO_USE_IV);
+
+  /* Combine IV from explicit part from packet and implicit part from context */
+  {
+    uint8_t iv[OPENVPN_MAX_IV_LENGTH] = { 0 };
+    const int iv_len = cipher_ctx_iv_length (ctx->cipher);
+    const size_t packet_iv_len = iv_len - ctx->implicit_iv_len;
+
+    ASSERT (ctx->implicit_iv_len <= iv_len);
+    if (buf->len + ctx->implicit_iv_len < iv_len)
+      CRYPT_ERROR ("missing IV info");
+
+    memcpy (iv, BPTR(buf), packet_iv_len);
+    memcpy (iv + packet_iv_len, ctx->implicit_iv, ctx->implicit_iv_len);
+
+    dmsg (D_PACKET_CONTENT, "DECRYPT IV: %s", format_hex (iv, iv_len, 0, &gc));
+
+    /* Load IV, ctx->cipher was already initialized with key & keylen */
+    if (!cipher_ctx_reset (ctx->cipher, iv))
+      {
+        CRYPT_ERROR ("cipher init failed");
+      }
+  }
+
+  /* Read packet ID from packet */
+  if (!packet_id_read (&pin, buf, false))
+    {
+      CRYPT_ERROR ("error reading packet-id");
+    }
+
+  /* keep the tag value to feed in later */
+  tag_size = cipher_kt_tag_size(cipher_kt);
+  if (buf->len < tag_size)
+    {
+      CRYPT_ERROR ("missing tag");
+    }
+  tag_ptr = BPTR(buf);
+  ASSERT (buf_advance (buf, tag_size));
+  dmsg (D_PACKET_CONTENT, "DECRYPT MAC: %s", format_hex (tag_ptr, tag_size, 0, &gc));
+#if defined(ENABLE_CRYPTO_OPENSSL) && OPENSSL_VERSION_NUMBER < 0x10001040L
+  /* OpenSSL <= 1.0.1c bug requires set tag before processing ciphertext */
+  if (!EVP_CIPHER_CTX_ctrl (ctx->cipher, EVP_CTRL_GCM_SET_TAG, tag_size, tag_ptr))
+    {
+      CRYPT_ERROR ("setting tag failed");
+    }
+#endif
+
+  if (buf->len < 1)
+    {
+      CRYPT_ERROR ("missing payload");
+    }
+
+  dmsg (D_PACKET_CONTENT, "DECRYPT FROM: %s", format_hex (BPTR(buf), BLEN(buf), 0, &gc));
+
+  /* Buffer overflow check (should never fail) */
+  if (!buf_safe (&work, buf->len + cipher_ctx_block_size(ctx->cipher)))
+    {
+      CRYPT_ERROR ("potential buffer overflow");
+    }
+
+  {
+    /* feed in tag and the authenticated data */
+    const int ad_size = BPTR (buf) - ad_start - tag_size;
+    ASSERT (cipher_ctx_update_ad (ctx->cipher, ad_start, ad_size));
+    dmsg (D_PACKET_CONTENT, "DECRYPT AD: %s",
+	format_hex (BPTR (buf) - ad_size - tag_size, ad_size, 0, &gc));
+  }
+
+  /* Decrypt and authenticate packet */
+  if (!cipher_ctx_update (ctx->cipher, BPTR (&work), &outlen, BPTR (buf),
+      BLEN (buf)))
+    {
+      CRYPT_ERROR ("cipher update failed");
+    }
+  ASSERT (buf_inc_len (&work, outlen));
+  if (!cipher_ctx_final_check_tag (ctx->cipher, BPTR (&work) + outlen,
+      &outlen, tag_ptr, tag_size))
+    {
+      CRYPT_ERROR ("cipher final failed");
+    }
+  ASSERT (buf_inc_len (&work, outlen));
+
+  dmsg (D_PACKET_CONTENT, "DECRYPT TO: %s",
+       format_hex (BPTR (&work), BLEN (&work), 80, &gc));
+
+  if (!crypto_check_replay (opt, &pin, error_prefix, &gc))
+    {
+      goto error_exit;
+    }
+
+  *buf = work;
+
+  gc_free (&gc);
+  return true;
+
+ error_exit:
+  crypto_clear_error();
+  buf->len = 0;
+  gc_free (&gc);
+  return false;
+#else /* HAVE_AEAD_CIPHER_MODES */
+  ASSERT (0);
+  return false;
+#endif
+}
+
+/*
+ * If (opt->flags & CO_USE_IV) is not NULL, we will read an IV from the packet.
+ *
+ * Set buf->len to 0 and return false on decrypt error.
+ *
+ * On success, buf is set to point to plaintext, true
+ * is returned.
+ */
+static bool
+openvpn_decrypt_v1 (struct buffer *buf, struct buffer work,
+		 struct crypto_options *opt, const struct frame* frame)
 {
   static const char error_prefix[] = "Authenticate/Decrypt packet error";
   struct gc_arena gc;
   gc_init (&gc);
 
-  if (buf->len > 0 && opt->key_ctx_bi)
+  if (buf->len > 0 && opt)
     {
-      struct key_ctx *ctx = &opt->key_ctx_bi->decrypt;
+      const struct key_ctx *ctx = &opt->key_ctx_bi.decrypt;
       struct packet_id_net pin;
       bool have_pin = false;
+
+      dmsg (D_PACKET_CONTENT, "DECRYPT FROM: %s",
+	  format_hex (BPTR (buf), BLEN (buf), 80, &gc));
 
       /* Verify the HMAC */
       if (ctx->hmac)
@@ -272,8 +579,8 @@ openvpn_decrypt (struct buffer *buf, struct buffer work,
 
       if (ctx->cipher)
 	{
-	  const unsigned int mode = cipher_ctx_mode (ctx->cipher);
 	  const int iv_size = cipher_ctx_iv_length (ctx->cipher);
+	  const cipher_kt_t *cipher_kt = cipher_ctx_get_cipher_kt (ctx->cipher);
 	  uint8_t iv_buf[OPENVPN_MAX_IV_LENGTH];
 	  int outlen;
 
@@ -302,39 +609,40 @@ openvpn_decrypt (struct buffer *buf, struct buffer work,
 	    CRYPT_ERROR ("cipher init failed");
 
 	  /* Buffer overflow check (should never happen) */
-	  if (!buf_safe (&work, buf->len))
-	    CRYPT_ERROR ("buffer overflow");
+	  if (!buf_safe (&work, buf->len + cipher_ctx_block_size(ctx->cipher)))
+	    CRYPT_ERROR ("potential buffer overflow");
 
 	  /* Decrypt packet ID, payload */
 	  if (!cipher_ctx_update (ctx->cipher, BPTR (&work), &outlen, BPTR (buf), BLEN (buf)))
 	    CRYPT_ERROR ("cipher update failed");
-	  work.len += outlen;
+	  ASSERT (buf_inc_len(&work, outlen));
 
 	  /* Flush the decryption buffer */
 	  if (!cipher_ctx_final (ctx->cipher, BPTR (&work) + outlen, &outlen))
 	    CRYPT_ERROR ("cipher final failed");
-	  work.len += outlen;
+	  ASSERT (buf_inc_len(&work, outlen));
 
 	  dmsg (D_PACKET_CONTENT, "DECRYPT TO: %s",
 	       format_hex (BPTR (&work), BLEN (&work), 80, &gc));
 
 	  /* Get packet ID from plaintext buffer or IV, depending on cipher mode */
 	  {
-	    if (mode == OPENVPN_MODE_CBC)
+	    if (cipher_kt_mode_cbc(cipher_kt))
 	      {
-		if (opt->packet_id)
+		if (packet_id_initialized(&opt->packet_id))
 		  {
 		    if (!packet_id_read (&pin, &work, BOOL_CAST (opt->flags & CO_PACKET_ID_LONG_FORM)))
 		      CRYPT_ERROR ("error reading CBC packet-id");
 		    have_pin = true;
 		  }
 	      }
-	    else if (mode == OPENVPN_MODE_CFB || mode == OPENVPN_MODE_OFB)
+	    else if (cipher_kt_mode_ofb_cfb(cipher_kt))
 	      {
 		struct buffer b;
 
-		ASSERT (opt->flags & CO_USE_IV);    /* IV and packet-ID required */
-		ASSERT (opt->packet_id); /*  for this mode. */
+		/* IV and packet-ID required for this mode. */
+		ASSERT (opt->flags & CO_USE_IV);
+		ASSERT (packet_id_initialized(&opt->packet_id));
 
 		buf_set_read (&b, iv_buf, iv_size);
 		if (!packet_id_read (&pin, &b, true))
@@ -350,7 +658,7 @@ openvpn_decrypt (struct buffer *buf, struct buffer work,
       else
 	{
 	  work = *buf;
-	  if (opt->packet_id)
+	  if (packet_id_initialized(&opt->packet_id))
 	    {
 	      if (!packet_id_read (&pin, &work, BOOL_CAST (opt->flags & CO_PACKET_ID_LONG_FORM)))
 		CRYPT_ERROR ("error reading packet-id");
@@ -358,22 +666,9 @@ openvpn_decrypt (struct buffer *buf, struct buffer work,
 	    }
 	}
       
-      if (have_pin)
+      if (have_pin && !crypto_check_replay(opt, &pin, error_prefix, &gc))
 	{
-	  packet_id_reap_test (&opt->packet_id->rec);
-	  if (packet_id_test (&opt->packet_id->rec, &pin))
-	    {
-	      packet_id_add (&opt->packet_id->rec, &pin);
-	      if (opt->pid_persist && (opt->flags & CO_PACKET_ID_LONG_FORM))
-		packet_id_persist_save_obj (opt->pid_persist, opt->packet_id);
-	    }
-	  else
-	    {
-	      if (!(opt->flags & CO_MUTE_REPLAY_WARNINGS))
-	      msg (D_REPLAY_ERRORS, "%s: bad packet ID (may be a replay): %s -- see the man page entry for --no-replay and --replay-window for more info or silence this warning with --mute-replay-warnings",
-		   error_prefix, packet_id_net_print (&pin, true, &gc));
-	      goto error_exit;
-	    }
+	  goto error_exit;
 	}
       *buf = work;
     }
@@ -388,23 +683,71 @@ openvpn_decrypt (struct buffer *buf, struct buffer work,
   return false;
 }
 
-/*
- * How many bytes will we add to frame buffer for a given
- * set of crypto options?
- */
+
+bool
+openvpn_decrypt (struct buffer *buf, struct buffer work,
+		 struct crypto_options *opt, const struct frame* frame,
+		 const uint8_t *ad_start)
+{
+  bool ret = false;
+
+  if (buf->len > 0 && opt)
+    {
+      const struct key_ctx *ctx = &opt->key_ctx_bi.decrypt;
+      if (cipher_kt_mode_aead (cipher_ctx_get_cipher_kt (ctx->cipher)))
+	{
+	  ret = openvpn_decrypt_aead (buf, work, opt, frame, ad_start);
+	}
+      else
+	{
+	  ret = openvpn_decrypt_v1 (buf, work, opt, frame);
+	}
+    }
+  else
+    {
+      ret = true;
+    }
+  return ret;
+}
+
 void
 crypto_adjust_frame_parameters(struct frame *frame,
 			       const struct key_type* kt,
-			       bool cipher_defined,
 			       bool use_iv,
 			       bool packet_id,
 			       bool packet_id_long_form)
 {
-  frame_add_to_extra_frame (frame,
-			    (packet_id ? packet_id_size (packet_id_long_form) : 0) +
-			    ((cipher_defined && use_iv) ? cipher_kt_iv_size (kt->cipher) : 0) +
-			    (cipher_defined ? cipher_kt_block_size (kt->cipher) : 0) + /* worst case padding expansion */
-			    kt->hmac_length);
+  size_t crypto_overhead = 0;
+
+  if (packet_id)
+    crypto_overhead += packet_id_size (packet_id_long_form);
+
+  if (kt->cipher)
+    {
+      if (use_iv)
+	crypto_overhead += cipher_kt_iv_size (kt->cipher);
+
+      if (cipher_kt_mode_aead (kt->cipher))
+	crypto_overhead += cipher_kt_tag_size (kt->cipher);
+
+      /* extra block required by cipher_ctx_update() */
+      crypto_overhead += cipher_kt_block_size (kt->cipher);
+    }
+
+  crypto_overhead += kt->hmac_length;
+
+  frame_add_to_extra_frame (frame, crypto_overhead);
+
+  msg(D_MTU_DEBUG, "%s: Adjusting frame parameters for crypto by %zu bytes",
+      __func__, crypto_overhead);
+}
+
+size_t
+crypto_max_overhead(void)
+{
+  return packet_id_size(true) + OPENVPN_MAX_IV_LENGTH +
+      OPENVPN_MAX_CIPHER_BLOCK_SIZE +
+      max_int (OPENVPN_MAX_HMAC_SIZE, OPENVPN_AEAD_TAG_LENGTH);
 }
 
 /*
@@ -412,12 +755,12 @@ crypto_adjust_frame_parameters(struct frame *frame,
  */
 void
 init_key_type (struct key_type *kt, const char *ciphername,
-	       bool ciphername_defined, const char *authname,
-	       bool authname_defined, int keysize,
-	       bool cfb_ofb_allowed, bool warn)
+	       const char *authname, int keysize, bool tls_mode, bool warn)
 {
+  bool aead_cipher = false;
+
   CLEAR (*kt);
-  if (ciphername && ciphername_defined)
+  if (ciphername)
     {
       kt->cipher = cipher_kt_get (translate_cipher_name_from_openvpn(ciphername));
       kt->cipher_length = cipher_kt_key_size (kt->cipher);
@@ -425,31 +768,34 @@ init_key_type (struct key_type *kt, const char *ciphername,
 	kt->cipher_length = keysize;
 
       /* check legal cipher mode */
-      {
-	const unsigned int mode = cipher_kt_mode (kt->cipher);
-	if (!(mode == OPENVPN_MODE_CBC
-#ifdef ALLOW_NON_CBC_CIPHERS
-	      || (cfb_ofb_allowed && (mode == OPENVPN_MODE_CFB || mode == OPENVPN_MODE_OFB))
+      aead_cipher = cipher_kt_mode_aead(kt->cipher);
+      if (!(cipher_kt_mode_cbc(kt->cipher)
+	    || (tls_mode && aead_cipher)
+#ifdef ENABLE_OFB_CFB_MODE
+	    || (tls_mode && cipher_kt_mode_ofb_cfb(kt->cipher))
 #endif
-	      ))
-#ifdef ENABLE_SMALL
-	  msg (M_FATAL, "Cipher '%s' mode not supported", ciphername);
-#else
-	  msg (M_FATAL, "Cipher '%s' uses a mode not supported by " PACKAGE_NAME " in your current configuration.  CBC mode is always supported, while CFB and OFB modes are supported only when using SSL/TLS authentication and key exchange mode, and when " PACKAGE_NAME " has been built with ALLOW_NON_CBC_CIPHERS.", ciphername);
-#endif
-      }
+	    ))
+	msg (M_FATAL, "Cipher '%s' mode not supported", ciphername);
+
+      if (OPENVPN_MAX_CIPHER_BLOCK_SIZE < cipher_kt_block_size(kt->cipher))
+	msg (M_FATAL, "Cipher '%s' not allowed: block size too big.", ciphername);
     }
   else
     {
       if (warn)
 	msg (M_WARN, "******* WARNING *******: null cipher specified, no encryption will be used");
     }
-  if (authname && authname_defined)
+  if (authname)
     {
-      kt->digest = md_kt_get (authname);
-      kt->hmac_length = md_kt_size (kt->digest);
+      if (!aead_cipher) { /* Ignore auth for AEAD ciphers */
+	kt->digest = md_kt_get (authname);
+	kt->hmac_length = md_kt_size (kt->digest);
+
+	if (OPENVPN_MAX_HMAC_SIZE < kt->hmac_length)
+	  msg (M_FATAL, "HMAC '%s' not allowed: digest size too big.", authname);
+      }
     }
-  else
+  else if (!aead_cipher)
     {
       if (warn)
 	msg (M_WARN, "******* WARNING *******: null MAC specified, no authentication will be used");
@@ -473,7 +819,7 @@ init_key_ctx (struct key_ctx *ctx, struct key *key,
 
       msg (D_HANDSHAKE, "%s: Cipher '%s' initialized with %d bit key",
           prefix,
-          cipher_kt_name(kt->cipher),
+          translate_cipher_name_to_openvpn(cipher_kt_name(kt->cipher)),
           kt->cipher_length *8);
 
       dmsg (D_SHOW_KEYS, "%s: CIPHER KEY: %s", prefix,
@@ -519,6 +865,7 @@ free_key_ctx (struct key_ctx *ctx)
       free(ctx->hmac);
       ctx->hmac = NULL;
     }
+  ctx->implicit_iv_len = 0;
 }
 
 void
@@ -527,7 +874,6 @@ free_key_ctx_bi (struct key_ctx_bi *ctx)
   free_key_ctx(&ctx->encrypt);
   free_key_ctx(&ctx->decrypt);
 }
-
 
 static bool
 key_is_zero (struct key *key, const struct key_type *kt)
@@ -606,18 +952,12 @@ fixup_key (struct key *key, const struct key_type *kt)
 void
 check_replay_iv_consistency (const struct key_type *kt, bool packet_id, bool use_iv)
 {
-  if (cfb_ofb_mode (kt) && !(packet_id && use_iv))
-    msg (M_FATAL, "--no-replay or --no-iv cannot be used with a CFB or OFB mode cipher");
-}
+  ASSERT(kt);
 
-bool
-cfb_ofb_mode (const struct key_type* kt)
-{
-  if (kt && kt->cipher) {
-      const unsigned int mode = cipher_kt_mode (kt->cipher);
-      return mode == OPENVPN_MODE_CFB || mode == OPENVPN_MODE_OFB;
-  }
-  return false;
+  if (!(packet_id && use_iv) && (cipher_kt_mode_ofb_cfb(kt->cipher) ||
+      cipher_kt_mode_aead(kt->cipher)))
+    msg (M_FATAL, "--no-replay or --no-iv cannot be used with a CFB, OFB or "
+	"AEAD mode cipher");
 }
 
 /*
@@ -683,7 +1023,7 @@ key2_print (const struct key2* k,
 }
 
 void
-test_crypto (const struct crypto_options *co, struct frame* frame)
+test_crypto (struct crypto_options *co, struct frame* frame)
 {
   int i, j;
   struct gc_arena gc = gc_new ();
@@ -695,6 +1035,30 @@ test_crypto (const struct crypto_options *co, struct frame* frame)
 
   /* init work */
   ASSERT (buf_init (&work, FRAME_HEADROOM (frame)));
+
+#ifdef HAVE_AEAD_CIPHER_MODES
+  /* init implicit IV */
+  {
+    const cipher_kt_t *cipher =
+	cipher_ctx_get_cipher_kt(co->key_ctx_bi.encrypt.cipher);
+
+    if (cipher_kt_mode_aead(cipher))
+      {
+	size_t impl_iv_len = cipher_kt_iv_size(cipher) - sizeof(packet_id_type);
+	ASSERT (cipher_kt_iv_size(cipher) <= OPENVPN_MAX_IV_LENGTH);
+	ASSERT (cipher_kt_iv_size(cipher) >= OPENVPN_AEAD_MIN_IV_LEN);
+
+	/* Generate dummy implicit IV */
+	ASSERT (rand_bytes(co->key_ctx_bi.encrypt.implicit_iv,
+	    OPENVPN_MAX_IV_LENGTH));
+	co->key_ctx_bi.encrypt.implicit_iv_len = impl_iv_len;
+
+	memcpy(co->key_ctx_bi.decrypt.implicit_iv,
+	    co->key_ctx_bi.encrypt.implicit_iv, OPENVPN_MAX_IV_LENGTH);
+	co->key_ctx_bi.decrypt.implicit_iv_len = impl_iv_len;
+      }
+  }
+#endif
 
   msg (M_INFO, "Entering " PACKAGE_NAME " crypto self-test mode.");
   for (i = 1; i <= TUN_MTU_SIZE (frame); ++i)
@@ -715,11 +1079,14 @@ test_crypto (const struct crypto_options *co, struct frame* frame)
       buf = work;
       memcpy (buf_write_alloc (&buf, BLEN (&src)), BPTR (&src), BLEN (&src));
 
+      /* initialize work buffer with FRAME_HEADROOM bytes of prepend capacity */
+      ASSERT (buf_init (&encrypt_workspace, FRAME_HEADROOM (frame)));
+
       /* encrypt */
-      openvpn_encrypt (&buf, encrypt_workspace, co, frame);
+      openvpn_encrypt (&buf, encrypt_workspace, co);
 
       /* decrypt */
-      openvpn_decrypt (&buf, decrypt_workspace, co, frame);
+      openvpn_decrypt (&buf, decrypt_workspace, co, frame, BPTR (&buf));
 
       /* compare */
       if (buf.len != src.len)
@@ -736,79 +1103,41 @@ test_crypto (const struct crypto_options *co, struct frame* frame)
   gc_free (&gc);
 }
 
-#ifdef ENABLE_SSL
-
 void
 get_tls_handshake_key (const struct key_type *key_type,
 		       struct key_ctx_bi *ctx,
-		       const char *passphrase_file,
+		       const char *key_file,
 		       const int key_direction,
 		       const unsigned int flags)
 {
-  if (passphrase_file && key_type->hmac_length)
+  if (key_file)
     {
       struct key2 key2;
-      struct key_type kt = *key_type;
       struct key_direction_state kds;
-
-      /* for control channel we are only authenticating, not encrypting */
-      kt.cipher_length = 0;
-      kt.cipher = NULL;
 
       if (flags & GHK_INLINE)
 	{
-	  /* key was specified inline, key text is in passphrase_file */
-	  read_key_file (&key2, passphrase_file, RKF_INLINE|RKF_MUST_SUCCEED);
-
-	  /* succeeded? */
-	  if (key2.n == 2)
-	    msg (M_INFO, "Control Channel Authentication: tls-auth using INLINE static key file");
-	  else
-	    msg (M_FATAL, "INLINE tls-auth file lacks the requisite 2 keys");
+	  read_key_file (&key2, key_file, RKF_INLINE|RKF_MUST_SUCCEED);
 	}
       else
-      {
-	/* first try to parse as an OpenVPN static key file */
-	read_key_file (&key2, passphrase_file, 0);
+	{
+	  read_key_file (&key2, key_file, RKF_MUST_SUCCEED);
+	}
 
-	/* succeeded? */
-	if (key2.n == 2)
+	if (key2.n != 2)
 	  {
-	    msg (M_INFO,
-		 "Control Channel Authentication: using '%s' as a " PACKAGE_NAME " static key file",
-		 passphrase_file);
+	    msg (M_ERR, "Control Channel Authentication: File '%s' does not "
+		"have OpenVPN Static Key format.  Using free-form passphrase "
+		"file is not supported anymore.", key_file);
 	  }
-	else
-	  {
-	    int hash_size;
-
-	    CLEAR (key2);
-
-	    /* failed, now try to get hash from a freeform file */
-	    hash_size = read_passphrase_hash (passphrase_file,
-					      kt.digest,
-					      key2.keys[0].hmac,
-					      MAX_HMAC_KEY_LENGTH);
-	    ASSERT (hash_size == kt.hmac_length);
-
-	    /* suceeded */
-	    key2.n = 1;
-
-	    msg (M_INFO,
-		 "Control Channel Authentication: using '%s' as a free-form passphrase file",
-		 passphrase_file);
-	  }
-      }
       /* handle key direction */
-
       key_direction_state_init (&kds, key_direction);
-      must_have_n_keys (passphrase_file, "tls-auth", &key2, kds.need_keys);
+      must_have_n_keys (key_file, "tls-auth", &key2, kds.need_keys);
 
-      /* initialize hmac key in both directions */
-
-      init_key_ctx (&ctx->encrypt, &key2.keys[kds.out_key], &kt, OPENVPN_OP_ENCRYPT,
+      /* initialize key in both directions */
+      init_key_ctx (&ctx->encrypt, &key2.keys[kds.out_key], key_type, OPENVPN_OP_ENCRYPT,
 		    "Outgoing Control Channel Authentication");
-      init_key_ctx (&ctx->decrypt, &key2.keys[kds.in_key], &kt, OPENVPN_OP_DECRYPT,
+      init_key_ctx (&ctx->decrypt, &key2.keys[kds.in_key], key_type, OPENVPN_OP_DECRYPT,
 		    "Incoming Control Channel Authentication");
 
       CLEAR (key2);
@@ -818,7 +1147,6 @@ get_tls_handshake_key (const struct key_type *key_type,
       CLEAR (*ctx);
     }
 }
-#endif
 
 /* header and footer for static key file */
 static const char static_key_head[] = "-----BEGIN OpenVPN Static key V1-----";
@@ -1020,54 +1348,6 @@ read_key_file (struct key2 *key2, const char *file, const unsigned int flags)
 
   /* pop our garbage collection level */
   gc_free (&gc);
-}
-
-int
-read_passphrase_hash (const char *passphrase_file,
-		      const md_kt_t *digest,
-		      uint8_t *output,
-		      int len)
-{
-  md_ctx_t md;
-
-  ASSERT (len >= md_kt_size(digest));
-  memset (output, 0, len);
-
-  md_ctx_init(&md, digest);
-
-  /* read passphrase file */
-  {
-    const int min_passphrase_size = 8;
-    uint8_t buf[64];
-    int total_size = 0;
-    int fd = platform_open (passphrase_file, O_RDONLY, 0);
-
-    if (fd == -1)
-      msg (M_ERR, "Cannot open passphrase file: '%s'", passphrase_file);
-
-    for (;;)
-      {
-	int size = read (fd, buf, sizeof (buf));
-	if (size == 0)
-	  break;
-	if (size == -1)
-	  msg (M_ERR, "Read error on passphrase file: '%s'",
-	       passphrase_file);
-	md_ctx_update(&md, buf, size);
-	total_size += size;
-      }
-    close (fd);
-
-    warn_if_group_others_accessible (passphrase_file);
-
-    if (total_size < min_passphrase_size)
-      msg (M_FATAL,
-	   "Passphrase file '%s' is too small (must have at least %d characters)",
-	   passphrase_file, min_passphrase_size);
-  }
-  md_ctx_final(&md, output);
-  md_ctx_cleanup(&md);
-  return md_kt_size(digest);
 }
 
 /*
@@ -1375,7 +1655,7 @@ prng_bytes (uint8_t *output, int len)
 	}
     }
   else
-    rand_bytes (output, len);
+    ASSERT (rand_bytes (output, len));
 }
 
 /* an analogue to the random() function, but use prng_bytes */
@@ -1389,79 +1669,42 @@ get_random()
   return l;
 }
 
-#ifndef ENABLE_SSL
+static const cipher_name_pair *
+get_cipher_name_pair(const char *cipher_name) {
+  const cipher_name_pair *pair;
+  size_t i = 0;
 
-void
-init_ssl_lib (void)
-{
-  crypto_init_lib ();
+  /* Search for a cipher name translation */
+  for (; i < cipher_name_translation_table_count; i++)
+    {
+      pair = &cipher_name_translation_table[i];
+      if (0 == strcmp (cipher_name, pair->openvpn_name) ||
+	  0 == strcmp (cipher_name, pair->lib_name))
+	  return pair;
+    }
+
+  /* Nothing found, return null */
+  return NULL;
 }
-
-void
-free_ssl_lib (void)
-{
-  crypto_uninit_lib ();
-  prng_uninit();
-}
-
-#endif /* ENABLE_SSL */
-
-/*
- * md5 functions
- */
 
 const char *
-md5sum (uint8_t *buf, int len, int n_print_chars, struct gc_arena *gc)
-{
-  uint8_t digest[MD5_DIGEST_LENGTH];
-  const md_kt_t *md5_kt = md_kt_get("MD5");
+translate_cipher_name_from_openvpn (const char *cipher_name) {
+  const cipher_name_pair *pair = get_cipher_name_pair(cipher_name);
 
-  md_full(md5_kt, buf, len, digest);
+  if (NULL == pair)
+    return cipher_name;
 
-  return format_hex (digest, MD5_DIGEST_LENGTH, n_print_chars, gc);
+  return pair->lib_name;
 }
 
-void
-md5_state_init (struct md5_state *s)
-{
-  const md_kt_t *md5_kt = md_kt_get("MD5");
+const char *
+translate_cipher_name_to_openvpn (const char *cipher_name) {
+  const cipher_name_pair *pair = get_cipher_name_pair(cipher_name);
 
-  md_ctx_init(&s->ctx, md5_kt);
-}
+  if (NULL == pair)
+    return cipher_name;
 
-void
-md5_state_update (struct md5_state *s, void *data, size_t len)
-{
-  md_ctx_update(&s->ctx, data, len);
-}
-
-void
-md5_state_final (struct md5_state *s, struct md5_digest *out)
-{
-  md_ctx_final(&s->ctx, out->digest);
-  md_ctx_cleanup(&s->ctx);
-}
-
-void
-md5_digest_clear (struct md5_digest *digest)
-{
-  CLEAR (*digest);
-}
-
-bool
-md5_digest_defined (const struct md5_digest *digest)
-{
-  int i;
-  for (i = 0; i < MD5_DIGEST_LENGTH; ++i)
-    if (digest->digest[i])
-      return true;
-  return false;
-}
-
-bool
-md5_digest_equal (const struct md5_digest *d1, const struct md5_digest *d2)
-{
-  return memcmp(d1->digest, d2->digest, MD5_DIGEST_LENGTH) == 0;
+  return pair->openvpn_name;
 }
 
 #endif /* ENABLE_CRYPTO */

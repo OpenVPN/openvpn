@@ -39,7 +39,7 @@
 
 #include "syshead.h"
 
-#if defined(ENABLE_CRYPTO) && defined(ENABLE_SSL)
+#ifdef ENABLE_CRYPTO
 
 #include "error.h"
 #include "common.h"
@@ -64,4 +64,4 @@ session_id_print (const struct session_id *sid, struct gc_arena *gc)
 
 #else
 static void dummy(void) {}
-#endif /* ENABLE_CRYPTO && ENABLE_SSL*/
+#endif /* ENABLE_CRYPTO */

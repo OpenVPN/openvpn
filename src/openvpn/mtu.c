@@ -78,8 +78,6 @@ frame_finalize (struct frame *frame,
     }
 
   frame->link_mtu_dynamic = frame->link_mtu;
-
-  frame->extra_buffer += PAYLOAD_ALIGN;
 }
 
 /*
@@ -153,18 +151,32 @@ frame_print (const struct frame *frame,
 #define MTUDISC_NOT_SUPPORTED_MSG "--mtu-disc is not supported on this OS"
 
 void
-set_mtu_discover_type (int sd, int mtu_type)
+set_mtu_discover_type (int sd, int mtu_type, sa_family_t proto_af)
 {
   if (mtu_type >= 0)
     {
-#if defined(HAVE_SETSOCKOPT) && defined(SOL_IP) && defined(IP_MTU_DISCOVER)
-      if (setsockopt
-	  (sd, SOL_IP, IP_MTU_DISCOVER, &mtu_type, sizeof (mtu_type)))
-	msg (M_ERR, "Error setting IP_MTU_DISCOVER type=%d on TCP/UDP socket",
-	     mtu_type);
-#else
-      msg (M_FATAL, MTUDISC_NOT_SUPPORTED_MSG);
+      switch (proto_af)
+	{
+#if defined(HAVE_SETSOCKOPT) && defined(IP_MTU_DISCOVER)
+	case AF_INET:
+	  if (setsockopt
+	      (sd, IPPROTO_IP, IP_MTU_DISCOVER, &mtu_type, sizeof (mtu_type)))
+	    msg (M_ERR, "Error setting IP_MTU_DISCOVER type=%d on TCP/UDP socket",
+		 mtu_type);
+	  break;
 #endif
+#if defined(HAVE_SETSOCKOPT) && defined(IPV6_MTU_DISCOVER)
+	case AF_INET6:
+	  if (setsockopt
+	      (sd, IPPROTO_IPV6, IPV6_MTU_DISCOVER, &mtu_type, sizeof (mtu_type)))
+	    msg (M_ERR, "Error setting IPV6_MTU_DISCOVER type=%d on TCP6/UDP6 socket",
+		 mtu_type);
+	  break;
+#endif
+	default:
+	  msg (M_FATAL, MTUDISC_NOT_SUPPORTED_MSG);
+	  break;
+	}
     }
 }
 
@@ -288,7 +300,7 @@ void
 set_sock_extended_error_passing (int sd)
 {
   int on = 1;
-  if (setsockopt (sd, SOL_IP, IP_RECVERR, &on, sizeof (on)))
+  if (setsockopt (sd, SOL_IP, IP_RECVERR, (void *) &on, sizeof (on)))
     msg (M_WARN | M_ERRNO,
 	 "Note: enable extended error passing on TCP/UDP socket failed (IP_RECVERR)");
 }

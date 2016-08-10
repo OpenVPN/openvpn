@@ -71,7 +71,7 @@ if [ $check_depth -eq -1 ] || [ $cur_depth -eq $check_depth ]; then
   # - The serial number must not be empty
   # - The exit status of "openssl ocsp" must be zero
   # - The output of the above command must contain the line
-  #   "0x${serial}: good"
+  #   "${serial}: good"
   #
   # Everything else fails with exit status 1.
 
@@ -83,7 +83,7 @@ if [ $check_depth -eq -1 ] || [ $cur_depth -eq $check_depth ]; then
     # Sample output that is assumed here:
     #
     # Response verify OK
-    # 0x428740A5: good
+    # 4287405: good
     #      This Update: Apr 24 19:38:49 2010 GMT
     #      Next Update: May  2 14:23:42 2010 GMT
     #
@@ -97,12 +97,19 @@ if [ $check_depth -eq -1 ] || [ $cur_depth -eq $check_depth ]; then
                     "$nonce" \
                     -CAfile "$verify" \
                     -url "$ocsp_url" \
-                    -serial "0x${serial}" 2>/dev/null)
+                    -serial "${serial}" 2>&1)
 
     if [ $? -eq 0 ]; then
-      # check that it's good
-      if echo "$status" | grep -Fq "0x${serial}: good"; then
-        exit 0
+      # check if ocsp didn't report any errors
+      if echo "$status" | grep -Eq "(error|fail)"; then
+          exit 1
+      fi
+      # check that the reported status of certificate is ok
+      if echo "$status" | grep -Eq "^${serial}: good"; then
+        # check if signature on the OCSP response verified correctly
+        if echo "$status" | grep -Eq "^Response verify OK"; then
+            exit 0
+        fi
       fi
     fi
   fi

@@ -5,7 +5,7 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2010 Fox Crypto B.V. <openvpn@fox-it.com>
+ *  Copyright (C) 2010-2014 Fox Crypto B.V. <openvpn@fox-it.com>
  *
  *
  *  This program is free software; you can redistribute it and/or modify
@@ -61,24 +61,26 @@
  * following describes the various opcodes available.
  *
  *  - Control channel messages:
- *     - \c P_CONTROL_HARD_RESET_CLIENT_V1 -- %Key method 1, initial %key
+ *     - \ref P_CONTROL_HARD_RESET_CLIENT_V1 -- %Key method 1, initial %key
  *       from client, forget previous state.
- *     - \c P_CONTROL_HARD_RESET_SERVER_V1 -- %Key method 1, initial %key
+ *     - \ref P_CONTROL_HARD_RESET_SERVER_V1 -- %Key method 1, initial %key
  *       from server, forget previous state.
- *     - \c P_CONTROL_HARD_RESET_CLIENT_V2 -- %Key method 2, initial %key
+ *     - \ref P_CONTROL_HARD_RESET_CLIENT_V2 -- %Key method 2, initial %key
  *       from client, forget previous state.
- *     - \c P_CONTROL_HARD_RESET_SERVER_V2 -- %Key method 2, initial %key
+ *     - \ref P_CONTROL_HARD_RESET_SERVER_V2 -- %Key method 2, initial %key
  *       from server, forget previous state.
- *     - \c P_CONTROL_SOFT_RESET_V1 -- New %key, with a graceful
+ *     - \ref P_CONTROL_SOFT_RESET_V1 -- New %key, with a graceful
  *       transition from old to new %key in the sense that a transition
  *       window exists where both the old or new key_id can be used.
- *     - \c P_CONTROL_V1 -- Control channel packet (usually TLS
+ *     - \ref P_CONTROL_V1 -- Control channel packet (usually TLS
  *       ciphertext).
- *     - \c P_ACK_V1 -- Acknowledgement for control channel packets
+ *     - \ref P_ACK_V1 -- Acknowledgement for control channel packets
  *       received.
  *  - Data channel messages:
- *     - \c P_DATA_V1 -- Data channel packet containing data channel
+ *     - \ref P_DATA_V1 -- Data channel packet containing data channel
  *       ciphertext.
+ *     - \ref P_DATA_V2 -- Data channel packet containing peer-id and data
+ *       channel ciphertext.
  *
  * @subsection network_protocol_external_key_id Session IDs and Key IDs
  *
@@ -139,10 +141,10 @@
  * channel is used to exchange random %key material for bidirectional
  * cipher and HMAC keys which will be used to secure data channel packets.
  * OpenVPN currently implements two %key methods.  %Key method 1 directly
- * derives keys using random bits obtained from the \c RAND_bytes()
- * OpenSSL function.  %Key method 2 mixes random %key material from both
- * sides of the connection using the TLS PRF mixing function.  %Key method
- * 2 is the preferred method and is the default for OpenVPN 2.0.
+ * derives keys using random bits obtained from the \c rand_bytes() function.
+ * %Key method 2 mixes random %key material from both sides of the connection
+ * using the TLS PRF mixing function.  %Key method 2 is the preferred method and
+ * is the default for OpenVPN 2.0+.
  *
  * The @ref key_generation "Data channel key generation" related page
  * describes the %key methods in more detail.
@@ -173,27 +175,22 @@
  *
  * @section network_protocol_data Structure of data channel messages
  *
- * @subsection network_protocol_data_ciphertext Structure of ciphertext data channel messages
+ * The P_DATA_* payload represents encapsulated tunnel packets which tend to be
+ * either IP packets or Ethernet frames. This is essentially the "payload" of
+ * the VPN. Data channel packets consist of a data channel header, and a
+ * payload. There are two possible formats:
  *
- * The P_DATA_* payload represents encrypted, encapsulated tunnel packets
- * which tend to be either IP packets or Ethernet frames. This is
- * essentially the "payload" of the VPN.
+ * @par P_DATA_V1
+ * P_DATA_V1 packets have a 1-byte header, carrying the \ref P_DATA_V1 \c opcode
+ * and \c key_id, followed by the payload:\n
+ * <tt> [ 5-bit opcode | 3-bit key_id ] [ payload ] </tt>
  *
- * Data channel packets in ciphertext form consist of the following parts:
- *  - HMAC of ciphertext IV + ciphertext (if not disabled by \c --auth
- *    none).
- *  - Ciphertext IV (size is cipher-dependent, if not disabled by \c
- *    --no-iv).
- *  - Tunnel packet ciphertext.
+ * @par P_DATA_V2
+ * P_DATA_V2 packets have the same 1-byte opcode/key_id, but carrying the \ref
+ * P_DATA_V2 opcode, followed by a 3-byte peer-id, which uniquely identifies
+ * the peer:\n
+ * <tt> [ 5-bit opcode | 3-bit key_id ] [ 24-bit peer-id ] [ payload ] </tt>
  *
- * @subsection network_protocol_data_plaintext Structure of plaintext data channel messages
+ * See @ref data_crypto for details on the data channel payload format.
  *
- * Data channel packets in plaintext form consist of the following parts:
- *  - packet-id (4 or 8 bytes, if not disabled by --no-replay).
- *     - In TLS mode, 4 bytes are used because the implementation can
- *       force a TLS renegotation before \c 2^32 packets are sent.
- *     - In pre-shared %key mode, 8 bytes are used (sequence number and \c
- *       time_t value) to allow long-term %key usage without packet-id
- *       collisions.
- *  - User plaintext (n bytes).
  */

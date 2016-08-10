@@ -372,17 +372,6 @@ proxy_list_close (struct proxy_connection **list)
     }
 }
 
-static void
-sock_addr_set (struct openvpn_sockaddr *osaddr,
-	       const in_addr_t addr,
-	       const int port)
-{
-  CLEAR (*osaddr);
-  osaddr->addr.in4.sin_family = AF_INET;
-  osaddr->addr.in4.sin_addr.s_addr = htonl (addr);
-  osaddr->addr.in4.sin_port = htons (port);
-}
-
 static inline void
 proxy_connection_io_requeue (struct proxy_connection *pc, const int rwflags_new, struct event_set *es)
 {
@@ -803,7 +792,7 @@ port_share_open (const char *host,
    * Get host's IP address
    */
 
-  status = openvpn_getaddrinfo (GETADDR_RESOLVE|GETADDR_HOST_ORDER|GETADDR_FATAL,
+  status = openvpn_getaddrinfo (GETADDR_RESOLVE|GETADDR_FATAL,
                                  host, port,  0, NULL, AF_INET, &ai);
   ASSERT (status==0);
   hostaddr = *((struct sockaddr_in*) ai->ai_addr);

@@ -1,0 +1,161 @@
+.TH keychain-mcd 8
+.SH NAME
+
+keychain-mcd \- Mac OS X Keychain management daemon for OpenVPN
+
+.SH SYNOPSIS
+
+.B keychain-mcd
+.I identity-template management-server-ip management-server-port
+[
+.I password-file
+]
+
+.SH DESCRIPTION
+
+.B keychain-mcd
+is Mac OS X Keychain management daemon for OpenVPN.
+It loads the certificate and private key from the Mac OSX Keychain (Mac OSX Only).
+.B keychain-mcd
+connects to OpenVPN via management interface and handles
+certificate and private key commands (namely
+.B NEED-CERTIFICATE
+and
+.B RSA-SIGN
+commands).
+
+.B keychain-mcd
+makes it possible to use any smart card supported by Mac OSX using the tokend interface, but also any
+kind of certificate, residing in the Keychain, where you have access to
+the private key.  This option has been tested on the client side with an Aladdin eToken
+on Mac OSX Leopard and with software certificates stored in the Keychain on Mac OS X.
+
+Note that Mac OS X might need to present the user with an authentication GUI when the Keychain
+is accessed by keychain-mcd.
+
+Use
+.B keychain-mcd
+along with
+.B --management-external-key
+and/or
+.B --management-external-cert
+passed to
+.B openvpn.
+
+.SH OPTIONS
+
+.TP
+.BR identity-template
+
+A select string which is used to choose a keychain identity from
+Mac OS X Keychain or
+.I auto
+if the identity template is passed from openvpn.
+
+\fBSubject\fR, \fBIssuer\fR, \fBSerial\fR, \fBSHA1\fR, \fBMD5\fR selectors can be used.
+
+To select a certificate based on a string search in the
+certificate's subject and/or issuer:
+
+.nf
+
+"SUBJECT:c=US/o=Apple Inc./ou=me.com/cn=username ISSUER:c=US/o=Apple Computer, Inc./ou=Apple Computer Certificate Authority/cn=Apple .Mac Certificate Authority"
+
+.fi
+
+.I "Distinguished Name Component Abbreviations:"
+.br
+o = organization
+.br
+ou = organizational unit
+.br
+c = country
+.br
+l = locality
+.br
+st = state
+.br
+cn = common name
+.br
+e = email
+.br
+
+All of the distinguished name components are optional, although you do need to specify at least one of them.  You can
+add spaces around the '/' and '=' characters, e.g. "SUBJECT: c = US / o = Apple Inc.".  You do not need to specify
+both the subject and the issuer, one or the other will work fine.
+The identity searching algorithm will return the
+certificate it finds that matches all of the criteria you have specified.
+If there are several certificates matching all of the criteria then the youngest certificate is returned
+(i.e. with the greater "not before" validity field).
+You can also include the MD5 and/or SHA1 thumbprints and/or serial number
+along with the subject and issuer.
+
+To select a certificate based on certificate's MD5 or SHA1 thumbprint:
+
+.nf
+"SHA1: 30 F7 3A 7A B7 73 2A 98 54 33 4A A7 00 6F 6E AC EC D1 EF 02"
+
+"MD5: D5 F5 11 F1 38 EB 5F 4D CF 23 B6 94 E8 33 D8 B5"
+.fi
+
+Again, you can include both the SHA1 and the MD5 thumbprints, but you can also use just one of them.
+The thumbprint hex strings can easily be copy-and-pasted from the OSX Keychain Access GUI in the Applications/Utilities folder.
+The hex string comparison is not case sensitive.
+
+To select a certificate based on certificate's serial number:
+
+"Serial: 3E 9B 6F 02 00 00 00 01 1F 20"
+
+If
+.BR identity-template
+equals to
+.I auto
+then the actual identity template is
+obtained from argument of NEED-CERTIFICATE notification of openvpn.
+In this case the argument of NEED-CERTIFICATE must begin with 'macosx-keychain:' prefix
+and the rest of it must contain the actual identity template in the format described above.
+
+
+.TP
+.BR management-server-ip
+OpenVPN management IP to connect to.
+Both IPv4 and IPv6 addresses can be used.
+
+.TP
+.BR management-server-port
+OpenVPN management port to connect to.
+Use
+.B unix
+for
+.I management-server-port
+and socket path for
+.I management-server-ip
+to connect to a local unix socket.
+
+.TP
+.BR password-file
+
+Password file containing the management password on first line.
+The password will be used to connect to
+.B openvpn
+management interface.
+
+Pass
+.I password-file
+to
+.B keychain-mcd
+if
+.I pw-file
+was specified in
+.B --management
+option to
+.B openvpn.
+
+
+.SH AUTHOR
+
+Vasily Kulikov <segoon@openwall.com>
+
+.SH "SEE ALSO"
+
+.BR openvpn (8)

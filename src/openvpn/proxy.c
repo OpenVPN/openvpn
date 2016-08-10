@@ -41,8 +41,7 @@
 #include "httpdigest.h"
 #include "ntlm.h"
 #include "memdbg.h"
-
-#ifdef ENABLE_HTTP_PROXY
+#include "forward.h"
 
 #define UP_TYPE_PROXY        "HTTP Proxy"
 
@@ -54,7 +53,6 @@ init_http_proxy_options_once (struct http_proxy_options **hpo,
     {
       ALLOC_OBJ_CLEAR_GC (*hpo, struct http_proxy_options, gc);
       /* http proxy defaults */
-      (*hpo)->timeout = 5;
       (*hpo)->http_version = "1.0";
     }
   return *hpo;
@@ -94,7 +92,7 @@ recv_line (socket_descriptor_t sd,
 	}
 
       FD_ZERO (&reads);
-      FD_SET (sd, &reads);
+      openvpn_fd_set (sd, &reads);
       tv.tv_sec = timeout_sec;
       tv.tv_usec = 0;
 
@@ -243,6 +241,8 @@ get_user_pass_http (struct http_proxy_info *p, const bool force)
       unsigned int flags = GET_USER_PASS_MANAGEMENT;
       if (p->queried_creds)
 	flags |= GET_USER_PASS_PREVIOUS_CREDS_FAILED;
+      if (p->options.inline_creds)
+	flags |= GET_USER_PASS_INLINE_CREDS;
       get_user_pass (&static_proxy_user_pass,
 		     p->options.auth_file,
 		     UP_TYPE_PROXY,
@@ -257,6 +257,8 @@ clear_user_pass_http (void)
   purge_user_pass (&static_proxy_user_pass, true);
 }
 
+#if 0
+/* function only used in #if 0 debug statement */
 static void
 dump_residual (socket_descriptor_t sd,
 	       int timeout,
@@ -271,6 +273,7 @@ dump_residual (socket_descriptor_t sd,
       msg (D_PROXY, "PROXY HEADER: '%s'", buf);
     }
 }
+#endif
 
 /*
  * Extract the Proxy-Authenticate header from the stream.
@@ -554,6 +557,7 @@ establish_http_proxy_passthru (struct http_proxy_info *p,
 			       socket_descriptor_t sd, /* already open to proxy */
 			       const char *host,       /* openvpn server remote */
 			       const char *port,         /* openvpn server port */
+			       struct event_timeout* server_poll_timeout,
 			       struct buffer *lookahead,
 			       volatile int *signal_received)
 {
@@ -636,7 +640,7 @@ establish_http_proxy_passthru (struct http_proxy_info *p,
 	goto error;
 
       /* receive reply from proxy */
-      if (!recv_line (sd, buf, sizeof(buf), p->options.timeout, true, NULL, signal_received))
+      if (!recv_line (sd, buf, sizeof(buf), get_server_poll_remaining_time (server_poll_timeout), true, NULL, signal_received))
 	goto error;
 
       /* remove trailing CR, LF */
@@ -665,7 +669,7 @@ establish_http_proxy_passthru (struct http_proxy_info *p,
 
           while (true)
             {
-              if (!recv_line (sd, buf, sizeof(buf), p->options.timeout, true, NULL, signal_received))
+              if (!recv_line (sd, buf, sizeof(buf), get_server_poll_remaining_time (server_poll_timeout), true, NULL, signal_received))
                 goto error;
               chomp (buf);
               msg (D_PROXY, "HTTP proxy returned: '%s'", buf);
@@ -732,7 +736,7 @@ establish_http_proxy_passthru (struct http_proxy_info *p,
             goto error;
 
           /* receive reply from proxy */
-          if (!recv_line (sd, buf, sizeof(buf), p->options.timeout, true, NULL, signal_received))
+          if (!recv_line (sd, buf, sizeof(buf), get_server_poll_remaining_time (server_poll_timeout), true, NULL, signal_received))
             goto error;
 
           /* remove trailing CR, LF */
@@ -840,7 +844,7 @@ establish_http_proxy_passthru (struct http_proxy_info *p,
 		goto error;
 
 	      /* receive reply from proxy */
-	      if (!recv_line (sd, buf, sizeof(buf), p->options.timeout, true, NULL, signal_received))
+	      if (!recv_line (sd, buf, sizeof(buf), get_server_poll_remaining_time (server_poll_timeout), true, NULL, signal_received))
 		goto error;
 
 	      /* remove trailing CR, LF */
@@ -864,7 +868,7 @@ establish_http_proxy_passthru (struct http_proxy_info *p,
 	  /* figure out what kind of authentication the proxy needs */
 	  char *pa = NULL;
 	  const int method = get_proxy_authenticate(sd,
-						    p->options.timeout,
+						    get_server_poll_remaining_time (server_poll_timeout),
 						    &pa,
 						    NULL,
 						    signal_received);
@@ -908,7 +912,7 @@ establish_http_proxy_passthru (struct http_proxy_info *p,
       msg (D_LINK_ERRORS, "HTTP proxy returned bad status");
 #if 0
       /* DEBUGGING -- show a multi-line HTTP error response */
-      dump_residual(sd, p->options.timeout, signal_received);
+      dump_residual(sd, get_server_poll_remaining_time (server_poll_timeout), signal_received);
 #endif
       goto error;
     }
@@ -916,7 +920,7 @@ establish_http_proxy_passthru (struct http_proxy_info *p,
   /* SUCCESS */
 
   /* receive line from proxy and discard */
-  if (!recv_line (sd, NULL, 0, p->options.timeout, true, NULL, signal_received))
+  if (!recv_line (sd, NULL, 0, get_server_poll_remaining_time (server_poll_timeout), true, NULL, signal_received))
     goto error;
 
   /*
@@ -939,14 +943,8 @@ establish_http_proxy_passthru (struct http_proxy_info *p,
   return ret;
 
  error:
-  /* on error, should we exit or restart? */
   if (!*signal_received)
-    *signal_received = (p->options.retry ? SIGUSR1 : SIGTERM); /* SOFT-SIGUSR1 -- HTTP proxy error */
+    *signal_received = SIGUSR1; /* SOFT-SIGUSR1 -- HTTP proxy error */
   gc_free (&gc);
   return ret;
 }
-
-#else
-static void dummy(void) {}
-#endif /* ENABLE_HTTP_PROXY */
-

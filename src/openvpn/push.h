@@ -37,8 +37,7 @@
 #define PUSH_MSG_CONTINUATION     5
 #define PUSH_MSG_ALREADY_REPLIED  6
 
-void incoming_push_message (struct context *c,
-			    const struct buffer *buffer);
+int process_incoming_push_request (struct context *c);
 
 int process_incoming_push_msg (struct context *c,
 			       const struct buffer *buffer,
@@ -54,14 +53,15 @@ void server_pushed_signal (struct context *c, const struct buffer *buffer, const
 
 #if P2MP_SERVER
 
+void incoming_push_message (struct context *c, const struct buffer *buffer);
+
 void clone_push_list (struct options *o);
 
 void push_option (struct options *o, const char *opt, int msglevel);
 void push_options (struct options *o, char **p, int msglevel, struct gc_arena *gc);
 
 void push_reset (struct options *o);
-
-bool send_push_reply (struct context *c);
+void push_remove_option (struct options *o, const char *p);
 
 void remove_iroutes_from_push_route_list (struct options *o);
 

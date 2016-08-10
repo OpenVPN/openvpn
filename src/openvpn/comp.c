@@ -48,22 +48,17 @@ comp_init(const struct compress_options *opt)
       ALLOC_OBJ_CLEAR (compctx, struct compress_context);
       compctx->flags = opt->flags;
       compctx->alg = comp_stub_alg;
-      (*compctx->alg.compress_init)(compctx);
+      break;
+    case COMP_ALGV2_UNCOMPRESSED:
+      ALLOC_OBJ_CLEAR (compctx, struct compress_context);
+      compctx->flags = opt->flags;
+      compctx->alg = compv2_stub_alg;
       break;
 #ifdef ENABLE_LZO
     case COMP_ALG_LZO:
       ALLOC_OBJ_CLEAR (compctx, struct compress_context);
       compctx->flags = opt->flags;
       compctx->alg = lzo_alg;
-      (*compctx->alg.compress_init)(compctx);
-      break;
-#endif
-#ifdef ENABLE_SNAPPY
-    case COMP_ALG_SNAPPY:
-      ALLOC_OBJ_CLEAR (compctx, struct compress_context);
-      compctx->flags = opt->flags;
-      compctx->alg = snappy_alg;
-      (*compctx->alg.compress_init)(compctx);
       break;
 #endif
 #ifdef ENABLE_LZ4
@@ -71,12 +66,38 @@ comp_init(const struct compress_options *opt)
       ALLOC_OBJ_CLEAR (compctx, struct compress_context);
       compctx->flags = opt->flags;
       compctx->alg = lz4_alg;
-      (*compctx->alg.compress_init)(compctx);
+      break;
+    case COMP_ALGV2_LZ4:
+      ALLOC_OBJ_CLEAR (compctx, struct compress_context);
+      compctx->flags = opt->flags;
+      compctx->alg = lz4v2_alg;
       break;
 #endif
     }
+  if (compctx)
+    (*compctx->alg.compress_init)(compctx);
+
   return compctx;
 }
+
+/* In the v2 compression schemes, an uncompressed packet has
+ * has no opcode in front, unless the first byte is 0x50. In this
+ * case the packet needs to be escaped */
+void
+compv2_escape_data_ifneeded (struct buffer *buf)
+{
+    uint8_t *head = BPTR (buf);
+    if (head[0] != COMP_ALGV2_INDICATOR_BYTE)
+	return;
+
+    /* Header is 0x50 */
+    ASSERT(buf_prepend(buf, 2));
+
+    head = BPTR (buf);
+    head[0] = COMP_ALGV2_INDICATOR_BYTE;
+    head[1] = COMP_ALGV2_UNCOMPRESSED;
+}
+
 
 void
 comp_uninit(struct compress_context *compctx)
@@ -128,9 +149,7 @@ comp_generate_peer_info_string(const struct compress_options *opt, struct buffer
 	{
 #if defined(ENABLE_LZ4)
 	  buf_printf (out, "IV_LZ4=1\n");
-#endif
-#if defined(ENABLE_SNAPPY)
-	  buf_printf (out, "IV_SNAPPY=1\n");
+	  buf_printf (out, "IV_LZ4v2=1\n");
 #endif
 #if defined(ENABLE_LZO)
 	  buf_printf (out, "IV_LZO=1\n");
@@ -140,6 +159,7 @@ comp_generate_peer_info_string(const struct compress_options *opt, struct buffer
       if (!lzo_avail)
 	buf_printf (out, "IV_LZO_STUB=1\n");
       buf_printf (out, "IV_COMP_STUB=1\n");
+      buf_printf (out, "IV_COMP_STUBv2=1\n");
     }
 }
 

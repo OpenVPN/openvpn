@@ -167,7 +167,7 @@ helper_client_server (struct options *o)
    * push "tun-ipv6"
    * ifconfig-ipv6 2001:db8::1 2001:db8::2
    * if !nopool: 
-   *   ifconfig-ipv6-pool 2001:db8::1:0/64
+   *   ifconfig-ipv6-pool 2001:db8::1000/64
    * 
    */
    if ( o->server_ipv6_defined )
@@ -232,6 +232,8 @@ helper_client_server (struct options *o)
    *   if !nopool: 
    *     ifconfig-pool 10.8.0.2 10.8.0.254 255.255.255.0
    *   push "route-gateway 10.8.0.1"
+   *   if route-gateway unset:
+   *     route-gateway 10.8.0.2
    */
 
   if (o->server_defined)
@@ -311,8 +313,10 @@ helper_client_server (struct options *o)
 		  ifconfig_pool_verify_range (M_USAGE, o->ifconfig_pool_start, o->ifconfig_pool_end);
 		}
 	      o->ifconfig_pool_netmask = o->server_netmask;
-		  
+
 	      push_option (o, print_opt_route_gateway (o->server_network + 1, &o->gc), M_USAGE);
+	      if (!o->route_default_gateway)
+		o->route_default_gateway = print_in_addr_t (o->server_network + 2, 0, &o->gc);
 	    }
 	  else
 	    ASSERT (0);
@@ -530,7 +534,7 @@ helper_tcp_nodelay (struct options *o)
 	}
       else
 	{
-	  ASSERT (0);
+	  o->sockflags |= SF_TCP_NODELAY;
 	}
     }
 #endif

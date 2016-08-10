@@ -1,139 +1,92 @@
-/*---------------------------------------------------------------------------
-THIS CODE AND INFORMATION IS PROVIDED "AS IS" WITHOUT WARRANTY OF
-ANY KIND, EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED
-TO THE IMPLIED WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A
-PARTICULAR PURPOSE.
-
-Copyright (C) 1993 - 2000.  Microsoft Corporation.  All rights reserved.
-
- MODULE: service.h
-
- Comments:  The use of this header file and the accompanying service.c
- file simplifies the process of writting a service.  You as a developer
- simply need to follow the TODO's outlined in this header file, and
- implement the ServiceStart() and ServiceStop() functions.
-
- There is no need to modify the code in service.c.  Just add service.c
- to your project and link with the following libraries...
-
- libcmt.lib kernel32.lib advapi.lib shell32.lib
-
- This code also supports unicode.  Be sure to compile both service.c and
- and code #include "service.h" with the same Unicode setting.
-
- Upon completion, your code will have the following command line interface
-
- <service exe> -?                to display this list
- <service exe> -install          to install the service
- <service exe> -remove           to remove the service
- <service exe> -debug <params>   to run as a console app for debugging
-
- Note: This code also implements Ctrl+C and Ctrl+Break handlers
-       when using the debug option.  These console events cause
-       your ServiceStop routine to be called
-
-       Also, this code only handles the OWN_SERVICE service type
-       running in the LOCAL_SYSTEM security context.
-
-       To control your service ( start, stop, etc ) you may use the
-       Services control panel applet or the NET.EXE program.
-
-       To aid in writing/debugging service, the
-       SDK contains a utility (MSTOOLS\BIN\SC.EXE) that
-       can be used to control, configure, or obtain service status.
-       SC displays complete status for any service/driver
-       in the service database, and allows any of the configuration
-       parameters to be easily changed at the command line.
-       For more information on SC.EXE, type SC at the command line.
-
-
-------------------------------------------------------------------------------*/
+/*
+ *  OpenVPN -- An application to securely tunnel IP networks
+ *             over a single TCP/UDP port, with support for SSL/TLS-based
+ *             session authentication and key exchange,
+ *             packet encryption, packet authentication, and
+ *             packet compression.
+ *
+ *  Copyright (C) 2013 Heiko Hund <heiko.hund@sophos.com>
+ *
+ *  This program is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License version 2
+ *  as published by the Free Software Foundation.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program (see the file COPYING included with this
+ *  distribution); if not, write to the Free Software Foundation, Inc.,
+ *  59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ */
 
 #ifndef _SERVICE_H
 #define _SERVICE_H
 
-
-#ifdef __cplusplus
-extern "C" {
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#elif defined(_MSC_VER)
+#include "config-msvc.h"
 #endif
 
-//////////////////////////////////////////////////////////////////////////////
-//// todo: change to desired strings
-////
-// name of the executable
-#define SZAPPNAME            PACKAGE "serv"
-// internal name of the service
-#define SZSERVICENAME        PACKAGE_NAME "Service"
-// displayed name of the service
-#define SZSERVICEDISPLAYNAME PACKAGE_NAME " Service"
-// list of service dependencies - "dep1\0dep2\0\0"
-#define SZDEPENDENCIES       TAP_WIN_COMPONENT_ID "\0Dhcp\0\0"
-//////////////////////////////////////////////////////////////////////////////
+#include <windows.h>
+#include <stdlib.h>
+#include <tchar.h>
+
+#define APPNAME  TEXT(PACKAGE "serv")
+#define SERVICE_DEPENDENCIES  TAP_WIN_COMPONENT_ID "\0Dhcp\0\0"
+
+/*
+ * Message handling
+ */
+#define MSG_FLAGS_ERROR     (1<<0)
+#define MSG_FLAGS_SYS_CODE  (1<<1)
+#define M_INFO    (0)                                  /* informational */
+#define M_SYSERR  (MSG_FLAGS_ERROR|MSG_FLAGS_SYS_CODE) /* error + system code */
+#define M_ERR     (MSG_FLAGS_ERROR)                    /* error */
+
+typedef enum {
+  automatic,
+  interactive,
+  _service_max
+} openvpn_service_type;
+
+typedef struct {
+  openvpn_service_type type;
+  TCHAR *name;
+  TCHAR *display_name;
+  TCHAR *dependencies;
+  DWORD start_type;
+} openvpn_service_t;
+
+#define MAX_NAME 256
+typedef struct {
+  TCHAR exe_path[MAX_PATH];
+  TCHAR config_dir[MAX_PATH];
+  TCHAR ext_string[16];
+  TCHAR log_dir[MAX_PATH];
+  TCHAR ovpn_admin_group[MAX_NAME];
+  DWORD priority;
+  BOOL append;
+} settings_t;
+
+extern openvpn_service_t automatic_service;
+extern openvpn_service_t interactive_service;
 
 
+VOID WINAPI ServiceStartAutomatic (DWORD argc, LPTSTR *argv);
+VOID WINAPI ServiceStartInteractive (DWORD argc, LPTSTR *argv);
 
-//////////////////////////////////////////////////////////////////////////////
-//// todo: ServiceStart()must be defined by in your code.
-////       The service should use ReportStatusToSCMgr to indicate
-////       progress.  This routine must also be used by StartService()
-////       to report to the SCM when the service is running.
-////
-////       If a ServiceStop procedure is going to take longer than
-////       3 seconds to execute, it should spawn a thread to
-////       execute the stop code, and return.  Otherwise, the
-////       ServiceControlManager will believe that the service has
-////       stopped responding
-////
-   VOID ServiceStart(DWORD dwArgc, LPTSTR *lpszArgv);
-   VOID ServiceStop();
-//////////////////////////////////////////////////////////////////////////////
+int openvpn_vsntprintf (LPTSTR str, size_t size, LPCTSTR format, va_list arglist);
+int openvpn_sntprintf (LPTSTR str, size_t size, LPCTSTR format, ...);
 
+DWORD GetOpenvpnSettings (settings_t *s);
 
+BOOL ReportStatusToSCMgr (SERVICE_STATUS_HANDLE service, SERVICE_STATUS *status);
 
-//////////////////////////////////////////////////////////////////////////////
-//// The following are procedures which
-//// may be useful to call within the above procedures,
-//// but require no implementation by the user.
-//// They are implemented in service.c
-
-//
-//  FUNCTION: ReportStatusToSCMgr()
-//
-//  PURPOSE: Sets the current status of the service and
-//           reports it to the Service Control Manager
-//
-//  PARAMETERS:
-//    dwCurrentState - the state of the service
-//    dwWin32ExitCode - error code to report
-//    dwWaitHint - worst case estimate to next checkpoint
-//
-//  RETURN VALUE:
-//    TRUE  - success
-//    FALSE - failure
-//
-   BOOL ReportStatusToSCMgr(DWORD dwCurrentState, DWORD dwWin32ExitCode, DWORD dwWaitHint);
-
-
-//
-//  FUNCTION: AddToMessageLog(LPTSTR lpszMsg)
-//
-//  PURPOSE: Allows any thread to log an error message
-//
-//  PARAMETERS:
-//    lpszMsg - text for message
-//
-//  RETURN VALUE:
-//    none
-//
-#  define MSG_FLAGS_ERROR     (1<<0)
-#  define MSG_FLAGS_SYS_CODE  (1<<1)
-   void AddToMessageLog(DWORD flags, LPTSTR lpszMsg);
-   void ResetError (void);
-//////////////////////////////////////////////////////////////////////////////
-
-
-#ifdef __cplusplus
-}
-#endif
+LPCTSTR GetLastErrorText ();
+DWORD MsgToEventLog (DWORD flags, LPCTSTR lpszMsg, ...);
 
 #endif

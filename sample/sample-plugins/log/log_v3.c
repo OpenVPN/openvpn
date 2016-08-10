@@ -36,7 +36,7 @@
 #include <string.h>
 #include <stdlib.h>
 
-#define ENABLE_SSL
+#define ENABLE_CRYPTO
 
 #include "openvpn-plugin.h"
 
@@ -82,6 +82,7 @@ openvpn_plugin_open_v3 (const int v3structver,
 
   /* Check that we are API compatible */
   if( v3structver != OPENVPN_PLUGINv3_STRUCTVER ) {
+    printf("log_v3: ** ERROR ** Incompatible plug-in interface between this plug-in and OpenVPN\n");
     return OPENVPN_PLUGIN_FUNC_ERROR;
   }
 
@@ -89,6 +90,11 @@ openvpn_plugin_open_v3 (const int v3structver,
     printf("This plug-in can only be used against OpenVPN with OpenSSL\n");
     return OPENVPN_PLUGIN_FUNC_ERROR;
   }
+
+  /* Print some version information about the OpenVPN process using this plug-in */
+  printf("log_v3: OpenVPN %s  (Major: %i, Minor: %i, Patch: %s)\n",
+         args->ovpn_version, args->ovpn_version_major,
+         args->ovpn_version_minor, args->ovpn_version_patch);
 
   /*  Which callbacks to intercept.  */
   ret->type_mask =

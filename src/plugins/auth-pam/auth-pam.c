@@ -47,6 +47,7 @@
 #include <fcntl.h>
 #include <signal.h>
 #include <syslog.h>
+#include "utils.h"
 
 #include <openvpn-plugin.h>
 
@@ -115,74 +116,6 @@ struct user_pass {
 /* Background process function */
 static void pam_server (int fd, const char *service, int verb, const struct name_value_list *name_value_list);
 
-/*  Read 'tosearch', replace all occurences of 'searchfor' with 'replacewith' and return
- *  a pointer to the NEW string.  Does not modify the input strings.  Will not enter an
- *  infinite loop with clever 'searchfor' and 'replacewith' strings.
- *  Daniel Johnson - Progman2000@usa.net / djohnson@progman.us
- */
-static char *
-searchandreplace(const char *tosearch, const char *searchfor, const char *replacewith)
-{
-  const char *searching=tosearch;
-  char *scratch;
-  char temp[strlen(tosearch)*10];
-  temp[0]=0;
-
-  if (!tosearch || !searchfor || !replacewith) return 0;
-  if (!strlen(tosearch) || !strlen(searchfor) || !strlen(replacewith)) return 0;
-
-  scratch = strstr(searching,searchfor);
-  if (!scratch) return strdup(tosearch);
-
-  while (scratch) {
-    strncat(temp,searching,scratch-searching);
-    strcat(temp,replacewith);
-
-    searching=scratch+strlen(searchfor);
-    scratch = strstr(searching,searchfor);
-  }
-  return strdup(temp);
-}
-
-/*
- * Given an environmental variable name, search
- * the envp array for its value, returning it
- * if found or NULL otherwise.
- */
-static const char *
-get_env (const char *name, const char *envp[])
-{
-  if (envp)
-    {
-      int i;
-      const int namelen = strlen (name);
-      for (i = 0; envp[i]; ++i)
-	{
-	  if (!strncmp (envp[i], name, namelen))
-	    {
-	      const char *cp = envp[i] + namelen;
-	      if (*cp == '=')
-		return cp + 1;
-	    }
-	}
-    }
-  return NULL;
-}
-
-/*
- * Return the length of a string array
- */
-static int
-string_array_len (const char *array[])
-{
-  int i = 0;
-  if (array)
-    {
-      while (array[i])
-	++i;
-    }
-  return i;
-}
 
 /*
  * Socket read/write functions.
@@ -642,6 +575,9 @@ my_conv (int n, const struct pam_message **msg_array,
 
   if (ret == PAM_SUCCESS)
     *response_array = aresp;
+  else
+    free(aresp);
+
   return ret;
 }
 

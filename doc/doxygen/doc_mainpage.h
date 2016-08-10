@@ -29,7 +29,7 @@
  */
 
 /**
- * @mainpage OpenVPN v2.1 source code documentation
+ * @mainpage OpenVPN source code documentation
  *
  * This documentation describes the internal structure of OpenVPN.  It was
  * automatically generated from specially formatted comment blocks in

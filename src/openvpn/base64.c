@@ -39,8 +39,6 @@
 
 #include "syshead.h"
 
-#if defined(ENABLE_HTTP_PROXY) || defined(ENABLE_PKCS11) || defined(ENABLE_CLIENT_CR) || defined(MANAGMENT_EXTERNAL_KEY)
-
 #include "base64.h"
 
 #include "memdbg.h"
@@ -110,7 +108,7 @@ token_decode(const char *token)
     int i;
     unsigned int val = 0;
     int marker = 0;
-    if (strlen(token) < 4)
+    if (!token[0] || !token[1] || !token[2] || !token[3])
 	return DECODE_ERROR;
     for (i = 0; i < 4; i++) {
 	val *= 64;
@@ -163,7 +161,3 @@ openvpn_base64_decode(const char *str, void *data, int size)
     }
     return q - (unsigned char *) data;
 }
-
-#else
-static void dummy(void) {}
-#endif /* ENABLE_HTTP_PROXY, ENABLE_PKCS11, ENABLE_CLIENT_CR */

@@ -33,9 +33,14 @@
 #if P2MP_SERVER
 
 #include "multi.h"
+#include <inttypes.h>
 #include "forward-inline.h"
 
 #include "memdbg.h"
+
+#ifdef HAVE_SYS_INOTIFY_H
+#include <sys/inotify.h>
+#endif
 
 /*
  * Get a client instance based on real address.  If
@@ -44,26 +49,50 @@
  */
 
 struct multi_instance *
-multi_get_create_instance_udp (struct multi_context *m)
+multi_get_create_instance_udp (struct multi_context *m, bool *floated)
 {
   struct gc_arena gc = gc_new ();
   struct mroute_addr real;
   struct multi_instance *mi = NULL;
   struct hash *hash = m->hash;
 
-  if (mroute_extract_openvpn_sockaddr (&real, &m->top.c2.from.dest, true))
+  if (mroute_extract_openvpn_sockaddr (&real, &m->top.c2.from.dest, true) &&
+      m->top.c2.buf.len > 0)
     {
       struct hash_element *he;
       const uint32_t hv = hash_value (hash, &real);
       struct hash_bucket *bucket = hash_bucket (hash, hv);
-  
-      he = hash_lookup_fast (hash, bucket, &real, hv);
+      uint8_t* ptr = BPTR(&m->top.c2.buf);
+      uint8_t op = ptr[0] >> P_OPCODE_SHIFT;
 
-      if (he)
+      /* make sure buffer has enough length to read opcode (1 byte) and peer-id (3 bytes) */
+      if (op == P_DATA_V2 && m->top.c2.buf.len >= (1 + 3))
 	{
-	  mi = (struct multi_instance *) he->value;
+	  uint32_t peer_id = ntohl(*(uint32_t*)ptr) & 0xFFFFFF;
+	  if ((peer_id < m->max_clients) && (m->instances[peer_id]))
+	    {
+	      mi = m->instances[peer_id];
+
+	      *floated = !link_socket_actual_match(&mi->context.c2.from, &m->top.c2.from);
+
+	      if (*floated)
+	      {
+		/* reset prefix, since here we are not sure peer is the one it claims to be */
+		ungenerate_prefix(mi);
+		msg (D_MULTI_MEDIUM, "Float requested for peer %" PRIu32 " to %s", peer_id,
+			mroute_addr_print (&real, &gc));
+	      }
+	    }
 	}
       else
+	{
+	  he = hash_lookup_fast (hash, bucket, &real, hv);
+	  if (he)
+	    {
+	      mi = (struct multi_instance *) he->value;
+	    }
+	}
+      if (!mi)
 	{
 	  if (!m->top.c2.tls_auth_standalone
 	      || tls_pre_decrypt_lite (m->top.c2.tls_auth_standalone, &m->top.c2.from, &m->top.c2.buf))
@@ -73,8 +102,24 @@ multi_get_create_instance_udp (struct multi_context *m)
 		  mi = multi_create_instance (m, &real);
 		  if (mi)
 		    {
+		      int i;
+
 		      hash_add_fast (hash, bucket, &mi->real, hv, mi);
 		      mi->did_real_hash = true;
+
+		      for (i = 0; i < m->max_clients; ++i)
+			{
+			  if (!m->instances[i])
+			    {
+			      mi->context.c2.tls_multi->peer_id = i;
+			      m->instances[i] = mi;
+			      break;
+			    }
+			}
+
+		      /* should not really end up here, since multi_create_instance returns null
+		       * if amount of clients exceeds max_clients */
+		      ASSERT(i < m->max_clients);
 		    }
 		}
 	      else
@@ -89,15 +134,8 @@ multi_get_create_instance_udp (struct multi_context *m)
 #ifdef ENABLE_DEBUG
       if (check_debug_level (D_MULTI_DEBUG))
 	{
-	  const char *status;
+	  const char *status = mi ? "[ok]" : "[failed]";
 
-	  if (he && mi)
-	    status = "[succeeded]";
-	  else if (!he && mi)
-	    status = "[created]";
-	  else
-	    status = "[failed]";
-	
 	  dmsg (D_MULTI_DEBUG, "GET INST BY REAL: %s %s",
 	       mroute_addr_print (&real, &gc),
 	       status);
@@ -143,6 +181,10 @@ multi_process_io_udp (struct multi_context *m)
     strcat (buf, "TR/");
   else if (status & TUN_WRITE)
     strcat (buf, "TW/");
+#ifdef ENABLE_ASYNC_PUSH
+  else if (status & FILE_CLOSED)
+    strcat (buf, "FC/");
+#endif
   printf ("IO %s\n", buf);
 #endif
 
@@ -168,7 +210,6 @@ multi_process_io_udp (struct multi_context *m)
   else if (status & SOCKET_READ)
     {
       read_incoming_link (&m->top);
-      multi_release_io_lock (m);
       if (!IS_SIG (&m->top))
 	multi_process_incoming_link (m, NULL, mpp_flags);
     }
@@ -176,10 +217,16 @@ multi_process_io_udp (struct multi_context *m)
   else if (status & TUN_READ)
     {
       read_incoming_tun (&m->top);
-      multi_release_io_lock (m);
       if (!IS_SIG (&m->top))
 	multi_process_incoming_tun (m, mpp_flags);
     }
+#ifdef ENABLE_ASYNC_PUSH
+  /* INOTIFY callback */
+  else if (status & FILE_CLOSED)
+    {
+      multi_process_file_closed(m, mpp_flags);
+    }
+#endif
 }
 
 /*
@@ -234,13 +281,21 @@ tunnel_server_udp_single_threaded (struct context *top)
   multi_init (&multi, top, false, MC_SINGLE_THREADED);
 
   /* initialize our cloned top object */
-  multi_top_init (&multi, top, true);
+  multi_top_init (&multi, top);
 
   /* initialize management interface */
   init_management_callback_multi (&multi);
 
   /* finished with initialization */
   initialization_sequence_completed (top, ISC_SERVER); /* --mode server --proto udp */
+
+#ifdef ENABLE_ASYNC_PUSH
+  multi.top.c2.inotify_fd = inotify_init();
+  if (multi.top.c2.inotify_fd < 0)
+    {
+      msg (D_MULTI_ERRORS, "MULTI: inotify_init error: %s", strerror(errno));
+    }
+#endif
 
   /* per-packet event loop */
   while (true)
@@ -269,6 +324,10 @@ tunnel_server_udp_single_threaded (struct context *top)
       
       perf_pop ();
     }
+
+#ifdef ENABLE_ASYNC_PUSH
+  close(top->c2.inotify_fd);
+#endif
 
   /* shut down management interface */
   uninit_management_callback_multi (&multi);

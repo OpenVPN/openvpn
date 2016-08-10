@@ -88,7 +88,9 @@ struct log_entry
   time_t timestamp;
   const char *string;
   in_addr_t local_ip;
-  in_addr_t remote_ip;
+  struct in6_addr local_ip6;
+  struct openvpn_sockaddr local_sock;
+  struct openvpn_sockaddr remote_sock;
   union log_entry_union u;
 };
 
@@ -173,6 +175,9 @@ struct management_callback
 #endif
   bool (*proxy_cmd) (void *arg, const char **p);
   bool (*remote_cmd) (void *arg, const char **p);
+#ifdef TARGET_ANDROID
+  int (*network_change) (void *arg, bool samenetwork);
+#endif
 };
 
 /*
@@ -268,6 +273,7 @@ struct man_connection {
 # define IEC_CLIENT_AUTH 1
 # define IEC_CLIENT_PF   2
 # define IEC_RSA_SIGN    3
+# define IEC_CERTIFICATE 4
   int in_extra_cmd;
   struct buffer_list *in_extra;
 #ifdef MANAGEMENT_DEF_AUTH
@@ -281,6 +287,8 @@ struct man_connection {
 # define EKS_READY   3
   int ext_key_state;
   struct buffer_list *ext_key_input;
+  int ext_cert_state;
+  struct buffer_list *ext_cert_input;
 #endif
 #endif
   struct event_set *es;
@@ -338,6 +346,7 @@ struct management *management_init (void);
 #define MF_UP_DOWN          (1<<10)
 #define MF_QUERY_REMOTE     (1<<11)
 #define MF_QUERY_PROXY      (1<<12)
+#define MF_EXTERNAL_CERT    (1<<13)
 
 bool management_open (struct management *man,
 		      const char *addr,
@@ -378,6 +387,11 @@ bool management_query_user_pass (struct management *man,
 
 #ifdef TARGET_ANDROID
 bool management_android_control (struct management *man, const char *command, const char *msg);
+
+#define ANDROID_KEEP_OLD_TUN 1
+#define ANDROID_OPEN_AFTER_CLOSE 2
+#define ANDROID_OPEN_BEFORE_CLOSE 3
+int managment_android_persisttun_action (struct management *man);
 #endif
 
 bool management_should_daemonize (struct management *man);
@@ -415,6 +429,7 @@ void management_learn_addr (struct management *management,
 #ifdef MANAGMENT_EXTERNAL_KEY
 
 char *management_query_rsa_sig (struct management *man, const char *b64_data);
+char* management_query_cert (struct management *man, const char *cert_name);
 
 #endif
 
@@ -483,8 +498,10 @@ management_enable_def_auth (const struct management *man)
 void management_set_state (struct management *man,
 			   const int state,
 			   const char *detail,
-			   const in_addr_t tun_local_ip,
-			   const in_addr_t tun_remote_ip);
+                           const in_addr_t *tun_local_ip,
+                           const struct in6_addr *tun_local_ip6,
+                           const struct openvpn_sockaddr *local_addr,
+                           const struct openvpn_sockaddr *remote_addr);
 
 /*
  * The management object keeps track of OpenVPN --echo

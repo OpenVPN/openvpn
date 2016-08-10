@@ -63,6 +63,9 @@ void run_up_down (const char *command,
 		  const struct plugin_list *plugins,
 		  int plugin_type,
 		  const char *arg,
+#ifdef WIN32
+		  DWORD adapter_index,
+#endif
 		  const char *dev_type,
 		  int tun_mtu,
 		  int link_mtu,
@@ -73,14 +76,7 @@ void run_up_down (const char *command,
 		  const char *script_type,
 		  struct env_set *es);
 
-/* workspace for get_pid_file/write_pid */
-struct pid_state {
-  FILE *fp;
-  const char *filename;
-};
-
-void get_pid_file (const char* filename, struct pid_state *state);
-void write_pid (const struct pid_state *state);
+void write_pid (const char *filename);
 
 /* check file protections */
 void warn_if_group_others_accessible(const char* filename);
@@ -140,6 +136,12 @@ void setenv_str (struct env_set *es, const char *name, const char *value);
 void setenv_str_safe (struct env_set *es, const char *name, const char *value);
 void setenv_del (struct env_set *es, const char *name);
 
+/**
+ * Store the supplied name value pair in the env_set.  If the variable with the
+ * supplied name  already exists, append _N to the name, starting at N=1.
+ */
+void setenv_str_incr(struct env_set *es, const char *name, const char *value);
+
 void setenv_int_i (struct env_set *es, const char *name, const int value, const int i);
 void setenv_str_i (struct env_set *es, const char *name, const char *value, const int i);
 
@@ -149,6 +151,7 @@ struct env_set *env_set_create (struct gc_arena *gc);
 void env_set_destroy (struct env_set *es);
 bool env_set_del (struct env_set *es, const char *str);
 void env_set_add (struct env_set *es, const char *str);
+const char* env_set_get (const struct env_set *es, const char *name);
 
 void env_set_print (int msglevel, const struct env_set *es);
 
@@ -165,10 +168,6 @@ const char **make_env_array (const struct env_set *es,
 
 const char **make_arg_array (const char *first, const char *parms, struct gc_arena *gc);
 const char **make_extended_arg_array (char **p, struct gc_arena *gc);
-
-/* convert netmasks for iproute2 */
-int count_netmask_bits(const char *);
-unsigned int count_bits(unsigned int );
 
 /* an analogue to the random() function, but use OpenSSL functions if available */
 #ifdef ENABLE_CRYPTO
@@ -246,7 +245,7 @@ struct static_challenge_info {};
  * Flags for get_user_pass and management_query_user_pass
  */
 #define GET_USER_PASS_MANAGEMENT    (1<<0)
-#define GET_USER_PASS_SENSITIVE     (1<<1)
+/* GET_USER_PASS_SENSITIVE     (1<<1)  not used anymore */
 #define GET_USER_PASS_PASSWORD_ONLY (1<<2)
 #define GET_USER_PASS_NEED_OK       (1<<3)
 #define GET_USER_PASS_NOFATAL       (1<<4)
@@ -256,6 +255,8 @@ struct static_challenge_info {};
 #define GET_USER_PASS_DYNAMIC_CHALLENGE      (1<<7) /* CRV1 protocol  -- dynamic challenge */
 #define GET_USER_PASS_STATIC_CHALLENGE       (1<<8) /* SCRV1 protocol -- static challenge */
 #define GET_USER_PASS_STATIC_CHALLENGE_ECHO  (1<<9) /* SCRV1 protocol -- echo response */
+
+#define GET_USER_PASS_INLINE_CREDS (1<<10)  /* indicates that auth_file is actually inline creds */
 
 bool get_user_pass_cr (struct user_pass *up,
 		       const char *auth_file,

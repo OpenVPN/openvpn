@@ -40,6 +40,7 @@
 #define ROUTE_METHOD_ADAPTIVE  0  /* try IP helper first then route.exe */
 #define ROUTE_METHOD_IPAPI     1  /* use IP helper API */
 #define ROUTE_METHOD_EXE       2  /* use route.exe */
+#define ROUTE_METHOD_SERVICE   3  /* use the privileged Windows service */
 #define ROUTE_METHOD_MASK      3
 #endif
 
@@ -103,7 +104,7 @@ struct route_ipv6_option {
 };
 
 struct route_ipv6_option_list {
-  unsigned int flags;
+  unsigned int flags;		/* RG_x flags, see route_option-list */
   struct route_ipv6_option *routes_ipv6;
   struct gc_arena *gc;
 };
@@ -123,25 +124,17 @@ struct route_ipv4 {
 
 struct route_ipv6 {
   struct route_ipv6 *next;
-  bool defined;
+  unsigned int flags;				/* RT_ flags, see route_ipv4 */
   struct in6_addr network;
   unsigned int netbits;
   struct in6_addr gateway;
-  bool metric_defined;
   int metric;
-};
-
-struct route_ipv6_list {
-  bool routes_added;
-  unsigned int flags;
-  int default_metric;
-  bool default_metric_defined;
-  struct in6_addr remote_endpoint_ipv6;
-  bool remote_endpoint_defined;
-  bool did_redirect_default_gateway;			/* TODO (?) */
-  bool did_local;					/* TODO (?) */
-  struct route_ipv6 *routes_ipv6;
-  struct gc_arena gc;
+  /* gateway interface */
+# ifdef WIN32
+  DWORD adapter_index;		/* interface or ~0 if undefined */
+#else
+  char * iface;			/* interface name (null terminated) */
+#endif
 };
 
 
@@ -178,6 +171,34 @@ struct route_gateway_info {
   struct route_gateway_address addrs[RGI_N_ADDRESSES]; /* local addresses attached to iface */
 };
 
+struct route_ipv6_gateway_address {
+  struct in6_addr addr_ipv6;
+  int netbits_ipv6;
+};
+
+struct route_ipv6_gateway_info {
+/* RGI_ flags used as in route_gateway_info */
+  unsigned int flags;
+
+  /* gateway interface */
+# ifdef WIN32
+  DWORD adapter_index;  /* interface or ~0 if undefined */
+#else
+  char iface[16]; /* interface name (null terminated), may be empty */
+#endif
+
+  /* gateway interface hardware address */
+  uint8_t hwaddr[6];
+
+  /* gateway/router address */
+  struct route_ipv6_gateway_address gateway;
+
+  /* address/netmask pairs bound to interface */
+# define RGI_N_ADDRESSES 8
+  int n_addrs; /* len of addrs, may be 0 */
+  struct route_ipv6_gateway_address addrs[RGI_N_ADDRESSES]; /* local addresses attached to iface */
+};
+
 struct route_list {
 # define RL_DID_REDIRECT_DEFAULT_GATEWAY (1<<0)
 # define RL_DID_LOCAL                    (1<<1)
@@ -188,6 +209,20 @@ struct route_list {
   struct route_gateway_info rgi;
   unsigned int flags;     /* RG_x flags */
   struct route_ipv4 *routes;
+  struct gc_arena gc;
+};
+
+struct route_ipv6_list {
+  unsigned int iflags;			/* RL_ flags, see route_list */
+
+  unsigned int spec_flags;		/* RTSA_ flags, route_special_addr */
+  struct in6_addr remote_endpoint_ipv6;	/* inside tun */
+  struct in6_addr remote_host_ipv6;	/* --remote address */
+  int default_metric;
+
+  struct route_ipv6_gateway_info rgi6;
+  unsigned int flags;			/* RG_x flags, see route_option_list */
+  struct route_ipv6 *routes_ipv6;
   struct gc_arena gc;
 };
 
@@ -248,6 +283,7 @@ bool init_route_ipv6_list (struct route_ipv6_list *rl6,
 		      const struct route_ipv6_option_list *opt6,
 		      const char *remote_endpoint,
 		      int default_metric,
+		      const struct in6_addr *remote_host,
 		      struct env_set *es);
 
 void route_list_add_vpn_gateway (struct route_list *rl,
@@ -276,7 +312,11 @@ void setenv_routes_ipv6 (struct env_set *es, const struct route_ipv6_list *rl6);
 bool is_special_addr (const char *addr_str);
 
 void get_default_gateway (struct route_gateway_info *rgi);
-void print_default_gateway(const int msglevel, const struct route_gateway_info *rgi);
+void get_default_gateway_ipv6 (struct route_ipv6_gateway_info *rgi,
+				const struct in6_addr *dest);
+void print_default_gateway(const int msglevel,
+                           const struct route_gateway_info *rgi,
+                           const struct route_ipv6_gateway_info *rgi6);
 
 /*
  * Test if addr is reachable via a local interface (return ILA_LOCAL),
@@ -308,6 +348,7 @@ static inline bool test_routes (const struct route_list *rl, const struct tuntap
 #endif
 
 bool netmask_to_netbits (const in_addr_t network, const in_addr_t netmask, int *netbits);
+int netmask_to_netbits2 (in_addr_t netmask);
 
 static inline in_addr_t
 netbits_to_netmask (const int netbits)

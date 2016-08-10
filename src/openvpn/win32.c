@@ -43,8 +43,22 @@
 #include "sig.h"
 #include "win32.h"
 #include "misc.h"
+#include "openvpn-msg.h"
 
 #include "memdbg.h"
+
+#ifdef HAVE_VERSIONHELPERS_H
+#include <versionhelpers.h>
+#else
+#include "compat-versionhelpers.h"
+#endif
+
+#include "block_dns.h"
+
+/*
+ * WFP handle
+ */
+static HANDLE m_hEngineHandle = NULL; /* GLOBAL */
 
 /*
  * Windows internal socket API state (opaque).
@@ -91,7 +105,6 @@ init_win32 (void)
     }
   window_title_clear (&window_title);
   win32_signal_clear (&win32_signal);
-  netcmd_semaphore_init ();
 }
 
 void
@@ -324,6 +337,53 @@ net_event_win32_close (struct net_event_win32 *ne)
  * (2) Service mode -- map Windows event object to SIGTERM
  */
 
+static void
+win_trigger_event(struct win32_signal *ws)
+{
+  if (ws->mode == WSO_MODE_SERVICE && HANDLE_DEFINED(ws->in.read))
+    SetEvent (ws->in.read);
+  else /* generate a key-press event */
+    {
+      DWORD tmp;
+      INPUT_RECORD ir;
+      HANDLE stdin_handle = GetStdHandle(STD_INPUT_HANDLE);
+
+      CLEAR(ir);
+      ir.EventType = KEY_EVENT;
+      ir.Event.KeyEvent.bKeyDown = true;
+      if (!stdin_handle || !WriteConsoleInput(stdin_handle, &ir, 1, &tmp))
+        msg(M_WARN|M_ERRNO, "WARN: win_trigger_event: WriteConsoleInput");
+    }
+}
+
+/*
+ * Callback to handle console ctrl events
+ */
+static bool WINAPI
+win_ctrl_handler (DWORD signum)
+{
+  msg(D_LOW, "win_ctrl_handler: signal received (code=%lu)", (unsigned long) signum);
+
+  if (siginfo_static.signal_received == SIGTERM)
+     return true;
+
+  switch (signum)
+    {
+    case CTRL_C_EVENT:
+    case CTRL_BREAK_EVENT:
+      throw_signal(SIGTERM);
+      /* trigget the win32_signal to interrupt the event loop */
+      win_trigger_event(&win32_signal);
+      return true;
+      break;
+    default:
+      msg(D_LOW, "win_ctrl_handler: signal (code=%lu) not handled", (unsigned long) signum);
+      break;
+    }
+  /* pass all other signals to the next handler */
+  return false;
+}
+
 void
 win32_signal_clear (struct win32_signal *ws)
 {
@@ -403,6 +463,9 @@ win32_signal_open (struct win32_signal *ws,
 	    ws->mode = WSO_MODE_SERVICE;
 	}
     }
+    /* set the ctrl handler in both console and service modes */
+    if (!SetConsoleCtrlHandler ((PHANDLER_ROUTINE) win_ctrl_handler, true))
+       msg (M_WARN|M_ERRNO, "WARN: SetConsoleCtrlHandler failed");
 }
 
 static bool
@@ -512,6 +575,9 @@ win32_signal_get (struct win32_signal *ws)
 	    case 0x3E: /* F4 -> TERM */
 	      ret = SIGTERM;
 	      break;
+           case 0x03: /* CTRL-C -> TERM */
+             ret = SIGTERM;
+             break;
 	    }
 	}
       if (ret)
@@ -684,6 +750,10 @@ void
 netcmd_semaphore_lock (void)
 {
   const int timeout_seconds = 600;
+
+  if (!netcmd_semaphore.hand)
+    netcmd_semaphore_init ();
+
   if (!semaphore_lock (&netcmd_semaphore, timeout_seconds * 1000))
     msg (M_FATAL, "Cannot lock net command semaphore"); 
 }
@@ -692,6 +762,8 @@ void
 netcmd_semaphore_release (void)
 {
   semaphore_release (&netcmd_semaphore);
+  /* netcmd_semaphore has max count of 1 - safe to close after release */
+  semaphore_close (&netcmd_semaphore);
 }
 
 /*
@@ -763,7 +835,12 @@ win_safe_filename (const char *fn)
 static char *
 env_block (const struct env_set *es)
 {
-  char * force_path = "PATH=C:\\Windows\\System32;C:\\WINDOWS;C:\\WINDOWS\\System32\\Wbem";
+  char force_path[256];
+  char *sysroot = get_win_sys_path();
+
+  if (!openvpn_snprintf(force_path, sizeof(force_path), "PATH=%s\\System32;%s;%s\\System32\\Wbem",
+                        sysroot, sysroot, sysroot))
+    msg(M_WARN, "env_block: default path truncated to %s", force_path);
 
   if (es)
     {
@@ -1019,4 +1096,184 @@ win_get_tempdir()
   WideCharToMultiByte (CP_UTF8, 0, wtmpdir, -1, tmpdir, sizeof (tmpdir), NULL, NULL);
   return tmpdir;
 }
+
+static bool
+win_block_dns_service (bool add, int index, const HANDLE pipe)
+{
+  DWORD len;
+  bool ret = false;
+  ack_message_t ack;
+  struct gc_arena gc = gc_new ();
+
+  block_dns_message_t data = {
+    .header = {
+      (add ? msg_add_block_dns : msg_del_block_dns),
+      sizeof (block_dns_message_t),
+      0 },
+    .iface = { .index = index, .name = "" }
+  };
+
+  if (!WriteFile (pipe, &data, sizeof (data), &len, NULL) ||
+      !ReadFile (pipe, &ack, sizeof (ack), &len, NULL))
+    {
+      msg (M_WARN, "Block_DNS: could not talk to service: %s [%lu]",
+           strerror_win32 (GetLastError (), &gc), GetLastError ());
+      goto out;
+    }
+
+  if (ack.error_number != NO_ERROR)
+    {
+      msg (M_WARN, "Block_DNS: %s block dns filters using service failed: %s [status=0x%x if_index=%d]",
+           (add ? "adding" : "deleting"), strerror_win32 (ack.error_number, &gc),
+           ack.error_number, data.iface.index);
+      goto out;
+    }
+
+  ret = true;
+  msg (M_INFO, "%s outside dns using service succeeded.", (add ? "Blocking" : "Unblocking"));
+out:
+  gc_free (&gc);
+  return ret;
+}
+
+static void
+block_dns_msg_handler (DWORD err, const char *msg)
+{
+  struct gc_arena gc = gc_new ();
+
+  if (err == 0)
+    {
+      msg (M_INFO, "%s", msg);
+    }
+  else
+    {
+      msg (M_WARN, "Error in add_block_dns_filters(): %s : %s [status=0x%lx]",
+           msg, strerror_win32 (err, &gc), err);
+    }
+
+  gc_free (&gc);
+}
+
+bool
+win_wfp_block_dns (const NET_IFINDEX index, const HANDLE msg_channel)
+{
+  WCHAR openvpnpath[MAX_PATH];
+  bool ret = false;
+  DWORD status;
+
+  if (msg_channel)
+    {
+      dmsg (D_LOW, "Using service to add block dns filters");
+      ret = win_block_dns_service (true, index, msg_channel);
+      goto out;
+    }
+
+  status = GetModuleFileNameW (NULL, openvpnpath, sizeof(openvpnpath));
+  if (status == 0 || status == sizeof(openvpnpath))
+    {
+      msg (M_WARN|M_ERRNO, "block_dns: cannot get executable path");
+      goto out;
+    }
+
+  status = add_block_dns_filters (&m_hEngineHandle, index, openvpnpath,
+                                 block_dns_msg_handler);
+  ret = (status == 0);
+
+out:
+
+  return ret;
+}
+
+bool
+win_wfp_uninit(const HANDLE msg_channel)
+{
+    dmsg (D_LOW, "Uninitializing WFP");
+
+    if (msg_channel)
+      {
+        msg (D_LOW, "Using service to delete block dns filters");
+        win_block_dns_service (false, -1, msg_channel);
+      }
+    else
+      {
+        delete_block_dns_filters (m_hEngineHandle);
+        m_hEngineHandle = NULL;
+      }
+
+    return true;
+}
+
+int
+win32_version_info()
+{
+    if (!IsWindowsXPOrGreater())
+    {
+        msg (M_FATAL, "Error: Windows version must be XP or greater.");
+    }
+
+    if (!IsWindowsVistaOrGreater())
+    {
+        return WIN_XP;
+    }
+
+    if (!IsWindows7OrGreater())
+    {
+        return WIN_VISTA;
+    }
+
+    if (!IsWindows8OrGreater())
+    {
+        return WIN_7;
+    }
+    else
+    {
+        return WIN_8;
+    }
+}
+
+bool
+win32_is_64bit()
+{
+#if defined(_WIN64)
+    return true;  // 64-bit programs run only on Win64
+#elif defined(_WIN32)
+    // 32-bit programs run on both 32-bit and 64-bit Windows
+    BOOL f64 = FALSE;
+    return IsWow64Process(GetCurrentProcess(), &f64) && f64;
+#else
+    return false; // Win64 does not support Win16
+#endif
+}
+
+const char *
+win32_version_string(struct gc_arena *gc, bool add_name)
+{
+    int version = win32_version_info();
+    struct buffer out = alloc_buf_gc (256, gc);
+
+    switch (version)
+    {
+        case WIN_XP:
+            buf_printf (&out, "5.1%s", add_name ? " (Windows XP)" : "");
+            break;
+        case WIN_VISTA:
+            buf_printf (&out, "6.0%s", add_name ? " (Windows Vista)" : "");
+            break;
+        case WIN_7:
+            buf_printf (&out, "6.1%s", add_name ? " (Windows 7)" : "");
+            break;
+        case WIN_8:
+            buf_printf (&out, "6.2%s", add_name ? " (Windows 8 or greater)" : "");
+            break;
+        default:
+            msg (M_NONFATAL, "Unknown Windows version: %d", version);
+            buf_printf (&out, "0.0%s", add_name ? " (unknown)" : "");
+            break;
+    }
+
+    buf_printf (&out, win32_is_64bit() ? " 64bit" : " 32bit");
+
+    return (const char *)out.data;
+}
+
 #endif

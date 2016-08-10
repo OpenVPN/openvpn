@@ -17,11 +17,23 @@ EXTRA_DIST = \
 	openvpnserv.vcxproj \
 	openvpnserv.vcxproj.filters
 
+AM_CPPFLAGS = \
+	-I$(top_srcdir)/include -I$(top_srcdir)/src/openvpn
+
 if WIN32
 sbin_PROGRAMS = openvpnserv
+openvpnserv_CFLAGS = \
+	-municode -D_UNICODE \
+	-UNTDDI_VERSION -U_WIN32_WINNT \
+	-D_WIN32_WINNT=_WIN32_WINNT_VISTA
+openvpnserv_LDADD = -ladvapi32 -luserenv -liphlpapi -lfwpuclnt -lrpcrt4 -lshlwapi -lnetapi32 -lws2_32
 endif
 
 openvpnserv_SOURCES = \
-	openvpnserv.c \
-	service.h service.c \
+        common.c \
+	automatic.c \
+	interactive.c \
+	service.c service.h \
+	validate.c validate.h \
+	$(top_srcdir)/src/openvpn/block_dns.c $(top_srcdir)/src/openvpn/block_dns.h \
 	openvpnserv_resources.rc

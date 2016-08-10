@@ -33,6 +33,17 @@
 #include <openssl/ssl.h>
 
 /**
+ * SSL_OP_NO_TICKET tells OpenSSL to disable "stateless session resumption",
+ * as this is something we do not want nor need, but could potentially be
+ * used for a future attack.  For compatibility reasons we keep building if the
+ * OpenSSL version is too old (pre-0.9.8f) to support stateless session
+ * resumption (and the accompanying SSL_OP_NO_TICKET flag).
+ */
+#ifndef SSL_OP_NO_TICKET
+# define SSL_OP_NO_TICKET 0
+#endif
+
+/**
  * Structure that wraps the TLS context. Contents differ depending on the
  * SSL library used.
  */

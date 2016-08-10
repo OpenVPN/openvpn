@@ -1,0 +1,137 @@
+OpenVPN                                             Daniel Kubec <niel@rtfm.cz>
+RFC-5705                                                          February 2015
+
+
+                Added support for TLS Keying Material Exporters
+
+Keying Material Exporter [RFC-5705] allow additional keying material to be
+derived from existing TLS channel. This exported keying material can then be
+used for a variety of purposes. TLS allows client and server to establish
+keying material for use in the upper layers between the TLS end-points and
+channel bindings is straightforward and well-defined mechanism how to
+authenticate other layers.
+
+
+OpenVPN Configuration
+
+--keying-material-exporter label len
+
+Export Keying Material [RFC-5705] of len bytes (min. 16 bytes) using label in
+environment (exported_keying_material) for use by plugins in
+OPENVPN_PLUGIN_TLS_FINAL callback.
+
+Note that exporter labels have the potential to collide with existing PRF
+labels. In order to prevent this, labels MUST begin with "EXPORTER".
+(This option requires OpenSSL 1.0.1 or newer.)
+
+
+Use Cases:
+
+Secure bindings of AAA information to application layer
+
+   OpenVPN Client                   <------>                 OpenVPN Server
+   [KeyAgreement]                                            [KeyAgreement]
+
+   [TLSExportedKeyingMaterial]                  [TLSExportedKeyingMaterial]
+   [AAASessionKey]                                          [AAASessionKey]
+   Client                           <------>                         Server
+                      [Authenticated layer on top of (D)TLS]
+
+
+TLS side channel authentication and straightforward bindings of AAA information
+to application layer using well-defined mechanism.
+
+   OpenVPN Client                   <------>                 OpenVPN Server
+   [KeyAgreement]                                            [KeyAgreement]
+
+   [TLSExportedKeyingMaterial]                  [TLSExportedKeyingMaterial]
+   [DerivedAAABindingKey]                            [DerivedAAABindingKey]
+                                                  [AuthenticateBindingKeys]
+   Client                           ------->                         Server
+                             [Confidental channel]
+
+
+TLS Message flow for a full handshake
+
+   ClientHello                      -------->
+                                                               ServerHello
+                                                               Certificate*
+                                                         ServerKeyExchange*
+                                                        CertificateRequest*
+                                    <--------              ServerHelloDone
+   Certificate*
+   ClientKeyExchange
+   CertificateVerify*
+   [ChangeCipherSpec]
+   Finished                         -------->
+                                                        [ChangeCipherSpec]
+                                    <--------                     Finished
+
+   GenerateTLSBindingKey                             GenerateTLSBindingKey
+
+   Application Data                 <------->             Application Data
+
+
+Terminology
+
+   AAA                     Authentication, Authorization, and Accounting:
+                           functions that are generally required to control
+                           access to a service and support auditing.
+
+   Secure channel          a packet, datagram, octet stream connection, or
+                           sequence of connections between two end-points that
+                           affords cryptographic integrity and confidentiality
+                           to data exchanged over it.
+
+   Channel binding         the process of establishing that no man-in-the-middle
+                           exists between two end-points that have been
+                           authenticated using secure channel.
+
+   TLS Binding Key         Exported Keying Material [RFC5705]
+
+                           If no context is provided, it then computes:
+                           PRF(SecurityParameters.master_secret, label,
+                               SecurityParameters.client_random +
+                               SecurityParameters.server_random
+                           )[length]
+
+                           If context is provided, it computes:
+                           PRF(SecurityParameters.master_secret, label,
+                               SecurityParameters.client_random +
+                               SecurityParameters.server_random +
+                               context_value_length + context_value
+                           )[length]
+
+   AAA Binding Key         TLS side channel authentication based on secure
+                           channel bindings requires one more key derivation.
+
+                           SHA1(TLSExportedKeyingMaterial + ServerPublicKey)
+
+Reference
+
+   [OPENAAA]               "TLS side channel authentication and straightforward
+                            bindings of AAA information to application
+                            layer using well-defined mechanism."
+                           Daniel Kubec <niel@rtfm.cz>              March 2013
+                           https://github.com/n13l/openaaa
+
+   [RFC5705]               "Keying Material Exporters for TLS"
+                           E. Rescorla, RFC 5705 March 2010
+                           http://tools.ietf.org/html/rfc5705
+
+   [RFC5929]               "Channel Bindings for TLS"
+                           J. Altman, N. Williams, L. Zhu, RFC 5929, July 2010
+                           http://tools.ietf.org/html/rfc5929
+
+   [RFC4680]               "TLS Handshake Message for Supplemental Data"
+                           S. Santesson, RFC 4680, September 2006
+                           http://tools.ietf.org/html/rfc4680
+
+   [RFC5878]               "TLS Authorization Extension"
+                           M. Brown, R. Housley, RFC 5878, May 2010
+                           http://tools.ietf.org/html/rfc5878
+
+   [RFC5746]               "TLS Renegotiation Indication Extension"
+                           E. Rescorla, M. Raym, S. Dispensa, N. Oskov
+                           RFC 5746, February 2010
+                           http://tools.ietf.org/html/rfc5746

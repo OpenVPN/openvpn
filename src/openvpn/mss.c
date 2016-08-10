@@ -129,7 +129,7 @@ mss_fixup_dowork (struct buffer *buf, uint16_t maxmss)
 {
   int hlen, olen, optlen;
   uint8_t *opt;
-  uint16_t *mss;
+  uint16_t mssval;
   int accumulate;
   struct openvpn_tcphdr *tc;
 
@@ -159,14 +159,13 @@ mss_fixup_dowork (struct buffer *buf, uint16_t maxmss)
       if (*opt == OPENVPN_TCPOPT_MAXSEG) {
         if (optlen != OPENVPN_TCPOLEN_MAXSEG)
           continue;
-        mss = (uint16_t *)(opt + 2);
-        if (ntohs (*mss) > maxmss) {
-          dmsg (D_MSS, "MSS: %d -> %d",
-               (int) ntohs (*mss),
-	       (int) maxmss);
-          accumulate = *mss;
-          *mss = htons (maxmss);
-          accumulate -= *mss;
+	mssval = (opt[2]<<8)+opt[3];
+	if (mssval > maxmss) {
+	  dmsg (D_MSS, "MSS: %d -> %d", (int) mssval, (int) maxmss);
+	  accumulate = htons(mssval);
+	  opt[2] = (maxmss>>8)&0xff;
+	  opt[3] = maxmss&0xff;
+	  accumulate -= htons(maxmss);
           ADJUST_CHECKSUM (accumulate, tc->check);
         }
       }

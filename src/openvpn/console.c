@@ -34,6 +34,10 @@
 #include "buffer.h"
 #include "misc.h"
 
+#ifdef ENABLE_SYSTEMD
+#include <systemd/sd-daemon.h>
+#endif
+
 #ifdef WIN32
 
 #include "win32.h"
@@ -143,14 +147,14 @@ close_tty (FILE *fp)
 static bool
 check_systemd_running ()
 {
-  struct stat a, b;
+  struct stat c;
 
   /* We simply test whether the systemd cgroup hierarchy is
-   * mounted */
+   * mounted, as well as the systemd-ask-password executable
+   * being available */
 
-  return (lstat("/sys/fs/cgroup", &a) == 0)
-	  && (lstat("/sys/fs/cgroup/systemd", &b) == 0)
-	  && (a.st_dev != b.st_dev);
+  return (sd_booted() > 0)
+	  && (stat(SYSTEMD_ASK_PASSWORD_PATH, &c) == 0);
 
 }
 
@@ -162,14 +166,15 @@ get_console_input_systemd (const char *prompt, const bool echo, char *input, con
   struct argv argv;
 
   argv_init (&argv);
-  argv_printf (&argv, "/bin/systemd-ask-password");
+  argv_printf (&argv, SYSTEMD_ASK_PASSWORD_PATH);
   argv_printf_cat (&argv, "%s", prompt);
 
   if ((std_out = openvpn_popen (&argv, NULL)) < 0) {
 	  return false;
   }
-  CLEAR (*input);
-  if (read (std_out, input, capacity) != 0)
+
+  memset (input, 0, capacity);
+  if (read (std_out, input, capacity-1) > 0)
     {
        chomp (input);
        ret = true;
@@ -204,6 +209,19 @@ get_console_input (const char *prompt, const bool echo, char *input, const int c
 #if defined(WIN32)
   return get_console_input_win32 (prompt, echo, input, capacity);
 #elif defined(HAVE_GETPASS)
+
+  /* did we --daemon'ize before asking for passwords?
+   * (in which case neither stdin or stderr are connected to a tty and
+   * /dev/tty can not be open()ed anymore)
+   */
+  if ( !isatty(0) && !isatty(2) )
+    {
+      int fd = open( "/dev/tty", O_RDWR );
+      if ( fd < 0 )
+	{ msg(M_FATAL, "neither stdin nor stderr are a tty device and you have neither a controlling tty nor systemd - can't ask for '%s'.  If you used --daemon, you need to use --askpass to make passphrase-protected keys work, and you can not use --auth-nocache.", prompt ); }
+      close(fd);
+    }
+
   if (echo)
     {
       FILE *fp;

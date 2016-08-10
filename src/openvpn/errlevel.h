@@ -105,7 +105,6 @@
 #define D_X509_ATTR          LOGLEV(4, 59, 0)        /* show x509-track attributes on connection */
 #define D_INIT_MEDIUM        LOGLEV(4, 60, 0)        /* show medium frequency init messages */
 #define D_MTU_INFO           LOGLEV(4, 61, 0)        /* show terse MTU info */
-#define D_SHOW_OCC_HASH      LOGLEV(4, 62, 0)        /* show MD5 hash of option compatibility string */
 #define D_PID_DEBUG_LOW      LOGLEV(4, 63, 0)        /* show low-freq packet-id debugging info */
 #define D_PID_DEBUG_MEDIUM   LOGLEV(4, 64, 0)        /* show medium-freq packet-id debugging info */
 

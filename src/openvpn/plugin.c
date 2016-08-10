@@ -27,6 +27,9 @@
 #elif defined(_MSC_VER)
 #include "config-msvc.h"
 #endif
+#ifdef HAVE_CONFIG_VERSION_H
+#include "config-version.h"
+#endif
 
 #include "syshead.h"
 
@@ -291,7 +294,7 @@ plugin_init_item (struct plugin *p, const struct plugin_option *o)
 static void
 plugin_vlog (openvpn_plugin_log_flags_t flags, const char *name, const char *format, va_list arglist)
 {
-  unsigned int msg_flags;
+  unsigned int msg_flags = 0;
 
   if (!format)
     return;
@@ -316,7 +319,7 @@ plugin_vlog (openvpn_plugin_log_flags_t flags, const char *name, const char *for
   if (flags & PLOG_NOMUTE)
     msg_flags |= M_NOMUTE;
 
-  if (MSG_TEST (msg_flags))
+  if (msg_test (msg_flags))
     {
       struct gc_arena gc;
       char* msg_fmt;
@@ -347,6 +350,17 @@ static struct openvpn_plugin_callbacks callbacks = {
   plugin_vlog
 };
 
+
+/* Provide a wrapper macro for a version patch level string to plug-ins.
+ * This is located here purely to not make the code too messy with #ifndef
+ * inside a struct declaration
+ */
+#ifndef CONFIGURE_GIT_REVISION
+# define _OPENVPN_PATCH_LEVEL OPENVPN_VERSION_PATCH
+#else
+# define _OPENVPN_PATCH_LEVEL "git:" CONFIGURE_GIT_REVISION CONFIGURE_GIT_FLAGS
+#endif
+
 static void
 plugin_open_item (struct plugin *p,
 		  const struct plugin_option *o,
@@ -375,7 +389,12 @@ plugin_open_item (struct plugin *p,
                                                     (const char ** const) o->argv,
                                                     (const char ** const) envp,
                                                     &callbacks,
-                                                    SSLAPI };
+                                                    SSLAPI,
+                                                    PACKAGE_VERSION,
+                                                    OPENVPN_VERSION_MAJOR,
+                                                    OPENVPN_VERSION_MINOR,
+                                                    _OPENVPN_PATCH_LEVEL
+        };
         struct openvpn_plugin_args_open_return retargs;
 
         CLEAR(retargs);
@@ -420,7 +439,7 @@ plugin_call_item (const struct plugin *p,
 		  const struct argv *av,
 		  struct openvpn_plugin_string_list **retlist,
 		  const char **envp
-#ifdef ENABLE_SSL
+#ifdef ENABLE_CRYPTO
 		  , int certdepth,
 		  openvpn_x509_cert_t *current_cert
 #endif
@@ -449,7 +468,7 @@ plugin_call_item (const struct plugin *p,
                                                     (const char ** const) envp,
                                                     p->plugin_handle,
                                                     per_client_context,
-#ifdef ENABLE_SSL
+#ifdef ENABLE_CRYPTO
 						    (current_cert ? certdepth : -1),
 						    current_cert
 #else
@@ -659,7 +678,7 @@ plugin_call_ssl (const struct plugin_list *pl,
 	     const struct argv *av,
 	     struct plugin_return *pr,
 	     struct env_set *es
-#ifdef ENABLE_SSL
+#ifdef ENABLE_CRYPTO
              , int certdepth,
 	     openvpn_x509_cert_t *current_cert
 #endif
@@ -689,7 +708,7 @@ plugin_call_ssl (const struct plugin_list *pl,
 					       av,
 					       pr ? &pr->list[i] : NULL,
 					       envp
-#ifdef ENABLE_SSL
+#ifdef ENABLE_CRYPTO
 					       ,certdepth,
 					       current_cert
 #endif

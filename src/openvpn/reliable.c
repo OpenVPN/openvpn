@@ -35,7 +35,7 @@
 
 #include "syshead.h"
 
-#if defined(ENABLE_CRYPTO) && defined(ENABLE_SSL)
+#ifdef ENABLE_CRYPTO
 
 #include "buffer.h"
 #include "error.h"
@@ -754,4 +754,4 @@ reliable_debug_print (const struct reliable *rel, char *desc)
 
 #else
 static void dummy(void) {}
-#endif /* ENABLE_CRYPTO && ENABLE_SSL*/
+#endif /* ENABLE_CRYPTO */

@@ -207,6 +207,15 @@
     <ClCompile Include="win32.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="comp.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="compstub.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="comp-lz4.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="base64.h">
@@ -225,6 +234,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="common.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="comp.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="comp-lz4.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="console.h">

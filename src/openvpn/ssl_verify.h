@@ -30,17 +30,18 @@
 #ifndef SSL_VERIFY_H_
 #define SSL_VERIFY_H_
 
+#ifdef ENABLE_CRYPTO
+
 #include "syshead.h"
 #include "misc.h"
-#include "manage.h"
 #include "ssl_common.h"
 
 /* Include OpenSSL-specific code */
 #ifdef ENABLE_CRYPTO_OPENSSL
 #include "ssl_verify_openssl.h"
 #endif
-#ifdef ENABLE_CRYPTO_POLARSSL
-#include "ssl_verify_polarssl.h"
+#ifdef ENABLE_CRYPTO_MBEDTLS
+#include "ssl_verify_mbedtls.h"
 #endif
 
 #include "ssl_verify_backend.h"
@@ -136,6 +137,14 @@ const char *tls_common_name (const struct tls_multi* multi, const bool null);
  */
 const char *tls_username (const struct tls_multi *multi, const bool null);
 
+/**
+ * Compares certificates hashes, returns true if hashes are equal.
+ *
+ * @param chs1 cert 1 hash set
+ * @param chs2 cert 2 hash set
+ */
+bool cert_hash_compare (const struct cert_hash_set *chs1, const struct cert_hash_set *chs2);
+
 #ifdef ENABLE_PF
 
 /**
@@ -166,25 +175,6 @@ tls_common_name_hash (const struct tls_multi *multi, const char **cn, uint32_t *
 #endif
 
 /**
- * Returns whether or not the server should check for username/password
- *
- * @param session	The current TLS session
- *
- * @return 		true if username and password verification is enabled,
- * 			false if not.
- *
- */
-static inline bool verify_user_pass_enabled(struct tls_session *session)
-{
-  return (session->opt->auth_user_pass_verify_script
-        || plugin_defined (session->opt->plugins, OPENVPN_PLUGIN_AUTH_USER_PASS_VERIFY)
-#ifdef MANAGEMENT_DEF_AUTH
-        || management_enable_def_auth (management)
-#endif
-        );
-}
-
-/**
  * Verify the given username and password, using either an external script, a
  * plugin, or the management interface.
  *
@@ -211,8 +201,6 @@ void verify_user_pass(struct user_pass *up, struct tls_multi *multi,
  */
 void verify_final_auth_checks(struct tls_multi *multi, struct tls_session *session);
 
-#ifdef ENABLE_X509_TRACK
-
 struct x509_track
 {
   const struct x509_track *next;
@@ -221,10 +209,6 @@ struct x509_track
   unsigned int flags;
   int nid;
 };
-
-void x509_track_add (const struct x509_track **ll_head, const char *name, int msglevel, struct gc_arena *gc);
-
-#endif
 
 /*
  * Certificate checking for verify_nsCertType
@@ -254,5 +238,6 @@ tls_client_reason (struct tls_multi *multi)
 #endif
 }
 
-#endif /* SSL_VERIFY_H_ */
+#endif /* ENABLE_CRYPTO */
 
+#endif /* SSL_VERIFY_H_ */

@@ -28,8 +28,6 @@
 #include "buffer.h"
 #include "misc.h"
 
-#ifdef ENABLE_HTTP_PROXY
-
 /* HTTP CONNECT authentication methods */
 #define HTTP_AUTH_NONE   0
 #define HTTP_AUTH_BASIC  1
@@ -47,8 +45,6 @@ struct http_custom_header {
 struct http_proxy_options {
   const char *server;
   const char *port;
-  bool retry;
-  int timeout;
 
 # define PAR_NO  0  /* don't support any auth retries */
 # define PAR_ALL 1  /* allow all proxy auth protocols */
@@ -60,6 +56,7 @@ struct http_proxy_options {
   const char *http_version;
   const char *user_agent;
   struct http_custom_header custom_headers[MAX_CUSTOM_HTTP_HEADER];
+  bool inline_creds;
 };
 
 struct http_proxy_options_simple {
@@ -88,12 +85,11 @@ bool establish_http_proxy_passthru (struct http_proxy_info *p,
 				    socket_descriptor_t sd, /* already open to proxy */
 				    const char *host,       /* openvpn server remote */
 				    const char *port,         /* openvpn server port */
+				    struct event_timeout* server_poll_timeout,
 				    struct buffer *lookahead,
 				    volatile int *signal_received);
 
 uint8_t *make_base64_string2 (const uint8_t *str, int str_len, struct gc_arena *gc);
 uint8_t *make_base64_string (const uint8_t *str, struct gc_arena *gc);
-
-#endif /* ENABLE_HTTP_PROXY */
 
 #endif /* PROXY_H */

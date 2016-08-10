@@ -55,11 +55,18 @@ bool do_genkey (const struct options *options);
 
 bool do_persist_tuntap (const struct options *options);
 
+bool possibly_become_daemon (const struct options *options);
+
 void pre_setup (const struct options *options);
 
 void init_instance_handle_signals (struct context *c, const struct env_set *env, const unsigned int flags);
 
 void init_instance (struct context *c, const struct env_set *env, const unsigned int flags);
+
+/**
+ * Query for private key and auth-user-pass username/passwords.
+ */
+void init_query_passwords (const struct context *c);
 
 void do_route (const struct options *options,
 	       struct route_list *route_list,
@@ -74,7 +81,7 @@ bool do_test_crypto (const struct options *o);
 
 void context_gc_free (struct context *c);
 
-void do_up (struct context *c,
+bool do_up (struct context *c,
 	    bool pulled_options,
 	    unsigned int option_types_found);
 
@@ -84,7 +91,7 @@ const char *format_common_name (struct context *c, struct gc_arena *gc);
 
 void reset_coarse_timers (struct context *c);
 
-void do_deferred_options (struct context *c, const unsigned int found);
+bool do_deferred_options (struct context *c, const unsigned int found);
 
 void inherit_context_child (struct context *dest,
 			    const struct context *src);

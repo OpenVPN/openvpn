@@ -41,7 +41,7 @@ MAINTAINERCLEANFILES = \
 	$(srcdir)/config.guess $(srcdir)/config.sub
 
 CLEANFILES = \
-	config-version.h
+	config-version.h tests/t_client.sh
 
 EXTRA_DIST = \
 	contrib \
@@ -54,7 +54,7 @@ BUILT_SOURCES = \
 	config-version.h
 endif
 
-SUBDIRS = build distro include src sample doc tests
+SUBDIRS = build distro include src sample doc vendor tests
 
 dist_doc_DATA = \
 	README \

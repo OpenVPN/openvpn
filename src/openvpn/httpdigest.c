@@ -76,20 +76,20 @@ DigestCalcHA1(
   const md_kt_t *md5_kt = md_kt_get("MD5");
 
   md_ctx_init(&md5_ctx, md5_kt);
-  md_ctx_update(&md5_ctx, pszUserName, strlen(pszUserName));
-  md_ctx_update(&md5_ctx, ":", 1);
-  md_ctx_update(&md5_ctx, pszRealm, strlen(pszRealm));
-  md_ctx_update(&md5_ctx, ":", 1);
-  md_ctx_update(&md5_ctx, pszPassword, strlen(pszPassword));
+  md_ctx_update(&md5_ctx, (const uint8_t *) pszUserName, strlen(pszUserName));
+  md_ctx_update(&md5_ctx, (const uint8_t *) ":", 1);
+  md_ctx_update(&md5_ctx, (const uint8_t *) pszRealm, strlen(pszRealm));
+  md_ctx_update(&md5_ctx, (const uint8_t *) ":", 1);
+  md_ctx_update(&md5_ctx, (const uint8_t *) pszPassword, strlen(pszPassword));
   md_ctx_final(&md5_ctx, HA1);
   if (pszAlg && strcasecmp(pszAlg, "md5-sess") == 0)
     {
       md_ctx_init(&md5_ctx, md5_kt);
       md_ctx_update(&md5_ctx, HA1, HASHLEN);
-      md_ctx_update(&md5_ctx, ":", 1);
-      md_ctx_update(&md5_ctx, pszNonce, strlen(pszNonce));
-      md_ctx_update(&md5_ctx, ":", 1);
-      md_ctx_update(&md5_ctx, pszCNonce, strlen(pszCNonce));
+      md_ctx_update(&md5_ctx, (const uint8_t *) ":", 1);
+      md_ctx_update(&md5_ctx, (const uint8_t *) pszNonce, strlen(pszNonce));
+      md_ctx_update(&md5_ctx, (const uint8_t *) ":", 1);
+      md_ctx_update(&md5_ctx, (const uint8_t *) pszCNonce, strlen(pszCNonce));
       md_ctx_final(&md5_ctx, HA1);
     };
   md_ctx_cleanup(&md5_ctx);
@@ -119,12 +119,12 @@ DigestCalcResponse(
 
   /* calculate H(A2) */
   md_ctx_init(&md5_ctx, md5_kt);
-  md_ctx_update(&md5_ctx, pszMethod, strlen(pszMethod));
-  md_ctx_update(&md5_ctx, ":", 1);
-  md_ctx_update(&md5_ctx, pszDigestUri, strlen(pszDigestUri));
+  md_ctx_update(&md5_ctx, (const uint8_t *) pszMethod, strlen(pszMethod));
+  md_ctx_update(&md5_ctx, (const uint8_t *) ":", 1);
+  md_ctx_update(&md5_ctx, (const uint8_t *) pszDigestUri, strlen(pszDigestUri));
   if (strcasecmp(pszQop, "auth-int") == 0)
     {
-      md_ctx_update(&md5_ctx, ":", 1);
+      md_ctx_update(&md5_ctx, (const uint8_t *) ":", 1);
       md_ctx_update(&md5_ctx, HEntity, HASHHEXLEN);
     };
   md_ctx_final(&md5_ctx, HA2);
@@ -133,17 +133,17 @@ DigestCalcResponse(
   /* calculate response */
   md_ctx_init(&md5_ctx, md5_kt);
   md_ctx_update(&md5_ctx, HA1, HASHHEXLEN);
-  md_ctx_update(&md5_ctx, ":", 1);
-  md_ctx_update(&md5_ctx, pszNonce, strlen(pszNonce));
-  md_ctx_update(&md5_ctx, ":", 1);
+  md_ctx_update(&md5_ctx, (const uint8_t *) ":", 1);
+  md_ctx_update(&md5_ctx, (const uint8_t *) pszNonce, strlen(pszNonce));
+  md_ctx_update(&md5_ctx, (const uint8_t *) ":", 1);
   if (*pszQop)
     {
-      md_ctx_update(&md5_ctx, pszNonceCount, strlen(pszNonceCount));
-      md_ctx_update(&md5_ctx, ":", 1);
-      md_ctx_update(&md5_ctx, pszCNonce, strlen(pszCNonce));
-      md_ctx_update(&md5_ctx, ":", 1);
-      md_ctx_update(&md5_ctx, pszQop, strlen(pszQop));
-      md_ctx_update(&md5_ctx, ":", 1);
+      md_ctx_update(&md5_ctx, (const uint8_t *) pszNonceCount, strlen(pszNonceCount));
+      md_ctx_update(&md5_ctx, (const uint8_t *) ":", 1);
+      md_ctx_update(&md5_ctx, (const uint8_t *) pszCNonce, strlen(pszCNonce));
+      md_ctx_update(&md5_ctx, (const uint8_t *) ":", 1);
+      md_ctx_update(&md5_ctx, (const uint8_t *) pszQop, strlen(pszQop));
+      md_ctx_update(&md5_ctx, (const uint8_t *) ":", 1);
     };
   md_ctx_update(&md5_ctx, HA2Hex, HASHHEXLEN);
   md_ctx_final(&md5_ctx, RespHash);
