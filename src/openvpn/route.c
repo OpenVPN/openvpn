@@ -962,7 +962,7 @@ redirect_default_route_to_vpn (struct route_list *rl, const struct tuntap *tt, u
 			    flags | ROUTE_REF_GW,
 			    &rl->rgi,
                             es,
-                            table);
+                            NULL);
 		rl->iflags |= RL_DID_LOCAL;
 	      } else {
 		dmsg (D_ROUTE, "ROUTE remote_host protocol differs from tunneled");
@@ -1042,7 +1042,7 @@ undo_redirect_default_route_to_vpn (struct route_list *rl, const struct tuntap *
 		      flags | ROUTE_REF_GW,
 		      &rl->rgi,
                       es,
-                      table);
+                      NULL);
 	  rl->iflags &= ~RL_DID_LOCAL;
 	}
 
