@@ -961,8 +961,8 @@ redirect_default_route_to_vpn (struct route_list *rl, const struct tuntap *tt, u
 			    tt,
 			    flags | ROUTE_REF_GW,
 			    &rl->rgi,
-                            es,
-                            NULL);
+                es,
+                NULL);
 		rl->iflags |= RL_DID_LOCAL;
 	      } else {
 		dmsg (D_ROUTE, "ROUTE remote_host protocol differs from tunneled");
@@ -984,8 +984,8 @@ redirect_default_route_to_vpn (struct route_list *rl, const struct tuntap *tt, u
 			      tt,
 			      flags,
 			      &rl->rgi,
-                              es,
-                              table);
+                  es,
+                  table);
 
 		  /* add new default route (2nd component) */
 		  add_route3 (0x80000000,
@@ -994,8 +994,8 @@ redirect_default_route_to_vpn (struct route_list *rl, const struct tuntap *tt, u
 			      tt,
 			      flags,
 			      &rl->rgi,
-                              es,
-                              table);
+                  es,
+                  table);
 		}
 	      else
 		{
@@ -1006,8 +1006,8 @@ redirect_default_route_to_vpn (struct route_list *rl, const struct tuntap *tt, u
 			      tt,
 			      flags | ROUTE_REF_GW,
 			      &rl->rgi,
-                              es,
-                              table);
+                  es,
+                  table);
 
 		  /* add new default route */
 		  add_route3 (0,
@@ -1016,8 +1016,8 @@ redirect_default_route_to_vpn (struct route_list *rl, const struct tuntap *tt, u
 			      tt,
 			      flags,
 			      &rl->rgi,
-                              es,
-                              table);
+                  es,
+                  table);
 		}
 	    }
 
@@ -1041,8 +1041,8 @@ undo_redirect_default_route_to_vpn (struct route_list *rl, const struct tuntap *
 		      tt,
 		      flags | ROUTE_REF_GW,
 		      &rl->rgi,
-                      es,
-                      NULL);
+              es,
+              NULL);
 	  rl->iflags &= ~RL_DID_LOCAL;
 	}
 
@@ -1060,8 +1060,8 @@ undo_redirect_default_route_to_vpn (struct route_list *rl, const struct tuntap *
 			  tt,
 			  flags,
 			  &rl->rgi,
-                          es,
-                          table);
+              es,
+              table);
 
 	      /* delete default route (2nd component) */
 	      del_route3 (0x80000000,
@@ -1070,8 +1070,8 @@ undo_redirect_default_route_to_vpn (struct route_list *rl, const struct tuntap *
 			  tt,
 			  flags,
 			  &rl->rgi,
-                          es,
-                          table);
+              es,
+              table);
 	    }
 	  else
 	    {
@@ -1082,8 +1082,8 @@ undo_redirect_default_route_to_vpn (struct route_list *rl, const struct tuntap *
 			  tt,
 			  flags,
 			  &rl->rgi,
-                          es,
-                          table);
+              es,
+              table);
 
 	      /* restore original default route */
 	      add_route3 (0,
@@ -1092,8 +1092,8 @@ undo_redirect_default_route_to_vpn (struct route_list *rl, const struct tuntap *
 			  tt,
 			  flags | ROUTE_REF_GW,
 			  &rl->rgi,
-                          es,
-                          table);
+              es,
+              table);
 	    }
 	}
 
