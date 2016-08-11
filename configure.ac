@@ -1023,6 +1023,12 @@ if test "$enable_systemd" = "yes" ; then
                       [],
                       [PKG_CHECK_MODULES([libsystemd], [libsystemd-daemon])]
                       )
+
+    PKG_CHECK_EXISTS( [libsystemd > 216],
+                     [AC_DEFINE([SYSTEMD_NEWER_THAN_216], [1],
+                           [systemd is newer than v216])]
+                    )
+
     AC_CHECK_HEADERS(systemd/sd-daemon.h,
        ,
        [
