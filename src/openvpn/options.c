@@ -2992,7 +2992,7 @@ calc_options_string_link_mtu(const struct options *o, const struct frame *frame)
 	  o->replay, cipher_kt_mode_ofb_cfb (fake_kt.cipher));
       frame_finalize(&fake_frame, o->ce.link_mtu_defined, o->ce.link_mtu,
             o->ce.tun_mtu_defined, o->ce.tun_mtu);
-      msg (D_MTU_DEBUG, "%s: link-mtu %zu -> %d", __func__, link_mtu,
+      msg (D_MTU_DEBUG, "%s: link-mtu %u -> %d", __func__, (unsigned int) link_mtu,
 	  EXPANDED_SIZE (&fake_frame));
       link_mtu = EXPANDED_SIZE (&fake_frame);
     }
@@ -3061,7 +3061,7 @@ options_string (const struct options *o,
    */
 
   buf_printf (&out, ",dev-type %s", dev_type_string (o->dev, o->dev_type));
-  buf_printf (&out, ",link-mtu %zu", calc_options_string_link_mtu(o, frame));
+  buf_printf (&out, ",link-mtu %u", (unsigned int) calc_options_string_link_mtu(o, frame));
   buf_printf (&out, ",tun-mtu %d", PAYLOAD_SIZE (frame));
   buf_printf (&out, ",proto %s",  proto_remote (o->ce.proto, remote));
 

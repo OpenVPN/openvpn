@@ -1111,8 +1111,8 @@ print_details (struct key_state_ssl * ks_ssl, const char *prefix)
   cert = mbedtls_ssl_get_peer_cert (ks_ssl->ctx);
   if (cert != NULL)
     {
-      openvpn_snprintf (s2, sizeof (s2), ", %zu bit key",
-	  mbedtls_pk_get_bitlen (&cert->pk));
+      openvpn_snprintf (s2, sizeof (s2), ", %u bit key",
+	  (unsigned int) mbedtls_pk_get_bitlen (&cert->pk));
     }
 
   msg (D_HANDSHAKE, "%s%s", s1, s2);

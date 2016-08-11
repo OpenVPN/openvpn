@@ -738,8 +738,8 @@ crypto_adjust_frame_parameters(struct frame *frame,
 
   frame_add_to_extra_frame (frame, crypto_overhead);
 
-  msg(D_MTU_DEBUG, "%s: Adjusting frame parameters for crypto by %zu bytes",
-      __func__, crypto_overhead);
+  msg(D_MTU_DEBUG, "%s: Adjusting frame parameters for crypto by %u bytes",
+      __func__, (unsigned int) crypto_overhead);
 }
 
 size_t
