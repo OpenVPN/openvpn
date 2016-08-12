@@ -1017,7 +1017,7 @@ fi
 dnl
 dnl Check for systemd
 dnl
-
+AM_CONDITIONAL([ENABLE_SYSTEMD], [test "${enable_systemd}" = "yes"])
 if test "$enable_systemd" = "yes" ; then
     PKG_CHECK_MODULES([libsystemd], [systemd libsystemd],
                       [],

@@ -76,7 +76,7 @@ void query_user_add (char *prompt, size_t prompt_len,
 bool query_user_exec_builtin ();
 
 
-#ifdef QUERY_USER_EXEC_ALTERNATIVE
+#if defined(ENABLE_SYSTEMD)
 /**
  * Executes a configured setup, using the compiled method for querying the user
  *
@@ -86,7 +86,7 @@ bool query_user_exec_builtin ();
  */
 bool query_user_exec ();
 
-#else  /* QUERY_USER_EXEC_ALTERNATIVE not defined*/
+#else  /* ENABLE_SYSTEMD not defined*/
 /**
  * Wrapper function enabling query_user_exec() if no alternative methods have
  * been enabled
@@ -96,7 +96,7 @@ static bool query_user_exec ()
 {
     return query_user_exec_builtin();
 }
-#endif  /* QUERY_USER_EXEC_ALTERNATIVE */
+#endif  /* defined(ENABLE_SYSTEMD) */
 
 
 /**
