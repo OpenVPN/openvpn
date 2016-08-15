@@ -1136,7 +1136,7 @@ AC_SUBST([TEST_CFLAGS])
 # needed for unit testing
 AC_CHECK_PROGS([CMAKE], [cmake])
 if test -n "${CMAKE}"; then
-   if test -f vendor/cmocka/CMakeLists.txt; then
+   if test -f "${srcdir}/vendor/cmocka/CMakeLists.txt"; then
       AM_CONDITIONAL([CMOCKA_INITIALIZED], [true])
    else
       AM_CONDITIONAL([CMOCKA_INITIALIZED], [false])
