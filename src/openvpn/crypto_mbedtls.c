@@ -132,6 +132,25 @@ const cipher_name_pair cipher_name_translation_table[] = {
 const size_t cipher_name_translation_table_count =
     sizeof (cipher_name_translation_table) / sizeof (*cipher_name_translation_table);
 
+static void print_cipher(const cipher_kt_t *info)
+{
+  if (info && (cipher_kt_mode_cbc(info)
+#ifdef HAVE_AEAD_CIPHER_MODES
+      || cipher_kt_mode_aead(info)
+#endif
+  ))
+    {
+      const char *ssl_only = cipher_kt_mode_cbc(info) ?
+	  "" : ", TLS client/server mode only";
+      const char *var_key_size = info->flags & MBEDTLS_CIPHER_VARIABLE_KEY_LEN ?
+	  " by default" : "";
+
+      printf ("%s  (%d bit key%s, %d bit block%s)\n",
+	  cipher_kt_name(info), cipher_kt_key_size(info) * 8, var_key_size,
+	  cipher_kt_block_size(info) * 8, ssl_only);
+    }
+}
+
 void
 show_available_ciphers ()
 {
@@ -147,20 +166,23 @@ show_available_ciphers ()
   while (*ciphers != 0)
     {
       const cipher_kt_t *info = mbedtls_cipher_info_from_type(*ciphers);
-
-      if (info && (cipher_kt_mode_cbc(info)
-#ifdef HAVE_AEAD_CIPHER_MODES
-          || cipher_kt_mode_aead(info)
-#endif
-          ))
+      if (info && cipher_kt_block_size(info) >= 128/8)
 	{
-	  const char *ssl_only = cipher_kt_mode_cbc(info) ?
-	      "" : " (TLS client/server mode)";
-
-	  printf ("%s %d bit default key%s\n",
-	      cipher_kt_name(info), cipher_kt_key_size(info) * 8, ssl_only);
+	  print_cipher(info);
 	}
+      ciphers++;
+    }
 
+  printf ("\nThe following ciphers have a block size of less than 128 bits, \n"
+	  "and are therefore deprecated.  Do not use unless you have to.\n\n");
+  ciphers = mbedtls_cipher_list();
+  while (*ciphers != 0)
+    {
+      const cipher_kt_t *info = mbedtls_cipher_info_from_type(*ciphers);
+      if (info && cipher_kt_block_size(info) < 128/8)
+	{
+	  print_cipher(info);
+	}
       ciphers++;
     }
   printf ("\n");

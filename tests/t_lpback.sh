@@ -26,7 +26,7 @@ trap "rm -f key.$$ log.$$ ; exit 1" 0 3
 
 # Get list of supported ciphers from openvpn --show-ciphers output
 CIPHERS=$(${top_builddir}/src/openvpn/openvpn --show-ciphers | \
-            sed -e '1,/^$/d' -e s'/ .*//' -e '/^\s*$/d' | sort)
+            sed -e '/The following/,/^$/d' -e s'/ .*//' -e '/^\s*$/d')
 
 # SK, 2014-06-04: currently the DES-EDE3-CFB1 implementation of OpenSSL is
 # broken (see http://rt.openssl.org/Ticket/Display.html?id=2867), so exclude
