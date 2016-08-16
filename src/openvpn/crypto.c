@@ -492,9 +492,14 @@ init_key_ctx (struct key_ctx *ctx, struct key *key,
       dmsg (D_SHOW_KEYS, "%s: CIPHER KEY: %s", prefix,
           format_hex (key->cipher, kt->cipher_length, 0, &gc));
       dmsg (D_CRYPTO_DEBUG, "%s: CIPHER block_size=%d iv_size=%d",
-          prefix,
-          cipher_kt_block_size(kt->cipher),
-          cipher_kt_iv_size(kt->cipher));
+          prefix, cipher_kt_block_size(kt->cipher),
+	  cipher_kt_iv_size(kt->cipher));
+      if (cipher_kt_block_size(kt->cipher) < 128/8)
+	{
+	  msg (M_WARN, "WARNING: this cipher's block size is less than 128 bit "
+	      "(%d bit).  Consider using a --cipher with a larger block size.",
+	      cipher_kt_block_size(kt->cipher)*8);
+	}
     }
   if (kt->digest && kt->hmac_length > 0)
     {

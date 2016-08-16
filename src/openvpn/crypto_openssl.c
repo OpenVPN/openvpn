@@ -288,11 +288,45 @@ translate_cipher_name_to_openvpn (const char *cipher_name) {
   return cipher_name;
 }
 
+static int
+cipher_name_cmp(const void *a, const void *b)
+{
+  const EVP_CIPHER * const *cipher_a = a;
+  const EVP_CIPHER * const *cipher_b = b;
+
+  const char *cipher_name_a =
+      translate_cipher_name_to_openvpn(EVP_CIPHER_name(*cipher_a));
+  const char *cipher_name_b =
+      translate_cipher_name_to_openvpn(EVP_CIPHER_name(*cipher_b));
+
+  return strcmp(cipher_name_a, cipher_name_b);
+}
+
+static void
+print_cipher(const EVP_CIPHER *cipher)
+{
+  const char *var_key_size =
+	(EVP_CIPHER_flags (cipher) & EVP_CIPH_VARIABLE_LENGTH) ?
+	     " by default" : "";
+  const char *ssl_only = cipher_kt_mode_cbc(cipher) ?
+	"" : ", TLS client/server mode only";
+
+  printf ("%s  (%d bit key%s, %d bit block%s)\n",
+	translate_cipher_name_to_openvpn (EVP_CIPHER_name (cipher)),
+	EVP_CIPHER_key_length (cipher) * 8, var_key_size,
+	cipher_kt_block_size (cipher) * 8, ssl_only);
+}
+
 void
 show_available_ciphers ()
 {
   int nid;
+  size_t i;
 
+  /* If we ever exceed this, we must be more selective */
+  const size_t cipher_list_len = 1000;
+  const EVP_CIPHER *cipher_list[cipher_list_len];
+  size_t num_ciphers = 0;
 #ifndef ENABLE_SMALL
   printf ("The following ciphers and cipher modes are available\n"
 	  "for use with " PACKAGE_NAME ".  Each cipher shown below may be\n"
@@ -302,29 +336,37 @@ show_available_ciphers ()
 	  "is recommended. In static key mode only CBC mode is allowed.\n\n");
 #endif
 
-  for (nid = 0; nid < 10000; ++nid)	/* is there a better way to get the size of the nid list? */
+  for (nid = 0; nid < 10000; ++nid)
     {
-      const EVP_CIPHER *cipher = EVP_get_cipherbynid (nid);
-      if (cipher)
-	{
-	  if (cipher_kt_mode_cbc(cipher)
+      const EVP_CIPHER *cipher = EVP_get_cipherbynid(nid);
+      if (cipher && (cipher_kt_mode_cbc(cipher)
 #ifdef ENABLE_OFB_CFB_MODE
 	      || cipher_kt_mode_ofb_cfb(cipher)
 #endif
-	      )
-	    {
-	      const char *var_key_size =
-		  (EVP_CIPHER_flags (cipher) & EVP_CIPH_VARIABLE_LENGTH) ?
-		       "variable" : "fixed";
-	      const char *ssl_only = cipher_kt_mode_ofb_cfb(cipher) ?
-		  " (TLS client/server mode)" : "";
-
-	      printf ("%s %d bit default key (%s)%s\n", OBJ_nid2sn (nid),
-		      EVP_CIPHER_key_length (cipher) * 8, var_key_size,
-		      ssl_only);
-	    }
+          ))
+	{
+	  cipher_list[num_ciphers++] = cipher;
+	}
+      if (num_ciphers == cipher_list_len)
+	{
+	  msg (M_WARN, "WARNING: Too many ciphers, not showing all");
+	  break;
 	}
     }
+
+  qsort (cipher_list, num_ciphers, sizeof(*cipher_list), cipher_name_cmp);
+
+  for (i = 0; i < num_ciphers; i++) {
+      if (cipher_kt_block_size(cipher_list[i]) >= 128/8)
+	print_cipher(cipher_list[i]);
+  }
+
+  printf ("\nThe following ciphers have a block size of less than 128 bits, \n"
+	  "and are therefore deprecated.  Do not use unless you have to.\n\n");
+  for (i = 0; i < num_ciphers; i++) {
+      if (cipher_kt_block_size(cipher_list[i]) < 128/8)
+	print_cipher(cipher_list[i]);
+  }
   printf ("\n");
 }
 
@@ -530,9 +572,37 @@ cipher_kt_iv_size (const EVP_CIPHER *cipher_kt)
 }
 
 int
-cipher_kt_block_size (const EVP_CIPHER *cipher_kt)
-{
-  return EVP_CIPHER_block_size (cipher_kt);
+cipher_kt_block_size (const EVP_CIPHER *cipher) {
+  /* OpenSSL reports OFB/CFB/GCM cipher block sizes as '1 byte'.  To work
+   * around that, try to replace the mode with 'CBC' and return the block size
+   * reported for that cipher, if possible.  If that doesn't work, just return
+   * the value reported by OpenSSL.
+   */
+  char *name = NULL;
+  char *mode_str = NULL;
+  const char *orig_name = NULL;
+  const EVP_CIPHER *cbc_cipher = NULL;
+
+  int block_size = EVP_CIPHER_block_size(cipher);
+
+  orig_name = cipher_kt_name(cipher);
+  if (!orig_name)
+    goto cleanup;
+
+  name = string_alloc(translate_cipher_name_to_openvpn(orig_name), NULL);
+  mode_str = strrchr (name, '-');
+  if (!mode_str || strlen(mode_str) < 4)
+    goto cleanup;
+
+  strcpy (mode_str, "-CBC");
+
+  cbc_cipher = EVP_get_cipherbyname(translate_cipher_name_from_openvpn(name));
+  if (cbc_cipher)
+    block_size = EVP_CIPHER_block_size(cbc_cipher);
+
+cleanup:
+  free (name);
+  return block_size;
 }
 
 int

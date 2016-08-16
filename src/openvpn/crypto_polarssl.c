@@ -168,6 +168,25 @@ translate_cipher_name_to_openvpn (const char *cipher_name) {
   return pair->openvpn_name;
 }
 
+static void print_cipher(const cipher_kt_t *info)
+{
+  if (info && (cipher_kt_mode_cbc(info)
+#ifdef HAVE_AEAD_CIPHER_MODES
+      || cipher_kt_mode_aead(info)
+#endif
+  ))
+    {
+      const char *ssl_only = cipher_kt_mode_cbc(info) ?
+	  "" : ", TLS client/server mode only";
+      const char *var_key_size = info->flags & POLARSSL_CIPHER_VARIABLE_KEY_LEN
+	  ? " by default" : "";
+
+      printf ("%s  (%d bit key%s, %d bit block%s)\n",
+	  cipher_kt_name(info), cipher_kt_key_size(info) * 8, var_key_size,
+	  cipher_kt_block_size(info) * 8, ssl_only);
+    }
+}
+
 void
 show_available_ciphers ()
 {
@@ -184,12 +203,24 @@ show_available_ciphers ()
 
   while (*ciphers != 0)
     {
-      const cipher_info_t *info = cipher_info_from_type(*ciphers);
+      const cipher_kt_t *info = cipher_info_from_type(*ciphers);
+      if (info && cipher_kt_block_size(info) >= 128/8)
+	{
+	  print_cipher(info);
+	}
+      ciphers++;
+    }
 
-      if (info && info->mode == POLARSSL_MODE_CBC)
-	printf ("%s %d bit default key\n",
-		cipher_kt_name(info), cipher_kt_key_size(info) * 8);
-
+  printf ("\nThe following ciphers have a block size of less than 128 bits, \n"
+	  "and are therefore deprecated.  Do not use unless you have to.\n\n");
+  ciphers = cipher_list();
+  while (*ciphers != 0)
+    {
+      const cipher_kt_t *info = cipher_info_from_type(*ciphers);
+      if (info && cipher_kt_block_size(info) < 128/8)
+	{
+	  print_cipher(info);
+	}
       ciphers++;
     }
   printf ("\n");
