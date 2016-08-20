@@ -1,0 +1,85 @@
+sudo: required
+dist: trusty
+
+os: linux
+
+language: c
+
+compiler:
+  - gcc
+
+env:
+  global:
+    - JOBS=3
+    - MBEDTLS_VERSION=2.2.1
+    - MBEDTLS_PREFIX=~/opt/mbedtls
+    - MBEDTLS_LIBS="-L$MBEDTLS_PREFIX/lib -lmbedtls -lmbedx509 -lmbedcrypto"
+    - MBEDTLS_CFLAGS="-I$MBEDTLS_PREFIX/include"
+    - OPENSSL_VERSION=1.0.1t
+    - OPENSSL_PREFIX=~/opt/openssl
+    - OPENSSL_LIB=$OPENSSL_PREFIX/lib
+    - OPENSSL_INC=$OPENSSL_PREFIX/include
+    - OPENSSL_CFLAGS="-I$OPENSSL_PREFIX/include"
+    - OPENSSL_LIBS="-L$OPENSSL_PREFIX/lib -lssl -lcrypto"
+
+matrix:
+  include:
+    - env: CONFIG="--with-crypto-library=openssl"
+      compiler: gcc
+    - env: CONFIG="--with-crypto-library=openssl"
+      compiler: clang
+    - env: CONFIG="--with-crypto-library=mbedtls"
+      compiler: gcc
+    - env: CONFIG="--with-crypto-library=mbedtls"
+      compiler: clang
+    - env: CONFIG="--with-crypto-library=openssl --disable-crypto"
+      compiler: clang
+    - env: CONFIG="--with-crypto-library=openssl --disable-lzo"
+      compiler: clang
+    - env: CONFIG="--with-crypto-library=openssl --enable-small"
+      compiler: clang
+    - env: CONFIG="--with-crypto-library=openssl"
+      os: osx
+      osx_image: xcode7.3
+      compiler: clang
+    - env: CONFIG="--with-crypto-library=mbedtls"
+      os: osx
+      osx_image: xcode7.3
+      compiler: clang
+  allow_failures:
+    - env: CONFIG="--with-crypto-library=openssl --disable-crypto"
+      compiler: clang
+  exclude:
+    - compiler: gcc
+
+addons:
+  apt:
+    packages:
+      - liblzo2-dev
+      - libpam0g-dev
+      - liblz4-dev
+      - linux-libc-dev
+
+cache:
+  apt: true
+  ccache: true
+  directories:
+  - download-cache
+
+before_install:
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew update     ; fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install lzo; fi
+
+install:
+  - mkdir ~/bin && ln -s $(which ccache) ~/bin/$CC && export PATH=$HOME/bin:$PATH
+  - if [ ! -d download-cache ]; then mkdir download-cache; fi
+  - if [[ $CONFIG == *"--with-crypto-library=openssl"* ]]; then .travis/build-openssl-${TRAVIS_OS_NAME}.sh; fi
+  - if [[ $CONFIG == *"--with-crypto-library=mbedtls"* ]]; then .travis/build-mbedtls-${TRAVIS_OS_NAME}.sh; fi
+
+script:
+  - autoreconf -vi
+  - ./configure $CONFIG || (cat config.log && exit 1)
+  - make -j$JOBS
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then ldd src/openvpn/openvpn; fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then otool -L src/openvpn/openvpn; fi
+  - make check
