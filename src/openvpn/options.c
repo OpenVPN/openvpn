@@ -2614,6 +2614,15 @@ options_postprocess_mutate (struct options *o)
       if (streq (o->dh_file, "none"))
 	o->dh_file = NULL;
     }
+
+  /* cipher negotiation (NCP) currently assumes --pull or --mode server */
+  if ( o->ncp_enabled &&
+        ! (o->pull || o->mode == MODE_SERVER) )
+    {
+      msg( M_WARN, "disabling NCP mode (--ncp-disable) because not "
+                   "in P2MP client or server mode" );
+      o->ncp_enabled = false;
+    }
 #endif
 
 #if ENABLE_MANAGEMENT
