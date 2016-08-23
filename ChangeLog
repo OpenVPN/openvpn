@@ -1,6 +1,52 @@
 OpenVPN Change Log
 Copyright (C) 2002-2015 OpenVPN Technologies, Inc. <sales@openvpn.net>
 
+2016.08.23 -- Version 2.3.12
+Arne Schwabe (2):
+      Complete push-peer-info documentation and allow IV_PLAT_VER for other platforms than Windows if the client UI supplies it.
+      Move ASSERT so external-key with OpenSSL works again
+
+David Sommerseth (3):
+      Only build and run cmocka unit tests if its submodule is initialized
+      Another fix related to unit test framework
+      Remove NOP function and callers
+
+Dorian Harmans (1):
+      Add CHACHA20-POLY1305 ciphersuite IANA name translations.
+
+Ivo Manca (1):
+      Plug memory leak in mbedTLS backend
+
+Jeffrey Cutter (1):
+      Update contrib/pull-resolv-conf/client.up for no DOMAIN
+
+Jens Neuhalfen (2):
+      Add unit testing support via cmocka
+      Add a test for auth-pam searchandreplace
+
+Josh Cepek (1):
+      Push an IPv6 CIDR mask used by the server, not the pool's size
+
+Leon Klingele (1):
+      Add link to bug tracker
+
+Samuli Seppänen (2):
+      Update CONTRIBUTING.rst to allow GitHub PRs for code review purposes
+      Clarify the fact that build instructions in README are for release tarballs
+
+Selva Nair (4):
+      Make error non-fatal while deleting address using netsh
+      Make block-outside-dns work with persist-tun
+      Ignore SIGUSR1/SIGHUP during exit notification
+      Promptly close the netcmd_semaphore handle after use
+
+Steffan Karger (4):
+      Fix polarssl / mbedtls builds
+      Don't limit max incoming message size based on c2->frame
+      Fix '--cipher none --cipher' crash
+      Discourage using 64-bit block ciphers
+
+
 2016.05.09 -- Version 2.3.11
 James Yonan (1):
       Fixed port-share bug with DoS potential

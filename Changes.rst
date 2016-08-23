@@ -100,6 +100,21 @@ Behavioral changes
 - Do not randomize resolving of IP addresses in getaddr()
 
 
+Version 2.3.12
+==============
+
+Security changes
+----------------
+
+- Deprecation of ciphers using less than 128-bits cipher blocks
+
+  It is highly recommended to avoid using ciphers listed in the new
+  deprecated section of --show-ciphers.  These ciphers are no longer
+  considered safe to use.  If you cannot migrate away from these
+  ciphers currently, it is strongly recommended to start using
+  --reneg-bytes with a value less than 64MB.
+
+
 Version 2.3.11
 ==============
 
