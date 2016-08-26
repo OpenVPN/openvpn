@@ -6,6 +6,8 @@
  *             packet compression.
  *
  *  Copyright (C) 2002-2010 OpenVPN Technologies, Inc. <sales@openvpn.net>
+ *  Copyright (C) 2014-2015 David Sommerseth <davids@redhat.com>
+ *  Copyright (C) 2016      David Sommerseth <davids@openvpn.net>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -1085,9 +1087,11 @@ get_user_pass_cr (struct user_pass *up,
 	  struct buffer user_prompt = alloc_buf_gc (128, &gc);
 
 	  buf_printf (&user_prompt, "NEED-OK|%s|%s:", prefix, up->username);
-	  
-	  if (!get_console_input (BSTR (&user_prompt), true, up->password, USER_PASS_LEN))
-	    msg (M_FATAL, "ERROR: could not read %s ok-confirmation from stdin", prefix);
+	  if (!query_user_SINGLE (BSTR(&user_prompt), BLEN(&user_prompt),
+                                  up->password, USER_PASS_LEN, false))
+            {
+              msg (M_FATAL, "ERROR: could not read %s ok-confirmation from stdin", prefix);
+            }
 	  
 	  if (!strlen (up->password))
 	    strcpy (up->password, "ok");
@@ -1163,13 +1167,17 @@ get_user_pass_cr (struct user_pass *up,
 	      if (ac)
 		{
 		  char *response = (char *) gc_malloc (USER_PASS_LEN, false, &gc);
-		  struct buffer packed_resp;
+		  struct buffer packed_resp, challenge;
 
+		  challenge = alloc_buf_gc (14+strlen(ac->challenge_text), &gc);
+		  buf_printf (&challenge, "CHALLENGE: %s", ac->challenge_text);
 		  buf_set_write (&packed_resp, (uint8_t*)up->password, USER_PASS_LEN);
-		  msg (M_INFO|M_NOPREFIX, "CHALLENGE: %s", ac->challenge_text);
-                  if (!get_console_input (ac->challenge_text, BOOL_CAST(ac->flags&CR_ECHO),
-                                          response, USER_PASS_LEN))
-		    msg (M_FATAL, "ERROR: could not read challenge response from stdin");
+
+		  if (!query_user_SINGLE (BSTR(&challenge), BLEN(&challenge),
+                                          response, USER_PASS_LEN, BOOL_CAST(ac->flags&CR_ECHO)))
+		    {
+		      msg (M_FATAL, "ERROR: could not read challenge response from stdin");
+		    }
 		  strncpynt (up->username, ac->user, USER_PASS_LEN);
 		  buf_printf (&packed_resp, "CRV1::%s::%s", ac->state_id, response);
 		}
@@ -1184,32 +1192,49 @@ get_user_pass_cr (struct user_pass *up,
 	      struct buffer user_prompt = alloc_buf_gc (128, &gc);
 	      struct buffer pass_prompt = alloc_buf_gc (128, &gc);
 
+	      query_user_clear ();
 	      buf_printf (&user_prompt, "Enter %s Username:", prefix);
 	      buf_printf (&pass_prompt, "Enter %s Password:", prefix);
 
 	      if (username_from_stdin && !(flags & GET_USER_PASS_PASSWORD_ONLY))
 		{
-		  if (!get_console_input (BSTR (&user_prompt), true, up->username, USER_PASS_LEN))
-		    msg (M_FATAL, "ERROR: could not read %s username from stdin", prefix);
+		  query_user_add (BSTR(&user_prompt), BLEN(&user_prompt),
+                                  up->username, USER_PASS_LEN, true);
+		}
+
+	      if (password_from_stdin)
+                {
+                  query_user_add (BSTR(&pass_prompt), BLEN(&pass_prompt),
+                                  up->password, USER_PASS_LEN, false);
+                }
+
+	      if( !query_user_exec () )
+		{
+		  msg(M_FATAL, "ERROR: Failed retrieving username or password");
+		}
+
+	      if (!(flags & GET_USER_PASS_PASSWORD_ONLY))
+		{
 		  if (strlen (up->username) == 0)
 		    msg (M_FATAL, "ERROR: %s username is empty", prefix);
 		}
-
-	      if (password_from_stdin && !get_console_input (BSTR (&pass_prompt), false, up->password, USER_PASS_LEN))
-		msg (M_FATAL, "ERROR: could not not read %s password from stdin", prefix);
 
 #ifdef ENABLE_CLIENT_CR
               if (auth_challenge && (flags & GET_USER_PASS_STATIC_CHALLENGE) && response_from_stdin)
 		{
 		  char *response = (char *) gc_malloc (USER_PASS_LEN, false, &gc);
-		  struct buffer packed_resp;
+		  struct buffer packed_resp, challenge;
 		  char *pw64=NULL, *resp64=NULL;
 
-		  msg (M_INFO|M_NOPREFIX, "CHALLENGE: %s", auth_challenge);
+		  challenge = alloc_buf_gc (14+strlen(auth_challenge), &gc);
+		  buf_printf (&challenge, "CHALLENGE: %s", auth_challenge);
 
-                  if (!get_console_input (auth_challenge, BOOL_CAST(flags & GET_USER_PASS_STATIC_CHALLENGE_ECHO),
-                                          response, USER_PASS_LEN))
-		    msg (M_FATAL, "ERROR: could not read static challenge response from stdin");
+		  if (!query_user_SINGLE (BSTR(&challenge), BLEN(&challenge),
+                                          response, USER_PASS_LEN,
+                                          BOOL_CAST(flags & GET_USER_PASS_STATIC_CHALLENGE_ECHO)))
+		    {
+		      msg (M_FATAL, "ERROR: could not retrieve static challenge response");
+		    }
 		  if (openvpn_base64_encode(up->password, strlen(up->password), &pw64) == -1
 		      || openvpn_base64_encode(response, strlen(response), &resp64) == -1)
 		    msg (M_FATAL, "ERROR: could not base64-encode password/static_response");
