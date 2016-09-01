@@ -1125,10 +1125,16 @@ if test "${enable_pkcs11}" = "yes"; then
 	)
 fi
 
+# Set -std=c99 unless user already specified a -std=
+case "${CFLAGS}" in
+  *-std=*) ;;
+  *)       CFLAGS="${CFLAGS} -std=c99" ;;
+esac
+
 if test "${enable_pedantic}" = "yes"; then
 	enable_strict="yes"
 	CFLAGS="${CFLAGS} -pedantic"
-	test "${WIN32}" != "yes" && CFLAGS="${CFLAGS} -std=c99"
+	AC_DEFINE([PEDANTIC], [1], [Enable pedantic mode])
 fi
 if test "${enable_strict}" = "yes"; then
 	CFLAGS="${CFLAGS} -Wall -Wno-unused-parameter -Wno-unused-function"

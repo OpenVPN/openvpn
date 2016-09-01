@@ -384,16 +384,13 @@
  * Pedantic mode is meant to accomplish lint-style program checking,
  * not to build a working executable.
  */
-#ifdef __STRICT_ANSI__
-# define PEDANTIC 1
+#ifdef PEDANTIC
 # undef HAVE_CPP_VARARG_MACRO_GCC
 # undef HAVE_CPP_VARARG_MACRO_ISO
 # undef EMPTY_ARRAY_SIZE
 # define EMPTY_ARRAY_SIZE 1
 # undef inline
 # define inline
-#else
-# define PEDANTIC 0
 #endif
 
 /*
