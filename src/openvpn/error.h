@@ -138,12 +138,6 @@ extern int x_msg_line_num;
 /** Check muting filter */
 bool dont_mute (unsigned int flags);
 
-/** Return true if flags represent an enabled, not muted log level */
-static inline bool msg_test (unsigned int flags)
-{
-  return ((flags & M_DEBUG_LEVEL) <= x_debug_level) && dont_mute (flags);
-}
-
 /* Macro to ensure (and teach static analysis tools) we exit on fatal errors */
 #define EXIT_FATAL(flags) do { if ((flags) & M_FATAL) _exit(1); } while (false)
 
@@ -233,6 +227,12 @@ static inline bool
 check_debug_level (unsigned int level)
 {
   return (level & M_DEBUG_LEVEL) <= x_debug_level;
+}
+
+/** Return true if flags represent an enabled, not muted log level */
+static inline bool msg_test (unsigned int flags)
+{
+  return check_debug_level (flags) && dont_mute (flags);
 }
 
 /* Call if we forked */
