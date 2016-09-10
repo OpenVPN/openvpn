@@ -35,6 +35,7 @@
 #include "error.h"
 #include "integer.h"
 #include "mtu.h"
+#include "options.h"
 
 #include "memdbg.h"
 
@@ -122,6 +123,15 @@ frame_subtract_extra (struct frame *frame, const struct frame *src)
 {
   frame->extra_frame -= src->extra_frame;
   frame->extra_tun   += src->extra_frame;
+}
+
+void
+frame_init_mssfix (struct frame *frame, const struct options *options)
+{
+  if (options->ce.mssfix)
+    {
+      frame_set_mtu_dynamic (frame, options->ce.mssfix, SET_MTU_UPPER_BOUND);
+    }
 }
 
 void

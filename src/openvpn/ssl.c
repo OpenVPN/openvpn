@@ -1691,6 +1691,7 @@ tls_session_update_crypto_params(struct tls_session *session,
       options->use_iv, options->replay, packet_id_long_form);
   frame_finalize(frame, options->ce.link_mtu_defined, options->ce.link_mtu,
       options->ce.tun_mtu_defined, options->ce.tun_mtu);
+  frame_init_mssfix(frame, options);
   frame_print (frame, D_MTU_INFO, "Data Channel MTU parms");
 
   const struct session_id *client_sid = session->opt->server ?

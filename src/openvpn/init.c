@@ -2809,19 +2809,6 @@ do_init_fragment (struct context *c)
 #endif
 
 /*
- * Set the --mssfix option.
- */
-static void
-do_init_mssfix (struct context *c)
-{
-  if (c->options.ce.mssfix)
-    {
-      frame_set_mtu_dynamic (&c->c2.frame,
-			     c->options.ce.mssfix, SET_MTU_UPPER_BOUND);
-    }
-}
-
-/*
  * Allocate our socket object.
  */
 static void
@@ -3663,7 +3650,7 @@ init_instance (struct context *c, const struct env_set *env, const unsigned int 
 #endif
 
   /* initialize dynamic MTU variable */
-  do_init_mssfix (c);
+  frame_init_mssfix (&c->c2.frame, &c->options);
 
   /* bind the TCP/UDP socket */
   if (c->mode == CM_P2P || c->mode == CM_TOP || c->mode == CM_CHILD_TCP)
