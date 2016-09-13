@@ -279,10 +279,14 @@ do
     if $RUN_SUDO kill -0 $opid
     then :
     else
-	echo -e "OpenVPN process has failed to start up, check log ($LOGDIR/$SUF:openvpn.log).  FAIL.\ntail of logfile follows:\n..." >&2
-	tail $LOGDIR/$SUF:openvpn.log >&2
+	fail "OpenVPN process has failed to start up, check log ($LOGDIR/$SUF:openvpn.log)."
+	echo "tail -5 $SUF:openvpn.log" >&2
+	tail -5 $LOGDIR/$SUF:openvpn.log >&2
+	echo -e "\nFAIL. skip rest of sub-tests for test run $SUF.\n" >&2
 	trap - 0 1 2 3 15
-	exit 10
+	SUMMARY_FAIL="$SUMMARY_FAIL $SUF"
+	exit_code=30
+	continue
     fi
 
     # compare whether anything changed in ifconfig/route setup?
