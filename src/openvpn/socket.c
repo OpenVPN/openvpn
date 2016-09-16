@@ -790,7 +790,7 @@ create_socket_udp (struct addrinfo* addrinfo, const unsigned int flags)
       int pad = 1;
       if(addrinfo->ai_family == AF_INET)
         {
-#ifdef IP_PKTINFO
+#if defined(HAVE_IN_PKTINFO) && defined(HAVE_IPI_SPEC_DST)
           if (setsockopt (sd, SOL_IP, IP_PKTINFO,
                           (void*)&pad, sizeof(pad)) < 0)
             msg(M_ERR, "UDP: failed setsockopt for IP_PKTINFO");
@@ -2465,7 +2465,7 @@ print_link_socket_actual_ex (const struct link_socket_actual *act,
 		  struct openvpn_sockaddr sa;
 		  CLEAR (sa);
 		  sa.addr.in4.sin_family = AF_INET;
-#ifdef IP_PKTINFO
+#if defined(HAVE_IN_PKTINFO) && defined(HAVE_IPI_SPEC_DST)
 		  sa.addr.in4.sin_addr = act->pi.in4.ipi_spec_dst;
 		  if_indextoname(act->pi.in4.ipi_ifindex, ifname);
 #elif defined(IP_RECVDSTADDR)
@@ -2867,7 +2867,7 @@ link_socket_read_tcp (struct link_socket *sock,
 struct openvpn_in4_pktinfo
 {
   struct cmsghdr cmsghdr;
-#ifdef HAVE_IN_PKTINFO
+#if defined(HAVE_IN_PKTINFO) && defined(HAVE_IPI_SPEC_DST)
   struct in_pktinfo pi4;
 #elif defined(IP_RECVDSTADDR)
   struct in_addr pi4;
@@ -2911,7 +2911,7 @@ link_socket_read_udp_posix_recvmsg (struct link_socket *sock,
       cmsg = CMSG_FIRSTHDR (&mesg);
       if (cmsg != NULL
 	  && CMSG_NXTHDR (&mesg, cmsg) == NULL
-#ifdef IP_PKTINFO
+#if defined(HAVE_IN_PKTINFO) && defined(HAVE_IPI_SPEC_DST)
 	  && cmsg->cmsg_level == SOL_IP 
 	  && cmsg->cmsg_type == IP_PKTINFO
 #elif defined(IP_RECVDSTADDR)
@@ -2922,7 +2922,7 @@ link_socket_read_udp_posix_recvmsg (struct link_socket *sock,
 #endif
 	  && cmsg->cmsg_len >= sizeof (struct openvpn_in4_pktinfo))
 	{
-#ifdef IP_PKTINFO
+#if defined(HAVE_IN_PKTINFO) && defined(HAVE_IPI_SPEC_DST)
 	  struct in_pktinfo *pkti = (struct in_pktinfo *) CMSG_DATA (cmsg);
 	  from->pi.in4.ipi_ifindex = pkti->ipi_ifindex;
 	  from->pi.in4.ipi_spec_dst = pkti->ipi_spec_dst;
@@ -3021,7 +3021,7 @@ link_socket_write_udp_posix_sendmsg (struct link_socket *sock,
         mesg.msg_namelen = sizeof (struct sockaddr_in);
         mesg.msg_control = &opi;
         mesg.msg_flags = 0;
-#ifdef HAVE_IN_PKTINFO
+#if defined(HAVE_IN_PKTINFO) && defined(HAVE_IPI_SPEC_DST)
         mesg.msg_controllen = sizeof (struct openvpn_in4_pktinfo);
         cmsg = CMSG_FIRSTHDR (&mesg);
         cmsg->cmsg_len = sizeof (struct openvpn_in4_pktinfo);

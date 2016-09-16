@@ -455,6 +455,9 @@ SOCKET_INCLUDES="
 #ifdef HAVE_SYS_SOCKET_H
 #include <sys/socket.h>
 #endif
+#ifdef HAVE_NET_IF_H
+#include <net/if.h>
+#endif
 #ifdef HAVE_NETINET_IN_H
 #include <netinet/in.h>
 #endif
@@ -523,6 +526,12 @@ AC_CHECK_TYPE(
         [AC_DEFINE([HAVE_SA_FAMILY_T], [1], [sa_family_t, needed to hold AF_* info])],
         ,
         [[${SOCKET_INCLUDES}]]
+)
+AC_CHECK_MEMBER(
+	[struct in_pktinfo.ipi_spec_dst],
+	[AC_DEFINE([HAVE_IPI_SPEC_DST], [1], [struct in_pktinfo.ipi_spec_dst needed for IP_PKTINFO support])],
+	,
+	[[${SOCKET_INCLUDES}]]
 )
 AC_CHECK_TYPE(
 	[struct sockaddr_in6],

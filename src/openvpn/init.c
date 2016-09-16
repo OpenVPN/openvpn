@@ -1299,7 +1299,7 @@ initialization_sequence_completed (struct context *c, const unsigned int flags)
           switch (local.addr.sa.sa_family)
             {
             case AF_INET:
-#ifdef IP_PKTINFO
+#if defined(HAVE_IN_PKTINFO) && defined(HAVE_IPI_SPEC_DST)
               local.addr.in4.sin_addr = actual->pi.in4.ipi_spec_dst;
 #else
               local.addr.in4.sin_addr = actual->pi.in4;
