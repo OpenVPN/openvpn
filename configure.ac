@@ -1059,6 +1059,12 @@ if test "${enable_pkcs11}" = "yes"; then
 	)
 fi
 
+# Set -std=gnu89 unless user already specified a -std=
+case "${CFLAGS}" in
+  *-std=*) ;;
+  *)       CFLAGS="${CFLAGS} -std=gnu89" ;;
+esac
+
 if test "${enable_pedantic}" = "yes"; then
 	enable_strict="yes"
 	CFLAGS="${CFLAGS} -pedantic"
