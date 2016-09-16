@@ -97,7 +97,11 @@ const char title_string[] =
   " [PKCS11]"
 #endif
 #if ENABLE_IP_PKTINFO
-  " [MH]"
+# if defined(HAVE_IN_PKTINFO) && defined(HAVE_IPI_SPEC_DST)
+  " [MH/PKTINFO]"
+# elif defined(IP_RECVDSTADDR)
+  " [MH/RECVDA]"
+# endif
 #endif
   " [IPv6]"
   " built on " __DATE__
