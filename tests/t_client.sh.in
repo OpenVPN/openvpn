@@ -36,6 +36,18 @@ if [ $? -ne 0 ]; then
     exit 77
 fi
 
+KILL_EXEC=`which kill`
+if [ $? -ne 0 ]; then
+    echo "$0: kill not found in \$PATH" >&2
+    exit 77
+fi
+
+TRUE_EXEC=`which true`
+if [ $? -ne 0 ]; then
+    echo "$0: true not found in \$PATH" >&2
+    exit 77
+fi
+
 if [ ! -x "${top_builddir}/src/openvpn/openvpn" ]
 then
     echo "no (executable) openvpn binary in current build tree. FAIL." >&2
@@ -58,12 +70,29 @@ if [ -z "$TEST_RUN_LIST" ] ; then
     exit 77
 fi
 
+# Ensure PREFER_KSU is in a known state
+PREFER_KSU="${PREFER_KSU:-0}"
+
 # make sure we have permissions to run ifconfig/route from OpenVPN
 # can't use "id -u" here - doesn't work on Solaris
 ID=`id`
 if expr "$ID" : "uid=0" >/dev/null
 then :
 else
+    if [ "${PREFER_KSU}" -eq 1 ];
+    then
+        # Check if we have a valid kerberos ticket
+        klist -l 1>/dev/null 2>/dev/null
+        if [ $? -ne 0 ];
+        then
+            # No kerberos ticket found, skip ksu and fallback to RUN_SUDO
+            PREFER_KSU=0
+            echo "$0: No Kerberos ticket available.  Will not use ksu."
+        else
+            RUN_SUDO="ksu -q -e"
+        fi
+    fi
+
     if [ -z "$RUN_SUDO" ]
     then
         echo "$0: this test must run be as root, or RUN_SUDO=... " >&2
@@ -73,7 +102,7 @@ else
         # We have to use sudo. Make sure that we (hopefully) do not have
         # to ask the users password during the test. This is done to
         # prevent timing issues, e.g. when the waits for openvpn to start
-        $RUN_SUDO \true
+        $RUN_SUDO $TRUE_EXEC
     fi
 fi
 
@@ -90,6 +119,7 @@ exit_code=0
 # ----------------------------------------------------------
 # helper functions
 # ----------------------------------------------------------
+
 # print failure message, increase FAIL counter
 fail()
 {
@@ -273,14 +303,14 @@ do
     echo "  OpenVPN running with PID $opid"
 
     # make sure openvpn client is terminated in case shell exits
-    trap "$RUN_SUDO kill $opid" 0
-    trap "$RUN_SUDO kill $opid ; trap - 0 ; exit 1" 1 2 3 15
+    trap "$RUN_SUDO $KILL_EXEC $opid" 0
+    trap "$RUN_SUDO $KILL_EXEC $opid ; trap - 0 ; exit 1" 1 2 3 15
 
     echo "wait for connection to establish..."
     sleep ${SETUP_TIME_WAIT:-10}
 
     # test whether OpenVPN process is still there
-    if $RUN_SUDO kill -0 $opid
+    if $RUN_SUDO $KILL_EXEC -0 $opid
     then :
     else
 	fail "OpenVPN process has failed to start up, check log ($LOGDIR/$SUF:openvpn.log)."
@@ -315,7 +345,7 @@ do
     echo -e "ping tests done.\n"
 
     echo "stopping OpenVPN"
-    $RUN_SUDO kill $opid
+    $RUN_SUDO $KILL_EXEC $opid
     wait $!
     rc=$?
     if [ $rc != 0 ] ; then
