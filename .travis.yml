@@ -1,0 +1,90 @@
+sudo: required
+dist: trusty
+
+os: linux
+
+language: c
+
+compiler:
+  - gcc
+
+env:
+  global:
+    - JOBS=3
+    - PREFIX="${HOME}/opt"
+    - MBEDTLS_VERSION="2.2.1"
+    - MBEDTLS_CFLAGS="-I${PREFIX}/include"
+    - MBEDTLS_LIBS="-L${PREFIX}/lib -lmbedtls -lmbedx509 -lmbedcrypto"
+    - OPENSSL_VERSION="1.0.1t"
+    - OPENSSL_CFLAGS="-I${PREFIX}/include"
+    - OPENSSL_LIBS="-L${PREFIX}/lib -lssl -lcrypto"
+    - LD_LIBRARY_PATH="${PREFIX}/lib:${LD_LIBRARY_PATH}"
+
+matrix:
+  include:
+    - env: SSLLIB="openssl"
+      os: linux
+      compiler: gcc
+    - env: SSLLIB="openssl"
+      os: linux
+      compiler: clang
+    - env: SSLLIB="mbedtls"
+      os: linux
+      compiler: gcc
+    - env: SSLLIB="mbedtls"
+      os: linux
+      compiler: clang
+    - env: SSLLIB="openssl" EXTRA_CONFIG="--disable-crypto"
+      os: linux
+      compiler: clang
+    - env: SSLLIB="openssl" EXTRA_CONFIG="--disable-lzo"
+      os: linux
+      compiler: clang
+    - env: SSLLIB="openssl" EXTRA_CONFIG="--enable-small"
+      os: linux
+      compiler: clang
+    - env: SSLLIB="openssl"
+      os: osx
+      osx_image: xcode7.3
+      compiler: clang
+    - env: SSLLIB="mbedtls"
+      os: osx
+      osx_image: xcode7.3
+      compiler: clang
+  allow_failures:
+    - env: SSLLIB="openssl" EXTRA_CONFIG="--disable-crypto"
+      os: linux
+      compiler: clang
+  exclude:
+    - compiler: gcc
+
+addons:
+  apt:
+    packages:
+      - liblzo2-dev
+      - libpam0g-dev
+      - liblz4-dev
+      - linux-libc-dev
+
+cache:
+  apt: true
+  ccache: true
+  directories:
+  - download-cache
+  - ${HOME}/opt
+
+before_install:
+  - if [ "${TRAVIS_OS_NAME}" = "osx" ]; then brew update     ; fi
+  - if [ "${TRAVIS_OS_NAME}" = "osx" ]; then brew install lzo; fi
+
+install:
+  - .travis/build-deps.sh > build-deps.log 2>&1 || (cat build-deps.log && exit 1)
+
+script:
+  - autoreconf -vi
+  - ./configure --with-crypto-library="${SSLLIB}" ${EXTRA_CONFIG} || (cat config.log && exit 1)
+  - make -j$JOBS
+  - src/openvpn/openvpn --version || true
+  - if [ "${TRAVIS_OS_NAME}" = "linux" ]; then ldd src/openvpn/openvpn; fi
+  - if [ "${TRAVIS_OS_NAME}" = "osx" ]; then otool -L src/openvpn/openvpn; fi
+  - make check
