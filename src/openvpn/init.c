@@ -2140,7 +2140,6 @@ do_init_crypto_static (struct context *c, const unsigned int flags)
   if (options->replay)
     {
       packet_id_init (&c->c2.crypto_options.packet_id,
-		      link_socket_proto_connection_oriented (options->ce.proto),
 		      options->replay_window,
 		      options->replay_time,
 		      "STATIC", 0);

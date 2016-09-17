@@ -210,7 +210,7 @@ struct packet_id
   struct packet_id_rec rec;
 };
 
-void packet_id_init (struct packet_id *p, bool tcp_mode, int seq_backtrack, int time_backtrack, const char *name, int unit);
+void packet_id_init (struct packet_id *p, int seq_backtrack, int time_backtrack, const char *name, int unit);
 void packet_id_free (struct packet_id *p);
 
 /* should we accept an incoming packet id ? */

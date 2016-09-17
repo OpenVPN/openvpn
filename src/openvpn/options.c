@@ -2211,11 +2211,6 @@ options_postprocess_verify_ce (const struct options *options, const struct conne
   /*
    * Check consistency of replay options
    */
-  if ((!proto_is_udp(ce->proto))
-      && (options->replay_window != defaults.replay_window
-	  || options->replay_time != defaults.replay_time))
-    msg (M_USAGE, "--replay-window only makes sense with --proto udp");
-
   if (!options->replay
       && (options->replay_window != defaults.replay_window
 	  || options->replay_time != defaults.replay_time))

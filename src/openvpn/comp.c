@@ -160,6 +160,7 @@ comp_generate_peer_info_string(const struct compress_options *opt, struct buffer
 	buf_printf (out, "IV_LZO_STUB=1\n");
       buf_printf (out, "IV_COMP_STUB=1\n");
       buf_printf (out, "IV_COMP_STUBv2=1\n");
+      buf_printf (out, "IV_TCPNL=1\n");
     }
 }
 

@@ -799,7 +799,7 @@ key_state_init (struct tls_session *session, struct key_state *ks)
   /* init packet ID tracker */
   if (session->opt->replay)
     {
-      packet_id_init (&ks->crypto_options.packet_id, session->opt->tcp_mode,
+      packet_id_init (&ks->crypto_options.packet_id,
 	  session->opt->replay_window, session->opt->replay_time, "SSL",
 	  ks->key_id);
     }
@@ -948,7 +948,6 @@ tls_session_init (struct tls_multi *multi, struct tls_session *session)
 
   /* initialize packet ID replay window for --tls-auth */
   packet_id_init (&session->tls_auth.packet_id,
-		  session->opt->tcp_mode,
 		  session->opt->replay_window,
 		  session->opt->replay_time,
 		  "TLS_AUTH", session->key_id);
