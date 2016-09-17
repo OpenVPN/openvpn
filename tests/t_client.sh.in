@@ -297,23 +297,39 @@ do
     openvpn_conf="$openvpn_conf --writepid $pidfile"
     echo " run openvpn $openvpn_conf"
     echo "# src/openvpn/openvpn $openvpn_conf" >$LOGDIR/$SUF:openvpn.log
+    umask 022
     $RUN_SUDO "${top_builddir}/src/openvpn/openvpn" $openvpn_conf >>$LOGDIR/$SUF:openvpn.log &
-    sleep 3  # Wait for OpenVPN to initialize and have had time to write the pid file
+    sudopid=$!
+
+    # Check if OpenVPN has initialized before continuing.  It will check every 3rd second up
+    # to $ovpn_init_check times.
+    ovpn_init_check=10
+    ovpn_init_success=0
+    while [ $ovpn_init_check -gt 0 ];
+    do
+       sleep 3  # Wait for OpenVPN to initialize and have had time to write the pid file
+       grep -q "Initialization Sequence Completed" $LOGDIR/$SUF:openvpn.log
+       if [ $? -eq 0 ]; then
+           ovpn_init_check=0
+           ovpn_init_success=1
+       fi
+       ovpn_init_check=$(( $ovpn_init_check - 1 ))
+    done
+
     opid=`cat $pidfile`
-    echo "  OpenVPN running with PID $opid"
-
-    # make sure openvpn client is terminated in case shell exits
-    trap "$RUN_SUDO $KILL_EXEC $opid" 0
-    trap "$RUN_SUDO $KILL_EXEC $opid ; trap - 0 ; exit 1" 1 2 3 15
-
-    echo "wait for connection to establish..."
-    sleep ${SETUP_TIME_WAIT:-10}
-
-    # test whether OpenVPN process is still there
-    if $RUN_SUDO $KILL_EXEC -0 $opid
-    then :
+    if [ -n "$opid" ]; then
+        echo "  OpenVPN running with PID $opid"
     else
-	fail "OpenVPN process has failed to start up, check log ($LOGDIR/$SUF:openvpn.log)."
+        echo "  Could not read OpenVPN PID file" >&2
+    fi
+
+    # If OpenVPN did not start
+    if [ $ovpn_init_success -ne 1 -o -z "$opid" ]; then
+        echo "$0:  OpenVPN did not initialize in a reasonable time" >&2
+        if [ -n "$opid" ]; then
+           $RUN_SUDO $KILL_EXEC $opid
+        fi
+        $RUN_SUDO $KILL_EXEC $sudopid
 	echo "tail -5 $SUF:openvpn.log" >&2
 	tail -5 $LOGDIR/$SUF:openvpn.log >&2
 	echo -e "\nFAIL. skip rest of sub-tests for test run $SUF.\n" >&2
@@ -322,6 +338,10 @@ do
 	exit_code=30
 	continue
     fi
+
+    # make sure openvpn client is terminated in case shell exits
+    trap "$RUN_SUDO $KILL_EXEC $opid" 0
+    trap "$RUN_SUDO $KILL_EXEC $opid ; trap - 0 ; exit 1" 1 2 3 15
 
     # compare whether anything changed in ifconfig/route setup?
     echo "save ifconfig+route"
