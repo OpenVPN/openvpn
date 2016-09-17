@@ -790,7 +790,7 @@ PKG_CHECK_MODULES(
 	[]
 )
 
-if test "${with_crypto_library}" = "openssl"; then
+if test "${enable_crypto}" = "yes" -a "${with_crypto_library}" = "openssl"; then
 	AC_ARG_VAR([OPENSSL_CFLAGS], [C compiler flags for OpenSSL])
 	AC_ARG_VAR([OPENSSL_LIBS], [linker flags for OpenSSL])
 
@@ -844,7 +844,7 @@ if test "${with_crypto_library}" = "openssl"; then
 	AC_DEFINE([ENABLE_CRYPTO_OPENSSL], [1], [Use OpenSSL library])
 	CRYPTO_CFLAGS="${OPENSSL_CFLAGS}"
 	CRYPTO_LIBS="${OPENSSL_LIBS}"
-elif test "${with_crypto_library}" = "mbedtls"; then
+elif test "${enable_crypto}" = "yes" -a "${with_crypto_library}" = "mbedtls"; then
 	AC_ARG_VAR([MBEDTLS_CFLAGS], [C compiler flags for mbedtls])
 	AC_ARG_VAR([MBEDTLS_LIBS], [linker flags for mbedtls])
 
@@ -927,7 +927,7 @@ elif test "${with_crypto_library}" = "mbedtls"; then
 	AC_DEFINE([ENABLE_CRYPTO_MBEDTLS], [1], [Use mbed TLS library])
 	CRYPTO_CFLAGS="${MBEDTLS_CFLAGS}"
 	CRYPTO_LIBS="${MBEDTLS_LIBS}"
-else
+elif test "${enable_crypto}" = "yes"; then
 	AC_MSG_ERROR([Invalid crypto library: ${with_crypto_library}])
 fi
 
