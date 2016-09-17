@@ -62,6 +62,9 @@
 #ifndef FWPM_SESSION_FLAG_DYNAMIC
 #define FWPM_SESSION_FLAG_DYNAMIC 0x00000001
 #endif
+#ifndef FWP_E_ALREADY_EXISTS
+#define FWP_E_ALREADY_EXISTS 0x80320009
+#endif
 
 // c38d57d1-05a7-4c33-904f-7fbceee60e82
 DEFINE_GUID(
@@ -317,7 +320,7 @@ typedef NETIO_STATUS *(WINAPI *func_ConvertInterfaceIndexToLuid)(
   PNET_LUID InterfaceLuid
 );
 
-typedef DWORD *(WINAPI *func_FwpmEngineOpen0)(
+typedef DWORD (WINAPI *func_FwpmEngineOpen0)(
   const wchar_t *serverName,
   UINT32 authnService,
   SEC_WINNT_AUTH_IDENTITY_W *authIdentity,
@@ -325,35 +328,41 @@ typedef DWORD *(WINAPI *func_FwpmEngineOpen0)(
   HANDLE *engineHandle
 );
 
-typedef DWORD *(WINAPI *func_FwpmEngineClose0)(
+typedef DWORD (WINAPI *func_FwpmEngineClose0)(
   HANDLE engineHandle
 );
 
-typedef DWORD *(WINAPI *func_FwpmFilterAdd0)(
+typedef DWORD (WINAPI *func_FwpmFilterAdd0)(
   HANDLE engineHandle,
   const FWPM_FILTER0 *filter,
   PSECURITY_DESCRIPTOR sd,
   UINT64 *id
 );
 
-typedef DWORD *(WINAPI *func_FwpmSubLayerAdd0)(
+typedef DWORD (WINAPI *func_FwpmSubLayerAdd0)(
   HANDLE engineHandle,
   const FWPM_SUBLAYER0 *subLayer,
   PSECURITY_DESCRIPTOR sd
 );
 
-typedef DWORD *(WINAPI *func_FwpmSubLayerDeleteByKey0)(
+typedef DWORD (WINAPI *func_FwpmSubLayerDeleteByKey0)(
   HANDLE engineHandle,
   const GUID *key
 );
 
-typedef void *(WINAPI *func_FwpmFreeMemory0)(
+typedef void (WINAPI *func_FwpmFreeMemory0)(
   void **p
 );
 
-typedef DWORD *(WINAPI *func_FwpmGetAppIdFromFileName0)(
+typedef DWORD (WINAPI *func_FwpmGetAppIdFromFileName0)(
   const wchar_t *fileName,
   FWP_BYTE_BLOB **appId
+);
+
+typedef DWORD (WINAPI *func_FwpmSubLayerGetByKey0)(
+  HANDLE engineHandle,
+  const GUID *key,
+  FWPM_SUBLAYER0 **subLayer
 );
 
 #endif
