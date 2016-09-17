@@ -51,10 +51,6 @@ matrix:
       os: osx
       osx_image: xcode7.3
       compiler: clang
-  allow_failures:
-    - env: SSLLIB="openssl" EXTRA_CONFIG="--disable-crypto"
-      os: linux
-      compiler: clang
   exclude:
     - compiler: gcc
 
