@@ -263,10 +263,14 @@ do
 	continue
     fi
 
+    pidfile="${top_builddir}/tests/$LOGDIR/openvpn-$SUF.pid"
+    openvpn_conf="$openvpn_conf --writepid $pidfile"
     echo " run openvpn $openvpn_conf"
     echo "# src/openvpn/openvpn $openvpn_conf" >$LOGDIR/$SUF:openvpn.log
     $RUN_SUDO "${top_builddir}/src/openvpn/openvpn" $openvpn_conf >>$LOGDIR/$SUF:openvpn.log &
-    opid=$!
+    sleep 3  # Wait for OpenVPN to initialize and have had time to write the pid file
+    opid=`cat $pidfile`
+    echo "  OpenVPN running with PID $opid"
 
     # make sure openvpn client is terminated in case shell exits
     trap "$RUN_SUDO kill $opid" 0
