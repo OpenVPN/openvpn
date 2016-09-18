@@ -605,7 +605,8 @@ multi_close_instance (struct multi_context *m,
 	}
 #endif
 
-      m->instances[mi->context.c2.tls_multi->peer_id] = NULL;
+      if (mi->context.c2.tls_multi->peer_id != MAX_PEER_ID)
+	m->instances[mi->context.c2.tls_multi->peer_id] = NULL;
 
       schedule_remove_entry (m->schedule, (struct schedule_entry *) mi);
 

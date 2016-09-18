@@ -595,4 +595,7 @@ struct context
 #define CIPHER_ENABLED(c) (false)
 #endif
 
+/* this represents "disabled peer-id" */
+#define MAX_PEER_ID 0xFFFFFF
+
 #endif
