@@ -24,6 +24,17 @@
  *  59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#elif defined(_MSC_VER)
+#include "config-msvc.h"
+#endif
+#ifdef HAVE_CONFIG_VERSION_H
+#include "config-version.h"
+#endif
+
+#include "syshead.h"
+
 #ifdef WIN32
 
 #include <fwpmu.h>

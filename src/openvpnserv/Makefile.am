@@ -18,7 +18,7 @@ EXTRA_DIST = \
 	openvpnserv.vcxproj.filters
 
 AM_CPPFLAGS = \
-	-I$(top_srcdir)/include -I$(top_srcdir)/src/openvpn
+	-I$(top_srcdir)/include -I$(top_srcdir)/src/openvpn -I$(top_srcdir)/src/compat
 
 if WIN32
 sbin_PROGRAMS = openvpnserv
