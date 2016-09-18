@@ -438,10 +438,12 @@ format_hex_ex (const uint8_t *data, int size, int maxoutput,
 	       unsigned int space_break_flags, const char* separator,
 	       struct gc_arena *gc)
 {
-  struct buffer out = alloc_buf_gc (maxoutput ? maxoutput :
+  int i;
+  struct buffer out;
+  ASSERT( maxoutput > 0 || separator != NULL );
+  out = alloc_buf_gc (maxoutput ? maxoutput :
 				    ((size * 2) + (size / (space_break_flags & FHE_SPACE_BREAK_MASK)) * (int) strlen (separator) + 2),
 				    gc);
-  int i;
   for (i = 0; i < size; ++i)
     {
       if (separator && i && !(i % (space_break_flags & FHE_SPACE_BREAK_MASK)))
