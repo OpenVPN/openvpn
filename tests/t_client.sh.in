@@ -308,7 +308,7 @@ do
     while [ $ovpn_init_check -gt 0 ];
     do
        sleep 3  # Wait for OpenVPN to initialize and have had time to write the pid file
-       grep -q "Initialization Sequence Completed" $LOGDIR/$SUF:openvpn.log
+       grep "Initialization Sequence Completed" $LOGDIR/$SUF:openvpn.log >/dev/null
        if [ $? -eq 0 ]; then
            ovpn_init_check=0
            ovpn_init_success=1
