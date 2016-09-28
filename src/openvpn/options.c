@@ -6659,19 +6659,11 @@ add_option (struct options *options,
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
       options->authname = p[1];
-      if (streq (options->authname, "none"))
-	{
-	  options->authname = NULL;
-	}
     }
   else if (streq (p[0], "cipher") && p[1] && !p[2])
     {
       VERIFY_PERMISSION (OPT_P_NCP);
       options->ciphername = p[1];
-      if (streq (options->ciphername, "none"))
-	{
-	  options->ciphername = NULL;
-	}
     }
   else if (streq (p[0], "ncp-ciphers") && p[1] && !p[2])
     {

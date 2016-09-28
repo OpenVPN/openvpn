@@ -2266,7 +2266,7 @@ do_init_crypto_tls_c1 (struct context *c)
 
 	  /* Initialize key_type for tls-auth with auth only */
 	  CLEAR (c->c1.ks.tls_auth_key_type);
-	  if (options->authname)
+	  if (!streq (options->authname, "none"))
 	    {
 	      c->c1.ks.tls_auth_key_type.digest = md_kt_get (options->authname);
 	      c->c1.ks.tls_auth_key_type.hmac_length =

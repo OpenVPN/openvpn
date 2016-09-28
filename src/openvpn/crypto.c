@@ -759,8 +759,11 @@ init_key_type (struct key_type *kt, const char *ciphername,
 {
   bool aead_cipher = false;
 
+  ASSERT(ciphername);
+  ASSERT(authname);
+
   CLEAR (*kt);
-  if (ciphername)
+  if (strcmp (ciphername, "none") != 0)
     {
       kt->cipher = cipher_kt_get (translate_cipher_name_from_openvpn(ciphername));
       kt->cipher_length = cipher_kt_key_size (kt->cipher);
@@ -785,7 +788,7 @@ init_key_type (struct key_type *kt, const char *ciphername,
       if (warn)
 	msg (M_WARN, "******* WARNING *******: null cipher specified, no encryption will be used");
     }
-  if (authname)
+  if (strcmp (authname, "none") != 0)
     {
       if (!aead_cipher) { /* Ignore auth for AEAD ciphers */
 	kt->digest = md_kt_get (authname);
