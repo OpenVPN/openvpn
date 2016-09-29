@@ -314,6 +314,7 @@ prepare_push_reply (struct options *o, struct tls_multi *tls_multi)
       int r = sscanf(optstr, "IV_PROTO=%d", &proto);
       if ((r == 1) && (proto >= 2))
 	{
+	  push_remove_option(o, "peer-id");
 	  push_option_fmt(o, M_USAGE, "peer-id %d", tls_multi->peer_id);
 	}
     }
@@ -337,6 +338,7 @@ prepare_push_reply (struct options *o, struct tls_multi *tls_multi)
 	   * TODO: actual negotiation, instead of server dictatorship. */
 	  char *push_cipher = string_alloc(o->ncp_ciphers, &o->gc);
 	  o->ciphername = strtok (push_cipher, ":");
+	  push_remove_option(o, "cipher");
 	  push_option_fmt(o, M_USAGE, "cipher %s", o->ciphername);
 	}
     }
@@ -525,7 +527,7 @@ push_reset (struct options *o)
 void
 push_remove_option (struct options *o, const char *p)
 {
-  msg( D_PUSH, "PUSH_REMOVE '%s'", p );
+  msg (D_PUSH_DEBUG, "PUSH_REMOVE searching for: '%s'", p);
 
   /* ifconfig-ipv6 is special, as not part of the push list */
   if ( streq( p, "ifconfig-ipv6" ))
@@ -544,7 +546,7 @@ push_remove_option (struct options *o, const char *p)
 	  if ( e->enable &&
                strncmp( e->option, p, strlen(p) ) == 0 )
 	    {
-	      msg (D_PUSH, "PUSH_REMOVE removing: '%s'", e->option);
+	      msg (D_PUSH_DEBUG, "PUSH_REMOVE removing: '%s'", e->option);
 	      e->enable = false;
 	    }
 

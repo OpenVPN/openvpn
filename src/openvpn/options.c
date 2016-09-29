@@ -5787,6 +5787,7 @@ add_option (struct options *options,
   else if (streq (p[0], "push-remove") && p[1] && !p[2])
     {
       VERIFY_PERMISSION (OPT_P_INSTANCE);
+      msg (D_PUSH, "PUSH_REMOVE '%s'", p[1]);
       push_remove_option (options,p[1]);
     }
   else if (streq (p[0], "ifconfig-pool") && p[1] && p[2] && !p[4])
