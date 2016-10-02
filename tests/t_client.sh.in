@@ -42,12 +42,6 @@ if [ $? -ne 0 ]; then
     exit 77
 fi
 
-TRUE_EXEC=`which true`
-if [ $? -ne 0 ]; then
-    echo "$0: true not found in \$PATH" >&2
-    exit 77
-fi
-
 if [ ! -x "${top_builddir}/src/openvpn/openvpn" ]
 then
     echo "no (executable) openvpn binary in current build tree. FAIL." >&2
@@ -102,7 +96,13 @@ else
         # We have to use sudo. Make sure that we (hopefully) do not have
         # to ask the users password during the test. This is done to
         # prevent timing issues, e.g. when the waits for openvpn to start
-        $RUN_SUDO $TRUE_EXEC
+	if $RUN_SUDO $KILL_EXEC -0 $$
+	then
+	    echo "$0: $RUN_SUDO $KILL_EXEC -0 succeeded, good."
+	else
+	    echo "$0: $RUN_SUDO $KILL_EXEC -0 failed, cannot go on. SKIP." >&2
+	    exit 77
+	fi
     fi
 fi
 
