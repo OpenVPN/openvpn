@@ -271,6 +271,12 @@ do
     eval ping4_hosts=\"\$PING4_HOSTS_$SUF\"
     eval ping6_hosts=\"\$PING6_HOSTS_$SUF\"
 
+    # If EXCEPT_IFCONFIG* variables for this test are missing, run an --up
+    # script to generate them dynamically.
+    if [ -z "$expect_ifconfig4" ] || [ -z "$expect_ifconfig6" ]; then
+        up="--setenv TESTNUM $SUF --setenv TOP_BUILDDIR ${top_builddir} --script-security 2 --up ${top_builddir}/tests/update_t_client_ips.sh"
+    fi
+
     echo -e "\n### test run $SUF: '$test_run_title' ###\n"
     fail_count=0
 
@@ -294,7 +300,7 @@ do
     fi
 
     pidfile="${top_builddir}/tests/$LOGDIR/openvpn-$SUF.pid"
-    openvpn_conf="$openvpn_conf --writepid $pidfile"
+    openvpn_conf="$openvpn_conf --writepid $pidfile $up"
     echo " run openvpn $openvpn_conf"
     echo "# src/openvpn/openvpn $openvpn_conf" >$LOGDIR/$SUF:openvpn.log
     umask 022
