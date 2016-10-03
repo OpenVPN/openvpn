@@ -11,6 +11,14 @@ top_srcdir="${top_srcdir:-..}"
 CA_CERT="${top_srcdir}/sample/sample-keys/ca.crt"
 CLIENT_KEY="${top_srcdir}/sample/sample-keys/client.key"
 CLIENT_CERT="${top_srcdir}/sample/sample-keys/client.crt"
+
+# Load EXPECT_IFCONFIG* parameters from cache
+if [ -r "${top_srcdir}/t_client_ips.rc" ]; then
+    . "${top_srcdir}/t_client_ips.rc"
+else
+    echo "NOTICE: missing t_client_ips.rc will be auto-generated"
+fi
+
 #
 # remote host (used as macro below)
 #
@@ -58,8 +66,6 @@ OPENVPN_BASE_P2P="..."
 #
 RUN_TITLE_1="testing tun/udp/ipv4+ipv6"
 OPENVPN_CONF_1="$OPENVPN_BASE_P2MP --dev tun --proto udp --remote $REMOTE --port 51194"
-EXPECT_IFCONFIG4_1="10.100.50.6"
-EXPECT_IFCONFIG6_1="2001:db8:a050::1:0"
 PING4_HOSTS_1="10.100.50.1 10.100.0.1"
 PING6_HOSTS_1="2001:db8::1 2001:db8:a050::1"
 
@@ -67,8 +73,6 @@ PING6_HOSTS_1="2001:db8::1 2001:db8:a050::1"
 #
 RUN_TITLE_2="testing tun/tcp/ipv4+ipv6"
 OPENVPN_CONF_2="$OPENVPN_BASE_P2MP --dev tun --proto tcp --remote $REMOTE --port 51194"
-EXPECT_IFCONFIG4_2="10.100.51.6"
-EXPECT_IFCONFIG6_2="2001:db8:a051::1:0"
 PING4_HOSTS_2="10.100.51.1 10.100.0.1"
 PING6_HOSTS_2="2001:db8::1 2001:db8:a051::1"
 
