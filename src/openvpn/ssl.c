@@ -267,7 +267,7 @@ tls_get_cipher_name_pair (const char * cipher_name, size_t len) {
       pair++;
   }
 
-  // No entry found, return NULL
+  /* No entry found, return NULL */
   return NULL;
 }
 

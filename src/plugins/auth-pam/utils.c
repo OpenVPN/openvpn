@@ -59,7 +59,7 @@ searchandreplace(const char *tosearch, const char *searchfor, const char *replac
        return NULL;
   }
 
-  // state: all parameters are valid
+  /* state: all parameters are valid */
 
   const char *searching=tosearch;
   char *scratch;
