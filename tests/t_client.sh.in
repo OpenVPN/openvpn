@@ -263,6 +263,7 @@ for SUF in $TEST_RUN_LIST
 do
     # get config variables
     eval test_prep=\"\$PREPARE_$SUF\"
+    eval test_postinit=\"\$POSTINIT_CMD_$SUF\"
     eval test_cleanup=\"\$CLEANUP_$SUF\"
     eval test_run_title=\"\$RUN_TITLE_$SUF\"
     eval openvpn_conf=\"\$OPENVPN_CONF_$SUF\"
@@ -360,6 +361,12 @@ do
 	fail "no differences between ifconfig/route before OpenVPN start and now."
     else
 	echo -e " OK!\n"
+    fi
+
+    # post init script needed?
+    if [ -n "$test_postinit" ]; then
+        echo -e "running post-init cmd: '$test_postinit'"
+        eval $test_postinit
     fi
 
     # expected ifconfig values in there?

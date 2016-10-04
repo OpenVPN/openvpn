@@ -75,6 +75,9 @@ RUN_TITLE_2="testing tun/tcp/ipv4+ipv6"
 OPENVPN_CONF_2="$OPENVPN_BASE_P2MP --dev tun --proto tcp --remote $REMOTE --port 51194"
 PING4_HOSTS_2="10.100.51.1 10.100.0.1"
 PING6_HOSTS_2="2001:db8::1 2001:db8:a051::1"
+#
+# run command after openvpn initialization is done - here: delay 5 seconds
+POSTINIT_CMD_2="sleep 5"
 
 # Test 3: UDP / p2p tun
 # ...
