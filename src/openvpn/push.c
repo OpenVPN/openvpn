@@ -407,6 +407,20 @@ push_reset (struct options *o)
 }
 #endif
 
+static void
+push_update_digest(struct md5_state *ctx, struct buffer *buf)
+{
+  char line[OPTION_PARM_SIZE];
+  while (buf_parse (buf, ',', line, sizeof (line)))
+    {
+      /* peer-id might change on restart and this should not trigger reopening tun */
+      if (strstr (line, "peer-id ") != line)
+	{
+	  md5_state_update (ctx, line, strlen(line));
+	}
+    }
+}
+
 int
 process_incoming_push_msg (struct context *c,
 			   const struct buffer *buffer,
@@ -473,20 +487,21 @@ process_incoming_push_msg (struct context *c,
 				  permission_mask,
 				  option_types_found,
 				  c->c2.es))
-	    switch (c->options.push_continuation)
-	      {
-	      case 0:
-	      case 1:
-		md5_state_update (&c->c2.pulled_options_state, BPTR(&buf_orig), BLEN(&buf_orig));
-		md5_state_final (&c->c2.pulled_options_state, &c->c2.pulled_options_digest);
-	        c->c2.pulled_options_md5_init_done = false;
-		ret = PUSH_MSG_REPLY;
-		break;
-	      case 2:
-		md5_state_update (&c->c2.pulled_options_state, BPTR(&buf_orig), BLEN(&buf_orig));
-		ret = PUSH_MSG_CONTINUATION;
-		break;
-	      }
+	    {
+	      push_update_digest (&c->c2.pulled_options_state, &buf_orig);
+	      switch (c->options.push_continuation)
+		{
+		  case 0:
+		  case 1:
+		    md5_state_final (&c->c2.pulled_options_state, &c->c2.pulled_options_digest);
+		    c->c2.pulled_options_md5_init_done = false;
+		    ret = PUSH_MSG_REPLY;
+		    break;
+		  case 2:
+		    ret = PUSH_MSG_CONTINUATION;
+		    break;
+		}
+	    }
 	}
       else if (ch == '\0')
 	{
