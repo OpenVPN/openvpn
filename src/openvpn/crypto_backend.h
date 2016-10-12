@@ -195,7 +195,8 @@ void cipher_des_encrypt_ecb (const unsigned char key[DES_KEY_LENGTH],
  * 			\c AES-128-CBC).
  *
  * @return		A statically allocated structure containing parameters
- * 			for the given cipher.
+ * 			for the given cipher, or NULL if no matching parameters
+ * 			were found.
  */
 const cipher_kt_t * cipher_kt_get (const char *ciphername);
 

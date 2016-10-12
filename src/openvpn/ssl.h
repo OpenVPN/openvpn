@@ -503,6 +503,15 @@ tls_get_peer_info(const struct tls_multi *multi)
  */
 int tls_peer_info_ncp_ver(const char *peer_info);
 
+/**
+ * Check whether the ciphers in the supplied list are supported.
+ *
+ * @param list		Colon-separated list of ciphers
+ *
+ * @returns true iff all ciphers in list are supported.
+ */
+bool tls_check_ncp_cipher_list(const char *list);
+
 /*
  * inline functions
  */

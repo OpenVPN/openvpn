@@ -2208,6 +2208,11 @@ options_postprocess_verify_ce (const struct options *options, const struct conne
 
 #ifdef ENABLE_CRYPTO
 
+  if (options->ncp_enabled && !tls_check_ncp_cipher_list(options->ncp_ciphers))
+    {
+      msg (M_USAGE, "NCP cipher list contains unsupported ciphers.");
+    }
+
   /*
    * Check consistency of replay options
    */

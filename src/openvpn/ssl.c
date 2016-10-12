@@ -3714,6 +3714,28 @@ tls_peer_info_ncp_ver(const char *peer_info)
   return 0;
 }
 
+bool
+tls_check_ncp_cipher_list(const char *list) {
+  bool unsupported_cipher_found = false;
+
+  ASSERT (list);
+
+  char * const tmp_ciphers = string_alloc (list, NULL);
+  const char *token = strtok (tmp_ciphers, ":");
+  while (token)
+    {
+      if (!cipher_kt_get (translate_cipher_name_from_openvpn (token)))
+	{
+	  msg (M_WARN, "Unsupported cipher in --ncp-ciphers: %s", token);
+	  unsupported_cipher_found = true;
+	}
+      token = strtok (NULL, ":");
+    }
+  free (tmp_ciphers);
+
+  return 0 < strlen(list) && !unsupported_cipher_found;
+}
+
 /*
  * Dump a human-readable rendition of an openvpn packet
  * into a garbage collectable string which is returned.

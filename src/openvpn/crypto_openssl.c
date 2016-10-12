@@ -504,13 +504,20 @@ cipher_kt_get (const char *ciphername)
   cipher = EVP_get_cipherbyname (ciphername);
 
   if (NULL == cipher)
-    crypto_msg (M_FATAL, "Cipher algorithm '%s' not found", ciphername);
+    {
+      crypto_msg (D_LOW, "Cipher algorithm '%s' not found", ciphername);
+      return NULL;
+    }
+
 
   if (EVP_CIPHER_key_length (cipher) > MAX_CIPHER_KEY_LENGTH)
-    msg (M_FATAL, "Cipher algorithm '%s' uses a default key size (%d bytes) which is larger than " PACKAGE_NAME "'s current maximum key size (%d bytes)",
-	 ciphername,
-	 EVP_CIPHER_key_length (cipher),
-	 MAX_CIPHER_KEY_LENGTH);
+    {
+      msg (D_LOW, "Cipher algorithm '%s' uses a default key size (%d bytes) "
+	  "which is larger than " PACKAGE_NAME "'s current maximum key size "
+	  "(%d bytes)", ciphername, EVP_CIPHER_key_length (cipher),
+	  MAX_CIPHER_KEY_LENGTH);
+      return NULL;
+    }
 
   return cipher;
 }

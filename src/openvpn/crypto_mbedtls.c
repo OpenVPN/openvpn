@@ -384,13 +384,18 @@ cipher_kt_get (const char *ciphername)
   cipher = mbedtls_cipher_info_from_string(ciphername);
 
   if (NULL == cipher)
-    msg (M_FATAL, "Cipher algorithm '%s' not found", ciphername);
+    {
+      msg (D_LOW, "Cipher algorithm '%s' not found", ciphername);
+      return NULL;
+    }
 
   if (cipher->key_bitlen/8 > MAX_CIPHER_KEY_LENGTH)
-    msg (M_FATAL, "Cipher algorithm '%s' uses a default key size (%d bytes) which is larger than " PACKAGE_NAME "'s current maximum key size (%d bytes)",
-	 ciphername,
-	 cipher->key_bitlen/8,
-	 MAX_CIPHER_KEY_LENGTH);
+    {
+      msg (D_LOW, "Cipher algorithm '%s' uses a default key size (%d bytes) "
+	  "which is larger than " PACKAGE_NAME "'s current maximum key size "
+	  "(%d bytes)", ciphername, cipher->key_bitlen/8, MAX_CIPHER_KEY_LENGTH);
+      return NULL;
+    }
 
   return cipher;
 }
