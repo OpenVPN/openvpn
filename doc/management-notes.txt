@@ -168,9 +168,12 @@ be reset by restarts.
 
 OpenVPN will indicate that it is in a hold state by
 sending a real-time notification to the management
-client:
+client, the parameter indicates how long OpenVPN would
+wait without UI (as influenced by connect-retry exponential
+backoff). The UI needs to wait for releasing the hold if it
+wants similar behavior:
 
-  >HOLD:Waiting for hold release
+  >HOLD:Waiting for hold release:10
 
 Command examples:
 

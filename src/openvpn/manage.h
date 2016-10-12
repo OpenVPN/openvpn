@@ -396,7 +396,7 @@ int managment_android_persisttun_action (struct management *man);
 
 bool management_should_daemonize (struct management *man);
 bool management_would_hold (struct management *man);
-bool management_hold (struct management *man);
+bool management_hold (struct management *man, int holdtime);
 
 void management_event_loop_n_seconds (struct management *man, int sec);
 

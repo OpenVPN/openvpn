@@ -1960,16 +1960,17 @@ do_deferred_options (struct context *c, const unsigned int found)
 }
 
 /*
- * Possible hold on initialization
+ * Possible hold on initialization, holdtime is the
+ * time OpenVPN would wait without management
  */
 static bool
-do_hold (void)
+do_hold (int holdtime)
 {
 #ifdef ENABLE_MANAGEMENT
   if (management)
     {
       /* block until management hold is released */
-      if (management_hold (management))
+        if (management_hold (management, holdtime))
 	return true;
     }
 #endif
@@ -2027,8 +2028,10 @@ socket_restart_pause (struct context *c)
   c->persist.restart_sleep_seconds = 0;
 
   /* do managment hold on context restart, i.e. second, third, fourth, etc. initialization */
-  if (do_hold ())
+  if (do_hold (sec))
+  {
     sec = 0;
+  }
 
   if (sec)
     {
@@ -2046,7 +2049,7 @@ do_startup_pause (struct context *c)
   if (!c->first_time)
     socket_restart_pause (c);
   else
-    do_hold (); /* do management hold on first context initialization */
+    do_hold (0); /* do management hold on first context initialization */
 }
 
 /*
@@ -3431,7 +3434,7 @@ open_management (struct context *c)
 	    }
 
 	  /* initial management hold, called early, before first context initialization */
-	  do_hold ();
+	  do_hold (0);
 	  if (IS_SIG (c))
 	    {
 	      msg (M_WARN, "Signal received from management interface, exiting");

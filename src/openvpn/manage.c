@@ -3332,12 +3332,13 @@ management_should_daemonize (struct management *man)
  * Return true if the caller should not sleep for an additional time interval.
  */
 bool
-management_hold (struct management *man)
+management_hold (struct management *man, int holdtime)
 {
   if (management_would_hold (man))
     {
       volatile int signal_received = 0;
       const bool standalone_disabled_save = man->persist.standalone_disabled;
+      struct gc_arena gc = gc_new ();
 
       man->persist.standalone_disabled = false; /* This is so M_CLIENT messages will be correctly passed through msg() */
       man->persist.special_state_msg = NULL;
@@ -3347,7 +3348,9 @@ management_hold (struct management *man)
 
       if (!signal_received)
 	{
-	  man->persist.special_state_msg = ">HOLD:Waiting for hold release";
+	  struct buffer out = alloc_buf_gc (128, &gc);
+	  buf_printf (&out, ">HOLD:Waiting for hold release:%d", holdtime);
+	  man->persist.special_state_msg = BSTR (&out);
 	  msg (M_CLIENT, "%s", man->persist.special_state_msg);
 
 	  /* run command processing event loop until we get our username/password */
@@ -3366,6 +3369,7 @@ management_hold (struct management *man)
       man->persist.special_state_msg = NULL;
       man->settings.mansig &= ~MANSIG_IGNORE_USR1_HUP;
 
+      gc_free (&gc);
       return true;
     }
   return false;
