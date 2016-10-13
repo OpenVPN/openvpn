@@ -66,24 +66,6 @@
 #define CRYPT_ERROR(format) \
   do { msg (D_CRYPT_ERRORS, "%s: " format, error_prefix); goto error_exit; } while (false)
 
-/**
- * As memcmp(), but constant-time.
- * Returns 0 when data is equal, non-zero otherwise.
- */
-static int
-memcmp_constant_time (const void *a, const void *b, size_t size) {
-  const uint8_t * a1 = a;
-  const uint8_t * b1 = b;
-  int ret = 0;
-  size_t i;
-
-  for (i = 0; i < size; i++) {
-      ret |= *a1++ ^ *b1++;
-  }
-
-  return ret;
-}
-
 static void
 openvpn_encrypt_aead (struct buffer *buf, struct buffer work,
 	 struct crypto_options *opt) {
