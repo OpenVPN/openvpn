@@ -1718,10 +1718,11 @@ add_route_ipv6 (struct route_ipv6 *r6, const struct tuntap *tt, unsigned int fla
     }
 #endif
 
-  if ( !tt->ipv6 )
+  if (!tt->did_ifconfig_ipv6_setup)
     {
-      msg( M_INFO, "add_route_ipv6(): not adding %s/%d, no IPv6 on if %s",
-		    network, r6->netbits, device );
+      msg( M_INFO, "add_route_ipv6(): not adding %s/%d: "
+           "no IPv6 address been configured on interface %s",
+           network, r6->netbits, device);
       return;
     }
 
@@ -2147,13 +2148,6 @@ delete_route_ipv6 (const struct route_ipv6 *r6, const struct tuntap *tt, unsigne
       gateway = tmp;
     }
 #endif
-
-  if ( !tt->ipv6 )
-    {
-      msg( M_INFO, "delete_route_ipv6(): not deleting %s/%d, no IPv6 on if %s",
-		    network, r6->netbits, device );
-      return;
-    }
 
   msg( M_INFO, "delete_route_ipv6(%s/%d)", network, r6->netbits );
 

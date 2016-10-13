@@ -1400,9 +1400,6 @@ do_init_tun (struct context *c)
 			   !c->options.ifconfig_nowarn,
 			   c->c2.es);
 
-  /* flag tunnel for IPv6 config if --tun-ipv6 is set */
-  c->c1.tuntap->ipv6 = c->options.tun_ipv6;
-
   init_tun_post (c->c1.tuntap,
 		 &c->c2.frame,
 		 &c->options.tuntap_options);
@@ -1419,9 +1416,6 @@ do_open_tun (struct context *c)
 {
   struct gc_arena gc = gc_new ();
   bool ret = false;
-
-  c->c2.ipv4_tun = (!c->options.tun_ipv6
-		    && is_dev_type (c->options.dev, c->options.dev_type, "tun"));
 
 #ifndef TARGET_ANDROID
   if (!c->c1.tuntap)

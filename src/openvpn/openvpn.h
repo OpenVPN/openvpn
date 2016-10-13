@@ -390,11 +390,6 @@ struct context_2
   struct buffer to_tun;
   struct buffer to_link;
 
-  /*
-   * IPv4 TUN device?
-   */
-  bool ipv4_tun;
-
   /* should we print R|W|r|w to console on packet transfers? */
   bool log_rw;
 

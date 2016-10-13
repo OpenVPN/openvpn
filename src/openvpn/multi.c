@@ -1378,8 +1378,7 @@ multi_select_virtual_addr (struct multi_context *m, struct multi_instance *mi)
        * (see below) so issue a warning if that happens - don't break the
        * session, though, as we don't even know if this client WANTS IPv6
        */
-      if ( mi->context.c1.tuntap->ipv6 &&
-	   mi->context.options.ifconfig_ipv6_pool_defined &&
+      if ( mi->context.options.ifconfig_ipv6_pool_defined &&
 	   ! mi->context.options.push_ifconfig_ipv6_defined )
 	{
 	  msg( M_INFO, "MULTI_sva: WARNING: if --ifconfig-push is used for IPv4, automatic IPv6 assignment from --ifconfig-ipv6-pool does not work.  Use --ifconfig-ipv6-push for IPv6 then." );
@@ -1452,8 +1451,7 @@ multi_select_virtual_addr (struct multi_context *m, struct multi_instance *mi)
    * way round ("dynamic IPv4, static IPv6") or "both static" makes sense
    * -> and so it's implemented right now
    */
-  if ( mi->context.c1.tuntap->ipv6 &&
-       mi->context.options.push_ifconfig_ipv6_defined )
+  if ( mi->context.options.push_ifconfig_ipv6_defined )
     {
       mi->context.c2.push_ifconfig_ipv6_local = 
 	    mi->context.options.push_ifconfig_ipv6_local;
@@ -1511,7 +1509,7 @@ multi_set_virtual_addr_env (struct multi_context *m, struct multi_instance *mi)
   setenv_del (mi->context.c2.es, "ifconfig_pool_remote_ip6");
   setenv_del (mi->context.c2.es, "ifconfig_pool_ip6_netbits");
 
-  if (mi->context.c1.tuntap->ipv6 && mi->context.c2.push_ifconfig_ipv6_defined)
+  if (mi->context.c2.push_ifconfig_ipv6_defined)
     {
       setenv_in6_addr (mi->context.c2.es,
                        "ifconfig_pool_remote",

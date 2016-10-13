@@ -175,7 +175,6 @@ static const char usage_message[] =
   "                  /dev/net/tun, /dev/tun, /dev/tap, etc.\n"
   "--lladdr hw     : Set the link layer address of the tap device.\n"
   "--topology t    : Set --dev tun topology: 'net30', 'p2p', or 'subnet'.\n"
-  "--tun-ipv6      : Build tun link capable of forwarding IPv6 traffic.\n"
 #ifdef ENABLE_IPROUTE
   "--iproute cmd   : Use this command instead of default " IPROUTE_PATH ".\n"
 #endif
@@ -1500,7 +1499,6 @@ show_settings (const struct options *o)
   SHOW_STR (dev_node);
   SHOW_STR (lladdr);
   SHOW_INT (topology);
-  SHOW_BOOL (tun_ipv6);
   SHOW_STR (ifconfig_local);
   SHOW_STR (ifconfig_remote_netmask);
   SHOW_BOOL (ifconfig_noexec);
@@ -2103,10 +2101,6 @@ options_postprocess_verify_ce (const struct options *options, const struct conne
                   options->connection_list->array[0]->remote)
           msg (M_USAGE, "<connection> cannot be used with --mode server");
 
-#if 0
-      if (options->tun_ipv6)
-	msg (M_USAGE, "--tun-ipv6 cannot be used with --mode server");
-#endif
       if (options->shaper)
 	msg (M_USAGE, "--shaper cannot be used with --mode server");
       if (options->inetd)
@@ -2130,9 +2124,6 @@ options_postprocess_verify_ce (const struct options *options, const struct conne
 	msg (M_USAGE, "--ifconfig-pool-persist must be used with --ifconfig-pool");
       if (options->ifconfig_ipv6_pool_defined && !options->ifconfig_ipv6_local )
 	msg (M_USAGE, "--ifconfig-ipv6-pool needs --ifconfig-ipv6");
-      if (options->ifconfig_ipv6_local && !options->tun_ipv6 )
-	msg (M_INFO, "Warning: --ifconfig-ipv6 without --tun-ipv6 will not do IPv6");
-
       if (options->auth_user_pass_file)
 	msg (M_USAGE, "--auth-user-pass cannot be used with --mode server (it should be used on the client side only)");
       if (options->ccd_exclusive && !options->client_config_dir)
@@ -3081,7 +3072,7 @@ options_string (const struct options *o,
   /* send tun_ipv6 only in peer2peer mode - in client/server mode, it
    * is usually pushed by the server, triggering a non-helpful warning
    */
-  if (o->tun_ipv6 && o->mode == MODE_POINT_TO_POINT && !PULL_DEFINED(o))
+  if (o->ifconfig_ipv6_local && o->mode == MODE_POINT_TO_POINT && !PULL_DEFINED(o))
     buf_printf (&out, ",tun-ipv6");
 
   /*
@@ -4582,7 +4573,7 @@ add_option (struct options *options,
   else if (streq (p[0], "tun-ipv6") && !p[1])
     {
       VERIFY_PERMISSION (OPT_P_UP);
-      options->tun_ipv6 = true;
+      msg (M_WARN, "Note: option tun-ipv6 is ignored because modern operating systems do not need special IPv6 tun handling anymore.");
     }
 #ifdef ENABLE_IPROUTE
   else if (streq (p[0], "iproute") && p[1] && !p[2])

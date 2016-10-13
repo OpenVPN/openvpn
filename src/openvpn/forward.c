@@ -391,7 +391,7 @@ check_fragment_dowork (struct context *c)
   struct link_socket_info *lsi = get_link_socket_info (c);
 
   /* OS MTU Hint? */
-  if (lsi->mtu_changed && c->c2.ipv4_tun)
+  if (lsi->mtu_changed)
     {
       frame_adjust_path_mtu (&c->c2.frame_fragment, c->c2.link_socket->mtu,
 			     c->options.ce.proto);

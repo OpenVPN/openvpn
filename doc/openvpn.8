@@ -797,18 +797,6 @@ changes the interpretation of the arguments of
 to mean "address netmask", no longer "local remote".
 .\"*********************************************************
 .TP
-.B \-\-tun\-ipv6
-Build a tun link capable of forwarding IPv6 traffic.
-Should be used in conjunction with
-.B \-\-dev tun
-or
-.B \-\-dev tunX.
-A warning will be displayed
-if no specific IPv6 TUN support for your OS has been compiled into OpenVPN.
-
-See below for further IPv6-related configuration options.
-.\"*********************************************************
-.TP
 .B \-\-dev\-node node
 Explicitly set the device node rather than using
 /dev/net/tun, /dev/tun, /dev/tap, etc.  If OpenVPN
@@ -3600,7 +3588,7 @@ Clients that connect with options that are incompatible
 with those of the server will be disconnected.
 
 Options that will be compared for compatibility include
-dev\-type, link\-mtu, tun\-mtu, proto, tun\-ipv6, ifconfig,
+dev\-type, link\-mtu, tun\-mtu, proto, ifconfig,
 comp\-lzo, fragment, keydir, cipher, auth, keysize, secret,
 no\-replay, no\-iv, tls\-auth, key\-method, tls\-server, and tls\-client.
 
@@ -5870,10 +5858,13 @@ is used.
 .B \-\-server\-ipv6 ipv6addr/bits
 convenience-function to enable a number of IPv6 related options at
 once, namely
-.B \-\-ifconfig\-ipv6, \-\-ifconfig\-ipv6\-pool, \-\-tun\-ipv6
+.B \-\-ifconfig\-ipv6, \-\-ifconfig\-ipv6\-pool
 and
 .B \-\-push tun\-ipv6
-Is only accepted if ``\-\-mode server'' or ``\-\-server'' is set.
+Is only accepted if ``\-\-mode server'' or ``\-\-server'' is set. Pushing of the
+.B \-\-tun\-ipv6
+directive is done for older clients which require an explicit
+``\-\-tun\-ipv6'' in their configuration.
 .TP
 .B \-\-ifconfig\-ipv6\-pool ipv6addr/bits
 Specify an IPv6 address pool for dynamic assignment to clients.  The

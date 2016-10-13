@@ -200,8 +200,6 @@ helper_client_server (struct options *o)
 		add_in6_addr( o->server_network_ipv6, 0x1000 );
 	o->ifconfig_ipv6_pool_netbits = o->server_netbits_ipv6;
 
-	o->tun_ipv6 = true;
-
 	push_option( o, "tun-ipv6", M_USAGE );
      }
 
