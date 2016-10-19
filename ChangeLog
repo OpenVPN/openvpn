@@ -1,6 +1,15 @@
 OpenVPN Change Log
 Copyright (C) 2002-2016 OpenVPN Technologies, Inc. <sales@openvpn.net>
 
+2016.10.19 -- Version 2.4_alpha2
+
+David Sommerseth (1):
+      Update .mailmap to unify and clean up odd names and e-mail addresses
+
+Steffan Karger (1):
+      Fix use-after-free bug in prepare_push_reply()
+
+
 2016.10.17 -- Version 2.4_alpha1
 
 Adriaan de Jong (2):
