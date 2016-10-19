@@ -421,8 +421,6 @@ send_push_reply (struct context *c, struct push_list *per_client_push_list)
   const int safe_cap = BCAP (&buf) - extra;
   bool push_sent = false;
 
-  msg( M_INFO, "send_push_reply(): safe_cap=%d", safe_cap );
-
   buf_printf (&buf, "%s", push_reply_cmd);
 
   /* send options which are common to all clients */
