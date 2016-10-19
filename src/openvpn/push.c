@@ -366,7 +366,7 @@ prepare_push_reply (struct context *c, struct gc_arena *gc,
 	{
 	  /* Push the first cipher from --ncp-ciphers to the client.
 	   * TODO: actual negotiation, instead of server dictatorship. */
-	  char *push_cipher = string_alloc(o->ncp_ciphers, gc);
+	  char *push_cipher = string_alloc(o->ncp_ciphers, &o->gc);
 	  o->ciphername = strtok (push_cipher, ":");
 	  push_option_fmt(gc, push_list, M_USAGE, "cipher %s", o->ciphername);
 	}
