@@ -8,9 +8,10 @@ Documentation=https://community.openvpn.net/openvpn/wiki/HOWTO
 
 [Service]
 PrivateTmp=true
-Type=forking
-PIDFile=/var/run/openvpn/client_%i.pid
-ExecStart=/usr/sbin/openvpn --cd /etc/openvpn/client --config %i.conf --daemon --writepid /var/run/openvpn/client_%i.pid
+RuntimeDirectory=openvpn
+RuntimeDirectoryMode=0710
+WorkingDirectory=/etc/openvpn/client
+ExecStart=/usr/sbin/openvpn --config %i.conf --suppress-timestamps
 CapabilityBoundingSet=CAP_IPC_LOCK CAP_NET_ADMIN CAP_NET_BIND_SERVICE CAP_NET_RAW CAP_SETGID CAP_SETUID CAP_SYS_CHROOT CAP_DAC_READ_SEARCH
 LimitNPROC=10
 DeviceAllow=/dev/null rw
