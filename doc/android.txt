@@ -1,7 +1,7 @@
 This file documents the support in OpenVPN for Android 4.0 and up.
 
 This support is primarily used in the "OpenVPN for Android" app
-(http://code.google.com/p/ics-openvpn/). For building see the developer
+(https://github.com/schwabe/ics-openvpn). For building see the developer
 README: https://github.com/schwabe/ics-openvpn/blob/master/doc/README.txt
 
 Android provides the VPNService API
