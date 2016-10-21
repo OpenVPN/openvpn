@@ -868,6 +868,13 @@ create_socket (struct link_socket* sock, struct addrinfo* addr)
     /* set socket to --mark packets with given value */
     socket_set_mark (sock->sd, sock->mark);
 
+#ifdef TARGET_LINUX
+  if (sock->outer_vrf)
+    {
+      setsockopt (sock->sd, SOL_SOCKET, SO_BINDTODEVICE, sock->outer_vrf, strlen (sock->outer_vrf) + 1);
+    }
+#endif
+
     bind_local (sock, addr->ai_family);
 }
 
@@ -1525,7 +1532,8 @@ link_socket_init_phase1 (struct link_socket *sock,
 			 int sndbuf,
 			 int mark,
 			 struct event_timeout* server_poll_timeout,
-			 unsigned int sockflags)
+			 unsigned int sockflags,
+			 const char *outer_vrf)
 {
   ASSERT (sock);
 
@@ -1550,6 +1558,7 @@ link_socket_init_phase1 (struct link_socket *sock,
 
   sock->sockflags = sockflags;
   sock->mark = mark;
+  sock->outer_vrf = outer_vrf;
 
   sock->info.proto = proto;
   sock->info.af = af;

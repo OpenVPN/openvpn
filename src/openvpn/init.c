@@ -2856,7 +2856,8 @@ do_init_socket_1 (struct context *c, const int mode)
 			   c->options.sndbuf,
 			   c->options.mark,
 			   &c->c2.server_poll_interval,
-			   sockflags);
+			   sockflags,
+			   c->options.outer_vrf);
 }
 
 /*

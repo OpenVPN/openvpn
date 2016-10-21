@@ -167,6 +167,8 @@ static const char usage_message[] =
                    " or --socks-proxy"
                    " is used).\n"
   "--nobind        : Do not bind to local address and port.\n"
+  "--outer-vrf vrf : Bind to the given VRF when making connection to a peer/\n"
+  "                  listening for connections. (Linux only)\n"
   "--dev tunX|tapX : tun/tap device (X can be omitted for dynamic device.\n"
   "--dev-type dt   : Which device type are we using? (dt = tun or tap) Use\n"
   "                  this option only if the tun/tap device used with --dev\n"
@@ -5128,6 +5130,13 @@ add_option (struct options *options,
 	    msg (msglevel, "unknown socket flag: %s", p[j]);	    
 	}
     }
+#ifdef TARGET_LINUX
+  else if (streq (p[0], "outer-vrf") && p[1])
+    {
+      VERIFY_PERMISSION (OPT_P_SOCKFLAGS);
+      options->outer_vrf = p[1];
+    }
+#endif
   else if (streq (p[0], "txqueuelen") && p[1] && !p[2])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
