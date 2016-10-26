@@ -49,6 +49,14 @@ openssl pkcs12 -export -nodes -password pass:password \
     -out sample-ca/client.p12 -inkey sample-ca/client.key \
     -in sample-ca/client.crt -certfile sample-ca/ca.crt
 
+# Create a client cert, revoke it, generate CRL
+openssl req -new -nodes -config openssl.cnf \
+    -keyout sample-ca/client-revoked.key -out sample-ca/client-revoked.csr \
+    -subj "/C=KG/ST=NA/O=OpenVPN-TEST/CN=client-revoked/emailAddress=me@myhost.mydomain"
+openssl ca -batch -config openssl.cnf \
+    -out sample-ca/client-revoked.crt -in sample-ca/client-revoked.csr
+openssl ca -config openssl.cnf -revoke sample-ca/client-revoked.crt
+openssl ca -config openssl.cnf -gencrl -out sample-ca/ca.crl
 
 # Create EC server and client cert (signed by 'regular' RSA CA)
 openssl ecparam -out sample-ca/secp256k1.pem -name secp256k1
@@ -73,3 +81,4 @@ openssl dhparam -out dh2048.pem 2048
 cp sample-ca/*.key .
 cp sample-ca/*.crt .
 cp sample-ca/*.p12 .
+cp sample-ca/*.crl .
