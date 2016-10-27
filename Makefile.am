@@ -74,12 +74,6 @@ dist_noinst_DATA = \
 	msvc-dev.bat \
 	msvc-build.bat
 
-if WIN32
-dist_doc_DATA += INSTALL-win32.txt
-else
-dist_noinst_DATA += INSTALL-win32.txt
-endif
-
 dist_noinst_HEADERS = \
 	config-msvc.h \
 	config-msvc-version.h.in

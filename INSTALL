@@ -12,10 +12,6 @@ QUICK START:
   Unix:
     ./configure && make && make-install
 
-  Cross-compile for Windows on Unix
-
-    See INSTALL-win32.txt
-
 *************************************************************************
 
 To download OpenVPN, go to:

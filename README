@@ -39,9 +39,6 @@ For a description of OpenVPN's underlying protocol,
 
 Other Files & Directories:
 
-* INSTALL-win32.txt -- installation instructions
-  for Windows
-
 * configure.ac -- script to rebuild our configure
   script and makefile.
 
