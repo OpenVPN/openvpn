@@ -40,18 +40,12 @@ struct argv {
   char *system_str;
 };
 
-void argv_init (struct argv *a);
 struct argv argv_new (void);
 void argv_reset (struct argv *a);
-char *argv_term (const char **f);
 const char *argv_str (const struct argv *a, struct gc_arena *gc, const unsigned int flags);
 struct argv argv_insert_head (const struct argv *a, const char *head);
 void argv_msg (const int msglev, const struct argv *a);
 void argv_msg_prefix (const int msglev, const struct argv *a, const char *prefix);
-const char *argv_system_str (const struct argv *a);
-
-#define APA_CAT (1<<0) /* concatentate onto existing struct argv list */
-void argv_printf_arglist (struct argv *a, const char *format, const unsigned int flags, va_list arglist);
 
 void argv_printf (struct argv *a, const char *format, ...)
 #ifdef __GNUC__

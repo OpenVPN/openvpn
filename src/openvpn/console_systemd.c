@@ -60,9 +60,8 @@ get_console_input_systemd (const char *prompt, const bool echo, char *input, con
 {
     int std_out;
     bool ret = false;
-    struct argv argv;
+    struct argv argv = argv_new ();
 
-    argv_init (&argv);
     argv_printf (&argv, SYSTEMD_ASK_PASSWORD_PATH);
 #ifdef SYSTEMD_NEWER_THAN_216
     /* the --echo support arrived in upstream systemd 217 */

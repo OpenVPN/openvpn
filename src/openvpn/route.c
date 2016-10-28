@@ -1395,7 +1395,7 @@ add_route (struct route_ipv4 *r,
 	   const struct env_set *es)
 {
   struct gc_arena gc;
-  struct argv argv;
+  struct argv argv = argv_new ();
   const char *network;
   const char *netmask;
   const char *gateway;
@@ -1406,7 +1406,6 @@ add_route (struct route_ipv4 *r,
     return;
 
   gc_init (&gc);
-  argv_init (&argv);
 
   network = print_in_addr_t (r->network, 0, &gc);
   netmask = print_in_addr_t (r->netmask, 0, &gc);
@@ -1671,7 +1670,7 @@ void
 add_route_ipv6 (struct route_ipv6 *r6, const struct tuntap *tt, unsigned int flags, const struct env_set *es)
 {
   struct gc_arena gc;
-  struct argv argv;
+  struct argv argv = argv_new ();
 
   const char *network;
   const char *gateway;
@@ -1693,7 +1692,6 @@ add_route_ipv6 (struct route_ipv6 *r6, const struct tuntap *tt, unsigned int fla
 #endif
 
   gc_init (&gc);
-  argv_init (&argv);
 
   route_ipv6_clear_host_bits (r6);
 
@@ -1933,7 +1931,7 @@ delete_route (struct route_ipv4 *r,
 	      const struct env_set *es)
 {
   struct gc_arena gc;
-  struct argv argv;
+  struct argv argv = argv_new ();
   const char *network;
   const char *netmask;
   const char *gateway;
@@ -1943,7 +1941,6 @@ delete_route (struct route_ipv4 *r,
     return;
 
   gc_init (&gc);
-  argv_init (&argv);
 
   network = print_in_addr_t (r->network, 0, &gc);
   netmask = print_in_addr_t (r->netmask, 0, &gc);
@@ -2108,7 +2105,7 @@ void
 delete_route_ipv6 (const struct route_ipv6 *r6, const struct tuntap *tt, unsigned int flags, const struct env_set *es)
 {
   struct gc_arena gc;
-  struct argv argv;
+  struct argv argv = argv_new ();
   const char *network;
   const char *gateway;
   const char *device = tt->actual_name;
@@ -2126,7 +2123,6 @@ delete_route_ipv6 (const struct route_ipv6 *r6, const struct tuntap *tt, unsigne
 #endif
 
   gc_init (&gc);
-  argv_init (&argv);
 
   network = print_in6_addr( r6->network, 0, &gc);
   gateway = print_in6_addr( r6->gateway, 0, &gc);

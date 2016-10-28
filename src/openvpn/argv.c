@@ -39,7 +39,7 @@
 #include "argv.h"
 #include "options.h"
 
-void
+static void
 argv_init (struct argv *a)
 {
   a->capacity = 0;
@@ -157,12 +157,6 @@ argv_extract_cmd_name (const char *path)
   return ret;
 }
 
-const char *
-argv_system_str (const struct argv *a)
-{
-  return a->system_str;
-}
-
 static struct argv
 argv_clone (const struct argv *a, const size_t headroom)
 {
@@ -199,7 +193,7 @@ argv_insert_head (const struct argv *a, const char *head)
   return r;
 }
 
-char *
+static char *
 argv_term (const char **f)
 {
   const char *p = *f;
@@ -272,33 +266,13 @@ argv_msg_prefix (const int msglev, const struct argv *a, const char *prefix)
   gc_free (&gc);
 }
 
-void
-argv_printf (struct argv *a, const char *format, ...)
-{
-  va_list arglist;
-  va_start (arglist, format);
-  argv_printf_arglist (a, format, 0, arglist);
-  va_end (arglist);
- }
-
-void
-argv_printf_cat (struct argv *a, const char *format, ...)
-{
-  va_list arglist;
-  va_start (arglist, format);
-  argv_printf_arglist (a, format, APA_CAT, arglist);
-  va_end (arglist);
-}
-
-void
-argv_printf_arglist (struct argv *a, const char *format, const unsigned int flags, va_list arglist)
+static void
+argv_printf_arglist (struct argv *a, const char *format, va_list arglist)
 {
   struct gc_arena gc = gc_new ();
   char *term;
   const char *f = format;
 
-  if (!(flags & APA_CAT))
-    argv_reset (a);
   argv_extend (a, 1); /* ensure trailing NULL */
 
   while ((term = argv_term (&f)) != NULL)
@@ -408,4 +382,23 @@ argv_printf_arglist (struct argv *a, const char *format, const unsigned int flag
         }
     }
   gc_free (&gc);
+}
+
+void
+argv_printf (struct argv *a, const char *format, ...)
+{
+  va_list arglist;
+  argv_reset (a);
+  va_start (arglist, format);
+  argv_printf_arglist (a, format, arglist);
+  va_end (arglist);
+ }
+
+void
+argv_printf_cat (struct argv *a, const char *format, ...)
+{
+  va_list arglist;
+  va_start (arglist, format);
+  argv_printf_arglist (a, format, arglist);
+  va_end (arglist);
 }

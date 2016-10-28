@@ -753,9 +753,7 @@ do_ifconfig (struct tuntap *tt,
       const char *ifconfig_ipv6_local = NULL;
       const char *ifconfig_ipv6_remote = NULL;
       bool do_ipv6 = false;
-      struct argv argv;
-
-      argv_init (&argv);
+      struct argv argv = argv_new ();
 
       msg( M_DEBUG, "do_ifconfig, tt->did_ifconfig_ipv6_setup=%d",
 	            tt->did_ifconfig_ipv6_setup );
@@ -1864,9 +1862,8 @@ close_tun (struct tuntap *tt)
     {
 	if (tt->type != DEV_TYPE_NULL && tt->did_ifconfig)
 	  {
-	    struct argv argv;
+	    struct argv argv = argv_new ();
 	    struct gc_arena gc = gc_new ();
-	    argv_init (&argv);
 
 #ifdef ENABLE_IPROUTE
 	    if (is_tun_p2p (tt))
@@ -2149,8 +2146,7 @@ solaris_close_tun (struct tuntap *tt)
       /* IPv6 interfaces need to be 'manually' de-configured */
       if ( tt->did_ifconfig_ipv6_setup )
 	{
-	  struct argv argv;
-	  argv_init (&argv);
+	  struct argv argv = argv_new ();
 	  argv_printf( &argv, "%s %s inet6 unplumb",
 		       IFCONFIG_PATH, tt->actual_name );
 	  argv_msg (M_INFO, &argv);
@@ -2213,8 +2209,7 @@ static void
 solaris_error_close (struct tuntap *tt, const struct env_set *es, 
                      const char *actual, bool unplumb_inet6 )
 {
-  struct argv argv;
-  argv_init (&argv);
+  struct argv argv = argv_new ();
 
   if (unplumb_inet6)
     {
@@ -2306,12 +2301,11 @@ close_tun (struct tuntap* tt)
   else if (tt)
     {
       struct gc_arena gc = gc_new ();
-      struct argv argv;
+      struct argv argv = argv_new ();
 
       /* setup command, close tun dev (clears tt->actual_name!), run command
        */
 
-      argv_init (&argv);
       argv_printf (&argv, "%s %s destroy",
                           IFCONFIG_PATH, tt->actual_name);
 
@@ -2392,12 +2386,11 @@ close_tun (struct tuntap *tt)
   else if (tt)
     {
       struct gc_arena gc = gc_new ();
-      struct argv argv;
+      struct argv argv = argv_new ();
 
       /* setup command, close tun dev (clears tt->actual_name!), run command
        */
 
-      argv_init (&argv);
       argv_printf (&argv, "%s %s destroy",
                           IFCONFIG_PATH, tt->actual_name);
 
@@ -2512,12 +2505,11 @@ close_tun (struct tuntap *tt)
     }
   else if (tt)				/* close and destroy */
     {
-      struct argv argv;
+      struct argv argv = argv_new ();
 
       /* setup command, close tun dev (clears tt->actual_name!), run command
        */
 
-      argv_init (&argv);
       argv_printf (&argv, "%s %s destroy",
                           IFCONFIG_PATH, tt->actual_name);
 
@@ -2848,8 +2840,7 @@ close_tun (struct tuntap* tt)
   if (tt)
     {
       struct gc_arena gc = gc_new ();
-      struct argv argv;
-      argv_init (&argv);
+      struct argv argv = argv_new ();
 
       if (tt->did_ifconfig_ipv6_setup )
 	{
@@ -2899,7 +2890,6 @@ open_tun (const char *dev, const char *dev_type, const char *dev_node, struct tu
   char tunname[256];
   char dynamic_name[20];
   const char *p;
-  struct argv argv;
 
   if (tt->type == DEV_TYPE_NULL)
     {
@@ -2950,8 +2940,8 @@ open_tun (const char *dev, const char *dev_type, const char *dev_node, struct tu
 
       /* tunnel device must be created with 'ifconfig tapN create'
        */
+      struct argv argv = argv_new ();
       struct env_set *es = env_set_create (NULL);
-      argv_init (&argv);
       argv_printf (&argv, "%s %s create", IFCONFIG_PATH, dev);
       argv_msg (M_INFO, &argv);
       env_set_add( es, "ODMDIR=/etc/objrepos" );
@@ -2983,15 +2973,13 @@ void
 close_tun (struct tuntap* tt)
 {
   struct gc_arena gc = gc_new ();
-  struct argv argv;
+  struct argv argv = argv_new ();
   struct env_set *es = env_set_create (NULL);
 
   if (!tt) return;
 
   /* persistent devices need IP address unconfig, others need destroyal
    */
-  argv_init (&argv);
-
   if (tt->persistent_if)
     {
       argv_printf (&argv, "%s %s 0.0.0.0 down",
@@ -4515,14 +4503,12 @@ netsh_command (const struct argv *a, int n, int msglevel)
 void
 ipconfig_register_dns (const struct env_set *es)
 {
-  struct argv argv;
+  struct argv argv = argv_new ();
   bool status;
   const char err[] = "ERROR: Windows ipconfig command failed";
 
   msg (D_TUNTAP_INFO, "Start net commands...");
   netcmd_semaphore_lock ();
-
-  argv_init (&argv);
 
   argv_printf (&argv, "%s%sc stop dnscache",
 	       get_win_sys_path(),
@@ -4791,8 +4777,7 @@ static void
 netsh_enable_dhcp (const struct tuntap_options *to,
 		   const char *actual_name)
 {
-  struct argv argv;
-  argv_init (&argv);
+  struct argv argv = argv_new ();
 
   /* example: netsh interface ip set address my-tap dhcp */
   argv_printf (&argv,
@@ -5558,8 +5543,7 @@ close_tun (struct tuntap *tt)
           else
             {
               const char *ifconfig_ipv6_local;
-              struct argv argv;
-              argv_init (&argv);
+              struct argv argv = argv_new ();
 
               /* remove route pointing to interface */
               delete_route_connected_v6_net(tt, NULL);
