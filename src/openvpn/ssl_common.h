@@ -289,6 +289,9 @@ struct tls_options
   bool auth_user_pass_verify_script_via_file;
   const char *tmp_dir;
   const char *auth_user_pass_file;
+  bool auth_token_generate;     /**< Generate auth-tokens on successful user/pass auth,
+                                 *   set via options->auth_token_generate. */
+  unsigned int auth_token_lifetime;
 
   /* use the client-config-dir as a positive authenticator */
   const char *client_config_dir_exclusive;

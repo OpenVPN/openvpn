@@ -2421,6 +2421,8 @@ do_init_crypto_tls (struct context *c, const unsigned int flags)
   if (options->ccd_exclusive)
     to.client_config_dir_exclusive = options->client_config_dir;
   to.auth_user_pass_file = options->auth_user_pass_file;
+  to.auth_token_generate = options->auth_token_generate;
+  to.auth_token_lifetime = options->auth_token_lifetime;
 #endif
 
   to.x509_track = options->x509_track;

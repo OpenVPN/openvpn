@@ -444,6 +444,11 @@ static const char usage_message[] =
   "                  run command cmd to verify.  If method='via-env', pass\n"
   "                  user/pass via environment, if method='via-file', pass\n"
   "                  user/pass via temporary file.\n"
+  "--auth-gen-token  [lifetime] Generate a random authentication token which is pushed\n"
+  "                  to each client, replacing the password.  Usefull when\n"
+  "                  OTP based two-factor auth mechanisms are in use and\n"
+  "                  --reneg-* options are enabled. Optionally a lifetime in seconds\n"
+  "                  for generated tokens can be set.\n"
   "--opt-verify    : Clients that connect with options that are incompatible\n"
   "                  with those of the server will be disconnected.\n"
   "--auth-user-pass-optional : Allow connections by clients that don't\n"
@@ -864,6 +869,7 @@ init_options (struct options *o, const bool init_gc)
 #ifdef ENABLE_PKCS11
   o->pkcs11_pin_cache_period = -1;
 #endif			/* ENABLE_PKCS11 */
+  o->auth_token_generate = false;
 
 /* tmp is only used in P2MP server context */
 #if P2MP_SERVER
@@ -1264,6 +1270,8 @@ show_p2mp_parms (const struct options *o)
   SHOW_INT (max_routes_per_client);
   SHOW_STR (auth_user_pass_verify_script);
   SHOW_BOOL (auth_user_pass_verify_script_via_file);
+  SHOW_BOOL (auth_token_generate);
+  SHOW_INT (auth_token_lifetime);
 #if PORT_SHARE
   SHOW_STR (port_share_host);
   SHOW_STR (port_share_port);
@@ -2186,6 +2194,8 @@ options_postprocess_verify_ce (const struct options *options, const struct conne
              "tcp-nodelay in the server configuration instead.");
       if (options->auth_user_pass_verify_script)
 	msg (M_USAGE, "--auth-user-pass-verify requires --mode server");
+      if (options->auth_token_generate)
+	msg (M_USAGE, "--auth-gen-token requires --mode server");
 #if PORT_SHARE
       if (options->port_share_host || options->port_share_port)
 	msg (M_USAGE, "--port-share requires TCP server mode (--mode server --proto tcp-server)");
@@ -5964,6 +5974,12 @@ add_option (struct options *options,
       set_user_script (options,
 		       &options->auth_user_pass_verify_script,
 		       p[1], "auth-user-pass-verify", true);
+    }
+  else if (streq (p[0], "auth-gen-token"))
+    {
+      VERIFY_PERMISSION (OPT_P_GENERAL);
+      options->auth_token_generate = true;
+      options->auth_token_lifetime = p[1] ? positive_atoi (p[1]) : 0;
     }
   else if (streq (p[0], "client-connect") && p[1])
     {

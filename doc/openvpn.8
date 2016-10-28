@@ -3583,6 +3583,28 @@ For a sample script that performs PAM authentication, see
 in the OpenVPN source distribution.
 .\"*********************************************************
 .TP
+.B \-\-auth\-gen\-token [lifetime]
+After successful user/password authentication, the OpenVPN
+server will with this option generate a temporary
+authentication token and push that to client.  On the following
+renegotiations, the OpenVPN client will pass this token instead
+of the users password.  On the server side the server will do
+the token authentication internally and it will NOT do any
+additional authentications against configured external
+user/password authentication mechanisms.
+
+The
+.B lifetime
+argument defines how long the generated token is valid.  The
+lifetime is defined in seconds.  If lifetime is not set
+or it is set to 0, the token will never expire.
+
+This feature is useful for environments which is configured
+to use One Time Passwords (OTP) as part of the user/password
+authentications and that authentication mechanism does not
+implement any auth-token support.
+.\"*********************************************************
+.TP
 .B \-\-opt\-verify
 Clients that connect with options that are incompatible
 with those of the server will be disconnected.

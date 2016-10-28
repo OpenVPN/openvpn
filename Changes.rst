@@ -79,6 +79,21 @@ Windows version
     Windows version is detected, logged and possibly signalled to server
     (IV_PLAT_VER=<nn> if ``--push-peer-info`` is set on client)
 
+Authentication tokens
+    In situations where it is not suitable to save users passwords on the client
+    OpenVPN have since v2.3 had support for --auth-token.  This option is
+    pushed from the server to the client with a token value to be used instead
+    of the users password.  For this to work, the authentication plug-in would
+    need to implement this support as well.  In OpenVPN 2.4 --auth-gen-token
+    is introduced, which will allow the OpenVPN server to generate a random
+    token and push it to the client without any changes to the authentication
+    modules.  When the clients need to re-authenticate the OpenVPN server will
+    instead of sending the re-authentication request to the authentication
+    module do the authentication internally.  This feature is especially
+    useful in configurations which adds One Time Password (OTP) authentication
+    schemes, as this allows the tunnel to be renegotiated regularly without
+    any need to supply new OTP codes.
+
 keying-material-exporter
     Keying Material Exporter [RFC-5705] allow additional keying material to be
     derived from existing TLS channel.
