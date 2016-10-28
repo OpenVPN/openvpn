@@ -1139,6 +1139,63 @@ verify_user_pass(struct user_pass *up, struct tls_multi *multi,
   string_mod_remap_name (up->username, COMMON_NAME_CHAR_CLASS);
   string_mod (up->password, CC_PRINT, CC_CRLF, '_');
 
+  /* If server is configured with --auth-gen-token and we have an
+   * authentication token for this client, this authentication
+   * round will be done internally using the token instead of
+   * calling any external authentication modules.
+   */
+  if (session->opt->auth_token_generate && multi->auth_token_sent
+      && NULL != multi->auth_token)
+    {
+      unsigned int ssl_flags = session->opt->ssl_flags;
+
+      /* Ensure that the username has not changed */
+      if (!tls_lock_username(multi, up->username))
+        {
+          ks->authenticated = false;
+          goto done;
+        }
+
+      /* If auth-token lifetime has been enabled,
+       * ensure the token has not expired
+       */
+      if (session->opt->auth_token_lifetime > 0
+          && (multi->auth_token_tstamp + session->opt->auth_token_lifetime) < now)
+        {
+          msg (D_HANDSHAKE, "Auth-token for client expired\n");
+          ks->authenticated = false;
+          goto done;
+        }
+
+      /* The core authentication of the token itself */
+      if (memcmp_constant_time(multi->auth_token, up->password,
+                 strlen(multi->auth_token)) != 0)
+        {
+          memset (multi->auth_token, 0, AUTH_TOKEN_SIZE);
+          free (multi->auth_token);
+          multi->auth_token = NULL;
+          multi->auth_token_sent = false;
+          ks->authenticated = false;
+          tls_deauthenticate (multi);
+
+          msg (D_TLS_ERRORS, "TLS Auth Error: Auth-token verification "
+               "failed for username '%s' %s", up->username,
+               (ssl_flags & SSLF_USERNAME_AS_COMMON_NAME) ? "[CN SET]" : "");
+        }
+      else
+        {
+          ks->authenticated = true;
+
+          if (ssl_flags & SSLF_USERNAME_AS_COMMON_NAME)
+            set_common_name (session, up->username);
+          msg (D_HANDSHAKE, "TLS: Username/auth-token authentication "
+               "succeeded for username '%s' %s",
+               up->username,
+               (ssl_flags & SSLF_USERNAME_AS_COMMON_NAME) ? "[CN SET]" : "");
+        }
+      goto done;
+    }
+
   /* call plugin(s) and/or script */
 #ifdef MANAGEMENT_DEF_AUTH
   if (man_def_auth == KMDA_DEF)
@@ -1232,6 +1289,7 @@ verify_user_pass(struct user_pass *up, struct tls_multi *multi,
       msg (D_TLS_ERRORS, "TLS Auth Error: Auth Username/Password verification failed for peer");
     }
 
+ done:
   gc_free (&gc);
 }
 
