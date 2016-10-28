@@ -37,7 +37,6 @@ struct argv {
   size_t capacity;
   size_t argc;
   char **argv;
-  char *system_str;
 };
 
 struct argv argv_new (void);
