@@ -271,6 +271,27 @@ tls_get_cipher_name_pair (const char * cipher_name, size_t len) {
   return NULL;
 }
 
+/**
+ * Limit the reneg_bytes value when using a small-block (<128 bytes) cipher.
+ *
+ * @param cipher	The current cipher (may be NULL).
+ * @param reneg_bytes	Pointer to the current reneg_bytes, updated if needed.
+ * 			May *not* be NULL.
+ */
+static void
+tls_limit_reneg_bytes (const cipher_kt_t *cipher, int *reneg_bytes)
+{
+  if (cipher && (cipher_kt_block_size(cipher) < 128/8))
+    {
+      if (*reneg_bytes == -1) /* Not user-specified */
+	{
+	  msg (M_WARN, "WARNING: cipher with small block size in use, "
+	       "reducing reneg-bytes to 64MB to mitigate SWEET32 attacks.");
+	  *reneg_bytes = 64 * 1024 * 1024;
+	}
+    }
+}
+
 /*
  * Max number of bytes we will add
  * for data structures common to both
@@ -1956,6 +1977,8 @@ key_method_2_write (struct buffer *buf, struct tls_session *session)
 	}
 		      
       CLEAR (*ks->key_src);
+      tls_limit_reneg_bytes (session->opt->key_type.cipher,
+			     &session->opt->renegotiate_bytes);
     }
 
   return true;
@@ -2222,7 +2245,7 @@ tls_process (struct tls_multi *multi,
   if (ks->state >= S_ACTIVE &&
       ((session->opt->renegotiate_seconds
 	&& now >= ks->established + session->opt->renegotiate_seconds)
-       || (session->opt->renegotiate_bytes
+       || (session->opt->renegotiate_bytes > 0
 	   && ks->n_bytes >= session->opt->renegotiate_bytes)
        || (session->opt->renegotiate_packets
 	   && ks->n_packets >= session->opt->renegotiate_packets)

@@ -849,6 +849,7 @@ init_options (struct options *o, const bool init_gc)
 #ifdef ENABLE_SSL
   o->key_method = 2;
   o->tls_timeout = 2;
+  o->renegotiate_bytes = -1;
   o->renegotiate_seconds = 3600;
   o->handshake_window = 60;
   o->transition_window = 3600;
