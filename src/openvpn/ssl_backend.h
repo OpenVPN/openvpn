@@ -346,6 +346,17 @@ void key_state_ssl_init(struct key_state_ssl *ks_ssl,
 void key_state_ssl_free(struct key_state_ssl *ks_ssl);
 
 /**
+ * Reload the Certificate Revocation List for the SSL channel
+ *
+ * @param ssl_ctx       The TLS context to use when reloading the CRL
+ * @param crl_file      The file name to load the CRL from, or
+ *                      "[[INLINE]]" in the case of inline files.
+ * @param crl_inline    A string containing the CRL
+ */
+void tls_ctx_reload_crl(struct tls_root_ctx *ssl_ctx,
+    const char *crl_file, const char *crl_inline);
+
+/**
  * Keying Material Exporters [RFC 5705] allows additional keying material to be
  * derived from existing TLS channel. This exported keying material can then be
  * used for a variety of purposes.

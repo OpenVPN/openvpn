@@ -70,14 +70,27 @@ verify_callback (int preverify_ok, X509_STORE_CTX * ctx)
       /* get the X509 name */
       char *subject = x509_get_subject(ctx->current_cert, &gc);
 
-      if (subject)
+      if (!subject)
 	{
-	  /* Remote site specified a certificate, but it's not correct */
-	  msg (D_TLS_ERRORS, "VERIFY ERROR: depth=%d, error=%s: %s",
-	      ctx->error_depth,
-	      X509_verify_cert_error_string (ctx->error),
-	      subject);
+	  subject = "(Failed to retrieve certificate subject)";
 	}
+
+      /* Log and ignore missing CRL errors */
+      if (ctx->error == X509_V_ERR_UNABLE_TO_GET_CRL)
+	{
+	  msg (D_TLS_DEBUG_LOW, "VERIFY WARNING: depth=%d, %s: %s",
+	       ctx->error_depth,
+	       X509_verify_cert_error_string (ctx->error),
+	       subject);
+	  ret = 1;
+	  goto cleanup;
+	}
+
+      /* Remote site specified a certificate, but it's not correct */
+      msg (D_TLS_ERRORS, "VERIFY ERROR: depth=%d, error=%s: %s",
+	   ctx->error_depth,
+	   X509_verify_cert_error_string (ctx->error),
+	   subject);
 
       ERR_clear_error();
 
@@ -625,63 +638,28 @@ x509_write_pem(FILE *peercert_file, X509 *peercert)
   return SUCCESS;
 }
 
-/*
- * check peer cert against CRL
- */
-result_t
-x509_verify_crl(const char *crl_file, const char* crl_inline,
-                X509 *peer_cert, const char *subject)
+bool
+tls_verify_crl_missing(const struct tls_options *opt)
 {
-  X509_CRL *crl=NULL;
-  X509_REVOKED *revoked;
-  BIO *in=NULL;
-  int n,i;
-  result_t retval = FAILURE;
-  struct gc_arena gc = gc_new();
-  char *serial;
-
-  if (!strcmp (crl_file, INLINE_FILE_TAG) && crl_inline)
-    in = BIO_new_mem_buf ((char *)crl_inline, -1);
-  else
-    in = BIO_new_file (crl_file, "r");
-
-  if (in == NULL) {
-    msg (M_WARN, "CRL: cannot read: %s", crl_file);
-    goto end;
-  }
-  crl=PEM_read_bio_X509_CRL(in,NULL,NULL,NULL);
-  if (crl == NULL) {
-    msg (M_WARN, "CRL: cannot read CRL from file %s", crl_file);
-    goto end;
-  }
-
-  if (X509_NAME_cmp(X509_CRL_get_issuer(crl), X509_get_issuer_name(peer_cert)) != 0) {
-    msg (M_WARN, "CRL: CRL %s is from a different issuer than the issuer of "
-	"certificate %s", crl_file, subject);
-    retval = SUCCESS;
-    goto end;
-  }
-
-  n = sk_X509_REVOKED_num(X509_CRL_get_REVOKED(crl));
-  for (i = 0; i < n; i++) {
-    revoked = (X509_REVOKED *)sk_X509_REVOKED_value(X509_CRL_get_REVOKED(crl), i);
-    if (ASN1_INTEGER_cmp(revoked->serialNumber, X509_get_serialNumber(peer_cert)) == 0) {
-      serial = backend_x509_get_serial_hex(peer_cert, &gc);
-      msg (D_HANDSHAKE, "CRL CHECK FAILED: %s (serial %s) is REVOKED", subject, (serial ? serial : "NOT AVAILABLE"));
-      goto end;
+  if (!opt->crl_file || (opt->ssl_flags & SSLF_CRL_VERIFY_DIR))
+    {
+      return false;
     }
-  }
 
-  retval = SUCCESS;
-  msg (D_HANDSHAKE, "CRL CHECK OK: %s",subject);
+  X509_STORE *store = SSL_CTX_get_cert_store(opt->ssl_ctx.ctx);
+  if (!store)
+    crypto_msg (M_FATAL, "Cannot get certificate store");
 
-end:
-  gc_free(&gc);
-  BIO_free(in);
-  if (crl)
-    X509_CRL_free (crl);
-
-  return retval;
+  for (int i = 0; i < sk_X509_OBJECT_num(store->objs); i++)
+    {
+      X509_OBJECT* obj = sk_X509_OBJECT_value(store->objs, i);
+      ASSERT(obj);
+      if (obj->type == X509_LU_CRL)
+	{
+	  return false;
+	}
+    }
+  return true;
 }
 
 #endif /* defined(ENABLE_CRYPTO) && defined(ENABLE_CRYPTO_OPENSSL) */

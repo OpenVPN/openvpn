@@ -120,6 +120,12 @@ Deprecated features
   will then use ``--key-method 2`` by default.  Note that this requires changing
   the option in both the client and server side configs.
 
+- CRLs are now handled by the crypto library (OpenSSL or mbed TLS), instead of
+  inside OpenVPN itself.  The crypto library implementations are more strict
+  than the OpenVPN implementation was.  This might reject peer certificates
+  that would previously be accepted.  If this occurs, OpenVPN will log the
+  crypto library's error description.
+
 
 User-visible Changes
 --------------------

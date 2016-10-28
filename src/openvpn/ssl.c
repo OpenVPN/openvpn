@@ -608,6 +608,12 @@ init_ssl (const struct options *options, struct tls_root_ctx *new_ctx)
   /* Check certificate notBefore and notAfter */
   tls_ctx_check_cert_time(new_ctx);
 
+  /* Read CRL */
+  if (options->crl_file && !(options->ssl_flags & SSLF_CRL_VERIFY_DIR))
+    {
+      tls_ctx_reload_crl(new_ctx, options->crl_file, options->crl_file_inline);
+    }
+
   /* Once keys and cert are loaded, load ECDH parameters */
   if (options->tls_server)
     tls_ctx_load_ecdh_params(new_ctx, options->ecdh_curve);
@@ -2502,6 +2508,15 @@ tls_process (struct tls_multi *multi,
 	{
 	  ks->state = S_START;
 	  state_change = true;
+
+	  /* Reload the CRL before TLS negotiation */
+	  if (session->opt->crl_file &&
+	      !(session->opt->ssl_flags & SSLF_CRL_VERIFY_DIR))
+	    {
+	      tls_ctx_reload_crl(&session->opt->ssl_ctx,
+		  session->opt->crl_file, session->opt->crl_file_inline);
+	    }
+
 	  dmsg (D_TLS_DEBUG_MED, "STATE S_START");
 	}
 

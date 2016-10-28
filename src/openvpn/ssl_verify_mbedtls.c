@@ -497,59 +497,15 @@ x509_write_pem(FILE *peercert_file, mbedtls_x509_crt *peercert)
     return FAILURE;
 }
 
-/*
- * check peer cert against CRL
- */
-result_t
-x509_verify_crl(const char *crl_file, const char *crl_inline,
-                mbedtls_x509_crt *cert, const char *subject)
+bool
+tls_verify_crl_missing(const struct tls_options *opt)
 {
-  result_t retval = FAILURE;
-  mbedtls_x509_crl crl = {0};
-  struct gc_arena gc = gc_new();
-  char *serial;
-
-  if (!strcmp (crl_file, INLINE_FILE_TAG) && crl_inline)
+  if (opt->crl_file && !(opt->ssl_flags & SSLF_CRL_VERIFY_DIR)
+      && (opt->ssl_ctx.crl == NULL || opt->ssl_ctx.crl->version == 0))
     {
-      if (!mbed_ok(mbedtls_x509_crl_parse(&crl,
-	  (const unsigned char *)crl_inline, strlen(crl_inline)+1)))
-        {
-           msg (M_WARN, "CRL: cannot parse inline CRL");
-           goto end;
-        }
+      return true;
     }
-  else
-    {
-      if (!mbed_ok(mbedtls_x509_crl_parse_file(&crl, crl_file)))
-      {
-          msg (M_WARN, "CRL: cannot read CRL from file %s", crl_file);
-          goto end;
-      }
-  }
-
-  if(cert->issuer_raw.len != crl.issuer_raw.len ||
-      memcmp(crl.issuer_raw.p, cert->issuer_raw.p, crl.issuer_raw.len) != 0)
-    {
-      msg (M_WARN, "CRL: CRL %s is from a different issuer than the issuer of "
-	  "certificate %s", crl_file, subject);
-      retval = SUCCESS;
-      goto end;
-    }
-
-  if (!mbed_ok(mbedtls_x509_crt_is_revoked(cert, &crl)))
-    {
-      serial = backend_x509_get_serial_hex(cert, &gc);
-      msg (D_HANDSHAKE, "CRL CHECK FAILED: %s (serial %s) is REVOKED", subject, (serial ? serial : "NOT AVAILABLE"));
-      goto end;
-    }
-
-  retval = SUCCESS;
-  msg (D_HANDSHAKE, "CRL CHECK OK: %s",subject);
-
-end:
-  gc_free(&gc);
-  mbedtls_x509_crl_free(&crl);
-  return retval;
+  return false;
 }
 
 #endif /* #if defined(ENABLE_CRYPTO) && defined(ENABLE_CRYPTO_MBEDTLS) */

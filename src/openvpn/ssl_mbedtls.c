@@ -120,6 +120,12 @@ tls_ctx_free(struct tls_root_ctx *ctx)
       if (ctx->dhm_ctx)
 	free(ctx->dhm_ctx);
 
+      mbedtls_x509_crl_free(ctx->crl);
+      if (ctx->crl)
+	{
+	  free(ctx->crl);
+	}
+
 #if defined(ENABLE_PKCS11)
       if (ctx->priv_key_pkcs11 != NULL) {
 	  mbedtls_pkcs11_priv_key_free(ctx->priv_key_pkcs11);
@@ -764,6 +770,41 @@ static void tls_version_to_major_minor(int tls_ver, int *major, int *minor) {
   }
 }
 
+void
+tls_ctx_reload_crl(struct tls_root_ctx *ctx, const char *crl_file,
+    const char *crl_inline)
+{
+  ASSERT (crl_file);
+
+  if (ctx->crl == NULL)
+    {
+      ALLOC_OBJ_CLEAR(ctx->crl, mbedtls_x509_crl);
+    }
+  mbedtls_x509_crl_free(ctx->crl);
+
+  if (!strcmp (crl_file, INLINE_FILE_TAG) && crl_inline)
+    {
+      if (!mbed_ok(mbedtls_x509_crl_parse(ctx->crl,
+	(const unsigned char *)crl_inline, strlen(crl_inline)+1)))
+	{
+	  msg (M_WARN, "CRL: cannot parse inline CRL");
+	  goto err;
+	}
+    }
+  else
+    {
+      if (!mbed_ok(mbedtls_x509_crl_parse_file(ctx->crl, crl_file)))
+	{
+	  msg (M_WARN, "CRL: cannot read CRL from file %s", crl_file);
+	  goto err;
+	}
+    }
+  return;
+
+err:
+  mbedtls_x509_crl_free(ctx->crl);
+}
+
 void key_state_ssl_init(struct key_state_ssl *ks_ssl,
     const struct tls_root_ctx *ssl_ctx, bool is_server, struct tls_session *session)
 {
@@ -816,7 +857,7 @@ void key_state_ssl_init(struct key_state_ssl *ks_ssl,
   mbedtls_ssl_conf_verify (&ks_ssl->ssl_config, verify_callback, session);
 
   /* TODO: mbed TLS does not currently support sending the CA chain to the client */
-  mbedtls_ssl_conf_ca_chain (&ks_ssl->ssl_config, ssl_ctx->ca_chain, NULL );
+  mbedtls_ssl_conf_ca_chain (&ks_ssl->ssl_config, ssl_ctx->ca_chain, ssl_ctx->crl);
 
   /* Initialize minimum TLS version */
   {

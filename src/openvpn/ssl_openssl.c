@@ -771,6 +771,64 @@ end:
   return ret;
 }
 
+void
+tls_ctx_reload_crl(struct tls_root_ctx *ssl_ctx, const char *crl_file,
+        const char *crl_inline)
+{
+  X509_CRL *crl = NULL;
+  BIO *in = NULL;
+
+  X509_STORE *store = SSL_CTX_get_cert_store(ssl_ctx->ctx);
+  if (!store)
+    crypto_msg (M_FATAL, "Cannot get certificate store");
+
+  /* Always start with a cleared CRL list, for that we
+   * we need to manually find the CRL object from the stack
+   * and remove it */
+  for (int i = 0; i < sk_X509_OBJECT_num(store->objs); i++)
+    {
+      X509_OBJECT* obj = sk_X509_OBJECT_value(store->objs, i);
+      ASSERT(obj);
+      if (obj->type == X509_LU_CRL)
+	{
+	  sk_X509_OBJECT_delete(store->objs, i);
+	  X509_OBJECT_free_contents(obj);
+	  OPENSSL_free(obj);
+	}
+    }
+
+  X509_STORE_set_flags (store, X509_V_FLAG_CRL_CHECK | X509_V_FLAG_CRL_CHECK_ALL);
+
+  if (!strcmp (crl_file, INLINE_FILE_TAG) && crl_inline)
+    in = BIO_new_mem_buf ((char *)crl_inline, -1);
+  else
+    in = BIO_new_file (crl_file, "r");
+
+  if (in == NULL)
+    {
+      msg (M_WARN, "CRL: cannot read: %s", crl_file);
+      goto end;
+    }
+
+  crl = PEM_read_bio_X509_CRL(in, NULL, NULL, NULL);
+  if (crl == NULL)
+    {
+      msg (M_WARN, "CRL: cannot read CRL from file %s", crl_file);
+      goto end;
+    }
+
+  if (!X509_STORE_add_crl(store, crl))
+    {
+      msg (M_WARN, "CRL: cannot add %s to store", crl_file);
+      goto end;
+    }
+
+end:
+  X509_CRL_free(crl);
+  BIO_free(in);
+}
+
+
 #ifdef MANAGMENT_EXTERNAL_KEY
 
 /* encrypt */

@@ -252,19 +252,12 @@ result_t x509_verify_cert_eku (openvpn_x509_cert_t *x509, const char * const exp
  */
 result_t x509_write_pem(FILE *peercert_file, openvpn_x509_cert_t *peercert);
 
-/*
- * Check the certificate against a CRL file.
- *
- * @param crl_file	File name of the CRL file
- * @param cert		Certificate to verify
- * @param crl_inline	Contents of the crl file if it is inlined
- * @param subject	Subject of the given certificate
- *
- * @return 		\c SUCCESS if the CRL was not signed by the issuer of the
- * 			certificate or does not contain an entry for it.
- * 			\c FAILURE otherwise.
+/**
+ * Return true iff a CRL is configured, but is not loaded.  This can be caused
+ * by e.g. a CRL parsing error, a missing CRL file or CRL file permission
+ * errors.  (These conditions are checked upon startup, but the CRL might be
+ * updated and reloaded during runtime.)
  */
-result_t x509_verify_crl(const char *crl_file, const char *crl_inline,
-                         openvpn_x509_cert_t *cert, const char *subject);
+bool tls_verify_crl_missing(const struct tls_options *opt);
 
 #endif /* SSL_VERIFY_BACKEND_H_ */

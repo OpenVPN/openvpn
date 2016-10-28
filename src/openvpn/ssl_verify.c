@@ -672,15 +672,18 @@ verify_cert(struct tls_session *session, openvpn_x509_cert_t *cert, int cert_dep
   if (opt->crl_file)
     {
       if (opt->ssl_flags & SSLF_CRL_VERIFY_DIR)
-      {
-	if (SUCCESS != verify_check_crl_dir(opt->crl_file, cert))
-	  goto cleanup;
-      }
+	{
+	  if (SUCCESS != verify_check_crl_dir(opt->crl_file, cert))
+	    goto cleanup;
+	}
       else
-      {
-	if (SUCCESS != x509_verify_crl(opt->crl_file, opt->crl_file_inline, cert, subject))
-	  goto cleanup;
-      }
+	{
+	  if (tls_verify_crl_missing (opt))
+	    {
+	      msg (D_TLS_ERRORS, "VERIFY ERROR: CRL not loaded");
+	      goto cleanup;
+	    }
+	}
     }
 
   msg (D_HANDSHAKE, "VERIFY OK: depth=%d, %s", cert_depth, subject);
