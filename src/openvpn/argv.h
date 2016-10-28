@@ -45,6 +45,7 @@ const char *argv_str (const struct argv *a, struct gc_arena *gc, const unsigned 
 struct argv argv_insert_head (const struct argv *a, const char *head);
 void argv_msg (const int msglev, const struct argv *a);
 void argv_msg_prefix (const int msglev, const struct argv *a, const char *prefix);
+void argv_parse_cmd (struct argv *a, const char *s);
 
 void argv_printf (struct argv *a, const char *format, ...)
 #ifdef __GNUC__

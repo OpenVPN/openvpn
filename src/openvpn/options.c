@@ -2796,7 +2796,7 @@ check_cmd_access(const char *command, const char *opt, const char *chroot)
 
   /* Extract executable path and arguments */
   argv = argv_new ();
-  argv_printf (&argv, "%sc", command);
+  argv_parse_cmd (&argv, command);
 
   /* if an executable is specified then check it; otherwise, complain */
   if (argv.argv[0])

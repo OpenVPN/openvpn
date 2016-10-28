@@ -198,7 +198,6 @@ argv_msg_prefix (const int msglev, const struct argv *a, const char *prefix)
 static void
 argv_printf_arglist (struct argv *a, const char *format, va_list arglist)
 {
-  struct gc_arena gc = gc_new ();
   char *term;
   const char *f = format;
 
@@ -214,29 +213,6 @@ argv_printf_arglist (struct argv *a, const char *format, va_list arglist)
               if (!s)
                 s = "";
               argv_append (a, string_alloc (s, NULL));
-            }
-          else if (!strcmp (term, "%sc"))
-            {
-              char *s = va_arg (arglist, char *);
-              if (s)
-                {
-                  int nparms;
-                  char *parms[MAX_PARMS+1];
-                  int i;
-
-                  nparms = parse_line (s, parms, MAX_PARMS, "SCRIPT-ARGV", 0, D_ARGV_PARSE_CMD, &gc);
-                  if (nparms)
-                    {
-                      for (i = 0; i < nparms; ++i)
-                        argv_append (a, string_alloc (parms[i], NULL));
-                    }
-                  else
-                    argv_append (a, string_alloc (s, NULL));
-                }
-              else
-                {
-                  argv_append (a, string_alloc ("", NULL));
-                }
             }
           else if (!strcmp (term, "%d"))
             {
@@ -295,7 +271,6 @@ argv_printf_arglist (struct argv *a, const char *format, va_list arglist)
           argv_append (a, term);
         }
     }
-  gc_free (&gc);
 }
 
 void
@@ -315,4 +290,27 @@ argv_printf_cat (struct argv *a, const char *format, ...)
   va_start (arglist, format);
   argv_printf_arglist (a, format, arglist);
   va_end (arglist);
+}
+
+void
+argv_parse_cmd (struct argv *a, const char *s)
+{
+  int nparms;
+  char *parms[MAX_PARMS + 1];
+  struct gc_arena gc = gc_new ();
+
+  argv_reset (a);
+  argv_extend (a, 1); /* ensure trailing NULL */
+
+  nparms = parse_line (s, parms, MAX_PARMS, "SCRIPT-ARGV", 0, D_ARGV_PARSE_CMD, &gc);
+  if (nparms)
+    {
+      int i;
+      for (i = 0; i < nparms; ++i)
+        argv_append (a, string_alloc (parms[i], NULL));
+    }
+  else
+    argv_append (a, string_alloc (s, NULL));
+
+  gc_free (&gc);
 }

@@ -99,14 +99,23 @@ argv_printf__combined_path_with_spaces__argc_correct (void **state)
 }
 
 static void
-argv_printf__script_command__argc_correct (void **state)
+argv_parse_cmd__command_string__argc_correct (void **state)
 {
   struct argv a = argv_new ();
 
-  argv_printf (&a, "%sc", SCRIPT_CMD);
+  argv_parse_cmd (&a, SCRIPT_CMD);
   assert_int_equal (a.argc, 3);
 
-  argv_printf (&a, "bar baz %sc %d %s", SCRIPT_CMD, 42, PATH1);
+  argv_reset (&a);
+}
+
+static void
+argv_parse_cmd__command_and_extra_options__argc_correct (void **state)
+{
+  struct argv a = argv_new ();
+
+  argv_parse_cmd (&a, SCRIPT_CMD);
+  argv_printf_cat (&a, "bar baz %d %s", 42, PATH1);
   assert_int_equal (a.argc, 7);
 
   argv_reset (&a);
@@ -184,7 +193,8 @@ main(void)
     cmocka_unit_test (argv_printf__multiple_spaces_in_format__parsed_as_one),
     cmocka_unit_test (argv_printf_cat__multiple_spaces_in_format__parsed_as_one),
     cmocka_unit_test (argv_printf__combined_path_with_spaces__argc_correct),
-    cmocka_unit_test (argv_printf__script_command__argc_correct),
+    cmocka_unit_test (argv_parse_cmd__command_string__argc_correct),
+    cmocka_unit_test (argv_parse_cmd__command_and_extra_options__argc_correct),
     cmocka_unit_test (argv_printf_cat__used_twice__argc_correct),
     cmocka_unit_test (argv_str__multiple_argv__correct_output),
     cmocka_unit_test (argv_insert_head__non_empty_argv__head_added),

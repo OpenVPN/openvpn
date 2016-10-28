@@ -516,7 +516,8 @@ verify_cert_call_command(const char *verify_command, struct env_set *es,
        }
     }
 
-  argv_printf (&argv, "%sc %d %s", verify_command, cert_depth, subject);
+  argv_parse_cmd (&argv, verify_command);
+  argv_printf_cat (&argv, "%d %s", cert_depth, subject);
 
   argv_msg_prefix (D_TLS_DEBUG, &argv, "TLS: executing verify command");
   ret = openvpn_run_script (&argv, es, 0, "--tls-verify script");
@@ -983,7 +984,8 @@ verify_user_pass_script (struct tls_session *session, const struct user_pass *up
       setenv_untrusted (session);
 
       /* format command line */
-      argv_printf (&argv, "%sc %s", session->opt->auth_user_pass_verify_script, tmp_file);
+      argv_parse_cmd (&argv, session->opt->auth_user_pass_verify_script);
+      argv_printf_cat (&argv, "%s", tmp_file);
 
       /* call command */
       ret = openvpn_run_script (&argv, session->opt->es, 0,

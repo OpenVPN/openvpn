@@ -120,13 +120,9 @@ run_up_down (const char *command,
       struct argv argv = argv_new ();
       ASSERT (arg);
       setenv_str (es, "script_type", script_type);
-      argv_printf (&argv,
-		  "%sc %s %d %d %s %s %s",
-		  command,
-		  arg,
-		  tun_mtu, link_mtu,
-		  ifconfig_local, ifconfig_remote,
-		  context);
+      argv_parse_cmd (&argv, command);
+      argv_printf_cat (&argv, "%s %d %d %s %s %s", arg, tun_mtu, link_mtu,
+                       ifconfig_local, ifconfig_remote, context);
       argv_msg (M_INFO, &argv);
       openvpn_run_script (&argv, es, S_FATAL, "--up/--down");
       argv_reset (&argv);

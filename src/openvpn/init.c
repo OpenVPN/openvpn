@@ -1350,7 +1350,7 @@ do_route (const struct options *options,
     {
       struct argv argv = argv_new ();
       setenv_str (es, "script_type", "route-up");
-      argv_printf (&argv, "%sc", options->route_script);
+      argv_parse_cmd (&argv, options->route_script);
       openvpn_run_script (&argv, es, 0, "--route-up");
       argv_reset (&argv);
     }

@@ -2023,9 +2023,10 @@ ipchange_fmt (const bool include_cmd, struct argv *argv, const struct link_socke
 {
   const char *host = print_sockaddr_ex (&info->lsa->actual.dest.addr.sa, " ", PS_SHOW_PORT , gc);
   if (include_cmd)
-    argv_printf (argv, "%sc %s",
-		 info->ipchange_command,
-		 host);
+    {
+      argv_parse_cmd (argv, info->ipchange_command);
+      argv_printf_cat (argv, "%s", host);
+    }
   else
     argv_printf (argv, "%s", host);
 
