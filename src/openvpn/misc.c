@@ -2073,6 +2073,15 @@ sanitize_control_message(const char *src, struct gc_arena *gc)
 	  skip = 4;
 	  redact = true;
 	}
+      else if (!check_debug_level(D_SHOW_KEYS)
+               && (c == 'a' && !strncmp(src, "auth-token ", 11)))
+	{
+          /* Unless --verb is 7 or higher (D_SHOW_KEYS), hide
+           * the auth-token value coming in the src string
+           */
+	  skip = 10;
+	  redact = true;
+	}
 
       if (c == ',') /* end of redacted item? */
 	{

@@ -309,7 +309,7 @@ prepare_push_reply (struct context *c, struct gc_arena *gc,
 		    struct push_list *push_list)
 {
   const char *optstr = NULL;
-  const struct tls_multi *tls_multi = c->c2.tls_multi;
+  struct tls_multi *tls_multi = c->c2.tls_multi;
   const char * const peer_info = tls_multi->peer_info;
   struct options *o = &c->options;
 
@@ -370,6 +370,16 @@ prepare_push_reply (struct context *c, struct gc_arena *gc,
 	  o->ciphername = strtok (push_cipher, ":");
 	  push_option_fmt(gc, push_list, M_USAGE, "cipher %s", o->ciphername);
 	}
+    }
+
+  /* If server uses --auth-gen-token and we have an auth token
+   * to send to the client
+   */
+  if (false == tls_multi->auth_token_sent && NULL != tls_multi->auth_token)
+    {
+      push_option_fmt(gc, push_list, M_USAGE,
+                      "auth-token %s", tls_multi->auth_token);
+      tls_multi->auth_token_sent = true;
     }
   return true;
 }
