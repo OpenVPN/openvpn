@@ -1194,6 +1194,12 @@ tls_multi_free (struct tls_multi *multi, bool clear)
 
   cert_hash_free (multi->locked_cert_hash_set);
 
+  if (multi->auth_token)
+    {
+      memset (multi->auth_token, 0, AUTH_TOKEN_SIZE);
+      free (multi->auth_token);
+    }
+
   for (i = 0; i < TM_SIZE; ++i)
     tls_session_free (&multi->session[i], false);
 
