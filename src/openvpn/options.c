@@ -869,10 +869,11 @@ init_options (struct options *o, const bool init_gc)
 #ifdef ENABLE_PKCS11
   o->pkcs11_pin_cache_period = -1;
 #endif			/* ENABLE_PKCS11 */
+
+/* P2MP server context features */
+#if P2MP_SERVER
   o->auth_token_generate = false;
 
-/* tmp is only used in P2MP server context */
-#if P2MP_SERVER
   /* Set default --tmp-dir */
 #ifdef WIN32
   /* On Windows, find temp dir via enviroment variables */
