@@ -1614,16 +1614,25 @@ and
 are mutually exclusive and cannot be used together.
 .\"*********************************************************
 .TP
-.B \-\-keepalive n m
+.B \-\-keepalive interval timeout
 A helper directive designed to simplify the expression of
 .B \-\-ping
 and
-.B \-\-ping\-restart
-in server mode configurations.
+.B \-\-ping\-restart.
 
-The server timeout is set twice the value of the second argument.
-This ensures that a timeout is detected on client side
-before the server side drops the connection.
+This option can be used on both client and server side, but it is
+in enough to add this on the server side as it will push appropriate
+.B \-\-ping
+and
+.B \-\-ping\-restart
+options to the client.  If used on both server and client,
+the values pushed from server will override the client local values.
+
+The
+.B timeout
+argument will be twice as long on the server side.  This ensures that
+a timeout is detected on client side before the server side drops
+the connection.
 
 For example,
 .B \-\-keepalive 10 60
@@ -1633,13 +1642,13 @@ expands as follows:
 .ft 3
 .in +4
  if mode server:
-   ping 10
-   ping\-restart 120
-   push "ping 10"
-   push "ping\-restart 60"
+   ping 10                    # Argument: interval
+   ping\-restart 120           # Argument: timeout*2
+   push "ping 10"             # Argument: interval
+   push "ping\-restart 60"     # Argument: timeout
  else
-   ping 10
-   ping\-restart 60
+   ping 10                    # Argument: interval
+   ping\-restart 60            # Argument: timeout
 .in -4
 .ft
 .fi
