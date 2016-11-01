@@ -2242,6 +2242,7 @@ do_init_crypto_tls_c1 (struct context *c)
 
       c->c1.ciphername = options->ciphername;
       c->c1.authname = options->authname;
+      c->c1.keysize = options->keysize;
 
 #if 0 /* was: #if ENABLE_INLINE_FILES --  Note that enabling this code will break restarts */
       if (options->priv_key_file_inline)
@@ -2254,6 +2255,11 @@ do_init_crypto_tls_c1 (struct context *c)
   else
     {
       msg (D_INIT_MEDIUM, "Re-using SSL/TLS context");
+
+      /* Restore pre-NCP cipher options */
+      c->options.ciphername = c->c1.ciphername;
+      c->options.authname = c->c1.authname;
+      c->options.keysize = c->c1.keysize;
     }
 }
 
@@ -3791,6 +3797,10 @@ inherit_context_child (struct context *dest,
   dest->c1.ks.ssl_ctx = src->c1.ks.ssl_ctx;
   dest->c1.ks.tls_auth_key = src->c1.ks.tls_auth_key;
   dest->c1.ks.tls_auth_key_type = src->c1.ks.tls_auth_key_type;
+  /* inherit pre-NCP ciphers */
+  dest->c1.ciphername = src->c1.ciphername;
+  dest->c1.authname = src->c1.authname;
+  dest->c1.keysize = src->c1.keysize;
 #endif
 
   /* options */

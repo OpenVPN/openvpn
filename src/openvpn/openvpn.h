@@ -213,6 +213,7 @@ struct context_1
 
   const char *ciphername;	/**< Data channel cipher from config file */
   const char *authname;		/**< Data channel auth from config file */
+  int keysize;			/**< Data channel keysize from config file */
 #endif
 };
 
