@@ -57,6 +57,11 @@ Improved UTF-8 support
 Behavioral changes
 ------------------
 
+- OpenVPN will complain loudly about ciphers with 128-bits block sizes or less
+
+- OpenVPN will by default re-negotiate the tunnel after 64MB when used with
+  ciphers using cipher blocks of 128-bits or less
+
 - Remove --enable-password-save option to configure, this is now always enabled
 
 - Disallow usage of --server-poll-timeout in --secret key mode
@@ -98,6 +103,24 @@ Behavioral changes
 - Make '--win-sys env' default
 
 - Do not randomize resolving of IP addresses in getaddr()
+
+
+Version 2.3.13
+==============
+
+- Enforcing a new default value for --reneg-bytes for known weaker ciphers
+
+  Ciphers with cipher blocks less than 128 bits will now do a renegotiation
+  of the tunnel by default for every 64MB of data.  This behaviour can be
+  overridden by explictly setting --reneg-bytes 0 in the configuration file,
+  however this is HIGHLY discouraged.
+
+  This is to reduce the risk for SWEET32 attacks.  The general recommendation
+  is to change the cipher to a stronger cipher.  For more information see:
+  https://community.openvpn.net/openvpn/wiki/SWEET32
+
+  OpenVPN will also complain a little bit more in the logs
+  when such weaker ciphers is detected.
 
 
 Version 2.3.12

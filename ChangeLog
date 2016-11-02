@@ -1,6 +1,43 @@
 OpenVPN Change Log
 Copyright (C) 2002-2015 OpenVPN Technologies, Inc. <sales@openvpn.net>
 
+2016.11.02 -- Version 2.3.13
+Arne Schwabe (2):
+      Use AES ciphers in our sample configuration files and add a few modern 2.4 examples
+      Incorporate the Debian typo fixes where appropriate and make show_opt default message clearer
+
+David Sommerseth (4):
+      t_client.sh: Make OpenVPN write PID file to avoid various sudo issues
+      t_client.sh: Add support for Kerberos/ksu
+      t_client.sh: Improve detection if the OpenVPN process did start during tests
+      t_client.sh: Add prepare/cleanup possibilties for each test case
+
+Gert Doering (5):
+      Do not abort t_client run if OpenVPN instance does not start.
+      Fix t_client runs on OpenSolaris
+      make t_client robust against sudoers misconfiguration
+      add POSTINIT_CMD_suf to t_client.sh and sample config
+      Fix --multihome for IPv6 on 64bit BSD systems.
+
+Ilya Shipitsin (1):
+      skip t_lpback.sh and t_cltsrv.sh if openvpn configured --disable-crypto
+
+Lev Stipakov (2):
+      Exclude peer-id from pulled options digest
+      Fix compilation in pedantic mode
+
+Samuli Seppänen (1):
+      Automatically cache expected IPs for t_client.sh on the first run
+
+Steffan Karger (6):
+      Fix unittests for out-of-source builds
+      Make gnu89 support explicit
+      cleanup: remove code duplication in msg_test()
+      Update cipher-related man page text
+      Limit --reneg-bytes to 64MB when using small block ciphers
+      Add a revoked cert to the sample keys
+
+
 2016.08.23 -- Version 2.3.12
 Arne Schwabe (2):
       Complete push-peer-info documentation and allow IV_PLAT_VER for other platforms than Windows if the client UI supplies it.
