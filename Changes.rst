@@ -188,6 +188,9 @@ User-visible Changes
   capable. The ``--tun-ipv6`` option is ignored (behaves like it is always
   on).
 
+- On the client side recursively routed packets, which have same destination
+  as the VPN server, are dropped. This could be disabled with
+  --allow-recursive-routing option.
 
 Maintainer-visible changes
 --------------------------

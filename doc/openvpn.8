@@ -4004,6 +4004,10 @@ to the same server, with
 
 OpenVPN will not send any exit
 notifications unless this option is enabled.
+.TP
+.B \-\-allow\-recursive\-routing
+When this option is set, OpenVPN will not drop incoming tun packets
+with same destination as host.
 .\"*********************************************************
 .SS Data Channel Encryption Options:
 These options are meaningful for both Static & TLS-negotiated key modes

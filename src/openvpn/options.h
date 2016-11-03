@@ -597,6 +597,10 @@ struct options
 #endif
 
   struct pull_filter_list *pull_filter_list;
+
+  /* Useful when packets sent by openvpn itself are not subject
+     to the routing tables that would move packets into the tunnel. */
+  bool allow_recursive_routing;
 };
 
 #define streq(x, y) (!strcmp((x), (y)))
