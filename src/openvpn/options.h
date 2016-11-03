@@ -598,6 +598,10 @@ struct options
 
   bool use_peer_id;
   uint32_t peer_id;
+
+  /* Useful when packets sent by openvpn itself are not subject
+     to the routing tables that would move packets into the tunnel. */
+  bool allow_recursive_routing;
 };
 
 #define streq(x, y) (!strcmp((x), (y)))

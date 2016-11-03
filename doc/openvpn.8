@@ -3805,6 +3805,10 @@ rather than waiting for a timeout.  The
 parameter (default=1) controls the maximum number of attempts that the client
 will try to resend the exit notification message.  OpenVPN will not send any exit
 notifications unless this option is enabled.
+.TP
+.B \-\-allow\-recursive\-routing
+When this option is set, OpenVPN will not drop incoming tun packets
+with same destination as host.
 .\"*********************************************************
 .SS Data Channel Encryption Options:
 These options are meaningful for both Static & TLS-negotiated key modes

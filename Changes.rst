@@ -104,6 +104,15 @@ Behavioral changes
 
 - Do not randomize resolving of IP addresses in getaddr()
 
+Version 2.3.14
+==============
+
+Behavioral changes
+------------------
+
+- On the client side recursively routed packets, which have same destination
+  as the VPN server, are dropped. This could be disabled with
+  --allow-recursive-routing option.
 
 Version 2.3.13
 ==============

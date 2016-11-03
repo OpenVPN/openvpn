@@ -500,6 +500,8 @@ static const char usage_message[] =
   "--server-poll-timeout n : when polling possible remote servers to connect to\n"
   "                  in a round-robin fashion, spend no more than n seconds\n"
   "                  waiting for a response before trying the next server.\n"
+  "--allow-recursive-routing : When this option is set, OpenVPN will not drop\n"
+  "                  incoming tun packets with same destination as host.\n"
 #endif
 #ifdef ENABLE_OCC
   "--explicit-exit-notify [n] : On exit/restart, send exit signal to\n"
@@ -876,6 +878,7 @@ init_options (struct options *o, const bool init_gc)
   }
 #endif /* WIN32 */
 #endif /* P2MP_SERVER */
+  o->allow_recursive_routing = false;
 }
 
 void
@@ -2091,6 +2094,8 @@ options_postprocess_verify_ce (const struct options *options, const struct conne
       if (options->ifconfig_ipv6_local && !options->tun_ipv6 )
 	msg (M_INFO, "Warning: --ifconfig-ipv6 without --tun-ipv6 will not do IPv6");
 
+      if (options->allow_recursive_routing)
+	msg (M_USAGE, "--allow-recursive-routing cannot be used with --mode server");
       if (options->auth_user_pass_file)
 	msg (M_USAGE, "--auth-user-pass cannot be used with --mode server (it should be used on the client side only)");
       if (options->ccd_exclusive && !options->client_config_dir)
@@ -7121,6 +7126,11 @@ add_option (struct options *options,
       VERIFY_PERMISSION (OPT_P_PEER_ID);
       options->use_peer_id = true;
       options->peer_id = atoi(p[1]);
+    }
+  else if (streq (p[0], "allow-recursive-routing") && !p[1])
+    {
+      VERIFY_PERMISSION (OPT_P_GENERAL);
+      options->allow_recursive_routing = true;
     }
   else
     {
