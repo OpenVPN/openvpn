@@ -1857,8 +1857,9 @@ link_socket_init_phase2 (struct link_socket *sock,
   int sig_save = 0;
 
   ASSERT (sock);
+  ASSERT (sig_info);
 
-  if (sig_info && sig_info->signal_received)
+  if (sig_info->signal_received)
     {
       sig_save = sig_info->signal_received;
       sig_info->signal_received = 0;
@@ -1879,7 +1880,7 @@ link_socket_init_phase2 (struct link_socket *sock,
   if (sock->inetd)
     {
       phase2_inetd (sock, frame, remote_dynamic,  &sig_info->signal_received);
-      if (sig_info && sig_info->signal_received)
+      if (sig_info->signal_received)
 	goto done;
 
     }
@@ -1921,7 +1922,7 @@ link_socket_init_phase2 (struct link_socket *sock,
 	  goto done;
 	}
 
-      if (sig_info && sig_info->signal_received)
+      if (sig_info->signal_received)
 	goto done;
 
       if (sock->info.proto == PROTO_TCP_SERVER)
@@ -1942,7 +1943,7 @@ link_socket_init_phase2 (struct link_socket *sock,
       if (sock->sd != -1)
 	protect_fd_nonlocal (sock->sd, &sock->info.lsa->actual.dest.addr.sa);
 #endif
-      if (sig_info && sig_info->signal_received)
+      if (sig_info->signal_received)
 	goto done;
     }
 
@@ -1950,7 +1951,7 @@ link_socket_init_phase2 (struct link_socket *sock,
   linksock_print_addr(sock);
 
  done:
-  if (sig_save && sig_info)
+  if (sig_save)
     {
       if (!sig_info->signal_received)
 	sig_info->signal_received = sig_save;
