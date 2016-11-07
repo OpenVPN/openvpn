@@ -103,7 +103,9 @@ const char title_string[] =
   " [MH/RECVDA]"
 # endif
 #endif
-  " [IPv6]"
+#ifdef HAVE_AEAD_CIPHER_MODES
+  " [AEAD]"
+#endif
   " built on " __DATE__
 ;
 
