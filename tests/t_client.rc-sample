@@ -11,6 +11,7 @@ top_srcdir="${top_srcdir:-..}"
 CA_CERT="${top_srcdir}/sample/sample-keys/ca.crt"
 CLIENT_KEY="${top_srcdir}/sample/sample-keys/client.key"
 CLIENT_CERT="${top_srcdir}/sample/sample-keys/client.crt"
+#FPING_EXTRA_ARGS="-t 1000"
 
 # Load EXPECT_IFCONFIG* parameters from cache
 if [ -r "${top_builddir}/t_client_ips.rc" ]; then
