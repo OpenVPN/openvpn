@@ -2147,33 +2147,11 @@ do_init_crypto_static (struct context *c, const unsigned int flags)
 		     options->keysize, options->test_crypto, true);
 
       /* Read cipher and hmac keys from shared secret file */
-      {
-	unsigned int rkf_flags = RKF_MUST_SUCCEED;
-	const char *rkf_file = options->shared_secret_file;
-
-	if (options->shared_secret_file_inline)
-	  {
-	    rkf_file = options->shared_secret_file_inline;
-	    rkf_flags |= RKF_INLINE;
-	  }
-	read_key_file (&key2, rkf_file, rkf_flags);
-      }
-
-      /* Check for and fix highly unlikely key problems */
-      verify_fix_key2 (&key2, &c->c1.ks.key_type,
-		       options->shared_secret_file);
-
-      /* Initialize OpenSSL key objects */
-      key_direction_state_init (&kds, options->key_direction);
-      must_have_n_keys (options->shared_secret_file, "secret", &key2,
-			kds.need_keys);
-      init_key_ctx (&c->c1.ks.static_key.encrypt, &key2.keys[kds.out_key],
-		    &c->c1.ks.key_type, OPENVPN_OP_ENCRYPT, "Static Encrypt");
-      init_key_ctx (&c->c1.ks.static_key.decrypt, &key2.keys[kds.in_key],
-		    &c->c1.ks.key_type, OPENVPN_OP_DECRYPT, "Static Decrypt");
-
-      /* Erase the temporary copy of key */
-      CLEAR (key2);
+      crypto_read_openvpn_key (&c->c1.ks.key_type, &c->c1.ks.static_key,
+			       options->shared_secret_file,
+			       options->shared_secret_file_inline,
+			       options->key_direction, "Static Key Encryption",
+			       "secret");
     }
   else
     {
@@ -2242,15 +2220,6 @@ do_init_crypto_tls_c1 (struct context *c)
       /* TLS handshake authentication (--tls-auth) */
       if (options->tls_auth_file)
 	{
-	  unsigned int flags = 0;
-	  const char *file = options->tls_auth_file;
-
-	  if (options->tls_auth_file_inline)
-	    {
-	      flags |= GHK_INLINE;
-	      file = options->tls_auth_file_inline;
-	    }
-
 	  /* Initialize key_type for tls-auth with auth only */
 	  CLEAR (c->c1.ks.tls_auth_key_type);
 	  if (!streq (options->authname, "none"))
@@ -2265,8 +2234,10 @@ do_init_crypto_tls_c1 (struct context *c)
 		  "algorithm specified ('%s')", options->authname);
 	    }
 
-	  get_tls_handshake_key (&c->c1.ks.tls_auth_key_type,
-	      &c->c1.ks.tls_auth_key, file, options->key_direction, flags);
+	  crypto_read_openvpn_key (&c->c1.ks.tls_auth_key_type,
+	      &c->c1.ks.tls_auth_key, options->tls_auth_file,
+	      options->tls_auth_file_inline, options->key_direction,
+	      "Control Channel Authentication", "tls-auth");
 	}
 
       c->c1.ciphername = options->ciphername;

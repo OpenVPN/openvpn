@@ -1103,48 +1103,45 @@ test_crypto (struct crypto_options *co, struct frame* frame)
 }
 
 void
-get_tls_handshake_key (const struct key_type *key_type,
-		       struct key_ctx_bi *ctx,
-		       const char *key_file,
-		       const int key_direction,
-		       const unsigned int flags)
+crypto_read_openvpn_key (const struct key_type *key_type,
+	struct key_ctx_bi *ctx, const char *key_file, const char *key_inline,
+	const int key_direction, const char *key_name, const char *opt_name)
 {
-  if (key_file)
+  struct key2 key2;
+  struct key_direction_state kds;
+  char log_prefix[128] = { 0 };
+
+  if (key_inline)
     {
-      struct key2 key2;
-      struct key_direction_state kds;
-
-      if (flags & GHK_INLINE)
-	{
-	  read_key_file (&key2, key_file, RKF_INLINE|RKF_MUST_SUCCEED);
-	}
-      else
-	{
-	  read_key_file (&key2, key_file, RKF_MUST_SUCCEED);
-	}
-
-	if (key2.n != 2)
-	  {
-	    msg (M_ERR, "Control Channel Authentication: File '%s' does not "
-		"have OpenVPN Static Key format.  Using free-form passphrase "
-		"file is not supported anymore.", key_file);
-	  }
-      /* handle key direction */
-      key_direction_state_init (&kds, key_direction);
-      must_have_n_keys (key_file, "tls-auth", &key2, kds.need_keys);
-
-      /* initialize key in both directions */
-      init_key_ctx (&ctx->encrypt, &key2.keys[kds.out_key], key_type, OPENVPN_OP_ENCRYPT,
-		    "Outgoing Control Channel Authentication");
-      init_key_ctx (&ctx->decrypt, &key2.keys[kds.in_key], key_type, OPENVPN_OP_DECRYPT,
-		    "Incoming Control Channel Authentication");
-
-      CLEAR (key2);
+      read_key_file (&key2, key_inline, RKF_MUST_SUCCEED|RKF_INLINE);
     }
   else
     {
-      CLEAR (*ctx);
+      read_key_file (&key2, key_file, RKF_MUST_SUCCEED);
     }
+
+  if (key2.n != 2)
+    {
+      msg (M_ERR, "File '%s' does not have OpenVPN Static Key format.  Using "
+	   "free-form passphrase file is not supported anymore.", key_file);
+    }
+
+  /* check for and fix highly unlikely key problems */
+  verify_fix_key2 (&key2, key_type, key_file);
+
+  /* handle key direction */
+  key_direction_state_init (&kds, key_direction);
+  must_have_n_keys (key_file, opt_name, &key2, kds.need_keys);
+
+  /* initialize key in both directions */
+  openvpn_snprintf (log_prefix, sizeof (log_prefix), "Outgoing %s", key_name);
+  init_key_ctx (&ctx->encrypt, &key2.keys[kds.out_key], key_type,
+		OPENVPN_OP_ENCRYPT, log_prefix);
+  openvpn_snprintf (log_prefix, sizeof (log_prefix), "Incoming %s", key_name);
+  init_key_ctx (&ctx->decrypt, &key2.keys[kds.in_key], key_type,
+		OPENVPN_OP_DECRYPT, log_prefix);
+
+  CLEAR (key2);
 }
 
 /* header and footer for static key file */

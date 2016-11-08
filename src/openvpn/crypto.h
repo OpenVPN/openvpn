@@ -465,12 +465,9 @@ void key2_print (const struct key2* k,
 		 const char* prefix0,
 		 const char* prefix1);
 
-#define GHK_INLINE  (1<<0)
-void get_tls_handshake_key (const struct key_type *key_type,
-			    struct key_ctx_bi *ctx,
-			    const char *passphrase_file,
-			    const int key_direction,
-			    const unsigned int flags);
+void crypto_read_openvpn_key (const struct key_type *key_type,
+	struct key_ctx_bi *ctx, const char *key_file, const char *key_inline,
+	const int key_direction, const char *key_name, const char *opt_name);
 
 /*
  * Inline functions
