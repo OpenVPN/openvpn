@@ -275,7 +275,7 @@ do
     # If EXCEPT_IFCONFIG* variables for this test are missing, run an --up
     # script to generate them dynamically.
     if [ -z "$expect_ifconfig4" ] || [ -z "$expect_ifconfig6" ]; then
-        up="--setenv TESTNUM $SUF --setenv TOP_BUILDDIR ${top_builddir} --script-security 2 --up ${top_builddir}/tests/update_t_client_ips.sh"
+        up="--setenv TESTNUM $SUF --setenv TOP_BUILDDIR ${top_builddir} --script-security 2 --up ${srcdir}/update_t_client_ips.sh"
     fi
 
     echo -e "\n### test run $SUF: '$test_run_title' ###\n"

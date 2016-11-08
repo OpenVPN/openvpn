@@ -13,8 +13,8 @@ CLIENT_KEY="${top_srcdir}/sample/sample-keys/client.key"
 CLIENT_CERT="${top_srcdir}/sample/sample-keys/client.crt"
 
 # Load EXPECT_IFCONFIG* parameters from cache
-if [ -r "${top_srcdir}/t_client_ips.rc" ]; then
-    . "${top_srcdir}/t_client_ips.rc"
+if [ -r "${top_builddir}/t_client_ips.rc" ]; then
+    . "${top_builddir}/t_client_ips.rc"
 else
     echo "NOTICE: missing t_client_ips.rc will be auto-generated"
 fi
