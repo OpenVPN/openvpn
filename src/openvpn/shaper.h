@@ -75,7 +75,7 @@ bool shaper_soonest_event (struct timeval *tv, int delay);
 static inline void
 shaper_reset (struct shaper *s, int bytes_per_second)
 {
-  s->bytes_per_second = bytes_per_second ? constrain_int (bytes_per_second, SHAPER_MIN, SHAPER_MAX) : 0;
+  s->bytes_per_second = constrain_int (bytes_per_second, SHAPER_MIN, SHAPER_MAX);
 
 #ifdef SHAPER_USE_FP
   s->factor = 1000000.0 / (double)s->bytes_per_second;
