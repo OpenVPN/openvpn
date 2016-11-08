@@ -27,6 +27,9 @@
 
 #include "basic.h"
 
+#include <errno.h>
+#include <stdbool.h>
+
 #include <assert.h>
 
 /* #define ABORT_ON_ERROR */
