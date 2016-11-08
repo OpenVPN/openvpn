@@ -1157,7 +1157,6 @@ static void
 do_init_route_list (const struct options *options,
 		    struct route_list *route_list,
 		    const struct link_socket_info *link_socket_info,
-		    bool fatal,
 		    struct env_set *es)
 {
   const char *gw = NULL;
@@ -1171,17 +1170,12 @@ do_init_route_list (const struct options *options,
   if (options->route_default_metric)
     metric = options->route_default_metric;
 
-  if (!init_route_list (route_list,
+  if (init_route_list (route_list,
 			options->routes,
 			gw,
 			metric,
 			link_socket_current_remote (link_socket_info),
 			es))
-    {
-      if (fatal)
-	openvpn_exit (OPENVPN_EXIT_STATUS_ERROR);	/* exit point */
-    }
-  else
     {
       /* copy routes to environment */
       setenv_routes (es, route_list);
@@ -1192,7 +1186,6 @@ static void
 do_init_route_ipv6_list (const struct options *options,
 		    struct route_ipv6_list *route_ipv6_list,
 		    const struct link_socket_info *link_socket_info,
-		    bool fatal,
 		    struct env_set *es)
 {
   const char *gw = NULL;
@@ -1222,17 +1215,12 @@ do_init_route_ipv6_list (const struct options *options,
 	}
     }
 
-  if (!init_route_ipv6_list (route_ipv6_list,
+  if (init_route_ipv6_list (route_ipv6_list,
 			options->routes_ipv6,
 			gw,
 			metric,
 			link_socket_current_remote_ipv6 (link_socket_info),
 			es))
-    {
-      if (fatal)
-	openvpn_exit (OPENVPN_EXIT_STATUS_ERROR);	/* exit point */
-    }
-  else
     {
       /* copy routes to environment */
       setenv_routes_ipv6 (es, route_ipv6_list);
@@ -1443,10 +1431,13 @@ do_open_tun (struct context *c)
       do_alloc_route_list (c);
 
       /* parse and resolve the route option list */
-      if (c->options.routes && c->c1.route_list && c->c2.link_socket)
-	do_init_route_list (&c->options, c->c1.route_list, &c->c2.link_socket->info, false, c->c2.es);
-      if (c->options.routes_ipv6 && c->c1.route_ipv6_list )
-	do_init_route_ipv6_list (&c->options, c->c1.route_ipv6_list, &c->c2.link_socket->info, false, c->c2.es);
+      ASSERT(c->c2.link_socket);
+      if (c->options.routes && c->c1.route_list)
+	do_init_route_list (&c->options, c->c1.route_list,
+			    &c->c2.link_socket->info, c->c2.es);
+      if (c->options.routes_ipv6 && c->c1.route_ipv6_list)
+	do_init_route_ipv6_list (&c->options, c->c1.route_ipv6_list,
+				 &c->c2.link_socket->info, c->c2.es);
 
       /* do ifconfig */
       if (!c->options.ifconfig_noexec
