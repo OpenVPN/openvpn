@@ -2317,9 +2317,6 @@ void multi_process_float (struct multi_context* m, struct multi_instance* mi)
 	mroute_addr_print (&mi->real, &gc),
 	print_link_socket_actual (&m->top.c2.from, &gc));
 
-    ASSERT (hash_remove(m->hash, &mi->real));
-    ASSERT (hash_remove(m->iter, &mi->real));
-
     /* change external network address of the remote peer */
     mi->real = real;
     generate_prefix (mi);
@@ -2333,12 +2330,11 @@ void multi_process_float (struct multi_context* m, struct multi_instance* mi)
 
     tls_update_remote_addr (mi->context.c2.tls_multi, &mi->context.c2.from);
 
-    ASSERT (hash_add (m->hash, &mi->real, mi, false));
-    ASSERT (hash_add (m->iter, &mi->real, mi, false));
+    ASSERT (hash_add (m->hash, &mi->real, mi, true));
+    ASSERT (hash_add (m->iter, &mi->real, mi, true));
 
 #ifdef MANAGEMENT_DEF_AUTH
-    hash_remove (m->cid_hash, &mi->context.c2.mda_context.cid);
-    hash_add (m->cid_hash, &mi->context.c2.mda_context.cid, mi, false);
+    ASSERT (hash_add (m->cid_hash, &mi->context.c2.mda_context.cid, mi, true));
 #endif
 
 done:
