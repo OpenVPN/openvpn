@@ -14,16 +14,6 @@
 #include "buffer.h"
 
 /*
- * Dummy symbols that need to be defined due to them being
- * referenced in #include'd header files and their includes
- */
-unsigned int x_debug_level;
-bool dont_mute (unsigned int flags) { return true; }
-void assert_failed (const char *filename, int line, const char *condition) { exit(0); }
-void out_of_memory (void) { }
-void x_msg (const unsigned int flags, const char *format, ...) { }
-
-/*
  * This is defined here to prevent #include'ing misc.h
  * which makes things difficult beyond any recognition
  */
