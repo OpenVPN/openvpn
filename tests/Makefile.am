@@ -24,4 +24,8 @@ TESTS = $(test_scripts)
 
 dist_noinst_SCRIPTS = \
 	$(test_scripts) \
-	t_cltsrv-down.sh
+	t_cltsrv-down.sh \
+	update_t_client_ips.sh
+
+dist_noinst_DATA = \
+	t_client.rc-sample
