@@ -600,7 +600,7 @@ init_ssl (const struct options *options, struct tls_root_ctx *new_ctx)
 
   /* Load extra certificates that are part of our own certificate
      chain but shouldn't be included in the verify chain */
-  if (options->extra_certs_file || options->extra_certs_file_inline)
+  if (options->extra_certs_file)
     {
       tls_ctx_load_extra_certs(new_ctx, options->extra_certs_file, options->extra_certs_file_inline);
     }
