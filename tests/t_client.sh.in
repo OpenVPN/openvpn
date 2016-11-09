@@ -276,6 +276,8 @@ do
     # script to generate them dynamically.
     if [ -z "$expect_ifconfig4" ] || [ -z "$expect_ifconfig6" ]; then
         up="--setenv TESTNUM $SUF --setenv TOP_BUILDDIR ${top_builddir} --script-security 2 --up ${srcdir}/update_t_client_ips.sh"
+    else
+        up=""
     fi
 
     echo -e "\n### test run $SUF: '$test_run_title' ###\n"
