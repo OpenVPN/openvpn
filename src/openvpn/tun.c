@@ -751,7 +751,6 @@ do_ifconfig (struct tuntap *tt,
       const char *ifconfig_remote_netmask = NULL;
       const char *ifconfig_broadcast = NULL;
       const char *ifconfig_ipv6_local = NULL;
-      const char *ifconfig_ipv6_remote = NULL;
       bool do_ipv6 = false;
       struct argv argv = argv_new ();
 
@@ -772,7 +771,6 @@ do_ifconfig (struct tuntap *tt,
       if (tt->did_ifconfig_ipv6_setup )
         {
 	  ifconfig_ipv6_local = print_in6_addr (tt->local_ipv6, 0, &gc);
-	  ifconfig_ipv6_remote = print_in6_addr (tt->remote_ipv6, 0, &gc);
 	  do_ipv6 = true;
 	}
 
@@ -915,7 +913,6 @@ do_ifconfig (struct tuntap *tt,
       management_android_control (management, "IFCONFIG", buf_bptr(&out));
 
 #elif defined(TARGET_SOLARIS)
-
       /* Solaris 2.6 (and 7?) cannot set all parameters in one go...
        * example:
        *    ifconfig tun2 10.2.0.2 10.2.0.1 mtu 1450 up
@@ -977,6 +974,9 @@ do_ifconfig (struct tuntap *tt,
 
 	  if ( tt->type == DEV_TYPE_TUN )
 	   {
+	      const char *ifconfig_ipv6_remote =
+                ifconfig_ipv6_remote = print_in6_addr (tt->remote_ipv6, 0, &gc);
+
 	      argv_printf (&argv,
 			    "%s %s inet6 plumb %s/%d %s up",
 			    IFCONFIG_PATH,
@@ -1502,7 +1502,7 @@ read_tun_header (struct tuntap* tt, uint8_t *buf, int len)
 #endif
 
 
-#ifndef _WIN32
+#if !(defined(_WIN32) || defined(TARGET_LINUX))
 static void
 open_tun_generic (const char *dev, const char *dev_type, const char *dev_node,
 		  bool dynamic, struct tuntap *tt)
@@ -1604,7 +1604,9 @@ open_tun_generic (const char *dev, const char *dev_type, const char *dev_node,
       tt->actual_name = string_alloc (dynamic_opened ? dynamic_name : dev, NULL);
     }
 }
+#endif /* !_WIN32 && !TARGET_LINUX */
 
+#if !defined(_WIN32)
 static void
 close_tun_generic (struct tuntap *tt)
 {
@@ -1614,8 +1616,7 @@ close_tun_generic (struct tuntap *tt)
     free (tt->actual_name);
   clear_tuntap (tt);
 }
-
-#endif
+#endif /* !_WIN32 */
 
 #if defined (TARGET_ANDROID)
 void
