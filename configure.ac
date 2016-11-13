@@ -390,6 +390,12 @@ AC_DEFINE_UNQUOTED([IPROUTE_PATH], ["$IPROUTE"], [Path to iproute tool])
 AC_DEFINE_UNQUOTED([ROUTE_PATH], ["$ROUTE"], [Path to route tool])
 AC_DEFINE_UNQUOTED([SYSTEMD_ASK_PASSWORD_PATH], ["$SYSTEMD_ASK_PASSWORD"], [Path to systemd-ask-password tool])
 
+# Set -std=c99 unless user already specified a -std=
+case "${CFLAGS}" in
+  *-std=*) ;;
+  *)       CFLAGS="${CFLAGS} -std=c99" ;;
+esac
+
 #
 # Libtool
 #
@@ -552,6 +558,28 @@ AC_CHECK_DECLS(
 	,
 	,
 	[[${SOCKET_INCLUDES}]]
+)
+AC_CHECKING([anonymous union support])
+AC_COMPILE_IFELSE(
+	[AC_LANG_PROGRAM(
+		[[
+			struct mystruct {
+			  union {
+			    int m1;
+			    char m2;
+			  };
+			};
+		]],
+		[[
+			struct mystruct s;
+			s.m1 = 1; s.m2 = 2;
+		]]
+	)],
+	[
+		AC_MSG_RESULT([yes])
+		AC_DEFINE([HAVE_ANONYMOUS_UNION_SUPPORT], [], [Compiler supports anonymous unions])
+	],
+	[AC_MSG_RESULT([no])]
 )
 
 dnl We emulate signals in Windows
@@ -1147,12 +1175,6 @@ if test "${enable_pkcs11}" = "yes"; then
 		[]
 	)
 fi
-
-# Set -std=c99 unless user already specified a -std=
-case "${CFLAGS}" in
-  *-std=*) ;;
-  *)       CFLAGS="${CFLAGS} -std=c99" ;;
-esac
 
 if test "${enable_pedantic}" = "yes"; then
 	enable_strict="yes"
