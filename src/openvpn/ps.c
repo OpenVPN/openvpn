@@ -223,12 +223,12 @@ port_share_sendmsg (const socket_descriptor_t sd,
 
       if (socket_defined (sd_send))
 	{
-	  *((socket_descriptor_t*)CMSG_DATA(h)) = sd_send;
+	  memcpy (CMSG_DATA(h), &sd_send, sizeof (sd_send));
 	}
       else
 	{
 	  socketpair (PF_UNIX, SOCK_DGRAM, 0, sd_null);
-	  *((socket_descriptor_t*)CMSG_DATA(h)) = sd_null[0];
+	  memcpy (CMSG_DATA(h), &sd_null[0], sizeof (sd_null[0]));
 	}
 
       status = sendmsg (sd, &mesg, MSG_NOSIGNAL);
@@ -502,7 +502,8 @@ control_message_from_parent (const socket_descriptor_t sd_control,
   h->cmsg_len = CMSG_LEN(sizeof(socket_descriptor_t));
   h->cmsg_level = SOL_SOCKET;
   h->cmsg_type = SCM_RIGHTS;
-  *((socket_descriptor_t*)CMSG_DATA(h)) = SOCKET_UNDEFINED;
+  static const socket_descriptor_t socket_undefined = SOCKET_UNDEFINED;
+  memcpy (CMSG_DATA(h), &socket_undefined, sizeof(socket_undefined));
 
   status = recvmsg (sd_control, &mesg, MSG_NOSIGNAL);
   if (status != -1)
@@ -516,7 +517,8 @@ control_message_from_parent (const socket_descriptor_t sd_control,
 	}
       else
 	{
-	  const socket_descriptor_t received_fd = *((socket_descriptor_t*)CMSG_DATA(h));
+	  socket_descriptor_t received_fd;
+	  memcpy (&received_fd, CMSG_DATA(h), sizeof(received_fd));
 	  dmsg (D_PS_PROXY_DEBUG, "PORT SHARE PROXY: RECEIVED sd=%d", (int)received_fd);
 
 	  if (status >= 2 && command == COMMAND_REDIRECT)

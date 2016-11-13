@@ -2598,7 +2598,8 @@ setenv_sockaddr (struct env_set *es, const char *name_prefix, const struct openv
       if ( IN6_IS_ADDR_V4MAPPED( &addr->addr.in6.sin6_addr ))
 	{
 	  struct in_addr ia;
-	  ia.s_addr = *(in_addr_t *)&addr->addr.in6.sin6_addr.s6_addr[12] ;
+	  memcpy (&ia.s_addr, &addr->addr.in6.sin6_addr.s6_addr[12],
+	      sizeof (ia.s_addr));
 	  openvpn_snprintf (name_buf, sizeof (name_buf), "%s_ip", name_prefix);
 	  openvpn_snprintf (buf, sizeof(buf), "%s", inet_ntoa(ia) );
 	}

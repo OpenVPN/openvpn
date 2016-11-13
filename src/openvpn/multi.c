@@ -1201,7 +1201,7 @@ multi_learn_in6_addr  (struct multi_context *m,
   addr.len = 16;
   addr.type = MR_ADDR_IPV6;
   addr.netbits = 0;
-  memcpy( &addr.addr, &a6, sizeof(a6) );
+  addr.v6.addr = a6;
 
   if (netbits >= 0)
     {
@@ -2435,7 +2435,7 @@ multi_process_incoming_link (struct multi_context *m, struct multi_instance *ins
 		{
 		  /* IPv6 link-local address (fe80::xxx)? */
 		  if ( (src.type & MR_ADDR_MASK) == MR_ADDR_IPV6 &&
-		        src.addr[0] == 0xfe && src.addr[1] == 0x80 )
+		        IN6_IS_ADDR_LINKLOCAL (&src.v6.addr) )
 		    {
 		      /* do nothing, for now.  TODO: add address learning */
 		    }

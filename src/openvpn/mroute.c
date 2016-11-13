@@ -58,7 +58,8 @@ is_mac_mcast_addr (const uint8_t *mac)
 static inline bool
 is_mac_mcast_maddr (const struct mroute_addr *addr)
 {
-  return (addr->type & MR_ADDR_MASK) == MR_ADDR_ETHER && is_mac_mcast_addr (addr->addr); 
+  return (addr->type & MR_ADDR_MASK) == MR_ADDR_ETHER &&
+      is_mac_mcast_addr (addr->eth_addr);
 }
 
 /*
@@ -73,7 +74,7 @@ mroute_learnable_address (const struct mroute_addr *addr)
 
   for (i = 0; i < addr->len; ++i)
     {
-      int b = addr->addr[i];
+      int b = addr->raw_addr[i];
       if (b != 0x00)
 	not_all_zeros = true;
       if (b != 0xFF)
@@ -90,7 +91,7 @@ mroute_get_in_addr_t (struct mroute_addr *ma, const in_addr_t src, unsigned int 
       ma->type = MR_ADDR_IPV4 | mask;
       ma->netbits = 0;
       ma->len = 4;
-      *(in_addr_t*)ma->addr = src;
+      ma->v4.addr = src;
     }
 }
 
@@ -102,7 +103,7 @@ mroute_get_in6_addr (struct mroute_addr *ma, const struct in6_addr src, unsigned
       ma->type = MR_ADDR_IPV6 | mask;
       ma->netbits = 0;
       ma->len = 16;
-      *(struct in6_addr *)ma->addr = src;
+      ma->v6.addr = src;
     }
 }
 
@@ -226,14 +227,14 @@ mroute_extract_addr_ether (struct mroute_addr *src,
 	  src->type = MR_ADDR_ETHER;
 	  src->netbits = 0;
 	  src->len = 6;
-	  memcpy (src->addr, eth->source, 6);
+	  memcpy (src->eth_addr, eth->source, sizeof(dest->eth_addr));
 	}
       if (dest)
 	{
 	  dest->type = MR_ADDR_ETHER;
 	  dest->netbits = 0;
 	  dest->len = 6;
-	  memcpy (dest->addr, eth->dest, 6);
+	  memcpy (dest->eth_addr, eth->dest, sizeof(dest->eth_addr));
 
 	  /* ethernet broadcast/multicast packet? */
 	  if (is_mac_mcast_addr (eth->dest))
@@ -281,15 +282,15 @@ bool mroute_extract_openvpn_sockaddr (struct mroute_addr *addr,
 	  addr->type = MR_ADDR_IPV4 | MR_WITH_PORT;
 	  addr->netbits = 0;
 	  addr->len = 6;
-	  memcpy (addr->addr, &osaddr->addr.in4.sin_addr.s_addr, 4);
-	  memcpy (addr->addr + 4, &osaddr->addr.in4.sin_port, 2);
+	  addr->v4.addr = osaddr->addr.in4.sin_addr.s_addr;
+	  addr->v4.port = osaddr->addr.in4.sin_port;
 	}
       else
 	{
 	  addr->type = MR_ADDR_IPV4;
 	  addr->netbits = 0;
 	  addr->len = 4;
-	  memcpy (addr->addr, &osaddr->addr.in4.sin_addr.s_addr, 4);
+	  addr->v4.addr = osaddr->addr.in4.sin_addr.s_addr;
 	}
       return true;
     }
@@ -299,15 +300,15 @@ bool mroute_extract_openvpn_sockaddr (struct mroute_addr *addr,
 	  addr->type = MR_ADDR_IPV6 | MR_WITH_PORT;
 	  addr->netbits = 0;
 	  addr->len = 18;
-	  memcpy (addr->addr, &osaddr->addr.in6.sin6_addr, 16);
-	  memcpy (addr->addr + 16, &osaddr->addr.in6.sin6_port, 2);
+	  addr->v6.addr = osaddr->addr.in6.sin6_addr;
+	  addr->v6.port = osaddr->addr.in6.sin6_port;
 	}
       else
 	{
 	  addr->type = MR_ADDR_IPV6;
 	  addr->netbits = 0;
 	  addr->len = 16;
-	  memcpy (addr->addr, &osaddr->addr.in6.sin6_addr, 16);
+	  addr->v6.addr = osaddr->addr.in6.sin6_addr;
 	}
       return true;
   }
@@ -326,23 +327,29 @@ bool mroute_extract_openvpn_sockaddr (struct mroute_addr *addr,
 void
 mroute_addr_mask_host_bits (struct mroute_addr *ma)
 {
-  in_addr_t addr = ntohl(*(in_addr_t*)ma->addr);
   if ((ma->type & MR_ADDR_MASK) == MR_ADDR_IPV4)
     {
+      in_addr_t addr = ntohl (ma->v4.addr);
       addr &= netbits_to_netmask (ma->netbits);
-      *(in_addr_t*)ma->addr = htonl (addr);
+      ma->v4.addr = htonl (addr);
     }
   else if ((ma->type & MR_ADDR_MASK) == MR_ADDR_IPV6)
     {
-      int byte = ma->len-1;		/* rightmost byte in address */
+      int byte = sizeof (ma->v6.addr) - 1;	/* rightmost byte in address */
       int bits_to_clear = 128 - ma->netbits;
 
       while( byte >= 0 && bits_to_clear > 0 )
         {
 	  if ( bits_to_clear >= 8 )
-	    { ma->addr[byte--] = 0; bits_to_clear -= 8; }
+	    {
+	      ma->v6.addr.s6_addr[byte--] = 0;
+	      bits_to_clear -= 8;
+	    }
 	  else
-	    { ma->addr[byte--] &= (IPV4_NETMASK_HOST << bits_to_clear); bits_to_clear = 0; }
+	    {
+	      ma->v6.addr.s6_addr[byte--] &= (IPV4_NETMASK_HOST << bits_to_clear);
+	      bits_to_clear = 0;
+	    }
         }
       ASSERT( bits_to_clear == 0 );
     }
@@ -390,51 +397,41 @@ mroute_addr_print_ex (const struct mroute_addr *ma,
       switch (maddr.type & MR_ADDR_MASK)
 	{
 	case MR_ADDR_ETHER:
-	  buf_printf (&out, "%s", format_hex_ex (ma->addr, 6, 0, 1, ":", gc)); 
+	  buf_printf (&out, "%s", format_hex_ex (ma->eth_addr,
+	      sizeof(ma->eth_addr), 0, 1, ":", gc));
 	  break;
 	case MR_ADDR_IPV4:
 	  {
-	    struct buffer buf;
-	    in_addr_t addr;
-	    int port;
-	    bool status;
-	    buf_set_read (&buf, maddr.addr, maddr.len);
-	    addr = buf_read_u32 (&buf, &status);
-	    if (status)
+	    if ((flags & MAPF_SHOW_ARP) && (maddr.type & MR_ARP))
+	      buf_printf (&out, "ARP/");
+	    buf_printf (&out, "%s", print_in_addr_t (ntohl (maddr.v4.addr),
+		(flags & MAPF_IA_EMPTY_IF_UNDEF) ? IA_EMPTY_IF_UNDEF : 0, gc));
+	    if (maddr.type & MR_WITH_NETBITS)
 	      {
-		if ((flags & MAPF_SHOW_ARP) && (maddr.type & MR_ARP))
-		  buf_printf (&out, "ARP/");
-		buf_printf (&out, "%s", print_in_addr_t (addr, (flags & MAPF_IA_EMPTY_IF_UNDEF) ? IA_EMPTY_IF_UNDEF : 0, gc));
-		if (maddr.type & MR_WITH_NETBITS)
+		if (flags & MAPF_SUBNET)
 		  {
-		    if (flags & MAPF_SUBNET)
-		      {
-			const in_addr_t netmask = netbits_to_netmask (maddr.netbits);
-			buf_printf (&out, "/%s", print_in_addr_t (netmask, 0, gc));
-		      }
-		    else
-		      buf_printf (&out, "/%d", maddr.netbits);
+		    const in_addr_t netmask = netbits_to_netmask (maddr.netbits);
+		    buf_printf (&out, "/%s", print_in_addr_t (netmask, 0, gc));
 		  }
+		else
+		  buf_printf (&out, "/%d", maddr.netbits);
 	      }
 	    if (maddr.type & MR_WITH_PORT)
 	      {
-		port = buf_read_u16 (&buf);
-		if (port >= 0)
-		  buf_printf (&out, ":%d", port);
+		buf_printf (&out, ":%d", ntohs (maddr.v4.port));
 	      }
 	  }
 	  break;
 	case MR_ADDR_IPV6:
 	  {
-	    if ( IN6_IS_ADDR_V4MAPPED( (struct in6_addr*)&maddr.addr ) )
+	    if ( IN6_IS_ADDR_V4MAPPED( &maddr.v6.addr ) )
 	      {
-		buf_printf (&out, "%s",
-		     print_in_addr_t( *(in_addr_t*)(&maddr.addr[12]), IA_NET_ORDER, gc));
+		buf_printf (&out, "%s", print_in_addr_t (maddr.v4mappedv6.addr,
+		    IA_NET_ORDER, gc));
 	      }
 	    else
 	      {
-	        buf_printf (&out, "%s",
-		      print_in6_addr( *(struct in6_addr*)&maddr.addr, 0, gc));
+	        buf_printf (&out, "%s", print_in6_addr (maddr.v6.addr, 0, gc));
 	      }
 	    if (maddr.type & MR_WITH_NETBITS)
 	      {

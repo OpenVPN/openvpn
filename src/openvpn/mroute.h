@@ -31,6 +31,8 @@
 #include "list.h"
 #include "route.h"
 
+#include <stddef.h>
+
 #define IP_MCAST_SUBNET_MASK  ((in_addr_t)240<<24)
 #define IP_MCAST_NETWORK      ((in_addr_t)224<<24)
 
@@ -79,8 +81,34 @@ struct mroute_addr {
   uint8_t type;     /* MR_ADDR/MR_WITH flags */
   uint8_t netbits;  /* number of bits in network part of address,
 		       valid if MR_WITH_NETBITS is set */
-  uint8_t addr[MR_MAX_ADDR_LEN];  /* actual address */
+  union {
+    uint8_t raw_addr[MR_MAX_ADDR_LEN];  /* actual address */
+    uint8_t eth_addr[OPENVPN_ETH_ALEN];
+    struct {
+      in_addr_t addr;		/* _network order_ IPv4 address */
+      in_port_t port;		/* _network order_ TCP/UDP port */
+    } v4;
+    struct {
+      struct in6_addr addr;
+      in_port_t port;		/* _network order_ TCP/UDP port */
+    } v6;
+    struct {
+      uint8_t prefix[12];
+      in_addr_t addr;		/* _network order_ IPv4 address */
+    } v4mappedv6;
+  };
 };
+
+/* Double-check that struct packing works as expected */
+static_assert (offsetof(struct mroute_addr, v4.port) ==
+	offsetof(struct mroute_addr, v4) + 4,
+    "Unexpected struct packing of v4");
+static_assert (offsetof(struct mroute_addr, v6.port) ==
+	offsetof(struct mroute_addr, v6) + 16,
+    "Unexpected struct packing of v6");
+static_assert (offsetof(struct mroute_addr, v4mappedv6.addr) ==
+	offsetof(struct mroute_addr, v4mappedv6) + 12,
+    "Unexpected struct packing of v4mappedv6");
 
 /*
  * Number of bits in an address.  Should be raised for IPv6.
@@ -167,7 +195,7 @@ mroute_addr_equal (const struct mroute_addr *a1, const struct mroute_addr *a2)
     return false;
   if (a1->len != a2->len)
     return false;
-  return memcmp (a1->addr, a2->addr, a1->len) == 0;
+  return memcmp (a1->raw_addr, a2->raw_addr, a1->len) == 0;
 }
 
 static inline const uint8_t *
@@ -189,16 +217,17 @@ mroute_extract_in_addr_t (struct mroute_addr *dest, const in_addr_t src)
   dest->type = MR_ADDR_IPV4;
   dest->netbits = 0;
   dest->len = 4;
-  *(in_addr_t*)dest->addr = htonl (src);
+  dest->v4.addr = htonl (src);
 }
 
 static inline in_addr_t
 in_addr_t_from_mroute_addr (const struct mroute_addr *addr)
 {
-  if ((addr->type & MR_ADDR_MASK) == MR_ADDR_IPV4 && addr->netbits == 0 && addr->len == 4)
-    return ntohl(*(in_addr_t*)addr->addr);
-  else
+  if ((addr->type & MR_ADDR_MASK) == MR_ADDR_IPV4 && addr->netbits == 0 && addr->len == 4) {
+    return ntohl(addr->v4.addr);
+  } else {
     return 0;
+  }
 }
 
 static inline void
