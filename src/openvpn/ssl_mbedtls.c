@@ -283,7 +283,7 @@ tls_ctx_load_cryptoapi(struct tls_root_ctx *ctx, const char *cryptoapi_cert)
 {
   msg(M_FATAL, "Windows CryptoAPI not yet supported for mbed TLS.");
 }
-#endif /* WIN32 */
+#endif /* _WIN32 */
 
 void
 tls_ctx_load_cert_file (struct tls_root_ctx *ctx, const char *cert_file,

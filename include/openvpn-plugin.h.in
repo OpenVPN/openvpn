@@ -154,7 +154,7 @@ typedef void *openvpn_plugin_handle_t;
 /*
  * For Windows (needs to be modified for MSVC)
  */
-#if defined(WIN32) && !defined(OPENVPN_PLUGIN_H)
+#if defined(_WIN32) && !defined(OPENVPN_PLUGIN_H)
 # define OPENVPN_EXPORT __declspec(dllexport)
 #else
 # define OPENVPN_EXPORT

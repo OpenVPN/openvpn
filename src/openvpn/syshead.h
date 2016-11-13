@@ -37,7 +37,7 @@
 # define unlikely(x)    (x)
 #endif
 
-#ifdef WIN32
+#ifdef _WIN32
 #include <windows.h>
 #include <winsock2.h>
 #define sleep(x) Sleep((x)*1000)
@@ -64,7 +64,7 @@
 # include <sys/wait.h>
 #endif
 
-#ifndef WIN32
+#ifndef _WIN32
 #ifndef WEXITSTATUS
 # define WEXITSTATUS(stat_val) ((unsigned)(stat_val) >> 8)
 #endif
@@ -358,7 +358,7 @@
 
 #endif /* TARGET_DARWIN */
 
-#ifdef WIN32
+#ifdef _WIN32
  // Missing declarations for MinGW 32.
  // #if !defined(__MINGW64_VERSION_MAJOR) || __MINGW64_VERSION_MAJOR < 2
  typedef int MIB_TCP_STATE;
@@ -405,7 +405,7 @@
 /*
  * Do we have nanoseconds gettimeofday?
  */
-#if defined(HAVE_GETTIMEOFDAY) || defined(WIN32)
+#if defined(HAVE_GETTIMEOFDAY) || defined(_WIN32)
 #define HAVE_GETTIMEOFDAY_NANOSECONDS 1
 #endif
 
@@ -470,26 +470,16 @@ typedef unsigned short sa_family_t;
 /*
  * Directory separation char
  */
-#ifdef WIN32
+#ifdef _WIN32
 #define OS_SPECIFIC_DIRSEP '\\'
 #else
 #define OS_SPECIFIC_DIRSEP '/'
 #endif
 
 /*
- * Define a boolean value based
- * on Win32 status.
- */
-#ifdef WIN32
-#define WIN32_0_1 1
-#else
-#define WIN32_0_1 0
-#endif
-
-/*
  * Our socket descriptor type.
  */
-#ifdef WIN32
+#ifdef _WIN32
 #define SOCKET_UNDEFINED (INVALID_SOCKET)
 typedef SOCKET socket_descriptor_t;
 #else
@@ -590,7 +580,7 @@ socket_defined (const socket_descriptor_t sd)
 /*
  * Do we support Unix domain sockets?
  */
-#if defined(PF_UNIX) && !defined(WIN32)
+#if defined(PF_UNIX) && !defined(_WIN32)
 #define UNIX_SOCK_SUPPORT 1
 #else
 #define UNIX_SOCK_SUPPORT 0
@@ -624,7 +614,7 @@ socket_defined (const socket_descriptor_t sd)
 /*
  * Do we have CryptoAPI capability?
  */
-#if defined(WIN32) && defined(ENABLE_CRYPTO) && defined(ENABLE_CRYPTO_OPENSSL)
+#if defined(_WIN32) && defined(ENABLE_CRYPTO) && defined(ENABLE_CRYPTO_OPENSSL)
 #define ENABLE_CRYPTOAPI
 #endif
 

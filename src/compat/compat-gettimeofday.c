@@ -32,7 +32,7 @@
 
 #include "compat.h"
 
-#ifdef WIN32
+#ifdef _WIN32
 /*
  * NOTICE: mingw has much faster gettimeofday!
  * autoconf will set HAVE_GETTIMEOFDAY
@@ -126,6 +126,6 @@ gettimeofday (struct timeval *tv, void *tz)
 	return 0;
 }
 
-#endif /* WIN32 */
+#endif /* _WIN32 */
 
 #endif /* HAVE_GETTIMEOFDAY */

@@ -71,7 +71,7 @@ struct gc_arena;
 
 /* String and Error functions */
 
-#ifdef WIN32
+#ifdef _WIN32
 # define openvpn_errno()             GetLastError()
 # define openvpn_strerror(e, gc)     strerror_win32(e, gc)
   const char *strerror_win32 (DWORD errnum, struct gc_arena *gc);
@@ -261,7 +261,7 @@ void close_syslog ();
 /* log file output */
 void redirect_stdout_stderr (const char *file, bool append);
 
-#ifdef WIN32
+#ifdef _WIN32
 /* get original stderr handle, even if redirected by --log/--log-append */
 HANDLE get_orig_stderr (void);
 #endif
@@ -356,7 +356,7 @@ static inline bool
 ignore_sys_error (const int err)
 {
   /* I/O operation pending */
-#ifdef WIN32
+#ifdef _WIN32
   if (err == WSAEWOULDBLOCK || err == WSAEINVAL)
     return true;
 #else

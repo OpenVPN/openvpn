@@ -49,13 +49,13 @@
 
 #include "memdbg.h"
 
-#ifdef WIN32
+#ifdef _WIN32
 #include "openvpn-msg.h"
 #endif
 
 #include <string.h>
 
-#ifdef WIN32
+#ifdef _WIN32
 
 /* #define SIMULATE_DHCP_FAILED */       /* simulate bad DHCP negotiation */
 
@@ -198,7 +198,7 @@ guess_tuntap_dev (const char *dev,
 		  const char *dev_node,
 		  struct gc_arena *gc)
 {
-#ifdef WIN32
+#ifdef _WIN32
   const int dt = dev_type_enum (dev, dev_type);
   if (dt == DEV_TYPE_TUN || dt == DEV_TYPE_TAP)
     {
@@ -421,7 +421,7 @@ tun_stat (const struct tuntap *tt, unsigned int rwflags, struct gc_arena *gc)
 	{
 	  buf_printf (&out, "T%s",
 		      (tt->rwflags_debug & EVENT_READ) ? "R" : "r");
-#ifdef WIN32
+#ifdef _WIN32
 	  buf_printf (&out, "%s",
 		      overlapped_io_state_ascii (&tt->reads));
 #endif
@@ -430,7 +430,7 @@ tun_stat (const struct tuntap *tt, unsigned int rwflags, struct gc_arena *gc)
 	{
 	  buf_printf (&out, "T%s",
 		      (tt->rwflags_debug & EVENT_WRITE) ? "W" : "w");
-#ifdef WIN32
+#ifdef _WIN32
 	  buf_printf (&out, "%s",
 		      overlapped_io_state_ascii (&tt->writes));
 #endif
@@ -611,7 +611,7 @@ init_tun (const char *dev,       /* --dev option */
 	  tt->broadcast = generate_ifconfig_broadcast_addr (tt->local, tt->remote_netmask);
 	}
 
-#ifdef WIN32
+#ifdef _WIN32
       /*
        * Make sure that both ifconfig addresses are part of the
        * same .252 subnet.
@@ -665,7 +665,7 @@ init_tun_post (struct tuntap *tt,
 	       const struct tuntap_options *options)
 {
   tt->options = *options;
-#ifdef WIN32
+#ifdef _WIN32
   overlapped_io_init (&tt->reads, frame, FALSE, true);
   overlapped_io_init (&tt->writes, frame, TRUE, true);
   tt->rw_handle.read = tt->reads.overlapped.hEvent;
@@ -674,7 +674,7 @@ init_tun_post (struct tuntap *tt,
 #endif
 }
 
-#if defined(WIN32) || \
+#if defined(_WIN32) || \
     defined(TARGET_DARWIN) || defined(TARGET_NETBSD) || defined(TARGET_OPENBSD)
 
 /* some of the platforms will auto-add a "network route" pointing
@@ -1346,7 +1346,7 @@ do_ifconfig (struct tuntap *tt,
 	  }
 	env_set_destroy (aix_es);
       }
-#elif defined (WIN32)
+#elif defined (_WIN32)
       {
         ASSERT (actual != NULL);
 
@@ -1405,7 +1405,7 @@ static void
 clear_tuntap (struct tuntap *tuntap)
 {
   CLEAR (*tuntap);
-#ifdef WIN32
+#ifdef _WIN32
   tuntap->hand = NULL;
 #else
   tuntap->fd = -1;
@@ -1502,7 +1502,7 @@ read_tun_header (struct tuntap* tt, uint8_t *buf, int len)
 #endif
 
 
-#ifndef WIN32
+#ifndef _WIN32
 static void
 open_tun_generic (const char *dev, const char *dev_type, const char *dev_node,
 		  bool dynamic, struct tuntap *tt)
@@ -3012,7 +3012,7 @@ read_tun (struct tuntap* tt, uint8_t *buf, int len)
     return read (tt->fd, buf, len);
 }
 
-#elif defined(WIN32)
+#elif defined(_WIN32)
 
 int
 tun_read_queue (struct tuntap *tt, int maxsize)

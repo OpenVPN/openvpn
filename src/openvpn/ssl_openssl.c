@@ -632,7 +632,7 @@ tls_ctx_load_cryptoapi(struct tls_root_ctx *ctx, const char *cryptoapi_cert)
   if (!SSL_CTX_use_CryptoAPI_certificate (ctx->ctx, cryptoapi_cert))
     crypto_msg (M_FATAL, "Cannot load certificate \"%s\" from Microsoft Certificate Store", cryptoapi_cert);
 }
-#endif /* WIN32 */
+#endif /* ENABLE_CRYPTOAPI */
 
 static void
 tls_ctx_add_extra_certs (struct tls_root_ctx *ctx, BIO *bio)

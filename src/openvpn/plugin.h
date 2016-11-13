@@ -59,7 +59,7 @@ struct plugin {
   unsigned int plugin_type_mask;
   int requested_initialization_point;
 
-#ifndef WIN32
+#ifndef _WIN32
   void *handle;
 #else
   HMODULE module;

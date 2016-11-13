@@ -30,7 +30,7 @@
  */
 #ifdef USE_64_BIT_COUNTERS
   typedef unsigned long long int counter_type;
-# ifdef WIN32
+# ifdef _WIN32
 #  define counter_format  "%I64u"
 # else
 #  define counter_format  "%llu"

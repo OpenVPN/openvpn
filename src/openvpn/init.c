@@ -577,7 +577,7 @@ init_static (void)
   error_reset ();		/* initialize error.c */
   reset_check_status ();	/* initialize status check code in socket.c */
 
-#ifdef WIN32
+#ifdef _WIN32
   init_win32 ();
 #endif
 
@@ -1024,7 +1024,7 @@ format_common_name (struct context *c, struct gc_arena *gc)
 void
 pre_setup (const struct options *options)
 {
-#ifdef WIN32
+#ifdef _WIN32
   if (options->exit_event_name)
     {
       win32_signal_open (&win32_signal,
@@ -1245,7 +1245,7 @@ initialization_sequence_completed (struct context *c, const unsigned int flags)
   /* Test if errors */
   if (flags & ISC_ERRORS)
     {
-#ifdef WIN32
+#ifdef _WIN32
       show_routes (M_INFO|M_NOPREFIX);
       show_adapters (M_INFO|M_NOPREFIX);
       msg (M_INFO, "%s With Errors ( see http://openvpn.net/faq.html#dhcpclientserv )", message);
@@ -1260,7 +1260,7 @@ initialization_sequence_completed (struct context *c, const unsigned int flags)
   if ((flags & (ISC_ERRORS|ISC_SERVER)) == 0)
     c->options.no_advance=true;
 
-#ifdef WIN32
+#ifdef _WIN32
   fork_register_dns_action (c->c1.tuntap);
 #endif
 
@@ -1355,7 +1355,7 @@ do_route (const struct options *options,
       argv_reset (&argv);
     }
 
-#ifdef WIN32
+#ifdef _WIN32
   if (options->show_net_up)
     {
       show_routes (M_INFO|M_NOPREFIX);
@@ -1421,7 +1421,7 @@ do_open_tun (struct context *c)
       /* initialize (but do not open) tun/tap object */
       do_init_tun (c);
 
-#ifdef WIN32
+#ifdef _WIN32
       /* store (hide) interactive service handle in tuntap_options */
       c->c1.tuntap->options.msg_channel = c->options.msg_channel;
       msg (D_ROUTE, "interactive service msg_channel=%u", (unsigned int) c->options.msg_channel);
@@ -1482,7 +1482,7 @@ do_open_tun (struct context *c)
 		   c->plugins,
 		   OPENVPN_PLUGIN_UP,
 		   c->c1.tuntap->actual_name,
-#ifdef WIN32
+#ifdef _WIN32
 		   c->c1.tuntap->adapter_index,
 #endif
 		   dev_type_string (c->options.dev, c->options.dev_type),
@@ -1495,7 +1495,7 @@ do_open_tun (struct context *c)
 		   "up",
 		   c->c2.es);
 
-#if defined(WIN32)
+#if defined(_WIN32)
       if (c->options.block_outside_dns)
       {
         dmsg (D_LOW, "Blocking outside DNS");
@@ -1535,7 +1535,7 @@ do_open_tun (struct context *c)
 		     c->plugins,
 		     OPENVPN_PLUGIN_UP,
 		     c->c1.tuntap->actual_name,
-#ifdef WIN32
+#ifdef _WIN32
 		     c->c1.tuntap->adapter_index,
 #endif
 		     dev_type_string (c->options.dev, c->options.dev_type),
@@ -1547,7 +1547,7 @@ do_open_tun (struct context *c)
 		     NULL,
 		     "up",
 		     c->c2.es);
-#if defined(WIN32)
+#if defined(_WIN32)
       if (c->options.block_outside_dns)
         {
           dmsg (D_LOW, "Blocking outside DNS");
@@ -1585,7 +1585,7 @@ do_close_tun (struct context *c, bool force)
   if (c->c1.tuntap && c->c1.tuntap_owned)
     {
       const char *tuntap_actual = string_alloc (c->c1.tuntap->actual_name, &gc);
-#ifdef WIN32
+#ifdef _WIN32
       DWORD adapter_index = c->c1.tuntap->adapter_index;
 #endif
       const in_addr_t local = c->c1.tuntap->local;
@@ -1611,7 +1611,7 @@ do_close_tun (struct context *c, bool force)
                            c->plugins,
                            OPENVPN_PLUGIN_ROUTE_PREDOWN,
                            tuntap_actual,
-#ifdef WIN32
+#ifdef _WIN32
                            adapter_index,
 #endif
                            NULL,
@@ -1639,7 +1639,7 @@ do_close_tun (struct context *c, bool force)
 		       c->plugins,
 		       OPENVPN_PLUGIN_DOWN,
 		       tuntap_actual,
-#ifdef WIN32
+#ifdef _WIN32
 		       adapter_index,
 #endif
 		       NULL,
@@ -1653,7 +1653,7 @@ do_close_tun (struct context *c, bool force)
 		       "down",
 		       c->c2.es);
 
-#if defined(WIN32)
+#if defined(_WIN32)
             if (c->options.block_outside_dns)
             {
                 if (!win_wfp_uninit(c->options.msg_channel))
@@ -1673,7 +1673,7 @@ do_close_tun (struct context *c, bool force)
 			 c->plugins,
 			 OPENVPN_PLUGIN_DOWN,
 			 tuntap_actual,
-#ifdef WIN32
+#ifdef _WIN32
 			 adapter_index,
 #endif
 			 NULL,
@@ -1687,7 +1687,7 @@ do_close_tun (struct context *c, bool force)
 			 "down",
 			 c->c2.es);
 
-#if defined(WIN32)
+#if defined(_WIN32)
           if (c->options.block_outside_dns)
             {
               if (!win_wfp_uninit(c->options.msg_channel))
@@ -3173,7 +3173,7 @@ do_setup_fast_io (struct context *c)
 {
   if (c->options.fast_io)
     {
-#ifdef WIN32
+#ifdef _WIN32
       msg (M_INFO, "NOTE: --fast-io is disabled since we are running on Windows");
 #else
       if (!proto_is_udp(c->options.ce.proto))
@@ -3286,7 +3286,7 @@ management_callback_status_p2p (void *arg, const int version, struct status_outp
 void
 management_show_net_callback (void *arg, const int msglevel)
 {
-#ifdef WIN32
+#ifdef _WIN32
   show_routes (msglevel);
   show_adapters (msglevel);
   msg (msglevel, "END");

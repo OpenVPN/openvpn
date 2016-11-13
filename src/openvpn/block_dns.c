@@ -35,7 +35,7 @@
 
 #include "syshead.h"
 
-#ifdef WIN32
+#ifdef _WIN32
 
 #include <fwpmu.h>
 #include <initguid.h>

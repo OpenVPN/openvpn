@@ -232,7 +232,7 @@ int tls_ctx_load_pkcs12(struct tls_root_ctx *ctx, const char *pkcs12_file,
  */
 #ifdef ENABLE_CRYPTOAPI
 void tls_ctx_load_cryptoapi(struct tls_root_ctx *ctx, const char *cryptoapi_cert);
-#endif /* WIN32 */
+#endif /* _WIN32 */
 
 /**
  * Load certificate file into the given TLS context. If the given certificate

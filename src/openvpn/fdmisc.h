@@ -37,7 +37,7 @@ void set_cloexec (int fd);
 
 static inline void openvpn_fd_set(int fd, fd_set *setp)
 {
-#ifndef WIN32 /* The Windows FD_SET() implementation does not overflow */
+#ifndef _WIN32 /* The Windows FD_SET() implementation does not overflow */
   ASSERT (fd >= 0 && fd < FD_SETSIZE);
 #endif
   FD_SET (fd, setp);

@@ -1978,7 +1978,7 @@ push_peer_info(struct buffer *buf, struct tls_session *session)
       buf_printf (&out, "IV_PLAT=freebsd\n");
 #elif defined(TARGET_ANDROID)
       buf_printf (&out, "IV_PLAT=android\n");
-#elif defined(WIN32)
+#elif defined(_WIN32)
       buf_printf (&out, "IV_PLAT=win\n");
 #endif
 
@@ -2008,7 +2008,7 @@ push_peer_info(struct buffer *buf, struct tls_session *session)
 	  if (rgi.flags & RGI_HWADDR_DEFINED)
 	    buf_printf (&out, "IV_HWADDR=%s\n", format_hex_ex (rgi.hwaddr, 6, 0, 1, ":", &gc));
 	  buf_printf (&out, "IV_SSL=%s\n", get_ssl_library_version() );
-#if defined(WIN32)
+#if defined(_WIN32)
 	  buf_printf (&out, "IV_PLAT_VER=%s\n", win32_version_string (&gc, false));
 #endif
         }

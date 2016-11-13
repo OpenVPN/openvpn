@@ -42,7 +42,7 @@
 #define EVENT_METHOD_US_TIMEOUT   (1<<0)
 #define EVENT_METHOD_FAST         (1<<1)
 
-#ifdef WIN32
+#ifdef _WIN32
 
 typedef const struct rw_handle *event_t;
 
@@ -137,7 +137,7 @@ event_set_return_init (struct event_set_return *esr)
   esr->arg = NULL;
 }
 
-#ifdef WIN32
+#ifdef _WIN32
 
 static inline void
 wait_signal (struct event_set *es, void *arg)

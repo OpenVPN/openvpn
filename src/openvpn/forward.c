@@ -301,7 +301,7 @@ check_add_routes_dowork (struct context *c)
 	    {
 	      register_signal (c, SIGHUP, "ip-fail");
 	      c->persist.restart_sleep_seconds = 10;
-#ifdef WIN32
+#ifdef _WIN32
 	      show_routes (M_INFO|M_NOPREFIX);
 	      show_adapters (M_INFO|M_NOPREFIX);
 #endif
@@ -1420,7 +1420,7 @@ pre_select (struct context *c)
   c->c2.timeval.tv_sec = BIG_TIMEOUT;
   c->c2.timeval.tv_usec = 0;
 
-#if defined(WIN32)
+#if defined(_WIN32)
   if (check_debug_level (D_TAP_WIN_DEBUG))
     {
       c->c2.timeval.tv_sec = 1;

@@ -41,7 +41,7 @@
 #include "buffer.h"
 #include "misc.h"
 
-#ifdef WIN32
+#ifdef _WIN32
 
 #include "win32.h"
 
@@ -119,7 +119,7 @@ static bool get_console_input_win32 (const char *prompt, const bool echo, char *
     return false;
 }
 
-#endif   /* WIN32 */
+#endif   /* _WIN32 */
 
 
 #ifdef HAVE_GETPASS
@@ -176,7 +176,7 @@ static bool get_console_input (const char *prompt, const bool echo, char *input,
     ASSERT (capacity > 0);
     input[0] = '\0';
 
-#if defined(WIN32)
+#if defined(_WIN32)
     return get_console_input_win32 (prompt, echo, input, capacity);
 #elif defined(HAVE_GETPASS)
 

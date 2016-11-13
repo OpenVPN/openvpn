@@ -49,7 +49,7 @@
 /*
  * All non-windows OSes are assumed to have select()
  */
-#ifdef WIN32
+#ifdef _WIN32
 #define SELECT 0
 #else
 #define SELECT 1
@@ -74,7 +74,7 @@ tv_to_ms_timeout (const struct timeval *tv)
     return max_int (tv->tv_sec * 1000 + (tv->tv_usec + 500) / 1000, 1);
 }
 
-#ifdef WIN32
+#ifdef _WIN32
 
 struct we_set
 {
@@ -462,7 +462,7 @@ we_init (int *maxevents, unsigned int flags)
   return (struct event_set *) wes;
 }
 
-#endif /* WIN32 */
+#endif /* _WIN32 */
 
 #if EPOLL
 
@@ -1007,7 +1007,7 @@ static struct event_set *
 event_set_init_simple (int *maxevents, unsigned int flags)
 {
   struct event_set *ret = NULL;
-#ifdef WIN32
+#ifdef _WIN32
   ret = we_init (maxevents, flags);
 #elif POLL && SELECT
 #if 0 /* Define to 1 if EVENT_METHOD_US_TIMEOUT should cause select to be favored over poll */

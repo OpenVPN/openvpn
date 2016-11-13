@@ -376,7 +376,7 @@ openvpn_getaddrinfo (unsigned int flags,
        */
       while (true)
         {
-#ifndef WIN32
+#ifndef _WIN32
 	  res_init ();
 #endif
           /* try hostname lookup */
@@ -690,7 +690,7 @@ socket_set_buffers (int fd, const struct socket_buffer_size *sbs)
 static bool
 socket_set_tcp_nodelay (int sd, int state)
 {
-#if defined(WIN32) || (defined(HAVE_SETSOCKOPT) && defined(IPPROTO_TCP) && defined(TCP_NODELAY))
+#if defined(_WIN32) || (defined(HAVE_SETSOCKOPT) && defined(IPPROTO_TCP) && defined(TCP_NODELAY))
   if (setsockopt (sd, IPPROTO_TCP, TCP_NODELAY, (void *) &state, sizeof (state)) != 0)
     {
       msg (M_WARN, "NOTE: setsockopt TCP_NODELAY=%d failed", state);
@@ -761,7 +761,7 @@ create_socket_tcp (struct addrinfo* addrinfo)
   if ((sd = socket (addrinfo->ai_family, addrinfo->ai_socktype, addrinfo->ai_protocol)) < 0)
     msg (M_ERR, "Cannot create TCP socket");
 
-#ifndef WIN32 /* using SO_REUSEADDR on Windows will cause bind to succeed on port conflicts! */
+#ifndef _WIN32 /* using SO_REUSEADDR on Windows will cause bind to succeed on port conflicts! */
   /* set SO_REUSEADDR on socket */
   {
     int on = 1;
@@ -1066,7 +1066,7 @@ socket_listen_accept (socket_descriptor_t sd,
 /* older mingw versions and WinXP do not have this define,
  * but Vista and up support the functionality - just define it here
  */
-#ifdef WIN32
+#ifdef _WIN32
 # ifndef IPV6_V6ONLY
 #  define IPV6_V6ONLY 27
 # endif
@@ -1141,7 +1141,7 @@ openvpn_connect (socket_descriptor_t sd,
   if (status)
     status = openvpn_errno ();
   if (
-#ifdef WIN32
+#ifdef _WIN32
     status == WSAEWOULDBLOCK
 #else
     status == EINPROGRESS
@@ -1184,7 +1184,7 @@ openvpn_connect (socket_descriptor_t sd,
 	    {
 	      if (--connect_timeout < 0)
 		{
-#ifdef WIN32
+#ifdef _WIN32
 		  status = WSAETIMEDOUT;
 #else
 		  status = ETIMEDOUT;
@@ -1296,7 +1296,7 @@ socket_connect (socket_descriptor_t* sd,
 static void
 socket_frame_init (const struct frame *frame, struct link_socket *sock)
 {
-#ifdef WIN32
+#ifdef _WIN32
   overlapped_io_init (&sock->reads, frame, FALSE, false);
   overlapped_io_init (&sock->writes, frame, TRUE, false);
   sock->rw_handle.read = sock->reads.overlapped.hEvent;
@@ -1305,7 +1305,7 @@ socket_frame_init (const struct frame *frame, struct link_socket *sock)
 
   if (link_socket_connection_oriented (sock))
     {
-#ifdef WIN32
+#ifdef _WIN32
       stream_buf_init (&sock->stream_buf,
 		       &sock->reads.buf_init,
 		       sock->sockflags,
@@ -1971,7 +1971,7 @@ link_socket_close (struct link_socket *sock)
 
       if (socket_defined (sock->sd))
 	{
-#ifdef WIN32
+#ifdef _WIN32
 	  close_net_event_win32 (&sock->listen_handle, sock->sd, 0);
 #endif
 	  if (!gremlin)
@@ -1981,7 +1981,7 @@ link_socket_close (struct link_socket *sock)
 		msg (M_WARN | M_ERRNO, "TCP/UDP: Close Socket failed");
 	    }
 	  sock->sd = SOCKET_UNDEFINED;
-#ifdef WIN32
+#ifdef _WIN32
 	  if (!gremlin)
 	    {
 	      overlapped_io_close (&sock->reads);
@@ -2176,7 +2176,7 @@ socket_stat (const struct link_socket *s, unsigned int rwflags, struct gc_arena 
 	{
 	  buf_printf (&out, "S%s",
 		      (s->rwflags_debug & EVENT_READ) ? "R" : "r");
-#ifdef WIN32
+#ifdef _WIN32
 	  buf_printf (&out, "%s",
 		      overlapped_io_state_ascii (&s->reads));
 #endif
@@ -2185,7 +2185,7 @@ socket_stat (const struct link_socket *s, unsigned int rwflags, struct gc_arena 
 	{
 	  buf_printf (&out, "S%s",
 		      (s->rwflags_debug & EVENT_WRITE) ? "W" : "w");
-#ifdef WIN32
+#ifdef _WIN32
 	  buf_printf (&out, "%s",
 		      overlapped_io_state_ascii (&s->writes));
 #endif
@@ -2360,7 +2360,7 @@ stream_buf_close (struct stream_buf* sb)
 event_t
 socket_listen_event_handle (struct link_socket *s)
 {
-#ifdef WIN32
+#ifdef _WIN32
   if (!defined_net_event_win32 (&s->listen_handle))
     init_net_event_win32 (&s->listen_handle, FD_ACCEPT, s->sd, 0);
   return &s->listen_handle;
@@ -2837,7 +2837,7 @@ link_socket_read_tcp (struct link_socket *sock,
 
   if (!sock->stream_buf.residual_fully_formed)
     {
-#ifdef WIN32
+#ifdef _WIN32
       len = socket_finalize (sock->sd, &sock->reads, buf, NULL);
 #else
       struct buffer frag;
@@ -2862,7 +2862,7 @@ link_socket_read_tcp (struct link_socket *sock,
     return buf->len = 0; /* no error, but packet is still incomplete */
 }
 
-#ifndef WIN32
+#ifndef _WIN32
 
 #if ENABLE_IP_PKTINFO
 
@@ -2983,7 +2983,7 @@ link_socket_write_tcp (struct link_socket *sock,
   ASSERT (len <= sock->stream_buf.maxlen);
   len = htonps (len);
   ASSERT (buf_write_prepend (buf, &len, sizeof (len)));
-#ifdef WIN32
+#ifdef _WIN32
   return link_socket_write_win32 (sock, buf, to);
 #else
   return link_socket_write_tcp_posix (sock, buf, to);  
@@ -3071,7 +3071,7 @@ link_socket_write_udp_posix_sendmsg (struct link_socket *sock,
  * Win32 overlapped socket I/O functions.
  */
 
-#ifdef WIN32
+#ifdef _WIN32
 
 int
 socket_recv_queue (struct link_socket *sock, int maxsize)
@@ -3379,7 +3379,7 @@ socket_finalize (SOCKET s,
 	    case sizeof(struct sockaddr_in):
 	    case sizeof(struct sockaddr_in6):
 	    /* TODO(jjo): for some reason (?) I'm getting 24,28 for AF_INET6
-	     * under WIN32*/
+	     * under _WIN32*/
 	    case sizeof(struct sockaddr_in6)-4:
 	      break;
 	    default:
@@ -3405,7 +3405,7 @@ socket_finalize (SOCKET s,
   return ret;
 }
 
-#endif /* WIN32 */
+#endif /* _WIN32 */
 
 /*
  * Socket event notification
@@ -3426,7 +3426,7 @@ socket_set (struct link_socket *s,
 	  rwflags &= ~EVENT_READ;
 	}
       
-#ifdef WIN32
+#ifdef _WIN32
       if (rwflags & EVENT_READ)
 	socket_recv_queue (s, 0);
 #endif

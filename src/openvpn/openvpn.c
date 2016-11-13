@@ -138,7 +138,7 @@ openvpn_main (int argc, char *argv[])
   return 1;
 #endif
 
-#ifdef WIN32
+#ifdef _WIN32
   SetConsoleOutputCP (CP_UTF8);
 #endif
 
@@ -172,7 +172,7 @@ openvpn_main (int argc, char *argv[])
 
 	  /* initialize environmental variable store */
 	  c.es = env_set_create (NULL);
-#ifdef WIN32
+#ifdef _WIN32
 	  set_win_sys_path_via_env (c.es);
 #endif
 
@@ -220,7 +220,7 @@ openvpn_main (int argc, char *argv[])
 
 	  /* print version number */
 	  msg (M_INFO, "%s", title_string);
-#ifdef WIN32
+#ifdef _WIN32
 	  show_windows_version(M_INFO);
 #endif
 	  show_library_versions(M_INFO);
@@ -312,7 +312,7 @@ openvpn_main (int argc, char *argv[])
   return 0;			            /* NOTREACHED */
 }
 
-#ifdef WIN32
+#ifdef _WIN32
 int
 wmain (int argc, wchar_t *wargv[]) {
   char **argv;

@@ -56,7 +56,7 @@ void run_up_down (const char *command,
 		  const struct plugin_list *plugins,
 		  int plugin_type,
 		  const char *arg,
-#ifdef WIN32
+#ifdef _WIN32
 		  DWORD adapter_index,
 #endif
 		  const char *dev_type,

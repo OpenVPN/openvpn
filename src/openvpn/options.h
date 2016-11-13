@@ -578,7 +578,7 @@ struct options
   /* special state parms */
   int foreign_option_index;
 
-#ifdef WIN32
+#ifdef _WIN32
   HANDLE msg_channel;
   const char *exit_event_name;
   bool exit_event_initial_state;
@@ -655,7 +655,7 @@ struct options
 #define PUSH_DEFINED(opt) (false)
 #endif
 
-#ifdef WIN32
+#ifdef _WIN32
 #define ROUTE_OPTION_FLAGS(o) ((o)->route_method & ROUTE_METHOD_MASK)
 #else
 #define ROUTE_OPTION_FLAGS(o) (0)
@@ -693,7 +693,7 @@ void usage_small (void);
 
 void show_library_versions(const unsigned int flags);
 
-#ifdef WIN32
+#ifdef _WIN32
 void show_windows_version(const unsigned int flags);
 #endif
 

@@ -592,7 +592,7 @@ static const char usage_message[] =
   "                        Default is CN in the Subject field.\n"
 #endif
   "--verify-hash   : Specify SHA1 fingerprint for level-1 cert.\n"
-#ifdef WIN32
+#ifdef _WIN32
   "--cryptoapicert select-string : Load the certificate and private key from the\n"
   "                  Windows Certificate System Store.\n"
 #endif
@@ -670,7 +670,7 @@ static const char usage_message[] =
   "--show-digests  : Show message digest algorithms to use with --auth option.\n"
   "--show-engines  : Show hardware crypto accelerator engines (if available).\n"
   "--show-tls      : Show all TLS ciphers (TLS used only as a control channel).\n"
-#ifdef WIN32
+#ifdef _WIN32
   "\n"
   "Windows Specific:\n"
   "--win-sys path    : Pathname of Windows system directory. Default is the pathname\n"
@@ -720,7 +720,7 @@ static const char usage_message[] =
   "                       optional parameter controls the initial state of ex.\n"
   "--show-net-up   : Show " PACKAGE_NAME "'s view of routing table and net adapter list\n"
   "                  after TAP adapter is up and routes have been added.\n"
-#ifdef WIN32
+#ifdef _WIN32
   "--block-outside-dns   : Block DNS on other network adapters to prevent DNS leaks\n"
 #endif
   "Windows Standalone Options:\n"
@@ -816,7 +816,7 @@ init_options (struct options *o, const bool init_gc)
 #ifdef TARGET_LINUX
   o->tuntap_options.txqueuelen = 100;
 #endif
-#ifdef WIN32
+#ifdef _WIN32
 #if 0
   o->tuntap_options.ip_win32_type = IPW32_SET_ADAPTIVE;
 #else
@@ -879,7 +879,7 @@ init_options (struct options *o, const bool init_gc)
   o->auth_token_generate = false;
 
   /* Set default --tmp-dir */
-#ifdef WIN32
+#ifdef _WIN32
   /* On Windows, find temp dir via enviroment variables */
   o->tmp_dir = win_get_tempdir();
 #else
@@ -888,7 +888,7 @@ init_options (struct options *o, const bool init_gc)
   if( !o->tmp_dir ) {
           o->tmp_dir = "/tmp";
   }
-#endif /* WIN32 */
+#endif /* _WIN32 */
 #endif /* P2MP_SERVER */
   o->allow_recursive_routing = false;
 }
@@ -1141,7 +1141,7 @@ parse_hash_fingerprint(const char *str, int nbytes, int msglevel, struct gc_aren
 }
 #endif
 
-#ifdef WIN32
+#ifdef _WIN32
 
 #ifndef ENABLE_SMALL
 
@@ -1186,7 +1186,7 @@ show_tuntap_options (const struct tuntap_options *o)
 #endif
 #endif
 
-#if defined(WIN32) || defined(TARGET_ANDROID)
+#if defined(_WIN32) || defined(TARGET_ANDROID)
 static void
 dhcp_option_address_parse (const char *name, const char *parm, in_addr_t *array, int *len, int msglevel)
 {
@@ -1741,7 +1741,7 @@ show_settings (const struct options *o)
   show_p2mp_parms (o);
 #endif
 
-#ifdef WIN32
+#ifdef _WIN32
   SHOW_BOOL (show_net_up);
   SHOW_INT (route_method);
   SHOW_BOOL (block_outside_dns);
@@ -2033,7 +2033,7 @@ options_postprocess_verify_ce (const struct options *options, const struct conne
    * Windows-specific options.
    */
 
-#ifdef WIN32
+#ifdef _WIN32
       if (dev == DEV_TYPE_TUN && !(pull || (options->ifconfig_local && options->ifconfig_remote_netmask)))
 	msg (M_USAGE, "On Windows, --ifconfig is required when --dev tun is used");
 
@@ -2512,7 +2512,7 @@ options_postprocess_mutate_ce (struct options *o, struct connection_entry *ce)
 static void
 options_postprocess_mutate_invariant (struct options *options)
 {
-#ifdef WIN32
+#ifdef _WIN32
   const int dev = dev_type_enum (options->dev, options->dev_type);
 #endif
 
@@ -2523,7 +2523,7 @@ options_postprocess_mutate_invariant (struct options *options)
   if (options->inetd == INETD_NOWAIT)
     options->ifconfig_noexec = true;
 
-#ifdef WIN32
+#ifdef _WIN32
   if ((dev == DEV_TYPE_TUN || dev == DEV_TYPE_TAP) && !options->route_delay_defined)
     {
       if (options->mode == MODE_POINT_TO_POINT)
@@ -2546,7 +2546,7 @@ options_postprocess_mutate_invariant (struct options *options)
    */
   if (options->mode == MODE_SERVER)
     {
-#ifdef WIN32
+#ifdef _WIN32
       /*
        * We need to explicitly set --tap-sleep because
        * we do not schedule event timers in the top-level context.
@@ -2689,7 +2689,7 @@ options_postprocess_mutate (struct options *o)
 static void
 warn_if_group_others_accessible (const char* filename)
 {
-#ifndef WIN32
+#ifndef _WIN32
 #ifdef HAVE_STAT
   if (strcmp (filename, INLINE_FILE_TAG))
     {
@@ -3608,7 +3608,7 @@ usage_small (void)
   openvpn_exit (OPENVPN_EXIT_STATUS_USAGE); /* exit point */
 }
 
-#ifdef WIN32
+#ifdef _WIN32
 void show_windows_version(const unsigned int flags)
 {
   struct gc_arena gc = gc_new ();
@@ -3642,7 +3642,7 @@ usage_version (void)
 {
   msg (M_INFO|M_NOPREFIX, "%s", title_string);
   show_library_versions( M_INFO|M_NOPREFIX );
-#ifdef WIN32
+#ifdef _WIN32
   show_windows_version( M_INFO|M_NOPREFIX );
 #endif
   msg (M_INFO|M_NOPREFIX, "Originally developed by James Yonan");
@@ -3689,7 +3689,7 @@ positive_atoi (const char *str)
   return i < 0 ? 0 : i;
 }
 
-#ifdef WIN32  /* This function is only used when compiling on Windows */
+#ifdef _WIN32  /* This function is only used when compiling on Windows */
 static unsigned int
 atou (const char *str)
 {
@@ -6274,7 +6274,7 @@ add_option (struct options *options,
 #endif
   else if (streq (p[0], "msg-channel") && p[1])
     {
-#ifdef WIN32
+#ifdef _WIN32
       VERIFY_PERMISSION (OPT_P_GENERAL);
       HANDLE process = GetCurrentProcess ();
       HANDLE handle = (HANDLE) atoi (p[1]);
@@ -6290,7 +6290,7 @@ add_option (struct options *options,
       goto err;
 #endif
     }
-#ifdef WIN32
+#ifdef _WIN32
   else if (streq (p[0], "win-sys") && p[1] && !p[2])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);
@@ -6371,7 +6371,7 @@ add_option (struct options *options,
       to->ip_win32_defined = true; 
     }
 #endif
-#if defined(WIN32) || defined(TARGET_ANDROID)
+#if defined(_WIN32) || defined(TARGET_ANDROID)
   else if (streq (p[0], "dhcp-option") && p[1] && !p[3])
     {
       struct tuntap_options *o = &options->tuntap_options;
@@ -6424,7 +6424,7 @@ add_option (struct options *options,
       o->dhcp_options = true;
     }
 #endif
-#ifdef WIN32
+#ifdef _WIN32
   else if (streq (p[0], "show-adapters") && !p[1])
     {
       VERIFY_PERMISSION (OPT_P_GENERAL);

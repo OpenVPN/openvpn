@@ -257,7 +257,7 @@ struct man_connection {
   socket_descriptor_t sd_cli;
   struct openvpn_sockaddr remote;
 
-#ifdef WIN32
+#ifdef _WIN32
   struct net_event_win32 ne32;
 #endif
 

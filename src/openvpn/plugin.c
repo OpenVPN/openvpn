@@ -175,7 +175,7 @@ plugin_option_list_print (const struct plugin_option_list *list, int msglevel)
 }
 #endif
 
-#ifndef WIN32
+#ifndef _WIN32
 
 static void
 libdl_resolve_symbol (void *handle, void **dest, const char *symbol, const char *plugin_name, const unsigned int flags)
@@ -206,7 +206,7 @@ plugin_init_item (struct plugin *p, const struct plugin_option *o)
   p->so_pathname = o->so_pathname;
   p->plugin_type_mask = plugin_supported_types ();
 
-#ifndef WIN32
+#ifndef _WIN32
 
   p->handle = NULL;
 #if defined(PLUGIN_LIBDIR)
@@ -519,10 +519,10 @@ plugin_close_item (struct plugin *p)
       if (p->plugin_handle)
 	(*p->close)(p->plugin_handle);
 
-#ifndef WIN32
+#ifndef _WIN32
       if (dlclose (p->handle))
 	msg (M_WARN, "PLUGIN_CLOSE: dlclose() failed on plugin: %s", p->so_pathname);
-#elif defined(WIN32)
+#elif defined(_WIN32)
       if (!FreeLibrary (p->module))
 	msg (M_WARN, "PLUGIN_CLOSE: FreeLibrary() failed on plugin: %s", p->so_pathname);
 #endif

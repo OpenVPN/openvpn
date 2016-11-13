@@ -33,7 +33,7 @@
 #include "tun.h"
 #include "misc.h"
 
-#ifdef WIN32
+#ifdef _WIN32
 /*
  * Windows route methods
  */
@@ -130,7 +130,7 @@ struct route_ipv6 {
   struct in6_addr gateway;
   int metric;
   /* gateway interface */
-# ifdef WIN32
+# ifdef _WIN32
   DWORD adapter_index;		/* interface or ~0 if undefined */
 #else
   char * iface;			/* interface name (null terminated) */
@@ -153,7 +153,7 @@ struct route_gateway_info {
   unsigned int flags;
 
   /* gateway interface */
-# ifdef WIN32
+# ifdef _WIN32
   DWORD adapter_index;  /* interface or ~0 if undefined */
 #else
   char iface[16]; /* interface name (null terminated), may be empty */
@@ -181,7 +181,7 @@ struct route_ipv6_gateway_info {
   unsigned int flags;
 
   /* gateway interface */
-# ifdef WIN32
+# ifdef _WIN32
   DWORD adapter_index;  /* interface or ~0 if undefined */
 #else
   char iface[16]; /* interface name (null terminated), may be empty */
@@ -333,7 +333,7 @@ void print_route_options (const struct route_option_list *rol,
 
 void print_routes (const struct route_list *rl, int level);
 
-#ifdef WIN32
+#ifdef _WIN32
 
 void show_routes (int msglev);
 bool test_routes (const struct route_list *rl, const struct tuntap *tt);

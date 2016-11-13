@@ -169,7 +169,7 @@ struct link_socket
   socket_descriptor_t sd;
   socket_descriptor_t ctrl_sd;  /* only used for UDP over Socks */
 
-#ifdef WIN32
+#ifdef _WIN32
   struct overlapped_io reads;
   struct overlapped_io writes;
   struct rw_handle rw_handle;
@@ -257,7 +257,7 @@ struct link_socket
 #define MSG_NOSIGNAL 0
 #endif
 
-#ifdef WIN32
+#ifdef _WIN32
 
 #define openvpn_close_socket(s) closesocket(s)
 
@@ -842,7 +842,7 @@ socket_connection_reset (const struct link_socket *sock, int status)
       else if (status < 0)
 	{
 	  const int err = openvpn_errno ();
-#ifdef WIN32
+#ifdef _WIN32
 	  return err == WSAECONNRESET || err == WSAECONNABORTED;
 #else
 	  return err == ECONNRESET;
@@ -950,7 +950,7 @@ stream_buf_read_setup (struct link_socket* sock)
 int link_socket_read_tcp (struct link_socket *sock,
 			  struct buffer *buf);
 
-#ifdef WIN32
+#ifdef _WIN32
 
 static inline int
 link_socket_read_udp_win32 (struct link_socket *sock,
@@ -978,7 +978,7 @@ link_socket_read (struct link_socket *sock,
     {
       int res;
 
-#ifdef WIN32
+#ifdef _WIN32
       res = link_socket_read_udp_win32 (sock, buf, from);
 #else
       res = link_socket_read_udp_posix (sock, buf, from);
@@ -1006,7 +1006,7 @@ int link_socket_write_tcp (struct link_socket *sock,
 			   struct buffer *buf,
 			   struct link_socket_actual *to);
 
-#ifdef WIN32
+#ifdef _WIN32
 
 static inline int
 link_socket_write_win32 (struct link_socket *sock,
@@ -1068,7 +1068,7 @@ link_socket_write_udp (struct link_socket *sock,
 		       struct buffer *buf,
 		       struct link_socket_actual *to)
 {
-#ifdef WIN32
+#ifdef _WIN32
   return link_socket_write_win32 (sock, buf, to);
 #else
   return link_socket_write_udp_posix (sock, buf, to);
@@ -1138,7 +1138,7 @@ socket_read_residual (const struct link_socket *s)
 static inline event_t
 socket_event_handle (const struct link_socket *s)
 {
-#ifdef WIN32
+#ifdef _WIN32
   return &s->rw_handle;
 #else
   return s->sd;
@@ -1169,7 +1169,7 @@ socket_set_listen_persistent (struct link_socket *s,
 static inline void
 socket_reset_listen_persistent (struct link_socket *s)
 {
-#ifdef WIN32
+#ifdef _WIN32
   reset_net_event_win32 (&s->listen_handle, s->sd);
 #endif
 }

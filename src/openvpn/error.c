@@ -453,7 +453,7 @@ close_syslog ()
 #endif
 }
 
-#ifdef WIN32
+#ifdef _WIN32
 
 static HANDLE orig_stderr;
 
@@ -471,7 +471,7 @@ get_orig_stderr (void)
 void
 redirect_stdout_stderr (const char *file, bool append)
 {
-#if defined(WIN32)
+#if defined(_WIN32)
   if (!std_redir)
     {
       struct gc_arena gc = gc_new ();
@@ -622,7 +622,7 @@ x_check_status (int status,
 	      sock->info.mtu_changed = true;
 	    }
 	}
-#elif defined(WIN32)
+#elif defined(_WIN32)
       /* get possible driver error from TAP-Windows driver */
       extended_msg = tap_win_getinfo (tt, &gc);
 #endif
@@ -677,7 +677,7 @@ openvpn_exit (const int status)
 
       tun_abort();
 
-#ifdef WIN32
+#ifdef _WIN32
       uninit_win32 ();
 #endif
 
@@ -737,7 +737,7 @@ crash (void)
 }
 #endif
 
-#ifdef WIN32
+#ifdef _WIN32
 
 const char *
 strerror_win32 (DWORD errnum, struct gc_arena *gc)

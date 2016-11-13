@@ -25,7 +25,7 @@
 #ifndef TUN_H
 #define TUN_H
 
-#ifdef WIN32
+#ifdef _WIN32
 #include <winioctl.h>
 #include <tap-windows.h>
 #endif
@@ -38,7 +38,7 @@
 #include "proto.h"
 #include "misc.h"
 
-#if defined(WIN32) || defined(TARGET_ANDROID)
+#if defined(_WIN32) || defined(TARGET_ANDROID)
 
 #define TUN_ADAPTER_INDEX_INVALID ((DWORD)-1)
 
@@ -58,7 +58,7 @@ struct tuntap_options {
 # define IPW32_SET_N            5
   int ip_win32_type;
 
-#ifdef WIN32
+#ifdef _WIN32
   HANDLE msg_channel;
 #endif
 
@@ -157,7 +157,7 @@ struct tuntap
   struct in6_addr remote_ipv6;
   int netbits_ipv6;
 
-#ifdef WIN32
+#ifdef _WIN32
   HANDLE hand;
   struct overlapped_io reads;
   struct overlapped_io writes;
@@ -197,7 +197,7 @@ struct tuntap
 static inline bool
 tuntap_defined (const struct tuntap *tt)
 {
-#ifdef WIN32
+#ifdef _WIN32
   return tt && tt->hand != NULL;
 #else
   return tt && tt->fd >= 0;
@@ -298,7 +298,7 @@ ifconfig_order(void)
   return IFCONFIG_AFTER_TUN_OPEN;
 #elif defined(TARGET_NETBSD)
   return IFCONFIG_AFTER_TUN_OPEN;
-#elif defined(WIN32)
+#elif defined(_WIN32)
   return IFCONFIG_AFTER_TUN_OPEN;
 #elif defined(TARGET_ANDROID)
   return IFCONFIG_BEFORE_TUN_OPEN;
@@ -322,7 +322,7 @@ route_order(void)
 }
 
 
-#ifdef WIN32
+#ifdef _WIN32
 
 #define TUN_PASS_BUFFER
 
@@ -476,7 +476,7 @@ tun_standby (struct tuntap *tt)
 static inline event_t
 tun_event_handle (const struct tuntap *tt)
 {
-#ifdef WIN32
+#ifdef _WIN32
   return &tt->rw_handle;
 #else
   return tt->fd;
@@ -499,7 +499,7 @@ tun_set (struct tuntap *tt,
 	  if (persistent)
 	    *persistent = rwflags;
 	}
-#ifdef WIN32
+#ifdef _WIN32
       if (rwflags & EVENT_READ)
 	tun_read_queue (tt, 0);
 #endif

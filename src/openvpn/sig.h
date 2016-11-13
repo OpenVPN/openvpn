@@ -79,7 +79,7 @@ void register_signal (struct context *c, int sig, const char *text);
 void process_explicit_exit_notification_timer_wakeup (struct context *c);
 #endif
 
-#ifdef WIN32
+#ifdef _WIN32
 
 static inline void
 get_signal (volatile int *sig)

@@ -64,7 +64,7 @@ run_up_down (const char *command,
 	     const struct plugin_list *plugins,
 	     int plugin_type,
 	     const char *arg,
-#ifdef WIN32
+#ifdef _WIN32
 	     DWORD adapter_index,
 #endif
 	     const char *dev_type,
@@ -87,7 +87,7 @@ run_up_down (const char *command,
   setenv_str (es, "dev", arg);
   if (dev_type)
     setenv_str (es, "dev_type", dev_type);
-#ifdef WIN32
+#ifdef _WIN32
   setenv_int (es, "dev_idx", adapter_index);
 #endif
 
@@ -196,7 +196,7 @@ const char *
 system_error_message (int stat, struct gc_arena *gc)
 {
   struct buffer out = alloc_buf_gc (256, gc);
-#ifdef WIN32
+#ifdef _WIN32
   if (stat == -1)
     buf_printf (&out, "external program did not execute -- ");
   buf_printf (&out, "returned error code %d", stat);
@@ -252,7 +252,7 @@ openvpn_execve_allowed (const unsigned int flags)
 }
 
 
-#ifndef WIN32
+#ifndef _WIN32
 /*
  * Run execve() inside a fork().  Designed to replicate the semantics of system() but
  * in a safer way that doesn't require the invocation of a shell or the risks
@@ -950,7 +950,7 @@ hostname_randomize(const char *hostname, struct gc_arena *gc)
 const char *
 gen_path (const char *directory, const char *filename, struct gc_arena *gc)
 {
-#ifdef WIN32
+#ifdef _WIN32
   const int CC_PATH_RESERVED = CC_LESS_THAN|CC_GREATER_THAN|CC_COLON|
     CC_DOUBLE_QUOTE|CC_SLASH|CC_BACKSLASH|CC_PIPE|CC_QUESTION_MARK|CC_ASTERISK;
 #else
@@ -961,7 +961,7 @@ gen_path (const char *directory, const char *filename, struct gc_arena *gc)
   if (safe_filename
       && strcmp (safe_filename, ".")
       && strcmp (safe_filename, "..")
-#ifdef WIN32
+#ifdef _WIN32
       && win_safe_filename (safe_filename)
 #endif
       )
@@ -989,7 +989,7 @@ absolute_pathname (const char *pathname)
   if (pathname)
     {
       const int c = pathname[0];
-#ifdef WIN32
+#ifdef _WIN32
       return c == '\\' || (isalpha(c) && pathname[1] == ':' && pathname[2] == '\\');
 #else
       return c == '/';

@@ -76,8 +76,8 @@ openvpn_gettimeofday (struct timeval *tv, void *tz)
 static inline void
 update_time (void)
 {
-#ifdef WIN32
-  /* on WIN32, gettimeofday is faster than time(NULL) */
+#ifdef _WIN32
+  /* on _WIN32, gettimeofday is faster than time(NULL) */
   struct timeval tv;
   openvpn_gettimeofday (&tv, NULL);
 #else
@@ -90,8 +90,8 @@ update_time (void)
 static inline void
 update_time (void)
 {
-#if defined(WIN32)
-  /* on WIN32, gettimeofday is faster than time(NULL) */
+#if defined(_WIN32)
+  /* on _WIN32, gettimeofday is faster than time(NULL) */
   struct timeval tv;
   if (!gettimeofday (&tv, NULL))
     {

@@ -39,7 +39,7 @@
 bool
 set_nonblock_action (int fd)
 {
-#ifdef WIN32
+#ifdef _WIN32
   u_long arg = 1;
   if (ioctlsocket (fd, FIONBIO, &arg))
     return false;
@@ -54,7 +54,7 @@ set_nonblock_action (int fd)
 bool
 set_cloexec_action (int fd)
 {
-#ifndef WIN32
+#ifndef _WIN32
   if (fcntl (fd, F_SETFD, FD_CLOEXEC) < 0)
     return false;
 #endif
