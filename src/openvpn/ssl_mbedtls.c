@@ -361,8 +361,6 @@ tls_ctx_load_priv_file (struct tls_root_ctx *ctx, const char *priv_key_file,
       return 1;
     }
 
-  warn_if_group_others_accessible (priv_key_file);
-
   if (!mbed_ok(mbedtls_pk_check_pair(&ctx->crt_chain->pk, ctx->priv_key)))
     {
       msg (M_WARN, "Private key does not match the certificate");

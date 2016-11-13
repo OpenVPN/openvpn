@@ -71,9 +71,6 @@ void run_up_down (const char *command,
 
 void write_pid (const char *filename);
 
-/* check file protections */
-void warn_if_group_others_accessible(const char* filename);
-
 /* system flags */
 #define S_SCRIPT (1<<0)
 #define S_FATAL  (1<<1)

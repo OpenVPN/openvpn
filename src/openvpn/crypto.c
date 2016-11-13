@@ -36,7 +36,7 @@
 #include "crypto.h"
 #include "error.h"
 #include "integer.h"
-#include "misc.h"
+#include "platform.h"
 
 #include "memdbg.h"
 
@@ -1319,9 +1319,6 @@ read_key_file (struct key2 *key2, const char *file, const unsigned int flags)
   /* zero file read buffer if not an inline file */
   if (!(flags & RKF_INLINE))
     buf_clear (&in);
-
-  if (key2->n)
-    warn_if_group_others_accessible (error_filename);
 
 #if 0
   /* DEBUGGING */

@@ -190,31 +190,6 @@ save_inetd_socket_descriptor (void)
 }
 
 /*
- * Warn if a given file is group/others accessible.
- */
-void
-warn_if_group_others_accessible (const char* filename)
-{
-#ifndef WIN32
-#ifdef HAVE_STAT
-  if (strcmp (filename, INLINE_FILE_TAG))
-    {
-      struct stat st;
-      if (stat (filename, &st))
-	{
-	  msg (M_WARN | M_ERRNO, "WARNING: cannot stat file '%s'", filename);
-	}
-      else
-	{
-	  if (st.st_mode & (S_IRWXG|S_IRWXO))
-	    msg (M_WARN, "WARNING: file '%s' is group or others accessible", filename);
-	}
-    }
-#endif
-#endif
-}
-
-/*
  * Print an error message based on the status code returned by system().
  */
 const char *
@@ -1110,8 +1085,6 @@ get_user_pass_cr (struct user_pass *up,
            */
           FILE *fp;
           char password_buf[USER_PASS_LEN] = { '\0' };
-
-          warn_if_group_others_accessible (auth_file);
 
           fp = platform_fopen (auth_file, "r");
           if (!fp)
