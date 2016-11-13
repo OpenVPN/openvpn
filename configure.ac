@@ -493,6 +493,12 @@ AC_CHECK_TYPES(
 	[AC_DEFINE([in_addr_t], [uint32_t], [Workaround missing in_addr_t])],
 	[[${SOCKET_INCLUDES}]]
 )
+AC_CHECK_TYPES(
+	[in_port_t],
+	,
+	[AC_DEFINE([in_port_t], [uint16_t], [Workaround missing in_port_t])],
+	[[${SOCKET_INCLUDES}]]
+)
 AC_CHECK_TYPE(
 	[struct iphdr],
 	[AC_DEFINE([HAVE_IPHDR], [1], [struct iphdr needed for IPv6 support])],
