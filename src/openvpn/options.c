@@ -57,6 +57,7 @@
 #include "manage.h"
 #include "forward.h"
 #include "ssl_verify.h"
+#include "platform.h"
 #include <ctype.h>
 
 #include "memdbg.h"
@@ -2683,31 +2684,6 @@ options_postprocess_mutate (struct options *o)
  */
 #ifndef ENABLE_SMALL  /** Expect people using the stripped down version to know what they do */
 
-/*
- * Warn if a given file is group/others accessible.
- */
-static void
-warn_if_group_others_accessible (const char* filename)
-{
-#ifndef _WIN32
-#ifdef HAVE_STAT
-  if (strcmp (filename, INLINE_FILE_TAG))
-    {
-      struct stat st;
-      if (stat (filename, &st))
-	{
-	  msg (M_WARN | M_ERRNO, "WARNING: cannot stat file '%s'", filename);
-	}
-      else
-	{
-	  if (st.st_mode & (S_IRWXG|S_IRWXO))
-	    msg (M_WARN, "WARNING: file '%s' is group or others accessible", filename);
-	}
-    }
-#endif
-#endif
-}
-
 #define CHKACC_FILE (1<<0)       /** Check for a file/directory precense */
 #define CHKACC_DIRPATH (1<<1)    /** Check for directory precense where a file should reside */
 #define CHKACC_FILEXSTWR (1<<2)  /** If file exists, is it writable? */
@@ -2754,9 +2730,19 @@ check_file_access(const int type, const char *file, const int mode, const char *
     if (platform_access (file, W_OK) != 0)
       errcode = errno;
 
+  /* Warn if a given private file is group/others accessible. */
   if (type & CHKACC_PRIVATE)
     {
-      warn_if_group_others_accessible (file);
+      platform_stat_t st;
+      if (platform_stat (file, &st))
+	{
+	  msg (M_WARN | M_ERRNO, "WARNING: cannot stat file '%s'", file);
+	}
+      else
+	{
+	  if (st.st_mode & (S_IRWXG|S_IRWXO))
+	    msg (M_WARN, "WARNING: file '%s' is group or others accessible", file);
+	}
     }
 
   /* Scream if an error is found */
