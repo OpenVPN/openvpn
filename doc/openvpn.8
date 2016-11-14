@@ -4782,7 +4782,10 @@ exchanged over the TLS session.
 
 In method 1 (the default for OpenVPN 1.x), both sides generate
 random encrypt and HMAC-send keys which are forwarded to
-the other host over the TLS channel.
+the other host over the TLS channel. Method 1 is
+.B deprecated in OpenVPN 2.4
+, and
+.B will be removed in OpenVPN 2.5\fR.
 
 In method 2, (the default for OpenVPN 2.0)
 the client generates a random key.  Both client

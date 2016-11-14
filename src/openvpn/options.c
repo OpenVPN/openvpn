@@ -2245,6 +2245,13 @@ options_postprocess_verify_ce (const struct options *options, const struct conne
 	  "may accept clients which do not present a certificate");
     }
 
+  if (options->key_method == 1)
+    {
+      msg (M_WARN, "WARNING: --key-method 1 is deprecated and will be removed "
+	  "in OpenVPN 2.5.  By default --key-method 2 will be used if not set "
+	  "in the configuration file, which is the recommended approach.");
+    }
+
   if (options->tls_server || options->tls_client)
     {
 #ifdef ENABLE_PKCS11

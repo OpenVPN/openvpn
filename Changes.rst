@@ -112,6 +112,15 @@ AIX platform support
     devices since AIX does not provide tun interface.
 
 
+Deprecated features
+-------------------
+- ``--key-method 1`` is deprecated in 2.4 and will be removed in 2.5.  Migrate
+  away from ``--key-method 1`` as soon as possible.  The recommended approach
+  is to remove the ``--key-method`` option from the configuration files, OpenVPN
+  will then use ``--key-method 2`` by default.  Note that this requires changing
+  the option in both the client and server side configs.
+
+
 User-visible Changes
 --------------------
 - For certificate DNs with duplicate fields, e.g. "OU=one,OU=two", both fields
