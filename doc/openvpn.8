@@ -3766,11 +3766,7 @@ carriage-return. no-remapping is only available on the server side.
 .B Please note:
 This option is immediately deprecated.  It is only implemented
 to make the transition to the new formatting less intrusive.  It will be
-removed either in OpenVPN v2.4 or v2.5.  So please make sure you use the
-.B \-\-verify\-x509\-name
-option instead of
-.B \-\-tls\-remote
-as soon as possible and update your scripts where necessary.
+removed in OpenVPN v2.5.  So please update your scripts/plug-ins where necessary.
 .\"*********************************************************
 .TP
 .B \-\-no\-name\-remapping (DEPRECATED)
@@ -3783,8 +3779,8 @@ It ensures compatibility with server configurations using the
 option.
 
 .B Please note:
-This option is now deprecated.  It will be removed either in OpenVPN v2.4
-or v2.5.  So please make sure you support the new X.509 name formatting
+This option is now deprecated.  It will be removed in OpenVPN v2.5.
+So please make sure you support the new X.509 name formatting
 described with the
 .B \-\-compat\-names
 option as soon as possible.
@@ -5184,49 +5180,6 @@ or one having the
 .B ext:
 prefix will be left as-is.  This automatic upcasing feature
 is deprecated and will be removed in a future release.
-.\"*********************************************************
-.TP
-.B \-\-tls\-remote name (DEPRECATED)
-Accept connections only from a host with X509 name
-or common name equal to
-.B name.
-The remote host must also pass all other tests
-of verification.
-
-.B NOTE:
-Because tls\-remote may test against a common name prefix,
-only use this option when you are using OpenVPN with a custom CA
-certificate that is under your control.
-Never use this option when your client certificates are signed by
-a third party, such as a commercial web CA.
-
-Name can also be a common name prefix, for example if you
-want a client to only accept connections to "Server-1",
-"Server-2", etc., you can simply use
-.B \-\-tls\-remote Server
-
-Using a common name prefix is a useful alternative to managing
-a CRL (Certificate Revocation List) on the client, since it allows the client
-to refuse all certificates except for those associated
-with designated servers.
-
-.B \-\-tls\-remote
-is a useful replacement for the
-.B \-\-tls\-verify
-option to verify the remote host, because
-.B \-\-tls\-remote
-works in a
-.B \-\-chroot
-environment too.
-
-.B Please also note:
-This option is now deprecated.  It will be removed either in OpenVPN v2.4
-or v2.5.  So please make sure you support the new X.509 name formatting
-described with the
-.B \-\-compat\-names
-option as soon as possible by updating your configurations to use
-.B \-\-verify\-x509\-name
-instead.
 .\"*********************************************************
 .TP
 .B \-\-verify\-x509\-name name type

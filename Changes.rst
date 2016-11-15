@@ -131,6 +131,14 @@ Deprecated features
   that would previously be accepted.  If this occurs, OpenVPN will log the
   crypto library's error description.
 
+- ``--tls-remote`` is removed in 2.4, as indicated in the 2.3 man-pages.  A similar
+  functionality is provided via ``--verify-x509-name`` which does the same job in
+  a better way.
+
+- ``--compat-names`` and ``--no-name-remapping`` was deprecated in 2.3 and will
+  be removed in 2.5.  All scripts and plug-ins depending on the old non-standard
+  X.509 subject formatting must be updated to the standardized formatting.  See
+  the man page for more information.
 
 User-visible Changes
 --------------------
