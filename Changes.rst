@@ -111,6 +111,11 @@ AIX platform support
 	AIX platform support has been added. The support only includes tap
     devices since AIX does not provide tun interface.
 
+Control channel encryption (``--tls-crypt``)
+    Use a pre-shared static key (like the ``--tls-auth`` key) to encrypt control
+    channel packets.  Provides more privacy, some obfuscation and poor-man's
+    post-quantum security.
+
 
 Deprecated features
 -------------------

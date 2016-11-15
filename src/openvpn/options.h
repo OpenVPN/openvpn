@@ -558,9 +558,13 @@ struct options
   /* Old key allowed to live n seconds after new key goes active */
   int transition_window;
 
-  /* Special authentication MAC for TLS control channel */
-  const char *tls_auth_file;		/* shared secret */
+  /* Shared secret used for TLS control channel authentication */
+  const char *tls_auth_file;
   const char *tls_auth_file_inline;
+
+  /* Shared secret used for TLS control channel authenticated encryption */
+  const char *tls_crypt_file;
+  const char *tls_crypt_inline;
 
   /* Allow only one session */
   bool single_session;

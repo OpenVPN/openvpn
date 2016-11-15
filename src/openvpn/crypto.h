@@ -266,6 +266,9 @@ struct crypto_options
                                  *   security operation functions. */
 };
 
+#define CRYPT_ERROR(format) \
+  do { msg (D_CRYPT_ERRORS, "%s: " format, error_prefix); goto error_exit; } while (false)
+
 /**
  * Minimal IV length for AEAD mode ciphers (in bytes):
  * 4-byte packet id + 8 bytes implicit IV.
@@ -396,6 +399,21 @@ bool openvpn_decrypt (struct buffer *buf, struct buffer work,
 		      const uint8_t *ad_start);
 
 /** @} name Functions for performing security operations on data channel packets */
+
+/**
+ * Check packet ID for replay, and perform replay administration.
+ *
+ * @param opt	Crypto options for this packet, contains replay state.
+ * @param pin	Packet ID read from packet.
+ * @param error_prefix	Prefix to use when printing error messages.
+ * @param gc	Garbage collector to use.
+ *
+ * @return true if packet ID is validated to be not a replay, false otherwise.
+ */
+bool crypto_check_replay(struct crypto_options *opt,
+    const struct packet_id_net *pin, const char *error_prefix,
+    struct gc_arena *gc);
+
 
 /** Calculate crypto overhead and adjust frame to account for that */
 void crypto_adjust_frame_parameters(struct frame *frame,

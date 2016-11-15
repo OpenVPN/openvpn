@@ -611,9 +611,16 @@ static const char usage_message[] =
   "--single-session: Allow only one session (reset state on restart).\n"
   "--tls-exit      : Exit on TLS negotiation failure.\n"
   "--tls-auth f [d]: Add an additional layer of authentication on top of the TLS\n"
-  "                  control channel to protect against DoS attacks.\n"
-  "                  f (required) is a shared-secret passphrase file.\n"
+  "                  control channel to protect against attacks on the TLS stack\n"
+  "                  and DoS attacks.\n"
+  "                  f (required) is a shared-secret key file.\n"
   "                  The optional d parameter controls key directionality,\n"
+  "                  see --secret option for more info.\n"
+  "--tls-crypt key : Add an additional layer of authenticated encryption on top\n"
+  "                  of the TLS control channel to hide the TLS certificate,\n"
+  "                  provide basic post-quantum security and protect against\n"
+  "                  attacks on the TLS stack and DoS attacks.\n"
+  "                  key (required) provides the pre-shared key file.\n"
   "                  see --secret option for more info.\n"
   "--askpass [file]: Get PEM password from controlling tty before we daemonize.\n"
   "--auth-nocache  : Don't cache --askpass or --auth-user-pass passwords.\n"
@@ -1710,6 +1717,7 @@ show_settings (const struct options *o)
   SHOW_BOOL (tls_exit);
 
   SHOW_STR (tls_auth_file);
+  SHOW_STR (tls_crypt_file);
 #endif /* ENABLE_CRYPTO */
 
 #ifdef ENABLE_PKCS11
@@ -2384,6 +2392,10 @@ options_postprocess_verify_ce (const struct options *options, const struct conne
 	      notnull (options->priv_key_file, "private key file (--key) or PKCS#12 file (--pkcs12)");
 	    }
 	}
+    if (options->tls_auth_file && options->tls_crypt_file)
+      {
+        msg (M_USAGE, "--tls-auth and --tls-crypt are mutually exclusive");
+      }
     }
   else
     {
@@ -2415,6 +2427,7 @@ options_postprocess_verify_ce (const struct options *options, const struct conne
       MUST_BE_UNDEF (handshake_window);
       MUST_BE_UNDEF (transition_window);
       MUST_BE_UNDEF (tls_auth_file);
+      MUST_BE_UNDEF (tls_crypt_file);
       MUST_BE_UNDEF (single_session);
 #ifdef ENABLE_PUSH_PEER_INFO
       MUST_BE_UNDEF (push_peer_info);
@@ -2880,6 +2893,8 @@ options_postprocess_filechecks (struct options *options)
   errs |= check_file_access (CHKACC_FILE|CHKACC_INLINE|CHKACC_PRIVATE,
 			     options->tls_auth_file, R_OK, "--tls-auth");
   errs |= check_file_access (CHKACC_FILE|CHKACC_INLINE|CHKACC_PRIVATE,
+			     options->tls_crypt_file, R_OK, "--tls-crypt");
+  errs |= check_file_access (CHKACC_FILE|CHKACC_INLINE|CHKACC_PRIVATE,
 			     options->shared_secret_file, R_OK, "--secret");
   errs |= check_file_access (CHKACC_DIRPATH|CHKACC_FILEXSTWR,
 			     options->packet_id_file, R_OK|W_OK, "--replay-persist");
@@ -3220,6 +3235,9 @@ options_string (const struct options *o,
       {
 	if (o->tls_auth_file)
 	  buf_printf (&out, ",tls-auth");
+	/* Not adding tls-crypt here, because we won't reach this code if
+	 * tls-auth/tls-crypt does not match.  Removing tls-auth here would
+	 * break stuff, so leaving that in place. */
 
 	if (o->key_method > 1)
 	  buf_printf (&out, ",key-method %d", o->key_method);
@@ -7241,6 +7259,15 @@ add_option (struct options *options,
 	    goto err;
 	}
       options->tls_auth_file = p[1];
+    }
+  else if (streq (p[0], "tls-crypt") && p[1] && !p[3])
+    {
+      VERIFY_PERMISSION (OPT_P_GENERAL);
+      if (streq (p[1], INLINE_FILE_TAG) && p[2])
+	{
+	  options->tls_crypt_inline = p[2];
+	}
+      options->tls_crypt_file = p[1];
     }
   else if (streq (p[0], "key-method") && p[1] && !p[2])
     {

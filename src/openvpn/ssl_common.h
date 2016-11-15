@@ -204,6 +204,18 @@ struct key_state
 #endif
 };
 
+/** Control channel wrapping (--tls-auth/--tls-crypt) context */
+struct tls_wrap_ctx
+{
+  enum {
+    TLS_WRAP_NONE = 0,	/**< No control channel wrapping */
+    TLS_WRAP_AUTH,	/**< Control channel authentication */
+    TLS_WRAP_CRYPT,	/**< Control channel encryption and authentication */
+  } mode;			/**< Control channel wrapping mode */
+  struct crypto_options opt;	/**< Crypto state */
+  struct buffer work;		/**< Work buffer (only for --tls-crypt) */
+};
+
 /*
  * Our const options, obtained directly or derived from
  * command line options.
@@ -278,8 +290,8 @@ struct tls_options
   const char *config_authname;
   bool ncp_enabled;
 
-  /* packet authentication for TLS handshake */
-  struct crypto_options tls_auth;
+  /** TLS handshake wrapping state */
+  struct tls_wrap_ctx tls_wrap;
 
   /* frame parameters for TLS control channel */
   struct frame frame;
@@ -380,7 +392,7 @@ struct tls_session
   bool burst;
 
   /* authenticate control packets */
-  struct crypto_options tls_auth;
+  struct tls_wrap_ctx tls_wrap;
 
   int initial_opcode;		/* our initial P_ opcode */
   struct session_id session_id;	/* our random session ID */

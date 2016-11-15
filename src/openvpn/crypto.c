@@ -6,7 +6,7 @@
  *             packet compression.
  *
  *  Copyright (C) 2002-2010 OpenVPN Technologies, Inc. <sales@openvpn.net>
- *  Copyright (C) 2010 Fox Crypto B.V. <openvpn@fox-it.com>
+ *  Copyright (C) 2010-2016 Fox Crypto B.V. <openvpn@fox-it.com>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -62,9 +62,6 @@
  * make a header bigger than FRAME_HEADROOM.  This should not
  * happen unless the frame parameters are wrong.
  */
-
-#define CRYPT_ERROR(format) \
-  do { msg (D_CRYPT_ERRORS, "%s: " format, error_prefix); goto error_exit; } while (false)
 
 static void
 openvpn_encrypt_aead (struct buffer *buf, struct buffer work,
@@ -326,17 +323,7 @@ openvpn_encrypt (struct buffer *buf, struct buffer work,
     }
 }
 
-/**
- * Check packet ID for replay, and perform replay administration.
- *
- * @param opt	Crypto options for this packet, contains replay state.
- * @param pin	Packet ID read from packet.
- * @param error_prefix	Prefix to use when printing error messages.
- * @param gc	Garbage collector to use.
- *
- * @return true if packet ID is validated to be not a replay, false otherwise.
- */
-static bool crypto_check_replay(struct crypto_options *opt,
+bool crypto_check_replay(struct crypto_options *opt,
     const struct packet_id_net *pin, const char *error_prefix,
     struct gc_arena *gc) {
   bool ret = false;

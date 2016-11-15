@@ -113,6 +113,7 @@ openvpn_SOURCES = \
 	ssl_verify_mbedtls.c ssl_verify_mbedtls.h \
 	status.c status.h \
 	syshead.h \
+	tls_crypt.c tls_crypt.h \
 	tun.c tun.h \
 	win32.h win32.c \
 	cryptoapi.h cryptoapi.c

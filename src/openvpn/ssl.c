@@ -57,6 +57,7 @@
 #include "gremlin.h"
 #include "pkcs11.h"
 #include "route.h"
+#include "tls_crypt.h"
 
 #include "ssl.h"
 #include "ssl_verify.h"
@@ -971,16 +972,18 @@ tls_session_init (struct tls_multi *multi, struct tls_session *session)
     }
 
   /* Initialize control channel authentication parameters */
-  session->tls_auth = session->opt->tls_auth;
+  session->tls_wrap = session->opt->tls_wrap;
+  session->tls_wrap.work = alloc_buf (TLS_CHANNEL_BUF_SIZE);
 
   /* initialize packet ID replay window for --tls-auth */
-  packet_id_init (&session->tls_auth.packet_id,
+  packet_id_init (&session->tls_wrap.opt.packet_id,
 		  session->opt->replay_window,
 		  session->opt->replay_time,
-		  "TLS_AUTH", session->key_id);
+		  "TLS_WRAP", session->key_id);
 
   /* load most recent packet-id to replay protect on --tls-auth */
-  packet_id_persist_load_obj (session->tls_auth.pid_persist, &session->tls_auth.packet_id);
+  packet_id_persist_load_obj (session->tls_wrap.opt.pid_persist,
+      &session->tls_wrap.opt.packet_id);
 
   key_state_init (session, &session->key[KS_PRIMARY]);
 
@@ -1007,8 +1010,10 @@ tls_session_free (struct tls_session *session, bool clear)
 {
   int i;
 
-  if (packet_id_initialized(&session->tls_auth.packet_id))
-    packet_id_free (&session->tls_auth.packet_id);
+  if (packet_id_initialized(&session->tls_wrap.opt.packet_id))
+    packet_id_free (&session->tls_wrap.opt.packet_id);
+
+  free_buf (&session->tls_wrap.work);
 
   for (i = 0; i < KS_SIZE; ++i)
     key_state_free (&session->key[i], false);
@@ -1140,9 +1145,14 @@ tls_auth_standalone_init (struct tls_options *tls_options,
 
   ALLOC_OBJ_CLEAR_GC (tas, struct tls_auth_standalone, gc);
 
-  /* set up pointer to HMAC object for TLS packet authentication */
-  tas->tls_auth_options.key_ctx_bi = tls_options->tls_auth.key_ctx_bi;
-  tas->tls_auth_options.flags |= CO_PACKET_ID_LONG_FORM;
+  tas->tls_wrap = tls_options->tls_wrap;
+
+  /*
+   * Standalone tls-auth is in read-only mode with respect to TLS
+   * control channel state.  After we build a new client instance
+   * object, we will process this session-initiating packet for real.
+   */
+  tas->tls_wrap.opt.flags |= CO_IGNORE_PACKET_ID;
 
   /* get initial frame parms, still need to finalize */
   tas->frame = tls_options->frame;
@@ -1289,20 +1299,34 @@ write_control_auth (struct tls_session *session,
 		    int max_ack,
 		    bool prepend_ack)
 {
-  uint8_t *header;
+  uint8_t header = ks->key_id | (opcode << P_OPCODE_SHIFT);
   struct buffer null = clear_buf ();
 
   ASSERT (link_socket_actual_defined (&ks->remote_addr));
   ASSERT (reliable_ack_write
 	  (ks->rec_ack, buf, &ks->session_id_remote, max_ack, prepend_ack));
-  ASSERT (session_id_write_prepend (&session->session_id, buf));
-  ASSERT (header = buf_prepend (buf, 1));
-  *header = ks->key_id | (opcode << P_OPCODE_SHIFT);
-  if (session->tls_auth.key_ctx_bi.encrypt.hmac)
+
+  if (session->tls_wrap.mode == TLS_WRAP_AUTH ||
+      session->tls_wrap.mode == TLS_WRAP_NONE)
+    {
+      ASSERT (session_id_write_prepend (&session->session_id, buf));
+      ASSERT (buf_write_prepend (buf, &header, sizeof(header)));
+    }
+  if (session->tls_wrap.mode == TLS_WRAP_AUTH)
     {
       /* no encryption, only write hmac */
-      openvpn_encrypt (buf, null, &session->tls_auth);
-      ASSERT (swap_hmac (buf, &session->tls_auth, false));
+      openvpn_encrypt (buf, null, &session->tls_wrap.opt);
+      ASSERT (swap_hmac (buf, &session->tls_wrap.opt, false));
+    }
+  else if (session->tls_wrap.mode == TLS_WRAP_CRYPT)
+    {
+      buf_init (&session->tls_wrap.work, buf->offset);
+      ASSERT (buf_write (&session->tls_wrap.work, &header, sizeof(header)));
+      ASSERT (session_id_write (&session->session_id, &session->tls_wrap.work));
+      ASSERT (tls_crypt_wrap (buf, &session->tls_wrap.work, &session->tls_wrap.opt));
+      /* Don't change the original data in buf, it's used by the reliability
+       * layer to resend on failure. */
+      *buf = session->tls_wrap.work;
     }
   *to_link_addr = &ks->remote_addr;
 }
@@ -1312,17 +1336,18 @@ write_control_auth (struct tls_session *session,
  */
 static bool
 read_control_auth (struct buffer *buf,
-		   struct crypto_options *co,
+		   struct tls_wrap_ctx *ctx,
 		   const struct link_socket_actual *from)
 {
   struct gc_arena gc = gc_new ();
+  bool ret = false;
 
-  if (co->key_ctx_bi.decrypt.hmac)
+  if (ctx->mode == TLS_WRAP_AUTH)
     {
       struct buffer null = clear_buf ();
 
       /* move the hmac record to the front of the packet */
-      if (!swap_hmac (buf, co, true))
+      if (!swap_hmac (buf, &ctx->opt, true))
 	{
 	  msg (D_TLS_ERRORS,
 	       "TLS Error: cannot locate HMAC in incoming packet from %s",
@@ -1333,24 +1358,41 @@ read_control_auth (struct buffer *buf,
 
       /* authenticate only (no decrypt) and remove the hmac record
          from the head of the buffer */
-      openvpn_decrypt (buf, null, co, NULL, BPTR (buf));
+      openvpn_decrypt (buf, null, &ctx->opt, NULL, BPTR (buf));
       if (!buf->len)
 	{
 	  msg (D_TLS_ERRORS,
 	       "TLS Error: incoming packet authentication failed from %s",
 	       print_link_socket_actual (from, &gc));
-	  gc_free (&gc);
-	  return false;
+	  goto cleanup;
 	}
 
     }
+  else if (ctx->mode == TLS_WRAP_CRYPT)
+    {
+      struct buffer tmp = alloc_buf (buf_forward_capacity_total (buf));
+      if (!tls_crypt_unwrap (buf, &tmp, &ctx->opt))
+	{
+	  msg (D_TLS_ERRORS, "TLS Error: tls-crypt unwrapping failed from %s",
+	      print_link_socket_actual (from, &gc));
+	  goto cleanup;
+	}
+      ASSERT (buf_init (buf, buf->offset));
+      ASSERT (buf_copy (buf, &tmp));
+      free_buf (&tmp);
+    }
 
-  /* advance buffer pointer past opcode & session_id since our caller
-     already read it */
-  buf_advance (buf, SID_SIZE + 1);
+  if (ctx->mode == TLS_WRAP_NONE || ctx->mode == TLS_WRAP_AUTH)
+    {
+      /* advance buffer pointer past opcode & session_id since our caller
+	 already read it */
+      buf_advance (buf, SID_SIZE + 1);
+    }
 
+  ret = true;
+cleanup:
   gc_free (&gc);
-  return true;
+  return ret;
 }
 
 /*
@@ -2731,11 +2773,11 @@ tls_process (struct tls_multi *multi,
   /* Send 1 or more ACKs (each received control packet gets one ACK) */
   if (!to_link->len && !reliable_ack_empty (ks->rec_ack))
     {
-      buf = &ks->ack_write_buf;
-      ASSERT (buf_init (buf, FRAME_HEADROOM (&multi->opt.frame)));
-      write_control_auth (session, ks, buf, to_link_addr, P_ACK_V1,
+      struct buffer buf = ks->ack_write_buf;
+      ASSERT (buf_init (&buf, FRAME_HEADROOM (&multi->opt.frame)));
+      write_control_auth (session, ks, &buf, to_link_addr, P_ACK_V1,
 			  RELIABLE_ACK_SIZE, false);
-      *to_link = *buf;
+      *to_link = buf;
       active = true;
       state_change = true;
       dmsg (D_TLS_DEBUG, "Dedicated ACK -> TCP/UDP");
@@ -3233,7 +3275,7 @@ tls_pre_decrypt (struct tls_multi *multi,
 		  goto error;
 		}
 
-	      if (!read_control_auth (buf, &session->tls_auth, from))
+	      if (!read_control_auth (buf, &session->tls_wrap, from))
 		goto error;
 
 	      /*
@@ -3284,7 +3326,7 @@ tls_pre_decrypt (struct tls_multi *multi,
 	      if (op == P_CONTROL_SOFT_RESET_V1
 		  && DECRYPT_KEY_ENABLED (multi, ks))
 		{
-		  if (!read_control_auth (buf, &session->tls_auth, from))
+		  if (!read_control_auth (buf, &session->tls_wrap, from))
 		    goto error;
 
 		  key_state_soft_reset (session);
@@ -3301,7 +3343,7 @@ tls_pre_decrypt (struct tls_multi *multi,
 		  if (op == P_CONTROL_SOFT_RESET_V1)
 		    do_burst = true;
 
-		  if (!read_control_auth (buf, &session->tls_auth, from))
+		  if (!read_control_auth (buf, &session->tls_wrap, from))
 		    goto error;
 
 		  dmsg (D_TLS_DEBUG,
@@ -3491,18 +3533,11 @@ tls_pre_decrypt_lite (const struct tls_auth_standalone *tas,
 
       {
 	struct buffer newbuf = clone_buf (buf);
-	struct crypto_options co = tas->tls_auth_options;
+	struct tls_wrap_ctx tls_wrap_tmp = tas->tls_wrap;
 	bool status;
 
-	/*
-	 * We are in read-only mode at this point with respect to TLS
-	 * control channel state.  After we build a new client instance
-	 * object, we will process this session-initiating packet for real.
-	 */
-	co.flags |= CO_IGNORE_PACKET_ID;
-
 	/* HMAC test, if --tls-auth was specified */
-	status = read_control_auth (&newbuf, &co, from);
+	status = read_control_auth (&newbuf, &tls_wrap_tmp, from);
 	free_buf (&newbuf);
 	if (!status)
 	  goto error;
