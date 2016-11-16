@@ -975,7 +975,7 @@ do_ifconfig (struct tuntap *tt,
 	  if ( tt->type == DEV_TYPE_TUN )
 	   {
 	      const char *ifconfig_ipv6_remote =
-                ifconfig_ipv6_remote = print_in6_addr (tt->remote_ipv6, 0, &gc);
+                print_in6_addr (tt->remote_ipv6, 0, &gc);
 
 	      argv_printf (&argv,
 			    "%s %s inet6 plumb %s/%d %s up",
