@@ -2738,11 +2738,13 @@ check_file_access(const int type, const char *file, const int mode, const char *
 	{
 	  msg (M_WARN | M_ERRNO, "WARNING: cannot stat file '%s'", file);
 	}
+#ifndef _WIN32
       else
 	{
 	  if (st.st_mode & (S_IRWXG|S_IRWXO))
 	    msg (M_WARN, "WARNING: file '%s' is group or others accessible", file);
 	}
+#endif
     }
 
   /* Scream if an error is found */
