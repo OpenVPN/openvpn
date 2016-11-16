@@ -2139,9 +2139,6 @@ do_init_crypto_static (struct context *c, const unsigned int flags)
 
   if (!key_ctx_bi_defined (&c->c1.ks.static_key))
     {
-      struct key2 key2;
-      struct key_direction_state kds;
-
       /* Get cipher & hash algorithms */
       init_key_type (&c->c1.ks.key_type, options->ciphername, options->authname,
 		     options->keysize, options->test_crypto, true);
