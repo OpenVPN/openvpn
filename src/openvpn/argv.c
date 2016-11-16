@@ -252,7 +252,6 @@ argv_printf_arglist (struct argv *a, const char *format, va_list arglist)
               char *s1 = va_arg (arglist, char *);
               char *s2 = va_arg (arglist, char *);
               char *combined;
-              char *cmd_name;
 
               if (!s1) s1 = "";
               if (!s2) s2 = "";
