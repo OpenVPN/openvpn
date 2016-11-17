@@ -1,6 +1,83 @@
 OpenVPN Change Log
 Copyright (C) 2002-2016 OpenVPN Technologies, Inc. <sales@openvpn.net>
 
+2016.11.17 -- Version 2.4_beta1
+Arne Schwabe (1):
+      Make Changes.rst nicer for 2.4 release
+
+David Sommerseth (16):
+      Update .mailmap to unify and clean up odd names and e-mail addresses
+      cleanup: Remove NOP code sections in ssl.c:tls_process()
+      Remove last rest of INSTALL-win32.txt references
+      auth-gen-token: Add --auth-gen-token option
+      auth-gen-token: Generate an auth-token per client
+      auth-gen-token: Push generated auth-tokens to the client
+      auth-gen-token: Authenticate generated auth-tokens when client re-authenticates
+      Fix builds with --disable-crypto
+      man: Improve the --keepalive section
+      console: Fix compiler warning
+      systemd: Improve the systemd unit files
+      tun: Fix compiler warnings
+      file checks: Merge warn_if_group_others_accessible() into check_file_access()
+      tun: Fix weird commit error causing a double assignment
+      options: Remove --tls-remote
+      Remove unused variable in argv_printf_arglist()
+
+Gert Doering (10):
+      openvpn version line: remove [IPv6], add [AEAD] if available
+      clean up *sig_info handling in link_socket_init_phase2()
+      check c->c2.link_socket before calling do_init_route_ipv6_list()
+      Check previously-unchecked buf_alloc_write() call in crypto self-test.
+      Fix potential division by zero in shaper_reset()
+      Repair topology subnet on FreeBSD 11
+      Repair topology subnet on OpenBSD
+      Add in_port_t check to configure.ac
+      Fix compilation on MinGW with -std=c99
+      Replace WIN32 by _WIN32
+
+Heiko Hund (4):
+      put argv_* functions into own file, add unit tests
+      Remove unused and unecessary argv interfaces
+      remove unused system_str from struct argv
+      Factor out %sc handling from argv_printf()
+
+Lev Stipakov (1):
+      Drop recursively routed packets
+
+Samuli Seppänen (6):
+      Remove INSTALL-win32.txt that is now hosted in openvpn-build
+      Fix update_t_client_ips.sh for out of tree builds
+      Make sure that all relevant files under test go to release tarballs
+      Allow passing extra arguments to fping/fping6 in t_client.rc
+      Prevent generation of duplicate EXPECT_IFCONFIG entries
+      Fix a logic problem in handling of --up scripts in t_client.sh
+
+Selva Nair (2):
+      Support --block-outside-dns on multiple tunnels
+      Unbreak windows build
+
+Steffan Karger (19):
+      Fix use-after-free bug in prepare_push_reply()
+      Remove verbose msg() from send_push_reply()
+      Limit --reneg-bytes to 64MB when using small block ciphers
+      Add a revoked cert to the sample keys
+      Fix --tls-version-max in mbed TLS builds
+      Don't deference type-punned pointers
+      Fix builds on compilers without anonymous union support
+      Refactor static/tls-auth key loading
+      Add missing includes in error.h
+      Make argv unit tests obey {MBEDTLS, OPENSSL}_{LIBS, CFLAGS}
+      Move private file access checks to options_postprocess_filechecks()
+      Deprecate key-method 1
+      Refactor CRL handling
+      Remove unneeded check for extra_certs_file_inline
+      Fix missing return value checks in multi_process_float()
+      Restore pre-NCP cipher options on SIGUSR1
+      Remove unused variables from do_init_crypto_static()
+      Add control channel encryption (--tls-crypt)
+      Add --tls-crypt unit tests
+
+
 2016.10.19 -- Version 2.4_alpha2
 
 David Sommerseth (1):
@@ -525,7 +602,7 @@ Robert Fischer (1):
 Samuel Thibault (1):
       Ensure that client-connect files are always deleted
 
-Samuli Sepp�nen (15):
+Samuli Seppänen (15):
       Removed ChangeLog.IPv6
       Added cross-compilation information INSTALL-win32.txt
       Updated README
