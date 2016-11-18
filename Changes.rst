@@ -25,7 +25,7 @@ AEAD (GCM) data channel cipher support
     AES-128-CBC + HMAC-SHA1).
 
 ECDH key exchange
-	The TLS control channel now supports for elliptic curve diffie-hellmann
+    The TLS control channel now supports for elliptic curve diffie-hellmann
     key exchange (ECDH).
 
 Dualstack client connect
@@ -33,7 +33,7 @@ Dualstack client connect
     will now try all addresses (IPv6 and IPv4) of a ``--remote`` entry.
 
 New improved Windows Background service
-	The new OpenVPNService is based on openvpnserv2, a complete rewrite of the OpenVPN
+    The new OpenVPNService is based on openvpnserv2, a complete rewrite of the OpenVPN
     service wrapper. It is intended for launching OpenVPN instances that should be
     up at all times, instead of being manually launched by a user. OpenVPNService is
     able to restart individual OpenVPN processes if they crash, and it also works
@@ -41,18 +41,18 @@ New improved Windows Background service
     if at all, on newer Windows versions (8+) and its use is not recommended.
 
 New interactive Windows service
-	The installer starts OpenVPNServiceInteractive automatically and configures
+    The installer starts OpenVPNServiceInteractive automatically and configures
     it to start	at system startup.
 
     The interactive Windows service allows unprivileged users to start
-	OpenVPN connections in the global config directory (usually
-	C:\Program Files\OpenVPN\config) using OpenVPN GUI without any
-	extra configuration.
+    OpenVPN connections in the global config directory (usually
+    C:\Program Files\OpenVPN\config) using OpenVPN GUI without any
+    extra configuration.
 
-	Users who belong to the built-in Administrator group or to the
-	local "OpenVPN Administrator" group can also store configuration
-	files under %USERPROFILE%\OpenVPN\config for use with the
-	interactive service.
+    Users who belong to the built-in Administrator group or to the
+    local "OpenVPN Administrator" group can also store configuration
+    files under %USERPROFILE%\OpenVPN\config for use with the
+    interactive service.
 
 redirect-gateway ipv6
     OpenVPN has now feature parity between IPv4 and IPv6 for redirect
@@ -60,7 +60,7 @@ redirect-gateway ipv6
     IPv6 remote VPN server address
 
 LZ4 Compression and pushable compression
-	Additionally to LZO compression OpenVPN now also supports LZ4 compression.
+    Additionally to LZO compression OpenVPN now also supports LZ4 compression.
     Compression options are now pushable from the server.
 
 pull-filter
@@ -108,7 +108,7 @@ Android platform support
     the OpenVPN for Android app (https://github.com/schwabe/ics-openvpn)
 
 AIX platform support
-	AIX platform support has been added. The support only includes tap
+    AIX platform support has been added. The support only includes tap
     devices since AIX does not provide tun interface.
 
 Control channel encryption (``--tls-crypt``)
