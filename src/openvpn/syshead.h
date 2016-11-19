@@ -26,7 +26,7 @@
 #define SYSHEAD_H
 
 #include "compat.h"
-#include "compat-stdbool.h"
+#include <stdbool.h>
 
 /* branch prediction hints */
 #if defined(__GNUC__)
