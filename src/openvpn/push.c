@@ -42,31 +42,6 @@
 
 static char push_reply_cmd[] = "PUSH_REPLY";
 
-/**
- * Add an option to the given push list by providing a format string.
- *
- * The string added to the push options is allocated in o->gc, so the caller
- * does not have to preserve anything.
- *
- * @param gc        GC arena where options are allocated
- * @param push_list Push list containing options
- * @param msglevel  The message level to use when printing errors
- * @param fmt       Format string for the option
- * @param ...       Format string arguments
- *
- * @return true on success, false on failure.
- */
-static bool push_option_fmt(struct gc_arena *gc, struct push_list *push_list,
-			    int msglevel, const char *fmt, ...)
-#ifdef __GNUC__
-#if __USE_MINGW_ANSI_STDIO
-    __attribute__ ((format (gnu_printf, 4, 5)))
-#else
-    __attribute__ ((format (__printf__, 4, 5)))
-#endif
-#endif
-    ;
-
 /*
  * Auth username/password
  *
@@ -177,6 +152,30 @@ server_pushed_signal (struct context *c, const struct buffer *buffer, const bool
 }
 
 #if P2MP_SERVER
+/**
+ * Add an option to the given push list by providing a format string.
+ *
+ * The string added to the push options is allocated in o->gc, so the caller
+ * does not have to preserve anything.
+ *
+ * @param gc        GC arena where options are allocated
+ * @param push_list Push list containing options
+ * @param msglevel  The message level to use when printing errors
+ * @param fmt       Format string for the option
+ * @param ...       Format string arguments
+ *
+ * @return true on success, false on failure.
+ */
+static bool push_option_fmt(struct gc_arena *gc, struct push_list *push_list,
+			    int msglevel, const char *fmt, ...)
+#ifdef __GNUC__
+#if __USE_MINGW_ANSI_STDIO
+    __attribute__ ((format (gnu_printf, 4, 5)))
+#else
+    __attribute__ ((format (__printf__, 4, 5)))
+#endif
+#endif
+    ;
 
 /*
  * Send auth failed message from server to client.

@@ -51,10 +51,9 @@ void receive_auth_failed (struct context *c, const struct buffer *buffer);
 
 void server_pushed_signal (struct context *c, const struct buffer *buffer, const bool restart, const int adv);
 
-#if P2MP_SERVER
-
 void incoming_push_message (struct context *c, const struct buffer *buffer);
 
+#if P2MP_SERVER
 void clone_push_list (struct options *o);
 
 void push_option (struct options *o, const char *opt, int msglevel);
