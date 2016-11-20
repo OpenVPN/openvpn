@@ -435,7 +435,7 @@ AX_EMPTY_ARRAY
 AC_CHECK_SIZEOF([unsigned int])
 AC_CHECK_SIZEOF([unsigned long])
 AC_CHECK_HEADERS([ \
-	stdio.h stdarg.h stdbool.h limits.h \
+	stdio.h stdarg.h limits.h \
 	time.h errno.h fcntl.h io.h direct.h \
 	ctype.h sys/types.h sys/socket.h \
 	signal.h unistd.h dlfcn.h \
