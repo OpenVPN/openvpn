@@ -1372,7 +1372,13 @@ do_ifconfig (struct tuntap *tt,
 
     if ( do_ipv6 )
       {
-	if (tt->options.msg_channel)
+	if (tt->options.ip_win32_type == IPW32_SET_MANUAL)
+	  {
+	    msg (M_INFO, "******** NOTE:  Please manually set the v6 IP of '%s' to %s (if it is not already set)",
+	         actual,
+	         ifconfig_ipv6_local);
+          }
+	else if (tt->options.msg_channel)
 	  {
 	    do_address_service (true, AF_INET6, tt);
 	  }
@@ -1391,7 +1397,10 @@ do_ifconfig (struct tuntap *tt,
 	  }
 
 	/* explicit route needed */
-	add_route_connected_v6_net(tt, es);
+	if (tt->options.ip_win32_type != IPW32_SET_MANUAL)
+	  {
+	    add_route_connected_v6_net(tt, es);
+	  }
       }
 #else
       msg (M_FATAL, "Sorry, but I don't know how to do 'ifconfig' commands on this operating system.  You should ifconfig your TUN/TAP device manually or use an --up script.");
