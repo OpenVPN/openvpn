@@ -704,7 +704,8 @@ static const char usage_message[] =
   "                    which allow multiple addresses,\n"
   "                    --dhcp-option must be repeated.\n"
   "                    DOMAIN name : Set DNS suffix\n"
-  "                    DNS addr    : Set domain name server address(es)\n"
+  "                    DNS addr    : Set domain name server address(es) (IPv4)\n"
+  "                    DNS6 addr   : Set domain name server address(es) (IPv6)\n"
   "                    NTP         : Set NTP server address(es)\n"
   "                    NBDD        : Set NBDD server address(es)\n"
   "                    WINS addr   : Set WINS server address(es)\n"
@@ -6406,6 +6407,14 @@ add_option (struct options *options,
 	{
 	  dhcp_option_address_parse ("DNS", p[2], o->dns, &o->dns_len, msglevel);
 	}
+      else if (streq (p[1], "DNS6") && p[2])
+	{
+	  /* this is somewhat of a placeholder - we understand the option,
+	   * but cannot act upon it - so we'll just accept it and put it
+	   * into the environment, as we would do on all non-win32 platforms
+	   */
+	  foreign_option (options, p, 3, es);
+	}
       else if (streq (p[1], "WINS") && p[2])
 	{
 	  dhcp_option_address_parse ("WINS", p[2], o->wins, &o->wins_len, msglevel);
@@ -6427,7 +6436,14 @@ add_option (struct options *options,
 	  msg (msglevel, "--dhcp-option: unknown option type '%s' or missing or unknown parameter", p[1]);
 	  goto err;
 	}
-      o->dhcp_options = true;
+
+      /* flag that we have options to give to the TAP driver's DHCPv4 server
+       *  - skipped for "DNS6", as that's not a DHCPv4 option
+       */
+      if (!streq (p[1], "DNS6"))
+	{
+	  o->dhcp_options = true;
+	}
     }
 #endif
 #ifdef _WIN32
