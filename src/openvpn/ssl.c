@@ -1620,13 +1620,15 @@ generate_key_expansion (struct key_ctx_bi *key,
 			const struct session_id *server_sid,
 			bool server)
 {
-  uint8_t master[48];
-  struct key2 key2;
+  uint8_t master[48] = { 0 };
+  struct key2 key2 = { 0 };
   bool ret = false;
-  int i;
 
-  CLEAR (master);
-  CLEAR (key2);
+  if (key->initialized)
+    {
+      msg (D_TLS_ERRORS, "TLS Error: key already initialized");
+      goto exit;
+    }
 
   /* debugging print of source key material */
   key_source2_print (key_src);
@@ -1662,7 +1664,7 @@ generate_key_expansion (struct key_ctx_bi *key,
   key2_print (&key2, key_type, "Master Encrypt", "Master Decrypt");
 
   /* check for weak keys */
-  for (i = 0; i < 2; ++i)
+  for (int i = 0; i < 2; ++i)
     {
       fixup_key (&key2.keys[i], key_type);
       if (!check_key (&key2.keys[i], key_type))
