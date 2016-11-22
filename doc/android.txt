@@ -47,7 +47,8 @@ ROUTE network netmask
 
 To tell the UI which routes should be set on the tun interface.
 
-DNSSERVER serverip
+DNSSERVER IP server address
+DNS6SERVER IPv6 server address
 DNSDOMAIN searchdomain
 
 To set the DNS server and search domain.

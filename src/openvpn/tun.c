@@ -1638,14 +1638,20 @@ void
 open_tun (const char *dev, const char *dev_type, const char *dev_node, struct tuntap *tt)
 {
 #define ANDROID_TUNNAME "vpnservice-tun"
-  int i;
   struct user_pass up;
   struct gc_arena gc = gc_new ();
   bool opentun;
 
   int oldtunfd = tt->fd;
 
-  for (i = 0; i < tt->options.dns_len; ++i) {
+  /* Prefer IPv6 DNS servers,
+   * Android will use the DNS server in the order we specify*/
+  for (int i = 0; i < tt->options.dns6_len; i++) {
+    management_android_control (management, "DNS6SERVER",
+				print_in6_addr (tt->options.dns6[i], 0, &gc));
+  }
+
+  for (int i = 0; i < tt->options.dns_len; i++) {
     management_android_control (management, "DNSSERVER",
 				print_in_addr_t(tt->options.dns[i], 0, &gc));
   }
