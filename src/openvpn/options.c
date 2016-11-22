@@ -6407,13 +6407,19 @@ add_option (struct options *options,
 	{
 	  dhcp_option_address_parse ("DNS", p[2], o->dns, &o->dns_len, msglevel);
 	}
-      else if (streq (p[1], "DNS6") && p[2])
+      else if (streq (p[1], "DNS6") && p[2] && ipv6_addr_safe(p[2]))
 	{
-	  /* this is somewhat of a placeholder - we understand the option,
-	   * but cannot act upon it - so we'll just accept it and put it
-	   * into the environment, as we would do on all non-win32 platforms
-	   */
+	  struct in6_addr addr;
 	  foreign_option (options, p, 3, es);
+	  if (o->dns6_len >= N_DHCP_ADDR)
+	    {
+	      msg (msglevel, "--dhcp-option DNS6: maximum of %d dns servers can be specified",
+		   N_DHCP_ADDR);
+	    }
+	  else if (get_ipv6_addr (p[2], &addr, NULL, msglevel))
+	    {
+	      o->dns6[o->dns6_len++] = addr;
+	    }
 	}
       else if (streq (p[1], "WINS") && p[2])
 	{

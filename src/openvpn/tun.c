@@ -68,6 +68,9 @@ static void netsh_ifconfig (const struct tuntap_options *to,
 			    const in_addr_t ip,
 			    const in_addr_t netmask,
 			    const unsigned int flags);
+static void netsh_set_dns6_servers (const struct in6_addr *addr_list,
+				    const int addr_len,
+				    const char *flex_name);
 static void netsh_command (const struct argv *a, int n, int msglevel);
 
 static const char *netsh_get_id (const char *dev_node, struct gc_arena *gc);
@@ -1381,6 +1384,7 @@ do_ifconfig (struct tuntap *tt,
 	else if (tt->options.msg_channel)
 	  {
 	    do_address_service (true, AF_INET6, tt);
+	    /* TODO: do_dns6_service() */
 	  }
 	else
 	  {
@@ -1394,6 +1398,8 @@ do_ifconfig (struct tuntap *tt,
 			 iface,
 			 ifconfig_ipv6_local );
 	    netsh_command (&argv, 4, M_FATAL);
+	    /* set ipv6 dns servers if any are specified */
+	    netsh_set_dns6_servers(tt->options.dns6, tt->options.dns6_len, actual);
 	  }
 
 	/* explicit route needed */
@@ -4626,6 +4632,41 @@ ip_addr_member_of (const in_addr_t addr, const IP_ADDR_STRING *ias)
   return false;
 }
 
+/**
+ * Set the ipv6 dns servers on the specified interface.
+ * The list of dns servers currently set on the interface
+ * are cleared first.
+ * No action is taken if number of addresses (addr_len) < 1.
+ */
+static void
+netsh_set_dns6_servers (const struct in6_addr *addr_list,
+			const int addr_len,
+			const char *flex_name)
+{
+    struct gc_arena gc = gc_new ();
+    struct argv argv = argv_new ();
+
+    for (int i = 0; i < addr_len; ++i)
+    {
+	const char *fmt = (i == 0) ?
+	    "%s%sc interface ipv6 set dns %s static %s"
+	    : "%s%sc interface ipv6 add dns %s %s";
+	argv_printf (&argv, fmt, get_win_sys_path(),
+		     NETSH_PATH_SUFFIX, flex_name,
+		     print_in6_addr (addr_list[i], 0, &gc));
+
+	/* disable slow address validation on Windows 7 and higher */
+	if (win32_version_info() >= WIN_7)
+	    argv_printf_cat (&argv, "%s", "validate=no");
+
+	/* Treat errors while adding as non-fatal as we do not check for duplicates */
+	netsh_command (&argv, 1, (i==0)? M_FATAL : M_NONFATAL);
+    }
+
+    argv_reset (&argv);
+    gc_free (&gc);
+}
+
 static void
 netsh_ifconfig_options (const char *type,
 			const in_addr_t *addr_list,
@@ -5572,6 +5613,17 @@ close_tun (struct tuntap *tt)
                            ifconfig_ipv6_local);
 
               netsh_command (&argv, 1, M_WARN);
+
+	      /* delete ipv6 dns servers if any were set */
+	      if (tt->options.dns6_len > 0)
+		{
+		  argv_printf (&argv,
+			       "%s%sc interface ipv6 delete dns %s all",
+			       get_win_sys_path(),
+			       NETSH_PATH_SUFFIX,
+			       tt->actual_name);
+		  netsh_command (&argv, 1, M_WARN);
+		}
               argv_reset (&argv);
             }
 	}

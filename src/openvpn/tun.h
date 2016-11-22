@@ -107,6 +107,9 @@ struct tuntap_options {
   bool dhcp_release;
 
   bool register_dns;
+
+  struct in6_addr dns6[N_DHCP_ADDR];
+  int dns6_len;
 };
 
 #elif TARGET_LINUX
