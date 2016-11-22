@@ -973,7 +973,7 @@ tls_session_init (struct tls_multi *multi, struct tls_session *session)
 
   /* Initialize control channel authentication parameters */
   session->tls_wrap = session->opt->tls_wrap;
-  session->tls_wrap.work = alloc_buf (TLS_CHANNEL_BUF_SIZE);
+  session->tls_wrap.work = alloc_buf (BUF_SIZE (&session->opt->frame));
 
   /* initialize packet ID replay window for --tls-auth */
   packet_id_init (&session->tls_wrap.opt.packet_id,
@@ -1320,13 +1320,20 @@ write_control_auth (struct tls_session *session,
     }
   else if (session->tls_wrap.mode == TLS_WRAP_CRYPT)
     {
-      buf_init (&session->tls_wrap.work, buf->offset);
+      ASSERT (buf_init (&session->tls_wrap.work, buf->offset));
       ASSERT (buf_write (&session->tls_wrap.work, &header, sizeof(header)));
       ASSERT (session_id_write (&session->session_id, &session->tls_wrap.work));
-      ASSERT (tls_crypt_wrap (buf, &session->tls_wrap.work, &session->tls_wrap.opt));
-      /* Don't change the original data in buf, it's used by the reliability
-       * layer to resend on failure. */
-      *buf = session->tls_wrap.work;
+      if (tls_crypt_wrap (buf, &session->tls_wrap.work, &session->tls_wrap.opt))
+	{
+	  /* Don't change the original data in buf, it's used by the reliability
+	   * layer to resend on failure. */
+	  *buf = session->tls_wrap.work;
+	}
+      else
+	{
+	  buf->len = 0;
+	  return;
+	}
     }
   *to_link_addr = &ks->remote_addr;
 }
