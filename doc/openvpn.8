@@ -4148,9 +4148,9 @@ to disable encryption.
 As of OpenVPN 2.4, cipher negotiation (NCP) can override the cipher specified by
 .B \-\-cipher\fR.
 See
-.B \-\-ncp-ciphers
+.B \-\-ncp\-ciphers
 and
-.B \-\-ncp-disable
+.B \-\-ncp\-disable
 for more on NCP.
 
 .\"*********************************************************
@@ -4177,6 +4177,16 @@ is specified (client-side, implied by setting \-\-client).
 If both peers support and do not disable NCP, the negotiated cipher will
 override the cipher specified by
 .B \-\-cipher\fR.
+
+Additionally, to allow for more smooth transition, if NCP is enabled, OpenVPN
+will inherit the cipher of the peer if that cipher is different from the local
+.B \-\-cipher
+setting, but the peer cipher is one of the ciphers specified in
+.B \-\-ncp\-ciphers\fR.
+E.g. a non-NCP client (<=2.3, or with \-\-ncp\-disabled set) connecting to a
+NCP server (2.4+) with "\-\-cipher BF-CBC" and "\-\-ncp-ciphers
+AES-256-GCM:AES-256-CBC" set can either specify "\-\-cipher BF-CBC" or
+"\-\-cipher AES-256-CBC" and both will work.
 
 .\"*********************************************************
 .TP

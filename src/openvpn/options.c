@@ -1643,6 +1643,8 @@ show_settings (const struct options *o)
   SHOW_STR (shared_secret_file);
   SHOW_INT (key_direction);
   SHOW_STR (ciphername);
+  SHOW_BOOL (ncp_enabled);
+  SHOW_STR (ncp_ciphers);
   SHOW_STR (authname);
   SHOW_STR (prng_hash);
   SHOW_INT (prng_nonce_secret_len);
@@ -3444,6 +3446,36 @@ options_string_version (const char* s, struct gc_arena *gc)
 }
 
 #endif /* ENABLE_OCC */
+
+char *
+options_string_extract_option (const char *options_string,const char *opt_name,
+    struct gc_arena *gc)
+{
+  char *ret = NULL;
+  const size_t opt_name_len = strlen(opt_name);
+
+  const char *p = options_string;
+  while (p)
+    {
+      if (0 == strncmp(p, opt_name, opt_name_len) &&
+	  strlen(p) > (opt_name_len+1) && p[opt_name_len] == ' ')
+	{
+	  /* option found, extract value */
+	  const char *start = &p[opt_name_len+1];
+	  const char *end = strchr (p, ',');
+	  size_t val_len = end ? end - start : strlen (start);
+	  ret = gc_malloc (val_len+1, true, gc);
+	  memcpy (ret, start, val_len);
+	  break;
+	}
+      p = strchr (p, ',');
+      if (p)
+	{
+	  p++; /* skip delimiter */
+	}
+    }
+  return ret;
+}
 
 static void
 foreign_option (struct options *o, char *argv[], int len, struct env_set *es)

@@ -1932,8 +1932,14 @@ do_deferred_options (struct context *c, const unsigned int found)
     {
       struct tls_session *session = &c->c2.tls_multi->session[TM_ACTIVE];
       if (found & OPT_P_NCP)
-	msg (D_PUSH, "OPTIONS IMPORT: data channel crypto options modified");
-      /* Do not regenerate keys if server sends an extra push request */
+	{
+	  msg (D_PUSH, "OPTIONS IMPORT: data channel crypto options modified");
+	}
+      else if (c->options.ncp_enabled)
+	{
+	  tls_poor_mans_ncp(&c->options, c->c2.tls_multi->remote_ciphername);
+	}
+      /* Do not regenerate keys if server sends an extra push reply */
       if (!session->key[KS_PRIMARY].crypto_options.key_ctx_bi.initialized &&
 	  !tls_session_update_crypto_params(session, &c->options, &c->c2.frame))
 	{

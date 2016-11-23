@@ -1216,6 +1216,8 @@ tls_multi_free (struct tls_multi *multi, bool clear)
       free (multi->auth_token);
     }
 
+  free (multi->remote_ciphername);
+
   for (i = 0; i < TM_SIZE; ++i)
     tls_session_free (&multi->session[i], false);
 
@@ -1723,8 +1725,8 @@ key_ctx_update_implicit_iv(struct key_ctx *ctx, uint8_t *key, size_t key_len) {
     }
 }
 
-static bool
-item_in_list(const char *item, const char *list)
+bool
+tls_item_in_cipher_list(const char *item, const char *list)
 {
   char *tmp_ciphers = string_alloc (list, NULL);
   char *tmp_ciphers_orig = tmp_ciphers;
@@ -1741,6 +1743,20 @@ item_in_list(const char *item, const char *list)
   return token != NULL;
 }
 
+void
+tls_poor_mans_ncp(struct options *o, const char *remote_ciphername)
+{
+  if (o->ncp_enabled && remote_ciphername &&
+      0 != strcmp(o->ciphername, remote_ciphername))
+    {
+      if (tls_item_in_cipher_list(remote_ciphername, o->ncp_ciphers))
+	{
+	  o->ciphername = string_alloc(remote_ciphername, &o->gc);
+	  msg (D_TLS_DEBUG_LOW, "Using peer cipher '%s'", o->ciphername);
+	}
+    }
+}
+
 bool
 tls_session_update_crypto_params(struct tls_session *session,
     const struct options *options, struct frame *frame)
@@ -1752,7 +1768,7 @@ tls_session_update_crypto_params(struct tls_session *session,
 
   if (!session->opt->server &&
       0 != strcmp(options->ciphername, session->opt->config_ciphername) &&
-      !item_in_list(options->ciphername, options->ncp_ciphers))
+      !tls_item_in_cipher_list(options->ciphername, options->ncp_ciphers))
     {
       msg (D_TLS_ERRORS, "Error: pushed cipher not allowed - %s not in %s or %s",
 	  options->ciphername, session->opt->config_ciphername,
@@ -2312,10 +2328,20 @@ key_method_2_read (struct buffer *buf, struct tls_multi *multi, struct tls_sessi
   if ( multi->peer_info )
       output_peer_info_env (session->opt->es, multi->peer_info);
 
+  free (multi->remote_ciphername);
+  multi->remote_ciphername =
+      options_string_extract_option (options, "cipher", NULL);
+
   if (tls_peer_info_ncp_ver (multi->peer_info) < 2)
     {
-      /* Peer does not support NCP */
-      session->opt->ncp_enabled = false;
+      /* Peer does not support NCP, but leave NCP enabled if the local and
+       * remote cipher do not match to attempt 'poor-man's NCP'.
+       */
+      if (multi->remote_ciphername == NULL ||
+           0 == strcmp(multi->remote_ciphername, multi->opt.config_ciphername))
+       {
+         session->opt->ncp_enabled = false;
+       }
     }
 #endif
 

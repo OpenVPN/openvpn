@@ -540,6 +540,8 @@ struct tls_multi
   uint32_t peer_id;
   bool use_peer_id;
 
+  char *remote_ciphername;	/**< cipher specified in peer's config file */
+
   char *auth_token;      /**< If server sends a generated auth-token,
                           *   this is the token to use for future
                           *   user/pass authentications in this session.

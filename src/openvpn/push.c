@@ -262,7 +262,7 @@ incoming_push_message (struct context *c, const struct buffer *buffer)
 	      !tls_session_update_crypto_params (session, &c->options,
 		  &c->c2.frame))
 	    {
-	      msg (D_TLS_ERRORS, "TLS Error: server generate_key_expansion failed");
+	      msg (D_TLS_ERRORS, "TLS Error: initializing data channel failed");
 	      goto error;
 	    }
 	}
@@ -369,6 +369,10 @@ prepare_push_reply (struct context *c, struct gc_arena *gc,
 	  o->ciphername = strtok (push_cipher, ":");
 	  push_option_fmt(gc, push_list, M_USAGE, "cipher %s", o->ciphername);
 	}
+    }
+  else if (o->ncp_enabled)
+    {
+      tls_poor_mans_ncp (o, tls_multi->remote_ciphername);
     }
 
   /* If server uses --auth-gen-token and we have an auth token

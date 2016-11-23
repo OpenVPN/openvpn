@@ -726,6 +726,20 @@ void options_warning (char *actual, const char *expected);
 
 #endif
 
+/**
+ * Given an OpenVPN options string, extract the value of an option.
+ *
+ * @param options_string	Zero-terminated, comma-separated options string
+ * @param opt_name		The name of the option to extract
+ * @param gc			The gc to allocate the return value
+ *
+ * @return gc-allocated value of option with name opt_name if option was found,
+ *         or NULL otherwise.
+ */
+char *options_string_extract_option (const char *options_string,
+    const char *opt_name, struct gc_arena *gc);
+
+
 void options_postprocess (struct options *options);
 
 void pre_pull_save (struct options *o);
