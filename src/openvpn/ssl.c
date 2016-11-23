@@ -1757,15 +1757,44 @@ tls_poor_mans_ncp(struct options *o, const char *remote_ciphername)
     }
 }
 
+/**
+ * Generate data channel keys for the supplied TLS session.
+ *
+ * This erases the source material used to generate the data channel keys, and
+ * can thus be called only once per session.
+ */
+static bool
+tls_session_generate_data_channel_keys(struct tls_session *session)
+{
+  bool ret = false;
+  struct key_state *ks = &session->key[KS_PRIMARY];	/* primary key */
+  const struct session_id *client_sid = session->opt->server ?
+      &ks->session_id_remote : &session->session_id;
+  const struct session_id *server_sid = !session->opt->server ?
+      &ks->session_id_remote : &session->session_id;
+
+  ASSERT (ks->authenticated);
+
+  if (!generate_key_expansion (&ks->crypto_options.key_ctx_bi,
+      &session->opt->key_type, ks->key_src, client_sid, server_sid,
+      session->opt->server))
+    {
+      msg (D_TLS_ERRORS, "TLS Error: generate_key_expansion failed");
+      goto cleanup;
+    }
+  tls_limit_reneg_bytes (session->opt->key_type.cipher,
+			 &session->opt->renegotiate_bytes);
+
+  ret = true;
+cleanup:
+  CLEAR (*ks->key_src);
+  return ret;
+}
+
 bool
 tls_session_update_crypto_params(struct tls_session *session,
     const struct options *options, struct frame *frame)
 {
-  bool ret = false;
-  struct key_state *ks = &session->key[KS_PRIMARY];	/* primary key */
-
-  ASSERT (ks->authenticated);
-
   if (!session->opt->server &&
       0 != strcmp(options->ciphername, session->opt->config_ciphername) &&
       !tls_item_in_cipher_list(options->ciphername, options->ncp_ciphers))
@@ -1793,23 +1822,7 @@ tls_session_update_crypto_params(struct tls_session *session,
   frame_init_mssfix(frame, options);
   frame_print (frame, D_MTU_INFO, "Data Channel MTU parms");
 
-  const struct session_id *client_sid = session->opt->server ?
-      &ks->session_id_remote : &session->session_id;
-  const struct session_id *server_sid = !session->opt->server ?
-      &ks->session_id_remote : &session->session_id;
-  if (!generate_key_expansion (&ks->crypto_options.key_ctx_bi,
-      &session->opt->key_type, ks->key_src, client_sid, server_sid,
-      session->opt->server))
-    {
-      msg (D_TLS_ERRORS, "TLS Error: server generate_key_expansion failed");
-      goto cleanup;
-    }
-  tls_limit_reneg_bytes (session->opt->key_type.cipher,
-			 &session->opt->renegotiate_bytes);
-  ret = true;
-cleanup:
-  CLEAR (*ks->key_src);
-  return ret;
+  return tls_session_generate_data_channel_keys (session);
 }
 
 static bool
@@ -2177,21 +2190,12 @@ key_method_2_write (struct buffer *buf, struct tls_session *session)
     {
       if (ks->authenticated)
 	{
-	  if (!generate_key_expansion (&ks->crypto_options.key_ctx_bi,
-				       &session->opt->key_type,
-				       ks->key_src,
-				       &ks->session_id_remote,
-				       &session->session_id,
-				       true))
+	  if (!tls_session_generate_data_channel_keys (session))
 	    {
 	      msg (D_TLS_ERRORS, "TLS Error: server generate_key_expansion failed");
 	      goto error;
 	    }
 	}
-		      
-      CLEAR (*ks->key_src);
-      tls_limit_reneg_bytes (session->opt->key_type.cipher,
-			     &session->opt->renegotiate_bytes);
     }
 
   return true;
@@ -2418,20 +2422,11 @@ key_method_2_read (struct buffer *buf, struct tls_multi *multi, struct tls_sessi
    */
   if (!session->opt->server && (!session->opt->pull || ks->key_id > 0))
     {
-      if (!generate_key_expansion (&ks->crypto_options.key_ctx_bi,
-				   &session->opt->key_type,
-				   ks->key_src,
-				   &session->session_id,
-				   &ks->session_id_remote,
-				   false))
+      if (!tls_session_generate_data_channel_keys (session))
 	{
 	  msg (D_TLS_ERRORS, "TLS Error: client generate_key_expansion failed");
 	  goto error;
 	}
-
-      CLEAR (*ks->key_src);
-      tls_limit_reneg_bytes (session->opt->key_type.cipher,
-			     &session->opt->renegotiate_bytes);
     }
 
   gc_free (&gc);
