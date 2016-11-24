@@ -1,6 +1,36 @@
 OpenVPN Change Log
 Copyright (C) 2002-2016 OpenVPN Technologies, Inc. <sales@openvpn.net>
 
+2016.11.24 -- Version 2.4_beta2
+Arne Schwabe (5):
+      Document that tls-crypt also supports inline
+      Fix warning that RAND_bytes is undeclared
+      Remove compat-stdbool.h.
+      Fix various compiler warnings
+      Handle DNS6 option on Android
+
+David Sommerseth (2):
+      Changes.rst: Fixing wrong formatting
+      Document the --auth-token option
+
+Gert Doering (2):
+      Remove remaining traces of compat-stdbool.h
+      Stub implementation of "--dhcp-option DNS6 <v6addr>"
+
+Selva Nair (3):
+      Do not set ipv6 address if '--ip-win32 manual' is used
+      Handle --dhcp-option DNS6 on Windows using netsh
+      Set IPv6 DNS servers using interactive service
+
+Steffan Karger (6):
+      multi_process_float: revert part of c14c4a9e
+      --tls-crypt fixes
+      Change cmocka remote to use https in stead of git protocol
+      generate_key_expansion: make assumption explicit, use C99 features
+      Poor man's NCP for non-NCP peers
+      Refactor data channel key generation API
+
+
 2016.11.17 -- Version 2.4_beta1
 Arne Schwabe (1):
       Make Changes.rst nicer for 2.4 release

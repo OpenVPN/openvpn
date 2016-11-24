@@ -18,6 +18,19 @@ Cipher negotiation
     to use that cipher.  Data channel cipher negotiation can be controlled
     using ``--ncp-ciphers`` and ``--ncp-disable``.
 
+    A more limited version also works in client-to-server and server-to-client
+    scenarios where one of the end points uses a v2.4 client or server and the
+    other side uses an older version.  In such scenarios the v2.4 side will
+    change to the ``--cipher`` set by the remote side, if permitted by by
+    ``--ncp-ciphers``.  For example, a v2.4 client with ``--cipher BF-CBC``
+    and ``ncp-ciphers AES-256-GCM:AES-256-CBC`` can connect to both a v2.3
+    server with ``cipher BF-CBC`` as well as a server with
+    ``cipher AES-256-CBC`` in its config.  The other way around, a v2.3 client
+    with either ``cipher BF-CBC`` or ``cipher AES-256-CBC`` can connect to a
+    v2.4 server with e.g. ``cipher BF-CBC`` and
+    ``ncp-ciphers AES-256-GCM:AES-256-CBC`` in its config.  For this to work
+    it requires that OpenVPN was built without disabling OCC support.
+
 AEAD (GCM) data channel cipher support
     The data channel now supports AEAD ciphers (currently only GCM).  The AEAD
     packet format has a smaller overhead than the CBC packet format, (e.g. 20
@@ -31,6 +44,18 @@ ECDH key exchange
 Dualstack client connect
     Instead of only using the first address of each ``--remote`` OpenVPN
     will now try all addresses (IPv6 and IPv4) of a ``--remote`` entry.
+
+Support for providing IPv6 DNS servers
+     A new DHCP sub-options ``DNS6`` is added alongside with the already existing
+     ``DNS`` sub-option.  This is used to provide DNS resolvers available over
+     IPv6.  This will be pushed to clients and `` --up`` scripts and ``--plugin``
+     can act upon it through the ``foreign_option_<n>`` environment variables.
+
+     Support for the Windows client picking up this new sub-option is added,
+     however IPv6 DNS resolvers needs to be configured via ``netsh`` which requires
+     administrator privileges if the new interactive services on Windows is not
+     being used.  If the interactive services is used, this service will execute
+     ``netsh`` in the background with the proper privileges.
 
 New improved Windows Background service
     The new OpenVPNService is based on openvpnserv2, a complete rewrite of the OpenVPN
