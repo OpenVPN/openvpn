@@ -89,4 +89,7 @@ BOOL ReportStatusToSCMgr (SERVICE_STATUS_HANDLE service, SERVICE_STATUS *status)
 LPCTSTR GetLastErrorText ();
 DWORD MsgToEventLog (DWORD flags, LPCTSTR lpszMsg, ...);
 
+/* Convert a utf8 string to utf16. Caller should free the result */
+wchar_t *utf8to16 (const char *utf8);
+
 #endif

@@ -135,6 +135,74 @@ out:
   return ret;
 }
 
+static bool
+do_dns6_service (bool add, const struct tuntap *tt)
+{
+  DWORD len;
+  bool ret = false;
+  ack_message_t ack;
+  struct gc_arena gc = gc_new ();
+  HANDLE pipe = tt->options.msg_channel;
+  int addr_len = add ? tt->options.dns6_len : 0;
+
+  if (addr_len == 0 && add) /* no addresses to add */
+      return true;
+
+  dns_cfg_message_t dns = {
+    .header = {
+      (add ? msg_add_dns_cfg : msg_del_dns_cfg),
+      sizeof (dns_cfg_message_t),
+      0 },
+    .iface = { .index = tt->adapter_index, .name = "" },
+    .domains = "",
+    .family = AF_INET6,
+    .addr_len = addr_len
+  };
+
+  /* interface name is required */
+  strncpy (dns.iface.name, tt->actual_name, sizeof (dns.iface.name));
+  dns.iface.name[sizeof (dns.iface.name) - 1] = '\0';
+
+  if (addr_len > _countof(dns.addr))
+    {
+      addr_len = _countof(dns.addr);
+      dns.addr_len = addr_len;
+      msg(M_WARN, "Number of IPv6 DNS addresses sent to service truncated to %d",
+          addr_len);
+    }
+
+  for (int i = 0; i < addr_len; ++i)
+    {
+      dns.addr[i].ipv6 = tt->options.dns6[i];
+    }
+
+  msg (D_LOW, "%s IPv6 dns servers on '%s' (if_index = %d) using service",
+       (add ? "Setting" : "Deleting"), dns.iface.name, dns.iface.index);
+
+  if (!WriteFile (pipe, &dns, sizeof (dns), &len, NULL) ||
+      !ReadFile (pipe, &ack, sizeof (ack), &len, NULL))
+    {
+      msg (M_WARN, "TUN: could not talk to service: %s [%lu]",
+           strerror_win32 (GetLastError (), &gc), GetLastError ());
+      goto out;
+    }
+
+  if (ack.error_number != NO_ERROR)
+    {
+      msg (M_WARN, "TUN: %s IPv6 dns failed using service: %s [status=%u if_name=%s]",
+           (add ? "adding" : "deleting"), strerror_win32 (ack.error_number, &gc),
+           ack.error_number, dns.iface.name);
+      goto out;
+    }
+
+  msg (M_INFO, "IPv6 dns servers %s using service", (add ? "set" : "deleted"));
+  ret = true;
+
+out:
+  gc_free (&gc);
+  return ret;
+}
+
 #endif
 
 #ifdef TARGET_SOLARIS
@@ -1384,7 +1452,7 @@ do_ifconfig (struct tuntap *tt,
 	else if (tt->options.msg_channel)
 	  {
 	    do_address_service (true, AF_INET6, tt);
-	    /* TODO: do_dns6_service() */
+	    do_dns6_service (true, tt);
 	  }
 	else
 	  {
@@ -5596,6 +5664,8 @@ close_tun (struct tuntap *tt)
           if (tt->options.msg_channel)
             {
               do_address_service (false, AF_INET6, tt);
+	      if (tt->options.dns6_len > 0)
+		  do_dns6_service (false, tt);
             }
           else
             {

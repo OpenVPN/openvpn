@@ -35,6 +35,12 @@
 #include <sddl.h>
 #include <shellapi.h>
 
+#ifdef HAVE_VERSIONHELPERS_H
+#include <versionhelpers.h>
+#else
+#include "compat-versionhelpers.h"
+#endif
+
 #include "openvpn-msg.h"
 #include "validate.h"
 #include "block_dns.h"
@@ -82,6 +88,8 @@ typedef enum {
   address,
   route,
   block_dns,
+  undo_dns4,
+  undo_dns6,
   _undo_type_max
 } undo_type_t;
 typedef list_item_t* undo_lists_t[_undo_type_max];
@@ -962,6 +970,156 @@ HandleRegisterDNSMessage (void)
   return err;
 }
 
+/**
+ * Run the command: netsh interface $proto $action dns $if_name $addr [validate=no]
+ * @param  action      "delete" or "add"
+ * @param  proto       "ipv6" or "ip"
+ * @param  if_name     "name_of_interface"
+ * @param  addr         IPv4 (for proto = ip) or IPv6 address as a string
+ *
+ * If addr is null and action = "delete" all addresses are deleted.
+ */
+static DWORD
+netsh_dns_cmd (const wchar_t *action, const wchar_t *proto, const wchar_t *if_name, const wchar_t *addr)
+{
+  DWORD err = 0;
+  int timeout = 30000; /* in msec */
+  wchar_t argv0[MAX_PATH];
+
+  if (!addr)
+    {
+      if (wcscmp(action, L"delete") == 0)
+          addr = L"all";
+      else /* nothing to do -- return success*/
+          goto out;
+    }
+
+  /* Path of netsh */
+  int n = GetSystemDirectory (argv0, MAX_PATH);
+  if (n > 0 && n < MAX_PATH) /* got system directory */
+   {
+      wcsncat(argv0, L"\\netsh.exe", MAX_PATH - n - 1);
+   }
+  else
+   {
+      wcsncpy(argv0, L"C:\\Windows\\system32\\netsh.exe", MAX_PATH);
+   }
+
+  /* cmd template:
+   * netsh interface $proto $action dns $if_name $addr [validate=no]
+   */
+  const wchar_t *fmt = L"netsh interface %s %s dns \"%s\" %s";
+
+  /* max cmdline length in wchars -- include room for worst case and some */
+  int ncmdline = wcslen(fmt) + wcslen(if_name) + wcslen(addr) + 32 + 1;
+  wchar_t *cmdline = malloc(ncmdline*sizeof(wchar_t));
+  if (!cmdline)
+  {
+     err = ERROR_OUTOFMEMORY;
+     goto out;
+  }
+
+  openvpn_sntprintf (cmdline, ncmdline, fmt, proto, action, if_name, addr);
+
+  if (IsWindows7OrGreater())
+    {
+      wcsncat(cmdline, L" validate=no", ncmdline - wcslen(cmdline) - 1);
+    }
+  err = ExecCommand (argv0, cmdline, timeout);
+
+out:
+  free (cmdline);
+  return err;
+}
+
+/* Delete all IPv4 or IPv6 dns servers for an interface */
+static DWORD
+DeleteDNS(short family, wchar_t *if_name)
+{
+   wchar_t *proto = (family == AF_INET6) ? L"ipv6" : L"ip";
+   return netsh_dns_cmd (L"delete", proto, if_name, NULL);
+}
+
+/* Add an IPv4 or IPv6 dns server to an interface */
+static DWORD
+AddDNS(short family, wchar_t *if_name, wchar_t *addr)
+{
+   wchar_t *proto = (family == AF_INET6) ? L"ipv6" : L"ip";
+   return netsh_dns_cmd (L"add", proto, if_name, addr);
+}
+
+static BOOL
+CmpWString (LPVOID item, LPVOID str)
+{
+  return (wcscmp (item, str) == 0) ? TRUE : FALSE;
+}
+
+static DWORD
+HandleDNSConfigMessage (const dns_cfg_message_t *msg, undo_lists_t *lists)
+{
+  DWORD err = 0;
+  wchar_t addr[46]; /* large enough to hold string representation of an ipv4 / ipv6 address */
+  undo_type_t undo_type = (msg->family == AF_INET6) ? undo_dns4 : undo_dns6;
+  int addr_len = msg->addr_len;
+
+  /* sanity check */
+  if (addr_len > _countof(msg->addr))
+     addr_len = _countof(msg->addr);
+
+  if (!msg->iface.name[0])  /* interface name is required */
+      return ERROR_MESSAGE_DATA;
+
+  wchar_t *wide_name = utf8to16(msg->iface.name); /* utf8 to wide-char */
+  if (!wide_name)
+    return ERROR_OUTOFMEMORY;
+
+  /* We delete all current addresses before adding any
+   * OR if the message type is del_dns_cfg
+   */
+  if (addr_len > 0 || msg->header.type == msg_del_dns_cfg)
+    {
+      err = DeleteDNS(msg->family, wide_name);
+      if (err)
+        goto out;
+      free (RemoveListItem (&(*lists)[undo_type], CmpWString, wide_name));
+    }
+
+  if (msg->header.type == msg_del_dns_cfg)  /* job done */
+      goto out;
+
+  for (int i = 0; i < addr_len; ++i)
+    {
+      if (msg->family == AF_INET6)
+          RtlIpv6AddressToStringW (&msg->addr[i].ipv6, addr);
+      else
+           RtlIpv4AddressToStringW (&msg->addr[i].ipv4, addr);
+      err = AddDNS(msg->family, wide_name, addr);
+      if (i == 0 && err)
+          goto out;
+      /* We do not check for duplicate addresses, so any error in adding
+       * additional addresses is ignored.
+       */
+    }
+
+  if (msg->addr_len > 0)
+    {
+      wchar_t *tmp_name = wcsdup(wide_name);
+      if (!tmp_name || AddListItem(&(*lists)[undo_type], tmp_name))
+        {
+           free(tmp_name);
+           DeleteDNS(msg->family, wide_name);
+           err = ERROR_OUTOFMEMORY;
+           goto out;
+        }
+    }
+
+  err = 0;
+
+out:
+  free(wide_name);
+  return err;
+}
+
 static VOID
 HandleMessage (HANDLE pipe, DWORD bytes, DWORD count, LPHANDLE events, undo_lists_t *lists)
 {
@@ -972,6 +1130,7 @@ HandleMessage (HANDLE pipe, DWORD bytes, DWORD count, LPHANDLE events, undo_list
     route_message_t route;
     flush_neighbors_message_t flush_neighbors;
     block_dns_message_t block_dns;
+    dns_cfg_message_t dns;
   } msg;
   ack_message_t ack = {
     .header = {
@@ -1017,6 +1176,11 @@ HandleMessage (HANDLE pipe, DWORD bytes, DWORD count, LPHANDLE events, undo_list
         ack.error_number = HandleRegisterDNSMessage ();
         break;
 
+    case msg_add_dns_cfg:
+    case msg_del_dns_cfg:
+        ack.error_number = HandleDNSConfigMessage (&msg.dns, lists);
+        break;
+
     default:
       ack.error_number = ERROR_MESSAGE_TYPE;
       MsgToEventLog (MSG_FLAGS_ERROR, TEXT("Unknown message type %d"), msg.header.type);
@@ -1046,6 +1210,14 @@ Undo (undo_lists_t *lists)
 
             case route:
               DeleteRoute (item->data);
+              break;
+
+            case undo_dns4:
+              DeleteDNS(AF_INET, item->data);
+              break;
+
+            case undo_dns6:
+              DeleteDNS(AF_INET6, item->data);
               break;
 
             case block_dns:

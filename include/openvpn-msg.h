@@ -79,10 +79,9 @@ typedef struct {
   message_header_t header;
   interface_t iface;
   char domains[512];
-  struct in_addr primary_ipv4;
-  struct in_addr secondary_ipv4;
-  struct in_addr6 primary_ipv6;
-  struct in_addr6 secondary_ipv6;
+  short family;
+  int addr_len;
+  inet_address_t addr[4]; /* support up to 4 dns addresses */
 } dns_cfg_message_t;
 
 typedef struct {
