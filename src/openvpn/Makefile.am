@@ -33,6 +33,10 @@ if WIN32
 AM_CFLAGS += -municode -UUNICODE
 endif
 
+if ENABLE_PLUGIN_LOOKUP
+AM_CFLAGS += -DPLUGIN_LIBDIR=\"$(plugindir)\"
+endif
+
 sbin_PROGRAMS = openvpn
 
 openvpn_SOURCES = \
