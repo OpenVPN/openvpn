@@ -218,7 +218,7 @@ static bool get_console_input (const char *prompt, const bool echo, char *input,
         if (gp)
         {
             strncpynt (input, gp, capacity);
-            memset (gp, 0, strlen (gp));
+            secure_memzero (gp, strlen (gp));
             ret = true;
         }
     }

@@ -894,7 +894,7 @@ key_state_free (struct key_state *ks, bool clear)
 #endif
 
   if (clear)
-    CLEAR (*ks);
+    secure_memzero (ks, sizeof (*ks));
 }
 
 /** @} name Functions for initialization and cleanup of key_state structures */
@@ -1024,7 +1024,7 @@ tls_session_free (struct tls_session *session, bool clear)
   cert_hash_free (session->cert_hash_set);
 
   if (clear)
-    CLEAR (*session);
+    secure_memzero (session, sizeof (*session));
 }
 
 /** @} name Functions for initialization and cleanup of tls_session structures */
@@ -1048,7 +1048,7 @@ move_session (struct tls_multi* multi, int dest, int src, bool reinit_src)
   if (reinit_src)
     tls_session_init (multi, &multi->session[src]);
   else
-    CLEAR (multi->session[src]);
+    secure_memzero (&multi->session[src], sizeof (multi->session[src]));
 
   dmsg (D_TLS_DEBUG, "TLS: move_session: exit");
 }
@@ -1212,7 +1212,7 @@ tls_multi_free (struct tls_multi *multi, bool clear)
 
   if (multi->auth_token)
     {
-      memset (multi->auth_token, 0, AUTH_TOKEN_SIZE);
+      secure_memzero (multi->auth_token, AUTH_TOKEN_SIZE);
       free (multi->auth_token);
     }
 
@@ -1222,7 +1222,7 @@ tls_multi_free (struct tls_multi *multi, bool clear)
     tls_session_free (&multi->session[i], false);
 
   if (clear)
-    CLEAR (*multi);
+    secure_memzero (multi, sizeof (*multi));
 
   free(multi);
 }
@@ -1512,7 +1512,7 @@ tls1_P_hash(const md_kt_t *md_kt,
     }
   hmac_ctx_cleanup(&ctx);
   hmac_ctx_cleanup(&ctx_tmp);
-  CLEAR (A1);
+  secure_memzero (A1, sizeof (A1));
 
   dmsg (D_SHOW_KEY_SOURCE, "tls1_P_hash out: %s", format_hex (out_orig, olen_orig, 0, &gc));
   gc_free (&gc);
@@ -1565,7 +1565,7 @@ tls1_PRF(const uint8_t *label,
   for (i=0; i<olen; i++)
     out1[i]^=out2[i];
 
-  memset (out2, 0, olen);
+  secure_memzero (out2, olen);
 
   dmsg (D_SHOW_KEY_SOURCE, "tls1_PRF out[%d]: %s", olen, format_hex (out1, olen, 0, &gc));
 
@@ -1702,8 +1702,8 @@ generate_key_expansion (struct key_ctx_bi *key,
   ret = true;
 
  exit:
-  CLEAR (master);
-  CLEAR (key2);
+  secure_memzero (&master, sizeof (master));
+  secure_memzero (&key2, sizeof (key2));
 
   return ret;
 }
@@ -1787,7 +1787,7 @@ tls_session_generate_data_channel_keys(struct tls_session *session)
 
   ret = true;
 cleanup:
-  CLEAR (*ks->key_src);
+  secure_memzero (ks->key_src, sizeof (*ks->key_src));
   return ret;
 }
 
@@ -2017,7 +2017,7 @@ key_method_1_write (struct buffer *buf, struct tls_session *session)
   init_key_ctx (&ks->crypto_options.key_ctx_bi.encrypt, &key,
 		&session->opt->key_type, OPENVPN_OP_ENCRYPT,
 		"Data Channel Encrypt");
-  CLEAR (key);
+  secure_memzero (&key, sizeof (key));
 
   /* send local options string */
   {
@@ -2202,7 +2202,7 @@ key_method_2_write (struct buffer *buf, struct tls_session *session)
 
  error:
   msg (D_TLS_ERRORS, "TLS Error: Key Method #2 write failed");
-  CLEAR (*ks->key_src);
+  secure_memzero (ks->key_src, sizeof (*ks->key_src));
   return false;
 }
 
@@ -2257,13 +2257,13 @@ key_method_1_read (struct buffer *buf, struct tls_session *session)
   init_key_ctx (&ks->crypto_options.key_ctx_bi.decrypt, &key,
 		&session->opt->key_type, OPENVPN_OP_DECRYPT,
 		"Data Channel Decrypt");
-  CLEAR (key);
+  secure_memzero (&key, sizeof (key));
   ks->authenticated = true;
   return true;
 
  error:
   buf_clear (buf);
-  CLEAR (key);
+  secure_memzero (&key, sizeof (key));
   return false;
 }
 
@@ -2377,7 +2377,7 @@ key_method_2_read (struct buffer *buf, struct tls_multi *multi, struct tls_sessi
     }
 
   /* clear username and password from memory */
-  CLEAR (*up);
+  secure_memzero (up, sizeof (*up));
 
   /* Perform final authentication checks */
   if (ks->authenticated)
@@ -2433,7 +2433,7 @@ key_method_2_read (struct buffer *buf, struct tls_multi *multi, struct tls_sessi
   return true;
 
  error:
-  CLEAR (*ks->key_src);
+  secure_memzero (ks->key_src, sizeof (*ks->key_src));
   buf_clear (buf);
   gc_free (&gc);
   return false;

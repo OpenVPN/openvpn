@@ -1176,7 +1176,7 @@ verify_user_pass(struct user_pass *up, struct tls_multi *multi,
       if (memcmp_constant_time(multi->auth_token, up->password,
                  strlen(multi->auth_token)) != 0)
         {
-          memset (multi->auth_token, 0, AUTH_TOKEN_SIZE);
+          secure_memzero (multi->auth_token, AUTH_TOKEN_SIZE);
           free (multi->auth_token);
           multi->auth_token = NULL;
           multi->auth_token_sent = false;
@@ -1262,7 +1262,7 @@ verify_user_pass(struct user_pass *up, struct tls_multi *multi,
                   "No auth-token will be activated now");
 	      if (multi->auth_token)
 		{
-		  memset (multi->auth_token, 0, AUTH_TOKEN_SIZE);
+		  secure_memzero (multi->auth_token, AUTH_TOKEN_SIZE);
 		  free (multi->auth_token);
 		  multi->auth_token = NULL;
 		}

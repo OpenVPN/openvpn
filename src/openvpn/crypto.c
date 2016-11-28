@@ -86,12 +86,11 @@ openvpn_encrypt_aead (struct buffer *buf, struct buffer work,
   {
     struct buffer iv_buffer;
     struct packet_id_net pin;
-    uint8_t iv[OPENVPN_MAX_IV_LENGTH];
+    uint8_t iv[OPENVPN_MAX_IV_LENGTH] = {0};
     const int iv_len = cipher_ctx_iv_length (ctx->cipher);
 
     ASSERT (iv_len >= OPENVPN_AEAD_MIN_IV_LEN && iv_len <= OPENVPN_MAX_IV_LENGTH);
 
-    memset(iv, 0, sizeof(iv));
     buf_set_write (&iv_buffer, iv, iv_len);
 
     /* IV starts with packet id to make the IV unique for packet */
@@ -175,7 +174,7 @@ openvpn_encrypt_v1 (struct buffer *buf, struct buffer work,
       /* Do Encrypt from buf -> work */
       if (ctx->cipher)
 	{
-	  uint8_t iv_buf[OPENVPN_MAX_IV_LENGTH];
+	  uint8_t iv_buf[OPENVPN_MAX_IV_LENGTH] = {0};
 	  const int iv_size = cipher_ctx_iv_length (ctx->cipher);
 	  const cipher_kt_t *cipher_kt = cipher_ctx_get_cipher_kt (ctx->cipher);
 	  int outlen;
@@ -190,8 +189,6 @@ openvpn_encrypt_v1 (struct buffer *buf, struct buffer work,
 
 	  if (cipher_kt_mode_cbc(cipher_kt))
 	    {
-	      CLEAR (iv_buf);
-
 	      /* generate pseudo-random IV */
 	      if (opt->flags & CO_USE_IV)
 		prng_bytes (iv_buf, iv_size);
@@ -214,7 +211,6 @@ openvpn_encrypt_v1 (struct buffer *buf, struct buffer work,
 	      ASSERT (packet_id_initialized(&opt->packet_id));
 
 	      packet_id_alloc_outgoing (&opt->packet_id.send, &pin, true);
-	      memset (iv_buf, 0, iv_size);
 	      buf_set_write (&b, iv_buf, iv_size);
 	      ASSERT (packet_id_write (&pin, &b, true, false));
 	    }
@@ -550,14 +546,13 @@ openvpn_decrypt_v1 (struct buffer *buf, struct buffer work,
 	{
 	  const int iv_size = cipher_ctx_iv_length (ctx->cipher);
 	  const cipher_kt_t *cipher_kt = cipher_ctx_get_cipher_kt (ctx->cipher);
-	  uint8_t iv_buf[OPENVPN_MAX_IV_LENGTH];
+	  uint8_t iv_buf[OPENVPN_MAX_IV_LENGTH] = { 0 };
 	  int outlen;
 
 	  /* initialize work buffer with FRAME_HEADROOM bytes of prepend capacity */
 	  ASSERT (buf_init (&work, FRAME_HEADROOM_ADJ (frame, FRAME_HEADROOM_MARKER_DECRYPT)));
 
 	  /* use IV if user requested it */
-	  CLEAR (iv_buf);
 	  if (opt->flags & CO_USE_IV)
 	    {
 	      if (buf->len < iv_size)
@@ -1128,7 +1123,7 @@ crypto_read_openvpn_key (const struct key_type *key_type,
   init_key_ctx (&ctx->decrypt, &key2.keys[kds.in_key], key_type,
 		OPENVPN_OP_DECRYPT, log_prefix);
 
-  CLEAR (key2);
+  secure_memzero (&key2, sizeof (key2));
 }
 
 /* header and footer for static key file */
@@ -1380,8 +1375,8 @@ write_key_file (const int nkeys, const char *filename)
       buf_printf (&out, "%s\n", fmt);
 
       /* zero memory which held key component (will be freed by GC) */
-      memset (fmt, 0, strlen(fmt));
-      CLEAR (key);
+      secure_memzero (fmt, strlen (fmt));
+      secure_memzero (&key, sizeof (key));
     }
 
   buf_printf (&out, "%s\n", static_key_foot);

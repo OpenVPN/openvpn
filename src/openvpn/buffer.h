@@ -328,6 +328,49 @@ has_digit (const unsigned char* src)
   return false;
 }
 
+/**
+ * Securely zeroise memory.
+ *
+ * This code and description are based on code supplied by Zhaomo Yang, of the
+ * University of California, San Diego (which was released into the public
+ * domain).
+ *
+ * The secure_memzero function attempts to ensure that an optimizing compiler
+ * does not remove the intended operation if cleared memory is not accessed
+ * again by the program. This code has been tested under Clang 3.9.0 and GCC
+ * 6.2 with optimization flags -O, -Os, -O0, -O1, -O2, and -O3 on
+ * Ubuntu 16.04.1 LTS; under Clang 3.9.0 with optimization flags -O, -Os,
+ * -O0, -O1, -O2, and -O3 on FreeBSD 10.2-RELEASE; under Microsoft Visual Studio
+ * 2015 with optimization flags /O1, /O2 and /Ox on Windows 10.
+ *
+ * Theory of operation:
+ *
+ * 1. On Windows, use the SecureZeroMemory which ensures that data is
+ *    overwritten.
+ * 2. Under GCC or Clang, use a memory barrier, which forces the preceding
+ *    memset to be carried out. The overhead of a memory barrier is usually
+ *    negligible.
+ * 3. If none of the above are available, use the volatile pointer
+ *    technique to zero memory one byte at a time.
+ *
+ * @param data	Pointer to data to zeroise.
+ * @param len	Length of data, in bytes.
+ */
+static inline void
+secure_memzero (void *data, size_t len)
+{
+#if defined(_WIN32)
+  SecureZeroMemory (data, len);
+#elif defined(__GNUC__) || defined(__clang__)
+  memset(data, 0, len);
+  __asm__ __volatile__("" : : "r"(data) : "memory");
+#else
+  volatile char *p = (volatile char *) data;
+  while (len--)
+    *p++ = 0;
+#endif
+}
+
 /*
  * printf append to a buffer with overflow check,
  * due to usage of vsnprintf, it will leave space for

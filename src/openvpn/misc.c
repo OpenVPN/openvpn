@@ -501,7 +501,7 @@ remove_env_item (const char *str, const bool do_free, struct env_item **list)
 	    *list = current->next;
 	  if (do_free)
 	    {
-	      memset (current->string, 0, strlen (current->string));
+	      secure_memzero (current->string, strlen (current->string));
 	      free (current->string);
 	      free (current);
 	    }
@@ -1342,7 +1342,7 @@ purge_user_pass (struct user_pass *up, const bool force)
   static bool warn_shown = false;
   if (nocache || force)
     {
-      CLEAR (*up);
+      secure_memzero (up, sizeof(*up));
       up->nocache = nocache;
     }
   else if (!warn_shown)

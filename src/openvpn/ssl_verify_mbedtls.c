@@ -348,11 +348,9 @@ x509_setenv (struct env_set *es, int cert_depth, mbedtls_x509_crt *cert)
   int i;
   unsigned char c;
   const mbedtls_x509_name *name;
-  char s[128];
+  char s[128] = { 0 };
 
   name = &cert->subject;
-
-  memset( s, 0, sizeof( s ) );
 
   while( name != NULL )
     {
