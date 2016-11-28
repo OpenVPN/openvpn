@@ -1181,6 +1181,34 @@ do_init_route_list (const struct options *options,
       /* copy routes to environment */
       setenv_routes (es, route_list);
     }
+  /* Inverse of redirect-* parsing in options.c */
+  if (options->routes->flags & RG_ENABLE) {
+    char *route_cmd;
+    char route_args[128];
+    if (options->routes->flags & RG_REROUTE_GW ||
+        options->routes_ipv6 && options->routes_ipv6->flags & RG_REROUTE_GW) {
+      route_cmd = "redirect_gateway_cmd";
+    } else {
+      route_cmd = "redirect_private_cmd";
+    }
+    route_args[0] = '\0';
+    if (options->routes->flags & RG_LOCAL) strcat(route_args, "local ");
+    if (options->routes->flags & RG_AUTO_LOCAL) strcat(route_args, "autolocal ");
+    if (options->routes->flags & RG_DEF1) strcat(route_args, "def1 ");
+    if (options->routes->flags & RG_BYPASS_DHCP) strcat(route_args, "bypass-dhcp ");
+    if (options->routes->flags & RG_BYPASS_DNS) strcat(route_args, "bypass-dns ");
+    if (options->routes->flags & RG_BLOCK_LOCAL) strcat(route_args, "block-local ");
+    if (options->routes_ipv6 &&
+        options->routes_ipv6->flags & RG_REROUTE_GW) strcat(route_args, "ipv6 ");
+    if ((options->routes->flags & RG_REROUTE_GW) == 0 &&
+        options->routes_ipv6 &&
+        options->routes_ipv6->flags & RG_REROUTE_GW) strcat(route_args, "!ipv4 ");
+    if (strlen(route_args) > 0) {
+      /* Trim trailing blank */
+      route_args[strlen(route_args) - 1] = '\0'; 
+    }
+    setenv_str(es, route_cmd, route_args);
+  }
 }
 
 static void
