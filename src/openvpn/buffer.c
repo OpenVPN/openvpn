@@ -400,9 +400,13 @@ format_hex_ex (const uint8_t *data, int size, int maxoutput,
 	       int space_break, const char* separator,
 	       struct gc_arena *gc)
 {
-  struct buffer out = alloc_buf_gc (maxoutput ? maxoutput :
-				    ((size * 2) + (size / space_break) * (int) strlen (separator) + 2),
-				    gc);
+  const size_t separator_len = separator ? strlen (separator) : 0;
+  static_assert (INT_MAX <= SIZE_MAX, "Code assumes INT_MAX <= SIZE_MAX");
+  const size_t out_len = maxoutput > 0 ? maxoutput :
+	    ((size * 2) + ((size / space_break) * separator_len) + 2);
+
+  struct buffer out = alloc_buf_gc (out_len, gc);
+
   int i;
   for (i = 0; i < size; ++i)
     {

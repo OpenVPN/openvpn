@@ -217,6 +217,14 @@ FILE *msg_fp(const unsigned int flags);
 void assert_failed (const char *filename, int line, const char *condition)
   __attribute__((__noreturn__));
 
+/* Poor-man's static_assert() for when not supplied by assert.h, taken from
+ * Linux's sys/cdefs.h under GPLv2 */
+#ifndef static_assert
+#define static_assert(expr, diagnostic) \
+    extern int (*__OpenVPN_static_assert_function (void)) \
+      [!!sizeof (struct { int __error_if_negative: (expr) ? 2 : -1; })]
+#endif
+
 #ifdef ENABLE_DEBUG
 void crash (void); /* force a segfault (debugging only) */
 #endif
