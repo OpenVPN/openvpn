@@ -70,15 +70,8 @@
 #define P_FIRST_OPCODE                 1
 #define P_LAST_OPCODE                  9
 
-/* Should we aggregate TLS
- * acknowledgements, and tack them onto
- * control packets? */
-#define TLS_AGGREGATE_ACK
-
 /*
- * If TLS_AGGREGATE_ACK, set the
- * max number of acknowledgments that
- * can "hitch a ride" on an outgoing
+ * Set the max number of acknowledgments that can "hitch a ride" on an outgoing
  * non-P_ACK_V1 control packet.
  */
 #define CONTROL_SEND_ACK_MAX 4

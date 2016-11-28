@@ -2639,22 +2639,6 @@ tls_process (struct tls_multi *multi,
 	  break;
 	}
 
-#ifndef TLS_AGGREGATE_ACK
-      /* Send 1 or more ACKs (each received control packet gets one ACK) */
-      if (!to_link->len && !reliable_ack_empty (ks->rec_ack))
-	{
-	  buf = &ks->ack_write_buf;
-	  ASSERT (buf_init (buf, FRAME_HEADROOM (&multi->opt.frame)));
-	  write_control_auth (session, ks, buf, to_link_addr, P_ACK_V1,
-			      RELIABLE_ACK_SIZE, false);
-	  *to_link = *buf;
-	  active = true;
-	  state_change = true;
-	  dmsg (D_TLS_DEBUG, "Dedicated ACK -> TCP/UDP");
-	  break;
-	}
-#endif
-
       /* Write incoming ciphertext to TLS object */
       buf = reliable_get_buf_sequenced (ks->rec_reliable);
       if (buf)
@@ -2799,7 +2783,6 @@ tls_process (struct tls_multi *multi,
 
   update_time ();
 
-#ifdef TLS_AGGREGATE_ACK
   /* Send 1 or more ACKs (each received control packet gets one ACK) */
   if (!to_link->len && !reliable_ack_empty (ks->rec_ack))
     {
@@ -2811,7 +2794,6 @@ tls_process (struct tls_multi *multi,
       active = true;
       dmsg (D_TLS_DEBUG, "Dedicated ACK -> TCP/UDP");
     }
-#endif
 
   /* When should we wake up again? */
   {
