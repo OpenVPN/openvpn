@@ -2809,7 +2809,6 @@ tls_process (struct tls_multi *multi,
 			  RELIABLE_ACK_SIZE, false);
       *to_link = buf;
       active = true;
-      state_change = true;
       dmsg (D_TLS_DEBUG, "Dedicated ACK -> TCP/UDP");
     }
 #endif
