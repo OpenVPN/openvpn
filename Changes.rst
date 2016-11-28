@@ -71,12 +71,12 @@ New interactive Windows service
 
     The interactive Windows service allows unprivileged users to start
     OpenVPN connections in the global config directory (usually
-    C:\Program Files\OpenVPN\config) using OpenVPN GUI without any
+    C:\\Program Files\\OpenVPN\\config) using OpenVPN GUI without any
     extra configuration.
 
     Users who belong to the built-in Administrator group or to the
     local "OpenVPN Administrator" group can also store configuration
-    files under %USERPROFILE%\OpenVPN\config for use with the
+    files under %USERPROFILE%\\OpenVPN\\config for use with the
     interactive service.
 
 redirect-gateway ipv6
