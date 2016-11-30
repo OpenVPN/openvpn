@@ -2526,6 +2526,22 @@ options_postprocess_mutate_ce (struct options *o, struct connection_entry *ce)
 
 }
 
+#ifdef _WIN32
+/* If iservice is in use, we need def1 method for redirect-gateway */
+static void
+remap_redirect_gateway_flags (struct options *opt)
+{
+  if (opt->routes
+      && opt->route_method == ROUTE_METHOD_SERVICE
+      && opt->routes->flags & RG_REROUTE_GW
+      && !(opt->routes->flags & RG_DEF1))
+    {
+      msg (M_INFO, "Flag 'def1' added to --redirect-gateway (iservice is in use)");
+      opt->routes->flags |= RG_DEF1;
+    }
+}
+#endif
+
 static void
 options_postprocess_mutate_invariant (struct options *options)
 {
@@ -2555,6 +2571,8 @@ options_postprocess_mutate_invariant (struct options *options)
       options->tuntap_options.ip_win32_type = IPW32_SET_MANUAL;
       options->ifconfig_noexec = false;
     }
+
+  remap_redirect_gateway_flags (options);
 #endif
 
 #if P2MP_SERVER
@@ -5707,6 +5725,10 @@ add_option (struct options *options,
 	      goto err;
 	    }
 	}
+#ifdef _WIN32
+      /* we need this here to handle pushed --redirect-gateway */
+      remap_redirect_gateway_flags (options);
+#endif
       options->routes->flags |= RG_ENABLE;
     }
   else if (streq (p[0], "remote-random-hostname") && !p[1])

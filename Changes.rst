@@ -79,6 +79,12 @@ New interactive Windows service
     files under %USERPROFILE%\\OpenVPN\\config for use with the
     interactive service.
 
+redirect-gateway
+    if no flags are given, and the interactive service is used, "def1"
+    is implicitly set (because "delete and later reinstall the existing
+    default route" does not work well here).  If not using the service,
+    the old behaviour is kept.
+
 redirect-gateway ipv6
     OpenVPN has now feature parity between IPv4 and IPv6 for redirect
     gateway including the handling of overlapping IPv6 routes with
