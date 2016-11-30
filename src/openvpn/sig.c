@@ -362,7 +362,8 @@ process_sigterm (struct context *c)
 
 /**
  * If a restart signal is received during exit-notification, reset the
- * signal and return true.
+ * signal and return true. If its a soft restart signal from the event loop
+ * which implies the loop cannot continue, remap to SIGTERM to exit promptly.
  */
 static bool
 ignore_restart_signals (struct context *c)
@@ -372,10 +373,20 @@ ignore_restart_signals (struct context *c)
   if ( (c->sig->signal_received == SIGUSR1 || c->sig->signal_received == SIGHUP) &&
         event_timeout_defined(&c->c2.explicit_exit_notification_interval) )
     {
-       msg (M_INFO, "Ignoring %s received during exit notification",
-            signal_name(c->sig->signal_received, true));
-       signal_reset (c->sig);
-       ret = true;
+       if (c->sig->hard)
+         {
+            msg (M_INFO, "Ignoring %s received during exit notification",
+                 signal_name(c->sig->signal_received, true));
+            signal_reset (c->sig);
+            ret = true;
+         }
+       else
+         {
+            msg (M_INFO, "Converting soft %s received during exit notification to SIGTERM",
+                 signal_name(c->sig->signal_received, true));
+            register_signal(c, SIGTERM, "exit-with-notification");
+            ret = false;
+         }
     }
 #endif
   return ret;
