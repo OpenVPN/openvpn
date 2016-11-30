@@ -251,6 +251,10 @@ User-visible Changes
   as the VPN server, are dropped. This could be disabled with
   --allow-recursive-routing option.
 
+- on Windows, when the ``--register-dns`` option is set, OpenVPN no longer
+  restarts the ``dnscache`` service - this had unwanted side effects, and
+  seems to be no longer necessary with currently supported Windows versions.
+
 Maintainer-visible changes
 --------------------------
 - OpenVPN no longer supports building with crypto support, but without TLS

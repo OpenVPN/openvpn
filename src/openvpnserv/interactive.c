@@ -899,8 +899,7 @@ RegisterDNS (LPVOID unused)
   WCHAR sys_path[MAX_PATH];
   DWORD timeout = RDNS_TIMEOUT * 1000; /* in milliseconds */
 
-  /* default paths of net and ipconfig commands */
-  WCHAR net[MAX_PATH]   = L"C:\\Windows\\system32\\net.exe";
+  /* default path of ipconfig command */
   WCHAR ipcfg[MAX_PATH] = L"C:\\Windows\\system32\\ipconfig.exe";
 
   struct
@@ -909,8 +908,6 @@ RegisterDNS (LPVOID unused)
       WCHAR *cmdline;
       DWORD timeout;
     } cmds [] = {
-                  { net,   L"net stop dnscache",     timeout },
-                  { net,   L"net start dnscache",    timeout },
                   { ipcfg, L"ipconfig /flushdns",    timeout },
                   { ipcfg, L"ipconfig /registerdns", timeout },
                 };
@@ -920,9 +917,6 @@ RegisterDNS (LPVOID unused)
 
   if(GetSystemDirectory(sys_path, MAX_PATH))
     {
-      _snwprintf (net, MAX_PATH, L"%s\\%s", sys_path, L"net.exe");
-      net[MAX_PATH-1] = L'\0';
-
       _snwprintf (ipcfg, MAX_PATH, L"%s\\%s", sys_path, L"ipconfig.exe");
       ipcfg[MAX_PATH-1] = L'\0';
     }

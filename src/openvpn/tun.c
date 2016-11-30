@@ -4597,22 +4597,8 @@ ipconfig_register_dns (const struct env_set *es)
   bool status;
   const char err[] = "ERROR: Windows ipconfig command failed";
 
-  msg (D_TUNTAP_INFO, "Start net commands...");
+  msg (D_TUNTAP_INFO, "Start ipconfig commands for register-dns...");
   netcmd_semaphore_lock ();
-
-  argv_printf (&argv, "%s%sc stop dnscache",
-	       get_win_sys_path(),
-	       WIN_NET_PATH_SUFFIX);
-  argv_msg (D_TUNTAP_INFO, &argv);
-  status = openvpn_execve_check (&argv, es, 0, err);
-  argv_reset(&argv);
-
-  argv_printf (&argv, "%s%sc start dnscache",
-	       get_win_sys_path(),
-	       WIN_NET_PATH_SUFFIX);
-  argv_msg (D_TUNTAP_INFO, &argv);
-  status = openvpn_execve_check (&argv, es, 0, err);
-  argv_reset(&argv);
 
   argv_printf (&argv, "%s%sc /flushdns",
 	       get_win_sys_path(),
@@ -4629,7 +4615,7 @@ ipconfig_register_dns (const struct env_set *es)
   argv_reset(&argv);
 
   netcmd_semaphore_release ();
-  msg (D_TUNTAP_INFO, "End net commands...");
+  msg (D_TUNTAP_INFO, "End ipconfig commands for register-dns...");
 }
 
 void
