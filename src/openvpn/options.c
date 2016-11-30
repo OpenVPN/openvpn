@@ -4407,6 +4407,8 @@ add_option (struct options *options,
    */
   if (streq (p[0], "setenv") && p[1] && streq (p[1], "opt") && !(permission_mask & OPT_P_PULL_MODE))
     {
+      if (!p[2])
+        p[2] = "setenv opt"; /* will trigger an error that includes setenv opt */
       p += 2;
       msglevel_fc = M_WARN;
     }
