@@ -255,6 +255,11 @@ User-visible Changes
   restarts the ``dnscache`` service - this had unwanted side effects, and
   seems to be no longer necessary with currently supported Windows versions.
 
+- OpenVPN now reloads a CRL only if the modication time or file size has
+  changed, instead of for each new connection.  This reduces the connection
+  setup time, in particular when using large CRLs.
+
+
 Maintainer-visible changes
 --------------------------
 - OpenVPN no longer supports building with crypto support, but without TLS

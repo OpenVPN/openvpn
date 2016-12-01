@@ -353,7 +353,7 @@ void key_state_ssl_free(struct key_state_ssl *ks_ssl);
  *                      "[[INLINE]]" in the case of inline files.
  * @param crl_inline    A string containing the CRL
  */
-void tls_ctx_reload_crl(struct tls_root_ctx *ssl_ctx,
+void backend_tls_ctx_reload_crl(struct tls_root_ctx *ssl_ctx,
     const char *crl_file, const char *crl_inline);
 
 /**

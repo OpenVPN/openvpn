@@ -772,7 +772,7 @@ end:
 }
 
 void
-tls_ctx_reload_crl(struct tls_root_ctx *ssl_ctx, const char *crl_file,
+backend_tls_ctx_reload_crl(struct tls_root_ctx *ssl_ctx, const char *crl_file,
         const char *crl_inline)
 {
   X509_CRL *crl = NULL;

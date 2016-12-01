@@ -49,6 +49,8 @@
  */
 struct tls_root_ctx {
     SSL_CTX *ctx;
+    struct timespec crl_last_mtime;
+    off_t crl_last_size;
 };
 
 struct key_state_ssl {

@@ -771,7 +771,7 @@ static void tls_version_to_major_minor(int tls_ver, int *major, int *minor) {
 }
 
 void
-tls_ctx_reload_crl(struct tls_root_ctx *ctx, const char *crl_file,
+backend_tls_ctx_reload_crl(struct tls_root_ctx *ctx, const char *crl_file,
     const char *crl_inline)
 {
   ASSERT (crl_file);

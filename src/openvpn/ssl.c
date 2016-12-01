@@ -512,6 +512,54 @@ tls_version_parse(const char *vstr, const char *extra)
     return TLS_VER_BAD;
 }
 
+/**
+ * Load (or possibly reload) the CRL file into the SSL context.
+ * No reload is performed under the following conditions:
+ * - the CRL file was passed inline
+ * - the CRL file was not modified since the last (re)load
+ *
+ * @param ssl_ctx       The TLS context to use when reloading the CRL
+ * @param crl_file      The file name to load the CRL from, or
+ *                      "[[INLINE]]" in the case of inline files.
+ * @param crl_inline    A string containing the CRL
+ */
+static void
+tls_ctx_reload_crl(struct tls_root_ctx *ssl_ctx, const char *crl_file,
+		   const char *crl_file_inline)
+{
+  /* if something goes wrong with stat(), we'll store 0 as mtime */
+  platform_stat_t crl_stat = {0};
+
+  /*
+   * an inline CRL can't change at runtime, therefore there is no need to
+   * reload it. It will be reloaded upon config change + SIGHUP.
+   * Use always '1' as dummy timestamp in this case: it will trigger the
+   * first load, but will prevent any future reload.
+   */
+  if (crl_file_inline)
+    {
+      crl_stat.st_mtime = 1;
+    }
+  else if (platform_stat(crl_file, &crl_stat) < 0)
+    {
+      msg(M_WARN, "WARNING: Failed to stat CRL file, not (re)loading CRL.");
+      return;
+    }
+
+  /*
+   * Store the CRL if this is the first time or if the file was changed since
+   * the last load.
+   * Note: Windows does not support tv_nsec.
+   */
+  if ((ssl_ctx->crl_last_size == crl_stat.st_size) &&
+      (ssl_ctx->crl_last_mtime.tv_sec == crl_stat.st_mtime))
+    return;
+
+  ssl_ctx->crl_last_mtime.tv_sec = crl_stat.st_mtime;
+  ssl_ctx->crl_last_size = crl_stat.st_size;
+  backend_tls_ctx_reload_crl(ssl_ctx, crl_file, crl_file_inline);
+}
+
 /*
  * Initialize SSL context.
  * All files are in PEM format.
@@ -2581,7 +2629,10 @@ tls_process (struct tls_multi *multi,
 	  ks->state = S_START;
 	  state_change = true;
 
-	  /* Reload the CRL before TLS negotiation */
+	  /*
+	   * Attempt CRL reload before TLS negotiation. Won't be performed if
+	   * the file was not modified since the last reload
+	   */
 	  if (session->opt->crl_file &&
 	      !(session->opt->ssl_flags & SSLF_CRL_VERIFY_DIR))
 	    {
