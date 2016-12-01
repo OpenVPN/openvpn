@@ -259,6 +259,12 @@ User-visible Changes
   changed, instead of for each new connection.  This reduces the connection
   setup time, in particular when using large CRLs.
 
+- OpenVPN now ships with more up-to-date systemd unit files which takes advantage
+  of the improved service management as well as some hardening steps.  The
+  configuration files are picked up from /etc/openvpn/server and
+  /etc/openvpn/client (depending on unit file).  This also avoids these new
+  unit files and how they work to collide with older pre-existing unit files.
+
 
 Maintainer-visible changes
 --------------------------
@@ -267,3 +273,7 @@ Maintainer-visible changes
   OPENSSL_SSL_{CFLAGS,LIBS} have been merged into OPENSSL_{CFLAGS,LIBS}.  This
   is particularly relevant for maintainers who build their own OpenSSL library,
   e.g. when cross-compiling.
+
+- Linux distributions using systemd is highly encouraged to ship these new unit
+  files instead of older ones, to provide a unified behaviour across systemd
+  based Linux distributions.

@@ -1,6 +1,34 @@
 OpenVPN Change Log
 Copyright (C) 2002-2016 OpenVPN Technologies, Inc. <sales@openvpn.net>
 
+2016.12.01 -- Version 2.4_rc1
+Antonio Quartulli (1):
+      reload CRL only if file was modified
+
+Christian Hesse (3):
+      update year in copyright message
+      Use systemd service manager notification
+      Refuse to daemonize when running from systemd
+
+Gert Doering (1):
+      Fix windows path in Changes.rst
+
+Samuli Seppänen (1):
+      Mention that OpenVPN 2.4 requires Windows Vista or higher
+
+Selva Nair (4):
+      Map restart signals from event loop to SIGTERM during exit-notification wait
+      When parsing '--setenv opt xx ..' make sure a third parameter is present
+      Force 'def1' method when --redirect-gateway is done through service
+      Do not restart dns client service as a part of --register-dns processing
+
+Steffan Karger (4):
+      tls_process: don't set variable that's never read
+      Unconditionally enable TLS_AGGREGATE_ACK
+      Clean up format_hex_ex()
+      Introduce and use secure_memzero() to erase secrets
+
+
 2016.11.24 -- Version 2.4_beta2
 Arne Schwabe (5):
       Document that tls-crypt also supports inline
