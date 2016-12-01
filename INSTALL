@@ -59,7 +59,8 @@ SUPPORTED PLATFORMS:
   (4) Mac OS X Darwin 10.5+
   (5) FreeBSD 7.4+
   (6) NetBSD 5.0+
-  (7) Windows (WinXP and higher)
+  (7) Windows Vista or later for OpenVPN 2.4
+  (8) Windows XP or later for OpenVPN 2.3
 
 SUPPORTED PROCESSOR ARCHITECTURES:
    In general, OpenVPN is word size and endian independent, so
