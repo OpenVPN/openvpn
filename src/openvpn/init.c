@@ -930,6 +930,13 @@ bool
 possibly_become_daemon (const struct options *options)
 {
   bool ret = false;
+
+#ifdef ENABLE_SYSTEMD
+  /* return without forking if we are running from systemd */
+  if (sd_notify(0, "READY=0") > 0)
+    return ret;
+#endif
+
   if (options->daemon)
     {
       ASSERT (!options->inetd);
