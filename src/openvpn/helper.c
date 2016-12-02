@@ -230,7 +230,7 @@ helper_client_server (struct options *o)
    * if tap OR (tun AND topology == subnet):
    *   ifconfig 10.8.0.1 255.255.255.0
    *   if !nopool: 
-   *     ifconfig-pool 10.8.0.2 10.8.0.254 255.255.255.0
+   *     ifconfig-pool 10.8.0.2 10.8.0.253 255.255.255.0
    *   push "route-gateway 10.8.0.1"
    *   if route-gateway unset:
    *     route-gateway 10.8.0.2
