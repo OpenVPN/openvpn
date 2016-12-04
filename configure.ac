@@ -267,7 +267,7 @@ AC_ARG_ENABLE(
 AC_ARG_ENABLE(
 	[async-push],
 	[AS_HELP_STRING([--enable-async-push], [enable async-push support @<:@default=no@:>@])],
-	[enable_async_push="yes"],
+	,
 	[enable_async_push="no"]
 )
 
