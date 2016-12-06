@@ -1,6 +1,30 @@
 OpenVPN Change Log
 Copyright (C) 2002-2015 OpenVPN Technologies, Inc. <sales@openvpn.net>
 
+2016.12.06 -- Version 2.3.14
+Christian Hesse (1):
+      update year in copyright message
+
+David Sommerseth (1):
+      Document the --auth-token option
+
+Gert Doering (2):
+      Repair topology subnet on FreeBSD 11
+      Repair topology subnet on OpenBSD
+
+Lev Stipakov (1):
+      Drop recursively routed packets
+
+Selva Nair (4):
+      Support --block-outside-dns on multiple tunnels
+      When parsing '--setenv opt xx ..' make sure a third parameter is present
+      Map restart signals from event loop to SIGTERM during exit-notification wait
+      Correctly state the default dhcp server address in man page
+
+Steffan Karger (1):
+      Clean up format_hex_ex()
+
+
 2016.11.02 -- Version 2.3.13
 Arne Schwabe (2):
       Use AES ciphers in our sample configuration files and add a few modern 2.4 examples
