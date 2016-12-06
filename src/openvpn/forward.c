@@ -1578,7 +1578,8 @@ io_wait_dowork (struct context *c, const unsigned int flags)
 
 #ifdef ENABLE_ASYNC_PUSH
   /* arm inotify watcher */
-  event_ctl (c->c2.event_set, c->c2.inotify_fd, EVENT_READ, (void*)&file_shift);
+  if (c->options.mode == MODE_SERVER)
+    event_ctl (c->c2.event_set, c->c2.inotify_fd, EVENT_READ, (void*)&file_shift);
 #endif
 
   /*
