@@ -771,6 +771,10 @@ create_socket_tcp (struct addrinfo* addrinfo)
   }
 #endif
 
+  /* set socket file descriptor to not pass across execs, so that
+     scripts don't have access to it */
+  set_cloexec (sd);
+
   return sd;
 }
 
@@ -815,6 +819,11 @@ create_socket_udp (struct addrinfo* addrinfo, const unsigned int flags)
         }
     }
 #endif
+
+  /* set socket file descriptor to not pass across execs, so that
+     scripts don't have access to it */
+  set_cloexec (sd);
+
   return sd;
 }
 
@@ -967,6 +976,12 @@ socket_do_accept (socket_descriptor_t sd,
       msg (D_LINK_ERRORS, "TCP: Received strange incoming connection with unknown address length=%d", remote_len);
       openvpn_close_socket (new_sd);
       new_sd = SOCKET_UNDEFINED;
+    }
+  else
+    {
+      /* set socket file descriptor to not pass across execs, so that
+	 scripts don't have access to it */
+      set_cloexec (sd);
     }
   return new_sd;
 }
@@ -1617,6 +1632,7 @@ link_socket_init_phase1 (struct link_socket *sock,
       ASSERT (sock->info.proto != PROTO_TCP_CLIENT);
       ASSERT (socket_defined (inetd_socket_descriptor));
       sock->sd = inetd_socket_descriptor;
+      set_cloexec (sock->sd);		/* not created by create_socket*() */
     }
   else if (mode != LS_MODE_TCP_ACCEPT_FROM)
     {
@@ -1676,13 +1692,6 @@ phase2_set_socket_flags (struct link_socket* sock)
 
   /* set socket to non-blocking mode */
   set_nonblock (sock->sd);
-
-  /* set socket file descriptor to not pass across execs, so that
-     scripts don't have access to it */
-  set_cloexec (sock->sd);
-
-  if (socket_defined (sock->ctrl_sd))
-    set_cloexec (sock->ctrl_sd);
 
   /* set Path MTU discovery options on the socket */
   set_mtu_discover_type (sock->sd, sock->mtu_discover_type, sock->info.af);
@@ -3476,6 +3485,11 @@ create_socket_unix (void)
 
   if ((sd = socket (PF_UNIX, SOCK_STREAM, 0)) < 0)
     msg (M_ERR, "Cannot create unix domain socket");
+
+  /* set socket file descriptor to not pass across execs, so that
+     scripts don't have access to it */
+  set_cloexec (sd);
+
   return sd;
 }
 
@@ -3516,6 +3530,12 @@ socket_accept_unix (socket_descriptor_t sd,
 
   CLEAR (*remote);
   ret = accept (sd, (struct sockaddr *) remote, &remote_len);
+  if ( ret >= 0 )
+    {
+      /* set socket file descriptor to not pass across execs, so that
+	 scripts don't have access to it */
+      set_cloexec (ret);
+    }
   return ret;
 }
 

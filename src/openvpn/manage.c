@@ -1499,7 +1499,6 @@ man_new_connection_post (struct management *man, const char *description)
   struct gc_arena gc = gc_new ();
 
   set_nonblock (man->connection.sd_cli);
-  set_cloexec (man->connection.sd_cli);
 
   man_connection_settings_reset (man);
 
@@ -1640,7 +1639,6 @@ man_listen (struct management *man)
        * Set misc socket properties
        */
       set_nonblock (man->connection.sd_top);
-      set_cloexec (man->connection.sd_top);
 
 #if UNIX_SOCK_SUPPORT
       if (man->settings.flags & MF_UNIX_SOCK)
