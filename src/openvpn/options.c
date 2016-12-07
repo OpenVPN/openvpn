@@ -2238,6 +2238,10 @@ options_postprocess_verify_ce (const struct options *options, const struct conne
     {
       msg (M_USAGE, "--no-iv not allowed when NCP is enabled.");
     }
+  if (!options->use_iv)
+    {
+      msg (M_WARN, "WARNING: --no-iv is deprecated and will be removed in 2.5");
+    }
 
   /*
    * Check consistency of replay options

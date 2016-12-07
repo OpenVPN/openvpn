@@ -177,6 +177,8 @@ Deprecated features
   X.509 subject formatting must be updated to the standardized formatting.  See
   the man page for more information.
 
+- ``--no-iv`` is deprecated in 2.4 and will be remove in 2.5.
+
 User-visible Changes
 --------------------
 - For certificate DNs with duplicate fields, e.g. "OU=one,OU=two", both fields
