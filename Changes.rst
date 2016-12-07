@@ -147,6 +147,12 @@ Control channel encryption (``--tls-crypt``)
     channel packets.  Provides more privacy, some obfuscation and poor-man's
     post-quantum security.
 
+Asynchronous push reply
+    If asynchronous authentication is enabled and completed after server received
+    PUSH_REQUEST message, server sends PUSH_REPLY immediately without waiting for next
+    PUSH_REQUEST. Requires use of ``--enable-async-push`` as ./configure parameter at
+    build time.
+
 
 Deprecated features
 -------------------
