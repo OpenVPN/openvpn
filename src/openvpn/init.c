@@ -2341,9 +2341,9 @@ do_init_crypto_tls (struct context *c, const unsigned int flags)
   if (options->mute_replay_warnings)
     to.crypto_flags |= CO_MUTE_REPLAY_WARNINGS;
 
-  to.crypto_flags_and = ~(CO_PACKET_ID_LONG_FORM);
+  to.crypto_flags &= ~(CO_PACKET_ID_LONG_FORM);
   if (packet_id_long_form)
-    to.crypto_flags_or = CO_PACKET_ID_LONG_FORM;
+    to.crypto_flags |= CO_PACKET_ID_LONG_FORM;
 
   to.ssl_ctx = c->c1.ks.ssl_ctx;
   to.key_type = c->c1.ks.key_type;

@@ -2234,6 +2234,10 @@ options_postprocess_verify_ce (const struct options *options, const struct conne
     {
       msg (M_USAGE, "NCP cipher list contains unsupported ciphers.");
     }
+  if (options->ncp_enabled && !options->use_iv)
+    {
+      msg (M_USAGE, "--no-iv not allowed when NCP is enabled.");
+    }
 
   /*
    * Check consistency of replay options

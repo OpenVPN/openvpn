@@ -279,8 +279,6 @@ struct tls_options
 
   /* struct crypto_option flags */
   unsigned int crypto_flags;
-  unsigned int crypto_flags_and;
-  unsigned int crypto_flags_or;
 
   int replay_window;                   /* --replay-window parm */
   int replay_time;                     /* --replay-window parm */

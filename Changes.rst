@@ -271,6 +271,11 @@ User-visible Changes
   /etc/openvpn/client (depending on unit file).  This also avoids these new
   unit files and how they work to collide with older pre-existing unit files.
 
+- using ``--no-iv`` (which is generally not a recommended setup) will
+  require explicitly disabling NCP with ``--disable-ncp``.  This is
+  intentional because NCP will by default use AES-GCM, which requires
+  an IV - so we want users of that option to consciously reconsider.
+
 
 Maintainer-visible changes
 --------------------------

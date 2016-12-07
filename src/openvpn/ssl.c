@@ -881,9 +881,6 @@ key_state_init (struct tls_session *session, struct key_state *ks)
     }
 
   ks->crypto_options.pid_persist = NULL;
-  ks->crypto_options.flags = session->opt->crypto_flags;
-  ks->crypto_options.flags &= session->opt->crypto_flags_and;
-  ks->crypto_options.flags |= session->opt->crypto_flags_or;
 
 #ifdef MANAGEMENT_DEF_AUTH
   ks->mda_key_id = session->opt->mda_context->mda_key_id_counter++;
@@ -1823,6 +1820,7 @@ tls_session_generate_data_channel_keys(struct tls_session *session)
 
   ASSERT (ks->authenticated);
 
+  ks->crypto_options.flags = session->opt->crypto_flags;
   if (!generate_key_expansion (&ks->crypto_options.key_ctx_bi,
       &session->opt->key_type, ks->key_src, client_sid, server_sid,
       session->opt->server))
@@ -1857,9 +1855,9 @@ tls_session_update_crypto_params(struct tls_session *session,
       options->authname, options->keysize, true, true);
 
   bool packet_id_long_form = cipher_kt_mode_ofb_cfb (session->opt->key_type.cipher);
-  session->opt->crypto_flags_and &= ~(CO_PACKET_ID_LONG_FORM);
+  session->opt->crypto_flags &= ~(CO_PACKET_ID_LONG_FORM);
   if (packet_id_long_form)
-    session->opt->crypto_flags_and = CO_PACKET_ID_LONG_FORM;
+    session->opt->crypto_flags |= CO_PACKET_ID_LONG_FORM;
 
   /* Update frame parameters: undo worst-case overhead, add actual overhead */
   frame_add_to_extra_frame (frame, -(crypto_max_overhead()));
