@@ -83,7 +83,7 @@ redirect-gateway
     if no flags are given, and the interactive service is used, "def1"
     is implicitly set (because "delete and later reinstall the existing
     default route" does not work well here).  If not using the service,
-    the old behaviour is kept.
+    the old behavior is kept.
 
 redirect-gateway ipv6
     OpenVPN has now feature parity between IPv4 and IPv6 for redirect
@@ -177,7 +177,7 @@ Deprecated features
   X.509 subject formatting must be updated to the standardized formatting.  See
   the man page for more information.
 
-- ``--no-iv`` is deprecated in 2.4 and will be remove in 2.5.
+- ``--no-iv`` is deprecated in 2.4 and will be removed in 2.5.
 
 User-visible Changes
 --------------------
@@ -186,7 +186,7 @@ User-visible Changes
   of a field get _$N appended to it's field name, starting at N=1.  For the
   example above, that would result in e.g. X509_0_OU=one, X509_0_OU_1=two.
   Note that this breaks setups that rely on the fact that OpenVPN would
-  previously (incorrectly) only export the last occurence of a field.
+  previously (incorrectly) only export the last occurrence of a field.
 
 - proto udp and proto tcp specify to use IPv4 and IPv6. The new
   options proto udp4 and tcp4 specify to use IPv4 only.
@@ -237,7 +237,7 @@ User-visible Changes
   have been folded into a "unified" ``--connect-timeout`` which covers all
   steps needed to connect to the server, up to the start of the TLS exchange.
   The default value has been raised to 120s, to handle slow http/socks
-  proxies graciously.  The old "fail TCP fast" behaviour can be achieved by
+  proxies graciously.  The old "fail TCP fast" behavior can be achieved by
   adding "``--connect-timeout 10``" to the client config.
 
 - ``--http-proxy-retry`` and ``--sock-proxy-retry`` have been removed. Proxy connections
@@ -288,5 +288,5 @@ Maintainer-visible changes
   e.g. when cross-compiling.
 
 - Linux distributions using systemd is highly encouraged to ship these new unit
-  files instead of older ones, to provide a unified behaviour across systemd
+  files instead of older ones, to provide a unified behavior across systemd
   based Linux distributions.
