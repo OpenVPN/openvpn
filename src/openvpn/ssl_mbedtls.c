@@ -51,11 +51,17 @@
 #include "ssl_verify_mbedtls.h"
 #include <mbedtls/debug.h>
 #include <mbedtls/error.h>
-#include <mbedtls/net.h>
+#include <mbedtls/version.h>
+
+#if MBEDTLS_VERSION_NUMBER >= 0x02040000
+    #include <mbedtls/net_sockets.h>
+#else
+    #include <mbedtls/net.h>
+#endif
+
 #include <mbedtls/oid.h>
 #include <mbedtls/pem.h>
 #include <mbedtls/sha256.h>
-#include <mbedtls/version.h>
 
 void
 tls_init_lib()
