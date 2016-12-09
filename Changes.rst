@@ -269,9 +269,10 @@ User-visible Changes
 
 - OpenVPN now ships with more up-to-date systemd unit files which takes advantage
   of the improved service management as well as some hardening steps.  The
-  configuration files are picked up from /etc/openvpn/server and
-  /etc/openvpn/client (depending on unit file).  This also avoids these new
-  unit files and how they work to collide with older pre-existing unit files.
+  configuration files are picked up from the /etc/openvpn/server/ and
+  /etc/openvpn/client/ directories (depending on unit file).  This also avoids
+  these new unit files and how they work to collide with older pre-existing
+  unit files.
 
 - using ``--no-iv`` (which is generally not a recommended setup) will
   require explicitly disabling NCP with ``--disable-ncp``.  This is
