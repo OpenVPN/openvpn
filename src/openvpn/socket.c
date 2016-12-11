@@ -809,14 +809,15 @@ create_socket_udp (struct addrinfo* addrinfo, const unsigned int flags)
       else if (addrinfo->ai_family == AF_INET6 )
         {
 #ifndef IPV6_RECVPKTINFO /* Some older Darwin platforms require this */
-          if (setsockopt (sd, IPPROTO_IPV6, IPV6_PKTINFO,
-                          (void*)&pad, sizeof(pad)) < 0)
+          bool failed = (setsockopt (sd, IPPROTO_IPV6, IPV6_PKTINFO,
+                            (void*)&pad, sizeof(pad)) < 0);
 #else
-          if (setsockopt (sd, IPPROTO_IPV6, IPV6_RECVPKTINFO,
-                          (void*)&pad, sizeof(pad)) < 0)
+          bool failed = (setsockopt (sd, IPPROTO_IPV6, IPV6_RECVPKTINFO,
+                            (void*)&pad, sizeof(pad)) < 0);
 #endif
-            msg(M_ERR, "UDP: failed setsockopt for IPV6_RECVPKTINFO");
-        }
+          if (failed) {
+          	msg(M_ERR, "UDP: failed setsockopt for IPV6_RECVPKTINFO");
+          }
     }
 #endif
 
