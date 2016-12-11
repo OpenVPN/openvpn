@@ -4730,12 +4730,6 @@ add_option (struct options *options,
       if ( get_ipv6_addr( p[1], NULL, &netbits, msglevel ) &&
            ipv6_addr_safe( p[2] ) )
         {
-	  if ( netbits < 64 || netbits > 124 )
-	    {
-	      msg( msglevel, "ifconfig-ipv6: /netbits must be between 64 and 124, not '/%d'", netbits );
-	      goto err;
-	    }
-
 	  options->ifconfig_ipv6_local = get_ipv6_addr_no_netbits (p[1], &options->gc);
 	  options->ifconfig_ipv6_netbits = netbits;
 	  options->ifconfig_ipv6_remote = p[2];
