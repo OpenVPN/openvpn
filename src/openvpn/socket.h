@@ -213,6 +213,7 @@ struct link_socket
 # define SF_GETADDRINFO_DGRAM (1<<4)
   unsigned int sockflags;
   int mark;
+  char *outer_vrf;
 
   /* for stream sockets */
   struct stream_buf stream_buf;
@@ -327,7 +328,8 @@ link_socket_init_phase1 (struct link_socket *sock,
 			 int sndbuf,
 			 int mark,
 			 struct event_timeout* server_poll_timeout,
-			 unsigned int sockflags);
+			 unsigned int sockflags,
+			 const char *outer_vrf);
 
 void link_socket_init_phase2 (struct link_socket *sock,
 			      const struct frame *frame,

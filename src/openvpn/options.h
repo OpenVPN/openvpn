@@ -325,6 +325,7 @@ struct options
 
   /* socket flags */
   unsigned int sockflags;
+  char *outer_vrf;
 
   /* route management */
   const char *route_script;
