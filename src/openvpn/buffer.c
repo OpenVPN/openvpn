@@ -556,20 +556,14 @@ chomp (char *str)
 void
 rm_trailing_chars (char *str, const char *what_to_delete)
 {
-  bool modified;
-  do {
-    const int len = strlen (str);
-    modified = false;
-    if (len > 0)
-      {
-	char *cp = str + (len - 1);
-	if (strchr (what_to_delete, *cp) != NULL)
-	  {
-	    *cp = '\0';
-	    modified = true;
-	  }
-      }
-  } while (modified);
+  char *cp = str + strlen(str) - 1;
+  for (; cp >= str; --cp) {
+    if (strchr(what_to_delete,*cp) != NULL)
+      *cp = '\0';
+    else
+      break;
+  }
+  return ;
 }
 
 /*
