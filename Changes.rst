@@ -292,3 +292,9 @@ Maintainer-visible changes
 - Linux distributions using systemd is highly encouraged to ship these new unit
   files instead of older ones, to provide a unified behaviour across systemd
   based Linux distributions.
+
+- With OpenVPN v2.4, the project have moved over to depend on and actively use
+  the official C99 standard (-std=c99).  This may on some older compiler/libc
+  headers combinations fail.  On most of these situations it is recommended to
+  do use -std=gnu99 in CFLAGS.  This is known to be needed when doing
+  i386/i686 builds on RHEL5.
