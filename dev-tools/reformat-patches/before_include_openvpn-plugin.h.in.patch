@@ -1,0 +1,13 @@
+diff --git a/include/openvpn-plugin.h.in b/include/openvpn-plugin.h.in
+index 34ad18b..f4c5472 100644
+--- a/include/openvpn-plugin.h.in
++++ b/include/openvpn-plugin.h.in
+@@ -169,7 +169,7 @@ typedef void *openvpn_plugin_handle_t;
+ /*
+  * We are compiling OpenVPN.
+  */
+-#define OPENVPN_PLUGIN_DEF        typedef
++// #define OPENVPN_PLUGIN_DEF        typedef
+ #define OPENVPN_PLUGIN_FUNC(name) (*name)
+
+ #else
