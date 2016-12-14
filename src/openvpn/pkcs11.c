@@ -610,10 +610,14 @@ int
 tls_ctx_use_pkcs11 (
 	struct tls_root_ctx * const ssl_ctx,
 	bool pkcs11_id_management,
-	const char * const pkcs11_id
+	const char * const pkcs11_id,
+	const char * const ca_pkcs11_id,
+	bool tls_server
 ) {
 	pkcs11h_certificate_id_t certificate_id = NULL;
+	pkcs11h_certificate_id_t ca_id = NULL;
 	pkcs11h_certificate_t certificate = NULL;
+	pkcs11h_certificate_t ca = NULL;
 	CK_RV rv = CKR_OK;
 
 	bool ok = false;
@@ -659,7 +663,7 @@ tls_ctx_use_pkcs11 (
 				id_resp.password
 			)) != CKR_OK
 		) {
-			msg (M_WARN, "PKCS#11: Cannot deserialize id %ld-'%s'", rv, pkcs11h_getMessage (rv));
+			msg (M_WARN, "PKCS#11: Cannot deserialize id '%s' %ld-'%s'", id_resp.password, rv, pkcs11h_getMessage (rv));
 			goto cleanup;
 		}
 	}
@@ -670,7 +674,19 @@ tls_ctx_use_pkcs11 (
 				pkcs11_id
 			)) != CKR_OK
 		) {
-			msg (M_WARN, "PKCS#11: Cannot deserialize id %ld-'%s'", rv, pkcs11h_getMessage (rv));
+			msg (M_WARN, "PKCS#11: Cannot deserialize id '%s' %ld-'%s'", pkcs11_id, rv, pkcs11h_getMessage (rv));
+			goto cleanup;
+		}
+	}
+
+	if (ca_pkcs11_id) {
+		if (
+			(rv = pkcs11h_certificate_deserializeCertificateId (
+				&ca_id,
+				ca_pkcs11_id
+			)) != CKR_OK
+		) {
+			msg (M_WARN, "PKCS#11: Cannot deserialize CA id '%s' %ld-'%s'", ca_pkcs11_id, rv, pkcs11h_getMessage (rv));
 			goto cleanup;
 		}
 	}
@@ -688,19 +704,38 @@ tls_ctx_use_pkcs11 (
 		goto cleanup;
 	}
 
+	if (ca_id != NULL) {
+		if (
+			(rv = pkcs11h_certificate_create (
+				ca_id,
+				NULL,
+				PKCS11H_PROMPT_MASK_ALLOW_ALL,
+				PKCS11H_PIN_CACHE_INFINITE,
+				&ca
+			)) != CKR_OK
+		) {
+			msg (M_WARN, "PKCS#11: Cannot get CA %ld-'%s'", rv, pkcs11h_getMessage (rv));
+			goto cleanup;
+		}
+	}
+
 	if (
 		(pkcs11_init_tls_session (
 		    certificate,
-		    ssl_ctx
+		    ca,
+		    ssl_ctx,
+		    tls_server
 		))
 	) {
 		/* Handled by SSL context free */
 		certificate = NULL;
+		ca = NULL;
 		goto cleanup;
 	}
 
 	/* Handled by SSL context free */
 	certificate = NULL;
+	ca = NULL;
 	ok = true;
 
 cleanup:
@@ -709,9 +744,19 @@ cleanup:
 		certificate = NULL;
 	}
 
+	if (ca != NULL) {
+		pkcs11h_certificate_freeCertificate (ca);
+		ca = NULL;
+	}
+
 	if (certificate_id != NULL) {
 		pkcs11h_certificate_freeCertificateId (certificate_id);
 		certificate_id = NULL;
+	}
+
+	if (ca_id != NULL) {
+		pkcs11h_certificate_freeCertificateId (ca_id);
+		ca_id = NULL;
 	}
 
 	dmsg (

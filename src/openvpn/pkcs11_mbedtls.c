@@ -44,11 +44,18 @@
 
 int
 pkcs11_init_tls_session(pkcs11h_certificate_t certificate,
-    struct tls_root_ctx * const ssl_ctx)
+    pkcs11h_certificate_t ca,
+    struct tls_root_ctx * const ssl_ctx,
+    bool tls_server)
 {
   int ret = 1;
 
   ASSERT (NULL != ssl_ctx);
+
+  if (ca) {
+      msg (M_FATAL, "PKCS#11: CA on PKCS#11 not supported with mbed TLS");
+      goto cleanup;
+  }
 
   ALLOC_OBJ_CLEAR (ssl_ctx->crt_chain, mbedtls_x509_crt);
   if (mbedtls_pkcs11_x509_cert_bind(ssl_ctx->crt_chain, certificate)) {

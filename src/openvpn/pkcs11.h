@@ -63,7 +63,9 @@ int
 tls_ctx_use_pkcs11 (
 	struct tls_root_ctx * const ssl_ctx,
 	bool pkcs11_id_management,
-	const char * const pkcs11_id
+	const char * const pkcs11_id,
+	const char * const ca_pkcs11_id,
+	bool tls_server
 );
 
 void
