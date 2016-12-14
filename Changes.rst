@@ -148,10 +148,11 @@ Control channel encryption (``--tls-crypt``)
     post-quantum security.
 
 Asynchronous push reply
-    If asynchronous authentication is enabled and completed after server received
-    PUSH_REQUEST message, server sends PUSH_REPLY immediately without waiting for next
-    PUSH_REQUEST. Requires use of ``--enable-async-push`` as ./configure parameter at
-    build time.
+    Plug-ins providing support for deferred authentication can benefit from a more
+    responsive authentication where the server sends PUSH_REPLY immediately once
+    the authentication result is ready instead of waiting for the the client to
+    to send PUSH_REQUEST once more.  This requires OpenVPN to be built with
+    ``./configure --enable-async-push``.  This is a compile-time only switch.
 
 
 Deprecated features

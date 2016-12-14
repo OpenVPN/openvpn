@@ -266,7 +266,7 @@ AC_ARG_ENABLE(
 
 AC_ARG_ENABLE(
 	[async-push],
-	[AS_HELP_STRING([--enable-async-push], [enable async-push support @<:@default=no@:>@])],
+	[AS_HELP_STRING([--enable-async-push], [enable async-push support for plugins providing deferred authentication @<:@default=no@:>@])],
 	,
 	[enable_async_push="no"]
 )
