@@ -2785,7 +2785,7 @@ management_io (struct management *man)
 		  net_event_win32_clear_selected_events (&man->connection.ne32, FD_ACCEPT);
 		}
 	    }
-	  else if (man->connection.state == MS_CC_WAIT_READ || man->connection.state == MS_CC_WAIT_WRITE)
+	  else if (man->connection.state == MS_CC_WAIT_READ)
 	    {
 	      if (net_events & FD_READ)
 		{
@@ -2794,6 +2794,8 @@ management_io (struct management *man)
 		  net_event_win32_clear_selected_events (&man->connection.ne32, FD_READ);
 		}
 
+      if (man->connection.state == MS_CC_WAIT_WRITE)
+        {
 	      if (net_events & FD_WRITE)
 		{
 		  int status;
@@ -2803,6 +2805,7 @@ management_io (struct management *man)
 		      net_event_win32_clear_selected_events (&man->connection.ne32, FD_WRITE);
 		    }
 		}
+        }
 	    }
 	}
     }
