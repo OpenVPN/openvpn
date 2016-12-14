@@ -29,8 +29,11 @@
 #include <CoreFoundation/CoreFoundation.h>
 
 void printCFString(CFStringRef str);
-char* cfstringToCstr(CFStringRef str);
+
+char *cfstringToCstr(CFStringRef str);
+
 CFStringRef createHexString(unsigned char *pData, int length);
+
 void printHex(unsigned char *pData, int length);
 
-#endif //__Common_osx_h__
+#endif /*__Common_osx_h__ */

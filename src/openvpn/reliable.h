@@ -51,7 +51,7 @@
                                  *   be stored in one \c reliable_ack
                                  *   structure. */
 
-#define RELIABLE_CAPACITY 8	/**< The maximum number of packets that
+#define RELIABLE_CAPACITY 8     /**< The maximum number of packets that
                                  *   the reliability layer for one VPN
                                  *   tunnel in one direction can store. */
 
@@ -61,8 +61,8 @@
  */
 struct reliable_ack
 {
-  int len;
-  packet_id_type packet_id[RELIABLE_ACK_SIZE];
+    int len;
+    packet_id_type packet_id[RELIABLE_ACK_SIZE];
 };
 
 /**
@@ -71,12 +71,12 @@ struct reliable_ack
  */
 struct reliable_entry
 {
-  bool active;
-  interval_t timeout;
-  time_t next_try;
-  packet_id_type packet_id;
-  int opcode;
-  struct buffer buf;
+    bool active;
+    interval_t timeout;
+    time_t next_try;
+    packet_id_type packet_id;
+    int opcode;
+    struct buffer buf;
 };
 
 /**
@@ -85,12 +85,12 @@ struct reliable_entry
  */
 struct reliable
 {
-  int size;
-  interval_t initial_timeout;
-  packet_id_type packet_id;
-  int offset;
-  bool hold; /* don't xmit until reliable_schedule_now is called */
-  struct reliable_entry array[RELIABLE_CAPACITY];
+    int size;
+    interval_t initial_timeout;
+    packet_id_type packet_id;
+    int offset;
+    bool hold; /* don't xmit until reliable_schedule_now is called */
+    struct reliable_entry array[RELIABLE_CAPACITY];
 };
 
 
@@ -116,8 +116,8 @@ struct reliable
  * @li True, if processing was successful.
  * @li False, if an error occurs during processing.
  */
-bool reliable_ack_read (struct reliable_ack *ack,
-			struct buffer *buf, const struct session_id *sid);
+bool reliable_ack_read(struct reliable_ack *ack,
+                       struct buffer *buf, const struct session_id *sid);
 
 /**
  * Remove acknowledged packets from a reliable structure.
@@ -126,7 +126,7 @@ bool reliable_ack_read (struct reliable_ack *ack,
  * @param ack The acknowledgment structure containing received
  *     acknowledgments.
  */
-void reliable_send_purge (struct reliable *rel, struct reliable_ack *ack);
+void reliable_send_purge(struct reliable *rel, struct reliable_ack *ack);
 
 /** @} name Functions for processing incoming acknowledgments */
 
@@ -146,9 +146,9 @@ void reliable_send_purge (struct reliable *rel, struct reliable_ack *ack);
  * @li False, if there are packet IDs to be acknowledged.
  */
 static inline bool
-reliable_ack_empty (struct reliable_ack *ack)
+reliable_ack_empty(struct reliable_ack *ack)
 {
-  return !ack->len;
+    return !ack->len;
 }
 
 /**
@@ -169,9 +169,9 @@ reliable_ack_empty (struct reliable_ack *ack)
  * @li True, if processing was successful.
  * @li False, if an error occurs during processing.
  */
-bool reliable_ack_write (struct reliable_ack *ack,
-			 struct buffer *buf,
-			 const struct session_id *sid, int max, bool prepend);
+bool reliable_ack_write(struct reliable_ack *ack,
+                        struct buffer *buf,
+                        const struct session_id *sid, int max, bool prepend);
 
 /** @} name Functions for processing outgoing acknowledgments */
 
@@ -192,17 +192,17 @@ bool reliable_ack_write (struct reliable_ack *ack,
  *     structure can store simultaneously.
  * @param hold description
  */
-void reliable_init (struct reliable *rel, int buf_size, int offset, int array_size, bool hold);
+void reliable_init(struct reliable *rel, int buf_size, int offset, int array_size, bool hold);
 
 /**
  * Free allocated memory associated with a reliable structure.
  *
  * @param rel The reliable structured to clean up.
  */
-void reliable_free (struct reliable *rel);
+void reliable_free(struct reliable *rel);
 
 /* add to extra_frame the maximum number of bytes we will need for reliable_ack_write */
-void reliable_ack_adjust_frame_parameters (struct frame* frame, int max);
+void reliable_ack_adjust_frame_parameters(struct frame *frame, int max);
 
 /** @} name Functions for initialization and cleanup */
 
@@ -221,7 +221,7 @@ void reliable_ack_adjust_frame_parameters (struct frame* frame, int max);
  * @li True, if at least one buffer is available for use.
  * @li False, if all the buffers are active.
  */
-bool reliable_can_get (const struct reliable *rel);
+bool reliable_can_get(const struct reliable *rel);
 
 /**
  * Check that a received packet's ID is not a replay.
@@ -234,7 +234,7 @@ bool reliable_can_get (const struct reliable *rel);
  * @li True, if the packet ID is not a replay.
  * @li False, if the packet ID is a replay.
  */
-bool reliable_not_replay (const struct reliable *rel, packet_id_type id);
+bool reliable_not_replay(const struct reliable *rel, packet_id_type id);
 
 /**
  * Check that a received packet's ID can safely be stored in
@@ -258,7 +258,7 @@ bool reliable_not_replay (const struct reliable *rel, packet_id_type id);
  * @li False, if the packet does not fit safely in the reliable
  *     structure's processing window.
  */
-bool reliable_wont_break_sequentiality (const struct reliable *rel, packet_id_type id);
+bool reliable_wont_break_sequentiality(const struct reliable *rel, packet_id_type id);
 
 /**
  * Read the packet ID of a received packet.
@@ -270,7 +270,7 @@ bool reliable_wont_break_sequentiality (const struct reliable *rel, packet_id_ty
  * @li True, if processing was successful.
  * @li False, if an error occurs during processing.
  */
-bool reliable_ack_read_packet_id (struct buffer *buf, packet_id_type *pid);
+bool reliable_ack_read_packet_id(struct buffer *buf, packet_id_type *pid);
 
 /**
  * Get the buffer of a free %reliable entry in which to store a
@@ -283,7 +283,7 @@ bool reliable_ack_read_packet_id (struct buffer *buf, packet_id_type *pid);
  *     reliable structure.  If there are no free entries available, this
  *     function returns NULL.
  */
-struct buffer *reliable_get_buf (struct reliable *rel);
+struct buffer *reliable_get_buf(struct reliable *rel);
 
 /**
  * Mark the %reliable entry associated with the given buffer as active
@@ -294,8 +294,8 @@ struct buffer *reliable_get_buf (struct reliable *rel);
  * @param pid The packet's packet ID.
  * @param opcode The packet's opcode.
  */
-void reliable_mark_active_incoming (struct reliable *rel, struct buffer *buf,
-				    packet_id_type pid, int opcode);
+void reliable_mark_active_incoming(struct reliable *rel, struct buffer *buf,
+                                   packet_id_type pid, int opcode);
 
 /**
  * Record a packet ID for later acknowledgment.
@@ -310,7 +310,7 @@ void reliable_mark_active_incoming (struct reliable *rel, struct buffer *buf,
  * @li False, if the packet ID was already present in \a ack or \a ack
  *     has no free space to store any more packet IDs.
  */
-bool reliable_ack_acknowledge_packet_id (struct reliable_ack *ack, packet_id_type pid);
+bool reliable_ack_acknowledge_packet_id(struct reliable_ack *ack, packet_id_type pid);
 
 /** @} name Functions for inserting incoming packets */
 
@@ -329,7 +329,7 @@ bool reliable_ack_acknowledge_packet_id (struct reliable_ack *ack, packet_id_typ
  *     sequential key ID.  If no such entry is present, this function
  *     returns NULL.
  */
-struct buffer *reliable_get_buf_sequenced (struct reliable *rel);
+struct buffer *reliable_get_buf_sequenced(struct reliable *rel);
 
 /**
  * Remove an entry from a reliable structure.
@@ -339,7 +339,7 @@ struct buffer *reliable_get_buf_sequenced (struct reliable *rel);
  * @param inc_pid If true, the reliable structure's packet ID counter
  *     will be incremented.
  */
-void reliable_mark_deleted (struct reliable *rel, struct buffer *buf, bool inc_pid);
+void reliable_mark_deleted(struct reliable *rel, struct buffer *buf, bool inc_pid);
 
 /** @} name Functions for extracting incoming packets */
 
@@ -360,7 +360,7 @@ void reliable_mark_deleted (struct reliable *rel, struct buffer *buf, bool inc_p
  *     function returns NULL.  If the outgoing acknowledgment sequence is
  *     broken, this function also returns NULL.
  */
-struct buffer *reliable_get_buf_output_sequenced (struct reliable *rel);
+struct buffer *reliable_get_buf_output_sequenced(struct reliable *rel);
 
 /**
  * Mark the reliable entry associated with the given buffer as
@@ -373,7 +373,7 @@ struct buffer *reliable_get_buf_output_sequenced (struct reliable *rel);
  *     copied.
  * @param opcode The packet's opcode.
  */
-void reliable_mark_active_outgoing (struct reliable *rel, struct buffer *buf, int opcode);
+void reliable_mark_active_outgoing(struct reliable *rel, struct buffer *buf, int opcode);
 
 /** @} name Functions for inserting outgoing packets */
 
@@ -394,7 +394,7 @@ void reliable_mark_active_outgoing (struct reliable *rel, struct buffer *buf, in
  * @li False, if there are no active entries, or the active entries
  *     are not yet ready for resending.
  */
-bool reliable_can_send (const struct reliable *rel);
+bool reliable_can_send(const struct reliable *rel);
 
 /**
  * Get the next packet to send to the remote peer.
@@ -413,7 +413,7 @@ bool reliable_can_send (const struct reliable *rel);
  *     reliable structure.  If a valid pointer is returned, then \a opcode
  *     will point to the opcode of that packet.
  */
-struct buffer *reliable_send (struct reliable *rel, int *opcode);
+struct buffer *reliable_send(struct reliable *rel, int *opcode);
 
 /** @} name Functions for extracting outgoing packets */
 
@@ -432,7 +432,7 @@ struct buffer *reliable_send (struct reliable *rel, int *opcode);
  *     structure.
  * @li False, if there is at least one active entry present.
  */
-bool reliable_empty (const struct reliable *rel);
+bool reliable_empty(const struct reliable *rel);
 
 /**
  * Determined how many seconds until the earliest resend should
@@ -445,7 +445,7 @@ bool reliable_empty (const struct reliable *rel);
  *     the next time for attempting resending of one or more packets has
  *     already passed, this function will return 0.
  */
-interval_t reliable_send_timeout (const struct reliable *rel);
+interval_t reliable_send_timeout(const struct reliable *rel);
 
 /**
  * Reschedule all entries of a reliable structure to be ready
@@ -454,21 +454,21 @@ interval_t reliable_send_timeout (const struct reliable *rel);
  * @param rel The reliable structure of which the entries should be
  *     modified.
  */
-void reliable_schedule_now (struct reliable *rel);
+void reliable_schedule_now(struct reliable *rel);
 
-void reliable_debug_print (const struct reliable *rel, char *desc);
+void reliable_debug_print(const struct reliable *rel, char *desc);
 
 /* set sending timeout (after this time we send again until ACK) */
 static inline void
-reliable_set_timeout (struct reliable *rel, interval_t timeout)
+reliable_set_timeout(struct reliable *rel, interval_t timeout)
 {
-  rel->initial_timeout = timeout;
+    rel->initial_timeout = timeout;
 }
 
 /* print a reliable ACK record coming off the wire */
-const char *reliable_ack_print (struct buffer *buf, bool verbose, struct gc_arena *gc);
+const char *reliable_ack_print(struct buffer *buf, bool verbose, struct gc_arena *gc);
 
-void reliable_ack_debug_print (const struct reliable_ack *ack, char *desc);
+void reliable_ack_debug_print(const struct reliable_ack *ack, char *desc);
 
 /** @} name Miscellaneous functions */
 

@@ -43,16 +43,16 @@
  */
 #ifdef MANAGEMENT_DEF_AUTH
 struct man_def_auth_context {
-  unsigned long cid;
+    unsigned long cid;
 
 #define DAF_CONNECTION_ESTABLISHED (1<<0)
 #define DAF_CONNECTION_CLOSED      (1<<1)
 #define DAF_INITIAL_AUTH           (1<<2)
-  unsigned int flags;
+    unsigned int flags;
 
-  unsigned int mda_key_id_counter;
+    unsigned int mda_key_id_counter;
 
-  time_t bytecount_last_update;
+    time_t bytecount_last_update;
 };
 #endif
 
@@ -61,37 +61,41 @@ struct man_def_auth_context {
  */
 struct command_line
 {
-  struct buffer buf;
-  struct buffer residual;
+    struct buffer buf;
+    struct buffer residual;
 };
 
-struct command_line *command_line_new (const int buf_len);
-void command_line_free (struct command_line *cl);
+struct command_line *command_line_new(const int buf_len);
 
-void command_line_add (struct command_line *cl, const unsigned char *buf, const int len);
-const unsigned char *command_line_get (struct command_line *cl);
-void command_line_reset (struct command_line *cl);
-void command_line_next (struct command_line *cl);
+void command_line_free(struct command_line *cl);
+
+void command_line_add(struct command_line *cl, const unsigned char *buf, const int len);
+
+const unsigned char *command_line_get(struct command_line *cl);
+
+void command_line_reset(struct command_line *cl);
+
+void command_line_next(struct command_line *cl);
 
 /*
  * Manage log file history
  */
 
 union log_entry_union {
-  unsigned int msg_flags;
-  int state;
-  int intval;
+    unsigned int msg_flags;
+    int state;
+    int intval;
 };
 
 struct log_entry
 {
-  time_t timestamp;
-  const char *string;
-  in_addr_t local_ip;
-  struct in6_addr local_ip6;
-  struct openvpn_sockaddr local_sock;
-  struct openvpn_sockaddr remote_sock;
-  union log_entry_union u;
+    time_t timestamp;
+    const char *string;
+    in_addr_t local_ip;
+    struct in6_addr local_ip6;
+    struct openvpn_sockaddr local_sock;
+    struct openvpn_sockaddr remote_sock;
+    union log_entry_union u;
 };
 
 #define LOG_PRINT_LOG_PREFIX   (1<<0)
@@ -112,32 +116,36 @@ struct log_entry
 
 #define LOG_ECHO_TO_LOG        (1<<11)
 
-const char *log_entry_print (const struct log_entry *e, unsigned int flags, struct gc_arena *gc);
+const char *log_entry_print(const struct log_entry *e, unsigned int flags, struct gc_arena *gc);
 
 struct log_history
 {
-  int base;
-  int size;
-  int capacity;
-  struct log_entry *array;
+    int base;
+    int size;
+    int capacity;
+    struct log_entry *array;
 };
 
-struct log_history *log_history_init (const int capacity);
-void log_history_close (struct log_history *h);
-void log_history_add (struct log_history *h, const struct log_entry *le);
-void log_history_resize (struct log_history *h, const int capacity);
-const struct log_entry *log_history_ref (const struct log_history *h, const int index);
+struct log_history *log_history_init(const int capacity);
+
+void log_history_close(struct log_history *h);
+
+void log_history_add(struct log_history *h, const struct log_entry *le);
+
+void log_history_resize(struct log_history *h, const int capacity);
+
+const struct log_entry *log_history_ref(const struct log_history *h, const int index);
 
 static inline int
-log_history_size (const struct log_history *h)
+log_history_size(const struct log_history *h)
 {
-  return h->size;
+    return h->size;
 }
 
 static inline int
-log_history_capacity (const struct log_history *h)
+log_history_capacity(const struct log_history *h)
 {
-  return h->capacity;
+    return h->capacity;
 }
 
 /*
@@ -146,37 +154,37 @@ log_history_capacity (const struct log_history *h)
  */
 struct management_callback
 {
-  void *arg;
+    void *arg;
 
-# define MCF_SERVER (1<<0) /* is OpenVPN being run as a server? */
-  unsigned int flags;
+#define MCF_SERVER (1<<0)  /* is OpenVPN being run as a server? */
+    unsigned int flags;
 
-  void (*status) (void *arg, const int version, struct status_output *so);
-  void (*show_net) (void *arg, const int msglevel);
-  int (*kill_by_cn) (void *arg, const char *common_name);
-  int (*kill_by_addr) (void *arg, const in_addr_t addr, const int port);
-  void (*delete_event) (void *arg, event_t event);
-  int (*n_clients) (void *arg);
+    void (*status) (void *arg, const int version, struct status_output *so);
+    void (*show_net) (void *arg, const int msglevel);
+    int (*kill_by_cn) (void *arg, const char *common_name);
+    int (*kill_by_addr) (void *arg, const in_addr_t addr, const int port);
+    void (*delete_event) (void *arg, event_t event);
+    int (*n_clients) (void *arg);
 #ifdef MANAGEMENT_DEF_AUTH
-  bool (*kill_by_cid) (void *arg, const unsigned long cid, const char *kill_msg);
-  bool (*client_auth) (void *arg,
-		       const unsigned long cid,
-		       const unsigned int mda_key_id,
-		       const bool auth,
-		       const char *reason,
-		       const char *client_reason,
-		       struct buffer_list *cc_config); /* ownership transferred */
-  char *(*get_peer_info) (void *arg, const unsigned long cid);
+    bool (*kill_by_cid)(void *arg, const unsigned long cid, const char *kill_msg);
+    bool (*client_auth) (void *arg,
+                         const unsigned long cid,
+                         const unsigned int mda_key_id,
+                         const bool auth,
+                         const char *reason,
+                         const char *client_reason,
+                         struct buffer_list *cc_config); /* ownership transferred */
+    char *(*get_peer_info) (void *arg, const unsigned long cid);
 #endif
 #ifdef MANAGEMENT_PF
-  bool (*client_pf) (void *arg,
-		     const unsigned long cid,
-		     struct buffer_list *pf_config);   /* ownership transferred */
+    bool (*client_pf)(void *arg,
+                      const unsigned long cid,
+                      struct buffer_list *pf_config);  /* ownership transferred */
 #endif
-  bool (*proxy_cmd) (void *arg, const char **p);
-  bool (*remote_cmd) (void *arg, const char **p);
+    bool (*proxy_cmd)(void *arg, const char **p);
+    bool (*remote_cmd) (void *arg, const char **p);
 #ifdef TARGET_ANDROID
-  int (*network_change) (void *arg, bool samenetwork);
+    int (*network_change)(void *arg, bool samenetwork);
 #endif
 };
 
@@ -195,46 +203,46 @@ struct management_callback
  */
 
 struct man_persist {
-  bool defined;
+    bool defined;
 
-  struct log_history *log;
-  struct virtual_output vout;
+    struct log_history *log;
+    struct virtual_output vout;
 
-  bool standalone_disabled;
-  struct management_callback callback;
+    bool standalone_disabled;
+    struct management_callback callback;
 
-  struct log_history *echo; /* saved --echo strings */
-  struct log_history *state;
+    struct log_history *echo; /* saved --echo strings */
+    struct log_history *state;
 
-  bool hold_release;
+    bool hold_release;
 
-  const char *special_state_msg;
+    const char *special_state_msg;
 
-  counter_type bytes_in;
-  counter_type bytes_out;
+    counter_type bytes_in;
+    counter_type bytes_out;
 };
 
 struct man_settings {
-  bool defined;
-  unsigned int flags; /* MF_x flags */
-  struct addrinfo* local;
+    bool defined;
+    unsigned int flags; /* MF_x flags */
+    struct addrinfo *local;
 #if UNIX_SOCK_SUPPORT
-  struct sockaddr_un local_unix;
+    struct sockaddr_un local_unix;
 #endif
-  bool management_over_tunnel;
-  struct user_pass up;
-  int log_history_cache;
-  int echo_buffer_size;
-  int state_buffer_size;
-  char *write_peer_info_file;
-  int client_uid;
-  int client_gid;
+    bool management_over_tunnel;
+    struct user_pass up;
+    int log_history_cache;
+    int echo_buffer_size;
+    int state_buffer_size;
+    char *write_peer_info_file;
+    int client_uid;
+    int client_gid;
 
 /* flags for handling the management interface "signal" command */
-# define MANSIG_IGNORE_USR1_HUP  (1<<0)
-# define MANSIG_MAP_USR1_TO_HUP  (1<<1)
-# define MANSIG_MAP_USR1_TO_TERM (1<<2)
-  unsigned int mansig;
+#define MANSIG_IGNORE_USR1_HUP  (1<<0)
+#define MANSIG_MAP_USR1_TO_HUP  (1<<1)
+#define MANSIG_MAP_USR1_TO_TERM (1<<2)
+    unsigned int mansig;
 };
 
 /* up_query modes */
@@ -251,225 +259,230 @@ struct man_settings {
 #define MS_CC_WAIT_WRITE    3  /* client is connected, waiting for ability to write to socket */
 
 struct man_connection {
-  int state;
+    int state;
 
-  socket_descriptor_t sd_top;
-  socket_descriptor_t sd_cli;
-  struct openvpn_sockaddr remote;
+    socket_descriptor_t sd_top;
+    socket_descriptor_t sd_cli;
+    struct openvpn_sockaddr remote;
 
 #ifdef _WIN32
-  struct net_event_win32 ne32;
+    struct net_event_win32 ne32;
 #endif
 
-  bool halt;
-  bool password_verified;
-  int password_tries;
+    bool halt;
+    bool password_verified;
+    int password_tries;
 
-  struct command_line *in;
-  struct buffer_list *out;
+    struct command_line *in;
+    struct buffer_list *out;
 
 #ifdef MANAGEMENT_IN_EXTRA
-# define IEC_UNDEF       0
-# define IEC_CLIENT_AUTH 1
-# define IEC_CLIENT_PF   2
-# define IEC_RSA_SIGN    3
-# define IEC_CERTIFICATE 4
-  int in_extra_cmd;
-  struct buffer_list *in_extra;
+#define IEC_UNDEF       0
+#define IEC_CLIENT_AUTH 1
+#define IEC_CLIENT_PF   2
+#define IEC_RSA_SIGN    3
+#define IEC_CERTIFICATE 4
+    int in_extra_cmd;
+    struct buffer_list *in_extra;
 #ifdef MANAGEMENT_DEF_AUTH
-  unsigned long in_extra_cid;
-  unsigned int in_extra_kid;
+    unsigned long in_extra_cid;
+    unsigned int in_extra_kid;
 #endif
 #ifdef MANAGMENT_EXTERNAL_KEY
-# define EKS_UNDEF   0
-# define EKS_SOLICIT 1
-# define EKS_INPUT   2
-# define EKS_READY   3
-  int ext_key_state;
-  struct buffer_list *ext_key_input;
-  int ext_cert_state;
-  struct buffer_list *ext_cert_input;
+#define EKS_UNDEF   0
+#define EKS_SOLICIT 1
+#define EKS_INPUT   2
+#define EKS_READY   3
+    int ext_key_state;
+    struct buffer_list *ext_key_input;
+    int ext_cert_state;
+    struct buffer_list *ext_cert_input;
 #endif
-#endif
-  struct event_set *es;
-  int env_filter_level;
+#endif /* ifdef MANAGEMENT_IN_EXTRA */
+    struct event_set *es;
+    int env_filter_level;
 
-  bool state_realtime;
-  bool log_realtime;
-  bool echo_realtime;
-  int bytecount_update_seconds;
-  time_t bytecount_last_update;
+    bool state_realtime;
+    bool log_realtime;
+    bool echo_realtime;
+    int bytecount_update_seconds;
+    time_t bytecount_last_update;
 
-  const char *up_query_type;
-  int up_query_mode;
-  struct user_pass up_query;
+    const char *up_query_type;
+    int up_query_mode;
+    struct user_pass up_query;
 
 #ifdef MANAGMENT_EXTERNAL_KEY
-  struct buffer_list *rsa_sig;
+    struct buffer_list *rsa_sig;
 #endif
 #ifdef TARGET_ANDROID
-  int fdtosend;
-  int lastfdreceived;
+    int fdtosend;
+    int lastfdreceived;
 #endif
 };
 
 struct management
 {
-  struct man_persist persist;
-  struct man_settings settings;
-  struct man_connection connection;
+    struct man_persist persist;
+    struct man_settings settings;
+    struct man_connection connection;
 };
 
 extern struct management *management;
 
 struct user_pass;
 
-struct management *management_init (void);
+struct management *management_init(void);
 
 /* management_open flags */
-# define MF_SERVER            (1<<0)
-# define MF_QUERY_PASSWORDS   (1<<1)
-# define MF_HOLD              (1<<2)
-# define MF_SIGNAL            (1<<3)
-# define MF_FORGET_DISCONNECT (1<<4)
-# define MF_CONNECT_AS_CLIENT (1<<5)
+#define MF_SERVER            (1<<0)
+#define MF_QUERY_PASSWORDS   (1<<1)
+#define MF_HOLD              (1<<2)
+#define MF_SIGNAL            (1<<3)
+#define MF_FORGET_DISCONNECT (1<<4)
+#define MF_CONNECT_AS_CLIENT (1<<5)
 #ifdef MANAGEMENT_DEF_AUTH
-# define MF_CLIENT_AUTH       (1<<6)
+#define MF_CLIENT_AUTH       (1<<6)
 #endif
 #ifdef MANAGEMENT_PF
-# define MF_CLIENT_PF         (1<<7)
+#define MF_CLIENT_PF         (1<<7)
 #endif
-# define MF_UNIX_SOCK       (1<<8)
+#define MF_UNIX_SOCK       (1<<8)
 #ifdef MANAGMENT_EXTERNAL_KEY
-# define MF_EXTERNAL_KEY    (1<<9)
+#define MF_EXTERNAL_KEY    (1<<9)
 #endif
 #define MF_UP_DOWN          (1<<10)
 #define MF_QUERY_REMOTE     (1<<11)
 #define MF_QUERY_PROXY      (1<<12)
 #define MF_EXTERNAL_CERT    (1<<13)
 
-bool management_open (struct management *man,
-		      const char *addr,
-		      const char *port,
-		      const char *pass_file,
-		      const char *client_user,
-		      const char *client_group,
-		      const int log_history_cache,
-		      const int echo_buffer_size,
-		      const int state_buffer_size,
-		      const char *write_peer_info_file,
-		      const int remap_sigusr1,
-		      const unsigned int flags);
+bool management_open(struct management *man,
+                     const char *addr,
+                     const char *port,
+                     const char *pass_file,
+                     const char *client_user,
+                     const char *client_group,
+                     const int log_history_cache,
+                     const int echo_buffer_size,
+                     const int state_buffer_size,
+                     const char *write_peer_info_file,
+                     const int remap_sigusr1,
+                     const unsigned int flags);
 
-void management_close (struct management *man);
+void management_close(struct management *man);
 
-void management_post_tunnel_open (struct management *man, const in_addr_t tun_local_ip);
+void management_post_tunnel_open(struct management *man, const in_addr_t tun_local_ip);
 
-void management_pre_tunnel_close (struct management *man);
+void management_pre_tunnel_close(struct management *man);
 
-void management_socket_set (struct management *man,
-			    struct event_set *es,
-			    void *arg,
-			    unsigned int *persistent);
+void management_socket_set(struct management *man,
+                           struct event_set *es,
+                           void *arg,
+                           unsigned int *persistent);
 
-void management_io (struct management *man);
+void management_io(struct management *man);
 
-void management_set_callback (struct management *man,
-			      const struct management_callback *cb);
+void management_set_callback(struct management *man,
+                             const struct management_callback *cb);
 
-void management_clear_callback (struct management *man);
+void management_clear_callback(struct management *man);
 
-bool management_query_user_pass (struct management *man,
-				 struct user_pass *up,
-				 const char *type,
-				 const unsigned int flags,
-				 const char *static_challenge);
+bool management_query_user_pass(struct management *man,
+                                struct user_pass *up,
+                                const char *type,
+                                const unsigned int flags,
+                                const char *static_challenge);
 
 #ifdef TARGET_ANDROID
-bool management_android_control (struct management *man, const char *command, const char *msg);
+bool management_android_control(struct management *man, const char *command, const char *msg);
 
 #define ANDROID_KEEP_OLD_TUN 1
 #define ANDROID_OPEN_AFTER_CLOSE 2
 #define ANDROID_OPEN_BEFORE_CLOSE 3
-int managment_android_persisttun_action (struct management *man);
+int managment_android_persisttun_action(struct management *man);
+
 #endif
 
-bool management_should_daemonize (struct management *man);
-bool management_would_hold (struct management *man);
-bool management_hold (struct management *man, int holdtime);
+bool management_should_daemonize(struct management *man);
 
-void management_event_loop_n_seconds (struct management *man, int sec);
+bool management_would_hold(struct management *man);
+
+bool management_hold(struct management *man, int holdtime);
+
+void management_event_loop_n_seconds(struct management *man, int sec);
 
 void management_up_down(struct management *man, const char *updown, const struct env_set *es);
 
 void management_notify(struct management *man, const char *severity, const char *type, const char *text);
 
-void management_notify_generic (struct management *man, const char *str);
+void management_notify_generic(struct management *man, const char *str);
 
 #ifdef MANAGEMENT_DEF_AUTH
-void management_notify_client_needing_auth (struct management *management,
-					    const unsigned int auth_id,
-					    struct man_def_auth_context *mdac,
-					    const struct env_set *es);
+void management_notify_client_needing_auth(struct management *management,
+                                           const unsigned int auth_id,
+                                           struct man_def_auth_context *mdac,
+                                           const struct env_set *es);
 
-void management_connection_established (struct management *management,
-					struct man_def_auth_context *mdac,
-					const struct env_set *es);
+void management_connection_established(struct management *management,
+                                       struct man_def_auth_context *mdac,
+                                       const struct env_set *es);
 
-void management_notify_client_close (struct management *management,
-				     struct man_def_auth_context *mdac,
-				     const struct env_set *es);
+void management_notify_client_close(struct management *management,
+                                    struct man_def_auth_context *mdac,
+                                    const struct env_set *es);
 
-void management_learn_addr (struct management *management,
-			    struct man_def_auth_context *mdac,
-			    const struct mroute_addr *addr,
-			    const bool primary);
+void management_learn_addr(struct management *management,
+                           struct man_def_auth_context *mdac,
+                           const struct mroute_addr *addr,
+                           const bool primary);
+
 #endif
 
 #ifdef MANAGMENT_EXTERNAL_KEY
 
-char *management_query_rsa_sig (struct management *man, const char *b64_data);
-char* management_query_cert (struct management *man, const char *cert_name);
+char *management_query_rsa_sig(struct management *man, const char *b64_data);
+
+char *management_query_cert(struct management *man, const char *cert_name);
 
 #endif
 
 static inline bool
-management_connected (const struct management *man)
+management_connected(const struct management *man)
 {
-  return man->connection.state == MS_CC_WAIT_READ || man->connection.state == MS_CC_WAIT_WRITE;
+    return man->connection.state == MS_CC_WAIT_READ || man->connection.state == MS_CC_WAIT_WRITE;
 }
 
 static inline bool
-management_query_user_pass_enabled (const struct management *man)
+management_query_user_pass_enabled(const struct management *man)
 {
-  return BOOL_CAST(man->settings.flags & MF_QUERY_PASSWORDS);
+    return BOOL_CAST(man->settings.flags & MF_QUERY_PASSWORDS);
 }
 
 static inline bool
-management_query_remote_enabled (const struct management *man)
+management_query_remote_enabled(const struct management *man)
 {
-  return BOOL_CAST(man->settings.flags & MF_QUERY_REMOTE);
+    return BOOL_CAST(man->settings.flags & MF_QUERY_REMOTE);
 }
 
 static inline bool
-management_query_proxy_enabled (const struct management *man)
+management_query_proxy_enabled(const struct management *man)
 {
-  return BOOL_CAST(man->settings.flags & MF_QUERY_PROXY);
+    return BOOL_CAST(man->settings.flags & MF_QUERY_PROXY);
 }
 
 #ifdef MANAGEMENT_PF
 static inline bool
-management_enable_pf (const struct management *man)
+management_enable_pf(const struct management *man)
 {
-  return man && BOOL_CAST(man->settings.flags & MF_CLIENT_PF);
+    return man && BOOL_CAST(man->settings.flags & MF_CLIENT_PF);
 }
 #endif
 
 #ifdef MANAGEMENT_DEF_AUTH
 static inline bool
-management_enable_def_auth (const struct management *man)
+management_enable_def_auth(const struct management *man)
 {
-  return man && BOOL_CAST(man->settings.flags & MF_CLIENT_AUTH);
+    return man && BOOL_CAST(man->settings.flags & MF_CLIENT_AUTH);
 }
 #endif
 
@@ -495,94 +508,102 @@ management_enable_def_auth (const struct management *man)
 
 #define OPENVPN_STATE_CLIENT_BASE   7  /* Base index of client-only states */
 
-void management_set_state (struct management *man,
-			   const int state,
-			   const char *detail,
-                           const in_addr_t *tun_local_ip,
-                           const struct in6_addr *tun_local_ip6,
-                           const struct openvpn_sockaddr *local_addr,
-                           const struct openvpn_sockaddr *remote_addr);
+void management_set_state(struct management *man,
+                          const int state,
+                          const char *detail,
+                          const in_addr_t *tun_local_ip,
+                          const struct in6_addr *tun_local_ip6,
+                          const struct openvpn_sockaddr *local_addr,
+                          const struct openvpn_sockaddr *remote_addr);
 
 /*
  * The management object keeps track of OpenVPN --echo
  * parameters.
  */
-void management_echo (struct management *man, const char *string, const bool pull);
+void management_echo(struct management *man, const char *string, const bool pull);
 
 /*
  * OpenVPN calls here to indicate a password failure
  */
 
-void management_auth_failure (struct management *man, const char *type, const char *reason);
+void management_auth_failure(struct management *man, const char *type, const char *reason);
 
 /*
  * Echo an authentication token to management interface
  */
-void management_auth_token (struct management *man, const char *token);
+void management_auth_token(struct management *man, const char *token);
 
 /*
  * These functions drive the bytecount in/out counters.
  */
 
-void man_bytecount_output_client (struct management *man);
+void man_bytecount_output_client(struct management *man);
 
 static inline void
-man_bytecount_possible_output_client (struct management *man)
+man_bytecount_possible_output_client(struct management *man)
 {
-  if (man->connection.bytecount_update_seconds > 0
-      && now >= man->connection.bytecount_last_update
-      + man->connection.bytecount_update_seconds)
-    man_bytecount_output_client (man);
+    if (man->connection.bytecount_update_seconds > 0
+        && now >= man->connection.bytecount_last_update
+        + man->connection.bytecount_update_seconds)
+    {
+        man_bytecount_output_client(man);
+    }
 }
 
 static inline void
-management_bytes_out_client (struct management *man, const int size)
+management_bytes_out_client(struct management *man, const int size)
 {
-  man->persist.bytes_out += size;
-  man_bytecount_possible_output_client (man);
+    man->persist.bytes_out += size;
+    man_bytecount_possible_output_client(man);
 }
 
 static inline void
-management_bytes_in_client (struct management *man, const int size)
+management_bytes_in_client(struct management *man, const int size)
 {
-  man->persist.bytes_in += size;
-  man_bytecount_possible_output_client (man);
+    man->persist.bytes_in += size;
+    man_bytecount_possible_output_client(man);
 }
 
 static inline void
-management_bytes_out (struct management *man, const int size)
+management_bytes_out(struct management *man, const int size)
 {
-  if (!(man->persist.callback.flags & MCF_SERVER))
-    management_bytes_out_client (man, size);
+    if (!(man->persist.callback.flags & MCF_SERVER))
+    {
+        management_bytes_out_client(man, size);
+    }
 }
 
 static inline void
-management_bytes_in (struct management *man, const int size)
+management_bytes_in(struct management *man, const int size)
 {
-  if (!(man->persist.callback.flags & MCF_SERVER))
-    management_bytes_in_client (man, size);
+    if (!(man->persist.callback.flags & MCF_SERVER))
+    {
+        management_bytes_in_client(man, size);
+    }
 }
 
 #ifdef MANAGEMENT_DEF_AUTH
 
 static inline void
-management_bytes_server (struct management *man,
-			 const counter_type *bytes_in_total,
-			 const counter_type *bytes_out_total,
-			 struct man_def_auth_context *mdac)
+management_bytes_server(struct management *man,
+                        const counter_type *bytes_in_total,
+                        const counter_type *bytes_out_total,
+                        struct man_def_auth_context *mdac)
 {
-  void man_bytecount_output_server (struct management *man,
-				    const counter_type *bytes_in_total,
-				    const counter_type *bytes_out_total,
-				    struct man_def_auth_context *mdac);
+    void man_bytecount_output_server(struct management *man,
+                                     const counter_type *bytes_in_total,
+                                     const counter_type *bytes_out_total,
+                                     struct man_def_auth_context *mdac);
 
-  if (man->connection.bytecount_update_seconds > 0
-      && now >= mdac->bytecount_last_update + man->connection.bytecount_update_seconds
-      && (mdac->flags & (DAF_CONNECTION_ESTABLISHED|DAF_CONNECTION_CLOSED)) == DAF_CONNECTION_ESTABLISHED)
-    man_bytecount_output_server (man, bytes_in_total, bytes_out_total, mdac);
+    if (man->connection.bytecount_update_seconds > 0
+        && now >= mdac->bytecount_last_update + man->connection.bytecount_update_seconds
+        && (mdac->flags & (DAF_CONNECTION_ESTABLISHED|DAF_CONNECTION_CLOSED)) == DAF_CONNECTION_ESTABLISHED)
+    {
+        man_bytecount_output_server(man, bytes_in_total, bytes_out_total, mdac);
+    }
 }
 
 #endif /* MANAGEMENT_DEF_AUTH */
 
-#endif
-#endif
+#endif /* ifdef ENABLE_MANAGEMENT */
+#endif /* ifndef MANAGE_H */

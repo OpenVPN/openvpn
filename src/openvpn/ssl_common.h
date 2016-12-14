@@ -107,13 +107,13 @@
  * @ingroup control_processor
  */
 struct key_source {
-  uint8_t pre_master[48];       /**< Random used for master secret
+    uint8_t pre_master[48];     /**< Random used for master secret
                                  *   generation, provided only by client
                                  *   OpenVPN peer. */
-  uint8_t random1[32];          /**< Seed used for master secret
+    uint8_t random1[32];        /**< Seed used for master secret
                                  *   generation, provided by both client
                                  *   and server. */
-  uint8_t random2[32];          /**< Seed used for key expansion, provided
+    uint8_t random2[32];        /**< Seed used for key expansion, provided
                                  *   by both client and server. */
 };
 
@@ -124,8 +124,8 @@ struct key_source {
  * @ingroup control_processor
  */
 struct key_source2 {
-  struct key_source client;     /**< Random provided by client. */
-  struct key_source server;     /**< Random provided by server. */
+    struct key_source client;   /**< Random provided by client. */
+    struct key_source server;   /**< Random provided by server. */
 };
 
 /**
@@ -148,58 +148,58 @@ struct key_source2 {
  */
 struct key_state
 {
-  int state;
+    int state;
 
-  /**
-   * Key id for this key_state,  inherited from struct tls_session.
-   * @see tls_session::key_id.
-   */
-  int key_id;
+    /**
+     * Key id for this key_state,  inherited from struct tls_session.
+     * @see tls_session::key_id.
+     */
+    int key_id;
 
-  struct key_state_ssl ks_ssl;	/* contains SSL object and BIOs for the control channel */
+    struct key_state_ssl ks_ssl; /* contains SSL object and BIOs for the control channel */
 
-  time_t established;		/* when our state went S_ACTIVE */
-  time_t must_negotiate;	/* key negotiation times out if not finished before this time */
-  time_t must_die;		/* this object is destroyed at this time */
+    time_t established;         /* when our state went S_ACTIVE */
+    time_t must_negotiate;      /* key negotiation times out if not finished before this time */
+    time_t must_die;            /* this object is destroyed at this time */
 
-  int initial_opcode;		/* our initial P_ opcode */
-  struct session_id session_id_remote;   /* peer's random session ID */
-  struct link_socket_actual remote_addr; /* peer's IP addr */
+    int initial_opcode;         /* our initial P_ opcode */
+    struct session_id session_id_remote; /* peer's random session ID */
+    struct link_socket_actual remote_addr; /* peer's IP addr */
 
-  struct crypto_options crypto_options;/* data channel crypto options */
+    struct crypto_options crypto_options;/* data channel crypto options */
 
-  struct key_source2 *key_src;         /* source entropy for key expansion */
+    struct key_source2 *key_src;       /* source entropy for key expansion */
 
-  struct buffer plaintext_read_buf;
-  struct buffer plaintext_write_buf;
-  struct buffer ack_write_buf;
+    struct buffer plaintext_read_buf;
+    struct buffer plaintext_write_buf;
+    struct buffer ack_write_buf;
 
-  struct reliable *send_reliable; /* holds a copy of outgoing packets until ACK received */
-  struct reliable *rec_reliable;  /* order incoming ciphertext packets before we pass to TLS */
-  struct reliable_ack *rec_ack;	  /* buffers all packet IDs we want to ACK back to sender */
+    struct reliable *send_reliable; /* holds a copy of outgoing packets until ACK received */
+    struct reliable *rec_reliable; /* order incoming ciphertext packets before we pass to TLS */
+    struct reliable_ack *rec_ack; /* buffers all packet IDs we want to ACK back to sender */
 
-  struct buffer_list *paybuf;
+    struct buffer_list *paybuf;
 
-  counter_type n_bytes;			 /* how many bytes sent/recvd since last key exchange */
-  counter_type n_packets;		 /* how many packets sent/recvd since last key exchange */
+    counter_type n_bytes;                /* how many bytes sent/recvd since last key exchange */
+    counter_type n_packets;              /* how many packets sent/recvd since last key exchange */
 
-  /*
-   * If bad username/password, TLS connection will come up but 'authenticated' will be false.
-   */
-  bool authenticated;
-  time_t auth_deferred_expire;
+    /*
+     * If bad username/password, TLS connection will come up but 'authenticated' will be false.
+     */
+    bool authenticated;
+    time_t auth_deferred_expire;
 
 #ifdef ENABLE_DEF_AUTH
-  /* If auth_deferred is true, authentication is being deferred */
-  bool auth_deferred;
+    /* If auth_deferred is true, authentication is being deferred */
+    bool auth_deferred;
 #ifdef MANAGEMENT_DEF_AUTH
-  unsigned int mda_key_id;
-  unsigned int mda_status;
+    unsigned int mda_key_id;
+    unsigned int mda_status;
 #endif
 #ifdef PLUGIN_DEF_AUTH
-  unsigned int auth_control_status;
-  time_t acf_last_mod;
-  char *auth_control_file;
+    unsigned int auth_control_status;
+    time_t acf_last_mod;
+    char *auth_control_file;
 #endif
 #endif
 };
@@ -207,13 +207,13 @@ struct key_state
 /** Control channel wrapping (--tls-auth/--tls-crypt) context */
 struct tls_wrap_ctx
 {
-  enum {
-    TLS_WRAP_NONE = 0,	/**< No control channel wrapping */
-    TLS_WRAP_AUTH,	/**< Control channel authentication */
-    TLS_WRAP_CRYPT,	/**< Control channel encryption and authentication */
-  } mode;			/**< Control channel wrapping mode */
-  struct crypto_options opt;	/**< Crypto state */
-  struct buffer work;		/**< Work buffer (only for --tls-crypt) */
+    enum {
+        TLS_WRAP_NONE = 0, /**< No control channel wrapping */
+        TLS_WRAP_AUTH,  /**< Control channel authentication */
+        TLS_WRAP_CRYPT, /**< Control channel encryption and authentication */
+    } mode;                     /**< Control channel wrapping mode */
+    struct crypto_options opt;  /**< Crypto state */
+    struct buffer work;         /**< Work buffer (only for --tls-crypt) */
 };
 
 /*
@@ -222,129 +222,129 @@ struct tls_wrap_ctx
  */
 struct tls_options
 {
-  /* our master TLS context from which all SSL objects derived */
-  struct tls_root_ctx ssl_ctx;
+    /* our master TLS context from which all SSL objects derived */
+    struct tls_root_ctx ssl_ctx;
 
-  /* data channel cipher, hmac, and key lengths */
-  struct key_type key_type;
+    /* data channel cipher, hmac, and key lengths */
+    struct key_type key_type;
 
-  /* true if we are a TLS server, client otherwise */
-  bool server;
+    /* true if we are a TLS server, client otherwise */
+    bool server;
 
-  /* if true, don't xmit until first packet from peer is received */
-  bool xmit_hold;
+    /* if true, don't xmit until first packet from peer is received */
+    bool xmit_hold;
 
 #ifdef ENABLE_OCC
-  /* local and remote options strings
-     that must match between client and server */
-  const char *local_options;
-  const char *remote_options;
+    /* local and remote options strings
+     * that must match between client and server */
+    const char *local_options;
+    const char *remote_options;
 #endif
 
-  /* from command line */
-  int key_method;
-  bool replay;
-  bool single_session;
+    /* from command line */
+    int key_method;
+    bool replay;
+    bool single_session;
 #ifdef ENABLE_OCC
-  bool disable_occ;
+    bool disable_occ;
 #endif
-  int mode;
-  bool pull;
+    int mode;
+    bool pull;
 #ifdef ENABLE_PUSH_PEER_INFO
-  int push_peer_info_detail;
+    int push_peer_info_detail;
 #endif
-  int transition_window;
-  int handshake_window;
-  interval_t packet_timeout;
-  int renegotiate_bytes;
-  int renegotiate_packets;
-  interval_t renegotiate_seconds;
+    int transition_window;
+    int handshake_window;
+    interval_t packet_timeout;
+    int renegotiate_bytes;
+    int renegotiate_packets;
+    interval_t renegotiate_seconds;
 
-  /* cert verification parms */
-  const char *verify_command;
-  const char *verify_export_cert;
-  int verify_x509_type;
-  const char *verify_x509_name;
-  const char *crl_file;
-  const char *crl_file_inline;
-  int ns_cert_type;
-  unsigned remote_cert_ku[MAX_PARMS];
-  const char *remote_cert_eku;
-  uint8_t *verify_hash;
-  char *x509_username_field;
+    /* cert verification parms */
+    const char *verify_command;
+    const char *verify_export_cert;
+    int verify_x509_type;
+    const char *verify_x509_name;
+    const char *crl_file;
+    const char *crl_file_inline;
+    int ns_cert_type;
+    unsigned remote_cert_ku[MAX_PARMS];
+    const char *remote_cert_eku;
+    uint8_t *verify_hash;
+    char *x509_username_field;
 
-  /* allow openvpn config info to be
-     passed over control channel */
-  bool pass_config_info;
+    /* allow openvpn config info to be
+     * passed over control channel */
+    bool pass_config_info;
 
-  /* struct crypto_option flags */
-  unsigned int crypto_flags;
+    /* struct crypto_option flags */
+    unsigned int crypto_flags;
 
-  int replay_window;                   /* --replay-window parm */
-  int replay_time;                     /* --replay-window parm */
-  bool tcp_mode;
+    int replay_window;                 /* --replay-window parm */
+    int replay_time;                   /* --replay-window parm */
+    bool tcp_mode;
 
-  const char *config_ciphername;
-  const char *config_authname;
-  bool ncp_enabled;
+    const char *config_ciphername;
+    const char *config_authname;
+    bool ncp_enabled;
 
-  /** TLS handshake wrapping state */
-  struct tls_wrap_ctx tls_wrap;
+    /** TLS handshake wrapping state */
+    struct tls_wrap_ctx tls_wrap;
 
-  /* frame parameters for TLS control channel */
-  struct frame frame;
+    /* frame parameters for TLS control channel */
+    struct frame frame;
 
-  /* used for username/password authentication */
-  const char *auth_user_pass_verify_script;
-  bool auth_user_pass_verify_script_via_file;
-  const char *tmp_dir;
-  const char *auth_user_pass_file;
-  bool auth_token_generate;     /**< Generate auth-tokens on successful user/pass auth,
+    /* used for username/password authentication */
+    const char *auth_user_pass_verify_script;
+    bool auth_user_pass_verify_script_via_file;
+    const char *tmp_dir;
+    const char *auth_user_pass_file;
+    bool auth_token_generate;   /**< Generate auth-tokens on successful user/pass auth,
                                  *   set via options->auth_token_generate. */
-  unsigned int auth_token_lifetime;
+    unsigned int auth_token_lifetime;
 
-  /* use the client-config-dir as a positive authenticator */
-  const char *client_config_dir_exclusive;
+    /* use the client-config-dir as a positive authenticator */
+    const char *client_config_dir_exclusive;
 
-  /* instance-wide environment variable set */
-  struct env_set *es;
-  const struct plugin_list *plugins;
+    /* instance-wide environment variable set */
+    struct env_set *es;
+    const struct plugin_list *plugins;
 
-  /* compression parms */
+    /* compression parms */
 #ifdef USE_COMP
-  struct compress_options comp_options;
+    struct compress_options comp_options;
 #endif
 
-  /* configuration file SSL-related boolean and low-permutation options */
-# define SSLF_CLIENT_CERT_NOT_REQUIRED (1<<0)
-# define SSLF_CLIENT_CERT_OPTIONAL     (1<<1)
-# define SSLF_USERNAME_AS_COMMON_NAME  (1<<2)
-# define SSLF_AUTH_USER_PASS_OPTIONAL  (1<<3)
-# define SSLF_OPT_VERIFY               (1<<4)
-# define SSLF_CRL_VERIFY_DIR           (1<<5)
-# define SSLF_TLS_VERSION_MIN_SHIFT    6
-# define SSLF_TLS_VERSION_MIN_MASK     0xF /* (uses bit positions 6 to 9) */
-# define SSLF_TLS_VERSION_MAX_SHIFT    10
-# define SSLF_TLS_VERSION_MAX_MASK     0xF /* (uses bit positions 10 to 13) */
-  unsigned int ssl_flags;
+    /* configuration file SSL-related boolean and low-permutation options */
+#define SSLF_CLIENT_CERT_NOT_REQUIRED (1<<0)
+#define SSLF_CLIENT_CERT_OPTIONAL     (1<<1)
+#define SSLF_USERNAME_AS_COMMON_NAME  (1<<2)
+#define SSLF_AUTH_USER_PASS_OPTIONAL  (1<<3)
+#define SSLF_OPT_VERIFY               (1<<4)
+#define SSLF_CRL_VERIFY_DIR           (1<<5)
+#define SSLF_TLS_VERSION_MIN_SHIFT    6
+#define SSLF_TLS_VERSION_MIN_MASK     0xF  /* (uses bit positions 6 to 9) */
+#define SSLF_TLS_VERSION_MAX_SHIFT    10
+#define SSLF_TLS_VERSION_MAX_MASK     0xF  /* (uses bit positions 10 to 13) */
+    unsigned int ssl_flags;
 
 #ifdef MANAGEMENT_DEF_AUTH
-  struct man_def_auth_context *mda_context;
+    struct man_def_auth_context *mda_context;
 #endif
 
-  const struct x509_track *x509_track;
+    const struct x509_track *x509_track;
 
 #ifdef ENABLE_CLIENT_CR
-  const struct static_challenge_info *sci;
+    const struct static_challenge_info *sci;
 #endif
 
-  /* --gremlin bits */
-  int gremlin;
+    /* --gremlin bits */
+    int gremlin;
 
-  /* Keying Material Exporter [RFC 5705] parameters */
-  const char *ekm_label;
-  size_t ekm_label_size;
-  size_t ekm_size;
+    /* Keying Material Exporter [RFC 5705] parameters */
+    const char *ekm_label;
+    size_t ekm_label_size;
+    size_t ekm_size;
 };
 
 /** @addtogroup control_processor
@@ -383,43 +383,43 @@ struct tls_options
  */
 struct tls_session
 {
-  /* const options and config info */
-  struct tls_options *opt;
+    /* const options and config info */
+    struct tls_options *opt;
 
-  /* during hard reset used to control burst retransmit */
-  bool burst;
+    /* during hard reset used to control burst retransmit */
+    bool burst;
 
-  /* authenticate control packets */
-  struct tls_wrap_ctx tls_wrap;
+    /* authenticate control packets */
+    struct tls_wrap_ctx tls_wrap;
 
-  int initial_opcode;		/* our initial P_ opcode */
-  struct session_id session_id;	/* our random session ID */
+    int initial_opcode;         /* our initial P_ opcode */
+    struct session_id session_id; /* our random session ID */
 
-  /**
-   * The current active key id, used to keep track of renegotiations.
-   * key_id increments with each soft reset to KEY_ID_MASK then recycles back
-   * to 1.  This way you know that if key_id is 0, it is the first key.
-   */
-  int key_id;
+    /**
+     * The current active key id, used to keep track of renegotiations.
+     * key_id increments with each soft reset to KEY_ID_MASK then recycles back
+     * to 1.  This way you know that if key_id is 0, it is the first key.
+     */
+    int key_id;
 
-  int limit_next;               /* used for traffic shaping on the control channel */
+    int limit_next;             /* used for traffic shaping on the control channel */
 
-  int verify_maxlevel;
+    int verify_maxlevel;
 
-  char *common_name;
+    char *common_name;
 
-  struct cert_hash_set *cert_hash_set;
+    struct cert_hash_set *cert_hash_set;
 
 #ifdef ENABLE_PF
-  uint32_t common_name_hashval;
+    uint32_t common_name_hashval;
 #endif
 
-  bool verified;                /* true if peer certificate was verified against CA */
+    bool verified;              /* true if peer certificate was verified against CA */
 
-  /* not-yet-authenticated incoming client */
-  struct link_socket_actual untrusted_addr;
+    /* not-yet-authenticated incoming client */
+    struct link_socket_actual untrusted_addr;
 
-  struct key_state key[KS_SIZE];
+    struct key_state key[KS_SIZE];
 };
 
 /** @addtogroup control_processor
@@ -477,89 +477,89 @@ struct tls_session
  */
 struct tls_multi
 {
-  /* used to coordinate access between main thread and TLS thread */
-  /*MUTEX_PTR_DEFINE (mutex);*/
+    /* used to coordinate access between main thread and TLS thread */
+    /*MUTEX_PTR_DEFINE (mutex);*/
 
-  /* const options and config info */
-  struct tls_options opt;
+    /* const options and config info */
+    struct tls_options opt;
 
-  struct key_state* key_scan[KEY_SCAN_SIZE];
-                                /**< List of \c key_state objects in the
-                                 *   order they should be scanned by data
-                                 *   channel modules. */
+    struct key_state *key_scan[KEY_SCAN_SIZE];
+    /**< List of \c key_state objects in the
+     *   order they should be scanned by data
+     *   channel modules. */
 
-  /*
-   * used by tls_pre_encrypt to communicate the encrypt key
-   * to tls_post_encrypt()
-   */
-  struct key_state *save_ks;	/* temporary pointer used between pre/post routines */
+    /*
+     * used by tls_pre_encrypt to communicate the encrypt key
+     * to tls_post_encrypt()
+     */
+    struct key_state *save_ks;  /* temporary pointer used between pre/post routines */
 
-  /*
-   * Used to return outgoing address from
-   * tls_multi_process.
-   */
-  struct link_socket_actual to_link_addr;
+    /*
+     * Used to return outgoing address from
+     * tls_multi_process.
+     */
+    struct link_socket_actual to_link_addr;
 
-  int n_sessions;               /**< Number of sessions negotiated thus
+    int n_sessions;             /**< Number of sessions negotiated thus
                                  *   far. */
 
-  /*
-   * Number of errors.
-   */
-  int n_hard_errors;   /* errors due to TLS negotiation failure */
-  int n_soft_errors;   /* errors due to unrecognized or failed-to-authenticate incoming packets */
+    /*
+     * Number of errors.
+     */
+    int n_hard_errors; /* errors due to TLS negotiation failure */
+    int n_soft_errors; /* errors due to unrecognized or failed-to-authenticate incoming packets */
 
-  /*
-   * Our locked common name, username, and cert hashes (cannot change during the life of this tls_multi object)
-   */
-  char *locked_cn;
-  char *locked_username;
-  struct cert_hash_set *locked_cert_hash_set;
+    /*
+     * Our locked common name, username, and cert hashes (cannot change during the life of this tls_multi object)
+     */
+    char *locked_cn;
+    char *locked_username;
+    struct cert_hash_set *locked_cert_hash_set;
 
 #ifdef ENABLE_DEF_AUTH
-  /*
-   * An error message to send to client on AUTH_FAILED
-   */
-  char *client_reason;
+    /*
+     * An error message to send to client on AUTH_FAILED
+     */
+    char *client_reason;
 
-  /* Time of last call to tls_authentication_status */
-  time_t tas_last;
+    /* Time of last call to tls_authentication_status */
+    time_t tas_last;
 #endif
 
 #if P2MP_SERVER
-  /*
-   * A multi-line string of general-purpose info received from peer
-   * over control channel.
-   */
-  char *peer_info;
+    /*
+     * A multi-line string of general-purpose info received from peer
+     * over control channel.
+     */
+    char *peer_info;
 #endif
 
-  /* For P_DATA_V2 */
-  uint32_t peer_id;
-  bool use_peer_id;
+    /* For P_DATA_V2 */
+    uint32_t peer_id;
+    bool use_peer_id;
 
-  char *remote_ciphername;	/**< cipher specified in peer's config file */
+    char *remote_ciphername;    /**< cipher specified in peer's config file */
 
-  char *auth_token;      /**< If server sends a generated auth-token,
+    char *auth_token;    /**< If server sends a generated auth-token,
                           *   this is the token to use for future
                           *   user/pass authentications in this session.
                           */
-  time_t auth_token_tstamp; /**< timestamp of the generated token */
-  bool auth_token_sent;  /**< If server uses --auth-gen-token and
-                          *   token has been sent to client */
-  /*
-   * Our session objects.
-   */
-  struct tls_session session[TM_SIZE];
-                                /**< Array of \c tls_session objects
-                                 *   representing control channel
-                                 *   sessions with the remote peer. */
+    time_t auth_token_tstamp; /**< timestamp of the generated token */
+    bool auth_token_sent; /**< If server uses --auth-gen-token and
+                           *   token has been sent to client */
+    /*
+     * Our session objects.
+     */
+    struct tls_session session[TM_SIZE];
+    /**< Array of \c tls_session objects
+     *   representing control channel
+     *   sessions with the remote peer. */
 };
 
 
 #define SHOW_TLS_CIPHER_LIST_WARNING \
-  "Be aware that that whether a cipher suite in this list can actually work\n" \
-  "depends on the specific setup of both peers. See the man page entries of\n" \
-  "--tls-cipher and --show-tls for more details.\n\n"
+    "Be aware that that whether a cipher suite in this list can actually work\n" \
+    "depends on the specific setup of both peers. See the man page entries of\n" \
+    "--tls-cipher and --show-tls for more details.\n\n"
 
 #endif /* SSL_COMMON_H_ */

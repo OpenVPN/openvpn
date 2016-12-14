@@ -30,11 +30,11 @@
 
 /* branch prediction hints */
 #if defined(__GNUC__)
-# define likely(x)       __builtin_expect((x),1)
-# define unlikely(x)     __builtin_expect((x),0)
+#define likely(x)       __builtin_expect((x),1)
+#define unlikely(x)     __builtin_expect((x),0)
 #else
-# define likely(x)      (x)
-# define unlikely(x)    (x)
+#define likely(x)      (x)
+#define unlikely(x)    (x)
 #endif
 
 #ifdef _WIN32
@@ -45,7 +45,7 @@
 #define srandom srand
 #endif
 
-#ifdef _MSC_VER // Visual Studio
+#ifdef _MSC_VER /* Visual Studio */
 #define __func__ __FUNCTION__
 #define __attribute__(x)
 #endif
@@ -61,15 +61,15 @@
 #endif
 
 #ifdef HAVE_SYS_WAIT_H
-# include <sys/wait.h>
+#include <sys/wait.h>
 #endif
 
 #ifndef _WIN32
 #ifndef WEXITSTATUS
-# define WEXITSTATUS(stat_val) ((unsigned)(stat_val) >> 8)
+#define WEXITSTATUS(stat_val) ((unsigned)(stat_val) >> 8)
 #endif
 #ifndef WIFEXITED
-# define WIFEXITED(stat_val) (((stat_val) & 255) == 0)
+#define WIFEXITED(stat_val) (((stat_val) & 255) == 0)
 #endif
 #endif
 
@@ -359,10 +359,10 @@
 #endif /* TARGET_DARWIN */
 
 #ifdef _WIN32
- // Missing declarations for MinGW 32.
- // #if !defined(__MINGW64_VERSION_MAJOR) || __MINGW64_VERSION_MAJOR < 2
- typedef int MIB_TCP_STATE;
- // #endif
+/* Missing declarations for MinGW 32. */
+/* #if !defined(__MINGW64_VERSION_MAJOR) || __MINGW64_VERSION_MAJOR < 2 */
+typedef int MIB_TCP_STATE;
+/* #endif */
 #include <naptypes.h>
 #include <ntddndis.h>
 #include <iphlpapi.h>
@@ -385,12 +385,12 @@
  * not to build a working executable.
  */
 #ifdef PEDANTIC
-# undef HAVE_CPP_VARARG_MACRO_GCC
-# undef HAVE_CPP_VARARG_MACRO_ISO
-# undef EMPTY_ARRAY_SIZE
-# define EMPTY_ARRAY_SIZE 1
-# undef inline
-# define inline
+#undef HAVE_CPP_VARARG_MACRO_GCC
+#undef HAVE_CPP_VARARG_MACRO_ISO
+#undef EMPTY_ARRAY_SIZE
+#define EMPTY_ARRAY_SIZE 1
+#undef inline
+#define inline
 #endif
 
 /*
@@ -422,7 +422,7 @@
  * Does this platform support linux-style IP_PKTINFO
  * or bsd-style IP_RECVDSTADDR ?
  */
-#if defined(ENABLE_MULTIHOME) && ((defined(HAVE_IN_PKTINFO)&&defined(IP_PKTINFO)) || defined(IP_RECVDSTADDR)) && defined(HAVE_MSGHDR) && defined(HAVE_CMSGHDR) && defined(HAVE_IOVEC) && defined(CMSG_FIRSTHDR) && defined(CMSG_NXTHDR) && defined(HAVE_RECVMSG) && defined(HAVE_SENDMSG)
+#if defined(ENABLE_MULTIHOME) && ((defined(HAVE_IN_PKTINFO) && defined(IP_PKTINFO)) || defined(IP_RECVDSTADDR)) && defined(HAVE_MSGHDR) && defined(HAVE_CMSGHDR) && defined(HAVE_IOVEC) && defined(CMSG_FIRSTHDR) && defined(CMSG_NXTHDR) && defined(HAVE_RECVMSG) && defined(HAVE_SENDMSG)
 #define ENABLE_IP_PKTINFO 1
 #else
 #define ENABLE_IP_PKTINFO 0
@@ -488,9 +488,9 @@ typedef int socket_descriptor_t;
 #endif
 
 static inline int
-socket_defined (const socket_descriptor_t sd)
+socket_defined(const socket_descriptor_t sd)
 {
-  return sd != SOCKET_UNDEFINED;
+    return sd != SOCKET_UNDEFINED;
 }
 
 /*
@@ -665,7 +665,7 @@ socket_defined (const socket_descriptor_t sd)
 #endif
 
 /*
- * Do we have the capability to support the AUTO_USERID feature? 
+ * Do we have the capability to support the AUTO_USERID feature?
  */
 #if defined(ENABLE_AUTO_USERID)
 #define AUTO_USERID 1
@@ -690,8 +690,8 @@ socket_defined (const socket_descriptor_t sd)
 /*
  * Compression support
  */
-#if defined(ENABLE_LZO) || defined(ENABLE_LZ4) || \
-    defined(ENABLE_COMP_STUB)
+#if defined(ENABLE_LZO) || defined(ENABLE_LZ4)    \
+    || defined(ENABLE_COMP_STUB)
 #define USE_COMP
 #endif
 
@@ -702,4 +702,4 @@ socket_defined (const socket_descriptor_t sd)
 #define ENABLE_MEMSTATS
 #endif
 
-#endif
+#endif /* ifndef SYSHEAD_H */

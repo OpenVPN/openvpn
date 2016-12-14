@@ -24,71 +24,78 @@
  */
 
 /*
-#include "config.h"
-#include "syshead.h"
-#include "common.h"
-#include "buffer.h"
-#include "error.h"
-*/
+ #include "config.h"
+ #include "syshead.h"
+ #include "common.h"
+ #include "buffer.h"
+ #include "error.h"
+ */
 
 #include "common_osx.h"
 #include <err.h>
 
-void printCFString(CFStringRef str)
+void
+printCFString(CFStringRef str)
 {
-  CFIndex bufferLength = CFStringGetLength(str) + 1;
-  char *pBuffer = (char*)malloc(sizeof(char) * bufferLength);
-  CFStringGetCString(str, pBuffer, bufferLength, kCFStringEncodingUTF8);
-  warnx("%s\n", pBuffer);
-  free(pBuffer);
+    CFIndex bufferLength = CFStringGetLength(str) + 1;
+    char *pBuffer = (char *)malloc(sizeof(char) * bufferLength);
+    CFStringGetCString(str, pBuffer, bufferLength, kCFStringEncodingUTF8);
+    warnx("%s\n", pBuffer);
+    free(pBuffer);
 }
 
-char* cfstringToCstr(CFStringRef str)
+char *
+cfstringToCstr(CFStringRef str)
 {
-  CFIndex bufferLength = CFStringGetLength(str) + 1;
-  char *pBuffer = (char*)malloc(sizeof(char) * bufferLength);
-  CFStringGetCString(str, pBuffer, bufferLength, kCFStringEncodingUTF8);
-  return pBuffer;
+    CFIndex bufferLength = CFStringGetLength(str) + 1;
+    char *pBuffer = (char *)malloc(sizeof(char) * bufferLength);
+    CFStringGetCString(str, pBuffer, bufferLength, kCFStringEncodingUTF8);
+    return pBuffer;
 }
 
-void appendHexChar(CFMutableStringRef str, unsigned char halfByte)
+void
+appendHexChar(CFMutableStringRef str, unsigned char halfByte)
 {
-  if (halfByte < 10)
+    if (halfByte < 10)
     {
-      CFStringAppendFormat (str, NULL, CFSTR("%d"), halfByte);
+        CFStringAppendFormat(str, NULL, CFSTR("%d"), halfByte);
     }
-  else
+    else
     {
-      char tmp[2] = {'A'+halfByte-10, 0};
-      CFStringAppendCString(str, tmp, kCFStringEncodingUTF8);
+        char tmp[2] = {'A'+halfByte-10, 0};
+        CFStringAppendCString(str, tmp, kCFStringEncodingUTF8);
     }
 }
 
-CFStringRef createHexString(unsigned char *pData, int length)
+CFStringRef
+createHexString(unsigned char *pData, int length)
 {
-  unsigned char byte, low, high;
-  int i;
-  CFMutableStringRef str = CFStringCreateMutable(NULL, 0);
+    unsigned char byte, low, high;
+    int i;
+    CFMutableStringRef str = CFStringCreateMutable(NULL, 0);
 
-  for(i = 0;i < length;i++)
+    for (i = 0; i < length; i++)
     {
-      byte = pData[i];
-      low = byte & 0x0F;
-      high = (byte >> 4);
+        byte = pData[i];
+        low = byte & 0x0F;
+        high = (byte >> 4);
 
-      appendHexChar(str, high);
-      appendHexChar(str, low);
+        appendHexChar(str, high);
+        appendHexChar(str, low);
 
-      if (i != (length - 1))
-        CFStringAppendCString(str, " ", kCFStringEncodingUTF8);
+        if (i != (length - 1))
+        {
+            CFStringAppendCString(str, " ", kCFStringEncodingUTF8);
+        }
     }
 
-  return str;
+    return str;
 }
 
-void printHex(unsigned char *pData, int length)
+void
+printHex(unsigned char *pData, int length)
 {
-  CFStringRef hexStr = createHexString(pData, length);
-  printCFString(hexStr);
-  CFRelease(hexStr);
+    CFStringRef hexStr = createHexString(pData, length);
+    printCFString(hexStr);
+    CFRelease(hexStr);
 }

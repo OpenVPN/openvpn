@@ -55,12 +55,12 @@
 
 /** Structure containing the hash for a single certificate */
 struct cert_hash {
-  unsigned char sha256_hash[256/8];
+    unsigned char sha256_hash[256/8];
 };
 
 /** Structure containing the hashes for a full certificate chain */
 struct cert_hash_set {
-  struct cert_hash *ch[MAX_CERT_DEPTH]; /**< Array of certificate hashes */
+    struct cert_hash *ch[MAX_CERT_DEPTH]; /**< Array of certificate hashes */
 };
 
 #define VERIFY_X509_NONE                0
@@ -79,7 +79,7 @@ struct cert_hash_set {
  *
  * TODO: document this function
  */
-int tls_authentication_status (struct tls_multi *multi, const int latency);
+int tls_authentication_status(struct tls_multi *multi, const int latency);
 
 /** Check whether the \a ks \c key_state is ready to receive data channel
  *   packets.
@@ -94,46 +94,46 @@ int tls_authentication_status (struct tls_multi *multi, const int latency);
 /**
  * Remove the given key state's auth control file, if it exists.
  *
- * @param ks	The key state the remove the file for
+ * @param ks    The key state the remove the file for
  */
-void key_state_rm_auth_control_file (struct key_state *ks);
+void key_state_rm_auth_control_file(struct key_state *ks);
 
 /**
  * Frees the given set of certificate hashes.
  *
- * @param chs	The certificate hash set to free.
+ * @param chs   The certificate hash set to free.
  */
-void cert_hash_free (struct cert_hash_set *chs);
+void cert_hash_free(struct cert_hash_set *chs);
 
 /**
  * Locks the certificate hash set used in the given tunnel
  *
- * @param multi	The tunnel to lock
+ * @param multi The tunnel to lock
  */
-void tls_lock_cert_hash_set (struct tls_multi *multi);
+void tls_lock_cert_hash_set(struct tls_multi *multi);
 
 /**
  * Locks the common name field for the given tunnel
  *
- * @param multi	The tunnel to lock
+ * @param multi The tunnel to lock
  */
-void tls_lock_common_name (struct tls_multi *multi);
+void tls_lock_common_name(struct tls_multi *multi);
 
 /**
  * Returns the common name field for the given tunnel
  *
- * @param multi	The tunnel to return the common name for
- * @param null	Whether null may be returned. If not, "UNDEF" will be returned.
+ * @param multi The tunnel to return the common name for
+ * @param null  Whether null may be returned. If not, "UNDEF" will be returned.
  */
-const char *tls_common_name (const struct tls_multi* multi, const bool null);
+const char *tls_common_name(const struct tls_multi *multi, const bool null);
 
 /**
  * Returns the username field for the given tunnel
  *
- * @param multi	The tunnel to return the username for
- * @param null	Whether null may be returned. If not, "UNDEF" will be returned.
+ * @param multi The tunnel to return the username for
+ * @param null  Whether null may be returned. If not, "UNDEF" will be returned.
  */
-const char *tls_username (const struct tls_multi *multi, const bool null);
+const char *tls_username(const struct tls_multi *multi, const bool null);
 
 /**
  * Compares certificates hashes, returns true if hashes are equal.
@@ -141,33 +141,33 @@ const char *tls_username (const struct tls_multi *multi, const bool null);
  * @param chs1 cert 1 hash set
  * @param chs2 cert 2 hash set
  */
-bool cert_hash_compare (const struct cert_hash_set *chs1, const struct cert_hash_set *chs2);
+bool cert_hash_compare(const struct cert_hash_set *chs1, const struct cert_hash_set *chs2);
 
 #ifdef ENABLE_PF
 
 /**
  * Retrieve the given tunnel's common name and its hash value.
  *
- * @param multi		The tunnel to use
- * @param cn		Common name's string
- * @param cn_hash	Common name's hash value
+ * @param multi         The tunnel to use
+ * @param cn            Common name's string
+ * @param cn_hash       Common name's hash value
  *
  * @return true if the common name was set, false otherwise.
  */
 static inline bool
-tls_common_name_hash (const struct tls_multi *multi, const char **cn, uint32_t *cn_hash)
+tls_common_name_hash(const struct tls_multi *multi, const char **cn, uint32_t *cn_hash)
 {
-  if (multi)
+    if (multi)
     {
-      const struct tls_session *s = &multi->session[TM_ACTIVE];
-      if (s->common_name && s->common_name[0] != '\0')
-	{
-	  *cn = s->common_name;
-	  *cn_hash = s->common_name_hashval;
-	  return true;
-	}
+        const struct tls_session *s = &multi->session[TM_ACTIVE];
+        if (s->common_name && s->common_name[0] != '\0')
+        {
+            *cn = s->common_name;
+            *cn_hash = s->common_name_hashval;
+            return true;
+        }
     }
-  return false;
+    return false;
 }
 
 #endif
@@ -180,32 +180,32 @@ tls_common_name_hash (const struct tls_multi *multi, const char **cn, uint32_t *
  * session's primary key state's authenticated field. Authentication may also
  * be deferred, in which case the key state's auth_deferred field is filled in.
  *
- * @param up		The username and password to verify.
- * @param multi		The TLS multi structure to verify usernames against.
- * @param session	The current TLS session
+ * @param up            The username and password to verify.
+ * @param multi         The TLS multi structure to verify usernames against.
+ * @param session       The current TLS session
  *
  */
 void verify_user_pass(struct user_pass *up, struct tls_multi *multi,
-    struct tls_session *session);
+                      struct tls_session *session);
 
 /**
  * Perform final authentication checks, including locking of the cn, the allowed
  * certificate hashes, and whether a client config entry exists in the
  * client config directory.
  *
- * @param multi		The TLS multi structure to verify locked structures.
- * @param session	The current TLS session
+ * @param multi         The TLS multi structure to verify locked structures.
+ * @param session       The current TLS session
  *
  */
 void verify_final_auth_checks(struct tls_multi *multi, struct tls_session *session);
 
 struct x509_track
 {
-  const struct x509_track *next;
-  const char *name;
-# define XT_FULL_CHAIN (1<<0)
-  unsigned int flags;
-  int nid;
+    const struct x509_track *next;
+    const char *name;
+#define XT_FULL_CHAIN (1<<0)
+    unsigned int flags;
+    int nid;
 };
 
 /*
@@ -222,17 +222,19 @@ struct x509_track
  * TODO: document
  */
 #ifdef MANAGEMENT_DEF_AUTH
-bool tls_authenticate_key (struct tls_multi *multi, const unsigned int mda_key_id, const bool auth, const char *client_reason);
-void man_def_auth_set_client_reason (struct tls_multi *multi, const char *client_reason);
+bool tls_authenticate_key(struct tls_multi *multi, const unsigned int mda_key_id, const bool auth, const char *client_reason);
+
+void man_def_auth_set_client_reason(struct tls_multi *multi, const char *client_reason);
+
 #endif
 
 static inline const char *
-tls_client_reason (struct tls_multi *multi)
+tls_client_reason(struct tls_multi *multi)
 {
 #ifdef ENABLE_DEF_AUTH
-  return multi->client_reason;
+    return multi->client_reason;
 #else
-  return NULL;
+    return NULL;
 #endif
 }
 

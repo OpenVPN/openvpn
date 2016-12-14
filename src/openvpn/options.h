@@ -62,310 +62,310 @@ extern const char title_string[];
 /* certain options are saved before --pull modifications are applied */
 struct options_pre_pull
 {
-  bool tuntap_options_defined;
-  struct tuntap_options tuntap_options;
+    bool tuntap_options_defined;
+    struct tuntap_options tuntap_options;
 
-  bool routes_defined;
-  struct route_option_list *routes;
+    bool routes_defined;
+    struct route_option_list *routes;
 
-  bool routes_ipv6_defined;
-  struct route_ipv6_option_list *routes_ipv6;
+    bool routes_ipv6_defined;
+    struct route_ipv6_option_list *routes_ipv6;
 
-  bool client_nat_defined;
-  struct client_nat_option_list *client_nat;
+    bool client_nat_defined;
+    struct client_nat_option_list *client_nat;
 
-  int foreign_option_index;
+    int foreign_option_index;
 };
 
 #endif
 #if defined(ENABLE_CRYPTO) && !defined(ENABLE_CRYPTO_OPENSSL) && !defined(ENABLE_CRYPTO_MBEDTLS)
-# error "At least one of OpenSSL or mbed TLS needs to be defined."
+#error "At least one of OpenSSL or mbed TLS needs to be defined."
 #endif
 
 struct connection_entry
 {
-  int proto;
-  sa_family_t af;
-  const char* local_port;
-  bool local_port_defined;
-  const char *remote_port;
-  const char *local;
-  const char *remote;
-  bool remote_float;
-  bool bind_defined;
-  bool bind_ipv6_only;
-  bool bind_local;
-  int connect_retry_seconds;
-  int connect_retry_seconds_max;
-  int connect_timeout;
-  struct http_proxy_options *http_proxy_options;
-  const char *socks_proxy_server;
-  const char *socks_proxy_port;
-  const char *socks_proxy_authfile;
+    int proto;
+    sa_family_t af;
+    const char *local_port;
+    bool local_port_defined;
+    const char *remote_port;
+    const char *local;
+    const char *remote;
+    bool remote_float;
+    bool bind_defined;
+    bool bind_ipv6_only;
+    bool bind_local;
+    int connect_retry_seconds;
+    int connect_retry_seconds_max;
+    int connect_timeout;
+    struct http_proxy_options *http_proxy_options;
+    const char *socks_proxy_server;
+    const char *socks_proxy_port;
+    const char *socks_proxy_authfile;
 
-  int tun_mtu;           /* MTU of tun device */
-  bool tun_mtu_defined;  /* true if user overriding parm with command line option */
-  int tun_mtu_extra;
-  bool tun_mtu_extra_defined;
-  int link_mtu;          /* MTU of device over which tunnel packets pass via TCP/UDP */
-  bool link_mtu_defined; /* true if user overriding parm with command line option */
+    int tun_mtu;         /* MTU of tun device */
+    bool tun_mtu_defined; /* true if user overriding parm with command line option */
+    int tun_mtu_extra;
+    bool tun_mtu_extra_defined;
+    int link_mtu;        /* MTU of device over which tunnel packets pass via TCP/UDP */
+    bool link_mtu_defined; /* true if user overriding parm with command line option */
 
-  /* Advanced MTU negotiation and datagram fragmentation options */
-  int mtu_discover_type; /* used if OS supports setting Path MTU discovery options on socket */
+    /* Advanced MTU negotiation and datagram fragmentation options */
+    int mtu_discover_type; /* used if OS supports setting Path MTU discovery options on socket */
 
-  int fragment;          /* internal fragmentation size */
-  int mssfix;            /* Upper bound on TCP MSS */
-  bool mssfix_default;   /* true if --mssfix was supplied without a parameter */
+    int fragment;        /* internal fragmentation size */
+    int mssfix;          /* Upper bound on TCP MSS */
+    bool mssfix_default; /* true if --mssfix was supplied without a parameter */
 
-  int explicit_exit_notification;  /* Explicitly tell peer when we are exiting via OCC_EXIT or [RESTART] message */
+    int explicit_exit_notification; /* Explicitly tell peer when we are exiting via OCC_EXIT or [RESTART] message */
 
-# define CE_DISABLED (1<<0)
-# define CE_MAN_QUERY_PROXY (1<<1)
-# define CE_MAN_QUERY_REMOTE_UNDEF  0
-# define CE_MAN_QUERY_REMOTE_QUERY  1
-# define CE_MAN_QUERY_REMOTE_ACCEPT 2
-# define CE_MAN_QUERY_REMOTE_MOD    3
-# define CE_MAN_QUERY_REMOTE_SKIP   4
-# define CE_MAN_QUERY_REMOTE_MASK   (0x07)
-# define CE_MAN_QUERY_REMOTE_SHIFT  (2)
-  unsigned int flags;
+#define CE_DISABLED (1<<0)
+#define CE_MAN_QUERY_PROXY (1<<1)
+#define CE_MAN_QUERY_REMOTE_UNDEF  0
+#define CE_MAN_QUERY_REMOTE_QUERY  1
+#define CE_MAN_QUERY_REMOTE_ACCEPT 2
+#define CE_MAN_QUERY_REMOTE_MOD    3
+#define CE_MAN_QUERY_REMOTE_SKIP   4
+#define CE_MAN_QUERY_REMOTE_MASK   (0x07)
+#define CE_MAN_QUERY_REMOTE_SHIFT  (2)
+    unsigned int flags;
 };
 
 struct remote_entry
 {
-  const char *remote;
-  const char *remote_port;
-  int proto;
-  sa_family_t af;
+    const char *remote;
+    const char *remote_port;
+    int proto;
+    sa_family_t af;
 };
 
 #define CONNECTION_LIST_SIZE 64
 
 struct connection_list
 {
-  int len;
-  int current;
-  struct connection_entry *array[CONNECTION_LIST_SIZE];
+    int len;
+    int current;
+    struct connection_entry *array[CONNECTION_LIST_SIZE];
 };
 
 struct remote_list
 {
-  int len;
-  struct remote_entry *array[CONNECTION_LIST_SIZE];
+    int len;
+    struct remote_entry *array[CONNECTION_LIST_SIZE];
 };
 
 struct remote_host_store
 {
-# define RH_HOST_LEN 80
-  char host[RH_HOST_LEN];
+#define RH_HOST_LEN 80
+    char host[RH_HOST_LEN];
 #define RH_PORT_LEN 20
-  char port[RH_PORT_LEN];
+    char port[RH_PORT_LEN];
 };
 
 /* Command line options */
 struct options
 {
-  struct gc_arena gc;
-  bool gc_owned;
+    struct gc_arena gc;
+    bool gc_owned;
 
-  /* first config file */
-  const char *config;
+    /* first config file */
+    const char *config;
 
-  /* major mode */
-# define MODE_POINT_TO_POINT 0
-# define MODE_SERVER         1
-  int mode;
+    /* major mode */
+#define MODE_POINT_TO_POINT 0
+#define MODE_SERVER         1
+    int mode;
 
-  /* enable forward compatibility for post-2.1 features */
-  bool forward_compatible;
-  /* list of options that should be ignored even if unkown */
-  const char **  ignore_unknown_option;
+    /* enable forward compatibility for post-2.1 features */
+    bool forward_compatible;
+    /* list of options that should be ignored even if unkown */
+    const char **ignore_unknown_option;
 
-  /* persist parms */
-  bool persist_config;
-  int persist_mode;
+    /* persist parms */
+    bool persist_config;
+    int persist_mode;
 
 #ifdef ENABLE_CRYPTO
-  const char *key_pass_file;
-  bool show_ciphers;
-  bool show_digests;
-  bool show_engines;
-  bool show_tls_ciphers;
-  bool show_curves;
-  bool genkey;
+    const char *key_pass_file;
+    bool show_ciphers;
+    bool show_digests;
+    bool show_engines;
+    bool show_tls_ciphers;
+    bool show_curves;
+    bool genkey;
 #endif
 
-  /* Networking parms */
-  int connect_retry_max;
-  struct connection_entry ce;
-  struct connection_list *connection_list;
+    /* Networking parms */
+    int connect_retry_max;
+    struct connection_entry ce;
+    struct connection_list *connection_list;
 
-  struct remote_list *remote_list;
-  /* Do not advanced the connection or remote addr list*/
-  bool no_advance;
-  /* Counts the number of unsuccessful connection attempts */
-  unsigned int unsuccessful_attempts;
+    struct remote_list *remote_list;
+    /* Do not advanced the connection or remote addr list*/
+    bool no_advance;
+    /* Counts the number of unsuccessful connection attempts */
+    unsigned int unsuccessful_attempts;
 
 #if ENABLE_MANAGEMENT
-  struct http_proxy_options *http_proxy_override;
+    struct http_proxy_options *http_proxy_override;
 #endif
 
-  struct remote_host_store *rh_store;
+    struct remote_host_store *rh_store;
 
-  bool remote_random;
-  const char *ipchange;
-  const char *dev;
-  const char *dev_type;
-  const char *dev_node;
-  const char *lladdr;
-  int topology; /* one of the TOP_x values from proto.h */
-  const char *ifconfig_local;
-  const char *ifconfig_remote_netmask;
-  const char *ifconfig_ipv6_local;
-  int         ifconfig_ipv6_netbits;
-  const char *ifconfig_ipv6_remote;
-  bool ifconfig_noexec;
-  bool ifconfig_nowarn;
+    bool remote_random;
+    const char *ipchange;
+    const char *dev;
+    const char *dev_type;
+    const char *dev_node;
+    const char *lladdr;
+    int topology; /* one of the TOP_x values from proto.h */
+    const char *ifconfig_local;
+    const char *ifconfig_remote_netmask;
+    const char *ifconfig_ipv6_local;
+    int ifconfig_ipv6_netbits;
+    const char *ifconfig_ipv6_remote;
+    bool ifconfig_noexec;
+    bool ifconfig_nowarn;
 #ifdef ENABLE_FEATURE_SHAPER
-  int shaper;
+    int shaper;
 #endif
 
-  int proto_force;
+    int proto_force;
 
 #ifdef ENABLE_OCC
-  bool mtu_test;
+    bool mtu_test;
 #endif
 
 #ifdef ENABLE_MEMSTATS
-  char *memstats_fn;
+    char *memstats_fn;
 #endif
 
-  bool mlock;
+    bool mlock;
 
-  int keepalive_ping;           /* a proxy for ping/ping-restart */
-  int keepalive_timeout;
+    int keepalive_ping;         /* a proxy for ping/ping-restart */
+    int keepalive_timeout;
 
-  int inactivity_timeout;       /* --inactive */
-  int inactivity_minimum_bytes;
+    int inactivity_timeout;     /* --inactive */
+    int inactivity_minimum_bytes;
 
-  int ping_send_timeout;        /* Send a TCP/UDP ping to remote every n seconds */
-  int ping_rec_timeout;         /* Expect a TCP/UDP ping from remote at least once every n seconds */
-  bool ping_timer_remote;       /* Run ping timer only if we have a remote address */
+    int ping_send_timeout;      /* Send a TCP/UDP ping to remote every n seconds */
+    int ping_rec_timeout;       /* Expect a TCP/UDP ping from remote at least once every n seconds */
+    bool ping_timer_remote;     /* Run ping timer only if we have a remote address */
 
-# define PING_UNDEF   0
-# define PING_EXIT    1
-# define PING_RESTART 2
-  int ping_rec_timeout_action;  /* What action to take on ping_rec_timeout (exit or restart)? */
+#define PING_UNDEF   0
+#define PING_EXIT    1
+#define PING_RESTART 2
+    int ping_rec_timeout_action; /* What action to take on ping_rec_timeout (exit or restart)? */
 
-  bool persist_tun;             /* Don't close/reopen TUN/TAP dev on SIGUSR1 or PING_RESTART */
-  bool persist_local_ip;        /* Don't re-resolve local address on SIGUSR1 or PING_RESTART */
-  bool persist_remote_ip;       /* Don't re-resolve remote address on SIGUSR1 or PING_RESTART */
-  bool persist_key;             /* Don't re-read key files on SIGUSR1 or PING_RESTART */
+    bool persist_tun;           /* Don't close/reopen TUN/TAP dev on SIGUSR1 or PING_RESTART */
+    bool persist_local_ip;      /* Don't re-resolve local address on SIGUSR1 or PING_RESTART */
+    bool persist_remote_ip;     /* Don't re-resolve remote address on SIGUSR1 or PING_RESTART */
+    bool persist_key;           /* Don't re-read key files on SIGUSR1 or PING_RESTART */
 
 #if PASSTOS_CAPABILITY
-  bool passtos;                  
+    bool passtos;
 #endif
 
-  int resolve_retry_seconds;    /* If hostname resolve fails, retry for n seconds */
-  bool resolve_in_advance;
-  const char *ip_remote_hint;
+    int resolve_retry_seconds;  /* If hostname resolve fails, retry for n seconds */
+    bool resolve_in_advance;
+    const char *ip_remote_hint;
 
-  struct tuntap_options tuntap_options;
+    struct tuntap_options tuntap_options;
 
-  /* Misc parms */
-  const char *username;
-  const char *groupname;
-  const char *chroot_dir;
-  const char *cd_dir;
+    /* Misc parms */
+    const char *username;
+    const char *groupname;
+    const char *chroot_dir;
+    const char *cd_dir;
 #ifdef ENABLE_SELINUX
-  char *selinux_context;
+    char *selinux_context;
 #endif
-  const char *writepid;
-  const char *up_script;
-  const char *down_script;
-  bool user_script_used;
-  bool down_pre;
-  bool up_delay;
-  bool up_restart;
-  bool daemon;
+    const char *writepid;
+    const char *up_script;
+    const char *down_script;
+    bool user_script_used;
+    bool down_pre;
+    bool up_delay;
+    bool up_restart;
+    bool daemon;
 
-  int remap_sigusr1;
+    int remap_sigusr1;
 
-  /* inetd modes defined in socket.h */
-  int inetd;
+    /* inetd modes defined in socket.h */
+    int inetd;
 
-  bool log;
-  bool suppress_timestamps;
-  bool machine_readable_output;
-  int nice;
-  int verbosity;
-  int mute;
+    bool log;
+    bool suppress_timestamps;
+    bool machine_readable_output;
+    int nice;
+    int verbosity;
+    int mute;
 
 #ifdef ENABLE_DEBUG
-  int gremlin;
+    int gremlin;
 #endif
 
-  const char *status_file;
-  int status_file_version;
-  int status_file_update_freq;
+    const char *status_file;
+    int status_file_version;
+    int status_file_update_freq;
 
-  /* optimize TUN/TAP/UDP writes */
-  bool fast_io;
+    /* optimize TUN/TAP/UDP writes */
+    bool fast_io;
 
 #ifdef USE_COMP
-  struct compress_options comp;
+    struct compress_options comp;
 #endif
 
-  /* buffer sizes */
-  int rcvbuf;
-  int sndbuf;
+    /* buffer sizes */
+    int rcvbuf;
+    int sndbuf;
 
-  /* mark value */
-  int mark;
+    /* mark value */
+    int mark;
 
-  /* socket flags */
-  unsigned int sockflags;
+    /* socket flags */
+    unsigned int sockflags;
 
-  /* route management */
-  const char *route_script;
-  const char *route_predown_script;
-  const char *route_default_gateway;
-  int route_default_metric;
-  bool route_noexec;
-  int route_delay;
-  int route_delay_window;
-  bool route_delay_defined;
-  struct route_option_list *routes;
-  struct route_ipv6_option_list *routes_ipv6;			/* IPv6 */
-  bool route_nopull;
-  bool route_gateway_via_dhcp;
-  bool allow_pull_fqdn; /* as a client, allow server to push a FQDN for certain parameters */
-  struct client_nat_option_list *client_nat;
+    /* route management */
+    const char *route_script;
+    const char *route_predown_script;
+    const char *route_default_gateway;
+    int route_default_metric;
+    bool route_noexec;
+    int route_delay;
+    int route_delay_window;
+    bool route_delay_defined;
+    struct route_option_list *routes;
+    struct route_ipv6_option_list *routes_ipv6;                 /* IPv6 */
+    bool route_nopull;
+    bool route_gateway_via_dhcp;
+    bool allow_pull_fqdn; /* as a client, allow server to push a FQDN for certain parameters */
+    struct client_nat_option_list *client_nat;
 
 #ifdef ENABLE_OCC
-  /* Enable options consistency check between peers */
-  bool occ;
+    /* Enable options consistency check between peers */
+    bool occ;
 #endif
 
 #ifdef ENABLE_MANAGEMENT
-  const char *management_addr;
-  const char *management_port;
-  const char *management_user_pass;
-  int management_log_history_cache;
-  int management_echo_buffer_size;
-  int management_state_buffer_size;
-  const char *management_write_peer_info_file;
+    const char *management_addr;
+    const char *management_port;
+    const char *management_user_pass;
+    int management_log_history_cache;
+    int management_echo_buffer_size;
+    int management_state_buffer_size;
+    const char *management_write_peer_info_file;
 
-  const char *management_client_user;
-  const char *management_client_group;
+    const char *management_client_user;
+    const char *management_client_group;
 
-  /* Mask of MF_ values of manage.h */
-  unsigned int management_flags;
-  const char *management_certificate;
+    /* Mask of MF_ values of manage.h */
+    unsigned int management_flags;
+    const char *management_certificate;
 #endif
 
 #ifdef ENABLE_PLUGIN
-  struct plugin_option_list *plugin_list;
+    struct plugin_option_list *plugin_list;
 #endif
 
 
@@ -373,238 +373,238 @@ struct options
 #if P2MP
 
 #if P2MP_SERVER
-  /* the tmp dir is for now only used in the P2P server context */
-  const char *tmp_dir;
-  bool server_defined;
-  in_addr_t server_network;
-  in_addr_t server_netmask;
-  bool server_ipv6_defined;				/* IPv6 */
-  struct in6_addr server_network_ipv6;			/* IPv6 */
-  unsigned int    server_netbits_ipv6;			/* IPv6 */
+    /* the tmp dir is for now only used in the P2P server context */
+    const char *tmp_dir;
+    bool server_defined;
+    in_addr_t server_network;
+    in_addr_t server_netmask;
+    bool server_ipv6_defined;                           /* IPv6 */
+    struct in6_addr server_network_ipv6;                /* IPv6 */
+    unsigned int server_netbits_ipv6;                   /* IPv6 */
 
-# define SF_NOPOOL (1<<0)
-# define SF_TCP_NODELAY_HELPER (1<<1)
-# define SF_NO_PUSH_ROUTE_GATEWAY (1<<2)
-  unsigned int server_flags;
+#define SF_NOPOOL (1<<0)
+#define SF_TCP_NODELAY_HELPER (1<<1)
+#define SF_NO_PUSH_ROUTE_GATEWAY (1<<2)
+    unsigned int server_flags;
 
-  bool server_bridge_proxy_dhcp;
+    bool server_bridge_proxy_dhcp;
 
-  bool server_bridge_defined;
-  in_addr_t server_bridge_ip;
-  in_addr_t server_bridge_netmask;
-  in_addr_t server_bridge_pool_start;
-  in_addr_t server_bridge_pool_end;
+    bool server_bridge_defined;
+    in_addr_t server_bridge_ip;
+    in_addr_t server_bridge_netmask;
+    in_addr_t server_bridge_pool_start;
+    in_addr_t server_bridge_pool_end;
 
-  struct push_list push_list;
-  bool ifconfig_pool_defined;
-  in_addr_t ifconfig_pool_start;
-  in_addr_t ifconfig_pool_end;
-  in_addr_t ifconfig_pool_netmask;
-  const char *ifconfig_pool_persist_filename;
-  int ifconfig_pool_persist_refresh_freq;
+    struct push_list push_list;
+    bool ifconfig_pool_defined;
+    in_addr_t ifconfig_pool_start;
+    in_addr_t ifconfig_pool_end;
+    in_addr_t ifconfig_pool_netmask;
+    const char *ifconfig_pool_persist_filename;
+    int ifconfig_pool_persist_refresh_freq;
 
-  bool   ifconfig_ipv6_pool_defined;			/* IPv6 */
-  struct in6_addr ifconfig_ipv6_pool_base;		/* IPv6 */
-  int    ifconfig_ipv6_pool_netbits;			/* IPv6 */
+    bool ifconfig_ipv6_pool_defined;                    /* IPv6 */
+    struct in6_addr ifconfig_ipv6_pool_base;            /* IPv6 */
+    int ifconfig_ipv6_pool_netbits;                     /* IPv6 */
 
-  int real_hash_size;
-  int virtual_hash_size;
-  const char *client_connect_script;
-  const char *client_disconnect_script;
-  const char *learn_address_script;
-  const char *client_config_dir;
-  bool ccd_exclusive;
-  bool disable;
-  int n_bcast_buf;
-  int tcp_queue_limit;
-  struct iroute *iroutes;
-  struct iroute_ipv6 *iroutes_ipv6;			/* IPv6 */
-  bool push_ifconfig_defined;
-  in_addr_t push_ifconfig_local;
-  in_addr_t push_ifconfig_remote_netmask;
-  in_addr_t push_ifconfig_local_alias;
-  bool push_ifconfig_constraint_defined;
-  in_addr_t push_ifconfig_constraint_network;
-  in_addr_t push_ifconfig_constraint_netmask;
-  bool            push_ifconfig_ipv6_defined;		/* IPv6 */
-  struct in6_addr push_ifconfig_ipv6_local;		/* IPv6 */
-  int 		  push_ifconfig_ipv6_netbits;		/* IPv6 */
-  struct in6_addr push_ifconfig_ipv6_remote;		/* IPv6 */
-  bool            push_ifconfig_ipv6_blocked;		/* IPv6 */
-  bool enable_c2c;
-  bool duplicate_cn;
-  int cf_max;
-  int cf_per;
-  int max_clients;
-  int max_routes_per_client;
-  int stale_routes_check_interval;
-  int stale_routes_ageing_time;
+    int real_hash_size;
+    int virtual_hash_size;
+    const char *client_connect_script;
+    const char *client_disconnect_script;
+    const char *learn_address_script;
+    const char *client_config_dir;
+    bool ccd_exclusive;
+    bool disable;
+    int n_bcast_buf;
+    int tcp_queue_limit;
+    struct iroute *iroutes;
+    struct iroute_ipv6 *iroutes_ipv6;                   /* IPv6 */
+    bool push_ifconfig_defined;
+    in_addr_t push_ifconfig_local;
+    in_addr_t push_ifconfig_remote_netmask;
+    in_addr_t push_ifconfig_local_alias;
+    bool push_ifconfig_constraint_defined;
+    in_addr_t push_ifconfig_constraint_network;
+    in_addr_t push_ifconfig_constraint_netmask;
+    bool push_ifconfig_ipv6_defined;                    /* IPv6 */
+    struct in6_addr push_ifconfig_ipv6_local;           /* IPv6 */
+    int push_ifconfig_ipv6_netbits;                     /* IPv6 */
+    struct in6_addr push_ifconfig_ipv6_remote;          /* IPv6 */
+    bool push_ifconfig_ipv6_blocked;                    /* IPv6 */
+    bool enable_c2c;
+    bool duplicate_cn;
+    int cf_max;
+    int cf_per;
+    int max_clients;
+    int max_routes_per_client;
+    int stale_routes_check_interval;
+    int stale_routes_ageing_time;
 
-  const char *auth_user_pass_verify_script;
-  bool auth_user_pass_verify_script_via_file;
-  bool auth_token_generate;
-  unsigned int auth_token_lifetime;
+    const char *auth_user_pass_verify_script;
+    bool auth_user_pass_verify_script_via_file;
+    bool auth_token_generate;
+    unsigned int auth_token_lifetime;
 #if PORT_SHARE
-  char *port_share_host;
-  char *port_share_port;
-  const char *port_share_journal_dir;
+    char *port_share_host;
+    char *port_share_port;
+    const char *port_share_journal_dir;
 #endif
-#endif
+#endif /* if P2MP_SERVER */
 
-  bool client;
-  bool pull; /* client pull of config options from server */
-  int push_continuation;
-  unsigned int push_option_types_found;
-  const char *auth_user_pass_file;
-  struct options_pre_pull *pre_pull;
+    bool client;
+    bool pull; /* client pull of config options from server */
+    int push_continuation;
+    unsigned int push_option_types_found;
+    const char *auth_user_pass_file;
+    struct options_pre_pull *pre_pull;
 
-  int scheduled_exit_interval;
+    int scheduled_exit_interval;
 
 #ifdef ENABLE_CLIENT_CR
-  struct static_challenge_info sc_info;
+    struct static_challenge_info sc_info;
 #endif
-#endif
+#endif /* if P2MP */
 
 #ifdef ENABLE_CRYPTO
-  /* Cipher parms */
-  const char *shared_secret_file;
-  const char *shared_secret_file_inline;
-  int key_direction;
-  const char *ciphername;
-  bool ncp_enabled;
-  const char *ncp_ciphers;
-  const char *authname;
-  int keysize;
-  const char *prng_hash;
-  int prng_nonce_secret_len;
-  const char *engine;
-  bool replay;
-  bool mute_replay_warnings;
-  int replay_window;
-  int replay_time;
-  const char *packet_id_file;
-  bool use_iv;
-  bool test_crypto;
+    /* Cipher parms */
+    const char *shared_secret_file;
+    const char *shared_secret_file_inline;
+    int key_direction;
+    const char *ciphername;
+    bool ncp_enabled;
+    const char *ncp_ciphers;
+    const char *authname;
+    int keysize;
+    const char *prng_hash;
+    int prng_nonce_secret_len;
+    const char *engine;
+    bool replay;
+    bool mute_replay_warnings;
+    int replay_window;
+    int replay_time;
+    const char *packet_id_file;
+    bool use_iv;
+    bool test_crypto;
 #ifdef ENABLE_PREDICTION_RESISTANCE
-  bool use_prediction_resistance;
+    bool use_prediction_resistance;
 #endif
 
-  /* TLS (control channel) parms */
-  bool tls_server;
-  bool tls_client;
-  const char *ca_file;
-  const char *ca_path;
-  const char *dh_file;
-  const char *cert_file;
-  const char *extra_certs_file;
-  const char *priv_key_file;
-  const char *pkcs12_file;
-  const char *cipher_list;
-  const char *ecdh_curve;
-  const char *tls_verify;
-  int verify_x509_type;
-  const char *verify_x509_name;
-  const char *tls_export_cert;
-  const char *crl_file;
+    /* TLS (control channel) parms */
+    bool tls_server;
+    bool tls_client;
+    const char *ca_file;
+    const char *ca_path;
+    const char *dh_file;
+    const char *cert_file;
+    const char *extra_certs_file;
+    const char *priv_key_file;
+    const char *pkcs12_file;
+    const char *cipher_list;
+    const char *ecdh_curve;
+    const char *tls_verify;
+    int verify_x509_type;
+    const char *verify_x509_name;
+    const char *tls_export_cert;
+    const char *crl_file;
 
-  const char *ca_file_inline;
-  const char *cert_file_inline;
-  const char *extra_certs_file_inline;
-  const char *crl_file_inline;
-  char *priv_key_file_inline;
-  const char *dh_file_inline;
-  const char *pkcs12_file_inline; /* contains the base64 encoding of pkcs12 file */
+    const char *ca_file_inline;
+    const char *cert_file_inline;
+    const char *extra_certs_file_inline;
+    const char *crl_file_inline;
+    char *priv_key_file_inline;
+    const char *dh_file_inline;
+    const char *pkcs12_file_inline; /* contains the base64 encoding of pkcs12 file */
 
-  int ns_cert_type; /* set to 0, NS_CERT_CHECK_SERVER, or NS_CERT_CHECK_CLIENT */
-  unsigned remote_cert_ku[MAX_PARMS];
-  const char *remote_cert_eku;
-  uint8_t *verify_hash;
-  unsigned int ssl_flags; /* set to SSLF_x flags from ssl.h */
+    int ns_cert_type; /* set to 0, NS_CERT_CHECK_SERVER, or NS_CERT_CHECK_CLIENT */
+    unsigned remote_cert_ku[MAX_PARMS];
+    const char *remote_cert_eku;
+    uint8_t *verify_hash;
+    unsigned int ssl_flags; /* set to SSLF_x flags from ssl.h */
 
 #ifdef ENABLE_PKCS11
-  const char *pkcs11_providers[MAX_PARMS];
-  unsigned pkcs11_private_mode[MAX_PARMS];
-  bool pkcs11_protected_authentication[MAX_PARMS];
-  bool pkcs11_cert_private[MAX_PARMS];
-  int pkcs11_pin_cache_period;
-  const char *pkcs11_id;
-  bool pkcs11_id_management;
+    const char *pkcs11_providers[MAX_PARMS];
+    unsigned pkcs11_private_mode[MAX_PARMS];
+    bool pkcs11_protected_authentication[MAX_PARMS];
+    bool pkcs11_cert_private[MAX_PARMS];
+    int pkcs11_pin_cache_period;
+    const char *pkcs11_id;
+    bool pkcs11_id_management;
 #endif
 
 #ifdef ENABLE_CRYPTOAPI
-  const char *cryptoapi_cert;
+    const char *cryptoapi_cert;
 #endif
 
-  /* data channel key exchange method */
-  int key_method;
+    /* data channel key exchange method */
+    int key_method;
 
-  /* Per-packet timeout on control channel */
-  int tls_timeout;
+    /* Per-packet timeout on control channel */
+    int tls_timeout;
 
-  /* Data channel key renegotiation parameters */
-  int renegotiate_bytes;
-  int renegotiate_packets;
-  int renegotiate_seconds;
+    /* Data channel key renegotiation parameters */
+    int renegotiate_bytes;
+    int renegotiate_packets;
+    int renegotiate_seconds;
 
-  /* Data channel key handshake must finalize
-     within n seconds of handshake initiation. */
-  int handshake_window;
+    /* Data channel key handshake must finalize
+     * within n seconds of handshake initiation. */
+    int handshake_window;
 
 #ifdef ENABLE_X509ALTUSERNAME
-  /* Field used to be the username in X509 cert. */
-  char *x509_username_field;
+    /* Field used to be the username in X509 cert. */
+    char *x509_username_field;
 #endif
 
-  /* Old key allowed to live n seconds after new key goes active */
-  int transition_window;
+    /* Old key allowed to live n seconds after new key goes active */
+    int transition_window;
 
-  /* Shared secret used for TLS control channel authentication */
-  const char *tls_auth_file;
-  const char *tls_auth_file_inline;
+    /* Shared secret used for TLS control channel authentication */
+    const char *tls_auth_file;
+    const char *tls_auth_file_inline;
 
-  /* Shared secret used for TLS control channel authenticated encryption */
-  const char *tls_crypt_file;
-  const char *tls_crypt_inline;
+    /* Shared secret used for TLS control channel authenticated encryption */
+    const char *tls_crypt_file;
+    const char *tls_crypt_inline;
 
-  /* Allow only one session */
-  bool single_session;
+    /* Allow only one session */
+    bool single_session;
 
 #ifdef ENABLE_PUSH_PEER_INFO
-  bool push_peer_info;
+    bool push_peer_info;
 #endif
 
-  bool tls_exit;
+    bool tls_exit;
 
 #endif /* ENABLE_CRYPTO */
 
-  const struct x509_track *x509_track;
+    const struct x509_track *x509_track;
 
-  /* special state parms */
-  int foreign_option_index;
+    /* special state parms */
+    int foreign_option_index;
 
 #ifdef _WIN32
-  HANDLE msg_channel;
-  const char *exit_event_name;
-  bool exit_event_initial_state;
-  bool show_net_up;
-  int route_method;
-  bool block_outside_dns;
+    HANDLE msg_channel;
+    const char *exit_event_name;
+    bool exit_event_initial_state;
+    bool show_net_up;
+    int route_method;
+    bool block_outside_dns;
 #endif
 
-  bool use_peer_id;
-  uint32_t peer_id;
+    bool use_peer_id;
+    uint32_t peer_id;
 
 #if defined(ENABLE_CRYPTO_OPENSSL) && OPENSSL_VERSION_NUMBER >= 0x10001000
-  /* Keying Material Exporters [RFC 5705] */
-  const char *keying_material_exporter_label;
-  int keying_material_exporter_length;
+    /* Keying Material Exporters [RFC 5705] */
+    const char *keying_material_exporter_label;
+    int keying_material_exporter_length;
 #endif
 
-  struct pull_filter_list *pull_filter_list;
+    struct pull_filter_list *pull_filter_list;
 
-  /* Useful when packets sent by openvpn itself are not subject
-     to the routing tables that would move packets into the tunnel. */
-  bool allow_recursive_routing;
+    /* Useful when packets sent by openvpn itself are not subject
+     * to the routing tables that would move packets into the tunnel. */
+    bool allow_recursive_routing;
 };
 
 #define streq(x, y) (!strcmp((x), (y)))
@@ -683,101 +683,109 @@ struct options
 #define MAN_CLIENT_AUTH_ENABLED(opt) (false)
 #endif
 
-void parse_argv (struct options *options,
-		 const int argc,
-		 char *argv[],
-		 const int msglevel,
-		 const unsigned int permission_mask,
-		 unsigned int *option_types_found,
-		 struct env_set *es);
+void parse_argv(struct options *options,
+                const int argc,
+                char *argv[],
+                const int msglevel,
+                const unsigned int permission_mask,
+                unsigned int *option_types_found,
+                struct env_set *es);
 
-void notnull (const char *arg, const char *description);
+void notnull(const char *arg, const char *description);
 
-void usage_small (void);
+void usage_small(void);
 
 void show_library_versions(const unsigned int flags);
 
 #ifdef _WIN32
 void show_windows_version(const unsigned int flags);
+
 #endif
 
-void init_options (struct options *o, const bool init_gc);
-void uninit_options (struct options *o);
+void init_options(struct options *o, const bool init_gc);
 
-void setenv_settings (struct env_set *es, const struct options *o);
-void show_settings (const struct options *o);
+void uninit_options(struct options *o);
 
-bool string_defined_equal (const char *s1, const char *s2);
+void setenv_settings(struct env_set *es, const struct options *o);
+
+void show_settings(const struct options *o);
+
+bool string_defined_equal(const char *s1, const char *s2);
 
 #ifdef ENABLE_OCC
 
-const char *options_string_version (const char* s, struct gc_arena *gc);
+const char *options_string_version(const char *s, struct gc_arena *gc);
 
-char *options_string (const struct options *o,
-		      const struct frame *frame,
-		      struct tuntap *tt,
-		      bool remote,
-		      struct gc_arena *gc);
+char *options_string(const struct options *o,
+                     const struct frame *frame,
+                     struct tuntap *tt,
+                     bool remote,
+                     struct gc_arena *gc);
 
-bool options_cmp_equal_safe (char *actual, const char *expected, size_t actual_n);
-void options_warning_safe (char *actual, const char *expected, size_t actual_n);
-bool options_cmp_equal (char *actual, const char *expected);
-void options_warning (char *actual, const char *expected);
+bool options_cmp_equal_safe(char *actual, const char *expected, size_t actual_n);
+
+void options_warning_safe(char *actual, const char *expected, size_t actual_n);
+
+bool options_cmp_equal(char *actual, const char *expected);
+
+void options_warning(char *actual, const char *expected);
 
 #endif
 
 /**
  * Given an OpenVPN options string, extract the value of an option.
  *
- * @param options_string	Zero-terminated, comma-separated options string
- * @param opt_name		The name of the option to extract
- * @param gc			The gc to allocate the return value
+ * @param options_string        Zero-terminated, comma-separated options string
+ * @param opt_name              The name of the option to extract
+ * @param gc                    The gc to allocate the return value
  *
  * @return gc-allocated value of option with name opt_name if option was found,
  *         or NULL otherwise.
  */
-char *options_string_extract_option (const char *options_string,
-    const char *opt_name, struct gc_arena *gc);
+char *options_string_extract_option(const char *options_string,
+                                    const char *opt_name, struct gc_arena *gc);
 
 
-void options_postprocess (struct options *options);
+void options_postprocess(struct options *options);
 
-void pre_pull_save (struct options *o);
-void pre_pull_restore (struct options *o, struct gc_arena *gc);
+void pre_pull_save(struct options *o);
 
-bool apply_push_options (struct options *options,
-			 struct buffer *buf,
-			 unsigned int permission_mask,
-			 unsigned int *option_types_found,
-			 struct env_set *es);
+void pre_pull_restore(struct options *o, struct gc_arena *gc);
 
-void options_detach (struct options *o);
+bool apply_push_options(struct options *options,
+                        struct buffer *buf,
+                        unsigned int permission_mask,
+                        unsigned int *option_types_found,
+                        struct env_set *es);
 
-void options_server_import (struct options *o,
-			    const char *filename,
-			    int msglevel,
-			    unsigned int permission_mask,
-			    unsigned int *option_types_found,
-			    struct env_set *es);
+void options_detach(struct options *o);
 
-void pre_pull_default (struct options *o);
+void options_server_import(struct options *o,
+                           const char *filename,
+                           int msglevel,
+                           unsigned int permission_mask,
+                           unsigned int *option_types_found,
+                           struct env_set *es);
 
-void rol_check_alloc (struct options *options);
+void pre_pull_default(struct options *o);
 
-int parse_line (const char *line,
-		char *p[],
-		const int n,
-		const char *file,
-		const int line_num,
-		int msglevel,
-		struct gc_arena *gc);
+void rol_check_alloc(struct options *options);
+
+int parse_line(const char *line,
+               char *p[],
+               const int n,
+               const char *file,
+               const int line_num,
+               int msglevel,
+               struct gc_arena *gc);
 
 /*
  * parse/print topology coding
  */
 
-int parse_topology (const char *str, const int msglevel);
-const char *print_topology (const int topology);
+int parse_topology(const char *str, const int msglevel);
+
+const char *print_topology(const int topology);
 
 /*
  * Manage auth-retry variable
@@ -789,21 +797,23 @@ const char *print_topology (const int topology);
 #define AR_INTERACT   1
 #define AR_NOINTERACT 2
 
-int auth_retry_get (void);
-bool auth_retry_set (const int msglevel, const char *option);
-const char *auth_retry_print (void);
+int auth_retry_get(void);
+
+bool auth_retry_set(const int msglevel, const char *option);
+
+const char *auth_retry_print(void);
 
 #endif
 
-void options_string_import (struct options *options,
-			    const char *config,
-			    const int msglevel,
-			    const unsigned int permission_mask,
-			    unsigned int *option_types_found,
-			    struct env_set *es);
+void options_string_import(struct options *options,
+                           const char *config,
+                           const int msglevel,
+                           const unsigned int permission_mask,
+                           unsigned int *option_types_found,
+                           struct env_set *es);
 
-bool get_ipv6_addr( const char * prefix_str, struct in6_addr *network,
-		    unsigned int * netbits, int msglevel );
+bool get_ipv6_addr( const char *prefix_str, struct in6_addr *network,
+                    unsigned int *netbits, int msglevel );
 
 
-#endif
+#endif /* ifndef OPTIONS_H */

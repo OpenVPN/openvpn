@@ -29,18 +29,21 @@
 #include "error.h"
 #include "syshead.h"
 
-bool set_nonblock_action (int fd);
-bool set_cloexec_action (int fd);
+bool set_nonblock_action(int fd);
 
-void set_nonblock (int fd);
-void set_cloexec (int fd);
+bool set_cloexec_action(int fd);
 
-static inline void openvpn_fd_set(int fd, fd_set *setp)
+void set_nonblock(int fd);
+
+void set_cloexec(int fd);
+
+static inline void
+openvpn_fd_set(int fd, fd_set *setp)
 {
 #ifndef _WIN32 /* The Windows FD_SET() implementation does not overflow */
-  ASSERT (fd >= 0 && fd < FD_SETSIZE);
+    ASSERT(fd >= 0 && fd < FD_SETSIZE);
 #endif
-  FD_SET (fd, setp);
+    FD_SET(fd, setp);
 }
 #undef FD_SET /* prevent direct use of FD_SET() */
 

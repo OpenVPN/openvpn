@@ -7,12 +7,14 @@
 #include <cmocka.h>
 
 
-static void test_true(void **state) {
+static void
+test_true(void **state) {
     (void) state;
 }
 
 
-int main(void) {
+int
+main(void) {
     const struct CMUnitTest tests[] = {
         cmocka_unit_test(test_true),
     };

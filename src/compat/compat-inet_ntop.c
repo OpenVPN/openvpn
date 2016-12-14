@@ -46,31 +46,33 @@
 const char *
 inet_ntop(int af, const void *src, char *dst, socklen_t size)
 {
-  struct sockaddr_storage ss;
-  unsigned long s = size;
+    struct sockaddr_storage ss;
+    unsigned long s = size;
 
-  ZeroMemory(&ss, sizeof(ss));
-  ss.ss_family = af;
+    ZeroMemory(&ss, sizeof(ss));
+    ss.ss_family = af;
 
-  switch(af) {
-    case AF_INET:
-      ((struct sockaddr_in *)&ss)->sin_addr = *(struct in_addr *)src;
-      break;
-    case AF_INET6:
-      ((struct sockaddr_in6 *)&ss)->sin6_addr = *(struct in6_addr *)src;
-      break;
-    default:
-      return NULL;
-  }
-  /* cannot direclty use &size because of strict aliasing rules */
-  return (WSAAddressToString((struct sockaddr *)&ss, sizeof(ss), NULL, dst, &s) == 0)?
-          dst : NULL;
+    switch (af) {
+        case AF_INET:
+            ((struct sockaddr_in *)&ss)->sin_addr = *(struct in_addr *)src;
+            break;
+
+        case AF_INET6:
+            ((struct sockaddr_in6 *)&ss)->sin6_addr = *(struct in6_addr *)src;
+            break;
+
+        default:
+            return NULL;
+    }
+    /* cannot direclty use &size because of strict aliasing rules */
+    return (WSAAddressToString((struct sockaddr *)&ss, sizeof(ss), NULL, dst, &s) == 0) ?
+           dst : NULL;
 }
 
-#else
+#else  /* ifdef _WIN32 */
 
 #error no emulation for inet_ntop
 
-#endif
+#endif /* ifdef _WIN32 */
 
-#endif
+#endif /* ifndef HAVE_INET_NTOP */

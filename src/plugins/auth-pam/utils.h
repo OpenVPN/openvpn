@@ -52,7 +52,7 @@ searchandreplace(const char *tosearch, const char *searchfor, const char *replac
  * @return Returns a pointer to the value of the enviroment variable if found, otherwise NULL is returned.
  */
 const char *
-get_env (const char *name, const char *envp[]);
+get_env(const char *name, const char *envp[]);
 
 /**
  * Return the length of a string array
@@ -61,6 +61,6 @@ get_env (const char *name, const char *envp[]);
  *
  */
 int
-string_array_len (const char *array[]);
+string_array_len(const char *array[]);
 
 #endif

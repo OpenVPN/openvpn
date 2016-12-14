@@ -42,7 +42,7 @@
  */
 
 static bool
-check_systemd_running ()
+check_systemd_running()
 {
     struct stat c;
 
@@ -51,40 +51,41 @@ check_systemd_running ()
      * being available */
 
     return (sd_booted() > 0)
-	&& (stat(SYSTEMD_ASK_PASSWORD_PATH, &c) == 0);
+           && (stat(SYSTEMD_ASK_PASSWORD_PATH, &c) == 0);
 
 }
 
 static bool
-get_console_input_systemd (const char *prompt, const bool echo, char *input, const int capacity)
+get_console_input_systemd(const char *prompt, const bool echo, char *input, const int capacity)
 {
     int std_out;
     bool ret = false;
-    struct argv argv = argv_new ();
+    struct argv argv = argv_new();
 
-    argv_printf (&argv, SYSTEMD_ASK_PASSWORD_PATH);
+    argv_printf(&argv, SYSTEMD_ASK_PASSWORD_PATH);
 #ifdef SYSTEMD_NEWER_THAN_216
     /* the --echo support arrived in upstream systemd 217 */
-    if( echo )
+    if (echo)
     {
-	argv_printf_cat(&argv, "--echo");
+        argv_printf_cat(&argv, "--echo");
     }
 #endif
-    argv_printf_cat (&argv, "--icon network-vpn");
-    argv_printf_cat (&argv, "%s", prompt);
+    argv_printf_cat(&argv, "--icon network-vpn");
+    argv_printf_cat(&argv, "%s", prompt);
 
-    if ((std_out = openvpn_popen (&argv, NULL)) < 0) {
-	return false;
-    }
-    memset (input, 0, capacity);
-    if (read (std_out, input, capacity-1) != 0)
+    if ((std_out = openvpn_popen(&argv, NULL)) < 0)
     {
-	chomp (input);
-	ret = true;
+        return false;
     }
-    close (std_out);
+    memset(input, 0, capacity);
+    if (read(std_out, input, capacity-1) != 0)
+    {
+        chomp(input);
+        ret = true;
+    }
+    close(std_out);
 
-    argv_reset (&argv);
+    argv_reset(&argv);
 
     return ret;
 }
@@ -94,7 +95,8 @@ get_console_input_systemd (const char *prompt, const bool echo, char *input, con
  *  it will fall back to use query_user_exec_builtin() instead.
  *
  */
-bool query_user_exec()
+bool
+query_user_exec()
 {
     bool ret = true;  /* Presume everything goes okay */
     int i;
@@ -108,12 +110,12 @@ bool query_user_exec()
     /* Loop through the complete query setup and when needed, collect the information */
     for (i = 0; i < QUERY_USER_NUMSLOTS && query_user[i].response != NULL; i++)
     {
-	if (!get_console_input_systemd(query_user[i].prompt, query_user[i].echo,
-				       query_user[i].response, query_user[i].response_len) )
-	{
-	    /* Force the final result state to failed on failure */
-	    ret = false;
-	}
+        if (!get_console_input_systemd(query_user[i].prompt, query_user[i].echo,
+                                       query_user[i].response, query_user[i].response_len) )
+        {
+            /* Force the final result state to failed on failure */
+            ret = false;
+        }
     }
 
     return ret;

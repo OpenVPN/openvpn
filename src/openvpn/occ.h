@@ -36,8 +36,8 @@
  * OCC (OpenVPN Configuration Control) protocol opcodes.
  */
 
-#define OCC_REQUEST   0		/* request options string from peer */
-#define OCC_REPLY     1		/* deliver options string to peer */
+#define OCC_REQUEST   0         /* request options string from peer */
+#define OCC_REPLY     1         /* deliver options string to peer */
 
 /*
  * Send an OCC_REQUEST once every OCC_INTERVAL
@@ -52,11 +52,11 @@
 /*
  * Other OCC protocol opcodes used to estimate the MTU empirically.
  */
-#define OCC_MTU_LOAD_REQUEST   2	/* Ask peer to send a big packet to us */
-#define OCC_MTU_LOAD           3	/* Send a big packet to peer */
-#define OCC_MTU_REQUEST        4	/* Ask peer to tell us the largest
-					   packet it has received from us so far */
-#define OCC_MTU_REPLY          5	/* Send largest packet size to peer */
+#define OCC_MTU_LOAD_REQUEST   2        /* Ask peer to send a big packet to us */
+#define OCC_MTU_LOAD           3        /* Send a big packet to peer */
+#define OCC_MTU_REQUEST        4        /* Ask peer to tell us the largest
+                                         * packet it has received from us so far */
+#define OCC_MTU_REPLY          5        /* Send largest packet size to peer */
 
 /*
  * Process one command from mtu_load_test_sequence
@@ -75,21 +75,21 @@
  */
 struct mtu_load_test
 {
-  int op;			/* OCC opcode to send to peer */
-  int delta;			/* determine packet size to send by using
-				   this delta against currently
-				   configured MTU */
+    int op;                     /* OCC opcode to send to peer */
+    int delta;                  /* determine packet size to send by using
+                                 * this delta against currently
+                                 * configured MTU */
 };
 
 extern const uint8_t occ_magic[];
 
 static inline bool
-is_occ_msg (const struct buffer* buf)
+is_occ_msg(const struct buffer *buf)
 {
-  return buf_string_match_head (buf, occ_magic, OCC_STRING_SIZE);
+    return buf_string_match_head(buf, occ_magic, OCC_STRING_SIZE);
 }
 
-void process_received_occ_msg (struct context *c);
+void process_received_occ_msg(struct context *c);
 
-#endif
-#endif
+#endif /* ifdef ENABLE_OCC */
+#endif /* ifndef OCC_H */

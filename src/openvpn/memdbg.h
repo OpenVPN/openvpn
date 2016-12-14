@@ -49,7 +49,7 @@
 
 #define VALGRIND_MAKE_READABLE(addr, len)
 
-#else
+#else  /* ifdef USE_VALGRIND */
 
 #define VALGRIND_MAKE_READABLE(addr, len)
 

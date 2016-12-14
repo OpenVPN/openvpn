@@ -43,71 +43,81 @@
 char *
 searchandreplace(const char *tosearch, const char *searchfor, const char *replacewith)
 {
-  if (!tosearch || !searchfor || !replacewith) return NULL;
+    if (!tosearch || !searchfor || !replacewith)
+    {
+        return NULL;
+    }
 
-  size_t tosearchlen = strlen(tosearch);
-  size_t replacewithlen = strlen(replacewith);
-  size_t templen = tosearchlen * replacewithlen;
+    size_t tosearchlen = strlen(tosearch);
+    size_t replacewithlen = strlen(replacewith);
+    size_t templen = tosearchlen * replacewithlen;
 
-  if (tosearchlen == 0 || strlen(searchfor) == 0 || replacewithlen == 0) {
-    return NULL;
-  }
+    if (tosearchlen == 0 || strlen(searchfor) == 0 || replacewithlen == 0)
+    {
+        return NULL;
+    }
 
-  bool is_potential_integer_overflow =  (templen == SIZE_MAX) || (templen / tosearchlen != replacewithlen);
+    bool is_potential_integer_overflow =  (templen == SIZE_MAX) || (templen / tosearchlen != replacewithlen);
 
-  if (is_potential_integer_overflow) {
-       return NULL;
-  }
+    if (is_potential_integer_overflow)
+    {
+        return NULL;
+    }
 
-  // state: all parameters are valid
+    /* state: all parameters are valid */
 
-  const char *searching=tosearch;
-  char *scratch;
+    const char *searching = tosearch;
+    char *scratch;
 
-  char temp[templen+1];
-  temp[0]=0;
+    char temp[templen+1];
+    temp[0] = 0;
 
-  scratch = strstr(searching,searchfor);
-  if (!scratch) return strdup(tosearch);
-
-  while (scratch) {
-    strncat(temp,searching,scratch-searching);
-    strcat(temp,replacewith);
-
-    searching=scratch+strlen(searchfor);
     scratch = strstr(searching,searchfor);
-  }
-  return strdup(temp);
+    if (!scratch)
+    {
+        return strdup(tosearch);
+    }
+
+    while (scratch) {
+        strncat(temp,searching,scratch-searching);
+        strcat(temp,replacewith);
+
+        searching = scratch+strlen(searchfor);
+        scratch = strstr(searching,searchfor);
+    }
+    return strdup(temp);
 }
 
 const char *
-get_env (const char *name, const char *envp[])
+get_env(const char *name, const char *envp[])
 {
-  if (envp)
+    if (envp)
     {
-      int i;
-      const int namelen = strlen (name);
-      for (i = 0; envp[i]; ++i)
-	{
-	  if (!strncmp (envp[i], name, namelen))
-	    {
-	      const char *cp = envp[i] + namelen;
-	      if (*cp == '=')
-		return cp + 1;
-	    }
-	}
+        int i;
+        const int namelen = strlen(name);
+        for (i = 0; envp[i]; ++i)
+        {
+            if (!strncmp(envp[i], name, namelen))
+            {
+                const char *cp = envp[i] + namelen;
+                if (*cp == '=')
+                {
+                    return cp + 1;
+                }
+            }
+        }
     }
-  return NULL;
+    return NULL;
 }
 
 int
-string_array_len (const char *array[])
+string_array_len(const char *array[])
 {
-  int i = 0;
-  if (array)
+    int i = 0;
+    if (array)
     {
-      while (array[i])
-	++i;
+        while (array[i])
+            ++i;
     }
-  return i;
+    return i;
 }

@@ -29,15 +29,15 @@
  * Statistics counters and associated printf formats.
  */
 #ifdef USE_64_BIT_COUNTERS
-  typedef unsigned long long int counter_type;
-# ifdef _WIN32
-#  define counter_format  "%I64u"
-# else
-#  define counter_format  "%llu"
-# endif
+typedef unsigned long long int counter_type;
+#ifdef _WIN32
+#define counter_format  "%I64u"
 #else
-  typedef unsigned int counter_type;
-# define counter_format   "%u"
+#define counter_format  "%llu"
+#endif
+#else  /* ifdef USE_64_BIT_COUNTERS */
+typedef unsigned int counter_type;
+#define counter_format   "%u"
 #endif
 
 /*
@@ -102,4 +102,4 @@ typedef unsigned long ptr_type;
  */
 #define SCRIPT_SECURITY_WARNING "WARNING: External program may not be called unless '--script-security 2' or higher is enabled. See --help text or man page for detailed info."
 
-#endif
+#endif /* ifndef COMMON_H */

@@ -37,37 +37,39 @@
 #define PUSH_MSG_CONTINUATION     5
 #define PUSH_MSG_ALREADY_REPLIED  6
 
-int process_incoming_push_request (struct context *c);
+int process_incoming_push_request(struct context *c);
 
-int process_incoming_push_msg (struct context *c,
-			       const struct buffer *buffer,
-			       bool honor_received_options,
-			       unsigned int permission_mask,
-			       unsigned int *option_types_found);
+int process_incoming_push_msg(struct context *c,
+                              const struct buffer *buffer,
+                              bool honor_received_options,
+                              unsigned int permission_mask,
+                              unsigned int *option_types_found);
 
-bool send_push_request (struct context *c);
+bool send_push_request(struct context *c);
 
-void receive_auth_failed (struct context *c, const struct buffer *buffer);
+void receive_auth_failed(struct context *c, const struct buffer *buffer);
 
-void server_pushed_signal (struct context *c, const struct buffer *buffer, const bool restart, const int adv);
+void server_pushed_signal(struct context *c, const struct buffer *buffer, const bool restart, const int adv);
 
-void incoming_push_message (struct context *c, const struct buffer *buffer);
+void incoming_push_message(struct context *c, const struct buffer *buffer);
 
 #if P2MP_SERVER
-void clone_push_list (struct options *o);
+void clone_push_list(struct options *o);
 
-void push_option (struct options *o, const char *opt, int msglevel);
-void push_options (struct options *o, char **p, int msglevel, struct gc_arena *gc);
+void push_option(struct options *o, const char *opt, int msglevel);
 
-void push_reset (struct options *o);
-void push_remove_option (struct options *o, const char *p);
+void push_options(struct options *o, char **p, int msglevel, struct gc_arena *gc);
 
-void remove_iroutes_from_push_route_list (struct options *o);
+void push_reset(struct options *o);
 
-void send_auth_failed (struct context *c, const char *client_reason);
+void push_remove_option(struct options *o, const char *p);
 
-void send_restart (struct context *c, const char *kill_msg);
+void remove_iroutes_from_push_route_list(struct options *o);
+
+void send_auth_failed(struct context *c, const char *client_reason);
+
+void send_restart(struct context *c, const char *kill_msg);
 
 #endif
-#endif
-#endif
+#endif /* if P2MP */
+#endif /* ifndef PUSH_H */

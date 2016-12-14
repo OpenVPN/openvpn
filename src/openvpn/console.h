@@ -47,7 +47,7 @@ extern struct _query_user query_user[];  /**< Global variable, declared in conso
  * Wipes all data put into all of the query_user structs
  *
  */
-void query_user_clear ();
+void query_user_clear();
 
 
 /**
@@ -60,9 +60,9 @@ void query_user_clear ();
  * @param echo       Should the user input be echoed to the user?  If False, input will be masked
  *
  */
-void query_user_add (char *prompt, size_t prompt_len,
-                     char *resp, size_t resp_len,
-                     bool echo);
+void query_user_add(char *prompt, size_t prompt_len,
+                    char *resp, size_t resp_len,
+                    bool echo);
 
 
 /**
@@ -73,7 +73,7 @@ void query_user_add (char *prompt, size_t prompt_len,
  *
  * @return True if executing all the defined steps completed successfully
  */
-bool query_user_exec_builtin ();
+bool query_user_exec_builtin();
 
 
 #if defined(ENABLE_SYSTEMD)
@@ -84,7 +84,7 @@ bool query_user_exec_builtin ();
  *
  * @return True if executing all the defined steps completed successfully
  */
-bool query_user_exec ();
+bool query_user_exec();
 
 #else  /* ENABLE_SYSTEMD not defined*/
 /**
@@ -92,7 +92,8 @@ bool query_user_exec ();
  * been enabled
  *
  */
-static bool query_user_exec ()
+static bool
+query_user_exec()
 {
     return query_user_exec_builtin();
 }
@@ -106,13 +107,14 @@ static bool query_user_exec ()
  *             to be called at start-up initialization of OpenVPN.
  *
  */
-static inline bool query_user_SINGLE (char *prompt, size_t prompt_len,
-                     char *resp, size_t resp_len,
-                     bool echo)
+static inline bool
+query_user_SINGLE(char *prompt, size_t prompt_len,
+                  char *resp, size_t resp_len,
+                  bool echo)
 {
     query_user_clear();
     query_user_add(prompt, prompt_len, resp, resp_len, echo);
     return query_user_exec();
 }
 
-#endif
+#endif /* ifndef CONSOLE_H */

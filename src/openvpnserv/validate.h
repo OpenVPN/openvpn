@@ -34,15 +34,15 @@
 /* The last one may be reset in registry: HKLM\Software\OpenVPN\ovpn_admin_group */
 
 BOOL
-IsAuthorizedUser (SID *sid, settings_t *s);
+IsAuthorizedUser(SID *sid, settings_t *s);
 
 BOOL
-CheckOption (const WCHAR *workdir, int narg, WCHAR *argv[], const settings_t *s);
+CheckOption(const WCHAR *workdir, int narg, WCHAR *argv[], const settings_t *s);
 
 static inline BOOL
-IsOption (const WCHAR *o)
+IsOption(const WCHAR *o)
 {
-    return (wcsncmp (o, L"--", 2) == 0);
+    return (wcsncmp(o, L"--", 2) == 0);
 }
 
-#endif
+#endif /* ifndef VALIDATE_H */

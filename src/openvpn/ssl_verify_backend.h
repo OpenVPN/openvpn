@@ -33,7 +33,7 @@
 /**
  * Result of verification function
  */
-typedef enum { SUCCESS=0, FAILURE=1 } result_t;
+typedef enum { SUCCESS = 0, FAILURE = 1 } result_t;
 
 /*
  * Backend support functions.
@@ -49,11 +49,11 @@ typedef enum { SUCCESS=0, FAILURE=1 } result_t;
  * This function must be called for every certificate in the certificate
  * chain during the certificate verification stage of the handshake.
  *
- * @param session	TLS Session associated with this tunnel
- * @param cert		Certificate to process
- * @param cert_depth	Depth of the current certificate
+ * @param session       TLS Session associated with this tunnel
+ * @param cert          Certificate to process
+ * @param cert_depth    Depth of the current certificate
  *
- * @return 		\c SUCCESS if verification was successful, \c FAILURE on failure.
+ * @return              \c SUCCESS if verification was successful, \c FAILURE on failure.
  */
 result_t verify_cert(struct tls_session *session, openvpn_x509_cert_t *cert, int cert_depth);
 
@@ -64,12 +64,12 @@ result_t verify_cert(struct tls_session *session, openvpn_x509_cert_t *cert, int
  * Must be called for every certificate in the verification chain, whether it
  * is valid or not.
  *
- * @param session	TLS Session associated with this tunnel
- * @param cert_depth	Depth of the current certificate
- * @param cert_hash	Hash of the current certificate
+ * @param session       TLS Session associated with this tunnel
+ * @param cert_depth    Depth of the current certificate
+ * @param cert_hash     Hash of the current certificate
  */
-void cert_hash_remember (struct tls_session *session, const int cert_depth,
-    const struct buffer *cert_hash);
+void cert_hash_remember(struct tls_session *session, const int cert_depth,
+                        const struct buffer *cert_hash);
 
 /*
  * Library-specific functions.
@@ -80,34 +80,34 @@ void cert_hash_remember (struct tls_session *session, const int cert_depth,
 /*
  * Retrieve certificate's subject name.
  *
- * @param cert		Certificate to retrieve the subject from.
- * @param gc		Garbage collection arena to use when allocating string.
+ * @param cert          Certificate to retrieve the subject from.
+ * @param gc            Garbage collection arena to use when allocating string.
  *
- * @return 		a string containing the subject
+ * @return              a string containing the subject
  */
-char *x509_get_subject (openvpn_x509_cert_t *cert, struct gc_arena *gc);
+char *x509_get_subject(openvpn_x509_cert_t *cert, struct gc_arena *gc);
 
 /**
  * Retrieve the certificate's SHA1 fingerprint.
  *
- * @param cert		Certificate to retrieve the fingerprint from.
- * @param gc		Garbage collection arena to use when allocating string.
+ * @param cert          Certificate to retrieve the fingerprint from.
+ * @param gc            Garbage collection arena to use when allocating string.
  *
- * @return 		a string containing the certificate fingerprint
+ * @return              a string containing the certificate fingerprint
  */
-struct buffer x509_get_sha1_fingerprint (openvpn_x509_cert_t *cert,
-    struct gc_arena *gc);
+struct buffer x509_get_sha1_fingerprint(openvpn_x509_cert_t *cert,
+                                        struct gc_arena *gc);
 
 /**
  * Retrieve the certificate's SHA256 fingerprint.
  *
- * @param cert		Certificate to retrieve the fingerprint from.
- * @param gc		Garbage collection arena to use when allocating string.
+ * @param cert          Certificate to retrieve the fingerprint from.
+ * @param gc            Garbage collection arena to use when allocating string.
  *
- * @return 		a string containing the certificate fingerprint
+ * @return              a string containing the certificate fingerprint
  */
-struct buffer x509_get_sha256_fingerprint (openvpn_x509_cert_t *cert,
-    struct gc_arena *gc);
+struct buffer x509_get_sha256_fingerprint(openvpn_x509_cert_t *cert,
+                                          struct gc_arena *gc);
 
 /*
  * Retrieve the certificate's username from the specified field.
@@ -115,67 +115,67 @@ struct buffer x509_get_sha256_fingerprint (openvpn_x509_cert_t *cert,
  * If the field is prepended with ext: and ENABLE_X509ALTUSERNAME is enabled,
  * it will be loaded from an X.509 extension
  *
- * @param cn			Buffer to return the common name in.
- * @param cn_len		Length of the cn buffer.
- * @param x509_username_field	Name of the field to load from
- * @param cert			Certificate to retrieve the common name from.
+ * @param cn                    Buffer to return the common name in.
+ * @param cn_len                Length of the cn buffer.
+ * @param x509_username_field   Name of the field to load from
+ * @param cert                  Certificate to retrieve the common name from.
  *
- * @return 		\c FAILURE, \c or SUCCESS
+ * @return              \c FAILURE, \c or SUCCESS
  */
-result_t backend_x509_get_username (char *common_name, int cn_len,
-    char * x509_username_field, openvpn_x509_cert_t *peer_cert);
+result_t backend_x509_get_username(char *common_name, int cn_len,
+                                   char *x509_username_field, openvpn_x509_cert_t *peer_cert);
 
 /*
  * Return the certificate's serial number in decimal string representation.
  *
  * The serial number is returned as a string, since it might be a bignum.
  *
- * @param cert		Certificate to retrieve the serial number from.
- * @param gc		Garbage collection arena to use when allocating string.
+ * @param cert          Certificate to retrieve the serial number from.
+ * @param gc            Garbage collection arena to use when allocating string.
  *
- * @return 		String representation of the certificate's serial number
- * 			in decimal notation, or NULL on error.
+ * @return              String representation of the certificate's serial number
+ *                      in decimal notation, or NULL on error.
  */
-char *backend_x509_get_serial (openvpn_x509_cert_t *cert, struct gc_arena *gc);
+char *backend_x509_get_serial(openvpn_x509_cert_t *cert, struct gc_arena *gc);
 
 /*
  * Return the certificate's serial number in hex string representation.
  *
  * The serial number is returned as a string, since it might be a bignum.
  *
- * @param cert		Certificate to retrieve the serial number from.
- * @param gc		Garbage collection arena to use when allocating string.
+ * @param cert          Certificate to retrieve the serial number from.
+ * @param gc            Garbage collection arena to use when allocating string.
  *
- * @return 		String representation of the certificate's serial number
- * 			in hex notation, or NULL on error.
+ * @return              String representation of the certificate's serial number
+ *                      in hex notation, or NULL on error.
  */
-char *backend_x509_get_serial_hex (openvpn_x509_cert_t *cert,
-    struct gc_arena *gc);
+char *backend_x509_get_serial_hex(openvpn_x509_cert_t *cert,
+                                  struct gc_arena *gc);
 
 /*
  * Save X509 fields to environment, using the naming convention:
  *
  * X509_{cert_depth}_{name}={value}
  *
- * @param es		Environment set to save variables in
- * @param cert_depth	Depth of the certificate
- * @param cert		Certificate to set the environment for
+ * @param es            Environment set to save variables in
+ * @param cert_depth    Depth of the certificate
+ * @param cert          Certificate to set the environment for
  */
-void x509_setenv (struct env_set *es, int cert_depth, openvpn_x509_cert_t *cert);
+void x509_setenv(struct env_set *es, int cert_depth, openvpn_x509_cert_t *cert);
 
 /*
  * Start tracking the given attribute.
  *
  * The tracked attributes are stored in ll_head.
  *
- * @param ll_head	The x509_track to store tracked atttributes in
- * @param name		Name of the attribute to track
- * @param msglevel	Message level for errors
- * @param gc		Garbage collection arena for temp data
+ * @param ll_head       The x509_track to store tracked atttributes in
+ * @param name          Name of the attribute to track
+ * @param msglevel      Message level for errors
+ * @param gc            Garbage collection arena for temp data
  *
  */
-void x509_track_add (const struct x509_track **ll_head, const char *name,
-    int msglevel, struct gc_arena *gc);
+void x509_track_add(const struct x509_track **ll_head, const char *name,
+                    int msglevel, struct gc_arena *gc);
 
 /*
  * Save X509 fields to environment, using the naming convention:
@@ -193,60 +193,60 @@ void x509_track_add (const struct x509_track **ll_head, const char *name,
  *     well as X509 V3 extensions.
  *
  * @param xt
- * @param es		Environment set to save variables in
- * @param cert_depth	Depth of the certificate
- * @param cert		Certificate to set the environment for
+ * @param es            Environment set to save variables in
+ * @param cert_depth    Depth of the certificate
+ * @param cert          Certificate to set the environment for
  */
-void x509_setenv_track (const struct x509_track *xt, struct env_set *es,
-    const int depth, openvpn_x509_cert_t *x509);
+void x509_setenv_track(const struct x509_track *xt, struct env_set *es,
+                       const int depth, openvpn_x509_cert_t *x509);
 
 /*
  * Check X.509 Netscape certificate type field, if available.
  *
- * @param cert		Certificate to check.
- * @param usage		One of \c NS_CERT_CHECK_CLIENT, \c NS_CERT_CHECK_SERVER,
- * 			or \c NS_CERT_CHECK_NONE.
+ * @param cert          Certificate to check.
+ * @param usage         One of \c NS_CERT_CHECK_CLIENT, \c NS_CERT_CHECK_SERVER,
+ *                      or \c NS_CERT_CHECK_NONE.
  *
- * @return		\c SUCCESS if NS_CERT_CHECK_NONE or if the certificate has
- * 			the expected bit set. \c FAILURE if the certificate does
- * 			not have NS cert type verification or the wrong bit set.
+ * @return              \c SUCCESS if NS_CERT_CHECK_NONE or if the certificate has
+ *                      the expected bit set. \c FAILURE if the certificate does
+ *                      not have NS cert type verification or the wrong bit set.
  */
 result_t x509_verify_ns_cert_type(const openvpn_x509_cert_t *cert, const int usage);
 
 /*
  * Verify X.509 key usage extension field.
  *
- * @param cert		Certificate to check.
- * @param expected_ku	Array of valid key usage values
- * @param expected_len	Length of the key usage array
+ * @param cert          Certificate to check.
+ * @param expected_ku   Array of valid key usage values
+ * @param expected_len  Length of the key usage array
  *
- * @return 		\c SUCCESS if one of the key usage values matches, \c FAILURE
- * 			if key usage is not enabled, or the values do not match.
+ * @return              \c SUCCESS if one of the key usage values matches, \c FAILURE
+ *                      if key usage is not enabled, or the values do not match.
  */
-result_t x509_verify_cert_ku (openvpn_x509_cert_t *x509, const unsigned * const expected_ku,
-    int expected_len);
+result_t x509_verify_cert_ku(openvpn_x509_cert_t *x509, const unsigned *const expected_ku,
+                             int expected_len);
 
 /*
  * Verify X.509 extended key usage extension field.
  *
- * @param cert		Certificate to check.
- * @param expected_oid	String representation of the expected Object ID. May be
- * 			either the string representation of the numeric OID
- * 			(e.g. \c "1.2.3.4", or the descriptive string matching
- * 			the OID.
+ * @param cert          Certificate to check.
+ * @param expected_oid  String representation of the expected Object ID. May be
+ *                      either the string representation of the numeric OID
+ *                      (e.g. \c "1.2.3.4", or the descriptive string matching
+ *                      the OID.
  *
- * @return 		\c SUCCESS if one of the expected OID matches one of the
- * 			extended key usage fields, \c FAILURE if extended key
- * 			usage is not enabled, or the values do not match.
+ * @return              \c SUCCESS if one of the expected OID matches one of the
+ *                      extended key usage fields, \c FAILURE if extended key
+ *                      usage is not enabled, or the values do not match.
  */
-result_t x509_verify_cert_eku (openvpn_x509_cert_t *x509, const char * const expected_oid);
+result_t x509_verify_cert_eku(openvpn_x509_cert_t *x509, const char *const expected_oid);
 
 /*
  * Store the given certificate in pem format in a temporary file in tmp_dir
  *
- * @param cert		Certificate to store
- * @param tmp_dir	Temporary directory to store the directory
- * @param gc		gc_arena to store temporary objects in
+ * @param cert          Certificate to store
+ * @param tmp_dir       Temporary directory to store the directory
+ * @param gc            gc_arena to store temporary objects in
  *
  *
  */

@@ -41,35 +41,35 @@
 /**
  * Retrieve PKCS #11 Certificate's DN in a printable format.
  *
- * @param certificate 	The PKCS #11 helper certificate object
- * @param gc		Garbage collection pool to allocate memory in
+ * @param certificate   The PKCS #11 helper certificate object
+ * @param gc            Garbage collection pool to allocate memory in
  *
- * @return 		Certificate's DN on success, NULL on failure
+ * @return              Certificate's DN on success, NULL on failure
  */
-char * pkcs11_certificate_dn (pkcs11h_certificate_t certificate, struct gc_arena *gc);
+char *pkcs11_certificate_dn(pkcs11h_certificate_t certificate, struct gc_arena *gc);
 
 /**
  * Retrieve PKCS #11 Certificate's serial number in a printable format.
  *
- * @param certificate 	The PKCS #11 helper certificate object
- * @param serial	Buffer that the certificate's serial will be placed in.
- * @param serial_len	Size of said buffer.
+ * @param certificate   The PKCS #11 helper certificate object
+ * @param serial        Buffer that the certificate's serial will be placed in.
+ * @param serial_len    Size of said buffer.
  *
- * @return 		1 on failure, 0 on success
+ * @return              1 on failure, 0 on success
  */
-int pkcs11_certificate_serial (pkcs11h_certificate_t certificate, char *serial,
-    size_t serial_len);
+int pkcs11_certificate_serial(pkcs11h_certificate_t certificate, char *serial,
+                              size_t serial_len);
 
 /**
  * Load PKCS #11 Certificate's information into the given TLS context
  *
- * @param certificate 	The PKCS #11 helper certificate object
- * @param ssl_ctx	TLS context to use.
+ * @param certificate   The PKCS #11 helper certificate object
+ * @param ssl_ctx       TLS context to use.
  *
- * @return 		1 on failure, 0 on success
+ * @return              1 on failure, 0 on success
  */
 int pkcs11_init_tls_session(pkcs11h_certificate_t certificate,
-    struct tls_root_ctx * const ssl_ctx);
+                            struct tls_root_ctx *const ssl_ctx);
 
 #endif /* defined(ENABLE_PKCS11) */
 #endif /* PKCS11_BACKEND_H_ */

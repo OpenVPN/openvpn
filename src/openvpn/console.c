@@ -44,19 +44,21 @@
 struct _query_user query_user[QUERY_USER_NUMSLOTS];  /* GLOBAL */
 
 
-void query_user_clear()
+void
+query_user_clear()
 {
     int i;
 
-    for( i = 0; i < QUERY_USER_NUMSLOTS; i++ ) {
-	CLEAR(query_user[i]);
+    for (i = 0; i < QUERY_USER_NUMSLOTS; i++) {
+        CLEAR(query_user[i]);
     }
 }
 
 
-void query_user_add(char *prompt, size_t prompt_len,
-                    char *resp, size_t resp_len,
-                    bool echo)
+void
+query_user_add(char *prompt, size_t prompt_len,
+               char *resp, size_t resp_len,
+               bool echo)
 {
     int i;
 
@@ -67,9 +69,10 @@ void query_user_add(char *prompt, size_t prompt_len,
 
     /* Seek to the last unused slot */
     for (i = 0; i < QUERY_USER_NUMSLOTS; i++) {
-	if( query_user[i].prompt == NULL ) {
-	    break;
-	}
+        if (query_user[i].prompt == NULL)
+        {
+            break;
+        }
     }
     ASSERT( i < QUERY_USER_NUMSLOTS );  /* Unlikely, but we want to panic if it happens */
 

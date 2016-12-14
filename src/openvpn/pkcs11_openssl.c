@@ -44,149 +44,152 @@
 
 int
 pkcs11_init_tls_session(pkcs11h_certificate_t certificate,
-    struct tls_root_ctx * const ssl_ctx)
+                        struct tls_root_ctx *const ssl_ctx)
 {
-  int ret = 1;
+    int ret = 1;
 
-  X509 *x509 = NULL;
-  EVP_PKEY *evp = NULL;
-  pkcs11h_openssl_session_t openssl_session = NULL;
+    X509 *x509 = NULL;
+    EVP_PKEY *evp = NULL;
+    pkcs11h_openssl_session_t openssl_session = NULL;
 
-  if ((openssl_session = pkcs11h_openssl_createSession (certificate)) == NULL)
+    if ((openssl_session = pkcs11h_openssl_createSession(certificate)) == NULL)
     {
-      msg (M_WARN, "PKCS#11: Cannot initialize openssl session");
-      goto cleanup;
+        msg(M_WARN, "PKCS#11: Cannot initialize openssl session");
+        goto cleanup;
     }
 
-  /*
-   * Will be released by openssl_session
-   */
-  certificate = NULL;
+    /*
+     * Will be released by openssl_session
+     */
+    certificate = NULL;
 
-  if ((evp = pkcs11h_openssl_session_getEVP (openssl_session)) == NULL)
+    if ((evp = pkcs11h_openssl_session_getEVP(openssl_session)) == NULL)
     {
-      msg (M_WARN, "PKCS#11: Unable get evp object");
-      goto cleanup;
+        msg(M_WARN, "PKCS#11: Unable get evp object");
+        goto cleanup;
     }
 
-  if ((x509 = pkcs11h_openssl_session_getX509 (openssl_session)) == NULL)
+    if ((x509 = pkcs11h_openssl_session_getX509(openssl_session)) == NULL)
     {
-      msg (M_WARN, "PKCS#11: Unable get certificate object");
-      goto cleanup;
+        msg(M_WARN, "PKCS#11: Unable get certificate object");
+        goto cleanup;
     }
 
-  if (!SSL_CTX_use_PrivateKey (ssl_ctx->ctx, evp))
+    if (!SSL_CTX_use_PrivateKey(ssl_ctx->ctx, evp))
     {
-      msg (M_WARN, "PKCS#11: Cannot set private key for openssl");
-      goto cleanup;
+        msg(M_WARN, "PKCS#11: Cannot set private key for openssl");
+        goto cleanup;
     }
 
-  if (!SSL_CTX_use_certificate (ssl_ctx->ctx, x509))
+    if (!SSL_CTX_use_certificate(ssl_ctx->ctx, x509))
     {
-      msg (M_WARN, "PKCS#11: Cannot set certificate for openssl");
-      goto cleanup;
+        msg(M_WARN, "PKCS#11: Cannot set certificate for openssl");
+        goto cleanup;
     }
-  ret = 0;
+    ret = 0;
 
 cleanup:
-  /*
-   * Certificate freeing is usually handled by openssl_session.
-   * If something went wrong, creating the session we have to do it manually.
-   */
-  if (certificate != NULL) {
-    pkcs11h_certificate_freeCertificate (certificate);
-    certificate = NULL;
-  }
-
-  /*
-   * openssl objects have reference
-   * count, so release them
-   */
-  if (x509 != NULL)
+    /*
+     * Certificate freeing is usually handled by openssl_session.
+     * If something went wrong, creating the session we have to do it manually.
+     */
+    if (certificate != NULL)
     {
-      X509_free (x509);
-      x509 = NULL;
+        pkcs11h_certificate_freeCertificate(certificate);
+        certificate = NULL;
     }
 
-  if (evp != NULL)
+    /*
+     * openssl objects have reference
+     * count, so release them
+     */
+    if (x509 != NULL)
     {
-      EVP_PKEY_free (evp);
-      evp = NULL;
+        X509_free(x509);
+        x509 = NULL;
     }
 
-  if (openssl_session != NULL)
+    if (evp != NULL)
     {
-      pkcs11h_openssl_freeSession (openssl_session);
-      openssl_session = NULL;
+        EVP_PKEY_free(evp);
+        evp = NULL;
     }
-  return ret;
+
+    if (openssl_session != NULL)
+    {
+        pkcs11h_openssl_freeSession(openssl_session);
+        openssl_session = NULL;
+    }
+    return ret;
 }
 
 char *
-pkcs11_certificate_dn (pkcs11h_certificate_t certificate, struct gc_arena *gc)
+pkcs11_certificate_dn(pkcs11h_certificate_t certificate, struct gc_arena *gc)
 {
-  X509 *x509 = NULL;
+    X509 *x509 = NULL;
 
-  char *dn = NULL;
+    char *dn = NULL;
 
-  if ((x509 = pkcs11h_openssl_getX509 (certificate)) == NULL)
+    if ((x509 = pkcs11h_openssl_getX509(certificate)) == NULL)
     {
-      msg (M_FATAL, "PKCS#11: Cannot get X509");
-      goto cleanup;
+        msg(M_FATAL, "PKCS#11: Cannot get X509");
+        goto cleanup;
     }
 
-  dn = x509_get_subject (x509, gc);
+    dn = x509_get_subject(x509, gc);
 
 cleanup:
-  if (x509 != NULL)
+    if (x509 != NULL)
     {
-      X509_free (x509);
-      x509 = NULL;
+        X509_free(x509);
+        x509 = NULL;
     }
 
-  return dn;
+    return dn;
 }
 
 int
-pkcs11_certificate_serial (pkcs11h_certificate_t certificate, char *serial,
-    size_t serial_len)
+pkcs11_certificate_serial(pkcs11h_certificate_t certificate, char *serial,
+                          size_t serial_len)
 {
-  X509 *x509 = NULL;
-  BIO *bio = NULL;
-  int ret = 1;
-  int n;
+    X509 *x509 = NULL;
+    BIO *bio = NULL;
+    int ret = 1;
+    int n;
 
-  if ((x509 = pkcs11h_openssl_getX509 (certificate)) == NULL)
+    if ((x509 = pkcs11h_openssl_getX509(certificate)) == NULL)
     {
-      msg (M_FATAL, "PKCS#11: Cannot get X509");
-      goto cleanup;
+        msg(M_FATAL, "PKCS#11: Cannot get X509");
+        goto cleanup;
     }
 
-  if ((bio = BIO_new (BIO_s_mem ())) == NULL)
+    if ((bio = BIO_new(BIO_s_mem())) == NULL)
     {
-      msg (M_FATAL, "PKCS#11: Cannot create BIO");
-      goto cleanup;
+        msg(M_FATAL, "PKCS#11: Cannot create BIO");
+        goto cleanup;
     }
 
-  i2a_ASN1_INTEGER(bio, X509_get_serialNumber (x509));
-  n = BIO_read (bio, serial, serial_len-1);
+    i2a_ASN1_INTEGER(bio, X509_get_serialNumber(x509));
+    n = BIO_read(bio, serial, serial_len-1);
 
-  if (n<0) {
-    serial[0] = '\x0';
-  }
-  else {
-    serial[n] = 0;
-  }
+    if (n<0)
+    {
+        serial[0] = '\x0';
+    }
+    else
+    {
+        serial[n] = 0;
+    }
 
-  ret = 0;
+    ret = 0;
 
 cleanup:
 
-  if (x509 != NULL)
+    if (x509 != NULL)
     {
-      X509_free (x509);
-      x509 = NULL;
+        X509_free(x509);
+        x509 = NULL;
     }
-  return ret;
+    return ret;
 }
 #endif /* defined(ENABLE_PKCS11) && defined(ENABLE_OPENSSL) */

@@ -39,63 +39,65 @@
  * than delay, set timeval to delay.
  */
 bool
-shaper_soonest_event (struct timeval *tv, int delay)
+shaper_soonest_event(struct timeval *tv, int delay)
 {
-  bool ret = false;
-  if (delay < 1000000)
+    bool ret = false;
+    if (delay < 1000000)
     {
-      if (tv->tv_sec)
-	{
-	  tv->tv_sec = 0;
-	  tv->tv_usec = delay;
-	  ret = true;
-	}
-      else if (delay < tv->tv_usec)
-	{
-	  tv->tv_usec = delay;
-	  ret = true;
-	}
+        if (tv->tv_sec)
+        {
+            tv->tv_sec = 0;
+            tv->tv_usec = delay;
+            ret = true;
+        }
+        else if (delay < tv->tv_usec)
+        {
+            tv->tv_usec = delay;
+            ret = true;
+        }
     }
-  else
+    else
     {
-      const int sec = delay / 1000000;
-      const int usec = delay % 1000000;
+        const int sec = delay / 1000000;
+        const int usec = delay % 1000000;
 
-      if (sec < tv->tv_sec)
-	{
-	  tv->tv_sec = sec;
-	  tv->tv_usec = usec;
-	  ret = true;
-	}
-      else if (sec == tv->tv_sec)
-	{
-	  if (usec < tv->tv_usec)
-	    {
-	      tv->tv_usec = usec;
-	      ret = true;
-	    }
-	}
+        if (sec < tv->tv_sec)
+        {
+            tv->tv_sec = sec;
+            tv->tv_usec = usec;
+            ret = true;
+        }
+        else if (sec == tv->tv_sec)
+        {
+            if (usec < tv->tv_usec)
+            {
+                tv->tv_usec = usec;
+                ret = true;
+            }
+        }
     }
 #ifdef SHAPER_DEBUG
-  dmsg (D_SHAPER_DEBUG, "SHAPER shaper_soonest_event sec=%d usec=%d ret=%d",
-       (int)tv->tv_sec, (int)tv->tv_usec, (int)ret);
+    dmsg(D_SHAPER_DEBUG, "SHAPER shaper_soonest_event sec=%d usec=%d ret=%d",
+         (int)tv->tv_sec, (int)tv->tv_usec, (int)ret);
 #endif
-  return ret;
+    return ret;
 }
 
 void
-shaper_reset_wakeup (struct shaper *s)
+shaper_reset_wakeup(struct shaper *s)
 {
-  CLEAR (s->wakeup);
+    CLEAR(s->wakeup);
 }
 
 void
-shaper_msg (struct shaper *s)
+shaper_msg(struct shaper *s)
 {
-  msg (M_INFO, "Output Traffic Shaping initialized at %d bytes per second",
-       s->bytes_per_second);
+    msg(M_INFO, "Output Traffic Shaping initialized at %d bytes per second",
+        s->bytes_per_second);
 }
 
-#else
-static void dummy(void) {}
+#else  /* ifdef ENABLE_FEATURE_SHAPER */
+static void
+dummy(void) {
+}
 #endif /* ENABLE_FEATURE_SHAPER */

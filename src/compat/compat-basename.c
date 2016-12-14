@@ -37,14 +37,15 @@
  * This version is extended to handle both / and \ in path names
  */
 char *
-basename (char *filename)
+basename(char *filename)
 {
-  char *p = strrchr (filename, '/');
-  if (!p) {
-    /* If NULL, check for \ instead ... might be Windows a path */
-    p = strrchr (filename, '\\');
-  }
-  return p ? p + 1 : (char *) filename;
+    char *p = strrchr(filename, '/');
+    if (!p)
+    {
+        /* If NULL, check for \ instead ... might be Windows a path */
+        p = strrchr(filename, '\\');
+    }
+    return p ? p + 1 : (char *) filename;
 }
 
 #endif /* HAVE_BASENAME */

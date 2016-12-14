@@ -29,41 +29,41 @@
 #include <lm.h>
 
 static const WCHAR *white_list[] =
-    {
-       L"auth-retry",
-       L"config",
-       L"log",
-       L"log-append",
-       L"management",
-       L"management-forget-disconnect",
-       L"management-hold",
-       L"management-query-passwords",
-       L"management-query-proxy",
-       L"management-signal",
-       L"management-up-down",
-       L"mute",
-       L"setenv",
-       L"service",
-       L"verb",
+{
+    L"auth-retry",
+    L"config",
+    L"log",
+    L"log-append",
+    L"management",
+    L"management-forget-disconnect",
+    L"management-hold",
+    L"management-query-passwords",
+    L"management-query-proxy",
+    L"management-signal",
+    L"management-up-down",
+    L"mute",
+    L"setenv",
+    L"service",
+    L"verb",
 
-       NULL                             /* last value */
-    };
+    NULL                                /* last value */
+};
 
 /*
  * Check workdir\fname is inside config_dir
  * The logic here is simple: we may reject some valid paths if ..\ is in any of the strings
  */
 static BOOL
-CheckConfigPath (const WCHAR *workdir, const WCHAR *fname, const settings_t *s)
+CheckConfigPath(const WCHAR *workdir, const WCHAR *fname, const settings_t *s)
 {
     WCHAR tmp[MAX_PATH];
     const WCHAR *config_file = NULL;
     const WCHAR *config_dir = NULL;
 
     /* convert fname to full path */
-    if (PathIsRelativeW (fname) )
+    if (PathIsRelativeW(fname) )
     {
-        snwprintf (tmp, _countof(tmp), L"%s\\%s", workdir, fname);
+        snwprintf(tmp, _countof(tmp), L"%s\\%s", workdir, fname);
         tmp[_countof(tmp)-1] = L'\0';
         config_file = tmp;
     }
@@ -75,17 +75,19 @@ CheckConfigPath (const WCHAR *workdir, const WCHAR *fname, const settings_t *s)
 #ifdef UNICODE
     config_dir = s->config_dir;
 #else
-    if (MultiByteToWideChar (CP_UTF8, 0, s->config_dir, -1, widepath, MAX_PATH) == 0)
+    if (MultiByteToWideChar(CP_UTF8, 0, s->config_dir, -1, widepath, MAX_PATH) == 0)
     {
-        MsgToEventLog (M_SYSERR, TEXT("Failed to convert config_dir name to WideChar"));
+        MsgToEventLog(M_SYSERR, TEXT("Failed to convert config_dir name to WideChar"));
         return FALSE;
     }
     config_dir = widepath;
 #endif
 
-    if (wcsncmp (config_dir, config_file, wcslen(config_dir)) == 0 &&
-        wcsstr (config_file + wcslen(config_dir), L"..") == NULL )
+    if (wcsncmp(config_dir, config_file, wcslen(config_dir)) == 0
+        && wcsstr(config_file + wcslen(config_dir), L"..") == NULL)
+    {
         return TRUE;
+    }
 
     return FALSE;
 }
@@ -96,14 +98,16 @@ CheckConfigPath (const WCHAR *workdir, const WCHAR *fname, const settings_t *s)
  * Returns index to the item if found, -1 otherwise.
  */
 static int
-OptionLookup (const WCHAR *name, const WCHAR *white_list[])
+OptionLookup(const WCHAR *name, const WCHAR *white_list[])
 {
     int i;
 
-    for (i = 0 ; white_list[i]; i++)
+    for (i = 0; white_list[i]; i++)
     {
-        if ( wcscmp(white_list[i], name) == 0 )
+        if (wcscmp(white_list[i], name) == 0)
+        {
             return i;
+        }
     }
 
     return -1;
@@ -114,7 +118,7 @@ OptionLookup (const WCHAR *name, const WCHAR *white_list[])
  * Get the local name of the group using the SID.
  */
 static BOOL
-GetBuiltinAdminGroupName (WCHAR *name, DWORD nlen)
+GetBuiltinAdminGroupName(WCHAR *name, DWORD nlen)
 {
     BOOL b = FALSE;
     PSID admin_sid = NULL;
@@ -126,15 +130,17 @@ GetBuiltinAdminGroupName (WCHAR *name, DWORD nlen)
 
     admin_sid = malloc(sid_size);
     if (!admin_sid)
+    {
         return FALSE;
+    }
 
     b = CreateWellKnownSid(WinBuiltinAdministratorsSid, NULL, admin_sid,  &sid_size);
-    if(b)
+    if (b)
     {
         b = LookupAccountSidW(NULL, admin_sid, name, &nlen, domain, &dlen, &snu);
     }
 
-    free (admin_sid);
+    free(admin_sid);
 
     return b;
 }
@@ -144,7 +150,7 @@ GetBuiltinAdminGroupName (WCHAR *name, DWORD nlen)
  * the group specified in s->ovpn_admin_group
  */
 BOOL
-IsAuthorizedUser (SID *sid, settings_t *s)
+IsAuthorizedUser(SID *sid, settings_t *s)
 {
     LOCALGROUP_USERS_INFO_0 *groups = NULL;
     DWORD nread;
@@ -160,19 +166,19 @@ IsAuthorizedUser (SID *sid, settings_t *s)
     SID_NAME_USE sid_type;
 
     /* Get username */
-    if (!LookupAccountSidW (NULL, sid, username, &len, domain, &len, &sid_type))
+    if (!LookupAccountSidW(NULL, sid, username, &len, domain, &len, &sid_type))
     {
-        MsgToEventLog (M_SYSERR, TEXT("LookupAccountSid"));
+        MsgToEventLog(M_SYSERR, TEXT("LookupAccountSid"));
         goto out;
     }
 
     /* Get an array of groups the user is member of */
-    err = NetUserGetLocalGroups (NULL, username, 0, LG_INCLUDE_INDIRECT, (LPBYTE *) &groups,
-                                 MAX_PREFERRED_LENGTH, &nread, &nmax);
+    err = NetUserGetLocalGroups(NULL, username, 0, LG_INCLUDE_INDIRECT, (LPBYTE *) &groups,
+                                MAX_PREFERRED_LENGTH, &nread, &nmax);
     if (err && err != ERROR_MORE_DATA)
     {
-        SetLastError (err);
-        MsgToEventLog (M_SYSERR, TEXT("NetUserGetLocalGroups"));
+        SetLastError(err);
+        MsgToEventLog(M_SYSERR, TEXT("NetUserGetLocalGroups"));
         goto out;
     }
 
@@ -182,7 +188,7 @@ IsAuthorizedUser (SID *sid, settings_t *s)
     }
     else
     {
-        MsgToEventLog (M_SYSERR, TEXT("Failed to get the name of Administrators group. Using the default."));
+        MsgToEventLog(M_SYSERR, TEXT("Failed to get the name of Administrators group. Using the default."));
         /* use the default value */
         admin_group[0] = SYSTEM_ADMIN_GROUP;
     }
@@ -191,25 +197,25 @@ IsAuthorizedUser (SID *sid, settings_t *s)
     admin_group[1] = s->ovpn_admin_group;
 #else
     tmp = NULL;
-    len = MultiByteToWideChar (CP_UTF8, 0, s->ovpn_admin_group, -1, NULL, 0);
-    if (len == 0 || (tmp = malloc (len*sizeof(WCHAR))) == NULL)
+    len = MultiByteToWideChar(CP_UTF8, 0, s->ovpn_admin_group, -1, NULL, 0);
+    if (len == 0 || (tmp = malloc(len*sizeof(WCHAR))) == NULL)
     {
-        MsgToEventLog (M_SYSERR, TEXT("Failed to convert admin group name to WideChar"));
+        MsgToEventLog(M_SYSERR, TEXT("Failed to convert admin group name to WideChar"));
         goto out;
     }
-    MultiByteToWideChar (CP_UTF8, 0, s->ovpn_admin_group, -1, tmp, len);
+    MultiByteToWideChar(CP_UTF8, 0, s->ovpn_admin_group, -1, tmp, len);
     admin_group[1] = tmp;
 #endif
 
     /* Check if user's groups include any of the admin groups */
     for (i = 0; i < nread; i++)
     {
-        if ( wcscmp (groups[i].lgrui0_name, admin_group[0]) == 0 ||
-             wcscmp (groups[i].lgrui0_name, admin_group[1]) == 0
-           )
+        if (wcscmp(groups[i].lgrui0_name, admin_group[0]) == 0
+            || wcscmp(groups[i].lgrui0_name, admin_group[1]) == 0
+            )
         {
-            MsgToEventLog (M_INFO, TEXT("Authorizing user %s by virtue of membership in group %s"),
-                           username, groups[i].lgrui0_name);
+            MsgToEventLog(M_INFO, TEXT("Authorizing user %s by virtue of membership in group %s"),
+                          username, groups[i].lgrui0_name);
             ret = TRUE;
             break;
         }
@@ -217,8 +223,10 @@ IsAuthorizedUser (SID *sid, settings_t *s)
 
 out:
     if (groups)
-        NetApiBufferFree (groups);
-    free (tmp);
+    {
+        NetApiBufferFree(groups);
+    }
+    free(tmp);
 
     return ret;
 }
@@ -229,21 +237,23 @@ out:
  * The caller should set argc to the number of valid elements in argv[] array.
  */
 BOOL
-CheckOption (const WCHAR *workdir, int argc, WCHAR *argv[], const settings_t *s)
+CheckOption(const WCHAR *workdir, int argc, WCHAR *argv[], const settings_t *s)
 {
     /* Do not modify argv or *argv -- ideally it should be const WCHAR *const *, but alas...*/
 
-    if ( wcscmp (argv[0], L"--config") == 0            &&
-         argc > 1                                      &&
-         !CheckConfigPath (workdir, argv[1], s)
-       )
+    if (wcscmp(argv[0], L"--config") == 0
+        && argc > 1
+        && !CheckConfigPath(workdir, argv[1], s)
+        )
     {
         return FALSE;
     }
 
     /* option name starts at 2 characters from argv[i] */
-    if (OptionLookup (argv[0] + 2, white_list) == -1)  /* not found */
+    if (OptionLookup(argv[0] + 2, white_list) == -1)   /* not found */
+    {
         return FALSE;
+    }
 
     return TRUE;
 }
