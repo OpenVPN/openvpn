@@ -341,6 +341,7 @@ struct options
   bool route_gateway_via_dhcp;
   bool allow_pull_fqdn; /* as a client, allow server to push a FQDN for certain parameters */
   struct client_nat_option_list *client_nat;
+  const char *route_table;
 
 #ifdef ENABLE_OCC
   /* Enable options consistency check between peers */
