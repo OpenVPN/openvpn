@@ -247,7 +247,7 @@ void process_outgoing_tun (struct context *c);
 
 bool send_control_channel_string (struct context *c, const char *str, int msglevel);
 
-#define PIPV4_PASSTOS         (1<<0)
+#define PIP_PASSTOS           (1<<0)
 #define PIP_MSSFIX            (1<<1)         /* v4 and v6 */
 #define PIPV4_OUTGOING        (1<<2)
 #define PIPV4_EXTRACT_DHCP_ROUTER (1<<3)

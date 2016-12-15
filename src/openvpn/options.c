@@ -262,7 +262,7 @@ static const char usage_message[] =
   "--persist-local-ip  : Keep local IP address across SIGUSR1 or --ping-restart.\n"
   "--persist-key   : Don't re-read key files across SIGUSR1 or --ping-restart.\n"
 #if PASSTOS_CAPABILITY
-  "--passtos       : TOS passthrough (applies to IPv4 only).\n"
+  "--passtos       : TOS passthrough.\n"
 #endif
   "--tun-mtu n     : Take the tun/tap device MTU to be n and derive the\n"
   "                  TCP/UDP MTU from it (default=%d).\n"

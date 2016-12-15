@@ -1094,7 +1094,7 @@ process_incoming_tun (struct context *c)
        * The --passtos and --mssfix options require
        * us to examine the IP header (IPv4 or IPv6).
        */
-      process_ip_header (c, PIPV4_PASSTOS|PIP_MSSFIX|PIPV4_CLIENT_NAT, &c->c2.buf);
+      process_ip_header (c, PIP_PASSTOS|PIP_MSSFIX|PIPV4_CLIENT_NAT, &c->c2.buf);
 
 #ifdef PACKET_TRUNCATION_CHECK
       /* if (c->c2.buf.len > 1) --c->c2.buf.len; */
@@ -1122,7 +1122,7 @@ process_ip_header (struct context *c, unsigned int flags, struct buffer *buf)
     flags &= ~PIP_MSSFIX;
 #if PASSTOS_CAPABILITY
   if (!c->options.passtos)
-    flags &= ~PIPV4_PASSTOS;
+    flags &= ~PIP_PASSTOS;
 #endif
   if (!c->options.client_nat)
     flags &= ~PIPV4_CLIENT_NAT;
@@ -1138,7 +1138,7 @@ process_ip_header (struct context *c, unsigned int flags, struct buffer *buf)
 
       if (flags & (PIP_MSSFIX
 #if PASSTOS_CAPABILITY
-	  | PIPV4_PASSTOS
+	  | PIP_PASSTOS
 #endif
 	  | PIPV4_CLIENT_NAT
 	  ))
@@ -1148,10 +1148,10 @@ process_ip_header (struct context *c, unsigned int flags, struct buffer *buf)
 	    {
 #if PASSTOS_CAPABILITY
 	      /* extract TOS from IP header */
-	      if (flags & PIPV4_PASSTOS)
-		link_socket_extract_tos (c->c2.link_socket, &ipbuf);
+	      if (flags & PIP_PASSTOS)
+		link_socket_extract_tos_v4 (c->c2.link_socket, &ipbuf);
 #endif
-			  
+
 	      /* possibly alter the TCP MSS */
 	      if (flags & PIP_MSSFIX)
 		mss_fixup_ipv4 (&ipbuf, MTU_TO_MSS (TUN_MTU_SIZE_DYNAMIC (&c->c2.frame)));
@@ -1172,6 +1172,12 @@ process_ip_header (struct context *c, unsigned int flags, struct buffer *buf)
 	    }
 	  else if (is_ipv6 (TUNNEL_TYPE (c->c1.tuntap), &ipbuf))
 	    {
+#if PASSTOS_CAPABILITY
+	      /* extract TOS from IPv6 header */
+	      if (flags & PIP_PASSTOS)
+		link_socket_extract_tos_v6 (c->c2.link_socket, &ipbuf);
+#endif
+
 	      /* possibly alter the TCP MSS */
 	      if (flags & PIP_MSSFIX)
 		mss_fixup_ipv6 (&ipbuf, MTU_TO_MSS (TUN_MTU_SIZE_DYNAMIC (&c->c2.frame)));
