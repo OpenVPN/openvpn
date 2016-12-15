@@ -396,7 +396,7 @@
 /*
  * Do we have the capability to support the --passtos option?
  */
-#if defined(IPPROTO_IP) && defined(IP_TOS) && defined(HAVE_SETSOCKOPT)
+#if defined(IPPROTO_IP) && defined(IP_TOS) && defined(IPPROTO_IPV6) && defined(IPV6_TCLASS) && defined(HAVE_SETSOCKOPT)
 #define PASSTOS_CAPABILITY 1
 #else
 #define PASSTOS_CAPABILITY 0

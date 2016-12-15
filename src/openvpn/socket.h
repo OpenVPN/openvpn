@@ -1102,12 +1102,26 @@ link_socket_write (struct link_socket *sock,
  * Extract TOS bits.  Assumes that ipbuf is a valid IPv4 packet.
  */
 static inline void
-link_socket_extract_tos (struct link_socket *ls, const struct buffer *ipbuf)
+link_socket_extract_tos_v4 (struct link_socket *ls, const struct buffer *ipbuf)
 {
   if (ls && ipbuf)
     {
       struct openvpn_iphdr *iph = (struct openvpn_iphdr *) BPTR (ipbuf);
       ls->ptos = iph->tos;
+      ls->ptos_defined = true;
+    }
+}
+
+/*
+ * Extract TOS bits.  Assumes that ipbuf is a valid IPv6 packet.
+ */
+static inline void
+link_socket_extract_tos_v6 (struct link_socket *ls, const struct buffer *ipbuf)
+{
+  if (ls && ipbuf)
+    {
+      struct openvpn_ipv6hdr *ip6h = (struct openvpn_ipv6hdr *) BPTR (ipbuf);
+      ls->ptos = ((ip6h->version_prio & 0x0f) << 4) | (ip6h->flow_lbl[0] >> 4);
       ls->ptos_defined = true;
     }
 }
@@ -1120,7 +1134,16 @@ static inline void
 link_socket_set_tos (struct link_socket *ls)
 {
   if (ls && ls->ptos_defined)
-    setsockopt (ls->sd, IPPROTO_IP, IP_TOS, (const void *)&ls->ptos, sizeof (ls->ptos));
+    {
+      if (ls->info.af == AF_INET6)
+        {
+          setsockopt (ls->sd, IPPROTO_IPV6, IPV6_TCLASS, (const void *)&ls->ptos, sizeof (ls->ptos));
+        }
+      else
+        {
+          setsockopt (ls->sd, IPPROTO_IP, IP_TOS, (const void *)&ls->ptos, sizeof (ls->ptos));
+        }
+    }
 }
 
 #endif
