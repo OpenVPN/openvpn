@@ -923,6 +923,14 @@ const char *string_mod_const(const char *str,
 
 void string_replace_leading(char *str, const char match, const char replace);
 
+/** Return true iff str starts with prefix */
+static inline bool
+strprefix(const char *str, const char *prefix)
+{
+    return 0 == strncmp(str, prefix, strlen(prefix));
+}
+
+
 #ifdef CHARACTER_CLASS_DEBUG
 void character_class_debug(void);
 

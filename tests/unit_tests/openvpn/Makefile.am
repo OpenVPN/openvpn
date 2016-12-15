@@ -1,6 +1,6 @@
 AUTOMAKE_OPTIONS = foreign
 
-check_PROGRAMS = argv_testdriver
+check_PROGRAMS = argv_testdriver buffer_testdriver
 
 if ENABLE_CRYPTO
 check_PROGRAMS += tls_crypt_testdriver
@@ -20,6 +20,12 @@ argv_testdriver_SOURCES = test_argv.c mock_msg.c \
 	$(openvpn_srcdir)/platform.c \
 	$(openvpn_srcdir)/buffer.c \
 	$(openvpn_srcdir)/argv.c
+
+buffer_testdriver_CFLAGS  = @TEST_CFLAGS@ -I$(openvpn_srcdir) -I$(compat_srcdir)
+buffer_testdriver_LDFLAGS = @TEST_LDFLAGS@ -L$(openvpn_srcdir) -Wl,--wrap=parse_line
+buffer_testdriver_SOURCES = test_buffer.c mock_msg.c \
+	$(openvpn_srcdir)/buffer.c \
+	$(openvpn_srcdir)/platform.c
 
 tls_crypt_testdriver_CFLAGS  = @TEST_CFLAGS@ \
 	-I$(openvpn_includedir) -I$(compat_srcdir) -I$(openvpn_srcdir) \

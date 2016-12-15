@@ -677,17 +677,23 @@ process_incoming_push_request(struct context *c)
 #endif /* if P2MP_SERVER */
 
 static void
-push_update_digest(md_ctx_t *ctx, struct buffer *buf)
+push_update_digest(md_ctx_t *ctx, struct buffer *buf, const struct options *opt)
 {
     char line[OPTION_PARM_SIZE];
     while (buf_parse(buf, ',', line, sizeof(line)))
     {
         /* peer-id might change on restart and this should not trigger reopening tun */
-        if (strstr(line, "peer-id ") != line)
+        if (strprefix(line, "peer-id "))
         {
-            md_ctx_update(ctx, (const uint8_t *) line, strlen(line));
+            continue;
+        }
+        /* tun reopen only needed if cipher change can change tun MTU */
+        if (strprefix(line, "cipher ") && !opt->ce.tun_mtu_defined)
+        {
+            continue;
         }
     }
+    md_ctx_update(ctx, (const uint8_t *) line, strlen(line)+1);
 }
 
 int
@@ -730,7 +736,8 @@ process_incoming_push_msg(struct context *c,
                                    option_types_found,
                                    c->c2.es))
             {
-                push_update_digest(&c->c2.pulled_options_state, &buf_orig);
+                push_update_digest(&c->c2.pulled_options_state, &buf_orig,
+                                   &c->options);
                 switch (c->options.push_continuation)
                 {
                     case 0:
