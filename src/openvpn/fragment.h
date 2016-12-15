@@ -48,43 +48,43 @@
 
 
 #define N_FRAG_BUF                   25
-                                /**< Number of packet buffers for
-                                 *   reassembling incoming fragmented
-                                 *   packets. */
+/**< Number of packet buffers for
+ *   reassembling incoming fragmented
+ *   packets. */
 
 #define FRAG_TTL_SEC                 10
-                                /**< Time-to-live in seconds for a %fragment. */
+/**< Time-to-live in seconds for a %fragment. */
 
 #define FRAG_WAKEUP_INTERVAL         5
-                                /**< Interval in seconds between calls to
-                                 *   wakeup code. */
+/**< Interval in seconds between calls to
+ *   wakeup code. */
 
 /**************************************************************************/
 /**
  * Structure for reassembling one incoming fragmented packet.
  */
 struct fragment {
-  bool defined;                 /**< Whether reassembly is currently
+    bool defined;               /**< Whether reassembly is currently
                                  *   taking place in this structure. */
 
-  int max_frag_size;		/**< Maximum size of each %fragment. */
+    int max_frag_size;          /**< Maximum size of each %fragment. */
 
-# define FRAG_MAP_MASK 0xFFFFFFFF
-                                /**< Mask for reassembly map. */
-# define MAX_FRAGS 32		/**< Maximum number of fragments per packet. */
-  unsigned int map;
-                                /**< Reassembly map for recording which
-                                 *   fragments have been received.
-                                 *
-                                 *   A bit array where each bit
-                                 *   corresponds to a %fragment.  A 1 bit
-                                 *   in element n means that the %fragment
-                                 *   n has been received.  Needs to have
-                                 *   at least \c MAX_FRAGS bits. */
+#define FRAG_MAP_MASK 0xFFFFFFFF
+    /**< Mask for reassembly map. */
+#define MAX_FRAGS 32            /**< Maximum number of fragments per packet. */
+    unsigned int map;
+    /**< Reassembly map for recording which
+     *   fragments have been received.
+     *
+     *   A bit array where each bit
+     *   corresponds to a %fragment.  A 1 bit
+     *   in element n means that the %fragment
+     *   n has been received.  Needs to have
+     *   at least \c MAX_FRAGS bits. */
 
-  time_t timestamp;		/**< Timestamp for time-to-live purposes. */
+    time_t timestamp;           /**< Timestamp for time-to-live purposes. */
 
-  struct buffer buf;            /**< Buffer in which received datagrams
+    struct buffer buf;          /**< Buffer in which received datagrams
                                  *   are reassembled. */
 };
 
@@ -94,10 +94,10 @@ struct fragment {
  * concurrently.
  */
 struct fragment_list {
-  int seq_id;                   /**< Highest fragmentation sequence ID of
+    int seq_id;                 /**< Highest fragmentation sequence ID of
                                  *   the packets currently being
                                  *   reassembled. */
-  int index;                    /**< Index of the packet being reassembled
+    int index;                  /**< Index of the packet being reassembled
                                  *   with the highest fragmentation
                                  *   sequence ID into the \c
                                  *   fragment_list.fragments array. */
@@ -112,7 +112,7 @@ struct fragment_list {
  *  fragmentation sequence IDs in the range \c fragment_list.seq_id \c -
  *  \c N_FRAG_BUF \c + \c 1 to \c fragment_list.seq_id, inclusive.
  */
-  struct fragment fragments[N_FRAG_BUF];
+    struct fragment fragments[N_FRAG_BUF];
 };
 
 
@@ -135,16 +135,16 @@ struct fragment_list {
  * and returns the whole packets once reassembly is complete.
  */
 struct fragment_master {
-  struct event_timeout wakeup;  /**< Timeout structure used by the main
-                                 *   event loop to know when to do
-                                 *   fragmentation housekeeping. */
-  bool received_os_mtu_hint;    /**< Whether the operating system has
+    struct event_timeout wakeup; /**< Timeout structure used by the main
+                                  *   event loop to know when to do
+                                  *   fragmentation housekeeping. */
+    bool received_os_mtu_hint;  /**< Whether the operating system has
                                  *   explicitly recommended an MTU value. */
-# define N_SEQ_ID            256
-                                /**< One more than the maximum fragment
-                                 *   sequence ID, above which the IDs wrap
-                                 *   to zero.  Should be a power of 2. */
-  int outgoing_seq_id;          /**< Fragment sequence ID of the current
+#define N_SEQ_ID            256
+    /**< One more than the maximum fragment
+     *   sequence ID, above which the IDs wrap
+     *   to zero.  Should be a power of 2. */
+    int outgoing_seq_id;        /**< Fragment sequence ID of the current
                                  *   fragmented packet waiting to be sent.
                                  *
                                  *   All parts of a fragmented packet
@@ -152,10 +152,10 @@ struct fragment_master {
                                  *   the remote OpenVPN peer can determine
                                  *   which parts belong to which original
                                  *   packet. */
-# define MAX_FRAG_PKT_SIZE 65536
-                                /**< (Not used) Maximum packet size before
-                                 *   fragmenting. */
-  int outgoing_frag_size;       /**< Size in bytes of each part to be
+#define MAX_FRAG_PKT_SIZE 65536
+    /**< (Not used) Maximum packet size before
+     *   fragmenting. */
+    int outgoing_frag_size;     /**< Size in bytes of each part to be
                                  *   sent, except for the last part which
                                  *   may be smaller.
                                  *
@@ -167,19 +167,19 @@ struct fragment_master {
                                  *   FRAG_YES_LAST) using the \c
                                  *   FRAG_SIZE_MASK and \c FRAG_SIZE_SHIFT
                                  *   bits. */
-  int outgoing_frag_id;         /**< The fragment ID of the next part to
+    int outgoing_frag_id;       /**< The fragment ID of the next part to
                                  *   be sent.  Must have a value between 0
                                  *   and \c MAX_FRAGS-1. */
-  struct buffer outgoing;       /**< Buffer containing the remaining parts
+    struct buffer outgoing;     /**< Buffer containing the remaining parts
                                  *   of the fragmented packet being sent. */
-  struct buffer outgoing_return;
-                                /**< Buffer used by \c
-                                 *   fragment_ready_to_send() to return a
-                                 *   part to send. */
+    struct buffer outgoing_return;
+    /**< Buffer used by \c
+     *   fragment_ready_to_send() to return a
+     *   part to send. */
 
-  struct fragment_list incoming;
-                                /**< List of structures for reassembling
-                                 *   incoming packets. */
+    struct fragment_list incoming;
+    /**< List of structures for reassembling
+     *   incoming packets. */
 };
 
 
@@ -189,19 +189,19 @@ struct fragment_master {
  *//** @{ *//*************************************/
 
 typedef uint32_t fragment_header_type;
-                                /**< Fragmentation information is stored in
-                                 *   a 32-bit packet header. */
+/**< Fragmentation information is stored in
+ *   a 32-bit packet header. */
 
 #define hton_fragment_header_type(x) htonl(x)
-                                /**< Convert a fragment_header_type from
-                                 *   host to network order. */
+/**< Convert a fragment_header_type from
+ *   host to network order. */
 
 #define ntoh_fragment_header_type(x) ntohl(x)
-                                /**< Convert a \c fragment_header_type
-                                 *   from network to host order. */
+/**< Convert a \c fragment_header_type
+ *   from network to host order. */
 
 #define FRAG_TYPE_MASK        0x00000003
-                                /**< Bit mask for %fragment type info. */
+/**< Bit mask for %fragment type info. */
 #define FRAG_TYPE_SHIFT       0 /**< Bit shift for %fragment type info. */
 
 #define FRAG_WHOLE            0 /**< Fragment type indicating packet is
@@ -218,13 +218,13 @@ typedef uint32_t fragment_header_type;
                                  *   size. */
 
 #define FRAG_SEQ_ID_MASK      0x000000ff
-                                /**< Bit mask for %fragment sequence ID. */
+/**< Bit mask for %fragment sequence ID. */
 #define FRAG_SEQ_ID_SHIFT     2 /**< Bit shift for %fragment sequence ID. */
 
 #define FRAG_ID_MASK          0x0000001f
-                                /**< Bit mask for %fragment ID. */
+/**< Bit mask for %fragment ID. */
 #define FRAG_ID_SHIFT         10
-                                /**< Bit shift for %fragment ID. */
+/**< Bit shift for %fragment ID. */
 
 /*
  * FRAG_SIZE  14 bits
@@ -236,12 +236,12 @@ typedef uint32_t fragment_header_type;
  *   to be the actual %fragment size received.
  */
 #define FRAG_SIZE_MASK        0x00003fff
-                                /**< Bit mask for %fragment size. */
+/**< Bit mask for %fragment size. */
 #define FRAG_SIZE_SHIFT       15
-                                /**< Bit shift for %fragment size. */
+/**< Bit shift for %fragment size. */
 #define FRAG_SIZE_ROUND_SHIFT 2 /**< Bit shift for %fragment size rounding. */
 #define FRAG_SIZE_ROUND_MASK ((1 << FRAG_SIZE_ROUND_SHIFT) - 1)
-                                /**< Bit mask for %fragment size rounding. */
+/**< Bit mask for %fragment size rounding. */
 
 /*
  * FRAG_EXTRA 16 bits
@@ -249,9 +249,9 @@ typedef uint32_t fragment_header_type;
  * IF FRAG_WHOLE or FRAG_YES_NOTLAST, these 16 bits are available (not currently used)
  */
 #define FRAG_EXTRA_MASK         0x0000ffff
-                                /**< Bit mask for extra bits. */
+/**< Bit mask for extra bits. */
 #define FRAG_EXTRA_SHIFT        15
-                                /**< Bit shift for extra bits. */
+/**< Bit shift for extra bits. */
 
 /** @} name Fragment header *//********************************************/
 
@@ -271,7 +271,7 @@ typedef uint32_t fragment_header_type;
  *
  * @return A pointer to the new \c fragment_master structure.
  */
-struct fragment_master *fragment_init (struct frame *frame);
+struct fragment_master *fragment_init(struct frame *frame);
 
 
 /**
@@ -283,7 +283,7 @@ struct fragment_master *fragment_init (struct frame *frame);
  *                       tunnel, used to determine how much memory to
  *                       allocate for each packet buffer.
  */
-void fragment_frame_init (struct fragment_master *f, const struct frame *frame);
+void fragment_frame_init(struct fragment_master *f, const struct frame *frame);
 
 
 /**
@@ -291,7 +291,7 @@ void fragment_frame_init (struct fragment_master *f, const struct frame *frame);
  *
  * @param f            - The \c fragment_master structure to free.
  */
-void fragment_free (struct fragment_master *f);
+void fragment_free(struct fragment_master *f);
 
 /** @} name Functions for initialization and cleanup *//*******************/
 
@@ -340,8 +340,8 @@ void fragment_free (struct fragment_master *f);
  *     complete.  If an error occurs during processing, the buffer length
  *     is also set to zero.
  */
-void fragment_incoming (struct fragment_master *f, struct buffer *buf,
-			const struct frame* frame);
+void fragment_incoming(struct fragment_master *f, struct buffer *buf,
+                       const struct frame *frame);
 
 /** @} name Functions for processing packets received from a VPN tunnel */
 
@@ -391,8 +391,8 @@ void fragment_incoming (struct fragment_master *f, struct buffer *buf,
  *     cases a fragmentation header will have been prepended to inform the
  *     remote peer how to handle the packet.
  */
-void fragment_outgoing (struct fragment_master *f, struct buffer *buf,
-			const struct frame* frame);
+void fragment_outgoing(struct fragment_master *f, struct buffer *buf,
+                       const struct frame *frame);
 
 /**
  * Check whether outgoing fragments are ready to be send, and if so make
@@ -421,8 +421,8 @@ void fragment_outgoing (struct fragment_master *f, struct buffer *buf,
  * @li False, if there are no outgoing fragmented parts waiting to be
  *     sent.
  */
-bool fragment_ready_to_send (struct fragment_master *f, struct buffer *buf,
-			     const struct frame* frame);
+bool fragment_ready_to_send(struct fragment_master *f, struct buffer *buf,
+                            const struct frame *frame);
 
 /**
  * Check whether a \c fragment_master structure contains fragments ready
@@ -436,15 +436,15 @@ bool fragment_ready_to_send (struct fragment_master *f, struct buffer *buf,
  * @li False, otherwise.
  */
 static inline bool
-fragment_outgoing_defined (struct fragment_master *f)
+fragment_outgoing_defined(struct fragment_master *f)
 {
-  return f->outgoing.len > 0;
+    return f->outgoing.len > 0;
 }
 
 /** @} name Functions for processing packets going out through a VPN tunnel */
 
 
-void fragment_wakeup (struct fragment_master *f, struct frame *frame);
+void fragment_wakeup(struct fragment_master *f, struct frame *frame);
 
 
 /**************************************************************************/
@@ -463,10 +463,12 @@ void fragment_wakeup (struct fragment_master *f, struct frame *frame);
  *                       tunnel.
  */
 static inline void
-fragment_housekeeping (struct fragment_master *f, struct frame *frame, struct timeval *tv)
+fragment_housekeeping(struct fragment_master *f, struct frame *frame, struct timeval *tv)
 {
-  if (event_timeout_trigger (&f->wakeup, tv, ETT_DEFAULT))
-    fragment_wakeup (f, frame);
+    if (event_timeout_trigger(&f->wakeup, tv, ETT_DEFAULT))
+    {
+        fragment_wakeup(f, frame);
+    }
 }
 
 /** @} name Functions for regular housekeeping *//*************************/
@@ -475,5 +477,5 @@ fragment_housekeeping (struct fragment_master *f, struct frame *frame, struct ti
 /** @} addtogroup fragmentation *//****************************************/
 
 
-#endif
-#endif
+#endif /* ifdef ENABLE_FRAGMENT */
+#endif /* ifndef FRAGMENT_H */

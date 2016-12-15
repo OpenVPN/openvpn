@@ -50,206 +50,223 @@
  * @return
  */
 static bool
-lzo_adaptive_compress_test (struct lzo_adaptive_compress *ac)
+lzo_adaptive_compress_test(struct lzo_adaptive_compress *ac)
 {
-  const bool save = ac->compress_state;
-  const time_t local_now = now;
+    const bool save = ac->compress_state;
+    const time_t local_now = now;
 
-  if (!ac->compress_state)
+    if (!ac->compress_state)
     {
-      if (local_now >= ac->next)
-	{
-	  if (ac->n_total > AC_MIN_BYTES
-	      && (ac->n_total - ac->n_comp) < (ac->n_total / (100 / AC_SAVE_PCT)))
-	    {
-	      ac->compress_state = true;
-	      ac->next = local_now + AC_OFF_SEC;
-	    }
-	  else
-	    {
-	      ac->next = local_now + AC_SAMP_SEC;
-	    }
-	  dmsg (D_COMP, "lzo_adaptive_compress_test: comp=%d total=%d", ac->n_comp, ac->n_total);
-	  ac->n_total = ac->n_comp = 0;
-	}
+        if (local_now >= ac->next)
+        {
+            if (ac->n_total > AC_MIN_BYTES
+                && (ac->n_total - ac->n_comp) < (ac->n_total / (100 / AC_SAVE_PCT)))
+            {
+                ac->compress_state = true;
+                ac->next = local_now + AC_OFF_SEC;
+            }
+            else
+            {
+                ac->next = local_now + AC_SAMP_SEC;
+            }
+            dmsg(D_COMP, "lzo_adaptive_compress_test: comp=%d total=%d", ac->n_comp, ac->n_total);
+            ac->n_total = ac->n_comp = 0;
+        }
     }
-  else 
+    else
     {
-      if (local_now >= ac->next)
-	{
-	  ac->next = local_now + AC_SAMP_SEC;
-	  ac->n_total = ac->n_comp = 0;
-	  ac->compress_state = false;
-	}
+        if (local_now >= ac->next)
+        {
+            ac->next = local_now + AC_SAMP_SEC;
+            ac->n_total = ac->n_comp = 0;
+            ac->compress_state = false;
+        }
     }
 
-  if (ac->compress_state != save)
-    dmsg (D_COMP_LOW, "Adaptive compression state %s", (ac->compress_state ? "OFF" : "ON"));
+    if (ac->compress_state != save)
+    {
+        dmsg(D_COMP_LOW, "Adaptive compression state %s", (ac->compress_state ? "OFF" : "ON"));
+    }
 
-  return !ac->compress_state;
+    return !ac->compress_state;
 }
 
 static inline void
-lzo_adaptive_compress_data (struct lzo_adaptive_compress *ac, int n_total, int n_comp)
+lzo_adaptive_compress_data(struct lzo_adaptive_compress *ac, int n_total, int n_comp)
 {
-  ac->n_total += n_total;
-  ac->n_comp += n_comp;
+    ac->n_total += n_total;
+    ac->n_comp += n_comp;
 }
 
 static void
-lzo_compress_init (struct compress_context *compctx)
+lzo_compress_init(struct compress_context *compctx)
 {
-  msg (D_INIT_MEDIUM, "LZO compression initializing");
-  ASSERT(!(compctx->flags & COMP_F_SWAP));
-  compctx->wu.lzo.wmem_size = LZO_WORKSPACE;
-  if (lzo_init () != LZO_E_OK)
-    msg (M_FATAL, "Cannot initialize LZO compression library");
-  compctx->wu.lzo.wmem = (lzo_voidp) lzo_malloc (compctx->wu.lzo.wmem_size);
-  check_malloc_return (compctx->wu.lzo.wmem);
+    msg(D_INIT_MEDIUM, "LZO compression initializing");
+    ASSERT(!(compctx->flags & COMP_F_SWAP));
+    compctx->wu.lzo.wmem_size = LZO_WORKSPACE;
+    if (lzo_init() != LZO_E_OK)
+    {
+        msg(M_FATAL, "Cannot initialize LZO compression library");
+    }
+    compctx->wu.lzo.wmem = (lzo_voidp) lzo_malloc(compctx->wu.lzo.wmem_size);
+    check_malloc_return(compctx->wu.lzo.wmem);
 }
 
 static void
-lzo_compress_uninit (struct compress_context *compctx)
+lzo_compress_uninit(struct compress_context *compctx)
 {
-  lzo_free (compctx->wu.lzo.wmem);
-  compctx->wu.lzo.wmem = NULL;
+    lzo_free(compctx->wu.lzo.wmem);
+    compctx->wu.lzo.wmem = NULL;
 }
 
 static inline bool
-lzo_compression_enabled (struct compress_context *compctx)
+lzo_compression_enabled(struct compress_context *compctx)
 {
-  if (compctx->flags & COMP_F_ASYM)
-    return false;
-  else
+    if (compctx->flags & COMP_F_ASYM)
     {
-      if (compctx->flags & COMP_F_ADAPTIVE)
-	return lzo_adaptive_compress_test (&compctx->wu.lzo.ac);
-      else
-	return true;
+        return false;
+    }
+    else
+    {
+        if (compctx->flags & COMP_F_ADAPTIVE)
+        {
+            return lzo_adaptive_compress_test(&compctx->wu.lzo.ac);
+        }
+        else
+        {
+            return true;
+        }
     }
 }
 
 static void
-lzo_compress (struct buffer *buf, struct buffer work,
-	      struct compress_context *compctx,
-	      const struct frame* frame)
+lzo_compress(struct buffer *buf, struct buffer work,
+             struct compress_context *compctx,
+             const struct frame *frame)
 {
-  lzo_uint zlen = 0;
-  int err;
-  bool compressed = false;
+    lzo_uint zlen = 0;
+    int err;
+    bool compressed = false;
 
-  if (buf->len <= 0)
-    return;
-
-  /*
-   * In order to attempt compression, length must be at least COMPRESS_THRESHOLD,
-   * and our adaptive level must give the OK.
-   */
-  if (buf->len >= COMPRESS_THRESHOLD && lzo_compression_enabled (compctx))
+    if (buf->len <= 0)
     {
-      const size_t ps = PAYLOAD_SIZE (frame);
-      ASSERT (buf_init (&work, FRAME_HEADROOM (frame)));
-      ASSERT (buf_safe (&work, ps + COMP_EXTRA_BUFFER (ps)));
-
-      if (buf->len > ps)
-	{
-	  dmsg (D_COMP_ERRORS, "LZO compression buffer overflow");
-	  buf->len = 0;
-	  return;
-	}
-
-      err = LZO_COMPRESS (BPTR (buf), BLEN (buf), BPTR (&work), &zlen, compctx->wu.lzo.wmem);
-      if (err != LZO_E_OK)
-	{
-	  dmsg (D_COMP_ERRORS, "LZO compression error: %d", err);
-	  buf->len = 0;
-	  return;
-	}
-
-      ASSERT (buf_safe (&work, zlen));
-      work.len = zlen;
-      compressed = true;
-
-      dmsg (D_COMP, "LZO compress %d -> %d", buf->len, work.len);
-      compctx->pre_compress += buf->len;
-      compctx->post_compress += work.len;
-
-      /* tell adaptive level about our success or lack thereof in getting any size reduction */
-      if (compctx->flags & COMP_F_ADAPTIVE)
-	lzo_adaptive_compress_data (&compctx->wu.lzo.ac, buf->len, work.len);
+        return;
     }
 
-  /* did compression save us anything ? */
-  if (compressed && work.len < buf->len)
+    /*
+     * In order to attempt compression, length must be at least COMPRESS_THRESHOLD,
+     * and our adaptive level must give the OK.
+     */
+    if (buf->len >= COMPRESS_THRESHOLD && lzo_compression_enabled(compctx))
     {
-      uint8_t *header = buf_prepend (&work, 1);
-      *header = LZO_COMPRESS_BYTE;
-      *buf = work;
+        const size_t ps = PAYLOAD_SIZE(frame);
+        ASSERT(buf_init(&work, FRAME_HEADROOM(frame)));
+        ASSERT(buf_safe(&work, ps + COMP_EXTRA_BUFFER(ps)));
+
+        if (buf->len > ps)
+        {
+            dmsg(D_COMP_ERRORS, "LZO compression buffer overflow");
+            buf->len = 0;
+            return;
+        }
+
+        err = LZO_COMPRESS(BPTR(buf), BLEN(buf), BPTR(&work), &zlen, compctx->wu.lzo.wmem);
+        if (err != LZO_E_OK)
+        {
+            dmsg(D_COMP_ERRORS, "LZO compression error: %d", err);
+            buf->len = 0;
+            return;
+        }
+
+        ASSERT(buf_safe(&work, zlen));
+        work.len = zlen;
+        compressed = true;
+
+        dmsg(D_COMP, "LZO compress %d -> %d", buf->len, work.len);
+        compctx->pre_compress += buf->len;
+        compctx->post_compress += work.len;
+
+        /* tell adaptive level about our success or lack thereof in getting any size reduction */
+        if (compctx->flags & COMP_F_ADAPTIVE)
+        {
+            lzo_adaptive_compress_data(&compctx->wu.lzo.ac, buf->len, work.len);
+        }
     }
-  else
+
+    /* did compression save us anything ? */
+    if (compressed && work.len < buf->len)
     {
-      uint8_t *header = buf_prepend (buf, 1);
-      *header = NO_COMPRESS_BYTE;
+        uint8_t *header = buf_prepend(&work, 1);
+        *header = LZO_COMPRESS_BYTE;
+        *buf = work;
+    }
+    else
+    {
+        uint8_t *header = buf_prepend(buf, 1);
+        *header = NO_COMPRESS_BYTE;
     }
 }
 
 static void
-lzo_decompress (struct buffer *buf, struct buffer work,
-		struct compress_context *compctx,
-		const struct frame* frame)
+lzo_decompress(struct buffer *buf, struct buffer work,
+               struct compress_context *compctx,
+               const struct frame *frame)
 {
-  lzo_uint zlen = EXPANDED_SIZE (frame);
-  int err;
-  uint8_t c;		/* flag indicating whether or not our peer compressed */
+    lzo_uint zlen = EXPANDED_SIZE(frame);
+    int err;
+    uint8_t c;          /* flag indicating whether or not our peer compressed */
 
-  if (buf->len <= 0)
-    return;
-
-  ASSERT (buf_init (&work, FRAME_HEADROOM (frame)));
-
-  c = *BPTR (buf);
-  ASSERT (buf_advance (buf, 1));
-
-  if (c == LZO_COMPRESS_BYTE)	/* packet was compressed */
+    if (buf->len <= 0)
     {
-      ASSERT (buf_safe (&work, zlen));
-      err = LZO_DECOMPRESS (BPTR (buf), BLEN (buf), BPTR (&work), &zlen,
-			    compctx->wu.lzo.wmem);
-      if (err != LZO_E_OK)
-	{
-	  dmsg (D_COMP_ERRORS, "LZO decompression error: %d", err);
-	  buf->len = 0;
-	  return;
-	}
-
-      ASSERT (buf_safe (&work, zlen));
-      work.len = zlen;
-
-      dmsg (D_COMP, "LZO decompress %d -> %d", buf->len, work.len);
-      compctx->pre_decompress += buf->len;
-      compctx->post_decompress += work.len;
-
-      *buf = work;
+        return;
     }
-  else if (c == NO_COMPRESS_BYTE)	/* packet was not compressed */
+
+    ASSERT(buf_init(&work, FRAME_HEADROOM(frame)));
+
+    c = *BPTR(buf);
+    ASSERT(buf_advance(buf, 1));
+
+    if (c == LZO_COMPRESS_BYTE) /* packet was compressed */
     {
-      ;
+        ASSERT(buf_safe(&work, zlen));
+        err = LZO_DECOMPRESS(BPTR(buf), BLEN(buf), BPTR(&work), &zlen,
+                             compctx->wu.lzo.wmem);
+        if (err != LZO_E_OK)
+        {
+            dmsg(D_COMP_ERRORS, "LZO decompression error: %d", err);
+            buf->len = 0;
+            return;
+        }
+
+        ASSERT(buf_safe(&work, zlen));
+        work.len = zlen;
+
+        dmsg(D_COMP, "LZO decompress %d -> %d", buf->len, work.len);
+        compctx->pre_decompress += buf->len;
+        compctx->post_decompress += work.len;
+
+        *buf = work;
     }
-  else
+    else if (c == NO_COMPRESS_BYTE)     /* packet was not compressed */
     {
-      dmsg (D_COMP_ERRORS, "Bad LZO decompression header byte: %d", c);
-      buf->len = 0;
+    }
+    else
+    {
+        dmsg(D_COMP_ERRORS, "Bad LZO decompression header byte: %d", c);
+        buf->len = 0;
     }
 }
 
 const struct compress_alg lzo_alg = {
-  "lzo",
-  lzo_compress_init,
-  lzo_compress_uninit,
-  lzo_compress,
-  lzo_decompress
+    "lzo",
+    lzo_compress_init,
+    lzo_compress_uninit,
+    lzo_compress,
+    lzo_decompress
 };
 
-#else
-static void dummy(void) {}
+#else  /* if defined(ENABLE_LZO) */
+static void
+dummy(void) {
+}
 #endif /* ENABLE_LZO */

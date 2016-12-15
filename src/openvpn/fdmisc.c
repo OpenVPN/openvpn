@@ -37,42 +37,52 @@
 
 /* Set a file descriptor to non-blocking */
 bool
-set_nonblock_action (int fd)
+set_nonblock_action(int fd)
 {
 #ifdef _WIN32
-  u_long arg = 1;
-  if (ioctlsocket (fd, FIONBIO, &arg))
-    return false;
-#else
-  if (fcntl (fd, F_SETFL, O_NONBLOCK) < 0)
-    return false;
+    u_long arg = 1;
+    if (ioctlsocket(fd, FIONBIO, &arg))
+    {
+        return false;
+    }
+#else  /* ifdef _WIN32 */
+    if (fcntl(fd, F_SETFL, O_NONBLOCK) < 0)
+    {
+        return false;
+    }
 #endif
-  return true;
+    return true;
 }
 
 /* Set a file descriptor to not be passed across execs */
 bool
-set_cloexec_action (int fd)
+set_cloexec_action(int fd)
 {
 #ifndef _WIN32
-  if (fcntl (fd, F_SETFD, FD_CLOEXEC) < 0)
-    return false;
+    if (fcntl(fd, F_SETFD, FD_CLOEXEC) < 0)
+    {
+        return false;
+    }
 #endif
-  return true;
+    return true;
 }
 
 /* Set a file descriptor to non-blocking */
 void
-set_nonblock (int fd)
+set_nonblock(int fd)
 {
-  if (!set_nonblock_action (fd))
-    msg (M_ERR, "Set socket to non-blocking mode failed");
+    if (!set_nonblock_action(fd))
+    {
+        msg(M_ERR, "Set socket to non-blocking mode failed");
+    }
 }
 
 /* Set a file descriptor to not be passed across execs */
 void
-set_cloexec (int fd)
+set_cloexec(int fd)
 {
-  if (!set_cloexec_action (fd))
-    msg (M_ERR, "Set FD_CLOEXEC flag on file descriptor failed");
+    if (!set_cloexec_action(fd))
+    {
+        msg(M_ERR, "Set FD_CLOEXEC flag on file descriptor failed");
+    }
 }

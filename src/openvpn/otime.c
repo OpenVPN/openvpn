@@ -47,90 +47,96 @@ time_t now_usec = 0;       /* GLOBAL */
  */
 
 void
-update_now (const time_t system_time)
+update_now(const time_t system_time)
 {
-  const int forward_threshold = 86400; /* threshold at which to dampen forward jumps */
-  const int backward_trigger  = 10;    /* backward jump must be >= this many seconds before we adjust */
-  time_t real_time = system_time + now_adj;
+    const int forward_threshold = 86400; /* threshold at which to dampen forward jumps */
+    const int backward_trigger  = 10;  /* backward jump must be >= this many seconds before we adjust */
+    time_t real_time = system_time + now_adj;
 
-  if (real_time > now)
+    if (real_time > now)
     {
-      const time_t overshoot = real_time - now - 1;
-      if (overshoot > forward_threshold && now_adj >= overshoot)
+        const time_t overshoot = real_time - now - 1;
+        if (overshoot > forward_threshold && now_adj >= overshoot)
         {
-          now_adj -= overshoot;
-          real_time -= overshoot;
+            now_adj -= overshoot;
+            real_time -= overshoot;
         }
-      now = real_time;
+        now = real_time;
     }
-  else if (real_time < now - backward_trigger)
-    now_adj += (now - real_time);
+    else if (real_time < now - backward_trigger)
+    {
+        now_adj += (now - real_time);
+    }
 }
 
 void
-update_now_usec (struct timeval *tv)
+update_now_usec(struct timeval *tv)
 {
-  const time_t last = now;
-  update_now (tv->tv_sec);
-  if (now > last || (now == last && tv->tv_usec > now_usec))
-    now_usec = tv->tv_usec;
+    const time_t last = now;
+    update_now(tv->tv_sec);
+    if (now > last || (now == last && tv->tv_usec > now_usec))
+    {
+        now_usec = tv->tv_usec;
+    }
 }
 
 #endif /* TIME_BACKTRACK_PROTECTION */
 
-/* 
+/*
  * Return a numerical string describing a struct timeval.
  */
 const char *
-tv_string (const struct timeval *tv, struct gc_arena *gc)
+tv_string(const struct timeval *tv, struct gc_arena *gc)
 {
-  struct buffer out = alloc_buf_gc (64, gc);
-  buf_printf (&out, "[%d/%d]",
-	      (int) tv->tv_sec,
-	      (int )tv->tv_usec);
-  return BSTR (&out);
+    struct buffer out = alloc_buf_gc(64, gc);
+    buf_printf(&out, "[%d/%d]",
+               (int) tv->tv_sec,
+               (int )tv->tv_usec);
+    return BSTR(&out);
 }
 
-/* 
+/*
  * Return an ascii string describing an absolute
  * date/time in a struct timeval.
- * 
+ *
  */
 const char *
-tv_string_abs (const struct timeval *tv, struct gc_arena *gc)
+tv_string_abs(const struct timeval *tv, struct gc_arena *gc)
 {
-  return time_string ((time_t) tv->tv_sec,
-		      (int) tv->tv_usec,
-		      true,
-		      gc);
+    return time_string((time_t) tv->tv_sec,
+                       (int) tv->tv_usec,
+                       true,
+                       gc);
 }
 
 /* format a time_t as ascii, or use current time if 0 */
 
 const char *
-time_string (time_t t, int usec, bool show_usec, struct gc_arena *gc)
+time_string(time_t t, int usec, bool show_usec, struct gc_arena *gc)
 {
-  struct buffer out = alloc_buf_gc (64, gc);
-  struct timeval tv;
+    struct buffer out = alloc_buf_gc(64, gc);
+    struct timeval tv;
 
-  if (t)
+    if (t)
     {
-      tv.tv_sec = t;
-      tv.tv_usec = usec;
+        tv.tv_sec = t;
+        tv.tv_usec = usec;
     }
-  else
+    else
     {
-      gettimeofday (&tv, NULL);
+        gettimeofday(&tv, NULL);
     }
 
-  t = tv.tv_sec;
-  buf_printf (&out, "%s", ctime(&t));
-  buf_rmtail (&out, '\n');
+    t = tv.tv_sec;
+    buf_printf(&out, "%s", ctime(&t));
+    buf_rmtail(&out, '\n');
 
-  if (show_usec && tv.tv_usec)
-    buf_printf (&out, " us=%d", (int)tv.tv_usec);
+    if (show_usec && tv.tv_usec)
+    {
+        buf_printf(&out, " us=%d", (int)tv.tv_usec);
+    }
 
-  return BSTR (&out);
+    return BSTR(&out);
 }
 
 /*
@@ -141,60 +147,62 @@ time_string (time_t t, int usec, bool show_usec, struct gc_arena *gc)
  */
 
 struct frequency_limit *
-frequency_limit_init (int max, int per)
+frequency_limit_init(int max, int per)
 {
-  struct frequency_limit *f;
+    struct frequency_limit *f;
 
-  ASSERT (max >= 0 && per >= 0);
+    ASSERT(max >= 0 && per >= 0);
 
-  ALLOC_OBJ (f, struct frequency_limit);
-  f->max = max;
-  f->per = per;
-  f->n = 0;
-  f->reset = 0;
-  return f;
+    ALLOC_OBJ(f, struct frequency_limit);
+    f->max = max;
+    f->per = per;
+    f->n = 0;
+    f->reset = 0;
+    return f;
 }
 
 void
-frequency_limit_free (struct frequency_limit *f)
+frequency_limit_free(struct frequency_limit *f)
 {
-  free (f);
+    free(f);
 }
 
 bool
-frequency_limit_event_allowed (struct frequency_limit *f)
+frequency_limit_event_allowed(struct frequency_limit *f)
 {
-  if (f->per)
+    if (f->per)
     {
-      bool ret;
-      if (now >= f->reset + f->per)
-	{
-	  f->reset = now;
-	  f->n = 0;
-	}
-      ret = (++f->n <= f->max);
-      return ret;
+        bool ret;
+        if (now >= f->reset + f->per)
+        {
+            f->reset = now;
+            f->n = 0;
+        }
+        ret = (++f->n <= f->max);
+        return ret;
     }
-  else
-    return true;
+    else
+    {
+        return true;
+    }
 }
 
 #ifdef TIME_TEST
 void
-time_test (void)
+time_test(void)
 {
-  struct timeval tv;
-  time_t t;
-  int i;
-  for (i = 0; i < 10000; ++i)
+    struct timeval tv;
+    time_t t;
+    int i;
+    for (i = 0; i < 10000; ++i)
     {
-      t = time(NULL);
-      gettimeofday (&tv, NULL);
+        t = time(NULL);
+        gettimeofday(&tv, NULL);
 #if 1
-      msg (M_INFO, "t=%u s=%u us=%u",
-	       (unsigned int)t,
-	       (unsigned int)tv.tv_sec,
-	       (unsigned int)tv.tv_usec);
+        msg(M_INFO, "t=%u s=%u us=%u",
+            (unsigned int)t,
+            (unsigned int)tv.tv_sec,
+            (unsigned int)tv.tv_usec);
 #endif
     }
 }

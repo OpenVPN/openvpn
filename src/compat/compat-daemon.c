@@ -58,43 +58,52 @@ int
 daemon(int nochdir, int noclose)
 {
 #if defined(HAVE_FORK) && defined(HAVE_SETSID)
-	switch (fork()) {
-		case -1:
-			return (-1);
-		case 0:
-		break;
-		default:
-			exit(0);
-	}
+    switch (fork()) {
+        case -1:
+            return (-1);
 
-	if (setsid() == -1)
-		return (-1);
+        case 0:
+            break;
 
-	if (!nochdir)
-		chdir("/");
+        default:
+            exit(0);
+    }
 
-	if (!noclose) {
+    if (setsid() == -1)
+    {
+        return (-1);
+    }
+
+    if (!nochdir)
+    {
+        chdir("/");
+    }
+
+    if (!noclose)
+    {
 #if defined(HAVE_DUP) && defined(HAVE_DUP2)
-		int fd;
-		if ((fd = open ("/dev/null", O_RDWR, 0)) != -1) {
-			dup2 (fd, 0);
-			dup2 (fd, 1);
-			dup2 (fd, 2);
-			if (fd > 2) {
-				close (fd);
-			}
-		}
+        int fd;
+        if ((fd = open("/dev/null", O_RDWR, 0)) != -1)
+        {
+            dup2(fd, 0);
+            dup2(fd, 1);
+            dup2(fd, 2);
+            if (fd > 2)
+            {
+                close(fd);
+            }
+        }
 #endif
-	}
+    }
 
-	return 0;
-#else
-	(void)nochdir;
-	(void)noclose;
-	errno = EFAULT;
-	return -1;
-#endif
+    return 0;
+#else  /* if defined(HAVE_FORK) && defined(HAVE_SETSID) */
+    (void)nochdir;
+    (void)noclose;
+    errno = EFAULT;
+    return -1;
+#endif /* if defined(HAVE_FORK) && defined(HAVE_SETSID) */
 }
 
-#endif
+#endif /* ifndef HAVE_DAEMON */
 

@@ -47,54 +47,55 @@
 
 #define SHAPER_USE_FP
 
-struct shaper 
+struct shaper
 {
-  int bytes_per_second;
-  struct timeval wakeup;
+    int bytes_per_second;
+    struct timeval wakeup;
 
 #ifdef SHAPER_USE_FP
-  double factor;
+    double factor;
 #else
-  int factor;
+    int factor;
 #endif
 };
 
-void shaper_msg (struct shaper *s);
-void shaper_reset_wakeup (struct shaper *s);
+void shaper_msg(struct shaper *s);
+
+void shaper_reset_wakeup(struct shaper *s);
 
 /*
  * We want to wake up in delay microseconds.  If timeval is larger
  * than delay, set timeval to delay.
  */
-bool shaper_soonest_event (struct timeval *tv, int delay);
+bool shaper_soonest_event(struct timeval *tv, int delay);
 
 /*
  * inline functions
  */
 
 static inline void
-shaper_reset (struct shaper *s, int bytes_per_second)
+shaper_reset(struct shaper *s, int bytes_per_second)
 {
-  s->bytes_per_second = constrain_int (bytes_per_second, SHAPER_MIN, SHAPER_MAX);
+    s->bytes_per_second = constrain_int(bytes_per_second, SHAPER_MIN, SHAPER_MAX);
 
 #ifdef SHAPER_USE_FP
-  s->factor = 1000000.0 / (double)s->bytes_per_second;
+    s->factor = 1000000.0 / (double)s->bytes_per_second;
 #else
-  s->factor = 1000000 / s->bytes_per_second;
+    s->factor = 1000000 / s->bytes_per_second;
 #endif
 }
 
 static inline void
-shaper_init (struct shaper *s, int bytes_per_second)
+shaper_init(struct shaper *s, int bytes_per_second)
 {
-  shaper_reset (s, bytes_per_second);
-  shaper_reset_wakeup (s);
+    shaper_reset(s, bytes_per_second);
+    shaper_reset_wakeup(s);
 }
 
 static inline int
-shaper_current_bandwidth (struct shaper *s)
+shaper_current_bandwidth(struct shaper *s)
 {
-  return s->bytes_per_second;
+    return s->bytes_per_second;
 }
 
 /*
@@ -102,21 +103,21 @@ shaper_current_bandwidth (struct shaper *s)
  * time, or 0 if no delay.
  */
 static inline int
-shaper_delay (struct shaper* s)
+shaper_delay(struct shaper *s)
 {
-  struct timeval tv;
-  int delay = 0;
+    struct timeval tv;
+    int delay = 0;
 
-  if (tv_defined (&s->wakeup))
+    if (tv_defined(&s->wakeup))
     {
-      ASSERT (!openvpn_gettimeofday (&tv, NULL));
-      delay = tv_subtract (&s->wakeup, &tv, SHAPER_MAX_TIMEOUT);
+        ASSERT(!openvpn_gettimeofday(&tv, NULL));
+        delay = tv_subtract(&s->wakeup, &tv, SHAPER_MAX_TIMEOUT);
 #ifdef SHAPER_DEBUG
-      dmsg (D_SHAPER_DEBUG, "SHAPER shaper_delay delay=%d", delay);
+        dmsg(D_SHAPER_DEBUG, "SHAPER shaper_delay delay=%d", delay);
 #endif
     }
 
-  return delay > 0 ? delay : 0;
+    return delay > 0 ? delay : 0;
 }
 
 
@@ -127,31 +128,31 @@ shaper_delay (struct shaper* s)
  * based on target throughput (s->bytes_per_second).
  */
 static inline void
-shaper_wrote_bytes (struct shaper* s, int nbytes)
+shaper_wrote_bytes(struct shaper *s, int nbytes)
 {
-  struct timeval tv;
+    struct timeval tv;
 
-  /* compute delay in microseconds */
-  tv.tv_sec = 0;
+    /* compute delay in microseconds */
+    tv.tv_sec = 0;
 #ifdef SHAPER_USE_FP
-  tv.tv_usec = min_int ((int)((double)max_int (nbytes, 100) * s->factor), (SHAPER_MAX_TIMEOUT*1000000));
+    tv.tv_usec = min_int((int)((double)max_int(nbytes, 100) * s->factor), (SHAPER_MAX_TIMEOUT*1000000));
 #else
-  tv.tv_usec = s->bytes_per_second
-    ? min_int (max_int (nbytes, 100) * s->factor, (SHAPER_MAX_TIMEOUT*1000000))
-    : 0;
+    tv.tv_usec = s->bytes_per_second
+                 ? min_int(max_int(nbytes, 100) * s->factor, (SHAPER_MAX_TIMEOUT*1000000))
+                 : 0;
 #endif
 
-  if (tv.tv_usec)
+    if (tv.tv_usec)
     {
-      ASSERT (!openvpn_gettimeofday (&s->wakeup, NULL));
-      tv_add (&s->wakeup, &tv);
+        ASSERT(!openvpn_gettimeofday(&s->wakeup, NULL));
+        tv_add(&s->wakeup, &tv);
 
 #ifdef SHAPER_DEBUG
-      dmsg (D_SHAPER_DEBUG, "SHAPER shaper_wrote_bytes bytes=%d delay=%d sec=%d usec=%d",
-	   nbytes,
-	   (int)tv.tv_usec,
-	   (int)s->wakeup.tv_sec,
-	   (int)s->wakeup.tv_usec);
+        dmsg(D_SHAPER_DEBUG, "SHAPER shaper_wrote_bytes bytes=%d delay=%d sec=%d usec=%d",
+             nbytes,
+             (int)tv.tv_usec,
+             (int)s->wakeup.tv_sec,
+             (int)s->wakeup.tv_usec);
 #endif
     }
 }
@@ -163,16 +164,16 @@ shaper_wrote_bytes (struct shaper* s, int nbytes)
  * Return true if bandwidth changed.
  */
 static inline bool
-shaper_change_pct (struct shaper *s, int pct)
+shaper_change_pct(struct shaper *s, int pct)
 {
-  const int orig_bandwidth = s->bytes_per_second;
-  const int new_bandwidth = orig_bandwidth + (orig_bandwidth * pct / 100);
-  ASSERT (s->bytes_per_second);
-  shaper_reset (s, new_bandwidth);
-  return s->bytes_per_second != orig_bandwidth;
+    const int orig_bandwidth = s->bytes_per_second;
+    const int new_bandwidth = orig_bandwidth + (orig_bandwidth * pct / 100);
+    ASSERT(s->bytes_per_second);
+    shaper_reset(s, new_bandwidth);
+    return s->bytes_per_second != orig_bandwidth;
 }
 #endif
 
 #endif /* ENABLE_FEATURE_SHAPER */
 
-#endif
+#endif /* ifndef SHAPER_H */

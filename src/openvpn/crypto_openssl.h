@@ -50,39 +50,39 @@ typedef EVP_MD_CTX md_ctx_t;
 typedef HMAC_CTX hmac_ctx_t;
 
 /** Maximum length of an IV */
-#define OPENVPN_MAX_IV_LENGTH 	EVP_MAX_IV_LENGTH
+#define OPENVPN_MAX_IV_LENGTH   EVP_MAX_IV_LENGTH
 
 /** Cipher is in CBC mode */
-#define OPENVPN_MODE_CBC 	EVP_CIPH_CBC_MODE
+#define OPENVPN_MODE_CBC        EVP_CIPH_CBC_MODE
 
 /** Cipher is in OFB mode */
-#define OPENVPN_MODE_OFB	EVP_CIPH_OFB_MODE
+#define OPENVPN_MODE_OFB        EVP_CIPH_OFB_MODE
 
 /** Cipher is in CFB mode */
-#define OPENVPN_MODE_CFB 	EVP_CIPH_CFB_MODE
+#define OPENVPN_MODE_CFB        EVP_CIPH_CFB_MODE
 
 #ifdef HAVE_AEAD_CIPHER_MODES
 
 /** Cipher is in GCM mode */
-#define OPENVPN_MODE_GCM 	EVP_CIPH_GCM_MODE
+#define OPENVPN_MODE_GCM        EVP_CIPH_GCM_MODE
 
 #endif /* HAVE_AEAD_CIPHER_MODES */
 
 /** Cipher should encrypt */
-#define OPENVPN_OP_ENCRYPT 	1
+#define OPENVPN_OP_ENCRYPT      1
 
 /** Cipher should decrypt */
-#define OPENVPN_OP_DECRYPT 	0
+#define OPENVPN_OP_DECRYPT      0
 
 #define DES_KEY_LENGTH 8
-#define MD4_DIGEST_LENGTH 	16
+#define MD4_DIGEST_LENGTH       16
 
 /**
  * Retrieve any occurred OpenSSL errors and print those errors.
  *
  * Note that this function uses the not thread-safe OpenSSL error API.
  *
- * @param flags		Flags to indicate error type and priority.
+ * @param flags         Flags to indicate error type and priority.
  */
 void crypto_print_openssl_errors(const unsigned int flags);
 
@@ -91,15 +91,15 @@ void crypto_print_openssl_errors(const unsigned int flags);
  *
  * This is just a convenience wrapper for often occurring situations.
  *
- * @param flags		Flags to indicate error type and priority.
- * @param format	Format string to print.
- * @param format args	(optional) arguments for the format string.
+ * @param flags         Flags to indicate error type and priority.
+ * @param format        Format string to print.
+ * @param format args   (optional) arguments for the format string.
  */
-# define crypto_msg(flags, ...) \
-do { \
-  crypto_print_openssl_errors(nonfatal(flags)); \
-  msg((flags), __VA_ARGS__); \
-} while (false)
+#define crypto_msg(flags, ...) \
+    do { \
+        crypto_print_openssl_errors(nonfatal(flags)); \
+        msg((flags), __VA_ARGS__); \
+    } while (false)
 
 
 #endif /* CRYPTO_OPENSSL_H_ */

@@ -30,48 +30,48 @@
 #include "ssl_common.h"
 
 bool
-pkcs11_initialize (
-	const bool fProtectedAuthentication,
-	const int nPINCachePeriod
-);
+pkcs11_initialize(
+    const bool fProtectedAuthentication,
+    const int nPINCachePeriod
+    );
 
 void
-pkcs11_terminate ();
+pkcs11_terminate();
 
 bool
-pkcs11_addProvider (
-	const char * const provider,
-	const bool fProtectedAuthentication,
-	const unsigned private_mode,
-	const bool fCertIsPrivate
-);
+pkcs11_addProvider(
+    const char *const provider,
+    const bool fProtectedAuthentication,
+    const unsigned private_mode,
+    const bool fCertIsPrivate
+    );
 
 int
 pkcs11_logout();
 
 int
-pkcs11_management_id_count ();
+pkcs11_management_id_count();
 
 bool
-pkcs11_management_id_get (
-	const int index,
-	char ** id,
-	char **base64
-);
+pkcs11_management_id_get(
+    const int index,
+    char **id,
+    char **base64
+    );
 
 int
-tls_ctx_use_pkcs11 (
-	struct tls_root_ctx * const ssl_ctx,
-	bool pkcs11_id_management,
-	const char * const pkcs11_id
-);
+tls_ctx_use_pkcs11(
+    struct tls_root_ctx *const ssl_ctx,
+    bool pkcs11_id_management,
+    const char *const pkcs11_id
+    );
 
 void
-show_pkcs11_ids (
-	const char * const provider,
-	bool cert_private
-);
+show_pkcs11_ids(
+    const char *const provider,
+    bool cert_private
+    );
 
-#endif			/* ENABLE_PKCS11 */
+#endif                  /* ENABLE_PKCS11 */
 
-#endif			/* OPENVPN_PKCS11H_H */
+#endif                  /* OPENVPN_PKCS11H_H */

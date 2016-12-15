@@ -39,39 +39,46 @@
 unsigned int x_debug_level = 0; /* Default to (almost) no debugging output */
 bool fatal_error_triggered = false;
 
-void mock_set_debug_level(int level)
+void
+mock_set_debug_level(int level)
 {
-  x_debug_level = level;
-}
-
-void x_msg_va (const unsigned int flags, const char *format,
-    va_list arglist)
-{
-  if (flags & M_FATAL)
-    {
-      fatal_error_triggered = true;
-      printf("FATAL ERROR:");
-    }
-  vprintf(format, arglist);
-  printf("\n");
-}
-
-void x_msg (const unsigned int flags, const char *format, ...)
-{
-  va_list arglist;
-  va_start (arglist, format);
-  x_msg_va (flags, format, arglist);
-  va_end (arglist);
+    x_debug_level = level;
 }
 
 void
-assert_failed (const char *filename, int line, const char *condition)
+x_msg_va(const unsigned int flags, const char *format,
+         va_list arglist)
 {
-  if (condition)
-    printf ("Assertion failed at %s:%d (%s)", filename, line, condition);
-  else
-    printf ("Assertion failed at %s:%d", filename, line);
-  exit (1);
+    if (flags & M_FATAL)
+    {
+        fatal_error_triggered = true;
+        printf("FATAL ERROR:");
+    }
+    vprintf(format, arglist);
+    printf("\n");
+}
+
+void
+x_msg(const unsigned int flags, const char *format, ...)
+{
+    va_list arglist;
+    va_start(arglist, format);
+    x_msg_va(flags, format, arglist);
+    va_end(arglist);
+}
+
+void
+assert_failed(const char *filename, int line, const char *condition)
+{
+    if (condition)
+    {
+        printf("Assertion failed at %s:%d (%s)", filename, line, condition);
+    }
+    else
+    {
+        printf("Assertion failed at %s:%d", filename, line);
+    }
+    exit(1);
 }
 
 /*
@@ -79,14 +86,14 @@ assert_failed (const char *filename, int line, const char *condition)
  * to allocate memory as part of its operation.
  */
 void
-out_of_memory (void)
+out_of_memory(void)
 {
-  fprintf (stderr, "Out of Memory\n");
-  exit (1);
+    fprintf(stderr, "Out of Memory\n");
+    exit(1);
 }
 
 bool
-dont_mute (unsigned int flags)
+dont_mute(unsigned int flags)
 {
-  return true;
+    return true;
 }

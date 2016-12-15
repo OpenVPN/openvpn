@@ -80,7 +80,7 @@
 #include "session_id.h"
 
 #define TLS_CRYPT_TAG_SIZE (256/8)
-#define TLS_CRYPT_PID_SIZE (sizeof (packet_id_type) + sizeof (net_time_t))
+#define TLS_CRYPT_PID_SIZE (sizeof(packet_id_type) + sizeof(net_time_t))
 #define TLS_CRYPT_BLOCK_SIZE (128/8)
 
 #define TLS_CRYPT_OFF_PID (1 + SID_SIZE)
@@ -90,15 +90,15 @@
 /**
  * Initialize a key_ctx_bi structure for use with --tls-crypt.
  *
- * @param key		The key context to initialize
- * @param key_file	The file to read the key from (or the inline tag to
- *			indicate and inline key).
- * @param key_inline	Array containing (zero-terminated) inline key, or NULL
- *			if not used.
- * @param tls_server	Must be set to true is this is a TLS server instance.
+ * @param key           The key context to initialize
+ * @param key_file      The file to read the key from (or the inline tag to
+ *                      indicate and inline key).
+ * @param key_inline    Array containing (zero-terminated) inline key, or NULL
+ *                      if not used.
+ * @param tls_server    Must be set to true is this is a TLS server instance.
  */
-void tls_crypt_init_key (struct key_ctx_bi *key, const char *key_file,
-    const char *key_inline, bool tls_server);
+void tls_crypt_init_key(struct key_ctx_bi *key, const char *key_file,
+                        const char *key_inline, bool tls_server);
 
 /**
  * Returns the maximum overhead (in bytes) added to the destination buffer by
@@ -114,30 +114,30 @@ void tls_crypt_adjust_frame_parameters(struct frame *frame);
 /**
  * Wrap a control channel packet (both authenticates and encrypts the data).
  *
- * @param src	Data to authenticate and encrypt.
- * @param dst	Any data present in this buffer is first authenticated, then
- *		the wrapped packet id and data from the src buffer are appended.
- *		Must have at least tls_crypt_buf_overhead()+BLEN(src) headroom.
- * @param opt	The crypto state for this --tls-crypt instance.
+ * @param src   Data to authenticate and encrypt.
+ * @param dst   Any data present in this buffer is first authenticated, then
+ *              the wrapped packet id and data from the src buffer are appended.
+ *              Must have at least tls_crypt_buf_overhead()+BLEN(src) headroom.
+ * @param opt   The crypto state for this --tls-crypt instance.
  *
  * @returns true iff wrapping succeeded.
  */
-bool tls_crypt_wrap (const struct buffer *src, struct buffer *dst,
-	 struct crypto_options *opt);
+bool tls_crypt_wrap(const struct buffer *src, struct buffer *dst,
+                    struct crypto_options *opt);
 
 /**
  * Unwrap a control channel packet (decrypts, authenticates and performs
  * replay checks).
  *
- * @param src	Data to decrypt and authenticate.
- * @param dst	Returns the decrypted data, if unwrapping was successful.
- * @param opt	The crypto state for this --tls-crypt instance.
+ * @param src   Data to decrypt and authenticate.
+ * @param dst   Returns the decrypted data, if unwrapping was successful.
+ * @param opt   The crypto state for this --tls-crypt instance.
  *
  * @returns true iff unwrapping succeeded (data authenticated correctly and was
  * no replay).
  */
-bool tls_crypt_unwrap (const struct buffer *src, struct buffer *dst,
-    struct crypto_options *opt);
+bool tls_crypt_unwrap(const struct buffer *src, struct buffer *dst,
+                      struct crypto_options *opt);
 
 /** @} */
 

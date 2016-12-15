@@ -34,37 +34,43 @@
 #include "buffer.h"
 
 struct argv {
-  size_t capacity;
-  size_t argc;
-  char **argv;
+    size_t capacity;
+    size_t argc;
+    char **argv;
 };
 
-struct argv argv_new (void);
-void argv_reset (struct argv *a);
-const char *argv_str (const struct argv *a, struct gc_arena *gc, const unsigned int flags);
-struct argv argv_insert_head (const struct argv *a, const char *head);
-void argv_msg (const int msglev, const struct argv *a);
-void argv_msg_prefix (const int msglev, const struct argv *a, const char *prefix);
-void argv_parse_cmd (struct argv *a, const char *s);
+struct argv argv_new(void);
 
-void argv_printf (struct argv *a, const char *format, ...)
+void argv_reset(struct argv *a);
+
+const char *argv_str(const struct argv *a, struct gc_arena *gc, const unsigned int flags);
+
+struct argv argv_insert_head(const struct argv *a, const char *head);
+
+void argv_msg(const int msglev, const struct argv *a);
+
+void argv_msg_prefix(const int msglev, const struct argv *a, const char *prefix);
+
+void argv_parse_cmd(struct argv *a, const char *s);
+
+void argv_printf(struct argv *a, const char *format, ...)
 #ifdef __GNUC__
 #if __USE_MINGW_ANSI_STDIO
-        __attribute__ ((format (gnu_printf, 2, 3)))
+__attribute__ ((format(gnu_printf, 2, 3)))
 #else
-        __attribute__ ((format (__printf__, 2, 3)))
+__attribute__ ((format(__printf__, 2, 3)))
 #endif
 #endif
-  ;
+;
 
-void argv_printf_cat (struct argv *a, const char *format, ...)
+void argv_printf_cat(struct argv *a, const char *format, ...)
 #ifdef __GNUC__
 #if __USE_MINGW_ANSI_STDIO
-        __attribute__ ((format (gnu_printf, 2, 3)))
+__attribute__ ((format(gnu_printf, 2, 3)))
 #else
-        __attribute__ ((format (__printf__, 2, 3)))
+__attribute__ ((format(__printf__, 2, 3)))
 #endif
 #endif
-  ;
+;
 
-#endif
+#endif /* ifndef ARGV_H */

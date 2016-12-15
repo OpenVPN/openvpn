@@ -40,52 +40,56 @@
 
 struct ifconfig_pool_entry
 {
-  bool in_use;
-  char *common_name;
-  time_t last_release;
-  bool fixed;
+    bool in_use;
+    char *common_name;
+    time_t last_release;
+    bool fixed;
 };
 
 struct ifconfig_pool
 {
-  in_addr_t base;
-  int size;
-  int type;
-  bool duplicate_cn;
-  bool ipv6;
-  struct in6_addr base_ipv6;
-  unsigned int size_ipv6;
-  struct ifconfig_pool_entry *list;
+    in_addr_t base;
+    int size;
+    int type;
+    bool duplicate_cn;
+    bool ipv6;
+    struct in6_addr base_ipv6;
+    unsigned int size_ipv6;
+    struct ifconfig_pool_entry *list;
 };
 
 struct ifconfig_pool_persist
 {
-  struct status_output *file;
-  bool fixed;
+    struct status_output *file;
+    bool fixed;
 };
 
 typedef int ifconfig_pool_handle;
 
-struct ifconfig_pool *ifconfig_pool_init (int type, in_addr_t start, in_addr_t end, const bool duplicate_cn, const bool ipv6_pool, const struct in6_addr ipv6_base, const int ipv6_netbits );
+struct ifconfig_pool *ifconfig_pool_init(int type, in_addr_t start, in_addr_t end, const bool duplicate_cn, const bool ipv6_pool, const struct in6_addr ipv6_base, const int ipv6_netbits );
 
-void ifconfig_pool_free (struct ifconfig_pool *pool);
+void ifconfig_pool_free(struct ifconfig_pool *pool);
 
-bool ifconfig_pool_verify_range (const int msglevel, const in_addr_t start, const in_addr_t end);
+bool ifconfig_pool_verify_range(const int msglevel, const in_addr_t start, const in_addr_t end);
 
-ifconfig_pool_handle ifconfig_pool_acquire (struct ifconfig_pool *pool, in_addr_t *local, in_addr_t *remote, struct in6_addr *remote_ipv6, const char *common_name);
+ifconfig_pool_handle ifconfig_pool_acquire(struct ifconfig_pool *pool, in_addr_t *local, in_addr_t *remote, struct in6_addr *remote_ipv6, const char *common_name);
 
-bool ifconfig_pool_release (struct ifconfig_pool* pool, ifconfig_pool_handle hand, const bool hard);
+bool ifconfig_pool_release(struct ifconfig_pool *pool, ifconfig_pool_handle hand, const bool hard);
 
-struct ifconfig_pool_persist *ifconfig_pool_persist_init (const char *filename, int refresh_freq);
-void ifconfig_pool_persist_close (struct ifconfig_pool_persist *persist);
-bool ifconfig_pool_write_trigger (struct ifconfig_pool_persist *persist);
+struct ifconfig_pool_persist *ifconfig_pool_persist_init(const char *filename, int refresh_freq);
 
-void ifconfig_pool_read (struct ifconfig_pool_persist *persist, struct ifconfig_pool *pool);
-void ifconfig_pool_write (struct ifconfig_pool_persist *persist, const struct ifconfig_pool *pool);
+void ifconfig_pool_persist_close(struct ifconfig_pool_persist *persist);
+
+bool ifconfig_pool_write_trigger(struct ifconfig_pool_persist *persist);
+
+void ifconfig_pool_read(struct ifconfig_pool_persist *persist, struct ifconfig_pool *pool);
+
+void ifconfig_pool_write(struct ifconfig_pool_persist *persist, const struct ifconfig_pool *pool);
 
 #ifdef IFCONFIG_POOL_TEST
-void ifconfig_pool_test (in_addr_t start, in_addr_t end);
-#endif
+void ifconfig_pool_test(in_addr_t start, in_addr_t end);
 
 #endif
-#endif
+
+#endif /* if P2MP */
+#endif /* ifndef POOL_H */

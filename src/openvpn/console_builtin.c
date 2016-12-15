@@ -56,64 +56,81 @@
  * @return Return false on input error, or if service
  *         exit event is signaled.
  */
-static bool get_console_input_win32 (const char *prompt, const bool echo, char *input, const int capacity)
+static bool
+get_console_input_win32(const char *prompt, const bool echo, char *input, const int capacity)
 {
     HANDLE in = INVALID_HANDLE_VALUE;
     HANDLE err = INVALID_HANDLE_VALUE;
     DWORD len = 0;
 
-    ASSERT (prompt);
-    ASSERT (input);
-    ASSERT (capacity > 0);
+    ASSERT(prompt);
+    ASSERT(input);
+    ASSERT(capacity > 0);
 
     input[0] = '\0';
 
-    in = GetStdHandle (STD_INPUT_HANDLE);
-    err = get_orig_stderr ();
+    in = GetStdHandle(STD_INPUT_HANDLE);
+    err = get_orig_stderr();
 
     if (in != INVALID_HANDLE_VALUE
         && err != INVALID_HANDLE_VALUE
-        && !win32_service_interrupt (&win32_signal)
-        && WriteFile (err, prompt, strlen (prompt), &len, NULL))
+        && !win32_service_interrupt(&win32_signal)
+        && WriteFile(err, prompt, strlen(prompt), &len, NULL))
     {
-        bool is_console = (GetFileType (in) == FILE_TYPE_CHAR);
+        bool is_console = (GetFileType(in) == FILE_TYPE_CHAR);
         DWORD flags_save = 0;
         int status = 0;
         WCHAR *winput;
 
         if (is_console)
-	{
-            if (GetConsoleMode (in, &flags_save))
-	    {
+        {
+            if (GetConsoleMode(in, &flags_save))
+            {
                 DWORD flags = ENABLE_LINE_INPUT | ENABLE_PROCESSED_INPUT;
                 if (echo)
+                {
                     flags |= ENABLE_ECHO_INPUT;
-                SetConsoleMode (in, flags);
-	    } else
+                }
+                SetConsoleMode(in, flags);
+            }
+            else
+            {
                 is_console = 0;
-	}
+            }
+        }
 
         if (is_console)
         {
-            winput = malloc (capacity * sizeof (WCHAR));
+            winput = malloc(capacity * sizeof(WCHAR));
             if (winput == NULL)
+            {
                 return false;
+            }
 
-            status = ReadConsoleW (in, winput, capacity, &len, NULL);
-            WideCharToMultiByte (CP_UTF8, 0, winput, len, input, capacity, NULL, NULL);
-            free (winput);
-        } else
-            status = ReadFile (in, input, capacity, &len, NULL);
+            status = ReadConsoleW(in, winput, capacity, &len, NULL);
+            WideCharToMultiByte(CP_UTF8, 0, winput, len, input, capacity, NULL, NULL);
+            free(winput);
+        }
+        else
+        {
+            status = ReadFile(in, input, capacity, &len, NULL);
+        }
 
-        string_null_terminate (input, (int)len, capacity);
-        chomp (input);
+        string_null_terminate(input, (int)len, capacity);
+        chomp(input);
 
         if (!echo)
-            WriteFile (err, "\r\n", 2, &len, NULL);
+        {
+            WriteFile(err, "\r\n", 2, &len, NULL);
+        }
         if (is_console)
-            SetConsoleMode (in, flags_save);
-        if (status && !win32_service_interrupt (&win32_signal))
+        {
+            SetConsoleMode(in, flags_save);
+        }
+        if (status && !win32_service_interrupt(&win32_signal))
+        {
             return true;
+        }
     }
 
     return false;
@@ -134,12 +151,15 @@ static bool get_console_input_win32 (const char *prompt, const bool echo, char *
  *          or stdin/stderr, depending on the write flag
  *
  */
-static FILE * open_tty (const bool write)
+static FILE *
+open_tty(const bool write)
 {
     FILE *ret;
-    ret = fopen ("/dev/tty", write ? "w" : "r");
+    ret = fopen("/dev/tty", write ? "w" : "r");
     if (!ret)
+    {
         ret = write ? stderr : stdin;
+    }
     return ret;
 }
 
@@ -149,10 +169,13 @@ static FILE * open_tty (const bool write)
  * @params fp     FILE pointer to close
  *
  */
-static void close_tty (FILE *fp)
+static void
+close_tty(FILE *fp)
 {
     if (fp != stderr && fp != stdin)
-        fclose (fp);
+    {
+        fclose(fp);
+    }
 }
 
 #endif   /* HAVE_GETPASS */
@@ -168,26 +191,27 @@ static void close_tty (FILE *fp)
  *
  *  @returns Returns True if user input was gathered
  */
-static bool get_console_input (const char *prompt, const bool echo, char *input, const int capacity)
+static bool
+get_console_input(const char *prompt, const bool echo, char *input, const int capacity)
 {
     bool ret = false;
-    ASSERT (prompt);
-    ASSERT (input);
-    ASSERT (capacity > 0);
+    ASSERT(prompt);
+    ASSERT(input);
+    ASSERT(capacity > 0);
     input[0] = '\0';
 
 #if defined(_WIN32)
-    return get_console_input_win32 (prompt, echo, input, capacity);
+    return get_console_input_win32(prompt, echo, input, capacity);
 #elif defined(HAVE_GETPASS)
 
     /* did we --daemon'ize before asking for passwords?
      * (in which case neither stdin or stderr are connected to a tty and
      * /dev/tty can not be open()ed anymore)
      */
-    if ( !isatty(0) && !isatty(2) )
+    if (!isatty(0) && !isatty(2) )
     {
         int fd = open( "/dev/tty", O_RDWR );
-        if ( fd < 0 )
+        if (fd < 0)
         {
             msg(M_FATAL, "neither stdin nor stderr are a tty device and you have neither a "
                 "controlling tty nor systemd - can't ask for '%s'.  If you used --daemon, "
@@ -201,30 +225,32 @@ static bool get_console_input (const char *prompt, const bool echo, char *input,
     {
         FILE *fp;
 
-        fp = open_tty (true);
-        fprintf (fp, "%s", prompt);
-        fflush (fp);
-        close_tty (fp);
+        fp = open_tty(true);
+        fprintf(fp, "%s", prompt);
+        fflush(fp);
+        close_tty(fp);
 
-        fp = open_tty (false);
-        if (fgets (input, capacity, fp) != NULL)
+        fp = open_tty(false);
+        if (fgets(input, capacity, fp) != NULL)
         {
-            chomp (input);
+            chomp(input);
             ret = true;
         }
-        close_tty (fp);
-    } else {
-        char *gp = getpass (prompt);
+        close_tty(fp);
+    }
+    else
+    {
+        char *gp = getpass(prompt);
         if (gp)
         {
-            strncpynt (input, gp, capacity);
-            secure_memzero (gp, strlen (gp));
+            strncpynt(input, gp, capacity);
+            secure_memzero(gp, strlen(gp));
             ret = true;
         }
     }
-#else
-    msg (M_FATAL, "Sorry, but I can't get console input on this OS (%s)", prompt);
-#endif
+#else  /* if defined(_WIN32) */
+    msg(M_FATAL, "Sorry, but I can't get console input on this OS (%s)", prompt);
+#endif /* if defined(_WIN32) */
     return ret;
 }
 
@@ -241,7 +267,8 @@ static bool get_console_input (const char *prompt, const bool echo, char *input,
  * query_user_exec() will call this function instead.
  *
  */
-bool query_user_exec_builtin()
+bool
+query_user_exec_builtin()
 {
     bool ret = true; /* Presume everything goes okay */
     int i;
@@ -249,12 +276,12 @@ bool query_user_exec_builtin()
     /* Loop through configured query_user slots */
     for (i = 0; i < QUERY_USER_NUMSLOTS && query_user[i].response != NULL; i++)
     {
-	if (!get_console_input(query_user[i].prompt, query_user[i].echo,
-			      query_user[i].response, query_user[i].response_len) )
-	{
-	    /* Force the final result state to failed on failure */
-	    ret = false;
-	}
+        if (!get_console_input(query_user[i].prompt, query_user[i].echo,
+                               query_user[i].response, query_user[i].response_len) )
+        {
+            /* Force the final result state to failed on failure */
+            ret = false;
+        }
     }
 
     return ret;

@@ -28,7 +28,7 @@
 #include "buffer.h"
 
 /*
- * 
+ *
  * Packet maninipulation routes such as encrypt, decrypt, compress, decompress
  * are passed a frame buffer that looks like this:
  *
@@ -92,20 +92,20 @@
  * Packet geometry parameters.
  */
 struct frame {
-  int link_mtu;                 /**< Maximum packet size to be sent over
+    int link_mtu;               /**< Maximum packet size to be sent over
                                  *   the external network interface. */
 
-  int link_mtu_dynamic;         /**< Dynamic MTU value for the external
+    int link_mtu_dynamic;       /**< Dynamic MTU value for the external
                                  *   network interface. */
 
-  int extra_frame;              /**< Maximum number of bytes that all
+    int extra_frame;            /**< Maximum number of bytes that all
                                  *   processing steps together could add.
                                  *   @code
                                  *   frame.link_mtu = "socket MTU" - extra_frame;
                                  *   @endcode
                                  */
 
-  int extra_buffer;             /**< Maximum number of bytes that
+    int extra_buffer;           /**< Maximum number of bytes that
                                  *   processing steps could expand the
                                  *   internal work buffer.
                                  *
@@ -115,24 +115,24 @@ struct frame {
                                  *   space for worst-case expansion of
                                  *   incompressible content. */
 
-  int extra_tun;                /**< Maximum number of bytes in excess of
+    int extra_tun;              /**< Maximum number of bytes in excess of
                                  *   the tun/tap MTU that might be read
                                  *   from or written to the virtual
                                  *   tun/tap network interface. */
 
-  int extra_link;               /**< Maximum number of bytes in excess of
+    int extra_link;             /**< Maximum number of bytes in excess of
                                  *   external network interface's MTU that
                                  *   might be read from or written to it. */
 
-  /*
-   * Alignment control
-   */
-# define FRAME_HEADROOM_MARKER_DECRYPT     (1<<0)
-# define FRAME_HEADROOM_MARKER_FRAGMENT    (1<<1)
-# define FRAME_HEADROOM_MARKER_READ_LINK   (1<<2)
-# define FRAME_HEADROOM_MARKER_READ_STREAM (1<<3)
-  unsigned int align_flags;
-  int align_adjust;
+    /*
+     * Alignment control
+     */
+#define FRAME_HEADROOM_MARKER_DECRYPT     (1<<0)
+#define FRAME_HEADROOM_MARKER_FRAGMENT    (1<<1)
+#define FRAME_HEADROOM_MARKER_READ_LINK   (1<<2)
+#define FRAME_HEADROOM_MARKER_READ_STREAM (1<<3)
+    unsigned int align_flags;
+    int align_adjust;
 };
 
 /* Forward declarations, to prevent includes */
@@ -198,20 +198,21 @@ struct options;
  * Function prototypes.
  */
 
-void frame_finalize (struct frame *frame,
-		     bool link_mtu_defined,
-		     int link_mtu,
-		     bool tun_mtu_defined,
-		     int tun_mtu);
+void frame_finalize(struct frame *frame,
+                    bool link_mtu_defined,
+                    int link_mtu,
+                    bool tun_mtu_defined,
+                    int tun_mtu);
 
-void frame_subtract_extra (struct frame *frame, const struct frame *src);
+void frame_subtract_extra(struct frame *frame, const struct frame *src);
 
-void frame_print (const struct frame *frame,
-		  int level,
-		  const char *prefix);
+void frame_print(const struct frame *frame,
+                 int level,
+                 const char *prefix);
 
-void set_mtu_discover_type (int sd, int mtu_type, sa_family_t proto_af);
-int translate_mtu_discover_type_name (const char *name);
+void set_mtu_discover_type(int sd, int mtu_type, sa_family_t proto_af);
+
+int translate_mtu_discover_type_name(const char *name);
 
 /*
  * frame_set_mtu_dynamic and flags
@@ -220,18 +221,18 @@ int translate_mtu_discover_type_name (const char *name);
 #define SET_MTU_TUN         (1<<0) /* use tun/tap rather than link sizing */
 #define SET_MTU_UPPER_BOUND (1<<1) /* only decrease dynamic MTU */
 
-void frame_set_mtu_dynamic (struct frame *frame, int mtu, unsigned int flags);
+void frame_set_mtu_dynamic(struct frame *frame, int mtu, unsigned int flags);
 
 /*
  * allocate a buffer for socket or tun layer
  */
-void alloc_buf_sock_tun (struct buffer *buf,
-			 const struct frame *frame,
-			 const bool tuntap_buffer,
-			 const unsigned int align_mask);
+void alloc_buf_sock_tun(struct buffer *buf,
+                        const struct frame *frame,
+                        const bool tuntap_buffer,
+                        const unsigned int align_mask);
 
 /** Set the --mssfix option. */
-void frame_init_mssfix (struct frame *frame, const struct options *options);
+void frame_init_mssfix(struct frame *frame, const struct options *options);
 
 /*
  * EXTENDED_SOCKET_ERROR_CAPABILITY functions -- print extra error info
@@ -241,8 +242,9 @@ void frame_init_mssfix (struct frame *frame, const struct options *options);
 
 #if EXTENDED_SOCKET_ERROR_CAPABILITY
 
-void set_sock_extended_error_passing (int sd);
-const char *format_extended_socket_error (int fd, int *mtu, struct gc_arena *gc);
+void set_sock_extended_error_passing(int sd);
+
+const char *format_extended_socket_error(int fd, int *mtu, struct gc_arena *gc);
 
 #endif
 
@@ -251,12 +253,12 @@ const char *format_extended_socket_error (int fd, int *mtu, struct gc_arena *gc)
  * headroom and alignment issues.
  */
 static inline int
-frame_headroom (const struct frame *f, const unsigned int flag_mask)
+frame_headroom(const struct frame *f, const unsigned int flag_mask)
 {
-  const int offset = FRAME_HEADROOM_BASE (f);
-  const int adjust = (flag_mask & f->align_flags) ? f->align_adjust : 0;
-  const int delta = ((PAYLOAD_ALIGN << 24) - (offset + adjust)) & (PAYLOAD_ALIGN - 1);
-  return offset + delta;
+    const int offset = FRAME_HEADROOM_BASE(f);
+    const int adjust = (flag_mask & f->align_flags) ? f->align_adjust : 0;
+    const int delta = ((PAYLOAD_ALIGN << 24) - (offset + adjust)) & (PAYLOAD_ALIGN - 1);
+    return offset + delta;
 }
 
 /*
@@ -264,57 +266,57 @@ frame_headroom (const struct frame *f, const unsigned int flag_mask)
  */
 
 static inline void
-frame_add_to_link_mtu (struct frame *frame, const int increment)
+frame_add_to_link_mtu(struct frame *frame, const int increment)
 {
-  frame->link_mtu += increment;
+    frame->link_mtu += increment;
 }
 
 static inline void
-frame_add_to_extra_frame (struct frame *frame, const int increment)
+frame_add_to_extra_frame(struct frame *frame, const int increment)
 {
-  frame->extra_frame += increment;
+    frame->extra_frame += increment;
 }
 
 static inline void
-frame_add_to_extra_tun (struct frame *frame, const int increment)
+frame_add_to_extra_tun(struct frame *frame, const int increment)
 {
-  frame->extra_tun += increment;
+    frame->extra_tun += increment;
 }
 
 static inline void
-frame_add_to_extra_link (struct frame *frame, const int increment)
+frame_add_to_extra_link(struct frame *frame, const int increment)
 {
-  frame->extra_link += increment;
+    frame->extra_link += increment;
 }
 
 static inline void
-frame_add_to_extra_buffer (struct frame *frame, const int increment)
+frame_add_to_extra_buffer(struct frame *frame, const int increment)
 {
-  frame->extra_buffer += increment;
+    frame->extra_buffer += increment;
 }
 
 static inline void
-frame_add_to_align_adjust (struct frame *frame, const int increment)
+frame_add_to_align_adjust(struct frame *frame, const int increment)
 {
-  frame->align_adjust += increment;
+    frame->align_adjust += increment;
 }
 
 static inline void
-frame_align_to_extra_frame (struct frame *frame)
+frame_align_to_extra_frame(struct frame *frame)
 {
-  frame->align_adjust = frame->extra_frame + frame->extra_link;
+    frame->align_adjust = frame->extra_frame + frame->extra_link;
 }
 
 static inline void
-frame_or_align_flags (struct frame *frame, const unsigned int flag_mask)
+frame_or_align_flags(struct frame *frame, const unsigned int flag_mask)
 {
-  frame->align_flags |= flag_mask;
+    frame->align_flags |= flag_mask;
 }
 
 static inline bool
-frame_defined (const struct frame *frame)
+frame_defined(const struct frame *frame)
 {
-  return frame->link_mtu > 0;
+    return frame->link_mtu > 0;
 }
 
-#endif
+#endif /* ifndef MTU_H */

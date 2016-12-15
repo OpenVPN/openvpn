@@ -71,7 +71,7 @@ typedef uint32_t net_time_t;
 /* convert a net_time_t in network order to a time_t in host order */
 #define ntohtime(x) ((time_t)ntohl(x))
 
-#else
+#else  /* if 1 */
 
 /*
  * DEBUGGING ONLY.
@@ -89,7 +89,7 @@ typedef uint16_t net_time_t;
 #define htontime(x) htons((net_time_t)x)
 #define ntohtime(x) ((time_t)ntohs(x))
 
-#endif
+#endif /* if 1 */
 
 /*
  * Printf formats for special types
@@ -124,7 +124,7 @@ typedef unsigned int packet_id_print_type;
  */
 #define SEQ_REAP_INTERVAL 5
 
-CIRC_LIST (seq_list, time_t);
+CIRC_LIST(seq_list, time_t);
 
 /*
  * This is the data structure we keep on the receiving side,
@@ -133,16 +133,16 @@ CIRC_LIST (seq_list, time_t);
  */
 struct packet_id_rec
 {
-  time_t last_reap;           /* last call of packet_id_reap */
-  time_t time;                /* highest time stamp received */
-  packet_id_type id;          /* highest sequence number received */
-  int seq_backtrack;          /* set from --replay-window */
-  int time_backtrack;         /* set from --replay-window */
-  int max_backtrack_stat;     /* maximum backtrack seen so far */
-  bool initialized;           /* true if packet_id_init was called */
-  struct seq_list *seq_list;  /* packet-id "memory" */
-  const char *name;
-  int unit;
+    time_t last_reap;         /* last call of packet_id_reap */
+    time_t time;              /* highest time stamp received */
+    packet_id_type id;        /* highest sequence number received */
+    int seq_backtrack;        /* set from --replay-window */
+    int time_backtrack;       /* set from --replay-window */
+    int max_backtrack_stat;   /* maximum backtrack seen so far */
+    bool initialized;         /* true if packet_id_init was called */
+    struct seq_list *seq_list; /* packet-id "memory" */
+    const char *name;
+    int unit;
 };
 
 /*
@@ -151,18 +151,18 @@ struct packet_id_rec
  */
 struct packet_id_persist
 {
-  const char *filename;
-  int fd;
-  time_t time;             /* time stamp */
-  packet_id_type id;       /* sequence number */
-  time_t time_last_written;
-  packet_id_type id_last_written;
+    const char *filename;
+    int fd;
+    time_t time;           /* time stamp */
+    packet_id_type id;     /* sequence number */
+    time_t time_last_written;
+    packet_id_type id_last_written;
 };
 
 struct packet_id_persist_file_image
 {
-  time_t time;             /* time stamp */
-  packet_id_type id;       /* sequence number */
+    time_t time;           /* time stamp */
+    packet_id_type id;     /* sequence number */
 };
 
 /*
@@ -171,8 +171,8 @@ struct packet_id_persist_file_image
  */
 struct packet_id_send
 {
-  packet_id_type id;
-  time_t time;
+    packet_id_type id;
+    time_t time;
 };
 
 /*
@@ -200,104 +200,108 @@ struct packet_id_send
  */
 struct packet_id_net
 {
-  packet_id_type id;
-  time_t time; /* converted to net_time_t before transmission */
+    packet_id_type id;
+    time_t time; /* converted to net_time_t before transmission */
 };
 
 struct packet_id
 {
-  struct packet_id_send send;
-  struct packet_id_rec rec;
+    struct packet_id_send send;
+    struct packet_id_rec rec;
 };
 
-void packet_id_init (struct packet_id *p, int seq_backtrack, int time_backtrack, const char *name, int unit);
-void packet_id_free (struct packet_id *p);
+void packet_id_init(struct packet_id *p, int seq_backtrack, int time_backtrack, const char *name, int unit);
+
+void packet_id_free(struct packet_id *p);
 
 /* should we accept an incoming packet id ? */
-bool packet_id_test (struct packet_id_rec *p,
-		     const struct packet_id_net *pin);
+bool packet_id_test(struct packet_id_rec *p,
+                    const struct packet_id_net *pin);
 
 /* change our current state to reflect an accepted packet id */
-void packet_id_add (struct packet_id_rec *p,
-		    const struct packet_id_net *pin);
+void packet_id_add(struct packet_id_rec *p,
+                   const struct packet_id_net *pin);
 
-/* expire TIME_BACKTRACK sequence numbers */ 
-void packet_id_reap (struct packet_id_rec *p);
+/* expire TIME_BACKTRACK sequence numbers */
+void packet_id_reap(struct packet_id_rec *p);
 
 /*
  * packet ID persistence
  */
 
 /* initialize the packet_id_persist structure in a disabled state */
-void packet_id_persist_init (struct packet_id_persist *p);
+void packet_id_persist_init(struct packet_id_persist *p);
 
 /* close the file descriptor if it is open, and switch to disabled state */
-void packet_id_persist_close (struct packet_id_persist *p);
+void packet_id_persist_close(struct packet_id_persist *p);
 
 /* load persisted rec packet_id (time and id) only once from file, and set state to enabled */
-void packet_id_persist_load (struct packet_id_persist *p, const char *filename);
+void packet_id_persist_load(struct packet_id_persist *p, const char *filename);
 
 /* save persisted rec packet_id (time and id) to file (only if enabled state) */
-void packet_id_persist_save (struct packet_id_persist *p);
+void packet_id_persist_save(struct packet_id_persist *p);
 
 /* transfer packet_id_persist -> packet_id */
-void packet_id_persist_load_obj (const struct packet_id_persist *p, struct packet_id* pid);
+void packet_id_persist_load_obj(const struct packet_id_persist *p, struct packet_id *pid);
 
 /* return an ascii string representing a packet_id_persist object */
-const char *packet_id_persist_print (const struct packet_id_persist *p, struct gc_arena *gc);
+const char *packet_id_persist_print(const struct packet_id_persist *p, struct gc_arena *gc);
 
 /*
  * Read/write a packet ID to/from the buffer.  Short form is sequence number
  * only.  Long form is sequence number and timestamp.
  */
 
-bool packet_id_read (struct packet_id_net *pin, struct buffer *buf, bool long_form);
-bool packet_id_write (const struct packet_id_net *pin, struct buffer *buf, bool long_form, bool prepend);
+bool packet_id_read(struct packet_id_net *pin, struct buffer *buf, bool long_form);
+
+bool packet_id_write(const struct packet_id_net *pin, struct buffer *buf, bool long_form, bool prepend);
 
 /*
  * Inline functions.
  */
 
 /** Is this struct packet_id initialized? */
-static inline bool packet_id_initialized (const struct packet_id *pid)
+static inline bool
+packet_id_initialized(const struct packet_id *pid)
 {
-  return pid->rec.initialized;
+    return pid->rec.initialized;
 }
 
 /* are we in enabled state? */
 static inline bool
-packet_id_persist_enabled (const struct packet_id_persist *p)
+packet_id_persist_enabled(const struct packet_id_persist *p)
 {
-  return p->fd >= 0;
+    return p->fd >= 0;
 }
 
 /* transfer packet_id -> packet_id_persist */
 static inline void
-packet_id_persist_save_obj (struct packet_id_persist *p, const struct packet_id* pid)
+packet_id_persist_save_obj(struct packet_id_persist *p, const struct packet_id *pid)
 {
-  if (packet_id_persist_enabled (p) && pid->rec.time)
+    if (packet_id_persist_enabled(p) && pid->rec.time)
     {
-      p->time = pid->rec.time;
-      p->id = pid->rec.id;
+        p->time = pid->rec.time;
+        p->id = pid->rec.id;
     }
 }
 
-const char* packet_id_net_print(const struct packet_id_net *pin, bool print_timestamp, struct gc_arena *gc);
+const char *packet_id_net_print(const struct packet_id_net *pin, bool print_timestamp, struct gc_arena *gc);
 
 #ifdef PID_TEST
 void packet_id_interactive_test();
+
 #endif
 
 static inline int
-packet_id_size (bool long_form)
+packet_id_size(bool long_form)
 {
-  return sizeof (packet_id_type) + (long_form ? sizeof (net_time_t) : 0);
-} 
+    return sizeof(packet_id_type) + (long_form ? sizeof(net_time_t) : 0);
+}
 
 static inline bool
-packet_id_close_to_wrapping (const struct packet_id_send *p)
+packet_id_close_to_wrapping(const struct packet_id_send *p)
 {
-  return p->id >= PACKET_ID_WRAP_TRIGGER;
+    return p->id >= PACKET_ID_WRAP_TRIGGER;
 }
 
 /*
@@ -306,38 +310,46 @@ packet_id_close_to_wrapping (const struct packet_id_send *p)
  * In long_form, a time_t is added as well.
  */
 static inline void
-packet_id_alloc_outgoing (struct packet_id_send *p, struct packet_id_net *pin, bool long_form)
+packet_id_alloc_outgoing(struct packet_id_send *p, struct packet_id_net *pin, bool long_form)
 {
-  if (!p->time)
-    p->time = now;
-  pin->id = ++p->id;
-  if (!pin->id)
+    if (!p->time)
     {
-      ASSERT (long_form);
-      p->time = now;
-      pin->id = p->id = 1;
+        p->time = now;
     }
-  pin->time = p->time;
+    pin->id = ++p->id;
+    if (!pin->id)
+    {
+        ASSERT(long_form);
+        p->time = now;
+        pin->id = p->id = 1;
+    }
+    pin->time = p->time;
 }
 
 static inline bool
-check_timestamp_delta (time_t remote, unsigned int max_delta)
+check_timestamp_delta(time_t remote, unsigned int max_delta)
 {
-  unsigned int abs;
-  const time_t local_now = now;
+    unsigned int abs;
+    const time_t local_now = now;
 
-  if (local_now >= remote)
-    abs = local_now - remote;
-  else
-    abs = remote - local_now;
-  return abs <= max_delta;
+    if (local_now >= remote)
+    {
+        abs = local_now - remote;
+    }
+    else
+    {
+        abs = remote - local_now;
+    }
+    return abs <= max_delta;
 }
 
 static inline void
-packet_id_reap_test (struct packet_id_rec *p)
+packet_id_reap_test(struct packet_id_rec *p)
 {
-  if (p->last_reap + SEQ_REAP_INTERVAL <= now)
-    packet_id_reap (p);
+    if (p->last_reap + SEQ_REAP_INTERVAL <= now)
+    {
+        packet_id_reap(p);
+    }
 }
 
 #endif /* PACKET_ID_H */

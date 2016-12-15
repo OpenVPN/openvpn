@@ -28,14 +28,14 @@
 /* parameters to be pushed to peer */
 
 struct push_entry {
-  struct push_entry *next;
-  bool enable;
-  const char *option;
+    struct push_entry *next;
+    bool enable;
+    const char *option;
 };
 
 struct push_list {
-  struct push_entry *head;
-  struct push_entry *tail;
+    struct push_entry *head;
+    struct push_entry *tail;
 };
 
 

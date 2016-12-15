@@ -35,49 +35,49 @@
 #include "memdbg.h"
 
 void
-interval_init (struct interval *top, int horizon, int refresh)
+interval_init(struct interval *top, int horizon, int refresh)
 {
-  CLEAR (*top);
-  top->refresh = refresh;
-  top->horizon = horizon;
+    CLEAR(*top);
+    top->refresh = refresh;
+    top->horizon = horizon;
 }
 
 bool
-event_timeout_trigger (struct event_timeout *et,
-		       struct timeval *tv,
-		       const int et_const_retry)
+event_timeout_trigger(struct event_timeout *et,
+                      struct timeval *tv,
+                      const int et_const_retry)
 {
-  bool ret = false;
-  const time_t local_now = now;
+    bool ret = false;
+    const time_t local_now = now;
 
-  if (et->defined)
+    if (et->defined)
     {
-      int wakeup = (int) et->last + et->n - local_now;
-      if (wakeup <= 0)
-	{
+        int wakeup = (int) et->last + et->n - local_now;
+        if (wakeup <= 0)
+        {
 #if INTERVAL_DEBUG
-	  dmsg (D_INTERVAL, "EVENT event_timeout_trigger (%d) etcr=%d", et->n, et_const_retry);
+            dmsg(D_INTERVAL, "EVENT event_timeout_trigger (%d) etcr=%d", et->n, et_const_retry);
 #endif
-	  if (et_const_retry < 0)
-	    {
-	      et->last = local_now;
-	      wakeup = et->n;
-	      ret = true;
-	    }
-	  else
-	    {
-	      wakeup = et_const_retry;
-	    }
-	}
+            if (et_const_retry < 0)
+            {
+                et->last = local_now;
+                wakeup = et->n;
+                ret = true;
+            }
+            else
+            {
+                wakeup = et_const_retry;
+            }
+        }
 
-      if (tv && wakeup < tv->tv_sec)
-	{
+        if (tv && wakeup < tv->tv_sec)
+        {
 #if INTERVAL_DEBUG
-	  dmsg (D_INTERVAL, "EVENT event_timeout_wakeup (%d/%d) etcr=%d", wakeup, et->n, et_const_retry);
+            dmsg(D_INTERVAL, "EVENT event_timeout_wakeup (%d/%d) etcr=%d", wakeup, et->n, et_const_retry);
 #endif
-	  tv->tv_sec = wakeup;
-	  tv->tv_usec = 0;
-	}
+            tv->tv_sec = wakeup;
+            tv->tv_usec = 0;
+        }
     }
-  return ret;
+    return ret;
 }

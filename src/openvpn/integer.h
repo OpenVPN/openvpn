@@ -32,34 +32,50 @@
  */
 
 static inline int
-max_int (int x, int y)
+max_int(int x, int y)
 {
-  if (x > y)
-    return x;
-  else
-    return y;
+    if (x > y)
+    {
+        return x;
+    }
+    else
+    {
+        return y;
+    }
 }
 
 static inline int
-min_int (int x, int y)
+min_int(int x, int y)
 {
-  if (x < y)
-    return x;
-  else
-    return y;
+    if (x < y)
+    {
+        return x;
+    }
+    else
+    {
+        return y;
+    }
 }
 
 static inline int
-constrain_int (int x, int min, int max)
+constrain_int(int x, int min, int max)
 {
-  if (min > max)
-    return min;
-  if (x < min)
-    return min;
-  else if (x > max)
-    return max;
-  else
-    return x;
+    if (min > max)
+    {
+        return min;
+    }
+    if (x < min)
+    {
+        return min;
+    }
+    else if (x > max)
+    {
+        return max;
+    }
+    else
+    {
+        return x;
+    }
 }
 
 /*
@@ -75,10 +91,10 @@ constrain_int (int x, int min, int max)
 static inline int
 modulo_subtract(int x, int y, int mod)
 {
-  const int d1 = x - y;
-  const int d2 = (x > y ? -mod : mod) + d1;
-  ASSERT (0 <= x && x < mod && 0 <= y && y < mod);
-  return abs(d1) > abs(d2) ? d2 : d1;
+    const int d1 = x - y;
+    const int d2 = (x > y ? -mod : mod) + d1;
+    ASSERT(0 <= x && x < mod && 0 <= y && y < mod);
+    return abs(d1) > abs(d2) ? d2 : d1;
 }
 
 /*
@@ -90,25 +106,31 @@ modulo_subtract(int x, int y, int mod)
 static inline int
 modulo_add(int x, int y, int mod)
 {
-  int sum = x + y;
-  ASSERT (0 <= x && x < mod && -mod <= y && y <= mod);
-  if (sum >= mod)
-    sum -= mod;
-  if (sum < 0)
-    sum += mod;
-  return sum;
+    int sum = x + y;
+    ASSERT(0 <= x && x < mod && -mod <= y && y <= mod);
+    if (sum >= mod)
+    {
+        sum -= mod;
+    }
+    if (sum < 0)
+    {
+        sum += mod;
+    }
+    return sum;
 }
 
 static inline int
-index_verify (int index, int size, const char *file, int line)
+index_verify(int index, int size, const char *file, int line)
 {
-  if (index < 0 || index >= size)
-    msg (M_FATAL, "Assertion Failed: Array index=%d out of bounds for array size=%d in %s:%d",
-	 index,
-	 size,
-	 file,
-	 line);
-  return index;
+    if (index < 0 || index >= size)
+    {
+        msg(M_FATAL, "Assertion Failed: Array index=%d out of bounds for array size=%d in %s:%d",
+            index,
+            size,
+            file,
+            line);
+    }
+    return index;
 }
 
-#endif
+#endif /* ifndef INTEGER_H */

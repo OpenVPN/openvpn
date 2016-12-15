@@ -33,12 +33,15 @@
  * Does TLS session need service?
  */
 static inline void
-check_tls (struct context *c)
+check_tls(struct context *c)
 {
 #if defined(ENABLE_CRYPTO)
-  void check_tls_dowork (struct context *c);
-  if (c->c2.tls_multi)
-    check_tls_dowork (c);
+    void check_tls_dowork(struct context *c);
+
+    if (c->c2.tls_multi)
+    {
+        check_tls_dowork(c);
+    }
 #endif
 }
 
@@ -47,25 +50,31 @@ check_tls (struct context *c)
  * Also check for --tls-exit trigger.
  */
 static inline void
-check_tls_errors (struct context *c)
+check_tls_errors(struct context *c)
 {
 #if defined(ENABLE_CRYPTO)
-  void check_tls_errors_co (struct context *c);
-  void check_tls_errors_nco (struct context *c);
-  if (c->c2.tls_multi && c->c2.tls_exit_signal)
+    void check_tls_errors_co(struct context *c);
+
+    void check_tls_errors_nco(struct context *c);
+
+    if (c->c2.tls_multi && c->c2.tls_exit_signal)
     {
-      if (link_socket_connection_oriented (c->c2.link_socket))
-	{
-	  if (c->c2.tls_multi->n_soft_errors)
-	    check_tls_errors_co (c);
-	}
-      else
-	{
-	  if (c->c2.tls_multi->n_hard_errors)
-	    check_tls_errors_nco (c);
-	}
+        if (link_socket_connection_oriented(c->c2.link_socket))
+        {
+            if (c->c2.tls_multi->n_soft_errors)
+            {
+                check_tls_errors_co(c);
+            }
+        }
+        else
+        {
+            if (c->c2.tls_multi->n_hard_errors)
+            {
+                check_tls_errors_nco(c);
+            }
+        }
     }
-#endif
+#endif /* if defined(ENABLE_CRYPTO) */
 }
 
 /*
@@ -73,12 +82,15 @@ check_tls_errors (struct context *c)
  * messages on the control channel.
  */
 static inline void
-check_incoming_control_channel (struct context *c)
+check_incoming_control_channel(struct context *c)
 {
 #if P2MP
-  void check_incoming_control_channel_dowork (struct context *c);
-  if (tls_test_payload_len (c->c2.tls_multi) > 0)
-    check_incoming_control_channel_dowork (c);
+    void check_incoming_control_channel_dowork(struct context *c);
+
+    if (tls_test_payload_len(c->c2.tls_multi) > 0)
+    {
+        check_incoming_control_channel_dowork(c);
+    }
 #endif
 }
 
@@ -87,77 +99,91 @@ check_incoming_control_channel (struct context *c)
  * checks for connection establishment.
  */
 static inline void
-check_connection_established (struct context *c)
+check_connection_established(struct context *c)
 {
-  void check_connection_established_dowork (struct context *c);
-  if (event_timeout_defined (&c->c2.wait_for_connect))
-    check_connection_established_dowork (c);
+    void check_connection_established_dowork(struct context *c);
+
+    if (event_timeout_defined(&c->c2.wait_for_connect))
+    {
+        check_connection_established_dowork(c);
+    }
 }
 
 /*
  * Should we add routes?
  */
 static inline void
-check_add_routes (struct context *c)
+check_add_routes(struct context *c)
 {
-  void check_add_routes_dowork (struct context *c);
-  if (event_timeout_trigger (&c->c2.route_wakeup, &c->c2.timeval, ETT_DEFAULT))
-    check_add_routes_dowork (c);
+    void check_add_routes_dowork(struct context *c);
+
+    if (event_timeout_trigger(&c->c2.route_wakeup, &c->c2.timeval, ETT_DEFAULT))
+    {
+        check_add_routes_dowork(c);
+    }
 }
 
 /*
  * Should we exit due to inactivity timeout?
  */
 static inline void
-check_inactivity_timeout (struct context *c)
+check_inactivity_timeout(struct context *c)
 {
-  void check_inactivity_timeout_dowork (struct context *c);
+    void check_inactivity_timeout_dowork(struct context *c);
 
-  if (c->options.inactivity_timeout
-      && event_timeout_trigger (&c->c2.inactivity_interval, &c->c2.timeval, ETT_DEFAULT))
-    check_inactivity_timeout_dowork (c);
+    if (c->options.inactivity_timeout
+        && event_timeout_trigger(&c->c2.inactivity_interval, &c->c2.timeval, ETT_DEFAULT))
+    {
+        check_inactivity_timeout_dowork(c);
+    }
 }
 
 #if P2MP
 
 static inline void
-check_server_poll_timeout (struct context *c)
+check_server_poll_timeout(struct context *c)
 {
-  void check_server_poll_timeout_dowork (struct context *c);
+    void check_server_poll_timeout_dowork(struct context *c);
 
-  if (c->options.ce.connect_timeout
-      && event_timeout_trigger (&c->c2.server_poll_interval, &c->c2.timeval, ETT_DEFAULT))
-    check_server_poll_timeout_dowork (c);
+    if (c->options.ce.connect_timeout
+        && event_timeout_trigger(&c->c2.server_poll_interval, &c->c2.timeval, ETT_DEFAULT))
+    {
+        check_server_poll_timeout_dowork(c);
+    }
 }
 
 /*
  * Scheduled exit?
  */
 static inline void
-check_scheduled_exit (struct context *c)
+check_scheduled_exit(struct context *c)
 {
-  void check_scheduled_exit_dowork (struct context *c);
+    void check_scheduled_exit_dowork(struct context *c);
 
-  if (event_timeout_defined (&c->c2.scheduled_exit))
+    if (event_timeout_defined(&c->c2.scheduled_exit))
     {
-      if (event_timeout_trigger (&c->c2.scheduled_exit, &c->c2.timeval, ETT_DEFAULT))
-	check_scheduled_exit_dowork (c);
+        if (event_timeout_trigger(&c->c2.scheduled_exit, &c->c2.timeval, ETT_DEFAULT))
+        {
+            check_scheduled_exit_dowork(c);
+        }
     }
 }
-#endif
+#endif /* if P2MP */
 
 /*
  * Should we write timer-triggered status file.
  */
 static inline void
-check_status_file (struct context *c)
+check_status_file(struct context *c)
 {
-  void check_status_file_dowork (struct context *c);
+    void check_status_file_dowork(struct context *c);
 
-  if (c->c1.status_output)
+    if (c->c1.status_output)
     {
-      if (status_trigger_tv (c->c1.status_output, &c->c2.timeval))
-	check_status_file_dowork (c);
+        if (status_trigger_tv(c->c1.status_output, &c->c2.timeval))
+        {
+            check_status_file_dowork(c);
+        }
     }
 }
 
@@ -166,11 +192,14 @@ check_status_file (struct context *c)
  * Should we deliver a datagram fragment to remote?
  */
 static inline void
-check_fragment (struct context *c)
+check_fragment(struct context *c)
 {
-  void check_fragment_dowork (struct context *c);
-  if (c->c2.fragment)
-    check_fragment_dowork (c);
+    void check_fragment_dowork(struct context *c);
+
+    if (c->c2.fragment)
+    {
+        check_fragment_dowork(c);
+    }
 }
 #endif
 
@@ -180,11 +209,14 @@ check_fragment (struct context *c)
  * see if we should send a push_request in response to --pull
  */
 static inline void
-check_push_request (struct context *c)
+check_push_request(struct context *c)
 {
-  void check_push_request_dowork (struct context *c);
-  if (event_timeout_trigger (&c->c2.push_request_interval, &c->c2.timeval, ETT_DEFAULT))
-    check_push_request_dowork (c);
+    void check_push_request_dowork(struct context *c);
+
+    if (event_timeout_trigger(&c->c2.push_request_interval, &c->c2.timeval, ETT_DEFAULT))
+    {
+        check_push_request_dowork(c);
+    }
 }
 
 #endif
@@ -194,11 +226,13 @@ check_push_request (struct context *c)
  * Should we persist our anti-replay packet ID state to disk?
  */
 static inline void
-check_packet_id_persist_flush (struct context *c)
+check_packet_id_persist_flush(struct context *c)
 {
-  if (packet_id_persist_enabled (&c->c1.pid_persist)
-      && event_timeout_trigger (&c->c2.packet_id_persist_interval, &c->c2.timeval, ETT_DEFAULT))
-    packet_id_persist_save (&c->c1.pid_persist);
+    if (packet_id_persist_enabled(&c->c1.pid_persist)
+        && event_timeout_trigger(&c->c2.packet_id_persist_interval, &c->c2.timeval, ETT_DEFAULT))
+    {
+        packet_id_persist_save(&c->c1.pid_persist);
+    }
 }
 #endif
 
@@ -207,44 +241,50 @@ check_packet_id_persist_flush (struct context *c)
  * immediately.
  */
 static inline void
-context_immediate_reschedule (struct context *c)
+context_immediate_reschedule(struct context *c)
 {
-  c->c2.timeval.tv_sec = 0;    /* ZERO-TIMEOUT */
-  c->c2.timeval.tv_usec = 0;
+    c->c2.timeval.tv_sec = 0;  /* ZERO-TIMEOUT */
+    c->c2.timeval.tv_usec = 0;
 }
 
 static inline void
-context_reschedule_sec (struct context *c, int sec)
+context_reschedule_sec(struct context *c, int sec)
 {
-  if (sec < 0)
-    sec = 0;
-  if (sec < c->c2.timeval.tv_sec)
+    if (sec < 0)
     {
-      c->c2.timeval.tv_sec = sec;
-      c->c2.timeval.tv_usec = 0;
+        sec = 0;
+    }
+    if (sec < c->c2.timeval.tv_sec)
+    {
+        c->c2.timeval.tv_sec = sec;
+        c->c2.timeval.tv_usec = 0;
     }
 }
 
 static inline struct link_socket_info *
-get_link_socket_info (struct context *c)
+get_link_socket_info(struct context *c)
 {
-  if (c->c2.link_socket_info)
-    return c->c2.link_socket_info;
-  else
-    return &c->c2.link_socket->info;
+    if (c->c2.link_socket_info)
+    {
+        return c->c2.link_socket_info;
+    }
+    else
+    {
+        return &c->c2.link_socket->info;
+    }
 }
 
 static inline void
-register_activity (struct context *c, const int size)
+register_activity(struct context *c, const int size)
 {
-  if (c->options.inactivity_timeout)
+    if (c->options.inactivity_timeout)
     {
-      c->c2.inactivity_bytes += size;
-      if (c->c2.inactivity_bytes >= c->options.inactivity_minimum_bytes)
-	{
-	  c->c2.inactivity_bytes = 0;
-	  event_timeout_reset (&c->c2.inactivity_interval);
-	}
+        c->c2.inactivity_bytes += size;
+        if (c->c2.inactivity_bytes >= c->options.inactivity_minimum_bytes)
+        {
+            c->c2.inactivity_bytes = 0;
+            event_timeout_reset(&c->c2.inactivity_interval);
+        }
     }
 }
 
@@ -253,14 +293,18 @@ register_activity (struct context *c, const int size)
  * a point-to-point tunnel.
  */
 static inline unsigned int
-p2p_iow_flags (const struct context *c)
+p2p_iow_flags(const struct context *c)
 {
-  unsigned int flags = (IOW_SHAPER|IOW_CHECK_RESIDUAL|IOW_FRAG|IOW_READ|IOW_WAIT_SIGNAL);
-  if (c->c2.to_link.len > 0)
-    flags |= IOW_TO_LINK;
-  if (c->c2.to_tun.len > 0)
-    flags |= IOW_TO_TUN;
-  return flags;
+    unsigned int flags = (IOW_SHAPER|IOW_CHECK_RESIDUAL|IOW_FRAG|IOW_READ|IOW_WAIT_SIGNAL);
+    if (c->c2.to_link.len > 0)
+    {
+        flags |= IOW_TO_LINK;
+    }
+    if (c->c2.to_tun.len > 0)
+    {
+        flags |= IOW_TO_TUN;
+    }
+    return flags;
 }
 
 /*
@@ -268,24 +312,28 @@ p2p_iow_flags (const struct context *c)
  * for TCP in server mode.
  */
 static inline void
-io_wait (struct context *c, const unsigned int flags)
+io_wait(struct context *c, const unsigned int flags)
 {
-  void io_wait_dowork (struct context *c, const unsigned int flags);
+    void io_wait_dowork(struct context *c, const unsigned int flags);
 
-  if (c->c2.fast_io && (flags & (IOW_TO_TUN|IOW_TO_LINK|IOW_MBUF)))
+    if (c->c2.fast_io && (flags & (IOW_TO_TUN|IOW_TO_LINK|IOW_MBUF)))
     {
-      /* fast path -- only for TUN/TAP/UDP writes */
-      unsigned int ret = 0;
-      if (flags & IOW_TO_TUN)
-	ret |= TUN_WRITE;
-      if (flags & (IOW_TO_LINK|IOW_MBUF))
-	ret |= SOCKET_WRITE;
-      c->c2.event_set_status = ret;
+        /* fast path -- only for TUN/TAP/UDP writes */
+        unsigned int ret = 0;
+        if (flags & IOW_TO_TUN)
+        {
+            ret |= TUN_WRITE;
+        }
+        if (flags & (IOW_TO_LINK|IOW_MBUF))
+        {
+            ret |= SOCKET_WRITE;
+        }
+        c->c2.event_set_status = ret;
     }
-  else
+    else
     {
-      /* slow path */
-      io_wait_dowork (c, flags);
+        /* slow path */
+        io_wait_dowork(c, flags);
     }
 }
 

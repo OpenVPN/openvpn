@@ -40,7 +40,7 @@
  * resumption (and the accompanying SSL_OP_NO_TICKET flag).
  */
 #ifndef SSL_OP_NO_TICKET
-# define SSL_OP_NO_TICKET 0
+#define SSL_OP_NO_TICKET 0
 #endif
 
 /**
@@ -54,10 +54,10 @@ struct tls_root_ctx {
 };
 
 struct key_state_ssl {
-    SSL *ssl;			/* SSL object -- new obj created for each new key */
-    BIO *ssl_bio;			/* read/write plaintext from here */
-    BIO *ct_in;			/* write ciphertext to here */
-    BIO *ct_out;			/* read ciphertext from here */
+    SSL *ssl;                   /* SSL object -- new obj created for each new key */
+    BIO *ssl_bio;                       /* read/write plaintext from here */
+    BIO *ct_in;                 /* write ciphertext to here */
+    BIO *ct_out;                        /* read ciphertext from here */
 };
 
 /**
@@ -66,6 +66,6 @@ struct key_state_ssl {
  */
 extern int mydata_index; /* GLOBAL */
 
-void openssl_set_mydata_index (void);
+void openssl_set_mydata_index(void);
 
 #endif /* SSL_OPENSSL_H_ */

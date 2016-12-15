@@ -36,37 +36,37 @@ struct openvpn_sockaddr;
 struct link_socket_actual;
 
 struct socks_proxy_info {
-  bool defined;
+    bool defined;
 
-  char server[128];
-  const char *port;
-  char authfile[256];
+    char server[128];
+    const char *port;
+    char authfile[256];
 };
 
-void socks_adjust_frame_parameters (struct frame *frame, int proto);
+void socks_adjust_frame_parameters(struct frame *frame, int proto);
 
-struct socks_proxy_info *socks_proxy_new (const char *server,
-					  const char *port,
-					  const char *authfile);
+struct socks_proxy_info *socks_proxy_new(const char *server,
+                                         const char *port,
+                                         const char *authfile);
 
-void socks_proxy_close (struct socks_proxy_info *sp);
+void socks_proxy_close(struct socks_proxy_info *sp);
 
-void establish_socks_proxy_passthru (struct socks_proxy_info *p,
-				     socket_descriptor_t sd, /* already open to proxy */
-				     const char *host,       /* openvpn server remote */
-				     const char *servname,         /* openvpn server port */
-				     volatile int *signal_received);
+void establish_socks_proxy_passthru(struct socks_proxy_info *p,
+                                    socket_descriptor_t sd,  /* already open to proxy */
+                                    const char *host,        /* openvpn server remote */
+                                    const char *servname,          /* openvpn server port */
+                                    volatile int *signal_received);
 
-void establish_socks_proxy_udpassoc (struct socks_proxy_info *p,
-				     socket_descriptor_t ctrl_sd, /* already open to proxy */
-				     socket_descriptor_t udp_sd,
-				     struct openvpn_sockaddr *relay_addr,
-				     volatile int *signal_received);
+void establish_socks_proxy_udpassoc(struct socks_proxy_info *p,
+                                    socket_descriptor_t ctrl_sd,  /* already open to proxy */
+                                    socket_descriptor_t udp_sd,
+                                    struct openvpn_sockaddr *relay_addr,
+                                    volatile int *signal_received);
 
-void socks_process_incoming_udp (struct buffer *buf,
-				struct link_socket_actual *from);
+void socks_process_incoming_udp(struct buffer *buf,
+                                struct link_socket_actual *from);
 
-int socks_process_outgoing_udp (struct buffer *buf,
-				const struct link_socket_actual *to);
+int socks_process_outgoing_udp(struct buffer *buf,
+                               const struct link_socket_actual *to);
 
-#endif
+#endif /* ifndef SOCKS_H */

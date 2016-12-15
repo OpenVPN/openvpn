@@ -48,7 +48,7 @@ typedef const struct rw_handle *event_t;
 
 #define UNDEFINED_EVENT (NULL)
 
-#else
+#else  /* ifdef _WIN32 */
 
 typedef int event_t;
 
@@ -61,29 +61,29 @@ struct event_set_return;
 
 struct event_set_functions
 {
-  void (*free)(struct event_set *es);
-  void (*reset)(struct event_set *es);
-  void (*del)(struct event_set *es, event_t event);
-  void (*ctl)(struct event_set *es, event_t event, unsigned int rwflags, void *arg);
+    void (*free)(struct event_set *es);
+    void (*reset)(struct event_set *es);
+    void (*del)(struct event_set *es, event_t event);
+    void (*ctl)(struct event_set *es, event_t event, unsigned int rwflags, void *arg);
 
-  /*
-   * Return status for wait:
-   * -1 on signal or error
-   * 0 on timeout
-   * length of event_set_return if at least 1 event is returned
-   */
-  int  (*wait)(struct event_set *es, const struct timeval *tv, struct event_set_return *out, int outlen);
+    /*
+     * Return status for wait:
+     * -1 on signal or error
+     * 0 on timeout
+     * length of event_set_return if at least 1 event is returned
+     */
+    int (*wait)(struct event_set *es, const struct timeval *tv, struct event_set_return *out, int outlen);
 };
 
 struct event_set_return
 {
-  unsigned int rwflags;
-  void *arg;
+    unsigned int rwflags;
+    void *arg;
 };
 
 struct event_set
 {
-  struct event_set_functions func;
+    struct event_set_functions func;
 };
 
 /*
@@ -93,66 +93,70 @@ struct event_set
  *                      of underlying API
  * flags:               EVENT_METHOD_x flags
  */
-struct event_set *event_set_init (int *maxevents, unsigned int flags);
+struct event_set *event_set_init(int *maxevents, unsigned int flags);
 
 static inline void
-event_free (struct event_set *es)
+event_free(struct event_set *es)
 {
-  if (es)
-    (*es->func.free)(es);
+    if (es)
+    {
+        (*es->func.free)(es);
+    }
 }
 
 static inline void
-event_reset (struct event_set *es)
+event_reset(struct event_set *es)
 {
-  (*es->func.reset)(es);
+    (*es->func.reset)(es);
 }
 
 static inline void
-event_del (struct event_set *es, event_t event)
+event_del(struct event_set *es, event_t event)
 {
-  (*es->func.del)(es, event);
+    (*es->func.del)(es, event);
 }
 
 static inline void
-event_ctl (struct event_set *es, event_t event, unsigned int rwflags, void *arg)
+event_ctl(struct event_set *es, event_t event, unsigned int rwflags, void *arg)
 {
-  (*es->func.ctl)(es, event, rwflags, arg);
+    (*es->func.ctl)(es, event, rwflags, arg);
 }
 
 static inline int
-event_wait (struct event_set *es, const struct timeval *tv, struct event_set_return *out, int outlen)
+event_wait(struct event_set *es, const struct timeval *tv, struct event_set_return *out, int outlen)
 {
-  int ret;
-  perf_push (PERF_IO_WAIT);
-  ret = (*es->func.wait)(es, tv, out, outlen);
-  perf_pop ();
-  return ret;
+    int ret;
+    perf_push(PERF_IO_WAIT);
+    ret = (*es->func.wait)(es, tv, out, outlen);
+    perf_pop();
+    return ret;
 }
 
 static inline void
-event_set_return_init (struct event_set_return *esr)
+event_set_return_init(struct event_set_return *esr)
 {
-  esr->rwflags = 0;
-  esr->arg = NULL;
+    esr->rwflags = 0;
+    esr->arg = NULL;
 }
 
 #ifdef _WIN32
 
 static inline void
-wait_signal (struct event_set *es, void *arg)
+wait_signal(struct event_set *es, void *arg)
 {
-  if (HANDLE_DEFINED (win32_signal.in.read))
-    event_ctl (es, &win32_signal.in, EVENT_READ, arg);
+    if (HANDLE_DEFINED(win32_signal.in.read))
+    {
+        event_ctl(es, &win32_signal.in, EVENT_READ, arg);
+    }
 }
 
-#else
+#else  /* ifdef _WIN32 */
 
 static inline void
-wait_signal (struct event_set *es, void *arg)
+wait_signal(struct event_set *es, void *arg)
 {
 }
 
 #endif
 
-#endif
+#endif /* ifndef EVENT_H */

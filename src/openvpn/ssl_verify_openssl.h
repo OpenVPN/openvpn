@@ -69,7 +69,7 @@ typedef X509 openvpn_x509_cert_t;
  *      - \c 0: failure, this certificate is not allowed to connect.
  *      - \c 1: success, this certificate is allowed to connect.
  */
-int verify_callback (int preverify_ok, X509_STORE_CTX * ctx);
+int verify_callback(int preverify_ok, X509_STORE_CTX *ctx);
 
 /** @} name Function for authenticating a new connection from a remote OpenVPN peer */
 

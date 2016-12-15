@@ -39,9 +39,9 @@ extern const uint8_t ping_string[];
 #define PING_STRING_SIZE 16
 
 static inline bool
-is_ping_msg (const struct buffer* buf)
+is_ping_msg(const struct buffer *buf)
 {
-  return buf_string_match (buf, ping_string, PING_STRING_SIZE);
+    return buf_string_match(buf, ping_string, PING_STRING_SIZE);
 }
 
 #endif

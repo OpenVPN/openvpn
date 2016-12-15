@@ -50,73 +50,79 @@ static char mmap_fn[128];
 void
 mstats_open(const char *fn)
 {
-  void *data;
-  ssize_t stat;
-  int fd;
-  struct mmap_stats ms;
+    void *data;
+    ssize_t stat;
+    int fd;
+    struct mmap_stats ms;
 
-  if (mmap_stats) /* already called? */
-    return;
-
-  /* verify that filename is not too long */
-  if (strlen(fn) >= sizeof(mmap_fn))
-    msg (M_FATAL, "mstats_open: filename too long");
-
-  /* create file that will be memory mapped */
-  fd = open (fn, O_CREAT | O_TRUNC | O_RDWR, S_IRUSR | S_IWUSR);
-  if (fd < 0)
+    if (mmap_stats) /* already called? */
     {
-      msg (M_ERR, "mstats_open: cannot open: %s", fn);
-      return;
+        return;
     }
 
-  /* set the file to the correct size to contain a
-     struct mmap_stats, and zero it */
-  CLEAR(ms);
-  ms.state = MSTATS_ACTIVE;
-  stat = write(fd, &ms, sizeof(ms));
-  if (stat != sizeof(ms))
+    /* verify that filename is not too long */
+    if (strlen(fn) >= sizeof(mmap_fn))
     {
-      msg (M_ERR, "mstats_open: write error: %s", fn);
-      close(fd);
-      return;
+        msg(M_FATAL, "mstats_open: filename too long");
     }
 
-  /* mmap the file */
-  data = mmap(NULL, sizeof(struct mmap_stats), PROT_READ|PROT_WRITE, MAP_SHARED, fd, 0);
-  if (data == MAP_FAILED)
+    /* create file that will be memory mapped */
+    fd = open(fn, O_CREAT | O_TRUNC | O_RDWR, S_IRUSR | S_IWUSR);
+    if (fd < 0)
     {
-      msg (M_ERR, "mstats_open: write error: %s", fn);
-      close(fd);
-      return;
+        msg(M_ERR, "mstats_open: cannot open: %s", fn);
+        return;
     }
 
-  /* close the fd (mmap now controls the file) */
-  if (close(fd))
+    /* set the file to the correct size to contain a
+     * struct mmap_stats, and zero it */
+    CLEAR(ms);
+    ms.state = MSTATS_ACTIVE;
+    stat = write(fd, &ms, sizeof(ms));
+    if (stat != sizeof(ms))
     {
-      msg (M_ERR, "mstats_open: close error: %s", fn);
+        msg(M_ERR, "mstats_open: write error: %s", fn);
+        close(fd);
+        return;
     }
 
-  /* save filename so we can delete it later */
-  strcpy(mmap_fn, fn);
+    /* mmap the file */
+    data = mmap(NULL, sizeof(struct mmap_stats), PROT_READ|PROT_WRITE, MAP_SHARED, fd, 0);
+    if (data == MAP_FAILED)
+    {
+        msg(M_ERR, "mstats_open: write error: %s", fn);
+        close(fd);
+        return;
+    }
 
-  /* save a global pointer to memory-mapped region */
-  mmap_stats = (struct mmap_stats *)data;
+    /* close the fd (mmap now controls the file) */
+    if (close(fd))
+    {
+        msg(M_ERR, "mstats_open: close error: %s", fn);
+    }
 
-  msg (M_INFO, "memstats data will be written to %s", fn);
+    /* save filename so we can delete it later */
+    strcpy(mmap_fn, fn);
+
+    /* save a global pointer to memory-mapped region */
+    mmap_stats = (struct mmap_stats *)data;
+
+    msg(M_INFO, "memstats data will be written to %s", fn);
 }
 
 void
 mstats_close(void)
 {
-  if (mmap_stats)
+    if (mmap_stats)
     {
-      mmap_stats->state = MSTATS_EXPIRED;
-      if (munmap((void *)mmap_stats, sizeof(struct mmap_stats)))
-	msg (M_WARN | M_ERRNO, "mstats_close: munmap error");
-      platform_unlink(mmap_fn);
-      mmap_stats = NULL;
+        mmap_stats->state = MSTATS_EXPIRED;
+        if (munmap((void *)mmap_stats, sizeof(struct mmap_stats)))
+        {
+            msg(M_WARN | M_ERRNO, "mstats_close: munmap error");
+        }
+        platform_unlink(mmap_fn);
+        mmap_stats = NULL;
     }
 }
 
-#endif
+#endif /* if defined(ENABLE_MEMSTATS) */

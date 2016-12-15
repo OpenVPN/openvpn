@@ -64,286 +64,321 @@ static const char blank_up[] = "[[BLANK]]";
 struct management *management; /* GLOBAL */
 
 /* static forward declarations */
-static void man_output_standalone (struct management *man, volatile int *signal_received);
-static void man_reset_client_socket (struct management *man, const bool exiting);
+static void man_output_standalone(struct management *man, volatile int *signal_received);
+
+static void man_reset_client_socket(struct management *man, const bool exiting);
 
 static void
-man_help ()
+man_help()
 {
-  msg (M_CLIENT, "Management Interface for %s", title_string);
-  msg (M_CLIENT, "Commands:");
-  msg (M_CLIENT, "auth-retry t           : Auth failure retry mode (none,interact,nointeract).");
-  msg (M_CLIENT, "bytecount n            : Show bytes in/out, update every n secs (0=off).");
-  msg (M_CLIENT, "echo [on|off] [N|all]  : Like log, but only show messages in echo buffer.");
-  msg (M_CLIENT, "exit|quit              : Close management session.");
-  msg (M_CLIENT, "forget-passwords       : Forget passwords entered so far.");
-  msg (M_CLIENT, "help                   : Print this message.");
-  msg (M_CLIENT, "hold [on|off|release]  : Set/show hold flag to on/off state, or"); 
-  msg (M_CLIENT, "                         release current hold and start tunnel."); 
-  msg (M_CLIENT, "kill cn                : Kill the client instance(s) having common name cn.");
-  msg (M_CLIENT, "kill IP:port           : Kill the client instance connecting from IP:port.");
-  msg (M_CLIENT, "load-stats             : Show global server load stats.");
-  msg (M_CLIENT, "log [on|off] [N|all]   : Turn on/off realtime log display");
-  msg (M_CLIENT, "                         + show last N lines or 'all' for entire history.");
-  msg (M_CLIENT, "mute [n]               : Set log mute level to n, or show level if n is absent.");
-  msg (M_CLIENT, "needok type action     : Enter confirmation for NEED-OK request of 'type',");
-  msg (M_CLIENT, "                         where action = 'ok' or 'cancel'.");
-  msg (M_CLIENT, "needstr type action    : Enter confirmation for NEED-STR request of 'type',");
-  msg (M_CLIENT, "                         where action is reply string.");
-  msg (M_CLIENT, "net                    : (Windows only) Show network info and routing table.");
-  msg (M_CLIENT, "password type p        : Enter password p for a queried OpenVPN password.");
-  msg (M_CLIENT, "remote type [host port] : Override remote directive, type=ACCEPT|MOD|SKIP.");
-  msg (M_CLIENT, "proxy type [host port flags] : Enter dynamic proxy server info.");
-  msg (M_CLIENT, "pid                    : Show process ID of the current OpenVPN process.");
+    msg(M_CLIENT, "Management Interface for %s", title_string);
+    msg(M_CLIENT, "Commands:");
+    msg(M_CLIENT, "auth-retry t           : Auth failure retry mode (none,interact,nointeract).");
+    msg(M_CLIENT, "bytecount n            : Show bytes in/out, update every n secs (0=off).");
+    msg(M_CLIENT, "echo [on|off] [N|all]  : Like log, but only show messages in echo buffer.");
+    msg(M_CLIENT, "exit|quit              : Close management session.");
+    msg(M_CLIENT, "forget-passwords       : Forget passwords entered so far.");
+    msg(M_CLIENT, "help                   : Print this message.");
+    msg(M_CLIENT, "hold [on|off|release]  : Set/show hold flag to on/off state, or");
+    msg(M_CLIENT, "                         release current hold and start tunnel.");
+    msg(M_CLIENT, "kill cn                : Kill the client instance(s) having common name cn.");
+    msg(M_CLIENT, "kill IP:port           : Kill the client instance connecting from IP:port.");
+    msg(M_CLIENT, "load-stats             : Show global server load stats.");
+    msg(M_CLIENT, "log [on|off] [N|all]   : Turn on/off realtime log display");
+    msg(M_CLIENT, "                         + show last N lines or 'all' for entire history.");
+    msg(M_CLIENT, "mute [n]               : Set log mute level to n, or show level if n is absent.");
+    msg(M_CLIENT, "needok type action     : Enter confirmation for NEED-OK request of 'type',");
+    msg(M_CLIENT, "                         where action = 'ok' or 'cancel'.");
+    msg(M_CLIENT, "needstr type action    : Enter confirmation for NEED-STR request of 'type',");
+    msg(M_CLIENT, "                         where action is reply string.");
+    msg(M_CLIENT, "net                    : (Windows only) Show network info and routing table.");
+    msg(M_CLIENT, "password type p        : Enter password p for a queried OpenVPN password.");
+    msg(M_CLIENT, "remote type [host port] : Override remote directive, type=ACCEPT|MOD|SKIP.");
+    msg(M_CLIENT, "proxy type [host port flags] : Enter dynamic proxy server info.");
+    msg(M_CLIENT, "pid                    : Show process ID of the current OpenVPN process.");
 #ifdef ENABLE_PKCS11
-  msg (M_CLIENT, "pkcs11-id-count        : Get number of available PKCS#11 identities.");
-  msg (M_CLIENT, "pkcs11-id-get index    : Get PKCS#11 identity at index.");
+    msg(M_CLIENT, "pkcs11-id-count        : Get number of available PKCS#11 identities.");
+    msg(M_CLIENT, "pkcs11-id-get index    : Get PKCS#11 identity at index.");
 #endif
 #ifdef MANAGEMENT_DEF_AUTH
-  msg (M_CLIENT, "client-auth CID KID    : Authenticate client-id/key-id CID/KID (MULTILINE)");
-  msg (M_CLIENT, "client-auth-nt CID KID : Authenticate client-id/key-id CID/KID");
-  msg (M_CLIENT, "client-deny CID KID R [CR] : Deny auth client-id/key-id CID/KID with log reason");
-  msg (M_CLIENT, "                             text R and optional client reason text CR");
-  msg (M_CLIENT, "client-kill CID [M]    : Kill client instance CID with message M (def=RESTART)");
-  msg (M_CLIENT, "env-filter [level]     : Set env-var filter level");
+    msg(M_CLIENT, "client-auth CID KID    : Authenticate client-id/key-id CID/KID (MULTILINE)");
+    msg(M_CLIENT, "client-auth-nt CID KID : Authenticate client-id/key-id CID/KID");
+    msg(M_CLIENT, "client-deny CID KID R [CR] : Deny auth client-id/key-id CID/KID with log reason");
+    msg(M_CLIENT, "                             text R and optional client reason text CR");
+    msg(M_CLIENT, "client-kill CID [M]    : Kill client instance CID with message M (def=RESTART)");
+    msg(M_CLIENT, "env-filter [level]     : Set env-var filter level");
 #ifdef MANAGEMENT_PF
-  msg (M_CLIENT, "client-pf CID          : Define packet filter for client CID (MULTILINE)");
+    msg(M_CLIENT, "client-pf CID          : Define packet filter for client CID (MULTILINE)");
 #endif
 #endif
 #ifdef MANAGMENT_EXTERNAL_KEY
-  msg (M_CLIENT, "rsa-sig                : Enter an RSA signature in response to >RSA_SIGN challenge");
-  msg (M_CLIENT, "                         Enter signature base64 on subsequent lines followed by END");
-  msg (M_CLIENT, "certificate            : Enter a client certificate in response to >NEED-CERT challenge");
-  msg (M_CLIENT, "                         Enter certificate base64 on subsequent lines followed by END");
+    msg(M_CLIENT, "rsa-sig                : Enter an RSA signature in response to >RSA_SIGN challenge");
+    msg(M_CLIENT, "                         Enter signature base64 on subsequent lines followed by END");
+    msg(M_CLIENT, "certificate            : Enter a client certificate in response to >NEED-CERT challenge");
+    msg(M_CLIENT, "                         Enter certificate base64 on subsequent lines followed by END");
 #endif
-  msg (M_CLIENT, "signal s               : Send signal s to daemon,");
-  msg (M_CLIENT, "                         s = SIGHUP|SIGTERM|SIGUSR1|SIGUSR2.");
-  msg (M_CLIENT, "state [on|off] [N|all] : Like log, but show state history.");
-  msg (M_CLIENT, "status [n]             : Show current daemon status info using format #n.");
-  msg (M_CLIENT, "test n                 : Produce n lines of output for testing/debugging.");
-  msg (M_CLIENT, "username type u        : Enter username u for a queried OpenVPN username.");
-  msg (M_CLIENT, "verb [n]               : Set log verbosity level to n, or show if n is absent.");
-  msg (M_CLIENT, "version                : Show current version number.");
-  msg (M_CLIENT, "END");
+    msg(M_CLIENT, "signal s               : Send signal s to daemon,");
+    msg(M_CLIENT, "                         s = SIGHUP|SIGTERM|SIGUSR1|SIGUSR2.");
+    msg(M_CLIENT, "state [on|off] [N|all] : Like log, but show state history.");
+    msg(M_CLIENT, "status [n]             : Show current daemon status info using format #n.");
+    msg(M_CLIENT, "test n                 : Produce n lines of output for testing/debugging.");
+    msg(M_CLIENT, "username type u        : Enter username u for a queried OpenVPN username.");
+    msg(M_CLIENT, "verb [n]               : Set log verbosity level to n, or show if n is absent.");
+    msg(M_CLIENT, "version                : Show current version number.");
+    msg(M_CLIENT, "END");
 }
 
 static const char *
-man_state_name (const int state)
+man_state_name(const int state)
 {
-  switch (state)
+    switch (state)
     {
-    case OPENVPN_STATE_INITIAL:
-      return "INITIAL";
-    case OPENVPN_STATE_CONNECTING:
-      return "CONNECTING";
-    case OPENVPN_STATE_WAIT:
-      return "WAIT";
-    case OPENVPN_STATE_AUTH:
-      return "AUTH";
-    case OPENVPN_STATE_GET_CONFIG:
-      return "GET_CONFIG";
-    case OPENVPN_STATE_ASSIGN_IP:
-      return "ASSIGN_IP";
-    case OPENVPN_STATE_ADD_ROUTES:
-      return "ADD_ROUTES";
-    case OPENVPN_STATE_CONNECTED:
-      return "CONNECTED";
-    case OPENVPN_STATE_RECONNECTING:
-      return "RECONNECTING";
-    case OPENVPN_STATE_EXITING:
-      return "EXITING";
-    case OPENVPN_STATE_RESOLVE:
-      return "RESOLVE";
-    case OPENVPN_STATE_TCP_CONNECT:
-      return "TCP_CONNECT";
-    default:
-      return "?";
+        case OPENVPN_STATE_INITIAL:
+            return "INITIAL";
+
+        case OPENVPN_STATE_CONNECTING:
+            return "CONNECTING";
+
+        case OPENVPN_STATE_WAIT:
+            return "WAIT";
+
+        case OPENVPN_STATE_AUTH:
+            return "AUTH";
+
+        case OPENVPN_STATE_GET_CONFIG:
+            return "GET_CONFIG";
+
+        case OPENVPN_STATE_ASSIGN_IP:
+            return "ASSIGN_IP";
+
+        case OPENVPN_STATE_ADD_ROUTES:
+            return "ADD_ROUTES";
+
+        case OPENVPN_STATE_CONNECTED:
+            return "CONNECTED";
+
+        case OPENVPN_STATE_RECONNECTING:
+            return "RECONNECTING";
+
+        case OPENVPN_STATE_EXITING:
+            return "EXITING";
+
+        case OPENVPN_STATE_RESOLVE:
+            return "RESOLVE";
+
+        case OPENVPN_STATE_TCP_CONNECT:
+            return "TCP_CONNECT";
+
+        default:
+            return "?";
     }
 }
 
 static void
-man_welcome (struct management *man)
+man_welcome(struct management *man)
 {
-  msg (M_CLIENT, ">INFO:OpenVPN Management Interface Version %d -- type 'help' for more info",
-       MANAGEMENT_VERSION);
-  if (man->persist.special_state_msg)
-    msg (M_CLIENT, "%s", man->persist.special_state_msg);
+    msg(M_CLIENT, ">INFO:OpenVPN Management Interface Version %d -- type 'help' for more info",
+        MANAGEMENT_VERSION);
+    if (man->persist.special_state_msg)
+    {
+        msg(M_CLIENT, "%s", man->persist.special_state_msg);
+    }
 }
 
 static inline bool
-man_password_needed (struct management *man)
+man_password_needed(struct management *man)
 {
-  return man->settings.up.defined && !man->connection.password_verified;
+    return man->settings.up.defined && !man->connection.password_verified;
 }
 
 static void
-man_check_password (struct management *man, const char *line)
+man_check_password(struct management *man, const char *line)
 {
-  if (man_password_needed (man))
+    if (man_password_needed(man))
     {
-      if (streq (line, man->settings.up.password))
-	{
-	  man->connection.password_verified = true;
-	  msg (M_CLIENT, "SUCCESS: password is correct");
-	  man_welcome (man);
-	}
-      else
-	{
-	  man->connection.password_verified = false;
-	  msg (M_CLIENT, "ERROR: bad password");
-	  if (++man->connection.password_tries >= MANAGEMENT_N_PASSWORD_RETRIES)
-	    {
-	      msg (M_WARN, "MAN: client connection rejected after %d failed password attempts",
-		   MANAGEMENT_N_PASSWORD_RETRIES);
-	      man->connection.halt = true;
-	    }
-	}
+        if (streq(line, man->settings.up.password))
+        {
+            man->connection.password_verified = true;
+            msg(M_CLIENT, "SUCCESS: password is correct");
+            man_welcome(man);
+        }
+        else
+        {
+            man->connection.password_verified = false;
+            msg(M_CLIENT, "ERROR: bad password");
+            if (++man->connection.password_tries >= MANAGEMENT_N_PASSWORD_RETRIES)
+            {
+                msg(M_WARN, "MAN: client connection rejected after %d failed password attempts",
+                    MANAGEMENT_N_PASSWORD_RETRIES);
+                man->connection.halt = true;
+            }
+        }
     }
 }
 
 static void
-man_update_io_state (struct management *man)
+man_update_io_state(struct management *man)
 {
-  if (socket_defined (man->connection.sd_cli))
+    if (socket_defined(man->connection.sd_cli))
     {
-      if (buffer_list_defined (man->connection.out))
-	{
-	  man->connection.state = MS_CC_WAIT_WRITE;
-	}
-      else
-	{
-	  man->connection.state = MS_CC_WAIT_READ;
-	}
+        if (buffer_list_defined(man->connection.out))
+        {
+            man->connection.state = MS_CC_WAIT_WRITE;
+        }
+        else
+        {
+            man->connection.state = MS_CC_WAIT_READ;
+        }
     }
 }
 
 static void
-man_output_list_push_finalize (struct management *man)
+man_output_list_push_finalize(struct management *man)
 {
-  if (management_connected (man))
+    if (management_connected(man))
     {
-      man_update_io_state (man);
-      if (!man->persist.standalone_disabled)
-	{
-	  volatile int signal_received = 0;
-	  man_output_standalone (man, &signal_received);
-	}
+        man_update_io_state(man);
+        if (!man->persist.standalone_disabled)
+        {
+            volatile int signal_received = 0;
+            man_output_standalone(man, &signal_received);
+        }
     }
 }
 
 static void
-man_output_list_push_str (struct management *man, const char *str)
+man_output_list_push_str(struct management *man, const char *str)
 {
-  if (management_connected (man) && str)
+    if (management_connected(man) && str)
     {
-      buffer_list_push (man->connection.out, (const unsigned char *) str);
+        buffer_list_push(man->connection.out, (const unsigned char *) str);
     }
 }
 
 static void
-man_output_list_push (struct management *man, const char *str)
+man_output_list_push(struct management *man, const char *str)
 {
-  man_output_list_push_str (man, str);
-  man_output_list_push_finalize (man);
+    man_output_list_push_str(man, str);
+    man_output_list_push_finalize(man);
 }
 
 static void
-man_prompt (struct management *man)
+man_prompt(struct management *man)
 {
-  if (man_password_needed (man))
-    man_output_list_push (man, "ENTER PASSWORD:");
+    if (man_password_needed(man))
+    {
+        man_output_list_push(man, "ENTER PASSWORD:");
+    }
 #if 0 /* should we use prompt? */
-  else
-    man_output_list_push (man, ">");
+    else
+    {
+        man_output_list_push(man, ">");
+    }
 #endif
 }
 
 static void
-man_delete_unix_socket (struct management *man)
+man_delete_unix_socket(struct management *man)
 {
 #if UNIX_SOCK_SUPPORT
-  if ((man->settings.flags & (MF_UNIX_SOCK|MF_CONNECT_AS_CLIENT)) == MF_UNIX_SOCK)
-    socket_delete_unix (&man->settings.local_unix);
+    if ((man->settings.flags & (MF_UNIX_SOCK|MF_CONNECT_AS_CLIENT)) == MF_UNIX_SOCK)
+    {
+        socket_delete_unix(&man->settings.local_unix);
+    }
 #endif
 }
 
 static void
-man_close_socket (struct management *man, const socket_descriptor_t sd)
+man_close_socket(struct management *man, const socket_descriptor_t sd)
 {
 #ifndef _WIN32
-  /*
-   * Windows doesn't need this because the ne32 event is permanently
-   * enabled at struct management scope.
-   */
-  if (man->persist.callback.delete_event)
-    (*man->persist.callback.delete_event) (man->persist.callback.arg, sd);
+    /*
+     * Windows doesn't need this because the ne32 event is permanently
+     * enabled at struct management scope.
+     */
+    if (man->persist.callback.delete_event)
+    {
+        (*man->persist.callback.delete_event)(man->persist.callback.arg, sd);
+    }
 #endif
-  openvpn_close_socket (sd);
+    openvpn_close_socket(sd);
 }
 
 static void
-virtual_output_callback_func (void *arg, const unsigned int flags, const char *str)
+virtual_output_callback_func(void *arg, const unsigned int flags, const char *str)
 {
-  struct management *man = (struct management *) arg;
-  static int recursive_level = 0; /* GLOBAL */
+    struct management *man = (struct management *) arg;
+    static int recursive_level = 0; /* GLOBAL */
 
-# define AF_DID_PUSH  (1<<0)
-# define AF_DID_RESET (1<<1)
+#define AF_DID_PUSH  (1<<0)
+#define AF_DID_RESET (1<<1)
 
-  if (!recursive_level) /* don't allow recursion */
+    if (!recursive_level) /* don't allow recursion */
     {
-      struct gc_arena gc = gc_new ();
-      struct log_entry e;
-      const char *out = NULL;
-      unsigned int action_flags = 0;
+        struct gc_arena gc = gc_new();
+        struct log_entry e;
+        const char *out = NULL;
+        unsigned int action_flags = 0;
 
-      ++recursive_level;
+        ++recursive_level;
 
-      CLEAR (e);
-      update_time ();
-      e.timestamp = now;
-      e.u.msg_flags = flags;
-      e.string = str;
+        CLEAR(e);
+        update_time();
+        e.timestamp = now;
+        e.u.msg_flags = flags;
+        e.string = str;
 
-      if (flags & M_FATAL)
-	man->persist.standalone_disabled = false;
+        if (flags & M_FATAL)
+        {
+            man->persist.standalone_disabled = false;
+        }
 
-      if (flags != M_CLIENT)
-	log_history_add (man->persist.log, &e);
+        if (flags != M_CLIENT)
+        {
+            log_history_add(man->persist.log, &e);
+        }
 
-      if (!man_password_needed (man))
-	{
-	  if (flags == M_CLIENT)
-	    out = log_entry_print (&e, LOG_PRINT_CRLF, &gc);
-	  else if (man->connection.log_realtime)
-	    out = log_entry_print (&e, LOG_PRINT_INT_DATE
-				   |   LOG_PRINT_MSG_FLAGS
-				   |   LOG_PRINT_LOG_PREFIX
-				   |   LOG_PRINT_CRLF, &gc);
-	  if (out)
-	    {
-	      man_output_list_push_str (man, out);
-	      action_flags |= AF_DID_PUSH;
-	    }
-	  if (flags & M_FATAL)
-	    {
-	      out = log_entry_print (&e, LOG_FATAL_NOTIFY|LOG_PRINT_CRLF, &gc);
-	      if (out)
-		{
-		  man_output_list_push_str (man, out);
-		  action_flags |= (AF_DID_PUSH|AF_DID_RESET);
-		}
-	    }
-	}
+        if (!man_password_needed(man))
+        {
+            if (flags == M_CLIENT)
+            {
+                out = log_entry_print(&e, LOG_PRINT_CRLF, &gc);
+            }
+            else if (man->connection.log_realtime)
+            {
+                out = log_entry_print(&e, LOG_PRINT_INT_DATE
+                                      |   LOG_PRINT_MSG_FLAGS
+                                      |   LOG_PRINT_LOG_PREFIX
+                                      |   LOG_PRINT_CRLF, &gc);
+            }
+            if (out)
+            {
+                man_output_list_push_str(man, out);
+                action_flags |= AF_DID_PUSH;
+            }
+            if (flags & M_FATAL)
+            {
+                out = log_entry_print(&e, LOG_FATAL_NOTIFY|LOG_PRINT_CRLF, &gc);
+                if (out)
+                {
+                    man_output_list_push_str(man, out);
+                    action_flags |= (AF_DID_PUSH|AF_DID_RESET);
+                }
+            }
+        }
 
-      gc_free (&gc);
+        gc_free(&gc);
 
-      if (action_flags & AF_DID_PUSH)
-        man_output_list_push_finalize (man);
-      if (action_flags & AF_DID_RESET)
-        man_reset_client_socket (man, true);
+        if (action_flags & AF_DID_PUSH)
+        {
+            man_output_list_push_finalize(man);
+        }
+        if (action_flags & AF_DID_RESET)
+        {
+            man_reset_client_socket(man, true);
+        }
 
-      --recursive_level;
+        --recursive_level;
     }
 }
 
@@ -352,180 +387,194 @@ virtual_output_callback_func (void *arg, const unsigned int flags, const char *s
  * or -1 if the signal should be ignored.
  */
 static int
-man_mod_signal (const struct management *man, const int signum)
+man_mod_signal(const struct management *man, const int signum)
 {
-  const unsigned int flags = man->settings.mansig;
-  int s = signum;
-  if (s == SIGUSR1)
+    const unsigned int flags = man->settings.mansig;
+    int s = signum;
+    if (s == SIGUSR1)
     {
-      if (flags & MANSIG_MAP_USR1_TO_HUP)
-	s = SIGHUP;
-      if (flags & MANSIG_MAP_USR1_TO_TERM)
-	s = SIGTERM;
+        if (flags & MANSIG_MAP_USR1_TO_HUP)
+        {
+            s = SIGHUP;
+        }
+        if (flags & MANSIG_MAP_USR1_TO_TERM)
+        {
+            s = SIGTERM;
+        }
     }
-  if (flags & MANSIG_IGNORE_USR1_HUP)
+    if (flags & MANSIG_IGNORE_USR1_HUP)
     {
-      if (s == SIGHUP || s == SIGUSR1)
-	s = -1;
+        if (s == SIGHUP || s == SIGUSR1)
+        {
+            s = -1;
+        }
     }
-  return s;
+    return s;
 }
 
 static void
-man_signal (struct management *man, const char *name)
+man_signal(struct management *man, const char *name)
 {
-  const int sig = parse_signal (name);
-  if (sig >= 0)
+    const int sig = parse_signal(name);
+    if (sig >= 0)
     {
-      const int sig_mod = man_mod_signal (man, sig);
-      if (sig_mod >= 0)
-	{
-	  throw_signal (sig_mod);
-	  msg (M_CLIENT, "SUCCESS: signal %s thrown", signal_name (sig_mod, true));
-	}
-      else
-	{
-	  if (man->persist.special_state_msg)
-	    msg (M_CLIENT, "%s", man->persist.special_state_msg);
-	  else
-	    msg (M_CLIENT, "ERROR: signal '%s' is currently ignored", name);
-	}
+        const int sig_mod = man_mod_signal(man, sig);
+        if (sig_mod >= 0)
+        {
+            throw_signal(sig_mod);
+            msg(M_CLIENT, "SUCCESS: signal %s thrown", signal_name(sig_mod, true));
+        }
+        else
+        {
+            if (man->persist.special_state_msg)
+            {
+                msg(M_CLIENT, "%s", man->persist.special_state_msg);
+            }
+            else
+            {
+                msg(M_CLIENT, "ERROR: signal '%s' is currently ignored", name);
+            }
+        }
     }
-  else
+    else
     {
-      msg (M_CLIENT, "ERROR: signal '%s' is not a known signal type", name);
+        msg(M_CLIENT, "ERROR: signal '%s' is not a known signal type", name);
     }
 }
 
 static void
-man_status (struct management *man, const int version, struct status_output *so)
+man_status(struct management *man, const int version, struct status_output *so)
 {
-  if (man->persist.callback.status)
+    if (man->persist.callback.status)
     {
-      (*man->persist.callback.status) (man->persist.callback.arg, version, so);
+        (*man->persist.callback.status)(man->persist.callback.arg, version, so);
     }
-  else
+    else
     {
-      msg (M_CLIENT, "ERROR: The 'status' command is not supported by the current daemon mode");
+        msg(M_CLIENT, "ERROR: The 'status' command is not supported by the current daemon mode");
     }
 }
 
 static void
-man_bytecount (struct management *man, const int update_seconds)
+man_bytecount(struct management *man, const int update_seconds)
 {
-  if (update_seconds >= 0)
-    man->connection.bytecount_update_seconds = update_seconds;
-  else
-    man->connection.bytecount_update_seconds = 0;
-  msg (M_CLIENT, "SUCCESS: bytecount interval changed");
+    if (update_seconds >= 0)
+    {
+        man->connection.bytecount_update_seconds = update_seconds;
+    }
+    else
+    {
+        man->connection.bytecount_update_seconds = 0;
+    }
+    msg(M_CLIENT, "SUCCESS: bytecount interval changed");
 }
 
 void
-man_bytecount_output_client (struct management *man)
+man_bytecount_output_client(struct management *man)
 {
-  char in[32];
-  char out[32];
-  /* do in a roundabout way to work around possible mingw or mingw-glibc bug */
-  openvpn_snprintf (in, sizeof (in), counter_format, man->persist.bytes_in);
-  openvpn_snprintf (out, sizeof (out), counter_format, man->persist.bytes_out);
-  msg (M_CLIENT, ">BYTECOUNT:%s,%s", in, out);
-  man->connection.bytecount_last_update = now;
+    char in[32];
+    char out[32];
+    /* do in a roundabout way to work around possible mingw or mingw-glibc bug */
+    openvpn_snprintf(in, sizeof(in), counter_format, man->persist.bytes_in);
+    openvpn_snprintf(out, sizeof(out), counter_format, man->persist.bytes_out);
+    msg(M_CLIENT, ">BYTECOUNT:%s,%s", in, out);
+    man->connection.bytecount_last_update = now;
 }
 
 #ifdef MANAGEMENT_DEF_AUTH
 
 void
-man_bytecount_output_server (struct management *man,
-			     const counter_type *bytes_in_total,
-			     const counter_type *bytes_out_total,
-			     struct man_def_auth_context *mdac)
+man_bytecount_output_server(struct management *man,
+                            const counter_type *bytes_in_total,
+                            const counter_type *bytes_out_total,
+                            struct man_def_auth_context *mdac)
 {
-  char in[32];
-  char out[32];
-  /* do in a roundabout way to work around possible mingw or mingw-glibc bug */
-  openvpn_snprintf (in, sizeof (in), counter_format, *bytes_in_total);
-  openvpn_snprintf (out, sizeof (out), counter_format, *bytes_out_total);
-  msg (M_CLIENT, ">BYTECOUNT_CLI:%lu,%s,%s", mdac->cid, in, out);
-  mdac->bytecount_last_update = now;
+    char in[32];
+    char out[32];
+    /* do in a roundabout way to work around possible mingw or mingw-glibc bug */
+    openvpn_snprintf(in, sizeof(in), counter_format, *bytes_in_total);
+    openvpn_snprintf(out, sizeof(out), counter_format, *bytes_out_total);
+    msg(M_CLIENT, ">BYTECOUNT_CLI:%lu,%s,%s", mdac->cid, in, out);
+    mdac->bytecount_last_update = now;
 }
 
 #endif
 
 static void
-man_kill (struct management *man, const char *victim)
+man_kill(struct management *man, const char *victim)
 {
-  struct gc_arena gc = gc_new ();
+    struct gc_arena gc = gc_new();
 
-  if (man->persist.callback.kill_by_cn && man->persist.callback.kill_by_addr)
+    if (man->persist.callback.kill_by_cn && man->persist.callback.kill_by_addr)
     {
-      struct buffer buf;
-      char p1[128];
-      char p2[128];
-      int n_killed;
+        struct buffer buf;
+        char p1[128];
+        char p2[128];
+        int n_killed;
 
-      buf_set_read (&buf, (uint8_t*) victim, strlen (victim) + 1);
-      buf_parse (&buf, ':', p1, sizeof (p1));
-      buf_parse (&buf, ':', p2, sizeof (p2));
+        buf_set_read(&buf, (uint8_t *) victim, strlen(victim) + 1);
+        buf_parse(&buf, ':', p1, sizeof(p1));
+        buf_parse(&buf, ':', p2, sizeof(p2));
 
-      if (strlen (p1) && strlen (p2))
-	{
-	  /* IP:port specified */
-	  bool status;
-	  const in_addr_t addr = getaddr (GETADDR_HOST_ORDER|GETADDR_MSG_VIRT_OUT, p1, 0, &status, NULL);
-	  if (status)
-	    {
-	      const int port = atoi (p2);
-	      if (port > 0 && port < 65536)
-		{
-		  n_killed = (*man->persist.callback.kill_by_addr) (man->persist.callback.arg, addr, port);
-		  if (n_killed > 0)
-		    {
-		      msg (M_CLIENT, "SUCCESS: %d client(s) at address %s:%d killed",
-			   n_killed,
-			   print_in_addr_t (addr, 0, &gc),
-			   port);
-		    }
-		  else
-		    {
-		      msg (M_CLIENT, "ERROR: client at address %s:%d not found",
-			   print_in_addr_t (addr, 0, &gc),
-			   port);
-		    }
-		}
-	      else
-		{
-		  msg (M_CLIENT, "ERROR: port number is out of range: %s", p2);
-		}
-	    }
-	  else
-	    {
-	      msg (M_CLIENT, "ERROR: error parsing IP address: %s", p1);
-	    }
-	}
-      else if (strlen (p1))
-	{
-	  /* common name specified */
-	  n_killed = (*man->persist.callback.kill_by_cn) (man->persist.callback.arg, p1);
-	  if (n_killed > 0)
-	    {
-	      msg (M_CLIENT, "SUCCESS: common name '%s' found, %d client(s) killed", p1, n_killed);
-	    }
-	  else
-	    {
-	      msg (M_CLIENT, "ERROR: common name '%s' not found", p1);
-	    }
-	}
-      else
-	{
-	  msg (M_CLIENT, "ERROR: kill parse");
-	}
+        if (strlen(p1) && strlen(p2))
+        {
+            /* IP:port specified */
+            bool status;
+            const in_addr_t addr = getaddr(GETADDR_HOST_ORDER|GETADDR_MSG_VIRT_OUT, p1, 0, &status, NULL);
+            if (status)
+            {
+                const int port = atoi(p2);
+                if (port > 0 && port < 65536)
+                {
+                    n_killed = (*man->persist.callback.kill_by_addr)(man->persist.callback.arg, addr, port);
+                    if (n_killed > 0)
+                    {
+                        msg(M_CLIENT, "SUCCESS: %d client(s) at address %s:%d killed",
+                            n_killed,
+                            print_in_addr_t(addr, 0, &gc),
+                            port);
+                    }
+                    else
+                    {
+                        msg(M_CLIENT, "ERROR: client at address %s:%d not found",
+                            print_in_addr_t(addr, 0, &gc),
+                            port);
+                    }
+                }
+                else
+                {
+                    msg(M_CLIENT, "ERROR: port number is out of range: %s", p2);
+                }
+            }
+            else
+            {
+                msg(M_CLIENT, "ERROR: error parsing IP address: %s", p1);
+            }
+        }
+        else if (strlen(p1))
+        {
+            /* common name specified */
+            n_killed = (*man->persist.callback.kill_by_cn)(man->persist.callback.arg, p1);
+            if (n_killed > 0)
+            {
+                msg(M_CLIENT, "SUCCESS: common name '%s' found, %d client(s) killed", p1, n_killed);
+            }
+            else
+            {
+                msg(M_CLIENT, "ERROR: common name '%s' not found", p1);
+            }
+        }
+        else
+        {
+            msg(M_CLIENT, "ERROR: kill parse");
+        }
     }
-  else
+    else
     {
-      msg (M_CLIENT, "ERROR: The 'kill' command is not supported by the current daemon mode");
+        msg(M_CLIENT, "ERROR: The 'kill' command is not supported by the current daemon mode");
     }
 
-  gc_free (&gc);
+    gc_free(&gc);
 }
 
 /*
@@ -533,249 +582,270 @@ man_kill (struct management *man, const char *victim)
  * for the log and echo commands.
  */
 static void
-man_history (struct management *man,
-	     const char *parm,
-	     const char *type,
-	     struct log_history *log,
-	     bool *realtime,
-	     const unsigned int lep_flags)
+man_history(struct management *man,
+            const char *parm,
+            const char *type,
+            struct log_history *log,
+            bool *realtime,
+            const unsigned int lep_flags)
 {
-  struct gc_arena gc = gc_new ();
-  int n = 0;
+    struct gc_arena gc = gc_new();
+    int n = 0;
 
-  if (streq (parm, "on"))
+    if (streq(parm, "on"))
     {
-      *realtime = true;
-      msg (M_CLIENT, "SUCCESS: real-time %s notification set to ON", type);
+        *realtime = true;
+        msg(M_CLIENT, "SUCCESS: real-time %s notification set to ON", type);
     }
-  else if (streq (parm, "off"))
+    else if (streq(parm, "off"))
     {
-      *realtime = false;
-      msg (M_CLIENT, "SUCCESS: real-time %s notification set to OFF", type);
+        *realtime = false;
+        msg(M_CLIENT, "SUCCESS: real-time %s notification set to OFF", type);
     }
-  else if (streq (parm, "all") || (n = atoi (parm)) > 0)
+    else if (streq(parm, "all") || (n = atoi(parm)) > 0)
     {
-      const int size = log_history_size (log);
-      const int start = (n ? n : size) - 1;
-      int i;
+        const int size = log_history_size(log);
+        const int start = (n ? n : size) - 1;
+        int i;
 
-      for (i = start; i >= 0; --i)
-	{
-	  const struct log_entry *e = log_history_ref (log, i);
-	  if (e)
-	    {
-	      const char *out = log_entry_print (e, lep_flags, &gc);
-	      virtual_output_callback_func (man, M_CLIENT, out);
-	    }
-	}
-      msg (M_CLIENT, "END");
+        for (i = start; i >= 0; --i)
+        {
+            const struct log_entry *e = log_history_ref(log, i);
+            if (e)
+            {
+                const char *out = log_entry_print(e, lep_flags, &gc);
+                virtual_output_callback_func(man, M_CLIENT, out);
+            }
+        }
+        msg(M_CLIENT, "END");
     }
-  else
+    else
     {
-      msg (M_CLIENT, "ERROR: %s parameter must be 'on' or 'off' or some number n or 'all'", type);
+        msg(M_CLIENT, "ERROR: %s parameter must be 'on' or 'off' or some number n or 'all'", type);
     }
 
-  gc_free (&gc);
+    gc_free(&gc);
 }
 
 static void
-man_log (struct management *man, const char *parm)
+man_log(struct management *man, const char *parm)
 {
-  man_history (man,
-	       parm,
-	       "log",
-	       man->persist.log,
-	       &man->connection.log_realtime,
-	       LOG_PRINT_INT_DATE|LOG_PRINT_MSG_FLAGS);
+    man_history(man,
+                parm,
+                "log",
+                man->persist.log,
+                &man->connection.log_realtime,
+                LOG_PRINT_INT_DATE|LOG_PRINT_MSG_FLAGS);
 }
 
 static void
-man_echo (struct management *man, const char *parm)
+man_echo(struct management *man, const char *parm)
 {
-  man_history (man,
-	       parm,
-	       "echo",
-	       man->persist.echo,
-	       &man->connection.echo_realtime,
-	       LOG_PRINT_INT_DATE|MANAGEMENT_ECHO_FLAGS);
+    man_history(man,
+                parm,
+                "echo",
+                man->persist.echo,
+                &man->connection.echo_realtime,
+                LOG_PRINT_INT_DATE|MANAGEMENT_ECHO_FLAGS);
 }
 
 static void
-man_state (struct management *man, const char *parm)
+man_state(struct management *man, const char *parm)
 {
-  man_history (man,
-	       parm,
-	       "state",
-	       man->persist.state,
-	       &man->connection.state_realtime,
-	       LOG_PRINT_INT_DATE|LOG_PRINT_STATE|
-	       LOG_PRINT_LOCAL_IP|LOG_PRINT_REMOTE_IP);
+    man_history(man,
+                parm,
+                "state",
+                man->persist.state,
+                &man->connection.state_realtime,
+                LOG_PRINT_INT_DATE|LOG_PRINT_STATE
+                |LOG_PRINT_LOCAL_IP|LOG_PRINT_REMOTE_IP);
 }
 
 static void
-man_up_finalize (struct management *man)
+man_up_finalize(struct management *man)
 {
-  switch (man->connection.up_query_mode)
+    switch (man->connection.up_query_mode)
     {
-    case UP_QUERY_USER_PASS:
-      if (!strlen (man->connection.up_query.username))
-	break;
-      /* fall through */
-    case UP_QUERY_PASS:
-    case UP_QUERY_NEED_OK:
-    case UP_QUERY_NEED_STR:
-      if (strlen (man->connection.up_query.password))
-	man->connection.up_query.defined = true;
-      break;
-    case UP_QUERY_DISABLED:
-      man->connection.up_query.defined = false;
-      break;
-    default:
-      ASSERT (0);
-    }
-}
+        case UP_QUERY_USER_PASS:
+            if (!strlen(man->connection.up_query.username))
+            {
+                break;
+            }
 
-static void
-man_query_user_pass (struct management *man,
-		     const char *type,
-		     const char *string,
-		     const bool needed,
-		     const char *prompt,
-		     char *dest,
-		     int len)
-{
-  if (needed)
-    {
-      ASSERT (man->connection.up_query_type);
-      if (streq (man->connection.up_query_type, type))
-	{
-	  strncpynt (dest, string, len);
-	  man_up_finalize (man);
-	  msg (M_CLIENT, "SUCCESS: '%s' %s entered, but not yet verified",
-	       type,
-	       prompt);
-	}
-      else
-	msg (M_CLIENT, "ERROR: %s of type '%s' entered, but we need one of type '%s'",
-	     prompt,
-	     type,
-	     man->connection.up_query_type);
-    }
-  else
-    {
-      msg (M_CLIENT, "ERROR: no %s is currently needed at this time", prompt);
+        /* fall through */
+        case UP_QUERY_PASS:
+        case UP_QUERY_NEED_OK:
+        case UP_QUERY_NEED_STR:
+            if (strlen(man->connection.up_query.password))
+            {
+                man->connection.up_query.defined = true;
+            }
+            break;
+
+        case UP_QUERY_DISABLED:
+            man->connection.up_query.defined = false;
+            break;
+
+        default:
+            ASSERT(0);
     }
 }
 
 static void
-man_query_username (struct management *man, const char *type, const char *string)
+man_query_user_pass(struct management *man,
+                    const char *type,
+                    const char *string,
+                    const bool needed,
+                    const char *prompt,
+                    char *dest,
+                    int len)
 {
-  const bool needed = ((man->connection.up_query_mode == UP_QUERY_USER_PASS
-			) && man->connection.up_query_type);
-  man_query_user_pass (man, type, string, needed, "username", man->connection.up_query.username, USER_PASS_LEN);
+    if (needed)
+    {
+        ASSERT(man->connection.up_query_type);
+        if (streq(man->connection.up_query_type, type))
+        {
+            strncpynt(dest, string, len);
+            man_up_finalize(man);
+            msg(M_CLIENT, "SUCCESS: '%s' %s entered, but not yet verified",
+                type,
+                prompt);
+        }
+        else
+        {
+            msg(M_CLIENT, "ERROR: %s of type '%s' entered, but we need one of type '%s'",
+                prompt,
+                type,
+                man->connection.up_query_type);
+        }
+    }
+    else
+    {
+        msg(M_CLIENT, "ERROR: no %s is currently needed at this time", prompt);
+    }
 }
 
 static void
-man_query_password (struct management *man, const char *type, const char *string)
+man_query_username(struct management *man, const char *type, const char *string)
 {
-  const bool needed = ((man->connection.up_query_mode == UP_QUERY_PASS
-			|| man->connection.up_query_mode == UP_QUERY_USER_PASS
-			) && man->connection.up_query_type);
-  if (!string[0]) /* allow blank passwords to be passed through using the blank_up tag */
-    string = blank_up;
-  man_query_user_pass (man, type, string, needed, "password", man->connection.up_query.password, USER_PASS_LEN);
+    const bool needed = ((man->connection.up_query_mode == UP_QUERY_USER_PASS
+                          ) && man->connection.up_query_type);
+    man_query_user_pass(man, type, string, needed, "username", man->connection.up_query.username, USER_PASS_LEN);
 }
 
 static void
-man_query_need_ok (struct management *man, const char *type, const char *action)
+man_query_password(struct management *man, const char *type, const char *string)
 {
-  const bool needed = ((man->connection.up_query_mode == UP_QUERY_NEED_OK) && man->connection.up_query_type);
-  man_query_user_pass (man, type, action, needed, "needok-confirmation", man->connection.up_query.password, USER_PASS_LEN);
+    const bool needed = ((man->connection.up_query_mode == UP_QUERY_PASS
+                          || man->connection.up_query_mode == UP_QUERY_USER_PASS
+                          ) && man->connection.up_query_type);
+    if (!string[0]) /* allow blank passwords to be passed through using the blank_up tag */
+    {
+        string = blank_up;
+    }
+    man_query_user_pass(man, type, string, needed, "password", man->connection.up_query.password, USER_PASS_LEN);
 }
 
 static void
-man_query_need_str (struct management *man, const char *type, const char *action)
+man_query_need_ok(struct management *man, const char *type, const char *action)
 {
-  const bool needed = ((man->connection.up_query_mode == UP_QUERY_NEED_STR) && man->connection.up_query_type);
-  man_query_user_pass (man, type, action, needed, "needstr-string", man->connection.up_query.password, USER_PASS_LEN);
+    const bool needed = ((man->connection.up_query_mode == UP_QUERY_NEED_OK) && man->connection.up_query_type);
+    man_query_user_pass(man, type, action, needed, "needok-confirmation", man->connection.up_query.password, USER_PASS_LEN);
 }
 
 static void
-man_forget_passwords (struct management *man)
+man_query_need_str(struct management *man, const char *type, const char *action)
+{
+    const bool needed = ((man->connection.up_query_mode == UP_QUERY_NEED_STR) && man->connection.up_query_type);
+    man_query_user_pass(man, type, action, needed, "needstr-string", man->connection.up_query.password, USER_PASS_LEN);
+}
+
+static void
+man_forget_passwords(struct management *man)
 {
 #ifdef ENABLE_CRYPTO
-  ssl_purge_auth (false);
-  msg (M_CLIENT, "SUCCESS: Passwords were forgotten");
+    ssl_purge_auth(false);
+    msg(M_CLIENT, "SUCCESS: Passwords were forgotten");
 #endif
 }
 
 static void
-man_net (struct management *man)
+man_net(struct management *man)
 {
-  if (man->persist.callback.show_net)
+    if (man->persist.callback.show_net)
     {
-      (*man->persist.callback.show_net) (man->persist.callback.arg, M_CLIENT);
+        (*man->persist.callback.show_net)(man->persist.callback.arg, M_CLIENT);
     }
-  else
+    else
     {
-      msg (M_CLIENT, "ERROR: The 'net' command is not supported by the current daemon mode");
+        msg(M_CLIENT, "ERROR: The 'net' command is not supported by the current daemon mode");
     }
 }
 
 #ifdef ENABLE_PKCS11
 
 static void
-man_pkcs11_id_count (struct management *man)
+man_pkcs11_id_count(struct management *man)
 {
-  msg (M_CLIENT, ">PKCS11ID-COUNT:%d", pkcs11_management_id_count ());
+    msg(M_CLIENT, ">PKCS11ID-COUNT:%d", pkcs11_management_id_count());
 }
 
 static void
-man_pkcs11_id_get (struct management *man, const int index)
+man_pkcs11_id_get(struct management *man, const int index)
 {
-  char *id = NULL;
-  char *base64 = NULL;
+    char *id = NULL;
+    char *base64 = NULL;
 
-  if (pkcs11_management_id_get (index, &id, &base64))
-    msg (M_CLIENT, ">PKCS11ID-ENTRY:'%d', ID:'%s', BLOB:'%s'", index, id, base64);
-  else
-    msg (M_CLIENT, ">PKCS11ID-ENTRY:'%d'", index);
-
-  if (id != NULL)
-    free (id);
-  if (base64 != NULL)
-    free (base64);
-}
-
-#endif
-
-static void
-man_hold (struct management *man, const char *cmd)
-{
-  if (cmd)
+    if (pkcs11_management_id_get(index, &id, &base64))
     {
-      if (streq (cmd, "on"))
-	{
-	  man->settings.flags |= MF_HOLD;
-	  msg (M_CLIENT, "SUCCESS: hold flag set to ON");
-	}
-      else if (streq (cmd, "off"))
-	{
-	  man->settings.flags &= ~MF_HOLD;
-	  msg (M_CLIENT, "SUCCESS: hold flag set to OFF");
-	}
-      else if (streq (cmd, "release"))
-	{
-	  man->persist.hold_release = true;
-	  msg (M_CLIENT, "SUCCESS: hold release succeeded");
-	}
-      else
-	{
-	  msg (M_CLIENT, "ERROR: bad hold command parameter");
-	}
+        msg(M_CLIENT, ">PKCS11ID-ENTRY:'%d', ID:'%s', BLOB:'%s'", index, id, base64);
     }
-  else
-    msg (M_CLIENT, "SUCCESS: hold=%d", BOOL_CAST(man->settings.flags & MF_HOLD));
+    else
+    {
+        msg(M_CLIENT, ">PKCS11ID-ENTRY:'%d'", index);
+    }
+
+    if (id != NULL)
+    {
+        free(id);
+    }
+    if (base64 != NULL)
+    {
+        free(base64);
+    }
+}
+
+#endif /* ifdef ENABLE_PKCS11 */
+
+static void
+man_hold(struct management *man, const char *cmd)
+{
+    if (cmd)
+    {
+        if (streq(cmd, "on"))
+        {
+            man->settings.flags |= MF_HOLD;
+            msg(M_CLIENT, "SUCCESS: hold flag set to ON");
+        }
+        else if (streq(cmd, "off"))
+        {
+            man->settings.flags &= ~MF_HOLD;
+            msg(M_CLIENT, "SUCCESS: hold flag set to OFF");
+        }
+        else if (streq(cmd, "release"))
+        {
+            man->persist.hold_release = true;
+            msg(M_CLIENT, "SUCCESS: hold release succeeded");
+        }
+        else
+        {
+            msg(M_CLIENT, "ERROR: bad hold command parameter");
+        }
+    }
+    else
+    {
+        msg(M_CLIENT, "SUCCESS: hold=%d", BOOL_CAST(man->settings.flags & MF_HOLD));
+    }
 }
 
 #ifdef MANAGEMENT_IN_EXTRA
@@ -784,101 +854,106 @@ man_hold (struct management *man, const char *cmd)
 #define IER_NEW        1
 
 static void
-in_extra_reset (struct man_connection *mc, const int mode)
+in_extra_reset(struct man_connection *mc, const int mode)
 {
-  if (mc)
+    if (mc)
     {
-      if (mode != IER_NEW)
-	{
-	  mc->in_extra_cmd = IEC_UNDEF;
+        if (mode != IER_NEW)
+        {
+            mc->in_extra_cmd = IEC_UNDEF;
 #ifdef MANAGEMENT_DEF_AUTH
-	  mc->in_extra_cid = 0;
-	  mc->in_extra_kid = 0;
+            mc->in_extra_cid = 0;
+            mc->in_extra_kid = 0;
 #endif
-	}
-      if (mc->in_extra)
-	{
-	  buffer_list_free (mc->in_extra);
-	  mc->in_extra = NULL;
-	}
-      if (mode == IER_NEW)
-	mc->in_extra = buffer_list_new (0);
+        }
+        if (mc->in_extra)
+        {
+            buffer_list_free(mc->in_extra);
+            mc->in_extra = NULL;
+        }
+        if (mode == IER_NEW)
+        {
+            mc->in_extra = buffer_list_new(0);
+        }
     }
 }
 
 static void
-in_extra_dispatch (struct management *man)
+in_extra_dispatch(struct management *man)
 {
-   switch (man->connection.in_extra_cmd)
+    switch (man->connection.in_extra_cmd)
     {
 #ifdef MANAGEMENT_DEF_AUTH
-    case IEC_CLIENT_AUTH:
-       if (man->persist.callback.client_auth)
-	{
-	  const bool status = (*man->persist.callback.client_auth)
-	    (man->persist.callback.arg,
-	     man->connection.in_extra_cid,
-	     man->connection.in_extra_kid,
-	     true,
-	     NULL,
-	     NULL,
-	     man->connection.in_extra);
-	  man->connection.in_extra = NULL;
-	  if (status)
-	    {
-	      msg (M_CLIENT, "SUCCESS: client-auth command succeeded");
-	    }
-	  else
-	    {
-	      msg (M_CLIENT, "ERROR: client-auth command failed");
-	    }
-	}
-      else
-	{
-	  msg (M_CLIENT, "ERROR: The client-auth command is not supported by the current daemon mode");
-	}
-      break;
-#endif
+        case IEC_CLIENT_AUTH:
+            if (man->persist.callback.client_auth)
+            {
+                const bool status = (*man->persist.callback.client_auth)
+                                        (man->persist.callback.arg,
+                                        man->connection.in_extra_cid,
+                                        man->connection.in_extra_kid,
+                                        true,
+                                        NULL,
+                                        NULL,
+                                        man->connection.in_extra);
+                man->connection.in_extra = NULL;
+                if (status)
+                {
+                    msg(M_CLIENT, "SUCCESS: client-auth command succeeded");
+                }
+                else
+                {
+                    msg(M_CLIENT, "ERROR: client-auth command failed");
+                }
+            }
+            else
+            {
+                msg(M_CLIENT, "ERROR: The client-auth command is not supported by the current daemon mode");
+            }
+            break;
+
+#endif /* ifdef MANAGEMENT_DEF_AUTH */
 #ifdef MANAGEMENT_PF
-    case IEC_CLIENT_PF:
-      if (man->persist.callback.client_pf)
-	{
-	  const bool status = (*man->persist.callback.client_pf)
-	    (man->persist.callback.arg,
-	     man->connection.in_extra_cid,
-	     man->connection.in_extra);
-	  man->connection.in_extra = NULL;
-	  if (status)
-	    {
-	      msg (M_CLIENT, "SUCCESS: client-pf command succeeded");
-	    }
-	  else
-	    {
-	      msg (M_CLIENT, "ERROR: client-pf command failed");
-	    }
-	}
-      else
-	{
-	  msg (M_CLIENT, "ERROR: The client-pf command is not supported by the current daemon mode");
-	}
-      break;
-#endif
+        case IEC_CLIENT_PF:
+            if (man->persist.callback.client_pf)
+            {
+                const bool status = (*man->persist.callback.client_pf)
+                                        (man->persist.callback.arg,
+                                        man->connection.in_extra_cid,
+                                        man->connection.in_extra);
+                man->connection.in_extra = NULL;
+                if (status)
+                {
+                    msg(M_CLIENT, "SUCCESS: client-pf command succeeded");
+                }
+                else
+                {
+                    msg(M_CLIENT, "ERROR: client-pf command failed");
+                }
+            }
+            else
+            {
+                msg(M_CLIENT, "ERROR: The client-pf command is not supported by the current daemon mode");
+            }
+            break;
+
+#endif /* ifdef MANAGEMENT_PF */
 #ifdef MANAGMENT_EXTERNAL_KEY
-    case IEC_RSA_SIGN:
-      man->connection.ext_key_state = EKS_READY;
-      buffer_list_free (man->connection.ext_key_input);
-      man->connection.ext_key_input = man->connection.in_extra;
-      man->connection.in_extra = NULL;
-      return;
-    case IEC_CERTIFICATE:
-      man->connection.ext_cert_state = EKS_READY;
-      buffer_list_free (man->connection.ext_cert_input);
-      man->connection.ext_cert_input = man->connection.in_extra;
-      man->connection.in_extra = NULL;
-      return;
+        case IEC_RSA_SIGN:
+            man->connection.ext_key_state = EKS_READY;
+            buffer_list_free(man->connection.ext_key_input);
+            man->connection.ext_key_input = man->connection.in_extra;
+            man->connection.in_extra = NULL;
+            return;
+
+        case IEC_CERTIFICATE:
+            man->connection.ext_cert_state = EKS_READY;
+            buffer_list_free(man->connection.ext_cert_input);
+            man->connection.ext_cert_input = man->connection.in_extra;
+            man->connection.in_extra = NULL;
+            return;
 #endif
     }
-   in_extra_reset (&man->connection, IER_RESET);
+    in_extra_reset(&man->connection, IER_RESET);
 }
 
 #endif /* MANAGEMENT_IN_EXTRA */
@@ -886,136 +961,142 @@ in_extra_dispatch (struct management *man)
 #ifdef MANAGEMENT_DEF_AUTH
 
 static bool
-parse_cid (const char *str, unsigned long *cid)
+parse_cid(const char *str, unsigned long *cid)
 {
-  if (sscanf (str, "%lu", cid) == 1)
-    return true;
-  else
+    if (sscanf(str, "%lu", cid) == 1)
     {
-      msg (M_CLIENT, "ERROR: cannot parse CID");
-      return false;
+        return true;
+    }
+    else
+    {
+        msg(M_CLIENT, "ERROR: cannot parse CID");
+        return false;
     }
 }
 
 static bool
-parse_kid (const char *str, unsigned int *kid)
+parse_kid(const char *str, unsigned int *kid)
 {
-  if (sscanf (str, "%u", kid) == 1)
-    return true;
-  else
+    if (sscanf(str, "%u", kid) == 1)
     {
-      msg (M_CLIENT, "ERROR: cannot parse KID");
-      return false;
+        return true;
+    }
+    else
+    {
+        msg(M_CLIENT, "ERROR: cannot parse KID");
+        return false;
     }
 }
 
 static void
-man_client_auth (struct management *man, const char *cid_str, const char *kid_str, const bool extra)
+man_client_auth(struct management *man, const char *cid_str, const char *kid_str, const bool extra)
 {
-  struct man_connection *mc = &man->connection;
-  mc->in_extra_cid = 0;
-  mc->in_extra_kid = 0;
-  if (parse_cid (cid_str, &mc->in_extra_cid)
-      && parse_kid (kid_str, &mc->in_extra_kid))
+    struct man_connection *mc = &man->connection;
+    mc->in_extra_cid = 0;
+    mc->in_extra_kid = 0;
+    if (parse_cid(cid_str, &mc->in_extra_cid)
+        && parse_kid(kid_str, &mc->in_extra_kid))
     {
-      mc->in_extra_cmd = IEC_CLIENT_AUTH;
-      in_extra_reset (mc, IER_NEW);
-      if (!extra)
-	in_extra_dispatch (man);
+        mc->in_extra_cmd = IEC_CLIENT_AUTH;
+        in_extra_reset(mc, IER_NEW);
+        if (!extra)
+        {
+            in_extra_dispatch(man);
+        }
     }
 }
 
 static void
-man_client_deny (struct management *man, const char *cid_str, const char *kid_str, const char *reason, const char *client_reason)
+man_client_deny(struct management *man, const char *cid_str, const char *kid_str, const char *reason, const char *client_reason)
 {
-  unsigned long cid = 0;
-  unsigned int kid = 0;
-  if (parse_cid (cid_str, &cid) && parse_kid (kid_str, &kid))
+    unsigned long cid = 0;
+    unsigned int kid = 0;
+    if (parse_cid(cid_str, &cid) && parse_kid(kid_str, &kid))
     {
-      if (man->persist.callback.client_auth)
-	{
-	  const bool status = (*man->persist.callback.client_auth)
-	    (man->persist.callback.arg,
-	     cid,
-	     kid,
-	     false,
-	     reason,
-	     client_reason,
-	     NULL);
-	  if (status)
-	    {
-	      msg (M_CLIENT, "SUCCESS: client-deny command succeeded");
-	    }
-	  else
-	    {
-	      msg (M_CLIENT, "ERROR: client-deny command failed");
-	    }
-	}
-      else
-	{
-	  msg (M_CLIENT, "ERROR: The client-deny command is not supported by the current daemon mode");
-	}
+        if (man->persist.callback.client_auth)
+        {
+            const bool status = (*man->persist.callback.client_auth)
+                                    (man->persist.callback.arg,
+                                    cid,
+                                    kid,
+                                    false,
+                                    reason,
+                                    client_reason,
+                                    NULL);
+            if (status)
+            {
+                msg(M_CLIENT, "SUCCESS: client-deny command succeeded");
+            }
+            else
+            {
+                msg(M_CLIENT, "ERROR: client-deny command failed");
+            }
+        }
+        else
+        {
+            msg(M_CLIENT, "ERROR: The client-deny command is not supported by the current daemon mode");
+        }
     }
 }
 
 static void
-man_client_kill (struct management *man, const char *cid_str, const char *kill_msg)
+man_client_kill(struct management *man, const char *cid_str, const char *kill_msg)
 {
-  unsigned long cid = 0;
-  if (parse_cid (cid_str, &cid))
+    unsigned long cid = 0;
+    if (parse_cid(cid_str, &cid))
     {
-      if (man->persist.callback.kill_by_cid)
-	{
-	  const bool status = (*man->persist.callback.kill_by_cid) (man->persist.callback.arg, cid, kill_msg);
-	  if (status)
-	    {
-	      msg (M_CLIENT, "SUCCESS: client-kill command succeeded");
-	    }
-	  else
-	    {
-	      msg (M_CLIENT, "ERROR: client-kill command failed");
-	    }
-	}
-      else
-	{
-	  msg (M_CLIENT, "ERROR: The client-kill command is not supported by the current daemon mode");
-	}
+        if (man->persist.callback.kill_by_cid)
+        {
+            const bool status = (*man->persist.callback.kill_by_cid)(man->persist.callback.arg, cid, kill_msg);
+            if (status)
+            {
+                msg(M_CLIENT, "SUCCESS: client-kill command succeeded");
+            }
+            else
+            {
+                msg(M_CLIENT, "ERROR: client-kill command failed");
+            }
+        }
+        else
+        {
+            msg(M_CLIENT, "ERROR: The client-kill command is not supported by the current daemon mode");
+        }
     }
 }
 
 static void
-man_client_n_clients (struct management *man)
+man_client_n_clients(struct management *man)
 {
-  if (man->persist.callback.n_clients)
+    if (man->persist.callback.n_clients)
     {
-      const int nclients = (*man->persist.callback.n_clients) (man->persist.callback.arg);
-      msg (M_CLIENT, "SUCCESS: nclients=%d", nclients);
+        const int nclients = (*man->persist.callback.n_clients)(man->persist.callback.arg);
+        msg(M_CLIENT, "SUCCESS: nclients=%d", nclients);
     }
-  else
+    else
     {
-      msg (M_CLIENT, "ERROR: The nclients command is not supported by the current daemon mode");
+        msg(M_CLIENT, "ERROR: The nclients command is not supported by the current daemon mode");
     }
 }
 
 static void
-man_env_filter (struct management *man, const int level)
+man_env_filter(struct management *man, const int level)
 {
-  man->connection.env_filter_level = level;
-  msg (M_CLIENT, "SUCCESS: env_filter_level=%d", level);
+    man->connection.env_filter_level = level;
+    msg(M_CLIENT, "SUCCESS: env_filter_level=%d", level);
 }
 
 #ifdef MANAGEMENT_PF
 
 static void
-man_client_pf (struct management *man, const char *cid_str)
+man_client_pf(struct management *man, const char *cid_str)
 {
-  struct man_connection *mc = &man->connection;
-  mc->in_extra_cid = 0;
-  mc->in_extra_kid = 0;
-  if (parse_cid (cid_str, &mc->in_extra_cid))
+    struct man_connection *mc = &man->connection;
+    mc->in_extra_cid = 0;
+    mc->in_extra_kid = 0;
+    if (parse_cid(cid_str, &mc->in_extra_cid))
     {
-      mc->in_extra_cmd = IEC_CLIENT_PF;
-      in_extra_reset (mc, IER_NEW);
+        mc->in_extra_cmd = IEC_CLIENT_PF;
+        in_extra_reset(mc, IER_NEW);
     }
 }
 
@@ -1025,899 +1106,1015 @@ man_client_pf (struct management *man, const char *cid_str)
 #ifdef MANAGMENT_EXTERNAL_KEY
 
 static void
-man_rsa_sig (struct management *man)
+man_rsa_sig(struct management *man)
 {
-  struct man_connection *mc = &man->connection;
-  if (mc->ext_key_state == EKS_SOLICIT)
+    struct man_connection *mc = &man->connection;
+    if (mc->ext_key_state == EKS_SOLICIT)
     {
-      mc->ext_key_state = EKS_INPUT;
-      mc->in_extra_cmd = IEC_RSA_SIGN;
-      in_extra_reset (mc, IER_NEW);
+        mc->ext_key_state = EKS_INPUT;
+        mc->in_extra_cmd = IEC_RSA_SIGN;
+        in_extra_reset(mc, IER_NEW);
     }
-  else
-    msg (M_CLIENT, "ERROR: The rsa-sig command is not currently available");
+    else
+    {
+        msg(M_CLIENT, "ERROR: The rsa-sig command is not currently available");
+    }
 }
 
 static void
-man_certificate (struct management *man)
+man_certificate(struct management *man)
 {
-  struct man_connection *mc = &man->connection;
-  if (mc->ext_cert_state == EKS_SOLICIT)
+    struct man_connection *mc = &man->connection;
+    if (mc->ext_cert_state == EKS_SOLICIT)
     {
-      mc->ext_cert_state = EKS_INPUT;
-      mc->in_extra_cmd = IEC_CERTIFICATE;
-      in_extra_reset (mc, IER_NEW);
+        mc->ext_cert_state = EKS_INPUT;
+        mc->in_extra_cmd = IEC_CERTIFICATE;
+        in_extra_reset(mc, IER_NEW);
     }
-  else
-    msg (M_CLIENT, "ERROR: The certificate command is not currently available");
+    else
+    {
+        msg(M_CLIENT, "ERROR: The certificate command is not currently available");
+    }
 }
 
-#endif
+#endif /* ifdef MANAGMENT_EXTERNAL_KEY */
 
 static void
-man_load_stats (struct management *man)
+man_load_stats(struct management *man)
 {
-  extern counter_type link_read_bytes_global;
-  extern counter_type link_write_bytes_global;
-  int nclients = 0;
+    extern counter_type link_read_bytes_global;
+    extern counter_type link_write_bytes_global;
+    int nclients = 0;
 
-  if (man->persist.callback.n_clients)
-    nclients = (*man->persist.callback.n_clients) (man->persist.callback.arg);
-  msg (M_CLIENT, "SUCCESS: nclients=%d,bytesin=" counter_format ",bytesout=" counter_format,
-       nclients,
-       link_read_bytes_global,
-       link_write_bytes_global);
+    if (man->persist.callback.n_clients)
+    {
+        nclients = (*man->persist.callback.n_clients)(man->persist.callback.arg);
+    }
+    msg(M_CLIENT, "SUCCESS: nclients=%d,bytesin=" counter_format ",bytesout=" counter_format,
+        nclients,
+        link_read_bytes_global,
+        link_write_bytes_global);
 }
 
 #define MN_AT_LEAST (1<<0)
 
 static bool
-man_need (struct management *man, const char **p, const int n, unsigned int flags)
+man_need(struct management *man, const char **p, const int n, unsigned int flags)
 {
-  int i;
-  ASSERT (p[0]);
-  for (i = 1; i <= n; ++i)
+    int i;
+    ASSERT(p[0]);
+    for (i = 1; i <= n; ++i)
     {
-      if (!p[i])
-	{
-	  msg (M_CLIENT, "ERROR: the '%s' command requires %s%d parameter%s",
-	       p[0],
-	       (flags & MN_AT_LEAST) ? "at least " : "",
-	       n,
-	       n > 1 ? "s" : "");
-	  return false;
-	}
+        if (!p[i])
+        {
+            msg(M_CLIENT, "ERROR: the '%s' command requires %s%d parameter%s",
+                p[0],
+                (flags & MN_AT_LEAST) ? "at least " : "",
+                n,
+                n > 1 ? "s" : "");
+            return false;
+        }
     }
-  return true;
+    return true;
 }
 
 static void
-man_proxy (struct management *man, const char **p)
+man_proxy(struct management *man, const char **p)
 {
-  if (man->persist.callback.proxy_cmd)
+    if (man->persist.callback.proxy_cmd)
     {
-      const bool status = (*man->persist.callback.proxy_cmd)(man->persist.callback.arg, p);
-      if (status)
-        msg (M_CLIENT, "SUCCESS: proxy command succeeded");
-      else
-        msg (M_CLIENT, "ERROR: proxy command failed");
+        const bool status = (*man->persist.callback.proxy_cmd)(man->persist.callback.arg, p);
+        if (status)
+        {
+            msg(M_CLIENT, "SUCCESS: proxy command succeeded");
+        }
+        else
+        {
+            msg(M_CLIENT, "ERROR: proxy command failed");
+        }
     }
-  else
-    msg (M_CLIENT, "ERROR: The proxy command is not supported by the current daemon mode");
+    else
+    {
+        msg(M_CLIENT, "ERROR: The proxy command is not supported by the current daemon mode");
+    }
 }
 
 static void
-man_remote (struct management *man, const char **p)
+man_remote(struct management *man, const char **p)
 {
-  if (man->persist.callback.remote_cmd)
+    if (man->persist.callback.remote_cmd)
     {
-      const bool status = (*man->persist.callback.remote_cmd)(man->persist.callback.arg, p);
-      if (status)
-	{
-	  msg (M_CLIENT, "SUCCESS: remote command succeeded");
-	}
-      else
-	{
-	  msg (M_CLIENT, "ERROR: remote command failed");
-	}
+        const bool status = (*man->persist.callback.remote_cmd)(man->persist.callback.arg, p);
+        if (status)
+        {
+            msg(M_CLIENT, "SUCCESS: remote command succeeded");
+        }
+        else
+        {
+            msg(M_CLIENT, "ERROR: remote command failed");
+        }
     }
-  else
+    else
     {
-      msg (M_CLIENT, "ERROR: The remote command is not supported by the current daemon mode");
+        msg(M_CLIENT, "ERROR: The remote command is not supported by the current daemon mode");
     }
 }
 
 #ifdef TARGET_ANDROID
 static void
-man_network_change (struct management *man, bool samenetwork)
+man_network_change(struct management *man, bool samenetwork)
 {
-  /* Called to signal the OpenVPN that the network configuration has changed and
-     the client should either float or reconnect.
-
-     The code is currently only used by ics-openvpn
-  */
-  if (man->persist.callback.network_change)
+    /* Called to signal the OpenVPN that the network configuration has changed and
+     * the client should either float or reconnect.
+     *
+     * The code is currently only used by ics-openvpn
+     */
+    if (man->persist.callback.network_change)
     {
-      int fd = (*man->persist.callback.network_change)
-	(man->persist.callback.arg, samenetwork);
-      man->connection.fdtosend = fd;
-      msg (M_CLIENT, "PROTECTFD: fd '%d' sent to be protected", fd);
-      if (fd == -2)
-	man_signal (man, "SIGUSR1");
+        int fd = (*man->persist.callback.network_change)
+                     (man->persist.callback.arg, samenetwork);
+        man->connection.fdtosend = fd;
+        msg(M_CLIENT, "PROTECTFD: fd '%d' sent to be protected", fd);
+        if (fd == -2)
+        {
+            man_signal(man, "SIGUSR1");
+        }
     }
 }
 #endif
 
 static void
-man_dispatch_command (struct management *man, struct status_output *so, const char **p, const int nparms)
+man_dispatch_command(struct management *man, struct status_output *so, const char **p, const int nparms)
 {
-  struct gc_arena gc = gc_new ();
+    struct gc_arena gc = gc_new();
 
-  ASSERT (p[0]);
-  if (streq (p[0], "exit") || streq (p[0], "quit"))
+    ASSERT(p[0]);
+    if (streq(p[0], "exit") || streq(p[0], "quit"))
     {
-      man->connection.halt = true;
-      goto done;
+        man->connection.halt = true;
+        goto done;
     }
-  else if (streq (p[0], "help"))
+    else if (streq(p[0], "help"))
     {
-      man_help ();
+        man_help();
     }
-  else if (streq (p[0], "version"))
+    else if (streq(p[0], "version"))
     {
-      msg (M_CLIENT, "OpenVPN Version: %s", title_string);
-      msg (M_CLIENT, "Management Version: %d", MANAGEMENT_VERSION);
-      msg (M_CLIENT, "END");
+        msg(M_CLIENT, "OpenVPN Version: %s", title_string);
+        msg(M_CLIENT, "Management Version: %d", MANAGEMENT_VERSION);
+        msg(M_CLIENT, "END");
     }
-  else if (streq (p[0], "pid"))
+    else if (streq(p[0], "pid"))
     {
-      msg (M_CLIENT, "SUCCESS: pid=%d", platform_getpid ());
+        msg(M_CLIENT, "SUCCESS: pid=%d", platform_getpid());
     }
 #ifdef MANAGEMENT_DEF_AUTH
-  else if (streq (p[0], "nclients"))
+    else if (streq(p[0], "nclients"))
     {
-      man_client_n_clients (man);
+        man_client_n_clients(man);
     }
-  else if (streq (p[0], "env-filter"))
+    else if (streq(p[0], "env-filter"))
     {
-      int level = 0;
-      if (p[1])
-	level = atoi (p[1]);
-      man_env_filter (man, level);
+        int level = 0;
+        if (p[1])
+        {
+            level = atoi(p[1]);
+        }
+        man_env_filter(man, level);
     }
 #endif
-  else if (streq (p[0], "signal"))
+    else if (streq(p[0], "signal"))
     {
-      if (man_need (man, p, 1, 0))
-	man_signal (man, p[1]);
+        if (man_need(man, p, 1, 0))
+        {
+            man_signal(man, p[1]);
+        }
     }
 #ifdef TARGET_ANDROID
-  else if (streq (p[0], "network-change"))
+    else if (streq(p[0], "network-change"))
     {
-      bool samenetwork = false;
-      if (p[1] && streq(p[1], "samenetwork"))
-	samenetwork = true;
+        bool samenetwork = false;
+        if (p[1] && streq(p[1], "samenetwork"))
+        {
+            samenetwork = true;
+        }
 
-      man_network_change(man, samenetwork);
+        man_network_change(man, samenetwork);
     }
 #endif
-  else if (streq (p[0], "load-stats"))
+    else if (streq(p[0], "load-stats"))
     {
-      man_load_stats (man);
+        man_load_stats(man);
     }
-  else if (streq (p[0], "status"))
+    else if (streq(p[0], "status"))
     {
-      int version = 0;
-      if (p[1])
-	version = atoi (p[1]);
-      man_status (man, version, so);
+        int version = 0;
+        if (p[1])
+        {
+            version = atoi(p[1]);
+        }
+        man_status(man, version, so);
     }
-  else if (streq (p[0], "kill"))
+    else if (streq(p[0], "kill"))
     {
-      if (man_need (man, p, 1, 0))
-	man_kill (man, p[1]);
+        if (man_need(man, p, 1, 0))
+        {
+            man_kill(man, p[1]);
+        }
     }
-  else if (streq (p[0], "verb"))
+    else if (streq(p[0], "verb"))
     {
-      if (p[1])
-	{
-	  const int level = atoi(p[1]);
-	  if (set_debug_level (level, 0))
-	    msg (M_CLIENT, "SUCCESS: verb level changed");
-	  else
-	    msg (M_CLIENT, "ERROR: verb level is out of range");
-	}
-      else
-	msg (M_CLIENT, "SUCCESS: verb=%d", get_debug_level ());
+        if (p[1])
+        {
+            const int level = atoi(p[1]);
+            if (set_debug_level(level, 0))
+            {
+                msg(M_CLIENT, "SUCCESS: verb level changed");
+            }
+            else
+            {
+                msg(M_CLIENT, "ERROR: verb level is out of range");
+            }
+        }
+        else
+        {
+            msg(M_CLIENT, "SUCCESS: verb=%d", get_debug_level());
+        }
     }
-  else if (streq (p[0], "mute"))
+    else if (streq(p[0], "mute"))
     {
-      if (p[1])
-	{
-	  const int level = atoi(p[1]);
-	  if (set_mute_cutoff (level))
-	    msg (M_CLIENT, "SUCCESS: mute level changed");
-	  else
-	    msg (M_CLIENT, "ERROR: mute level is out of range");
-	}
-      else
-	msg (M_CLIENT, "SUCCESS: mute=%d", get_mute_cutoff ());
+        if (p[1])
+        {
+            const int level = atoi(p[1]);
+            if (set_mute_cutoff(level))
+            {
+                msg(M_CLIENT, "SUCCESS: mute level changed");
+            }
+            else
+            {
+                msg(M_CLIENT, "ERROR: mute level is out of range");
+            }
+        }
+        else
+        {
+            msg(M_CLIENT, "SUCCESS: mute=%d", get_mute_cutoff());
+        }
     }
-  else if (streq (p[0], "auth-retry"))
+    else if (streq(p[0], "auth-retry"))
     {
 #if P2MP
-      if (p[1])
-	{
-	  if (auth_retry_set (M_CLIENT, p[1]))
-	    msg (M_CLIENT, "SUCCESS: auth-retry parameter changed");
-	  else
-	    msg (M_CLIENT, "ERROR: bad auth-retry parameter");
-	}
-      else
-	msg (M_CLIENT, "SUCCESS: auth-retry=%s", auth_retry_print ());	
-#else
-      msg (M_CLIENT, "ERROR: auth-retry feature is unavailable");
+        if (p[1])
+        {
+            if (auth_retry_set(M_CLIENT, p[1]))
+            {
+                msg(M_CLIENT, "SUCCESS: auth-retry parameter changed");
+            }
+            else
+            {
+                msg(M_CLIENT, "ERROR: bad auth-retry parameter");
+            }
+        }
+        else
+        {
+            msg(M_CLIENT, "SUCCESS: auth-retry=%s", auth_retry_print());
+        }
+#else  /* if P2MP */
+        msg(M_CLIENT, "ERROR: auth-retry feature is unavailable");
 #endif
     }
-  else if (streq (p[0], "state"))
+    else if (streq(p[0], "state"))
     {
-      if (!p[1])
-	{
-	  man_state (man, "1");
-	}
-      else
-	{
-	  if (p[1])
-	    man_state (man, p[1]);
-	  if (p[2])
-	    man_state (man, p[2]);
-	}
+        if (!p[1])
+        {
+            man_state(man, "1");
+        }
+        else
+        {
+            if (p[1])
+            {
+                man_state(man, p[1]);
+            }
+            if (p[2])
+            {
+                man_state(man, p[2]);
+            }
+        }
     }
-  else if (streq (p[0], "log"))
+    else if (streq(p[0], "log"))
     {
-      if (man_need (man, p, 1, MN_AT_LEAST))
-	{
-	  if (p[1])
-	    man_log (man, p[1]);
-	  if (p[2])
-	    man_log (man, p[2]);
-	}
+        if (man_need(man, p, 1, MN_AT_LEAST))
+        {
+            if (p[1])
+            {
+                man_log(man, p[1]);
+            }
+            if (p[2])
+            {
+                man_log(man, p[2]);
+            }
+        }
     }
-  else if (streq (p[0], "echo"))
+    else if (streq(p[0], "echo"))
     {
-      if (man_need (man, p, 1, MN_AT_LEAST))
-	{
-	  if (p[1])
-	    man_echo (man, p[1]);
-	  if (p[2])
-	    man_echo (man, p[2]);
-	}
+        if (man_need(man, p, 1, MN_AT_LEAST))
+        {
+            if (p[1])
+            {
+                man_echo(man, p[1]);
+            }
+            if (p[2])
+            {
+                man_echo(man, p[2]);
+            }
+        }
     }
-  else if (streq (p[0], "username"))
+    else if (streq(p[0], "username"))
     {
-      if (man_need (man, p, 2, 0))
-	man_query_username (man, p[1], p[2]);
+        if (man_need(man, p, 2, 0))
+        {
+            man_query_username(man, p[1], p[2]);
+        }
     }
-  else if (streq (p[0], "password"))
+    else if (streq(p[0], "password"))
     {
-      if (man_need (man, p, 2, 0))
-	man_query_password (man, p[1], p[2]);
+        if (man_need(man, p, 2, 0))
+        {
+            man_query_password(man, p[1], p[2]);
+        }
     }
-  else if (streq (p[0], "forget-passwords"))
+    else if (streq(p[0], "forget-passwords"))
     {
-      man_forget_passwords (man);
+        man_forget_passwords(man);
     }
-  else if (streq (p[0], "needok"))
+    else if (streq(p[0], "needok"))
     {
-      if (man_need (man, p, 2, 0))
-	man_query_need_ok (man, p[1], p[2]);
+        if (man_need(man, p, 2, 0))
+        {
+            man_query_need_ok(man, p[1], p[2]);
+        }
     }
-  else if (streq (p[0], "needstr"))
+    else if (streq(p[0], "needstr"))
     {
-      if (man_need (man, p, 2, 0))
-	man_query_need_str (man, p[1], p[2]);
+        if (man_need(man, p, 2, 0))
+        {
+            man_query_need_str(man, p[1], p[2]);
+        }
     }
-  else if (streq (p[0], "net"))
+    else if (streq(p[0], "net"))
     {
-      man_net (man);
+        man_net(man);
     }
-  else if (streq (p[0], "hold"))
+    else if (streq(p[0], "hold"))
     {
-      man_hold (man, p[1]);
+        man_hold(man, p[1]);
     }
-  else if (streq (p[0], "bytecount"))
+    else if (streq(p[0], "bytecount"))
     {
-      if (man_need (man, p, 1, 0))
-	man_bytecount (man, atoi(p[1]));
+        if (man_need(man, p, 1, 0))
+        {
+            man_bytecount(man, atoi(p[1]));
+        }
     }
 #ifdef MANAGEMENT_DEF_AUTH
-  else if (streq (p[0], "client-kill"))
+    else if (streq(p[0], "client-kill"))
     {
-      if (man_need (man, p, 1, MN_AT_LEAST))
-	man_client_kill (man, p[1], p[2]);
+        if (man_need(man, p, 1, MN_AT_LEAST))
+        {
+            man_client_kill(man, p[1], p[2]);
+        }
     }
-  else if (streq (p[0], "client-deny"))
+    else if (streq(p[0], "client-deny"))
     {
-      if (man_need (man, p, 3, MN_AT_LEAST))
-	man_client_deny (man, p[1], p[2], p[3], p[4]);
+        if (man_need(man, p, 3, MN_AT_LEAST))
+        {
+            man_client_deny(man, p[1], p[2], p[3], p[4]);
+        }
     }
-  else if (streq (p[0], "client-auth-nt"))
+    else if (streq(p[0], "client-auth-nt"))
     {
-      if (man_need (man, p, 2, 0))
-	man_client_auth (man, p[1], p[2], false);
+        if (man_need(man, p, 2, 0))
+        {
+            man_client_auth(man, p[1], p[2], false);
+        }
     }
-  else if (streq (p[0], "client-auth"))
+    else if (streq(p[0], "client-auth"))
     {
-      if (man_need (man, p, 2, 0))
-	man_client_auth (man, p[1], p[2], true);
+        if (man_need(man, p, 2, 0))
+        {
+            man_client_auth(man, p[1], p[2], true);
+        }
     }
 #ifdef MANAGEMENT_PF
-  else if (streq (p[0], "client-pf"))
+    else if (streq(p[0], "client-pf"))
     {
-      if (man_need (man, p, 1, 0))
-	man_client_pf (man, p[1]);
+        if (man_need(man, p, 1, 0))
+        {
+            man_client_pf(man, p[1]);
+        }
     }
 #endif
-#endif
+#endif /* ifdef MANAGEMENT_DEF_AUTH */
 #ifdef MANAGMENT_EXTERNAL_KEY
-  else if (streq (p[0], "rsa-sig"))
+    else if (streq(p[0], "rsa-sig"))
     {
-      man_rsa_sig (man);
+        man_rsa_sig(man);
     }
-  else if (streq (p[0], "certificate"))
+    else if (streq(p[0], "certificate"))
     {
-      man_certificate (man);
+        man_certificate(man);
     }
 #endif
 #ifdef ENABLE_PKCS11
-  else if (streq (p[0], "pkcs11-id-count"))
+    else if (streq(p[0], "pkcs11-id-count"))
     {
-      man_pkcs11_id_count (man);
+        man_pkcs11_id_count(man);
     }
-  else if (streq (p[0], "pkcs11-id-get"))
+    else if (streq(p[0], "pkcs11-id-get"))
     {
-      if (man_need (man, p, 1, 0))
-	man_pkcs11_id_get (man, atoi(p[1]));
+        if (man_need(man, p, 1, 0))
+        {
+            man_pkcs11_id_get(man, atoi(p[1]));
+        }
     }
 #endif
-  else if (streq (p[0], "proxy"))
+    else if (streq(p[0], "proxy"))
     {
-      if (man_need (man, p, 1, MN_AT_LEAST))
-        man_proxy (man, p);
+        if (man_need(man, p, 1, MN_AT_LEAST))
+        {
+            man_proxy(man, p);
+        }
     }
-  else if (streq (p[0], "remote"))
+    else if (streq(p[0], "remote"))
     {
-      if (man_need (man, p, 1, MN_AT_LEAST))
-	man_remote (man, p);
+        if (man_need(man, p, 1, MN_AT_LEAST))
+        {
+            man_remote(man, p);
+        }
     }
 #if 1
-  else if (streq (p[0], "test"))
+    else if (streq(p[0], "test"))
     {
-      if (man_need (man, p, 1, 0))
-	{
-	  int i;
-	  const int n = atoi (p[1]);
-	  for (i = 0; i < n; ++i)
-	    {
-	      msg (M_CLIENT, "[%d] The purpose of this command is to generate large amounts of output.", i);
-	    }
-	}
+        if (man_need(man, p, 1, 0))
+        {
+            int i;
+            const int n = atoi(p[1]);
+            for (i = 0; i < n; ++i)
+            {
+                msg(M_CLIENT, "[%d] The purpose of this command is to generate large amounts of output.", i);
+            }
+        }
     }
 #endif
-  else
+    else
     {
-      msg (M_CLIENT, "ERROR: unknown command, enter 'help' for more options");
+        msg(M_CLIENT, "ERROR: unknown command, enter 'help' for more options");
     }
 
- done:
-  gc_free (&gc);
+done:
+    gc_free(&gc);
 }
 
 #ifdef _WIN32
 
 static void
-man_start_ne32 (struct management *man)
+man_start_ne32(struct management *man)
 {
-  switch (man->connection.state)
+    switch (man->connection.state)
     {
-    case MS_LISTEN:
-      net_event_win32_start (&man->connection.ne32, FD_ACCEPT, man->connection.sd_top);
-      break;
-    case MS_CC_WAIT_READ:
-    case MS_CC_WAIT_WRITE:
-      net_event_win32_start (&man->connection.ne32, FD_READ|FD_WRITE|FD_CLOSE, man->connection.sd_cli);
-      break;
-    default:
-      ASSERT (0);
-    }  
+        case MS_LISTEN:
+            net_event_win32_start(&man->connection.ne32, FD_ACCEPT, man->connection.sd_top);
+            break;
+
+        case MS_CC_WAIT_READ:
+        case MS_CC_WAIT_WRITE:
+            net_event_win32_start(&man->connection.ne32, FD_READ|FD_WRITE|FD_CLOSE, man->connection.sd_cli);
+            break;
+
+        default:
+            ASSERT(0);
+    }
 }
 
 static void
-man_stop_ne32 (struct management *man)
+man_stop_ne32(struct management *man)
 {
-  net_event_win32_stop (&man->connection.ne32);
+    net_event_win32_stop(&man->connection.ne32);
 }
 
-#endif
+#endif /* ifdef _WIN32 */
 
 static void
-man_record_peer_info (struct management *man)
+man_record_peer_info(struct management *man)
 {
-  struct gc_arena gc = gc_new ();
-  if (man->settings.write_peer_info_file)
+    struct gc_arena gc = gc_new();
+    if (man->settings.write_peer_info_file)
     {
-      bool success = false;
+        bool success = false;
 #ifdef HAVE_GETSOCKNAME
-      if (socket_defined (man->connection.sd_cli))
-	{
-	  struct sockaddr_in addr;
-	  socklen_t addrlen = sizeof (addr);
-	  int status;
+        if (socket_defined(man->connection.sd_cli))
+        {
+            struct sockaddr_in addr;
+            socklen_t addrlen = sizeof(addr);
+            int status;
 
-	  CLEAR (addr);
-	  status = getsockname (man->connection.sd_cli, (struct sockaddr *)&addr, &addrlen);
-	  if (!status && addrlen == sizeof (addr))
-	    {
-	      const in_addr_t a = ntohl (addr.sin_addr.s_addr);
-	      const int p = ntohs (addr.sin_port);
-	      FILE *fp = platform_fopen (man->settings.write_peer_info_file, "w");
-	      if (fp)
-		{
-		  fprintf (fp, "%s\n%d\n", print_in_addr_t (a, 0, &gc), p);
-		  if (!fclose (fp))
-		    success = true;
-		}
-	    }
-	}
-#endif
-      if (!success)
-	{
-	  msg (D_MANAGEMENT, "MANAGEMENT: failed to write peer info to file %s",
-	       man->settings.write_peer_info_file);
-	  throw_signal_soft (SIGTERM, "management-connect-failed");
-	}
+            CLEAR(addr);
+            status = getsockname(man->connection.sd_cli, (struct sockaddr *)&addr, &addrlen);
+            if (!status && addrlen == sizeof(addr))
+            {
+                const in_addr_t a = ntohl(addr.sin_addr.s_addr);
+                const int p = ntohs(addr.sin_port);
+                FILE *fp = platform_fopen(man->settings.write_peer_info_file, "w");
+                if (fp)
+                {
+                    fprintf(fp, "%s\n%d\n", print_in_addr_t(a, 0, &gc), p);
+                    if (!fclose(fp))
+                    {
+                        success = true;
+                    }
+                }
+            }
+        }
+#endif /* ifdef HAVE_GETSOCKNAME */
+        if (!success)
+        {
+            msg(D_MANAGEMENT, "MANAGEMENT: failed to write peer info to file %s",
+                man->settings.write_peer_info_file);
+            throw_signal_soft(SIGTERM, "management-connect-failed");
+        }
     }
-  gc_free (&gc);
+    gc_free(&gc);
 }
 
 static void
-man_connection_settings_reset (struct management *man)
+man_connection_settings_reset(struct management *man)
 {
-  man->connection.state_realtime = false;
-  man->connection.log_realtime = false;
-  man->connection.echo_realtime = false;
-  man->connection.bytecount_update_seconds = 0;
-  man->connection.password_verified = false;
-  man->connection.password_tries = 0;
-  man->connection.halt = false;
-  man->connection.state = MS_CC_WAIT_WRITE;
+    man->connection.state_realtime = false;
+    man->connection.log_realtime = false;
+    man->connection.echo_realtime = false;
+    man->connection.bytecount_update_seconds = 0;
+    man->connection.password_verified = false;
+    man->connection.password_tries = 0;
+    man->connection.halt = false;
+    man->connection.state = MS_CC_WAIT_WRITE;
 }
 
 static void
-man_new_connection_post (struct management *man, const char *description)
+man_new_connection_post(struct management *man, const char *description)
 {
-  struct gc_arena gc = gc_new ();
+    struct gc_arena gc = gc_new();
 
-  set_nonblock (man->connection.sd_cli);
+    set_nonblock(man->connection.sd_cli);
 
-  man_connection_settings_reset (man);
+    man_connection_settings_reset(man);
 
 #ifdef _WIN32
-  man_start_ne32 (man);
+    man_start_ne32(man);
 #endif
 
 #if UNIX_SOCK_SUPPORT
-  if (man->settings.flags & MF_UNIX_SOCK)
+    if (man->settings.flags & MF_UNIX_SOCK)
     {
-      msg (D_MANAGEMENT, "MANAGEMENT: %s %s",
-	   description,
-	   sockaddr_unix_name (&man->settings.local_unix, "NULL"));
+        msg(D_MANAGEMENT, "MANAGEMENT: %s %s",
+            description,
+            sockaddr_unix_name(&man->settings.local_unix, "NULL"));
     }
-  else
+    else
 #endif
-    msg (D_MANAGEMENT, "MANAGEMENT: %s %s",
-	 description,
-	 print_sockaddr (man->settings.local->ai_addr, &gc));
+    msg(D_MANAGEMENT, "MANAGEMENT: %s %s",
+        description,
+        print_sockaddr(man->settings.local->ai_addr, &gc));
 
-  buffer_list_reset (man->connection.out);
+    buffer_list_reset(man->connection.out);
 
-  if (!man_password_needed (man))
-    man_welcome (man);
-  man_prompt (man);
-  man_update_io_state (man);
+    if (!man_password_needed(man))
+    {
+        man_welcome(man);
+    }
+    man_prompt(man);
+    man_update_io_state(man);
 
-  gc_free (&gc);
+    gc_free(&gc);
 }
 
 #if UNIX_SOCK_SUPPORT
 static bool
-man_verify_unix_peer_uid_gid (struct management *man, const socket_descriptor_t sd)
+man_verify_unix_peer_uid_gid(struct management *man, const socket_descriptor_t sd)
 {
-  if (socket_defined (sd) && (man->settings.client_uid != -1 || man->settings.client_gid != -1))
+    if (socket_defined(sd) && (man->settings.client_uid != -1 || man->settings.client_gid != -1))
     {
-      static const char err_prefix[] = "MANAGEMENT: unix domain socket client connection rejected --";
-      int uid, gid;
-      if (unix_socket_get_peer_uid_gid (man->connection.sd_cli, &uid, &gid))
-	{
-	  if (man->settings.client_uid != -1 && man->settings.client_uid != uid)
-	    {
-	      msg (D_MANAGEMENT, "%s UID of socket peer (%d) doesn't match required value (%d) as given by --management-client-user",
-		   err_prefix, uid, man->settings.client_uid);
-	      return false;
-	    }
-	  if (man->settings.client_gid != -1 && man->settings.client_gid != gid)
-	    {
-	      msg (D_MANAGEMENT, "%s GID of socket peer (%d) doesn't match required value (%d) as given by --management-client-group",
-		   err_prefix, gid, man->settings.client_gid);
-	      return false;
-	    }
-	}
-      else
-	{
-	  msg (D_MANAGEMENT, "%s cannot get UID/GID of socket peer", err_prefix);
-	  return false;
-	}
+        static const char err_prefix[] = "MANAGEMENT: unix domain socket client connection rejected --";
+        int uid, gid;
+        if (unix_socket_get_peer_uid_gid(man->connection.sd_cli, &uid, &gid))
+        {
+            if (man->settings.client_uid != -1 && man->settings.client_uid != uid)
+            {
+                msg(D_MANAGEMENT, "%s UID of socket peer (%d) doesn't match required value (%d) as given by --management-client-user",
+                    err_prefix, uid, man->settings.client_uid);
+                return false;
+            }
+            if (man->settings.client_gid != -1 && man->settings.client_gid != gid)
+            {
+                msg(D_MANAGEMENT, "%s GID of socket peer (%d) doesn't match required value (%d) as given by --management-client-group",
+                    err_prefix, gid, man->settings.client_gid);
+                return false;
+            }
+        }
+        else
+        {
+            msg(D_MANAGEMENT, "%s cannot get UID/GID of socket peer", err_prefix);
+            return false;
+        }
     }
-  return true;
+    return true;
 }
-#endif
+#endif /* if UNIX_SOCK_SUPPORT */
 
 static void
-man_accept (struct management *man)
+man_accept(struct management *man)
 {
-  struct link_socket_actual act;
-  CLEAR (act);
+    struct link_socket_actual act;
+    CLEAR(act);
 
-  /*
-   * Accept the TCP or Unix domain socket client.
-   */
+    /*
+     * Accept the TCP or Unix domain socket client.
+     */
 #if UNIX_SOCK_SUPPORT
-  if (man->settings.flags & MF_UNIX_SOCK)
+    if (man->settings.flags & MF_UNIX_SOCK)
     {
-      struct sockaddr_un remote;
-      man->connection.sd_cli = socket_accept_unix (man->connection.sd_top, &remote);
-      if (!man_verify_unix_peer_uid_gid (man, man->connection.sd_cli))
-	sd_close (&man->connection.sd_cli);
+        struct sockaddr_un remote;
+        man->connection.sd_cli = socket_accept_unix(man->connection.sd_top, &remote);
+        if (!man_verify_unix_peer_uid_gid(man, man->connection.sd_cli))
+        {
+            sd_close(&man->connection.sd_cli);
+        }
     }
-  else
+    else
 #endif
-    man->connection.sd_cli = socket_do_accept (man->connection.sd_top, &act, false);
+    man->connection.sd_cli = socket_do_accept(man->connection.sd_top, &act, false);
 
-  if (socket_defined (man->connection.sd_cli))
+    if (socket_defined(man->connection.sd_cli))
     {
-      man->connection.remote = act.dest;
+        man->connection.remote = act.dest;
 
-      if (socket_defined (man->connection.sd_top))
-	{
+        if (socket_defined(man->connection.sd_top))
+        {
 #ifdef _WIN32
-	  man_stop_ne32 (man);
+            man_stop_ne32(man);
 #endif
-	}
+        }
 
-      man_new_connection_post (man, "Client connected from");
+        man_new_connection_post(man, "Client connected from");
     }
 }
 
 static void
-man_listen (struct management *man)
+man_listen(struct management *man)
 {
-  struct gc_arena gc = gc_new ();
+    struct gc_arena gc = gc_new();
 
-  /*
-   * Initialize state
-   */
-  man->connection.state = MS_LISTEN;
-  man->connection.sd_cli = SOCKET_UNDEFINED;
+    /*
+     * Initialize state
+     */
+    man->connection.state = MS_LISTEN;
+    man->connection.sd_cli = SOCKET_UNDEFINED;
 
-  /*
-   * Initialize listening socket
-   */
-  if (man->connection.sd_top == SOCKET_UNDEFINED)
+    /*
+     * Initialize listening socket
+     */
+    if (man->connection.sd_top == SOCKET_UNDEFINED)
     {
 #if UNIX_SOCK_SUPPORT
-      if (man->settings.flags & MF_UNIX_SOCK)
-	{
-	  man_delete_unix_socket (man);
-	  man->connection.sd_top = create_socket_unix ();
-	  socket_bind_unix (man->connection.sd_top, &man->settings.local_unix, "MANAGEMENT");
-	}
-      else
+        if (man->settings.flags & MF_UNIX_SOCK)
+        {
+            man_delete_unix_socket(man);
+            man->connection.sd_top = create_socket_unix();
+            socket_bind_unix(man->connection.sd_top, &man->settings.local_unix, "MANAGEMENT");
+        }
+        else
 #endif
-	{
-	  man->connection.sd_top = create_socket_tcp (man->settings.local);
-	  socket_bind (man->connection.sd_top, man->settings.local,
-                       man->settings.local->ai_family, "MANAGEMENT", false);
-	}
+        {
+            man->connection.sd_top = create_socket_tcp(man->settings.local);
+            socket_bind(man->connection.sd_top, man->settings.local,
+                        man->settings.local->ai_family, "MANAGEMENT", false);
+        }
 
-      /*
-       * Listen for connection
-       */
-      if (listen (man->connection.sd_top, 1))
-	msg (M_ERR, "MANAGEMENT: listen() failed");
+        /*
+         * Listen for connection
+         */
+        if (listen(man->connection.sd_top, 1))
+        {
+            msg(M_ERR, "MANAGEMENT: listen() failed");
+        }
 
-      /*
-       * Set misc socket properties
-       */
-      set_nonblock (man->connection.sd_top);
+        /*
+         * Set misc socket properties
+         */
+        set_nonblock(man->connection.sd_top);
 
 #if UNIX_SOCK_SUPPORT
-      if (man->settings.flags & MF_UNIX_SOCK)
-	{
-	  msg (D_MANAGEMENT, "MANAGEMENT: unix domain socket listening on %s",
-	       sockaddr_unix_name (&man->settings.local_unix, "NULL"));
-	}
-      else
+        if (man->settings.flags & MF_UNIX_SOCK)
+        {
+            msg(D_MANAGEMENT, "MANAGEMENT: unix domain socket listening on %s",
+                sockaddr_unix_name(&man->settings.local_unix, "NULL"));
+        }
+        else
 #endif
-	msg (D_MANAGEMENT, "MANAGEMENT: TCP Socket listening on %s",
-	     print_sockaddr (man->settings.local->ai_addr, &gc));
+        msg(D_MANAGEMENT, "MANAGEMENT: TCP Socket listening on %s",
+            print_sockaddr(man->settings.local->ai_addr, &gc));
     }
 
 #ifdef _WIN32
-  man_start_ne32 (man);
+    man_start_ne32(man);
 #endif
-  
-  gc_free (&gc);
+
+    gc_free(&gc);
 }
 
 static void
-man_connect (struct management *man)
+man_connect(struct management *man)
 {
-  struct gc_arena gc = gc_new ();
-  int status;
-  int signal_received = 0;
+    struct gc_arena gc = gc_new();
+    int status;
+    int signal_received = 0;
 
-  /*
-   * Initialize state
-   */
-  man->connection.state = MS_INITIAL;
-  man->connection.sd_top = SOCKET_UNDEFINED;
+    /*
+     * Initialize state
+     */
+    man->connection.state = MS_INITIAL;
+    man->connection.sd_top = SOCKET_UNDEFINED;
 
 #if UNIX_SOCK_SUPPORT
-  if (man->settings.flags & MF_UNIX_SOCK)
+    if (man->settings.flags & MF_UNIX_SOCK)
     {
-      man->connection.sd_cli = create_socket_unix ();
-      status = socket_connect_unix (man->connection.sd_cli, &man->settings.local_unix);
-      if (!status && !man_verify_unix_peer_uid_gid (man, man->connection.sd_cli))
-	  {
+        man->connection.sd_cli = create_socket_unix();
+        status = socket_connect_unix(man->connection.sd_cli, &man->settings.local_unix);
+        if (!status && !man_verify_unix_peer_uid_gid(man, man->connection.sd_cli))
+        {
 #ifdef EPERM
-	    status = EPERM;
+            status = EPERM;
 #else
-	    status = 1;
+            status = 1;
 #endif
-	    sd_close (&man->connection.sd_cli);
-	  }
+            sd_close(&man->connection.sd_cli);
+        }
     }
-  else
+    else
 #endif
     {
-      man->connection.sd_cli = create_socket_tcp (man->settings.local);
-      status = openvpn_connect (man->connection.sd_cli,
-				man->settings.local->ai_addr,
-				5,
-				&signal_received);
+        man->connection.sd_cli = create_socket_tcp(man->settings.local);
+        status = openvpn_connect(man->connection.sd_cli,
+                                 man->settings.local->ai_addr,
+                                 5,
+                                 &signal_received);
     }
 
-  if (signal_received)
+    if (signal_received)
     {
-      throw_signal (signal_received);
-      goto done;
+        throw_signal(signal_received);
+        goto done;
     }
 
-  if (status)
+    if (status)
     {
 #if UNIX_SOCK_SUPPORT
-      if (man->settings.flags & MF_UNIX_SOCK)
-	{
-	  msg (D_LINK_ERRORS,
-	       "MANAGEMENT: connect to unix socket %s failed: %s",
-	       sockaddr_unix_name (&man->settings.local_unix, "NULL"),
-	       strerror_ts (status, &gc));
-	}
-      else
+        if (man->settings.flags & MF_UNIX_SOCK)
+        {
+            msg(D_LINK_ERRORS,
+                "MANAGEMENT: connect to unix socket %s failed: %s",
+                sockaddr_unix_name(&man->settings.local_unix, "NULL"),
+                strerror_ts(status, &gc));
+        }
+        else
 #endif
-      msg (D_LINK_ERRORS,
-	   "MANAGEMENT: connect to %s failed: %s",
-	   print_sockaddr (man->settings.local->ai_addr, &gc),
-	   strerror_ts (status, &gc));
-      throw_signal_soft (SIGTERM, "management-connect-failed");
-      goto done;
+        msg(D_LINK_ERRORS,
+            "MANAGEMENT: connect to %s failed: %s",
+            print_sockaddr(man->settings.local->ai_addr, &gc),
+            strerror_ts(status, &gc));
+        throw_signal_soft(SIGTERM, "management-connect-failed");
+        goto done;
     }
 
-  man_record_peer_info (man);
-  man_new_connection_post (man, "Connected to management server at");
+    man_record_peer_info(man);
+    man_new_connection_post(man, "Connected to management server at");
 
- done:
-  gc_free (&gc);
+done:
+    gc_free(&gc);
 }
 
 static void
-man_reset_client_socket (struct management *man, const bool exiting)
+man_reset_client_socket(struct management *man, const bool exiting)
 {
-  if (socket_defined (man->connection.sd_cli))
+    if (socket_defined(man->connection.sd_cli))
     {
 #ifdef _WIN32
-      man_stop_ne32 (man);
+        man_stop_ne32(man);
 #endif
-      man_close_socket (man, man->connection.sd_cli);
-      man->connection.sd_cli = SOCKET_UNDEFINED;
-      man->connection.state = MS_INITIAL;
-      command_line_reset (man->connection.in);
-      buffer_list_reset (man->connection.out);
+        man_close_socket(man, man->connection.sd_cli);
+        man->connection.sd_cli = SOCKET_UNDEFINED;
+        man->connection.state = MS_INITIAL;
+        command_line_reset(man->connection.in);
+        buffer_list_reset(man->connection.out);
 #ifdef MANAGEMENT_IN_EXTRA
-      in_extra_reset (&man->connection, IER_RESET);
+        in_extra_reset(&man->connection, IER_RESET);
 #endif
-      msg (D_MANAGEMENT, "MANAGEMENT: Client disconnected");
+        msg(D_MANAGEMENT, "MANAGEMENT: Client disconnected");
     }
-  if (!exiting)
+    if (!exiting)
     {
 #ifdef ENABLE_CRYPTO
-      if (man->settings.flags & MF_FORGET_DISCONNECT)
-	ssl_purge_auth (false);
+        if (man->settings.flags & MF_FORGET_DISCONNECT)
+        {
+            ssl_purge_auth(false);
+        }
 #endif
-      if (man->settings.flags & MF_SIGNAL) {
-      	  int mysig = man_mod_signal (man, SIGUSR1);
-	  if (mysig >= 0)
-	    {
-	      msg (D_MANAGEMENT, "MANAGEMENT: Triggering management signal");
-	      throw_signal_soft (mysig, "management-disconnect");
-	    }
-      }
+        if (man->settings.flags & MF_SIGNAL)
+        {
+            int mysig = man_mod_signal(man, SIGUSR1);
+            if (mysig >= 0)
+            {
+                msg(D_MANAGEMENT, "MANAGEMENT: Triggering management signal");
+                throw_signal_soft(mysig, "management-disconnect");
+            }
+        }
 
-      if (man->settings.flags & MF_CONNECT_AS_CLIENT)
-	{
-	  msg (D_MANAGEMENT, "MANAGEMENT: Triggering management exit");
-	  throw_signal_soft (SIGTERM, "management-exit");
-	}
-      else
-	man_listen (man);
+        if (man->settings.flags & MF_CONNECT_AS_CLIENT)
+        {
+            msg(D_MANAGEMENT, "MANAGEMENT: Triggering management exit");
+            throw_signal_soft(SIGTERM, "management-exit");
+        }
+        else
+        {
+            man_listen(man);
+        }
     }
 }
 
 static void
-man_process_command (struct management *man, const char *line)
+man_process_command(struct management *man, const char *line)
 {
-  struct gc_arena gc = gc_new ();
-  struct status_output *so;
-  int nparms;
-  char *parms[MAX_PARMS+1];
+    struct gc_arena gc = gc_new();
+    struct status_output *so;
+    int nparms;
+    char *parms[MAX_PARMS+1];
 
-  CLEAR (parms);
-  so = status_open (NULL, 0, -1, &man->persist.vout, 0);
+    CLEAR(parms);
+    so = status_open(NULL, 0, -1, &man->persist.vout, 0);
 #ifdef MANAGEMENT_IN_EXTRA
-  in_extra_reset (&man->connection, IER_RESET);
+    in_extra_reset(&man->connection, IER_RESET);
 #endif
 
-  if (man_password_needed (man))
+    if (man_password_needed(man))
     {
-      man_check_password (man, line);
+        man_check_password(man, line);
     }
-  else
+    else
     {
-      nparms = parse_line (line, parms, MAX_PARMS, "TCP", 0, M_CLIENT, &gc);
-      if (parms[0] && streq (parms[0], "password"))
-	msg (D_MANAGEMENT_DEBUG, "MANAGEMENT: CMD 'password [...]'");
-      else if (!streq (line, "load-stats"))
-	msg (D_MANAGEMENT_DEBUG, "MANAGEMENT: CMD '%s'", line);
+        nparms = parse_line(line, parms, MAX_PARMS, "TCP", 0, M_CLIENT, &gc);
+        if (parms[0] && streq(parms[0], "password"))
+        {
+            msg(D_MANAGEMENT_DEBUG, "MANAGEMENT: CMD 'password [...]'");
+        }
+        else if (!streq(line, "load-stats"))
+        {
+            msg(D_MANAGEMENT_DEBUG, "MANAGEMENT: CMD '%s'", line);
+        }
 
 #if 0
-      /* DEBUGGING -- print args */
-      {
-	int i;
-	for (i = 0; i < nparms; ++i)
-	  msg (M_INFO, "[%d] '%s'", i, parms[i]);
-      }
+        /* DEBUGGING -- print args */
+        {
+            int i;
+            for (i = 0; i < nparms; ++i)
+                msg(M_INFO, "[%d] '%s'", i, parms[i]);
+        }
 #endif
 
-      if (nparms > 0)
-	man_dispatch_command (man, so, (const char **)parms, nparms);
+        if (nparms > 0)
+        {
+            man_dispatch_command(man, so, (const char **)parms, nparms);
+        }
     }
 
-  CLEAR (parms);
-  status_close (so);
-  gc_free (&gc);
+    CLEAR(parms);
+    status_close(so);
+    gc_free(&gc);
 }
 
 static bool
-man_io_error (struct management *man, const char *prefix)
+man_io_error(struct management *man, const char *prefix)
 {
-  const int err = openvpn_errno ();
+    const int err = openvpn_errno();
 
-  if (!ignore_sys_error (err))
+    if (!ignore_sys_error(err))
     {
-      struct gc_arena gc = gc_new ();
-      msg (D_MANAGEMENT, "MANAGEMENT: TCP %s error: %s",
-	   prefix,
-	   strerror_ts (err, &gc));
-      gc_free (&gc);
-      return true;
+        struct gc_arena gc = gc_new();
+        msg(D_MANAGEMENT, "MANAGEMENT: TCP %s error: %s",
+            prefix,
+            strerror_ts(err, &gc));
+        gc_free(&gc);
+        return true;
     }
-  else
-    return false;
+    else
+    {
+        return false;
+    }
 }
 
 #ifdef TARGET_ANDROID
-static ssize_t man_send_with_fd (int fd, void *ptr, size_t nbytes, int flags, int sendfd)
+static ssize_t
+man_send_with_fd(int fd, void *ptr, size_t nbytes, int flags, int sendfd)
 {
-  struct msghdr msg;
-  struct iovec iov[1];
+    struct msghdr msg;
+    struct iovec iov[1];
 
-  union {
-    struct cmsghdr cm;
-    char    control[CMSG_SPACE(sizeof(int))];
-  } control_un;
-  struct cmsghdr *cmptr;
+    union {
+        struct cmsghdr cm;
+        char control[CMSG_SPACE(sizeof(int))];
+    } control_un;
+    struct cmsghdr *cmptr;
 
-  msg.msg_control = control_un.control;
-  msg.msg_controllen = sizeof(control_un.control);
+    msg.msg_control = control_un.control;
+    msg.msg_controllen = sizeof(control_un.control);
 
-  cmptr = CMSG_FIRSTHDR(&msg);
-  cmptr->cmsg_len = CMSG_LEN(sizeof(int));
-  cmptr->cmsg_level = SOL_SOCKET;
-  cmptr->cmsg_type = SCM_RIGHTS;
-  *((int *) CMSG_DATA(cmptr)) = sendfd;
+    cmptr = CMSG_FIRSTHDR(&msg);
+    cmptr->cmsg_len = CMSG_LEN(sizeof(int));
+    cmptr->cmsg_level = SOL_SOCKET;
+    cmptr->cmsg_type = SCM_RIGHTS;
+    *((int *) CMSG_DATA(cmptr)) = sendfd;
 
-  msg.msg_name = NULL;
-  msg.msg_namelen = 0;
+    msg.msg_name = NULL;
+    msg.msg_namelen = 0;
 
-  iov[0].iov_base = ptr;
-  iov[0].iov_len = nbytes;
-  msg.msg_iov = iov;
-  msg.msg_iovlen = 1;
+    iov[0].iov_base = ptr;
+    iov[0].iov_len = nbytes;
+    msg.msg_iov = iov;
+    msg.msg_iovlen = 1;
 
-  return (sendmsg(fd, &msg, flags));
+    return (sendmsg(fd, &msg, flags));
 }
 
-static ssize_t man_recv_with_fd (int fd, void *ptr, size_t nbytes, int flags, int *recvfd)
+static ssize_t
+man_recv_with_fd(int fd, void *ptr, size_t nbytes, int flags, int *recvfd)
 {
-  struct msghdr msghdr;
-  struct iovec iov[1];
-  ssize_t n;
+    struct msghdr msghdr;
+    struct iovec iov[1];
+    ssize_t n;
 
-  union {
-    struct cmsghdr cm;
-    char     control[CMSG_SPACE(sizeof (int))];
-  } control_un;
-  struct cmsghdr  *cmptr;
+    union {
+        struct cmsghdr cm;
+        char control[CMSG_SPACE(sizeof(int))];
+    } control_un;
+    struct cmsghdr  *cmptr;
 
-  msghdr.msg_control  = control_un.control;
-  msghdr.msg_controllen = sizeof(control_un.control);
+    msghdr.msg_control  = control_un.control;
+    msghdr.msg_controllen = sizeof(control_un.control);
 
-  msghdr.msg_name = NULL;
-  msghdr.msg_namelen = 0;
+    msghdr.msg_name = NULL;
+    msghdr.msg_namelen = 0;
 
-  iov[0].iov_base = ptr;
-  iov[0].iov_len = nbytes;
-  msghdr.msg_iov = iov;
-  msghdr.msg_iovlen = 1;
+    iov[0].iov_base = ptr;
+    iov[0].iov_len = nbytes;
+    msghdr.msg_iov = iov;
+    msghdr.msg_iovlen = 1;
 
-  if ( (n = recvmsg(fd, &msghdr, flags)) <= 0)
+    if ( (n = recvmsg(fd, &msghdr, flags)) <= 0)
+    {
+        return (n);
+    }
+
+    if ( (cmptr = CMSG_FIRSTHDR(&msghdr)) != NULL
+         && cmptr->cmsg_len == CMSG_LEN(sizeof(int)))
+    {
+        if (cmptr->cmsg_level != SOL_SOCKET)
+        {
+            msg(M_ERR, "control level != SOL_SOCKET");
+        }
+        if (cmptr->cmsg_type != SCM_RIGHTS)
+        {
+            msg(M_ERR, "control type != SCM_RIGHTS");
+        }
+        *recvfd = *((int *) CMSG_DATA(cmptr));
+    }
+    else
+    {
+        *recvfd = -1;       /* descriptor was not passed */
+
+    }
     return (n);
-
-  if ( (cmptr = CMSG_FIRSTHDR(&msghdr)) != NULL &&
-       cmptr->cmsg_len == CMSG_LEN(sizeof(int))) {
-    if (cmptr->cmsg_level != SOL_SOCKET)
-      msg (M_ERR, "control level != SOL_SOCKET");
-    if (cmptr->cmsg_type != SCM_RIGHTS)
-      msg (M_ERR, "control type != SCM_RIGHTS");
-    *recvfd = *((int *) CMSG_DATA(cmptr));
-  } else
-    *recvfd = -1;           /* descriptor was not passed */
-
-  return (n);
 }
 
 /*
  * The android control method will instruct the GUI part of openvpn to do
  * the route/ifconfig/open tun command.   See doc/android.txt for details.
  */
-bool management_android_control (struct management *man, const char *command, const char *msg)
+bool
+management_android_control(struct management *man, const char *command, const char *msg)
 {
-  struct user_pass up;
-  CLEAR(up);
-  strncpy (up.username, msg, sizeof(up.username)-1);
+    struct user_pass up;
+    CLEAR(up);
+    strncpy(up.username, msg, sizeof(up.username)-1);
 
-  management_query_user_pass(management, &up , command, GET_USER_PASS_NEED_OK,(void*) 0);
-  return strcmp ("ok", up.password)==0;
+    management_query_user_pass(management, &up, command, GET_USER_PASS_NEED_OK,(void *) 0);
+    return strcmp("ok", up.password)==0;
 }
 
 /*
@@ -1926,1020 +2123,1145 @@ bool management_android_control (struct management *man, const char *command, co
  * is rebooted. This management method ask the UI what method should be taken to
  * ensure the optimal solution for the situation
  */
-int managment_android_persisttun_action (struct management *man)
+int
+managment_android_persisttun_action(struct management *man)
 {
-  struct user_pass up;
-  CLEAR(up);
-  strcpy(up.username,"tunmethod");
-  management_query_user_pass(management, &up , "PERSIST_TUN_ACTION",
-			     GET_USER_PASS_NEED_OK,(void*) 0);
-  if (!strcmp("NOACTION", up.password))
-    return ANDROID_KEEP_OLD_TUN;
-  else if (!strcmp ("OPEN_AFTER_CLOSE", up.password))
+    struct user_pass up;
+    CLEAR(up);
+    strcpy(up.username,"tunmethod");
+    management_query_user_pass(management, &up, "PERSIST_TUN_ACTION",
+                               GET_USER_PASS_NEED_OK,(void *) 0);
+    if (!strcmp("NOACTION", up.password))
+    {
+        return ANDROID_KEEP_OLD_TUN;
+    }
+    else if (!strcmp("OPEN_AFTER_CLOSE", up.password))
+    {
+        return ANDROID_OPEN_AFTER_CLOSE;
+    }
+    else if (!strcmp("OPEN_BEFORE_CLOSE", up.password))
+    {
+        return ANDROID_OPEN_BEFORE_CLOSE;
+    }
+    else
+    {
+        msg(M_ERR, "Got unrecognised '%s' from management for PERSIST_TUN_ACTION query", up.password);
+    }
+
+    ASSERT(0);
     return ANDROID_OPEN_AFTER_CLOSE;
-  else if (!strcmp ("OPEN_BEFORE_CLOSE", up.password))
-    return ANDROID_OPEN_BEFORE_CLOSE;
-  else
-    msg (M_ERR, "Got unrecognised '%s' from management for PERSIST_TUN_ACTION query", up.password);
-
-  ASSERT(0);
-  return ANDROID_OPEN_AFTER_CLOSE;
 }
 
 
-#endif
+#endif /* ifdef TARGET_ANDROID */
 
 static int
-man_read (struct management *man)
+man_read(struct management *man)
 {
-  /*
-   * read command line from socket
-   */
-  unsigned char buf[256];
-  int len = 0;
+    /*
+     * read command line from socket
+     */
+    unsigned char buf[256];
+    int len = 0;
 
 #ifdef TARGET_ANDROID
-  int fd;
-  len = man_recv_with_fd (man->connection.sd_cli, buf, sizeof (buf), MSG_NOSIGNAL, &fd);
-  if(fd >= 0)
-     man->connection.lastfdreceived = fd;
-#else
-  len = recv (man->connection.sd_cli, buf, sizeof (buf), MSG_NOSIGNAL);
+    int fd;
+    len = man_recv_with_fd(man->connection.sd_cli, buf, sizeof(buf), MSG_NOSIGNAL, &fd);
+    if (fd >= 0)
+    {
+        man->connection.lastfdreceived = fd;
+    }
+#else  /* ifdef TARGET_ANDROID */
+    len = recv(man->connection.sd_cli, buf, sizeof(buf), MSG_NOSIGNAL);
 #endif
 
-  if (len == 0)
+    if (len == 0)
     {
-      man_reset_client_socket (man, false);
+        man_reset_client_socket(man, false);
     }
-  else if (len > 0)
+    else if (len > 0)
     {
-      bool processed_command = false;
+        bool processed_command = false;
 
-      ASSERT (len <= (int) sizeof (buf));
-      command_line_add (man->connection.in, buf, len);
+        ASSERT(len <= (int) sizeof(buf));
+        command_line_add(man->connection.in, buf, len);
 
-      /*
-       * Reset output object
-       */
-      buffer_list_reset (man->connection.out);
+        /*
+         * Reset output object
+         */
+        buffer_list_reset(man->connection.out);
 
-      /*
-       * process command line if complete
-       */
-      {
-	const unsigned char *line;
-	while ((line = command_line_get (man->connection.in)))
-	  {
-#ifdef MANAGEMENT_IN_EXTRA
-	    if (man->connection.in_extra)
-	      {
-		if (!strcmp ((char *)line, "END"))
-		  in_extra_dispatch (man);
-		else
-		  buffer_list_push (man->connection.in_extra, line);
-	      }
-	    else
-#endif
-	      man_process_command (man, (char *) line);
-	    if (man->connection.halt)
-	      break;
-	    command_line_next (man->connection.in);
-	    processed_command = true;
-	  }
-      }
-
-      /*
-       * Reset output state to MS_CC_WAIT_(READ|WRITE)
-       */
-      if (man->connection.halt)
-	{
-	  man_reset_client_socket (man, false);
-	  len = 0;
-	}
-      else
-	{
-	  if (processed_command)
-	    man_prompt (man);
-	  man_update_io_state (man);
-	}
-    }
-  else /* len < 0 */
-    {
-      if (man_io_error (man, "recv"))
-	man_reset_client_socket (man, false);
-    }
-  return len;
-}
-
-static int
-man_write (struct management *man)
-{
-  const int size_hint = 1024;
-  int sent = 0;
-  const struct buffer *buf;
-
-  buffer_list_aggregate(man->connection.out, size_hint);
-  buf = buffer_list_peek (man->connection.out);
-  if (buf && BLEN (buf))
-    {
-      const int len = min_int (size_hint, BLEN (buf));
-#ifdef TARGET_ANDROID
-      if (man->connection.fdtosend > 0)
+        /*
+         * process command line if complete
+         */
         {
-         sent = man_send_with_fd (man->connection.sd_cli, BPTR (buf), len, MSG_NOSIGNAL,man->connection.fdtosend);
-            man->connection.fdtosend = -1;
-        } else
+            const unsigned char *line;
+            while ((line = command_line_get(man->connection.in)))
+            {
+#ifdef MANAGEMENT_IN_EXTRA
+                if (man->connection.in_extra)
+                {
+                    if (!strcmp((char *)line, "END"))
+                    {
+                        in_extra_dispatch(man);
+                    }
+                    else
+                    {
+                        buffer_list_push(man->connection.in_extra, line);
+                    }
+                }
+                else
 #endif
-      sent = send (man->connection.sd_cli, BPTR (buf), len, MSG_NOSIGNAL);
-      if (sent >= 0)
-	{
-	  buffer_list_advance (man->connection.out, sent);
-	}
-      else if (sent < 0)
-	{
-	  if (man_io_error (man, "send"))
-	    man_reset_client_socket (man, false);
-	}
+                man_process_command(man, (char *) line);
+                if (man->connection.halt)
+                {
+                    break;
+                }
+                command_line_next(man->connection.in);
+                processed_command = true;
+            }
+        }
+
+        /*
+         * Reset output state to MS_CC_WAIT_(READ|WRITE)
+         */
+        if (man->connection.halt)
+        {
+            man_reset_client_socket(man, false);
+            len = 0;
+        }
+        else
+        {
+            if (processed_command)
+            {
+                man_prompt(man);
+            }
+            man_update_io_state(man);
+        }
+    }
+    else /* len < 0 */
+    {
+        if (man_io_error(man, "recv"))
+        {
+            man_reset_client_socket(man, false);
+        }
+    }
+    return len;
+}
+
+static int
+man_write(struct management *man)
+{
+    const int size_hint = 1024;
+    int sent = 0;
+    const struct buffer *buf;
+
+    buffer_list_aggregate(man->connection.out, size_hint);
+    buf = buffer_list_peek(man->connection.out);
+    if (buf && BLEN(buf))
+    {
+        const int len = min_int(size_hint, BLEN(buf));
+#ifdef TARGET_ANDROID
+        if (man->connection.fdtosend > 0)
+        {
+            sent = man_send_with_fd(man->connection.sd_cli, BPTR(buf), len, MSG_NOSIGNAL,man->connection.fdtosend);
+            man->connection.fdtosend = -1;
+        }
+        else
+#endif
+        sent = send(man->connection.sd_cli, BPTR(buf), len, MSG_NOSIGNAL);
+        if (sent >= 0)
+        {
+            buffer_list_advance(man->connection.out, sent);
+        }
+        else if (sent < 0)
+        {
+            if (man_io_error(man, "send"))
+            {
+                man_reset_client_socket(man, false);
+            }
+        }
     }
 
-  /*
-   * Reset output state to MS_CC_WAIT_(READ|WRITE)
-   */
-  man_update_io_state (man);
+    /*
+     * Reset output state to MS_CC_WAIT_(READ|WRITE)
+     */
+    man_update_io_state(man);
 
-  return sent;
+    return sent;
 }
 
 static void
-man_connection_clear (struct man_connection *mc)
+man_connection_clear(struct man_connection *mc)
 {
-  CLEAR (*mc);
+    CLEAR(*mc);
 
-  /* set initial state */
-  mc->state = MS_INITIAL;
+    /* set initial state */
+    mc->state = MS_INITIAL;
 
-  /* clear socket descriptors */
-  mc->sd_top = SOCKET_UNDEFINED;
-  mc->sd_cli = SOCKET_UNDEFINED;
+    /* clear socket descriptors */
+    mc->sd_top = SOCKET_UNDEFINED;
+    mc->sd_cli = SOCKET_UNDEFINED;
 }
 
 static void
-man_persist_init (struct management *man,
-		  const int log_history_cache,
-		  const int echo_buffer_size,
-		  const int state_buffer_size)
+man_persist_init(struct management *man,
+                 const int log_history_cache,
+                 const int echo_buffer_size,
+                 const int state_buffer_size)
 {
-  struct man_persist *mp = &man->persist;
-  if (!mp->defined)
+    struct man_persist *mp = &man->persist;
+    if (!mp->defined)
     {
-      CLEAR (*mp);
+        CLEAR(*mp);
 
-      /* initialize log history store */
-      mp->log = log_history_init (log_history_cache);  
+        /* initialize log history store */
+        mp->log = log_history_init(log_history_cache);
 
-      /*
-       * Initialize virtual output object, so that functions
-       * which write to a virtual_output object can be redirected
-       * here to the management object.
-       */
-      mp->vout.func = virtual_output_callback_func;
-      mp->vout.arg = man;
-      mp->vout.flags_default = M_CLIENT;
-      msg_set_virtual_output (&mp->vout);
+        /*
+         * Initialize virtual output object, so that functions
+         * which write to a virtual_output object can be redirected
+         * here to the management object.
+         */
+        mp->vout.func = virtual_output_callback_func;
+        mp->vout.arg = man;
+        mp->vout.flags_default = M_CLIENT;
+        msg_set_virtual_output(&mp->vout);
 
-      /*
-       * Initialize --echo list
-       */
-      man->persist.echo = log_history_init (echo_buffer_size);
+        /*
+         * Initialize --echo list
+         */
+        man->persist.echo = log_history_init(echo_buffer_size);
 
-      /*
-       * Initialize --state list
-       */
-      man->persist.state = log_history_init (state_buffer_size);
+        /*
+         * Initialize --state list
+         */
+        man->persist.state = log_history_init(state_buffer_size);
 
-      mp->defined = true;
+        mp->defined = true;
     }
 }
 
 static void
-man_persist_close (struct man_persist *mp)
+man_persist_close(struct man_persist *mp)
 {
-  if (mp->log)
+    if (mp->log)
     {
-      msg_set_virtual_output (NULL);
-      log_history_close (mp->log);
+        msg_set_virtual_output(NULL);
+        log_history_close(mp->log);
     }
 
-  if (mp->echo)
-    log_history_close (mp->echo);
-
-  if (mp->state)
-    log_history_close (mp->state);
-
-  CLEAR (*mp);
-}
-      
-static void
-man_settings_init (struct man_settings *ms,
-		   const char *addr,
-		   const char *port,
-		   const char *pass_file,
-		   const char *client_user,
-		   const char *client_group,
-		   const int log_history_cache,
-		   const int echo_buffer_size,
-		   const int state_buffer_size,
-		   const char *write_peer_info_file,
-		   const int remap_sigusr1,
-		   const unsigned int flags)
-{
-  if (!ms->defined)
+    if (mp->echo)
     {
-      CLEAR (*ms);
+        log_history_close(mp->echo);
+    }
 
-      ms->flags = flags;
-      ms->client_uid = -1;
-      ms->client_gid = -1;
+    if (mp->state)
+    {
+        log_history_close(mp->state);
+    }
 
-      /*
-       * Get username/password
-       */
-      if (pass_file)
-	get_user_pass (&ms->up, pass_file, "Management", GET_USER_PASS_PASSWORD_ONLY);
+    CLEAR(*mp);
+}
 
-      /*
-       * lookup client UID/GID if specified
-       */
-      if (client_user)
-	{
-	  struct platform_state_user s;
-	  platform_user_get (client_user, &s);
-	  ms->client_uid = platform_state_user_uid (&s);
-	  msg (D_MANAGEMENT, "MANAGEMENT: client_uid=%d", ms->client_uid);
-	  ASSERT (ms->client_uid >= 0);
-	}
-      if (client_group)
-	{
-	  struct platform_state_group s;
-	  platform_group_get (client_group, &s);
-	  ms->client_gid = platform_state_group_gid (&s);
-	  msg (D_MANAGEMENT, "MANAGEMENT: client_gid=%d", ms->client_gid);
-	  ASSERT (ms->client_gid >= 0);
-	}
+static void
+man_settings_init(struct man_settings *ms,
+                  const char *addr,
+                  const char *port,
+                  const char *pass_file,
+                  const char *client_user,
+                  const char *client_group,
+                  const int log_history_cache,
+                  const int echo_buffer_size,
+                  const int state_buffer_size,
+                  const char *write_peer_info_file,
+                  const int remap_sigusr1,
+                  const unsigned int flags)
+{
+    if (!ms->defined)
+    {
+        CLEAR(*ms);
 
-      ms->write_peer_info_file = string_alloc (write_peer_info_file, NULL);
+        ms->flags = flags;
+        ms->client_uid = -1;
+        ms->client_gid = -1;
+
+        /*
+         * Get username/password
+         */
+        if (pass_file)
+        {
+            get_user_pass(&ms->up, pass_file, "Management", GET_USER_PASS_PASSWORD_ONLY);
+        }
+
+        /*
+         * lookup client UID/GID if specified
+         */
+        if (client_user)
+        {
+            struct platform_state_user s;
+            platform_user_get(client_user, &s);
+            ms->client_uid = platform_state_user_uid(&s);
+            msg(D_MANAGEMENT, "MANAGEMENT: client_uid=%d", ms->client_uid);
+            ASSERT(ms->client_uid >= 0);
+        }
+        if (client_group)
+        {
+            struct platform_state_group s;
+            platform_group_get(client_group, &s);
+            ms->client_gid = platform_state_group_gid(&s);
+            msg(D_MANAGEMENT, "MANAGEMENT: client_gid=%d", ms->client_gid);
+            ASSERT(ms->client_gid >= 0);
+        }
+
+        ms->write_peer_info_file = string_alloc(write_peer_info_file, NULL);
 
 #if UNIX_SOCK_SUPPORT
-      if (ms->flags & MF_UNIX_SOCK)
-	sockaddr_unix_init (&ms->local_unix, addr);
-      else
+        if (ms->flags & MF_UNIX_SOCK)
+        {
+            sockaddr_unix_init(&ms->local_unix, addr);
+        }
+        else
 #endif
-	{
+        {
 
-	  /*
-	   * Run management over tunnel, or
-	   * separate channel?
-	   */
-	  if (streq (addr, "tunnel") && !(flags & MF_CONNECT_AS_CLIENT))
-	    {
-	      ms->management_over_tunnel = true;
-	    }
-	  else
-	    {
-	      int status;
-	      int resolve_flags = GETADDR_RESOLVE|GETADDR_WARN_ON_SIGNAL|GETADDR_FATAL;
+            /*
+             * Run management over tunnel, or
+             * separate channel?
+             */
+            if (streq(addr, "tunnel") && !(flags & MF_CONNECT_AS_CLIENT))
+            {
+                ms->management_over_tunnel = true;
+            }
+            else
+            {
+                int status;
+                int resolve_flags = GETADDR_RESOLVE|GETADDR_WARN_ON_SIGNAL|GETADDR_FATAL;
 
-	      if (! (flags & MF_CONNECT_AS_CLIENT))
-		  resolve_flags |= GETADDR_PASSIVE;
+                if (!(flags & MF_CONNECT_AS_CLIENT))
+                {
+                    resolve_flags |= GETADDR_PASSIVE;
+                }
 
-              status = openvpn_getaddrinfo (resolve_flags, addr, port, 0,
-					    NULL, AF_UNSPEC, &ms->local);
-              ASSERT(status==0);
-	    }
-	}
-      
-      /*
-       * Log history and echo buffer may need to be resized
-       */
-      ms->log_history_cache = log_history_cache;
-      ms->echo_buffer_size = echo_buffer_size;
-      ms->state_buffer_size = state_buffer_size;
+                status = openvpn_getaddrinfo(resolve_flags, addr, port, 0,
+                                             NULL, AF_UNSPEC, &ms->local);
+                ASSERT(status==0);
+            }
+        }
 
-      /*
-       * Set remap sigusr1 flags
-       */
-      if (remap_sigusr1 == SIGHUP)
-	ms->mansig |= MANSIG_MAP_USR1_TO_HUP;
-      else if (remap_sigusr1 == SIGTERM)
-	ms->mansig |= MANSIG_MAP_USR1_TO_TERM;
+        /*
+         * Log history and echo buffer may need to be resized
+         */
+        ms->log_history_cache = log_history_cache;
+        ms->echo_buffer_size = echo_buffer_size;
+        ms->state_buffer_size = state_buffer_size;
 
-      ms->defined = true;
+        /*
+         * Set remap sigusr1 flags
+         */
+        if (remap_sigusr1 == SIGHUP)
+        {
+            ms->mansig |= MANSIG_MAP_USR1_TO_HUP;
+        }
+        else if (remap_sigusr1 == SIGTERM)
+        {
+            ms->mansig |= MANSIG_MAP_USR1_TO_TERM;
+        }
+
+        ms->defined = true;
     }
 }
 
 static void
-man_settings_close (struct man_settings *ms)
+man_settings_close(struct man_settings *ms)
 {
-  if (ms->local)
-    freeaddrinfo(ms->local);
-  free (ms->write_peer_info_file);
-  CLEAR (*ms);
+    if (ms->local)
+    {
+        freeaddrinfo(ms->local);
+    }
+    free(ms->write_peer_info_file);
+    CLEAR(*ms);
 }
 
 
 static void
-man_connection_init (struct management *man)
+man_connection_init(struct management *man)
 {
-  if (man->connection.state == MS_INITIAL)
+    if (man->connection.state == MS_INITIAL)
     {
 #ifdef _WIN32
-      /*
-       * This object is a sort of TCP/IP helper
-       * for Windows.
-       */
-      net_event_win32_init (&man->connection.ne32);
+        /*
+         * This object is a sort of TCP/IP helper
+         * for Windows.
+         */
+        net_event_win32_init(&man->connection.ne32);
 #endif
 
-      /*
-       * Allocate helper objects for command line input and
-       * command output from/to the socket.
-       */
-      man->connection.in = command_line_new (1024);
-      man->connection.out = buffer_list_new (0);
+        /*
+         * Allocate helper objects for command line input and
+         * command output from/to the socket.
+         */
+        man->connection.in = command_line_new(1024);
+        man->connection.out = buffer_list_new(0);
 
-      /*
-       * Initialize event set for standalone usage, when we are
-       * running outside of the primary event loop.
-       */
-      {
-	int maxevents = 1;
-	man->connection.es = event_set_init (&maxevents, EVENT_METHOD_FAST);
-      }
+        /*
+         * Initialize event set for standalone usage, when we are
+         * running outside of the primary event loop.
+         */
+        {
+            int maxevents = 1;
+            man->connection.es = event_set_init(&maxevents, EVENT_METHOD_FAST);
+        }
 
-      /*
-       * Listen/connect socket
-       */
-      if (man->settings.flags & MF_CONNECT_AS_CLIENT)
-	man_connect (man);
-      else
-	man_listen (man);
+        /*
+         * Listen/connect socket
+         */
+        if (man->settings.flags & MF_CONNECT_AS_CLIENT)
+        {
+            man_connect(man);
+        }
+        else
+        {
+            man_listen(man);
+        }
     }
 }
 
 static void
-man_connection_close (struct management *man)
+man_connection_close(struct management *man)
 {
-  struct man_connection *mc = &man->connection;
+    struct man_connection *mc = &man->connection;
 
-  if (mc->es)
-    event_free (mc->es);
-#ifdef _WIN32
-  net_event_win32_close (&mc->ne32);
-#endif
-  if (socket_defined (mc->sd_top))
+    if (mc->es)
     {
-      man_close_socket (man, mc->sd_top);
-      man_delete_unix_socket (man);
+        event_free(mc->es);
     }
-  if (socket_defined (mc->sd_cli))
-    man_close_socket (man, mc->sd_cli);
-  if (mc->in)
-    command_line_free (mc->in);
-  if (mc->out)
-    buffer_list_free (mc->out);
+#ifdef _WIN32
+    net_event_win32_close(&mc->ne32);
+#endif
+    if (socket_defined(mc->sd_top))
+    {
+        man_close_socket(man, mc->sd_top);
+        man_delete_unix_socket(man);
+    }
+    if (socket_defined(mc->sd_cli))
+    {
+        man_close_socket(man, mc->sd_cli);
+    }
+    if (mc->in)
+    {
+        command_line_free(mc->in);
+    }
+    if (mc->out)
+    {
+        buffer_list_free(mc->out);
+    }
 #ifdef MANAGEMENT_IN_EXTRA
-  in_extra_reset (&man->connection, IER_RESET);
+    in_extra_reset(&man->connection, IER_RESET);
 #endif
 #ifdef MANAGMENT_EXTERNAL_KEY
-  buffer_list_free (mc->ext_key_input);
+    buffer_list_free(mc->ext_key_input);
 #endif
-  man_connection_clear (mc);
+    man_connection_clear(mc);
 }
 
 struct management *
-management_init (void)
+management_init(void)
 {
-  struct management *man;
-  ALLOC_OBJ_CLEAR (man, struct management);
+    struct management *man;
+    ALLOC_OBJ_CLEAR(man, struct management);
 
-  man_persist_init (man,
-		    MANAGEMENT_LOG_HISTORY_INITIAL_SIZE,
-		    MANAGEMENT_ECHO_BUFFER_SIZE,
-		    MANAGEMENT_STATE_BUFFER_SIZE);
+    man_persist_init(man,
+                     MANAGEMENT_LOG_HISTORY_INITIAL_SIZE,
+                     MANAGEMENT_ECHO_BUFFER_SIZE,
+                     MANAGEMENT_STATE_BUFFER_SIZE);
 
-  man_connection_clear (&man->connection);
+    man_connection_clear(&man->connection);
 
-  return man;
+    return man;
 }
 
 bool
-management_open (struct management *man,
-		 const char *addr,
-		 const char *port,
-		 const char *pass_file,
-		 const char *client_user,
-		 const char *client_group,
-		 const int log_history_cache,
-		 const int echo_buffer_size,
-		 const int state_buffer_size,
-		 const char *write_peer_info_file,
-		 const int remap_sigusr1,
-		 const unsigned int flags)
+management_open(struct management *man,
+                const char *addr,
+                const char *port,
+                const char *pass_file,
+                const char *client_user,
+                const char *client_group,
+                const int log_history_cache,
+                const int echo_buffer_size,
+                const int state_buffer_size,
+                const char *write_peer_info_file,
+                const int remap_sigusr1,
+                const unsigned int flags)
 {
-  bool ret = false;
+    bool ret = false;
 
-  /*
-   * Save the settings only if they have not
-   * been saved before.
-   */
-  man_settings_init (&man->settings,
-		     addr,
-		     port,
-		     pass_file,
-		     client_user,
-		     client_group,
-		     log_history_cache,
-		     echo_buffer_size,
-		     state_buffer_size,
-		     write_peer_info_file,
-		     remap_sigusr1,
-		     flags);
+    /*
+     * Save the settings only if they have not
+     * been saved before.
+     */
+    man_settings_init(&man->settings,
+                      addr,
+                      port,
+                      pass_file,
+                      client_user,
+                      client_group,
+                      log_history_cache,
+                      echo_buffer_size,
+                      state_buffer_size,
+                      write_peer_info_file,
+                      remap_sigusr1,
+                      flags);
 
-  /*
-   * The log is initially sized to MANAGEMENT_LOG_HISTORY_INITIAL_SIZE,
-   * but may be changed here.  Ditto for echo and state buffers.
-   */
-  log_history_resize (man->persist.log, man->settings.log_history_cache);
-  log_history_resize (man->persist.echo, man->settings.echo_buffer_size);
-  log_history_resize (man->persist.state, man->settings.state_buffer_size);
+    /*
+     * The log is initially sized to MANAGEMENT_LOG_HISTORY_INITIAL_SIZE,
+     * but may be changed here.  Ditto for echo and state buffers.
+     */
+    log_history_resize(man->persist.log, man->settings.log_history_cache);
+    log_history_resize(man->persist.echo, man->settings.echo_buffer_size);
+    log_history_resize(man->persist.state, man->settings.state_buffer_size);
 
-  /*
-   * If connection object is uninitialized and we are not doing
-   * over-the-tunnel management, then open (listening) connection.
-   */
-  if (man->connection.state == MS_INITIAL)
+    /*
+     * If connection object is uninitialized and we are not doing
+     * over-the-tunnel management, then open (listening) connection.
+     */
+    if (man->connection.state == MS_INITIAL)
     {
-      if (!man->settings.management_over_tunnel)
-	{
-	  man_connection_init (man);
-	  ret = true;
-	}
+        if (!man->settings.management_over_tunnel)
+        {
+            man_connection_init(man);
+            ret = true;
+        }
     }
 
-  return ret;
+    return ret;
 }
 
 void
-management_close (struct management *man)
+management_close(struct management *man)
 {
-  man_output_list_push_finalize (man);  /* flush output queue */
-  man_connection_close (man);
-  man_settings_close (&man->settings);
-  man_persist_close (&man->persist);
-  free (man);
+    man_output_list_push_finalize(man); /* flush output queue */
+    man_connection_close(man);
+    man_settings_close(&man->settings);
+    man_persist_close(&man->persist);
+    free(man);
 }
 
 void
-management_set_callback (struct management *man,
-			 const struct management_callback *cb)
+management_set_callback(struct management *man,
+                        const struct management_callback *cb)
 {
-  man->persist.standalone_disabled = true;
-  man->persist.callback = *cb;
+    man->persist.standalone_disabled = true;
+    man->persist.callback = *cb;
 }
 
 void
-management_clear_callback (struct management *man)
+management_clear_callback(struct management *man)
 {
-  man->persist.standalone_disabled = false;
-  man->persist.hold_release = false;
-  CLEAR (man->persist.callback);
-  man_output_list_push_finalize (man); /* flush output queue */
+    man->persist.standalone_disabled = false;
+    man->persist.hold_release = false;
+    CLEAR(man->persist.callback);
+    man_output_list_push_finalize(man); /* flush output queue */
 }
 
 void
-management_set_state (struct management *man,
-		      const int state,
-		      const char *detail,
-                      const in_addr_t *tun_local_ip,
-                      const struct in6_addr *tun_local_ip6,
-                      const struct openvpn_sockaddr *local,
-                      const struct openvpn_sockaddr *remote)
+management_set_state(struct management *man,
+                     const int state,
+                     const char *detail,
+                     const in_addr_t *tun_local_ip,
+                     const struct in6_addr *tun_local_ip6,
+                     const struct openvpn_sockaddr *local,
+                     const struct openvpn_sockaddr *remote)
 {
-  if (man->persist.state && (!(man->settings.flags & MF_SERVER) || state < OPENVPN_STATE_CLIENT_BASE))
+    if (man->persist.state && (!(man->settings.flags & MF_SERVER) || state < OPENVPN_STATE_CLIENT_BASE))
     {
-      struct gc_arena gc = gc_new ();
-      struct log_entry e;
-      const char *out = NULL;
+        struct gc_arena gc = gc_new();
+        struct log_entry e;
+        const char *out = NULL;
 
-      update_time ();
-      CLEAR (e);
-      e.timestamp = now;
-      e.u.state = state;
-      e.string = detail;
-      if (tun_local_ip)
-        e.local_ip = *tun_local_ip;
-      if (tun_local_ip6)
-        e.local_ip6 = *tun_local_ip6;
-      if (local)
-        e.local_sock = *local;
-      if (remote)
-        e.remote_sock = *remote;
+        update_time();
+        CLEAR(e);
+        e.timestamp = now;
+        e.u.state = state;
+        e.string = detail;
+        if (tun_local_ip)
+        {
+            e.local_ip = *tun_local_ip;
+        }
+        if (tun_local_ip6)
+        {
+            e.local_ip6 = *tun_local_ip6;
+        }
+        if (local)
+        {
+            e.local_sock = *local;
+        }
+        if (remote)
+        {
+            e.remote_sock = *remote;
+        }
 
-      log_history_add (man->persist.state, &e);
+        log_history_add(man->persist.state, &e);
 
-      if (man->connection.state_realtime)
-	out = log_entry_print (&e, LOG_PRINT_STATE_PREFIX
-			       |   LOG_PRINT_INT_DATE
-                               |   LOG_PRINT_STATE
-			       |   LOG_PRINT_LOCAL_IP
-			       |   LOG_PRINT_REMOTE_IP
-                               |   LOG_PRINT_CRLF
-			       |   LOG_ECHO_TO_LOG, &gc);
+        if (man->connection.state_realtime)
+        {
+            out = log_entry_print(&e, LOG_PRINT_STATE_PREFIX
+                                  |   LOG_PRINT_INT_DATE
+                                  |   LOG_PRINT_STATE
+                                  |   LOG_PRINT_LOCAL_IP
+                                  |   LOG_PRINT_REMOTE_IP
+                                  |   LOG_PRINT_CRLF
+                                  |   LOG_ECHO_TO_LOG, &gc);
+        }
 
-      if (out)
-	man_output_list_push (man, out);
+        if (out)
+        {
+            man_output_list_push(man, out);
+        }
 
-      gc_free (&gc);
+        gc_free(&gc);
     }
 }
 
 static bool
-env_filter_match (const char *env_str, const int env_filter_level)
+env_filter_match(const char *env_str, const int env_filter_level)
 {
-  static const char *env_names[] = {
-    "username=",
-    "password=",
-    "X509_0_CN=",
-    "tls_serial_",
-    "untrusted_ip=",
-    "ifconfig_local=",
-    "ifconfig_netmask=",
-    "daemon_start_time=",
-    "daemon_pid=",
-    "dev=",
-    "ifconfig_pool_remote_ip=",
-    "ifconfig_pool_netmask=",
-    "time_duration=",
-    "bytes_sent=",
-    "bytes_received="
-  };
+    static const char *env_names[] = {
+        "username=",
+        "password=",
+        "X509_0_CN=",
+        "tls_serial_",
+        "untrusted_ip=",
+        "ifconfig_local=",
+        "ifconfig_netmask=",
+        "daemon_start_time=",
+        "daemon_pid=",
+        "dev=",
+        "ifconfig_pool_remote_ip=",
+        "ifconfig_pool_netmask=",
+        "time_duration=",
+        "bytes_sent=",
+        "bytes_received="
+    };
 
-  if (env_filter_level == 0)
-    return true;
-  else if (env_filter_level <= 1 && !strncmp(env_str, "X509_", 5))
-    return true;
-  else if (env_filter_level <= 2)
+    if (env_filter_level == 0)
     {
-      size_t i;
-      for (i = 0; i < SIZE(env_names); ++i)
-	{
-	  const char *en = env_names[i];
-	  const size_t len = strlen(en);
-	  if (!strncmp(env_str, en, len))
-	    return true;
-	}
-      return false;
+        return true;
     }
-  return false;
+    else if (env_filter_level <= 1 && !strncmp(env_str, "X509_", 5))
+    {
+        return true;
+    }
+    else if (env_filter_level <= 2)
+    {
+        size_t i;
+        for (i = 0; i < SIZE(env_names); ++i)
+        {
+            const char *en = env_names[i];
+            const size_t len = strlen(en);
+            if (!strncmp(env_str, en, len))
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+    return false;
 }
 
 static void
-man_output_env (const struct env_set *es, const bool tail, const int env_filter_level, const char *prefix)
+man_output_env(const struct env_set *es, const bool tail, const int env_filter_level, const char *prefix)
 {
-  if (es)
+    if (es)
     {
-      struct env_item *e;
-      for (e = es->list; e != NULL; e = e->next)
-	{
-	  if (e->string && (!env_filter_level || env_filter_match(e->string, env_filter_level)))
-	    msg (M_CLIENT, ">%s:ENV,%s", prefix, e->string);
-	}
+        struct env_item *e;
+        for (e = es->list; e != NULL; e = e->next)
+        {
+            if (e->string && (!env_filter_level || env_filter_match(e->string, env_filter_level)))
+            {
+                msg(M_CLIENT, ">%s:ENV,%s", prefix, e->string);
+            }
+        }
     }
-  if (tail)
-    msg (M_CLIENT, ">%s:ENV,END", prefix);
+    if (tail)
+    {
+        msg(M_CLIENT, ">%s:ENV,END", prefix);
+    }
 }
 
 static void
-man_output_extra_env (struct management *man, const char *prefix)
+man_output_extra_env(struct management *man, const char *prefix)
 {
-  struct gc_arena gc = gc_new ();
-  struct env_set *es = env_set_create (&gc);
-  if (man->persist.callback.n_clients)
+    struct gc_arena gc = gc_new();
+    struct env_set *es = env_set_create(&gc);
+    if (man->persist.callback.n_clients)
     {
-      const int nclients = (*man->persist.callback.n_clients) (man->persist.callback.arg);
-      setenv_int (es, "n_clients", nclients);
+        const int nclients = (*man->persist.callback.n_clients)(man->persist.callback.arg);
+        setenv_int(es, "n_clients", nclients);
     }
-  man_output_env (es, false, man->connection.env_filter_level, prefix);
-  gc_free (&gc);
+    man_output_env(es, false, man->connection.env_filter_level, prefix);
+    gc_free(&gc);
 }
 
 void
 management_up_down(struct management *man, const char *updown, const struct env_set *es)
 {
-  if (man->settings.flags & MF_UP_DOWN)
+    if (man->settings.flags & MF_UP_DOWN)
     {
-      msg (M_CLIENT, ">UPDOWN:%s", updown);
-      man_output_env (es, true, 0, "UPDOWN");
+        msg(M_CLIENT, ">UPDOWN:%s", updown);
+        man_output_env(es, true, 0, "UPDOWN");
     }
 }
 
 void
 management_notify(struct management *man, const char *severity, const char *type, const char *text)
 {
-  msg (M_CLIENT, ">NOTIFY:%s,%s,%s", severity, type, text);
+    msg(M_CLIENT, ">NOTIFY:%s,%s,%s", severity, type, text);
 }
 
 void
-management_notify_generic (struct management *man, const char *str)
+management_notify_generic(struct management *man, const char *str)
 {
-  msg (M_CLIENT, "%s", str);
+    msg(M_CLIENT, "%s", str);
 }
 
 #ifdef MANAGEMENT_DEF_AUTH
 
 static void
-man_output_peer_info_env (struct management *man, struct man_def_auth_context *mdac)
+man_output_peer_info_env(struct management *man, struct man_def_auth_context *mdac)
 {
-  char line[256];
-  if (man->persist.callback.get_peer_info)
+    char line[256];
+    if (man->persist.callback.get_peer_info)
     {
-      const char *peer_info = (*man->persist.callback.get_peer_info) (man->persist.callback.arg, mdac->cid);
-      if (peer_info)
-	{
-	  struct buffer buf;
-	  buf_set_read (&buf, (const uint8_t *) peer_info, strlen(peer_info));
-	  while (buf_parse (&buf, '\n', line, sizeof (line)))
-	    {
-	      chomp (line);
-	      if (validate_peer_info_line(line))
-		{
-		  msg (M_CLIENT, ">CLIENT:ENV,%s", line);
-		}
-	      else
-		msg (D_MANAGEMENT, "validation failed on peer_info line received from client");
-	    }
-	}
+        const char *peer_info = (*man->persist.callback.get_peer_info)(man->persist.callback.arg, mdac->cid);
+        if (peer_info)
+        {
+            struct buffer buf;
+            buf_set_read(&buf, (const uint8_t *) peer_info, strlen(peer_info));
+            while (buf_parse(&buf, '\n', line, sizeof(line)))
+            {
+                chomp(line);
+                if (validate_peer_info_line(line))
+                {
+                    msg(M_CLIENT, ">CLIENT:ENV,%s", line);
+                }
+                else
+                {
+                    msg(D_MANAGEMENT, "validation failed on peer_info line received from client");
+                }
+            }
+        }
     }
 }
 
 void
-management_notify_client_needing_auth (struct management *management,
-				       const unsigned int mda_key_id,
-				       struct man_def_auth_context *mdac,
-				       const struct env_set *es)
+management_notify_client_needing_auth(struct management *management,
+                                      const unsigned int mda_key_id,
+                                      struct man_def_auth_context *mdac,
+                                      const struct env_set *es)
 {
-  if (!(mdac->flags & DAF_CONNECTION_CLOSED))
+    if (!(mdac->flags & DAF_CONNECTION_CLOSED))
     {
-      const char *mode = "CONNECT";
-      if (mdac->flags & DAF_CONNECTION_ESTABLISHED)
-	mode = "REAUTH";
-      msg (M_CLIENT, ">CLIENT:%s,%lu,%u", mode, mdac->cid, mda_key_id);
-      man_output_extra_env (management, "CLIENT");
-      if (management->connection.env_filter_level>0)
-        man_output_peer_info_env(management, mdac);
-      man_output_env (es, true, management->connection.env_filter_level, "CLIENT");
-      mdac->flags |= DAF_INITIAL_AUTH;
+        const char *mode = "CONNECT";
+        if (mdac->flags & DAF_CONNECTION_ESTABLISHED)
+        {
+            mode = "REAUTH";
+        }
+        msg(M_CLIENT, ">CLIENT:%s,%lu,%u", mode, mdac->cid, mda_key_id);
+        man_output_extra_env(management, "CLIENT");
+        if (management->connection.env_filter_level>0)
+        {
+            man_output_peer_info_env(management, mdac);
+        }
+        man_output_env(es, true, management->connection.env_filter_level, "CLIENT");
+        mdac->flags |= DAF_INITIAL_AUTH;
     }
 }
 
 void
-management_connection_established (struct management *management,
-				   struct man_def_auth_context *mdac,
-				   const struct env_set *es)
+management_connection_established(struct management *management,
+                                  struct man_def_auth_context *mdac,
+                                  const struct env_set *es)
 {
-  mdac->flags |= DAF_CONNECTION_ESTABLISHED;
-  msg (M_CLIENT, ">CLIENT:ESTABLISHED,%lu", mdac->cid);
-  man_output_extra_env (management, "CLIENT");
-  man_output_env (es, true, management->connection.env_filter_level, "CLIENT");
+    mdac->flags |= DAF_CONNECTION_ESTABLISHED;
+    msg(M_CLIENT, ">CLIENT:ESTABLISHED,%lu", mdac->cid);
+    man_output_extra_env(management, "CLIENT");
+    man_output_env(es, true, management->connection.env_filter_level, "CLIENT");
 }
 
 void
-management_notify_client_close (struct management *management,
-				struct man_def_auth_context *mdac,
-				const struct env_set *es)
+management_notify_client_close(struct management *management,
+                               struct man_def_auth_context *mdac,
+                               const struct env_set *es)
 {
-  if ((mdac->flags & DAF_INITIAL_AUTH) && !(mdac->flags & DAF_CONNECTION_CLOSED))
+    if ((mdac->flags & DAF_INITIAL_AUTH) && !(mdac->flags & DAF_CONNECTION_CLOSED))
     {
-      msg (M_CLIENT, ">CLIENT:DISCONNECT,%lu", mdac->cid);
-      man_output_env (es, true, management->connection.env_filter_level, "CLIENT");
-      mdac->flags |= DAF_CONNECTION_CLOSED;
+        msg(M_CLIENT, ">CLIENT:DISCONNECT,%lu", mdac->cid);
+        man_output_env(es, true, management->connection.env_filter_level, "CLIENT");
+        mdac->flags |= DAF_CONNECTION_CLOSED;
     }
 }
 
 void
-management_learn_addr (struct management *management,
-		       struct man_def_auth_context *mdac,
-		       const struct mroute_addr *addr,
-		       const bool primary)
+management_learn_addr(struct management *management,
+                      struct man_def_auth_context *mdac,
+                      const struct mroute_addr *addr,
+                      const bool primary)
 {
-  struct gc_arena gc = gc_new ();
-  if ((mdac->flags & DAF_INITIAL_AUTH) && !(mdac->flags & DAF_CONNECTION_CLOSED))
+    struct gc_arena gc = gc_new();
+    if ((mdac->flags & DAF_INITIAL_AUTH) && !(mdac->flags & DAF_CONNECTION_CLOSED))
     {
-      msg (M_CLIENT, ">CLIENT:ADDRESS,%lu,%s,%d",
-	   mdac->cid,
-	   mroute_addr_print_ex (addr, MAPF_SUBNET, &gc),
-	   BOOL_CAST (primary));
+        msg(M_CLIENT, ">CLIENT:ADDRESS,%lu,%s,%d",
+            mdac->cid,
+            mroute_addr_print_ex(addr, MAPF_SUBNET, &gc),
+            BOOL_CAST(primary));
     }
-  gc_free (&gc);
+    gc_free(&gc);
 }
 
 #endif /* MANAGEMENT_DEF_AUTH */
 
 void
-management_echo (struct management *man, const char *string, const bool pull)
+management_echo(struct management *man, const char *string, const bool pull)
 {
-  if (man->persist.echo)
+    if (man->persist.echo)
     {
-      struct gc_arena gc = gc_new ();
-      struct log_entry e;
-      const char *out = NULL;
+        struct gc_arena gc = gc_new();
+        struct log_entry e;
+        const char *out = NULL;
 
-      update_time ();
-      CLEAR (e);
-      e.timestamp = now;
-      e.string = string;
-      e.u.intval = BOOL_CAST (pull);
+        update_time();
+        CLEAR(e);
+        e.timestamp = now;
+        e.string = string;
+        e.u.intval = BOOL_CAST(pull);
 
-      log_history_add (man->persist.echo, &e);
+        log_history_add(man->persist.echo, &e);
 
-      if (man->connection.echo_realtime)
-	out = log_entry_print (&e, LOG_PRINT_INT_DATE|LOG_PRINT_ECHO_PREFIX|LOG_PRINT_CRLF|MANAGEMENT_ECHO_FLAGS, &gc);
+        if (man->connection.echo_realtime)
+        {
+            out = log_entry_print(&e, LOG_PRINT_INT_DATE|LOG_PRINT_ECHO_PREFIX|LOG_PRINT_CRLF|MANAGEMENT_ECHO_FLAGS, &gc);
+        }
 
-      if (out)
-	man_output_list_push (man, out);
+        if (out)
+        {
+            man_output_list_push(man, out);
+        }
 
-      gc_free (&gc);
+        gc_free(&gc);
     }
 }
 
 void
-management_post_tunnel_open (struct management *man, const in_addr_t tun_local_ip)
+management_post_tunnel_open(struct management *man, const in_addr_t tun_local_ip)
 {
-  /*
-   * If we are running management over the tunnel,
-   * this is the place to initialize the connection.
-   */
-  if (man->settings.management_over_tunnel
-      && man->connection.state == MS_INITIAL)
+    /*
+     * If we are running management over the tunnel,
+     * this is the place to initialize the connection.
+     */
+    if (man->settings.management_over_tunnel
+        && man->connection.state == MS_INITIAL)
     {
-      /* listen on our local TUN/TAP IP address */
-      struct in_addr ia;
-      int ret;
+        /* listen on our local TUN/TAP IP address */
+        struct in_addr ia;
+        int ret;
 
-      ia.s_addr = htonl(tun_local_ip);
-      ret = openvpn_getaddrinfo(GETADDR_PASSIVE, inet_ntoa(ia), NULL, 0, NULL,
-                                AF_INET, &man->settings.local);
-      ASSERT (ret==0);
-      man_connection_init (man);
+        ia.s_addr = htonl(tun_local_ip);
+        ret = openvpn_getaddrinfo(GETADDR_PASSIVE, inet_ntoa(ia), NULL, 0, NULL,
+                                  AF_INET, &man->settings.local);
+        ASSERT(ret==0);
+        man_connection_init(man);
     }
 
 }
 
 void
-management_pre_tunnel_close (struct management *man)
+management_pre_tunnel_close(struct management *man)
 {
-  if (man->settings.management_over_tunnel)
-    man_connection_close (man);
+    if (man->settings.management_over_tunnel)
+    {
+        man_connection_close(man);
+    }
 }
 
 void
-management_auth_failure (struct management *man, const char *type, const char *reason)
+management_auth_failure(struct management *man, const char *type, const char *reason)
 {
-  if (reason)
-    msg (M_CLIENT, ">PASSWORD:Verification Failed: '%s' ['%s']", type, reason);
-  else
-    msg (M_CLIENT, ">PASSWORD:Verification Failed: '%s'", type);
+    if (reason)
+    {
+        msg(M_CLIENT, ">PASSWORD:Verification Failed: '%s' ['%s']", type, reason);
+    }
+    else
+    {
+        msg(M_CLIENT, ">PASSWORD:Verification Failed: '%s'", type);
+    }
 }
 
 void
-management_auth_token (struct management *man, const char *token)
+management_auth_token(struct management *man, const char *token)
 {
-  msg (M_CLIENT, ">PASSWORD:Auth-Token:%s", token);  
+    msg(M_CLIENT, ">PASSWORD:Auth-Token:%s", token);
 }
 
 static inline bool
-man_persist_state (unsigned int *persistent, const int n)
+man_persist_state(unsigned int *persistent, const int n)
 {
-  if (persistent)
+    if (persistent)
     {
-      if (*persistent == (unsigned int)n)
-	return false;
-      *persistent = n;
+        if (*persistent == (unsigned int)n)
+        {
+            return false;
+        }
+        *persistent = n;
     }
-  return true;
+    return true;
 }
 
 #ifdef _WIN32
 
 void
-management_socket_set (struct management *man,
-		       struct event_set *es,
-		       void *arg,
-		       unsigned int *persistent)
+management_socket_set(struct management *man,
+                      struct event_set *es,
+                      void *arg,
+                      unsigned int *persistent)
 {
-  if (man->connection.state != MS_INITIAL)
+    if (man->connection.state != MS_INITIAL)
     {
-      event_t ev = net_event_win32_get_event (&man->connection.ne32);
-      net_event_win32_reset_write (&man->connection.ne32);
+        event_t ev = net_event_win32_get_event(&man->connection.ne32);
+        net_event_win32_reset_write(&man->connection.ne32);
 
-      switch (man->connection.state)
-	{
-	case MS_LISTEN:
-	  if (man_persist_state (persistent, 1))
-	    event_ctl (es, ev, EVENT_READ, arg);
-	  break;
-	case MS_CC_WAIT_READ:
-	  if (man_persist_state (persistent, 2))
-	    event_ctl (es, ev, EVENT_READ, arg);
-	  break;
-	case MS_CC_WAIT_WRITE:
-	  if (man_persist_state (persistent, 3))
-	    event_ctl (es, ev, EVENT_READ|EVENT_WRITE, arg);
-	  break;
-	default:
-	  ASSERT (0);
-	}
+        switch (man->connection.state)
+        {
+            case MS_LISTEN:
+                if (man_persist_state(persistent, 1))
+                {
+                    event_ctl(es, ev, EVENT_READ, arg);
+                }
+                break;
+
+            case MS_CC_WAIT_READ:
+                if (man_persist_state(persistent, 2))
+                {
+                    event_ctl(es, ev, EVENT_READ, arg);
+                }
+                break;
+
+            case MS_CC_WAIT_WRITE:
+                if (man_persist_state(persistent, 3))
+                {
+                    event_ctl(es, ev, EVENT_READ|EVENT_WRITE, arg);
+                }
+                break;
+
+            default:
+                ASSERT(0);
+        }
     }
 }
 
 void
-management_io (struct management *man)
+management_io(struct management *man)
 {
-  if (man->connection.state != MS_INITIAL)
+    if (man->connection.state != MS_INITIAL)
     {
-      long net_events;
-      net_event_win32_reset (&man->connection.ne32);
-      net_events = net_event_win32_get_event_mask (&man->connection.ne32);
+        long net_events;
+        net_event_win32_reset(&man->connection.ne32);
+        net_events = net_event_win32_get_event_mask(&man->connection.ne32);
 
-      if (net_events & FD_CLOSE)
-	{
-	  man_reset_client_socket (man, false);
-	}
-      else
-	{
-	  if (man->connection.state == MS_LISTEN)
-	    {
-	      if (net_events & FD_ACCEPT)
-		{
-		  man_accept (man);
-		  net_event_win32_clear_selected_events (&man->connection.ne32, FD_ACCEPT);
-		}
-	    }
-	  else if (man->connection.state == MS_CC_WAIT_READ || man->connection.state == MS_CC_WAIT_WRITE)
-	    {
-	      if (net_events & FD_READ)
-		{
-		  while (man_read (man) > 0)
-		    ;
-		  net_event_win32_clear_selected_events (&man->connection.ne32, FD_READ);
-		}
+        if (net_events & FD_CLOSE)
+        {
+            man_reset_client_socket(man, false);
+        }
+        else
+        {
+            if (man->connection.state == MS_LISTEN)
+            {
+                if (net_events & FD_ACCEPT)
+                {
+                    man_accept(man);
+                    net_event_win32_clear_selected_events(&man->connection.ne32, FD_ACCEPT);
+                }
+            }
+            else if (man->connection.state == MS_CC_WAIT_READ || man->connection.state == MS_CC_WAIT_WRITE)
+            {
+                if (net_events & FD_READ)
+                {
+                    while (man_read(man) > 0)
+                        ;
+                    net_event_win32_clear_selected_events(&man->connection.ne32, FD_READ);
+                }
 
-	      if (net_events & FD_WRITE)
-		{
-		  int status;
-		  status = man_write (man);
-		  if (status < 0 && WSAGetLastError() == WSAEWOULDBLOCK)
-		    {
-		      net_event_win32_clear_selected_events (&man->connection.ne32, FD_WRITE);
-		    }
-		}
-	    }
-	}
+                if (net_events & FD_WRITE)
+                {
+                    int status;
+                    status = man_write(man);
+                    if (status < 0 && WSAGetLastError() == WSAEWOULDBLOCK)
+                    {
+                        net_event_win32_clear_selected_events(&man->connection.ne32, FD_WRITE);
+                    }
+                }
+            }
+        }
     }
 }
 
-#else
+#else  /* ifdef _WIN32 */
 
 void
-management_socket_set (struct management *man,
-		       struct event_set *es,
-		       void *arg,
-		       unsigned int *persistent)
+management_socket_set(struct management *man,
+                      struct event_set *es,
+                      void *arg,
+                      unsigned int *persistent)
 {
-  switch (man->connection.state)
+    switch (man->connection.state)
     {
-    case MS_LISTEN:
-      if (man_persist_state (persistent, 1))
-	event_ctl (es, man->connection.sd_top, EVENT_READ, arg);
-      break;
-    case MS_CC_WAIT_READ:
-      if (man_persist_state (persistent, 2))
-	event_ctl (es, man->connection.sd_cli, EVENT_READ, arg);
-      break;
-    case MS_CC_WAIT_WRITE:
-      if (man_persist_state (persistent, 3))
-	event_ctl (es, man->connection.sd_cli, EVENT_WRITE, arg);
-      break;
-    case MS_INITIAL:
-      break;
-    default:
-      ASSERT (0);
+        case MS_LISTEN:
+            if (man_persist_state(persistent, 1))
+            {
+                event_ctl(es, man->connection.sd_top, EVENT_READ, arg);
+            }
+            break;
+
+        case MS_CC_WAIT_READ:
+            if (man_persist_state(persistent, 2))
+            {
+                event_ctl(es, man->connection.sd_cli, EVENT_READ, arg);
+            }
+            break;
+
+        case MS_CC_WAIT_WRITE:
+            if (man_persist_state(persistent, 3))
+            {
+                event_ctl(es, man->connection.sd_cli, EVENT_WRITE, arg);
+            }
+            break;
+
+        case MS_INITIAL:
+            break;
+
+        default:
+            ASSERT(0);
     }
 }
 
 void
-management_io (struct management *man)
+management_io(struct management *man)
 {
-  switch (man->connection.state)
+    switch (man->connection.state)
     {
-    case MS_LISTEN:
-      man_accept (man);
-      break;
-    case MS_CC_WAIT_READ:
-      man_read (man);
-      break;
-    case MS_CC_WAIT_WRITE:
-      man_write (man);
-      break;
-    case MS_INITIAL:
-      break;
-    default:
-      ASSERT (0);
+        case MS_LISTEN:
+            man_accept(man);
+            break;
+
+        case MS_CC_WAIT_READ:
+            man_read(man);
+            break;
+
+        case MS_CC_WAIT_WRITE:
+            man_write(man);
+            break;
+
+        case MS_INITIAL:
+            break;
+
+        default:
+            ASSERT(0);
     }
 }
 
-#endif
+#endif /* ifdef _WIN32 */
 
 static inline bool
-man_standalone_ok (const struct management *man)
+man_standalone_ok(const struct management *man)
 {
-  return !man->settings.management_over_tunnel && man->connection.state != MS_INITIAL;
+    return !man->settings.management_over_tunnel && man->connection.state != MS_INITIAL;
 }
 
 static bool
-man_check_for_signals (volatile int *signal_received)
+man_check_for_signals(volatile int *signal_received)
 {
-  if (signal_received)
+    if (signal_received)
     {
-      get_signal (signal_received);
-      if (*signal_received)
-	return true;
+        get_signal(signal_received);
+        if (*signal_received)
+        {
+            return true;
+        }
     }
-  return false;
+    return false;
 }
 
 /*
  * Wait for socket I/O when outside primary event loop
  */
 static int
-man_block (struct management *man, volatile int *signal_received, const time_t expire)
+man_block(struct management *man, volatile int *signal_received, const time_t expire)
 {
-  struct timeval tv;
-  struct event_set_return esr;
-  int status = -1;
-  
-  if (man_standalone_ok (man))
-    {
-      while (true)
-	{
-	  event_reset (man->connection.es);
-	  management_socket_set (man, man->connection.es, NULL, NULL);
-	  tv.tv_usec = 0;
-	  tv.tv_sec = 1;
-	  if (man_check_for_signals (signal_received))
-	    {
-	      status = -1;
-	      break;
-	    }
-	  status = event_wait (man->connection.es, &tv, &esr, 1);
-	  update_time ();
-	  if (man_check_for_signals (signal_received))
-	    {
-	      status = -1;
-	      break;
-	    }
+    struct timeval tv;
+    struct event_set_return esr;
+    int status = -1;
 
-	  if (status > 0)
-	    break;
-	  else if (expire && now >= expire)
-	    {
-	      /* set SIGINT signal if expiration time exceeded */
-	      status = 0;
-	      if (signal_received)
-		*signal_received = SIGINT;
-	      break;
-	    }
-	}
+    if (man_standalone_ok(man))
+    {
+        while (true)
+        {
+            event_reset(man->connection.es);
+            management_socket_set(man, man->connection.es, NULL, NULL);
+            tv.tv_usec = 0;
+            tv.tv_sec = 1;
+            if (man_check_for_signals(signal_received))
+            {
+                status = -1;
+                break;
+            }
+            status = event_wait(man->connection.es, &tv, &esr, 1);
+            update_time();
+            if (man_check_for_signals(signal_received))
+            {
+                status = -1;
+                break;
+            }
+
+            if (status > 0)
+            {
+                break;
+            }
+            else if (expire && now >= expire)
+            {
+                /* set SIGINT signal if expiration time exceeded */
+                status = 0;
+                if (signal_received)
+                {
+                    *signal_received = SIGINT;
+                }
+                break;
+            }
+        }
     }
-  return status;
+    return status;
 }
 
 /*
  * Perform management socket output outside primary event loop
  */
 static void
-man_output_standalone (struct management *man, volatile int *signal_received)
+man_output_standalone(struct management *man, volatile int *signal_received)
 {
-  if (man_standalone_ok (man))
+    if (man_standalone_ok(man))
     {
-      while (man->connection.state == MS_CC_WAIT_WRITE)
-	{
-	  management_io (man);
-	  if (man->connection.state == MS_CC_WAIT_WRITE)
-	    man_block (man, signal_received, 0);
-	  if (signal_received && *signal_received)
-	    break;
-	}
+        while (man->connection.state == MS_CC_WAIT_WRITE)
+        {
+            management_io(man);
+            if (man->connection.state == MS_CC_WAIT_WRITE)
+            {
+                man_block(man, signal_received, 0);
+            }
+            if (signal_received && *signal_received)
+            {
+                break;
+            }
+        }
     }
 }
 
@@ -2947,16 +3269,18 @@ man_output_standalone (struct management *man, volatile int *signal_received)
  * Process management event loop outside primary event loop
  */
 static int
-man_standalone_event_loop (struct management *man, volatile int *signal_received, const time_t expire)
+man_standalone_event_loop(struct management *man, volatile int *signal_received, const time_t expire)
 {
-  int status = -1;
-  if (man_standalone_ok (man))
+    int status = -1;
+    if (man_standalone_ok(man))
     {
-      status = man_block (man, signal_received, expire);
-      if (status > 0)
-	management_io (man);
+        status = man_block(man, signal_received, expire);
+        if (status > 0)
+        {
+            management_io(man);
+        }
     }
-  return status;
+    return status;
 }
 
 #define MWCC_PASSWORD_WAIT (1<<0)
@@ -2967,25 +3291,33 @@ man_standalone_event_loop (struct management *man, volatile int *signal_received
  * Block until client connects
  */
 static void
-man_wait_for_client_connection (struct management *man,
-				volatile int *signal_received,
-				const time_t expire,
-				unsigned int flags)
+man_wait_for_client_connection(struct management *man,
+                               volatile int *signal_received,
+                               const time_t expire,
+                               unsigned int flags)
 {
-  ASSERT (man_standalone_ok (man));
-  if (man->connection.state == MS_LISTEN)
+    ASSERT(man_standalone_ok(man));
+    if (man->connection.state == MS_LISTEN)
     {
-      if (flags & MWCC_PASSWORD_WAIT)
-	msg (D_MANAGEMENT, "Need password(s) from management interface, waiting...");
-      if (flags & MWCC_HOLD_WAIT)
-	msg (D_MANAGEMENT, "Need hold release from management interface, waiting...");
-      if (flags & MWCC_OTHER_WAIT)
-	msg (D_MANAGEMENT, "Need information from management interface, waiting...");
-      do {
-	man_standalone_event_loop (man, signal_received, expire);
-	if (signal_received && *signal_received)
-	  break;
-      } while (man->connection.state == MS_LISTEN || man_password_needed (man));
+        if (flags & MWCC_PASSWORD_WAIT)
+        {
+            msg(D_MANAGEMENT, "Need password(s) from management interface, waiting...");
+        }
+        if (flags & MWCC_HOLD_WAIT)
+        {
+            msg(D_MANAGEMENT, "Need hold release from management interface, waiting...");
+        }
+        if (flags & MWCC_OTHER_WAIT)
+        {
+            msg(D_MANAGEMENT, "Need information from management interface, waiting...");
+        }
+        do {
+            man_standalone_event_loop(man, signal_received, expire);
+            if (signal_received && *signal_received)
+            {
+                break;
+            }
+        } while (man->connection.state == MS_LISTEN || man_password_needed(man));
     }
 }
 
@@ -2993,43 +3325,51 @@ man_wait_for_client_connection (struct management *man,
  * Process the management event loop for sec seconds
  */
 void
-management_event_loop_n_seconds (struct management *man, int sec)
+management_event_loop_n_seconds(struct management *man, int sec)
 {
-  if (man_standalone_ok (man))
+    if (man_standalone_ok(man))
     {
-      volatile int signal_received = 0;
-      const bool standalone_disabled_save = man->persist.standalone_disabled;
-      time_t expire = 0;
+        volatile int signal_received = 0;
+        const bool standalone_disabled_save = man->persist.standalone_disabled;
+        time_t expire = 0;
 
-      man->persist.standalone_disabled = false; /* This is so M_CLIENT messages will be correctly passed through msg() */
+        man->persist.standalone_disabled = false; /* This is so M_CLIENT messages will be correctly passed through msg() */
 
-      /* set expire time */
-      update_time ();
-      if (sec)
-	expire = now + sec;
+        /* set expire time */
+        update_time();
+        if (sec)
+        {
+            expire = now + sec;
+        }
 
-      /* if no client connection, wait for one */
-      man_wait_for_client_connection (man, &signal_received, expire, 0);
-      if (signal_received)
-	return;
+        /* if no client connection, wait for one */
+        man_wait_for_client_connection(man, &signal_received, expire, 0);
+        if (signal_received)
+        {
+            return;
+        }
 
-      /* run command processing event loop */
-      do
-	{
-	  man_standalone_event_loop (man, &signal_received, expire);
-	  if (!signal_received)
-	    man_check_for_signals (&signal_received);
-	  if (signal_received)
-	    return;
-	  update_time();
-	} while (expire && expire > now);
+        /* run command processing event loop */
+        do
+        {
+            man_standalone_event_loop(man, &signal_received, expire);
+            if (!signal_received)
+            {
+                man_check_for_signals(&signal_received);
+            }
+            if (signal_received)
+            {
+                return;
+            }
+            update_time();
+        } while (expire && expire > now);
 
-      /* revert state */
-      man->persist.standalone_disabled = standalone_disabled_save;
+        /* revert state */
+        man->persist.standalone_disabled = standalone_disabled_save;
     }
-  else
+    else
     {
-      sleep (sec);
+        sleep(sec);
     }
 }
 
@@ -3037,282 +3377,311 @@ management_event_loop_n_seconds (struct management *man, int sec)
  * Get a username/password from management channel in standalone mode.
  */
 bool
-management_query_user_pass (struct management *man,
-			    struct user_pass *up,
-			    const char *type,
-			    const unsigned int flags,
-			    const char *static_challenge)
+management_query_user_pass(struct management *man,
+                           struct user_pass *up,
+                           const char *type,
+                           const unsigned int flags,
+                           const char *static_challenge)
 {
-  struct gc_arena gc = gc_new ();
-  bool ret = false;
+    struct gc_arena gc = gc_new();
+    bool ret = false;
 
-  if (man_standalone_ok (man))
+    if (man_standalone_ok(man))
     {
-      volatile int signal_received = 0;
-      const bool standalone_disabled_save = man->persist.standalone_disabled;
-      struct buffer alert_msg = alloc_buf_gc (128, &gc);
-      const char *alert_type = NULL;
-      const char *prefix = NULL;
-      unsigned int up_query_mode = 0;
+        volatile int signal_received = 0;
+        const bool standalone_disabled_save = man->persist.standalone_disabled;
+        struct buffer alert_msg = alloc_buf_gc(128, &gc);
+        const char *alert_type = NULL;
+        const char *prefix = NULL;
+        unsigned int up_query_mode = 0;
 #ifdef ENABLE_CLIENT_CR
-      const char *sc = NULL;
+        const char *sc = NULL;
 #endif
-      ret = true;
-      man->persist.standalone_disabled = false; /* This is so M_CLIENT messages will be correctly passed through msg() */
-      man->persist.special_state_msg = NULL;
+        ret = true;
+        man->persist.standalone_disabled = false; /* This is so M_CLIENT messages will be correctly passed through msg() */
+        man->persist.special_state_msg = NULL;
 
-      CLEAR (man->connection.up_query);
+        CLEAR(man->connection.up_query);
 
-      if (flags & GET_USER_PASS_NEED_OK)
-	{
-	  up_query_mode = UP_QUERY_NEED_OK;
-	  prefix= "NEED-OK";
-	  alert_type = "confirmation";
-	}
-      else if (flags & GET_USER_PASS_NEED_STR)
+        if (flags & GET_USER_PASS_NEED_OK)
         {
-	  up_query_mode = UP_QUERY_NEED_STR;
-	  prefix= "NEED-STR";
-	  alert_type = "string";
-	}
-      else if (flags & GET_USER_PASS_PASSWORD_ONLY)
-	{
-	  up_query_mode = UP_QUERY_PASS;
-	  prefix = "PASSWORD";
-	  alert_type = "password";
-	}
-      else
-	{
-	  up_query_mode = UP_QUERY_USER_PASS;
-	  prefix = "PASSWORD";
-	  alert_type = "username/password";
+            up_query_mode = UP_QUERY_NEED_OK;
+            prefix = "NEED-OK";
+            alert_type = "confirmation";
+        }
+        else if (flags & GET_USER_PASS_NEED_STR)
+        {
+            up_query_mode = UP_QUERY_NEED_STR;
+            prefix = "NEED-STR";
+            alert_type = "string";
+        }
+        else if (flags & GET_USER_PASS_PASSWORD_ONLY)
+        {
+            up_query_mode = UP_QUERY_PASS;
+            prefix = "PASSWORD";
+            alert_type = "password";
+        }
+        else
+        {
+            up_query_mode = UP_QUERY_USER_PASS;
+            prefix = "PASSWORD";
+            alert_type = "username/password";
 #ifdef ENABLE_CLIENT_CR
-	  if (static_challenge)
-	    sc = static_challenge;
+            if (static_challenge)
+            {
+                sc = static_challenge;
+            }
 #endif
-	}
-      buf_printf (&alert_msg, ">%s:Need '%s' %s",
-		  prefix,
-		  type,
-		  alert_type);
+        }
+        buf_printf(&alert_msg, ">%s:Need '%s' %s",
+                   prefix,
+                   type,
+                   alert_type);
 
-      if (flags & (GET_USER_PASS_NEED_OK | GET_USER_PASS_NEED_STR))
-	buf_printf (&alert_msg, " MSG:%s", up->username);
+        if (flags & (GET_USER_PASS_NEED_OK | GET_USER_PASS_NEED_STR))
+        {
+            buf_printf(&alert_msg, " MSG:%s", up->username);
+        }
 
 #ifdef ENABLE_CLIENT_CR
-      if (sc)
-	buf_printf (&alert_msg, " SC:%d,%s",
-		    BOOL_CAST(flags & GET_USER_PASS_STATIC_CHALLENGE_ECHO),
-		    sc);
+        if (sc)
+        {
+            buf_printf(&alert_msg, " SC:%d,%s",
+                       BOOL_CAST(flags & GET_USER_PASS_STATIC_CHALLENGE_ECHO),
+                       sc);
+        }
 #endif
 
-      man_wait_for_client_connection (man, &signal_received, 0, MWCC_PASSWORD_WAIT);
-      if (signal_received)
-	ret = false;
+        man_wait_for_client_connection(man, &signal_received, 0, MWCC_PASSWORD_WAIT);
+        if (signal_received)
+        {
+            ret = false;
+        }
 
-      if (ret)
-	{
-	  man->persist.special_state_msg = BSTR (&alert_msg);
-	  msg (M_CLIENT, "%s", man->persist.special_state_msg);
+        if (ret)
+        {
+            man->persist.special_state_msg = BSTR(&alert_msg);
+            msg(M_CLIENT, "%s", man->persist.special_state_msg);
 
-	  /* tell command line parser which info we need */
-	  man->connection.up_query_mode = up_query_mode;
-	  man->connection.up_query_type = type;
+            /* tell command line parser which info we need */
+            man->connection.up_query_mode = up_query_mode;
+            man->connection.up_query_type = type;
 
-	  /* run command processing event loop until we get our username/password/response */
-	  do
-	    {
-	      man_standalone_event_loop (man, &signal_received, 0);
-	      if (!signal_received)
-		man_check_for_signals (&signal_received);
-	      if (signal_received)
-		{
-		  ret = false;
-		  break;
-		}
-	    } while (!man->connection.up_query.defined);
-	}
+            /* run command processing event loop until we get our username/password/response */
+            do
+            {
+                man_standalone_event_loop(man, &signal_received, 0);
+                if (!signal_received)
+                {
+                    man_check_for_signals(&signal_received);
+                }
+                if (signal_received)
+                {
+                    ret = false;
+                    break;
+                }
+            } while (!man->connection.up_query.defined);
+        }
 
-      /* revert state */
-      man->connection.up_query_mode = UP_QUERY_DISABLED;
-      man->connection.up_query_type = NULL;
-      man->persist.standalone_disabled = standalone_disabled_save;
-      man->persist.special_state_msg = NULL;
+        /* revert state */
+        man->connection.up_query_mode = UP_QUERY_DISABLED;
+        man->connection.up_query_type = NULL;
+        man->persist.standalone_disabled = standalone_disabled_save;
+        man->persist.special_state_msg = NULL;
 
-      /* pass through blank passwords */
-      if (!strcmp (man->connection.up_query.password, blank_up))
-	CLEAR (man->connection.up_query.password);
+        /* pass through blank passwords */
+        if (!strcmp(man->connection.up_query.password, blank_up))
+        {
+            CLEAR(man->connection.up_query.password);
+        }
 
-      /*
-       * Transfer u/p to return object, zero any record
-       * we hold in the management object.
-       */
-      if (ret)
-	{
-	  man->connection.up_query.nocache = up->nocache; /* preserve caller's nocache setting */
-	  *up = man->connection.up_query;
-	}
-      secure_memzero (&man->connection.up_query, sizeof (man->connection.up_query));
+        /*
+         * Transfer u/p to return object, zero any record
+         * we hold in the management object.
+         */
+        if (ret)
+        {
+            man->connection.up_query.nocache = up->nocache; /* preserve caller's nocache setting */
+            *up = man->connection.up_query;
+        }
+        secure_memzero(&man->connection.up_query, sizeof(man->connection.up_query));
     }
 
-  gc_free (&gc);
-  return ret;
+    gc_free(&gc);
+    return ret;
 }
 
 #ifdef MANAGMENT_EXTERNAL_KEY
 
 int
-management_query_multiline (struct management *man,
-			  const char *b64_data, const char *prompt, const char *cmd, int *state, struct buffer_list **input)
+management_query_multiline(struct management *man,
+                           const char *b64_data, const char *prompt, const char *cmd, int *state, struct buffer_list **input)
 {
-  struct gc_arena gc = gc_new ();
-  int ret = 0;
-  volatile int signal_received = 0;
-  struct buffer alert_msg = clear_buf();
-  const bool standalone_disabled_save = man->persist.standalone_disabled;
-  struct man_connection *mc = &man->connection;
+    struct gc_arena gc = gc_new();
+    int ret = 0;
+    volatile int signal_received = 0;
+    struct buffer alert_msg = clear_buf();
+    const bool standalone_disabled_save = man->persist.standalone_disabled;
+    struct man_connection *mc = &man->connection;
 
-  if (man_standalone_ok (man))
+    if (man_standalone_ok(man))
     {
-      man->persist.standalone_disabled = false; /* This is so M_CLIENT messages will be correctly passed through msg() */
-      man->persist.special_state_msg = NULL;
+        man->persist.standalone_disabled = false; /* This is so M_CLIENT messages will be correctly passed through msg() */
+        man->persist.special_state_msg = NULL;
 
-      *state = EKS_SOLICIT;
+        *state = EKS_SOLICIT;
 
-      if (b64_data) {
-        alert_msg = alloc_buf_gc (strlen(b64_data)+strlen(prompt)+3, &gc);
-        buf_printf (&alert_msg, ">%s:%s", prompt, b64_data);
-      } else {
-        alert_msg = alloc_buf_gc (strlen(prompt)+3, &gc);
-        buf_printf (&alert_msg, ">%s", prompt);
-      }
+        if (b64_data)
+        {
+            alert_msg = alloc_buf_gc(strlen(b64_data)+strlen(prompt)+3, &gc);
+            buf_printf(&alert_msg, ">%s:%s", prompt, b64_data);
+        }
+        else
+        {
+            alert_msg = alloc_buf_gc(strlen(prompt)+3, &gc);
+            buf_printf(&alert_msg, ">%s", prompt);
+        }
 
-      man_wait_for_client_connection (man, &signal_received, 0, MWCC_OTHER_WAIT);
+        man_wait_for_client_connection(man, &signal_received, 0, MWCC_OTHER_WAIT);
 
-      if (signal_received)
-	goto done;
+        if (signal_received)
+        {
+            goto done;
+        }
 
-      man->persist.special_state_msg = BSTR (&alert_msg);
-      msg (M_CLIENT, "%s", man->persist.special_state_msg);
+        man->persist.special_state_msg = BSTR(&alert_msg);
+        msg(M_CLIENT, "%s", man->persist.special_state_msg);
 
-      /* run command processing event loop until we get our signature */
-      do
-	{
-	  man_standalone_event_loop (man, &signal_received, 0);
-	  if (!signal_received)
-	    man_check_for_signals (&signal_received);
-	  if (signal_received)
-	    goto done;
-	} while (*state != EKS_READY);
+        /* run command processing event loop until we get our signature */
+        do
+        {
+            man_standalone_event_loop(man, &signal_received, 0);
+            if (!signal_received)
+            {
+                man_check_for_signals(&signal_received);
+            }
+            if (signal_received)
+            {
+                goto done;
+            }
+        } while (*state != EKS_READY);
 
-      ret = 1;
+        ret = 1;
     }
 
- done:
-  if (*state == EKS_READY && ret)
-    msg (M_CLIENT, "SUCCESS: %s command succeeded", cmd);
-  else if (*state == EKS_INPUT || *state == EKS_READY)
-    msg (M_CLIENT, "ERROR: %s command failed", cmd);
-
-  /* revert state */
-  man->persist.standalone_disabled = standalone_disabled_save;
-  man->persist.special_state_msg = NULL;
-  in_extra_reset (mc, IER_RESET);
-  *state = EKS_UNDEF;
-
-  gc_free (&gc);
-  return ret;
-}
-
-char * /* returns allocated base64 signature */
-management_query_multiline_flatten_newline (struct management *man,
-    const char *b64_data, const char *prompt, const char *cmd, int *state, struct buffer_list **input)
-{
-  int ok;
-  char *result = NULL;
-  struct buffer *buf;
-
-  ok = management_query_multiline(man, b64_data, prompt, cmd, state, input);
-  if (ok && buffer_list_defined(*input))
-  {
-    buffer_list_aggregate_separator (*input, 10000, "\n");
-    buf = buffer_list_peek (*input);
-    if (buf && BLEN(buf) > 0)
+done:
+    if (*state == EKS_READY && ret)
     {
-      result = (char *) malloc(BLEN(buf)+1);
-      check_malloc_return(result);
-      memcpy(result, buf->data, BLEN(buf));
-      result[BLEN(buf)] = '\0';
+        msg(M_CLIENT, "SUCCESS: %s command succeeded", cmd);
     }
-  }
-
-  buffer_list_free (*input);
-  *input = NULL;
-
-  return result;
-}
-
-char * /* returns allocated base64 signature */
-management_query_multiline_flatten (struct management *man,
-    const char *b64_data, const char *prompt, const char *cmd, int *state, struct buffer_list **input)
-{
-  int ok;
-  char *result = NULL;
-  struct buffer *buf;
-
-  ok = management_query_multiline(man, b64_data, prompt, cmd, state, input);
-  if (ok && buffer_list_defined(*input))
-  {
-    buffer_list_aggregate (*input, 2048);
-    buf = buffer_list_peek (*input);
-    if (buf && BLEN(buf) > 0)
+    else if (*state == EKS_INPUT || *state == EKS_READY)
     {
-      result = (char *) malloc(BLEN(buf)+1);
-      check_malloc_return(result);
-      memcpy(result, buf->data, BLEN(buf));
-      result[BLEN(buf)] = '\0';
+        msg(M_CLIENT, "ERROR: %s command failed", cmd);
     }
-  }
 
-  buffer_list_free (*input);
-  *input = NULL;
+    /* revert state */
+    man->persist.standalone_disabled = standalone_disabled_save;
+    man->persist.special_state_msg = NULL;
+    in_extra_reset(mc, IER_RESET);
+    *state = EKS_UNDEF;
 
-  return result;
+    gc_free(&gc);
+    return ret;
 }
 
-char * /* returns allocated base64 signature */
-management_query_rsa_sig (struct management *man,
-			  const char *b64_data)
+char *
+/* returns allocated base64 signature */
+management_query_multiline_flatten_newline(struct management *man,
+                                           const char *b64_data, const char *prompt, const char *cmd, int *state, struct buffer_list **input)
 {
-  return management_query_multiline_flatten(man, b64_data, "RSA_SIGN", "rsa-sign",
-      &man->connection.ext_key_state, &man->connection.ext_key_input);
+    int ok;
+    char *result = NULL;
+    struct buffer *buf;
+
+    ok = management_query_multiline(man, b64_data, prompt, cmd, state, input);
+    if (ok && buffer_list_defined(*input))
+    {
+        buffer_list_aggregate_separator(*input, 10000, "\n");
+        buf = buffer_list_peek(*input);
+        if (buf && BLEN(buf) > 0)
+        {
+            result = (char *) malloc(BLEN(buf)+1);
+            check_malloc_return(result);
+            memcpy(result, buf->data, BLEN(buf));
+            result[BLEN(buf)] = '\0';
+        }
+    }
+
+    buffer_list_free(*input);
+    *input = NULL;
+
+    return result;
 }
 
-
-char* management_query_cert (struct management *man, const char *cert_name)
+char *
+/* returns allocated base64 signature */
+management_query_multiline_flatten(struct management *man,
+                                   const char *b64_data, const char *prompt, const char *cmd, int *state, struct buffer_list **input)
 {
-  const char prompt_1[] = "NEED-CERTIFICATE:";
-  struct buffer buf_prompt = alloc_buf(strlen(cert_name) + 20);
-  buf_write(&buf_prompt, prompt_1, strlen(prompt_1));
-  buf_write(&buf_prompt, cert_name, strlen(cert_name)+1); // +1 for \0
+    int ok;
+    char *result = NULL;
+    struct buffer *buf;
 
-  char *result;
-  result = management_query_multiline_flatten_newline(management,
-      NULL, (char*)buf_bptr(&buf_prompt), "certificate",
-      &man->connection.ext_cert_state, &man->connection.ext_cert_input);
-  free_buf(&buf_prompt);
-  return result;
+    ok = management_query_multiline(man, b64_data, prompt, cmd, state, input);
+    if (ok && buffer_list_defined(*input))
+    {
+        buffer_list_aggregate(*input, 2048);
+        buf = buffer_list_peek(*input);
+        if (buf && BLEN(buf) > 0)
+        {
+            result = (char *) malloc(BLEN(buf)+1);
+            check_malloc_return(result);
+            memcpy(result, buf->data, BLEN(buf));
+            result[BLEN(buf)] = '\0';
+        }
+    }
+
+    buffer_list_free(*input);
+    *input = NULL;
+
+    return result;
 }
 
-#endif
+char *
+/* returns allocated base64 signature */
+management_query_rsa_sig(struct management *man,
+                         const char *b64_data)
+{
+    return management_query_multiline_flatten(man, b64_data, "RSA_SIGN", "rsa-sign",
+                                              &man->connection.ext_key_state, &man->connection.ext_key_input);
+}
+
+
+char *
+management_query_cert(struct management *man, const char *cert_name)
+{
+    const char prompt_1[] = "NEED-CERTIFICATE:";
+    struct buffer buf_prompt = alloc_buf(strlen(cert_name) + 20);
+    buf_write(&buf_prompt, prompt_1, strlen(prompt_1));
+    buf_write(&buf_prompt, cert_name, strlen(cert_name)+1); /* +1 for \0 */
+
+    char *result;
+    result = management_query_multiline_flatten_newline(management,
+                                                        NULL, (char *)buf_bptr(&buf_prompt), "certificate",
+                                                        &man->connection.ext_cert_state, &man->connection.ext_cert_input);
+    free_buf(&buf_prompt);
+    return result;
+}
+
+#endif /* ifdef MANAGMENT_EXTERNAL_KEY */
 
 /*
  * Return true if management_hold() would block
  */
 bool
-management_would_hold (struct management *man)
+management_would_hold(struct management *man)
 {
-  return (man->settings.flags & MF_HOLD) && !man->persist.hold_release && man_standalone_ok (man);
+    return (man->settings.flags & MF_HOLD) && !man->persist.hold_release && man_standalone_ok(man);
 }
 
 /*
@@ -3320,9 +3689,9 @@ management_would_hold (struct management *man)
  * daemonize.
  */
 bool
-management_should_daemonize (struct management *man)
+management_should_daemonize(struct management *man)
 {
-  return management_would_hold (man) || (man->settings.flags & MF_QUERY_PASSWORDS);
+    return management_would_hold(man) || (man->settings.flags & MF_QUERY_PASSWORDS);
 }
 
 /*
@@ -3330,47 +3699,51 @@ management_should_daemonize (struct management *man)
  * Return true if the caller should not sleep for an additional time interval.
  */
 bool
-management_hold (struct management *man, int holdtime)
+management_hold(struct management *man, int holdtime)
 {
-  if (management_would_hold (man))
+    if (management_would_hold(man))
     {
-      volatile int signal_received = 0;
-      const bool standalone_disabled_save = man->persist.standalone_disabled;
-      struct gc_arena gc = gc_new ();
+        volatile int signal_received = 0;
+        const bool standalone_disabled_save = man->persist.standalone_disabled;
+        struct gc_arena gc = gc_new();
 
-      man->persist.standalone_disabled = false; /* This is so M_CLIENT messages will be correctly passed through msg() */
-      man->persist.special_state_msg = NULL;
-      man->settings.mansig |= MANSIG_IGNORE_USR1_HUP;
+        man->persist.standalone_disabled = false; /* This is so M_CLIENT messages will be correctly passed through msg() */
+        man->persist.special_state_msg = NULL;
+        man->settings.mansig |= MANSIG_IGNORE_USR1_HUP;
 
-      man_wait_for_client_connection (man, &signal_received, 0, MWCC_HOLD_WAIT);
+        man_wait_for_client_connection(man, &signal_received, 0, MWCC_HOLD_WAIT);
 
-      if (!signal_received)
-	{
-	  struct buffer out = alloc_buf_gc (128, &gc);
-	  buf_printf (&out, ">HOLD:Waiting for hold release:%d", holdtime);
-	  man->persist.special_state_msg = BSTR (&out);
-	  msg (M_CLIENT, "%s", man->persist.special_state_msg);
+        if (!signal_received)
+        {
+            struct buffer out = alloc_buf_gc(128, &gc);
+            buf_printf(&out, ">HOLD:Waiting for hold release:%d", holdtime);
+            man->persist.special_state_msg = BSTR(&out);
+            msg(M_CLIENT, "%s", man->persist.special_state_msg);
 
-	  /* run command processing event loop until we get our username/password */
-	  do
-	    {
-	      man_standalone_event_loop (man, &signal_received, 0);
-	      if (!signal_received)
-		man_check_for_signals (&signal_received);
-	      if (signal_received)
-		break;
-	    } while (!man->persist.hold_release);
-	}
+            /* run command processing event loop until we get our username/password */
+            do
+            {
+                man_standalone_event_loop(man, &signal_received, 0);
+                if (!signal_received)
+                {
+                    man_check_for_signals(&signal_received);
+                }
+                if (signal_received)
+                {
+                    break;
+                }
+            } while (!man->persist.hold_release);
+        }
 
-      /* revert state */
-      man->persist.standalone_disabled = standalone_disabled_save;
-      man->persist.special_state_msg = NULL;
-      man->settings.mansig &= ~MANSIG_IGNORE_USR1_HUP;
+        /* revert state */
+        man->persist.standalone_disabled = standalone_disabled_save;
+        man->persist.special_state_msg = NULL;
+        man->settings.mansig &= ~MANSIG_IGNORE_USR1_HUP;
 
-      gc_free (&gc);
-      return true;
+        gc_free(&gc);
+        return true;
     }
-  return false;
+    return false;
 }
 
 /*
@@ -3378,67 +3751,69 @@ management_hold (struct management *man, int holdtime)
  */
 
 struct command_line *
-command_line_new (const int buf_len)
+command_line_new(const int buf_len)
 {
-  struct command_line *cl;
-  ALLOC_OBJ_CLEAR (cl, struct command_line);
-  cl->buf = alloc_buf (buf_len);
-  cl->residual = alloc_buf (buf_len);
-  return cl;
+    struct command_line *cl;
+    ALLOC_OBJ_CLEAR(cl, struct command_line);
+    cl->buf = alloc_buf(buf_len);
+    cl->residual = alloc_buf(buf_len);
+    return cl;
 }
 
 void
-command_line_reset (struct command_line *cl)
+command_line_reset(struct command_line *cl)
 {
-  buf_clear (&cl->buf);
-  buf_clear (&cl->residual);
+    buf_clear(&cl->buf);
+    buf_clear(&cl->residual);
 }
 
 void
-command_line_free (struct command_line *cl)
+command_line_free(struct command_line *cl)
 {
-  command_line_reset (cl);
-  free_buf (&cl->buf);
-  free_buf (&cl->residual);
-  free (cl);
+    command_line_reset(cl);
+    free_buf(&cl->buf);
+    free_buf(&cl->residual);
+    free(cl);
 }
 
 void
-command_line_add (struct command_line *cl, const unsigned char *buf, const int len)
+command_line_add(struct command_line *cl, const unsigned char *buf, const int len)
 {
-  int i;
-  for (i = 0; i < len; ++i)
+    int i;
+    for (i = 0; i < len; ++i)
     {
-      if (buf[i] && char_class(buf[i], (CC_PRINT|CC_NEWLINE)))
-	{
-	  if (!buf_write_u8 (&cl->buf, buf[i]))
-	    buf_clear (&cl->buf);
-	}
+        if (buf[i] && char_class(buf[i], (CC_PRINT|CC_NEWLINE)))
+        {
+            if (!buf_write_u8(&cl->buf, buf[i]))
+            {
+                buf_clear(&cl->buf);
+            }
+        }
     }
 }
 
 const unsigned char *
-command_line_get (struct command_line *cl)
+command_line_get(struct command_line *cl)
 {
-  int i;
-  const unsigned char *ret = NULL;
+    int i;
+    const unsigned char *ret = NULL;
 
-  i = buf_substring_len (&cl->buf, '\n');
-  if (i >= 0)
+    i = buf_substring_len(&cl->buf, '\n');
+    if (i >= 0)
     {
-      buf_copy_excess (&cl->residual, &cl->buf, i);
-      buf_chomp (&cl->buf);
-      ret = (const unsigned char *) BSTR (&cl->buf);
+        buf_copy_excess(&cl->residual, &cl->buf, i);
+        buf_chomp(&cl->buf);
+        ret = (const unsigned char *) BSTR(&cl->buf);
     }
-  return ret;
+    return ret;
 }
 
 void
-command_line_next (struct command_line *cl)
+command_line_next(struct command_line *cl)
 {
-  buf_clear (&cl->buf);
-  buf_copy (&cl->buf, &cl->residual);
-  buf_clear (&cl->residual);
+    buf_clear(&cl->buf);
+    buf_copy(&cl->buf, &cl->residual);
+    buf_clear(&cl->residual);
 }
 
 /*
@@ -3446,51 +3821,79 @@ command_line_next (struct command_line *cl)
  */
 
 const char *
-log_entry_print (const struct log_entry *e, unsigned int flags, struct gc_arena *gc)
+log_entry_print(const struct log_entry *e, unsigned int flags, struct gc_arena *gc)
 {
-  struct buffer out = alloc_buf_gc (ERR_BUF_SIZE, gc);
-  if (flags & LOG_FATAL_NOTIFY)
-    buf_printf (&out, ">FATAL:");    
-  if (flags & LOG_PRINT_LOG_PREFIX)
-    buf_printf (&out, ">LOG:");
-  if (flags & LOG_PRINT_ECHO_PREFIX)
-    buf_printf (&out, ">ECHO:");
-  if (flags & LOG_PRINT_STATE_PREFIX)
-    buf_printf (&out, ">STATE:");
-  if (flags & LOG_PRINT_INT_DATE)
-    buf_printf (&out, "%u,", (unsigned int)e->timestamp);
-  if (flags & LOG_PRINT_MSG_FLAGS)
-    buf_printf (&out, "%s,", msg_flags_string (e->u.msg_flags, gc));
-  if (flags & LOG_PRINT_STATE)
-    buf_printf (&out, "%s,", man_state_name (e->u.state));
-  if (flags & LOG_PRINT_INTVAL)
-    buf_printf (&out, "%d,", e->u.intval);
-  if (e->string)
-    buf_printf (&out, "%s", e->string);
-  if (flags & LOG_PRINT_LOCAL_IP)
-    buf_printf (&out, ",%s", print_in_addr_t (e->local_ip, IA_EMPTY_IF_UNDEF, gc));
-  if (flags & LOG_PRINT_REMOTE_IP)
+    struct buffer out = alloc_buf_gc(ERR_BUF_SIZE, gc);
+    if (flags & LOG_FATAL_NOTIFY)
     {
-      buf_printf (&out, ",%s", (!addr_defined (&e->remote_sock) ? "," :
-        print_sockaddr_ex (&e->remote_sock.addr.sa, ",", PS_DONT_SHOW_FAMILY|PS_SHOW_PORT, gc)));
-      buf_printf (&out, ",%s", (!addr_defined (&e->local_sock) ? "," :
-        print_sockaddr_ex (&e->local_sock.addr.sa, ",", PS_DONT_SHOW_FAMILY|PS_SHOW_PORT, gc)));
+        buf_printf(&out, ">FATAL:");
     }
-  if (flags & LOG_PRINT_LOCAL_IP && !IN6_IS_ADDR_UNSPECIFIED(&e->local_ip6))
-    buf_printf (&out, ",%s", print_in6_addr (e->local_ip6, IA_EMPTY_IF_UNDEF, gc));
-  if (flags & LOG_ECHO_TO_LOG)
-    msg (D_MANAGEMENT, "MANAGEMENT: %s", BSTR (&out));
-  if (flags & LOG_PRINT_CRLF)
-    buf_printf (&out, "\r\n");
-  return BSTR (&out);
+    if (flags & LOG_PRINT_LOG_PREFIX)
+    {
+        buf_printf(&out, ">LOG:");
+    }
+    if (flags & LOG_PRINT_ECHO_PREFIX)
+    {
+        buf_printf(&out, ">ECHO:");
+    }
+    if (flags & LOG_PRINT_STATE_PREFIX)
+    {
+        buf_printf(&out, ">STATE:");
+    }
+    if (flags & LOG_PRINT_INT_DATE)
+    {
+        buf_printf(&out, "%u,", (unsigned int)e->timestamp);
+    }
+    if (flags & LOG_PRINT_MSG_FLAGS)
+    {
+        buf_printf(&out, "%s,", msg_flags_string(e->u.msg_flags, gc));
+    }
+    if (flags & LOG_PRINT_STATE)
+    {
+        buf_printf(&out, "%s,", man_state_name(e->u.state));
+    }
+    if (flags & LOG_PRINT_INTVAL)
+    {
+        buf_printf(&out, "%d,", e->u.intval);
+    }
+    if (e->string)
+    {
+        buf_printf(&out, "%s", e->string);
+    }
+    if (flags & LOG_PRINT_LOCAL_IP)
+    {
+        buf_printf(&out, ",%s", print_in_addr_t(e->local_ip, IA_EMPTY_IF_UNDEF, gc));
+    }
+    if (flags & LOG_PRINT_REMOTE_IP)
+    {
+        buf_printf(&out, ",%s", (!addr_defined(&e->remote_sock) ? "," :
+                                 print_sockaddr_ex(&e->remote_sock.addr.sa, ",", PS_DONT_SHOW_FAMILY|PS_SHOW_PORT, gc)));
+        buf_printf(&out, ",%s", (!addr_defined(&e->local_sock) ? "," :
+                                 print_sockaddr_ex(&e->local_sock.addr.sa, ",", PS_DONT_SHOW_FAMILY|PS_SHOW_PORT, gc)));
+    }
+    if (flags & LOG_PRINT_LOCAL_IP && !IN6_IS_ADDR_UNSPECIFIED(&e->local_ip6))
+    {
+        buf_printf(&out, ",%s", print_in6_addr(e->local_ip6, IA_EMPTY_IF_UNDEF, gc));
+    }
+    if (flags & LOG_ECHO_TO_LOG)
+    {
+        msg(D_MANAGEMENT, "MANAGEMENT: %s", BSTR(&out));
+    }
+    if (flags & LOG_PRINT_CRLF)
+    {
+        buf_printf(&out, "\r\n");
+    }
+    return BSTR(&out);
 }
 
 static void
-log_entry_free_contents (struct log_entry *e)
+log_entry_free_contents(struct log_entry *e)
 {
-  if (e->string)
-    free ((char *)e->string);
-  CLEAR (*e);
+    if (e->string)
+    {
+        free((char *)e->string);
+    }
+    CLEAR(*e);
 }
 
 /*
@@ -3498,94 +3901,100 @@ log_entry_free_contents (struct log_entry *e)
  */
 
 static inline int
-log_index (const struct log_history *h, int i)
+log_index(const struct log_history *h, int i)
 {
-  return modulo_add (h->base, i, h->capacity);
+    return modulo_add(h->base, i, h->capacity);
 }
 
 static void
-log_history_obj_init (struct log_history *h, int capacity)
+log_history_obj_init(struct log_history *h, int capacity)
 {
-  CLEAR (*h);
-  h->capacity = capacity;
-  ALLOC_ARRAY_CLEAR (h->array, struct log_entry, capacity);
+    CLEAR(*h);
+    h->capacity = capacity;
+    ALLOC_ARRAY_CLEAR(h->array, struct log_entry, capacity);
 }
 
 struct log_history *
-log_history_init (const int capacity)
+log_history_init(const int capacity)
 {
-  struct log_history *h;
-  ASSERT (capacity > 0);
-  ALLOC_OBJ (h, struct log_history);
-  log_history_obj_init (h, capacity);
-  return h;
+    struct log_history *h;
+    ASSERT(capacity > 0);
+    ALLOC_OBJ(h, struct log_history);
+    log_history_obj_init(h, capacity);
+    return h;
 }
 
 static void
-log_history_free_contents (struct log_history *h)
+log_history_free_contents(struct log_history *h)
 {
-  int i;
-  for (i = 0; i < h->size; ++i)
-    log_entry_free_contents (&h->array[log_index(h, i)]);
-  free (h->array);
+    int i;
+    for (i = 0; i < h->size; ++i)
+        log_entry_free_contents(&h->array[log_index(h, i)]);
+    free(h->array);
 }
 
 void
-log_history_close (struct log_history *h)
+log_history_close(struct log_history *h)
 {
-  log_history_free_contents (h);
-  free (h);
+    log_history_free_contents(h);
+    free(h);
 }
 
 void
-log_history_add (struct log_history *h, const struct log_entry *le)
+log_history_add(struct log_history *h, const struct log_entry *le)
 {
-  struct log_entry *e;
-  ASSERT (h->size >= 0 && h->size <= h->capacity);
-  if (h->size == h->capacity)
+    struct log_entry *e;
+    ASSERT(h->size >= 0 && h->size <= h->capacity);
+    if (h->size == h->capacity)
     {
-      e = &h->array[h->base];
-      log_entry_free_contents (e);
-      h->base = log_index (h, 1);
+        e = &h->array[h->base];
+        log_entry_free_contents(e);
+        h->base = log_index(h, 1);
     }
-  else
+    else
     {
-      e = &h->array[log_index(h, h->size)];
-      ++h->size;
+        e = &h->array[log_index(h, h->size)];
+        ++h->size;
     }
 
-  *e = *le;
-  e->string = string_alloc (le->string, NULL);
+    *e = *le;
+    e->string = string_alloc(le->string, NULL);
 }
 
 void
-log_history_resize (struct log_history *h, const int capacity)
+log_history_resize(struct log_history *h, const int capacity)
 {
-  if (capacity != h->capacity)
+    if (capacity != h->capacity)
     {
-      struct log_history newlog;
-      int i;
+        struct log_history newlog;
+        int i;
 
-      ASSERT (capacity > 0);
-      log_history_obj_init (&newlog, capacity);
+        ASSERT(capacity > 0);
+        log_history_obj_init(&newlog, capacity);
 
-      for (i = 0; i < h->size; ++i)
-	log_history_add (&newlog, &h->array[log_index(h, i)]);
-			 
-      log_history_free_contents (h);
-      *h = newlog;
+        for (i = 0; i < h->size; ++i)
+            log_history_add(&newlog, &h->array[log_index(h, i)]);
+
+        log_history_free_contents(h);
+        *h = newlog;
     }
 }
 
 const struct log_entry *
-log_history_ref (const struct log_history *h, const int index)
+log_history_ref(const struct log_history *h, const int index)
 {
-  if (index >= 0 && index < h->size)
-    return &h->array[log_index(h, (h->size - 1) - index)];
-  else
-    return NULL;
+    if (index >= 0 && index < h->size)
+    {
+        return &h->array[log_index(h, (h->size - 1) - index)];
+    }
+    else
+    {
+        return NULL;
+    }
 }
 
-#else
-static void dummy(void) {}
+#else  /* ifdef ENABLE_MANAGEMENT */
+static void
+dummy(void) {
+}
 #endif /* ENABLE_MANAGEMENT */

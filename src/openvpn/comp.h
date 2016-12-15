@@ -46,11 +46,11 @@
 
 /* algorithm v2 */
 #define COMP_ALGV2_UNCOMPRESSED 10
-#define COMP_ALGV2_LZ4	    11
+#define COMP_ALGV2_LZ4      11
 /*
-#define COMP_ALGV2_LZO	    12
-#define COMP_ALGV2_SNAPPY   13
-*/
+ #define COMP_ALGV2_LZO     12
+ #define COMP_ALGV2_SNAPPY   13
+ */
 
 /* Compression flags */
 #define COMP_F_ADAPTIVE   (1<<0) /* COMP_ALG_LZO only */
@@ -76,11 +76,11 @@
 #define NO_COMPRESS_BYTE_SWAP 0xFB /* to maintain payload alignment, replace this byte with last byte of packet */
 
 /* V2 on wire code */
-#define COMP_ALGV2_INDICATOR_BYTE	0x50
-#define COMP_ALGV2_UNCOMPRESSED_BYTE	0
-#define COMP_ALGV2_LZ4_BYTE		1
-#define COMP_ALGV2_LZO_BYTE		2
-#define COMP_ALGV2_SNAPPY_BYTE		3
+#define COMP_ALGV2_INDICATOR_BYTE       0x50
+#define COMP_ALGV2_UNCOMPRESSED_BYTE    0
+#define COMP_ALGV2_LZ4_BYTE             1
+#define COMP_ALGV2_LZO_BYTE             2
+#define COMP_ALGV2_SNAPPY_BYTE          3
 
 /*
  * Compress worst case size expansion (for any algorithm)
@@ -104,16 +104,16 @@ struct compress_context;
  */
 struct compress_alg
 {
-  const char *name;
-  void (*compress_init)(struct compress_context *compctx);
-  void (*compress_uninit)(struct compress_context *compctx);
-  void (*compress)(struct buffer *buf, struct buffer work,
-		   struct compress_context *compctx,
-		   const struct frame* frame);
+    const char *name;
+    void (*compress_init)(struct compress_context *compctx);
+    void (*compress_uninit)(struct compress_context *compctx);
+    void (*compress)(struct buffer *buf, struct buffer work,
+                     struct compress_context *compctx,
+                     const struct frame *frame);
 
-  void (*decompress)(struct buffer *buf, struct buffer work,
-		     struct compress_context *compctx,
-		     const struct frame* frame);
+    void (*decompress)(struct buffer *buf, struct buffer work,
+                       struct compress_context *compctx,
+                       const struct frame *frame);
 };
 
 /*
@@ -133,8 +133,8 @@ struct compress_alg
  */
 struct compress_options
 {
-  int alg;
-  unsigned int flags;
+    int alg;
+    unsigned int flags;
 };
 
 /*
@@ -143,10 +143,10 @@ struct compress_options
 union compress_workspace_union
 {
 #ifdef ENABLE_LZO
-  struct lzo_compress_workspace lzo;
+    struct lzo_compress_workspace lzo;
 #endif
 #ifdef ENABLE_LZ4
-  struct lz4_workspace lz4;
+    struct lz4_workspace lz4;
 #endif
 };
 
@@ -155,15 +155,15 @@ union compress_workspace_union
  */
 struct compress_context
 {
-  unsigned int flags;
-  struct compress_alg alg;
-  union compress_workspace_union wu;
+    unsigned int flags;
+    struct compress_alg alg;
+    union compress_workspace_union wu;
 
-  /* statistics */
-  counter_type pre_decompress;
-  counter_type post_decompress;
-  counter_type pre_compress;
-  counter_type post_compress;
+    /* statistics */
+    counter_type pre_decompress;
+    counter_type post_decompress;
+    counter_type pre_compress;
+    counter_type post_compress;
 };
 
 extern const struct compress_alg comp_stub_alg;
@@ -174,25 +174,26 @@ struct compress_context *comp_init(const struct compress_options *opt);
 void comp_uninit(struct compress_context *compctx);
 
 void comp_add_to_extra_frame(struct frame *frame);
+
 void comp_add_to_extra_buffer(struct frame *frame);
 
-void comp_print_stats (const struct compress_context *compctx, struct status_output *so);
+void comp_print_stats(const struct compress_context *compctx, struct status_output *so);
 
 void comp_generate_peer_info_string(const struct compress_options *opt, struct buffer *out);
 
-void compv2_escape_data_ifneeded (struct buffer *buf);
+void compv2_escape_data_ifneeded(struct buffer *buf);
 
 static inline bool
 comp_enabled(const struct compress_options *info)
 {
-  return info->alg != COMP_ALG_UNDEF;
+    return info->alg != COMP_ALG_UNDEF;
 }
 
 static inline bool
 comp_unswapped_prefix(const struct compress_options *info)
 {
-  return !(info->flags & COMP_F_SWAP);
+    return !(info->flags & COMP_F_SWAP);
 }
 
 #endif /* USE_COMP */
-#endif
+#endif /* ifndef OPENVPN_COMP_H */

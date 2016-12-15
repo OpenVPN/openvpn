@@ -52,36 +52,36 @@
 #define BOOTPC_PORT 68
 
 struct dhcp {
-# define BOOTREQUEST 1
-# define BOOTREPLY   2
-  uint8_t op;          /* message op */
+#define BOOTREQUEST 1
+#define BOOTREPLY   2
+    uint8_t op;        /* message op */
 
-  uint8_t  htype;      /* hardware address type (e.g. '1' = 10Mb Ethernet) */
-  uint8_t  hlen;       /* hardware address length (e.g. '6' for 10Mb Ethernet) */
-  uint8_t  hops;       /* client sets to 0, may be used by relay agents */
-  uint32_t xid;        /* transaction ID, chosen by client */
-  uint16_t secs;       /* seconds since request process began, set by client */
-  uint16_t flags;
-  uint32_t ciaddr;     /* client IP address, client sets if known */
-  uint32_t yiaddr;     /* 'your' IP address -- server's response to client */
-  uint32_t siaddr;     /* server IP address */
-  uint32_t giaddr;     /* relay agent IP address */
-  uint8_t  chaddr[16]; /* client hardware address */
-  uint8_t  sname[64];  /* optional server host name */
-  uint8_t  file[128];  /* boot file name */
-  uint32_t magic;      /* must be 0x63825363 (network order) */
+    uint8_t htype;     /* hardware address type (e.g. '1' = 10Mb Ethernet) */
+    uint8_t hlen;      /* hardware address length (e.g. '6' for 10Mb Ethernet) */
+    uint8_t hops;      /* client sets to 0, may be used by relay agents */
+    uint32_t xid;      /* transaction ID, chosen by client */
+    uint16_t secs;     /* seconds since request process began, set by client */
+    uint16_t flags;
+    uint32_t ciaddr;   /* client IP address, client sets if known */
+    uint32_t yiaddr;   /* 'your' IP address -- server's response to client */
+    uint32_t siaddr;   /* server IP address */
+    uint32_t giaddr;   /* relay agent IP address */
+    uint8_t chaddr[16]; /* client hardware address */
+    uint8_t sname[64]; /* optional server host name */
+    uint8_t file[128]; /* boot file name */
+    uint32_t magic;    /* must be 0x63825363 (network order) */
 };
 
 struct dhcp_full {
-  struct openvpn_iphdr ip;
-  struct openvpn_udphdr udp;
-  struct dhcp dhcp;
-# define DHCP_OPTIONS_BUFFER_SIZE 256
-  uint8_t options[DHCP_OPTIONS_BUFFER_SIZE];
+    struct openvpn_iphdr ip;
+    struct openvpn_udphdr udp;
+    struct dhcp dhcp;
+#define DHCP_OPTIONS_BUFFER_SIZE 256
+    uint8_t options[DHCP_OPTIONS_BUFFER_SIZE];
 };
 
 #pragma pack()
 
-in_addr_t dhcp_extract_router_msg (struct buffer *ipbuf);
+in_addr_t dhcp_extract_router_msg(struct buffer *ipbuf);
 
-#endif
+#endif /* ifndef DHCP_H */

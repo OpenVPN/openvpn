@@ -56,21 +56,21 @@
 struct key_schedule
 {
 #ifdef ENABLE_CRYPTO
-  /* which cipher, HMAC digest, and key sizes are we using? */
-  struct key_type key_type;
+    /* which cipher, HMAC digest, and key sizes are we using? */
+    struct key_type key_type;
 
-  /* pre-shared static key, read from a file */
-  struct key_ctx_bi static_key;
+    /* pre-shared static key, read from a file */
+    struct key_ctx_bi static_key;
 
-  /* our global SSL context */
-  struct tls_root_ctx ssl_ctx;
+    /* our global SSL context */
+    struct tls_root_ctx ssl_ctx;
 
-  /* optional TLS control channel wrapping */
-  struct key_type tls_auth_key_type;
-  struct key_ctx_bi tls_wrap_key;
-#else				/* ENABLE_CRYPTO */
-  int dummy;
-#endif				/* ENABLE_CRYPTO */
+    /* optional TLS control channel wrapping */
+    struct key_type tls_auth_key_type;
+    struct key_ctx_bi tls_wrap_key;
+#else                           /* ENABLE_CRYPTO */
+    int dummy;
+#endif                          /* ENABLE_CRYPTO */
 };
 
 /*
@@ -80,10 +80,10 @@ struct key_schedule
 #ifndef PACKET_ID_H
 struct packet_id_persist
 {
-  int dummy;
+    int dummy;
 };
 static inline void
-packet_id_persist_init (struct packet_id_persist *p)
+packet_id_persist_init(struct packet_id_persist *p)
 {
 }
 #endif
@@ -93,27 +93,27 @@ packet_id_persist_init (struct packet_id_persist *p)
  */
 struct context_buffers
 {
-  /* miscellaneous buffer, used by ping, occ, etc. */
-  struct buffer aux_buf;
+    /* miscellaneous buffer, used by ping, occ, etc. */
+    struct buffer aux_buf;
 
-  /* workspace buffers used by crypto routines */
+    /* workspace buffers used by crypto routines */
 #ifdef ENABLE_CRYPTO
-  struct buffer encrypt_buf;
-  struct buffer decrypt_buf;
+    struct buffer encrypt_buf;
+    struct buffer decrypt_buf;
 #endif
 
-  /* workspace buffers for compression */
+    /* workspace buffers for compression */
 #ifdef USE_COMP
-  struct buffer compress_buf;
-  struct buffer decompress_buf;
+    struct buffer compress_buf;
+    struct buffer decompress_buf;
 #endif
 
-  /*
-   * Buffers used to read from TUN device
-   * and TCP/UDP port.
-   */
-  struct buffer read_link_buf;
-  struct buffer read_tun_buf;
+    /*
+     * Buffers used to read from TUN device
+     * and TCP/UDP port.
+     */
+    struct buffer read_link_buf;
+    struct buffer read_tun_buf;
 };
 
 /*
@@ -121,7 +121,7 @@ struct context_buffers
  */
 struct context_persist
 {
-  int restart_sleep_seconds;
+    int restart_sleep_seconds;
 };
 
 
@@ -136,12 +136,12 @@ struct context_persist
  */
 struct context_0
 {
-  /* workspace for --user/--group */
-  bool uid_gid_specified;
-  /* helper which tells us whether we should keep trying to drop privileges */
-  bool uid_gid_chroot_set;
-  struct platform_state_user platform_state_user;
-  struct platform_state_group platform_state_group;
+    /* workspace for --user/--group */
+    bool uid_gid_specified;
+    /* helper which tells us whether we should keep trying to drop privileges */
+    bool uid_gid_chroot_set;
+    struct platform_state_user platform_state_user;
+    struct platform_state_group platform_state_group;
 };
 
 
@@ -156,64 +156,64 @@ struct context_0
  */
 struct context_1
 {
-  struct link_socket_addr link_socket_addr;
-                                /**< Local and remote addresses on the
-                                 *   external network. */
+    struct link_socket_addr link_socket_addr;
+    /**< Local and remote addresses on the
+     *   external network. */
 
-  /* tunnel session keys */
-  struct key_schedule ks;
+    /* tunnel session keys */
+    struct key_schedule ks;
 
-  /* preresolved and cached host names */
-  struct cached_dns_entry *dns_cache;
+    /* preresolved and cached host names */
+    struct cached_dns_entry *dns_cache;
 
-  /* persist crypto sequence number to/from file */
-  struct packet_id_persist pid_persist;
+    /* persist crypto sequence number to/from file */
+    struct packet_id_persist pid_persist;
 
-  struct tuntap *tuntap;        /**< Tun/tap virtual network interface. */
-  bool tuntap_owned;            /**< Whether the tun/tap interface should
+    struct tuntap *tuntap;      /**< Tun/tap virtual network interface. */
+    bool tuntap_owned;          /**< Whether the tun/tap interface should
                                  *   be cleaned up when this %context is
                                  *   cleaned up. */
 
-  struct route_list *route_list;
-                                /**< List of routing information. See the
-                                 *   \c --route command line option. */
+    struct route_list *route_list;
+    /**< List of routing information. See the
+     *   \c --route command line option. */
 
-  /* list of --route-ipv6 directives */
-  struct route_ipv6_list *route_ipv6_list;
+    /* list of --route-ipv6 directives */
+    struct route_ipv6_list *route_ipv6_list;
 
-  /* --status file */
-  struct status_output *status_output;
-  bool status_output_owned;
+    /* --status file */
+    struct status_output *status_output;
+    bool status_output_owned;
 
-  /* HTTP proxy object */
-  struct http_proxy_info *http_proxy;
-  bool http_proxy_owned;
+    /* HTTP proxy object */
+    struct http_proxy_info *http_proxy;
+    bool http_proxy_owned;
 
-  /* SOCKS proxy object */
-  struct socks_proxy_info *socks_proxy;
-  bool socks_proxy_owned;
+    /* SOCKS proxy object */
+    struct socks_proxy_info *socks_proxy;
+    bool socks_proxy_owned;
 
 #if P2MP
 
 #if P2MP_SERVER
-  /* persist --ifconfig-pool db to file */
-  struct ifconfig_pool_persist *ifconfig_pool_persist;
-  bool ifconfig_pool_persist_owned;
+    /* persist --ifconfig-pool db to file */
+    struct ifconfig_pool_persist *ifconfig_pool_persist;
+    bool ifconfig_pool_persist_owned;
 #endif
 
-  /* if client mode, hash of option strings we pulled from server */
-  struct md5_digest pulled_options_digest_save;
-                                /**< Hash of option strings received from the
-                                 *   remote OpenVPN server.  Only used in
-                                 *   client-mode. */
+    /* if client mode, hash of option strings we pulled from server */
+    struct md5_digest pulled_options_digest_save;
+    /**< Hash of option strings received from the
+     *   remote OpenVPN server.  Only used in
+     *   client-mode. */
 
-  struct user_pass *auth_user_pass;
-                                /**< Username and password for
-                                 *   authentication. */
+    struct user_pass *auth_user_pass;
+    /**< Username and password for
+     *   authentication. */
 
-  const char *ciphername;	/**< Data channel cipher from config file */
-  const char *authname;		/**< Data channel auth from config file */
-  int keysize;			/**< Data channel keysize from config file */
+    const char *ciphername;     /**< Data channel cipher from config file */
+    const char *authname;       /**< Data channel auth from config file */
+    int keysize;                /**< Data channel keysize from config file */
 #endif
 };
 
@@ -228,268 +228,268 @@ struct context_1
  */
 struct context_2
 {
-  struct gc_arena gc;           /**< Garbage collection arena for
+    struct gc_arena gc;         /**< Garbage collection arena for
                                  *   allocations done in the level 2 scope
                                  *   of this context_2 structure. */
 
-  /* our global wait events */
-  struct event_set *event_set;
-  int event_set_max;
-  bool event_set_owned;
+    /* our global wait events */
+    struct event_set *event_set;
+    int event_set_max;
+    bool event_set_owned;
 
-  /* event flags returned by io_wait */
-# define SOCKET_READ       (1<<0)
-# define SOCKET_WRITE      (1<<1)
-# define TUN_READ          (1<<2)
-# define TUN_WRITE         (1<<3)
-# define ES_ERROR          (1<<4)
-# define ES_TIMEOUT        (1<<5)
-# ifdef ENABLE_MANAGEMENT
-#  define MANAGEMENT_READ  (1<<6)
-#  define MANAGEMENT_WRITE (1<<7)
-# endif
+    /* event flags returned by io_wait */
+#define SOCKET_READ       (1<<0)
+#define SOCKET_WRITE      (1<<1)
+#define TUN_READ          (1<<2)
+#define TUN_WRITE         (1<<3)
+#define ES_ERROR          (1<<4)
+#define ES_TIMEOUT        (1<<5)
+#ifdef ENABLE_MANAGEMENT
+#define MANAGEMENT_READ  (1<<6)
+#define MANAGEMENT_WRITE (1<<7)
+#endif
 #ifdef ENABLE_ASYNC_PUSH
-# define FILE_CLOSED       (1<<8)
+#define FILE_CLOSED       (1<<8)
 #endif
 
-  unsigned int event_set_status;
+    unsigned int event_set_status;
 
-  struct link_socket *link_socket;	 /* socket used for TCP/UDP connection to remote */
-  bool link_socket_owned;
-  struct link_socket_info *link_socket_info;
-  const struct link_socket *accept_from; /* possibly do accept() on a parent link_socket */
+    struct link_socket *link_socket;     /* socket used for TCP/UDP connection to remote */
+    bool link_socket_owned;
+    struct link_socket_info *link_socket_info;
+    const struct link_socket *accept_from; /* possibly do accept() on a parent link_socket */
 
-  struct link_socket_actual *to_link_addr;	/* IP address of remote */
-  struct link_socket_actual from;               /* address of incoming datagram */
+    struct link_socket_actual *to_link_addr;    /* IP address of remote */
+    struct link_socket_actual from;             /* address of incoming datagram */
 
-  /* MTU frame parameters */
-  struct frame frame;
+    /* MTU frame parameters */
+    struct frame frame;
 
 #ifdef ENABLE_FRAGMENT
-  /* Object to handle advanced MTU negotiation and datagram fragmentation */
-  struct fragment_master *fragment;
-  struct frame frame_fragment;
-  struct frame frame_fragment_omit;
+    /* Object to handle advanced MTU negotiation and datagram fragmentation */
+    struct fragment_master *fragment;
+    struct frame frame_fragment;
+    struct frame frame_fragment_omit;
 #endif
 
 #ifdef ENABLE_FEATURE_SHAPER
-  /*
-   * Traffic shaper object.
-   */
-  struct shaper shaper;
+    /*
+     * Traffic shaper object.
+     */
+    struct shaper shaper;
 #endif
 
-  /*
-   * Statistics
-   */
-  counter_type tun_read_bytes;
-  counter_type tun_write_bytes;
-  counter_type link_read_bytes;
-  counter_type link_read_bytes_auth;
-  counter_type link_write_bytes;
+    /*
+     * Statistics
+     */
+    counter_type tun_read_bytes;
+    counter_type tun_write_bytes;
+    counter_type link_read_bytes;
+    counter_type link_read_bytes_auth;
+    counter_type link_write_bytes;
 #ifdef PACKET_TRUNCATION_CHECK
-  counter_type n_trunc_tun_read;
-  counter_type n_trunc_tun_write;
-  counter_type n_trunc_pre_encrypt;
-  counter_type n_trunc_post_decrypt;
+    counter_type n_trunc_tun_read;
+    counter_type n_trunc_tun_write;
+    counter_type n_trunc_pre_encrypt;
+    counter_type n_trunc_post_decrypt;
 #endif
 
-  /*
-   * Timer objects for ping and inactivity
-   * timeout features.
-   */
-  struct event_timeout wait_for_connect;
-  struct event_timeout ping_send_interval;
-  struct event_timeout ping_rec_interval;
+    /*
+     * Timer objects for ping and inactivity
+     * timeout features.
+     */
+    struct event_timeout wait_for_connect;
+    struct event_timeout ping_send_interval;
+    struct event_timeout ping_rec_interval;
 
-  /* --inactive */
-  struct event_timeout inactivity_interval;
-  int inactivity_bytes;
+    /* --inactive */
+    struct event_timeout inactivity_interval;
+    int inactivity_bytes;
 
 #ifdef ENABLE_OCC
-  /* the option strings must match across peers */
-  char *options_string_local;
-  char *options_string_remote;
+    /* the option strings must match across peers */
+    char *options_string_local;
+    char *options_string_remote;
 
-  int occ_op;			/* INIT to -1 */
-  int occ_n_tries;
-  struct event_timeout occ_interval;
+    int occ_op;                 /* INIT to -1 */
+    int occ_n_tries;
+    struct event_timeout occ_interval;
 #endif
 
-  /*
-   * Keep track of maximum packet size received so far
-   * (of authenticated packets).
-   */
-  int original_recv_size;	/* temporary */
-  int max_recv_size_local;	/* max packet size received */
-  int max_recv_size_remote;	/* max packet size received by remote */
-  int max_send_size_local;	/* max packet size sent */
-  int max_send_size_remote;	/* max packet size sent by remote */
+    /*
+     * Keep track of maximum packet size received so far
+     * (of authenticated packets).
+     */
+    int original_recv_size;     /* temporary */
+    int max_recv_size_local;    /* max packet size received */
+    int max_recv_size_remote;   /* max packet size received by remote */
+    int max_send_size_local;    /* max packet size sent */
+    int max_send_size_remote;   /* max packet size sent by remote */
 
 #ifdef ENABLE_OCC
-  /* remote wants us to send back a load test packet of this size */
-  int occ_mtu_load_size;
+    /* remote wants us to send back a load test packet of this size */
+    int occ_mtu_load_size;
 
-  struct event_timeout occ_mtu_load_test_interval;
-  int occ_mtu_load_n_tries;
+    struct event_timeout occ_mtu_load_test_interval;
+    int occ_mtu_load_n_tries;
 #endif
 
 #ifdef ENABLE_CRYPTO
 
-  /*
-   * TLS-mode crypto objects.
-   */
-  struct tls_multi *tls_multi;  /**< TLS state structure for this VPN
-                                 *   tunnel. */
+    /*
+     * TLS-mode crypto objects.
+     */
+    struct tls_multi *tls_multi; /**< TLS state structure for this VPN
+                                  *   tunnel. */
 
-  struct tls_auth_standalone *tls_auth_standalone;
-                                /**< TLS state structure required for the
-                                 *   initial authentication of a client's
-                                 *   connection attempt.  This structure
-                                 *   is used by the \c
-                                 *   tls_pre_decrypt_lite() function when
-                                 *   it performs the HMAC firewall check
-                                 *   on the first connection packet
-                                 *   received from a new client.  See the
-                                 *   \c --tls-auth commandline option. */
+    struct tls_auth_standalone *tls_auth_standalone;
+    /**< TLS state structure required for the
+     *   initial authentication of a client's
+     *   connection attempt.  This structure
+     *   is used by the \c
+     *   tls_pre_decrypt_lite() function when
+     *   it performs the HMAC firewall check
+     *   on the first connection packet
+     *   received from a new client.  See the
+     *   \c --tls-auth commandline option. */
 
-  /* used to optimize calls to tls_multi_process */
-  struct interval tmp_int;
+    /* used to optimize calls to tls_multi_process */
+    struct interval tmp_int;
 
-  /* throw this signal on TLS errors */
-  int tls_exit_signal;
+    /* throw this signal on TLS errors */
+    int tls_exit_signal;
 
-  struct crypto_options crypto_options;
-                                /**< Security parameters and crypto state
-                                 *   used by the \link data_crypto Data
-                                 *   Channel Crypto module\endlink to
-                                 *   process data channel packet. */
+    struct crypto_options crypto_options;
+    /**< Security parameters and crypto state
+     *   used by the \link data_crypto Data
+     *   Channel Crypto module\endlink to
+     *   process data channel packet. */
 
-  struct event_timeout packet_id_persist_interval;
+    struct event_timeout packet_id_persist_interval;
 
 #endif /* ENABLE_CRYPTO */
 
 #ifdef USE_COMP
-  struct compress_context *comp_context;
-                                /**< Compression context used by the
-                                 *   \link compression Data Channel
-                                 *   Compression module\endlink. */
+    struct compress_context *comp_context;
+    /**< Compression context used by the
+     *   \link compression Data Channel
+     *   Compression module\endlink. */
 #endif
 
-  /*
-   * Buffers used for packet processing.
-   */
-  struct context_buffers *buffers;
-  bool buffers_owned; /* if true, we should free all buffers on close */
+    /*
+     * Buffers used for packet processing.
+     */
+    struct context_buffers *buffers;
+    bool buffers_owned; /* if true, we should free all buffers on close */
 
-  /*
-   * These buffers don't actually allocate storage, they are used
-   * as pointers to the allocated buffers in
-   * struct context_buffers.
-   */
-  struct buffer buf;
-  struct buffer to_tun;
-  struct buffer to_link;
+    /*
+     * These buffers don't actually allocate storage, they are used
+     * as pointers to the allocated buffers in
+     * struct context_buffers.
+     */
+    struct buffer buf;
+    struct buffer to_tun;
+    struct buffer to_link;
 
-  /* should we print R|W|r|w to console on packet transfers? */
-  bool log_rw;
+    /* should we print R|W|r|w to console on packet transfers? */
+    bool log_rw;
 
-  /* route stuff */
-  struct event_timeout route_wakeup;
-  struct event_timeout route_wakeup_expire;
+    /* route stuff */
+    struct event_timeout route_wakeup;
+    struct event_timeout route_wakeup_expire;
 
-  /* did we open tun/tap dev during this cycle? */
-  bool did_open_tun;
+    /* did we open tun/tap dev during this cycle? */
+    bool did_open_tun;
 
-  /*
-   * Event loop info
-   */
+    /*
+     * Event loop info
+     */
 
-  /* how long to wait on link/tun read before we will need to be serviced */
-  struct timeval timeval;
+    /* how long to wait on link/tun read before we will need to be serviced */
+    struct timeval timeval;
 
-  /* next wakeup for processing coarse timers (>1 sec resolution) */
-  time_t coarse_timer_wakeup;
+    /* next wakeup for processing coarse timers (>1 sec resolution) */
+    time_t coarse_timer_wakeup;
 
-  /* maintain a random delta to add to timeouts to avoid contexts
-     waking up simultaneously */
-  time_t update_timeout_random_component;
-  struct timeval timeout_random_component;
+    /* maintain a random delta to add to timeouts to avoid contexts
+     * waking up simultaneously */
+    time_t update_timeout_random_component;
+    struct timeval timeout_random_component;
 
-  /* Timer for everything up to the first packet from the *OpenVPN* server
-   * socks, http proxy, and tcp packets do not count */
-  struct event_timeout server_poll_interval;
+    /* Timer for everything up to the first packet from the *OpenVPN* server
+     * socks, http proxy, and tcp packets do not count */
+    struct event_timeout server_poll_interval;
 
-  /* indicates that the do_up_delay function has run */
-  bool do_up_ran;
+    /* indicates that the do_up_delay function has run */
+    bool do_up_ran;
 
 #ifdef ENABLE_OCC
-  /* indicates that we have received a SIGTERM when
-     options->explicit_exit_notification is enabled,
-     but we have not exited yet */
-  time_t explicit_exit_notification_time_wait;
-  struct event_timeout explicit_exit_notification_interval;
+    /* indicates that we have received a SIGTERM when
+     * options->explicit_exit_notification is enabled,
+     * but we have not exited yet */
+    time_t explicit_exit_notification_time_wait;
+    struct event_timeout explicit_exit_notification_interval;
 #endif
 
-  /* environmental variables to pass to scripts */
-  struct env_set *es;
-  bool es_owned;
+    /* environmental variables to pass to scripts */
+    struct env_set *es;
+    bool es_owned;
 
-  /* don't wait for TUN/TAP/UDP to be ready to accept write */
-  bool fast_io;
+    /* don't wait for TUN/TAP/UDP to be ready to accept write */
+    bool fast_io;
 
 #if P2MP
 
 #if P2MP_SERVER
-  /* --ifconfig endpoints to be pushed to client */
-  bool push_reply_deferred;
+    /* --ifconfig endpoints to be pushed to client */
+    bool push_reply_deferred;
 #ifdef ENABLE_ASYNC_PUSH
-  bool push_request_received;
+    bool push_request_received;
 #endif
-  bool push_ifconfig_defined;
-  time_t sent_push_reply_expiry;
-  in_addr_t push_ifconfig_local;
-  in_addr_t push_ifconfig_remote_netmask;
-  in_addr_t push_ifconfig_local_alias;
+    bool push_ifconfig_defined;
+    time_t sent_push_reply_expiry;
+    in_addr_t push_ifconfig_local;
+    in_addr_t push_ifconfig_remote_netmask;
+    in_addr_t push_ifconfig_local_alias;
 
-  bool            push_ifconfig_ipv6_defined;
-  struct in6_addr push_ifconfig_ipv6_local;
-  int             push_ifconfig_ipv6_netbits;
-  struct in6_addr push_ifconfig_ipv6_remote;
+    bool push_ifconfig_ipv6_defined;
+    struct in6_addr push_ifconfig_ipv6_local;
+    int push_ifconfig_ipv6_netbits;
+    struct in6_addr push_ifconfig_ipv6_remote;
 
-  /* client authentication state, CAS_SUCCEEDED must be 0 */
-# define CAS_SUCCEEDED 0
-# define CAS_PENDING   1
-# define CAS_FAILED    2
-# define CAS_PARTIAL   3 /* at least one client-connect script/plugin
-			    succeeded while a later one in the chain failed */
-  int context_auth;
-#endif
+    /* client authentication state, CAS_SUCCEEDED must be 0 */
+#define CAS_SUCCEEDED 0
+#define CAS_PENDING   1
+#define CAS_FAILED    2
+#define CAS_PARTIAL   3  /* at least one client-connect script/plugin
+                          * succeeded while a later one in the chain failed */
+    int context_auth;
+#endif /* if P2MP_SERVER */
 
-  struct event_timeout push_request_interval;
-  int n_sent_push_requests;
-  bool did_pre_pull_restore;
+    struct event_timeout push_request_interval;
+    int n_sent_push_requests;
+    bool did_pre_pull_restore;
 
-  /* hash of pulled options, so we can compare when options change */
-  bool pulled_options_md5_init_done;
-  md_ctx_t pulled_options_state;
-  struct md5_digest pulled_options_digest;
+    /* hash of pulled options, so we can compare when options change */
+    bool pulled_options_md5_init_done;
+    md_ctx_t pulled_options_state;
+    struct md5_digest pulled_options_digest;
 
-  struct event_timeout scheduled_exit;
-  int scheduled_exit_signal;
-#endif
+    struct event_timeout scheduled_exit;
+    int scheduled_exit_signal;
+#endif /* if P2MP */
 
-  /* packet filter */
+    /* packet filter */
 #ifdef ENABLE_PF
-  struct pf_context pf;
+    struct pf_context pf;
 #endif
 
 #ifdef MANAGEMENT_DEF_AUTH
-  struct man_def_auth_context mda_context;
+    struct man_def_auth_context mda_context;
 #endif
 
 #ifdef ENABLE_ASYNC_PUSH
-  int inotify_fd; /* descriptor for monitoring file changes */
+    int inotify_fd; /* descriptor for monitoring file changes */
 #endif
 };
 
@@ -507,59 +507,59 @@ struct context_2
  */
 struct context
 {
-  struct options options;       /**< Options loaded from command line or
+    struct options options;     /**< Options loaded from command line or
                                  *   configuration file. */
 
-  bool first_time;              /**< True on the first iteration of
+    bool first_time;            /**< True on the first iteration of
                                  *   OpenVPN's main loop. */
 
-  /* context modes */
-# define CM_P2P            0 /* standalone point-to-point session or client */
-# define CM_TOP            1 /* top level of a multi-client or point-to-multipoint server */
-# define CM_TOP_CLONE      2 /* clone of a CM_TOP context for one thread */
-# define CM_CHILD_UDP      3 /* child context of a CM_TOP or CM_THREAD */
-# define CM_CHILD_TCP      4 /* child context of a CM_TOP or CM_THREAD */
-  int mode;                     /**< Role of this context within the
+    /* context modes */
+#define CM_P2P            0  /* standalone point-to-point session or client */
+#define CM_TOP            1  /* top level of a multi-client or point-to-multipoint server */
+#define CM_TOP_CLONE      2  /* clone of a CM_TOP context for one thread */
+#define CM_CHILD_UDP      3  /* child context of a CM_TOP or CM_THREAD */
+#define CM_CHILD_TCP      4  /* child context of a CM_TOP or CM_THREAD */
+    int mode;                   /**< Role of this context within the
                                  *   OpenVPN process.  Valid values are \c
                                  *   CM_P2P, \c CM_TOP, \c CM_TOP_CLONE,
                                  *   \c CM_CHILD_UDP, and \c CM_CHILD_TCP. */
 
-  struct gc_arena gc;           /**< Garbage collection arena for
+    struct gc_arena gc;         /**< Garbage collection arena for
                                  *   allocations done in the scope of this
                                  *   context structure. */
 
-  struct env_set *es;           /**< Set of environment variables. */
+    struct env_set *es;         /**< Set of environment variables. */
 
-  struct signal_info *sig;      /**< Internal error signaling object. */
+    struct signal_info *sig;    /**< Internal error signaling object. */
 
-  struct plugin_list *plugins;  /**< List of plug-ins. */
-  bool plugins_owned;           /**< Whether the plug-ins should be
+    struct plugin_list *plugins; /**< List of plug-ins. */
+    bool plugins_owned;         /**< Whether the plug-ins should be
                                  *   cleaned up when this %context is
                                  *   cleaned up. */
-  
-  bool did_we_daemonize;        /**< Whether demonization has already
+
+    bool did_we_daemonize;      /**< Whether demonization has already
                                  *   taken place. */
 
-  struct context_persist persist;
-                                /**< Persistent %context. */
-  struct context_0 *c0;         /**< Level 0 %context. */
-  struct context_1 c1;          /**< Level 1 %context. */
-  struct context_2 c2;          /**< Level 2 %context. */
+    struct context_persist persist;
+    /**< Persistent %context. */
+    struct context_0 *c0;       /**< Level 0 %context. */
+    struct context_1 c1;        /**< Level 1 %context. */
+    struct context_2 c2;        /**< Level 2 %context. */
 };
 
 /*
  * Check for a signal when inside an event loop
  */
 #define EVENT_LOOP_CHECK_SIGNAL(c, func, arg)   \
-      if (IS_SIG (c))                           \
-	{                                       \
-	  const int brk = func (arg);           \
-	  perf_pop ();                          \
-	  if (brk)                              \
-	    break;                              \
-	  else                                  \
-	    continue;                           \
-	}
+    if (IS_SIG(c))                           \
+    {                                       \
+        const int brk = func(arg);           \
+        perf_pop();                          \
+        if (brk) {                              \
+            break;}                              \
+        else {                                  \
+            continue;}                           \
+    }
 
 /*
  * Macros for referencing objects which may not
@@ -568,15 +568,15 @@ struct context
 
 #ifdef ENABLE_CRYPTO
 #define TLS_MODE(c) ((c)->c2.tls_multi != NULL)
-#define PROTO_DUMP_FLAGS (check_debug_level (D_LINK_RW_VERBOSE) ? (PD_SHOW_DATA|PD_VERBOSE) : 0)
+#define PROTO_DUMP_FLAGS (check_debug_level(D_LINK_RW_VERBOSE) ? (PD_SHOW_DATA|PD_VERBOSE) : 0)
 #define PROTO_DUMP(buf, gc) protocol_dump((buf), \
-				      PROTO_DUMP_FLAGS | \
-				      (c->c2.tls_multi ? PD_TLS : 0) | \
-				      (c->options.tls_auth_file ? c->c1.ks.key_type.hmac_length : 0), \
-				      gc)
-#else
+                                          PROTO_DUMP_FLAGS   \
+                                          |(c->c2.tls_multi ? PD_TLS : 0)   \
+                                          |(c->options.tls_auth_file ? c->c1.ks.key_type.hmac_length : 0), \
+                                          gc)
+#else  /* ifdef ENABLE_CRYPTO */
 #define TLS_MODE(c) (false)
-#define PROTO_DUMP(buf, gc) format_hex (BPTR (buf), BLEN (buf), 80, gc)
+#define PROTO_DUMP(buf, gc) format_hex(BPTR(buf), BLEN(buf), 80, gc)
 #endif
 
 #ifdef ENABLE_CRYPTO
@@ -594,4 +594,4 @@ struct context
 /* this represents "disabled peer-id" */
 #define MAX_PEER_ID 0xFFFFFF
 
-#endif
+#endif /* ifndef OPENVPN_H */

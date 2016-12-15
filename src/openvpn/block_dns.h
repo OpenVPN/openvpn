@@ -30,11 +30,11 @@
 typedef void (*block_dns_msg_handler_t) (DWORD err, const char *msg);
 
 DWORD
-delete_block_dns_filters (HANDLE engine);
+delete_block_dns_filters(HANDLE engine);
 
 DWORD
-add_block_dns_filters (HANDLE *engine, int iface_index, const WCHAR *exe_path,
-                       block_dns_msg_handler_t msg_handler_callback);
+add_block_dns_filters(HANDLE *engine, int iface_index, const WCHAR *exe_path,
+                      block_dns_msg_handler_t msg_handler_callback);
 
 #endif
 #endif

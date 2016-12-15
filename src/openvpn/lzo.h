@@ -60,26 +60,26 @@ extern const struct compress_alg lzo_alg;
 /**************************************************************************/
 /** @name LZO library interface defines *//** @{ *//***********************/
 #define LZO_COMPRESS    lzo1x_1_15_compress
-                                /**< LZO library compression function.
-                                 *
-                                 *   Use \c lzo1x_1_15_compress because it
-                                 *   is described as faster than the
-                                 *   standard routine, although it does
-                                 *   need a bit more memory. */
-#define LZO_WORKSPACE	LZO1X_1_15_MEM_COMPRESS
-                                /**< The size in bytes of the memory
-                                 *   %buffer required by the LZO library
-                                 *   compression algorithm. */
+/**< LZO library compression function.
+ *
+ *   Use \c lzo1x_1_15_compress because it
+ *   is described as faster than the
+ *   standard routine, although it does
+ *   need a bit more memory. */
+#define LZO_WORKSPACE   LZO1X_1_15_MEM_COMPRESS
+/**< The size in bytes of the memory
+ *   %buffer required by the LZO library
+ *   compression algorithm. */
 #define LZO_DECOMPRESS  lzo1x_decompress_safe
-                                /**< LZO library decompression function.
-                                 *
-                                 *   Use safe decompress because it
-                                 *   includes checks for possible %buffer
-                                 *   overflows. If speed is essential and
-                                 *   you will always be using a MAC to
-                                 *   verify the integrity of incoming
-                                 *   packets, you might want to consider
-                                 *   using the non-safe version. */
+/**< LZO library decompression function.
+ *
+ *   Use safe decompress because it
+ *   includes checks for possible %buffer
+ *   overflows. If speed is essential and
+ *   you will always be using a MAC to
+ *   verify the integrity of incoming
+ *   packets, you might want to consider
+ *   using the non-safe version. */
 /** @} name LZO library interface *//**************************************/
 
 
@@ -100,10 +100,10 @@ extern const struct compress_alg lzo_alg;
  * Adaptive compression state.
  */
 struct lzo_adaptive_compress {
-  bool compress_state;
-  time_t next;
-  int n_total;
-  int n_comp;
+    bool compress_state;
+    time_t next;
+    int n_total;
+    int n_comp;
 };
 
 
@@ -119,13 +119,13 @@ struct lzo_adaptive_compress {
  */
 struct lzo_compress_workspace
 {
-  lzo_voidp wmem;
-  int wmem_size;
-  struct lzo_adaptive_compress ac;
+    lzo_voidp wmem;
+    int wmem_size;
+    struct lzo_adaptive_compress ac;
 };
 
 /** @} addtogroup compression */
 
 
 #endif /* ENABLE_LZO && USE_COMP */
-#endif
+#endif /* ifndef OPENVPN_LZO_H */

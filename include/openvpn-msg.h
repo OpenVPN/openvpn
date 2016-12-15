@@ -26,90 +26,90 @@
 #define OPENVPN_MSG_H_
 
 typedef enum {
-  msg_acknowledgement,
-  msg_add_address,
-  msg_del_address,
-  msg_add_route,
-  msg_del_route,
-  msg_add_dns_cfg,
-  msg_del_dns_cfg,
-  msg_add_nbt_cfg,
-  msg_del_nbt_cfg,
-  msg_flush_neighbors,
-  msg_add_block_dns,
-  msg_del_block_dns,
-  msg_register_dns
+    msg_acknowledgement,
+    msg_add_address,
+    msg_del_address,
+    msg_add_route,
+    msg_del_route,
+    msg_add_dns_cfg,
+    msg_del_dns_cfg,
+    msg_add_nbt_cfg,
+    msg_del_nbt_cfg,
+    msg_flush_neighbors,
+    msg_add_block_dns,
+    msg_del_block_dns,
+    msg_register_dns
 } message_type_t;
 
 typedef struct {
-  message_type_t type;
-  size_t size;
-  int message_id;
+    message_type_t type;
+    size_t size;
+    int message_id;
 } message_header_t;
 
 typedef union {
-  struct in_addr ipv4;
-  struct in6_addr ipv6;
+    struct in_addr ipv4;
+    struct in6_addr ipv6;
 } inet_address_t;
 
 typedef struct {
-  int index;
-  char name[256];
+    int index;
+    char name[256];
 } interface_t;
 
 typedef struct {
-  message_header_t header;
-  short family;
-  inet_address_t address;
-  int prefix_len;
-  interface_t iface;
+    message_header_t header;
+    short family;
+    inet_address_t address;
+    int prefix_len;
+    interface_t iface;
 } address_message_t;
 
 typedef struct {
-  message_header_t header;
-  short family;
-  inet_address_t prefix;
-  int prefix_len;
-  inet_address_t gateway;
-  interface_t iface;
-  int metric;
+    message_header_t header;
+    short family;
+    inet_address_t prefix;
+    int prefix_len;
+    inet_address_t gateway;
+    interface_t iface;
+    int metric;
 } route_message_t;
 
 typedef struct {
-  message_header_t header;
-  interface_t iface;
-  char domains[512];
-  short family;
-  int addr_len;
-  inet_address_t addr[4]; /* support up to 4 dns addresses */
+    message_header_t header;
+    interface_t iface;
+    char domains[512];
+    short family;
+    int addr_len;
+    inet_address_t addr[4]; /* support up to 4 dns addresses */
 } dns_cfg_message_t;
 
 typedef struct {
-  message_header_t header;
-  interface_t iface;
-  int disable_nbt;
-  int nbt_type;
-  char scope_id[256];
-  struct in_addr primary_nbns;
-  struct in_addr secondary_nbns;
+    message_header_t header;
+    interface_t iface;
+    int disable_nbt;
+    int nbt_type;
+    char scope_id[256];
+    struct in_addr primary_nbns;
+    struct in_addr secondary_nbns;
 } nbt_cfg_message_t;
 
-// TODO: NTP
+/* TODO: NTP */
 
 typedef struct {
-  message_header_t header;
-  short family;
-  interface_t iface;
+    message_header_t header;
+    short family;
+    interface_t iface;
 } flush_neighbors_message_t;
 
 typedef struct {
-  message_header_t header;
-  int error_number;
+    message_header_t header;
+    int error_number;
 } ack_message_t;
 
 typedef struct {
-  message_header_t header;
-  interface_t iface;
+    message_header_t header;
+    interface_t iface;
 } block_dns_message_t;
 
-#endif
+#endif /* ifndef OPENVPN_MSG_H_ */

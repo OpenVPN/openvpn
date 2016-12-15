@@ -48,48 +48,51 @@
 #define M_ERR     (MSG_FLAGS_ERROR)                    /* error */
 
 typedef enum {
-  automatic,
-  interactive,
-  _service_max
+    automatic,
+    interactive,
+    _service_max
 } openvpn_service_type;
 
 typedef struct {
-  openvpn_service_type type;
-  TCHAR *name;
-  TCHAR *display_name;
-  TCHAR *dependencies;
-  DWORD start_type;
+    openvpn_service_type type;
+    TCHAR *name;
+    TCHAR *display_name;
+    TCHAR *dependencies;
+    DWORD start_type;
 } openvpn_service_t;
 
 #define MAX_NAME 256
 typedef struct {
-  TCHAR exe_path[MAX_PATH];
-  TCHAR config_dir[MAX_PATH];
-  TCHAR ext_string[16];
-  TCHAR log_dir[MAX_PATH];
-  TCHAR ovpn_admin_group[MAX_NAME];
-  DWORD priority;
-  BOOL append;
+    TCHAR exe_path[MAX_PATH];
+    TCHAR config_dir[MAX_PATH];
+    TCHAR ext_string[16];
+    TCHAR log_dir[MAX_PATH];
+    TCHAR ovpn_admin_group[MAX_NAME];
+    DWORD priority;
+    BOOL append;
 } settings_t;
 
 extern openvpn_service_t automatic_service;
 extern openvpn_service_t interactive_service;
 
 
-VOID WINAPI ServiceStartAutomatic (DWORD argc, LPTSTR *argv);
-VOID WINAPI ServiceStartInteractive (DWORD argc, LPTSTR *argv);
+VOID WINAPI ServiceStartAutomatic(DWORD argc, LPTSTR *argv);
 
-int openvpn_vsntprintf (LPTSTR str, size_t size, LPCTSTR format, va_list arglist);
-int openvpn_sntprintf (LPTSTR str, size_t size, LPCTSTR format, ...);
+VOID WINAPI ServiceStartInteractive(DWORD argc, LPTSTR *argv);
 
-DWORD GetOpenvpnSettings (settings_t *s);
+int openvpn_vsntprintf(LPTSTR str, size_t size, LPCTSTR format, va_list arglist);
 
-BOOL ReportStatusToSCMgr (SERVICE_STATUS_HANDLE service, SERVICE_STATUS *status);
+int openvpn_sntprintf(LPTSTR str, size_t size, LPCTSTR format, ...);
 
-LPCTSTR GetLastErrorText ();
-DWORD MsgToEventLog (DWORD flags, LPCTSTR lpszMsg, ...);
+DWORD GetOpenvpnSettings(settings_t *s);
+
+BOOL ReportStatusToSCMgr(SERVICE_STATUS_HANDLE service, SERVICE_STATUS *status);
+
+LPCTSTR GetLastErrorText();
+
+DWORD MsgToEventLog(DWORD flags, LPCTSTR lpszMsg, ...);
 
 /* Convert a utf8 string to utf16. Caller should free the result */
-wchar_t *utf8to16 (const char *utf8);
+wchar_t *utf8to16(const char *utf8);
 
-#endif
+#endif /* ifndef _SERVICE_H */

@@ -44,32 +44,33 @@
 
 #include "mock_msg.h"
 
-#define TESTBUF_SIZE 		128
+#define TESTBUF_SIZE            128
 
 const char plaintext_short[1];
 
 struct test_context {
-  struct crypto_options co;
-  struct key_type kt;
-  struct buffer source;
-  struct buffer ciphertext;
-  struct buffer unwrapped;
+    struct crypto_options co;
+    struct key_type kt;
+    struct buffer source;
+    struct buffer ciphertext;
+    struct buffer unwrapped;
 };
 
-static int setup(void **state) {
+static int
+setup(void **state) {
     struct test_context *ctx  = calloc(1, sizeof(*ctx));
 
-    ctx->kt.cipher = cipher_kt_get ("AES-256-CTR");
-    ctx->kt.cipher_length = cipher_kt_key_size (ctx->kt.cipher);
-    ctx->kt.digest = md_kt_get ("SHA256");
-    ctx->kt.hmac_length = md_kt_size (ctx->kt.digest);
+    ctx->kt.cipher = cipher_kt_get("AES-256-CTR");
+    ctx->kt.cipher_length = cipher_kt_key_size(ctx->kt.cipher);
+    ctx->kt.digest = md_kt_get("SHA256");
+    ctx->kt.hmac_length = md_kt_size(ctx->kt.digest);
 
     struct key key = { 0 };
 
-    init_key_ctx (&ctx->co.key_ctx_bi.encrypt, &key, &ctx->kt, true, "TEST");
-    init_key_ctx (&ctx->co.key_ctx_bi.decrypt, &key, &ctx->kt, false, "TEST");
+    init_key_ctx(&ctx->co.key_ctx_bi.encrypt, &key, &ctx->kt, true, "TEST");
+    init_key_ctx(&ctx->co.key_ctx_bi.decrypt, &key, &ctx->kt, false, "TEST");
 
-    packet_id_init (&ctx->co.packet_id, 0, 0, "test", 0);
+    packet_id_init(&ctx->co.packet_id, 0, 0, "test", 0);
 
     ctx->source = alloc_buf(TESTBUF_SIZE);
     ctx->ciphertext = alloc_buf(TESTBUF_SIZE);
@@ -86,14 +87,15 @@ static int setup(void **state) {
     return 0;
 }
 
-static int teardown(void **state) {
+static int
+teardown(void **state) {
     struct test_context *ctx = (struct test_context *) *state;
 
-    free_buf (&ctx->source);
-    free_buf (&ctx->ciphertext);
-    free_buf (&ctx->unwrapped);
+    free_buf(&ctx->source);
+    free_buf(&ctx->ciphertext);
+    free_buf(&ctx->unwrapped);
 
-    free_key_ctx_bi (&ctx->co.key_ctx_bi);
+    free_key_ctx_bi(&ctx->co.key_ctx_bi);
 
     free(ctx);
 
@@ -103,92 +105,98 @@ static int teardown(void **state) {
 /**
  * Check that short messages are successfully wrapped-and-unwrapped.
  */
-static void tls_crypt_loopback(void **state) {
-  struct test_context *ctx = (struct test_context *) *state;
+static void
+tls_crypt_loopback(void **state) {
+    struct test_context *ctx = (struct test_context *) *state;
 
-  assert_true (tls_crypt_wrap (&ctx->source, &ctx->ciphertext, &ctx->co));
-  assert_true (BLEN(&ctx->source) < BLEN(&ctx->ciphertext));
-  assert_true (tls_crypt_unwrap (&ctx->ciphertext, &ctx->unwrapped, &ctx->co));
-  assert_int_equal(BLEN(&ctx->source), BLEN(&ctx->unwrapped));
-  assert_memory_equal(BPTR(&ctx->source), BPTR(&ctx->unwrapped),
-      BLEN(&ctx->source));
+    assert_true(tls_crypt_wrap(&ctx->source, &ctx->ciphertext, &ctx->co));
+    assert_true(BLEN(&ctx->source) < BLEN(&ctx->ciphertext));
+    assert_true(tls_crypt_unwrap(&ctx->ciphertext, &ctx->unwrapped, &ctx->co));
+    assert_int_equal(BLEN(&ctx->source), BLEN(&ctx->unwrapped));
+    assert_memory_equal(BPTR(&ctx->source), BPTR(&ctx->unwrapped),
+                        BLEN(&ctx->source));
 }
 
 /**
  * Check that zero-byte messages are successfully wrapped-and-unwrapped.
  */
-static void tls_crypt_loopback_zero_len(void **state) {
-  struct test_context *ctx = (struct test_context *) *state;
+static void
+tls_crypt_loopback_zero_len(void **state) {
+    struct test_context *ctx = (struct test_context *) *state;
 
-  buf_clear(&ctx->source);
+    buf_clear(&ctx->source);
 
-  assert_true (tls_crypt_wrap (&ctx->source, &ctx->ciphertext, &ctx->co));
-  assert_true (BLEN(&ctx->source) < BLEN(&ctx->ciphertext));
-  assert_true (tls_crypt_unwrap (&ctx->ciphertext, &ctx->unwrapped, &ctx->co));
-  assert_int_equal(BLEN(&ctx->source), BLEN(&ctx->unwrapped));
-  assert_memory_equal(BPTR(&ctx->source), BPTR(&ctx->unwrapped),
-      BLEN(&ctx->source));
+    assert_true(tls_crypt_wrap(&ctx->source, &ctx->ciphertext, &ctx->co));
+    assert_true(BLEN(&ctx->source) < BLEN(&ctx->ciphertext));
+    assert_true(tls_crypt_unwrap(&ctx->ciphertext, &ctx->unwrapped, &ctx->co));
+    assert_int_equal(BLEN(&ctx->source), BLEN(&ctx->unwrapped));
+    assert_memory_equal(BPTR(&ctx->source), BPTR(&ctx->unwrapped),
+                        BLEN(&ctx->source));
 }
 
 /**
  * Check that max-length messages are successfully wrapped-and-unwrapped.
  */
-static void tls_crypt_loopback_max_len(void **state) {
-  struct test_context *ctx = (struct test_context *) *state;
+static void
+tls_crypt_loopback_max_len(void **state) {
+    struct test_context *ctx = (struct test_context *) *state;
 
-  buf_clear(&ctx->source);
-  assert_non_null (buf_write_alloc (&ctx->source,
-      TESTBUF_SIZE - BLEN (&ctx->ciphertext) - tls_crypt_buf_overhead()));
+    buf_clear(&ctx->source);
+    assert_non_null(buf_write_alloc(&ctx->source,
+                                    TESTBUF_SIZE - BLEN(&ctx->ciphertext) - tls_crypt_buf_overhead()));
 
-  assert_true (tls_crypt_wrap (&ctx->source, &ctx->ciphertext, &ctx->co));
-  assert_true (BLEN(&ctx->source) < BLEN(&ctx->ciphertext));
-  assert_true (tls_crypt_unwrap (&ctx->ciphertext, &ctx->unwrapped, &ctx->co));
-  assert_int_equal(BLEN(&ctx->source), BLEN(&ctx->unwrapped));
-  assert_memory_equal(BPTR(&ctx->source), BPTR(&ctx->unwrapped),
-      BLEN(&ctx->source));
+    assert_true(tls_crypt_wrap(&ctx->source, &ctx->ciphertext, &ctx->co));
+    assert_true(BLEN(&ctx->source) < BLEN(&ctx->ciphertext));
+    assert_true(tls_crypt_unwrap(&ctx->ciphertext, &ctx->unwrapped, &ctx->co));
+    assert_int_equal(BLEN(&ctx->source), BLEN(&ctx->unwrapped));
+    assert_memory_equal(BPTR(&ctx->source), BPTR(&ctx->unwrapped),
+                        BLEN(&ctx->source));
 }
 
 /**
  * Check that too-long messages are gracefully rejected.
  */
-static void tls_crypt_fail_msg_too_long(void **state) {
-  struct test_context *ctx = (struct test_context *) *state;
+static void
+tls_crypt_fail_msg_too_long(void **state) {
+    struct test_context *ctx = (struct test_context *) *state;
 
-  buf_clear(&ctx->source);
-  assert_non_null (buf_write_alloc (&ctx->source,
-      TESTBUF_SIZE - BLEN (&ctx->ciphertext) - tls_crypt_buf_overhead() + 1));
-  assert_false (tls_crypt_wrap (&ctx->source, &ctx->ciphertext, &ctx->co));
+    buf_clear(&ctx->source);
+    assert_non_null(buf_write_alloc(&ctx->source,
+                                    TESTBUF_SIZE - BLEN(&ctx->ciphertext) - tls_crypt_buf_overhead() + 1));
+    assert_false(tls_crypt_wrap(&ctx->source, &ctx->ciphertext, &ctx->co));
 }
 
 /**
  * Check that packets that were wrapped (or unwrapped) with a different key
  * are not accepted.
  */
-static void tls_crypt_fail_invalid_key(void **state) {
-  struct test_context *ctx = (struct test_context *) *state;
+static void
+tls_crypt_fail_invalid_key(void **state) {
+    struct test_context *ctx = (struct test_context *) *state;
 
-  /* Change decrypt key */
-  struct key key = { { 1 } };
-  free_key_ctx (&ctx->co.key_ctx_bi.decrypt);
-  init_key_ctx (&ctx->co.key_ctx_bi.decrypt, &key, &ctx->kt, false, "TEST");
+    /* Change decrypt key */
+    struct key key = { { 1 } };
+    free_key_ctx(&ctx->co.key_ctx_bi.decrypt);
+    init_key_ctx(&ctx->co.key_ctx_bi.decrypt, &key, &ctx->kt, false, "TEST");
 
-  assert_true (tls_crypt_wrap (&ctx->source, &ctx->ciphertext, &ctx->co));
-  assert_true (BLEN(&ctx->source) < BLEN(&ctx->ciphertext));
-  assert_false (tls_crypt_unwrap (&ctx->ciphertext, &ctx->unwrapped, &ctx->co));
+    assert_true(tls_crypt_wrap(&ctx->source, &ctx->ciphertext, &ctx->co));
+    assert_true(BLEN(&ctx->source) < BLEN(&ctx->ciphertext));
+    assert_false(tls_crypt_unwrap(&ctx->ciphertext, &ctx->unwrapped, &ctx->co));
 }
 
 /**
  * Check that replayed packets are not accepted.
  */
-static void tls_crypt_fail_replay(void **state) {
-  struct test_context *ctx = (struct test_context *) *state;
+static void
+tls_crypt_fail_replay(void **state) {
+    struct test_context *ctx = (struct test_context *) *state;
 
-  assert_true (tls_crypt_wrap (&ctx->source, &ctx->ciphertext, &ctx->co));
-  assert_true (BLEN(&ctx->source) < BLEN(&ctx->ciphertext));
-  struct buffer tmp = ctx->ciphertext;
-  assert_true (tls_crypt_unwrap (&tmp, &ctx->unwrapped, &ctx->co));
-  buf_clear (&ctx->unwrapped);
-  assert_false (tls_crypt_unwrap (&ctx->ciphertext, &ctx->unwrapped, &ctx->co));
+    assert_true(tls_crypt_wrap(&ctx->source, &ctx->ciphertext, &ctx->co));
+    assert_true(BLEN(&ctx->source) < BLEN(&ctx->ciphertext));
+    struct buffer tmp = ctx->ciphertext;
+    assert_true(tls_crypt_unwrap(&tmp, &ctx->unwrapped, &ctx->co));
+    buf_clear(&ctx->unwrapped);
+    assert_false(tls_crypt_unwrap(&ctx->ciphertext, &ctx->unwrapped, &ctx->co));
 }
 
 /**
@@ -196,34 +204,36 @@ static void tls_crypt_fail_replay(void **state) {
  * is used for the first control channel packet that arrives, because we don't
  * know the packet ID yet.
  */
-static void tls_crypt_ignore_replay(void **state) {
-  struct test_context *ctx = (struct test_context *) *state;
+static void
+tls_crypt_ignore_replay(void **state) {
+    struct test_context *ctx = (struct test_context *) *state;
 
-  ctx->co.flags |= CO_IGNORE_PACKET_ID;
+    ctx->co.flags |= CO_IGNORE_PACKET_ID;
 
-  assert_true (tls_crypt_wrap (&ctx->source, &ctx->ciphertext, &ctx->co));
-  assert_true (BLEN(&ctx->source) < BLEN(&ctx->ciphertext));
-  struct buffer tmp = ctx->ciphertext;
-  assert_true (tls_crypt_unwrap (&tmp, &ctx->unwrapped, &ctx->co));
-  buf_clear (&ctx->unwrapped);
-  assert_true (tls_crypt_unwrap (&ctx->ciphertext, &ctx->unwrapped, &ctx->co));
+    assert_true(tls_crypt_wrap(&ctx->source, &ctx->ciphertext, &ctx->co));
+    assert_true(BLEN(&ctx->source) < BLEN(&ctx->ciphertext));
+    struct buffer tmp = ctx->ciphertext;
+    assert_true(tls_crypt_unwrap(&tmp, &ctx->unwrapped, &ctx->co));
+    buf_clear(&ctx->unwrapped);
+    assert_true(tls_crypt_unwrap(&ctx->ciphertext, &ctx->unwrapped, &ctx->co));
 }
 
-int main(void) {
+int
+main(void) {
     const struct CMUnitTest tests[] = {
-	cmocka_unit_test_setup_teardown(tls_crypt_loopback, setup, teardown),
-	cmocka_unit_test_setup_teardown(tls_crypt_loopback_zero_len,
-					setup, teardown),
-	cmocka_unit_test_setup_teardown(tls_crypt_loopback_max_len,
-					setup, teardown),
-	cmocka_unit_test_setup_teardown(tls_crypt_fail_msg_too_long,
-					setup, teardown),
-	cmocka_unit_test_setup_teardown(tls_crypt_fail_invalid_key,
-					setup, teardown),
-	cmocka_unit_test_setup_teardown(tls_crypt_fail_replay,
-					setup, teardown),
-	cmocka_unit_test_setup_teardown(tls_crypt_ignore_replay,
-					setup, teardown),
+        cmocka_unit_test_setup_teardown(tls_crypt_loopback, setup, teardown),
+        cmocka_unit_test_setup_teardown(tls_crypt_loopback_zero_len,
+                                        setup, teardown),
+        cmocka_unit_test_setup_teardown(tls_crypt_loopback_max_len,
+                                        setup, teardown),
+        cmocka_unit_test_setup_teardown(tls_crypt_fail_msg_too_long,
+                                        setup, teardown),
+        cmocka_unit_test_setup_teardown(tls_crypt_fail_invalid_key,
+                                        setup, teardown),
+        cmocka_unit_test_setup_teardown(tls_crypt_fail_replay,
+                                        setup, teardown),
+        cmocka_unit_test_setup_teardown(tls_crypt_ignore_replay,
+                                        setup, teardown),
     };
 
 #if defined(ENABLE_CRYPTO_OPENSSL)

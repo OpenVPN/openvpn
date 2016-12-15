@@ -176,4 +176,4 @@
 
 /*#define D_THREAD_DEBUG       LOGLEV(4, 70, M_DEBUG)*/  /* show pthread debug information */
 
-#endif
+#endif /* ifndef ERRLEVEL_H */
