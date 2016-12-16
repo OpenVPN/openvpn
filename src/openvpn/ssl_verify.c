@@ -1213,6 +1213,21 @@ verify_user_pass_management(struct tls_session *session, const struct user_pass 
 }
 #endif /* ifdef MANAGEMENT_DEF_AUTH */
 
+/**
+ *  Wipes the authentication token out of the memory, frees and cleans up related buffers and flags
+ *
+ *  @param multi  Pointer to a multi object holding the auth_token variables
+ */
+static void
+wipe_auth_token(struct tls_multi *multi)
+{
+    secure_memzero(multi->auth_token, AUTH_TOKEN_SIZE);
+    free(multi->auth_token);
+    multi->auth_token = NULL;
+    multi->auth_token_sent = false;
+}
+
+
 /*
  * Main username/password verification entry point
  */
@@ -1264,6 +1279,7 @@ verify_user_pass(struct user_pass *up, struct tls_multi *multi,
         /* Ensure that the username has not changed */
         if (!tls_lock_username(multi, up->username))
         {
+            wipe_auth_token(multi);
             ks->authenticated = false;
             goto done;
         }
@@ -1275,6 +1291,7 @@ verify_user_pass(struct user_pass *up, struct tls_multi *multi,
             && (multi->auth_token_tstamp + session->opt->auth_token_lifetime) < now)
         {
             msg(D_HANDSHAKE, "Auth-token for client expired\n");
+            wipe_auth_token(multi);
             ks->authenticated = false;
             goto done;
         }
@@ -1283,10 +1300,7 @@ verify_user_pass(struct user_pass *up, struct tls_multi *multi,
         if (memcmp_constant_time(multi->auth_token, up->password,
                                  strlen(multi->auth_token)) != 0)
         {
-            secure_memzero(multi->auth_token, AUTH_TOKEN_SIZE);
-            free(multi->auth_token);
-            multi->auth_token = NULL;
-            multi->auth_token_sent = false;
+            wipe_auth_token(multi);
             ks->authenticated = false;
             tls_deauthenticate(multi);
 
@@ -1374,30 +1388,18 @@ verify_user_pass(struct user_pass *up, struct tls_multi *multi,
             /* The token should be longer than the input when
              * being base64 encoded
              */
-            if (openvpn_base64_encode(tok, AUTH_TOKEN_SIZE,
-                                      &multi->auth_token) < AUTH_TOKEN_SIZE)
-            {
-                msg(D_TLS_ERRORS, "BASE64 encoding of token failed. "
-                    "No auth-token will be activated now");
-                if (multi->auth_token)
-                {
-                    secure_memzero(multi->auth_token, AUTH_TOKEN_SIZE);
-                    free(multi->auth_token);
-                    multi->auth_token = NULL;
-                }
-            }
-            else
-            {
-                multi->auth_token_tstamp = now;
-                dmsg(D_SHOW_KEYS, "Generated token for client: %s",
-                     multi->auth_token);
-            }
+            ASSERT(openvpn_base64_encode(tok, AUTH_TOKEN_SIZE,
+                                         &multi->auth_token) > AUTH_TOKEN_SIZE);
+            multi->auth_token_tstamp = now;
+            dmsg(D_SHOW_KEYS, "Generated token for client: %s",
+                 multi->auth_token);
         }
 
         if ((session->opt->ssl_flags & SSLF_USERNAME_AS_COMMON_NAME))
         {
             set_common_name(session, up->username);
         }
+
 #ifdef ENABLE_DEF_AUTH
         msg(D_HANDSHAKE, "TLS: Username/Password authentication %s for username '%s' %s",
             ks->auth_deferred ? "deferred" : "succeeded",
