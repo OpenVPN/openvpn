@@ -45,6 +45,8 @@
 #include <openssl/objects.h>
 #include <openssl/evp.h>
 #include <openssl/des.h>
+#include <openssl/err.h>
+#include <openssl/rand.h>
 
 /*
  * Check for key size creepage.
