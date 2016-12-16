@@ -1,6 +1,39 @@
 OpenVPN Change Log
 Copyright (C) 2002-2016 OpenVPN Technologies, Inc. <sales@openvpn.net>
 
+2016.12.16 -- Version 2.4_rc2
+David Sommerseth (9):
+      Fix wrong configure.ac parsing of --enable-async-push
+      Changes: Further improve systemd unit file updates
+      systemd: Intermediate --chroot fix with the new sd_notify() implementation
+      Further enhance async-push feature description
+      Changes.rst: Mainatiner update on C99
+      dev-tools: Add reformat-all.sh for code style unification
+      The Great Reformatting - first phase
+      Merge 'reformatting' branch into master
+      auth-gen-token: Hardening memory cleanup on auth-token failuers
+
+Gert Doering (1):
+      Refactor setting close-on-exec for socket FDs
+
+Lev Stipakov (2):
+      Arm inotify only in server mode
+      Add "async push" feature to Changes.rst
+
+Magnus Kroken (1):
+      mbedtls: include correct net/net_sockets header according to version
+
+Selva Nair (2):
+      Correctly state the default dhcp server address in man page
+      Unhide a line in man page by fixing a typo
+
+Steffan Karger (4):
+      Fix (and cleanup) crypto flags in combination with NCP
+      Deprecate --no-iv
+      man: mention that --ecdh-curve does not work on mbed TLS builds
+      Don't reopen tun if cipher changes
+
+
 2016.12.01 -- Version 2.4_rc1
 Antonio Quartulli (1):
       reload CRL only if file was modified
