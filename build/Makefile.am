@@ -5,7 +5,7 @@
 #             packet encryption, packet authentication, and
 #             packet compression.
 #
-#  Copyright (C) 2002-2010 OpenVPN Technologies, Inc. <sales@openvpn.net>
+#  Copyright (C) 2002-2017 OpenVPN Technologies, Inc. <sales@openvpn.net>
 #
 
 MAINTAINERCLEANFILES = \
