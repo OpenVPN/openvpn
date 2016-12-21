@@ -57,10 +57,10 @@ Improved UTF-8 support
 Behavioral changes
 ------------------
 
-- OpenVPN will complain loudly about ciphers with 128-bits block sizes or less
+- OpenVPN will complain loudly about ciphers with block sizes less than 128-bits
 
 - OpenVPN will by default re-negotiate the tunnel after 64MB when used with
-  ciphers using cipher blocks of 128-bits or less
+  ciphers using cipher blocks sizes less than 128-bits
 
 - Remove --enable-password-save option to configure, this is now always enabled
 
@@ -121,7 +121,7 @@ Version 2.3.13
 
   Ciphers with cipher blocks less than 128 bits will now do a renegotiation
   of the tunnel by default for every 64MB of data.  This behaviour can be
-  overridden by explictly setting --reneg-bytes 0 in the configuration file,
+  overridden by explicitly setting --reneg-bytes 0 in the configuration file,
   however this is HIGHLY discouraged.
 
   This is to reduce the risk for SWEET32 attacks.  The general recommendation
