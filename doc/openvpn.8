@@ -4876,11 +4876,18 @@ such as TCP expect this role to be left to them.
 .B \-\-reneg\-bytes n
 Renegotiate data channel key after
 .B n
-bytes sent or received (disabled by default).
+bytes sent or received (disabled by default with an exception, see below).
 OpenVPN allows the lifetime of a key
-to be expressed as a number of bytes encrypted/decrypted, a number of packets, or
-a number of seconds.  A key renegotiation will be forced
+to be expressed as a number of bytes encrypted/decrypted, a number of packets,
+or a number of seconds.  A key renegotiation will be forced
 if any of these three criteria are met by either peer.
+
+If using ciphers with cipher block sizes less than 128-bits, \-\-reneg\-bytes is
+set to 64MB by default, unless it is explicitly disabled by setting the value to
+0, but this is
+.B HIGHLY DISCOURAGED
+as this is designed to add some protection against the SWEET32 attack vector.
+For more information see the \-\-cipher option.
 .\"*********************************************************
 .TP
 .B \-\-reneg\-pkts n

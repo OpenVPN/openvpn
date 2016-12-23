@@ -182,6 +182,12 @@ Deprecated features
 
 User-visible Changes
 --------------------
+- When using ciphers with cipher blocks less than 128-bits
+  OpenVPN will complain loudly if the configuration uses ciphers considered
+  weak, such as the SWEET32 attack vector.  In such scenarios, OpenVPN will by
+  default do a renegotiation for each 64MB of transported data (``--reneg-bytes``).
+  This renegotiation can be disabled, but is HIGHLY DISCOURAGED.
+
 - For certificate DNs with duplicate fields, e.g. "OU=one,OU=two", both fields
   are now exported to the environment, where each second and later occurrence
   of a field get _$N appended to it's field name, starting at N=1.  For the
