@@ -2270,9 +2270,6 @@ push_peer_info(struct buffer *buf, struct tls_session *session)
         comp_generate_peer_info_string(&session->opt->comp_options, &out);
 #endif
 
-        /* support for redirecting IPv6 gateway */
-        buf_printf(&out, "IV_RGI6=1\n");
-
         if (session->opt->push_peer_info_detail >= 2)
         {
             /* push mac addr */
