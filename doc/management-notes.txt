@@ -773,8 +773,9 @@ via a notification as follows:
 
 >RSA_SIGN:[BASE64_DATA]
 
-The management interface client should then sign BASE64_DATA
-using the private key and return the SSL signature as follows:
+The management interface client should then create a PKCS#1 v1.5 signature of
+the (decoded) BASE64_DATA using the private key and return the SSL signature as
+follows:
 
 rsa-sig
 [BASE64_SIG_LINE]
@@ -783,8 +784,8 @@ rsa-sig
 .
 END
 
-Base64 encoded output of RSA_sign(NID_md5_sha1,... will provide a
-correct signature.
+Base64 encoded output of RSA_private_encrypt() (OpenSSL) or mbedtls_pk_sign()
+(mbed TLS) will provide a correct signature.
 
 This capability is intended to allow the use of arbitrary cryptographic
 service providers with OpenVPN via the management interface.
