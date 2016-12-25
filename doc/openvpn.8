@@ -5036,6 +5036,11 @@ key file used with
 .B \-\-tls\-auth
 gives a peer nothing more than the power to initiate a TLS
 handshake.  It is not used to encrypt or authenticate any tunnel data.
+
+Use
+.B \-\-tls\-crypt
+instead if you want to use the key file to not only authenticate, but also
+encrypt the TLS control channel.
 .\"*********************************************************
 .TP
 .B \-\-tls\-crypt keyfile
