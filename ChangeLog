@@ -1,6 +1,23 @@
 OpenVPN Change Log
 Copyright (C) 2002-2017 OpenVPN Technologies, Inc. <sales@openvpn.net>
 
+2016.12.26 -- Version 2.4.0
+David Sommerseth (5):
+      dev-tools: Added script for updating copyright years in files
+      Update copyrights
+      docs: Further enhance the documentation related to SWEET32
+      man: Remove references to no longer present IV_RGI6 peer-info
+      build: Ensure Changes.rst is shipped and installed as a doc file
+
+Gert Doering (1):
+      Remove IV_RGI6=1 peer-info signalling.
+
+Steffan Karger (3):
+      Document that RSA_SIGN can also request TLS 1.2 signatures
+      man: encourage user to read on about --tls-crypt
+      Textual fixes for Changes.rst
+
+
 2016.12.16 -- Version 2.4_rc2
 David Sommerseth (9):
       Fix wrong configure.ac parsing of --enable-async-push
