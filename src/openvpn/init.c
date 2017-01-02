@@ -2351,11 +2351,6 @@ do_init_crypto_static(struct context *c, const unsigned int flags)
     init_crypto_pre(c, flags);
 
     /* Initialize flags */
-    if (c->options.use_iv)
-    {
-        c->c2.crypto_options.flags |= CO_USE_IV;
-    }
-
     if (c->options.mute_replay_warnings)
     {
         c->c2.crypto_options.flags |= CO_MUTE_REPLAY_WARNINGS;
@@ -2396,13 +2391,11 @@ do_init_crypto_static(struct context *c, const unsigned int flags)
     c->c2.crypto_options.key_ctx_bi = c->c1.ks.static_key;
 
     /* Compute MTU parameters */
-    crypto_adjust_frame_parameters(&c->c2.frame,
-                                   &c->c1.ks.key_type,
-                                   options->use_iv, options->replay, true);
+    crypto_adjust_frame_parameters(&c->c2.frame, &c->c1.ks.key_type,
+                                   options->replay, true);
 
-    /* Sanity check on IV, sequence number, and cipher mode options */
-    check_replay_iv_consistency(&c->c1.ks.key_type, options->replay,
-                                options->use_iv);
+    /* Sanity check on sequence number, and cipher mode options */
+    check_replay_consistency(&c->c1.ks.key_type, options->replay);
 }
 
 /*
@@ -2529,9 +2522,8 @@ do_init_crypto_tls(struct context *c, const unsigned int flags)
         return;
     }
 
-    /* Sanity check on IV, sequence number, and cipher mode options */
-    check_replay_iv_consistency(&c->c1.ks.key_type, options->replay,
-                                options->use_iv);
+    /* Sanity check on sequence number, and cipher mode options */
+    check_replay_consistency(&c->c1.ks.key_type, options->replay);
 
     /* In short form, unique datagram identifier is 32 bits, in long form 64 bits */
     packet_id_long_form = cipher_kt_mode_ofb_cfb(c->c1.ks.key_type.cipher);
@@ -2545,17 +2537,12 @@ do_init_crypto_tls(struct context *c, const unsigned int flags)
     else
     {
         crypto_adjust_frame_parameters(&c->c2.frame, &c->c1.ks.key_type,
-                                       options->use_iv, options->replay, packet_id_long_form);
+                                       options->replay, packet_id_long_form);
     }
     tls_adjust_frame_parameters(&c->c2.frame);
 
     /* Set all command-line TLS-related options */
     CLEAR(to);
-
-    if (options->use_iv)
-    {
-        to.crypto_flags |= CO_USE_IV;
-    }
 
     if (options->mute_replay_warnings)
     {
@@ -2692,9 +2679,8 @@ do_init_crypto_tls(struct context *c, const unsigned int flags)
         to.tls_wrap.opt.key_ctx_bi = c->c1.ks.tls_wrap_key;
         to.tls_wrap.opt.pid_persist = &c->c1.pid_persist;
         to.tls_wrap.opt.flags |= CO_PACKET_ID_LONG_FORM;
-        crypto_adjust_frame_parameters(&to.frame,
-                                       &c->c1.ks.tls_auth_key_type,
-                                       false, true, true);
+        crypto_adjust_frame_parameters(&to.frame, &c->c1.ks.tls_auth_key_type,
+                                       true, true);
     }
 
     /* TLS handshake encryption (--tls-crypt) */
@@ -2979,10 +2965,6 @@ do_option_warnings(struct context *c)
     if (!o->replay)
     {
         msg(M_WARN, "WARNING: You have disabled Replay Protection (--no-replay) which may make " PACKAGE_NAME " less secure");
-    }
-    if (!o->use_iv)
-    {
-        msg(M_WARN, "WARNING: You have disabled Crypto IVs (--no-iv) which may make " PACKAGE_NAME " less secure");
     }
 
     if (o->tls_server)

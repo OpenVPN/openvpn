@@ -551,7 +551,6 @@ static const char usage_message[] =
     "--replay-window n [t]  : Use a replay protection sliding window of size n\n"
     "                         and a time window of t seconds.\n"
     "                         Default n=%d t=%d\n"
-    "--no-iv         : Disable cipher IV -- only allowed with CBC mode ciphers.\n"
     "--replay-persist file : Persist replay-protection state across sessions\n"
     "                  using file.\n"
     "--test-crypto   : Run a self-test of crypto features enabled.\n"
@@ -863,7 +862,6 @@ init_options(struct options *o, const bool init_gc)
     o->replay = true;
     o->replay_window = DEFAULT_SEQ_BACKTRACK;
     o->replay_time = DEFAULT_TIME_BACKTRACK;
-    o->use_iv = true;
     o->key_direction = KEY_DIRECTION_BIDIRECTIONAL;
 #ifdef ENABLE_PREDICTION_RESISTANCE
     o->use_prediction_resistance = false;
@@ -1715,7 +1713,6 @@ show_settings(const struct options *o)
     SHOW_INT(replay_window);
     SHOW_INT(replay_time);
     SHOW_STR(packet_id_file);
-    SHOW_BOOL(use_iv);
     SHOW_BOOL(test_crypto);
 #ifdef ENABLE_PREDICTION_RESISTANCE
     SHOW_BOOL(use_prediction_resistance);
@@ -2475,14 +2472,6 @@ options_postprocess_verify_ce(const struct options *options, const struct connec
     if (options->ncp_enabled && !tls_check_ncp_cipher_list(options->ncp_ciphers))
     {
         msg(M_USAGE, "NCP cipher list contains unsupported ciphers.");
-    }
-    if (options->ncp_enabled && !options->use_iv)
-    {
-        msg(M_USAGE, "--no-iv not allowed when NCP is enabled.");
-    }
-    if (!options->use_iv)
-    {
-        msg(M_WARN, "WARNING: --no-iv is deprecated and will be removed in 2.5");
     }
 
     /*
@@ -3447,8 +3436,8 @@ calc_options_string_link_mtu(const struct options *o, const struct frame *frame)
         init_key_type(&fake_kt, o->ciphername, o->authname, o->keysize, true,
                       false);
         frame_add_to_extra_frame(&fake_frame, -(crypto_max_overhead()));
-        crypto_adjust_frame_parameters(&fake_frame, &fake_kt, o->use_iv,
-                                       o->replay, cipher_kt_mode_ofb_cfb(fake_kt.cipher));
+        crypto_adjust_frame_parameters(&fake_frame, &fake_kt, o->replay,
+                                       cipher_kt_mode_ofb_cfb(fake_kt.cipher));
         frame_finalize(&fake_frame, o->ce.link_mtu_defined, o->ce.link_mtu,
                        o->ce.tun_mtu_defined, o->ce.tun_mtu);
         msg(D_MTU_DEBUG, "%s: link-mtu %u -> %d", __func__, (unsigned int) link_mtu,
@@ -3493,7 +3482,6 @@ calc_options_string_link_mtu(const struct options *o, const struct frame *frame)
  * --keysize
  * --secret
  * --no-replay
- * --no-iv
  *
  * SSL Options:
  *
@@ -3626,10 +3614,6 @@ options_string(const struct options *o,
         if (!o->replay)
         {
             buf_printf(&out, ",no-replay");
-        }
-        if (!o->use_iv)
-        {
-            buf_printf(&out, ",no-iv");
         }
 
 #ifdef ENABLE_PREDICTION_RESISTANCE
@@ -7560,8 +7544,8 @@ add_option(struct options *options,
     }
     else if (streq(p[0], "no-iv") && !p[1])
     {
-        VERIFY_PERMISSION(OPT_P_GENERAL);
-        options->use_iv = false;
+        msg(msglevel,
+            "--no-iv is no longer supported. Remove it from client and server configs.");
     }
     else if (streq(p[0], "replay-persist") && p[1] && !p[2])
     {
