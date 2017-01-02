@@ -4080,6 +4080,7 @@ usage(void)
     fprintf(fp, usage_message,
             title_string,
             o.ce.connect_retry_seconds,
+            o.ce.connect_retry_seconds_max,
             o.ce.local_port, o.ce.remote_port,
             TUN_MTU_DEFAULT, TAP_MTU_EXTRA_DEFAULT,
             o.verbosity);
