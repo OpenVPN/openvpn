@@ -692,8 +692,8 @@ push_update_digest(md_ctx_t *ctx, struct buffer *buf, const struct options *opt)
         {
             continue;
         }
+        md_ctx_update(ctx, (const uint8_t *) line, strlen(line)+1);
     }
-    md_ctx_update(ctx, (const uint8_t *) line, strlen(line)+1);
 }
 
 int
