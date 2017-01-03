@@ -104,7 +104,6 @@ struct tuntap_options {
 
     bool dhcp_renew;
     bool dhcp_pre_release;
-    bool dhcp_release;
 
     bool register_dns;
 

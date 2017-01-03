@@ -715,7 +715,6 @@ static const char usage_message[] =
     "--dhcp-renew       : Ask Windows to renew the TAP adapter lease on startup.\n"
     "--dhcp-pre-release : Ask Windows to release the previous TAP adapter lease on\n"
     "                       startup.\n"
-    "--dhcp-release     : Ask Windows to release the TAP adapter lease on shutdown.\n"
     "--register-dns  : Run ipconfig /flushdns and ipconfig /registerdns\n"
     "                  on connection initiation.\n"
     "--tap-sleep n   : Sleep for n seconds after TAP adapter open before\n"
@@ -1212,7 +1211,6 @@ show_tuntap_options(const struct tuntap_options *o)
     SHOW_BOOL(dhcp_options);
     SHOW_BOOL(dhcp_renew);
     SHOW_BOOL(dhcp_pre_release);
-    SHOW_BOOL(dhcp_release);
     SHOW_STR(domain);
     SHOW_STR(netbios_scope);
     SHOW_INT(netbios_node_type);
@@ -7185,11 +7183,11 @@ add_option(struct options *options,
     {
         VERIFY_PERMISSION(OPT_P_IPWIN32);
         options->tuntap_options.dhcp_pre_release = true;
+        options->tuntap_options.dhcp_renew = true;
     }
     else if (streq(p[0], "dhcp-release") && !p[1])
     {
-        VERIFY_PERMISSION(OPT_P_IPWIN32);
-        options->tuntap_options.dhcp_release = true;
+        msg(M_WARN, "Obsolete option --dhcp-release detected. This is now on by default");
     }
     else if (streq(p[0], "dhcp-internal") && p[1] && !p[2]) /* standalone method for internal use */
     {
