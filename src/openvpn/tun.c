@@ -6224,10 +6224,7 @@ close_tun(struct tuntap *tt)
         }
 #endif
 
-        if (tt->options.dhcp_release)
-        {
-            dhcp_release(tt);
-        }
+        dhcp_release(tt);
 
         if (tt->hand != NULL)
         {
