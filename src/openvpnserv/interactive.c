@@ -1475,7 +1475,7 @@ RunOpenvpn(LPVOID p)
     }
 
     /* Check user is authorized or options are white-listed */
-    if (!IsAuthorizedUser(ovpn_user->User.Sid, &settings)
+    if (!IsAuthorizedUser(ovpn_user->User.Sid, imp_token, settings.ovpn_admin_group)
         && !ValidateOptions(pipe, sud.directory, sud.options))
     {
         goto out;
