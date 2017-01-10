@@ -414,11 +414,7 @@ next_connection_entry(struct context *c)
                 break;
             }
         }
-        else
-#endif
-
-#ifdef ENABLE_MANAGEMENT
-        if (ce_defined && management && management_query_proxy_enabled(management))
+        else if (ce_defined && management && management_query_proxy_enabled(management))
         {
             ce_defined = ce_management_query_proxy(c);
             if (IS_SIG(c))
