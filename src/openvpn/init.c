@@ -252,31 +252,42 @@ ce_management_query_remote(struct context *c)
 {
     struct gc_arena gc = gc_new();
     volatile struct connection_entry *ce = &c->options.ce;
-    int ret = true;
+    int ce_changed = true; /* presume the connection entry will be changed */
+
     update_time();
     if (management)
     {
         struct buffer out = alloc_buf_gc(256, &gc);
-        buf_printf(&out, ">REMOTE:%s,%s,%s", np(ce->remote), ce->remote_port, proto2ascii(ce->proto, ce->af, false));
+
+        buf_printf(&out, ">REMOTE:%s,%s,%s", np(ce->remote), ce->remote_port,
+                   proto2ascii(ce->proto, ce->af, false));
         management_notify_generic(management, BSTR(&out));
-        ce->flags &= ~(CE_MAN_QUERY_REMOTE_MASK<<CE_MAN_QUERY_REMOTE_SHIFT);
-        ce->flags |= (CE_MAN_QUERY_REMOTE_QUERY<<CE_MAN_QUERY_REMOTE_SHIFT);
-        while (((ce->flags>>CE_MAN_QUERY_REMOTE_SHIFT) & CE_MAN_QUERY_REMOTE_MASK) == CE_MAN_QUERY_REMOTE_QUERY)
+
+        ce->flags &= ~(CE_MAN_QUERY_REMOTE_MASK << CE_MAN_QUERY_REMOTE_SHIFT);
+        ce->flags |= (CE_MAN_QUERY_REMOTE_QUERY << CE_MAN_QUERY_REMOTE_SHIFT);
+        while (((ce->flags >> CE_MAN_QUERY_REMOTE_SHIFT)
+                & CE_MAN_QUERY_REMOTE_MASK) == CE_MAN_QUERY_REMOTE_QUERY)
         {
             management_event_loop_n_seconds(management, 1);
             if (IS_SIG(c))
             {
-                ret = false;
+                ce_changed = false; /* connection entry have not been set */
                 break;
             }
         }
     }
-    {
-        const int flags = ((ce->flags>>CE_MAN_QUERY_REMOTE_SHIFT) & CE_MAN_QUERY_REMOTE_MASK);
-        ret = (flags != CE_MAN_QUERY_REMOTE_SKIP);
-    }
     gc_free(&gc);
-    return ret;
+
+    if (ce_changed)
+    {
+        /* If it is likely a connection entry was modified,
+         * check what changed in the flags and that it was not skipped
+         */
+        const int flags = ((ce->flags >> CE_MAN_QUERY_REMOTE_SHIFT)
+                           & CE_MAN_QUERY_REMOTE_MASK);
+        ce_changed = (flags != CE_MAN_QUERY_REMOTE_SKIP);
+    }
+    return ce_changed;
 }
 #endif /* ENABLE_MANAGEMENT */
 
