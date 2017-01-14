@@ -60,7 +60,9 @@ argv_reset(struct argv *a)
 {
     size_t i;
     for (i = 0; i < a->argc; ++i)
+    {
         free(a->argv[i]);
+    }
     free(a->argv);
     argv_init(a);
 }
@@ -74,7 +76,9 @@ argv_extend(struct argv *a, const size_t newcap)
         size_t i;
         ALLOC_ARRAY_CLEAR(newargv, char *, newcap);
         for (i = 0; i < a->argc; ++i)
+        {
             newargv[i] = a->argv[i];
+        }
         free(a->argv);
         a->argv = newargv;
         a->capacity = newcap;
@@ -104,11 +108,15 @@ argv_clone(const struct argv *a, const size_t headroom)
 
     argv_init(&r);
     for (i = 0; i < headroom; ++i)
+    {
         argv_append(&r, NULL);
+    }
     if (a)
     {
         for (i = 0; i < a->argc; ++i)
+        {
             argv_append(&r, string_alloc(a->argv[i], NULL));
+        }
     }
     return r;
 }
@@ -332,7 +340,9 @@ argv_parse_cmd(struct argv *a, const char *s)
     {
         int i;
         for (i = 0; i < nparms; ++i)
+        {
             argv_append(a, string_alloc(parms[i], NULL));
+        }
     }
     else
     {

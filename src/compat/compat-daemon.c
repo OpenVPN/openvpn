@@ -58,7 +58,8 @@ int
 daemon(int nochdir, int noclose)
 {
 #if defined(HAVE_FORK) && defined(HAVE_SETSID)
-    switch (fork()) {
+    switch (fork())
+    {
         case -1:
             return (-1);
 

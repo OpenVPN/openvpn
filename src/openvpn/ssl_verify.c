@@ -90,8 +90,12 @@ tls_deauthenticate(struct tls_multi *multi)
     {
         int i, j;
         for (i = 0; i < TM_SIZE; ++i)
+        {
             for (j = 0; j < KS_SIZE; ++j)
+            {
                 multi->session[i].key[j].authenticated = false;
+            }
+        }
     }
 }
 
@@ -248,7 +252,9 @@ cert_hash_free(struct cert_hash_set *chs)
     {
         int i;
         for (i = 0; i < MAX_CERT_DEPTH; ++i)
+        {
             free(chs->ch[i]);
+        }
         free(chs);
     }
 }

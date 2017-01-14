@@ -215,7 +215,9 @@ ifconfig_pool_free(struct ifconfig_pool *pool)
     {
         int i;
         for (i = 0; i < pool->size; ++i)
+        {
             ifconfig_pool_entry_free(&pool->list[i], true);
+        }
         free(pool->list);
         free(pool);
     }

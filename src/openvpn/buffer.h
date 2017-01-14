@@ -404,7 +404,9 @@ secure_memzero(void *data, size_t len)
 #else
     volatile char *p = (volatile char *) data;
     while (len--)
+    {
         *p++ = 0;
+    }
 #endif
 }
 

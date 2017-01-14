@@ -293,7 +293,8 @@ ServiceStartAutomatic(DWORD dwArgc, LPTSTR *lpszArgv)
         /*
          * Loop over each config file
          */
-        do {
+        do
+        {
             HANDLE log_handle = NULL;
             STARTUPINFO start_info;
             PROCESS_INFORMATION proc_info;

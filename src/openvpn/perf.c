@@ -147,12 +147,14 @@ push_perf_index(int pindex)
     {
         int i;
         for (i = 0; i < sindex; ++i)
+        {
             if (perf_set.stack[i] == pindex)
             {
                 perf_print_state(M_INFO);
                 msg(M_FATAL, "PERF: push_perf_index %s failed",
                     metric_names [pindex]);
             }
+        }
 
         perf_set.stack[sindex] = pindex;
         perf_set.stack_len = newlen;
@@ -321,7 +323,8 @@ perf_print_state(int lev)
 #else  /* ifdef ENABLE_PERFORMANCE_METRICS */
 #ifdef _MSC_VER  /* Dummy function needed to avoid empty file compiler warning in Microsoft VC */
 static void
-dummy(void) {
+dummy(void)
+{
 }
 #endif
 #endif /* ifdef ENABLE_PERFORMANCE_METRICS */

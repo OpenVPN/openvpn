@@ -381,7 +381,9 @@ get_key_value(const char *str,       /* source string */
     bool escape = false;
 
     for (c = max_key_len-1; (*str && (*str != '=') && c--); )
+    {
         *key++ = *str++;
+    }
     *key = '\0';
 
     if ('=' != *str++)
@@ -475,7 +477,9 @@ get_pa_var(const char *key, const char *pa, struct gc_arena *gc)
             ++content;
         }
         while (*content && isspace(*content))
+        {
             ++content;
+        }
     }
 }
 
@@ -774,7 +778,8 @@ establish_http_proxy_passthru(struct http_proxy_info *p,
 
             /* receive and discard everything else */
             while (recv_line(sd, NULL, 0, 2, true, NULL, signal_received))
-                ;
+            {
+            }
 
             /* now send the phase 3 reply */
 
@@ -1041,7 +1046,8 @@ establish_http_proxy_passthru(struct http_proxy_info *p,
      * start of the OpenVPN data stream (put it in lookahead).
      */
     while (recv_line(sd, NULL, 0, 2, false, lookahead, signal_received))
-        ;
+    {
+    }
 
     /* reset queried_creds so that we don't think that the next creds request is due to an auth error */
     p->queried_creds = false;

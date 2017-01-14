@@ -629,7 +629,8 @@ packet_id_interactive_test()
 
     packet_id_init(&pid, seq_backtrack, time_backtrack);
 
-    while (true) {
+    while (true)
+    {
         char buf[80];
         if (!fgets(buf, sizeof(buf), stdin))
         {

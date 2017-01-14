@@ -44,7 +44,9 @@ fragment_list_buf_init(struct fragment_list *list, const struct frame *frame)
 {
     int i;
     for (i = 0; i < N_FRAG_BUF; ++i)
+    {
         list->fragments[i].buf = alloc_buf(BUF_SIZE(frame));
+    }
 }
 
 static void
@@ -52,7 +54,9 @@ fragment_list_buf_free(struct fragment_list *list)
 {
     int i;
     for (i = 0; i < N_FRAG_BUF; ++i)
+    {
         free_buf(&list->fragments[i].buf);
+    }
 }
 
 /*
@@ -67,7 +71,9 @@ fragment_list_get_buf(struct fragment_list *list, int seq_id)
     {
         int i;
         for (i = 0; i < N_FRAG_BUF; ++i)
+        {
             list->fragments[i].defined = false;
+        }
         list->index = 0;
         list->seq_id = seq_id;
         diff = 0;
@@ -433,6 +439,7 @@ fragment_wakeup(struct fragment_master *f, struct frame *frame)
 
 #else  /* ifdef ENABLE_FRAGMENT */
 static void
-dummy(void) {
+dummy(void)
+{
 }
 #endif /* ifdef ENABLE_FRAGMENT */

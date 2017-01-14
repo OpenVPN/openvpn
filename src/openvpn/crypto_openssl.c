@@ -186,7 +186,8 @@ crypto_clear_error(void)
 }
 
 void
-crypto_print_openssl_errors(const unsigned int flags) {
+crypto_print_openssl_errors(const unsigned int flags)
+{
     size_t err = 0;
 
     while ((err = ERR_get_error()))
@@ -551,8 +552,10 @@ cipher_kt_iv_size(const EVP_CIPHER *cipher_kt)
 }
 
 int
-cipher_kt_block_size(const EVP_CIPHER *cipher) {
-    /* OpenSSL reports OFB/CFB/GCM cipher block sizes as '1 byte'.  To work
+cipher_kt_block_size(const EVP_CIPHER *cipher)
+{
+    /*
+     * OpenSSL reports OFB/CFB/GCM cipher block sizes as '1 byte'.  To work
      * around that, try to replace the mode with 'CBC' and return the block size
      * reported for that cipher, if possible.  If that doesn't work, just return
      * the value reported by OpenSSL.

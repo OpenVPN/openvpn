@@ -78,7 +78,8 @@ searchandreplace(const char *tosearch, const char *searchfor, const char *replac
         return strdup(tosearch);
     }
 
-    while (scratch) {
+    while (scratch)
+    {
         strncat(temp,searching,scratch-searching);
         strcat(temp,replacewith);
 
@@ -117,7 +118,9 @@ string_array_len(const char *array[])
     if (array)
     {
         while (array[i])
+        {
             ++i;
+        }
     }
     return i;
 }

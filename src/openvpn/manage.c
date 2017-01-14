@@ -1984,7 +1984,9 @@ man_process_command(struct management *man, const char *line)
         {
             int i;
             for (i = 0; i < nparms; ++i)
+            {
                 msg(M_INFO, "[%d] '%s'", i, parms[i]);
+            }
         }
 #endif
 
@@ -3088,7 +3090,8 @@ management_io(struct management *man)
                 if (net_events & FD_READ)
                 {
                     while (man_read(man) > 0)
-                        ;
+                    {
+                    }
                     net_event_win32_clear_selected_events(&man->connection.ne32, FD_READ);
                 }
 
@@ -3311,7 +3314,8 @@ man_wait_for_client_connection(struct management *man,
         {
             msg(D_MANAGEMENT, "Need information from management interface, waiting...");
         }
-        do {
+        do
+        {
             man_standalone_event_loop(man, signal_received, expire);
             if (signal_received && *signal_received)
             {
@@ -3929,7 +3933,9 @@ log_history_free_contents(struct log_history *h)
 {
     int i;
     for (i = 0; i < h->size; ++i)
+    {
         log_entry_free_contents(&h->array[log_index(h, i)]);
+    }
     free(h->array);
 }
 
@@ -3973,7 +3979,9 @@ log_history_resize(struct log_history *h, const int capacity)
         log_history_obj_init(&newlog, capacity);
 
         for (i = 0; i < h->size; ++i)
+        {
             log_history_add(&newlog, &h->array[log_index(h, i)]);
+        }
 
         log_history_free_contents(h);
         *h = newlog;
@@ -3995,6 +4003,7 @@ log_history_ref(const struct log_history *h, const int index)
 
 #else  /* ifdef ENABLE_MANAGEMENT */
 static void
-dummy(void) {
+dummy(void)
+{
 }
 #endif /* ENABLE_MANAGEMENT */

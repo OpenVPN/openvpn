@@ -430,6 +430,7 @@ process_received_occ_msg(struct context *c)
 
 #else  /* ifdef ENABLE_OCC */
 static void
-dummy(void) {
+dummy(void)
+{
 }
 #endif /* ifdef ENABLE_OCC */

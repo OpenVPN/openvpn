@@ -52,7 +52,8 @@ inet_ntop(int af, const void *src, char *dst, socklen_t size)
     ZeroMemory(&ss, sizeof(ss));
     ss.ss_family = af;
 
-    switch (af) {
+    switch (af)
+    {
         case AF_INET:
             ((struct sockaddr_in *)&ss)->sin_addr = *(struct in_addr *)src;
             break;

@@ -267,6 +267,7 @@ const struct compress_alg lzo_alg = {
 
 #else  /* if defined(ENABLE_LZO) */
 static void
-dummy(void) {
+dummy(void)
+{
 }
 #endif /* ENABLE_LZO */

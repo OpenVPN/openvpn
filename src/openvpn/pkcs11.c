@@ -45,21 +45,24 @@
 
 static
 time_t
-__mytime(void) {
+__mytime(void)
+{
     return openvpn_time(NULL);
 }
 
 #if !defined(_WIN32)
 static
 int
-__mygettimeofday(struct timeval *tv) {
+__mygettimeofday(struct timeval *tv)
+{
     return gettimeofday(tv, NULL);
 }
 #endif
 
 static
 void
-__mysleep(const unsigned long usec) {
+__mysleep(const unsigned long usec)
+{
 #if defined(_WIN32)
     Sleep(usec/1000);
 #else
@@ -84,10 +87,12 @@ static
 unsigned
 _pkcs11_msg_pkcs112openvpn(
     const unsigned flags
-    ) {
+    )
+{
     unsigned openvpn_flags;
 
-    switch (flags) {
+    switch (flags)
+    {
         case PKCS11H_LOG_DEBUG2:
             openvpn_flags = D_PKCS11_DEBUG;
             break;
@@ -124,7 +129,8 @@ static
 unsigned
 _pkcs11_msg_openvpn2pkcs11(
     const unsigned flags
-    ) {
+    )
+{
     unsigned pkcs11_flags;
 
     if ((flags & D_PKCS11_DEBUG) != 0)
@@ -166,7 +172,8 @@ _pkcs11_openvpn_log(
     unsigned flags,
     const char *const szFormat,
     va_list args
-    ) {
+    )
+{
     char Buffer[10*1024];
 
     (void)global_data;
@@ -184,7 +191,8 @@ _pkcs11_openvpn_token_prompt(
     void *const user_data,
     const pkcs11h_token_id_t token,
     const unsigned retry
-    ) {
+    )
+{
     struct user_pass token_resp;
 
     (void)global_data;
@@ -229,7 +237,8 @@ _pkcs11_openvpn_pin_prompt(
     const unsigned retry,
     char *const pin,
     const size_t pin_max
-    ) {
+    )
+{
     struct user_pass token_pass;
     char prompt[1024];
 
@@ -275,7 +284,8 @@ bool
 pkcs11_initialize(
     const bool protected_auth,
     const int nPINCachePeriod
-    ) {
+    )
+{
     CK_RV rv = CKR_FUNCTION_FAILED;
 
     dmsg(
@@ -347,7 +357,8 @@ cleanup:
 }
 
 void
-pkcs11_terminate() {
+pkcs11_terminate()
+{
     dmsg(
         D_PKCS11_DEBUG,
         "PKCS#11: pkcs11_terminate - entered"
@@ -367,7 +378,8 @@ pkcs11_addProvider(
     const bool protected_auth,
     const unsigned private_mode,
     const bool cert_private
-    ) {
+    )
+{
     CK_RV rv = CKR_OK;
 
     ASSERT(provider!=NULL);
@@ -411,12 +423,14 @@ pkcs11_addProvider(
 }
 
 int
-pkcs11_logout() {
+pkcs11_logout()
+{
     return pkcs11h_logout() == CKR_OK;
 }
 
 int
-pkcs11_management_id_count() {
+pkcs11_management_id_count()
+{
     pkcs11h_certificate_id_list_t id_list = NULL;
     pkcs11h_certificate_id_list_t t = NULL;
     CK_RV rv = CKR_OK;
@@ -441,7 +455,8 @@ pkcs11_management_id_count() {
         goto cleanup;
     }
 
-    for (count = 0, t = id_list; t != NULL; t = t->next) {
+    for (count = 0, t = id_list; t != NULL; t = t->next)
+    {
         count++;
     }
 
@@ -467,7 +482,8 @@ pkcs11_management_id_get(
     const int index,
     char **id,
     char **base64
-    ) {
+    )
+{
     pkcs11h_certificate_id_list_t id_list = NULL;
     pkcs11h_certificate_id_list_t entry = NULL;
 #if 0 /* certificate_id seems to be unused -- JY */
@@ -511,7 +527,8 @@ pkcs11_management_id_get(
 
     entry = id_list;
     count = 0;
-    while (entry != NULL && count != index) {
+    while (entry != NULL && count != index)
+    {
         count++;
         entry = entry->next;
     }
@@ -653,7 +670,8 @@ tls_ctx_use_pkcs11(
     struct tls_root_ctx *const ssl_ctx,
     bool pkcs11_id_management,
     const char *const pkcs11_id
-    ) {
+    )
+{
     pkcs11h_certificate_id_t certificate_id = NULL;
     pkcs11h_certificate_t certificate = NULL;
     CK_RV rv = CKR_OK;
@@ -784,7 +802,8 @@ _pkcs11_openvpn_show_pkcs11_ids_pin_prompt(
     const unsigned retry,
     char *const pin,
     const size_t pin_max
-    ) {
+    )
+{
     struct gc_arena gc = gc_new();
     struct buffer pass_prompt = alloc_buf_gc(128, &gc);
 
@@ -817,7 +836,8 @@ void
 show_pkcs11_ids(
     const char *const provider,
     bool cert_private
-    ) {
+    )
+{
     struct gc_arena gc = gc_new();
     pkcs11h_certificate_id_list_t user_certificates = NULL;
     pkcs11h_certificate_id_list_t current = NULL;
@@ -888,7 +908,8 @@ show_pkcs11_ids(
             "--pkcs11-id option please remember to use single quote mark.\n"
         )
         );
-    for (current = user_certificates; current != NULL; current = current->next) {
+    for (current = user_certificates; current != NULL; current = current->next)
+    {
         pkcs11h_certificate_t certificate = NULL;
         char *dn = NULL;
         char serial[1024] = {0};
@@ -1006,7 +1027,8 @@ cleanup:
 #else  /* if defined(ENABLE_PKCS11) */
 #ifdef _MSC_VER  /* Dummy function needed to avoid empty file compiler warning in Microsoft VC */
 static void
-dummy(void) {
+dummy(void)
+{
 }
 #endif
 #endif /* ENABLE_PKCS11 */

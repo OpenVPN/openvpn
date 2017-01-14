@@ -996,7 +996,9 @@ setenv_settings(struct env_set *es, const struct options *o)
     {
         int i;
         for (i = 0; i < o->connection_list->len; ++i)
+        {
             setenv_connection_entry(es, o->connection_list->array[i], i+1);
+        }
     }
     else
     {
@@ -1756,7 +1758,9 @@ show_settings(const struct options *o)
     {
         int i;
         for (i = 0; i<MAX_PARMS; i++)
+        {
             SHOW_INT(remote_cert_ku[i]);
+        }
     }
     SHOW_STR(remote_cert_eku);
     SHOW_INT(ssl_flags);
@@ -1784,22 +1788,30 @@ show_settings(const struct options *o)
     {
         int i;
         for (i = 0; i<MAX_PARMS && o->pkcs11_providers[i] != NULL; i++)
+        {
             SHOW_PARM(pkcs11_providers, o->pkcs11_providers[i], "%s");
+        }
     }
     {
         int i;
         for (i = 0; i<MAX_PARMS; i++)
+        {
             SHOW_PARM(pkcs11_protected_authentication, o->pkcs11_protected_authentication[i] ? "ENABLED" : "DISABLED", "%s");
+        }
     }
     {
         int i;
         for (i = 0; i<MAX_PARMS; i++)
+        {
             SHOW_PARM(pkcs11_private_mode, o->pkcs11_private_mode[i], "%08x");
+        }
     }
     {
         int i;
         for (i = 0; i<MAX_PARMS; i++)
+        {
             SHOW_PARM(pkcs11_cert_private, o->pkcs11_cert_private[i] ? "ENABLED" : "DISABLED", "%s");
+        }
     }
     SHOW_INT(pkcs11_pin_cache_period);
     SHOW_STR(pkcs11_id);
@@ -2926,7 +2938,9 @@ options_postprocess_verify(const struct options *o)
     {
         int i;
         for (i = 0; i < o->connection_list->len; ++i)
+        {
             options_postprocess_verify_ce(o, o->connection_list->array[i]);
+        }
     }
     else
     {
@@ -2977,7 +2991,9 @@ options_postprocess_mutate(struct options *o)
 
     ASSERT(o->connection_list);
     for (i = 0; i < o->connection_list->len; ++i)
+    {
         options_postprocess_mutate_ce(o, o->connection_list->array[i]);
+    }
 
 #ifdef ENABLE_CRYPTO
     if (o->tls_server)
@@ -3785,7 +3801,9 @@ options_warning_safe_scan1(const int msglevel,
     char *p = gc_malloc(OPTION_PARM_SIZE, true, &gc);
 
     while (buf_parse(&b, delim, p, OPTION_PARM_SIZE))
+    {
         options_warning_safe_scan2(msglevel, delim, report_inconsistent, p, b2_src, b1_name, b2_name);
+    }
 
     gc_free(&gc);
 }
@@ -4413,7 +4431,10 @@ read_inline_file(struct in_src *is, const char *close_tag, struct gc_arena *gc)
     {
         char *line_ptr = line;
         /* Remove leading spaces */
-        while (isspace(*line_ptr)) line_ptr++;
+        while (isspace(*line_ptr))
+        {
+            line_ptr++;
+        }
         if (!strncmp(line_ptr, close_tag, strlen(close_tag)))
         {
             endtagfound = true;
@@ -5303,18 +5324,24 @@ add_option(struct options *options,
         VERIFY_PERMISSION(OPT_P_GENERAL);
         /* Find out how many options to be ignored */
         for (i = 1; p[i]; i++)
+        {
             numignored++;
+        }
 
         /* add number of options already ignored */
         for (i = 0; options->ignore_unknown_option
              && options->ignore_unknown_option[i]; i++)
+        {
             numignored++;
+        }
 
         /* Allocate array */
         ALLOC_ARRAY_GC(ignore, const char *, numignored+1, &options->gc);
         for (i = 0; options->ignore_unknown_option
              && options->ignore_unknown_option[i]; i++)
+        {
             ignore[i] = options->ignore_unknown_option[i];
+        }
 
         options->ignore_unknown_option = ignore;
 
@@ -5998,7 +6025,8 @@ add_option(struct options *options,
             struct http_custom_header *custom_header = NULL;
             int i;
             /* Find the first free header */
-            for (i = 0; i < MAX_CUSTOM_HTTP_HEADER; i++) {
+            for (i = 0; i < MAX_CUSTOM_HTTP_HEADER; i++)
+            {
                 if (!ho->custom_headers[i].name)
                 {
                     custom_header = &ho->custom_headers[i];
@@ -7891,7 +7919,9 @@ add_option(struct options *options,
         VERIFY_PERMISSION(OPT_P_GENERAL);
 
         for (j = 1; j < MAX_PARMS && p[j] != NULL; ++j)
+        {
             sscanf(p[j], "%x", &(options->remote_cert_ku[j-1]));
+        }
     }
     else if (streq(p[0], "remote-cert-eku") && p[1] && !p[2])
     {
@@ -8020,10 +8050,16 @@ add_option(struct options *options,
         if (strncmp("ext:", s, 4) != 0)
         {
             size_t i = 0;
-            while (s[i] && !isupper(s[i])) i++;
+            while (s[i] && !isupper(s[i]))
+            {
+                i++;
+            }
             if (strlen(s) == i)
             {
-                while ((*s = toupper(*s)) != '\0') s++;
+                while ((*s = toupper(*s)) != '\0')
+                {
+                    s++;
+                }
                 msg(M_WARN, "DEPRECATED FEATURE: automatically upcased the "
                     "--x509-username-field parameter to '%s'; please update your"
                     "configuration", p[1]);
@@ -8077,7 +8113,9 @@ add_option(struct options *options,
         VERIFY_PERMISSION(OPT_P_GENERAL);
 
         for (j = 1; j < MAX_PARMS && p[j] != NULL; ++j)
+        {
             options->pkcs11_providers[j-1] = p[j];
+        }
     }
     else if (streq(p[0], "pkcs11-protected-authentication"))
     {
@@ -8086,7 +8124,9 @@ add_option(struct options *options,
         VERIFY_PERMISSION(OPT_P_GENERAL);
 
         for (j = 1; j < MAX_PARMS && p[j] != NULL; ++j)
+        {
             options->pkcs11_protected_authentication[j-1] = atoi(p[j]) != 0 ? 1 : 0;
+        }
     }
     else if (streq(p[0], "pkcs11-private-mode") && p[1])
     {
@@ -8095,7 +8135,9 @@ add_option(struct options *options,
         VERIFY_PERMISSION(OPT_P_GENERAL);
 
         for (j = 1; j < MAX_PARMS && p[j] != NULL; ++j)
+        {
             sscanf(p[j], "%x", &(options->pkcs11_private_mode[j-1]));
+        }
     }
     else if (streq(p[0], "pkcs11-cert-private"))
     {
@@ -8104,7 +8146,9 @@ add_option(struct options *options,
         VERIFY_PERMISSION(OPT_P_GENERAL);
 
         for (j = 1; j < MAX_PARMS && p[j] != NULL; ++j)
+        {
             options->pkcs11_cert_private[j-1] = atoi(p[j]) != 0 ? 1 : 0;
+        }
     }
     else if (streq(p[0], "pkcs11-pin-cache") && p[1] && !p[2])
     {

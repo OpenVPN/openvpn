@@ -587,7 +587,8 @@ multi_tcp_action(struct multi_context *m, struct multi_instance *mi, int action,
 {
     bool tun_input_pending = false;
 
-    do {
+    do
+    {
         dmsg(D_MULTI_DEBUG, "MULTI TCP: multi_tcp_action a=%s p=%d",
              pract(action),
              poll);

@@ -205,7 +205,9 @@ do_preresolve_host(struct context *c,
         {
             struct cached_dns_entry *prev = c->c1.dns_cache;
             while (prev->next)
+            {
                 prev = prev->next;
+            }
             prev->next = ph;
         }
 
@@ -2008,7 +2010,8 @@ static void
 phase2_tcp_client(struct link_socket *sock, struct signal_info *sig_info)
 {
     bool proxy_retry = false;
-    do {
+    do
+    {
         socket_connect(&sock->sd,
                        sock->info.lsa->current_remote->ai_addr,
                        get_server_poll_remaining_time(sock->server_poll_timeout),
@@ -2364,7 +2367,8 @@ link_socket_bad_incoming_addr(struct buffer *buf,
                 (int)from_addr->dest.addr.sa.sa_family,
                 print_sockaddr_ex(info->lsa->remote_list->ai_addr,":",PS_SHOW_PORT, &gc));
             /* print additional remote addresses */
-            for (ai = info->lsa->remote_list->ai_next; ai; ai = ai->ai_next) {
+            for (ai = info->lsa->remote_list->ai_next; ai; ai = ai->ai_next)
+            {
                 msg(D_LINK_ERRORS,"or from peer address: %s",
                     print_sockaddr_ex(ai->ai_addr,":",PS_SHOW_PORT, &gc));
             }
@@ -3053,10 +3057,12 @@ ascii2proto(const char *proto_name)
 {
     int i;
     for (i = 0; i < SIZE(proto_names); ++i)
+    {
         if (!strcmp(proto_name, proto_names[i].short_form))
         {
             return proto_names[i].proto;
         }
+    }
     return -1;
 }
 
@@ -3065,10 +3071,12 @@ ascii2af(const char *proto_name)
 {
     int i;
     for (i = 0; i < SIZE(proto_names); ++i)
+    {
         if (!strcmp(proto_name, proto_names[i].short_form))
         {
             return proto_names[i].proto_af;
         }
+    }
     return 0;
 }
 

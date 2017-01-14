@@ -836,7 +836,8 @@ strerror_win32(DWORD errnum, struct gc_arena *gc)
      * Posix equivalents.
      */
 #if 1
-    switch (errnum) {
+    switch (errnum)
+    {
         /*
          * When the TAP-Windows driver returns STATUS_UNSUCCESSFUL, this code
          * gets returned to user space.

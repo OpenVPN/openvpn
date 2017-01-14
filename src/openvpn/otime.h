@@ -289,7 +289,8 @@ tv_within_sigma(const struct timeval *t1, const struct timeval *t2, unsigned int
  * called again.
  */
 static inline void
-interval_earliest_wakeup(interval_t *wakeup, time_t at, time_t current) {
+interval_earliest_wakeup(interval_t *wakeup, time_t at, time_t current)
+{
     if (at > current)
     {
         const interval_t delta = (interval_t) (at - current);

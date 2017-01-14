@@ -174,6 +174,7 @@ mbuf_dereference_instance(struct mbuf_set *ms, struct multi_instance *mi)
 
 #else  /* if P2MP */
 static void
-dummy(void) {
+dummy(void)
+{
 }
 #endif /* P2MP */
