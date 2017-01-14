@@ -394,7 +394,8 @@ ignore_sys_error(const int err)
 
 /** Convert fatal errors to nonfatal, don't touch other errors */
 static inline unsigned int
-nonfatal(const unsigned int err) {
+nonfatal(const unsigned int err)
+{
     return err & M_FATAL ? (err ^ M_FATAL) | M_NONFATAL : err;
 }
 

@@ -281,7 +281,9 @@ rsa_priv_enc(int flen, const unsigned char *from, unsigned char *to, RSA *rsa, i
     }
     /* and now, we have to reverse the byte-order in the result from CryptSignHash()... */
     for (i = 0; i < len; i++)
+    {
         to[i] = buf[len - i - 1];
+    }
     free(buf);
 
     CryptDestroyHash(hash);
@@ -389,7 +391,9 @@ find_certificate_in_store(const char *cert_prop, HCERTSTORE cert_store)
             }
             hash[i] = x;
             /* skip any space(s) between hex numbers */
-            for (p++; *p && *p == ' '; p++) ;
+            for (p++; *p && *p == ' '; p++)
+            {
+            }
         }
         blob.cbData = i;
         blob.pbData = (unsigned char *) &hash;
@@ -547,7 +551,8 @@ err:
 #else  /* ifdef ENABLE_CRYPTOAPI */
 #ifdef _MSC_VER  /* Dummy function needed to avoid empty file compiler warning in Microsoft VC */
 static void
-dummy(void) {
+dummy(void)
+{
 }
 #endif
 #endif                          /* _WIN32 */

@@ -44,7 +44,8 @@ __memrchr(const char *str, int c, size_t n)
     const char *end = str;
 
     end += n - 1; /* Go to the end of the string */
-    while (end >= str) {
+    while (end >= str)
+    {
         if (c == *end)
         {
             return end;
@@ -82,10 +83,12 @@ dirname(char *path)
         char *runp;
 
         for (runp = last_slash; runp != path; --runp)
+        {
             if (runp[-1] != separator)
             {
                 break;
             }
+        }
 
         /* The '/' is the last character, we have to look further.  */
         if (runp != path)
@@ -100,10 +103,12 @@ dirname(char *path)
         char *runp;
 
         for (runp = last_slash; runp != path; --runp)
+        {
             if (runp[-1] != separator)
             {
                 break;
             }
+        }
 
         /* Terminate the path.  */
         if (runp == path)

@@ -98,6 +98,7 @@ shaper_msg(struct shaper *s)
 
 #else  /* ifdef ENABLE_FEATURE_SHAPER */
 static void
-dummy(void) {
+dummy(void)
+{
 }
 #endif /* ENABLE_FEATURE_SHAPER */

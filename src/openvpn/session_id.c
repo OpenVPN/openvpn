@@ -64,6 +64,7 @@ session_id_print(const struct session_id *sid, struct gc_arena *gc)
 
 #else  /* ifdef ENABLE_CRYPTO */
 static void
-dummy(void) {
+dummy(void)
+{
 }
 #endif /* ENABLE_CRYPTO */

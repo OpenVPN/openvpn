@@ -1281,7 +1281,9 @@ print_route_options(const struct route_option_list *rol,
             (rol->flags & RG_LOCAL) != 0);
     }
     for (ro = rol->routes; ro; ro = ro->next)
+    {
         print_route_option(ro, level);
+    }
 }
 
 void
@@ -1375,7 +1377,9 @@ print_routes(const struct route_list *rl, int level)
 {
     struct route_ipv4 *r;
     for (r = rl->routes; r; r = r->next)
+    {
         print_route(r, level);
+    }
 }
 
 static void
@@ -1404,7 +1408,9 @@ setenv_routes(struct env_set *es, const struct route_list *rl)
     int i = 1;
     struct route_ipv4 *r;
     for (r = rl->routes; r; r = r->next)
+    {
         setenv_route(es, r, i++);
+    }
 }
 
 static void
@@ -1433,7 +1439,9 @@ setenv_routes_ipv6(struct env_set *es, const struct route_ipv6_list *rl6)
     int i = 1;
     struct route_ipv6 *r6;
     for (r6 = rl6->routes_ipv6; r6; r6 = r6->next)
+    {
         setenv_route_ipv6(es, r6, i++);
+    }
 }
 
 /*
@@ -2623,7 +2631,9 @@ test_routes(const struct route_list *rl, const struct tuntap *tt)
         {
             struct route_ipv4 *r;
             for (r = rl->routes, len = 0; r; r = r->next, ++len)
+            {
                 test_route_helper(&ret, &count, &good, &ambig, adapters, r->gateway);
+            }
 
             if ((rl->flags & RG_ENABLE) && (rl->spec.flags & RTSA_REMOTE_ENDPOINT))
             {
@@ -3608,7 +3618,8 @@ get_default_gateway(struct route_gateway_info *rgi)
         msg(M_WARN, "GDG: problem writing to routing socket");
         goto done;
     }
-    do {
+    do
+    {
         l = read(sockfd, (char *)&m_rtmsg, sizeof(m_rtmsg));
     } while (l > 0 && (rtm.rtm_seq != seq || rtm.rtm_pid != pid));
     close(sockfd);

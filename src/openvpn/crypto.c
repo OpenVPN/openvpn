@@ -65,7 +65,8 @@
 
 static void
 openvpn_encrypt_aead(struct buffer *buf, struct buffer work,
-                     struct crypto_options *opt) {
+                     struct crypto_options *opt)
+{
 #ifdef HAVE_AEAD_CIPHER_MODES
     struct gc_arena gc;
     int outlen = 0;
@@ -329,7 +330,8 @@ openvpn_encrypt(struct buffer *buf, struct buffer work,
 bool
 crypto_check_replay(struct crypto_options *opt,
                     const struct packet_id_net *pin, const char *error_prefix,
-                    struct gc_arena *gc) {
+                    struct gc_arena *gc)
+{
     bool ret = false;
     packet_id_reap_test(&opt->packet_id.rec);
     if (packet_id_test(&opt->packet_id.rec, pin))
@@ -1019,7 +1021,8 @@ generate_key_random(struct key *key, const struct key_type *kt)
 
     struct gc_arena gc = gc_new();
 
-    do {
+    do
+    {
         CLEAR(*key);
         if (kt)
         {
@@ -1795,7 +1798,8 @@ get_random()
 }
 
 static const cipher_name_pair *
-get_cipher_name_pair(const char *cipher_name) {
+get_cipher_name_pair(const char *cipher_name)
+{
     const cipher_name_pair *pair;
     size_t i = 0;
 
@@ -1815,7 +1819,8 @@ get_cipher_name_pair(const char *cipher_name) {
 }
 
 const char *
-translate_cipher_name_from_openvpn(const char *cipher_name) {
+translate_cipher_name_from_openvpn(const char *cipher_name)
+{
     const cipher_name_pair *pair = get_cipher_name_pair(cipher_name);
 
     if (NULL == pair)
@@ -1827,7 +1832,8 @@ translate_cipher_name_from_openvpn(const char *cipher_name) {
 }
 
 const char *
-translate_cipher_name_to_openvpn(const char *cipher_name) {
+translate_cipher_name_to_openvpn(const char *cipher_name)
+{
     const cipher_name_pair *pair = get_cipher_name_pair(cipher_name);
 
     if (NULL == pair)

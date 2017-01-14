@@ -316,6 +316,7 @@ const struct compress_alg lz4v2_alg = {
 
 #else  /* if defined(ENABLE_LZ4) */
 static void
-dummy(void) {
+dummy(void)
+{
 }
 #endif /* ENABLE_LZ4 */

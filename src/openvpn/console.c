@@ -49,7 +49,8 @@ query_user_clear()
 {
     int i;
 
-    for (i = 0; i < QUERY_USER_NUMSLOTS; i++) {
+    for (i = 0; i < QUERY_USER_NUMSLOTS; i++)
+    {
         CLEAR(query_user[i]);
     }
 }
@@ -68,7 +69,8 @@ query_user_add(char *prompt, size_t prompt_len,
     ASSERT( prompt_len > 0 && prompt != NULL && resp_len > 0 && resp != NULL );
 
     /* Seek to the last unused slot */
-    for (i = 0; i < QUERY_USER_NUMSLOTS; i++) {
+    for (i = 0; i < QUERY_USER_NUMSLOTS; i++)
+    {
         if (query_user[i].prompt == NULL)
         {
             break;

@@ -623,7 +623,8 @@ addr_defined(const struct openvpn_sockaddr *addr)
     {
         return 0;
     }
-    switch (addr->addr.sa.sa_family) {
+    switch (addr->addr.sa.sa_family)
+    {
         case AF_INET: return addr->addr.in4.sin_addr.s_addr != 0;
 
         case AF_INET6: return !IN6_IS_ADDR_UNSPECIFIED(&addr->addr.in6.sin6_addr);
@@ -639,7 +640,8 @@ addr_local(const struct sockaddr *addr)
     {
         return false;
     }
-    switch (addr->sa_family) {
+    switch (addr->sa_family)
+    {
         case AF_INET:
             return ((const struct sockaddr_in *)addr)->sin_addr.s_addr == htonl(INADDR_LOOPBACK);
 
@@ -660,7 +662,8 @@ addr_defined_ipi(const struct link_socket_actual *lsa)
     {
         return 0;
     }
-    switch (lsa->dest.addr.sa.sa_family) {
+    switch (lsa->dest.addr.sa.sa_family)
+    {
 #if defined(HAVE_IN_PKTINFO) && defined(HAVE_IPI_SPEC_DST)
         case AF_INET: return lsa->pi.in4.ipi_spec_dst.s_addr != 0;
 
@@ -687,7 +690,8 @@ link_socket_actual_defined(const struct link_socket_actual *act)
 static inline bool
 addr_match(const struct openvpn_sockaddr *a1, const struct openvpn_sockaddr *a2)
 {
-    switch (a1->addr.sa.sa_family) {
+    switch (a1->addr.sa.sa_family)
+    {
         case AF_INET:
             return a1->addr.in4.sin_addr.s_addr == a2->addr.in4.sin_addr.s_addr;
 
@@ -781,7 +785,8 @@ addrlist_port_match(const struct openvpn_sockaddr *a1, const struct addrinfo *a2
 static inline bool
 addr_port_match(const struct openvpn_sockaddr *a1, const struct openvpn_sockaddr *a2)
 {
-    switch (a1->addr.sa.sa_family) {
+    switch (a1->addr.sa.sa_family)
+    {
         case AF_INET:
             return a1->addr.in4.sin_addr.s_addr == a2->addr.in4.sin_addr.s_addr
                    && a1->addr.in4.sin_port == a2->addr.in4.sin_port;
@@ -818,7 +823,8 @@ addrlist_match_proto(const struct openvpn_sockaddr *a1,
 static inline void
 addr_zero_host(struct openvpn_sockaddr *addr)
 {
-    switch (addr->addr.sa.sa_family) {
+    switch (addr->addr.sa.sa_family)
+    {
         case AF_INET:
             addr->addr.in4.sin_addr.s_addr = 0;
             break;
@@ -846,7 +852,8 @@ int addr_guess_family(sa_family_t af,const char *name);
 static inline int
 af_addr_size(sa_family_t af)
 {
-    switch (af) {
+    switch (af)
+    {
         case AF_INET: return sizeof(struct sockaddr_in);
 
         case AF_INET6: return sizeof(struct sockaddr_in6);
@@ -919,7 +926,8 @@ link_socket_verify_incoming_addr(struct buffer *buf,
 {
     if (buf->len > 0)
     {
-        switch (from_addr->dest.addr.sa.sa_family) {
+        switch (from_addr->dest.addr.sa.sa_family)
+        {
             case AF_INET6:
             case AF_INET:
                 if (!link_socket_actual_defined(from_addr))

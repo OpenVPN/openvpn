@@ -476,7 +476,8 @@ list_test(void)
             int inc = 0;
             int count = 0;
 
-            for (base = 0; base < hash_n_buckets(hash); base += inc) {
+            for (base = 0; base < hash_n_buckets(hash); base += inc)
+            {
                 struct hash_iterator hi;
                 struct hash_element *he;
                 inc = (get_random() % 3) + 1;
@@ -670,6 +671,7 @@ hash_func(const uint8_t *k, uint32_t length, uint32_t initval)
 
 #else  /* if P2MP_SERVER */
 static void
-dummy(void) {
+dummy(void)
+{
 }
 #endif /* P2MP_SERVER */

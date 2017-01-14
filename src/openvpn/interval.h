@@ -106,7 +106,8 @@ interval_schedule_wakeup(struct interval *top, interval_t *wakeup)
  * In wakeup seconds, interval_test will return true once.
  */
 static inline void
-interval_future_trigger(struct interval *top, interval_t wakeup) {
+interval_future_trigger(struct interval *top, interval_t wakeup)
+{
     if (wakeup)
     {
 #if INTERVAL_DEBUG

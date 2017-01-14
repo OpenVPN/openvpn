@@ -342,7 +342,8 @@ next_connection_entry(struct context *c)
     struct connection_entry *ce;
     int n_cycles = 0;
 
-    do {
+    do
+    {
         ce_defined = true;
         if (c->options.no_advance && l->current >= 0)
         {
@@ -540,8 +541,10 @@ context_init_1(struct context *c)
         int i;
         pkcs11_initialize(true, c->options.pkcs11_pin_cache_period);
         for (i = 0; i<MAX_PARMS && c->options.pkcs11_providers[i] != NULL; i++)
+        {
             pkcs11_addProvider(c->options.pkcs11_providers[i], c->options.pkcs11_protected_authentication[i],
                                c->options.pkcs11_private_mode[i], c->options.pkcs11_cert_private[i]);
+        }
     }
 #endif
 
@@ -621,7 +624,9 @@ init_static(void)
     {
         int i;
         for (i = 0; i < argc; ++i)
+        {
             msg(M_INFO, "argv[%d] = '%s'", i, argv[i]);
+        }
     }
 #endif
 
@@ -767,7 +772,9 @@ init_static(void)
                 {
                     int i;
                     for (i = 0; i < SIZE(text); ++i)
+                    {
                         buffer_list_push(bl, (unsigned char *)text[i]);
+                    }
                 }
                 printf("[cap=%d i=%d] *************************\n", listcap, iter);
                 if (!(iter & 8))
@@ -790,7 +797,9 @@ init_static(void)
                         int c;
                         printf("'");
                         while ((c = buf_read_u8(buf)) >= 0)
+                        {
                             putchar(c);
+                        }
                         printf("'\n");
                         buffer_list_advance(bl, 0);
                     }

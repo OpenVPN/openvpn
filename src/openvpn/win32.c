@@ -569,7 +569,8 @@ win32_keyboard_get(struct win32_signal *ws)
     if (HANDLE_DEFINED(ws->in.read))
     {
         INPUT_RECORD ir;
-        do {
+        do
+        {
             DWORD n;
             if (!keyboard_input_available(ws))
             {
@@ -681,7 +682,8 @@ win32_pause(struct win32_signal *ws)
     {
         int status;
         msg(M_INFO|M_NOPREFIX, "Press any key to continue...");
-        do {
+        do
+        {
             status = WaitForSingleObject(ws->in.read, INFINITE);
         } while (!win32_keyboard_get(ws));
     }
@@ -984,7 +986,9 @@ env_block(const struct env_set *es)
         bool path_seen = false;
 
         for (e = es->list; e != NULL; e = e->next)
+        {
             nchars += strlen(e->string) + 1;
+        }
 
         nchars += strlen(force_path)+1;
 

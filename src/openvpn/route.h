@@ -354,7 +354,8 @@ bool del_route_ipapi(const struct route_ipv4 *r, const struct tuntap *tt);
 
 #else  /* ifdef _WIN32 */
 static inline bool
-test_routes(const struct route_list *rl, const struct tuntap *tt) {
+test_routes(const struct route_list *rl, const struct tuntap *tt)
+{
     return true;
 }
 #endif

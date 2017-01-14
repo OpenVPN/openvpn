@@ -650,7 +650,8 @@ const char *
 env_set_get(const struct env_set *es, const char *name)
 {
     const struct env_item *item = es->list;
-    while (item && !env_string_equal(item->string, name)) {
+    while (item && !env_string_equal(item->string, name))
+    {
         item = item->next;
     }
     return item ? item->string : NULL;
@@ -1547,7 +1548,9 @@ make_env_array(const struct env_set *es,
     if (es)
     {
         for (e = es->list; e != NULL; e = e->next)
+        {
             ++n;
+        }
     }
 
     /* alloc return array */
@@ -1609,7 +1612,9 @@ make_inline_array(const char *str, struct gc_arena *gc)
 
     buf_set_read(&buf, (const uint8_t *) str, strlen(str));
     while (buf_parse(&buf, '\n', line, sizeof(line)))
+    {
         ++len;
+    }
 
     /* alloc return array */
     ALLOC_ARRAY_CLEAR_GC(ret, char *, len + 1, gc);
@@ -1639,7 +1644,9 @@ make_arg_copy(char **p, struct gc_arena *gc)
     ALLOC_ARRAY_CLEAR_GC(ret, char *, max_parms, gc);
 
     for (i = 0; i < len; ++i)
+    {
         ret[i] = p[i];
+    }
 
     return (const char **)ret;
 }

@@ -95,7 +95,8 @@ get_packet_flood_parms(int level)
  * Return true with probability 1/n
  */
 static bool
-flip(int n) {
+flip(int n)
+{
     return (get_random() % n) == 0;
 }
 
@@ -104,7 +105,8 @@ flip(int n) {
  * low and high.
  */
 static int
-roll(int low, int high) {
+roll(int low, int high)
+{
     int ret;
     ASSERT(low <= high);
     ret = low + (get_random() % (high - low + 1));
@@ -181,7 +183,8 @@ ask_gremlin(int flags)
  * Possibly corrupt a packet.
  */
 void
-corrupt_gremlin(struct buffer *buf, int flags) {
+corrupt_gremlin(struct buffer *buf, int flags)
+{
     const int corrupt_level = GREMLIN_CORRUPT_LEVEL(flags);
     if (corrupt_level)
     {
@@ -194,7 +197,8 @@ corrupt_gremlin(struct buffer *buf, int flags) {
                     uint8_t r = roll(0, 255);
                     int method = roll(0, 5);
 
-                    switch (method) {
+                    switch (method)
+                    {
                         case 0: /* corrupt the first byte */
                             *BPTR(buf) = r;
                             break;
@@ -232,6 +236,7 @@ corrupt_gremlin(struct buffer *buf, int flags) {
 
 #else  /* ifdef ENABLE_DEBUG */
 static void
-dummy(void) {
+dummy(void)
+{
 }
 #endif /* ifdef ENABLE_DEBUG */

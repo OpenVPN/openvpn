@@ -112,10 +112,12 @@ reliable_ack_packet_id_present(struct reliable_ack *ack, packet_id_type pid)
 {
     int i;
     for (i = 0; i < ack->len; ++i)
+    {
         if (ack->packet_id[i] == pid)
         {
             return true;
         }
+    }
     return false;
 }
 
@@ -242,7 +244,9 @@ reliable_ack_write(struct reliable_ack *ack,
         ASSERT(session_id_defined(sid));
         ASSERT(session_id_write(sid, &sub));
         for (i = 0, j = n; j < ack->len; )
+        {
             ack->packet_id[i++] = ack->packet_id[j++];
+        }
         ack->len = i;
     }
 
@@ -802,6 +806,7 @@ reliable_debug_print(const struct reliable *rel, char *desc)
 
 #else  /* ifdef ENABLE_CRYPTO */
 static void
-dummy(void) {
+dummy(void)
+{
 }
 #endif /* ENABLE_CRYPTO */

@@ -269,10 +269,12 @@ static void
 key_ctx_update_implicit_iv(struct key_ctx *ctx, uint8_t *key, size_t key_len);
 
 const tls_cipher_name_pair *
-tls_get_cipher_name_pair(const char *cipher_name, size_t len) {
+tls_get_cipher_name_pair(const char *cipher_name, size_t len)
+{
     const tls_cipher_name_pair *pair = tls_cipher_name_translation_table;
 
-    while (pair->openssl_name != NULL) {
+    while (pair->openssl_name != NULL)
+    {
         if ((strlen(pair->openssl_name) == len && 0 == memcmp(cipher_name, pair->openssl_name, len))
             || (strlen(pair->iana_name) == len && 0 == memcmp(cipher_name, pair->iana_name, len)))
         {
@@ -1068,7 +1070,9 @@ tls_session_init(struct tls_multi *multi, struct tls_session *session)
 
     /* Randomize session # if it is 0 */
     while (!session_id_defined(&session->session_id))
+    {
         session_id_random(&session->session_id);
+    }
 
     /* Are we a TLS server or client? */
     ASSERT(session->opt->key_method >= 1);
@@ -1130,7 +1134,9 @@ tls_session_free(struct tls_session *session, bool clear)
     free_buf(&session->tls_wrap.work);
 
     for (i = 0; i < KS_SIZE; ++i)
+    {
         key_state_free(&session->key[i], false);
+    }
 
     if (session->common_name)
     {
@@ -1187,7 +1193,8 @@ reset_session(struct tls_multi *multi, struct tls_session *session)
  * called again.
  */
 static inline void
-compute_earliest_wakeup(interval_t *earliest, interval_t seconds_from_now) {
+compute_earliest_wakeup(interval_t *earliest, interval_t seconds_from_now)
+{
     if (seconds_from_now < *earliest)
     {
         *earliest = seconds_from_now;
@@ -1357,7 +1364,9 @@ tls_multi_free(struct tls_multi *multi, bool clear)
     free(multi->remote_ciphername);
 
     for (i = 0; i < TM_SIZE; ++i)
+    {
         tls_session_free(&multi->session[i], false);
+    }
 
     if (clear)
     {
@@ -1705,7 +1714,9 @@ tls1_PRF(const uint8_t *label,
     tls1_P_hash(sha1,S2,len,label,label_len,out2,olen);
 
     for (i = 0; i<olen; i++)
+    {
         out1[i] ^= out2[i];
+    }
 
     secure_memzero(out2, olen);
 
@@ -1855,7 +1866,8 @@ exit:
 }
 
 static void
-key_ctx_update_implicit_iv(struct key_ctx *ctx, uint8_t *key, size_t key_len) {
+key_ctx_update_implicit_iv(struct key_ctx *ctx, uint8_t *key, size_t key_len)
+{
     const cipher_kt_t *cipher_kt = cipher_ctx_get_cipher_kt(ctx->cipher);
 
     /* Only use implicit IV in AEAD cipher mode, where HMAC key is not used */
@@ -4058,7 +4070,8 @@ tls_peer_info_ncp_ver(const char *peer_info)
 }
 
 bool
-tls_check_ncp_cipher_list(const char *list) {
+tls_check_ncp_cipher_list(const char *list)
+{
     bool unsupported_cipher_found = false;
 
     ASSERT(list);
@@ -4203,6 +4216,7 @@ done:
 
 #else  /* if defined(ENABLE_CRYPTO) */
 static void
-dummy(void) {
+dummy(void)
+{
 }
 #endif /* ENABLE_CRYPTO */

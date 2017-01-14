@@ -124,7 +124,8 @@ gen_nonce(unsigned char *nonce)
     /* Generates 8 random bytes to be used as client nonce */
     int i;
 
-    for (i = 0; i<8; i++) {
+    for (i = 0; i<8; i++)
+    {
         nonce[i] = (unsigned char)get_random();
     }
 }
@@ -135,7 +136,10 @@ my_strupr(unsigned char *str)
     /* converts string to uppercase in place */
     unsigned char *tmp = str;
 
-    do *str = toupper(*str); while (*(++str));
+    do
+    {
+        *str = toupper(*str);
+    } while (*(++str));
     return tmp;
 }
 
@@ -373,6 +377,7 @@ ntlm_phase_3(const struct http_proxy_info *p, const char *phase_2, struct gc_are
 
 #else  /* if NTLM */
 static void
-dummy(void) {
+dummy(void)
+{
 }
 #endif /* if NTLM */

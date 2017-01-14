@@ -443,7 +443,9 @@ gc_transfer(struct gc_arena *dest, struct gc_arena *src)
         if (e)
         {
             while (e->next != NULL)
+            {
                 e = e->next;
+            }
             e->next = dest->list;
             dest->list = src->list;
             src->list = NULL;
@@ -599,7 +601,8 @@ void
 rm_trailing_chars(char *str, const char *what_to_delete)
 {
     bool modified;
-    do {
+    do
+    {
         const int len = strlen(str);
         modified = false;
         if (len > 0)
@@ -682,7 +685,9 @@ string_array_len(const char **array)
     if (array)
     {
         while (array[i])
+        {
             ++i;
+        }
     }
     return i;
 }
@@ -1320,7 +1325,9 @@ buffer_list_file(const char *fn, int max_line_len)
         {
             bl = buffer_list_new(0);
             while (fgets(line, max_line_len, fp) != NULL)
+            {
                 buffer_list_push(bl, (unsigned char *)line);
+            }
             free(line);
         }
         fclose(fp);

@@ -377,7 +377,9 @@ schedule_add_modify(struct schedule *s, struct schedule_entry *e)
      * keeps the tree balanced.  Move the node up the tree until
      * its own priority is greater than that of its parent */
     while (e->parent && e->parent->pri > e->pri)
+    {
         schedule_rotate_up(s, e);
+    }
 }
 
 /*
@@ -623,7 +625,9 @@ schedule_print_work(struct schedule_entry *e, int indent)
     struct gc_arena gc = gc_new();
     int i;
     for (i = 0; i < indent; ++i)
+    {
         printf(" ");
+    }
     if (e)
     {
         printf("%s [%u] e=" ptr_format ", p=" ptr_format " lt=" ptr_format " gt=" ptr_format "\n",

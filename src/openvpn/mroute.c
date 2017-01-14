@@ -562,6 +562,7 @@ mroute_helper_free(struct mroute_helper *mh)
 
 #else  /* if P2MP_SERVER */
 static void
-dummy(void) {
+dummy(void)
+{
 }
 #endif /* P2MP_SERVER */

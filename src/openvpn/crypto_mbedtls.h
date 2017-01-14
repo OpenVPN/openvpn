@@ -122,7 +122,8 @@ bool mbed_log_func_line(unsigned int flags, int errval, const char *func,
 /** Wraps mbed_log_func_line() to prevent function calls for non-errors */
 static inline bool
 mbed_log_func_line_lite(unsigned int flags, int errval,
-                        const char *func, int line) {
+                        const char *func, int line)
+{
     if (errval)
     {
         return mbed_log_func_line(flags, errval, func, line);

@@ -44,7 +44,8 @@ CvtHex(
     unsigned short i;
     unsigned char j;
 
-    for (i = 0; i < HASHLEN; i++) {
+    for (i = 0; i < HASHLEN; i++)
+    {
         j = (Bin[i] >> 4) & 0xf;
         if (j <= 9)
         {

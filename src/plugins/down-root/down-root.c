@@ -116,7 +116,9 @@ string_array_len(const char *array[])
     if (array)
     {
         while (array[i])
+        {
             ++i;
+        }
     }
     return i;
 }

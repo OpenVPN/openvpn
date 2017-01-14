@@ -537,10 +537,14 @@ multi_del_iroutes(struct multi_context *m,
     if (TUNNEL_TYPE(mi->context.c1.tuntap) == DEV_TYPE_TUN)
     {
         for (ir = mi->context.options.iroutes; ir != NULL; ir = ir->next)
+        {
             mroute_helper_del_iroute46(m->route_helper, ir->netbits);
+        }
 
         for (ir6 = mi->context.options.iroutes_ipv6; ir6 != NULL; ir6 = ir6->next)
+        {
             mroute_helper_del_iroute46(m->route_helper, ir6->netbits);
+        }
     }
 }
 
@@ -819,7 +823,8 @@ multi_create_instance(struct multi_context *m, const struct mroute_addr *real)
     mi->did_iter = true;
 
 #ifdef MANAGEMENT_DEF_AUTH
-    do {
+    do
+    {
         mi->context.c2.mda_context.cid = m->cid_counter++;
     } while (!hash_add(m->cid_hash, &mi->context.c2.mda_context.cid, mi, false));
     mi->did_cid_hash = true;
@@ -2949,10 +2954,14 @@ gremlin_flood_clients(struct multi_context *m)
             parm.packet_size);
 
         for (i = 0; i < parm.packet_size; ++i)
+        {
             ASSERT(buf_write_u8(&buf, get_random() & 0xFF));
+        }
 
         for (i = 0; i < parm.n_packets; ++i)
+        {
             multi_bcast(m, &buf, NULL, NULL);
+        }
 
         gc_free(&gc);
     }
@@ -3375,6 +3384,7 @@ tunnel_server(struct context *top)
 
 #else  /* if P2MP_SERVER */
 static void
-dummy(void) {
+dummy(void)
+{
 }
 #endif /* P2MP_SERVER */

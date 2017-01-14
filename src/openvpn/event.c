@@ -394,11 +394,13 @@ we_wait(struct event_set *es, const struct timeval *tv, struct event_set_return 
     {
         int i;
         for (i = 0; i < wes->n_events; ++i)
+        {
             dmsg(D_EVENT_WAIT, "[%d] ev=%p rwflags=0x%04x arg=" ptr_format,
                  i,
                  wes->events[i],
                  wes->esr[i].rwflags,
                  (ptr_type)wes->esr[i].arg);
+        }
     }
 #endif
 
@@ -922,7 +924,9 @@ se_reset(struct event_set *es)
     FD_ZERO(&ses->readfds);
     FD_ZERO(&ses->writefds);
     for (i = 0; i <= ses->maxfd; ++i)
+    {
         ses->args[i] = NULL;
+    }
     ses->maxfd = -1;
 }
 
