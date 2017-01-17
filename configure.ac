@@ -309,11 +309,17 @@ AC_ARG_WITH(
 )
 
 
+# Test if ld supports '--wrap' whcih currently is only supported on Linux
+# http://www.mockator.com/projects/mockator/wiki/Wrap_Functions
+AM_CONDITIONAL([SUPPORT_LD_WRAP], [ false ])
+
 AC_DEFINE_UNQUOTED([TARGET_ALIAS], ["${host}"], [A string representing our host])
 case "$host" in
 	*-*-linux*)
 		AC_DEFINE([TARGET_LINUX], [1], [Are we running on Linux?])
 		AC_DEFINE_UNQUOTED([TARGET_PREFIX], ["L"], [Target prefix])
+                # It might be better to actually run ld with --wrap
+                AM_CONDITIONAL([SUPPORT_LD_WRAP], [ true ])
 		;;
 	*-*-solaris*)
 		AC_DEFINE([TARGET_SOLARIS], [1], [Are we running on Solaris?])
