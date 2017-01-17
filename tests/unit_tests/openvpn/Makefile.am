@@ -1,6 +1,9 @@
 AUTOMAKE_OPTIONS = foreign
 
-check_PROGRAMS = argv_testdriver buffer_testdriver
+check_PROGRAMS = 
+if SUPPORT_LD_WRAP
+check_PROGRAMS += argv_testdriver buffer_testdriver
+endif
 
 if ENABLE_CRYPTO
 check_PROGRAMS += tls_crypt_testdriver
@@ -11,6 +14,7 @@ TESTS = $(check_PROGRAMS)
 openvpn_includedir = $(top_srcdir)/include
 openvpn_srcdir = $(top_srcdir)/src/openvpn
 compat_srcdir = $(top_srcdir)/src/compat
+
 
 argv_testdriver_CFLAGS  = @TEST_CFLAGS@ -I$(openvpn_srcdir) -I$(compat_srcdir) \
 	$(OPTIONAL_CRYPTO_CFLAGS)
