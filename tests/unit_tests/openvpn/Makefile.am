@@ -1,6 +1,10 @@
 AUTOMAKE_OPTIONS = foreign
 
-check_PROGRAMS = argv_testdriver buffer_testdriver
+check_PROGRAMS=
+
+if HAVE_LD_WRAP_SUPPORT
+check_PROGRAMS += argv_testdriver buffer_testdriver
+endif
 
 if ENABLE_CRYPTO
 check_PROGRAMS += tls_crypt_testdriver
