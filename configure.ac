@@ -582,7 +582,7 @@ AC_COMPILE_IFELSE(
 	[AC_MSG_RESULT([no])]
 )
 
-save_LDFLAGS="$LDFLAGS"
+saved_LDFLAGS="$LDFLAGS"
 LDFLAGS="$LDFLAGS -Wl,--wrap=exit"
 AC_MSG_CHECKING([linker supports --wrap])
 AC_LINK_IFELSE(
@@ -601,15 +601,11 @@ AC_LINK_IFELSE(
 	[
 		AC_MSG_RESULT([yes])
 		have_ld_wrap_support=yes
+		AC_DEFINE([HAVE_LD_WRAP_SUPPORT], [1], [Define to 1 if linker supports -Wl,--wrap option])
 	],
-	[	AC_MSG_RESULT([no])
-		have_ld_wrap_support=no
-	],
+	[AC_MSG_RESULT([no])],
 )
-LDFLAGS="$save_LDFLAGS"
-if test "$have_ld_wrap_support" = yes; then
-	AC_DEFINE([HAVE_LD_WRAP_SUPPORT], [1], [Define to 1 if linker supports -Wl,--wrap option])
-fi
+LDFLAGS="$saved_LDFLAGS"
 
 dnl We emulate signals in Windows
 AC_CHECK_DECLS(
