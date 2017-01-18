@@ -582,6 +582,35 @@ AC_COMPILE_IFELSE(
 	[AC_MSG_RESULT([no])]
 )
 
+save_LDFLAGS="$LDFLAGS"
+LDFLAGS="$LDFLAGS -Wl,--wrap=exit"
+AC_MSG_CHECKING([linker supports --wrap])
+AC_LINK_IFELSE(
+	[AC_LANG_PROGRAM(
+		[[
+			void exit(int);
+			void __real_exit(int);
+			void __wrap_exit(int i) {
+				__real_exit(i);
+			}
+		]],
+		[[
+			exit(0);
+		]]
+	)],
+	[
+		AC_MSG_RESULT([yes])
+		have_ld_wrap_support=yes
+	],
+	[	AC_MSG_RESULT([no])
+		have_ld_wrap_support=no
+	],
+)
+LDFLAGS="$save_LDFLAGS"
+if test "$have_ld_wrap_support" = yes; then
+	AC_DEFINE([HAVE_LD_WRAP_SUPPORT], [1], [Define to 1 if linker supports -Wl,--wrap option])
+fi
+
 dnl We emulate signals in Windows
 AC_CHECK_DECLS(
 	[SIGHUP],
@@ -1244,6 +1273,7 @@ AM_CONDITIONAL([GIT_CHECKOUT], [test "${GIT_CHECKOUT}" = "yes"])
 AM_CONDITIONAL([ENABLE_PLUGIN_AUTH_PAM], [test "${enable_plugin_auth_pam}" = "yes"])
 AM_CONDITIONAL([ENABLE_PLUGIN_DOWN_ROOT], [test "${enable_plugin_down_root}" = "yes"])
 AM_CONDITIONAL([ENABLE_CRYPTO], [test "${enable_crypto}" = "yes"])
+AM_CONDITIONAL([HAVE_LD_WRAP_SUPPORT], [test "${have_ld_wrap_support}" = "yes"])
 
 plugindir="${with_plugindir}"
 sampledir="\$(docdir)/sample"
