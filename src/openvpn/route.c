@@ -986,11 +986,19 @@ redirect_default_route_to_vpn(struct route_list *rl, const struct tuntap *tt, un
 
     if (rl && rl->flags & RG_ENABLE)
     {
+        bool local = rl->flags & RG_LOCAL;
+
         if (!(rl->spec.flags & RTSA_REMOTE_ENDPOINT) && (rl->flags & RG_REROUTE_GW))
         {
             msg(M_WARN, "%s VPN gateway parameter (--route-gateway or --ifconfig) is missing", err);
         }
-        else if (!(rl->rgi.flags & RGI_ADDR_DEFINED))
+        /*
+         * check if a default route is defined, unless:
+         * - we are connecting to a remote host in our network
+         * - we are connecting to a non-IPv4 remote host (i.e. we use IPv6)
+         */
+        else if (!(rl->rgi.flags & RGI_ADDR_DEFINED) && !local
+                 && (rl->spec.remote_host != IPV4_INVALID_ADDR))
         {
             msg(M_WARN, "%s Cannot read current default gateway from system", err);
         }
@@ -1001,7 +1009,6 @@ redirect_default_route_to_vpn(struct route_list *rl, const struct tuntap *tt, un
         else
         {
 #ifndef TARGET_ANDROID
-            bool local = BOOL_CAST(rl->flags & RG_LOCAL);
             if (rl->flags & RG_AUTO_LOCAL)
             {
                 const int tla = rl->spec.remote_host_local;
@@ -1066,14 +1073,13 @@ redirect_default_route_to_vpn(struct route_list *rl, const struct tuntap *tt, un
                 }
                 else
                 {
-                    /* delete default route */
-                    del_route3(0,
-                               0,
-                               rl->rgi.gateway.addr,
-                               tt,
-                               flags | ROUTE_REF_GW,
-                               &rl->rgi,
-                               es);
+                    /* don't try to remove the def route if it does not exist */
+                    if (rl->rgi.flags & RGI_ADDR_DEFINED)
+                    {
+                        /* delete default route */
+                        del_route3(0, 0, rl->rgi.gateway.addr, tt,
+                                   flags | ROUTE_REF_GW, &rl->rgi, es);
+                    }
 
                     /* add new default route */
                     add_route3(0,
@@ -1145,15 +1151,12 @@ undo_redirect_default_route_to_vpn(struct route_list *rl, const struct tuntap *t
                            flags,
                            &rl->rgi,
                            es);
-
-                /* restore original default route */
-                add_route3(0,
-                           0,
-                           rl->rgi.gateway.addr,
-                           tt,
-                           flags | ROUTE_REF_GW,
-                           &rl->rgi,
-                           es);
+                /* restore original default route if there was any */
+                if (rl->rgi.flags & RGI_ADDR_DEFINED)
+                {
+                    add_route3(0, 0, rl->rgi.gateway.addr, tt,
+                               flags | ROUTE_REF_GW, &rl->rgi, es);
+                }
             }
         }
 
