@@ -941,12 +941,12 @@ create_socket_udp(struct addrinfo *addrinfo, const unsigned int flags)
         else if (addrinfo->ai_family == AF_INET6)
         {
 #ifndef IPV6_RECVPKTINFO /* Some older Darwin platforms require this */
-            if (setsockopt(sd, IPPROTO_IPV6, IPV6_PKTINFO,
-                           (void *)&pad, sizeof(pad)) < 0)
+            #define IPV6_PKT_INFO IPV6_PKTINFO            
 #else
-            if (setsockopt(sd, IPPROTO_IPV6, IPV6_RECVPKTINFO,
-                           (void *)&pad, sizeof(pad)) < 0)
+            #define IPV6_PKT_INFO IPV6_RECVPKTINFO            
 #endif
+            if (setsockopt(sd, IPPROTO_IPV6, IPV6_PKT_INFO,
+                           (void *)&pad, sizeof(pad)) < 0)
             { msg(M_ERR, "UDP: failed setsockopt for IPV6_RECVPKTINFO");}
         }
     }
