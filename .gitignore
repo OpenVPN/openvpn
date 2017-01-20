@@ -51,9 +51,15 @@ config-msvc-local.h
 config-msvc-version.h
 doc/openvpn.8.html
 distro/rpm/openvpn.spec
+sample/sample-keys/sample-ca/
+vendor/.build
+vendor/dist
+
 tests/t_client.sh
 tests/t_client-*-20??????-??????/
 t_client.rc
 t_client_ips.rc
+tests/unit_tests/**/*_testdriver
+
 src/openvpn/openvpn
 config-version.h
