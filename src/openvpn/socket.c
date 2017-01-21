@@ -940,13 +940,15 @@ create_socket_udp(struct addrinfo *addrinfo, const unsigned int flags)
         }
         else if (addrinfo->ai_family == AF_INET6)
         {
+            int validate_sock_opt;
 #ifndef IPV6_RECVPKTINFO /* Some older Darwin platforms require this */
-            #define IPV6_PKT_INFO IPV6_PKTINFO            
+            validate_sock_opt = setsockopt(sd, IPPROTO_IPV6, IPV6_PKTINFO,
+                           (void *)&pad, sizeof(pad)) < 0;
 #else
-            #define IPV6_PKT_INFO IPV6_RECVPKTINFO            
+            validate_sock_opt = setsockopt(sd, IPPROTO_IPV6, IPV6_RECVPKTINFO,
+                           (void *)&pad, sizeof(pad)) < 0;    
 #endif
-            if (setsockopt(sd, IPPROTO_IPV6, IPV6_PKT_INFO,
-                           (void *)&pad, sizeof(pad)) < 0)
+            if (validate_sock_opt)
             { msg(M_ERR, "UDP: failed setsockopt for IPV6_RECVPKTINFO");}
         }
     }
