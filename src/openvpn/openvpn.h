@@ -202,7 +202,7 @@ struct context_1
 #endif
 
     /* if client mode, hash of option strings we pulled from server */
-    struct md5_digest pulled_options_digest_save;
+    struct sha256_digest pulled_options_digest_save;
     /**< Hash of option strings received from the
      *   remote OpenVPN server.  Only used in
      *   client-mode. */
@@ -471,9 +471,9 @@ struct context_2
     bool did_pre_pull_restore;
 
     /* hash of pulled options, so we can compare when options change */
-    bool pulled_options_md5_init_done;
+    bool pulled_options_digest_init_done;
     md_ctx_t pulled_options_state;
-    struct md5_digest pulled_options_digest;
+    struct sha256_digest pulled_options_digest;
 
     struct event_timeout scheduled_exit;
     int scheduled_exit_signal;

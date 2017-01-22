@@ -33,6 +33,7 @@
 #include <openssl/evp.h>
 #include <openssl/hmac.h>
 #include <openssl/md5.h>
+#include <openssl/sha.h>
 
 /** Generic cipher key type %context. */
 typedef EVP_CIPHER cipher_kt_t;

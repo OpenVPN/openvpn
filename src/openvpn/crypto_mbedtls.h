@@ -73,6 +73,7 @@ typedef mbedtls_md_context_t hmac_ctx_t;
 #define MD4_DIGEST_LENGTH       16
 #define MD5_DIGEST_LENGTH       16
 #define SHA_DIGEST_LENGTH       20
+#define SHA256_DIGEST_LENGTH    32
 #define DES_KEY_LENGTH 8
 
 /**
