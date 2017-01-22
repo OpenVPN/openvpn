@@ -1919,12 +1919,12 @@ tun_abort()
  * equal, or either one is all-zeroes.
  */
 static bool
-options_hash_changed_or_zero(const struct md5_digest *a,
-                             const struct md5_digest *b)
+options_hash_changed_or_zero(const struct sha256_digest *a,
+                             const struct sha256_digest *b)
 {
-    const struct md5_digest zero = {{0}};
-    return memcmp(a, b, sizeof(struct md5_digest))
-           || !memcmp(a, &zero, sizeof(struct md5_digest));
+    const struct sha256_digest zero = {{0}};
+    return memcmp(a, b, sizeof(struct sha256_digest))
+           || !memcmp(a, &zero, sizeof(struct sha256_digest));
 }
 #endif /* P2MP */
 

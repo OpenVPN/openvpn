@@ -131,9 +131,9 @@
 #include "packet_id.h"
 #include "mtu.h"
 
-/** Wrapper struct to pass around MD5 digests */
-struct md5_digest {
-    uint8_t digest[MD5_DIGEST_LENGTH];
+/** Wrapper struct to pass around SHA256 digests */
+struct sha256_digest {
+    uint8_t digest[SHA256_DIGEST_LENGTH];
 };
 
 /*
