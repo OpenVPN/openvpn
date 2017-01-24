@@ -562,6 +562,15 @@ context_init_1(struct context *c)
     }
 #endif
 
+#ifdef ENABLE_SYSTEMD
+    /* We can report the PID via getpid() to systemd here as OpenVPN will not
+     * do any fork due to daemon() a future call.
+     * See possibly_become_daemon() [init.c] for more details.
+     */
+    sd_notifyf(0, "READY=1\nSTATUS=Pre-connection initialization succesfull\nMAINPID=%lu",
+               (unsigned long) getpid());
+#endif
+
 }
 
 void
@@ -1042,24 +1051,6 @@ do_uid_gid_chroot(struct context *c, bool no_delay)
         {
             if (no_delay)
             {
-#ifdef ENABLE_SYSTEMD
-                /* If OpenVPN is started by systemd, the OpenVPN process needs
-                 * to provide a preliminary status report to systemd.  This is
-                 * needed as $NOTIFY_SOCKET will not be available inside the
-                 * chroot, which sd_notify()/sd_notifyf() depends on.
-                 *
-                 * This approach is the simplest and the most non-intrusive
-                 * solution right before the 2.4_rc2 release.
-                 *
-                 * TODO: Consider altnernative solutions - bind mount?
-                 * systemd does not grok OpenVPN configuration files, thus cannot
-                 * have a sane way to know if OpenVPN will chroot or not and to
-                 * which subdirectory it will chroot into.
-                 */
-                sd_notifyf(0, "READY=1\n"
-                           "STATUS=Entering chroot, most of the init completed successfully\n"
-                           "MAINPID=%lu", (unsigned long) getpid());
-#endif
                 platform_chroot(c->options.chroot_dir);
             }
             else if (c->first_time)
@@ -1409,7 +1400,7 @@ initialization_sequence_completed(struct context *c, const unsigned int flags)
     else
     {
 #ifdef ENABLE_SYSTEMD
-        sd_notifyf(0, "READY=1\nSTATUS=%s\nMAINPID=%lu", message, (unsigned long) getpid());
+        sd_notifyf(0, "STATUS=%s", message);
 #endif
         msg(M_INFO, "%s", message);
     }
