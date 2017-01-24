@@ -12,6 +12,4 @@
 MAINTAINERCLEANFILES = \
 	$(srcdir)/Makefile.in
 
-SUBDIRS = rpm
-
-EXTRA_DIST = systemd/openvpn-client@.service systemd/openvpn-server@.service
+SUBDIRS = rpm systemd
