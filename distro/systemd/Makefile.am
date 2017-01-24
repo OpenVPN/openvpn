@@ -13,6 +13,7 @@
 		$< > $@.tmp && mv $@.tmp $@
 
 EXTRA_DIST = \
+	tmpfiles-openvpn.conf \
 	openvpn-client@.service.in \
 	openvpn-server@.service.in
 
@@ -20,6 +21,11 @@ if ENABLE_SYSTEMD
 systemdunit_DATA = \
 	openvpn-client@.service \
 	openvpn-server@.service
+tmpfiles_DATA = \
+	tmpfiles-openvpn.conf
+
+install-data-hook:
+	mv $(DESTDIR)$(tmpfilesdir)/tmpfiles-openvpn.conf $(DESTDIR)$(tmpfilesdir)/openvpn.conf
 endif
 
 MAINTAINERCLEANFILES = \
