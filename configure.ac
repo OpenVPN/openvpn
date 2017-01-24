@@ -378,6 +378,7 @@ AC_ARG_VAR([NETSTAT], [path to netstat utility]) # tests
 AC_ARG_VAR([MAN2HTML], [path to man2html utility])
 AC_ARG_VAR([GIT], [path to git utility])
 AC_ARG_VAR([SYSTEMD_ASK_PASSWORD], [path to systemd-ask-password utility])
+AC_ARG_VAR([SYSTEMD_UNIT_DIR], [Path of systemd unit directory @<:@default=LIBDIR/systemd/system@:>@])
 AC_PATH_PROGS([IFCONFIG], [ifconfig],, [$PATH:/usr/local/sbin:/usr/sbin:/sbin])
 AC_PATH_PROGS([ROUTE], [route],, [$PATH:/usr/local/sbin:/usr/sbin:/sbin])
 AC_PATH_PROGS([IPROUTE], [ip],, [$PATH:/usr/local/sbin:/usr/sbin:/sbin])
@@ -1099,6 +1100,12 @@ if test "$enable_systemd" = "yes" ; then
     OPTIONAL_SYSTEMD_LIBS="${libsystemd_LIBS}"
     AC_DEFINE(ENABLE_SYSTEMD, 1, [Enable systemd integration])
     LIBS="${saved_LIBS}"
+
+    if test -n "${SYSTEMD_UNIT_DIR}"; then
+        systemdunitdir="${SYSTEMD_UNIT_DIR}"
+    else
+        systemdunitdir="\${libdir}/systemd/system"
+    fi
 fi
 
 
@@ -1275,6 +1282,8 @@ sampledir="\$(docdir)/sample"
 AC_SUBST([plugindir])
 AC_SUBST([sampledir])
 
+AC_SUBST([systemdunitdir])
+
 VENDOR_SRC_ROOT="\$(abs_top_srcdir)/vendor/"
 VENDOR_DIST_ROOT="\$(abs_top_builddir)/vendor/dist"
 VENDOR_BUILD_ROOT="\$(abs_top_builddir)/vendor/.build"
@@ -1313,6 +1322,7 @@ AC_CONFIG_FILES([
 	distro/Makefile
 	distro/rpm/Makefile
 	distro/rpm/openvpn.spec
+	distro/systemd/Makefile
 	include/Makefile
 	src/Makefile
 	src/compat/Makefile
