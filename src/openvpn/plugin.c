@@ -234,23 +234,15 @@ plugin_init_item(struct plugin *p, const struct plugin_option *o)
 #ifndef _WIN32
 
     p->handle = NULL;
-#if defined(PLUGIN_LIBDIR)
+
     if (!absolute_pathname(p->so_pathname))
     {
         char full[PATH_MAX];
 
         openvpn_snprintf(full, sizeof(full), "%s/%s", PLUGIN_LIBDIR, p->so_pathname);
         p->handle = dlopen(full, RTLD_NOW);
-#if defined(ENABLE_PLUGIN_SEARCH)
-        if (!p->handle)
-        {
-            rel = true;
-            p->handle = dlopen(p->so_pathname, RTLD_NOW);
-        }
-#endif
     }
     else
-#endif
     {
         rel = !absolute_pathname(p->so_pathname);
         p->handle = dlopen(p->so_pathname, RTLD_NOW);

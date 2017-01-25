@@ -16,3 +16,10 @@ MAINTAINERCLEANFILES = \
 include_HEADERS = \
 	openvpn-plugin.h \
 	openvpn-msg.h
+
+openvpn-plugin.h: openvpn-plugin.h.in Makefile
+	$(AM_V_GEN)sed -e 's|\@PLUGINDIR\@|$(plugindir)|' \
+		-e 's|\@OPENVPN_VERSION_MAJOR\@|$(OPENVPN_VERSION_MAJOR)|' \
+		-e 's|\@OPENVPN_VERSION_MINOR\@|$(OPENVPN_VERSION_MINOR)|' \
+		-e 's|\@OPENVPN_VERSION_PATCH\@|$(OPENVPN_VERSION_PATCH)|' \
+               $< > $@.tmp && mv $@.tmp $@
