@@ -303,10 +303,18 @@ AC_ARG_WITH(
 
 AC_ARG_WITH(
 	[plugindir],
-	[AS_HELP_STRING([--with-plugindir], [plugin directory @<:@default=LIBDIR/openvpn@:>@])],
+	[AS_HELP_STRING([--with-plugindir], [plugin directory @<:@default=LIBDIR/openvpn/plugins@:>@])],
 	,
 	[with_plugindir="\$(libdir)/openvpn/plugins"]
 )
+
+AC_ARG_ENABLE(
+	[plugin-lookup],
+	[AS_HELP_STRING([--enable-plugin-lookup], [enable plugin lookup in plugin directory @<:@default=no@:>@])],
+	[enable_plugin_lookup="$enableval"],
+	[enable_plugin_lookup="no"]
+)
+AM_CONDITIONAL([ENABLE_PLUGIN_LOOKUP], [test x$enable_plugin_lookup = xyes])
 
 
 AC_DEFINE_UNQUOTED([TARGET_ALIAS], ["${host}"], [A string representing our host])
