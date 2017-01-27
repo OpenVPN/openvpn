@@ -2712,6 +2712,34 @@ to the module initialization function.  Multiple
 plugin modules may be loaded into one OpenVPN
 process.
 
+The
+.B module-pathname
+argument can be just a filename or a filename with a relative
+or absolute path.  The format of the filename and path defines
+if the plug-in will be loaded from a default plug-in directory
+or outside this directory.
+
+.nf
+.ft 3
+.in +4
+.B \-\-plugin path\ \ \ \ \ \ \ \ Effective directory used
+====================================================
+ myplug.so            DEFAULT_DIR/myplug.so
+ subdir/myplug.so     DEFAULT_DIR/subdir/myplug.so
+ ./subdir/myplug.so   CWD/subdir/myplug.so
+ /usr/lib/my/plug.so  /usr/lib/my/plug.so
+.in -4
+.fi
+
+DEFAULT_DIR is replaced by the default plug-in directory,
+which is configured at the build time of OpenVPN.  CWD is the
+current directory where OpenVPN was started or the directory
+OpenVPN have swithed into via the
+.B\-\-cd
+option before the
+.B\-\-plugin
+option.
+
 For more information and examples on how to build OpenVPN
 plug-in modules, see the README file in the
 .B plugin

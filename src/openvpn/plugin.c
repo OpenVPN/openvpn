@@ -235,7 +235,23 @@ plugin_init_item(struct plugin *p, const struct plugin_option *o)
 
     p->handle = NULL;
 
-    if (!absolute_pathname(p->so_pathname))
+    /* If the plug-in filename is not an absolute path,
+     * or beginning with '.', it should use the PLUGIN_LIBDIR
+     * as the base directory for loading the plug-in.
+     *
+     * This means the following scenarios are loaded from these places:
+     *    --plugin fancyplug.so              -> $PLUGIN_LIBDIR/fancyplug.so
+     *    --plugin my/fancyplug.so           -> $PLUGIN_LIBDIR/my/fancyplug.so
+     *    --plugin ./fancyplug.so            -> $CWD/fancyplug.so
+     *    --plugin /usr/lib/my/fancyplug.so  -> /usr/lib/my/fancyplug.so
+     *
+     * Please note that $CWD means the directory OpenVPN is either started from
+     * or the directory OpenVPN have changed into using --cd before --plugin
+     * was parsed.
+     *
+     */
+    if (!absolute_pathname(p->so_pathname)
+        && p->so_pathname[0] != '.')
     {
         char full[PATH_MAX];
 
