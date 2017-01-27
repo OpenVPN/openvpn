@@ -27,8 +27,6 @@
 
 #define OPENVPN_PLUGIN_VERSION 3
 
-#define PLUGIN_LIBDIR "@PLUGINDIR@"
-
 #ifdef ENABLE_CRYPTO
 #ifdef ENABLE_CRYPTO_MBEDTLS
 #include <mbedtls/x509_crt.h>
