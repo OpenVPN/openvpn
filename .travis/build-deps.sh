@@ -3,7 +3,7 @@ set -eux
 
 # Set defaults
 MBEDTLS_VERSION="${MBEDTLS_VERSION:-2.2.1}"
-OPENSSL_VERSION="${OPENSSL_VERION:-1.0.2h}"
+OPENSSL_VERSION="${OPENSSL_VERSION:-1.0.2h}"
 PREFIX="${PREFIX:-${HOME}/opt}"
 
 download_mbedtls () {
