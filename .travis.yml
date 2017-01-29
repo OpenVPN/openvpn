@@ -12,13 +12,12 @@ env:
   global:
     - JOBS=3
     - PREFIX="${HOME}/opt"
-    - MBEDTLS_VERSION="2.2.1"
+    - MBEDTLS_VERSION="2.4.0"
     - MBEDTLS_CFLAGS="-I${PREFIX}/include"
     - MBEDTLS_LIBS="-L${PREFIX}/lib -lmbedtls -lmbedx509 -lmbedcrypto"
-    - OPENSSL_VERSION="1.0.1t"
+    - OPENSSL_VERSION="1.0.2k"
     - OPENSSL_CFLAGS="-I${PREFIX}/include"
     - OPENSSL_LIBS="-L${PREFIX}/lib -lssl -lcrypto"
-    - LD_LIBRARY_PATH="${PREFIX}/lib:${LD_LIBRARY_PATH}"
 
 matrix:
   include:
@@ -63,7 +62,6 @@ addons:
       - linux-libc-dev
 
 cache:
-  apt: true
   ccache: true
   directories:
   - download-cache
@@ -77,6 +75,8 @@ install:
   - .travis/build-deps.sh > build-deps.log 2>&1 || (cat build-deps.log && exit 1)
 
 script:
+  - if [ "${TRAVIS_OS_NAME}" = "linux" ]; then export LD_LIBRARY_PATH="${PREFIX}/lib:${LD_LIBRARY_PATH}"; fi
+  - if [ "${TRAVIS_OS_NAME}" = "osx"   ]; then export DYLD_LIBRARY_PATH="${PREFIX}/lib:${DYLD_LIBRARY_PATH}"; fi
   - autoreconf -vi
   - ./configure --with-crypto-library="${SSLLIB}" ${EXTRA_CONFIG} || (cat config.log && exit 1)
   - make -j$JOBS
