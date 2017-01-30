@@ -338,20 +338,6 @@ openvpn_getaddrinfo(unsigned int flags,
     ASSERT(hostname || servname);
     ASSERT(!(flags & GETADDR_HOST_ORDER));
 
-    if (hostname && (flags & GETADDR_RANDOMIZE))
-    {
-        hostname = hostname_randomize(hostname, &gc);
-    }
-
-    if (hostname)
-    {
-        print_hostname = hostname;
-    }
-    else
-    {
-        print_hostname = "undefined";
-    }
-
     if (servname)
     {
         print_servname = servname;
@@ -401,6 +387,20 @@ openvpn_getaddrinfo(unsigned int flags,
                               ((resolve_retry_seconds + 4)/ fail_wait_interval);
         const char *fmt;
         int level = 0;
+
+        if (hostname && (flags & GETADDR_RANDOMIZE))
+        {
+            hostname = hostname_randomize(hostname, &gc);
+        }
+
+        if (hostname)
+        {
+            print_hostname = hostname;
+        }
+        else
+        {
+            print_hostname = "undefined";
+        }
 
         fmt = "RESOLVE: Cannot resolve host address: %s:%s (%s)";
         if ((flags & GETADDR_MENTION_RESOLVE_RETRY)
@@ -512,6 +512,10 @@ openvpn_getaddrinfo(unsigned int flags,
     else
     {
         /* IP address parse succeeded */
+        if (flags & GETADDR_RANDOMIZE)
+        {
+            msg(M_WARN, "WARNING: ignoring --remote-random-hostname because the hostname is an IP address");
+        }
     }
 
 done:
