@@ -1196,6 +1196,15 @@ add_routes(struct route_list *rl, struct route_ipv6_list *rl6, const struct tunt
     if (rl6 && !(rl6->iflags & RL_ROUTES_ADDED) )
     {
         struct route_ipv6 *r;
+
+        if (!tt->did_ifconfig_ipv6_setup)
+        {
+            msg(M_INFO, "WARNING: OpenVPN was configured to add an IPv6 "
+                "route over %s. However, no IPv6 has been configured for "
+                "this interface, therefore the route installation may "
+                "fail or may not work as expected.", tt->actual_name);
+        }
+
         for (r = rl6->routes_ipv6; r; r = r->next)
         {
             if (flags & ROUTE_DELETE_FIRST)
@@ -1881,14 +1890,6 @@ add_route_ipv6(struct route_ipv6 *r6, const struct tuntap *tt, unsigned int flag
         gateway = tmp;
     }
 #endif
-
-    if (!tt->did_ifconfig_ipv6_setup)
-    {
-        msg( M_INFO, "add_route_ipv6(): not adding %s/%d: "
-             "no IPv6 address been configured on interface %s",
-             network, r6->netbits, device);
-        return;
-    }
 
     msg( M_INFO, "add_route_ipv6(%s/%d -> %s metric %d) dev %s",
          network, r6->netbits, gateway, r6->metric, device );
