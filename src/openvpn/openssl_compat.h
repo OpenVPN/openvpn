@@ -307,4 +307,9 @@ RSA_meth_set0_app_data(RSA_METHOD *meth, void *app_data)
 }
 #endif
 
+/* SSLeay symbols have been renamed in OpenSSL 1.1 */
+#if !defined(RSA_F_RSA_OSSL_PRIVATE_ENCRYPT)
+#define RSA_F_RSA_OSSL_PRIVATE_ENCRYPT       RSA_F_RSA_EAY_PRIVATE_ENCRYPT
+#endif
+
 #endif /* OPENSSL_COMPAT_H_ */
