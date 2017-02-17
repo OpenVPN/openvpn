@@ -898,6 +898,15 @@ if test "${enable_crypto}" = "yes" -a "${with_crypto_library}" = "openssl"; then
 		[have_crypto_aead_modes="no"; break]
 	)
 
+	AC_CHECK_FUNCS(
+		[ \
+			SSL_CTX_get_default_passwd_cb \
+			SSL_CTX_get_default_passwd_cb_userdata \
+		],
+		,
+		[]
+	)
+
 	CFLAGS="${saved_CFLAGS}"
 	LIBS="${saved_LIBS}"
 
