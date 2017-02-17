@@ -42,6 +42,7 @@
 #endif
 
 #include <openssl/ssl.h>
+#include <openssl/x509.h>
 
 #if !defined(HAVE_SSL_CTX_GET_DEFAULT_PASSWD_CB_USERDATA)
 /**
@@ -68,6 +69,20 @@ static inline pem_password_cb *
 SSL_CTX_get_default_passwd_cb(SSL_CTX *ctx)
 {
     return ctx ? ctx->default_passwd_callback : NULL;
+}
+#endif
+
+#if !defined(HAVE_X509_STORE_GET0_OBJECTS)
+/**
+ * Fetch the X509 object stack from the X509 store
+ *
+ * @param store              X509 object store
+ * @return                   the X509 object stack
+ */
+static inline STACK_OF(X509_OBJECT) *
+X509_STORE_get0_objects(X509_STORE *store)
+{
+    return store ? store->objs : NULL;
 }
 #endif
 

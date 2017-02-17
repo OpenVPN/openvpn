@@ -900,13 +900,14 @@ backend_tls_ctx_reload_crl(struct tls_root_ctx *ssl_ctx, const char *crl_file,
     /* Always start with a cleared CRL list, for that we
      * we need to manually find the CRL object from the stack
      * and remove it */
-    for (int i = 0; i < sk_X509_OBJECT_num(store->objs); i++)
+    STACK_OF(X509_OBJECT) *objs = X509_STORE_get0_objects(store);
+    for (int i = 0; i < sk_X509_OBJECT_num(objs); i++)
     {
-        X509_OBJECT *obj = sk_X509_OBJECT_value(store->objs, i);
+        X509_OBJECT *obj = sk_X509_OBJECT_value(objs, i);
         ASSERT(obj);
         if (obj->type == X509_LU_CRL)
         {
-            sk_X509_OBJECT_delete(store->objs, i);
+            sk_X509_OBJECT_delete(objs, i);
             X509_OBJECT_free_contents(obj);
             OPENSSL_free(obj);
         }
