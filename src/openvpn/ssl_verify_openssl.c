@@ -43,6 +43,7 @@
 #include "ssl_openssl.h"
 #include "ssl_verify.h"
 #include "ssl_verify_backend.h"
+#include "openssl_compat.h"
 
 #include <openssl/x509v3.h>
 #include <openssl/err.h>
@@ -716,9 +717,10 @@ tls_verify_crl_missing(const struct tls_options *opt)
         crypto_msg(M_FATAL, "Cannot get certificate store");
     }
 
-    for (int i = 0; i < sk_X509_OBJECT_num(store->objs); i++)
+    STACK_OF(X509_OBJECT) *objs = X509_STORE_get0_objects(store);
+    for (int i = 0; i < sk_X509_OBJECT_num(objs); i++)
     {
-        X509_OBJECT *obj = sk_X509_OBJECT_value(store->objs, i);
+        X509_OBJECT *obj = sk_X509_OBJECT_value(objs, i);
         ASSERT(obj);
         if (obj->type == X509_LU_CRL)
         {
