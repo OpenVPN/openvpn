@@ -45,6 +45,7 @@
 #include "ssl_backend.h"
 #include "ssl_common.h"
 #include "base64.h"
+#include "openssl_compat.h"
 
 #ifdef ENABLE_CRYPTOAPI
 #include "cryptoapi.h"
@@ -658,7 +659,8 @@ tls_ctx_load_pkcs12(struct tls_root_ctx *ctx, const char *pkcs12_file,
         {
             for (i = 0; i < sk_X509_num(ca); i++)
             {
-                if (!X509_STORE_add_cert(ctx->ctx->cert_store,sk_X509_value(ca, i)))
+                X509_STORE *cert_store = SSL_CTX_get_cert_store(ctx->ctx);
+                if (!X509_STORE_add_cert(cert_store,sk_X509_value(ca, i)))
                 {
                     crypto_msg(M_FATAL,"Cannot add certificate to certificate chain (X509_STORE_add_cert)");
                 }
@@ -760,8 +762,9 @@ tls_ctx_load_cert_file_and_copy(struct tls_root_ctx *ctx,
         goto end;
     }
 
-    x = PEM_read_bio_X509(in, NULL, ctx->ctx->default_passwd_callback,
-                          ctx->ctx->default_passwd_callback_userdata);
+    x = PEM_read_bio_X509(in, NULL,
+                          SSL_CTX_get_default_passwd_cb(ctx->ctx),
+                          SSL_CTX_get_default_passwd_cb_userdata(ctx->ctx));
     if (x == NULL)
     {
         SSLerr(SSL_F_SSL_CTX_USE_CERTIFICATE_FILE, ERR_R_PEM_LIB);
@@ -843,8 +846,8 @@ tls_ctx_load_priv_file(struct tls_root_ctx *ctx, const char *priv_key_file,
     }
 
     pkey = PEM_read_bio_PrivateKey(in, NULL,
-                                   ssl_ctx->default_passwd_callback,
-                                   ssl_ctx->default_passwd_callback_userdata);
+                                   SSL_CTX_get_default_passwd_cb(ctx->ctx),
+                                   SSL_CTX_get_default_passwd_cb_userdata(ctx->ctx));
     if (!pkey)
     {
         goto end;
