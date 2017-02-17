@@ -905,11 +905,10 @@ backend_tls_ctx_reload_crl(struct tls_root_ctx *ssl_ctx, const char *crl_file,
     {
         X509_OBJECT *obj = sk_X509_OBJECT_value(objs, i);
         ASSERT(obj);
-        if (obj->type == X509_LU_CRL)
+        if (X509_OBJECT_get_type(obj) == X509_LU_CRL)
         {
             sk_X509_OBJECT_delete(objs, i);
-            X509_OBJECT_free_contents(obj);
-            OPENSSL_free(obj);
+            X509_OBJECT_free(obj);
         }
     }
 

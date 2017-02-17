@@ -722,7 +722,7 @@ tls_verify_crl_missing(const struct tls_options *opt)
     {
         X509_OBJECT *obj = sk_X509_OBJECT_value(objs, i);
         ASSERT(obj);
-        if (obj->type == X509_LU_CRL)
+        if (X509_OBJECT_get_type(obj) == X509_LU_CRL)
         {
             return false;
         }

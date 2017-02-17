@@ -86,4 +86,35 @@ X509_STORE_get0_objects(X509_STORE *store)
 }
 #endif
 
+#if !defined(HAVE_X509_OBJECT_FREE)
+/**
+ * Destroy a X509 object
+ *
+ * @param obj                X509 object
+ */
+static inline void
+X509_OBJECT_free(X509_OBJECT *obj)
+{
+    if (obj)
+    {
+        X509_OBJECT_free_contents(obj);
+        OPENSSL_free(obj);
+    }
+}
+#endif
+
+#if !defined(HAVE_X509_OBJECT_GET_TYPE)
+/**
+ * Get the type of an X509 object
+ *
+ * @param obj                X509 object
+ * @return                   The underlying object type
+ */
+static inline int
+X509_OBJECT_get_type(const X509_OBJECT *obj)
+{
+    return obj ? obj->type : X509_LU_FAIL;
+}
+#endif
+
 #endif /* OPENSSL_COMPAT_H_ */
