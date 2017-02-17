@@ -61,14 +61,15 @@ verify_callback(int preverify_ok, X509_STORE_CTX *ctx)
     session = (struct tls_session *) SSL_get_ex_data(ssl, mydata_index);
     ASSERT(session);
 
-    struct buffer cert_hash = x509_get_sha256_fingerprint(ctx->current_cert, &gc);
-    cert_hash_remember(session, ctx->error_depth, &cert_hash);
+    X509 *current_cert = X509_STORE_CTX_get_current_cert(ctx);
+    struct buffer cert_hash = x509_get_sha256_fingerprint(current_cert, &gc);
+    cert_hash_remember(session, X509_STORE_CTX_get_error_depth(ctx), &cert_hash);
 
     /* did peer present cert which was signed by our root cert? */
     if (!preverify_ok)
     {
         /* get the X509 name */
-        char *subject = x509_get_subject(ctx->current_cert, &gc);
+        char *subject = x509_get_subject(current_cert, &gc);
 
         if (!subject)
         {
@@ -76,11 +77,11 @@ verify_callback(int preverify_ok, X509_STORE_CTX *ctx)
         }
 
         /* Log and ignore missing CRL errors */
-        if (ctx->error == X509_V_ERR_UNABLE_TO_GET_CRL)
+        if (X509_STORE_CTX_get_error(ctx) == X509_V_ERR_UNABLE_TO_GET_CRL)
         {
             msg(D_TLS_DEBUG_LOW, "VERIFY WARNING: depth=%d, %s: %s",
-                ctx->error_depth,
-                X509_verify_cert_error_string(ctx->error),
+                X509_STORE_CTX_get_error_depth(ctx),
+                X509_verify_cert_error_string(X509_STORE_CTX_get_error(ctx)),
                 subject);
             ret = 1;
             goto cleanup;
@@ -88,8 +89,8 @@ verify_callback(int preverify_ok, X509_STORE_CTX *ctx)
 
         /* Remote site specified a certificate, but it's not correct */
         msg(D_TLS_ERRORS, "VERIFY ERROR: depth=%d, error=%s: %s",
-            ctx->error_depth,
-            X509_verify_cert_error_string(ctx->error),
+            X509_STORE_CTX_get_error_depth(ctx),
+            X509_verify_cert_error_string(X509_STORE_CTX_get_error(ctx)),
             subject);
 
         ERR_clear_error();
@@ -98,7 +99,7 @@ verify_callback(int preverify_ok, X509_STORE_CTX *ctx)
         goto cleanup;
     }
 
-    if (SUCCESS != verify_cert(session, ctx->current_cert, ctx->error_depth))
+    if (SUCCESS != verify_cert(session, current_cert, X509_STORE_CTX_get_error_depth(ctx)))
     {
         goto cleanup;
     }
