@@ -193,8 +193,7 @@ crypto_print_openssl_errors(const unsigned int flags)
     while ((err = ERR_get_error()))
     {
         /* Be more clear about frequently occurring "no shared cipher" error */
-        if (err == ERR_PACK(ERR_LIB_SSL,SSL_F_SSL3_GET_CLIENT_HELLO,
-                            SSL_R_NO_SHARED_CIPHER))
+        if (ERR_GET_REASON(err) == SSL_R_NO_SHARED_CIPHER)
         {
             msg(D_CRYPT_ERRORS, "TLS error: The server has no TLS ciphersuites "
                 "in common with the client. Your --tls-cipher setting might be "
