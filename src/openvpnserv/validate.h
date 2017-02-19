@@ -34,7 +34,7 @@
 /* The last one may be reset in registry: HKLM\Software\OpenVPN\ovpn_admin_group */
 
 BOOL
-IsAuthorizedUser(SID *sid, settings_t *s);
+IsAuthorizedUser(PSID sid, const HANDLE token, const WCHAR *ovpn_admin_group);
 
 BOOL
 CheckOption(const WCHAR *workdir, int narg, WCHAR *argv[], const settings_t *s);
