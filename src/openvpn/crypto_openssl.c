@@ -671,7 +671,7 @@ cipher_ctx_init(EVP_CIPHER_CTX *ctx, uint8_t *key, int key_len,
         crypto_msg(M_FATAL, "EVP set key size");
     }
 #endif
-    if (!EVP_CipherInit(ctx, NULL, key, NULL, enc))
+    if (!EVP_CipherInit_ex(ctx, NULL, NULL, key, NULL, enc))
     {
         crypto_msg(M_FATAL, "EVP cipher init #2");
     }
@@ -724,7 +724,7 @@ cipher_ctx_get_cipher_kt(const cipher_ctx_t *ctx)
 int
 cipher_ctx_reset(EVP_CIPHER_CTX *ctx, uint8_t *iv_buf)
 {
-    return EVP_CipherInit(ctx, NULL, NULL, iv_buf, -1);
+    return EVP_CipherInit_ex(ctx, NULL, NULL, NULL, iv_buf, -1);
 }
 
 int
