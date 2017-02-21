@@ -50,7 +50,7 @@ echo "* Porting upstream lz4.c to compat-lz4.c"
 /* This file has been backported by $0
  * from upstream lz4 commit $lz4_commit ($lz4_tag)
  */
-ifdef HAVE_CONFIG_H
+#ifdef HAVE_CONFIG_H
 #include "config.h"
 #elif defined(_MSC_VER)
 #include "config-msvc.h"
