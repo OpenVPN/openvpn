@@ -81,6 +81,7 @@ openvpn_SOURCES = \
 	multi.c multi.h \
 	ntlm.c ntlm.h \
 	occ.c occ.h occ-inline.h \
+	openssl_compat.h \
 	pkcs11.c pkcs11.h pkcs11_backend.h \
 	pkcs11_openssl.c \
 	pkcs11_mbedtls.c \
