@@ -978,7 +978,7 @@ rsa_priv_dec(int flen, const unsigned char *from, unsigned char *to, RSA *rsa, i
 static int
 rsa_finish(RSA *rsa)
 {
-    free((void *)rsa->meth);
+    RSA_meth_free(rsa->meth);
     rsa->meth = NULL;
     return 1;
 }
@@ -1053,16 +1053,16 @@ tls_ctx_use_external_private_key(struct tls_root_ctx *ctx,
     ASSERT(NULL != cert);
 
     /* allocate custom RSA method object */
-    ALLOC_OBJ_CLEAR(rsa_meth, RSA_METHOD);
-    rsa_meth->name = "OpenVPN external private key RSA Method";
-    rsa_meth->rsa_pub_enc = rsa_pub_enc;
-    rsa_meth->rsa_pub_dec = rsa_pub_dec;
-    rsa_meth->rsa_priv_enc = rsa_priv_enc;
-    rsa_meth->rsa_priv_dec = rsa_priv_dec;
-    rsa_meth->init = NULL;
-    rsa_meth->finish = rsa_finish;
-    rsa_meth->flags = RSA_METHOD_FLAG_NO_CHECK;
-    rsa_meth->app_data = NULL;
+    rsa_meth = RSA_meth_new("OpenVPN external private key RSA Method",
+                            RSA_METHOD_FLAG_NO_CHECK);
+    check_malloc_return(rsa_meth);
+    RSA_meth_set_pub_enc(rsa_meth, rsa_pub_enc);
+    RSA_meth_set_pub_dec(rsa_meth, rsa_pub_dec);
+    RSA_meth_set_priv_enc(rsa_meth, rsa_priv_enc);
+    RSA_meth_set_priv_dec(rsa_meth, rsa_priv_dec);
+    RSA_meth_set_init(rsa_meth, NULL);
+    RSA_meth_set_finish(rsa_meth, rsa_finish);
+    RSA_meth_set0_app_data(rsa_meth, NULL);
 
     /* allocate RSA object */
     rsa = RSA_new();

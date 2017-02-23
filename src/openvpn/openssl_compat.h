@@ -41,6 +41,8 @@
 #include "config-msvc.h"
 #endif
 
+#include "buffer.h"
+
 #include <openssl/ssl.h>
 #include <openssl/x509.h>
 
@@ -114,6 +116,194 @@ static inline int
 X509_OBJECT_get_type(const X509_OBJECT *obj)
 {
     return obj ? obj->type : X509_LU_FAIL;
+}
+#endif
+
+#if !defined(HAVE_RSA_METH_NEW)
+/**
+ * Allocate a new RSA method object
+ *
+ * @param name               The object name
+ * @param flags              Configuration flags
+ * @return                   A new RSA method object
+ */
+static inline RSA_METHOD *
+RSA_meth_new(const char *name, int flags)
+{
+    RSA_METHOD *rsa_meth = NULL;
+    ALLOC_OBJ_CLEAR(rsa_meth, RSA_METHOD);
+    rsa_meth->name = string_alloc(name, NULL);
+    rsa_meth->flags = flags;
+    return rsa_meth;
+}
+#endif
+
+#if !defined(HAVE_RSA_METH_FREE)
+/**
+ * Free an existing RSA_METHOD object
+ *
+ * @param meth               The RSA_METHOD object
+ */
+static inline void
+RSA_meth_free(RSA_METHOD *meth)
+{
+    if (meth)
+    {
+        free(meth->name);
+        free(meth);
+    }
+}
+#endif
+
+#if !defined(HAVE_RSA_METH_SET_PUB_ENC)
+/**
+ * Set the public encoding function of an RSA_METHOD object
+ *
+ * @param meth               The RSA_METHOD object
+ * @param pub_enc            the public encoding function
+ * @return                   1 on success, 0 on error
+ */
+static inline int
+RSA_meth_set_pub_enc(RSA_METHOD *meth,
+                     int (*pub_enc) (int flen, const unsigned char *from,
+                                     unsigned char *to, RSA *rsa,
+                                     int padding))
+{
+    if (meth)
+    {
+        meth->rsa_pub_enc = pub_enc;
+        return 1;
+    }
+    return 0;
+}
+#endif
+
+#if !defined(HAVE_RSA_METH_SET_PUB_DEC)
+/**
+ * Set the public decoding function of an RSA_METHOD object
+ *
+ * @param meth               The RSA_METHOD object
+ * @param pub_dec            the public decoding function
+ * @return                   1 on success, 0 on error
+ */
+static inline int
+RSA_meth_set_pub_dec(RSA_METHOD *meth,
+                     int (*pub_dec) (int flen, const unsigned char *from,
+                                     unsigned char *to, RSA *rsa,
+                                     int padding))
+{
+    if (meth)
+    {
+        meth->rsa_pub_dec = pub_dec;
+        return 1;
+    }
+    return 0;
+}
+#endif
+
+#if !defined(HAVE_RSA_METH_SET_PRIV_ENC)
+/**
+ * Set the private encoding function of an RSA_METHOD object
+ *
+ * @param meth               The RSA_METHOD object
+ * @param priv_enc           the private encoding function
+ * @return                   1 on success, 0 on error
+ */
+static inline int
+RSA_meth_set_priv_enc(RSA_METHOD *meth,
+                      int (*priv_enc) (int flen, const unsigned char *from,
+                                       unsigned char *to, RSA *rsa,
+                                       int padding))
+{
+    if (meth)
+    {
+        meth->rsa_priv_enc = priv_enc;
+        return 1;
+    }
+    return 0;
+}
+#endif
+
+#if !defined(HAVE_RSA_METH_SET_PRIV_DEC)
+/**
+ * Set the private decoding function of an RSA_METHOD object
+ *
+ * @param meth               The RSA_METHOD object
+ * @param priv_dec           the private decoding function
+ * @return                   1 on success, 0 on error
+ */
+static inline int
+RSA_meth_set_priv_dec(RSA_METHOD *meth,
+                      int (*priv_dec) (int flen, const unsigned char *from,
+                                       unsigned char *to, RSA *rsa,
+                                       int padding))
+{
+    if (meth)
+    {
+        meth->rsa_priv_dec = priv_dec;
+        return 1;
+    }
+    return 0;
+}
+#endif
+
+#if !defined(HAVE_RSA_METH_SET_INIT)
+/**
+ * Set the init function of an RSA_METHOD object
+ *
+ * @param meth               The RSA_METHOD object
+ * @param init               the init function
+ * @return                   1 on success, 0 on error
+ */
+static inline int
+RSA_meth_set_init(RSA_METHOD *meth, int (*init) (RSA *rsa))
+{
+    if (meth)
+    {
+        meth->init = init;
+        return 1;
+    }
+    return 0;
+}
+#endif
+
+#if !defined(HAVE_RSA_METH_SET_FINISH)
+/**
+ * Set the finish function of an RSA_METHOD object
+ *
+ * @param meth               The RSA_METHOD object
+ * @param finish             the finish function
+ * @return                   1 on success, 0 on error
+ */
+static inline int
+RSA_meth_set_finish(RSA_METHOD *meth, int (*finish) (RSA *rsa))
+{
+    if (meth)
+    {
+        meth->finish = finish;
+        return 1;
+    }
+    return 0;
+}
+#endif
+
+#if !defined(HAVE_RSA_METH_SET0_APP_DATA)
+/**
+ * Set the application data of an RSA_METHOD object
+ *
+ * @param meth               The RSA_METHOD object
+ * @param app_data           Application data
+ * @return                   1 on success, 0 on error
+ */
+static inline int
+RSA_meth_set0_app_data(RSA_METHOD *meth, void *app_data)
+{
+    if (meth)
+    {
+        meth->app_data = app_data;
+        return 1;
+    }
+    return 0;
 }
 #endif
 
