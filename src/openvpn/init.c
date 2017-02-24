@@ -567,7 +567,7 @@ context_init_1(struct context *c)
      * do any fork due to daemon() a future call.
      * See possibly_become_daemon() [init.c] for more details.
      */
-    sd_notifyf(0, "READY=1\nSTATUS=Pre-connection initialization succesfull\nMAINPID=%lu",
+    sd_notifyf(0, "READY=1\nSTATUS=Pre-connection initialization successful\nMAINPID=%lu",
                (unsigned long) getpid());
 #endif
 
