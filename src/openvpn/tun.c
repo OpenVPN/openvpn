@@ -560,7 +560,9 @@ is_tun_p2p(const struct tuntap *tt)
 {
     bool tun = false;
 
-    if (tt->type == DEV_TYPE_TAP || (tt->type == DEV_TYPE_TUN && tt->topology == TOP_SUBNET))
+    if (tt->type == DEV_TYPE_TAP
+          || (tt->type == DEV_TYPE_TUN && tt->topology == TOP_SUBNET)
+          || tt->type == DEV_TYPE_NULL )
     {
         tun = false;
     }
