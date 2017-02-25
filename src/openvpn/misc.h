@@ -161,10 +161,6 @@ void env_set_print(int msglevel, const struct env_set *es);
 
 void env_set_inherit(struct env_set *es, const struct env_set *src);
 
-void env_set_add_to_environment(const struct env_set *es);
-
-void env_set_remove_from_environment(const struct env_set *es);
-
 /* Make arrays of strings */
 
 const char **make_env_array(const struct env_set *es,
