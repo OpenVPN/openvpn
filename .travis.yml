@@ -33,7 +33,7 @@ matrix:
     - env: SSLLIB="mbedtls"
       os: linux
       compiler: clang
-    - env: SSLLIB="openssl" EXTRA_CONFIG="--disable-crypto"
+    - env: SSLLIB="openssl" EXTRA_CONFIG="--disable-crypto" EXTRA_SCRIPT="make distcheck"
       os: linux
       compiler: clang
     - env: SSLLIB="openssl" EXTRA_CONFIG="--disable-lzo"
@@ -84,3 +84,4 @@ script:
   - if [ "${TRAVIS_OS_NAME}" = "linux" ]; then ldd src/openvpn/openvpn; fi
   - if [ "${TRAVIS_OS_NAME}" = "osx" ]; then otool -L src/openvpn/openvpn; fi
   - make check
+  - $EXTRA_SCRIPT
