@@ -430,6 +430,8 @@ ssl_set_auth_nocache (void)
 {
   passbuf.nocache = true;
   auth_user_pass.nocache = true;
+  /* wait for push-reply, because auth-token may invert nocache */
+  auth_user_pass.wait_for_push = true;
 }
 
 /*
@@ -438,6 +440,13 @@ ssl_set_auth_nocache (void)
 void
 ssl_set_auth_token (const char *token)
 {
+  if (auth_user_pass.nocache)
+    {
+      msg(M_INFO,
+          "auth-token received, disabling auth-nocache for the "
+          "authentication token");
+      auth_user_pass.nocache = false;
+    }
   set_auth_token (&auth_user_pass, token);
 }
 
@@ -1941,7 +1950,21 @@ key_method_2_write (struct buffer *buf, struct tls_session *session)
 	goto error;
       if (!write_string (buf, auth_user_pass.password, -1))
 	goto error;
-      purge_user_pass (&auth_user_pass, false);
+      /* if auth-nocache was specified, the auth_user_pass object reaches
+       * a "complete" state only after having received the push-reply
+       * message.
+       * This is the case because auth-token statement in a push-reply would
+       * invert its nocache.
+       *
+       * For this reason, skip the purge operation here if no push-reply
+       * message has been received yet.
+       *
+       * This normally happens upon first negotiation only.
+       */
+      if (!auth_user_pass.wait_for_push)
+        {
+          purge_user_pass(&auth_user_pass, false);
+        }
     }
   else
     {
@@ -3620,6 +3643,13 @@ print_data:
 
 done:
   return BSTR (&out);
+}
+
+void
+delayed_auth_pass_purge(void)
+{
+    auth_user_pass.wait_for_push = false;
+    purge_user_pass(&auth_user_pass, false);
 }
 
 #else

@@ -503,6 +503,8 @@ void show_tls_performance_stats(void);
 /*#define EXTRACT_X509_FIELD_TEST*/
 void extract_x509_field_test (void);
 
+void delayed_auth_pass_purge(void);
+
 #endif /* ENABLE_CRYPTO && ENABLE_SSL */
 
 #endif
