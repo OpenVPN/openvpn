@@ -1382,6 +1382,18 @@ initialization_sequence_completed(struct context *c, const unsigned int flags)
     /* If we delayed UID/GID downgrade or chroot, do it now */
     do_uid_gid_chroot(c, true);
 
+    /*
+     * In some cases (i.e. when receiving auth-token via
+     * push-reply) the auth-nocache option configured on the
+     * client is overridden; for this reason we have to wait
+     * for the push-reply message before attempting to wipe
+     * the user/pass entered by the user
+     */
+    if (c->options.mode == MODE_POINT_TO_POINT)
+    {
+        delayed_auth_pass_purge();
+    }
+
     /* Test if errors */
     if (flags & ISC_ERRORS)
     {

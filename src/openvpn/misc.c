@@ -1430,7 +1430,11 @@ purge_user_pass(struct user_pass *up, const bool force)
         secure_memzero(up, sizeof(*up));
         up->nocache = nocache;
     }
-    else if (!warn_shown)
+    /*
+     * don't show warning if the pass has been replaced by a token: this is an
+     * artificial "auth-nocache"
+     */
+    else if (!warn_shown && (!up->tokenized))
     {
         msg(M_WARN, "WARNING: this configuration may cache passwords in memory -- use the auth-nocache option to prevent this");
         warn_shown = true;
@@ -1444,6 +1448,7 @@ set_auth_token(struct user_pass *up, const char *token)
     {
         CLEAR(up->password);
         strncpynt(up->password, token, USER_PASS_LEN);
+        up->tokenized = true;
     }
 }
 
