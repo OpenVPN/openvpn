@@ -701,57 +701,6 @@ env_set_inherit(struct env_set *es, const struct env_set *src)
     }
 }
 
-void
-env_set_add_to_environment(const struct env_set *es)
-{
-    if (es)
-    {
-        struct gc_arena gc = gc_new();
-        const struct env_item *e;
-
-        e = es->list;
-
-        while (e)
-        {
-            const char *name;
-            const char *value;
-
-            if (deconstruct_name_value(e->string, &name, &value, &gc))
-            {
-                setenv_str(NULL, name, value);
-            }
-
-            e = e->next;
-        }
-        gc_free(&gc);
-    }
-}
-
-void
-env_set_remove_from_environment(const struct env_set *es)
-{
-    if (es)
-    {
-        struct gc_arena gc = gc_new();
-        const struct env_item *e;
-
-        e = es->list;
-
-        while (e)
-        {
-            const char *name;
-            const char *value;
-
-            if (deconstruct_name_value(e->string, &name, &value, &gc))
-            {
-                setenv_del(NULL, name);
-            }
-
-            e = e->next;
-        }
-        gc_free(&gc);
-    }
-}
 
 /* add/modify/delete environmental strings */
 
