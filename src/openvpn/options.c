@@ -636,8 +636,8 @@ static const char usage_message[] =
     "--verify-x509-name name: Accept connections only from a host with X509 subject\n"
     "                  DN name. The remote host must also pass all other tests\n"
     "                  of verification.\n"
-    "--ns-cert-type t: Require that peer certificate was signed with an explicit\n"
-    "                  nsCertType designation t = 'client' | 'server'.\n"
+    "--ns-cert-type t: (DEPRECATED) Require that peer certificate was signed with \n"
+    "                  an explicit nsCertType designation t = 'client' | 'server'.\n"
     "--x509-track x  : Save peer X509 attribute x in environment for use by\n"
     "                  plugins and management interface.\n"
 #if defined(ENABLE_CRYPTO_OPENSSL) && OPENSSL_VERSION_NUMBER >= 0x10001000

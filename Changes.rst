@@ -1,5 +1,5 @@
-Version 2.4.0
-=============
+Overview of changes in 2.4
+==========================
 
 
 New features
@@ -302,3 +302,12 @@ Maintainer-visible changes
   header combinations.  In most of these situations it is recommended to
   use -std=gnu99 in CFLAGS.  This is known to be needed when doing
   i386/i686 builds on RHEL5.
+
+
+Version 2.4.1
+=============
+ - ``--ns-cert-type`` is deprecated.  Use ``--remote-cert-tls`` instead.
+   The nsCertType x509 extension is very old, and barely used.
+   ``--remote-cert-tls`` uses the far more common keyUsage and extendedKeyUsage
+   extension instead.  Make sure your certificates carry these to be able to
+   use ``--remote-cert-tls``.

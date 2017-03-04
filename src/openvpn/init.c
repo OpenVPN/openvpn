@@ -3004,6 +3004,10 @@ do_option_warnings(struct context *c)
     {
         msg(M_WARN, "WARNING: No server certificate verification method has been enabled.  See http://openvpn.net/howto.html#mitm for more info.");
     }
+    if (o->ns_cert_type)
+    {
+        msg(M_WARN, "WARNING: --ns-cert-type is DEPRECATED.  Use --remote-cert-tls instead.");
+    }
 #endif /* ifdef ENABLE_CRYPTO */
 
     /* If a script is used, print appropiate warnings */
