@@ -40,7 +40,7 @@ TEST_RUN_LIST="1 2"
 #
 OPENVPN_BASE_P2MP="--client --ca $CA_CERT \
 	--cert $CLIENT_CERT --key $CLIENT_KEY \
-	--ns-cert-type server --nobind --comp-lzo --verb 3"
+	--remote-cert-tls server --nobind --comp-lzo --verb 3"
 
 # base config for p2p tests
 #
