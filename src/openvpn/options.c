@@ -176,6 +176,10 @@ static const char usage_message[] =
     "                  does not begin with \"tun\" or \"tap\".\n"
     "--dev-node node : Explicitly set the device node rather than using\n"
     "                  /dev/net/tun, /dev/tun, /dev/tap, etc.\n"
+#ifdef HAVE_SETNS
+  "--dev-netns path: Configure the device in the Linux network namespace bound\n"
+  "                  to path, such as '/run/netns/NAME' or '/proc/PID/ns/net'.\n"
+#endif
     "--lladdr hw     : Set the link layer address of the tap device.\n"
     "--topology t    : Set --dev tun topology: 'net30', 'p2p', or 'subnet'.\n"
 #ifdef ENABLE_IPROUTE
@@ -1571,6 +1575,7 @@ show_settings(const struct options *o)
     SHOW_STR(dev);
     SHOW_STR(dev_type);
     SHOW_STR(dev_node);
+    SHOW_STR(dev_netns);
     SHOW_STR(lladdr);
     SHOW_INT(topology);
     SHOW_STR(ifconfig_local);
@@ -5380,6 +5385,11 @@ add_option(struct options *options,
     {
         VERIFY_PERMISSION(OPT_P_GENERAL);
         options->dev_node = p[1];
+    }
+    else if (streq (p[0], "dev-netns") && p[1] && !p[2])
+    {
+        VERIFY_PERMISSION(OPT_P_GENERAL);
+        options->dev_netns = p[1];
     }
     else if (streq(p[0], "lladdr") && p[1] && !p[2])
     {

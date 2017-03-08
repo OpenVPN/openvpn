@@ -541,6 +541,8 @@ struct context
     struct context_0 *c0;       /**< Level 0 %context. */
     struct context_1 c1;        /**< Level 1 %context. */
     struct context_2 c2;        /**< Level 2 %context. */
+
+    int parent_netns;
 };
 
 /*

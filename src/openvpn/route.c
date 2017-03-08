@@ -997,22 +997,13 @@ redirect_default_route_to_vpn(struct route_list *rl, const struct tuntap *tt,
         {
             msg(M_WARN, "%s VPN gateway parameter (--route-gateway or --ifconfig) is missing", err);
         }
-        /*
-         * check if a default route is defined, unless:
-         * - we are connecting to a remote host in our network
-         * - we are connecting to a non-IPv4 remote host (i.e. we use IPv6)
-         */
-        else if (!(rl->rgi.flags & RGI_ADDR_DEFINED) && !local
-                 && (rl->spec.remote_host != IPV4_INVALID_ADDR))
-        {
-            msg(M_WARN, "%s Cannot read current default gateway from system", err);
-        }
         else if (!(rl->spec.flags & RTSA_REMOTE_HOST))
         {
             msg(M_WARN, "%s Cannot obtain current remote host address", err);
         }
         else
         {
+            bool orig_gateway = rl->rgi.flags & RGI_ADDR_DEFINED;
 #ifndef TARGET_ANDROID
             if (rl->flags & RG_AUTO_LOCAL)
             {
@@ -1028,7 +1019,7 @@ redirect_default_route_to_vpn(struct route_list *rl, const struct tuntap *tt,
                     local = true;
                 }
             }
-            if (!local)
+            if (orig_gateway && !local)
             {
                 /* route remote host to original default gateway */
                 /* if remote_host is not ipv4 (ie: ipv6), just skip
@@ -1052,13 +1043,16 @@ redirect_default_route_to_vpn(struct route_list *rl, const struct tuntap *tt,
             }
 #endif /* ifndef TARGET_ANDROID */
 
-            /* route DHCP/DNS server traffic through original default gateway */
-            add_bypass_routes(&rl->spec.bypass, rl->rgi.gateway.addr, tt, flags,
-                              &rl->rgi, es, ctx);
+            if (orig_gateway)
+            {
+                /* route DHCP/DNS server traffic through original default gateway */
+                add_bypass_routes(&rl->spec.bypass, rl->rgi.gateway.addr, tt, flags,
+                                  &rl->rgi, es, ctx);
+            }
 
             if (rl->flags & RG_REROUTE_GW)
             {
-                if (rl->flags & RG_DEF1)
+                if (orig_gateway && rl->flags & RG_DEF1)
                 {
                     /* add new default route (1st component) */
                     add_route3(0x00000000,
@@ -1116,6 +1110,8 @@ undo_redirect_default_route_to_vpn(struct route_list *rl,
 {
     if (rl && rl->iflags & RL_DID_REDIRECT_DEFAULT_GATEWAY)
     {
+        bool orig_gateway = rl->rgi.flags & RGI_ADDR_DEFINED;
+
         /* delete remote host route */
         if (rl->iflags & RL_DID_LOCAL)
         {
@@ -1130,13 +1126,16 @@ undo_redirect_default_route_to_vpn(struct route_list *rl,
             rl->iflags &= ~RL_DID_LOCAL;
         }
 
-        /* delete special DHCP/DNS bypass route */
-        del_bypass_routes(&rl->spec.bypass, rl->rgi.gateway.addr, tt, flags,
-                          &rl->rgi, es, ctx);
+        if (orig_gateway)
+        {
+            /* delete special DHCP/DNS bypass route */
+            del_bypass_routes(&rl->spec.bypass, rl->rgi.gateway.addr, tt, flags,
+                              &rl->rgi, es, ctx);
+        }
 
         if (rl->flags & RG_REROUTE_GW)
         {
-            if (rl->flags & RG_DEF1)
+            if (orig_gateway && rl->flags & RG_DEF1)
             {
                 /* delete default route (1st component) */
                 del_route3(0x00000000,

@@ -1736,6 +1736,62 @@ do_init_tun(struct context *c)
     c->c1.tuntap_owned = true;
 }
 
+#ifdef HAVE_SETNS
+static int
+enter_netns (const char* path)
+{
+    int orig_netns = open ("/proc/self/ns/net", O_RDONLY);
+    if (orig_netns == -1)
+        msg (M_FATAL|M_ERRNO, "Cannot open /proc/self/ns/net");
+
+    int new_netns = open (path, O_RDONLY);
+    if (new_netns == -1)
+        msg (M_FATAL|M_ERRNO, "Cannot open network namespace file '%s'", path);
+
+    if (setns (new_netns, CLONE_NEWNET) == -1)
+        msg (M_FATAL|M_ERRNO, "Cannot enter network namespace");
+
+    msg (M_INFO, "Entered network namespace bound to '%s'", path);
+    close (new_netns);
+    return orig_netns;
+}
+
+static void
+leave_netns (int orig_netns)
+{
+    if (setns (orig_netns, CLONE_NEWNET) == -1)
+        msg (M_FATAL|M_ERRNO, "Cannot restore network namespace");
+
+    msg (M_INFO, "Returned to the original network namespace");
+    close (orig_netns);
+}
+#endif
+
+static void
+enter_routing_context(struct context *c)
+{
+    if (c->options.dev_netns) {
+#ifdef HAVE_SETNS
+        c->parent_netns = enter_netns (c->options.dev_netns);
+#else
+        msg (M_FATAL, "Cannot enter network namespace without compiled-in setns()");
+#endif
+    }
+}
+
+static void
+leave_routing_context(struct context *c)
+{
+    if (c->parent_netns != 0) {
+#ifdef HAVE_SETNS
+        leave_netns (c->parent_netns);
+        c->parent_netns = 0;
+#else
+        ASSERT (0);
+#endif
+    }
+}
+
 /*
  * Open tun/tap device, ifconfig, call up script, etc.
  */
@@ -1745,6 +1801,8 @@ do_open_tun(struct context *c)
 {
     struct gc_arena gc = gc_new();
     bool ret = false;
+
+    enter_routing_context(c);
 
 #ifndef TARGET_ANDROID
     if (!c->c1.tuntap)
@@ -1924,6 +1982,8 @@ else
 
 }
 #endif /* ifndef TARGET_ANDROID */
+
+    leave_routing_context(c);
     gc_free(&gc);
     return ret;
 }
@@ -1951,6 +2011,9 @@ static void
 do_close_tun(struct context *c, bool force)
 {
     struct gc_arena gc = gc_new();
+
+    enter_routing_context(c);
+
     if (c->c1.tuntap && c->c1.tuntap_owned)
     {
         const char *tuntap_actual = string_alloc(c->c1.tuntap->actual_name, &gc);
@@ -2077,6 +2140,8 @@ do_close_tun(struct context *c, bool force)
 
         }
     }
+
+    leave_routing_context(c);
     gc_free(&gc);
 }
 

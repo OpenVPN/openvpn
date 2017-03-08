@@ -428,7 +428,7 @@ AC_CHECK_HEADERS([ \
 	ctype.h sys/types.h sys/socket.h \
 	signal.h unistd.h dlfcn.h \
 	netinet/in.h netinet/in_systm.h \
-	netinet/tcp.h arpa/inet.h netdb.h \
+	netinet/tcp.h arpa/inet.h netdb.h sched.h \
 	windows.h winsock2.h ws2tcpip.h \
 	versionhelpers.h \
 ])
@@ -655,7 +655,7 @@ AC_CHECK_FUNCS([ \
 	ctime memset vsnprintf strdup \
 	setsid chdir putenv getpeername unlink \
 	chsize ftruncate execve getpeereid umask basename dirname access \
-	epoll_create strsep \
+	epoll_create strsep setns \
 ])
 
 AC_CHECK_LIB(

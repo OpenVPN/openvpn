@@ -244,6 +244,10 @@
 #include <netinet/tcp.h>
 #endif
 
+#ifdef HAVE_SCHED_H
+#include <sched.h>
+#endif
+
 #endif /* TARGET_LINUX */
 
 #ifdef TARGET_SOLARIS
