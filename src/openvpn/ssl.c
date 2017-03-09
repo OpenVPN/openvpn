@@ -2822,6 +2822,9 @@ tls_process(struct tls_multi *multi,
                                    session->opt->crl_file, session->opt->crl_file_inline);
             }
 
+            /* New connection, remove any old X509 env variables */
+            tls_x509_clear_env(session->opt->es);
+
             dmsg(D_TLS_DEBUG_MED, "STATE S_START");
         }
 
