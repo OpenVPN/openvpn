@@ -1486,4 +1486,21 @@ verify_final_auth_checks(struct tls_multi *multi, struct tls_session *session)
         gc_free(&gc);
     }
 }
+
+void
+tls_x509_clear_env(struct env_set *es)
+{
+    struct env_item *item = es->list;
+    while (item)
+    {
+        struct env_item *next = item->next;
+        if (item->string
+            && 0 == strncmp("X509_", item->string, strlen("X509_")))
+        {
+            env_set_del(es, item->string);
+        }
+        item = next;
+    }
+}
+
 #endif /* ENABLE_CRYPTO */
