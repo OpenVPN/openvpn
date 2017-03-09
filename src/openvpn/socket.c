@@ -1146,7 +1146,7 @@ tcp_connection_established(const struct link_socket_actual *act)
     gc_free(&gc);
 }
 
-static int
+static socket_descriptor_t
 socket_listen_accept(socket_descriptor_t sd,
                      struct link_socket_actual *act,
                      const char *remote_dynamic,
@@ -1158,7 +1158,7 @@ socket_listen_accept(socket_descriptor_t sd,
     struct gc_arena gc = gc_new();
     /* struct openvpn_sockaddr *remote = &act->dest; */
     struct openvpn_sockaddr remote_verify = act->dest;
-    int new_sd = SOCKET_UNDEFINED;
+    socket_descriptor_t new_sd = SOCKET_UNDEFINED;
 
     CLEAR(*act);
     socket_do_listen(sd, local, do_listen, true);
