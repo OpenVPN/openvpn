@@ -218,6 +218,9 @@ struct x509_track
 /** Do not perform Netscape certificate type verification */
 #define NS_CERT_CHECK_CLIENT (1<<1)
 
+/** Require keyUsage to be present in cert (0xFFFF is an invalid KU value) */
+#define OPENVPN_KU_REQUIRED (0xFFFF)
+
 /*
  * TODO: document
  */

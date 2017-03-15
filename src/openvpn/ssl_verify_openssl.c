@@ -590,54 +590,58 @@ result_t
 x509_verify_cert_ku(X509 *x509, const unsigned *const expected_ku,
                     int expected_len)
 {
-    ASN1_BIT_STRING *ku = NULL;
+    ASN1_BIT_STRING *ku = X509_get_ext_d2i(x509, NID_key_usage, NULL, NULL);
+
+    if (ku == NULL)
+    {
+        msg(D_TLS_ERRORS, "Certificate does not have key usage extension");
+        return FAILURE;
+    }
+
+    if (expected_ku[0] == OPENVPN_KU_REQUIRED)
+    {
+        /* Extension required, value checked by TLS library */
+        return SUCCESS;
+    }
+
+    unsigned nku = 0;
+    for (size_t i = 0; i < 8; i++)
+    {
+        if (ASN1_BIT_STRING_get_bit(ku, i))
+        {
+            nku |= 1 << (7 - i);
+        }
+    }
+
+    /*
+     * Fixup if no LSB bits
+     */
+    if ((nku & 0xff) == 0)
+    {
+        nku >>= 8;
+    }
+
+    msg(D_HANDSHAKE, "Validating certificate key usage");
     result_t fFound = FAILURE;
-
-    if ((ku = (ASN1_BIT_STRING *) X509_get_ext_d2i(x509, NID_key_usage, NULL,
-                                                   NULL)) == NULL)
+    for (size_t i = 0; fFound != SUCCESS && i < expected_len; i++)
     {
-        msg(D_HANDSHAKE, "Certificate does not have key usage extension");
-    }
-    else
-    {
-        unsigned nku = 0;
-        int i;
-        for (i = 0; i < 8; i++)
+        if (expected_ku[i] != 0 && (nku & expected_ku[i]) == expected_ku[i])
         {
-            if (ASN1_BIT_STRING_get_bit(ku, i))
-            {
-                nku |= 1 << (7 - i);
-            }
-        }
-
-        /*
-         * Fixup if no LSB bits
-         */
-        if ((nku & 0xff) == 0)
-        {
-            nku >>= 8;
-        }
-
-        msg(D_HANDSHAKE, "Validating certificate key usage");
-        for (i = 0; fFound != SUCCESS && i < expected_len; i++)
-        {
-            if (expected_ku[i] != 0)
-            {
-                msg(D_HANDSHAKE, "++ Certificate has key usage  %04x, expects "
-                    "%04x", nku, expected_ku[i]);
-
-                if (nku == expected_ku[i])
-                {
-                    fFound = SUCCESS;
-                }
-            }
+            fFound = SUCCESS;
         }
     }
 
-    if (ku != NULL)
+    if (fFound != SUCCESS)
     {
-        ASN1_BIT_STRING_free(ku);
+        msg(D_TLS_ERRORS,
+            "ERROR: Certificate has key usage %04x, expected one of:", nku);
+        for (size_t i = 0; i < expected_len && expected_ku[i]; i++)
+        {
+            msg(D_TLS_ERRORS, " * %04x", expected_ku[i]);
+        }
     }
+
+    ASN1_BIT_STRING_free(ku);
 
     return fFound;
 }

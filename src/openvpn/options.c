@@ -7914,13 +7914,17 @@ add_option(struct options *options,
     }
     else if (streq(p[0], "remote-cert-ku"))
     {
-        int j;
-
         VERIFY_PERMISSION(OPT_P_GENERAL);
 
+        size_t j;
         for (j = 1; j < MAX_PARMS && p[j] != NULL; ++j)
         {
             sscanf(p[j], "%x", &(options->remote_cert_ku[j-1]));
+        }
+        if (j == 1)
+        {
+            /* No specific KU required, but require KU to be present */
+            options->remote_cert_ku[0] = OPENVPN_KU_REQUIRED;
         }
     }
     else if (streq(p[0], "remote-cert-eku") && p[1] && !p[2])
@@ -7934,15 +7938,12 @@ add_option(struct options *options,
 
         if (streq(p[1], "server"))
         {
-            options->remote_cert_ku[0] = 0xa0;
-            options->remote_cert_ku[1] = 0x88;
+            options->remote_cert_ku[0] = OPENVPN_KU_REQUIRED;
             options->remote_cert_eku = "TLS Web Server Authentication";
         }
         else if (streq(p[1], "client"))
         {
-            options->remote_cert_ku[0] = 0x80;
-            options->remote_cert_ku[1] = 0x08;
-            options->remote_cert_ku[2] = 0x88;
+            options->remote_cert_ku[0] = OPENVPN_KU_REQUIRED;
             options->remote_cert_eku = "TLS Web Client Authentication";
         }
         else
