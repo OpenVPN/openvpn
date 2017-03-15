@@ -5344,15 +5344,25 @@ or
 .B \-\-tls\-verify.
 .\"*********************************************************
 .TP
-.B \-\-remote\-cert\-ku v...
+.B \-\-remote\-cert\-ku [v...]
 Require that peer certificate was signed with an explicit
 .B key usage.
 
-This is a useful security option for clients, to ensure that
-the host they connect to is a designated server.
+If present in the certificate, the keyUsage value is validated by the TLS
+library during the TLS handshake.  Specifying this option without arguments
+requires this extension to be present (so the TLS library will verify it).
 
-The key usage should be encoded in hex, more than one key
-usage can be specified.
+If the list
+.B v...
+is also supplied, the keyUsage field must have
+.B at least
+the same bits set as the bits in
+.B one of
+the values supplied in the list
+.B v...
+
+The key usage values in the list must be encoded in hex, e.g.
+"\-\-remote\-cert\-ku a0"
 .\"*********************************************************
 .TP
 .B \-\-remote\-cert\-eku oid
@@ -5373,24 +5383,21 @@ and
 .B extended key usage
 based on RFC3280 TLS rules.
 
-This is a useful security option for clients, to ensure that
-the host they connect to is a designated server.
+This is a useful security option for clients, to ensure that the host they
+connect to is a designated server.  Or the other way around; for a server to
+verify that only hosts with a client certificate can connect.
 
 The
 .B \-\-remote\-cert\-tls client
 option is equivalent to
 .B
-\-\-remote\-cert\-ku 80 08 88 \-\-remote\-cert\-eku "TLS Web Client Authentication"
-
-The key usage is digitalSignature and/or keyAgreement.
+\-\-remote\-cert\-ku \-\-remote\-cert\-eku "TLS Web Client Authentication"
 
 The
 .B \-\-remote\-cert\-tls server
 option is equivalent to
 .B
-\-\-remote\-cert\-ku a0 88 \-\-remote\-cert\-eku "TLS Web Server Authentication"
-
-The key usage is digitalSignature and ( keyEncipherment or keyAgreement ).
+\-\-remote\-cert\-ku \-\-remote\-cert\-eku "TLS Web Server Authentication"
 
 This is an important security precaution to protect against
 a man-in-the-middle attack where an authorized client

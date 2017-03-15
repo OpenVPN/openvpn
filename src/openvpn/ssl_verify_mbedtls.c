@@ -437,32 +437,42 @@ result_t
 x509_verify_cert_ku(mbedtls_x509_crt *cert, const unsigned *const expected_ku,
                     int expected_len)
 {
-    result_t fFound = FAILURE;
+    msg(D_HANDSHAKE, "Validating certificate key usage");
 
     if (!(cert->ext_types & MBEDTLS_X509_EXT_KEY_USAGE))
     {
-        msg(D_HANDSHAKE, "Certificate does not have key usage extension");
+        msg(D_TLS_ERRORS,
+            "ERROR: Certificate does not have key usage extension");
+        return FAILURE;
     }
-    else
+
+    if (expected_ku[0] == OPENVPN_KU_REQUIRED)
     {
-        int i;
-        unsigned nku = cert->key_usage;
+        /* Extension required, value checked by TLS library */
+        return SUCCESS;
+    }
 
-        msg(D_HANDSHAKE, "Validating certificate key usage");
-        for (i = 0; SUCCESS != fFound && i<expected_len; i++)
+    result_t fFound = FAILURE;
+    for (size_t i = 0; SUCCESS != fFound && i<expected_len; i++)
+    {
+        if (expected_ku[i] != 0
+            && 0 == mbedtls_x509_crt_check_key_usage(cert, expected_ku[i]))
         {
-            if (expected_ku[i] != 0)
-            {
-                msg(D_HANDSHAKE, "++ Certificate has key usage  %04x, expects "
-                    "%04x", nku, expected_ku[i]);
-
-                if (nku == expected_ku[i])
-                {
-                    fFound = SUCCESS;
-                }
-            }
+            fFound = SUCCESS;
         }
     }
+
+    if (fFound != SUCCESS)
+    {
+        msg(D_TLS_ERRORS,
+            "ERROR: Certificate has key usage %04x, expected one of:",
+            cert->key_usage);
+        for (size_t i = 0; i < expected_len && expected_ku[i]; i++)
+        {
+            msg(D_TLS_ERRORS, " * %04x", expected_ku[i]);
+        }
+    }
+
     return fFound;
 }
 
