@@ -286,8 +286,7 @@ show_available_ciphers()
     size_t i;
 
     /* If we ever exceed this, we must be more selective */
-    const size_t cipher_list_len = 1000;
-    const EVP_CIPHER *cipher_list[cipher_list_len];
+    const EVP_CIPHER *cipher_list[1000];
     size_t num_ciphers = 0;
 #ifndef ENABLE_SMALL
     printf("The following ciphers and cipher modes are available for use\n"
@@ -312,7 +311,7 @@ show_available_ciphers()
         {
             cipher_list[num_ciphers++] = cipher;
         }
-        if (num_ciphers == cipher_list_len)
+        if (num_ciphers == (sizeof(cipher_list)/sizeof(*cipher_list)))
         {
             msg(M_WARN, "WARNING: Too many ciphers, not showing all");
             break;
