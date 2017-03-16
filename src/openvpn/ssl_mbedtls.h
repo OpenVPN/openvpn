@@ -74,7 +74,7 @@ struct tls_root_ctx {
     mbedtls_x509_crt *ca_chain;         /**< CA chain for remote verification */
     mbedtls_pk_context *priv_key;       /**< Local private key */
     mbedtls_x509_crl *crl;              /**< Certificate Revocation List */
-    struct timespec crl_last_mtime;     /**< CRL last modification time */
+    time_t crl_last_mtime;              /**< CRL last modification time */
     off_t crl_last_size;                /**< size of last loaded CRL */
 #if defined(ENABLE_PKCS11)
     mbedtls_pkcs11_context *priv_key_pkcs11;    /**< PKCS11 private key */

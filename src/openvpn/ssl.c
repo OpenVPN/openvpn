@@ -571,12 +571,12 @@ tls_ctx_reload_crl(struct tls_root_ctx *ssl_ctx, const char *crl_file,
      * Note: Windows does not support tv_nsec.
      */
     if ((ssl_ctx->crl_last_size == crl_stat.st_size)
-        && (ssl_ctx->crl_last_mtime.tv_sec == crl_stat.st_mtime))
+        && (ssl_ctx->crl_last_mtime == crl_stat.st_mtime))
     {
         return;
     }
 
-    ssl_ctx->crl_last_mtime.tv_sec = crl_stat.st_mtime;
+    ssl_ctx->crl_last_mtime = crl_stat.st_mtime;
     ssl_ctx->crl_last_size = crl_stat.st_size;
     backend_tls_ctx_reload_crl(ssl_ctx, crl_file, crl_file_inline);
 }
