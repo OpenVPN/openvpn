@@ -3061,8 +3061,10 @@ do_route_ipv6_service(const bool add, const struct route_ipv6 *r, const struct t
 
     /* In TUN mode we use a special link-local address as the next hop.
      * The tapdrvr knows about it and will answer neighbor discovery packets.
+     * (only do this for routes actually using the tun/tap device)
      */
-    if (tt->type == DEV_TYPE_TUN)
+    if (tt->type == DEV_TYPE_TUN
+	 && msg.iface.index == tt->adapter_index )
     {
         inet_pton(AF_INET6, "fe80::8", &msg.gateway.ipv6);
     }
