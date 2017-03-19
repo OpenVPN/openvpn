@@ -419,6 +419,16 @@ can be
 or
 .B tcp-server.
 
+These will only try IPv4 to connect to the remote host.  To use IPv6,
+add "6" to the protocol, as in
+.B udp6,
+.B tcp6-client,
+or
+.B tcp6-server.
+OpenVPN 2.3 cannot auto-determine whether to use IPv4 or IPv6 (or
+automatically try whatever is available) - full dual-stack functionality
+is available starting with OpenVPN 2.4.0
+
 The default protocol is
 .B udp
 when
