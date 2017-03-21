@@ -1,6 +1,79 @@
 OpenVPN Change Log
 Copyright (C) 2002-2017 OpenVPN Technologies, Inc. <sales@openvpn.net>
 
+2017.03.21 -- Version 2.4.1
+Antonio Quartulli (4):
+      attempt to add IPv6 route even when no IPv6 address was configured
+      fix redirect-gateway behaviour when an IPv4 default route does not exist
+      CRL: use time_t instead of struct timespec to store last mtime
+      ignore remote-random-hostname if a numeric host is provided
+
+Christian Hesse (7):
+      man: fix formatting for alternative option
+      systemd: Use automake tools to install unit files
+      systemd: Do not race on RuntimeDirectory
+      systemd: Add more security feature for systemd units
+      Clean up plugin path handling
+      plugin: Remove GNUism in openvpn-plugin.h generation
+      fix typo in notification message
+
+David Sommerseth (6):
+      management: >REMOTE operation would overwrite ce change indicator
+      management: Remove a redundant #ifdef block
+      git: Merge .gitignore files into a single file
+      systemd: Move the READY=1 signalling to an earlier point
+      plugin: Improve the handling of default plug-in directory
+      cleanup: Remove faulty env processing functions
+
+Emmanuel Deloget (8):
+      OpenSSL: check for the SSL reason, not the full error
+      OpenSSL: don't use direct access to the internal of X509_STORE_CTX
+      OpenSSL: don't use direct access to the internal of SSL_CTX
+      OpenSSL: don't use direct access to the internal of X509_STORE
+      OpenSSL: don't use direct access to the internal of X509_OBJECT
+      OpenSSL: don't use direct access to the internal of RSA_METHOD
+      OpenSSL: SSLeay symbols are no longer available in OpenSSL 1.1
+      OpenSSL: use EVP_CipherInit_ex() instead of EVP_CipherInit()
+
+Eric Thorpe (1):
+      Fix Building Using MSVC
+
+Gert Doering (4):
+      Add openssl_compat.h to openvpn_SOURCES
+      Fix '--dev null'
+      Fix installation of IPv6 host route to VPN server when using iservice.
+      Make ENABLE_OCC no longer depend on !ENABLE_SMALL
+
+Gisle Vanem (1):
+      Crash in options.c
+
+Ilya Shipitsin (2):
+      Resolve several travis-ci issues
+      travis-ci: remove unused files
+
+Olivier Wahrenberger (1):
+      Fix building with LibreSSL 2.5.1 by cleaning a hack.
+
+Selva Nair (4):
+      Fix push options digest update
+      Always release dhcp address in close_tun() on Windows.
+      Add a check for -Wl, --wrap support in linker
+      Fix user's group membership check in interactive service to work with domains
+
+Simon Matter (1):
+      Fix segfault when using crypto lib without AES-256-CTR or SHA256
+
+Steffan Karger (8):
+      More broadly enforce Allman style and braces-around-conditionals
+      Use SHA256 for the internal digest, instead of MD5
+      OpenSSL: 1.1 fallout - fix configure on old autoconf
+      Fix types in WIN32 socket_listen_accept()
+      Remove duplicate X509 env variables
+      Fix non-C99-compliant builds: don't use const size_t as array length
+      Deprecate --ns-cert-type
+      Be less picky about keyUsage extensions
+
+
 2016.12.26 -- Version 2.4.0
 David Sommerseth (5):
       dev-tools: Added script for updating copyright years in files
