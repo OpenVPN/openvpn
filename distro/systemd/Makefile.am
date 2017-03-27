@@ -23,6 +23,8 @@ systemdunit_DATA = \
 	openvpn-server@.service
 tmpfiles_DATA = \
 	tmpfiles-openvpn.conf
+dist_doc_DATA = \
+	README.systemd
 
 install-data-hook:
 	mv $(DESTDIR)$(tmpfilesdir)/tmpfiles-openvpn.conf $(DESTDIR)$(tmpfilesdir)/openvpn.conf

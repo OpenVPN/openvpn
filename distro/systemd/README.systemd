@@ -1,0 +1,70 @@
+OpenVPN and systemd
+===================
+
+As of OpenVPN v2.4, upstream is shipping systemd unit files to provide a
+fine grained control of each OpenVPN configuration as well as trying to
+restrict the capabilities the OpenVPN process have on a system.
+
+
+Configuration profile types
+---------------------------
+These new unit files separates between client and server profiles.  The
+configuration files are kept in separate directories, to provide clarity
+of the profile they run under.
+
+Typically the client profile cannot bind to any ports below port 1024
+and the client configuration is always started with --nobind.
+
+The server profile is allowed to bind to any ports.  In addition it enables
+a client status file, usually found in the /run/openvpn-server directory.
+The status format is set to version 2 by default.  These settings may be
+overridden by adding --status and/or --status-version in the OpenVPN
+configuration file.
+
+Neither of these profiles makes use of PID files, but OpenVPN reports back to
+systemd its PID once it has initialized.
+
+For configuration using a peer-to-peer mode (not using --mode server on one
+of the sides) it is recommended to use the client profile.
+
+
+Configuration files
+-------------------
+These new unit files expects client configuration files to be made available
+in /etc/openvpn/client.  Similar for the server configurations, it is expected
+to be found in /etc/openvpn/server.  The configuration files must have a .conf
+file extension.
+
+
+Managing VPN tunnels
+--------------------
+Use the normal systemctl tool to start, stop VPN tunnels, as well as enable
+and disable tunnels at boot time.  The syntax is:
+
+ - client configurations:
+    # systemctl $OPER openvpn-client@$CONFIGNAME
+
+ - server configurations:
+    # systemctl $OPER openvpn-server@$CONFIGNAME
+
+Similarly, to view the OpenVPN journal log use a similar syntax:
+
+   # journalctl -u openvpn-client@$CONFIGNAME
+ or
+   # journalctl -u openvpn-server@$CONFIGNAME
+
+* Examples
+  Say your server configuration is /etc/openvpn/server/tun0.conf, you
+  start this VPN service like this:
+
+    # systemctl start openvpn-server@tun0
+
+  A client configuration file in /etc/openvpn/client/corpvpn.conf is
+  started like this:
+
+    # systemctl start openvpn-client@corpvpn
+
+  To view the server configuration's journal only listing entries from
+  yesterday and until today:
+
+    # journalctl --since yesterday -u openvpn-server@tun0
