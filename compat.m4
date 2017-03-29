@@ -16,10 +16,9 @@ dnl  but WITHOUT ANY WARRANTY; without even the implied warranty of
 dnl  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 dnl  GNU General Public License for more details.
 dnl
-dnl  You should have received a copy of the GNU General Public License
-dnl  along with this program (see the file COPYING included with this
-dnl  distribution); if not, write to the Free Software Foundation, Inc.,
-dnl  59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+dnl  You should have received a copy of the GNU General Public License along
+dnl  with this program; if not, write to the Free Software Foundation, Inc.,
+dnl  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 dnl Compatibility layer for <autoconf-2.60 <automake-1.10
 dnl REMOVE THIS IN FUTURE!
