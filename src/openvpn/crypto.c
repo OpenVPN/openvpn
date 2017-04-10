@@ -784,7 +784,10 @@ init_key_type(struct key_type *kt, const char *ciphername,
     {
         if (warn)
         {
-            msg(M_WARN, "******* WARNING *******: null cipher specified, no encryption will be used");
+            msg(M_WARN, "******* WARNING *******: '--cipher none' was specified. "
+                "This means NO encryption will be performed and tunnelled "
+                "data WILL be transmitted in clear text over the network! "
+                "PLEASE DO RECONSIDER THIS SETTING!");
         }
     }
     if (strcmp(authname, "none") != 0)
@@ -804,7 +807,11 @@ init_key_type(struct key_type *kt, const char *ciphername,
     {
         if (warn)
         {
-            msg(M_WARN, "******* WARNING *******: null MAC specified, no authentication will be used");
+            msg(M_WARN, "******* WARNING *******: '--auth none' was specified. "
+                "This means no authentication will be performed on received "
+                "packets, meaning you CANNOT trust that the data received by "
+                "the remote side have NOT been manipulated. "
+                "PLEASE DO RECONSIDER THIS SETTING!");
         }
     }
 }
