@@ -2759,7 +2759,10 @@ do_init_crypto_none(const struct context *c)
 {
     ASSERT(!c->options.test_crypto);
     msg(M_WARN,
-        "******* WARNING *******: all encryption and authentication features disabled -- all data will be tunnelled as cleartext");
+        "******* WARNING *******: All encryption and authentication features "
+        "disabled -- All data will be tunnelled as clear text and will not be "
+        "protected against man-in-the-middle changes. "
+        "PLEASE DO RECONSIDER THIS CONFIGURATION!");
 }
 #endif /* ifdef ENABLE_CRYPTO */
 
