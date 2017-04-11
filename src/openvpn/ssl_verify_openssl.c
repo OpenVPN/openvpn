@@ -458,8 +458,7 @@ x509_setenv_track(const struct x509_track *xt, struct env_set *es, const int dep
                         if (ent)
                         {
                             ASN1_STRING *val = X509_NAME_ENTRY_get_data(ent);
-                            unsigned char *buf;
-                            buf = (unsigned char *)1; /* bug in OpenSSL 0.9.6b ASN1_STRING_to_UTF8 requires this workaround */
+                            unsigned char *buf = NULL;
                             if (ASN1_STRING_to_UTF8(&buf, val) > 0)
                             {
                                 do_setenv_x509(es, xt->name, (char *)buf, depth);
@@ -514,7 +513,7 @@ x509_setenv(struct env_set *es, int cert_depth, openvpn_x509_cert_t *peer_cert)
     ASN1_STRING *val;
     X509_NAME_ENTRY *ent;
     const char *objbuf;
-    unsigned char *buf;
+    unsigned char *buf = NULL;
     char *name_expand;
     size_t name_expand_size;
     X509_NAME *x509 = X509_get_subject_name(peer_cert);
@@ -547,7 +546,6 @@ x509_setenv(struct env_set *es, int cert_depth, openvpn_x509_cert_t *peer_cert)
         {
             continue;
         }
-        buf = (unsigned char *)1; /* bug in OpenSSL 0.9.6b ASN1_STRING_to_UTF8 requires this workaround */
         if (ASN1_STRING_to_UTF8(&buf, val) <= 0)
         {
             continue;

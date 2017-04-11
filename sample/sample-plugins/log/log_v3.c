@@ -197,7 +197,7 @@ x509_print_info(X509 *x509crt)
     X509_NAME *x509_name;
     X509_NAME_ENTRY *ent;
     const char *objbuf;
-    unsigned char *buf;
+    unsigned char *buf = NULL;
 
     x509_name = X509_get_subject_name(x509crt);
     n = X509_NAME_entry_count(x509_name);
@@ -228,7 +228,6 @@ x509_print_info(X509 *x509crt)
         {
             continue;
         }
-        buf = (unsigned char *)1; /* bug in OpenSSL 0.9.6b ASN1_STRING_to_UTF8 requires this workaround */
         if (ASN1_STRING_to_UTF8(&buf, val) <= 0)
         {
             continue;
