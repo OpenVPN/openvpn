@@ -3023,6 +3023,9 @@ get_default_gateway (struct route_gateway_info *rgi)
   rtm.rtm_flags = RTF_UP | RTF_GATEWAY;
   rtm.rtm_version = RTM_VERSION;
   rtm.rtm_seq = ++seq;
+#ifdef TARGET_OPENBSD
+  rtm.rtm_tableid = getrtable();
+#endif
   rtm.rtm_addrs = rtm_addrs; 
 
   so_dst.sa_family = AF_INET;
