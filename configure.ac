@@ -859,11 +859,10 @@ if test "${enable_crypto}" = "yes" -a "${with_crypto_library}" = "openssl"; then
 		# if the user did not explicitly specify flags, try to autodetect
 		PKG_CHECK_MODULES(
 			[OPENSSL],
-			[libcrypto >= 1.0.1, libssl >= 1.0.1],
-	                [have_openssl="yes"],
-			[AC_MSG_ERROR([Minimum supported OpenSSL version is 1.0.1])]
+			[openssl >= 1.0.1],
+			[have_openssl="yes"],
+			[] # If this fails, we will do another test next
 		)
-
 		OPENSSL_LIBS=${OPENSSL_LIBS:--lssl -lcrypto}
 	fi
 
@@ -871,6 +870,27 @@ if test "${enable_crypto}" = "yes" -a "${with_crypto_library}" = "openssl"; then
 	saved_LIBS="${LIBS}"
 	CFLAGS="${CFLAGS} ${OPENSSL_CFLAGS}"
 	LIBS="${LIBS} ${OPENSSL_LIBS}"
+
+	# If pkgconfig check failed or OPENSSL_CFLAGS/OPENSSL_LIBS env vars
+	# are used, check the version directly in the OpenSSL include file
+	if test "${have_openssl}" != "yes"; then
+		AC_MSG_CHECKING([additionally if OpenSSL is available and version >= 1.0.1])
+		AC_COMPILE_IFELSE(
+			[AC_LANG_PROGRAM(
+				[[
+#include <openssl/opensslv.h>
+				]],
+				[[
+/*	     Version encoding: MNNFFPPS - see opensslv.h for details */
+#if OPENSSL_VERSION_NUMBER < 0x10001000L
+#error OpenSSL too old
+#endif
+				]]
+			)],
+			[AC_MSG_RESULT([ok])],
+			[AC_MSG_ERROR([OpenSSL version too old])]
+		)
+	fi
 
 	AC_CHECK_FUNCS([SSL_CTX_new EVP_CIPHER_CTX_set_key_length],
 				   ,
