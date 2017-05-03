@@ -191,15 +191,23 @@ extract_x509_field_ssl(X509_NAME *x509, const char *field_name, char *out,
     X509_NAME_ENTRY *x509ne = 0;
     ASN1_STRING *asn1 = 0;
     unsigned char *buf = NULL;
-    int nid = OBJ_txt2nid(field_name);
+    ASN1_OBJECT *field_name_obj = OBJ_txt2obj(field_name, 0);
+
+    if (field_name_obj == NULL)
+    {
+        msg(D_TLS_ERRORS, "Invalid X509 attribute name '%s'", field_name);
+        return FAILURE;
+    }
 
     ASSERT(size > 0);
     *out = '\0';
     do
     {
         lastpos = tmp;
-        tmp = X509_NAME_get_index_by_NID(x509, nid, lastpos);
+        tmp = X509_NAME_get_index_by_OBJ(x509, field_name_obj, lastpos);
     } while (tmp > -1);
+
+    ASN1_OBJECT_free(field_name_obj);
 
     /* Nothing found */
     if (lastpos == -1)
