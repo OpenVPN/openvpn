@@ -592,7 +592,8 @@ static const char usage_message[] =
     "--x509-username-field : Field in x509 certificate containing the username.\n"
     "                        Default is CN in the Subject field.\n"
 #endif
-    "--verify-hash   : Specify SHA1 fingerprint for level-1 cert.\n"
+    "--verify-hash hash [algo] : Specify fingerprint for level-1 certificate.\n"
+    "                            Valid algo flags are SHA1 and SHA256. \n"
 #ifdef _WIN32
     "--cryptoapicert select-string : Load the certificate and private key from the\n"
     "                  Windows Certificate System Store.\n"
@@ -7703,10 +7704,25 @@ add_option(struct options *options,
             options->extra_certs_file_inline = p[2];
         }
     }
-    else if (streq(p[0], "verify-hash") && p[1] && !p[2])
+    else if (streq(p[0], "verify-hash") && p[1] && !p[3])
     {
         VERIFY_PERMISSION(OPT_P_GENERAL);
-        options->verify_hash = parse_hash_fingerprint(p[1], SHA_DIGEST_LENGTH, msglevel, &options->gc);
+
+        if (!p[2] || (p[2] && streq(p[2], "SHA1")))
+        {
+            options->verify_hash = parse_hash_fingerprint(p[1], SHA_DIGEST_LENGTH, msglevel, &options->gc);
+            options->verify_hash_algo = MD_SHA1;
+        }
+        else if (p[2] && streq(p[2], "SHA256"))
+        {
+            options->verify_hash = parse_hash_fingerprint(p[1], SHA256_DIGEST_LENGTH, msglevel, &options->gc);
+            options->verify_hash_algo = MD_SHA256;
+        }
+        else
+        {
+            msg(msglevel, "invalid or unsupported hashing algorithm: %s  (only SHA1 and SHA256 are valid)", p[2]);
+            goto err;
+        }
     }
 #ifdef ENABLE_CRYPTOAPI
     else if (streq(p[0], "cryptoapicert") && p[1] && !p[2])

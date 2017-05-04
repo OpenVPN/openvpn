@@ -4695,15 +4695,27 @@ and
 Not available with PolarSSL.
 .\"*********************************************************
 .TP
-.B \-\-verify\-hash hash
-Specify SHA1 fingerprint for level-1 cert.  The level-1 cert is the
+.B \-\-verify\-hash hash [algo]
+Specify SHA1 or SHA256 fingerprint for level-1 cert.  The level-1 cert is the
 CA (or intermediate cert) that signs the leaf certificate, and is
 one removed from the leaf certificate in the direction of the root.
 When accepting a connection from a peer, the level-1 cert
 fingerprint must match
 .B hash
 or certificate verification will fail.  Hash is specified
-as XX:XX:...  For example: AD:B0:95:D8:09:C8:36:45:12:A9:89:C8:90:09:CB:13:72:A6:AD:16
+as XX:XX:... For example:
+
+.nf
+.ft 3
+.in +4
+AD:B0:95:D8:09:C8:36:45:12:A9:89:C8:90:09:CB:13:72:A6:AD:16
+.in -4
+.ft
+.fi
+
+The
+.B algo
+flag can be either SHA1 or SHA256.  If not provided, it defaults to SHA1.
 .\"*********************************************************
 .TP
 .B \-\-pkcs11\-cert\-private [0|1]...
