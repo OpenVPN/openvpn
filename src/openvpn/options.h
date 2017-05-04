@@ -42,6 +42,10 @@
 #include "comp.h"
 #include "pushlist.h"
 #include "clinat.h"
+#ifdef ENABLE_CRYPTO
+#include "crypto_backend.h"
+#endif
+
 
 /*
  * Maximum number of parameters associated with an option,
@@ -518,6 +522,7 @@ struct options
     unsigned remote_cert_ku[MAX_PARMS];
     const char *remote_cert_eku;
     uint8_t *verify_hash;
+    hash_algo_type verify_hash_algo;
     unsigned int ssl_flags; /* set to SSLF_x flags from ssl.h */
 
 #ifdef ENABLE_PKCS11

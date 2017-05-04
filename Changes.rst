@@ -303,6 +303,11 @@ Maintainer-visible changes
   use -std=gnu99 in CFLAGS.  This is known to be needed when doing
   i386/i686 builds on RHEL5.
 
+Version 2.4.3
+=============
+- ``--verify-hash`` can now take an optional flag which changes the hashing
+  algorithm. It can be either SHA1 or SHA256.  The default if not provided is
+  SHA1 to preserve backwards compatibility with existing configurations.
 
 Version 2.4.1
 =============

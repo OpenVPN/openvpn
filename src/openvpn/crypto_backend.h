@@ -47,6 +47,12 @@
 /* Maximum HMAC digest size (bytes) */
 #define OPENVPN_MAX_HMAC_SIZE   64
 
+/** Types referencing specific message digest hashing algorithms */
+typedef enum {
+    MD_SHA1,
+    MD_SHA256
+} hash_algo_type ;
+
 /** Struct used in cipher name translation table */
 typedef struct {
     const char *openvpn_name;   /**< Cipher name used by OpenVPN */
