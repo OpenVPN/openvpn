@@ -219,6 +219,8 @@ struct openvpn_plugin_string_list
  *           OpenVPN to plug-ins.
  *
  *    4      Exported secure_memzero() as plugin_secure_memzero()
+ *           Exported openvpn_base64_encode() as plugin_base64_encode()
+ *           Exported openvpn_base64_decode() as plugin_base64_decode()
  */
 #define OPENVPN_PLUGINv3_STRUCTVER 4
 
@@ -267,6 +269,33 @@ typedef void (*plugin_vlog_t)(openvpn_plugin_log_flags_t flags,
  */
 typedef void (*plugin_secure_memzero_t)(void *data, size_t len);
 
+/**
+ *  Export of openvpn_base64_encode() to be used inside plug-ins
+ *
+ *  @param data   Pointer to data to BASE64 encode
+ *  @param size   Length of data, in bytes
+ *  @param *str   Pointer to the return buffer.  This needed memory is
+ *                allocated by openvpn_base64_encode() and needs to be free()d
+ *                after use.
+ *
+ *  @return int   Returns the length of the buffer created, or -1 on error.
+ *
+ */
+typedef int (*plugin_base64_encode_t)(const void *data, int size, char **str);
+
+/**
+ *  Export of openvpn_base64_decode() to be used inside plug-ins
+ *
+ *  @param str    Pointer to the BASE64 encoded data
+ *  @param data   Pointer to the buffer where save the decoded data
+ *  @param size   Size of the destination buffer
+ *
+ *  @return int   Returns the length of the decoded data, or -1 on error or
+ *                if the destination buffer is too small.
+ *
+ */
+typedef int (*plugin_base64_decode_t)(const char *str, void *data, int size);
+
 
 /**
  * Used by the openvpn_plugin_open_v3() function to pass callback
@@ -289,6 +318,8 @@ struct openvpn_plugin_callbacks
     plugin_log_t plugin_log;
     plugin_vlog_t plugin_vlog;
     plugin_secure_memzero_t plugin_secure_memzero;
+    plugin_base64_encode_t plugin_base64_encode;
+    plugin_base64_decode_t plugin_base64_decode;
 };
 
 /**
