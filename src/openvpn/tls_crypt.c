@@ -98,11 +98,7 @@ tls_crypt_wrap(const struct buffer *src, struct buffer *dst,
          format_hex(BPTR(src), BLEN(src), 80, &gc));
 
     /* Get packet ID */
-    {
-        struct packet_id_net pin;
-        packet_id_alloc_outgoing(&opt->packet_id.send, &pin, true);
-        packet_id_write(&pin, dst, true, false);
-    }
+    ASSERT(packet_id_write(&opt->packet_id.send, dst, true, false));
 
     dmsg(D_PACKET_CONTENT, "TLS-CRYPT WRAP AD: %s",
          format_hex(BPTR(dst), BLEN(dst), 0, &gc));

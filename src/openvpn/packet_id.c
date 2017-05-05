@@ -325,12 +325,30 @@ packet_id_read(struct packet_id_net *pin, struct buffer *buf, bool long_form)
     return true;
 }
 
-bool
-packet_id_write(const struct packet_id_net *pin, struct buffer *buf, bool long_form, bool prepend)
+static void
+packet_id_send_update(struct packet_id_send *p, bool long_form)
 {
-    packet_id_type net_id = htonpid(pin->id);
-    net_time_t net_time = htontime(pin->time);
+    if (!p->time)
+    {
+        p->time = now;
+    }
+    p->id++;
+    if (!p->id)
+    {
+        ASSERT(long_form);
+        p->time = now;
+        p->id = 1;
+    }
+}
 
+bool
+packet_id_write(struct packet_id_send *p, struct buffer *buf, bool long_form,
+        bool prepend)
+{
+    packet_id_send_update(p, long_form);
+
+    const packet_id_type net_id = htonpid(p->id);
+    const net_time_t net_time = htontime(p->time);
     if (prepend)
     {
         if (long_form)
