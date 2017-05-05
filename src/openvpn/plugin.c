@@ -410,7 +410,8 @@ plugin_log(openvpn_plugin_log_flags_t flags, const char *name, const char *forma
 
 static struct openvpn_plugin_callbacks callbacks = {
     plugin_log,
-    plugin_vlog
+    plugin_vlog,
+    secure_memzero   /* plugin_secure_memzero */
 };
 
 
