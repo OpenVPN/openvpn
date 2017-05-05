@@ -12,6 +12,9 @@ env:
   global:
     - JOBS=3
     - PREFIX="${HOME}/opt"
+    - TAP_WINDOWS_VERSION=9.21.2
+    - LZO_VERSION=2.10
+    - PKCS11_HELPER_VERSION=1.11
     - MBEDTLS_VERSION="2.4.0"
     - MBEDTLS_CFLAGS="-I${PREFIX}/include"
     - MBEDTLS_LIBS="-L${PREFIX}/lib -lmbedtls -lmbedx509 -lmbedcrypto"
@@ -50,6 +53,12 @@ matrix:
       os: osx
       osx_image: xcode7.3
       compiler: clang
+    - env: SSLLIB="openssl" CHOST=x86_64-w64-mingw32
+      os: linux
+      compiler: ": Win64 build only"
+    - env: SSLLIB="openssl" CHOST=i686-w64-mingw32
+      os: linux
+      compiler: ": Win32 build only"
   exclude:
     - compiler: gcc
 
@@ -60,6 +69,7 @@ addons:
       - libpam0g-dev
       - liblz4-dev
       - linux-libc-dev
+      - man2html
 
 cache:
   ccache: true
@@ -72,16 +82,8 @@ before_install:
   - if [ "${TRAVIS_OS_NAME}" = "osx" ]; then brew install lzo; fi
 
 install:
+  - if [ ! -z "${CHOST}" ]; then unset CC; fi
   - .travis/build-deps.sh > build-deps.log 2>&1 || (cat build-deps.log && exit 1)
 
 script:
-  - if [ "${TRAVIS_OS_NAME}" = "linux" ]; then export LD_LIBRARY_PATH="${PREFIX}/lib:${LD_LIBRARY_PATH}"; fi
-  - if [ "${TRAVIS_OS_NAME}" = "osx"   ]; then export DYLD_LIBRARY_PATH="${PREFIX}/lib:${DYLD_LIBRARY_PATH}"; fi
-  - autoreconf -vi
-  - ./configure --with-crypto-library="${SSLLIB}" ${EXTRA_CONFIG} || (cat config.log && exit 1)
-  - make -j$JOBS
-  - src/openvpn/openvpn --version || true
-  - if [ "${TRAVIS_OS_NAME}" = "linux" ]; then ldd src/openvpn/openvpn; fi
-  - if [ "${TRAVIS_OS_NAME}" = "osx" ]; then otool -L src/openvpn/openvpn; fi
-  - make check
-  - $EXTRA_SCRIPT
+  - .travis/build-check.sh
