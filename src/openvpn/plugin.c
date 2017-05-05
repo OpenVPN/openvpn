@@ -43,6 +43,7 @@
 #include "misc.h"
 #include "plugin.h"
 #include "ssl_backend.h"
+#include "base64.h"
 #include "win32.h"
 #include "memdbg.h"
 
@@ -410,7 +411,9 @@ plugin_log(openvpn_plugin_log_flags_t flags, const char *name, const char *forma
 static struct openvpn_plugin_callbacks callbacks = {
     plugin_log,
     plugin_vlog,
-    secure_memzero   /* plugin_secure_memzero */
+    secure_memzero,         /* plugin_secure_memzero */
+    openvpn_base64_encode,  /* plugin_base64_encode */
+    openvpn_base64_decode,  /* plugin_base64_decode */
 };
 
 
