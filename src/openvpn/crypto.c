@@ -85,7 +85,6 @@ openvpn_encrypt_aead(struct buffer *buf, struct buffer work,
     /* Prepare IV */
     {
         struct buffer iv_buffer;
-        struct packet_id_net pin;
         uint8_t iv[OPENVPN_MAX_IV_LENGTH] = {0};
         const int iv_len = cipher_ctx_iv_length(ctx->cipher);
 
@@ -94,8 +93,7 @@ openvpn_encrypt_aead(struct buffer *buf, struct buffer work,
         buf_set_write(&iv_buffer, iv, iv_len);
 
         /* IV starts with packet id to make the IV unique for packet */
-        packet_id_alloc_outgoing(&opt->packet_id.send, &pin, false);
-        ASSERT(packet_id_write(&pin, &iv_buffer, false, false));
+        ASSERT(packet_id_write(&opt->packet_id.send, &iv_buffer, false, false));
 
         /* Remainder of IV consists of implicit part (unique per session) */
         ASSERT(buf_write(&iv_buffer, ctx->implicit_iv, ctx->implicit_iv_len));
@@ -195,22 +193,20 @@ openvpn_encrypt_v1(struct buffer *buf, struct buffer work,
                 /* Put packet ID in plaintext buffer */
                 if (packet_id_initialized(&opt->packet_id))
                 {
-                    struct packet_id_net pin;
-                    packet_id_alloc_outgoing(&opt->packet_id.send, &pin, BOOL_CAST(opt->flags & CO_PACKET_ID_LONG_FORM));
-                    ASSERT(packet_id_write(&pin, buf, BOOL_CAST(opt->flags & CO_PACKET_ID_LONG_FORM), true));
+                    ASSERT(packet_id_write(&opt->packet_id.send, buf,
+                                           opt->flags & CO_PACKET_ID_LONG_FORM,
+                                           true));
                 }
             }
             else if (cipher_kt_mode_ofb_cfb(cipher_kt))
             {
-                struct packet_id_net pin;
                 struct buffer b;
 
                 /* packet-ID required for this mode. */
                 ASSERT(packet_id_initialized(&opt->packet_id));
 
-                packet_id_alloc_outgoing(&opt->packet_id.send, &pin, true);
                 buf_set_write(&b, iv_buf, iv_size);
-                ASSERT(packet_id_write(&pin, &b, true, false));
+                ASSERT(packet_id_write(&opt->packet_id.send, &b, true, false));
             }
             else /* We only support CBC, CFB, or OFB modes right now */
             {
@@ -257,9 +253,9 @@ openvpn_encrypt_v1(struct buffer *buf, struct buffer work,
         {
             if (packet_id_initialized(&opt->packet_id))
             {
-                struct packet_id_net pin;
-                packet_id_alloc_outgoing(&opt->packet_id.send, &pin, BOOL_CAST(opt->flags & CO_PACKET_ID_LONG_FORM));
-                ASSERT(packet_id_write(&pin, buf, BOOL_CAST(opt->flags & CO_PACKET_ID_LONG_FORM), true));
+                ASSERT(packet_id_write(&opt->packet_id.send, buf,
+                        BOOL_CAST(opt->flags & CO_PACKET_ID_LONG_FORM),
+                        true));
             }
             if (ctx->hmac)
             {

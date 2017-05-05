@@ -29,9 +29,12 @@
 #endif
 
 #include <stdarg.h>
-#include <stdbool.h>
+#include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <setjmp.h>
+#include <cmocka.h>
+
 
 #include "errlevel.h"
 #include "error.h"
@@ -70,14 +73,8 @@ x_msg(const unsigned int flags, const char *format, ...)
 void
 assert_failed(const char *filename, int line, const char *condition)
 {
-    if (condition)
-    {
-        printf("Assertion failed at %s:%d (%s)", filename, line, condition);
-    }
-    else
-    {
-        printf("Assertion failed at %s:%d", filename, line);
-    }
+    mock_assert(false, condition ? condition : "", filename, line);
+    /* Keep compiler happy.  Should not happen, mock_assert() does not return */
     exit(1);
 }
 
