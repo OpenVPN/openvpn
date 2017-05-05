@@ -257,6 +257,11 @@ struct crypto_options
 #define CO_MUTE_REPLAY_WARNINGS (1<<2)
     /**< Bit-flag indicating not to display
      *   replay warnings. */
+#define CO_TLS_CONNECTION_REUSE (1<<4)
+    /**< Bit-flag indicating if the TLS connection
+     *   is reused. This is needed so that framing
+     *   is not done multiple times on a reused
+     *   connection. */
     unsigned int flags;         /**< Bit-flags determining behavior of
                                  *   security operation functions. */
 };

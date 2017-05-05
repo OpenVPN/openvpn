@@ -1976,13 +1976,17 @@ tls_session_update_crypto_params(struct tls_session *session,
         session->opt->crypto_flags |= CO_PACKET_ID_LONG_FORM;
     }
 
-    /* Update frame parameters: undo worst-case overhead, add actual overhead */
-    frame_add_to_extra_frame(frame, -(crypto_max_overhead()));
-    crypto_adjust_frame_parameters(frame, &session->opt->key_type,
-                                   options->replay, packet_id_long_form);
-    frame_finalize(frame, options->ce.link_mtu_defined, options->ce.link_mtu,
-                   options->ce.tun_mtu_defined, options->ce.tun_mtu);
-    frame_init_mssfix(frame, options);
+    if (!BOOL_CAST(session->opt->crypto_flags & CO_TLS_CONNECTION_REUSE))
+    {
+        /* Update frame parameters: undo worst-case overhead, add actual overhead */
+        frame_add_to_extra_frame(frame, -(crypto_max_overhead()));
+        crypto_adjust_frame_parameters(frame, &session->opt->key_type,
+                                       options->replay, packet_id_long_form);
+        frame_finalize(frame, options->ce.link_mtu_defined, options->ce.link_mtu,
+                       options->ce.tun_mtu_defined, options->ce.tun_mtu);
+        frame_init_mssfix(frame, options);
+        session->opt->crypto_flags |= CO_TLS_CONNECTION_REUSE;
+    }
     frame_print(frame, D_MTU_INFO, "Data Channel MTU parms");
 
     return tls_session_generate_data_channel_keys(session);
