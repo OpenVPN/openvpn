@@ -318,3 +318,12 @@ Version 2.4.1
   ``--remote-cert-tls`` uses the far more common keyUsage and extendedKeyUsage
   extension instead.  Make sure your certificates carry these to be able to
   use ``--remote-cert-tls``.
+
+
+Version 2.4.2
+=============
+
+Bugfixes
+--------
+- Fix memory leak introduced in 2.4.1: if --remote-cert-tls is used, we leaked
+  some memory on each TLS (re)negotiation.
