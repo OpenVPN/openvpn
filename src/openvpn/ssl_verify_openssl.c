@@ -607,6 +607,7 @@ x509_verify_cert_ku(X509 *x509, const unsigned *const expected_ku,
     if (expected_ku[0] == OPENVPN_KU_REQUIRED)
     {
         /* Extension required, value checked by TLS library */
+        ASN1_BIT_STRING_free(ku);
         return SUCCESS;
     }
 
