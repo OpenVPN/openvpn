@@ -328,12 +328,12 @@ struct openvpn_plugin_args_open_in
  *
  * STRUCT MEMBERS
  *
- * *type_mask : The plug-in should set this value to the logical OR of all script
+ * type_mask  : The plug-in should set this value to the logical OR of all script
  *              types which the plug-in wants to intercept.  For example, if the
  *              script wants to intercept the client-connect and client-disconnect
  *              script types:
  *
- *              *type_mask = OPENVPN_PLUGIN_MASK(OPENVPN_PLUGIN_CLIENT_CONNECT)
+ *              type_mask = OPENVPN_PLUGIN_MASK(OPENVPN_PLUGIN_CLIENT_CONNECT)
  *                         | OPENVPN_PLUGIN_MASK(OPENVPN_PLUGIN_CLIENT_DISCONNECT)
  *
  * *handle :    Pointer to a global plug-in context, created by the plug-in.  This pointer
