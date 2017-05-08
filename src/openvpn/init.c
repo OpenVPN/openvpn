@@ -4069,6 +4069,8 @@ init_instance(struct context *c, const struct env_set *env, const unsigned int f
         c->c2.did_open_tun = do_open_tun(c);
     }
 
+    c->c2.frame_initial = c->c2.frame;
+
     /* print MTU info */
     do_print_data_channel_mtu_parms(c);
 

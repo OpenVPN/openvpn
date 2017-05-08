@@ -263,7 +263,8 @@ struct context_2
     struct link_socket_actual from;             /* address of incoming datagram */
 
     /* MTU frame parameters */
-    struct frame frame;
+    struct frame frame;                         /* Active frame parameters */
+    struct frame frame_initial;                 /* Restored on new session */
 
 #ifdef ENABLE_FRAGMENT
     /* Object to handle advanced MTU negotiation and datagram fragmentation */

@@ -832,14 +832,7 @@ print_key_id(struct tls_multi *multi, struct gc_arena *gc)
     return BSTR(&out);
 }
 
-/*
- * Given a key_method, return true if op
- * represents the required form of hard_reset.
- *
- * If key_method = 0, return true if any
- * form of hard reset is used.
- */
-static bool
+bool
 is_hard_reset(int op, int key_method)
 {
     if (!key_method || key_method == 1)
