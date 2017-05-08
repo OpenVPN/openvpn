@@ -591,6 +591,14 @@ void show_tls_performance_stats(void);
 /*#define EXTRACT_X509_FIELD_TEST*/
 void extract_x509_field_test(void);
 
+/**
+ * Given a key_method, return true if opcode represents the required form of
+ * hard_reset.
+ *
+ * If key_method == 0, return true if any form of hard reset is used.
+ */
+bool is_hard_reset(int op, int key_method);
+
 #endif /* ENABLE_CRYPTO */
 
 #endif /* ifndef OPENVPN_SSL_H */
