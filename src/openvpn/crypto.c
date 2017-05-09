@@ -110,9 +110,11 @@ openvpn_encrypt (struct buffer *buf, struct buffer work,
 		prng_bytes (iv_buf, iv_size);
 
 	      /* Put packet ID in plaintext buffer or IV, depending on cipher mode */
-	      if (opt->packet_id)
+	      if (opt->packet_id
+		  && !packet_id_write (&opt->packet_id->send, buf, BOOL_CAST (opt->flags & CO_PACKET_ID_LONG_FORM), true))
 		{
-		  ASSERT (packet_id_write (&opt->packet_id->send, buf, BOOL_CAST (opt->flags & CO_PACKET_ID_LONG_FORM), true));
+		  msg (D_CRYPT_ERRORS, "ENCRYPT ERROR: packet ID roll over");
+		  goto err;
 		}
 	    }
 	  else if (cipher_kt_mode_ofb_cfb(cipher_kt))
@@ -123,7 +125,11 @@ openvpn_encrypt (struct buffer *buf, struct buffer work,
 	      ASSERT (opt->packet_id); /*  for this mode. */
 
 	      buf_set_write (&b, iv_buf, iv_size);
-	      ASSERT (packet_id_write (&opt->packet_id->send, &b, true, false));
+	      if (!packet_id_write (&opt->packet_id->send, &b, true, false))
+		{
+		  msg (D_CRYPT_ERRORS, "ENCRYPT ERROR: packet ID roll over");
+		  goto err;
+		}
 	    }
 	  else /* We only support CBC, CFB, or OFB modes right now */
 	    {
@@ -182,9 +188,11 @@ openvpn_encrypt (struct buffer *buf, struct buffer work,
 	}
       else				/* No Encryption */
 	{
-	  if (opt->packet_id)
+	  if (opt->packet_id
+	      && !packet_id_write (&opt->packet_id->send, buf, BOOL_CAST (opt->flags & CO_PACKET_ID_LONG_FORM), true))
 	    {
-	      ASSERT (packet_id_write (&opt->packet_id->send, buf, BOOL_CAST (opt->flags & CO_PACKET_ID_LONG_FORM), true));
+	      msg (D_CRYPT_ERRORS, "ENCRYPT ERROR: packet ID roll over");
+	      goto err;
 	    }
 	  work = *buf;
 	}

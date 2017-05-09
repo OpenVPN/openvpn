@@ -130,8 +130,7 @@ test_packet_id_write_short_wrap(void **state)
     struct test_packet_id_write_data *data = *state;
 
     data->pis.id = ~0;
-    expect_assert_failure(
-            packet_id_write(&data->pis, &data->test_buf, false, false));
+    assert_false(packet_id_write(&data->pis, &data->test_buf, false, false));
 }
 
 static void
@@ -140,8 +139,16 @@ test_packet_id_write_long_wrap(void **state)
     struct test_packet_id_write_data *data = *state;
 
     data->pis.id = ~0;
+    data->pis.time = 5006;
+
+    /* Write fails if time did not change */
+    now = 5006;
+    assert_false(packet_id_write(&data->pis, &data->test_buf, true, false));
+
+    /* Write succeeds if time moved forward */
     now = 5010;
     assert_true(packet_id_write(&data->pis, &data->test_buf, true, false));
+
     assert(data->pis.id == 1);
     assert(data->pis.time == now);
     assert_true(data->test_buf_data.buf_id == htonl(1));
