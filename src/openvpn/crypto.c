@@ -114,23 +114,19 @@ openvpn_encrypt (struct buffer *buf, struct buffer work,
 	      /* Put packet ID in plaintext buffer or IV, depending on cipher mode */
 	      if (opt->packet_id)
 		{
-		  struct packet_id_net pin;
-		  packet_id_alloc_outgoing (&opt->packet_id->send, &pin, BOOL_CAST (opt->flags & CO_PACKET_ID_LONG_FORM));
-		  ASSERT (packet_id_write (&pin, buf, BOOL_CAST (opt->flags & CO_PACKET_ID_LONG_FORM), true));
+		  ASSERT (packet_id_write (&opt->packet_id->send, buf, BOOL_CAST (opt->flags & CO_PACKET_ID_LONG_FORM), true));
 		}
 	    }
 	  else if (cipher_kt_mode_ofb_cfb(cipher_kt))
 	    {
-	      struct packet_id_net pin;
 	      struct buffer b;
 
 	      ASSERT (opt->flags & CO_USE_IV);    /* IV and packet-ID required */
 	      ASSERT (opt->packet_id); /*  for this mode. */
 
-	      packet_id_alloc_outgoing (&opt->packet_id->send, &pin, true);
 	      memset (iv_buf, 0, iv_size);
 	      buf_set_write (&b, iv_buf, iv_size);
-	      ASSERT (packet_id_write (&pin, &b, true, false));
+	      ASSERT (packet_id_write (&opt->packet_id->send, &b, true, false));
 	    }
 	  else /* We only support CBC, CFB, or OFB modes right now */
 	    {
@@ -191,9 +187,7 @@ openvpn_encrypt (struct buffer *buf, struct buffer work,
 	{
 	  if (opt->packet_id)
 	    {
-	      struct packet_id_net pin;
-	      packet_id_alloc_outgoing (&opt->packet_id->send, &pin, BOOL_CAST (opt->flags & CO_PACKET_ID_LONG_FORM));
-	      ASSERT (packet_id_write (&pin, buf, BOOL_CAST (opt->flags & CO_PACKET_ID_LONG_FORM), true));
+	      ASSERT (packet_id_write (&opt->packet_id->send, buf, BOOL_CAST (opt->flags & CO_PACKET_ID_LONG_FORM), true));
 	    }
 	  work = *buf;
 	}

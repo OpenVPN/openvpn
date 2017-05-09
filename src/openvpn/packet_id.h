@@ -252,7 +252,19 @@ const char *packet_id_persist_print (const struct packet_id_persist *p, struct g
  */
 
 bool packet_id_read (struct packet_id_net *pin, struct buffer *buf, bool long_form);
-bool packet_id_write (const struct packet_id_net *pin, struct buffer *buf, bool long_form, bool prepend);
+
+/**
+ * Write a packet ID to buf, and update the packet ID state.
+ *
+ * @param p             Packet ID state.
+ * @param buf           Buffer to write the packet ID too
+ * @param long_form     If true, also update and write time_t to buf
+ * @param prepend       If true, prepend to buffer, otherwise apppend.
+ *
+ * @return true if successful, false otherwise.
+ */
+bool packet_id_write (struct packet_id_send *p, struct buffer *buf,
+        bool long_form, bool prepend);
 
 /*
  * Inline functions.
@@ -292,26 +304,6 @@ static inline bool
 packet_id_close_to_wrapping (const struct packet_id_send *p)
 {
   return p->id >= PACKET_ID_WRAP_TRIGGER;
-}
-
-/*
- * Allocate an outgoing packet id.
- * Sequence number ranges from 1 to 2^32-1.
- * In long_form, a time_t is added as well.
- */
-static inline void
-packet_id_alloc_outgoing (struct packet_id_send *p, struct packet_id_net *pin, bool long_form)
-{
-  if (!p->time)
-    p->time = now;
-  pin->id = ++p->id;
-  if (!pin->id)
-    {
-      ASSERT (long_form);
-      p->time = now;
-      pin->id = p->id = 1;
-    }
-  pin->time = p->time;
 }
 
 static inline bool
