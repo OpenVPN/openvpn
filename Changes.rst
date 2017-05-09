@@ -335,3 +335,7 @@ Security
   to hit an ASSERT() and stop the process.  If ``--tls-auth`` or ``--tls-crypt``
   is used, only attackers that have the ``--tls-auth`` or ``--tls-crypt`` key
   can mount an attack. (OSTIF/Quarkslab audit finding 5.1, CVE-2017-7478)
+- Fix an authenticated remote DoS vulnerability that could be triggered by
+  causing a packet id roll over.  An attack is rather inefficient; a peer
+  would need to get us to send at least about 196 GB of data.
+  (OSTIF/Quarkslab audit finding 5.2, CVE-2017-7479)

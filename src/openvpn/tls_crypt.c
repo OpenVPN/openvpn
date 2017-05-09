@@ -98,7 +98,11 @@ tls_crypt_wrap(const struct buffer *src, struct buffer *dst,
          format_hex(BPTR(src), BLEN(src), 80, &gc));
 
     /* Get packet ID */
-    ASSERT(packet_id_write(&opt->packet_id.send, dst, true, false));
+    if (!packet_id_write(&opt->packet_id.send, dst, true, false))
+    {
+        msg(D_CRYPT_ERRORS, "TLS-CRYPT ERROR: packet ID roll over.");
+        goto err;
+    }
 
     dmsg(D_PACKET_CONTENT, "TLS-CRYPT WRAP AD: %s",
          format_hex(BPTR(dst), BLEN(dst), 0, &gc));
