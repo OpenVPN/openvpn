@@ -327,3 +327,11 @@ Bugfixes
 --------
 - Fix memory leak introduced in 2.4.1: if --remote-cert-tls is used, we leaked
   some memory on each TLS (re)negotiation.
+
+Security
+--------
+- Fix a pre-authentication denial-of-service attack on both clients and servers.
+  By sending a too-large control packet, OpenVPN 2.4.0 or 2.4.1 can be forced
+  to hit an ASSERT() and stop the process.  If ``--tls-auth`` or ``--tls-crypt``
+  is used, only attackers that have the ``--tls-auth`` or ``--tls-crypt`` key
+  can mount an attack. (OSTIF/Quarkslab audit finding 5.1, CVE-2017-7478)
