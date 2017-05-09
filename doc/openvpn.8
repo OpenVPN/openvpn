@@ -5090,6 +5090,29 @@ In contrast to
 .B \-\-tls\-crypt
 does *not* require the user to set
 .B \-\-key\-direction\fR.
+
+.B Security Considerations
+
+All peers use the same
+.B \-\-tls-crypt
+pre-shared group key to authenticate and encrypt control channel messages.  To
+ensure that IV collisions remain unlikely, this key should not be used to
+encrypt more than 2^48 client-to-server or 2^48 server-to-client control
+channel messages.  A typical initial negotiation is about 10 packets in each
+direction.  Assuming both initial negotiation and renegotiations are at most
+2^16 (65536) packets (to be conservative), and (re)negotiations happen each
+minute for each user (24/7), this limits the tls\-crypt key lifetime to 8171
+years divided by the number of users.  So a setup with 1000 users should rotate
+the key at least once each eight years.  (And a setup with 8000 users each
+year.)
+
+If IV collisions were to occur, this could result in the security of
+.B \-\-tls\-crypt
+degrading to the same security as using
+.B \-\-tls\-auth\fR.
+That is, the control channel still benefits from the extra protection against
+active man-in-the-middle-attacks and DoS attacks, but may no longer offer
+extra privacy and post-quantum security on top of what TLS itself offers.
 .\"*********************************************************
 .TP
 .B \-\-askpass [file]
