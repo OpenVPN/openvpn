@@ -93,7 +93,11 @@ openvpn_encrypt_aead(struct buffer *buf, struct buffer work,
         buf_set_write(&iv_buffer, iv, iv_len);
 
         /* IV starts with packet id to make the IV unique for packet */
-        ASSERT(packet_id_write(&opt->packet_id.send, &iv_buffer, false, false));
+        if (!packet_id_write(&opt->packet_id.send, &iv_buffer, false, false))
+        {
+            msg(D_CRYPT_ERRORS, "ENCRYPT ERROR: packet ID roll over");
+            goto err;
+        }
 
         /* Remainder of IV consists of implicit part (unique per session) */
         ASSERT(buf_write(&iv_buffer, ctx->implicit_iv, ctx->implicit_iv_len));
@@ -191,11 +195,13 @@ openvpn_encrypt_v1(struct buffer *buf, struct buffer work,
                 prng_bytes(iv_buf, iv_size);
 
                 /* Put packet ID in plaintext buffer */
-                if (packet_id_initialized(&opt->packet_id))
+                if (packet_id_initialized(&opt->packet_id)
+                    && !packet_id_write(&opt->packet_id.send, buf,
+                                        opt->flags & CO_PACKET_ID_LONG_FORM,
+                                        true))
                 {
-                    ASSERT(packet_id_write(&opt->packet_id.send, buf,
-                                           opt->flags & CO_PACKET_ID_LONG_FORM,
-                                           true));
+                    msg(D_CRYPT_ERRORS, "ENCRYPT ERROR: packet ID roll over");
+                    goto err;
                 }
             }
             else if (cipher_kt_mode_ofb_cfb(cipher_kt))
@@ -251,11 +257,12 @@ openvpn_encrypt_v1(struct buffer *buf, struct buffer work,
         }
         else                            /* No Encryption */
         {
-            if (packet_id_initialized(&opt->packet_id))
+            if (packet_id_initialized(&opt->packet_id)
+                && !packet_id_write(&opt->packet_id.send, buf,
+                                    opt->flags & CO_PACKET_ID_LONG_FORM, true))
             {
-                ASSERT(packet_id_write(&opt->packet_id.send, buf,
-                        BOOL_CAST(opt->flags & CO_PACKET_ID_LONG_FORM),
-                        true));
+                msg(D_CRYPT_ERRORS, "ENCRYPT ERROR: packet ID roll over");
+                goto err;
             }
             if (ctx->hmac)
             {
