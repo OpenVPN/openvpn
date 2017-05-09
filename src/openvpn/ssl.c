@@ -2492,7 +2492,7 @@ key_method_2_read(struct buffer *buf, struct tls_multi *multi, struct tls_sessio
 
     struct gc_arena gc = gc_new();
     char *options;
-    struct user_pass *up;
+    struct user_pass *up = NULL;
 
     /* allocate temporary objects */
     ALLOC_ARRAY_CLEAR_GC(options, char, TLS_OPTIONS_LEN, &gc);
@@ -2654,6 +2654,10 @@ key_method_2_read(struct buffer *buf, struct tls_multi *multi, struct tls_sessio
 
 error:
     secure_memzero(ks->key_src, sizeof(*ks->key_src));
+    if (up)
+    {
+        secure_memzero(up, sizeof(*up));
+    }
     buf_clear(buf);
     gc_free(&gc);
     return false;
