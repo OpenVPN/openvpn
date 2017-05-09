@@ -39,6 +39,7 @@
 
 #include "errlevel.h"
 #include "pkcs11_backend.h"
+#include "ssl_verify_backend.h"
 #include <mbedtls/pkcs11.h>
 #include <mbedtls/x509.h>
 
@@ -82,8 +83,6 @@ char *
 pkcs11_certificate_dn(pkcs11h_certificate_t cert, struct gc_arena *gc)
 {
     char *ret = NULL;
-    char dn[1024] = {0};
-
     mbedtls_x509_crt mbed_crt = {0};
 
     if (mbedtls_pkcs11_x509_cert_bind(&mbed_crt, cert))
@@ -92,13 +91,11 @@ pkcs11_certificate_dn(pkcs11h_certificate_t cert, struct gc_arena *gc)
         goto cleanup;
     }
 
-    if (-1 == mbedtls_x509_dn_gets(dn, sizeof(dn), &mbed_crt.subject))
+    if (!(ret = x509_get_subject(&mbed_crt, gc)))
     {
         msg(M_FATAL, "PKCS#11: mbed TLS cannot parse subject");
         goto cleanup;
     }
-
-    ret = string_alloc(dn, gc);
 
 cleanup:
     mbedtls_x509_crt_free(&mbed_crt);
