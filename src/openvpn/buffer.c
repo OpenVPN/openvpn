@@ -155,7 +155,9 @@ void
 buf_clear (struct buffer *buf)
 {
   if (buf->capacity > 0)
-    memset (buf->data, 0, buf->capacity);
+    {
+      secure_memzero (buf->data, buf->capacity);
+    }
   buf->len = 0;
   buf->offset = 0;
 }
@@ -579,9 +581,7 @@ string_clear (char *str)
 {
   if (str)
     {
-      const int len = strlen (str);
-      if (len > 0)
-	memset (str, 0, len);
+      secure_memzero (str, strlen (str));
     }
 }
 

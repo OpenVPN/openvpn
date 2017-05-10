@@ -2115,7 +2115,7 @@ do_init_crypto_static (struct context *c, const unsigned int flags)
 		    &c->c1.ks.key_type, OPENVPN_OP_DECRYPT, "Static Decrypt");
 
       /* Erase the temporary copy of key */
-      CLEAR (key2);
+      secure_memzero (&key2, sizeof(key2));
     }
   else
     {

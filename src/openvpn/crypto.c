@@ -98,15 +98,13 @@ openvpn_encrypt (struct buffer *buf, struct buffer work,
       /* Do Encrypt from buf -> work */
       if (ctx->cipher)
 	{
-	  uint8_t iv_buf[OPENVPN_MAX_IV_LENGTH];
+	  uint8_t iv_buf[OPENVPN_MAX_IV_LENGTH] = {0};
 	  const int iv_size = cipher_ctx_iv_length (ctx->cipher);
 	  const cipher_kt_t *cipher_kt = cipher_ctx_get_cipher_kt (ctx->cipher);
 	  int outlen;
 
 	  if (cipher_kt_mode_cbc(cipher_kt))
 	    {
-	      CLEAR (iv_buf);
-
 	      /* generate pseudo-random IV */
 	      if (opt->flags & CO_USE_IV)
 		prng_bytes (iv_buf, iv_size);
@@ -124,7 +122,6 @@ openvpn_encrypt (struct buffer *buf, struct buffer work,
 	      ASSERT (opt->flags & CO_USE_IV);    /* IV and packet-ID required */
 	      ASSERT (opt->packet_id); /*  for this mode. */
 
-	      memset (iv_buf, 0, iv_size);
 	      buf_set_write (&b, iv_buf, iv_size);
 	      ASSERT (packet_id_write (&opt->packet_id->send, &b, true, false));
 	    }
@@ -271,14 +268,13 @@ openvpn_decrypt (struct buffer *buf, struct buffer work,
 	{
 	  const int iv_size = cipher_ctx_iv_length (ctx->cipher);
 	  const cipher_kt_t *cipher_kt = cipher_ctx_get_cipher_kt (ctx->cipher);
-	  uint8_t iv_buf[OPENVPN_MAX_IV_LENGTH];
+	  uint8_t iv_buf[OPENVPN_MAX_IV_LENGTH] = { 0 };
 	  int outlen;
 
 	  /* initialize work buffer with FRAME_HEADROOM bytes of prepend capacity */
 	  ASSERT (buf_init (&work, FRAME_HEADROOM_ADJ (frame, FRAME_HEADROOM_MARKER_DECRYPT)));
 
 	  /* use IV if user requested it */
-	  CLEAR (iv_buf);
 	  if (opt->flags & CO_USE_IV)
 	    {
 	      if (buf->len < iv_size)
@@ -828,7 +824,7 @@ get_tls_handshake_key (const struct key_type *key_type,
       init_key_ctx (&ctx->decrypt, &key2.keys[kds.in_key], &kt, OPENVPN_OP_DECRYPT,
 		    "Incoming Control Channel Authentication");
 
-      CLEAR (key2);
+      secure_memzero (&key2, sizeof (key2));
     }
   else
     {
@@ -1138,8 +1134,8 @@ write_key_file (const int nkeys, const char *filename)
       buf_printf (&out, "%s\n", fmt);
 
       /* zero memory which held key component (will be freed by GC) */
-      memset (fmt, 0, strlen(fmt));
-      CLEAR (key);
+      secure_memzero (fmt, strlen (fmt));
+      secure_memzero (&key, sizeof (key));
     }
 
   buf_printf (&out, "%s\n", static_key_foot);

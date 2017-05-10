@@ -1340,7 +1340,7 @@ purge_user_pass (struct user_pass *up, const bool force)
   static bool warn_shown = false;
   if (nocache || force)
     {
-      CLEAR (*up);
+      secure_memzero (up, sizeof(*up));
       up->nocache = nocache;
     }
   else if (!warn_shown)

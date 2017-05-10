@@ -1427,7 +1427,7 @@ tls1_P_hash(const md_kt_t *md_kt,
     }
   hmac_ctx_cleanup(&ctx);
   hmac_ctx_cleanup(&ctx_tmp);
-  CLEAR (A1);
+  secure_memzero (A1, sizeof (A1));
 
   dmsg (D_SHOW_KEY_SOURCE, "tls1_P_hash out: %s", format_hex (out_orig, olen_orig, 0, &gc));
   gc_free (&gc);
@@ -1537,13 +1537,10 @@ generate_key_expansion (struct key_ctx_bi *key,
 			const struct session_id *server_sid,
 			bool server)
 {
-  uint8_t master[48];
-  struct key2 key2;
+  uint8_t master[48] = { 0 };
+  struct key2 key2 = { 0 };
   bool ret = false;
   int i;
-
-  CLEAR (master);
-  CLEAR (key2);
 
   /* debugging print of source key material */
   key_source2_print (key_src);
@@ -1608,8 +1605,8 @@ generate_key_expansion (struct key_ctx_bi *key,
   ret = true;
 
  exit:
-  CLEAR (master);
-  CLEAR (key2);
+  secure_memzero (&master, sizeof (master));
+  secure_memzero (&key2, sizeof (key2));
 
   return ret;
 }
@@ -1806,7 +1803,7 @@ key_method_1_write (struct buffer *buf, struct tls_session *session)
 
   init_key_ctx (&ks->key.encrypt, &key, &session->opt->key_type,
 		OPENVPN_OP_ENCRYPT, "Data Channel Encrypt");
-  CLEAR (key);
+  secure_memzero (&key, sizeof (key));
 
   /* send local options string */
   {
@@ -1976,7 +1973,7 @@ key_method_2_write (struct buffer *buf, struct tls_session *session)
 	    }
 	}
 		      
-      CLEAR (*ks->key_src);
+      secure_memzero (ks->key_src, sizeof (*ks->key_src));
       tls_limit_reneg_bytes (session->opt->key_type.cipher,
 			     &session->opt->renegotiate_bytes);
     }
@@ -1985,7 +1982,7 @@ key_method_2_write (struct buffer *buf, struct tls_session *session)
 
  error:
   msg (D_TLS_ERRORS, "TLS Error: Key Method #2 write failed");
-  CLEAR (*ks->key_src);
+  secure_memzero (ks->key_src, sizeof (*ks->key_src));
   return false;
 }
 
@@ -2040,13 +2037,13 @@ key_method_1_read (struct buffer *buf, struct tls_session *session)
 
   init_key_ctx (&ks->key.decrypt, &key, &session->opt->key_type,
 		OPENVPN_OP_DECRYPT, "Data Channel Decrypt");
-  CLEAR (key);
+  secure_memzero (&key, sizeof (key));
   ks->authenticated = true;
   return true;
 
  error:
   buf_clear (buf);
-  CLEAR (key);
+  secure_memzero (&key, sizeof (key));
   return false;
 }
 
@@ -2111,7 +2108,7 @@ key_method_2_read (struct buffer *buf, struct tls_multi *multi, struct tls_sessi
 
       if (!username_status || !password_status)
 	{
-	  CLEAR (*up);
+	  secure_memzero (up, sizeof(*up));
 	  if (!(session->opt->ssl_flags & SSLF_AUTH_USER_PASS_OPTIONAL))
 	    {
 	      msg (D_TLS_ERRORS, "TLS Error: Auth Username/Password was not provided by peer");
@@ -2126,7 +2123,7 @@ key_method_2_read (struct buffer *buf, struct tls_multi *multi, struct tls_sessi
 #endif
 
       verify_user_pass(up, multi, session);
-      CLEAR (*up);
+      secure_memzero (up, sizeof (*up));
     }
   else
     {
@@ -2188,14 +2185,14 @@ key_method_2_read (struct buffer *buf, struct tls_multi *multi, struct tls_sessi
 	  goto error;
 	}
 		      
-      CLEAR (*ks->key_src);
+      secure_memzero (ks->key_src, sizeof (*ks->key_src));
     }
 
   gc_free (&gc);
   return true;
 
  error:
-  CLEAR (*ks->key_src);
+  secure_memzero (ks->key_src, sizeof (*ks->key_src));
   buf_clear (buf);
   gc_free (&gc);
   return false;

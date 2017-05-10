@@ -30,7 +30,7 @@
 /* size of an array */
 #define SIZE(x) (sizeof(x)/sizeof(x[0]))
 
-/* clear an object */
+/* clear an object (may be optimized away, use secure_memzero() to erase secrets) */
 #define CLEAR(x) memset(&(x), 0, sizeof(x))
 
 #define IPV4_NETMASK_HOST 0xffffffffU
