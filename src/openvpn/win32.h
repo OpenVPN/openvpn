@@ -293,7 +293,7 @@ WCHAR *wide_string(const char *utf8, struct gc_arena *gc);
 
 bool win_wfp_block_dns(const NET_IFINDEX index, const HANDLE msg_channel);
 
-bool win_wfp_uninit(const HANDLE msg_channel);
+bool win_wfp_uninit(const NET_IFINDEX index, const HANDLE msg_channel);
 
 #define WIN_XP 0
 #define WIN_VISTA 1

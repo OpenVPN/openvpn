@@ -27,6 +27,9 @@
 #ifndef OPENVPN_BLOCK_DNS_H
 #define OPENVPN_BLOCK_DNS_H
 
+/* Any value less than 5 should work fine. 3 is choosen without any real reason. */
+#define BLOCK_DNS_IFACE_METRIC 3
+
 typedef void (*block_dns_msg_handler_t) (DWORD err, const char *msg);
 
 DWORD
@@ -35,6 +38,33 @@ delete_block_dns_filters(HANDLE engine);
 DWORD
 add_block_dns_filters(HANDLE *engine, int iface_index, const WCHAR *exe_path,
                       block_dns_msg_handler_t msg_handler_callback);
+
+/**
+ * Returns interface metric value for specified interface index.
+ *
+ * @param index The index of TAP adapter
+ * @param family Address family (AF_INET for IPv4 and AF_INET6 for IPv6)
+ *
+ * @return positive metric value or zero for automatic metric on success,
+ * a less then zero error code on failure.
+ */
+
+int
+get_interface_metric(const NET_IFINDEX index, const ADDRESS_FAMILY family);
+
+/**
+ * Sets interface metric value for specified interface index.
+ *
+ * @param index The index of TAP adapter
+ * @param family Address family (AF_INET for IPv4 and AF_INET6 for IPv6)
+ * @param metric Metric value. 0 for automatic metric
+ *
+ * @return 0 on success, a non-zero status code of the last failed action on failure.
+ */
+
+DWORD
+set_interface_metric(const NET_IFINDEX index, const ADDRESS_FAMILY family,
+                     const ULONG metric);
 
 #endif
 #endif

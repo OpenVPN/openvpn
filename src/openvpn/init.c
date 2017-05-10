@@ -1837,7 +1837,7 @@ do_close_tun(struct context *c, bool force)
 #if defined(_WIN32)
             if (c->options.block_outside_dns)
             {
-                if (!win_wfp_uninit(c->options.msg_channel))
+                if (!win_wfp_uninit(adapter_index, c->options.msg_channel))
                 {
                     msg(M_FATAL, "Uninitialising WFP failed!");
                 }
@@ -1877,7 +1877,7 @@ do_close_tun(struct context *c, bool force)
 #if defined(_WIN32)
             if (c->options.block_outside_dns)
             {
-                if (!win_wfp_uninit(c->options.msg_channel))
+                if (!win_wfp_uninit(adapter_index, c->options.msg_channel))
                 {
                     msg(M_FATAL, "Uninitialising WFP failed!");
                 }

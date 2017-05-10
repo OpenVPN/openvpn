@@ -61,6 +61,12 @@
 static HANDLE m_hEngineHandle = NULL; /* GLOBAL */
 
 /*
+ * TAP adapter original metric value
+ */
+static int tap_metric_v4 = -1; /* GLOBAL */
+static int tap_metric_v6 = -1; /* GLOBAL */
+
+/*
  * Windows internal socket API state (opaque).
  */
 static struct WSAData wsa_state; /* GLOBAL */
@@ -1337,6 +1343,27 @@ win_wfp_block_dns(const NET_IFINDEX index, const HANDLE msg_channel)
 
     status = add_block_dns_filters(&m_hEngineHandle, index, openvpnpath,
                                    block_dns_msg_handler);
+    if (status == 0)
+    {
+        tap_metric_v4 = get_interface_metric(index, AF_INET);
+        tap_metric_v6 = get_interface_metric(index, AF_INET6);
+        if (tap_metric_v4 < 0)
+        {
+            /* error, should not restore metric */
+            tap_metric_v4 = -1;
+        }
+        if (tap_metric_v6 < 0)
+        {
+            /* error, should not restore metric */
+            tap_metric_v6 = -1;
+        }
+        status = set_interface_metric(index, AF_INET, BLOCK_DNS_IFACE_METRIC);
+        if (!status)
+        {
+            set_interface_metric(index, AF_INET6, BLOCK_DNS_IFACE_METRIC);
+        }
+    }
+
     ret = (status == 0);
 
 out:
@@ -1345,19 +1372,27 @@ out:
 }
 
 bool
-win_wfp_uninit(const HANDLE msg_channel)
+win_wfp_uninit(const NET_IFINDEX index, const HANDLE msg_channel)
 {
     dmsg(D_LOW, "Uninitializing WFP");
 
     if (msg_channel)
     {
         msg(D_LOW, "Using service to delete block dns filters");
-        win_block_dns_service(false, -1, msg_channel);
+        win_block_dns_service(false, index, msg_channel);
     }
     else
     {
         delete_block_dns_filters(m_hEngineHandle);
         m_hEngineHandle = NULL;
+        if (tap_metric_v4 >= 0)
+        {
+            set_interface_metric(index, AF_INET, tap_metric_v4);
+        }
+        if (tap_metric_v6 >= 0)
+        {
+            set_interface_metric(index, AF_INET6, tap_metric_v6);
+        }
     }
 
     return true;

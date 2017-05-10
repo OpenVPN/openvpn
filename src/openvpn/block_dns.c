@@ -110,6 +110,9 @@ DEFINE_GUID(
 
 static WCHAR *FIREWALL_NAME = L"OpenVPN";
 
+VOID NETIOAPI_API_
+InitializeIpInterfaceEntry(PMIB_IPINTERFACE_ROW Row);
+
 /*
  * Default msg handler does nothing
  */
@@ -337,6 +340,81 @@ delete_block_dns_filters(HANDLE engine_handle)
     if (engine_handle)
     {
         err = FwpmEngineClose0(engine_handle);
+    }
+    return err;
+}
+
+/*
+ * Returns interface metric value for specified interface index.
+ *
+ * Arguments:
+ *   index         : The index of TAP adapter.
+ *   family        : Address family (AF_INET for IPv4 and AF_INET6 for IPv6).
+ * Returns positive metric value or zero for automatic metric on success,
+ * a less then zero error code on failure.
+ */
+
+int
+get_interface_metric(const NET_IFINDEX index, const ADDRESS_FAMILY family)
+{
+    DWORD err = 0;
+    MIB_IPINTERFACE_ROW ipiface;
+    InitializeIpInterfaceEntry(&ipiface);
+    ipiface.Family = family;
+    ipiface.InterfaceIndex = index;
+    err = GetIpInterfaceEntry(&ipiface);
+    if (err == NO_ERROR)
+    {
+        if (ipiface.UseAutomaticMetric)
+        {
+            return 0;
+        }
+        return ipiface.Metric;
+    }
+    return -err;
+}
+
+/*
+ * Sets interface metric value for specified interface index.
+ *
+ * Arguments:
+ *   index         : The index of TAP adapter.
+ *   family        : Address family (AF_INET for IPv4 and AF_INET6 for IPv6).
+ *   metric        : Metric value. 0 for automatic metric.
+ * Returns 0 on success, a non-zero status code of the last failed action on failure.
+ */
+
+DWORD
+set_interface_metric(const NET_IFINDEX index, const ADDRESS_FAMILY family,
+                     const ULONG metric)
+{
+    DWORD err = 0;
+    MIB_IPINTERFACE_ROW ipiface;
+    InitializeIpInterfaceEntry(&ipiface);
+    ipiface.Family = family;
+    ipiface.InterfaceIndex = index;
+    err = GetIpInterfaceEntry(&ipiface);
+    if (err == NO_ERROR)
+    {
+        if (family == AF_INET)
+        {
+            /* required for IPv4 as per MSDN */
+            ipiface.SitePrefixLength = 0;
+        }
+        ipiface.Metric = metric;
+        if (metric == 0)
+        {
+            ipiface.UseAutomaticMetric = TRUE;
+        }
+        else
+        {
+            ipiface.UseAutomaticMetric = FALSE;
+        }
+        err = SetIpInterfaceEntry(&ipiface);
+        if (err == NO_ERROR)
+        {
+            return 0;
+        }
     }
     return err;
 }
