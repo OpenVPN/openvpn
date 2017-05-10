@@ -5208,6 +5208,15 @@ Note: As the crl file (or directory) is read every time a peer connects,
 if you are dropping root privileges with
 .B \-\-user,
 make sure that this user has sufficient privileges to read the file.
+
+.B Security considerations
+
+.B \-\-crl\-verify
+does not check whether the CRL is correctly signed by the CA.  It merely checks
+that the CRL issuers matches the CA CN.  Therefore, users should ensure that
+the supplied CRL is correct.
+
+OpenVPN 2.4 and newer resolve this issue.
 .\"*********************************************************
 .SS SSL Library information:
 .\"*********************************************************
