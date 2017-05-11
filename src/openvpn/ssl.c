@@ -3225,7 +3225,12 @@ tls_pre_decrypt (struct tls_multi *multi,
 			    /* Save incoming ciphertext packet to reliable buffer */
 			    struct buffer *in = reliable_get_buf (ks->rec_reliable);
 			    ASSERT (in);
-			    ASSERT (buf_copy (in, buf));
+			    if (!buf_copy (in, buf))
+			      {
+				msg (D_MULTI_DROPPED,
+				     "Incoming control channel packet too big, dropping.");
+				goto error;
+			      }
 			    reliable_mark_active_incoming (ks->rec_reliable, in, id, op);
 			  }
 
