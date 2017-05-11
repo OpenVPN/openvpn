@@ -1,6 +1,29 @@
 OpenVPN Change Log
 Copyright (C) 2002-2017 OpenVPN Technologies, Inc. <sales@openvpn.net>
 
+2017.05.11 -- Version 2.3.15
+David Sommerseth (5):
+      dev-tools: Added script for updating copyright years in files
+      Update copyrights
+      docs: Further improve --reneg-bytes and SWEET32 information
+      git: Merge .gitignore files into a single file
+      Make --cipher/--auth none more explicit on the risks
+
+Gert Doering (1):
+      Document --proto udp6, tcp6, etc.
+
+Julien Muchembled (1):
+      Fix implicit declarations when HAVE_OPENSSL_ENGINE is unset
+
+Steffan Karger (6):
+      Add missing includes in error.h
+      cleanup: merge packet_id_alloc_outgoing() into packet_id_write()
+      Document that OpenVPN 2.3 does not check the CRL signature
+      Introduce and use secure_memzero() to erase secrets
+      Drop packets instead of assert out if packet id rolls over (CVE-2017-7479)
+      Don't assert out on receiving too-large control packets (CVE-2017-7478)
+
+
 2016.12.06 -- Version 2.3.14
 Christian Hesse (1):
       update year in copyright message
