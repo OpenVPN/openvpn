@@ -1,6 +1,35 @@
 OpenVPN Change Log
 Copyright (C) 2002-2017 OpenVPN Technologies, Inc. <sales@openvpn.net>
 
+2017.05.11 -- Version 2.4.2
+David Sommerseth (5):
+      auth-token: Ensure tokens are always wiped on de-auth
+      docs: Fixed man-page warnings discoverd by rpmlint
+      Make --cipher/--auth none more explicit on the risks
+      plugin: Fix documentation typo for type_mask
+      plugin: Export secure_memzero() to plug-ins
+
+Hristo Venev (1):
+      Fix extract_x509_field_ssl for external objects, v2
+
+Selva Nair (1):
+      In auth-pam plugin clear the password after use
+
+Steffan Karger (10):
+      cleanup: merge packet_id_alloc_outgoing() into packet_id_write()
+      Don't run packet_id unit tests for --disable-crypto builds
+      Fix Changes.rst layout
+      Fix memory leak in x509_verify_cert_ku()
+      mbedtls: correctly check return value in pkcs11_certificate_dn()
+      Restore pre-NCP frame parameters for new sessions
+      Always clear username/password from memory on error
+      Document tls-crypt security considerations in man page
+      Don't assert out on receiving too-large control packets (CVE-2017-7478)
+      Drop packets instead of assert out if packet id rolls over (CVE-2017-7479)
+
+ValdikSS (1):
+      Set a low interface metric for tap adapter when block-outside-dns is in use
+
 2017.03.21 -- Version 2.4.1
 Antonio Quartulli (4):
       attempt to add IPv6 route even when no IPv6 address was configured
