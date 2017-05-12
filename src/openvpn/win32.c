@@ -1334,8 +1334,8 @@ win_wfp_block_dns(const NET_IFINDEX index, const HANDLE msg_channel)
         goto out;
     }
 
-    status = GetModuleFileNameW(NULL, openvpnpath, sizeof(openvpnpath));
-    if (status == 0 || status == sizeof(openvpnpath))
+    status = GetModuleFileNameW(NULL, openvpnpath, _countof(openvpnpath));
+    if (status == 0 || status == _countof(openvpnpath))
     {
         msg(M_WARN|M_ERRNO, "block_dns: cannot get executable path");
         goto out;
