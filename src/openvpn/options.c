@@ -598,6 +598,10 @@ static const char usage_message[] =
 #endif
     "--tls-cipher l  : A list l of allowable TLS ciphers separated by : (optional).\n"
     "                : Use --show-tls to see a list of supported TLS ciphers.\n"
+#ifdef SSL_OP_CIPHER_SERVER_PREFERENCE
+    "--tls-prefer-server-ciphers: Prefer server ciphers over client ciphers during\n"
+    "                  the TLS handshake.\n"
+#endif
     "--tls-timeout n : Packet retransmit timeout on TLS control channel\n"
     "                  if no ACK from remote within n seconds (default=%d).\n"
     "--reneg-bytes n : Renegotiate data chan. key after n bytes sent and recvd.\n"
@@ -2445,6 +2449,12 @@ options_postprocess_verify_ce(const struct options *options, const struct connec
         {
             msg(M_USAGE, "--opt-verify requires --mode server");
         }
+#ifdef SSL_OP_CIPHER_SERVER_PREFERENCE
+        if (options->ssl_flags & SSLF_PREFER_SERVER_CIPHERS)
+        {
+            msg(M_USAGE, "--tls-prefer-server-ciphers requires --mode server");
+        }
+#endif
         if (options->server_flags & SF_TCP_NODELAY_HELPER)
         {
             msg(M_WARN, "WARNING: setting tcp-nodelay on the client side will not "
@@ -7814,6 +7824,13 @@ add_option(struct options *options,
         VERIFY_PERMISSION(OPT_P_GENERAL);
         options->cipher_list = p[1];
     }
+#ifdef SSL_OP_CIPHER_SERVER_PREFERENCE
+    else if (streq(p[0], "tls-prefer-server-ciphers") && !p[1])
+    {
+        VERIFY_PERMISSION(OPT_P_GENERAL);
+        options->ssl_flags |= SSLF_PREFER_SERVER_CIPHERS;
+    }
+#endif
     else if (streq(p[0], "crl-verify") && p[1] && ((p[2] && streq(p[2], "dir"))
                                                    || (p[2] && streq(p[1], INLINE_FILE_TAG) ) || !p[2]) && !p[3])
     {
