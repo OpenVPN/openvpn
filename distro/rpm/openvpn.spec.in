@@ -10,6 +10,10 @@
 #
 # Allow passwords to be read from files
 #   rpmbuild -tb [openvpn.x.tar.gz] --define 'with_password_save 1'
+#
+# Enable iproute2 support
+#   rpmbuild -tb [openvpn.x.tar.gz] --define 'with_iproute2 1'
+#
 
 Summary:	OpenVPN is a robust and highly flexible VPN daemon by James Yonan.
 Name:		@PACKAGE@
@@ -51,6 +55,9 @@ Requires:	openssl       >= 0.9.7
 
 %{?with_pkcs11:BuildRequires:	pkcs11-helper-devel}
 %{?with_pkcs11:Requires:	pkcs11-helper}
+
+%{?with_iproute2:BuildRequires:	iputils}
+%{?with_iproute2:Requires:	iputils}
 
 #
 # Description
@@ -102,7 +109,8 @@ Development support for OpenVPN.
 	%{?with_password_save:--enable-password-save} \
 	%{!?without_lzo:--enable-lzo} \
 	%{?with_pkcs11:--enable-pkcs11} \
-	%{?without_pam:--disable-plugin-auth-pam}
+	%{?without_pam:--disable-plugin-auth-pam} \
+	%{?with_iproute2:--enable-iproute2}
 %__make
 
 #
