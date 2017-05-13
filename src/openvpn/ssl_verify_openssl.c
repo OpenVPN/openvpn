@@ -285,11 +285,11 @@ x509_get_subject (X509 *cert, struct gc_arena *gc)
 
   BIO_get_mem_ptr (subject_bio, &subject_mem);
 
-  maxlen = subject_mem->length + 1;
-  subject = gc_malloc (maxlen, false, gc);
+  maxlen = subject_mem->length;
+  subject = gc_malloc (maxlen+1, false, gc);
 
   memcpy (subject, subject_mem->data, maxlen);
-  subject[maxlen - 1] = '\0';
+  subject[maxlen] = '\0';
 
 err:
   if (subject_bio)
