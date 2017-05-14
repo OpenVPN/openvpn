@@ -1271,7 +1271,12 @@ win_wfp_block_dns (const NET_IFINDEX index)
     dmsg (D_LOW, "Tap Luid: %I64d", tapluid.Value);
 
     /* Get OpenVPN path. */
-    GetModuleFileNameW(NULL, openvpnpath, MAX_PATH);
+    status = GetModuleFileNameW(NULL, openvpnpath, _countof(openvpnpath));
+    if (status == 0 || status == _countof(openvpnpath))
+    {
+        msg(M_WARN|M_ERRNO, "block_dns: failed to get executable path");
+        goto err;
+    }
 
     if (FwpmGetAppIdFromFileName0(openvpnpath, &openvpnblob) != ERROR_SUCCESS)
         goto err;
