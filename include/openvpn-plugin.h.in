@@ -44,6 +44,7 @@ typedef X509 openvpn_x509_cert_t;
 #endif
 
 #include <stdarg.h>
+#include <stddef.h>
 
 #ifdef __cplusplus
 extern "C" {
