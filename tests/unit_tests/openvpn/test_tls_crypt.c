@@ -58,11 +58,22 @@ struct test_context {
 
 static int
 setup(void **state) {
-    struct test_context *ctx  = calloc(1, sizeof(*ctx));
+    struct test_context *ctx = calloc(1, sizeof(*ctx));
+    *state = ctx;
 
     ctx->kt.cipher = cipher_kt_get("AES-256-CTR");
-    ctx->kt.cipher_length = cipher_kt_key_size(ctx->kt.cipher);
     ctx->kt.digest = md_kt_get("SHA256");
+    if (!ctx->kt.cipher)
+    {
+        printf("No AES-256-CTR support, skipping test.\n");
+        return 0;
+    }
+    if (!ctx->kt.digest)
+    {
+        printf("No HMAC-SHA256 support, skipping test.\n");
+        return 0;
+    }
+    ctx->kt.cipher_length = cipher_kt_key_size(ctx->kt.cipher);
     ctx->kt.hmac_length = md_kt_size(ctx->kt.digest);
 
     struct key key = { 0 };
@@ -82,8 +93,6 @@ setup(void **state) {
     /* Write dummy opcode and session id */
     buf_write(&ctx->ciphertext, "012345678", 1 + 8);
 
-    *state = ctx;
-
     return 0;
 }
 
@@ -102,12 +111,22 @@ teardown(void **state) {
     return 0;
 }
 
+static void skip_if_tls_crypt_not_supported(struct test_context *ctx)
+{
+    if (!ctx->kt.cipher || !ctx->kt.digest)
+    {
+        skip();
+    }
+}
+
 /**
  * Check that short messages are successfully wrapped-and-unwrapped.
  */
 static void
 tls_crypt_loopback(void **state) {
     struct test_context *ctx = (struct test_context *) *state;
+
+    skip_if_tls_crypt_not_supported(ctx);
 
     assert_true(tls_crypt_wrap(&ctx->source, &ctx->ciphertext, &ctx->co));
     assert_true(BLEN(&ctx->source) < BLEN(&ctx->ciphertext));
@@ -123,6 +142,8 @@ tls_crypt_loopback(void **state) {
 static void
 tls_crypt_loopback_zero_len(void **state) {
     struct test_context *ctx = (struct test_context *) *state;
+
+    skip_if_tls_crypt_not_supported(ctx);
 
     buf_clear(&ctx->source);
 
@@ -140,6 +161,8 @@ tls_crypt_loopback_zero_len(void **state) {
 static void
 tls_crypt_loopback_max_len(void **state) {
     struct test_context *ctx = (struct test_context *) *state;
+
+    skip_if_tls_crypt_not_supported(ctx);
 
     buf_clear(&ctx->source);
     assert_non_null(buf_write_alloc(&ctx->source,
@@ -160,6 +183,8 @@ static void
 tls_crypt_fail_msg_too_long(void **state) {
     struct test_context *ctx = (struct test_context *) *state;
 
+    skip_if_tls_crypt_not_supported(ctx);
+
     buf_clear(&ctx->source);
     assert_non_null(buf_write_alloc(&ctx->source,
                                     TESTBUF_SIZE - BLEN(&ctx->ciphertext) - tls_crypt_buf_overhead() + 1));
@@ -173,6 +198,8 @@ tls_crypt_fail_msg_too_long(void **state) {
 static void
 tls_crypt_fail_invalid_key(void **state) {
     struct test_context *ctx = (struct test_context *) *state;
+
+    skip_if_tls_crypt_not_supported(ctx);
 
     /* Change decrypt key */
     struct key key = { { 1 } };
@@ -191,6 +218,8 @@ static void
 tls_crypt_fail_replay(void **state) {
     struct test_context *ctx = (struct test_context *) *state;
 
+    skip_if_tls_crypt_not_supported(ctx);
+
     assert_true(tls_crypt_wrap(&ctx->source, &ctx->ciphertext, &ctx->co));
     assert_true(BLEN(&ctx->source) < BLEN(&ctx->ciphertext));
     struct buffer tmp = ctx->ciphertext;
@@ -207,6 +236,8 @@ tls_crypt_fail_replay(void **state) {
 static void
 tls_crypt_ignore_replay(void **state) {
     struct test_context *ctx = (struct test_context *) *state;
+
+    skip_if_tls_crypt_not_supported(ctx);
 
     ctx->co.flags |= CO_IGNORE_PACKET_ID;
 
