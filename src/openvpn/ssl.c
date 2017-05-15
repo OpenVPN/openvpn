@@ -1959,6 +1959,12 @@ tls_session_update_crypto_params(struct tls_session *session,
         return false;
     }
 
+    if (strcmp(options->ciphername, session->opt->config_ciphername))
+    {
+        msg(D_HANDSHAKE, "Data Channel: using negotiated cipher '%s'",
+            options->ciphername);
+    }
+
     init_key_type(&session->opt->key_type, options->ciphername,
                   options->authname, options->keysize, true, true);
 
