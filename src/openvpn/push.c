@@ -372,15 +372,17 @@ prepare_push_reply(struct context *c, struct gc_arena *gc,
     /* Push cipher if client supports Negotiable Crypto Parameters */
     if (tls_peer_info_ncp_ver(peer_info) >= 2 && o->ncp_enabled)
     {
-        /* if we have already created our key, we cannot change our own
-         * cipher, so disable NCP and warn = explain why
+        /* if we have already created our key, we cannot *change* our own
+         * cipher -> so log the fact and push the "what we have now" cipher
+         * (so the client is always told what we expect it to use)
          */
         const struct tls_session *session = &tls_multi->session[TM_ACTIVE];
         if (session->key[KS_PRIMARY].crypto_options.key_ctx_bi.initialized)
         {
             msg( M_INFO, "PUSH: client wants to negotiate cipher (NCP), but "
                  "server has already generated data channel keys, "
-                 "ignoring client request" );
+                 "re-sending previously negotiated cipher '%s'",
+                 o->ciphername );
         }
         else
         {
@@ -388,8 +390,8 @@ prepare_push_reply(struct context *c, struct gc_arena *gc,
              * TODO: actual negotiation, instead of server dictatorship. */
             char *push_cipher = string_alloc(o->ncp_ciphers, &o->gc);
             o->ciphername = strtok(push_cipher, ":");
-            push_option_fmt(gc, push_list, M_USAGE, "cipher %s", o->ciphername);
         }
+        push_option_fmt(gc, push_list, M_USAGE, "cipher %s", o->ciphername);
     }
     else if (o->ncp_enabled)
     {
