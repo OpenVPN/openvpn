@@ -1,6 +1,20 @@
 OpenVPN Change Log
 Copyright (C) 2002-2017 OpenVPN Technologies, Inc. <sales@openvpn.net>
 
+2017.05.18 -- Version 2.3.16
+Antonio Quartulli (1):
+      fix redirect-gateway behaviour when an IPv4 default route does not exist
+
+Guido Vranken (1):
+      Avoid a 1 byte overcopy in x509_get_subject (ssl_verify_openssl.c)
+
+Selva Nair (1):
+      Check for errors in the return value of GetModuleFileNameW()
+
+Steven McDonald (1):
+      Fix gateway detection with OpenBSD routing domains
+
+
 2017.05.11 -- Version 2.3.15
 David Sommerseth (5):
       dev-tools: Added script for updating copyright years in files
