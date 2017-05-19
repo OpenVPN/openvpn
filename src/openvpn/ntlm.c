@@ -196,7 +196,7 @@ ntlm_phase_3 (const struct http_proxy_info *p, const char *phase_2, struct gc_ar
 	 */
 	
   char pwbuf[sizeof (p->up.password) * 2]; /* for unicode password */
-  char buf2[128]; /* decoded reply from proxy */
+  unsigned char buf2[128]; /* decoded reply from proxy */
   unsigned char phase3[464];
 
   char md4_hash[MD4_DIGEST_LENGTH+5];
@@ -285,7 +285,13 @@ ntlm_phase_3 (const struct http_proxy_info *p, const char *phase_2, struct gc_ar
 			tib_len = buf2[0x28];/* Get Target Information block size */
 			if (tib_len > 96) tib_len = 96;
 			{
-			  char *tib_ptr = buf2 + buf2[0x2c]; /* Get Target Information block pointer */
+			  char *tib_ptr;
+			  int tib_pos = buf2[0x2c];
+			  if (tib_pos + tib_len > sizeof(buf2))
+			    {
+			      return NULL;
+			    }
+			  tib_ptr = buf2 + tib_pos;			/* Get Target Information block pointer */
 			  memcpy(&ntlmv2_blob[0x1c], tib_ptr, tib_len); /* Copy Target Information block into the blob */
 			}
 		} else {
