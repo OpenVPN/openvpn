@@ -208,7 +208,7 @@ x509_get_fingerprint(const mbedtls_md_info_t *md_info, mbedtls_x509_crt *cert,
 {
     const size_t md_size = mbedtls_md_get_size(md_info);
     struct buffer fingerprint = alloc_buf_gc(md_size, gc);
-    mbedtls_md(md_info, cert->raw.p, cert->tbs.len, BPTR(&fingerprint));
+    mbedtls_md(md_info, cert->raw.p, cert->raw.len, BPTR(&fingerprint));
     ASSERT(buf_inc_len(&fingerprint, md_size));
     return fingerprint;
 }
