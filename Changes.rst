@@ -305,9 +305,25 @@ Maintainer-visible changes
 
 Version 2.4.3
 =============
+
+User-visible Changes
+--------------------
 - ``--verify-hash`` can now take an optional flag which changes the hashing
   algorithm. It can be either SHA1 or SHA256.  The default if not provided is
   SHA1 to preserve backwards compatibility with existing configurations.
+
+Bugfixes
+--------
+- Fix fingerprint calculation in mbed TLS builds.  This means that mbed TLS users
+  of OpenVPN 2.4.0, 2.4.1 and 2.4.2 that rely on the values of the
+  ``tls_digest_*`` env vars, or that use `--verify-hash` will have to change
+  the fingerprint values they check against.  The security impact of the
+  incorrect calculation is very minimal; the last few bytes (max 4, typically
+  4) are not verified by the fingerprint.  We expect no real-world impact,
+  because users that used this feature before will notice that it has suddenly
+  stopped working, and users that didn't will notice that connection setup
+  fails if they specify correct fingerprints.
+
 
 Version 2.4.1
 =============
