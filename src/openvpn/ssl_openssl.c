@@ -328,7 +328,8 @@ tls_ctx_restrict_ciphers(struct tls_root_ctx *ctx, const char *ciphers)
 	}
 
       /* Make sure new cipher name fits in cipher string */
-      if (((sizeof(openssl_ciphers)-1) - openssl_ciphers_len) < current_cipher_len)
+      if ((SIZE_MAX - openssl_ciphers_len) < current_cipher_len
+            || ((sizeof(openssl_ciphers)-1) < openssl_ciphers_len + current_cipher_len))
 	{
 	  msg (M_FATAL,
 	      "Failed to set restricted TLS cipher list, too long (>%d).",
