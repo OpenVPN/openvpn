@@ -459,6 +459,15 @@ key_ctx_bi_defined(const struct key_ctx_bi* key)
   return key->encrypt.cipher || key->encrypt.hmac || key->decrypt.cipher || key->decrypt.hmac;
 }
 
+/*
+ * __func__ is not yet supported on Visual Studio 2013
+ */
+
+#ifdef _MSC_VER
+    #define CURRENT_FUNCTION __FUNCTION__
+#else
+    #define CURRENT_FUNCTION __func__
+#endif
 
 #endif /* ENABLE_CRYPTO */
 #endif /* CRYPTO_H */
