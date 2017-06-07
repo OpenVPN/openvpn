@@ -4531,7 +4531,7 @@ read_config_file(struct options *options,
     FILE *fp;
     int line_num;
     char line[OPTION_LINE_SIZE+1];
-    char *p[MAX_PARMS];
+    char *p[MAX_PARMS+1];
 
     ++level;
     if (level <= max_recursive_levels)
@@ -4563,7 +4563,7 @@ read_config_file(struct options *options,
                 {
                     offset = 3;
                 }
-                if (parse_line(line + offset, p, SIZE(p), file, line_num, msglevel, &options->gc))
+                if (parse_line(line + offset, p, SIZE(p)-1, file, line_num, msglevel, &options->gc))
                 {
                     bypass_doubledash(&p[0]);
                     check_inline_file_via_fp(fp, p, &options->gc);
@@ -4605,10 +4605,10 @@ read_config_string(const char *prefix,
 
     while (buf_parse(&multiline, '\n', line, sizeof(line)))
     {
-        char *p[MAX_PARMS];
+        char *p[MAX_PARMS+1];
         CLEAR(p);
         ++line_num;
-        if (parse_line(line, p, SIZE(p), prefix, line_num, msglevel, &options->gc))
+        if (parse_line(line, p, SIZE(p)-1, prefix, line_num, msglevel, &options->gc))
         {
             bypass_doubledash(&p[0]);
             check_inline_file_via_buf(&multiline, p, &options->gc);
@@ -4739,14 +4739,14 @@ apply_push_options(struct options *options,
 
     while (buf_parse(buf, ',', line, sizeof(line)))
     {
-        char *p[MAX_PARMS];
+        char *p[MAX_PARMS+1];
         CLEAR(p);
         ++line_num;
         if (!apply_pull_filter(options, line))
         {
             return false; /* Cause push/pull error and stop push processing */
         }
-        if (parse_line(line, p, SIZE(p), file, line_num, msglevel, &options->gc))
+        if (parse_line(line, p, SIZE(p)-1, file, line_num, msglevel, &options->gc))
         {
             add_option(options, p, file, line_num, 0, msglevel, permission_mask, option_types_found, es);
         }
