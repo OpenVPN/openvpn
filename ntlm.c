@@ -127,13 +127,16 @@ gen_nonce (unsigned char *nonce)
 	}
 }
 
-unsigned char *my_strupr(unsigned char *str)
-{ 
-	/* converts string to uppercase in place */
-	unsigned char *tmp = str;;
+void
+my_strupr(unsigned char *str)
+{
+    /* converts string to uppercase in place */
 
-	do *str = toupper(*str); while (*(++str));
-	return tmp;
+    while (*str)
+    {
+        *str = toupper(*str);
+        str++;
+    }
 }
 
 static int
