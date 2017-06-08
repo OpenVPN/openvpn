@@ -4565,12 +4565,16 @@ add_option (struct options *options,
 	  if (!sub.ce.remote)
 	    {
 	      msg (msglevel, "Each 'connection' block must contain exactly one 'remote' directive");
+	      uninit_options (&sub);
 	      goto err;
 	    }
 
 	  e = alloc_connection_entry (options, msglevel);
 	  if (!e)
-	    goto err;
+	    {
+	      uninit_options (&sub);
+	      goto err;
+	    }
 	  *e = sub.ce;
 	  gc_transfer (&options->gc, &sub.gc);
 	  uninit_options (&sub);
