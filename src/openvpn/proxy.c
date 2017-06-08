@@ -318,6 +318,7 @@ get_proxy_authenticate(socket_descriptor_t sd,
     {
         if (!recv_line(sd, buf, sizeof(buf), timeout, true, NULL, signal_received))
         {
+            free(*data);
             *data = NULL;
             return HTTP_AUTH_NONE;
         }
@@ -991,6 +992,7 @@ establish_http_proxy_passthru(struct http_proxy_info *p,
                 if (p->options.auth_retry == PAR_NCT && method == HTTP_AUTH_BASIC)
                 {
                     msg(D_PROXY, "HTTP proxy: support for basic auth and other cleartext proxy auth methods is disabled");
+                    free(pa);
                     goto error;
                 }
                 p->auth_method = method;
