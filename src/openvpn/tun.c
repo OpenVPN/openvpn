@@ -1349,12 +1349,12 @@ write_tun_header (struct tuntap* tt, uint8_t *buf, int len)
       {
         u_int32_t type;
         struct iovec iv[2];
-        struct ip *iph;
+        struct openvpn_iphdr *iph;
 
-        iph = (struct ip *) buf;
+        iph = (struct openvpn_iphdr *) buf;
 
-        if (tt->ipv6 && iph->ip_v == 6)
-            type = htonl (AF_INET6);
+        if (tt->ipv6 && OPENVPN_IPH_GET_VER(iph->version_len) == 6)
+            type = htonl(AF_INET6);
         else
             type = htonl (AF_INET);
 
