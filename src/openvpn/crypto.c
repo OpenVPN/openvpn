@@ -829,7 +829,7 @@ init_key_ctx(struct key_ctx *ctx, struct key *key,
     if (kt->cipher && kt->cipher_length > 0)
     {
 
-        ALLOC_OBJ(ctx->cipher, cipher_ctx_t);
+        ctx->cipher = cipher_ctx_new();
         cipher_ctx_init(ctx->cipher, key->cipher, kt->cipher_length,
                         kt->cipher, enc);
 
@@ -878,7 +878,7 @@ free_key_ctx(struct key_ctx *ctx)
     if (ctx->cipher)
     {
         cipher_ctx_cleanup(ctx->cipher);
-        free(ctx->cipher);
+        cipher_ctx_free(ctx->cipher);
         ctx->cipher = NULL;
     }
     if (ctx->hmac)

@@ -300,6 +300,20 @@ bool cipher_kt_mode_aead(const cipher_kt_t *cipher);
  */
 
 /**
+ * Allocate a new cipher context
+ *
+ * @return              a new cipher context
+ */
+cipher_ctx_t *cipher_ctx_new(void);
+
+/**
+ * Free a cipher context
+ *
+ * @param ctx           Cipher context.
+ */
+void cipher_ctx_free(cipher_ctx_t *ctx);
+
+/**
  * Initialise a cipher context, based on the given key and key type.
  *
  * @param ctx           Cipher context. May not be NULL
