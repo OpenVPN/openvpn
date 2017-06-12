@@ -840,6 +840,21 @@ md_ctx_final(mbedtls_md_context_t *ctx, uint8_t *dst)
 /*
  * TODO: re-enable dmsg for crypto debug
  */
+
+mbedtls_md_context_t *
+hmac_ctx_new(void)
+{
+    mbedtls_md_context_t *ctx;
+    ALLOC_OBJ(ctx, mbedtls_md_context_t);
+    return ctx;
+}
+
+void
+hmac_ctx_free(mbedtls_md_context_t *ctx)
+{
+    free(ctx);
+}
+
 void
 hmac_ctx_init(mbedtls_md_context_t *ctx, const uint8_t *key, int key_len,
               const mbedtls_md_info_t *kt)

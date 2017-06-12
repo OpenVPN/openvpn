@@ -910,14 +910,25 @@ md_ctx_final(EVP_MD_CTX *ctx, uint8_t *dst)
  *
  */
 
+HMAC_CTX *
+hmac_ctx_new(void)
+{
+    HMAC_CTX *ctx = HMAC_CTX_new();
+    check_malloc_return(ctx);
+    return ctx;
+}
+
+void
+hmac_ctx_free(HMAC_CTX *ctx)
+{
+    HMAC_CTX_free(ctx);
+}
 
 void
 hmac_ctx_init(HMAC_CTX *ctx, const uint8_t *key, int key_len,
               const EVP_MD *kt)
 {
     ASSERT(NULL != kt && NULL != ctx);
-
-    CLEAR(*ctx);
 
     HMAC_CTX_init(ctx);
     HMAC_Init_ex(ctx, key, key_len, kt, NULL);
@@ -929,7 +940,7 @@ hmac_ctx_init(HMAC_CTX *ctx, const uint8_t *key, int key_len,
 void
 hmac_ctx_cleanup(HMAC_CTX *ctx)
 {
-    HMAC_CTX_cleanup(ctx);
+    HMAC_CTX_reset(ctx);
 }
 
 int

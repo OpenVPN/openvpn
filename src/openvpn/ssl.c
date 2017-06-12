@@ -1606,8 +1606,8 @@ tls1_P_hash(const md_kt_t *md_kt,
 {
     struct gc_arena gc = gc_new();
     int chunk;
-    hmac_ctx_t ctx;
-    hmac_ctx_t ctx_tmp;
+    hmac_ctx_t *ctx;
+    hmac_ctx_t *ctx_tmp;
     uint8_t A1[MAX_HMAC_KEY_LENGTH];
     unsigned int A1_len;
 
@@ -1616,8 +1616,8 @@ tls1_P_hash(const md_kt_t *md_kt,
     const uint8_t *out_orig = out;
 #endif
 
-    CLEAR(ctx);
-    CLEAR(ctx_tmp);
+    ctx = hmac_ctx_new();
+    ctx_tmp = hmac_ctx_new();
 
     dmsg(D_SHOW_KEY_SOURCE, "tls1_P_hash sec: %s", format_hex(sec, sec_len, 0, &gc));
     dmsg(D_SHOW_KEY_SOURCE, "tls1_P_hash seed: %s", format_hex(seed, seed_len, 0, &gc));
@@ -1625,36 +1625,38 @@ tls1_P_hash(const md_kt_t *md_kt,
     chunk = md_kt_size(md_kt);
     A1_len = md_kt_size(md_kt);
 
-    hmac_ctx_init(&ctx, sec, sec_len, md_kt);
-    hmac_ctx_init(&ctx_tmp, sec, sec_len, md_kt);
+    hmac_ctx_init(ctx, sec, sec_len, md_kt);
+    hmac_ctx_init(ctx_tmp, sec, sec_len, md_kt);
 
-    hmac_ctx_update(&ctx,seed,seed_len);
-    hmac_ctx_final(&ctx, A1);
+    hmac_ctx_update(ctx,seed,seed_len);
+    hmac_ctx_final(ctx, A1);
 
     for (;; )
     {
-        hmac_ctx_reset(&ctx);
-        hmac_ctx_reset(&ctx_tmp);
-        hmac_ctx_update(&ctx,A1,A1_len);
-        hmac_ctx_update(&ctx_tmp,A1,A1_len);
-        hmac_ctx_update(&ctx,seed,seed_len);
+        hmac_ctx_reset(ctx);
+        hmac_ctx_reset(ctx_tmp);
+        hmac_ctx_update(ctx,A1,A1_len);
+        hmac_ctx_update(ctx_tmp,A1,A1_len);
+        hmac_ctx_update(ctx,seed,seed_len);
 
         if (olen > chunk)
         {
-            hmac_ctx_final(&ctx, out);
+            hmac_ctx_final(ctx, out);
             out += chunk;
             olen -= chunk;
-            hmac_ctx_final(&ctx_tmp, A1); /* calc the next A1 value */
+            hmac_ctx_final(ctx_tmp, A1); /* calc the next A1 value */
         }
         else    /* last one */
         {
-            hmac_ctx_final(&ctx, A1);
+            hmac_ctx_final(ctx, A1);
             memcpy(out,A1,olen);
             break;
         }
     }
-    hmac_ctx_cleanup(&ctx);
-    hmac_ctx_cleanup(&ctx_tmp);
+    hmac_ctx_cleanup(ctx);
+    hmac_ctx_free(ctx);
+    hmac_ctx_cleanup(ctx_tmp);
+    hmac_ctx_free(ctx_tmp);
     secure_memzero(A1, sizeof(A1));
 
     dmsg(D_SHOW_KEY_SOURCE, "tls1_P_hash out: %s", format_hex(out_orig, olen_orig, 0, &gc));

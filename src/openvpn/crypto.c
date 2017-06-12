@@ -875,7 +875,7 @@ init_key_ctx(struct key_ctx *ctx, struct key *key,
     }
     if (kt->digest && kt->hmac_length > 0)
     {
-        ALLOC_OBJ(ctx->hmac, hmac_ctx_t);
+        ctx->hmac = hmac_ctx_new();
         hmac_ctx_init(ctx->hmac, key->hmac, kt->hmac_length, kt->digest);
 
         msg(D_HANDSHAKE,
@@ -906,7 +906,7 @@ free_key_ctx(struct key_ctx *ctx)
     if (ctx->hmac)
     {
         hmac_ctx_cleanup(ctx->hmac);
-        free(ctx->hmac);
+        hmac_ctx_free(ctx->hmac);
         ctx->hmac = NULL;
     }
     ctx->implicit_iv_len = 0;
