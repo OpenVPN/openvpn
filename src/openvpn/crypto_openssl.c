@@ -41,6 +41,7 @@
 #include "integer.h"
 #include "crypto.h"
 #include "crypto_backend.h"
+#include "openssl_compat.h"
 
 #include <openssl/des.h>
 #include <openssl/err.h>
@@ -843,12 +844,23 @@ md_full(const EVP_MD *kt, const uint8_t *src, int src_len, uint8_t *dst)
     return EVP_Digest(src, src_len, dst, &in_md_len, kt, NULL);
 }
 
+EVP_MD_CTX *
+md_ctx_new(void)
+{
+    EVP_MD_CTX *ctx = EVP_MD_CTX_new();
+    check_malloc_return(ctx);
+    return ctx;
+}
+
+void md_ctx_free(EVP_MD_CTX *ctx)
+{
+    EVP_MD_CTX_free(ctx);
+}
+
 void
 md_ctx_init(EVP_MD_CTX *ctx, const EVP_MD *kt)
 {
     ASSERT(NULL != ctx && NULL != kt);
-
-    CLEAR(*ctx);
 
     EVP_MD_CTX_init(ctx);
     EVP_DigestInit(ctx, kt);
@@ -857,7 +869,7 @@ md_ctx_init(EVP_MD_CTX *ctx, const EVP_MD *kt)
 void
 md_ctx_cleanup(EVP_MD_CTX *ctx)
 {
-    EVP_MD_CTX_cleanup(ctx);
+    EVP_MD_CTX_reset(ctx);
 }
 
 int

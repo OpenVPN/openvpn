@@ -45,6 +45,49 @@
 #include <openssl/ssl.h>
 #include <openssl/x509.h>
 
+#if !defined(HAVE_EVP_MD_CTX_RESET)
+/**
+ * Reset a message digest context
+ *
+ * @param ctx                 The message digest context
+ * @return                    1 on success, 0 on error
+ */
+static inline int
+EVP_MD_CTX_reset(EVP_MD_CTX *ctx)
+{
+    EVP_MD_CTX_cleanup(ctx);
+    return 1;
+}
+#endif
+
+#if !defined(HAVE_EVP_MD_CTX_FREE)
+/**
+ * Free an existing message digest context
+ *
+ * @param ctx                 The message digest context
+ */
+static inline void
+EVP_MD_CTX_free(EVP_MD_CTX *ctx)
+{
+    free(ctx);
+}
+#endif
+
+#if !defined(HAVE_EVP_MD_CTX_NEW)
+/**
+ * Allocate a new message digest object
+ *
+ * @return                    A zero'ed message digest object
+ */
+static inline EVP_MD_CTX *
+EVP_MD_CTX_new(void)
+{
+    EVP_MD_CTX *ctx = NULL;
+    ALLOC_OBJ_CLEAR(ctx, EVP_MD_CTX);
+    return ctx;
+}
+#endif
+
 #if !defined(HAVE_SSL_CTX_GET_DEFAULT_PASSWD_CB_USERDATA)
 /**
  * Fetch the default password callback user data from the SSL context
