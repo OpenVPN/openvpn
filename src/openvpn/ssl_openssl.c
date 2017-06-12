@@ -973,10 +973,13 @@ rsa_priv_dec(int flen, const unsigned char *from, unsigned char *to, RSA *rsa, i
 
 /* called at RSA_free */
 static int
-rsa_finish(RSA *rsa)
+openvpn_extkey_rsa_finish(RSA *rsa)
 {
-    RSA_meth_free(rsa->meth);
-    rsa->meth = NULL;
+    /* meth was allocated in tls_ctx_use_external_private_key() ; since
+     * this function is called when the parent RSA object is destroyed,
+     * it is no longer used after this point so kill it. */
+    const RSA_METHOD *meth = RSA_get_method(rsa);
+    RSA_meth_free((RSA_METHOD *)meth);
     return 1;
 }
 
@@ -1058,7 +1061,7 @@ tls_ctx_use_external_private_key(struct tls_root_ctx *ctx,
     RSA_meth_set_priv_enc(rsa_meth, rsa_priv_enc);
     RSA_meth_set_priv_dec(rsa_meth, rsa_priv_dec);
     RSA_meth_set_init(rsa_meth, NULL);
-    RSA_meth_set_finish(rsa_meth, rsa_finish);
+    RSA_meth_set_finish(rsa_meth, openvpn_extkey_rsa_finish);
     RSA_meth_set0_app_data(rsa_meth, NULL);
 
     /* allocate RSA object */
@@ -1075,8 +1078,11 @@ tls_ctx_use_external_private_key(struct tls_root_ctx *ctx,
     pub_rsa = EVP_PKEY_get0_RSA(pkey);
 
     /* initialize RSA object */
-    rsa->n = BN_dup(pub_rsa->n);
-    rsa->flags |= RSA_FLAG_EXT_PKEY;
+    const BIGNUM *n = NULL;
+    const BIGNUM *e = NULL;
+    RSA_get0_key(pub_rsa, &n, &e, NULL);
+    RSA_set0_key(rsa, BN_dup(n), BN_dup(e), NULL);
+    RSA_set_flags(rsa, RSA_flags(rsa) | RSA_FLAG_EXT_PKEY);
     if (!RSA_set_method(rsa, rsa_meth))
     {
         goto err;
@@ -1677,11 +1683,11 @@ print_details(struct key_state_ssl *ks_ssl, const char *prefix)
         EVP_PKEY *pkey = X509_get_pubkey(cert);
         if (pkey != NULL)
         {
-            if (EVP_PKEY_id(pkey) == EVP_PKEY_RSA && EVP_PKEY_get0_RSA(pkey) != NULL
-                && pkey->pkey.rsa->n != NULL)
+            if (EVP_PKEY_id(pkey) == EVP_PKEY_RSA && EVP_PKEY_get0_RSA(pkey) != NULL)
             {
+                RSA *rsa = EVP_PKEY_get0_RSA(pkey);
                 openvpn_snprintf(s2, sizeof(s2), ", %d bit RSA",
-                                 BN_num_bits(pkey->pkey.rsa->n));
+                                 RSA_bits(rsa));
             }
             else if (EVP_PKEY_id(pkey) == EVP_PKEY_DSA && EVP_PKEY_get0_DSA(pkey) != NULL
                      && pkey->pkey.dsa->p != NULL)
