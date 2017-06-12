@@ -472,7 +472,7 @@ struct context_2
 
     /* hash of pulled options, so we can compare when options change */
     bool pulled_options_digest_init_done;
-    md_ctx_t pulled_options_state;
+    md_ctx_t *pulled_options_state;
     struct sha256_digest pulled_options_digest;
 
     struct event_timeout scheduled_exit;

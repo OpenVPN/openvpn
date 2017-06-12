@@ -507,6 +507,20 @@ int md_kt_size(const md_kt_t *kt);
 int md_full(const md_kt_t *kt, const uint8_t *src, int src_len, uint8_t *dst);
 
 /*
+ * Allocate a new message digest context
+ *
+ * @return              a new zeroed MD context
+ */
+md_ctx_t *md_ctx_new(void);
+
+/*
+ * Free an existing, non-null message digest context
+ *
+ * @param ctx           Message digest context
+ */
+void md_ctx_free(md_ctx_t *ctx);
+
+/*
  * Initialises the given message digest context.
  *
  * @param ctx           Message digest context

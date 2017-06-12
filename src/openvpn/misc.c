@@ -1387,7 +1387,7 @@ get_user_pass_auto_userid(struct user_pass *up, const char *tag)
     static const uint8_t hashprefix[] = "AUTO_USERID_DIGEST";
 
     const md_kt_t *md5_kt = md_kt_get("MD5");
-    md_ctx_t ctx;
+    md_ctx_t *ctx;
 
     CLEAR(*up);
     buf_set_write(&buf, (uint8_t *)up->username, USER_PASS_LEN);
@@ -1395,11 +1395,13 @@ get_user_pass_auto_userid(struct user_pass *up, const char *tag)
     if (get_default_gateway_mac_addr(macaddr))
     {
         dmsg(D_AUTO_USERID, "GUPAU: macaddr=%s", format_hex_ex(macaddr, sizeof(macaddr), 0, 1, ":", &gc));
-        md_ctx_init(&ctx, md5_kt);
-        md_ctx_update(&ctx, hashprefix, sizeof(hashprefix) - 1);
-        md_ctx_update(&ctx, macaddr, sizeof(macaddr));
-        md_ctx_final(&ctx, digest);
-        md_ctx_cleanup(&ctx)
+        ctx = md_ctx_new();
+        md_ctx_init(ctx, md5_kt);
+        md_ctx_update(ctx, hashprefix, sizeof(hashprefix) - 1);
+        md_ctx_update(ctx, macaddr, sizeof(macaddr));
+        md_ctx_final(ctx, digest);
+        md_ctx_cleanup(ctx);
+        md_ctx_free(ctx);
         buf_printf(&buf, "%s", format_hex_ex(digest, sizeof(digest), 0, 256, " ", &gc));
     }
     else

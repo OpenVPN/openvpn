@@ -723,7 +723,8 @@ process_incoming_push_msg(struct context *c,
             struct buffer buf_orig = buf;
             if (!c->c2.pulled_options_digest_init_done)
             {
-                md_ctx_init(&c->c2.pulled_options_state, md_kt_get("SHA256"));
+                c->c2.pulled_options_state = md_ctx_new();
+                md_ctx_init(c->c2.pulled_options_state, md_kt_get("SHA256"));
                 c->c2.pulled_options_digest_init_done = true;
             }
             if (!c->c2.did_pre_pull_restore)
@@ -737,14 +738,16 @@ process_incoming_push_msg(struct context *c,
                                    option_types_found,
                                    c->c2.es))
             {
-                push_update_digest(&c->c2.pulled_options_state, &buf_orig,
+                push_update_digest(c->c2.pulled_options_state, &buf_orig,
                                    &c->options);
                 switch (c->options.push_continuation)
                 {
                     case 0:
                     case 1:
-                        md_ctx_final(&c->c2.pulled_options_state, c->c2.pulled_options_digest.digest);
-                        md_ctx_cleanup(&c->c2.pulled_options_state);
+                        md_ctx_final(c->c2.pulled_options_state, c->c2.pulled_options_digest.digest);
+                        md_ctx_cleanup(c->c2.pulled_options_state);
+                        md_ctx_free(c->c2.pulled_options_state);
+                        c->c2.pulled_options_state = NULL;
                         c->c2.pulled_options_digest_init_done = false;
                         ret = PUSH_MSG_REPLY;
                         break;

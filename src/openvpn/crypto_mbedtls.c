@@ -765,6 +765,18 @@ md_full(const md_kt_t *kt, const uint8_t *src, int src_len, uint8_t *dst)
     return 0 == mbedtls_md(kt, src, src_len, dst);
 }
 
+mbedtls_md_context_t *
+md_ctx_new(void)
+{
+    mbedtls_md_context_t *ctx;
+    ALLOC_OBJ_CLEAR(ctx, mbedtls_md_context_t);
+    return ctx;
+}
+
+void md_ctx_free(mbedtls_md_context_t *ctx)
+{
+    free(ctx);
+}
 
 void
 md_ctx_init(mbedtls_md_context_t *ctx, const mbedtls_md_info_t *kt)
