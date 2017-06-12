@@ -210,7 +210,7 @@ void x509_setenv_track(const struct x509_track *xt, struct env_set *es,
  *                      the expected bit set. \c FAILURE if the certificate does
  *                      not have NS cert type verification or the wrong bit set.
  */
-result_t x509_verify_ns_cert_type(const openvpn_x509_cert_t *cert, const int usage);
+result_t x509_verify_ns_cert_type(openvpn_x509_cert_t *cert, const int usage);
 
 /*
  * Verify X.509 key usage extension field.

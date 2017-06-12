@@ -293,18 +293,20 @@ backend_x509_get_serial_hex(openvpn_x509_cert_t *cert, struct gc_arena *gc)
 struct buffer
 x509_get_sha1_fingerprint(X509 *cert, struct gc_arena *gc)
 {
-    struct buffer hash = alloc_buf_gc(sizeof(cert->sha1_hash), gc);
-    memcpy(BPTR(&hash), cert->sha1_hash, sizeof(cert->sha1_hash));
-    ASSERT(buf_inc_len(&hash, sizeof(cert->sha1_hash)));
+    const EVP_MD *sha1 = EVP_sha1();
+    struct buffer hash = alloc_buf_gc(EVP_MD_size(sha1), gc);
+    X509_digest(cert, EVP_sha1(), BPTR(&hash), NULL);
+    ASSERT(buf_inc_len(&hash, EVP_MD_size(sha1)));
     return hash;
 }
 
 struct buffer
 x509_get_sha256_fingerprint(X509 *cert, struct gc_arena *gc)
 {
-    struct buffer hash = alloc_buf_gc((EVP_sha256())->md_size, gc);
+    const EVP_MD *sha256 = EVP_sha256();
+    struct buffer hash = alloc_buf_gc(EVP_MD_size(sha256), gc);
     X509_digest(cert, EVP_sha256(), BPTR(&hash), NULL);
-    ASSERT(buf_inc_len(&hash, (EVP_sha256())->md_size));
+    ASSERT(buf_inc_len(&hash, EVP_MD_size(sha256)));
     return hash;
 }
 
@@ -571,7 +573,7 @@ x509_setenv(struct env_set *es, int cert_depth, openvpn_x509_cert_t *peer_cert)
 }
 
 result_t
-x509_verify_ns_cert_type(const openvpn_x509_cert_t *peer_cert, const int usage)
+x509_verify_ns_cert_type(openvpn_x509_cert_t *peer_cert, const int usage)
 {
     if (usage == NS_CERT_CHECK_NONE)
     {
@@ -579,13 +581,59 @@ x509_verify_ns_cert_type(const openvpn_x509_cert_t *peer_cert, const int usage)
     }
     if (usage == NS_CERT_CHECK_CLIENT)
     {
-        return ((peer_cert->ex_flags & EXFLAG_NSCERT)
-                && (peer_cert->ex_nscert & NS_SSL_CLIENT)) ? SUCCESS : FAILURE;
+        /*
+         * Unfortunately, X509_check_purpose() does some weird thing that
+         * prevent it to take a const argument
+         */
+        result_t result = X509_check_purpose(peer_cert, X509_PURPOSE_SSL_CLIENT, 0) ?
+	       SUCCESS : FAILURE;
+
+        /*
+         * old versions of OpenSSL allow us to make the less strict check we used to
+         * do. If this less strict check pass, warn user that this might not be the
+         * case when its distribution will update to OpenSSL 1.1
+         */
+        if (result == FAILURE)
+        {
+            ASN1_BIT_STRING *ns;
+            ns = X509_get_ext_d2i(peer_cert, NID_netscape_cert_type, NULL, NULL);
+            result = (ns && ns->length > 0 && (ns->data[0] & NS_SSL_CLIENT)) ? SUCCESS : FAILURE;
+            if (result == SUCCESS)
+            {
+                msg(M_WARN, "X509: Certificate is a client certificate yet it's purpose "
+                    "cannot be verified (check may fail in the future)");
+            }
+            ASN1_BIT_STRING_free(ns);
+        }
+        return result;
     }
     if (usage == NS_CERT_CHECK_SERVER)
     {
-        return ((peer_cert->ex_flags & EXFLAG_NSCERT)
-                && (peer_cert->ex_nscert & NS_SSL_SERVER))  ? SUCCESS : FAILURE;
+        /*
+         * Unfortunately, X509_check_purpose() does some weird thing that
+         * prevent it to take a const argument
+         */
+        result_t result = X509_check_purpose(peer_cert, X509_PURPOSE_SSL_SERVER, 0) ?
+	       SUCCESS : FAILURE;
+
+        /*
+         * old versions of OpenSSL allow us to make the less strict check we used to
+         * do. If this less strict check pass, warn user that this might not be the
+         * case when its distribution will update to OpenSSL 1.1
+         */
+        if (result == FAILURE)
+        {
+            ASN1_BIT_STRING *ns;
+            ns = X509_get_ext_d2i(peer_cert, NID_netscape_cert_type, NULL, NULL);
+            result = (ns && ns->length > 0 && (ns->data[0] & NS_SSL_SERVER)) ? SUCCESS : FAILURE;
+            if (result == SUCCESS)
+            {
+                msg(M_WARN, "X509: Certificate is a server certificate yet it's purpose "
+                    "cannot be verified (check may fail in the future)");
+            }
+            ASN1_BIT_STRING_free(ns);
+        }
+        return result;
     }
 
     return FAILURE;
