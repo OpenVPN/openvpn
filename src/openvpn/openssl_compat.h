@@ -133,6 +133,48 @@ X509_OBJECT_get_type(const X509_OBJECT *obj)
 }
 #endif
 
+#if !defined(HAVE_EVP_PKEY_GET0_RSA)
+/**
+ * Get the RSA object of a public key
+ *
+ * @param pkey                Public key object
+ * @return                    The underlying RSA object
+ */
+static inline RSA *
+EVP_PKEY_get0_RSA(EVP_PKEY *pkey)
+{
+    return pkey ? pkey->pkey.rsa : NULL;
+}
+#endif
+
+#if !defined(HAVE_EVP_PKEY_ID)
+/**
+ * Get the PKEY type
+ *
+ * @param pkey                Public key object
+ * @return                    The key type
+ */
+static inline int
+EVP_PKEY_id(const EVP_PKEY *pkey)
+{
+    return pkey ? pkey->type : EVP_PKEY_NONE;
+}
+#endif
+
+#if !defined(HAVE_EVP_PKEY_GET0_DSA)
+/**
+ * Get the DSA object of a public key
+ *
+ * @param pkey                Public key object
+ * @return                    The underlying DSA object
+ */
+static inline DSA *
+EVP_PKEY_get0_DSA(EVP_PKEY *pkey)
+{
+    return pkey ? pkey->pkey.dsa : NULL;
+}
+#endif
+
 #if !defined(HAVE_RSA_METH_NEW)
 /**
  * Allocate a new RSA method object

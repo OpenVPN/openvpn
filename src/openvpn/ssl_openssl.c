@@ -1075,7 +1075,7 @@ tls_ctx_use_external_private_key(struct tls_root_ctx *ctx,
     /* get the public key */
     EVP_PKEY *pkey = X509_get0_pubkey(cert);
     ASSERT(pkey); /* NULL before SSL_CTX_use_certificate() is called */
-    pub_rsa = cert->cert_info->key->pkey->pkey.rsa;
+    pub_rsa = EVP_PKEY_get0_RSA(pkey);
 
     /* initialize RSA object */
     rsa->n = BN_dup(pub_rsa->n);
@@ -1680,13 +1680,13 @@ print_details(struct key_state_ssl *ks_ssl, const char *prefix)
         EVP_PKEY *pkey = X509_get_pubkey(cert);
         if (pkey != NULL)
         {
-            if (pkey->type == EVP_PKEY_RSA && pkey->pkey.rsa != NULL
+            if (EVP_PKEY_id(pkey) == EVP_PKEY_RSA && EVP_PKEY_get0_RSA(pkey) != NULL
                 && pkey->pkey.rsa->n != NULL)
             {
                 openvpn_snprintf(s2, sizeof(s2), ", %d bit RSA",
                                  BN_num_bits(pkey->pkey.rsa->n));
             }
-            else if (pkey->type == EVP_PKEY_DSA && pkey->pkey.dsa != NULL
+            else if (EVP_PKEY_id(pkey) == EVP_PKEY_DSA && EVP_PKEY_get0_DSA(pkey) != NULL
                      && pkey->pkey.dsa->p != NULL)
             {
                 openvpn_snprintf(s2, sizeof(s2), ", %d bit DSA",
