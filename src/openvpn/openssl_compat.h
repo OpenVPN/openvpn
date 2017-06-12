@@ -88,6 +88,34 @@ EVP_MD_CTX_new(void)
 }
 #endif
 
+#if !defined(HAVE_EVP_CIPHER_CTX_FREE)
+/**
+ * Free an existing cipher context
+ *
+ * @param ctx                 The cipher context
+ */
+static inline void
+EVP_CIPHER_CTX_free(EVP_CIPHER_CTX *c)
+{
+	free(c);
+}
+#endif
+
+#if !defined(HAVE_EVP_CIPHER_CTX_NEW)
+/**
+ * Allocate a new cipher context object
+ *
+ * @return                    A zero'ed cipher context object
+ */
+static inline EVP_CIPHER_CTX *
+EVP_CIPHER_CTX_new(void)
+{
+    EVP_CIPHER_CTX *ctx = NULL;
+    ALLOC_OBJ_CLEAR(ctx, EVP_CIPHER_CTX);
+    return ctx;
+}
+#endif
+
 #if !defined(HAVE_SSL_CTX_GET_DEFAULT_PASSWD_CB_USERDATA)
 /**
  * Fetch the default password callback user data from the SSL context
