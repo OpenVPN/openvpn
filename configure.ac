@@ -932,6 +932,8 @@ if test "${enable_crypto}" = "yes" -a "${with_crypto_library}" = "openssl"; then
 			RSA_bits \
 			RSA_get0_key \
 			RSA_set0_key \
+			DSA_get0_pqg \
+			DSA_bits \
 			RSA_meth_new \
 			RSA_meth_free \
 			RSA_meth_set_pub_enc \

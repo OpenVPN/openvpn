@@ -275,6 +275,50 @@ RSA_bits(const RSA *rsa)
 }
 #endif
 
+#if !defined(HAVE_DSA_GET0_PQG)
+/**
+ * Get the DSA parameters
+ *
+ * @param dsa                 The DSA object
+ * @param p                   The @c p parameter
+ * @param q                   The @c q parameter
+ * @param g                   The @c g parameter
+ */
+static inline void
+DSA_get0_pqg(const DSA *dsa, const BIGNUM **p,
+             const BIGNUM **q, const BIGNUM **g)
+{
+    if (p != NULL)
+    {
+        *p = dsa ? dsa->p : NULL;
+    }
+    if (q != NULL)
+    {
+        *q = dsa ? dsa->q : NULL;
+    }
+    if (g != NULL)
+    {
+        *g = dsa ? dsa->g : NULL;
+    }
+}
+#endif
+
+#if !defined(HAVE_DSA_BITS)
+/**
+ * Number of significant DSA bits
+ *
+ * @param rsa                The DSA object ; shall not be NULL
+ * @return                   The number of DSA bits or 0 on error
+ */
+static inline int
+DSA_bits(const DSA *dsa)
+{
+    const BIGNUM *p = NULL;
+    DSA_get0_pqg(dsa, &p, NULL, NULL);
+    return p ? BN_num_bits(p) : 0;
+}
+#endif
+
 #if !defined(HAVE_RSA_METH_NEW)
 /**
  * Allocate a new RSA method object
