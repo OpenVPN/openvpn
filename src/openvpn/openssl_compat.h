@@ -175,6 +175,106 @@ EVP_PKEY_get0_DSA(EVP_PKEY *pkey)
 }
 #endif
 
+#if !defined(HAVE_RSA_SET_FLAGS)
+/**
+ * Set the RSA flags
+ *
+ * @param rsa                 The RSA object
+ * @param flags               New flags value
+ */
+static inline void
+RSA_set_flags(RSA *rsa, int flags)
+{
+    if (rsa)
+    {
+        rsa->flags = flags;
+    }
+}
+#endif
+
+#if !defined(HAVE_RSA_GET0_KEY)
+/**
+ * Get the RSA parameters
+ *
+ * @param rsa                 The RSA object
+ * @param n                   The @c n parameter
+ * @param e                   The @c e parameter
+ * @param d                   The @c d parameter
+ */
+static inline void
+RSA_get0_key(const RSA *rsa, const BIGNUM **n,
+             const BIGNUM **e, const BIGNUM **d)
+{
+    if (n != NULL)
+    {
+        *n = rsa ? rsa->n : NULL;
+    }
+    if (e != NULL)
+    {
+        *e = rsa ? rsa->e : NULL;
+    }
+    if (d != NULL)
+    {
+        *d = rsa ? rsa->d : NULL;
+    }
+}
+#endif
+
+#if !defined(HAVE_RSA_SET0_KEY)
+/**
+ * Set the RSA parameters
+ *
+ * @param rsa                 The RSA object
+ * @param n                   The @c n parameter
+ * @param e                   The @c e parameter
+ * @param d                   The @c d parameter
+ * @return                    1 on success, 0 on error
+ */
+static inline int
+RSA_set0_key(RSA *rsa, BIGNUM *n, BIGNUM *e, BIGNUM *d)
+{
+    if ((rsa->n == NULL && n == NULL)
+        || (rsa->e == NULL && e == NULL))
+    {
+        return 0;
+    }
+
+    if (n != NULL)
+    {
+        BN_free(rsa->n);
+        rsa->n = n;
+    }
+    if (e != NULL)
+    {
+        BN_free(rsa->e);
+        rsa->e = e;
+    }
+    if (d != NULL)
+    {
+        BN_free(rsa->d);
+        rsa->d = d;
+    }
+
+    return 1;
+}
+#endif
+
+#if !defined(HAVE_RSA_BITS)
+/**
+ * Number of significant RSA bits
+ *
+ * @param rsa                The RSA object ; shall not be NULL
+ * @return                   The number of RSA bits or 0 on error
+ */
+static inline int
+RSA_bits(const RSA *rsa)
+{
+    const BIGNUM *n = NULL;
+    RSA_get0_key(rsa, &n, NULL, NULL);
+    return n ? BN_num_bits(n) : 0;
+}
+#endif
+
 #if !defined(HAVE_RSA_METH_NEW)
 /**
  * Allocate a new RSA method object

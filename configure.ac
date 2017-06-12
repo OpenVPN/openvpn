@@ -908,6 +908,10 @@ if test "${enable_crypto}" = "yes" -a "${with_crypto_library}" = "openssl"; then
 			EVP_PKEY_id \
 			EVP_PKEY_get0_RSA \
 			EVP_PKEY_get0_DSA \
+			RSA_set_flags \
+			RSA_bits \
+			RSA_get0_key \
+			RSA_set0_key \
 			RSA_meth_new \
 			RSA_meth_free \
 			RSA_meth_set_pub_enc \
