@@ -1692,11 +1692,11 @@ print_details(struct key_state_ssl *ks_ssl, const char *prefix)
                 openvpn_snprintf(s2, sizeof(s2), ", %d bit RSA",
                                  RSA_bits(rsa));
             }
-            else if (EVP_PKEY_id(pkey) == EVP_PKEY_DSA && EVP_PKEY_get0_DSA(pkey) != NULL
-                     && pkey->pkey.dsa->p != NULL)
+            else if (EVP_PKEY_id(pkey) == EVP_PKEY_DSA && EVP_PKEY_get0_DSA(pkey) != NULL)
             {
+                DSA *dsa = EVP_PKEY_get0_DSA(pkey);
                 openvpn_snprintf(s2, sizeof(s2), ", %d bit DSA",
-                                 BN_num_bits(pkey->pkey.dsa->p));
+                                 DSA_bits(dsa));
             }
             EVP_PKEY_free(pkey);
         }
