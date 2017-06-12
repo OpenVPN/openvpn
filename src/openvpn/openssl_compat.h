@@ -73,6 +73,21 @@ SSL_CTX_get_default_passwd_cb(SSL_CTX *ctx)
 }
 #endif
 
+#if !defined(HAVE_X509_GET0_PUBKEY)
+/**
+ * Get the public key from a X509 certificate
+ *
+ * @param x                  X509 certificate
+ * @return                   The certificate public key
+ */
+static inline EVP_PKEY *
+X509_get0_pubkey(const X509 *x)
+{
+    return (x && x->cert_info && x->cert_info->key) ?
+           x->cert_info->key->pkey : NULL;
+}
+#endif
+
 #if !defined(HAVE_X509_STORE_GET0_OBJECTS)
 /**
  * Fetch the X509 object stack from the X509 store

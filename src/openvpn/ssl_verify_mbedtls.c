@@ -410,7 +410,7 @@ x509_setenv(struct env_set *es, int cert_depth, mbedtls_x509_crt *cert)
 }
 
 result_t
-x509_verify_ns_cert_type(const mbedtls_x509_crt *cert, const int usage)
+x509_verify_ns_cert_type(mbedtls_x509_crt *cert, const int usage)
 {
     if (usage == NS_CERT_CHECK_NONE)
     {
