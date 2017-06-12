@@ -349,7 +349,13 @@ RSA_meth_free(RSA_METHOD *meth)
 {
     if (meth)
     {
-        free(meth->name);
+        /* OpenSSL defines meth->name to be a const pointer, yet we
+         * feed it with an allocated string (from RSA_meth_new()).
+         * Thus we are allowed to free it here. In order to avoid a
+         * "passing 'const char *' to parameter of type 'void *' discards
+         * qualifiers" warning, we force the pointer to be a non-const value.
+         */
+        free((char *)meth->name);
         free(meth);
     }
 }
