@@ -925,6 +925,9 @@ if test "${enable_crypto}" = "yes" -a "${with_crypto_library}" = "openssl"; then
 			X509_STORE_get0_objects \
 			X509_OBJECT_free \
 			X509_OBJECT_get_type \
+			EVP_PKEY_id \
+			EVP_PKEY_get0_RSA \
+			EVP_PKEY_get0_DSA \
 			RSA_meth_new \
 			RSA_meth_free \
 			RSA_meth_set_pub_enc \
