@@ -116,6 +116,71 @@ EVP_CIPHER_CTX_new(void)
 }
 #endif
 
+#if !defined(HAVE_HMAC_CTX_RESET)
+/**
+ * Reset a HMAC context
+ *
+ * @param ctx                 The HMAC context
+ * @return                    1 on success, 0 on error
+ */
+static inline int
+HMAC_CTX_reset(HMAC_CTX *ctx)
+{
+    HMAC_CTX_cleanup(ctx);
+    return 1;
+}
+#endif
+
+#if !defined(HAVE_HMAC_CTX_INIT)
+/**
+ * Init a HMAC context
+ *
+ * @param ctx                 The HMAC context
+ *
+ * Contrary to many functions in this file, HMAC_CTX_init() is not
+ * an OpenSSL 1.1 function: it comes from previous versions and was
+ * removed in v1.1. As a consequence, there is no distincting in
+ * v1.1 between a cleanup, and init and a reset. Yet, previous OpenSSL
+ * version need this distinction.
+ *
+ * In order to respect previous OpenSSL versions, we implement init
+ * as reset for OpenSSL 1.1+.
+ */
+static inline void
+HMAC_CTX_init(HMAC_CTX *ctx)
+{
+    HMAC_CTX_reset(ctx);
+}
+#endif
+
+#if !defined(HAVE_HMAC_CTX_FREE)
+/**
+ * Free an existing HMAC context
+ *
+ * @param ctx                 The HMAC context
+ */
+static inline void
+HMAC_CTX_free(HMAC_CTX *c)
+{
+	free(c);
+}
+#endif
+
+#if !defined(HAVE_HMAC_CTX_NEW)
+/**
+ * Allocate a new HMAC context object
+ *
+ * @return                    A zero'ed HMAC context object
+ */
+static inline HMAC_CTX *
+HMAC_CTX_new(void)
+{
+    HMAC_CTX *ctx = NULL;
+    ALLOC_OBJ_CLEAR(ctx, HMAC_CTX);
+    return ctx;
+}
+#endif
+
 #if !defined(HAVE_SSL_CTX_GET_DEFAULT_PASSWD_CB_USERDATA)
 /**
  * Fetch the default password callback user data from the SSL context

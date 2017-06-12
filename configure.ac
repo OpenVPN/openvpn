@@ -921,6 +921,10 @@ if test "${enable_crypto}" = "yes" -a "${with_crypto_library}" = "openssl"; then
 		[ \
 			EVP_CIPHER_CTX_new \
 			EVP_CIPHER_CTX_free \
+			HMAC_CTX_new \
+			HMAC_CTX_free \
+			HMAC_CTX_reset \
+			HMAC_CTX_init \
 			EVP_MD_CTX_new \
 			EVP_MD_CTX_free \
 			EVP_MD_CTX_reset \

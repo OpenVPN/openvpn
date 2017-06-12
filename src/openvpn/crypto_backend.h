@@ -583,6 +583,20 @@ void md_ctx_final(md_ctx_t *ctx, uint8_t *dst);
  */
 
 /*
+ * Create a new HMAC context
+ *
+ * @return              A new HMAC context
+ */
+hmac_ctx_t *hmac_ctx_new(void);
+
+/*
+ * Free an existing HMAC context
+ *
+ * @param  ctx           HMAC context to free
+ */
+void hmac_ctx_free(hmac_ctx_t *ctx);
+
+/*
  * Initialises the given HMAC context, using the given digest
  * and key.
  *
