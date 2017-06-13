@@ -110,8 +110,12 @@ mss_fixup_ipv6 (struct buffer *buf, int maxmss)
   if ( pip6->nexthdr != OPENVPN_IPPROTO_TCP )
     return;
 
+  /* skip IPv6 header (40 bytes),
+   * verify remainder is large enough to contain a full TCP header
+   */
   newbuf = *buf;
-  if ( buf_advance( &newbuf, 40 ) )
+  if (buf_advance( &newbuf, 40 )
+      && BLEN(&newbuf) >= (int) sizeof(struct openvpn_tcphdr))
     {
       struct openvpn_tcphdr *tc = (struct openvpn_tcphdr *) BPTR (&newbuf);
       if (tc->flags & OPENVPN_TCPH_SYN_MASK)
@@ -133,7 +137,10 @@ mss_fixup_dowork (struct buffer *buf, uint16_t maxmss)
   int accumulate;
   struct openvpn_tcphdr *tc;
 
-  ASSERT (BLEN (buf) >= (int) sizeof (struct openvpn_tcphdr));
+  if (BLEN(buf) < (int) sizeof(struct openvpn_tcphdr))
+    {
+	return;
+    }
 
   verify_align_4 (buf);
   tc = (struct openvpn_tcphdr *) BPTR (buf);
