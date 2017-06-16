@@ -745,6 +745,12 @@ establish_http_proxy_passthru (struct http_proxy_info *p,
 	      const char *algor = get_pa_var("algorithm", pa, &gc);
 	      const char *opaque = get_pa_var("opaque", pa, &gc);
 
+	      if ( !realm || !nonce )
+		{
+		  msg(D_LINK_ERRORS, "HTTP proxy: digest auth failed, malformed response from server: realm= or nonce= missing" );
+		  goto error;
+		}
+
 	      /* generate a client nonce */
 	      ASSERT(RAND_bytes(cnonce_raw, sizeof(cnonce_raw)));
 	      cnonce = make_base64_string2(cnonce_raw, sizeof(cnonce_raw), &gc);
