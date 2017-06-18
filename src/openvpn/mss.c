@@ -146,7 +146,7 @@ mss_fixup_dowork (struct buffer *buf, uint16_t maxmss)
 
   for (olen = hlen - sizeof (struct openvpn_tcphdr),
 	 opt = (uint8_t *)(tc + 1);
-       olen > 0;
+       olen > 1;
        olen -= optlen, opt += optlen) {
     if (*opt == OPENVPN_TCPOPT_EOL)
       break;
