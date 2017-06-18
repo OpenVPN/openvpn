@@ -1925,7 +1925,7 @@ do_up(struct context *c, bool pulled_options, unsigned int option_types_found)
     {
         reset_coarse_timers(c);
 
-        if (pulled_options && option_types_found)
+        if (pulled_options)
         {
             if (!do_deferred_options(c, option_types_found))
             {
