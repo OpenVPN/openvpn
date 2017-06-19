@@ -306,6 +306,14 @@ Maintainer-visible changes
 Version 2.4.3
 =============
 
+Security
+--------
+- CVE-2017-7522: Fix --x509-track post-authentication remote DoS
+  A client could crash a 2.4+ mbedtls server, if that server uses the
+  --x509-track option and the client has a correct, signed and unrevoked
+  certificate that contains an embedded NUL in the certificate subject.
+  Discovered and reported to the OpenVPN security team by Guido Vranken.
+
 User-visible Changes
 --------------------
 - ``--verify-hash`` can now take an optional flag which changes the hashing
