@@ -324,6 +324,9 @@ User-visible Changes
 - ``--verify-hash`` can now take an optional flag which changes the hashing
   algorithm. It can be either SHA1 or SHA256.  The default if not provided is
   SHA1 to preserve backwards compatibility with existing configurations.
+- Restrict the supported --x509-alt-username extension fields to subjectAltName
+  and issuerAltName.  Other extensions probably didn't work anyway, and would
+  cause OpenVPN to crash when a client connects.
 
 Bugfixes
 --------
