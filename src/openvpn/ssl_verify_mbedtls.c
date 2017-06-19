@@ -267,6 +267,14 @@ asn1_buf_to_c_string(const mbedtls_asn1_buf *orig, struct gc_arena *gc)
     size_t i;
     char *val;
 
+    if (!(orig->tag == MBEDTLS_ASN1_UTF8_STRING
+          || orig->tag == MBEDTLS_ASN1_PRINTABLE_STRING
+          || orig->tag == MBEDTLS_ASN1_IA5_STRING))
+    {
+        /* Only support C-string compatible types */
+        return string_alloc("ERROR: unsupported ASN.1 string type", gc);
+    }
+
     for (i = 0; i < orig->len; ++i)
     {
         if (orig->p[i] == '\0')
