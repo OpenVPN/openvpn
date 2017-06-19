@@ -313,6 +313,11 @@ Security
   --x509-track option and the client has a correct, signed and unrevoked
   certificate that contains an embedded NUL in the certificate subject.
   Discovered and reported to the OpenVPN security team by Guido Vranken.
+- CVE-2017-7521: Fix post-authentication remote-triggerable memory leaks
+  A client could cause a server to leak a few bytes each time it connects to the
+  server.  That can eventuall cause the server to run out of memory, and thereby
+  causing the server process to terminate. Discovered and reported to the
+  OpenVPN security team by Guido Vranken.  (OpenSSL builds only.)
 
 User-visible Changes
 --------------------
