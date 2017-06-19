@@ -138,7 +138,10 @@ bool extract_x509_extension(X509 *cert, char *fieldname, char *out, int size)
           switch (name->type)
             {
               case GEN_EMAIL:
-                ASN1_STRING_to_UTF8((unsigned char**)&buf, name->d.ia5);
+                if (ASN1_STRING_to_UTF8((unsigned char **)&buf, name->d.ia5) < 0)
+                  {
+                    continue;
+                  }
                 if ( strlen (buf) != name->d.ia5->length )
                   {
                     msg (D_TLS_ERRORS, "ASN1 ERROR: string contained terminating zero");
