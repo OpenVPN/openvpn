@@ -318,6 +318,13 @@ Security
   server.  That can eventuall cause the server to run out of memory, and thereby
   causing the server process to terminate. Discovered and reported to the
   OpenVPN security team by Guido Vranken.  (OpenSSL builds only.)
+- CVE-2017-7521: Fix a potential post-authentication remote code execution
+  attack on servers that use the ``--x509-alt-username`` option with an X.509
+  extension field (option argument prefixed with ``ext:``).  A client that can
+  cause a server to run out-of-memory (see above) might be able to cause the
+  server to double free, which in turn might lead to remote code execution.
+  Discovered and reported to the OpenVPN security team by Guido Vranken.
+  (OpenSSL builds only.)
 
 User-visible Changes
 --------------------
