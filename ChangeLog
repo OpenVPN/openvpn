@@ -1,6 +1,35 @@
 OpenVPN Change Log
 Copyright (C) 2002-2017 OpenVPN Technologies, Inc. <sales@openvpn.net>
 
+2017.06.21 -- Version 2.3.17
+
+David Sommerseth (2):
+      backport: Ignore auth-nocache for auth-user-pass if auth-token is pushed
+      auth-token with auth-nocache fix broke --disable-crypto builds
+
+Gert Doering (2):
+      Fix potential 1-byte overread in TCP option parsing.
+      Fix remotely-triggerable ASSERT() on malformed IPv6 packet.
+
+Guido Vranken (6):
+      refactor my_strupr
+      Fix 2 memory leaks in proxy authentication routine
+      Fix memory leak in add_option() for option 'connection'
+      Ensure option array p[] is always NULL-terminated
+      Fix a null-pointer dereference in establish_http_proxy_passthru()
+      Prevent two kinds of stack buffer OOB reads and a crash for invalid input data
+
+Jérémie Courrèges-Anglas (2):
+      Fix an unaligned access on OpenBSD/sparc64
+      Missing include for socket-flags TCP_NODELAY on OpenBSD
+
+Steffan Karger (4):
+      openssl: fix overflow check for long --tls-cipher option
+      Fix remote-triggerable memory leaks (CVE-2017-7521)
+      Restrict --x509-alt-username extension types
+      Fix potential double-free in --x509-alt-username (CVE-2017-7521)
+
+
 2017.05.18 -- Version 2.3.16
 Antonio Quartulli (1):
       fix redirect-gateway behaviour when an IPv4 default route does not exist
