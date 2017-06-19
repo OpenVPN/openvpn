@@ -1382,6 +1382,8 @@ initialization_sequence_completed(struct context *c, const unsigned int flags)
     /* If we delayed UID/GID downgrade or chroot, do it now */
     do_uid_gid_chroot(c, true);
 
+
+#ifdef ENABLE_CRYPTO
     /*
      * In some cases (i.e. when receiving auth-token via
      * push-reply) the auth-nocache option configured on the
@@ -1393,6 +1395,7 @@ initialization_sequence_completed(struct context *c, const unsigned int flags)
     {
         delayed_auth_pass_purge();
     }
+#endif /* ENABLE_CRYPTO */
 
     /* Test if errors */
     if (flags & ISC_ERRORS)
