@@ -523,7 +523,7 @@ cipher_ctx_free(mbedtls_cipher_context_t *ctx)
 }
 
 void
-cipher_ctx_init(mbedtls_cipher_context_t *ctx, uint8_t *key, int key_len,
+cipher_ctx_init(mbedtls_cipher_context_t *ctx, const uint8_t *key, int key_len,
                 const mbedtls_cipher_info_t *kt, const mbedtls_operation_t operation)
 {
     ASSERT(NULL != kt && NULL != ctx);
@@ -597,7 +597,7 @@ cipher_ctx_get_cipher_kt(const cipher_ctx_t *ctx)
 }
 
 int
-cipher_ctx_reset(mbedtls_cipher_context_t *ctx, uint8_t *iv_buf)
+cipher_ctx_reset(mbedtls_cipher_context_t *ctx, const uint8_t *iv_buf)
 {
     if (!mbed_ok(mbedtls_cipher_reset(ctx)))
     {

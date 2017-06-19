@@ -323,7 +323,7 @@ void cipher_ctx_free(cipher_ctx_t *ctx);
  * @param enc           Whether to encrypt or decrypt (either
  *                      \c MBEDTLS_OP_ENCRYPT or \c MBEDTLS_OP_DECRYPT).
  */
-void cipher_ctx_init(cipher_ctx_t *ctx, uint8_t *key, int key_len,
+void cipher_ctx_init(cipher_ctx_t *ctx, const uint8_t *key, int key_len,
                      const cipher_kt_t *kt, int enc);
 
 /**
@@ -391,7 +391,7 @@ const cipher_kt_t *cipher_ctx_get_cipher_kt(const cipher_ctx_t *ctx);
  *
  * @return              \c 0 on failure, \c 1 on success.
  */
-int cipher_ctx_reset(cipher_ctx_t *ctx, uint8_t *iv_buf);
+int cipher_ctx_reset(cipher_ctx_t *ctx, const uint8_t *iv_buf);
 
 /**
  * Updates the given cipher context, providing additional data (AD) for
