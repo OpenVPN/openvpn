@@ -1,6 +1,68 @@
 OpenVPN Change Log
 Copyright (C) 2002-2017 OpenVPN Technologies, Inc. <sales@openvpn.net>
 
+2017.06.21 -- Version 2.4.3
+Antonio Quartulli (1):
+      Ignore auth-nocache for auth-user-pass if auth-token is pushed
+
+David Sommerseth (3):
+      crypto: Enable SHA256 fingerprint checking in --verify-hash
+      copyright: Update GPLv2 license texts
+      auth-token with auth-nocache fix broke --disable-crypto builds
+
+Emmanuel Deloget (8):
+      OpenSSL: don't use direct access to the internal of X509
+      OpenSSL: don't use direct access to the internal of EVP_PKEY
+      OpenSSL: don't use direct access to the internal of RSA
+      OpenSSL: don't use direct access to the internal of DSA
+      OpenSSL: force meth->name as non-const when we free() it
+      OpenSSL: don't use direct access to the internal of EVP_MD_CTX
+      OpenSSL: don't use direct access to the internal of EVP_CIPHER_CTX
+      OpenSSL: don't use direct access to the internal of HMAC_CTX
+
+Gert Doering (6):
+      Fix NCP behaviour on TLS reconnect.
+      Remove erroneous limitation on max number of args for --plugin
+      Fix edge case with clients failing to set up cipher on empty PUSH_REPLY.
+      Fix potential 1-byte overread in TCP option parsing.
+      Fix remotely-triggerable ASSERT() on malformed IPv6 packet.
+      Update Changes.rst with relevant info for 2.4.3 release.
+
+Guido Vranken (6):
+      refactor my_strupr
+      Fix 2 memory leaks in proxy authentication routine
+      Fix memory leak in add_option() for option 'connection'
+      Ensure option array p[] is always NULL-terminated
+      Fix a null-pointer dereference in establish_http_proxy_passthru()
+      Prevent two kinds of stack buffer OOB reads and a crash for invalid input data
+
+Jérémie Courrèges-Anglas (2):
+      Fix an unaligned access on OpenBSD/sparc64
+      Missing include for socket-flags TCP_NODELAY on OpenBSD
+
+Matthias Andree (1):
+      Make openvpn-plugin.h self-contained again.
+
+Selva Nair (1):
+      Pass correct buffer size to GetModuleFileNameW()
+
+Steffan Karger (11):
+      Log the negotiated (NCP) cipher
+      Avoid a 1 byte overcopy in x509_get_subject (ssl_verify_openssl.c)
+      Skip tls-crypt unit tests if required crypto mode not supported
+      openssl: fix overflow check for long --tls-cipher option
+      Add a DSA test key/cert pair to sample-keys
+      Fix mbedtls fingerprint calculation
+      mbedtls: fix --x509-track post-authentication remote DoS (CVE-2017-7522)
+      mbedtls: require C-string compatible types for --x509-username-field
+      Fix remote-triggerable memory leaks (CVE-2017-7521)
+      Restrict --x509-alt-username extension types
+      Fix potential double-free in --x509-alt-username (CVE-2017-7521)
+
+Steven McDonald (1):
+      Fix gateway detection with OpenBSD routing domains
+
+
 2017.05.11 -- Version 2.4.2
 David Sommerseth (5):
       auth-token: Ensure tokens are always wiped on de-auth

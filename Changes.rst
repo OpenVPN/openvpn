@@ -177,6 +177,7 @@ Deprecated features
 
 - ``--no-iv`` is deprecated in 2.4 and will be removed in 2.5.
 
+
 User-visible Changes
 --------------------
 - When using ciphers with cipher blocks less than 128-bits,
@@ -303,43 +304,82 @@ Maintainer-visible changes
   use -std=gnu99 in CFLAGS.  This is known to be needed when doing
   i386/i686 builds on RHEL5.
 
+
+
 Version 2.4.3
 =============
 
+New features
+------------
+- Support building with OpenSSL 1.1 now (in addition to older versions)
+
+- On Win10, set low interface metric for TAP adapter when block-outside-dns
+  is in use, to make Windows prefer the TAP adapter for DNS queries
+  (avoiding large delays)
+
+
 Security
 --------
-- CVE-2017-7522: Fix --x509-track post-authentication remote DoS
+- CVE-2017-7522: Fix ``--x509-track`` post-authentication remote DoS
   A client could crash a 2.4+ mbedtls server, if that server uses the
-  --x509-track option and the client has a correct, signed and unrevoked
+  ``--x509-track`` option and the client has a correct, signed and unrevoked
   certificate that contains an embedded NUL in the certificate subject.
   Discovered and reported to the OpenVPN security team by Guido Vranken.
+
 - CVE-2017-7521: Fix post-authentication remote-triggerable memory leaks
   A client could cause a server to leak a few bytes each time it connects to the
   server.  That can eventuall cause the server to run out of memory, and thereby
   causing the server process to terminate. Discovered and reported to the
   OpenVPN security team by Guido Vranken.  (OpenSSL builds only.)
+
 - CVE-2017-7521: Fix a potential post-authentication remote code execution
-  attack on servers that use the ``--x509-alt-username`` option with an X.509
+  attack on servers that use the ``--x509-username-field`` option with an X.509
   extension field (option argument prefixed with ``ext:``).  A client that can
   cause a server to run out-of-memory (see above) might be able to cause the
   server to double free, which in turn might lead to remote code execution.
   Discovered and reported to the OpenVPN security team by Guido Vranken.
   (OpenSSL builds only.)
 
+- CVE-2017-7520: Pre-authentication remote crash/information disclosure for
+  clients. If clients use a HTTP proxy with NTLM authentication (i.e.
+  ``--http-proxy <server> <port> [<authfile>|'auto'|'auto-nct'] ntlm2``),
+  a man-in-the-middle attacker between the client and the proxy can cause
+  the client to crash or disclose at most 96 bytes of stack memory. The
+  disclosed stack memory is likely to contain the proxy password. If the
+  proxy password is not reused, this is unlikely to compromise the security
+  of the OpenVPN tunnel itself.  Clients who do not use the ``--http-proxy``
+  option with ntlm2 authentication are not affected.
+
+- CVE-2017-7508: Fix remotely-triggerable ASSERT() on malformed IPv6 packet.
+  This can be used to remotely shutdown an openvpn server or client, if
+  IPv6 and ``--mssfix`` are enabled and the IPv6 networks used inside the VPN
+  are known.
+
+- Fix null-pointer dereference when talking to a malicious http proxy
+  that returns a malformed Proxy-Authenticate: headers for digest auth.
+
+- Fix overflow check for long ``--tls-cipher`` option
+
+- Windows: Pass correct buffer size to ``GetModuleFileNameW()``
+  (OSTIF/Quarkslabs audit, finding 5.6)
+
+
 User-visible Changes
 --------------------
 - ``--verify-hash`` can now take an optional flag which changes the hashing
   algorithm. It can be either SHA1 or SHA256.  The default if not provided is
   SHA1 to preserve backwards compatibility with existing configurations.
-- Restrict the supported --x509-alt-username extension fields to subjectAltName
+
+- Restrict the supported ``--x509-username-field`` extension fields to subjectAltName
   and issuerAltName.  Other extensions probably didn't work anyway, and would
   cause OpenVPN to crash when a client connects.
+
 
 Bugfixes
 --------
 - Fix fingerprint calculation in mbed TLS builds.  This means that mbed TLS users
   of OpenVPN 2.4.0, 2.4.1 and 2.4.2 that rely on the values of the
-  ``tls_digest_*`` env vars, or that use `--verify-hash` will have to change
+  ``tls_digest_*`` env vars, or that use ``--verify-hash`` will have to change
   the fingerprint values they check against.  The security impact of the
   incorrect calculation is very minimal; the last few bytes (max 4, typically
   4) are not verified by the fingerprint.  We expect no real-world impact,
@@ -347,21 +387,19 @@ Bugfixes
   stopped working, and users that didn't will notice that connection setup
   fails if they specify correct fingerprints.
 
+- Fix edge case with NCP when the server sends an empty PUSH_REPLY message
+  back, and the client would not initialize it's data channel crypto layer
+  properly (trac #903)
 
-Version 2.4.1
-=============
-- ``--remote-cert-ku`` now only requires the certificate to have at least the
-  bits set of one of the values in the supplied list, instead of requiring an
-  exact match to one of the values in the list.
-- ``--remote-cert-tls`` now only requires that a keyUsage is present in the
-  certificate, and leaves the verification of the value up to the crypto
-  library, which has more information (i.e. the key exchange method in use)
-  to verify that the keyUsage is correct.
-- ``--ns-cert-type`` is deprecated.  Use ``--remote-cert-tls`` instead.
-  The nsCertType x509 extension is very old, and barely used.
-  ``--remote-cert-tls`` uses the far more common keyUsage and extendedKeyUsage
-  extension instead.  Make sure your certificates carry these to be able to
-  use ``--remote-cert-tls``.
+- Fix SIGSEGV on unaligned buffer access on OpenBSD/Sparc64
+
+- Fix TCP_NODELAY on OpenBSD
+
+- Remove erroneous limitation on max number of args for --plugin
+
+- Fix NCP behaviour on TLS reconnect (Server would not send a proper
+  "cipher ..." message back to the client, leading to client and server
+  using different ciphers) (trac #887)
 
 
 Version 2.4.2
@@ -379,7 +417,27 @@ Security
   to hit an ASSERT() and stop the process.  If ``--tls-auth`` or ``--tls-crypt``
   is used, only attackers that have the ``--tls-auth`` or ``--tls-crypt`` key
   can mount an attack. (OSTIF/Quarkslab audit finding 5.1, CVE-2017-7478)
+
 - Fix an authenticated remote DoS vulnerability that could be triggered by
   causing a packet id roll over.  An attack is rather inefficient; a peer
   would need to get us to send at least about 196 GB of data.
   (OSTIF/Quarkslab audit finding 5.2, CVE-2017-7479)
+
+
+Version 2.4.1
+=============
+- ``--remote-cert-ku`` now only requires the certificate to have at least the
+  bits set of one of the values in the supplied list, instead of requiring an
+  exact match to one of the values in the list.
+
+- ``--remote-cert-tls`` now only requires that a keyUsage is present in the
+  certificate, and leaves the verification of the value up to the crypto
+  library, which has more information (i.e. the key exchange method in use)
+  to verify that the keyUsage is correct.
+
+- ``--ns-cert-type`` is deprecated.  Use ``--remote-cert-tls`` instead.
+  The nsCertType x509 extension is very old, and barely used.
+  ``--remote-cert-tls`` uses the far more common keyUsage and extendedKeyUsage
+  extension instead.  Make sure your certificates carry these to be able to
+  use ``--remote-cert-tls``.
+
