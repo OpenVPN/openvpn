@@ -82,7 +82,7 @@ download_openssl () {
 build_openssl_linux () {
     (
         cd "openssl-${OPENSSL_VERSION}/"
-        ./config shared --openssldir="${PREFIX}" -DPURIFY
+        ./config shared --prefix="${PREFIX}" --openssldir="${PREFIX}" -DPURIFY
         make all install_sw
     )
 }
@@ -91,7 +91,7 @@ build_openssl_osx () {
     (
         cd "openssl-${OPENSSL_VERSION}/"
         ./Configure darwin64-x86_64-cc shared \
-            --openssldir="${PREFIX}" -DPURIFY
+            --prefix="${PREFIX}" --openssldir="${PREFIX}" -DPURIFY
         make depend all install_sw
     )
 }
@@ -107,7 +107,7 @@ build_openssl_mingw () {
         fi
 
         ./Configure --cross-compile-prefix=${CHOST}- shared \
-           ${TARGET} no-multilib no-capieng --openssldir="${PREFIX}" -static-libgcc
+           ${TARGET} no-multilib no-capieng --prefix="${PREFIX}" --openssldir="${PREFIX}" -static-libgcc
         make install
     )
 }

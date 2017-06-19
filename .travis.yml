@@ -27,7 +27,13 @@ matrix:
     - env: SSLLIB="openssl"
       os: linux
       compiler: gcc
+    - env: SSLLIB="openssl" OPENSSL_VERSION="1.1.0f"
+      os: linux
+      compiler: gcc
     - env: SSLLIB="openssl"
+      os: linux
+      compiler: clang
+    - env: SSLLIB="openssl" OPENSSL_VERSION="1.1.0f"
       os: linux
       compiler: clang
     - env: SSLLIB="mbedtls"
