@@ -120,6 +120,15 @@ EVP_CIPHER_CTX_new(void)
 /**
  * Reset a HMAC context
  *
+ * OpenSSL 1.1+ removes APIs HMAC_CTX_init() and HMAC_CTX_cleanup()
+ * and replace them with a single call that does a cleanup followed
+ * by an init. A proper _reset() for OpenSSL < 1.1 should perform
+ * a similar set of operations.
+ *
+ * It means that before we kill a HMAC context, we'll have to cleanup
+ * again, as we probably have allocated a few resources when we forced
+ * an init.
+ *
  * @param ctx                 The HMAC context
  * @return                    1 on success, 0 on error
  */
@@ -127,42 +136,22 @@ static inline int
 HMAC_CTX_reset(HMAC_CTX *ctx)
 {
     HMAC_CTX_cleanup(ctx);
+    HMAC_CTX_init(ctx);
     return 1;
-}
-#endif
-
-#if !defined(HAVE_HMAC_CTX_INIT)
-/**
- * Init a HMAC context
- *
- * @param ctx                 The HMAC context
- *
- * Contrary to many functions in this file, HMAC_CTX_init() is not
- * an OpenSSL 1.1 function: it comes from previous versions and was
- * removed in v1.1. As a consequence, there is no distincting in
- * v1.1 between a cleanup, and init and a reset. Yet, previous OpenSSL
- * version need this distinction.
- *
- * In order to respect previous OpenSSL versions, we implement init
- * as reset for OpenSSL 1.1+.
- */
-static inline void
-HMAC_CTX_init(HMAC_CTX *ctx)
-{
-    HMAC_CTX_reset(ctx);
 }
 #endif
 
 #if !defined(HAVE_HMAC_CTX_FREE)
 /**
- * Free an existing HMAC context
+ * Cleanup and free an existing HMAC context
  *
  * @param ctx                 The HMAC context
  */
 static inline void
-HMAC_CTX_free(HMAC_CTX *c)
+HMAC_CTX_free(HMAC_CTX *ctx)
 {
-	free(c);
+    HMAC_CTX_cleanup(ctx);
+    free(ctx);
 }
 #endif
 
