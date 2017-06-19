@@ -7023,6 +7023,10 @@ add_option (struct options *options,
 		  "configuration", p[1]);
 	    }
 	}
+      else if (!x509_username_field_ext_supported(s+4))
+        {
+          msg(msglevel, "Unsupported x509-username-field extension: %s", s);
+        }
       options->x509_username_field = p[1];
     }
 #endif /* ENABLE_X509ALTUSERNAME */

@@ -93,14 +93,30 @@ cleanup:
 }
 
 #ifdef ENABLE_X509ALTUSERNAME
+bool
+x509_username_field_ext_supported(const char *fieldname)
+{
+  int nid = OBJ_txt2nid(fieldname);
+  return nid == NID_subject_alt_name || nid == NID_issuer_alt_name;
+}
+
 static
 bool extract_x509_extension(X509 *cert, char *fieldname, char *out, int size)
 {
   bool retval = false;
   char *buf = 0;
   GENERAL_NAMES *extensions;
-  int nid = OBJ_txt2nid(fieldname);
+  int nid;
 
+  if (!x509_username_field_ext_supported(fieldname))
+    {
+      msg(D_TLS_ERRORS,
+          "ERROR: --x509-alt-username field 'ext:%s' not supported",
+          fieldname);
+      return false;
+    }
+
+  nid = OBJ_txt2nid(fieldname);
   extensions = (GENERAL_NAMES *)X509_get_ext_d2i(cert, nid, NULL, NULL);
   if ( extensions )
     {
