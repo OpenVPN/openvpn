@@ -129,8 +129,7 @@ extract_x509_extension(X509 *cert, char *fieldname, char *out, int size)
     if (!x509_username_field_ext_supported(fieldname))
     {
         msg(D_TLS_ERRORS,
-            "ERROR: --x509-alt-username field 'ext:%s' not supported",
-            fieldname);
+            "ERROR: --x509-username-field 'ext:%s' not supported", fieldname);
         return false;
     }
 
