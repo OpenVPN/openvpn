@@ -36,6 +36,7 @@
 #include "syshead.h"
 
 #include "argv.h"
+#include "integer.h"
 #include "options.h"
 
 static void

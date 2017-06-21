@@ -118,6 +118,24 @@ modulo_add(int x, int y, int mod)
     return sum;
 }
 
+/*
+ * Return the next largest power of 2
+ * or u if u is a power of 2.
+ */
+static inline size_t
+adjust_power_of_2(size_t u)
+{
+    size_t ret = 1;
+
+    while (ret < u)
+    {
+        ret <<= 1;
+        ASSERT(ret > 0);
+    }
+
+    return ret;
+}
+
 static inline int
 index_verify(int index, int size, const char *file, int line)
 {

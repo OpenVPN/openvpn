@@ -1646,24 +1646,6 @@ openvpn_sleep(const int n)
 }
 
 /*
- * Return the next largest power of 2
- * or u if u is a power of 2.
- */
-size_t
-adjust_power_of_2(size_t u)
-{
-    size_t ret = 1;
-
-    while (ret < u)
-    {
-        ret <<= 1;
-        ASSERT(ret > 0);
-    }
-
-    return ret;
-}
-
-/*
  * Remove security-sensitive strings from control message
  * so that they will not be output to log file.
  */

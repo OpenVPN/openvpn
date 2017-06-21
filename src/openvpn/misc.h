@@ -327,8 +327,6 @@ extern const char *iproute_path;
 #define SSEC_PW_ENV    3 /* allow calling of built-in programs and user-defined scripts that may receive a password as an environmental variable */
 extern int script_security; /* GLOBAL */
 
-/* return the next largest power of 2 */
-size_t adjust_power_of_2(size_t u);
 
 #define COMPAT_FLAG_QUERY         0       /** compat_flags operator: Query for a flag */
 #define COMPAT_FLAG_SET           (1<<0)  /** compat_flags operator: Set a compat flag */
