@@ -13,24 +13,6 @@
 #include "argv.h"
 #include "buffer.h"
 
-/*
- * This is defined here to prevent #include'ing misc.h
- * which makes things difficult beyond any recognition
- */
-size_t
-adjust_power_of_2(size_t u)
-{
-    size_t ret = 1;
-
-    while (ret < u)
-    {
-        ret <<= 1;
-        assert(ret > 0);
-    }
-
-    return ret;
-}
-
 /* Defines for use in the tests and the mock parse_line() */
 #define PATH1       "/s p a c e"
 #define PATH2       "/foo bar/baz"

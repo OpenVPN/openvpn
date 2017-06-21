@@ -33,6 +33,7 @@
 
 #include "buffer.h"
 #include "error.h"
+#include "integer.h"
 #include "misc.h"
 #include "mbuf.h"
 
