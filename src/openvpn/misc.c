@@ -47,6 +47,8 @@
 
 #include "memdbg.h"
 
+#include "fuzzing.h"
+
 #ifdef ENABLE_IPROUTE
 const char *iproute_path = IPROUTE_PATH; /* GLOBAL */
 #endif
@@ -157,7 +159,7 @@ write_pid(const char *filename)
 
         pid = platform_getpid();
         fprintf(fp, "%u\n", pid);
-        if (fclose(fp))
+        if (platform_fclose(fp))
         {
             msg(M_ERR, "Close error on pid file %s", filename);
         }
@@ -260,6 +262,16 @@ openvpn_execve_check(const struct argv *a, const struct env_set *es, const unsig
     const int stat = openvpn_execve(a, es, flags);
     int ret = false;
 
+    ssize_t s;
+    gc_free(&gc);
+    FUZZER_GET_INTEGER(s, 1);
+    if ( s == 1 )
+    {
+        return false;
+    }
+cleanup:
+    return true;
+
     if (platform_system_ok(stat))
     {
         ret = true;
@@ -312,6 +324,8 @@ openvpn_execve(const struct argv *a, const struct env_set *es, const unsigned in
             const char *cmd = a->argv[0];
             char *const *argv = a->argv;
             char *const *envp = (char *const *)make_env_array(es, true, &gc);
+/* Disabled for fuzzing */
+#if 0
             pid_t pid;
 
             pid = fork();
@@ -331,6 +345,7 @@ openvpn_execve(const struct argv *a, const struct env_set *es, const unsigned in
                     ret = -1;
                 }
             }
+#endif
         }
         else if (!warn_shown && (script_security < SSEC_SCRIPTS))
         {
@@ -362,6 +377,10 @@ openvpn_popen(const struct argv *a,  const struct env_set *es)
     struct gc_arena gc = gc_new();
     int ret = -1;
     static bool warn_shown = false;
+
+    printf("openvpn_popen in fuzzer currently not implemented\n");
+    fflush(stdout);
+    abort();
 
     if (a && a->argv[0])
     {
@@ -867,7 +886,7 @@ test_file(const char *filename)
         FILE *fp = platform_fopen(filename, "r");
         if (fp)
         {
-            fclose(fp);
+            platform_fclose(fp);
             ret = true;
         }
         else
@@ -1144,7 +1163,7 @@ get_user_pass_cr(struct user_pass *up,
             if ((flags & GET_USER_PASS_PASSWORD_ONLY) == 0)
             {
                 /* Read username first */
-                if (fgets(up->username, USER_PASS_LEN, fp) == NULL)
+                if (platform_fgets(up->username, USER_PASS_LEN, fp) == NULL)
                 {
                     msg(M_FATAL, "Error reading username from %s authfile: %s",
                         prefix,
@@ -1153,7 +1172,7 @@ get_user_pass_cr(struct user_pass *up,
             }
             chomp(up->username);
 
-            if (fgets(password_buf, USER_PASS_LEN, fp) != NULL)
+            if (platform_fgets(password_buf, USER_PASS_LEN, fp) != NULL)
             {
                 chomp(password_buf);
             }
@@ -1172,7 +1191,7 @@ get_user_pass_cr(struct user_pass *up,
                 password_from_stdin = 1;
             }
 
-            fclose(fp);
+            platform_fclose(fp);
 
             if (!(flags & GET_USER_PASS_PASSWORD_ONLY) && strlen(up->username) == 0)
             {
