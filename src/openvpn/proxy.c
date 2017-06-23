@@ -256,6 +256,7 @@ username_password_as_base64(const struct http_proxy_info *p,
 static void
 get_user_pass_http(struct http_proxy_info *p, const bool force)
 {
+/* Disabled for fuzzing
     if (!static_proxy_user_pass.defined || force)
     {
         unsigned int flags = GET_USER_PASS_MANAGEMENT;
@@ -274,6 +275,7 @@ get_user_pass_http(struct http_proxy_info *p, const bool force)
         p->queried_creds = true;
         p->up = static_proxy_user_pass;
     }
+*/
 }
 static void
 clear_user_pass_http(void)

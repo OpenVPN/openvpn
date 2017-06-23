@@ -127,7 +127,8 @@ extra_PROGRAMS = \
 				 openvpn-fuzzer-base64 openvpn-fuzzer-base64-standalone \
 				 openvpn-fuzzer-route openvpn-fuzzer-route-standalone \
 				 openvpn-fuzzer-dhcp openvpn-fuzzer-dhcp-standalone \
-				 openvpn-fuzzer-forward openvpn-fuzzer-forward-standalone
+				 openvpn-fuzzer-forward openvpn-fuzzer-forward-standalone \
+				 openvpn-fuzzer-proxy openvpn-fuzzer-proxy-standalone
 extradir = .
 fuzzer_sources = dummy.cpp
 fuzzer_cflags = \
@@ -160,6 +161,11 @@ openvpn_fuzzer_route_LDFLAGS = $(fuzzer_ldflags)
 openvpn_fuzzer_route_CFLAGS = $(fuzzer_cflags)
 openvpn_fuzzer_route_LDADD = $(fuzzer_ldadd) fuzzer-route.o libFuzzer.a
 
+openvpn_fuzzer_proxy_SOURCES = $(fuzzer_sources)
+openvpn_fuzzer_proxy_LDFLAGS = $(fuzzer_ldflags)
+openvpn_fuzzer_proxy_CFLAGS = $(fuzzer_cflags)
+openvpn_fuzzer_proxy_LDADD = $(fuzzer_ldadd) fuzzer-proxy.o libFuzzer.a
+
 openvpn_fuzzer_dhcp_SOURCES = $(fuzzer_sources)
 openvpn_fuzzer_dhcp_LDFLAGS = $(fuzzer_ldflags)
 openvpn_fuzzer_dhcp_CFLAGS = $(fuzzer_cflags)
@@ -189,3 +195,8 @@ openvpn_fuzzer_forward_standalone_SOURCES = fuzzer-standalone-loader.c
 openvpn_fuzzer_forward_standalone_LDFLAGS = $(fuzzer_ldflags)
 openvpn_fuzzer_forward_standalone_CFLAGS = $(fuzzer_cflags)
 openvpn_fuzzer_forward_standalone_LDADD = $(fuzzer_ldadd) fuzzer-forward.o
+
+openvpn_fuzzer_proxy_standalone_SOURCES = fuzzer-standalone-loader.c
+openvpn_fuzzer_proxy_standalone_LDFLAGS = $(fuzzer_ldflags)
+openvpn_fuzzer_proxy_standalone_CFLAGS = $(fuzzer_cflags)
+openvpn_fuzzer_proxy_standalone_LDADD = $(fuzzer_ldadd) fuzzer-proxy.o
