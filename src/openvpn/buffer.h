@@ -26,6 +26,7 @@
 
 #include "basic.h"
 #include "error.h"
+#include "platform.h"
 
 #define BUF_SIZE_MAX 1000000
 
@@ -203,7 +204,7 @@ bool buf_init_debug(struct buffer *buf, int offset, const char *file, int line);
 inline static void
 gc_freeaddrinfo_callback(void *addr)
 {
-    freeaddrinfo((struct addrinfo *) addr);
+    platform_freeaddrinfo((struct addrinfo *) addr);
 }
 
 static inline bool

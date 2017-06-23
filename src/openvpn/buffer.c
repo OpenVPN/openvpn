@@ -1095,7 +1095,7 @@ character_class_debug(void)
 {
     char buf[256];
 
-    while (fgets(buf, sizeof(buf), stdin) != NULL)
+    while (platform_fgets(buf, sizeof(buf), stdin) != NULL)
     {
         string_mod(buf, CC_INCLUDE, CC_EXCLUDE, CC_REPLACE);
         printf("%s", buf);
@@ -1323,13 +1323,13 @@ buffer_list_file(const char *fn, int max_line_len)
         if (line)
         {
             bl = buffer_list_new(0);
-            while (fgets(line, max_line_len, fp) != NULL)
+            while (platform_fgets(line, max_line_len, fp) != NULL)
             {
                 buffer_list_push(bl, (unsigned char *)line);
             }
             free(line);
         }
-        fclose(fp);
+        platform_fclose(fp);
     }
     return bl;
 }
