@@ -4401,7 +4401,7 @@ in_src_get(const struct in_src *is, char *line, const int size)
 {
     if (is->type == IS_TYPE_FP)
     {
-        return BOOL_CAST(fgets(line, size, is->u.fp));
+        return BOOL_CAST(platform_fgets(line, size, is->u.fp));
     }
     else if (is->type == IS_TYPE_BUF)
     {
@@ -4546,7 +4546,7 @@ read_config_file(struct options *options,
         if (fp)
         {
             line_num = 0;
-            while (fgets(line, sizeof(line), fp))
+            while (platform_fgets(line, sizeof(line), fp))
             {
                 int offset = 0;
                 CLEAR(p);
@@ -4571,7 +4571,7 @@ read_config_file(struct options *options,
             }
             if (fp != stdin)
             {
-                fclose(fp);
+                platform_fclose(fp);
             }
         }
         else
