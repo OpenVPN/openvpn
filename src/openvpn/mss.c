@@ -59,7 +59,9 @@ mss_fixup_ipv4(struct buffer *buf, int maxmss)
     hlen = OPENVPN_IPH_GET_LEN(pip->version_len);
 
     if (pip->protocol == OPENVPN_IPPROTO_TCP
+/* This is difficult for the fuzzer to figure out
         && ntohs(pip->tot_len) == BLEN(buf)
+*/
         && (ntohs(pip->frag_off) & OPENVPN_IP_OFFMASK) == 0
         && hlen <= BLEN(buf)
         && BLEN(buf) - hlen
