@@ -45,6 +45,8 @@ struct client_nat_option_list {
     struct client_nat_entry entries[MAX_CLIENT_NAT];
 };
 
+bool client_nat_add_entry(struct client_nat_option_list *dest, const struct client_nat_entry *e);
+
 struct client_nat_option_list *new_client_nat_list(struct gc_arena *gc);
 
 struct client_nat_option_list *clone_client_nat_option_list(const struct client_nat_option_list *src, struct gc_arena *gc);

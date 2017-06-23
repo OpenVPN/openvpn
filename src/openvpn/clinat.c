@@ -50,6 +50,14 @@ add_entry(struct client_nat_option_list *dest,
     }
 }
 
+/* Wrapper to add_entry for fuzzing */
+bool
+client_nat_add_entry(struct client_nat_option_list *dest,
+        const struct client_nat_entry *e)
+{
+    return add_entry(dest, e);
+}
+
 void
 print_client_nat_list(const struct client_nat_option_list *list, int msglevel)
 {

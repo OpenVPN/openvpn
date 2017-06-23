@@ -341,6 +341,7 @@ check_inactivity_timeout_dowork(struct context *c)
 int
 get_server_poll_remaining_time(struct event_timeout *server_poll_timeout)
 {
+    return -1;
     update_time();
     int remaining = event_timeout_remaining(server_poll_timeout);
     return max_int(0, remaining);
@@ -1209,7 +1210,8 @@ process_incoming_tun(struct context *c)
                                 &c->c2.n_trunc_pre_encrypt);
 #endif
 
-        encrypt_sign(c, true);
+        /* Disabled for fuzzing
+         * encrypt_sign(c, true); */
     }
     else
     {
