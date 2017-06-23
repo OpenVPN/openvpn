@@ -364,6 +364,7 @@ esac
 
 PKG_PROG_PKG_CONFIG
 AC_PROG_CPP
+AC_PROG_CXX
 AC_PROG_INSTALL
 AC_PROG_LN_S
 AC_PROG_SED
@@ -581,6 +582,11 @@ AC_COMPILE_IFELSE(
 	],
 	[AC_MSG_RESULT([no])]
 )
+
+CFLAGS="${CFLAGS} -DFUZZING -g3 -fsanitize-coverage=trace-pc-guard,indirect-calls,trace-cmp -fsanitize=address -fsanitize=undefined -fsanitize-recover=alignment"
+CXXFLAGS="${CXXFLAGS} -DFUZZING -g3 -fsanitize-coverage=trace-pc-guard,indirect-calls,trace-cmp -fsanitize=address -fsanitize=undefined -fsanitize-recover=alignment"
+CC="clang"
+CXX="clang++"
 
 saved_LDFLAGS="$LDFLAGS"
 LDFLAGS="$LDFLAGS -Wl,--wrap=exit"

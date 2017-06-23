@@ -329,6 +329,7 @@ openvpn_main(int argc, char *argv[])
     return 0;                               /* NOTREACHED */
 }
 
+#if 0
 #ifdef _WIN32
 int
 wmain(int argc, wchar_t *wargv[])
@@ -366,3 +367,4 @@ main(int argc, char *argv[])
     return openvpn_main(argc, argv);
 }
 #endif /* ifdef _WIN32 */
+#endif

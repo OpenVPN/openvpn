@@ -35,9 +35,8 @@ if WIN32
 AM_CFLAGS += -municode -UUNICODE
 endif
 
-sbin_PROGRAMS = openvpn
-
-openvpn_SOURCES = \
+lib_LTLIBRARIES = libopenvpn.la
+libopenvpn_la_SOURCES = \
 	argv.c argv.h \
 	base64.c base64.h \
 	basic.h \
@@ -120,17 +119,39 @@ openvpn_SOURCES = \
 	tun.c tun.h \
 	win32.h win32.c \
 	cryptoapi.h cryptoapi.c
-openvpn_LDADD = \
-	$(top_builddir)/src/compat/libcompat.la \
+
+libopenvpn_la_SOURCES += \
+	fuzzing.h fuzzing.c
+
+extra_PROGRAMS = \
+				 openvpn-fuzzer-base64 openvpn-fuzzer-base64-standalone
+extradir = .
+fuzzer_sources = dummy.cpp
+fuzzer_cflags = \
+	$(TAP_CFLAGS) \
+	$(OPTIONAL_CRYPTO_CFLAGS) \
+	$(OPTIONAL_LZO_CFLAGS) \
+	$(OPTIONAL_LZ4_CFLAGS) \
+	$(OPTIONAL_PKCS11_HELPER_CFLAGS) \
+	-DPLUGIN_LIBDIR=\"${plugindir}\"
+fuzzer_ldflags = -static
+fuzzer_ldadd = \
 	$(SOCKETS_LIBS) \
-	$(OPTIONAL_LZO_LIBS) \
 	$(OPTIONAL_LZ4_LIBS) \
 	$(OPTIONAL_PKCS11_HELPER_LIBS) \
 	$(OPTIONAL_CRYPTO_LIBS) \
 	$(OPTIONAL_SELINUX_LIBS) \
 	$(OPTIONAL_SYSTEMD_LIBS) \
-	$(OPTIONAL_DL_LIBS)
-if WIN32
-openvpn_SOURCES += openvpn_win32_resources.rc block_dns.c block_dns.h
-openvpn_LDADD += -lgdi32 -lws2_32 -lwininet -lcrypt32 -liphlpapi -lwinmm -lfwpuclnt -lrpcrt4
-endif
+	$(OPTIONAL_DL_LIBS) \
+	libopenvpn.la \
+	$(top_builddir)/src/compat/libcompat.la \
+	$(OPTIONAL_LZO_LIBS)
+
+openvpn_fuzzer_base64_SOURCES = $(fuzzer_sources)
+openvpn_fuzzer_base64_LDFLAGS = $(fuzzer_ldflags)
+openvpn_fuzzer_base64_CFLAGS = $(fuzzer_cflags)
+openvpn_fuzzer_base64_LDADD = $(fuzzer_ldadd) fuzzer-base64.o libFuzzer.a
+openvpn_fuzzer_base64_standalone_SOURCES = fuzzer-standalone-loader.c
+openvpn_fuzzer_base64_standalone_LDFLAGS = $(fuzzer_ldflags)
+openvpn_fuzzer_base64_standalone_CFLAGS = $(fuzzer_cflags)
+openvpn_fuzzer_base64_standalone_LDADD = $(fuzzer_ldadd) fuzzer-base64.o
