@@ -130,7 +130,8 @@ extra_PROGRAMS = \
 				 openvpn-fuzzer-forward openvpn-fuzzer-forward-standalone \
 				 openvpn-fuzzer-proxy openvpn-fuzzer-proxy-standalone \
 				 openvpn-fuzzer-options openvpn-fuzzer-options-standalone \
-				 openvpn-fuzzer-verify-cert openvpn-fuzzer-verify-cert-standalone
+				 openvpn-fuzzer-verify-cert openvpn-fuzzer-verify-cert-standalone \
+				 openvpn-fuzzer-buffer openvpn-fuzzer-buffer-standalone
 extradir = .
 fuzzer_sources = dummy.cpp
 fuzzer_cflags = \
@@ -183,6 +184,11 @@ openvpn_fuzzer_options_LDFLAGS = $(fuzzer_ldflags)
 openvpn_fuzzer_options_CFLAGS = $(fuzzer_cflags)
 openvpn_fuzzer_options_LDADD = $(fuzzer_ldadd) fuzzer-options.o libFuzzer.a
 
+openvpn_fuzzer_buffer_SOURCES = $(fuzzer_sources)
+openvpn_fuzzer_buffer_LDFLAGS = $(fuzzer_ldflags)
+openvpn_fuzzer_buffer_CFLAGS = $(fuzzer_cflags)
+openvpn_fuzzer_buffer_LDADD = $(fuzzer_ldadd) fuzzer-buffer.o libFuzzer.a
+
 openvpn_fuzzer_verify_cert_SOURCES = $(fuzzer_sources)
 openvpn_fuzzer_verify_cert_LDFLAGS = $(fuzzer_ldflags)
 openvpn_fuzzer_verify_cert_CFLAGS = $(fuzzer_cflags)
@@ -222,3 +228,8 @@ openvpn_fuzzer_verify_cert_standalone_SOURCES = fuzzer-standalone-loader.c
 openvpn_fuzzer_verify_cert_standalone_LDFLAGS = $(fuzzer_ldflags)
 openvpn_fuzzer_verify_cert_standalone_CFLAGS = $(fuzzer_cflags)
 openvpn_fuzzer_verify_cert_standalone_LDADD = $(fuzzer_ldadd) fuzzer-verify-cert.o
+
+openvpn_fuzzer_buffer_standalone_SOURCES = fuzzer-standalone-loader.c
+openvpn_fuzzer_buffer_standalone_LDFLAGS = $(fuzzer_ldflags)
+openvpn_fuzzer_buffer_standalone_CFLAGS = $(fuzzer_cflags)
+openvpn_fuzzer_buffer_standalone_LDADD = $(fuzzer_ldadd) fuzzer-buffer.o
