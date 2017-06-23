@@ -99,7 +99,7 @@ getaddr(unsigned int flags,
             *succeeded = true;
         }
         ia = ((struct sockaddr_in *)ai->ai_addr)->sin_addr;
-        freeaddrinfo(ai);
+        platform_freeaddrinfo(ai);
         return (flags & GETADDR_HOST_ORDER) ? ntohl(ia.s_addr) : ia.s_addr;
     }
     else
@@ -331,7 +331,6 @@ openvpn_getaddrinfo(unsigned int flags,
     struct gc_arena gc = gc_new();
     const char *print_hostname;
     const char *print_servname;
-
     ASSERT(res);
 
     ASSERT(hostname || servname);
@@ -376,7 +375,7 @@ openvpn_getaddrinfo(unsigned int flags,
         hints.ai_socktype = SOCK_STREAM;
     }
 
-    status = getaddrinfo(hostname, servname, &hints, res);
+    status = platform_getaddrinfo(hostname, servname, &hints, res);
 
     if (status != 0) /* parse as numeric address failed? */
     {
@@ -443,7 +442,7 @@ openvpn_getaddrinfo(unsigned int flags,
             hints.ai_flags &= ~AI_NUMERICHOST;
             dmsg(D_SOCKET_DEBUG, "GETADDRINFO flags=0x%04x ai_family=%d ai_socktype=%d",
                  flags, hints.ai_family, hints.ai_socktype);
-            status = getaddrinfo(hostname, servname, &hints, res);
+            status = platform_getaddrinfo(hostname, servname, &hints, res);
 
             if (signal_received)
             {
@@ -461,7 +460,7 @@ openvpn_getaddrinfo(unsigned int flags,
                         if (0 == status)
                         {
                             ASSERT(res);
-                            freeaddrinfo(*res);
+                            platform_freeaddrinfo(*res);
                             *res = NULL;
                             status = EAI_AGAIN; /* = temporary failure */
                             errno = EINTR;
@@ -722,7 +721,7 @@ socket_get_sndbuf(int sd)
     socklen_t len;
 
     len = sizeof(val);
-    if (getsockopt(sd, SOL_SOCKET, SO_SNDBUF, (void *) &val, &len) == 0
+    if (platform_getsockopt(sd, SOL_SOCKET, SO_SNDBUF, (void *) &val, &len) == 0
         && len == sizeof(val))
     {
         return val;
@@ -735,7 +734,7 @@ static void
 socket_set_sndbuf(int sd, int size)
 {
 #if defined(HAVE_SETSOCKOPT) && defined(SOL_SOCKET) && defined(SO_SNDBUF)
-    if (setsockopt(sd, SOL_SOCKET, SO_SNDBUF, (void *) &size, sizeof(size)) != 0)
+    if (platform_setsockopt(sd, SOL_SOCKET, SO_SNDBUF, (void *) &size, sizeof(size)) != 0)
     {
         msg(M_WARN, "NOTE: setsockopt SO_SNDBUF=%d failed", size);
     }
@@ -750,7 +749,7 @@ socket_get_rcvbuf(int sd)
     socklen_t len;
 
     len = sizeof(val);
-    if (getsockopt(sd, SOL_SOCKET, SO_RCVBUF, (void *) &val, &len) == 0
+    if (platform_getsockopt(sd, SOL_SOCKET, SO_RCVBUF, (void *) &val, &len) == 0
         && len == sizeof(val))
     {
         return val;
@@ -763,7 +762,7 @@ static bool
 socket_set_rcvbuf(int sd, int size)
 {
 #if defined(HAVE_SETSOCKOPT) && defined(SOL_SOCKET) && defined(SO_RCVBUF)
-    if (setsockopt(sd, SOL_SOCKET, SO_RCVBUF, (void *) &size, sizeof(size)) != 0)
+    if (platform_setsockopt(sd, SOL_SOCKET, SO_RCVBUF, (void *) &size, sizeof(size)) != 0)
     {
         msg(M_WARN, "NOTE: setsockopt SO_RCVBUF=%d failed", size);
         return false;
@@ -806,7 +805,7 @@ static bool
 socket_set_tcp_nodelay(int sd, int state)
 {
 #if defined(_WIN32) || (defined(HAVE_SETSOCKOPT) && defined(IPPROTO_TCP) && defined(TCP_NODELAY))
-    if (setsockopt(sd, IPPROTO_TCP, TCP_NODELAY, (void *) &state, sizeof(state)) != 0)
+    if (platform_setsockopt(sd, IPPROTO_TCP, TCP_NODELAY, (void *) &state, sizeof(state)) != 0)
     {
         msg(M_WARN, "NOTE: setsockopt TCP_NODELAY=%d failed", state);
         return false;
@@ -826,7 +825,7 @@ static inline void
 socket_set_mark(int sd, int mark)
 {
 #if defined(TARGET_LINUX) && HAVE_DECL_SO_MARK
-    if (mark && setsockopt(sd, SOL_SOCKET, SO_MARK, (void *) &mark, sizeof(mark)) != 0)
+    if (mark && platform_setsockopt(sd, SOL_SOCKET, SO_MARK, (void *) &mark, sizeof(mark)) != 0)
     {
         msg(M_WARN, "NOTE: setsockopt SO_MARK=%d failed", mark);
     }
@@ -883,7 +882,7 @@ create_socket_tcp(struct addrinfo *addrinfo)
     ASSERT(addrinfo);
     ASSERT(addrinfo->ai_socktype == SOCK_STREAM);
 
-    if ((sd = socket(addrinfo->ai_family, addrinfo->ai_socktype, addrinfo->ai_protocol)) < 0)
+    if ((sd = platform_socket(addrinfo->ai_family, addrinfo->ai_socktype, addrinfo->ai_protocol)) < 0)
     {
         msg(M_ERR, "Cannot create TCP socket");
     }
@@ -892,7 +891,7 @@ create_socket_tcp(struct addrinfo *addrinfo)
     /* set SO_REUSEADDR on socket */
     {
         int on = 1;
-        if (setsockopt(sd, SOL_SOCKET, SO_REUSEADDR,
+        if (platform_setsockopt(sd, SOL_SOCKET, SO_REUSEADDR,
                        (void *) &on, sizeof(on)) < 0)
         {
             msg(M_ERR, "TCP: Cannot setsockopt SO_REUSEADDR on TCP socket");
@@ -915,7 +914,7 @@ create_socket_udp(struct addrinfo *addrinfo, const unsigned int flags)
     ASSERT(addrinfo);
     ASSERT(addrinfo->ai_socktype == SOCK_DGRAM);
 
-    if ((sd = socket(addrinfo->ai_family, addrinfo->ai_socktype, addrinfo->ai_protocol)) < 0)
+    if ((sd = platform_socket(addrinfo->ai_family, addrinfo->ai_socktype, addrinfo->ai_protocol)) < 0)
     {
         msg(M_ERR, "UDP: Cannot create UDP/UDP6 socket");
     }
@@ -926,13 +925,13 @@ create_socket_udp(struct addrinfo *addrinfo, const unsigned int flags)
         if (addrinfo->ai_family == AF_INET)
         {
 #if defined(HAVE_IN_PKTINFO) && defined(HAVE_IPI_SPEC_DST)
-            if (setsockopt(sd, SOL_IP, IP_PKTINFO,
+            if (platform_setsockopt(sd, SOL_IP, IP_PKTINFO,
                            (void *)&pad, sizeof(pad)) < 0)
             {
                 msg(M_ERR, "UDP: failed setsockopt for IP_PKTINFO");
             }
 #elif defined(IP_RECVDSTADDR)
-            if (setsockopt(sd, IPPROTO_IP, IP_RECVDSTADDR,
+            if (platform_setsockopt(sd, IPPROTO_IP, IP_RECVDSTADDR,
                            (void *)&pad, sizeof(pad)) < 0)
             {
                 msg(M_ERR, "UDP: failed setsockopt for IP_RECVDSTADDR");
@@ -944,10 +943,10 @@ create_socket_udp(struct addrinfo *addrinfo, const unsigned int flags)
         else if (addrinfo->ai_family == AF_INET6)
         {
 #ifndef IPV6_RECVPKTINFO /* Some older Darwin platforms require this */
-            if (setsockopt(sd, IPPROTO_IPV6, IPV6_PKTINFO,
+            if (platform_setsockopt(sd, IPPROTO_IPV6, IPV6_PKTINFO,
                            (void *)&pad, sizeof(pad)) < 0)
 #else
-            if (setsockopt(sd, IPPROTO_IPV6, IPV6_RECVPKTINFO,
+            if (platform_setsockopt(sd, IPPROTO_IPV6, IPV6_RECVPKTINFO,
                            (void *)&pad, sizeof(pad)) < 0)
 #endif
             { msg(M_ERR, "UDP: failed setsockopt for IPV6_RECVPKTINFO");}
@@ -1177,7 +1176,7 @@ socket_listen_accept(socket_descriptor_t sd,
         tv.tv_sec = 0;
         tv.tv_usec = 0;
 
-        status = select(sd + 1, &reads, NULL, NULL, &tv);
+        status = platform_select(sd + 1, &reads, NULL, NULL, &tv);
 
         get_signal(signal_received);
         if (*signal_received)
@@ -1217,13 +1216,13 @@ socket_listen_accept(socket_descriptor_t sd,
                 {
                     msg(M_ERR, "TCP: close socket failed (new_sd)");
                 }
-                freeaddrinfo(ai);
+                platform_freeaddrinfo(ai);
             }
             else
             {
                 if (ai)
                 {
-                    freeaddrinfo(ai);
+                    platform_freeaddrinfo(ai);
                 }
                 break;
             }
@@ -1290,7 +1289,7 @@ socket_bind(socket_descriptor_t sd,
         int v6only = ipv6only ? 1 : 0;  /* setsockopt must have an "int" */
 
         msg(M_INFO, "setsockopt(IPV6_V6ONLY=%d)", v6only);
-        if (setsockopt(sd, IPPROTO_IPV6, IPV6_V6ONLY, (void *) &v6only, sizeof(v6only)))
+        if (platform_setsockopt(sd, IPPROTO_IPV6, IPV6_V6ONLY, (void *) &v6only, sizeof(v6only)))
         {
             msg(M_NONFATAL|M_ERRNO, "Setting IPV6_V6ONLY=%d failed", v6only);
         }
@@ -1349,8 +1348,9 @@ openvpn_connect(socket_descriptor_t sd,
             tv.tv_sec = 0;
             tv.tv_usec = 0;
 
-            status = select(sd + 1, NULL, &writes, NULL, &tv);
+            status = platform_select(sd + 1, NULL, &writes, NULL, &tv);
 #endif
+
             if (signal_received)
             {
                 get_signal(signal_received);
@@ -1386,7 +1386,7 @@ openvpn_connect(socket_descriptor_t sd,
                 socklen_t len;
 
                 len = sizeof(val);
-                if (getsockopt(sd, SOL_SOCKET, SO_ERROR, (void *) &val, &len) == 0
+                if (platform_getsockopt(sd, SOL_SOCKET, SO_ERROR, (void *) &val, &len) == 0
                     && len == sizeof(val))
                 {
                     status = val;
@@ -1872,7 +1872,7 @@ phase2_inetd(struct link_socket *sock, const struct frame *frame,
             /* inetd: hint family type for dest = local's */
             struct openvpn_sockaddr local_addr;
             socklen_t addrlen = sizeof(local_addr);
-            if (getsockname(sock->sd, &local_addr.addr.sa, &addrlen) == 0)
+            if (platform_getsockname(sock->sd, &local_addr.addr.sa, &addrlen) == 0)
             {
                 sock->info.lsa->actual.dest.addr.sa.sa_family = local_addr.addr.sa.sa_family;
                 dmsg(D_SOCKET_DEBUG, "inetd(%s): using sa_family=%d from getsockname(%d)",
@@ -2083,7 +2083,7 @@ phase2_socks_client(struct link_socket *sock, struct signal_info *sig_info)
     addr_zero_host(&sock->info.lsa->actual.dest);
     if (sock->info.lsa->remote_list)
     {
-        freeaddrinfo(sock->info.lsa->remote_list);
+        platform_freeaddrinfo(sock->info.lsa->remote_list);
         sock->info.lsa->current_remote = NULL;
         sock->info.lsa->remote_list = NULL;
     }
@@ -2769,6 +2769,7 @@ print_link_socket_actual_ex(const struct link_socket_actual *act,
                             const unsigned int flags,
                             struct gc_arena *gc)
 {
+    return "[NULL]";
     if (act)
     {
         char ifname[IF_NAMESIZE] = "[undef]";
@@ -3199,7 +3200,7 @@ link_socket_read_tcp(struct link_socket *sock,
 #else
         struct buffer frag;
         stream_buf_get_next(&sock->stream_buf, &frag);
-        len = recv(sock->sd, BPTR(&frag), BLEN(&frag), MSG_NOSIGNAL);
+        len = platform_recv(sock->sd, BPTR(&frag), BLEN(&frag), MSG_NOSIGNAL);
 #endif
 
         if (!len)
@@ -3258,7 +3259,7 @@ link_socket_read_udp_posix_recvmsg(struct link_socket *sock,
     mesg.msg_namelen = fromlen;
     mesg.msg_control = pktinfo_buf;
     mesg.msg_controllen = sizeof pktinfo_buf;
-    buf->len = recvmsg(sock->sd, &mesg, 0);
+    buf->len = platform_recvmsg(sock->sd, &mesg, 0);
     if (buf->len >= 0)
     {
         struct cmsghdr *cmsg;
@@ -3324,7 +3325,7 @@ link_socket_read_udp_posix(struct link_socket *sock,
     }
     else
 #endif
-    buf->len = recvfrom(sock->sd, BPTR(buf), buf_forward_capacity(buf), 0,
+    buf->len = platform_recvfrom(sock->sd, BPTR(buf), buf_forward_capacity(buf), 0,
                         &from->dest.addr.sa, &fromlen);
     /* FIXME: won't do anything when sock->info.af == AF_UNSPEC */
     if (buf->len >= 0 && expectedlen && fromlen != expectedlen)
@@ -3431,7 +3432,7 @@ link_socket_write_udp_posix_sendmsg(struct link_socket *sock,
 
         default: ASSERT(0);
     }
-    return sendmsg(sock->sd, &mesg, 0);
+    return platform_sendmsg(sock->sd, &mesg, 0);
 }
 
 #endif /* if ENABLE_IP_PKTINFO */
@@ -3863,7 +3864,7 @@ create_socket_unix(void)
 {
     socket_descriptor_t sd;
 
-    if ((sd = socket(PF_UNIX, SOCK_STREAM, 0)) < 0)
+    if ((sd = platform_socket(PF_UNIX, SOCK_STREAM, 0)) < 0)
     {
         msg(M_ERR, "Cannot create unix domain socket");
     }
@@ -3974,7 +3975,7 @@ unix_socket_get_peer_uid_gid(const socket_descriptor_t sd, int *uid, int *gid)
 #elif defined(SO_PEERCRED)
     struct ucred peercred;
     socklen_t so_len = sizeof(peercred);
-    if (getsockopt(sd, SOL_SOCKET, SO_PEERCRED, &peercred, &so_len) == -1)
+    if (platform_getsockopt(sd, SOL_SOCKET, SO_PEERCRED, &peercred, &so_len) == -1)
     {
         return false;
     }

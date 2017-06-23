@@ -794,7 +794,9 @@ addr_port_match(const struct openvpn_sockaddr *a1, const struct openvpn_sockaddr
             return IN6_ARE_ADDR_EQUAL(&a1->addr.in6.sin6_addr, &a2->addr.in6.sin6_addr)
                    && a1->addr.in6.sin6_port == a2->addr.in6.sin6_port;
     }
+    /* Disabled for fuzzing
     ASSERT(0);
+    */
     return false;
 }
 
@@ -1135,7 +1137,7 @@ link_socket_write_udp_posix(struct link_socket *sock,
     }
     else
 #endif
-    return sendto(sock->sd, BPTR(buf), BLEN(buf), 0,
+    return platform_sendto(sock->sd, BPTR(buf), BLEN(buf), 0,
                   (struct sockaddr *) &to->dest.addr.sa,
                   (socklen_t) af_addr_size(to->dest.addr.sa.sa_family));
 }
@@ -1145,7 +1147,7 @@ link_socket_write_tcp_posix(struct link_socket *sock,
                             struct buffer *buf,
                             struct link_socket_actual *to)
 {
-    return send(sock->sd, BPTR(buf), BLEN(buf), MSG_NOSIGNAL);
+    return platform_send(sock->sd, BPTR(buf), BLEN(buf), MSG_NOSIGNAL);
 }
 
 #endif /* ifdef _WIN32 */
@@ -1208,7 +1210,7 @@ link_socket_set_tos(struct link_socket *ls)
 {
     if (ls && ls->ptos_defined)
     {
-        setsockopt(ls->sd, IPPROTO_IP, IP_TOS, (const void *)&ls->ptos, sizeof(ls->ptos));
+        platform_setsockopt(ls->sd, IPPROTO_IP, IP_TOS, (const void *)&ls->ptos, sizeof(ls->ptos));
     }
 }
 
