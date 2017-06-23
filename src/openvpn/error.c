@@ -172,7 +172,7 @@ error_reset()
     default_err = OPENVPN_MSG_FP;
 
 #ifdef OPENVPN_DEBUG_COMMAND_LINE
-    msgfp = fopen(OPENVPN_DEBUG_FILE, "w");
+    msgfp = platform_fopen(OPENVPN_DEBUG_FILE, "w");
     if (!msgfp)
     {
         openvpn_exit(OPENVPN_EXIT_STATUS_CANNOT_OPEN_DEBUG_FILE); /* exit point */
