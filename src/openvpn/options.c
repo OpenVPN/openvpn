@@ -4453,7 +4453,12 @@ read_inline_file(struct in_src *is, const char *close_tag, struct gc_arena *gc)
     }
     if (!endtagfound)
     {
+        /* Disabled for fuzzing
         msg(M_FATAL, "ERROR: Endtag %s missing", close_tag);
+        */
+        buf_clear(&buf);
+        free_buf(&buf);
+        return NULL;
     }
     ret = string_alloc(BSTR(&buf), gc);
     buf_clear(&buf);
@@ -4948,6 +4953,7 @@ add_option(struct options *options,
     if (streq(p[0], "help"))
     {
         VERIFY_PERMISSION(OPT_P_GENERAL);
+        /* Disabled for fuzzing */ goto err;
         usage();
         if (p[1])
         {
@@ -4958,6 +4964,7 @@ add_option(struct options *options,
     if (streq(p[0], "version") && !p[1])
     {
         VERIFY_PERMISSION(OPT_P_GENERAL);
+        /* Disabled for fuzzing */ goto err;
         usage_version();
     }
     else if (streq(p[0], "config") && p[1] && !p[2])
@@ -4979,6 +4986,7 @@ add_option(struct options *options,
         struct route_ipv6_gateway_info rgi6;
         struct in6_addr remote = IN6ADDR_ANY_INIT;
         VERIFY_PERMISSION(OPT_P_GENERAL);
+        /* Disabled for fuzzing */ goto err;
         if (p[1])
         {
             get_ipv6_addr(p[1], &remote, NULL, M_WARN);
@@ -5564,6 +5572,7 @@ add_option(struct options *options,
         if (!options->daemon)
         {
             options->daemon = didit = true;
+        /* Disabled for fuzzing */ goto err;
             open_syslog(p[1], false);
         }
         if (p[1])
@@ -5632,6 +5641,7 @@ add_option(struct options *options,
                 options->inetd = INETD_WAIT;
             }
 
+        /* Disabled for fuzzing */ goto err;
             save_inetd_socket_descriptor();
             open_syslog(name, true);
         }
@@ -5640,6 +5650,7 @@ add_option(struct options *options,
     {
         VERIFY_PERMISSION(OPT_P_GENERAL);
         options->log = true;
+        /* Disabled for fuzzing */ goto err;
         redirect_stdout_stderr(p[1], false);
     }
     else if (streq(p[0], "suppress-timestamps") && !p[1])
@@ -5658,6 +5669,7 @@ add_option(struct options *options,
     {
         VERIFY_PERMISSION(OPT_P_GENERAL);
         options->log = true;
+        /* Disabled for fuzzing */ goto err;
         redirect_stdout_stderr(p[1], true);
     }
 #ifdef ENABLE_MEMSTATS
@@ -6380,6 +6392,7 @@ add_option(struct options *options,
                 options->forward_compatible = true;
                 msglevel_fc = msglevel_forward_compatible(options, msglevel);
             }
+        /* Disabled for fuzzing */ if (strlen(p[1]) <= 1) goto err;
             setenv_str(es, p[1], p[2] ? p[2] : "");
         }
     }
@@ -8124,6 +8137,7 @@ add_option(struct options *options,
 #endif /* ifdef DEFAULT_PKCS11_MODULE */
         VERIFY_PERMISSION(OPT_P_GENERAL);
 
+        /* Disabled for fuzzing */ goto err;
         set_debug_level(options->verbosity, SDL_CONSTRAIN);
         show_pkcs11_ids(provider, cert_private);
         openvpn_exit(OPENVPN_EXIT_STATUS_GOOD); /* exit point */
