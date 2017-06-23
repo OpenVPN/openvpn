@@ -41,6 +41,7 @@
 #include "ntlm.h"
 #include "memdbg.h"
 #include "forward.h"
+#include "platform.h"
 
 #define UP_TYPE_PROXY        "HTTP Proxy"
 
@@ -97,7 +98,7 @@ recv_line(socket_descriptor_t sd,
         tv.tv_sec = timeout_sec;
         tv.tv_usec = 0;
 
-        status = select(sd + 1, &reads, NULL, NULL, &tv);
+        status = platform_select(sd + 1, &reads, NULL, NULL, &tv);
 
         get_signal(signal_received);
         if (*signal_received)
@@ -126,7 +127,7 @@ recv_line(socket_descriptor_t sd,
         }
 
         /* read single char */
-        size = recv(sd, &c, 1, MSG_NOSIGNAL);
+        size = platform_recv(sd, &c, 1, MSG_NOSIGNAL);
 
         /* error? */
         if (size != 1)
@@ -196,7 +197,7 @@ static bool
 send_line(socket_descriptor_t sd,
           const char *buf)
 {
-    const ssize_t size = send(sd, buf, strlen(buf), MSG_NOSIGNAL);
+    const ssize_t size = platform_send(sd, buf, strlen(buf), MSG_NOSIGNAL);
     if (size != (ssize_t) strlen(buf))
     {
         msg(D_LINK_ERRORS | M_ERRNO, "send_line: TCP port write failed on send()");
