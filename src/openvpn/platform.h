@@ -49,7 +49,10 @@
 #endif
 
 #include "basic.h"
-
+#define FUZZING_BLOCK \
+    printf("%s in fuzzer currently not implemented\n", __FUNCTION__); \
+    fflush(stdout); \
+    abort();
 /* Get/Set UID of process */
 
 struct platform_state_user {
@@ -132,6 +135,7 @@ bool platform_unlink(const char *filename);
 
 int platform_putenv(char *string);
 
+int platform_fclose(FILE *stream);
 FILE *platform_fopen(const char *path, const char *mode);
 
 int platform_open(const char *path, int flags, int mode);
@@ -143,4 +147,23 @@ typedef struct stat platform_stat_t;
 #endif
 int platform_stat(const char *path, platform_stat_t *buf);
 
+ssize_t platform_recv(int sockfd, void* buf, size_t len, int flags);
+ssize_t platform_send(int sockfd, const void* buf, size_t len, int flags);
+ssize_t platform_select(int nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds, struct timeval *timeout);
+char* platform_fgets(char *s, int size, FILE *stream);
+int platform_fgetc(FILE *stream);
+int platform_socket(int domain, int type, int protocol);
+ssize_t platform_recvfrom(int sockfd, void *buf, size_t len, int flags, struct sockaddr *src_addr, socklen_t *addrlen);
+ssize_t platform_recvmsg(int sockfd, struct msghdr *msg, int flags);
+ssize_t platform_sendto(int sockfd, const void *buf, size_t len, int flags, const struct sockaddr *dest_addr, socklen_t addrlen);
+ssize_t platform_sendmsg(int sockfd, const struct msghdr *msg, int flags);
+int platform_getaddrinfo(const char *node, const char *service, const struct addrinfo *hints, struct addrinfo **res);
+void platform_freeaddrinfo(struct addrinfo *res);
+void platform_get_default_gateway(void *_rgi);
+int platform_getsockopt(int sockfd, int level, int optname, void *optval, socklen_t *optlen);
+#if defined(HAVE_SETSOCKOPT)
+int platform_setsockopt(int sockfd, int level, int optname, const void *optval, socklen_t optlen);
+#endif
+int platform_getsockname(int sockfd, struct sockaddr *addr, socklen_t *addrlen);
+void getaddrinfo_free_all(void);
 #endif /* ifndef PLATFORM_H */

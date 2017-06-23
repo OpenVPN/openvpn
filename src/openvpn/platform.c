@@ -37,11 +37,16 @@
 
 #include "platform.h"
 
+#include "fuzzing.h"
+#include "route.h"
+
 /* Redefine the top level directory of the filesystem
  * to restrict access to files for security */
 void
 platform_chroot(const char *path)
 {
+    FUZZING_BLOCK;
+
     if (path)
     {
 #ifdef HAVE_CHROOT
@@ -66,6 +71,8 @@ platform_chroot(const char *path)
 bool
 platform_user_get(const char *username, struct platform_state_user *state)
 {
+    FUZZING_BLOCK;
+
     bool ret = false;
     CLEAR(*state);
     if (username)
@@ -88,6 +95,8 @@ platform_user_get(const char *username, struct platform_state_user *state)
 void
 platform_user_set(const struct platform_state_user *state)
 {
+    FUZZING_BLOCK;
+
 #if defined(HAVE_GETPWNAM) && defined(HAVE_SETUID)
     if (state->username && state->pw)
     {
@@ -105,6 +114,8 @@ platform_user_set(const struct platform_state_user *state)
 bool
 platform_group_get(const char *groupname, struct platform_state_group *state)
 {
+    FUZZING_BLOCK;
+
     bool ret = false;
     CLEAR(*state);
     if (groupname)
@@ -127,6 +138,8 @@ platform_group_get(const char *groupname, struct platform_state_group *state)
 void
 platform_group_set(const struct platform_state_group *state)
 {
+    FUZZING_BLOCK;
+
 #if defined(HAVE_GETGRNAM) && defined(HAVE_SETGID)
     if (state->groupname && state->gr)
     {
@@ -153,6 +166,8 @@ platform_group_set(const struct platform_state_group *state)
 void
 platform_nice(int niceval)
 {
+    FUZZING_BLOCK;
+
     if (niceval)
     {
 #ifdef HAVE_NICE
@@ -175,6 +190,8 @@ platform_nice(int niceval)
 unsigned int
 platform_getpid()
 {
+    FUZZING_BLOCK;
+
 #ifdef _WIN32
     return (unsigned int) GetCurrentProcessId();
 #else
@@ -190,6 +207,8 @@ platform_getpid()
 void
 platform_mlockall(bool print_msg)
 {
+    FUZZING_BLOCK;
+
 #ifdef HAVE_MLOCKALL
     if (mlockall(MCL_CURRENT | MCL_FUTURE))
     {
@@ -210,6 +229,9 @@ platform_mlockall(bool print_msg)
 int
 platform_chdir(const char *dir)
 {
+    /*FUZZING_BLOCK;*/
+    return 0;
+
 #ifdef HAVE_CHDIR
 #ifdef _WIN32
     int res;
@@ -231,6 +253,8 @@ platform_chdir(const char *dir)
 bool
 platform_system_ok(int stat)
 {
+    FUZZING_BLOCK;
+
 #ifdef _WIN32
     return stat == 0;
 #else
@@ -241,6 +265,9 @@ platform_system_ok(int stat)
 int
 platform_access(const char *path, int mode)
 {
+    /*FUZZING_BLOCK;*/
+    return 0;
+
 #ifdef _WIN32
     struct gc_arena gc = gc_new();
     int ret = _waccess(wide_string(path, &gc), mode & ~X_OK);
@@ -257,13 +284,15 @@ platform_access(const char *path, int mode)
 void
 platform_sleep_milliseconds(unsigned int n)
 {
+    FUZZING_BLOCK;
+
 #ifdef _WIN32
     Sleep(n);
 #else
     struct timeval tv;
     tv.tv_sec = n / 1000;
     tv.tv_usec = (n % 1000) * 1000;
-    select(0, NULL, NULL, NULL, &tv);
+    platform_select(0, NULL, NULL, NULL, &tv);
 #endif
 }
 
@@ -273,10 +302,12 @@ platform_sleep_milliseconds(unsigned int n)
 void
 platform_sleep_until_signal(void)
 {
+    FUZZING_BLOCK;
+
 #ifdef _WIN32
     ASSERT(0);
 #else
-    select(0, NULL, NULL, NULL, NULL);
+    platform_select(0, NULL, NULL, NULL, NULL);
 #endif
 }
 
@@ -284,6 +315,8 @@ platform_sleep_until_signal(void)
 bool
 platform_unlink(const char *filename)
 {
+    FUZZING_BLOCK;
+
 #if defined(_WIN32)
     struct gc_arena gc = gc_new();
     BOOL ret = DeleteFileW(wide_string(filename, &gc));
@@ -296,9 +329,21 @@ platform_unlink(const char *filename)
 #endif
 }
 
+int platform_fclose(FILE *stream)
+{
+    if ( stream != (FILE*)0x00000AAA )
+    {
+        abort();
+    }
+    return 0;
+
+    return fclose(stream);
+}
 FILE *
 platform_fopen(const char *path, const char *mode)
 {
+    return (FILE*)0x00000AAA;
+
 #ifdef _WIN32
     struct gc_arena gc = gc_new();
     FILE *f = _wfopen(wide_string(path, &gc), wide_string(mode, &gc));
@@ -312,6 +357,8 @@ platform_fopen(const char *path, const char *mode)
 int
 platform_open(const char *path, int flags, int mode)
 {
+    FUZZING_BLOCK;
+
 #ifdef _WIN32
     struct gc_arena gc = gc_new();
     int fd = _wopen(wide_string(path, &gc), flags, mode);
@@ -325,6 +372,9 @@ platform_open(const char *path, int flags, int mode)
 int
 platform_stat(const char *path, platform_stat_t *buf)
 {
+    /*FUZZING_BLOCK;*/
+    return -1;
+
 #ifdef _WIN32
     struct gc_arena gc = gc_new();
     int res = _wstat(wide_string(path, &gc), buf);
@@ -335,3 +385,310 @@ platform_stat(const char *path, platform_stat_t *buf)
 #endif
 }
 
+ssize_t platform_recv(int sockfd, void* buf, size_t len, int flags)
+{
+    return fuzzer_recv(buf, len);
+    return recv(sockfd, buf, len, flags);
+}
+ssize_t platform_send(int sockfd, const void *buf, size_t len, int flags)
+{
+    return fuzzer_send(len);
+    return send(sockfd, buf, len, flags);
+}
+
+
+ssize_t platform_select(int nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds, struct timeval *timeout)
+{
+    return 1;
+    return select(nfds, readfds, writefds, exceptfds, timeout);
+}
+
+char* platform_fgets(char *s, int size, FILE *stream)
+{
+    ssize_t _size;
+    if ( size == 0 )
+    {
+        return NULL;
+    }
+    FUZZER_GET_INTEGER(_size, size-1);
+    FUZZER_GET_DATA(s, _size);
+    s[size-1] = 0x00;
+cleanup:
+    return NULL;
+    return fgets(s, size, stream);
+}
+
+int platform_fgetc(FILE *stream)
+{
+    FUZZING_BLOCK;
+
+    return fgetc(stream);
+}
+
+int platform_socket(int domain, int type, int protocol)
+{
+    FUZZING_BLOCK;
+
+    return socket(domain, type, protocol);
+}
+ssize_t platform_recvfrom(int sockfd, void *buf, size_t len, int flags, struct sockaddr *src_addr, socklen_t *addrlen)
+{
+    FUZZING_BLOCK;
+
+    return recvfrom(sockfd, buf, len, flags, src_addr, addrlen);
+}
+
+ssize_t platform_recvmsg(int sockfd, struct msghdr *msg, int flags)
+{
+    FUZZING_BLOCK;
+
+    return recvmsg(sockfd, msg, flags);
+}
+
+ssize_t platform_sendto(int sockfd, const void *buf, size_t len, int flags, const struct sockaddr *dest_addr, socklen_t addrlen)
+{
+    FUZZING_BLOCK;
+
+    return sendto(sockfd, buf, len, flags, dest_addr, addrlen);
+}
+
+ssize_t platform_sendmsg(int sockfd, const struct msghdr *msg, int flags)
+{
+    FUZZING_BLOCK;
+
+    return sendmsg(sockfd, msg, flags);
+}
+
+#define ALLOCATION_SLOTS 1024
+static void* getaddrinfo_allocs[ALLOCATION_SLOTS] = {0};
+
+static void getaddrinfo_free(void* p)
+{
+    size_t i;
+
+    if ( p == NULL )
+    {
+        return;
+    }
+
+    for (i = 0; i < ALLOCATION_SLOTS; i++)
+    {
+        if ( getaddrinfo_allocs[i] == p )
+        {
+            free(p);
+            getaddrinfo_allocs[i] = NULL;
+            return;
+        }
+    }
+
+    printf("freeaddrinfo: invalid free\n");
+    abort();
+}
+
+void getaddrinfo_free_all(void)
+{
+    size_t i;
+    for (i = 0; i < ALLOCATION_SLOTS; i++)
+    {
+        free(getaddrinfo_allocs[i]);
+        getaddrinfo_allocs[i] = NULL;
+    }
+}
+
+static bool getaddrinfo_add_alloc(void* p)
+{
+    size_t i;
+
+    for (i = 0; i < ALLOCATION_SLOTS; i++)
+    {
+        if ( getaddrinfo_allocs[i] == NULL )
+        {
+            getaddrinfo_allocs[i] = p;
+            return true;
+        }
+    }
+
+    return false;
+}
+static void* getaddrinfo_alloc(size_t size)
+{
+    void* p = malloc(size);
+
+    if ( getaddrinfo_add_alloc(p) == false )
+    {
+        free(p);
+        p = NULL;
+    }
+
+    return p;
+}
+
+static struct addrinfo* add_addrinfo(void)
+{
+    struct addrinfo* xres = NULL;
+    struct sockaddr_in* ai_addr = NULL;
+
+    xres = getaddrinfo_alloc(sizeof(*xres));
+    if ( xres == NULL ) {
+        goto cleanup;
+    }
+    xres->ai_canonname = NULL;
+
+    ai_addr = getaddrinfo_alloc(sizeof(*ai_addr));
+    if ( ai_addr == NULL ) {
+        goto cleanup;
+    }
+    FUZZER_GET_DATA(&(xres->ai_flags), sizeof(xres->ai_flags));
+    FUZZER_GET_DATA(&(xres->ai_family), sizeof(xres->ai_family));
+    FUZZER_GET_DATA(&(xres->ai_socktype), sizeof(xres->ai_socktype));
+    FUZZER_GET_DATA(&(xres->ai_protocol), sizeof(xres->ai_protocol));
+    xres->ai_addrlen = sizeof(struct sockaddr_in);
+    FUZZER_GET_DATA(ai_addr, sizeof(*ai_addr));
+    xres->ai_addr = ai_addr;
+    FUZZER_GET_STRING(xres->ai_canonname, 256);
+    if ( getaddrinfo_add_alloc(xres->ai_canonname) == false )
+    {
+        goto cleanup;
+    }
+    xres->ai_next = NULL;
+
+    return xres;
+cleanup:
+    if ( xres )
+    {
+        getaddrinfo_free(xres->ai_canonname);
+    }
+    getaddrinfo_free(xres);
+    getaddrinfo_free(ai_addr);
+    return NULL;
+}
+
+int platform_getaddrinfo(const char *node, const char *service,
+        const struct addrinfo *hints, struct addrinfo **res)
+{
+    ssize_t num_loops, n;
+    struct addrinfo** next = NULL;
+
+    FUZZER_GET_INTEGER(n, 1000);
+    switch ( n )
+    {
+        case 0:
+            return EAI_ADDRFAMILY;
+            break;
+        case 1:
+            return EAI_AGAIN;
+            break;
+        case 2:
+            return EAI_BADFLAGS;
+            break;
+        case 3:
+            return EAI_FAIL;
+            break;
+        case 4:
+            return EAI_FAMILY;
+            break;
+        case 5:
+            return EAI_MEMORY;
+            break;
+        case 6:
+            return EAI_NODATA;
+            break;
+        case 7:
+            return EAI_NONAME;
+            break;
+        case 8:
+            return EAI_SERVICE;
+            break;
+        case 9:
+            return EAI_SOCKTYPE;
+            break;
+        case 10:
+            return EAI_SYSTEM;
+            break;
+    }
+
+    *res = add_addrinfo();
+    if ( *res == NULL )
+    {
+        goto cleanup;
+    }
+
+    next = &((*res)->ai_next);
+
+    FUZZER_GET_INTEGER(num_loops, 10);
+    num_loops = 1;
+    for (n = 0; n < num_loops; n++) {
+        *next = add_addrinfo();
+        if ( *next == NULL )
+        {
+            break;
+        }
+        next = &((*next)->ai_next);
+    }
+    /*FUZZING_BLOCK;*/
+
+    return 0;
+cleanup:
+    return EAI_AGAIN;
+    return getaddrinfo(node, service, hints, res);
+}
+
+void platform_freeaddrinfo(struct addrinfo *res)
+{
+    struct addrinfo* next;
+    /*FUZZING_BLOCK;*/
+    next = res;
+    while ( next )
+    {
+        res = next;
+        next = res->ai_next;
+        getaddrinfo_free(res->ai_addr);
+        getaddrinfo_free(res->ai_canonname);
+        getaddrinfo_free(res);
+    }
+}
+
+void platform_get_default_gateway(void *_rgi)
+{
+    struct route_gateway_info* rgi = (struct route_gateway_info*)_rgi;
+    ssize_t s;
+
+    FUZZER_GET_DATA(rgi, sizeof(struct route_gateway_info));
+    rgi->iface[15] = 0x00;
+    FUZZER_GET_INTEGER(s, RGI_N_ADDRESSES);
+    rgi->n_addrs = s;
+    return;
+cleanup:
+    memset(rgi, 0, sizeof(struct route_gateway_info));
+    return;
+    get_default_gateway(rgi);
+}
+
+int platform_getsockopt(int sockfd, int level, int optname, void *optval, socklen_t *optlen)
+{
+    /* TODO */
+    FUZZING_BLOCK;
+    return getsockopt(sockfd, level, optname, optval, optlen);
+}
+
+#if defined(HAVE_SETSOCKOPT)
+int platform_setsockopt(int sockfd, int level, int optname, const void *optval, socklen_t optlen)
+{
+    if ( optval )
+    {
+        test_undefined_memory((void*)optval, optlen);
+    }
+
+    /* TODO randomly return 0/-1 */
+    return 0;
+    return setsockopt(sockfd, level, optname, optval, optlen);
+}
+
+int platform_getsockname(int sockfd, struct sockaddr *addr, socklen_t *addrlen)
+{
+    /* TODO */
+    FUZZING_BLOCK;
+    return getsockname(sockfd, addr, addrlen);
+}
+
+#endif
