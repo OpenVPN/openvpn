@@ -414,7 +414,7 @@ list_test(void)
             int bi;
             char c;
 
-            if (!fgets(buf, sizeof(buf), stdin))
+            if (!platform_fgets(buf, sizeof(buf), stdin))
             {
                 break;
             }
