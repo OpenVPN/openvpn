@@ -634,7 +634,7 @@ init_route_list(struct route_list *rl,
         rl->spec.flags |= RTSA_DEFAULT_METRIC;
     }
 
-    get_default_gateway(&rl->rgi);
+    platform_get_default_gateway(&rl->rgi);
     if (rl->rgi.flags & RGI_ADDR_DEFINED)
     {
         setenv_route_addr(es, "net_gateway", rl->rgi.gateway.addr, -1);
@@ -680,10 +680,12 @@ init_route_list(struct route_list *rl,
     if (rl->flags & RG_ENABLE)
     {
         add_block_local(rl);
+        /* Disabled for fuzzing
         get_bypass_addresses(&rl->spec.bypass, rl->flags);
 #ifdef ENABLE_DEBUG
         print_bypass_addresses(&rl->spec.bypass);
 #endif
+        */
     }
 
     /* parse the routes from opt to rl */
@@ -793,7 +795,9 @@ init_route_ipv6_list(struct route_ipv6_list *rl6,
     msg(D_ROUTE, "GDG6: remote_host_ipv6=%s",
         remote_host_ipv6 ?  print_in6_addr(*remote_host_ipv6, 0, &gc) : "n/a" );
 
+    /* Disabled for fuzzing
     get_default_gateway_ipv6(&rl6->rgi6, remote_host_ipv6);
+    */
     if (rl6->rgi6.flags & RGI_ADDR_DEFINED)
     {
         setenv_str(es, "net_gateway_ipv6", print_in6_addr(rl6->rgi6.gateway.addr_ipv6, 0, &gc));
@@ -3164,7 +3168,7 @@ get_default_gateway(struct route_gateway_info *rgi)
 #ifndef TARGET_ANDROID
     /* get default gateway IP addr */
     {
-        FILE *fp = fopen("/proc/net/route", "r");
+        FILE *fp = platform_fopen("/proc/net/route", "r");
         if (fp)
         {
             char line[256];
@@ -3172,7 +3176,7 @@ get_default_gateway(struct route_gateway_info *rgi)
             unsigned int lowest_metric = UINT_MAX;
             in_addr_t best_gw = 0;
             bool found = false;
-            while (fgets(line, sizeof(line), fp) != NULL)
+            while (platform_fgets(line, sizeof(line), fp) != NULL)
             {
                 if (count)
                 {
@@ -3207,7 +3211,7 @@ get_default_gateway(struct route_gateway_info *rgi)
                 }
                 ++count;
             }
-            fclose(fp);
+            platform_fclose(fp);
 
             if (found)
             {
@@ -3243,7 +3247,7 @@ get_default_gateway(struct route_gateway_info *rgi)
         struct ifconf ifc;
         struct ifreq ifs[20]; /* Maximum number of interfaces to scan */
 
-        if ((sd = socket(AF_INET, SOCK_DGRAM, 0)) < 0)
+        if ((sd = platform_socket(AF_INET, SOCK_DGRAM, 0)) < 0)
         {
             msg(M_WARN, "GDG: socket() failed");
             goto done;
@@ -3369,7 +3373,7 @@ get_default_gateway_ipv6(struct route_ipv6_gateway_info *rgi6,
 
     CLEAR(*rgi6);
 
-    nls = socket( PF_NETLINK, SOCK_RAW, NETLINK_ROUTE );
+    nls = platform_socket( PF_NETLINK, SOCK_RAW, NETLINK_ROUTE );
     if (nls < 0)
     {
         msg(M_WARN|M_ERRNO, "GDG6: socket() failed" ); goto done;
@@ -3406,12 +3410,12 @@ get_default_gateway_ipv6(struct route_ipv6_gateway_info *rgi6,
     }
 
     /* send and receive reply */
-    if (send( nls, &rtreq, rtreq.nh.nlmsg_len, 0 ) < 0)
+    if (platform_send( nls, &rtreq, rtreq.nh.nlmsg_len, 0 ) < 0)
     {
         msg(M_WARN|M_ERRNO, "GDG6: send() failed" ); goto done;
     }
 
-    ssize = recv(nls, rtbuf, sizeof(rtbuf), MSG_TRUNC);
+    ssize = platform_recv(nls, rtbuf, sizeof(rtbuf), MSG_TRUNC);
 
     if (ssize < 0)
     {
@@ -3615,7 +3619,7 @@ get_default_gateway(struct route_gateway_info *rgi)
     rtm.rtm_msglen = l = cp - (char *)&m_rtmsg;
 
     /* transact with routing socket */
-    sockfd = socket(PF_ROUTE, SOCK_RAW, 0);
+    sockfd = platform_socket(PF_ROUTE, SOCK_RAW, 0);
     if (sockfd < 0)
     {
         msg(M_WARN, "GDG: socket #1 failed");
@@ -3688,7 +3692,7 @@ get_default_gateway(struct route_gateway_info *rgi)
     {
         struct ifreq ifr;
 
-        sockfd = socket(AF_INET, SOCK_DGRAM, 0);
+        sockfd = platform_socket(AF_INET, SOCK_DGRAM, 0);
         if (sockfd < 0)
         {
             msg(M_WARN, "GDG: socket #2 failed");
@@ -3720,7 +3724,7 @@ get_default_gateway(struct route_gateway_info *rgi)
         char *buffer;
 
         buffer = (char *) gc_malloc(bufsize, true, &gc);
-        sockfd = socket(AF_INET, SOCK_DGRAM, 0);
+        sockfd = platform_socket(AF_INET, SOCK_DGRAM, 0);
         if (sockfd < 0)
         {
             msg(M_WARN, "GDG: socket #3 failed");
@@ -3842,7 +3846,7 @@ get_default_gateway_ipv6(struct route_ipv6_gateway_info *rgi6,
     rtm.rtm_msglen = l = cp - (char *)&m_rtmsg;
 
     /* transact with routing socket */
-    sockfd = socket(PF_ROUTE, SOCK_RAW, 0);
+    sockfd = platform_socket(PF_ROUTE, SOCK_RAW, 0);
     if (sockfd < 0)
     {
         msg(M_WARN, "GDG6: socket #1 failed");
