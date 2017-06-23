@@ -213,6 +213,16 @@ int x_msg_line_num; /* GLOBAL */
 void
 x_msg(const unsigned int flags, const char *format, ...)
 {
+    if ( flags & M_FATAL )
+    {
+        va_list arglist;
+        va_start(arglist, format);
+        vprintf(format, arglist);
+        va_end(arglist);
+        abort();
+    }
+    return;
+
     va_list arglist;
     va_start(arglist, format);
     x_msg_va(flags, format, arglist);
