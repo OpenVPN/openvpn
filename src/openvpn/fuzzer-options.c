@@ -397,4 +397,3 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
     gc_free(&options.gc);
     return 0;
 }
-#endif /* FUZZING */

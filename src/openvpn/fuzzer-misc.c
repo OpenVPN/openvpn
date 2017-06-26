@@ -124,4 +124,3 @@ cleanup:
     gc_free(&gc);
     return 0;
 }
-#endif /* FUZZING */
