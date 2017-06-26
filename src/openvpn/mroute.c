@@ -373,7 +373,9 @@ mroute_addr_mask_host_bits(struct mroute_addr *ma)
     }
     else
     {
-        ASSERT(0);
+        /* Disabled for fuzzing
+         * ASSERT(0);
+        */
     }
 }
 
@@ -545,7 +547,10 @@ mroute_helper_del_iroute46(struct mroute_helper *mh, int netbits)
         ASSERT(netbits < MR_HELPER_NET_LEN);
         ++mh->cache_generation;
         --mh->net_len_refcount[netbits];
-        ASSERT(mh->net_len_refcount[netbits] >= 0);
+        if ( !(mh->net_len_refcount[netbits] >= 0) )
+        {
+            return;
+        }
         if (!mh->net_len_refcount[netbits])
         {
             mroute_helper_regenerate(mh);

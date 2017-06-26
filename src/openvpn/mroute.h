@@ -96,7 +96,6 @@ struct mroute_addr {
             in_addr_t addr;     /* _network order_ IPv4 address */
         } v4mappedv6;
     }
-#ifndef HAVE_ANONYMOUS_UNION_SUPPORT
 /* Wrappers to support compilers that do not grok anonymous unions */
         mroute_union
 #define raw_addr mroute_union.raw_addr
@@ -104,7 +103,6 @@ struct mroute_addr {
 #define v4 mroute_union.v4
 #define v6 mroute_union.v6
 #define v4mappedv6 mroute_union.v4mappedv6
-#endif
     ;
 };
 
