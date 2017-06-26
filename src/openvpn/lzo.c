@@ -202,7 +202,10 @@ lzo_compress(struct buffer *buf, struct buffer work,
     else
     {
         uint8_t *header = buf_prepend(buf, 1);
-        *header = NO_COMPRESS_BYTE;
+        if (header)
+        {
+            *header = NO_COMPRESS_BYTE;
+        }
     }
 }
 

@@ -139,7 +139,10 @@ lz4_compress(struct buffer *buf, struct buffer work,
         {
             uint8_t *head = BPTR(buf);
             uint8_t *tail  = BEND(buf);
-            ASSERT(buf_safe(buf, 1));
+            if ( !(buf_safe(buf, 1)) )
+            {
+                return;
+            }
             ++buf->len;
 
             /* move head byte of payload to tail */

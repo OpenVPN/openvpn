@@ -98,7 +98,10 @@ compv2_escape_data_ifneeded(struct buffer *buf)
     }
 
     /* Header is 0x50 */
-    ASSERT(buf_prepend(buf, 2));
+    if ( !(buf_prepend(buf, 2)) )
+    {
+        return;
+    }
 
     head = BPTR(buf);
     head[0] = COMP_ALGV2_INDICATOR_BYTE;

@@ -60,7 +60,10 @@ stub_compress(struct buffer *buf, struct buffer work,
     {
         uint8_t *head = BPTR(buf);
         uint8_t *tail  = BEND(buf);
-        ASSERT(buf_safe(buf, 1));
+        if ( !(buf_safe(buf, 1)) )
+        {
+            return;
+        }
         ++buf->len;
 
         /* move head byte of payload to tail */
@@ -70,7 +73,10 @@ stub_compress(struct buffer *buf, struct buffer work,
     else
     {
         uint8_t *header = buf_prepend(buf, 1);
-        *header = NO_COMPRESS_BYTE;
+        if (header)
+        {
+            *header = NO_COMPRESS_BYTE;
+        }
     }
 }
 
