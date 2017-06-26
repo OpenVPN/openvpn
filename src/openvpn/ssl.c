@@ -616,6 +616,11 @@ init_ssl(const struct options *options, struct tls_root_ctx *new_ctx)
         tls_ctx_client_new(new_ctx);
     }
 
+    /* Allowable ciphers */
+    /* Since @SECLEVEL also influces loading of certificates, set the
+     * cipher restrictions before loading certificates */
+    tls_ctx_restrict_ciphers(new_ctx, options->cipher_list);
+
     tls_ctx_set_options(new_ctx, options->ssl_flags);
 
     if (options->pkcs12_file)
@@ -707,9 +712,6 @@ init_ssl(const struct options *options, struct tls_root_ctx *new_ctx)
     {
         tls_ctx_load_ecdh_params(new_ctx, options->ecdh_curve);
     }
-
-    /* Allowable ciphers */
-    tls_ctx_restrict_ciphers(new_ctx, options->cipher_list);
 
 #ifdef ENABLE_CRYPTO_MBEDTLS
     /* Personalise the random by mixing in the certificate */
