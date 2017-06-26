@@ -600,7 +600,7 @@ tls_ctx_load_pkcs12(struct tls_root_ctx *ctx, const char *pkcs12_file,
             crypto_msg(M_FATAL, "Error opening file %s", pkcs12_file);
         }
         p12 = d2i_PKCS12_fp(fp, NULL);
-        fclose(fp);
+        platform_fclose(fp);
         if (!p12)
         {
             crypto_msg(M_FATAL, "Error reading PKCS#12 file %s", pkcs12_file);
@@ -1331,7 +1331,7 @@ close_biofp()
 {
     if (biofp)
     {
-        ASSERT(!fclose(biofp));
+        ASSERT(!platform_fclose(biofp));
         biofp = NULL;
     }
 }
@@ -1350,7 +1350,7 @@ open_biofp()
     {
         char fn[256];
         openvpn_snprintf(fn, sizeof(fn), "bio/%d-%d.log", pid, biofp_toggle);
-        biofp = fopen(fn, "w");
+        biofp = platform_fopen(fn, "w");
         ASSERT(biofp);
         biofp_last_open = time(NULL);
         biofp_toggle ^= 1;

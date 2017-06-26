@@ -154,7 +154,7 @@ static FILE *
 open_tty(const bool write)
 {
     FILE *ret;
-    ret = fopen("/dev/tty", write ? "w" : "r");
+    ret = platform_fopen("/dev/tty", write ? "w" : "r");
     if (!ret)
     {
         ret = write ? stderr : stdin;
@@ -173,7 +173,7 @@ close_tty(FILE *fp)
 {
     if (fp != stderr && fp != stdin)
     {
-        fclose(fp);
+        platform_fclose(fp);
     }
 }
 
@@ -230,7 +230,7 @@ get_console_input(const char *prompt, const bool echo, char *input, const int ca
         close_tty(fp);
 
         fp = open_tty(false);
-        if (fgets(input, capacity, fp) != NULL)
+        if (platform_fgets(input, capacity, fp) != NULL)
         {
             chomp(input);
             ret = true;

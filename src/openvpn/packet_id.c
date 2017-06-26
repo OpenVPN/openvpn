@@ -659,7 +659,7 @@ packet_id_interactive_test()
     while (true)
     {
         char buf[80];
-        if (!fgets(buf, sizeof(buf), stdin))
+        if (!platform_fgets(buf, sizeof(buf), stdin))
         {
             break;
         }

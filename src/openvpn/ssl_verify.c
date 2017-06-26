@@ -556,7 +556,7 @@ verify_cert_export_cert(openvpn_x509_cert_t *peercert, const char *tmp_dir, stru
     peercert_filename = create_temp_file(tmp_dir, "pcf", gc);
 
     /* write peer-cert in tmp-file */
-    peercert_file = fopen(peercert_filename, "w+");
+    peercert_file = platform_fopen(peercert_filename, "w+");
     if (!peercert_file)
     {
         msg(M_ERR, "Failed to open temporary file : %s", peercert_filename);
@@ -568,7 +568,7 @@ verify_cert_export_cert(openvpn_x509_cert_t *peercert, const char *tmp_dir, stru
         msg(M_ERR, "Error writing PEM file containing certificate");
     }
 
-    fclose(peercert_file);
+    platform_fclose(peercert_file);
     return peercert_filename;
 }
 
@@ -904,10 +904,10 @@ key_state_test_auth_control_file(struct key_state *ks)
         unsigned int ret = ks->auth_control_status;
         if (ret == ACF_UNDEFINED)
         {
-            FILE *fp = fopen(ks->auth_control_file, "r");
+            FILE *fp = platform_fopen(ks->auth_control_file, "r");
             if (fp)
             {
-                const int c = fgetc(fp);
+                const int c = platform_fgetc(fp);
                 if (c == '1')
                 {
                     ret = ACF_SUCCEEDED;
@@ -916,7 +916,7 @@ key_state_test_auth_control_file(struct key_state *ks)
                 {
                     ret = ACF_FAILED;
                 }
-                fclose(fp);
+                platform_fclose(fp);
                 ks->auth_control_status = ret;
             }
         }

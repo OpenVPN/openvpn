@@ -240,7 +240,7 @@ port_share_sendmsg(const socket_descriptor_t sd,
             memcpy(CMSG_DATA(h), &sd_null[0], sizeof(sd_null[0]));
         }
 
-        status = sendmsg(sd, &mesg, MSG_NOSIGNAL);
+        status = platform_sendmsg(sd, &mesg, MSG_NOSIGNAL);
         if (status == -1)
         {
             msg(M_WARN|M_ERRNO, "PORT SHARE: sendmsg failed -- unable to communicate with background process (%d,%d,%d,%d)",
@@ -349,7 +349,7 @@ journal_add(const char *journal_dir, struct proxy_connection *pc, struct proxy_c
     slen = sizeof(from.addr.sa);
     dlen = sizeof(to.addr.sa);
     if (!getpeername(pc->sd, (struct sockaddr *) &from.addr.sa, &slen)
-        && !getsockname(cp->sd, (struct sockaddr *) &to.addr.sa, &dlen))
+        && !platform_getsockname(cp->sd, (struct sockaddr *) &to.addr.sa, &dlen))
     {
         const char *f = print_openvpn_sockaddr(&from, &gc);
         const char *t = print_openvpn_sockaddr(&to, &gc);
@@ -427,7 +427,7 @@ proxy_entry_new(struct proxy_connection **list,
     struct proxy_connection *cp;
 
     /* connect to port share server */
-    if ((sd_server = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0)
+    if ((sd_server = platform_socket(PF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0)
     {
         msg(M_WARN|M_ERRNO, "PORT SHARE PROXY: cannot create socket");
         return false;
@@ -530,7 +530,7 @@ control_message_from_parent(const socket_descriptor_t sd_control,
     static const socket_descriptor_t socket_undefined = SOCKET_UNDEFINED;
     memcpy(CMSG_DATA(h), &socket_undefined, sizeof(socket_undefined));
 
-    status = recvmsg(sd_control, &mesg, MSG_NOSIGNAL);
+    status = platform_recvmsg(sd_control, &mesg, MSG_NOSIGNAL);
     if (status != -1)
     {
         if (h == NULL
@@ -580,7 +580,7 @@ static int
 proxy_connection_io_recv(struct proxy_connection *pc)
 {
     /* recv data from socket */
-    const int status = recv(pc->sd, BPTR(&pc->buf), BCAP(&pc->buf), MSG_NOSIGNAL);
+    const int status = platform_recv(pc->sd, BPTR(&pc->buf), BCAP(&pc->buf), MSG_NOSIGNAL);
     if (status < 0)
     {
         return (errno == EAGAIN) ? IOSTAT_EAGAIN_ON_READ : IOSTAT_READ_ERROR;
@@ -601,7 +601,7 @@ static int
 proxy_connection_io_send(struct proxy_connection *pc, int *bytes_sent)
 {
     const socket_descriptor_t sd = pc->counterpart->sd;
-    const int status = send(sd, BPTR(&pc->buf), BLEN(&pc->buf), MSG_NOSIGNAL);
+    const int status = platform_send(sd, BPTR(&pc->buf), BLEN(&pc->buf), MSG_NOSIGNAL);
 
     if (status < 0)
     {
@@ -841,7 +841,7 @@ port_share_open(const char *host,
                                  host, port,  0, NULL, AF_INET, &ai);
     ASSERT(status==0);
     hostaddr = *((struct sockaddr_in *) ai->ai_addr);
-    freeaddrinfo(ai);
+    platform_freeaddrinfo(ai);
 
     /*
      * Make a socket for foreground and background processes

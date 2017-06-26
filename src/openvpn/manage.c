@@ -1617,7 +1617,7 @@ man_record_peer_info(struct management *man)
             int status;
 
             CLEAR(addr);
-            status = getsockname(man->connection.sd_cli, (struct sockaddr *)&addr, &addrlen);
+            status = platform_getsockname(man->connection.sd_cli, (struct sockaddr *)&addr, &addrlen);
             if (!status && addrlen == sizeof(addr))
             {
                 const in_addr_t a = ntohl(addr.sin_addr.s_addr);
@@ -1626,7 +1626,7 @@ man_record_peer_info(struct management *man)
                 if (fp)
                 {
                     fprintf(fp, "%s\n%d\n", print_in_addr_t(a, 0, &gc), p);
-                    if (!fclose(fp))
+                    if (!platform_fclose(fp))
                     {
                         success = true;
                     }
@@ -2050,7 +2050,7 @@ man_send_with_fd(int fd, void *ptr, size_t nbytes, int flags, int sendfd)
     msg.msg_iov = iov;
     msg.msg_iovlen = 1;
 
-    return (sendmsg(fd, &msg, flags));
+    return (platform_sendmsg(fd, &msg, flags));
 }
 
 static ssize_t
@@ -2077,7 +2077,7 @@ man_recv_with_fd(int fd, void *ptr, size_t nbytes, int flags, int *recvfd)
     msghdr.msg_iov = iov;
     msghdr.msg_iovlen = 1;
 
-    if ( (n = recvmsg(fd, &msghdr, flags)) <= 0)
+    if ( (n = platform_recvmsg(fd, &msghdr, flags)) <= 0)
     {
         return (n);
     }
@@ -2173,7 +2173,7 @@ man_read(struct management *man)
         man->connection.lastfdreceived = fd;
     }
 #else  /* ifdef TARGET_ANDROID */
-    len = recv(man->connection.sd_cli, buf, sizeof(buf), MSG_NOSIGNAL);
+    len = platform_recv(man->connection.sd_cli, buf, sizeof(buf), MSG_NOSIGNAL);
 #endif
 
     if (len == 0)
@@ -2270,7 +2270,7 @@ man_write(struct management *man)
         }
         else
 #endif
-        sent = send(man->connection.sd_cli, BPTR(buf), len, MSG_NOSIGNAL);
+        sent = platform_send(man->connection.sd_cli, BPTR(buf), len, MSG_NOSIGNAL);
         if (sent >= 0)
         {
             buffer_list_advance(man->connection.out, sent);
@@ -2478,7 +2478,7 @@ man_settings_close(struct man_settings *ms)
 {
     if (ms->local)
     {
-        freeaddrinfo(ms->local);
+        platform_freeaddrinfo(ms->local);
     }
     free(ms->write_peer_info_file);
     CLEAR(*ms);

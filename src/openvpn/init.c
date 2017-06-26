@@ -324,7 +324,7 @@ clear_remote_addrlist(struct link_socket_addr *lsa, bool free)
 {
     if (lsa->remote_list && free)
     {
-        freeaddrinfo(lsa->remote_list);
+        platform_freeaddrinfo(lsa->remote_list);
     }
     lsa->remote_list = NULL;
     lsa->current_remote = NULL;
@@ -1447,7 +1447,7 @@ initialization_sequence_completed(struct context *c, const unsigned int flags)
         CLEAR(local);
         actual = &get_link_socket_info(c)->lsa->actual;
         remote = actual->dest;
-        getsockname(c->c2.link_socket->sd, &local.addr.sa, &sa_len);
+        platform_getsockname(c->c2.link_socket->sd, &local.addr.sa, &sa_len);
 #if ENABLE_IP_PKTINFO
         if (!addr_defined(&local))
         {
@@ -3366,7 +3366,7 @@ do_close_link_socket(struct context *c)
     {
         if (c->c1.link_socket_addr.bind_local && !c->options.resolve_in_advance)
         {
-            freeaddrinfo(c->c1.link_socket_addr.bind_local);
+            platform_freeaddrinfo(c->c1.link_socket_addr.bind_local);
         }
 
         c->c1.link_socket_addr.bind_local = NULL;

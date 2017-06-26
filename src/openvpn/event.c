@@ -1046,7 +1046,7 @@ se_wait_fast(struct event_set *es, const struct timeval *tv, struct event_set_re
          (int)tv_tmp.tv_sec,
          (int)tv_tmp.tv_usec);
 
-    stat = select(ses->maxfd + 1, &ses->readfds, &ses->writefds, NULL, &tv_tmp);
+    stat = platform_select(ses->maxfd + 1, &ses->readfds, &ses->writefds, NULL, &tv_tmp);
 
     if (stat > 0)
     {
@@ -1068,7 +1068,7 @@ se_wait_scalable(struct event_set *es, const struct timeval *tv, struct event_se
     dmsg(D_EVENT_WAIT, "SE_WAIT_SCALEABLE maxfd=%d tv=%d/%d",
          ses->maxfd, (int)tv_tmp.tv_sec, (int)tv_tmp.tv_usec);
 
-    stat = select(ses->maxfd + 1, &read, &write, NULL, &tv_tmp);
+    stat = platform_select(ses->maxfd + 1, &read, &write, NULL, &tv_tmp);
 
     if (stat > 0)
     {

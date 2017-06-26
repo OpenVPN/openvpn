@@ -163,10 +163,10 @@ void
 crypto_uninit_lib(void)
 {
 #ifdef CRYPTO_MDEBUG
-    FILE *fp = fopen("sdlog", "w");
+    FILE *fp = platform_fopen("sdlog", "w");
     ASSERT(fp);
     CRYPTO_mem_leaks_fp(fp);
-    fclose(fp);
+    platform_fclose(fp);
 #endif
 
 #if HAVE_OPENSSL_ENGINE

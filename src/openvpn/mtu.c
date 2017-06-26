@@ -174,7 +174,7 @@ set_mtu_discover_type(int sd, int mtu_type, sa_family_t proto_af)
         {
 #if defined(HAVE_SETSOCKOPT) && defined(IP_MTU_DISCOVER)
             case AF_INET:
-                if (setsockopt
+                if (platform_setsockopt
                         (sd, IPPROTO_IP, IP_MTU_DISCOVER, &mtu_type, sizeof(mtu_type)))
                 {
                     msg(M_ERR, "Error setting IP_MTU_DISCOVER type=%d on TCP/UDP socket",
@@ -185,7 +185,7 @@ set_mtu_discover_type(int sd, int mtu_type, sa_family_t proto_af)
 #endif
 #if defined(HAVE_SETSOCKOPT) && defined(IPV6_MTU_DISCOVER)
             case AF_INET6:
-                if (setsockopt
+                if (platform_setsockopt
                         (sd, IPPROTO_IPV6, IPV6_MTU_DISCOVER, &mtu_type, sizeof(mtu_type)))
                 {
                     msg(M_ERR, "Error setting IPV6_MTU_DISCOVER type=%d on TCP6/UDP6 socket",
@@ -262,7 +262,7 @@ format_extended_socket_error(int fd, int *mtu, struct gc_arena *gc)
         msg.msg_control = cbuf;
         msg.msg_controllen = 256; /* size of cbuf */
 
-        res = recvmsg(fd, &msg, MSG_ERRQUEUE);
+        res = platform_recvmsg(fd, &msg, MSG_ERRQUEUE);
         if (res < 0)
         {
             goto exit;
@@ -336,7 +336,7 @@ void
 set_sock_extended_error_passing(int sd)
 {
     int on = 1;
-    if (setsockopt(sd, SOL_IP, IP_RECVERR, (void *) &on, sizeof(on)))
+    if (platform_setsockopt(sd, SOL_IP, IP_RECVERR, (void *) &on, sizeof(on)))
     {
         msg(M_WARN | M_ERRNO,
             "Note: enable extended error passing on TCP/UDP socket failed (IP_RECVERR)");

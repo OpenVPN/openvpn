@@ -2011,7 +2011,7 @@ open_tun(const char *dev, const char *dev_type, const char *dev_node, struct tun
             struct ifreq netifr;
             int ctl_fd;
 
-            if ((ctl_fd = socket(AF_INET, SOCK_DGRAM, 0)) >= 0)
+            if ((ctl_fd = platform_socket(AF_INET, SOCK_DGRAM, 0)) >= 0)
             {
                 CLEAR(netifr);
                 strncpynt(netifr.ifr_name, ifr.ifr_name, IFNAMSIZ);
@@ -3018,7 +3018,7 @@ utun_open_helper(struct ctl_info ctlInfo, int utunnum)
     struct sockaddr_ctl sc;
     int fd;
 
-    fd = socket(PF_SYSTEM, SOCK_DGRAM, SYSPROTO_CONTROL);
+    fd = platform_socket(PF_SYSTEM, SOCK_DGRAM, SYSPROTO_CONTROL);
 
     if (fd < 0)
     {
@@ -3118,7 +3118,7 @@ open_darwin_utun(const char *dev, const char *dev_type, const char *dev_node, st
     }
 
     /* Retrieve the assigned interface name. */
-    if (getsockopt(fd, SYSPROTO_CONTROL, UTUN_OPT_IFNAME, utunname, &utunname_len))
+    if (platform_getsockopt(fd, SYSPROTO_CONTROL, UTUN_OPT_IFNAME, utunname, &utunname_len))
     {
         msg(M_ERR | M_ERRNO, "Error retrieving utun interface name");
     }
