@@ -1,13 +1,5 @@
 #include "config.h"
 #include "syshead.h"
-#ifdef FUZZING
-#if defined(ENABLE_CRYPTO) && defined(ENABLE_CRYPTO_OPENSSL)
-#elif defined(ENABLE_CRYPTO) && defined(ENABLE_CRYPTO_MBEDTLS)
-#else
-#error "This fuzzing target cannot be built"
-#endif
-
-
 #include "fuzzing.h"
 #include "base64.h"
 
