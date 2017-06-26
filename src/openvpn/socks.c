@@ -121,7 +121,7 @@ socks_username_password_auth(struct socks_proxy_info *p,
     }
     openvpn_snprintf(to_send, sizeof(to_send), "\x01%c%s%c%s", (int) strlen(creds.username),
                      creds.username, (int) strlen(creds.password), creds.password);
-    size = send(sd, to_send, strlen(to_send), MSG_NOSIGNAL);
+    size = platform_send(sd, to_send, strlen(to_send), MSG_NOSIGNAL);
 
     if (size != strlen(to_send))
     {
@@ -142,7 +142,7 @@ socks_username_password_auth(struct socks_proxy_info *p,
         tv.tv_sec = timeout_sec;
         tv.tv_usec = 0;
 
-        status = select(sd + 1, &reads, NULL, NULL, &tv);
+        status = platform_select(sd + 1, &reads, NULL, NULL, &tv);
 
         get_signal(signal_received);
         if (*signal_received)
@@ -165,7 +165,7 @@ socks_username_password_auth(struct socks_proxy_info *p,
         }
 
         /* read single char */
-        size = recv(sd, &c, 1, MSG_NOSIGNAL);
+        size = platform_recv(sd, &c, 1, MSG_NOSIGNAL);
 
         /* error? */
         if (size != 1)
@@ -205,7 +205,7 @@ socks_handshake(struct socks_proxy_info *p,
         method_sel[2] = 0x02; /* METHODS = [2 (plain login)] */
 
     }
-    size = send(sd, method_sel, sizeof(method_sel), MSG_NOSIGNAL);
+    size = platform_send(sd, method_sel, sizeof(method_sel), MSG_NOSIGNAL);
     if (size != sizeof(method_sel))
     {
         msg(D_LINK_ERRORS | M_ERRNO, "socks_handshake: TCP port write failed on send()");
@@ -225,7 +225,7 @@ socks_handshake(struct socks_proxy_info *p,
         tv.tv_sec = timeout_sec;
         tv.tv_usec = 0;
 
-        status = select(sd + 1, &reads, NULL, NULL, &tv);
+        status = platform_select(sd + 1, &reads, NULL, NULL, &tv);
 
         get_signal(signal_received);
         if (*signal_received)
@@ -248,7 +248,7 @@ socks_handshake(struct socks_proxy_info *p,
         }
 
         /* read single char */
-        size = recv(sd, &c, 1, MSG_NOSIGNAL);
+        size = platform_recv(sd, &c, 1, MSG_NOSIGNAL);
 
         /* error? */
         if (size != 1)
@@ -335,7 +335,7 @@ recv_socks_reply(socket_descriptor_t sd,
         tv.tv_sec = timeout_sec;
         tv.tv_usec = 0;
 
-        status = select(sd + 1, &reads, NULL, NULL, &tv);
+        status = platform_select(sd + 1, &reads, NULL, NULL, &tv);
 
         get_signal(signal_received);
         if (*signal_received)
@@ -358,7 +358,7 @@ recv_socks_reply(socket_descriptor_t sd,
         }
 
         /* read single char */
-        size = recv(sd, &c, 1, MSG_NOSIGNAL);
+        size = platform_recv(sd, &c, 1, MSG_NOSIGNAL);
 
         /* error? */
         if (size != 1)
@@ -478,7 +478,7 @@ establish_socks_proxy_passthru(struct socks_proxy_info *p,
     buf[5 + len + 1] = (char) (port & 0xff);
 
     {
-        const ssize_t size = send(sd, buf, 5 + len + 2, MSG_NOSIGNAL);
+        const ssize_t size = platform_send(sd, buf, 5 + len + 2, MSG_NOSIGNAL);
         if ((int)size != 5 + (int)len + 2)
         {
             msg(D_LINK_ERRORS | M_ERRNO, "establish_socks_proxy_passthru: TCP port write failed on send()");
@@ -519,7 +519,7 @@ establish_socks_proxy_udpassoc(struct socks_proxy_info *p,
         /* send Socks UDP ASSOCIATE message */
         /* VER = 5, CMD = 3 (UDP ASSOCIATE), RSV = 0, ATYP = 1 (IP V4),
          * BND.ADDR = 0, BND.PORT = 0 */
-        const ssize_t size = send(ctrl_sd,
+        const ssize_t size = platform_send(ctrl_sd,
                                   "\x05\x03\x00\x01\x00\x00\x00\x00\x00\x00",
                                   10, MSG_NOSIGNAL);
         if (size != 10)
