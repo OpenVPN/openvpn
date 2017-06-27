@@ -34,6 +34,7 @@
 #include "multi.h"
 #include <inttypes.h>
 #include "forward-inline.h"
+#include "platform.h"
 
 #include "memdbg.h"
 
@@ -358,7 +359,7 @@ tunnel_server_udp_single_threaded(struct context *top)
     }
 
 #ifdef ENABLE_ASYNC_PUSH
-    close(top->c2.inotify_fd);
+    platform_close(top->c2.inotify_fd);
 #endif
 
     /* shut down management interface */

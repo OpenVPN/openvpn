@@ -42,6 +42,7 @@
 #include "base64.h"
 #include "ssl_verify.h"
 #include "ssl_verify_backend.h"
+#include "platform.h"
 
 #ifdef ENABLE_CRYPTO_OPENSSL
 #include "ssl_verify_openssl.h"
@@ -655,7 +656,7 @@ cleanup:
 
     if (fd != -1)
     {
-        close(fd);
+        platform_close(fd);
     }
     gc_free(&gc);
     return ret;

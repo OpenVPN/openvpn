@@ -366,7 +366,7 @@ journal_add(const char *journal_dir, struct proxy_connection *pc, struct proxy_c
             {
                 msg(M_WARN, "PORT SHARE: writing to journal file (%s) failed", jfn);
             }
-            close(fd);
+            platform_close(fd);
             cp->jfn = jfn;
         }
         else

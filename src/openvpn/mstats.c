@@ -67,7 +67,7 @@ mstats_open(const char *fn)
     }
 
     /* create file that will be memory mapped */
-    fd = open(fn, O_CREAT | O_TRUNC | O_RDWR, S_IRUSR | S_IWUSR);
+    fd = platform_open(fn, O_CREAT | O_TRUNC | O_RDWR, S_IRUSR | S_IWUSR);
     if (fd < 0)
     {
         msg(M_ERR, "mstats_open: cannot open: %s", fn);
@@ -82,7 +82,7 @@ mstats_open(const char *fn)
     if (stat != sizeof(ms))
     {
         msg(M_ERR, "mstats_open: write error: %s", fn);
-        close(fd);
+        platform_close(fd);
         return;
     }
 
@@ -91,12 +91,12 @@ mstats_open(const char *fn)
     if (data == MAP_FAILED)
     {
         msg(M_ERR, "mstats_open: write error: %s", fn);
-        close(fd);
+        platform_close(fd);
         return;
     }
 
     /* close the fd (mmap now controls the file) */
-    if (close(fd))
+    if (platform_close(fd))
     {
         msg(M_ERR, "mstats_open: close error: %s", fn);
     }

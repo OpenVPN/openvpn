@@ -34,6 +34,7 @@
 #include "integer.h"
 #include "event.h"
 #include "fdmisc.h"
+#include "platform.h"
 
 #include "memdbg.h"
 
@@ -533,7 +534,7 @@ static void
 ep_free(struct event_set *es)
 {
     struct ep_set *eps = (struct ep_set *) es;
-    close(eps->epfd);
+    platform_close(eps->epfd);
     free(eps->events);
     free(eps);
 }

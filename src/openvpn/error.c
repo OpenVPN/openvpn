@@ -41,6 +41,7 @@
 #include "integer.h"
 #include "ps.h"
 #include "mstats.h"
+#include "platform.h"
 
 
 #if SYSLOG_CAPABILITY
@@ -603,7 +604,7 @@ redirect_stdout_stderr(const char *file, bool append)
 #elif defined(HAVE_DUP2)
     if (!std_redir)
     {
-        int out = open(file,
+        int out = platform_open(file,
                        O_CREAT | O_WRONLY | (append ? O_APPEND : O_TRUNC),
                        S_IRUSR | S_IWUSR);
 
@@ -624,7 +625,7 @@ redirect_stdout_stderr(const char *file, bool append)
 
         if (out > 2)
         {
-            close(out);
+            platform_close(out);
         }
 
         std_redir = true;

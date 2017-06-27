@@ -423,7 +423,7 @@ packet_id_persist_close(struct packet_id_persist *p)
 {
     if (packet_id_persist_enabled(p))
     {
-        if (close(p->fd))
+        if (platform_close(p->fd))
         {
             msg(D_PID_PERSIST | M_ERRNO, "Close error on --replay-persist file %s", p->filename);
         }

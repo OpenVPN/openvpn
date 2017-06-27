@@ -212,7 +212,7 @@ status_close(struct status_output *so)
         }
         if (so->fd >= 0)
         {
-            if (close(so->fd) < 0)
+            if (platform_close(so->fd) < 0)
             {
                 ret = false;
             }

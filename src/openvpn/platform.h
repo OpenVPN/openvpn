@@ -139,6 +139,7 @@ int platform_fclose(FILE *stream);
 FILE *platform_fopen(const char *path, const char *mode);
 
 int platform_open(const char *path, int flags, int mode);
+int platform_open2(const char *path, int flags);
 
 #ifdef _WIN32
 typedef struct _stat platform_stat_t;
@@ -151,6 +152,7 @@ ssize_t platform_recv(int sockfd, void* buf, size_t len, int flags);
 ssize_t platform_send(int sockfd, const void* buf, size_t len, int flags);
 ssize_t platform_read(int fd, void* buf, size_t len);
 ssize_t platform_write(int fd, const void* buf, size_t len);
+int platform_close(int fd);
 ssize_t platform_select(int nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds, struct timeval *timeout);
 char* platform_fgets(char *s, int size, FILE *stream);
 int platform_fgetc(FILE *stream);

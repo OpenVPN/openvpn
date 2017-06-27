@@ -44,6 +44,7 @@
 #include "route.h"
 #include "console.h"
 #include "win32.h"
+#include "platform.h"
 
 #include "memdbg.h"
 
@@ -174,7 +175,7 @@ set_std_files_to_null(bool stdin_only)
 {
 #if defined(HAVE_DUP) && defined(HAVE_DUP2)
     int fd;
-    if ((fd = open("/dev/null", O_RDWR, 0)) != -1)
+    if ((fd = platform_open("/dev/null", O_RDWR, 0)) != -1)
     {
         dup2(fd, 0);
         if (!stdin_only)
@@ -184,7 +185,7 @@ set_std_files_to_null(bool stdin_only)
         }
         if (fd > 2)
         {
-            close(fd);
+            platform_close(fd);
         }
     }
 #endif
@@ -398,7 +399,7 @@ openvpn_popen(const struct argv *a,  const struct env_set *es)
                 pid = fork();
                 if (pid == (pid_t)0)       /* child side */
                 {
-                    close(pipe_stdout[0]);         /* Close read end */
+                    platform_close(pipe_stdout[0]);         /* Close read end */
                     dup2(pipe_stdout[1],1);
                     execve(cmd, argv, envp);
                     exit(127);
@@ -407,14 +408,14 @@ openvpn_popen(const struct argv *a,  const struct env_set *es)
                 {
                     int status = 0;
 
-                    close(pipe_stdout[1]);        /* Close write end */
+                    platform_close(pipe_stdout[1]);        /* Close write end */
                     waitpid(pid, &status, 0);
                     ret = pipe_stdout[0];
                 }
                 else       /* fork failed */
                 {
-                    close(pipe_stdout[0]);
-                    close(pipe_stdout[1]);
+                    platform_close(pipe_stdout[0]);
+                    platform_close(pipe_stdout[1]);
                     msg(M_ERR, "openvpn_popen: unable to fork %s", cmd);
                 }
             }
@@ -941,7 +942,7 @@ create_temp_file(const char *directory, const char *prefix, struct gc_arena *gc)
         fd = platform_open(retfname, O_CREAT | O_EXCL | O_WRONLY, S_IRUSR | S_IWUSR);
         if (fd != -1)
         {
-            close(fd);
+            platform_close(fd);
             return retfname;
         }
         else if (fd == -1 && errno != EEXIST)

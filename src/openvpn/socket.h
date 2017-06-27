@@ -34,6 +34,7 @@
 #include "proxy.h"
 #include "socks.h"
 #include "misc.h"
+#include "platform.h"
 
 /*
  * OpenVPN's default port number as assigned by IANA.
@@ -274,7 +275,7 @@ int socket_finalize(
 
 #else  /* ifdef _WIN32 */
 
-#define openvpn_close_socket(s) close(s)
+#define openvpn_close_socket(s) platform_close(s)
 
 #endif
 

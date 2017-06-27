@@ -3345,7 +3345,7 @@ get_default_gateway(struct route_gateway_info *rgi)
 done:
     if (sd >= 0)
     {
-        close(sd);
+        platform_close(sd);
     }
     gc_free(&gc);
 }
@@ -3513,7 +3513,7 @@ get_default_gateway_ipv6(struct route_ipv6_gateway_info *rgi6,
 done:
     if (nls >= 0)
     {
-        close(nls);
+        platform_close(nls);
     }
 }
 
@@ -3635,7 +3635,7 @@ get_default_gateway(struct route_gateway_info *rgi)
     {
         l = platform_read(sockfd, (char *)&m_rtmsg, sizeof(m_rtmsg));
     } while (l > 0 && (rtm.rtm_seq != seq || rtm.rtm_pid != pid));
-    close(sockfd);
+    platform_close(sockfd);
     sockfd = -1;
 
     /* extract return data from routing socket */
@@ -3709,7 +3709,7 @@ get_default_gateway(struct route_gateway_info *rgi)
             msg(M_WARN, "GDG: ioctl #1 failed");
             goto done;
         }
-        close(sockfd);
+        platform_close(sockfd);
         sockfd = -1;
 
         rgi->gateway.netmask = ntohl(((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr.s_addr);
@@ -3740,7 +3740,7 @@ get_default_gateway(struct route_gateway_info *rgi)
             msg(M_WARN, "GDG: ioctl #2 failed");
             goto done;
         }
-        close(sockfd);
+        platform_close(sockfd);
         sockfd = -1;
 
         for (cp = buffer; cp <= buffer + ifc.ifc_len - sizeof(struct ifreq); )
@@ -3772,7 +3772,7 @@ get_default_gateway(struct route_gateway_info *rgi)
 done:
     if (sockfd >= 0)
     {
-        close(sockfd);
+        platform_close(sockfd);
     }
     gc_free(&gc);
 }
@@ -3865,7 +3865,7 @@ get_default_gateway_ipv6(struct route_ipv6_gateway_info *rgi6,
     }
     while (l > 0 && (rtm.rtm_seq != seq || rtm.rtm_pid != pid));
 
-    close(sockfd);
+    platform_close(sockfd);
     sockfd = -1;
 
     /* extract return data from routing socket */
@@ -3938,7 +3938,7 @@ get_default_gateway_ipv6(struct route_ipv6_gateway_info *rgi6,
 done:
     if (sockfd >= 0)
     {
-        close(sockfd);
+        platform_close(sockfd);
     }
 }
 

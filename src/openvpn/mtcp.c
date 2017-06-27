@@ -29,11 +29,11 @@
 
 #include "syshead.h"
 
+#include "platform.h"
 #if P2MP_SERVER
 
 #include "multi.h"
 #include "forward-inline.h"
-
 #include "memdbg.h"
 
 #ifdef HAVE_SYS_INOTIFY_H
@@ -830,7 +830,7 @@ tunnel_server_tcp(struct context *top)
     }
 
 #ifdef ENABLE_ASYNC_PUSH
-    close(top->c2.inotify_fd);
+    platform_close(top->c2.inotify_fd);
 #endif
 
     /* shut down management interface */

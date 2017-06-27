@@ -370,6 +370,13 @@ platform_open(const char *path, int flags, int mode)
 }
 
 int
+platform_open2(const char *path, int flags)
+{
+    FUZZING_BLOCK;
+    return open(path, flags);
+}
+
+int
 platform_stat(const char *path, platform_stat_t *buf)
 {
     /*FUZZING_BLOCK;*/
@@ -403,6 +410,11 @@ ssize_t platform_read(int fd, void* buf, size_t len)
 ssize_t platform_write(int fd, const void* buf, size_t len)
 {
     return platform_send(fd, buf, len, 0);
+}
+
+int platform_close(int fd)
+{
+    return 0;
 }
 
 ssize_t platform_select(int nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds, struct timeval *timeout)

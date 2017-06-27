@@ -1740,7 +1740,7 @@ open_tun_generic(const char *dev, const char *dev_type, const char *dev_node,
             if (dynamic && strcmp( dev, "tap" ) == 0)
             {
                 struct ifreq ifr;
-                if ((tt->fd = open( "/dev/tap", O_RDWR)) < 0)
+                if ((tt->fd = platform_open( "/dev/tap", O_RDWR)) < 0)
                 {
                     msg(M_FATAL, "Cannot allocate NetBSD TAP dev dynamically");
                 }
@@ -1765,7 +1765,7 @@ open_tun_generic(const char *dev, const char *dev_type, const char *dev_node,
                                      "/dev/%s%d", dev, i);
                     openvpn_snprintf(dynamic_name, sizeof(dynamic_name),
                                      "%s%d", dev, i);
-                    if ((tt->fd = open(tunname, O_RDWR)) > 0)
+                    if ((tt->fd = platform_open(tunname, O_RDWR)) > 0)
                     {
                         dynamic_opened = true;
                         break;
@@ -1795,7 +1795,7 @@ open_tun_generic(const char *dev, const char *dev_type, const char *dev_node,
                 tt->persistent_if = true;
             }
 
-            if ((tt->fd = open(tunname, O_RDWR)) < 0)
+            if ((tt->fd = platform_open(tunname, O_RDWR)) < 0)
             {
                 msg(M_ERR, "Cannot open TUN/TAP dev %s", tunname);
             }
@@ -1817,7 +1817,7 @@ close_tun_generic(struct tuntap *tt)
 {
     if (tt->fd >= 0)
     {
-        close(tt->fd);
+        platform_close(tt->fd);
     }
     if (tt->actual_name)
     {
@@ -1862,7 +1862,7 @@ open_tun(const char *dev, const char *dev_type, const char *dev_node, struct tun
     /* Android 4.4 workaround */
     if (oldtunfd >=0 && android_method == ANDROID_OPEN_AFTER_CLOSE)
     {
-        close(oldtunfd);
+        platform_close(oldtunfd);
         openvpn_sleep(2);
     }
 
@@ -1882,7 +1882,7 @@ open_tun(const char *dev, const char *dev_type, const char *dev_node, struct tun
 
     if (oldtunfd>=0 && android_method == ANDROID_OPEN_BEFORE_CLOSE)
     {
-        close(oldtunfd);
+        platform_close(oldtunfd);
     }
 
     /* Set the actual name to a dummy name */
@@ -1952,7 +1952,7 @@ open_tun(const char *dev, const char *dev_type, const char *dev_node, struct tun
         /*
          * Open the interface
          */
-        if ((tt->fd = open(node, O_RDWR)) < 0)
+        if ((tt->fd = platform_open2(node, O_RDWR)) < 0)
         {
             msg(M_ERR, "ERROR: Cannot open TUN/TAP dev %s", node);
         }
@@ -2025,7 +2025,7 @@ open_tun(const char *dev, const char *dev_type, const char *dev_node, struct tun
                 {
                     msg(M_WARN | M_ERRNO, "Note: Cannot set tx queue length on %s", ifr.ifr_name);
                 }
-                close(ctl_fd);
+                platform_close(ctl_fd);
             }
             else
             {
@@ -2246,12 +2246,12 @@ open_tun(const char *dev, const char *dev_type, const char *dev_node, struct tun
             dev);
     }
 
-    if ((tt->ip_fd = open(ip_node, O_RDWR, 0)) < 0)
+    if ((tt->ip_fd = platform_open(ip_node, O_RDWR, 0)) < 0)
     {
         msg(M_ERR, "Can't open %s", ip_node);
     }
 
-    if ((tt->fd = open(dev_node, O_RDWR, 0)) < 0)
+    if ((tt->fd = platform_open(dev_node, O_RDWR, 0)) < 0)
     {
         msg(M_ERR, "Can't open %s", dev_node);
     }
@@ -2305,7 +2305,7 @@ open_tun(const char *dev, const char *dev_type, const char *dev_node, struct tun
         }
     }
 
-    if ((if_fd = open(dev_node, O_RDWR, 0)) < 0)
+    if ((if_fd = platform_open(dev_node, O_RDWR, 0)) < 0)
     {
         msg(M_ERR, "Can't open %s (2)", dev_node);
     }
@@ -2367,7 +2367,7 @@ open_tun(const char *dev, const char *dev_type, const char *dev_node, struct tun
         }
 
         /* Open arp_fd */
-        if ((arp_fd = open(arp_node, O_RDWR, 0)) < 0)
+        if ((arp_fd = platform_open(arp_node, O_RDWR, 0)) < 0)
         {
             msg(M_ERR, "Can't open %s\n", arp_node);
         }
@@ -2399,7 +2399,7 @@ open_tun(const char *dev, const char *dev_type, const char *dev_node, struct tun
         {
             msg(M_ERR, "Can't link %s device to ARP", dev_tuntap_type);
         }
-        close(arp_fd);
+        platform_close(arp_fd);
     }
 
     CLEAR(ifr);
@@ -2472,13 +2472,13 @@ solaris_close_tun(struct tuntap *tt)
                 msg(M_WARN | M_ERRNO, "Can't unlink interface(ip)");
             }
 
-            close(tt->ip_fd);
+            platform_close(tt->ip_fd);
             tt->ip_fd = -1;
         }
 
         if (tt->fd >= 0)
         {
-            close(tt->fd);
+            platform_close(tt->fd);
             tt->fd = -1;
         }
     }
@@ -3030,7 +3030,7 @@ utun_open_helper(struct ctl_info ctlInfo, int utunnum)
 
     if (ioctl(fd, CTLIOCGINFO, &ctlInfo) == -1)
     {
-        close(fd);
+        platform_close(fd);
         msg(M_INFO, "Opening utun (%s): %s", "ioctl(CTLIOCGINFO)",
             strerror(errno));
         return -2;
@@ -3052,7 +3052,7 @@ utun_open_helper(struct ctl_info ctlInfo, int utunnum)
     {
         msg(M_INFO, "Opening utun (%s): %s", "connect(AF_SYS_CONTROL)",
             strerror(errno));
-        close(fd);
+        platform_close(fd);
         return -1;
     }
 
@@ -3319,7 +3319,7 @@ open_tun(const char *dev, const char *dev_type, const char *dev_node, struct tun
         tt->persistent_if = TRUE;
     }
 
-    if ((tt->fd = open(tunname, O_RDWR)) < 0)
+    if ((tt->fd = platform_open(tunname, O_RDWR)) < 0)
     {
         msg(M_ERR, "Cannot open TAP device '%s'", tunname);
     }

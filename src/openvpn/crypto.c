@@ -1272,7 +1272,7 @@ read_key_file(struct key2 *key2, const char *file, const unsigned int flags)
         {
             msg(M_FATAL, "Key file ('%s') can be a maximum of %d bytes", file, (int)in.capacity);
         }
-        close(fd);
+        platform_close(fd);
     }
 
     cp = (unsigned char *)in.data;
@@ -1483,7 +1483,7 @@ write_key_file(const int nkeys, const char *filename)
     /* write key file, now formatted in out, to file */
     buf_write_string_file(&out, filename, fd);
 
-    if (close(fd))
+    if (platform_close(fd))
     {
         msg(M_ERR, "Close error on shared secret file %s", filename);
     }

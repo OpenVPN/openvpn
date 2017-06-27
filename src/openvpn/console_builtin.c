@@ -209,7 +209,7 @@ get_console_input(const char *prompt, const bool echo, char *input, const int ca
      */
     if (!isatty(0) && !isatty(2) )
     {
-        int fd = open( "/dev/tty", O_RDWR );
+        int fd = platform_open2( "/dev/tty", O_RDWR );
         if (fd < 0)
         {
             msg(M_FATAL, "neither stdin nor stderr are a tty device and you have neither a "
@@ -217,7 +217,7 @@ get_console_input(const char *prompt, const bool echo, char *input, const int ca
                 "you need to use --askpass to make passphrase-protected keys work, and you "
                 "can not use --auth-nocache.", prompt );
         }
-        close(fd);
+        platform_close(fd);
     }
 
     if (echo)
