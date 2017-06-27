@@ -812,14 +812,11 @@ md_kt_get(const char *digest)
     md = EVP_get_digestbyname(digest);
     if (!md)
     {
-        crypto_msg(M_FATAL, "Message hash algorithm '%s' not found", digest);
+        return NULL;
     }
     if (EVP_MD_size(md) > MAX_HMAC_KEY_LENGTH)
     {
-        crypto_msg(M_FATAL, "Message hash algorithm '%s' uses a default hash "
-                   "size (%d bytes) which is larger than " PACKAGE_NAME "'s current "
-                   "maximum hash size (%d bytes)",
-                   digest, EVP_MD_size(md), MAX_HMAC_KEY_LENGTH);
+        return NULL;
     }
     return md;
 }

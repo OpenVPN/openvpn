@@ -756,7 +756,7 @@ init_key_type(struct key_type *kt, const char *ciphername,
         kt->cipher = cipher_kt_get(translate_cipher_name_from_openvpn(ciphername));
         if (!kt->cipher)
         {
-            msg(M_FATAL, "Cipher %s not supported", ciphername);
+            return;
         }
 
         kt->cipher_length = cipher_kt_key_size(kt->cipher);
@@ -774,12 +774,12 @@ init_key_type(struct key_type *kt, const char *ciphername,
 #endif
               ))
         {
-            msg(M_FATAL, "Cipher '%s' mode not supported", ciphername);
+            return;
         }
 
         if (OPENVPN_MAX_CIPHER_BLOCK_SIZE < cipher_kt_block_size(kt->cipher))
         {
-            msg(M_FATAL, "Cipher '%s' not allowed: block size too big.", ciphername);
+            return;
         }
     }
     else
@@ -801,7 +801,7 @@ init_key_type(struct key_type *kt, const char *ciphername,
 
             if (OPENVPN_MAX_HMAC_SIZE < kt->hmac_length)
             {
-                msg(M_FATAL, "HMAC '%s' not allowed: digest size too big.", authname);
+                return;
             }
         }
     }

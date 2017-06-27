@@ -135,7 +135,8 @@ extra_PROGRAMS = \
 				 openvpn-fuzzer-list openvpn-fuzzer-list-standalone \
 				 openvpn-fuzzer-misc openvpn-fuzzer-misc-standalone \
 				 openvpn-fuzzer-mroute openvpn-fuzzer-mroute-standalone \
-				 openvpn-fuzzer-comp openvpn-fuzzer-comp-standalone
+				 openvpn-fuzzer-comp openvpn-fuzzer-comp-standalone \
+				 openvpn-fuzzer-crypto openvpn-fuzzer-crypto-standalone
 extradir = .
 fuzzer_sources = dummy.cpp
 fuzzer_cflags = \
@@ -218,6 +219,11 @@ openvpn_fuzzer_comp_LDFLAGS = $(fuzzer_ldflags)
 openvpn_fuzzer_comp_CFLAGS = $(fuzzer_cflags)
 openvpn_fuzzer_comp_LDADD = $(fuzzer_ldadd) fuzzer-comp.o libFuzzer.a
 
+openvpn_fuzzer_crypto_SOURCES = $(fuzzer_sources)
+openvpn_fuzzer_crypto_LDFLAGS = $(fuzzer_ldflags)
+openvpn_fuzzer_crypto_CFLAGS = $(fuzzer_cflags)
+openvpn_fuzzer_crypto_LDADD = $(fuzzer_ldadd) fuzzer-crypto.o libFuzzer.a
+
 openvpn_fuzzer_base64_standalone_SOURCES = fuzzer-standalone-loader.c
 openvpn_fuzzer_base64_standalone_LDFLAGS = $(fuzzer_ldflags)
 openvpn_fuzzer_base64_standalone_CFLAGS = $(fuzzer_cflags)
@@ -277,3 +283,8 @@ openvpn_fuzzer_comp_standalone_SOURCES = fuzzer-standalone-loader.c
 openvpn_fuzzer_comp_standalone_LDFLAGS = $(fuzzer_ldflags)
 openvpn_fuzzer_comp_standalone_CFLAGS = $(fuzzer_cflags)
 openvpn_fuzzer_comp_standalone_LDADD = $(fuzzer_ldadd) fuzzer-comp.o
+
+openvpn_fuzzer_crypto_standalone_SOURCES = fuzzer-standalone-loader.c
+openvpn_fuzzer_crypto_standalone_LDFLAGS = $(fuzzer_ldflags)
+openvpn_fuzzer_crypto_standalone_CFLAGS = $(fuzzer_cflags)
+openvpn_fuzzer_crypto_standalone_LDADD = $(fuzzer_ldadd) fuzzer-crypto.o
