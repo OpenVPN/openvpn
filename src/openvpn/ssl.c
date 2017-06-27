@@ -1960,7 +1960,7 @@ cleanup:
 
 bool
 tls_session_update_crypto_params(struct tls_session *session,
-                                 const struct options *options, struct frame *frame)
+                                 struct options *options, struct frame *frame)
 {
     if (!session->opt->server
         && 0 != strcmp(options->ciphername, session->opt->config_ciphername)
@@ -1969,6 +1969,8 @@ tls_session_update_crypto_params(struct tls_session *session,
         msg(D_TLS_ERRORS, "Error: pushed cipher not allowed - %s not in %s or %s",
             options->ciphername, session->opt->config_ciphername,
             options->ncp_ciphers);
+        /* undo cipher push, abort connection setup */
+        options->ciphername = session->opt->config_ciphername;
         return false;
     }
 
