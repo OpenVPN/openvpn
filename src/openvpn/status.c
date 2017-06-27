@@ -33,6 +33,7 @@
 #include "perf.h"
 #include "misc.h"
 #include "fdmisc.h"
+#include "platform.h"
 
 #include "memdbg.h"
 
@@ -266,7 +267,7 @@ status_printf(struct status_output *so, const char *format, ...)
             len = strlen(buf);
             if (len > 0)
             {
-                if (write(so->fd, buf, len) != len)
+                if (platform_write(so->fd, buf, len) != len)
                 {
                     so->errors = true;
                 }
@@ -300,7 +301,7 @@ status_read(struct status_output *so, struct buffer *buf)
                 int len;
 
                 ASSERT(buf_init(&so->read_buf, 0));
-                len = read(so->fd, BPTR(&so->read_buf), BCAP(&so->read_buf));
+                len = platform_read(so->fd, BPTR(&so->read_buf), BCAP(&so->read_buf));
                 if (len <= 0)
                 {
                     break;

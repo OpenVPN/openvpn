@@ -40,6 +40,7 @@
 #include "error.h"
 #include "misc.h"
 #include "mstats.h"
+#include "platform.h"
 
 #include "memdbg.h"
 
@@ -77,7 +78,7 @@ mstats_open(const char *fn)
      * struct mmap_stats, and zero it */
     CLEAR(ms);
     ms.state = MSTATS_ACTIVE;
-    stat = write(fd, &ms, sizeof(ms));
+    stat = platform_write(fd, &ms, sizeof(ms));
     if (stat != sizeof(ms))
     {
         msg(M_ERR, "mstats_open: write error: %s", fn);

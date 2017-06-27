@@ -45,6 +45,7 @@
 #include "manage.h"
 #include "route.h"
 #include "win32.h"
+#include "platform.h"
 
 #include "memdbg.h"
 
@@ -1675,7 +1676,7 @@ write_tun_header(struct tuntap *tt, uint8_t *buf, int len)
     }
     else
     {
-        return write(tt->fd, buf, len);
+        return platform_write(tt->fd, buf, len);
     }
 }
 
@@ -1696,7 +1697,7 @@ read_tun_header(struct tuntap *tt, uint8_t *buf, int len)
     }
     else
     {
-        return read(tt->fd, buf, len);
+        return platform_read(tt->fd, buf, len);
     }
 }
 #endif /* if defined (TARGET_OPENBSD) || (defined(TARGET_DARWIN) && HAVE_NET_IF_UTUN_H) */
@@ -1908,13 +1909,13 @@ close_tun(struct tuntap *tt)
 int
 write_tun(struct tuntap *tt, uint8_t *buf, int len)
 {
-    return write(tt->fd, buf, len);
+    return platform_write(tt->fd, buf, len);
 }
 
 int
 read_tun(struct tuntap *tt, uint8_t *buf, int len)
 {
-    return read(tt->fd, buf, len);
+    return platform_read(tt->fd, buf, len);
 }
 
 #elif defined(TARGET_LINUX)
@@ -2177,13 +2178,13 @@ close_tun(struct tuntap *tt)
 int
 write_tun(struct tuntap *tt, uint8_t *buf, int len)
 {
-    return write(tt->fd, buf, len);
+    return platform_write(tt->fd, buf, len);
 }
 
 int
 read_tun(struct tuntap *tt, uint8_t *buf, int len)
 {
-    return read(tt->fd, buf, len);
+    return platform_read(tt->fd, buf, len);
 }
 
 #elif defined(TARGET_SOLARIS)
@@ -2745,7 +2746,7 @@ write_tun(struct tuntap *tt, uint8_t *buf, int len)
     }
     else
     {
-        return write(tt->fd, buf, len);
+        return platform_write(tt->fd, buf, len);
     }
 }
 
@@ -2766,7 +2767,7 @@ read_tun(struct tuntap *tt, uint8_t *buf, int len)
     }
     else
     {
-        return read(tt->fd, buf, len);
+        return platform_read(tt->fd, buf, len);
     }
 }
 
@@ -2869,7 +2870,7 @@ write_tun(struct tuntap *tt, uint8_t *buf, int len)
     }
     else
     {
-        return write(tt->fd, buf, len);
+        return platform_write(tt->fd, buf, len);
     }
 }
 
@@ -2890,7 +2891,7 @@ read_tun(struct tuntap *tt, uint8_t *buf, int len)
     }
     else
     {
-        return read(tt->fd, buf, len);
+        return platform_read(tt->fd, buf, len);
     }
 }
 
@@ -2964,7 +2965,7 @@ write_tun(struct tuntap *tt, uint8_t *buf, int len)
     }
     else
     {
-        return write(tt->fd, buf, len);
+        return platform_write(tt->fd, buf, len);
     }
 }
 
@@ -2985,7 +2986,7 @@ read_tun(struct tuntap *tt, uint8_t *buf, int len)
     }
     else
     {
-        return read(tt->fd, buf, len);
+        return platform_read(tt->fd, buf, len);
     }
 }
 
@@ -3221,7 +3222,7 @@ write_tun(struct tuntap *tt, uint8_t *buf, int len)
     }
     else
 #endif
-    return write(tt->fd, buf, len);
+    return platform_write(tt->fd, buf, len);
 }
 
 int
@@ -3234,7 +3235,7 @@ read_tun(struct tuntap *tt, uint8_t *buf, int len)
     }
     else
 #endif
-    return read(tt->fd, buf, len);
+    return platform_read(tt->fd, buf, len);
 }
 
 #elif defined(TARGET_AIX)
@@ -3370,13 +3371,13 @@ close_tun(struct tuntap *tt)
 int
 write_tun(struct tuntap *tt, uint8_t *buf, int len)
 {
-    return write(tt->fd, buf, len);
+    return platform_write(tt->fd, buf, len);
 }
 
 int
 read_tun(struct tuntap *tt, uint8_t *buf, int len)
 {
-    return read(tt->fd, buf, len);
+    return platform_read(tt->fd, buf, len);
 }
 
 #elif defined(_WIN32)
@@ -6359,13 +6360,13 @@ close_tun(struct tuntap *tt)
 int
 write_tun(struct tuntap *tt, uint8_t *buf, int len)
 {
-    return write(tt->fd, buf, len);
+    return platform_write(tt->fd, buf, len);
 }
 
 int
 read_tun(struct tuntap *tt, uint8_t *buf, int len)
 {
-    return read(tt->fd, buf, len);
+    return platform_read(tt->fd, buf, len);
 }
 
 #endif /* if defined (TARGET_ANDROID) */

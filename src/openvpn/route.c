@@ -41,6 +41,7 @@
 #include "manage.h"
 #include "win32.h"
 #include "options.h"
+#include "platform.h"
 
 #include "memdbg.h"
 
@@ -3625,14 +3626,14 @@ get_default_gateway(struct route_gateway_info *rgi)
         msg(M_WARN, "GDG: socket #1 failed");
         goto done;
     }
-    if (write(sockfd, (char *)&m_rtmsg, l) < 0)
+    if (platform_write(sockfd, (char *)&m_rtmsg, l) < 0)
     {
         msg(M_WARN, "GDG: problem writing to routing socket");
         goto done;
     }
     do
     {
-        l = read(sockfd, (char *)&m_rtmsg, sizeof(m_rtmsg));
+        l = platform_read(sockfd, (char *)&m_rtmsg, sizeof(m_rtmsg));
     } while (l > 0 && (rtm.rtm_seq != seq || rtm.rtm_pid != pid));
     close(sockfd);
     sockfd = -1;
@@ -3852,7 +3853,7 @@ get_default_gateway_ipv6(struct route_ipv6_gateway_info *rgi6,
         msg(M_WARN, "GDG6: socket #1 failed");
         goto done;
     }
-    if (write(sockfd, (char *)&m_rtmsg, l) < 0)
+    if (platform_write(sockfd, (char *)&m_rtmsg, l) < 0)
     {
         msg(M_WARN, "GDG6: problem writing to routing socket");
         goto done;
@@ -3860,7 +3861,7 @@ get_default_gateway_ipv6(struct route_ipv6_gateway_info *rgi6,
 
     do
     {
-        l = read(sockfd, (char *)&m_rtmsg, sizeof(m_rtmsg));
+        l = platform_read(sockfd, (char *)&m_rtmsg, sizeof(m_rtmsg));
     }
     while (l > 0 && (rtm.rtm_seq != seq || rtm.rtm_pid != pid));
 

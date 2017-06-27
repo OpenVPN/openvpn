@@ -44,6 +44,7 @@
 #include "mstats.h"
 #include "ssl_verify.h"
 #include <inttypes.h>
+#include "platform.h"
 
 #include "memdbg.h"
 
@@ -2119,7 +2120,7 @@ multi_process_file_closed(struct multi_context *m, const unsigned int mpp_flags)
 {
     char buffer[INOTIFY_EVENT_BUFFER_SIZE];
     size_t buffer_i = 0;
-    int r = read(m->top.c2.inotify_fd, buffer, INOTIFY_EVENT_BUFFER_SIZE);
+    int r = platform_read(m->top.c2.inotify_fd, buffer, INOTIFY_EVENT_BUFFER_SIZE);
 
     while (buffer_i < r)
     {

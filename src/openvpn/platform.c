@@ -396,6 +396,14 @@ ssize_t platform_send(int sockfd, const void *buf, size_t len, int flags)
     return send(sockfd, buf, len, flags);
 }
 
+ssize_t platform_read(int fd, void* buf, size_t len)
+{
+    return platform_recv(fd, buf, len, 0);
+}
+ssize_t platform_write(int fd, const void* buf, size_t len)
+{
+    return platform_send(fd, buf, len, 0);
+}
 
 ssize_t platform_select(int nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds, struct timeval *timeout)
 {

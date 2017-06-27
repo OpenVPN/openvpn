@@ -36,6 +36,7 @@
 #include "fdmisc.h"
 #include "crypto.h"
 #include "ps.h"
+#include "platform.h"
 
 #include "memdbg.h"
 
@@ -145,7 +146,7 @@ static int
 recv_control(const socket_descriptor_t fd)
 {
     unsigned char c;
-    const ssize_t size = read(fd, &c, sizeof(c));
+    const ssize_t size = platform_read(fd, &c, sizeof(c));
     if (size == sizeof(c))
     {
         return c;
@@ -160,7 +161,7 @@ static int
 send_control(const socket_descriptor_t fd, int code)
 {
     unsigned char c = (unsigned char) code;
-    const ssize_t size = write(fd, &c, sizeof(c));
+    const ssize_t size = platform_write(fd, &c, sizeof(c));
     if (size == sizeof(c))
     {
         return (int) size;
@@ -361,7 +362,7 @@ journal_add(const char *journal_dir, struct proxy_connection *pc, struct proxy_c
         fd = platform_open(jfn, O_CREAT | O_TRUNC | O_WRONLY, S_IRUSR | S_IWUSR | S_IRGRP);
         if (fd != -1)
         {
-            if (write(fd, f, strlen(f)) != strlen(f))
+            if (platform_write(fd, f, strlen(f)) != strlen(f))
             {
                 msg(M_WARN, "PORT SHARE: writing to journal file (%s) failed", jfn);
             }

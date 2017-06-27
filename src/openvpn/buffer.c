@@ -328,7 +328,7 @@ void
 buf_write_string_file(const struct buffer *buf, const char *filename, int fd)
 {
     const int len = strlen((char *) BPTR(buf));
-    const int size = write(fd, BPTR(buf), len);
+    const int size = platform_write(fd, BPTR(buf), len);
     if (size != len)
     {
         msg(M_ERR, "Write error on file '%s'", filename);

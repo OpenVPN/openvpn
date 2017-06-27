@@ -33,6 +33,7 @@
 #include "syshead.h"
 #include "console.h"
 #include "misc.h"
+#include "platform.h"
 
 #include <systemd/sd-daemon.h>
 
@@ -77,7 +78,7 @@ get_console_input_systemd(const char *prompt, const bool echo, char *input, cons
         return false;
     }
     memset(input, 0, capacity);
-    if (read(std_out, input, capacity-1) != 0)
+    if (platform_read(std_out, input, capacity-1) != 0)
     {
         chomp(input);
         ret = true;

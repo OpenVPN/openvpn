@@ -149,6 +149,8 @@ int platform_stat(const char *path, platform_stat_t *buf);
 
 ssize_t platform_recv(int sockfd, void* buf, size_t len, int flags);
 ssize_t platform_send(int sockfd, const void* buf, size_t len, int flags);
+ssize_t platform_read(int fd, void* buf, size_t len);
+ssize_t platform_write(int fd, const void* buf, size_t len);
 ssize_t platform_select(int nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds, struct timeval *timeout);
 char* platform_fgets(char *s, int size, FILE *stream);
 int platform_fgetc(FILE *stream);

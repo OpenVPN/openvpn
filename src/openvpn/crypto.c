@@ -1263,7 +1263,7 @@ read_key_file(struct key2 *key2, const char *file, const unsigned int flags)
         {
             msg(M_ERR, "Cannot open file key file '%s'", file);
         }
-        size = read(fd, in.data, in.capacity);
+        size = platform_read(fd, in.data, in.capacity);
         if (size < 0)
         {
             msg(M_FATAL, "Read error on key file ('%s')", file);

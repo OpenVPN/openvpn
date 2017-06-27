@@ -43,6 +43,7 @@
 #include "packet_id.h"
 #include "misc.h"
 #include "integer.h"
+#include "platform.h"
 
 #include "memdbg.h"
 
@@ -460,7 +461,7 @@ packet_id_persist_load(struct packet_id_persist *p, const char *filename)
 #endif
 
             p->filename = filename;
-            n = read(p->fd, &image, sizeof(image));
+            n = platform_read(p->fd, &image, sizeof(image));
             if (n == sizeof(image))
             {
                 p->time = p->time_last_written = image.time;
@@ -496,7 +497,7 @@ packet_id_persist_save(struct packet_id_persist *p)
         seek_ret = lseek(p->fd, (off_t)0, SEEK_SET);
         if (seek_ret == (off_t)0)
         {
-            n = write(p->fd, &image, sizeof(image));
+            n = platform_write(p->fd, &image, sizeof(image));
             if (n == sizeof(image))
             {
                 p->time_last_written = p->time;
