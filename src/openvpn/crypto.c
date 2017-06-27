@@ -1284,7 +1284,7 @@ read_key_file(struct key2 *key2, const char *file, const unsigned int flags)
         fd = platform_open(file, O_RDONLY, 0);
         if (fd == -1)
         {
-            msg(M_ERR, "Cannot open file key file '%s'", file);
+            msg(M_ERR, "Cannot open key file '%s'", file);
         }
         size = read(fd, in.data, in.capacity);
         if (size < 0)
