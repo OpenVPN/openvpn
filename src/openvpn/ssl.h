@@ -481,7 +481,7 @@ void tls_update_remote_addr(struct tls_multi *multi,
  * @return true if updating succeeded, false otherwise.
  */
 bool tls_session_update_crypto_params(struct tls_session *session,
-                                      const struct options *options, struct frame *frame);
+                                      struct options *options, struct frame *frame);
 
 /**
  * "Poor man's NCP": Use peer cipher if it is an allowed (NCP) cipher.
