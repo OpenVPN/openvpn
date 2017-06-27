@@ -4,6 +4,8 @@
 #if defined(ENABLE_CRYPTO_OPENSSL)
 #include <openssl/x509.h>
 #include <openssl/x509v3.h>
+#include <openssl/ssl.h>
+#include <openssl/err.h>
 #else
 #endif
 
@@ -20,6 +22,19 @@
 
 int LLVMFuzzerInitialize(int *argc, char ***argv)
 {
+#if defined(ENABLE_CRYPTO) && defined(ENABLE_CRYPTO_OPENSSL)
+    CRYPTO_malloc_init();
+    SSL_library_init();
+    ERR_load_crypto_strings();
+
+    OpenSSL_add_all_algorithms();
+    OpenSSL_add_ssl_algorithms();
+
+    SSL_load_error_strings();
+    return 1;
+#else
+#error "This fuzzing target cannot be built"
+#endif
     return 1;
 }
 int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
