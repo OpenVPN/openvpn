@@ -88,19 +88,6 @@ EVP_MD_CTX_new(void)
 }
 #endif
 
-#if !defined(HAVE_EVP_CIPHER_CTX_FREE)
-/**
- * Free an existing cipher context
- *
- * @param ctx                 The cipher context
- */
-static inline void
-EVP_CIPHER_CTX_free(EVP_CIPHER_CTX *c)
-{
-	free(c);
-}
-#endif
-
 #if !defined(HAVE_HMAC_CTX_RESET)
 /**
  * Reset a HMAC context
