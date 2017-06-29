@@ -899,7 +899,6 @@ if test "${enable_crypto}" = "yes" -a "${with_crypto_library}" = "openssl"; then
 
 	AC_CHECK_FUNCS(
 		[ \
-			EVP_CIPHER_CTX_free \
 			HMAC_CTX_new \
 			HMAC_CTX_free \
 			HMAC_CTX_reset \
