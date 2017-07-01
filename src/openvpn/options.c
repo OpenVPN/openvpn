@@ -2495,6 +2495,11 @@ options_postprocess_verify_ce(const struct options *options, const struct connec
         msg(M_WARN, "WARNING: --no-iv is deprecated and will be removed in 2.5");
     }
 
+    if (options->keysize)
+    {
+        msg(M_WARN, "WARNING: --keysize is DEPRECATED and will be removed in OpenVPN 2.6");
+    }
+
     /*
      * Check consistency of replay options
      */
