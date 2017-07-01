@@ -178,6 +178,9 @@ Deprecated features
 
 - ``--no-iv`` is deprecated in 2.4 and will be removed in 2.5.
 
+- ``--keysize`` is deprecated and will be removed in v2.6 together
+  with the support of ciphers with cipher block size less than 128 bits.
+
 
 User-visible Changes
 --------------------

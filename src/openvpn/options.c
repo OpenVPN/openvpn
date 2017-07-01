@@ -2484,6 +2484,11 @@ options_postprocess_verify_ce(const struct options *options, const struct connec
         msg(M_USAGE, "NCP cipher list contains unsupported ciphers.");
     }
 
+    if (options->keysize)
+    {
+        msg(M_WARN, "WARNING: --keysize is DEPRECATED and will be removed in OpenVPN 2.6");
+    }
+
     /*
      * Check consistency of replay options
      */
