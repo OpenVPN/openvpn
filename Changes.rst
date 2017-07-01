@@ -310,6 +310,14 @@ Maintainer-visible changes
 
 
 
+Version 2.4.4
+=============
+
+Deprecated features
+-------------------
+- ``--no-replay`` is deprecated and will be removed in OpenVPN 2.5.
+
+
 Version 2.4.3
 =============
 

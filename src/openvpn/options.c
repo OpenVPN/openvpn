@@ -545,7 +545,7 @@ static const char usage_message[] =
 #ifndef ENABLE_CRYPTO_MBEDTLS
     "--engine [name] : Enable OpenSSL hardware crypto engine functionality.\n"
 #endif
-    "--no-replay     : Disable replay protection.\n"
+    "--no-replay     : (DEPRECATED) Disable replay protection.\n"
     "--mute-replay-warnings : Silence the output of replay warnings to log file.\n"
     "--replay-window n [t]  : Use a replay protection sliding window of size n\n"
     "                         and a time window of t seconds.\n"
@@ -2498,6 +2498,11 @@ options_postprocess_verify_ce(const struct options *options, const struct connec
     if (options->keysize)
     {
         msg(M_WARN, "WARNING: --keysize is DEPRECATED and will be removed in OpenVPN 2.6");
+    }
+
+    if (!options->replay)
+    {
+        msg(M_WARN, "WARNING: --no-replay is DEPRECATED and will be removed in OpenVPN 2.5");
     }
 
     /*
