@@ -150,7 +150,7 @@ management_callback_proxy_cmd(void *arg, const char **p)
         else if (streq(p[1], "SOCKS"))
         {
             ce->socks_proxy_server = string_alloc(p[2], gc);
-            ce->socks_proxy_port = p[3];
+            ce->socks_proxy_port = string_alloc(p[3], gc);
             ret = true;
         }
     }
