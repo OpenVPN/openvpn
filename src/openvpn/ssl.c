@@ -1840,20 +1840,8 @@ generate_key_expansion(struct key_ctx_bi *key,
     }
 
     /* Initialize OpenSSL key contexts */
-
-    ASSERT(server == true || server == false);
-
-    init_key_ctx(&key->encrypt,
-                 &key2.keys[(int)server],
-                 key_type,
-                 OPENVPN_OP_ENCRYPT,
-                 "Data Channel Encrypt");
-
-    init_key_ctx(&key->decrypt,
-                 &key2.keys[1-(int)server],
-                 key_type,
-                 OPENVPN_OP_DECRYPT,
-                 "Data Channel Decrypt");
+    int key_direction = server ? KEY_DIRECTION_INVERSE : KEY_DIRECTION_NORMAL;
+    init_key_ctx_bi(key, &key2, key_direction, key_type, "Data Channel");
 
     /* Initialize implicit IVs */
     key_ctx_update_implicit_iv(&key->encrypt, key2.keys[(int)server].hmac,
@@ -1861,7 +1849,6 @@ generate_key_expansion(struct key_ctx_bi *key,
     key_ctx_update_implicit_iv(&key->decrypt, key2.keys[1-(int)server].hmac,
                                MAX_HMAC_KEY_LENGTH);
 
-    key->initialized = true;
     ret = true;
 
 exit:

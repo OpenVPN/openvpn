@@ -318,6 +318,10 @@ void init_key_ctx(struct key_ctx *ctx, const struct key *key,
 
 void free_key_ctx(struct key_ctx *ctx);
 
+void init_key_ctx_bi(struct key_ctx_bi *ctx, const struct key2 *key2,
+                     int key_direction, const struct key_type *kt,
+		     const char *name);
+
 void free_key_ctx_bi(struct key_ctx_bi *ctx);
 
 

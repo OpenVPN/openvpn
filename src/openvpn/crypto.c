@@ -873,6 +873,26 @@ init_key_ctx(struct key_ctx *ctx, const struct key *key,
 }
 
 void
+init_key_ctx_bi(struct key_ctx_bi *ctx, const struct key2 *key2,
+                int key_direction, const struct key_type *kt, const char *name)
+{
+    char log_prefix[128] = { 0 };
+    struct key_direction_state kds;
+
+    key_direction_state_init(&kds, key_direction);
+
+    openvpn_snprintf(log_prefix, sizeof(log_prefix), "Outgoing %s", name);
+    init_key_ctx(&ctx->encrypt, &key2->keys[kds.out_key], kt,
+                 OPENVPN_OP_ENCRYPT, log_prefix);
+
+    openvpn_snprintf(log_prefix, sizeof(log_prefix), "Incoming %s", name);
+    init_key_ctx(&ctx->decrypt, &key2->keys[kds.in_key], kt,
+                 OPENVPN_OP_DECRYPT, log_prefix);
+
+    ctx->initialized = true;
+}
+
+void
 free_key_ctx(struct key_ctx *ctx)
 {
     if (ctx->cipher)
@@ -1161,7 +1181,6 @@ crypto_read_openvpn_key(const struct key_type *key_type,
 {
     struct key2 key2;
     struct key_direction_state kds;
-    char log_prefix[128] = { 0 };
 
     if (key_inline)
     {
@@ -1186,13 +1205,7 @@ crypto_read_openvpn_key(const struct key_type *key_type,
     must_have_n_keys(key_file, opt_name, &key2, kds.need_keys);
 
     /* initialize key in both directions */
-    openvpn_snprintf(log_prefix, sizeof(log_prefix), "Outgoing %s", key_name);
-    init_key_ctx(&ctx->encrypt, &key2.keys[kds.out_key], key_type,
-                 OPENVPN_OP_ENCRYPT, log_prefix);
-    openvpn_snprintf(log_prefix, sizeof(log_prefix), "Incoming %s", key_name);
-    init_key_ctx(&ctx->decrypt, &key2.keys[kds.in_key], key_type,
-                 OPENVPN_OP_DECRYPT, log_prefix);
-
+    init_key_ctx_bi(ctx, &key2, key_direction, key_type, key_name);
     secure_memzero(&key2, sizeof(key2));
 }
 
