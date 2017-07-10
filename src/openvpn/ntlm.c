@@ -130,7 +130,7 @@ gen_nonce(unsigned char *nonce)
 }
 
 void
-my_strupr(unsigned char *str)
+my_strupr(char *str)
 {
     /* converts string to uppercase in place */
 
@@ -271,7 +271,7 @@ ntlm_phase_3(const struct http_proxy_info *p, const char *phase_2, struct gc_are
         int tib_len;
 
         /* NTLMv2 hash */
-        my_strupr((unsigned char *)strcpy(userdomain, username));
+        my_strupr(strcpy(userdomain, username));
         if (strlen(username) + strlen(domain) < sizeof(userdomain))
         {
             strcat(userdomain, domain);
