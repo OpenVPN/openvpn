@@ -247,8 +247,8 @@ ntlm_phase_3(const struct http_proxy_info *p, const char *phase_2, struct gc_are
 
 
     /* fill 1st 16 bytes with md4 hash, disregard terminating null */
-    gen_md4_hash((uint8_t *)pwbuf, unicodize(pwbuf, p->up.password) - 2,
-                 md4_hash);
+    int unicode_len = unicodize(pwbuf, p->up.password) - 2;
+    gen_md4_hash((uint8_t *)pwbuf, unicode_len, md4_hash);
 
     /* pad to 21 bytes */
     memset(md4_hash + MD4_DIGEST_LENGTH, 0, 5);
