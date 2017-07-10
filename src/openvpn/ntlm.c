@@ -71,31 +71,32 @@ create_des_keys(const unsigned char *hash, unsigned char *key)
 }
 
 static void
-gen_md4_hash(const char *data, int data_len, char *result)
+gen_md4_hash(const uint8_t *data, int data_len, uint8_t *result)
 {
     /* result is 16 byte md4 hash */
     const md_kt_t *md4_kt = md_kt_get("MD4");
-    char md[MD4_DIGEST_LENGTH];
+    uint8_t md[MD4_DIGEST_LENGTH];
 
     md_full(md4_kt, data, data_len, md);
     memcpy(result, md, MD4_DIGEST_LENGTH);
 }
 
 static void
-gen_hmac_md5(const char *data, int data_len, const char *key, int key_len,char *result)
+gen_hmac_md5(const uint8_t *data, int data_len, const uint8_t *key, int key_len,
+             uint8_t *result)
 {
     const md_kt_t *md5_kt = md_kt_get("MD5");
     hmac_ctx_t *hmac_ctx = hmac_ctx_new();
 
     hmac_ctx_init(hmac_ctx, key, key_len, md5_kt);
-    hmac_ctx_update(hmac_ctx, (const unsigned char *)data, data_len);
-    hmac_ctx_final(hmac_ctx, (unsigned char *)result);
+    hmac_ctx_update(hmac_ctx, data, data_len);
+    hmac_ctx_final(hmac_ctx, result);
     hmac_ctx_cleanup(hmac_ctx);
     hmac_ctx_free(hmac_ctx);
 }
 
 static void
-gen_timestamp(unsigned char *timestamp)
+gen_timestamp(uint8_t *timestamp)
 {
     /* Copies 8 bytes long timestamp into "timestamp" buffer.
      * Timestamp is Little-endian, 64-bit signed value representing the number of tenths of a microsecond since January 1, 1601.
@@ -195,19 +196,19 @@ ntlm_phase_3(const struct http_proxy_info *p, const char *phase_2, struct gc_are
      */
 
     char pwbuf[sizeof(p->up.password) * 2]; /* for unicode password */
-    unsigned char buf2[128]; /* decoded reply from proxy */
-    unsigned char phase3[464];
+    uint8_t buf2[128]; /* decoded reply from proxy */
+    uint8_t phase3[464];
 
-    char md4_hash[MD4_DIGEST_LENGTH+5];
-    char challenge[8], ntlm_response[24];
+    uint8_t md4_hash[MD4_DIGEST_LENGTH + 5];
+    uint8_t challenge[8], ntlm_response[24];
     int i, ret_val;
 
-    char ntlmv2_response[144];
+    uint8_t ntlmv2_response[144];
     char userdomain_u[256];     /* for uppercase unicode username and domain */
     char userdomain[128];       /* the same as previous but ascii */
-    char ntlmv2_hash[MD5_DIGEST_LENGTH];
-    char ntlmv2_hmacmd5[16];
-    char *ntlmv2_blob = ntlmv2_response + 16;     /* inside ntlmv2_response, length: 128 */
+    uint8_t ntlmv2_hash[MD5_DIGEST_LENGTH];
+    uint8_t ntlmv2_hmacmd5[16];
+    uint8_t *ntlmv2_blob = ntlmv2_response + 16;     /* inside ntlmv2_response, length: 128 */
     int ntlmv2_blob_size = 0;
     int phase3_bufpos = 0x40;     /* offset to next security buffer data to be added */
     size_t len;
@@ -246,12 +247,13 @@ ntlm_phase_3(const struct http_proxy_info *p, const char *phase_2, struct gc_are
 
 
     /* fill 1st 16 bytes with md4 hash, disregard terminating null */
-    gen_md4_hash(pwbuf, unicodize(pwbuf, p->up.password) - 2, md4_hash);
+    gen_md4_hash((uint8_t *)pwbuf, unicodize(pwbuf, p->up.password) - 2,
+                 md4_hash);
 
     /* pad to 21 bytes */
     memset(md4_hash + MD4_DIGEST_LENGTH, 0, 5);
 
-    ret_val = openvpn_base64_decode( phase_2, (void *)buf2, -1);
+    ret_val = openvpn_base64_decode(phase_2, buf2, -1);
     if (ret_val < 0)
     {
         return NULL;
@@ -282,15 +284,16 @@ ntlm_phase_3(const struct http_proxy_info *p, const char *phase_2, struct gc_are
             msg(M_INFO, "Warning: Username or domain too long");
         }
         unicodize(userdomain_u, userdomain);
-        gen_hmac_md5(userdomain_u, 2 * strlen(userdomain), md4_hash, MD5_DIGEST_LENGTH, ntlmv2_hash);
+        gen_hmac_md5((uint8_t *)userdomain_u, 2 * strlen(userdomain), md4_hash,
+                     MD5_DIGEST_LENGTH, ntlmv2_hash);
 
         /* NTLMv2 Blob */
         memset(ntlmv2_blob, 0, 128);                        /* Clear blob buffer */
         ntlmv2_blob[0x00] = 1;                              /* Signature */
         ntlmv2_blob[0x01] = 1;                              /* Signature */
         ntlmv2_blob[0x04] = 0;                              /* Reserved */
-        gen_timestamp((unsigned char *)&ntlmv2_blob[0x08]);                  /* 64-bit Timestamp */
-        gen_nonce((unsigned char *)&ntlmv2_blob[0x10]);                      /* 64-bit Client Nonce */
+        gen_timestamp(&ntlmv2_blob[0x08]);                  /* 64-bit Timestamp */
+        gen_nonce(&ntlmv2_blob[0x10]);                      /* 64-bit Client Nonce */
         ntlmv2_blob[0x18] = 0;                              /* Unknown, zero should work */
 
         /* Add target information block to the blob */
@@ -302,8 +305,8 @@ ntlm_phase_3(const struct http_proxy_info *p, const char *phase_2, struct gc_are
                 tib_len = 96;
             }
             {
-                char *tib_ptr;
-                int tib_pos = buf2[0x2c];
+                uint8_t *tib_ptr;
+                uint8_t tib_pos = buf2[0x2c];
                 if (tib_pos + tib_len > sizeof(buf2))
                 {
                     return NULL;
@@ -336,13 +339,13 @@ ntlm_phase_3(const struct http_proxy_info *p, const char *phase_2, struct gc_are
     {
         unsigned char key1[DES_KEY_LENGTH], key2[DES_KEY_LENGTH], key3[DES_KEY_LENGTH];
 
-        create_des_keys((unsigned char *)md4_hash, key1);
+        create_des_keys(md4_hash, key1);
         cipher_des_encrypt_ecb(key1, challenge, ntlm_response);
 
-        create_des_keys((unsigned char *)&(md4_hash[DES_KEY_LENGTH-1]), key2);
+        create_des_keys(&md4_hash[DES_KEY_LENGTH - 1], key2);
         cipher_des_encrypt_ecb(key2, challenge, &ntlm_response[DES_KEY_LENGTH]);
 
-        create_des_keys((unsigned char *)&(md4_hash[2*(DES_KEY_LENGTH-1)]), key3);
+        create_des_keys(&md4_hash[2 * (DES_KEY_LENGTH - 1)], key3);
         cipher_des_encrypt_ecb(key3, challenge, &ntlm_response[DES_KEY_LENGTH*2]);
     }
 
