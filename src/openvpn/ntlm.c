@@ -271,7 +271,8 @@ ntlm_phase_3(const struct http_proxy_info *p, const char *phase_2, struct gc_are
         int tib_len;
 
         /* NTLMv2 hash */
-        my_strupr(strcpy(userdomain, username));
+        strcpy(userdomain, username);
+        my_strupr(userdomain);
         if (strlen(username) + strlen(domain) < sizeof(userdomain))
         {
             strcat(userdomain, domain);
