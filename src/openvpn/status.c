@@ -178,7 +178,7 @@ status_flush(struct status_output *so)
             const off_t off = lseek(so->fd, (off_t)0, SEEK_CUR);
             if (ftruncate(so->fd, off) != 0)
             {
-                msg(M_WARN, "Failed to truncate status file: %s", strerror(errno));
+                msg(M_WARN | M_ERRNO, "Failed to truncate status file");
             }
         }
 #elif defined(HAVE_CHSIZE)

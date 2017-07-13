@@ -325,7 +325,7 @@ tunnel_server_udp_single_threaded(struct context *top)
     multi.top.c2.inotify_fd = inotify_init();
     if (multi.top.c2.inotify_fd < 0)
     {
-        msg(D_MULTI_ERRORS, "MULTI: inotify_init error: %s", strerror(errno));
+        msg(D_MULTI_ERRORS | M_ERRNO, "MULTI: inotify_init error");
     }
 #endif
 

@@ -1297,11 +1297,9 @@ socket_bind(socket_descriptor_t sd,
     }
     if (bind(sd, cur->ai_addr, cur->ai_addrlen))
     {
-        const int errnum = openvpn_errno();
-        msg(M_FATAL, "%s: Socket bind failed on local address %s: %s",
+        msg(M_FATAL | M_ERRNO, "%s: Socket bind failed on local address %s",
             prefix,
-            print_sockaddr_ex(local->ai_addr, ":", PS_SHOW_PORT, &gc),
-            strerror_ts(errnum, &gc));
+            print_sockaddr_ex(local->ai_addr, ":", PS_SHOW_PORT, &gc));
     }
     gc_free(&gc);
 }
@@ -3888,12 +3886,11 @@ socket_bind_unix(socket_descriptor_t sd,
 
     if (bind(sd, (struct sockaddr *) local, sizeof(struct sockaddr_un)))
     {
-        const int errnum = openvpn_errno();
-        msg(M_FATAL, "%s: Socket bind[%d] failed on unix domain socket %s: %s",
+        msg(M_FATAL | M_ERRNO,
+            "%s: Socket bind[%d] failed on unix domain socket %s",
             prefix,
             (int)sd,
-            sockaddr_unix_name(local, "NULL"),
-            strerror_ts(errnum, &gc));
+            sockaddr_unix_name(local, "NULL"));
     }
 
 #ifdef HAVE_UMASK
