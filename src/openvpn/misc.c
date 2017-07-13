@@ -928,10 +928,8 @@ create_temp_file(const char *directory, const char *prefix, struct gc_arena *gc)
         else if (fd == -1 && errno != EEXIST)
         {
             /* Something else went wrong, no need to retry.  */
-            struct gc_arena gcerr = gc_new();
-            msg(M_FATAL, "Could not create temporary file '%s': %s",
-                retfname, strerror_ts(errno, &gcerr));
-            gc_free(&gcerr);
+            msg(M_FATAL | M_ERRNO, "Could not create temporary file '%s'",
+                retfname);
             return NULL;
         }
     }
