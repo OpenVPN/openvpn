@@ -159,7 +159,7 @@ platform_nice(int niceval)
         errno = 0;
         if (nice(niceval) < 0 && errno != 0)
         {
-            msg(M_WARN | M_ERRNO, "WARNING: nice %d failed: %s", niceval, strerror(errno));
+            msg(M_WARN | M_ERRNO, "WARNING: nice %d failed", niceval);
         }
         else
         {

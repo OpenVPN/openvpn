@@ -2563,8 +2563,7 @@ open_tun(const char *dev, const char *dev_type, const char *dev_node, struct tun
 
         if (ioctl(tt->fd, TUNGIFINFO, &info) < 0)
         {
-            msg(M_WARN | M_ERRNO, "Can't get interface info: %s",
-                strerror(errno));
+            msg(M_WARN | M_ERRNO, "Can't get interface info");
         }
 
 #ifdef IFF_MULTICAST /* openbsd 4.x doesn't have this */
@@ -2573,8 +2572,7 @@ open_tun(const char *dev, const char *dev_type, const char *dev_node, struct tun
 
         if (ioctl(tt->fd, TUNSIFINFO, &info) < 0)
         {
-            msg(M_WARN | M_ERRNO, "Can't set interface info: %s",
-                strerror(errno));
+            msg(M_WARN | M_ERRNO, "Can't set interface info");
         }
     }
 }
@@ -2663,7 +2661,7 @@ open_tun(const char *dev, const char *dev_type, const char *dev_node, struct tun
             i = 1;
             if (ioctl(tt->fd, TUNSIFHEAD, &i) < 0)      /* multi-af mode on */
             {
-                msg(M_WARN | M_ERRNO, "ioctl(TUNSIFHEAD): %s", strerror(errno));
+                msg(M_WARN | M_ERRNO, "ioctl(TUNSIFHEAD)");
             }
         }
     }
@@ -2796,12 +2794,12 @@ open_tun(const char *dev, const char *dev_type, const char *dev_node, struct tun
 
         if (ioctl(tt->fd, TUNSIFMODE, &i) < 0)
         {
-            msg(M_WARN | M_ERRNO, "ioctl(TUNSIFMODE): %s", strerror(errno));
+            msg(M_WARN | M_ERRNO, "ioctl(TUNSIFMODE)");
         }
         i = 1;
         if (ioctl(tt->fd, TUNSIFHEAD, &i) < 0)
         {
-            msg(M_WARN | M_ERRNO, "ioctl(TUNSIFHEAD): %s", strerror(errno));
+            msg(M_WARN | M_ERRNO, "ioctl(TUNSIFHEAD)");
         }
     }
 }
