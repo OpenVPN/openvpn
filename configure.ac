@@ -1365,7 +1365,7 @@ if test -n "${CMAKE}"; then
       AM_CONDITIONAL([CMOCKA_INITIALIZED], [true])
    else
       AM_CONDITIONAL([CMOCKA_INITIALIZED], [false])
-      AC_MSG_RESULT([!! WARNING !! The cmoka git submodule has not been initialized or updated.  Unit testing cannot be performed.])
+      AC_MSG_RESULT([!! WARNING !! The cmocka git submodule has not been initialized or updated.  Unit testing cannot be performed.])
    fi
 else
    AC_MSG_RESULT([!! WARNING !! CMake is NOT available.  Unit testing cannot be performed.])
