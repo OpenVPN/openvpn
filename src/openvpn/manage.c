@@ -2006,9 +2006,8 @@ man_io_error(struct management *man, const char *prefix)
     if (!ignore_sys_error(err))
     {
         struct gc_arena gc = gc_new();
-        msg(D_MANAGEMENT, "MANAGEMENT: TCP %s error: %s",
-            prefix,
-            strerror_ts(err, &gc));
+        msg(D_MANAGEMENT, "MANAGEMENT: TCP %s error: %s", prefix,
+            strerror(err));
         gc_free(&gc);
         return true;
     }
