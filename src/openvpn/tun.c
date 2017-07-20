@@ -1862,7 +1862,7 @@ open_tun(const char *dev, const char *dev_type, const char *dev_node, struct tun
     if (oldtunfd >=0 && android_method == ANDROID_OPEN_AFTER_CLOSE)
     {
         close(oldtunfd);
-        openvpn_sleep(2);
+        management_sleep(2);
     }
 
     if (oldtunfd >=0  && android_method == ANDROID_KEEP_OLD_TUN)
@@ -4999,7 +4999,7 @@ netsh_command(const struct argv *a, int n, int msglevel)
     for (i = 0; i < n; ++i)
     {
         bool status;
-        openvpn_sleep(1);
+        management_sleep(1);
         netcmd_semaphore_lock();
         argv_msg_prefix(M_INFO, a, "NETSH");
         status = openvpn_execve_check(a, NULL, 0, "ERROR: netsh command failed");
@@ -5008,7 +5008,7 @@ netsh_command(const struct argv *a, int n, int msglevel)
         {
             return;
         }
-        openvpn_sleep(4);
+        management_sleep(4);
     }
     msg(msglevel, "NETSH: command failed");
 }
@@ -5991,7 +5991,7 @@ open_tun(const char *dev, const char *dev_type, const char *dev_node, struct tun
         if (s > 0)
         {
             msg(M_INFO, "Sleeping for %d seconds...", s);
-            openvpn_sleep(s);
+            management_sleep(s);
         }
     }
 
