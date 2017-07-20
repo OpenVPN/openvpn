@@ -1473,10 +1473,8 @@ socket_connect(socket_descriptor_t *sd,
     if (status)
     {
 
-        msg(D_LINK_ERRORS,
-            "TCP: connect to %s failed: %s",
-            print_sockaddr(dest, &gc),
-            strerror_ts(status, &gc));
+        msg(D_LINK_ERRORS, "TCP: connect to %s failed: %s",
+            print_sockaddr(dest, &gc), strerror(status));
 
         openvpn_close_socket(*sd);
         *sd = SOCKET_UNDEFINED;

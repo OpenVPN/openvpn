@@ -267,7 +267,7 @@ x_msg_va(const unsigned int flags, const char *format, va_list arglist)
     if ((flags & M_ERRNO) && e)
     {
         openvpn_snprintf(m2, ERR_BUF_SIZE, "%s: %s (errno=%d)",
-                         m1, strerror_ts(e, &gc), e);
+                         m1, strerror(e), e);
         SWAP;
     }
 
@@ -693,20 +693,15 @@ x_check_status(int status,
         {
             if (extended_msg)
             {
-                msg(x_cs_info_level, "%s %s [%s]: %s (code=%d)",
-                    description,
+                msg(x_cs_info_level, "%s %s [%s]: %s (code=%d)", description,
                     sock ? proto2ascii(sock->info.proto, sock->info.af, true) : "",
-                    extended_msg,
-                    strerror_ts(my_errno, &gc),
-                    my_errno);
+                    extended_msg, strerror(my_errno), my_errno);
             }
             else
             {
-                msg(x_cs_info_level, "%s %s: %s (code=%d)",
-                    description,
+                msg(x_cs_info_level, "%s %s: %s (code=%d)", description,
                     sock ? proto2ascii(sock->info.proto, sock->info.af, true) : "",
-                    strerror_ts(my_errno, &gc),
-                    my_errno);
+                    strerror(my_errno), my_errno);
             }
 
             if (x_cs_err_delay_ms)
