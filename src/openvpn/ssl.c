@@ -1978,6 +1978,11 @@ tls_session_update_crypto_params(struct tls_session *session,
     {
         msg(D_HANDSHAKE, "Data Channel: using negotiated cipher '%s'",
             options->ciphername);
+        if (options->keysize)
+        {
+            msg(D_HANDSHAKE, "NCP: overriding user-set keysize with default");
+            options->keysize = 0;
+        }
     }
 
     init_key_type(&session->opt->key_type, options->ciphername,
