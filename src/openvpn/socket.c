@@ -496,7 +496,7 @@ openvpn_getaddrinfo(unsigned int flags,
                 goto done;
             }
 
-            openvpn_sleep(fail_wait_interval);
+            management_sleep(fail_wait_interval);
         }
 
         ASSERT(res);
@@ -1193,7 +1193,7 @@ socket_listen_accept(socket_descriptor_t sd,
 
         if (status <= 0)
         {
-            openvpn_sleep(1);
+            management_sleep(1);
             continue;
         }
 
@@ -1228,7 +1228,7 @@ socket_listen_accept(socket_descriptor_t sd,
                 break;
             }
         }
-        openvpn_sleep(1);
+        management_sleep(1);
     }
 
     if (!nowait && openvpn_close_socket(sd))
@@ -1374,7 +1374,7 @@ openvpn_connect(socket_descriptor_t sd,
 #endif
                     break;
                 }
-                openvpn_sleep(1);
+                management_sleep(1);
                 continue;
             }
 

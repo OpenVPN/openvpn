@@ -1969,7 +1969,7 @@ do_up(struct context *c, bool pulled_options, unsigned int option_types_found)
                 /* if so, close tun, delete routes, then reinitialize tun and add routes */
                 msg(M_INFO, "NOTE: Pulled options changed on restart, will need to close and reopen TUN/TAP device.");
                 do_close_tun(c, true);
-                openvpn_sleep(1);
+                management_sleep(1);
                 c->c2.did_open_tun = do_open_tun(c);
                 update_time();
             }
@@ -2263,7 +2263,7 @@ socket_restart_pause(struct context *c)
     if (sec)
     {
         msg(D_RESTART, "Restart pause, %d second(s)", sec);
-        openvpn_sleep(sec);
+        management_sleep(sec);
     }
 }
 

@@ -1615,19 +1615,6 @@ make_extended_arg_array(char **p, struct gc_arena *gc)
     }
 }
 
-void
-openvpn_sleep(const int n)
-{
-#ifdef ENABLE_MANAGEMENT
-    if (management)
-    {
-        management_event_loop_n_seconds(management, n);
-        return;
-    }
-#endif
-    sleep(n);
-}
-
 /*
  * Remove security-sensitive strings from control message
  * so that they will not be output to log file.
