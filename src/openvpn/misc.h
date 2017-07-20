@@ -292,12 +292,6 @@ bool env_safe_to_print(const char *str);
 /* returns true if environmental variable may be passed to an external program */
 bool env_allowed(const char *str);
 
-/*
- * A sleep function that services the management layer for n
- * seconds rather than doing nothing.
- */
-void openvpn_sleep(const int n);
-
 void configure_path(void);
 
 const char *sanitize_control_message(const char *str, struct gc_arena *gc);

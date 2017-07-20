@@ -3997,9 +3997,25 @@ log_history_ref(const struct log_history *h, const int index)
     }
 }
 
-#else  /* ifdef ENABLE_MANAGEMENT */
-static void
-dummy(void)
+void
+management_sleep(const int n)
 {
+    if (management)
+    {
+        management_event_loop_n_seconds(management, n);
+    }
+    else
+    {
+        sleep(n);
+    }
 }
+
+#else  /* ifdef ENABLE_MANAGEMENT */
+
+void
+management_sleep(const int n)
+{
+    sleep(n);
+}
+
 #endif /* ENABLE_MANAGEMENT */
