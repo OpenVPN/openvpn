@@ -1077,6 +1077,13 @@ tls_ctx_use_external_private_key(struct tls_root_ctx *ctx,
     ASSERT(pkey); /* NULL before SSL_CTX_use_certificate() is called */
     pub_rsa = EVP_PKEY_get0_RSA(pkey);
 
+    /* Certificate might not be RSA but DSA or EC */
+    if (!pub_rsa)
+    {
+        crypto_msg(M_WARN, "management-external-key requires a RSA certificate");
+        goto err;
+    }
+
     /* initialize RSA object */
     const BIGNUM *n = NULL;
     const BIGNUM *e = NULL;
@@ -1683,18 +1690,36 @@ print_details(struct key_state_ssl *ks_ssl, const char *prefix)
         EVP_PKEY *pkey = X509_get_pubkey(cert);
         if (pkey != NULL)
         {
-            if (EVP_PKEY_id(pkey) == EVP_PKEY_RSA && EVP_PKEY_get0_RSA(pkey) != NULL)
+            if ((EVP_PKEY_id(pkey) == EVP_PKEY_RSA) && (EVP_PKEY_get0_RSA(pkey) != NULL))
             {
                 RSA *rsa = EVP_PKEY_get0_RSA(pkey);
                 openvpn_snprintf(s2, sizeof(s2), ", %d bit RSA",
                                  RSA_bits(rsa));
             }
-            else if (EVP_PKEY_id(pkey) == EVP_PKEY_DSA && EVP_PKEY_get0_DSA(pkey) != NULL)
+            else if ((EVP_PKEY_id(pkey) == EVP_PKEY_DSA) && (EVP_PKEY_get0_DSA(pkey) != NULL))
             {
                 DSA *dsa = EVP_PKEY_get0_DSA(pkey);
                 openvpn_snprintf(s2, sizeof(s2), ", %d bit DSA",
                                  DSA_bits(dsa));
             }
+#ifndef OPENSSL_NO_EC
+            else if ((EVP_PKEY_id(pkey) == EVP_PKEY_EC) && (EVP_PKEY_get0_EC_KEY(pkey) != NULL))
+            {
+                EC_KEY *ec = EVP_PKEY_get0_EC_KEY(pkey);
+                const EC_GROUP *group = EC_KEY_get0_group(ec);
+                const char* curve;
+
+                int nid = EC_GROUP_get_curve_name(group);
+                if (nid == 0 || (curve = OBJ_nid2sn(nid)) == NULL)
+                {
+                    curve = "Error getting curve name";
+                }
+
+                openvpn_snprintf(s2, sizeof(s2), ", %d bit EC, curve: %s",
+                                 EC_GROUP_order_bits(group), curve);
+
+            }
+#endif
             EVP_PKEY_free(pkey);
         }
         X509_free(cert);
