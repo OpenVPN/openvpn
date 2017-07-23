@@ -914,6 +914,7 @@ if test "${enable_crypto}" = "yes" -a "${with_crypto_library}" = "openssl"; then
 			EVP_PKEY_id \
 			EVP_PKEY_get0_RSA \
 			EVP_PKEY_get0_DSA \
+			EVP_PKEY_get0_EC_KEY \
 			RSA_set_flags \
 			RSA_bits \
 			RSA_get0_key \
@@ -929,6 +930,7 @@ if test "${enable_crypto}" = "yes" -a "${with_crypto_library}" = "openssl"; then
 			RSA_meth_set_init \
 			RSA_meth_set_finish \
 			RSA_meth_set0_app_data \
+			EC_GROUP_order_bits
 		]
 	)
 
