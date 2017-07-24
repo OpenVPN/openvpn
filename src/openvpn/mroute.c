@@ -159,9 +159,8 @@ mroute_extract_addr_arp(struct mroute_addr *src,
 #endif /* ifdef ENABLE_PF */
 
 unsigned int
-mroute_extract_addr_ipv4(struct mroute_addr *src,
-                         struct mroute_addr *dest,
-                         const struct buffer *buf)
+mroute_extract_addr_ip(struct mroute_addr *src, struct mroute_addr *dest,
+                       const struct buffer *buf)
 {
     unsigned int ret = 0;
     if (BLEN(buf) >= 1)
@@ -267,7 +266,7 @@ mroute_extract_addr_ether(struct mroute_addr *src,
                 switch (ntohs(eth->proto))
                 {
                     case OPENVPN_ETH_P_IPV4:
-                        ret |= (mroute_extract_addr_ipv4(esrc, edest, &b) << MROUTE_SEC_SHIFT);
+                        ret |= (mroute_extract_addr_ip(esrc, edest, &b) << MROUTE_SEC_SHIFT);
                         break;
 
                     case OPENVPN_ETH_P_ARP:
