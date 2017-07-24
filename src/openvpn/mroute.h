@@ -181,9 +181,9 @@ mroute_extract_addr_from_packet(struct mroute_addr *src,
                                 const struct buffer *buf,
                                 int tunnel_type)
 {
-    unsigned int mroute_extract_addr_ipv4(struct mroute_addr *src,
-                                          struct mroute_addr *dest,
-                                          const struct buffer *buf);
+    unsigned int mroute_extract_addr_ip(struct mroute_addr *src,
+                                     struct mroute_addr *dest,
+                                     const struct buffer *buf);
 
     unsigned int mroute_extract_addr_ether(struct mroute_addr *src,
                                            struct mroute_addr *dest,
@@ -195,7 +195,7 @@ mroute_extract_addr_from_packet(struct mroute_addr *src,
     verify_align_4(buf);
     if (tunnel_type == DEV_TYPE_TUN)
     {
-        ret = mroute_extract_addr_ipv4(src, dest, buf);
+        ret = mroute_extract_addr_ip(src, dest, buf);
     }
     else if (tunnel_type == DEV_TYPE_TAP)
     {
