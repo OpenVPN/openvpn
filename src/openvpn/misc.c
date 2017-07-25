@@ -142,27 +142,6 @@ run_up_down(const char *command,
     gc_free(&gc);
 }
 
-/* Write our PID to a file */
-void
-write_pid(const char *filename)
-{
-    if (filename)
-    {
-        unsigned int pid = 0;
-        FILE *fp = platform_fopen(filename, "w");
-        if (!fp)
-        {
-            msg(M_ERR, "Open error on pid file %s", filename);
-        }
-
-        pid = platform_getpid();
-        fprintf(fp, "%u\n", pid);
-        if (fclose(fp))
-        {
-            msg(M_ERR, "Close error on pid file %s", filename);
-        }
-    }
-}
 
 /*
  * Set standard file descriptors to /dev/null
