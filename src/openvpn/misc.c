@@ -808,8 +808,6 @@ test_file(const char *filename)
     return ret;
 }
 
-#ifdef ENABLE_CRYPTO
-
 /* create a temporary filename in directory */
 const char *
 create_temp_file(const char *directory, const char *prefix, struct gc_arena *gc)
@@ -822,15 +820,11 @@ create_temp_file(const char *directory, const char *prefix, struct gc_arena *gc)
 
     do
     {
-        uint8_t rndbytes[16];
-        const char *rndstr;
-
         ++attempts;
         ++counter;
 
-        prng_bytes(rndbytes, sizeof rndbytes);
-        rndstr = format_hex_ex(rndbytes, sizeof rndbytes, 40, 0, NULL, gc);
-        buf_printf(&fname, PACKAGE "_%s_%s.tmp", prefix, rndstr);
+        buf_printf(&fname, PACKAGE "_%s_%08lx%08lx.tmp", prefix,
+                   (unsigned long) get_random(), (unsigned long) get_random());
 
         retfname = gen_path(directory, BSTR(&fname), gc);
         if (!retfname)
@@ -860,6 +854,8 @@ create_temp_file(const char *directory, const char *prefix, struct gc_arena *gc)
     msg(M_FATAL, "Failed to create temporary file after %i attempts", attempts);
     return NULL;
 }
+
+#ifdef ENABLE_CRYPTO
 
 /*
  * Prepend a random string to hostname to prevent DNS caching.
