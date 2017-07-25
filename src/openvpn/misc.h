@@ -68,8 +68,6 @@ void run_up_down(const char *command,
                  const char *script_type,
                  struct env_set *es);
 
-void write_pid(const char *filename);
-
 /* system flags */
 #define S_SCRIPT (1<<0)
 #define S_FATAL  (1<<1)
