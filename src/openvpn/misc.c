@@ -405,25 +405,6 @@ openvpn_popen(const struct argv *a,  const struct env_set *es)
 
 
 /*
- * Initialize random number seed.  random() is only used
- * when "weak" random numbers are acceptable.
- * OpenSSL routines are always used when cryptographically
- * strong random numbers are required.
- */
-
-void
-init_random_seed(void)
-{
-    struct timeval tv;
-
-    if (!gettimeofday(&tv, NULL))
-    {
-        const unsigned int seed = (unsigned int) tv.tv_sec ^ tv.tv_usec;
-        srandom(seed);
-    }
-}
-
-/*
  * Set environmental variable (int or string).
  *
  * On Posix, we use putenv for portability,

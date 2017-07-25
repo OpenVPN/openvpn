@@ -100,9 +100,6 @@ void set_std_files_to_null(bool stdin_only);
 extern int inetd_socket_descriptor;
 void save_inetd_socket_descriptor(void);
 
-/* init random() function, only used as source for weak random numbers, when !ENABLE_CRYPTO */
-void init_random_seed(void);
-
 /* set/delete environmental variable */
 void setenv_str_ex(struct env_set *es,
                    const char *name,
