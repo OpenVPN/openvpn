@@ -610,6 +610,7 @@ init_port_share(struct context *c)
 
 #endif /* if PORT_SHARE */
 
+
 bool
 init_static(void)
 {
@@ -619,8 +620,20 @@ init_static(void)
     crypto_init_dmalloc();
 #endif
 
-    init_random_seed();         /* init random() function, only used as
-                                 * source for weak random numbers */
+
+    /*
+     * Initialize random number seed.  random() is only used
+     * when "weak" random numbers are acceptable.
+     * SSL library routines are always used when cryptographically
+     * strong random numbers are required.
+     */
+    struct timeval tv;
+    if (!gettimeofday(&tv, NULL))
+    {
+        const unsigned int seed = (unsigned int) tv.tv_sec ^ tv.tv_usec;
+        srandom(seed);
+    }
+
     error_reset();              /* initialize error.c */
     reset_check_status();       /* initialize status check code in socket.c */
 
