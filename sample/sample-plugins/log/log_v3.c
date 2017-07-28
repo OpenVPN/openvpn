@@ -227,7 +227,7 @@ x509_print_info(X509 *x509crt)
         {
             continue;
         }
-        if (ASN1_STRING_to_UTF8(&buf, val) <= 0)
+        if (ASN1_STRING_to_UTF8(&buf, val) < 0)
         {
             continue;
         }
