@@ -30,6 +30,10 @@
 # the client "up" script will run fine, but the "down" script
 # will require the use of the OpenVPN "down-root" plugin
 # which is in the plugins/ directory of the OpenVPN source tree
+# The config example above would have to be changed to:
+#   client
+#   up /etc/openvpn/client.up
+#   plugin openvpn-plugin-down-root.so "/etc/openvpn/client.down"
 
 # A horrid work around, from a security perspective,
 # is to run OpenVPN as root. THIS IS NOT RECOMMENDED. You have
