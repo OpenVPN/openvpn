@@ -15,10 +15,10 @@ env:
     - TAP_WINDOWS_VERSION=9.21.2
     - LZO_VERSION=2.10
     - PKCS11_HELPER_VERSION=1.11
-    - MBEDTLS_VERSION="2.4.0"
+    - MBEDTLS_VERSION="2.5.1"
     - MBEDTLS_CFLAGS="-I${PREFIX}/include"
     - MBEDTLS_LIBS="-L${PREFIX}/lib -lmbedtls -lmbedx509 -lmbedcrypto"
-    - OPENSSL_VERSION="1.0.2k"
+    - OPENSSL_VERSION="1.0.2l"
     - OPENSSL_CFLAGS="-I${PREFIX}/include"
     - OPENSSL_LIBS="-L${PREFIX}/lib -lssl -lcrypto"
 
