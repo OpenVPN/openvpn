@@ -324,7 +324,7 @@ http-proxy-retry
 persist-key
 persist-tun
 pkcs12 client.p12
-ns-cert-type server
+remote-cert-tls server
 verb 3
 .in -4
 .ft
@@ -5094,7 +5094,11 @@ options can be defined to track multiple attributes.
 Not available with PolarSSL.
 .\"*********************************************************
 .TP
-.B \-\-ns\-cert\-type client|server
+.B \-\-ns\-cert\-type client|server (DEPRECATED)
+This option is deprecated.  Use the more modern equivalent
+.B \-\-remote\-cert\-tls
+instead.  This option will be removed in OpenVPN 2.5.
+
 Require that peer certificate was signed with an explicit
 .B nsCertType
 designation of "client" or "server".

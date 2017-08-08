@@ -105,6 +105,18 @@ Behavioral changes
 - Do not randomize resolving of IP addresses in getaddr()
 
 
+Version 2.3.18
+==============
+
+Deprecated features
+-------------------
+- ``--ns-cert-type`` is deprecated.  Use ``--remote-cert-tls`` instead.
+  The nsCertType x509 extension is very old, and barely used.
+  ``--remote-cert-tls`` uses the far more common keyUsage and extendedKeyUsage
+  extension instead.  Make sure your certificates carry these to be able to
+  use ``--remote-cert-tls``.
+
+
 Version 2.3.17
 ==============
 
