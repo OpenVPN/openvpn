@@ -14,7 +14,7 @@ env:
     - PREFIX="${HOME}/opt"
     - TAP_WINDOWS_VERSION=9.21.2
     - LZO_VERSION=2.10
-    - PKCS11_HELPER_VERSION=1.11
+    - PKCS11_HELPER_VERSION=1.22
     - MBEDTLS_VERSION="2.5.1"
     - MBEDTLS_CFLAGS="-I${PREFIX}/include"
     - MBEDTLS_LIBS="-L${PREFIX}/lib -lmbedtls -lmbedx509 -lmbedcrypto"
