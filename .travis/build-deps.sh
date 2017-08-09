@@ -35,7 +35,7 @@ build_lzo () {
 download_pkcs11_helper () {
     if [ ! -f "pkcs11-helper-${PKCS11_HELPER_VERSION}.tar.bz2" ]; then
         wget -P download-cache/ \
-            "http://downloads.sourceforge.net/project/opensc/pkcs11-helper/pkcs11-helper-${PKCS11_HELPER_VERSION}.tar.bz2"
+            "https://github.com/OpenSC/pkcs11-helper/releases/download/pkcs11-helper-${PKCS11_HELPER_VERSION}/pkcs11-helper-${PKCS11_HELPER_VERSION}.tar.bz2"
     fi
 }
 
@@ -46,7 +46,11 @@ build_pkcs11_helper () {
             cd "pkcs11-helper-${PKCS11_HELPER_VERSION}"
 
             ./configure --host=${CHOST} --program-prefix='' --libdir=${PREFIX}/lib \
-                 --prefix=${PREFIX} --build=x86_64-pc-linux-gnu --disable-crypto-engine-gnutls --disable-crypto-engine-nss
+                 --prefix=${PREFIX} --build=x86_64-pc-linux-gnu \
+                 --disable-crypto-engine-gnutls \
+                 --disable-crypto-engine-nss \
+                 --disable-crypto-engine-polarssl \
+                 --disable-crypto-engine-mbedtls
             make all install
          )
          echo "${PKCS11_HELPER_VERSION}" > "${PREFIX}/.pkcs11_helper-version"
