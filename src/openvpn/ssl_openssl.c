@@ -487,15 +487,7 @@ tls_ctx_load_ecdh_params(struct tls_root_ctx *ctx, const char *curve_name
 
     /* Generate a new ECDH key for each SSL session (for non-ephemeral ECDH) */
     SSL_CTX_set_options(ctx->ctx, SSL_OP_SINGLE_ECDH_USE);
-#if OPENSSL_VERSION_NUMBER >= 0x10002000L
-    /* OpenSSL 1.0.2 and newer can automatically handle ECDH parameter loading */
-    if (NULL == curve_name)
-    {
-        SSL_CTX_set_ecdh_auto(ctx->ctx, 1);
-        return;
-    }
-#endif
-    /* For older OpenSSL, we'll have to do the parameter loading on our own */
+
     if (curve_name != NULL)
     {
         /* Use user supplied curve if given */
@@ -504,14 +496,17 @@ tls_ctx_load_ecdh_params(struct tls_root_ctx *ctx, const char *curve_name
     }
     else
     {
-        /* Extract curve from key */
+#if OPENSSL_VERSION_NUMBER >= 0x10002000L
+        /* OpenSSL 1.0.2 and newer can automatically handle ECDH parameter
+         * loading */
+        SSL_CTX_set_ecdh_auto(ctx->ctx, 1);
+        return;
+#else
+        /* For older OpenSSL we have to extract the curve from key on our own */
         EC_KEY *eckey = NULL;
         const EC_GROUP *ecgrp = NULL;
         EVP_PKEY *pkey = NULL;
 
-#if OPENSSL_VERSION_NUMBER >= 0x10002000L && !defined(LIBRESSL_VERSION_NUMBER)
-        pkey = SSL_CTX_get0_privatekey(ctx->ctx);
-#else
         /* Little hack to get private key ref from SSL_CTX, yay OpenSSL... */
         SSL *ssl = SSL_new(ctx->ctx);
         if (!ssl)
@@ -520,7 +515,6 @@ tls_ctx_load_ecdh_params(struct tls_root_ctx *ctx, const char *curve_name
         }
         pkey = SSL_get_privatekey(ssl);
         SSL_free(ssl);
-#endif
 
         msg(D_TLS_DEBUG, "Extracting ECDH curve from private key");
 
@@ -529,6 +523,7 @@ tls_ctx_load_ecdh_params(struct tls_root_ctx *ctx, const char *curve_name
         {
             nid = EC_GROUP_get_curve_name(ecgrp);
         }
+#endif
     }
 
     /* Translate NID back to name , just for kicks */
