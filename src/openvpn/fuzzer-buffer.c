@@ -9,6 +9,7 @@ int LLVMFuzzerInitialize(int *argc, char ***argv)
 {
     return 1;
 }
+
 int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
 {
     struct gc_arena gc;
@@ -30,8 +31,10 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
     FUZZER_GET_INTEGER(num_loops, 10);
     for (i = 0; i < num_loops; i++)
     {
+        /* If the buffer is not defined yet, do that first */
         if ( bufp == NULL )
         {
+            /* Get integer range [0..1]*/
             FUZZER_GET_INTEGER(generic_ssizet, 1);
             switch ( generic_ssizet )
             {
@@ -50,7 +53,11 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
         }
         else
         {
+            /* pseudo-randomize 'offset' and 'len' members of the
+             * buffer struct */
             fuzzer_alter_buffer(bufp);
+
+            /* pseudo-randomly pick one of the 38 functions */
             FUZZER_GET_INTEGER(generic_ssizet, 38);
             switch ( generic_ssizet )
             {
@@ -269,6 +276,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
             }
         }
 
+        /* Same procedure as above, but now test struct buffer_list */
         if ( buflistp == NULL )
         {
             FUZZER_GET_INTEGER(_size, MAX_STR_LEN);
