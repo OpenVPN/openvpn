@@ -5,6 +5,11 @@
 #include "route.h"
 #include "buffer.h"
 
+/* Start of serialization of struct route_list, route_ipv6_list
+ * This is necessary to test whether the data structure contains
+ * any uninitialized data. If it does, MemorySanitizer will detect
+ * it upon serialization */
+
 static void serialize_route_bypass(struct route_bypass* bypass)
 {
     test_undefined_memory(bypass->bypass, bypass->n_bypass * sizeof(bypass->bypass[0]));
@@ -123,10 +128,13 @@ static void serialize_route6_list(struct route_ipv6_list* rl6)
     }
 }
 
+/* End of serialization of struct route_list, route_ipv6_list */
+
 int LLVMFuzzerInitialize(int *argc, char ***argv)
 {
     return 1;
 }
+
 int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
 {
     struct buffer buf;
@@ -280,6 +288,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
 
     }
 cleanup:
+
 #ifdef MSAN
     if ( route_list_inited == true )
     {
@@ -290,6 +299,7 @@ cleanup:
         serialize_route6_list(&rl6);
     }
 #endif
+
     gc_free(&rl.gc);
     getaddrinfo_free_all();
     gc_free(&gc);
