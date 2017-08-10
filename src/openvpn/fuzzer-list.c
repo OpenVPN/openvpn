@@ -5,20 +5,24 @@
 #include "misc.h"
 #include "list.h"
 
-#define SUBBUFFER_SIZE 256
-
+/* Required for hash_init() */
 static uint32_t
 word_hash_function(const void *key, uint32_t iv)
 {
     return hash_func(key, sizeof(key), iv);
 }
 
+/* Required for hash_init() */
 static bool
 word_compare_function(const void *key1, const void *key2)
 {
     return ((size_t)key1 & 0xFFF) == ((size_t)key1 & 0xFFF);
 }
 
+/* Start of serialization of struct hash.
+ * This is necessary to test whether the data structure contains
+ * any uninitialized data. If it does, MemorySanitizer will detect
+ * it upon serialization */
 
 static void serialize_hash_element(struct hash_element* he)
 {
@@ -51,10 +55,13 @@ static void serialize_hash(struct hash* hash)
     }
 }
 
+/* End of serialization of struct hash */
+
 int LLVMFuzzerInitialize(int *argc, char ***argv)
 {
     return 1;
 }
+
 int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
 {
     struct gc_arena gc;
@@ -63,9 +70,11 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
     fuzzer_set_input((unsigned char*)data, size);
     gc = gc_new();
 
+    /* Pseudo-randomize the number of loops */
     FUZZER_GET_INTEGER(num_loops, 16);
     for (i = 0; i < num_loops; i++)
     {
+        /* Pick one of the functions */
         FUZZER_GET_INTEGER(generic_ssizet, 7);
         switch ( generic_ssizet )
         {
@@ -147,6 +156,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
                 break;
         }
     }
+
 cleanup:
     if ( hash )
     {
