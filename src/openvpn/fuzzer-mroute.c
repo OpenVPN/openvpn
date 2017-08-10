@@ -6,6 +6,10 @@
 #include "socket.h"
 #include "buffer.h"
 
+/* Start of serialization of struct mroute_helper.
+ * This is necessary to test whether the data structure contains
+ * any uninitialized data. If it does, MemorySanitizer will detect
+ * it upon serialization */
 static void serialize_mroute_helper(struct mroute_helper* mh)
 {
     test_undefined_memory(&mh->cache_generation, sizeof(mh->cache_generation));
@@ -15,10 +19,13 @@ static void serialize_mroute_helper(struct mroute_helper* mh)
     test_undefined_memory(&mh->net_len_refcount, mh->n_net_len * sizeof(mh->net_len_refcount[0]));
 }
 
+/* End of serialization of struct mroute_helper. */
+
 int LLVMFuzzerInitialize(int *argc, char ***argv)
 {
     return 1;
 }
+
 int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
 {
     struct mroute_addr src, dest, esrc, edest;
