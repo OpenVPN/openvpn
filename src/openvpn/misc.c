@@ -429,29 +429,6 @@ construct_name_value(const char *name, const char *value, struct gc_arena *gc)
     return BSTR(&out);
 }
 
-bool
-deconstruct_name_value(const char *str, const char **name, const char **value, struct gc_arena *gc)
-{
-    char *cp;
-
-    ASSERT(str);
-    ASSERT(name && value);
-
-    *name = cp = string_alloc(str, gc);
-    *value = NULL;
-
-    while ((*cp))
-    {
-        if (*cp == '=' && !*value)
-        {
-            *cp = 0;
-            *value = cp + 1;
-        }
-        ++cp;
-    }
-    return *name && *value;
-}
-
 static bool
 env_string_equal(const char *s1, const char *s2)
 {

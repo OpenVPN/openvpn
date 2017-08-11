@@ -803,12 +803,6 @@ tls_ctx_load_cert_file(struct tls_root_ctx *ctx, const char *cert_file,
     tls_ctx_load_cert_file_and_copy(ctx, cert_file, cert_file_inline, NULL);
 }
 
-void
-tls_ctx_free_cert_file(X509 *x509)
-{
-    X509_free(x509);
-}
-
 int
 tls_ctx_load_priv_file(struct tls_root_ctx *ctx, const char *priv_key_file,
                        const char *priv_key_file_inline
