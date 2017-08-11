@@ -922,7 +922,7 @@ port_share_open(const char *host,
         openvpn_close_socket(fd[1]);
 
         exit(0);
-        return 0; /* NOTREACHED */
+        return NULL; /* NOTREACHED */
     }
 
 error:
