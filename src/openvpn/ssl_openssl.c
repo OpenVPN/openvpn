@@ -69,7 +69,7 @@
 int mydata_index; /* GLOBAL */
 
 void
-tls_init_lib()
+tls_init_lib(void)
 {
     SSL_library_init();
 #ifndef ENABLE_SMALL
@@ -82,7 +82,7 @@ tls_init_lib()
 }
 
 void
-tls_free_lib()
+tls_free_lib(void)
 {
     EVP_cleanup();
 #ifndef ENABLE_SMALL
@@ -91,7 +91,7 @@ tls_free_lib()
 }
 
 void
-tls_clear_error()
+tls_clear_error(void)
 {
     ERR_clear_error();
 }
@@ -1332,7 +1332,7 @@ static time_t biofp_last_open;                 /* GLOBAL */
 static const int biofp_reopen_interval = 600;  /* GLOBAL */
 
 static void
-close_biofp()
+close_biofp(void)
 {
     if (biofp)
     {
@@ -1342,7 +1342,7 @@ close_biofp()
 }
 
 static void
-open_biofp()
+open_biofp(void)
 {
     const time_t current = time(NULL);
     const pid_t pid = getpid();
@@ -1778,7 +1778,7 @@ show_available_tls_ciphers(const char *cipher_list)
  * in the OpenSSL library.
  */
 void
-show_available_curves()
+show_available_curves(void)
 {
 #ifndef OPENSSL_NO_EC
     EC_builtin_curve *curves = NULL;

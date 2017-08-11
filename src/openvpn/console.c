@@ -44,7 +44,7 @@ struct _query_user query_user[QUERY_USER_NUMSLOTS];  /* GLOBAL */
 
 
 void
-query_user_clear()
+query_user_clear(void)
 {
     int i;
 

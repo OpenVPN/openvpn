@@ -347,7 +347,7 @@ tls_init_control_channel_frame_parameters(const struct frame *data_channel_frame
 }
 
 void
-init_ssl_lib()
+init_ssl_lib(void)
 {
     tls_init_lib();
 
@@ -355,7 +355,7 @@ init_ssl_lib()
 }
 
 void
-free_ssl_lib()
+free_ssl_lib(void)
 {
     crypto_uninit_lib();
     prng_uninit();

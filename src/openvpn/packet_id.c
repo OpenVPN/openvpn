@@ -643,7 +643,7 @@ packet_id_debug_print(int msglevel,
 #ifdef PID_TEST
 
 void
-packet_id_interactive_test()
+packet_id_interactive_test(void)
 {
     struct packet_id pid;
     struct packet_id_net pin;

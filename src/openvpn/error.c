@@ -159,7 +159,7 @@ set_machine_readable_output(bool parsable)
 }
 
 void
-error_reset()
+error_reset(void)
 {
     use_syslog = std_redir = false;
     suppress_timestamps = false;
@@ -480,7 +480,7 @@ open_syslog(const char *pgmname, bool stdio_to_null)
 }
 
 void
-close_syslog()
+close_syslog(void)
 {
 #if SYSLOG_CAPABILITY
     if (use_syslog)
@@ -635,7 +635,7 @@ unsigned int x_cs_verbose_level; /* GLOBAL */
 unsigned int x_cs_err_delay_ms;  /* GLOBAL */
 
 void
-reset_check_status()
+reset_check_status(void)
 {
     x_cs_info_level = 0;
     x_cs_verbose_level = 0;

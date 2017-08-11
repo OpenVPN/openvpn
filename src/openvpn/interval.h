@@ -155,7 +155,7 @@ event_timeout_clear(struct event_timeout *et)
 }
 
 static inline struct event_timeout
-event_timeout_clear_ret()
+event_timeout_clear_ret(void)
 {
     struct event_timeout ret;
     event_timeout_clear(&ret);

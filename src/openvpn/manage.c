@@ -68,7 +68,7 @@ static void man_output_standalone(struct management *man, volatile int *signal_r
 static void man_reset_client_socket(struct management *man, const bool exiting);
 
 static void
-man_help()
+man_help(void)
 {
     msg(M_CLIENT, "Management Interface for %s", title_string);
     msg(M_CLIENT, "Commands:");

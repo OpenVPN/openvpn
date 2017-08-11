@@ -1917,7 +1917,7 @@ do_close_tun(struct context *c, bool force)
 }
 
 void
-tun_abort()
+tun_abort(void)
 {
     struct context *c = static_context;
     if (c)
