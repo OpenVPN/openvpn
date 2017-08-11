@@ -518,14 +518,14 @@ add_route_ipv6_to_option_list(struct route_ipv6_option_list *l,
     l->routes_ipv6 = ro;
 }
 
-void
+static void
 clear_route_list(struct route_list *rl)
 {
     gc_free(&rl->gc);
     CLEAR(*rl);
 }
 
-void
+static void
 clear_route_ipv6_list(struct route_ipv6_list *rl6)
 {
     gc_free(&rl6->gc);

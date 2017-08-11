@@ -185,7 +185,7 @@ lz4v2_compress(struct buffer *buf, struct buffer work,
     }
 }
 
-void
+static void
 do_lz4_decompress(size_t zlen_max,
                   struct buffer *work,
                   struct buffer *buf,

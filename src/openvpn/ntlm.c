@@ -131,7 +131,7 @@ gen_nonce(unsigned char *nonce)
     }
 }
 
-void
+static void
 my_strupr(char *str)
 {
     /* converts string to uppercase in place */

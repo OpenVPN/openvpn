@@ -1431,7 +1431,7 @@ set_actual_address(struct link_socket_actual *actual, struct addrinfo *ai)
 
 }
 
-void
+static void
 socket_connect(socket_descriptor_t *sd,
                const struct sockaddr *dest,
                const int connect_timeout,
