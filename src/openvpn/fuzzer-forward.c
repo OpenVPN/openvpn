@@ -14,7 +14,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
 {
     struct gc_arena gc;
     struct buffer buf;
-    struct client_nat_entry cne;
+    struct client_nat_entry* cne[MAX_CLIENT_NAT];
     ssize_t num_loops, generic_ssizet;
     unsigned int generic_uint, flags;
     size_t n;
@@ -24,6 +24,8 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
     struct route_list route_list;
     struct link_socket link_socket;
     struct link_socket_actual to_link_addr;
+
+    memset(cne, 0, sizeof(cne));
 
     fuzzer_set_input((unsigned char*)data, size);
     gc = gc_new();
@@ -76,8 +78,11 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
 
     FUZZER_GET_INTEGER(num_loops, MAX_CLIENT_NAT);
     for (n = 0; n < num_loops; n++) {
-        FUZZER_GET_DATA(&cne, sizeof(cne));
-        client_nat_add_entry(ctx.options.client_nat, &cne);
+        struct client_nat_entry* _cne;
+        cne[n] = malloc(sizeof(struct client_nat_entry));
+        _cne = cne[n];
+        FUZZER_GET_DATA(_cne, sizeof(struct client_nat_entry));
+        client_nat_add_entry(ctx.options.client_nat, _cne);
     }
 
     FUZZER_GET_INTEGER(generic_ssizet, 1);
@@ -151,6 +156,9 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
 
     process_incoming_tun(&ctx);
 cleanup:
+    for (n = 0; n < MAX_CLIENT_NAT; n++) {
+        free(cne[n]);
+    }
     free_buf(&buf);
     gc_free(&gc);
 
