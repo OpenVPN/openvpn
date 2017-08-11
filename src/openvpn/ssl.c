@@ -2190,16 +2190,6 @@ read_string_alloc(struct buffer *buf)
     return str;
 }
 
-void
-read_string_discard(struct buffer *buf)
-{
-    char *data = read_string_alloc(buf);
-    if (data)
-    {
-        free(data);
-    }
-}
-
 /*
  * Handle the reading and writing of key data to and from
  * the TLS control channel (cleartext).
