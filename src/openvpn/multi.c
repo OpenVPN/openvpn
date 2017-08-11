@@ -485,7 +485,7 @@ multi_instance_string(const struct multi_instance *mi, bool null, struct gc_aren
     }
 }
 
-void
+static void
 generate_prefix(struct multi_instance *mi)
 {
     struct gc_arena gc = gc_new();
@@ -2967,7 +2967,7 @@ gremlin_flood_clients(struct multi_context *m)
 }
 #endif /* ifdef ENABLE_DEBUG */
 
-bool
+static bool
 stale_route_check_trigger(struct multi_context *m)
 {
     struct timeval null;

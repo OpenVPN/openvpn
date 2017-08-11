@@ -1007,7 +1007,7 @@ process_incoming_link_part2(struct context *c, struct link_socket_info *lsi, con
     }
 }
 
-void
+static void
 process_incoming_link(struct context *c)
 {
     perf_push(PERF_PROC_IN_LINK);

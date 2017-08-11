@@ -550,7 +550,7 @@ http_proxy_close(struct http_proxy_info *hp)
     free(hp);
 }
 
-bool
+static bool
 add_proxy_headers(struct http_proxy_info *p,
                   socket_descriptor_t sd, /* already open to proxy */
                   const char *host,       /* openvpn server remote */

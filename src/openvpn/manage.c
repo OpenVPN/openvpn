@@ -3515,7 +3515,7 @@ management_query_user_pass(struct management *man,
 
 #ifdef MANAGMENT_EXTERNAL_KEY
 
-int
+static int
 management_query_multiline(struct management *man,
                            const char *b64_data, const char *prompt, const char *cmd, int *state, struct buffer_list **input)
 {
@@ -3591,7 +3591,7 @@ done:
     return ret;
 }
 
-char *
+static char *
 /* returns allocated base64 signature */
 management_query_multiline_flatten_newline(struct management *man,
                                            const char *b64_data, const char *prompt, const char *cmd, int *state, struct buffer_list **input)
@@ -3620,7 +3620,7 @@ management_query_multiline_flatten_newline(struct management *man,
     return result;
 }
 
-char *
+static char *
 /* returns allocated base64 signature */
 management_query_multiline_flatten(struct management *man,
                                    const char *b64_data, const char *prompt, const char *cmd, int *state, struct buffer_list **input)

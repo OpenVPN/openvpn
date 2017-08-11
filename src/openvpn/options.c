@@ -961,7 +961,7 @@ pull_filter_type_name(int type)
 
 #endif
 
-void
+static void
 setenv_connection_entry(struct env_set *es,
                         const struct connection_entry *e,
                         const int i)
@@ -1441,7 +1441,7 @@ rol_check_alloc(struct options *options)
     }
 }
 
-void
+static void
 rol6_check_alloc(struct options *options)
 {
     if (!options->routes_ipv6)
@@ -1872,7 +1872,7 @@ parse_http_proxy_override(const char *server,
     }
 }
 
-void
+static void
 options_postprocess_http_proxy_override(struct options *o)
 {
     const struct connection_list *l = o->connection_list;
@@ -1989,7 +1989,7 @@ alloc_pull_filter(struct options *o, const int msglevel)
     return f;
 }
 
-void
+static void
 connection_entry_load_re(struct connection_entry *ce, const struct remote_entry *re)
 {
     if (re->remote)

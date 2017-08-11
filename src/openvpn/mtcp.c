@@ -521,7 +521,7 @@ multi_tcp_dispatch(struct multi_context *m, struct multi_instance *mi, const int
     return touched;
 }
 
-int
+static int
 multi_tcp_post(struct multi_context *m, struct multi_instance *mi, const int action)
 {
     struct context *c = multi_tcp_context(m, mi);

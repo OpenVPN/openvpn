@@ -1607,7 +1607,7 @@ key_source2_print(const struct key_source2 *k)
  * @param out           Output buffer
  * @param olen          Length of the output buffer
  */
-void
+static void
 tls1_P_hash(const md_kt_t *md_kt,
             const uint8_t *sec,
             int sec_len,
