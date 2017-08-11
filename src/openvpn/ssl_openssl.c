@@ -705,7 +705,7 @@ tls_ctx_add_extra_certs(struct tls_root_ctx *ctx, BIO *bio)
     for (;; )
     {
         cert = NULL;
-        if (!PEM_read_bio_X509(bio, &cert, 0, NULL)) /* takes ownership of cert */
+        if (!PEM_read_bio_X509(bio, &cert, NULL, NULL)) /* takes ownership of cert */
         {
             break;
         }
