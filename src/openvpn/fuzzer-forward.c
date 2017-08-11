@@ -137,6 +137,19 @@ static int init_c2(struct context_2* c2, struct gc_arena* gc)
     FUZZER_GET_DATA(&generic_uint, sizeof(generic_uint));
     c2->frame.extra_tun = generic_uint;
 
+    FUZZER_GET_INTEGER(generic_ssizet, 1);
+    switch ( generic_ssizet )
+    {
+        case    0:
+            c2->to_link_addr = NULL;
+            break;
+        case    1:
+            ALLOC_ARRAY_GC(to_link_addr, struct link_socket_actual, 1, gc);
+            FUZZER_GET_DATA(to_link_addr, sizeof(to_link_addr));
+            c2->to_link_addr = to_link_addr;
+            break;
+    }
+
     if ( fuzzer_get_current_size() == 0 ) {
         goto cleanup;
     }
@@ -151,18 +164,6 @@ static int init_c2(struct context_2* c2, struct gc_arena* gc)
     c2->buf = buf;
     c2->log_rw = false;
 
-    FUZZER_GET_INTEGER(generic_ssizet, 1);
-    switch ( generic_ssizet )
-    {
-        case    0:
-            c2->to_link_addr = NULL;
-            break;
-        case    1:
-            ALLOC_ARRAY_GC(to_link_addr, struct link_socket_actual, 1, gc);
-            FUZZER_GET_DATA(to_link_addr, sizeof(to_link_addr));
-            c2->to_link_addr = to_link_addr;
-            break;
-    }
     return 0;
 
 cleanup:
