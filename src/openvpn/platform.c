@@ -173,7 +173,7 @@ platform_nice(int niceval)
 
 /* Get current PID */
 unsigned int
-platform_getpid()
+platform_getpid(void)
 {
 #ifdef _WIN32
     return (unsigned int) GetCurrentProcessId();

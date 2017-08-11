@@ -280,7 +280,7 @@ print_cipher(const EVP_CIPHER *cipher)
 }
 
 void
-show_available_ciphers()
+show_available_ciphers(void)
 {
     int nid;
     size_t i;
@@ -339,7 +339,7 @@ show_available_ciphers()
 }
 
 void
-show_available_digests()
+show_available_digests(void)
 {
     int nid;
 
@@ -364,7 +364,7 @@ show_available_digests()
 }
 
 void
-show_available_engines()
+show_available_engines(void)
 {
 #if HAVE_OPENSSL_ENGINE /* Only defined for OpenSSL */
     ENGINE *e;

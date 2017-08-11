@@ -285,7 +285,7 @@ char *get_win_sys_path(void);
 void fork_to_self(const char *cmdline);
 
 /* Find temporary directory */
-const char *win_get_tempdir();
+const char *win_get_tempdir(void);
 
 /* Convert a string from UTF-8 to UCS-2 */
 WCHAR *wide_string(const char *utf8, struct gc_arena *gc);
@@ -299,7 +299,7 @@ bool win_wfp_uninit(const NET_IFINDEX index, const HANDLE msg_channel);
 #define WIN_7 2
 #define WIN_8 3
 
-int win32_version_info();
+int win32_version_info(void);
 
 /*
  * String representation of Windows version number and name, see

@@ -1693,7 +1693,7 @@ static int nonce_secret_len = 0; /* GLOBAL */
 
 /* Reset the nonce value, also done periodically to refresh entropy */
 static void
-prng_reset_nonce()
+prng_reset_nonce(void)
 {
     const int size = md_kt_size(nonce_md) + nonce_secret_len;
 #if 1 /* Must be 1 for real usage */
@@ -1772,7 +1772,7 @@ prng_bytes(uint8_t *output, int len)
 
 /* an analogue to the random() function, but use prng_bytes */
 long int
-get_random()
+get_random(void)
 {
     long int l;
     prng_bytes((unsigned char *)&l, sizeof(l));

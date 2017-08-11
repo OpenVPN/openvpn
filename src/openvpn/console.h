@@ -46,7 +46,7 @@ extern struct _query_user query_user[];  /**< Global variable, declared in conso
  * Wipes all data put into all of the query_user structs
  *
  */
-void query_user_clear();
+void query_user_clear(void);
 
 
 /**
@@ -72,7 +72,7 @@ void query_user_add(char *prompt, size_t prompt_len,
  *
  * @return True if executing all the defined steps completed successfully
  */
-bool query_user_exec_builtin();
+bool query_user_exec_builtin(void);
 
 
 #if defined(ENABLE_SYSTEMD)
@@ -83,7 +83,7 @@ bool query_user_exec_builtin();
  *
  * @return True if executing all the defined steps completed successfully
  */
-bool query_user_exec();
+bool query_user_exec(void);
 
 #else  /* ENABLE_SYSTEMD not defined*/
 /**
@@ -92,7 +92,7 @@ bool query_user_exec();
  *
  */
 static bool
-query_user_exec()
+query_user_exec(void)
 {
     return query_user_exec_builtin();
 }

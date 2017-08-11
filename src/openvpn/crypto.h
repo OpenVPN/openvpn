@@ -453,7 +453,7 @@ void prng_init(const char *md_name, const int nonce_secret_len_parm);
  */
 void prng_bytes(uint8_t *output, int len);
 
-void prng_uninit();
+void prng_uninit(void);
 
 void test_crypto(struct crypto_options *co, struct frame *f);
 

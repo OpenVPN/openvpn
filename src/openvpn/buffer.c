@@ -180,7 +180,7 @@ buf_assign(struct buffer *dest, const struct buffer *src)
 }
 
 struct buffer
-clear_buf()
+clear_buf(void)
 {
     struct buffer buf;
     CLEAR(buf);
