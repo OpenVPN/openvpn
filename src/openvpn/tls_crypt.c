@@ -35,6 +35,30 @@
 
 #include "tls_crypt.h"
 
+static struct key_type
+tls_crypt_kt(void)
+{
+    struct key_type kt;
+    kt.cipher = cipher_kt_get("AES-256-CTR");
+    kt.digest = md_kt_get("SHA256");
+
+    if (!kt.cipher)
+    {
+        msg(M_WARN, "ERROR: --tls-crypt requires AES-256-CTR support.");
+        return (struct key_type) { 0 };
+    }
+    if (!kt.digest)
+    {
+        msg(M_WARN, "ERROR: --tls-crypt requires HMAC-SHA-256 support.");
+        return (struct key_type) { 0 };
+    }
+
+    kt.cipher_length = cipher_kt_key_size(kt.cipher);
+    kt.hmac_length = md_kt_size(kt.digest);
+
+    return kt;
+}
+
 int
 tls_crypt_buf_overhead(void)
 {
@@ -47,23 +71,11 @@ tls_crypt_init_key(struct key_ctx_bi *key, const char *key_file,
 {
     const int key_direction = tls_server ?
                               KEY_DIRECTION_NORMAL : KEY_DIRECTION_INVERSE;
-
-    struct key_type kt;
-    kt.cipher = cipher_kt_get("AES-256-CTR");
-    kt.digest = md_kt_get("SHA256");
-
-    if (!kt.cipher)
+    struct key_type kt = tls_crypt_kt();
+    if (!kt.cipher || !kt.digest)
     {
-        msg(M_FATAL, "ERROR: --tls-crypt requires AES-256-CTR support.");
+        msg (M_FATAL, "ERROR: --tls-crypt not supported");
     }
-    if (!kt.digest)
-    {
-        msg(M_FATAL, "ERROR: --tls-crypt requires HMAC-SHA-256 support.");
-    }
-
-    kt.cipher_length = cipher_kt_key_size(kt.cipher);
-    kt.hmac_length = md_kt_size(kt.digest);
-
     crypto_read_openvpn_key(&kt, key, key_file, key_inline, key_direction,
                             "Control Channel Encryption", "tls-crypt");
 }
