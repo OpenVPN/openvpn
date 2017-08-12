@@ -54,5 +54,4 @@ tls_crypt_testdriver_SOURCES = test_tls_crypt.c mock_msg.c \
 	$(openvpn_srcdir)/crypto_openssl.c \
 	$(openvpn_srcdir)/otime.c \
 	$(openvpn_srcdir)/packet_id.c \
-	$(openvpn_srcdir)/platform.c \
-	$(openvpn_srcdir)/tls_crypt.c
+	$(openvpn_srcdir)/platform.c
