@@ -3,6 +3,20 @@
 #include <sys/stat.h>
 #include <stdint.h>
 
+/* This is a standalone program that loads every file specified
+ * as a command-line argument, and runs LLVMFuzzerTestOneInput
+ * on this data. This function is normally called by libFuzzer
+ * for every input it generates. This standalone program
+ * makes it possible to run just a specific input or inputs.
+ *
+ * This is necessary if you want to test your input files
+ * with MemorySantizer, because libFuzzer doesn't work well
+ * with MemorySanitizer.
+ *
+ * Code inspired by:
+ * https://github.com/openssl/openssl/blob/master/fuzz/test-corpus.c
+ */
+
 int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size);
 int LLVMFuzzerInitialize(int *argc, char ***argv);
 
