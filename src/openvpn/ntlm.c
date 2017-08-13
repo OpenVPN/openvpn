@@ -60,45 +60,47 @@ static void
 create_des_keys(const unsigned char *hash, unsigned char *key)
 {
     key[0] = hash[0];
-    key[1] = ((hash[0]&1)<<7)|(hash[1]>>1);
-    key[2] = ((hash[1]&3)<<6)|(hash[2]>>2);
-    key[3] = ((hash[2]&7)<<5)|(hash[3]>>3);
-    key[4] = ((hash[3]&15)<<4)|(hash[4]>>4);
-    key[5] = ((hash[4]&31)<<3)|(hash[5]>>5);
-    key[6] = ((hash[5]&63)<<2)|(hash[6]>>6);
-    key[7] = ((hash[6]&127)<<1);
+    key[1] = ((hash[0] & 1) << 7) | (hash[1] >> 1);
+    key[2] = ((hash[1] & 3) << 6) | (hash[2] >> 2);
+    key[3] = ((hash[2] & 7) << 5) | (hash[3] >> 3);
+    key[4] = ((hash[3] & 15) << 4) | (hash[4] >> 4);
+    key[5] = ((hash[4] & 31) << 3) | (hash[5] >> 5);
+    key[6] = ((hash[5] & 63) << 2) | (hash[6] >> 6);
+    key[7] = ((hash[6] & 127) << 1);
     key_des_fixup(key, 8, 1);
 }
 
 static void
-gen_md4_hash(const char *data, int data_len, char *result)
+gen_md4_hash(const uint8_t *data, int data_len, uint8_t *result)
 {
     /* result is 16 byte md4 hash */
     const md_kt_t *md4_kt = md_kt_get("MD4");
-    char md[MD4_DIGEST_LENGTH];
+    uint8_t md[MD4_DIGEST_LENGTH];
 
     md_full(md4_kt, data, data_len, md);
     memcpy(result, md, MD4_DIGEST_LENGTH);
 }
 
 static void
-gen_hmac_md5(const char *data, int data_len, const char *key, int key_len,char *result)
+gen_hmac_md5(const uint8_t *data, int data_len, const uint8_t *key, int key_len,
+             uint8_t *result)
 {
     const md_kt_t *md5_kt = md_kt_get("MD5");
     hmac_ctx_t *hmac_ctx = hmac_ctx_new();
 
     hmac_ctx_init(hmac_ctx, key, key_len, md5_kt);
-    hmac_ctx_update(hmac_ctx, (const unsigned char *)data, data_len);
-    hmac_ctx_final(hmac_ctx, (unsigned char *)result);
+    hmac_ctx_update(hmac_ctx, data, data_len);
+    hmac_ctx_final(hmac_ctx, result);
     hmac_ctx_cleanup(hmac_ctx);
     hmac_ctx_free(hmac_ctx);
 }
 
 static void
-gen_timestamp(unsigned char *timestamp)
+gen_timestamp(uint8_t *timestamp)
 {
     /* Copies 8 bytes long timestamp into "timestamp" buffer.
-     * Timestamp is Little-endian, 64-bit signed value representing the number of tenths of a microsecond since January 1, 1601.
+     * Timestamp is Little-endian, 64-bit signed value representing the
+     * number of tenths of a microsecond since January 1, 1601.
      */
 
     UINTEGER64 timestamp_ull;
@@ -130,7 +132,7 @@ gen_nonce(unsigned char *nonce)
 }
 
 void
-my_strupr(unsigned char *str)
+my_strupr(char *str)
 {
     /* converts string to uppercase in place */
 
@@ -150,16 +152,17 @@ unicodize(char *dst, const char *src)
     {
         dst[i++] = *src;
         dst[i++] = 0;
-    }
-    while (*src++);
+    } while (*src++);
 
     return i;
 }
 
 static void
-add_security_buffer(int sb_offset, void *data, int length, unsigned char *msg_buf, int *msg_bufpos)
+add_security_buffer(int sb_offset, void *data, int length,
+                    unsigned char *msg_buf, int *msg_bufpos)
 {
-    /* Adds security buffer data to a message and sets security buffer's offset and length */
+    /* Adds security buffer data to a message and sets security buffer's
+     * offset and length */
     msg_buf[sb_offset] = (unsigned char)length;
     msg_buf[sb_offset + 2] = msg_buf[sb_offset];
     msg_buf[sb_offset + 4] = (unsigned char)(*msg_bufpos & 0xff);
@@ -186,7 +189,8 @@ ntlm_phase_1(const struct http_proxy_info *p, struct gc_arena *gc)
 }
 
 const char *
-ntlm_phase_3(const struct http_proxy_info *p, const char *phase_2, struct gc_arena *gc)
+ntlm_phase_3(const struct http_proxy_info *p, const char *phase_2,
+             struct gc_arena *gc)
 {
     /* NTLM handshake
      *
@@ -195,19 +199,19 @@ ntlm_phase_3(const struct http_proxy_info *p, const char *phase_2, struct gc_are
      */
 
     char pwbuf[sizeof(p->up.password) * 2]; /* for unicode password */
-    unsigned char buf2[128]; /* decoded reply from proxy */
-    unsigned char phase3[464];
+    uint8_t buf2[128]; /* decoded reply from proxy */
+    uint8_t phase3[464];
 
-    char md4_hash[MD4_DIGEST_LENGTH+5];
-    char challenge[8], ntlm_response[24];
+    uint8_t md4_hash[MD4_DIGEST_LENGTH + 5];
+    uint8_t challenge[8], ntlm_response[24];
     int i, ret_val;
 
-    char ntlmv2_response[144];
+    uint8_t ntlmv2_response[144];
     char userdomain_u[256];     /* for uppercase unicode username and domain */
     char userdomain[128];       /* the same as previous but ascii */
-    char ntlmv2_hash[MD5_DIGEST_LENGTH];
-    char ntlmv2_hmacmd5[16];
-    char *ntlmv2_blob = ntlmv2_response + 16;     /* inside ntlmv2_response, length: 128 */
+    uint8_t ntlmv2_hash[MD5_DIGEST_LENGTH];
+    uint8_t ntlmv2_hmacmd5[16];
+    uint8_t *ntlmv2_blob = ntlmv2_response + 16;     /* inside ntlmv2_response, length: 128 */
     int ntlmv2_blob_size = 0;
     int phase3_bufpos = 0x40;     /* offset to next security buffer data to be added */
     size_t len;
@@ -246,12 +250,13 @@ ntlm_phase_3(const struct http_proxy_info *p, const char *phase_2, struct gc_are
 
 
     /* fill 1st 16 bytes with md4 hash, disregard terminating null */
-    gen_md4_hash(pwbuf, unicodize(pwbuf, p->up.password) - 2, md4_hash);
+    int unicode_len = unicodize(pwbuf, p->up.password) - 2;
+    gen_md4_hash((uint8_t *)pwbuf, unicode_len, md4_hash);
 
     /* pad to 21 bytes */
     memset(md4_hash + MD4_DIGEST_LENGTH, 0, 5);
 
-    ret_val = openvpn_base64_decode( phase_2, (void *)buf2, -1);
+    ret_val = openvpn_base64_decode(phase_2, buf2, -1);
     if (ret_val < 0)
     {
         return NULL;
@@ -271,7 +276,8 @@ ntlm_phase_3(const struct http_proxy_info *p, const char *phase_2, struct gc_are
         int tib_len;
 
         /* NTLMv2 hash */
-        my_strupr((unsigned char *)strcpy(userdomain, username));
+        strcpy(userdomain, username);
+        my_strupr(userdomain);
         if (strlen(username) + strlen(domain) < sizeof(userdomain))
         {
             strcat(userdomain, domain);
@@ -281,34 +287,40 @@ ntlm_phase_3(const struct http_proxy_info *p, const char *phase_2, struct gc_are
             msg(M_INFO, "Warning: Username or domain too long");
         }
         unicodize(userdomain_u, userdomain);
-        gen_hmac_md5(userdomain_u, 2 * strlen(userdomain), md4_hash, MD5_DIGEST_LENGTH, ntlmv2_hash);
+        gen_hmac_md5((uint8_t *)userdomain_u, 2 * strlen(userdomain), md4_hash,
+                     MD5_DIGEST_LENGTH, ntlmv2_hash);
 
         /* NTLMv2 Blob */
         memset(ntlmv2_blob, 0, 128);                        /* Clear blob buffer */
         ntlmv2_blob[0x00] = 1;                              /* Signature */
         ntlmv2_blob[0x01] = 1;                              /* Signature */
         ntlmv2_blob[0x04] = 0;                              /* Reserved */
-        gen_timestamp((unsigned char *)&ntlmv2_blob[0x08]);                  /* 64-bit Timestamp */
-        gen_nonce((unsigned char *)&ntlmv2_blob[0x10]);                      /* 64-bit Client Nonce */
+        gen_timestamp(&ntlmv2_blob[0x08]);                  /* 64-bit Timestamp */
+        gen_nonce(&ntlmv2_blob[0x10]);                      /* 64-bit Client Nonce */
         ntlmv2_blob[0x18] = 0;                              /* Unknown, zero should work */
 
         /* Add target information block to the blob */
-        if (( *((long *)&buf2[0x14]) & 0x00800000) == 0x00800000)          /* Check for Target Information block */
+
+        /* Check for Target Information block */
+        if ((*((long *)&buf2[0x14]) & 0x00800000) == 0x00800000)
         {
             tib_len = buf2[0x28];            /* Get Target Information block size */
             if (tib_len > 96)
             {
                 tib_len = 96;
             }
+
             {
-                char *tib_ptr;
-                int tib_pos = buf2[0x2c];
+                uint8_t *tib_ptr;
+                uint8_t tib_pos = buf2[0x2c];
                 if (tib_pos + tib_len > sizeof(buf2))
                 {
                     return NULL;
                 }
-                tib_ptr = buf2 + tib_pos;                               /* Get Target Information block pointer */
-                memcpy(&ntlmv2_blob[0x1c], tib_ptr, tib_len);           /* Copy Target Information block into the blob */
+                /* Get Target Information block pointer */
+                tib_ptr = buf2 + tib_pos;
+                /* Copy Target Information block into the blob */
+                memcpy(&ntlmv2_blob[0x1c], tib_ptr, tib_len);
             }
         }
         else
@@ -316,7 +328,8 @@ ntlm_phase_3(const struct http_proxy_info *p, const char *phase_2, struct gc_are
             tib_len = 0;
         }
 
-        ntlmv2_blob[0x1c + tib_len] = 0;                    /* Unknown, zero works */
+        /* Unknown, zero works */
+        ntlmv2_blob[0x1c + tib_len] = 0;
 
         /* Get blob length */
         ntlmv2_blob_size = 0x20 + tib_len;
@@ -325,24 +338,28 @@ ntlm_phase_3(const struct http_proxy_info *p, const char *phase_2, struct gc_are
         memcpy(&ntlmv2_response[8], challenge, 8);
 
         /* hmac-md5 */
-        gen_hmac_md5(&ntlmv2_response[8], ntlmv2_blob_size + 8, ntlmv2_hash, MD5_DIGEST_LENGTH, ntlmv2_hmacmd5);
+        gen_hmac_md5(&ntlmv2_response[8], ntlmv2_blob_size + 8, ntlmv2_hash,
+                     MD5_DIGEST_LENGTH, ntlmv2_hmacmd5);
 
-        /* Add hmac-md5 result to the blob */
-        memcpy(ntlmv2_response, ntlmv2_hmacmd5, MD5_DIGEST_LENGTH);         /* Note: This overwrites challenge previously written at ntlmv2_response[8..15] */
-
+        /* Add hmac-md5 result to the blob.
+         * Note: This overwrites challenge previously written at
+         * ntlmv2_response[8..15] */
+        memcpy(ntlmv2_response, ntlmv2_hmacmd5, MD5_DIGEST_LENGTH);
     }
-    else         /* Generate NTLM response */
+    else /* Generate NTLM response */
     {
-        unsigned char key1[DES_KEY_LENGTH], key2[DES_KEY_LENGTH], key3[DES_KEY_LENGTH];
+        unsigned char key1[DES_KEY_LENGTH], key2[DES_KEY_LENGTH];
+        unsigned char key3[DES_KEY_LENGTH];
 
-        create_des_keys((unsigned char *)md4_hash, key1);
+        create_des_keys(md4_hash, key1);
         cipher_des_encrypt_ecb(key1, challenge, ntlm_response);
 
-        create_des_keys((unsigned char *)&(md4_hash[DES_KEY_LENGTH-1]), key2);
+        create_des_keys(&md4_hash[DES_KEY_LENGTH - 1], key2);
         cipher_des_encrypt_ecb(key2, challenge, &ntlm_response[DES_KEY_LENGTH]);
 
-        create_des_keys((unsigned char *)&(md4_hash[2*(DES_KEY_LENGTH-1)]), key3);
-        cipher_des_encrypt_ecb(key3, challenge, &ntlm_response[DES_KEY_LENGTH*2]);
+        create_des_keys(&md4_hash[2 * (DES_KEY_LENGTH - 1)], key3);
+        cipher_des_encrypt_ecb(key3, challenge,
+                               &ntlm_response[DES_KEY_LENGTH * 2]);
     }
 
 
@@ -353,7 +370,8 @@ ntlm_phase_3(const struct http_proxy_info *p, const char *phase_2, struct gc_are
 
     if (ntlmv2_enabled)      /* NTLMv2 response */
     {
-        add_security_buffer(0x14, ntlmv2_response, ntlmv2_blob_size + 16, phase3, &phase3_bufpos);
+        add_security_buffer(0x14, ntlmv2_response, ntlmv2_blob_size + 16,
+                            phase3, &phase3_bufpos);
     }
     else       /* NTLM response */
     {
@@ -361,11 +379,12 @@ ntlm_phase_3(const struct http_proxy_info *p, const char *phase_2, struct gc_are
     }
 
     /* username in ascii */
-    add_security_buffer(0x24, username, strlen(username), phase3, &phase3_bufpos);
+    add_security_buffer(0x24, username, strlen(username), phase3,
+                        &phase3_bufpos);
 
-    /* Set domain. If <domain> is empty, default domain will be used (i.e. proxy's domain) */
+    /* Set domain. If <domain> is empty, default domain will be used
+     * (i.e. proxy's domain) */
     add_security_buffer(0x1c, domain, strlen(domain), phase3, &phase3_bufpos);
-
 
     /* other security buffers will be empty */
     phase3[0x10] = phase3_bufpos;     /* lm not used */
@@ -376,7 +395,8 @@ ntlm_phase_3(const struct http_proxy_info *p, const char *phase_2, struct gc_are
     phase3[0x3c] = 0x02; /* negotiate oem */
     phase3[0x3d] = 0x02; /* negotiate ntlm */
 
-    return ((const char *)make_base64_string2((unsigned char *)phase3, phase3_bufpos, gc));
+    return ((const char *)make_base64_string2((unsigned char *)phase3,
+                                              phase3_bufpos, gc));
 }
 
 #else  /* if NTLM */

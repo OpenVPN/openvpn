@@ -68,8 +68,6 @@ void run_up_down(const char *command,
                  const char *script_type,
                  struct env_set *es);
 
-void write_pid(const char *filename);
-
 /* system flags */
 #define S_SCRIPT (1<<0)
 #define S_FATAL  (1<<1)
@@ -95,21 +93,12 @@ openvpn_run_script(const struct argv *a, const struct env_set *es, const unsigne
 }
 
 
-#ifdef HAVE_STRERROR
-/* a thread-safe version of strerror */
-const char *strerror_ts(int errnum, struct gc_arena *gc);
-
-#endif
-
 /* Set standard file descriptors to /dev/null */
 void set_std_files_to_null(bool stdin_only);
 
 /* dup inetd/xinetd socket descriptor and save */
 extern int inetd_socket_descriptor;
 void save_inetd_socket_descriptor(void);
-
-/* init random() function, only used as source for weak random numbers, when !ENABLE_CRYPTO */
-void init_random_seed(void);
 
 /* set/delete environmental variable */
 void setenv_str_ex(struct env_set *es,
@@ -298,12 +287,6 @@ bool env_safe_to_print(const char *str);
 /* returns true if environmental variable may be passed to an external program */
 bool env_allowed(const char *str);
 
-/*
- * A sleep function that services the management layer for n
- * seconds rather than doing nothing.
- */
-void openvpn_sleep(const int n);
-
 void configure_path(void);
 
 const char *sanitize_control_message(const char *str, struct gc_arena *gc);
@@ -327,8 +310,6 @@ extern const char *iproute_path;
 #define SSEC_PW_ENV    3 /* allow calling of built-in programs and user-defined scripts that may receive a password as an environmental variable */
 extern int script_security; /* GLOBAL */
 
-/* return the next largest power of 2 */
-size_t adjust_power_of_2(size_t u);
 
 #define COMPAT_FLAG_QUERY         0       /** compat_flags operator: Query for a flag */
 #define COMPAT_FLAG_SET           (1<<0)  /** compat_flags operator: Set a compat flag */

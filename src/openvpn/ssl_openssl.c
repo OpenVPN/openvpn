@@ -69,7 +69,7 @@
 int mydata_index; /* GLOBAL */
 
 void
-tls_init_lib()
+tls_init_lib(void)
 {
     SSL_library_init();
 #ifndef ENABLE_SMALL
@@ -82,7 +82,7 @@ tls_init_lib()
 }
 
 void
-tls_free_lib()
+tls_free_lib(void)
 {
     EVP_cleanup();
 #ifndef ENABLE_SMALL
@@ -91,7 +91,7 @@ tls_free_lib()
 }
 
 void
-tls_clear_error()
+tls_clear_error(void)
 {
     ERR_clear_error();
 }
@@ -484,15 +484,7 @@ tls_ctx_load_ecdh_params(struct tls_root_ctx *ctx, const char *curve_name
 
     /* Generate a new ECDH key for each SSL session (for non-ephemeral ECDH) */
     SSL_CTX_set_options(ctx->ctx, SSL_OP_SINGLE_ECDH_USE);
-#if OPENSSL_VERSION_NUMBER >= 0x10002000L
-    /* OpenSSL 1.0.2 and newer can automatically handle ECDH parameter loading */
-    if (NULL == curve_name)
-    {
-        SSL_CTX_set_ecdh_auto(ctx->ctx, 1);
-        return;
-    }
-#endif
-    /* For older OpenSSL, we'll have to do the parameter loading on our own */
+
     if (curve_name != NULL)
     {
         /* Use user supplied curve if given */
@@ -501,14 +493,17 @@ tls_ctx_load_ecdh_params(struct tls_root_ctx *ctx, const char *curve_name
     }
     else
     {
-        /* Extract curve from key */
+#if OPENSSL_VERSION_NUMBER >= 0x10002000L
+        /* OpenSSL 1.0.2 and newer can automatically handle ECDH parameter
+         * loading */
+        SSL_CTX_set_ecdh_auto(ctx->ctx, 1);
+        return;
+#else
+        /* For older OpenSSL we have to extract the curve from key on our own */
         EC_KEY *eckey = NULL;
         const EC_GROUP *ecgrp = NULL;
         EVP_PKEY *pkey = NULL;
 
-#if OPENSSL_VERSION_NUMBER >= 0x10002000L && !defined(LIBRESSL_VERSION_NUMBER)
-        pkey = SSL_CTX_get0_privatekey(ctx->ctx);
-#else
         /* Little hack to get private key ref from SSL_CTX, yay OpenSSL... */
         SSL *ssl = SSL_new(ctx->ctx);
         if (!ssl)
@@ -517,7 +512,6 @@ tls_ctx_load_ecdh_params(struct tls_root_ctx *ctx, const char *curve_name
         }
         pkey = SSL_get_privatekey(ssl);
         SSL_free(ssl);
-#endif
 
         msg(D_TLS_DEBUG, "Extracting ECDH curve from private key");
 
@@ -526,6 +520,7 @@ tls_ctx_load_ecdh_params(struct tls_root_ctx *ctx, const char *curve_name
         {
             nid = EC_GROUP_get_curve_name(ecgrp);
         }
+#endif
     }
 
     /* Translate NID back to name , just for kicks */
@@ -710,7 +705,7 @@ tls_ctx_add_extra_certs(struct tls_root_ctx *ctx, BIO *bio)
     for (;; )
     {
         cert = NULL;
-        if (!PEM_read_bio_X509(bio, &cert, 0, NULL)) /* takes ownership of cert */
+        if (!PEM_read_bio_X509(bio, &cert, NULL, NULL)) /* takes ownership of cert */
         {
             break;
         }
@@ -806,12 +801,6 @@ tls_ctx_load_cert_file(struct tls_root_ctx *ctx, const char *cert_file,
                        const char *cert_file_inline)
 {
     tls_ctx_load_cert_file_and_copy(ctx, cert_file, cert_file_inline, NULL);
-}
-
-void
-tls_ctx_free_cert_file(X509 *x509)
-{
-    X509_free(x509);
 }
 
 int
@@ -1077,6 +1066,13 @@ tls_ctx_use_external_private_key(struct tls_root_ctx *ctx,
     ASSERT(pkey); /* NULL before SSL_CTX_use_certificate() is called */
     pub_rsa = EVP_PKEY_get0_RSA(pkey);
 
+    /* Certificate might not be RSA but DSA or EC */
+    if (!pub_rsa)
+    {
+        crypto_msg(M_WARN, "management-external-key requires a RSA certificate");
+        goto err;
+    }
+
     /* initialize RSA object */
     const BIGNUM *n = NULL;
     const BIGNUM *e = NULL;
@@ -1327,7 +1323,7 @@ static time_t biofp_last_open;                 /* GLOBAL */
 static const int biofp_reopen_interval = 600;  /* GLOBAL */
 
 static void
-close_biofp()
+close_biofp(void)
 {
     if (biofp)
     {
@@ -1337,7 +1333,7 @@ close_biofp()
 }
 
 static void
-open_biofp()
+open_biofp(void)
 {
     const time_t current = time(NULL);
     const pid_t pid = getpid();
@@ -1683,18 +1679,36 @@ print_details(struct key_state_ssl *ks_ssl, const char *prefix)
         EVP_PKEY *pkey = X509_get_pubkey(cert);
         if (pkey != NULL)
         {
-            if (EVP_PKEY_id(pkey) == EVP_PKEY_RSA && EVP_PKEY_get0_RSA(pkey) != NULL)
+            if ((EVP_PKEY_id(pkey) == EVP_PKEY_RSA) && (EVP_PKEY_get0_RSA(pkey) != NULL))
             {
                 RSA *rsa = EVP_PKEY_get0_RSA(pkey);
                 openvpn_snprintf(s2, sizeof(s2), ", %d bit RSA",
                                  RSA_bits(rsa));
             }
-            else if (EVP_PKEY_id(pkey) == EVP_PKEY_DSA && EVP_PKEY_get0_DSA(pkey) != NULL)
+            else if ((EVP_PKEY_id(pkey) == EVP_PKEY_DSA) && (EVP_PKEY_get0_DSA(pkey) != NULL))
             {
                 DSA *dsa = EVP_PKEY_get0_DSA(pkey);
                 openvpn_snprintf(s2, sizeof(s2), ", %d bit DSA",
                                  DSA_bits(dsa));
             }
+#ifndef OPENSSL_NO_EC
+            else if ((EVP_PKEY_id(pkey) == EVP_PKEY_EC) && (EVP_PKEY_get0_EC_KEY(pkey) != NULL))
+            {
+                EC_KEY *ec = EVP_PKEY_get0_EC_KEY(pkey);
+                const EC_GROUP *group = EC_KEY_get0_group(ec);
+                const char* curve;
+
+                int nid = EC_GROUP_get_curve_name(group);
+                if (nid == 0 || (curve = OBJ_nid2sn(nid)) == NULL)
+                {
+                    curve = "Error getting curve name";
+                }
+
+                openvpn_snprintf(s2, sizeof(s2), ", %d bit EC, curve: %s",
+                                 EC_GROUP_order_bits(group), curve);
+
+            }
+#endif
             EVP_PKEY_free(pkey);
         }
         X509_free(cert);
@@ -1755,7 +1769,7 @@ show_available_tls_ciphers(const char *cipher_list)
  * in the OpenSSL library.
  */
 void
-show_available_curves()
+show_available_curves(void)
 {
 #ifndef OPENSSL_NO_EC
     EC_builtin_curve *curves = NULL;

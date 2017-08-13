@@ -757,7 +757,7 @@ read_incoming_link(struct context *c)
                 if (event_timeout_defined(&c->c2.explicit_exit_notification_interval))
                 {
                     msg(D_STREAM_ERRORS, "Connection reset during exit notification period, ignoring [%d]", status);
-                    openvpn_sleep(1);
+                    management_sleep(1);
                 }
                 else
 #endif

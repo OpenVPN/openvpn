@@ -145,28 +145,6 @@ run_up_down(const char *command,
     gc_free(&gc);
 }
 
-/* Write our PID to a file */
-void
-write_pid(const char *filename)
-{
-    if (filename)
-    {
-        unsigned int pid = 0;
-        FILE *fp = platform_fopen(filename, "w");
-        if (!fp)
-        {
-            msg(M_ERR, "Open error on pid file %s", filename);
-        }
-
-        pid = platform_getpid();
-        fprintf(fp, "%u\n", pid);
-        if (platform_fclose(fp))
-        {
-            msg(M_ERR, "Close error on pid file %s", filename);
-        }
-    }
-}
-
 /*
  * Set standard file descriptors to /dev/null
  */
@@ -446,40 +424,6 @@ openvpn_popen(const struct argv *a,  const struct env_set *es)
 
 
 /*
- * Initialize random number seed.  random() is only used
- * when "weak" random numbers are acceptable.
- * OpenSSL routines are always used when cryptographically
- * strong random numbers are required.
- */
-
-void
-init_random_seed(void)
-{
-    struct timeval tv;
-
-    if (!gettimeofday(&tv, NULL))
-    {
-        const unsigned int seed = (unsigned int) tv.tv_sec ^ tv.tv_usec;
-        srandom(seed);
-    }
-}
-
-/* thread-safe strerror */
-
-const char *
-strerror_ts(int errnum, struct gc_arena *gc)
-{
-#ifdef HAVE_STRERROR
-    struct buffer out = alloc_buf_gc(256, gc);
-
-    buf_printf(&out, "%s", openvpn_strerror(errnum, gc));
-    return BSTR(&out);
-#else
-    return "[error string unavailable]";
-#endif
-}
-
-/*
  * Set environmental variable (int or string).
  *
  * On Posix, we use putenv for portability,
@@ -502,29 +446,6 @@ construct_name_value(const char *name, const char *value, struct gc_arena *gc)
     out = alloc_buf_gc(strlen(name) + strlen(value) + 2, gc);
     buf_printf(&out, "%s=%s", name, value);
     return BSTR(&out);
-}
-
-bool
-deconstruct_name_value(const char *str, const char **name, const char **value, struct gc_arena *gc)
-{
-    char *cp;
-
-    ASSERT(str);
-    ASSERT(name && value);
-
-    *name = cp = string_alloc(str, gc);
-    *value = NULL;
-
-    while ((*cp))
-    {
-        if (*cp == '=' && !*value)
-        {
-            *cp = 0;
-            *value = cp + 1;
-        }
-        ++cp;
-    }
-    return *name && *value;
 }
 
 static bool
@@ -948,10 +869,8 @@ create_temp_file(const char *directory, const char *prefix, struct gc_arena *gc)
         else if (fd == -1 && errno != EEXIST)
         {
             /* Something else went wrong, no need to retry.  */
-            struct gc_arena gcerr = gc_new();
-            msg(M_FATAL, "Could not create temporary file '%s': %s",
-                retfname, strerror_ts(errno, &gcerr));
-            gc_free(&gcerr);
+            msg(M_FATAL | M_ERRNO, "Could not create temporary file '%s'",
+                retfname);
             return NULL;
         }
     }
@@ -1650,37 +1569,6 @@ make_extended_arg_array(char **p, struct gc_arena *gc)
     {
         return make_arg_copy(p, gc);
     }
-}
-
-void
-openvpn_sleep(const int n)
-{
-#ifdef ENABLE_MANAGEMENT
-    if (management)
-    {
-        management_event_loop_n_seconds(management, n);
-        return;
-    }
-#endif
-    sleep(n);
-}
-
-/*
- * Return the next largest power of 2
- * or u if u is a power of 2.
- */
-size_t
-adjust_power_of_2(size_t u)
-{
-    size_t ret = 1;
-
-    while (ret < u)
-    {
-        ret <<= 1;
-        ASSERT(ret > 0);
-    }
-
-    return ret;
 }
 
 /*

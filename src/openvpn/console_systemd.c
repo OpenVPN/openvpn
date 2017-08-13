@@ -42,7 +42,7 @@
  */
 
 static bool
-check_systemd_running()
+check_systemd_running(void)
 {
     struct stat c;
 
@@ -96,7 +96,7 @@ get_console_input_systemd(const char *prompt, const bool echo, char *input, cons
  *
  */
 bool
-query_user_exec()
+query_user_exec(void)
 {
     bool ret = true;  /* Presume everything goes okay */
     int i;

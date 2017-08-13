@@ -267,7 +267,7 @@ get_console_input(const char *prompt, const bool echo, char *input, const int ca
  *
  */
 bool
-query_user_exec_builtin()
+query_user_exec_builtin(void)
 {
     bool ret = true; /* Presume everything goes okay */
     int i;

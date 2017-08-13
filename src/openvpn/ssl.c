@@ -347,7 +347,7 @@ tls_init_control_channel_frame_parameters(const struct frame *data_channel_frame
 }
 
 void
-init_ssl_lib()
+init_ssl_lib(void)
 {
     tls_init_lib();
 
@@ -355,7 +355,7 @@ init_ssl_lib()
 }
 
 void
-free_ssl_lib()
+free_ssl_lib(void)
 {
     crypto_uninit_lib();
     prng_uninit();
@@ -616,6 +616,11 @@ init_ssl(const struct options *options, struct tls_root_ctx *new_ctx)
         tls_ctx_client_new(new_ctx);
     }
 
+    /* Allowable ciphers */
+    /* Since @SECLEVEL also influces loading of certificates, set the
+     * cipher restrictions before loading certificates */
+    tls_ctx_restrict_ciphers(new_ctx, options->cipher_list);
+
     tls_ctx_set_options(new_ctx, options->ssl_flags);
 
     if (options->pkcs12_file)
@@ -707,9 +712,6 @@ init_ssl(const struct options *options, struct tls_root_ctx *new_ctx)
     {
         tls_ctx_load_ecdh_params(new_ctx, options->ecdh_curve);
     }
-
-    /* Allowable ciphers */
-    tls_ctx_restrict_ciphers(new_ctx, options->cipher_list);
 
 #ifdef ENABLE_CRYPTO_MBEDTLS
     /* Personalise the random by mixing in the certificate */
@@ -1958,7 +1960,7 @@ cleanup:
 
 bool
 tls_session_update_crypto_params(struct tls_session *session,
-                                 const struct options *options, struct frame *frame)
+                                 struct options *options, struct frame *frame)
 {
     if (!session->opt->server
         && 0 != strcmp(options->ciphername, session->opt->config_ciphername)
@@ -1967,6 +1969,8 @@ tls_session_update_crypto_params(struct tls_session *session,
         msg(D_TLS_ERRORS, "Error: pushed cipher not allowed - %s not in %s or %s",
             options->ciphername, session->opt->config_ciphername,
             options->ncp_ciphers);
+        /* undo cipher push, abort connection setup */
+        options->ciphername = session->opt->config_ciphername;
         return false;
     }
 
@@ -2184,16 +2188,6 @@ read_string_alloc(struct buffer *buf)
     }
     str[len-1] = '\0';
     return str;
-}
-
-void
-read_string_discard(struct buffer *buf)
-{
-    char *data = read_string_alloc(buf);
-    if (data)
-    {
-        free(data);
-    }
 }
 
 /*

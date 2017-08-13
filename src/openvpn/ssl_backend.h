@@ -88,17 +88,17 @@ int pem_password_callback(char *buf, int size, int rwflag, void *u);
  * Perform any static initialisation necessary by the library.
  * Called on OpenVPN initialisation
  */
-void tls_init_lib();
+void tls_init_lib(void);
 
 /**
  * Free any global SSL library-specific data structures.
  */
-void tls_free_lib();
+void tls_free_lib(void);
 
 /**
  * Clear the underlying SSL library's error state.
  */
-void tls_clear_error();
+void tls_clear_error(void);
 
 /**
  * Parse a TLS version specifier

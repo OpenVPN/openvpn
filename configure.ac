@@ -668,7 +668,7 @@ AC_FUNC_FORK
 
 AC_CHECK_FUNCS([ \
 	daemon chroot getpwnam setuid nice system getpid dup dup2 \
-	getpass strerror syslog openlog mlockall getgrnam setgid \
+	getpass syslog openlog mlockall getgrnam setgid \
 	setgroups stat flock readv writev time gettimeofday \
 	ctime memset vsnprintf strdup \
 	setsid chdir putenv getpeername unlink \
@@ -925,8 +925,6 @@ if test "${enable_crypto}" = "yes" -a "${with_crypto_library}" = "openssl"; then
 
 	AC_CHECK_FUNCS(
 		[ \
-			EVP_CIPHER_CTX_new \
-			EVP_CIPHER_CTX_free \
 			HMAC_CTX_new \
 			HMAC_CTX_free \
 			HMAC_CTX_reset \
@@ -942,6 +940,7 @@ if test "${enable_crypto}" = "yes" -a "${with_crypto_library}" = "openssl"; then
 			EVP_PKEY_id \
 			EVP_PKEY_get0_RSA \
 			EVP_PKEY_get0_DSA \
+			EVP_PKEY_get0_EC_KEY \
 			RSA_set_flags \
 			RSA_bits \
 			RSA_get0_key \
@@ -957,6 +956,7 @@ if test "${enable_crypto}" = "yes" -a "${with_crypto_library}" = "openssl"; then
 			RSA_meth_set_init \
 			RSA_meth_set_finish \
 			RSA_meth_set0_app_data \
+			EC_GROUP_order_bits
 		]
 	)
 

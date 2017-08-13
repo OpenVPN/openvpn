@@ -820,7 +820,7 @@ init_key_type(struct key_type *kt, const char *ciphername,
 
 /* given a key and key_type, build a key_ctx */
 void
-init_key_ctx(struct key_ctx *ctx, struct key *key,
+init_key_ctx(struct key_ctx *ctx, const struct key *key,
              const struct key_type *kt, int enc,
              const char *prefix)
 {
@@ -1261,7 +1261,7 @@ read_key_file(struct key2 *key2, const char *file, const unsigned int flags)
         fd = platform_open(file, O_RDONLY, 0);
         if (fd == -1)
         {
-            msg(M_ERR, "Cannot open file key file '%s'", file);
+            msg(M_ERR, "Cannot open key file '%s'", file);
         }
         size = platform_read(fd, in.data, in.capacity);
         if (size < 0)
@@ -1693,7 +1693,7 @@ static int nonce_secret_len = 0; /* GLOBAL */
 
 /* Reset the nonce value, also done periodically to refresh entropy */
 static void
-prng_reset_nonce()
+prng_reset_nonce(void)
 {
     const int size = md_kt_size(nonce_md) + nonce_secret_len;
 #if 1 /* Must be 1 for real usage */
@@ -1772,7 +1772,7 @@ prng_bytes(uint8_t *output, int len)
 
 /* an analogue to the random() function, but use prng_bytes */
 long int
-get_random()
+get_random(void)
 {
     long int l;
     prng_bytes((unsigned char *)&l, sizeof(l));

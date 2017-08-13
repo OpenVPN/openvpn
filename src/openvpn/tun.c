@@ -1863,7 +1863,7 @@ open_tun(const char *dev, const char *dev_type, const char *dev_node, struct tun
     if (oldtunfd >=0 && android_method == ANDROID_OPEN_AFTER_CLOSE)
     {
         platform_close(oldtunfd);
-        openvpn_sleep(2);
+        management_sleep(2);
     }
 
     if (oldtunfd >=0  && android_method == ANDROID_KEEP_OLD_TUN)
@@ -2564,8 +2564,7 @@ open_tun(const char *dev, const char *dev_type, const char *dev_node, struct tun
 
         if (ioctl(tt->fd, TUNGIFINFO, &info) < 0)
         {
-            msg(M_WARN | M_ERRNO, "Can't get interface info: %s",
-                strerror(errno));
+            msg(M_WARN | M_ERRNO, "Can't get interface info");
         }
 
 #ifdef IFF_MULTICAST /* openbsd 4.x doesn't have this */
@@ -2574,8 +2573,7 @@ open_tun(const char *dev, const char *dev_type, const char *dev_node, struct tun
 
         if (ioctl(tt->fd, TUNSIFINFO, &info) < 0)
         {
-            msg(M_WARN | M_ERRNO, "Can't set interface info: %s",
-                strerror(errno));
+            msg(M_WARN | M_ERRNO, "Can't set interface info");
         }
     }
 }
@@ -2664,7 +2662,7 @@ open_tun(const char *dev, const char *dev_type, const char *dev_node, struct tun
             i = 1;
             if (ioctl(tt->fd, TUNSIFHEAD, &i) < 0)      /* multi-af mode on */
             {
-                msg(M_WARN | M_ERRNO, "ioctl(TUNSIFHEAD): %s", strerror(errno));
+                msg(M_WARN | M_ERRNO, "ioctl(TUNSIFHEAD)");
             }
         }
     }
@@ -2797,12 +2795,12 @@ open_tun(const char *dev, const char *dev_type, const char *dev_node, struct tun
 
         if (ioctl(tt->fd, TUNSIFMODE, &i) < 0)
         {
-            msg(M_WARN | M_ERRNO, "ioctl(TUNSIFMODE): %s", strerror(errno));
+            msg(M_WARN | M_ERRNO, "ioctl(TUNSIFMODE)");
         }
         i = 1;
         if (ioctl(tt->fd, TUNSIFHEAD, &i) < 0)
         {
-            msg(M_WARN | M_ERRNO, "ioctl(TUNSIFHEAD): %s", strerror(errno));
+            msg(M_WARN | M_ERRNO, "ioctl(TUNSIFHEAD)");
         }
     }
 }
@@ -3023,16 +3021,14 @@ utun_open_helper(struct ctl_info ctlInfo, int utunnum)
 
     if (fd < 0)
     {
-        msg(M_INFO, "Opening utun (%s): %s", "socket(SYSPROTO_CONTROL)",
-            strerror(errno));
+        msg(M_INFO | M_ERRNO, "Opening utun (socket(SYSPROTO_CONTROL))");
         return -2;
     }
 
     if (ioctl(fd, CTLIOCGINFO, &ctlInfo) == -1)
     {
         platform_close(fd);
-        msg(M_INFO, "Opening utun (%s): %s", "ioctl(CTLIOCGINFO)",
-            strerror(errno));
+        msg(M_INFO | M_ERRNO, "Opening utun (ioctl(CTLIOCGINFO))");
         return -2;
     }
 
@@ -3050,8 +3046,7 @@ utun_open_helper(struct ctl_info ctlInfo, int utunnum)
 
     if (connect(fd, (struct sockaddr *)&sc, sizeof(sc)) < 0)
     {
-        msg(M_INFO, "Opening utun (%s): %s", "connect(AF_SYS_CONTROL)",
-            strerror(errno));
+        msg(M_INFO | M_ERRNO, "Opening utun (connect(AF_SYS_CONTROL))");
         platform_close(fd);
         return -1;
     }
@@ -5005,7 +5000,7 @@ netsh_command(const struct argv *a, int n, int msglevel)
     for (i = 0; i < n; ++i)
     {
         bool status;
-        openvpn_sleep(1);
+        management_sleep(1);
         netcmd_semaphore_lock();
         argv_msg_prefix(M_INFO, a, "NETSH");
         status = openvpn_execve_check(a, NULL, 0, "ERROR: netsh command failed");
@@ -5014,7 +5009,7 @@ netsh_command(const struct argv *a, int n, int msglevel)
         {
             return;
         }
-        openvpn_sleep(4);
+        management_sleep(4);
     }
     msg(msglevel, "NETSH: command failed");
 }
@@ -5997,7 +5992,7 @@ open_tun(const char *dev, const char *dev_type, const char *dev_node, struct tun
         if (s > 0)
         {
             msg(M_INFO, "Sleeping for %d seconds...", s);
-            openvpn_sleep(s);
+            management_sleep(s);
         }
     }
 

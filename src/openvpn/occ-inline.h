@@ -31,7 +31,7 @@
  */
 
 static inline int
-occ_reset_op()
+occ_reset_op(void)
 {
     return -1;
 }

@@ -88,34 +88,6 @@ EVP_MD_CTX_new(void)
 }
 #endif
 
-#if !defined(HAVE_EVP_CIPHER_CTX_FREE)
-/**
- * Free an existing cipher context
- *
- * @param ctx                 The cipher context
- */
-static inline void
-EVP_CIPHER_CTX_free(EVP_CIPHER_CTX *c)
-{
-	free(c);
-}
-#endif
-
-#if !defined(HAVE_EVP_CIPHER_CTX_NEW)
-/**
- * Allocate a new cipher context object
- *
- * @return                    A zero'ed cipher context object
- */
-static inline EVP_CIPHER_CTX *
-EVP_CIPHER_CTX_new(void)
-{
-    EVP_CIPHER_CTX *ctx = NULL;
-    ALLOC_OBJ_CLEAR(ctx, EVP_CIPHER_CTX);
-    return ctx;
-}
-#endif
-
 #if !defined(HAVE_HMAC_CTX_RESET)
 /**
  * Reset a HMAC context
@@ -269,6 +241,20 @@ static inline RSA *
 EVP_PKEY_get0_RSA(EVP_PKEY *pkey)
 {
     return pkey ? pkey->pkey.rsa : NULL;
+}
+#endif
+
+#if !defined(HAVE_EVP_PKEY_GET0_EC_KEY) && !defined(OPENSSL_NO_EC)
+/**
+ * Get the EC_KEY object of a public key
+ *
+ * @param pkey                Public key object
+ * @return                    The underlying EC_KEY object
+ */
+static inline EC_KEY *
+EVP_PKEY_get0_EC_KEY(EVP_PKEY *pkey)
+{
+    return pkey ? pkey->pkey.ec : NULL;
 }
 #endif
 
@@ -635,6 +621,24 @@ RSA_meth_set0_app_data(RSA_METHOD *meth, void *app_data)
         return 1;
     }
     return 0;
+}
+#endif
+
+#if !defined(HAVE_EC_GROUP_ORDER_BITS) && !defined(OPENSSL_NO_EC)
+/**
+ * Gets the number of bits of the order of an EC_GROUP
+ *
+ *  @param  group               EC_GROUP object
+ *  @return                     number of bits of group order.
+ */
+static inline int
+EC_GROUP_order_bits(const EC_GROUP *group)
+{
+    BIGNUM* order = BN_new();
+    EC_GROUP_get_order(group, order, NULL);
+    int bits = BN_num_bits(order);
+    BN_free(order);
+    return bits;
 }
 #endif
 

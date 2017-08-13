@@ -68,7 +68,7 @@ static void man_output_standalone(struct management *man, volatile int *signal_r
 static void man_reset_client_socket(struct management *man, const bool exiting);
 
 static void
-man_help()
+man_help(void)
 {
     msg(M_CLIENT, "Management Interface for %s", title_string);
     msg(M_CLIENT, "Commands:");
@@ -1878,17 +1878,15 @@ man_connect(struct management *man)
 #if UNIX_SOCK_SUPPORT
         if (man->settings.flags & MF_UNIX_SOCK)
         {
-            msg(D_LINK_ERRORS,
-                "MANAGEMENT: connect to unix socket %s failed: %s",
-                sockaddr_unix_name(&man->settings.local_unix, "NULL"),
-                strerror_ts(status, &gc));
+            msg(D_LINK_ERRORS | M_ERRNO,
+                "MANAGEMENT: connect to unix socket %s failed",
+                sockaddr_unix_name(&man->settings.local_unix, "NULL"));
         }
         else
 #endif
-        msg(D_LINK_ERRORS,
-            "MANAGEMENT: connect to %s failed: %s",
-            print_sockaddr(man->settings.local->ai_addr, &gc),
-            strerror_ts(status, &gc));
+        msg(D_LINK_ERRORS | M_ERRNO,
+            "MANAGEMENT: connect to %s failed",
+            print_sockaddr(man->settings.local->ai_addr, &gc));
         throw_signal_soft(SIGTERM, "management-connect-failed");
         goto done;
     }
@@ -2008,9 +2006,8 @@ man_io_error(struct management *man, const char *prefix)
     if (!ignore_sys_error(err))
     {
         struct gc_arena gc = gc_new();
-        msg(D_MANAGEMENT, "MANAGEMENT: TCP %s error: %s",
-            prefix,
-            strerror_ts(err, &gc));
+        msg(D_MANAGEMENT, "MANAGEMENT: TCP %s error: %s", prefix,
+            strerror(err));
         gc_free(&gc);
         return true;
     }
@@ -3504,7 +3501,9 @@ management_query_user_pass(struct management *man,
          */
         if (ret)
         {
-            man->connection.up_query.nocache = up->nocache; /* preserve caller's nocache setting */
+            /* preserve caller's settings */
+            man->connection.up_query.nocache = up->nocache;
+            man->connection.up_query.wait_for_push = up->wait_for_push;
             *up = man->connection.up_query;
         }
         secure_memzero(&man->connection.up_query, sizeof(man->connection.up_query));
@@ -4000,9 +3999,25 @@ log_history_ref(const struct log_history *h, const int index)
     }
 }
 
-#else  /* ifdef ENABLE_MANAGEMENT */
-static void
-dummy(void)
+void
+management_sleep(const int n)
 {
+    if (management)
+    {
+        management_event_loop_n_seconds(management, n);
+    }
+    else
+    {
+        sleep(n);
+    }
 }
+
+#else  /* ifdef ENABLE_MANAGEMENT */
+
+void
+management_sleep(const int n)
+{
+    sleep(n);
+}
+
 #endif /* ENABLE_MANAGEMENT */

@@ -31,6 +31,7 @@
 
 #if P2MP_SERVER
 
+#include "integer.h"
 #include "list.h"
 #include "misc.h"
 

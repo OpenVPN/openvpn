@@ -3446,7 +3446,14 @@ get_default_gateway_ipv6(struct route_ipv6_gateway_info *rgi6,
         if (nh->nlmsg_type == NLMSG_ERROR)
         {
             struct nlmsgerr *ne = (struct nlmsgerr *)NLMSG_DATA(nh);
-            msg(M_WARN, "GDG6: NLSMG_ERROR: error %d\n", ne->error);
+
+            /* since linux-4.11 -ENETUNREACH is returned when no route can be
+             * found. Don't print any error message in this case */
+            if (ne->error != -ENETUNREACH)
+            {
+                msg(M_WARN, "GDG6: NLMSG_ERROR: error %s\n",
+                    strerror(-ne->error));
+            }
             break;
         }
 

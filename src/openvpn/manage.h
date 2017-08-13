@@ -605,4 +605,11 @@ management_bytes_server(struct management *man,
 #endif /* MANAGEMENT_DEF_AUTH */
 
 #endif /* ifdef ENABLE_MANAGEMENT */
+
+/**
+ * A sleep function that services the management layer for n seconds rather
+ * than doing nothing.
+ */
+void management_sleep(const int n);
+
 #endif /* ifndef MANAGE_H */

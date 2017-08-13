@@ -159,7 +159,7 @@ print_cipher(const cipher_kt_t *info)
 }
 
 void
-show_available_ciphers()
+show_available_ciphers(void)
 {
     const int *ciphers = mbedtls_cipher_list();
 
@@ -196,7 +196,7 @@ show_available_ciphers()
 }
 
 void
-show_available_digests()
+show_available_digests(void)
 {
     const int *digests = mbedtls_md_list();
 
@@ -223,7 +223,7 @@ show_available_digests()
 }
 
 void
-show_available_engines()
+show_available_engines(void)
 {
     printf("Sorry, mbed TLS hardware crypto engine functionality is not "
            "available\n");
@@ -243,7 +243,7 @@ show_available_engines()
  * entropy gathering function.
  */
 mbedtls_ctr_drbg_context *
-rand_ctx_get()
+rand_ctx_get(void)
 {
     static mbedtls_entropy_context ec = {0};
     static mbedtls_ctr_drbg_context cd_ctx = {0};
@@ -280,7 +280,7 @@ rand_ctx_get()
 
 #ifdef ENABLE_PREDICTION_RESISTANCE
 void
-rand_ctx_enable_prediction_resistance()
+rand_ctx_enable_prediction_resistance(void)
 {
     mbedtls_ctr_drbg_context *cd_ctx = rand_ctx_get();
 
@@ -523,7 +523,7 @@ cipher_ctx_free(mbedtls_cipher_context_t *ctx)
 }
 
 void
-cipher_ctx_init(mbedtls_cipher_context_t *ctx, uint8_t *key, int key_len,
+cipher_ctx_init(mbedtls_cipher_context_t *ctx, const uint8_t *key, int key_len,
                 const mbedtls_cipher_info_t *kt, const mbedtls_operation_t operation)
 {
     ASSERT(NULL != kt && NULL != ctx);
@@ -597,7 +597,7 @@ cipher_ctx_get_cipher_kt(const cipher_ctx_t *ctx)
 }
 
 int
-cipher_ctx_reset(mbedtls_cipher_context_t *ctx, uint8_t *iv_buf)
+cipher_ctx_reset(mbedtls_cipher_context_t *ctx, const uint8_t *iv_buf)
 {
     if (!mbed_ok(mbedtls_cipher_reset(ctx)))
     {

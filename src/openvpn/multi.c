@@ -2356,7 +2356,7 @@ multi_process_post(struct multi_context *m, struct multi_instance *mi, const uns
             }
             else
             {
-                msg(M_NONFATAL, "MULTI: inotify_add_watch error: %s", strerror(errno));
+                msg(M_NONFATAL | M_ERRNO, "MULTI: inotify_add_watch error");
             }
         }
 #endif

@@ -1235,7 +1235,7 @@ set_win_sys_path_via_env(struct env_set *es)
 
 
 const char *
-win_get_tempdir()
+win_get_tempdir(void)
 {
     static char tmpdir[MAX_PATH];
     WCHAR wtmpdir[MAX_PATH];
@@ -1398,7 +1398,7 @@ win_wfp_uninit(const NET_IFINDEX index, const HANDLE msg_channel)
 }
 
 int
-win32_version_info()
+win32_version_info(void)
 {
     if (!IsWindowsXPOrGreater())
     {
@@ -1426,7 +1426,7 @@ win32_version_info()
 }
 
 bool
-win32_is_64bit()
+win32_is_64bit(void)
 {
 #if defined(_WIN64)
     return true;  /* 64-bit programs run only on Win64 */

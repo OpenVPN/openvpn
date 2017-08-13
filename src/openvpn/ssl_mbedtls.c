@@ -63,17 +63,17 @@
 #include <mbedtls/sha256.h>
 
 void
-tls_init_lib()
+tls_init_lib(void)
 {
 }
 
 void
-tls_free_lib()
+tls_free_lib(void)
 {
 }
 
 void
-tls_clear_error()
+tls_clear_error(void)
 {
 }
 

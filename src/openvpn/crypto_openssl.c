@@ -280,7 +280,7 @@ print_cipher(const EVP_CIPHER *cipher)
 }
 
 void
-show_available_ciphers()
+show_available_ciphers(void)
 {
     int nid;
     size_t i;
@@ -339,7 +339,7 @@ show_available_ciphers()
 }
 
 void
-show_available_digests()
+show_available_digests(void)
 {
     int nid;
 
@@ -364,7 +364,7 @@ show_available_digests()
 }
 
 void
-show_available_engines()
+show_available_engines(void)
 {
 #if HAVE_OPENSSL_ENGINE /* Only defined for OpenSSL */
     ENGINE *e;
@@ -665,7 +665,7 @@ cipher_ctx_free(EVP_CIPHER_CTX *ctx)
 }
 
 void
-cipher_ctx_init(EVP_CIPHER_CTX *ctx, uint8_t *key, int key_len,
+cipher_ctx_init(EVP_CIPHER_CTX *ctx, const uint8_t *key, int key_len,
                 const EVP_CIPHER *kt, int enc)
 {
     ASSERT(NULL != kt && NULL != ctx);
@@ -732,7 +732,7 @@ cipher_ctx_get_cipher_kt(const cipher_ctx_t *ctx)
 
 
 int
-cipher_ctx_reset(EVP_CIPHER_CTX *ctx, uint8_t *iv_buf)
+cipher_ctx_reset(EVP_CIPHER_CTX *ctx, const uint8_t *iv_buf)
 {
     return EVP_CipherInit_ex(ctx, NULL, NULL, NULL, iv_buf, -1);
 }
