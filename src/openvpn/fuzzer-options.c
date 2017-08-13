@@ -6,6 +6,11 @@
 #include "ssl_backend.h"
 #include "ssl.h"
 
+/* Start of serialization of struct options.
+ * This is necessary to test whether the data structure contains
+ * any uninitialized data. If it does, MemorySanitizer will detect
+ * it upon serialization */
+
 static void serialize_options(struct options* o)
 {
     test_undefined_memory(&o->gc_owned, sizeof(o->gc_owned));
@@ -340,10 +345,14 @@ static void serialize_options(struct options* o)
 #endif
     test_undefined_memory(&o->allow_recursive_routing, sizeof(o->allow_recursive_routing));
 }
+
+/* End of serialization of struct options */
+
 int LLVMFuzzerInitialize(int *argc, char ***argv)
 {
     return 1;
 }
+
 int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
 {
     struct gc_arena gc;
@@ -353,20 +362,41 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
     char* config;
     unsigned int permission_mask, option_types_found;
 
+    /* options_string_import() requires 2 variable data elements:
+     *     unsigned int permission_mask;
+     *     a null-terminated string that the function will parse
+     *
+     * So we make sure this amount of data is available. The 512 bytes
+     * for the config string is arbitrary.
+     */
     if ( size < sizeof(permission_mask) + 512 )
     {
         return 0;
     }
+
+    /* Set unsigned int permission_mask */
     memcpy(&permission_mask, data, sizeof(permission_mask));
     data += sizeof(permission_mask);
     size -= sizeof(permission_mask);
 
+    /* Set char* config */
     config = malloc(512+1);
     memcpy(config, data, 512);
     config[512] = 0;
 
     data += 512;
     size -= 512;
+
+    /* The remaining input data is set to be consumed by internal IO
+     * functions, which we intercept in fuzzing mode.
+     *
+     * For example, a config string containing the directive:
+     *    config <filename>
+     *
+     * Normally, this causes "filename" to be opened, and data read from it.
+     * But in fuzzing mode, all IO is intercepted. So instead of reading from
+     * the file, data is read from the fuzzer input buffer.
+     */
 
     fuzzer_set_input((unsigned char*)data, size);
 
