@@ -18,7 +18,7 @@
 #include "ssl_verify.h"
 #include "ssl_verify_backend.h"
 
-#define SUBBUFFER_SIZE 256
+#define SUBBUFFER_SIZE 2048
 
 int LLVMFuzzerInitialize(int *argc, char ***argv)
 {
@@ -214,7 +214,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
 
     gc = gc_new();
 
-    fuzzer_set_input((unsigned char*)data, size);
+    fuzzer_set_input((unsigned char*)data, SUBBUFFER_SIZE);
 
     data += SUBBUFFER_SIZE;
     size -= SUBBUFFER_SIZE;
