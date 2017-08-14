@@ -227,8 +227,7 @@ x509_print_info(X509 *x509crt)
         {
             continue;
         }
-        buf = (unsigned char *)1; /* bug in OpenSSL 0.9.6b ASN1_STRING_to_UTF8 requires this workaround */
-        if (ASN1_STRING_to_UTF8(&buf, val) <= 0)
+        if (ASN1_STRING_to_UTF8(&buf, val) < 0)
         {
             continue;
         }

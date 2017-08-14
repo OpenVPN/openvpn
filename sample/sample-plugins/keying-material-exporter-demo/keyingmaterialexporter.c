@@ -142,9 +142,8 @@ session_user_set(struct session *sess, X509 *x509)
         {
             continue;
         }
-        /* bug in OpenSSL 0.9.6b ASN1_STRING_to_UTF8 requires this workaround */
-        unsigned char *buf = (unsigned char *)1;
-        if (ASN1_STRING_to_UTF8(&buf, val) <= 0)
+        unsigned char *buf = NULL;
+        if (ASN1_STRING_to_UTF8(&buf, val) < 0)
         {
             continue;
         }
