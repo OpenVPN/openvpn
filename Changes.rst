@@ -164,25 +164,26 @@ Deprecated features
 For an up-to-date list of all deprecated options, see this wiki page:
 https://community.openvpn.net/openvpn/wiki/DeprecatedOptions
 
-- ``--key-method 1`` is deprecated in 2.4 and will be removed in 2.5.  Migrate
-  away from ``--key-method 1`` as soon as possible.  The recommended approach
-  is to remove the ``--key-method`` option from the configuration files, OpenVPN
-  will then use ``--key-method 2`` by default.  Note that this requires changing
-  the option in both the client and server side configs.
+- ``--key-method 1`` is deprecated in OpenVPN 2.4 and will be removed in v2.5.
+  Migrate away from ``--key-method 1`` as soon as possible.  The recommended
+  approach is to remove the ``--key-method`` option from the configuration
+  files, OpenVPN will then use ``--key-method 2`` by default.  Note that this
+  requires changing the option in both the client and server side configs.
 
-- ``--tls-remote`` is removed in 2.4, as indicated in the 2.3 man-pages.  Similar
-  functionality is provided via ``--verify-x509-name``, which does the same job in
-  a better way.
+- ``--tls-remote`` is removed in OpenVPN 2.4, as indicated in the v2.3
+  man-pages.  Similar functionality is provided via ``--verify-x509-name``,
+  which does the same job in a better way.
 
-- ``--compat-names`` and ``--no-name-remapping`` were deprecated in 2.3 and will
-  be removed in 2.5.  All scripts and plug-ins depending on the old non-standard
-  X.509 subject formatting must be updated to the standardized formatting.  See
-  the man page for more information.
+- ``--compat-names`` and ``--no-name-remapping`` were deprecated in OpenVPN 2.3
+  and will be removed in v2.5.  All scripts and plug-ins depending on the old
+  non-standard X.509 subject formatting must be updated to the standardized
+  formatting.  See the man page for more information.
 
-- ``--no-iv`` is deprecated in 2.4 and will be removed in 2.5.
+- ``--no-iv`` is deprecated in OpenVPN 2.4 and will be removed in v2.5.
 
-- ``--keysize`` is deprecated and will be removed in v2.6 together
-  with the support of ciphers with cipher block size less than 128 bits.
+- ``--keysize`` is deprecated in OpenVPN 2.4 and will be removed in v2.6
+  together with the support of ciphers with cipher block size less than
+  128-bits.
 
 - ``--comp-lzo`` is deprecated in OpenVPN 2.4.  Use ``--compress`` instead.
 
@@ -317,7 +318,7 @@ Maintainer-visible changes
   files instead of older ones, to provide a unified behaviour across systemd
   based Linux distributions.
 
-- With OpenVPN v2.4, the project has moved over to depend on and actively use
+- With OpenVPN 2.4, the project has moved over to depend on and actively use
   the official C99 standard (-std=c99).  This may fail on some older compiler/libc
   header combinations.  In most of these situations it is recommended to
   use -std=gnu99 in CFLAGS.  This is known to be needed when doing
@@ -348,7 +349,7 @@ New features
 Security
 --------
 - CVE-2017-7522: Fix ``--x509-track`` post-authentication remote DoS
-  A client could crash a 2.4+ mbedtls server, if that server uses the
+  A client could crash a v2.4+ mbedtls server, if that server uses the
   ``--x509-track`` option and the client has a correct, signed and unrevoked
   certificate that contains an embedded NUL in the certificate subject.
   Discovered and reported to the OpenVPN security team by Guido Vranken.
@@ -405,7 +406,7 @@ User-visible Changes
 Bugfixes
 --------
 - Fix fingerprint calculation in mbed TLS builds.  This means that mbed TLS users
-  of OpenVPN 2.4.0, 2.4.1 and 2.4.2 that rely on the values of the
+  of OpenVPN 2.4.0, v2.4.1 and v2.4.2 that rely on the values of the
   ``tls_digest_*`` env vars, or that use ``--verify-hash`` will have to change
   the fingerprint values they check against.  The security impact of the
   incorrect calculation is very minimal; the last few bytes (max 4, typically
@@ -434,16 +435,18 @@ Version 2.4.2
 
 Bugfixes
 --------
-- Fix memory leak introduced in 2.4.1: if --remote-cert-tls is used, we leaked
-  some memory on each TLS (re)negotiation.
+- Fix memory leak introduced in OpenVPN 2.4.1: if ``--remote-cert-tls`` is
+  used, we leaked some memory on each TLS (re)negotiation.
+
 
 Security
 --------
-- Fix a pre-authentication denial-of-service attack on both clients and servers.
-  By sending a too-large control packet, OpenVPN 2.4.0 or 2.4.1 can be forced
-  to hit an ASSERT() and stop the process.  If ``--tls-auth`` or ``--tls-crypt``
-  is used, only attackers that have the ``--tls-auth`` or ``--tls-crypt`` key
-  can mount an attack. (OSTIF/Quarkslab audit finding 5.1, CVE-2017-7478)
+- Fix a pre-authentication denial-of-service attack on both clients and
+  servers.  By sending a too-large control packet, OpenVPN 2.4.0 or v2.4.1 can
+  be forced to hit an ASSERT() and stop the process.  If ``--tls-auth`` or
+  ``--tls-crypt`` is used, only attackers that have the ``--tls-auth`` or
+  ``--tls-crypt`` key can mount an attack.
+  (OSTIF/Quarkslab audit finding 5.1, CVE-2017-7478)
 
 - Fix an authenticated remote DoS vulnerability that could be triggered by
   causing a packet id roll over.  An attack is rather inefficient; a peer
