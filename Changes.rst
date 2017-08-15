@@ -161,6 +161,9 @@ Asynchronous push reply
 
 Deprecated features
 -------------------
+For an up-to-date list of all deprecated options, see this wiki page:
+https://community.openvpn.net/openvpn/wiki/DeprecatedOptions
+
 - ``--key-method 1`` is deprecated in 2.4 and will be removed in 2.5.  Migrate
   away from ``--key-method 1`` as soon as possible.  The recommended approach
   is to remove the ``--key-method`` option from the configuration files, OpenVPN
@@ -180,6 +183,18 @@ Deprecated features
 
 - ``--keysize`` is deprecated and will be removed in v2.6 together
   with the support of ciphers with cipher block size less than 128 bits.
+
+- ``--comp-lzo`` is deprecated in OpenVPN 2.4.  Use ``--compress`` instead.
+
+- ``--ifconfig-pool-linear`` has been deprecated since OpenVPN 2.1 and will be
+  removed in v2.5.  Use ``--topology p2p`` instead.
+
+- ``--client-cert-not-required`` is deprecated in OpenVPN 2.4 and will be removed
+  in v2.5.  Use ``--verify-client-cert none`` for a functional equivalent.
+
+- ``--ns-cert-type`` is deprecated in OpenVPN 2.3.18 and v2.4.  It will be removed
+  in v2.5.  Use the far better ``--remote-cert-tls`` option which replaces this
+  feature.
 
 
 User-visible Changes
