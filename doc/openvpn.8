@@ -769,7 +769,8 @@ Only use
 when none of the connecting clients are Windows systems.  This mode
 is functionally equivalent to the
 .B \-\-ifconfig\-pool\-linear
-directive which is available in OpenVPN 2.0 and is now deprecated.
+directive which is available in OpenVPN 2.0, is deprecated and will be
+removed in OpenVPN 2.5
 
 .B subnet \-\-
 Use a subnet rather than a point-to-point topology by
@@ -2485,14 +2486,16 @@ setting to be pushed later.
 .\"*********************************************************
 .TP
 .B \-\-comp\-lzo [mode]
+.B DEPRECATED
+This option will be removed in a future OpenVPN release.  Use the
+newer
+.B \-\-compress
+instead.
+
 Use LZO compression -- may add up to 1 byte per
 packet for incompressible data.
 .B mode
 may be "yes", "no", or "adaptive" (default).
-
-This option is deprecated in favor of the newer
-.B --compress
-option.
 
 In a server mode setup, it is possible to selectively turn
 compression on or off for individual clients.
@@ -3107,9 +3110,13 @@ a common name and IP address.  They do not guarantee that the given common
 name will always receive the given IP address.  If you want guaranteed
 assignment, use
 .B \-\-ifconfig\-push
+
 .\"*********************************************************
 .TP
 .B \-\-ifconfig\-pool\-linear
+.B DEPRECATED
+This option will be removed in OpenVPN 2.5
+
 Modifies the
 .B \-\-ifconfig\-pool
 directive to
@@ -3672,15 +3679,16 @@ to empty strings ("").  The authentication module/script MUST have logic
 to detect this condition and respond accordingly.
 .\"*********************************************************
 .TP
-.B \-\-client\-cert\-not\-required (DEPRECATED)
+.B \-\-client\-cert\-not\-required
+.B DEPRECATED
+This option will be removed in OpenVPN 2.5
+
 Don't require client certificate, client will authenticate
 using username/password only.  Be aware that using this directive
 is less secure than requiring certificates from all clients.
 
-
 .B Please note:
-This option is now deprecated and will be removed in OpenVPN v2.5.
-It is replaced by
+This is replaced by
 .B \-\-verify\-client\-cert
 which allows for more flexibility. The option
 .B \-\-verify\-client\-cert none
@@ -3745,7 +3753,10 @@ the authenticated username as the common name,
 rather than the common name from the client cert.
 .\"*********************************************************
 .TP
-.B \-\-compat\-names [no\-remapping] (DEPRECATED)
+.B \-\-compat\-names [no\-remapping]
+.B DEPRECATED
+This option will be removed in OpenVPN 2.5
+
 Until OpenVPN v2.3 the format of the X.509 Subject fields was formatted
 like this:
 .IP
@@ -3793,7 +3804,10 @@ to make the transition to the new formatting less intrusive.  It will be
 removed in OpenVPN v2.5.  So please update your scripts/plug-ins where necessary.
 .\"*********************************************************
 .TP
-.B \-\-no\-name\-remapping (DEPRECATED)
+.B \-\-no\-name\-remapping
+.B DEPRECATED
+This option will be removed in OpenVPN 2.5
+
 The
 .B \-\-no\-name\-remapping
 option is an alias for
@@ -4151,13 +4165,29 @@ For more information on HMAC see
 .B \-\-cipher alg
 Encrypt data channel packets with cipher algorithm
 .B alg.
+
 The default is
 .B BF-CBC,
-an abbreviation for Blowfish in Cipher Block Chaining mode.
+an abbreviation for Blowfish in Cipher Block Chaining mode.  When cipher
+negotiation (NCP) is allowed, OpenVPN 2.4 and newer on both client and server
+side will automatically upgrade to
+.B AES-256-GCM.
+See
+.B \-\-ncp\-ciphers
+and
+.B \-\-ncp\-disable
+for more details on NCP.
 
-Using BF-CBC is no longer recommended, because of it's 64-bit block size.  This
+Using
+.B BF-CBC
+is no longer recommended, because of its 64-bit block size.  This
 small block size allows attacks based on collisions, as demonstrated by SWEET32.
-See https://community.openvpn.net/openvpn/wiki/SWEET32 for details.
+See https://community.openvpn.net/openvpn/wiki/SWEET32 for details.  Due to
+this, support for
+.B BF-CBC, DES, CAST5, IDEA
+and
+.B RC2
+ciphers will be removed in OpenVPN 2.6.
 
 To see other ciphers that are available with OpenVPN, use the
 .B \-\-show\-ciphers
@@ -4166,14 +4196,6 @@ option.
 Set
 .B alg=none
 to disable encryption.
-
-As of OpenVPN 2.4, cipher negotiation (NCP) can override the cipher specified by
-.B \-\-cipher\fR.
-See
-.B \-\-ncp\-ciphers
-and
-.B \-\-ncp\-disable
-for more on NCP.
 
 .\"*********************************************************
 .TP
@@ -4427,7 +4449,6 @@ This option only makes sense when replay protection is enabled
 .\"*********************************************************
 .TP
 .B \-\-no\-iv
-
 .B DEPRECATED
 This option will be removed in OpenVPN 2.5.
 
@@ -4827,6 +4848,9 @@ Certificate Store GUI.
 .\"*********************************************************
 .TP
 .B \-\-key\-method m
+.B DEPRECATED
+This option will be removed in OpenVPN 2.5
+
 Use data channel key negotiation method
 .B m.
 The key method must match on both sides of the connection.
@@ -5383,8 +5407,9 @@ as X509_<depth>_<attribute>=<value>.  Multiple
 options can be defined to track multiple attributes.
 .\"*********************************************************
 .TP
-.B \-\-ns\-cert\-type client|server (DEPRECATED)
-This option is deprecated.  Use the more modern equivalent
+.B \-\-ns\-cert\-type client|server
+.B DEPRECATED
+This option will be removed in OpenVPN 2.5.  Use the more modern equivalent
 .B \-\-remote\-cert\-tls
 instead.  This option will be removed in OpenVPN 2.5.
 
