@@ -6187,7 +6187,7 @@ add_option(struct options *options,
     else if (streq(p[0], "max-routes") && !p[2])
     {
         msg(M_WARN, "DEPRECATED OPTION: --max-routes option ignored."
-            "The number of routes is unlimited as of version 2.4. "
+            "The number of routes is unlimited as of OpenVPN 2.4. "
             "This option will be removed in a future version, "
             "please remove it from your configuration.");
     }
@@ -7018,7 +7018,7 @@ add_option(struct options *options,
         VERIFY_PERMISSION(OPT_P_GENERAL);
         if (streq(p[1], "env"))
         {
-            msg(M_INFO, "NOTE: --win-sys env is default from OpenVPN v2.3.	 "
+            msg(M_INFO, "NOTE: --win-sys env is default from OpenVPN 2.3.	 "
                 "This entry will now be ignored.  "
                 "Please remove this entry from your configuration file.");
         }
@@ -7864,7 +7864,7 @@ add_option(struct options *options,
             msg(msglevel, "you cannot use --compat-names with --verify-x509-name");
             goto err;
         }
-        msg(M_WARN, "DEPRECATED OPTION: --compat-names, please update your configuration. This will be removed in OpenVPN v2.5.");
+        msg(M_WARN, "DEPRECATED OPTION: --compat-names, please update your configuration. This will be removed in OpenVPN 2.5.");
         compat_flag(COMPAT_FLAG_SET | COMPAT_NAMES);
 #if P2MP_SERVER
         if (p[1] && streq(p[1], "no-remapping"))
@@ -7880,7 +7880,7 @@ add_option(struct options *options,
             msg(msglevel, "you cannot use --no-name-remapping with --verify-x509-name");
             goto err;
         }
-        msg(M_WARN, "DEPRECATED OPTION: --no-name-remapping, please update your configuration. This will be removed in OpenVPN v2.5.");
+        msg(M_WARN, "DEPRECATED OPTION: --no-name-remapping, please update your configuration. This will be removed in OpenVPN 2.5.");
         compat_flag(COMPAT_FLAG_SET | COMPAT_NAMES);
         compat_flag(COMPAT_FLAG_SET | COMPAT_NO_NAME_REMAPPING);
 #endif
