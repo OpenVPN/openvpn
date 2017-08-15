@@ -51,23 +51,6 @@ struct env_set {
     struct env_item *list;
 };
 
-void run_up_down(const char *command,
-                 const struct plugin_list *plugins,
-                 int plugin_type,
-                 const char *arg,
-#ifdef _WIN32
-                 DWORD adapter_index,
-#endif
-                 const char *dev_type,
-                 int tun_mtu,
-                 int link_mtu,
-                 const char *ifconfig_local,
-                 const char *ifconfig_remote,
-                 const char *context,
-                 const char *signal_text,
-                 const char *script_type,
-                 struct env_set *es);
-
 /* system flags */
 #define S_SCRIPT (1<<0)
 #define S_FATAL  (1<<1)
