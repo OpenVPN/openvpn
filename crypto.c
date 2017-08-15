@@ -1442,13 +1442,14 @@ read_key (struct key *key, const struct key_type *kt, struct buffer *buf)
   if (!buf_read (buf, &hmac_length, 1))
     goto read_err;
 
+  if (cipher_length != kt->cipher_length || hmac_length != kt->hmac_length)
+    goto key_len_err;
+
   if (!buf_read (buf, key->cipher, cipher_length))
     goto read_err;
   if (!buf_read (buf, key->hmac, hmac_length))
     goto read_err;
 
-  if (cipher_length != kt->cipher_length || hmac_length != kt->hmac_length)
-    goto key_len_err;
 
   return 1;
 
