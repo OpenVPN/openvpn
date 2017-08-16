@@ -1534,7 +1534,7 @@ read_control_auth(struct buffer *buf,
     }
     else if (ctx->mode == TLS_WRAP_CRYPT)
     {
-        struct buffer tmp = alloc_buf(buf_forward_capacity_total(buf));
+        struct buffer tmp = alloc_buf_gc(buf_forward_capacity_total(buf), &gc);
         if (!tls_crypt_unwrap(buf, &tmp, &ctx->opt))
         {
             msg(D_TLS_ERRORS, "TLS Error: tls-crypt unwrapping failed from %s",
@@ -1543,7 +1543,7 @@ read_control_auth(struct buffer *buf,
         }
         ASSERT(buf_init(buf, buf->offset));
         ASSERT(buf_copy(buf, &tmp));
-        free_buf(&tmp);
+        buf_clear(&tmp);
     }
 
     if (ctx->mode == TLS_WRAP_NONE || ctx->mode == TLS_WRAP_AUTH)
