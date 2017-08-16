@@ -302,7 +302,21 @@ ntlm_phase_3(const struct http_proxy_info *p, const char *phase_2,
         /* Add target information block to the blob */
 
         /* Check for Target Information block */
-        if ((*((long *)&buf2[0x14]) & 0x00800000) == 0x00800000)
+        /* The NTLM spec instructs to interpret these 4 consecutive bytes as a
+         * 32bit long integer. However, no endianness is specified.
+         * The code here and that found in other NTLM implementations point
+         * towards the assumption that the byte order on the wire has to
+         * match the order on the sending and receiving hosts. Probably NTLM has
+         * been thought to be always running on x86_64/i386 machine thus
+         * implying Little-Endian everywhere.
+         *
+         * This said, in case of future changes, we should keep in mind that the
+         * byte order on the wire for the NTLM header is LE.
+         */
+        const size_t hoff = 0x14;
+        unsigned long flags = buf2[hoff] | (buf2[hoff + 1] << 8) |
+                              (buf2[hoff + 2] << 16) | (buf2[hoff + 3] << 24);
+        if ((flags & 0x00800000) == 0x00800000)
         {
             tib_len = buf2[0x28];            /* Get Target Information block size */
             if (tib_len > 96)
