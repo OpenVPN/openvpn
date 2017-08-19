@@ -91,7 +91,7 @@ struct gc_entry
 };
 
 /**
- * Gargabe collection entry for a specially allocated structure that needs
+ * Garbage collection entry for a specially allocated structure that needs
  * a custom free function to be freed like struct addrinfo
  *
  */
