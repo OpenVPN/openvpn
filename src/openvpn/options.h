@@ -181,7 +181,7 @@ struct options
 
     /* enable forward compatibility for post-2.1 features */
     bool forward_compatible;
-    /* list of options that should be ignored even if unkown */
+    /* list of options that should be ignored even if unknown */
     const char **ignore_unknown_option;
 
     /* persist parms */

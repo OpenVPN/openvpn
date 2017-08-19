@@ -26,7 +26,7 @@
 #ifndef OPENVPN_BLOCK_DNS_H
 #define OPENVPN_BLOCK_DNS_H
 
-/* Any value less than 5 should work fine. 3 is choosen without any real reason. */
+/* Any value less than 5 should work fine. 3 is chosen without any real reason. */
 #define BLOCK_DNS_IFACE_METRIC 3
 
 typedef void (*block_dns_msg_handler_t) (DWORD err, const char *msg);

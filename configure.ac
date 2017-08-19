@@ -230,7 +230,7 @@ AC_ARG_ENABLE(
 
 AC_ARG_ENABLE(
 	[werror],
-	[AS_HELP_STRING([--enable-werror], [promote compiler warnings to errors, will cause builds to fail is the compiler issues warnings (debugging option) @<:@default=no@:>@])],
+	[AS_HELP_STRING([--enable-werror], [promote compiler warnings to errors, will cause builds to fail if the compiler issues warnings (debugging option) @<:@default=no@:>@])],
 	,
 	[enable_werror="no"]
 )
