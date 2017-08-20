@@ -45,15 +45,6 @@ matrix:
     - env: SSLLIB="mbedtls"
       os: linux
       compiler: clang
-    - env: SSLLIB="openssl" EXTRA_CONFIG="--disable-crypto" EXTRA_SCRIPT="make distcheck"
-      os: linux
-      compiler: clang
-    - env: SSLLIB="openssl" EXTRA_CONFIG="--disable-lzo"
-      os: linux
-      compiler: clang
-    - env: SSLLIB="openssl" EXTRA_CONFIG="--enable-small"
-      os: linux
-      compiler: clang
     - env: SSLLIB="openssl"
       os: osx
       osx_image: xcode7.3
@@ -68,6 +59,15 @@ matrix:
     - env: SSLLIB="openssl" CHOST=i686-w64-mingw32
       os: linux
       compiler: ": Win32 build only"
+    - env: SSLLIB="openssl" EXTRA_CONFIG="--disable-crypto" EXTRA_SCRIPT="make distcheck"
+      os: linux
+      compiler: clang
+    - env: SSLLIB="openssl" EXTRA_CONFIG="--disable-lzo"
+      os: linux
+      compiler: clang
+    - env: SSLLIB="openssl" EXTRA_CONFIG="--enable-small"
+      os: linux
+      compiler: clang
   exclude:
     - compiler: gcc
 
