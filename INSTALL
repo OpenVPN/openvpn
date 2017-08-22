@@ -75,8 +75,8 @@ REQUIRES:
 OPTIONAL (but recommended):
   (1) OpenSSL library, necessary for encryption, version 0.9.8 or higher
       required, available from http://www.openssl.org/
-  (2) PolarSSL library, an alternative for encryption, version 1.1 or higher
-      required, available from https://polarssl.org/
+  (2) mbed TLS library, an alternative for encryption, version 2.0 or higher
+      required, available from https://tls.mbed.org/
   (3) LZO real-time compression library, required for link compression,
       available from http://www.oberhumer.com/opensource/lzo/
       OpenBSD users can use ports or packages to install lzo, but remember

@@ -1,18 +1,18 @@
-This version of OpenVPN has PolarSSL support. To enable follow the following
+This version of OpenVPN has mbed TLS support. To enable follow the following
 instructions:
 
 To Build and Install,
 
-	./configure --with-crypto-library=polarssl
+	./configure --with-crypto-library=mbedtls
 	make
 	make install
 
-This version depends on PolarSSL 1.3 (and requires at least 1.3.3).
+This version depends on mbed TLS 2.0 (and requires at least 2.0.0).
 
 *************************************************************************
 
-Due to limitations in the PolarSSL library, the following features are missing
-in the PolarSSL version of OpenVPN:
+Due to limitations in the mbed TLS library, the following features are missing
+in the mbed TLS version of OpenVPN:
 
  * PKCS#12 file support
  * --capath support - Loading certificate authorities from a directory

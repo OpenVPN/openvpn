@@ -4473,7 +4473,7 @@ datagram replay protection as the IV.
 .\"*********************************************************
 .TP
 .B \-\-use\-prediction\-resistance
-Enable prediction resistance on PolarSSL's RNG.
+Enable prediction resistance on mbed TLS's RNG.
 
 Enabling prediction resistance causes the RNG to reseed in each
 call for random. Reseeding this often can quickly deplete the kernel
@@ -4482,8 +4482,6 @@ entropy pool.
 If you need this option, please consider running a daemon that adds
 entropy to the kernel pool.
 
-Note that this option only works with PolarSSL versions greater
-than 1.1.
 .\"*********************************************************
 .TP
 .B \-\-test\-crypto
@@ -4584,7 +4582,7 @@ they are distributed with OpenVPN, they are totally insecure.
 .TP
 .B \-\-capath dir
 Directory containing trusted certificates (CAs and CRLs).
-Not available with PolarSSL.
+Not available with mbed TLS.
 
 When using the
 .B \-\-capath
@@ -4613,7 +4611,7 @@ Set
 .B file=none
 to disable Diffie Hellman key exchange (and use ECDH only). Note that this
 requires peers to be using an SSL library that supports ECDH TLS cipher suites
-(e.g. OpenSSL 1.0.1+, or PolarSSL 1.3+).
+(e.g. OpenSSL 1.0.1+, or mbed TLS 2.0+).
 
 Use
 .B openssl dhparam \-out dh2048.pem 2048
@@ -4718,7 +4716,7 @@ This option can be used instead of
 .B \-\-ca, \-\-cert,
 and
 .B \-\-key.
-Not available with PolarSSL.
+Not available with mbed TLS.
 .\"*********************************************************
 .TP
 .B \-\-verify\-hash hash [algo]
@@ -4901,7 +4899,7 @@ channel, over which the keys that are used to protect the actual VPN traffic
 are exchanged.
 
 The supplied list of ciphers is (after potential OpenSSL/IANA name translation)
-simply supplied to the crypto library.  Please see the OpenSSL and/or PolarSSL
+simply supplied to the crypto library.  Please see the OpenSSL and/or mbed TLS
 documentation for details on the cipher list interpretation.
 
 Use
@@ -4914,8 +4912,8 @@ is an expert feature, which \- if used correcly \- can improve the security of
 your VPN connection.  But it is also easy to unwittingly use it to carefully
 align a gun with your foot, or just break your connection.  Use with care!
 
-The default for \-\-tls\-cipher is to use PolarSSL's default cipher list
-when using PolarSSL or
+The default for \-\-tls\-cipher is to use mbed TLS's default cipher list
+when using mbed TLS or
 "DEFAULT:!EXP:!LOW:!MEDIUM:!kDH:!kECDH:!DSS:!PSK:!SRP:!kRSA" when using
 OpenSSL.
 .\"*********************************************************
