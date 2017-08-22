@@ -68,5 +68,5 @@
  *
  * @par Crypto algorithms
  * This module uses the crypto algorithm implementations of the external
- * crypto library (currently either OpenSSL (default), or PolarSSL).
+ * crypto library (currently either OpenSSL (default), or mbed TLS).
  */
