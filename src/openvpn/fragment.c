@@ -208,7 +208,7 @@ fragment_incoming(struct fragment_master *f, struct buffer *buf,
             }
 
             /* is this the first fragment for our sequence number? */
-            if (!frag->defined || (frag->defined && frag->max_frag_size != size))
+            if (!frag->defined || frag->max_frag_size != size)
             {
                 frag->defined = true;
                 frag->max_frag_size = size;
