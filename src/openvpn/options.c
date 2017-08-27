@@ -3027,6 +3027,13 @@ options_postprocess_mutate(struct options *o)
             o->dh_file = NULL;
         }
     }
+    else if (o->dh_file)
+    {
+        /* DH file is only meaningful in a tls-server context. */
+        msg(M_WARN, "WARNING: Ignoring option 'dh' in tls-client mode, please only "
+                    "include this in your server configuration");
+        o->dh_file = NULL;
+    }
 
     /* cipher negotiation (NCP) currently assumes --pull or --mode server */
     if (o->ncp_enabled
