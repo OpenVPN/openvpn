@@ -426,13 +426,22 @@ verify_peer_cert(const struct tls_options *opt, openvpn_x509_cert_t *peer_cert,
     /* verify X509 name or username against --verify-x509-[user]name */
     if (opt->verify_x509_type != VERIFY_X509_NONE)
     {
-        if ( (opt->verify_x509_type == VERIFY_X509_SUBJECT_DN
-              && strcmp(opt->verify_x509_name, subject) == 0)
-             || (opt->verify_x509_type == VERIFY_X509_SUBJECT_RDN
-                 && strcmp(opt->verify_x509_name, common_name) == 0)
-             || (opt->verify_x509_type == VERIFY_X509_SUBJECT_RDN_PREFIX
-                 && strncmp(opt->verify_x509_name, common_name,
-                            strlen(opt->verify_x509_name)) == 0) )
+        bool verified = false;
+        switch (opt->verify_x509_type)
+        {
+        case VERIFY_X509_SUBJECT_DN:
+            verified = (strcmp(opt->verify_x509_name, subject) == 0);
+            break;
+        case VERIFY_X509_SUBJECT_RDN:
+            verified = (strcmp(opt->verify_x509_name, common_name) == 0);
+            break;
+        case VERIFY_X509_SUBJECT_RDN_PREFIX:
+            verified = (strncmp(opt->verify_x509_name, common_name,
+                strlen(opt->verify_x509_name)) == 0);
+            break;
+        }
+
+        if (verified)
         {
             msg(D_HANDSHAKE, "VERIFY X509NAME OK: %s", subject);
         }
