@@ -7909,6 +7909,10 @@ add_option(struct options *options,
             {
                 type = VERIFY_X509_SUBJECT_RDN_PREFIX;
             }
+            else if (streq(p[2], "subject-prefix"))
+            {
+                type = VERIFY_X509_SUBJECT_DN_PREFIX;
+            }
             else
             {
                 msg(msglevel, "unknown X.509 name type: %s", p[2]);

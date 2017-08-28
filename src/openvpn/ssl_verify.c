@@ -439,6 +439,10 @@ verify_peer_cert(const struct tls_options *opt, openvpn_x509_cert_t *peer_cert,
             verified = (strncmp(opt->verify_x509_name, common_name,
                 strlen(opt->verify_x509_name)) == 0);
             break;
+        case VERIFY_X509_SUBJECT_DN_PREFIX:
+            verified = (strncmp(opt->verify_x509_name, subject,
+                strlen(opt->verify_x509_name)) == 0);
+            break;
         }
 
         if (verified)
