@@ -253,6 +253,9 @@ tls_ctx_set_options(struct tls_root_ctx *ctx, unsigned int ssl_flags)
             sslopt |= SSL_OP_NO_TLSv1_2;
         }
 #endif
+#ifdef SSL_OP_CIPHER_SERVER_PREFERENCE
+        sslopt |= SSL_OP_CIPHER_SERVER_PREFERENCE;
+#endif
         sslopt |= SSL_OP_NO_COMPRESSION;
         SSL_CTX_set_options(ctx->ctx, sslopt);
     }
