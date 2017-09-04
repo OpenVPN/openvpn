@@ -253,6 +253,9 @@ tls_ctx_set_options(struct tls_root_ctx *ctx, unsigned int ssl_flags)
             sslopt |= SSL_OP_NO_TLSv1_2;
         }
 #endif
+#ifdef SSL_OP_CIPHER_SERVER_PREFERENCE
+        sslopt |= SSL_OP_CIPHER_SERVER_PREFERENCE;
+#endif
 #ifdef SSL_OP_NO_COMPRESSION
         /* Disable compression - flag not available in OpenSSL 0.9.8 */
         sslopt |= SSL_OP_NO_COMPRESSION;
