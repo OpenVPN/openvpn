@@ -43,6 +43,7 @@
 
 #include "memdbg.h"
 
+
 static void
 lz4_compress_init(struct compress_context *compctx)
 {
@@ -86,7 +87,7 @@ do_lz4_compress(struct buffer *buf,
             return false;
         }
 
-        zlen = LZ4_compress_limitedOutput((const char *)BPTR(buf), (char *)BPTR(work), BLEN(buf), zlen_max );
+        zlen = LZ4_compress_default((const char *)BPTR(buf), (char *)BPTR(work), BLEN(buf), zlen_max);
 
         if (zlen <= 0)
         {
