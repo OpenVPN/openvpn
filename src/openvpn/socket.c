@@ -1786,6 +1786,8 @@ link_socket_init_phase1(struct link_socket *sock,
         ASSERT(sock->info.proto == PROTO_TCP_SERVER);
         ASSERT(!sock->inetd);
         sock->sd = accept_from->sd;
+        /* inherit (possibly guessed) info AF from parent context */
+        sock->info.af = accept_from->info.af;
     }
 
     /* are we running in HTTP proxy mode? */
