@@ -293,7 +293,6 @@ void ipv4_packet_size_verify(const uint8_t *data,
                              const char
                              *prefix,
                              counter_type *errors);
-
 #endif
 
 #ifdef ENABLE_VLAN_TAGGING
@@ -301,6 +300,76 @@ void ipv4_packet_size_verify(const uint8_t *data,
 #define OPENVPN_8021Q_MIN_VID 1
 #define OPENVPN_8021Q_MAX_VID 4094
 
+/*
+ * Retrieve the Priority Code Point (PCP) from the IEEE 802.1Q header.
+ *
+ * @param hdr Pointer to the Ethernet header with IEEE 802.1Q tagging.
+ * @return    Returns the PCP in host byte order.
+ */
+static inline uint16_t
+vlanhdr_get_pcp (const struct openvpn_8021qhdr *hdr)
+{
+  return ntohs (hdr->pcp_cfi_vid & OPENVPN_8021Q_MASK_PCP);
+}
+/*
+ * Retrieve the Canonical Format Indicator (CFI) from the IEEE 802.1Q header.
+ *
+ * @param hdr Pointer to the Ethernet header with IEEE 802.1Q tagging.
+ * @return    Returns the CFI in host byte order.
+ */
+static inline uint16_t
+vlanhdr_get_cfi (const struct openvpn_8021qhdr *hdr)
+{
+  return ntohs (hdr->pcp_cfi_vid & OPENVPN_8021Q_MASK_CFI);
+}
+/*
+ * Retrieve the VLAN Identifier (VID) from the IEEE 802.1Q header.
+ *
+ * @param hdr Pointer to the Ethernet header with IEEE 802.1Q tagging.
+ * @return    Returns the VID in host byte order.
+ */
+static inline uint16_t
+vlanhdr_get_vid (const struct openvpn_8021qhdr *hdr)
+{
+  return ntohs (hdr->pcp_cfi_vid & OPENVPN_8021Q_MASK_VID);
+}
+
+/*
+ * Set the Priority Code Point (PCP) in an IEEE 802.1Q header.
+ *
+ * @param hdr Pointer to the Ethernet header with IEEE 802.1Q tagging.
+ * @param pcp The PCP to set (in host byte order).
+ */
+static inline void
+vlanhdr_set_pcp (struct openvpn_8021qhdr *hdr, const uint16_t pcp)
+{
+  hdr->pcp_cfi_vid = (hdr->pcp_cfi_vid & ~OPENVPN_8021Q_MASK_PCP) |
+		     (htons (pcp) & OPENVPN_8021Q_MASK_PCP);
+}
+/*
+ * Set the Canonical Format Indicator (CFI) in an IEEE 802.1Q header.
+ *
+ * @param hdr Pointer to the Ethernet header with IEEE 802.1Q tagging.
+ * @param cfi The CFI to set (in host byte order).
+ */
+static inline void
+vlanhdr_set_cfi (struct openvpn_8021qhdr *hdr, const uint16_t cfi)
+{
+  hdr->pcp_cfi_vid = (hdr->pcp_cfi_vid & ~OPENVPN_8021Q_MASK_CFI) |
+		     (htons (cfi) & OPENVPN_8021Q_MASK_CFI);
+}
+/*
+ * Set the VLAN Identifier (VID) in an IEEE 802.1Q header.
+ *
+ * @param hdr Pointer to the Ethernet header with IEEE 802.1Q tagging.
+ * @param vid The VID to set (in host byte order).
+ */
+static inline void
+vlanhdr_set_vid (struct openvpn_8021qhdr *hdr, const uint16_t vid)
+{
+  hdr->pcp_cfi_vid = (hdr->pcp_cfi_vid & ~OPENVPN_8021Q_MASK_VID) |
+		     (htons (vid) & OPENVPN_8021Q_MASK_VID);
+}
 #endif /* ifdef ENABLE_VLAN_TAGGING */
 
 #endif /* ifndef PROTO_H */
