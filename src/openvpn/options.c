@@ -401,6 +401,11 @@ static const char usage_message[] =
     "--plugin m [str]: Load plug-in module m passing str as an argument\n"
     "                  to its initialization function.\n"
 #endif
+#ifdef ENABLE_VLAN_TAGGING
+    "--vlan-tagging  : Enable 802.1Q-based VLAN tagging.\n"
+    "--vlan-accept tagged|untagged|all : Set VLAN tagging mode. Default is 'all'.\n"
+    "--vlan-pvid v   : Sets the Port VLAN Identifier. Defaults to 1.\n"
+#endif /* ifdef ENABLE_VLAN_TAGGING */
 #if P2MP
 #if P2MP_SERVER
     "\n"
@@ -835,6 +840,10 @@ init_options(struct options *o, const bool init_gc)
     o->route_method = ROUTE_METHOD_ADAPTIVE;
     o->block_outside_dns = false;
 #endif
+#ifdef ENABLE_VLAN_TAGGING
+    o->vlan_accept = VAF_ALL;
+    o->vlan_pvid = 1;
+#endif /* ifdef ENABLE_VLAN_TAGGING */
 #if P2MP_SERVER
     o->real_hash_size = 256;
     o->virtual_hash_size = 256;
@@ -1259,6 +1268,23 @@ dhcp_option_address_parse(const char *name, const char *parm, in_addr_t *array, 
 
 #endif /* if defined(_WIN32) || defined(TARGET_ANDROID) */
 
+#ifdef ENABLE_VLAN_TAGGING
+static const char *
+print_vlan_accept (enum vlan_acceptable_frames mode)
+{
+  switch (mode)
+   {
+    case VAF_ONLY_VLAN_TAGGED:
+        return "tagged";
+    case VAF_ONLY_UNTAGGED_OR_PRIORITY:
+        return "untagged";
+    case VAF_ALL:
+        return "all";
+   }
+  return NULL;
+}
+#endif /* ifdef ENABLE_VLAN_TAGGING */
+
 #if P2MP
 
 #ifndef ENABLE_SMALL
@@ -1328,6 +1354,11 @@ show_p2mp_parms(const struct options *o)
     SHOW_STR(port_share_host);
     SHOW_STR(port_share_port);
 #endif
+#ifdef ENABLE_VLAN_TAGGING
+    SHOW_BOOL (vlan_tagging);
+    msg (D_SHOW_PARMS, "  vlan_accept = %s", print_vlan_accept (o->vlan_accept));
+    SHOW_INT (vlan_pvid);
+#endif /* ifdef ENABLE_VLAN_TAGGING */
 #endif /* P2MP_SERVER */
 
     SHOW_BOOL(client);
@@ -2382,6 +2413,25 @@ options_postprocess_verify_ce(const struct options *options, const struct connec
                 msg(M_USAGE, "--auth-user-pass-optional %s", postfix);
             }
         }
+
+#ifdef ENABLE_VLAN_TAGGING
+        if (options->vlan_tagging && dev != DEV_TYPE_TAP)
+        {
+            msg (M_USAGE, "--vlan-tagging must be used with --dev tap");
+        }
+        if (!options->vlan_tagging)
+        {
+            if (options->vlan_accept != defaults.vlan_accept)
+            {
+                msg (M_USAGE, "--vlan-accept requires --vlan-tagging");
+            }
+            if (options->vlan_pvid != defaults.vlan_pvid)
+            {
+                msg (M_USAGE, "--vlan-pvid requires --vlan-tagging");
+            }
+        }
+#endif /* ifdef ENABLE_VLAN_TAGGING */
+
     }
     else
     {
@@ -2475,6 +2525,13 @@ options_postprocess_verify_ce(const struct options *options, const struct connec
         {
             msg(M_USAGE, "--compat-x509-names no-remapping requires --mode server");
         }
+#ifdef ENABLE_VLAN_TAGGING
+        if (options->vlan_tagging)
+        {
+            msg (M_USAGE, "--vlan-tagging requires --mode server");
+        }
+#endif /* ifdef ENABLE_VLAN_TAGGING */
+
     }
 #endif /* P2MP_SERVER */
 
@@ -8247,6 +8304,45 @@ add_option(struct options *options,
         VERIFY_PERMISSION(OPT_P_GENERAL);
         options->allow_recursive_routing = true;
     }
+#ifdef ENABLE_VLAN_TAGGING
+    else if (streq (p[0], "vlan-tagging"))
+    {
+        VERIFY_PERMISSION (OPT_P_GENERAL);
+        options->vlan_tagging = true;
+    }
+    else if (streq (p[0], "vlan-accept") && p[1])
+    {
+        VERIFY_PERMISSION (OPT_P_GENERAL);
+        if (streq (p[1], "tagged"))
+        {
+            options->vlan_accept = VAF_ONLY_VLAN_TAGGED;
+        }
+        else if (streq (p[1], "untagged"))
+        {
+            options->vlan_accept = VAF_ONLY_UNTAGGED_OR_PRIORITY;
+        }
+        else if (streq (p[1], "all"))
+        {
+            options->vlan_accept = VAF_ALL;
+        }
+        else
+        {
+            msg (msglevel, "--vlan-accept must be 'tagged', 'untagged' or 'all'");
+            goto err;
+        }
+    }
+    else if (streq (p[0], "vlan-pvid") && p[1])
+    {
+        VERIFY_PERMISSION (OPT_P_GENERAL|OPT_P_INSTANCE);
+        options->vlan_pvid = positive_atoi (p[1]);
+        if (options->vlan_pvid < OPENVPN_8021Q_MIN_VID ||
+            options->vlan_pvid > OPENVPN_8021Q_MAX_VID)
+        {
+            msg (msglevel, "the parameter of --vlan-pvid parameters must be >= %u and <= %u", OPENVPN_8021Q_MIN_VID, OPENVPN_8021Q_MAX_VID);
+            goto err;
+        }
+    }
+#endif /* ifdef ENABLE_VLAN_TAGGING */
     else
     {
         int i;
