@@ -613,6 +613,10 @@ multi_get_timeout(struct multi_context *m, struct timeval *dest)
 static inline bool
 multi_process_outgoing_tun(struct multi_context *m, const unsigned int mpp_flags)
 {
+#ifdef ENABLE_VLAN_TAGGING
+    void multi_prepend_8021q_vlan_tag (const struct context *c,
+                                             struct buffer *buf);
+#endif
     struct multi_instance *mi = m->pending;
     bool ret = true;
 
@@ -623,6 +627,35 @@ multi_process_outgoing_tun(struct multi_context *m, const unsigned int mpp_flags
            mi->context.c2.to_tun.len);
 #endif
     set_prefix(mi);
+#ifdef ENABLE_VLAN_TAGGING
+    if (m->top.options.vlan_accept == VAF_ONLY_UNTAGGED_OR_PRIORITY)
+    {
+        /* Packets aren't VLAN-tagged on the tap device.  */
+
+        if (m->top.options.vlan_pvid != mi->context.options.vlan_pvid)
+        {
+            /* Packet is coming from the wrong VID, drop it.  */
+            mi->context.c2.to_tun.len = 0;
+        }
+    }
+    else if (m->top.options.vlan_accept == VAF_ALL)
+    {
+        /* Packets either need to be VLAN-tagged or not, depending on the
+           packet's originating VID and the port's native VID (PVID).  */
+
+        if (m->top.options.vlan_pvid != mi->context.options.vlan_pvid)
+        {
+            /* Packets need to be VLAN-tagged, because the packet's VID does not
+               match the port's PVID.  */
+            multi_prepend_8021q_vlan_tag (&mi->context, &mi->context.c2.to_tun);
+        }
+    }
+    else if (m->top.options.vlan_accept == VAF_ONLY_VLAN_TAGGED)
+    {
+        /* All packets on the port (the tap device) need to be VLAN-tagged.  */
+        multi_prepend_8021q_vlan_tag (&mi->context, &mi->context.c2.to_tun);
+    }
+#endif /* ifdef ENABLE_VLAN_TAGGING */
     process_outgoing_tun(&mi->context);
     ret = multi_process_post(m, mi, mpp_flags);
     clear_prefix();
