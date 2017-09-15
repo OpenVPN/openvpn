@@ -4845,11 +4845,13 @@ verify_permission(const char *name,
 #ifndef ENABLE_SMALL
     /* Check if this options is allowed in connection block,
      * but we are currently not in a connection block
+     * unless this is a pushed option.
      * Parsing a connection block uses a temporary options struct without
      * connection_list
      */
 
-    if ((type & OPT_P_CONNECTION) && options->connection_list)
+    if ((type & OPT_P_CONNECTION) && options->connection_list
+        && !(allowed & OPT_P_PULL_MODE))
     {
         if (file)
         {
