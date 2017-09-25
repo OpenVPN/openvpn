@@ -1,6 +1,18 @@
 OpenVPN Change Log
 Copyright (C) 2002-2017 OpenVPN Technologies, Inc. <sales@openvpn.net>
 
+2017.09.25 -- Version 2.3.18
+Antonio Quartulli (1):
+      crypto: correct typ0 in error message
+
+Steffan Karger (2):
+      Deprecate --ns-cert-type
+      Fix bounds check in read_key()
+
+Szilárd Pfeiffer (1):
+      OpenSSL: Always set SSL_OP_CIPHER_SERVER_PREFERENCE flag
+
+
 2017.06.21 -- Version 2.3.17
 
 David Sommerseth (2):

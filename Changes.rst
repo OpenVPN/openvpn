@@ -116,6 +116,20 @@ Deprecated features
   extension instead.  Make sure your certificates carry these to be able to
   use ``--remote-cert-tls``.
 
+Behavioural changes
+-------------------
+- OpenVPN built against OpenSSL will now prefer the TLS cipher used by the
+  server for the control channel cipher.
+
+Security
+--------
+- CVE-2017-12166: Fix bounds check for configurations using ``--key-method 1``
+  Before this fix, it could allow an attacker to send a malformed packet to
+  trigger a stack overflow.  This is considered to be a low risk issue, as
+  ``--key-method 2`` has been the default since OpenVPN 2.0 (released on
+  2005-04-17).  This option is already deprecated in v2.4 and will be
+  completely removed in v2.5.
+
 
 Version 2.3.17
 ==============
