@@ -1,6 +1,95 @@
 OpenVPN Change Log
 Copyright (C) 2002-2017 OpenVPN Technologies, Inc. <sales@openvpn.net>
 
+2017.09.25 -- Version 2.4.4
+Antonio Quartulli (23):
+      crypto: correct typ0 in error message
+      use M_ERRNO instead of explicitly printing errno
+      don't print errno twice
+      ntlm: avoid useless cast
+      ntlm: unwrap multiple function calls
+      route: improve error message
+      management: preserve wait_for_push field when asking for user/pass
+      tls-crypt: avoid warnings when --disable-crypto is used
+      ntlm: convert binary buffers to uint8_t *
+      ntlm: restyle compressed multiple function calls
+      ntlm: improve code style and readability
+      OpenSSL: remove unreachable call to SSL_CTX_get0_privatekey()
+      make function declarations C99 compliant
+      remove unused functions
+      use NULL instead of 0 when assigning pointers
+      add missing static attribute to functions
+      ntlm: avoid breaking anti-aliasing rules
+      remove the --disable-multi config switch
+      rename mroute_extract_addr_ipv4 to mroute_extract_addr_ip
+      route: avoid definition of unused variables in certain configurations
+      fix a couple of typ0s in comments and strings
+      fragment.c: simplify boolean expression
+      tcp-server: ensure AF family is propagated to child context
+
+Arne Schwabe (2):
+      Set tls-cipher restriction before loading certificates
+      Print ec bit details, refuse management-external-key if key is not RSA
+
+Conrad Hoffmann (2):
+      Use provided env vars in up/down script.
+      Document down-root plugin usage in client.down
+
+David Sommerseth (11):
+      doc: The CRL processing is not a deprecated feature
+      cleanup: Move write_pid() to where it is being used
+      contrib: Remove keychain-mcd code
+      cleanup: Move init_random_seed() to where it is being used
+      sample-plugins: fix ASN1_STRING_to_UTF8 return value checks
+      Highlight deprecated features
+      Use consistent version references
+      docs: Replace all PolarSSL references to mbed TLS
+      systemd: Ensure systemd shuts down OpenVPN in a proper way
+      systemd: Enable systemd's auto-restart feature for server profiles
+      lz4: Move towards a newer LZ4 API
+
+Emmanuel Deloget (3):
+      OpenSSL: remove pre-1.1 function from the OpenSSL compat interface
+      OpenSSL: remove EVP_CIPHER_CTX_new() from the compat layer
+      OpenSSL: remove EVP_CIPHER_CTX_free() from the compat layer
+
+Gert van Dijk (1):
+      Warn that DH config option is only meaningful in a tls-server context
+
+Ilya Shipitsin (3):
+      travis-ci: add 3 missing patches from master to release/2.4
+      travis-ci: update openssl to 1.0.2l, update mbedtls to 2.5.1
+      travis-ci: update pkcs11-helper to 1.22
+
+Richard Bonhomme (1):
+      man: Corrections to doc/openvpn.8
+
+Steffan Karger (17):
+      Fix typo in extract_x509_extension() debug message
+      Move adjust_power_of_2() to integer.h
+      Undo cipher push in client options state if cipher is rejected
+      Remove strerror_ts()
+      Move openvpn_sleep() to manage.c
+      fixup: also change missed openvpn_sleep() occurrences
+      Always use default keysize for NCP'd ciphers
+      Move create_temp_file() out of #ifdef ENABLE_CRYPTO
+      Deprecate --keysize
+      Deprecate --no-replay
+      Move run_up_down() to init.c
+      tls-crypt: introduce tls_crypt_kt()
+      crypto: create function to initialize encrypt and decrypt key
+      Add coverity static analysis to Travis CI config
+      tls-crypt: don't leak memory for incorrect tls-crypt messages
+      travis: reorder matrix to speed up build
+      Fix bounds check in read_key()
+
+Szilárd Pfeiffer (1):
+      OpenSSL: Always set SSL_OP_CIPHER_SERVER_PREFERENCE flag
+
+Thomas Veerman via Openvpn-devel (1):
+      Fix socks_proxy_port pointing to invalid data
+
+
 2017.06.21 -- Version 2.4.3
 Antonio Quartulli (1):
       Ignore auth-nocache for auth-user-pass if auth-token is pushed

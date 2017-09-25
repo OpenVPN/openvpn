@@ -325,13 +325,50 @@ Maintainer-visible changes
   i386/i686 builds on RHEL5.
 
 
-
 Version 2.4.4
 =============
+This is primarily a maintenance release, with further improved OpenSSL 1.1
+integration, several minor bug fixes and other minor improvements.
+
+Bug fixes
+---------
+- Fix issues when a pushed cipher via the Negotiable Crypto Parameters (NCP) is
+  rejected by the remote side
+
+- Ignore ``--keysize`` when NCP have resulted in a changed cipher.
+
+- Configurations using ``--auth-nocache`` and the management interface to provide
+  user credentials (like NetworkManager on Linux) on client side with servers
+  implementing authentication tokens (for example, using ``--auth-gen-token``)
+  will now behave correctly and not query the user for an, to them, unknown
+  authentication token on renegotiations of the tunnel.
+
+- Fix bug causing invalid or corrupt SOCKS port number when changing the
+  proxy via the management interface.
+
+- The man page should now have proper escaping of hyphens/minus characters
+  and have seen some minor corrections.
+
+User-visible Changes
+--------------------
+- Linux servers with systemd which uses the ``openvpn-server@.service`` unit
+  file for server configurations will now utilize the automatic restart feature
+  in systemd.  If the OpenVPN server process dies unexpectedly, systemd will
+  ensure the OpenVPN configuration will be restarted without any user interaction.
 
 Deprecated features
 -------------------
 - ``--no-replay`` is deprecated and will be removed in OpenVPN 2.5.
+- ``--keysize`` is deprecated in OpenVPN 2.4 and will be removed in v2.6
+
+Security
+--------
+- CVE-2017-12166: Fix bounds check for configurations using ``--key-method 1``.
+  Before this fix, it could allow an attacker to send a malformed packet to
+  trigger a stack overflow.  This is considered to be a low risk issue, as
+  ``--key-method 2`` has been the default since OpenVPN 2.0 (released on
+  2005-04-17).  This option is already deprecated in v2.4 and will be
+  completely removed in v2.5.
 
 
 Version 2.4.3
