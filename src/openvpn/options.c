@@ -5881,7 +5881,7 @@ add_option(struct options *options,
         VERIFY_PERMISSION(OPT_P_GENERAL|OPT_P_CONNECTION);
         options->ce.remote_port = p[1];
     }
-    else if (streq(p[0], "bind") && !p[1])
+    else if (streq(p[0], "bind") && !p[2])
     {
         VERIFY_PERMISSION(OPT_P_GENERAL|OPT_P_CONNECTION);
         options->ce.bind_defined = true;
