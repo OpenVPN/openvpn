@@ -1093,7 +1093,9 @@ if test "$enable_lz4" = "yes" && test "$enable_comp_stub" = "no"; then
 	PKG_CHECK_MODULES([LZ4],
 			  [liblz4 >= 1.7.1 liblz4 < 100],
 			  [have_lz4="yes"],
-			  [] # If this fails, we will do another test next
+			  [LZ4_LIBS="-llz4"] # If this fails, we will do another test next.
+					     # We also add set LZ4_LIBS otherwise the
+					     # linker will not know about the lz4 library
 	)
     fi
 
