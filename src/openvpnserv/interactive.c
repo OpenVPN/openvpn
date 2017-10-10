@@ -370,12 +370,12 @@ ValidateOptions(HANDLE pipe, const WCHAR *workdir, const WCHAR *options)
     BOOL ret = FALSE;
     int i;
     const WCHAR *msg1 = L"You have specified a config file location (%s relative to %s)"
-                        " that requires admin approval. This error may be avoided"
-                        " by adding your account to the \"%s\" group";
+                        L" that requires admin approval. This error may be avoided"
+                        L" by adding your account to the \"%s\" group";
 
     const WCHAR *msg2 = L"You have specified an option (%s) that may be used"
-                        " only with admin approval. This error may be avoided"
-                        " by adding your account to the \"%s\" group";
+                        L" only with admin approval. This error may be avoided"
+                        L" by adding your account to the \"%s\" group";
 
     argv = CommandLineToArgvW(options, &argc);
 
