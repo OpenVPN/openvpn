@@ -33,6 +33,7 @@
 #include <stdio.h>
 #include <sddl.h>
 #include <shellapi.h>
+#include <mstcpip.h>
 
 #ifdef HAVE_VERSIONHELPERS_H
 #include <versionhelpers.h>
