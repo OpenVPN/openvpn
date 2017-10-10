@@ -1890,6 +1890,11 @@ FreeWaitHandles(LPHANDLE h)
     free(h);
 }
 
+static BOOL
+CmpHandle(LPVOID item, LPVOID hnd)
+{
+    return item == hnd;
+}
 
 VOID WINAPI
 ServiceStartInteractive(DWORD dwArgc, LPTSTR *lpszArgv)
@@ -1900,11 +1905,6 @@ ServiceStartInteractive(DWORD dwArgc, LPTSTR *lpszArgv)
     list_item_t *threads = NULL;
     PHANDLE handles = NULL;
     DWORD handle_count;
-    BOOL
-    CmpHandle(LPVOID item, LPVOID hnd)
-    {
-        return item == hnd;
-    }
 
     service = RegisterServiceCtrlHandlerEx(interactive_service.name, ServiceCtrlInteractive, &status);
     if (!service)
