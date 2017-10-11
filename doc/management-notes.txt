@@ -317,6 +317,11 @@ COMMAND -- password and username
 
     >PASSWORD:Verification Failed: 'custom server-generated string'
 
+  Example 6: If server pushes --auth-token to the client, the OpenVPN
+  will produce a real-time PASSWORD message:
+
+    >PASSWORD:Auth-Token:foobar
+
 COMMAND -- forget-passwords
 ---------------------------
 
