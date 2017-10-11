@@ -425,7 +425,7 @@ info on verbosity levels.
 Command examples:
 
   verb 4  -- change the verb parameter to 4
-  mute    -- show the current verb setting
+  verb    -- show the current verb setting
 
 COMMAND -- version
 ------------------
