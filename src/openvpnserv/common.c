@@ -21,8 +21,9 @@
  *  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#include <service.h>
-#include <validate.h>
+#include "service.h"
+#include "validate.h"
+
 /*
  * These are necessary due to certain buggy implementations of (v)snprintf,
  * that don't guarantee null termination for size > 0.
