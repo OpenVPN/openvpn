@@ -4622,7 +4622,7 @@ get_adapter_index_method_1(const char *guid)
     DWORD index;
     ULONG aindex;
     wchar_t wbuf[256];
-    _snwprintf(wbuf, SIZE(wbuf), L"\\DEVICE\\TCPIP_%S", guid);
+    swprintf(wbuf, SIZE(wbuf), L"\\DEVICE\\TCPIP_%S", guid);
     wbuf [SIZE(wbuf) - 1] = 0;
     if (GetAdapterIndex(wbuf, &aindex) != NO_ERROR)
     {

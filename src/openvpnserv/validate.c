@@ -65,7 +65,7 @@ CheckConfigPath(const WCHAR *workdir, const WCHAR *fname, const settings_t *s)
     /* convert fname to full path */
     if (PathIsRelativeW(fname) )
     {
-        snwprintf(tmp, _countof(tmp), L"%s\\%s", workdir, fname);
+        swprintf(tmp, _countof(tmp), L"%s\\%s", workdir, fname);
         tmp[_countof(tmp)-1] = L'\0';
         config_file = tmp;
     }
