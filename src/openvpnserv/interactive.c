@@ -554,15 +554,17 @@ static DWORD
 InterfaceLuid(const char *iface_name, PNET_LUID luid)
 {
     NETIO_STATUS status;
-    LPWSTR wide_name;
-    int n;
+    LPWSTR wide_name = utf8to16(iface_name);
 
-    n = MultiByteToWideChar(CP_UTF8, 0, iface_name, -1, NULL, 0);
-    wide_name = malloc(n * sizeof(WCHAR));
-    MultiByteToWideChar(CP_UTF8, 0, iface_name, -1, wide_name, n);
-    status = ConvertInterfaceAliasToLuid(wide_name, luid);
-    free(wide_name);
-
+    if (wide_name)
+    {
+        status = ConvertInterfaceAliasToLuid(wide_name, luid);
+        free(wide_name);
+    }
+    else
+    {
+        status = ERROR_OUTOFMEMORY;
+    }
     return status;
 }
 
