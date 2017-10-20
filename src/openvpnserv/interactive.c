@@ -466,6 +466,13 @@ GetStartupData(HANDLE pipe, STARTUP_DATA *sud)
     }
 
     size = bytes / sizeof(*data);
+    if (size == 0)
+    {
+        MsgToEventLog(M_SYSERR, TEXT("malformed startup data: 1 byte received"));
+        ReturnError(pipe, ERROR_STARTUP_DATA, L"GetStartupData", 1, &exit_event);
+        goto out;
+    }
+
     data = malloc(bytes);
     if (data == NULL)
     {
