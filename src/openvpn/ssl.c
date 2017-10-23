@@ -678,7 +678,7 @@ init_ssl(const struct options *options, struct tls_root_ctx *new_ctx)
         /* Load Private Key */
         if (options->priv_key_file)
         {
-            if (0 != tls_ctx_load_priv_file(new_ctx, options->priv_key_file, options->priv_key_file_inline))
+            if (0 != tls_ctx_load_priv_file(new_ctx, options->priv_key_engine, options->priv_key_file, options->priv_key_file_inline))
             {
                 goto err;
             }

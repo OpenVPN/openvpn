@@ -579,6 +579,7 @@ static const char usage_message[] =
     "                  by a Certificate Authority in --ca file.\n"
     "--extra-certs file : one or more PEM certs that complete the cert chain.\n"
     "--key file      : Local private key in .pem format.\n"
+    "--key-engine name : OpenSSL engine to use to load the private key. For example 'tpm'.\n"
     "--tls-version-min <version> ['or-highest'] : sets the minimum TLS version we\n"
     "    will accept from the peer.  If version is unrecognized and 'or-highest'\n"
     "    is specified, require max TLS version supported by SSL implementation.\n"
@@ -1743,6 +1744,7 @@ show_settings(const struct options *o)
     else
 #endif
     SHOW_STR(priv_key_file);
+    SHOW_STR(priv_key_engine);
 #ifndef ENABLE_CRYPTO_MBEDTLS
     SHOW_STR(pkcs12_file);
 #endif
@@ -2546,6 +2548,10 @@ options_postprocess_verify_ce(const struct options *options, const struct connec
             {
                 msg(M_USAGE, "Parameter --key cannot be used when --pkcs11-provider is also specified.");
             }
+            if (options->priv_key_engine)
+            {
+                msg(M_USAGE, "Parameter --key-engine cannot be used when --pkcs11-provider is also specified.");
+            }
 #ifdef MANAGMENT_EXTERNAL_KEY
             if (options->management_flags & MF_EXTERNAL_KEY)
             {
@@ -2602,6 +2608,10 @@ options_postprocess_verify_ce(const struct options *options, const struct connec
             {
                 msg(M_USAGE, "Parameter --key cannot be used when --cryptoapicert is also specified.");
             }
+            if (options->priv_key_engine)
+            {
+                msg(M_USAGE, "Parameter --key-engine cannot be used when --cryptoapicert is also specified.");
+            }
             if (options->pkcs12_file)
             {
                 msg(M_USAGE, "Parameter --pkcs12 cannot be used when --cryptoapicert is also specified.");
@@ -2635,6 +2645,10 @@ options_postprocess_verify_ce(const struct options *options, const struct connec
             if (options->priv_key_file)
             {
                 msg(M_USAGE, "Parameter --key cannot be used when --pkcs12 is also specified.");
+            }
+            if (options->priv_key_engine)
+            {
+                msg(M_USAGE, "Parameter --key-engine cannot be used when --pkcs12 is also specified.");
             }
 #ifdef MANAGMENT_EXTERNAL_KEY
             if (options->management_flags & MF_EXTERNAL_KEY)
@@ -2725,6 +2739,7 @@ options_postprocess_verify_ce(const struct options *options, const struct connec
         MUST_BE_UNDEF(dh_file);
         MUST_BE_UNDEF(cert_file);
         MUST_BE_UNDEF(priv_key_file);
+        MUST_BE_UNDEF(priv_key_engine);
 #ifndef ENABLE_CRYPTO_MBEDTLS
         MUST_BE_UNDEF(pkcs12_file);
 #endif
@@ -7739,6 +7754,11 @@ add_option(struct options *options,
         {
             options->priv_key_file_inline = p[2];
         }
+    }
+    else if (streq (p[0], "key-engine") && p[1])
+    {
+      VERIFY_PERMISSION (OPT_P_GENERAL);
+      options->priv_key_engine = p[1];
     }
     else if (streq(p[0], "tls-version-min") && p[1] && !p[3])
     {

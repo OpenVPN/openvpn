@@ -807,7 +807,9 @@ tls_ctx_load_cert_file(struct tls_root_ctx *ctx, const char *cert_file,
 }
 
 int
-tls_ctx_load_priv_file(struct tls_root_ctx *ctx, const char *priv_key_file,
+tls_ctx_load_priv_file(struct tls_root_ctx *ctx,
+                       const char *priv_key_engine,
+                       const char *priv_key_file,
                        const char *priv_key_file_inline
                        )
 {
@@ -834,9 +836,26 @@ tls_ctx_load_priv_file(struct tls_root_ctx *ctx, const char *priv_key_file,
         goto end;
     }
 
-    pkey = PEM_read_bio_PrivateKey(in, NULL,
-                                   SSL_CTX_get_default_passwd_cb(ctx->ctx),
-                                   SSL_CTX_get_default_passwd_cb_userdata(ctx->ctx));
+    if (priv_key_engine)
+    {
+        ENGINE *engine;
+
+        ENGINE_load_builtin_engines();
+        engine = ENGINE_by_id(priv_key_engine);
+        if (!ENGINE_init(engine))
+        {
+            msg (M_WARN, "Cannot init engine %s", priv_key_engine);
+            goto end;
+        }
+        pkey = ENGINE_load_private_key(engine, priv_key_file, UI_OpenSSL(), NULL);
+    }
+    else
+    {
+        pkey = PEM_read_bio_PrivateKey(in, NULL,
+            SSL_CTX_get_default_passwd_cb(ctx->ctx),
+            SSL_CTX_get_default_passwd_cb_userdata(ctx->ctx));
+    }
+
     if (!pkey)
     {
         goto end;

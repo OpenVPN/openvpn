@@ -500,6 +500,7 @@ struct options
     const char *cert_file;
     const char *extra_certs_file;
     const char *priv_key_file;
+    const char *priv_key_engine;
     const char *pkcs12_file;
     const char *cipher_list;
     const char *ecdh_curve;
