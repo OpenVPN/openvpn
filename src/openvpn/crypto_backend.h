@@ -323,7 +323,7 @@ void cipher_ctx_free(cipher_ctx_t *ctx);
  * @param enc           Whether to encrypt or decrypt (either
  *                      \c MBEDTLS_OP_ENCRYPT or \c MBEDTLS_OP_DECRYPT).
  */
-void cipher_ctx_init(cipher_ctx_t *ctx, uint8_t *key, int key_len,
+void cipher_ctx_init(cipher_ctx_t *ctx, const uint8_t *key, int key_len,
                      const cipher_kt_t *kt, int enc);
 
 /**
