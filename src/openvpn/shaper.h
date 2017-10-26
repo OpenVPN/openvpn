@@ -147,11 +147,11 @@ shaper_wrote_bytes(struct shaper *s, int nbytes)
         tv_add(&s->wakeup, &tv);
 
 #ifdef SHAPER_DEBUG
-        dmsg(D_SHAPER_DEBUG, "SHAPER shaper_wrote_bytes bytes=%d delay=%d sec=%d usec=%d",
+        dmsg(D_SHAPER_DEBUG, "SHAPER shaper_wrote_bytes bytes=%d delay=%ld sec=%lld usec=%ld",
              nbytes,
-             (int)tv.tv_usec,
-             (int)s->wakeup.tv_sec,
-             (int)s->wakeup.tv_usec);
+             (long)tv.tv_usec,
+             (long long)s->wakeup.tv_sec,
+             (long)s->wakeup.tv_usec);
 #endif
     }
 }

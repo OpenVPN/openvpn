@@ -1041,10 +1041,10 @@ se_wait_fast(struct event_set *es, const struct timeval *tv, struct event_set_re
     struct timeval tv_tmp = *tv;
     int stat;
 
-    dmsg(D_EVENT_WAIT, "SE_WAIT_FAST maxfd=%d tv=%d/%d",
+    dmsg(D_EVENT_WAIT, "SE_WAIT_FAST maxfd=%d tv=%lld/%ld",
          ses->maxfd,
-         (int)tv_tmp.tv_sec,
-         (int)tv_tmp.tv_usec);
+         (long long)tv_tmp.tv_sec,
+         (long)tv_tmp.tv_usec);
 
     stat = select(ses->maxfd + 1, &ses->readfds, &ses->writefds, NULL, &tv_tmp);
 
@@ -1065,8 +1065,8 @@ se_wait_scalable(struct event_set *es, const struct timeval *tv, struct event_se
     fd_set write = ses->writefds;
     int stat;
 
-    dmsg(D_EVENT_WAIT, "SE_WAIT_SCALEABLE maxfd=%d tv=%d/%d",
-         ses->maxfd, (int)tv_tmp.tv_sec, (int)tv_tmp.tv_usec);
+    dmsg(D_EVENT_WAIT, "SE_WAIT_SCALEABLE maxfd=%d tv=%lld/%ld",
+         ses->maxfd, (long long)tv_tmp.tv_sec, (long)tv_tmp.tv_usec);
 
     stat = select(ses->maxfd + 1, &read, &write, NULL, &tv_tmp);
 

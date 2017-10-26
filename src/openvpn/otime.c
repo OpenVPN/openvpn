@@ -88,9 +88,9 @@ const char *
 tv_string(const struct timeval *tv, struct gc_arena *gc)
 {
     struct buffer out = alloc_buf_gc(64, gc);
-    buf_printf(&out, "[%d/%d]",
-               (int) tv->tv_sec,
-               (int )tv->tv_usec);
+    buf_printf(&out, "[%lld/%ld]",
+               (long long)tv->tv_sec,
+               (long)tv->tv_usec);
     return BSTR(&out);
 }
 
@@ -103,7 +103,7 @@ const char *
 tv_string_abs(const struct timeval *tv, struct gc_arena *gc)
 {
     return time_string((time_t) tv->tv_sec,
-                       (int) tv->tv_usec,
+                       (long) tv->tv_usec,
                        true,
                        gc);
 }
@@ -132,7 +132,7 @@ time_string(time_t t, int usec, bool show_usec, struct gc_arena *gc)
 
     if (show_usec && tv.tv_usec)
     {
-        buf_printf(&out, " us=%d", (int)tv.tv_usec);
+        buf_printf(&out, " us=%ld", (long)tv.tv_usec);
     }
 
     return BSTR(&out);
@@ -198,10 +198,10 @@ time_test(void)
         t = time(NULL);
         gettimeofday(&tv, NULL);
 #if 1
-        msg(M_INFO, "t=%u s=%u us=%u",
-            (unsigned int)t,
-            (unsigned int)tv.tv_sec,
-            (unsigned int)tv.tv_usec);
+        msg(M_INFO, "t=%lld s=%lld us=%ld",
+            (long long)t,
+            (long long)tv.tv_sec,
+            (long)tv.tv_usec);
 #endif
     }
 }

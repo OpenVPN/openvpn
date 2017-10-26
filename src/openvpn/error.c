@@ -342,9 +342,9 @@ x_msg_va(const unsigned int flags, const char *format, va_list arglist)
                 struct timeval tv;
                 gettimeofday(&tv, NULL);
 
-                fprintf(fp, "%lld.%06lu %x %s%s%s%s",
+                fprintf(fp, "%lld.%06ld %x %s%s%s%s",
                         (long long)tv.tv_sec,
-                        (unsigned long)tv.tv_usec,
+                        (long)tv.tv_usec,
                         flags,
                         prefix,
                         prefix_sep,

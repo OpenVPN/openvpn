@@ -1363,8 +1363,8 @@ bio_debug_data(const char *mode, BIO *bio, const uint8_t *buf, int len, const ch
     if (len > 0)
     {
         open_biofp();
-        fprintf(biofp, "BIO_%s %s time=" time_format " bio=" ptr_format " len=%d data=%s\n",
-                mode, desc, time(NULL), (ptr_type)bio, len, format_hex(buf, len, 0, &gc));
+        fprintf(biofp, "BIO_%s %s time=%lld bio=" ptr_format " len=%d data=%s\n",
+                mode, desc, (long long)time(NULL), (ptr_type)bio, len, format_hex(buf, len, 0, &gc));
         fflush(biofp);
     }
     gc_free(&gc);
@@ -1374,8 +1374,8 @@ static void
 bio_debug_oc(const char *mode, BIO *bio)
 {
     open_biofp();
-    fprintf(biofp, "BIO %s time=" time_format " bio=" ptr_format "\n",
-            mode, time(NULL), (ptr_type)bio);
+    fprintf(biofp, "BIO %s time=%lld bio=" ptr_format "\n",
+            mode, (long long)time(NULL), (ptr_type)bio);
     fflush(biofp);
 }
 

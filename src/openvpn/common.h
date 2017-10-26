@@ -57,12 +57,10 @@ typedef int interval_t;
 #else
 #define ptr_format              "0x%08lx"
 #endif
-#define time_format             "%lu"
 #define fragment_header_format  "0x%08x"
 
 /* these are used to cast the arguments
  * and MUST match the formats above */
-typedef unsigned long time_type;
 #ifdef _WIN64
 typedef unsigned long long ptr_type;
 #else
