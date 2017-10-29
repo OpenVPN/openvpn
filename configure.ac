@@ -879,6 +879,13 @@ if test "${enable_crypto}" = "yes" -a "${with_crypto_library}" = "openssl"; then
 		,
 		[have_openssl_engine="no"; break]
 	)
+	if test "${have_openssl_engine}" = "no"; then
+		AC_CHECK_DECL( [ENGINE_cleanup], [have_openssl_engine="yes"],,
+			[[
+				#include <openssl/engine.h>
+			]]
+		)
+	fi
 	if test "${have_openssl_engine}" = "yes"; then
 		AC_DEFINE([HAVE_OPENSSL_ENGINE], [1], [OpenSSL engine support available])
 	fi
