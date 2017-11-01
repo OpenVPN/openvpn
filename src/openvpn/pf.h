@@ -75,7 +75,7 @@ struct pf_context {
     bool enabled;
     struct pf_set *pfs;
 #ifdef PLUGIN_PF
-    char *filename;
+    const char *filename;
     time_t file_last_mod;
     unsigned int n_check_reload;
     struct event_timeout reload;
