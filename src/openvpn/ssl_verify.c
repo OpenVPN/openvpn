@@ -547,13 +547,13 @@ verify_cert_export_cert(openvpn_x509_cert_t *peercert, const char *tmp_dir, stru
     FILE *peercert_file;
     const char *peercert_filename = "";
 
-    if (!tmp_dir)
+    /* create tmp file to store peer cert */
+    if (!tmp_dir
+        || !(peercert_filename = create_temp_file(tmp_dir, "pcf", gc)))
     {
+        msg (M_WARN, "Failed to create peer cert file");
         return NULL;
     }
-
-    /* create tmp file to store peer cert */
-    peercert_filename = create_temp_file(tmp_dir, "pcf", gc);
 
     /* write peer-cert in tmp-file */
     peercert_file = fopen(peercert_filename, "w+");
@@ -589,10 +589,13 @@ verify_cert_call_command(const char *verify_command, struct env_set *es,
 
     if (verify_export_cert)
     {
-        if ((tmp_file = verify_cert_export_cert(cert, verify_export_cert, &gc)))
+        tmp_file = verify_cert_export_cert(cert, verify_export_cert, &gc);
+        if (!tmp_file)
         {
-            setenv_str(es, "peer_cert", tmp_file);
+            ret = false;
+            goto cleanup;
         }
+        setenv_str(es, "peer_cert", tmp_file);
     }
 
     argv_parse_cmd(&argv, verify_command);
@@ -609,6 +612,7 @@ verify_cert_call_command(const char *verify_command, struct env_set *es,
         }
     }
 
+cleanup:
     gc_free(&gc);
     argv_reset(&argv);
 
@@ -879,21 +883,21 @@ key_state_rm_auth_control_file(struct key_state *ks)
     }
 }
 
-static void
+static bool
 key_state_gen_auth_control_file(struct key_state *ks, const struct tls_options *opt)
 {
     struct gc_arena gc = gc_new();
-    const char *acf;
 
     key_state_rm_auth_control_file(ks);
-    acf = create_temp_file(opt->tmp_dir, "acf", &gc);
+    const char *acf = create_temp_file(opt->tmp_dir, "acf", &gc);
     if (acf)
     {
         ks->auth_control_file = string_alloc(acf, NULL);
         setenv_str(opt->es, "auth_control_file", ks->auth_control_file);
-    } /* FIXME: Should have better error handling? */
+    }
 
     gc_free(&gc);
+    return acf;
 }
 
 static unsigned int
@@ -1184,7 +1188,12 @@ verify_user_pass_plugin(struct tls_session *session, const struct user_pass *up,
 
 #ifdef PLUGIN_DEF_AUTH
         /* generate filename for deferred auth control file */
-        key_state_gen_auth_control_file(ks, session->opt);
+        if (!key_state_gen_auth_control_file(ks, session->opt))
+        {
+            msg (D_TLS_ERRORS, "TLS Auth Error (%s): "
+                 "could not create deferred auth control file", __func__);
+            goto cleanup;
+        }
 #endif
 
         /* call command */
@@ -1209,6 +1218,7 @@ verify_user_pass_plugin(struct tls_session *session, const struct user_pass *up,
         msg(D_TLS_ERRORS, "TLS Auth Error (verify_user_pass_plugin): peer provided a blank username");
     }
 
+cleanup:
     return retval;
 }
 

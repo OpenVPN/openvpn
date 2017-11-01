@@ -740,7 +740,7 @@ create_temp_file(const char *directory, const char *prefix, struct gc_arena *gc)
         retfname = gen_path(directory, BSTR(&fname), gc);
         if (!retfname)
         {
-            msg(M_FATAL, "Failed to create temporary filename and path");
+            msg(M_WARN, "Failed to create temporary filename and path");
             return NULL;
         }
 
@@ -755,14 +755,14 @@ create_temp_file(const char *directory, const char *prefix, struct gc_arena *gc)
         else if (fd == -1 && errno != EEXIST)
         {
             /* Something else went wrong, no need to retry.  */
-            msg(M_FATAL | M_ERRNO, "Could not create temporary file '%s'",
+            msg(M_WARN | M_ERRNO, "Could not create temporary file '%s'",
                 retfname);
             return NULL;
         }
     }
     while (attempts < 6);
 
-    msg(M_FATAL, "Failed to create temporary file after %i attempts", attempts);
+    msg(M_WARN, "Failed to create temporary file after %i attempts", attempts);
     return NULL;
 }
 
