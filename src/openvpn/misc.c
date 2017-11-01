@@ -723,21 +723,26 @@ test_file(const char *filename)
 const char *
 create_temp_file(const char *directory, const char *prefix, struct gc_arena *gc)
 {
-    static unsigned int counter;
-    struct buffer fname = alloc_buf_gc(256, gc);
     int fd;
     const char *retfname = NULL;
     unsigned int attempts = 0;
+    char fname[256] = { 0 };
+    const char *fname_fmt = PACKAGE "_%.*s_%08lx%08lx.tmp";
+    const int max_prefix_len = sizeof(fname) - (sizeof(PACKAGE) + 7 + (2 * 8));
 
-    do
+    while (attempts < 6)
     {
         ++attempts;
-        ++counter;
 
-        buf_printf(&fname, PACKAGE "_%s_%08lx%08lx.tmp", prefix,
-                   (unsigned long) get_random(), (unsigned long) get_random());
+        if (!openvpn_snprintf(fname, sizeof(fname), fname_fmt, max_prefix_len,
+                              prefix, (unsigned long) get_random(),
+                              (unsigned long) get_random()))
+        {
+            msg(M_WARN, "ERROR: temporary filename too long");
+            return NULL;
+        }
 
-        retfname = gen_path(directory, BSTR(&fname), gc);
+        retfname = gen_path(directory, fname, gc);
         if (!retfname)
         {
             msg(M_WARN, "Failed to create temporary filename and path");
@@ -760,7 +765,6 @@ create_temp_file(const char *directory, const char *prefix, struct gc_arena *gc)
             return NULL;
         }
     }
-    while (attempts < 6);
 
     msg(M_WARN, "Failed to create temporary file after %i attempts", attempts);
     return NULL;
@@ -812,6 +816,12 @@ gen_path(const char *directory, const char *filename, struct gc_arena *gc)
 #else
     const int CC_PATH_RESERVED = CC_SLASH;
 #endif
+
+    if (!gc)
+    {
+        return NULL; /* Would leak memory otherwise */
+    }
+
     const char *safe_filename = string_mod_const(filename, CC_PRINT, CC_PATH_RESERVED, '_', gc);
 
     if (safe_filename
