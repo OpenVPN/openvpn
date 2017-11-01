@@ -638,10 +638,12 @@ pf_init_context(struct context *c)
                 }
 #endif
             }
-            else
-            {
-                msg(M_WARN, "WARNING: OPENVPN_PLUGIN_ENABLE_PF disabled");
-            }
+        }
+        if (!c->c2.pf.enabled)
+        {
+            msg(M_WARN, "WARNING: failed to init PF plugin, rejecting client.");
+            register_signal(c, SIGUSR1, "plugin-pf-init-failed");
+            return;
         }
     }
 #endif /* ifdef PLUGIN_PF */
