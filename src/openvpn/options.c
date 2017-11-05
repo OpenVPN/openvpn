@@ -990,7 +990,7 @@ setenv_settings(struct env_set *es, const struct options *o)
     setenv_int(es, "verb", o->verbosity);
     setenv_int(es, "daemon", o->daemon);
     setenv_int(es, "daemon_log_redirect", o->log);
-    setenv_unsigned(es, "daemon_start_time", time(NULL));
+    setenv_long_long(es, "daemon_start_time", time(NULL));
     setenv_int(es, "daemon_pid", platform_getpid());
 
     if (o->connection_list)

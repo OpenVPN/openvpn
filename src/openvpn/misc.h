@@ -98,7 +98,7 @@ void setenv_counter(struct env_set *es, const char *name, counter_type value);
 
 void setenv_int(struct env_set *es, const char *name, int value);
 
-void setenv_unsigned(struct env_set *es, const char *name, unsigned int value);
+void setenv_long_long(struct env_set *es, const char *name, long long value);
 
 void setenv_str(struct env_set *es, const char *name, const char *value);
 

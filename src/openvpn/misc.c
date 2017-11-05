@@ -553,10 +553,10 @@ setenv_int(struct env_set *es, const char *name, int value)
 }
 
 void
-setenv_unsigned(struct env_set *es, const char *name, unsigned int value)
+setenv_long_long(struct env_set *es, const char *name, long long value)
 {
     char buf[64];
-    openvpn_snprintf(buf, sizeof(buf), "%u", value);
+    openvpn_snprintf(buf, sizeof(buf), "%lld", value);
     setenv_str(es, name, buf);
 }
 

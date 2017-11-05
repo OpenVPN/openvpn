@@ -565,10 +565,7 @@ multi_client_disconnect_setenv(struct multi_context *m,
     setenv_stats(&mi->context);
 
     /* setenv connection duration */
-    {
-        const unsigned int duration = (unsigned int) now - mi->created;
-        setenv_unsigned(mi->context.c2.es, "time_duration", duration);
-    }
+    setenv_long_long(mi->context.c2.es, "time_duration", now - mi->created);
 }
 
 static void
@@ -1769,7 +1766,7 @@ multi_client_connect_setenv(struct multi_context *m,
     {
         const char *created_ascii = time_string(mi->created, 0, false, &gc);
         setenv_str(mi->context.c2.es, "time_ascii", created_ascii);
-        setenv_unsigned(mi->context.c2.es, "time_unix", (unsigned int)mi->created);
+        setenv_long_long(mi->context.c2.es, "time_unix", mi->created);
     }
 
     gc_free(&gc);
