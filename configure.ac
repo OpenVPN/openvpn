@@ -1420,6 +1420,9 @@ AC_CONFIG_FILES([
 	distro/rpm/Makefile
 	distro/rpm/openvpn.spec
 	distro/systemd/Makefile
+	doc/Makefile
+	doc/doxygen/Makefile
+	doc/doxygen/openvpn.doxyfile
 	include/Makefile
 	src/Makefile
 	src/compat/Makefile
@@ -1436,7 +1439,6 @@ AC_CONFIG_FILES([
         tests/unit_tests/plugins/auth-pam/Makefile
         vendor/Makefile
 	sample/Makefile
-	doc/Makefile
 ])
 AC_CONFIG_FILES([tests/t_client.sh], [chmod +x tests/t_client.sh])
 AC_OUTPUT

@@ -14,6 +14,8 @@ MAINTAINERCLEANFILES = \
 
 CLEANFILES = openvpn.8.html
 
+SUBDIRS = doxygen
+
 dist_doc_DATA = \
 	management-notes.txt
 

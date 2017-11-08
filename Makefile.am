@@ -46,7 +46,7 @@ EXTRA_DIST = \
 	contrib \
 	debug
 
-.PHONY: config-version.h
+.PHONY: config-version.h doxygen
 
 if GIT_CHECKOUT
 BUILT_SOURCES = \
@@ -96,3 +96,6 @@ config-version.h:
 	else \
 		rm -f config-version.h.tmp; \
 	fi
+
+doxygen:
+	$(MAKE) -C doc/doxygen doxygen
