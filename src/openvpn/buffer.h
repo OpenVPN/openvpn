@@ -131,8 +131,6 @@ struct gc_arena
 
 void buf_clear(struct buffer *buf);
 
-struct buffer clear_buf(void);
-
 void free_buf(struct buffer *buf);
 
 bool buf_assign(struct buffer *dest, const struct buffer *src);
@@ -204,6 +202,13 @@ inline static void
 gc_freeaddrinfo_callback(void *addr)
 {
     freeaddrinfo((struct addrinfo *) addr);
+}
+
+/** Return an empty struct buffer */
+static inline struct buffer
+clear_buf(void)
+{
+    return (struct buffer) { 0 };
 }
 
 static inline bool

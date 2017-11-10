@@ -179,14 +179,6 @@ buf_assign(struct buffer *dest, const struct buffer *src)
     return buf_write(dest, BPTR(src), BLEN(src));
 }
 
-struct buffer
-clear_buf(void)
-{
-    struct buffer buf;
-    CLEAR(buf);
-    return buf;
-}
-
 void
 free_buf(struct buffer *buf)
 {
