@@ -2234,7 +2234,11 @@ multi_bcast(struct multi_context *m,
 #ifdef ENABLE_PF
                 if (sender_instance)
                 {
-                    if (!pf_c2c_test(&sender_instance->context, &mi->context, "bcast_c2c"))
+                    if (!pf_c2c_test(&sender_instance->context.c2.pf,
+                                     sender_instance->context.c2.tls_multi,
+                                     &mi->context.c2.pf,
+                                     mi->context.c2.tls_multi,
+                                     "bcast_c2c"))
                     {
                         msg(D_PF_DROPPED_BCAST, "PF: client[%s] -> client[%s] packet dropped by BCAST packet filter",
                             mi_prefix(sender_instance),
@@ -2244,7 +2248,8 @@ multi_bcast(struct multi_context *m,
                 }
                 if (sender_addr)
                 {
-                    if (!pf_addr_test(&mi->context, sender_addr, "bcast_src_addr"))
+                    if (!pf_addr_test(&mi->context.c2.pf, &mi->context,
+                                      sender_addr, "bcast_src_addr"))
                     {
                         struct gc_arena gc = gc_new();
                         msg(D_PF_DROPPED_BCAST, "PF: addr[%s] -> client[%s] packet dropped by BCAST packet filter",
@@ -2603,7 +2608,10 @@ multi_process_incoming_link(struct multi_context *m, struct multi_instance *inst
                         if (mi)
                         {
 #ifdef ENABLE_PF
-                            if (!pf_c2c_test(c, &mi->context, "tun_c2c"))
+                            if (!pf_c2c_test(&c->c2.pf, c->c2.tls_multi,
+                                             &mi->context.c2.pf,
+                                             mi->context.c2.tls_multi,
+                                             "tun_c2c"))
                             {
                                 msg(D_PF_DROPPED, "PF: client -> client[%s] packet dropped by TUN packet filter",
                                     mi_prefix(mi));
@@ -2619,7 +2627,8 @@ multi_process_incoming_link(struct multi_context *m, struct multi_instance *inst
                     }
                 }
 #ifdef ENABLE_PF
-                if (c->c2.to_tun.len && !pf_addr_test(c, &dest, "tun_dest_addr"))
+                if (c->c2.to_tun.len && !pf_addr_test(&c->c2.pf, c, &dest,
+                                                      "tun_dest_addr"))
                 {
                     msg(D_PF_DROPPED, "PF: client -> addr[%s] packet dropped by TUN packet filter",
                         mroute_addr_print_ex(&dest, MAPF_SHOW_ARP, &gc));
@@ -2664,7 +2673,10 @@ multi_process_incoming_link(struct multi_context *m, struct multi_instance *inst
                                 if (mi)
                                 {
 #ifdef ENABLE_PF
-                                    if (!pf_c2c_test(c, &mi->context, "tap_c2c"))
+                                    if (!pf_c2c_test(&c->c2.pf, c->c2.tls_multi,
+                                                     &mi->context.c2.pf,
+                                                     mi->context.c2.tls_multi,
+                                                     "tap_c2c"))
                                     {
                                         msg(D_PF_DROPPED, "PF: client -> client[%s] packet dropped by TAP packet filter",
                                             mi_prefix(mi));
@@ -2680,7 +2692,9 @@ multi_process_incoming_link(struct multi_context *m, struct multi_instance *inst
                             }
                         }
 #ifdef ENABLE_PF
-                        if (c->c2.to_tun.len && !pf_addr_test(c, &edest, "tap_dest_addr"))
+                        if (c->c2.to_tun.len && !pf_addr_test(&c->c2.pf, c,
+                                                              &edest,
+                                                              "tap_dest_addr"))
                         {
                             msg(D_PF_DROPPED, "PF: client -> addr[%s] packet dropped by TAP packet filter",
                                 mroute_addr_print_ex(&edest, MAPF_SHOW_ARP, &gc));
@@ -2793,7 +2807,7 @@ multi_process_incoming_tun(struct multi_context *m, const unsigned int mpp_flags
                     set_prefix(m->pending);
 
 #ifdef ENABLE_PF
-                    if (!pf_addr_test(c, e2, "tun_tap_src_addr"))
+                    if (!pf_addr_test(&c->c2.pf, c, e2, "tun_tap_src_addr"))
                     {
                         msg(D_PF_DROPPED, "PF: addr[%s] -> client packet dropped by packet filter",
                             mroute_addr_print_ex(&src, MAPF_SHOW_ARP, &gc));

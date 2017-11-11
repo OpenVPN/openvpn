@@ -31,20 +31,24 @@
 #define PCT_SRC  1
 #define PCT_DEST 2
 static inline bool
-pf_c2c_test(const struct context *src, const struct context *dest, const char *prefix)
+pf_c2c_test(const struct pf_context *src_pf, const struct tls_multi *src,
+            const struct pf_context *dest_pf, const struct tls_multi *dest,
+            const char *prefix)
 {
     bool pf_cn_test(struct pf_set *pfs, const struct tls_multi *tm, const int type, const char *prefix);
 
-    return (!src->c2.pf.enabled  || pf_cn_test(src->c2.pf.pfs,  dest->c2.tls_multi, PCT_DEST, prefix))
-           && (!dest->c2.pf.enabled || pf_cn_test(dest->c2.pf.pfs, src->c2.tls_multi,  PCT_SRC,  prefix));
+    return (!src_pf->enabled || pf_cn_test(src_pf->pfs, dest, PCT_DEST, prefix))
+           && (!dest_pf->enabled || pf_cn_test(dest_pf->pfs, src, PCT_SRC,
+                                               prefix));
 }
 
 static inline bool
-pf_addr_test(const struct context *src, const struct mroute_addr *dest, const char *prefix)
+pf_addr_test(const struct pf_context *src_pf, const struct context *src,
+             const struct mroute_addr *dest, const char *prefix)
 {
     bool pf_addr_test_dowork(const struct context *src, const struct mroute_addr *dest, const char *prefix);
 
-    if (src->c2.pf.enabled)
+    if (src_pf->enabled)
     {
         return pf_addr_test_dowork(src, dest, prefix);
     }
