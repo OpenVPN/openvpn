@@ -50,6 +50,8 @@
 #include "forward-inline.h"
 #include "pf-inline.h"
 
+#include "crypto_backend.h"
+
 /*#define MULTI_DEBUG_EVENT_LOOP*/
 
 #ifdef MULTI_DEBUG_EVENT_LOOP
@@ -940,8 +942,8 @@ multi_print_status(struct multi_context *m, struct status_output *so, const int 
              */
             status_printf(so, "TITLE%c%s", sep, title_string);
             status_printf(so, "TIME%c%s%c%u", sep, time_string(now, 0, false, &gc_top), sep, (unsigned int)now);
-            status_printf(so, "HEADER%cCLIENT_LIST%cCommon Name%cReal Address%cVirtual Address%cVirtual IPv6 Address%cBytes Received%cBytes Sent%cConnected Since%cConnected Since (time_t)%cUsername%cClient ID%cPeer ID",
-                          sep, sep, sep, sep, sep, sep, sep, sep, sep, sep, sep, sep);
+            status_printf(so, "HEADER%cCLIENT_LIST%cCommon Name%cReal Address%cVirtual Address%cVirtual IPv6 Address%cBytes Received%cBytes Sent%cConnected Since%cConnected Since (time_t)%cUsername%cClient ID%cPeer ID%cData Channel Cipher",
+                          sep, sep, sep, sep, sep, sep, sep, sep, sep, sep, sep, sep, sep);
             hash_iterator_init(m->hash, &hi);
             while ((he = hash_iterator_next(&hi)))
             {
@@ -956,7 +958,7 @@ multi_print_status(struct multi_context *m, struct status_output *so, const int 
 #else
                                   ""
 #endif
-                                  "%c%" PRIu32,
+                                  "%c%" PRIu32 "%c%s",
                                   sep, tls_common_name(mi->context.c2.tls_multi, false),
                                   sep, mroute_addr_print(&mi->real, &gc),
                                   sep, print_in_addr_t(mi->reporting_addr, IA_EMPTY_IF_UNDEF, &gc),
@@ -971,7 +973,8 @@ multi_print_status(struct multi_context *m, struct status_output *so, const int 
 #else
                                   sep,
 #endif
-                                  sep, mi->context.c2.tls_multi ? mi->context.c2.tls_multi->peer_id : UINT32_MAX);
+                                  sep, mi->context.c2.tls_multi ? mi->context.c2.tls_multi->peer_id : UINT32_MAX,
+                                  sep, translate_cipher_name_to_openvpn(mi->context.options.ciphername));
                 }
                 gc_free(&gc);
             }
