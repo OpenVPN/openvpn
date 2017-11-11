@@ -5254,8 +5254,10 @@ add_option(struct options *options,
     }
     else if (streq(p[0], "tun-ipv6") && !p[1])
     {
-        VERIFY_PERMISSION(OPT_P_UP);
-        msg(M_WARN, "Note: option tun-ipv6 is ignored because modern operating systems do not need special IPv6 tun handling anymore.");
+        if (!pull_mode)
+        {
+            msg(M_WARN, "Note: option tun-ipv6 is ignored because modern operating systems do not need special IPv6 tun handling anymore.");
+        }
     }
 #ifdef ENABLE_IPROUTE
     else if (streq(p[0], "iproute") && p[1] && !p[2])
