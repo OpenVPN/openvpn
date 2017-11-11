@@ -2460,12 +2460,37 @@ seconds.
 Status can also be written to the syslog by sending a
 .B SIGUSR2
 signal.
+
+With multi\-client capability enabled on a server, the status file includes a
+list of clients and a routing table. The output format can be controlled by the
+.B \-\-status\-version
+option in that case.
+
+For clients or instances running in point\-to\-point mode, it will contain the
+traffic statistics.
 .\"*********************************************************
 .TP
 .B \-\-status\-version [n]
-Choose the status file format version number.  Currently
-.B n
-can be 1, 2, or 3 and defaults to 1.
+Set the status file format version number to
+.B n\fR.
+
+This only affects the status file on servers with multi\-client capability
+enabled.
+
+.B 1
+\-\- traditional format (default). The client list contains the following
+fields comma\-separated: Common Name, Real Address, Bytes Received, Bytes Sent,
+Connected Since.
+.br
+.B 2
+\-\- a more reliable format for external processing. Compared to version 1, the
+client list contains some additional fields: Virtual Address, Virtual IPv6
+Address, Username, Client ID, Peer ID.
+Future versions may extend the number of fields.
+.br
+.B 3
+\-\- identical to 2, but fields are tab\-separated.
+
 .\"*********************************************************
 .TP
 .B \-\-mute n
