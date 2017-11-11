@@ -64,6 +64,39 @@
 
 #define IOW_READ            (IOW_READ_TUN|IOW_READ_LINK)
 
+extern counter_type link_read_bytes_global;
+
+extern counter_type link_write_bytes_global;
+
+void check_tls_dowork(struct context *c);
+
+void check_tls_errors_co(struct context *c);
+
+void check_tls_errors_nco(struct context *c);
+
+#if P2MP
+void check_incoming_control_channel_dowork(struct context *c);
+
+void check_scheduled_exit_dowork(struct context *c);
+
+void check_push_request_dowork(struct context *c);
+#endif /* P2MP */
+
+#ifdef ENABLE_FRAGMENT
+void check_fragment_dowork(struct context *c);
+#endif /* ENABLE_FRAGMENT */
+
+void check_connection_established_dowork(struct context *c);
+
+void check_add_routes_dowork(struct context *c);
+
+void check_inactivity_timeout_dowork(struct context *c);
+
+void check_server_poll_timeout_dowork(struct context *c);
+
+void check_status_file_dowork(struct context *c);
+
+void io_wait_dowork(struct context *c, const unsigned int flags);
 
 void pre_select(struct context *c);
 

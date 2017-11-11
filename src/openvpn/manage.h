@@ -582,17 +582,17 @@ management_bytes_in(struct management *man, const int size)
 
 #ifdef MANAGEMENT_DEF_AUTH
 
+void man_bytecount_output_server(struct management *man,
+                                 const counter_type *bytes_in_total,
+                                 const counter_type *bytes_out_total,
+                                 struct man_def_auth_context *mdac);
+
 static inline void
 management_bytes_server(struct management *man,
                         const counter_type *bytes_in_total,
                         const counter_type *bytes_out_total,
                         struct man_def_auth_context *mdac)
 {
-    void man_bytecount_output_server(struct management *man,
-                                     const counter_type *bytes_in_total,
-                                     const counter_type *bytes_out_total,
-                                     struct man_def_auth_context *mdac);
-
     if (man->connection.bytecount_update_seconds > 0
         && now >= mdac->bytecount_last_update + man->connection.bytecount_update_seconds
         && (mdac->flags & (DAF_CONNECTION_ESTABLISHED|DAF_CONNECTION_CLOSED)) == DAF_CONNECTION_ESTABLISHED)

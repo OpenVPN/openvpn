@@ -43,6 +43,10 @@ is_ping_msg(const struct buffer *buf)
     return buf_string_match(buf, ping_string, PING_STRING_SIZE);
 }
 
+void check_ping_restart_dowork(struct context *c);
+
+void check_ping_send_dowork(struct context *c);
+
 /*
  * Should we exit or restart due to ping (or other authenticated packet)
  * not received in n seconds?

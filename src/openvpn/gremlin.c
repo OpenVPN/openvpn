@@ -38,6 +38,7 @@
 
 #include "error.h"
 #include "common.h"
+#include "crypto.h"
 #include "misc.h"
 #include "otime.h"
 #include "gremlin.h"

@@ -90,6 +90,16 @@ is_occ_msg(const struct buffer *buf)
 
 void process_received_occ_msg(struct context *c);
 
+void check_send_occ_req_dowork(struct context *c);
+
+void check_send_occ_load_test_dowork(struct context *c);
+
+void check_send_occ_msg_dowork(struct context *c);
+
+/*
+ * Inline functions
+ */
+
 static inline int
 occ_reset_op(void)
 {
@@ -102,8 +112,6 @@ occ_reset_op(void)
 static inline void
 check_send_occ_req(struct context *c)
 {
-    void check_send_occ_req_dowork(struct context *c);
-
     if (event_timeout_defined(&c->c2.occ_interval)
         && event_timeout_trigger(&c->c2.occ_interval,
                                  &c->c2.timeval,
@@ -119,8 +127,6 @@ check_send_occ_req(struct context *c)
 static inline void
 check_send_occ_load_test(struct context *c)
 {
-    void check_send_occ_load_test_dowork(struct context *c);
-
     if (event_timeout_defined(&c->c2.occ_mtu_load_test_interval)
         && event_timeout_trigger(&c->c2.occ_mtu_load_test_interval,
                                  &c->c2.timeval,
@@ -136,8 +142,6 @@ check_send_occ_load_test(struct context *c)
 static inline void
 check_send_occ_msg(struct context *c)
 {
-    void check_send_occ_msg_dowork(struct context *c);
-
     if (c->c2.occ_op >= 0)
     {
         if (!TO_LINK_DEF(c))

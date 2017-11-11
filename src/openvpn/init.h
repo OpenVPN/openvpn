@@ -140,4 +140,6 @@ void open_plugins(struct context *c, const bool import_options, int init_point);
 
 #endif
 
+void tun_abort(void);
+
 #endif /* ifndef INIT_H */

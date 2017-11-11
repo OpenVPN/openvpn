@@ -52,9 +52,6 @@ const char **make_arg_array(const char *first, const char *parms, struct gc_aren
 
 const char **make_extended_arg_array(char **p, struct gc_arena *gc);
 
-/* an analogue to the random() function, but use OpenSSL functions if available */
-long int get_random(void);
-
 /* prepend a random prefix to hostname */
 const char *hostname_randomize(const char *hostname, struct gc_arena *gc);
 

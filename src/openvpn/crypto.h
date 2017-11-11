@@ -462,6 +462,9 @@ void prng_bytes(uint8_t *output, int len);
 
 void prng_uninit(void);
 
+/* an analogue to the random() function, but use prng_bytes */
+long int get_random(void);
+
 void test_crypto(struct crypto_options *co, struct frame *f);
 
 

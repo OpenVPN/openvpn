@@ -121,6 +121,10 @@ pf_addr_test(const struct pf_context *src_pf, const struct context *src,
     }
 }
 
+/*
+ * Inline functions
+ */
+
 bool pf_cn_test(struct pf_set *pfs, const struct tls_multi *tm, const int type,
                 const char *prefix);
 

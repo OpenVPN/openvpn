@@ -994,11 +994,11 @@ link_socket_set_outgoing_addr(const struct buffer *buf,
     }
 }
 
+bool stream_buf_read_setup_dowork(struct link_socket *sock);
+
 static inline bool
 stream_buf_read_setup(struct link_socket *sock)
 {
-    bool stream_buf_read_setup_dowork(struct link_socket *sock);
-
     if (link_socket_connection_oriented(sock))
     {
         return stream_buf_read_setup_dowork(sock);
@@ -1103,16 +1103,17 @@ link_socket_write_win32(struct link_socket *sock,
 
 #else  /* ifdef _WIN32 */
 
+size_t link_socket_write_udp_posix_sendmsg(struct link_socket *sock,
+                                           struct buffer *buf,
+                                           struct link_socket_actual *to);
+
+
 static inline size_t
 link_socket_write_udp_posix(struct link_socket *sock,
                             struct buffer *buf,
                             struct link_socket_actual *to)
 {
 #if ENABLE_IP_PKTINFO
-    size_t link_socket_write_udp_posix_sendmsg(struct link_socket *sock,
-                                               struct buffer *buf,
-                                               struct link_socket_actual *to);
-
     if (proto_is_udp(sock->info.proto) && (sock->sockflags & SF_USE_IP_PKTINFO)
         && addr_defined_ipi(to))
     {

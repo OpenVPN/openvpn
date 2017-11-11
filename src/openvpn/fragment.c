@@ -31,6 +31,7 @@
 
 #ifdef ENABLE_FRAGMENT
 
+#include "crypto.h"
 #include "misc.h"
 #include "fragment.h"
 #include "integer.h"

@@ -96,11 +96,11 @@ mbuf_maximum_queued(const struct mbuf_set *ms)
     return (int) ms->max_queued;
 }
 
+struct multi_instance *mbuf_peek_dowork(struct mbuf_set *ms);
+
 static inline struct multi_instance *
 mbuf_peek(struct mbuf_set *ms)
 {
-    struct multi_instance *mbuf_peek_dowork(struct mbuf_set *ms);
-
     if (mbuf_defined(ms))
     {
         return mbuf_peek_dowork(ms);

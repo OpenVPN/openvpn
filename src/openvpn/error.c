@@ -31,6 +31,7 @@
 
 #include "error.h"
 #include "buffer.h"
+#include "init.h"
 #include "misc.h"
 #include "win32.h"
 #include "socket.h"
@@ -734,13 +735,6 @@ openvpn_exit(const int status)
 {
     if (!forked)
     {
-        void tun_abort();
-
-#ifdef ENABLE_PLUGIN
-        void plugin_abort(void);
-
-#endif
-
         tun_abort();
 
 #ifdef _WIN32

@@ -536,11 +536,12 @@ clear_prefix(void)
  */
 #define MULTI_CACHE_ROUTE_TTL 60
 
+void multi_reap_process_dowork(const struct multi_context *m);
+void multi_process_per_second_timers_dowork(struct multi_context *m);
+
 static inline void
 multi_reap_process(const struct multi_context *m)
 {
-    void multi_reap_process_dowork(const struct multi_context *m);
-
     if (m->reaper->last_call != now)
     {
         multi_reap_process_dowork(m);
@@ -552,8 +553,6 @@ multi_process_per_second_timers(struct multi_context *m)
 {
     if (m->per_second_trigger != now)
     {
-        void multi_process_per_second_timers_dowork(struct multi_context *m);
-
         multi_process_per_second_timers_dowork(m);
         m->per_second_trigger = now;
     }
