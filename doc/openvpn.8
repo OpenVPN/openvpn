@@ -4918,6 +4918,37 @@ when using mbed TLS or
 OpenSSL.
 .\"*********************************************************
 .TP
+.B \-\-tls\-cert\-profile profile
+Set the allowed cryptographic algorithms for certificates according to
+.B profile\fN.
+
+The following profiles are supported:
+
+.B legacy
+(default): SHA1 and newer, RSA 2048-bit+, any elliptic curve.
+
+.B preferred
+: SHA2 and newer, RSA 2048-bit+, any elliptic curve.
+
+.B suiteb
+: SHA256/SHA384, ECDSA with P-256 or P-384.
+
+This option is only fully supported for mbed TLS builds.  OpenSSL builds use
+the following approximation:
+
+.B legacy
+(default): sets "security level 1"
+
+.B preferred
+: sets "security level 2"
+
+.B suiteb
+: sets "security level 3" and \-\-tls\-cipher "SUITEB128".
+
+OpenVPN will migrate to 'preferred' as default in the future.  Please ensure
+that your keys already comply.
+.\"*********************************************************
+.TP
 .B \-\-tls\-timeout n
 Packet retransmit timeout on TLS control channel
 if no acknowledgment from remote within
