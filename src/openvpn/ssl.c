@@ -616,6 +616,9 @@ init_ssl(const struct options *options, struct tls_root_ctx *new_ctx)
         tls_ctx_client_new(new_ctx);
     }
 
+    /* Restrict allowed certificate crypto algorithms */
+    tls_ctx_set_cert_profile(new_ctx, options->tls_cert_profile);
+
     /* Allowable ciphers */
     /* Since @SECLEVEL also influces loading of certificates, set the
      * cipher restrictions before loading certificates */

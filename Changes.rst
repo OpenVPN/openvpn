@@ -321,6 +321,18 @@ Maintainer-visible changes
   i386/i686 builds on RHEL5.
 
 
+Version 2.4.5
+=============
+
+New features
+------------
+- The new option ``--tls-cert-profile`` can be used to restrict the set of
+  allowed crypto algorithms in TLS certificates in mbed TLS builds.  The
+  default profile is 'legacy' for now, which allows SHA1+, RSA-1024+ and any
+  elliptic curve certificates.  The default will be changed to the 'preferred'
+  profile in the future, which requires SHA2+, RSA-2048+ and any curve.
+
+
 Version 2.4.3
 =============
 

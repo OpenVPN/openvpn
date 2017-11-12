@@ -384,6 +384,40 @@ tls_ctx_restrict_ciphers(struct tls_root_ctx *ctx, const char *ciphers)
 }
 
 void
+tls_ctx_set_cert_profile(struct tls_root_ctx *ctx, const char *profile)
+{
+#if (OPENSSL_VERSION_NUMBER >= 0x10100000)
+    /* OpenSSL does not have certificate profiles, but a complex set of
+     * callbacks that we could try to implement to achieve something similar.
+     * For now, use OpenSSL's security levels to achieve similar (but not equal)
+     * behaviour. */
+    if (!profile || 0 == strcmp(profile, "legacy"))
+    {
+        SSL_CTX_set_security_level(ctx->ctx, 1);
+    }
+    else if (0 == strcmp(profile, "preferred"))
+    {
+        SSL_CTX_set_security_level(ctx->ctx, 2);
+    }
+    else if (0 == strcmp(profile, "suiteb"))
+    {
+        SSL_CTX_set_security_level(ctx->ctx, 3);
+        SSL_CTX_set_cipher_list(ctx->ctx, "SUITEB128");
+    }
+    else
+    {
+        msg(M_FATAL, "ERROR: Invalid cert profile: %s", profile);
+    }
+#else
+    if (profile)
+    {
+        msg(M_WARN, "WARNING: OpenSSL 1.0.1 does not support --tls-cert-profile"
+            ", ignoring user-set profile: '%s'", profile);
+    }
+#endif
+}
+
+void
 tls_ctx_check_cert_time(const struct tls_root_ctx *ctx)
 {
     int ret;
@@ -1722,7 +1756,8 @@ print_details(struct key_state_ssl *ks_ssl, const char *prefix)
 }
 
 void
-show_available_tls_ciphers(const char *cipher_list)
+show_available_tls_ciphers(const char *cipher_list,
+                           const char *tls_cert_profile)
 {
     struct tls_root_ctx tls_ctx;
     SSL *ssl;
@@ -1742,6 +1777,7 @@ show_available_tls_ciphers(const char *cipher_list)
         crypto_msg(M_FATAL, "Cannot create SSL object");
     }
 
+    tls_ctx_set_cert_profile(&tls_ctx, tls_cert_profile);
     tls_ctx_restrict_ciphers(&tls_ctx, cipher_list);
 
     printf("Available TLS Ciphers,\n");
