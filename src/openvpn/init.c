@@ -42,6 +42,7 @@
 #include "otime.h"
 #include "pool.h"
 #include "gremlin.h"
+#include "occ.h"
 #include "pkcs11.h"
 #include "ps.h"
 #include "lladdr.h"
@@ -49,11 +50,10 @@
 #include "mstats.h"
 #include "ssl_verify.h"
 #include "tls_crypt.h"
-#include "forward-inline.h"
+#include "forward.h"
 
 #include "memdbg.h"
 
-#include "occ-inline.h"
 
 static struct context *static_context; /* GLOBAL */
 

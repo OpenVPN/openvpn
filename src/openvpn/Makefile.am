@@ -56,7 +56,7 @@ openvpn_SOURCES = \
 	error.c error.h \
 	event.c event.h \
 	fdmisc.c fdmisc.h \
-	forward.c forward.h forward-inline.h \
+	forward.c forward.h \
 	fragment.c fragment.h \
 	gremlin.c gremlin.h \
 	helper.c helper.h \
@@ -81,7 +81,7 @@ openvpn_SOURCES = \
 	mudp.c mudp.h \
 	multi.c multi.h \
 	ntlm.c ntlm.h \
-	occ.c occ.h occ-inline.h \
+	occ.c occ.h \
 	openssl_compat.h \
 	pkcs11.c pkcs11.h pkcs11_backend.h \
 	pkcs11_openssl.c \
@@ -91,8 +91,8 @@ openvpn_SOURCES = \
 	otime.c otime.h \
 	packet_id.c packet_id.h \
 	perf.c perf.h \
-	pf.c pf.h pf-inline.h \
-	ping.c ping.h ping-inline.h \
+	pf.c pf.h \
+	ping.c ping.h \
 	plugin.c plugin.h \
 	pool.c pool.h \
 	proto.c proto.h \

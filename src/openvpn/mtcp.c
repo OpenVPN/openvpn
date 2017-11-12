@@ -32,7 +32,7 @@
 #if P2MP_SERVER
 
 #include "multi.h"
-#include "forward-inline.h"
+#include "forward.h"
 
 #include "memdbg.h"
 

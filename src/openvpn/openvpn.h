@@ -42,10 +42,10 @@
 #include "sig.h"
 #include "misc.h"
 #include "mbuf.h"
+#include "pf.h"
 #include "pool.h"
 #include "plugin.h"
 #include "manage.h"
-#include "pf.h"
 
 /*
  * Our global key schedules, packaged thusly

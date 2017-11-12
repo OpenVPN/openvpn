@@ -284,9 +284,6 @@
     <ClInclude Include="fdmisc.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="forward-inline.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="forward.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -356,9 +353,6 @@
     <ClInclude Include="ntlm.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="occ-inline.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="occ.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -377,13 +371,7 @@
     <ClInclude Include="perf.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="pf-inline.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="pf.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="ping-inline.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="ping.h">

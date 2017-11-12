@@ -31,6 +31,9 @@
 
 #define PF_MAX_LINE_LEN 256
 
+#define PCT_SRC  1
+#define PCT_DEST 2
+
 struct context;
 
 struct ipv4_subnet {
@@ -100,5 +103,41 @@ bool pf_load_from_buffer_list(struct context *c, const struct buffer_list *confi
 void pf_context_print(const struct pf_context *pfc, const char *prefix, const int lev);
 
 #endif
+
+bool pf_addr_test_dowork(const struct context *src,
+                         const struct mroute_addr *dest, const char *prefix);
+
+static inline bool
+pf_addr_test(const struct pf_context *src_pf, const struct context *src,
+             const struct mroute_addr *dest, const char *prefix)
+{
+    if (src_pf->enabled)
+    {
+        return pf_addr_test_dowork(src, dest, prefix);
+    }
+    else
+    {
+        return true;
+    }
+}
+
+bool pf_cn_test(struct pf_set *pfs, const struct tls_multi *tm, const int type,
+                const char *prefix);
+
+static inline bool
+pf_c2c_test(const struct pf_context *src_pf, const struct tls_multi *src,
+            const struct pf_context *dest_pf, const struct tls_multi *dest,
+            const char *prefix)
+{
+    return (!src_pf->enabled || pf_cn_test(src_pf->pfs, dest, PCT_DEST, prefix))
+           && (!dest_pf->enabled || pf_cn_test(dest_pf->pfs, src, PCT_SRC,
+                                               prefix));
+}
+
+static inline bool
+pf_kill_test(const struct pf_set *pfs)
+{
+    return pfs->kill;
+}
 
 #endif /* if defined(ENABLE_PF) && !defined(OPENVPN_PF_H) */

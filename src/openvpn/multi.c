@@ -36,10 +36,12 @@
 
 #if P2MP_SERVER
 
+#include "forward.h"
 #include "multi.h"
 #include "push.h"
 #include "run_command.h"
 #include "otime.h"
+#include "pf.h"
 #include "gremlin.h"
 #include "mstats.h"
 #include "ssl_verify.h"
@@ -47,8 +49,6 @@
 
 #include "memdbg.h"
 
-#include "forward-inline.h"
-#include "pf-inline.h"
 
 #include "crypto_backend.h"
 

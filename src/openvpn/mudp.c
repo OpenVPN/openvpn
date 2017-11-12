@@ -33,7 +33,7 @@
 
 #include "multi.h"
 #include <inttypes.h>
-#include "forward-inline.h"
+#include "forward.h"
 
 #include "memdbg.h"
 

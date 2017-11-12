@@ -31,9 +31,9 @@
 #ifndef FORWARD_H
 #define FORWARD_H
 
-#include "openvpn.h"
-#include "occ.h"
-#include "ping.h"
+/* the following macros must be defined before including any other header
+ * file
+ */
 
 #define TUN_OUT(c)      (BLEN(&(c)->c2.to_tun) > 0)
 #define LINK_OUT(c)     (BLEN(&(c)->c2.to_link) > 0)
@@ -46,6 +46,10 @@
 #endif
 
 #define TO_LINK_DEF(c)  (LINK_OUT(c) || TO_LINK_FRAG(c))
+
+#include "openvpn.h"
+#include "occ.h"
+#include "ping.h"
 
 #define IOW_TO_TUN          (1<<0)
 #define IOW_TO_LINK         (1<<1)
@@ -261,5 +265,83 @@ void process_ip_header(struct context *c, unsigned int flags, struct buffer *buf
 void schedule_exit(struct context *c, const int n_seconds, const int signal);
 
 #endif
+
+static inline struct link_socket_info *
+get_link_socket_info(struct context *c)
+{
+    if (c->c2.link_socket_info)
+    {
+        return c->c2.link_socket_info;
+    }
+    else
+    {
+        return &c->c2.link_socket->info;
+    }
+}
+
+static inline void
+register_activity(struct context *c, const int size)
+{
+    if (c->options.inactivity_timeout)
+    {
+        c->c2.inactivity_bytes += size;
+        if (c->c2.inactivity_bytes >= c->options.inactivity_minimum_bytes)
+        {
+            c->c2.inactivity_bytes = 0;
+            event_timeout_reset(&c->c2.inactivity_interval);
+        }
+    }
+}
+
+/*
+ * Return the io_wait() flags appropriate for
+ * a point-to-point tunnel.
+ */
+static inline unsigned int
+p2p_iow_flags(const struct context *c)
+{
+    unsigned int flags = (IOW_SHAPER|IOW_CHECK_RESIDUAL|IOW_FRAG|IOW_READ|IOW_WAIT_SIGNAL);
+    if (c->c2.to_link.len > 0)
+    {
+        flags |= IOW_TO_LINK;
+    }
+    if (c->c2.to_tun.len > 0)
+    {
+        flags |= IOW_TO_TUN;
+    }
+    return flags;
+}
+
+/*
+ * This is the core I/O wait function, used for all I/O waits except
+ * for TCP in server mode.
+ */
+static inline void
+io_wait(struct context *c, const unsigned int flags)
+{
+    void io_wait_dowork(struct context *c, const unsigned int flags);
+
+    if (c->c2.fast_io && (flags & (IOW_TO_TUN|IOW_TO_LINK|IOW_MBUF)))
+    {
+        /* fast path -- only for TUN/TAP/UDP writes */
+        unsigned int ret = 0;
+        if (flags & IOW_TO_TUN)
+        {
+            ret |= TUN_WRITE;
+        }
+        if (flags & (IOW_TO_LINK|IOW_MBUF))
+        {
+            ret |= SOCKET_WRITE;
+        }
+        c->c2.event_set_status = ret;
+    }
+    else
+    {
+        /* slow path */
+        io_wait_dowork(c, flags);
+    }
+}
+
+#define CONNECTION_ESTABLISHED(c) (get_link_socket_info(c)->connection_established)
 
 #endif /* FORWARD_H */

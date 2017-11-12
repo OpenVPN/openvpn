@@ -43,4 +43,41 @@ is_ping_msg(const struct buffer *buf)
     return buf_string_match(buf, ping_string, PING_STRING_SIZE);
 }
 
+/*
+ * Should we exit or restart due to ping (or other authenticated packet)
+ * not received in n seconds?
+ */
+static inline void
+check_ping_restart(struct context *c)
+{
+    void check_ping_restart_dowork(struct context *c);
+
+    if (c->options.ping_rec_timeout
+        && event_timeout_trigger(&c->c2.ping_rec_interval,
+                                 &c->c2.timeval,
+                                 (!c->options.ping_timer_remote
+                                  || link_socket_actual_defined(&c->c1.link_socket_addr.actual))
+                                 ? ETT_DEFAULT : 15))
+    {
+        check_ping_restart_dowork(c);
+    }
+}
+
+/*
+ * Should we ping the remote?
+ */
+static inline void
+check_ping_send(struct context *c)
+{
+    void check_ping_send_dowork(struct context *c);
+
+    if (c->options.ping_send_timeout
+        && event_timeout_trigger(&c->c2.ping_send_interval,
+                                 &c->c2.timeval,
+                                 !TO_LINK_DEF(c) ? ETT_DEFAULT : 1))
+    {
+        check_ping_send_dowork(c);
+    }
+}
+
 #endif

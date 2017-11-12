@@ -35,9 +35,9 @@
 
 #include "init.h"
 #include "memdbg.h"
+#include "pf.h"
 #include "ssl_verify.h"
 
-#include "pf-inline.h"
 
 static void
 pf_destroy(struct pf_set *pfs)

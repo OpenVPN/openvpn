@@ -33,7 +33,6 @@
 
 #include "memdbg.h"
 
-#include "ping-inline.h"
 
 /*
  * This random string identifies an OpenVPN ping packet.

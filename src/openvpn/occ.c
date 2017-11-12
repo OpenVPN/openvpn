@@ -32,11 +32,9 @@
 #ifdef ENABLE_OCC
 
 #include "occ.h"
-
+#include "forward.h"
 #include "memdbg.h"
 
-#include "forward-inline.h"
-#include "occ-inline.h"
 
 /*
  * This random string identifies an OpenVPN

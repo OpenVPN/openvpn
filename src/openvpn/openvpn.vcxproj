@@ -279,7 +279,6 @@
     <ClInclude Include="error.h" />
     <ClInclude Include="event.h" />
     <ClInclude Include="fdmisc.h" />
-    <ClInclude Include="forward-inline.h" />
     <ClInclude Include="forward.h" />
     <ClInclude Include="fragment.h" />
     <ClInclude Include="gremlin.h" />
@@ -303,16 +302,13 @@
     <ClInclude Include="mudp.h" />
     <ClInclude Include="multi.h" />
     <ClInclude Include="ntlm.h" />
-    <ClInclude Include="occ-inline.h" />
     <ClInclude Include="occ.h" />
     <ClInclude Include="openvpn.h" />
     <ClInclude Include="options.h" />
     <ClInclude Include="otime.h" />
     <ClInclude Include="packet_id.h" />
     <ClInclude Include="perf.h" />
-    <ClInclude Include="pf-inline.h" />
     <ClInclude Include="pf.h" />
-    <ClInclude Include="ping-inline.h" />
     <ClInclude Include="ping.h" />
     <ClInclude Include="pkcs11.h" />
     <ClInclude Include="pkcs11_backend.h" />

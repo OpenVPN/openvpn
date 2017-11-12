@@ -37,8 +37,6 @@
 
 #include "memdbg.h"
 
-#include "forward-inline.h"
-
 #define P2P_CHECK_SIG() EVENT_LOOP_CHECK_SIGNAL(c, process_signal_p2p, c);
 
 static bool

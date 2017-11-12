@@ -35,6 +35,9 @@
 #include "gremlin.h"
 #include "mss.h"
 #include "event.h"
+#include "occ.h"
+#include "pf.h"
+#include "ping.h"
 #include "ps.h"
 #include "dhcp.h"
 #include "common.h"
@@ -42,9 +45,6 @@
 
 #include "memdbg.h"
 
-#include "forward-inline.h"
-#include "occ-inline.h"
-#include "ping-inline.h"
 #include "mstats.h"
 
 counter_type link_read_bytes_global;  /* GLOBAL */
@@ -76,6 +76,232 @@ show_wait_status(struct context *c)
 }
 
 #endif /* ifdef ENABLE_DEBUG */
+
+/*
+ * Does TLS session need service?
+ */
+static inline void
+check_tls(struct context *c)
+{
+    void check_tls_dowork(struct context *c);
+
+    if (c->c2.tls_multi)
+    {
+        check_tls_dowork(c);
+    }
+}
+
+/*
+ * TLS errors are fatal in TCP mode.
+ * Also check for --tls-exit trigger.
+ */
+static inline void
+check_tls_errors(struct context *c)
+{
+    void check_tls_errors_co(struct context *c);
+
+    void check_tls_errors_nco(struct context *c);
+
+    if (c->c2.tls_multi && c->c2.tls_exit_signal)
+    {
+        if (link_socket_connection_oriented(c->c2.link_socket))
+        {
+            if (c->c2.tls_multi->n_soft_errors)
+            {
+                check_tls_errors_co(c);
+            }
+        }
+        else
+        {
+            if (c->c2.tls_multi->n_hard_errors)
+            {
+                check_tls_errors_nco(c);
+            }
+        }
+    }
+}
+
+/*
+ * Check for possible incoming configuration
+ * messages on the control channel.
+ */
+static inline void
+check_incoming_control_channel(struct context *c)
+{
+#if P2MP
+    void check_incoming_control_channel_dowork(struct context *c);
+
+    if (tls_test_payload_len(c->c2.tls_multi) > 0)
+    {
+        check_incoming_control_channel_dowork(c);
+    }
+#endif
+}
+
+/*
+ * Options like --up-delay need to be triggered by this function which
+ * checks for connection establishment.
+ */
+static inline void
+check_connection_established(struct context *c)
+{
+    void check_connection_established_dowork(struct context *c);
+
+    if (event_timeout_defined(&c->c2.wait_for_connect))
+    {
+        check_connection_established_dowork(c);
+    }
+}
+
+/*
+ * Should we add routes?
+ */
+static inline void
+check_add_routes(struct context *c)
+{
+    void check_add_routes_dowork(struct context *c);
+
+    if (event_timeout_trigger(&c->c2.route_wakeup, &c->c2.timeval, ETT_DEFAULT))
+    {
+        check_add_routes_dowork(c);
+    }
+}
+
+/*
+ * Should we exit due to inactivity timeout?
+ */
+static inline void
+check_inactivity_timeout(struct context *c)
+{
+    void check_inactivity_timeout_dowork(struct context *c);
+
+    if (c->options.inactivity_timeout
+        && event_timeout_trigger(&c->c2.inactivity_interval, &c->c2.timeval, ETT_DEFAULT))
+    {
+        check_inactivity_timeout_dowork(c);
+    }
+}
+
+#if P2MP
+
+static inline void
+check_server_poll_timeout(struct context *c)
+{
+    void check_server_poll_timeout_dowork(struct context *c);
+
+    if (c->options.ce.connect_timeout
+        && event_timeout_trigger(&c->c2.server_poll_interval, &c->c2.timeval, ETT_DEFAULT))
+    {
+        check_server_poll_timeout_dowork(c);
+    }
+}
+
+/*
+ * Scheduled exit?
+ */
+static inline void
+check_scheduled_exit(struct context *c)
+{
+    void check_scheduled_exit_dowork(struct context *c);
+
+    if (event_timeout_defined(&c->c2.scheduled_exit))
+    {
+        if (event_timeout_trigger(&c->c2.scheduled_exit, &c->c2.timeval, ETT_DEFAULT))
+        {
+            check_scheduled_exit_dowork(c);
+        }
+    }
+}
+#endif /* if P2MP */
+
+/*
+ * Should we write timer-triggered status file.
+ */
+static inline void
+check_status_file(struct context *c)
+{
+    void check_status_file_dowork(struct context *c);
+
+    if (c->c1.status_output)
+    {
+        if (status_trigger_tv(c->c1.status_output, &c->c2.timeval))
+        {
+            check_status_file_dowork(c);
+        }
+    }
+}
+
+#ifdef ENABLE_FRAGMENT
+/*
+ * Should we deliver a datagram fragment to remote?
+ */
+static inline void
+check_fragment(struct context *c)
+{
+    void check_fragment_dowork(struct context *c);
+
+    if (c->c2.fragment)
+    {
+        check_fragment_dowork(c);
+    }
+}
+#endif
+
+#if P2MP
+
+/*
+ * see if we should send a push_request in response to --pull
+ */
+static inline void
+check_push_request(struct context *c)
+{
+    void check_push_request_dowork(struct context *c);
+
+    if (event_timeout_trigger(&c->c2.push_request_interval, &c->c2.timeval, ETT_DEFAULT))
+    {
+        check_push_request_dowork(c);
+    }
+}
+
+#endif
+
+/*
+ * Should we persist our anti-replay packet ID state to disk?
+ */
+static inline void
+check_packet_id_persist_flush(struct context *c)
+{
+    if (packet_id_persist_enabled(&c->c1.pid_persist)
+        && event_timeout_trigger(&c->c2.packet_id_persist_interval, &c->c2.timeval, ETT_DEFAULT))
+    {
+        packet_id_persist_save(&c->c1.pid_persist);
+    }
+}
+
+/*
+ * Set our wakeup to 0 seconds, so we will be rescheduled
+ * immediately.
+ */
+static inline void
+context_immediate_reschedule(struct context *c)
+{
+    c->c2.timeval.tv_sec = 0;  /* ZERO-TIMEOUT */
+    c->c2.timeval.tv_usec = 0;
+}
+
+static inline void
+context_reschedule_sec(struct context *c, int sec)
+{
+    if (sec < 0)
+    {
+        sec = 0;
+    }
+    if (sec < c->c2.timeval.tv_sec)
+    {
+        c->c2.timeval.tv_sec = sec;
+        c->c2.timeval.tv_usec = 0;
+    }
+}
 
 /*
  * In TLS mode, let TLS level respond to any control-channel
