@@ -603,7 +603,9 @@ static const char usage_message[] =
     "                  if no ACK from remote within n seconds (default=%d).\n"
     "--reneg-bytes n : Renegotiate data chan. key after n bytes sent and recvd.\n"
     "--reneg-pkts n  : Renegotiate data chan. key after n packets sent and recvd.\n"
-    "--reneg-sec n   : Renegotiate data chan. key after n seconds (default=%d).\n"
+    "--reneg-sec max [min] : Renegotiate data chan. key after at most max (default=%d)\n"
+    "                  and at least min (defaults to 90%% of max on servers and equal\n"
+    "                  to max on clients).\n"
     "--hand-window n : Data channel key exchange must finalize within n seconds\n"
     "                  of handshake initiation by any peer (default=%d).\n"
     "--tran-window n : Transition window -- old key can live this many seconds\n"
@@ -870,6 +872,7 @@ init_options(struct options *o, const bool init_gc)
     o->tls_timeout = 2;
     o->renegotiate_bytes = -1;
     o->renegotiate_seconds = 3600;
+    o->renegotiate_seconds_min = -1;
     o->handshake_window = 60;
     o->transition_window = 3600;
     o->ecdh_curve = NULL;
@@ -8001,10 +8004,14 @@ add_option(struct options *options,
         VERIFY_PERMISSION(OPT_P_TLS_PARMS);
         options->renegotiate_packets = positive_atoi(p[1]);
     }
-    else if (streq(p[0], "reneg-sec") && p[1] && !p[2])
+    else if (streq(p[0], "reneg-sec") && p[1] && !p[3])
     {
         VERIFY_PERMISSION(OPT_P_TLS_PARMS);
         options->renegotiate_seconds = positive_atoi(p[1]);
+        if (p[2])
+        {
+            options->renegotiate_seconds_min = positive_atoi(p[2]);
+        }
     }
     else if (streq(p[0], "hand-window") && p[1] && !p[2])
     {

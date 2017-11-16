@@ -2693,7 +2693,20 @@ do_init_crypto_tls(struct context *c, const unsigned int flags)
     to.packet_timeout = options->tls_timeout;
     to.renegotiate_bytes = options->renegotiate_bytes;
     to.renegotiate_packets = options->renegotiate_packets;
-    to.renegotiate_seconds = options->renegotiate_seconds;
+    if (options->renegotiate_seconds_min < 0)
+    {
+        /* Add 10% jitter to reneg-sec by default (server side only) */
+        int auto_jitter = options->mode != MODE_SERVER ? 0 :
+                get_random() % max_int(options->renegotiate_seconds / 10, 1);
+        to.renegotiate_seconds = options->renegotiate_seconds - auto_jitter;
+    }
+    else
+    {
+        /* Add user-specified jitter to reneg-sec */
+        to.renegotiate_seconds = options->renegotiate_seconds -
+                (get_random() % max_int(options->renegotiate_seconds
+                                        - options->renegotiate_seconds_min, 1));
+    }
     to.single_session = options->single_session;
     to.mode = options->mode;
     to.pull = options->pull;

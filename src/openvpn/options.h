@@ -548,6 +548,7 @@ struct options
     int renegotiate_bytes;
     int renegotiate_packets;
     int renegotiate_seconds;
+    int renegotiate_seconds_min;
 
     /* Data channel key handshake must finalize
      * within n seconds of handshake initiation. */

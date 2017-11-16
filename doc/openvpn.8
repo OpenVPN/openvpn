@@ -33,7 +33,7 @@
 .\" .ft -- normal face
 .\" .in +|-{n} -- indent
 .\"
-.TH openvpn 8 "25 August 2016"
+.TH openvpn 8 "04 April 2017"
 .\"*********************************************************
 .SH NAME
 openvpn \- secure IP tunnel daemon.
@@ -4957,10 +4957,26 @@ Renegotiate data channel key after
 packets sent and received (disabled by default).
 .\"*********************************************************
 .TP
-.B \-\-reneg\-sec n
-Renegotiate data channel key after
-.B n
-seconds (default=3600).
+.B \-\-reneg\-sec max [min]
+Renegotiate data channel key after at most
+.B max
+seconds (default=3600) and at least
+.B min
+seconds (default is 90% of
+.B max
+for servers, and equal to
+.B max
+for clients).
+
+The effective
+.B reneg\-sec
+value used is per session pseudo-uniform-randomized between
+.B min
+and
+.B max\fR.
+
+With the default value of 3600 this results in an effective per session value
+in the range of 3240..3600 seconds for servers, or just 3600 for clients.
 
 When using dual\-factor authentication, note that this default value may
 cause the end user to be challenged to reauthorize once per hour.
