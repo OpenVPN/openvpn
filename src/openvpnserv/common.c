@@ -89,6 +89,8 @@ GetOpenvpnSettings(settings_t *s)
     TCHAR append[2];
     DWORD error;
     HKEY key;
+    TCHAR install_path[MAX_PATH];
+    TCHAR default_value[MAX_PATH];
 
     openvpn_sntprintf(reg_path, _countof(reg_path), TEXT("SOFTWARE\\" PACKAGE_NAME "%s"), service_instance);
 
@@ -99,37 +101,50 @@ GetOpenvpnSettings(settings_t *s)
         return MsgToEventLog(M_SYSERR, TEXT("Could not open Registry key HKLM\\%s not found"), reg_path);
     }
 
-    error = GetRegString(key, TEXT("exe_path"), s->exe_path, sizeof(s->exe_path), NULL);
+    /* The default value of REG_KEY is the install path */
+    if (GetRegString(key, NULL, install_path, sizeof(install_path), NULL) != ERROR_SUCCESS)
+    {
+        goto out;
+    }
+
+    openvpn_sntprintf(default_value, _countof(default_value), TEXT("%s\\bin\\openvpn.exe"),
+                      install_path);
+    error = GetRegString(key, TEXT("exe_path"), s->exe_path, sizeof(s->exe_path), default_value);
     if (error != ERROR_SUCCESS)
     {
         goto out;
     }
 
-    error = GetRegString(key, TEXT("config_dir"), s->config_dir, sizeof(s->config_dir), NULL);
+    openvpn_sntprintf(default_value, _countof(default_value), TEXT("%s\\config"), install_path);
+    error = GetRegString(key, TEXT("config_dir"), s->config_dir, sizeof(s->config_dir),
+                         default_value);
     if (error != ERROR_SUCCESS)
     {
         goto out;
     }
 
-    error = GetRegString(key, TEXT("config_ext"), s->ext_string, sizeof(s->ext_string), NULL);
+    error = GetRegString(key, TEXT("config_ext"), s->ext_string, sizeof(s->ext_string),
+                         TEXT(".ovpn"));
     if (error != ERROR_SUCCESS)
     {
         goto out;
     }
 
-    error = GetRegString(key, TEXT("log_dir"), s->log_dir, sizeof(s->log_dir), NULL);
+    openvpn_sntprintf(default_value, _countof(default_value), TEXT("%s\\log"), install_path);
+    error = GetRegString(key, TEXT("log_dir"), s->log_dir, sizeof(s->log_dir), default_value);
     if (error != ERROR_SUCCESS)
     {
         goto out;
     }
 
-    error = GetRegString(key, TEXT("priority"), priority, sizeof(priority), NULL);
+    error = GetRegString(key, TEXT("priority"), priority, sizeof(priority),
+                         TEXT("NORMAL_PRIORITY_CLASS"));
     if (error != ERROR_SUCCESS)
     {
         goto out;
     }
 
-    error = GetRegString(key, TEXT("log_append"), append, sizeof(append), NULL);
+    error = GetRegString(key, TEXT("log_append"), append, sizeof(append), TEXT("0"));
     if (error != ERROR_SUCCESS)
     {
         goto out;
