@@ -57,14 +57,18 @@ openvpn_sntprintf(LPTSTR str, size_t size, LPCTSTR format, ...)
 }
 
 static DWORD
-GetRegString(HKEY key, LPCTSTR value, LPTSTR data, DWORD size)
+GetRegString(HKEY key, LPCTSTR value, LPTSTR data, DWORD size, LPCTSTR default_value)
 {
-    DWORD type;
-    LONG status = RegQueryValueEx(key, value, NULL, &type, (LPBYTE) data, &size);
+    LONG status = RegGetValue(key, NULL, value, RRF_RT_REG_SZ|RRF_RT_REG_EXPAND_SZ,
+                              NULL, (LPBYTE) data, &size);
 
-    if (status == ERROR_SUCCESS && type != REG_SZ)
+    if (status == ERROR_FILE_NOT_FOUND && default_value)
     {
-        status = ERROR_DATATYPE_MISMATCH;
+        size_t len = size/sizeof(data[0]);
+        if (openvpn_sntprintf(data, len, default_value) > 0)
+        {
+            status = ERROR_SUCCESS;
+        }
     }
 
     if (status != ERROR_SUCCESS)
@@ -95,48 +99,48 @@ GetOpenvpnSettings(settings_t *s)
         return MsgToEventLog(M_SYSERR, TEXT("Could not open Registry key HKLM\\%s not found"), reg_path);
     }
 
-    error = GetRegString(key, TEXT("exe_path"), s->exe_path, sizeof(s->exe_path));
+    error = GetRegString(key, TEXT("exe_path"), s->exe_path, sizeof(s->exe_path), NULL);
     if (error != ERROR_SUCCESS)
     {
         goto out;
     }
 
-    error = GetRegString(key, TEXT("config_dir"), s->config_dir, sizeof(s->config_dir));
+    error = GetRegString(key, TEXT("config_dir"), s->config_dir, sizeof(s->config_dir), NULL);
     if (error != ERROR_SUCCESS)
     {
         goto out;
     }
 
-    error = GetRegString(key, TEXT("config_ext"), s->ext_string, sizeof(s->ext_string));
+    error = GetRegString(key, TEXT("config_ext"), s->ext_string, sizeof(s->ext_string), NULL);
     if (error != ERROR_SUCCESS)
     {
         goto out;
     }
 
-    error = GetRegString(key, TEXT("log_dir"), s->log_dir, sizeof(s->log_dir));
+    error = GetRegString(key, TEXT("log_dir"), s->log_dir, sizeof(s->log_dir), NULL);
     if (error != ERROR_SUCCESS)
     {
         goto out;
     }
 
-    error = GetRegString(key, TEXT("priority"), priority, sizeof(priority));
+    error = GetRegString(key, TEXT("priority"), priority, sizeof(priority), NULL);
     if (error != ERROR_SUCCESS)
     {
         goto out;
     }
 
-    error = GetRegString(key, TEXT("log_append"), append, sizeof(append));
+    error = GetRegString(key, TEXT("log_append"), append, sizeof(append), NULL);
     if (error != ERROR_SUCCESS)
     {
         goto out;
     }
 
     /* read if present, else use default */
-    error = GetRegString(key, TEXT("ovpn_admin_group"), s->ovpn_admin_group, sizeof(s->ovpn_admin_group));
+    error = GetRegString(key, TEXT("ovpn_admin_group"), s->ovpn_admin_group,
+                         sizeof(s->ovpn_admin_group), OVPN_ADMIN_GROUP);
     if (error != ERROR_SUCCESS)
     {
-        openvpn_sntprintf(s->ovpn_admin_group, _countof(s->ovpn_admin_group), OVPN_ADMIN_GROUP);
-        error = 0; /* this error is not fatal */
+        goto out;
     }
     /* set process priority */
     if (!_tcsicmp(priority, TEXT("IDLE_PRIORITY_CLASS")))
