@@ -114,6 +114,7 @@ void tls_clear_error(void);
 #define TLS_VER_1_0     1
 #define TLS_VER_1_1     2
 #define TLS_VER_1_2     3
+#define TLS_VER_1_3     4
 int tls_version_parse(const char *vstr, const char *extra);
 
 /**
