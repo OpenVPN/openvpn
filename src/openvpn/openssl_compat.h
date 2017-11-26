@@ -42,6 +42,7 @@
 
 #include "buffer.h"
 
+#include <openssl/rsa.h>
 #include <openssl/ssl.h>
 #include <openssl/x509.h>
 

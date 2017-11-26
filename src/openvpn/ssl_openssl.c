@@ -52,10 +52,14 @@
 
 #include "ssl_verify_openssl.h"
 
+#include <openssl/bn.h>
+#include <openssl/crypto.h>
+#include <openssl/dh.h>
+#include <openssl/dsa.h>
 #include <openssl/err.h>
 #include <openssl/pkcs12.h>
+#include <openssl/rsa.h>
 #include <openssl/x509.h>
-#include <openssl/crypto.h>
 #ifndef OPENSSL_NO_EC
 #include <openssl/ec.h>
 #endif
