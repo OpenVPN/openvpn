@@ -277,9 +277,6 @@ tls_ctx_set_options(struct tls_root_ctx *ctx, unsigned int ssl_flags)
 {
     ASSERT(NULL != ctx);
 
-    /* default certificate verification flags */
-    int flags = SSL_VERIFY_PEER | SSL_VERIFY_FAIL_IF_NO_PEER_CERT;
-
     /* process SSL options */
     long sslopt = SSL_OP_SINGLE_DH_USE | SSL_OP_NO_TICKET;
 #ifdef SSL_OP_CIPHER_SERVER_PREFERENCE
@@ -301,17 +298,18 @@ tls_ctx_set_options(struct tls_root_ctx *ctx, unsigned int ssl_flags)
     SSL_CTX_set_default_passwd_cb(ctx->ctx, pem_password_callback);
 
     /* Require peer certificate verification */
+    int verify_flags = SSL_VERIFY_PEER | SSL_VERIFY_FAIL_IF_NO_PEER_CERT;
 #if P2MP_SERVER
     if (ssl_flags & SSLF_CLIENT_CERT_NOT_REQUIRED)
     {
-        flags = 0;
+        verify_flags = 0;
     }
     else if (ssl_flags & SSLF_CLIENT_CERT_OPTIONAL)
     {
-        flags = SSL_VERIFY_PEER;
+        verify_flags = SSL_VERIFY_PEER;
     }
 #endif
-    SSL_CTX_set_verify(ctx->ctx, flags, verify_callback);
+    SSL_CTX_set_verify(ctx->ctx, verify_flags, verify_callback);
 
     SSL_CTX_set_info_callback(ctx->ctx, info_callback);
 
