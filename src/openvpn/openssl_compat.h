@@ -657,6 +657,14 @@ EC_GROUP_order_bits(const EC_GROUP *group)
 #endif
 
 /* SSLeay symbols have been renamed in OpenSSL 1.1 */
+#ifndef OPENSSL_VERSION
+#define OPENSSL_VERSION SSLEAY_VERSION
+#endif
+
+#ifndef HAVE_OPENSSL_VERSION
+#define OpenSSL_version SSLeay_version
+#endif
+
 #if !defined(RSA_F_RSA_OSSL_PRIVATE_ENCRYPT)
 #define RSA_F_RSA_OSSL_PRIVATE_ENCRYPT       RSA_F_RSA_EAY_PRIVATE_ENCRYPT
 #endif

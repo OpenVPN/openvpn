@@ -2037,7 +2037,7 @@ get_highest_preference_tls_cipher(char *buf, int size)
 const char *
 get_ssl_library_version(void)
 {
-    return SSLeay_version(SSLEAY_VERSION);
+    return OpenSSL_version(OPENSSL_VERSION);
 }
 
 #endif /* defined(ENABLE_CRYPTO_OPENSSL) */
