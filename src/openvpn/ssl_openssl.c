@@ -206,7 +206,9 @@ info_callback(INFO_CALLBACK_SSL_CONST SSL *s, int where, int ret)
 int
 tls_version_max(void)
 {
-#if defined(TLS1_2_VERSION) || defined(SSL_OP_NO_TLSv1_2)
+#if defined(TLS1_3_VERSION)
+    return TLS_VER_1_3;
+#elif defined(TLS1_2_VERSION) || defined(SSL_OP_NO_TLSv1_2)
     return TLS_VER_1_2;
 #elif defined(TLS1_1_VERSION) || defined(SSL_OP_NO_TLSv1_1)
     return TLS_VER_1_1;
@@ -231,6 +233,12 @@ openssl_tls_version(int ver)
     {
         return TLS1_2_VERSION;
     }
+#if defined(TLS1_3_VERSION)
+    else if (ver == TLS_VER_1_3)
+    {
+        return TLS1_3_VERSION;
+    }
+#endif
     return 0;
 }
 

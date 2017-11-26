@@ -528,6 +528,10 @@ tls_version_parse(const char *vstr, const char *extra)
     {
         return TLS_VER_1_2;
     }
+    else if (!strcmp(vstr, "1.3") && TLS_VER_1_3 <= max_version)
+    {
+        return TLS_VER_1_3;
+    }
     else if (extra && !strcmp(extra, "or-highest"))
     {
         return max_version;
