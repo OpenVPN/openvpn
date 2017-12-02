@@ -4087,16 +4087,15 @@ show_windows_version(const unsigned int flags)
 void
 show_library_versions(const unsigned int flags)
 {
-#define SSL_LIB_VER_STR get_ssl_library_version()
 #ifdef ENABLE_LZO
 #define LZO_LIB_VER_STR ", LZO ", lzo_version_string()
 #else
 #define LZO_LIB_VER_STR "", ""
 #endif
 
-    msg(flags, "library versions: %s%s%s", SSL_LIB_VER_STR, LZO_LIB_VER_STR);
+    msg(flags, "library versions: %s%s%s", get_ssl_library_version(),
+        LZO_LIB_VER_STR);
 
-#undef SSL_LIB_VER_STR
 #undef LZO_LIB_VER_STR
 }
 
