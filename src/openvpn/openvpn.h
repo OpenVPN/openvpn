@@ -563,7 +563,6 @@ struct context
                                           |(c->c2.tls_multi ? PD_TLS : 0)   \
                                           |(c->options.tls_auth_file ? c->c1.ks.key_type.hmac_length : 0), \
                                           gc)
-#define MD5SUM(buf, len, gc) md5sum((buf), (len), 0, (gc))
 
 #define CIPHER_ENABLED(c) (c->c1.ks.key_type.cipher != NULL)
 
