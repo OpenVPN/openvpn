@@ -249,9 +249,7 @@ struct tls_options
 #endif
     int mode;
     bool pull;
-#ifdef ENABLE_PUSH_PEER_INFO
     int push_peer_info_detail;
-#endif
     int transition_window;
     int handshake_window;
     interval_t packet_timeout;

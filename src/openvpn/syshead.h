@@ -674,11 +674,6 @@ socket_defined(const socket_descriptor_t sd)
 #endif
 
 /*
- * Do we support pushing peer info?
- */
-#define ENABLE_PUSH_PEER_INFO
-
-/*
  * Compression support
  */
 #if defined(ENABLE_LZO) || defined(ENABLE_LZ4)    \

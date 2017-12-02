@@ -2686,7 +2686,6 @@ do_init_crypto_tls(struct context *c, const unsigned int flags)
     to.single_session = options->single_session;
     to.mode = options->mode;
     to.pull = options->pull;
-#ifdef ENABLE_PUSH_PEER_INFO
     if (options->push_peer_info)        /* all there is */
     {
         to.push_peer_info_detail = 2;
@@ -2699,7 +2698,6 @@ do_init_crypto_tls(struct context *c, const unsigned int flags)
     {
         to.push_peer_info_detail = 0;
     }
-#endif
 
     /* should we not xmit any packets until we get an initial
      * response from client? */

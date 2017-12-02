@@ -225,9 +225,7 @@ static const char usage_message[] =
     "--redirect-private [flags]: Like --redirect-gateway, but omit actually changing\n"
     "                  the default gateway.  Useful when pushing private subnets.\n"
     "--client-nat snat|dnat network netmask alias : on client add 1-to-1 NAT rule.\n"
-#ifdef ENABLE_PUSH_PEER_INFO
     "--push-peer-info : (client only) push client info to server.\n"
-#endif
     "--setenv name value : Set a custom environmental variable to pass to script.\n"
     "--setenv FORWARD_COMPATIBLE 1 : Relax config file syntax checking to allow\n"
     "                  directives for future OpenVPN versions to be ignored.\n"
@@ -1772,9 +1770,7 @@ show_settings(const struct options *o)
     SHOW_INT(transition_window);
 
     SHOW_BOOL(single_session);
-#ifdef ENABLE_PUSH_PEER_INFO
     SHOW_BOOL(push_peer_info);
-#endif
     SHOW_BOOL(tls_exit);
 
     SHOW_STR(tls_auth_file);
@@ -2732,9 +2728,7 @@ options_postprocess_verify_ce(const struct options *options, const struct connec
         MUST_BE_UNDEF(tls_auth_file);
         MUST_BE_UNDEF(tls_crypt_file);
         MUST_BE_UNDEF(single_session);
-#ifdef ENABLE_PUSH_PEER_INFO
         MUST_BE_UNDEF(push_peer_info);
-#endif
         MUST_BE_UNDEF(tls_exit);
         MUST_BE_UNDEF(crl_file);
         MUST_BE_UNDEF(key_method);
@@ -6344,12 +6338,10 @@ add_option(struct options *options,
             msg(msglevel, "this is a generic configuration and cannot directly be used");
             goto err;
         }
-#ifdef ENABLE_PUSH_PEER_INFO
         else if (streq(p[1], "PUSH_PEER_INFO") && !p[2])
         {
             options->push_peer_info = true;
         }
-#endif
         else if (streq(p[1], "SERVER_POLL_TIMEOUT") && p[2])
         {
             options->ce.connect_timeout = positive_atoi(p[2]);
@@ -7778,13 +7770,11 @@ add_option(struct options *options,
         VERIFY_PERMISSION(OPT_P_GENERAL);
         options->single_session = true;
     }
-#ifdef ENABLE_PUSH_PEER_INFO
     else if (streq(p[0], "push-peer-info") && !p[1])
     {
         VERIFY_PERMISSION(OPT_P_GENERAL);
         options->push_peer_info = true;
     }
-#endif
     else if (streq(p[0], "tls-exit") && !p[1])
     {
         VERIFY_PERMISSION(OPT_P_GENERAL);

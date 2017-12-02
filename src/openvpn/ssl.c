@@ -2235,7 +2235,6 @@ push_peer_info(struct buffer *buf, struct tls_session *session)
     struct gc_arena gc = gc_new();
     bool ret = false;
 
-#ifdef ENABLE_PUSH_PEER_INFO
     if (session->opt->push_peer_info_detail > 0)
     {
         struct env_set *es = session->opt->es;
@@ -2316,7 +2315,6 @@ push_peer_info(struct buffer *buf, struct tls_session *session)
         }
     }
     else
-#endif /* ifdef ENABLE_PUSH_PEER_INFO */
     {
         if (!write_empty_string(buf)) /* no peer info */
         {
