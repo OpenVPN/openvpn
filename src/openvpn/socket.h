@@ -532,11 +532,23 @@ bool unix_socket_get_peer_uid_gid(const socket_descriptor_t sd, int *uid, int *g
 
 #define GETADDR_CACHE_MASK              (GETADDR_DATAGRAM|GETADDR_PASSIVE)
 
+/**
+ * Translate an IPv4 addr or hostname from string form to in_addr_t
+ *
+ * In case of resolve error, it will try again for
+ * resolve_retry_seconds seconds.
+ */
 in_addr_t getaddr(unsigned int flags,
                   const char *hostname,
                   int resolve_retry_seconds,
                   bool *succeeded,
                   volatile int *signal_received);
+
+/**
+ * Translate an IPv6 addr or hostname from string form to in6_addr
+ */
+bool get_ipv6_addr(const char *hostname, struct in6_addr *network,
+                   unsigned int *netbits, int msglevel);
 
 int openvpn_getaddrinfo(unsigned int flags,
                         const char *hostname,

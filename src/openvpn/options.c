@@ -1023,67 +1023,6 @@ get_ip_addr(const char *ip_string, int msglevel, bool *error)
     return ret;
 }
 
-/* helper: parse a text string containing an IPv6 address + netbits
- * in "standard format" (2001:dba::/32)
- * "/nn" is optional, default to /64 if missing
- *
- * return true if parsing succeeded, modify *network and *netbits
- */
-bool
-get_ipv6_addr( const char *prefix_str, struct in6_addr *network,
-               unsigned int *netbits, int msglevel)
-{
-    char *sep, *endp;
-    int bits;
-    struct in6_addr t_network;
-
-    sep = strchr( prefix_str, '/' );
-    if (sep == NULL)
-    {
-        bits = 64;
-    }
-    else
-    {
-        bits = strtol( sep+1, &endp, 10 );
-        if (*endp != '\0' || bits < 0 || bits > 128)
-        {
-            msg(msglevel, "IPv6 prefix '%s': invalid '/bits' spec", prefix_str);
-            return false;
-        }
-    }
-
-    /* temporary replace '/' in caller-provided string with '\0', otherwise
-     * inet_pton() will refuse prefix string
-     * (alternative would be to strncpy() the prefix to temporary buffer)
-     */
-
-    if (sep != NULL)
-    {
-        *sep = '\0';
-    }
-
-    if (inet_pton( AF_INET6, prefix_str, &t_network ) != 1)
-    {
-        msg(msglevel, "IPv6 prefix '%s': invalid IPv6 address", prefix_str);
-        return false;
-    }
-
-    if (sep != NULL)
-    {
-        *sep = '/';
-    }
-
-    if (netbits != NULL)
-    {
-        *netbits = bits;
-    }
-    if (network != NULL)
-    {
-        *network = t_network;
-    }
-    return true;                /* parsing OK, values set */
-}
-
 /**
  * Returns newly allocated string containing address part without "/nn".
  *

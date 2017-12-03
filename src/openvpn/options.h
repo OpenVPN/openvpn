@@ -819,8 +819,4 @@ void options_string_import(struct options *options,
                            unsigned int *option_types_found,
                            struct env_set *es);
 
-bool get_ipv6_addr( const char *prefix_str, struct in6_addr *network,
-                    unsigned int *netbits, int msglevel );
-
-
 #endif /* ifndef OPTIONS_H */
