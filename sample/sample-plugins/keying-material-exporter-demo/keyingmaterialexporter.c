@@ -27,8 +27,6 @@
  * See the README file for build instructions.
  */
 
-#define ENABLE_CRYPTO
-
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
