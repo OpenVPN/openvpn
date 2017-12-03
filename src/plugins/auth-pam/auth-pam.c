@@ -637,9 +637,16 @@ my_conv(int n, const struct pam_message **msg_array,
                         ret = PAM_CONV_ERR;
                     }
                     break;
+                
+                case PAM_TEXT_INFO:
+                    aresp[i].resp = strdup(up->common_name);
+                    if (aresp[i].resp == NULL)
+                    {
+                        ret = PAM_CONV_ERR;
+                    }
+                    break;
 
                 case PAM_ERROR_MSG:
-                case PAM_TEXT_INFO:
                     break;
 
                 default:
