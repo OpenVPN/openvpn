@@ -280,7 +280,7 @@ ReturnProcessId(HANDLE pipe, DWORD pid, DWORD count, LPHANDLE events)
     swprintf(buf, _countof(buf), L"0x%08x\n0x%08x\n%s", 0, pid, msg);
     buf[_countof(buf) - 1] = '\0';
 
-    WritePipeAsync(pipe, buf, wcslen(buf) * 2, count, events);
+    WritePipeAsync(pipe, buf, (DWORD)(wcslen(buf) * 2), count, events);
 }
 
 static VOID
@@ -308,7 +308,7 @@ ReturnError(HANDLE pipe, DWORD error, LPCWSTR func, DWORD count, LPHANDLE events
                                 L"0x%1!08x!\n%2!s!\n%3!s!", 0, 0,
                                 (LPWSTR) &result, 0, (va_list *) args);
 
-    WritePipeAsync(pipe, result, wcslen(result) * 2, count, events);
+    WritePipeAsync(pipe, result, (DWORD)(wcslen(result) * 2), count, events);
 #ifdef UNICODE
     MsgToEventLog(MSG_FLAGS_ERROR, result);
 #else
@@ -452,10 +452,10 @@ out:
 static BOOL
 GetStartupData(HANDLE pipe, STARTUP_DATA *sud)
 {
-    size_t len;
+    size_t size, len;
     BOOL ret = FALSE;
     WCHAR *data = NULL;
-    DWORD size, bytes, read;
+    DWORD bytes, read;
 
     bytes = PeekNamedPipeAsync(pipe, 1, &exit_event);
     if (bytes == 0)
@@ -1051,7 +1051,7 @@ netsh_dns_cmd(const wchar_t *action, const wchar_t *proto, const wchar_t *if_nam
     const wchar_t *fmt = L"netsh interface %s %s dns \"%s\" %s";
 
     /* max cmdline length in wchars -- include room for worst case and some */
-    int ncmdline = wcslen(fmt) + wcslen(if_name) + wcslen(addr) + 32 + 1;
+    size_t ncmdline = wcslen(fmt) + wcslen(if_name) + wcslen(addr) + 32 + 1;
     wchar_t *cmdline = malloc(ncmdline*sizeof(wchar_t));
     if (!cmdline)
     {
@@ -1571,7 +1571,7 @@ RunOpenvpn(LPVOID p)
     {
         DWORD written;
         WideCharToMultiByte(CP_UTF8, 0, sud.std_input, -1, input, input_size, NULL, NULL);
-        WriteFile(stdin_write, input, strlen(input), &written, NULL);
+        WriteFile(stdin_write, input, (DWORD)strlen(input), &written, NULL);
         free(input);
     }
 
