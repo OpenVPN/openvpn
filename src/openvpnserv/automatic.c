@@ -44,7 +44,7 @@
 #define false 0
 
 static SERVICE_STATUS_HANDLE service;
-static SERVICE_STATUS status;
+static SERVICE_STATUS status = { .dwServiceType = SERVICE_WIN32_SHARE_PROCESS };
 
 openvpn_service_t automatic_service = {
     automatic,
@@ -59,12 +59,6 @@ struct security_attributes
     SECURITY_ATTRIBUTES sa;
     SECURITY_DESCRIPTOR sd;
 };
-
-/*
- * Which registry key in HKLM should
- * we get config info from?
- */
-#define REG_KEY "SOFTWARE\\" PACKAGE_NAME
 
 static HANDLE exit_event = NULL;
 
@@ -90,15 +84,6 @@ init_security_attributes_allow_all(struct security_attributes *obj)
     }
     return true;
 }
-
-/*
- * This event is initially created in the non-signaled
- * state.  It will transition to the signaled state when
- * we have received a terminate signal from the Service
- * Control Manager which will cause an asynchronous call
- * of ServiceStop below.
- */
-#define EXIT_EVENT_NAME  TEXT(PACKAGE "_exit_1")
 
 HANDLE
 create_event(LPCTSTR name, bool allow_all, bool initial_state, bool manual_reset)
@@ -207,10 +192,19 @@ ServiceCtrlAutomatic(DWORD ctrl_code, DWORD event, LPVOID data, LPVOID ctx)
 
 
 VOID WINAPI
+ServiceStartAutomaticOwn(DWORD dwArgc, LPTSTR *lpszArgv)
+{
+    status.dwServiceType = SERVICE_WIN32_OWN_PROCESS;
+    ServiceStartAutomatic(dwArgc, lpszArgv);
+}
+
+
+VOID WINAPI
 ServiceStartAutomatic(DWORD dwArgc, LPTSTR *lpszArgv)
 {
     DWORD error = NO_ERROR;
     settings_t settings;
+    TCHAR event_name[256];
 
     service = RegisterServiceCtrlHandlerEx(automatic_service.name, ServiceCtrlAutomatic, &status);
     if (!service)
@@ -218,7 +212,6 @@ ServiceStartAutomatic(DWORD dwArgc, LPTSTR *lpszArgv)
         return;
     }
 
-    status.dwServiceType = SERVICE_WIN32_SHARE_PROCESS;
     status.dwCurrentState = SERVICE_START_PENDING;
     status.dwServiceSpecificExitCode = NO_ERROR;
     status.dwWin32ExitCode = NO_ERROR;
@@ -232,8 +225,15 @@ ServiceStartAutomatic(DWORD dwArgc, LPTSTR *lpszArgv)
 
     /*
      * Create our exit event
+     * This event is initially created in the non-signaled
+     * state.  It will transition to the signaled state when
+     * we have received a terminate signal from the Service
+     * Control Manager which will cause an asynchronous call
+     * of ServiceStop below.
      */
-    exit_event = create_event(EXIT_EVENT_NAME, false, false, true);
+
+    openvpn_sntprintf(event_name, _countof(event_name), TEXT(PACKAGE "%s_exit_1"), service_instance);
+    exit_event = create_event(event_name, false, false, true);
     if (!exit_event)
     {
         MsgToEventLog(M_ERR, TEXT("CreateEvent failed"));
@@ -322,8 +322,8 @@ ServiceStartAutomatic(DWORD dwArgc, LPTSTR *lpszArgv)
                                   TEXT("%s\\%s"), settings.log_dir, log_file);
 
                 /* construct command line */
-                openvpn_sntprintf(command_line, _countof(command_line), TEXT(PACKAGE " --service %s 1 --config \"%s\""),
-                                  EXIT_EVENT_NAME,
+                openvpn_sntprintf(command_line, _countof(command_line), TEXT("openvpn --service \"" PACKAGE "%s_exit_1\" 1 --config \"%s\""),
+                                  service_instance,
                                   find_obj.cFileName);
 
                 /* Make security attributes struct for logfile handle so it can

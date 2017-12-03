@@ -73,10 +73,12 @@ typedef struct {
 
 extern openvpn_service_t automatic_service;
 extern openvpn_service_t interactive_service;
+extern LPCTSTR service_instance;
 
-
+VOID WINAPI ServiceStartAutomaticOwn(DWORD argc, LPTSTR *argv);
 VOID WINAPI ServiceStartAutomatic(DWORD argc, LPTSTR *argv);
 
+VOID WINAPI ServiceStartInteractiveOwn(DWORD argc, LPTSTR *argv);
 VOID WINAPI ServiceStartInteractive(DWORD argc, LPTSTR *argv);
 
 int openvpn_vsntprintf(LPTSTR str, size_t size, LPCTSTR format, va_list arglist);

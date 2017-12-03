@@ -24,6 +24,9 @@
 #include "service.h"
 #include "validate.h"
 
+LPCTSTR service_instance = TEXT("");
+
+
 /*
  * These are necessary due to certain buggy implementations of (v)snprintf,
  * that don't guarantee null termination for size > 0.
@@ -53,8 +56,6 @@ openvpn_sntprintf(LPTSTR str, size_t size, LPCTSTR format, ...)
     return len;
 }
 
-#define REG_KEY  TEXT("SOFTWARE\\" PACKAGE_NAME)
-
 static DWORD
 GetRegString(HKEY key, LPCTSTR value, LPTSTR data, DWORD size)
 {
@@ -69,7 +70,7 @@ GetRegString(HKEY key, LPCTSTR value, LPTSTR data, DWORD size)
     if (status != ERROR_SUCCESS)
     {
         SetLastError(status);
-        return MsgToEventLog(M_SYSERR, TEXT("Error querying registry value: HKLM\\%s\\%s"), REG_KEY, value);
+        return MsgToEventLog(M_SYSERR, TEXT("Error querying registry value: HKLM\\SOFTWARE\\" PACKAGE_NAME "%s\\%s"), service_instance, value);
     }
 
     return ERROR_SUCCESS;
@@ -79,16 +80,19 @@ GetRegString(HKEY key, LPCTSTR value, LPTSTR data, DWORD size)
 DWORD
 GetOpenvpnSettings(settings_t *s)
 {
+    TCHAR reg_path[256];
     TCHAR priority[64];
     TCHAR append[2];
     DWORD error;
     HKEY key;
 
-    LONG status = RegOpenKeyEx(HKEY_LOCAL_MACHINE, REG_KEY, 0, KEY_READ, &key);
+    openvpn_sntprintf(reg_path, _countof(reg_path), TEXT("SOFTWARE\\" PACKAGE_NAME "%s"), service_instance);
+
+    LONG status = RegOpenKeyEx(HKEY_LOCAL_MACHINE, reg_path, 0, KEY_READ, &key);
     if (status != ERROR_SUCCESS)
     {
         SetLastError(status);
-        return MsgToEventLog(M_SYSERR, TEXT("Could not open Registry key HKLM\\%s not found"), REG_KEY);
+        return MsgToEventLog(M_SYSERR, TEXT("Could not open Registry key HKLM\\%s not found"), reg_path);
     }
 
     error = GetRegString(key, TEXT("exe_path"), s->exe_path, sizeof(s->exe_path));
@@ -232,7 +236,7 @@ MsgToEventLog(DWORD flags, LPCTSTR format, ...)
     if (hEventSource != NULL)
     {
         openvpn_sntprintf(msg[0], _countof(msg[0]),
-                          TEXT("%s%s: %s"), APPNAME,
+                          TEXT("%s%s%s: %s"), APPNAME, service_instance,
                           (flags & MSG_FLAGS_ERROR) ? TEXT(" error") : TEXT(""), err_msg);
 
         va_start(arglist, format);
