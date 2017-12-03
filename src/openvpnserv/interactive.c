@@ -53,7 +53,7 @@
 #define ERROR_MESSAGE_TYPE     0x20000003
 
 static SERVICE_STATUS_HANDLE service;
-static SERVICE_STATUS status;
+static SERVICE_STATUS status = { .dwServiceType = SERVICE_WIN32_SHARE_PROCESS };
 static HANDLE exit_event = NULL;
 static settings_t settings;
 static HANDLE rdns_semaphore = NULL;
@@ -1325,7 +1325,7 @@ RunOpenvpn(LPVOID p)
     STARTUPINFOW startup_info;
     PROCESS_INFORMATION proc_info;
     LPVOID user_env = NULL;
-    TCHAR ovpn_pipe_name[36];
+    TCHAR ovpn_pipe_name[256]; /* The entire pipe name string can be up to 256 characters long according to MSDN. */
     LPCWSTR exe_path;
     WCHAR *cmdline = NULL;
     size_t cmdline_size;
@@ -1487,7 +1487,7 @@ RunOpenvpn(LPVOID p)
     }
 
     openvpn_sntprintf(ovpn_pipe_name, _countof(ovpn_pipe_name),
-                      TEXT("\\\\.\\pipe\\openvpn\\service_%lu"), GetCurrentThreadId());
+                      TEXT("\\\\.\\pipe\\" PACKAGE "%s\\service_%lu"), service_instance, GetCurrentThreadId());
     ovpn_pipe = CreateNamedPipe(ovpn_pipe_name,
                                 PIPE_ACCESS_DUPLEX | FILE_FLAG_FIRST_PIPE_INSTANCE | FILE_FLAG_OVERLAPPED,
                                 PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE | PIPE_WAIT, 1, 128, 128, 0, NULL);
@@ -1654,6 +1654,7 @@ ServiceCtrlInteractive(DWORD ctrl_code, DWORD event, LPVOID data, LPVOID ctx)
 static HANDLE
 CreateClientPipeInstance(VOID)
 {
+    TCHAR pipe_name[256]; /* The entire pipe name string can be up to 256 characters long according to MSDN. */
     HANDLE pipe = NULL;
     PACL old_dacl, new_dacl;
     PSECURITY_DESCRIPTOR sd;
@@ -1690,7 +1691,8 @@ CreateClientPipeInstance(VOID)
         initialized = TRUE;
     }
 
-    pipe = CreateNamedPipe(TEXT("\\\\.\\pipe\\openvpn\\service"), flags,
+    openvpn_sntprintf(pipe_name, _countof(pipe_name), TEXT("\\\\.\\pipe\\" PACKAGE "%s\\service"), service_instance);
+    pipe = CreateNamedPipe(pipe_name, flags,
                            PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE,
                            PIPE_UNLIMITED_INSTANCES, 1024, 1024, 0, NULL);
     if (pipe == INVALID_HANDLE_VALUE)
@@ -1785,6 +1787,15 @@ CmpHandle(LPVOID item, LPVOID hnd)
     return item == hnd;
 }
 
+
+VOID WINAPI
+ServiceStartInteractiveOwn(DWORD dwArgc, LPTSTR *lpszArgv)
+{
+    status.dwServiceType = SERVICE_WIN32_OWN_PROCESS;
+    ServiceStartInteractive(dwArgc, lpszArgv);
+}
+
+
 VOID WINAPI
 ServiceStartInteractive(DWORD dwArgc, LPTSTR *lpszArgv)
 {
@@ -1801,7 +1812,6 @@ ServiceStartInteractive(DWORD dwArgc, LPTSTR *lpszArgv)
         return;
     }
 
-    status.dwServiceType = SERVICE_WIN32_SHARE_PROCESS;
     status.dwCurrentState = SERVICE_START_PENDING;
     status.dwServiceSpecificExitCode = NO_ERROR;
     status.dwWin32ExitCode = NO_ERROR;
