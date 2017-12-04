@@ -29,8 +29,6 @@
 #ifndef SSL_VERIFY_H_
 #define SSL_VERIFY_H_
 
-#ifdef ENABLE_CRYPTO
-
 #include "syshead.h"
 #include "misc.h"
 #include "ssl_common.h"
@@ -242,7 +240,5 @@ tls_client_reason(struct tls_multi *multi)
 
 /** Remove any X509_ env variables from env_set es */
 void tls_x509_clear_env(struct env_set *es);
-
-#endif /* ENABLE_CRYPTO */
 
 #endif /* SSL_VERIFY_H_ */

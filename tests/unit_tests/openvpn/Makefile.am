@@ -6,9 +6,7 @@ if HAVE_LD_WRAP_SUPPORT
 check_PROGRAMS += argv_testdriver buffer_testdriver
 endif
 
-if ENABLE_CRYPTO
 check_PROGRAMS += packet_id_testdriver tls_crypt_testdriver
-endif
 
 TESTS = $(check_PROGRAMS)
 

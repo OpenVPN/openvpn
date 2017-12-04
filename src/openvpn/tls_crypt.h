@@ -74,8 +74,6 @@
 #ifndef TLSCRYPT_H
 #define TLSCRYPT_H
 
-#ifdef ENABLE_CRYPTO
-
 #include "buffer.h"
 #include "crypto.h"
 #include "session_id.h"
@@ -141,7 +139,5 @@ bool tls_crypt_unwrap(const struct buffer *src, struct buffer *dst,
                       struct crypto_options *opt);
 
 /** @} */
-
-#endif /* ENABLE_CRYPTO */
 
 #endif /* TLSCRYPT_H */

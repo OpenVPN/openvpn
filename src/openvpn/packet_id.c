@@ -38,8 +38,6 @@
 
 #include "syshead.h"
 
-#ifdef ENABLE_CRYPTO
-
 #include "packet_id.h"
 #include "misc.h"
 #include "integer.h"
@@ -695,5 +693,3 @@ packet_id_interactive_test(void)
     packet_id_free(&pid);
 }
 #endif /* ifdef PID_TEST */
-
-#endif /* ENABLE_CRYPTO */

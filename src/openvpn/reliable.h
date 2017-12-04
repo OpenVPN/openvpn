@@ -28,8 +28,6 @@
  */
 
 
-#ifdef ENABLE_CRYPTO
-
 #ifndef RELIABLE_H
 #define RELIABLE_H
 
@@ -476,4 +474,3 @@ void reliable_ack_debug_print(const struct reliable_ack *ack, char *desc);
 
 
 #endif /* RELIABLE_H */
-#endif /* ENABLE_CRYPTO */

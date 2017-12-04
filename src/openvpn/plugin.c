@@ -517,11 +517,9 @@ plugin_call_item(const struct plugin *p,
                  const int type,
                  const struct argv *av,
                  struct openvpn_plugin_string_list **retlist,
-                 const char **envp
-#ifdef ENABLE_CRYPTO
-                 , int certdepth,
+                 const char **envp,
+                 int certdepth,
                  openvpn_x509_cert_t *current_cert
-#endif
                  )
 {
     int status = OPENVPN_PLUGIN_FUNC_SUCCESS;
@@ -550,13 +548,8 @@ plugin_call_item(const struct plugin *p,
                                                         (const char **const) envp,
                                                         p->plugin_handle,
                                                         per_client_context,
-#ifdef ENABLE_CRYPTO
                                                         (current_cert ? certdepth : -1),
                                                         current_cert
-#else
-                                                        -1,
-                                                        NULL
-#endif
             };
 
             struct openvpn_plugin_args_func_return retargs;
@@ -786,11 +779,9 @@ plugin_call_ssl(const struct plugin_list *pl,
                 const int type,
                 const struct argv *av,
                 struct plugin_return *pr,
-                struct env_set *es
-#ifdef ENABLE_CRYPTO
-                , int certdepth,
+                struct env_set *es,
+                int certdepth,
                 openvpn_x509_cert_t *current_cert
-#endif
                 )
 {
     if (pr)
@@ -818,11 +809,9 @@ plugin_call_ssl(const struct plugin_list *pl,
                                                 type,
                                                 av,
                                                 pr ? &pr->list[i] : NULL,
-                                                envp
-#ifdef ENABLE_CRYPTO
-                                                ,certdepth,
+                                                envp,
+                                                certdepth,
                                                 current_cert
-#endif
                                                 );
             switch (status)
             {

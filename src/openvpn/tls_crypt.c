@@ -29,7 +29,6 @@
 
 #include "syshead.h"
 
-#ifdef ENABLE_CRYPTO
 #include "crypto.h"
 #include "session_id.h"
 
@@ -265,5 +264,3 @@ error_exit:
     gc_free(&gc);
     return false;
 }
-
-#endif /* EMABLE_CRYPTO */

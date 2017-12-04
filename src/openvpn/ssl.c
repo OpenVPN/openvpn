@@ -43,8 +43,6 @@
 #include "syshead.h"
 #include "win32.h"
 
-#if defined(ENABLE_CRYPTO)
-
 #include "error.h"
 #include "common.h"
 #include "socket.h"
@@ -4245,10 +4243,3 @@ delayed_auth_pass_purge(void)
     auth_user_pass.wait_for_push = false;
     purge_user_pass(&auth_user_pass, false);
 }
-
-#else  /* if defined(ENABLE_CRYPTO) */
-static void
-dummy(void)
-{
-}
-#endif /* ENABLE_CRYPTO */

@@ -143,12 +143,7 @@ const char **make_arg_array(const char *first, const char *parms, struct gc_aren
 const char **make_extended_arg_array(char **p, struct gc_arena *gc);
 
 /* an analogue to the random() function, but use OpenSSL functions if available */
-#ifdef ENABLE_CRYPTO
 long int get_random(void);
-
-#else
-#define get_random random
-#endif
 
 /* return true if filename can be opened for read */
 bool test_file(const char *filename);
@@ -162,7 +157,7 @@ const char *gen_path(const char *directory, const char *filename, struct gc_aren
 /* return true if pathname is absolute */
 bool absolute_pathname(const char *pathname);
 
-/* prepend a random prefix to hostname (need ENABLE_CRYPTO) */
+/* prepend a random prefix to hostname */
 const char *hostname_randomize(const char *hostname, struct gc_arena *gc);
 
 /*

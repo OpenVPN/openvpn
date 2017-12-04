@@ -29,8 +29,6 @@
  * negotiated).
  */
 
-#ifdef ENABLE_CRYPTO
-
 #ifndef SESSION_ID_H
 #define SESSION_ID_H
 
@@ -82,4 +80,3 @@ void session_id_random(struct session_id *sid);
 const char *session_id_print(const struct session_id *sid, struct gc_arena *gc);
 
 #endif /* SESSION_ID_H */
-#endif /* ENABLE_CRYPTO */

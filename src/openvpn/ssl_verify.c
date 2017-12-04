@@ -34,8 +34,6 @@
 
 #include "syshead.h"
 
-#ifdef ENABLE_CRYPTO
-
 #include "misc.h"
 #include "manage.h"
 #include "otime.h"
@@ -1541,5 +1539,3 @@ tls_x509_clear_env(struct env_set *es)
         item = next;
     }
 }
-
-#endif /* ENABLE_CRYPTO */

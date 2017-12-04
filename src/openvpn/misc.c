@@ -770,8 +770,6 @@ create_temp_file(const char *directory, const char *prefix, struct gc_arena *gc)
     return NULL;
 }
 
-#ifdef ENABLE_CRYPTO
-
 /*
  * Prepend a random string to hostname to prevent DNS caching.
  * For example, foo.bar.gov would be modified to <random-chars>.foo.bar.gov.
@@ -792,17 +790,6 @@ hostname_randomize(const char *hostname, struct gc_arena *gc)
     return BSTR(&hname);
 #undef n_rnd_bytes
 }
-
-#else  /* ifdef ENABLE_CRYPTO */
-
-const char *
-hostname_randomize(const char *hostname, struct gc_arena *gc)
-{
-    msg(M_WARN, "WARNING: hostname randomization disabled when crypto support is not compiled");
-    return hostname;
-}
-
-#endif /* ifdef ENABLE_CRYPTO */
 
 /*
  * Put a directory and filename together.

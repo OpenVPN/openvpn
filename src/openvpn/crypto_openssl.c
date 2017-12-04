@@ -34,7 +34,7 @@
 
 #include "syshead.h"
 
-#if defined(ENABLE_CRYPTO) && defined(ENABLE_CRYPTO_OPENSSL)
+#if defined(ENABLE_CRYPTO_OPENSSL)
 
 #include "basic.h"
 #include "buffer.h"
@@ -969,4 +969,4 @@ hmac_ctx_final(HMAC_CTX *ctx, uint8_t *dst)
     HMAC_Final(ctx, dst, &in_hmac_len);
 }
 
-#endif /* ENABLE_CRYPTO && ENABLE_CRYPTO_OPENSSL */
+#endif /* ENABLE_CRYPTO_OPENSSL */

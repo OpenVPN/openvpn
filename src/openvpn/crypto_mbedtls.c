@@ -34,7 +34,7 @@
 
 #include "syshead.h"
 
-#if defined(ENABLE_CRYPTO) && defined(ENABLE_CRYPTO_MBEDTLS)
+#if defined(ENABLE_CRYPTO_MBEDTLS)
 
 #include "errlevel.h"
 #include "basic.h"
@@ -903,4 +903,4 @@ hmac_ctx_final(mbedtls_md_context_t *ctx, uint8_t *dst)
     ASSERT(0 == mbedtls_md_hmac_finish(ctx, dst));
 }
 
-#endif /* ENABLE_CRYPTO && ENABLE_CRYPTO_MBEDTLS */
+#endif /* ENABLE_CRYPTO_MBEDTLS */

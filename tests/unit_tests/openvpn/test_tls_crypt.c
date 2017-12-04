@@ -27,8 +27,6 @@
 #include "config-msvc.h"
 #endif
 
-#ifdef ENABLE_CRYPTO
-
 #include "syshead.h"
 
 #include <stdio.h>
@@ -268,5 +266,3 @@ main(void) {
 
     return ret;
 }
-
-#endif /* ENABLE_CRYPTO */

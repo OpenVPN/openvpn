@@ -67,7 +67,6 @@ const char title_string[] =
     " [git:" CONFIGURE_GIT_REVISION CONFIGURE_GIT_FLAGS "]"
 #endif
     " " TARGET_ALIAS
-#ifdef ENABLE_CRYPTO
 #if defined(ENABLE_CRYPTO_MBEDTLS)
     " [SSL (mbed TLS)]"
 #elif defined(ENABLE_CRYPTO_OPENSSL)
@@ -75,7 +74,6 @@ const char title_string[] =
 #else
     " [SSL]"
 #endif /* defined(ENABLE_CRYPTO_MBEDTLS) */
-#endif /* ENABLE_CRYPTO */
 #ifdef USE_COMP
 #ifdef ENABLE_LZO
     " [LZO]"
@@ -518,7 +516,6 @@ static const char usage_message[] =
     "--explicit-exit-notify [n] : On exit/restart, send exit signal to\n"
     "                  server/remote. n = # of retries, default=1.\n"
 #endif
-#ifdef ENABLE_CRYPTO
     "\n"
     "Data Channel Encryption Options (must be compatible between peers):\n"
     "(These options are meaningful for both Static Key & TLS-mode)\n"
@@ -748,7 +745,6 @@ static const char usage_message[] =
     "--genkey        : Generate a random key to be used as a shared secret,\n"
     "                  for use with the --secret option.\n"
     "--secret file   : Write key to file.\n"
-#endif                          /* ENABLE_CRYPTO */
 #ifdef ENABLE_FEATURE_TUN_PERSIST
     "\n"
     "Tun/tap config mode (available with linux 2.4+):\n"
@@ -852,7 +848,6 @@ init_options(struct options *o, const bool init_gc)
 #if P2MP
     o->scheduled_exit_interval = 5;
 #endif
-#ifdef ENABLE_CRYPTO
     o->ciphername = "BF-CBC";
 #ifdef HAVE_AEAD_CIPHER_MODES /* IV_NCP=2 requires GCM support */
     o->ncp_enabled = true;
@@ -882,7 +877,6 @@ init_options(struct options *o, const bool init_gc)
 #ifdef ENABLE_X509ALTUSERNAME
     o->x509_username_field = X509_USERNAME_FIELD_DEFAULT;
 #endif
-#endif /* ENABLE_CRYPTO */
 #ifdef ENABLE_PKCS11
     o->pkcs11_pin_cache_period = -1;
 #endif                  /* ENABLE_PKCS11 */
@@ -1146,7 +1140,6 @@ string_substitute(const char *src, int from, int to, struct gc_arena *gc)
     return ret;
 }
 
-#ifdef ENABLE_CRYPTO
 static uint8_t *
 parse_hash_fingerprint(const char *str, int nbytes, int msglevel, struct gc_arena *gc)
 {
@@ -1188,7 +1181,6 @@ parse_hash_fingerprint(const char *str, int nbytes, int msglevel, struct gc_aren
     }
     return ret;
 }
-#endif /* ifdef ENABLE_CRYPTO */
 
 #ifdef _WIN32
 
@@ -1560,14 +1552,12 @@ show_settings(const struct options *o)
     SHOW_INT(persist_mode);
 #endif
 
-#ifdef ENABLE_CRYPTO
     SHOW_BOOL(show_ciphers);
     SHOW_BOOL(show_digests);
     SHOW_BOOL(show_engines);
     SHOW_BOOL(genkey);
     SHOW_STR(key_pass_file);
     SHOW_BOOL(show_tls_ciphers);
-#endif
 
     SHOW_INT(connect_retry_max);
     show_connection_entries(o);
@@ -1702,7 +1692,6 @@ show_settings(const struct options *o)
     }
 #endif
 
-#ifdef ENABLE_CRYPTO
     SHOW_STR(shared_secret_file);
     SHOW_INT(key_direction);
     SHOW_STR(ciphername);
@@ -1790,7 +1779,6 @@ show_settings(const struct options *o)
 
     SHOW_STR(tls_auth_file);
     SHOW_STR(tls_crypt_file);
-#endif /* ENABLE_CRYPTO */
 
 #ifdef ENABLE_PKCS11
     {
@@ -2024,14 +2012,14 @@ options_postprocess_verify_ce(const struct options *options, const struct connec
 
     init_options(&defaults, true);
 
-#ifdef ENABLE_CRYPTO
     if (options->test_crypto)
     {
         notnull(options->shared_secret_file, "key file (--secret)");
     }
     else
-#endif
-    notnull(options->dev, "TUN/TAP device (--dev)");
+    {
+        notnull(options->dev, "TUN/TAP device (--dev)");
+    }
 
     /*
      * Get tun/tap/null device type
@@ -2072,10 +2060,7 @@ options_postprocess_verify_ce(const struct options *options, const struct connec
     }
 
     if (options->inetd == INETD_NOWAIT
-#ifdef ENABLE_CRYPTO
-        && !(options->tls_server || options->tls_client)
-#endif
-        )
+        && !(options->tls_server || options->tls_client))
     {
         msg(M_USAGE, "--inetd nowait can only be used in TLS mode");
     }
@@ -2485,8 +2470,6 @@ options_postprocess_verify_ce(const struct options *options, const struct connec
     }
 #endif /* P2MP_SERVER */
 
-#ifdef ENABLE_CRYPTO
-
     if (options->ncp_enabled && !tls_check_ncp_cipher_list(options->ncp_ciphers))
     {
         msg(M_USAGE, "NCP cipher list contains unsupported ciphers.");
@@ -2771,7 +2754,6 @@ options_postprocess_verify_ce(const struct options *options, const struct connec
         }
     }
 #undef MUST_BE_UNDEF
-#endif /* ENABLE_CRYPTO */
 
 #if P2MP
     if (options->auth_user_pass_file && !options->pull)
@@ -3009,7 +2991,6 @@ options_postprocess_mutate(struct options *o)
         options_postprocess_mutate_ce(o, o->connection_list->array[i]);
     }
 
-#ifdef ENABLE_CRYPTO
     if (o->tls_server)
     {
         /* Check that DH file is specified, or explicitly disabled */
@@ -3035,7 +3016,6 @@ options_postprocess_mutate(struct options *o)
              "in P2MP client or server mode" );
         o->ncp_enabled = false;
     }
-#endif
 
 #if ENABLE_MANAGEMENT
     if (o->http_proxy_override)
@@ -3267,7 +3247,6 @@ options_postprocess_filechecks(struct options *options)
 {
     bool errs = false;
 
-#ifdef ENABLE_CRYPTO
     /* ** SSL/TLS/crypto related files ** */
     errs |= check_file_access(CHKACC_FILE|CHKACC_INLINE, options->dh_file, R_OK, "--dh");
     errs |= check_file_access(CHKACC_FILE|CHKACC_INLINE, options->ca_file, R_OK, "--ca");
@@ -3308,7 +3287,6 @@ options_postprocess_filechecks(struct options *options)
     /* ** Password files ** */
     errs |= check_file_access(CHKACC_FILE|CHKACC_ACPTSTDIN|CHKACC_PRIVATE,
                               options->key_pass_file, R_OK, "--askpass");
-#endif /* ENABLE_CRYPTO */
 #ifdef ENABLE_MANAGEMENT
     errs |= check_file_access(CHKACC_FILE|CHKACC_ACPTSTDIN|CHKACC_PRIVATE,
                               options->management_user_pass, R_OK,
@@ -3331,10 +3309,8 @@ options_postprocess_filechecks(struct options *options)
                               R_OK|W_OK, "--status");
 
     /* ** Config related ** */
-#ifdef ENABLE_CRYPTO
     errs |= check_file_access_chroot(options->chroot_dir, CHKACC_FILE, options->tls_export_cert,
                                      R_OK|W_OK|X_OK, "--tls-export-cert");
-#endif /* ENABLE_CRYPTO */
 #if P2MP_SERVER
     errs |= check_file_access_chroot(options->chroot_dir, CHKACC_FILE, options->client_config_dir,
                                      R_OK|X_OK, "--client-config-dir");
@@ -3462,7 +3438,7 @@ static size_t
 calc_options_string_link_mtu(const struct options *o, const struct frame *frame)
 {
     size_t link_mtu = EXPANDED_SIZE(frame);
-#ifdef ENABLE_CRYPTO
+
     if (o->pull || o->mode == MODE_SERVER)
     {
         struct frame fake_frame = *frame;
@@ -3478,7 +3454,6 @@ calc_options_string_link_mtu(const struct options *o, const struct frame *frame)
             EXPANDED_SIZE(&fake_frame));
         link_mtu = EXPANDED_SIZE(&fake_frame);
     }
-#endif
     return link_mtu;
 }
 
@@ -3606,8 +3581,6 @@ options_string(const struct options *o,
     }
 #endif
 
-#ifdef ENABLE_CRYPTO
-
 #define TLS_CLIENT (o->tls_client)
 #define TLS_SERVER (o->tls_server)
 
@@ -3704,8 +3677,6 @@ options_string(const struct options *o,
 
 #undef TLS_CLIENT
 #undef TLS_SERVER
-
-#endif /* ENABLE_CRYPTO */
 
     return BSTR(&out);
 }
@@ -4084,7 +4055,6 @@ usage(void)
     struct options o;
     init_options(&o, true);
 
-#ifdef ENABLE_CRYPTO
     fprintf(fp, usage_message,
             title_string,
             o.ce.connect_retry_seconds,
@@ -4096,15 +4066,6 @@ usage(void)
             o.replay_window, o.replay_time,
             o.tls_timeout, o.renegotiate_seconds,
             o.handshake_window, o.transition_window);
-#else  /* ifdef ENABLE_CRYPTO */
-    fprintf(fp, usage_message,
-            title_string,
-            o.ce.connect_retry_seconds,
-            o.ce.connect_retry_seconds_max,
-            o.ce.local_port, o.ce.remote_port,
-            TUN_MTU_DEFAULT, TAP_MTU_EXTRA_DEFAULT,
-            o.verbosity);
-#endif
     fflush(fp);
 
 #endif /* ENABLE_SMALL */
@@ -4132,11 +4093,7 @@ show_windows_version(const unsigned int flags)
 void
 show_library_versions(const unsigned int flags)
 {
-#ifdef ENABLE_CRYPTO
 #define SSL_LIB_VER_STR get_ssl_library_version()
-#else
-#define SSL_LIB_VER_STR ""
-#endif
 #ifdef ENABLE_LZO
 #define LZO_LIB_VER_STR ", LZO ", lzo_version_string()
 #else
@@ -7441,7 +7398,6 @@ add_option(struct options *options,
         }
     }
 #endif /* USE_COMP */
-#ifdef ENABLE_CRYPTO
     else if (streq(p[0], "show-ciphers") && !p[1])
     {
         VERIFY_PERMISSION(OPT_P_GENERAL);
@@ -8124,7 +8080,6 @@ add_option(struct options *options,
         options->x509_username_field = p[1];
     }
 #endif /* ENABLE_X509ALTUSERNAME */
-#endif /* ENABLE_CRYPTO */
 #ifdef ENABLE_PKCS11
     else if (streq(p[0], "show-pkcs11-ids") && !p[3])
     {

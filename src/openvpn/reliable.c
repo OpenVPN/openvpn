@@ -34,8 +34,6 @@
 
 #include "syshead.h"
 
-#ifdef ENABLE_CRYPTO
-
 #include "buffer.h"
 #include "error.h"
 #include "common.h"
@@ -802,10 +800,3 @@ reliable_debug_print(const struct reliable *rel, char *desc)
 }
 
 #endif /* if 0 */
-
-#else  /* ifdef ENABLE_CRYPTO */
-static void
-dummy(void)
-{
-}
-#endif /* ENABLE_CRYPTO */

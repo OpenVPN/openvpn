@@ -34,14 +34,12 @@
 static inline void
 check_tls(struct context *c)
 {
-#if defined(ENABLE_CRYPTO)
     void check_tls_dowork(struct context *c);
 
     if (c->c2.tls_multi)
     {
         check_tls_dowork(c);
     }
-#endif
 }
 
 /*
@@ -51,7 +49,6 @@ check_tls(struct context *c)
 static inline void
 check_tls_errors(struct context *c)
 {
-#if defined(ENABLE_CRYPTO)
     void check_tls_errors_co(struct context *c);
 
     void check_tls_errors_nco(struct context *c);
@@ -73,7 +70,6 @@ check_tls_errors(struct context *c)
             }
         }
     }
-#endif /* if defined(ENABLE_CRYPTO) */
 }
 
 /*
@@ -220,7 +216,6 @@ check_push_request(struct context *c)
 
 #endif
 
-#ifdef ENABLE_CRYPTO
 /*
  * Should we persist our anti-replay packet ID state to disk?
  */
@@ -233,7 +228,6 @@ check_packet_id_persist_flush(struct context *c)
         packet_id_persist_save(&c->c1.pid_persist);
     }
 }
-#endif
 
 /*
  * Set our wakeup to 0 seconds, so we will be rescheduled

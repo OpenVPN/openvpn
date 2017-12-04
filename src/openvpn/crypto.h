@@ -122,8 +122,6 @@
 #ifndef CRYPTO_H
 #define CRYPTO_H
 
-#ifdef ENABLE_CRYPTO
-
 #include "crypto_backend.h"
 #include "basic.h"
 #include "buffer.h"
@@ -513,6 +511,4 @@ key_ctx_bi_defined(const struct key_ctx_bi *key)
     return key->encrypt.cipher || key->encrypt.hmac || key->decrypt.cipher || key->decrypt.hmac;
 }
 
-
-#endif /* ENABLE_CRYPTO */
 #endif /* CRYPTO_H */

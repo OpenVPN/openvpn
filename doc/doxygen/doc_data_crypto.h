@@ -58,13 +58,11 @@
  *     - \c openvpn_decrypt()
  *
  * @par Settings that control this module's activity
- * Whether or not the Data Channel Crypto module is active depends on the
- * compile-time \c ENABLE_CRYPTO preprocessor macro.  How it processes packets
- * received from the \link data_control Data Channel Control module\endlink at
- * runtime depends on the associated \c crypto_options structure.  To perform
- * cryptographic operations, the \c crypto_options.key_ctx_bi must contain the
- * correct cipher and HMAC security parameters for the direction the packet is
- * traveling in.
+ * How the data channel processes packets received from the \link data_control
+ * Data Channel Control module\endlink at runtime depends on the associated
+ * \c crypto_options structure.  To perform cryptographic operations, the
+ * \c crypto_options.key_ctx_bi must contain the correct cipher and HMAC
+ * security parameters for the direction the packet is traveling in.
  *
  * @par Crypto algorithms
  * This module uses the crypto algorithm implementations of the external

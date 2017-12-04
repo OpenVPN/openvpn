@@ -34,7 +34,7 @@
 
 #include "syshead.h"
 
-#if defined(ENABLE_CRYPTO) && defined(ENABLE_CRYPTO_MBEDTLS)
+#if defined(ENABLE_CRYPTO_MBEDTLS)
 
 #include "crypto_mbedtls.h"
 #include "ssl_verify.h"
@@ -550,4 +550,4 @@ tls_verify_crl_missing(const struct tls_options *opt)
     return false;
 }
 
-#endif /* #if defined(ENABLE_CRYPTO) && defined(ENABLE_CRYPTO_MBEDTLS) */
+#endif /* #if defined(ENABLE_CRYPTO_MBEDTLS) */

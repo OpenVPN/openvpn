@@ -38,8 +38,6 @@
 
 #include "syshead.h"
 
-#ifdef ENABLE_CRYPTO
-
 #include "error.h"
 #include "common.h"
 #include "crypto.h"
@@ -60,10 +58,3 @@ session_id_print(const struct session_id *sid, struct gc_arena *gc)
 {
     return format_hex(sid->id, SID_SIZE, 0, gc);
 }
-
-#else  /* ifdef ENABLE_CRYPTO */
-static void
-dummy(void)
-{
-}
-#endif /* ENABLE_CRYPTO */

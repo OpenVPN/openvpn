@@ -30,8 +30,6 @@
 
 #include "syshead.h"
 
-#ifdef ENABLE_CRYPTO
-
 #include "crypto.h"
 #include "error.h"
 #include "integer.h"
@@ -1842,5 +1840,3 @@ translate_cipher_name_to_openvpn(const char *cipher_name)
 
     return pair->openvpn_name;
 }
-
-#endif /* ENABLE_CRYPTO */

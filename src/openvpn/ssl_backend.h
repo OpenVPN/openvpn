@@ -124,8 +124,6 @@ int tls_version_parse(const char *vstr, const char *extra);
  */
 int tls_version_max(void);
 
-#ifdef ENABLE_CRYPTO
-
 /**
  * Initialise a library-specific TLS context for a server.
  *
@@ -539,5 +537,4 @@ void get_highest_preference_tls_cipher(char *buf, int size);
  */
 const char *get_ssl_library_version(void);
 
-#endif /* ENABLE_CRYPTO */
 #endif /* SSL_BACKEND_H_ */

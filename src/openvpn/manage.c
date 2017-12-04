@@ -762,10 +762,8 @@ man_query_need_str(struct management *man, const char *type, const char *action)
 static void
 man_forget_passwords(struct management *man)
 {
-#ifdef ENABLE_CRYPTO
     ssl_purge_auth(false);
     msg(M_CLIENT, "SUCCESS: Passwords were forgotten");
-#endif
 }
 
 static void
@@ -1918,12 +1916,11 @@ man_reset_client_socket(struct management *man, const bool exiting)
     }
     if (!exiting)
     {
-#ifdef ENABLE_CRYPTO
         if (man->settings.flags & MF_FORGET_DISCONNECT)
         {
             ssl_purge_auth(false);
         }
-#endif
+
         if (man->settings.flags & MF_SIGNAL)
         {
             int mysig = man_mod_signal(man, SIGUSR1);
