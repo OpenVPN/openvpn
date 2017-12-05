@@ -3828,6 +3828,46 @@ get_panel_reg(struct gc_arena *gc)
 }
 
 /*
+ * Return DhcpMediaSense enabled value
+ */
+static bool
+get_dhcp_media_sense(void)
+{
+    const char registry_tcpip_params[] = "SYSTEM\\CurrentControlSet\\Services\\Tcpip\\Parameters";
+    const char disable_dhcp_media_sense_string[] = "DisableDHCPMediaSense";
+    HKEY tcpip_params;
+    LONG status;
+    DWORD len;
+    DWORD disable_dhcp_media_sense;
+    DWORD data_type;
+    bool ret_value = true;
+
+    status = RegOpenKeyEx(HKEY_LOCAL_MACHINE, registry_tcpip_params, 0, KEY_READ, &tcpip_params);
+    
+    if (status != ERROR_SUCCESS)
+    {
+        msg(M_WARN, "Error opening registry key: %s", registry_tcpip_params);
+    }
+    else
+    {
+        len = sizeof(disable_dhcp_media_sense);
+        status = RegQueryValueEx(tcpip_params, disable_dhcp_media_sense_string, NULL, &data_type, (PBYTE)&disable_dhcp_media_sense, &len);
+
+        if (status == ERROR_SUCCESS && data_type == REG_DWORD)
+        {
+            if (disable_dhcp_media_sense != 0)
+            {
+                ret_value = false;
+            }
+        }
+
+        RegCloseKey(tcpip_params);
+    }
+
+    return ret_value;
+}
+
+/*
  * Check that two addresses are part of the same 255.255.255.252 subnet.
  */
 void
@@ -5897,6 +5937,13 @@ open_tun(const char *dev, const char *dev_type, const char *dev_node, struct tun
     if (dhcp_masq)
     {
         uint32_t ep[4];
+
+        /* Check DHCP media sense value */
+        if (!tt->options.dhcp_renew && !get_dhcp_media_sense())
+        {
+            msg(M_WARN, "WARNING: DHCP media sense disabled, dhcp_renew option forced. You can enable media sense with \"netsh interface ipv4 set global dhcpmediasense=enabled\" shell command");
+            tt->options.dhcp_renew = true;
+        }
 
         /* We will answer DHCP requests with a reply to set IP/subnet to these values */
         ep[0] = htonl(tt->local);
