@@ -804,17 +804,18 @@ HandleBlockDNSMessage(const block_dns_message_t *msg, undo_lists_t *lists)
             }
             interface_data->engine = engine;
             interface_data->index = msg->iface.index;
+            int is_auto = 0;
             interface_data->metric_v4 = get_interface_metric(msg->iface.index,
-                                                             AF_INET);
-            if (interface_data->metric_v4 < 0)
+                                                             AF_INET, &is_auto);
+            if (is_auto)
             {
-                interface_data->metric_v4 = -1;
+                interface_data->metric_v4 = 0;
             }
             interface_data->metric_v6 = get_interface_metric(msg->iface.index,
-                                                             AF_INET6);
-            if (interface_data->metric_v6 < 0)
+                                                             AF_INET6, &is_auto);
+            if (is_auto)
             {
-                interface_data->metric_v6 = -1;
+                interface_data->metric_v6 = 0;
             }
             err = AddListItem(&(*lists)[block_dns], interface_data);
             if (!err)

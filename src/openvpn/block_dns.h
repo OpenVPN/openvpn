@@ -39,17 +39,17 @@ add_block_dns_filters(HANDLE *engine, int iface_index, const WCHAR *exe_path,
                       block_dns_msg_handler_t msg_handler_callback);
 
 /**
- * Returns interface metric value for specified interface index.
+ * Return interface metric value for the specified interface index.
  *
- * @param index The index of TAP adapter
- * @param family Address family (AF_INET for IPv4 and AF_INET6 for IPv6)
+ * @param index         The index of TAP adapter.
+ * @param family        Address family (AF_INET for IPv4 and AF_INET6 for IPv6).
+ * @param is_auto       On return set to true if automatic metric is in use.
+ *                      Unused if NULL.
  *
- * @return positive metric value or zero for automatic metric on success,
- * a less then zero error code on failure.
+ * @return positive interface metric on success or -1 on error
  */
-
 int
-get_interface_metric(const NET_IFINDEX index, const ADDRESS_FAMILY family);
+get_interface_metric(const NET_IFINDEX index, const ADDRESS_FAMILY family, int *is_auto);
 
 /**
  * Sets interface metric value for specified interface index.
