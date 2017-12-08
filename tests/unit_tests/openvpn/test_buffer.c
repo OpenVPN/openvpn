@@ -77,10 +77,9 @@ static int test_buffer_list_setup(void **state)
     buffer_list_push(ctx->zero_length_strings, "");
 
     ctx->empty_buffers = buffer_list_new(2);
-    uint8_t *data1 = malloc(1);
-    uint8_t *data2 = malloc(1);
-    buffer_list_push_data(ctx->empty_buffers, data1, 0);
-    buffer_list_push_data(ctx->empty_buffers, data2, 0);
+    uint8_t data = 0;
+    buffer_list_push_data(ctx->empty_buffers, &data, 0);
+    buffer_list_push_data(ctx->empty_buffers, &data, 0);
 
     *state = ctx;
     return 0;
