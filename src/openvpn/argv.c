@@ -37,6 +37,7 @@
 
 #include "argv.h"
 #include "integer.h"
+#include "env_set.h"
 #include "options.h"
 
 static void

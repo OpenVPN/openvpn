@@ -27,6 +27,7 @@
 #include "argv.h"
 #include "basic.h"
 #include "common.h"
+#include "env_set.h"
 #include "integer.h"
 #include "buffer.h"
 #include "platform.h"
@@ -36,20 +37,6 @@
 
 /* forward declarations */
 struct plugin_list;
-
-/*
- * Handle environmental variable lists
- */
-
-struct env_item {
-    char *string;
-    struct env_item *next;
-};
-
-struct env_set {
-    struct gc_arena *gc;
-    struct env_item *list;
-};
 
 /* system flags */
 #define S_SCRIPT (1<<0)
@@ -83,60 +70,7 @@ void set_std_files_to_null(bool stdin_only);
 extern int inetd_socket_descriptor;
 void save_inetd_socket_descriptor(void);
 
-/* set/delete environmental variable */
-void setenv_str_ex(struct env_set *es,
-                   const char *name,
-                   const char *value,
-                   const unsigned int name_include,
-                   const unsigned int name_exclude,
-                   const char name_replace,
-                   const unsigned int value_include,
-                   const unsigned int value_exclude,
-                   const char value_replace);
-
-void setenv_counter(struct env_set *es, const char *name, counter_type value);
-
-void setenv_int(struct env_set *es, const char *name, int value);
-
-void setenv_long_long(struct env_set *es, const char *name, long long value);
-
-void setenv_str(struct env_set *es, const char *name, const char *value);
-
-void setenv_str_safe(struct env_set *es, const char *name, const char *value);
-
-void setenv_del(struct env_set *es, const char *name);
-
-/**
- * Store the supplied name value pair in the env_set.  If the variable with the
- * supplied name  already exists, append _N to the name, starting at N=1.
- */
-void setenv_str_incr(struct env_set *es, const char *name, const char *value);
-
-void setenv_int_i(struct env_set *es, const char *name, const int value, const int i);
-
-void setenv_str_i(struct env_set *es, const char *name, const char *value, const int i);
-
-/* struct env_set functions */
-
-struct env_set *env_set_create(struct gc_arena *gc);
-
-void env_set_destroy(struct env_set *es);
-
-bool env_set_del(struct env_set *es, const char *str);
-
-void env_set_add(struct env_set *es, const char *str);
-
-const char *env_set_get(const struct env_set *es, const char *name);
-
-void env_set_print(int msglevel, const struct env_set *es);
-
-void env_set_inherit(struct env_set *es, const struct env_set *src);
-
 /* Make arrays of strings */
-
-const char **make_env_array(const struct env_set *es,
-                            const bool check_allowed,
-                            struct gc_arena *gc);
 
 const char **make_arg_array(const char *first, const char *parms, struct gc_arena *gc);
 
@@ -259,11 +193,6 @@ void set_auth_token(struct user_pass *up, const char *token);
  */
 const char *safe_print(const char *str, struct gc_arena *gc);
 
-/* returns true if environmental variable safe to print to log */
-bool env_safe_to_print(const char *str);
-
-/* returns true if environmental variable may be passed to an external program */
-bool env_allowed(const char *str);
 
 void configure_path(void);
 
