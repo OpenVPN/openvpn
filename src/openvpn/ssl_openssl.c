@@ -1419,23 +1419,6 @@ bio_debug_oc(const char *mode, BIO *bio)
 #endif /* ifdef BIO_DEBUG */
 
 /*
- * OpenVPN's interface to SSL/TLS authentication,
- * encryption, and decryption is exclusively
- * through "memory BIOs".
- */
-static BIO *
-getbio(BIO_METHOD *type, const char *desc)
-{
-    BIO *ret;
-    ret = BIO_new(type);
-    if (!ret)
-    {
-        crypto_msg(M_FATAL, "Error creating %s BIO", desc);
-    }
-    return ret;
-}
-
-/*
  * Write to an OpenSSL BIO in non-blocking mode.
  */
 static int
@@ -1576,9 +1559,9 @@ key_state_ssl_init(struct key_state_ssl *ks_ssl, const struct tls_root_ctx *ssl_
      * from verify callback*/
     SSL_set_ex_data(ks_ssl->ssl, mydata_index, session);
 
-    ks_ssl->ssl_bio = getbio(BIO_f_ssl(), "ssl_bio");
-    ks_ssl->ct_in = getbio(BIO_s_mem(), "ct_in");
-    ks_ssl->ct_out = getbio(BIO_s_mem(), "ct_out");
+    ASSERT((ks_ssl->ssl_bio = BIO_new(BIO_f_ssl())));
+    ASSERT((ks_ssl->ct_in = BIO_new(BIO_s_mem())));
+    ASSERT((ks_ssl->ct_out = BIO_new(BIO_s_mem())));
 
 #ifdef BIO_DEBUG
     bio_debug_oc("open ssl_bio", ks_ssl->ssl_bio);
