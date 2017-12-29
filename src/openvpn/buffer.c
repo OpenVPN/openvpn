@@ -1231,7 +1231,8 @@ buffer_list_peek(struct buffer_list *ol)
 }
 
 void
-buffer_list_aggregate_separator(struct buffer_list *bl, const size_t max, const char *sep)
+buffer_list_aggregate_separator(struct buffer_list *bl, const size_t max_len,
+                                const char *sep)
 {
     int sep_len = strlen(sep);
 
@@ -1240,9 +1241,15 @@ buffer_list_aggregate_separator(struct buffer_list *bl, const size_t max, const 
         struct buffer_entry *more = bl->head;
         size_t size = 0;
         int count = 0;
-        for (count = 0; more && size <= max; ++count)
+        for (count = 0; more; ++count)
         {
-            size += BLEN(&more->buf) + sep_len;
+            size_t extra_len = BLEN(&more->buf) + sep_len;
+            if (size + extra_len > max_len)
+            {
+                break;
+            }
+
+            size += extra_len;
             more = more->next;
         }
 

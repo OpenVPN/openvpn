@@ -134,13 +134,16 @@ static void
 test_buffer_list_aggregate_separator_two(void **state)
 {
     struct test_buffer_list_aggregate_ctx *ctx = *state;
+    const char *expected = teststr1 testsep teststr2 testsep;
 
-    /* Aggregate the first two elements */
-    /* FIXME this exceeds the supplied max */
-    buffer_list_aggregate_separator(ctx->one_two_three, 4, testsep);
+    /* Aggregate the first two elements
+     * (add 1 to max_len to test if "three" is not sneaked in too)
+     */
+    buffer_list_aggregate_separator(ctx->one_two_three, strlen(expected) + 1,
+                                    testsep);
     assert_int_equal(ctx->one_two_three->size, 2);
     struct buffer *buf = buffer_list_peek(ctx->one_two_three);
-    assert_buf_equals_str(buf, teststr1 testsep teststr2 testsep);
+    assert_buf_equals_str(buf, expected);
 }
 
 static void
