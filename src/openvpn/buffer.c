@@ -1234,49 +1234,44 @@ void
 buffer_list_aggregate_separator(struct buffer_list *bl, const size_t max_len,
                                 const char *sep)
 {
-    int sep_len = strlen(sep);
-
-    if (bl->head)
+    const int sep_len = strlen(sep);
+    struct buffer_entry *more = bl->head;
+    size_t size = 0;
+    int count = 0;
+    for (count = 0; more; ++count)
     {
-        struct buffer_entry *more = bl->head;
-        size_t size = 0;
-        int count = 0;
-        for (count = 0; more; ++count)
+        size_t extra_len = BLEN(&more->buf) + sep_len;
+        if (size + extra_len > max_len)
         {
-            size_t extra_len = BLEN(&more->buf) + sep_len;
-            if (size + extra_len > max_len)
-            {
-                break;
-            }
-
-            size += extra_len;
-            more = more->next;
+            break;
         }
 
-        if (count >= 2)
-        {
-            int i;
-            struct buffer_entry *e = bl->head, *f;
+        size += extra_len;
+        more = more->next;
+    }
 
-            ALLOC_OBJ_CLEAR(f, struct buffer_entry);
-            f->buf = alloc_buf(size + 1); /* prevent 0-byte malloc */
-            f->buf.capacity = size;
-            for (i = 0; e && i < count; ++i)
-            {
-                struct buffer_entry *next = e->next;
-                buf_copy(&f->buf, &e->buf);
-                buf_write(&f->buf, sep, sep_len);
-                free_buf(&e->buf);
-                free(e);
-                e = next;
-            }
-            bl->head = f;
-            bl->size -= count - 1;
-            f->next = more;
-            if (!more)
-            {
-                bl->tail = f;
-            }
+    if (count >= 2)
+    {
+        struct buffer_entry *f;
+        ALLOC_OBJ_CLEAR(f, struct buffer_entry);
+        f->buf = alloc_buf(size + 1); /* prevent 0-byte malloc */
+
+        struct buffer_entry *e = bl->head;
+        for (size_t i = 0; e && i < count; ++i)
+        {
+            struct buffer_entry *next = e->next;
+            buf_copy(&f->buf, &e->buf);
+            buf_write(&f->buf, sep, sep_len);
+            free_buf(&e->buf);
+            free(e);
+            e = next;
+        }
+        bl->head = f;
+        bl->size -= count - 1;
+        f->next = more;
+        if (!more)
+        {
+            bl->tail = f;
         }
     }
 }
