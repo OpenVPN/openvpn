@@ -1251,8 +1251,7 @@ buffer_list_aggregate_separator(struct buffer_list *bl, const size_t max_len,
             struct buffer_entry *e = bl->head, *f;
 
             ALLOC_OBJ_CLEAR(f, struct buffer_entry);
-            f->buf.data = malloc(size);
-            check_malloc_return(f->buf.data);
+            f->buf = alloc_buf(size + 1); /* prevent 0-byte malloc */
             f->buf.capacity = size;
             for (i = 0; e && i < count; ++i)
             {
