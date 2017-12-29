@@ -138,8 +138,7 @@ test_buffer_list_aggregate_separator_two(void **state)
     /* Aggregate the first two elements */
     /* FIXME this exceeds the supplied max */
     buffer_list_aggregate_separator(ctx->one_two_three, 4, testsep);
-    /* FIXME size does not get adjusted after aggregating */
-    assert_int_equal(ctx->one_two_three->size, 3);
+    assert_int_equal(ctx->one_two_three->size, 2);
     struct buffer *buf = buffer_list_peek(ctx->one_two_three);
     assert_buf_equals_str(buf, teststr1 testsep teststr2 testsep);
 }
@@ -151,8 +150,7 @@ test_buffer_list_aggregate_separator_all(void **state)
 
     /* Aggregate all */
     buffer_list_aggregate_separator(ctx->one_two_three, 1<<16, testsep);
-    /* FIXME size does not get adjusted after aggregating */
-    assert_int_equal(ctx->one_two_three->size, 3);
+    assert_int_equal(ctx->one_two_three->size, 1);
     struct buffer *buf = buffer_list_peek(ctx->one_two_three);
     assert_buf_equals_str(buf,
                           teststr1 testsep teststr2 testsep teststr3 testsep);
@@ -165,8 +163,7 @@ test_buffer_list_aggregate_separator_nosep(void **state)
 
     /* Aggregate all */
     buffer_list_aggregate_separator(ctx->one_two_three, 1<<16, testnosep);
-    /* FIXME size does not get adjusted after aggregating */
-    assert_int_equal(ctx->one_two_three->size, 3);
+    assert_int_equal(ctx->one_two_three->size, 1);
     struct buffer *buf = buffer_list_peek(ctx->one_two_three);
     assert_buf_equals_str(buf, teststr1 teststr2 teststr3);
 }
@@ -179,8 +176,7 @@ test_buffer_list_aggregate_separator_zerolen(void **state)
 
     /* Aggregate all */
     buffer_list_aggregate_separator(bl_zerolen, 1<<16, testnosep);
-    /* FIXME size does not get adjusted after aggregating */
-    assert_int_equal(bl_zerolen->size, 2);
+    assert_int_equal(bl_zerolen->size, 1);
     struct buffer *buf = buffer_list_peek(bl_zerolen);
     assert_buf_equals_str(buf, "");
 }
@@ -193,8 +189,7 @@ test_buffer_list_aggregate_separator_emptybuffers(void **state)
 
     /* Aggregate all */
     buffer_list_aggregate_separator(bl_emptybuffers, 1<<16, testnosep);
-    /* FIXME size does not get adjusted after aggregating */
-    assert_int_equal(bl_emptybuffers->size, 2);
+    assert_int_equal(bl_emptybuffers->size, 1);
     struct buffer *buf = buffer_list_peek(bl_emptybuffers);
     assert_int_equal(BLEN(buf), 0);
 }
