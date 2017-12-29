@@ -1257,6 +1257,7 @@ buffer_list_aggregate_separator(struct buffer_list *bl, const size_t max, const 
                 e = next;
             }
             bl->head = f;
+            bl->size -= count - 1;
             f->next = more;
             if (!more)
             {
