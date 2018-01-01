@@ -37,8 +37,8 @@ if ($depth == 0) {
     # If so, parse out the common name substring in
     # the X509 subject string.
 
-    if ($x509 =~ / CN=([^,]+)/) {
-        $cn = $1;
+    if ($x509 =~ /( |^)CN=([^,]+)/) {
+        $cn = $2;
 	# Accept the connection if the X509 common name
 	# string matches the passed cn argument.
 	open(FH, '<', $cnfile) or exit 1; # can't open, nobody authenticates!
