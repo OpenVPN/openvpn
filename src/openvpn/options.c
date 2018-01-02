@@ -4591,7 +4591,7 @@ read_config_file(struct options *options,
                 ++line_num;
                 if (strlen(line) == OPTION_LINE_SIZE)
                 {
-                    msg(msglevel, "In %s:%d: Maximum optione line length (%d) exceeded, line starts with %s",
+                    msg(msglevel, "In %s:%d: Maximum option line length (%d) exceeded, line starts with %s",
                         file, line_num, OPTION_LINE_SIZE, line);
                 }
 
