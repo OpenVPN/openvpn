@@ -4178,15 +4178,12 @@ get_adapter_info_list(struct gc_arena *gc)
     else
     {
         pi = (PIP_ADAPTER_INFO) gc_malloc(size, false, gc);
-        if ((status = GetAdaptersInfo(pi, &size)) == NO_ERROR)
-        {
-            return pi;
-        }
-        else
+        if ((status = GetAdaptersInfo(pi, &size)) != NO_ERROR)
         {
             msg(M_INFO, "GetAdaptersInfo #2 failed (status=%u) : %s",
                 (unsigned int)status,
                 strerror_win32(status, gc));
+            pi = NULL;
         }
     }
     return pi;
