@@ -565,30 +565,6 @@ reliable_can_send(const struct reliable *rel)
     return n_current > 0 && !rel->hold;
 }
 
-#ifdef EXPONENTIAL_BACKOFF
-/* return a unique point-in-time to trigger retry */
-static time_t
-reliable_unique_retry(struct reliable *rel, time_t retry)
-{
-    int i;
-    while (true)
-    {
-        for (i = 0; i < rel->size; ++i)
-        {
-            struct reliable_entry *e = &rel->array[i];
-            if (e->active && e->next_try == retry)
-            {
-                goto again;
-            }
-        }
-        break;
-again:
-        ++retry;
-    }
-    return retry;
-}
-#endif /* ifdef EXPONENTIAL_BACKOFF */
-
 /* return next buffer to send to remote */
 struct buffer *
 reliable_send(struct reliable *rel, int *opcode)
@@ -612,7 +588,7 @@ reliable_send(struct reliable *rel, int *opcode)
     {
 #ifdef EXPONENTIAL_BACKOFF
         /* exponential backoff */
-        best->next_try = reliable_unique_retry(rel, local_now + best->timeout);
+        best->next_try = local_now + best->timeout;
         best->timeout *= 2;
 #else
         /* constant timeout, no backoff */
