@@ -130,16 +130,6 @@ build_openssl () {
     fi
 }
 
-# Enable ccache
-if [ "${TRAVIS_OS_NAME}" != "osx" ] && [ -z ${CHOST+x} ]; then
-    # ccache not available on osx, see:
-    # https://github.com/travis-ci/travis-ci/issues/5567
-    # also ccache not enabled for cross builds
-    mkdir -p "${HOME}/bin"
-    ln -s "$(which ccache)" "${HOME}/bin/${CC}"
-    PATH="${HOME}/bin:${PATH}"
-fi
-
 if [ ! -z ${CHOST+x} ]; then
       #
       # openvpn requires at least mingw-gcc-4.9, which is available at xenial repo

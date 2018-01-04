@@ -78,10 +78,10 @@ addons:
       - man2html
 
 cache:
-  ccache: true
   directories:
   - download-cache
   - ${HOME}/opt
+  - ${HOME}/Library/Caches/Homebrew
 
 before_install:
   - if [ "${TRAVIS_OS_NAME}" = "osx" ]; then brew update     ; fi
