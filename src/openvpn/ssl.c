@@ -2946,6 +2946,9 @@ tls_process(struct tls_multi *multi,
             {
                 state_change = true;
                 dmsg(D_TLS_DEBUG, "TLS -> Incoming Plaintext");
+
+                /* More data may be available, wake up again asap to check. */
+                *wakeup = 0;
             }
         }
 
