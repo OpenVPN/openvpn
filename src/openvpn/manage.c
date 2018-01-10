@@ -250,7 +250,7 @@ man_output_list_push_str(struct management *man, const char *str)
 {
     if (management_connected(man) && str)
     {
-        buffer_list_push(man->connection.out, (const unsigned char *) str);
+        buffer_list_push(man->connection.out, str);
     }
 }
 
@@ -2190,13 +2190,13 @@ man_read(struct management *man)
          * process command line if complete
          */
         {
-            const unsigned char *line;
+            const char *line;
             while ((line = command_line_get(man->connection.in)))
             {
 #ifdef MANAGEMENT_IN_EXTRA
                 if (man->connection.in_extra)
                 {
-                    if (!strcmp((char *)line, "END"))
+                    if (!strcmp(line, "END"))
                     {
                         in_extra_dispatch(man);
                     }
@@ -3791,18 +3791,18 @@ command_line_add(struct command_line *cl, const unsigned char *buf, const int le
     }
 }
 
-const unsigned char *
+const char *
 command_line_get(struct command_line *cl)
 {
     int i;
-    const unsigned char *ret = NULL;
+    const char *ret = NULL;
 
     i = buf_substring_len(&cl->buf, '\n');
     if (i >= 0)
     {
         buf_copy_excess(&cl->residual, &cl->buf, i);
         buf_chomp(&cl->buf);
-        ret = (const unsigned char *) BSTR(&cl->buf);
+        ret = BSTR(&cl->buf);
     }
     return ret;
 }
