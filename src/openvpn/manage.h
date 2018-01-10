@@ -70,7 +70,7 @@ void command_line_free(struct command_line *cl);
 
 void command_line_add(struct command_line *cl, const unsigned char *buf, const int len);
 
-const unsigned char *command_line_get(struct command_line *cl);
+const char *command_line_get(struct command_line *cl);
 
 void command_line_reset(struct command_line *cl);
 

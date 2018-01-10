@@ -1177,7 +1177,7 @@ buffer_list_reset(struct buffer_list *ol)
 }
 
 void
-buffer_list_push(struct buffer_list *ol, const unsigned char *str)
+buffer_list_push(struct buffer_list *ol, const char *str)
 {
     if (str)
     {
@@ -1191,7 +1191,7 @@ buffer_list_push(struct buffer_list *ol, const unsigned char *str)
 }
 
 struct buffer_entry *
-buffer_list_push_data(struct buffer_list *ol, const uint8_t *data, size_t size)
+buffer_list_push_data(struct buffer_list *ol, const void *data, size_t size)
 {
     struct buffer_entry *e = NULL;
     if (data && (!ol->max_size || ol->size < ol->max_size))
@@ -1332,7 +1332,7 @@ buffer_list_file(const char *fn, int max_line_len)
             bl = buffer_list_new(0);
             while (fgets(line, max_line_len, fp) != NULL)
             {
-                buffer_list_push(bl, (unsigned char *)line);
+                buffer_list_push(bl, line);
             }
             free(line);
         }
