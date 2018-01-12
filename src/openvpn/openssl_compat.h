@@ -240,7 +240,7 @@ X509_OBJECT_get_type(const X509_OBJECT *obj)
 static inline RSA *
 EVP_PKEY_get0_RSA(EVP_PKEY *pkey)
 {
-    return pkey ? pkey->pkey.rsa : NULL;
+    return (pkey && pkey->type == EVP_PKEY_RSA) ? pkey->pkey.rsa : NULL;
 }
 #endif
 
@@ -254,7 +254,7 @@ EVP_PKEY_get0_RSA(EVP_PKEY *pkey)
 static inline EC_KEY *
 EVP_PKEY_get0_EC_KEY(EVP_PKEY *pkey)
 {
-    return pkey ? pkey->pkey.ec : NULL;
+    return (pkey && pkey->type == EVP_PKEY_EC) ? pkey->pkey.ec : NULL;
 }
 #endif
 
@@ -282,7 +282,7 @@ EVP_PKEY_id(const EVP_PKEY *pkey)
 static inline DSA *
 EVP_PKEY_get0_DSA(EVP_PKEY *pkey)
 {
-    return pkey ? pkey->pkey.dsa : NULL;
+    return (pkey && pkey->type == EVP_PKEY_DSA) ? pkey->pkey.dsa : NULL;
 }
 #endif
 
