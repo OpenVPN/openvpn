@@ -1147,7 +1147,7 @@ err:
     {
         if (rsa_meth)
         {
-            free(rsa_meth);
+            RSA_meth_free(rsa_meth);
         }
     }
     crypto_msg(M_FATAL, "Cannot enable SSL external private key capability");
