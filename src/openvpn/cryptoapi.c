@@ -47,6 +47,7 @@
 #include <assert.h>
 
 #include "buffer.h"
+#include "openssl_compat.h"
 
 /* MinGW w32api 3.17 is still incomplete when it comes to CryptoAPI while
  * MinGW32-w64 defines all macros used. This is a hack around that problem.
@@ -213,20 +214,20 @@ rsa_pub_dec(int flen, const unsigned char *from, unsigned char *to, RSA *rsa, in
 static int
 rsa_priv_enc(int flen, const unsigned char *from, unsigned char *to, RSA *rsa, int padding)
 {
-    CAPI_DATA *cd = (CAPI_DATA *) rsa->meth->app_data;
+    CAPI_DATA *cd = (CAPI_DATA *) RSA_meth_get0_app_data(RSA_get_method(rsa));
     HCRYPTHASH hash;
     DWORD hash_size, len, i;
     unsigned char *buf;
 
     if (cd == NULL)
     {
-        RSAerr(RSA_F_RSA_EAY_PRIVATE_ENCRYPT, ERR_R_PASSED_NULL_PARAMETER);
+        RSAerr(RSA_F_RSA_OSSL_PRIVATE_ENCRYPT, ERR_R_PASSED_NULL_PARAMETER);
         return 0;
     }
     if (padding != RSA_PKCS1_PADDING)
     {
         /* AFAICS, CryptSignHash() *always* uses PKCS1 padding. */
-        RSAerr(RSA_F_RSA_EAY_PRIVATE_ENCRYPT, RSA_R_UNKNOWN_PADDING_TYPE);
+        RSAerr(RSA_F_RSA_OSSL_PRIVATE_ENCRYPT, RSA_R_UNKNOWN_PADDING_TYPE);
         return 0;
     }
     /* Unfortunately, there is no "CryptSign()" function in CryptoAPI, that would
@@ -236,7 +237,7 @@ rsa_priv_enc(int flen, const unsigned char *from, unsigned char *to, RSA *rsa, i
     /* For now, we only support NID_md5_sha1 */
     if (flen != SSL_SIG_LENGTH)
     {
-        RSAerr(RSA_F_RSA_EAY_PRIVATE_ENCRYPT, RSA_R_INVALID_MESSAGE_LENGTH);
+        RSAerr(RSA_F_RSA_OSSL_PRIVATE_ENCRYPT, RSA_R_INVALID_MESSAGE_LENGTH);
         return 0;
     }
     if (!CryptCreateHash(cd->crypt_prov, CALG_SSL3_SHAMD5, 0, 0, &hash))
@@ -253,7 +254,7 @@ rsa_priv_enc(int flen, const unsigned char *from, unsigned char *to, RSA *rsa, i
     }
     if ((int) hash_size != flen)
     {
-        RSAerr(RSA_F_RSA_EAY_PRIVATE_ENCRYPT, RSA_R_INVALID_MESSAGE_LENGTH);
+        RSAerr(RSA_F_RSA_OSSL_PRIVATE_ENCRYPT, RSA_R_INVALID_MESSAGE_LENGTH);
         CryptDestroyHash(hash);
         return 0;
     }
@@ -268,7 +269,7 @@ rsa_priv_enc(int flen, const unsigned char *from, unsigned char *to, RSA *rsa, i
     buf = malloc(len);
     if (buf == NULL)
     {
-        RSAerr(RSA_F_RSA_EAY_PRIVATE_ENCRYPT, ERR_R_MALLOC_FAILURE);
+        RSAerr(RSA_F_RSA_OSSL_PRIVATE_ENCRYPT, ERR_R_MALLOC_FAILURE);
         CryptDestroyHash(hash);
         return 0;
     }
@@ -312,7 +313,8 @@ init(RSA *rsa)
 static int
 finish(RSA *rsa)
 {
-    CAPI_DATA *cd = (CAPI_DATA *) rsa->meth->app_data;
+    const RSA_METHOD *rsa_meth = RSA_get_method(rsa);
+    CAPI_DATA *cd = (CAPI_DATA *) RSA_meth_get0_app_data(rsa_meth);
 
     if (cd == NULL)
     {
@@ -326,9 +328,8 @@ finish(RSA *rsa)
     {
         CertFreeCertificateContext(cd->cert_context);
     }
-    free(rsa->meth->app_data);
-    free((char *) rsa->meth);
-    rsa->meth = NULL;
+    free(cd);
+    RSA_meth_free((RSA_METHOD*) rsa_meth);
     return 1;
 }
 
@@ -412,9 +413,9 @@ SSL_CTX_use_CryptoAPI_certificate(SSL_CTX *ssl_ctx, const char *cert_prop)
     X509 *cert = NULL;
     RSA *rsa = NULL, *pub_rsa;
     CAPI_DATA *cd = calloc(1, sizeof(*cd));
-    RSA_METHOD *my_rsa_method = calloc(1, sizeof(*my_rsa_method));
+    RSA_METHOD *my_rsa_method = NULL;
 
-    if (cd == NULL || my_rsa_method == NULL)
+    if (cd == NULL)
     {
         SSLerr(SSL_F_SSL_CTX_USE_CERTIFICATE_FILE, ERR_R_MALLOC_FAILURE);
         goto err;
@@ -469,15 +470,16 @@ SSL_CTX_use_CryptoAPI_certificate(SSL_CTX *ssl_ctx, const char *cert_prop)
     /* here we don't need to do CryptGetUserKey() or anything; all necessary key
      * info is in cd->cert_context, and then, in cd->crypt_prov.  */
 
-    my_rsa_method->name = "Microsoft CryptoAPI RSA Method";
-    my_rsa_method->rsa_pub_enc = rsa_pub_enc;
-    my_rsa_method->rsa_pub_dec = rsa_pub_dec;
-    my_rsa_method->rsa_priv_enc = rsa_priv_enc;
-    my_rsa_method->rsa_priv_dec = rsa_priv_dec;
-    /* my_rsa_method->init = init; */
-    my_rsa_method->finish = finish;
-    my_rsa_method->flags = RSA_METHOD_FLAG_NO_CHECK;
-    my_rsa_method->app_data = (char *) cd;
+    my_rsa_method = RSA_meth_new("Microsoft Cryptography API RSA Method",
+                                  RSA_METHOD_FLAG_NO_CHECK);
+    check_malloc_return(my_rsa_method);
+    RSA_meth_set_pub_enc(my_rsa_method, rsa_pub_enc);
+    RSA_meth_set_pub_dec(my_rsa_method, rsa_pub_dec);
+    RSA_meth_set_priv_enc(my_rsa_method, rsa_priv_enc);
+    RSA_meth_set_priv_dec(my_rsa_method, rsa_priv_dec);
+    RSA_meth_set_init(my_rsa_method, NULL);
+    RSA_meth_set_finish(my_rsa_method, finish);
+    RSA_meth_set0_app_data(my_rsa_method, cd);
 
     rsa = RSA_new();
     if (rsa == NULL)
@@ -486,23 +488,35 @@ SSL_CTX_use_CryptoAPI_certificate(SSL_CTX *ssl_ctx, const char *cert_prop)
         goto err;
     }
 
-    /* cert->cert_info->key->pkey is NULL until we call SSL_CTX_use_certificate(),
+    /* Public key in cert is NULL until we call SSL_CTX_use_certificate(),
      * so we do it here then...  */
     if (!SSL_CTX_use_certificate(ssl_ctx, cert))
     {
         goto err;
     }
     /* the public key */
-    pub_rsa = cert->cert_info->key->pkey->pkey.rsa;
+    EVP_PKEY *pkey = X509_get0_pubkey(cert);
+
     /* SSL_CTX_use_certificate() increased the reference count in 'cert', so
      * we decrease it here with X509_free(), or it will never be cleaned up. */
     X509_free(cert);
     cert = NULL;
 
-    /* I'm not sure about what we have to fill in in the RSA, trying out stuff... */
-    /* rsa->n indicates the key size */
-    rsa->n = BN_dup(pub_rsa->n);
-    rsa->flags |= RSA_FLAG_EXT_PKEY;
+    if (!(pub_rsa = EVP_PKEY_get0_RSA(pkey)))
+    {
+        msg(M_WARN, "cryptoapicert requires an RSA certificate");
+        goto err;
+    }
+
+    /* Our private key is external, so we fill in only n and e from the public key */
+    const BIGNUM *n = NULL;
+    const BIGNUM *e = NULL;
+    RSA_get0_key(pub_rsa, &n, &e, NULL);
+    if (!RSA_set0_key(rsa, BN_dup(n), BN_dup(e), NULL))
+    {
+        goto err;
+    }
+    RSA_set_flags(rsa, RSA_flags(rsa) | RSA_FLAG_EXT_PKEY);
     if (!RSA_set_method(rsa, my_rsa_method))
     {
         goto err;
