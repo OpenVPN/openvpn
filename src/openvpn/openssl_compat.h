@@ -624,6 +624,20 @@ RSA_meth_set0_app_data(RSA_METHOD *meth, void *app_data)
 }
 #endif
 
+#if !defined(HAVE_RSA_METH_GET0_APP_DATA)
+/**
+ * Get the application data of an RSA_METHOD object
+ *
+ * @param meth               The RSA_METHOD object
+ * @return                   pointer to application data, may be NULL
+ */
+static inline void *
+RSA_meth_get0_app_data(const RSA_METHOD *meth)
+{
+    return meth ? meth->app_data : NULL;
+}
+#endif
+
 #if !defined(HAVE_EC_GROUP_ORDER_BITS) && !defined(OPENSSL_NO_EC)
 /**
  * Gets the number of bits of the order of an EC_GROUP
