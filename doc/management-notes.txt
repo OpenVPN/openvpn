@@ -362,6 +362,8 @@ ADD_ROUTES    -- Adding routes to system.
 CONNECTED     -- Initialization Sequence Completed.
 RECONNECTING  -- A restart has occurred.
 EXITING       -- A graceful exit is in progress.
+RESOLVE       -- (Client only) DNS lookup
+TCP_CONNECT   -- (Client only) Connecting to TCP server
 
 Command examples:
 
