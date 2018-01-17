@@ -804,6 +804,7 @@ md_ctx_init(mbedtls_md_context_t *ctx, const mbedtls_md_info_t *kt)
 void
 md_ctx_cleanup(mbedtls_md_context_t *ctx)
 {
+    mbedtls_md_free(ctx);
 }
 
 int
