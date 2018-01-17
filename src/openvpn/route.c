@@ -1599,17 +1599,17 @@ add_route(struct route_ipv4 *r,
     status = openvpn_execve_check(&argv, es, 0, "ERROR: Linux route add command failed");
 
 #elif defined (TARGET_ANDROID)
-    struct buffer out = alloc_buf_gc(128, &gc);
+    char out[128];
 
     if (rgi)
     {
-        buf_printf(&out, "%s %s %s dev %s", network, netmask, gateway, rgi->iface);
+        openvpn_snprintf(out, sizeof(out), "%s %s %s dev %s", network, netmask, gateway, rgi->iface);
     }
     else
     {
-        buf_printf(&out, "%s %s %s", network, netmask, gateway);
+        openvpn_snprintf(out, sizeof(out), "%s %s %s", network, netmask, gateway);
     }
-    management_android_control(management, "ROUTE", buf_bptr(&out));
+    management_android_control(management, "ROUTE", out);
 
 #elif defined (_WIN32)
     {
@@ -1952,11 +1952,11 @@ add_route_ipv6(struct route_ipv6 *r6, const struct tuntap *tt, unsigned int flag
     status = openvpn_execve_check(&argv, es, 0, "ERROR: Linux route -6/-A inet6 add command failed");
 
 #elif defined (TARGET_ANDROID)
-    struct buffer out = alloc_buf_gc(64, &gc);
+    char out[64];
 
-    buf_printf(&out, "%s/%d %s", network, r6->netbits, device);
+    openvpn_snprintf(out, sizeof(out), "%s/%d %s", network, r6->netbits, device);
 
-    management_android_control(management, "ROUTE6", buf_bptr(&out));
+    management_android_control(management, "ROUTE6", out);
 
 #elif defined (_WIN32)
 

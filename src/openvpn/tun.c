@@ -1031,12 +1031,12 @@ do_ifconfig(struct tuntap *tt,
 
         if (do_ipv6)
         {
-            struct buffer out6 = alloc_buf_gc(64, &gc);
-            buf_printf(&out6, "%s/%d", ifconfig_ipv6_local,tt->netbits_ipv6);
-            management_android_control(management, "IFCONFIG6",buf_bptr(&out6));
+            char out6[64];
+            openvpn_snprintf(out6, sizeof(out6), "%s/%d", ifconfig_ipv6_local,tt->netbits_ipv6);
+            management_android_control(management, "IFCONFIG6", out6);
         }
 
-        struct buffer out = alloc_buf_gc(64, &gc);
+        char out[64];
 
         char *top;
         switch (tt->topology)
@@ -1057,8 +1057,8 @@ do_ifconfig(struct tuntap *tt,
                 top = "undef";
         }
 
-        buf_printf(&out, "%s %s %d %s", ifconfig_local, ifconfig_remote_netmask, tun_mtu, top);
-        management_android_control(management, "IFCONFIG", buf_bptr(&out));
+        openvpn_snprintf(out, sizeof(out), "%s %s %d %s", ifconfig_local, ifconfig_remote_netmask, tun_mtu, top);
+        management_android_control(management, "IFCONFIG", out);
 
 #elif defined(TARGET_SOLARIS)
         /* Solaris 2.6 (and 7?) cannot set all parameters in one go...
