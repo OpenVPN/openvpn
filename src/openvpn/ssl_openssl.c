@@ -206,16 +206,65 @@ info_callback(INFO_CALLBACK_SSL_CONST SSL *s, int where, int ret)
 int
 tls_version_max(void)
 {
-#if defined(SSL_OP_NO_TLSv1_2)
+#if defined(TLS1_2_VERSION) || defined(SSL_OP_NO_TLSv1_2)
     return TLS_VER_1_2;
-#elif defined(SSL_OP_NO_TLSv1_1)
+#elif defined(TLS1_1_VERSION) || defined(SSL_OP_NO_TLSv1_1)
     return TLS_VER_1_1;
 #else
     return TLS_VER_1_0;
 #endif
 }
 
-void
+/** Convert internal version number to openssl version number */
+static int
+openssl_tls_version(int ver)
+{
+    if (ver == TLS_VER_1_0)
+    {
+        return TLS1_VERSION;
+    }
+    else if (ver == TLS_VER_1_1)
+    {
+        return TLS1_1_VERSION;
+    }
+    else if (ver == TLS_VER_1_2)
+    {
+        return TLS1_2_VERSION;
+    }
+    return 0;
+}
+
+static bool
+tls_ctx_set_tls_versions(struct tls_root_ctx *ctx, unsigned int ssl_flags)
+{
+    int tls_ver_min = openssl_tls_version(
+        (ssl_flags >> SSLF_TLS_VERSION_MIN_SHIFT) & SSLF_TLS_VERSION_MIN_MASK);
+    int tls_ver_max = openssl_tls_version(
+        (ssl_flags >> SSLF_TLS_VERSION_MAX_SHIFT) & SSLF_TLS_VERSION_MAX_MASK);
+
+    if (!tls_ver_min)
+    {
+        /* Enforce at least TLS 1.0 */
+        int cur_min = SSL_CTX_get_min_proto_version(ctx->ctx);
+        tls_ver_min = cur_min < TLS1_VERSION ? TLS1_VERSION : cur_min;
+    }
+
+    if (!SSL_CTX_set_min_proto_version(ctx->ctx, tls_ver_min))
+    {
+        msg(D_TLS_ERRORS, "%s: failed to set minimum TLS version", __func__);
+        return false;
+    }
+
+    if (tls_ver_max && !SSL_CTX_set_max_proto_version(ctx->ctx, tls_ver_max))
+    {
+        msg(D_TLS_ERRORS, "%s: failed to set maximum TLS version", __func__);
+        return false;
+    }
+
+    return true;
+}
+
+bool
 tls_ctx_set_options(struct tls_root_ctx *ctx, unsigned int ssl_flags)
 {
     ASSERT(NULL != ctx);
@@ -223,41 +272,18 @@ tls_ctx_set_options(struct tls_root_ctx *ctx, unsigned int ssl_flags)
     /* default certificate verification flags */
     int flags = SSL_VERIFY_PEER | SSL_VERIFY_FAIL_IF_NO_PEER_CERT;
 
-    /* process SSL options including minimum TLS version we will accept from peer */
-    {
-        long sslopt = SSL_OP_SINGLE_DH_USE | SSL_OP_NO_TICKET | SSL_OP_NO_SSLv2 | SSL_OP_NO_SSLv3;
-        int tls_ver_max = TLS_VER_UNSPEC;
-        const int tls_ver_min =
-            (ssl_flags >> SSLF_TLS_VERSION_MIN_SHIFT) & SSLF_TLS_VERSION_MIN_MASK;
-
-        tls_ver_max =
-            (ssl_flags >> SSLF_TLS_VERSION_MAX_SHIFT) & SSLF_TLS_VERSION_MAX_MASK;
-        if (tls_ver_max <= TLS_VER_UNSPEC)
-        {
-            tls_ver_max = tls_version_max();
-        }
-
-        if (tls_ver_min > TLS_VER_1_0 || tls_ver_max < TLS_VER_1_0)
-        {
-            sslopt |= SSL_OP_NO_TLSv1;
-        }
-#ifdef SSL_OP_NO_TLSv1_1
-        if (tls_ver_min > TLS_VER_1_1 || tls_ver_max < TLS_VER_1_1)
-        {
-            sslopt |= SSL_OP_NO_TLSv1_1;
-        }
-#endif
-#ifdef SSL_OP_NO_TLSv1_2
-        if (tls_ver_min > TLS_VER_1_2 || tls_ver_max < TLS_VER_1_2)
-        {
-            sslopt |= SSL_OP_NO_TLSv1_2;
-        }
-#endif
+    /* process SSL options */
+    long sslopt = SSL_OP_SINGLE_DH_USE | SSL_OP_NO_TICKET;
 #ifdef SSL_OP_CIPHER_SERVER_PREFERENCE
-        sslopt |= SSL_OP_CIPHER_SERVER_PREFERENCE;
+    sslopt |= SSL_OP_CIPHER_SERVER_PREFERENCE;
 #endif
-        sslopt |= SSL_OP_NO_COMPRESSION;
-        SSL_CTX_set_options(ctx->ctx, sslopt);
+    sslopt |= SSL_OP_NO_COMPRESSION;
+
+    SSL_CTX_set_options(ctx->ctx, sslopt);
+
+    if (!tls_ctx_set_tls_versions(ctx, ssl_flags))
+    {
+        return false;
     }
 
 #ifdef SSL_MODE_RELEASE_BUFFERS
@@ -280,6 +306,8 @@ tls_ctx_set_options(struct tls_root_ctx *ctx, unsigned int ssl_flags)
     SSL_CTX_set_verify(ctx->ctx, flags, verify_callback);
 
     SSL_CTX_set_info_callback(ctx->ctx, info_callback);
+
+    return true;
 }
 
 void

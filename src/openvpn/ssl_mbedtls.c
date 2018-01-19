@@ -206,9 +206,10 @@ key_state_export_keying_material(struct key_state_ssl *ssl,
 {
 }
 
-void
+bool
 tls_ctx_set_options(struct tls_root_ctx *ctx, unsigned int ssl_flags)
 {
+    return true;
 }
 
 static const char *

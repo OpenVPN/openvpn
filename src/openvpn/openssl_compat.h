@@ -661,4 +661,71 @@ EC_GROUP_order_bits(const EC_GROUP *group)
 #define RSA_F_RSA_OSSL_PRIVATE_ENCRYPT       RSA_F_RSA_EAY_PRIVATE_ENCRYPT
 #endif
 
+#ifndef SSL_CTX_get_min_proto_version
+/** Dummy SSL_CTX_get_min_proto_version for OpenSSL < 1.1 (not really needed) */
+static inline int
+SSL_CTX_get_min_proto_version(SSL_CTX *ctx)
+{
+    return 0;
+}
+#endif /* SSL_CTX_get_min_proto_version */
+
+#ifndef SSL_CTX_set_min_proto_version
+/** Mimics SSL_CTX_set_min_proto_version for OpenSSL < 1.1 */
+static inline int
+SSL_CTX_set_min_proto_version(SSL_CTX *ctx, long tls_ver_min)
+{
+    long sslopt = SSL_OP_NO_SSLv2 | SSL_OP_NO_SSLv3; /* Never do < TLS 1.0 */
+
+    if (tls_ver_min > TLS1_VERSION)
+    {
+        sslopt |= SSL_OP_NO_TLSv1;
+    }
+#ifdef SSL_OP_NO_TLSv1_1
+    if (tls_ver_min > TLS1_1_VERSION)
+    {
+        sslopt |= SSL_OP_NO_TLSv1_1;
+    }
+#endif
+#ifdef SSL_OP_NO_TLSv1_2
+    if (tls_ver_min > TLS1_2_VERSION)
+    {
+        sslopt |= SSL_OP_NO_TLSv1_2;
+    }
+#endif
+    SSL_CTX_set_options(ctx, sslopt);
+
+    return 1;
+}
+#endif /* SSL_CTX_set_min_proto_version */
+
+#ifndef SSL_CTX_set_max_proto_version
+/** Mimics SSL_CTX_set_max_proto_version for OpenSSL < 1.1 */
+static inline int
+SSL_CTX_set_max_proto_version(SSL_CTX *ctx, long tls_ver_max)
+{
+    long sslopt = 0;
+
+    if (tls_ver_max < TLS1_VERSION)
+    {
+        sslopt |= SSL_OP_NO_TLSv1;
+    }
+#ifdef SSL_OP_NO_TLSv1_1
+    if (tls_ver_max < TLS1_1_VERSION)
+    {
+        sslopt |= SSL_OP_NO_TLSv1_1;
+    }
+#endif
+#ifdef SSL_OP_NO_TLSv1_2
+    if (tls_ver_max < TLS1_2_VERSION)
+    {
+        sslopt |= SSL_OP_NO_TLSv1_2;
+    }
+#endif
+    SSL_CTX_set_options(ctx, sslopt);
+
+    return 1;
+}
+#endif /* SSL_CTX_set_max_proto_version */
+
 #endif /* OPENSSL_COMPAT_H_ */
