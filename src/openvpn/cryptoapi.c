@@ -42,6 +42,7 @@
 #include <openssl/err.h>
 #include <windows.h>
 #include <wincrypt.h>
+#include <ncrypt.h>
 #include <stdio.h>
 #include <ctype.h>
 #include <assert.h>
@@ -83,6 +84,7 @@
 #define CRYPTOAPI_F_CRYPT_SIGN_HASH                         106
 #define CRYPTOAPI_F_LOAD_LIBRARY                            107
 #define CRYPTOAPI_F_GET_PROC_ADDRESS                        108
+#define CRYPTOAPI_F_NCRYPT_SIGN_HASH                        109
 
 static ERR_STRING_DATA CRYPTOAPI_str_functs[] = {
     { ERR_PACK(ERR_LIB_CRYPTOAPI, 0, 0),                                    "microsoft cryptoapi"},
@@ -95,12 +97,13 @@ static ERR_STRING_DATA CRYPTOAPI_str_functs[] = {
     { ERR_PACK(0, CRYPTOAPI_F_CRYPT_SIGN_HASH, 0),                          "CryptSignHash" },
     { ERR_PACK(0, CRYPTOAPI_F_LOAD_LIBRARY, 0),                             "LoadLibrary" },
     { ERR_PACK(0, CRYPTOAPI_F_GET_PROC_ADDRESS, 0),                         "GetProcAddress" },
+    { ERR_PACK(0, CRYPTOAPI_F_NCRYPT_SIGN_HASH, 0),                         "NCryptSignHash" },
     { 0, NULL }
 };
 
 typedef struct _CAPI_DATA {
     const CERT_CONTEXT *cert_context;
-    HCRYPTPROV crypt_prov;
+    HCRYPTPROV_OR_NCRYPT_KEY_HANDLE crypt_prov;
     DWORD key_spec;
     BOOL free_crypt_prov;
 } CAPI_DATA;
@@ -210,6 +213,41 @@ rsa_pub_dec(int flen, const unsigned char *from, unsigned char *to, RSA *rsa, in
     return 0;
 }
 
+/**
+ * Sign the hash in 'from' using NCryptSignHash(). This requires an NCRYPT
+ * key handle in cd->crypt_prov. On return the signature is in 'to'. Returns
+ * the length of the signature or 0 on error.
+ * For now we support only RSA and the padding is assumed to be PKCS1 v1.5
+ */
+static int
+priv_enc_CNG(const CAPI_DATA *cd, const unsigned char *from, int flen,
+              unsigned char *to, int tlen, int padding)
+{
+    NCRYPT_KEY_HANDLE hkey = cd->crypt_prov;
+    DWORD len;
+    ASSERT(cd->key_spec == CERT_NCRYPT_KEY_SPEC);
+
+    msg(D_LOW, "Signing hash using CNG: data size = %d", flen);
+
+    /* The hash OID is already in 'from'.  So set the hash algorithm
+     * in the padding info struct to NULL.
+     */
+    BCRYPT_PKCS1_PADDING_INFO padinfo = {NULL};
+    DWORD status;
+
+    status = NCryptSignHash(hkey, padding? &padinfo : NULL, (BYTE*) from, flen,
+                            to, tlen, &len, padding? BCRYPT_PAD_PKCS1 : 0);
+    if (status != ERROR_SUCCESS)
+    {
+        SetLastError(status);
+        CRYPTOAPIerr(CRYPTOAPI_F_NCRYPT_SIGN_HASH);
+        len = 0;
+    }
+
+    /* Unlike CAPI, CNG signature is in big endian order. No reversing needed. */
+    return len;
+}
+
 /* sign arbitrary data */
 static int
 rsa_priv_enc(int flen, const unsigned char *from, unsigned char *to, RSA *rsa, int padding)
@@ -230,6 +268,11 @@ rsa_priv_enc(int flen, const unsigned char *from, unsigned char *to, RSA *rsa, i
         RSAerr(RSA_F_RSA_OSSL_PRIVATE_ENCRYPT, RSA_R_UNKNOWN_PADDING_TYPE);
         return 0;
     }
+    if (cd->key_spec == CERT_NCRYPT_KEY_SPEC)
+    {
+        return priv_enc_CNG(cd, from, flen, to, RSA_size(rsa), padding);
+    }
+
     /* Unfortunately, there is no "CryptSign()" function in CryptoAPI, that would
      * be way to straightforward for M$, I guess... So we have to do it this
      * tricky way instead, by creating a "Hash", and load the already-made hash
@@ -322,7 +365,14 @@ finish(RSA *rsa)
     }
     if (cd->crypt_prov && cd->free_crypt_prov)
     {
-        CryptReleaseContext(cd->crypt_prov, 0);
+        if (cd->key_spec == CERT_NCRYPT_KEY_SPEC)
+        {
+            NCryptFreeObject(cd->crypt_prov);
+        }
+        else
+        {
+            CryptReleaseContext(cd->crypt_prov, 0);
+        }
     }
     if (cd->cert_context)
     {
@@ -458,8 +508,11 @@ SSL_CTX_use_CryptoAPI_certificate(SSL_CTX *ssl_ctx, const char *cert_prop)
     }
 
     /* set up stuff to use the private key */
-    if (!CryptAcquireCertificatePrivateKey(cd->cert_context, CRYPT_ACQUIRE_COMPARE_KEY_FLAG,
-                                           NULL, &cd->crypt_prov, &cd->key_spec, &cd->free_crypt_prov))
+    /* We prefer to get an NCRYPT key handle so that TLS1.2 can be supported */
+    DWORD flags = CRYPT_ACQUIRE_COMPARE_KEY_FLAG
+                  | CRYPT_ACQUIRE_PREFER_NCRYPT_KEY_FLAG;
+    if (!CryptAcquireCertificatePrivateKey(cd->cert_context, flags, NULL,
+                    &cd->crypt_prov, &cd->key_spec, &cd->free_crypt_prov))
     {
         /* if we don't have a smart card reader here, and we try to access a
          * smart card certificate, we get:
@@ -469,6 +522,21 @@ SSL_CTX_use_CryptoAPI_certificate(SSL_CTX *ssl_ctx, const char *cert_prop)
     }
     /* here we don't need to do CryptGetUserKey() or anything; all necessary key
      * info is in cd->cert_context, and then, in cd->crypt_prov.  */
+
+    /* if we do not have an NCRYPT key handle restrict TLS to v1.1 or lower */
+    int max_version = SSL_CTX_get_max_proto_version(ssl_ctx);
+    if ((!max_version || max_version > TLS1_1_VERSION)
+        && cd->key_spec != CERT_NCRYPT_KEY_SPEC)
+    {
+        msg(M_WARN,"WARNING: cryptoapicert: private key is in a legacy store."
+            " Restricting TLS version to 1.1");
+        if (!SSL_CTX_set_max_proto_version(ssl_ctx, TLS1_1_VERSION))
+        {
+            msg(M_NONFATAL,"ERROR: cryptoapicert: unable to set max TLS version"
+                " to 1.1. Try config option --tls-version-min 1.1");
+            goto err;
+        }
+    }
 
     my_rsa_method = RSA_meth_new("Microsoft Cryptography API RSA Method",
                                   RSA_METHOD_FLAG_NO_CHECK);
@@ -550,7 +618,14 @@ err:
         {
             if (cd->free_crypt_prov && cd->crypt_prov)
             {
-                CryptReleaseContext(cd->crypt_prov, 0);
+                if (cd->key_spec == CERT_NCRYPT_KEY_SPEC)
+                {
+                    NCryptFreeObject(cd->crypt_prov);
+                }
+                else
+                {
+                    CryptReleaseContext(cd->crypt_prov, 0);
+                }
             }
             if (cd->cert_context)
             {

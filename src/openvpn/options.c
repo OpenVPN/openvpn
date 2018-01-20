@@ -3057,24 +3057,6 @@ options_postprocess_mutate(struct options *o)
     }
 #endif
 
-#ifdef ENABLE_CRYPTOAPI
-    if (o->cryptoapi_cert)
-    {
-        const int tls_version_max =
-            (o->ssl_flags >> SSLF_TLS_VERSION_MAX_SHIFT)
-            &SSLF_TLS_VERSION_MAX_MASK;
-
-        if (tls_version_max == TLS_VER_UNSPEC || tls_version_max > TLS_VER_1_1)
-        {
-            msg(M_WARN, "Warning: cryptapicert used, setting maximum TLS "
-                "version to 1.1.");
-            o->ssl_flags &= ~(SSLF_TLS_VERSION_MAX_MASK
-                              <<SSLF_TLS_VERSION_MAX_SHIFT);
-            o->ssl_flags |= (TLS_VER_1_1 << SSLF_TLS_VERSION_MAX_SHIFT);
-        }
-    }
-#endif /* ENABLE_CRYPTOAPI */
-
 #if P2MP
     /*
      * Save certain parms before modifying options via --pull
