@@ -624,7 +624,10 @@ init_ssl(const struct options *options, struct tls_root_ctx *new_ctx)
      * cipher restrictions before loading certificates */
     tls_ctx_restrict_ciphers(new_ctx, options->cipher_list);
 
-    tls_ctx_set_options(new_ctx, options->ssl_flags);
+    if (!tls_ctx_set_options(new_ctx, options->ssl_flags))
+    {
+        goto err;
+    }
 
     if (options->pkcs12_file)
     {
