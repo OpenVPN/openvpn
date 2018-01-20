@@ -670,6 +670,33 @@ SSL_CTX_get_min_proto_version(SSL_CTX *ctx)
 }
 #endif /* SSL_CTX_get_min_proto_version */
 
+#ifndef SSL_CTX_get_max_proto_version
+/** Return the max SSL protocol version currently enabled in the context.
+ *  If no valid version >= TLS1.0 is found, return 0. */
+static inline int
+SSL_CTX_get_max_proto_version(SSL_CTX *ctx)
+{
+    long sslopt = SSL_CTX_get_options(ctx);
+#ifdef SSL_OP_NO_TLSv1_2
+    if (!(sslopt & SSL_OP_NO_TLSv1_2))
+    {
+	return TLS1_2_VERSION;
+    }
+#endif
+#ifdef SSL_OP_NO_TLSv1_1
+    if (!(sslopt & SSL_OP_NO_TLSv1_1))
+    {
+	return TLS1_1_VERSION;
+    }
+#endif
+    if (!(sslopt & SSL_OP_NO_TLSv1))
+    {
+	return TLS1_VERSION;
+    }
+    return 0;
+}
+#endif /* SSL_CTX_get_max_proto_version */
+
 #ifndef SSL_CTX_set_min_proto_version
 /** Mimics SSL_CTX_set_min_proto_version for OpenSSL < 1.1 */
 static inline int
