@@ -1043,58 +1043,51 @@ openvpn_extkey_rsa_finish(RSA *rsa)
     return 1;
 }
 
+/* Pass the input hash in 'dgst' to management and get the signature back.
+ * On input siglen contains the capacity of the buffer 'sig'.
+ * On return signature is in sig.
+ * Return value is signature length or -1 on error.
+ */
+static int
+get_sig_from_man(const unsigned char *dgst, unsigned int dgstlen,
+                 unsigned char *sig, unsigned int siglen)
+{
+    char *in_b64 = NULL;
+    char *out_b64 = NULL;
+    int len = -1;
+
+    /* convert 'dgst' to base64 */
+    if (management
+        && openvpn_base64_encode(dgst, dgstlen, &in_b64) > 0)
+    {
+        out_b64 = management_query_pk_sig(management, in_b64);
+    }
+    if (out_b64)
+    {
+        len = openvpn_base64_decode(out_b64, sig, siglen);
+    }
+
+    free(in_b64);
+    free(out_b64);
+    return len;
+}
+
 /* sign arbitrary data */
 static int
 rsa_priv_enc(int flen, const unsigned char *from, unsigned char *to, RSA *rsa, int padding)
 {
-    /* optional app data in rsa->meth->app_data; */
-    char *in_b64 = NULL;
-    char *out_b64 = NULL;
+    unsigned int len = RSA_size(rsa);
     int ret = -1;
-    int len;
 
     if (padding != RSA_PKCS1_PADDING)
     {
         RSAerr(RSA_F_RSA_OSSL_PRIVATE_ENCRYPT, RSA_R_UNKNOWN_PADDING_TYPE);
-        goto done;
+        return -1;
     }
 
-    /* convert 'from' to base64 */
-    if (openvpn_base64_encode(from, flen, &in_b64) <= 0)
-    {
-        goto done;
-    }
+    ret = get_sig_from_man(from, flen, to, len);
 
-    /* call MI for signature */
-    if (management)
-    {
-        out_b64 = management_query_pk_sig(management, in_b64);
-    }
-    if (!out_b64)
-    {
-        goto done;
-    }
-
-    /* decode base64 signature to binary */
-    len = RSA_size(rsa);
-    ret = openvpn_base64_decode(out_b64, to, len);
-
-    /* verify length */
-    if (ret != len)
-    {
-        ret = -1;
-    }
-
-done:
-    if (in_b64)
-    {
-        free(in_b64);
-    }
-    if (out_b64)
-    {
-        free(out_b64);
-    }
-    return ret;
+    return (ret == len)? ret : -1;
 }
 
 static int
@@ -1166,6 +1159,130 @@ err:
     return 0;
 }
 
+#if OPENSSL_VERSION_NUMBER > 0x10100000L && !defined(OPENSSL_NO_EC)
+
+/* called when EC_KEY is destroyed */
+static void
+openvpn_extkey_ec_finish(EC_KEY *ec)
+{
+    /* release the method structure */
+    const EC_KEY_METHOD *ec_meth = EC_KEY_get_method(ec);
+    EC_KEY_METHOD_free((EC_KEY_METHOD *) ec_meth);
+}
+
+/* EC_KEY_METHOD callback: sign().
+ * Sign the hash using EC key and return DER encoded signature in sig,
+ * its length in siglen. Return value is 1 on success, 0 on error.
+ */
+static int
+ecdsa_sign(int type, const unsigned char *dgst, int dgstlen, unsigned char *sig,
+           unsigned int *siglen, const BIGNUM *kinv, const BIGNUM *r, EC_KEY *ec)
+{
+    int capacity = ECDSA_size(ec);
+    int len = get_sig_from_man(dgst, dgstlen, sig, capacity);
+
+    if (len > 0)
+    {
+        *siglen = len;
+        return 1;
+    }
+    return 0;
+}
+
+/* EC_KEY_METHOD callback: sign_setup(). We do no precomputations */
+static int
+ecdsa_sign_setup(EC_KEY *ec, BN_CTX *ctx_in, BIGNUM **kinvp, BIGNUM **rp)
+{
+    return 1;
+}
+
+/* EC_KEY_METHOD callback: sign_sig().
+ * Sign the hash and return the result as a newly allocated ECDS_SIG
+ * struct or NULL on error.
+ */
+static ECDSA_SIG *
+ecdsa_sign_sig(const unsigned char *dgst, int dgstlen, const BIGNUM *in_kinv,
+               const BIGNUM *in_r, EC_KEY *ec)
+{
+    ECDSA_SIG *ecsig = NULL;
+    unsigned int len = ECDSA_size(ec);
+    struct gc_arena gc = gc_new();
+
+    unsigned char *buf = gc_malloc(len, false, &gc);
+    if (ecdsa_sign(0, dgst, dgstlen, buf, &len, NULL, NULL, ec) != 1)
+    {
+        goto out;
+    }
+    /* const char ** should be avoided: not up to us, so we cast our way through */
+    ecsig = d2i_ECDSA_SIG(NULL, (const unsigned char **)&buf, len);
+
+out:
+    gc_free(&gc);
+    return ecsig;
+}
+
+static int
+tls_ctx_use_external_ec_key(struct tls_root_ctx *ctx, EVP_PKEY *pkey)
+{
+    EC_KEY *ec = NULL;
+    EVP_PKEY *privkey = NULL;
+    EC_KEY_METHOD *ec_method;
+
+    ASSERT(ctx);
+
+    ec_method = EC_KEY_METHOD_new(EC_KEY_OpenSSL());
+    if (!ec_method)
+    {
+        goto err;
+    }
+
+    /* Among init methods, we only need the finish method */
+    EC_KEY_METHOD_set_init(ec_method, NULL, openvpn_extkey_ec_finish, NULL, NULL, NULL, NULL);
+    EC_KEY_METHOD_set_sign(ec_method, ecdsa_sign, ecdsa_sign_setup, ecdsa_sign_sig);
+
+    ec = EC_KEY_dup(EVP_PKEY_get0_EC_KEY(pkey));
+    if (!ec)
+    {
+        EC_KEY_METHOD_free(ec_method);
+        goto err;
+    }
+    if (!EC_KEY_set_method(ec, ec_method))
+    {
+        EC_KEY_METHOD_free(ec_method);
+        goto err;
+    }
+    /* from this point ec_method will get freed when ec is freed */
+
+    privkey = EVP_PKEY_new();
+    if (!EVP_PKEY_assign_EC_KEY(privkey, ec))
+    {
+        goto err;
+    }
+    /* from this point ec will get freed when privkey is freed */
+
+    if (!SSL_CTX_use_PrivateKey(ctx->ctx, privkey))
+    {
+        ec = NULL; /* avoid double freeing it below */
+        goto err;
+    }
+
+    EVP_PKEY_free(privkey); /* this will down ref privkey and ec */
+    return 1;
+
+err:
+    /* Reach here only when ec and privkey can be independenly freed */
+    if (privkey)
+    {
+        EVP_PKEY_free(privkey);
+    }
+    if(ec)
+    {
+        EC_KEY_free(ec);
+    }
+    return 0;
+}
+#endif /* OPENSSL_VERSION_NUMBER > 1.1.0 dev */
+
 int
 tls_ctx_use_external_private_key(struct tls_root_ctx *ctx,
                                  const char *cert_file, const char *cert_file_inline)
@@ -1183,18 +1300,33 @@ tls_ctx_use_external_private_key(struct tls_root_ctx *ctx,
     ASSERT(pkey); /* NULL before SSL_CTX_use_certificate() is called */
     X509_free(cert);
 
-    if (EVP_PKEY_get0_RSA(pkey))
+    if (EVP_PKEY_id(pkey) == EVP_PKEY_RSA)
     {
         if (!tls_ctx_use_external_rsa_key(ctx, pkey))
         {
             goto err;
         }
     }
+#if OPENSSL_VERSION_NUMBER > 0x10100000L && !defined(OPENSSL_NO_EC)
+    else if (EVP_PKEY_id(pkey) == EVP_PKEY_EC)
+    {
+        if (!tls_ctx_use_external_ec_key(ctx, pkey))
+        {
+            goto err;
+        }
+    }
     else
     {
-        crypto_msg(M_WARN, "management-external-key requires a RSA certificate");
+        crypto_msg(M_WARN, "management-external-key requires an RSA or EC certificate");
         goto err;
     }
+#else
+    else
+    {
+        crypto_msg(M_WARN, "management-external-key requires an RSA certificate");
+        goto err;
+    }
+#endif /* OPENSSL_VERSION_NUMBER > 1.1.0 dev */
     return 1;
 
 err:

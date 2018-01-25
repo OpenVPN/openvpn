@@ -779,14 +779,14 @@ COMMAND -- rsa-sig (OpenVPN 2.3 or higher, management version <= 1)
 Provides support for external storage of the private key. Requires the
 --management-external-key option. This option can be used instead of "key"
 in client mode, and allows the client to run without the need to load the
-actual private key. When the SSL protocol needs to perform an RSA sign
+actual private key. When the SSL protocol needs to perform a sign
 operation, the data to be signed will be sent to the management interface
 via a notification as follows:
 
 >PK_SIGN:[BASE64_DATA] (if client announces support for management version > 1)
 >RSA_SIGN:[BASE64_DATA] (only older clients will be prompted like this)
 
-The management interface client should then create a PKCS#1 v1.5 signature of
+The management interface client should then create an appropriate signature of
 the (decoded) BASE64_DATA using the private key and return the SSL signature as
 follows:
 
@@ -797,8 +797,9 @@ pk-sig   (or rsa-sig)
 .
 END
 
-Base64 encoded output of RSA_private_encrypt() (OpenSSL) or mbedtls_pk_sign()
-(mbed TLS) will provide a correct signature.
+Base64 encoded output of RSA_private_encrypt for RSA or ECDSA_sign() for EC
+using OpenSSL or mbedtls_pk_sign() using mbed TLS will provide a correct
+signature.
 
 This capability is intended to allow the use of arbitrary cryptographic
 service providers with OpenVPN via the management interface.
