@@ -318,6 +318,7 @@ struct man_connection {
     int fdtosend;
     int lastfdreceived;
 #endif
+    int client_version;
 };
 
 struct management

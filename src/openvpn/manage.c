@@ -123,7 +123,7 @@ man_help(void)
     msg(M_CLIENT, "test n                 : Produce n lines of output for testing/debugging.");
     msg(M_CLIENT, "username type u        : Enter username u for a queried OpenVPN username.");
     msg(M_CLIENT, "verb [n]               : Set log verbosity level to n, or show if n is absent.");
-    msg(M_CLIENT, "version                : Show current version number.");
+    msg(M_CLIENT, "version [n]            : Set client's version to n or show current version of daemon.");
     msg(M_CLIENT, "END");
 }
 
@@ -1241,6 +1241,15 @@ man_network_change(struct management *man, bool samenetwork)
 #endif
 
 static void
+set_client_version(struct management *man, const char *version)
+{
+    if (version)
+    {
+        man->connection.client_version = atoi(version);
+    }
+}
+
+static void
 man_dispatch_command(struct management *man, struct status_output *so, const char **p, const int nparms)
 {
     struct gc_arena gc = gc_new();
@@ -1254,6 +1263,10 @@ man_dispatch_command(struct management *man, struct status_output *so, const cha
     else if (streq(p[0], "help"))
     {
         man_help();
+    }
+    else if (streq(p[0], "version") && p[1])
+    {
+        set_client_version(man, p[1]);
     }
     else if (streq(p[0], "version"))
     {
@@ -2507,6 +2520,8 @@ man_connection_init(struct management *man)
             int maxevents = 1;
             man->connection.es = event_set_init(&maxevents, EVENT_METHOD_FAST);
         }
+
+        man->connection.client_version = 1; /* default version */
 
         /*
          * Listen/connect socket

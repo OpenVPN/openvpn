@@ -432,8 +432,12 @@ Command examples:
 COMMAND -- version
 ------------------
 
-Show the current OpenVPN and Management Interface versions.
+Set the version (integer) of Management Interface supported by the
+client or show the current OpenVPN and Management Interface versions.
 
+Command examples:
+  version 2  -- Change management version of client to 2 (default = 1)
+  version    -- Show the version of OpenVPN and its Management Interface
 
 COMMAND -- auth-retry
 ---------------------
