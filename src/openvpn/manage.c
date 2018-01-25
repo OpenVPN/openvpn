@@ -111,7 +111,9 @@ man_help(void)
 #endif
 #endif
 #ifdef MANAGMENT_EXTERNAL_KEY
-    msg(M_CLIENT, "rsa-sig                : Enter an RSA signature in response to >RSA_SIGN challenge");
+    msg(M_CLIENT, "rsa-sig                : Enter a signature in response to >RSA_SIGN challenge");
+    msg(M_CLIENT, "                         Enter signature base64 on subsequent lines followed by END");
+    msg(M_CLIENT, "pk-sig                 : Enter a signature in response to >PK_SIGN challenge");
     msg(M_CLIENT, "                         Enter signature base64 on subsequent lines followed by END");
     msg(M_CLIENT, "certificate            : Enter a client certificate in response to >NEED-CERT challenge");
     msg(M_CLIENT, "                         Enter certificate base64 on subsequent lines followed by END");
@@ -935,7 +937,7 @@ in_extra_dispatch(struct management *man)
 
 #endif /* ifdef MANAGEMENT_PF */
 #ifdef MANAGMENT_EXTERNAL_KEY
-        case IEC_RSA_SIGN:
+        case IEC_PK_SIGN:
             man->connection.ext_key_state = EKS_READY;
             buffer_list_free(man->connection.ext_key_input);
             man->connection.ext_key_input = man->connection.in_extra;
@@ -1103,18 +1105,18 @@ man_client_pf(struct management *man, const char *cid_str)
 #ifdef MANAGMENT_EXTERNAL_KEY
 
 static void
-man_rsa_sig(struct management *man)
+man_pk_sig(struct management *man, const char *cmd_name)
 {
     struct man_connection *mc = &man->connection;
     if (mc->ext_key_state == EKS_SOLICIT)
     {
         mc->ext_key_state = EKS_INPUT;
-        mc->in_extra_cmd = IEC_RSA_SIGN;
+        mc->in_extra_cmd = IEC_PK_SIGN;
         in_extra_reset(mc, IER_NEW);
     }
     else
     {
-        msg(M_CLIENT, "ERROR: The rsa-sig command is not currently available");
+        msg(M_CLIENT, "ERROR: The %s command is not currently available", cmd_name);
     }
 }
 
@@ -1527,7 +1529,11 @@ man_dispatch_command(struct management *man, struct status_output *so, const cha
 #ifdef MANAGMENT_EXTERNAL_KEY
     else if (streq(p[0], "rsa-sig"))
     {
-        man_rsa_sig(man);
+        man_pk_sig(man, "rsa-sig");
+    }
+    else if (streq(p[0], "pk-sig"))
+    {
+        man_pk_sig(man, "pk-sig");
     }
     else if (streq(p[0], "certificate"))
     {
@@ -3663,13 +3669,19 @@ management_query_multiline_flatten(struct management *man,
 
 char *
 /* returns allocated base64 signature */
-management_query_rsa_sig(struct management *man,
+management_query_pk_sig(struct management *man,
                          const char *b64_data)
 {
-    return management_query_multiline_flatten(man, b64_data, "RSA_SIGN", "rsa-sign",
-                                              &man->connection.ext_key_state, &man->connection.ext_key_input);
+    const char *prompt = "PK_SIGN";
+    const char *desc = "pk-sign";
+    if (man->connection.client_version <= 1)
+    {
+        prompt = "RSA_SIGN";
+        desc = "rsa-sign";
+    }
+    return management_query_multiline_flatten(man, b64_data, prompt, desc,
+            &man->connection.ext_key_state, &man->connection.ext_key_input);
 }
-
 
 char *
 management_query_cert(struct management *man, const char *cert_name)

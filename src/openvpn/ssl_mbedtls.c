@@ -583,7 +583,7 @@ external_pkcs1_sign( void *ctx_voidptr,
     /* call MI for signature */
     if (management)
     {
-        out_b64 = management_query_rsa_sig(management, in_b64);
+        out_b64 = management_query_pk_sig(management, in_b64);
     }
     if (!out_b64)
     {

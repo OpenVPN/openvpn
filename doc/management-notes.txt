@@ -773,8 +773,9 @@ To accept connecting to the host and port directly, use this command:
 
   proxy NONE
 
-COMMAND -- rsa-sig (OpenVPN 2.3 or higher)
-------------------------------------------
+COMMAND -- pk-sig (OpenVPN 2.5 or higher, management version > 1)
+COMMAND -- rsa-sig (OpenVPN 2.3 or higher, management version <= 1)
+-----------------------------------------------------------------
 Provides support for external storage of the private key. Requires the
 --management-external-key option. This option can be used instead of "key"
 in client mode, and allows the client to run without the need to load the
@@ -782,13 +783,14 @@ actual private key. When the SSL protocol needs to perform an RSA sign
 operation, the data to be signed will be sent to the management interface
 via a notification as follows:
 
->RSA_SIGN:[BASE64_DATA]
+>PK_SIGN:[BASE64_DATA] (if client announces support for management version > 1)
+>RSA_SIGN:[BASE64_DATA] (only older clients will be prompted like this)
 
 The management interface client should then create a PKCS#1 v1.5 signature of
 the (decoded) BASE64_DATA using the private key and return the SSL signature as
 follows:
 
-rsa-sig
+pk-sig   (or rsa-sig)
 [BASE64_SIG_LINE]
 .
 .
@@ -800,6 +802,9 @@ Base64 encoded output of RSA_private_encrypt() (OpenSSL) or mbedtls_pk_sign()
 
 This capability is intended to allow the use of arbitrary cryptographic
 service providers with OpenVPN via the management interface.
+
+New and updated clients are expected to use the version command to announce
+a version > 1 and handle '>PK_SIGN' prompt and respond with 'pk-sig'.
 
 COMMAND -- certificate (OpenVPN 2.4 or higher)
 ----------------------------------------------

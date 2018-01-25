@@ -1068,7 +1068,7 @@ rsa_priv_enc(int flen, const unsigned char *from, unsigned char *to, RSA *rsa, i
     /* call MI for signature */
     if (management)
     {
-        out_b64 = management_query_rsa_sig(management, in_b64);
+        out_b64 = management_query_pk_sig(management, in_b64);
     }
     if (!out_b64)
     {
