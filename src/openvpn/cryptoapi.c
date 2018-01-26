@@ -108,6 +108,31 @@ typedef struct _CAPI_DATA {
     BOOL free_crypt_prov;
 } CAPI_DATA;
 
+static void
+CAPI_DATA_free(CAPI_DATA *cd)
+{
+    if (!cd)
+    {
+        return;
+    }
+    if (cd->free_crypt_prov && cd->crypt_prov)
+    {
+        if (cd->key_spec == CERT_NCRYPT_KEY_SPEC)
+        {
+            NCryptFreeObject(cd->crypt_prov);
+        }
+        else
+        {
+            CryptReleaseContext(cd->crypt_prov, 0);
+        }
+    }
+    if (cd->cert_context)
+    {
+        CertFreeCertificateContext(cd->cert_context);
+    }
+    free(cd);
+}
+
 static char *
 ms_error_text(DWORD ms_err)
 {
@@ -363,22 +388,7 @@ finish(RSA *rsa)
     {
         return 0;
     }
-    if (cd->crypt_prov && cd->free_crypt_prov)
-    {
-        if (cd->key_spec == CERT_NCRYPT_KEY_SPEC)
-        {
-            NCryptFreeObject(cd->crypt_prov);
-        }
-        else
-        {
-            CryptReleaseContext(cd->crypt_prov, 0);
-        }
-    }
-    if (cd->cert_context)
-    {
-        CertFreeCertificateContext(cd->cert_context);
-    }
-    free(cd);
+    CAPI_DATA_free(cd);
     RSA_meth_free((RSA_METHOD*) rsa_meth);
     return 1;
 }
@@ -614,25 +624,7 @@ err:
         {
             free(my_rsa_method);
         }
-        if (cd)
-        {
-            if (cd->free_crypt_prov && cd->crypt_prov)
-            {
-                if (cd->key_spec == CERT_NCRYPT_KEY_SPEC)
-                {
-                    NCryptFreeObject(cd->crypt_prov);
-                }
-                else
-                {
-                    CryptReleaseContext(cd->crypt_prov, 0);
-                }
-            }
-            if (cd->cert_context)
-            {
-                CertFreeCertificateContext(cd->cert_context);
-            }
-            free(cd);
-        }
+        CAPI_DATA_free(cd);
     }
     return 0;
 }
