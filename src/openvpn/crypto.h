@@ -470,7 +470,7 @@ void must_have_n_keys(const char *filename, const char *option, const struct key
 
 int ascii2keydirection(int msglevel, const char *str);
 
-const char *keydirection2ascii(int kd, bool remote);
+const char *keydirection2ascii(int kd, bool remote, bool humanreadable);
 
 /* print keys */
 void key2_print(const struct key2 *k,

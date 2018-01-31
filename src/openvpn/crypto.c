@@ -1545,11 +1545,18 @@ ascii2keydirection(int msglevel, const char *str)
 }
 
 const char *
-keydirection2ascii(int kd, bool remote)
+keydirection2ascii(int kd, bool remote, bool humanreadable)
 {
     if (kd == KEY_DIRECTION_BIDIRECTIONAL)
     {
-        return NULL;
+        if (humanreadable)
+        {
+            return "not set";
+        }
+        else
+        {
+            return NULL;
+        }
     }
     else if (kd == KEY_DIRECTION_NORMAL)
     {
