@@ -5837,17 +5837,13 @@ across the VPN.
 Set Connection\-specific DNS Suffix.
 
 .B DNS addr \-\-
-Set primary domain name server IPv4 address.  Repeat
+Set primary domain name server IPv4 or IPv6 address.  Repeat
 this option to set secondary DNS server addresses.
 
-.B DNS6 addr \-\-
-Set primary domain name server IPv6 address.  Repeat
-this option to set secondary DNS server IPv6 addresses.
-
-Note: currently this is handled using netsh (the
-existing DHCP code can only do IPv4 DHCP, and that protocol only
-permits IPv4 addresses anywhere).  The option will be put into the
-environment, so an
+Note: DNS IPv6 servers are currently set using netsh (the existing
+DHCP code can only do IPv4 DHCP, and that protocol only permits IPv4
+addresses anywhere).  The option will be put into the environment, so
+an
 .B \-\-up
 script could act upon it if needed.
 

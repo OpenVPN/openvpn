@@ -707,8 +707,7 @@ static const char usage_message[] =
     "                    which allow multiple addresses,\n"
     "                    --dhcp-option must be repeated.\n"
     "                    DOMAIN name : Set DNS suffix\n"
-    "                    DNS addr    : Set domain name server address(es) (IPv4)\n"
-    "                    DNS6 addr   : Set domain name server address(es) (IPv6)\n"
+    "                    DNS addr    : Set domain name server address(es) (IPv4 and IPv6)\n"
     "                    NTP         : Set NTP server address(es)\n"
     "                    NBDD        : Set NBDD server address(es)\n"
     "                    WINS addr   : Set WINS server address(es)\n"
@@ -1234,6 +1233,20 @@ show_tuntap_options(const struct tuntap_options *o)
 #endif /* ifdef _WIN32 */
 
 #if defined(_WIN32) || defined(TARGET_ANDROID)
+static void
+dhcp_option_dns6_parse(const char *parm, struct in6_addr *dns6_list, int *len, int msglevel)
+{
+    struct in6_addr addr;
+    if (*len >= N_DHCP_ADDR)
+    {
+        msg(msglevel, "--dhcp-option DNS: maximum of %d IPv6 dns servers can be specified",
+            N_DHCP_ADDR);
+    }
+    else if (get_ipv6_addr(parm, &addr, NULL, msglevel))
+    {
+        dns6_list[(*len)++] = addr;
+    }
+}
 static void
 dhcp_option_address_parse(const char *name, const char *parm, in_addr_t *array, int *len, int msglevel)
 {
@@ -7129,6 +7142,7 @@ add_option(struct options *options,
     {
         struct tuntap_options *o = &options->tuntap_options;
         VERIFY_PERMISSION(OPT_P_IPWIN32);
+        bool ipv6dns = false;
 
         if (streq(p[1], "DOMAIN") && p[2])
         {
@@ -7149,22 +7163,17 @@ add_option(struct options *options,
             }
             o->netbios_node_type = t;
         }
-        else if (streq(p[1], "DNS") && p[2])
+        else if ((streq(p[1], "DNS") || streq(p[1], "DNS6")) && p[2] && (!strstr(p[2], ":") || ipv6_addr_safe(p[2])))
         {
-            dhcp_option_address_parse("DNS", p[2], o->dns, &o->dns_len, msglevel);
-        }
-        else if (streq(p[1], "DNS6") && p[2] && ipv6_addr_safe(p[2]))
-        {
-            struct in6_addr addr;
-            foreign_option(options, p, 3, es);
-            if (o->dns6_len >= N_DHCP_ADDR)
+            if (strstr(p[2], ":"))
             {
-                msg(msglevel, "--dhcp-option DNS6: maximum of %d dns servers can be specified",
-                    N_DHCP_ADDR);
+                ipv6dns=true;
+                foreign_option(options, p, 3, es);
+                dhcp_option_dns6_parse(p[2], o->dns6, &o->dns6_len, msglevel);
             }
-            else if (get_ipv6_addr(p[2], &addr, NULL, msglevel))
+            else
             {
-                o->dns6[o->dns6_len++] = addr;
+                dhcp_option_address_parse("DNS", p[2], o->dns, &o->dns_len, msglevel);
             }
         }
         else if (streq(p[1], "WINS") && p[2])
@@ -7192,7 +7201,7 @@ add_option(struct options *options,
         /* flag that we have options to give to the TAP driver's DHCPv4 server
          *  - skipped for "DNS6", as that's not a DHCPv4 option
          */
-        if (!streq(p[1], "DNS6"))
+        if (!ipv6dns)
         {
             o->dhcp_options = true;
         }
