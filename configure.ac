@@ -1286,13 +1286,23 @@ if test "${enable_pkcs11}" = "yes"; then
 	)
 fi
 
+AX_CHECK_COMPILE_FLAG(
+	[-Wno-unused-function],
+	[CFLAGS="-Wno-unused-function ${CFLAGS}"]
+)
+AX_CHECK_COMPILE_FLAG(
+	[-Wno-unused-parameter],
+	[CFLAGS="-Wno-unused-parameter ${CFLAGS}"]
+)
+AX_CHECK_COMPILE_FLAG([-Wall], [CFLAGS="-Wall ${CFLAGS}"])
+
 if test "${enable_pedantic}" = "yes"; then
 	enable_strict="yes"
 	CFLAGS="${CFLAGS} -pedantic"
 	AC_DEFINE([PEDANTIC], [1], [Enable pedantic mode])
 fi
 if test "${enable_strict}" = "yes"; then
-	CFLAGS="${CFLAGS} -Wall -Wno-unused-parameter -Wno-unused-function"
+	CFLAGS="${CFLAGS} -Wsign-compare -Wuninitialized"
 fi
 if test "${enable_werror}" = "yes"; then
 	CFLAGS="${CFLAGS} -Werror"
