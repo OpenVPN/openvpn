@@ -60,7 +60,6 @@
 
 #include <mbedtls/oid.h>
 #include <mbedtls/pem.h>
-#include <mbedtls/sha256.h>
 
 static const mbedtls_x509_crt_profile openvpn_x509_crt_profile_legacy =
 {
@@ -851,9 +850,14 @@ tls_ctx_personalise_random(struct tls_root_ctx *ctx)
 
     if (NULL != ctx->crt_chain)
     {
+        const md_kt_t *sha256_kt = md_kt_get("SHA256");
         mbedtls_x509_crt *cert = ctx->crt_chain;
 
-        mbedtls_sha256(cert->tbs.p, cert->tbs.len, sha256_hash, false);
+        if (0 != md_full(sha256_kt, cert->tbs.p, cert->tbs.len, sha256_hash))
+        {
+            msg(M_WARN, "WARNING: failed to personalise random");
+        }
+
         if (0 != memcmp(old_sha256_hash, sha256_hash, sizeof(sha256_hash)))
         {
             mbedtls_ctr_drbg_update(cd_ctx, sha256_hash, 32);
