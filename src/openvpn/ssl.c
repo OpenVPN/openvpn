@@ -3361,7 +3361,7 @@ tls_pre_decrypt(struct tls_multi *multi,
                 {
                     if (!ks->crypto_options.key_ctx_bi.initialized)
                     {
-                        msg(D_TLS_DEBUG_LOW,
+                        msg(D_MULTI_DROPPED,
                             "Key %s [%d] not initialized (yet), dropping packet.",
                             print_link_socket_actual(from, &gc), key_id);
                         goto error_lite;
