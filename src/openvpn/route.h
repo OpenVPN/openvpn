@@ -254,6 +254,8 @@ void copy_route_ipv6_option_list(struct route_ipv6_option_list *dest,
                                  const struct route_ipv6_option_list *src,
                                  struct gc_arena *a);
 
+void route_ipv6_clear_host_bits( struct route_ipv6 *r6 );
+
 void add_route_ipv6(struct route_ipv6 *r, const struct tuntap *tt, unsigned int flags, const struct env_set *es);
 
 void delete_route_ipv6(const struct route_ipv6 *r, const struct tuntap *tt, unsigned int flags, const struct env_set *es);
