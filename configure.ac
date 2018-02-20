@@ -1286,15 +1286,17 @@ if test "${enable_pkcs11}" = "yes"; then
 	)
 fi
 
-AX_CHECK_COMPILE_FLAG(
-	[-Wno-unused-function],
-	[CFLAGS="-Wno-unused-function ${CFLAGS}"]
+AC_DEFUN([ACL_CHECK_ADD_COMPILE_FLAGS], [
+    old_cflags="$CFLAGS"
+    CFLAGS="$1 $CFLAGS"
+    AC_MSG_CHECKING([whether the compiler acceppts $1])
+    AC_COMPILE_IFELSE([AC_LANG_PROGRAM()], [AC_MSG_RESULT([yes])],
+        [AC_MSG_RESULT([no]); CFLAGS="$old_cflags"])]
 )
-AX_CHECK_COMPILE_FLAG(
-	[-Wno-unused-parameter],
-	[CFLAGS="-Wno-unused-parameter ${CFLAGS}"]
-)
-AX_CHECK_COMPILE_FLAG([-Wall], [CFLAGS="-Wall ${CFLAGS}"])
+
+ACL_CHECK_ADD_COMPILE_FLAGS([-Wno-unused-function])
+ACL_CHECK_ADD_COMPILE_FLAGS([-Wno-unused-parameter])
+ACL_CHECK_ADD_COMPILE_FLAGS([-Wall])
 
 if test "${enable_pedantic}" = "yes"; then
 	enable_strict="yes"
