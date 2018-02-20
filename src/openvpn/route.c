@@ -1820,7 +1820,7 @@ done:
 }
 
 
-static void
+void
 route_ipv6_clear_host_bits( struct route_ipv6 *r6 )
 {
     /* clear host bit parts of route
