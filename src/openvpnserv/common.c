@@ -59,7 +59,7 @@ openvpn_sntprintf(LPTSTR str, size_t size, LPCTSTR format, ...)
 static DWORD
 GetRegString(HKEY key, LPCTSTR value, LPTSTR data, DWORD size, LPCTSTR default_value)
 {
-    LONG status = RegGetValue(key, NULL, value, RRF_RT_REG_SZ|RRF_RT_REG_EXPAND_SZ,
+    LONG status = RegGetValue(key, NULL, value, RRF_RT_REG_SZ,
                               NULL, (LPBYTE) data, &size);
 
     if (status == ERROR_FILE_NOT_FOUND && default_value)
