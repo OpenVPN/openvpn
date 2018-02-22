@@ -125,7 +125,7 @@ do_address_service(const bool add, const short family, const struct tuntap *tt)
 
     if (ack.error_number != NO_ERROR)
     {
-        msg(M_WARN, "TUN: %s address failed using service: %s [status=%u if_index=%lu]",
+        msg(M_WARN, "TUN: %s address failed using service: %s [status=%u if_index=%d]",
             (add ? "adding" : "deleting"), strerror_win32(ack.error_number, &gc),
             ack.error_number, addr.iface.index);
         goto out;
@@ -3791,7 +3791,7 @@ get_panel_reg(struct gc_arena *gc)
 
             if (status != ERROR_SUCCESS || name_type != REG_SZ)
             {
-                dmsg(D_REGISTRY, "Error opening registry key: %s\\%s\\%s",
+                dmsg(D_REGISTRY, "Error opening registry key: %s\\%s\\%ls",
                      NETWORK_CONNECTIONS_KEY, connection_string, name_string);
             }
             else
@@ -5560,7 +5560,7 @@ fork_dhcp_action(struct tuntap *tt)
         {
             buf_printf(&cmd, " --dhcp-renew");
         }
-        buf_printf(&cmd, " --dhcp-internal %u", (unsigned int)tt->adapter_index);
+        buf_printf(&cmd, " --dhcp-internal %lu", tt->adapter_index);
 
         fork_to_self(BSTR(&cmd));
         gc_free(&gc);
@@ -6043,16 +6043,16 @@ open_tun(const char *dev, const char *dev_type, const char *dev_node, struct tun
 
             if (status == NO_ERROR)
             {
-                msg(M_INFO, "Successful ARP Flush on interface [%u] %s",
-                    (unsigned int)index,
+                msg(M_INFO, "Successful ARP Flush on interface [%lu] %s",
+                    index,
                     device_guid);
             }
             else if (status != -1)
             {
-                msg(D_TUNTAP_INFO, "NOTE: FlushIpNetTable failed on interface [%u] %s (status=%u) : %s",
-                    (unsigned int)index,
+                msg(D_TUNTAP_INFO, "NOTE: FlushIpNetTable failed on interface [%lu] %s (status=%lu) : %s",
+                    index,
                     device_guid,
-                    (unsigned int)status,
+                    status,
                     strerror_win32(status, &gc));
             }
         }
@@ -6123,12 +6123,12 @@ open_tun(const char *dev, const char *dev_type, const char *dev_node, struct tun
             }
             else
             {
-                msg(M_FATAL, "ERROR: AddIPAddress %s/%s failed on interface %s, index=%d, status=%u (windows error: '%s') -- %s",
+                msg(M_FATAL, "ERROR: AddIPAddress %s/%s failed on interface %s, index=%lu, status=%lu (windows error: '%s') -- %s",
                     print_in_addr_t(tt->local, 0, &gc),
                     print_in_addr_t(tt->adapter_netmask, 0, &gc),
                     device_guid,
-                    (int)index,
-                    (unsigned int)status,
+                    index,
+                    status,
                     strerror_win32(status, &gc),
                     error_suffix);
             }

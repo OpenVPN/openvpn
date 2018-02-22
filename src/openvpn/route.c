@@ -1322,7 +1322,7 @@ print_default_gateway(const int msglevel,
 #ifdef _WIN32
         if (rgi->flags & RGI_IFACE_DEFINED)
         {
-            buf_printf(&out, " I=%u", (unsigned int)rgi->adapter_index);
+            buf_printf(&out, " I=%lu", rgi->adapter_index);
         }
 #else
         if (rgi->flags & RGI_IFACE_DEFINED)
@@ -1353,7 +1353,7 @@ print_default_gateway(const int msglevel,
 #ifdef _WIN32
         if (rgi6->flags & RGI_IFACE_DEFINED)
         {
-            buf_printf(&out, " I=%u", (unsigned int)rgi6->adapter_index);
+            buf_printf(&out, " I=%lu", rgi6->adapter_index);
         }
 #else
         if (rgi6->flags & RGI_IFACE_DEFINED)
@@ -1627,7 +1627,7 @@ add_route(struct route_ipv4 *r,
         if (is_on_link(is_local_route, flags, rgi))
         {
             ai = rgi->adapter_index;
-            argv_printf_cat(&argv, "IF %u", (unsigned int)ai);
+            argv_printf_cat(&argv, "IF %lu", ai);
         }
 
         argv_msg(D_ROUTE, &argv);
@@ -1969,12 +1969,12 @@ add_route_ipv6(struct route_ipv6 *r6, const struct tuntap *tt, unsigned int flag
         struct buffer out = alloc_buf_gc(64, &gc);
         if (r6->adapter_index)          /* vpn server special route */
         {
-            buf_printf(&out, "interface=%d", r6->adapter_index );
+            buf_printf(&out, "interface=%lu", r6->adapter_index );
             gateway_needed = true;
         }
         else
         {
-            buf_printf(&out, "interface=%d", tt->adapter_index );
+            buf_printf(&out, "interface=%lu", tt->adapter_index );
         }
         device = buf_bptr(&out);
 
@@ -2416,12 +2416,12 @@ delete_route_ipv6(const struct route_ipv6 *r6, const struct tuntap *tt, unsigned
         struct buffer out = alloc_buf_gc(64, &gc);
         if (r6->adapter_index)          /* vpn server special route */
         {
-            buf_printf(&out, "interface=%d", r6->adapter_index );
+            buf_printf(&out, "interface=%lu", r6->adapter_index );
             gateway_needed = true;
         }
         else
         {
-            buf_printf(&out, "interface=%d", tt->adapter_index );
+            buf_printf(&out, "interface=%lu", tt->adapter_index );
         }
         device = buf_bptr(&out);
 
@@ -2841,7 +2841,7 @@ get_default_gateway_ipv6(struct route_ipv6_gateway_info *rgi6,
         goto done;
     }
 
-    msg( D_ROUTE, "GDG6: II=%d DP=%s/%d NH=%s",
+    msg( D_ROUTE, "GDG6: II=%lu DP=%s/%d NH=%s",
          BestRoute.InterfaceIndex,
          print_in6_addr( BestRoute.DestinationPrefix.Prefix.Ipv6.sin6_addr, 0, &gc),
          BestRoute.DestinationPrefix.PrefixLength,
@@ -3002,7 +3002,7 @@ do_route_service(const bool add, const route_message_t *rt, const size_t size, H
 
     if (ack.error_number != NO_ERROR)
     {
-        msg(M_WARN, "ROUTE: route %s failed using service: %s [status=%u if_index=%lu]",
+        msg(M_WARN, "ROUTE: route %s failed using service: %s [status=%u if_index=%d]",
             (add ? "addition" : "deletion"), strerror_win32(ack.error_number, &gc),
             ack.error_number, rt->iface.index);
         goto out;

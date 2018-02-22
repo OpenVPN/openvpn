@@ -88,8 +88,8 @@ const char *
 tv_string(const struct timeval *tv, struct gc_arena *gc)
 {
     struct buffer out = alloc_buf_gc(64, gc);
-    buf_printf(&out, "[%lld/%ld]",
-               (long long)tv->tv_sec,
+    buf_printf(&out, "[%"PRIi64"/%ld]",
+               (int64_t)tv->tv_sec,
                (long)tv->tv_usec);
     return BSTR(&out);
 }
@@ -198,9 +198,9 @@ time_test(void)
         t = time(NULL);
         gettimeofday(&tv, NULL);
 #if 1
-        msg(M_INFO, "t=%lld s=%lld us=%ld",
-            (long long)t,
-            (long long)tv.tv_sec,
+        msg(M_INFO, "t=%"PRIi64" s=%"PRIi64" us=%ld",
+            (int64_t)t,
+            (int64_t)tv.tv_sec,
             (long)tv.tv_usec);
 #endif
     }

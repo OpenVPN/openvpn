@@ -610,7 +610,7 @@ check_coarse_timers_dowork(struct context *c)
     process_coarse_timers(c);
     c->c2.coarse_timer_wakeup = now + c->c2.timeval.tv_sec;
 
-    dmsg(D_INTERVAL, "TIMER: coarse timer wakeup %lld seconds", (long long)c->c2.timeval.tv_sec);
+    dmsg(D_INTERVAL, "TIMER: coarse timer wakeup %"PRIi64" seconds", (int64_t)c->c2.timeval.tv_sec);
 
     /* Is the coarse timeout NOT the earliest one? */
     if (c->c2.timeval.tv_sec > save.tv_sec)

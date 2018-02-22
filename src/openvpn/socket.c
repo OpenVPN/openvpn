@@ -1122,7 +1122,7 @@ socket_do_accept(socket_descriptor_t sd,
 
     if (!socket_defined(new_sd))
     {
-        msg(D_LINK_ERRORS | M_ERRNO, "TCP: accept(%d) failed", sd);
+        msg(D_LINK_ERRORS | M_ERRNO, "TCP: accept(%d) failed", (int)sd);
     }
     /* only valid if we have remote_len_af!=0 */
     else if (remote_len_af && remote_len != remote_len_af)
@@ -1875,12 +1875,12 @@ phase2_inetd(struct link_socket *sock, const struct frame *frame,
                 sock->info.lsa->actual.dest.addr.sa.sa_family = local_addr.addr.sa.sa_family;
                 dmsg(D_SOCKET_DEBUG, "inetd(%s): using sa_family=%d from getsockname(%d)",
                      proto2ascii(sock->info.proto, sock->info.af, false),
-                     local_addr.addr.sa.sa_family, sock->sd);
+                     local_addr.addr.sa.sa_family, (int)sock->sd);
             }
             else
             {
                 msg(M_WARN, "inetd(%s): getsockname(%d) failed, using AF_INET",
-                    proto2ascii(sock->info.proto, sock->info.af, false), sock->sd);
+                    proto2ascii(sock->info.proto, sock->info.af, false), (int)sock->sd);
             }
         }
 #else  /* ifdef HAVE_GETSOCKNAME */
