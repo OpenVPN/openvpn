@@ -2522,6 +2522,18 @@ options_postprocess_verify_ce(const struct options *options, const struct connec
             "in the configuration file, which is the recommended approach.");
     }
 
+    const int tls_version_max =
+        (options->ssl_flags >> SSLF_TLS_VERSION_MAX_SHIFT)
+        & SSLF_TLS_VERSION_MAX_MASK;
+    const int tls_version_min =
+        (options->ssl_flags >> SSLF_TLS_VERSION_MIN_SHIFT)
+        & SSLF_TLS_VERSION_MIN_MASK;
+
+    if (tls_version_max > 0 && tls_version_max < tls_version_min)
+    {
+        msg(M_USAGE, "--tls-version-min bigger than --tls-version-max");
+    }
+
     if (options->tls_server || options->tls_client)
     {
 #ifdef ENABLE_PKCS11
