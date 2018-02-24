@@ -662,10 +662,24 @@ EC_GROUP_order_bits(const EC_GROUP *group)
 #endif
 
 #ifndef SSL_CTX_get_min_proto_version
-/** Dummy SSL_CTX_get_min_proto_version for OpenSSL < 1.1 (not really needed) */
+/** Return the min SSL protocol version currently enabled in the context.
+ *  If no valid version >= TLS1.0 is found, return 0. */
 static inline int
 SSL_CTX_get_min_proto_version(SSL_CTX *ctx)
 {
+    long sslopt = SSL_CTX_get_options(ctx);
+    if (!(sslopt & SSL_OP_NO_TLSv1))
+    {
+        return TLS1_VERSION;
+    }
+    if (!(sslopt & SSL_OP_NO_TLSv1_1))
+    {
+        return TLS1_1_VERSION;
+    }
+    if (!(sslopt & SSL_OP_NO_TLSv1_2))
+    {
+        return TLS1_2_VERSION;
+    }
     return 0;
 }
 #endif /* SSL_CTX_get_min_proto_version */
@@ -680,18 +694,18 @@ SSL_CTX_get_max_proto_version(SSL_CTX *ctx)
 #ifdef SSL_OP_NO_TLSv1_2
     if (!(sslopt & SSL_OP_NO_TLSv1_2))
     {
-	return TLS1_2_VERSION;
+        return TLS1_2_VERSION;
     }
 #endif
 #ifdef SSL_OP_NO_TLSv1_1
     if (!(sslopt & SSL_OP_NO_TLSv1_1))
     {
-	return TLS1_1_VERSION;
+        return TLS1_1_VERSION;
     }
 #endif
     if (!(sslopt & SSL_OP_NO_TLSv1))
     {
-	return TLS1_VERSION;
+        return TLS1_VERSION;
     }
     return 0;
 }

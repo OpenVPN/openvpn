@@ -528,12 +528,18 @@ SSL_CTX_use_CryptoAPI_certificate(SSL_CTX *ssl_ctx, const char *cert_prop)
     if ((!max_version || max_version > TLS1_1_VERSION)
         && cd->key_spec != CERT_NCRYPT_KEY_SPEC)
     {
-        msg(M_WARN,"WARNING: cryptoapicert: private key is in a legacy store."
+        msg(M_WARN, "WARNING: cryptoapicert: private key is in a legacy store."
             " Restricting TLS version to 1.1");
+        if (SSL_CTX_get_min_proto_version(ssl_ctx) > TLS1_1_VERSION)
+        {
+            msg(M_NONFATAL,
+                "ERROR: cryptoapicert: min TLS version larger than 1.1."
+                " Try config option --tls-version-min 1.1");
+            goto err;
+        }
         if (!SSL_CTX_set_max_proto_version(ssl_ctx, TLS1_1_VERSION))
         {
-            msg(M_NONFATAL,"ERROR: cryptoapicert: unable to set max TLS version"
-                " to 1.1. Try config option --tls-version-min 1.1");
+            msg(M_NONFATAL, "ERROR: cryptoapicert: set max TLS version failed");
             goto err;
         }
     }
