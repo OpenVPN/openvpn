@@ -1,6 +1,104 @@
 OpenVPN Change Log
 Copyright (C) 2002-2018 OpenVPN Inc <sales@openvpn.net>
 
+2018.02.28 -- Version 2.4.4
+Antonio Quartulli (4):
+      reload HTTP proxy credentials when moving to the next connection profile
+      Allow learning iroutes with network made up of all 0s (only if netbits < 8)
+      mbedtls: fix typ0 in comment
+      manpage: fix simple typ0
+
+Arne Schwabe (2):
+      Treat dhcp-option DNS6 and DNS identical
+      show the right string for key-direction
+
+Bertrand Bonnefoy-Claudet (1):
+      Fix typo in error message: "optione" -> "option"
+
+David Sommerseth (8):
+      lz4: Fix confused version check
+      lz4: Fix broken builds when pkg-config is not present but system library is
+      Remove references to keychain-mcd in Changes.rst
+      lz4: Rebase compat-lz4 against upstream v1.7.5
+      systemd: Add and ship README.systemd
+      Update copyright to include 2018 plus company name change
+      man: Add .TQ groff support macro
+      man: Reword --management to prefer unix sockets over TCP
+
+Emmanuel Deloget (1):
+      OpenSSL: check EVP_PKEY key types before returning the pkey
+
+Gert Doering (2):
+      Remove warning on pushed tun-ipv6 option.
+      Fix removal of on-link prefix on windows with netsh
+
+Ilya Shipitsin (2):
+      travis-ci: add brew cache, remove ccache
+      travis-ci: modify openssl build script to support openssl-1.1.0
+
+James Bottomley (1):
+      autoconf: Fix engine checks for openssl 1.1
+
+Jeremie Courreges-Anglas (2):
+      Cast time_t to long long in order to print it.
+      Fix build with LibreSSL
+
+Selva Nair (14):
+      Check whether in pull_mode before warning about previous connection blocks
+      Avoid illegal memory access when malformed data is read from the pipe
+      Fix missing check for return value of malloc'd buffer
+      Return NULL if GetAdaptersInfo fails
+      Use RSA_meth_free instead of free
+      Bring cryptoapi.c upto speed with openssl 1.1
+      Add SSL_CTX_get_max_proto_version() not in openssl 1.0
+      TLS v1.2 support for cryptoapicert -- RSA only
+      Refactor get_interface_metric to return metric and auto flag separately
+      Ensure strings read from registry are null-terminated
+      Make most registry values optional
+      Use lowest metric interface when multiple interfaces match a route
+      Adapt to RegGetValue brokenness in Windows 7
+      Fix format spec errors in Windows builds
+
+Simon Rozman (11):
+      Local functions are not supported in MSVC. Bummer.
+      Mixing wide and regular strings in concatenations is not allowed in MSVC.
+      RtlIpv6AddressToStringW() and RtlIpv4AddressToStringW() require mstcpip.h
+      Simplify iphlpapi.dll API calls
+      Fix local #include to use quoted form
+      Document ">PASSWORD:Auth-Token" real-time message
+      Fix typo in "verb" command examples
+      Uniform swprintf() across MinGW and MSVC compilers
+      MSVC meta files added to .gitignore list
+      openvpnserv: Add support for multi-instances
+      Document missing OpenVPN states
+
+Steffan Karger (21):
+      make struct key * argument of init_key_ctx const
+      buffer_list_aggregate_separator(): add unit tests
+      Add --tls-cert-profile option.
+      Use P_DATA_V2 for server->client packets too
+      Fix memory leak in buffer unit tests
+      buffer_list_aggregate_separator(): update list size after aggregating
+      buffer_list_aggregate_separator(): don't exceed max_len
+      buffer_list_aggregate_separator(): prevent 0-byte malloc
+      Fix types around buffer_list_push(_data)
+      ssl_openssl: fix compiler warning by removing getbio() wrapper
+      travis: use clang's -fsanitize=address to catch more bugs
+      Fix --tls-version-min and --tls-version-max for OpenSSL 1.1+
+      Add support for TLS 1.3 in --tls-version-{min, max}
+      Plug memory leak if push is interrupted
+      Fix format errors when cross-compiling for Windows
+      Log pre-handshake packet drops using D_MULTI_DROPPED
+      Enable stricter compiler warnings by default
+      Get rid of ax_check_compile_flag.m4
+      mbedtls: don't use API deprecated in mbed 2.7
+      Warn if tls-version-max < tls-version-min
+      Don't throw fatal errors from create_temp_file()
+
+hashiz (1):
+      Fix '--bind ipv6only'
+
+
 2017.09.25 -- Version 2.4.4
 Antonio Quartulli (23):
       crypto: correct typ0 in error message
