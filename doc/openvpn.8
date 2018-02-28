@@ -33,7 +33,15 @@
 .\" .ft -- normal face
 .\" .in +|-{n} -- indent
 .\"
-.TH openvpn 8 "31 January 2018"
+.\" Support macros - this is not present on all platforms
+.\" Continuation line for .TP header.
+.de TQ
+.  br
+.  ns
+.  TP \\$1\" no doublequotes around argument!
+..
+.\" End of TQ macro
+.TH openvpn 8 "28 February 2018"
 .\"*********************************************************
 .SH NAME
 openvpn \- secure IP tunnel daemon.
