@@ -2170,6 +2170,14 @@ options_postprocess_verify_ce(const struct options *options, const struct connec
     {
         msg(M_USAGE, "--management-client-(user|group) can only be used on unix domain sockets");
     }
+
+    if (!(options->management_flags & MF_UNIX_SOCK)
+        && (!options->management_user_pass))
+    {
+        msg(M_WARN, "WARNING: Using --management on a TCP port WITHOUT "
+            "passwords is STRONGLY discouraged and considered insecure");
+    }
+
 #endif
 
     /*
