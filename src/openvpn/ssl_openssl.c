@@ -1168,7 +1168,7 @@ tls_ctx_use_external_private_key(struct tls_root_ctx *ctx,
 
     X509_free(cert);
     RSA_free(rsa); /* doesn't necessarily free, just decrements refcount */
-    return 1;
+    return 0;
 
 err:
     if (cert)
@@ -1187,7 +1187,7 @@ err:
         }
     }
     crypto_msg(M_FATAL, "Cannot enable SSL external private key capability");
-    return 0;
+    return 1;
 }
 
 #endif /* ifdef MANAGMENT_EXTERNAL_KEY */
