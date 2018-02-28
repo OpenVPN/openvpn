@@ -1327,11 +1327,11 @@ tls_ctx_use_external_private_key(struct tls_root_ctx *ctx,
         goto err;
     }
 #endif /* OPENSSL_VERSION_NUMBER > 1.1.0 dev */
-    return 1;
+    return 0;
 
 err:
     crypto_msg(M_FATAL, "Cannot enable SSL external private key capability");
-    return 0;
+    return 1;
 }
 
 #endif /* ifdef MANAGMENT_EXTERNAL_KEY */

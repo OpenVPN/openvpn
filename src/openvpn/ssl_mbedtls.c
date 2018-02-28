@@ -630,7 +630,7 @@ tls_ctx_use_external_private_key(struct tls_root_ctx *ctx,
 
     if (ctx->crt_chain == NULL)
     {
-        return 0;
+        return 1;
     }
 
     ALLOC_OBJ_CLEAR(ctx->external_key, struct external_context);
@@ -640,10 +640,10 @@ tls_ctx_use_external_private_key(struct tls_root_ctx *ctx,
     if (!mbed_ok(mbedtls_pk_setup_rsa_alt(ctx->priv_key, ctx->external_key,
                                           NULL, external_pkcs1_sign, external_key_len)))
     {
-        return 0;
+        return 1;
     }
 
-    return 1;
+    return 0;
 }
 #endif /* ifdef MANAGMENT_EXTERNAL_KEY */
 
