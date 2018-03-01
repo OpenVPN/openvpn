@@ -1,7 +1,7 @@
 OpenVPN Change Log
 Copyright (C) 2002-2018 OpenVPN Inc <sales@openvpn.net>
 
-2018.02.28 -- Version 2.4.4
+2018.02.28 -- Version 2.4.5
 Antonio Quartulli (4):
       reload HTTP proxy credentials when moving to the next connection profile
       Allow learning iroutes with network made up of all 0s (only if netbits < 8)
