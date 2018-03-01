@@ -6185,6 +6185,9 @@ close_tun(struct tuntap *tt)
     {
         if (tt->did_ifconfig_ipv6_setup)
         {
+            /* remove route pointing to interface */
+            delete_route_connected_v6_net(tt, NULL);
+
             if (tt->options.msg_channel)
             {
                 do_address_service(false, AF_INET6, tt);
@@ -6197,9 +6200,6 @@ close_tun(struct tuntap *tt)
             {
                 const char *ifconfig_ipv6_local;
                 struct argv argv = argv_new();
-
-                /* remove route pointing to interface */
-                delete_route_connected_v6_net(tt, NULL);
 
                 /* "store=active" is needed in Windows 8(.1) to delete the
                  * address we added (pointed out by Cedric Tabary).
