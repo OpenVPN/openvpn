@@ -672,14 +672,18 @@ SSL_CTX_get_min_proto_version(SSL_CTX *ctx)
     {
         return TLS1_VERSION;
     }
+#ifdef SSL_OP_NO_TLSv1_1
     if (!(sslopt & SSL_OP_NO_TLSv1_1))
     {
         return TLS1_1_VERSION;
     }
+#endif
+#ifdef SSL_OP_NO_TLSv1_2
     if (!(sslopt & SSL_OP_NO_TLSv1_2))
     {
         return TLS1_2_VERSION;
     }
+#endif
     return 0;
 }
 #endif /* SSL_CTX_get_min_proto_version */
