@@ -707,6 +707,8 @@ SSL_CTX_get_max_proto_version(SSL_CTX *ctx)
 }
 #endif /* SSL_CTX_get_max_proto_version */
 
+#if OPENSSL_VERSION_NUMBER >= 0x10002000L && !defined(LIBRESSL_VERSION_NUMBER)
+/** Avoid the following mimic in LibreSSL **/
 #ifndef SSL_CTX_set_min_proto_version
 /** Mimics SSL_CTX_set_min_proto_version for OpenSSL < 1.1 */
 static inline int
@@ -764,5 +766,7 @@ SSL_CTX_set_max_proto_version(SSL_CTX *ctx, long tls_ver_max)
     return 1;
 }
 #endif /* SSL_CTX_set_max_proto_version */
+
+#endif /* OPENSSL_VERSION_NUMBER >= 0x10002000L && !defined(LIBRESSL_VERSION_NUMBER) */
 
 #endif /* OPENSSL_COMPAT_H_ */
