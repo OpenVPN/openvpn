@@ -196,7 +196,7 @@ event_timeout_modify_wakeup(struct event_timeout *et, interval_t n)
 static inline interval_t
 event_timeout_remaining(struct event_timeout *et)
 {
-    return (int) et->last + et->n - now;
+    return (interval_t) (et->last - now + et->n);
 }
 
 /*
