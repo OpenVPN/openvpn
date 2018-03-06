@@ -51,11 +51,12 @@ event_timeout_trigger(struct event_timeout *et,
 
     if (et->defined)
     {
-        int wakeup = (int) et->last + et->n - local_now;
+        time_t wakeup = et->last - local_now + et->n;
         if (wakeup <= 0)
         {
 #if INTERVAL_DEBUG
-            dmsg(D_INTERVAL, "EVENT event_timeout_trigger (%d) etcr=%d", et->n, et_const_retry);
+            dmsg(D_INTERVAL, "EVENT event_timeout_trigger (%d) etcr=%d", et->n,
+                 et_const_retry);
 #endif
             if (et_const_retry < 0)
             {
@@ -72,7 +73,8 @@ event_timeout_trigger(struct event_timeout *et,
         if (tv && wakeup < tv->tv_sec)
         {
 #if INTERVAL_DEBUG
-            dmsg(D_INTERVAL, "EVENT event_timeout_wakeup (%d/%d) etcr=%d", wakeup, et->n, et_const_retry);
+            dmsg(D_INTERVAL, "EVENT event_timeout_wakeup (%d/%d) etcr=%d",
+                 (int) wakeup, et->n, et_const_retry);
 #endif
             tv->tv_sec = wakeup;
             tv->tv_usec = 0;
