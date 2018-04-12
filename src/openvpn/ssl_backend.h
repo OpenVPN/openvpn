@@ -5,8 +5,8 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2002-2017 OpenVPN Technologies, Inc. <sales@openvpn.net>
- *  Copyright (C) 2010-2017 Fox Crypto B.V. <openvpn@fox-it.com>
+ *  Copyright (C) 2002-2018 OpenVPN Inc <sales@openvpn.net>
+ *  Copyright (C) 2010-2018 Fox Crypto B.V. <openvpn@fox-it.com>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -114,6 +114,7 @@ void tls_clear_error(void);
 #define TLS_VER_1_0     1
 #define TLS_VER_1_1     2
 #define TLS_VER_1_2     3
+#define TLS_VER_1_3     4
 int tls_version_parse(const char *vstr, const char *extra);
 
 /**
@@ -123,8 +124,6 @@ int tls_version_parse(const char *vstr, const char *extra);
  * @return              One of the TLS_VER_x constants (but not TLS_VER_BAD).
  */
 int tls_version_max(void);
-
-#ifdef ENABLE_CRYPTO
 
 /**
  * Initialise a library-specific TLS context for a server.
@@ -164,8 +163,10 @@ bool tls_ctx_initialised(struct tls_root_ctx *ctx);
  *
  * @param ctx           TLS context to set options on
  * @param ssl_flags     SSL flags to set
+ *
+ * @return true on success, false otherwise.
  */
-void tls_ctx_set_options(struct tls_root_ctx *ctx, unsigned int ssl_flags);
+bool tls_ctx_set_options(struct tls_root_ctx *ctx, unsigned int ssl_flags);
 
 /**
  * Restrict the list of ciphers that can be used within the TLS context.
@@ -175,6 +176,16 @@ void tls_ctx_set_options(struct tls_root_ctx *ctx, unsigned int ssl_flags);
  *                                      sane defaults.
  */
 void tls_ctx_restrict_ciphers(struct tls_root_ctx *ctx, const char *ciphers);
+
+/**
+ * Set the TLS certificate profile.  The profile defines which crypto
+ * algorithms may be used in the supplied certificate.
+ *
+ * @param ctx           TLS context to restrict, must be valid.
+ * @param profile       The profile name ('preferred', 'legacy' or 'suiteb').
+ *                      Defaults to 'preferred' if NULL.
+ */
+void tls_ctx_set_cert_profile(struct tls_root_ctx *ctx, const char *profile);
 
 /**
  * Check our certificate notBefore and notAfter fields, and warn if the cert is
@@ -505,9 +516,12 @@ void print_details(struct key_state_ssl *ks_ssl, const char *prefix);
  * Show the TLS ciphers that are available for us to use in the OpenSSL
  * library.
  *
- * @param               - list of allowed TLS cipher, or NULL.
+ * @param cipher_list       list of allowed TLS cipher, or NULL.
+ * @param tls_cert_profile  TLS certificate crypto profile name.
  */
-void show_available_tls_ciphers(const char *tls_ciphers);
+void
+show_available_tls_ciphers(const char *cipher_list,
+                           const char *tls_cert_profile);
 
 /*
  * Show the available elliptic curves in the crypto library
@@ -526,5 +540,4 @@ void get_highest_preference_tls_cipher(char *buf, int size);
  */
 const char *get_ssl_library_version(void);
 
-#endif /* ENABLE_CRYPTO */
 #endif /* SSL_BACKEND_H_ */

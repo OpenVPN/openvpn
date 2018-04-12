@@ -5,7 +5,7 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2002-2017 OpenVPN Technologies, Inc. <sales@openvpn.net>
+ *  Copyright (C) 2002-2018 OpenVPN Inc <sales@openvpn.net>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -253,9 +253,24 @@ username_password_as_base64(const struct http_proxy_info *p,
 }
 
 static void
+clear_user_pass_http(void)
+{
+    purge_user_pass(&static_proxy_user_pass, true);
+}
+
+static void
 get_user_pass_http(struct http_proxy_info *p, const bool force)
 {
-    if (!static_proxy_user_pass.defined || force)
+    /*
+     * in case of forced (re)load, make sure the static storage is set as
+     * undefined, otherwise get_user_pass() won't try to load any credential
+     */
+    if (force)
+    {
+        clear_user_pass_http();
+    }
+
+    if (!static_proxy_user_pass.defined)
     {
         unsigned int flags = GET_USER_PASS_MANAGEMENT;
         if (p->queried_creds)
@@ -273,11 +288,6 @@ get_user_pass_http(struct http_proxy_info *p, const bool force)
         p->queried_creds = true;
         p->up = static_proxy_user_pass;
     }
-}
-static void
-clear_user_pass_http(void)
-{
-    purge_user_pass(&static_proxy_user_pass, true);
 }
 
 #if 0

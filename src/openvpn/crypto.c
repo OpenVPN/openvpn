@@ -5,8 +5,8 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2002-2017 OpenVPN Technologies, Inc. <sales@openvpn.net>
- *  Copyright (C) 2010-2017 Fox Crypto B.V. <openvpn@fox-it.com>
+ *  Copyright (C) 2002-2018 OpenVPN Inc <sales@openvpn.net>
+ *  Copyright (C) 2010-2018 Fox Crypto B.V. <openvpn@fox-it.com>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -29,8 +29,6 @@
 #endif
 
 #include "syshead.h"
-
-#ifdef ENABLE_CRYPTO
 
 #include "crypto.h"
 #include "error.h"
@@ -1547,11 +1545,18 @@ ascii2keydirection(int msglevel, const char *str)
 }
 
 const char *
-keydirection2ascii(int kd, bool remote)
+keydirection2ascii(int kd, bool remote, bool humanreadable)
 {
     if (kd == KEY_DIRECTION_BIDIRECTIONAL)
     {
-        return NULL;
+        if (humanreadable)
+        {
+            return "not set";
+        }
+        else
+        {
+            return NULL;
+        }
     }
     else if (kd == KEY_DIRECTION_NORMAL)
     {
@@ -1666,6 +1671,11 @@ read_key(struct key *key, const struct key_type *kt, struct buffer *buf)
         goto read_err;
     }
 
+    if (cipher_length != kt->cipher_length || hmac_length != kt->hmac_length)
+    {
+        goto key_len_err;
+    }
+
     if (!buf_read(buf, key->cipher, cipher_length))
     {
         goto read_err;
@@ -1673,11 +1683,6 @@ read_key(struct key *key, const struct key_type *kt, struct buffer *buf)
     if (!buf_read(buf, key->hmac, hmac_length))
     {
         goto read_err;
-    }
-
-    if (cipher_length != kt->cipher_length || hmac_length != kt->hmac_length)
-    {
-        goto key_len_err;
     }
 
     return 1;
@@ -1842,5 +1847,3 @@ translate_cipher_name_to_openvpn(const char *cipher_name)
 
     return pair->openvpn_name;
 }
-
-#endif /* ENABLE_CRYPTO */

@@ -5,7 +5,7 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2002-2017 OpenVPN Technologies, Inc. <sales@openvpn.net>
+ *  Copyright (C) 2002-2018 OpenVPN Inc <sales@openvpn.net>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -31,7 +31,7 @@
 #include "socket.h"
 #include "mroute.h"
 
-#define MANAGEMENT_VERSION                      1
+#define MANAGEMENT_VERSION                      2
 #define MANAGEMENT_N_PASSWORD_RETRIES           3
 #define MANAGEMENT_LOG_HISTORY_INITIAL_SIZE   100
 #define MANAGEMENT_ECHO_BUFFER_SIZE           100
@@ -70,7 +70,7 @@ void command_line_free(struct command_line *cl);
 
 void command_line_add(struct command_line *cl, const unsigned char *buf, const int len);
 
-const unsigned char *command_line_get(struct command_line *cl);
+const char *command_line_get(struct command_line *cl);
 
 void command_line_reset(struct command_line *cl);
 
@@ -281,6 +281,7 @@ struct man_connection {
 #define IEC_CLIENT_PF   2
 #define IEC_RSA_SIGN    3
 #define IEC_CERTIFICATE 4
+#define IEC_PK_SIGN     5
     int in_extra_cmd;
     struct buffer_list *in_extra;
 #ifdef MANAGEMENT_DEF_AUTH
@@ -311,13 +312,11 @@ struct man_connection {
     int up_query_mode;
     struct user_pass up_query;
 
-#ifdef MANAGMENT_EXTERNAL_KEY
-    struct buffer_list *rsa_sig;
-#endif
 #ifdef TARGET_ANDROID
     int fdtosend;
     int lastfdreceived;
 #endif
+    int client_version;
 };
 
 struct management
@@ -439,7 +438,7 @@ void management_learn_addr(struct management *management,
 
 #ifdef MANAGMENT_EXTERNAL_KEY
 
-char *management_query_rsa_sig(struct management *man, const char *b64_data);
+char *management_query_pk_sig(struct management *man, const char *b64_data);
 
 char *management_query_cert(struct management *man, const char *cert_name);
 

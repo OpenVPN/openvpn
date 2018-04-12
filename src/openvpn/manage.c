@@ -5,7 +5,7 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2002-2017 OpenVPN Technologies, Inc. <sales@openvpn.net>
+ *  Copyright (C) 2002-2018 OpenVPN Inc <sales@openvpn.net>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -111,7 +111,9 @@ man_help(void)
 #endif
 #endif
 #ifdef MANAGMENT_EXTERNAL_KEY
-    msg(M_CLIENT, "rsa-sig                : Enter an RSA signature in response to >RSA_SIGN challenge");
+    msg(M_CLIENT, "rsa-sig                : Enter a signature in response to >RSA_SIGN challenge");
+    msg(M_CLIENT, "                         Enter signature base64 on subsequent lines followed by END");
+    msg(M_CLIENT, "pk-sig                 : Enter a signature in response to >PK_SIGN challenge");
     msg(M_CLIENT, "                         Enter signature base64 on subsequent lines followed by END");
     msg(M_CLIENT, "certificate            : Enter a client certificate in response to >NEED-CERT challenge");
     msg(M_CLIENT, "                         Enter certificate base64 on subsequent lines followed by END");
@@ -123,7 +125,7 @@ man_help(void)
     msg(M_CLIENT, "test n                 : Produce n lines of output for testing/debugging.");
     msg(M_CLIENT, "username type u        : Enter username u for a queried OpenVPN username.");
     msg(M_CLIENT, "verb [n]               : Set log verbosity level to n, or show if n is absent.");
-    msg(M_CLIENT, "version                : Show current version number.");
+    msg(M_CLIENT, "version [n]            : Set client's version to n or show current version of daemon.");
     msg(M_CLIENT, "END");
 }
 
@@ -250,7 +252,7 @@ man_output_list_push_str(struct management *man, const char *str)
 {
     if (management_connected(man) && str)
     {
-        buffer_list_push(man->connection.out, (const unsigned char *) str);
+        buffer_list_push(man->connection.out, str);
     }
 }
 
@@ -762,10 +764,8 @@ man_query_need_str(struct management *man, const char *type, const char *action)
 static void
 man_forget_passwords(struct management *man)
 {
-#ifdef ENABLE_CRYPTO
     ssl_purge_auth(false);
     msg(M_CLIENT, "SUCCESS: Passwords were forgotten");
-#endif
 }
 
 static void
@@ -937,7 +937,7 @@ in_extra_dispatch(struct management *man)
 
 #endif /* ifdef MANAGEMENT_PF */
 #ifdef MANAGMENT_EXTERNAL_KEY
-        case IEC_RSA_SIGN:
+        case IEC_PK_SIGN:
             man->connection.ext_key_state = EKS_READY;
             buffer_list_free(man->connection.ext_key_input);
             man->connection.ext_key_input = man->connection.in_extra;
@@ -1105,18 +1105,18 @@ man_client_pf(struct management *man, const char *cid_str)
 #ifdef MANAGMENT_EXTERNAL_KEY
 
 static void
-man_rsa_sig(struct management *man)
+man_pk_sig(struct management *man, const char *cmd_name)
 {
     struct man_connection *mc = &man->connection;
     if (mc->ext_key_state == EKS_SOLICIT)
     {
         mc->ext_key_state = EKS_INPUT;
-        mc->in_extra_cmd = IEC_RSA_SIGN;
+        mc->in_extra_cmd = IEC_PK_SIGN;
         in_extra_reset(mc, IER_NEW);
     }
     else
     {
-        msg(M_CLIENT, "ERROR: The rsa-sig command is not currently available");
+        msg(M_CLIENT, "ERROR: The %s command is not currently available", cmd_name);
     }
 }
 
@@ -1243,6 +1243,15 @@ man_network_change(struct management *man, bool samenetwork)
 #endif
 
 static void
+set_client_version(struct management *man, const char *version)
+{
+    if (version)
+    {
+        man->connection.client_version = atoi(version);
+    }
+}
+
+static void
 man_dispatch_command(struct management *man, struct status_output *so, const char **p, const int nparms)
 {
     struct gc_arena gc = gc_new();
@@ -1256,6 +1265,10 @@ man_dispatch_command(struct management *man, struct status_output *so, const cha
     else if (streq(p[0], "help"))
     {
         man_help();
+    }
+    else if (streq(p[0], "version") && p[1])
+    {
+        set_client_version(man, p[1]);
     }
     else if (streq(p[0], "version"))
     {
@@ -1516,7 +1529,11 @@ man_dispatch_command(struct management *man, struct status_output *so, const cha
 #ifdef MANAGMENT_EXTERNAL_KEY
     else if (streq(p[0], "rsa-sig"))
     {
-        man_rsa_sig(man);
+        man_pk_sig(man, "rsa-sig");
+    }
+    else if (streq(p[0], "pk-sig"))
+    {
+        man_pk_sig(man, "pk-sig");
     }
     else if (streq(p[0], "certificate"))
     {
@@ -1918,12 +1935,11 @@ man_reset_client_socket(struct management *man, const bool exiting)
     }
     if (!exiting)
     {
-#ifdef ENABLE_CRYPTO
         if (man->settings.flags & MF_FORGET_DISCONNECT)
         {
             ssl_purge_auth(false);
         }
-#endif
+
         if (man->settings.flags & MF_SIGNAL)
         {
             int mysig = man_mod_signal(man, SIGUSR1);
@@ -2193,13 +2209,13 @@ man_read(struct management *man)
          * process command line if complete
          */
         {
-            const unsigned char *line;
+            const char *line;
             while ((line = command_line_get(man->connection.in)))
             {
 #ifdef MANAGEMENT_IN_EXTRA
                 if (man->connection.in_extra)
                 {
-                    if (!strcmp((char *)line, "END"))
+                    if (!strcmp(line, "END"))
                     {
                         in_extra_dispatch(man);
                     }
@@ -2510,6 +2526,8 @@ man_connection_init(struct management *man)
             int maxevents = 1;
             man->connection.es = event_set_init(&maxevents, EVENT_METHOD_FAST);
         }
+
+        man->connection.client_version = 1; /* default version */
 
         /*
          * Listen/connect socket
@@ -3651,13 +3669,19 @@ management_query_multiline_flatten(struct management *man,
 
 char *
 /* returns allocated base64 signature */
-management_query_rsa_sig(struct management *man,
+management_query_pk_sig(struct management *man,
                          const char *b64_data)
 {
-    return management_query_multiline_flatten(man, b64_data, "RSA_SIGN", "rsa-sign",
-                                              &man->connection.ext_key_state, &man->connection.ext_key_input);
+    const char *prompt = "PK_SIGN";
+    const char *desc = "pk-sign";
+    if (man->connection.client_version <= 1)
+    {
+        prompt = "RSA_SIGN";
+        desc = "rsa-sign";
+    }
+    return management_query_multiline_flatten(man, b64_data, prompt, desc,
+            &man->connection.ext_key_state, &man->connection.ext_key_input);
 }
-
 
 char *
 management_query_cert(struct management *man, const char *cert_name)
@@ -3794,18 +3818,18 @@ command_line_add(struct command_line *cl, const unsigned char *buf, const int le
     }
 }
 
-const unsigned char *
+const char *
 command_line_get(struct command_line *cl)
 {
     int i;
-    const unsigned char *ret = NULL;
+    const char *ret = NULL;
 
     i = buf_substring_len(&cl->buf, '\n');
     if (i >= 0)
     {
         buf_copy_excess(&cl->residual, &cl->buf, i);
         buf_chomp(&cl->buf);
-        ret = (const unsigned char *) BSTR(&cl->buf);
+        ret = BSTR(&cl->buf);
     }
     return ret;
 }

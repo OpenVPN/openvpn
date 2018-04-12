@@ -5,7 +5,7 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2002-2017 OpenVPN Technologies, Inc. <sales@openvpn.net>
+ *  Copyright (C) 2002-2018 OpenVPN Inc <sales@openvpn.net>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -87,7 +87,6 @@ show_wait_status(struct context *c)
  * traffic on the control-channel.
  *
  */
-#ifdef ENABLE_CRYPTO
 void
 check_tls_dowork(struct context *c)
 {
@@ -131,7 +130,6 @@ check_tls_errors_nco(struct context *c)
 {
     register_signal(c, c->c2.tls_exit_signal, "tls-error"); /* SOFT-SIGUSR1 -- TLS error */
 }
-#endif /* ENABLE_CRYPTO */
 
 #if P2MP
 
@@ -248,7 +246,6 @@ check_connection_established_dowork(struct context *c)
 bool
 send_control_channel_string(struct context *c, const char *str, int msglevel)
 {
-#ifdef ENABLE_CRYPTO
     if (c->c2.tls_multi)
     {
         struct gc_arena gc = gc_new();
@@ -274,7 +271,6 @@ send_control_channel_string(struct context *c, const char *str, int msglevel)
         gc_free(&gc);
         return stat;
     }
-#endif /* ENABLE_CRYPTO */
     return true;
 }
 
@@ -485,7 +481,6 @@ encrypt_sign(struct context *c, bool comp_frag)
 #endif
     }
 
-#ifdef ENABLE_CRYPTO
     /* initialize work buffer with FRAME_HEADROOM bytes of prepend capacity */
     ASSERT(buf_init(&b->encrypt_buf, FRAME_HEADROOM(&c->c2.frame)));
 
@@ -496,7 +491,7 @@ encrypt_sign(struct context *c, bool comp_frag)
         /* If using P_DATA_V2, prepend the 1-byte opcode and 3-byte peer-id to the
          * packet before openvpn_encrypt(), so we can authenticate the opcode too.
          */
-        if (c->c2.buf.len > 0 && !c->c2.tls_multi->opt.server && c->c2.tls_multi->use_peer_id)
+        if (c->c2.buf.len > 0 && c->c2.tls_multi->use_peer_id)
         {
             tls_prepend_opcode_v2(c->c2.tls_multi, &b->encrypt_buf);
         }
@@ -512,13 +507,12 @@ encrypt_sign(struct context *c, bool comp_frag)
     /* Do packet administration */
     if (c->c2.tls_multi)
     {
-        if (c->c2.buf.len > 0 && (c->c2.tls_multi->opt.server || !c->c2.tls_multi->use_peer_id))
+        if (c->c2.buf.len > 0 && !c->c2.tls_multi->use_peer_id)
         {
             tls_prepend_opcode_v1(c->c2.tls_multi, &c->c2.buf);
         }
         tls_post_encrypt(c->c2.tls_multi, &c->c2.buf);
     }
-#endif /* ifdef ENABLE_CRYPTO */
 
     /*
      * Get the address we will be sending the packet to.
@@ -536,11 +530,9 @@ encrypt_sign(struct context *c, bool comp_frag)
 static void
 process_coarse_timers(struct context *c)
 {
-#ifdef ENABLE_CRYPTO
     /* flush current packet-id to file once per 60
      * seconds if --replay-persist was specified */
     check_packet_id_persist_flush(c);
-#endif
 
     /* should we update status file? */
     check_status_file(c);
@@ -618,7 +610,7 @@ check_coarse_timers_dowork(struct context *c)
     process_coarse_timers(c);
     c->c2.coarse_timer_wakeup = now + c->c2.timeval.tv_sec;
 
-    dmsg(D_INTERVAL, "TIMER: coarse timer wakeup %d seconds", (int) c->c2.timeval.tv_sec);
+    dmsg(D_INTERVAL, "TIMER: coarse timer wakeup %"PRIi64" seconds", (int64_t)c->c2.timeval.tv_sec);
 
     /* Is the coarse timeout NOT the earliest one? */
     if (c->c2.timeval.tv_sec > save.tv_sec)
@@ -649,7 +641,7 @@ check_timeout_random_component_dowork(struct context *c)
     c->c2.timeout_random_component.tv_usec = (time_t) get_random() & 0x0003FFFF;
     c->c2.timeout_random_component.tv_sec = 0;
 
-    dmsg(D_INTERVAL, "RANDOM USEC=%d", (int) c->c2.timeout_random_component.tv_usec);
+    dmsg(D_INTERVAL, "RANDOM USEC=%ld", (long) c->c2.timeout_random_component.tv_usec);
 }
 
 static inline void
@@ -852,7 +844,6 @@ process_incoming_link_part1(struct context *c, struct link_socket_info *lsi, boo
             link_socket_bad_incoming_addr(&c->c2.buf, lsi, &c->c2.from);
         }
 
-#ifdef ENABLE_CRYPTO
         if (c->c2.tls_multi)
         {
             /*
@@ -909,9 +900,6 @@ process_incoming_link_part1(struct context *c, struct link_socket_info *lsi, boo
             register_signal(c, SIGUSR1, "decryption-error"); /* SOFT-SIGUSR1 -- decryption error in TCP mode */
             msg(D_STREAM_ERRORS, "Fatal decryption error (process_incoming_link), restarting");
         }
-#else /* ENABLE_CRYPTO */
-        decrypt_status = true;
-#endif /* ENABLE_CRYPTO */
     }
     else
     {
@@ -1426,8 +1414,6 @@ process_outgoing_link(struct context *c)
             register_activity(c, size);
         }
 
-
-#ifdef ENABLE_CRYPTO
         /* for unreachable network and "connecting" state switch to the next host */
         if (size < 0 && ENETUNREACH == error_code && c->c2.tls_multi
             && !tls_initial_packet_received(c->c2.tls_multi) && c->options.mode == MODE_POINT_TO_POINT)
@@ -1435,7 +1421,6 @@ process_outgoing_link(struct context *c)
             msg(M_INFO, "Network unreachable, restarting");
             register_signal(c, SIGUSR1, "network-unreachable");
         }
-#endif
     }
     else
     {

@@ -5,7 +5,7 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2012-2017 Heiko Hund <heiko.hund@sophos.com>
+ *  Copyright (C) 2012-2018 Heiko Hund <heiko.hund@sophos.com>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -33,6 +33,7 @@
 #include <stdio.h>
 #include <sddl.h>
 #include <shellapi.h>
+#include <mstcpip.h>
 
 #ifdef HAVE_VERSIONHELPERS_H
 #include <versionhelpers.h>
@@ -52,7 +53,7 @@
 #define ERROR_MESSAGE_TYPE     0x20000003
 
 static SERVICE_STATUS_HANDLE service;
-static SERVICE_STATUS status;
+static SERVICE_STATUS status = { .dwServiceType = SERVICE_WIN32_SHARE_PROCESS };
 static HANDLE exit_event = NULL;
 static settings_t settings;
 static HANDLE rdns_semaphore = NULL;
@@ -276,10 +277,10 @@ ReturnProcessId(HANDLE pipe, DWORD pid, DWORD count, LPHANDLE events)
      * Same format as error messages (3 line string) with error = 0 in
      * 0x%08x format, PID on line 2 and a description "Process ID" on line 3
      */
-    _snwprintf(buf, _countof(buf), L"0x%08x\n0x%08x\n%s", 0, pid, msg);
+    swprintf(buf, _countof(buf), L"0x%08x\n0x%08x\n%s", 0, pid, msg);
     buf[_countof(buf) - 1] = '\0';
 
-    WritePipeAsync(pipe, buf, wcslen(buf) * 2, count, events);
+    WritePipeAsync(pipe, buf, (DWORD)(wcslen(buf) * 2), count, events);
 }
 
 static VOID
@@ -307,7 +308,7 @@ ReturnError(HANDLE pipe, DWORD error, LPCWSTR func, DWORD count, LPHANDLE events
                                 L"0x%1!08x!\n%2!s!\n%3!s!", 0, 0,
                                 (LPWSTR) &result, 0, (va_list *) args);
 
-    WritePipeAsync(pipe, result, wcslen(result) * 2, count, events);
+    WritePipeAsync(pipe, result, (DWORD)(wcslen(result) * 2), count, events);
 #ifdef UNICODE
     MsgToEventLog(MSG_FLAGS_ERROR, result);
 #else
@@ -370,12 +371,12 @@ ValidateOptions(HANDLE pipe, const WCHAR *workdir, const WCHAR *options)
     BOOL ret = FALSE;
     int i;
     const WCHAR *msg1 = L"You have specified a config file location (%s relative to %s)"
-                        " that requires admin approval. This error may be avoided"
-                        " by adding your account to the \"%s\" group";
+                        L" that requires admin approval. This error may be avoided"
+                        L" by adding your account to the \"%s\" group";
 
     const WCHAR *msg2 = L"You have specified an option (%s) that may be used"
-                        " only with admin approval. This error may be avoided"
-                        " by adding your account to the \"%s\" group";
+                        L" only with admin approval. This error may be avoided"
+                        L" by adding your account to the \"%s\" group";
 
     argv = CommandLineToArgvW(options, &argc);
 
@@ -402,8 +403,8 @@ ValidateOptions(HANDLE pipe, const WCHAR *workdir, const WCHAR *options)
 
         if (!CheckOption(workdir, 2, argv_tmp, &settings))
         {
-            snwprintf(buf, _countof(buf), msg1, argv[0], workdir,
-                      settings.ovpn_admin_group);
+            swprintf(buf, _countof(buf), msg1, argv[0], workdir,
+                     settings.ovpn_admin_group);
             buf[_countof(buf) - 1] = L'\0';
             ReturnError(pipe, ERROR_STARTUP_DATA, buf, 1, &exit_event);
         }
@@ -421,15 +422,15 @@ ValidateOptions(HANDLE pipe, const WCHAR *workdir, const WCHAR *options)
         {
             if (wcscmp(L"--config", argv[i]) == 0 && argc-i > 1)
             {
-                snwprintf(buf, _countof(buf), msg1, argv[i+1], workdir,
-                          settings.ovpn_admin_group);
+                swprintf(buf, _countof(buf), msg1, argv[i+1], workdir,
+                         settings.ovpn_admin_group);
                 buf[_countof(buf) - 1] = L'\0';
                 ReturnError(pipe, ERROR_STARTUP_DATA, buf, 1, &exit_event);
             }
             else
             {
-                snwprintf(buf, _countof(buf), msg2, argv[i],
-                          settings.ovpn_admin_group);
+                swprintf(buf, _countof(buf), msg2, argv[i],
+                         settings.ovpn_admin_group);
                 buf[_countof(buf) - 1] = L'\0';
                 ReturnError(pipe, ERROR_STARTUP_DATA, buf, 1, &exit_event);
             }
@@ -451,10 +452,10 @@ out:
 static BOOL
 GetStartupData(HANDLE pipe, STARTUP_DATA *sud)
 {
-    size_t len;
+    size_t size, len;
     BOOL ret = FALSE;
     WCHAR *data = NULL;
-    DWORD size, bytes, read;
+    DWORD bytes, read;
 
     bytes = PeekNamedPipeAsync(pipe, 1, &exit_event);
     if (bytes == 0)
@@ -465,6 +466,13 @@ GetStartupData(HANDLE pipe, STARTUP_DATA *sud)
     }
 
     size = bytes / sizeof(*data);
+    if (size == 0)
+    {
+        MsgToEventLog(M_SYSERR, TEXT("malformed startup data: 1 byte received"));
+        ReturnError(pipe, ERROR_STARTUP_DATA, L"GetStartupData", 1, &exit_event);
+        goto out;
+    }
+
     data = malloc(bytes);
     if (data == NULL)
     {
@@ -546,32 +554,17 @@ static DWORD
 InterfaceLuid(const char *iface_name, PNET_LUID luid)
 {
     NETIO_STATUS status;
-    LPWSTR wide_name;
-    int n;
+    LPWSTR wide_name = utf8to16(iface_name);
 
-    typedef NETIO_STATUS WINAPI (*ConvertInterfaceAliasToLuidFn) (LPCWSTR, PNET_LUID);
-    static ConvertInterfaceAliasToLuidFn ConvertInterfaceAliasToLuid = NULL;
-    if (!ConvertInterfaceAliasToLuid)
+    if (wide_name)
     {
-        HMODULE iphlpapi = GetModuleHandle(TEXT("iphlpapi.dll"));
-        if (iphlpapi == NULL)
-        {
-            return GetLastError();
-        }
-
-        ConvertInterfaceAliasToLuid = (ConvertInterfaceAliasToLuidFn) GetProcAddress(iphlpapi, "ConvertInterfaceAliasToLuid");
-        if (!ConvertInterfaceAliasToLuid)
-        {
-            return GetLastError();
-        }
+        status = ConvertInterfaceAliasToLuid(wide_name, luid);
+        free(wide_name);
     }
-
-    n = MultiByteToWideChar(CP_UTF8, 0, iface_name, -1, NULL, 0);
-    wide_name = malloc(n * sizeof(WCHAR));
-    MultiByteToWideChar(CP_UTF8, 0, iface_name, -1, wide_name, n);
-    status = ConvertInterfaceAliasToLuid(wide_name, luid);
-    free(wide_name);
-
+    else
+    {
+        status = ERROR_OUTOFMEMORY;
+    }
     return status;
 }
 
@@ -584,24 +577,6 @@ CmpAddress(LPVOID item, LPVOID address)
 static DWORD
 DeleteAddress(PMIB_UNICASTIPADDRESS_ROW addr_row)
 {
-    typedef NETIOAPI_API (*DeleteUnicastIpAddressEntryFn) (const PMIB_UNICASTIPADDRESS_ROW);
-    static DeleteUnicastIpAddressEntryFn DeleteUnicastIpAddressEntry = NULL;
-
-    if (!DeleteUnicastIpAddressEntry)
-    {
-        HMODULE iphlpapi = GetModuleHandle(TEXT("iphlpapi.dll"));
-        if (iphlpapi == NULL)
-        {
-            return GetLastError();
-        }
-
-        DeleteUnicastIpAddressEntry = (DeleteUnicastIpAddressEntryFn) GetProcAddress(iphlpapi, "DeleteUnicastIpAddressEntry");
-        if (!DeleteUnicastIpAddressEntry)
-        {
-            return GetLastError();
-        }
-    }
-
     return DeleteUnicastIpAddressEntry(addr_row);
 }
 
@@ -611,32 +586,6 @@ HandleAddressMessage(address_message_t *msg, undo_lists_t *lists)
     DWORD err;
     PMIB_UNICASTIPADDRESS_ROW addr_row;
     BOOL add = msg->header.type == msg_add_address;
-
-    typedef NETIOAPI_API (*CreateUnicastIpAddressEntryFn) (const PMIB_UNICASTIPADDRESS_ROW);
-    typedef NETIOAPI_API (*InitializeUnicastIpAddressEntryFn) (PMIB_UNICASTIPADDRESS_ROW);
-    static CreateUnicastIpAddressEntryFn CreateUnicastIpAddressEntry = NULL;
-    static InitializeUnicastIpAddressEntryFn InitializeUnicastIpAddressEntry = NULL;
-
-    if (!CreateUnicastIpAddressEntry || !InitializeUnicastIpAddressEntry)
-    {
-        HMODULE iphlpapi = GetModuleHandle(TEXT("iphlpapi.dll"));
-        if (iphlpapi == NULL)
-        {
-            return GetLastError();
-        }
-
-        CreateUnicastIpAddressEntry = (CreateUnicastIpAddressEntryFn) GetProcAddress(iphlpapi, "CreateUnicastIpAddressEntry");
-        if (!CreateUnicastIpAddressEntry)
-        {
-            return GetLastError();
-        }
-
-        InitializeUnicastIpAddressEntry = (InitializeUnicastIpAddressEntryFn) GetProcAddress(iphlpapi, "InitializeUnicastIpAddressEntry");
-        if (!InitializeUnicastIpAddressEntry)
-        {
-            return GetLastError();
-        }
-    }
 
     addr_row = malloc(sizeof(*addr_row));
     if (addr_row == NULL)
@@ -706,24 +655,6 @@ CmpRoute(LPVOID item, LPVOID route)
 static DWORD
 DeleteRoute(PMIB_IPFORWARD_ROW2 fwd_row)
 {
-    typedef NETIOAPI_API (*DeleteIpForwardEntry2Fn) (PMIB_IPFORWARD_ROW2);
-    static DeleteIpForwardEntry2Fn DeleteIpForwardEntry2 = NULL;
-
-    if (!DeleteIpForwardEntry2)
-    {
-        HMODULE iphlpapi = GetModuleHandle(TEXT("iphlpapi.dll"));
-        if (iphlpapi == NULL)
-        {
-            return GetLastError();
-        }
-
-        DeleteIpForwardEntry2 = (DeleteIpForwardEntry2Fn) GetProcAddress(iphlpapi, "DeleteIpForwardEntry2");
-        if (!DeleteIpForwardEntry2)
-        {
-            return GetLastError();
-        }
-    }
-
     return DeleteIpForwardEntry2(fwd_row);
 }
 
@@ -733,24 +664,6 @@ HandleRouteMessage(route_message_t *msg, undo_lists_t *lists)
     DWORD err;
     PMIB_IPFORWARD_ROW2 fwd_row;
     BOOL add = msg->header.type == msg_add_route;
-
-    typedef NETIOAPI_API (*CreateIpForwardEntry2Fn) (PMIB_IPFORWARD_ROW2);
-    static CreateIpForwardEntry2Fn CreateIpForwardEntry2 = NULL;
-
-    if (!CreateIpForwardEntry2)
-    {
-        HMODULE iphlpapi = GetModuleHandle(TEXT("iphlpapi.dll"));
-        if (iphlpapi == NULL)
-        {
-            return GetLastError();
-        }
-
-        CreateIpForwardEntry2 = (CreateIpForwardEntry2Fn) GetProcAddress(iphlpapi, "CreateIpForwardEntry2");
-        if (!CreateIpForwardEntry2)
-        {
-            return GetLastError();
-        }
-    }
 
     fwd_row = malloc(sizeof(*fwd_row));
     if (fwd_row == NULL)
@@ -820,36 +733,12 @@ out:
 static DWORD
 HandleFlushNeighborsMessage(flush_neighbors_message_t *msg)
 {
-    typedef NETIOAPI_API (*FlushIpNetTable2Fn) (ADDRESS_FAMILY, NET_IFINDEX);
-    static FlushIpNetTable2Fn flush_fn = NULL;
-
     if (msg->family == AF_INET)
     {
         return FlushIpNetTable(msg->iface.index);
     }
 
-    if (!flush_fn)
-    {
-        HMODULE iphlpapi = GetModuleHandle(TEXT("iphlpapi.dll"));
-        if (iphlpapi == NULL)
-        {
-            return GetLastError();
-        }
-
-        flush_fn = (FlushIpNetTable2Fn) GetProcAddress(iphlpapi, "FlushIpNetTable2");
-        if (!flush_fn)
-        {
-            if (GetLastError() == ERROR_PROC_NOT_FOUND)
-            {
-                return WSAEPFNOSUPPORT;
-            }
-            else
-            {
-                return GetLastError();
-            }
-        }
-    }
-    return flush_fn(msg->family, msg->iface.index);
+    return FlushIpNetTable2(msg->family, msg->iface.index);
 }
 
 static void
@@ -915,17 +804,18 @@ HandleBlockDNSMessage(const block_dns_message_t *msg, undo_lists_t *lists)
             }
             interface_data->engine = engine;
             interface_data->index = msg->iface.index;
+            int is_auto = 0;
             interface_data->metric_v4 = get_interface_metric(msg->iface.index,
-                                                             AF_INET);
-            if (interface_data->metric_v4 < 0)
+                                                             AF_INET, &is_auto);
+            if (is_auto)
             {
-                interface_data->metric_v4 = -1;
+                interface_data->metric_v4 = 0;
             }
             interface_data->metric_v6 = get_interface_metric(msg->iface.index,
-                                                             AF_INET6);
-            if (interface_data->metric_v6 < 0)
+                                                             AF_INET6, &is_auto);
+            if (is_auto)
             {
-                interface_data->metric_v6 = -1;
+                interface_data->metric_v6 = 0;
             }
             err = AddListItem(&(*lists)[block_dns], interface_data);
             if (!err)
@@ -1066,7 +956,7 @@ RegisterDNS(LPVOID unused)
 
     if (GetSystemDirectory(sys_path, MAX_PATH))
     {
-        _snwprintf(ipcfg, MAX_PATH, L"%s\\%s", sys_path, L"ipconfig.exe");
+        swprintf(ipcfg, MAX_PATH, L"%s\\%s", sys_path, L"ipconfig.exe");
         ipcfg[MAX_PATH-1] = L'\0';
     }
 
@@ -1162,7 +1052,7 @@ netsh_dns_cmd(const wchar_t *action, const wchar_t *proto, const wchar_t *if_nam
     const wchar_t *fmt = L"netsh interface %s %s dns \"%s\" %s";
 
     /* max cmdline length in wchars -- include room for worst case and some */
-    int ncmdline = wcslen(fmt) + wcslen(if_name) + wcslen(addr) + 32 + 1;
+    size_t ncmdline = wcslen(fmt) + wcslen(if_name) + wcslen(addr) + 32 + 1;
     wchar_t *cmdline = malloc(ncmdline*sizeof(wchar_t));
     if (!cmdline)
     {
@@ -1436,7 +1326,7 @@ RunOpenvpn(LPVOID p)
     STARTUPINFOW startup_info;
     PROCESS_INFORMATION proc_info;
     LPVOID user_env = NULL;
-    TCHAR ovpn_pipe_name[36];
+    TCHAR ovpn_pipe_name[256]; /* The entire pipe name string can be up to 256 characters long according to MSDN. */
     LPCWSTR exe_path;
     WCHAR *cmdline = NULL;
     size_t cmdline_size;
@@ -1598,7 +1488,7 @@ RunOpenvpn(LPVOID p)
     }
 
     openvpn_sntprintf(ovpn_pipe_name, _countof(ovpn_pipe_name),
-                      TEXT("\\\\.\\pipe\\openvpn\\service_%lu"), GetCurrentThreadId());
+                      TEXT("\\\\.\\pipe\\" PACKAGE "%s\\service_%lu"), service_instance, GetCurrentThreadId());
     ovpn_pipe = CreateNamedPipe(ovpn_pipe_name,
                                 PIPE_ACCESS_DUPLEX | FILE_FLAG_FIRST_PIPE_INSTANCE | FILE_FLAG_OVERLAPPED,
                                 PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE | PIPE_WAIT, 1, 128, 128, 0, NULL);
@@ -1682,7 +1572,7 @@ RunOpenvpn(LPVOID p)
     {
         DWORD written;
         WideCharToMultiByte(CP_UTF8, 0, sud.std_input, -1, input, input_size, NULL, NULL);
-        WriteFile(stdin_write, input, strlen(input), &written, NULL);
+        WriteFile(stdin_write, input, (DWORD)strlen(input), &written, NULL);
         free(input);
     }
 
@@ -1706,8 +1596,8 @@ RunOpenvpn(LPVOID p)
     else if (exit_code != 0)
     {
         WCHAR buf[256];
-        int len = _snwprintf(buf, _countof(buf),
-                             L"OpenVPN exited with error: exit code = %lu", exit_code);
+        swprintf(buf, _countof(buf),
+                 L"OpenVPN exited with error: exit code = %lu", exit_code);
         buf[_countof(buf) - 1] =  L'\0';
         ReturnError(pipe, ERROR_OPENVPN_STARTUP, buf, 1, &exit_event);
     }
@@ -1765,6 +1655,7 @@ ServiceCtrlInteractive(DWORD ctrl_code, DWORD event, LPVOID data, LPVOID ctx)
 static HANDLE
 CreateClientPipeInstance(VOID)
 {
+    TCHAR pipe_name[256]; /* The entire pipe name string can be up to 256 characters long according to MSDN. */
     HANDLE pipe = NULL;
     PACL old_dacl, new_dacl;
     PSECURITY_DESCRIPTOR sd;
@@ -1801,7 +1692,8 @@ CreateClientPipeInstance(VOID)
         initialized = TRUE;
     }
 
-    pipe = CreateNamedPipe(TEXT("\\\\.\\pipe\\openvpn\\service"), flags,
+    openvpn_sntprintf(pipe_name, _countof(pipe_name), TEXT("\\\\.\\pipe\\" PACKAGE "%s\\service"), service_instance);
+    pipe = CreateNamedPipe(pipe_name, flags,
                            PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE,
                            PIPE_UNLIMITED_INSTANCES, 1024, 1024, 0, NULL);
     if (pipe == INVALID_HANDLE_VALUE)
@@ -1890,6 +1782,20 @@ FreeWaitHandles(LPHANDLE h)
     free(h);
 }
 
+static BOOL
+CmpHandle(LPVOID item, LPVOID hnd)
+{
+    return item == hnd;
+}
+
+
+VOID WINAPI
+ServiceStartInteractiveOwn(DWORD dwArgc, LPTSTR *lpszArgv)
+{
+    status.dwServiceType = SERVICE_WIN32_OWN_PROCESS;
+    ServiceStartInteractive(dwArgc, lpszArgv);
+}
+
 
 VOID WINAPI
 ServiceStartInteractive(DWORD dwArgc, LPTSTR *lpszArgv)
@@ -1900,11 +1806,6 @@ ServiceStartInteractive(DWORD dwArgc, LPTSTR *lpszArgv)
     list_item_t *threads = NULL;
     PHANDLE handles = NULL;
     DWORD handle_count;
-    BOOL
-    CmpHandle(LPVOID item, LPVOID hnd)
-    {
-        return item == hnd;
-    }
 
     service = RegisterServiceCtrlHandlerEx(interactive_service.name, ServiceCtrlInteractive, &status);
     if (!service)
@@ -1912,7 +1813,6 @@ ServiceStartInteractive(DWORD dwArgc, LPTSTR *lpszArgv)
         return;
     }
 
-    status.dwServiceType = SERVICE_WIN32_SHARE_PROCESS;
     status.dwCurrentState = SERVICE_START_PENDING;
     status.dwServiceSpecificExitCode = NO_ERROR;
     status.dwWin32ExitCode = NO_ERROR;

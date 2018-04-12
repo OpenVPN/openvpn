@@ -5,7 +5,7 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2002-2017 OpenVPN Technologies, Inc. <sales@openvpn.net>
+ *  Copyright (C) 2002-2018 OpenVPN Inc <sales@openvpn.net>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -27,6 +27,7 @@
 #include "argv.h"
 #include "basic.h"
 #include "common.h"
+#include "env_set.h"
 #include "integer.h"
 #include "buffer.h"
 #include "platform.h"
@@ -36,20 +37,6 @@
 
 /* forward declarations */
 struct plugin_list;
-
-/*
- * Handle environmental variable lists
- */
-
-struct env_item {
-    char *string;
-    struct env_item *next;
-};
-
-struct env_set {
-    struct gc_arena *gc;
-    struct env_item *list;
-};
 
 /* system flags */
 #define S_SCRIPT (1<<0)
@@ -83,72 +70,14 @@ void set_std_files_to_null(bool stdin_only);
 extern int inetd_socket_descriptor;
 void save_inetd_socket_descriptor(void);
 
-/* set/delete environmental variable */
-void setenv_str_ex(struct env_set *es,
-                   const char *name,
-                   const char *value,
-                   const unsigned int name_include,
-                   const unsigned int name_exclude,
-                   const char name_replace,
-                   const unsigned int value_include,
-                   const unsigned int value_exclude,
-                   const char value_replace);
-
-void setenv_counter(struct env_set *es, const char *name, counter_type value);
-
-void setenv_int(struct env_set *es, const char *name, int value);
-
-void setenv_unsigned(struct env_set *es, const char *name, unsigned int value);
-
-void setenv_str(struct env_set *es, const char *name, const char *value);
-
-void setenv_str_safe(struct env_set *es, const char *name, const char *value);
-
-void setenv_del(struct env_set *es, const char *name);
-
-/**
- * Store the supplied name value pair in the env_set.  If the variable with the
- * supplied name  already exists, append _N to the name, starting at N=1.
- */
-void setenv_str_incr(struct env_set *es, const char *name, const char *value);
-
-void setenv_int_i(struct env_set *es, const char *name, const int value, const int i);
-
-void setenv_str_i(struct env_set *es, const char *name, const char *value, const int i);
-
-/* struct env_set functions */
-
-struct env_set *env_set_create(struct gc_arena *gc);
-
-void env_set_destroy(struct env_set *es);
-
-bool env_set_del(struct env_set *es, const char *str);
-
-void env_set_add(struct env_set *es, const char *str);
-
-const char *env_set_get(const struct env_set *es, const char *name);
-
-void env_set_print(int msglevel, const struct env_set *es);
-
-void env_set_inherit(struct env_set *es, const struct env_set *src);
-
 /* Make arrays of strings */
-
-const char **make_env_array(const struct env_set *es,
-                            const bool check_allowed,
-                            struct gc_arena *gc);
 
 const char **make_arg_array(const char *first, const char *parms, struct gc_arena *gc);
 
 const char **make_extended_arg_array(char **p, struct gc_arena *gc);
 
 /* an analogue to the random() function, but use OpenSSL functions if available */
-#ifdef ENABLE_CRYPTO
 long int get_random(void);
-
-#else
-#define get_random random
-#endif
 
 /* return true if filename can be opened for read */
 bool test_file(const char *filename);
@@ -162,7 +91,7 @@ const char *gen_path(const char *directory, const char *filename, struct gc_aren
 /* return true if pathname is absolute */
 bool absolute_pathname(const char *pathname);
 
-/* prepend a random prefix to hostname (need ENABLE_CRYPTO) */
+/* prepend a random prefix to hostname */
 const char *hostname_randomize(const char *hostname, struct gc_arena *gc);
 
 /*
@@ -264,11 +193,6 @@ void set_auth_token(struct user_pass *up, const char *token);
  */
 const char *safe_print(const char *str, struct gc_arena *gc);
 
-/* returns true if environmental variable safe to print to log */
-bool env_safe_to_print(const char *str);
-
-/* returns true if environmental variable may be passed to an external program */
-bool env_allowed(const char *str);
 
 void configure_path(void);
 

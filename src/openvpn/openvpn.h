@@ -5,7 +5,7 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2002-2017 OpenVPN Technologies, Inc. <sales@openvpn.net>
+ *  Copyright (C) 2002-2018 OpenVPN Inc <sales@openvpn.net>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -54,7 +54,6 @@
 
 struct key_schedule
 {
-#ifdef ENABLE_CRYPTO
     /* which cipher, HMAC digest, and key sizes are we using? */
     struct key_type key_type;
 
@@ -67,9 +66,6 @@ struct key_schedule
     /* optional TLS control channel wrapping */
     struct key_type tls_auth_key_type;
     struct key_ctx_bi tls_wrap_key;
-#else                           /* ENABLE_CRYPTO */
-    int dummy;
-#endif                          /* ENABLE_CRYPTO */
 };
 
 /*
@@ -96,10 +92,8 @@ struct context_buffers
     struct buffer aux_buf;
 
     /* workspace buffers used by crypto routines */
-#ifdef ENABLE_CRYPTO
     struct buffer encrypt_buf;
     struct buffer decrypt_buf;
-#endif
 
     /* workspace buffers for compression */
 #ifdef USE_COMP
@@ -334,8 +328,6 @@ struct context_2
     int occ_mtu_load_n_tries;
 #endif
 
-#ifdef ENABLE_CRYPTO
-
     /*
      * TLS-mode crypto objects.
      */
@@ -366,8 +358,6 @@ struct context_2
      *   process data channel packet. */
 
     struct event_timeout packet_id_persist_interval;
-
-#endif /* ENABLE_CRYPTO */
 
 #ifdef USE_COMP
     struct compress_context *comp_context;
@@ -566,7 +556,6 @@ struct context
  * have been compiled in.
  */
 
-#ifdef ENABLE_CRYPTO
 #define TLS_MODE(c) ((c)->c2.tls_multi != NULL)
 #define PROTO_DUMP_FLAGS (check_debug_level(D_LINK_RW_VERBOSE) ? (PD_SHOW_DATA|PD_VERBOSE) : 0)
 #define PROTO_DUMP(buf, gc) protocol_dump((buf), \
@@ -574,22 +563,8 @@ struct context
                                           |(c->c2.tls_multi ? PD_TLS : 0)   \
                                           |(c->options.tls_auth_file ? c->c1.ks.key_type.hmac_length : 0), \
                                           gc)
-#else  /* ifdef ENABLE_CRYPTO */
-#define TLS_MODE(c) (false)
-#define PROTO_DUMP(buf, gc) format_hex(BPTR(buf), BLEN(buf), 80, gc)
-#endif
 
-#ifdef ENABLE_CRYPTO
-#define MD5SUM(buf, len, gc) md5sum((buf), (len), 0, (gc))
-#else
-#define MD5SUM(buf, len, gc) "[unavailable]"
-#endif
-
-#ifdef ENABLE_CRYPTO
 #define CIPHER_ENABLED(c) (c->c1.ks.key_type.cipher != NULL)
-#else
-#define CIPHER_ENABLED(c) (false)
-#endif
 
 /* this represents "disabled peer-id" */
 #define MAX_PEER_ID 0xFFFFFF

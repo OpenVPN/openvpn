@@ -5,7 +5,7 @@
 #             packet encryption, packet authentication, and
 #             packet compression.
 #
-#  Copyright (C) 2017 OpenVPN Technologies, Inc. <sales@openvpn.net>
+#  Copyright (C) 2017-2018 OpenVPN Inc <sales@openvpn.net>
 #
 
 %.service: %.service.in Makefile
@@ -23,6 +23,8 @@ systemdunit_DATA = \
 	openvpn-server@.service
 tmpfiles_DATA = \
 	tmpfiles-openvpn.conf
+dist_doc_DATA = \
+	README.systemd
 
 install-data-hook:
 	mv $(DESTDIR)$(tmpfilesdir)/tmpfiles-openvpn.conf $(DESTDIR)$(tmpfilesdir)/openvpn.conf

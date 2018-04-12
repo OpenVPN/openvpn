@@ -5,7 +5,7 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2002-2017 OpenVPN Technologies, Inc. <sales@openvpn.net>
+ *  Copyright (C) 2002-2018 OpenVPN Inc <sales@openvpn.net>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -45,6 +45,7 @@
 #include "manage.h"
 #include "route.h"
 #include "win32.h"
+#include "block_dns.h"
 
 #include "memdbg.h"
 
@@ -124,7 +125,7 @@ do_address_service(const bool add, const short family, const struct tuntap *tt)
 
     if (ack.error_number != NO_ERROR)
     {
-        msg(M_WARN, "TUN: %s address failed using service: %s [status=%u if_index=%lu]",
+        msg(M_WARN, "TUN: %s address failed using service: %s [status=%u if_index=%d]",
             (add ? "adding" : "deleting"), strerror_win32(ack.error_number, &gc),
             ack.error_number, addr.iface.index);
         goto out;
@@ -838,6 +839,7 @@ delete_route_connected_v6_net(struct tuntap *tt,
     r6.gateway = tt->local_ipv6;
     r6.metric  = 0;                     /* connected route */
     r6.flags   = RT_DEFINED | RT_ADDED | RT_METRIC_DEFINED;
+    route_ipv6_clear_host_bits(&r6);
     delete_route_ipv6(&r6, tt, 0, es);
 }
 #endif /* if defined(_WIN32) || defined(TARGET_DARWIN) || defined(TARGET_NETBSD) || defined(TARGET_OPENBSD) */
@@ -1031,12 +1033,12 @@ do_ifconfig(struct tuntap *tt,
 
         if (do_ipv6)
         {
-            struct buffer out6 = alloc_buf_gc(64, &gc);
-            buf_printf(&out6, "%s/%d", ifconfig_ipv6_local,tt->netbits_ipv6);
-            management_android_control(management, "IFCONFIG6",buf_bptr(&out6));
+            char out6[64];
+            openvpn_snprintf(out6, sizeof(out6), "%s/%d", ifconfig_ipv6_local,tt->netbits_ipv6);
+            management_android_control(management, "IFCONFIG6", out6);
         }
 
-        struct buffer out = alloc_buf_gc(64, &gc);
+        char out[64];
 
         char *top;
         switch (tt->topology)
@@ -1057,8 +1059,8 @@ do_ifconfig(struct tuntap *tt,
                 top = "undef";
         }
 
-        buf_printf(&out, "%s %s %d %s", ifconfig_local, ifconfig_remote_netmask, tun_mtu, top);
-        management_android_control(management, "IFCONFIG", buf_bptr(&out));
+        openvpn_snprintf(out, sizeof(out), "%s %s %d %s", ifconfig_local, ifconfig_remote_netmask, tun_mtu, top);
+        management_android_control(management, "IFCONFIG", out);
 
 #elif defined(TARGET_SOLARIS)
         /* Solaris 2.6 (and 7?) cannot set all parameters in one go...
@@ -3790,7 +3792,7 @@ get_panel_reg(struct gc_arena *gc)
 
             if (status != ERROR_SUCCESS || name_type != REG_SZ)
             {
-                dmsg(D_REGISTRY, "Error opening registry key: %s\\%s\\%s",
+                dmsg(D_REGISTRY, "Error opening registry key: %s\\%s\\%ls",
                      NETWORK_CONNECTIONS_KEY, connection_string, name_string);
             }
             else
@@ -4178,15 +4180,12 @@ get_adapter_info_list(struct gc_arena *gc)
     else
     {
         pi = (PIP_ADAPTER_INFO) gc_malloc(size, false, gc);
-        if ((status = GetAdaptersInfo(pi, &size)) == NO_ERROR)
-        {
-            return pi;
-        }
-        else
+        if ((status = GetAdaptersInfo(pi, &size)) != NO_ERROR)
         {
             msg(M_INFO, "GetAdaptersInfo #2 failed (status=%u) : %s",
                 (unsigned int)status,
                 strerror_win32(status, gc));
+            pi = NULL;
         }
     }
     return pi;
@@ -4483,6 +4482,7 @@ adapter_index_of_ip(const IP_ADAPTER_INFO *list,
     struct gc_arena gc = gc_new();
     DWORD ret = TUN_ADAPTER_INDEX_INVALID;
     in_addr_t highest_netmask = 0;
+    int lowest_metric = INT_MAX;
     bool first = true;
 
     if (count)
@@ -4496,9 +4496,14 @@ adapter_index_of_ip(const IP_ADAPTER_INFO *list,
 
         if (is_ip_in_adapter_subnet(list, ip, &hn))
         {
+            int metric = get_interface_metric(list->Index, AF_INET, NULL);
             if (first || hn > highest_netmask)
             {
                 highest_netmask = hn;
+                if (metric >= 0)
+                {
+                    lowest_metric = metric;
+                }
                 if (count)
                 {
                     *count = 1;
@@ -4512,16 +4517,22 @@ adapter_index_of_ip(const IP_ADAPTER_INFO *list,
                 {
                     ++*count;
                 }
+                if (metric >= 0 && metric < lowest_metric)
+                {
+                    ret = list->Index;
+                    lowest_metric = metric;
+                }
             }
         }
         list = list->Next;
     }
 
-    dmsg(D_ROUTE_DEBUG, "DEBUG: IP Locate: ip=%s nm=%s index=%d count=%d",
+    dmsg(D_ROUTE_DEBUG, "DEBUG: IP Locate: ip=%s nm=%s index=%d count=%d metric=%d",
          print_in_addr_t(ip, 0, &gc),
          print_in_addr_t(highest_netmask, 0, &gc),
          (int)ret,
-         count ? *count : -1);
+         count ? *count : -1,
+         lowest_metric);
 
     if (ret == TUN_ADAPTER_INDEX_INVALID && count)
     {
@@ -4622,7 +4633,7 @@ get_adapter_index_method_1(const char *guid)
     DWORD index;
     ULONG aindex;
     wchar_t wbuf[256];
-    _snwprintf(wbuf, SIZE(wbuf), L"\\DEVICE\\TCPIP_%S", guid);
+    swprintf(wbuf, SIZE(wbuf), L"\\DEVICE\\TCPIP_%S", guid);
     wbuf [SIZE(wbuf) - 1] = 0;
     if (GetAdapterIndex(wbuf, &aindex) != NO_ERROR)
     {
@@ -5550,7 +5561,7 @@ fork_dhcp_action(struct tuntap *tt)
         {
             buf_printf(&cmd, " --dhcp-renew");
         }
-        buf_printf(&cmd, " --dhcp-internal %u", (unsigned int)tt->adapter_index);
+        buf_printf(&cmd, " --dhcp-internal %lu", tt->adapter_index);
 
         fork_to_self(BSTR(&cmd));
         gc_free(&gc);
@@ -6033,16 +6044,16 @@ open_tun(const char *dev, const char *dev_type, const char *dev_node, struct tun
 
             if (status == NO_ERROR)
             {
-                msg(M_INFO, "Successful ARP Flush on interface [%u] %s",
-                    (unsigned int)index,
+                msg(M_INFO, "Successful ARP Flush on interface [%lu] %s",
+                    index,
                     device_guid);
             }
             else if (status != -1)
             {
-                msg(D_TUNTAP_INFO, "NOTE: FlushIpNetTable failed on interface [%u] %s (status=%u) : %s",
-                    (unsigned int)index,
+                msg(D_TUNTAP_INFO, "NOTE: FlushIpNetTable failed on interface [%lu] %s (status=%lu) : %s",
+                    index,
                     device_guid,
-                    (unsigned int)status,
+                    status,
                     strerror_win32(status, &gc));
             }
         }
@@ -6113,12 +6124,12 @@ open_tun(const char *dev, const char *dev_type, const char *dev_node, struct tun
             }
             else
             {
-                msg(M_FATAL, "ERROR: AddIPAddress %s/%s failed on interface %s, index=%d, status=%u (windows error: '%s') -- %s",
+                msg(M_FATAL, "ERROR: AddIPAddress %s/%s failed on interface %s, index=%lu, status=%lu (windows error: '%s') -- %s",
                     print_in_addr_t(tt->local, 0, &gc),
                     print_in_addr_t(tt->adapter_netmask, 0, &gc),
                     device_guid,
-                    (int)index,
-                    (unsigned int)status,
+                    index,
+                    status,
                     strerror_win32(status, &gc),
                     error_suffix);
             }
@@ -6174,6 +6185,9 @@ close_tun(struct tuntap *tt)
     {
         if (tt->did_ifconfig_ipv6_setup)
         {
+            /* remove route pointing to interface */
+            delete_route_connected_v6_net(tt, NULL);
+
             if (tt->options.msg_channel)
             {
                 do_address_service(false, AF_INET6, tt);
@@ -6186,9 +6200,6 @@ close_tun(struct tuntap *tt)
             {
                 const char *ifconfig_ipv6_local;
                 struct argv argv = argv_new();
-
-                /* remove route pointing to interface */
-                delete_route_connected_v6_net(tt, NULL);
 
                 /* "store=active" is needed in Windows 8(.1) to delete the
                  * address we added (pointed out by Cedric Tabary).

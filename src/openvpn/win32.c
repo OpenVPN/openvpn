@@ -5,7 +5,7 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2002-2017 OpenVPN Technologies, Inc. <sales@openvpn.net>
+ *  Copyright (C) 2002-2018 OpenVPN Inc <sales@openvpn.net>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -1344,17 +1344,16 @@ win_wfp_block_dns(const NET_IFINDEX index, const HANDLE msg_channel)
                                    block_dns_msg_handler);
     if (status == 0)
     {
-        tap_metric_v4 = get_interface_metric(index, AF_INET);
-        tap_metric_v6 = get_interface_metric(index, AF_INET6);
-        if (tap_metric_v4 < 0)
+        int is_auto = 0;
+        tap_metric_v4 = get_interface_metric(index, AF_INET, &is_auto);
+        if (is_auto)
         {
-            /* error, should not restore metric */
-            tap_metric_v4 = -1;
+            tap_metric_v4 = 0;
         }
-        if (tap_metric_v6 < 0)
+        tap_metric_v6 = get_interface_metric(index, AF_INET6, &is_auto);
+        if (is_auto)
         {
-            /* error, should not restore metric */
-            tap_metric_v6 = -1;
+            tap_metric_v6 = 0;
         }
         status = set_interface_metric(index, AF_INET, BLOCK_DNS_IFACE_METRIC);
         if (!status)

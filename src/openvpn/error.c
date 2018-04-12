@@ -5,7 +5,7 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2002-2017 OpenVPN Technologies, Inc. <sales@openvpn.net>
+ *  Copyright (C) 2002-2018 OpenVPN Inc <sales@openvpn.net>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -342,9 +342,9 @@ x_msg_va(const unsigned int flags, const char *format, va_list arglist)
                 struct timeval tv;
                 gettimeofday(&tv, NULL);
 
-                fprintf(fp, "%lu.%06lu %x %s%s%s%s",
-                        tv.tv_sec,
-                        (unsigned long)tv.tv_usec,
+                fprintf(fp, "%"PRIi64".%06ld %x %s%s%s%s",
+                        (int64_t)tv.tv_sec,
+                        (long)tv.tv_usec,
                         flags,
                         prefix,
                         prefix_sep,

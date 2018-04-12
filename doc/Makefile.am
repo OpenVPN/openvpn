@@ -5,7 +5,7 @@
 #             packet encryption, packet authentication, and
 #             packet compression.
 #
-#  Copyright (C) 2002-2017 OpenVPN Technologies, Inc. <sales@openvpn.net>
+#  Copyright (C) 2002-2018 OpenVPN Inc <sales@openvpn.net>
 #  Copyright (C) 2006-2012 Alon Bar-Lev <alon.barlev@gmail.com>
 #
 
@@ -13,6 +13,8 @@ MAINTAINERCLEANFILES = \
 	$(srcdir)/Makefile.in
 
 CLEANFILES = openvpn.8.html
+
+SUBDIRS = doxygen
 
 dist_doc_DATA = \
 	management-notes.txt

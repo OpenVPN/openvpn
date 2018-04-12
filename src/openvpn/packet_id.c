@@ -5,7 +5,7 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2002-2017 OpenVPN Technologies, Inc. <sales@openvpn.net>
+ *  Copyright (C) 2002-2018 OpenVPN Inc <sales@openvpn.net>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -37,8 +37,6 @@
 #endif
 
 #include "syshead.h"
-
-#ifdef ENABLE_CRYPTO
 
 #include "packet_id.h"
 #include "misc.h"
@@ -608,14 +606,14 @@ packet_id_debug_print(int msglevel,
         }
         buf_printf(&out, "%c", c);
     }
-    buf_printf(&out, "] " time_format ":" packet_id_format, (time_type)p->time, (packet_id_print_type)p->id);
+    buf_printf(&out, "] %"PRIi64":" packet_id_format, (int64_t)p->time, (packet_id_print_type)p->id);
     if (pin)
     {
-        buf_printf(&out, " " time_format ":" packet_id_format, (time_type)pin->time, (packet_id_print_type)pin->id);
+        buf_printf(&out, " %"PRIi64":" packet_id_format, (int64_t)pin->time, (packet_id_print_type)pin->id);
     }
 
-    buf_printf(&out, " t=" time_format "[%d]",
-               (time_type)prev_now,
+    buf_printf(&out, " t=%"PRIi64"[%d]",
+               (int64_t)prev_now,
                (int)(prev_now - tv.tv_sec));
 
     buf_printf(&out, " r=[%d,%d,%d,%d,%d]",
@@ -668,8 +666,8 @@ packet_id_interactive_test(void)
         {
             packet_id_reap_test(&pid.rec);
             test = packet_id_test(&pid.rec, &pin);
-            printf("packet_id_test (" time_format ", " packet_id_format ") returned %d\n",
-                   (time_type)pin.time,
+            printf("packet_id_test (%"PRIi64", " packet_id_format ") returned %d\n",
+                   (int64_t)pin.time,
                    (packet_id_print_type)pin.id,
                    test);
             if (test)
@@ -681,8 +679,8 @@ packet_id_interactive_test(void)
         {
             long_form = (count < 20);
             packet_id_alloc_outgoing(&pid.send, &pin, long_form);
-            printf("(" time_format "(" packet_id_format "), %d)\n",
-                   (time_type)pin.time,
+            printf("(%"PRIi64"(" packet_id_format "), %d)\n",
+                   (int64_t)pin.time,
                    (packet_id_print_type)pin.id,
                    long_form);
             if (pid.send.id == 10)
@@ -695,5 +693,3 @@ packet_id_interactive_test(void)
     packet_id_free(&pid);
 }
 #endif /* ifdef PID_TEST */
-
-#endif /* ENABLE_CRYPTO */

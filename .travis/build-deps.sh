@@ -111,7 +111,7 @@ build_openssl_mingw () {
         fi
 
         ./Configure --cross-compile-prefix=${CHOST}- shared \
-           ${TARGET} no-multilib no-capieng --prefix="${PREFIX}" --openssldir="${PREFIX}" -static-libgcc
+           ${TARGET} no-capieng --prefix="${PREFIX}" --openssldir="${PREFIX}" -static-libgcc
         make install
     )
 }
@@ -129,16 +129,6 @@ build_openssl () {
         echo "${OPENSSL_VERSION}" > "${PREFIX}/.openssl-version"
     fi
 }
-
-# Enable ccache
-if [ "${TRAVIS_OS_NAME}" != "osx" ] && [ -z ${CHOST+x} ]; then
-    # ccache not available on osx, see:
-    # https://github.com/travis-ci/travis-ci/issues/5567
-    # also ccache not enabled for cross builds
-    mkdir -p "${HOME}/bin"
-    ln -s "$(which ccache)" "${HOME}/bin/${CC}"
-    PATH="${HOME}/bin:${PATH}"
-fi
 
 if [ ! -z ${CHOST+x} ]; then
       #

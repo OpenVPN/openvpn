@@ -5,8 +5,8 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2002-2017 OpenVPN Technologies, Inc. <sales@openvpn.net>
- *  Copyright (C) 2010-2017 Fox Crypto B.V. <openvpn@fox-it.com>
+ *  Copyright (C) 2002-2018 OpenVPN Inc <sales@openvpn.net>
+ *  Copyright (C) 2010-2018 Fox Crypto B.V. <openvpn@fox-it.com>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -48,9 +48,9 @@ typedef mbedtls_x509_crt openvpn_x509_cert_t;
  * This callback function is called when a new TLS session is being setup to
  * determine whether the remote OpenVPN peer's certificate is allowed to
  * connect. It is called for once for every certificate in the chain. The
- * callback functionality is configured in the \c init_ssl() function, which
- * calls the mbed TLS library's \c ssl_set_verify_callback() function with \c
- * verify_callback() as its callback argument.
+ * callback functionality is configured in the \c key_state_ssl_init() function,
+ * which calls the mbed TLS library's \c mbedtls_ssl_conf_verify() function with
+ * \c verify_callback() as its callback argument.
  *
  * It checks *flags and registers the certificate hash. If these steps succeed,
  * it calls the \c verify_cert() function, which performs OpenVPN-specific

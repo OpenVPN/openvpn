@@ -5,7 +5,7 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2002-2017 OpenVPN Technologies, Inc. <sales@openvpn.net>
+ *  Copyright (C) 2002-2018 OpenVPN Inc <sales@openvpn.net>
  *                2015-2016  <iam@valdikss.org.ru>
  *                2016 Selva Nair <selva.nair@gmail.com>
  *
@@ -344,33 +344,43 @@ delete_block_dns_filters(HANDLE engine_handle)
 }
 
 /*
- * Returns interface metric value for specified interface index.
+ * Return interface metric value for the specified interface index.
  *
  * Arguments:
  *   index         : The index of TAP adapter.
  *   family        : Address family (AF_INET for IPv4 and AF_INET6 for IPv6).
- * Returns positive metric value or zero for automatic metric on success,
- * a less then zero error code on failure.
+ *   is_auto       : On return set to true if automatic metric is in use.
+ *                   Unused if NULL.
+ *
+ * Returns positive metric value or -1 on error.
  */
-
 int
-get_interface_metric(const NET_IFINDEX index, const ADDRESS_FAMILY family)
+get_interface_metric(const NET_IFINDEX index, const ADDRESS_FAMILY family, int *is_auto)
 {
     DWORD err = 0;
     MIB_IPINTERFACE_ROW ipiface;
     InitializeIpInterfaceEntry(&ipiface);
     ipiface.Family = family;
     ipiface.InterfaceIndex = index;
-    err = GetIpInterfaceEntry(&ipiface);
-    if (err == NO_ERROR)
+
+    if (is_auto)
     {
-        if (ipiface.UseAutomaticMetric)
-        {
-            return 0;
-        }
-        return ipiface.Metric;
+        *is_auto = 0;
     }
-    return -err;
+    err = GetIpInterfaceEntry(&ipiface);
+
+    /* On Windows metric is never > INT_MAX so return value of int is ok.
+     * But we check for overflow nevertheless.
+     */
+    if (err == NO_ERROR && ipiface.Metric <= INT_MAX)
+    {
+        if (is_auto)
+        {
+            *is_auto = ipiface.UseAutomaticMetric;
+        }
+        return (int)ipiface.Metric;
+    }
+    return -1;
 }
 
 /*

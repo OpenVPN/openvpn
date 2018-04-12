@@ -317,6 +317,11 @@ COMMAND -- password and username
 
     >PASSWORD:Verification Failed: 'custom server-generated string'
 
+  Example 6: If server pushes --auth-token to the client, the OpenVPN
+  will produce a real-time PASSWORD message:
+
+    >PASSWORD:Auth-Token:foobar
+
 COMMAND -- forget-passwords
 ---------------------------
 
@@ -357,6 +362,8 @@ ADD_ROUTES    -- Adding routes to system.
 CONNECTED     -- Initialization Sequence Completed.
 RECONNECTING  -- A restart has occurred.
 EXITING       -- A graceful exit is in progress.
+RESOLVE       -- (Client only) DNS lookup
+TCP_CONNECT   -- (Client only) Connecting to TCP server
 
 Command examples:
 
@@ -420,13 +427,17 @@ info on verbosity levels.
 Command examples:
 
   verb 4  -- change the verb parameter to 4
-  mute    -- show the current verb setting
+  verb    -- show the current verb setting
 
 COMMAND -- version
 ------------------
 
-Show the current OpenVPN and Management Interface versions.
+Set the version (integer) of Management Interface supported by the
+client or show the current OpenVPN and Management Interface versions.
 
+Command examples:
+  version 2  -- Change management version of client to 2 (default = 1)
+  version    -- Show the version of OpenVPN and its Management Interface
 
 COMMAND -- auth-retry
 ---------------------
@@ -762,33 +773,39 @@ To accept connecting to the host and port directly, use this command:
 
   proxy NONE
 
-COMMAND -- rsa-sig (OpenVPN 2.3 or higher)
-------------------------------------------
+COMMAND -- pk-sig (OpenVPN 2.5 or higher, management version > 1)
+COMMAND -- rsa-sig (OpenVPN 2.3 or higher, management version <= 1)
+-----------------------------------------------------------------
 Provides support for external storage of the private key. Requires the
 --management-external-key option. This option can be used instead of "key"
 in client mode, and allows the client to run without the need to load the
-actual private key. When the SSL protocol needs to perform an RSA sign
+actual private key. When the SSL protocol needs to perform a sign
 operation, the data to be signed will be sent to the management interface
 via a notification as follows:
 
->RSA_SIGN:[BASE64_DATA]
+>PK_SIGN:[BASE64_DATA] (if client announces support for management version > 1)
+>RSA_SIGN:[BASE64_DATA] (only older clients will be prompted like this)
 
-The management interface client should then create a PKCS#1 v1.5 signature of
+The management interface client should then create an appropriate signature of
 the (decoded) BASE64_DATA using the private key and return the SSL signature as
 follows:
 
-rsa-sig
+pk-sig   (or rsa-sig)
 [BASE64_SIG_LINE]
 .
 .
 .
 END
 
-Base64 encoded output of RSA_private_encrypt() (OpenSSL) or mbedtls_pk_sign()
-(mbed TLS) will provide a correct signature.
+Base64 encoded output of RSA_private_encrypt for RSA or ECDSA_sign() for EC
+using OpenSSL or mbedtls_pk_sign() using mbed TLS will provide a correct
+signature.
 
 This capability is intended to allow the use of arbitrary cryptographic
 service providers with OpenVPN via the management interface.
+
+New and updated clients are expected to use the version command to announce
+a version > 1 and handle '>PK_SIGN' prompt and respond with 'pk-sig'.
 
 COMMAND -- certificate (OpenVPN 2.4 or higher)
 ----------------------------------------------

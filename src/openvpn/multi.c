@@ -5,7 +5,7 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2002-2017 OpenVPN Technologies, Inc. <sales@openvpn.net>
+ *  Copyright (C) 2002-2018 OpenVPN Inc <sales@openvpn.net>
  *  Copyright (C) 2010      Fabian Knittel <fabian.knittel@lettink.de>
  *
  *  This program is free software; you can redistribute it and/or modify
@@ -50,6 +50,8 @@
 
 #include "forward-inline.h"
 #include "pf-inline.h"
+
+#include "crypto_backend.h"
 
 /*#define MULTI_DEBUG_EVENT_LOOP*/
 
@@ -566,10 +568,7 @@ multi_client_disconnect_setenv(struct multi_context *m,
     setenv_stats(&mi->context);
 
     /* setenv connection duration */
-    {
-        const unsigned int duration = (unsigned int) now - mi->created;
-        setenv_unsigned(mi->context.c2.es, "time_duration", duration);
-    }
+    setenv_long_long(mi->context.c2.es, "time_duration", now - mi->created);
 }
 
 static void
@@ -944,8 +943,8 @@ multi_print_status(struct multi_context *m, struct status_output *so, const int 
              */
             status_printf(so, "TITLE%c%s", sep, title_string);
             status_printf(so, "TIME%c%s%c%u", sep, time_string(now, 0, false, &gc_top), sep, (unsigned int)now);
-            status_printf(so, "HEADER%cCLIENT_LIST%cCommon Name%cReal Address%cVirtual Address%cVirtual IPv6 Address%cBytes Received%cBytes Sent%cConnected Since%cConnected Since (time_t)%cUsername%cClient ID%cPeer ID",
-                          sep, sep, sep, sep, sep, sep, sep, sep, sep, sep, sep, sep);
+            status_printf(so, "HEADER%cCLIENT_LIST%cCommon Name%cReal Address%cVirtual Address%cVirtual IPv6 Address%cBytes Received%cBytes Sent%cConnected Since%cConnected Since (time_t)%cUsername%cClient ID%cPeer ID%cData Channel Cipher",
+                          sep, sep, sep, sep, sep, sep, sep, sep, sep, sep, sep, sep, sep);
             hash_iterator_init(m->hash, &hi);
             while ((he = hash_iterator_next(&hi)))
             {
@@ -960,7 +959,7 @@ multi_print_status(struct multi_context *m, struct status_output *so, const int 
 #else
                                   ""
 #endif
-                                  "%c%" PRIu32,
+                                  "%c%" PRIu32 "%c%s",
                                   sep, tls_common_name(mi->context.c2.tls_multi, false),
                                   sep, mroute_addr_print(&mi->real, &gc),
                                   sep, print_in_addr_t(mi->reporting_addr, IA_EMPTY_IF_UNDEF, &gc),
@@ -975,7 +974,8 @@ multi_print_status(struct multi_context *m, struct status_output *so, const int 
 #else
                                   sep,
 #endif
-                                  sep, mi->context.c2.tls_multi ? mi->context.c2.tls_multi->peer_id : UINT32_MAX);
+                                  sep, mi->context.c2.tls_multi ? mi->context.c2.tls_multi->peer_id : UINT32_MAX,
+                                  sep, translate_cipher_name_to_openvpn(mi->context.options.ciphername));
                 }
                 gc_free(&gc);
             }
@@ -1078,6 +1078,7 @@ multi_learn_addr(struct multi_context *m,
     struct hash_bucket *bucket = hash_bucket(m->vhash, hv);
     struct multi_route *oldroute = NULL;
     struct multi_instance *owner = NULL;
+    struct gc_arena gc = gc_new();
 
     /* if route currently exists, get the instance which owns it */
     he = hash_lookup_fast(m->vhash, bucket, addr, hv);
@@ -1091,11 +1092,9 @@ multi_learn_addr(struct multi_context *m,
     }
 
     /* do we need to add address to hash table? */
-    if ((!owner || owner != mi)
-        && mroute_learnable_address(addr)
+    if ((!owner || owner != mi) && mroute_learnable_address(addr, &gc)
         && !mroute_addr_equal(addr, &m->local))
     {
-        struct gc_arena gc = gc_new();
         struct multi_route *newroute;
         bool learn_succeeded = false;
 
@@ -1152,9 +1151,8 @@ multi_learn_addr(struct multi_context *m,
         {
             free(newroute);
         }
-
-        gc_free(&gc);
     }
+    gc_free(&gc);
 
     return owner;
 }
@@ -1770,7 +1768,7 @@ multi_client_connect_setenv(struct multi_context *m,
     {
         const char *created_ascii = time_string(mi->created, 0, false, &gc);
         setenv_str(mi->context.c2.es, "time_ascii", created_ascii);
-        setenv_unsigned(mi->context.c2.es, "time_unix", (unsigned int)mi->created);
+        setenv_long_long(mi->context.c2.es, "time_unix", mi->created);
     }
 
     gc_free(&gc);
@@ -2394,14 +2392,14 @@ multi_process_post(struct multi_context *m, struct multi_instance *mi, const uns
         multi_set_pending(m, ANY_OUT(&mi->context) ? mi : NULL);
 
 #ifdef MULTI_DEBUG_EVENT_LOOP
-        printf("POST %s[%d] to=%d lo=%d/%d w=%d/%d\n",
+        printf("POST %s[%d] to=%d lo=%d/%d w=%"PRIi64"/%ld\n",
                id(mi),
                (int) (mi == m->pending),
                mi ? mi->context.c2.to_tun.len : -1,
                mi ? mi->context.c2.to_link.len : -1,
                (mi && mi->context.c2.fragment) ? mi->context.c2.fragment->outgoing.len : -1,
-               (int)mi->context.c2.timeval.tv_sec,
-               (int)mi->context.c2.timeval.tv_usec);
+               (int64_t)mi->context.c2.timeval.tv_sec,
+               (long)mi->context.c2.timeval.tv_usec);
 #endif
     }
 

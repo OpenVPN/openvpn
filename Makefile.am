@@ -5,7 +5,7 @@
 #             packet encryption, packet authentication, and
 #             packet compression.
 #
-#  Copyright (C) 2002-2017 OpenVPN Technologies, Inc. <sales@openvpn.net>
+#  Copyright (C) 2002-2018 OpenVPN Inc <sales@openvpn.net>
 #  Copyright (C) 2010      David Sommerseth <dazo@users.sourceforge.net>
 #  Copyright (C) 2006-2012 Alon Bar-Lev <alon.barlev@gmail.com>
 #
@@ -46,7 +46,7 @@ EXTRA_DIST = \
 	contrib \
 	debug
 
-.PHONY: config-version.h
+.PHONY: config-version.h doxygen
 
 if GIT_CHECKOUT
 BUILT_SOURCES = \
@@ -96,3 +96,6 @@ config-version.h:
 	else \
 		rm -f config-version.h.tmp; \
 	fi
+
+doxygen:
+	$(MAKE) -C doc/doxygen doxygen

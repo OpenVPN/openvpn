@@ -5,7 +5,7 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2002-2017 OpenVPN Technologies, Inc. <sales@openvpn.net>
+ *  Copyright (C) 2002-2018 OpenVPN Inc <sales@openvpn.net>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -513,7 +513,7 @@ socket_defined(const socket_descriptor_t sd)
  * Do we have point-to-multipoint capability?
  */
 
-#if defined(ENABLE_CRYPTO) && defined(HAVE_GETTIMEOFDAY_NANOSECONDS)
+#if defined(HAVE_GETTIMEOFDAY_NANOSECONDS)
 #define P2MP 1
 #else
 #define P2MP 0
@@ -550,7 +550,7 @@ socket_defined(const socket_descriptor_t sd)
 /*
  * Enable external private key
  */
-#if defined(ENABLE_MANAGEMENT) && defined(ENABLE_CRYPTO)
+#if defined(ENABLE_MANAGEMENT)
 #define MANAGMENT_EXTERNAL_KEY
 #endif
 
@@ -597,25 +597,17 @@ socket_defined(const socket_descriptor_t sd)
 /*
  * Should we include NTLM proxy functionality
  */
-#if defined(ENABLE_CRYPTO)
 #define NTLM 1
-#else
-#define NTLM 0
-#endif
 
 /*
  * Should we include proxy digest auth functionality
  */
-#if defined(ENABLE_CRYPTO)
 #define PROXY_DIGEST_AUTH 1
-#else
-#define PROXY_DIGEST_AUTH 0
-#endif
 
 /*
  * Do we have CryptoAPI capability?
  */
-#if defined(_WIN32) && defined(ENABLE_CRYPTO) && defined(ENABLE_CRYPTO_OPENSSL)
+#if defined(_WIN32) && defined(ENABLE_CRYPTO_OPENSSL)
 #define ENABLE_CRYPTOAPI
 #endif
 
@@ -679,13 +671,6 @@ socket_defined(const socket_descriptor_t sd)
  */
 #if defined(ENABLE_MANAGEMENT)
 #define ENABLE_CLIENT_CR
-#endif
-
-/*
- * Do we support pushing peer info?
- */
-#if defined(ENABLE_CRYPTO)
-#define ENABLE_PUSH_PEER_INFO
 #endif
 
 /*

@@ -5,8 +5,8 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2002-2017 OpenVPN Technologies, Inc. <sales@openvpn.net>
- *  Copyright (C) 2010-2017 Fox Crypto B.V. <openvpn@fox-it.com>
+ *  Copyright (C) 2002-2018 OpenVPN Inc <sales@openvpn.net>
+ *  Copyright (C) 2010-2018 Fox Crypto B.V. <openvpn@fox-it.com>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -121,8 +121,6 @@
 
 #ifndef CRYPTO_H
 #define CRYPTO_H
-
-#ifdef ENABLE_CRYPTO
 
 #include "crypto_backend.h"
 #include "basic.h"
@@ -472,7 +470,7 @@ void must_have_n_keys(const char *filename, const char *option, const struct key
 
 int ascii2keydirection(int msglevel, const char *str);
 
-const char *keydirection2ascii(int kd, bool remote);
+const char *keydirection2ascii(int kd, bool remote, bool humanreadable);
 
 /* print keys */
 void key2_print(const struct key2 *k,
@@ -513,6 +511,4 @@ key_ctx_bi_defined(const struct key_ctx_bi *key)
     return key->encrypt.cipher || key->encrypt.hmac || key->decrypt.cipher || key->decrypt.hmac;
 }
 
-
-#endif /* ENABLE_CRYPTO */
 #endif /* CRYPTO_H */

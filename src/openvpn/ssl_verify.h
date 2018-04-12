@@ -5,8 +5,8 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2002-2017 OpenVPN Technologies, Inc. <sales@openvpn.net>
- *  Copyright (C) 2010-2017 Fox Crypto B.V. <openvpn@fox-it.com>
+ *  Copyright (C) 2002-2018 OpenVPN Inc <sales@openvpn.net>
+ *  Copyright (C) 2010-2018 Fox Crypto B.V. <openvpn@fox-it.com>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -28,8 +28,6 @@
 
 #ifndef SSL_VERIFY_H_
 #define SSL_VERIFY_H_
-
-#ifdef ENABLE_CRYPTO
 
 #include "syshead.h"
 #include "misc.h"
@@ -242,7 +240,5 @@ tls_client_reason(struct tls_multi *multi)
 
 /** Remove any X509_ env variables from env_set es */
 void tls_x509_clear_env(struct env_set *es);
-
-#endif /* ENABLE_CRYPTO */
 
 #endif /* SSL_VERIFY_H_ */

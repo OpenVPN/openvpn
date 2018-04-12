@@ -5,11 +5,17 @@
 #             packet encryption, packet authentication, and
 #             packet compression.
 #
-#  Copyright (C) 2002-2018 OpenVPN Inc <sales@openvpn.net>
-#  Copyright (C) 2006-2012 Alon Bar-Lev <alon.barlev@gmail.com>
+#  Copyright (C) 2017-2018 Fox-IT B.V. <openvpn@fox-it.com>
 #
 
 MAINTAINERCLEANFILES = \
 	$(srcdir)/Makefile.in
 
-SUBDIRS = msvc-generate
+DISTCLEANFILES = openvpn.doxyfile
+
+.PHONY: doxygen
+doxygen: openvpn.doxyfile
+	doxygen openvpn.doxyfile
+
+clean-local:
+	-rm -rf html latex

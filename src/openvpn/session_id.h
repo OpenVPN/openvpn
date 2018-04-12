@@ -5,7 +5,7 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2002-2017 OpenVPN Technologies, Inc. <sales@openvpn.net>
+ *  Copyright (C) 2002-2018 OpenVPN Inc <sales@openvpn.net>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -28,8 +28,6 @@
  * channel (which only sees traffic occasionally when keys are being
  * negotiated).
  */
-
-#ifdef ENABLE_CRYPTO
 
 #ifndef SESSION_ID_H
 #define SESSION_ID_H
@@ -82,4 +80,3 @@ void session_id_random(struct session_id *sid);
 const char *session_id_print(const struct session_id *sid, struct gc_arena *gc);
 
 #endif /* SESSION_ID_H */
-#endif /* ENABLE_CRYPTO */

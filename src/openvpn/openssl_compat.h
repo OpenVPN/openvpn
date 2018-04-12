@@ -5,8 +5,8 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2002-2017 OpenVPN Technologies, Inc. <sales@openvpn.net>
- *  Copyright (C) 2010-2017 Fox Crypto B.V. <openvpn@fox-it.com>
+ *  Copyright (C) 2002-2018 OpenVPN Inc <sales@openvpn.net>
+ *  Copyright (C) 2010-2018 Fox Crypto B.V. <openvpn@fox-it.com>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -240,7 +240,7 @@ X509_OBJECT_get_type(const X509_OBJECT *obj)
 static inline RSA *
 EVP_PKEY_get0_RSA(EVP_PKEY *pkey)
 {
-    return pkey ? pkey->pkey.rsa : NULL;
+    return (pkey && pkey->type == EVP_PKEY_RSA) ? pkey->pkey.rsa : NULL;
 }
 #endif
 
@@ -254,7 +254,7 @@ EVP_PKEY_get0_RSA(EVP_PKEY *pkey)
 static inline EC_KEY *
 EVP_PKEY_get0_EC_KEY(EVP_PKEY *pkey)
 {
-    return pkey ? pkey->pkey.ec : NULL;
+    return (pkey && pkey->type == EVP_PKEY_EC) ? pkey->pkey.ec : NULL;
 }
 #endif
 
@@ -282,7 +282,7 @@ EVP_PKEY_id(const EVP_PKEY *pkey)
 static inline DSA *
 EVP_PKEY_get0_DSA(EVP_PKEY *pkey)
 {
-    return pkey ? pkey->pkey.dsa : NULL;
+    return (pkey && pkey->type == EVP_PKEY_DSA) ? pkey->pkey.dsa : NULL;
 }
 #endif
 
@@ -624,6 +624,20 @@ RSA_meth_set0_app_data(RSA_METHOD *meth, void *app_data)
 }
 #endif
 
+#if !defined(HAVE_RSA_METH_GET0_APP_DATA)
+/**
+ * Get the application data of an RSA_METHOD object
+ *
+ * @param meth               The RSA_METHOD object
+ * @return                   pointer to application data, may be NULL
+ */
+static inline void *
+RSA_meth_get0_app_data(const RSA_METHOD *meth)
+{
+    return meth ? meth->app_data : NULL;
+}
+#endif
+
 #if !defined(HAVE_EC_GROUP_ORDER_BITS) && !defined(OPENSSL_NO_EC)
 /**
  * Gets the number of bits of the order of an EC_GROUP
@@ -646,5 +660,109 @@ EC_GROUP_order_bits(const EC_GROUP *group)
 #if !defined(RSA_F_RSA_OSSL_PRIVATE_ENCRYPT)
 #define RSA_F_RSA_OSSL_PRIVATE_ENCRYPT       RSA_F_RSA_EAY_PRIVATE_ENCRYPT
 #endif
+
+#ifndef SSL_CTX_get_min_proto_version
+/** Return the min SSL protocol version currently enabled in the context.
+ *  If no valid version >= TLS1.0 is found, return 0. */
+static inline int
+SSL_CTX_get_min_proto_version(SSL_CTX *ctx)
+{
+    long sslopt = SSL_CTX_get_options(ctx);
+    if (!(sslopt & SSL_OP_NO_TLSv1))
+    {
+        return TLS1_VERSION;
+    }
+    if (!(sslopt & SSL_OP_NO_TLSv1_1))
+    {
+        return TLS1_1_VERSION;
+    }
+    if (!(sslopt & SSL_OP_NO_TLSv1_2))
+    {
+        return TLS1_2_VERSION;
+    }
+    return 0;
+}
+#endif /* SSL_CTX_get_min_proto_version */
+
+#ifndef SSL_CTX_get_max_proto_version
+/** Return the max SSL protocol version currently enabled in the context.
+ *  If no valid version >= TLS1.0 is found, return 0. */
+static inline int
+SSL_CTX_get_max_proto_version(SSL_CTX *ctx)
+{
+    long sslopt = SSL_CTX_get_options(ctx);
+    if (!(sslopt & SSL_OP_NO_TLSv1_2))
+    {
+        return TLS1_2_VERSION;
+    }
+    if (!(sslopt & SSL_OP_NO_TLSv1_1))
+    {
+        return TLS1_1_VERSION;
+    }
+    if (!(sslopt & SSL_OP_NO_TLSv1))
+    {
+        return TLS1_VERSION;
+    }
+    return 0;
+}
+#endif /* SSL_CTX_get_max_proto_version */
+
+#ifndef SSL_CTX_set_min_proto_version
+/** Mimics SSL_CTX_set_min_proto_version for OpenSSL < 1.1 */
+static inline int
+SSL_CTX_set_min_proto_version(SSL_CTX *ctx, long tls_ver_min)
+{
+    long sslopt = SSL_OP_NO_SSLv2 | SSL_OP_NO_SSLv3; /* Never do < TLS 1.0 */
+
+    if (tls_ver_min > TLS1_VERSION)
+    {
+        sslopt |= SSL_OP_NO_TLSv1;
+    }
+#ifdef SSL_OP_NO_TLSv1_1
+    if (tls_ver_min > TLS1_1_VERSION)
+    {
+        sslopt |= SSL_OP_NO_TLSv1_1;
+    }
+#endif
+#ifdef SSL_OP_NO_TLSv1_2
+    if (tls_ver_min > TLS1_2_VERSION)
+    {
+        sslopt |= SSL_OP_NO_TLSv1_2;
+    }
+#endif
+    SSL_CTX_set_options(ctx, sslopt);
+
+    return 1;
+}
+#endif /* SSL_CTX_set_min_proto_version */
+
+#ifndef SSL_CTX_set_max_proto_version
+/** Mimics SSL_CTX_set_max_proto_version for OpenSSL < 1.1 */
+static inline int
+SSL_CTX_set_max_proto_version(SSL_CTX *ctx, long tls_ver_max)
+{
+    long sslopt = 0;
+
+    if (tls_ver_max < TLS1_VERSION)
+    {
+        sslopt |= SSL_OP_NO_TLSv1;
+    }
+#ifdef SSL_OP_NO_TLSv1_1
+    if (tls_ver_max < TLS1_1_VERSION)
+    {
+        sslopt |= SSL_OP_NO_TLSv1_1;
+    }
+#endif
+#ifdef SSL_OP_NO_TLSv1_2
+    if (tls_ver_max < TLS1_2_VERSION)
+    {
+        sslopt |= SSL_OP_NO_TLSv1_2;
+    }
+#endif
+    SSL_CTX_set_options(ctx, sslopt);
+
+    return 1;
+}
+#endif /* SSL_CTX_set_max_proto_version */
 
 #endif /* OPENSSL_COMPAT_H_ */

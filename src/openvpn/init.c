@@ -5,7 +5,7 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2002-2017 OpenVPN Technologies, Inc. <sales@openvpn.net>
+ *  Copyright (C) 2002-2018 OpenVPN Inc <sales@openvpn.net>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -529,13 +529,11 @@ next_connection_entry(struct context *c)
 void
 init_query_passwords(const struct context *c)
 {
-#ifdef ENABLE_CRYPTO
     /* Certificate password input */
     if (c->options.key_pass_file)
     {
         pem_password_setup(c->options.key_pass_file);
     }
-#endif
 
 #if P2MP
     /* Auth user/pass input */
@@ -704,7 +702,7 @@ init_static(void)
 {
     /* configure_path (); */
 
-#if defined(ENABLE_CRYPTO) && defined(DMALLOC)
+#if defined(DMALLOC)
     crypto_init_dmalloc();
 #endif
 
@@ -741,14 +739,12 @@ init_static(void)
 
     update_time();
 
-#ifdef ENABLE_CRYPTO
     init_ssl_lib();
 
     /* init PRNG used for IV generation */
     /* When forking, copy this to more places in the code to avoid fork
      * random-state predictability */
     prng_init(NULL, 0);
-#endif
 
 #ifdef PID_TEST
     packet_id_interactive_test();       /* test the sequence number code */
@@ -942,9 +938,7 @@ init_static(void)
 void
 uninit_static(void)
 {
-#ifdef ENABLE_CRYPTO
     free_ssl_lib();
-#endif
 
 #ifdef ENABLE_PKCS11
     pkcs11_terminate();
@@ -954,7 +948,7 @@ uninit_static(void)
     close_port_share();
 #endif
 
-#if defined(MEASURE_TLS_HANDSHAKE_STATS) && defined(ENABLE_CRYPTO)
+#if defined(MEASURE_TLS_HANDSHAKE_STATS)
     show_tls_performance_stats();
 #endif
 }
@@ -998,7 +992,6 @@ print_openssl_info(const struct options *options)
     /*
      * OpenSSL info print mode?
      */
-#ifdef ENABLE_CRYPTO
     if (options->show_ciphers || options->show_digests || options->show_engines
         || options->show_tls_ciphers || options->show_curves)
     {
@@ -1016,7 +1009,8 @@ print_openssl_info(const struct options *options)
         }
         if (options->show_tls_ciphers)
         {
-            show_available_tls_ciphers(options->cipher_list);
+            show_available_tls_ciphers(options->cipher_list,
+                                       options->tls_cert_profile);
         }
         if (options->show_curves)
         {
@@ -1024,7 +1018,6 @@ print_openssl_info(const struct options *options)
         }
         return true;
     }
-#endif /* ifdef ENABLE_CRYPTO */
     return false;
 }
 
@@ -1034,7 +1027,6 @@ print_openssl_info(const struct options *options)
 bool
 do_genkey(const struct options *options)
 {
-#ifdef ENABLE_CRYPTO
     if (options->genkey)
     {
         int nbits_written;
@@ -1054,7 +1046,6 @@ do_genkey(const struct options *options)
             options->shared_secret_file);
         return true;
     }
-#endif
     return false;
 }
 
@@ -1070,10 +1061,8 @@ do_persist_tuntap(const struct options *options)
         notnull(options->dev, "TUN/TAP device (--dev)");
         if (options->ce.remote || options->ifconfig_local
             || options->ifconfig_remote_netmask
-#ifdef ENABLE_CRYPTO
             || options->shared_secret_file
             || options->tls_server || options->tls_client
-#endif
             )
         {
             msg(M_FATAL|M_OPTERR,
@@ -1225,12 +1214,10 @@ const char *
 format_common_name(struct context *c, struct gc_arena *gc)
 {
     struct buffer out = alloc_buf_gc(256, gc);
-#ifdef ENABLE_CRYPTO
     if (c->c2.tls_multi)
     {
         buf_printf(&out, "[%s] ", tls_common_name(c->c2.tls_multi, false));
     }
-#endif
     return BSTR(&out);
 }
 
@@ -1332,7 +1319,6 @@ do_init_timers(struct context *c, bool deferred)
 #endif
 
         /* initialize packet_id persistence timer */
-#ifdef ENABLE_CRYPTO
         if (c->options.packet_id_file)
         {
             event_timeout_init(&c->c2.packet_id_persist_interval, 60, now);
@@ -1341,7 +1327,6 @@ do_init_timers(struct context *c, bool deferred)
         /* initialize tmp_int optimization that limits the number of times we call
          * tls_multi_process in the main event loop */
         interval_init(&c->c2.tmp_int, TLS_MULTI_HORIZON, TLS_MULTI_REFRESH);
-#endif
     }
 }
 
@@ -1484,7 +1469,6 @@ initialization_sequence_completed(struct context *c, const unsigned int flags)
     do_uid_gid_chroot(c, true);
 
 
-#ifdef ENABLE_CRYPTO
     /*
      * In some cases (i.e. when receiving auth-token via
      * push-reply) the auth-nocache option configured on the
@@ -1496,7 +1480,6 @@ initialization_sequence_completed(struct context *c, const unsigned int flags)
     {
         delayed_auth_pass_purge();
     }
-#endif /* ENABLE_CRYPTO */
 
     /* Test if errors */
     if (flags & ISC_ERRORS)
@@ -2135,12 +2118,10 @@ pull_permission_mask(const struct context *c)
         flags |= (OPT_P_ROUTE | OPT_P_IPWIN32);
     }
 
-#ifdef ENABLE_CRYPTO
     if (c->options.ncp_enabled)
     {
         flags |= OPT_P_NCP;
     }
-#endif
 
     return flags;
 }
@@ -2229,7 +2210,6 @@ do_deferred_options(struct context *c, const unsigned int found)
         msg(D_PUSH, "OPTIONS IMPORT: environment modified");
     }
 
-#ifdef ENABLE_CRYPTO
     if (found & OPT_P_PEER_ID)
     {
         msg(D_PUSH, "OPTIONS IMPORT: peer-id set");
@@ -2270,7 +2250,7 @@ do_deferred_options(struct context *c, const unsigned int found)
             return false;
         }
     }
-#endif /* ifdef ENABLE_CRYPTO */
+
     return true;
 }
 
@@ -2422,18 +2402,14 @@ frame_finalize_options(struct context *c, const struct options *o)
 static void
 key_schedule_free(struct key_schedule *ks, bool free_ssl_ctx)
 {
-#ifdef ENABLE_CRYPTO
     free_key_ctx_bi(&ks->static_key);
     if (tls_ctx_initialised(&ks->ssl_ctx) && free_ssl_ctx)
     {
         tls_ctx_free(&ks->ssl_ctx);
         free_key_ctx_bi(&ks->tls_wrap_key);
     }
-#endif /* ENABLE_CRYPTO */
     CLEAR(*ks);
 }
-
-#ifdef ENABLE_CRYPTO
 
 static void
 init_crypto_pre(struct context *c, const unsigned int flags)
@@ -2693,11 +2669,23 @@ do_init_crypto_tls(struct context *c, const unsigned int flags)
     to.packet_timeout = options->tls_timeout;
     to.renegotiate_bytes = options->renegotiate_bytes;
     to.renegotiate_packets = options->renegotiate_packets;
-    to.renegotiate_seconds = options->renegotiate_seconds;
+    if (options->renegotiate_seconds_min < 0)
+    {
+        /* Add 10% jitter to reneg-sec by default (server side only) */
+        int auto_jitter = options->mode != MODE_SERVER ? 0 :
+                get_random() % max_int(options->renegotiate_seconds / 10, 1);
+        to.renegotiate_seconds = options->renegotiate_seconds - auto_jitter;
+    }
+    else
+    {
+        /* Add user-specified jitter to reneg-sec */
+        to.renegotiate_seconds = options->renegotiate_seconds -
+                (get_random() % max_int(options->renegotiate_seconds
+                                        - options->renegotiate_seconds_min, 1));
+    }
     to.single_session = options->single_session;
     to.mode = options->mode;
     to.pull = options->pull;
-#ifdef ENABLE_PUSH_PEER_INFO
     if (options->push_peer_info)        /* all there is */
     {
         to.push_peer_info_detail = 2;
@@ -2710,7 +2698,6 @@ do_init_crypto_tls(struct context *c, const unsigned int flags)
     {
         to.push_peer_info_detail = 0;
     }
-#endif
 
     /* should we not xmit any packets until we get an initial
      * response from client? */
@@ -2866,12 +2853,10 @@ do_init_crypto_none(const struct context *c)
         "protected against man-in-the-middle changes. "
         "PLEASE DO RECONSIDER THIS CONFIGURATION!");
 }
-#endif /* ifdef ENABLE_CRYPTO */
 
 static void
 do_init_crypto(struct context *c, const unsigned int flags)
 {
-#ifdef ENABLE_CRYPTO
     if (c->options.shared_secret_file)
     {
         do_init_crypto_static(c, flags);
@@ -2884,11 +2869,6 @@ do_init_crypto(struct context *c, const unsigned int flags)
     {
         do_init_crypto_none(c);
     }
-#else /* ENABLE_CRYPTO */
-    msg(M_WARN,
-        "******* WARNING *******: " PACKAGE_NAME
-        " built without crypto library -- encryption and authentication features disabled -- all data will be tunnelled as cleartext");
-#endif /* ENABLE_CRYPTO */
 }
 
 static void
@@ -3087,7 +3067,6 @@ do_option_warnings(struct context *c)
 #endif /* if P2MP_SERVER */
 #endif /* if P2MP */
 
-#ifdef ENABLE_CRYPTO
     if (!o->replay)
     {
         msg(M_WARN, "WARNING: You have disabled Replay Protection (--no-replay) which may make " PACKAGE_NAME " less secure");
@@ -3109,7 +3088,6 @@ do_option_warnings(struct context *c)
     {
         msg(M_WARN, "WARNING: --ns-cert-type is DEPRECATED.  Use --remote-cert-tls instead.");
     }
-#endif /* ifdef ENABLE_CRYPTO */
 
     /* If a script is used, print appropiate warnings */
     if (o->user_script_used)
@@ -3132,9 +3110,7 @@ do_option_warnings(struct context *c)
 static void
 do_init_frame_tls(struct context *c)
 {
-#ifdef ENABLE_CRYPTO
     do_init_finalize_tls_frame(c);
-#endif
 }
 
 struct context_buffers *
@@ -3149,10 +3125,8 @@ init_context_buffers(const struct frame *frame)
 
     b->aux_buf = alloc_buf(BUF_SIZE(frame));
 
-#ifdef ENABLE_CRYPTO
     b->encrypt_buf = alloc_buf(BUF_SIZE(frame));
     b->decrypt_buf = alloc_buf(BUF_SIZE(frame));
-#endif
 
 #ifdef USE_COMP
     b->compress_buf = alloc_buf(BUF_SIZE(frame));
@@ -3176,10 +3150,8 @@ free_context_buffers(struct context_buffers *b)
         free_buf(&b->decompress_buf);
 #endif
 
-#ifdef ENABLE_CRYPTO
         free_buf(&b->encrypt_buf);
         free_buf(&b->decrypt_buf);
-#endif
 
         free(b);
     }
@@ -3315,14 +3287,12 @@ do_compute_occ_strings(struct context *c)
         options_string_version(c->c2.options_string_remote, &gc),
         c->c2.options_string_remote);
 
-#ifdef ENABLE_CRYPTO
     if (c->c2.tls_multi)
     {
         tls_multi_init_set_options(c->c2.tls_multi,
                                    c->c2.options_string_local,
                                    c->c2.options_string_remote);
     }
-#endif
 
     gc_free(&gc);
 }
@@ -3396,7 +3366,6 @@ do_close_free_buf(struct context *c)
 static void
 do_close_tls(struct context *c)
 {
-#ifdef ENABLE_CRYPTO
     if (c->c2.tls_multi)
     {
         tls_multi_free(c->c2.tls_multi, true);
@@ -3415,7 +3384,12 @@ do_close_tls(struct context *c)
     }
     c->c2.options_string_local = c->c2.options_string_remote = NULL;
 #endif
-#endif
+
+    if (c->c2.pulled_options_state)
+    {
+        md_ctx_cleanup(c->c2.pulled_options_state);
+        md_ctx_free(c->c2.pulled_options_state);
+    }
 }
 
 /*
@@ -3480,14 +3454,12 @@ do_close_link_socket(struct context *c)
 static void
 do_close_packet_id(struct context *c)
 {
-#ifdef ENABLE_CRYPTO
     packet_id_free(&c->c2.crypto_options.packet_id);
     packet_id_persist_save(&c->c1.pid_persist);
     if (!(c->sig->signal_received == SIGUSR1))
     {
         packet_id_persist_close(&c->c1.pid_persist);
     }
-#endif
 }
 
 #ifdef ENABLE_FRAGMENT
@@ -3666,7 +3638,6 @@ do_setup_fast_io(struct context *c)
 static void
 do_signal_on_tls_errors(struct context *c)
 {
-#ifdef ENABLE_CRYPTO
     if (c->options.tls_exit)
     {
         c->c2.tls_exit_signal = SIGTERM;
@@ -3675,7 +3646,6 @@ do_signal_on_tls_errors(struct context *c)
     {
         c->c2.tls_exit_signal = SIGUSR1;
     }
-#endif
 }
 
 #ifdef ENABLE_PLUGIN
@@ -4355,7 +4325,6 @@ inherit_context_child(struct context *dest,
     /* c1 init */
     packet_id_persist_init(&dest->c1.pid_persist);
 
-#ifdef ENABLE_CRYPTO
     dest->c1.ks.key_type = src->c1.ks.key_type;
     /* inherit SSL context */
     dest->c1.ks.ssl_ctx = src->c1.ks.ssl_ctx;
@@ -4365,7 +4334,6 @@ inherit_context_child(struct context *dest,
     dest->c1.ciphername = src->c1.ciphername;
     dest->c1.authname = src->c1.authname;
     dest->c1.keysize = src->c1.keysize;
-#endif
 
     /* options */
     dest->options = src->options;
@@ -4439,9 +4407,7 @@ inherit_context_top(struct context *dest,
     /* detach plugins */
     dest->plugins_owned = false;
 
-#ifdef ENABLE_CRYPTO
     dest->c2.tls_multi = NULL;
-#endif
 
     /* detach c1 ownership */
     dest->c1.tuntap_owned = false;
@@ -4499,8 +4465,6 @@ close_context(struct context *c, int sig, unsigned int flags)
     }
 }
 
-#ifdef ENABLE_CRYPTO
-
 /*
  * Do a loopback test
  * on the crypto subsystem.
@@ -4528,12 +4492,9 @@ test_crypto_thread(void *arg)
     return NULL;
 }
 
-#endif /* ENABLE_CRYPTO */
-
 bool
 do_test_crypto(const struct options *o)
 {
-#ifdef ENABLE_CRYPTO
     if (o->test_crypto)
     {
         struct context c;
@@ -4548,6 +4509,5 @@ do_test_crypto(const struct options *o)
         test_crypto_thread((void *) &c);
         return true;
     }
-#endif
     return false;
 }

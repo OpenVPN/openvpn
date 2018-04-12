@@ -5,7 +5,7 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2002-2017 OpenVPN Technologies, Inc. <sales@openvpn.net>
+ *  Copyright (C) 2002-2018 OpenVPN Inc <sales@openvpn.net>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -177,14 +177,6 @@ buf_assign(struct buffer *dest, const struct buffer *src)
         return false;
     }
     return buf_write(dest, BPTR(src), BLEN(src));
-}
-
-struct buffer
-clear_buf(void)
-{
-    struct buffer buf;
-    CLEAR(buf);
-    return buf;
 }
 
 void
@@ -1177,7 +1169,7 @@ buffer_list_reset(struct buffer_list *ol)
 }
 
 void
-buffer_list_push(struct buffer_list *ol, const unsigned char *str)
+buffer_list_push(struct buffer_list *ol, const char *str)
 {
     if (str)
     {
@@ -1191,7 +1183,7 @@ buffer_list_push(struct buffer_list *ol, const unsigned char *str)
 }
 
 struct buffer_entry *
-buffer_list_push_data(struct buffer_list *ol, const uint8_t *data, size_t size)
+buffer_list_push_data(struct buffer_list *ol, const void *data, size_t size)
 {
     struct buffer_entry *e = NULL;
     if (data && (!ol->max_size || ol->size < ol->max_size))
@@ -1231,7 +1223,8 @@ buffer_list_peek(struct buffer_list *ol)
 }
 
 void
-buffer_list_aggregate_separator(struct buffer_list *bl, const size_t max, const char *sep)
+buffer_list_aggregate_separator(struct buffer_list *bl, const size_t max_len,
+                                const char *sep)
 {
     int sep_len = strlen(sep);
 
@@ -1240,9 +1233,15 @@ buffer_list_aggregate_separator(struct buffer_list *bl, const size_t max, const 
         struct buffer_entry *more = bl->head;
         size_t size = 0;
         int count = 0;
-        for (count = 0; more && size <= max; ++count)
+        for (count = 0; more; ++count)
         {
-            size += BLEN(&more->buf) + sep_len;
+            size_t extra_len = BLEN(&more->buf) + sep_len;
+            if (size + extra_len > max_len)
+            {
+                break;
+            }
+
+            size += extra_len;
             more = more->next;
         }
 
@@ -1252,8 +1251,7 @@ buffer_list_aggregate_separator(struct buffer_list *bl, const size_t max, const 
             struct buffer_entry *e = bl->head, *f;
 
             ALLOC_OBJ_CLEAR(f, struct buffer_entry);
-            f->buf.data = malloc(size);
-            check_malloc_return(f->buf.data);
+            f->buf = alloc_buf(size + 1); /* prevent 0-byte malloc */
             f->buf.capacity = size;
             for (i = 0; e && i < count; ++i)
             {
@@ -1265,6 +1263,7 @@ buffer_list_aggregate_separator(struct buffer_list *bl, const size_t max, const 
                 e = next;
             }
             bl->head = f;
+            bl->size -= count - 1;
             f->next = more;
             if (!more)
             {
@@ -1325,7 +1324,7 @@ buffer_list_file(const char *fn, int max_line_len)
             bl = buffer_list_new(0);
             while (fgets(line, max_line_len, fp) != NULL)
             {
-                buffer_list_push(bl, (unsigned char *)line);
+                buffer_list_push(bl, line);
             }
             free(line);
         }

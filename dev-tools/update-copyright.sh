@@ -2,7 +2,7 @@
 # update-copyright-sh - Simple tool to update the Copyright lines
 #                       in all files checked into git
 #
-# Copyright (C) 2016-2017 David Sommerseth <davids@openvpn.net>
+# Copyright (C) 2016-2018 David Sommerseth <davids@openvpn.net>
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License

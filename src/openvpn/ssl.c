@@ -5,8 +5,8 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2002-2017 OpenVPN Technologies, Inc. <sales@openvpn.net>
- *  Copyright (C) 2010-2017 Fox Crypto B.V. <openvpn@fox-it.com>
+ *  Copyright (C) 2002-2018 OpenVPN Inc <sales@openvpn.net>
+ *  Copyright (C) 2010-2018 Fox Crypto B.V. <openvpn@fox-it.com>
  *  Copyright (C) 2008-2013 David Sommerseth <dazo@users.sourceforge.net>
  *
  *  This program is free software; you can redistribute it and/or modify
@@ -42,8 +42,6 @@
 
 #include "syshead.h"
 #include "win32.h"
-
-#if defined(ENABLE_CRYPTO)
 
 #include "error.h"
 #include "common.h"
@@ -530,6 +528,10 @@ tls_version_parse(const char *vstr, const char *extra)
     {
         return TLS_VER_1_2;
     }
+    else if (!strcmp(vstr, "1.3") && TLS_VER_1_3 <= max_version)
+    {
+        return TLS_VER_1_3;
+    }
     else if (extra && !strcmp(extra, "or-highest"))
     {
         return max_version;
@@ -616,12 +618,18 @@ init_ssl(const struct options *options, struct tls_root_ctx *new_ctx)
         tls_ctx_client_new(new_ctx);
     }
 
+    /* Restrict allowed certificate crypto algorithms */
+    tls_ctx_set_cert_profile(new_ctx, options->tls_cert_profile);
+
     /* Allowable ciphers */
     /* Since @SECLEVEL also influces loading of certificates, set the
      * cipher restrictions before loading certificates */
     tls_ctx_restrict_ciphers(new_ctx, options->cipher_list);
 
-    tls_ctx_set_options(new_ctx, options->ssl_flags);
+    if (!tls_ctx_set_options(new_ctx, options->ssl_flags))
+    {
+        goto err;
+    }
 
     if (options->pkcs12_file)
     {
@@ -2234,7 +2242,6 @@ push_peer_info(struct buffer *buf, struct tls_session *session)
     struct gc_arena gc = gc_new();
     bool ret = false;
 
-#ifdef ENABLE_PUSH_PEER_INFO
     if (session->opt->push_peer_info_detail > 0)
     {
         struct env_set *es = session->opt->es;
@@ -2315,7 +2322,6 @@ push_peer_info(struct buffer *buf, struct tls_session *session)
         }
     }
     else
-#endif /* ifdef ENABLE_PUSH_PEER_INFO */
     {
         if (!write_empty_string(buf)) /* no peer info */
         {
@@ -2732,9 +2738,9 @@ tls_process(struct tls_multi *multi,
                 && ks->n_packets >= session->opt->renegotiate_packets)
             || (packet_id_close_to_wrapping(&ks->crypto_options.packet_id.send))))
     {
-        msg(D_TLS_DEBUG_LOW,
-            "TLS: soft reset sec=%d bytes=" counter_format "/%d pkts=" counter_format "/%d",
-            (int)(ks->established + session->opt->renegotiate_seconds - now),
+        msg(D_TLS_DEBUG_LOW, "TLS: soft reset sec=%d/%d bytes=" counter_format
+            "/%d pkts=" counter_format "/%d",
+            (int) (now - ks->established), session->opt->renegotiate_seconds,
             ks->n_bytes, session->opt->renegotiate_bytes,
             ks->n_packets, session->opt->renegotiate_packets);
         key_state_soft_reset(session);
@@ -2936,6 +2942,9 @@ tls_process(struct tls_multi *multi,
             {
                 state_change = true;
                 dmsg(D_TLS_DEBUG, "TLS -> Incoming Plaintext");
+
+                /* More data may be available, wake up again asap to check. */
+                *wakeup = 0;
             }
         }
 
@@ -3355,7 +3364,7 @@ tls_pre_decrypt(struct tls_multi *multi,
                 {
                     if (!ks->crypto_options.key_ctx_bi.initialized)
                     {
-                        msg(D_TLS_DEBUG_LOW,
+                        msg(D_MULTI_DROPPED,
                             "Key %s [%d] not initialized (yet), dropping packet.",
                             print_link_socket_actual(from, &gc), key_id);
                         goto error_lite;
@@ -4242,10 +4251,3 @@ delayed_auth_pass_purge(void)
     auth_user_pass.wait_for_push = false;
     purge_user_pass(&auth_user_pass, false);
 }
-
-#else  /* if defined(ENABLE_CRYPTO) */
-static void
-dummy(void)
-{
-}
-#endif /* ENABLE_CRYPTO */

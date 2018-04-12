@@ -5,8 +5,8 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2002-2017 OpenVPN Technologies, Inc. <sales@openvpn.net>
- *  Copyright (C) 2010-2017 Fox Crypto B.V. <openvpn@fox-it.com>
+ *  Copyright (C) 2002-2018 OpenVPN Inc <sales@openvpn.net>
+ *  Copyright (C) 2010-2018 Fox Crypto B.V. <openvpn@fox-it.com>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -28,8 +28,6 @@
 
 #ifndef OPENVPN_SSL_H
 #define OPENVPN_SSL_H
-
-#if defined(ENABLE_CRYPTO)
 
 #include "basic.h"
 #include "common.h"
@@ -599,7 +597,5 @@ void extract_x509_field_test(void);
 bool is_hard_reset(int op, int key_method);
 
 void delayed_auth_pass_purge(void);
-
-#endif /* ENABLE_CRYPTO */
 
 #endif /* ifndef OPENVPN_SSL_H */

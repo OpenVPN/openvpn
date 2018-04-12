@@ -5,7 +5,7 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2002-2017 OpenVPN Technologies, Inc. <sales@openvpn.net>
+ *  Copyright (C) 2002-2018 OpenVPN Inc <sales@openvpn.net>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -75,7 +75,7 @@ struct pf_context {
     bool enabled;
     struct pf_set *pfs;
 #ifdef PLUGIN_PF
-    char *filename;
+    const char *filename;
     time_t file_last_mod;
     unsigned int n_check_reload;
     struct event_timeout reload;

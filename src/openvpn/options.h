@@ -5,7 +5,7 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2002-2017 OpenVPN Technologies, Inc. <sales@openvpn.net>
+ *  Copyright (C) 2002-2018 OpenVPN Inc <sales@openvpn.net>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -41,9 +41,7 @@
 #include "comp.h"
 #include "pushlist.h"
 #include "clinat.h"
-#ifdef ENABLE_CRYPTO
 #include "crypto_backend.h"
-#endif
 
 
 /*
@@ -81,7 +79,7 @@ struct options_pre_pull
 };
 
 #endif
-#if defined(ENABLE_CRYPTO) && !defined(ENABLE_CRYPTO_OPENSSL) && !defined(ENABLE_CRYPTO_MBEDTLS)
+#if !defined(ENABLE_CRYPTO_OPENSSL) && !defined(ENABLE_CRYPTO_MBEDTLS)
 #error "At least one of OpenSSL or mbed TLS needs to be defined."
 #endif
 
@@ -197,7 +195,6 @@ struct options
     bool persist_config;
     int persist_mode;
 
-#ifdef ENABLE_CRYPTO
     const char *key_pass_file;
     bool show_ciphers;
     bool show_digests;
@@ -205,7 +202,6 @@ struct options
     bool show_tls_ciphers;
     bool show_curves;
     bool genkey;
-#endif
 
     /* Networking parms */
     int connect_retry_max;
@@ -477,7 +473,6 @@ struct options
 #endif
 #endif /* if P2MP */
 
-#ifdef ENABLE_CRYPTO
     /* Cipher parms */
     const char *shared_secret_file;
     const char *shared_secret_file_inline;
@@ -511,6 +506,7 @@ struct options
     const char *priv_key_file;
     const char *pkcs12_file;
     const char *cipher_list;
+    const char *tls_cert_profile;
     const char *ecdh_curve;
     const char *tls_verify;
     int verify_x509_type;
@@ -557,6 +553,7 @@ struct options
     int renegotiate_bytes;
     int renegotiate_packets;
     int renegotiate_seconds;
+    int renegotiate_seconds_min;
 
     /* Data channel key handshake must finalize
      * within n seconds of handshake initiation. */
@@ -581,13 +578,9 @@ struct options
     /* Allow only one session */
     bool single_session;
 
-#ifdef ENABLE_PUSH_PEER_INFO
     bool push_peer_info;
-#endif
 
     bool tls_exit;
-
-#endif /* ENABLE_CRYPTO */
 
     const struct x509_track *x509_track;
 

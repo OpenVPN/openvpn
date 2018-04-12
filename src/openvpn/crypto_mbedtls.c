@@ -5,8 +5,8 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2002-2017 OpenVPN Technologies, Inc. <sales@openvpn.net>
- *  Copyright (C) 2010-2017 Fox Crypto B.V. <openvpn@fox-it.com>
+ *  Copyright (C) 2002-2018 OpenVPN Inc <sales@openvpn.net>
+ *  Copyright (C) 2010-2018 Fox Crypto B.V. <openvpn@fox-it.com>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -34,7 +34,7 @@
 
 #include "syshead.h"
 
-#if defined(ENABLE_CRYPTO) && defined(ENABLE_CRYPTO_MBEDTLS)
+#if defined(ENABLE_CRYPTO_MBEDTLS)
 
 #include "errlevel.h"
 #include "basic.h"
@@ -804,6 +804,7 @@ md_ctx_init(mbedtls_md_context_t *ctx, const mbedtls_md_info_t *kt)
 void
 md_ctx_cleanup(mbedtls_md_context_t *ctx)
 {
+    mbedtls_md_free(ctx);
 }
 
 int
@@ -903,4 +904,4 @@ hmac_ctx_final(mbedtls_md_context_t *ctx, uint8_t *dst)
     ASSERT(0 == mbedtls_md_hmac_finish(ctx, dst));
 }
 
-#endif /* ENABLE_CRYPTO && ENABLE_CRYPTO_MBEDTLS */
+#endif /* ENABLE_CRYPTO_MBEDTLS */

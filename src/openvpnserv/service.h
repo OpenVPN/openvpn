@@ -5,7 +5,7 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2013-2017 Heiko Hund <heiko.hund@sophos.com>
+ *  Copyright (C) 2013-2018 Heiko Hund <heiko.hund@sophos.com>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -73,10 +73,12 @@ typedef struct {
 
 extern openvpn_service_t automatic_service;
 extern openvpn_service_t interactive_service;
+extern LPCTSTR service_instance;
 
-
+VOID WINAPI ServiceStartAutomaticOwn(DWORD argc, LPTSTR *argv);
 VOID WINAPI ServiceStartAutomatic(DWORD argc, LPTSTR *argv);
 
+VOID WINAPI ServiceStartInteractiveOwn(DWORD argc, LPTSTR *argv);
 VOID WINAPI ServiceStartInteractive(DWORD argc, LPTSTR *argv);
 
 int openvpn_vsntprintf(LPTSTR str, size_t size, LPCTSTR format, va_list arglist);
