@@ -44,7 +44,7 @@
 
 #ifdef USE_VALGRIND
 
-#include "valgrind/memcheck.h"
+#include <valgrind/memcheck.h>
 
 #define VALGRIND_MAKE_READABLE(addr, len)
 
@@ -84,7 +84,7 @@
  *  #define INTERNAL_MEMORY_SPACE (1024 * 1024 * 50)
  */
 
-#include "dmalloc.h"
+#include <dmalloc.h>
 
 #define openvpn_dmalloc(file, line, size) dmalloc_malloc((file), (line), (size), DMALLOC_FUNC_MALLOC, 0, 0)
 

@@ -39,14 +39,14 @@
  */
 
 #if defined(HAVE_LZO_LZOUTIL_H)
-#include "lzo/lzoutil.h"
+#include <lzo/lzoutil.h>
 #elif defined(HAVE_LZOUTIL_H)
-#include "lzoutil.h"
+#include <lzoutil.h>
 #endif
 #if defined(HAVE_LZO_LZO1X_H)
-#include "lzo/lzo1x.h"
+#include <lzo/lzo1x.h>
 #elif defined(HAVE_LZO1X_H)
-#include "lzo1x.h"
+#include <lzo1x.h>
 #endif
 
 #include "buffer.h"
