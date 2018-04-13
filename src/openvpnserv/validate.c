@@ -301,7 +301,7 @@ IsUserInGroup(PSID sid, const PTOKEN_GROUPS token_groups, const WCHAR *group_nam
             break;
         }
         /* If a match is already found, ret == TRUE and the loop is skipped */
-        for (int i = 0; i < nread && !ret; ++i)
+        for (DWORD i = 0; i < nread && !ret; ++i)
         {
             ret = EqualSid(members[i].lgrmi0_sid, sid);
         }

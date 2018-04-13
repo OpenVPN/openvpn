@@ -135,7 +135,7 @@ match(const WIN32_FIND_DATA *find, LPCTSTR ext)
  * Modify the extension on a filename.
  */
 static bool
-modext(LPTSTR dest, int size, LPCTSTR src, LPCTSTR newext)
+modext(LPTSTR dest, size_t size, LPCTSTR src, LPCTSTR newext)
 {
     size_t i;
 

@@ -40,7 +40,7 @@ openvpn_vsntprintf(LPTSTR str, size_t size, LPCTSTR format, va_list arglist)
         len = _vsntprintf(str, size, format, arglist);
         str[size - 1] = 0;
     }
-    return (len >= 0 && len < size);
+    return (len >= 0 && (size_t)len < size);
 }
 int
 openvpn_sntprintf(LPTSTR str, size_t size, LPCTSTR format, ...)

@@ -187,7 +187,7 @@ typedef enum {
 static DWORD
 AsyncPipeOp(async_op_t op, HANDLE pipe, LPVOID buffer, DWORD size, DWORD count, LPHANDLE events)
 {
-    int i;
+    DWORD i;
     BOOL success;
     HANDLE io_event;
     DWORD res, bytes = 0;
@@ -932,7 +932,7 @@ static DWORD WINAPI
 RegisterDNS(LPVOID unused)
 {
     DWORD err;
-    DWORD i;
+    size_t i;
     DWORD timeout = RDNS_TIMEOUT * 1000; /* in milliseconds */
 
     /* path of ipconfig command */
@@ -947,7 +947,6 @@ RegisterDNS(LPVOID unused)
         { ipcfg, L"ipconfig /flushdns",    timeout },
         { ipcfg, L"ipconfig /registerdns", timeout },
     };
-    int ncmds = sizeof(cmds) / sizeof(cmds[0]);
 
     HANDLE wait_handles[2] = {rdns_semaphore, exit_event};
 
@@ -957,7 +956,7 @@ RegisterDNS(LPVOID unused)
     if (WaitForMultipleObjects(2, wait_handles, FALSE, timeout) == WAIT_OBJECT_0)
     {
         /* Semaphore locked */
-        for (i = 0; i < ncmds; ++i)
+        for (i = 0; i < _countof(cmds); ++i)
         {
             ExecCommand(cmds[i].argv0, cmds[i].cmdline, cmds[i].timeout);
         }
