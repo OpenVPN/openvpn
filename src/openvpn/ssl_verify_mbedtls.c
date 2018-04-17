@@ -63,7 +63,7 @@ verify_callback(void *session_obj, mbedtls_x509_crt *cert, int cert_depth,
     cert_hash_remember(session, cert_depth, &cert_fingerprint);
 
     /* did peer present cert which was signed by our root cert? */
-    if (*flags != 0)
+    if (*flags != 0 && !session->opt->ca_file_none)
     {
         int ret = 0;
         char errstr[512] = { 0 };

@@ -693,7 +693,7 @@ init_ssl(const struct options *options, struct tls_root_ctx *new_ctx)
         }
     }
 
-    if (options->ca_file || options->ca_path)
+    if ((!options->ca_file_none && options->ca_file) || options->ca_path)
     {
         tls_ctx_load_ca(new_ctx, options->ca_file, options->ca_file_inline,
                         options->ca_path, options->tls_server);

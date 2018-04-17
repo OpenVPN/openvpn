@@ -3259,7 +3259,10 @@ options_postprocess_filechecks(struct options *options)
 
     /* ** SSL/TLS/crypto related files ** */
     errs |= check_file_access(CHKACC_FILE|CHKACC_INLINE, options->dh_file, R_OK, "--dh");
-    errs |= check_file_access(CHKACC_FILE|CHKACC_INLINE, options->ca_file, R_OK, "--ca");
+    if (!options->ca_file_none)
+    {
+        errs |= check_file_access(CHKACC_FILE|CHKACC_INLINE, options->ca_file, R_OK, "--ca");
+    }
     errs |= check_file_access_chroot(options->chroot_dir, CHKACC_FILE, options->ca_path, R_OK, "--capath");
     errs |= check_file_access(CHKACC_FILE|CHKACC_INLINE, options->cert_file, R_OK, "--cert");
     errs |= check_file_access(CHKACC_FILE|CHKACC_INLINE, options->extra_certs_file, R_OK,
@@ -7637,6 +7640,10 @@ add_option(struct options *options,
         if (streq(p[1], INLINE_FILE_TAG) && p[2])
         {
             options->ca_file_inline = p[2];
+        }
+        else if (streq(p[1], "none"))
+        {
+            options->ca_file_none = true;
         }
     }
 #ifndef ENABLE_CRYPTO_MBEDTLS

@@ -270,6 +270,7 @@ struct tls_options
     uint8_t *verify_hash;
     hash_algo_type verify_hash_algo;
     char *x509_username_field;
+    bool ca_file_none;
 
     /* allow openvpn config info to be
      * passed over control channel */

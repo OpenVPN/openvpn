@@ -489,6 +489,7 @@ struct options
     /* TLS (control channel) parms */
     bool tls_server;
     bool tls_client;
+    bool ca_file_none;
     const char *ca_file;
     const char *ca_path;
     const char *dh_file;

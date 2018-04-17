@@ -2722,6 +2722,7 @@ do_init_crypto_tls(struct context *c, const unsigned int flags)
     to.remote_cert_eku = options->remote_cert_eku;
     to.verify_hash = options->verify_hash;
     to.verify_hash_algo = options->verify_hash_algo;
+    to.ca_file_none = options->ca_file_none;
 #ifdef ENABLE_X509ALTUSERNAME
     to.x509_username_field = (char *) options->x509_username_field;
 #else

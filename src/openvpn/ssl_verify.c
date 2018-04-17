@@ -720,7 +720,7 @@ verify_cert(struct tls_session *session, openvpn_x509_cert_t *cert, int cert_dep
     }
 
     /* verify level 1 cert, i.e. the CA that signed our leaf cert */
-    if (cert_depth == 1 && opt->verify_hash)
+    if ((opt->ca_file_none || cert_depth == 1) && opt->verify_hash)
     {
         struct buffer ca_hash = {0};
 
