@@ -320,6 +320,32 @@ Maintainer-visible changes
   use -std=gnu99 in CFLAGS.  This is known to be needed when doing
   i386/i686 builds on RHEL5.
 
+Version 2.4.6
+=============
+This is primarily a maintenance release with minor bugfixes and improvements,
+and one security relevant fix for the Windows Interactive Service.
+
+User visible changes
+--------------------
+- warn if the management interface is configured with a TCP port and
+  no password is set (because it might be possible to interfere with
+  OpenVPN operation by tricking other programs into connecting to the
+  management interface and inject unwanted commands)
+
+Bug fixes
+---------
+- CVE-2018-9336: fix potential double-free() in the Interactive Service
+  (Windows) on malformed input.
+
+- avoid possible integer overflow in wakeup computation (trac #922)
+
+- improve handling of incoming packet bursts for control channel data
+
+- fix compilation with older OpenSSL versions that were broken in 2.4.5
+
+- Windows + interactive Service: delete the IPv6 route to the "connected"
+  network on tun close
+
 
 Version 2.4.5
 =============

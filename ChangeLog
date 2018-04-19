@@ -1,6 +1,32 @@
 OpenVPN Change Log
 Copyright (C) 2002-2018 OpenVPN Inc <sales@openvpn.net>
 
+2018.04.19 -- Version 2.4.6
+David Sommerseth (1):
+      management: Warn if TCP port is used without password
+
+Gert Doering (2):
+      Correct version in ChangeLog - should be 2.4.5, was mistyped as 2.4.4
+      Fix potential double-free() in Interactive Service (CVE-2018-9336)
+
+Gert van Dijk (1):
+      manpage: improve description of --status and --status-version
+
+Joost Rijneveld (1):
+      Make return code external tls key match docs
+
+Selva Nair (3):
+      Delete the IPv6 route to the "connected" network on tun close
+      Management: warn about password only when the option is in use
+      Avoid overflow in wakeup time computation
+
+Simon Matter (1):
+      Add missing #ifdef SSL_OP_NO_TLSv1_1/2
+
+Steffan Karger (1):
+      Check for more data in control channel
+
+
 2018.02.28 -- Version 2.4.5
 Antonio Quartulli (4):
       reload HTTP proxy credentials when moving to the next connection profile
