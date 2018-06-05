@@ -47,13 +47,17 @@ struct ifconfig_pool_entry
 
 struct ifconfig_pool
 {
-    in_addr_t base;
-    int size;
-    int type;
     bool duplicate_cn;
-    bool ipv6;
-    struct in6_addr base_ipv6;
-    unsigned int size_ipv6;
+    struct {
+        int type;
+        in_addr_t base;
+        int size;
+    } ipv4;
+    struct {
+        bool enabled;
+        struct in6_addr base;
+        unsigned int size;
+    } ipv6;
     struct ifconfig_pool_entry *list;
 };
 
