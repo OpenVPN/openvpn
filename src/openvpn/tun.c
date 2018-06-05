@@ -890,7 +890,7 @@ do_ifconfig(struct tuntap *tt,
         bool do_ipv6 = false;
         struct argv argv = argv_new();
 
-        msg( M_DEBUG, "do_ifconfig, tt->did_ifconfig_ipv6_setup=%d",
+        msg( D_LOW, "do_ifconfig, tt->did_ifconfig_ipv6_setup=%d",
              tt->did_ifconfig_ipv6_setup );
 
         /*

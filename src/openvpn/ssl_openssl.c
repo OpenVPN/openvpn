@@ -622,7 +622,7 @@ tls_ctx_load_ecdh_params(struct tls_root_ctx *ctx, const char *curve_name
 
     EC_KEY_free(ecdh);
 #else  /* ifndef OPENSSL_NO_EC */
-    msg(M_DEBUG, "Your OpenSSL library was built without elliptic curve support."
+    msg(D_LOW, "Your OpenSSL library was built without elliptic curve support."
         " Skipping ECDH parameter loading.");
 #endif /* OPENSSL_NO_EC */
 }
