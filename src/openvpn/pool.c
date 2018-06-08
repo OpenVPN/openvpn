@@ -147,7 +147,7 @@ ifconfig_pool_verify_range(const int msglevel, const in_addr_t start, const in_a
 }
 
 struct ifconfig_pool *
-ifconfig_pool_init(int type, in_addr_t start, in_addr_t end,
+ifconfig_pool_init(enum pool_type type, in_addr_t start, in_addr_t end,
                    const bool duplicate_cn,
                    const bool ipv6_pool, const struct in6_addr ipv6_base,
                    const int ipv6_netbits )

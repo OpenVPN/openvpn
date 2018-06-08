@@ -34,8 +34,11 @@
 #define IFCONFIG_POOL_MAX         65536
 #define IFCONFIG_POOL_MIN_NETBITS    16
 
-#define IFCONFIG_POOL_30NET   0
-#define IFCONFIG_POOL_INDIV   1
+enum pool_type
+{
+    IFCONFIG_POOL_30NET,
+    IFCONFIG_POOL_INDIV
+};
 
 struct ifconfig_pool_entry
 {
@@ -49,7 +52,7 @@ struct ifconfig_pool
 {
     bool duplicate_cn;
     struct {
-        int type;
+        enum pool_type type;
         in_addr_t base;
         int size;
     } ipv4;
@@ -69,7 +72,7 @@ struct ifconfig_pool_persist
 
 typedef int ifconfig_pool_handle;
 
-struct ifconfig_pool *ifconfig_pool_init(int type, in_addr_t start, in_addr_t end, const bool duplicate_cn, const bool ipv6_pool, const struct in6_addr ipv6_base, const int ipv6_netbits );
+struct ifconfig_pool *ifconfig_pool_init(enum pool_type type, in_addr_t start, in_addr_t end, const bool duplicate_cn, const bool ipv6_pool, const struct in6_addr ipv6_base, const int ipv6_netbits );
 
 void ifconfig_pool_free(struct ifconfig_pool *pool);
 
