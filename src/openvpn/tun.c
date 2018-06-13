@@ -2600,7 +2600,6 @@ close_tun(struct tuntap *tt)
     }
     else if (tt)
     {
-        struct gc_arena gc = gc_new();
         struct argv argv = argv_new();
 
         /* setup command, close tun dev (clears tt->actual_name!), run command
@@ -2615,6 +2614,7 @@ close_tun(struct tuntap *tt)
         openvpn_execve_check(&argv, NULL, 0, "OpenBSD 'destroy tun interface' failed (non-critical)");
 
         free(tt);
+        argv_reset(&argv);
     }
 }
 
@@ -2685,7 +2685,6 @@ close_tun(struct tuntap *tt)
     }
     else if (tt)
     {
-        struct gc_arena gc = gc_new();
         struct argv argv = argv_new();
 
         /* setup command, close tun dev (clears tt->actual_name!), run command
@@ -2700,6 +2699,7 @@ close_tun(struct tuntap *tt)
         openvpn_execve_check(&argv, NULL, 0, "NetBSD 'destroy tun interface' failed (non-critical)");
 
         free(tt);
+        argv_reset(&argv);
     }
 }
 
@@ -2837,6 +2837,7 @@ close_tun(struct tuntap *tt)
         openvpn_execve_check(&argv, NULL, 0, "FreeBSD 'destroy tun interface' failed (non-critical)");
 
         free(tt);
+        argv_reset(&argv);
     }
 }
 
@@ -3308,6 +3309,7 @@ open_tun(const char *dev, const char *dev_type, const char *dev_node, struct tun
         env_set_add( es, "ODMDIR=/etc/objrepos" );
         openvpn_execve_check(&argv, es, S_FATAL, "AIX 'create tun interface' failed");
         env_set_destroy(es);
+        argv_reset(&argv);
     }
     else
     {
@@ -3333,7 +3335,6 @@ open_tun(const char *dev, const char *dev_type, const char *dev_node, struct tun
 void
 close_tun(struct tuntap *tt)
 {
-    struct gc_arena gc = gc_new();
     struct argv argv = argv_new();
     struct env_set *es = env_set_create(NULL);
 
@@ -3362,6 +3363,7 @@ close_tun(struct tuntap *tt)
 
     free(tt);
     env_set_destroy(es);
+    argv_reset(&argv);
 }
 
 int
