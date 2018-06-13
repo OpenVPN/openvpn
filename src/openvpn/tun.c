@@ -987,7 +987,6 @@ do_ifconfig(struct tuntap *tt,
             argv_msg(M_INFO, &argv);
             openvpn_execve_check(&argv, es, S_FATAL, "Linux ip -6 addr add failed");
         }
-        tt->did_ifconfig = true;
 #else  /* ifdef ENABLE_IPROUTE */
         if (tun)
         {
@@ -1026,7 +1025,6 @@ do_ifconfig(struct tuntap *tt,
             argv_msg(M_INFO, &argv);
             openvpn_execve_check(&argv, es, S_FATAL, "Linux ifconfig inet6 failed");
         }
-        tt->did_ifconfig = true;
 
 #endif /*ENABLE_IPROUTE*/
 #elif defined(TARGET_ANDROID)
@@ -1186,8 +1184,6 @@ do_ifconfig(struct tuntap *tt,
             add_route(&r, tt, 0, NULL, es);
         }
 
-        tt->did_ifconfig = true;
-
 #elif defined(TARGET_OPENBSD)
 
         in_addr_t remote_end;           /* for "virtual" subnet topology */
@@ -1265,7 +1261,6 @@ do_ifconfig(struct tuntap *tt,
             /* and, hooray, we explicitely need to add a route... */
             add_route_connected_v6_net(tt, es);
         }
-        tt->did_ifconfig = true;
 
 #elif defined(TARGET_NETBSD)
 
@@ -1327,7 +1322,6 @@ do_ifconfig(struct tuntap *tt,
             /* and, hooray, we explicitely need to add a route... */
             add_route_connected_v6_net(tt, es);
         }
-        tt->did_ifconfig = true;
 
 #elif defined(TARGET_DARWIN)
         /*
@@ -1384,7 +1378,6 @@ do_ifconfig(struct tuntap *tt,
 
         argv_msg(M_INFO, &argv);
         openvpn_execve_check(&argv, es, S_FATAL, "Mac OS X ifconfig failed");
-        tt->did_ifconfig = true;
 
         /* Add a network route for the local tun interface */
         if (!tun && tt->topology == TOP_SUBNET)
@@ -1457,7 +1450,6 @@ do_ifconfig(struct tuntap *tt,
 
         argv_msg(M_INFO, &argv);
         openvpn_execve_check(&argv, es, S_FATAL, "FreeBSD ifconfig failed");
-        tt->did_ifconfig = true;
 
         /* Add a network route for the local tun interface */
         if (!tun && tt->topology == TOP_SUBNET)
@@ -1507,7 +1499,6 @@ do_ifconfig(struct tuntap *tt,
 
             argv_msg(M_INFO, &argv);
             openvpn_execve_check(&argv, aix_es, S_FATAL, "AIX ifconfig failed");
-            tt->did_ifconfig = true;
 
             if (do_ipv6)
             {
@@ -1545,7 +1536,6 @@ do_ifconfig(struct tuntap *tt,
 
                     break;
             }
-            tt->did_ifconfig = true;
         }
 
         if (do_ipv6)
@@ -2104,7 +2094,7 @@ close_tun(struct tuntap *tt)
 {
     ASSERT(tt);
 
-    if (tt->type != DEV_TYPE_NULL && tt->did_ifconfig)
+    if (tt->type != DEV_TYPE_NULL && tt->did_ifconfig_setup)
     {
         struct argv argv = argv_new();
         struct gc_arena gc = gc_new();

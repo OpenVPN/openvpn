@@ -138,7 +138,6 @@ struct tuntap
 
     bool did_ifconfig_setup;
     bool did_ifconfig_ipv6_setup;
-    bool did_ifconfig;
 
     bool persistent_if;         /* if existed before, keep on program end */
 
