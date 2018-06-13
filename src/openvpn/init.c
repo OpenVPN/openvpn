@@ -1847,8 +1847,11 @@ static void
 do_close_tun_simple(struct context *c)
 {
     msg(D_CLOSE, "Closing TUN/TAP interface");
-    close_tun(c->c1.tuntap);
-    c->c1.tuntap = NULL;
+    if (c->c1.tuntap)
+    {
+        close_tun(c->c1.tuntap);
+        c->c1.tuntap = NULL;
+    }
     c->c1.tuntap_owned = false;
 #if P2MP
     CLEAR(c->c1.pulled_options_digest_save);

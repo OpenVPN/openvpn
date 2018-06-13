@@ -1900,11 +1900,10 @@ open_tun(const char *dev, const char *dev_type, const char *dev_node, struct tun
 void
 close_tun(struct tuntap *tt)
 {
-    if (tt)
-    {
-        close_tun_generic(tt);
-        free(tt);
-    }
+    ASSERT(tt);
+
+    close_tun_generic(tt);
+    free(tt);
 }
 
 int
@@ -2103,77 +2102,76 @@ tuncfg(const char *dev, const char *dev_type, const char *dev_node, int persist_
 void
 close_tun(struct tuntap *tt)
 {
-    if (tt)
+    ASSERT(tt);
+
+    if (tt->type != DEV_TYPE_NULL && tt->did_ifconfig)
     {
-        if (tt->type != DEV_TYPE_NULL && tt->did_ifconfig)
-        {
-            struct argv argv = argv_new();
-            struct gc_arena gc = gc_new();
+        struct argv argv = argv_new();
+        struct gc_arena gc = gc_new();
 
 #ifdef ENABLE_IPROUTE
-            if (is_tun_p2p(tt))
-            {
-                argv_printf(&argv,
-                            "%s addr del dev %s local %s peer %s",
-                            iproute_path,
-                            tt->actual_name,
-                            print_in_addr_t(tt->local, 0, &gc),
-                            print_in_addr_t(tt->remote_netmask, 0, &gc)
-                            );
-            }
-            else
-            {
-                argv_printf(&argv,
-                            "%s addr del dev %s %s/%d",
-                            iproute_path,
-                            tt->actual_name,
-                            print_in_addr_t(tt->local, 0, &gc),
-                            netmask_to_netbits2(tt->remote_netmask)
-                            );
-            }
-#else  /* ifdef ENABLE_IPROUTE */
+        if (is_tun_p2p(tt))
+        {
             argv_printf(&argv,
-                        "%s %s 0.0.0.0",
-                        IFCONFIG_PATH,
-                        tt->actual_name
-                        );
+                        "%s addr del dev %s local %s peer %s",
+                        iproute_path,
+                        tt->actual_name,
+                        print_in_addr_t(tt->local, 0, &gc),
+                        print_in_addr_t(tt->remote_netmask, 0, &gc)
+                       );
+        }
+        else
+        {
+            argv_printf(&argv,
+                        "%s addr del dev %s %s/%d",
+                        iproute_path,
+                        tt->actual_name,
+                        print_in_addr_t(tt->local, 0, &gc),
+                        netmask_to_netbits2(tt->remote_netmask)
+                       );
+        }
+#else  /* ifdef ENABLE_IPROUTE */
+        argv_printf(&argv,
+                    "%s %s 0.0.0.0",
+                    IFCONFIG_PATH,
+                    tt->actual_name
+                   );
 #endif /* ifdef ENABLE_IPROUTE */
 
-            argv_msg(M_INFO, &argv);
-            openvpn_execve_check(&argv, NULL, 0, "Linux ip addr del failed");
+        argv_msg(M_INFO, &argv);
+        openvpn_execve_check(&argv, NULL, 0, "Linux ip addr del failed");
 
-            if (tt->did_ifconfig_ipv6_setup)
-            {
-                const char *ifconfig_ipv6_local = print_in6_addr(tt->local_ipv6, 0, &gc);
+        if (tt->did_ifconfig_ipv6_setup)
+        {
+            const char *ifconfig_ipv6_local = print_in6_addr(tt->local_ipv6, 0, &gc);
 
 #ifdef ENABLE_IPROUTE
-                argv_printf(&argv, "%s -6 addr del %s/%d dev %s",
-                            iproute_path,
-                            ifconfig_ipv6_local,
-                            tt->netbits_ipv6,
-                            tt->actual_name
-                            );
-                argv_msg(M_INFO, &argv);
-                openvpn_execve_check(&argv, NULL, 0, "Linux ip -6 addr del failed");
+            argv_printf(&argv, "%s -6 addr del %s/%d dev %s",
+                        iproute_path,
+                        ifconfig_ipv6_local,
+                        tt->netbits_ipv6,
+                        tt->actual_name
+                       );
+            argv_msg(M_INFO, &argv);
+            openvpn_execve_check(&argv, NULL, 0, "Linux ip -6 addr del failed");
 #else  /* ifdef ENABLE_IPROUTE */
-                argv_printf(&argv,
-                            "%s %s del %s/%d",
-                            IFCONFIG_PATH,
-                            tt->actual_name,
-                            ifconfig_ipv6_local,
-                            tt->netbits_ipv6
-                            );
-                argv_msg(M_INFO, &argv);
-                openvpn_execve_check(&argv, NULL, 0, "Linux ifconfig inet6 del failed");
+            argv_printf(&argv,
+                        "%s %s del %s/%d",
+                        IFCONFIG_PATH,
+                        tt->actual_name,
+                        ifconfig_ipv6_local,
+                        tt->netbits_ipv6
+                       );
+            argv_msg(M_INFO, &argv);
+            openvpn_execve_check(&argv, NULL, 0, "Linux ifconfig inet6 del failed");
 #endif
-            }
-
-            argv_reset(&argv);
-            gc_free(&gc);
         }
-        close_tun_generic(tt);
-        free(tt);
+
+        argv_reset(&argv);
+        gc_free(&gc);
     }
+    close_tun_generic(tt);
+    free(tt);
 }
 
 int
@@ -2431,57 +2429,54 @@ open_tun(const char *dev, const char *dev_type, const char *dev_node, struct tun
 static void
 solaris_close_tun(struct tuntap *tt)
 {
-    if (tt)
+    /* IPv6 interfaces need to be 'manually' de-configured */
+    if (tt->did_ifconfig_ipv6_setup)
     {
-        /* IPv6 interfaces need to be 'manually' de-configured */
-        if (tt->did_ifconfig_ipv6_setup)
+        struct argv argv = argv_new();
+        argv_printf( &argv, "%s %s inet6 unplumb",
+                     IFCONFIG_PATH, tt->actual_name );
+        argv_msg(M_INFO, &argv);
+        openvpn_execve_check(&argv, NULL, 0, "Solaris ifconfig inet6 unplumb failed");
+        argv_reset(&argv);
+    }
+
+    if (tt->ip_fd >= 0)
+    {
+        struct lifreq ifr;
+        CLEAR(ifr);
+        strncpynt(ifr.lifr_name, tt->actual_name, sizeof(ifr.lifr_name));
+
+        if (ioctl(tt->ip_fd, SIOCGLIFFLAGS, &ifr) < 0)
         {
-            struct argv argv = argv_new();
-            argv_printf( &argv, "%s %s inet6 unplumb",
-                         IFCONFIG_PATH, tt->actual_name );
-            argv_msg(M_INFO, &argv);
-            openvpn_execve_check(&argv, NULL, 0, "Solaris ifconfig inet6 unplumb failed");
-            argv_reset(&argv);
+            msg(M_WARN | M_ERRNO, "Can't get iface flags");
         }
 
-        if (tt->ip_fd >= 0)
+        if (ioctl(tt->ip_fd, SIOCGLIFMUXID, &ifr) < 0)
         {
-            struct lifreq ifr;
-            CLEAR(ifr);
-            strncpynt(ifr.lifr_name, tt->actual_name, sizeof(ifr.lifr_name));
-
-            if (ioctl(tt->ip_fd, SIOCGLIFFLAGS, &ifr) < 0)
-            {
-                msg(M_WARN | M_ERRNO, "Can't get iface flags");
-            }
-
-            if (ioctl(tt->ip_fd, SIOCGLIFMUXID, &ifr) < 0)
-            {
-                msg(M_WARN | M_ERRNO, "Can't get multiplexor id");
-            }
-
-            if (tt->type == DEV_TYPE_TAP)
-            {
-                if (ioctl(tt->ip_fd, I_PUNLINK, ifr.lifr_arp_muxid) < 0)
-                {
-                    msg(M_WARN | M_ERRNO, "Can't unlink interface(arp)");
-                }
-            }
-
-            if (ioctl(tt->ip_fd, I_PUNLINK, ifr.lifr_ip_muxid) < 0)
-            {
-                msg(M_WARN | M_ERRNO, "Can't unlink interface(ip)");
-            }
-
-            close(tt->ip_fd);
-            tt->ip_fd = -1;
+            msg(M_WARN | M_ERRNO, "Can't get multiplexor id");
         }
 
-        if (tt->fd >= 0)
+        if (tt->type == DEV_TYPE_TAP)
         {
-            close(tt->fd);
-            tt->fd = -1;
+            if (ioctl(tt->ip_fd, I_PUNLINK, ifr.lifr_arp_muxid) < 0)
+            {
+                msg(M_WARN | M_ERRNO, "Can't unlink interface(arp)");
+            }
         }
+
+        if (ioctl(tt->ip_fd, I_PUNLINK, ifr.lifr_ip_muxid) < 0)
+        {
+            msg(M_WARN | M_ERRNO, "Can't unlink interface(ip)");
+        }
+
+        close(tt->ip_fd);
+        tt->ip_fd = -1;
+    }
+
+    if (tt->fd >= 0)
+    {
+        close(tt->fd);
+        tt->fd = -1;
     }
 }
 
@@ -2491,18 +2486,17 @@ solaris_close_tun(struct tuntap *tt)
 void
 close_tun(struct tuntap *tt)
 {
-    if (tt)
+    ASSERT(tt);
+
+    solaris_close_tun(tt);
+
+    if (tt->actual_name)
     {
-        solaris_close_tun(tt);
-
-        if (tt->actual_name)
-        {
-            free(tt->actual_name);
-        }
-
-        clear_tuntap(tt);
-        free(tt);
+        free(tt->actual_name);
     }
+
+    clear_tuntap(tt);
+    free(tt);
 }
 
 static void
@@ -2591,31 +2585,32 @@ open_tun(const char *dev, const char *dev_type, const char *dev_node, struct tun
 void
 close_tun(struct tuntap *tt)
 {
+    ASSERT(tt);
+
     /* only *TAP* devices need destroying, tun devices auto-self-destruct
      */
-    if (tt && (tt->type == DEV_TYPE_TUN || tt->persistent_if ) )
+    if (tt->type == DEV_TYPE_TUN || tt->persistent_if)
     {
         close_tun_generic(tt);
         free(tt);
+        return;
     }
-    else if (tt)
-    {
-        struct argv argv = argv_new();
 
-        /* setup command, close tun dev (clears tt->actual_name!), run command
-         */
+    struct argv argv = argv_new();
 
-        argv_printf(&argv, "%s %s destroy",
-                    IFCONFIG_PATH, tt->actual_name);
+    /* setup command, close tun dev (clears tt->actual_name!), run command
+    */
 
-        close_tun_generic(tt);
+    argv_printf(&argv, "%s %s destroy",
+                IFCONFIG_PATH, tt->actual_name);
 
-        argv_msg(M_INFO, &argv);
-        openvpn_execve_check(&argv, NULL, 0, "OpenBSD 'destroy tun interface' failed (non-critical)");
+    close_tun_generic(tt);
 
-        free(tt);
-        argv_reset(&argv);
-    }
+    argv_msg(M_INFO, &argv);
+    openvpn_execve_check(&argv, NULL, 0, "OpenBSD 'destroy tun interface' failed (non-critical)");
+
+    free(tt);
+    argv_reset(&argv);
 }
 
 int
@@ -2676,31 +2671,32 @@ open_tun(const char *dev, const char *dev_type, const char *dev_node, struct tun
 void
 close_tun(struct tuntap *tt)
 {
+    ASSERT(tt);
+
     /* only tun devices need destroying, tap devices auto-self-destruct
      */
-    if (tt && ( tt->type != DEV_TYPE_TUN || tt->persistent_if ) )
+    if (tt->type != DEV_TYPE_TUN || tt->persistent_if)
     {
         close_tun_generic(tt);
         free(tt);
+        return;
     }
-    else if (tt)
-    {
-        struct argv argv = argv_new();
 
-        /* setup command, close tun dev (clears tt->actual_name!), run command
-         */
+    struct argv argv = argv_new();
 
-        argv_printf(&argv, "%s %s destroy",
-                    IFCONFIG_PATH, tt->actual_name);
+    /* setup command, close tun dev (clears tt->actual_name!), run command
+    */
 
-        close_tun_generic(tt);
+    argv_printf(&argv, "%s %s destroy",
+                IFCONFIG_PATH, tt->actual_name);
 
-        argv_msg(M_INFO, &argv);
-        openvpn_execve_check(&argv, NULL, 0, "NetBSD 'destroy tun interface' failed (non-critical)");
+    close_tun_generic(tt);
 
-        free(tt);
-        argv_reset(&argv);
-    }
+    argv_msg(M_INFO, &argv);
+    openvpn_execve_check(&argv, NULL, 0, "NetBSD 'destroy tun interface' failed (non-critical)");
+
+    free(tt);
+    argv_reset(&argv);
 }
 
 static inline int
@@ -2816,29 +2812,32 @@ open_tun(const char *dev, const char *dev_type, const char *dev_node, struct tun
 void
 close_tun(struct tuntap *tt)
 {
-    if (tt && tt->persistent_if)        /* keep pre-existing if around */
+    ASSERT(tt);
+
+    if (tt->persistent_if)        /* keep pre-existing if around */
     {
         close_tun_generic(tt);
         free(tt);
+        return;
     }
-    else if (tt)                        /* close and destroy */
-    {
-        struct argv argv = argv_new();
 
-        /* setup command, close tun dev (clears tt->actual_name!), run command
-         */
+    /* close and destroy */
+    struct argv argv = argv_new();
 
-        argv_printf(&argv, "%s %s destroy",
-                    IFCONFIG_PATH, tt->actual_name);
+    /* setup command, close tun dev (clears tt->actual_name!), run command
+    */
 
-        close_tun_generic(tt);
+    argv_printf(&argv, "%s %s destroy",
+                IFCONFIG_PATH, tt->actual_name);
 
-        argv_msg(M_INFO, &argv);
-        openvpn_execve_check(&argv, NULL, 0, "FreeBSD 'destroy tun interface' failed (non-critical)");
+    close_tun_generic(tt);
 
-        free(tt);
-        argv_reset(&argv);
-    }
+    argv_msg(M_INFO, &argv);
+    openvpn_execve_check(&argv, NULL, 0,
+                         "FreeBSD 'destroy tun interface' failed (non-critical)");
+
+    free(tt);
+    argv_reset(&argv);
 }
 
 int
@@ -2929,11 +2928,10 @@ open_tun(const char *dev, const char *dev_type, const char *dev_node, struct tun
 void
 close_tun(struct tuntap *tt)
 {
-    if (tt)
-    {
-        close_tun_generic(tt);
-        free(tt);
-    }
+    ASSERT(tt);
+
+    close_tun_generic(tt);
+    free(tt);
 }
 
 int
@@ -3186,27 +3184,26 @@ open_tun(const char *dev, const char *dev_type, const char *dev_node, struct tun
 void
 close_tun(struct tuntap *tt)
 {
-    if (tt)
+    ASSERT(tt);
+
+    struct gc_arena gc = gc_new();
+    struct argv argv = argv_new();
+
+    if (tt->did_ifconfig_ipv6_setup)
     {
-        struct gc_arena gc = gc_new();
-        struct argv argv = argv_new();
+        const char *ifconfig_ipv6_local =
+            print_in6_addr(tt->local_ipv6, 0, &gc);
 
-        if (tt->did_ifconfig_ipv6_setup)
-        {
-            const char *ifconfig_ipv6_local =
-                print_in6_addr(tt->local_ipv6, 0, &gc);
-
-            argv_printf(&argv, "%s delete -inet6 %s",
-                        ROUTE_PATH, ifconfig_ipv6_local );
-            argv_msg(M_INFO, &argv);
-            openvpn_execve_check(&argv, NULL, 0, "MacOS X 'remove inet6 route' failed (non-critical)");
-        }
-
-        close_tun_generic(tt);
-        free(tt);
-        argv_reset(&argv);
-        gc_free(&gc);
+        argv_printf(&argv, "%s delete -inet6 %s",
+                    ROUTE_PATH, ifconfig_ipv6_local );
+        argv_msg(M_INFO, &argv);
+        openvpn_execve_check(&argv, NULL, 0, "MacOS X 'remove inet6 route' failed (non-critical)");
     }
+
+    close_tun_generic(tt);
+    free(tt);
+    argv_reset(&argv);
+    gc_free(&gc);
 }
 
 int
@@ -3335,13 +3332,10 @@ open_tun(const char *dev, const char *dev_type, const char *dev_node, struct tun
 void
 close_tun(struct tuntap *tt)
 {
+    ASSERT(tt);
+
     struct argv argv = argv_new();
     struct env_set *es = env_set_create(NULL);
-
-    if (!tt)
-    {
-        return;
-    }
 
     /* persistent devices need IP address unconfig, others need destroyal
      */
@@ -6181,104 +6175,103 @@ tun_show_debug(struct tuntap *tt)
 void
 close_tun(struct tuntap *tt)
 {
+    ASSERT(tt);
+
     struct gc_arena gc = gc_new();
 
-    if (tt)
+    if (tt->did_ifconfig_ipv6_setup)
     {
-        if (tt->did_ifconfig_ipv6_setup)
+        /* remove route pointing to interface */
+        delete_route_connected_v6_net(tt, NULL);
+
+        if (tt->options.msg_channel)
         {
-            /* remove route pointing to interface */
-            delete_route_connected_v6_net(tt, NULL);
-
-            if (tt->options.msg_channel)
+            do_address_service(false, AF_INET6, tt);
+            if (tt->options.dns6_len > 0)
             {
-                do_address_service(false, AF_INET6, tt);
-                if (tt->options.dns6_len > 0)
-                {
-                    do_dns6_service(false, tt);
-                }
+                do_dns6_service(false, tt);
             }
-            else
+        }
+        else
+        {
+            const char *ifconfig_ipv6_local;
+            struct argv argv = argv_new();
+
+            /* "store=active" is needed in Windows 8(.1) to delete the
+             * address we added (pointed out by Cedric Tabary).
+             */
+
+            /* netsh interface ipv6 delete address \"%s\" %s */
+            ifconfig_ipv6_local = print_in6_addr(tt->local_ipv6, 0,  &gc);
+            argv_printf(&argv,
+                        "%s%sc interface ipv6 delete address %s %s store=active",
+                        get_win_sys_path(),
+                        NETSH_PATH_SUFFIX,
+                        tt->actual_name,
+                        ifconfig_ipv6_local);
+
+            netsh_command(&argv, 1, M_WARN);
+
+            /* delete ipv6 dns servers if any were set */
+            if (tt->options.dns6_len > 0)
             {
-                const char *ifconfig_ipv6_local;
-                struct argv argv = argv_new();
-
-                /* "store=active" is needed in Windows 8(.1) to delete the
-                 * address we added (pointed out by Cedric Tabary).
-                 */
-
-                /* netsh interface ipv6 delete address \"%s\" %s */
-                ifconfig_ipv6_local = print_in6_addr(tt->local_ipv6, 0,  &gc);
                 argv_printf(&argv,
-                            "%s%sc interface ipv6 delete address %s %s store=active",
+                            "%s%sc interface ipv6 delete dns %s all",
                             get_win_sys_path(),
                             NETSH_PATH_SUFFIX,
-                            tt->actual_name,
-                            ifconfig_ipv6_local);
-
+                            tt->actual_name);
                 netsh_command(&argv, 1, M_WARN);
-
-                /* delete ipv6 dns servers if any were set */
-                if (tt->options.dns6_len > 0)
-                {
-                    argv_printf(&argv,
-                                "%s%sc interface ipv6 delete dns %s all",
-                                get_win_sys_path(),
-                                NETSH_PATH_SUFFIX,
-                                tt->actual_name);
-                    netsh_command(&argv, 1, M_WARN);
-                }
-                argv_reset(&argv);
             }
+            argv_reset(&argv);
         }
+    }
 #if 1
-        if (tt->ipapi_context_defined)
+    if (tt->ipapi_context_defined)
+    {
+        DWORD status;
+        if ((status = DeleteIPAddress(tt->ipapi_context)) != NO_ERROR)
         {
-            DWORD status;
-            if ((status = DeleteIPAddress(tt->ipapi_context)) != NO_ERROR)
-            {
-                msg(M_WARN, "Warning: DeleteIPAddress[%u] failed on TAP-Windows adapter, status=%u : %s",
-                    (unsigned int)tt->ipapi_context,
-                    (unsigned int)status,
-                    strerror_win32(status, &gc));
-            }
+            msg(M_WARN, "Warning: DeleteIPAddress[%u] failed on TAP-Windows adapter, status=%u : %s",
+                (unsigned int)tt->ipapi_context,
+                (unsigned int)status,
+                strerror_win32(status, &gc));
         }
+    }
 #endif
 
-        dhcp_release(tt);
+    dhcp_release(tt);
 
-        if (tt->hand != NULL)
+    if (tt->hand != NULL)
+    {
+        dmsg(D_WIN32_IO_LOW, "Attempting CancelIO on TAP-Windows adapter");
+        if (!CancelIo(tt->hand))
         {
-            dmsg(D_WIN32_IO_LOW, "Attempting CancelIO on TAP-Windows adapter");
-            if (!CancelIo(tt->hand))
-            {
-                msg(M_WARN | M_ERRNO, "Warning: CancelIO failed on TAP-Windows adapter");
-            }
+            msg(M_WARN | M_ERRNO, "Warning: CancelIO failed on TAP-Windows adapter");
         }
-
-        dmsg(D_WIN32_IO_LOW, "Attempting close of overlapped read event on TAP-Windows adapter");
-        overlapped_io_close(&tt->reads);
-
-        dmsg(D_WIN32_IO_LOW, "Attempting close of overlapped write event on TAP-Windows adapter");
-        overlapped_io_close(&tt->writes);
-
-        if (tt->hand != NULL)
-        {
-            dmsg(D_WIN32_IO_LOW, "Attempting CloseHandle on TAP-Windows adapter");
-            if (!CloseHandle(tt->hand))
-            {
-                msg(M_WARN | M_ERRNO, "Warning: CloseHandle failed on TAP-Windows adapter");
-            }
-        }
-
-        if (tt->actual_name)
-        {
-            free(tt->actual_name);
-        }
-
-        clear_tuntap(tt);
-        free(tt);
     }
+
+    dmsg(D_WIN32_IO_LOW, "Attempting close of overlapped read event on TAP-Windows adapter");
+    overlapped_io_close(&tt->reads);
+
+    dmsg(D_WIN32_IO_LOW, "Attempting close of overlapped write event on TAP-Windows adapter");
+    overlapped_io_close(&tt->writes);
+
+    if (tt->hand != NULL)
+    {
+        dmsg(D_WIN32_IO_LOW, "Attempting CloseHandle on TAP-Windows adapter");
+        if (!CloseHandle(tt->hand))
+        {
+            msg(M_WARN | M_ERRNO, "Warning: CloseHandle failed on TAP-Windows adapter");
+        }
+    }
+
+    if (tt->actual_name)
+    {
+        free(tt->actual_name);
+    }
+
+    clear_tuntap(tt);
+    free(tt);
     gc_free(&gc);
 }
 
@@ -6357,11 +6350,10 @@ open_tun(const char *dev, const char *dev_type, const char *dev_node, struct tun
 void
 close_tun(struct tuntap *tt)
 {
-    if (tt)
-    {
-        close_tun_generic(tt);
-        free(tt);
-    }
+    ASSERT(tt);
+
+    close_tun_generic(tt);
+    free(tt);
 }
 
 int
