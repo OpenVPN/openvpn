@@ -246,9 +246,15 @@ void init_tun_post(struct tuntap *tt,
 void do_ifconfig_setenv(const struct tuntap *tt,
                         struct env_set *es);
 
-void do_ifconfig(struct tuntap *tt,
-                 const char *actual,     /* actual device name */
-                 int tun_mtu,
+/**
+ * do_ifconfig - configure the tunnel interface
+ *
+ * @param tt        the tuntap interface context
+ * @param ifname    the human readable interface name
+ * @param mtu       the MTU value to set the interface to
+ * @param es        the environment to be used when executing the commands
+ */
+void do_ifconfig(struct tuntap *tt, const char *ifname, int tun_mtu,
                  const struct env_set *es);
 
 bool is_dev_type(const char *dev, const char *dev_type, const char *match_type);
