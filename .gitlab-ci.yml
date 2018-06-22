@@ -1,0 +1,173 @@
+stages:
+  - test
+
+variables:
+  JOBS: 3
+  PREFIX: ${CI_PROJECT_DIR}/builds
+  TAP_WINDOWS_VERSION: 9.24.6
+  LZO_VERSION: "2.10"
+  PKCS11_HELPER_VERSION: "1.22"
+  MBEDTLS_VERSION: "2.26.0"
+  MBEDTLS_CFLAGS: -I${CI_PROJECT_DIR}/builds/include
+  MBEDTLS_LIBS: -L${CI_PROJECT_DIR}/builds/lib -lmbedtls -lmbedx509 -lmbedcrypto
+  OPENSSL_VERSION: 1.1.1m
+  OPENSSL_CFLAGS: -I${CI_PROJECT_DIR}/builds/include
+  OPENSSL_LIBS: -L${CI_PROJECT_DIR}/builds/lib -lssl -lcrypto
+  SSLLIB: "openssl"
+
+default:
+  image: gcc:latest
+
+  before_script:
+    - apt-get update -qq && apt-get install -y -qq liblzo2-dev libpam0g-dev liblz4-dev linux-libc-dev man2html build-essential python
+    - .gitlab/build-deps.sh
+
+  cache:
+    key: ${CI_JOB_NAME}
+    paths:
+      - download-cache/
+      - ${PREFIX}/
+
+mtls-latest:
+  variables:
+    SSLLIB: "mbedtls"
+  script:
+    - .gitlab/build-check.sh
+
+mtls-2_16_11:
+  variables:
+    MBEDTLS_VERSION: "2.16.11"
+    SSLLIB: "mbedtls"
+  script:
+    - .gitlab/build-check.sh
+
+mtls-2_7_19:
+  variables:
+    MBEDTLS_VERSION: "2.7.19"
+    SSLLIB: "mbedtls"
+  script:
+    - .gitlab/build-check.sh
+
+ossl:
+  variables:
+    SSLLIB: "openssl"
+    EXTRA_SCRIPT: "make distcheck"
+  artifacts:
+    paths:
+      - src/openvpn/openvpn
+  before_script:
+    - apt-get update -qq && apt-get install -y -qq liblzo2-dev libpam0g-dev liblz4-dev build-essential unzip python3-docutils libssl-dev
+  script:
+    - .gitlab/build-check.sh
+
+ossl-gcc9:
+  image: gcc:9
+  script:
+    - .gitlab/build-check.sh
+
+ossl-fedora-latest:
+  image: fedora:latest
+  before_script:
+    - yum -y install libtool openssl-devel lzo-devel pam-devel lz4-devel man2html python gcc make autoconf automake wget
+  script:
+    - .gitlab/build-check.sh
+
+ossl-rockylinux-latest:
+  image: rockylinux:latest
+  before_script:
+    - yum -y install epel-release
+    - yum -y install libtool openssl-devel lzo-devel pam-devel lz4-devel man2html python39 gcc make autoconf automake wget
+  script:
+    - .gitlab/build-check.sh
+
+ossl-1_1_0:
+  variables:
+    OPENSSL_VERSION: "1.1.0l"
+  script:
+    - .gitlab/build-check.sh
+
+ossl-1_0_2:
+  variables:
+    OPENSSL_VERSION: "1.0.2u"
+  script:
+    - .gitlab/build-check.sh
+
+
+ossl-sanitizeaddr:
+  variables:
+    CFLAGS: "-fsanitize=address"
+  script:
+    - .gitlab/build-check.sh
+
+ossl-sanitizeleak:
+  variables:
+    CFLAGS: "-fsanitize=leak"
+  script:
+    - .gitlab/build-check.sh
+
+ossl-sanitizeundef:
+  variables:
+    CFLAGS: "-fsanitize=undefined"
+  script:
+    - .gitlab/build-check.sh
+
+ossl-win64:
+  variables:
+    CHOST: "x86_64-w64-mingw32"
+    EXTRA_CONFIG: "--disable-lz4"
+  artifacts:
+    paths:
+      - src/openvpn/openvpn.exe
+    name: "openvpn_win64-${CI_COMMIT_REF_SLUG}"
+  before_script:
+    - apt-get update -qq && apt-get install -y -qq liblzo2-dev libpam0g-dev build-essential mingw-w64 unzip man2html
+    - .gitlab/build-deps.sh
+  script:
+    - .gitlab/build-check.sh
+
+ossl-win32:
+  variables:
+    CHOST: "i686-w64-mingw32"
+    EXTRA_CONFIG: "--disable-lz4"
+  before_script:
+    - apt-get update -qq && apt-get install -y -qq liblzo2-dev libpam0g-dev build-essential mingw-w64 unzip man2html
+    - .gitlab/build-deps.sh
+  script:
+    - .gitlab/build-check.sh
+
+mtls-iproute2:
+  variables:
+    SSLLIB: "mbedtls"
+    EXTRA_CONFIG: "--enable-iproute2"
+  before_script:
+    - apt-get update -qq && apt-get install -y -qq liblzo2-dev libpam0g-dev liblz4-dev linux-libc-dev man2html build-essential iproute2 python
+    - .gitlab/build-deps.sh
+  script:
+    - .gitlab/build-check.sh
+
+ossl-nolzo:
+  before_script:
+    - apt-get update -qq && apt-get install -y -qq libpam0g-dev liblz4-dev build-essential unzip
+    - .gitlab/build-deps.sh
+  variables:
+    EXTRA_CONFIG: "--disable-lzo"
+  script:
+    - .gitlab/build-check.sh
+
+ossl-small:
+  variables:
+    EXTRA_CONFIG: "--enable-small"
+  script:
+    - .gitlab/build-check.sh
+
+ossl-asyncpush:
+  variables:
+    EXTRA_CONFIG: "--enable-async-push"
+  script:
+    - .gitlab/build-check.sh
+
+ossl-no-mgmt:
+  variables:
+    EXTRA_CONFIG: "--disable-management"
+  script:
+    - .gitlab/build-check.sh
