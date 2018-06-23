@@ -116,8 +116,12 @@ argv_str__multiple_argv__correct_output(void **state)
     argv_printf(&a, "%s%sc", PATH1, PATH2);
     argv_printf_cat(&a, "%s", PARAM1);
     argv_printf_cat(&a, "%s", PARAM2);
+    argv_printf_cat(&a, "%d", -1);
+    argv_printf_cat(&a, "%u", -1);
+    argv_printf_cat(&a, "%lu", 1L );
     output = argv_str(&a, &gc, PA_BRACKET);
-    assert_string_equal(output, "[" PATH1 PATH2 "] [" PARAM1 "] [" PARAM2 "]");
+    assert_string_equal(output, "[" PATH1 PATH2 "] [" PARAM1 "] [" PARAM2 "]"
+				" [-1] [4294967295] [1]");
 
     argv_reset(&a);
     gc_free(&gc);
