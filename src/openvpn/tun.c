@@ -5703,7 +5703,10 @@ open_tun(const char *dev, const char *dev_type, const char *dev_node, struct tun
             msg(M_FATAL, "ERROR: --dev tun also requires --ifconfig");
         }
 
-        if (tt->topology == TOP_SUBNET)
+        /* send 0/0/0 to the TAP driver even if we have no IPv4 configured to
+         * ensure it is somehow initialized.
+         */
+        if (!tt->did_ifconfig_setup || tt->topology == TOP_SUBNET)
         {
             in_addr_t ep[3];
             BOOL status;
@@ -5716,12 +5719,19 @@ open_tun(const char *dev, const char *dev_type, const char *dev_node, struct tun
                                      ep, sizeof(ep),
                                      ep, sizeof(ep), &len, NULL);
 
-            msg(status ? M_INFO : M_FATAL, "Set TAP-Windows TUN subnet mode network/local/netmask = %s/%s/%s [%s]",
-                print_in_addr_t(ep[1], IA_NET_ORDER, &gc),
-                print_in_addr_t(ep[0], IA_NET_ORDER, &gc),
-                print_in_addr_t(ep[2], IA_NET_ORDER, &gc),
-                status ? "SUCCEEDED" : "FAILED");
-
+            if (tt->did_ifconfig_setup)
+            {
+                msg(status ? M_INFO : M_FATAL, "Set TAP-Windows TUN subnet mode network/local/netmask = %s/%s/%s [%s]",
+                    print_in_addr_t(ep[1], IA_NET_ORDER, &gc),
+                    print_in_addr_t(ep[0], IA_NET_ORDER, &gc),
+                    print_in_addr_t(ep[2], IA_NET_ORDER, &gc),
+                    status ? "SUCCEEDED" : "FAILED");
+            }
+            else
+            {
+                msg(status ? M_INFO : M_FATAL, "Set TAP-Windows TUN with fake IPv4 [%s]",
+                    status ? "SUCCEEDED" : "FAILED");
+            }
         }
         else
         {
