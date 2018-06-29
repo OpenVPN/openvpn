@@ -72,7 +72,8 @@ get_env(const char *name, const char *envp[])
 }
 
 OPENVPN_EXPORT openvpn_plugin_handle_t
-openvpn_plugin_open_v1(unsigned int *type_mask, const char *argv[], const char *envp[])
+openvpn_plugin_open_v2(unsigned int *type_mask, const char *argv[], const char *envp[],
+                       struct openvpn_plugin_string_list **return_list)
 {
     struct plugin_context *context;
 
@@ -97,7 +98,8 @@ openvpn_plugin_open_v1(unsigned int *type_mask, const char *argv[], const char *
 }
 
 OPENVPN_EXPORT int
-openvpn_plugin_func_v1(openvpn_plugin_handle_t handle, const int type, const char *argv[], const char *envp[])
+openvpn_plugin_func_v2(openvpn_plugin_handle_t handle, const int type, const char *argv[], const char *envp[],
+                       void *per_client_context, struct openvpn_plugin_string_list **return_list)
 {
     struct plugin_context *context = (struct plugin_context *) handle;
 

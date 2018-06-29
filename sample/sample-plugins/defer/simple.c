@@ -131,11 +131,12 @@ atoi_null0(const char *str)
 }
 
 OPENVPN_EXPORT openvpn_plugin_handle_t
-openvpn_plugin_open_v1(unsigned int *type_mask, const char *argv[], const char *envp[])
+openvpn_plugin_open_v2(unsigned int *type_mask, const char *argv[], const char *envp[],
+                       struct openvpn_plugin_string_list **return_list)
 {
     struct plugin_context *context;
 
-    printf("FUNC: openvpn_plugin_open_v1\n");
+    printf("FUNC: openvpn_plugin_open_v2\n");
 
     /*
      * Allocate our context
