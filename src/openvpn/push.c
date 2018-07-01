@@ -342,7 +342,8 @@ prepare_push_reply(struct context *c, struct gc_arena *gc,
 
     /* ipv4 */
     if (c->c2.push_ifconfig_defined && c->c2.push_ifconfig_local
-        && c->c2.push_ifconfig_remote_netmask)
+        && c->c2.push_ifconfig_remote_netmask
+        && !o->push_ifconfig_ipv4_blocked)
     {
         in_addr_t ifconfig_local = c->c2.push_ifconfig_local;
         if (c->c2.push_ifconfig_local_alias)
@@ -601,6 +602,13 @@ void
 push_remove_option(struct options *o, const char *p)
 {
     msg(D_PUSH_DEBUG, "PUSH_REMOVE searching for: '%s'", p);
+
+    /* ifconfig is special, as not part of the push list */
+    if (streq(p, "ifconfig"))
+    {
+        o->push_ifconfig_ipv4_blocked = true;
+        return;
+    }
 
     /* ifconfig-ipv6 is special, as not part of the push list */
     if (streq( p, "ifconfig-ipv6" ))

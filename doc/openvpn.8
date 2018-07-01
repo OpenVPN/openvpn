@@ -3045,6 +3045,11 @@ an option,
 can be used to first remove the old value, and then add a new
 .B \-\-push
 option with the new value.
+
+NOTE2: due to implementation details, 'ifconfig' and 'ifconfig-ipv6'
+can only be removed with an exact match on the option ("push-remove ifconfig"),
+no substring matching and no matching on the IPv4/IPv6 address argument
+is possible.
 .\"*********************************************************
 .TP
 .B \-\-push\-peer\-info
