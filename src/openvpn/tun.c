@@ -910,8 +910,8 @@ do_ifconfig_ipv6(struct tuntap *tt, const char *ifname, int tun_mtu,
 #elif defined(TARGET_ANDROID)
     char out6[64];
 
-    openvpn_snprintf(out6, sizeof(out6), "%s/%d",
-                     ifconfig_ipv6_local,tt->netbits_ipv6);
+    openvpn_snprintf(out6, sizeof(out6), "%s/%d %d",
+                     ifconfig_ipv6_local,tt->netbits_ipv6, tun_mtu);
     management_android_control(management, "IFCONFIG6", out6);
 #elif defined(TARGET_SOLARIS)
     argv_printf(&argv, "%s %s inet6 unplumb", IFCONFIG_PATH, ifname);
