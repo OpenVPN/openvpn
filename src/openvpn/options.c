@@ -41,6 +41,7 @@
 #include "buffer.h"
 #include "error.h"
 #include "common.h"
+#include "run_command.h"
 #include "shaper.h"
 #include "crypto.h"
 #include "ssl.h"
@@ -6379,7 +6380,7 @@ add_option(struct options *options,
     else if (streq(p[0], "script-security") && p[1] && !p[2])
     {
         VERIFY_PERMISSION(OPT_P_GENERAL);
-        script_security = atoi(p[1]);
+        script_security_set(atoi(p[1]));
     }
     else if (streq(p[0], "mssfix") && !p[2])
     {

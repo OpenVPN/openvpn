@@ -39,9 +39,9 @@
 #include "buffer.h"
 #include "error.h"
 #include "mtu.h"
+#include "run_command.h"
 #include "sig.h"
 #include "win32.h"
-#include "misc.h"
 #include "openvpn-msg.h"
 
 #include "memdbg.h"
@@ -1137,7 +1137,7 @@ openvpn_execve(const struct argv *a, const struct env_set *es, const unsigned in
             free(env);
             gc_free(&gc);
         }
-        else if (!exec_warn && (script_security < SSEC_SCRIPTS))
+        else if (!exec_warn && (script_security() < SSEC_SCRIPTS))
         {
             msg(M_WARN, SCRIPT_SECURITY_WARNING);
             exec_warn = true;

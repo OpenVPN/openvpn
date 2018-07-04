@@ -102,6 +102,7 @@ openvpn_SOURCES = \
 	pushlist.h \
 	reliable.c reliable.h \
 	route.c route.h \
+	run_command.c run_command.h \
 	schedule.c schedule.h \
 	session_id.c session_id.h \
 	shaper.c shaper.h \

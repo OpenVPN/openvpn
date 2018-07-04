@@ -35,6 +35,7 @@
 
 #include "win32.h"
 #include "init.h"
+#include "run_command.h"
 #include "sig.h"
 #include "occ.h"
 #include "list.h"
@@ -3095,11 +3096,11 @@ do_option_warnings(struct context *c)
     /* If a script is used, print appropiate warnings */
     if (o->user_script_used)
     {
-        if (script_security >= SSEC_SCRIPTS)
+        if (script_security() >= SSEC_SCRIPTS)
         {
             msg(M_WARN, "NOTE: the current --script-security setting may allow this configuration to call user-defined scripts");
         }
-        else if (script_security >= SSEC_PW_ENV)
+        else if (script_security() >= SSEC_PW_ENV)
         {
             msg(M_WARN, "WARNING: the current --script-security setting may allow passwords to be passed to scripts via environmental variables");
         }

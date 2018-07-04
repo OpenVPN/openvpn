@@ -32,9 +32,9 @@
 
 #include "syshead.h"
 
-#include "misc.h"
-
 #include "env_set.h"
+
+#include "run_command.h"
 
 /*
  * Set environmental variable (int or string).
@@ -414,7 +414,7 @@ setenv_str_i(struct env_set *es, const char *name, const char *value, const int 
 bool
 env_allowed(const char *str)
 {
-    return (script_security >= SSEC_PW_ENV || !is_password_env_var(str));
+    return (script_security() >= SSEC_PW_ENV || !is_password_env_var(str));
 }
 
 /* Make arrays of strings */

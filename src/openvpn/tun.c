@@ -40,7 +40,7 @@
 #include "tun.h"
 #include "fdmisc.h"
 #include "common.h"
-#include "misc.h"
+#include "run_command.h"
 #include "socket.h"
 #include "manage.h"
 #include "route.h"

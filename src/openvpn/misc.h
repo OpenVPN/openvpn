@@ -38,30 +38,6 @@
 /* forward declarations */
 struct plugin_list;
 
-/* system flags */
-#define S_SCRIPT (1<<0)
-#define S_FATAL  (1<<1)
-
-const char *system_error_message(int, struct gc_arena *gc);
-
-/* wrapper around the execve() call */
-int openvpn_popen(const struct argv *a,  const struct env_set *es);
-
-int openvpn_execve(const struct argv *a, const struct env_set *es, const unsigned int flags);
-
-bool openvpn_execve_check(const struct argv *a, const struct env_set *es, const unsigned int flags, const char *error_message);
-
-bool openvpn_execve_allowed(const unsigned int flags);
-
-static inline bool
-openvpn_run_script(const struct argv *a, const struct env_set *es, const unsigned int flags, const char *hook)
-{
-    char msg[256];
-
-    openvpn_snprintf(msg, sizeof(msg), "WARNING: Failed running command (%s)", hook);
-    return openvpn_execve_check(a, es, flags | S_SCRIPT, msg);
-}
-
 
 /* Set standard file descriptors to /dev/null */
 void set_std_files_to_null(bool stdin_only);
@@ -197,14 +173,6 @@ void get_user_pass_auto_userid(struct user_pass *up, const char *tag);
 #ifdef ENABLE_IPROUTE
 extern const char *iproute_path;
 #endif
-
-/* Script security */
-#define SSEC_NONE      0 /* strictly no calling of external programs */
-#define SSEC_BUILT_IN  1 /* only call built-in programs such as ifconfig, route, netsh, etc.*/
-#define SSEC_SCRIPTS   2 /* allow calling of built-in programs and user-defined scripts */
-#define SSEC_PW_ENV    3 /* allow calling of built-in programs and user-defined scripts that may receive a password as an environmental variable */
-extern int script_security; /* GLOBAL */
-
 
 #define COMPAT_FLAG_QUERY         0       /** compat_flags operator: Query for a flag */
 #define COMPAT_FLAG_SET           (1<<0)  /** compat_flags operator: Set a compat flag */

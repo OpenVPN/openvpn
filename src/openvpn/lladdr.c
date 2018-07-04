@@ -11,6 +11,7 @@
 #include "syshead.h"
 #include "error.h"
 #include "misc.h"
+#include "run_command.h"
 
 int
 set_lladdr(const char *ifname, const char *lladdr,
