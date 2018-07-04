@@ -49,6 +49,7 @@
 #endif
 
 #include "basic.h"
+#include "buffer.h"
 
 /* Get/Set UID of process */
 
@@ -142,5 +143,22 @@ typedef struct _stat platform_stat_t;
 typedef struct stat platform_stat_t;
 #endif
 int platform_stat(const char *path, platform_stat_t *buf);
+
+/**
+ * Create a temporary file in directory, returns the filename of the created
+ * file.
+ */
+const char *platform_create_temp_file(const char *directory, const char *prefix,
+                                      struct gc_arena *gc);
+
+/** Put a directory and filename together. */
+const char *platform_gen_path(const char *directory, const char *filename,
+                              struct gc_arena *gc);
+
+/** Return true if pathname is absolute. */
+bool platform_absolute_pathname(const char *pathname);
+
+/** Return true if filename can be opened for read. */
+bool platform_test_file(const char *filename);
 
 #endif /* ifndef PLATFORM_H */

@@ -547,7 +547,7 @@ verify_cert_export_cert(openvpn_x509_cert_t *peercert, const char *tmp_dir, stru
 
     /* create tmp file to store peer cert */
     if (!tmp_dir
-        || !(peercert_filename = create_temp_file(tmp_dir, "pcf", gc)))
+        || !(peercert_filename = platform_create_temp_file(tmp_dir, "pcf", gc)))
     {
         msg(M_NONFATAL, "Failed to create peer cert file");
         return NULL;
@@ -890,7 +890,7 @@ key_state_gen_auth_control_file(struct key_state *ks, const struct tls_options *
     struct gc_arena gc = gc_new();
 
     key_state_rm_auth_control_file(ks);
-    const char *acf = create_temp_file(opt->tmp_dir, "acf", &gc);
+    const char *acf = platform_create_temp_file(opt->tmp_dir, "acf", &gc);
     if (acf)
     {
         ks->auth_control_file = string_alloc(acf, NULL);
@@ -1103,7 +1103,8 @@ verify_user_pass_script(struct tls_session *session, const struct user_pass *up)
         {
             struct status_output *so;
 
-            tmp_file = create_temp_file(session->opt->tmp_dir, "up", &gc);
+            tmp_file = platform_create_temp_file(session->opt->tmp_dir, "up",
+                                                 &gc);
             if (tmp_file)
             {
                 so = status_open(tmp_file, 0, -1, NULL, STATUS_OUTPUT_WRITE);
@@ -1513,8 +1514,9 @@ verify_final_auth_checks(struct tls_multi *multi, struct tls_session *session)
         struct gc_arena gc = gc_new();
 
         const char *cn = session->common_name;
-        const char *path = gen_path(session->opt->client_config_dir_exclusive, cn, &gc);
-        if (!cn || !strcmp(cn, CCD_DEFAULT) || !test_file(path))
+        const char *path = platform_gen_path(session->opt->client_config_dir_exclusive,
+                                             cn, &gc);
+        if (!cn || !strcmp(cn, CCD_DEFAULT) || !platform_test_file(path))
         {
             ks->authenticated = false;
             wipe_auth_token(multi);

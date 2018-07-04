@@ -249,7 +249,7 @@ plugin_init_item(struct plugin *p, const struct plugin_option *o)
      * was parsed.
      *
      */
-    if (!absolute_pathname(p->so_pathname)
+    if (!platform_absolute_pathname(p->so_pathname)
         && p->so_pathname[0] != '.')
     {
         char full[PATH_MAX];
@@ -259,7 +259,7 @@ plugin_init_item(struct plugin *p, const struct plugin_option *o)
     }
     else
     {
-        rel = !absolute_pathname(p->so_pathname);
+        rel = !platform_absolute_pathname(p->so_pathname);
         p->handle = dlopen(p->so_pathname, RTLD_NOW);
     }
     if (!p->handle)
@@ -271,7 +271,7 @@ plugin_init_item(struct plugin *p, const struct plugin_option *o)
 
 #else  /* ifndef _WIN32 */
 
-    rel = !absolute_pathname(p->so_pathname);
+    rel = !platform_absolute_pathname(p->so_pathname);
     p->module = LoadLibraryW(wide_string(p->so_pathname, &gc));
     if (!p->module)
     {

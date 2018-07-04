@@ -621,8 +621,8 @@ pf_init_context(struct context *c)
 #ifdef PLUGIN_PF
     if (plugin_defined(c->plugins, OPENVPN_PLUGIN_ENABLE_PF))
     {
-        c->c2.pf.filename = create_temp_file(c->options.tmp_dir, "pf",
-                                             &c->c2.gc);
+        c->c2.pf.filename = platform_create_temp_file(c->options.tmp_dir, "pf",
+                                                      &c->c2.gc);
         if (c->c2.pf.filename)
         {
             setenv_str(c->c2.es, "pf_file", c->c2.pf.filename);

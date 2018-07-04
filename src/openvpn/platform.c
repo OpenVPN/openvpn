@@ -31,6 +31,7 @@
 
 #include "buffer.h"
 #include "error.h"
+#include "misc.h"
 #include "win32.h"
 
 #include "memdbg.h"
@@ -335,3 +336,150 @@ platform_stat(const char *path, platform_stat_t *buf)
 #endif
 }
 
+/* create a temporary filename in directory */
+const char *
+platform_create_temp_file(const char *directory, const char *prefix, struct gc_arena *gc)
+{
+    int fd;
+    const char *retfname = NULL;
+    unsigned int attempts = 0;
+    char fname[256] = { 0 };
+    const char *fname_fmt = PACKAGE "_%.*s_%08lx%08lx.tmp";
+    const int max_prefix_len = sizeof(fname) - (sizeof(PACKAGE) + 7 + (2 * 8));
+
+    while (attempts < 6)
+    {
+        ++attempts;
+
+        if (!openvpn_snprintf(fname, sizeof(fname), fname_fmt, max_prefix_len,
+                              prefix, (unsigned long) get_random(),
+                              (unsigned long) get_random()))
+        {
+            msg(M_WARN, "ERROR: temporary filename too long");
+            return NULL;
+        }
+
+        retfname = platform_gen_path(directory, fname, gc);
+        if (!retfname)
+        {
+            msg(M_WARN, "Failed to create temporary filename and path");
+            return NULL;
+        }
+
+        /* Atomically create the file.  Errors out if the file already
+         * exists.  */
+        fd = platform_open(retfname, O_CREAT | O_EXCL | O_WRONLY, S_IRUSR | S_IWUSR);
+        if (fd != -1)
+        {
+            close(fd);
+            return retfname;
+        }
+        else if (fd == -1 && errno != EEXIST)
+        {
+            /* Something else went wrong, no need to retry.  */
+            msg(M_WARN | M_ERRNO, "Could not create temporary file '%s'",
+                retfname);
+            return NULL;
+        }
+    }
+
+    msg(M_WARN, "Failed to create temporary file after %i attempts", attempts);
+    return NULL;
+}
+
+/*
+ * Put a directory and filename together.
+ */
+const char *
+platform_gen_path(const char *directory, const char *filename,
+                  struct gc_arena *gc)
+{
+#ifdef _WIN32
+    const int CC_PATH_RESERVED = CC_LESS_THAN|CC_GREATER_THAN|CC_COLON
+                                 |CC_DOUBLE_QUOTE|CC_SLASH|CC_BACKSLASH|CC_PIPE|CC_QUESTION_MARK|CC_ASTERISK;
+#else
+    const int CC_PATH_RESERVED = CC_SLASH;
+#endif
+
+    if (!gc)
+    {
+        return NULL; /* Would leak memory otherwise */
+    }
+
+    const char *safe_filename = string_mod_const(filename, CC_PRINT, CC_PATH_RESERVED, '_', gc);
+
+    if (safe_filename
+        && strcmp(safe_filename, ".")
+        && strcmp(safe_filename, "..")
+#ifdef _WIN32
+        && win_safe_filename(safe_filename)
+#endif
+        )
+    {
+        const size_t outsize = strlen(safe_filename) + (directory ? strlen(directory) : 0) + 16;
+        struct buffer out = alloc_buf_gc(outsize, gc);
+        char dirsep[2];
+
+        dirsep[0] = OS_SPECIFIC_DIRSEP;
+        dirsep[1] = '\0';
+
+        if (directory)
+        {
+            buf_printf(&out, "%s%s", directory, dirsep);
+        }
+        buf_printf(&out, "%s", safe_filename);
+
+        return BSTR(&out);
+    }
+    else
+    {
+        return NULL;
+    }
+}
+
+bool
+platform_absolute_pathname(const char *pathname)
+{
+    if (pathname)
+    {
+        const int c = pathname[0];
+#ifdef _WIN32
+        return c == '\\' || (isalpha(c) && pathname[1] == ':' && pathname[2] == '\\');
+#else
+        return c == '/';
+#endif
+    }
+    else
+    {
+        return false;
+    }
+}
+
+/* return true if filename can be opened for read */
+bool
+platform_test_file(const char *filename)
+{
+    bool ret = false;
+    if (filename)
+    {
+        FILE *fp = platform_fopen(filename, "r");
+        if (fp)
+        {
+            fclose(fp);
+            ret = true;
+        }
+        else
+        {
+            if (openvpn_errno() == EACCES)
+            {
+                msg( M_WARN | M_ERRNO, "Could not access file '%s'", filename);
+            }
+        }
+    }
+
+    dmsg(D_TEST_FILE, "TEST FILE '%s' [%d]",
+         filename ? filename : "UNDEF",
+         ret);
+
+    return ret;
+}
