@@ -130,6 +130,15 @@ struct connection_entry
 #define CE_MAN_QUERY_REMOTE_MASK   (0x07)
 #define CE_MAN_QUERY_REMOTE_SHIFT  (2)
     unsigned int flags;
+
+    /* Shared secret used for TLS control channel authentication */
+    const char *tls_auth_file;
+    const char *tls_auth_file_inline;
+    int key_direction;
+
+    /* Shared secret used for TLS control channel authenticated encryption */
+    const char *tls_crypt_file;
+    const char *tls_crypt_inline;
 };
 
 struct remote_entry

@@ -2508,7 +2508,7 @@ do_init_tls_wrap_key(struct context *c)
     const struct options *options = &c->options;
 
     /* TLS handshake authentication (--tls-auth) */
-    if (options->tls_auth_file)
+    if (options->ce.tls_auth_file)
     {
         /* Initialize key_type for tls-auth with auth only */
         CLEAR(c->c1.ks.tls_auth_key_type);
@@ -2526,18 +2526,18 @@ do_init_tls_wrap_key(struct context *c)
 
         crypto_read_openvpn_key(&c->c1.ks.tls_auth_key_type,
                                 &c->c1.ks.tls_wrap_key,
-                                options->tls_auth_file,
-                                options->tls_auth_file_inline,
-                                options->key_direction,
+                                options->ce.tls_auth_file,
+                                options->ce.tls_auth_file_inline,
+                                options->ce.key_direction,
                                 "Control Channel Authentication", "tls-auth");
     }
 
     /* TLS handshake encryption+authentication (--tls-crypt) */
-    if (options->tls_crypt_file)
+    if (options->ce.tls_crypt_file)
     {
         tls_crypt_init_key(&c->c1.ks.tls_wrap_key,
-                           options->tls_crypt_file,
-                           options->tls_crypt_inline, options->tls_server);
+                           options->ce.tls_crypt_file,
+                           options->ce.tls_crypt_inline, options->tls_server);
     }
 }
 
@@ -2807,7 +2807,7 @@ do_init_crypto_tls(struct context *c, const unsigned int flags)
 #endif
 
     /* TLS handshake authentication (--tls-auth) */
-    if (options->tls_auth_file)
+    if (options->ce.tls_auth_file)
     {
         to.tls_wrap.mode = TLS_WRAP_AUTH;
         to.tls_wrap.opt.key_ctx_bi = c->c1.ks.tls_wrap_key;
@@ -2818,7 +2818,7 @@ do_init_crypto_tls(struct context *c, const unsigned int flags)
     }
 
     /* TLS handshake encryption (--tls-crypt) */
-    if (options->tls_crypt_file)
+    if (options->ce.tls_crypt_file)
     {
         to.tls_wrap.mode = TLS_WRAP_CRYPT;
         to.tls_wrap.opt.key_ctx_bi = c->c1.ks.tls_wrap_key;

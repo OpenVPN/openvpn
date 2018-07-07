@@ -1507,6 +1507,11 @@ show_connection_entry(const struct connection_entry *o)
 #ifdef ENABLE_OCC
     SHOW_INT(explicit_exit_notification);
 #endif
+
+    SHOW_STR(tls_auth_file);
+    SHOW_PARM(key_direction, keydirection2ascii(o->key_direction, false, true),
+              "%s");
+    SHOW_STR(tls_crypt_file);
 }
 
 
@@ -1786,9 +1791,6 @@ show_settings(const struct options *o)
     SHOW_BOOL(single_session);
     SHOW_BOOL(push_peer_info);
     SHOW_BOOL(tls_exit);
-
-    SHOW_STR(tls_auth_file);
-    SHOW_STR(tls_crypt_file);
 
 #ifdef ENABLE_PKCS11
     {
@@ -2724,7 +2726,7 @@ options_postprocess_verify_ce(const struct options *options, const struct connec
                 notnull(options->priv_key_file, "private key file (--key) or PKCS#12 file (--pkcs12)");
             }
         }
-        if (options->tls_auth_file && options->tls_crypt_file)
+        if (ce->tls_auth_file && ce->tls_crypt_file)
         {
             msg(M_USAGE, "--tls-auth and --tls-crypt are mutually exclusive");
         }
@@ -2870,6 +2872,49 @@ options_postprocess_mutate_ce(struct options *o, struct connection_entry *ce)
         }
     }
 
+    /*
+     * Set per-connection block tls-auth/crypt fields if undefined.
+     *
+     * At the end only one of the two will be really set because the parser
+     * logic prevents configurations where both are set.
+     */
+    if (!ce->tls_auth_file && !ce->tls_crypt_file)
+    {
+        ce->tls_auth_file = o->tls_auth_file;
+        ce->tls_auth_file_inline = o->tls_auth_file_inline;
+        ce->key_direction = o->key_direction;
+
+        ce->tls_crypt_file = o->tls_crypt_file;
+        ce->tls_crypt_inline = o->tls_crypt_inline;
+    }
+
+    /* pre-cache tls-auth/crypt key file if persist-key was specified and keys
+     * were not already embedded in the config file
+     */
+    if (o->persist_key)
+    {
+        if (ce->tls_auth_file && !ce->tls_auth_file_inline)
+        {
+            struct buffer in = buffer_read_from_file(o->tls_auth_file, &o->gc);
+            if (!buf_valid(&in))
+                msg(M_FATAL, "Cannot pre-load tls-auth keyfile (%s)",
+                    o->tls_auth_file);
+
+            ce->tls_auth_file = INLINE_FILE_TAG;
+            ce->tls_auth_file_inline = (char *)in.data;
+        }
+
+        if (ce->tls_crypt_file && !ce->tls_crypt_inline)
+        {
+            struct buffer in = buffer_read_from_file(o->tls_crypt_file, &o->gc);
+            if (!buf_valid(&in))
+                msg(M_FATAL, "Cannot pre-load tls-crypt keyfile (%s)",
+                    o->tls_auth_file);
+
+            ce->tls_crypt_file = INLINE_FILE_TAG;
+            ce->tls_crypt_inline = (char *)in.data;
+        }
+    }
 }
 
 #ifdef _WIN32
@@ -3018,32 +3063,6 @@ options_postprocess_mutate(struct options *o)
     for (i = 0; i < o->connection_list->len; ++i)
     {
         options_postprocess_mutate_ce(o, o->connection_list->array[i]);
-    }
-
-    /* pre-cache tls-auth/crypt key file if persist-key was specified */
-    if (o->persist_key)
-    {
-        if (o->tls_auth_file && !o->tls_auth_file_inline)
-        {
-            struct buffer in = buffer_read_from_file(o->tls_auth_file, &o->gc);
-            if (!buf_valid(&in))
-                msg(M_FATAL, "Cannot pre-load tls-auth keyfile (%s)",
-                    o->tls_auth_file);
-
-            o->tls_auth_file = INLINE_FILE_TAG;
-            o->tls_auth_file_inline = (char *)in.data;
-        }
-
-        if (o->tls_crypt_file && !o->tls_crypt_inline)
-        {
-            struct buffer in = buffer_read_from_file(o->tls_crypt_file, &o->gc);
-            if (!buf_valid(&in))
-                msg(M_FATAL, "Cannot pre-load tls-crypt keyfile (%s)",
-                    o->tls_auth_file);
-
-            o->tls_crypt_file = INLINE_FILE_TAG;
-            o->tls_crypt_inline = (char *)in.data;
-        }
     }
 
     if (o->tls_server)
@@ -3312,12 +3331,22 @@ options_postprocess_filechecks(struct options *options)
                                          options->crl_file, R_OK, "--crl-verify");
     }
 
-    errs |= check_file_access(CHKACC_FILE|CHKACC_INLINE|CHKACC_PRIVATE,
-                              options->tls_auth_file, R_OK, "--tls-auth");
-    errs |= check_file_access(CHKACC_FILE|CHKACC_INLINE|CHKACC_PRIVATE,
-                              options->tls_crypt_file, R_OK, "--tls-crypt");
+    ASSERT(options->connection_list);
+    for (int i = 0; i < options->connection_list->len; ++i)
+    {
+        struct connection_entry *ce = options->connection_list->array[i];
+
+        errs |= check_file_access(CHKACC_FILE|CHKACC_INLINE|CHKACC_PRIVATE,
+                                  ce->tls_auth_file, R_OK, "--tls-auth");
+
+        errs |= check_file_access(CHKACC_FILE|CHKACC_INLINE|CHKACC_PRIVATE,
+                                  ce->tls_crypt_file, R_OK, "--tls-crypt");
+
+    }
+
     errs |= check_file_access(CHKACC_FILE|CHKACC_INLINE|CHKACC_PRIVATE,
                               options->shared_secret_file, R_OK, "--secret");
+
     errs |= check_file_access(CHKACC_DIRPATH|CHKACC_FILEXSTWR,
                               options->packet_id_file, R_OK|W_OK, "--replay-persist");
 
@@ -3674,7 +3703,7 @@ options_string(const struct options *o,
     {
         if (TLS_CLIENT || TLS_SERVER)
         {
-            if (o->tls_auth_file)
+            if (o->ce.tls_auth_file)
             {
                 buf_printf(&out, ",tls-auth");
             }
@@ -7447,10 +7476,19 @@ add_option(struct options *options,
     {
         int key_direction;
 
+        VERIFY_PERMISSION(OPT_P_GENERAL|OPT_P_CONNECTION);
+
         key_direction = ascii2keydirection(msglevel, p[1]);
         if (key_direction >= 0)
         {
-            options->key_direction = key_direction;
+            if (permission_mask & OPT_P_GENERAL)
+            {
+                options->key_direction = key_direction;
+            }
+            else if (permission_mask & OPT_P_CONNECTION)
+            {
+                options->ce.key_direction = key_direction;
+            }
         }
         else
         {
@@ -8019,35 +8057,66 @@ add_option(struct options *options,
     }
     else if (streq(p[0], "tls-auth") && p[1] && !p[3])
     {
-        VERIFY_PERMISSION(OPT_P_GENERAL);
-        if (streq(p[1], INLINE_FILE_TAG) && p[2])
-        {
-            options->tls_auth_file_inline = p[2];
-        }
-        else if (p[2])
-        {
-            int key_direction;
+        int key_direction = -1;
 
-            key_direction = ascii2keydirection(msglevel, p[2]);
-            if (key_direction >= 0)
+        VERIFY_PERMISSION(OPT_P_GENERAL|OPT_P_CONNECTION);
+
+        if (permission_mask & OPT_P_GENERAL)
+        {
+            if (streq(p[1], INLINE_FILE_TAG) && p[2])
             {
+                options->tls_auth_file_inline = p[2];
+            }
+            else if (p[2])
+            {
+                key_direction = ascii2keydirection(msglevel, p[2]);
+                if (key_direction < 0)
+                {
+                    goto err;
+                }
                 options->key_direction = key_direction;
             }
-            else
-            {
-                goto err;
-            }
+            options->tls_auth_file = p[1];
         }
-        options->tls_auth_file = p[1];
+        else if (permission_mask & OPT_P_CONNECTION)
+        {
+            options->ce.key_direction = KEY_DIRECTION_BIDIRECTIONAL;
+            if (streq(p[1], INLINE_FILE_TAG) && p[2])
+            {
+                options->ce.tls_auth_file_inline = p[2];
+            }
+            else if (p[2])
+            {
+                key_direction = ascii2keydirection(msglevel, p[2]);
+                if (key_direction < 0)
+                {
+                    goto err;
+                }
+                options->ce.key_direction = key_direction;
+            }
+            options->ce.tls_auth_file = p[1];
+        }
     }
     else if (streq(p[0], "tls-crypt") && p[1] && !p[3])
     {
-        VERIFY_PERMISSION(OPT_P_GENERAL);
-        if (streq(p[1], INLINE_FILE_TAG) && p[2])
+        VERIFY_PERMISSION(OPT_P_GENERAL|OPT_P_CONNECTION);
+        if (permission_mask & OPT_P_GENERAL)
         {
-            options->tls_crypt_inline = p[2];
+            if (streq(p[1], INLINE_FILE_TAG) && p[2])
+            {
+                options->tls_crypt_inline = p[2];
+            }
+            options->tls_crypt_file = p[1];
         }
-        options->tls_crypt_file = p[1];
+        else if (permission_mask & OPT_P_CONNECTION)
+        {
+            if (streq(p[1], INLINE_FILE_TAG) && p[2])
+            {
+                options->ce.tls_crypt_inline = p[2];
+            }
+            options->ce.tls_crypt_file = p[1];
+
+        }
     }
     else if (streq(p[0], "key-method") && p[1] && !p[2])
     {
