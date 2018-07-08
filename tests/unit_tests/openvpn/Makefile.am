@@ -28,7 +28,6 @@ buffer_testdriver_CFLAGS  = @TEST_CFLAGS@ -I$(openvpn_srcdir) -I$(compat_srcdir)
 buffer_testdriver_LDFLAGS = @TEST_LDFLAGS@ -L$(openvpn_srcdir) -Wl,--wrap=parse_line
 buffer_testdriver_SOURCES = test_buffer.c mock_msg.c \
 	mock_get_random.c \
-	$(openvpn_srcdir)/buffer.c \
 	$(openvpn_srcdir)/platform.c
 
 crypto_testdriver_CFLAGS  = @TEST_CFLAGS@ \

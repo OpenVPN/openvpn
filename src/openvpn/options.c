@@ -3020,6 +3020,32 @@ options_postprocess_mutate(struct options *o)
         options_postprocess_mutate_ce(o, o->connection_list->array[i]);
     }
 
+    /* pre-cache tls-auth/crypt key file if persist-key was specified */
+    if (o->persist_key)
+    {
+        if (o->tls_auth_file && !o->tls_auth_file_inline)
+        {
+            struct buffer in = buffer_read_from_file(o->tls_auth_file, &o->gc);
+            if (!buf_valid(&in))
+                msg(M_FATAL, "Cannot pre-load tls-auth keyfile (%s)",
+                    o->tls_auth_file);
+
+            o->tls_auth_file = INLINE_FILE_TAG;
+            o->tls_auth_file_inline = (char *)in.data;
+        }
+
+        if (o->tls_crypt_file && !o->tls_crypt_inline)
+        {
+            struct buffer in = buffer_read_from_file(o->tls_crypt_file, &o->gc);
+            if (!buf_valid(&in))
+                msg(M_FATAL, "Cannot pre-load tls-crypt keyfile (%s)",
+                    o->tls_auth_file);
+
+            o->tls_crypt_file = INLINE_FILE_TAG;
+            o->tls_crypt_inline = (char *)in.data;
+        }
+    }
+
     if (o->tls_server)
     {
         /* Check that DH file is specified, or explicitly disabled */

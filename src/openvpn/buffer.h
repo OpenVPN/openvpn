@@ -1112,4 +1112,16 @@ void buffer_list_aggregate_separator(struct buffer_list *bl,
 
 struct buffer_list *buffer_list_file(const char *fn, int max_line_len);
 
+/**
+ * buffer_read_from_file - copy the content of a file into a buffer
+ *
+ * @param file      path to the file to read
+ * @param gc        the garbage collector to use when allocating the buffer. It
+ *                  is passed to alloc_buf_gc() and therefore can be NULL.
+ *
+ * @return the buffer storing the file content or an invalid buffer in case of
+ * error
+ */
+struct buffer buffer_read_from_file(const char *filename, struct gc_arena *gc);
+
 #endif /* BUFFER_H */

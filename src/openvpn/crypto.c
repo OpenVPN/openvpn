@@ -1224,7 +1224,7 @@ read_key_file(struct key2 *key2, const char *file, const unsigned int flags)
 {
     struct gc_arena gc = gc_new();
     struct buffer in;
-    int fd, size;
+    int size;
     uint8_t hex_byte[3] = {0, 0, 0};
     const char *error_filename = file;
 
@@ -1268,22 +1268,11 @@ read_key_file(struct key2 *key2, const char *file, const unsigned int flags)
     }
     else /* 'file' is a filename which refers to a file containing the ascii key */
     {
-        in = alloc_buf_gc(2048, &gc);
-        fd = platform_open(file, O_RDONLY, 0);
-        if (fd == -1)
-        {
-            msg(M_ERR, "Cannot open key file '%s'", file);
-        }
-        size = read(fd, in.data, in.capacity);
-        if (size < 0)
-        {
+        in = buffer_read_from_file(file, &gc);
+        if (!buf_valid(&in))
             msg(M_FATAL, "Read error on key file ('%s')", file);
-        }
-        if (size == in.capacity)
-        {
-            msg(M_FATAL, "Key file ('%s') can be a maximum of %d bytes", file, (int)in.capacity);
-        }
-        close(fd);
+
+        size = in.len;
     }
 
     cp = (unsigned char *)in.data;

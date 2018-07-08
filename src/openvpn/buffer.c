@@ -189,6 +189,34 @@ free_buf(struct buffer *buf)
     CLEAR(*buf);
 }
 
+static void
+free_buf_gc(struct buffer *buf, struct gc_arena *gc)
+{
+    if (gc)
+    {
+        struct gc_entry **e = &gc->list;
+
+        while (*e)
+        {
+            /* check if this object is the one we want to delete */
+            if ((uint8_t *)(*e + 1) == buf->data)
+            {
+                struct gc_entry *to_delete = *e;
+
+                /* remove element from linked list and free it */
+                *e = (*e)->next;
+                free(to_delete);
+
+                break;
+            }
+
+            e = &(*e)->next;
+        }
+    }
+
+    CLEAR(*buf);
+}
+
 /*
  * Return a buffer for write that is a subset of another buffer
  */
@@ -1331,4 +1359,37 @@ buffer_list_file(const char *fn, int max_line_len)
         fclose(fp);
     }
     return bl;
+}
+
+struct buffer
+buffer_read_from_file(const char *filename, struct gc_arena *gc)
+{
+    struct buffer ret = { 0 };
+
+    platform_stat_t file_stat = {0};
+    if (platform_stat(filename, &file_stat) < 0)
+    {
+        return ret;
+    }
+
+    FILE *fp = platform_fopen(filename, "r");
+    if (!fp)
+    {
+        return ret;
+    }
+
+    const size_t size = file_stat.st_size;
+    ret = alloc_buf_gc(size + 1, gc); /* space for trailing \0 */
+    ssize_t read_size = fread(BPTR(&ret), 1, size, fp);
+    if (read_size < 0)
+    {
+        free_buf_gc(&ret, gc);
+        goto cleanup;
+    }
+    ASSERT(buf_inc_len(&ret, read_size));
+    buf_null_terminate(&ret);
+
+cleanup:
+    fclose(fp);
+    return ret;
 }
