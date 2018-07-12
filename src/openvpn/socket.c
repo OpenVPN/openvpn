@@ -1492,6 +1492,22 @@ done:
     gc_free(&gc);
 }
 
+/*
+ * Stream buffer handling prototypes -- stream_buf is a helper class
+ * to assist in the packetization of stream transport protocols
+ * such as TCP.
+ */
+
+static void
+stream_buf_init(struct stream_buf *sb, struct buffer *buf,
+                const unsigned int sockflags, const int proto);
+
+static void
+stream_buf_close(struct stream_buf *sb);
+
+static bool
+stream_buf_added(struct stream_buf *sb, int length_added);
+
 /* For stream protocols, allocate a buffer to build up packet.
  * Called after frame has been finalized. */
 
@@ -2501,7 +2517,7 @@ stream_buf_reset(struct stream_buf *sb)
     sb->len = -1;
 }
 
-void
+static void
 stream_buf_init(struct stream_buf *sb,
                 struct buffer *buf,
                 const unsigned int sockflags,
@@ -2575,7 +2591,7 @@ stream_buf_read_setup_dowork(struct link_socket *sock)
     return !sock->stream_buf.residual_fully_formed;
 }
 
-bool
+static bool
 stream_buf_added(struct stream_buf *sb,
                  int length_added)
 {
@@ -2642,7 +2658,7 @@ stream_buf_added(struct stream_buf *sb,
     }
 }
 
-void
+static void
 stream_buf_close(struct stream_buf *sb)
 {
     free_buf(&sb->residual);

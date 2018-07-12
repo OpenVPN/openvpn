@@ -994,21 +994,6 @@ link_socket_set_outgoing_addr(const struct buffer *buf,
     }
 }
 
-/*
- * Stream buffer handling -- stream_buf is a helper class
- * to assist in the packetization of stream transport protocols
- * such as TCP.
- */
-
-void stream_buf_init(struct stream_buf *sb,
-                     struct buffer *buf,
-                     const unsigned int sockflags,
-                     const int proto);
-
-void stream_buf_close(struct stream_buf *sb);
-
-bool stream_buf_added(struct stream_buf *sb, int length_added);
-
 static inline bool
 stream_buf_read_setup(struct link_socket *sock)
 {
