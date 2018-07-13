@@ -103,9 +103,11 @@ lzo_compress_init(struct compress_context *compctx)
     msg(D_INIT_MEDIUM, "LZO compression initializing");
     ASSERT(!(compctx->flags & COMP_F_SWAP));
     compctx->wu.lzo.wmem_size = LZO_WORKSPACE;
-    if (lzo_init() != LZO_E_OK)
+
+    int lzo_status = lzo_init();
+    if (lzo_status != LZO_E_OK)
     {
-        msg(M_FATAL, "Cannot initialize LZO compression library");
+        msg(M_FATAL, "Cannot initialize LZO compression library (lzo_init() returns %d)", lzo_status);
     }
     compctx->wu.lzo.wmem = (lzo_voidp) lzo_malloc(compctx->wu.lzo.wmem_size);
     check_malloc_return(compctx->wu.lzo.wmem);
