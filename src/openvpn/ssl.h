@@ -78,7 +78,7 @@
 /*
  * Define number of buffers for send and receive in the reliability layer.
  */
-#define TLS_RELIABLE_N_SEND_BUFFERS  4 /* also window size for reliablity layer */
+#define TLS_RELIABLE_N_SEND_BUFFERS  4 /* also window size for reliability layer */
 #define TLS_RELIABLE_N_REC_BUFFERS   8
 
 /*
