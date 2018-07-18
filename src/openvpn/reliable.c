@@ -462,7 +462,7 @@ reliable_wont_break_sequentiality(const struct reliable *rel, packet_id_type id)
              (packet_id_print_type)id, reliable_print_ids(rel, &gc));
     }
 
-    dmsg(D_REL_DEBUG, "ACK RWBS rel->size=%d rel->packet_id=%08x id=%08x ret=%d\n", rel->size, rel->packet_id, id, ret);
+    dmsg(D_REL_DEBUG, "ACK RWBS rel->size=%d rel->packet_id=%08x id=%08x ret=%d", rel->size, rel->packet_id, id, ret);
 
     gc_free(&gc);
     return ret;
