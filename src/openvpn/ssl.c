@@ -3660,8 +3660,8 @@ tls_pre_decrypt(struct tls_multi *multi,
             }
 
             /*
-             * We have an authenticated packet (if --tls-auth was set).
-             * Now pass to our reliability level which deals with
+             * We have an authenticated control channel packet (if --tls-auth was set).
+             * Now pass to our reliability layer which deals with
              * packet acknowledgements, retransmits, sequencing, etc.
              */
             {
