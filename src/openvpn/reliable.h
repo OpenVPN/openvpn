@@ -123,7 +123,7 @@ bool reliable_ack_read(struct reliable_ack *ack,
  * @param ack The acknowledgment structure containing received
  *     acknowledgments.
  */
-void reliable_send_purge(struct reliable *rel, struct reliable_ack *ack);
+void reliable_send_purge(struct reliable *rel, const struct reliable_ack *ack);
 
 /** @} name Functions for processing incoming acknowledgments */
 

@@ -352,7 +352,7 @@ reliable_empty(const struct reliable *rel)
 
 /* del acknowledged items from send buf */
 void
-reliable_send_purge(struct reliable *rel, struct reliable_ack *ack)
+reliable_send_purge(struct reliable *rel, const struct reliable_ack *ack)
 {
     int i, j;
     for (i = 0; i < ack->len; ++i)
