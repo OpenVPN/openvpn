@@ -225,7 +225,7 @@ hash_remove_marked(struct hash *hash, struct hash_bucket *bucket)
 uint32_t
 void_ptr_hash_function(const void *key, uint32_t iv)
 {
-    return hash_func((const void *)&key, sizeof(key), iv);
+    return hash_func((const void *)&key, sizeof(*key), iv);
 }
 
 bool
