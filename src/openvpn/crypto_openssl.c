@@ -387,6 +387,88 @@ show_available_engines(void)
 #endif
 }
 
+
+bool
+crypto_pem_encode(const char *name, struct buffer *dst,
+                  const struct buffer *src, struct gc_arena *gc)
+{
+    bool ret = false;
+    BIO *bio = BIO_new(BIO_s_mem());
+    if (!bio || !PEM_write_bio(bio, name, "", BPTR(src), BLEN(src)))
+    {
+        ret = false;
+        goto cleanup;
+    }
+
+    BUF_MEM *bptr;
+    BIO_get_mem_ptr(bio, &bptr);
+
+    *dst = alloc_buf_gc(bptr->length, gc);
+    ASSERT(buf_write(dst, bptr->data, bptr->length));
+
+    ret = true;
+cleanup:
+    if (!BIO_free(bio))
+    {
+        ret = false;;
+    }
+
+    return ret;
+}
+
+bool
+crypto_pem_decode(const char *name, struct buffer *dst,
+                  const struct buffer *src)
+{
+    bool ret = false;
+
+    BIO *bio = BIO_new_mem_buf((char *)BPTR(src), BLEN(src));
+    if (!bio)
+    {
+        crypto_msg(M_FATAL, "Cannot open memory BIO for PEM decode");
+    }
+
+    char *name_read = NULL;
+    char *header_read = NULL;
+    uint8_t *data_read = NULL;
+    long data_read_len = 0;
+    if (!PEM_read_bio(bio, &name_read, &header_read, &data_read,
+                      &data_read_len))
+    {
+        dmsg(D_CRYPT_ERRORS, "%s: PEM decode failed", __func__);
+        goto cleanup;
+    }
+
+    if (strcmp(name, name_read))
+    {
+        dmsg(D_CRYPT_ERRORS,
+             "%s: unexpected PEM name (got '%s', expected '%s')",
+             __func__, name_read, name);
+        goto cleanup;
+    }
+
+    uint8_t *dst_data = buf_write_alloc(dst, data_read_len);
+    if (!dst_data)
+    {
+        dmsg(D_CRYPT_ERRORS, "%s: dst too small (%i, needs %li)", __func__,
+             BCAP(dst), data_read_len);
+        goto cleanup;
+    }
+    memcpy(dst_data, data_read, data_read_len);
+
+    ret = true;
+cleanup:
+    OPENSSL_free(name_read);
+    OPENSSL_free(header_read);
+    OPENSSL_free(data_read);
+    if (!BIO_free(bio))
+    {
+        ret = false;;
+    }
+
+    return ret;
+}
+
 /*
  *
  * Random number functions, used in cases where we want

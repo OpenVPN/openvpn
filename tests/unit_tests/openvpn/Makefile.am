@@ -6,7 +6,7 @@ if HAVE_LD_WRAP_SUPPORT
 check_PROGRAMS += argv_testdriver buffer_testdriver
 endif
 
-check_PROGRAMS += packet_id_testdriver tls_crypt_testdriver
+check_PROGRAMS += crypto_testdriver packet_id_testdriver tls_crypt_testdriver
 
 TESTS = $(check_PROGRAMS)
 
@@ -29,6 +29,20 @@ buffer_testdriver_LDFLAGS = @TEST_LDFLAGS@ -L$(openvpn_srcdir) -Wl,--wrap=parse_
 buffer_testdriver_SOURCES = test_buffer.c mock_msg.c \
 	mock_get_random.c \
 	$(openvpn_srcdir)/buffer.c \
+	$(openvpn_srcdir)/platform.c
+
+crypto_testdriver_CFLAGS  = @TEST_CFLAGS@ \
+	-I$(openvpn_includedir) -I$(compat_srcdir) -I$(openvpn_srcdir) \
+	$(OPTIONAL_CRYPTO_CFLAGS)
+crypto_testdriver_LDFLAGS = @TEST_LDFLAGS@ \
+	$(OPTIONAL_CRYPTO_LIBS)
+crypto_testdriver_SOURCES = test_crypto.c mock_msg.c \
+	$(openvpn_srcdir)/buffer.c \
+	$(openvpn_srcdir)/crypto.c \
+	$(openvpn_srcdir)/crypto_mbedtls.c \
+	$(openvpn_srcdir)/crypto_openssl.c \
+	$(openvpn_srcdir)/otime.c \
+	$(openvpn_srcdir)/packet_id.c \
 	$(openvpn_srcdir)/platform.c
 
 packet_id_testdriver_CFLAGS  = @TEST_CFLAGS@ \

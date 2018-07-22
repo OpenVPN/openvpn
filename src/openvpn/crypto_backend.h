@@ -36,6 +36,7 @@
 #include "crypto_mbedtls.h"
 #endif
 #include "basic.h"
+#include "buffer.h"
 
 /* TLS uses a tag of 128 bytes, let's do the same for OpenVPN */
 #define OPENVPN_AEAD_TAG_LENGTH 16
@@ -104,6 +105,34 @@ void show_available_ciphers(void);
 void show_available_digests(void);
 
 void show_available_engines(void);
+
+/**
+ * Encode binary data as PEM.
+ *
+ * @param name      The name to use in the PEM header/footer.
+ * @param dst       Destination buffer for PEM-encoded data.  Must be a valid
+ *                  pointer to an uninitialized buffer structure.  Iff this
+ *                  function returns true, the buffer will contain memory
+ *                  allocated through the supplied gc.
+ * @param src       Source buffer.
+ * @param gc        The garbage collector to use when allocating memory for dst.
+ *
+ * @return true iff PEM encode succeeded.
+ */
+bool crypto_pem_encode(const char *name, struct buffer *dst,
+                       const struct buffer *src, struct gc_arena *gc);
+
+/**
+ * Decode a PEM buffer to binary data.
+ *
+ * @param name      The name expected in the PEM header/footer.
+ * @param dst       Destination buffer for decoded data.
+ * @param src       Source buffer (PEM data).
+ *
+ * @return true iff PEM decode succeeded.
+ */
+bool crypto_pem_decode(const char *name, struct buffer *dst,
+                       const struct buffer *src);
 
 /*
  *

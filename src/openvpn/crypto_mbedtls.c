@@ -44,11 +44,13 @@
 #include "otime.h"
 #include "misc.h"
 
+#include <mbedtls/base64.h>
 #include <mbedtls/des.h>
 #include <mbedtls/error.h>
 #include <mbedtls/md5.h>
 #include <mbedtls/cipher.h>
 #include <mbedtls/havege.h>
+#include <mbedtls/pem.h>
 
 #include <mbedtls/entropy.h>
 
@@ -227,6 +229,79 @@ show_available_engines(void)
 {
     printf("Sorry, mbed TLS hardware crypto engine functionality is not "
            "available\n");
+}
+
+bool
+crypto_pem_encode(const char *name, struct buffer *dst,
+                  const struct buffer *src, struct gc_arena *gc)
+{
+    /* 1000 chars is the PEM line length limit (+1 for tailing NUL) */
+    char header[1000+1] = { 0 };
+    char footer[1000+1] = { 0 };
+
+    if (!openvpn_snprintf(header, sizeof(header), "-----BEGIN %s-----\n", name))
+    {
+        return false;
+    }
+    if (!openvpn_snprintf(footer, sizeof(footer), "-----END %s-----\n", name))
+    {
+        return false;
+    }
+
+    size_t out_len = 0;
+    if (MBEDTLS_ERR_BASE64_BUFFER_TOO_SMALL !=
+            mbedtls_pem_write_buffer(header, footer, BPTR(src), BLEN(src),
+                                     NULL, 0, &out_len))
+    {
+        return false;
+    }
+
+    *dst = alloc_buf_gc(out_len, gc);
+    if (!mbed_ok(mbedtls_pem_write_buffer(header, footer, BPTR(src), BLEN(src),
+                                          BPTR(dst), BCAP(dst), &out_len))
+        || !buf_inc_len(dst, out_len))
+    {
+        CLEAR(*dst);
+        return false;
+    }
+
+    return true;
+}
+
+bool
+crypto_pem_decode(const char *name, struct buffer *dst,
+                  const struct buffer *src)
+{
+    /* 1000 chars is the PEM line length limit (+1 for tailing NUL) */
+    char header[1000+1] = { 0 };
+    char footer[1000+1] = { 0 };
+
+    if (*(BLAST(src)) != '\0')
+    {
+        msg(M_WARN, "PEM decode error: source buffer not null-terminated");
+        return false;
+    }
+    if (!openvpn_snprintf(header, sizeof(header), "-----BEGIN %s-----", name))
+    {
+        return false;
+    }
+    if (!openvpn_snprintf(footer, sizeof(footer), "-----END %s-----", name))
+    {
+        return false;
+    }
+
+    size_t use_len = 0;
+    mbedtls_pem_context ctx = { 0 };
+    bool ret = mbed_ok(mbedtls_pem_read_buffer(&ctx, header, footer, BPTR(src),
+                                               NULL, 0, &use_len));
+    if (ret && !buf_write(dst, ctx.buf, ctx.buflen))
+    {
+        ret = false;
+        msg(M_WARN, "PEM decode error: destination buffer too small");
+    }
+
+    mbedtls_pem_free(&ctx);
+    return ret;
 }
 
 /*
