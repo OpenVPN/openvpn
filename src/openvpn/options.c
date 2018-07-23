@@ -200,8 +200,10 @@ static const char usage_message[] =
     "--route-ipv6 network/bits [gateway] [metric] :\n"
     "                  Add IPv6 route to routing table after connection\n"
     "                  is established.  Multiple routes can be specified.\n"
-    "                  gateway default: taken from 'remote' in --ifconfig-ipv6\n"
+    "                  gateway default: taken from --route-ipv6-gateway or 'remote'\n"
+    "                  in --ifconfig-ipv6\n"
     "--route-gateway gw|'dhcp' : Specify a default gateway for use with --route.\n"
+    "--route-ipv6-gateway gw : Specify a default gateway for use with --route-ipv6.\n"
     "--route-metric m : Specify a default metric for use with --route.\n"
     "--route-delay n [w] : Delay n seconds after connection initiation before\n"
     "                  adding routes (may be 0).  If not specified, routes will\n"
@@ -6226,6 +6228,18 @@ add_option(struct options *options,
                 msg(msglevel, "route-gateway parm '%s' must be a valid address", p[1]);
                 goto err;
             }
+        }
+    }
+    else if (streq(p[0], "route-ipv6-gateway") && p[1] && !p[2])
+    {
+        if (ipv6_addr_safe(p[1]))
+        {
+            options->route_ipv6_default_gateway = p[1];
+        }
+        else
+        {
+            msg(msglevel, "route-ipv6-gateway parm '%s' must be a valid address", p[1]);
+            goto err;
         }
     }
     else if (streq(p[0], "route-metric") && p[1] && !p[2])

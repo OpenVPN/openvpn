@@ -343,6 +343,7 @@ struct options
     const char *route_script;
     const char *route_predown_script;
     const char *route_default_gateway;
+    const char *route_ipv6_default_gateway;
     int route_default_metric;
     bool route_noexec;
     int route_delay;

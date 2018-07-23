@@ -1466,12 +1466,10 @@ do_init_route_ipv6_list(const struct options *options,
     int metric = -1;            /* no metric set */
 
     gw = options->ifconfig_ipv6_remote;         /* default GW = remote end */
-#if 0                                   /* not yet done for IPv6 - TODO!*/
-    if (options->route_ipv6_default_gateway)            /* override? */
+    if (options->route_ipv6_default_gateway)
     {
         gw = options->route_ipv6_default_gateway;
     }
-#endif
 
     if (options->route_default_metric)
     {
