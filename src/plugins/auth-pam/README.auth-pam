@@ -36,19 +36,20 @@ pairs to answer PAM module queries.
 
 For example:
 
-  plugin openvpn-auth-pam.so "login login USERNAME password PASSWORD"
+  plugin openvpn-auth-pam.so "login login USERNAME password PASSWORD pin OTP"
 
 tells auth-pam to (a) use the "login" PAM module, (b) answer a
-"login" query with the username given by the OpenVPN client, and
-(c) answer a "password" query with the password given by the
-OpenVPN client.  This provides flexibility in dealing with the different
+"login" query with the username given by the OpenVPN client,
+(c) answer a "password" query with the password, and (d) answer a
+"pin" query with the OTP given by the OpenVPN client.
+This provides flexibility in dealing with different
 types of query strings which different PAM modules might generate.
 For example, suppose you were using a PAM module called
 "test" which queried for "name" rather than "login":
 
   plugin openvpn-auth-pam.so "test name USERNAME password PASSWORD"
 
-While "USERNAME" "COMMONNAME" and "PASSWORD" are special strings which substitute
+While "USERNAME" "COMMONNAME" "PASSWORD" and "OTP" are special strings which substitute
 to client-supplied values, it is also possible to name literal values
 to use as PAM module query responses.  For example, suppose that the
 login module queried for a third parameter, "domain" which
@@ -61,6 +62,10 @@ the operation of this plugin:
 
   client-cert-not-required
   username-as-common-name
+  static-challenge
+
+Use of --static challenege is required to pass a pin (represented by "OTP" in
+parameter substituion) or a second password.
 
 Run OpenVPN with --verb 7 or higher to get debugging output from
 this plugin, including the list of queries presented by the
