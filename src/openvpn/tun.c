@@ -845,7 +845,7 @@ delete_route_connected_v6_net(struct tuntap *tt,
 #endif /* if defined(_WIN32) || defined(TARGET_DARWIN) || defined(TARGET_NETBSD) || defined(TARGET_OPENBSD) */
 
 #if defined(TARGET_FREEBSD) || defined(TARGET_DRAGONFLY)  \
-    || defined(TARGET_OPENBSD)
+    || defined(TARGET_NETBSD) || defined(TARGET_OPENBSD)
 /* we can't use true subnet mode on tun on all platforms, as that
  * conflicts with IPv6 (wants to use ND then, which we don't do),
  * but the OSes want "a remote address that is different from ours"
@@ -1233,6 +1233,7 @@ do_ifconfig_ipv4(struct tuntap *tt, const char *ifname, int tun_mtu,
     }
 
 #elif defined(TARGET_NETBSD)
+    in_addr_t remote_end;           /* for "virtual" subnet topology */
 
     if (tun)
     {
@@ -1242,9 +1243,10 @@ do_ifconfig_ipv4(struct tuntap *tt, const char *ifname, int tun_mtu,
     }
     else if (tt->topology == TOP_SUBNET)
     {
+        remote_end = create_arbitrary_remote(tt);
         argv_printf(&argv, "%s %s %s %s mtu %d netmask %s up", IFCONFIG_PATH,
-                    ifname, ifconfig_local, ifconfig_local, tun_mtu,
-                    ifconfig_remote_netmask);
+                    ifname, ifconfig_local, print_in_addr_t(remote_end, 0, &gc),
+                    tun_mtu, ifconfig_remote_netmask);
     }
     else
     {
@@ -1259,6 +1261,18 @@ do_ifconfig_ipv4(struct tuntap *tt, const char *ifname, int tun_mtu,
     }
     argv_msg(M_INFO, &argv);
     openvpn_execve_check(&argv, es, S_FATAL, "NetBSD ifconfig failed");
+
+    /* Add a network route for the local tun interface */
+    if (!tun && tt->topology == TOP_SUBNET)
+    {
+        struct route_ipv4 r;
+        CLEAR(r);
+        r.flags = RT_DEFINED;
+        r.network = tt->local & tt->remote_netmask;
+        r.netmask = tt->remote_netmask;
+        r.gateway = remote_end;
+        add_route(&r, tt, 0, NULL, es);
+    }
 
 #elif defined(TARGET_DARWIN)
     /*
