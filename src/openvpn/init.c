@@ -1041,6 +1041,10 @@ do_genkey(const struct options *options)
         }
 
         nbits_written = write_key_file(2, options->shared_secret_file);
+        if (nbits_written < 0)
+        {
+            msg(M_FATAL, "Failed to write key file");
+        }
 
         msg(D_GENKEY | M_NOPREFIX,
             "Randomly generated %d bit key written to %s", nbits_written,

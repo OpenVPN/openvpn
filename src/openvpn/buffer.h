@@ -469,11 +469,15 @@ const char *skip_leading_whitespace(const char *str);
 
 void string_null_terminate(char *str, int len, int capacity);
 
-/*
- * Write string in buf to file descriptor fd.
- * NOTE: requires that string be null terminated.
+/**
+ * Write buffer contents to file.
+ *
+ * @param filename  The filename to write the buffer to.
+ * @param buf       The buffer to write to the file.
+ *
+ * @return true on success, false otherwise.
  */
-void buf_write_string_file(const struct buffer *buf, const char *filename, int fd);
+bool buffer_write_file(const char *filename, const struct buffer *buf);
 
 /*
  * write a string to the end of a buffer that was

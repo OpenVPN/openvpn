@@ -271,6 +271,11 @@ struct crypto_options
 #define RKF_INLINE       (1<<1)
 void read_key_file(struct key2 *key2, const char *file, const unsigned int flags);
 
+/**
+ * Write nkeys 1024-bits keys to file.
+ *
+ * @returns number of random bits written, or -1 on failure.
+ */
 int write_key_file(const int nkeys, const char *filename);
 
 int read_passphrase_hash(const char *passphrase_file,

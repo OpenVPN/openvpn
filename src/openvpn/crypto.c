@@ -1418,36 +1418,24 @@ read_key_file(struct key2 *key2, const char *file, const unsigned int flags)
     gc_free(&gc);
 }
 
-/*
- * Write key to file, return number of random bits
- * written.
- */
 int
 write_key_file(const int nkeys, const char *filename)
 {
     struct gc_arena gc = gc_new();
 
-    int fd, i;
-    int nbits = 0;
+    int nbits = nkeys * sizeof(struct key) * 8;
 
     /* must be large enough to hold full key file */
     struct buffer out = alloc_buf_gc(2048, &gc);
-    struct buffer nbits_head_text = alloc_buf_gc(128, &gc);
 
     /* how to format the ascii file representation of key */
     const int bytes_per_line = 16;
 
-    /* open key file */
-    fd = platform_open(filename, O_CREAT | O_TRUNC | O_WRONLY, S_IRUSR | S_IWUSR);
-
-    if (fd == -1)
-    {
-        msg(M_ERR, "Cannot open shared secret file '%s' for write", filename);
-    }
-
+    /* write header */
+    buf_printf(&out, "#\n# %d bit OpenVPN static key\n#\n", nbits);
     buf_printf(&out, "%s\n", static_key_head);
 
-    for (i = 0; i < nkeys; ++i)
+    for (int i = 0; i < nkeys; ++i)
     {
         struct key key;
         char *fmt;
@@ -1463,9 +1451,6 @@ write_key_file(const int nkeys, const char *filename)
                             "\n",
                             &gc);
 
-        /* increment random bits counter */
-        nbits += sizeof(key) * 8;
-
         /* write to holding buffer */
         buf_printf(&out, "%s\n", fmt);
 
@@ -1476,16 +1461,10 @@ write_key_file(const int nkeys, const char *filename)
 
     buf_printf(&out, "%s\n", static_key_foot);
 
-    /* write number of bits */
-    buf_printf(&nbits_head_text, "#\n# %d bit OpenVPN static key\n#\n", nbits);
-    buf_write_string_file(&nbits_head_text, filename, fd);
-
     /* write key file, now formatted in out, to file */
-    buf_write_string_file(&out, filename, fd);
-
-    if (close(fd))
+    if(!buffer_write_file(filename, &out))
     {
-        msg(M_ERR, "Close error on shared secret file %s", filename);
+        nbits = -1;
     }
 
     /* zero memory which held file content (memory will be freed by GC) */

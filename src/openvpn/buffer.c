@@ -343,16 +343,33 @@ convert_to_one_line(struct buffer *buf)
     }
 }
 
-/* NOTE: requires that string be null terminated */
-void
-buf_write_string_file(const struct buffer *buf, const char *filename, int fd)
+bool
+buffer_write_file(const char *filename, const struct buffer *buf)
 {
-    const int len = strlen((char *) BPTR(buf));
-    const int size = write(fd, BPTR(buf), len);
-    if (size != len)
+    bool ret = false;
+    int fd = platform_open(filename, O_CREAT | O_TRUNC | O_WRONLY,
+                           S_IRUSR | S_IWUSR);
+    if (fd == -1)
     {
-        msg(M_ERR, "Write error on file '%s'", filename);
+        msg(M_ERRNO, "Cannot open file '%s' for write", filename);
+        return false;
     }
+
+    const int size = write(fd, BPTR(buf), BLEN(buf));
+    if (size != BLEN(buf))
+    {
+        msg(M_ERRNO, "Write error on file '%s'", filename);
+        goto cleanup;
+    }
+
+    ret = true;
+cleanup:
+    if (close(fd) < 0)
+    {
+        msg(M_ERRNO, "Close error on file %s", filename);
+        ret = false;
+    }
+    return ret;
 }
 
 /*
