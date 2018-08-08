@@ -310,11 +310,11 @@ split_scrv1_password(struct user_pass *up)
     *resp++ = '\0';
 
     int n = plugin_base64_decode(pass, up->password, sizeof(up->password)-1);
-    if (n > 0)
+    if (n >= 0)
     {
         up->password[n] = '\0';
         n = plugin_base64_decode(resp, up->response, sizeof(up->response)-1);
-        if (n > 0)
+        if (n >= 0)
         {
             up->response[n] = '\0';
             if (DEBUG(up->verb))
