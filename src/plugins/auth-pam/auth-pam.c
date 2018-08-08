@@ -292,8 +292,8 @@ openvpn_plugin_open_v3(const int v3structver,
     const char **argv = args->argv;
     const char **envp = args->envp;
 
-    /* Check API compatibility -- struct version 4 or higher needed */
-    if (v3structver < 4)
+    /* Check API compatibility -- struct version 5 or higher needed */
+    if (v3structver < 5)
     {
         fprintf(stderr, "AUTH-PAM: This plugin is incompatible with the running version of OpenVPN\n");
         return OPENVPN_PLUGIN_FUNC_ERROR;

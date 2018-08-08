@@ -221,10 +221,11 @@ struct openvpn_plugin_string_list
  *           OpenVPN to plug-ins.
  *
  *    4      Exported secure_memzero() as plugin_secure_memzero()
- *           Exported openvpn_base64_encode() as plugin_base64_encode()
+ *
+ *    5      Exported openvpn_base64_encode() as plugin_base64_encode()
  *           Exported openvpn_base64_decode() as plugin_base64_decode()
  */
-#define OPENVPN_PLUGINv3_STRUCTVER 4
+#define OPENVPN_PLUGINv3_STRUCTVER 5
 
 /**
  * Definitions needed for the plug-in callback functions.
