@@ -1091,7 +1091,7 @@ do_ifconfig(struct tuntap *tt,
                         actual
                         );
         }
-        else if (tt->topology == TOP_SUBNET)
+        else if (tt->type == DEV_TYPE_TUN && tt->topology == TOP_SUBNET)
         {
             argv_printf(&argv,
                         "%s %s %s %s netmask %s mtu %d up",
@@ -1173,7 +1173,7 @@ do_ifconfig(struct tuntap *tt,
             }
         }
 
-        if (!tun && tt->topology == TOP_SUBNET)
+        if (!tun && tt->type == DEV_TYPE_TUN && tt->topology == TOP_SUBNET)
         {
             /* Add a network route for the local tun interface */
             struct route_ipv4 r;
@@ -1210,7 +1210,7 @@ do_ifconfig(struct tuntap *tt,
                         tun_mtu
                         );
         }
-        else if (tt->topology == TOP_SUBNET)
+        else if (tt->type == DEV_TYPE_TUN && tt->topology == TOP_SUBNET)
         {
             remote_end = create_arbitrary_remote( tt );
             argv_printf(&argv,
@@ -1239,7 +1239,7 @@ do_ifconfig(struct tuntap *tt,
         openvpn_execve_check(&argv, es, S_FATAL, "OpenBSD ifconfig failed");
 
         /* Add a network route for the local tun interface */
-        if (!tun && tt->topology == TOP_SUBNET)
+        if (!tun && tt->type == DEV_TYPE_TUN && tt->topology == TOP_SUBNET)
         {
             struct route_ipv4 r;
             CLEAR(r);
@@ -1282,7 +1282,7 @@ do_ifconfig(struct tuntap *tt,
                         tun_mtu
                         );
         }
-        else if (tt->topology == TOP_SUBNET)
+        else if (tt->type == DEV_TYPE_TUN && tt->topology == TOP_SUBNET)
         {
             remote_end = create_arbitrary_remote( tt );
             argv_printf(&argv,
@@ -1316,7 +1316,7 @@ do_ifconfig(struct tuntap *tt,
         openvpn_execve_check(&argv, es, S_FATAL, "NetBSD ifconfig failed");
 
         /* Add a network route for the local tun interface */
-        if (!tun && tt->topology == TOP_SUBNET)
+        if (!tun && tt->type == DEV_TYPE_TUN && tt->topology == TOP_SUBNET)
         {
             struct route_ipv4 r;
             CLEAR(r);
@@ -1372,7 +1372,7 @@ do_ifconfig(struct tuntap *tt,
         }
         else
         {
-            if (tt->topology == TOP_SUBNET)
+            if (tt->type == DEV_TYPE_TUN && tt->topology == TOP_SUBNET)
             {
                 argv_printf(&argv,
                             "%s %s %s %s netmask %s mtu %d up",
@@ -1402,7 +1402,7 @@ do_ifconfig(struct tuntap *tt,
         tt->did_ifconfig = true;
 
         /* Add a network route for the local tun interface */
-        if (!tun && tt->topology == TOP_SUBNET)
+        if (!tun && tt->type == DEV_TYPE_TUN && tt->topology == TOP_SUBNET)
         {
             struct route_ipv4 r;
             CLEAR(r);
@@ -1445,7 +1445,7 @@ do_ifconfig(struct tuntap *tt,
                         tun_mtu
                         );
         }
-        else if (tt->topology == TOP_SUBNET)
+        else if (tt->type == DEV_TYPE_TUN && tt->topology == TOP_SUBNET)
         {
             remote_end = create_arbitrary_remote( tt );
             argv_printf(&argv,
@@ -1475,7 +1475,7 @@ do_ifconfig(struct tuntap *tt,
         tt->did_ifconfig = true;
 
         /* Add a network route for the local tun interface */
-        if (!tun && tt->topology == TOP_SUBNET)
+        if (!tun && tt->type == DEV_TYPE_TUN && tt->topology == TOP_SUBNET)
         {
             struct route_ipv4 r;
             CLEAR(r);
