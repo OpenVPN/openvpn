@@ -329,6 +329,7 @@ openvpn_main(int argc, char *argv[])
             }
             while (c.sig->signal_received == SIGUSR1);
 
+            env_set_destroy(c.es);
             uninit_options(&c.options);
             gc_reset(&c.gc);
         }
@@ -336,8 +337,6 @@ openvpn_main(int argc, char *argv[])
     }
 
     context_gc_free(&c);
-
-    env_set_destroy(c.es);
 
 #ifdef ENABLE_MANAGEMENT
     /* close management interface */
