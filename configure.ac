@@ -994,35 +994,6 @@ elif test "${with_crypto_library}" = "mbedtls"; then
 		[AC_MSG_ERROR([mbed TLS 2.y.z required])]
 	)
 
-	mbedtls_with_pkcs11="no"
-	AC_COMPILE_IFELSE(
-		[AC_LANG_PROGRAM(
-			[[
-#include <mbedtls/config.h>
-			]],
-			[[
-#ifndef MBEDTLS_PKCS11_C
-#error pkcs11 wrapper missing
-#endif
-			]]
-		)],
-		mbedtls_with_pkcs11="yes")
-
-	AC_MSG_CHECKING([mbedtls pkcs11 support])
-	if test "${enable_pkcs11}" = "yes"; then
-		if test "${mbedtls_with_pkcs11}" = "yes"; then
-			AC_MSG_RESULT([ok])
-		else
-			AC_MSG_ERROR([mbedtls has no pkcs11 wrapper compiled in])
-		fi
-	else
-		if test "${mbedtls_with_pkcs11}" != "yes"; then
-			AC_MSG_RESULT([ok])
-		else
-			AC_MSG_ERROR([mbed TLS compiled with PKCS11, while OpenVPN is not])
-		fi
-	fi
-
 	have_crypto_aead_modes="yes"
 	AC_CHECK_FUNCS(
 		[ \

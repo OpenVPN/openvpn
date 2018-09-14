@@ -43,6 +43,7 @@
 #include "buffer.h"
 #include "misc.h"
 #include "manage.h"
+#include "pkcs11_backend.h"
 #include "ssl_common.h"
 
 #include <mbedtls/havege.h>
@@ -167,11 +168,7 @@ tls_ctx_free(struct tls_root_ctx *ctx)
         }
 
 #if defined(ENABLE_PKCS11)
-        if (ctx->priv_key_pkcs11 != NULL)
-        {
-            mbedtls_pkcs11_priv_key_free(ctx->priv_key_pkcs11);
-            free(ctx->priv_key_pkcs11);
-        }
+        pkcs11h_certificate_freeCertificate(ctx->pkcs11_cert);
 #endif
 
         if (ctx->allowed_ciphers)

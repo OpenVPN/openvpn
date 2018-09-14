@@ -39,60 +39,89 @@
 #include "errlevel.h"
 #include "pkcs11_backend.h"
 #include "ssl_verify_backend.h"
-#include <mbedtls/pkcs11.h>
 #include <mbedtls/x509.h>
+
+static bool
+pkcs11_get_x509_cert(pkcs11h_certificate_t pkcs11_cert, mbedtls_x509_crt *cert)
+{
+    unsigned char *cert_blob = NULL;
+    size_t cert_blob_size = 0;
+    bool ret = false;
+
+    if (pkcs11h_certificate_getCertificateBlob(pkcs11_cert, NULL,
+                                               &cert_blob_size) != CKR_OK)
+    {
+        msg(M_WARN, "PKCS#11: Cannot retrieve certificate object size");
+        goto cleanup;
+    }
+
+    check_malloc_return((cert_blob = calloc(1, cert_blob_size)));
+    if (pkcs11h_certificate_getCertificateBlob(pkcs11_cert, cert_blob,
+                                               &cert_blob_size) != CKR_OK)
+    {
+        msg(M_WARN, "PKCS#11: Cannot retrieve certificate object");
+        goto cleanup;
+    }
+
+    if (!mbed_ok(mbedtls_x509_crt_parse(cert, cert_blob, cert_blob_size)))
+    {
+        msg(M_WARN, "PKCS#11: Could not parse certificate");
+        goto cleanup;
+    }
+
+    ret = true;
+cleanup:
+    free(cert_blob);
+    return ret;
+}
+
+static bool
+pkcs11_sign(void *pkcs11_cert, const void *src, size_t src_len,
+            void *dst, size_t dst_len)
+{
+    return CKR_OK == pkcs11h_certificate_signAny(pkcs11_cert, CKM_RSA_PKCS,
+                                                 src, src_len, dst, &dst_len);
+}
 
 int
 pkcs11_init_tls_session(pkcs11h_certificate_t certificate,
                         struct tls_root_ctx *const ssl_ctx)
 {
-    int ret = 1;
-
     ASSERT(NULL != ssl_ctx);
 
+    ssl_ctx->pkcs11_cert = certificate;
+
     ALLOC_OBJ_CLEAR(ssl_ctx->crt_chain, mbedtls_x509_crt);
-    if (mbedtls_pkcs11_x509_cert_bind(ssl_ctx->crt_chain, certificate))
+    if (!pkcs11_get_x509_cert(certificate, ssl_ctx->crt_chain))
     {
-        msg(M_FATAL, "PKCS#11: Cannot retrieve mbed TLS certificate object");
-        goto cleanup;
+        msg(M_WARN, "PKCS#11: Cannot initialize certificate");
+        return 1;
     }
 
-    ALLOC_OBJ_CLEAR(ssl_ctx->priv_key_pkcs11, mbedtls_pkcs11_context);
-    if (mbedtls_pkcs11_priv_key_bind(ssl_ctx->priv_key_pkcs11, certificate))
+    if (tls_ctx_use_external_signing_func(ssl_ctx, pkcs11_sign, certificate))
     {
-        msg(M_FATAL, "PKCS#11: Cannot initialize mbed TLS private key object");
-        goto cleanup;
+        msg(M_WARN, "PKCS#11: Cannot register signing function");
+        return 1;
     }
 
-    ALLOC_OBJ_CLEAR(ssl_ctx->priv_key, mbedtls_pk_context);
-    if (!mbed_ok(mbedtls_pk_setup_rsa_alt(ssl_ctx->priv_key,
-                                          ssl_ctx->priv_key_pkcs11, mbedtls_ssl_pkcs11_decrypt,
-                                          mbedtls_ssl_pkcs11_sign, mbedtls_ssl_pkcs11_key_len)))
-    {
-        goto cleanup;
-    }
-
-    ret = 0;
-
-cleanup:
-    return ret;
+    return 0;
 }
 
 char *
 pkcs11_certificate_dn(pkcs11h_certificate_t cert, struct gc_arena *gc)
 {
     char *ret = NULL;
-    mbedtls_x509_crt mbed_crt = {0};
+    mbedtls_x509_crt mbed_crt = { 0 };
 
-    if (mbedtls_pkcs11_x509_cert_bind(&mbed_crt, cert))
+    if (!pkcs11_get_x509_cert(cert, &mbed_crt))
     {
-        msg(M_FATAL, "PKCS#11: Cannot retrieve mbed TLS certificate object");
+        msg(M_WARN, "PKCS#11: Cannot retrieve mbed TLS certificate object");
         goto cleanup;
     }
 
     if (!(ret = x509_get_subject(&mbed_crt, gc)))
     {
-        msg(M_FATAL, "PKCS#11: mbed TLS cannot parse subject");
+        msg(M_WARN, "PKCS#11: mbed TLS cannot parse subject");
         goto cleanup;
     }
 
@@ -107,23 +136,21 @@ pkcs11_certificate_serial(pkcs11h_certificate_t cert, char *serial,
                           size_t serial_len)
 {
     int ret = 1;
+    mbedtls_x509_crt mbed_crt = { 0 };
 
-    mbedtls_x509_crt mbed_crt = {0};
-
-    if (mbedtls_pkcs11_x509_cert_bind(&mbed_crt, cert))
+    if (!pkcs11_get_x509_cert(cert, &mbed_crt))
     {
-        msg(M_FATAL, "PKCS#11: Cannot retrieve mbed TLS certificate object");
+        msg(M_WARN, "PKCS#11: Cannot retrieve mbed TLS certificate object");
         goto cleanup;
     }
 
-    if (-1 == mbedtls_x509_serial_gets(serial, serial_len, &mbed_crt.serial))
+    if (mbedtls_x509_serial_gets(serial, serial_len, &mbed_crt.serial) < 0)
     {
-        msg(M_FATAL, "PKCS#11: mbed TLS cannot parse serial");
+        msg(M_WARN, "PKCS#11: mbed TLS cannot parse serial");
         goto cleanup;
     }
 
     ret = 0;
-
 cleanup:
     mbedtls_x509_crt_free(&mbed_crt);
 

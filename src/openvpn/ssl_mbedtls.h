@@ -35,7 +35,7 @@
 #include <mbedtls/x509_crt.h>
 
 #if defined(ENABLE_PKCS11)
-#include <mbedtls/pkcs11.h>
+#include <pkcs11-helper-1.0/pkcs11h-certificate.h>
 #endif
 
 typedef struct _buffer_entry buffer_entry;
@@ -99,8 +99,8 @@ struct tls_root_ctx {
     mbedtls_x509_crl *crl;              /**< Certificate Revocation List */
     time_t crl_last_mtime;              /**< CRL last modification time */
     off_t crl_last_size;                /**< size of last loaded CRL */
-#if defined(ENABLE_PKCS11)
-    mbedtls_pkcs11_context *priv_key_pkcs11;    /**< PKCS11 private key */
+#ifdef ENABLE_PKCS11
+    pkcs11h_certificate_t pkcs11_cert;  /**< PKCS11 certificate */
 #endif
     struct external_context external_key; /**< External key context */
     int *allowed_ciphers;       /**< List of allowed ciphers for this connection */
