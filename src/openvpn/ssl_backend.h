@@ -270,8 +270,7 @@ void tls_ctx_load_cert_file(struct tls_root_ctx *ctx, const char *cert_file,
  *                              successful.
  */
 int tls_ctx_load_priv_file(struct tls_root_ctx *ctx, const char *priv_key_file,
-                           const char *priv_key_file_inline
-                           );
+                           const char *priv_key_file_inline);
 
 #ifdef MANAGMENT_EXTERNAL_KEY
 
@@ -280,18 +279,12 @@ int tls_ctx_load_priv_file(struct tls_root_ctx *ctx, const char *priv_key_file,
  * private key matching the given certificate.
  *
  * @param ctx                   TLS context to use
- * @param cert_file             The file name to load the certificate from, or
- *                              "[[INLINE]]" in the case of inline files.
- * @param cert_file_inline      A string containing the certificate
  *
- * @return                      1 if an error occurred, 0 if parsing was
- *                              successful.
+ * @return                      1 if an error occurred, 0 if successful.
  */
-int tls_ctx_use_external_private_key(struct tls_root_ctx *ctx,
-                                     const char *cert_file, const char *cert_file_inline);
+int tls_ctx_use_management_external_key(struct tls_root_ctx *ctx);
 
-#endif
-
+#endif /* MANAGMENT_EXTERNAL_KEY */
 
 /**
  * Load certificate authority certificates from the given file or path.

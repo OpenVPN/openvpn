@@ -795,11 +795,9 @@ tls_ctx_add_extra_certs(struct tls_root_ctx *ctx, BIO *bio)
     }
 }
 
-/* Like tls_ctx_load_cert, but returns a copy of the certificate in **X509 */
-static void
-tls_ctx_load_cert_file_and_copy(struct tls_root_ctx *ctx,
-                                const char *cert_file, const char *cert_file_inline, X509 **x509
-                                )
+void
+tls_ctx_load_cert_file(struct tls_root_ctx *ctx, const char *cert_file,
+                       const char *cert_file_inline)
 {
     BIO *in = NULL;
     X509 *x = NULL;
@@ -807,10 +805,6 @@ tls_ctx_load_cert_file_and_copy(struct tls_root_ctx *ctx,
     bool inline_file = false;
 
     ASSERT(NULL != ctx);
-    if (NULL != x509)
-    {
-        ASSERT(NULL == *x509);
-    }
 
     inline_file = (strcmp(cert_file, INLINE_FILE_TAG) == 0);
 
@@ -861,21 +855,10 @@ end:
     {
         BIO_free(in);
     }
-    if (x509)
-    {
-        *x509 = x;
-    }
     else if (x)
     {
         X509_free(x);
     }
-}
-
-void
-tls_ctx_load_cert_file(struct tls_root_ctx *ctx, const char *cert_file,
-                       const char *cert_file_inline)
-{
-    tls_ctx_load_cert_file_and_copy(ctx, cert_file, cert_file_inline, NULL);
 }
 
 int
@@ -1039,7 +1022,7 @@ rsa_priv_dec(int flen, const unsigned char *from, unsigned char *to, RSA *rsa, i
 static int
 openvpn_extkey_rsa_finish(RSA *rsa)
 {
-    /* meth was allocated in tls_ctx_use_external_private_key() ; since
+    /* meth was allocated in tls_ctx_use_management_external_key() ; since
      * this function is called when the parent RSA object is destroyed,
      * it is no longer used after this point so kill it. */
     const RSA_METHOD *meth = RSA_get_method(rsa);
@@ -1288,14 +1271,20 @@ err:
 #endif /* OPENSSL_VERSION_NUMBER > 1.1.0 dev */
 
 int
-tls_ctx_use_external_private_key(struct tls_root_ctx *ctx,
-                                 const char *cert_file, const char *cert_file_inline)
+tls_ctx_use_management_external_key(struct tls_root_ctx *ctx)
 {
-    X509 *cert = NULL;
+    int ret = 1;
 
     ASSERT(NULL != ctx);
 
-    tls_ctx_load_cert_file_and_copy(ctx, cert_file, cert_file_inline, &cert);
+#if OPENSSL_VERSION_NUMBER >= 0x10002000L && !defined(LIBRESSL_VERSION_NUMBER)
+    /* OpenSSL 1.0.2 and up */
+    X509 *cert = SSL_CTX_get0_certificate(ctx->ctx);
+#else
+    /* OpenSSL 1.0.1 and earlier need an SSL object to get at the certificate */
+    SSL *ssl = SSL_new(ctx->ctx);
+    X509 *cert = SSL_get_certificate(ssl);
+#endif
 
     ASSERT(NULL != cert);
 
@@ -1308,7 +1297,7 @@ tls_ctx_use_external_private_key(struct tls_root_ctx *ctx,
     {
         if (!tls_ctx_use_external_rsa_key(ctx, pkey))
         {
-            goto err;
+            goto cleanup;
         }
     }
 #if OPENSSL_VERSION_NUMBER > 0x10100000L && !defined(OPENSSL_NO_EC) && !defined(LIBRESSL_VERSION_NUMBER)
@@ -1316,26 +1305,35 @@ tls_ctx_use_external_private_key(struct tls_root_ctx *ctx,
     {
         if (!tls_ctx_use_external_ec_key(ctx, pkey))
         {
-            goto err;
+            goto cleanup;
         }
     }
     else
     {
         crypto_msg(M_WARN, "management-external-key requires an RSA or EC certificate");
-        goto err;
+        goto cleanup;
     }
 #else
     else
     {
         crypto_msg(M_WARN, "management-external-key requires an RSA certificate");
-        goto err;
+        goto cleanup;
     }
 #endif /* OPENSSL_VERSION_NUMBER > 1.1.0 dev */
-    return 0;
 
-err:
-    crypto_msg(M_FATAL, "Cannot enable SSL external private key capability");
-    return 1;
+    ret = 0;
+cleanup:
+#if OPENSSL_VERSION_NUMBER < 0x10002000L || defined(LIBRESSL_VERSION_NUMBER)
+    if (ssl)
+    {
+        SSL_free(ssl);
+    }
+#endif
+    if (ret)
+    {
+        crypto_msg(M_FATAL, "Cannot enable SSL external private key capability");
+    }
+    return ret;
 }
 
 #endif /* ifdef MANAGMENT_EXTERNAL_KEY */

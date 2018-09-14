@@ -657,41 +657,37 @@ init_ssl(const struct options *options, struct tls_root_ctx *new_ctx)
     }
 #endif
 #ifdef MANAGMENT_EXTERNAL_KEY
-    else if ((options->management_flags & MF_EXTERNAL_KEY)
-             && (options->cert_file || options->management_flags & MF_EXTERNAL_CERT))
+    else if (options->management_flags & MF_EXTERNAL_CERT)
     {
-        if (options->cert_file)
+        char *cert = management_query_cert(management,
+                                           options->management_certificate);
+        tls_ctx_load_cert_file(new_ctx, INLINE_FILE_TAG, cert);
+        free(cert);
+    }
+#endif
+    else if (options->cert_file)
+    {
+        tls_ctx_load_cert_file(new_ctx, options->cert_file, options->cert_file_inline);
+    }
+
+    if (options->priv_key_file)
+    {
+        if (0 != tls_ctx_load_priv_file(new_ctx, options->priv_key_file,
+                                        options->priv_key_file_inline))
         {
-            tls_ctx_use_external_private_key(new_ctx, options->cert_file,
-                                             options->cert_file_inline);
+            goto err;
         }
-        else
+    }
+#ifdef MANAGMENT_EXTERNAL_KEY
+    else if (options->management_flags & MF_EXTERNAL_KEY)
+    {
+        if (tls_ctx_use_management_external_key(new_ctx))
         {
-            char *external_certificate = management_query_cert(management,
-                                                               options->management_certificate);
-            tls_ctx_use_external_private_key(new_ctx, INLINE_FILE_TAG,
-                                             external_certificate);
-            free(external_certificate);
+            msg (M_WARN, "Cannot initialize mamagement-external-key");
+            goto err;
         }
     }
 #endif
-    else
-    {
-        /* Load Certificate */
-        if (options->cert_file)
-        {
-            tls_ctx_load_cert_file(new_ctx, options->cert_file, options->cert_file_inline);
-        }
-
-        /* Load Private Key */
-        if (options->priv_key_file)
-        {
-            if (0 != tls_ctx_load_priv_file(new_ctx, options->priv_key_file, options->priv_key_file_inline))
-            {
-                goto err;
-            }
-        }
-    }
 
     if (options->ca_file || options->ca_path)
     {
