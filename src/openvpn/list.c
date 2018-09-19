@@ -222,18 +222,6 @@ hash_remove_marked(struct hash *hash, struct hash_bucket *bucket)
     }
 }
 
-uint32_t
-void_ptr_hash_function(const void *key, uint32_t iv)
-{
-    return hash_func((const void *)&key, sizeof(key), iv);
-}
-
-bool
-void_ptr_compare_function(const void *key1, const void *key2)
-{
-    return key1 == key2;
-}
-
 void
 hash_iterator_init_range(struct hash *hash,
                          struct hash_iterator *hi,

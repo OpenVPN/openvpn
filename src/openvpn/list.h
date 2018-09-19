@@ -116,10 +116,6 @@ void hash_iterator_free(struct hash_iterator *hi);
 
 uint32_t hash_func(const uint8_t *k, uint32_t length, uint32_t initval);
 
-uint32_t void_ptr_hash_function(const void *key, uint32_t iv);
-
-bool void_ptr_compare_function(const void *key1, const void *key2);
-
 #ifdef LIST_TEST
 void list_test(void);
 
