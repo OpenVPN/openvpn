@@ -613,6 +613,33 @@ uninit_proxy(struct context *c)
     uninit_proxy_dowork(c);
 }
 
+/*
+ * Assign NCP-negotiable options to context->c1
+ * from context->options (initially config values).
+ * They persist over sigusr1 restart.
+ */
+static void
+do_set_ncp_options(struct context *c)
+{
+    c->c1.ciphername = c->options.ciphername;
+    c->c1.authname = c->options.authname;
+    c->c1.keysize = c->options.keysize;
+}
+
+/*
+ * Restore NCP-negotiable options from c->c1 to
+ * c->options. The latter ones can be altered by
+ * pushed options and therefore need to be restored
+ * to original values on sigusr1 restart.
+ */
+static void
+do_unset_ncp_options(struct context *c)
+{
+    c->options.ciphername = c->c1.ciphername;
+    c->options.authname = c->c1.authname;
+    c->options.keysize = c->c1.keysize;
+}
+
 void
 context_init_1(struct context *c)
 {
@@ -621,6 +648,8 @@ context_init_1(struct context *c)
     packet_id_persist_init(&c->c1.pid_persist);
 
     init_connection_list(c);
+
+    do_set_ncp_options(c);
 
 #if defined(ENABLE_PKCS11)
     if (c->first_time)
@@ -2610,10 +2639,6 @@ do_init_crypto_tls_c1(struct context *c)
                                options->tls_crypt_inline, options->tls_server);
         }
 
-        c->c1.ciphername = options->ciphername;
-        c->c1.authname = options->authname;
-        c->c1.keysize = options->keysize;
-
 #if 0 /* was: #if ENABLE_INLINE_FILES --  Note that enabling this code will break restarts */
         if (options->priv_key_file_inline)
         {
@@ -2625,11 +2650,6 @@ do_init_crypto_tls_c1(struct context *c)
     else
     {
         msg(D_INIT_MEDIUM, "Re-using SSL/TLS context");
-
-        /* Restore pre-NCP cipher options */
-        c->options.ciphername = c->c1.ciphername;
-        c->options.authname = c->c1.authname;
-        c->options.keysize = c->c1.keysize;
     }
 }
 
@@ -4319,6 +4339,8 @@ close_instance(struct context *c)
 
         /* free key schedules */
         do_close_free_key_schedule(c, (c->mode == CM_P2P || c->mode == CM_TOP));
+
+        do_unset_ncp_options(c);
 
         /* close TCP/UDP connection */
         do_close_link_socket(c);
