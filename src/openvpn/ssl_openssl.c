@@ -855,7 +855,7 @@ end:
     {
         BIO_free(in);
     }
-    else if (x)
+    if (x)
     {
         X509_free(x);
     }
