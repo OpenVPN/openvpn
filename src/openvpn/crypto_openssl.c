@@ -199,7 +199,16 @@ crypto_print_openssl_errors(const unsigned int flags)
                 "in common with the client. Your --tls-cipher setting might be "
                 "too restrictive.");
         }
-
+        else if (ERR_GET_REASON(err) == SSL_R_UNSUPPORTED_PROTOCOL)
+        {
+            msg(D_CRYPT_ERRORS, "TLS error: Unsupported protocol. This typically "
+                 "indicates that client and server have no common TLS version enabled. "
+                 "This can be caused by mismatched tls-version-min and tls-version-max "
+                 "options on client and server. "
+                 "If your OpenVPN client is between v2.3.6 and v2.3.2 try adding "
+                 "tls-version-min 1.0 to the client configuration to use TLS 1.0+ "
+                 "instead of TLS 1.0 only");
+        }
         msg(flags, "OpenSSL: %s", ERR_error_string(err, NULL));
     }
 }
