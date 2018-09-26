@@ -91,14 +91,13 @@ setup_engine(const char *engine)
 {
     ENGINE *e = NULL;
 
-    ENGINE_load_builtin_engines();
+    OPENSSL_config(NULL);
 
     if (engine)
     {
         if (strcmp(engine, "auto") == 0)
         {
             msg(M_INFO, "Initializing OpenSSL auto engine support");
-            ENGINE_register_all_complete();
             return NULL;
         }
         if ((e = ENGINE_by_id(engine)) == NULL
@@ -371,7 +370,7 @@ show_available_engines(void)
 
     printf("OpenSSL Crypto Engines\n\n");
 
-    ENGINE_load_builtin_engines();
+    OPENSSL_config(NULL);
 
     e = ENGINE_get_first();
     while (e)

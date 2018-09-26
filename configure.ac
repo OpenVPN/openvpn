@@ -888,6 +888,7 @@ if test "${with_crypto_library}" = "openssl"; then
 			ENGINE_load_builtin_engines \
 			ENGINE_register_all_complete \
 			ENGINE_cleanup \
+			OPENSSL_config \
 		],
 		,
 		[have_openssl_engine="no"; break]
