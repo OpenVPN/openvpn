@@ -4,8 +4,8 @@ rem Put your own settings at msvc-env-local.bat
 if exist msvc-env-local.bat call msvc-env-local.bat
 
 if "%ProgramFiles(x86)%"=="" set ProgramFiles(x86)=%ProgramFiles%
-if "%VSCOMNTOOLS%"=="" SET VSCOMNTOOLS=%ProgramFiles(x86)%\Microsoft Visual Studio 10.0\Common7\Tools
-if "%VSCOMNTOOLS%"=="" SET VSCOMNTOOLS=%ProgramFiles(x86)%\Microsoft Visual Studio 9.0\Common7\Tools
+if "%VSCOMNTOOLS%"=="" set VSCOMNTOOLS=%ProgramFiles(x86)%\Microsoft Visual Studio\2017\Professional\Common7\Tools
+if not exist "%VSCOMNTOOLS%" set VSCOMNTOOLS=%ProgramFiles(x86)%\Microsoft Visual Studio\2017\Community\Common7\Tools
 if "%VSHOME%"=="" SET VSHOME=%VSCOMNTOOLS%\..\..
 if "%VCHOME%"=="" SET VCHOME=%VSHOME%\VC
 
@@ -13,7 +13,7 @@ set SOURCEBASE=%cd%
 set SOLUTION=openvpn.sln
 set CPPFLAGS=%CPPFLAGS%;_CRT_SECURE_NO_WARNINGS;WIN32_LEAN_AND_MEAN;_CRT_NONSTDC_NO_WARNINGS;_CRT_SECURE_NO_WARNINGS
 set CPPFLAGS=%CPPFLAGS%;NTDDI_VERSION=NTDDI_VISTA;_WIN32_WINNT=_WIN32_WINNT_VISTA
-set CPPFLAGS=%CPPFLAGS%;_USE_32BIT_TIME_T
+set CPPFLAGS=%CPPFLAGS%;
 set CPPFLAGS=%CPPFLAGS%;%EXTRA_CPPFLAGS%
 
 if exist config-msvc-local.h set CPPFLAGS="%CPPFLAGS%;HAVE_CONFIG_MSVC_LOCAL_H"

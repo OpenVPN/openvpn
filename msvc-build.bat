@@ -7,13 +7,15 @@ setlocal ENABLEDELAYEDEXPANSION
 cd /d %0\..
 call msvc-env.bat
 
-set PLATFORMS=Win32
-set CONFIGURATIONS=Release
+set PLATFORMS=x64
+set CONFIGURATIONS=Debug Release
 
 if exist "%VCHOME%\vcvarsall.bat" (
 	call "%VCHOME%\vcvarsall.bat"
 ) else if exist "%VCHOME%\bin\vcvars32.bat" (
 	call "%VCHOME%\bin\vcvars32.bat"
+) else if exist "%VCHOME%\Auxiliary\Build\vcvars32.bat" (
+	call "%VCHOME%\Auxiliary\Build\vcvars32.bat"
 ) else (
 	echo Cannot detect visual studio
 	goto error

@@ -61,6 +61,9 @@ CheckConfigPath(const WCHAR *workdir, const WCHAR *fname, const settings_t *s)
     WCHAR tmp[MAX_PATH];
     const WCHAR *config_file = NULL;
     const WCHAR *config_dir = NULL;
+#ifndef UNICODE
+    WCHAR widepath[MAX_PATH];
+#endif
 
     /* convert fname to full path */
     if (PathIsRelativeW(fname) )

@@ -30,6 +30,7 @@
 #include "config-msvc.h"
 #endif
 
+#include <winsock2.h>
 #include <windows.h>
 #include <stdlib.h>
 #include <tchar.h>
