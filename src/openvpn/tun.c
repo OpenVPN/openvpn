@@ -5371,6 +5371,49 @@ netsh_enable_dhcp(const struct tuntap_options *to,
     argv_reset(&argv);
 }
 
+/* Enable dhcp on tap adapter using iservice */
+static bool
+service_enable_dhcp(const struct tuntap *tt)
+{
+    DWORD len;
+    bool ret = false;
+    ack_message_t ack;
+    struct gc_arena gc = gc_new();
+    HANDLE pipe = tt->options.msg_channel;
+
+    enable_dhcp_message_t dhcp = {
+        .header = {
+            msg_enable_dhcp,
+            sizeof(enable_dhcp_message_t),
+            0
+        },
+        .iface = { .index = tt->adapter_index, .name = "" }
+    };
+
+    if (!WriteFile(pipe, &dhcp, sizeof(dhcp), &len, NULL)
+        || !ReadFile(pipe, &ack, sizeof(ack), &len, NULL))
+    {
+        msg(M_WARN, "Enable_dhcp: could not talk to service: %s [%lu]",
+            strerror_win32(GetLastError(), &gc), GetLastError());
+        goto out;
+    }
+
+    if (ack.error_number != NO_ERROR)
+    {
+        msg(M_NONFATAL, "TUN: enabling dhcp using service failed: %s [status=%u if_index=%d]",
+            strerror_win32(ack.error_number, &gc), ack.error_number, dhcp.iface.index);
+    }
+    else
+    {
+        msg(M_INFO, "DHCP enabled on interface %d using service", dhcp.iface.index);
+        ret = true;
+    }
+
+out:
+    gc_free(&gc);
+    return ret;
+}
+
 /*
  * Return a TAP name for netsh commands.
  */
@@ -5851,7 +5894,15 @@ open_tun(const char *dev, const char *dev_type, const char *dev_node, struct tun
              */
             if (dhcp_status(tt->adapter_index) == DHCP_STATUS_DISABLED)
             {
-                netsh_enable_dhcp(&tt->options, tt->actual_name);
+                /* try using the service if available, else directly execute netsh */
+                if (tt->options.msg_channel)
+                {
+                    service_enable_dhcp(tt);
+                }
+                else
+                {
+                    netsh_enable_dhcp(&tt->options, tt->actual_name);
+                }
             }
             dhcp_masq = true;
             dhcp_masq_post = true;
