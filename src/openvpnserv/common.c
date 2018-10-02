@@ -25,7 +25,7 @@
 #include "validate.h"
 
 LPCTSTR service_instance = TEXT("");
-
+static wchar_t win_sys_path[MAX_PATH];
 
 /*
  * These are necessary due to certain buggy implementations of (v)snprintf,
@@ -284,4 +284,18 @@ utf8to16(const char *utf8)
     }
     MultiByteToWideChar(CP_UTF8, 0, utf8, -1, utf16, n);
     return utf16;
+}
+
+const wchar_t *
+get_win_sys_path(void)
+{
+    const wchar_t *default_sys_path = L"C:\\Windows\\system32";
+
+    if (!GetSystemDirectoryW(win_sys_path, _countof(win_sys_path)))
+    {
+        wcsncpy(win_sys_path, default_sys_path, _countof(win_sys_path));
+        win_sys_path[_countof(win_sys_path) - 1] = L'\0';
+    }
+
+    return win_sys_path;
 }

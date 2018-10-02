@@ -933,11 +933,10 @@ RegisterDNS(LPVOID unused)
 {
     DWORD err;
     DWORD i;
-    WCHAR sys_path[MAX_PATH];
     DWORD timeout = RDNS_TIMEOUT * 1000; /* in milliseconds */
 
-    /* default path of ipconfig command */
-    WCHAR ipcfg[MAX_PATH] = L"C:\\Windows\\system32\\ipconfig.exe";
+    /* path of ipconfig command */
+    WCHAR ipcfg[MAX_PATH];
 
     struct
     {
@@ -952,11 +951,8 @@ RegisterDNS(LPVOID unused)
 
     HANDLE wait_handles[2] = {rdns_semaphore, exit_event};
 
-    if (GetSystemDirectory(sys_path, MAX_PATH))
-    {
-        swprintf(ipcfg, MAX_PATH, L"%s\\%s", sys_path, L"ipconfig.exe");
-        ipcfg[MAX_PATH-1] = L'\0';
-    }
+    swprintf(ipcfg, _countof(ipcfg), L"%s\\%s", get_win_sys_path(), L"ipconfig.exe");
+    ipcfg[_countof(ipcfg) - 1] = L'\0';
 
     if (WaitForMultipleObjects(2, wait_handles, FALSE, timeout) == WAIT_OBJECT_0)
     {
@@ -1034,15 +1030,8 @@ netsh_dns_cmd(const wchar_t *action, const wchar_t *proto, const wchar_t *if_nam
     }
 
     /* Path of netsh */
-    int n = GetSystemDirectory(argv0, MAX_PATH);
-    if (n > 0 && n < MAX_PATH) /* got system directory */
-    {
-        wcsncat(argv0, L"\\netsh.exe", MAX_PATH - n - 1);
-    }
-    else
-    {
-        wcsncpy(argv0, L"C:\\Windows\\system32\\netsh.exe", MAX_PATH);
-    }
+    swprintf(argv0, _countof(argv0), L"%s\\%s", get_win_sys_path(), L"netsh.exe");
+    argv0[_countof(argv0) - 1] = L'\0';
 
     /* cmd template:
      * netsh interface $proto $action dns $if_name $addr [validate=no]
