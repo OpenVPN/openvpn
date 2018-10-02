@@ -1164,6 +1164,45 @@ out:
     return err;
 }
 
+static DWORD
+HandleEnableDHCPMessage(const enable_dhcp_message_t *dhcp)
+{
+    DWORD err = 0;
+    DWORD timeout = 5000; /* in milli seconds */
+    wchar_t argv0[MAX_PATH];
+
+    /* Path of netsh */
+    swprintf(argv0, _countof(argv0), L"%s\\%s", get_win_sys_path(), L"netsh.exe");
+    argv0[_countof(argv0) - 1] = L'\0';
+
+    /* cmd template:
+     * netsh interface ipv4 set address name=$if_index source=dhcp
+     */
+    const wchar_t *fmt = L"netsh interface ipv4 set address name=\"%d\" source=dhcp";
+
+    /* max cmdline length in wchars -- include room for if index:
+     * 10 chars for 32 bit int in decimal and +1 for NUL
+     */
+    size_t ncmdline = wcslen(fmt) + 10 + 1;
+    wchar_t *cmdline = malloc(ncmdline*sizeof(wchar_t));
+    if (!cmdline)
+    {
+        err = ERROR_OUTOFMEMORY;
+        return err;
+    }
+
+    openvpn_sntprintf(cmdline, ncmdline, fmt, dhcp->iface.index);
+
+    err = ExecCommand(argv0, cmdline, timeout);
+
+    /* Note: This could fail if dhcp is already enabled, so the caller
+     * may not want to treat errors as FATAL.
+     */
+
+    free(cmdline);
+    return err;
+}
+
 static VOID
 HandleMessage(HANDLE pipe, DWORD bytes, DWORD count, LPHANDLE events, undo_lists_t *lists)
 {
@@ -1175,6 +1214,7 @@ HandleMessage(HANDLE pipe, DWORD bytes, DWORD count, LPHANDLE events, undo_lists
         flush_neighbors_message_t flush_neighbors;
         block_dns_message_t block_dns;
         dns_cfg_message_t dns;
+        enable_dhcp_message_t dhcp;
     } msg;
     ack_message_t ack = {
         .header = {
@@ -1233,6 +1273,13 @@ HandleMessage(HANDLE pipe, DWORD bytes, DWORD count, LPHANDLE events, undo_lists
         case msg_add_dns_cfg:
         case msg_del_dns_cfg:
             ack.error_number = HandleDNSConfigMessage(&msg.dns, lists);
+            break;
+
+        case msg_enable_dhcp:
+            if (msg.header.size == sizeof(msg.dhcp))
+            {
+                ack.error_number = HandleEnableDHCPMessage(&msg.dhcp);
+            }
             break;
 
         default:
