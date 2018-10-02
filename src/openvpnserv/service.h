@@ -96,4 +96,7 @@ DWORD MsgToEventLog(DWORD flags, LPCTSTR lpszMsg, ...);
 /* Convert a utf8 string to utf16. Caller should free the result */
 wchar_t *utf8to16(const char *utf8);
 
+/* return windows system directory as a pointer to a static string */
+const wchar_t *get_win_sys_path(void);
+
 #endif /* ifndef _SERVICE_H */
