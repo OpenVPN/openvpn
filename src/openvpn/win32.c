@@ -1264,7 +1264,6 @@ win_get_tempdir(void)
 static bool
 win_block_dns_service(bool add, int index, const HANDLE pipe)
 {
-    DWORD len;
     bool ret = false;
     ack_message_t ack;
     struct gc_arena gc = gc_new();
@@ -1278,11 +1277,8 @@ win_block_dns_service(bool add, int index, const HANDLE pipe)
         .iface = { .index = index, .name = "" }
     };
 
-    if (!WriteFile(pipe, &data, sizeof(data), &len, NULL)
-        || !ReadFile(pipe, &ack, sizeof(ack), &len, NULL))
+    if (!send_msg_iservice(pipe, &data, sizeof(data), &ack, "Block_DNS"))
     {
-        msg(M_WARN, "Block_DNS: could not talk to service: %s [%lu]",
-            strerror_win32(GetLastError(), &gc), GetLastError());
         goto out;
     }
 
@@ -1471,6 +1467,27 @@ win32_version_string(struct gc_arena *gc, bool add_name)
     buf_printf(&out, win32_is_64bit() ? " 64bit" : " 32bit");
 
     return (const char *)out.data;
+}
+
+bool
+send_msg_iservice(HANDLE pipe, const void *data, size_t size,
+                  ack_message_t *ack, const char *context)
+{
+    struct gc_arena gc = gc_new();
+    DWORD len;
+    bool ret = true;
+
+    if (!WriteFile(pipe, data, size, &len, NULL)
+        || !ReadFile(pipe, ack, sizeof(*ack), &len, NULL))
+    {
+        msg(M_WARN, "%s: could not talk to service: %s [%lu]",
+            context? context : "Unknown",
+            strerror_win32(GetLastError(), &gc), GetLastError());
+        ret = false;
+    }
+
+    gc_free(&gc);
+    return ret;
 }
 
 #endif /* ifdef _WIN32 */

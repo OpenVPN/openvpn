@@ -82,7 +82,6 @@ static DWORD get_adapter_index_flexible(const char *name);
 static bool
 do_address_service(const bool add, const short family, const struct tuntap *tt)
 {
-    DWORD len;
     bool ret = false;
     ack_message_t ack;
     struct gc_arena gc = gc_new();
@@ -115,11 +114,8 @@ do_address_service(const bool add, const short family, const struct tuntap *tt)
         addr.prefix_len = tt->netbits_ipv6;
     }
 
-    if (!WriteFile(pipe, &addr, sizeof(addr), &len, NULL)
-        || !ReadFile(pipe, &ack, sizeof(ack), &len, NULL))
+    if (!send_msg_iservice(pipe, &addr, sizeof(addr), &ack, "TUN"))
     {
-        msg(M_WARN, "TUN: could not talk to service: %s [%lu]",
-            strerror_win32(GetLastError(), &gc), GetLastError());
         goto out;
     }
 
@@ -141,7 +137,6 @@ out:
 static bool
 do_dns6_service(bool add, const struct tuntap *tt)
 {
-    DWORD len;
     bool ret = false;
     ack_message_t ack;
     struct gc_arena gc = gc_new();
@@ -185,11 +180,8 @@ do_dns6_service(bool add, const struct tuntap *tt)
     msg(D_LOW, "%s IPv6 dns servers on '%s' (if_index = %d) using service",
         (add ? "Setting" : "Deleting"), dns.iface.name, dns.iface.index);
 
-    if (!WriteFile(pipe, &dns, sizeof(dns), &len, NULL)
-        || !ReadFile(pipe, &ack, sizeof(ack), &len, NULL))
+    if (!send_msg_iservice(pipe, &dns, sizeof(dns), &ack, "TUN"))
     {
-        msg(M_WARN, "TUN: could not talk to service: %s [%lu]",
-            strerror_win32(GetLastError(), &gc), GetLastError());
         goto out;
     }
 
@@ -5222,11 +5214,8 @@ service_enable_dhcp(const struct tuntap *tt)
         .iface = { .index = tt->adapter_index, .name = "" }
     };
 
-    if (!WriteFile(pipe, &dhcp, sizeof(dhcp), &len, NULL)
-        || !ReadFile(pipe, &ack, sizeof(ack), &len, NULL))
+    if (!send_msg_iservice(pipe, &dhcp, sizeof(dhcp), &ack, "Enable_dhcp"))
     {
-        msg(M_WARN, "Enable_dhcp: could not talk to service: %s [%lu]",
-            strerror_win32(GetLastError(), &gc), GetLastError());
         goto out;
     }
 
@@ -5461,18 +5450,16 @@ fork_dhcp_action(struct tuntap *tt)
 static void
 register_dns_service(const struct tuntap *tt)
 {
-    DWORD len;
     HANDLE msg_channel = tt->options.msg_channel;
     ack_message_t ack;
     struct gc_arena gc = gc_new();
 
     message_header_t rdns = { msg_register_dns, sizeof(message_header_t), 0 };
 
-    if (!WriteFile(msg_channel, &rdns, sizeof(rdns), &len, NULL)
-        || !ReadFile(msg_channel, &ack, sizeof(ack), &len, NULL))
+    if (!send_msg_iservice(msg_channel, &rdns, sizeof(rdns), &ack, "Register_dns"))
     {
-        msg(M_WARN, "Register_dns: could not talk to service: %s [status=0x%lx]",
-            strerror_win32(GetLastError(), &gc), GetLastError());
+        gc_free(&gc);
+        return;
     }
 
     else if (ack.error_number != NO_ERROR)
@@ -5936,14 +5923,11 @@ open_tun(const char *dev, const char *dev_type, const char *dev_node, struct tun
                     .iface = { .index = index, .name = "" }
                 };
 
-                if (!WriteFile(tt->options.msg_channel, &msg, sizeof(msg), &len, NULL)
-                    || !ReadFile(tt->options.msg_channel, &ack, sizeof(ack), &len, NULL))
+                if (send_msg_iservice(tt->options.msg_channel, &msg, sizeof(msg),
+                    &ack, "TUN"))
                 {
-                    msg(M_WARN, "TUN: could not talk to service: %s [%lu]",
-                        strerror_win32(GetLastError(), &gc), GetLastError());
+                    status = ack.error_number;
                 }
-
-                status = ack.error_number;
             }
             else
             {

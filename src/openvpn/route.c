@@ -2991,16 +2991,12 @@ del_route_ipapi(const struct route_ipv4 *r, const struct tuntap *tt)
 static bool
 do_route_service(const bool add, const route_message_t *rt, const size_t size, HANDLE pipe)
 {
-    DWORD len;
     bool ret = false;
     ack_message_t ack;
     struct gc_arena gc = gc_new();
 
-    if (!WriteFile(pipe, rt, size, &len, NULL)
-        || !ReadFile(pipe, &ack, sizeof(ack), &len, NULL))
+    if (!send_msg_iservice(pipe, rt, size, &ack, "ROUTE"))
     {
-        msg(M_WARN, "ROUTE: could not talk to service: %s [%lu]",
-            strerror_win32(GetLastError(), &gc), GetLastError());
         goto out;
     }
 
