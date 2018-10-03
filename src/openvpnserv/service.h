@@ -82,9 +82,9 @@ VOID WINAPI ServiceStartAutomatic(DWORD argc, LPTSTR *argv);
 VOID WINAPI ServiceStartInteractiveOwn(DWORD argc, LPTSTR *argv);
 VOID WINAPI ServiceStartInteractive(DWORD argc, LPTSTR *argv);
 
-int openvpn_vsntprintf(LPTSTR str, size_t size, LPCTSTR format, va_list arglist);
+BOOL openvpn_vsntprintf(LPTSTR str, size_t size, LPCTSTR format, va_list arglist);
 
-int openvpn_sntprintf(LPTSTR str, size_t size, LPCTSTR format, ...);
+BOOL openvpn_sntprintf(LPTSTR str, size_t size, LPCTSTR format, ...);
 
 DWORD GetOpenvpnSettings(settings_t *s);
 

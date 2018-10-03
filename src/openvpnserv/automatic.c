@@ -36,12 +36,8 @@
 
 #include <stdio.h>
 #include <stdarg.h>
+#include <stdbool.h>
 #include <process.h>
-
-/* bool definitions */
-#define bool int
-#define true 1
-#define false 0
 
 static SERVICE_STATUS_HANDLE service;
 static SERVICE_STATUS status = { .dwServiceType = SERVICE_WIN32_SHARE_PROCESS };
