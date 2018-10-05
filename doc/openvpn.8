@@ -5674,20 +5674,22 @@ option.
 Used only for non\-TLS static key encryption mode.
 .\"*********************************************************
 .TP
-.B \-\-genkey
+.B \-\-genkey file
 (Standalone)
-Generate a random key to be used as a shared secret,
-for use with the
+Generate a random key to be used as a shared secret, for use with the
 .B \-\-secret
-option.  This file must be shared with the
-peer over a pre\-existing secure channel such as
-.BR scp (1)
-.
-.\"*********************************************************
-.TP
-.B \-\-secret file
-Write key to
-.B file.
+,
+.B \-\-tls-auth
+or
+.B \-\-tls-crypt
+options.  Stores the key in
+.B file\fR.
+
+If using this for
+.B \-\-secret
+, this file must be shared with the peer over a pre\-existing secure channel
+such as
+.BR scp (1)\fR.
 .\"*********************************************************
 .SS TUN/TAP persistent tunnel config mode:
 Available with Linux 2.4.7+.  These options comprise a standalone mode

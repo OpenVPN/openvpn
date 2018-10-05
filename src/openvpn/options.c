@@ -739,10 +739,8 @@ static const char usage_message[] =
     "                                 to access TAP adapter.\n"
 #endif /* ifdef _WIN32 */
     "\n"
-    "Generate a random key (only for non-TLS static key encryption mode):\n"
-    "--genkey        : Generate a random key to be used as a shared secret,\n"
-    "                  for use with the --secret option.\n"
-    "--secret file   : Write key to file.\n"
+    "Generate a new key (for use with --secret, --tls-auth or --tls-crypt):\n"
+    "--genkey file   : Generate a new random key and write to file.\n"
 #ifdef ENABLE_FEATURE_TUN_PERSIST
     "\n"
     "Tun/tap config mode (available with linux 2.4+):\n"
@@ -7518,10 +7516,14 @@ add_option(struct options *options,
         }
         options->shared_secret_file = p[1];
     }
-    else if (streq(p[0], "genkey") && !p[1])
+    else if (streq(p[0], "genkey") && !p[2])
     {
         VERIFY_PERMISSION(OPT_P_GENERAL);
         options->genkey = true;
+        if (p[1])
+        {
+            options->shared_secret_file = p[1];
+        }
     }
     else if (streq(p[0], "auth") && p[1] && !p[2])
     {
