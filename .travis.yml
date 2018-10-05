@@ -53,7 +53,10 @@ matrix:
       os: osx
       osx_image: xcode7.3
       compiler: clang
-    - env: SSLLIB="openssl" CHOST=x86_64-w64-mingw32
+    - env: SSLLIB="openssl" CHOST=x86_64-w64-mingw32 OPENSSL_VERSION="1.0.1u"
+      os: linux
+      compiler: ": Win64 build only"
+    - env: SSLLIB="openssl" CHOST=x86_64-w64-mingw32 OPENSSL_VERSION="1.1.0h"
       os: linux
       compiler: ": Win64 build only"
     - env: SSLLIB="openssl" CHOST=i686-w64-mingw32
