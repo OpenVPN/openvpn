@@ -584,6 +584,26 @@ RSA_meth_set_init(RSA_METHOD *meth, int (*init) (RSA *rsa))
 }
 #endif
 
+#if !defined (HAVE_RSA_METH_SET_SIGN)
+/**
+ * Set the sign function of an RSA_METHOD object
+ *
+ * @param meth               The RSA_METHOD object
+ * @param sign               The sign function
+ * @return                   1 on success, 0 on error
+ */
+static inline
+int RSA_meth_set_sign(RSA_METHOD *meth,
+                      int (*sign) (int type, const unsigned char *m,
+                                   unsigned int m_length,
+                                   unsigned char *sigret, unsigned int *siglen,
+                                   const RSA *rsa))
+{
+    meth->rsa_sign = sign;
+    return 1;
+}
+#endif
+
 #if !defined(HAVE_RSA_METH_SET_FINISH)
 /**
  * Set the finish function of an RSA_METHOD object

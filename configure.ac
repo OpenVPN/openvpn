@@ -929,6 +929,7 @@ if test "${enable_crypto}" = "yes" -a "${with_crypto_library}" = "openssl"; then
 			RSA_meth_set_priv_enc \
 			RSA_meth_set_priv_dec \
 			RSA_meth_set_init \
+			RSA_meth_set_sign \
 			RSA_meth_set_finish \
 			RSA_meth_set0_app_data \
 			RSA_meth_get0_app_data \
