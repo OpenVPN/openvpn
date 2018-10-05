@@ -3243,6 +3243,12 @@ get_default_gateway(struct route_gateway_info *rgi)
     rgi->gateway.addr = 127 << 24 | 'd' << 16 | 'g' << 8 | 'w';
     rgi->flags |= RGI_ADDR_DEFINED;
     strcpy(best_name, "android-gw");
+
+    /*
+     * Skip scanning/fetching interface from loopback interface
+     * It always fails and "ioctl(SIOCGIFCONF) failed" confuses users
+     */
+    goto done;
 #endif /* ifndef TARGET_ANDROID */
 
     /* scan adapter list */
