@@ -621,9 +621,11 @@ uninit_proxy(struct context *c)
 static void
 do_set_ncp_options(struct context *c)
 {
+#ifdef ENABLE_CRYPTO
     c->c1.ciphername = c->options.ciphername;
     c->c1.authname = c->options.authname;
     c->c1.keysize = c->options.keysize;
+#endif ENABLE_CRYPTO
 }
 
 /*
@@ -635,9 +637,11 @@ do_set_ncp_options(struct context *c)
 static void
 do_unset_ncp_options(struct context *c)
 {
+#ifdef ENABLE_CRYPTO
     c->options.ciphername = c->c1.ciphername;
     c->options.authname = c->c1.authname;
     c->options.keysize = c->c1.keysize;
+#endif ENABLE_CRYPTO
 }
 
 void
