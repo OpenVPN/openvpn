@@ -321,28 +321,8 @@ tls_ctx_set_options(struct tls_root_ctx *ctx, unsigned int ssl_flags)
 }
 
 void
-tls_ctx_restrict_ciphers(struct tls_root_ctx *ctx, const char *ciphers)
+convert_tls_list_to_openssl(char* openssl_ciphers, size_t len,const char *ciphers)
 {
-    if (ciphers == NULL)
-    {
-        /* Use sane default TLS cipher list */
-        if (!SSL_CTX_set_cipher_list(ctx->ctx,
-                                     /* Use openssl's default list as a basis */
-                                     "DEFAULT"
-                                     /* Disable export ciphers and openssl's 'low' and 'medium' ciphers */
-                                     ":!EXP:!LOW:!MEDIUM"
-                                     /* Disable static (EC)DH keys (no forward secrecy) */
-                                     ":!kDH:!kECDH"
-                                     /* Disable DSA private keys */
-                                     ":!DSS"
-                                     /* Disable unsupported TLS modes */
-                                     ":!PSK:!SRP:!kRSA"))
-        {
-            crypto_msg(M_FATAL, "Failed to set default TLS cipher list.");
-        }
-        return;
-    }
-
     /* Parse supplied cipher list and pass on to OpenSSL */
     size_t begin_of_cipher, end_of_cipher;
 
@@ -351,11 +331,8 @@ tls_ctx_restrict_ciphers(struct tls_root_ctx *ctx, const char *ciphers)
 
     const tls_cipher_name_pair *cipher_pair;
 
-    char openssl_ciphers[4096];
     size_t openssl_ciphers_len = 0;
     openssl_ciphers[0] = '\0';
-
-    ASSERT(NULL != ctx);
 
     /* Translate IANA cipher suite names to OpenSSL names */
     begin_of_cipher = end_of_cipher = 0;
@@ -393,11 +370,11 @@ tls_ctx_restrict_ciphers(struct tls_root_ctx *ctx, const char *ciphers)
 
         /* Make sure new cipher name fits in cipher string */
         if ((SIZE_MAX - openssl_ciphers_len) < current_cipher_len
-            || ((sizeof(openssl_ciphers)-1) < openssl_ciphers_len + current_cipher_len))
+            || (len - 1) < (openssl_ciphers_len + current_cipher_len))
         {
             msg(M_FATAL,
                 "Failed to set restricted TLS cipher list, too long (>%d).",
-                (int)sizeof(openssl_ciphers)-1);
+                (int)(len - 1));
         }
 
         /* Concatenate cipher name to OpenSSL cipher string */
@@ -413,6 +390,34 @@ tls_ctx_restrict_ciphers(struct tls_root_ctx *ctx, const char *ciphers)
     {
         openssl_ciphers[openssl_ciphers_len-1] = '\0';
     }
+}
+void
+tls_ctx_restrict_ciphers(struct tls_root_ctx *ctx, const char *ciphers)
+{
+    if (ciphers == NULL)
+    {
+        /* Use sane default TLS cipher list */
+        if (!SSL_CTX_set_cipher_list(ctx->ctx,
+                                     /* Use openssl's default list as a basis */
+                                     "DEFAULT"
+                                     /* Disable export ciphers and openssl's 'low' and 'medium' ciphers */
+                                     ":!EXP:!LOW:!MEDIUM"
+                                     /* Disable static (EC)DH keys (no forward secrecy) */
+                                     ":!kDH:!kECDH"
+                                     /* Disable DSA private keys */
+                                     ":!DSS"
+                                     /* Disable unsupported TLS modes */
+                                     ":!PSK:!SRP:!kRSA"))
+        {
+            crypto_msg(M_FATAL, "Failed to set default TLS cipher list.");
+        }
+        return;
+    }
+
+    char openssl_ciphers[4096];
+    convert_tls_list_to_openssl(openssl_ciphers, sizeof(openssl_ciphers), ciphers);
+
+    ASSERT(NULL != ctx);
 
     /* Set OpenSSL cipher list */
     if (!SSL_CTX_set_cipher_list(ctx->ctx, openssl_ciphers))
