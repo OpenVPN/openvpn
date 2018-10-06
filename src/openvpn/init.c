@@ -613,26 +613,20 @@ uninit_proxy(struct context *c)
 }
 
 /*
- * Assign NCP-negotiable options to context->c1
- * from context->options (initially config values).
- * They persist over sigusr1 restart.
+ * Saves the initial state of NCP-regotiable
+ * options into a storage which persists over SIGUSR1.
  */
 static void
-do_set_ncp_options(struct context *c)
+save_ncp_options(struct context *c)
 {
     c->c1.ciphername = c->options.ciphername;
     c->c1.authname = c->options.authname;
     c->c1.keysize = c->options.keysize;
 }
 
-/*
- * Restore NCP-negotiable options from c->c1 to
- * c->options. The latter ones can be altered by
- * pushed options and therefore need to be restored
- * to original values on sigusr1 restart.
- */
+/* Restores NCP-negotiable options to original values */
 static void
-do_unset_ncp_options(struct context *c)
+restore_ncp_options(struct context *c)
 {
     c->options.ciphername = c->c1.ciphername;
     c->options.authname = c->c1.authname;
@@ -648,7 +642,7 @@ context_init_1(struct context *c)
 
     init_connection_list(c);
 
-    do_set_ncp_options(c);
+    save_ncp_options(c);
 
 #if defined(ENABLE_PKCS11)
     if (c->first_time)
@@ -4320,7 +4314,7 @@ close_instance(struct context *c)
         /* free key schedules */
         do_close_free_key_schedule(c, (c->mode == CM_P2P || c->mode == CM_TOP));
 
-        do_unset_ncp_options(c);
+        restore_ncp_options(c);
 
         /* close TCP/UDP connection */
         do_close_link_socket(c);
