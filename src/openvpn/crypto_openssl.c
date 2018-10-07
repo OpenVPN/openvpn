@@ -245,6 +245,7 @@ const cipher_name_pair cipher_name_translation_table[] = {
     { "AES-128-GCM", "id-aes128-GCM" },
     { "AES-192-GCM", "id-aes192-GCM" },
     { "AES-256-GCM", "id-aes256-GCM" },
+    { "CHACHA20-POLY1305", "ChaCha20-Poly1305" },
 };
 const size_t cipher_name_translation_table_count =
     sizeof(cipher_name_translation_table) / sizeof(*cipher_name_translation_table);
@@ -321,7 +322,7 @@ show_available_ciphers(void)
     qsort(cipher_list, num_ciphers, sizeof(*cipher_list), cipher_name_cmp);
 
     for (i = 0; i < num_ciphers; i++) {
-        if (cipher_kt_block_size(cipher_list[i]) >= 128/8)
+        if (!cipher_kt_insecure(cipher_list[i]))
         {
             print_cipher(cipher_list[i]);
         }
@@ -330,7 +331,7 @@ show_available_ciphers(void)
     printf("\nThe following ciphers have a block size of less than 128 bits, \n"
            "and are therefore deprecated.  Do not use unless you have to.\n\n");
     for (i = 0; i < num_ciphers; i++) {
-        if (cipher_kt_block_size(cipher_list[i]) < 128/8)
+        if (cipher_kt_insecure(cipher_list[i]))
         {
             print_cipher(cipher_list[i]);
         }
@@ -686,6 +687,16 @@ cipher_kt_tag_size(const EVP_CIPHER *cipher_kt)
     }
 }
 
+bool
+cipher_kt_insecure(const EVP_CIPHER *cipher)
+{
+    return !(cipher_kt_block_size(cipher) >= 128 / 8
+#ifdef NID_chacha20_poly1305
+             || EVP_CIPHER_nid(cipher) == NID_chacha20_poly1305
+#endif
+            );
+}
+
 int
 cipher_kt_mode(const EVP_CIPHER *cipher_kt)
 {
@@ -720,10 +731,22 @@ bool
 cipher_kt_mode_aead(const cipher_kt_t *cipher)
 {
 #ifdef HAVE_AEAD_CIPHER_MODES
-    return cipher && (cipher_kt_mode(cipher) == OPENVPN_MODE_GCM);
-#else
-    return false;
+    if (cipher)
+    {
+        switch (EVP_CIPHER_nid(cipher))
+        {
+        case NID_aes_128_gcm:
+        case NID_aes_192_gcm:
+        case NID_aes_256_gcm:
+#ifdef NID_chacha20_poly1305
+        case NID_chacha20_poly1305:
 #endif
+            return true;
+        }
+    }
+#endif
+
+    return false;
 }
 
 /*

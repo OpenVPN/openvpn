@@ -1,3 +1,13 @@
+Overview of changes in 2.5
+==========================
+
+New features
+------------
+ChaCha20-Poly1305 cipher support
+    Added support for using the ChaCha20-Poly1305 cipher in the OpenVPN data
+    channel.
+
+
 Overview of changes in 2.4
 ==========================
 

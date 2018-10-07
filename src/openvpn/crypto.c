@@ -841,7 +841,7 @@ init_key_ctx(struct key_ctx *ctx, const struct key *key,
         dmsg(D_CRYPTO_DEBUG, "%s: CIPHER block_size=%d iv_size=%d",
              prefix, cipher_kt_block_size(kt->cipher),
              cipher_kt_iv_size(kt->cipher));
-        if (cipher_kt_block_size(kt->cipher) < 128/8)
+        if (cipher_kt_insecure(kt->cipher))
         {
             msg(M_WARN, "WARNING: INSECURE cipher with block size less than 128"
                 " bit (%d bit).  This allows attacks like SWEET32.  Mitigate by "

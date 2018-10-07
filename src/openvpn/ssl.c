@@ -294,7 +294,7 @@ tls_get_cipher_name_pair(const char *cipher_name, size_t len)
 static void
 tls_limit_reneg_bytes(const cipher_kt_t *cipher, int *reneg_bytes)
 {
-    if (cipher && (cipher_kt_block_size(cipher) < 128/8))
+    if (cipher && cipher_kt_insecure(cipher))
     {
         if (*reneg_bytes == -1) /* Not user-specified */
         {

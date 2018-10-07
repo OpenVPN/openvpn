@@ -175,7 +175,7 @@ show_available_ciphers(void)
     while (*ciphers != 0)
     {
         const cipher_kt_t *info = mbedtls_cipher_info_from_type(*ciphers);
-        if (info && cipher_kt_block_size(info) >= 128/8)
+        if (info && !cipher_kt_insecure(info))
         {
             print_cipher(info);
         }
@@ -188,7 +188,7 @@ show_available_ciphers(void)
     while (*ciphers != 0)
     {
         const cipher_kt_t *info = mbedtls_cipher_info_from_type(*ciphers);
-        if (info && cipher_kt_block_size(info) < 128/8)
+        if (info && cipher_kt_insecure(info))
         {
             print_cipher(info);
         }
@@ -550,6 +550,16 @@ cipher_kt_tag_size(const mbedtls_cipher_info_t *cipher_kt)
     return 0;
 }
 
+bool
+cipher_kt_insecure(const mbedtls_cipher_info_t *cipher_kt)
+{
+    return !(cipher_kt_block_size(cipher_kt) >= 128 / 8
+#ifdef MBEDTLS_CHACHAPOLY_C
+             || cipher_kt->type == MBEDTLS_CIPHER_CHACHA20_POLY1305
+#endif
+             );
+}
+
 int
 cipher_kt_mode(const mbedtls_cipher_info_t *cipher_kt)
 {
@@ -573,7 +583,11 @@ cipher_kt_mode_ofb_cfb(const cipher_kt_t *cipher)
 bool
 cipher_kt_mode_aead(const cipher_kt_t *cipher)
 {
-    return cipher && cipher_kt_mode(cipher) == OPENVPN_MODE_GCM;
+    return cipher && (cipher_kt_mode(cipher) == OPENVPN_MODE_GCM
+#ifdef MBEDTLS_CHACHAPOLY_C
+                      || cipher_kt_mode(cipher) == MBEDTLS_MODE_CHACHAPOLY
+#endif
+                      );
 }
 
 
