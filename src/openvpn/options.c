@@ -3787,11 +3787,15 @@ options_warning_safe_scan2(const int msglevel,
                            const char *b1_name,
                            const char *b2_name)
 {
-    /* we will stop sending 'proto xxx' in OCC in a future version
-     * (because it's not useful), and to reduce questions when
-     * interoperating, we start not-printing a warning about it today
+    /* We will stop sending 'key-method', 'keydir', 'proto' and 'tls-auth' in
+     * OCC in a future version (because it's not useful). To reduce questions
+     * when interoperating, we no longer printing a warning about it.
      */
-    if (strncmp(p1, "proto ", 6) == 0)
+    if (strprefix(p1, "key-method ")
+        || strprefix(p1, "keydir ")
+        || strprefix(p1, "proto ")
+        || strprefix(p1, "tls-auth ")
+        || strprefix(p1, "tun-ipv6"))
     {
         return;
     }
