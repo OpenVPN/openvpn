@@ -391,6 +391,7 @@ convert_tls_list_to_openssl(char* openssl_ciphers, size_t len,const char *cipher
         openssl_ciphers[openssl_ciphers_len-1] = '\0';
     }
 }
+
 void
 tls_ctx_restrict_ciphers(struct tls_root_ctx *ctx, const char *ciphers)
 {
@@ -424,6 +425,61 @@ tls_ctx_restrict_ciphers(struct tls_root_ctx *ctx, const char *ciphers)
     {
         crypto_msg(M_FATAL, "Failed to set restricted TLS cipher list: %s", openssl_ciphers);
     }
+}
+
+void
+convert_tls13_list_to_openssl(char* openssl_ciphers, size_t len, const char *ciphers)
+{
+    /*
+     * OpenSSL (and official IANA) cipher names have _ in them. We
+     * historically used names with - in them. Silently convert names
+     * with - to names with _ to support both
+     */
+    if (strlen(ciphers) >= (len - 1))
+    {
+        msg(M_FATAL,
+            "Failed to set restricted TLS 1.3 cipher list, too long (>%d).",
+            (int) (len - 1));
+    }
+
+    strncpy(openssl_ciphers, ciphers, len);
+
+    for (size_t i = 0; i < strlen(openssl_ciphers); i++)
+    {
+        if (openssl_ciphers[i] == '-')
+        {
+            openssl_ciphers[i] = '_';
+        }
+    }
+}
+
+void
+tls_ctx_restrict_ciphers_tls13(struct tls_root_ctx *ctx, const char *ciphers)
+{
+    if (ciphers == NULL)
+    {
+        /* default cipher list of OpenSSL 1.1.1 is sane, do not set own
+         * default as we do with tls-cipher */
+        return;
+    }
+
+#if (OPENSSL_VERSION_NUMBER < 0x1010100fL)
+        crypto_msg(M_WARN, "Not compiled with OpenSSL 1.1.1 or higher. "
+                       "Ignoring TLS 1.3 only tls-ciphersuites '%s' setting.",
+                        ciphers);
+#else
+    ASSERT(NULL != ctx);
+
+    char openssl_ciphers[4096];
+    convert_tls13_list_to_openssl(openssl_ciphers, sizeof(openssl_ciphers),
+                                  ciphers);
+
+    if (!SSL_CTX_set_ciphersuites(ctx->ctx, openssl_ciphers))
+    {
+        crypto_msg(M_FATAL, "Failed to set restricted TLS 1.3 cipher list: %s",
+                   openssl_ciphers);
+    }
+#endif
 }
 
 void
