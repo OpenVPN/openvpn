@@ -171,13 +171,24 @@ bool tls_ctx_initialised(struct tls_root_ctx *ctx);
 bool tls_ctx_set_options(struct tls_root_ctx *ctx, unsigned int ssl_flags);
 
 /**
- * Restrict the list of ciphers that can be used within the TLS context.
+ * Restrict the list of ciphers that can be used within the TLS context for TLS 1.2
+ * and below
  *
  * @param ctx           TLS context to restrict, must be valid.
  * @param ciphers       String containing : delimited cipher names, or NULL to use
  *                                      sane defaults.
  */
 void tls_ctx_restrict_ciphers(struct tls_root_ctx *ctx, const char *ciphers);
+
+/**
+ * Restrict the list of ciphers that can be used within the TLS context for TLS 1.3
+ * and higher
+ *
+ * @param ctx           TLS context to restrict, must be valid.
+ * @param ciphers       String containing : delimited cipher names, or NULL to use
+ *                                      sane defaults.
+ */
+void tls_ctx_restrict_ciphers_tls13(struct tls_root_ctx *ctx, const char *ciphers);
 
 /**
  * Set the TLS certificate profile.  The profile defines which crypto

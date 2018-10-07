@@ -232,6 +232,19 @@ tls_translate_cipher_name(const char *cipher_name)
 }
 
 void
+tls_ctx_restrict_ciphers_tls13(struct tls_root_ctx *ctx, const char *ciphers)
+{
+    if (ciphers == NULL)
+    {
+        /* Nothing to do, return without warning message */
+        return;
+    }
+
+    msg(M_WARN, "mbed TLS does not support setting tls-ciphersuites. "
+                "Ignoring TLS 1.3 cipher list: %s", ciphers);
+}
+
+void
 tls_ctx_restrict_ciphers(struct tls_root_ctx *ctx, const char *ciphers)
 {
     char *tmp_ciphers, *tmp_ciphers_orig, *token;

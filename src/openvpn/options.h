@@ -503,6 +503,7 @@ struct options
     const char *priv_key_file;
     const char *pkcs12_file;
     const char *cipher_list;
+    const char *cipher_list_tls13;
     const char *tls_cert_profile;
     const char *ecdh_curve;
     const char *tls_verify;
