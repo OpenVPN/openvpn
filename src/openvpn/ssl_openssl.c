@@ -1296,7 +1296,6 @@ tls_ctx_use_management_external_key(struct tls_root_ctx *ctx)
     /* get the public key */
     EVP_PKEY *pkey = X509_get0_pubkey(cert);
     ASSERT(pkey); /* NULL before SSL_CTX_use_certificate() is called */
-    X509_free(cert);
 
     if (EVP_PKEY_id(pkey) == EVP_PKEY_RSA)
     {
