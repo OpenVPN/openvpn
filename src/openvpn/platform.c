@@ -30,6 +30,7 @@
 #include "syshead.h"
 
 #include "buffer.h"
+#include "crypto.h"
 #include "error.h"
 #include "misc.h"
 #include "win32.h"
