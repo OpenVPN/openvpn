@@ -409,9 +409,6 @@ auth_user_pass_setup(const char *auth_file, const struct static_challenge_info *
     auth_user_pass_enabled = true;
     if (!auth_user_pass.defined)
     {
-#if AUTO_USERID
-        get_user_pass_auto_userid(&auth_user_pass, auth_file);
-#else
 #ifdef ENABLE_CLIENT_CR
         if (auth_challenge) /* dynamic challenge/response */
         {
@@ -437,7 +434,6 @@ auth_user_pass_setup(const char *auth_file, const struct static_challenge_info *
         else
 #endif /* ifdef ENABLE_CLIENT_CR */
         get_user_pass(&auth_user_pass, auth_file, UP_TYPE_AUTH, GET_USER_PASS_MANAGEMENT);
-#endif /* if AUTO_USERID */
     }
 }
 

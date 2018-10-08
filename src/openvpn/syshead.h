@@ -659,15 +659,6 @@ socket_defined(const socket_descriptor_t sd)
 #endif
 
 /*
- * Do we have the capability to support the AUTO_USERID feature?
- */
-#if defined(ENABLE_AUTO_USERID)
-#define AUTO_USERID 1
-#else
-#define AUTO_USERID 0
-#endif
-
-/*
  * Do we support challenge/response authentication as client?
  */
 #if defined(ENABLE_MANAGEMENT)

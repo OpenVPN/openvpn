@@ -159,11 +159,6 @@ void configure_path(void);
 
 const char *sanitize_control_message(const char *str, struct gc_arena *gc);
 
-#if AUTO_USERID
-void get_user_pass_auto_userid(struct user_pass *up, const char *tag);
-
-#endif
-
 /*
  * /sbin/ip path, may be overridden
  */

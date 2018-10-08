@@ -457,51 +457,6 @@ get_auth_challenge(const char *auth_challenge, struct gc_arena *gc)
 
 #endif /* ifdef ENABLE_CLIENT_CR */
 
-#if AUTO_USERID
-
-void
-get_user_pass_auto_userid(struct user_pass *up, const char *tag)
-{
-    struct gc_arena gc = gc_new();
-    struct buffer buf;
-    uint8_t macaddr[6];
-    static uint8_t digest [MD5_DIGEST_LENGTH];
-    static const uint8_t hashprefix[] = "AUTO_USERID_DIGEST";
-
-    const md_kt_t *md5_kt = md_kt_get("MD5");
-    md_ctx_t *ctx;
-
-    CLEAR(*up);
-    buf_set_write(&buf, (uint8_t *)up->username, USER_PASS_LEN);
-    buf_printf(&buf, "%s", TARGET_PREFIX);
-    if (get_default_gateway_mac_addr(macaddr))
-    {
-        dmsg(D_AUTO_USERID, "GUPAU: macaddr=%s", format_hex_ex(macaddr, sizeof(macaddr), 0, 1, ":", &gc));
-        ctx = md_ctx_new();
-        md_ctx_init(ctx, md5_kt);
-        md_ctx_update(ctx, hashprefix, sizeof(hashprefix) - 1);
-        md_ctx_update(ctx, macaddr, sizeof(macaddr));
-        md_ctx_final(ctx, digest);
-        md_ctx_cleanup(ctx);
-        md_ctx_free(ctx);
-        buf_printf(&buf, "%s", format_hex_ex(digest, sizeof(digest), 0, 256, " ", &gc));
-    }
-    else
-    {
-        buf_printf(&buf, "UNKNOWN");
-    }
-    if (tag && strcmp(tag, "stdin"))
-    {
-        buf_printf(&buf, "-%s", tag);
-    }
-    up->defined = true;
-    gc_free(&gc);
-
-    dmsg(D_AUTO_USERID, "GUPAU: AUTO_USERID: '%s'", up->username);
-}
-
-#endif /* if AUTO_USERID */
-
 void
 purge_user_pass(struct user_pass *up, const bool force)
 {
