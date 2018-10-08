@@ -1015,6 +1015,7 @@ netsh_dns_cmd(const wchar_t *action, const wchar_t *proto, const wchar_t *if_nam
     DWORD err = 0;
     int timeout = 30000; /* in msec */
     wchar_t argv0[MAX_PATH];
+    wchar_t *cmdline = NULL;
 
     if (!addr)
     {
@@ -1039,7 +1040,7 @@ netsh_dns_cmd(const wchar_t *action, const wchar_t *proto, const wchar_t *if_nam
 
     /* max cmdline length in wchars -- include room for worst case and some */
     size_t ncmdline = wcslen(fmt) + wcslen(if_name) + wcslen(addr) + 32 + 1;
-    wchar_t *cmdline = malloc(ncmdline*sizeof(wchar_t));
+    cmdline = malloc(ncmdline*sizeof(wchar_t));
     if (!cmdline)
     {
         err = ERROR_OUTOFMEMORY;
@@ -1350,7 +1351,7 @@ RunOpenvpn(LPVOID p)
 {
     HANDLE pipe = p;
     HANDLE ovpn_pipe, svc_pipe;
-    PTOKEN_USER svc_user, ovpn_user;
+    PTOKEN_USER svc_user = NULL, ovpn_user = NULL;
     HANDLE svc_token = NULL, imp_token = NULL, pri_token = NULL;
     HANDLE stdin_read = NULL, stdin_write = NULL;
     HANDLE stdout_write = NULL;
@@ -1403,7 +1404,6 @@ RunOpenvpn(LPVOID p)
         goto out;
     }
     len = 0;
-    svc_user = NULL;
     while (!GetTokenInformation(svc_token, TokenUser, svc_user, len, &len))
     {
         if (GetLastError() != ERROR_INSUFFICIENT_BUFFER)
@@ -1436,7 +1436,6 @@ RunOpenvpn(LPVOID p)
         goto out;
     }
     len = 0;
-    ovpn_user = NULL;
     while (!GetTokenInformation(imp_token, TokenUser, ovpn_user, len, &len))
     {
         if (GetLastError() != ERROR_INSUFFICIENT_BUFFER)
