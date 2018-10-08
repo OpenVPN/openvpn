@@ -278,11 +278,6 @@ void read_key_file(struct key2 *key2, const char *file, const unsigned int flags
  */
 int write_key_file(const int nkeys, const char *filename);
 
-int read_passphrase_hash(const char *passphrase_file,
-                         const md_kt_t *digest,
-                         uint8_t *output,
-                         int len);
-
 void generate_key_random(struct key *key, const struct key_type *kt);
 
 void check_replay_consistency(const struct key_type *kt, bool packet_id);
