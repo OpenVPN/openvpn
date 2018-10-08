@@ -143,6 +143,12 @@
   <ItemGroup>
     <ClInclude Include="compat.h" />
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\build\msvc\msvc-generate\msvc-generate.vcxproj">
+      <Project>{8598c2c8-34c4-47a1-99b0-7c295a890615}</Project>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+    </ProjectReference>
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
