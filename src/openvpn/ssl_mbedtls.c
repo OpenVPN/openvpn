@@ -604,6 +604,13 @@ tls_ctx_use_external_signing_func(struct tls_root_ctx *ctx,
         return 1;
     }
 
+    if (mbedtls_pk_get_type(&ctx->crt_chain->pk) != MBEDTLS_PK_RSA)
+    {
+        msg(M_WARN, "ERROR: external key with mbed TLS requires a "
+                     "certificate with an RSA key.");
+        return 1;
+    }
+
     ctx->external_key.signature_length = mbedtls_pk_get_len(&ctx->crt_chain->pk);
     ctx->external_key.sign = sign_func;
     ctx->external_key.sign_ctx = sign_ctx;
