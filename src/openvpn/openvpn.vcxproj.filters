@@ -228,6 +228,12 @@
     <ClCompile Include="tls_crypt.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="env_set.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="run_command.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="base64.h">
@@ -474,6 +480,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="tls_crypt.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="env_set.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="run_command.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

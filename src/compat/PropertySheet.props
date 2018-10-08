@@ -9,8 +9,23 @@
     <LZO_HOME>$(OPENVPN_DEPROOT)</LZO_HOME>
     <PKCS11H_HOME>$(OPENVPN_DEPROOT)</PKCS11H_HOME>
   </PropertyGroup>
-  <PropertyGroup />
-  <ItemDefinitionGroup />
+  <PropertyGroup>
+    <OutDir>$(SolutionDir)$(Platform)-Output\$(Configuration)\</OutDir>
+    <_PropertySheetDisplayName>compat</_PropertySheetDisplayName>
+  </PropertyGroup>
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <PreprocessorDefinitions>WIN32;$(CPPFLAGS);%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(SOURCEBASE);$(SOURCEBASE)/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+    <ResourceCompile>
+      <AdditionalIncludeDirectories>$(SOURCEBASE);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
+  </ItemDefinitionGroup>
   <ItemGroup>
     <BuildMacro Include="SOURCEBASE">
       <Value>$(SOURCEBASE)</Value>
