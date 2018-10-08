@@ -33,6 +33,7 @@
 #include "syshead.h"
 #include "console.h"
 #include "misc.h"
+#include "run_command.h"
 
 #include <systemd/sd-daemon.h>
 
