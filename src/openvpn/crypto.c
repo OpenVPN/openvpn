@@ -1769,6 +1769,33 @@ get_random(void)
     return l;
 }
 
+void
+print_cipher(const cipher_kt_t *cipher)
+{
+    const char *var_key_size = cipher_kt_var_key_size(cipher) ?
+        " by default" : "";
+
+    printf("%s  (%d bit key%s, ",
+           translate_cipher_name_to_openvpn(cipher_kt_name(cipher)),
+           cipher_kt_key_size(cipher) * 8, var_key_size);
+
+    if (cipher_kt_block_size(cipher) == 1)
+    {
+        printf("stream cipher");
+    }
+    else
+    {
+        printf("%d bit block", cipher_kt_block_size(cipher) * 8);
+    }
+
+    if (!cipher_kt_mode_cbc(cipher))
+    {
+        printf(", TLS client/server mode only");
+    }
+
+    printf(")\n");
+}
+
 static const cipher_name_pair *
 get_cipher_name_pair(const char *cipher_name)
 {

@@ -265,21 +265,6 @@ cipher_name_cmp(const void *a, const void *b)
     return strcmp(cipher_name_a, cipher_name_b);
 }
 
-static void
-print_cipher(const EVP_CIPHER *cipher)
-{
-    const char *var_key_size =
-        (EVP_CIPHER_flags(cipher) & EVP_CIPH_VARIABLE_LENGTH) ?
-        " by default" : "";
-    const char *ssl_only = cipher_kt_mode_cbc(cipher) ?
-                           "" : ", TLS client/server mode only";
-
-    printf("%s  (%d bit key%s, %d bit block%s)\n",
-           translate_cipher_name_to_openvpn(EVP_CIPHER_name(cipher)),
-           EVP_CIPHER_key_length(cipher) * 8, var_key_size,
-           cipher_kt_block_size(cipher) * 8, ssl_only);
-}
-
 void
 show_available_ciphers(void)
 {

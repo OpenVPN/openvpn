@@ -460,6 +460,9 @@ void prng_uninit(void);
 /* an analogue to the random() function, but use prng_bytes */
 long int get_random(void);
 
+/** Print a cipher list entry */
+void print_cipher(const cipher_kt_t *cipher);
+
 void test_crypto(struct crypto_options *co, struct frame *f);
 
 

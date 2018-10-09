@@ -146,5 +146,9 @@ mbed_log_func_line_lite(unsigned int flags, int errval,
 #define mbed_ok(errval) \
     mbed_log_func_line_lite(D_CRYPT_ERRORS, errval, __func__, __LINE__)
 
+static inline bool cipher_kt_var_key_size(const cipher_kt_t *cipher)
+{
+    return cipher->flags & MBEDTLS_CIPHER_VARIABLE_KEY_LEN;
+}
 
 #endif /* CRYPTO_MBEDTLS_H_ */

@@ -39,6 +39,7 @@
 #include "errlevel.h"
 #include "basic.h"
 #include "buffer.h"
+#include "crypto.h"
 #include "integer.h"
 #include "crypto_backend.h"
 #include "otime.h"
@@ -140,26 +141,6 @@ const cipher_name_pair cipher_name_translation_table[] = {
 const size_t cipher_name_translation_table_count =
     sizeof(cipher_name_translation_table) / sizeof(*cipher_name_translation_table);
 
-static void
-print_cipher(const cipher_kt_t *info)
-{
-    if (info && (cipher_kt_mode_cbc(info)
-#ifdef HAVE_AEAD_CIPHER_MODES
-                 || cipher_kt_mode_aead(info)
-#endif
-                 ))
-    {
-        const char *ssl_only = cipher_kt_mode_cbc(info) ?
-                               "" : ", TLS client/server mode only";
-        const char *var_key_size = info->flags & MBEDTLS_CIPHER_VARIABLE_KEY_LEN ?
-                                   " by default" : "";
-
-        printf("%s  (%d bit key%s, %d bit block%s)\n",
-               cipher_kt_name(info), cipher_kt_key_size(info) * 8, var_key_size,
-               cipher_kt_block_size(info) * 8, ssl_only);
-    }
-}
-
 void
 show_available_ciphers(void)
 {
@@ -175,7 +156,8 @@ show_available_ciphers(void)
     while (*ciphers != 0)
     {
         const cipher_kt_t *info = mbedtls_cipher_info_from_type(*ciphers);
-        if (info && !cipher_kt_insecure(info))
+        if (info && !cipher_kt_insecure(info)
+            && (cipher_kt_mode_aead(info) || cipher_kt_mode_cbc(info)))
         {
             print_cipher(info);
         }
