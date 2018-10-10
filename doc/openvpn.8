@@ -5412,6 +5412,12 @@ into the file/buffer for dynamic configuration data.  This
 will then make the OpenVPN server to push this value to the
 client, which replaces the local password with the
 UNIQUE_TOKEN_VALUE.
+
+Newer clients (2.4.7+) will fall back to the original password method
+after a failed auth. Older clients will keep using the token value
+and react acording to
+.B \-\-auth-retry
+.
 .\"*********************************************************
 .TP
 .B \-\-tls\-verify cmd
