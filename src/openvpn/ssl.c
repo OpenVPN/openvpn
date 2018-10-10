@@ -399,7 +399,7 @@ pem_password_callback(char *buf, int size, int rwflag, void *u)
 static bool auth_user_pass_enabled;     /* GLOBAL */
 static struct user_pass auth_user_pass; /* GLOBAL */
 
-#ifdef ENABLE_CLIENT_CR
+#ifdef ENABLE_MANAGEMENT
 static char *auth_challenge; /* GLOBAL */
 #endif
 
@@ -409,7 +409,7 @@ auth_user_pass_setup(const char *auth_file, const struct static_challenge_info *
     auth_user_pass_enabled = true;
     if (!auth_user_pass.defined)
     {
-#ifdef ENABLE_CLIENT_CR
+#ifdef ENABLE_MANAGEMENT
         if (auth_challenge) /* dynamic challenge/response */
         {
             get_user_pass_cr(&auth_user_pass,
@@ -432,7 +432,7 @@ auth_user_pass_setup(const char *auth_file, const struct static_challenge_info *
                              sci->challenge_text);
         }
         else
-#endif /* ifdef ENABLE_CLIENT_CR */
+#endif /* ifdef ENABLE_MANAGEMENT */
         get_user_pass(&auth_user_pass, auth_file, UP_TYPE_AUTH, GET_USER_PASS_MANAGEMENT);
     }
 }
@@ -480,12 +480,12 @@ ssl_purge_auth(const bool auth_user_pass_only)
         purge_user_pass(&passbuf, true);
     }
     purge_user_pass(&auth_user_pass, true);
-#ifdef ENABLE_CLIENT_CR
+#ifdef ENABLE_MANAGEMENT
     ssl_purge_auth_challenge();
 #endif
 }
 
-#ifdef ENABLE_CLIENT_CR
+#ifdef ENABLE_MANAGEMENT
 
 void
 ssl_purge_auth_challenge(void)
@@ -652,7 +652,7 @@ init_ssl(const struct options *options, struct tls_root_ctx *new_ctx)
         tls_ctx_load_cryptoapi(new_ctx, options->cryptoapi_cert);
     }
 #endif
-#ifdef MANAGMENT_EXTERNAL_KEY
+#ifdef ENABLE_MANAGEMENT
     else if (options->management_flags & MF_EXTERNAL_CERT)
     {
         char *cert = management_query_cert(management,
@@ -674,7 +674,7 @@ init_ssl(const struct options *options, struct tls_root_ctx *new_ctx)
             goto err;
         }
     }
-#ifdef MANAGMENT_EXTERNAL_KEY
+#ifdef ENABLE_MANAGEMENT
     else if (options->management_flags & MF_EXTERNAL_KEY)
     {
         if (tls_ctx_use_management_external_key(new_ctx))
@@ -2364,7 +2364,7 @@ key_method_2_write(struct buffer *buf, struct tls_session *session)
     /* write username/password if specified */
     if (auth_user_pass_enabled)
     {
-#ifdef ENABLE_CLIENT_CR
+#ifdef ENABLE_MANAGEMENT
         auth_user_pass_setup(session->opt->auth_user_pass_file, session->opt->sci);
 #else
         auth_user_pass_setup(session->opt->auth_user_pass_file, NULL);

@@ -272,7 +272,7 @@ void tls_ctx_load_cert_file(struct tls_root_ctx *ctx, const char *cert_file,
 int tls_ctx_load_priv_file(struct tls_root_ctx *ctx, const char *priv_key_file,
                            const char *priv_key_file_inline);
 
-#ifdef MANAGMENT_EXTERNAL_KEY
+#ifdef ENABLE_MANAGEMENT
 
 /**
  * Tell the management interface to load the given certificate and the external
@@ -284,7 +284,7 @@ int tls_ctx_load_priv_file(struct tls_root_ctx *ctx, const char *priv_key_file,
  */
 int tls_ctx_use_management_external_key(struct tls_root_ctx *ctx);
 
-#endif /* MANAGMENT_EXTERNAL_KEY */
+#endif /* ENABLE_MANAGEMENT */
 
 /**
  * Load certificate authority certificates from the given file or path.

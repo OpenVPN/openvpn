@@ -332,7 +332,7 @@ struct tls_options
 
     const struct x509_track *x509_track;
 
-#ifdef ENABLE_CLIENT_CR
+#ifdef ENABLE_MANAGEMENT
     const struct static_challenge_info *sci;
 #endif
 

@@ -469,7 +469,7 @@ struct options
 
     int scheduled_exit_interval;
 
-#ifdef ENABLE_CLIENT_CR
+#ifdef ENABLE_MANAGEMENT
     struct static_challenge_info sc_info;
 #endif
 #endif /* if P2MP */

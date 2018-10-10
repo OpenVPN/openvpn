@@ -997,7 +997,7 @@ end:
 }
 
 
-#ifdef MANAGMENT_EXTERNAL_KEY
+#ifdef ENABLE_MANAGEMENT
 
 /* encrypt */
 static int
@@ -1340,7 +1340,7 @@ cleanup:
     return ret;
 }
 
-#endif /* ifdef MANAGMENT_EXTERNAL_KEY */
+#endif /* ifdef ENABLE_MANAGEMENT */
 
 static int
 sk_x509_name_cmp(const X509_NAME *const *a, const X509_NAME *const *b)

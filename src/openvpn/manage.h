@@ -275,7 +275,6 @@ struct man_connection {
     struct command_line *in;
     struct buffer_list *out;
 
-#ifdef MANAGEMENT_IN_EXTRA
 #define IEC_UNDEF       0
 #define IEC_CLIENT_AUTH 1
 #define IEC_CLIENT_PF   2
@@ -288,7 +287,6 @@ struct man_connection {
     unsigned long in_extra_cid;
     unsigned int in_extra_kid;
 #endif
-#ifdef MANAGMENT_EXTERNAL_KEY
 #define EKS_UNDEF   0
 #define EKS_SOLICIT 1
 #define EKS_INPUT   2
@@ -297,8 +295,6 @@ struct man_connection {
     struct buffer_list *ext_key_input;
     int ext_cert_state;
     struct buffer_list *ext_cert_input;
-#endif
-#endif /* ifdef MANAGEMENT_IN_EXTRA */
     struct event_set *es;
     int env_filter_level;
 
@@ -346,9 +342,7 @@ struct management *management_init(void);
 #define MF_CLIENT_PF         (1<<7)
 #endif
 #define MF_UNIX_SOCK       (1<<8)
-#ifdef MANAGMENT_EXTERNAL_KEY
 #define MF_EXTERNAL_KEY    (1<<9)
-#endif
 #define MF_UP_DOWN          (1<<10)
 #define MF_QUERY_REMOTE     (1<<11)
 #define MF_QUERY_PROXY      (1<<12)
@@ -436,13 +430,9 @@ void management_learn_addr(struct management *management,
 
 #endif
 
-#ifdef MANAGMENT_EXTERNAL_KEY
-
 char *management_query_pk_sig(struct management *man, const char *b64_data);
 
 char *management_query_cert(struct management *man, const char *cert_name);
-
-#endif
 
 static inline bool
 management_connected(const struct management *man)

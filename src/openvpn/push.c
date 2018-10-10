@@ -88,7 +88,7 @@ receive_auth_failed(struct context *c, const struct buffer *buffer)
          * Save the dynamic-challenge text even when management is defined
          */
         {
-#ifdef ENABLE_CLIENT_CR
+#ifdef ENABLE_MANAGEMENT
             struct buffer buf = *buffer;
             if (buf_string_match_head_str(&buf, "AUTH_FAILED,CRV1:") && BLEN(&buf))
             {

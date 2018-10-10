@@ -110,14 +110,12 @@ man_help(void)
     msg(M_CLIENT, "client-pf CID          : Define packet filter for client CID (MULTILINE)");
 #endif
 #endif
-#ifdef MANAGMENT_EXTERNAL_KEY
     msg(M_CLIENT, "rsa-sig                : Enter a signature in response to >RSA_SIGN challenge");
     msg(M_CLIENT, "                         Enter signature base64 on subsequent lines followed by END");
     msg(M_CLIENT, "pk-sig                 : Enter a signature in response to >PK_SIGN challenge");
     msg(M_CLIENT, "                         Enter signature base64 on subsequent lines followed by END");
     msg(M_CLIENT, "certificate            : Enter a client certificate in response to >NEED-CERT challenge");
     msg(M_CLIENT, "                         Enter certificate base64 on subsequent lines followed by END");
-#endif
     msg(M_CLIENT, "signal s               : Send signal s to daemon,");
     msg(M_CLIENT, "                         s = SIGHUP|SIGTERM|SIGUSR1|SIGUSR2.");
     msg(M_CLIENT, "state [on|off] [N|all] : Like log, but show state history.");
@@ -847,8 +845,6 @@ man_hold(struct management *man, const char *cmd)
     }
 }
 
-#ifdef MANAGEMENT_IN_EXTRA
-
 #define IER_RESET      0
 #define IER_NEW        1
 
@@ -936,7 +932,6 @@ in_extra_dispatch(struct management *man)
             break;
 
 #endif /* ifdef MANAGEMENT_PF */
-#ifdef MANAGMENT_EXTERNAL_KEY
         case IEC_PK_SIGN:
             man->connection.ext_key_state = EKS_READY;
             buffer_list_free(man->connection.ext_key_input);
@@ -950,12 +945,9 @@ in_extra_dispatch(struct management *man)
             man->connection.ext_cert_input = man->connection.in_extra;
             man->connection.in_extra = NULL;
             return;
-#endif
     }
     in_extra_reset(&man->connection, IER_RESET);
 }
-
-#endif /* MANAGEMENT_IN_EXTRA */
 
 #ifdef MANAGEMENT_DEF_AUTH
 
@@ -1102,8 +1094,6 @@ man_client_pf(struct management *man, const char *cid_str)
 #endif /* MANAGEMENT_PF */
 #endif /* MANAGEMENT_DEF_AUTH */
 
-#ifdef MANAGMENT_EXTERNAL_KEY
-
 static void
 man_pk_sig(struct management *man, const char *cmd_name)
 {
@@ -1135,8 +1125,6 @@ man_certificate(struct management *man)
         msg(M_CLIENT, "ERROR: The certificate command is not currently available");
     }
 }
-
-#endif /* ifdef MANAGMENT_EXTERNAL_KEY */
 
 static void
 man_load_stats(struct management *man)
@@ -1526,7 +1514,6 @@ man_dispatch_command(struct management *man, struct status_output *so, const cha
     }
 #endif
 #endif /* ifdef MANAGEMENT_DEF_AUTH */
-#ifdef MANAGMENT_EXTERNAL_KEY
     else if (streq(p[0], "rsa-sig"))
     {
         man_pk_sig(man, "rsa-sig");
@@ -1539,7 +1526,6 @@ man_dispatch_command(struct management *man, struct status_output *so, const cha
     {
         man_certificate(man);
     }
-#endif
 #ifdef ENABLE_PKCS11
     else if (streq(p[0], "pkcs11-id-count"))
     {
@@ -1928,9 +1914,7 @@ man_reset_client_socket(struct management *man, const bool exiting)
         man->connection.state = MS_INITIAL;
         command_line_reset(man->connection.in);
         buffer_list_reset(man->connection.out);
-#ifdef MANAGEMENT_IN_EXTRA
         in_extra_reset(&man->connection, IER_RESET);
-#endif
         msg(D_MANAGEMENT, "MANAGEMENT: Client disconnected");
     }
     if (!exiting)
@@ -1972,9 +1956,7 @@ man_process_command(struct management *man, const char *line)
 
     CLEAR(parms);
     so = status_open(NULL, 0, -1, &man->persist.vout, 0);
-#ifdef MANAGEMENT_IN_EXTRA
     in_extra_reset(&man->connection, IER_RESET);
-#endif
 
     if (man_password_needed(man))
     {
@@ -2212,7 +2194,6 @@ man_read(struct management *man)
             const char *line;
             while ((line = command_line_get(man->connection.in)))
             {
-#ifdef MANAGEMENT_IN_EXTRA
                 if (man->connection.in_extra)
                 {
                     if (!strcmp(line, "END"))
@@ -2225,8 +2206,9 @@ man_read(struct management *man)
                     }
                 }
                 else
-#endif
-                man_process_command(man, (char *) line);
+                {
+                    man_process_command(man, (char *) line);
+                }
                 if (man->connection.halt)
                 {
                     break;
@@ -2572,12 +2554,8 @@ man_connection_close(struct management *man)
     {
         buffer_list_free(mc->out);
     }
-#ifdef MANAGEMENT_IN_EXTRA
     in_extra_reset(&man->connection, IER_RESET);
-#endif
-#ifdef MANAGMENT_EXTERNAL_KEY
     buffer_list_free(mc->ext_key_input);
-#endif
     man_connection_clear(mc);
 }
 
@@ -3412,9 +3390,7 @@ management_query_user_pass(struct management *man,
         const char *alert_type = NULL;
         const char *prefix = NULL;
         unsigned int up_query_mode = 0;
-#ifdef ENABLE_CLIENT_CR
         const char *sc = NULL;
-#endif
         ret = true;
         man->persist.standalone_disabled = false; /* This is so M_CLIENT messages will be correctly passed through msg() */
         man->persist.special_state_msg = NULL;
@@ -3444,12 +3420,10 @@ management_query_user_pass(struct management *man,
             up_query_mode = UP_QUERY_USER_PASS;
             prefix = "PASSWORD";
             alert_type = "username/password";
-#ifdef ENABLE_CLIENT_CR
             if (static_challenge)
             {
                 sc = static_challenge;
             }
-#endif
         }
         buf_printf(&alert_msg, ">%s:Need '%s' %s",
                    prefix,
@@ -3461,14 +3435,12 @@ management_query_user_pass(struct management *man,
             buf_printf(&alert_msg, " MSG:%s", up->username);
         }
 
-#ifdef ENABLE_CLIENT_CR
         if (sc)
         {
             buf_printf(&alert_msg, " SC:%d,%s",
                        BOOL_CAST(flags & GET_USER_PASS_STATIC_CHALLENGE_ECHO),
                        sc);
         }
-#endif
 
         man_wait_for_client_connection(man, &signal_received, 0, MWCC_PASSWORD_WAIT);
         if (signal_received)
@@ -3530,8 +3502,6 @@ management_query_user_pass(struct management *man,
     gc_free(&gc);
     return ret;
 }
-
-#ifdef MANAGMENT_EXTERNAL_KEY
 
 static int
 management_query_multiline(struct management *man,
@@ -3698,8 +3668,6 @@ management_query_cert(struct management *man, const char *cert_name)
     free_buf(&buf_prompt);
     return result;
 }
-
-#endif /* ifdef MANAGMENT_EXTERNAL_KEY */
 
 /*
  * Return true if management_hold() would block

@@ -605,7 +605,7 @@ tls_ctx_use_external_signing_func(struct tls_root_ctx *ctx,
     return 0;
 }
 
-#ifdef MANAGMENT_EXTERNAL_KEY
+#ifdef ENABLE_MANAGEMENT
 
 /** Query the management interface for a signature, see external_sign_func. */
 static bool
@@ -645,7 +645,7 @@ tls_ctx_use_management_external_key(struct tls_root_ctx *ctx)
     return tls_ctx_use_external_signing_func(ctx, management_sign_func, NULL);
 }
 
-#endif /* ifdef MANAGMENT_EXTERNAL_KEY */
+#endif /* ifdef ENABLE_MANAGEMENT */
 
 void
 tls_ctx_load_ca(struct tls_root_ctx *ctx, const char *ca_file,

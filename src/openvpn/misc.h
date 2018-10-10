@@ -76,7 +76,7 @@ struct user_pass
     char password[USER_PASS_LEN];
 };
 
-#ifdef ENABLE_CLIENT_CR
+#ifdef ENABLE_MANAGEMENT
 /*
  * Challenge response info on client as pushed by server.
  */
@@ -102,10 +102,10 @@ struct static_challenge_info {
     const char *challenge_text;
 };
 
-#else  /* ifdef ENABLE_CLIENT_CR */
+#else  /* ifdef ENABLE_MANAGEMENT */
 struct auth_challenge_info {};
 struct static_challenge_info {};
-#endif /* ifdef ENABLE_CLIENT_CR */
+#endif /* ifdef ENABLE_MANAGEMENT */
 
 /*
  * Flags for get_user_pass and management_query_user_pass

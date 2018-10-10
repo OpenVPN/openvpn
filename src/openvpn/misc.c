@@ -157,12 +157,10 @@ get_user_pass_cr(struct user_pass *up,
                 management_auth_failure(management, prefix, "previous auth credentials failed");
             }
 
-#ifdef ENABLE_CLIENT_CR
             if (auth_challenge && (flags & GET_USER_PASS_STATIC_CHALLENGE))
             {
                 sc = auth_challenge;
             }
-#endif
             if (!management_query_user_pass(management, up, prefix, flags, sc))
             {
                 if ((flags & GET_USER_PASS_NOFATAL) != 0)
@@ -272,7 +270,7 @@ get_user_pass_cr(struct user_pass *up,
          */
         if (username_from_stdin || password_from_stdin || response_from_stdin)
         {
-#ifdef ENABLE_CLIENT_CR
+#ifdef ENABLE_MANAGEMENT
             if (auth_challenge && (flags & GET_USER_PASS_DYNAMIC_CHALLENGE) && response_from_stdin)
             {
                 struct auth_challenge_info *ac = get_auth_challenge(auth_challenge, &gc);
@@ -299,7 +297,7 @@ get_user_pass_cr(struct user_pass *up,
                 }
             }
             else
-#endif /* ifdef ENABLE_CLIENT_CR */
+#endif /* ifdef ENABLE_MANAGEMENT */
             {
                 struct buffer user_prompt = alloc_buf_gc(128, &gc);
                 struct buffer pass_prompt = alloc_buf_gc(128, &gc);
@@ -333,7 +331,7 @@ get_user_pass_cr(struct user_pass *up,
                     }
                 }
 
-#ifdef ENABLE_CLIENT_CR
+#ifdef ENABLE_MANAGEMENT
                 if (auth_challenge && (flags & GET_USER_PASS_STATIC_CHALLENGE) && response_from_stdin)
                 {
                     char *response = (char *) gc_malloc(USER_PASS_LEN, false, &gc);
@@ -361,7 +359,7 @@ get_user_pass_cr(struct user_pass *up,
                     string_clear(resp64);
                     free(resp64);
                 }
-#endif /* ifdef ENABLE_CLIENT_CR */
+#endif /* ifdef ENABLE_MANAGEMENT */
             }
         }
 
@@ -380,7 +378,7 @@ get_user_pass_cr(struct user_pass *up,
     return true;
 }
 
-#ifdef ENABLE_CLIENT_CR
+#ifdef ENABLE_MANAGEMENT
 
 /*
  * See management/management-notes.txt for more info on the
@@ -455,7 +453,7 @@ get_auth_challenge(const char *auth_challenge, struct gc_arena *gc)
     }
 }
 
-#endif /* ifdef ENABLE_CLIENT_CR */
+#endif /* ifdef ENABLE_MANAGEMENT */
 
 void
 purge_user_pass(struct user_pass *up, const bool force)

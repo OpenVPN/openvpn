@@ -428,7 +428,7 @@ void ssl_purge_auth(const bool auth_user_pass_only);
 
 void ssl_set_auth_token(const char *token);
 
-#ifdef ENABLE_CLIENT_CR
+#ifdef ENABLE_MANAGEMENT
 /*
  * ssl_get_auth_challenge will parse the server-pushed auth-failed
  * reason string and return a dynamically allocated

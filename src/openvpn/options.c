@@ -1735,7 +1735,7 @@ show_settings(const struct options *o)
     SHOW_STR(ca_file);
     SHOW_STR(ca_path);
     SHOW_STR(dh_file);
-#ifdef MANAGMENT_EXTERNAL_KEY
+#ifdef ENABLE_MANAGEMENT
     if ((o->management_flags & MF_EXTERNAL_CERT))
     {
         SHOW_PARM("cert_file","EXTERNAL_CERT","%s");
@@ -1745,7 +1745,7 @@ show_settings(const struct options *o)
     SHOW_STR(cert_file);
     SHOW_STR(extra_certs_file);
 
-#ifdef MANAGMENT_EXTERNAL_KEY
+#ifdef ENABLE_MANAGEMENT
     if ((o->management_flags & MF_EXTERNAL_KEY))
     {
         SHOW_PARM("priv_key_file","EXTERNAL_PRIVATE_KEY","%s");
@@ -2567,7 +2567,7 @@ options_postprocess_verify_ce(const struct options *options, const struct connec
             {
                 msg(M_USAGE, "Parameter --key cannot be used when --pkcs11-provider is also specified.");
             }
-#ifdef MANAGMENT_EXTERNAL_KEY
+#ifdef ENABLE_MANAGEMENT
             if (options->management_flags & MF_EXTERNAL_KEY)
             {
                 msg(M_USAGE, "Parameter --management-external-key cannot be used when --pkcs11-provider is also specified.");
@@ -2590,7 +2590,7 @@ options_postprocess_verify_ce(const struct options *options, const struct connec
         }
         else
 #endif /* ifdef ENABLE_PKCS11 */
-#ifdef MANAGMENT_EXTERNAL_KEY
+#ifdef ENABLE_MANAGEMENT
         if ((options->management_flags & MF_EXTERNAL_KEY) && options->priv_key_file)
         {
             msg(M_USAGE, "--key and --management-external-key are mutually exclusive");
@@ -2627,7 +2627,7 @@ options_postprocess_verify_ce(const struct options *options, const struct connec
             {
                 msg(M_USAGE, "Parameter --pkcs12 cannot be used when --cryptoapicert is also specified.");
             }
-#ifdef MANAGMENT_EXTERNAL_KEY
+#ifdef ENABLE_MANAGEMENT
             if (options->management_flags & MF_EXTERNAL_KEY)
             {
                 msg(M_USAGE, "Parameter --management-external-key cannot be used when --cryptoapicert is also specified.");
@@ -2657,7 +2657,7 @@ options_postprocess_verify_ce(const struct options *options, const struct connec
             {
                 msg(M_USAGE, "Parameter --key cannot be used when --pkcs12 is also specified.");
             }
-#ifdef MANAGMENT_EXTERNAL_KEY
+#ifdef ENABLE_MANAGEMENT
             if (options->management_flags & MF_EXTERNAL_KEY)
             {
                 msg(M_USAGE, "Parameter --management-external-key cannot be used when --pkcs12 is also specified.");
@@ -2690,7 +2690,7 @@ options_postprocess_verify_ce(const struct options *options, const struct connec
             {
 
                 const int sum =
-#ifdef MANAGMENT_EXTERNAL_KEY
+#ifdef ENABLE_MANAGEMENT
                     ((options->cert_file != NULL) || (options->management_flags & MF_EXTERNAL_CERT))
                     +((options->priv_key_file != NULL) || (options->management_flags & MF_EXTERNAL_KEY));
 #else
@@ -2714,11 +2714,11 @@ options_postprocess_verify_ce(const struct options *options, const struct connec
             }
             else
             {
-#ifdef MANAGMENT_EXTERNAL_KEY
+#ifdef ENABLE_MANAGEMENT
                 if (!(options->management_flags & MF_EXTERNAL_CERT))
 #endif
                 notnull(options->cert_file, "certificate file (--cert) or PKCS#12 file (--pkcs12)");
-#ifdef MANAGMENT_EXTERNAL_KEY
+#ifdef ENABLE_MANAGEMENT
                 if (!(options->management_flags & MF_EXTERNAL_KEY))
 #endif
                 notnull(options->priv_key_file, "private key file (--key) or PKCS#12 file (--pkcs12)");
@@ -3308,7 +3308,7 @@ options_postprocess_filechecks(struct options *options)
     errs |= check_file_access(CHKACC_FILE|CHKACC_INLINE, options->cert_file, R_OK, "--cert");
     errs |= check_file_access(CHKACC_FILE|CHKACC_INLINE, options->extra_certs_file, R_OK,
                               "--extra-certs");
-#ifdef MANAGMENT_EXTERNAL_KEY
+#ifdef ENABLE_MANAGEMENT
     if (!(options->management_flags & MF_EXTERNAL_KEY))
 #endif
     {
@@ -5155,7 +5155,7 @@ add_option(struct options *options,
         options->management_flags |= MF_CONNECT_AS_CLIENT;
         options->management_write_peer_info_file = p[1];
     }
-#ifdef MANAGMENT_EXTERNAL_KEY
+#ifdef ENABLE_MANAGEMENT
     else if (streq(p[0], "management-external-key") && !p[1])
     {
         VERIFY_PERMISSION(OPT_P_GENERAL);
@@ -7023,7 +7023,7 @@ add_option(struct options *options,
         VERIFY_PERMISSION(OPT_P_GENERAL);
         auth_retry_set(msglevel, p[1]);
     }
-#ifdef ENABLE_CLIENT_CR
+#ifdef ENABLE_MANAGEMENT
     else if (streq(p[0], "static-challenge") && p[1] && p[2] && !p[3])
     {
         VERIFY_PERMISSION(OPT_P_GENERAL);
