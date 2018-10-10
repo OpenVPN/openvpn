@@ -598,4 +598,18 @@ bool is_hard_reset(int op, int key_method);
 
 void delayed_auth_pass_purge(void);
 
+
+/*
+ * Show the TLS ciphers that are available for us to use in the SSL
+ * library with headers hinting their usage and warnings about usage.
+ *
+ * @param cipher_list       list of allowed TLS cipher, or NULL.
+ * @param cipher_list_tls13 list of allowed TLS 1.3+ cipher, or NULL
+ * @param tls_cert_profile  TLS certificate crypto profile name.
+ */
+void
+show_available_tls_ciphers(const char *cipher_list,
+                           const char *cipher_list_tls13,
+                           const char *tls_cert_profile);
+
 #endif /* ifndef OPENVPN_SSL_H */

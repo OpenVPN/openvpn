@@ -517,15 +517,19 @@ int key_state_read_plaintext(struct key_state_ssl *ks_ssl, struct buffer *buf,
 void print_details(struct key_state_ssl *ks_ssl, const char *prefix);
 
 /*
- * Show the TLS ciphers that are available for us to use in the OpenSSL
- * library.
+ * Show the TLS ciphers that are available for us to use in the
+ * library depending on the TLS version. This function prints
+ * a list of ciphers without headers/footers.
  *
  * @param cipher_list       list of allowed TLS cipher, or NULL.
  * @param tls_cert_profile  TLS certificate crypto profile name.
+ * @param tls13             Select if <=TLS1.2 or TLS1.3+ ciphers
+ *                          should be shown
  */
 void
-show_available_tls_ciphers(const char *cipher_list,
-                           const char *tls_cert_profile);
+show_available_tls_ciphers_list(const char *cipher_list,
+                                const char *tls_cert_profile,
+                                bool tls13);
 
 /*
  * Show the available elliptic curves in the crypto library

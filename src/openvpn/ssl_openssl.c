@@ -60,6 +60,7 @@
 #include <openssl/pkcs12.h>
 #include <openssl/rsa.h>
 #include <openssl/x509.h>
+#include <openssl/ssl.h>
 #ifndef OPENSSL_NO_EC
 #include <openssl/ec.h>
 #endif
@@ -428,7 +429,8 @@ tls_ctx_restrict_ciphers(struct tls_root_ctx *ctx, const char *ciphers)
 }
 
 void
-convert_tls13_list_to_openssl(char* openssl_ciphers, size_t len, const char *ciphers)
+convert_tls13_list_to_openssl(char *openssl_ciphers, size_t len,
+                              const char *ciphers)
 {
     /*
      * OpenSSL (and official IANA) cipher names have _ in them. We
@@ -1984,14 +1986,11 @@ print_details(struct key_state_ssl *ks_ssl, const char *prefix)
 }
 
 void
-show_available_tls_ciphers(const char *cipher_list,
-                           const char *tls_cert_profile)
+show_available_tls_ciphers_list(const char *cipher_list,
+                                const char *tls_cert_profile,
+                                const bool tls13)
 {
     struct tls_root_ctx tls_ctx;
-    SSL *ssl;
-    const char *cipher_name;
-    const tls_cipher_name_pair *pair;
-    int priority = 0;
 
     tls_ctx.ctx = SSL_CTX_new(SSLv23_method());
     if (!tls_ctx.ctx)
@@ -1999,22 +1998,45 @@ show_available_tls_ciphers(const char *cipher_list,
         crypto_msg(M_FATAL, "Cannot create SSL_CTX object");
     }
 
-    ssl = SSL_new(tls_ctx.ctx);
-    if (!ssl)
+#if (OPENSSL_VERSION_NUMBER >= 0x1010100fL)
+    if (tls13)
     {
-        crypto_msg(M_FATAL, "Cannot create SSL object");
+        SSL_CTX_set_min_proto_version(tls_ctx.ctx, TLS1_3_VERSION);
+    }
+    else
+#endif
+    {
+        SSL_CTX_set_max_proto_version(tls_ctx.ctx, TLS1_2_VERSION);
     }
 
     tls_ctx_set_cert_profile(&tls_ctx, tls_cert_profile);
     tls_ctx_restrict_ciphers(&tls_ctx, cipher_list);
 
-    printf("Available TLS Ciphers,\n");
-    printf("listed in order of preference:\n\n");
-    while ((cipher_name = SSL_get_cipher_list(ssl, priority++)))
+    SSL *ssl = SSL_new(tls_ctx.ctx);
+    if (!ssl)
     {
-        pair = tls_get_cipher_name_pair(cipher_name, strlen(cipher_name));
+        crypto_msg(M_FATAL, "Cannot create SSL object");
+    }
 
-        if (NULL == pair)
+#if (OPENSSL_VERSION_NUMBER < 0x1010000fL)
+    STACK_OF(SSL_CIPHER) *sk = SSL_get_ciphers(ssl);
+#else
+    STACK_OF(SSL_CIPHER) *sk = SSL_get1_supported_ciphers(ssl);
+#endif
+    for (int i=0;i < sk_SSL_CIPHER_num(sk);i++)
+    {
+        const SSL_CIPHER *c = sk_SSL_CIPHER_value(sk, i);
+
+        const char *cipher_name = SSL_CIPHER_get_name(c);
+
+        const tls_cipher_name_pair *pair =
+            tls_get_cipher_name_pair(cipher_name, strlen(cipher_name));
+
+        if (tls13)
+        {
+              printf("%s\n", cipher_name);
+        }
+        else if (NULL == pair)
         {
             /* No translation found, print warning */
             printf("%s (No IANA name known to OpenVPN, use OpenSSL name.)\n", cipher_name);
@@ -2023,10 +2045,10 @@ show_available_tls_ciphers(const char *cipher_list,
         {
             printf("%s\n", pair->iana_name);
         }
-
     }
-    printf("\n" SHOW_TLS_CIPHER_LIST_WARNING);
-
+#if (OPENSSL_VERSION_NUMBER >= 0x1010000fL)
+    sk_SSL_CIPHER_free(sk);
+#endif
     SSL_free(ssl);
     SSL_CTX_free(tls_ctx.ctx);
 }
