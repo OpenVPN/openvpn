@@ -1399,10 +1399,12 @@ AC_CONFIG_FILES([
 	src/Makefile
 	src/compat/Makefile
 	src/openvpn/Makefile
+	src/openvpnmsica/Makefile
 	src/openvpnserv/Makefile
 	src/plugins/Makefile
 	src/plugins/auth-pam/Makefile
 	src/plugins/down-root/Makefile
+	src/tapctl/Makefile
 	tests/Makefile
         tests/unit_tests/Makefile
         tests/unit_tests/example_test/Makefile

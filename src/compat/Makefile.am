@@ -14,7 +14,10 @@ MAINTAINERCLEANFILES = \
 
 EXTRA_DIST = \
 	compat.vcxproj \
-	compat.vcxproj.filters
+	compat.vcxproj.filters \
+	PropertySheet.props \
+	Debug.props \
+	Release.props
 
 noinst_LTLIBRARIES = libcompat.la
 

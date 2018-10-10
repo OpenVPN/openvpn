@@ -12,4 +12,4 @@
 MAINTAINERCLEANFILES = \
 	$(srcdir)/Makefile.in
 
-SUBDIRS = compat openvpn openvpnserv plugins
+SUBDIRS = compat openvpn openvpnmsica openvpnserv plugins tapctl
