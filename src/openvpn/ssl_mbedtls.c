@@ -1340,9 +1340,15 @@ print_details(struct key_state_ssl *ks_ssl, const char *prefix)
 }
 
 void
-show_available_tls_ciphers(const char *cipher_list,
-                           const char *tls_cert_profile)
+show_available_tls_ciphers_list(const char *cipher_list,
+                                const char *tls_cert_profile,
+                                bool tls13)
 {
+    if (tls13)
+    {
+        /* mbed TLS has no TLS 1.3 support currently */
+        return;
+    }
     struct tls_root_ctx tls_ctx;
     const int *ciphers = mbedtls_ssl_list_ciphersuites();
 
@@ -1355,18 +1361,11 @@ show_available_tls_ciphers(const char *cipher_list,
         ciphers = tls_ctx.allowed_ciphers;
     }
 
-#ifndef ENABLE_SMALL
-    printf("Available TLS Ciphers,\n");
-    printf("listed in order of preference:\n\n");
-#endif
-
     while (*ciphers != 0)
     {
         printf("%s\n", mbedtls_ssl_get_ciphersuite_name(*ciphers));
         ciphers++;
     }
-    printf("\n" SHOW_TLS_CIPHER_LIST_WARNING);
-
     tls_ctx_free(&tls_ctx);
 }
 

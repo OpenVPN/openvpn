@@ -556,10 +556,4 @@ struct tls_multi
      *   sessions with the remote peer. */
 };
 
-
-#define SHOW_TLS_CIPHER_LIST_WARNING \
-    "Be aware that that whether a cipher suite in this list can actually work\n" \
-    "depends on the specific setup of both peers. See the man page entries of\n" \
-    "--tls-cipher and --show-tls for more details.\n\n"
-
 #endif /* SSL_COMMON_H_ */
