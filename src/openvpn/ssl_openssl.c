@@ -1850,15 +1850,16 @@ show_available_tls_ciphers_list(const char *cipher_list,
     if (tls13)
     {
         SSL_CTX_set_min_proto_version(tls_ctx.ctx, TLS1_3_VERSION);
+        tls_ctx_restrict_ciphers_tls13(&tls_ctx, cipher_list);
     }
     else
 #endif
     {
         SSL_CTX_set_max_proto_version(tls_ctx.ctx, TLS1_2_VERSION);
+        tls_ctx_restrict_ciphers(&tls_ctx, cipher_list);
     }
 
     tls_ctx_set_cert_profile(&tls_ctx, tls_cert_profile);
-    tls_ctx_restrict_ciphers(&tls_ctx, cipher_list);
 
     SSL *ssl = SSL_new(tls_ctx.ctx);
     if (!ssl)
@@ -1887,7 +1888,8 @@ show_available_tls_ciphers_list(const char *cipher_list,
         else if (NULL == pair)
         {
             /* No translation found, print warning */
-            printf("%s (No IANA name known to OpenVPN, use OpenSSL name.)\n", cipher_name);
+            printf("%s (No IANA name known to OpenVPN, use OpenSSL name.)\n",
+                   cipher_name);
         }
         else
         {
