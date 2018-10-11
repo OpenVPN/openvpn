@@ -721,7 +721,7 @@ crypto_adjust_frame_parameters(struct frame *frame,
                                bool packet_id,
                                bool packet_id_long_form)
 {
-    size_t crypto_overhead = 0;
+    unsigned int crypto_overhead = 0;
 
     if (packet_id)
     {
@@ -749,10 +749,10 @@ crypto_adjust_frame_parameters(struct frame *frame,
     frame_add_to_extra_frame(frame, crypto_overhead);
 
     msg(D_MTU_DEBUG, "%s: Adjusting frame parameters for crypto by %u bytes",
-        __func__, (unsigned int) crypto_overhead);
+        __func__, crypto_overhead);
 }
 
-size_t
+unsigned int
 crypto_max_overhead(void)
 {
     return packet_id_size(true) + OPENVPN_MAX_IV_LENGTH
