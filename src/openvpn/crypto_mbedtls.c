@@ -170,7 +170,8 @@ show_available_ciphers(void)
     while (*ciphers != 0)
     {
         const cipher_kt_t *info = mbedtls_cipher_info_from_type(*ciphers);
-        if (info && cipher_kt_insecure(info))
+        if (info && cipher_kt_insecure(info)
+            && (cipher_kt_mode_aead(info) || cipher_kt_mode_cbc(info)))
         {
             print_cipher(info);
         }
