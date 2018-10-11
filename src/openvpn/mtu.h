@@ -271,9 +271,15 @@ frame_add_to_link_mtu(struct frame *frame, const int increment)
 }
 
 static inline void
-frame_add_to_extra_frame(struct frame *frame, const int increment)
+frame_add_to_extra_frame(struct frame *frame, const unsigned int increment)
 {
     frame->extra_frame += increment;
+}
+
+static inline void
+frame_remove_from_extra_frame(struct frame *frame, const unsigned int decrement)
+{
+    frame->extra_frame -= decrement;
 }
 
 static inline void

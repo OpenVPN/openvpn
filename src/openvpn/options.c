@@ -3511,7 +3511,7 @@ calc_options_string_link_mtu(const struct options *o, const struct frame *frame)
         struct key_type fake_kt;
         init_key_type(&fake_kt, o->ciphername, o->authname, o->keysize, true,
                       false);
-        frame_add_to_extra_frame(&fake_frame, -(crypto_max_overhead()));
+        frame_remove_from_extra_frame(&fake_frame, crypto_max_overhead());
         crypto_adjust_frame_parameters(&fake_frame, &fake_kt, o->replay,
                                        cipher_kt_mode_ofb_cfb(fake_kt.cipher));
         frame_finalize(&fake_frame, o->ce.link_mtu_defined, o->ce.link_mtu,
