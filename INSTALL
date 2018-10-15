@@ -10,7 +10,7 @@ as published by the Free Software Foundation.
 QUICK START:
 
   Unix:
-    ./configure && make && make-install
+    ./configure && make && make install
 
 *************************************************************************
 
