@@ -64,6 +64,21 @@ extern "C" {
 
 
 /**
+ * Determines Windows information:
+ * - Sets `DriverCertification` MSI property to "", "attsgn" or "whql"
+ *   according to the driver certification required by the running version of
+ *   Windows.
+ *
+ * @param hInstall      Handle to the installation provided to the DLL custom action
+ *
+ * @return ERROR_SUCCESS on success; An error code otherwise
+ *         See: https://msdn.microsoft.com/en-us/library/windows/desktop/aa368072.aspx
+ */
+DLLEXP_DECL UINT __stdcall
+FindSystemInfo(_In_ MSIHANDLE hInstall);
+
+
+/**
  * Find existing TAP interfaces and set TAPINTERFACES property with semicolon delimited list
  * of installed TAP interface GUIDs.
  *
