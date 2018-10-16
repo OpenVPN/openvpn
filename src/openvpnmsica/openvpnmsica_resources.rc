@@ -50,7 +50,7 @@ BEGIN
             VALUE "FileVersion", PACKAGE_VERSION ".0"
             VALUE "InternalName", "OpenVPN"
             VALUE "LegalCopyright", "Copyright © The OpenVPN Project"
-            VALUE "OriginalFilename", "openvpnmsica.dll"
+            VALUE "OriginalFilename", "libopenvpnmsica.dll"
             VALUE "ProductName", "OpenVPN"
             VALUE "ProductVersion", PACKAGE_VERSION ".0"
         END
