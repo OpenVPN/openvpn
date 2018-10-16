@@ -3700,7 +3700,8 @@ get_tap_reg(struct gc_arena *gc)
 
                 if (status == ERROR_SUCCESS && data_type == REG_SZ)
                 {
-                    if (!strcmp(component_id, TAP_WIN_COMPONENT_ID))
+                    if (!strcmp(component_id, TAP_WIN_COMPONENT_ID) ||
+                        !strcmp(component_id, "root\\" TAP_WIN_COMPONENT_ID))
                     {
                         struct tap_reg *reg;
                         ALLOC_OBJ_CLEAR_GC(reg, struct tap_reg, gc);
