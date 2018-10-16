@@ -145,6 +145,10 @@ openvpnmsica_setup_sequence_filename(
 UINT __stdcall
 FindTAPInterfaces(_In_ MSIHANDLE hInstall)
 {
+#ifdef _MSC_VER
+#pragma comment(linker, DLLEXP_EXPORT)
+#endif
+
 #ifdef _DEBUG
     MessageBox(NULL, TEXT("Attach debugger!"), TEXT(__FUNCTION__) TEXT(" v")  TEXT(PACKAGE_VERSION), MB_OK);
 #endif
@@ -247,6 +251,10 @@ cleanup_CoInitialize:
 UINT __stdcall
 EvaluateTAPInterfaces(_In_ MSIHANDLE hInstall)
 {
+#ifdef _MSC_VER
+#pragma comment(linker, DLLEXP_EXPORT)
+#endif
+
 #ifdef _DEBUG
     MessageBox(NULL, TEXT("Attach debugger!"), TEXT(__FUNCTION__) TEXT(" v")  TEXT(PACKAGE_VERSION), MB_OK);
 #endif
@@ -505,6 +513,10 @@ cleanup_exec_seq:
 UINT __stdcall
 ProcessDeferredAction(_In_ MSIHANDLE hInstall)
 {
+#ifdef _MSC_VER
+#pragma comment(linker, DLLEXP_EXPORT)
+#endif
+
 #ifdef _DEBUG
     MessageBox(NULL, TEXT("Attach debugger!"), TEXT(__FUNCTION__) TEXT(" v")  TEXT(PACKAGE_VERSION), MB_OK);
 #endif

@@ -55,6 +55,14 @@ extern DWORD openvpnmsica_tlsidx_session;
 extern "C" {
 #endif
 
+#ifdef __GNUC__
+#define DLLEXP_DECL __declspec(dllexport)
+#else
+#define DLLEXP_DECL
+#define DLLEXP_EXPORT "/EXPORT:"__FUNCTION__"="__FUNCDNAME__
+#endif
+
+
 /**
  * Find existing TAP interfaces and set TAPINTERFACES property with semicolon delimited list
  * of installed TAP interface GUIDs.
@@ -64,7 +72,7 @@ extern "C" {
  * @return ERROR_SUCCESS on success; An error code otherwise
  *         See: https://msdn.microsoft.com/en-us/library/windows/desktop/aa368072.aspx
  */
-__declspec(dllexport) UINT __stdcall
+DLLEXP_DECL UINT __stdcall
 FindTAPInterfaces(_In_ MSIHANDLE hInstall);
 
 
@@ -77,7 +85,7 @@ FindTAPInterfaces(_In_ MSIHANDLE hInstall);
  * @return ERROR_SUCCESS on success; An error code otherwise
  *         See: https://msdn.microsoft.com/en-us/library/windows/desktop/aa368072.aspx
  */
-__declspec(dllexport) UINT __stdcall
+DLLEXP_DECL UINT __stdcall
 EvaluateTAPInterfaces(_In_ MSIHANDLE hInstall);
 
 
@@ -89,7 +97,7 @@ EvaluateTAPInterfaces(_In_ MSIHANDLE hInstall);
  * @return ERROR_SUCCESS on success; An error code otherwise
  *         See: https://msdn.microsoft.com/en-us/library/windows/desktop/aa368072.aspx
  */
-__declspec(dllexport) UINT __stdcall
+DLLEXP_DECL UINT __stdcall
 ProcessDeferredAction(_In_ MSIHANDLE hInstall);
 
 #ifdef __cplusplus
