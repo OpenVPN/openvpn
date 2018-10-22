@@ -33,6 +33,7 @@
 #include "crypto.h"
 #include "platform.h"
 #include "session_id.h"
+#include "ssl.h"
 
 #include "tls_crypt.h"
 
@@ -541,6 +542,62 @@ error_exit:
     buf_clear(&plaintext);
     gc_free(&gc);
     return ret;
+}
+
+bool
+tls_crypt_v2_extract_client_key(struct buffer *buf,
+                                struct tls_wrap_ctx *ctx)
+{
+    if (!ctx->tls_crypt_v2_server_key.cipher)
+    {
+        msg(D_TLS_ERRORS,
+             "Client wants tls-crypt-v2, but no server key present.");
+        return false;
+    }
+
+    msg(D_HANDSHAKE, "Control Channel: using tls-crypt-v2 key");
+
+    struct buffer wrapped_client_key = *buf;
+    uint16_t net_len = 0;
+
+    if (BLEN(&wrapped_client_key) < sizeof(net_len))
+    {
+        msg(D_TLS_ERRORS, "failed to read length");
+    }
+    memcpy(&net_len, BEND(&wrapped_client_key) - sizeof(net_len),
+           sizeof(net_len));
+
+    size_t wkc_len = ntohs(net_len);
+    if (!buf_advance(&wrapped_client_key, BLEN(&wrapped_client_key) - wkc_len))
+    {
+        msg(D_TLS_ERRORS, "Can not locate tls-crypt-v2 client key");
+        return false;
+    }
+
+    struct key2 client_key = { 0 };
+    ctx->tls_crypt_v2_metadata = alloc_buf(TLS_CRYPT_V2_MAX_METADATA_LEN);
+    if (!tls_crypt_v2_unwrap_client_key(&client_key,
+                                        &ctx->tls_crypt_v2_metadata,
+                                        wrapped_client_key,
+                                        &ctx->tls_crypt_v2_server_key))
+    {
+        msg(D_TLS_ERRORS, "Can not unwrap tls-crypt-v2 client key");
+        secure_memzero(&client_key, sizeof(client_key));
+        return false;
+    }
+
+    /* Load the decrypted key */
+    ctx->mode = TLS_WRAP_CRYPT;
+    ctx->cleanup_key_ctx = true;
+    ctx->opt.flags |= CO_PACKET_ID_LONG_FORM;
+    memset(&ctx->opt.key_ctx_bi, 0, sizeof(ctx->opt.key_ctx_bi));
+    tls_crypt_v2_load_client_key(&ctx->opt.key_ctx_bi, &client_key, true);
+    secure_memzero(&client_key, sizeof(client_key));
+
+    /* Remove client key from buffer so tls-crypt code can unwrap message */
+    ASSERT(buf_inc_len(buf, -(BLEN(&wrapped_client_key))));
+
+    return true;
 }
 
 void

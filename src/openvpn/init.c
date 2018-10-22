@@ -2464,6 +2464,7 @@ key_schedule_free(struct key_schedule *ks, bool free_ssl_ctx)
     if (tls_ctx_initialised(&ks->ssl_ctx) && free_ssl_ctx)
     {
         tls_ctx_free(&ks->ssl_ctx);
+        free_key_ctx(&ks->tls_crypt_v2_server_key);
     }
     CLEAR(*ks);
 }
@@ -2646,6 +2647,24 @@ do_init_crypto_tls_c1(struct context *c)
 
         /* initialize tls-auth/crypt key */
         do_init_tls_wrap_key(c);
+
+        /* tls-crypt with client-specific keys (--tls-crypt-v2) */
+        if (options->tls_crypt_v2_file)
+        {
+            if (options->tls_server)
+            {
+                tls_crypt_v2_init_server_key(&c->c1.ks.tls_crypt_v2_server_key,
+                                             true, options->tls_crypt_v2_file,
+                                             options->tls_crypt_v2_inline);
+            }
+            else
+            {
+                tls_crypt_v2_init_client_key(&c->c1.ks.tls_wrap_key,
+                                             &c->c1.ks.tls_crypt_v2_wkc,
+                                             options->tls_crypt_v2_file,
+                                             options->tls_crypt_v2_inline);
+            }
+        }
 
 #if 0 /* was: #if ENABLE_INLINE_FILES --  Note that enabling this code will break restarts */
         if (options->priv_key_file_inline)
@@ -2863,13 +2882,28 @@ do_init_crypto_tls(struct context *c, const unsigned int flags)
     }
 
     /* TLS handshake encryption (--tls-crypt) */
-    if (options->ce.tls_crypt_file)
+    if (options->ce.tls_crypt_file
+        || (options->ce.tls_crypt_v2_file && options->tls_client))
     {
         to.tls_wrap.mode = TLS_WRAP_CRYPT;
         to.tls_wrap.opt.key_ctx_bi = c->c1.ks.tls_wrap_key;
         to.tls_wrap.opt.pid_persist = &c->c1.pid_persist;
         to.tls_wrap.opt.flags |= CO_PACKET_ID_LONG_FORM;
         tls_crypt_adjust_frame_parameters(&to.frame);
+
+        if (options->tls_crypt_v2_file)
+        {
+            to.tls_wrap.tls_crypt_v2_wkc = &c->c1.ks.tls_crypt_v2_wkc;
+        }
+    }
+
+    if (options->tls_crypt_v2_file)
+    {
+        to.tls_crypt_v2 = true;
+        if (options->tls_server)
+        {
+            to.tls_wrap.tls_crypt_v2_server_key = c->c1.ks.tls_crypt_v2_server_key;
+        }
     }
 
     /* If we are running over TCP, allow for
@@ -3473,6 +3507,8 @@ do_close_free_key_schedule(struct context *c, bool free_ssl_ctx)
      */
     free_key_ctx_bi(&c->c1.ks.tls_wrap_key);
     CLEAR(c->c1.ks.tls_wrap_key);
+    buf_clear(&c->c1.ks.tls_crypt_v2_wkc);
+    free_buf(&c->c1.ks.tls_crypt_v2_wkc);
 
     if (!(c->sig->signal_received == SIGUSR1 && c->options.persist_key))
     {
@@ -4408,6 +4444,7 @@ inherit_context_child(struct context *dest,
     dest->c1.ks.ssl_ctx = src->c1.ks.ssl_ctx;
     dest->c1.ks.tls_wrap_key = src->c1.ks.tls_wrap_key;
     dest->c1.ks.tls_auth_key_type = src->c1.ks.tls_auth_key_type;
+    dest->c1.ks.tls_crypt_v2_server_key = src->c1.ks.tls_crypt_v2_server_key;
     /* inherit pre-NCP ciphers */
     dest->c1.ciphername = src->c1.ciphername;
     dest->c1.authname = src->c1.authname;

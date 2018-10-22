@@ -213,6 +213,12 @@ struct tls_wrap_ctx
     } mode;                     /**< Control channel wrapping mode */
     struct crypto_options opt;  /**< Crypto state */
     struct buffer work;         /**< Work buffer (only for --tls-crypt) */
+    struct key_ctx tls_crypt_v2_server_key;  /**< Decrypts client keys */
+    const struct buffer *tls_crypt_v2_wkc;   /**< Wrapped client key,
+                                                  sent to server */
+    struct buffer tls_crypt_v2_metadata;     /**< Received from client */
+    bool cleanup_key_ctx;                    /**< opt.key_ctx_bi is owned by
+                                                  this context */
 };
 
 /*

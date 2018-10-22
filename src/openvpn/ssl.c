@@ -1048,6 +1048,23 @@ tls_session_user_pass_enabled(struct tls_session *session)
 /** @addtogroup control_processor
  *  @{ */
 
+/** Free the elements of a tls_wrap_ctx structure */
+static void tls_wrap_free(struct tls_wrap_ctx *tls_wrap)
+{
+    if (packet_id_initialized(&tls_wrap->opt.packet_id))
+    {
+        packet_id_free(&tls_wrap->opt.packet_id);
+    }
+
+    if (tls_wrap->cleanup_key_ctx)
+    {
+        free_key_ctx_bi(&tls_wrap->opt.key_ctx_bi);
+    }
+
+    free_buf(&tls_wrap->tls_crypt_v2_metadata);
+    free_buf(&tls_wrap->work);
+}
+
 /** @name Functions for initialization and cleanup of tls_session structures
  *  @{ */
 
@@ -1140,16 +1157,9 @@ tls_session_init(struct tls_multi *multi, struct tls_session *session)
 static void
 tls_session_free(struct tls_session *session, bool clear)
 {
-    int i;
+    tls_wrap_free(&session->tls_wrap);
 
-    if (packet_id_initialized(&session->tls_wrap.opt.packet_id))
-    {
-        packet_id_free(&session->tls_wrap.opt.packet_id);
-    }
-
-    free_buf(&session->tls_wrap.work);
-
-    for (i = 0; i < KS_SIZE; ++i)
+    for (size_t i = 0; i < KS_SIZE; ++i)
     {
         key_state_free(&session->key[i], false);
     }
@@ -1475,6 +1485,8 @@ write_control_auth(struct tls_session *session,
     ASSERT(reliable_ack_write
                (ks->rec_ack, buf, &ks->session_id_remote, max_ack, prepend_ack));
 
+    msg(D_TLS_DEBUG, "%s(): %s", __func__, packet_opcode_name(opcode));
+
     if (session->tls_wrap.mode == TLS_WRAP_AUTH
         || session->tls_wrap.mode == TLS_WRAP_NONE)
     {
@@ -1492,17 +1504,26 @@ write_control_auth(struct tls_session *session,
         ASSERT(buf_init(&session->tls_wrap.work, buf->offset));
         ASSERT(buf_write(&session->tls_wrap.work, &header, sizeof(header)));
         ASSERT(session_id_write(&session->session_id, &session->tls_wrap.work));
-        if (tls_crypt_wrap(buf, &session->tls_wrap.work, &session->tls_wrap.opt))
-        {
-            /* Don't change the original data in buf, it's used by the reliability
-             * layer to resend on failure. */
-            *buf = session->tls_wrap.work;
-        }
-        else
+        if (!tls_crypt_wrap(buf, &session->tls_wrap.work, &session->tls_wrap.opt))
         {
             buf->len = 0;
             return;
         }
+
+        if (opcode == P_CONTROL_HARD_RESET_CLIENT_V3)
+        {
+            if (!buf_copy(&session->tls_wrap.work,
+                          session->tls_wrap.tls_crypt_v2_wkc))
+            {
+                msg(D_TLS_ERRORS, "Could not append tls-crypt-v2 client key");
+                buf->len = 0;
+                return;
+            }
+        }
+
+        /* Don't change the original data in buf, it's used by the reliability
+         * layer to resend on failure. */
+        *buf = session->tls_wrap.work;
     }
     *to_link_addr = &ks->remote_addr;
 }
@@ -1517,6 +1538,16 @@ read_control_auth(struct buffer *buf,
 {
     struct gc_arena gc = gc_new();
     bool ret = false;
+
+    const uint8_t opcode = *(BPTR(buf)) >> P_OPCODE_SHIFT;
+    if (opcode == P_CONTROL_HARD_RESET_CLIENT_V3
+        && !tls_crypt_v2_extract_client_key(buf, ctx))
+    {
+        msg (D_TLS_ERRORS,
+             "TLS Error: can not extract tls-crypt-v2 client key from %s",
+             print_link_socket_actual(from, &gc));
+        goto cleanup;
+    }
 
     if (ctx->mode == TLS_WRAP_AUTH)
     {
@@ -1556,6 +1587,18 @@ read_control_auth(struct buffer *buf,
         ASSERT(buf_init(buf, buf->offset));
         ASSERT(buf_copy(buf, &tmp));
         buf_clear(&tmp);
+    }
+    else if (ctx->tls_crypt_v2_server_key.cipher)
+    {
+        /* If tls-crypt-v2 is enabled, require *some* wrapping */
+        msg(D_TLS_ERRORS, "TLS Error: could not determine wrapping from %s",
+            print_link_socket_actual(from, &gc));
+        /* TODO Do we want to support using tls-crypt-v2 and no control channel
+         * wrapping at all simultaneously?  That would allow server admins to
+         * upgrade clients one-by-one without running a second instance, but we
+         * should not enable it by default because it breaks DoS-protection.
+         * So, add something like --tls-crypt-v2-allow-insecure-fallback ? */
+        goto cleanup;
     }
 
     if (ctx->mode == TLS_WRAP_NONE || ctx->mode == TLS_WRAP_AUTH)
@@ -3857,6 +3900,10 @@ tls_pre_decrypt_lite(const struct tls_auth_standalone *tas,
             /* HMAC test, if --tls-auth was specified */
             status = read_control_auth(&newbuf, &tls_wrap_tmp, from);
             free_buf(&newbuf);
+            if (tls_wrap_tmp.cleanup_key_ctx)
+            {
+                free_key_ctx_bi(&tls_wrap_tmp.opt.key_ctx_bi);
+            }
             if (!status)
             {
                 goto error;

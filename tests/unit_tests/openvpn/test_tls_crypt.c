@@ -346,6 +346,12 @@ tls_crypt_v2_wrap_unwrap_max_metadata(void **state) {
     assert_true(0 == memcmp(ctx->client_key2.keys, unwrapped_client_key2.keys,
                             sizeof(ctx->client_key2.keys)));
     assert_true(buf_equal(&ctx->metadata, &unwrap_metadata));
+
+    struct tls_wrap_ctx wrap_ctx = {
+            .mode = TLS_WRAP_CRYPT,
+            .tls_crypt_v2_server_key = ctx->server_keys.encrypt,
+    };
+    assert_true(tls_crypt_v2_extract_client_key(&ctx->wkc, &wrap_ctx));
 }
 
 /**

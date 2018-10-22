@@ -84,6 +84,7 @@
 #include "buffer.h"
 #include "crypto.h"
 #include "session_id.h"
+#include "ssl_common.h"
 
 #define TLS_CRYPT_TAG_SIZE (256/8)
 #define TLS_CRYPT_PID_SIZE (sizeof(packet_id_type) + sizeof(net_time_t))
@@ -182,6 +183,19 @@ void tls_crypt_v2_init_client_key(struct key_ctx_bi *key,
                                   struct buffer *wrapped_key_buf,
                                   const char *key_file,
                                   const char *key_inline);
+
+/**
+ * Extract a tls-crypt-v2 client key from a P_CONTROL_HARD_RESET_CLIENT_V3
+ * message, and load the key into the supplied tls wrap context.
+ *
+ * @param buf   Buffer containing a received P_CONTROL_HARD_RESET_CLIENT_V3
+ *              message.
+ * @param ctx   tls-wrap context to be initialized with the client key.
+ *
+ * @returns true if a key was successfully extracted.
+ */
+bool tls_crypt_v2_extract_client_key(struct buffer *buf,
+                                     struct tls_wrap_ctx *ctx);
 
 /**
  * Generate a tls-crypt-v2 server key, and write to file.
