@@ -5310,9 +5310,38 @@ If supplied, include the supplied
 in the wrapped client key.  This metadata must be supplied in base64\-encoded
 form.  The metadata must be at most 735 bytes long (980 bytes in base64).
 
-.B TODO
-Metadata handling is not yet implemented.  This text will be updated by the
-commit that introduces metadata handling.
+If no metadata is supplied, OpenVPN will use a 64\-bit unix timestamp
+representing the current time in UTC, encoded in network order, as metadata for
+the generated key.
+
+Servers can use
+.B \-\-tls\-crypt\-v2\-verify
+to specify a metadata verification command.
+.\"*********************************************************
+.TP
+.B \-\-tls\-crypt\-v2\-verify cmd
+
+Run command
+.B cmd
+to verify the metadata of the client\-specific tls\-crypt\-v2 key of a
+connecting client.  This allows server administrators to reject client
+connections, before exposing the TLS stack (including the notoriously dangerous
+X.509 and ASN.1 stacks) to the connecting client.
+
+OpenVPN supplies the following env vars to the command:
+.RS
+.IP \[bu] 2
+script_type is set to "tls\-crypt\-v2\-verify"
+.IP \[bu]
+metadata_type is set to "0" if the metadata was user supplied, or "1" if it's a
+64\-bit unix timestamp representing the key creation time.
+.IP \[bu]
+metadata_file contains the filename of a temporary file that contains the client
+metadata.
+.RE
+
+.IP
+The command can reject the connection by exiting with a non-zero exit code.
 .\"*********************************************************
 .TP
 .B \-\-askpass [file]

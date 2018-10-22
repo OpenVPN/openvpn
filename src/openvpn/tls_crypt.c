@@ -29,9 +29,11 @@
 
 #include "syshead.h"
 
+#include "argv.h"
 #include "base64.h"
 #include "crypto.h"
 #include "platform.h"
+#include "run_command.h"
 #include "session_id.h"
 #include "ssl.h"
 
@@ -544,9 +546,69 @@ error_exit:
     return ret;
 }
 
+static bool
+tls_crypt_v2_verify_metadata(const struct tls_wrap_ctx *ctx,
+                             const struct tls_options *opt)
+{
+    bool ret = false;
+    struct gc_arena gc = gc_new();
+    const char *tmp_file = NULL;
+    struct buffer metadata = ctx->tls_crypt_v2_metadata;
+    int metadata_type = buf_read_u8(&metadata);
+    if (metadata_type < 0)
+    {
+        msg(M_WARN, "ERROR: no metadata type");
+        goto cleanup;
+    }
+
+    tmp_file = platform_create_temp_file(opt->tmp_dir, "tls_crypt_v2_metadata_",
+                                         &gc);
+    if (!tmp_file || !buffer_write_file(tmp_file, &metadata))
+    {
+        msg(M_WARN, "ERROR: could not write metadata to file");
+        goto cleanup;
+    }
+
+    char metadata_type_str[4] = { 0 }; /* Max value: 255 */
+    openvpn_snprintf(metadata_type_str, sizeof(metadata_type_str),
+                     "%i", metadata_type);
+    struct env_set *es = env_set_create(NULL);
+    setenv_str(es, "script_type", "tls-crypt-v2-verify");
+    setenv_str(es, "metadata_type", metadata_type_str);
+    setenv_str(es, "metadata_file", tmp_file);
+
+    struct argv argv = argv_new();
+    argv_parse_cmd(&argv, opt->tls_crypt_v2_verify_script);
+    argv_msg_prefix(D_TLS_DEBUG, &argv, "Executing tls-crypt-v2-verify");
+
+    ret = openvpn_run_script(&argv, es, 0, "--tls-crypt-v2-verify");
+
+    argv_reset(&argv);
+    env_set_destroy(es);
+
+    if (!platform_unlink(tmp_file))
+    {
+        msg(M_WARN, "WARNING: failed to remove temp file '%s", tmp_file);
+    }
+
+    if (ret)
+    {
+        msg(D_HANDSHAKE, "TLS CRYPT V2 VERIFY SCRIPT OK");
+    }
+    else
+    {
+        msg(D_HANDSHAKE, "TLS CRYPT V2 VERIFY SCRIPT ERROR");
+    }
+
+cleanup:
+    gc_free(&gc);
+    return ret;
+}
+
 bool
 tls_crypt_v2_extract_client_key(struct buffer *buf,
-                                struct tls_wrap_ctx *ctx)
+                                struct tls_wrap_ctx *ctx,
+                                const struct tls_options *opt)
 {
     if (!ctx->tls_crypt_v2_server_key.cipher)
     {
@@ -596,6 +658,11 @@ tls_crypt_v2_extract_client_key(struct buffer *buf,
 
     /* Remove client key from buffer so tls-crypt code can unwrap message */
     ASSERT(buf_inc_len(buf, -(BLEN(&wrapped_client_key))));
+
+    if (opt && opt->tls_crypt_v2_verify_script)
+    {
+        return tls_crypt_v2_verify_metadata(ctx, opt);
+    }
 
     return true;
 }

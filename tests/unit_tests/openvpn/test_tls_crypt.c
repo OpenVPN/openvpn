@@ -43,7 +43,23 @@
 
 #define TESTBUF_SIZE            128
 
+/* Defines for use in the tests and the mock parse_line() */
+#define PATH1       "/s p a c e"
+#define PATH2       "/foo bar/baz"
+#define PARAM1      "param1"
+#define PARAM2      "param two"
+
 const char plaintext_short[1];
+
+int
+__wrap_parse_line(const char *line, char **p, const int n, const char *file,
+                  const int line_num, int msglevel, struct gc_arena *gc)
+{
+    p[0] = PATH1 PATH2;
+    p[1] = PARAM1;
+    p[2] = PARAM2;
+    return 3;
+}
 
 struct test_tls_crypt_context {
     struct crypto_options co;
@@ -351,7 +367,8 @@ tls_crypt_v2_wrap_unwrap_max_metadata(void **state) {
             .mode = TLS_WRAP_CRYPT,
             .tls_crypt_v2_server_key = ctx->server_keys.encrypt,
     };
-    assert_true(tls_crypt_v2_extract_client_key(&ctx->wkc, &wrap_ctx));
+    assert_true(tls_crypt_v2_extract_client_key(&ctx->wkc, &wrap_ctx, NULL));
+    tls_wrap_free(&wrap_ctx);
 }
 
 /**

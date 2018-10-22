@@ -591,6 +591,8 @@ struct options
     const char *tls_crypt_v2_genkey_file;
     const char *tls_crypt_v2_metadata;
 
+    const char *tls_crypt_v2_verify_script;
+
     /* Allow only one session */
     bool single_session;
 

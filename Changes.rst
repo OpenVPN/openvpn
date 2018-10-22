@@ -3,6 +3,12 @@ Overview of changes in 2.5
 
 New features
 ------------
+Client-specific tls-crypt keys (``--tls-crypt-v2``)
+    ``tls-crypt-v2`` adds the ability to supply each client with a unique
+    tls-crypt key.  This allows large organisations and VPN providers to profit
+    from the same DoS and TLS stack protection that small deployments can
+    already achieve using ``tls-auth`` or ``tls-crypt``.
+
 ChaCha20-Poly1305 cipher support
     Added support for using the ChaCha20-Poly1305 cipher in the OpenVPN data
     channel.

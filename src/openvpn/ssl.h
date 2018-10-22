@@ -527,6 +527,24 @@ bool tls_item_in_cipher_list(const char *item, const char *list);
  * inline functions
  */
 
+/** Free the elements of a tls_wrap_ctx structure */
+static inline void
+tls_wrap_free(struct tls_wrap_ctx *tls_wrap)
+{
+    if (packet_id_initialized(&tls_wrap->opt.packet_id))
+    {
+        packet_id_free(&tls_wrap->opt.packet_id);
+    }
+
+    if (tls_wrap->cleanup_key_ctx)
+    {
+        free_key_ctx_bi(&tls_wrap->opt.key_ctx_bi);
+    }
+
+    free_buf(&tls_wrap->tls_crypt_v2_metadata);
+    free_buf(&tls_wrap->work);
+}
+
 static inline bool
 tls_initial_packet_received(const struct tls_multi *multi)
 {

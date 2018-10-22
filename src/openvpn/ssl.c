@@ -1048,23 +1048,6 @@ tls_session_user_pass_enabled(struct tls_session *session)
 /** @addtogroup control_processor
  *  @{ */
 
-/** Free the elements of a tls_wrap_ctx structure */
-static void tls_wrap_free(struct tls_wrap_ctx *tls_wrap)
-{
-    if (packet_id_initialized(&tls_wrap->opt.packet_id))
-    {
-        packet_id_free(&tls_wrap->opt.packet_id);
-    }
-
-    if (tls_wrap->cleanup_key_ctx)
-    {
-        free_key_ctx_bi(&tls_wrap->opt.key_ctx_bi);
-    }
-
-    free_buf(&tls_wrap->tls_crypt_v2_metadata);
-    free_buf(&tls_wrap->work);
-}
-
 /** @name Functions for initialization and cleanup of tls_session structures
  *  @{ */
 
@@ -1534,14 +1517,15 @@ write_control_auth(struct tls_session *session,
 static bool
 read_control_auth(struct buffer *buf,
                   struct tls_wrap_ctx *ctx,
-                  const struct link_socket_actual *from)
+                  const struct link_socket_actual *from,
+                  const struct tls_options *opt)
 {
     struct gc_arena gc = gc_new();
     bool ret = false;
 
     const uint8_t opcode = *(BPTR(buf)) >> P_OPCODE_SHIFT;
     if (opcode == P_CONTROL_HARD_RESET_CLIENT_V3
-        && !tls_crypt_v2_extract_client_key(buf, ctx))
+        && !tls_crypt_v2_extract_client_key(buf, ctx, opt))
     {
         msg (D_TLS_ERRORS,
              "TLS Error: can not extract tls-crypt-v2 client key from %s",
@@ -3622,7 +3606,8 @@ tls_pre_decrypt(struct tls_multi *multi,
                     goto error;
                 }
 
-                if (!read_control_auth(buf, &session->tls_wrap, from))
+                if (!read_control_auth(buf, &session->tls_wrap, from,
+                                       session->opt))
                 {
                     goto error;
                 }
@@ -3675,7 +3660,8 @@ tls_pre_decrypt(struct tls_multi *multi,
                 if (op == P_CONTROL_SOFT_RESET_V1
                     && DECRYPT_KEY_ENABLED(multi, ks))
                 {
-                    if (!read_control_auth(buf, &session->tls_wrap, from))
+                    if (!read_control_auth(buf, &session->tls_wrap, from,
+                                           session->opt))
                     {
                         goto error;
                     }
@@ -3696,7 +3682,8 @@ tls_pre_decrypt(struct tls_multi *multi,
                         do_burst = true;
                     }
 
-                    if (!read_control_auth(buf, &session->tls_wrap, from))
+                    if (!read_control_auth(buf, &session->tls_wrap, from,
+                                           session->opt))
                     {
                         goto error;
                     }
@@ -3898,8 +3885,9 @@ tls_pre_decrypt_lite(const struct tls_auth_standalone *tas,
             bool status;
 
             /* HMAC test, if --tls-auth was specified */
-            status = read_control_auth(&newbuf, &tls_wrap_tmp, from);
+            status = read_control_auth(&newbuf, &tls_wrap_tmp, from, NULL);
             free_buf(&newbuf);
+            free_buf(&tls_wrap_tmp.tls_crypt_v2_metadata);
             if (tls_wrap_tmp.cleanup_key_ctx)
             {
                 free_key_ctx_bi(&tls_wrap_tmp.opt.key_ctx_bi);

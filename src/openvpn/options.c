@@ -629,6 +629,8 @@ static const char usage_message[] =
     "--tls-crypt-v2-genkey client|server keyfile [base64 metadata]: Generate a\n"
     "                  fresh tls-crypt-v2 client or server key, and store to\n"
     "                  keyfile.  If supplied, include metadata in wrapped key.\n"
+    "--tls-crypt-v2-verify cmd : Run command cmd to verify the metadata of the\n"
+    "                  client-supplied tls-crypt-v2 client key\n"
     "--askpass [file]: Get PEM password from controlling tty before we daemonize.\n"
     "--auth-nocache  : Don't cache --askpass or --auth-user-pass passwords.\n"
     "--crl-verify crl ['dir']: Check peer certificate against a CRL.\n"
@@ -8130,6 +8132,11 @@ add_option(struct options *options,
         {
             options->tls_crypt_v2_metadata = p[3];
         }
+    }
+    else if (streq(p[0], "tls-crypt-v2-verify") && p[1] && !p[2])
+    {
+        VERIFY_PERMISSION(OPT_P_GENERAL);
+        options->tls_crypt_v2_verify_script = p[1];
     }
     else if (streq(p[0], "key-method") && p[1] && !p[2])
     {

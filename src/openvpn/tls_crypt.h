@@ -195,7 +195,8 @@ void tls_crypt_v2_init_client_key(struct key_ctx_bi *key,
  * @returns true if a key was successfully extracted.
  */
 bool tls_crypt_v2_extract_client_key(struct buffer *buf,
-                                     struct tls_wrap_ctx *ctx);
+                                     struct tls_wrap_ctx *ctx,
+                                     const struct tls_options *opt);
 
 /**
  * Generate a tls-crypt-v2 server key, and write to file.
