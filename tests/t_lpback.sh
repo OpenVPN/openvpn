@@ -21,8 +21,8 @@
 
 set -eu
 top_builddir="${top_builddir:-..}"
-trap "rm -f key.$$ log.$$ ; trap 0 ; exit 77" 1 2 15
-trap "rm -f key.$$ log.$$ ; exit 1" 0 3
+trap "rm -f key.$$ tc-server-key.$$ tc-client-key.$$ log.$$ ; trap 0 ; exit 77" 1 2 15
+trap "rm -f key.$$ tc-server-key.$$ tc-client-key.$$ log.$$ ; exit 1" 0 3
 
 # Get list of supported ciphers from openvpn --show-ciphers output
 CIPHERS=$(${top_builddir}/src/openvpn/openvpn --show-ciphers | \
@@ -55,6 +55,40 @@ do
     fi
 done
 
-rm key.$$ log.$$
+echo -n "Testing tls-crypt-v2 server key generation..."
+"${top_builddir}/src/openvpn/openvpn" \
+    --tls-crypt-v2-genkey server tc-server-key.$$ >log.$$ 2>&1
+if [ $? != 0 ] ; then
+    echo "FAILED"
+    cat log.$$
+    e=1
+else
+    echo "OK"
+fi
+
+echo -n "Testing tls-crypt-v2 key generation (no metadata)..."
+"${top_builddir}/src/openvpn/openvpn" --tls-crypt-v2 tc-server-key.$$ \
+    --tls-crypt-v2-genkey client tc-client-key.$$ >log.$$ 2>&1
+if [ $? != 0 ] ; then
+    echo "FAILED"
+    cat log.$$
+    e=1
+else
+    echo "OK"
+fi
+
+echo -n "Testing tls-crypt-v2 key generation (max length metadata)..."
+"${top_builddir}/src/openvpn/openvpn" --tls-crypt-v2 tc-server-key.$$ \
+    --tls-crypt-v2-genkey client tc-client-key.$$ \
+    $(head -c732 /dev/zero | base64 -w0) >log.$$ 2>&1
+if [ $? != 0 ] ; then
+    echo "FAILED"
+    cat log.$$
+    e=1
+else
+    echo "OK"
+fi
+
+rm key.$$ tc-server-key.$$ tc-client-key.$$ log.$$
 trap 0
 exit $e

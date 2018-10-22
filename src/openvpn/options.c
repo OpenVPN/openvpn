@@ -622,6 +622,13 @@ static const char usage_message[] =
     "                  attacks on the TLS stack and DoS attacks.\n"
     "                  key (required) provides the pre-shared key file.\n"
     "                  see --secret option for more info.\n"
+    "--tls-crypt-v2 key : For clients: use key as a client-specific tls-crypt key.\n"
+    "                  For servers: use key to decrypt client-specific keys.  For\n"
+    "                  key generation (--tls-crypt-v2-genkey): use key to\n"
+    "                  encrypt generated client-specific key.  (See --tls-crypt.)\n"
+    "--tls-crypt-v2-genkey client|server keyfile [base64 metadata]: Generate a\n"
+    "                  fresh tls-crypt-v2 client or server key, and store to\n"
+    "                  keyfile.  If supplied, include metadata in wrapped key.\n"
     "--askpass [file]: Get PEM password from controlling tty before we daemonize.\n"
     "--auth-nocache  : Don't cache --askpass or --auth-user-pass passwords.\n"
     "--crl-verify crl ['dir']: Check peer certificate against a CRL.\n"
@@ -1449,6 +1456,7 @@ show_connection_entry(const struct connection_entry *o)
     SHOW_PARM(key_direction, keydirection2ascii(o->key_direction, false, true),
               "%s");
     SHOW_STR(tls_crypt_file);
+    SHOW_STR(tls_crypt_v2_file);
 }
 
 
@@ -1729,6 +1737,10 @@ show_settings(const struct options *o)
     SHOW_BOOL(single_session);
     SHOW_BOOL(push_peer_info);
     SHOW_BOOL(tls_exit);
+
+    SHOW_STR(tls_crypt_v2_genkey_type);
+    SHOW_STR(tls_crypt_v2_genkey_file);
+    SHOW_STR(tls_crypt_v2_metadata);
 
 #ifdef ENABLE_PKCS11
     {
@@ -2668,6 +2680,15 @@ options_postprocess_verify_ce(const struct options *options, const struct connec
         {
             msg(M_USAGE, "--tls-auth and --tls-crypt are mutually exclusive");
         }
+        if (options->tls_client && ce->tls_crypt_v2_file
+            && (ce->tls_auth_file || ce->tls_crypt_file))
+        {
+            msg(M_USAGE, "--tls-crypt-v2, --tls-auth and --tls-crypt are mutually exclusive in client mode");
+        }
+        if (options->genkey && options->tls_crypt_v2_genkey_type)
+        {
+            msg(M_USAGE, "--genkey and --tls-crypt-v2-genkey are mutually exclusive");
+        }
     }
     else
     {
@@ -2703,6 +2724,7 @@ options_postprocess_verify_ce(const struct options *options, const struct connec
         MUST_BE_UNDEF(transition_window);
         MUST_BE_UNDEF(tls_auth_file);
         MUST_BE_UNDEF(tls_crypt_file);
+        MUST_BE_UNDEF(tls_crypt_v2_file);
         MUST_BE_UNDEF(single_session);
         MUST_BE_UNDEF(push_peer_info);
         MUST_BE_UNDEF(tls_exit);
@@ -2812,12 +2834,12 @@ options_postprocess_mutate_ce(struct options *o, struct connection_entry *ce)
     }
 
     /*
-     * Set per-connection block tls-auth/crypt fields if undefined.
+     * Set per-connection block tls-auth/crypt/crypto-v2 fields if undefined.
      *
-     * At the end only one of the two will be really set because the parser
-     * logic prevents configurations where both are set.
+     * At the end only one of these will be really set because the parser
+     * logic prevents configurations where more are set.
      */
-    if (!ce->tls_auth_file && !ce->tls_crypt_file)
+    if (!ce->tls_auth_file && !ce->tls_crypt_file && !ce->tls_crypt_v2_file)
     {
         ce->tls_auth_file = o->tls_auth_file;
         ce->tls_auth_file_inline = o->tls_auth_file_inline;
@@ -2825,6 +2847,9 @@ options_postprocess_mutate_ce(struct options *o, struct connection_entry *ce)
 
         ce->tls_crypt_file = o->tls_crypt_file;
         ce->tls_crypt_inline = o->tls_crypt_inline;
+
+        ce->tls_crypt_v2_file = o->tls_crypt_v2_file;
+        ce->tls_crypt_v2_inline = o->tls_crypt_v2_inline;
     }
 
     /* pre-cache tls-auth/crypt key file if persist-key was specified and keys
@@ -3281,8 +3306,14 @@ options_postprocess_filechecks(struct options *options)
         errs |= check_file_access(CHKACC_FILE|CHKACC_INLINE|CHKACC_PRIVATE,
                                   ce->tls_crypt_file, R_OK, "--tls-crypt");
 
+        errs |= check_file_access(CHKACC_FILE|CHKACC_INLINE|CHKACC_PRIVATE,
+                                  ce->tls_crypt_v2_file, R_OK,
+                                  "--tls-crypt-v2");
     }
 
+    errs |= check_file_access(CHKACC_FILE|CHKACC_INLINE|CHKACC_PRIVATE,
+                              options->tls_crypt_v2_genkey_file, R_OK,
+                              "--tls-crypt-v2-genkey");
     errs |= check_file_access(CHKACC_FILE|CHKACC_INLINE|CHKACC_PRIVATE,
                               options->shared_secret_file, R_OK, "--secret");
 
@@ -8068,6 +8099,36 @@ add_option(struct options *options,
             }
             options->ce.tls_crypt_file = p[1];
 
+        }
+    }
+    else if (streq(p[0], "tls-crypt-v2") && p[1] && !p[3])
+    {
+        VERIFY_PERMISSION(OPT_P_GENERAL|OPT_P_CONNECTION);
+        if (permission_mask & OPT_P_GENERAL)
+        {
+            if (streq(p[1], INLINE_FILE_TAG) && p[2])
+            {
+                options->tls_crypt_v2_inline = p[2];
+            }
+            options->tls_crypt_v2_file = p[1];
+        }
+        else if (permission_mask & OPT_P_CONNECTION)
+        {
+            if (streq(p[1], INLINE_FILE_TAG) && p[2])
+            {
+                options->ce.tls_crypt_v2_inline = p[2];
+            }
+            options->ce.tls_crypt_v2_file = p[1];
+        }
+    }
+    else if (streq(p[0], "tls-crypt-v2-genkey") && p[2] && !p[4])
+    {
+        VERIFY_PERMISSION(OPT_P_GENERAL);
+        options->tls_crypt_v2_genkey_type = p[1];
+        options->tls_crypt_v2_genkey_file = p[2];
+        if (p[3])
+        {
+            options->tls_crypt_v2_metadata = p[3];
         }
     }
     else if (streq(p[0], "key-method") && p[1] && !p[2])

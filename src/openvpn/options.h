@@ -139,6 +139,11 @@ struct connection_entry
     /* Shared secret used for TLS control channel authenticated encryption */
     const char *tls_crypt_file;
     const char *tls_crypt_inline;
+
+    /* Client-specific secret or server key used for TLS control channel
+     * authenticated encryption v2 */
+    const char *tls_crypt_v2_file;
+    const char *tls_crypt_v2_inline;
 };
 
 struct remote_entry
@@ -576,6 +581,15 @@ struct options
     /* Shared secret used for TLS control channel authenticated encryption */
     const char *tls_crypt_file;
     const char *tls_crypt_inline;
+
+    /* Client-specific secret or server key used for TLS control channel
+     * authenticated encryption v2 */
+    const char *tls_crypt_v2_file;
+    const char *tls_crypt_v2_inline;
+
+    const char *tls_crypt_v2_genkey_type;
+    const char *tls_crypt_v2_genkey_file;
+    const char *tls_crypt_v2_metadata;
 
     /* Allow only one session */
     bool single_session;

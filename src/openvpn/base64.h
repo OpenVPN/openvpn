@@ -34,6 +34,10 @@
 #ifndef _BASE64_H_
 #define _BASE64_H_
 
+/** Compute resulting base64 length.  6 bits per byte, padded to 4 bytes. */
+#define OPENVPN_BASE64_LENGTH(binary_length) \
+    ((((8 * binary_length) / 6) + 3) & ~3)
+
 int openvpn_base64_encode(const void *data, int size, char **str);
 
 int openvpn_base64_decode(const char *str, void *data, int size);

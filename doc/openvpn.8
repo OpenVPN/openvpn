@@ -5262,6 +5262,57 @@ degrading to the same security as using
 That is, the control channel still benefits from the extra protection against
 active man\-in\-the\-middle\-attacks and DoS attacks, but may no longer offer
 extra privacy and post\-quantum security on top of what TLS itself offers.
+
+For large setups or setups where clients are not trusted, consider using
+.B \-\-tls\-crypt\-v2
+instead.  That uses per\-client unique keys, and thereby improves the bounds to
+\fR'rotate a client key at least once per 8000 years'.
+.\"*********************************************************
+.TP
+.B \-\-tls\-crypt\-v2 keyfile
+
+Use client\-specific tls\-crypt keys.
+
+For clients,
+.B keyfile
+is a client\-specific tls\-crypt key.  Such a key can be generated using the
+.B \-\-tls\-crypt\-v2\-genkey
+option.
+
+For servers,
+.B keyfile
+is used to unwrap client\-specific keys supplied by the client during connection
+setup.  This key must be the same as the key used to generate the
+client\-specific key (see
+.B \-\-tls\-crypt\-v2\-genkey\fR).
+
+On servers, this option can be used together with the
+.B \-\-tls\-auth
+or
+.B \-\-tls\-crypt
+option.  In that case, the server will detect whether the client is using
+client\-specific keys, and automatically select the right mode.
+.\"*********************************************************
+.TP
+.B \-\-tls\-crypt\-v2\-genkey client|server keyfile [metadata]
+
+If the first parameter equals "server", generate a \-\-tls\-crypt\-v2 server
+key and store the key in
+.B keyfile\fR.
+
+
+If the first parameter equals "client", generate a \-\-tls\-crypt\-v2 client
+key, and store the key in
+.B keyfile\fR.
+
+If supplied, include the supplied
+.B metadata
+in the wrapped client key.  This metadata must be supplied in base64\-encoded
+form.  The metadata must be at most 735 bytes long (980 bytes in base64).
+
+.B TODO
+Metadata handling is not yet implemented.  This text will be updated by the
+commit that introduces metadata handling.
 .\"*********************************************************
 .TP
 .B \-\-askpass [file]

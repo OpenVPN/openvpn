@@ -1052,17 +1052,17 @@ print_openssl_info(const struct options *options)
 bool
 do_genkey(const struct options *options)
 {
+    /* should we disable paging? */
+    if (options->mlock && (options->genkey || options->tls_crypt_v2_genkey_file))
+    {
+        platform_mlockall(true);
+    }
     if (options->genkey)
     {
         int nbits_written;
 
         notnull(options->shared_secret_file,
                 "shared secret output file (--secret)");
-
-        if (options->mlock)     /* should we disable paging? */
-        {
-            platform_mlockall(true);
-        }
 
         nbits_written = write_key_file(2, options->shared_secret_file);
         if (nbits_written < 0)
@@ -1074,6 +1074,29 @@ do_genkey(const struct options *options)
             "Randomly generated %d bit key written to %s", nbits_written,
             options->shared_secret_file);
         return true;
+    }
+    if (options->tls_crypt_v2_genkey_type)
+    {
+        if(!strcmp(options->tls_crypt_v2_genkey_type, "server"))
+        {
+            tls_crypt_v2_write_server_key_file(options->tls_crypt_v2_genkey_file);
+            return true;
+        }
+        if (options->tls_crypt_v2_genkey_type
+                 && !strcmp(options->tls_crypt_v2_genkey_type, "client"))
+        {
+            if (!options->tls_crypt_v2_file)
+            {
+                msg(M_USAGE, "--tls-crypt-v2-gen-client-key requires a server key to be set via --tls-crypt-v2");
+            }
+
+            tls_crypt_v2_write_client_key_file(options->tls_crypt_v2_genkey_file,
+                    options->tls_crypt_v2_metadata, options->tls_crypt_v2_file,
+                    options->tls_crypt_v2_inline);
+            return true;
+        }
+
+        msg(M_USAGE, "--tls-crypt-v2-genkey type should be \"client\" or \"server\"");
     }
     return false;
 }
