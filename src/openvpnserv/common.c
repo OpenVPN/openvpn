@@ -57,6 +57,21 @@ openvpn_sntprintf(LPTSTR str, size_t size, LPCTSTR format, ...)
     return res;
 }
 
+BOOL
+openvpn_swprintf(wchar_t *const str, const size_t size, const wchar_t *const format, ...)
+{
+    va_list arglist;
+    int len = -1;
+    if (size > 0)
+    {
+        va_start(arglist, format);
+        len = vswprintf(str, size, format, arglist);
+        va_end(arglist);
+        str[size - 1] = L'\0';
+    }
+    return (len >= 0 && len < size);
+}
+
 static DWORD
 GetRegString(HKEY key, LPCTSTR value, LPTSTR data, DWORD size, LPCTSTR default_value)
 {

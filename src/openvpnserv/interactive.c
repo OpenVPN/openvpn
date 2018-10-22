@@ -276,8 +276,7 @@ ReturnProcessId(HANDLE pipe, DWORD pid, DWORD count, LPHANDLE events)
      * Same format as error messages (3 line string) with error = 0 in
      * 0x%08x format, PID on line 2 and a description "Process ID" on line 3
      */
-    swprintf(buf, _countof(buf), L"0x%08x\n0x%08x\n%s", 0, pid, msg);
-    buf[_countof(buf) - 1] = '\0';
+    openvpn_swprintf(buf, _countof(buf), L"0x%08x\n0x%08x\n%s", 0, pid, msg);
 
     WritePipeAsync(pipe, buf, (DWORD)(wcslen(buf) * 2), count, events);
 }
@@ -402,9 +401,8 @@ ValidateOptions(HANDLE pipe, const WCHAR *workdir, const WCHAR *options)
 
         if (!CheckOption(workdir, 2, argv_tmp, &settings))
         {
-            swprintf(buf, _countof(buf), msg1, argv[0], workdir,
-                     settings.ovpn_admin_group);
-            buf[_countof(buf) - 1] = L'\0';
+            openvpn_swprintf(buf, _countof(buf), msg1, argv[0], workdir,
+                             settings.ovpn_admin_group);
             ReturnError(pipe, ERROR_STARTUP_DATA, buf, 1, &exit_event);
         }
         goto out;
@@ -421,16 +419,14 @@ ValidateOptions(HANDLE pipe, const WCHAR *workdir, const WCHAR *options)
         {
             if (wcscmp(L"--config", argv[i]) == 0 && argc-i > 1)
             {
-                swprintf(buf, _countof(buf), msg1, argv[i+1], workdir,
-                         settings.ovpn_admin_group);
-                buf[_countof(buf) - 1] = L'\0';
+                openvpn_swprintf(buf, _countof(buf), msg1, argv[i+1], workdir,
+                                 settings.ovpn_admin_group);
                 ReturnError(pipe, ERROR_STARTUP_DATA, buf, 1, &exit_event);
             }
             else
             {
-                swprintf(buf, _countof(buf), msg2, argv[i],
-                         settings.ovpn_admin_group);
-                buf[_countof(buf) - 1] = L'\0';
+                openvpn_swprintf(buf, _countof(buf), msg2, argv[i],
+                                 settings.ovpn_admin_group);
                 ReturnError(pipe, ERROR_STARTUP_DATA, buf, 1, &exit_event);
             }
             goto out;
@@ -950,8 +946,7 @@ RegisterDNS(LPVOID unused)
 
     HANDLE wait_handles[2] = {rdns_semaphore, exit_event};
 
-    swprintf(ipcfg, _countof(ipcfg), L"%s\\%s", get_win_sys_path(), L"ipconfig.exe");
-    ipcfg[_countof(ipcfg) - 1] = L'\0';
+    openvpn_swprintf(ipcfg, MAX_PATH, L"%s\\%s", get_win_sys_path(), L"ipconfig.exe");
 
     if (WaitForMultipleObjects(2, wait_handles, FALSE, timeout) == WAIT_OBJECT_0)
     {
@@ -1628,9 +1623,8 @@ RunOpenvpn(LPVOID p)
     else if (exit_code != 0)
     {
         WCHAR buf[256];
-        swprintf(buf, _countof(buf),
-                 L"OpenVPN exited with error: exit code = %lu", exit_code);
-        buf[_countof(buf) - 1] =  L'\0';
+        openvpn_swprintf(buf, _countof(buf),
+                         L"OpenVPN exited with error: exit code = %lu", exit_code);
         ReturnError(pipe, ERROR_OPENVPN_STARTUP, buf, 1, &exit_event);
     }
     Undo(&undo_lists);

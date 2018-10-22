@@ -68,8 +68,7 @@ CheckConfigPath(const WCHAR *workdir, const WCHAR *fname, const settings_t *s)
     /* convert fname to full path */
     if (PathIsRelativeW(fname) )
     {
-        swprintf(tmp, _countof(tmp), L"%s\\%s", workdir, fname);
-        tmp[_countof(tmp)-1] = L'\0';
+        openvpn_swprintf(tmp, _countof(tmp), L"%s\\%s", workdir, fname);
         config_file = tmp;
     }
     else
