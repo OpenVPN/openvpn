@@ -853,6 +853,13 @@ buf_read_u32(struct buffer *buf, bool *good)
     }
 }
 
+/** Return true if buffer contents are equal */
+static inline bool
+buf_equal(const struct buffer *a, const struct buffer *b)
+{
+    return BLEN(a) == BLEN(b) && 0 == memcmp(BPTR(a), BPTR(b), BLEN(a));
+}
+
 /**
  * Compare src buffer contents with match.
  * *NOT* constant time. Do not use when comparing HMACs.

@@ -434,6 +434,115 @@ tls_crypt_v2_wrap_client_key(struct buffer *wkc,
     return buf_copy(wkc, &work);
 }
 
+static bool
+tls_crypt_v2_unwrap_client_key(struct key2 *client_key, struct buffer *metadata,
+                               struct buffer wrapped_client_key,
+                               struct key_ctx *server_key)
+{
+    const char *error_prefix = __func__;
+    bool ret = false;
+    struct gc_arena gc = gc_new();
+    /* The crypto API requires one extra cipher block of buffer head room when
+     * decrypting, which nicely matches the tag size of WKc.  So
+     * TLS_CRYPT_V2_MAX_WKC_LEN is always large enough for the plaintext. */
+    uint8_t plaintext_buf_data[TLS_CRYPT_V2_MAX_WKC_LEN] = { 0 };
+    struct buffer plaintext = { 0 };
+
+    dmsg(D_TLS_DEBUG_MED, "%s: unwrapping client key (len=%d): %s", __func__,
+         BLEN(&wrapped_client_key), format_hex(BPTR(&wrapped_client_key),
+                                               BLEN(&wrapped_client_key),
+                                               0, &gc));
+
+    if (TLS_CRYPT_V2_MAX_WKC_LEN < BLEN(&wrapped_client_key))
+    {
+        CRYPT_ERROR("wrapped client key too big");
+    }
+
+    /* Decrypt client key and metadata */
+    uint16_t net_len = 0;
+    const uint8_t *tag = BPTR(&wrapped_client_key);
+
+    if (BLEN(&wrapped_client_key) < sizeof(net_len))
+    {
+        CRYPT_ERROR("failed to read length");
+    }
+    memcpy(&net_len, BEND(&wrapped_client_key) - sizeof(net_len),
+           sizeof(net_len));
+
+    if (ntohs(net_len) != BLEN(&wrapped_client_key))
+    {
+        dmsg(D_TLS_DEBUG_LOW, "%s: net_len=%u, BLEN=%i", __func__,
+             ntohs(net_len), BLEN(&wrapped_client_key));
+        CRYPT_ERROR("invalid length");
+    }
+
+    buf_inc_len(&wrapped_client_key, -(int)sizeof(net_len));
+
+    if (!buf_advance(&wrapped_client_key, TLS_CRYPT_TAG_SIZE))
+    {
+        CRYPT_ERROR("failed to read tag");
+    }
+
+    if (!cipher_ctx_reset(server_key->cipher, tag))
+    {
+        CRYPT_ERROR("failed to initialize IV");
+    }
+    buf_set_write(&plaintext, plaintext_buf_data, sizeof(plaintext_buf_data));
+    int outlen = 0;
+    if (!cipher_ctx_update(server_key->cipher, BPTR(&plaintext), &outlen,
+                           BPTR(&wrapped_client_key),
+                           BLEN(&wrapped_client_key)))
+    {
+        CRYPT_ERROR("could not decrypt client key");
+    }
+    ASSERT(buf_inc_len(&plaintext, outlen));
+
+    if (!cipher_ctx_final(server_key->cipher, BEND(&plaintext), &outlen))
+    {
+        CRYPT_ERROR("cipher final failed");
+    }
+    ASSERT(buf_inc_len(&plaintext, outlen));
+
+    /* Check authentication */
+    uint8_t tag_check[TLS_CRYPT_TAG_SIZE] = { 0 };
+    hmac_ctx_reset(server_key->hmac);
+    hmac_ctx_update(server_key->hmac, (void *)&net_len, sizeof(net_len));
+    hmac_ctx_update(server_key->hmac, BPTR(&plaintext),
+                    BLEN(&plaintext));
+    hmac_ctx_final(server_key->hmac, tag_check);
+
+    if (memcmp_constant_time(tag, tag_check, sizeof(tag_check)))
+    {
+        dmsg(D_CRYPTO_DEBUG, "tag      : %s",
+             format_hex(tag, sizeof(tag_check), 0, &gc));
+        dmsg(D_CRYPTO_DEBUG, "tag_check: %s",
+             format_hex(tag_check, sizeof(tag_check), 0, &gc));
+        CRYPT_ERROR("client key authentication error");
+    }
+
+    if (buf_len(&plaintext) < sizeof(client_key->keys))
+    {
+        CRYPT_ERROR("failed to read client key");
+    }
+    memcpy(&client_key->keys, BPTR(&plaintext), sizeof(client_key->keys));
+    ASSERT(buf_advance(&plaintext, sizeof(client_key->keys)));
+
+    if(!buf_copy(metadata, &plaintext))
+    {
+        CRYPT_ERROR("metadata too large for supplied buffer");
+    }
+
+    ret = true;
+error_exit:
+    if (!ret)
+    {
+        secure_memzero(client_key, sizeof(*client_key));
+    }
+    buf_clear(&plaintext);
+    gc_free(&gc);
+    return ret;
+}
+
 void
 tls_crypt_v2_write_server_key_file(const char *filename)
 {
@@ -544,6 +653,18 @@ tls_crypt_v2_write_client_key_file(const char *filename,
     tls_crypt_v2_init_client_key(&test_client_key, &test_wrapped_client_key,
                                  filename, NULL);
     free_key_ctx_bi(&test_client_key);
+
+    /* Sanity check: unwrap and load client key (as "server") */
+    struct buffer test_metadata = alloc_buf_gc(TLS_CRYPT_V2_MAX_METADATA_LEN,
+                                               &gc);
+    struct key2 test_client_key2 = { 0 };
+    free_key_ctx(&server_key);
+    tls_crypt_v2_init_server_key(&server_key, false, server_key_file,
+                                 server_key_inline);
+    msg(D_GENKEY, "Testing server-side key loading...");
+    ASSERT(tls_crypt_v2_unwrap_client_key(&test_client_key2, &test_metadata,
+                                          test_wrapped_client_key, &server_key));
+    secure_memzero(&test_client_key2, sizeof(test_client_key2));
     free_buf(&test_wrapped_client_key);
 
 cleanup:
