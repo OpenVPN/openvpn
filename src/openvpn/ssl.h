@@ -63,9 +63,12 @@
 #define P_CONTROL_HARD_RESET_CLIENT_V2 7     /* initial key from client, forget previous state */
 #define P_CONTROL_HARD_RESET_SERVER_V2 8     /* initial key from server, forget previous state */
 
+/* indicates key_method >= 2 and client-specific tls-crypt key */
+#define P_CONTROL_HARD_RESET_CLIENT_V3 10    /* initial key from client, forget previous state */
+
 /* define the range of legal opcodes */
 #define P_FIRST_OPCODE                 1
-#define P_LAST_OPCODE                  9
+#define P_LAST_OPCODE                  10
 
 /*
  * Set the max number of acknowledgments that can "hitch a ride" on an outgoing

@@ -785,6 +785,9 @@ packet_opcode_name(int op)
         case P_CONTROL_HARD_RESET_SERVER_V2:
             return "P_CONTROL_HARD_RESET_SERVER_V2";
 
+        case P_CONTROL_HARD_RESET_CLIENT_V3:
+            return "P_CONTROL_HARD_RESET_CLIENT_V3";
+
         case P_CONTROL_SOFT_RESET_V1:
             return "P_CONTROL_SOFT_RESET_V1";
 
@@ -857,7 +860,8 @@ is_hard_reset(int op, int key_method)
 
     if (!key_method || key_method >= 2)
     {
-        if (op == P_CONTROL_HARD_RESET_CLIENT_V2 || op == P_CONTROL_HARD_RESET_SERVER_V2)
+        if (op == P_CONTROL_HARD_RESET_CLIENT_V2 || op == P_CONTROL_HARD_RESET_SERVER_V2
+            || op == P_CONTROL_HARD_RESET_CLIENT_V3)
         {
             return true;
         }
@@ -1088,8 +1092,15 @@ tls_session_init(struct tls_multi *multi, struct tls_session *session)
     }
     else /* session->opt->key_method >= 2 */
     {
-        session->initial_opcode = session->opt->server ?
-                                  P_CONTROL_HARD_RESET_SERVER_V2 : P_CONTROL_HARD_RESET_CLIENT_V2;
+        if (session->opt->server)
+        {
+            session->initial_opcode = P_CONTROL_HARD_RESET_SERVER_V2;
+        }
+        else
+        {
+            session->initial_opcode = session->opt->tls_crypt_v2 ?
+                    P_CONTROL_HARD_RESET_CLIENT_V3 : P_CONTROL_HARD_RESET_CLIENT_V2;
+        }
     }
 
     /* Initialize control channel authentication parameters */
@@ -3420,7 +3431,8 @@ tls_pre_decrypt(struct tls_multi *multi,
             {
                 /* verify client -> server or server -> client connection */
                 if (((op == P_CONTROL_HARD_RESET_CLIENT_V1
-                      || op == P_CONTROL_HARD_RESET_CLIENT_V2) && !multi->opt.server)
+                      || op == P_CONTROL_HARD_RESET_CLIENT_V2
+                      || op == P_CONTROL_HARD_RESET_CLIENT_V3) && !multi->opt.server)
                     || ((op == P_CONTROL_HARD_RESET_SERVER_V1
                          || op == P_CONTROL_HARD_RESET_SERVER_V2) && multi->opt.server))
                 {
@@ -3805,7 +3817,8 @@ tls_pre_decrypt_lite(const struct tls_auth_standalone *tas,
         /* this packet is from an as-yet untrusted source, so
          * scrutinize carefully */
 
-        if (op != P_CONTROL_HARD_RESET_CLIENT_V2)
+        if (op != P_CONTROL_HARD_RESET_CLIENT_V2
+            && op != P_CONTROL_HARD_RESET_CLIENT_V3)
         {
             /*
              * This can occur due to bogus data or DoS packets.

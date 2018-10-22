@@ -286,6 +286,8 @@ struct tls_options
     const char *config_authname;
     bool ncp_enabled;
 
+    bool tls_crypt_v2;
+
     /** TLS handshake wrapping state */
     struct tls_wrap_ctx tls_wrap;
 

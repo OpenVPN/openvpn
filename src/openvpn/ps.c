@@ -985,7 +985,8 @@ is_openvpn_protocol(const struct buffer *buf)
     {
         return p[0] == 0
                && p[1] >= 14
-               && p[2] == (P_CONTROL_HARD_RESET_CLIENT_V2<<P_OPCODE_SHIFT);
+               && (p[2] == (P_CONTROL_HARD_RESET_CLIENT_V2 << P_OPCODE_SHIFT)
+                   || p[2] == (P_CONTROL_HARD_RESET_CLIENT_V3 << P_OPCODE_SHIFT));
     }
     else if (len >= 2)
     {
