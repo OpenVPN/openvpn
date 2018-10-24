@@ -2436,10 +2436,6 @@ options_postprocess_verify_ce(const struct options *options, const struct connec
         {
             msg(M_USAGE, "--stale-routes-check requires --mode server");
         }
-        if (compat_flag(COMPAT_FLAG_QUERY | COMPAT_NO_NAME_REMAPPING))
-        {
-            msg(M_USAGE, "--compat-x509-names no-remapping requires --mode server");
-        }
     }
 #endif /* P2MP_SERVER */
 
@@ -7883,49 +7879,24 @@ add_option(struct options *options,
         options->tls_export_cert = p[1];
     }
 #endif
-#if P2MP_SERVER
-    else if (streq(p[0], "compat-names") && ((p[1] && streq(p[1], "no-remapping")) || !p[1]) && !p[2])
-#else
-    else if (streq(p[0], "compat-names") && !p[1])
-#endif
+    else if (streq(p[0], "compat-names"))
     {
         VERIFY_PERMISSION(OPT_P_GENERAL);
-        if (options->verify_x509_type != VERIFY_X509_NONE)
-        {
-            msg(msglevel, "you cannot use --compat-names with --verify-x509-name");
-            goto err;
-        }
-        msg(M_WARN, "DEPRECATED OPTION: --compat-names, please update your configuration. This will be removed in OpenVPN 2.5.");
-        compat_flag(COMPAT_FLAG_SET | COMPAT_NAMES);
-#if P2MP_SERVER
-        if (p[1] && streq(p[1], "no-remapping"))
-        {
-            compat_flag(COMPAT_FLAG_SET | COMPAT_NO_NAME_REMAPPING);
-        }
+        msg(msglevel, "--compat-names was removed in OpenVPN 2.5. "
+            "Update your configuration.");
+        goto err;
     }
     else if (streq(p[0], "no-name-remapping") && !p[1])
     {
         VERIFY_PERMISSION(OPT_P_GENERAL);
-        if (options->verify_x509_type != VERIFY_X509_NONE)
-        {
-            msg(msglevel, "you cannot use --no-name-remapping with --verify-x509-name");
-            goto err;
-        }
-        msg(M_WARN, "DEPRECATED OPTION: --no-name-remapping, please update your configuration. This will be removed in OpenVPN 2.5.");
-        compat_flag(COMPAT_FLAG_SET | COMPAT_NAMES);
-        compat_flag(COMPAT_FLAG_SET | COMPAT_NO_NAME_REMAPPING);
-#endif
+        msg(msglevel, "--no-name-remapping was removed in OpenVPN 2.5. "
+            "Update your configuration.");
+        goto err;
     }
     else if (streq(p[0], "verify-x509-name") && p[1] && strlen(p[1]) && !p[3])
     {
         int type = VERIFY_X509_SUBJECT_DN;
         VERIFY_PERMISSION(OPT_P_GENERAL);
-        if (compat_flag(COMPAT_FLAG_QUERY | COMPAT_NAMES))
-        {
-            msg(msglevel, "you cannot use --verify-x509-name with "
-                "--compat-names or --no-name-remapping");
-            goto err;
-        }
         if (p[2])
         {
             if (streq(p[2], "subject"))
