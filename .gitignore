@@ -53,7 +53,7 @@ config-msvc-version.h
 doc/openvpn.8.html
 distro/systemd/*.service
 sample/sample-keys/sample-ca/
-vendor/.build
+vendor/cmocka_build
 vendor/dist
 build/msvc/msvc-generate/version.m4
 
