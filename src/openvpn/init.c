@@ -1087,7 +1087,7 @@ do_genkey(const struct options *options)
         {
             if (!options->tls_crypt_v2_file)
             {
-                msg(M_USAGE, "--tls-crypt-v2-gen-client-key requires a server key to be set via --tls-crypt-v2");
+                msg(M_USAGE, "--tls-crypt-v2-genkey requires a server key to be set via --tls-crypt-v2 to create a client key");
             }
 
             tls_crypt_v2_write_client_key_file(options->tls_crypt_v2_genkey_file,
