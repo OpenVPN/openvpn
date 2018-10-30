@@ -346,9 +346,6 @@ void multi_close_instance_on_signal(struct multi_context *m, struct multi_instan
 
 void init_management_callback_multi(struct multi_context *m);
 
-void uninit_management_callback_multi(struct multi_context *m);
-
-
 #ifdef ENABLE_ASYNC_PUSH
 /**
  * Called when inotify event is fired, which happens when acf file is closed or deleted.
@@ -403,7 +400,7 @@ multi_process_outgoing_link_pre(struct multi_context *m)
  * Per-client route quota management
  */
 
-void route_quota_exceeded(const struct multi_context *m, const struct multi_instance *mi);
+void route_quota_exceeded(const struct multi_instance *mi);
 
 static inline void
 route_quota_inc(struct multi_instance *mi)
@@ -419,11 +416,11 @@ route_quota_dec(struct multi_instance *mi)
 
 /* can we add a new route? */
 static inline bool
-route_quota_test(const struct multi_context *m, const struct multi_instance *mi)
+route_quota_test(const struct multi_instance *mi)
 {
     if (mi->route_count >= mi->context.options.max_routes_per_client)
     {
-        route_quota_exceeded(m, mi);
+        route_quota_exceeded(mi);
         return false;
     }
     else

@@ -685,11 +685,10 @@ win32_pause(struct win32_signal *ws)
 {
     if (ws->mode == WSO_MODE_CONSOLE && HANDLE_DEFINED(ws->in.read))
     {
-        int status;
         msg(M_INFO|M_NOPREFIX, "Press any key to continue...");
         do
         {
-            status = WaitForSingleObject(ws->in.read, INFINITE);
+            WaitForSingleObject(ws->in.read, INFINITE);
         } while (!win32_keyboard_get(ws));
     }
 }

@@ -834,7 +834,7 @@ tunnel_server_tcp(struct context *top)
 #endif
 
     /* shut down management interface */
-    uninit_management_callback_multi(&multi);
+    uninit_management_callback();
 
     /* save ifconfig-pool */
     multi_ifconfig_pool_persist(&multi, true);
