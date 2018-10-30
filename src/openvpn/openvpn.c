@@ -201,7 +201,7 @@ openvpn_main(int argc, char *argv[])
 
 #ifdef ENABLE_MANAGEMENT
             /* initialize management subsystem */
-            init_management(&c);
+            init_management();
 #endif
 
             /* initialize options to default state */

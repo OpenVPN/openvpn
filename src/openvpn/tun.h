@@ -452,7 +452,7 @@ tun_write_win32(struct tuntap *tt, struct buffer *buf)
 }
 
 static inline int
-read_tun_buffered(struct tuntap *tt, struct buffer *buf, int maxsize)
+read_tun_buffered(struct tuntap *tt, struct buffer *buf)
 {
     return tun_finalize(tt->hand, &tt->reads, buf);
 }

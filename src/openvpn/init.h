@@ -119,7 +119,7 @@ void initialization_sequence_completed(struct context *c, const unsigned int fla
 
 #ifdef ENABLE_MANAGEMENT
 
-void init_management(struct context *c);
+void init_management(void);
 
 bool open_management(struct context *c);
 

@@ -5044,7 +5044,6 @@ void
 ipconfig_register_dns(const struct env_set *es)
 {
     struct argv argv = argv_new();
-    bool status;
     const char err[] = "ERROR: Windows ipconfig command failed";
 
     msg(D_TUNTAP_INFO, "Start ipconfig commands for register-dns...");
@@ -5054,14 +5053,14 @@ ipconfig_register_dns(const struct env_set *es)
                 get_win_sys_path(),
                 WIN_IPCONFIG_PATH_SUFFIX);
     argv_msg(D_TUNTAP_INFO, &argv);
-    status = openvpn_execve_check(&argv, es, 0, err);
+    openvpn_execve_check(&argv, es, 0, err);
     argv_reset(&argv);
 
     argv_printf(&argv, "%s%sc /registerdns",
                 get_win_sys_path(),
                 WIN_IPCONFIG_PATH_SUFFIX);
     argv_msg(D_TUNTAP_INFO, &argv);
-    status = openvpn_execve_check(&argv, es, 0, err);
+    openvpn_execve_check(&argv, es, 0, err);
     argv_reset(&argv);
 
     netcmd_semaphore_release();
@@ -5355,8 +5354,7 @@ netsh_ifconfig(const struct tuntap_options *to,
 }
 
 static void
-netsh_enable_dhcp(const struct tuntap_options *to,
-                  const char *actual_name)
+netsh_enable_dhcp(const char *actual_name)
 {
     struct argv argv = argv_new();
 
@@ -5376,7 +5374,6 @@ netsh_enable_dhcp(const struct tuntap_options *to,
 static bool
 service_enable_dhcp(const struct tuntap *tt)
 {
-    DWORD len;
     bool ret = false;
     ack_message_t ack;
     struct gc_arena gc = gc_new();
@@ -5902,7 +5899,7 @@ open_tun(const char *dev, const char *dev_type, const char *dev_node, struct tun
                 }
                 else
                 {
-                    netsh_enable_dhcp(&tt->options, tt->actual_name);
+                    netsh_enable_dhcp(tt->actual_name);
                 }
             }
             dhcp_masq = true;
