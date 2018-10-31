@@ -742,7 +742,7 @@ tls_crypt_v2_write_client_key_file(const char *filename,
     }
     else
     {
-        int64_t timestamp = htonll(now);
+        int64_t timestamp = htonll((uint64_t)now);
         ASSERT(buf_write(&metadata, &TLS_CRYPT_METADATA_TYPE_TIMESTAMP, 1));
         ASSERT(buf_write(&metadata, &timestamp, sizeof(timestamp)));
     }
