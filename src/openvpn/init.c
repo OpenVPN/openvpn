@@ -2594,6 +2594,26 @@ do_init_tls_wrap_key(struct context *c)
                            options->ce.tls_crypt_file,
                            options->ce.tls_crypt_inline, options->tls_server);
     }
+
+    /* tls-crypt with client-specific keys (--tls-crypt-v2) */
+    if (options->ce.tls_crypt_v2_file)
+    {
+        if (options->tls_server)
+        {
+            tls_crypt_v2_init_server_key(&c->c1.ks.tls_crypt_v2_server_key,
+                                         true, options->ce.tls_crypt_v2_file,
+                                         options->ce.tls_crypt_v2_inline);
+        }
+        else
+        {
+            tls_crypt_v2_init_client_key(&c->c1.ks.tls_wrap_key,
+                                         &c->c1.ks.tls_crypt_v2_wkc,
+                                         options->ce.tls_crypt_v2_file,
+                                         options->ce.tls_crypt_v2_inline);
+        }
+    }
+
+
 }
 
 /*
@@ -2645,26 +2665,8 @@ do_init_crypto_tls_c1(struct context *c)
         /* Initialize PRNG with config-specified digest */
         prng_init(options->prng_hash, options->prng_nonce_secret_len);
 
-        /* initialize tls-auth/crypt key */
+        /* initialize tls-auth/crypt/crypt-v2 key */
         do_init_tls_wrap_key(c);
-
-        /* tls-crypt with client-specific keys (--tls-crypt-v2) */
-        if (options->tls_crypt_v2_file)
-        {
-            if (options->tls_server)
-            {
-                tls_crypt_v2_init_server_key(&c->c1.ks.tls_crypt_v2_server_key,
-                                             true, options->tls_crypt_v2_file,
-                                             options->tls_crypt_v2_inline);
-            }
-            else
-            {
-                tls_crypt_v2_init_client_key(&c->c1.ks.tls_wrap_key,
-                                             &c->c1.ks.tls_crypt_v2_wkc,
-                                             options->tls_crypt_v2_file,
-                                             options->tls_crypt_v2_inline);
-            }
-        }
 
 #if 0 /* was: #if ENABLE_INLINE_FILES --  Note that enabling this code will break restarts */
         if (options->priv_key_file_inline)
@@ -2891,13 +2893,13 @@ do_init_crypto_tls(struct context *c, const unsigned int flags)
         to.tls_wrap.opt.flags |= CO_PACKET_ID_LONG_FORM;
         tls_crypt_adjust_frame_parameters(&to.frame);
 
-        if (options->tls_crypt_v2_file)
+        if (options->ce.tls_crypt_v2_file)
         {
             to.tls_wrap.tls_crypt_v2_wkc = &c->c1.ks.tls_crypt_v2_wkc;
         }
     }
 
-    if (options->tls_crypt_v2_file)
+    if (options->ce.tls_crypt_v2_file)
     {
         to.tls_crypt_v2 = true;
         if (options->tls_server)
