@@ -624,7 +624,7 @@ save_ncp_options(struct context *c)
     c->c1.ciphername = c->options.ciphername;
     c->c1.authname = c->options.authname;
     c->c1.keysize = c->options.keysize;
-#endif ENABLE_CRYPTO
+#endif
 }
 
 /* Restores NCP-negotiable options to original values */
@@ -635,7 +635,7 @@ restore_ncp_options(struct context *c)
     c->options.ciphername = c->c1.ciphername;
     c->options.authname = c->c1.authname;
     c->options.keysize = c->c1.keysize;
-#endif ENABLE_CRYPTO
+#endif
 }
 
 void
