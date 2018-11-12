@@ -454,62 +454,41 @@ msica_op_tap_interface_delete(
 
     DWORD dwResult;
 
+    /* Delete the interface. */
+    BOOL bRebootRequired = FALSE;
+    dwResult = tap_delete_interface(NULL, &pInterface->guid, &bRebootRequired);
+    if (bRebootRequired)
+        MsiSetMode(session->hInstall, MSIRUNMODE_REBOOTATEND, TRUE);
+
     if (session->rollback_enabled)
     {
-        int count = 0;
+        /*
+        Schedule rollback action to create the interface back. Though it won't be exactly the same interface again.
 
-        do {
-            /* Rename the interface to keep it as a backup. */
-            TCHAR szNameBackup[10/*"Interface "*/ + 10/*maximum int*/ + 1/*terminator*/];
-            _stprintf_s(
-                szNameBackup, _countof(szNameBackup),
-                TEXT("Interface %i"),
-                ++count);
-            for (struct tap_interface_node *pInterfaceOther = pInterfaceList; ; pInterfaceOther = pInterfaceOther->pNext)
-            {
-                if (pInterfaceOther == NULL)
-                {
-                    /* No interface with a same name found. All clear to rename the interface. */
-                    dwResult = tap_set_interface_name(&pInterface->guid, szNameBackup);
-                    break;
-                }
-                else if (_tcsicmp(szNameBackup, pInterfaceOther->szName) == 0)
-                {
-                    /* Interface with a same name found. Duplicate interface names are not allowed. */
-                    dwResult = ERROR_ALREADY_EXISTS;
-                    break;
-                }
-            }
-        } while (dwResult == ERROR_ALREADY_EXISTS);
+        The previous version of this function did:
+        - Execution Pass:       rename the interface to some temporary name
+        - Commit/Rollback Pass: delete the interface / rename the interface back to original name
 
-        if (dwResult == ERROR_SUCCESS) {
-            /* Schedule rollback action to rename the interface back. */
-            msica_op_seq_add_head(
-                &session->seq_cleanup[MSICA_CLEANUP_ACTION_ROLLBACK],
-                msica_op_create_guid_string(
-                    msica_op_tap_interface_set_name,
-                    0,
-                    NULL,
-                    &pInterface->guid,
-                    pInterface->szName));
+        However, the WiX Toolset's Diffx extension to install and remove drivers removed the TAP driver between the
+        execution and commit passes. TAP driver removal makes all TAP interfaces unavailable and our CA couldn't find
+        the interface to delete any more.
 
-            /* Schedule commit action to delete the interface. */
-            msica_op_seq_add_tail(
-                &session->seq_cleanup[MSICA_CLEANUP_ACTION_COMMIT],
-                msica_op_create_guid(
-                    msica_op_tap_interface_delete_by_guid,
-                    0,
-                    NULL,
-                    &pInterface->guid));
-        }
-    }
-    else
-    {
-        /* Delete the interface. */
-        BOOL bRebootRequired = FALSE;
-        dwResult = tap_delete_interface(NULL, &pInterface->guid, &bRebootRequired);
-        if (bRebootRequired)
-            MsiSetMode(session->hInstall, MSIRUNMODE_REBOOTATEND, TRUE);
+        While the system where OpenVPN was uninstalled didn't have any TAP interfaces any more as expected behaviour,
+        the problem appears after reinstalling the OpenVPN. Some residue TAP interface registry keys remain on the
+        system, causing the TAP interface to reappear as "Ethernet NN" interface next time the TAP driver is
+        installed. This causes TAP interfaces to accumulate over cyclic install-uninstall-install...
+
+        Therefore, it is better to remove the TAP interfaces before the TAP driver is removed, and reinstall the TAP
+        interface back should the rollback be required. I wonder if the WiX Diffx extension supports execute/commit/
+        rollback feature of MSI in the first place.
+        */
+        msica_op_seq_add_head(
+            &session->seq_cleanup[MSICA_CLEANUP_ACTION_ROLLBACK],
+            msica_op_create_string(
+                msica_op_tap_interface_create,
+                0,
+                NULL,
+                pInterface->szName));
     }
 
     return dwResult;
