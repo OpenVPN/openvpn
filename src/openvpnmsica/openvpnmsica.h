@@ -92,6 +92,31 @@ FindTAPInterfaces(_In_ MSIHANDLE hInstall);
 
 
 /**
+ * Find OpenVPN GUI window and send it a WM_CLOSE message.
+ *
+ * @param hInstall      Handle to the installation provided to the DLL custom action
+ *
+ * @return ERROR_SUCCESS on success; An error code otherwise
+ *         See: https://msdn.microsoft.com/en-us/library/windows/desktop/aa368072.aspx
+ */
+DLLEXP_DECL UINT __stdcall
+CloseOpenVPNGUI(_In_ MSIHANDLE hInstall);
+
+
+/**
+ * Launches OpenVPN GUI. It's path is obtained by expanding the `[#bin.openvpn_gui.exe]`
+ * therefore, its Id field in File table must be "bin.openvpn_gui.exe".
+ *
+ * @param hInstall      Handle to the installation provided to the DLL custom action
+ *
+ * @return ERROR_SUCCESS on success; An error code otherwise
+ *         See: https://msdn.microsoft.com/en-us/library/windows/desktop/aa368072.aspx
+ */
+DLLEXP_DECL UINT __stdcall
+StartOpenVPNGUI(_In_ MSIHANDLE hInstall);
+
+
+/**
  * Evaluate the TAPInterface table of the MSI package database and prepare a list of TAP
  * interfaces to install/remove.
  *

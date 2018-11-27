@@ -37,6 +37,7 @@
 #include <malloc.h>
 #include <memory.h>
 #include <msiquery.h>
+#include <shellapi.h>
 #include <shlwapi.h>
 #include <stdbool.h>
 #include <stdlib.h>
@@ -44,6 +45,7 @@
 
 #ifdef _MSC_VER
 #pragma comment(lib, "iphlpapi.lib")
+#pragma comment(lib, "shell32.lib")
 #pragma comment(lib, "shlwapi.lib")
 #pragma comment(lib, "version.lib")
 #endif
@@ -469,6 +471,106 @@ FindTAPInterfaces(_In_ MSIHANDLE hInstall)
     free(pAdapterAdresses);
 cleanup_tap_list_interfaces:
     tap_free_interface_list(pInterfaceList);
+cleanup_CoInitialize:
+    if (bIsCoInitialized) CoUninitialize();
+    return uiResult;
+}
+
+
+UINT __stdcall
+CloseOpenVPNGUI(_In_ MSIHANDLE hInstall)
+{
+#ifdef _MSC_VER
+#pragma comment(linker, DLLEXP_EXPORT)
+#endif
+    UNREFERENCED_PARAMETER(hInstall); /* This CA is does not interact with MSI session (report errors, access properties, tables, etc.). */
+
+    openvpnmsica_debug_popup(TEXT(__FUNCTION__));
+
+    /* Find OpenVPN GUI window. */
+    HWND hWnd = FindWindow(TEXT("OpenVPN-GUI"), NULL);
+    if (hWnd)
+    {
+        /* Ask it to close and wait for 100ms. Unfortunately, this will succeed only for recent OpenVPN GUI that do not run elevated. */
+        SendMessage(hWnd, WM_CLOSE, 0, 0);
+        Sleep(100);
+    }
+
+    return ERROR_SUCCESS;
+}
+
+
+UINT __stdcall
+StartOpenVPNGUI(_In_ MSIHANDLE hInstall)
+{
+#ifdef _MSC_VER
+#pragma comment(linker, DLLEXP_EXPORT)
+#endif
+
+    openvpnmsica_debug_popup(TEXT(__FUNCTION__));
+
+    UINT uiResult;
+    BOOL bIsCoInitialized = SUCCEEDED(CoInitialize(NULL));
+
+    /* Set MSI session handle in TLS. */
+    struct openvpnmsica_tls_data *s = (struct openvpnmsica_tls_data *)TlsGetValue(openvpnmsica_tlsidx_session);
+    s->hInstall = hInstall;
+
+    /* Create and populate a MSI record. */
+    MSIHANDLE hRecord = MsiCreateRecord(1);
+    if (!hRecord)
+    {
+        uiResult = ERROR_INVALID_HANDLE;
+        msg(M_NONFATAL, "%s: MsiCreateRecord failed", __FUNCTION__);
+        goto cleanup_CoInitialize;
+    }
+    uiResult = MsiRecordSetString(hRecord, 0, TEXT("\"[#bin.openvpn_gui.exe]\""));
+    if (uiResult != ERROR_SUCCESS)
+    {
+        SetLastError(uiResult); /* MSDN does not mention MsiRecordSetString() to set GetLastError(). But we do have an error code. Set last error manually. */
+        msg(M_NONFATAL | M_ERRNO, "%s: MsiRecordSetString failed", __FUNCTION__);
+        goto cleanup_MsiCreateRecord;
+    }
+
+    /* Format string. */
+    TCHAR szStackBuf[MAX_PATH];
+    DWORD dwPathSize = _countof(szStackBuf);
+    LPTSTR szPath = szStackBuf;
+    uiResult = MsiFormatRecord(hInstall, hRecord, szPath, &dwPathSize);
+    if (uiResult == ERROR_MORE_DATA)
+    {
+        /* Allocate buffer on heap (+1 for terminator), and retry. */
+        szPath = (LPTSTR)malloc((++dwPathSize) * sizeof(TCHAR));
+        uiResult = MsiFormatRecord(hInstall, hRecord, szPath, &dwPathSize);
+    }
+    if (uiResult != ERROR_SUCCESS)
+    {
+        SetLastError(uiResult); /* MSDN does not mention MsiFormatRecord() to set GetLastError(). But we do have an error code. Set last error manually. */
+        msg(M_NONFATAL | M_ERRNO, "%s: MsiFormatRecord failed", __FUNCTION__);
+        goto cleanup_malloc_szPath;
+    }
+
+    /* Launch the OpenVPN GUI. */
+    SHELLEXECUTEINFO sei = {
+        .cbSize = sizeof(SHELLEXECUTEINFO),
+        .fMask  = SEE_MASK_FLAG_NO_UI, /* Don't show error UI, we'll display it. */
+        .lpFile = szPath,
+        .nShow  = SW_SHOWNORMAL
+    };
+    if (!ShellExecuteEx(&sei))
+    {
+        uiResult = GetLastError();
+        msg(M_NONFATAL | M_ERRNO, "%s: ShellExecuteEx(%s) failed", __FUNCTION__, szPath);
+        goto cleanup_malloc_szPath;
+    }
+
+    uiResult = ERROR_SUCCESS;
+
+cleanup_malloc_szPath:
+    if (szPath != szStackBuf)
+        free(szPath);
+cleanup_MsiCreateRecord:
+    MsiCloseHandle(hRecord);
 cleanup_CoInitialize:
     if (bIsCoInitialized) CoUninitialize();
     return uiResult;
