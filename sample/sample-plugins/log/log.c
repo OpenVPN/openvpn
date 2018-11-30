@@ -156,11 +156,15 @@ show(const int type, const char *argv[], const char *envp[])
 
     printf("ARGV\n");
     for (i = 0; argv[i] != NULL; ++i)
+    {
         printf("%d '%s'\n", (int)i, argv[i]);
+    }
 
     printf("ENVP\n");
     for (i = 0; envp[i] != NULL; ++i)
+    {
         printf("%d '%s'\n", (int)i, envp[i]);
+    }
 }
 
 OPENVPN_EXPORT int
