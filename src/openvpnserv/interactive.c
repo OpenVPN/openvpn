@@ -514,7 +514,7 @@ GetStartupData(HANDLE pipe, STARTUP_DATA *sud)
     return TRUE;
 
 err:
-    sud->directory = NULL;		/* caller must not free() */
+    sud->directory = NULL;              /* caller must not free() */
     free(data);
     return FALSE;
 }
@@ -1318,7 +1318,7 @@ Undo(undo_lists_t *lists)
                     break;
 
                 case block_dns:
-                    interface_data = (block_dns_data_t*)(item->data);
+                    interface_data = (block_dns_data_t *)(item->data);
                     delete_block_dns_filters(interface_data->engine);
                     if (interface_data->metric_v4 >= 0)
                     {

@@ -270,8 +270,8 @@ _tmain(int argc, TCHAR *argv[])
             else if (argc > i + 2 && _tcsicmp(TEXT("instance"), argv[i] + 1) == 0)
             {
                 dispatchTable = _tcsicmp(TEXT("interactive"), argv[i + 1]) != 0 ?
-                    dispatchTable_automatic :
-                    dispatchTable_interactive;
+                                dispatchTable_automatic :
+                                dispatchTable_interactive;
 
                 service_instance = argv[i + 2];
                 i += 2;

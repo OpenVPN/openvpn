@@ -49,6 +49,7 @@ static const WCHAR *white_list[] =
 };
 
 static BOOL IsUserInGroup(PSID sid, const PTOKEN_GROUPS groups, const WCHAR *group_name);
+
 static PTOKEN_GROUPS GetTokenGroups(const HANDLE token);
 
 /*
@@ -305,7 +306,7 @@ IsUserInGroup(PSID sid, const PTOKEN_GROUPS token_groups, const WCHAR *group_nam
             ret = EqualSid(members[i].lgrmi0_sid, sid);
         }
         NetApiBufferFree(members);
-    /* MSDN says the lookup should always iterate until err != ERROR_MORE_DATA */
+        /* MSDN says the lookup should always iterate until err != ERROR_MORE_DATA */
     } while (err == ERROR_MORE_DATA && nloop++ < 100);
 
     if (err != NERR_Success && err != NERR_GroupNotFound)
