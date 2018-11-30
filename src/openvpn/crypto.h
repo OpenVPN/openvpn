@@ -318,7 +318,7 @@ void free_key_ctx(struct key_ctx *ctx);
 
 void init_key_ctx_bi(struct key_ctx_bi *ctx, const struct key2 *key2,
                      int key_direction, const struct key_type *kt,
-		     const char *name);
+                     const char *name);
 
 void free_key_ctx_bi(struct key_ctx_bi *ctx);
 
@@ -504,7 +504,8 @@ memcmp_constant_time(const void *a, const void *b, size_t size)
     int ret = 0;
     size_t i;
 
-    for (i = 0; i < size; i++) {
+    for (i = 0; i < size; i++)
+    {
         ret |= *a1++ ^ *b1++;
     }
 

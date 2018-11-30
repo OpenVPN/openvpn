@@ -314,8 +314,8 @@ ntlm_phase_3(const struct http_proxy_info *p, const char *phase_2,
          * byte order on the wire for the NTLM header is LE.
          */
         const size_t hoff = 0x14;
-        unsigned long flags = buf2[hoff] | (buf2[hoff + 1] << 8) |
-                              (buf2[hoff + 2] << 16) | (buf2[hoff + 3] << 24);
+        unsigned long flags = buf2[hoff] | (buf2[hoff + 1] << 8)
+                              |(buf2[hoff + 2] << 16) | (buf2[hoff + 3] << 24);
         if ((flags & 0x00800000) == 0x00800000)
         {
             tib_len = buf2[0x28];            /* Get Target Information block size */

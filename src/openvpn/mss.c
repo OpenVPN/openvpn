@@ -150,7 +150,7 @@ mss_fixup_dowork(struct buffer *buf, uint16_t maxmss)
 
     if (BLEN(buf) < (int) sizeof(struct openvpn_tcphdr))
     {
-	return;
+        return;
     }
 
     verify_align_4(buf);

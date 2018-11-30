@@ -343,7 +343,7 @@ x_msg_va(const unsigned int flags, const char *format, va_list arglist)
                 struct timeval tv;
                 gettimeofday(&tv, NULL);
 
-                fprintf(fp, "%"PRIi64".%06ld %x %s%s%s%s",
+                fprintf(fp, "%" PRIi64 ".%06ld %x %s%s%s%s",
                         (int64_t)tv.tv_sec,
                         (long)tv.tv_usec,
                         flags,

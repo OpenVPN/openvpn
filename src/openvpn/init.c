@@ -1077,13 +1077,13 @@ do_genkey(const struct options *options)
     }
     if (options->tls_crypt_v2_genkey_type)
     {
-        if(!strcmp(options->tls_crypt_v2_genkey_type, "server"))
+        if (!strcmp(options->tls_crypt_v2_genkey_type, "server"))
         {
             tls_crypt_v2_write_server_key_file(options->tls_crypt_v2_genkey_file);
             return true;
         }
         if (options->tls_crypt_v2_genkey_type
-                 && !strcmp(options->tls_crypt_v2_genkey_type, "client"))
+            && !strcmp(options->tls_crypt_v2_genkey_type, "client"))
         {
             if (!options->tls_crypt_v2_file)
             {
@@ -1091,8 +1091,8 @@ do_genkey(const struct options *options)
             }
 
             tls_crypt_v2_write_client_key_file(options->tls_crypt_v2_genkey_file,
-                    options->tls_crypt_v2_metadata, options->tls_crypt_v2_file,
-                    options->tls_crypt_v2_inline);
+                                               options->tls_crypt_v2_metadata, options->tls_crypt_v2_file,
+                                               options->tls_crypt_v2_inline);
             return true;
         }
 
@@ -2568,8 +2568,8 @@ do_init_tls_wrap_key(struct context *c)
         if (!streq(options->authname, "none"))
         {
             c->c1.ks.tls_auth_key_type.digest = md_kt_get(options->authname);
-                c->c1.ks.tls_auth_key_type.hmac_length =
-                    md_kt_size(c->c1.ks.tls_auth_key_type.digest);
+            c->c1.ks.tls_auth_key_type.hmac_length =
+                md_kt_size(c->c1.ks.tls_auth_key_type.digest);
         }
         else
         {
@@ -2653,7 +2653,7 @@ do_init_crypto_tls_c1(struct context *c)
             return;
 #else  /* if P2MP */
             msg(M_FATAL, "Error: private key password verification failed");
-#endif
+#endif /* if P2MP */
         }
 
         /* Get cipher & hash algorithms */
@@ -2761,15 +2761,15 @@ do_init_crypto_tls(struct context *c, const unsigned int flags)
     {
         /* Add 10% jitter to reneg-sec by default (server side only) */
         int auto_jitter = options->mode != MODE_SERVER ? 0 :
-                get_random() % max_int(options->renegotiate_seconds / 10, 1);
+                          get_random() % max_int(options->renegotiate_seconds / 10, 1);
         to.renegotiate_seconds = options->renegotiate_seconds - auto_jitter;
     }
     else
     {
         /* Add user-specified jitter to reneg-sec */
-        to.renegotiate_seconds = options->renegotiate_seconds -
-                (get_random() % max_int(options->renegotiate_seconds
-                                        - options->renegotiate_seconds_min, 1));
+        to.renegotiate_seconds = options->renegotiate_seconds
+                                 -(get_random() % max_int(options->renegotiate_seconds
+                                                          - options->renegotiate_seconds_min, 1));
     }
     to.single_session = options->single_session;
     to.mode = options->mode;

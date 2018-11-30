@@ -41,12 +41,14 @@
 /* contains an SSEC_x value defined in platform.h */
 static int script_security_level = SSEC_BUILT_IN; /* GLOBAL */
 
-int script_security(void)
+int
+script_security(void)
 {
     return script_security_level;
 }
 
-void script_security_set(int level)
+void
+script_security_set(int level)
 {
     script_security_level = level;
 }

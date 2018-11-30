@@ -233,8 +233,8 @@ crypto_pem_encode(const char *name, struct buffer *dst,
 
     size_t out_len = 0;
     if (MBEDTLS_ERR_BASE64_BUFFER_TOO_SMALL !=
-            mbedtls_pem_write_buffer(header, footer, BPTR(src), BLEN(src),
-                                     NULL, 0, &out_len))
+        mbedtls_pem_write_buffer(header, footer, BPTR(src), BLEN(src),
+                                 NULL, 0, &out_len))
     {
         return false;
     }
@@ -858,7 +858,8 @@ md_ctx_new(void)
     return ctx;
 }
 
-void md_ctx_free(mbedtls_md_context_t *ctx)
+void
+md_ctx_free(mbedtls_md_context_t *ctx)
 {
     free(ctx);
 }

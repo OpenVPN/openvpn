@@ -217,7 +217,7 @@ tls_version_max(void)
     return TLS_VER_1_2;
 #elif defined(TLS1_1_VERSION) || defined(SSL_OP_NO_TLSv1_1)
     return TLS_VER_1_1;
-#else
+#else  /* if defined(TLS1_3_VERSION) */
     return TLS_VER_1_0;
 #endif
 }
@@ -322,7 +322,7 @@ tls_ctx_set_options(struct tls_root_ctx *ctx, unsigned int ssl_flags)
 }
 
 void
-convert_tls_list_to_openssl(char* openssl_ciphers, size_t len,const char *ciphers)
+convert_tls_list_to_openssl(char *openssl_ciphers, size_t len,const char *ciphers)
 {
     /* Parse supplied cipher list and pass on to OpenSSL */
     size_t begin_of_cipher, end_of_cipher;
@@ -466,9 +466,9 @@ tls_ctx_restrict_ciphers_tls13(struct tls_root_ctx *ctx, const char *ciphers)
     }
 
 #if (OPENSSL_VERSION_NUMBER < 0x1010100fL)
-        crypto_msg(M_WARN, "Not compiled with OpenSSL 1.1.1 or higher. "
-                       "Ignoring TLS 1.3 only tls-ciphersuites '%s' setting.",
-                        ciphers);
+    crypto_msg(M_WARN, "Not compiled with OpenSSL 1.1.1 or higher. "
+               "Ignoring TLS 1.3 only tls-ciphersuites '%s' setting.",
+               ciphers);
 #else
     ASSERT(NULL != ctx);
 
@@ -509,13 +509,13 @@ tls_ctx_set_cert_profile(struct tls_root_ctx *ctx, const char *profile)
     {
         msg(M_FATAL, "ERROR: Invalid cert profile: %s", profile);
     }
-#else
+#else  /* ifdef HAVE_SSL_CTX_SET_SECURITY_LEVEL */
     if (profile)
     {
         msg(M_WARN, "WARNING: OpenSSL 1.0.1 does not support --tls-cert-profile"
             ", ignoring user-set profile: '%s'", profile);
     }
-#endif
+#endif /* ifdef HAVE_SSL_CTX_SET_SECURITY_LEVEL */
 }
 
 void
@@ -658,7 +658,7 @@ tls_ctx_load_ecdh_params(struct tls_root_ctx *ctx, const char *curve_name
         {
             nid = EC_GROUP_get_curve_name(ecgrp);
         }
-#endif
+#endif /* if OPENSSL_VERSION_NUMBER >= 0x10002000L */
     }
 
     /* Translate NID back to name , just for kicks */
@@ -1137,7 +1137,7 @@ rsa_priv_enc(int flen, const unsigned char *from, unsigned char *to, RSA *rsa, i
 
     ret = get_sig_from_man(from, flen, to, len);
 
-    return (ret == len)? ret : -1;
+    return (ret == len) ? ret : -1;
 }
 
 static int
@@ -1325,7 +1325,7 @@ err:
     {
         EVP_PKEY_free(privkey);
     }
-    if(ec)
+    if (ec)
     {
         EC_KEY_free(ec);
     }
@@ -1375,7 +1375,7 @@ tls_ctx_use_management_external_key(struct tls_root_ctx *ctx)
         crypto_msg(M_WARN, "management-external-key requires an RSA or EC certificate");
         goto cleanup;
     }
-#else
+#else  /* if OPENSSL_VERSION_NUMBER > 0x10100000L && !defined(OPENSSL_NO_EC) && !defined(LIBRESSL_VERSION_NUMBER) */
     else
     {
         crypto_msg(M_WARN, "management-external-key requires an RSA certificate");
@@ -1644,7 +1644,7 @@ bio_debug_data(const char *mode, BIO *bio, const uint8_t *buf, int len, const ch
     if (len > 0)
     {
         open_biofp();
-        fprintf(biofp, "BIO_%s %s time=%"PRIi64" bio=" ptr_format " len=%d data=%s\n",
+        fprintf(biofp, "BIO_%s %s time=%" PRIi64 " bio=" ptr_format " len=%d data=%s\n",
                 mode, desc, (int64_t)time(NULL), (ptr_type)bio, len, format_hex(buf, len, 0, &gc));
         fflush(biofp);
     }
@@ -1655,7 +1655,7 @@ static void
 bio_debug_oc(const char *mode, BIO *bio)
 {
     open_biofp();
-    fprintf(biofp, "BIO %s time=%"PRIi64" bio=" ptr_format "\n",
+    fprintf(biofp, "BIO %s time=%" PRIi64 " bio=" ptr_format "\n",
             mode, (int64_t)time(NULL), (ptr_type)bio);
     fflush(biofp);
 }
@@ -1963,7 +1963,7 @@ print_details(struct key_state_ssl *ks_ssl, const char *prefix)
             {
                 EC_KEY *ec = EVP_PKEY_get0_EC_KEY(pkey);
                 const EC_GROUP *group = EC_KEY_get0_group(ec);
-                const char* curve;
+                const char *curve;
 
                 int nid = EC_GROUP_get_curve_name(group);
                 if (nid == 0 || (curve = OBJ_nid2sn(nid)) == NULL)
@@ -2024,7 +2024,7 @@ show_available_tls_ciphers_list(const char *cipher_list,
 #else
     STACK_OF(SSL_CIPHER) *sk = SSL_get1_supported_ciphers(ssl);
 #endif
-    for (int i=0;i < sk_SSL_CIPHER_num(sk);i++)
+    for (int i = 0; i < sk_SSL_CIPHER_num(sk); i++)
     {
         const SSL_CIPHER *c = sk_SSL_CIPHER_value(sk, i);
 
@@ -2035,7 +2035,7 @@ show_available_tls_ciphers_list(const char *cipher_list,
 
         if (tls13)
         {
-              printf("%s\n", cipher_name);
+            printf("%s\n", cipher_name);
         }
         else if (NULL == pair)
         {

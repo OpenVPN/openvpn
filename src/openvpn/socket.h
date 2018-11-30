@@ -138,7 +138,7 @@ struct stream_buf
     int len;   /* -1 if not yet known */
 
     bool error; /* if true, fatal TCP error has occurred,
-                *  requiring that connection be restarted */
+                 *  requiring that connection be restarted */
 #if PORT_SHARE
 #define PS_DISABLED 0
 #define PS_ENABLED  1

@@ -684,7 +684,7 @@ init_ssl(const struct options *options, struct tls_root_ctx *new_ctx)
     {
         if (tls_ctx_use_management_external_key(new_ctx))
         {
-            msg (M_WARN, "Cannot initialize mamagement-external-key");
+            msg(M_WARN, "Cannot initialize mamagement-external-key");
             goto err;
         }
     }
@@ -1103,7 +1103,7 @@ tls_session_init(struct tls_multi *multi, struct tls_session *session)
         else
         {
             session->initial_opcode = session->opt->tls_crypt_v2 ?
-                    P_CONTROL_HARD_RESET_CLIENT_V3 : P_CONTROL_HARD_RESET_CLIENT_V2;
+                                      P_CONTROL_HARD_RESET_CLIENT_V3 : P_CONTROL_HARD_RESET_CLIENT_V2;
         }
     }
 
@@ -1531,9 +1531,9 @@ read_control_auth(struct buffer *buf,
     if (opcode == P_CONTROL_HARD_RESET_CLIENT_V3
         && !tls_crypt_v2_extract_client_key(buf, ctx, opt))
     {
-        msg (D_TLS_ERRORS,
-             "TLS Error: can not extract tls-crypt-v2 client key from %s",
-             print_link_socket_actual(from, &gc));
+        msg(D_TLS_ERRORS,
+            "TLS Error: can not extract tls-crypt-v2 client key from %s",
+            print_link_socket_actual(from, &gc));
         goto cleanup;
     }
 
@@ -3792,7 +3792,7 @@ tls_pre_decrypt(struct tls_multi *multi,
                                 /* Save incoming ciphertext packet to reliable buffer */
                                 struct buffer *in = reliable_get_buf(ks->rec_reliable);
                                 ASSERT(in);
-                                if(!buf_copy(in, buf))
+                                if (!buf_copy(in, buf))
                                 {
                                     msg(D_MULTI_DROPPED,
                                         "Incoming control channel packet too big, dropping.");
@@ -4193,10 +4193,10 @@ show_available_tls_ciphers(const char *cipher_list,
     show_available_tls_ciphers_list(cipher_list, tls_cert_profile, false);
 
     printf("\n"
-    "Be aware that that whether a cipher suite in this list can actually work\n"
-    "depends on the specific setup of both peers. See the man page entries of\n"
-    "--tls-cipher and --show-tls for more details.\n\n"
-    );
+           "Be aware that that whether a cipher suite in this list can actually work\n"
+           "depends on the specific setup of both peers. See the man page entries of\n"
+           "--tls-cipher and --show-tls for more details.\n\n"
+           );
 }
 
 /*

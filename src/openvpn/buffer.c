@@ -312,7 +312,7 @@ openvpn_snprintf(char *str, size_t size, const char *format, ...)
 
 /*
  * openvpn_swprintf() is currently only used by Windows code paths
- * and when enabled for all platforms it will currently break older 
+ * and when enabled for all platforms it will currently break older
  * OpenBSD versions lacking vswprintf(3) support in their libc.
  */
 
@@ -474,7 +474,7 @@ x_gc_freespecial(struct gc_arena *a)
 }
 
 void
-gc_addspecial(void *addr, void(free_function)(void *), struct gc_arena *a)
+gc_addspecial(void *addr, void (free_function)(void *), struct gc_arena *a)
 {
     ASSERT(a);
     struct gc_entry_special *e;

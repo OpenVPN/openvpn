@@ -762,14 +762,14 @@ reliable_debug_print(const struct reliable *rel, char *desc)
     printf("********* struct reliable %s\n", desc);
     printf("  initial_timeout=%d\n", (int)rel->initial_timeout);
     printf("  packet_id=" packet_id_format "\n", rel->packet_id);
-    printf("  now=%"PRIi64"\n", (int64_t)now);
+    printf("  now=%" PRIi64 "\n", (int64_t)now);
     for (i = 0; i < rel->size; ++i)
     {
         const struct reliable_entry *e = &rel->array[i];
         if (e->active)
         {
             printf("  %d: packet_id=" packet_id_format " len=%d", i, e->packet_id, e->buf.len);
-            printf(" next_try=%"PRIi64, (int64_t)e->next_try);
+            printf(" next_try=%" PRIi64, (int64_t)e->next_try);
             printf("\n");
         }
     }

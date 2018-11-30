@@ -100,10 +100,12 @@ get_addr_generic(sa_family_t af, unsigned int flags, const char *hostname,
             bits = 0;
             max_bits = sizeof(in_addr_t) * 8;
             break;
+
         case AF_INET6:
             bits = 64;
             max_bits = sizeof(struct in6_addr) * 8;
             break;
+
         default:
             msg(M_WARN,
                 "Unsupported AF family passed to getaddrinfo for %s (%d)",
@@ -125,7 +127,7 @@ get_addr_generic(sa_family_t af, unsigned int flags, const char *hostname,
     }
 
     /* check if this hostname has a /bits suffix */
-    sep = strchr(var_host , '/');
+    sep = strchr(var_host, '/');
     if (sep)
     {
         bits = strtoul(sep + 1, &endp, 10);
@@ -156,10 +158,12 @@ get_addr_generic(sa_family_t af, unsigned int flags, const char *hostname,
                     *ip4 = ntohl(*ip4);
                 }
                 break;
+
             case AF_INET6:
                 ip6 = network;
                 *ip6 = ((struct sockaddr_in6 *)ai->ai_addr)->sin6_addr;
                 break;
+
             default:
                 /* can't get here because 'af' was previously checked */
                 msg(M_WARN,

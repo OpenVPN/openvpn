@@ -3640,7 +3640,7 @@ management_query_multiline_flatten(struct management *man,
 char *
 /* returns allocated base64 signature */
 management_query_pk_sig(struct management *man,
-                         const char *b64_data)
+                        const char *b64_data)
 {
     const char *prompt = "PK_SIGN";
     const char *desc = "pk-sign";
@@ -3650,7 +3650,7 @@ management_query_pk_sig(struct management *man,
         desc = "rsa-sign";
     }
     return management_query_multiline_flatten(man, b64_data, prompt, desc,
-            &man->connection.ext_key_state, &man->connection.ext_key_input);
+                                              &man->connection.ext_key_state, &man->connection.ext_key_input);
 }
 
 char *

@@ -553,8 +553,8 @@ is_tun_p2p(const struct tuntap *tt)
     bool tun = false;
 
     if (tt->type == DEV_TYPE_TAP
-          || (tt->type == DEV_TYPE_TUN && tt->topology == TOP_SUBNET)
-          || tt->type == DEV_TYPE_NULL )
+        || (tt->type == DEV_TYPE_TUN && tt->topology == TOP_SUBNET)
+        || tt->type == DEV_TYPE_NULL)
     {
         tun = false;
     }
@@ -893,7 +893,7 @@ do_ifconfig_ipv6(struct tuntap *tt, const char *ifname, int tun_mtu,
                 ifconfig_ipv6_local, tt->netbits_ipv6, ifname);
     argv_msg(M_INFO, &argv);
     openvpn_execve_check(&argv, es, S_FATAL, "Linux ip -6 addr add failed");
-#else
+#else  /* ifdef ENABLE_IPROUTE */
     argv_printf(&argv, "%s %s add %s/%d mtu %d up", IFCONFIG_PATH, ifname,
                 ifconfig_ipv6_local, tt->netbits_ipv6, tun_mtu);
     argv_msg(M_INFO, &argv);
@@ -1387,6 +1387,7 @@ do_ifconfig_ipv4(struct tuntap *tt, const char *ifname, int tun_mtu,
                     ifname, ifconfig_local,
                     print_in_addr_t(tt->adapter_netmask, 0, &gc));
                 break;
+
             case IPW32_SET_NETSH:
                 netsh_ifconfig(&tt->options, ifname, tt->local,
                                tt->adapter_netmask, NI_IP_NETMASK|NI_OPTIONS);
@@ -2442,7 +2443,7 @@ close_tun(struct tuntap *tt)
     struct argv argv = argv_new();
 
     /* setup command, close tun dev (clears tt->actual_name!), run command
-    */
+     */
 
     argv_printf(&argv, "%s %s destroy",
                 IFCONFIG_PATH, tt->actual_name);
@@ -2528,7 +2529,7 @@ close_tun(struct tuntap *tt)
     struct argv argv = argv_new();
 
     /* setup command, close tun dev (clears tt->actual_name!), run command
-    */
+     */
 
     argv_printf(&argv, "%s %s destroy",
                 IFCONFIG_PATH, tt->actual_name);
@@ -2668,7 +2669,7 @@ close_tun(struct tuntap *tt)
     struct argv argv = argv_new();
 
     /* setup command, close tun dev (clears tt->actual_name!), run command
-    */
+     */
 
     argv_printf(&argv, "%s %s destroy",
                 IFCONFIG_PATH, tt->actual_name);
@@ -5923,7 +5924,7 @@ open_tun(const char *dev, const char *dev_type, const char *dev_node, struct tun
                 };
 
                 if (send_msg_iservice(tt->options.msg_channel, &msg, sizeof(msg),
-                    &ack, "TUN"))
+                                      &ack, "TUN"))
                 {
                     status = ack.error_number;
                 }

@@ -277,7 +277,7 @@ void
 setenv_long_long(struct env_set *es, const char *name, long long value)
 {
     char buf[64];
-    openvpn_snprintf(buf, sizeof(buf), "%"PRIi64, (int64_t)value);
+    openvpn_snprintf(buf, sizeof(buf), "%" PRIi64, (int64_t)value);
     setenv_str(es, name, buf);
 }
 

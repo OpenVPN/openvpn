@@ -65,12 +65,12 @@
 static const mbedtls_x509_crt_profile openvpn_x509_crt_profile_legacy =
 {
     /* Hashes from SHA-1 and above */
-    MBEDTLS_X509_ID_FLAG( MBEDTLS_MD_SHA1 ) |
-    MBEDTLS_X509_ID_FLAG( MBEDTLS_MD_RIPEMD160 ) |
-    MBEDTLS_X509_ID_FLAG( MBEDTLS_MD_SHA224 ) |
-    MBEDTLS_X509_ID_FLAG( MBEDTLS_MD_SHA256 ) |
-    MBEDTLS_X509_ID_FLAG( MBEDTLS_MD_SHA384 ) |
-    MBEDTLS_X509_ID_FLAG( MBEDTLS_MD_SHA512 ),
+    MBEDTLS_X509_ID_FLAG( MBEDTLS_MD_SHA1 )
+    |MBEDTLS_X509_ID_FLAG( MBEDTLS_MD_RIPEMD160 )
+    |MBEDTLS_X509_ID_FLAG( MBEDTLS_MD_SHA224 )
+    |MBEDTLS_X509_ID_FLAG( MBEDTLS_MD_SHA256 )
+    |MBEDTLS_X509_ID_FLAG( MBEDTLS_MD_SHA384 )
+    |MBEDTLS_X509_ID_FLAG( MBEDTLS_MD_SHA512 ),
     0xFFFFFFF, /* Any PK alg    */
     0xFFFFFFF, /* Any curve     */
     1024,      /* RSA-1024 and larger */
@@ -79,10 +79,10 @@ static const mbedtls_x509_crt_profile openvpn_x509_crt_profile_legacy =
 static const mbedtls_x509_crt_profile openvpn_x509_crt_profile_preferred =
 {
     /* SHA-2 and above */
-    MBEDTLS_X509_ID_FLAG( MBEDTLS_MD_SHA224 ) |
-    MBEDTLS_X509_ID_FLAG( MBEDTLS_MD_SHA256 ) |
-    MBEDTLS_X509_ID_FLAG( MBEDTLS_MD_SHA384 ) |
-    MBEDTLS_X509_ID_FLAG( MBEDTLS_MD_SHA512 ),
+    MBEDTLS_X509_ID_FLAG( MBEDTLS_MD_SHA224 )
+    |MBEDTLS_X509_ID_FLAG( MBEDTLS_MD_SHA256 )
+    |MBEDTLS_X509_ID_FLAG( MBEDTLS_MD_SHA384 )
+    |MBEDTLS_X509_ID_FLAG( MBEDTLS_MD_SHA512 ),
     0xFFFFFFF, /* Any PK alg    */
     0xFFFFFFF, /* Any curve     */
     2048,      /* RSA-2048 and larger */
@@ -232,7 +232,7 @@ tls_ctx_restrict_ciphers_tls13(struct tls_root_ctx *ctx, const char *ciphers)
     }
 
     msg(M_WARN, "mbed TLS does not support setting tls-ciphersuites. "
-                "Ignoring TLS 1.3 cipher list: %s", ciphers);
+        "Ignoring TLS 1.3 cipher list: %s", ciphers);
 }
 
 void
@@ -299,7 +299,7 @@ tls_ctx_set_cert_profile(struct tls_root_ctx *ctx, const char *profile)
     }
     else
     {
-        msg (M_FATAL, "ERROR: Invalid cert profile: %s", profile);
+        msg(M_FATAL, "ERROR: Invalid cert profile: %s", profile);
     }
 }
 
@@ -600,14 +600,14 @@ tls_ctx_use_external_signing_func(struct tls_root_ctx *ctx,
 
     if (ctx->crt_chain == NULL)
     {
-        msg (M_WARN, "ERROR: external key requires a certificate.");
+        msg(M_WARN, "ERROR: external key requires a certificate.");
         return 1;
     }
 
     if (mbedtls_pk_get_type(&ctx->crt_chain->pk) != MBEDTLS_PK_RSA)
     {
         msg(M_WARN, "ERROR: external key with mbed TLS requires a "
-                     "certificate with an RSA key.");
+            "certificate with an RSA key.");
         return 1;
     }
 
@@ -653,8 +653,8 @@ management_sign_func(void *sign_ctx, const void *src, size_t src_len,
 
     ret = true;
 cleanup:
-    free (src_b64);
-    free (dst_b64);
+    free(src_b64);
+    free(dst_b64);
 
     return ret;
 }

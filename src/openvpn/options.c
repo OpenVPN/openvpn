@@ -2140,7 +2140,7 @@ options_postprocess_verify_ce(const struct options *options, const struct connec
             "passwords is STRONGLY discouraged and considered insecure");
     }
 
-#endif
+#endif /* ifdef ENABLE_MANAGEMENT */
 
     /*
      * Windows-specific options.
@@ -2865,8 +2865,10 @@ options_postprocess_mutate_ce(struct options *o, struct connection_entry *ce)
         {
             struct buffer in = buffer_read_from_file(o->tls_auth_file, &o->gc);
             if (!buf_valid(&in))
+            {
                 msg(M_FATAL, "Cannot pre-load tls-auth keyfile (%s)",
                     o->tls_auth_file);
+            }
 
             ce->tls_auth_file = INLINE_FILE_TAG;
             ce->tls_auth_file_inline = (char *)in.data;
@@ -2876,8 +2878,10 @@ options_postprocess_mutate_ce(struct options *o, struct connection_entry *ce)
         {
             struct buffer in = buffer_read_from_file(o->tls_crypt_file, &o->gc);
             if (!buf_valid(&in))
+            {
                 msg(M_FATAL, "Cannot pre-load tls-crypt keyfile (%s)",
                     o->tls_auth_file);
+            }
 
             ce->tls_crypt_file = INLINE_FILE_TAG;
             ce->tls_crypt_inline = (char *)in.data;
@@ -3046,7 +3050,7 @@ options_postprocess_mutate(struct options *o)
     {
         /* DH file is only meaningful in a tls-server context. */
         msg(M_WARN, "WARNING: Ignoring option 'dh' in tls-client mode, please only "
-                    "include this in your server configuration");
+            "include this in your server configuration");
         o->dh_file = NULL;
     }
 
@@ -7169,7 +7173,7 @@ add_option(struct options *options,
         {
             if (strstr(p[2], ":"))
             {
-                ipv6dns=true;
+                ipv6dns = true;
                 foreign_option(options, p, 3, es);
                 dhcp_option_dns6_parse(p[2], o->dns6, &o->dns6_len, msglevel);
             }

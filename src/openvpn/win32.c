@@ -1481,7 +1481,7 @@ send_msg_iservice(HANDLE pipe, const void *data, size_t size,
         || !ReadFile(pipe, ack, sizeof(*ack), &len, NULL))
     {
         msg(M_WARN, "%s: could not talk to service: %s [%lu]",
-            context? context : "Unknown",
+            context ? context : "Unknown",
             strerror_win32(GetLastError(), &gc), GetLastError());
         ret = false;
     }

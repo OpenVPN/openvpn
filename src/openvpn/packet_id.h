@@ -263,7 +263,7 @@ bool packet_id_read(struct packet_id_net *pin, struct buffer *buf, bool long_for
  * @return true if successful, false otherwise.
  */
 bool packet_id_write(struct packet_id_send *p, struct buffer *buf,
-        bool long_form, bool prepend);
+                     bool long_form, bool prepend);
 
 /*
  * Inline functions.

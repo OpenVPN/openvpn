@@ -80,10 +80,12 @@ void check_incoming_control_channel_dowork(struct context *c);
 void check_scheduled_exit_dowork(struct context *c);
 
 void check_push_request_dowork(struct context *c);
+
 #endif /* P2MP */
 
 #ifdef ENABLE_FRAGMENT
 void check_fragment_dowork(struct context *c);
+
 #endif /* ENABLE_FRAGMENT */
 
 void check_connection_established_dowork(struct context *c);

@@ -757,7 +757,7 @@ static void
 process_coarse_timers(struct context *c)
 {
     /* flush current packet-id to file once per 60
-     * seconds if --replay-persist was specified */
+    * seconds if --replay-persist was specified */
     check_packet_id_persist_flush(c);
 
     /* should we update status file? */
@@ -836,7 +836,7 @@ check_coarse_timers_dowork(struct context *c)
     process_coarse_timers(c);
     c->c2.coarse_timer_wakeup = now + c->c2.timeval.tv_sec;
 
-    dmsg(D_INTERVAL, "TIMER: coarse timer wakeup %"PRIi64" seconds", (int64_t)c->c2.timeval.tv_sec);
+    dmsg(D_INTERVAL, "TIMER: coarse timer wakeup %" PRIi64 " seconds", (int64_t)c->c2.timeval.tv_sec);
 
     /* Is the coarse timeout NOT the earliest one? */
     if (c->c2.timeval.tv_sec > save.tv_sec)

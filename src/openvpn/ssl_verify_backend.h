@@ -130,6 +130,7 @@ result_t backend_x509_get_username(char *common_name, int cn_len,
  * --x509-username-field option.
  */
 bool x509_username_field_ext_supported(const char *extname);
+
 #endif
 
 /*

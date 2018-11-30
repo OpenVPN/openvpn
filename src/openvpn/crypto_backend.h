@@ -51,7 +51,7 @@
 typedef enum {
     MD_SHA1,
     MD_SHA256
-} hash_algo_type ;
+} hash_algo_type;
 
 /** Struct used in cipher name translation table */
 typedef struct {

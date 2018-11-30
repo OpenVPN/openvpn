@@ -72,7 +72,7 @@ setenv_untrusted(struct tls_session *session)
 static void
 wipe_auth_token(struct tls_multi *multi)
 {
-    if(multi)
+    if (multi)
     {
         if (multi->auth_token)
         {
@@ -712,24 +712,24 @@ verify_cert(struct tls_session *session, openvpn_x509_cert_t *cert, int cert_dep
 
         switch (opt->verify_hash_algo)
         {
-        case MD_SHA1:
-            ca_hash = x509_get_sha1_fingerprint(cert, &gc);
-            break;
+            case MD_SHA1:
+                ca_hash = x509_get_sha1_fingerprint(cert, &gc);
+                break;
 
-        case MD_SHA256:
-            ca_hash = x509_get_sha256_fingerprint(cert, &gc);
-            break;
+            case MD_SHA256:
+                ca_hash = x509_get_sha256_fingerprint(cert, &gc);
+                break;
 
-        default:
-            /* This should normally not happen at all; the algorithm used
-             * is parsed by add_option() [options.c] and set to a predefined
-             * value in an enumerated type.  So if this unlikely scenario
-             * happens, consider this a failure
-             */
-            msg(M_WARN, "Unexpected invalid algorithm used with "
-                "--verify-hash (%i)", opt->verify_hash_algo);
-            ret = FAILURE;
-            goto cleanup;
+            default:
+                /* This should normally not happen at all; the algorithm used
+                 * is parsed by add_option() [options.c] and set to a predefined
+                 * value in an enumerated type.  So if this unlikely scenario
+                 * happens, consider this a failure
+                 */
+                msg(M_WARN, "Unexpected invalid algorithm used with "
+                    "--verify-hash (%i)", opt->verify_hash_algo);
+                ret = FAILURE;
+                goto cleanup;
         }
 
         if (memcmp(BPTR(&ca_hash), opt->verify_hash, BLEN(&ca_hash)))
@@ -1178,8 +1178,8 @@ verify_user_pass_plugin(struct tls_session *session, const struct user_pass *up)
         /* generate filename for deferred auth control file */
         if (!key_state_gen_auth_control_file(ks, session->opt))
         {
-            msg (D_TLS_ERRORS, "TLS Auth Error (%s): "
-                 "could not create deferred auth control file", __func__);
+            msg(D_TLS_ERRORS, "TLS Auth Error (%s): "
+                "could not create deferred auth control file", __func__);
             goto cleanup;
         }
 #endif

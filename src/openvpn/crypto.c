@@ -920,10 +920,12 @@ key_is_zero(struct key *key, const struct key_type *kt)
 {
     int i;
     for (i = 0; i < kt->cipher_length; ++i)
+    {
         if (key->cipher[i])
         {
             return false;
         }
+    }
     msg(D_CRYPT_ERRORS, "CRYPTO INFO: WARNING: zero key detected");
     return true;
 }
@@ -1270,7 +1272,9 @@ read_key_file(struct key2 *key2, const char *file, const unsigned int flags)
     {
         in = buffer_read_from_file(file, &gc);
         if (!buf_valid(&in))
+        {
             msg(M_FATAL, "Read error on key file ('%s')", file);
+        }
 
         size = in.len;
     }
@@ -1462,7 +1466,7 @@ write_key_file(const int nkeys, const char *filename)
     buf_printf(&out, "%s\n", static_key_foot);
 
     /* write key file, now formatted in out, to file */
-    if(!buffer_write_file(filename, &out))
+    if (!buffer_write_file(filename, &out))
     {
         nbits = -1;
     }
@@ -1692,7 +1696,9 @@ prng_reset_nonce(void)
     {
         int i;
         for (i = 0; i < size; ++i)
+        {
             nonce_data[i] = (uint8_t) i;
+        }
     }
 #endif
 }
@@ -1773,7 +1779,7 @@ void
 print_cipher(const cipher_kt_t *cipher)
 {
     const char *var_key_size = cipher_kt_var_key_size(cipher) ?
-        " by default" : "";
+                               " by default" : "";
 
     printf("%s  (%d bit key%s, ",
            translate_cipher_name_to_openvpn(cipher_kt_name(cipher)),

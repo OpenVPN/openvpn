@@ -86,7 +86,7 @@ tls_crypt_init_key(struct key_ctx_bi *key, const char *key_file,
     struct key_type kt = tls_crypt_kt();
     if (!kt.cipher || !kt.digest)
     {
-        msg (M_FATAL, "ERROR: --tls-crypt not supported");
+        msg(M_FATAL, "ERROR: --tls-crypt not supported");
     }
     crypto_read_openvpn_key(&kt, key, key_file, key_inline, key_direction,
                             "Control Channel Encryption", "tls-crypt");
@@ -530,7 +530,7 @@ tls_crypt_v2_unwrap_client_key(struct key2 *client_key, struct buffer *metadata,
     memcpy(&client_key->keys, BPTR(&plaintext), sizeof(client_key->keys));
     ASSERT(buf_advance(&plaintext, sizeof(client_key->keys)));
 
-    if(!buf_copy(metadata, &plaintext))
+    if (!buf_copy(metadata, &plaintext))
     {
         CRYPT_ERROR("metadata too large for supplied buffer");
     }
@@ -613,7 +613,7 @@ tls_crypt_v2_extract_client_key(struct buffer *buf,
     if (!ctx->tls_crypt_v2_server_key.cipher)
     {
         msg(D_TLS_ERRORS,
-             "Client wants tls-crypt-v2, but no server key present.");
+            "Client wants tls-crypt-v2, but no server key present.");
         return false;
     }
 

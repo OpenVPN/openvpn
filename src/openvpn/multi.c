@@ -2394,7 +2394,7 @@ multi_process_post(struct multi_context *m, struct multi_instance *mi, const uns
         multi_set_pending(m, ANY_OUT(&mi->context) ? mi : NULL);
 
 #ifdef MULTI_DEBUG_EVENT_LOOP
-        printf("POST %s[%d] to=%d lo=%d/%d w=%"PRIi64"/%ld\n",
+        printf("POST %s[%d] to=%d lo=%d/%d w=%" PRIi64 "/%ld\n",
                id(mi),
                (int) (mi == m->pending),
                mi ? mi->context.c2.to_tun.len : -1,

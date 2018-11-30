@@ -193,8 +193,8 @@ X509_get0_pubkey(const X509 *x)
  * @param store              X509 object store
  * @return                   the X509 object stack
  */
-static inline STACK_OF(X509_OBJECT) *
-X509_STORE_get0_objects(X509_STORE *store)
+static inline STACK_OF(X509_OBJECT)
+*X509_STORE_get0_objects(X509_STORE *store)
 {
     return store ? store->objs : NULL;
 }
@@ -369,7 +369,7 @@ RSA_set0_key(RSA *rsa, BIGNUM *n, BIGNUM *e, BIGNUM *d)
 
     return 1;
 }
-#endif
+#endif /* if !defined(HAVE_RSA_SET0_KEY) */
 
 #if !defined(HAVE_RSA_BITS)
 /**
@@ -483,9 +483,9 @@ RSA_meth_free(RSA_METHOD *meth)
  */
 static inline int
 RSA_meth_set_pub_enc(RSA_METHOD *meth,
-                     int (*pub_enc) (int flen, const unsigned char *from,
-                                     unsigned char *to, RSA *rsa,
-                                     int padding))
+                     int (*pub_enc)(int flen, const unsigned char *from,
+                                    unsigned char *to, RSA *rsa,
+                                    int padding))
 {
     if (meth)
     {
@@ -506,9 +506,9 @@ RSA_meth_set_pub_enc(RSA_METHOD *meth,
  */
 static inline int
 RSA_meth_set_pub_dec(RSA_METHOD *meth,
-                     int (*pub_dec) (int flen, const unsigned char *from,
-                                     unsigned char *to, RSA *rsa,
-                                     int padding))
+                     int (*pub_dec)(int flen, const unsigned char *from,
+                                    unsigned char *to, RSA *rsa,
+                                    int padding))
 {
     if (meth)
     {
@@ -529,9 +529,9 @@ RSA_meth_set_pub_dec(RSA_METHOD *meth,
  */
 static inline int
 RSA_meth_set_priv_enc(RSA_METHOD *meth,
-                      int (*priv_enc) (int flen, const unsigned char *from,
-                                       unsigned char *to, RSA *rsa,
-                                       int padding))
+                      int (*priv_enc)(int flen, const unsigned char *from,
+                                      unsigned char *to, RSA *rsa,
+                                      int padding))
 {
     if (meth)
     {
@@ -552,9 +552,9 @@ RSA_meth_set_priv_enc(RSA_METHOD *meth,
  */
 static inline int
 RSA_meth_set_priv_dec(RSA_METHOD *meth,
-                      int (*priv_dec) (int flen, const unsigned char *from,
-                                       unsigned char *to, RSA *rsa,
-                                       int padding))
+                      int (*priv_dec)(int flen, const unsigned char *from,
+                                      unsigned char *to, RSA *rsa,
+                                      int padding))
 {
     if (meth)
     {
@@ -574,7 +574,7 @@ RSA_meth_set_priv_dec(RSA_METHOD *meth,
  * @return                   1 on success, 0 on error
  */
 static inline int
-RSA_meth_set_init(RSA_METHOD *meth, int (*init) (RSA *rsa))
+RSA_meth_set_init(RSA_METHOD *meth, int (*init)(RSA *rsa))
 {
     if (meth)
     {
@@ -594,11 +594,12 @@ RSA_meth_set_init(RSA_METHOD *meth, int (*init) (RSA *rsa))
  * @return                   1 on success, 0 on error
  */
 static inline
-int RSA_meth_set_sign(RSA_METHOD *meth,
-                      int (*sign) (int type, const unsigned char *m,
-                                   unsigned int m_length,
-                                   unsigned char *sigret, unsigned int *siglen,
-                                   const RSA *rsa))
+int
+RSA_meth_set_sign(RSA_METHOD *meth,
+                  int (*sign)(int type, const unsigned char *m,
+                              unsigned int m_length,
+                              unsigned char *sigret, unsigned int *siglen,
+                              const RSA *rsa))
 {
     meth->rsa_sign = sign;
     return 1;
@@ -614,7 +615,7 @@ int RSA_meth_set_sign(RSA_METHOD *meth,
  * @return                   1 on success, 0 on error
  */
 static inline int
-RSA_meth_set_finish(RSA_METHOD *meth, int (*finish) (RSA *rsa))
+RSA_meth_set_finish(RSA_METHOD *meth, int (*finish)(RSA *rsa))
 {
     if (meth)
     {
@@ -669,7 +670,7 @@ RSA_meth_get0_app_data(const RSA_METHOD *meth)
 static inline int
 EC_GROUP_order_bits(const EC_GROUP *group)
 {
-    BIGNUM* order = BN_new();
+    BIGNUM *order = BN_new();
     EC_GROUP_get_order(group, order, NULL);
     int bits = BN_num_bits(order);
     BN_free(order);

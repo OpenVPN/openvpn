@@ -537,6 +537,7 @@ clear_prefix(void)
 #define MULTI_CACHE_ROUTE_TTL 60
 
 void multi_reap_process_dowork(const struct multi_context *m);
+
 void multi_process_per_second_timers_dowork(struct multi_context *m);
 
 static inline void

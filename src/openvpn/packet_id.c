@@ -347,7 +347,7 @@ packet_id_send_update(struct packet_id_send *p, bool long_form)
 
 bool
 packet_id_write(struct packet_id_send *p, struct buffer *buf, bool long_form,
-        bool prepend)
+                bool prepend)
 {
     if (!packet_id_send_update(p, long_form))
     {
@@ -606,13 +606,13 @@ packet_id_debug_print(int msglevel,
         }
         buf_printf(&out, "%c", c);
     }
-    buf_printf(&out, "] %"PRIi64":" packet_id_format, (int64_t)p->time, (packet_id_print_type)p->id);
+    buf_printf(&out, "] %" PRIi64 ":" packet_id_format, (int64_t)p->time, (packet_id_print_type)p->id);
     if (pin)
     {
-        buf_printf(&out, " %"PRIi64":" packet_id_format, (int64_t)pin->time, (packet_id_print_type)pin->id);
+        buf_printf(&out, " %" PRIi64 ":" packet_id_format, (int64_t)pin->time, (packet_id_print_type)pin->id);
     }
 
-    buf_printf(&out, " t=%"PRIi64"[%d]",
+    buf_printf(&out, " t=%" PRIi64 "[%d]",
                (int64_t)prev_now,
                (int)(prev_now - tv.tv_sec));
 
@@ -666,7 +666,7 @@ packet_id_interactive_test(void)
         {
             packet_id_reap_test(&pid.rec);
             test = packet_id_test(&pid.rec, &pin);
-            printf("packet_id_test (%"PRIi64", " packet_id_format ") returned %d\n",
+            printf("packet_id_test (%" PRIi64 ", " packet_id_format ") returned %d\n",
                    (int64_t)pin.time,
                    (packet_id_print_type)pin.id,
                    test);
@@ -679,7 +679,7 @@ packet_id_interactive_test(void)
         {
             long_form = (count < 20);
             packet_id_alloc_outgoing(&pid.send, &pin, long_form);
-            printf("(%"PRIi64"(" packet_id_format "), %d)\n",
+            printf("(%" PRIi64 "(" packet_id_format "), %d)\n",
                    (int64_t)pin.time,
                    (packet_id_print_type)pin.id,
                    long_form);

@@ -65,5 +65,5 @@ DWORD
 set_interface_metric(const NET_IFINDEX index, const ADDRESS_FAMILY family,
                      const ULONG metric);
 
-#endif
-#endif
+#endif /* ifndef OPENVPN_BLOCK_DNS_H */
+#endif /* ifdef _WIN32 */

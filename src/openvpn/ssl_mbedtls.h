@@ -71,8 +71,8 @@ typedef struct {
  * @return true if signing succeeded, false otherwise.
  */
 typedef bool (*external_sign_func)(
-        void *sign_ctx, const void *src, size_t src_size,
-        void *dst, size_t dst_size);
+    void *sign_ctx, const void *src, size_t src_size,
+    void *dst, size_t dst_size);
 
 /** Context used by external_pkcs1_sign() */
 struct external_context {
