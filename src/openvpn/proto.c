@@ -98,6 +98,58 @@ is_ipv6(int tunnel_type, struct buffer *buf)
     return is_ipv_X( tunnel_type, buf, 6 );
 }
 
+
+uint16_t
+ip_checksum(const sa_family_t af, const uint8_t *payload, const int len_payload,
+            const uint8_t *src_addr, const uint8_t *dest_addr, const int proto)
+{
+    uint32_t sum = 0;
+    int addr_len = (af == AF_INET) ? 4 : 16;
+
+    /*
+     * make 16 bit words out of every two adjacent 8 bit words and  */
+    /* calculate the sum of all 16 bit words
+     */
+    for (int i = 0; i < len_payload; i += 2)
+    {
+        sum +=  (uint16_t)(((payload[i] << 8) & 0xFF00)
+                           +((i + 1 < len_payload) ? (payload[i + 1] & 0xFF) : 0));
+
+    }
+
+    /*
+     * add the pseudo header which contains the IP source and destination
+     * addresses
+     */
+    for (int i = 0; i < addr_len; i += 2)
+    {
+        sum += (uint16_t)((src_addr[i] << 8) & 0xFF00) + (src_addr[i + 1] & 0xFF);
+
+    }
+    for (int i = 0; i < addr_len; i += 2)
+    {
+        sum += (uint16_t)((dest_addr[i] << 8) & 0xFF00) + (dest_addr[i + 1] & 0xFF);
+    }
+
+    /* the length of the payload */
+    sum += (uint16_t)len_payload;
+
+    /* The next header or proto field*/
+    sum += (uint16_t)proto;
+
+    /*
+     * keep only the last 16 bits of the 32 bit calculated sum and add
+     * the carries
+     */
+    while (sum >> 16)
+    {
+        sum = (sum & 0xFFFF) + (sum >> 16);
+    }
+
+    /* Take the one's complement of sum */
+    return ((uint16_t) ~sum);
+}
+
 #ifdef PACKET_TRUNCATION_CHECK
 
 void

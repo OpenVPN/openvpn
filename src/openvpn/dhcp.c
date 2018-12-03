@@ -147,49 +147,6 @@ do_extract(struct dhcp *dhcp, int optlen)
     return ret;
 }
 
-static uint16_t
-udp_checksum(const uint8_t *buf,
-             const int len_udp,
-             const uint8_t *src_addr,
-             const uint8_t *dest_addr)
-{
-    uint16_t word16;
-    uint32_t sum = 0;
-    int i;
-
-    /* make 16 bit words out of every two adjacent 8 bit words and  */
-    /* calculate the sum of all 16 bit words */
-    for (i = 0; i < len_udp; i += 2)
-    {
-        word16 = ((buf[i] << 8) & 0xFF00) + ((i + 1 < len_udp) ? (buf[i+1] & 0xFF) : 0);
-        sum += word16;
-    }
-
-    /* add the UDP pseudo header which contains the IP source and destination addresses */
-    for (i = 0; i < 4; i += 2)
-    {
-        word16 = ((src_addr[i] << 8) & 0xFF00) + (src_addr[i+1] & 0xFF);
-        sum += word16;
-    }
-    for (i = 0; i < 4; i += 2)
-    {
-        word16 = ((dest_addr[i] << 8) & 0xFF00) + (dest_addr[i+1] & 0xFF);
-        sum += word16;
-    }
-
-    /* the protocol number and the length of the UDP packet */
-    sum += (uint16_t) OPENVPN_IPPROTO_UDP + (uint16_t) len_udp;
-
-    /* keep only the last 16 bits of the 32 bit calculated sum and add the carries */
-    while (sum >> 16)
-    {
-        sum = (sum & 0xFFFF) + (sum >> 16);
-    }
-
-    /* Take the one's complement of sum */
-    return ((uint16_t) ~sum);
-}
-
 in_addr_t
 dhcp_extract_router_msg(struct buffer *ipbuf)
 {
@@ -210,10 +167,10 @@ dhcp_extract_router_msg(struct buffer *ipbuf)
 
             /* recompute the UDP checksum */
             df->udp.check = 0;
-            df->udp.check = htons(udp_checksum((uint8_t *) &df->udp,
-                                               sizeof(struct openvpn_udphdr) + sizeof(struct dhcp) + optlen,
-                                               (uint8_t *)&df->ip.saddr,
-                                               (uint8_t *)&df->ip.daddr));
+            df->udp.check = htons(ip_checksum(AF_INET, (uint8_t *)&df->udp,
+                                              sizeof(struct openvpn_udphdr) + sizeof(struct dhcp) + optlen,
+                                              (uint8_t *)&df->ip.saddr, (uint8_t *)&df->ip.daddr,
+                                              OPENVPN_IPPROTO_UDP));
 
             /* only return the extracted Router address if DHCPACK */
             if (message_type == DHCPACK)

@@ -350,6 +350,7 @@ struct options
     bool route_delay_defined;
     struct route_option_list *routes;
     struct route_ipv6_option_list *routes_ipv6;                 /* IPv6 */
+    bool block_ipv6;
     bool route_nopull;
     bool route_gateway_via_dhcp;
     bool allow_pull_fqdn; /* as a client, allow server to push a FQDN for certain parameters */

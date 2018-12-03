@@ -1243,6 +1243,43 @@ Like \-\-redirect\-gateway, but omit actually changing the default
 gateway.  Useful when pushing private subnets.
 .\"*********************************************************
 .TP
+.B \-\-block\-ipv6
+On the client, instead of sending IPv6 packets over the VPN tunnel, all
+IPv6 packets are answered with an ICMPv6 no route host message. On the
+server, all IPv6 packets from clients are answered with an ICMPv6
+no route to host message. This options is intended for cases when IPv6
+should be blocked and other options are not available.
+\.B \-\-block\-ipv6
+will use the remote IPv6 as source address of the ICMPv6 packets if set,
+otherwise will use fe80::7 as source address.
+
+For this option to make sense you actually have to route traffic to the tun
+interface. The following example config block would send all IPv6 traffic to
+OpenVPN and answer all requests with no route to host, effectively blocking
+IPv6.
+
+# client config
+.br
+.B \-\-ifconfig-ipv6
+fd15:53b6:dead::2/64  fd15:53b6:dead::1
+.br
+.B \-\-redirect\-gateway
+ipv6
+.br
+.B \-\-block\-ipv6
+
+# Server config, push a "valid" ipv6 config to the client and block
+# on the server
+.br
+.B \-\-push
+"ifconfig-ipv6 fd15:53b6:dead::2/64  fd15:53b6:dead::1"
+.br
+.B \-\-push
+"redirect\-gateway ipv6"
+.br
+.B \-\-block\-ipv6
+.\"*********************************************************
+.TP
 .B \-\-tun\-mtu n
 Take the TUN device MTU to be
 .B n
