@@ -448,11 +448,6 @@ init_route_ipv6(struct route_ipv6 *r6,
     {
         r6->gateway = rl6->remote_endpoint_ipv6;
     }
-    else
-    {
-        msg(M_WARN, PACKAGE_NAME " ROUTE6: " PACKAGE_NAME " needs a gateway parameter for a --route-ipv6 option and no default was specified by either --route-ipv6-gateway or --ifconfig-ipv6 options");
-        goto fail;
-    }
 
     /* metric */
 
@@ -1917,6 +1912,16 @@ add_route_ipv6(struct route_ipv6 *r6, const struct tuntap *tt, unsigned int flag
         gateway_needed = true;
     }
 
+    if (gateway_needed && IN6_IS_ADDR_UNSPECIFIED(&r6->gateway))
+    {
+        msg(M_WARN, "ROUTE6 WARNING: " PACKAGE_NAME " needs a gateway "
+            "parameter for a --route-ipv6 option and no default was set via "
+            "--ifconfig-ipv6 or --route-ipv6-gateway option.  Not installing "
+            "IPv6 route to %s/%d.", network, r6->netbits);
+        status = false;
+        goto done;
+    }
+
 #if defined(TARGET_LINUX)
 #ifdef ENABLE_IPROUTE
     argv_printf(&argv, "%s -6 route add %s/%d dev %s",
@@ -2114,6 +2119,7 @@ add_route_ipv6(struct route_ipv6 *r6, const struct tuntap *tt, unsigned int flag
     msg(M_FATAL, "Sorry, but I don't know how to do 'route ipv6' commands on this operating system.  Try putting your routes in a --route-up script");
 #endif /* if defined(TARGET_LINUX) */
 
+done:
     if (status)
     {
         r6->flags |= RT_ADDED;
