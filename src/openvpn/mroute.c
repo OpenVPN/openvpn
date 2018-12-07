@@ -477,6 +477,13 @@ mroute_addr_print_ex(const struct mroute_addr *ma,
                 {
                     buf_printf(&out, "%s", print_in_addr_t(maddr.v4mappedv6.addr,
                                                            IA_NET_ORDER, gc));
+                    /* we only print port numbers for v4mapped v6 as of
+                     * today, because "v6addr:port" is too ambiguous
+                     */
+                    if (maddr.type & MR_WITH_PORT)
+                    {
+                        buf_printf(&out, ":%d", ntohs(maddr.v6.port));
+                    }
                 }
                 else
                 {
