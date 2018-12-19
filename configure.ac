@@ -298,6 +298,7 @@ case "$host" in
 	*-*-linux*)
 		AC_DEFINE([TARGET_LINUX], [1], [Are we running on Linux?])
 		AC_DEFINE_UNQUOTED([TARGET_PREFIX], ["L"], [Target prefix])
+		have_sitnl="yes"
 		;;
 	*-*-solaris*)
 		AC_DEFINE([TARGET_SOLARIS], [1], [Are we running on Solaris?])
@@ -1226,11 +1227,13 @@ fi
 if test "${enable_iproute2}" = "yes"; then
 	test -z "${IPROUTE}" && AC_MSG_ERROR([ip utility is required but missing])
 	AC_DEFINE([ENABLE_IPROUTE], [1], [enable iproute2 support])
-else
-	if test "${WIN32}" != "yes"; then
-		test -z "${ROUTE}" && AC_MSG_ERROR([route utility is required but missing])
-		test -z "${IFCONFIG}" && AC_MSG_ERROR([ifconfig utility is required but missing])
-	fi
+else if test "${have_sitnl}" = "yes"; then
+	AC_DEFINE([ENABLE_SITNL], [1], [enable sitnl support])
+else if test "${WIN32}" != "yes" -a "${have_sitnl}" != "yes"; then
+	test -z "${ROUTE}" && AC_MSG_ERROR([route utility is required but missing])
+	test -z "${IFCONFIG}" && AC_MSG_ERROR([ifconfig utility is required but missing])
+fi
+fi
 fi
 
 if test "${enable_selinux}" = "yes"; then

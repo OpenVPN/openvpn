@@ -80,7 +80,9 @@ openvpn_SOURCES = \
 	mtu.c mtu.h \
 	mudp.c mudp.h \
 	multi.c multi.h \
-	networking_iproute2.c networking_iproute2.h networking.h \
+	networking_iproute2.c networking_iproute2.h \
+	networking_sitnl.c networking_sitnl.h \
+	networking.h \
 	ntlm.c ntlm.h \
 	occ.c occ.h \
 	openssl_compat.h \
