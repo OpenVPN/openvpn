@@ -289,11 +289,11 @@ FindSystemInfo(_In_ MSIHANDLE hInstall)
         }
     }
 
-    uiResult = MsiSetProperty(hInstall, TEXT("DriverCertification"), ver_info.dwMajorVersion >= 10 ? ver_info.wProductType > VER_NT_WORKSTATION ? TEXT("whql") : TEXT("attsgn") : TEXT(""));
+    uiResult = MsiSetProperty(hInstall, TEXT("DRIVERCERTIFICATION"), ver_info.dwMajorVersion >= 10 ? ver_info.wProductType > VER_NT_WORKSTATION ? TEXT("whql") : TEXT("attsgn") : TEXT(""));
     if (uiResult != ERROR_SUCCESS)
     {
         SetLastError(uiResult); /* MSDN does not mention MsiSetProperty() to set GetLastError(). But we do have an error code. Set last error manually. */
-        msg(M_NONFATAL | M_ERRNO, "%s: MsiSetProperty(\"TAPINTERFACES\") failed", __FUNCTION__);
+        msg(M_NONFATAL | M_ERRNO, "%s: MsiSetProperty(\"DRIVERCERTIFICATION\") failed", __FUNCTION__);
         goto cleanup_CoInitialize;
     }
 
