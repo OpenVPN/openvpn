@@ -42,10 +42,11 @@ DWORD openvpnmsica_tlsidx_session = TLS_OUT_OF_INDEXES;
 /**
  * DLL entry point
  */
-BOOL WINAPI DllMain(
+BOOL WINAPI
+DllMain(
     _In_ HINSTANCE hinstDLL,
-    _In_ DWORD     dwReason,
-    _In_ LPVOID    lpReserved)
+    _In_ DWORD dwReason,
+    _In_ LPVOID lpReserved)
 {
     UNREFERENCED_PARAMETER(hinstDLL);
     UNREFERENCED_PARAMETER(lpReserved);
@@ -56,13 +57,15 @@ BOOL WINAPI DllMain(
             /* Allocate TLS index. */
             openvpnmsica_tlsidx_session = TlsAlloc();
             if (openvpnmsica_tlsidx_session == TLS_OUT_OF_INDEXES)
+            {
                 return FALSE;
-            /* Fall through. */
+            }
+        /* Fall through. */
 
         case DLL_THREAD_ATTACH:
         {
             /* Create TLS data. */
-            struct openvpnmsica_tls_data *s = (struct openvpnmsica_tls_data*)malloc(sizeof(struct openvpnmsica_tls_data));
+            struct openvpnmsica_tls_data *s = (struct openvpnmsica_tls_data *)malloc(sizeof(struct openvpnmsica_tls_data));
             memset(s, 0, sizeof(struct openvpnmsica_tls_data));
             TlsSetValue(openvpnmsica_tlsidx_session, s);
             break;
@@ -124,7 +127,7 @@ x_msg_va(const unsigned int flags, const char *format, va_list arglist)
         else
         {
             /* Allocate on heap and retry. */
-            char *szMessage = (char*)malloc(++iResultLen * sizeof(char));
+            char *szMessage = (char *)malloc(++iResultLen * sizeof(char));
             vsnprintf(szMessage, iResultLen, format, arglist);
             MsiRecordSetStringA(hRecordProg, 2, szMessage);
             free(szMessage);
@@ -147,21 +150,23 @@ x_msg_va(const unsigned int flags, const char *format, va_list arglist)
         /* Field 4: The Windows error description. */
         LPTSTR szErrMessage = NULL;
         if (FormatMessage(
-            FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_IGNORE_INSERTS,
-            0,
-            dwResult,
-            0,
-            (LPTSTR)&szErrMessage,
-            0,
-            NULL) && szErrMessage)
+                FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_IGNORE_INSERTS,
+                0,
+                dwResult,
+                0,
+                (LPTSTR)&szErrMessage,
+                0,
+                NULL) && szErrMessage)
         {
             /* Trim trailing whitespace. Set terminator after the last non-whitespace character. This prevents excessive trailing line breaks. */
-            for (size_t i = 0, i_last = 0; ; i++)
+            for (size_t i = 0, i_last = 0;; i++)
             {
                 if (szErrMessage[i])
                 {
                     if (!_istspace(szErrMessage[i]))
+                    {
                         i_last = i + 1;
+                    }
                 }
                 else
                 {

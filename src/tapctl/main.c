@@ -62,7 +62,7 @@ static const TCHAR usage_message[] =
     TEXT("help       Display this text\n")
     TEXT("\n")
     TEXT("Hint: Use \"tapctl help <command>\" to display help for particular command.\n")
-    ;
+;
 
 static const TCHAR usage_message_create[] =
     TEXT("%s\n")
@@ -84,7 +84,7 @@ static const TCHAR usage_message_create[] =
     TEXT("Output:\n")
     TEXT("\n")
     TEXT("This command prints newly created TUN/TAP interface's GUID to stdout.          \n")
-    ;
+;
 
 static const TCHAR usage_message_list[] =
     TEXT("%s\n")
@@ -98,7 +98,7 @@ static const TCHAR usage_message_list[] =
     TEXT("Output:\n")
     TEXT("\n")
     TEXT("This command prints all network interfaces to stdout.                          \n")
-    ;
+;
 
 static const TCHAR usage_message_delete[] =
     TEXT("%s\n")
@@ -108,7 +108,7 @@ static const TCHAR usage_message_delete[] =
     TEXT("Usage:\n")
     TEXT("\n")
     TEXT("tapctl delete <interface GUID | interface name>\n")
-    ;
+;
 
 
 /**
@@ -118,8 +118,8 @@ static void
 usage(void)
 {
     _ftprintf(stderr,
-        usage_message,
-        title_string);
+              usage_message,
+              title_string);
 }
 
 
@@ -144,15 +144,25 @@ _tmain(int argc, LPCTSTR argv[])
     {
         /* Output help. */
         if (argc < 3)
+        {
             usage();
+        }
         else if (_tcsicmp(argv[2], TEXT("create")) == 0)
+        {
             _ftprintf(stderr, usage_message_create, title_string);
+        }
         else if (_tcsicmp(argv[2], TEXT("list")) == 0)
+        {
             _ftprintf(stderr, usage_message_list, title_string);
+        }
         else if (_tcsicmp(argv[2], TEXT("delete")) == 0)
+        {
             _ftprintf(stderr, usage_message_delete, title_string);
+        }
         else
+        {
             _ftprintf(stderr, TEXT("Unknown command \"%s\". Please, use \"tapctl help\" to list supported commands.\n"), argv[2]);
+        }
 
         return 1;
     }
@@ -164,9 +174,13 @@ _tmain(int argc, LPCTSTR argv[])
         for (int i = 2; i < argc; i++)
         {
             if (_tcsicmp(argv[i], TEXT("--name")) == 0)
+            {
                 szName = argv[++i];
+            }
             else
+            {
                 _ftprintf(stderr, TEXT("Unknown option \"%s\". Please, use \"tapctl help create\" to list supported options. Ignored.\n"), argv[i]);
+            }
         }
 
         /* Create TUN/TAP interface. */
@@ -218,10 +232,12 @@ _tmain(int argc, LPCTSTR argv[])
 
             iResult = 0;
 
-        create_cleanup_pInterfaceList:
+create_cleanup_pInterfaceList:
             tap_free_interface_list(pInterfaceList);
             if (iResult)
+            {
                 goto create_delete_interface;
+            }
         }
 
         /* Output interface GUID. */
@@ -231,7 +247,7 @@ _tmain(int argc, LPCTSTR argv[])
 
         iResult = 0; goto quit;
 
-    create_delete_interface:
+create_delete_interface:
         tap_delete_interface(
             NULL,
             &guidInterface,
@@ -280,7 +296,7 @@ _tmain(int argc, LPCTSTR argv[])
                 iResult = 1; goto quit;
             }
 
-            for (struct tap_interface_node *pInterface = pInterfaceList; ; pInterface = pInterface->pNext)
+            for (struct tap_interface_node *pInterface = pInterfaceList;; pInterface = pInterface->pNext)
             {
                 if (pInterface == NULL)
                 {
@@ -296,10 +312,12 @@ _tmain(int argc, LPCTSTR argv[])
 
             iResult = 0;
 
-        delete_cleanup_pInterfaceList:
+delete_cleanup_pInterfaceList:
             tap_free_interface_list(pInterfaceList);
             if (iResult)
+            {
                 goto quit;
+            }
         }
 
         /* Delete the network interface. */
@@ -323,7 +341,9 @@ _tmain(int argc, LPCTSTR argv[])
 
 quit:
     if (bRebootRequired)
+    {
         _ftprintf(stderr, TEXT("A system reboot is required.\n"));
+    }
 
     return iResult;
 }
@@ -351,21 +371,23 @@ x_msg_va(const unsigned int flags, const char *format, va_list arglist)
         DWORD dwResult = GetLastError();
         LPTSTR szErrMessage = NULL;
         if (FormatMessage(
-            FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_IGNORE_INSERTS,
-            0,
-            dwResult,
-            0,
-            (LPTSTR)&szErrMessage,
-            0,
-            NULL) && szErrMessage)
+                FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_IGNORE_INSERTS,
+                0,
+                dwResult,
+                0,
+                (LPTSTR)&szErrMessage,
+                0,
+                NULL) && szErrMessage)
         {
             /* Trim trailing whitespace. Set terminator after the last non-whitespace character. This prevents excessive trailing line breaks. */
-            for (size_t i = 0, i_last = 0; ; i++)
+            for (size_t i = 0, i_last = 0;; i++)
             {
                 if (szErrMessage[i])
                 {
                     if (!_istspace(szErrMessage[i]))
+                    {
                         i_last = i + 1;
+                    }
                 }
                 else
                 {
@@ -380,6 +402,8 @@ x_msg_va(const unsigned int flags, const char *format, va_list arglist)
             LocalFree(szErrMessage);
         }
         else
+        {
             _ftprintf(stderr, TEXT("Error 0x%x\n"), dwResult);
+        }
     }
 }

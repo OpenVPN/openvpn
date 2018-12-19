@@ -25,9 +25,9 @@
 #include "../tapctl/basic.h"
 
 
- /*
-  * Error codes (next unused 2552L)
-  */
+/*
+ * Error codes (next unused 2552L)
+ */
 #define ERROR_MSICA       2550L
 #define ERROR_MSICA_ERRNO 2551L
 
@@ -59,7 +59,7 @@ extern "C" {
 #define DLLEXP_DECL __declspec(dllexport)
 #else
 #define DLLEXP_DECL
-#define DLLEXP_EXPORT "/EXPORT:"__FUNCTION__"="__FUNCDNAME__
+#define DLLEXP_EXPORT "/EXPORT:" __FUNCTION__ "=" __FUNCDNAME__
 #endif
 
 
@@ -144,4 +144,4 @@ ProcessDeferredAction(_In_ MSIHANDLE hInstall);
 }
 #endif
 
-#endif
+#endif /* ifndef MSICA_H */

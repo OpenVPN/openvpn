@@ -120,12 +120,12 @@ struct msica_op_bool
  *                      released using free() after use. The function returns a pointer to
  *                      msica_op to reduce type-casting in code.
  */
-struct msica_op*
+struct msica_op *
 msica_op_create_bool(
-    _In_     enum msica_op_type  type,
-    _In_     int                 ticks,
-    _In_opt_ struct msica_op    *next,
-    _In_     bool                value);
+    _In_ enum msica_op_type type,
+    _In_ int ticks,
+    _In_opt_ struct msica_op *next,
+    _In_ bool value);
 
 
 /**
@@ -153,12 +153,12 @@ struct msica_op_string
  *                      released using free() after use. The function returns a pointer to
  *                      msica_op to reduce type-casting in code.
  */
-struct msica_op*
+struct msica_op *
 msica_op_create_string(
-    _In_     enum msica_op_type  type,
-    _In_     int                 ticks,
-    _In_opt_ struct msica_op    *next,
-    _In_z_   LPCTSTR             value);
+    _In_ enum msica_op_type type,
+    _In_ int ticks,
+    _In_opt_ struct msica_op *next,
+    _In_z_ LPCTSTR value);
 
 
 /**
@@ -172,26 +172,26 @@ struct msica_op_multistring
 
 
 /**
-* Allocates and fills a new msica_op_multistring operation
-*
-* @param type          Operation type
-*
-* @param ticks         Number of ticks on the progress indicator this operation represents
-*
-* @param next          Pointer to the next operation in the sequence
-*
-* @param arglist       List of non-empty strings. The last string must be NULL.
-*
-* @return              A new msica_op_string operation. Must be added to a sequence list or
-*                      released using free() after use. The function returns a pointer to
-*                      msica_op to reduce type-casting in code.
-*/
-struct msica_op*
+ * Allocates and fills a new msica_op_multistring operation
+ *
+ * @param type          Operation type
+ *
+ * @param ticks         Number of ticks on the progress indicator this operation represents
+ *
+ * @param next          Pointer to the next operation in the sequence
+ *
+ * @param arglist       List of non-empty strings. The last string must be NULL.
+ *
+ * @return              A new msica_op_string operation. Must be added to a sequence list or
+ *                      released using free() after use. The function returns a pointer to
+ *                      msica_op to reduce type-casting in code.
+ */
+struct msica_op *
 msica_op_create_multistring_va(
-    _In_     enum msica_op_type  type,
-    _In_     int                 ticks,
-    _In_opt_ struct msica_op    *next,
-    _In_     va_list             arglist);
+    _In_ enum msica_op_type type,
+    _In_ int ticks,
+    _In_opt_ struct msica_op *next,
+    _In_ va_list arglist);
 
 
 /**
@@ -219,12 +219,12 @@ struct msica_op_guid
  *                      released using free() after use. The function returns a pointer to
  *                      msica_op to reduce type-casting in code.
  */
-struct msica_op*
+struct msica_op *
 msica_op_create_guid(
-    _In_     enum msica_op_type  type,
-    _In_     int                 ticks,
-    _In_opt_ struct msica_op    *next,
-    _In_     const GUID         *value);
+    _In_ enum msica_op_type type,
+    _In_ int ticks,
+    _In_opt_ struct msica_op *next,
+    _In_ const GUID *value);
 
 
 /**
@@ -255,13 +255,13 @@ struct msica_op_guid_string
  *                      list or released using free() after use. The function returns a
  *                      pointer to msica_op to reduce type-casting in code.
  */
-struct msica_op*
+struct msica_op *
 msica_op_create_guid_string(
-    _In_     enum msica_op_type  type,
-    _In_     int                 ticks,
-    _In_opt_ struct msica_op    *next,
-    _In_     const GUID         *value_guid,
-    _In_z_   LPCTSTR             value_str);
+    _In_ enum msica_op_type type,
+    _In_ int ticks,
+    _In_opt_ struct msica_op *next,
+    _In_ const GUID *value_guid,
+    _In_z_ LPCTSTR value_str);
 
 
 /**
@@ -278,11 +278,11 @@ msica_op_create_guid_string(
  *                      released using free() after use. The function returns a pointer to
  *                      msica_op to reduce type-casting in code.
  */
-static inline struct msica_op*
+static inline struct msica_op *
 msica_op_create_multistring(
-    _In_     enum msica_op_type  type,
-    _In_     int                 ticks,
-    _In_opt_ struct msica_op    *next,
+    _In_ enum msica_op_type type,
+    _In_ int ticks,
+    _In_opt_ struct msica_op *next,
     ...)
 {
     va_list arglist;
@@ -319,7 +319,7 @@ msica_op_seq_is_empty(_In_ const struct msica_op_seq *seq)
 void
 msica_op_seq_add_head(
     _Inout_ struct msica_op_seq *seq,
-    _Inout_ struct msica_op     *operation);
+    _Inout_ struct msica_op *operation);
 
 
 /**
@@ -334,7 +334,7 @@ msica_op_seq_add_head(
 void
 msica_op_seq_add_tail(
     _Inout_ struct msica_op_seq *seq,
-    _Inout_ struct msica_op     *operation);
+    _Inout_ struct msica_op *operation);
 
 
 /**
@@ -349,7 +349,7 @@ msica_op_seq_add_tail(
 DWORD
 msica_op_seq_save(
     _In_ const struct msica_op_seq *seq,
-    _In_ HANDLE                     hFile);
+    _In_ HANDLE hFile);
 
 
 /**
@@ -364,20 +364,20 @@ msica_op_seq_save(
 DWORD
 msica_op_seq_load(
     _Inout_ struct msica_op_seq *seq,
-    _In_    HANDLE               hFile);
+    _In_ HANDLE hFile);
 
 
 /**
-* Execution session constants
-*/
+ * Execution session constants
+ */
 #define MSICA_CLEANUP_ACTION_COMMIT   0
 #define MSICA_CLEANUP_ACTION_ROLLBACK 1
 #define MSICA_CLEANUP_ACTION_COUNT    2
 
 
 /**
-* Execution session
-*/
+ * Execution session
+ */
 struct msica_session
 {
     MSIHANDLE hInstall;           /** Installer handle */
@@ -401,9 +401,9 @@ struct msica_session
 void
 openvpnmsica_session_init(
     _Inout_ struct msica_session *session,
-    _In_    MSIHANDLE             hInstall,
-    _In_    bool                  continue_on_error,
-    _In_    bool                  rollback_enabled);
+    _In_ MSIHANDLE hInstall,
+    _In_ bool continue_on_error,
+    _In_ bool rollback_enabled);
 
 
 /**
@@ -420,10 +420,10 @@ openvpnmsica_session_init(
 DWORD
 msica_op_seq_process(
     _Inout_ const struct msica_op_seq *seq,
-    _Inout_ struct msica_session      *session);
+    _Inout_ struct msica_session *session);
 
 #ifdef _MSC_VER
 #pragma warning(pop)
 #endif
 
-#endif
+#endif /* ifndef MSICA_OP_H */

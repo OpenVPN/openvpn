@@ -47,10 +47,10 @@
  **/
 DWORD
 tap_create_interface(
-    _In_opt_ HWND    hwndParent,
+    _In_opt_ HWND hwndParent,
     _In_opt_ LPCTSTR szDeviceDescription,
-    _Inout_  LPBOOL  pbRebootRequired,
-    _Out_    LPGUID  pguidInterface);
+    _Inout_ LPBOOL pbRebootRequired,
+    _Out_ LPGUID pguidInterface);
 
 
 /**
@@ -73,9 +73,9 @@ tap_create_interface(
  **/
 DWORD
 tap_delete_interface(
-    _In_opt_ HWND    hwndParent,
-    _In_     LPCGUID pguidInterface,
-    _Inout_  LPBOOL  pbRebootRequired);
+    _In_opt_ HWND hwndParent,
+    _In_ LPCGUID pguidInterface,
+    _Inout_ LPBOOL pbRebootRequired);
 
 
 /**
@@ -98,7 +98,7 @@ tap_set_interface_name(
  */
 struct tap_interface_node
 {
-    GUID   guid;           /** Interface GUID */
+    GUID guid;             /** Interface GUID */
     LPTSTR szzHardwareIDs; /** Device hardware ID(s) */
     LPTSTR szName;         /** Interface name */
 
@@ -123,8 +123,8 @@ struct tap_interface_node
  */
 DWORD
 tap_list_interfaces(
-    _In_opt_ HWND                        hwndParent,
-    _Out_    struct tap_interface_node **ppInterfaceList);
+    _In_opt_ HWND hwndParent,
+    _Out_ struct tap_interface_node **ppInterfaceList);
 
 
 /**
@@ -136,4 +136,4 @@ void
 tap_free_interface_list(
     _In_ struct tap_interface_node *pInterfaceList);
 
-#endif
+#endif /* ifndef TAP_H */

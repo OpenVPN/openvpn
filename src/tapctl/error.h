@@ -75,6 +75,7 @@ bool dont_mute(unsigned int flags);
 #endif
 
 void x_msg(const unsigned int flags, const char *format, ...);     /* should be called via msg above */
+
 void x_msg_va(const unsigned int flags, const char *format, va_list arglist);
 
 /* Inline functions */
@@ -92,4 +93,4 @@ msg_test(unsigned int flags)
     return check_debug_level(flags) && dont_mute(flags);
 }
 
-#endif
+#endif /* ifndef ERROR_H */

@@ -64,18 +64,20 @@ const static TCHAR szInterfaceRegKeyPathTemplate[] = TEXT("SYSTEM\\CurrentContro
  **/
 static DWORD
 check_reboot(
-    _In_    HDEVINFO         hDeviceInfoSet,
-    _In_    PSP_DEVINFO_DATA pDeviceInfoData,
-    _Inout_ LPBOOL           pbRebootRequired)
+    _In_ HDEVINFO hDeviceInfoSet,
+    _In_ PSP_DEVINFO_DATA pDeviceInfoData,
+    _Inout_ LPBOOL pbRebootRequired)
 {
     if (pbRebootRequired == NULL)
+    {
         return ERROR_BAD_ARGUMENTS;
+    }
 
     SP_DEVINSTALL_PARAMS devinstall_params = { .cbSize = sizeof(SP_DEVINSTALL_PARAMS) };
     if (!SetupDiGetDeviceInstallParams(
-        hDeviceInfoSet,
-        pDeviceInfoData,
-        &devinstall_params))
+            hDeviceInfoSet,
+            pDeviceInfoData,
+            &devinstall_params))
     {
         DWORD dwResult = GetLastError();
         msg(M_NONFATAL | M_ERRNO, "%s: SetupDiGetDeviceInstallParams failed", __FUNCTION__);
@@ -83,7 +85,9 @@ check_reboot(
     }
 
     if ((devinstall_params.Flags & (DI_NEEDREBOOT | DI_NEEDRESTART)) != 0)
+    {
         *pbRebootRequired = TRUE;
+    }
 
     return ERROR_SUCCESS;
 }
@@ -105,12 +109,14 @@ check_reboot(
  */
 static DWORD
 get_reg_string(
-    _In_  HKEY     hKey,
-    _In_  LPCTSTR  szName,
-    _Out_ LPTSTR  *pszValue)
+    _In_ HKEY hKey,
+    _In_ LPCTSTR szName,
+    _Out_ LPTSTR *pszValue)
 {
     if (pszValue == NULL)
+    {
         return ERROR_BAD_ARGUMENTS;
+    }
 
     DWORD dwValueType = REG_NONE, dwSize = 0;
     DWORD dwResult = RegQueryValueEx(
@@ -123,14 +129,14 @@ get_reg_string(
     if (dwResult != ERROR_SUCCESS)
     {
         SetLastError(dwResult); /* MSDN does not mention RegQueryValueEx() to set GetLastError(). But we do have an error code. Set last error manually. */
-        msg(M_NONFATAL | M_ERRNO, "%s: enumerating \"%"PRIsLPTSTR"\" registry value failed", __FUNCTION__, szName);
+        msg(M_NONFATAL | M_ERRNO, "%s: enumerating \"%" PRIsLPTSTR "\" registry value failed", __FUNCTION__, szName);
         return dwResult;
     }
 
     switch (dwValueType)
     {
-    case REG_SZ:
-    case REG_EXPAND_SZ:
+        case REG_SZ:
+        case REG_EXPAND_SZ:
         {
             /* Read value. */
             LPTSTR szValue = (LPTSTR)malloc(dwSize);
@@ -144,7 +150,7 @@ get_reg_string(
             if (dwResult != ERROR_SUCCESS)
             {
                 SetLastError(dwResult); /* MSDN does not mention RegQueryValueEx() to set GetLastError(). But we do have an error code. Set last error manually. */
-                msg(M_NONFATAL | M_ERRNO, "%s: reading \"%"PRIsLPTSTR"\" registry value failed", __FUNCTION__, szName);
+                msg(M_NONFATAL | M_ERRNO, "%s: reading \"%" PRIsLPTSTR "\" registry value failed", __FUNCTION__, szName);
                 free(szValue);
                 return dwResult;
             }
@@ -156,18 +162,18 @@ get_reg_string(
                     dwSizeExp = dwSize * 2,
                     dwCountExp =
 #ifdef UNICODE
-                        dwSizeExp / sizeof(TCHAR);
+                    dwSizeExp / sizeof(TCHAR);
 #else
-                        dwSizeExp / sizeof(TCHAR) - 1; /* Note: ANSI version requires one extra char. */
+                    dwSizeExp / sizeof(TCHAR) - 1;     /* Note: ANSI version requires one extra char. */
 #endif
                 LPTSTR szValueExp = (LPTSTR)malloc(dwSizeExp);
                 DWORD dwCountExpResult = ExpandEnvironmentStrings(
                     szValue,
                     szValueExp, dwCountExp
-                );
+                    );
                 if (dwCountExpResult == 0)
                 {
-                    msg(M_NONFATAL | M_ERRNO, "%s: expanding \"%"PRIsLPTSTR"\" registry value failed", __FUNCTION__, szName);
+                    msg(M_NONFATAL | M_ERRNO, "%s: expanding \"%" PRIsLPTSTR "\" registry value failed", __FUNCTION__, szName);
                     free(szValueExp);
                     free(szValue);
                     return dwResult;
@@ -206,9 +212,9 @@ get_reg_string(
             }
         }
 
-    default:
-        msg(M_NONFATAL, "%s: \"%"PRIsLPTSTR"\" registry value is not string (type %u)", __FUNCTION__, dwValueType);
-        return ERROR_UNSUPPORTED_TYPE;
+        default:
+            msg(M_NONFATAL, "%s: \"%" PRIsLPTSTR "\" registry value is not string (type %u)", __FUNCTION__, dwValueType);
+            return ERROR_UNSUPPORTED_TYPE;
     }
 }
 
@@ -233,15 +239,17 @@ get_reg_string(
  **/
 static DWORD
 get_net_interface_guid(
-    _In_  HDEVINFO         hDeviceInfoSet,
-    _In_  PSP_DEVINFO_DATA pDeviceInfoData,
-    _In_  int              iNumAttempts,
-    _Out_ LPGUID           pguidInterface)
+    _In_ HDEVINFO hDeviceInfoSet,
+    _In_ PSP_DEVINFO_DATA pDeviceInfoData,
+    _In_ int iNumAttempts,
+    _Out_ LPGUID pguidInterface)
 {
     DWORD dwResult = ERROR_BAD_ARGUMENTS;
 
     if (pguidInterface == NULL || iNumAttempts < 1)
+    {
         return ERROR_BAD_ARGUMENTS;
+    }
 
     /* Open HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Class\<class>\<id> registry key. */
     HKEY hKey = SetupDiOpenDevRegKey(
@@ -283,7 +291,9 @@ get_net_interface_guid(
             TEXT("NetCfgInstanceId"),
             &szCfgGuidString);
         if (dwResult != ERROR_SUCCESS)
+        {
             break;
+        }
 
         dwResult = SUCCEEDED(CLSIDFromString(szCfgGuidString, (LPCLSID)pguidInterface)) ? ERROR_SUCCESS : ERROR_INVALID_DATA;
         free(szCfgGuidString);
@@ -296,51 +306,53 @@ get_net_interface_guid(
 
 
 /**
-* Returns a specified Plug and Play device property.
-*
-* @param hDeviceInfoSet  A handle to a device information set that contains a device
-*                      information element that represents the device for which to
-*                      retrieve a Plug and Play property.
-*
-* @param pDeviceInfoData  A pointer to an SP_DEVINFO_DATA structure that specifies the
-*                      device information element in hDeviceInfoSet.
-*
-* @param dwProperty     Specifies the property to be retrieved. See
-*                       https://msdn.microsoft.com/en-us/library/windows/hardware/ff551967.aspx
-*
-* @pdwPropertyRegDataType  A pointer to a variable that receives the data type of the
-*                       property that is being retrieved. This is one of the standard
-*                       registry data types. This parameter is optional and can be NULL.
-*
-* @param ppData         A pointer to pointer to data that receives the device propery. The
-*                       data must be released with free() after use.
-*
-* @return ERROR_SUCCESS on success; Win32 error code otherwise
-**/
+ * Returns a specified Plug and Play device property.
+ *
+ * @param hDeviceInfoSet  A handle to a device information set that contains a device
+ *                      information element that represents the device for which to
+ *                      retrieve a Plug and Play property.
+ *
+ * @param pDeviceInfoData  A pointer to an SP_DEVINFO_DATA structure that specifies the
+ *                      device information element in hDeviceInfoSet.
+ *
+ * @param dwProperty     Specifies the property to be retrieved. See
+ *                       https://msdn.microsoft.com/en-us/library/windows/hardware/ff551967.aspx
+ *
+ * @pdwPropertyRegDataType  A pointer to a variable that receives the data type of the
+ *                       property that is being retrieved. This is one of the standard
+ *                       registry data types. This parameter is optional and can be NULL.
+ *
+ * @param ppData         A pointer to pointer to data that receives the device propery. The
+ *                       data must be released with free() after use.
+ *
+ * @return ERROR_SUCCESS on success; Win32 error code otherwise
+ **/
 static DWORD
 get_device_reg_property(
-    _In_      HDEVINFO          hDeviceInfoSet,
-    _In_      PSP_DEVINFO_DATA  pDeviceInfoData,
-    _In_      DWORD             dwProperty,
-    _Out_opt_ LPDWORD           pdwPropertyRegDataType,
-    _Out_     LPVOID            *ppData)
+    _In_ HDEVINFO hDeviceInfoSet,
+    _In_ PSP_DEVINFO_DATA pDeviceInfoData,
+    _In_ DWORD dwProperty,
+    _Out_opt_ LPDWORD pdwPropertyRegDataType,
+    _Out_ LPVOID *ppData)
 {
     DWORD dwResult = ERROR_BAD_ARGUMENTS;
 
     if (ppData == NULL)
+    {
         return ERROR_BAD_ARGUMENTS;
+    }
 
     /* Try with stack buffer first. */
     BYTE bBufStack[128];
     DWORD dwRequiredSize = 0;
     if (SetupDiGetDeviceRegistryProperty(
-        hDeviceInfoSet,
-        pDeviceInfoData,
-        dwProperty,
-        pdwPropertyRegDataType,
-        bBufStack,
-        sizeof(bBufStack),
-        &dwRequiredSize))
+            hDeviceInfoSet,
+            pDeviceInfoData,
+            dwProperty,
+            pdwPropertyRegDataType,
+            bBufStack,
+            sizeof(bBufStack),
+            &dwRequiredSize))
     {
         /* Copy from stack. */
         *ppData = malloc(dwRequiredSize);
@@ -355,14 +367,16 @@ get_device_reg_property(
             /* Allocate on heap and retry. */
             *ppData = malloc(dwRequiredSize);
             if (SetupDiGetDeviceRegistryProperty(
-                hDeviceInfoSet,
-                pDeviceInfoData,
-                dwProperty,
-                pdwPropertyRegDataType,
-                *ppData,
-                dwRequiredSize,
-                &dwRequiredSize))
+                    hDeviceInfoSet,
+                    pDeviceInfoData,
+                    dwProperty,
+                    pdwPropertyRegDataType,
+                    *ppData,
+                    dwRequiredSize,
+                    &dwRequiredSize))
+            {
                 return ERROR_SUCCESS;
+            }
             else
             {
                 dwResult = GetLastError();
@@ -380,33 +394,37 @@ get_device_reg_property(
 
 
 /**
-* Returns length of list of strings
-*
-* @param str              Pointer to a list of strings terminated by an empty string.
-*
-* @return Number of characters not counting the final zero terminator
-**/
+ * Returns length of list of strings
+ *
+ * @param str              Pointer to a list of strings terminated by an empty string.
+ *
+ * @return Number of characters not counting the final zero terminator
+ **/
 static inline size_t
 _tcszlen(_In_ LPCTSTR str)
 {
     LPCTSTR s;
-    for (s = str; s[0]; s += _tcslen(s) + 1);
+    for (s = str; s[0]; s += _tcslen(s) + 1)
+    {
+    }
     return s - str;
 }
 
 
 DWORD
 tap_create_interface(
-    _In_opt_ HWND    hwndParent,
+    _In_opt_ HWND hwndParent,
     _In_opt_ LPCTSTR szDeviceDescription,
-    _Inout_  LPBOOL  pbRebootRequired,
-    _Out_    LPGUID  pguidInterface)
+    _Inout_ LPBOOL pbRebootRequired,
+    _Out_ LPGUID pguidInterface)
 {
     DWORD dwResult;
 
-    if (pbRebootRequired == NULL ||
-        pguidInterface == NULL)
+    if (pbRebootRequired == NULL
+        || pguidInterface == NULL)
+    {
         return ERROR_BAD_ARGUMENTS;
+    }
 
     /* Create an empty device info set for network adapter device class. */
     HDEVINFO hDevInfoList = SetupDiCreateDeviceInfoList(&GUID_DEVCLASS_NET, hwndParent);
@@ -420,10 +438,10 @@ tap_create_interface(
     /* Get the device class name from GUID. */
     TCHAR szClassName[MAX_CLASS_NAME_LEN];
     if (!SetupDiClassNameFromGuid(
-        &GUID_DEVCLASS_NET,
-        szClassName,
-        _countof(szClassName),
-        NULL))
+            &GUID_DEVCLASS_NET,
+            szClassName,
+            _countof(szClassName),
+            NULL))
     {
         dwResult = GetLastError();
         msg(M_NONFATAL, "%s: SetupDiClassNameFromGuid failed", __FUNCTION__);
@@ -433,13 +451,13 @@ tap_create_interface(
     /* Create a new device info element and add it to the device info set. */
     SP_DEVINFO_DATA devinfo_data = { .cbSize = sizeof(SP_DEVINFO_DATA) };
     if (!SetupDiCreateDeviceInfo(
-        hDevInfoList,
-        szClassName,
-        &GUID_DEVCLASS_NET,
-        szDeviceDescription,
-        hwndParent,
-        DICD_GENERATE_ID,
-        &devinfo_data))
+            hDevInfoList,
+            szClassName,
+            &GUID_DEVCLASS_NET,
+            szDeviceDescription,
+            hwndParent,
+            DICD_GENERATE_ID,
+            &devinfo_data))
     {
         dwResult = GetLastError();
         msg(M_NONFATAL, "%s: SetupDiClassNameFromGuid failed", __FUNCTION__);
@@ -448,8 +466,8 @@ tap_create_interface(
 
     /* Set a device information element as the selected member of a device information set. */
     if (!SetupDiSetSelectedDevice(
-        hDevInfoList,
-        &devinfo_data))
+            hDevInfoList,
+            &devinfo_data))
     {
         dwResult = GetLastError();
         msg(M_NONFATAL, "%s: SetupDiSetSelectedDevice failed", __FUNCTION__);
@@ -458,10 +476,10 @@ tap_create_interface(
 
     /* Set Plug&Play device hardware ID property. */
     if (!SetupDiSetDeviceRegistryProperty(
-        hDevInfoList,
-        &devinfo_data,
-        SPDRP_HARDWAREID,
-        (const BYTE *)szzHardwareIDs, sizeof(szzHardwareIDs)))
+            hDevInfoList,
+            &devinfo_data,
+            SPDRP_HARDWAREID,
+            (const BYTE *)szzHardwareIDs, sizeof(szzHardwareIDs)))
     {
         dwResult = GetLastError();
         msg(M_NONFATAL, "%s: SetupDiSetDeviceRegistryProperty failed", __FUNCTION__);
@@ -470,9 +488,9 @@ tap_create_interface(
 
     /* Search for the driver. */
     if (!SetupDiBuildDriverInfoList(
-        hDevInfoList,
-        &devinfo_data,
-        SPDIT_CLASSDRIVER))
+            hDevInfoList,
+            &devinfo_data,
+            SPDIT_CLASSDRIVER))
     {
         dwResult = GetLastError();
         msg(M_NONFATAL, "%s: SetupDiBuildDriverInfoList failed", __FUNCTION__);
@@ -480,20 +498,22 @@ tap_create_interface(
     }
     DWORDLONG dwlDriverVersion = 0;
     DWORD drvinfo_detail_data_size = sizeof(SP_DRVINFO_DETAIL_DATA) + 0x100;
-    SP_DRVINFO_DETAIL_DATA *drvinfo_detail_data = (SP_DRVINFO_DETAIL_DATA*)malloc(drvinfo_detail_data_size);
-    for (DWORD dwIndex = 0; ; dwIndex++)
+    SP_DRVINFO_DETAIL_DATA *drvinfo_detail_data = (SP_DRVINFO_DETAIL_DATA *)malloc(drvinfo_detail_data_size);
+    for (DWORD dwIndex = 0;; dwIndex++)
     {
         /* Get a driver from the list. */
         SP_DRVINFO_DATA drvinfo_data = { .cbSize = sizeof(SP_DRVINFO_DATA) };
         if (!SetupDiEnumDriverInfo(
-            hDevInfoList,
-            &devinfo_data,
-            SPDIT_CLASSDRIVER,
-            dwIndex,
-            &drvinfo_data))
+                hDevInfoList,
+                &devinfo_data,
+                SPDIT_CLASSDRIVER,
+                dwIndex,
+                &drvinfo_data))
         {
             if (GetLastError() == ERROR_NO_MORE_ITEMS)
+            {
                 break;
+            }
             else
             {
                 /* Something is wrong with this driver. Skip it. */
@@ -506,31 +526,33 @@ tap_create_interface(
         DWORD dwSize;
         drvinfo_detail_data->cbSize = sizeof(SP_DRVINFO_DETAIL_DATA);
         if (!SetupDiGetDriverInfoDetail(
-            hDevInfoList,
-            &devinfo_data,
-            &drvinfo_data,
-            drvinfo_detail_data,
-            drvinfo_detail_data_size,
-            &dwSize))
+                hDevInfoList,
+                &devinfo_data,
+                &drvinfo_data,
+                drvinfo_detail_data,
+                drvinfo_detail_data_size,
+                &dwSize))
         {
             if (GetLastError() == ERROR_INSUFFICIENT_BUFFER)
             {
                 /* (Re)allocate buffer. */
                 if (drvinfo_detail_data)
+                {
                     free(drvinfo_detail_data);
+                }
 
                 drvinfo_detail_data_size = dwSize;
-                drvinfo_detail_data = (SP_DRVINFO_DETAIL_DATA*)malloc(drvinfo_detail_data_size);
+                drvinfo_detail_data = (SP_DRVINFO_DETAIL_DATA *)malloc(drvinfo_detail_data_size);
 
                 /* Re-get driver info details. */
                 drvinfo_detail_data->cbSize = sizeof(SP_DRVINFO_DETAIL_DATA);
                 if (!SetupDiGetDriverInfoDetail(
-                    hDevInfoList,
-                    &devinfo_data,
-                    &drvinfo_data,
-                    drvinfo_detail_data,
-                    drvinfo_detail_data_size,
-                    &dwSize))
+                        hDevInfoList,
+                        &devinfo_data,
+                        &drvinfo_data,
+                        drvinfo_detail_data,
+                        drvinfo_detail_data_size,
+                        &dwSize))
                 {
                     /* Something is wrong with this driver. Skip it. */
                     continue;
@@ -554,9 +576,9 @@ tap_create_interface(
                 {
                     /* Matching hardware ID found. Select the driver. */
                     if (!SetupDiSetSelectedDriver(
-                        hDevInfoList,
-                        &devinfo_data,
-                        &drvinfo_data))
+                            hDevInfoList,
+                            &devinfo_data,
+                            &drvinfo_data))
                     {
                         /* Something is wrong with this driver. Skip it. */
                         msg(M_WARN | M_ERRNO, "%s: SetupDiSetSelectedDriver(\"%hs\") failed", __FUNCTION__, drvinfo_data.Description);
@@ -570,13 +592,15 @@ tap_create_interface(
         }
     }
     if (drvinfo_detail_data)
+    {
         free(drvinfo_detail_data);
+    }
 
     /* Call appropriate class installer. */
     if (!SetupDiCallClassInstaller(
-        DIF_REGISTERDEVICE,
-        hDevInfoList,
-        &devinfo_data))
+            DIF_REGISTERDEVICE,
+            hDevInfoList,
+            &devinfo_data))
     {
         dwResult = GetLastError();
         msg(M_NONFATAL, "%s: SetupDiCallClassInstaller(DIF_REGISTERDEVICE) failed", __FUNCTION__);
@@ -585,9 +609,9 @@ tap_create_interface(
 
     /* Register device co-installers if any. */
     if (!SetupDiCallClassInstaller(
-        DIF_REGISTER_COINSTALLERS,
-        hDevInfoList,
-        &devinfo_data))
+            DIF_REGISTER_COINSTALLERS,
+            hDevInfoList,
+            &devinfo_data))
     {
         dwResult = GetLastError();
         msg(M_WARN | M_ERRNO, "%s: SetupDiCallClassInstaller(DIF_REGISTER_COINSTALLERS) failed", __FUNCTION__);
@@ -595,9 +619,9 @@ tap_create_interface(
 
     /* Install interfaces if any. */
     if (!SetupDiCallClassInstaller(
-        DIF_INSTALLINTERFACES,
-        hDevInfoList,
-        &devinfo_data))
+            DIF_INSTALLINTERFACES,
+            hDevInfoList,
+            &devinfo_data))
     {
         dwResult = GetLastError();
         msg(M_WARN | M_ERRNO, "%s: SetupDiCallClassInstaller(DIF_INSTALLINTERFACES) failed", __FUNCTION__);
@@ -605,9 +629,9 @@ tap_create_interface(
 
     /* Install the device. */
     if (!SetupDiCallClassInstaller(
-        DIF_INSTALLDEVICE,
-        hDevInfoList,
-        &devinfo_data))
+            DIF_INSTALLDEVICE,
+            hDevInfoList,
+            &devinfo_data))
     {
         dwResult = GetLastError();
         msg(M_NONFATAL | M_ERRNO, "%s: SetupDiCallClassInstaller(DIF_INSTALLDEVICE) failed", __FUNCTION__);
@@ -637,10 +661,10 @@ cleanup_remove_device:
 
         /* Set class installer parameters for DIF_REMOVE. */
         if (SetupDiSetClassInstallParams(
-            hDevInfoList,
-            &devinfo_data,
-            &removedevice_params.ClassInstallHeader,
-            sizeof(SP_REMOVEDEVICE_PARAMS)))
+                hDevInfoList,
+                &devinfo_data,
+                &removedevice_params.ClassInstallHeader,
+                sizeof(SP_REMOVEDEVICE_PARAMS)))
         {
             /* Call appropriate class installer. */
             if (SetupDiCallClassInstaller(
@@ -652,10 +676,14 @@ cleanup_remove_device:
                 check_reboot(hDevInfoList, &devinfo_data, pbRebootRequired);
             }
             else
+            {
                 msg(M_NONFATAL | M_ERRNO, "%s: SetupDiCallClassInstaller(DIF_REMOVE) failed", __FUNCTION__);
+            }
         }
         else
+        {
             msg(M_NONFATAL | M_ERRNO, "%s: SetupDiSetClassInstallParams failed", __FUNCTION__);
+        }
     }
 
 cleanup_DriverInfoList:
@@ -670,15 +698,18 @@ cleanup_hDevInfoList:
 }
 
 
-DWORD tap_delete_interface(
-    _In_opt_ HWND    hwndParent,
-    _In_     LPCGUID pguidInterface,
-    _Inout_  LPBOOL  pbRebootRequired)
+DWORD
+tap_delete_interface(
+    _In_opt_ HWND hwndParent,
+    _In_ LPCGUID pguidInterface,
+    _Inout_ LPBOOL pbRebootRequired)
 {
     DWORD dwResult;
 
     if (pguidInterface == NULL)
+    {
         return ERROR_BAD_ARGUMENTS;
+    }
 
     /* Create a list of network devices. */
     HDEVINFO hDevInfoList = SetupDiGetClassDevsEx(
@@ -706,20 +737,20 @@ DWORD tap_delete_interface(
     }
 
     /* Iterate. */
-    for (DWORD dwIndex = 0; ; dwIndex++)
+    for (DWORD dwIndex = 0;; dwIndex++)
     {
         /* Get the device from the list. */
         SP_DEVINFO_DATA devinfo_data = { .cbSize = sizeof(SP_DEVINFO_DATA) };
         if (!SetupDiEnumDeviceInfo(
-            hDevInfoList,
-            dwIndex,
-            &devinfo_data))
+                hDevInfoList,
+                dwIndex,
+                &devinfo_data))
         {
             if (GetLastError() == ERROR_NO_MORE_ITEMS)
             {
                 LPOLESTR szInterfaceId = NULL;
                 StringFromIID((REFIID)pguidInterface, &szInterfaceId);
-                msg(M_NONFATAL, "%s: Interface %"PRIsLPOLESTR" not found", __FUNCTION__, szInterfaceId);
+                msg(M_NONFATAL, "%s: Interface %" PRIsLPOLESTR " not found", __FUNCTION__, szInterfaceId);
                 CoTaskMemFree(szInterfaceId);
                 dwResult = ERROR_FILE_NOT_FOUND;
                 goto cleanup_hDevInfoList;
@@ -735,7 +766,8 @@ DWORD tap_delete_interface(
         /* Get interface GUID. */
         GUID guidInterface;
         dwResult = get_net_interface_guid(hDevInfoList, &devinfo_data, 1, &guidInterface);
-        if (dwResult != ERROR_SUCCESS) {
+        if (dwResult != ERROR_SUCCESS)
+        {
             /* Something is wrong with this device. Skip it. */
             continue;
         }
@@ -757,10 +789,10 @@ DWORD tap_delete_interface(
 
             /* Set class installer parameters for DIF_REMOVE. */
             if (!SetupDiSetClassInstallParams(
-                hDevInfoList,
-                &devinfo_data,
-                &removedevice_params.ClassInstallHeader,
-                sizeof(SP_REMOVEDEVICE_PARAMS)))
+                    hDevInfoList,
+                    &devinfo_data,
+                    &removedevice_params.ClassInstallHeader,
+                    sizeof(SP_REMOVEDEVICE_PARAMS)))
             {
                 dwResult = GetLastError();
                 msg(M_NONFATAL, "%s: SetupDiSetClassInstallParams failed", __FUNCTION__);
@@ -769,9 +801,9 @@ DWORD tap_delete_interface(
 
             /* Call appropriate class installer. */
             if (!SetupDiCallClassInstaller(
-                DIF_REMOVE,
-                hDevInfoList,
-                &devinfo_data))
+                    DIF_REMOVE,
+                    hDevInfoList,
+                    &devinfo_data))
             {
                 dwResult = GetLastError();
                 msg(M_NONFATAL, "%s: SetupDiCallClassInstaller(DIF_REMOVE) failed", __FUNCTION__);
@@ -799,7 +831,9 @@ tap_set_interface_name(
     DWORD dwResult;
 
     if (pguidInterface == NULL || szName == NULL)
+    {
         return ERROR_BAD_ARGUMENTS;
+    }
 
     /* Get the device class GUID as string. */
     LPOLESTR szDevClassNetId = NULL;
@@ -828,7 +862,7 @@ tap_set_interface_name(
     if (dwResult != ERROR_SUCCESS)
     {
         SetLastError(dwResult); /* MSDN does not mention RegOpenKeyEx() to set GetLastError(). But we do have an error code. Set last error manually. */
-        msg(M_NONFATAL | M_ERRNO, "%s: RegOpenKeyEx(HKLM, \"%"PRIsLPTSTR"\") failed", __FUNCTION__, szRegKey);
+        msg(M_NONFATAL | M_ERRNO, "%s: RegOpenKeyEx(HKLM, \"%" PRIsLPTSTR "\") failed", __FUNCTION__, szRegKey);
         goto cleanup_szInterfaceId;
     }
 
@@ -867,13 +901,15 @@ cleanup_szInterfaceId:
 
 DWORD
 tap_list_interfaces(
-    _In_opt_ HWND                        hwndParent,
-    _Out_    struct tap_interface_node **ppInterface)
+    _In_opt_ HWND hwndParent,
+    _Out_ struct tap_interface_node **ppInterface)
 {
     DWORD dwResult;
 
     if (ppInterface == NULL)
+    {
         return ERROR_BAD_ARGUMENTS;
+    }
 
     /* Create a list of network devices. */
     HDEVINFO hDevInfoList = SetupDiGetClassDevsEx(
@@ -907,17 +943,19 @@ tap_list_interfaces(
     /* Iterate. */
     *ppInterface = NULL;
     struct tap_interface_node *pInterfaceTail = NULL;
-    for (DWORD dwIndex = 0; ; dwIndex++)
+    for (DWORD dwIndex = 0;; dwIndex++)
     {
         /* Get the device from the list. */
         SP_DEVINFO_DATA devinfo_data = { .cbSize = sizeof(SP_DEVINFO_DATA) };
         if (!SetupDiEnumDeviceInfo(
-            hDevInfoList,
-            dwIndex,
-            &devinfo_data))
+                hDevInfoList,
+                dwIndex,
+                &devinfo_data))
         {
             if (GetLastError() == ERROR_NO_MORE_ITEMS)
+            {
                 break;
+            }
             else
             {
                 /* Something is wrong with this device. Skip it. */
@@ -929,7 +967,8 @@ tap_list_interfaces(
         /* Get interface GUID. */
         GUID guidInterface;
         dwResult = get_net_interface_guid(hDevInfoList, &devinfo_data, 1, &guidInterface);
-        if (dwResult != ERROR_SUCCESS) {
+        if (dwResult != ERROR_SUCCESS)
+        {
             /* Something is wrong with this device. Skip it. */
             continue;
         }
@@ -948,7 +987,9 @@ tap_list_interfaces(
             &dwDataType,
             (LPVOID)&szzDeviceHardwareIDs);
         if (dwResult != ERROR_SUCCESS)
+        {
             goto cleanup_szInterfaceId;
+        }
 
         /* Render registry key path. */
         TCHAR szRegKey[INTERFACE_REGKEY_PATH_MAX];
@@ -969,7 +1010,7 @@ tap_list_interfaces(
         if (dwResult != ERROR_SUCCESS)
         {
             SetLastError(dwResult); /* MSDN does not mention RegOpenKeyEx() to set GetLastError(). But we do have an error code. Set last error manually. */
-            msg(M_WARN | M_ERRNO, "%s: RegOpenKeyEx(HKLM, \"%"PRIsLPTSTR"\") failed", __FUNCTION__, szRegKey);
+            msg(M_WARN | M_ERRNO, "%s: RegOpenKeyEx(HKLM, \"%" PRIsLPTSTR "\") failed", __FUNCTION__, szRegKey);
             goto cleanup_szzDeviceHardwareIDs;
         }
 
@@ -982,14 +1023,14 @@ tap_list_interfaces(
         if (dwResult != ERROR_SUCCESS)
         {
             SetLastError(dwResult);
-            msg(M_WARN | M_ERRNO, "%s: Cannot determine %"PRIsLPOLESTR" interface name", __FUNCTION__, szInterfaceId);
+            msg(M_WARN | M_ERRNO, "%s: Cannot determine %" PRIsLPOLESTR " interface name", __FUNCTION__, szInterfaceId);
             goto cleanup_hKey;
         }
 
         /* Append to the list. */
         size_t hwid_size = (_tcszlen(szzDeviceHardwareIDs) + 1) * sizeof(TCHAR);
         size_t name_size = (_tcslen(szName) + 1) * sizeof(TCHAR);
-        struct tap_interface_node *node = (struct tap_interface_node*)malloc(sizeof(struct tap_interface_node) + hwid_size + name_size);
+        struct tap_interface_node *node = (struct tap_interface_node *)malloc(sizeof(struct tap_interface_node) + hwid_size + name_size);
         memcpy(&node->guid, &guidInterface, sizeof(GUID));
         node->szzHardwareIDs = (LPTSTR)(node + 1);
         memcpy(node->szzHardwareIDs, szzDeviceHardwareIDs, hwid_size);
@@ -1002,14 +1043,16 @@ tap_list_interfaces(
             pInterfaceTail = node;
         }
         else
+        {
             *ppInterface = pInterfaceTail = node;
+        }
 
         free(szName);
-    cleanup_hKey:
+cleanup_hKey:
         RegCloseKey(hKey);
-    cleanup_szzDeviceHardwareIDs:
+cleanup_szzDeviceHardwareIDs:
         free(szzDeviceHardwareIDs);
-    cleanup_szInterfaceId:
+cleanup_szInterfaceId:
         CoTaskMemFree(szInterfaceId);
     }
 

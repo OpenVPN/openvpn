@@ -70,12 +70,12 @@ msica_op_seq_free(_Inout_ struct msica_op_seq *seq)
 }
 
 
-struct msica_op*
+struct msica_op *
 msica_op_create_bool(
-    _In_     enum msica_op_type  type,
-    _In_     int                 ticks,
-    _In_opt_ struct msica_op    *next,
-    _In_     bool                value)
+    _In_ enum msica_op_type type,
+    _In_ int ticks,
+    _In_opt_ struct msica_op *next,
+    _In_ bool value)
 {
     if (MSICA_OP_TYPE_DATA(type) != 0x1)
     {
@@ -84,7 +84,7 @@ msica_op_create_bool(
     }
 
     /* Create and fill operation struct. */
-    struct msica_op_bool *op = (struct msica_op_bool*)malloc(sizeof(struct msica_op_bool));
+    struct msica_op_bool *op = (struct msica_op_bool *)malloc(sizeof(struct msica_op_bool));
     op->base.type  = type;
     op->base.ticks = ticks;
     op->base.next  = next;
@@ -94,12 +94,12 @@ msica_op_create_bool(
 }
 
 
-struct msica_op*
+struct msica_op *
 msica_op_create_string(
-    _In_     enum msica_op_type  type,
-    _In_     int                 ticks,
-    _In_opt_ struct msica_op    *next,
-    _In_z_   LPCTSTR             value)
+    _In_ enum msica_op_type type,
+    _In_ int ticks,
+    _In_opt_ struct msica_op *next,
+    _In_z_ LPCTSTR value)
 {
     if (MSICA_OP_TYPE_DATA(type) != 0x2)
     {
@@ -109,7 +109,7 @@ msica_op_create_string(
 
     /* Create and fill operation struct. */
     size_t value_size = (_tcslen(value) + 1) * sizeof(TCHAR);
-    struct msica_op_string *op = (struct msica_op_string*)malloc(sizeof(struct msica_op_string) + value_size);
+    struct msica_op_string *op = (struct msica_op_string *)malloc(sizeof(struct msica_op_string) + value_size);
     op->base.type  = type;
     op->base.ticks = ticks;
     op->base.next  = next;
@@ -119,12 +119,12 @@ msica_op_create_string(
 }
 
 
-struct msica_op*
+struct msica_op *
 msica_op_create_multistring_va(
-    _In_     enum msica_op_type  type,
-    _In_     int                 ticks,
-    _In_opt_ struct msica_op    *next,
-    _In_     va_list             arglist)
+    _In_ enum msica_op_type type,
+    _In_ int ticks,
+    _In_opt_ struct msica_op *next,
+    _In_ va_list arglist)
 {
     if (MSICA_OP_TYPE_DATA(type) != 0x3)
     {
@@ -135,11 +135,13 @@ msica_op_create_multistring_va(
     /* Calculate required space first. */
     LPCTSTR str;
     size_t value_size = 1;
-    for (va_list a = arglist; (str = va_arg(a, LPCTSTR)) != NULL; value_size += _tcslen(str) + 1);
+    for (va_list a = arglist; (str = va_arg(a, LPCTSTR)) != NULL; value_size += _tcslen(str) + 1)
+    {
+    }
     value_size *= sizeof(TCHAR);
 
     /* Create and fill operation struct. */
-    struct msica_op_multistring *op = (struct msica_op_multistring*)malloc(sizeof(struct msica_op_multistring) + value_size);
+    struct msica_op_multistring *op = (struct msica_op_multistring *)malloc(sizeof(struct msica_op_multistring) + value_size);
     op->base.type  = type;
     op->base.ticks = ticks;
     op->base.next  = next;
@@ -156,12 +158,12 @@ msica_op_create_multistring_va(
 }
 
 
-struct msica_op*
+struct msica_op *
 msica_op_create_guid(
-    _In_     enum msica_op_type  type,
-    _In_     int                 ticks,
-    _In_opt_ struct msica_op    *next,
-    _In_     const GUID         *value)
+    _In_ enum msica_op_type type,
+    _In_ int ticks,
+    _In_opt_ struct msica_op *next,
+    _In_ const GUID *value)
 {
     if (MSICA_OP_TYPE_DATA(type) != 0x4)
     {
@@ -170,7 +172,7 @@ msica_op_create_guid(
     }
 
     /* Create and fill operation struct. */
-    struct msica_op_guid *op = (struct msica_op_guid*)malloc(sizeof(struct msica_op_guid));
+    struct msica_op_guid *op = (struct msica_op_guid *)malloc(sizeof(struct msica_op_guid));
     op->base.type  = type;
     op->base.ticks = ticks;
     op->base.next  = next;
@@ -180,13 +182,13 @@ msica_op_create_guid(
 }
 
 
-struct msica_op*
+struct msica_op *
 msica_op_create_guid_string(
-    _In_     enum msica_op_type  type,
-    _In_     int                 ticks,
-    _In_opt_ struct msica_op    *next,
-    _In_     const GUID         *value_guid,
-    _In_z_   LPCTSTR             value_str)
+    _In_ enum msica_op_type type,
+    _In_ int ticks,
+    _In_opt_ struct msica_op *next,
+    _In_ const GUID *value_guid,
+    _In_z_ LPCTSTR value_str)
 {
     if (MSICA_OP_TYPE_DATA(type) != 0x5)
     {
@@ -196,12 +198,12 @@ msica_op_create_guid_string(
 
     /* Create and fill operation struct. */
     size_t value_str_size = (_tcslen(value_str) + 1) * sizeof(TCHAR);
-    struct msica_op_guid_string *op = (struct msica_op_guid_string*)malloc(sizeof(struct msica_op_guid_string) + value_str_size);
+    struct msica_op_guid_string *op = (struct msica_op_guid_string *)malloc(sizeof(struct msica_op_guid_string) + value_str_size);
     op->base.type  = type;
     op->base.ticks = ticks;
     op->base.next  = next;
-    memcpy(&op->value_guid, value_guid, sizeof(GUID)  );
-    memcpy( op->value_str , value_str , value_str_size);
+    memcpy(&op->value_guid, value_guid, sizeof(GUID));
+    memcpy(op->value_str, value_str, value_str_size);
 
     return &op->base;
 }
@@ -210,32 +212,42 @@ msica_op_create_guid_string(
 void
 msica_op_seq_add_head(
     _Inout_ struct msica_op_seq *seq,
-    _Inout_ struct msica_op     *operation)
+    _Inout_ struct msica_op *operation)
 {
     /* Insert list in the head. */
     struct msica_op *op;
-    for (op = operation; op->next; op = op->next);
+    for (op = operation; op->next; op = op->next)
+    {
+    }
     op->next = seq->head;
 
     /* Update head (and tail). */
     seq->head = operation;
     if (seq->tail == NULL)
+    {
         seq->tail = op;
+    }
 }
 
 
 void
 msica_op_seq_add_tail(
     _Inout_ struct msica_op_seq *seq,
-    _Inout_ struct msica_op     *operation)
+    _Inout_ struct msica_op *operation)
 {
     /* Append list to the tail. */
     struct msica_op *op;
-    for (op = operation; op->next; op = op->next);
+    for (op = operation; op->next; op = op->next)
+    {
+    }
     if (seq->tail)
+    {
         seq->tail->next = operation;
+    }
     else
+    {
         seq->head = operation;
+    }
     seq->tail = op;
 }
 
@@ -243,7 +255,7 @@ msica_op_seq_add_tail(
 DWORD
 msica_op_seq_save(
     _In_ const struct msica_op_seq *seq,
-    _In_ HANDLE                     hFile)
+    _In_ HANDLE hFile)
 {
     DWORD dwWritten;
     for (const struct msica_op *op = seq->head; op; op = op->next)
@@ -255,43 +267,45 @@ msica_op_seq_save(
         /* Calculate size of data. */
         switch (MSICA_OP_TYPE_DATA(op->type))
         {
-        case 0x1: /* msica_op_bool */
-            hdr.size_data = sizeof(struct msica_op_bool) - sizeof(struct msica_op);
-            break;
+            case 0x1: /* msica_op_bool */
+                hdr.size_data = sizeof(struct msica_op_bool) - sizeof(struct msica_op);
+                break;
 
-        case 0x2: /* msica_op_string */
-            hdr.size_data =
-                sizeof(struct msica_op_string) - sizeof(struct msica_op) +
-                (DWORD)(_tcslen(((struct msica_op_string*)op)->value) + 1) * sizeof(TCHAR);
-            break;
+            case 0x2: /* msica_op_string */
+                hdr.size_data =
+                    sizeof(struct msica_op_string) - sizeof(struct msica_op)
+                    +(DWORD)(_tcslen(((struct msica_op_string *)op)->value) + 1) * sizeof(TCHAR);
+                break;
 
-        case 0x3: /* msica_op_multistring */
-        {
-            LPCTSTR str;
-            for (str = ((struct msica_op_multistring*)op)->value; str[0]; str += _tcslen(str) + 1);
-            hdr.size_data =
-                sizeof(struct msica_op_multistring) - sizeof(struct msica_op) +
-                (DWORD)(str + 1 - ((struct msica_op_multistring*)op)->value) * sizeof(TCHAR);
-            break;
+            case 0x3: /* msica_op_multistring */
+            {
+                LPCTSTR str;
+                for (str = ((struct msica_op_multistring *)op)->value; str[0]; str += _tcslen(str) + 1)
+                {
+                }
+                hdr.size_data =
+                    sizeof(struct msica_op_multistring) - sizeof(struct msica_op)
+                    +(DWORD)(str + 1 - ((struct msica_op_multistring *)op)->value) * sizeof(TCHAR);
+                break;
+            }
+
+            case 0x4: /* msica_op_guid */
+                hdr.size_data = sizeof(struct msica_op_guid) - sizeof(struct msica_op);
+                break;
+
+            case 0x5: /* msica_op_guid_string */
+                hdr.size_data =
+                    sizeof(struct msica_op_guid_string) - sizeof(struct msica_op)
+                    +(DWORD)(_tcslen(((struct msica_op_guid_string *)op)->value_str) + 1) * sizeof(TCHAR);
+                break;
+
+            default:
+                msg(M_NONFATAL, "%s: Unknown operation data type (%x)", __FUNCTION__, MSICA_OP_TYPE_DATA(op->type));
+                return ERROR_BAD_ARGUMENTS;
         }
 
-        case 0x4: /* msica_op_guid */
-            hdr.size_data = sizeof(struct msica_op_guid) - sizeof(struct msica_op);
-            break;
-
-        case 0x5: /* msica_op_guid_string */
-            hdr.size_data =
-                sizeof(struct msica_op_guid_string) - sizeof(struct msica_op) +
-                (DWORD)(_tcslen(((struct msica_op_guid_string*)op)->value_str) + 1) * sizeof(TCHAR);
-            break;
-
-        default:
-            msg(M_NONFATAL, "%s: Unknown operation data type (%x)", __FUNCTION__, MSICA_OP_TYPE_DATA(op->type));
-            return ERROR_BAD_ARGUMENTS;
-        }
-
-        if (!WriteFile(hFile, &hdr, sizeof(struct msica_op_hdr), &dwWritten, NULL) ||
-            !WriteFile(hFile, op + 1, hdr.size_data, &dwWritten, NULL))
+        if (!WriteFile(hFile, &hdr, sizeof(struct msica_op_hdr), &dwWritten, NULL)
+            || !WriteFile(hFile, op + 1, hdr.size_data, &dwWritten, NULL))
         {
             DWORD dwResult = GetLastError();
             msg(M_NONFATAL | M_ERRNO, "%s: WriteFile failed", __FUNCTION__);
@@ -306,7 +320,7 @@ msica_op_seq_save(
 DWORD
 msica_op_seq_load(
     _Inout_ struct msica_op_seq *seq,
-    _In_    HANDLE               hFile)
+    _In_ HANDLE hFile)
 {
     DWORD dwRead;
 
@@ -331,7 +345,7 @@ msica_op_seq_load(
             msg(M_NONFATAL, "%s: Incomplete ReadFile", __FUNCTION__);
             return ERROR_INVALID_DATA;
         }
-        struct msica_op *op = (struct msica_op*)malloc(sizeof(struct msica_op) + hdr.size_data);
+        struct msica_op *op = (struct msica_op *)malloc(sizeof(struct msica_op) + hdr.size_data);
         op->type  = hdr.type;
         op->ticks = hdr.ticks;
         op->next  = NULL;
@@ -355,10 +369,12 @@ msica_op_seq_load(
 static DWORD
 msica_op_tap_interface_create_exec(
     _Inout_ const struct msica_op_string *op,
-    _Inout_ struct msica_session         *session)
+    _Inout_ struct msica_session *session)
 {
     if (op == NULL || session == NULL)
+    {
         return ERROR_BAD_ARGUMENTS;
+    }
 
     {
         /* Report the name of the interface to installer. */
@@ -368,7 +384,9 @@ msica_op_tap_interface_create_exec(
         int iResult = MsiProcessMessage(session->hInstall, INSTALLMESSAGE_ACTIONDATA, hRecord);
         MsiCloseHandle(hRecord);
         if (iResult == IDCANCEL)
+        {
             return ERROR_INSTALL_USEREXIT;
+        }
     }
 
     /* Get available network interfaces. */
@@ -377,7 +395,7 @@ msica_op_tap_interface_create_exec(
     if (dwResult == ERROR_SUCCESS)
     {
         /* Does interface exist? */
-        for (struct tap_interface_node *pInterfaceOther = pInterfaceList; ; pInterfaceOther = pInterfaceOther->pNext)
+        for (struct tap_interface_node *pInterfaceOther = pInterfaceList;; pInterfaceOther = pInterfaceOther->pNext)
         {
             if (pInterfaceOther == NULL)
             {
@@ -404,28 +422,32 @@ msica_op_tap_interface_create_exec(
                         }
                     }
                     else
+                    {
                         tap_delete_interface(NULL, &guidInterface, &bRebootRequired);
+                    }
 
                     if (bRebootRequired)
+                    {
                         MsiSetMode(session->hInstall, MSIRUNMODE_REBOOTATEND, TRUE);
+                    }
                 }
                 break;
             }
             else if (_tcsicmp(op->value, pInterfaceOther->szName) == 0)
             {
                 /* Interface with a same name found. */
-                for (LPCTSTR hwid = pInterfaceOther->szzHardwareIDs; ; hwid += _tcslen(hwid) + 1)
+                for (LPCTSTR hwid = pInterfaceOther->szzHardwareIDs;; hwid += _tcslen(hwid) + 1)
                 {
                     if (hwid[0] == 0)
                     {
                         /* This is not a TAP interface. */
-                        msg(M_NONFATAL, "%s: Interface with name \"%"PRIsLPTSTR"\" already exists", __FUNCTION__, pInterfaceOther->szName);
+                        msg(M_NONFATAL, "%s: Interface with name \"%" PRIsLPTSTR "\" already exists", __FUNCTION__, pInterfaceOther->szName);
                         dwResult = ERROR_ALREADY_EXISTS;
                         break;
                     }
                     else if (
-                        _tcsicmp(hwid, TEXT(TAP_WIN_COMPONENT_ID)) == 0 ||
-                        _tcsicmp(hwid, TEXT("root\\") TEXT(TAP_WIN_COMPONENT_ID)) == 0)
+                        _tcsicmp(hwid, TEXT(TAP_WIN_COMPONENT_ID)) == 0
+                        || _tcsicmp(hwid, TEXT("root\\") TEXT(TAP_WIN_COMPONENT_ID)) == 0)
                     {
                         /* This is a TAP interface. We already got what we wanted! */
                         dwResult = ERROR_SUCCESS;
@@ -445,12 +467,14 @@ msica_op_tap_interface_create_exec(
 
 static DWORD
 msica_op_tap_interface_delete(
-    _In_    struct tap_interface_node *pInterfaceList,
-    _In_    struct tap_interface_node *pInterface,
-    _Inout_ struct msica_session      *session)
+    _In_ struct tap_interface_node *pInterfaceList,
+    _In_ struct tap_interface_node *pInterface,
+    _Inout_ struct msica_session *session)
 {
     if (pInterfaceList == NULL || pInterface == NULL || session == NULL)
+    {
         return ERROR_BAD_ARGUMENTS;
+    }
 
     DWORD dwResult;
 
@@ -458,30 +482,32 @@ msica_op_tap_interface_delete(
     BOOL bRebootRequired = FALSE;
     dwResult = tap_delete_interface(NULL, &pInterface->guid, &bRebootRequired);
     if (bRebootRequired)
+    {
         MsiSetMode(session->hInstall, MSIRUNMODE_REBOOTATEND, TRUE);
+    }
 
     if (session->rollback_enabled)
     {
         /*
-        Schedule rollback action to create the interface back. Though it won't be exactly the same interface again.
-
-        The previous version of this function did:
-        - Execution Pass:       rename the interface to some temporary name
-        - Commit/Rollback Pass: delete the interface / rename the interface back to original name
-
-        However, the WiX Toolset's Diffx extension to install and remove drivers removed the TAP driver between the
-        execution and commit passes. TAP driver removal makes all TAP interfaces unavailable and our CA couldn't find
-        the interface to delete any more.
-
-        While the system where OpenVPN was uninstalled didn't have any TAP interfaces any more as expected behaviour,
-        the problem appears after reinstalling the OpenVPN. Some residue TAP interface registry keys remain on the
-        system, causing the TAP interface to reappear as "Ethernet NN" interface next time the TAP driver is
-        installed. This causes TAP interfaces to accumulate over cyclic install-uninstall-install...
-
-        Therefore, it is better to remove the TAP interfaces before the TAP driver is removed, and reinstall the TAP
-        interface back should the rollback be required. I wonder if the WiX Diffx extension supports execute/commit/
-        rollback feature of MSI in the first place.
-        */
+         * Schedule rollback action to create the interface back. Though it won't be exactly the same interface again.
+         *
+         * The previous version of this function did:
+         * - Execution Pass:       rename the interface to some temporary name
+         * - Commit/Rollback Pass: delete the interface / rename the interface back to original name
+         *
+         * However, the WiX Toolset's Diffx extension to install and remove drivers removed the TAP driver between the
+         * execution and commit passes. TAP driver removal makes all TAP interfaces unavailable and our CA couldn't find
+         * the interface to delete any more.
+         *
+         * While the system where OpenVPN was uninstalled didn't have any TAP interfaces any more as expected behaviour,
+         * the problem appears after reinstalling the OpenVPN. Some residue TAP interface registry keys remain on the
+         * system, causing the TAP interface to reappear as "Ethernet NN" interface next time the TAP driver is
+         * installed. This causes TAP interfaces to accumulate over cyclic install-uninstall-install...
+         *
+         * Therefore, it is better to remove the TAP interfaces before the TAP driver is removed, and reinstall the TAP
+         * interface back should the rollback be required. I wonder if the WiX Diffx extension supports execute/commit/
+         * rollback feature of MSI in the first place.
+         */
         msica_op_seq_add_head(
             &session->seq_cleanup[MSICA_CLEANUP_ACTION_ROLLBACK],
             msica_op_create_string(
@@ -498,10 +524,12 @@ msica_op_tap_interface_delete(
 static DWORD
 msica_op_tap_interface_delete_by_name_exec(
     _Inout_ const struct msica_op_string *op,
-    _Inout_ struct msica_session         *session)
+    _Inout_ struct msica_session *session)
 {
     if (op == NULL || session == NULL)
+    {
         return ERROR_BAD_ARGUMENTS;
+    }
 
     {
         /* Report the name of the interface to installer. */
@@ -511,7 +539,9 @@ msica_op_tap_interface_delete_by_name_exec(
         int iResult = MsiProcessMessage(session->hInstall, INSTALLMESSAGE_ACTIONDATA, hRecord);
         MsiCloseHandle(hRecord);
         if (iResult == IDCANCEL)
+        {
             return ERROR_INSTALL_USEREXIT;
+        }
     }
 
     /* Get available network interfaces. */
@@ -520,7 +550,7 @@ msica_op_tap_interface_delete_by_name_exec(
     if (dwResult == ERROR_SUCCESS)
     {
         /* Does interface exist? */
-        for (struct tap_interface_node *pInterface = pInterfaceList; ; pInterface = pInterface->pNext)
+        for (struct tap_interface_node *pInterface = pInterfaceList;; pInterface = pInterface->pNext)
         {
             if (pInterface == NULL)
             {
@@ -549,10 +579,12 @@ msica_op_tap_interface_delete_by_name_exec(
 static DWORD
 msica_op_tap_interface_delete_by_guid_exec(
     _Inout_ const struct msica_op_guid *op,
-    _Inout_ struct msica_session       *session)
+    _Inout_ struct msica_session *session)
 {
     if (op == NULL || session == NULL)
+    {
         return ERROR_BAD_ARGUMENTS;
+    }
 
     {
         /* Report the GUID of the interface to installer. */
@@ -565,7 +597,9 @@ msica_op_tap_interface_delete_by_guid_exec(
         CoTaskMemFree(szInterfaceId);
         MsiCloseHandle(hRecord);
         if (iResult == IDCANCEL)
+        {
             return ERROR_INSTALL_USEREXIT;
+        }
     }
 
     /* Get available network interfaces. */
@@ -574,7 +608,7 @@ msica_op_tap_interface_delete_by_guid_exec(
     if (dwResult == ERROR_SUCCESS)
     {
         /* Does interface exist? */
-        for (struct tap_interface_node *pInterface = pInterfaceList; ; pInterface = pInterface->pNext)
+        for (struct tap_interface_node *pInterface = pInterfaceList;; pInterface = pInterface->pNext)
         {
             if (pInterface == NULL)
             {
@@ -603,10 +637,12 @@ msica_op_tap_interface_delete_by_guid_exec(
 static DWORD
 msica_op_tap_interface_set_name_exec(
     _Inout_ const struct msica_op_guid_string *op,
-    _Inout_ struct msica_session              *session)
+    _Inout_ struct msica_session *session)
 {
     if (op == NULL || session == NULL)
+    {
         return ERROR_BAD_ARGUMENTS;
+    }
 
     {
         /* Report the GUID of the interface to installer. */
@@ -620,7 +656,9 @@ msica_op_tap_interface_set_name_exec(
         CoTaskMemFree(szInterfaceId);
         MsiCloseHandle(hRecord);
         if (iResult == IDCANCEL)
+        {
             return ERROR_INSTALL_USEREXIT;
+        }
     }
 
     /* Get available network interfaces. */
@@ -629,14 +667,14 @@ msica_op_tap_interface_set_name_exec(
     if (dwResult == ERROR_SUCCESS)
     {
         /* Does interface exist? */
-        for (struct tap_interface_node *pInterface = pInterfaceList; ; pInterface = pInterface->pNext)
+        for (struct tap_interface_node *pInterface = pInterfaceList;; pInterface = pInterface->pNext)
         {
             if (pInterface == NULL)
             {
                 /* Interface not found. */
                 LPOLESTR szInterfaceId = NULL;
                 StringFromIID((REFIID)&op->value_guid, &szInterfaceId);
-                msg(M_NONFATAL, "%s: %"PRIsLPOLESTR" interface not found", __FUNCTION__, szInterfaceId);
+                msg(M_NONFATAL, "%s: %" PRIsLPOLESTR " interface not found", __FUNCTION__, szInterfaceId);
                 CoTaskMemFree(szInterfaceId);
                 dwResult = ERROR_FILE_NOT_FOUND;
                 break;
@@ -644,7 +682,7 @@ msica_op_tap_interface_set_name_exec(
             else if (memcmp(&op->value_guid, &pInterface->guid, sizeof(GUID)) == 0)
             {
                 /* Interface found. */
-                for (struct tap_interface_node *pInterfaceOther = pInterfaceList; ; pInterfaceOther = pInterfaceOther->pNext)
+                for (struct tap_interface_node *pInterfaceOther = pInterfaceList;; pInterfaceOther = pInterfaceOther->pNext)
                 {
                     if (pInterfaceOther == NULL)
                     {
@@ -670,7 +708,7 @@ msica_op_tap_interface_set_name_exec(
                     else if (_tcsicmp(op->value_str, pInterfaceOther->szName) == 0)
                     {
                         /* Interface with a same name found. Duplicate interface names are not allowed. */
-                        msg(M_NONFATAL, "%s: Interface with name \"%"PRIsLPTSTR"\" already exists", __FUNCTION__, pInterfaceOther->szName);
+                        msg(M_NONFATAL, "%s: Interface with name \"%" PRIsLPTSTR "\" already exists", __FUNCTION__, pInterfaceOther->szName);
                         dwResult = ERROR_ALREADY_EXISTS;
                         break;
                     }
@@ -689,10 +727,12 @@ msica_op_tap_interface_set_name_exec(
 static DWORD
 msica_op_file_delete_exec(
     _Inout_ const struct msica_op_string *op,
-    _Inout_ struct msica_session         *session)
+    _Inout_ struct msica_session *session)
 {
     if (op == NULL || session == NULL)
+    {
         return ERROR_BAD_ARGUMENTS;
+    }
 
     {
         /* Report the name of the file to installer. */
@@ -702,18 +742,21 @@ msica_op_file_delete_exec(
         int iResult = MsiProcessMessage(session->hInstall, INSTALLMESSAGE_ACTIONDATA, hRecord);
         MsiCloseHandle(hRecord);
         if (iResult == IDCANCEL)
+        {
             return ERROR_INSTALL_USEREXIT;
+        }
     }
 
     DWORD dwResult;
 
     if (session->rollback_enabled)
     {
-        size_t sizeNameBackupLenZ = _tcslen(op->value) + 7/*" (orig "*/ + 10/*maximum int*/ + 1/*")"*/ + 1/*terminator*/;
+        size_t sizeNameBackupLenZ = _tcslen(op->value) + 7 /*" (orig "*/ + 10 /*maximum int*/ + 1 /*")"*/ + 1 /*terminator*/;
         LPTSTR szNameBackup = (LPTSTR)malloc(sizeNameBackupLenZ * sizeof(TCHAR));
         int count = 0;
 
-        do {
+        do
+        {
             /* Rename the file to make a backup. */
             _stprintf_s(
                 szNameBackup, sizeNameBackupLenZ,
@@ -746,9 +789,13 @@ msica_op_file_delete_exec(
                     szNameBackup));
         }
         else if (dwResult == ERROR_FILE_NOT_FOUND) /* File does not exist: We already got what we wanted! */
+        {
             dwResult = ERROR_SUCCESS;
+        }
         else
-            msg(M_NONFATAL | M_ERRNO, "%s: MoveFile(\"%"PRIsLPTSTR"\", \"%"PRIsLPTSTR"\") failed", __FUNCTION__, op->value, szNameBackup);
+        {
+            msg(M_NONFATAL | M_ERRNO, "%s: MoveFile(\"%" PRIsLPTSTR "\", \"%" PRIsLPTSTR "\") failed", __FUNCTION__, op->value, szNameBackup);
+        }
 
         free(szNameBackup);
     }
@@ -757,9 +804,13 @@ msica_op_file_delete_exec(
         /* Delete the file. */
         dwResult = DeleteFile(op->value) ? ERROR_SUCCESS : GetLastError();
         if (dwResult == ERROR_FILE_NOT_FOUND) /* File does not exist: We already got what we wanted! */
+        {
             dwResult = ERROR_SUCCESS;
+        }
         else if (dwResult != ERROR_SUCCESS)
-            msg(M_NONFATAL | M_ERRNO, "%s: DeleteFile(\"%"PRIsLPTSTR"\") failed", __FUNCTION__, op->value);
+        {
+            msg(M_NONFATAL | M_ERRNO, "%s: DeleteFile(\"%" PRIsLPTSTR "\") failed", __FUNCTION__, op->value);
+        }
     }
 
     return dwResult;
@@ -769,20 +820,26 @@ msica_op_file_delete_exec(
 static DWORD
 msica_op_file_move_exec(
     _Inout_ const struct msica_op_multistring *op,
-    _Inout_ struct msica_session              *session)
+    _Inout_ struct msica_session *session)
 {
     if (op == NULL || session == NULL)
+    {
         return ERROR_BAD_ARGUMENTS;
+    }
 
     /* Get source filename. */
     LPCTSTR szNameSrc = op->value;
     if (szNameSrc[0] == 0)
+    {
         return ERROR_BAD_ARGUMENTS;
+    }
 
     /* Get destination filename. */
     LPCTSTR szNameDst = szNameSrc + _tcslen(szNameSrc) + 1;
     if (szNameDst[0] == 0)
+    {
         return ERROR_BAD_ARGUMENTS;
+    }
 
     {
         /* Report the name of the files to installer. */
@@ -793,12 +850,16 @@ msica_op_file_move_exec(
         int iResult = MsiProcessMessage(session->hInstall, INSTALLMESSAGE_ACTIONDATA, hRecord);
         MsiCloseHandle(hRecord);
         if (iResult == IDCANCEL)
+        {
             return ERROR_INSTALL_USEREXIT;
+        }
     }
 
     DWORD dwResult = MoveFile(szNameSrc, szNameDst) ? ERROR_SUCCESS : GetLastError();
-    if (dwResult == ERROR_SUCCESS) {
-        if (session->rollback_enabled) {
+    if (dwResult == ERROR_SUCCESS)
+    {
+        if (session->rollback_enabled)
+        {
             /* Order rollback action to move it back. */
             msica_op_seq_add_head(
                 &session->seq_cleanup[MSICA_CLEANUP_ACTION_ROLLBACK],
@@ -812,7 +873,9 @@ msica_op_file_move_exec(
         }
     }
     else
-        msg(M_NONFATAL | M_ERRNO, "%s: MoveFile(\"%"PRIsLPTSTR"\", \"%"PRIsLPTSTR"\") failed", __FUNCTION__, szNameSrc, szNameDst);
+    {
+        msg(M_NONFATAL | M_ERRNO, "%s: MoveFile(\"%" PRIsLPTSTR "\", \"%" PRIsLPTSTR "\") failed", __FUNCTION__, szNameSrc, szNameDst);
+    }
 
     return dwResult;
 }
@@ -821,27 +884,31 @@ msica_op_file_move_exec(
 void
 openvpnmsica_session_init(
     _Inout_ struct msica_session *session,
-    _In_    MSIHANDLE             hInstall,
-    _In_    bool                  continue_on_error,
-    _In_    bool                  rollback_enabled)
+    _In_ MSIHANDLE hInstall,
+    _In_ bool continue_on_error,
+    _In_ bool rollback_enabled)
 {
     session->hInstall          = hInstall;
     session->continue_on_error = continue_on_error;
     session->rollback_enabled  = rollback_enabled;
     for (size_t i = 0; i < MSICA_CLEANUP_ACTION_COUNT; i++)
+    {
         msica_op_seq_init(&session->seq_cleanup[i]);
+    }
 }
 
 
 DWORD
 msica_op_seq_process(
     _Inout_ const struct msica_op_seq *seq,
-    _Inout_ struct msica_session      *session)
+    _Inout_ struct msica_session *session)
 {
     DWORD dwResult;
 
     if (seq == NULL || session == NULL)
+    {
         return ERROR_BAD_ARGUMENTS;
+    }
 
     /* Tell the installer to use explicit progress messages. */
     MSIHANDLE hRecordProg = MsiCreateRecord(3);
@@ -858,41 +925,42 @@ msica_op_seq_process(
     {
         switch (op->type)
         {
-        case msica_op_rollback_enable:
-            session->rollback_enabled = ((const struct msica_op_bool*)op)->value;
-            dwResult = ERROR_SUCCESS;
-            break;
+            case msica_op_rollback_enable:
+                session->rollback_enabled = ((const struct msica_op_bool *)op)->value;
+                dwResult = ERROR_SUCCESS;
+                break;
 
-        case msica_op_tap_interface_create:
-            dwResult = msica_op_tap_interface_create_exec((const struct msica_op_string*)op, session);
-            break;
+            case msica_op_tap_interface_create:
+                dwResult = msica_op_tap_interface_create_exec((const struct msica_op_string *)op, session);
+                break;
 
-        case msica_op_tap_interface_delete_by_name:
-            dwResult = msica_op_tap_interface_delete_by_name_exec((const struct msica_op_string*)op, session);
-            break;
+            case msica_op_tap_interface_delete_by_name:
+                dwResult = msica_op_tap_interface_delete_by_name_exec((const struct msica_op_string *)op, session);
+                break;
 
-        case msica_op_tap_interface_delete_by_guid:
-            dwResult = msica_op_tap_interface_delete_by_guid_exec((const struct msica_op_guid*)op, session);
-            break;
+            case msica_op_tap_interface_delete_by_guid:
+                dwResult = msica_op_tap_interface_delete_by_guid_exec((const struct msica_op_guid *)op, session);
+                break;
 
-        case msica_op_tap_interface_set_name:
-            dwResult = msica_op_tap_interface_set_name_exec((const struct msica_op_guid_string*)op, session);
-            break;
+            case msica_op_tap_interface_set_name:
+                dwResult = msica_op_tap_interface_set_name_exec((const struct msica_op_guid_string *)op, session);
+                break;
 
-        case msica_op_file_delete:
-            dwResult = msica_op_file_delete_exec((const struct msica_op_string*)op, session);
-            break;
+            case msica_op_file_delete:
+                dwResult = msica_op_file_delete_exec((const struct msica_op_string *)op, session);
+                break;
 
-        case msica_op_file_move:
-            dwResult = msica_op_file_move_exec((const struct msica_op_multistring*)op, session);
-            break;
+            case msica_op_file_move:
+                dwResult = msica_op_file_move_exec((const struct msica_op_multistring *)op, session);
+                break;
 
-        default:
-            msg(M_NONFATAL, "%s: Unknown operation type (%x)", __FUNCTION__, op->type);
-            dwResult = ERROR_FILE_NOT_FOUND;
+            default:
+                msg(M_NONFATAL, "%s: Unknown operation type (%x)", __FUNCTION__, op->type);
+                dwResult = ERROR_FILE_NOT_FOUND;
         }
 
-        if (!session->continue_on_error && dwResult != ERROR_SUCCESS) {
+        if (!session->continue_on_error && dwResult != ERROR_SUCCESS)
+        {
             /* Operation failed. It should have sent error message to Installer. Therefore, just quit here. */
             goto cleanup_hRecordProg;
         }

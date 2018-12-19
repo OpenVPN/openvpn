@@ -37,12 +37,14 @@
 
 UINT
 msi_get_string(
-    _In_   MSIHANDLE  hInstall,
-    _In_z_ LPCTSTR    szName,
-    _Out_  LPTSTR    *pszValue)
+    _In_ MSIHANDLE hInstall,
+    _In_z_ LPCTSTR szName,
+    _Out_ LPTSTR *pszValue)
 {
     if (pszValue == NULL)
+    {
         return ERROR_BAD_ARGUMENTS;
+    }
 
     /* Try with stack buffer first. */
     TCHAR szBufStack[128];
@@ -61,9 +63,13 @@ msi_get_string(
         LPTSTR szBufHeap = (LPTSTR)malloc(++dwLength * sizeof(TCHAR));
         uiResult = MsiGetProperty(hInstall, szName, szBufHeap, &dwLength);
         if (uiResult == ERROR_SUCCESS)
+        {
             *pszValue = szBufHeap;
+        }
         else
+        {
             free(szBufHeap);
+        }
         return uiResult;
     }
     else
@@ -77,12 +83,14 @@ msi_get_string(
 
 UINT
 msi_get_record_string(
-    _In_  MSIHANDLE     hRecord,
-    _In_  unsigned int  iField,
-    _Out_ LPTSTR       *pszValue)
+    _In_ MSIHANDLE hRecord,
+    _In_ unsigned int iField,
+    _Out_ LPTSTR *pszValue)
 {
     if (pszValue == NULL)
+    {
         return ERROR_BAD_ARGUMENTS;
+    }
 
     /* Try with stack buffer first. */
     TCHAR szBufStack[128];
@@ -101,9 +109,13 @@ msi_get_record_string(
         LPTSTR szBufHeap = (LPTSTR)malloc(++dwLength * sizeof(TCHAR));
         uiResult = MsiRecordGetString(hRecord, iField, szBufHeap, &dwLength);
         if (uiResult == ERROR_SUCCESS)
+        {
             *pszValue = szBufHeap;
+        }
         else
+        {
             free(szBufHeap);
+        }
         return uiResult;
     }
     else
@@ -117,12 +129,14 @@ msi_get_record_string(
 
 UINT
 msi_format_record(
-    _In_  MSIHANDLE  hInstall,
-    _In_  MSIHANDLE  hRecord,
-    _Out_ LPTSTR    *pszValue)
+    _In_ MSIHANDLE hInstall,
+    _In_ MSIHANDLE hRecord,
+    _Out_ LPTSTR *pszValue)
 {
     if (pszValue == NULL)
+    {
         return ERROR_BAD_ARGUMENTS;
+    }
 
     /* Try with stack buffer first. */
     TCHAR szBufStack[128];
@@ -141,9 +155,13 @@ msi_format_record(
         LPTSTR szBufHeap = (LPTSTR)malloc(++dwLength * sizeof(TCHAR));
         uiResult = MsiFormatRecord(hInstall, hRecord, szBufHeap, &dwLength);
         if (uiResult == ERROR_SUCCESS)
+        {
             *pszValue = szBufHeap;
+        }
         else
+        {
             free(szBufHeap);
+        }
         return uiResult;
     }
     else
@@ -157,18 +175,23 @@ msi_format_record(
 
 UINT
 msi_format_field(
-    _In_  MSIHANDLE     hInstall,
-    _In_  MSIHANDLE     hRecord,
-    _In_  unsigned int  iField,
-    _Out_ LPTSTR       *pszValue)
+    _In_ MSIHANDLE hInstall,
+    _In_ MSIHANDLE hRecord,
+    _In_ unsigned int iField,
+    _Out_ LPTSTR *pszValue)
 {
     if (pszValue == NULL)
+    {
         return ERROR_BAD_ARGUMENTS;
+    }
 
     /* Read string to format. */
     LPTSTR szValue = NULL;
     UINT uiResult = msi_get_record_string(hRecord, iField, &szValue);
-    if (uiResult != ERROR_SUCCESS) return uiResult;
+    if (uiResult != ERROR_SUCCESS)
+    {
+        return uiResult;
+    }
     if (szValue[0] == 0)
     {
         /* The string is empty. There's nothing left to do. */

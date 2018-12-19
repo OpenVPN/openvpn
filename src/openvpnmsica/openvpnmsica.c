@@ -87,14 +87,16 @@ static const struct {
  */
 static DWORD
 openvpnmsica_setup_sequence_filename(
-    _In_                     MSIHANDLE hInstall,
-    _In_z_                   LPCTSTR   szProperty,
-    _Out_z_cap_(MAXPATH + 1) LPTSTR    szFilename)
+    _In_ MSIHANDLE hInstall,
+    _In_z_ LPCTSTR szProperty,
+    _Out_z_cap_(MAXPATH + 1) LPTSTR szFilename)
 {
     DWORD dwResult;
 
     if (szFilename == NULL)
+    {
         return ERROR_BAD_ARGUMENTS;
+    }
 
     /* Generate a random filename in the temporary folder. */
     if (GetTempPath(MAX_PATH + 1, szFilename) == 0)
@@ -115,19 +117,19 @@ openvpnmsica_setup_sequence_filename(
     if (dwResult != ERROR_SUCCESS)
     {
         SetLastError(dwResult); /* MSDN does not mention MsiSetProperty() to set GetLastError(). But we do have an error code. Set last error manually. */
-        msg(M_NONFATAL | M_ERRNO, "%s: MsiSetProperty(\"%"PRIsLPTSTR"\") failed", __FUNCTION__, szProperty);
+        msg(M_NONFATAL | M_ERRNO, "%s: MsiSetProperty(\"%" PRIsLPTSTR "\") failed", __FUNCTION__, szProperty);
         return dwResult;
     }
 
     /* Generate and store cleanup operation sequence filenames to properties. */
     LPTSTR szExtension = PathFindExtension(szFilename);
-    TCHAR szFilenameEx[MAX_PATH + 1/*dash*/ + 2/*suffix*/ + 1/*terminator*/];
+    TCHAR szFilenameEx[MAX_PATH + 1 /*dash*/ + 2 /*suffix*/ + 1 /*terminator*/];
     size_t len_property_name = _tcslen(szProperty);
     for (size_t i = 0; i < MSICA_CLEANUP_ACTION_COUNT; i++)
     {
         size_t len_action_name_z = _tcslen(openvpnmsica_cleanup_action_seqs[i].szName) + 1;
-        TCHAR *szPropertyEx = (TCHAR*)malloc((len_property_name + len_action_name_z) * sizeof(TCHAR));
-        memcpy(szPropertyEx                    , szProperty                                , len_property_name * sizeof(TCHAR));
+        TCHAR *szPropertyEx = (TCHAR *)malloc((len_property_name + len_action_name_z) * sizeof(TCHAR));
+        memcpy(szPropertyEx, szProperty, len_property_name * sizeof(TCHAR));
         memcpy(szPropertyEx + len_property_name, openvpnmsica_cleanup_action_seqs[i].szName, len_action_name_z * sizeof(TCHAR));
         _stprintf_s(
             szFilenameEx, _countof(szFilenameEx),
@@ -139,7 +141,7 @@ openvpnmsica_setup_sequence_filename(
         if (dwResult != ERROR_SUCCESS)
         {
             SetLastError(dwResult); /* MSDN does not mention MsiSetProperty() to set GetLastError(). But we do have an error code. Set last error manually. */
-            msg(M_NONFATAL | M_ERRNO, "%s: MsiSetProperty(\"%"PRIsLPTSTR"\") failed", __FUNCTION__, szPropertyEx);
+            msg(M_NONFATAL | M_ERRNO, "%s: MsiSetProperty(\"%" PRIsLPTSTR "\") failed", __FUNCTION__, szPropertyEx);
             free(szPropertyEx);
             return dwResult;
         }
@@ -165,7 +167,7 @@ _openvpnmsica_debug_popup(_In_z_ LPCTSTR szFunctionName)
     TCHAR szTitle[0x100], szMessage[0x100+MAX_PATH], szProcessPath[MAX_PATH];
 
     /* Compose pop-up title. The dialog title will contain function name to ease the process
-       locating. Mind that Visual Studio displays window titles on the process list. */
+     * locating. Mind that Visual Studio displays window titles on the process list. */
     _stprintf_s(szTitle, _countof(szTitle), TEXT("%s v%s"), szFunctionName, TEXT(PACKAGE_VERSION));
 
     /* Get process name. */
@@ -189,9 +191,9 @@ _openvpnmsica_debug_popup(_In_z_ LPCTSTR szFunctionName)
 }
 
 #define openvpnmsica_debug_popup(f) _openvpnmsica_debug_popup(f)
-#else
+#else  /* ifdef _DEBUG */
 #define openvpnmsica_debug_popup(f)
-#endif
+#endif /* ifdef _DEBUG */
 
 
 /**
@@ -214,7 +216,8 @@ openvpnmsica_set_driver_certification(_In_ MSIHANDLE hInstall)
 #pragma warning(disable: 4996) /* 'GetVersionExW': was declared deprecated. */
 #endif
     OSVERSIONINFOEX ver_info = { .dwOSVersionInfoSize = sizeof(OSVERSIONINFOEX) };
-    if (!GetVersionEx((LPOSVERSIONINFO)&ver_info)) {
+    if (!GetVersionEx((LPOSVERSIONINFO)&ver_info))
+    {
         uiResult = GetLastError();
         msg(M_NONFATAL | M_ERRNO, "%s: GetVersionEx() failed", __FUNCTION__);
         return uiResult;
@@ -227,11 +230,11 @@ openvpnmsica_set_driver_certification(_In_ MSIHANDLE hInstall)
     TCHAR szDllPath[0x1000];
     ExpandEnvironmentStrings(TEXT("%SystemRoot%\\System32\\ntdll.dll"), szDllPath,
 #ifdef UNICODE
-        _countof(szDllPath)
+                             _countof(szDllPath)
 #else
-        _countof(szDllPath) - 1
+                             _countof(szDllPath) - 1
 #endif
-    );
+                             );
     HMODULE hNtDllModule = LoadLibrary(szDllPath);
     if (hNtDllModule)
     {
@@ -241,10 +244,11 @@ openvpnmsica_set_driver_certification(_In_ MSIHANDLE hInstall)
         {
             RTL_OSVERSIONINFOW rtl_ver_info = { .dwOSVersionInfoSize = sizeof(RTL_OSVERSIONINFOW) };
             if (RtlGetVersion(&rtl_ver_info) == 0)
+            {
                 if (
-                    rtl_ver_info.dwMajorVersion >  ver_info.dwMajorVersion ||
-                    rtl_ver_info.dwMajorVersion == ver_info.dwMajorVersion && rtl_ver_info.dwMinorVersion >  ver_info.dwMinorVersion ||
-                    rtl_ver_info.dwMajorVersion == ver_info.dwMajorVersion && rtl_ver_info.dwMinorVersion == ver_info.dwMinorVersion && rtl_ver_info.dwBuildNumber > ver_info.dwBuildNumber)
+                    rtl_ver_info.dwMajorVersion >  ver_info.dwMajorVersion
+                    || rtl_ver_info.dwMajorVersion == ver_info.dwMajorVersion && rtl_ver_info.dwMinorVersion >  ver_info.dwMinorVersion
+                    || rtl_ver_info.dwMajorVersion == ver_info.dwMajorVersion && rtl_ver_info.dwMinorVersion == ver_info.dwMinorVersion && rtl_ver_info.dwBuildNumber > ver_info.dwBuildNumber)
                 {
                     /* We got RtlGetVersion() and it reported newer version than GetVersionEx(). */
                     ver_info.dwMajorVersion = rtl_ver_info.dwMajorVersion;
@@ -252,6 +256,7 @@ openvpnmsica_set_driver_certification(_In_ MSIHANDLE hInstall)
                     ver_info.dwBuildNumber  = rtl_ver_info.dwBuildNumber;
                     ver_info.dwPlatformId   = rtl_ver_info.dwPlatformId;
                 }
+            }
         }
 
         FreeLibrary(hNtDllModule);
@@ -260,11 +265,11 @@ openvpnmsica_set_driver_certification(_In_ MSIHANDLE hInstall)
     /* We don't trust RtlGetVersion() either. Check the version resource of kernel32.dll. */
     ExpandEnvironmentStrings(TEXT("%SystemRoot%\\System32\\kernel32.dll"), szDllPath,
 #ifdef UNICODE
-        _countof(szDllPath)
+                             _countof(szDllPath)
 #else
-        _countof(szDllPath)-1
+                             _countof(szDllPath) - 1
 #endif
-    );
+                             );
 
     DWORD dwHandle;
     DWORD dwVerInfoSize = GetFileVersionInfoSize(szDllPath, &dwHandle);
@@ -280,15 +285,17 @@ openvpnmsica_set_driver_certification(_In_ MSIHANDLE hInstall)
                 UINT uiSize = 0;
                 VS_FIXEDFILEINFO *pVSFixedFileInfo = NULL;
                 if (VerQueryValue(pVersionInfo, TEXT("\\"), &pVSFixedFileInfo, &uiSize) && uiSize && pVSFixedFileInfo)
-                    if (HIWORD(pVSFixedFileInfo->dwProductVersionMS) >  ver_info.dwMajorVersion ||
-                        HIWORD(pVSFixedFileInfo->dwProductVersionMS) == ver_info.dwMajorVersion && LOWORD(pVSFixedFileInfo->dwProductVersionMS) >  ver_info.dwMinorVersion ||
-                        HIWORD(pVSFixedFileInfo->dwProductVersionMS) == ver_info.dwMajorVersion && LOWORD(pVSFixedFileInfo->dwProductVersionMS) == ver_info.dwMinorVersion && HIWORD(pVSFixedFileInfo->dwProductVersionLS) > ver_info.dwBuildNumber)
+                {
+                    if (HIWORD(pVSFixedFileInfo->dwProductVersionMS) >  ver_info.dwMajorVersion
+                        || HIWORD(pVSFixedFileInfo->dwProductVersionMS) == ver_info.dwMajorVersion && LOWORD(pVSFixedFileInfo->dwProductVersionMS) >  ver_info.dwMinorVersion
+                        || HIWORD(pVSFixedFileInfo->dwProductVersionMS) == ver_info.dwMajorVersion && LOWORD(pVSFixedFileInfo->dwProductVersionMS) == ver_info.dwMinorVersion && HIWORD(pVSFixedFileInfo->dwProductVersionLS) > ver_info.dwBuildNumber)
                     {
                         /* We got kernel32.dll version and it is newer. */
                         ver_info.dwMajorVersion = HIWORD(pVSFixedFileInfo->dwProductVersionMS);
                         ver_info.dwMinorVersion = LOWORD(pVSFixedFileInfo->dwProductVersionMS);
                         ver_info.dwBuildNumber  = HIWORD(pVSFixedFileInfo->dwProductVersionLS);
                     }
+                }
             }
 
             free(pVersionInfo);
@@ -336,7 +343,8 @@ openvpnmsica_set_openvpnserv_state(_In_ MSIHANDLE hInstall)
     if (hService == NULL)
     {
         uiResult = GetLastError();
-        if (uiResult == ERROR_SERVICE_DOES_NOT_EXIST) {
+        if (uiResult == ERROR_SERVICE_DOES_NOT_EXIST)
+        {
             /* This is not actually an error. */
             goto cleanup_OpenSCManager;
         }
@@ -356,35 +364,35 @@ openvpnmsica_set_openvpnserv_state(_In_ MSIHANDLE hInstall)
 
     switch (ssp.dwCurrentState)
     {
-    case SERVICE_START_PENDING:
-    case SERVICE_RUNNING:
-    case SERVICE_STOP_PENDING:
-    case SERVICE_PAUSE_PENDING:
-    case SERVICE_PAUSED:
-    case SERVICE_CONTINUE_PENDING:
-    {
-        /* Set OPENVPNSERVICE property to service PID. */
-        TCHAR szPID[10/*MAXDWORD in decimal*/ + 1/*terminator*/];
-        _stprintf_s(
-            szPID, _countof(szPID),
-            TEXT("%u"),
-            ssp.dwProcessId);
-
-        uiResult = MsiSetProperty(hInstall, TEXT("OPENVPNSERVICE"), szPID);
-        if (uiResult != ERROR_SUCCESS)
+        case SERVICE_START_PENDING:
+        case SERVICE_RUNNING:
+        case SERVICE_STOP_PENDING:
+        case SERVICE_PAUSE_PENDING:
+        case SERVICE_PAUSED:
+        case SERVICE_CONTINUE_PENDING:
         {
-            SetLastError(uiResult); /* MSDN does not mention MsiSetProperty() to set GetLastError(). But we do have an error code. Set last error manually. */
-            msg(M_NONFATAL | M_ERRNO, "%s: MsiSetProperty(\"OPENVPNSERVICE\") failed", __FUNCTION__);
+            /* Set OPENVPNSERVICE property to service PID. */
+            TCHAR szPID[10 /*MAXDWORD in decimal*/ + 1 /*terminator*/];
+            _stprintf_s(
+                szPID, _countof(szPID),
+                TEXT("%u"),
+                ssp.dwProcessId);
+
+            uiResult = MsiSetProperty(hInstall, TEXT("OPENVPNSERVICE"), szPID);
+            if (uiResult != ERROR_SUCCESS)
+            {
+                SetLastError(uiResult); /* MSDN does not mention MsiSetProperty() to set GetLastError(). But we do have an error code. Set last error manually. */
+                msg(M_NONFATAL | M_ERRNO, "%s: MsiSetProperty(\"OPENVPNSERVICE\") failed", __FUNCTION__);
+            }
+            goto cleanup_OpenService;
         }
-        goto cleanup_OpenService;
-    }
-    break;
+        break;
     }
 finish_QueryServiceStatusEx:;
 
-    // Service is not started. Is it set to auto-start?
-    // MSDN describes the maximum buffer size for QueryServiceConfig() to be 8kB.
-    // This is small enough to fit on stack.
+    /* Service is not started. Is it set to auto-start? */
+    /* MSDN describes the maximum buffer size for QueryServiceConfig() to be 8kB. */
+    /* This is small enough to fit on stack. */
     BYTE _buffer_8k[8192];
     LPQUERY_SERVICE_CONFIG pQsc = (LPQUERY_SERVICE_CONFIG)_buffer_8k;
     dwBufSize = sizeof(_buffer_8k);
@@ -434,7 +442,10 @@ FindSystemInfo(_In_ MSIHANDLE hInstall)
     openvpnmsica_set_driver_certification(hInstall);
     openvpnmsica_set_openvpnserv_state(hInstall);
 
-    if (bIsCoInitialized) CoUninitialize();
+    if (bIsCoInitialized)
+    {
+        CoUninitialize();
+    }
     return ERROR_SUCCESS;
 }
 
@@ -459,14 +470,18 @@ FindTAPInterfaces(_In_ MSIHANDLE hInstall)
     struct tap_interface_node *pInterfaceList = NULL;
     uiResult = tap_list_interfaces(NULL, &pInterfaceList);
     if (uiResult != ERROR_SUCCESS)
+    {
         goto cleanup_CoInitialize;
+    }
 
     /* Get IPv4/v6 info for all network interfaces. Actually, we're interested in link status only: up/down? */
     PIP_ADAPTER_ADDRESSES pAdapterAdresses = NULL;
     ULONG ulAdapterAdressesSize = 16*1024;
-    for (size_t iteration = 0; iteration < 2; iteration++) {
+    for (size_t iteration = 0; iteration < 2; iteration++)
+    {
         pAdapterAdresses = (PIP_ADAPTER_ADDRESSES)malloc(ulAdapterAdressesSize);
-        if (pAdapterAdresses == NULL) {
+        if (pAdapterAdresses == NULL)
+        {
             msg(M_NONFATAL, "%s: malloc(%u) failed", __FUNCTION__, ulAdapterAdressesSize);
             uiResult = ERROR_OUTOFMEMORY; goto cleanup_tap_list_interfaces;
         }
@@ -479,10 +494,13 @@ FindTAPInterfaces(_In_ MSIHANDLE hInstall)
             &ulAdapterAdressesSize);
 
         if (ulResult == ERROR_SUCCESS)
+        {
             break;
+        }
 
         free(pAdapterAdresses);
-        if (ulResult != ERROR_BUFFER_OVERFLOW) {
+        if (ulResult != ERROR_BUFFER_OVERFLOW)
+        {
             SetLastError(ulResult); /* MSDN does not mention GetAdaptersAddresses() to set GetLastError(). But we do have an error code. Set last error manually. */
             msg(M_NONFATAL | M_ERRNO, "%s: GetAdaptersAddresses() failed", __FUNCTION__);
             uiResult = ulResult; goto cleanup_tap_list_interfaces;
@@ -501,8 +519,8 @@ FindTAPInterfaces(_In_ MSIHANDLE hInstall)
     {
         for (LPCTSTR hwid = pInterface->szzHardwareIDs; hwid[0]; hwid += _tcslen(hwid) + 1)
         {
-            if (_tcsicmp(hwid, TEXT(TAP_WIN_COMPONENT_ID)) == 0 ||
-                _tcsicmp(hwid, TEXT("root\\") TEXT(TAP_WIN_COMPONENT_ID)) == 0)
+            if (_tcsicmp(hwid, TEXT(TAP_WIN_COMPONENT_ID)) == 0
+                || _tcsicmp(hwid, TEXT("root\\") TEXT(TAP_WIN_COMPONENT_ID)) == 0)
             {
                 /* TAP interface found. */
 
@@ -514,13 +532,17 @@ FindTAPInterfaces(_In_ MSIHANDLE hInstall)
                 CoTaskMemFree(szInterfaceId);
 
                 /* Append interface to the list. */
-                struct interface_node *node = (struct interface_node*)malloc(sizeof(struct interface_node));
+                struct interface_node *node = (struct interface_node *)malloc(sizeof(struct interface_node));
                 node->iface = pInterface;
                 node->next = NULL;
                 if (interfaces_head)
+                {
                     interfaces_tail = interfaces_tail->next = node;
+                }
                 else
+                {
                     interfaces_head = interfaces_tail = node;
+                }
                 interface_count++;
                 break;
             }
@@ -532,9 +554,9 @@ FindTAPInterfaces(_In_ MSIHANDLE hInstall)
     {
         /* Prepare semicolon delimited list of TAP interface ID(s) and active TAP interface ID(s). */
         LPTSTR
-            szTAPInterfaces           = (LPTSTR)malloc(interface_count * (38/*GUID*/ + 1/*separator/terminator*/) * sizeof(TCHAR)),
+            szTAPInterfaces           = (LPTSTR)malloc(interface_count * (38 /*GUID*/ + 1 /*separator/terminator*/) * sizeof(TCHAR)),
             szTAPInterfacesTail       = szTAPInterfaces,
-            szTAPInterfacesActive     = (LPTSTR)malloc(interface_count * (38/*GUID*/ + 1/*separator/terminator*/) * sizeof(TCHAR)),
+            szTAPInterfacesActive     = (LPTSTR)malloc(interface_count * (38 /*GUID*/ + 1 /*separator/terminator*/) * sizeof(TCHAR)),
             szTAPInterfacesActiveTail = szTAPInterfacesActive;
         while (interfaces_head)
         {
@@ -544,7 +566,9 @@ FindTAPInterfaces(_In_ MSIHANDLE hInstall)
 
             /* Append to the list of TAP interface ID(s). */
             if (szTAPInterfaces < szTAPInterfacesTail)
+            {
                 *(szTAPInterfacesTail++) = TEXT(';');
+            }
             memcpy(szTAPInterfacesTail, szInterfaceId, 38 * sizeof(TCHAR));
             szTAPInterfacesTail += 38;
 
@@ -553,15 +577,17 @@ FindTAPInterfaces(_In_ MSIHANDLE hInstall)
             {
                 OLECHAR szId[38 + 1];
                 GUID guid;
-                if (MultiByteToWideChar(CP_ACP, MB_PRECOMPOSED, p->AdapterName, -1, szId, _countof(szId)) > 0 &&
-                    SUCCEEDED(IIDFromString(szId, &guid)) &&
-                    memcmp(&guid, &interfaces_head->iface->guid, sizeof(GUID)) == 0)
+                if (MultiByteToWideChar(CP_ACP, MB_PRECOMPOSED, p->AdapterName, -1, szId, _countof(szId)) > 0
+                    && SUCCEEDED(IIDFromString(szId, &guid))
+                    && memcmp(&guid, &interfaces_head->iface->guid, sizeof(GUID)) == 0)
                 {
                     if (p->OperStatus == IfOperStatusUp)
                     {
                         /* This TAP interface is active (connected). */
                         if (szTAPInterfacesActive < szTAPInterfacesActiveTail)
+                        {
                             *(szTAPInterfacesActiveTail++) = TEXT(';');
+                        }
                         memcpy(szTAPInterfacesActiveTail, szInterfaceId, 38 * sizeof(TCHAR));
                         szTAPInterfacesActiveTail += 38;
                     }
@@ -595,18 +621,23 @@ FindTAPInterfaces(_In_ MSIHANDLE hInstall)
             goto cleanup_szTAPInterfaces;
         }
 
-    cleanup_szTAPInterfaces:
+cleanup_szTAPInterfaces:
         free(szTAPInterfacesActive);
         free(szTAPInterfaces);
     }
     else
+    {
         uiResult = ERROR_SUCCESS;
+    }
 
     free(pAdapterAdresses);
 cleanup_tap_list_interfaces:
     tap_free_interface_list(pInterfaceList);
 cleanup_CoInitialize:
-    if (bIsCoInitialized) CoUninitialize();
+    if (bIsCoInitialized)
+    {
+        CoUninitialize();
+    }
     return uiResult;
 }
 
@@ -702,11 +733,16 @@ StartOpenVPNGUI(_In_ MSIHANDLE hInstall)
 
 cleanup_malloc_szPath:
     if (szPath != szStackBuf)
+    {
         free(szPath);
+    }
 cleanup_MsiCreateRecord:
     MsiCloseHandle(hRecord);
 cleanup_CoInitialize:
-    if (bIsCoInitialized) CoUninitialize();
+    if (bIsCoInitialized)
+    {
+        CoUninitialize();
+    }
     return uiResult;
 }
 
@@ -735,16 +771,19 @@ EvaluateTAPInterfaces(_In_ MSIHANDLE hInstall)
     };
     struct msica_op_seq exec_seq[_countof(szActionNames)];
     for (size_t i = 0; i < _countof(szActionNames); i++)
+    {
         msica_op_seq_init(&exec_seq[i]);
+    }
 
     {
         /* Check and store the rollback enabled state. */
         TCHAR szValue[128];
         DWORD dwLength = _countof(szValue);
         bool enable_rollback = MsiGetProperty(hInstall, TEXT("RollbackDisabled"), szValue, &dwLength) == ERROR_SUCCESS ?
-            _ttoi(szValue) || _totlower(szValue[0]) == TEXT('y') ? false : true :
-            true;
+                               _ttoi(szValue) || _totlower(szValue[0]) == TEXT('y') ? false : true :
+                               true;
         for (size_t i = 0; i < _countof(szActionNames); i++)
+        {
             msica_op_seq_add_tail(
                 &exec_seq[i],
                 msica_op_create_bool(
@@ -752,6 +791,7 @@ EvaluateTAPInterfaces(_In_ MSIHANDLE hInstall)
                     0,
                     NULL,
                     enable_rollback));
+        }
     }
 
     /* Open MSI database. */
@@ -765,11 +805,12 @@ EvaluateTAPInterfaces(_In_ MSIHANDLE hInstall)
     /* Check if TAPInterface table exists. If it doesn't exist, there's nothing to do. */
     switch (MsiDatabaseIsTablePersistent(hDatabase, TEXT("TAPInterface")))
     {
-    case MSICONDITION_FALSE:
-    case MSICONDITION_TRUE : break;
-    default:
-        uiResult = ERROR_SUCCESS;
-        goto cleanup_hDatabase;
+        case MSICONDITION_FALSE:
+        case MSICONDITION_TRUE: break;
+
+        default:
+            uiResult = ERROR_SUCCESS;
+            goto cleanup_hDatabase;
     }
 
     /* Prepare a query to get a list/view of interfaces. */
@@ -779,7 +820,7 @@ EvaluateTAPInterfaces(_In_ MSIHANDLE hInstall)
     if (uiResult != ERROR_SUCCESS)
     {
         SetLastError(uiResult); /* MSDN does not mention MsiDatabaseOpenView() to set GetLastError(). But we do have an error code. Set last error manually. */
-        msg(M_NONFATAL | M_ERRNO, "%s: MsiDatabaseOpenView(\"%"PRIsLPTSTR"\") failed", __FUNCTION__, szQuery);
+        msg(M_NONFATAL | M_ERRNO, "%s: MsiDatabaseOpenView(\"%" PRIsLPTSTR "\") failed", __FUNCTION__, szQuery);
         goto cleanup_hDatabase;
     }
 
@@ -788,7 +829,7 @@ EvaluateTAPInterfaces(_In_ MSIHANDLE hInstall)
     if (uiResult != ERROR_SUCCESS)
     {
         SetLastError(uiResult); /* MSDN does not mention MsiViewExecute() to set GetLastError(). But we do have an error code. Set last error manually. */
-        msg(M_NONFATAL | M_ERRNO, "%s: MsiViewExecute(\"%"PRIsLPTSTR"\") failed", __FUNCTION__, szQuery);
+        msg(M_NONFATAL | M_ERRNO, "%s: MsiViewExecute(\"%" PRIsLPTSTR "\") failed", __FUNCTION__, szQuery);
         goto cleanup_hViewST;
     }
 
@@ -806,7 +847,8 @@ EvaluateTAPInterfaces(_In_ MSIHANDLE hInstall)
         /* Fetch one record from the view. */
         MSIHANDLE hRecord = 0;
         uiResult = MsiViewFetch(hViewST, &hRecord);
-        if (uiResult == ERROR_NO_MORE_ITEMS) {
+        if (uiResult == ERROR_NO_MORE_ITEMS)
+        {
             uiResult = ERROR_SUCCESS;
             break;
         }
@@ -822,14 +864,17 @@ EvaluateTAPInterfaces(_In_ MSIHANDLE hInstall)
             /* Read interface component ID (`Component_` is field #4). */
             LPTSTR szValue = NULL;
             uiResult = msi_get_record_string(hRecord, 4, &szValue);
-            if (uiResult != ERROR_SUCCESS) goto cleanup_hRecord;
+            if (uiResult != ERROR_SUCCESS)
+            {
+                goto cleanup_hRecord;
+            }
 
             /* Get the component state. */
             uiResult = MsiGetComponentState(hInstall, szValue, &iInstalled, &iAction);
             if (uiResult != ERROR_SUCCESS)
             {
                 SetLastError(uiResult); /* MSDN does not mention MsiGetComponentState() to set GetLastError(). But we do have an error code. Set last error manually. */
-                msg(M_NONFATAL | M_ERRNO, "%s: MsiGetComponentState(\"%"PRIsLPTSTR"\") failed", __FUNCTION__, szValue);
+                msg(M_NONFATAL | M_ERRNO, "%s: MsiGetComponentState(\"%" PRIsLPTSTR "\") failed", __FUNCTION__, szValue);
                 free(szValue);
                 goto cleanup_hRecord;
             }
@@ -840,15 +885,21 @@ EvaluateTAPInterfaces(_In_ MSIHANDLE hInstall)
         LPTSTR szDisplayName = NULL;
         uiResult = msi_format_field(hInstall, hRecord, 2, &szDisplayName);
         if (uiResult != ERROR_SUCCESS)
+        {
             goto cleanup_hRecord;
+        }
 
         if (iAction > INSTALLSTATE_BROKEN)
         {
-            if (iAction >= INSTALLSTATE_LOCAL) {
+            if (iAction >= INSTALLSTATE_LOCAL)
+            {
                 /* Read and evaluate interface condition (`Condition` is field #3). */
                 LPTSTR szValue = NULL;
                 uiResult = msi_get_record_string(hRecord, 3, &szValue);
-                if (uiResult != ERROR_SUCCESS) goto cleanup_szDisplayName;
+                if (uiResult != ERROR_SUCCESS)
+                {
+                    goto cleanup_szDisplayName;
+                }
 #ifdef __GNUC__
 /*
  * warning: enumeration value ‘MSICONDITION_TRUE’ not handled in switch
@@ -859,14 +910,15 @@ EvaluateTAPInterfaces(_In_ MSIHANDLE hInstall)
 #endif
                 switch (MsiEvaluateCondition(hInstall, szValue))
                 {
-                case MSICONDITION_FALSE:
-                    free(szValue);
-                    goto cleanup_szDisplayName;
-                case MSICONDITION_ERROR:
-                    uiResult = ERROR_INVALID_FIELD;
-                    msg(M_NONFATAL | M_ERRNO, "%s: MsiEvaluateCondition(\"%"PRIsLPTSTR"\") failed", __FUNCTION__, szValue);
-                    free(szValue);
-                    goto cleanup_szDisplayName;
+                    case MSICONDITION_FALSE:
+                        free(szValue);
+                        goto cleanup_szDisplayName;
+
+                    case MSICONDITION_ERROR:
+                        uiResult = ERROR_INVALID_FIELD;
+                        msg(M_NONFATAL | M_ERRNO, "%s: MsiEvaluateCondition(\"%" PRIsLPTSTR "\") failed", __FUNCTION__, szValue);
+                        free(szValue);
+                        goto cleanup_szDisplayName;
                 }
 #ifdef __GNUC__
 #pragma GCC diagnostic pop
@@ -904,27 +956,33 @@ EvaluateTAPInterfaces(_In_ MSIHANDLE hInstall)
             }
         }
 
-    cleanup_szDisplayName:
+cleanup_szDisplayName:
         free(szDisplayName);
-    cleanup_hRecord:
+cleanup_hRecord:
         MsiCloseHandle(hRecord);
         if (uiResult != ERROR_SUCCESS)
+        {
             goto cleanup_hRecordProg;
+        }
     }
 
     /*
-    Write sequence files.
-    The InstallTAPInterfaces and UninstallTAPInterfaces are deferred custom actions, thus all this information
-    will be unavailable to them. Therefore save all required operations and their info to sequence files.
-    */
+     * Write sequence files.
+     * The InstallTAPInterfaces and UninstallTAPInterfaces are deferred custom actions, thus all this information
+     * will be unavailable to them. Therefore save all required operations and their info to sequence files.
+     */
     TCHAR szSeqFilename[_countof(szActionNames)][MAX_PATH + 1];
     for (size_t i = 0; i < _countof(szActionNames); i++)
+    {
         szSeqFilename[i][0] = 0;
+    }
     for (size_t i = 0; i < _countof(szActionNames); i++)
     {
         uiResult = openvpnmsica_setup_sequence_filename(hInstall, szActionNames[i], szSeqFilename[i]);
         if (uiResult != ERROR_SUCCESS)
+        {
             goto cleanup_szSeqFilename;
+        }
         HANDLE hSeqFile = CreateFile(
             szSeqFilename[i],
             GENERIC_WRITE,
@@ -936,13 +994,15 @@ EvaluateTAPInterfaces(_In_ MSIHANDLE hInstall)
         if (hSeqFile == INVALID_HANDLE_VALUE)
         {
             uiResult = GetLastError();
-            msg(M_NONFATAL | M_ERRNO, "%s: CreateFile(\"%.*"PRIsLPTSTR"\") failed", __FUNCTION__, _countof(szSeqFilename[i]), szSeqFilename[i]);
+            msg(M_NONFATAL | M_ERRNO, "%s: CreateFile(\"%.*" PRIsLPTSTR "\") failed", __FUNCTION__, _countof(szSeqFilename[i]), szSeqFilename[i]);
             goto cleanup_szSeqFilename;
         }
         uiResult = msica_op_seq_save(&exec_seq[i], hSeqFile);
         CloseHandle(hSeqFile);
         if (uiResult != ERROR_SUCCESS)
+        {
             goto cleanup_szSeqFilename;
+        }
     }
 
     uiResult = ERROR_SUCCESS;
@@ -952,8 +1012,12 @@ cleanup_szSeqFilename:
     {
         /* Clean-up sequence files. */
         for (size_t i = _countof(szActionNames); i--;)
+        {
             if (szSeqFilename[i][0])
+            {
                 DeleteFile(szSeqFilename[i]);
+            }
+        }
     }
 cleanup_hRecordProg:
     MsiCloseHandle(hRecordProg);
@@ -965,8 +1029,13 @@ cleanup_hDatabase:
     MsiCloseHandle(hDatabase);
 cleanup_exec_seq:
     for (size_t i = 0; i < _countof(szActionNames); i++)
+    {
         msica_op_seq_free(&exec_seq[i]);
-    if (bIsCoInitialized) CoUninitialize();
+    }
+    if (bIsCoInitialized)
+    {
+        CoUninitialize();
+    }
     return uiResult;
 }
 
@@ -993,7 +1062,9 @@ ProcessDeferredAction(_In_ MSIHANDLE hInstall)
     LPTSTR szSeqFilename = NULL;
     uiResult = msi_get_string(hInstall, TEXT("CustomActionData"), &szSeqFilename);
     if (uiResult != ERROR_SUCCESS)
+    {
         goto cleanup_CoInitialize;
+    }
     struct msica_op_seq seq = { .head = NULL, .tail = NULL };
     {
         HANDLE hSeqFile = CreateFile(
@@ -1010,14 +1081,14 @@ ProcessDeferredAction(_In_ MSIHANDLE hInstall)
             if (uiResult == ERROR_FILE_NOT_FOUND && bIsCleanup)
             {
                 /*
-                Sequence file not found and this is rollback/commit action. Either of the following scenarios are possible:
-                - The delayed action failed to save the rollback/commit sequence to file. The delayed action performed cleanup itself. No further operation is required.
-                - Somebody removed the rollback/commit file between delayed action and rollback/commit action. No further operation is possible.
-                */
+                 * Sequence file not found and this is rollback/commit action. Either of the following scenarios are possible:
+                 * - The delayed action failed to save the rollback/commit sequence to file. The delayed action performed cleanup itself. No further operation is required.
+                 * - Somebody removed the rollback/commit file between delayed action and rollback/commit action. No further operation is possible.
+                 */
                 uiResult = ERROR_SUCCESS;
                 goto cleanup_szSeqFilename;
             }
-            msg(M_NONFATAL | M_ERRNO, "%s: CreateFile(\"%"PRIsLPTSTR"\") failed", __FUNCTION__, szSeqFilename);
+            msg(M_NONFATAL | M_ERRNO, "%s: CreateFile(\"%" PRIsLPTSTR "\") failed", __FUNCTION__, szSeqFilename);
             goto cleanup_szSeqFilename;
         }
 
@@ -1025,7 +1096,9 @@ ProcessDeferredAction(_In_ MSIHANDLE hInstall)
         uiResult = msica_op_seq_load(&seq, hSeqFile);
         CloseHandle(hSeqFile);
         if (uiResult != ERROR_SUCCESS)
+        {
             goto cleanup_seq;
+        }
     }
 
     /* Prepare session context. */
@@ -1041,12 +1114,12 @@ ProcessDeferredAction(_In_ MSIHANDLE hInstall)
     if (!bIsCleanup)
     {
         /*
-        Save cleanup scripts of delayed action regardless of action's execution status.
-        Rollback action MUST be scheduled in InstallExecuteSequence before this action! Otherwise cleanup won't be performed in case this action execution failed.
-        */
+         * Save cleanup scripts of delayed action regardless of action's execution status.
+         * Rollback action MUST be scheduled in InstallExecuteSequence before this action! Otherwise cleanup won't be performed in case this action execution failed.
+         */
         DWORD dwResultEx; /* Don't overwrite uiResult. */
         LPCTSTR szExtension = PathFindExtension(szSeqFilename);
-        TCHAR szFilenameEx[MAX_PATH + 1/*dash*/ + 2/*suffix*/ + 1/*terminator*/];
+        TCHAR szFilenameEx[MAX_PATH + 1 /*dash*/ + 2 /*suffix*/ + 1 /*terminator*/];
         for (size_t i = 0; i < MSICA_CLEANUP_ACTION_COUNT; i++)
         {
             _stprintf_s(
@@ -1086,16 +1159,18 @@ ProcessDeferredAction(_In_ MSIHANDLE hInstall)
             if (hSeqFile == INVALID_HANDLE_VALUE)
             {
                 dwResultEx = GetLastError();
-                msg(M_NONFATAL | M_ERRNO, "%s: CreateFile(\"%.*"PRIsLPTSTR"\") failed", __FUNCTION__, _countof(szFilenameEx), szFilenameEx);
+                msg(M_NONFATAL | M_ERRNO, "%s: CreateFile(\"%.*" PRIsLPTSTR "\") failed", __FUNCTION__, _countof(szFilenameEx), szFilenameEx);
                 goto cleanup_session;
             }
             dwResultEx = msica_op_seq_save(&session.seq_cleanup[i], hSeqFile);
             CloseHandle(hSeqFile);
             if (dwResultEx != ERROR_SUCCESS)
+            {
                 goto cleanup_session;
+            }
         }
 
-    cleanup_session:
+cleanup_session:
         if (dwResultEx != ERROR_SUCCESS)
         {
             /* The commit and/or rollback scripts were not written to file successfully. Perform the cleanup immediately. */
@@ -1127,13 +1202,18 @@ ProcessDeferredAction(_In_ MSIHANDLE hInstall)
     }
 
     for (size_t i = MSICA_CLEANUP_ACTION_COUNT; i--;)
+    {
         msica_op_seq_free(&session.seq_cleanup[i]);
+    }
     DeleteFile(szSeqFilename);
 cleanup_seq:
     msica_op_seq_free(&seq);
 cleanup_szSeqFilename:
     free(szSeqFilename);
 cleanup_CoInitialize:
-    if (bIsCoInitialized) CoUninitialize();
+    if (bIsCoInitialized)
+    {
+        CoUninitialize();
+    }
     return uiResult;
 }

@@ -39,9 +39,9 @@
  */
 UINT
 msi_get_string(
-    _In_   MSIHANDLE  hInstall,
-    _In_z_ LPCTSTR    szName,
-    _Out_  LPTSTR    *pszValue);
+    _In_ MSIHANDLE hInstall,
+    _In_z_ LPCTSTR szName,
+    _Out_ LPTSTR *pszValue);
 
 
 /**
@@ -58,54 +58,54 @@ msi_get_string(
  */
 UINT
 msi_get_record_string(
-    _In_  MSIHANDLE     hRecord,
-    _In_  unsigned int  iField,
-    _Out_ LPTSTR       *pszValue);
+    _In_ MSIHANDLE hRecord,
+    _In_ unsigned int iField,
+    _Out_ LPTSTR *pszValue);
 
 
 /**
-* Formats MSI record
-*
-* @param hInstall      Handle to the installation. This may be omitted, in which case only the
-*                      record field parameters are processed and properties are not available
-*                      for substitution.
-*
-* @param hRecord       Handle to the record to format. The template string must be stored in
-*                      record field 0 followed by referenced data parameters.
-*
-* @param pszValue      Pointer to string to retrieve formatted value. The string must be
-*                      released with free() after use.
-*
-* @return ERROR_SUCCESS on success; Win32 error code otherwise
-*/
+ * Formats MSI record
+ *
+ * @param hInstall      Handle to the installation. This may be omitted, in which case only the
+ *                      record field parameters are processed and properties are not available
+ *                      for substitution.
+ *
+ * @param hRecord       Handle to the record to format. The template string must be stored in
+ *                      record field 0 followed by referenced data parameters.
+ *
+ * @param pszValue      Pointer to string to retrieve formatted value. The string must be
+ *                      released with free() after use.
+ *
+ * @return ERROR_SUCCESS on success; Win32 error code otherwise
+ */
 UINT
 msi_format_record(
-    _In_  MSIHANDLE  hInstall,
-    _In_  MSIHANDLE  hRecord,
-    _Out_ LPTSTR    *pszValue);
+    _In_ MSIHANDLE hInstall,
+    _In_ MSIHANDLE hRecord,
+    _Out_ LPTSTR *pszValue);
 
 
 /**
-* Formats MSI record field
-*
-* @param hInstall      Handle to the installation. This may be omitted, in which case only the
-*                      record field parameters are processed and properties are not available
-*                      for substitution.
-*
-* @param hRecord       Handle to the field record
-*
-* @param iField        Field index
-*
-* @param pszValue      Pointer to string to retrieve formatted value. The string must be
-*                      released with free() after use.
-*
-* @return ERROR_SUCCESS on success; Win32 error code otherwise
-*/
+ * Formats MSI record field
+ *
+ * @param hInstall      Handle to the installation. This may be omitted, in which case only the
+ *                      record field parameters are processed and properties are not available
+ *                      for substitution.
+ *
+ * @param hRecord       Handle to the field record
+ *
+ * @param iField        Field index
+ *
+ * @param pszValue      Pointer to string to retrieve formatted value. The string must be
+ *                      released with free() after use.
+ *
+ * @return ERROR_SUCCESS on success; Win32 error code otherwise
+ */
 UINT
 msi_format_field(
-    _In_  MSIHANDLE     hInstall,
-    _In_  MSIHANDLE     hRecord,
-    _In_  unsigned int  iField,
-    _Out_ LPTSTR       *pszValue);
+    _In_ MSIHANDLE hInstall,
+    _In_ MSIHANDLE hRecord,
+    _In_ unsigned int iField,
+    _Out_ LPTSTR *pszValue);
 
-#endif
+#endif /* ifndef MSIHLP_H */
