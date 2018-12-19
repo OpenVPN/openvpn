@@ -1426,7 +1426,8 @@ static void
 do_init_route_list(const struct options *options,
                    struct route_list *route_list,
                    const struct link_socket_info *link_socket_info,
-                   struct env_set *es)
+                   struct env_set *es,
+                   openvpn_net_ctx_t *ctx)
 {
     const char *gw = NULL;
     int dev = dev_type_enum(options->dev, options->dev_type);
@@ -1450,7 +1451,8 @@ do_init_route_list(const struct options *options,
                         gw,
                         metric,
                         link_socket_current_remote(link_socket_info),
-                        es))
+                        es,
+                        ctx))
     {
         /* copy routes to environment */
         setenv_routes(es, route_list);
@@ -1633,11 +1635,13 @@ do_route(const struct options *options,
          struct route_ipv6_list *route_ipv6_list,
          const struct tuntap *tt,
          const struct plugin_list *plugins,
-         struct env_set *es)
+         struct env_set *es,
+         openvpn_net_ctx_t *ctx)
 {
     if (!options->route_noexec && ( route_list || route_ipv6_list ) )
     {
-        add_routes(route_list, route_ipv6_list, tt, ROUTE_OPTION_FLAGS(options), es);
+        add_routes(route_list, route_ipv6_list, tt, ROUTE_OPTION_FLAGS(options),
+                   es, ctx);
         setenv_int(es, "redirect_gateway", route_did_redirect_default_gateway(route_list));
     }
 #ifdef ENABLE_MANAGEMENT
@@ -1750,7 +1754,7 @@ do_open_tun(struct context *c)
     if (c->options.routes && c->c1.route_list)
     {
         do_init_route_list(&c->options, c->c1.route_list,
-                           &c->c2.link_socket->info, c->c2.es);
+                           &c->c2.link_socket->info, c->c2.es, &c->net_ctx);
     }
     if (c->options.routes_ipv6 && c->c1.route_ipv6_list)
     {
@@ -1777,7 +1781,7 @@ do_open_tun(struct context *c)
     {
         /* Ignore route_delay, would cause ROUTE_BEFORE_TUN to be ignored */
         do_route(&c->options, c->c1.route_list, c->c1.route_ipv6_list,
-                 c->c1.tuntap, c->plugins, c->c2.es);
+                 c->c1.tuntap, c->plugins, c->c2.es, &c->net_ctx);
     }
 #ifdef TARGET_ANDROID
     /* Store the old fd inside the fd so open_tun can use it */
@@ -1834,7 +1838,7 @@ do_open_tun(struct context *c)
     if ((route_order() == ROUTE_AFTER_TUN) && (!c->options.route_delay_defined))
     {
         do_route(&c->options, c->c1.route_list, c->c1.route_ipv6_list,
-                 c->c1.tuntap, c->plugins, c->c2.es);
+                 c->c1.tuntap, c->plugins, c->c2.es, &c->net_ctx);
     }
 
     /*
@@ -1963,7 +1967,8 @@ do_close_tun(struct context *c, bool force)
                             c->c2.es);
 
                 delete_routes(c->c1.route_list, c->c1.route_ipv6_list,
-                              c->c1.tuntap, ROUTE_OPTION_FLAGS(&c->options), c->c2.es);
+                              c->c1.tuntap, ROUTE_OPTION_FLAGS(&c->options),
+                              c->c2.es, &c->net_ctx);
             }
 
             /* actually close tun/tap device based on --down-pre flag */
@@ -2820,6 +2825,7 @@ do_init_crypto_tls(struct context *c, const unsigned int flags)
     to.x509_username_field = X509_USERNAME_FIELD_DEFAULT;
 #endif
     to.es = c->c2.es;
+    to.net_ctx = &c->net_ctx;
 
 #ifdef ENABLE_DEBUG
     to.gremlin = c->options.gremlin;
@@ -3182,7 +3188,7 @@ do_option_warnings(struct context *c)
 
     if (o->tls_server)
     {
-        warn_on_use_of_common_subnets();
+        warn_on_use_of_common_subnets(&c->net_ctx);
     }
     if (o->tls_client
         && !o->tls_verify

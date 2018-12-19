@@ -5006,12 +5006,14 @@ add_option(struct options *options,
         struct route_gateway_info rgi;
         struct route_ipv6_gateway_info rgi6;
         struct in6_addr remote = IN6ADDR_ANY_INIT;
+        openvpn_net_ctx_t net_ctx;
         VERIFY_PERMISSION(OPT_P_GENERAL);
         if (p[1])
         {
             get_ipv6_addr(p[1], &remote, NULL, M_WARN);
         }
-        get_default_gateway(&rgi);
+        net_ctx_init(NULL, &net_ctx);
+        get_default_gateway(&rgi, &net_ctx);
         get_default_gateway_ipv6(&rgi6, &remote);
         print_default_gateway(M_INFO, &rgi, &rgi6);
         openvpn_exit(OPENVPN_EXIT_STATUS_GOOD); /* exit point */

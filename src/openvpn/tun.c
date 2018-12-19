@@ -453,13 +453,13 @@ check_subnet_conflict(const in_addr_t ip,
 }
 
 void
-warn_on_use_of_common_subnets(void)
+warn_on_use_of_common_subnets(openvpn_net_ctx_t *ctx)
 {
     struct gc_arena gc = gc_new();
     struct route_gateway_info rgi;
     const int needed = (RGI_ADDR_DEFINED|RGI_NETMASK_DEFINED);
 
-    get_default_gateway(&rgi);
+    get_default_gateway(&rgi, ctx);
     if ((rgi.flags & needed) == needed)
     {
         const in_addr_t lan_network = rgi.gateway.addr & rgi.gateway.netmask;
@@ -818,7 +818,7 @@ add_route_connected_v6_net(struct tuntap *tt,
     r6.gateway = tt->local_ipv6;
     r6.metric  = 0;                     /* connected route */
     r6.flags   = RT_DEFINED | RT_METRIC_DEFINED;
-    add_route_ipv6(&r6, tt, 0, es);
+    add_route_ipv6(&r6, tt, 0, es, NULL);
 }
 
 void
@@ -834,7 +834,7 @@ delete_route_connected_v6_net(struct tuntap *tt,
     r6.metric  = 0;                     /* connected route */
     r6.flags   = RT_DEFINED | RT_ADDED | RT_METRIC_DEFINED;
     route_ipv6_clear_host_bits(&r6);
-    delete_route_ipv6(&r6, tt, 0, es);
+    delete_route_ipv6(&r6, tt, 0, es, NULL);
 }
 #endif /* if defined(_WIN32) || defined(TARGET_DARWIN) || defined(TARGET_NETBSD) || defined(TARGET_OPENBSD) */
 
@@ -1170,7 +1170,7 @@ do_ifconfig_ipv4(struct tuntap *tt, const char *ifname, int tun_mtu,
         r.netmask = tt->remote_netmask;
         r.gateway = tt->local;
         r.metric = 0;
-        add_route(&r, tt, 0, NULL, es);
+        add_route(&r, tt, 0, NULL, es, NULL);
     }
 
 #elif defined(TARGET_OPENBSD)
@@ -1217,7 +1217,7 @@ do_ifconfig_ipv4(struct tuntap *tt, const char *ifname, int tun_mtu,
         r.network = tt->local & tt->remote_netmask;
         r.netmask = tt->remote_netmask;
         r.gateway = remote_end;
-        add_route(&r, tt, 0, NULL, es);
+        add_route(&r, tt, 0, NULL, es, NULL);
     }
 
 #elif defined(TARGET_NETBSD)
@@ -1259,7 +1259,7 @@ do_ifconfig_ipv4(struct tuntap *tt, const char *ifname, int tun_mtu,
         r.network = tt->local & tt->remote_netmask;
         r.netmask = tt->remote_netmask;
         r.gateway = remote_end;
-        add_route(&r, tt, 0, NULL, es);
+        add_route(&r, tt, 0, NULL, es, NULL);
     }
 
 #elif defined(TARGET_DARWIN)
@@ -1309,7 +1309,7 @@ do_ifconfig_ipv4(struct tuntap *tt, const char *ifname, int tun_mtu,
         r.network = tt->local & tt->remote_netmask;
         r.netmask = tt->remote_netmask;
         r.gateway = tt->local;
-        add_route(&r, tt, 0, NULL, es);
+        add_route(&r, tt, 0, NULL, es, NULL);
     }
 
 #elif defined(TARGET_FREEBSD) || defined(TARGET_DRAGONFLY)
@@ -1348,7 +1348,7 @@ do_ifconfig_ipv4(struct tuntap *tt, const char *ifname, int tun_mtu,
         r.network = tt->local & tt->remote_netmask;
         r.netmask = tt->remote_netmask;
         r.gateway = remote_end;
-        add_route(&r, tt, 0, NULL, es);
+        add_route(&r, tt, 0, NULL, es, NULL);
     }
 
 #elif defined(TARGET_AIX)

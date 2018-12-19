@@ -76,7 +76,8 @@ void do_route(const struct options *options,
               struct route_ipv6_list *route_ipv6_list,
               const struct tuntap *tt,
               const struct plugin_list *plugins,
-              struct env_set *es);
+              struct env_set *es,
+              openvpn_net_ctx_t *ctx);
 
 void close_instance(struct context *c);
 

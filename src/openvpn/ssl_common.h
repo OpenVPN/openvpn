@@ -315,6 +315,7 @@ struct tls_options
 
     /* instance-wide environment variable set */
     struct env_set *es;
+    openvpn_net_ctx_t *net_ctx;
     const struct plugin_list *plugins;
 
     /* compression parms */

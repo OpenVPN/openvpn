@@ -2324,7 +2324,7 @@ push_peer_info(struct buffer *buf, struct tls_session *session)
         {
             /* push mac addr */
             struct route_gateway_info rgi;
-            get_default_gateway(&rgi);
+            get_default_gateway(&rgi, session->opt->net_ctx);
             if (rgi.flags & RGI_HWADDR_DEFINED)
             {
                 buf_printf(&out, "IV_HWADDR=%s\n", format_hex_ex(rgi.hwaddr, 6, 0, 1, ":", &gc));

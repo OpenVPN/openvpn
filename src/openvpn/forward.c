@@ -511,7 +511,7 @@ static void
 check_add_routes_action(struct context *c, const bool errors)
 {
     do_route(&c->options, c->c1.route_list, c->c1.route_ipv6_list,
-             c->c1.tuntap, c->plugins, c->c2.es);
+             c->c1.tuntap, c->plugins, c->c2.es, &c->net_ctx);
     update_time();
     event_timeout_clear(&c->c2.route_wakeup);
     event_timeout_clear(&c->c2.route_wakeup_expire);
