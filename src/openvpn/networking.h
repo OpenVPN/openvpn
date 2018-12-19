@@ -34,7 +34,7 @@ struct context;
 #ifdef ENABLE_SITNL
 #include "networking_sitnl.h"
 #elif ENABLE_IPROUTE
-#include "networking_ip.h"
+#include "networking_iproute2.h"
 #else
 /* define mock types to ensure code builds on any platform */
 typedef void * openvpn_net_ctx_t;
