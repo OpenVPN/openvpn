@@ -21,12 +21,6 @@
 #ifndef NETWORKING_H_
 #define NETWORKING_H_
 
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#elif defined(_MSC_VER)
-#include "config-msvc.h"
-#endif
-
 #include "syshead.h"
 
 struct context;

@@ -36,6 +36,7 @@
 #include "event.h"
 #include "proto.h"
 #include "misc.h"
+#include "networking.h"
 
 #if defined(_WIN32) || defined(TARGET_ANDROID)
 
@@ -211,7 +212,7 @@ tuntap_defined(const struct tuntap *tt)
 void open_tun(const char *dev, const char *dev_type, const char *dev_node,
               struct tuntap *tt);
 
-void close_tun(struct tuntap *tt);
+void close_tun(struct tuntap *tt, openvpn_net_ctx_t *ctx);
 
 int write_tun(struct tuntap *tt, uint8_t *buf, int len);
 
@@ -219,7 +220,8 @@ int read_tun(struct tuntap *tt, uint8_t *buf, int len);
 
 void tuncfg(const char *dev, const char *dev_type, const char *dev_node,
             int persist_mode, const char *username,
-            const char *groupname, const struct tuntap_options *options);
+            const char *groupname, const struct tuntap_options *options,
+            openvpn_net_ctx_t *ctx);
 
 const char *guess_tuntap_dev(const char *dev,
                              const char *dev_type,
@@ -237,7 +239,8 @@ struct tuntap *init_tun(const char *dev,        /* --dev option */
                         struct addrinfo *local_public,
                         struct addrinfo *remote_public,
                         const bool strict_warn,
-                        struct env_set *es);
+                        struct env_set *es,
+                        openvpn_net_ctx_t *ctx);
 
 void init_tun_post(struct tuntap *tt,
                    const struct frame *frame,
@@ -253,9 +256,10 @@ void do_ifconfig_setenv(const struct tuntap *tt,
  * @param ifname    the human readable interface name
  * @param mtu       the MTU value to set the interface to
  * @param es        the environment to be used when executing the commands
+ * @param ctx       the networking API opaque context
  */
 void do_ifconfig(struct tuntap *tt, const char *ifname, int tun_mtu,
-                 const struct env_set *es);
+                 const struct env_set *es, openvpn_net_ctx_t *ctx);
 
 bool is_dev_type(const char *dev, const char *dev_type, const char *match_type);
 

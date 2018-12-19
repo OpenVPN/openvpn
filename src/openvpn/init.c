@@ -1105,7 +1105,7 @@ do_genkey(const struct options *options)
  * Persistent TUN/TAP device management mode?
  */
 bool
-do_persist_tuntap(const struct options *options)
+do_persist_tuntap(const struct options *options, openvpn_net_ctx_t *ctx)
 {
     if (options->persist_config)
     {
@@ -1123,7 +1123,8 @@ do_persist_tuntap(const struct options *options)
 #ifdef ENABLE_FEATURE_TUN_PERSIST
         tuncfg(options->dev, options->dev_type, options->dev_node,
                options->persist_mode,
-               options->username, options->groupname, &options->tuntap_options);
+               options->username, options->groupname, &options->tuntap_options,
+               ctx);
         if (options->persist_mode && options->lladdr)
         {
             set_lladdr(options->dev, options->lladdr, NULL);
@@ -1694,7 +1695,8 @@ do_init_tun(struct context *c)
                             c->c1.link_socket_addr.bind_local,
                             c->c1.link_socket_addr.remote_list,
                             !c->options.ifconfig_nowarn,
-                            c->c2.es);
+                            c->c2.es,
+                            &c->net_ctx);
 
     init_tun_post(c->c1.tuntap,
                   &c->c2.frame,
@@ -1766,7 +1768,8 @@ do_open_tun(struct context *c)
                                              c->options.dev_type,
                                              c->options.dev_node,
                                              &gc);
-        do_ifconfig(c->c1.tuntap, guess, TUN_MTU_SIZE(&c->c2.frame), c->c2.es);
+        do_ifconfig(c->c1.tuntap, guess, TUN_MTU_SIZE(&c->c2.frame), c->c2.es,
+                    &c->net_ctx);
     }
 
     /* possibly add routes */
@@ -1794,7 +1797,8 @@ do_open_tun(struct context *c)
     if (!c->options.ifconfig_noexec
         && ifconfig_order() == IFCONFIG_AFTER_TUN_OPEN)
     {
-        do_ifconfig(c->c1.tuntap, c->c1.tuntap->actual_name, TUN_MTU_SIZE(&c->c2.frame), c->c2.es);
+        do_ifconfig(c->c1.tuntap, c->c1.tuntap->actual_name,
+                    TUN_MTU_SIZE(&c->c2.frame), c->c2.es, &c->net_ctx);
     }
 
     /* run the up script */
@@ -1902,7 +1906,7 @@ do_close_tun_simple(struct context *c)
     msg(D_CLOSE, "Closing TUN/TAP interface");
     if (c->c1.tuntap)
     {
-        close_tun(c->c1.tuntap);
+        close_tun(c->c1.tuntap, &c->net_ctx);
         c->c1.tuntap = NULL;
     }
     c->c1.tuntap_owned = false;
@@ -3380,9 +3384,11 @@ do_compute_occ_strings(struct context *c)
     struct gc_arena gc = gc_new();
 
     c->c2.options_string_local =
-        options_string(&c->options, &c->c2.frame, c->c1.tuntap, false, &gc);
+        options_string(&c->options, &c->c2.frame, c->c1.tuntap, &c->net_ctx,
+                       false, &gc);
     c->c2.options_string_remote =
-        options_string(&c->options, &c->c2.frame, c->c1.tuntap, true, &gc);
+        options_string(&c->options, &c->c2.frame, c->c1.tuntap, &c->net_ctx,
+                       true, &gc);
 
     msg(D_SHOW_OCC, "Local Options String (VER=%s): '%s'",
         options_string_version(c->c2.options_string_local, &gc),

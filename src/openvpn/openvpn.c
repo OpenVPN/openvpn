@@ -215,6 +215,8 @@ openvpn_main(int argc, char *argv[])
             open_plugins(&c, true, OPENVPN_PLUGIN_INIT_PRE_CONFIG_PARSE);
 #endif
 
+            net_ctx_init(&c, &c.net_ctx);
+
             /* init verbosity and mute levels */
             init_verb_mute(&c, IVM_LEVEL_1);
 
@@ -234,7 +236,7 @@ openvpn_main(int argc, char *argv[])
             }
 
             /* tun/tap persist command? */
-            if (do_persist_tuntap(&c.options))
+            if (do_persist_tuntap(&c.options, &c.net_ctx))
             {
                 break;
             }

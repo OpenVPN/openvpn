@@ -744,6 +744,7 @@ const char *options_string_version(const char *s, struct gc_arena *gc);
 char *options_string(const struct options *o,
                      const struct frame *frame,
                      struct tuntap *tt,
+                     openvpn_net_ctx_t *ctx,
                      bool remote,
                      struct gc_arena *gc);
 

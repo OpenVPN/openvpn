@@ -3548,6 +3548,7 @@ char *
 options_string(const struct options *o,
                const struct frame *frame,
                struct tuntap *tt,
+               openvpn_net_ctx_t *ctx,
                bool remote,
                struct gc_arena *gc)
 {
@@ -3590,7 +3591,8 @@ options_string(const struct options *o,
                       NULL,
                       NULL,
                       false,
-                      NULL);
+                      NULL,
+                      ctx);
         if (tt)
         {
             tt_local = true;
