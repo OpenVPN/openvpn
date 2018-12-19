@@ -14,7 +14,8 @@ MAINTAINERCLEANFILES = \
 
 SUBDIRS = unit_tests
 
-test_scripts = t_client.sh
+test_scripts = t_net.sh
+test_scripts += t_client.sh
 test_scripts += t_lpback.sh t_cltsrv.sh
 
 TESTS_ENVIRONMENT = top_srcdir="$(top_srcdir)"
