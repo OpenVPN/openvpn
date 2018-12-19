@@ -460,7 +460,7 @@ tap_create_interface(
             &devinfo_data))
     {
         dwResult = GetLastError();
-        msg(M_NONFATAL, "%s: SetupDiClassNameFromGuid failed", __FUNCTION__);
+        msg(M_NONFATAL, "%s: SetupDiCreateDeviceInfo failed", __FUNCTION__);
         goto cleanup_hDevInfoList;
     }
 
@@ -594,6 +594,13 @@ tap_create_interface(
     if (drvinfo_detail_data)
     {
         free(drvinfo_detail_data);
+    }
+
+    if (dwlDriverVersion == 0)
+    {
+        dwResult = ERROR_NOT_FOUND;
+        msg(M_NONFATAL, "%s: No driver for device \"%" PRIsLPTSTR "\" installed.", __FUNCTION__, szzHardwareIDs);
+        goto cleanup_DriverInfoList;
     }
 
     /* Call appropriate class installer. */
