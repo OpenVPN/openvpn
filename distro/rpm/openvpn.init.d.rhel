@@ -91,7 +91,7 @@ work=/etc/openvpn
 . /etc/sysconfig/network
 
 # Check that networking is up.
-if [ ${NETWORKING} = "no" ]
+if [ "${NETWORKING}" = "no" ]
 then
   echo "Networking is down"
   exit 0
