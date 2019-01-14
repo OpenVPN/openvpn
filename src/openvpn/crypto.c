@@ -1848,3 +1848,37 @@ translate_cipher_name_to_openvpn(const char *cipher_name)
 
     return pair->openvpn_name;
 }
+
+void
+write_pem_key_file(const char *filename, const char *pem_name)
+{
+    struct gc_arena gc = gc_new();
+    struct key server_key = { 0 };
+    struct buffer server_key_buf = clear_buf();
+    struct buffer server_key_pem = clear_buf();
+
+    if (!rand_bytes((void *)&server_key, sizeof(server_key)))
+    {
+        msg(M_NONFATAL, "ERROR: could not generate random key");
+        goto cleanup;
+    }
+    buf_set_read(&server_key_buf, (void *)&server_key, sizeof(server_key));
+    if (!crypto_pem_encode(pem_name, &server_key_pem,
+                           &server_key_buf, &gc))
+    {
+        msg(M_WARN, "ERROR: could not PEM-encode key");
+        goto cleanup;
+    }
+
+    if (!buffer_write_file(filename, &server_key_pem))
+    {
+        msg(M_ERR, "ERROR: could not write key file");
+        goto cleanup;
+    }
+
+cleanup:
+    secure_memzero(&server_key, sizeof(server_key));
+    buf_clear(&server_key_pem);
+    gc_free(&gc);
+    return;
+}

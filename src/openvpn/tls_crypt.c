@@ -670,35 +670,7 @@ tls_crypt_v2_extract_client_key(struct buffer *buf,
 void
 tls_crypt_v2_write_server_key_file(const char *filename)
 {
-    struct gc_arena gc = gc_new();
-    struct key server_key = { 0 };
-    struct buffer server_key_buf = clear_buf();
-    struct buffer server_key_pem = clear_buf();
-
-    if (!rand_bytes((void *)&server_key, sizeof(server_key)))
-    {
-        msg(M_NONFATAL, "ERROR: could not generate random key");
-        goto cleanup;
-    }
-    buf_set_read(&server_key_buf, (void *)&server_key, sizeof(server_key));
-    if (!crypto_pem_encode(tls_crypt_v2_srv_pem_name, &server_key_pem,
-                           &server_key_buf, &gc))
-    {
-        msg(M_WARN, "ERROR: could not PEM-encode server key");
-        goto cleanup;
-    }
-
-    if (!buffer_write_file(filename, &server_key_pem))
-    {
-        msg(M_ERR, "ERROR: could not write server key file");
-        goto cleanup;
-    }
-
-cleanup:
-    secure_memzero(&server_key, sizeof(server_key));
-    buf_clear(&server_key_pem);
-    gc_free(&gc);
-    return;
+    write_pem_key_file(filename, tls_crypt_v2_srv_pem_name);
 }
 
 void

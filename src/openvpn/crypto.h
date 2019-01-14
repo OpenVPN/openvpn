@@ -420,6 +420,16 @@ void crypto_adjust_frame_parameters(struct frame *frame,
 /** Return the worst-case OpenVPN crypto overhead (in bytes) */
 unsigned int crypto_max_overhead(void);
 
+/**
+ * Generate a server key with enough randomness to fill a key struct
+ * and write to file.
+ *
+ * @param filename          Filename of the server key file to create.
+ * @param pem_name          The name to use in the PEM header/footer.
+ */
+void
+write_pem_key_file(const char *filename, const char *pem_name);
+
 /* Minimum length of the nonce used by the PRNG */
 #define NONCE_SECRET_LEN_MIN 16
 
