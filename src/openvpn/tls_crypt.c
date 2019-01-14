@@ -298,7 +298,7 @@ tls_crypt_v2_read_keyfile(struct buffer *key, const char *pem_name,
     }
     else
     {
-        buf_set_read(&key_pem, (const void *)key_inline, strlen(key_inline));
+        buf_set_read(&key_pem, (const void *)key_inline, strlen(key_inline) + 1);
     }
 
     if (!crypto_pem_decode(pem_name, key, &key_pem))
