@@ -286,7 +286,36 @@ void process_outgoing_tun(struct context *c);
 
 /**************************************************************************/
 
-bool send_control_channel_string(struct context *c, const char *str, int msglevel);
+/*
+ * Send a string to remote over the TLS control channel.
+ * Used for push/pull messages, passing username/password,
+ * etc.
+ * @param c          - The context structure of the VPN tunnel associated with
+ *                     the packet.
+ * @param str        - The message to be sent
+ * @param msglevel   - Message level to use for logging
+ */
+bool
+send_control_channel_string(struct context *c, const char *str, int msglevel);
+
+/*
+ * Send a string to remote over the TLS control channel.
+ * Used for push/pull messages, passing username/password,
+ * etc.
+ *
+ * This variant does not schedule the actual sending of the message
+ * The caller needs to ensure that it is scheduled or call
+ * send_control_channel_string
+ *
+ * @param multi      - The tls_multi structure of the VPN tunnel associated
+ *                     with the packet.
+ * @param str        - The message to be sent
+ * @param msglevel   - Message level to use for logging
+ */
+
+bool
+send_control_channel_string_dowork(struct tls_multi *multi,
+                                   const char *str, int msglevel);
 
 #define PIPV4_PASSTOS                   (1<<0)
 #define PIP_MSSFIX                      (1<<1)         /* v4 and v6 */

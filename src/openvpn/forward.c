@@ -464,42 +464,45 @@ check_connection_established_dowork(struct context *c)
     }
 }
 
-/*
- * Send a string to remote over the TLS control channel.
- * Used for push/pull messages, passing username/password,
- * etc.
- */
+bool
+send_control_channel_string_dowork(struct tls_multi *multi,
+                                   const char *str, int msglevel)
+{
+    struct gc_arena gc = gc_new();
+    bool stat;
+
+    /* buffered cleartext write onto TLS control channel */
+    stat = tls_send_payload(multi, (uint8_t *) str, strlen(str) + 1);
+
+    msg(msglevel, "SENT CONTROL [%s]: '%s' (status=%d)",
+        tls_common_name(multi, false),
+        sanitize_control_message(str, &gc),
+        (int) stat);
+
+    gc_free(&gc);
+    return stat;
+}
+
 bool
 send_control_channel_string(struct context *c, const char *str, int msglevel)
 {
     if (c->c2.tls_multi)
     {
-        struct gc_arena gc = gc_new();
-        bool stat;
-
-        /* buffered cleartext write onto TLS control channel */
-        stat = tls_send_payload(c->c2.tls_multi, (uint8_t *) str, strlen(str) + 1);
-
+        bool ret = send_control_channel_string_dowork(c->c2.tls_multi,
+                                                      str, msglevel);
         /*
          * Reschedule tls_multi_process.
          * NOTE: in multi-client mode, usually the below two statements are
          * insufficient to reschedule the client instance object unless
          * multi_schedule_context_wakeup(m, mi) is also called.
          */
+
         interval_action(&c->c2.tmp_int);
         context_immediate_reschedule(c); /* ZERO-TIMEOUT */
-
-        msg(msglevel, "SENT CONTROL [%s]: '%s' (status=%d)",
-            tls_common_name(c->c2.tls_multi, false),
-            sanitize_control_message(str, &gc),
-            (int) stat);
-
-        gc_free(&gc);
-        return stat;
+        return ret;
     }
     return true;
 }
-
 /*
  * Add routes.
  */
