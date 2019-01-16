@@ -55,7 +55,11 @@ packet_id_testdriver_SOURCES = test_packet_id.c mock_msg.c \
 
 tls_crypt_testdriver_CFLAGS  = @TEST_CFLAGS@ \
 	-I$(openvpn_includedir) -I$(compat_srcdir) -I$(openvpn_srcdir)
-tls_crypt_testdriver_LDFLAGS = @TEST_LDFLAGS@ -Wl,--wrap=parse_line
+tls_crypt_testdriver_LDFLAGS = @TEST_LDFLAGS@ \
+	-Wl,--wrap=buffer_read_from_file \
+	-Wl,--wrap=buffer_write_file \
+	-Wl,--wrap=parse_line \
+	-Wl,--wrap=rand_bytes
 tls_crypt_testdriver_SOURCES = test_tls_crypt.c mock_msg.c \
 	$(openvpn_srcdir)/argv.c \
 	$(openvpn_srcdir)/base64.c \

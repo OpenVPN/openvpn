@@ -49,7 +49,30 @@
 #define PARAM1      "param1"
 #define PARAM2      "param two"
 
-const char plaintext_short[1];
+static const char *plaintext_short = "";
+
+static const char *test_server_key = \
+        "-----BEGIN OpenVPN tls-crypt-v2 server key-----\n"
+        "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8gISIjJCUmJygpKissLS4v\n"
+        "MDEyMzQ1Njc4OTo7PD0+P0BBQkNERUZHSElKS0xNTk9QUVJTVFVWV1hZWltcXV5f\n"
+        "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8=\n"
+        "-----END OpenVPN tls-crypt-v2 server key-----\n";
+
+static const char *test_client_key = \
+        "-----BEGIN OpenVPN tls-crypt-v2 client key-----\n"
+        "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8gISIjJCUmJygpKissLS4v\n"
+        "MDEyMzQ1Njc4OTo7PD0+P0BBQkNERUZHSElKS0xNTk9QUVJTVFVWV1hZWltcXV5f\n"
+        "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn+AgYKDhIWGh4iJiouMjY6P\n"
+        "kJGSk5SVlpeYmZqbnJ2en6ChoqOkpaanqKmqq6ytrq+wsbKztLW2t7i5uru8vb6/\n"
+        "wMHCw8TFxsfIycrLzM3Oz9DR0tPU1dbX2Nna29zd3t/g4eLj5OXm5+jp6uvs7e7v\n"
+        "8PHy8/T19vf4+fr7/P3+/xd9pcB0qUYZsWvkrLcfGmzPJPM8a7r0mEWdXwbDadSV\n"
+        "LHg5bv2TwlmPR3HgaMr8o9LTh9hxUTkrH3S0PfKRNwcso86ua/dBFTyXsM9tg4aw\n"
+        "3dS6ogH9AkaT+kRRDgNcKWkQCbwmJK2JlfkXHBwbAtmn78AkNuho6QCFqCdqGab3\n"
+        "zh2vheFqGMPdGpukbFrT3rcO3VLxUeG+RdzXiMTCpJSovFBP1lDkYwYJPnz6daEh\n"
+        "j0TzJ3BVru9W3CpotdNt7u09knxAfpCxjtrP3semsDew/gTBtcfQ/OoTFyFHnN5k\n"
+        "RZ+q17SC4nba3Pp8/Fs0+hSbv2tJozoD8SElFq7SIWJsciTYh8q8f5yQxjdt4Wxu\n"
+        "/Z5wtPCAZ0tOzj4ItTI77fBOYRTfEayzHgEr\n"
+        "-----END OpenVPN tls-crypt-v2 client key-----\n";
 
 int
 __wrap_parse_line(const char *line, char **p, const int n, const char *file,
@@ -59,6 +82,40 @@ __wrap_parse_line(const char *line, char **p, const int n, const char *file,
     p[1] = PARAM1;
     p[2] = PARAM2;
     return 3;
+}
+
+bool
+__wrap_buffer_write_file(const char *filename, const struct buffer *buf)
+{
+    const char *pem = BSTR(buf);
+    check_expected(filename);
+    check_expected(pem);
+
+    return mock();
+}
+
+struct buffer
+__wrap_buffer_read_from_file(const char *filename, struct gc_arena *gc)
+{
+    check_expected(filename);
+
+    const char *pem_str = (const char *) mock();
+    struct buffer ret = alloc_buf_gc(strlen(pem_str) + 1, gc);
+    buf_write(&ret, pem_str, strlen(pem_str) + 1);
+
+    return ret;
+}
+
+
+/** Predictable random for tests */
+int
+__wrap_rand_bytes(uint8_t *output, int len)
+{
+    for (int i = 0; i < len; i++)
+    {
+        output[i] = i;
+    }
+    return true;
 }
 
 struct test_tls_crypt_context {
@@ -450,6 +507,34 @@ tls_crypt_v2_wrap_unwrap_dst_too_small(void **state) {
     assert_true(0 == BLEN(&ctx->unwrapped_metadata));
 }
 
+static void
+test_tls_crypt_v2_write_server_key_file(void **state) {
+    const char *filename = "testfilename.key";
+
+    expect_string(__wrap_buffer_write_file, filename, filename);
+    expect_string(__wrap_buffer_write_file, pem, test_server_key);
+    will_return(__wrap_buffer_write_file, true);
+
+    tls_crypt_v2_write_server_key_file(filename);
+}
+
+static void
+test_tls_crypt_v2_write_client_key_file(void **state) {
+    const char *filename = "testfilename.key";
+
+    /* Test writing the client key */
+    expect_string(__wrap_buffer_write_file, filename, filename);
+    expect_string(__wrap_buffer_write_file, pem, test_client_key);
+    will_return(__wrap_buffer_write_file, true);
+
+    /* Key generation re-reads the created file as a sanity check */
+    expect_string(__wrap_buffer_read_from_file, filename, filename);
+    will_return(__wrap_buffer_read_from_file, test_client_key);
+
+    tls_crypt_v2_write_client_key_file(filename, NULL, INLINE_FILE_TAG,
+                                       test_server_key);
+}
+
 int
 main(void) {
     const struct CMUnitTest tests[] = {
@@ -489,6 +574,8 @@ main(void) {
         cmocka_unit_test_setup_teardown(tls_crypt_v2_wrap_unwrap_dst_too_small,
                                         test_tls_crypt_v2_setup,
                                         test_tls_crypt_v2_teardown),
+        cmocka_unit_test(test_tls_crypt_v2_write_server_key_file),
+        cmocka_unit_test(test_tls_crypt_v2_write_client_key_file),
     };
 
 #if defined(ENABLE_CRYPTO_OPENSSL)
