@@ -2863,11 +2863,11 @@ options_postprocess_mutate_ce(struct options *o, struct connection_entry *ce)
     {
         if (ce->tls_auth_file && !ce->tls_auth_file_inline)
         {
-            struct buffer in = buffer_read_from_file(o->tls_auth_file, &o->gc);
+            struct buffer in = buffer_read_from_file(ce->tls_auth_file, &o->gc);
             if (!buf_valid(&in))
             {
                 msg(M_FATAL, "Cannot pre-load tls-auth keyfile (%s)",
-                    o->tls_auth_file);
+                    ce->tls_auth_file);
             }
 
             ce->tls_auth_file = INLINE_FILE_TAG;
@@ -2876,11 +2876,11 @@ options_postprocess_mutate_ce(struct options *o, struct connection_entry *ce)
 
         if (ce->tls_crypt_file && !ce->tls_crypt_inline)
         {
-            struct buffer in = buffer_read_from_file(o->tls_crypt_file, &o->gc);
+            struct buffer in = buffer_read_from_file(ce->tls_crypt_file, &o->gc);
             if (!buf_valid(&in))
             {
                 msg(M_FATAL, "Cannot pre-load tls-crypt keyfile (%s)",
-                    o->tls_auth_file);
+                    ce->tls_crypt_file);
             }
 
             ce->tls_crypt_file = INLINE_FILE_TAG;
