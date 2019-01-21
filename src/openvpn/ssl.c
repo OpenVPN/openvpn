@@ -1990,7 +1990,8 @@ cleanup:
 
 bool
 tls_session_update_crypto_params(struct tls_session *session,
-                                 struct options *options, struct frame *frame)
+                                 struct options *options, struct frame *frame,
+                                 struct frame *frame_fragment)
 {
     if (!session->opt->server
         && 0 != strcmp(options->ciphername, session->opt->config_ciphername)
@@ -2033,6 +2034,22 @@ tls_session_update_crypto_params(struct tls_session *session,
                    options->ce.tun_mtu_defined, options->ce.tun_mtu);
     frame_init_mssfix(frame, options);
     frame_print(frame, D_MTU_INFO, "Data Channel MTU parms");
+
+    /*
+     * mssfix uses data channel framing, which at this point contains
+     * actual overhead. Fragmentation logic uses frame_fragment, which
+     * still contains worst case overhead. Replace it with actual overhead
+     * to prevent unneeded fragmentation.
+     */
+
+    if (frame_fragment)
+    {
+        frame_remove_from_extra_frame(frame_fragment, crypto_max_overhead());
+        crypto_adjust_frame_parameters(frame_fragment, &session->opt->key_type,
+	                               options->replay, packet_id_long_form);
+        frame_set_mtu_dynamic(frame_fragment, options->ce.fragment, SET_MTU_UPPER_BOUND);
+        frame_print(frame_fragment, D_MTU_INFO, "Fragmentation MTU parms");
+    }
 
     return tls_session_generate_data_channel_keys(session);
 }
