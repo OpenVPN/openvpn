@@ -1882,3 +1882,42 @@ cleanup:
     gc_free(&gc);
     return;
 }
+
+bool
+read_pem_key_file(struct buffer *key, const char *pem_name,
+                  const char *key_file, const char *key_inline)
+{
+    bool ret = false;
+    struct buffer key_pem = { 0 };
+    struct gc_arena gc = gc_new();
+
+    if (strcmp(key_file, INLINE_FILE_TAG))
+    {
+        key_pem = buffer_read_from_file(key_file, &gc);
+        if (!buf_valid(&key_pem))
+        {
+            msg(M_WARN, "ERROR: failed to read %s file (%s)",
+                pem_name, key_file);
+            goto cleanup;
+        }
+    }
+    else
+    {
+        buf_set_read(&key_pem, (const void *)key_inline, strlen(key_inline) + 1);
+    }
+
+    if (!crypto_pem_decode(pem_name, key, &key_pem))
+    {
+        msg(M_WARN, "ERROR: %s pem decode failed", pem_name);
+        goto cleanup;
+    }
+
+    ret = true;
+cleanup:
+    if (strcmp(key_file, INLINE_FILE_TAG))
+    {
+        buf_clear(&key_pem);
+    }
+    gc_free(&gc);
+    return ret;
+}

@@ -634,5 +634,4 @@ void
 show_available_tls_ciphers(const char *cipher_list,
                            const char *cipher_list_tls13,
                            const char *tls_cert_profile);
-
 #endif /* ifndef OPENVPN_SSL_H */

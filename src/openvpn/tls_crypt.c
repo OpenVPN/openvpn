@@ -278,45 +278,6 @@ error_exit:
     return false;
 }
 
-static inline bool
-tls_crypt_v2_read_keyfile(struct buffer *key, const char *pem_name,
-                          const char *key_file, const char *key_inline)
-{
-    bool ret = false;
-    struct buffer key_pem = { 0 };
-    struct gc_arena gc = gc_new();
-
-    if (strcmp(key_file, INLINE_FILE_TAG))
-    {
-        key_pem = buffer_read_from_file(key_file, &gc);
-        if (!buf_valid(&key_pem))
-        {
-            msg(M_WARN, "ERROR: failed to read tls-crypt-v2 key file (%s)",
-                key_file);
-            goto cleanup;
-        }
-    }
-    else
-    {
-        buf_set_read(&key_pem, (const void *)key_inline, strlen(key_inline) + 1);
-    }
-
-    if (!crypto_pem_decode(pem_name, key, &key_pem))
-    {
-        msg(M_WARN, "ERROR: tls-crypt-v2 pem decode failed");
-        goto cleanup;
-    }
-
-    ret = true;
-cleanup:
-    if (strcmp(key_file, INLINE_FILE_TAG))
-    {
-        buf_clear(&key_pem);
-    }
-    gc_free(&gc);
-    return ret;
-}
-
 static inline void
 tls_crypt_v2_load_client_key(struct key_ctx_bi *key, const struct key2 *key2,
                              bool tls_server)
@@ -339,8 +300,8 @@ tls_crypt_v2_init_client_key(struct key_ctx_bi *key, struct buffer *wkc_buf,
     struct buffer client_key = alloc_buf(TLS_CRYPT_V2_CLIENT_KEY_LEN
                                          + TLS_CRYPT_V2_MAX_WKC_LEN);
 
-    if (!tls_crypt_v2_read_keyfile(&client_key, tls_crypt_v2_cli_pem_name,
-                                   key_file, key_inline))
+    if (!read_pem_key_file(&client_key, tls_crypt_v2_cli_pem_name,
+                           key_file, key_inline))
     {
         msg(M_FATAL, "ERROR: invalid tls-crypt-v2 client key format");
     }
@@ -365,8 +326,8 @@ tls_crypt_v2_init_server_key(struct key_ctx *key_ctx, bool encrypt,
     struct buffer srv_key_buf;
 
     buf_set_write(&srv_key_buf, (void *)&srv_key, sizeof(srv_key));
-    if (!tls_crypt_v2_read_keyfile(&srv_key_buf, tls_crypt_v2_srv_pem_name,
-                                   key_file, key_inline))
+    if (!read_pem_key_file(&srv_key_buf, tls_crypt_v2_srv_pem_name,
+                           key_file, key_inline))
     {
         msg(M_FATAL, "ERROR: invalid tls-crypt-v2 server key format");
     }
