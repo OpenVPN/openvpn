@@ -44,6 +44,8 @@ static const WCHAR *white_list[] =
     L"setenv",
     L"service",
     L"verb",
+    L"pull-filter",
+    L"script-security",
 
     NULL                                /* last value */
 };
