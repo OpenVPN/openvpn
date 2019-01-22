@@ -400,8 +400,9 @@ crypto_pem_encode(const char *name, struct buffer *dst,
     BUF_MEM *bptr;
     BIO_get_mem_ptr(bio, &bptr);
 
-    *dst = alloc_buf_gc(bptr->length, gc);
+    *dst = alloc_buf_gc(bptr->length + 1, gc);
     ASSERT(buf_write(dst, bptr->data, bptr->length));
+    buf_null_terminate(dst);
 
     ret = true;
 cleanup:
