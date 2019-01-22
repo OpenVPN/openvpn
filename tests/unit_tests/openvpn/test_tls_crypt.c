@@ -49,8 +49,6 @@
 #define PARAM1      "param1"
 #define PARAM2      "param two"
 
-static const char *plaintext_short = "";
-
 static const char *test_server_key = \
         "-----BEGIN OpenVPN tls-crypt-v2 server key-----\n"
         "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8gISIjJCUmJygpKissLS4v\n"
@@ -148,10 +146,12 @@ test_tls_crypt_setup(void **state) {
     ctx->unwrapped = alloc_buf(TESTBUF_SIZE);
 
     /* Write test plaintext */
-    buf_write(&ctx->source, plaintext_short, sizeof(plaintext_short));
+    const char *plaintext = "1234567890";
+    buf_write(&ctx->source, plaintext, strlen(plaintext));
 
-    /* Write dummy opcode and session id */
-    buf_write(&ctx->ciphertext, "012345678", 1 + 8);
+    /* Write test ciphertext */
+    const char *ciphertext = "012345678";
+    buf_write(&ctx->ciphertext, ciphertext, strlen(ciphertext));
 
     return 0;
 }
