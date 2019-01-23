@@ -244,7 +244,7 @@ AC_ARG_ENABLE(
 
 AC_ARG_ENABLE(
 	[systemd],
-	[AS_HELP_STRING([--enable-systemd], [enable systemd suppport @<:@default=no@:>@])],
+	[AS_HELP_STRING([--enable-systemd], [enable systemd support @<:@default=no@:>@])],
 	,
 	[enable_systemd="no"]
 )

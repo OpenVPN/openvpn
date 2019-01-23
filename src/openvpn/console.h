@@ -35,7 +35,7 @@ struct _query_user {
     char *prompt;             /**< Prompt to present to the user */
     size_t prompt_len;        /**< Length of the prompt string */
     char *response;           /**< The user's response */
-    size_t response_len;      /**< Length the of the user reposone */
+    size_t response_len;      /**< Length the of the user response */
     bool echo;                /**< True: The user should see what is being typed, otherwise mask it */
 };
 

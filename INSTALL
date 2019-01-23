@@ -200,7 +200,7 @@ OPTIONS for ./configure:
   --enable-strict-options enable strict options check between peers (debugging
                           option) [default=no]
   --enable-selinux        enable SELinux support [default=no]
-  --enable-systemd        enable systemd suppport [default=no]
+  --enable-systemd        enable systemd support [default=no]
 
 ENVIRONMENT for ./configure:
 
