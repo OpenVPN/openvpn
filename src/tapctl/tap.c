@@ -322,7 +322,7 @@ get_net_interface_guid(
  *                       property that is being retrieved. This is one of the standard
  *                       registry data types. This parameter is optional and can be NULL.
  *
- * @param ppData         A pointer to pointer to data that receives the device propery. The
+ * @param ppData         A pointer to pointer to data that receives the device property. The
  *                       data must be released with free() after use.
  *
  * @return ERROR_SUCCESS on success; Win32 error code otherwise

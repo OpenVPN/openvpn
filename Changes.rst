@@ -26,7 +26,7 @@ Seamless client IP/port floating
     the new format. When a data packet arrives, the server identifies peer
     by peer-id. If peer's ip/port has changed, server assumes that
     client has floated, verifies HMAC and updates ip/port in internal structs.
-    This allows the connection to be immediatly restored, instead of requiring
+    This allows the connection to be immediately restored, instead of requiring
     a TLS handshake before the server accepts packets from the new client
     ip/port.
 
@@ -223,7 +223,7 @@ User-visible Changes
   of a field get _$N appended to it's field name, starting at N=1.  For the
   example above, that would result in e.g. X509_0_OU=one, X509_0_OU_1=two.
   Note that this breaks setups that rely on the fact that OpenVPN would
-  previously (incorrectly) only export the last occurence of a field.
+  previously (incorrectly) only export the last occurrence of a field.
 
 - ``proto udp`` and ``proto tcp`` now use both IPv4 and IPv6. The new
   options ``proto udp4`` and ``proto tcp4`` use IPv4 only.
@@ -371,7 +371,7 @@ Security
 
 - CVE-2017-7521: Fix post-authentication remote-triggerable memory leaks
   A client could cause a server to leak a few bytes each time it connects to the
-  server.  That can eventuall cause the server to run out of memory, and thereby
+  server.  That can eventually cause the server to run out of memory, and thereby
   causing the server process to terminate. Discovered and reported to the
   OpenVPN security team by Guido Vranken.  (OpenSSL builds only.)
 

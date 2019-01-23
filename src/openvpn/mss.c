@@ -110,7 +110,7 @@ mss_fixup_ipv6(struct buffer *buf, int maxmss)
      * before the final header (TCP, UDP, ...), so we'd need to walk that
      * chain (see RFC 2460 and RFC 6564 for details).
      *
-     * In practice, "most typically used" extention headers (AH, routing,
+     * In practice, "most typically used" extension headers (AH, routing,
      * fragment, mobility) are very unlikely to be seen inside an OpenVPN
      * tun, so for now, we only handle the case of "single next header = TCP"
      */

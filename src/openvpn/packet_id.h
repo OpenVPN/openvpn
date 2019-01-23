@@ -258,7 +258,7 @@ bool packet_id_read(struct packet_id_net *pin, struct buffer *buf, bool long_for
  * @param p             Packet ID state.
  * @param buf           Buffer to write the packet ID too
  * @param long_form     If true, also update and write time_t to buf
- * @param prepend       If true, prepend to buffer, otherwise apppend.
+ * @param prepend       If true, prepend to buffer, otherwise append.
  *
  * @return true if successful, false otherwise.
  */

@@ -113,7 +113,7 @@ openvpn_execve_allowed(const unsigned int flags)
 /*
  * Run execve() inside a fork().  Designed to replicate the semantics of system() but
  * in a safer way that doesn't require the invocation of a shell or the risks
- * assocated with formatting and parsing a command line.
+ * associated with formatting and parsing a command line.
  */
 int
 openvpn_execve(const struct argv *a, const struct env_set *es, const unsigned int flags)
@@ -199,7 +199,7 @@ openvpn_execve_check(const struct argv *a, const struct env_set *es, const unsig
 /*
  * Run execve() inside a fork(), duping stdout.  Designed to replicate the semantics of popen() but
  * in a safer way that doesn't require the invocation of a shell or the risks
- * assocated with formatting and parsing a command line.
+ * associated with formatting and parsing a command line.
  */
 int
 openvpn_popen(const struct argv *a,  const struct env_set *es)

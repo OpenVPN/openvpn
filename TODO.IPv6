@@ -21,7 +21,7 @@ TODO for IPv6 payload support
 
 4.) do "ifconfig tun0 inet6 unplumb"  or "ifconfig tun0 destroy" for
     Solaris, *BSD, ... at program termination time, to clean up leftovers
-    (unless tunnel persistance is desired).
+    (unless tunnel persistence is desired).
 
     For Solaris, only the "ipv6 tun0" is affected, for the *BSDs all tun0
     stay around.
@@ -47,7 +47,7 @@ tun0: flags=8051<UP,POINTOPOINT,RUNNING,MULTICAST> mtu 1500
 4b.) verify this - on FreeBSD, tun0 is auto-destroyed if created by
      opening /dev/tun (and lingers if created by "ifconfig tun0 create")
 
-     -> use for persistant tunnels on not-linux?
+     -> use for persistent tunnels on not-linux?
 
     * 2012-06-10 tun interface behaviour is documented in "man tun(4)"
 
@@ -201,7 +201,7 @@ TODO for IPv6 transport support
     downstream.
     - Still done by flags, seems clean enough.
 
-  o implement comparison for mapped addesses: server in dual stack
+  o implement comparison for mapped addresses: server in dual stack
     listening IPv6 must permit incoming streams from allowed IPv4 peer,
     currently you need to pass eg:  --remote ffff::1.2.3.4
     - OpenVPN will compare all address of a remote

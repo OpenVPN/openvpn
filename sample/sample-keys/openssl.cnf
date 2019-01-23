@@ -19,7 +19,7 @@ crl		= $dir/crl.pem 		# The current CRL
 private_key	= $dir/ca.key		# The private key
 RANDFILE	= $dir/.rand		# private random number file
 
-x509_extensions	= basic_exts		# The extentions to add to the cert
+x509_extensions	= basic_exts		# The extensions to add to the cert
 
 # This allows a V2 CRL. Ancient browsers don't like it, but anything Easy-RSA
 # is designed for will. In return, we get the Issuer attached to CRLs.
@@ -54,7 +54,7 @@ default_bits		= 2048
 default_keyfile		= privkey.pem
 default_md		= sha256
 distinguished_name	= cn_only
-x509_extensions		= easyrsa_ca	# The extentions to add to the self signed cert
+x509_extensions		= easyrsa_ca	# The extensions to add to the self signed cert
 
 # A placeholder to handle the $EXTRA_EXTS feature:
 #%EXTRA_EXTS%	# Do NOT remove or change this line as $EXTRA_EXTS support requires it

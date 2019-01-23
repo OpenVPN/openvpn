@@ -992,7 +992,7 @@ link_socket_update_buffer_sizes(struct link_socket *ls, int rcvbuf, int sndbuf)
 }
 
 /*
- * SOCKET INITALIZATION CODE.
+ * SOCKET INITIALIZATION CODE.
  * Create a TCP/UDP socket
  */
 
@@ -2535,7 +2535,7 @@ link_socket_current_remote(const struct link_socket_info *info)
  * by now just ignore it
  *
  * For --remote entries with multiple addresses this
- * only return the actual endpoint we have sucessfully connected to
+ * only return the actual endpoint we have successfully connected to
  */
     if (lsa->actual.dest.addr.sa.sa_family != AF_INET)
     {
@@ -2566,7 +2566,7 @@ link_socket_current_remote_ipv6(const struct link_socket_info *info)
  * for PF_INET6 routes over PF_INET6 endpoints
  *
  * For --remote entries with multiple addresses this
- * only return the actual endpoint we have sucessfully connected to
+ * only return the actual endpoint we have successfully connected to
  */
     if (lsa->actual.dest.addr.sa.sa_family != AF_INET6)
     {
@@ -3279,7 +3279,7 @@ addr_family_name(int af)
  *
  * IPv6 and IPv4 protocols are comptabile but OpenVPN
  * has always sent UDPv4, TCPv4 over the wire. Keep these
- * strings for backward compatbility
+ * strings for backward compatibility
  */
 const char *
 proto_remote(int proto, bool remote)
@@ -3364,7 +3364,7 @@ link_socket_read_tcp(struct link_socket *sock,
 
 #if ENABLE_IP_PKTINFO
 
-/* make the buffer large enough to handle ancilliary socket data for
+/* make the buffer large enough to handle ancillary socket data for
  * both IPv4 and IPv6 destination addresses, plus padding (see RFC 2292)
  */
 #if defined(HAVE_IN_PKTINFO) && defined(HAVE_IPI_SPEC_DST)
@@ -3879,7 +3879,7 @@ socket_finalize(SOCKET s,
         if (ret >= 0 && io->addr_defined)
         {
             /* TODO(jjo): streamline this mess */
-            /* in this func we dont have relevant info about the PF_ of this
+            /* in this func we don't have relevant info about the PF_ of this
              * endpoint, as link_socket_actual will be zero for the 1st received packet
              *
              * Test for inets PF_ possible sizes
