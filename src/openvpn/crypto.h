@@ -299,7 +299,7 @@ int read_key(struct key *key, const struct key_type *kt, struct buffer *buf);
  * @param authname    The name of the HMAC digest to use
  * @param keysize     The length of the cipher key to use, in bytes.  Only valid
  *                    for ciphers that support variable length keys.
- * @param tls_mode    Specifies wether we are running in TLS mode, which allows
+ * @param tls_mode    Specifies whether we are running in TLS mode, which allows
  *                    more ciphers than static key mode.
  * @param warn        Print warnings when null cipher / auth is used.
  */

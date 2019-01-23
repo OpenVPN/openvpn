@@ -22,7 +22,7 @@
  */
 
 /*
- * Win32-specific OpenVPN code, targetted at the mingw
+ * Win32-specific OpenVPN code, targeted at the mingw
  * development environment.
  */
 

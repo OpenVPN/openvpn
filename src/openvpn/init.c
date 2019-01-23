@@ -1005,7 +1005,7 @@ init_options_dev(struct options *options)
 {
     if (!options->dev && options->dev_node)
     {
-        char *dev_node = string_alloc(options->dev_node, NULL); /* POSIX basename() implementaions may modify its arguments */
+        char *dev_node = string_alloc(options->dev_node, NULL); /* POSIX basename() implementations may modify its arguments */
         options->dev = basename(dev_node);
     }
 }
@@ -1134,7 +1134,7 @@ do_persist_tuntap(const struct options *options)
              "options --mktun and --rmtun are not available on your operating "
              "system.  Please check 'man tun' (or 'tap'), whether your system "
              "supports using 'ifconfig %s create' / 'destroy' to create/remove "
-             "persistant tunnel interfaces.", options->dev );
+             "persistent tunnel interfaces.", options->dev );
 #endif
     }
     return false;
@@ -2391,7 +2391,7 @@ socket_restart_pause(struct context *c)
     }
     c->persist.restart_sleep_seconds = 0;
 
-    /* do managment hold on context restart, i.e. second, third, fourth, etc. initialization */
+    /* do management hold on context restart, i.e. second, third, fourth, etc. initialization */
     if (do_hold(sec))
     {
         sec = 0;
@@ -3066,7 +3066,7 @@ do_init_frame(struct context *c)
     /* packets with peer-id (P_DATA_V2) need 3 extra bytes in frame (on client)
      * and need link_mtu+3 bytes on socket reception (on server).
      *
-     * accomodate receive path in f->extra_link, which has the side effect of
+     * accommodate receive path in f->extra_link, which has the side effect of
      * also increasing send buffers (BUF_SIZE() macro), which need to be
      * allocated big enough before receiving peer-id option from server.
      *
@@ -3193,7 +3193,7 @@ do_option_warnings(struct context *c)
         msg(M_WARN, "WARNING: --ns-cert-type is DEPRECATED.  Use --remote-cert-tls instead.");
     }
 
-    /* If a script is used, print appropiate warnings */
+    /* If a script is used, print appropriate warnings */
     if (o->user_script_used)
     {
         if (script_security() >= SSEC_SCRIPTS)
@@ -3562,7 +3562,7 @@ do_close_link_socket(struct context *c)
 }
 
 /*
- * Close packet-id persistance file
+ * Close packet-id persistence file
  */
 static void
 do_close_packet_id(struct context *c)
@@ -3657,7 +3657,7 @@ do_close_status_output(struct context *c)
 }
 
 /*
- * Handle ifconfig-pool persistance object.
+ * Handle ifconfig-pool persistence object.
  */
 static void
 do_open_ifconfig_pool_persist(struct context *c)
@@ -4269,7 +4269,7 @@ init_instance(struct context *c, const struct env_set *env, const unsigned int f
         do_init_traffic_shaper(c);
     }
 
-    /* do one-time inits, and possibily become a daemon here */
+    /* do one-time inits, and possibly become a daemon here */
     do_init_first_time(c);
 
 #ifdef ENABLE_PLUGIN
@@ -4399,7 +4399,7 @@ close_instance(struct context *c)
         do_close_plugins(c);
 #endif
 
-        /* close packet-id persistance file */
+        /* close packet-id persistence file */
         do_close_packet_id(c);
 
         /* close --status file */

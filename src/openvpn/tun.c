@@ -958,7 +958,7 @@ do_ifconfig_ipv6(struct tuntap *tt, const char *ifname, int tun_mtu,
 
 #if defined(TARGET_OPENBSD) || defined(TARGET_NETBSD) \
     || defined(TARGET_DARWIN)
-    /* and, hooray, we explicitely need to add a route... */
+    /* and, hooray, we explicitly need to add a route... */
     add_route_connected_v6_net(tt, es);
 #endif
 #elif defined(TARGET_AIX)
@@ -1894,7 +1894,7 @@ open_tun(const char *dev, const char *dev_type, const char *dev_node, struct tun
     ASSERT(0);
 }
 
-#endif /* !PENDANTIC */
+#endif /* !PEDANTIC */
 
 #ifdef ENABLE_FEATURE_TUN_PERSIST
 
@@ -2510,7 +2510,7 @@ open_tun(const char *dev, const char *dev_type, const char *dev_node, struct tun
 
 /* the current way OpenVPN handles tun devices on NetBSD leads to
  * lingering tunX interfaces after close -> for a full cleanup, they
- * need to be explicitely destroyed
+ * need to be explicitly destroyed
  */
 void
 close_tun(struct tuntap *tt)
@@ -2937,7 +2937,7 @@ open_darwin_utun(const char *dev, const char *dev_type, const char *dev_node, st
         {
             fd = utun_open_helper(ctlInfo, utunnum);
             /* Break if the fd is valid,
-             * or if early initalization failed (-2) */
+             * or if early initialization failed (-2) */
             if (fd !=-1)
             {
                 break;

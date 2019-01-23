@@ -113,7 +113,7 @@ case "$1" in
 
 	# From a security perspective, I think it makes
 	# sense to remove this, and have users who need
-	# it explictly enable in their --up scripts or
+	# it explicitly enable in their --up scripts or
 	# firewall setups.
 
 	#echo 1 > /proc/sys/net/ipv4/ip_forward

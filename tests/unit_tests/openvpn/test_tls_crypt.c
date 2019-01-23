@@ -328,7 +328,7 @@ test_tls_crypt_v2_setup(void **state) {
 
     ctx->gc = gc_new();
 
-    /* Sligthly longer buffers to be able to test too-long data */
+    /* Slightly longer buffers to be able to test too-long data */
     ctx->metadata = alloc_buf_gc(TLS_CRYPT_V2_MAX_METADATA_LEN+16, &ctx->gc);
     ctx->unwrapped_metadata = alloc_buf_gc(TLS_CRYPT_V2_MAX_METADATA_LEN+16,
                                            &ctx->gc);

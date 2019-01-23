@@ -451,7 +451,7 @@ static const char usage_message[] =
     "                  user/pass via environment, if method='via-file', pass\n"
     "                  user/pass via temporary file.\n"
     "--auth-gen-token  [lifetime] Generate a random authentication token which is pushed\n"
-    "                  to each client, replacing the password.  Usefull when\n"
+    "                  to each client, replacing the password.  Useful when\n"
     "                  OTP based two-factor auth mechanisms are in use and\n"
     "                  --reneg-* options are enabled. Optionally a lifetime in seconds\n"
     "                  for generated tokens can be set.\n"
@@ -675,7 +675,7 @@ static const char usage_message[] =
     "--pkcs11-protected-authentication [0|1] ... : Use PKCS#11 protected authentication\n"
     "                              path. Set for each provider.\n"
     "--pkcs11-private-mode hex ...   : PKCS#11 private key mode mask.\n"
-    "                              0       : Try  to determind automatically (default).\n"
+    "                              0       : Try  to determine automatically (default).\n"
     "                              1       : Use Sign.\n"
     "                              2       : Use SignRecover.\n"
     "                              4       : Use Decrypt.\n"
@@ -898,7 +898,7 @@ init_options(struct options *o, const bool init_gc)
 
     /* Set default --tmp-dir */
 #ifdef _WIN32
-    /* On Windows, find temp dir via enviroment variables */
+    /* On Windows, find temp dir via environment variables */
     o->tmp_dir = win_get_tempdir();
 #else
     /* Non-windows platforms use $TMPDIR, and if not set, default to '/tmp' */
@@ -3084,8 +3084,8 @@ options_postprocess_mutate(struct options *o)
  */
 #ifndef ENABLE_SMALL  /** Expect people using the stripped down version to know what they do */
 
-#define CHKACC_FILE (1<<0)       /** Check for a file/directory precense */
-#define CHKACC_DIRPATH (1<<1)    /** Check for directory precense where a file should reside */
+#define CHKACC_FILE (1<<0)       /** Check for a file/directory presence */
+#define CHKACC_DIRPATH (1<<1)    /** Check for directory presence where a file should reside */
 #define CHKACC_FILEXSTWR (1<<2)  /** If file exists, is it writable? */
 #define CHKACC_INLINE (1<<3)     /** File is present if it's an inline file */
 #define CHKACC_ACPTSTDIN (1<<4)  /** If filename is stdin, it's allowed and "exists" */
@@ -3119,7 +3119,7 @@ check_file_access(const int type, const char *file, const int mode, const char *
     /* Is the directory path leading to the given file accessible? */
     if (type & CHKACC_DIRPATH)
     {
-        char *fullpath = string_alloc(file, NULL); /* POSIX dirname() implementaion may modify its arguments */
+        char *fullpath = string_alloc(file, NULL); /* POSIX dirname() implementation may modify its arguments */
         char *dirpath = dirname(fullpath);
 
         if (platform_access(dirpath, mode|X_OK) != 0)
@@ -3169,7 +3169,7 @@ check_file_access(const int type, const char *file, const int mode, const char *
         msg(M_NOPREFIX | M_OPTERR | M_ERRNO, "%s fails with '%s'", opt, file);
     }
 
-    /* Return true if an error occured */
+    /* Return true if an error occurred */
     return (errcode != 0 ? true : false);
 }
 

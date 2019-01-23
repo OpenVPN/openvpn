@@ -72,7 +72,7 @@
 #		- removed sourcing "network"
 #		- removed network checking. it seemed not to work with SuSE.
 #		- added sourcing "rc.status", comments and "rc_reset" command
-#		- removed "succes; echo" and "failure; echo" lines
+#		- removed "success; echo" and "failure; echo" lines
 #		- added "rc_status" lines at the end of each section
 #		- changed "service" to "/etc/init.d/" in "In addition to start/stop"
 #		  section above.
@@ -126,7 +126,7 @@ case "$1" in
 
 	# From a security perspective, I think it makes
 	# sense to remove this, and have users who need
-	# it explictly enable in their --up scripts or
+	# it explicitly enable in their --up scripts or
 	# firewall setups.
 
 	#echo 1 > /proc/sys/net/ipv4/ip_forward

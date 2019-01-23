@@ -390,7 +390,7 @@ struct msica_session
 /**
  * Initializes execution session
  *
- * @param session       Pointer to an unitialized execution session
+ * @param session       Pointer to an uninitialized execution session
  *
  * @param hInstall      Installer handle
  *
