@@ -2308,7 +2308,7 @@ push_peer_info(struct buffer *buf, struct tls_session *session)
         /* support for P_DATA_V2 */
         buf_printf(&out, "IV_PROTO=2\n");
 
-        /* support for Negotiable Crypto Paramters */
+        /* support for Negotiable Crypto Parameters */
         if (session->opt->ncp_enabled
             && (session->opt->mode == MODE_SERVER || session->opt->pull))
         {

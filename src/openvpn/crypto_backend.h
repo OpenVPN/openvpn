@@ -634,7 +634,7 @@ void hmac_ctx_free(hmac_ctx_t *ctx);
  * Initialises the given HMAC context, using the given digest
  * and key.
  *
- * @param ctx           HMAC context to intialise
+ * @param ctx           HMAC context to initialise
  * @param key           The key to use for the HMAC
  * @param key_len       The key length to use
  * @param kt            Static message digest parameters

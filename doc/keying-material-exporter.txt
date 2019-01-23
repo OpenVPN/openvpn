@@ -48,7 +48,7 @@ to application layer using well-defined mechanism.
    [DerivedAAABindingKey]                            [DerivedAAABindingKey]
                                                   [AuthenticateBindingKeys]
    Client                           ------->                         Server
-                             [Confidental channel]
+                             [Confidential channel]
 
 
 TLS Message flow for a full handshake

@@ -178,7 +178,7 @@ fragment_incoming(struct fragment_master *f, struct buffer *buf,
 
             if (flags & (FRAG_SEQ_ID_MASK | FRAG_ID_MASK))
             {
-                FRAG_ERR("spurrious FRAG_WHOLE flags");
+                FRAG_ERR("spurious FRAG_WHOLE flags");
             }
         }
         else if (frag_type == FRAG_YES_NOTLAST || frag_type == FRAG_YES_LAST)

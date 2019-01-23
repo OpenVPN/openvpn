@@ -25,7 +25,7 @@
 #define _PLUGIN_AUTH_PAM_UTILS__H
 
 /**
- *  Read 'tosearch', replace all occurences of 'searchfor' with 'replacewith' and return
+ *  Read 'tosearch', replace all occurrences of 'searchfor' with 'replacewith' and return
  *  a pointer to the NEW string.  Does not modify the input strings.  Will not enter an
  *  infinite loop with clever 'searchfor' and 'replacewith' strings.
  *
@@ -35,7 +35,7 @@
  *  @param searchfor     needle to search for in the haystack
  *  @param replacewith   when a match is found, replace needle with this string
  *
- *  @return Retuns NULL when any parameter is NULL or the worst-case result is to large ( >= SIZE_MAX).
+ *  @return Returns NULL when any parameter is NULL or the worst-case result is to large ( >= SIZE_MAX).
  *          Otherwise it returns a pointer to a new buffer containing the modified input
  */
 char *
@@ -48,7 +48,7 @@ searchandreplace(const char *tosearch, const char *searchfor, const char *replac
  * @param name  Environment variable to look up
  * @param envp  Environment variable table with all key/value pairs
  *
- * @return Returns a pointer to the value of the enviroment variable if found, otherwise NULL is returned.
+ * @return Returns a pointer to the value of the environment variable if found, otherwise NULL is returned.
  */
 const char *
 get_env(const char *name, const char *envp[]);

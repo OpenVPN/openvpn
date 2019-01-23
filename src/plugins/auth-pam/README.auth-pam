@@ -7,7 +7,7 @@ authentication via PAM, and essentially allows any authentication
 method supported by PAM (such as LDAP, RADIUS, or Linux Shadow
 passwords) to be used with OpenVPN.  While PAM supports
 username/password authentication, this can be combined with X509
-certificates to provide two indepedent levels of authentication.
+certificates to provide two independent levels of authentication.
 
 This module uses a split privilege execution model which will
 function even if you drop openvpn daemon privileges using the user,
@@ -65,7 +65,7 @@ the operation of this plugin:
   static-challenge
 
 Use of --static challenege is required to pass a pin (represented by "OTP" in
-parameter substituion) or a second password.
+parameter substitution) or a second password.
 
 Run OpenVPN with --verb 7 or higher to get debugging output from
 this plugin, including the list of queries presented by the
