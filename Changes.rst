@@ -320,6 +320,67 @@ Maintainer-visible changes
   use -std=gnu99 in CFLAGS.  This is known to be needed when doing
   i386/i686 builds on RHEL5.
 
+
+Version 2.4.7
+=============
+This is primarily a maintenance release with minor bugfixes and improvements.
+
+New features
+------------
+- ifconfig-ipv6(-push): allow using hostnames (in place of IPv6 addresses)
+
+- new option: --ciphersuites to select TLS 1.3 cipher suites
+  (--cipher selects TLS 1.2 and earlier ciphers)
+
+- enable dhcp on tap adapter using interactive service
+  (previously this required a privileged netsh.exe call from OpenVPN)
+
+- clarify and expand management interface documentation
+
+- add Interactive Service developer documentation
+
+
+User visible changes
+--------------------
+- add message explaining early TLS client hello failure (if TLS 1.0
+  only clients try to connect to TLS 1.3 capable servers)
+
+- --show-tls will now display TLS 1.3 and TLS 1.2 ciphers in separate
+  lists (if built with OpenSSL 1.1.1+)
+
+- don't print OCC warnings about 'key-method', 'keydir' and 'tls-auth'
+  (unnecessary warnings, and will cause spurious warnings with tls-crypt-v2)
+
+- bump version of openvpn plugin argument structs to 5
+
+- plugin: Export base64 encode and decode functions
+
+- man: add security considerations to --compress section
+
+
+Bug fixes
+---------
+- print port numbers (again) for incoming IPv4 connections received on
+  a dual-stacked IPv6 socket.  This got lost at some point during 
+  rewrite of the dual-stack code and proper printing of IPv4 addresses.
+
+- fallback to password authentication when auth-token fails
+
+- fix combination of --dev tap and --topology subnet across multiple 
+  platforms (BSDs, MacOS, and Solaris).
+
+- fix Windows CryptoAPI usage for TLS 1.2 signatures
+
+- fix option handling in combination with NCP negotiation and OCC
+  (--opt-verify failure on reconnect if NCP modified options and server
+  verified "original" vs. "modified" options)
+
+- mbedtls: print warning if random personalisation fails
+
+- fix subnet topology on NetBSD (2.4).
+
+
+
 Version 2.4.6
 =============
 This is primarily a maintenance release with minor bugfixes and improvements,

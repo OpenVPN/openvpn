@@ -1,6 +1,80 @@
 OpenVPN Change Log
 Copyright (C) 2002-2018 OpenVPN Inc <sales@openvpn.net>
 
+2019.02.18 -- Version 2.4.7
+Adam Ciarcin?ski (1):
+      Fix subnet topology on NetBSD (2.4).
+
+Antonio Quartulli (3):
+      add support for %lu in argv_printf and prevent ASSERT
+      buffer_list: add functions documentation
+      ifconfig-ipv6(-push): allow using hostnames
+
+Arne Schwabe (7):
+      Properly free tuntap struct on android when emulating persist-tun
+      Add OpenSSL compat definition for RSA_meth_set_sign
+      Add support for tls-ciphersuites for TLS 1.3
+      Add better support for showing TLS 1.3 ciphersuites in --show-tls
+      Use right function to set TLS1.3 restrictions in show-tls
+      Add message explaining early TLS client hello failure
+      Fallback to password authentication when auth-token fails
+
+Christian Ehrhardt (1):
+      systemd: extend CapabilityBoundingSet for auth_pam
+
+David Sommerseth (1):
+      plugin: Export base64 encode and decode functions
+
+Gert Doering (3):
+      Add %d, %u and %lu tests to test_argv unit tests.
+      Fix combination of --dev tap and --topology subnet across multiple platforms.
+      Add 'printing of port number' to mroute_addr_print_ex() for v4-mapped v6.
+
+Gert van Dijk (1):
+      Minor reliability layer documentation fixes
+
+James Bekkema (1):
+      Resolves small IV_GUI_VER typo in the documentation.
+
+Jonathan K. Bullard (1):
+      Clarify and expand management interface documentation
+
+Lev Stipakov (5):
+      Refactor NCP-negotiable options handling
+      init.c: refine functions names and description
+      interactive.c: fix usage of potentially uninitialized variable
+      options.c: fix broken unary minus usage
+      Remove extra token after #endif
+
+Richard van den Berg via Openvpn-devel (1):
+      Fix error message when using RHEL init script
+
+Samy Mahmoudi (1):
+      man: correct a --redirection-gateway option flag
+
+Selva Nair (7):
+      Replace M_DEBUG with D_LOW as the former is too verbose
+      Correct the declaration of handle in 'struct openvpn_plugin_args_open_return'
+      Bump version of openvpn plugin argument structs to 5
+      Move get system directory to a separate function
+      Enable dhcp on tap adapter using interactive service
+      Pass the hash without the DigestInfo header to NCryptSignHash()
+      White-list pull-filter and script-security in interactive service
+
+Simon Rozman (2):
+      Add Interactive Service developer documentation
+      Detect TAP interfaces with root-enumerated hardware ID
+
+Steffan Karger (7):
+      man: add security considerations to --compress section
+      mbedtls: print warning if random personalisation fails
+      Fix memory leak after sighup
+      travis: add OpenSSL 1.1 Windows build
+      Fix --disable-crypto build
+      Don't print OCC warnings about 'key-method', 'keydir' and 'tls-auth'
+      buffer_list_aggregate_separator(): simplify code
+
+
 2018.04.19 -- Version 2.4.6
 David Sommerseth (1):
       management: Warn if TCP port is used without password
