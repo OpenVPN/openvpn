@@ -312,7 +312,7 @@ pkcs11_initialize(
 
     pkcs11h_setLogLevel(_pkcs11_msg_openvpn2pkcs11(get_debug_level()));
 
-    if ((rv = pkcs11h_setForkMode(TRUE)) != CKR_OK)
+    if ((rv = pkcs11h_setForkMode(FALSE)) != CKR_OK)
     {
         msg(M_FATAL, "PKCS#11: Cannot set fork mode %ld-'%s'", rv, pkcs11h_getMessage(rv));
         goto cleanup;
