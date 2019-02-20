@@ -228,32 +228,41 @@ ENVIRONMENT for ./configure:
 
 *************************************************************************
 
-BUILDING ON LINUX 2.6+ FROM RPM
+Linux distribution packaging:
 
-You can build a binary RPM directly from the OpenVPN tarball file:
+Each Linux distribution has their own way of doing packaging and their
+own set of guidelines of how proper packaging should be done.  It
+is therefore recommended to reach out to the Linux distributions you
+want to have OpenVPN packaged for directly.  The OpenVPN project wants
+to focus more on the OpenVPN development and less on the packaging
+and how packaging is done in all various distributions.
 
-	rpmbuild -tb [tarball]
+For more details:
 
-This command will build a binary RPM file and place it in the system
-RPM directory.  You can then install the RPM with the standard RPM
-install command:
+* Arch Linux
+  https://www.archlinux.org/packages/?name=openvpn
 
-	rpm -ivh [binary-rpm]
+* Debian
+  https://packages.debian.org/search?keywords=openvpn&searchon=names
+  https://tracker.debian.org/pkg/openvpn
 
-When you install the binary RPM, it will install
-sample-scripts/openvpn.init, which can be used to
-automatically start or stop one or more OpenVPN tunnels on system
-startup or shutdown, based on OpenVPN .conf files in /etc/openvpn.
-See the comments in openvpn.init for more information.
+* Fedora / Fedora EPEL (Red Hat Enterprise Linux/CentOS/Scientific Linux)
+  https://apps.fedoraproject.org/packages/openvpn/overview/
+  https://src.fedoraproject.org/rpms/openvpn
 
-Installing the RPM will also configure the TUN/TAP device node
-for linux 2.6.
+* Gentoo
+  https://packages.gentoo.org/packages/net-vpn/openvpn
+  https://gitweb.gentoo.org/repo/gentoo.git/tree/net-vpn/openvpn
 
-Note that the current openvpn.spec file, which instructs the rpm tool
-how to build a package, will build OpenVPN with all options enabled,
-including OpenSSL, LZO, and pthread linkage.  Therefore all of
-these packages will need to be present prior to the RPM build, unless
-you edit the openvpn.spec file.
+* openSUSE
+  https://build.opensuse.org/package/show/network:vpn/openvpn
+
+* Ubuntu
+  https://packages.ubuntu.com/search?keywords=openvpn
+
+In addition, the OpenVPN community provides a best-effort APT repository
+for Debian and Ubuntu:
+https://community.openvpn.net/openvpn/wiki/OpenvpnSoftwareRepos
 
 *************************************************************************
 
