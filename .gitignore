@@ -53,7 +53,6 @@ doc/openvpn.8.html
 /doc/doxygen/html/
 /doc/doxygen/latex/
 /doc/doxygen/openvpn.doxyfile
-distro/rpm/openvpn.spec
 distro/systemd/*.service
 sample/sample-keys/sample-ca/
 vendor/.build
