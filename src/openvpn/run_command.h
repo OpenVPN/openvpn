@@ -33,6 +33,10 @@
 #define SSEC_SCRIPTS   2 /* allow calling of built-in programs and user-defined scripts */
 #define SSEC_PW_ENV    3 /* allow calling of built-in programs and user-defined scripts that may receive a password as an environmental variable */
 
+#define OPENVPN_EXECVE_ERROR       -1 /* generic error while forking to run an external program */
+#define OPENVPN_EXECVE_NOT_ALLOWED -2 /* external program not run due to script security */
+#define OPENVPN_EXECVE_FAILURE    127 /* exit code passed back from child when execve fails */
+
 int script_security(void);
 
 void script_security_set(int level);
