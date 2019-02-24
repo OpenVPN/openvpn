@@ -365,40 +365,42 @@ openvpnmsica_set_openvpnserv_state(_In_ MSIHANDLE hInstall)
     /* Query service status. */
     SERVICE_STATUS_PROCESS ssp;
     DWORD dwBufSize;
-    if (!QueryServiceStatusEx(hService, SC_STATUS_PROCESS_INFO, (LPBYTE)&ssp, sizeof(ssp), &dwBufSize))
+    if (QueryServiceStatusEx(hService, SC_STATUS_PROCESS_INFO, (LPBYTE)&ssp, sizeof(ssp), &dwBufSize))
+    {
+        switch (ssp.dwCurrentState)
+        {
+            case SERVICE_START_PENDING:
+            case SERVICE_RUNNING:
+            case SERVICE_STOP_PENDING:
+            case SERVICE_PAUSE_PENDING:
+            case SERVICE_PAUSED:
+            case SERVICE_CONTINUE_PENDING:
+            {
+                /* Service is started (kind of). Set OPENVPNSERVICE property to service PID. */
+                TCHAR szPID[10 /*MAXDWORD in decimal*/ + 1 /*terminator*/];
+                _stprintf_s(
+                    szPID, _countof(szPID),
+                    TEXT("%u"),
+                    ssp.dwProcessId);
+
+                uiResult = MsiSetProperty(hInstall, TEXT("OPENVPNSERVICE"), szPID);
+                if (uiResult != ERROR_SUCCESS)
+                {
+                    SetLastError(uiResult); /* MSDN does not mention MsiSetProperty() to set GetLastError(). But we do have an error code. Set last error manually. */
+                    msg(M_NONFATAL | M_ERRNO, "%s: MsiSetProperty(\"OPENVPNSERVICE\") failed", __FUNCTION__);
+                }
+
+                /* We know user is using the service. Skip auto-start setting check. */
+                goto cleanup_OpenService;
+            }
+            break;
+        }
+    }
+    else
     {
         uiResult = GetLastError();
         msg(M_NONFATAL | M_ERRNO, "%s: QueryServiceStatusEx(\"OpenVPNService\") failed", __FUNCTION__);
-        goto finish_QueryServiceStatusEx;
     }
-
-    switch (ssp.dwCurrentState)
-    {
-        case SERVICE_START_PENDING:
-        case SERVICE_RUNNING:
-        case SERVICE_STOP_PENDING:
-        case SERVICE_PAUSE_PENDING:
-        case SERVICE_PAUSED:
-        case SERVICE_CONTINUE_PENDING:
-        {
-            /* Set OPENVPNSERVICE property to service PID. */
-            TCHAR szPID[10 /*MAXDWORD in decimal*/ + 1 /*terminator*/];
-            _stprintf_s(
-                szPID, _countof(szPID),
-                TEXT("%u"),
-                ssp.dwProcessId);
-
-            uiResult = MsiSetProperty(hInstall, TEXT("OPENVPNSERVICE"), szPID);
-            if (uiResult != ERROR_SUCCESS)
-            {
-                SetLastError(uiResult); /* MSDN does not mention MsiSetProperty() to set GetLastError(). But we do have an error code. Set last error manually. */
-                msg(M_NONFATAL | M_ERRNO, "%s: MsiSetProperty(\"OPENVPNSERVICE\") failed", __FUNCTION__);
-            }
-            goto cleanup_OpenService;
-        }
-        break;
-    }
-finish_QueryServiceStatusEx:;
 
     /* Service is not started. Is it set to auto-start? */
     /* MSDN describes the maximum buffer size for QueryServiceConfig() to be 8kB. */
@@ -415,6 +417,7 @@ finish_QueryServiceStatusEx:;
 
     if (pQsc->dwStartType <= SERVICE_AUTO_START)
     {
+        /* Service is set to auto-start. Set OPENVPNSERVICE property to its path. */
         uiResult = MsiSetProperty(hInstall, TEXT("OPENVPNSERVICE"), pQsc->lpBinaryPathName);
         if (uiResult != ERROR_SUCCESS)
         {
