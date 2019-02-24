@@ -36,7 +36,7 @@
 #include <tchar.h>
 
 
-DWORD openvpnmsica_tlsidx_session = TLS_OUT_OF_INDEXES;
+DWORD openvpnmsica_thread_data_idx = TLS_OUT_OF_INDEXES;
 
 
 /**
@@ -54,9 +54,9 @@ DllMain(
     switch (dwReason)
     {
         case DLL_PROCESS_ATTACH:
-            /* Allocate TLS index. */
-            openvpnmsica_tlsidx_session = TlsAlloc();
-            if (openvpnmsica_tlsidx_session == TLS_OUT_OF_INDEXES)
+            /* Allocate thread local storage index. */
+            openvpnmsica_thread_data_idx = TlsAlloc();
+            if (openvpnmsica_thread_data_idx == TLS_OUT_OF_INDEXES)
             {
                 return FALSE;
             }
@@ -64,25 +64,25 @@ DllMain(
 
         case DLL_THREAD_ATTACH:
         {
-            /* Create TLS data. */
-            struct openvpnmsica_tls_data *s = (struct openvpnmsica_tls_data *)malloc(sizeof(struct openvpnmsica_tls_data));
-            memset(s, 0, sizeof(struct openvpnmsica_tls_data));
-            TlsSetValue(openvpnmsica_tlsidx_session, s);
+            /* Create thread local storage data. */
+            struct openvpnmsica_thread_data *s = (struct openvpnmsica_thread_data *)malloc(sizeof(struct openvpnmsica_thread_data));
+            memset(s, 0, sizeof(struct openvpnmsica_thread_data));
+            TlsSetValue(openvpnmsica_thread_data_idx, s);
             break;
         }
 
         case DLL_PROCESS_DETACH:
-            if (openvpnmsica_tlsidx_session != TLS_OUT_OF_INDEXES)
+            if (openvpnmsica_thread_data_idx != TLS_OUT_OF_INDEXES)
             {
-                /* Free TLS data and TLS index. */
-                free(TlsGetValue(openvpnmsica_tlsidx_session));
-                TlsFree(openvpnmsica_tlsidx_session);
+                /* Free thread local storage data and index. */
+                free(TlsGetValue(openvpnmsica_thread_data_idx));
+                TlsFree(openvpnmsica_thread_data_idx);
             }
             break;
 
         case DLL_THREAD_DETACH:
-            /* Free TLS data. */
-            free(TlsGetValue(openvpnmsica_tlsidx_session));
+            /* Free thread local storage data. */
+            free(TlsGetValue(openvpnmsica_thread_data_idx));
             break;
     }
 
@@ -105,7 +105,7 @@ x_msg_va(const unsigned int flags, const char *format, va_list arglist)
     /* Secure last error before it is overridden. */
     DWORD dwResult = (flags & M_ERRNO) != 0 ? GetLastError() : ERROR_SUCCESS;
 
-    struct openvpnmsica_tls_data *s = (struct openvpnmsica_tls_data *)TlsGetValue(openvpnmsica_tlsidx_session);
+    struct openvpnmsica_thread_data *s = (struct openvpnmsica_thread_data *)TlsGetValue(openvpnmsica_thread_data_idx);
     if (s->hInstall == 0)
     {
         /* No MSI session, no fun. */

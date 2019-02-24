@@ -435,9 +435,7 @@ FindSystemInfo(_In_ MSIHANDLE hInstall)
 
     BOOL bIsCoInitialized = SUCCEEDED(CoInitialize(NULL));
 
-    /* Set MSI session handle in TLS. */
-    struct openvpnmsica_tls_data *s = (struct openvpnmsica_tls_data *)TlsGetValue(openvpnmsica_tlsidx_session);
-    s->hInstall = hInstall;
+    OPENVPNMSICA_SAVE_MSI_SESSION(hInstall);
 
     openvpnmsica_set_driver_certification(hInstall);
     openvpnmsica_set_openvpnserv_state(hInstall);
@@ -462,9 +460,7 @@ FindTAPInterfaces(_In_ MSIHANDLE hInstall)
     UINT uiResult;
     BOOL bIsCoInitialized = SUCCEEDED(CoInitialize(NULL));
 
-    /* Set MSI session handle in TLS. */
-    struct openvpnmsica_tls_data *s = (struct openvpnmsica_tls_data *)TlsGetValue(openvpnmsica_tlsidx_session);
-    s->hInstall = hInstall;
+    OPENVPNMSICA_SAVE_MSI_SESSION(hInstall);
 
     /* Get available network interfaces. */
     struct tap_interface_node *pInterfaceList = NULL;
@@ -677,9 +673,7 @@ StartOpenVPNGUI(_In_ MSIHANDLE hInstall)
     UINT uiResult;
     BOOL bIsCoInitialized = SUCCEEDED(CoInitialize(NULL));
 
-    /* Set MSI session handle in TLS. */
-    struct openvpnmsica_tls_data *s = (struct openvpnmsica_tls_data *)TlsGetValue(openvpnmsica_tlsidx_session);
-    s->hInstall = hInstall;
+    OPENVPNMSICA_SAVE_MSI_SESSION(hInstall);
 
     /* Create and populate a MSI record. */
     MSIHANDLE hRecord = MsiCreateRecord(1);
@@ -759,9 +753,7 @@ EvaluateTAPInterfaces(_In_ MSIHANDLE hInstall)
     UINT uiResult;
     BOOL bIsCoInitialized = SUCCEEDED(CoInitialize(NULL));
 
-    /* Set MSI session handle in TLS. */
-    struct openvpnmsica_tls_data *s = (struct openvpnmsica_tls_data *)TlsGetValue(openvpnmsica_tlsidx_session);
-    s->hInstall = hInstall;
+    OPENVPNMSICA_SAVE_MSI_SESSION(hInstall);
 
     /* List of deferred custom actions EvaluateTAPInterfaces prepares operation sequence for. */
     static const LPCTSTR szActionNames[] =
@@ -1052,9 +1044,7 @@ ProcessDeferredAction(_In_ MSIHANDLE hInstall)
     UINT uiResult;
     BOOL bIsCoInitialized = SUCCEEDED(CoInitialize(NULL));
 
-    /* Set MSI session handle in TLS. */
-    struct openvpnmsica_tls_data *s = (struct openvpnmsica_tls_data *)TlsGetValue(openvpnmsica_tlsidx_session);
-    s->hInstall = hInstall;
+    OPENVPNMSICA_SAVE_MSI_SESSION(hInstall);
 
     BOOL bIsCleanup = MsiGetMode(hInstall, MSIRUNMODE_COMMIT) || MsiGetMode(hInstall, MSIRUNMODE_ROLLBACK);
 
