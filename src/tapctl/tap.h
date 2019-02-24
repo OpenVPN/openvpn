@@ -55,7 +55,7 @@ tap_create_interface(
 
 
 /**
- * Deletes a TUN/TAP interface.
+ * Deletes an interface.
  *
  * @param hwndParent    A handle to the top-level window to use for any user interface that is
  *                      related to non-device-specific actions (such as a select-device dialog
@@ -120,12 +120,16 @@ struct tap_interface_node
  *                      the list. After the list is no longer required, free it using
  *                      tap_free_interface_list().
  *
+ * @param bAll          When TRUE, all network interfaces found are added to the list. When
+ *                      FALSE, only TUN/TAP interfaces found are added.
+ *
  * @return ERROR_SUCCESS on success; Win32 error code otherwise
  */
 DWORD
 tap_list_interfaces(
     _In_opt_ HWND hwndParent,
-    _Out_ struct tap_interface_node **ppInterfaceList);
+    _Out_ struct tap_interface_node **ppInterfaceList,
+    _In_ BOOL bAll);
 
 
 /**

@@ -58,7 +58,7 @@ static const TCHAR usage_message[] =
     TEXT("Commands:\n")
     TEXT("\n")
     TEXT("create     Create a new TUN/TAP interface\n")
-    TEXT("list       List network interfaces\n")
+    TEXT("list       List TUN/TAP interfaces\n")
     TEXT("delete     Delete specified network interface\n")
     TEXT("help       Display this text\n")
     TEXT("\n")
@@ -90,7 +90,7 @@ static const TCHAR usage_message_create[] =
 static const TCHAR usage_message_list[] =
     TEXT("%s\n")
     TEXT("\n")
-    TEXT("Lists network interfaces\n")
+    TEXT("Lists TUN/TAP interfaces\n")
     TEXT("\n")
     TEXT("Usage:\n")
     TEXT("\n")
@@ -98,7 +98,7 @@ static const TCHAR usage_message_list[] =
     TEXT("\n")
     TEXT("Output:\n")
     TEXT("\n")
-    TEXT("This command prints all network interfaces to stdout.                          \n")
+    TEXT("This command prints all TUN/TAP interfaces to stdout.                          \n")
 ;
 
 static const TCHAR usage_message_delete[] =
@@ -200,9 +200,9 @@ _tmain(int argc, LPCTSTR argv[])
 
         if (szName)
         {
-            /* Get the list of available interfaces. */
+            /* Get the list of all available interfaces. */
             struct tap_interface_node *pInterfaceList = NULL;
-            dwResult = tap_list_interfaces(NULL, &pInterfaceList);
+            dwResult = tap_list_interfaces(NULL, &pInterfaceList, TRUE);
             if (dwResult != ERROR_SUCCESS)
             {
                 _ftprintf(stderr, TEXT("Enumerating interfaces failed (error 0x%x).\n"), dwResult);
@@ -257,12 +257,12 @@ create_delete_interface:
     }
     else if (_tcsicmp(argv[1], TEXT("list")) == 0)
     {
-        /* Output list of network interfaces. */
+        /* Output list of TUN/TAP interfaces. */
         struct tap_interface_node *pInterfaceList = NULL;
-        DWORD dwResult = tap_list_interfaces(NULL, &pInterfaceList);
+        DWORD dwResult = tap_list_interfaces(NULL, &pInterfaceList, FALSE);
         if (dwResult != ERROR_SUCCESS)
         {
-            _ftprintf(stderr, TEXT("Enumerating interfaces failed (error 0x%x).\n"), dwResult);
+            _ftprintf(stderr, TEXT("Enumerating TUN/TAP interfaces failed (error 0x%x).\n"), dwResult);
             iResult = 1; goto quit;
         }
 
@@ -290,10 +290,10 @@ create_delete_interface:
         {
             /* The argument failed to covert to GUID. Treat it as the interface name. */
             struct tap_interface_node *pInterfaceList = NULL;
-            DWORD dwResult = tap_list_interfaces(NULL, &pInterfaceList);
+            DWORD dwResult = tap_list_interfaces(NULL, &pInterfaceList, FALSE);
             if (dwResult != ERROR_SUCCESS)
             {
-                _ftprintf(stderr, TEXT("Enumerating interfaces failed (error 0x%x).\n"), dwResult);
+                _ftprintf(stderr, TEXT("Enumerating TUN/TAP interfaces failed (error 0x%x).\n"), dwResult);
                 iResult = 1; goto quit;
             }
 

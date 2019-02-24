@@ -476,9 +476,9 @@ FindTAPInterfaces(_In_ MSIHANDLE hInstall)
 
     OPENVPNMSICA_SAVE_MSI_SESSION(hInstall);
 
-    /* Get available network interfaces. */
+    /* Get all TUN/TAP network interfaces. */
     struct tap_interface_node *pInterfaceList = NULL;
-    uiResult = tap_list_interfaces(NULL, &pInterfaceList);
+    uiResult = tap_list_interfaces(NULL, &pInterfaceList, FALSE);
     if (uiResult != ERROR_SUCCESS)
     {
         goto cleanup_CoInitialize;
@@ -517,58 +517,15 @@ FindTAPInterfaces(_In_ MSIHANDLE hInstall)
         }
     }
 
-    /* Enumerate interfaces. */
-    struct interface_node
+    if (pInterfaceList != NULL)
     {
-        const struct tap_interface_node *iface;
-        struct interface_node *next;
-    } *interfaces_head = NULL, *interfaces_tail = NULL;
-    size_t interface_count = 0;
-    MSIHANDLE hRecord = MsiCreateRecord(1);
-    for (struct tap_interface_node *pInterface = pInterfaceList; pInterface; pInterface = pInterface->pNext)
-    {
-        for (LPCTSTR hwid = pInterface->szzHardwareIDs; hwid[0]; hwid += _tcslen(hwid) + 1)
+        /* Count interfaces. */
+        size_t interface_count = 0;
+        for (struct tap_interface_node *pInterface = pInterfaceList; pInterface; pInterface = pInterface->pNext)
         {
-            if (_tcsicmp(hwid, TEXT(TAP_WIN_COMPONENT_ID)) == 0
-                || _tcsicmp(hwid, TEXT("root\\") TEXT(TAP_WIN_COMPONENT_ID)) == 0)
-            {
-                /* TAP interface found. */
-
-                /* Report the GUID of the interface to installer. */
-                LPOLESTR szInterfaceId = NULL;
-                StringFromIID((REFIID)&pInterface->guid, &szInterfaceId);
-                MsiRecordSetString(hRecord, 1, szInterfaceId);
-                MsiProcessMessage(hInstall, INSTALLMESSAGE_ACTIONDATA, hRecord);
-                CoTaskMemFree(szInterfaceId);
-
-                /* Append interface to the list. */
-                struct interface_node *node = (struct interface_node *)malloc(sizeof(struct interface_node));
-                if (node == NULL)
-                {
-                    MsiCloseHandle(hRecord);
-                    msg(M_FATAL, "%s: malloc(%u) failed", __FUNCTION__, sizeof(struct interface_node));
-                    uiResult = ERROR_OUTOFMEMORY; goto cleanup_pAdapterAdresses;
-                }
-
-                node->iface = pInterface;
-                node->next = NULL;
-                if (interfaces_head)
-                {
-                    interfaces_tail = interfaces_tail->next = node;
-                }
-                else
-                {
-                    interfaces_head = interfaces_tail = node;
-                }
-                interface_count++;
-                break;
-            }
+            interface_count++;
         }
-    }
-    MsiCloseHandle(hRecord);
 
-    if (interface_count)
-    {
         /* Prepare semicolon delimited list of TAP interface ID(s) and active TAP interface ID(s). */
         LPTSTR
             szTAPInterfaces     = (LPTSTR)malloc(interface_count * (38 /*GUID*/ + 1 /*separator/terminator*/) * sizeof(TCHAR)),
@@ -588,11 +545,11 @@ FindTAPInterfaces(_In_ MSIHANDLE hInstall)
             uiResult = ERROR_OUTOFMEMORY; goto cleanup_szTAPInterfaces;
         }
 
-        while (interfaces_head)
+        for (struct tap_interface_node *pInterface = pInterfaceList; pInterface; pInterface = pInterface->pNext)
         {
             /* Convert interface GUID to UTF-16 string. (LPOLESTR defaults to LPWSTR) */
             LPOLESTR szInterfaceId = NULL;
-            StringFromIID((REFIID)&interfaces_head->iface->guid, &szInterfaceId);
+            StringFromIID((REFIID)&pInterface->guid, &szInterfaceId);
 
             /* Append to the list of TAP interface ID(s). */
             if (szTAPInterfaces < szTAPInterfacesTail)
@@ -605,11 +562,11 @@ FindTAPInterfaces(_In_ MSIHANDLE hInstall)
             /* If this interface is active (connected), add it to the list of active TAP interface ID(s). */
             for (PIP_ADAPTER_ADDRESSES p = pAdapterAdresses; p; p = p->Next)
             {
-                OLECHAR szId[38 + 1];
+                OLECHAR szId[38 /*GUID*/ + 1 /*terminator*/];
                 GUID guid;
                 if (MultiByteToWideChar(CP_ACP, MB_PRECOMPOSED, p->AdapterName, -1, szId, _countof(szId)) > 0
                     && SUCCEEDED(IIDFromString(szId, &guid))
-                    && memcmp(&guid, &interfaces_head->iface->guid, sizeof(GUID)) == 0)
+                    && memcmp(&guid, &pInterface->guid, sizeof(GUID)) == 0)
                 {
                     if (p->OperStatus == IfOperStatusUp)
                     {
@@ -625,10 +582,6 @@ FindTAPInterfaces(_In_ MSIHANDLE hInstall)
                 }
             }
             CoTaskMemFree(szInterfaceId);
-
-            struct interface_node *p = interfaces_head;
-            interfaces_head = interfaces_head->next;
-            free(p);
         }
         szTAPInterfacesTail      [0] = 0;
         szTAPInterfacesActiveTail[0] = 0;

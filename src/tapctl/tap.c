@@ -953,7 +953,8 @@ cleanup_szInterfaceId:
 DWORD
 tap_list_interfaces(
     _In_opt_ HWND hwndParent,
-    _Out_ struct tap_interface_node **ppInterface)
+    _Out_ struct tap_interface_node **ppInterface,
+    _In_ BOOL bAll)
 {
     DWORD dwResult;
 
@@ -1015,19 +1016,6 @@ tap_list_interfaces(
             }
         }
 
-        /* Get interface GUID. */
-        GUID guidInterface;
-        dwResult = get_net_interface_guid(hDevInfoList, &devinfo_data, 1, &guidInterface);
-        if (dwResult != ERROR_SUCCESS)
-        {
-            /* Something is wrong with this device. Skip it. */
-            continue;
-        }
-
-        /* Get the interface GUID as string. */
-        LPOLESTR szInterfaceId = NULL;
-        StringFromIID((REFIID)&guidInterface, &szInterfaceId);
-
         /* Get device hardware ID(s). */
         DWORD dwDataType = REG_NONE;
         LPTSTR szzDeviceHardwareIDs = NULL;
@@ -1039,8 +1027,56 @@ tap_list_interfaces(
             (LPVOID)&szzDeviceHardwareIDs);
         if (dwResult != ERROR_SUCCESS)
         {
-            goto cleanup_szInterfaceId;
+            /* Something is wrong with this device. Skip it. */
+            continue;
         }
+
+        /* Check that hardware ID is REG_SZ/REG_MULTI_SZ, and optionally if it matches ours. */
+        if (dwDataType == REG_SZ)
+        {
+            if (!bAll && _tcsicmp(szzDeviceHardwareIDs, szzHardwareIDs) != 0)
+            {
+                /* This is not our device. Skip it. */
+                goto cleanup_szzDeviceHardwareIDs;
+            }
+        }
+        else if (dwDataType == REG_MULTI_SZ)
+        {
+            if (!bAll)
+            {
+                for (LPTSTR szHwdID = szzDeviceHardwareIDs;; szHwdID += _tcslen(szHwdID) + 1)
+                {
+                    if (szHwdID[0] == 0)
+                    {
+                        /* This is not our device. Skip it. */
+                        goto cleanup_szzDeviceHardwareIDs;
+                    }
+                    else if (_tcsicmp(szHwdID, szzHardwareIDs) == 0)
+                    {
+                        /* This is our device. */
+                        break;
+                    }
+                }
+            }
+        }
+        else
+        {
+            /* Unexpected hardware ID format. Skip device. */
+            goto cleanup_szzDeviceHardwareIDs;
+        }
+
+        /* Get interface GUID. */
+        GUID guidInterface;
+        dwResult = get_net_interface_guid(hDevInfoList, &devinfo_data, 1, &guidInterface);
+        if (dwResult != ERROR_SUCCESS)
+        {
+            /* Something is wrong with this device. Skip it. */
+            goto cleanup_szzDeviceHardwareIDs;
+        }
+
+        /* Get the interface GUID as string. */
+        LPOLESTR szInterfaceId = NULL;
+        StringFromIID((REFIID)&guidInterface, &szInterfaceId);
 
         /* Render registry key path. */
         TCHAR szRegKey[INTERFACE_REGKEY_PATH_MAX];
@@ -1062,7 +1098,7 @@ tap_list_interfaces(
         {
             SetLastError(dwResult); /* MSDN does not mention RegOpenKeyEx() to set GetLastError(). But we do have an error code. Set last error manually. */
             msg(M_WARN | M_ERRNO, "%s: RegOpenKeyEx(HKLM, \"%" PRIsLPTSTR "\") failed", __FUNCTION__, szRegKey);
-            goto cleanup_szzDeviceHardwareIDs;
+            goto cleanup_szInterfaceId;
         }
 
         /* Read interface name. */
@@ -1108,10 +1144,10 @@ cleanup_szName:
         free(szName);
 cleanup_hKey:
         RegCloseKey(hKey);
-cleanup_szzDeviceHardwareIDs:
-        free(szzDeviceHardwareIDs);
 cleanup_szInterfaceId:
         CoTaskMemFree(szInterfaceId);
+cleanup_szzDeviceHardwareIDs:
+        free(szzDeviceHardwareIDs);
     }
 
     dwResult = ERROR_SUCCESS;

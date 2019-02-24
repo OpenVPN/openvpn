@@ -444,9 +444,9 @@ msica_op_tap_interface_create_exec(
         }
     }
 
-    /* Get available network interfaces. */
+    /* Get all available network interfaces. */
     struct tap_interface_node *pInterfaceList = NULL;
-    DWORD dwResult = tap_list_interfaces(NULL, &pInterfaceList);
+    DWORD dwResult = tap_list_interfaces(NULL, &pInterfaceList, TRUE);
     if (dwResult == ERROR_SUCCESS)
     {
         /* Does interface exist? */
@@ -599,9 +599,9 @@ msica_op_tap_interface_delete_by_name_exec(
         }
     }
 
-    /* Get available network interfaces. */
+    /* Get available TUN/TAP interfaces. */
     struct tap_interface_node *pInterfaceList = NULL;
-    DWORD dwResult = tap_list_interfaces(NULL, &pInterfaceList);
+    DWORD dwResult = tap_list_interfaces(NULL, &pInterfaceList, FALSE);
     if (dwResult == ERROR_SUCCESS)
     {
         /* Does interface exist? */
@@ -657,9 +657,9 @@ msica_op_tap_interface_delete_by_guid_exec(
         }
     }
 
-    /* Get available network interfaces. */
+    /* Get all available interfaces. */
     struct tap_interface_node *pInterfaceList = NULL;
-    DWORD dwResult = tap_list_interfaces(NULL, &pInterfaceList);
+    DWORD dwResult = tap_list_interfaces(NULL, &pInterfaceList, TRUE);
     if (dwResult == ERROR_SUCCESS)
     {
         /* Does interface exist? */
@@ -716,9 +716,9 @@ msica_op_tap_interface_set_name_exec(
         }
     }
 
-    /* Get available network interfaces. */
+    /* Get all available network interfaces. */
     struct tap_interface_node *pInterfaceList = NULL;
-    DWORD dwResult = tap_list_interfaces(NULL, &pInterfaceList);
+    DWORD dwResult = tap_list_interfaces(NULL, &pInterfaceList, TRUE);
     if (dwResult == ERROR_SUCCESS)
     {
         /* Does interface exist? */
