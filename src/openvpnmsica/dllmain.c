@@ -65,8 +65,12 @@ DllMain(
         case DLL_THREAD_ATTACH:
         {
             /* Create thread local storage data. */
-            struct openvpnmsica_thread_data *s = (struct openvpnmsica_thread_data *)malloc(sizeof(struct openvpnmsica_thread_data));
-            memset(s, 0, sizeof(struct openvpnmsica_thread_data));
+            struct openvpnmsica_thread_data *s = (struct openvpnmsica_thread_data *)calloc(1, sizeof(struct openvpnmsica_thread_data));
+            if (s == NULL)
+            {
+                return FALSE;
+            }
+
             TlsSetValue(openvpnmsica_thread_data_idx, s);
             break;
         }
@@ -128,9 +132,18 @@ x_msg_va(const unsigned int flags, const char *format, va_list arglist)
         {
             /* Allocate on heap and retry. */
             char *szMessage = (char *)malloc(++iResultLen * sizeof(char));
-            vsnprintf(szMessage, iResultLen, format, arglist);
-            MsiRecordSetStringA(hRecordProg, 2, szMessage);
-            free(szMessage);
+            if (szMessage != NULL)
+            {
+                vsnprintf(szMessage, iResultLen, format, arglist);
+                MsiRecordSetStringA(hRecordProg, 2, szMessage);
+                free(szMessage);
+            }
+            else
+            {
+                /* Use stack variant anyway, but make sure it's zero-terminated. */
+                szBufStack[_countof(szBufStack) - 1] = 0;
+                MsiRecordSetStringA(hRecordProg, 2, szBufStack);
+            }
         }
     }
 

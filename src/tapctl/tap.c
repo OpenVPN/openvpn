@@ -140,6 +140,12 @@ get_reg_string(
         {
             /* Read value. */
             LPTSTR szValue = (LPTSTR)malloc(dwSize);
+            if (szValue == NULL)
+            {
+                msg(M_FATAL, "%s: malloc(%u) failed", __FUNCTION__, dwSize);
+                return ERROR_OUTOFMEMORY;
+            }
+
             dwResult = RegQueryValueEx(
                 hKey,
                 szName,
@@ -167,6 +173,13 @@ get_reg_string(
                     dwSizeExp / sizeof(TCHAR) - 1;     /* Note: ANSI version requires one extra char. */
 #endif
                 LPTSTR szValueExp = (LPTSTR)malloc(dwSizeExp);
+                if (szValueExp == NULL)
+                {
+                    free(szValue);
+                    msg(M_FATAL, "%s: malloc(%u) failed", __FUNCTION__, dwSizeExp);
+                    return ERROR_OUTOFMEMORY;
+                }
+
                 DWORD dwCountExpResult = ExpandEnvironmentStrings(
                     szValue,
                     szValueExp, dwCountExp
@@ -197,6 +210,13 @@ get_reg_string(
 #endif
                     dwCountExp = dwCountExpResult;
                     szValueExp = (LPTSTR)malloc(dwSizeExp);
+                    if (szValueExp == NULL)
+                    {
+                        free(szValue);
+                        msg(M_FATAL, "%s: malloc(%u) failed", __FUNCTION__, dwSizeExp);
+                        return ERROR_OUTOFMEMORY;
+                    }
+
                     dwCountExpResult = ExpandEnvironmentStrings(
                         szValue,
                         szValueExp, dwCountExp);
@@ -356,6 +376,12 @@ get_device_reg_property(
     {
         /* Copy from stack. */
         *ppData = malloc(dwRequiredSize);
+        if (*ppData == NULL)
+        {
+            msg(M_FATAL, "%s: malloc(%u) failed", __FUNCTION__, dwRequiredSize);
+            return ERROR_OUTOFMEMORY;
+        }
+
         memcpy(*ppData, bBufStack, dwRequiredSize);
         return ERROR_SUCCESS;
     }
@@ -366,6 +392,12 @@ get_device_reg_property(
         {
             /* Allocate on heap and retry. */
             *ppData = malloc(dwRequiredSize);
+            if (*ppData == NULL)
+            {
+                msg(M_FATAL, "%s: malloc(%u) failed", __FUNCTION__, dwRequiredSize);
+                return ERROR_OUTOFMEMORY;
+            }
+
             if (SetupDiGetDeviceRegistryProperty(
                     hDeviceInfoSet,
                     pDeviceInfoData,
@@ -499,6 +531,12 @@ tap_create_interface(
     DWORDLONG dwlDriverVersion = 0;
     DWORD drvinfo_detail_data_size = sizeof(SP_DRVINFO_DETAIL_DATA) + 0x100;
     SP_DRVINFO_DETAIL_DATA *drvinfo_detail_data = (SP_DRVINFO_DETAIL_DATA *)malloc(drvinfo_detail_data_size);
+    if (drvinfo_detail_data == NULL)
+    {
+        msg(M_FATAL, "%s: malloc(%u) failed", __FUNCTION__, drvinfo_detail_data_size);
+        dwResult = ERROR_OUTOFMEMORY; goto cleanup_DriverInfoList;
+    }
+
     for (DWORD dwIndex = 0;; dwIndex++)
     {
         /* Get a driver from the list. */
@@ -543,6 +581,11 @@ tap_create_interface(
 
                 drvinfo_detail_data_size = dwSize;
                 drvinfo_detail_data = (SP_DRVINFO_DETAIL_DATA *)malloc(drvinfo_detail_data_size);
+                if (drvinfo_detail_data == NULL)
+                {
+                    msg(M_FATAL, "%s: malloc(%u) failed", __FUNCTION__, drvinfo_detail_data_size);
+                    dwResult = ERROR_OUTOFMEMORY; goto cleanup_DriverInfoList;
+                }
 
                 /* Re-get driver info details. */
                 drvinfo_detail_data->cbSize = sizeof(SP_DRVINFO_DETAIL_DATA);
@@ -1038,6 +1081,12 @@ tap_list_interfaces(
         size_t hwid_size = (_tcszlen(szzDeviceHardwareIDs) + 1) * sizeof(TCHAR);
         size_t name_size = (_tcslen(szName) + 1) * sizeof(TCHAR);
         struct tap_interface_node *node = (struct tap_interface_node *)malloc(sizeof(struct tap_interface_node) + hwid_size + name_size);
+        if (node == NULL)
+        {
+            msg(M_FATAL, "%s: malloc(%u) failed", __FUNCTION__, sizeof(struct tap_interface_node) + hwid_size + name_size);
+            dwResult = ERROR_OUTOFMEMORY; goto cleanup_szName;
+        }
+
         memcpy(&node->guid, &guidInterface, sizeof(GUID));
         node->szzHardwareIDs = (LPTSTR)(node + 1);
         memcpy(node->szzHardwareIDs, szzDeviceHardwareIDs, hwid_size);
@@ -1054,6 +1103,7 @@ tap_list_interfaces(
             *ppInterface = pInterfaceTail = node;
         }
 
+cleanup_szName:
         free(szName);
 cleanup_hKey:
         RegCloseKey(hKey);

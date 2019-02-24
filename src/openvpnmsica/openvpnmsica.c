@@ -129,6 +129,12 @@ openvpnmsica_setup_sequence_filename(
     {
         size_t len_action_name_z = _tcslen(openvpnmsica_cleanup_action_seqs[i].szName) + 1;
         TCHAR *szPropertyEx = (TCHAR *)malloc((len_property_name + len_action_name_z) * sizeof(TCHAR));
+        if (szPropertyEx == NULL)
+        {
+            msg(M_FATAL, "%s: malloc(%u) failed", __FUNCTION__, (len_property_name + len_action_name_z) * sizeof(TCHAR));
+            return ERROR_OUTOFMEMORY;
+        }
+
         memcpy(szPropertyEx, szProperty, len_property_name * sizeof(TCHAR));
         memcpy(szPropertyEx + len_property_name, openvpnmsica_cleanup_action_seqs[i].szName, len_action_name_z * sizeof(TCHAR));
         _stprintf_s(
@@ -299,6 +305,10 @@ openvpnmsica_set_driver_certification(_In_ MSIHANDLE hInstall)
             }
 
             free(pVersionInfo);
+        }
+        else
+        {
+            msg(M_NONFATAL, "%s: malloc(%u) failed", __FUNCTION__, dwVerInfoSize);
         }
     }
 
@@ -529,6 +539,13 @@ FindTAPInterfaces(_In_ MSIHANDLE hInstall)
 
                 /* Append interface to the list. */
                 struct interface_node *node = (struct interface_node *)malloc(sizeof(struct interface_node));
+                if (node == NULL)
+                {
+                    MsiCloseHandle(hRecord);
+                    msg(M_FATAL, "%s: malloc(%u) failed", __FUNCTION__, sizeof(struct interface_node));
+                    uiResult = ERROR_OUTOFMEMORY; goto cleanup_pAdapterAdresses;
+                }
+
                 node->iface = pInterface;
                 node->next = NULL;
                 if (interfaces_head)
@@ -550,10 +567,23 @@ FindTAPInterfaces(_In_ MSIHANDLE hInstall)
     {
         /* Prepare semicolon delimited list of TAP interface ID(s) and active TAP interface ID(s). */
         LPTSTR
-            szTAPInterfaces           = (LPTSTR)malloc(interface_count * (38 /*GUID*/ + 1 /*separator/terminator*/) * sizeof(TCHAR)),
-            szTAPInterfacesTail       = szTAPInterfaces,
+            szTAPInterfaces     = (LPTSTR)malloc(interface_count * (38 /*GUID*/ + 1 /*separator/terminator*/) * sizeof(TCHAR)),
+            szTAPInterfacesTail = szTAPInterfaces;
+        if (szTAPInterfaces == NULL)
+        {
+            msg(M_FATAL, "%s: malloc(%u) failed", __FUNCTION__, interface_count * (38 /*GUID*/ + 1 /*separator/terminator*/) * sizeof(TCHAR));
+            uiResult = ERROR_OUTOFMEMORY; goto cleanup_pAdapterAdresses;
+        }
+
+        LPTSTR
             szTAPInterfacesActive     = (LPTSTR)malloc(interface_count * (38 /*GUID*/ + 1 /*separator/terminator*/) * sizeof(TCHAR)),
             szTAPInterfacesActiveTail = szTAPInterfacesActive;
+        if (szTAPInterfacesActive == NULL)
+        {
+            msg(M_FATAL, "%s: malloc(%u) failed", __FUNCTION__, interface_count * (38 /*GUID*/ + 1 /*separator/terminator*/) * sizeof(TCHAR));
+            uiResult = ERROR_OUTOFMEMORY; goto cleanup_szTAPInterfaces;
+        }
+
         while (interfaces_head)
         {
             /* Convert interface GUID to UTF-16 string. (LPOLESTR defaults to LPWSTR) */
@@ -605,7 +635,7 @@ FindTAPInterfaces(_In_ MSIHANDLE hInstall)
         {
             SetLastError(uiResult); /* MSDN does not mention MsiSetProperty() to set GetLastError(). But we do have an error code. Set last error manually. */
             msg(M_NONFATAL | M_ERRNO, "%s: MsiSetProperty(\"TAPINTERFACES\") failed", __FUNCTION__);
-            goto cleanup_szTAPInterfaces;
+            goto cleanup_szTAPInterfacesActive;
         }
 
         /* Set Installer ACTIVETAPINTERFACES property. */
@@ -614,11 +644,12 @@ FindTAPInterfaces(_In_ MSIHANDLE hInstall)
         {
             SetLastError(uiResult); /* MSDN does not mention MsiSetProperty() to set GetLastError(). But we do have an error code. Set last error manually. */
             msg(M_NONFATAL | M_ERRNO, "%s: MsiSetProperty(\"ACTIVETAPINTERFACES\") failed", __FUNCTION__);
-            goto cleanup_szTAPInterfaces;
+            goto cleanup_szTAPInterfacesActive;
         }
 
-cleanup_szTAPInterfaces:
+cleanup_szTAPInterfacesActive:
         free(szTAPInterfacesActive);
+cleanup_szTAPInterfaces:
         free(szTAPInterfaces);
     }
     else
@@ -626,6 +657,7 @@ cleanup_szTAPInterfaces:
         uiResult = ERROR_SUCCESS;
     }
 
+cleanup_pAdapterAdresses:
     free(pAdapterAdresses);
 cleanup_tap_list_interfaces:
     tap_free_interface_list(pInterfaceList);
@@ -700,6 +732,12 @@ StartOpenVPNGUI(_In_ MSIHANDLE hInstall)
     {
         /* Allocate buffer on heap (+1 for terminator), and retry. */
         szPath = (LPTSTR)malloc((++dwPathSize) * sizeof(TCHAR));
+        if (szPath == NULL)
+        {
+            msg(M_FATAL, "%s: malloc(%u) failed", __FUNCTION__, dwPathSize * sizeof(TCHAR));
+            uiResult = ERROR_OUTOFMEMORY; goto cleanup_MsiCreateRecord;
+        }
+
         uiResult = MsiFormatRecord(hInstall, hRecord, szPath, &dwPathSize);
     }
     if (uiResult != ERROR_SUCCESS)
