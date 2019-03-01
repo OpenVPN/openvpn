@@ -57,6 +57,11 @@ struct env_set {
 
 const char *system_error_message(int, struct gc_arena *gc);
 
+/* openvpn_execve return codes */
+#define OPENVPN_EXECVE_ERROR       -1 /* generic error while forking to run an external program */
+#define OPENVPN_EXECVE_NOT_ALLOWED -2 /* external program not run due to script security */
+#define OPENVPN_EXECVE_FAILURE    127 /* exit code passed back from child when execve fails */
+
 /* wrapper around the execve() call */
 int openvpn_popen(const struct argv *a,  const struct env_set *es);
 
