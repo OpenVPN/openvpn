@@ -1,5 +1,5 @@
 sudo: required
-dist: trusty
+dist: xenial
 
 os: linux
 
@@ -75,12 +75,7 @@ matrix:
 addons:
   apt:
     update: true
-    packages:
-      - liblzo2-dev
-      - libpam0g-dev
-      - liblz4-dev
-      - linux-libc-dev
-      - man2html
+    packages: [ liblzo2-dev, libpam0g-dev, liblz4-dev, linux-libc-dev, man2html, mingw-w64]
 
 cache:
   directories:
