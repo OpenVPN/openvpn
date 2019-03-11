@@ -33,6 +33,9 @@ matrix:
     - env: SSLLIB="openssl" OPENSSL_VERSION="1.1.0h"
       os: linux
       compiler: gcc
+    - env: SSLLIB="openssl" OPENSSL_VERSION="1.1.0h" LABEL="linux-ppc64le"
+      os: linux-ppc64le
+      compiler: gcc
     - env: SSLLIB="openssl" CFLAGS="-fsanitize=address"
       os: linux
       compiler: clang
