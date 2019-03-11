@@ -50,11 +50,9 @@ matrix:
       compiler: clang
     - env: SSLLIB="openssl"
       os: osx
-      osx_image: xcode7.3
       compiler: clang
     - env: SSLLIB="mbedtls"
       os: osx
-      osx_image: xcode7.3
       compiler: clang
     - env: SSLLIB="openssl" CHOST=x86_64-w64-mingw32 OPENSSL_VERSION="1.0.1u"
       os: linux
@@ -76,16 +74,14 @@ addons:
   apt:
     update: true
     packages: [ liblzo2-dev, libpam0g-dev, liblz4-dev, linux-libc-dev, man2html, mingw-w64]
+  homebrew:
+    packages: [ lzo ]
 
 cache:
   directories:
   - download-cache
   - ${HOME}/opt
   - ${HOME}/Library/Caches/Homebrew
-
-before_install:
-  - if [ "${TRAVIS_OS_NAME}" = "osx" ]; then brew update     ; fi
-  - if [ "${TRAVIS_OS_NAME}" = "osx" ]; then brew install lzo; fi
 
 install:
   - if [ ! -z "${CHOST}" ]; then unset CC; fi
