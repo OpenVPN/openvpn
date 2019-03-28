@@ -69,6 +69,12 @@ static void netsh_ifconfig(const struct tuntap_options *to,
                            const in_addr_t netmask,
                            const unsigned int flags);
 
+static void netsh_set_mtu_ipv4(const char *flex_name,
+                               const int mtu);
+
+static void netsh_set_mtu_ipv6(const char *flex_name,
+                               const int mtu);
+
 static void netsh_set_dns6_servers(const struct in6_addr *addr_list,
                                    const int addr_len,
                                    const char *flex_name);
@@ -1000,6 +1006,7 @@ do_ifconfig_ipv6(struct tuntap *tt, const char *ifname, int tun_mtu,
         netsh_command(&argv, 4, M_FATAL);
         /* set ipv6 dns servers if any are specified */
         netsh_set_dns6_servers(tt->options.dns6, tt->options.dns6_len, ifname);
+        netsh_set_mtu_ipv6(ifname, tun_mtu);
     }
 
     /* explicit route needed */
@@ -1391,9 +1398,9 @@ do_ifconfig_ipv4(struct tuntap *tt, const char *ifname, int tun_mtu,
             case IPW32_SET_NETSH:
                 netsh_ifconfig(&tt->options, ifname, tt->local,
                                tt->adapter_netmask, NI_IP_NETMASK|NI_OPTIONS);
-
                 break;
         }
+		netsh_set_mtu_ipv4(ifname, tun_mtu);
     }
 
 #else  /* if defined(TARGET_LINUX) */
@@ -5234,6 +5241,36 @@ service_enable_dhcp(const struct tuntap *tt)
 out:
     gc_free(&gc);
     return ret;
+}
+
+static void
+netsh_set_mtu_ipv4(const char *flex_name,
+                   const int mtu)
+{
+	struct argv argv = argv_new();
+	argv_printf(&argv, "%s%sc interface ipv4 set subinterface %s mtu = %d store=active",
+		get_win_sys_path(),
+		NETSH_PATH_SUFFIX,
+		flex_name,
+		mtu);
+
+	netsh_command(&argv, 3, M_WARN);
+	argv_reset(&argv);
+}
+
+static void
+netsh_set_mtu_ipv6(const char *flex_name,
+	const int mtu)
+{
+	struct argv argv = argv_new();
+	argv_printf(&argv, "%s%sc interface ipv6 set subinterface %s mtu = %d store=active",
+		get_win_sys_path(),
+		NETSH_PATH_SUFFIX,
+		flex_name,
+		mtu);
+
+	netsh_command(&argv, 3, M_WARN);
+	argv_reset(&argv);
 }
 
 /*
