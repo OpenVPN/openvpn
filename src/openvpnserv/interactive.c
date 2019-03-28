@@ -1198,6 +1198,49 @@ HandleEnableDHCPMessage(const enable_dhcp_message_t *dhcp)
     return err;
 }
 
+static DWORD
+HandleMTUMessage(const set_mtu_message_t *mtu)
+{
+	DWORD err = 0;
+	DWORD timeout = 5000; /* in milli seconds */
+	wchar_t argv0[MAX_PATH];
+
+	/* Path of netsh */
+	swprintf(argv0, _countof(argv0), L"%s\\%s", get_win_sys_path(), L"netsh.exe");
+	argv0[_countof(argv0) - 1] = L'\0';
+
+	/* cmd template:
+	 * netsh interface $family set subinterface "$if_name" mtu=$mtu
+	 */
+	const wchar_t *fmt;
+	if (mtu->family == AF_INET)
+	{
+		fmt = L"netsh interface ipv4 set subinterface \"%d\" mtu= %d";
+	}
+	else if (mtu->family == AF_INET6)
+	{
+		fmt = L"netsh interface ipv6 set subinterface \"%d\" mtu= %d";
+	}
+
+	/* max cmdline length in wchars -- include room for if index:
+	 * 20 chars for two 32 bit int in decimal and +1 for NUL
+	 */
+	size_t ncmdline = wcslen(fmt) + 20 + 1;
+	wchar_t *cmdline = malloc(ncmdline * sizeof(wchar_t));
+	if (!cmdline)
+	{
+		err = ERROR_OUTOFMEMORY;
+		return err;
+	}
+
+	openvpn_sntprintf(cmdline, ncmdline, fmt, mtu->iface.index, mtu->mtu);
+
+	err = ExecCommand(argv0, cmdline, timeout);
+
+	free(cmdline);
+	return err;
+}
+
 static VOID
 HandleMessage(HANDLE pipe, DWORD bytes, DWORD count, LPHANDLE events, undo_lists_t *lists)
 {
@@ -1210,6 +1253,7 @@ HandleMessage(HANDLE pipe, DWORD bytes, DWORD count, LPHANDLE events, undo_lists
         block_dns_message_t block_dns;
         dns_cfg_message_t dns;
         enable_dhcp_message_t dhcp;
+		set_mtu_message_t mtu;
     } msg;
     ack_message_t ack = {
         .header = {
@@ -1276,6 +1320,12 @@ HandleMessage(HANDLE pipe, DWORD bytes, DWORD count, LPHANDLE events, undo_lists
                 ack.error_number = HandleEnableDHCPMessage(&msg.dhcp);
             }
             break;
+		case msg_set_mtu:
+			if (msg.header.size == sizeof(msg.mtu))
+			{
+				ack.error_number = HandleMTUMessage(&msg.mtu);
+			}
+			break;
 
         default:
             ack.error_number = ERROR_MESSAGE_TYPE;

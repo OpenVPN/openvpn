@@ -207,6 +207,63 @@ out:
     return ret;
 }
 
+static bool
+do_set_mtu_service(const struct tuntap *tt, const short family, const int mtu)
+{
+	DWORD len;
+	bool ret = false;
+	ack_message_t ack;
+	struct gc_arena gc = gc_new();
+	HANDLE pipe = tt->options.msg_channel;
+
+	set_mtu_message_t mtu_msg = {
+		.header = {
+			msg_set_mtu,
+			sizeof(set_mtu_message_t),
+			0
+		},
+		.iface = {.index = tt->adapter_index,.name = tt->actual_name },
+		.mtu = mtu,
+		.family = family
+	};
+
+	if (!send_msg_iservice(pipe, &mtu_msg, sizeof(mtu_msg), &ack, "Set_mtu"))
+	{
+		goto out;
+	}
+
+	if (family == AF_INET)
+	{
+		if (ack.error_number != NO_ERROR)
+		{
+			msg(M_NONFATAL, "TUN: setting IPv4 mtu using service failed: %s [status=%u if_index=%d]",
+				strerror_win32(ack.error_number, &gc), ack.error_number, mtu_msg.iface.index);
+		}
+		else
+		{
+			msg(M_INFO, "IPv4 MTU set to %d on interface %d using service", mtu, mtu_msg.iface.index);
+			ret = true;
+		}
+	}
+	else if (family == AF_INET6)
+	{
+		if (ack.error_number != NO_ERROR)
+		{
+			msg(M_NONFATAL, "TUN: setting IPv6 mtu using service failed: %s [status=%u if_index=%d]",
+				strerror_win32(ack.error_number, &gc), ack.error_number, mtu_msg.iface.index);
+		}
+		else
+		{
+			msg(M_INFO, "IPv6 MTU set to %d on interface %d using service", mtu, mtu_msg.iface.index);
+			ret = true;
+		}
+	}
+
+out:
+	gc_free(&gc);
+	return ret;
+}
+
 #endif /* ifdef _WIN32 */
 
 #ifdef TARGET_SOLARIS
@@ -990,6 +1047,7 @@ do_ifconfig_ipv6(struct tuntap *tt, const char *ifname, int tun_mtu,
     {
         do_address_service(true, AF_INET6, tt);
         do_dns6_service(true, tt);
+		do_set_mtu_service(tt, AF_INET6, tun_mtu);
     }
     else
     {
@@ -1400,7 +1458,14 @@ do_ifconfig_ipv4(struct tuntap *tt, const char *ifname, int tun_mtu,
                                tt->adapter_netmask, NI_IP_NETMASK|NI_OPTIONS);
                 break;
         }
-		netsh_set_mtu_ipv4(ifname, tun_mtu);
+		if (tt->options.msg_channel)
+		{
+			do_set_mtu_service(tt, AF_INET, tun_mtu);
+		}
+		else
+		{
+			netsh_set_mtu_ipv4(ifname, tun_mtu);
+		}
     }
 
 #else  /* if defined(TARGET_LINUX) */
