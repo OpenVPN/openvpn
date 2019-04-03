@@ -436,7 +436,7 @@ AC_CHECK_HEADERS([ \
 	unistd.h signal.h libgen.h stropts.h \
 	syslog.h pwd.h grp.h \
 	sys/sockio.h sys/uio.h linux/sockios.h \
-	linux/types.h sys/poll.h sys/epoll.h err.h \
+	linux/types.h poll.h sys/epoll.h err.h \
 ])
 
 SOCKET_INCLUDES="

@@ -179,8 +179,8 @@
 #include <resolv.h>
 #endif
 
-#ifdef HAVE_SYS_POLL_H
-#include <sys/poll.h>
+#ifdef HAVE_POLL_H
+#include <poll.h>
 #endif
 
 #ifdef HAVE_SYS_EPOLL_H
