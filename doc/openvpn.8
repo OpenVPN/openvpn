@@ -4625,11 +4625,8 @@ they are distributed with OpenVPN, they are totally insecure.
 Directory containing trusted certificates (CAs and CRLs).
 Not available with mbed TLS.
 
-When using the
-.B \-\-capath
-option, you are required to supply valid CRLs for the CAs too.  CAs in the
-capath directory are expected to be named <hash>.<n>.  CRLs are expected to
-be named <hash>.r<n>.  See the
+CAs in the capath directory are expected to be named <hash>.<n>. CRLs are
+expected to be named <hash>.r<n>. See the
 .B \-CApath
 option of
 .B openssl verify
@@ -4640,6 +4637,11 @@ option of
 and
 .B openssl crl
 for more information.
+
+Similarly to the
+.B \-\-crl\-verify
+option CRLs are not mandatory \- OpenVPN will log the usual warning in the logs
+if the relevant CRL is missing, but the connection will be allowed.
 .\"*********************************************************
 .TP
 .B \-\-dh file
@@ -5610,6 +5612,10 @@ overall integrity of the PKI.
 
 The only time when it would be necessary to rebuild the entire PKI from scratch would be
 if the root certificate key itself was compromised.
+
+The option is not mandatory \- if the relevant CRL is missing, OpenVPN will log
+a warning in the logs \- e.g. "\fIVERIFY WARNING: depth=0, unable to get
+certificate CRL\fR" \- but the connection will be allowed.
 
 If the optional
 .B dir
