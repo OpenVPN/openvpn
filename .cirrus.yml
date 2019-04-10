@@ -1,0 +1,24 @@
+FreeBSD_task:
+  freebsd_instance:
+    image: freebsd-12-0-release-amd64
+  env:
+    ASSUME_ALWAYS_YES: TRUE # required for unattanded "pkg" invocation
+    LZO_CFLAGS: '-I/usr/local/include'
+    LZO_LIBS: '-llzo2 -L/usr/local/lib'
+    LZ4_CFLAGS: '-I/usr/local/include'
+    LZ4_LIBS: '-llz4 -L/usr/local/lib'
+    MBEDTLS_CFLAGS: '-I/usr/local/include'
+    MBEDTLS_LIBS: '-lmbedtls -lmbedx509 -lmbedcrypto -L/usr/local/lib'
+    matrix:
+      - SSLLIB: openssl
+      - SSLLIB: mbedtls
+  install_script:
+    - pkg install cmake gmake openssl111 mbedtls git autoconf automake libtool
+    - git submodule update --init --recursive
+  script:
+    - autoreconf -iv
+    - ./configure --with-crypto-library=${SSLLIB}
+    - make
+    - src/openvpn/openvpn --version || true
+    - ldd src/openvpn/openvpn
+    - make check
