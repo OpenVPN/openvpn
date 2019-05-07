@@ -20,14 +20,14 @@ argv_testdriver_CFLAGS  = @TEST_CFLAGS@ -I$(openvpn_srcdir) -I$(compat_srcdir) \
 	$(OPTIONAL_CRYPTO_CFLAGS)
 argv_testdriver_LDFLAGS = @TEST_LDFLAGS@ -L$(openvpn_srcdir) -Wl,--wrap=parse_line \
 	$(OPTIONAL_CRYPTO_LIBS)
-argv_testdriver_SOURCES = test_argv.c mock_msg.c \
+argv_testdriver_SOURCES = test_argv.c mock_msg.c mock_msg.h \
 	$(openvpn_srcdir)/platform.c \
 	$(openvpn_srcdir)/buffer.c \
 	$(openvpn_srcdir)/argv.c
 
 buffer_testdriver_CFLAGS  = @TEST_CFLAGS@ -I$(openvpn_srcdir) -I$(compat_srcdir)
 buffer_testdriver_LDFLAGS = @TEST_LDFLAGS@ -L$(openvpn_srcdir) -Wl,--wrap=parse_line
-buffer_testdriver_SOURCES = test_buffer.c mock_msg.c \
+buffer_testdriver_SOURCES = test_buffer.c mock_msg.c mock_msg.h \
 	$(openvpn_srcdir)/buffer.c \
 	$(openvpn_srcdir)/platform.c
 
@@ -36,7 +36,7 @@ packet_id_testdriver_CFLAGS  = @TEST_CFLAGS@ \
 	$(OPTIONAL_CRYPTO_CFLAGS)
 packet_id_testdriver_LDFLAGS = @TEST_LDFLAGS@ \
 	$(OPTIONAL_CRYPTO_LIBS)
-packet_id_testdriver_SOURCES = test_packet_id.c mock_msg.c \
+packet_id_testdriver_SOURCES = test_packet_id.c mock_msg.c mock_msg.h \
 	$(openvpn_srcdir)/buffer.c \
 	$(openvpn_srcdir)/otime.c \
 	$(openvpn_srcdir)/packet_id.c \
@@ -47,7 +47,7 @@ tls_crypt_testdriver_CFLAGS  = @TEST_CFLAGS@ \
 	$(OPTIONAL_CRYPTO_CFLAGS)
 tls_crypt_testdriver_LDFLAGS = @TEST_LDFLAGS@ \
 	$(OPTIONAL_CRYPTO_LIBS)
-tls_crypt_testdriver_SOURCES = test_tls_crypt.c mock_msg.c \
+tls_crypt_testdriver_SOURCES = test_tls_crypt.c mock_msg.c mock_msg.h \
 	$(openvpn_srcdir)/buffer.c \
 	$(openvpn_srcdir)/crypto.c \
 	$(openvpn_srcdir)/crypto_mbedtls.c \
