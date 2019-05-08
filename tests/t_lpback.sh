@@ -77,10 +77,17 @@ else
     echo "OK"
 fi
 
+# Generate max-length base64 metadata ('A' is 0b000000 in base64)
+METADATA=""
+i=0
+while [ $i -lt 732 ]; do
+    METADATA="${METADATA}A"
+    i=$(expr $i + 1)
+done
 echo -n "Testing tls-crypt-v2 key generation (max length metadata)..."
 "${top_builddir}/src/openvpn/openvpn" --tls-crypt-v2 tc-server-key.$$ \
-    --tls-crypt-v2-genkey client tc-client-key.$$ \
-    $(head -c732 /dev/zero | base64 -w0) >log.$$ 2>&1
+    --tls-crypt-v2-genkey client tc-client-key.$$ "${METADATA}" \
+    >log.$$ 2>&1
 if [ $? != 0 ] ; then
     echo "FAILED"
     cat log.$$
