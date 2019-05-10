@@ -1465,8 +1465,13 @@ write_key_file(const int nkeys, const char *filename)
 
     buf_printf(&out, "%s\n", static_key_foot);
 
+    /* write key file to stdout if no filename given */
+    if (!filename || strcmp(filename, "")==0)
+    {
+        printf("%s\n", BPTR(&out));
+    }
     /* write key file, now formatted in out, to file */
-    if (!buffer_write_file(filename, &out))
+    else if (!buffer_write_file(filename, &out))
     {
         nbits = -1;
     }
@@ -1870,7 +1875,11 @@ write_pem_key_file(const char *filename, const char *pem_name)
         goto cleanup;
     }
 
-    if (!buffer_write_file(filename, &server_key_pem))
+    if (!filename || strcmp(filename, "")==0)
+    {
+        printf("%s\n", BPTR(&server_key_pem));
+    }
+    else if (!buffer_write_file(filename, &server_key_pem))
     {
         msg(M_ERR, "ERROR: could not write key file");
         goto cleanup;

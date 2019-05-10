@@ -697,7 +697,16 @@ tls_crypt_v2_write_client_key_file(const char *filename,
         goto cleanup;
     }
 
-    if (!buffer_write_file(filename, &client_key_pem))
+    const char *client_filename = filename;
+    const char *client_inline = NULL;
+
+    if (!filename || streq(filename, ""))
+    {
+        printf("%s\n", BPTR(&client_key_pem));
+        client_filename = INLINE_FILE_TAG;
+        client_inline = (const char *)BPTR(&client_key_pem);
+    }
+    else if (!buffer_write_file(filename, &client_key_pem))
     {
         msg(M_FATAL, "ERROR: could not write client key file");
         goto cleanup;
@@ -708,7 +717,7 @@ tls_crypt_v2_write_client_key_file(const char *filename,
     struct buffer test_wrapped_client_key;
     msg(D_GENKEY, "Testing client-side key loading...");
     tls_crypt_v2_init_client_key(&test_client_key, &test_wrapped_client_key,
-                                 filename, NULL);
+                                 client_filename, client_inline);
     free_key_ctx_bi(&test_client_key);
 
     /* Sanity check: unwrap and load client key (as "server") */
