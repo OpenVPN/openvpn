@@ -600,7 +600,7 @@ socket_defined(const socket_descriptor_t sd)
 /*
  * Is poll available on this platform?
  */
-#if defined(HAVE_POLL) && defined(HAVE_SYS_POLL_H)
+#if defined(HAVE_POLL) && defined(HAVE_POLL_H)
 #define POLL 1
 #else
 #define POLL 0
