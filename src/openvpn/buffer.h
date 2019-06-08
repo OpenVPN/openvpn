@@ -347,9 +347,9 @@ buf_set_read(struct buffer *buf, const uint8_t *data, int size)
 static inline void
 strncpynt(char *dest, const char *src, size_t maxlen)
 {
-    strncpy(dest, src, maxlen);
     if (maxlen > 0)
     {
+        strncpy(dest, src, maxlen-1);
         dest[maxlen - 1] = 0;
     }
 }
