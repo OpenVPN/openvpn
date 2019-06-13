@@ -632,9 +632,11 @@ static const char usage_message[] =
     "                  For servers: use key to decrypt client-specific keys.  For\n"
     "                  key generation (--tls-crypt-v2-genkey): use key to\n"
     "                  encrypt generated client-specific key.  (See --tls-crypt.)\n"
-    "--tls-crypt-v2-genkey client|server keyfile [base64 metadata]: Generate a\n"
-    "                  fresh tls-crypt-v2 client or server key, and store to\n"
+    "--genkey tls-crypt-v2-client [keyfile] [base64 metadata]: Generate a\n"
+    "                  fresh tls-crypt-v2 client key, and store to\n"
     "                  keyfile.  If supplied, include metadata in wrapped key.\n"
+    "--genkey tls-crypt-v2-server [keyfile] [base64 metadata]: Generate a\n"
+    "                  fresh tls-crypt-v2 server key, and store to keyfile\n"
     "--tls-crypt-v2-verify cmd : Run command cmd to verify the metadata of the\n"
     "                  client-supplied tls-crypt-v2 client key\n"
     "--askpass [file]: Get PEM password from controlling tty before we daemonize.\n"
@@ -754,8 +756,9 @@ static const char usage_message[] =
     "                                 to access TAP adapter.\n"
 #endif /* ifdef _WIN32 */
     "\n"
-    "Generate a new key (for use with --secret, --tls-auth or --tls-crypt):\n"
-    "--genkey file   : Generate a new random key and write to file.\n"
+    "Generate a new key :\n"
+    "--genkey secret file   : Generate a new random key of type and write to file\n"
+    "                         (for use with --secret, --tls-auth or --tls-crypt)."
 #ifdef ENABLE_FEATURE_TUN_PERSIST
     "\n"
     "Tun/tap config mode (available with linux 2.4+):\n"
@@ -1526,6 +1529,7 @@ show_settings(const struct options *o)
     SHOW_BOOL(show_digests);
     SHOW_BOOL(show_engines);
     SHOW_BOOL(genkey);
+    SHOW_STR(genkey_filename);
     SHOW_STR(key_pass_file);
     SHOW_BOOL(show_tls_ciphers);
 
@@ -1746,8 +1750,6 @@ show_settings(const struct options *o)
     SHOW_BOOL(push_peer_info);
     SHOW_BOOL(tls_exit);
 
-    SHOW_STR(tls_crypt_v2_genkey_type);
-    SHOW_STR(tls_crypt_v2_genkey_file);
     SHOW_STR(tls_crypt_v2_metadata);
 
 #ifdef ENABLE_PKCS11
@@ -2689,10 +2691,6 @@ options_postprocess_verify_ce(const struct options *options, const struct connec
         {
             msg(M_USAGE, "--tls-crypt-v2, --tls-auth and --tls-crypt are mutually exclusive in client mode");
         }
-        if (options->genkey && options->tls_crypt_v2_genkey_type)
-        {
-            msg(M_USAGE, "--genkey and --tls-crypt-v2-genkey are mutually exclusive");
-        }
     }
     else
     {
@@ -3320,8 +3318,8 @@ options_postprocess_filechecks(struct options *options)
     }
 
     errs |= check_file_access(CHKACC_FILE|CHKACC_INLINE|CHKACC_PRIVATE,
-                              options->tls_crypt_v2_genkey_file, R_OK,
-                              "--tls-crypt-v2-genkey");
+                              options->genkey_filename, R_OK,
+                              "--genkey");
     errs |= check_file_access(CHKACC_FILE|CHKACC_INLINE|CHKACC_PRIVATE,
                               options->shared_secret_file, R_OK, "--secret");
 
@@ -7521,13 +7519,42 @@ add_option(struct options *options,
         }
         options->shared_secret_file = p[1];
     }
-    else if (streq(p[0], "genkey") && !p[2])
+    else if (streq(p[0], "genkey") && !p[4])
     {
         VERIFY_PERMISSION(OPT_P_GENERAL);
         options->genkey = true;
-        if (p[1])
+        if (!p[1])
         {
-            options->shared_secret_file = p[1];
+            options->genkey_type = GENKEY_SECRET;
+        }
+        else
+        {
+            if (streq(p[1], "secret") || streq(p[1], "tls-auth") ||
+                streq(p[1], "tls-crypt"))
+            {
+                options->genkey_type = GENKEY_SECRET;
+            }
+            else if (streq(p[1], "tls-crypt-v2-server"))
+            {
+                options->genkey_type = GENKEY_TLS_CRYPTV2_SERVER;
+            }
+            else if (streq(p[1], "tls-crypt-v2-client"))
+            {
+                options->genkey_type = GENKEY_TLS_CRYPTV2_CLIENT;
+                if (p[3])
+                {
+                    options->genkey_extra_data = p[3];
+                }
+            }
+            else
+            {
+                msg(msglevel, "unknown --genkey type: %s", p[1]);
+            }
+
+        }
+        if (p[2])
+        {
+            options->genkey_filename = p[2];
         }
     }
     else if (streq(p[0], "auth") && p[1] && !p[2])
@@ -8123,16 +8150,6 @@ add_option(struct options *options,
                 options->ce.tls_crypt_v2_inline = p[2];
             }
             options->ce.tls_crypt_v2_file = p[1];
-        }
-    }
-    else if (streq(p[0], "tls-crypt-v2-genkey") && p[2] && !p[4])
-    {
-        VERIFY_PERMISSION(OPT_P_GENERAL);
-        options->tls_crypt_v2_genkey_type = p[1];
-        options->tls_crypt_v2_genkey_file = p[2];
-        if (p[3])
-        {
-            options->tls_crypt_v2_metadata = p[3];
         }
     }
     else if (streq(p[0], "tls-crypt-v2-verify") && p[1] && !p[2])

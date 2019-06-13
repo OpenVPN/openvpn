@@ -177,6 +177,12 @@ struct remote_host_store
     char port[RH_PORT_LEN];
 };
 
+enum genkey_type {
+    GENKEY_SECRET,
+    GENKEY_TLS_CRYPTV2_CLIENT,
+    GENKEY_TLS_CRYPTV2_SERVER,
+};
+
 /* Command line options */
 struct options
 {
@@ -207,6 +213,9 @@ struct options
     bool show_tls_ciphers;
     bool show_curves;
     bool genkey;
+    enum genkey_type genkey_type;
+    const char* genkey_filename;
+    const char* genkey_extra_data;
 
     /* Networking parms */
     int connect_retry_max;
@@ -589,8 +598,6 @@ struct options
     const char *tls_crypt_v2_file;
     const char *tls_crypt_v2_inline;
 
-    const char *tls_crypt_v2_genkey_type;
-    const char *tls_crypt_v2_genkey_file;
     const char *tls_crypt_v2_metadata;
 
     const char *tls_crypt_v2_verify_script;

@@ -38,7 +38,7 @@ CIPHERS=$(echo "$CIPHERS" | egrep -v '^(DES-EDE3-CFB1|DES-CFB1|RC5-)' )
 # Also test cipher 'none'
 CIPHERS=${CIPHERS}$(printf "\nnone")
 
-"${top_builddir}/src/openvpn/openvpn" --genkey --secret key.$$
+"${top_builddir}/src/openvpn/openvpn" --genkey secret key.$$
 set +e
 
 e=0
@@ -57,7 +57,7 @@ done
 
 echo -n "Testing tls-crypt-v2 server key generation..."
 "${top_builddir}/src/openvpn/openvpn" \
-    --tls-crypt-v2-genkey server tc-server-key.$$ >log.$$ 2>&1
+    --genkey tls-crypt-v2-server tc-server-key.$$ >log.$$ 2>&1
 if [ $? != 0 ] ; then
     echo "FAILED"
     cat log.$$
@@ -68,7 +68,7 @@ fi
 
 echo -n "Testing tls-crypt-v2 key generation (no metadata)..."
 "${top_builddir}/src/openvpn/openvpn" --tls-crypt-v2 tc-server-key.$$ \
-    --tls-crypt-v2-genkey client tc-client-key.$$ >log.$$ 2>&1
+    --genkey tls-crypt-v2-client tc-client-key.$$ >log.$$ 2>&1
 if [ $? != 0 ] ; then
     echo "FAILED"
     cat log.$$
@@ -86,7 +86,7 @@ while [ $i -lt 732 ]; do
 done
 echo -n "Testing tls-crypt-v2 key generation (max length metadata)..."
 "${top_builddir}/src/openvpn/openvpn" --tls-crypt-v2 tc-server-key.$$ \
-    --tls-crypt-v2-genkey client tc-client-key.$$ "${METADATA}" \
+    --genkey tls-crypt-v2-client tc-client-key.$$ "${METADATA}" \
     >log.$$ 2>&1
 if [ $? != 0 ] ; then
     echo "FAILED"

@@ -1053,18 +1053,43 @@ bool
 do_genkey(const struct options *options)
 {
     /* should we disable paging? */
-    if (options->mlock && (options->genkey || options->tls_crypt_v2_genkey_file))
+    if (options->mlock && (options->genkey))
     {
         platform_mlockall(true);
     }
-    if (options->genkey)
+
+    /*
+     * We do not want user to use --genkey with --secret. In the transistion
+     * phase we for secret.
+     */
+    if (options->genkey && options->genkey_type != GENKEY_SECRET
+        && options->shared_secret_file)
+    {
+        msg(M_USAGE, "Using --genkey type with --secret filename is "
+            "not supported.  Use --genkey type filename instead.");
+    }
+    if (options->genkey && options->genkey_type == GENKEY_SECRET)
     {
         int nbits_written;
+        const char *genkey_filename = options->genkey_filename;
+        if (options->shared_secret_file && options->genkey_filename)
+        {
+            msg(M_USAGE, "You must provide a filename to either --genkey "
+                "or --secret, not both");
+        }
 
-        notnull(options->shared_secret_file,
-                "shared secret output file (--secret)");
+        /*
+         * Copy filename from shared_secret_file to genkey_filename to support
+         * the old --genkey --secret foo.file syntax.
+         */
+        if (options->shared_secret_file)
+        {
+            msg(M_WARN, "WARNING: Using --genkey --secret filename is "
+                "DEPRECATED.  Use --genkey secret filename instead.");
+            genkey_filename = options->shared_secret_file;
+        }
 
-        nbits_written = write_key_file(2, options->shared_secret_file);
+        nbits_written = write_key_file(2, genkey_filename);
         if (nbits_written < 0)
         {
             msg(M_FATAL, "Failed to write key file");
@@ -1075,30 +1100,28 @@ do_genkey(const struct options *options)
             options->shared_secret_file);
         return true;
     }
-    if (options->tls_crypt_v2_genkey_type)
+    else if (options->genkey && options->genkey_type == GENKEY_TLS_CRYPTV2_SERVER)
     {
-        if (!strcmp(options->tls_crypt_v2_genkey_type, "server"))
-        {
-            tls_crypt_v2_write_server_key_file(options->tls_crypt_v2_genkey_file);
-            return true;
-        }
-        if (options->tls_crypt_v2_genkey_type
-            && !strcmp(options->tls_crypt_v2_genkey_type, "client"))
-        {
-            if (!options->tls_crypt_v2_file)
-            {
-                msg(M_USAGE, "--tls-crypt-v2-genkey requires a server key to be set via --tls-crypt-v2 to create a client key");
-            }
-
-            tls_crypt_v2_write_client_key_file(options->tls_crypt_v2_genkey_file,
-                                               options->tls_crypt_v2_metadata, options->tls_crypt_v2_file,
-                                               options->tls_crypt_v2_inline);
-            return true;
-        }
-
-        msg(M_USAGE, "--tls-crypt-v2-genkey type should be \"client\" or \"server\"");
+        tls_crypt_v2_write_server_key_file(options->genkey_filename);
+        return true;
     }
-    return false;
+    else if (options->genkey && options->genkey_type == GENKEY_TLS_CRYPTV2_CLIENT)
+    {
+        if (!options->tls_crypt_v2_file)
+        {
+            msg(M_USAGE,
+                "--genkey tls-crypt-v2-client requires a server key to be set via --tls-crypt-v2 to create a client key");
+        }
+
+        tls_crypt_v2_write_client_key_file(options->genkey_filename,
+                                           options->genkey_extra_data, options->tls_crypt_v2_file,
+                                           options->tls_crypt_v2_inline);
+        return true;
+    }
+    else
+    {
+        return false;
+    }
 }
 
 /*
