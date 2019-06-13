@@ -428,7 +428,17 @@ unsigned int crypto_max_overhead(void);
  * @param pem_name          The name to use in the PEM header/footer.
  */
 void
-write_pem_key_file(const char *filename, const char *pem_name);
+write_pem_key_file(const char *filename, const char *key_name);
+
+/**
+ * Generate ephermal key material into the key structure
+ *
+ * @param key           the key structure that will hold the key material
+ * @param pem_name      the name used for logging
+ * @return              true if key generation was successful
+ */
+bool
+generate_ephemeral_key(struct buffer *key, const char *pem_name);
 
 /**
  * Read key material from a PEM encoded files into the key structure

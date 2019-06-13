@@ -1893,6 +1893,20 @@ cleanup:
 }
 
 bool
+generate_ephemeral_key(struct buffer *key, const char *key_name)
+{
+    msg(M_INFO, "Using random %s.", key_name);
+    uint8_t rand[BCAP(key)];
+    if (!rand_bytes(rand, BCAP(key)))
+    {
+        msg(M_WARN, "ERROR: could not generate random key");
+        return false;
+    }
+    buf_write(key, rand, BCAP(key));
+    return true;
+}
+
+bool
 read_pem_key_file(struct buffer *key, const char *pem_name,
                   const char *key_file, const char *key_inline)
 {
