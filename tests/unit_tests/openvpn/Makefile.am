@@ -14,7 +14,7 @@ endif
 TESTS = $(test_binaries)
 check_PROGRAMS = $(test_binaries)
 
-if TARGET_LINUX
+if HAVE_SITNL
 check_PROGRAMS += networking_testdriver
 endif
 

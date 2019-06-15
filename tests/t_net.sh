@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env bash
 
 IFACE="dummy0"
 UNIT_TEST="./unit_tests/openvpn/networking_testdriver"
@@ -74,6 +74,7 @@ run_test()
 
 ## execution starts here
 
+# t_client.rc required only for RUN_SUDO definition
 if [ -r "${top_builddir}"/t_client.rc ]; then
     . "${top_builddir}"/t_client.rc
 elif [ -r "${srcdir}"/t_client.rc ]; then
