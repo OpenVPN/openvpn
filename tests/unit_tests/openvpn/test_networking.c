@@ -185,6 +185,12 @@ main(int argc, char *argv[])
         return -1;
     }
 
+    /* the t_net script can use this command to perform a dry-run test */
+    if (strcmp(argv[1], "test") == 0)
+    {
+        return 0;
+    }
+
     if (argc > 3)
     {
         iface = argv[2];

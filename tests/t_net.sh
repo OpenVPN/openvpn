@@ -125,14 +125,12 @@ else
         echo "      must be set correctly in 't_client.rc'. SKIP." >&2
         exit 77
     else
-        # We have to use sudo. Make sure that we (hopefully) do not have
-        # to ask the users password during the test. This is done to
-        # prevent timing issues, e.g. when the waits for openvpn to start
-	    if $RUN_SUDO $KILL_EXEC -0 $$
+        # check that we can run the unit-test binary with sudo
+	    if $RUN_SUDO $UNIT_TEST test
         then
-	        echo "$0: $RUN_SUDO $KILL_EXEC -0 succeeded, good."
+	        echo "$0: $RUN_SUDO $UNIT_TEST succeeded, good."
         else
-	        echo "$0: $RUN_SUDO $KILL_EXEC -0 failed, cannot go on. SKIP." >&2
+	        echo "$0: $RUN_SUDO $UNIT_TEST failed, cannot go on. SKIP." >&2
 	        exit 77
         fi
     fi
@@ -172,7 +170,7 @@ for i in $(seq 0 $MAX_TEST); do
             exit 1
         fi
     done
-
+    echo "Test $i: OK"
 done
 
 # remove interface for good
