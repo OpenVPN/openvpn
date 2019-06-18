@@ -4,9 +4,6 @@ IFACE="dummy0"
 UNIT_TEST="./unit_tests/openvpn/networking_testdriver"
 MAX_TEST=${1:-7}
 
-KILL_EXEC=`which kill`
-CC=${CC:-gcc}
-
 srcdir="${srcdir:-.}"
 top_builddir="${top_builddir:-..}"
 openvpn="${top_builddir}/src/openvpn/openvpn"
@@ -99,8 +96,7 @@ fi
 # Ensure PREFER_KSU is in a known state
 PREFER_KSU="${PREFER_KSU:-0}"
 
-# make sure we have permissions to run ifconfig/route from OpenVPN
-# can't use "id -u" here - doesn't work on Solaris
+# make sure we have permissions to run the networking unit-test
 ID=`id`
 if expr "$ID" : "uid=0" >/dev/null
 then :

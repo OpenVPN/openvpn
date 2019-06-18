@@ -2,12 +2,8 @@
 #include "syshead.h"
 #include "networking.h"
 
-#include "mock_msg.h"
-
 
 static char *iface = "dummy0";
-
-#ifdef ENABLE_SITNL
 
 static int
 net__iface_up(bool up)
@@ -177,8 +173,6 @@ main(int argc, char *argv[])
 {
     int test;
 
-    mock_set_debug_level(10);
-
     if (argc < 2)
     {
         usage(argv[0]);
@@ -223,13 +217,3 @@ main(int argc, char *argv[])
     usage(argv[0]);
     return -1;
 }
-
-#else
-
-int
-main(int argc, char *argv[])
-{
-    return 0;
-}
-
-#endif /* ENABLE_SITNL */
