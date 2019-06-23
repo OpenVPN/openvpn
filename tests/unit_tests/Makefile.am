@@ -1,5 +1,5 @@
 AUTOMAKE_OPTIONS = foreign
 
-if CMOCKA_INITIALIZED
+if ENABLE_UNITTESTS
 SUBDIRS = example_test openvpn plugins
 endif

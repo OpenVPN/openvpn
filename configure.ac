@@ -1361,32 +1361,31 @@ AC_SUBST([sampledir])
 AC_SUBST([systemdunitdir])
 AC_SUBST([tmpfilesdir])
 
+AC_ARG_ENABLE(
+     [unit-tests],
+     [AS_HELP_STRING([--disable-unit-tests],
+                     [Disables building and running the unit tests suite])],
+     [],
+     [enable_unit_tests="yes"]
+)
+
+# Check if cmocka is available - needed for unit testing
+PKG_CHECK_MODULES(
+	[CMOCKA], [cmocka],
+	[have_cmocka="yes"],
+	[AC_MSG_WARN([cmocka.pc not found on the system.  Unit tests disabled])]
+)
+AM_CONDITIONAL([ENABLE_UNITTESTS], [test "${enable_unit_tests}" = "yes" -a "${have_cmocka}" = "yes" ])
+AC_SUBST([ENABLE_UNITTESTS])
+
 TEST_LDFLAGS="${OPTIONAL_CRYPTO_LIBS} ${OPTIONAL_PKCS11_HELPER_LIBS}"
-TEST_LDFLAGS="${TEST_LDFLAGS} ${OPTIONAL_LZO_LIBS}"
-TEST_LDFLAGS="${TEST_LDFLAGS} -lcmocka -L\$(top_builddir)/vendor/dist/lib"
-TEST_LDFLAGS="${TEST_LDFLAGS} -Wl,-rpath,\$(top_builddir)/vendor/dist/lib"
+TEST_LDFLAGS="${TEST_LDFLAGS} ${OPTIONAL_LZO_LIBS} ${CMOCKA_LIBS}"
 TEST_CFLAGS="${OPTIONAL_CRYPTO_CFLAGS} ${OPTIONAL_PKCS11_HELPER_CFLAGS}"
 TEST_CFLAGS="${TEST_CFLAGS} ${OPTIONAL_LZO_CFLAGS}"
-TEST_CFLAGS="${TEST_CFLAGS} -I\$(top_srcdir)/include -I\$(top_builddir)/vendor/dist/include"
+TEST_CFLAGS="${TEST_CFLAGS} -I\$(top_srcdir)/include ${CMOCKA_CFLAGS}"
 
 AC_SUBST([TEST_LDFLAGS])
 AC_SUBST([TEST_CFLAGS])
-
-# Check if cmake is available and cmocka git submodule is initialized,
-# needed for unit testing
-AC_CHECK_PROGS([CMAKE], [cmake])
-if test -n "${CMAKE}"; then
-   if test -f "${srcdir}/vendor/cmocka/CMakeLists.txt"; then
-      AM_CONDITIONAL([CMOCKA_INITIALIZED], [true])
-   else
-      AM_CONDITIONAL([CMOCKA_INITIALIZED], [false])
-      AC_MSG_RESULT([!! WARNING !! The cmoka git submodule has not been initialized or updated.  Unit testing cannot be performed.])
-   fi
-else
-   AC_MSG_RESULT([!! WARNING !! CMake is NOT available.  Unit testing cannot be performed.])
-   AM_CONDITIONAL([CMOCKA_INITIALIZED], [false])
-fi
-
 
 AC_CONFIG_FILES([
 	version.sh
@@ -1415,7 +1414,6 @@ AC_CONFIG_FILES([
         tests/unit_tests/openvpn/Makefile
         tests/unit_tests/plugins/Makefile
         tests/unit_tests/plugins/auth-pam/Makefile
-        vendor/Makefile
 	sample/Makefile
 ])
 AC_CONFIG_FILES([tests/t_client.sh], [chmod +x tests/t_client.sh])

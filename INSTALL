@@ -156,6 +156,20 @@ Test SSL/TLS negotiations (runs for 2 minutes):
 For more thorough client-server tests you can configure your own, private test
 environment. See tests/t_client.rc-sample for details.
 
+To do the C unit tests, you need to have the "cmocka" test framework
+installed on your system.  More recent distributions already ship this
+as part of their packages/ports.  If your system does not have it,
+you can install cmocka with these commands:
+
+  $ git clone https://git.cryptomilk.org/projects/cmocka.git
+  $ cd cmocka
+  $ mkdir build
+  $ cd build
+  $ cmake -DCMAKE_INSTALL_PREFIX=/usr/local -DCMAKE_BUILD_TYPE=Debug ..
+  $ make
+  $ sudo make install
+
+
 *************************************************************************
 
 OPTIONS for ./configure:
