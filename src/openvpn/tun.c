@@ -5374,6 +5374,7 @@ netsh_enable_dhcp(const char *actual_name)
 static bool
 service_enable_dhcp(const struct tuntap *tt)
 {
+    DWORD len;
     bool ret = false;
     ack_message_t ack;
     struct gc_arena gc = gc_new();
