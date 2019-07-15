@@ -31,6 +31,7 @@
 #include "basic.h"
 #include "tun.h"
 #include "misc.h"
+#include "networking.h"
 
 #ifdef _WIN32
 /*
@@ -291,7 +292,8 @@ bool init_route_ipv6_list(struct route_ipv6_list *rl6,
                           const char *remote_endpoint,
                           int default_metric,
                           const struct in6_addr *remote_host,
-                          struct env_set *es);
+                          struct env_set *es,
+                          openvpn_net_ctx_t *ctx);
 
 void route_list_add_vpn_gateway(struct route_list *rl,
                                 struct env_set *es,
@@ -323,7 +325,8 @@ void get_default_gateway(struct route_gateway_info *rgi,
                          openvpn_net_ctx_t *ctx);
 
 void get_default_gateway_ipv6(struct route_ipv6_gateway_info *rgi,
-                              const struct in6_addr *dest);
+                              const struct in6_addr *dest,
+                              openvpn_net_ctx_t *ctx);
 
 void print_default_gateway(const int msglevel,
                            const struct route_gateway_info *rgi,

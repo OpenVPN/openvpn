@@ -1486,7 +1486,8 @@ static void
 do_init_route_ipv6_list(const struct options *options,
                         struct route_ipv6_list *route_ipv6_list,
                         const struct link_socket_info *link_socket_info,
-                        struct env_set *es)
+                        struct env_set *es,
+                        openvpn_net_ctx_t *ctx)
 {
     const char *gw = NULL;
     int metric = -1;            /* no metric set */
@@ -1522,7 +1523,8 @@ do_init_route_ipv6_list(const struct options *options,
                              gw,
                              metric,
                              link_socket_current_remote_ipv6(link_socket_info),
-                             es))
+                             es,
+                             ctx))
     {
         /* copy routes to environment */
         setenv_routes_ipv6(es, route_ipv6_list);
@@ -1782,7 +1784,8 @@ do_open_tun(struct context *c)
     if (c->options.routes_ipv6 && c->c1.route_ipv6_list)
     {
         do_init_route_ipv6_list(&c->options, c->c1.route_ipv6_list,
-                                &c->c2.link_socket->info, c->c2.es);
+                                &c->c2.link_socket->info, c->c2.es,
+                                &c->net_ctx);
     }
 
     /* do ifconfig */

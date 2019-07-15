@@ -5012,7 +5012,7 @@ add_option(struct options *options,
         }
         net_ctx_init(NULL, &net_ctx);
         get_default_gateway(&rgi, &net_ctx);
-        get_default_gateway_ipv6(&rgi6, &remote);
+        get_default_gateway_ipv6(&rgi6, &remote, &net_ctx);
         print_default_gateway(M_INFO, &rgi, &rgi6);
         openvpn_exit(OPENVPN_EXIT_STATUS_GOOD); /* exit point */
     }
