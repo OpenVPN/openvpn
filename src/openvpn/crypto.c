@@ -1895,14 +1895,18 @@ cleanup:
 bool
 generate_ephemeral_key(struct buffer *key, const char *key_name)
 {
+    const int len = BCAP(key);
+
     msg(M_INFO, "Using random %s.", key_name);
-    uint8_t rand[BCAP(key)];
-    if (!rand_bytes(rand, BCAP(key)))
+
+    if (!rand_bytes(BEND(key), len))
     {
         msg(M_WARN, "ERROR: could not generate random key");
         return false;
     }
-    buf_write(key, rand, BCAP(key));
+
+    buf_inc_len(key, len);
+
     return true;
 }
 
