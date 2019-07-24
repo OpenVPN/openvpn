@@ -919,7 +919,6 @@ free_key_ctx(struct key_ctx *ctx)
 {
     if (ctx->cipher)
     {
-        cipher_ctx_cleanup(ctx->cipher);
         cipher_ctx_free(ctx->cipher);
         ctx->cipher = NULL;
     }

@@ -88,6 +88,18 @@ EVP_MD_CTX_new(void)
 }
 #endif
 
+#if !defined(HAVE_EVP_CIPHER_CTX_RESET)
+#define EVP_CIPHER_CTX_reset EVP_CIPHER_CTX_init
+#endif
+
+#if !defined(HAVE_X509_GET0_NOTBEFORE)
+#define X509_get0_notBefore X509_get_notBefore
+#endif
+
+#if !defined(HAVE_X509_GET0_NOTAFTER)
+#define X509_get0_notAfter X509_get_notAfter
+#endif
+
 #if !defined(HAVE_HMAC_CTX_RESET)
 /**
  * Reset a HMAC context
