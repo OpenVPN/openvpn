@@ -499,7 +499,7 @@ rsa_sign_CNG(int type, const unsigned char *m, unsigned int m_len,
     *siglen = priv_enc_CNG(cd, alg, m, (int)m_len, sig, RSA_size(rsa),
                            cng_padding_type(padding), 0);
 
-    return (siglen == 0) ? 0 : 1;
+    return (*siglen == 0) ? 0 : 1;
 }
 
 /* decrypt */
@@ -973,7 +973,7 @@ pkey_rsa_sign(EVP_PKEY_CTX *ctx, unsigned char *sig, size_t *siglen,
     *siglen = priv_enc_CNG(cd, alg, tbs, (int)tbslen, sig, *siglen,
                            cng_padding_type(padding), (DWORD)saltlen);
 
-    return (siglen == 0) ? 0 : 1;
+    return (*siglen == 0) ? 0 : 1;
 }
 
 #endif /* OPENSSL_VERSION >= 1.1.0 */
