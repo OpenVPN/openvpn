@@ -393,7 +393,7 @@ rsa_sign_CNG(int type, const unsigned char *m, unsigned int m_len,
     }
 
     *siglen = priv_enc_CNG(cd, alg, m, (int)m_len, sig, RSA_size(rsa), padding);
-    return (siglen == 0) ? 0 : 1;
+    return (*siglen == 0) ? 0 : 1;
 }
 
 /* decrypt */
