@@ -1554,13 +1554,10 @@ add_route(struct route_ipv4 *r,
     struct argv argv = argv_new();
 #if !defined(TARGET_LINUX)
     const char *network;
-#if !defined(ENABLE_IPROUTE) && !defined(TARGET_AIX)
+#if !defined(TARGET_AIX)
     const char *netmask;
 #endif
     const char *gateway;
-#else
-    const char *iface;
-    int metric;
 #endif
     bool status = false;
     int is_local_route;
@@ -1574,7 +1571,7 @@ add_route(struct route_ipv4 *r,
 
 #if !defined(TARGET_LINUX)
     network = print_in_addr_t(r->network, 0, &gc);
-#if !defined(ENABLE_IPROUTE) && !defined(TARGET_AIX)
+#if !defined(TARGET_AIX)
     netmask = print_in_addr_t(r->netmask, 0, &gc);
 #endif
     gateway = print_in_addr_t(r->gateway, 0, &gc);
@@ -1587,13 +1584,14 @@ add_route(struct route_ipv4 *r,
     }
 
 #if defined(TARGET_LINUX)
-    iface = NULL;
+    const char *iface = NULL;
+    int metric = -1;
+
     if (is_on_link(is_local_route, flags, rgi))
     {
         iface = rgi->iface;
     }
 
-    metric = -1;
     if (r->flags & RT_METRIC_DEFINED)
     {
         metric = r->metric;
@@ -2148,10 +2146,10 @@ delete_route(struct route_ipv4 *r,
     struct argv argv = argv_new();
 #if !defined(TARGET_LINUX)
     const char *network;
-#if !defined(ENABLE_IPROUTE) && !defined(TARGET_AIX)
+#if !defined(TARGET_AIX)
     const char *netmask;
 #endif
-#if !defined(TARGET_LINUX) && !defined(TARGET_ANDROID)
+#if !defined(TARGET_ANDROID)
     const char *gateway;
 #endif
 #else
@@ -2168,10 +2166,10 @@ delete_route(struct route_ipv4 *r,
 
 #if !defined(TARGET_LINUX)
     network = print_in_addr_t(r->network, 0, &gc);
-#if !defined(ENABLE_IPROUTE) && !defined(TARGET_AIX)
+#if !defined(TARGET_AIX)
     netmask = print_in_addr_t(r->netmask, 0, &gc);
 #endif
-#if !defined(TARGET_LINUX) && !defined(TARGET_ANDROID)
+#if !defined(TARGET_ANDROID)
     gateway = print_in_addr_t(r->gateway, 0, &gc);
 #endif
 #endif
