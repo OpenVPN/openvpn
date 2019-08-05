@@ -451,7 +451,7 @@ sitnl_route_save(struct nlmsghdr *n, void *arg)
 
 static int
 sitnl_route_best_gw(sa_family_t af_family, const inet_address_t *dst,
-                    int prefixlen, void *best_gw, char *best_iface)
+                    void *best_gw, char *best_iface)
 {
     struct sitnl_route_req req;
     route_res_t res;
@@ -468,7 +468,6 @@ sitnl_route_best_gw(sa_family_t af_family, const inet_address_t *dst,
     req.n.nlmsg_flags = NLM_F_REQUEST;
 
     req.r.rtm_family = af_family;
-    req.r.rtm_dst_len = prefixlen;
 
     switch (af_family)
     {
@@ -503,7 +502,7 @@ err:
 /* used by iproute2 implementation too */
 int
 net_route_v6_best_gw(openvpn_net_ctx_t *ctx, const struct in6_addr *dst,
-                     int prefixlen, struct in6_addr *best_gw, char *best_iface)
+                     struct in6_addr *best_gw, char *best_iface)
 {
     inet_address_t dst_v6 = {0};
     char buf[INET6_ADDRSTRLEN];
@@ -514,11 +513,10 @@ net_route_v6_best_gw(openvpn_net_ctx_t *ctx, const struct in6_addr *dst,
         dst_v6.ipv6 = *dst;
     }
 
-    msg(D_ROUTE, "%s query: dst %s/%d", __func__,
-        inet_ntop(AF_INET6, &dst_v6.ipv6, buf, sizeof(buf)), prefixlen);
+    msg(D_ROUTE, "%s query: dst %s", __func__,
+        inet_ntop(AF_INET6, &dst_v6.ipv6, buf, sizeof(buf)));
 
-    ret = sitnl_route_best_gw(AF_INET6, &dst_v6, prefixlen, best_gw,
-                              best_iface);
+    ret = sitnl_route_best_gw(AF_INET6, &dst_v6, best_gw, best_iface);
     if (ret < 0)
     {
         return ret;
@@ -544,7 +542,7 @@ net_ctx_init(struct context *c, openvpn_net_ctx_t *ctx)
 
 int
 net_route_v4_best_gw(openvpn_net_ctx_t *ctx, const in_addr_t *dst,
-                     int prefixlen, in_addr_t *best_gw, char *best_iface)
+                     in_addr_t *best_gw, char *best_iface)
 {
     inet_address_t dst_v4 = {0};
     char buf[INET_ADDRSTRLEN];
@@ -555,10 +553,10 @@ net_route_v4_best_gw(openvpn_net_ctx_t *ctx, const in_addr_t *dst,
         dst_v4.ipv4 = htonl(*dst);
     }
 
-    msg(D_ROUTE, "%s query: dst %s/%d", __func__,
-        inet_ntop(AF_INET, &dst_v4.ipv4, buf, sizeof(buf)), prefixlen);
+    msg(D_ROUTE, "%s query: dst %s", __func__,
+        inet_ntop(AF_INET, &dst_v4.ipv4, buf, sizeof(buf)));
 
-    ret = sitnl_route_best_gw(AF_INET, &dst_v4, prefixlen, best_gw, best_iface);
+    ret = sitnl_route_best_gw(AF_INET, &dst_v4, best_gw, best_iface);
     if (ret < 0)
     {
         return ret;

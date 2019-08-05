@@ -241,15 +241,13 @@ int net_route_v6_del(openvpn_net_ctx_t *ctx, const struct in6_addr *dst,
  *
  * @param ctx           the implementation specific context
  * @param dst           The destination to lookup
- * @param prefixlen     The length of the prefix of the destination
  * @param best_gw       Location where the retrieved GW has to be stored
  * @param best_iface    Location where the retrieved interface has to be stored
  *
  * @return              0 on success, a negative error code otherwise
  */
 int net_route_v4_best_gw(openvpn_net_ctx_t *ctx, const in_addr_t *dst,
-                         int prefixlen, in_addr_t *best_gw,
-                         openvpn_net_iface_t *best_iface);
+                         in_addr_t *best_gw, openvpn_net_iface_t *best_iface);
 
 /**
  * Retrieve the gateway and outgoing interface for the specified IPv6
@@ -257,14 +255,13 @@ int net_route_v4_best_gw(openvpn_net_ctx_t *ctx, const in_addr_t *dst,
  *
  * @param ctx           the implementation specific context
  * @param dst           The destination to lookup
- * @param prefixlen     The length of the prefix of the destination
  * @param best_gw       Location where the retrieved GW has to be stored
  * @param best_iface    Location where the retrieved interface has to be stored
  *
  * @return              0 on success, a negative error code otherwise
  */
 int net_route_v6_best_gw(openvpn_net_ctx_t *ctx, const struct in6_addr *dst,
-                         int prefixlen, struct in6_addr *best_gw,
+                         struct in6_addr *best_gw,
                          openvpn_net_iface_t *best_iface);
 
 #endif /* ENABLE_SITNL || ENABLE_IPROUTE */

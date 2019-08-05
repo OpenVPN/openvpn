@@ -3172,7 +3172,7 @@ get_default_gateway(struct route_gateway_info *rgi, openvpn_net_ctx_t *ctx)
 
 #ifndef TARGET_ANDROID
     /* get default gateway IP addr */
-    if (net_route_v4_best_gw(ctx, NULL, 0, &rgi->gateway.addr, best_name) == 0)
+    if (net_route_v4_best_gw(ctx, NULL, &rgi->gateway.addr, best_name) == 0)
     {
         rgi->flags |= RGI_ADDR_DEFINED;
         if (!rgi->gateway.addr && best_name[0])
@@ -3330,7 +3330,7 @@ get_default_gateway_ipv6(struct route_ipv6_gateway_info *rgi6,
 
     CLEAR(*rgi6);
 
-    if (net_route_v6_best_gw(ctx, dest, 0, &rgi6->gateway.addr_ipv6,
+    if (net_route_v6_best_gw(ctx, dest, &rgi6->gateway.addr_ipv6,
                              rgi6->iface) == 0)
     {
         if (!IN6_IS_ADDR_UNSPECIFIED(rgi6->gateway.addr_ipv6.s6_addr))

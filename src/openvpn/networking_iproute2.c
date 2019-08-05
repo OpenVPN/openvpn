@@ -325,7 +325,7 @@ net_route_v6_del(openvpn_net_ctx_t *ctx, const struct in6_addr *dst,
 
 int
 net_route_v4_best_gw(openvpn_net_ctx_t *ctx, const in_addr_t *dst,
-                     int prefixlen, in_addr_t *best_gw, char *best_iface)
+                     in_addr_t *best_gw, char *best_iface)
 {
     best_iface[0] = '\0';
 
@@ -378,7 +378,7 @@ net_route_v4_best_gw(openvpn_net_ctx_t *ctx, const in_addr_t *dst,
  * uses the sitnl implementation from networking_sitnl.c.
  *
  * int
- * net_route_v6_best_gw(const struct in6_addr *dst, int prefixlen,
+ * net_route_v6_best_gw(const struct in6_addr *dst,
  *                      struct in6_addr *best_gw, char *best_iface)
  */
 
