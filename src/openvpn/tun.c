@@ -1938,9 +1938,8 @@ tuncfg(const char *dev, const char *dev_type, const char *dev_node,
 
 #endif /* ENABLE_FEATURE_TUN_PERSIST */
 
-void
-undo_ifconfig_ipv4(struct tuntap *tt, struct gc_arena *gc,
-                   openvpn_net_ctx_t *ctx)
+static void
+undo_ifconfig_ipv4(struct tuntap *tt, openvpn_net_ctx_t *ctx)
 {
 #if defined(TARGET_LINUX)
     int netbits = netmask_to_netbits2(tt->remote_netmask);
@@ -1962,7 +1961,7 @@ undo_ifconfig_ipv4(struct tuntap *tt, struct gc_arena *gc,
                 tt->actual_name);
         }
     }
-#else  /* ifdef TARGET_LINUX */
+#else  /* ifndef TARGET_LINUX */
     struct argv argv = argv_new();
 
     argv_printf(&argv, "%s %s 0.0.0.0", IFCONFIG_PATH, tt->actual_name);
@@ -1974,9 +1973,8 @@ undo_ifconfig_ipv4(struct tuntap *tt, struct gc_arena *gc,
 #endif /* ifdef TARGET_LINUX */
 }
 
-void
-undo_ifconfig_ipv6(struct tuntap *tt, struct gc_arena *gc,
-                   openvpn_net_ctx_t *ctx)
+static void
+undo_ifconfig_ipv6(struct tuntap *tt, openvpn_net_ctx_t *ctx)
 {
 #if defined(TARGET_LINUX)
     if (net_addr_v6_del(ctx, tt->actual_name, &tt->local_ipv6,
@@ -1984,7 +1982,8 @@ undo_ifconfig_ipv6(struct tuntap *tt, struct gc_arena *gc,
     {
         msg(M_WARN, "Linux can't del IPv6 from iface %s", tt->actual_name);
     }
-#else  /* ifdef TARGET_LINUX */
+#else  /* ifndef TARGET_LINUX */
+    struct gc_arena gc = gc_new();
     const char *ifconfig_ipv6_local = print_in6_addr(tt->local_ipv6, 0, gc);
     struct argv argv = argv_new();
 
@@ -1995,6 +1994,7 @@ undo_ifconfig_ipv6(struct tuntap *tt, struct gc_arena *gc,
     openvpn_execve_check(&argv, NULL, 0, "Linux ip -6 addr del failed");
 
     argv_reset(&argv);
+    gc_free(&gc);
 #endif /* ifdef TARGET_LINUX */
 }
 
@@ -2005,19 +2005,16 @@ close_tun(struct tuntap *tt, openvpn_net_ctx_t *ctx)
 
     if (tt->type != DEV_TYPE_NULL)
     {
-        struct gc_arena gc = gc_new();
-
         if (tt->did_ifconfig_setup)
         {
-            undo_ifconfig_ipv4(tt, &gc, ctx);
+            undo_ifconfig_ipv4(tt, ctx);
         }
 
         if (tt->did_ifconfig_ipv6_setup)
         {
-            undo_ifconfig_ipv6(tt, &gc, ctx);
+            undo_ifconfig_ipv6(tt, ctx);
         }
 
-        gc_free(&gc);
         /* release resources potentially allocated during undo */
         net_ctx_reset(ctx);
     }
