@@ -54,8 +54,8 @@ struct gc_arena;
 
 #define OPENVPN_EXIT_STATUS_GOOD                    0
 #define OPENVPN_EXIT_STATUS_ERROR                   1
-#define OPENVPN_EXIT_STATUS_USAGE                   1
-#define OPENVPN_EXIT_STATUS_CANNOT_OPEN_DEBUG_FILE  1
+#define OPENVPN_EXIT_STATUS_USAGE                   2
+#define OPENVPN_EXIT_STATUS_CANNOT_OPEN_DEBUG_FILE  3
 
 /*
  * Special command line debugging mode.
