@@ -3158,7 +3158,48 @@ show_routes(int msglev)
     gc_free(&gc);
 }
 
-#elif defined(TARGET_LINUX) || defined(TARGET_ANDROID)
+#elif defined(TARGET_ANDROID)
+
+void
+get_default_gateway(struct route_gateway_info *rgi, openvpn_net_ctx_t *ctx)
+{
+    /* Android, set some pseudo GW, addr is in host byte order,
+     * Determining the default GW on Android 5.0+ is non trivial
+     * and serves almost no purpose since OpenVPN only uses the
+     * default GW address to add routes for networks that should
+     * NOT be routed over the VPN. Using a well known address
+     * (127.'d'.'g'.'w') for the default GW make detecting
+     * these routes easier from the controlling app.
+     */
+    CLEAR(*rgi);
+
+    rgi->gateway.addr = 127 << 24 | 'd' << 16 | 'g' << 8 | 'w';
+    rgi->flags = RGI_ADDR_DEFINED | RGI_IFACE_DEFINED;
+    strcpy(rgi->iface, "android-gw");
+
+    /* Skip scanning/fetching interface from loopback interface we do
+     * normally on Linux.
+     * It always fails and "ioctl(SIOCGIFCONF) failed" confuses users
+     */
+
+}
+
+void
+get_default_gateway_ipv6(struct route_ipv6_gateway_info *rgi6,
+                         const struct in6_addr *dest, openvpn_net_ctx_t *ctx)
+{
+    /* Same for ipv6 */
+
+    CLEAR(*rgi6);
+
+    /* Use a fake link-local address */
+    ASSERT(inet_pton(AF_INET6, "fe80::ad", &rgi6->addrs->addr_ipv6) == 1);
+    rgi6->addrs->netbits_ipv6 = 64;
+    rgi6->flags = RGI_ADDR_DEFINED | RGI_IFACE_DEFINED;
+    strcpy(rgi6->iface, "android-gw");
+}
+
+#elif defined(TARGET_LINUX)
 
 void
 get_default_gateway(struct route_gateway_info *rgi, openvpn_net_ctx_t *ctx)
@@ -3170,7 +3211,6 @@ get_default_gateway(struct route_gateway_info *rgi, openvpn_net_ctx_t *ctx)
     CLEAR(*rgi);
     CLEAR(best_name);
 
-#ifndef TARGET_ANDROID
     /* get default gateway IP addr */
     if (net_route_v4_best_gw(ctx, NULL, &rgi->gateway.addr, best_name) == 0)
     {
@@ -3180,25 +3220,6 @@ get_default_gateway(struct route_gateway_info *rgi, openvpn_net_ctx_t *ctx)
             rgi->flags |= RGI_ON_LINK;
         }
     }
-#else  /* ifndef TARGET_ANDROID */
-    /* Android, set some pseudo GW, addr is in host byte order,
-     * Determining the default GW on Android 5.0+ is non trivial
-     * and serves almost no purpose since OpenVPN only uses the
-     * default GW address to add routes for networks that should
-     * NOT be routed over the VPN. Using a well known address
-     * (127.'d'.'g'.'w') for the default GW make detecting
-     * these routes easier from the controlling app.
-     */
-    rgi->gateway.addr = 127 << 24 | 'd' << 16 | 'g' << 8 | 'w';
-    rgi->flags |= RGI_ADDR_DEFINED;
-    strcpy(best_name, "android-gw");
-
-    /*
-     * Skip scanning/fetching interface from loopback interface
-     * It always fails and "ioctl(SIOCGIFCONF) failed" confuses users
-     */
-    goto done;
-#endif /* ifndef TARGET_ANDROID */
 
     /* scan adapter list */
     if (rgi->flags & RGI_ADDR_DEFINED)

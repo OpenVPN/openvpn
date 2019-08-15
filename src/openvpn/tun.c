@@ -878,10 +878,7 @@ static void
 do_ifconfig_ipv6(struct tuntap *tt, const char *ifname, int tun_mtu,
                  const struct env_set *es, openvpn_net_ctx_t *ctx)
 {
-#if defined(TARGET_OPENBSD) || defined(TARGET_NETBSD) \
-    || defined(TARGET_DARWIN) || defined(TARGET_FREEBSD) \
-    || defined(TARGET_DRAGONFLY) || defined(TARGET_AIX) \
-    || defined(TARGET_SOLARIS) || defined(_WIN32)
+#if !defined(TARGET_LINUX)
     struct argv argv = argv_new();
     struct gc_arena gc = gc_new();
     const char *ifconfig_ipv6_local = print_in6_addr(tt->local_ipv6, 0, &gc);
@@ -907,7 +904,7 @@ do_ifconfig_ipv6(struct tuntap *tt, const char *ifname, int tun_mtu,
     char out6[64];
 
     openvpn_snprintf(out6, sizeof(out6), "%s/%d %d",
-                     ifconfig_ipv6_local,tt->netbits_ipv6, tun_mtu);
+                     ifconfig_ipv6_local, tt->netbits_ipv6, tun_mtu);
     management_android_control(management, "IFCONFIG6", out6);
 #elif defined(TARGET_SOLARIS)
     argv_printf(&argv, "%s %s inet6 unplumb", IFCONFIG_PATH, ifname);
@@ -1015,10 +1012,7 @@ do_ifconfig_ipv6(struct tuntap *tt, const char *ifname, int tun_mtu,
     msg(M_FATAL, "Sorry, but I don't know how to do IPv6 'ifconfig' commands on this operating system.  You should ifconfig your TUN/TAP device manually or use an --up script.");
 #endif /* outer "if defined(TARGET_xxx)" conditional */
 
-#if defined(TARGET_OPENBSD) || defined(TARGET_NETBSD) \
-    || defined(TARGET_DARWIN) || defined(TARGET_FREEBSD) \
-    || defined(TARGET_DRAGONFLY) || defined(TARGET_AIX) \
-    || defined(TARGET_SOLARIS) || defined(_WIN32)
+#if !defined(TARGET_LINUX)
     gc_free(&gc);
     argv_reset(&argv);
 #endif
@@ -1042,10 +1036,7 @@ do_ifconfig_ipv4(struct tuntap *tt, const char *ifname, int tun_mtu,
      */
     bool tun = is_tun_p2p(tt);
 
-#if defined(TARGET_OPENBSD) || defined(TARGET_NETBSD) \
-    || defined(TARGET_DARWIN) || defined(TARGET_FREEBSD) \
-    || defined(TARGET_DRAGONFLY) || defined(TARGET_AIX) \
-    || defined(TARGET_SOLARIS) || defined(_WIN32)
+#if !defined(TARGET_LINUX)
     const char *ifconfig_local = NULL;
     const char *ifconfig_remote_netmask = NULL;
     const char *ifconfig_broadcast = NULL;
@@ -1396,10 +1387,7 @@ do_ifconfig_ipv4(struct tuntap *tt, const char *ifname, int tun_mtu,
     msg(M_FATAL, "Sorry, but I don't know how to do 'ifconfig' commands on this operating system.  You should ifconfig your TUN/TAP device manually or use an --up script.");
 #endif /* if defined(TARGET_LINUX) */
 
-#if defined(TARGET_OPENBSD) || defined(TARGET_NETBSD) \
-    || defined(TARGET_DARWIN) || defined(TARGET_FREEBSD) \
-    || defined(TARGET_DRAGONFLY) || defined(TARGET_AIX) \
-    || defined(TARGET_SOLARIS) || defined(_WIN32)
+#if !defined(TARGET_LINUX)
     gc_free(&gc);
     argv_reset(&argv);
 #endif
