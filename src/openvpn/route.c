@@ -3338,7 +3338,7 @@ get_default_gateway_ipv6(struct route_ipv6_gateway_info *rgi6,
             rgi6->flags |= RGI_ADDR_DEFINED;
         }
 
-        if (rgi6->iface)
+        if (strlen(rgi6->iface) > 0)
         {
             rgi6->flags |= RGI_IFACE_DEFINED;
         }
