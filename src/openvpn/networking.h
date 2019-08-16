@@ -39,6 +39,18 @@ net_ctx_init(struct context *c, openvpn_net_ctx_t *ctx)
 {
     return 0;
 }
+
+static inline void
+net_ctx_reset(openvpn_net_ctx_t *ctx)
+{
+    (void)ctx;
+}
+
+static inline void
+net_ctx_free(openvpn_net_ctx_t *ctx)
+{
+    (void)ctx;
+}
 #endif
 
 #if defined(ENABLE_SITNL) || defined(ENABLE_IPROUTE)
@@ -52,6 +64,20 @@ net_ctx_init(struct context *c, openvpn_net_ctx_t *ctx)
  * @return          0 on success, a negative error code otherwise
  */
 int net_ctx_init(struct context *c, openvpn_net_ctx_t *ctx);
+
+/**
+ * Release resources allocated by the internal garbage collector
+ *
+ * @param ctx       the implementation specific context
+ */
+void net_ctx_reset(openvpn_net_ctx_t *ctx);
+
+/**
+ * Release all resources allocated within the platform specific context object
+ *
+ * @param ctx       the implementation specific context to release
+ */
+void net_ctx_free(openvpn_net_ctx_t *ctx);
 
 /**
  * Bring interface up or down.

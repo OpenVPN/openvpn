@@ -1826,6 +1826,8 @@ done:
     }
     argv_reset(&argv);
     gc_free(&gc);
+    /* release resources potentially allocated during route setup */
+    net_ctx_reset(ctx);
 }
 
 
@@ -2130,6 +2132,8 @@ done:
     }
     argv_reset(&argv);
     gc_free(&gc);
+    /* release resources potentially allocated during route setup */
+    net_ctx_reset(ctx);
 }
 
 static void
@@ -2322,6 +2326,8 @@ done:
     r->flags &= ~RT_ADDED;
     argv_reset(&argv);
     gc_free(&gc);
+    /* release resources potentially allocated during route cleanup */
+    net_ctx_reset(ctx);
 }
 
 void
@@ -2548,6 +2554,8 @@ delete_route_ipv6(const struct route_ipv6 *r6, const struct tuntap *tt,
 
     argv_reset(&argv);
     gc_free(&gc);
+    /* release resources potentially allocated during route cleanup */
+    net_ctx_reset(ctx);
 }
 
 /*

@@ -1423,6 +1423,9 @@ do_ifconfig(struct tuntap *tt, const char *ifname, int tun_mtu,
     {
         do_ifconfig_ipv6(tt, ifname, tun_mtu, es, ctx);
     }
+
+    /* release resources potentially allocated during interface setup */
+    net_ctx_free(ctx);
 }
 
 static void
@@ -2015,6 +2018,8 @@ close_tun(struct tuntap *tt, openvpn_net_ctx_t *ctx)
         }
 
         gc_free(&gc);
+        /* release resources potentially allocated during undo */
+        net_ctx_reset(ctx);
     }
 
     close_tun_generic(tt);
