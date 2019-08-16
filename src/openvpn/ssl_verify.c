@@ -432,6 +432,25 @@ verify_peer_cert(const struct tls_options *opt, openvpn_x509_cert_t *peer_cert,
 }
 
 /*
+ * Export ASN1_TIME items to the environment
+ */
+static void
+setenv_ASN1_TIME(struct env_set *es, char *envname, int envnamesize,
+                 char *envprefix, int depth, const ASN1_TIME *asn1_time)
+{
+    char timestamp[32];
+    BIO *mem;
+
+    mem = BIO_new(BIO_s_mem());
+    if (ASN1_TIME_print (mem, asn1_time)) {
+        timestamp[BIO_read(mem, timestamp, sizeof(timestamp)-1)] = '\0';
+        openvpn_snprintf(envname, envnamesize, "%s_%d", envprefix, depth);
+        setenv_str(es, envname, timestamp);
+    }
+    BIO_free(mem);
+}
+
+/*
  * Export the subject, common_name, and raw certificate fields to the
  * environment for later verification by scripts and plugins.
  */
@@ -488,6 +507,12 @@ verify_cert_set_env(struct env_set *es, openvpn_x509_cert_t *peer_cert, int cert
     serial = backend_x509_get_serial_hex(peer_cert, &gc);
     openvpn_snprintf(envname, sizeof(envname), "tls_serial_hex_%d", cert_depth);
     setenv_str(es, envname, serial);
+
+    setenv_ASN1_TIME(es, envname, sizeof(envname), "tls_notbefore", cert_depth,
+		     X509_get_notBefore(peer_cert));
+
+    setenv_ASN1_TIME(es, envname, sizeof(envname), "tls_notafter", cert_depth,
+		     X509_get_notAfter(peer_cert));
 
     gc_free(&gc);
 }
