@@ -591,6 +591,7 @@ cipher_ctx_new(void)
 void
 cipher_ctx_free(mbedtls_cipher_context_t *ctx)
 {
+    mbedtls_cipher_free(ctx);
     free(ctx);
 }
 
@@ -855,7 +856,6 @@ md_ctx_new(void)
 void
 md_ctx_free(mbedtls_md_context_t *ctx)
 {
-    mbedtls_cipher_free(ctx);
     free(ctx);
 }
 
