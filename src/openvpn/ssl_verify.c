@@ -767,7 +767,7 @@ verify_cert(struct tls_session *session, openvpn_x509_cert_t *cert, int cert_dep
     /* export current untrusted IP */
     setenv_untrusted(session);
 
-    x509_get_validity(cert, sizeof (notbefore_buf), notbefore_buf, &notbefore_cmp, notafter_buf, &notafter_cmp);
+    backend_x509_get_validity(cert, sizeof (notbefore_buf), notbefore_buf, &notbefore_cmp, notafter_buf, &notafter_cmp);
     setenv_validity (opt->es, "tls_notbefore", cert_depth, notbefore_buf);
     setenv_validity (opt->es, "tls_notafter",  cert_depth, notafter_buf);
 

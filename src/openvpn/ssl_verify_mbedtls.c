@@ -551,7 +551,7 @@ tls_verify_crl_missing(const struct tls_options *opt)
 }
 
 void
-x509_get_validity(mbedtls_x509_crt *cert, int notsize, char *notbefore, int *cmpbefore, char *notafter, int *cmpafter)
+backend_x509_get_validity(mbedtls_x509_crt *cert, int notsize, char *notbefore, int *cmpbefore, char *notafter, int *cmpafter)
 {
     notbefore[0] = '\0';
     notafter[0]  = '\0';

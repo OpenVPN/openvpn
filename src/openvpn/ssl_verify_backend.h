@@ -278,15 +278,21 @@ bool tls_verify_crl_missing(const struct tls_options *opt);
  * @param notafter      Character representation of notAfter attribute
  * @param cmpafter      Compare notAfter  with "now"; > 0 if notAfter  in the past
  *
+ * Not all backend (versions) support the same features (yet), so:
+ *
  * On failing to retrieve notBefore attributes:
  *   - notbefore[0] = '\0'
- *   - cmpbefore    = 0
  *
  * On failing to retrieve notAfter attributes:
  *   - notafter[0] = '\0'
+ *
+ * On failing to compare notBefore attributes with "now":
+ *   - cmpbefore    = 0
+ *
+ * On failing to compare notAfter attributes with "now":
  *   - cmpafter    = 0
  */
 
-void x509_get_validity(openvpn_x509_cert_t *cert, int notsize, char *notbefore, int *cmpbefore, char *notafter, int *cmpafter);
+void backend_x509_get_validity(openvpn_x509_cert_t *cert, int notsize, char *notbefore, int *cmpbefore, char *notafter, int *cmpafter);
 
 #endif /* SSL_VERIFY_BACKEND_H_ */

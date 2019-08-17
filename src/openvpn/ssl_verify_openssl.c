@@ -803,8 +803,12 @@ get_ASN1_TIME(const ASN1_TIME *asn1_time, char *dt, int dtsize, int *cmpnow)
     BIO_free(mem);
     if (!ret) goto fail;
 
+#if OPENSSL_VERSION_NUMBER >= 0x10002000L
     if (!ASN1_TIME_diff(&pday, &psec, asn1_time, NULL)) goto fail;
     *cmpnow = (pday ? pday : psec);
+#else
+    *cmpnow = 0;
+#endif  /* OPENSSL_VERSION_NUMBER >= 1.0.2 */
 
     return 1;
 
@@ -815,7 +819,7 @@ fail:
 }
 
 void
-x509_get_validity(X509 *cert, int notsize, char *notbefore, int *cmpbefore, char *notafter, int *cmpafter)
+backend_x509_get_validity(X509 *cert, int notsize, char *notbefore, int *cmpbefore, char *notafter, int *cmpafter)
 {
     get_ASN1_TIME(X509_get_notBefore(cert), notbefore, notsize, cmpbefore);
     get_ASN1_TIME(X509_get_notAfter(cert),  notafter,  notsize, cmpafter);
