@@ -268,4 +268,25 @@ result_t x509_write_pem(FILE *peercert_file, openvpn_x509_cert_t *peercert);
  */
 bool tls_verify_crl_missing(const struct tls_options *opt);
 
+/*
+ * Get certificate notBefore and notAfter attributes
+ *
+ * @param cert          Certificate to retrieve attributes from
+ * @param notsize       Size of char buffers for notbefore and notafter
+ * @param notbefore     Charachter representation of notBefore attribute
+ * @param cmpbefore     Compare notBefore with "now"; > 0 if notBefore in the past
+ * @param notafter      Character representation of notAfter attribute
+ * @param cmpafter      Compare notAfter  with "now"; > 0 if notAfter  in the past
+ *
+ * On failing to retrieve notBefore attributes:
+ *   - notbefore[0] = '\0'
+ *   - cmpbefore    = 0
+ *
+ * On failing to retrieve notAfter attributes:
+ *   - notafter[0] = '\0'
+ *   - cmpafter    = 0
+ */
+
+void x509_get_validity(openvpn_x509_cert_t *cert, int notsize, char *notbefore, int *cmpbefore, char *notafter, int *cmpafter);
+
 #endif /* SSL_VERIFY_BACKEND_H_ */

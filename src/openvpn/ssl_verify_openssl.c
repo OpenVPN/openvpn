@@ -790,4 +790,35 @@ tls_verify_crl_missing(const struct tls_options *opt)
     return true;
 }
 
+static int
+get_ASN1_TIME(const ASN1_TIME *asn1_time, char *dt, int dtsize, int *cmpnow)
+{
+    BIO *mem;
+    int ret, pday, psec;
+
+    mem = BIO_new(BIO_s_mem());
+    if ((ret = ASN1_TIME_print (mem, asn1_time))) {
+        dt[BIO_read(mem, dt, dtsize-1)] = '\0';
+    }
+    BIO_free(mem);
+    if (!ret) goto fail;
+
+    if (!ASN1_TIME_diff(&pday, &psec, asn1_time, NULL)) goto fail;
+    *cmpnow = (pday ? pday : psec);
+
+    return 1;
+
+fail:
+    dt[0] = '\0';
+    *cmpnow = 0;
+    return 0;
+}
+
+void
+x509_get_validity(X509 *cert, int notsize, char *notbefore, int *cmpbefore, char *notafter, int *cmpafter)
+{
+    get_ASN1_TIME(X509_get_notBefore(cert), notbefore, notsize, cmpbefore);
+    get_ASN1_TIME(X509_get_notAfter(cert),  notafter,  notsize, cmpafter);
+}
+
 #endif /* defined(ENABLE_CRYPTO_OPENSSL) */

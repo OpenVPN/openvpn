@@ -431,23 +431,15 @@ verify_peer_cert(const struct tls_options *opt, openvpn_x509_cert_t *peer_cert,
     return SUCCESS;
 }
 
-/*
- * Export ASN1_TIME items to the environment
- */
 static void
-setenv_ASN1_TIME(struct env_set *es, char *envname, int envnamesize,
-                 char *envprefix, int depth, const ASN1_TIME *asn1_time)
+setenv_validity (struct env_set *es, char *envprefix, int depth, char *dt)
 {
-    char timestamp[32];
-    BIO *mem;
+    char varname[32];
 
-    mem = BIO_new(BIO_s_mem());
-    if (ASN1_TIME_print (mem, asn1_time)) {
-        timestamp[BIO_read(mem, timestamp, sizeof(timestamp)-1)] = '\0';
-        openvpn_snprintf(envname, envnamesize, "%s_%d", envprefix, depth);
-        setenv_str(es, envname, timestamp);
-    }
-    BIO_free(mem);
+    if (!dt[0]) return;
+
+    openvpn_snprintf(varname, sizeof(varname), "%s_%d", envprefix, depth);
+    setenv_str(es, varname, dt);
 }
 
 /*
@@ -507,12 +499,6 @@ verify_cert_set_env(struct env_set *es, openvpn_x509_cert_t *peer_cert, int cert
     serial = backend_x509_get_serial_hex(peer_cert, &gc);
     openvpn_snprintf(envname, sizeof(envname), "tls_serial_hex_%d", cert_depth);
     setenv_str(es, envname, serial);
-
-    setenv_ASN1_TIME(es, envname, sizeof(envname), "tls_notbefore", cert_depth,
-		     X509_get_notBefore(peer_cert));
-
-    setenv_ASN1_TIME(es, envname, sizeof(envname), "tls_notafter", cert_depth,
-		     X509_get_notAfter(peer_cert));
 
     gc_free(&gc);
 }
@@ -685,6 +671,8 @@ verify_cert(struct tls_session *session, openvpn_x509_cert_t *cert, int cert_dep
     char common_name[TLS_USERNAME_LEN+1] = {0}; /* null-terminated */
     const struct tls_options *opt;
     struct gc_arena gc = gc_new();
+    char notbefore_buf[32], notafter_buf[32];
+    int notbefore_cmp, notafter_cmp;
 
     opt = session->opt;
     ASSERT(opt);
@@ -779,6 +767,13 @@ verify_cert(struct tls_session *session, openvpn_x509_cert_t *cert, int cert_dep
     /* export current untrusted IP */
     setenv_untrusted(session);
 
+    x509_get_validity(cert, sizeof (notbefore_buf), notbefore_buf, &notbefore_cmp, notafter_buf, &notafter_cmp);
+    setenv_validity (opt->es, "tls_notbefore", cert_depth, notbefore_buf);
+    setenv_validity (opt->es, "tls_notafter",  cert_depth, notafter_buf);
+
+    if (notbefore_cmp < 0) msg(M_WARN, "Certificate notBefore (%s)", notbefore_buf);
+    if (notafter_cmp  > 0) msg(M_WARN, "Certificate notAfter (%s)",  notafter_buf);
+
     /* If this is the peer's own certificate, verify it */
     if (cert_depth == 0 && SUCCESS != verify_peer_cert(opt, cert, subject, common_name))
     {
@@ -818,7 +813,8 @@ verify_cert(struct tls_session *session, openvpn_x509_cert_t *cert, int cert_dep
         }
     }
 
-    msg(D_HANDSHAKE, "VERIFY OK: depth=%d, %s", cert_depth, subject);
+    msg(D_HANDSHAKE, "VERIFY OK: depth=%d, %s, notAfter=%s", cert_depth, subject,
+        (notafter_buf[0] ? notafter_buf : "-"));
     session->verified = true;
     ret = SUCCESS;
 
