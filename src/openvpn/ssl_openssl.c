@@ -206,7 +206,7 @@ info_callback(INFO_CALLBACK_SSL_CONST SSL *s, int where, int ret)
 int
 tls_version_max(void)
 {
-#if defined(TLS1_3_VERSION)
+#if defined(TLS1_3_VERSION) && !defined(OPENSSL_NO_TLS1_3)
     return TLS_VER_1_3;
 #elif defined(TLS1_2_VERSION) || defined(SSL_OP_NO_TLSv1_2)
     return TLS_VER_1_2;
@@ -233,7 +233,7 @@ openssl_tls_version(int ver)
     {
         return TLS1_2_VERSION;
     }
-#if defined(TLS1_3_VERSION)
+#if defined(TLS1_3_VERSION) && !defined(OPENSSL_NO_TLS1_3)
     else if (ver == TLS_VER_1_3)
     {
         return TLS1_3_VERSION;
@@ -459,8 +459,8 @@ tls_ctx_restrict_ciphers_tls13(struct tls_root_ctx *ctx, const char *ciphers)
         return;
     }
 
-#if (OPENSSL_VERSION_NUMBER < 0x1010100fL)
-        crypto_msg(M_WARN, "Not compiled with OpenSSL 1.1.1 or higher. "
+#if (OPENSSL_VERSION_NUMBER < 0x1010100fL) || !defined(TLS1_3_VERSION) || defined(OPENSSL_NO_TLS1_3)
+        crypto_msg(M_WARN, "Not compiled with OpenSSL 1.1.1 or higher, or without TLS 1.3 support. "
                        "Ignoring TLS 1.3 only tls-ciphersuites '%s' setting.",
                         ciphers);
 #else
@@ -1846,7 +1846,7 @@ show_available_tls_ciphers_list(const char *cipher_list,
         crypto_msg(M_FATAL, "Cannot create SSL_CTX object");
     }
 
-#if (OPENSSL_VERSION_NUMBER >= 0x1010100fL)
+#if (OPENSSL_VERSION_NUMBER >= 0x1010100fL) && defined(TLS1_3_VERSION) && !defined(OPENSSL_NO_TLS1_3)
     if (tls13)
     {
         SSL_CTX_set_min_proto_version(tls_ctx.ctx, TLS1_3_VERSION);
