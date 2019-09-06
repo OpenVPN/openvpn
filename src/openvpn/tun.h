@@ -513,7 +513,7 @@ tun_event_handle(const struct tuntap *tt)
 #endif
 }
 
-static inline unsigned int
+static inline void
 tun_set(struct tuntap *tt,
         struct event_set *es,
         unsigned int rwflags,
@@ -539,7 +539,6 @@ tun_set(struct tuntap *tt,
 #endif
         tt->rwflags_debug = rwflags;
     }
-    return rwflags;
 }
 
 const char *tun_stat(const struct tuntap *tt, unsigned int rwflags, struct gc_arena *gc);
