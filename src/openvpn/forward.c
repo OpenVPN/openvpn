@@ -1256,7 +1256,7 @@ read_incoming_tun(struct context *c)
     perf_push(PERF_READ_IN_TUN);
 
     c->c2.buf = c->c2.buffers->read_tun_buf;
-#ifdef TUN_PASS_BUFFER
+#ifdef _WIN32
     read_tun_buffered(c->c1.tuntap, &c->c2.buf);
 #else
     ASSERT(buf_init(&c->c2.buf, FRAME_HEADROOM(&c->c2.frame)));
@@ -1877,7 +1877,7 @@ process_outgoing_tun(struct context *c)
                                 &c->c2.n_trunc_tun_write);
 #endif
 
-#ifdef TUN_PASS_BUFFER
+#ifdef _WIN32
         size = write_tun_buffered(c->c1.tuntap, &c->c2.to_tun);
 #else
         size = write_tun(c->c1.tuntap, BPTR(&c->c2.to_tun), BLEN(&c->c2.to_tun));

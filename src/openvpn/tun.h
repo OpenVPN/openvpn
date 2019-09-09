@@ -336,8 +336,6 @@ route_order(void)
 
 #ifdef _WIN32
 
-#define TUN_PASS_BUFFER
-
 struct tap_reg
 {
     const char *guid;
