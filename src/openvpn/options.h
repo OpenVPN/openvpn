@@ -469,7 +469,9 @@ struct options
     const char *auth_user_pass_verify_script;
     bool auth_user_pass_verify_script_via_file;
     bool auth_token_generate;
-    unsigned int auth_token_lifetime;
+    bool auth_token_gen_secret_file;
+    bool auth_token_call_auth;
+    int auth_token_lifetime;
     const char *auth_token_secret_file;
     const char *auth_token_secret_file_inline;
 

@@ -6770,11 +6770,23 @@ add_option(struct options *options,
                         &options->auth_user_pass_verify_script,
                         p[1], "auth-user-pass-verify", true);
     }
-    else if (streq(p[0], "auth-gen-token"))
+    else if (streq(p[0], "auth-gen-token") && !p[3])
     {
         VERIFY_PERMISSION(OPT_P_GENERAL);
         options->auth_token_generate = true;
         options->auth_token_lifetime = p[1] ? positive_atoi(p[1]) : 0;
+        if (p[2])
+        {
+            if (streq(p[2], "external-auth"))
+            {
+                options->auth_token_call_auth = true;
+            }
+            else
+            {
+                msg(msglevel, "Invalid argument to auth-gen-token: %s", p[2]);
+            }
+        }
+
     }
     else if (streq(p[0], "auth-gen-token-secret") && p[1] && (!p[2]
                                                               || (p[2] && streq(p[1], INLINE_FILE_TAG))))

@@ -34,7 +34,8 @@
  *
  * Format of the auth-token (before base64 encode)
  *
- * uint64 timestamp (4 bytes)|uint64 timestamp (4 bytes)|sha256-hmac(32 bytes)
+ * session id(12 bytes)|uint64 timestamp (4 bytes)|
+ * uint64 timestamp (4 bytes)|sha256-hmac(32 bytes)
  *
  * The first timestamp is the time the token was initially created and is used to
  * determine the maximum renewable time of the token. We always include this even
@@ -43,6 +44,10 @@
  * The second timestamp is the time the token was renewed/regenerated and is used
  * to determine if this token has been renewed in the acceptable time range
  * (2 * renogiation timeout)
+ *
+ * The session is a random string of 12 byte (or 16 in base64) that is not used by
+ * OpenVPN itself but kept intact so that external logging/managment can track the
+ * session multiple reconnects/servers
  *
  * The hmac is calculated over the username contactinated with the
  * raw auth-token bytes to include authentication of the username in the token
@@ -81,6 +86,14 @@ auth_token_init_secret(struct key_ctx *key_ctx, const char *key_file,
  */
 void auth_token_write_server_key_file(const char *filename);
 
+
+/**
+ * Put the session id, and auth token status into the environment
+ * if auth-token is enabled
+ *
+ */
+void add_session_token_env(struct tls_session *session, struct tls_multi *multi,
+                           const struct user_pass *up);
 
 /**
  * Wipes the authentication token out of the memory, frees and cleans up

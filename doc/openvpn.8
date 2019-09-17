@@ -3710,7 +3710,7 @@ For a sample script that performs PAM authentication, see
 in the OpenVPN source distribution.
 .\"*********************************************************
 .TP
-.B \-\-auth\-gen\-token [lifetime]
+.B \-\-auth\-gen\-token [lifetime] [external-auth]
 After successful user/password authentication, the OpenVPN
 server will with this option generate a temporary
 authentication token and push that to client.  On the following
@@ -3733,6 +3733,41 @@ This feature is useful for environments which is configured
 to use One Time Passwords (OTP) as part of the user/password
 authentications and that authentication mechanism does not
 implement any auth\-token support.
+
+When the external-auth keyword is present the normal authentication
+method will always be called even if auth-token succeeds. Normally other
+authentications method are skipped if auth-token verification suceeds or
+fails.
+
+This option postpones this decision to the external authentication methods
+and check the validity of the account and do other checks.
+
+In this mode the environment will have a session_id variable
+that hold the session id from auth-gen-token. Also a environment
+variable session_state is present. This variable tells whether the
+auth-token has succeeded or not. It can have the following values:
+
+ - Initial:                    No token from client.
+ - Authenticated:              Token is valid and not expired
+ - Expired:                    Token is valid but has expired
+ - Invalid                     Token is invalid (failed HMAC or wrong length)
+ - AuthenticatedEmptyUser/ExpiredEmptyUser
+   The token is not valid with the username send from the client
+   but would be valid (or expired) if we assume an empty username was used
+   instead. These two cases are a workaround for behaviour in OpenVPN3. If
+   this workaround is not needed these two cases should be handled in the
+   same way as Invalid.
+
+.B Warning:
+Use this feature only if you want your authentication method called on
+every verification. Since the external authentication is called it needs
+to also indicate a success or failure of the authentication. It is strongly
+recommended to return an authentication failure in the case of the
+Invalid/Expired auth-token with the external-auth option unless the client
+could authenticate in another acceptable way (e.g. client certificate),
+otherwise returning success will lead to authentication bypass (as does
+returning success on a wrong password from a script).
+
 .\"*********************************************************
 .TP
 .B \-\-auth\-gen\-token\-secret [file]

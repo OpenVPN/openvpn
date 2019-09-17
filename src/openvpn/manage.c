@@ -2736,7 +2736,9 @@ env_filter_match(const char *env_str, const int env_filter_level)
         "ifconfig_pool_netmask=",
         "time_duration=",
         "bytes_sent=",
-        "bytes_received="
+        "bytes_received=",
+        "session_id=",
+        "session_state="
     };
 
     if (env_filter_level == 0)
