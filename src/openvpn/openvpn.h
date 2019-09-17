@@ -68,6 +68,7 @@ struct key_schedule
     struct key_ctx_bi tls_wrap_key;
     struct key_ctx tls_crypt_v2_server_key;
     struct buffer tls_crypt_v2_wkc;             /**< Wrapped client key */
+    struct key_ctx auth_token_key;
 };
 
 /*

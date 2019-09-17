@@ -69,6 +69,14 @@ void send_auth_failed(struct context *c, const char *client_reason);
 
 void send_restart(struct context *c, const char *kill_msg);
 
+/**
+ * Sends a push reply message only containin the auth-token to update
+ * the auth-token on the client
+ *
+ * @param multi  - The tls_multi structure belonging to the instance to push to
+ */
+void send_push_reply_auth_token(struct tls_multi *multi);
+
 #endif
 #endif /* if P2MP */
 #endif /* ifndef PUSH_H */

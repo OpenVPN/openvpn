@@ -1289,6 +1289,7 @@ show_p2mp_parms(const struct options *o)
     SHOW_BOOL(auth_user_pass_verify_script_via_file);
     SHOW_BOOL(auth_token_generate);
     SHOW_INT(auth_token_lifetime);
+    SHOW_STR(auth_token_secret_file);
 #if PORT_SHARE
     SHOW_STR(port_share_host);
     SHOW_STR(port_share_port);
@@ -2336,7 +2337,11 @@ options_postprocess_verify_ce(const struct options *options, const struct connec
         {
             msg(M_USAGE, "--mode server requires --key-method 2");
         }
-
+        if (options->auth_token_generate && !options->renegotiate_seconds)
+        {
+            msg(M_USAGE, "--auth-gen-token needs a non-infinite "
+                "--renegotiate_seconds setting");
+        }
         {
             const bool ccnr = (options->auth_user_pass_verify_script
                                || PLUGIN_OPTION_LIST(options)
@@ -6771,6 +6776,17 @@ add_option(struct options *options,
         options->auth_token_generate = true;
         options->auth_token_lifetime = p[1] ? positive_atoi(p[1]) : 0;
     }
+    else if (streq(p[0], "auth-gen-token-secret") && p[1] && (!p[2]
+                                                              || (p[2] && streq(p[1], INLINE_FILE_TAG))))
+    {
+        VERIFY_PERMISSION(OPT_P_GENERAL);
+        options->auth_token_secret_file = p[1];
+
+        if (streq(p[1], INLINE_FILE_TAG) && p[2])
+        {
+            options->auth_token_secret_file_inline = p[2];
+        }
+    }
     else if (streq(p[0], "client-connect") && p[1])
     {
         VERIFY_PERMISSION(OPT_P_SCRIPT);
@@ -7545,6 +7561,10 @@ add_option(struct options *options,
                 {
                     options->genkey_extra_data = p[3];
                 }
+            }
+            else if (streq(p[1], "auth-token"))
+            {
+                options->genkey_type = GENKEY_AUTH_TOKEN;
             }
             else
             {

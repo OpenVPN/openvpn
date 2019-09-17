@@ -331,6 +331,37 @@ send_push_request(struct context *c)
 }
 
 #if P2MP_SERVER
+/**
+ * Prepare push option for auth-token
+ * @param tls_multi     tls multi context of VPN tunnel
+ * @param gc            gc arena for allocating push options
+ * @param push_list     push list to where options are added
+ *
+ * @return true on success, false on failure.
+ */
+void
+prepare_auth_token_push_reply(struct tls_multi *tls_multi, struct gc_arena *gc,
+                              struct push_list *push_list)
+{
+    /*
+     * If server uses --auth-gen-token and we have an auth token
+     * to send to the client
+     */
+    if (tls_multi->auth_token)
+    {
+        push_option_fmt(gc, push_list, M_USAGE,
+                        "auth-token %s",
+                        tls_multi->auth_token);
+        if (!tls_multi->auth_token_initial)
+        {
+            /*
+             * Save the initial auth token for clients that ignore
+             * the updates to the token
+             */
+            tls_multi->auth_token_initial = strdup(tls_multi->auth_token);
+        }
+    }
+}
 
 /**
  * Prepare push options, based on local options and available peer info.
@@ -341,7 +372,7 @@ send_push_request(struct context *c)
  *
  * @return true on success, false on failure.
  */
-static bool
+bool
 prepare_push_reply(struct context *c, struct gc_arena *gc,
                    struct push_list *push_list)
 {
@@ -389,6 +420,11 @@ prepare_push_reply(struct context *c, struct gc_arena *gc,
             tls_multi->use_peer_id = true;
         }
     }
+    /*
+     * If server uses --auth-gen-token and we have an auth token
+     * to send to the client
+     */
+    prepare_auth_token_push_reply(tls_multi, gc, push_list);
 
     /* Push cipher if client supports Negotiable Crypto Parameters */
     if (tls_peer_info_ncp_ver(peer_info) >= 2 && o->ncp_enabled)
@@ -419,15 +455,6 @@ prepare_push_reply(struct context *c, struct gc_arena *gc,
         tls_poor_mans_ncp(o, tls_multi->remote_ciphername);
     }
 
-    /* If server uses --auth-gen-token and we have an auth token
-     * to send to the client
-     */
-    if (false == tls_multi->auth_token_sent && NULL != tls_multi->auth_token)
-    {
-        push_option_fmt(gc, push_list, M_USAGE,
-                        "auth-token %s", tls_multi->auth_token);
-        tls_multi->auth_token_sent = true;
-    }
     return true;
 }
 
@@ -438,6 +465,7 @@ send_push_options(struct context *c, struct buffer *buf,
 {
     struct push_entry *e = push_list->head;
 
+    e = push_list->head;
     while (e)
     {
         if (e->enable)
@@ -470,7 +498,27 @@ send_push_options(struct context *c, struct buffer *buf,
     return true;
 }
 
-static bool
+void
+send_push_reply_auth_token(struct tls_multi *multi)
+{
+    struct gc_arena gc = gc_new();
+
+
+    struct push_list push_list = {};
+    prepare_auth_token_push_reply(multi, &gc, &push_list);
+
+    /* prepare auth token should always add the auth-token option */
+    struct push_entry *e = push_list.head;
+    ASSERT(e && e->enable);
+
+    /* Construct a mimimal control channel push reply message */
+    struct buffer buf = alloc_buf_gc(PUSH_BUNDLE_SIZE, &gc);
+    buf_printf(&buf, "%s, %s", push_reply_cmd, e->option);
+    send_control_channel_string_dowork(multi, BSTR(&buf), D_PUSH);
+    gc_free(&gc);
+}
+
+bool
 send_push_reply(struct context *c, struct push_list *per_client_push_list)
 {
     struct gc_arena gc = gc_new();

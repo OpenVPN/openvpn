@@ -181,6 +181,7 @@ enum genkey_type {
     GENKEY_SECRET,
     GENKEY_TLS_CRYPTV2_CLIENT,
     GENKEY_TLS_CRYPTV2_SERVER,
+    GENKEY_AUTH_TOKEN
 };
 
 /* Command line options */
@@ -469,6 +470,9 @@ struct options
     bool auth_user_pass_verify_script_via_file;
     bool auth_token_generate;
     unsigned int auth_token_lifetime;
+    const char *auth_token_secret_file;
+    const char *auth_token_secret_file_inline;
+
 #if PORT_SHARE
     char *port_share_host;
     char *port_share_port;

@@ -3720,6 +3720,9 @@ the token authentication internally and it will NOT do any
 additional authentications against configured external
 user/password authentication mechanisms.
 
+The tokens implemented by this mechanism include a initial timestamp
+and a renew timestamp and are secured by HMAC.
+
 The
 .B lifetime
 argument defines how long the generated token is valid.  The
@@ -3730,6 +3733,16 @@ This feature is useful for environments which is configured
 to use One Time Passwords (OTP) as part of the user/password
 authentications and that authentication mechanism does not
 implement any auth\-token support.
+.\"*********************************************************
+.TP
+.B \-\-auth\-gen\-token\-secret [file]
+Specifies a file that hold a secret for the HMAC used in
+.B \-\-auth\-gen\-token
+If not present OpenVPN will generate a random secret on startup. This file
+should be used if auth-token should valid after restarting a server or if
+client should be able to roam between multiple OpenVPN server with their
+auth\-token.
+
 .\"*********************************************************
 .TP
 .B \-\-opt\-verify
@@ -5775,6 +5788,17 @@ Servers can use
 .B \-\-tls\-crypt\-v2\-verify
 to specify a metadata verification command.
 .\"*********************************************************
+.TP
+.B \-\-genkey auth\-token [keyfile]
+Generate a new secret that can be used
+with
+.B \-\-auth\-gen\-token\-secret
+
+.B Note:
+this file should be kept secret to the server as anyone
+that access to this file will be to generate auth tokens
+that the OpenVPN server will accept as valid.
+.\"*********************************************************
 .SS TUN/TAP persistent tunnel config mode:
 Available with Linux 2.4.7+.  These options comprise a standalone mode
 of OpenVPN which can be used to create and delete persistent tunnels.
@@ -6986,6 +7010,7 @@ X509_1_C=KG
 OpenVPN allows including files in the main configuration for the
 .B \-\-ca, \-\-cert, \-\-dh, \-\-extra\-certs, \-\-key, \-\-pkcs12, \-\-secret,
 .B \-\-crl\-verify, \-\-http\-proxy\-user\-pass, \-\-tls\-auth,
+.B \-\-auth\-gen\-token\-secret
 .B \-\-tls\-crypt,
 and
 .B \-\-tls\-crypt-v2
