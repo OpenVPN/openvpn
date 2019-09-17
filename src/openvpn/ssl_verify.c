@@ -803,9 +803,8 @@ cleanup:
 #define ACF_FAILED    3
 #endif
 
-#ifdef MANAGEMENT_DEF_AUTH
 void
-man_def_auth_set_client_reason(struct tls_multi *multi, const char *client_reason)
+auth_set_client_reason(struct tls_multi* multi, const char* client_reason)
 {
     if (multi->client_reason)
     {
@@ -814,10 +813,11 @@ man_def_auth_set_client_reason(struct tls_multi *multi, const char *client_reaso
     }
     if (client_reason && strlen(client_reason))
     {
-        /* FIXME: Last alloc will never be freed */
         multi->client_reason = string_alloc(client_reason, NULL);
     }
 }
+
+#ifdef MANAGEMENT_DEF_AUTH
 
 static inline unsigned int
 man_def_auth_test(const struct key_state *ks)
@@ -1022,7 +1022,7 @@ tls_authenticate_key(struct tls_multi *multi, const unsigned int mda_key_id, con
     if (multi)
     {
         int i;
-        man_def_auth_set_client_reason(multi, client_reason);
+        auth_set_client_reason(multi, client_reason);
         for (i = 0; i < KEY_SCAN_SIZE; ++i)
         {
             struct key_state *ks = multi->key_scan[i];

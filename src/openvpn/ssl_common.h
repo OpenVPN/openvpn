@@ -526,16 +526,16 @@ struct tls_multi
     struct cert_hash_set *locked_cert_hash_set;
 
 #ifdef ENABLE_DEF_AUTH
-    /*
-     * An error message to send to client on AUTH_FAILED
-     */
-    char *client_reason;
-
     /* Time of last call to tls_authentication_status */
     time_t tas_last;
 #endif
 
 #if P2MP_SERVER
+    /*
+     * An error message to send to client on AUTH_FAILED
+     */
+    char *client_reason;
+
     /*
      * A multi-line string of general-purpose info received from peer
      * over control channel.
