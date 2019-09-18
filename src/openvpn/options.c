@@ -688,6 +688,7 @@ static const char usage_message[] =
     "                                  cache until token is removed.\n"
     "--pkcs11-id-management          : Acquire identity from management interface.\n"
     "--pkcs11-id serialized-id 'id'  : Identity to use, get using standalone --show-pkcs11-ids\n"
+    "--askpin [file]                 : Get PIN from controlling tty before we daemonize.\n"
 #endif                  /* ENABLE_PKCS11 */
     "\n"
     "SSL Library information:\n"
@@ -3329,6 +3330,10 @@ options_postprocess_filechecks(struct options *options)
     /* ** Password files ** */
     errs |= check_file_access(CHKACC_FILE|CHKACC_ACPTSTDIN|CHKACC_PRIVATE,
                               options->key_pass_file, R_OK, "--askpass");
+#ifdef ENABLE_PKCS11
+    errs |= check_file_access(CHKACC_FILE|CHKACC_ACPTSTDIN|CHKACC_PRIVATE,
+                              options->key_pin_file, R_OK, "--askpin");
+#endif
 #ifdef ENABLE_MANAGEMENT
     errs |= check_file_access(CHKACC_FILE|CHKACC_ACPTSTDIN|CHKACC_PRIVATE,
                               options->management_user_pass, R_OK,
@@ -7859,6 +7864,20 @@ add_option(struct options *options,
             options->key_pass_file = "stdin";
         }
     }
+#ifdef ENABLE_PKCS11
+    else if (streq(p[0], "askpin") && !p[2])
+    {
+        VERIFY_PERMISSION(OPT_P_GENERAL);
+        if (p[1])
+        {
+            options->key_pin_file = p[1];
+        }
+        else
+        {
+            options->key_pin_file = "stdin";
+        }
+    }
+#endif
     else if (streq(p[0], "auth-nocache") && !p[1])
     {
         VERIFY_PERMISSION(OPT_P_GENERAL);

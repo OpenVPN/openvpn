@@ -206,6 +206,9 @@ struct options
     bool persist_config;
     int persist_mode;
 
+#ifdef ENABLE_PKCS11
+    const char *key_pin_file;
+#endif
     const char *key_pass_file;
     bool show_ciphers;
     bool show_digests;
