@@ -35,16 +35,16 @@ reload_dummy()
     $RUN_SUDO $openvpn --dev $IFACE --dev-type tun --rmtun >/dev/null
     $RUN_SUDO $openvpn --dev $IFACE --dev-type tun --mktun >/dev/null
 
+    if [ $? -ne 0 ]; then
+        echo "can't create interface $IFACE"
+        exit 1
+    fi
+
     # it seems that tun devices will settle on NO-CARRIER while not connected to
     # any process, but this won't happen immediately. To avoid having the
     # NO-CARRIER bit appear in the middle of the tests - which would compromise
     # the results - let's wait 1 sec here for it to settle.
     sleep 1
-
-    if [ $? -ne 0 ]; then
-        echo "can't create interface $IFACE"
-        exit 1
-    fi
 
     #ip link set dev $IFACE address 00:11:22:33:44:55
 }
