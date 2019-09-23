@@ -478,7 +478,7 @@ FindTAPInterfaces(_In_ MSIHANDLE hInstall)
 
     /* Get all TUN/TAP network interfaces. */
     struct tap_interface_node *pInterfaceList = NULL;
-    uiResult = tap_list_interfaces(NULL, &pInterfaceList, FALSE);
+    uiResult = tap_list_interfaces(NULL, NULL, &pInterfaceList, FALSE);
     if (uiResult != ERROR_SUCCESS)
     {
         goto cleanup_CoInitialize;

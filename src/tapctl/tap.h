@@ -37,6 +37,10 @@
  * @param szDeviceDescription  A pointer to a NULL-terminated string that supplies the text
  *                      description of the device. This pointer is optional and can be NULL.
  *
+ * @param szHwId        A pointer to a NULL-terminated string that supplies the hardware id
+ *                      of the device. This pointer is optional and can be NULL. Default value
+ *                      is root\tap0901.
+ *
  * @param pbRebootRequired  A pointer to a BOOL flag. If the interface installation requires
  *                      a system restart, this flag is set to TRUE. Otherwise, the flag is
  *                      left unmodified. This allows the flag to be globally initialized to
@@ -50,6 +54,7 @@ DWORD
 tap_create_interface(
     _In_opt_ HWND hwndParent,
     _In_opt_ LPCTSTR szDeviceDescription,
+    _In_opt_ LPCTSTR szHwId,
     _Inout_ LPBOOL pbRebootRequired,
     _Out_ LPGUID pguidInterface);
 
@@ -116,6 +121,10 @@ struct tap_interface_node
  *                      and can be NULL. If a specific top-level window is not required, set
  *                      hwndParent to NULL.
  *
+ * @param szHwId        A pointer to a NULL-terminated string that supplies the hardware id
+ *                      of the device. This pointer is optional and can be NULL. Default value
+ *                      is root\tap0901.
+ *
  * @param ppInterfaceList  A pointer to the list to receive pointer to the first interface in
  *                      the list. After the list is no longer required, free it using
  *                      tap_free_interface_list().
@@ -128,6 +137,7 @@ struct tap_interface_node
 DWORD
 tap_list_interfaces(
     _In_opt_ HWND hwndParent,
+    _In_opt_ LPCTSTR szHwId,
     _Out_ struct tap_interface_node **ppInterfaceList,
     _In_ BOOL bAll);
 

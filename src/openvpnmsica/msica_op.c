@@ -446,7 +446,7 @@ msica_op_tap_interface_create_exec(
 
     /* Get all available network interfaces. */
     struct tap_interface_node *pInterfaceList = NULL;
-    DWORD dwResult = tap_list_interfaces(NULL, &pInterfaceList, TRUE);
+    DWORD dwResult = tap_list_interfaces(NULL, NULL, &pInterfaceList, TRUE);
     if (dwResult == ERROR_SUCCESS)
     {
         /* Does interface exist? */
@@ -457,7 +457,7 @@ msica_op_tap_interface_create_exec(
                 /* No interface with a same name found. Create one. */
                 BOOL bRebootRequired = FALSE;
                 GUID guidInterface;
-                dwResult = tap_create_interface(NULL, NULL, &bRebootRequired, &guidInterface);
+                dwResult = tap_create_interface(NULL, NULL, NULL, &bRebootRequired, &guidInterface);
                 if (dwResult == ERROR_SUCCESS)
                 {
                     /* Set interface name. */
@@ -601,7 +601,7 @@ msica_op_tap_interface_delete_by_name_exec(
 
     /* Get available TUN/TAP interfaces. */
     struct tap_interface_node *pInterfaceList = NULL;
-    DWORD dwResult = tap_list_interfaces(NULL, &pInterfaceList, FALSE);
+    DWORD dwResult = tap_list_interfaces(NULL, NULL, &pInterfaceList, FALSE);
     if (dwResult == ERROR_SUCCESS)
     {
         /* Does interface exist? */
@@ -659,7 +659,7 @@ msica_op_tap_interface_delete_by_guid_exec(
 
     /* Get all available interfaces. */
     struct tap_interface_node *pInterfaceList = NULL;
-    DWORD dwResult = tap_list_interfaces(NULL, &pInterfaceList, TRUE);
+    DWORD dwResult = tap_list_interfaces(NULL, NULL, &pInterfaceList, TRUE);
     if (dwResult == ERROR_SUCCESS)
     {
         /* Does interface exist? */
@@ -718,7 +718,7 @@ msica_op_tap_interface_set_name_exec(
 
     /* Get all available network interfaces. */
     struct tap_interface_node *pInterfaceList = NULL;
-    DWORD dwResult = tap_list_interfaces(NULL, &pInterfaceList, TRUE);
+    DWORD dwResult = tap_list_interfaces(NULL, NULL, &pInterfaceList, TRUE);
     if (dwResult == ERROR_SUCCESS)
     {
         /* Does interface exist? */

@@ -81,7 +81,9 @@ static const TCHAR usage_message_create[] =
     TEXT("               specified, a default interface name is chosen by Windows.       \n")
     TEXT("               Note: This name can also be specified as OpenVPN's --dev-node   \n")
     TEXT("               option.                                                         \n")
-    TEXT("\n")
+    TEXT("--hwid <hwid>  Interface hardware id. Default value is root\\tap0901, which    \n")
+    TEXT("               describes tap-windows6 driver. To work with wintun driver,      \n")
+    TEXT("               specify 'wintun'.                                               \n")
     TEXT("Output:\n")
     TEXT("\n")
     TEXT("This command prints newly created TUN/TAP interface's GUID to stdout.          \n")
@@ -96,6 +98,11 @@ static const TCHAR usage_message_list[] =
     TEXT("\n")
     TEXT("tapctl list\n")
     TEXT("\n")
+    TEXT("Options:\n")
+    TEXT("\n")
+    TEXT("--hwid <hwid>  Interface hardware id. Default value is root\\tap0901, which    \n")
+    TEXT("               describes tap-windows6 driver. To work with wintun driver,      \n")
+    TEXT("               specify 'wintun'.                                               \n")
     TEXT("Output:\n")
     TEXT("\n")
     TEXT("This command prints all TUN/TAP interfaces to stdout.                          \n")
@@ -170,6 +177,7 @@ _tmain(int argc, LPCTSTR argv[])
     else if (_tcsicmp(argv[1], TEXT("create")) == 0)
     {
         LPCTSTR szName = NULL;
+        LPCTSTR szHwId = NULL;
 
         /* Parse options. */
         for (int i = 2; i < argc; i++)
@@ -177,6 +185,11 @@ _tmain(int argc, LPCTSTR argv[])
             if (_tcsicmp(argv[i], TEXT("--name")) == 0)
             {
                 szName = argv[++i];
+            }
+            else
+            if (_tcsicmp(argv[i], TEXT("--hwid")) == 0)
+            {
+                szHwId = argv[++i];
             }
             else
             {
@@ -190,6 +203,7 @@ _tmain(int argc, LPCTSTR argv[])
         DWORD dwResult = tap_create_interface(
             NULL,
             TEXT("Virtual Ethernet"),
+            szHwId,
             &bRebootRequired,
             &guidInterface);
         if (dwResult != ERROR_SUCCESS)
@@ -202,7 +216,7 @@ _tmain(int argc, LPCTSTR argv[])
         {
             /* Get the list of all available interfaces. */
             struct tap_interface_node *pInterfaceList = NULL;
-            dwResult = tap_list_interfaces(NULL, &pInterfaceList, TRUE);
+            dwResult = tap_list_interfaces(NULL, szHwId, &pInterfaceList, TRUE);
             if (dwResult != ERROR_SUCCESS)
             {
                 _ftprintf(stderr, TEXT("Enumerating interfaces failed (error 0x%x).\n"), dwResult);
@@ -257,9 +271,24 @@ create_delete_interface:
     }
     else if (_tcsicmp(argv[1], TEXT("list")) == 0)
     {
+        LPCTSTR szHwId = NULL;
+
+        /* Parse options. */
+        for (int i = 2; i < argc; i++)
+        {
+            if (_tcsicmp(argv[i], TEXT("--hwid")) == 0)
+            {
+                szHwId = argv[++i];
+            }
+            else
+            {
+                _ftprintf(stderr, TEXT("Unknown option \"%s\". Please, use \"tapctl help list\" to list supported options. Ignored.\n"), argv[i]);
+            }
+        }
+
         /* Output list of TUN/TAP interfaces. */
         struct tap_interface_node *pInterfaceList = NULL;
-        DWORD dwResult = tap_list_interfaces(NULL, &pInterfaceList, FALSE);
+        DWORD dwResult = tap_list_interfaces(NULL, szHwId, &pInterfaceList, FALSE);
         if (dwResult != ERROR_SUCCESS)
         {
             _ftprintf(stderr, TEXT("Enumerating TUN/TAP interfaces failed (error 0x%x).\n"), dwResult);
@@ -290,7 +319,7 @@ create_delete_interface:
         {
             /* The argument failed to covert to GUID. Treat it as the interface name. */
             struct tap_interface_node *pInterfaceList = NULL;
-            DWORD dwResult = tap_list_interfaces(NULL, &pInterfaceList, FALSE);
+            DWORD dwResult = tap_list_interfaces(NULL, NULL, &pInterfaceList, FALSE);
             if (dwResult != ERROR_SUCCESS)
             {
                 _ftprintf(stderr, TEXT("Enumerating TUN/TAP interfaces failed (error 0x%x).\n"), dwResult);

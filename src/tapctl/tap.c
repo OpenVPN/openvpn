@@ -41,7 +41,7 @@
 
 const static GUID GUID_DEVCLASS_NET = { 0x4d36e972L, 0xe325, 0x11ce, { 0xbf, 0xc1, 0x08, 0x00, 0x2b, 0xe1, 0x03, 0x18 } };
 
-const static TCHAR szzHardwareIDs[] = TEXT("root\\") TEXT(TAP_WIN_COMPONENT_ID) TEXT("\0");
+const static TCHAR szzDefaultHardwareIDs[] = TEXT("root\\") TEXT(TAP_WIN_COMPONENT_ID) TEXT("\0");
 
 const static TCHAR szInterfaceRegKeyPathTemplate[] = TEXT("SYSTEM\\CurrentControlSet\\Control\\Network\\%") TEXT(PRIsLPOLESTR) TEXT("\\%") TEXT(PRIsLPOLESTR) TEXT("\\Connection");
 #define INTERFACE_REGKEY_PATH_MAX (_countof(TEXT("SYSTEM\\CurrentControlSet\\Control\\Network\\")) - 1 + 38 + _countof(TEXT("\\")) - 1 + 38 + _countof(TEXT("\\Connection")))
@@ -448,6 +448,7 @@ DWORD
 tap_create_interface(
     _In_opt_ HWND hwndParent,
     _In_opt_ LPCTSTR szDeviceDescription,
+    _In_opt_ LPCTSTR szHwId,
     _Inout_ LPBOOL pbRebootRequired,
     _Out_ LPGUID pguidInterface)
 {
@@ -457,6 +458,11 @@ tap_create_interface(
         || pguidInterface == NULL)
     {
         return ERROR_BAD_ARGUMENTS;
+    }
+
+    if (szHwId == NULL)
+    {
+        szHwId = szzDefaultHardwareIDs;
     }
 
     /* Create an empty device info set for network adapter device class. */
@@ -512,7 +518,7 @@ tap_create_interface(
             hDevInfoList,
             &devinfo_data,
             SPDRP_HARDWAREID,
-            (const BYTE *)szzHardwareIDs, sizeof(szzHardwareIDs)))
+            (const BYTE *)szHwId, (DWORD)((_tcslen(szHwId) + 1) * sizeof(TCHAR))))
     {
         dwResult = GetLastError();
         msg(M_NONFATAL, "%s: SetupDiSetDeviceRegistryProperty failed", __FUNCTION__);
@@ -616,7 +622,7 @@ tap_create_interface(
             /* Search the list of hardware IDs. */
             for (LPTSTR szHwdID = drvinfo_detail_data->HardwareID; szHwdID && szHwdID[0]; szHwdID += _tcslen(szHwdID) + 1)
             {
-                if (_tcsicmp(szHwdID, szzHardwareIDs) == 0)
+                if (_tcsicmp(szHwdID, szHwId) == 0)
                 {
                     /* Matching hardware ID found. Select the driver. */
                     if (!SetupDiSetSelectedDriver(
@@ -643,7 +649,7 @@ tap_create_interface(
     if (dwlDriverVersion == 0)
     {
         dwResult = ERROR_NOT_FOUND;
-        msg(M_NONFATAL, "%s: No driver for device \"%" PRIsLPTSTR "\" installed.", __FUNCTION__, szzHardwareIDs);
+        msg(M_NONFATAL, "%s: No driver for device \"%" PRIsLPTSTR "\" installed.", __FUNCTION__, szHwId);
         goto cleanup_DriverInfoList;
     }
 
@@ -953,6 +959,7 @@ cleanup_szInterfaceId:
 DWORD
 tap_list_interfaces(
     _In_opt_ HWND hwndParent,
+    _In_opt_ LPCTSTR szHwId,
     _Out_ struct tap_interface_node **ppInterface,
     _In_ BOOL bAll)
 {
@@ -961,6 +968,11 @@ tap_list_interfaces(
     if (ppInterface == NULL)
     {
         return ERROR_BAD_ARGUMENTS;
+    }
+
+    if (szHwId == NULL)
+    {
+        szHwId = szzDefaultHardwareIDs;
     }
 
     /* Create a list of network devices. */
@@ -1034,7 +1046,7 @@ tap_list_interfaces(
         /* Check that hardware ID is REG_SZ/REG_MULTI_SZ, and optionally if it matches ours. */
         if (dwDataType == REG_SZ)
         {
-            if (!bAll && _tcsicmp(szzDeviceHardwareIDs, szzHardwareIDs) != 0)
+            if (!bAll && _tcsicmp(szzDeviceHardwareIDs, szHwId) != 0)
             {
                 /* This is not our device. Skip it. */
                 goto cleanup_szzDeviceHardwareIDs;
@@ -1051,7 +1063,7 @@ tap_list_interfaces(
                         /* This is not our device. Skip it. */
                         goto cleanup_szzDeviceHardwareIDs;
                     }
-                    else if (_tcsicmp(szHwdID, szzHardwareIDs) == 0)
+                    else if (_tcsicmp(szHwdID, szHwId) == 0)
                     {
                         /* This is our device. */
                         break;
