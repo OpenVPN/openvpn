@@ -39,7 +39,9 @@
 
 #if P2MP
 
+#ifdef P2MP_SERVER
 static char push_reply_cmd[] = "PUSH_REPLY";
+#endif
 
 /*
  * Auth username/password

@@ -530,7 +530,7 @@ struct tls_multi
     time_t tas_last;
 #endif
 
-#if P2MP_SERVER
+#ifdef P2MP_SERVER
     /*
      * An error message to send to client on AUTH_FAILED
      */
