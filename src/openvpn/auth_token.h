@@ -61,8 +61,6 @@ generate_auth_token(const struct user_pass *up, struct tls_multi *multi);
  * Verifies the auth token to be in the format that generate_auth_token
  * create and checks if the token is valid.
  *
- * Also calls generate_auth_token to update the auth-token to extend
- * its validity
  */
 unsigned
 verify_auth_token(struct user_pass *up, struct tls_multi *multi,

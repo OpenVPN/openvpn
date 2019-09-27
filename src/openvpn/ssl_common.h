@@ -559,7 +559,7 @@ struct tls_multi
      * Auth-token is only valid for an empty username
      * and not the username actually supplied from the client
      *
-     * OpenVPN 3 clients sometimes the empty username with a
+     * OpenVPN 3 clients sometimes wipes or replaces the username with a
      * username hint from their config.
      */
     int auth_token_state_flags;
