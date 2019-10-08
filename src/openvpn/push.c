@@ -504,9 +504,8 @@ void
 send_push_reply_auth_token(struct tls_multi *multi)
 {
     struct gc_arena gc = gc_new();
+    struct push_list push_list = { 0 };
 
-
-    struct push_list push_list = {};
     prepare_auth_token_push_reply(multi, &gc, &push_list);
 
     /* prepare auth token should always add the auth-token option */
@@ -734,10 +733,9 @@ process_incoming_push_request(struct context *c)
         else
         {
             /* per-client push options - peer-id, cipher, ifconfig, ipv6-ifconfig */
-            struct push_list push_list;
+            struct push_list push_list = { 0 };
             struct gc_arena gc = gc_new();
 
-            CLEAR(push_list);
             if (prepare_push_reply(c, &gc, &push_list)
                 && send_push_reply(c, &push_list))
             {
