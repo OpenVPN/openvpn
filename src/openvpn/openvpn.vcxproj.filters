@@ -234,6 +234,9 @@
     <ClCompile Include="run_command.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="auth_token.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="base64.h">
@@ -486,6 +489,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="run_command.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="auth_token.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
