@@ -74,6 +74,10 @@ vlanhdr_set_vid(struct openvpn_8021qhdr *hdr, const uint16_t vid)
  *   returned.  Any included priority information is lost.
  *   If a frame isn't VLAN-tagged, the frame is dropped.
  *
+ * For vlan_accept == VLAN_ALL:
+ *   Accepts both VLAN-tagged and untagged (or priority-tagged) frames and
+ *   and handles them as described above.
+ *
  * @param c   The global context.
  * @param buf The ethernet frame.
  * @return    Returns -1 if the frame is dropped or the VID if it is accepted.
@@ -133,6 +137,7 @@ vlan_decapsulate(const struct context *c, struct buffer *buf)
 
             /* vid == 0 means prio-tagged packet: don't drop and fall-through */
         case VLAN_ONLY_TAGGED:
+        case VLAN_ALL:
             /* tagged frame can be accepted: extract vid and strip encapsulation */
 
             /* in case of prio-tagged frame (vid == 0), assume the sender
@@ -308,6 +313,18 @@ vlan_process_outgoing_tun(struct multi_context *m, struct multi_instance *mi)
         {
             /* Packet is coming from the wrong VID, drop it.  */
             mi->context.c2.to_tun.len = 0;
+        }
+    }
+    else if (m->top.options.vlan_accept == VLAN_ALL)
+    {
+        /* Packets either need to be VLAN-tagged or not, depending on the
+         * packet's originating VID and the port's native VID (PVID).  */
+
+        if (m->top.options.vlan_pvid != mi->context.options.vlan_pvid)
+        {
+            /* Packets need to be VLAN-tagged, because the packet's VID does not
+             * match the port's PVID.  */
+            vlan_encapsulate(&mi->context, &mi->context.c2.to_tun);
         }
     }
     else if (m->top.options.vlan_accept == VLAN_ONLY_TAGGED)

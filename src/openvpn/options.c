@@ -406,7 +406,7 @@ static const char usage_message[] =
     "                  to its initialization function.\n"
 #endif
     "--vlan-tagging  : Enable 802.1Q-based VLAN tagging.\n"
-    "--vlan-accept tagged|untagged : Set VLAN tagging mode.\n"
+    "--vlan-accept tagged|untagged|all : Set VLAN tagging mode. Default is 'all'.\n"
     "--vlan-pvid v   : Sets the Port VLAN Identifier. Defaults to 1.\n"
 #if P2MP
 #if P2MP_SERVER
@@ -853,7 +853,7 @@ init_options(struct options *o, const bool init_gc)
     o->route_method = ROUTE_METHOD_ADAPTIVE;
     o->block_outside_dns = false;
 #endif
-    o->vlan_accept = VLAN_ONLY_UNTAGGED_OR_PRIORITY;
+    o->vlan_accept = VLAN_ALL;
     o->vlan_pvid = 1;
 #if P2MP_SERVER
     o->real_hash_size = 256;
@@ -1239,6 +1239,8 @@ print_vlan_accept(enum vlan_acceptable_frames mode)
             return "tagged";
         case VLAN_ONLY_UNTAGGED_OR_PRIORITY:
             return "untagged";
+        case VLAN_ALL:
+            return "all";
     }
     return NULL;
 }
@@ -8468,9 +8470,13 @@ add_option(struct options *options,
         {
             options->vlan_accept = VLAN_ONLY_UNTAGGED_OR_PRIORITY;
         }
+        else if (streq(p[1], "all"))
+        {
+            options->vlan_accept = VLAN_ALL;
+        }
         else
         {
-            msg(msglevel, "--vlan-accept must be 'tagged', 'untagged'");
+            msg(msglevel, "--vlan-accept must be 'tagged', 'untagged' or 'all'");
             goto err;
         }
     }
