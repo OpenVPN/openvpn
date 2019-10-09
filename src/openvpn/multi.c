@@ -2643,10 +2643,12 @@ multi_process_incoming_link(struct multi_context *m, struct multi_instance *inst
             }
             else if (TUNNEL_TYPE(m->top.c1.tuntap) == DEV_TYPE_TAP)
             {
+                uint16_t vid = 0;
 #ifdef ENABLE_PF
                 struct mroute_addr edest;
                 mroute_addr_reset(&edest);
 #endif
+
                 if (m->top.options.vlan_tagging)
                 {
                     if (vlan_is_tagged(&c->c2.to_tun))
@@ -2654,6 +2656,10 @@ multi_process_incoming_link(struct multi_context *m, struct multi_instance *inst
                         /* Drop VLAN-tagged frame. */
                         msg(D_VLAN_DEBUG, "dropping incoming VLAN-tagged frame");
                         c->c2.to_tun.len = 0;
+                    }
+                    else
+                    {
+                        vid = c->options.vlan_pvid;
                     }
                 }
                 /* extract packet source and dest addresses */
@@ -2665,7 +2671,7 @@ multi_process_incoming_link(struct multi_context *m, struct multi_instance *inst
 #else
                                                                NULL,
 #endif
-                                                               0,
+                                                               vid,
                                                                &c->c2.to_tun,
                                                                DEV_TYPE_TAP);
 
@@ -2678,7 +2684,8 @@ multi_process_incoming_link(struct multi_context *m, struct multi_instance *inst
                         {
                             if (mroute_flags & (MROUTE_EXTRACT_BCAST|MROUTE_EXTRACT_MCAST))
                             {
-                                multi_bcast(m, &c->c2.to_tun, m->pending, NULL, 0);
+                                multi_bcast(m, &c->c2.to_tun, m->pending, NULL,
+                                            vid);
                             }
                             else /* try client-to-client routing */
                             {
