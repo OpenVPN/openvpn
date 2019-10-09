@@ -306,6 +306,7 @@ case "$host" in
 		AC_DEFINE([TARGET_SOLARIS], [1], [Are we running on Solaris?])
 		AC_DEFINE_UNQUOTED([TARGET_PREFIX], ["S"], [Target prefix])
 		CPPFLAGS="$CPPFLAGS -D_XPG4_2"
+		test -x /bin/bash && SHELL="/bin/bash"
 		;;
 	*-*-openbsd*)
 		AC_DEFINE([TARGET_OPENBSD], [1], [Are we running on OpenBSD?])
