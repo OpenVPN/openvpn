@@ -247,6 +247,16 @@ mroute_extract_addr_ip(struct mroute_addr *src, struct mroute_addr *dest,
     return ret;
 }
 
+static void
+mroute_copy_ether_to_addr(struct mroute_addr *maddr,
+                          const uint8_t *ether_addr)
+{
+    maddr->type = MR_ADDR_ETHER;
+    maddr->netbits = 0;
+    maddr->len = OPENVPN_ETH_ALEN;
+    memcpy(maddr->eth_addr, ether_addr, OPENVPN_ETH_ALEN);
+}
+
 unsigned int
 mroute_extract_addr_ether(struct mroute_addr *src,
                           struct mroute_addr *dest,
@@ -260,17 +270,11 @@ mroute_extract_addr_ether(struct mroute_addr *src,
         const struct openvpn_ethhdr *eth = (const struct openvpn_ethhdr *) BPTR(buf);
         if (src)
         {
-            src->type = MR_ADDR_ETHER;
-            src->netbits = 0;
-            src->len = 6;
-            memcpy(src->eth_addr, eth->source, sizeof(dest->eth_addr));
+            mroute_copy_ether_to_addr(src, eth->source);
         }
         if (dest)
         {
-            dest->type = MR_ADDR_ETHER;
-            dest->netbits = 0;
-            dest->len = 6;
-            memcpy(dest->eth_addr, eth->dest, sizeof(dest->eth_addr));
+            mroute_copy_ether_to_addr(dest, eth->dest);
 
             /* ethernet broadcast/multicast packet? */
             if (is_mac_mcast_addr(eth->dest))
