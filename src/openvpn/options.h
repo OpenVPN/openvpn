@@ -171,6 +171,7 @@ struct remote_list
 
 enum vlan_acceptable_frames
 {
+    VLAN_ONLY_TAGGED,
     VLAN_ONLY_UNTAGGED_OR_PRIORITY,
 };
 

@@ -2763,6 +2763,7 @@ multi_process_incoming_tun(struct multi_context *m, const unsigned int mpp_flags
         unsigned int mroute_flags;
         struct mroute_addr src, dest;
         const int dev_type = TUNNEL_TYPE(m->top.c1.tuntap);
+        int16_t vid = 0;
 
 #ifdef ENABLE_PF
         struct mroute_addr esrc, *e1, *e2;
@@ -2787,6 +2788,15 @@ multi_process_incoming_tun(struct multi_context *m, const unsigned int mpp_flags
             return true;
         }
 
+        if (dev_type == DEV_TYPE_TAP && m->top.options.vlan_tagging)
+        {
+            vid = vlan_decapsulate(&m->top, &m->top.c2.buf);
+            if (vid < 0)
+            {
+                return false;
+            }
+        }
+
         /*
          * Route an incoming tun/tap packet to
          * the appropriate multi_instance object.
@@ -2800,7 +2810,7 @@ multi_process_incoming_tun(struct multi_context *m, const unsigned int mpp_flags
                                                        NULL,
 #endif
                                                        NULL,
-                                                       0,
+                                                       vid,
                                                        &m->top.c2.buf,
                                                        dev_type);
 
@@ -2813,9 +2823,9 @@ multi_process_incoming_tun(struct multi_context *m, const unsigned int mpp_flags
             {
                 /* for now, treat multicast as broadcast */
 #ifdef ENABLE_PF
-                multi_bcast(m, &m->top.c2.buf, NULL, e2, 0);
+                multi_bcast(m, &m->top.c2.buf, NULL, e2, vid);
 #else
-                multi_bcast(m, &m->top.c2.buf, NULL, NULL, 0);
+                multi_bcast(m, &m->top.c2.buf, NULL, NULL, vid);
 #endif
             }
             else

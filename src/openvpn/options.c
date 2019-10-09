@@ -406,6 +406,7 @@ static const char usage_message[] =
     "                  to its initialization function.\n"
 #endif
     "--vlan-tagging  : Enable 802.1Q-based VLAN tagging.\n"
+    "--vlan-accept tagged|untagged : Set VLAN tagging mode.\n"
     "--vlan-pvid v   : Sets the Port VLAN Identifier. Defaults to 1.\n"
 #if P2MP
 #if P2MP_SERVER
@@ -1234,6 +1235,8 @@ print_vlan_accept(enum vlan_acceptable_frames mode)
 {
     switch (mode)
     {
+        case VLAN_ONLY_TAGGED:
+            return "tagged";
         case VLAN_ONLY_UNTAGGED_OR_PRIORITY:
             return "untagged";
     }
@@ -2386,6 +2389,10 @@ options_postprocess_verify_ce(const struct options *options, const struct connec
         }
         if (!options->vlan_tagging)
         {
+            if (options->vlan_accept != defaults.vlan_accept)
+            {
+                msg(M_USAGE, "--vlan-accept requires --vlan-tagging");
+            }
             if (options->vlan_pvid != defaults.vlan_pvid)
             {
                 msg(M_USAGE, "--vlan-pvid requires --vlan-tagging");
@@ -8449,6 +8456,23 @@ add_option(struct options *options,
     {
         VERIFY_PERMISSION(OPT_P_GENERAL);
         options->vlan_tagging = true;
+    }
+    else if (streq(p[0], "vlan-accept") && p[1] && !p[2])
+    {
+        VERIFY_PERMISSION(OPT_P_GENERAL);
+        if (streq(p[1], "tagged"))
+        {
+            options->vlan_accept = VLAN_ONLY_TAGGED;
+        }
+        else if (streq(p[1], "untagged"))
+        {
+            options->vlan_accept = VLAN_ONLY_UNTAGGED_OR_PRIORITY;
+        }
+        else
+        {
+            msg(msglevel, "--vlan-accept must be 'tagged', 'untagged'");
+            goto err;
+        }
     }
     else if (streq(p[0], "vlan-pvid") && p[1] && !p[2])
     {

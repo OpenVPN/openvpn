@@ -29,9 +29,13 @@
 
 #include "buffer.h"
 #include "mroute.h"
+#include "openvpn.h"
 
 struct multi_context;
 struct multi_instance;
+
+int16_t
+vlan_decapsulate(const struct context *c, struct buffer *buf);
 
 bool
 vlan_is_tagged(const struct buffer *buf);
