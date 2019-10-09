@@ -2038,8 +2038,8 @@ add_route_ipv6(struct route_ipv6 *r6, const struct tuntap *tt, unsigned int flag
                 r6->netbits,
                 gateway );
 
-    /* on tun/tap, not "elsewhere"? -> metric 0 */
-    if (!r6->iface)
+    /* on tun (not tap), not "elsewhere"? -> metric 0 */
+    if (tt->type == DEV_TYPE_TUN && !r6->iface)
     {
         argv_printf_cat(&argv, "0");
     }
