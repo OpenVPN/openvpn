@@ -937,15 +937,25 @@ do_ifconfig_ipv6(struct tuntap *tt, const char *ifname, int tun_mtu,
          * server will ignore the DHCPv6 packets anyway.  So we don't.
          */
 
-        /* static IPv6 addresses need to go to a subinterface (tap0:1) */
-        argv_printf(&argv, "%s %s inet6 addif %s/%d mtu %d up", IFCONFIG_PATH,
-                    ifname, ifconfig_ipv6_local, tt->netbits_ipv6, tun_mtu);
+        /* static IPv6 addresses need to go to a subinterface (tap0:1)
+         * and we cannot set an mtu here (must go to the "parent")
+         */
+        argv_printf(&argv, "%s %s inet6 addif %s/%d up", IFCONFIG_PATH,
+                    ifname, ifconfig_ipv6_local, tt->netbits_ipv6 );
     }
     argv_msg(M_INFO, &argv);
 
     if (!openvpn_execve_check(&argv, es, 0, "Solaris ifconfig IPv6 failed"))
     {
         solaris_error_close(tt, es, ifname, true);
+    }
+
+    if (tt->type != DEV_TYPE_TUN)
+    {
+        argv_printf(&argv, "%s %s inet6 mtu %d", IFCONFIG_PATH,
+                    ifname, tun_mtu);
+        argv_msg(M_INFO, &argv);
+        openvpn_execve_check(&argv, es, 0, "Solaris ifconfig IPv6 mtu failed");
     }
 #elif defined(TARGET_OPENBSD) || defined(TARGET_NETBSD) \
     || defined(TARGET_DARWIN) || defined(TARGET_FREEBSD) \
