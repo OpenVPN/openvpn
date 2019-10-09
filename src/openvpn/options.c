@@ -53,6 +53,7 @@
 #include "win32.h"
 #include "push.h"
 #include "pool.h"
+#include "proto.h"
 #include "helper.h"
 #include "manage.h"
 #include "forward.h"
@@ -404,6 +405,8 @@ static const char usage_message[] =
     "--plugin m [str]: Load plug-in module m passing str as an argument\n"
     "                  to its initialization function.\n"
 #endif
+    "--vlan-tagging  : Enable 802.1Q-based VLAN tagging.\n"
+    "--vlan-pvid v   : Sets the Port VLAN Identifier. Defaults to 1.\n"
 #if P2MP
 #if P2MP_SERVER
     "\n"
@@ -849,6 +852,8 @@ init_options(struct options *o, const bool init_gc)
     o->route_method = ROUTE_METHOD_ADAPTIVE;
     o->block_outside_dns = false;
 #endif
+    o->vlan_accept = VLAN_ONLY_UNTAGGED_OR_PRIORITY;
+    o->vlan_pvid = 1;
 #if P2MP_SERVER
     o->real_hash_size = 256;
     o->virtual_hash_size = 256;
@@ -1224,6 +1229,17 @@ dhcp_option_address_parse(const char *name, const char *parm, in_addr_t *array, 
 
 #endif /* if defined(_WIN32) || defined(TARGET_ANDROID) */
 
+static const char *
+print_vlan_accept(enum vlan_acceptable_frames mode)
+{
+    switch (mode)
+    {
+        case VLAN_ONLY_UNTAGGED_OR_PRIORITY:
+            return "untagged";
+    }
+    return NULL;
+}
+
 #if P2MP
 
 #ifndef ENABLE_SMALL
@@ -1294,6 +1310,9 @@ show_p2mp_parms(const struct options *o)
     SHOW_STR(port_share_host);
     SHOW_STR(port_share_port);
 #endif
+    SHOW_BOOL(vlan_tagging);
+    msg(D_SHOW_PARMS, "  vlan_accept = %s", print_vlan_accept (o->vlan_accept));
+    SHOW_INT(vlan_pvid);
 #endif /* P2MP_SERVER */
 
     SHOW_BOOL(client);
@@ -2360,6 +2379,18 @@ options_postprocess_verify_ce(const struct options *options, const struct connec
                 msg(M_USAGE, "--auth-user-pass-optional %s", postfix);
             }
         }
+
+        if (options->vlan_tagging && dev != DEV_TYPE_TAP)
+        {
+            msg(M_USAGE, "--vlan-tagging must be used with --dev tap");
+        }
+        if (!options->vlan_tagging)
+        {
+            if (options->vlan_pvid != defaults.vlan_pvid)
+            {
+                msg(M_USAGE, "--vlan-pvid requires --vlan-tagging");
+            }
+        }
     }
     else
     {
@@ -2448,6 +2479,11 @@ options_postprocess_verify_ce(const struct options *options, const struct connec
         if (options->stale_routes_check_interval)
         {
             msg(M_USAGE, "--stale-routes-check requires --mode server");
+        }
+
+        if (options->vlan_tagging)
+        {
+            msg(M_USAGE, "--vlan-tagging requires --mode server");
         }
     }
 #endif /* P2MP_SERVER */
@@ -8408,6 +8444,24 @@ add_option(struct options *options,
     {
         VERIFY_PERMISSION(OPT_P_GENERAL);
         options->allow_recursive_routing = true;
+    }
+    else if (streq(p[0], "vlan-tagging") && !p[1])
+    {
+        VERIFY_PERMISSION(OPT_P_GENERAL);
+        options->vlan_tagging = true;
+    }
+    else if (streq(p[0], "vlan-pvid") && p[1] && !p[2])
+    {
+        VERIFY_PERMISSION(OPT_P_GENERAL|OPT_P_INSTANCE);
+        options->vlan_pvid = positive_atoi(p[1]);
+        if (options->vlan_pvid < OPENVPN_8021Q_MIN_VID
+            || options->vlan_pvid > OPENVPN_8021Q_MAX_VID)
+        {
+            msg(msglevel,
+                "the parameter of --vlan-pvid parameters must be >= %u and <= %u",
+                OPENVPN_8021Q_MIN_VID, OPENVPN_8021Q_MAX_VID);
+            goto err;
+        }
     }
     else
     {

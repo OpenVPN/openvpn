@@ -169,6 +169,11 @@ struct remote_list
     struct remote_entry *array[CONNECTION_LIST_SIZE];
 };
 
+enum vlan_acceptable_frames
+{
+    VLAN_ONLY_UNTAGGED_OR_PRIORITY,
+};
+
 struct remote_host_store
 {
 #define RH_HOST_LEN 80
@@ -637,6 +642,10 @@ struct options
     const char *keying_material_exporter_label;
     int keying_material_exporter_length;
 #endif
+
+    bool vlan_tagging;
+    enum vlan_acceptable_frames vlan_accept;
+    uint16_t vlan_pvid;
 
     struct pull_filter_list *pull_filter_list;
 

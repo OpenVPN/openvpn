@@ -45,6 +45,7 @@
 #include "gremlin.h"
 #include "mstats.h"
 #include "ssl_verify.h"
+#include "vlan.h"
 #include <inttypes.h>
 
 #include "memdbg.h"
@@ -2208,7 +2209,8 @@ static void
 multi_bcast(struct multi_context *m,
             const struct buffer *buf,
             const struct multi_instance *sender_instance,
-            const struct mroute_addr *sender_addr)
+            const struct mroute_addr *sender_addr,
+            uint16_t vid)
 {
     struct hash_iterator hi;
     struct hash_element *he;
@@ -2258,6 +2260,10 @@ multi_bcast(struct multi_context *m,
                     }
                 }
 #endif /* ifdef ENABLE_PF */
+                if (vid != 0 && vid != mi->context.options.vlan_pvid)
+                {
+                    continue;
+                }
                 multi_add_mbuf(m, mi, mb);
             }
         }
@@ -2595,7 +2601,7 @@ multi_process_incoming_link(struct multi_context *m, struct multi_instance *inst
                     if (mroute_flags & MROUTE_EXTRACT_MCAST)
                     {
                         /* for now, treat multicast as broadcast */
-                        multi_bcast(m, &c->c2.to_tun, m->pending, NULL);
+                        multi_bcast(m, &c->c2.to_tun, m->pending, NULL, 0);
                     }
                     else /* possible client to client routing */
                     {
@@ -2640,6 +2646,15 @@ multi_process_incoming_link(struct multi_context *m, struct multi_instance *inst
                 struct mroute_addr edest;
                 mroute_addr_reset(&edest);
 #endif
+                if (m->top.options.vlan_tagging)
+                {
+                    if (vlan_is_tagged(&c->c2.to_tun))
+                    {
+                        /* Drop VLAN-tagged frame. */
+                        msg(D_VLAN_DEBUG, "dropping incoming VLAN-tagged frame");
+                        c->c2.to_tun.len = 0;
+                    }
+                }
                 /* extract packet source and dest addresses */
                 mroute_flags = mroute_extract_addr_from_packet(&src,
                                                                &dest,
@@ -2661,7 +2676,7 @@ multi_process_incoming_link(struct multi_context *m, struct multi_instance *inst
                         {
                             if (mroute_flags & (MROUTE_EXTRACT_BCAST|MROUTE_EXTRACT_MCAST))
                             {
-                                multi_bcast(m, &c->c2.to_tun, m->pending, NULL);
+                                multi_bcast(m, &c->c2.to_tun, m->pending, NULL, 0);
                             }
                             else /* try client-to-client routing */
                             {
@@ -2788,9 +2803,9 @@ multi_process_incoming_tun(struct multi_context *m, const unsigned int mpp_flags
             {
                 /* for now, treat multicast as broadcast */
 #ifdef ENABLE_PF
-                multi_bcast(m, &m->top.c2.buf, NULL, e2);
+                multi_bcast(m, &m->top.c2.buf, NULL, e2, 0);
 #else
-                multi_bcast(m, &m->top.c2.buf, NULL, NULL);
+                multi_bcast(m, &m->top.c2.buf, NULL, NULL, 0);
 #endif
             }
             else
@@ -2972,7 +2987,7 @@ gremlin_flood_clients(struct multi_context *m)
 
         for (i = 0; i < parm.n_packets; ++i)
         {
-            multi_bcast(m, &buf, NULL, NULL);
+            multi_bcast(m, &buf, NULL, NULL, 0);
         }
 
         gc_free(&gc);

@@ -124,6 +124,7 @@ openvpn_SOURCES = \
 	syshead.h \
 	tls_crypt.c tls_crypt.h \
 	tun.c tun.h \
+	vlan.c vlan.h \
 	win32.h win32.c \
 	cryptoapi.h cryptoapi.c
 openvpn_LDADD = \
