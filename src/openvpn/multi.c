@@ -2570,6 +2570,7 @@ multi_process_incoming_link(struct multi_context *m, struct multi_instance *inst
                                                                &dest,
                                                                NULL,
                                                                NULL,
+                                                               0,
                                                                &c->c2.to_tun,
                                                                DEV_TYPE_TUN);
 
@@ -2664,6 +2665,7 @@ multi_process_incoming_link(struct multi_context *m, struct multi_instance *inst
 #else
                                                                NULL,
 #endif
+                                                               0,
                                                                &c->c2.to_tun,
                                                                DEV_TYPE_TAP);
 
@@ -2791,6 +2793,7 @@ multi_process_incoming_tun(struct multi_context *m, const unsigned int mpp_flags
                                                        NULL,
 #endif
                                                        NULL,
+                                                       0,
                                                        &m->top.c2.buf,
                                                        dev_type);
 
