@@ -355,7 +355,7 @@ get_proxy_authenticate(socket_descriptor_t sd,
 #if NTLM
             else if (!strncmp(buf+20, "NTLM", 4))
             {
-                msg(D_PROXY, "PROXY AUTH HTLM: '%s'", buf);
+                msg(D_PROXY, "PROXY AUTH NTLM: '%s'", buf);
                 *data = NULL;
                 ret = HTTP_AUTH_NTLM;
             }
