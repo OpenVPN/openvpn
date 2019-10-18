@@ -34,6 +34,9 @@
 typedef mbedtls_x509_crt openvpn_x509_cert_t;
 #endif
 #else  /* ifdef ENABLE_CRYPTO_MBEDTLS */
+#ifdef ENABLE_CRYPTO_WOLFSSL
+#include <wolfssl/options.h>
+#endif
 #include <openssl/x509.h>
 #ifndef __OPENVPN_X509_CERT_T_DECLARED
 #define __OPENVPN_X509_CERT_T_DECLARED

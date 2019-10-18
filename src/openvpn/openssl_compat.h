@@ -42,6 +42,11 @@
 
 #include "buffer.h"
 
+#ifdef ENABLE_CRYPTO_WOLFSSL
+#include <wolfssl/options.h>
+#include <openssl/rsa.h>
+#include <openssl/err.h>
+#endif
 #include <openssl/ssl.h>
 #include <openssl/x509.h>
 

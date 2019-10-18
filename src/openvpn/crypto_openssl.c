@@ -43,6 +43,9 @@
 #include "crypto_backend.h"
 #include "openssl_compat.h"
 
+#ifdef ENABLE_CRYPTO_WOLFSSL
+#include <wolfssl/options.h>
+#endif
 #include <openssl/des.h>
 #include <openssl/err.h>
 #include <openssl/evp.h>
