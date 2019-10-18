@@ -44,6 +44,9 @@
 #include "ssl_verify_backend.h"
 #include "openssl_compat.h"
 
+#ifdef ENABLE_CRYPTO_WOLFSSL
+#include <wolfssl/options.h>
+#endif
 #include <openssl/x509v3.h>
 #include <openssl/err.h>
 
