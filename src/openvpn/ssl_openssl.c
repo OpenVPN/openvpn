@@ -919,6 +919,10 @@ end:
             crypto_msg(M_FATAL, "Cannot load certificate file %s", cert_file);
         }
     }
+    else
+    {
+        crypto_print_openssl_errors(M_DEBUG);
+    }
 
     if (in != NULL)
     {
@@ -972,12 +976,7 @@ tls_ctx_load_priv_file(struct tls_root_ctx *ctx, const char *priv_key_file,
     pkey = PEM_read_bio_PrivateKey(in, NULL,
                                    SSL_CTX_get_default_passwd_cb(ctx->ctx),
                                    SSL_CTX_get_default_passwd_cb_userdata(ctx->ctx));
-    if (!pkey)
-    {
-        goto end;
-    }
-
-    if (!SSL_CTX_use_PrivateKey(ssl_ctx, pkey))
+    if (!pkey || !SSL_CTX_use_PrivateKey(ssl_ctx, pkey))
     {
 #ifdef ENABLE_MANAGEMENT
         if (management && (ERR_GET_REASON(ERR_peek_error()) == EVP_R_BAD_DECRYPT))
