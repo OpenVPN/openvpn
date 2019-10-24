@@ -2228,7 +2228,7 @@ options_postprocess_verify_ce(const struct options *options, const struct connec
         }
         if (options->pull_filter_list)
         {
-            msg(M_USAGE, "--pull-filter cannot be used with --mode server");
+            msg(M_WARN, "--pull-filter ignored for --mode server");
         }
         if (!(proto_is_udp(ce->proto) || ce->proto == PROTO_TCP_SERVER))
         {
