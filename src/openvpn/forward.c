@@ -873,6 +873,9 @@ process_incoming_link_part1(struct context *c, struct link_socket_info *lsi, boo
                 if (is_hard_reset(opcode, c->options.key_method))
                 {
                     c->c2.frame = c->c2.frame_initial;
+#ifdef ENABLE_FRAGMENT
+                    c->c2.frame_fragment = c->c2.frame_fragment_initial;
+#endif
                 }
 
                 interval_action(&c->c2.tmp_int);

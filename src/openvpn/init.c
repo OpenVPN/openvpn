@@ -2294,9 +2294,18 @@ do_deferred_options(struct context *c, const unsigned int found)
         {
             tls_poor_mans_ncp(&c->options, c->c2.tls_multi->remote_ciphername);
         }
+        struct frame *frame_fragment = NULL;
+#ifdef ENABLE_FRAGMENT
+        if (c->options.ce.fragment)
+        {
+            frame_fragment = &c->c2.frame_fragment;
+        }
+#endif
+
         /* Do not regenerate keys if server sends an extra push reply */
         if (!session->key[KS_PRIMARY].crypto_options.key_ctx_bi.initialized
-            && !tls_session_update_crypto_params(session, &c->options, &c->c2.frame))
+            && !tls_session_update_crypto_params(session, &c->options, &c->c2.frame,
+                                                 frame_fragment))
         {
             msg(D_TLS_ERRORS, "OPTIONS ERROR: failed to import crypto options");
             return false;
@@ -3035,6 +3044,7 @@ do_init_frame(struct context *c)
      */
     c->c2.frame_fragment = c->c2.frame;
     frame_subtract_extra(&c->c2.frame_fragment, &c->c2.frame_fragment_omit);
+    c->c2.frame_fragment_initial = c->c2.frame_fragment;
 #endif
 
 #if defined(ENABLE_FRAGMENT) && defined(ENABLE_OCC)
