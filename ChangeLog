@@ -1,6 +1,67 @@
 OpenVPN Change Log
 Copyright (C) 2002-2018 OpenVPN Inc <sales@openvpn.net>
 
+2019.10.30 -- Version 2.4.8
+Antonio Quartulli (1):
+      mbedtls: fix segfault by calling mbedtls_cipher_free() in cipher_ctx_free()
+
+Arne Schwabe (1):
+      Remove -no-cpp-precomp flag from Darwin builds
+
+David Sommerseth (3):
+      cleanup: Remove RPM openvpn.spec build approach
+      docs: Update INSTALL
+      build: Package missing mock_msg.h
+
+Gert Doering (4):
+      repair windows builds (2.4)
+      Increase listen() backlog queue to 32
+      Force combinationation of --socks-proxy and --proto UDP to use IPv4.
+      Fix IPv6 routes on tap interfaces on OpenSolaris/OpenIndiana
+
+Gisle Vanem (1):
+      Wrong FILETYPE in .rc files
+
+Hilko Bengen (1):
+      Do not set pkcs11-helper 'safe fork mode'
+
+Ilya Shipitsin (2):
+      travis-ci: add "linux-ppc64le" to build matrix, change trusty image to xenial, update osx to xcode9.4 and modernize brew management
+      travis-ci: fix osx builds
+
+Kyle Evans (1):
+      tests/t_lpback.sh: Switch sed(1) to POSIX-compatible regex.
+
+Lev Stipakov (1):
+      Fix various compiler warnings
+
+Matthias Andree (1):
+      Fix regression, reinstate LibreSSL support.
+
+Michal Soltys (1):
+      man: correct the description of --capath and --crl-verify regarding CRLs
+
+Mykola Baibuz (1):
+      Fix typo in NTLM proxy debug message
+
+Richard Bonhomme (1):
+      Ignore --pull-filter for --mode server
+
+Rosen Penev (1):
+      openssl: Fix compilation without deprecated OpenSSL 1.1 APIs
+
+Selva Nair (3):
+      Better error message when script fails due to script-security setting
+      Correct the return value of cryptoapi RSA signature callbacks
+      Handle PSS padding in cryptoapicert
+
+Steffan Karger (1):
+      cmocka: use relative paths
+
+Thomas Quinot (1):
+      Fix documentation of tls-verify script argument
+
+
 2019.02.18 -- Version 2.4.7
 Adam Ciarcin?ski (1):
       Fix subnet topology on NetBSD (2.4).

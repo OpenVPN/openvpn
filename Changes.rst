@@ -321,6 +321,48 @@ Maintainer-visible changes
   i386/i686 builds on RHEL5.
 
 
+Version 2.4.8
+=============
+This is primarily a maintenance release with minor bugfixes and improvements.
+
+New features
+------------
+- Support compiling with OpenSSL 1.1 without deprecated APIs
+
+- handle PSS padding in cryptoapicert (necessary for TLS >= 1.2)
+
+
+User visible changes
+--------------------
+- do not abort when hitting the combination of "--pull-filter" and
+  "--mode server" (this got hit when starting OpenVPN servers using
+  the windows GUI which installs a pull-filter to force ip-win32)
+
+- increase listen() backlog queue to 32  (improve response behaviour
+  on openvpn servers using TCP that get portscanned)
+
+- fix and enhance documentation (INSTALL, man page, ...)
+
+
+Bug fixes
+---------
+- the combination "IPv6 and proto UDP and SOCKS proxy" did not work - as
+  a workaround, force IPv4 in this case until a full implementation for
+  IPv6-UDP-SOCKS can be made.
+
+- fix IPv6 routes on tap interfaces on OpenSolaris/OpenIndiana
+
+- fix building with LibreSSL
+
+- do not set pkcs11-helper 'safe fork mode' (should fix PIN querying in
+  systemd environments)
+
+- repair windows builds
+
+- repair Darwin builds (remove -no-cpp-precomp flag)
+
+
+
 Version 2.4.7
 =============
 This is primarily a maintenance release with minor bugfixes and improvements.
