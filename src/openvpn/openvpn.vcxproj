@@ -196,6 +196,7 @@
     <ClCompile Include="status.c" />
     <ClCompile Include="tls_crypt.c" />
     <ClCompile Include="tun.c" />
+    <ClCompile Include="vlan.c" />
     <ClCompile Include="win32.c" />
   </ItemGroup>
   <ItemGroup>
@@ -283,6 +284,7 @@
     <ClInclude Include="syshead.h" />
     <ClInclude Include="tls_crypt.h" />
     <ClInclude Include="tun.h" />
+    <ClInclude Include="vlan.h" />
     <ClInclude Include="win32.h" />
   </ItemGroup>
   <ItemGroup>
