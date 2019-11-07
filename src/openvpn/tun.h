@@ -27,6 +27,8 @@
 #ifdef _WIN32
 #include <winioctl.h>
 #include <tap-windows.h>
+#include <setupapi.h>
+#include <cfgmgr32.h>
 #endif
 
 #include "buffer.h"
@@ -37,6 +39,10 @@
 #include "proto.h"
 #include "misc.h"
 #include "networking.h"
+
+#ifdef _WIN32
+#define WINTUN_COMPONENT_ID "wintun"
+#endif
 
 #if defined(_WIN32) || defined(TARGET_ANDROID)
 
@@ -340,6 +346,7 @@ route_order(void)
 struct tap_reg
 {
     const char *guid;
+    bool wintun;
     struct tap_reg *next;
 };
 
@@ -348,6 +355,13 @@ struct panel_reg
     const char *name;
     const char *guid;
     struct panel_reg *next;
+};
+
+struct device_instance_id_interface
+{
+    const char *net_cfg_instance_id;
+    const char *device_interface_list;
+    struct device_instance_id_interface *next;
 };
 
 int ascii2ipset(const char *name);
