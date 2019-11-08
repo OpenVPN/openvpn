@@ -1733,6 +1733,10 @@ do_init_tun(struct context *c)
                             c->c2.es,
                             &c->net_ctx);
 
+#ifdef _WIN32
+    c->c1.tuntap->wintun = c->options.wintun;
+#endif
+
     init_tun_post(c->c1.tuntap,
                   &c->c2.frame,
                   &c->options.tuntap_options);

@@ -634,6 +634,7 @@ struct options
     bool show_net_up;
     int route_method;
     bool block_outside_dns;
+    bool wintun;
 #endif
 
     bool use_peer_id;

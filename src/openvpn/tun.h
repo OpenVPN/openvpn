@@ -175,6 +175,7 @@ struct tuntap
      * ~0 if undefined */
     DWORD adapter_index;
 
+    bool wintun; /* true if wintun is used instead of tap-windows6 */
     int standby_iter;
 #else  /* ifdef _WIN32 */
     int fd; /* file descriptor for TUN/TAP dev */
