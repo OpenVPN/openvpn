@@ -3,6 +3,8 @@ set -eux
 
 if [ "${TRAVIS_OS_NAME}" = "windows" ]; then
     choco install strawberryperl nasm
+    choco install visualstudio2019buildtools --package-parameters "--includeRecommended --includeOptional"
+    choco install visualstudio2019-workload-vctools
     cd ..
     git clone https://github.com/openvpn/openvpn-build.git
     cd openvpn-build

@@ -2,7 +2,7 @@
 set -eux
 
 if [ "${TRAVIS_OS_NAME}" = "windows" ]; then
-	PATH="/c/Program Files (x86)/Microsoft Visual Studio/2017/BuildTools/MSBuild/15.0/Bin/":$PATH
+	PATH="/c/Program Files (x86)/Microsoft Visual Studio/2019/BuildTools/MSBuild/Current/Bin/":$PATH
 	MSBuild.exe openvpn.sln //p:Platform=x64 && exit 0
 fi
 
