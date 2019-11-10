@@ -1283,6 +1283,7 @@ AC_DEFUN([ACL_CHECK_ADD_COMPILE_FLAGS], [
         [AC_MSG_RESULT([no]); CFLAGS="$old_cflags"])]
 )
 
+ACL_CHECK_ADD_COMPILE_FLAGS([-Wno-stringop-truncation])
 ACL_CHECK_ADD_COMPILE_FLAGS([-Wno-unused-function])
 ACL_CHECK_ADD_COMPILE_FLAGS([-Wno-unused-parameter])
 ACL_CHECK_ADD_COMPILE_FLAGS([-Wall])
