@@ -8,6 +8,7 @@ fi
 
 if [ "${TRAVIS_OS_NAME}" = "linux" ]; then
 	export LD_LIBRARY_PATH="${PREFIX}/lib:${LD_LIBRARY_PATH:-}"
+	export CFLAGS="${CFLAGS} -Werror"
 fi
 
 if [ "${TRAVIS_OS_NAME}" = "osx"   ]; then
