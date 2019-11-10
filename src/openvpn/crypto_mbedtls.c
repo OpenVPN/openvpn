@@ -823,7 +823,7 @@ md_kt_name(const mbedtls_md_info_t *kt)
     return mbedtls_md_get_name(kt);
 }
 
-int
+unsigned char
 md_kt_size(const mbedtls_md_info_t *kt)
 {
     if (NULL == kt)

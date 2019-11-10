@@ -930,10 +930,10 @@ md_kt_name(const EVP_MD *kt)
     return EVP_MD_name(kt);
 }
 
-int
+unsigned char
 md_kt_size(const EVP_MD *kt)
 {
-    return EVP_MD_size(kt);
+    return (unsigned char)EVP_MD_size(kt);
 }
 
 

@@ -526,7 +526,7 @@ const char *md_kt_name(const md_kt_t *kt);
  *
  * @return              Message digest size, in bytes, or 0 if ctx was NULL.
  */
-int md_kt_size(const md_kt_t *kt);
+unsigned char md_kt_size(const md_kt_t *kt);
 
 
 /*
