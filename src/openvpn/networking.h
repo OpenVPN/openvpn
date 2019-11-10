@@ -110,13 +110,11 @@ int net_iface_mtu_set(openvpn_net_ctx_t *ctx,
  * @param iface     the interface where the address has to be added
  * @param addr      the address to add
  * @param prefixlen the prefix length of the network associated with the address
- * @param broadcast the broadcast address to configure on the interface
  *
  * @return          0 on success, a negative error code otherwise
  */
 int net_addr_v4_add(openvpn_net_ctx_t *ctx, const openvpn_net_iface_t *iface,
-                    const in_addr_t *addr, int prefixlen,
-                    const in_addr_t *broadcast);
+                    const in_addr_t *addr, int prefixlen);
 
 /**
  * Add an IPv6 address to an interface

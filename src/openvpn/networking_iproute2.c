@@ -90,16 +90,14 @@ net_iface_mtu_set(openvpn_net_ctx_t *ctx, const char *iface, uint32_t mtu)
 
 int
 net_addr_v4_add(openvpn_net_ctx_t *ctx, const char *iface,
-                const in_addr_t *addr, int prefixlen,
-                const in_addr_t *broadcast)
+                const in_addr_t *addr, int prefixlen)
 {
     struct argv argv = argv_new();
 
     const char *addr_str = print_in_addr_t(*addr, 0, &ctx->gc);
-    const char *brd_str = print_in_addr_t(*broadcast, 0, &ctx->gc);
 
-    argv_printf(&argv, "%s addr add dev %s %s/%d broadcast %s", iproute_path,
-                iface, addr_str, prefixlen, brd_str);
+    argv_printf(&argv, "%s addr add dev %s %s/%d", iproute_path, iface,
+                addr_str, prefixlen);
     argv_msg(M_INFO, &argv);
     openvpn_execve_check(&argv, ctx->es, S_FATAL, "Linux ip addr add failed");
 

@@ -668,7 +668,7 @@ err:
 static int
 sitnl_addr_set(int cmd, uint32_t flags, int ifindex, sa_family_t af_family,
                const inet_address_t *local, const inet_address_t *remote,
-               int prefixlen, const inet_address_t *broadcast)
+               int prefixlen)
 {
     struct sitnl_addr_req req;
     uint32_t size;
@@ -716,11 +716,6 @@ sitnl_addr_set(int cmd, uint32_t flags, int ifindex, sa_family_t af_family,
         SITNL_ADDATTR(&req.n, sizeof(req), IFA_LOCAL, local, size);
     }
 
-    if (broadcast)
-    {
-        SITNL_ADDATTR(&req.n, sizeof(req), IFA_BROADCAST, broadcast, size);
-    }
-
     ret = sitnl_send(&req.n, 0, 0, NULL, NULL);
     if ((ret < 0) && (errno == EEXIST))
     {
@@ -762,7 +757,7 @@ sitnl_addr_ptp_add(sa_family_t af_family, const char *iface,
     }
 
     return sitnl_addr_set(RTM_NEWADDR, NLM_F_CREATE | NLM_F_REPLACE, ifindex,
-                          af_family, local, remote, 0, NULL);
+                          af_family, local, remote, 0);
 }
 
 static int
@@ -794,8 +789,7 @@ sitnl_addr_ptp_del(sa_family_t af_family, const char *iface,
         return -ENOENT;
     }
 
-    return sitnl_addr_set(RTM_DELADDR, 0, ifindex, af_family, local, NULL, 0,
-                          NULL);
+    return sitnl_addr_set(RTM_DELADDR, 0, ifindex, af_family, local, NULL, 0);
 }
 
 static int
@@ -874,8 +868,7 @@ err:
 
 static int
 sitnl_addr_add(sa_family_t af_family, const char *iface,
-               const inet_address_t *addr, int prefixlen,
-               const inet_address_t *broadcast)
+               const inet_address_t *addr, int prefixlen)
 {
     int ifindex;
 
@@ -904,7 +897,7 @@ sitnl_addr_add(sa_family_t af_family, const char *iface,
     }
 
     return sitnl_addr_set(RTM_NEWADDR, NLM_F_CREATE | NLM_F_REPLACE, ifindex,
-                          af_family, addr, NULL, prefixlen, broadcast);
+                          af_family, addr, NULL, prefixlen);
 }
 
 static int
@@ -938,18 +931,15 @@ sitnl_addr_del(sa_family_t af_family, const char *iface, inet_address_t *addr,
     }
 
     return sitnl_addr_set(RTM_DELADDR, 0, ifindex, af_family, addr, NULL,
-                          prefixlen, NULL);
+                          prefixlen);
 }
 
 int
 net_addr_v4_add(openvpn_net_ctx_t *ctx, const char *iface,
-                const in_addr_t *addr, int prefixlen,
-                const in_addr_t *broadcast)
+                const in_addr_t *addr, int prefixlen)
 {
     inet_address_t addr_v4 = { 0 };
-    inet_address_t brd_v4 = { 0 };
-    char buf1[INET_ADDRSTRLEN];
-    char buf2[INET_ADDRSTRLEN];
+    char buf[INET_ADDRSTRLEN];
 
     if (!addr)
     {
@@ -958,16 +948,10 @@ net_addr_v4_add(openvpn_net_ctx_t *ctx, const char *iface,
 
     addr_v4.ipv4 = htonl(*addr);
 
-    if (broadcast)
-    {
-        brd_v4.ipv4 = htonl(*broadcast);
-    }
+    msg(M_INFO, "%s: %s/%d dev %s", __func__,
+        inet_ntop(AF_INET, &addr_v4.ipv4, buf, sizeof(buf)), prefixlen,iface);
 
-    msg(M_INFO, "%s: %s/%d brd %s dev %s", __func__,
-        inet_ntop(AF_INET, &addr_v4.ipv4, buf1, sizeof(buf1)), prefixlen,
-        inet_ntop(AF_INET, &brd_v4.ipv4, buf2, sizeof(buf2)), iface);
-
-    return sitnl_addr_add(AF_INET, iface, &addr_v4, prefixlen, &brd_v4);
+    return sitnl_addr_add(AF_INET, iface, &addr_v4, prefixlen);
 }
 
 int
@@ -987,7 +971,7 @@ net_addr_v6_add(openvpn_net_ctx_t *ctx, const char *iface,
     msg(M_INFO, "%s: %s/%d dev %s", __func__,
         inet_ntop(AF_INET6, &addr_v6.ipv6, buf, sizeof(buf)), prefixlen, iface);
 
-    return sitnl_addr_add(AF_INET6, iface, &addr_v6, prefixlen, NULL);
+    return sitnl_addr_add(AF_INET6, iface, &addr_v6, prefixlen);
 }
 
 int

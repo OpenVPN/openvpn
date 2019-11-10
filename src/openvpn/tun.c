@@ -338,16 +338,6 @@ ifconfig_sanity_check(bool tun, in_addr_t addr, int topology)
 }
 
 /*
- * For TAP-style devices, generate a broadcast address.
- */
-static in_addr_t
-generate_ifconfig_broadcast_addr(in_addr_t local,
-                                 in_addr_t netmask)
-{
-    return local | ~netmask;
-}
-
-/*
  * Check that --local and --remote addresses do not
  * clash with ifconfig addresses or subnet.
  */
@@ -598,9 +588,7 @@ do_ifconfig_setenv(const struct tuntap *tt, struct env_set *es)
         }
         else
         {
-            const char *ifconfig_broadcast = print_in_addr_t(tt->broadcast, 0, &gc);
             setenv_str(es, "ifconfig_netmask", ifconfig_remote_netmask);
-            setenv_str(es, "ifconfig_broadcast", ifconfig_broadcast);
         }
     }
 
@@ -725,14 +713,6 @@ init_tun(const char *dev,        /* --dev option */
             {
                 check_subnet_conflict(tt->local, IPV4_NETMASK_HOST, "TUN/TAP adapter");
             }
-        }
-
-        /*
-         * If TAP-style interface, generate broadcast address.
-         */
-        if (!tun)
-        {
-            tt->broadcast = generate_ifconfig_broadcast_addr(tt->local, tt->remote_netmask);
         }
 
 #ifdef _WIN32
@@ -1052,7 +1032,6 @@ do_ifconfig_ipv4(struct tuntap *tt, const char *ifname, int tun_mtu,
 #if !defined(TARGET_LINUX)
     const char *ifconfig_local = NULL;
     const char *ifconfig_remote_netmask = NULL;
-    const char *ifconfig_broadcast = NULL;
     struct argv argv = argv_new();
     struct gc_arena gc = gc_new();
 
@@ -1061,14 +1040,6 @@ do_ifconfig_ipv4(struct tuntap *tt, const char *ifname, int tun_mtu,
      */
     ifconfig_local = print_in_addr_t(tt->local, 0, &gc);
     ifconfig_remote_netmask = print_in_addr_t(tt->remote_netmask, 0, &gc);
-
-    /*
-     * If TAP-style device, generate broadcast address.
-     */
-    if (!tun)
-    {
-        ifconfig_broadcast = print_in_addr_t(tt->broadcast, 0, &gc);
-    }
 #endif
 
 #if defined(TARGET_LINUX)
@@ -1093,8 +1064,7 @@ do_ifconfig_ipv4(struct tuntap *tt, const char *ifname, int tun_mtu,
     else
     {
         if (net_addr_v4_add(ctx, ifname, &tt->local,
-                            netmask_to_netbits2(tt->remote_netmask),
-                            &tt->remote_netmask) < 0)
+                            netmask_to_netbits2(tt->remote_netmask)) < 0)
         {
             msg(M_FATAL, "Linux can't add IP to TAP interface %s", ifname);
         }
@@ -1153,7 +1123,7 @@ do_ifconfig_ipv4(struct tuntap *tt, const char *ifname, int tun_mtu,
     }
     else
     {
-        argv_printf(&argv, "%s %s %s netmask %s broadcast + up",
+        argv_printf(&argv, "%s %s %s netmask %s up",
                     IFCONFIG_PATH, ifname, ifconfig_local,
                     ifconfig_remote_netmask);
     }
@@ -1205,9 +1175,9 @@ do_ifconfig_ipv4(struct tuntap *tt, const char *ifname, int tun_mtu,
     }
     else
     {
-        argv_printf(&argv, "%s %s %s netmask %s mtu %d broadcast %s link0",
+        argv_printf(&argv, "%s %s %s netmask %s mtu %d link0",
                     IFCONFIG_PATH, ifname, ifconfig_local,
-                    ifconfig_remote_netmask, tun_mtu, ifconfig_broadcast);
+                    ifconfig_remote_netmask, tun_mtu);
     }
     argv_msg(M_INFO, &argv);
     openvpn_execve_check(&argv, es, S_FATAL, "OpenBSD ifconfig failed");
@@ -1247,9 +1217,9 @@ do_ifconfig_ipv4(struct tuntap *tt, const char *ifname, int tun_mtu,
          * so we don't need the "link0" extra parameter to specify we want to do
          * tunneling at the ethernet level
          */
-        argv_printf(&argv, "%s %s %s netmask %s mtu %d broadcast %s",
+        argv_printf(&argv, "%s %s %s netmask %s mtu %d",
                     IFCONFIG_PATH, ifname, ifconfig_local,
-                    ifconfig_remote_netmask, tun_mtu, ifconfig_broadcast);
+                    ifconfig_remote_netmask, tun_mtu);
     }
     argv_msg(M_INFO, &argv);
     openvpn_execve_check(&argv, es, S_FATAL, "NetBSD ifconfig failed");
