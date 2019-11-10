@@ -640,7 +640,7 @@ struct options
     bool use_peer_id;
     uint32_t peer_id;
 
-#if defined(ENABLE_CRYPTO_OPENSSL) && OPENSSL_VERSION_NUMBER >= 0x10001000
+#ifdef HAVE_EKM
     /* Keying Material Exporters [RFC 5705] */
     const char *keying_material_exporter_label;
     int keying_material_exporter_length;

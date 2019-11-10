@@ -190,11 +190,61 @@ tls_ctx_initialised(struct tls_root_ctx *ctx)
     return ctx->initialised;
 }
 
+#ifdef HAVE_EKM
+int mbedtls_ssl_export_keys_cb(void *p_expkey, const unsigned char *ms,
+                               const unsigned char *kb, size_t maclen,
+                               size_t keylen, size_t ivlen,
+                               const unsigned char client_random[32],
+                               const unsigned char server_random[32],
+                               mbedtls_tls_prf_types tls_prf_type)
+{
+    struct tls_session *session = p_expkey;
+    struct key_state_ssl *ks_ssl = &session->key[KS_PRIMARY].ks_ssl;
+    unsigned char client_server_random[64];
+
+    ks_ssl->exported_key_material = gc_malloc(session->opt->ekm_size,
+                                              true, NULL);
+
+    memcpy(client_server_random, client_random, 32);
+    memcpy(client_server_random + 32, server_random, 32);
+
+    const size_t ms_len = sizeof(ks_ssl->ctx->session->master);
+    int ret = mbedtls_ssl_tls_prf(
+            tls_prf_type, ms, ms_len, session->opt->ekm_label,
+            client_server_random, sizeof(client_server_random),
+            ks_ssl->exported_key_material, session->opt->ekm_size);
+
+    if (!mbed_ok(ret))
+    {
+        secure_memzero(ks_ssl->exported_key_material, session->opt->ekm_size);
+    }
+
+    secure_memzero(client_server_random, sizeof(client_server_random));
+
+    return ret;
+}
+#endif /* HAVE_EKM */
+
 void
 key_state_export_keying_material(struct key_state_ssl *ssl,
                                  struct tls_session *session)
 {
+    if (ssl->exported_key_material)
+    {
+        unsigned int size = session->opt->ekm_size;
+        struct gc_arena gc = gc_new();
+        unsigned int len = (size * 2) + 2;
+
+        const char *key = format_hex_ex(ssl->exported_key_material,
+                                        size, len, 0, NULL, &gc);
+        setenv_str(session->opt->es, "exported_keying_material", key);
+
+        dmsg(D_TLS_DEBUG_MED, "%s: exported keying material: %s",
+             __func__, key);
+        gc_free(&gc);
+    }
 }
+
 
 bool
 tls_ctx_set_options(struct tls_root_ctx *ctx, unsigned int ssl_flags)
@@ -978,7 +1028,8 @@ err:
 
 void
 key_state_ssl_init(struct key_state_ssl *ks_ssl,
-                   const struct tls_root_ctx *ssl_ctx, bool is_server, struct tls_session *session)
+                   const struct tls_root_ctx *ssl_ctx, bool is_server,
+                   struct tls_session *session)
 {
     ASSERT(NULL != ssl_ctx);
     ASSERT(ks_ssl);
@@ -1069,6 +1120,15 @@ key_state_ssl_init(struct key_state_ssl *ks_ssl,
         }
     }
 
+#if MBEDTLS_VERSION_NUMBER >= 0x02120000
+    /* Initialize keying material exporter */
+    if (session->opt->ekm_size)
+    {
+        mbedtls_ssl_conf_export_keys_ext_cb(&ks_ssl->ssl_config,
+                mbedtls_ssl_export_keys_cb, session);
+    }
+#endif
+
     /* Initialise SSL context */
     ALLOC_OBJ_CLEAR(ks_ssl->ctx, mbedtls_ssl_context);
     mbedtls_ssl_init(ks_ssl->ctx);
@@ -1085,6 +1145,8 @@ key_state_ssl_free(struct key_state_ssl *ks_ssl)
 {
     if (ks_ssl)
     {
+        free(ks_ssl->exported_key_material);
+
         if (ks_ssl->ctx)
         {
             mbedtls_ssl_free(ks_ssl->ctx);

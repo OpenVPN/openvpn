@@ -33,6 +33,7 @@
 
 #include <mbedtls/ssl.h>
 #include <mbedtls/x509_crt.h>
+#include <mbedtls/version.h>
 
 #if defined(ENABLE_PKCS11)
 #include <pkcs11-helper-1.0/pkcs11h-certificate.h>
@@ -111,6 +112,10 @@ struct key_state_ssl {
     mbedtls_ssl_config ssl_config;      /**< mbedTLS global ssl config */
     mbedtls_ssl_context *ctx;           /**< mbedTLS connection context */
     bio_ctx bio_ctx;
+
+    /** Keying material exporter cache (RFC 5705). */
+    uint8_t *exported_key_material;
+
 };
 
 /**

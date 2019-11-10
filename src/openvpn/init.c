@@ -2931,7 +2931,7 @@ do_init_crypto_tls(struct context *c, const unsigned int flags)
     to.comp_options = options->comp;
 #endif
 
-#if defined(ENABLE_CRYPTO_OPENSSL) && OPENSSL_VERSION_NUMBER >= 0x10001000
+#ifdef HAVE_EKM
     if (options->keying_material_exporter_label)
     {
         to.ekm_size = options->keying_material_exporter_length;
@@ -2947,7 +2947,7 @@ do_init_crypto_tls(struct context *c, const unsigned int flags)
     {
         to.ekm_size = 0;
     }
-#endif
+#endif /* HAVE_EKM */
 
     /* TLS handshake authentication (--tls-auth) */
     if (options->ce.tls_auth_file)

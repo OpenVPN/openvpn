@@ -549,10 +549,14 @@ socket_defined(const socket_descriptor_t sd)
 #undef ENABLE_DEF_AUTH
 #endif
 
-/* Enable mbed TLS RNG prediction resistance support */
 #ifdef ENABLE_CRYPTO_MBEDTLS
+#include <mbedtls/version.h>
 #define ENABLE_PREDICTION_RESISTANCE
 #endif /* ENABLE_CRYPTO_MBEDTLS */
+
+#ifdef ENABLE_CRYPTO_OPENSSL
+#include <openssl/opensslv.h>
+#endif /* ENABLE_CRYPTO_OPENSSL */
 
 /*
  * Enable packet filter?
@@ -596,6 +600,14 @@ socket_defined(const socket_descriptor_t sd)
  */
 #if defined(_WIN32) && defined(ENABLE_CRYPTO_OPENSSL)
 #define ENABLE_CRYPTOAPI
+#endif
+
+/*
+ * Do we support RFC 5705 keying material exporters?
+ */
+#if (defined(ENABLE_CRYPTO_MBEDTLS) && MBEDTLS_VERSION_NUMBER >= 0x02120000) || \
+    (defined(ENABLE_CRYPTO_OPENSSL) && OPENSSL_VERSION_NUMBER >= 0x10001000)
+#define HAVE_EKM
 #endif
 
 /*

@@ -160,7 +160,9 @@ key_state_export_keying_material(struct key_state_ssl *ssl,
         unsigned char *ekm = (unsigned char *) gc_malloc(size, true, &gc);
 
         if (SSL_export_keying_material(ssl->ssl, ekm, size,
-                                       session->opt->ekm_label, session->opt->ekm_label_size, NULL, 0, 0))
+                                       session->opt->ekm_label,
+                                       session->opt->ekm_label_size,
+                                       NULL, 0, 0))
         {
             unsigned int len = (size * 2) + 2;
 
