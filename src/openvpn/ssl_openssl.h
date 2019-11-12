@@ -31,10 +31,8 @@
 
 #ifdef ENABLE_CRYPTO_WOLFSSL
 #include <wolfssl/options.h>
-#include <wolfssl/openssl/ssl.h>
-#else
-#include <openssl/ssl.h>
 #endif
+#include <openssl/ssl.h>
 
 /**
  * SSL_OP_NO_TICKET tells OpenSSL to disable "stateless session resumption",
