@@ -851,11 +851,7 @@ init_options(struct options *o, const bool init_gc)
     o->scheduled_exit_interval = 5;
 #endif
 #ifdef ENABLE_CRYPTO
-#ifdef ENABLE_CRYPTO_WOLFSSL
-    o->ciphername = "AES-256-CBC";
-#else
     o->ciphername = "BF-CBC";
-#endif
 #ifdef HAVE_AEAD_CIPHER_MODES /* IV_NCP=2 requires GCM support */
     o->ncp_enabled = true;
 #else

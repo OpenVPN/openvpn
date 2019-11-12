@@ -24,3 +24,4 @@ cert sample-keys/client.crt
 tls-auth sample-keys/ta.key 1
 ping 1
 inactive 120 10000000
+cipher AES-256-CBC
