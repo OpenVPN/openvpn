@@ -1032,6 +1032,12 @@ elif test "${enable_crypto}" = "yes" -a "${with_crypto_library}" = "mbedtls"; th
 elif test "${enable_crypto}" = "yes" -a "${with_crypto_library}" = "wolfssl"; then
 	AC_ARG_VAR([WOLFSSL_CFLAGS], [C compiler flags for wolfssl])
 	AC_ARG_VAR([WOLFSSL_LIBS], [linker flags for wolfssl])
+	AC_ARG_VAR([WOLFSSL_DIR], [Path to the wolfssl directory @<:@default=/usr/local/include/wolfssl@:>@])
+	if test -n "${WOLFSSL_DIR}"; then
+		wolfssldir="${WOLFSSL_DIR}"
+	else
+		wolfssldir="/usr/local/include/wolfssl"
+	fi
 
 	saved_CFLAGS="${CFLAGS}"
 	saved_LIBS="${LIBS}"
@@ -1088,7 +1094,7 @@ elif test "${enable_crypto}" = "yes" -a "${with_crypto_library}" = "wolfssl"; th
 	have_crypto_aead_modes="no"
 	have_crypto="yes"
 	
-	WOLFSSL_CFLAGS="${WOLFSSL_CFLAGS} -I/usr/local/include/wolfssl"
+	WOLFSSL_CFLAGS="${WOLFSSL_CFLAGS} -I${wolfssldir}"
 	CFLAGS="${WOLFSSL_CFLAGS} ${CFLAGS}"
 	LIBS="${WOLFSSL_LIBS} ${LIBS}"
 	AC_DEFINE([ENABLE_CRYPTO_WOLFSSL], [1], [Use wolfSSL crypto library])
