@@ -328,31 +328,36 @@ helper_client_server(struct options *o)
         }
         else if (dev == DEV_TYPE_TAP || (dev == DEV_TYPE_TUN && topology == TOP_SUBNET))
         {
-            if (netbits > 30)
+            int ptp = 1;
+
+            if (netbits > 31)
             {
                 msg(M_USAGE, "subnet must be %s or lower",
-                    print_netmask(30, &gc));
+                    print_netmask(31, &gc));
             }
+
+            if (netbits == 31)
+                ptp = 0;
 
             o->mode = MODE_SERVER;
             o->tls_server = true;
 
-            o->ifconfig_local = print_in_addr_t(o->server_network + 1, 0, &o->gc);
+            o->ifconfig_local = print_in_addr_t(o->server_network + ptp, 0, &o->gc);
             o->ifconfig_remote_netmask = print_in_addr_t(o->server_netmask, 0, &o->gc);
 
             if (!(o->server_flags & SF_NOPOOL))
             {
                 o->ifconfig_pool_defined = true;
-                o->ifconfig_pool_start = o->server_network + 2;
-                o->ifconfig_pool_end = (o->server_network | ~o->server_netmask) - 2;
+                o->ifconfig_pool_start = o->server_network + ptp + 1;
+                o->ifconfig_pool_end = (o->server_network | ~o->server_netmask) - ptp * 2;
                 ifconfig_pool_verify_range(M_USAGE, o->ifconfig_pool_start, o->ifconfig_pool_end);
             }
             o->ifconfig_pool_netmask = o->server_netmask;
 
-            push_option(o, print_opt_route_gateway(o->server_network + 1, &o->gc), M_USAGE);
+            push_option(o, print_opt_route_gateway(o->server_network + ptp, &o->gc), M_USAGE);
             if (dev == DEV_TYPE_TUN && !o->route_default_gateway)
             {
-                o->route_default_gateway = print_in_addr_t(o->server_network + 2, 0, &o->gc);
+                o->route_default_gateway = print_in_addr_t(o->server_network + ptp + 1, 0, &o->gc);
             }
         }
         else
