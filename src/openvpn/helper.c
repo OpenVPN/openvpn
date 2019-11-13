@@ -349,7 +349,7 @@ helper_client_server(struct options *o)
             {
                 o->ifconfig_pool_defined = true;
                 o->ifconfig_pool_start = o->server_network + ptp + 1;
-                o->ifconfig_pool_end = (o->server_network | ~o->server_netmask) - ptp * 2;
+                o->ifconfig_pool_end = (o->server_network | ~o->server_netmask) - ptp;
                 ifconfig_pool_verify_range(M_USAGE, o->ifconfig_pool_start, o->ifconfig_pool_end);
             }
             o->ifconfig_pool_netmask = o->server_netmask;
