@@ -351,8 +351,8 @@ helper_client_server(struct options *o)
                 o->ifconfig_pool_start = o->server_network + ptp + 1;
                 o->ifconfig_pool_end = (o->server_network | ~o->server_netmask) - ptp;
                 ifconfig_pool_verify_range(M_USAGE, o->ifconfig_pool_start, o->ifconfig_pool_end);
+                o->ifconfig_pool_netmask = o->server_netmask;
             }
-            o->ifconfig_pool_netmask = o->server_netmask;
 
             push_option(o, print_opt_route_gateway(o->server_network + ptp, &o->gc), M_USAGE);
             if (dev == DEV_TYPE_TUN && !o->route_default_gateway)
