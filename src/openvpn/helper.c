@@ -286,13 +286,13 @@ helper_client_server(struct options *o)
                 print_netmask(IFCONFIG_POOL_MIN_NETBITS, &gc));
         }
 
-        if (dev == DEV_TYPE_TUN)
+        if (dev == DEV_TYPE_TUN && (topology == TOP_NET30 || topology == TOP_P2P))
         {
             int pool_end_reserve = 4;
 
             if (netbits > 29)
             {
-                msg(M_USAGE, "--server directive when used with --dev tun must define a subnet of %s or lower",
+                msg(M_USAGE, "subnet must be %s or lower",
                     print_netmask(29, &gc));
             }
 
@@ -304,66 +304,39 @@ helper_client_server(struct options *o)
             o->mode = MODE_SERVER;
             o->tls_server = true;
 
-            if (topology == TOP_NET30 || topology == TOP_P2P)
+            o->ifconfig_local = print_in_addr_t(o->server_network + 1, 0, &o->gc);
+            o->ifconfig_remote_netmask = print_in_addr_t(o->server_network + 2, 0, &o->gc);
+
+            if (!(o->server_flags & SF_NOPOOL))
             {
-                o->ifconfig_local = print_in_addr_t(o->server_network + 1, 0, &o->gc);
-                o->ifconfig_remote_netmask = print_in_addr_t(o->server_network + 2, 0, &o->gc);
-
-                if (!(o->server_flags & SF_NOPOOL))
-                {
-                    o->ifconfig_pool_defined = true;
-                    o->ifconfig_pool_start = o->server_network + 4;
-                    o->ifconfig_pool_end = (o->server_network | ~o->server_netmask) - pool_end_reserve;
-                    ifconfig_pool_verify_range(M_USAGE, o->ifconfig_pool_start, o->ifconfig_pool_end);
-                }
-
-                helper_add_route(o->server_network, o->server_netmask, o);
-                if (o->enable_c2c)
-                {
-                    push_option(o, print_opt_route(o->server_network, o->server_netmask, &o->gc), M_USAGE);
-                }
-                else if (topology == TOP_NET30)
-                {
-                    push_option(o, print_opt_route(o->server_network + 1, 0, &o->gc), M_USAGE);
-                }
-            }
-            else if (topology == TOP_SUBNET)
-            {
-                o->ifconfig_local = print_in_addr_t(o->server_network + 1, 0, &o->gc);
-                o->ifconfig_remote_netmask = print_in_addr_t(o->server_netmask, 0, &o->gc);
-
-                if (!(o->server_flags & SF_NOPOOL))
-                {
-                    o->ifconfig_pool_defined = true;
-                    o->ifconfig_pool_start = o->server_network + 2;
-                    o->ifconfig_pool_end = (o->server_network | ~o->server_netmask) - 2;
-                    ifconfig_pool_verify_range(M_USAGE, o->ifconfig_pool_start, o->ifconfig_pool_end);
-                }
-                o->ifconfig_pool_netmask = o->server_netmask;
-
-                push_option(o, print_opt_route_gateway(o->server_network + 1, &o->gc), M_USAGE);
-                if (!o->route_default_gateway)
-                {
-                    o->route_default_gateway = print_in_addr_t(o->server_network + 2, 0, &o->gc);
-                }
-            }
-            else
-            {
-                ASSERT(0);
+                o->ifconfig_pool_defined = true;
+                o->ifconfig_pool_start = o->server_network + 4;
+                o->ifconfig_pool_end = (o->server_network | ~o->server_netmask) - pool_end_reserve;
+                ifconfig_pool_verify_range(M_USAGE, o->ifconfig_pool_start, o->ifconfig_pool_end);
             }
 
-            push_option(o, print_opt_topology(topology, &o->gc), M_USAGE);
+            helper_add_route(o->server_network, o->server_netmask, o);
+            if (o->enable_c2c)
+            {
+                push_option(o, print_opt_route(o->server_network, o->server_netmask, &o->gc), M_USAGE);
+            }
+            else if (topology == TOP_NET30)
+            {
+                push_option(o, print_opt_route(o->server_network + 1, 0, &o->gc), M_USAGE);
+            }
+
         }
-        else if (dev == DEV_TYPE_TAP)
+        else if (dev == DEV_TYPE_TAP || (dev == DEV_TYPE_TUN && topology == TOP_SUBNET))
         {
             if (netbits > 30)
             {
-                msg(M_USAGE, "--server directive when used with --dev tap must define a subnet of %s or lower",
+                msg(M_USAGE, "subnet must be %s or lower",
                     print_netmask(30, &gc));
             }
 
             o->mode = MODE_SERVER;
             o->tls_server = true;
+
             o->ifconfig_local = print_in_addr_t(o->server_network + 1, 0, &o->gc);
             o->ifconfig_remote_netmask = print_in_addr_t(o->server_netmask, 0, &o->gc);
 
@@ -371,17 +344,24 @@ helper_client_server(struct options *o)
             {
                 o->ifconfig_pool_defined = true;
                 o->ifconfig_pool_start = o->server_network + 2;
-                o->ifconfig_pool_end = (o->server_network | ~o->server_netmask) - 1;
+                o->ifconfig_pool_end = (o->server_network | ~o->server_netmask) - 2;
                 ifconfig_pool_verify_range(M_USAGE, o->ifconfig_pool_start, o->ifconfig_pool_end);
             }
             o->ifconfig_pool_netmask = o->server_netmask;
 
             push_option(o, print_opt_route_gateway(o->server_network + 1, &o->gc), M_USAGE);
+            if (dev == DEV_TYPE_TUN && !o->route_default_gateway)
+            {
+                o->route_default_gateway = print_in_addr_t(o->server_network + 2, 0, &o->gc);
+            }
         }
         else
         {
             ASSERT(0);
         }
+
+        if (dev == DEV_TYPE_TUN)
+            push_option(o, print_opt_topology(topology, &o->gc), M_USAGE);
 
         /* set push-ifconfig-constraint directive */
         if ((dev == DEV_TYPE_TAP || topology == TOP_SUBNET))
