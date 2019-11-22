@@ -4194,12 +4194,11 @@ show_available_tls_ciphers(const char *cipher_list,
 {
     printf("Available TLS Ciphers, listed in order of preference:\n");
 
-#if (ENABLE_CRYPTO_OPENSSL && OPENSSL_VERSION_NUMBER >= 0x1010100fL)
-    printf("\nFor TLS 1.3 and newer (--tls-ciphersuites):\n\n");
-    show_available_tls_ciphers_list(cipher_list_tls13, tls_cert_profile, true);
-#else
-    (void) cipher_list_tls13;  /* Avoid unused warning */
-#endif
+    if (tls_version_max() >= TLS_VER_1_3)
+    {
+        printf("\nFor TLS 1.3 and newer (--tls-ciphersuites):\n\n");
+        show_available_tls_ciphers_list(cipher_list_tls13, tls_cert_profile, true);
+    }
 
     printf("\nFor TLS 1.2 and older (--tls-cipher):\n\n");
     show_available_tls_ciphers_list(cipher_list, tls_cert_profile, false);

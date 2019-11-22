@@ -215,7 +215,26 @@ int
 tls_version_max(void)
 {
 #if defined(TLS1_3_VERSION)
+    /* If this is defined we can safely assume TLS 1.3 support */
     return TLS_VER_1_3;
+#elif OPENSSL_VERSION_NUMBER >= 0x10100000L
+    /*
+     * If TLS_VER_1_3 is not defined, we were compiled against a version that
+     * did not support TLS 1.3.
+     *
+     * However, the library we are *linked* against might be OpenSSL 1.1.1
+     * and therefore supports TLS 1.3. This needs to be checked at runtime
+     * since we can be compiled against 1.1.0 and then the library can be
+     * upgraded to 1.1.1
+     */
+    if (OpenSSL_version_num() >= 0x1010100fL)
+    {
+        return TLS_VER_1_3;
+    }
+    else
+    {
+        return TLS_VER_1_2;
+    }
 #elif defined(TLS1_2_VERSION) || defined(SSL_OP_NO_TLSv1_2)
     return TLS_VER_1_2;
 #elif defined(TLS1_1_VERSION) || defined(SSL_OP_NO_TLSv1_1)
@@ -241,12 +260,25 @@ openssl_tls_version(int ver)
     {
         return TLS1_2_VERSION;
     }
-#if defined(TLS1_3_VERSION)
     else if (ver == TLS_VER_1_3)
     {
+        /*
+         * Supporting the library upgraded to TLS1.3 without recompile
+         * is enough to support here with a simple constant that the same
+         * as in the TLS 1.3, so spec it is very unlikely that OpenSSL
+         * will change this constant
+         */
+#ifndef TLS1_3_VERSION
+        /*
+         * We do not want to define TLS_VER_1_3 if not defined
+         * since other parts of the code use the existance of this macro
+         * as proxy for TLS 1.3 support
+         */
+        return 0x0304;
+#else
         return TLS1_3_VERSION;
-    }
 #endif
+    }
     return 0;
 }
 
@@ -2015,7 +2047,8 @@ show_available_tls_ciphers_list(const char *cipher_list,
 #if defined(TLS1_3_VERSION)
     if (tls13)
     {
-        SSL_CTX_set_min_proto_version(tls_ctx.ctx, TLS1_3_VERSION);
+        SSL_CTX_set_min_proto_version(tls_ctx.ctx,
+                                      openssl_tls_version(TLS_VER_1_3));
         tls_ctx_restrict_ciphers_tls13(&tls_ctx, cipher_list);
     }
     else
