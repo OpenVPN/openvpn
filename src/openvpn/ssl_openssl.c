@@ -225,7 +225,9 @@ tls_version_max(void)
      * However, the library we are *linked* against might be OpenSSL 1.1.1
      * and therefore supports TLS 1.3. This needs to be checked at runtime
      * since we can be compiled against 1.1.0 and then the library can be
-     * upgraded to 1.1.1
+     * upgraded to 1.1.1.
+     * We only need to check this for OpenSSL versions that can be
+     * upgraded to 1.1.1 without recompile (>= 1.1.0)
      */
     if (OpenSSL_version_num() >= 0x1010100fL)
     {
@@ -1133,24 +1135,52 @@ openvpn_extkey_rsa_finish(RSA *rsa)
     return 1;
 }
 
-/* Pass the input hash in 'dgst' to management and get the signature back.
- * On input siglen contains the capacity of the buffer 'sig'.
- * On return signature is in sig.
- * Return value is signature length or -1 on error.
+/*
+ * Convert OpenSSL's constant to the strings used in the management
+ * interface query
+ */
+const char *
+get_rsa_padding_name (const int padding)
+{
+    switch (padding)
+    {
+        case RSA_PKCS1_PADDING:
+            return "RSA_PKCS1_PADDING";
+
+        case RSA_NO_PADDING:
+            return "RSA_NO_PADDING";
+
+        default:
+            return "UNKNOWN";
+    }
+}
+
+/**
+ * Pass the input hash in 'dgst' to management and get the signature back.
+  *
+ * @param dgst		hash to be signed
+ * @param dgstlen	len of data in dgst
+ * @param sig 		On successful return signature is in sig.
+ * @param siglen	length of buffer sig
+ * @param algorithm	padding/hashing algorithm for the signature
+ *
+ * @return 		signature length or -1 on error.
  */
 static int
 get_sig_from_man(const unsigned char *dgst, unsigned int dgstlen,
-                 unsigned char *sig, unsigned int siglen)
+                 unsigned char *sig, unsigned int siglen,
+                 const char *algorithm)
 {
     char *in_b64 = NULL;
     char *out_b64 = NULL;
     int len = -1;
 
-    /* convert 'dgst' to base64 */
-    if (management
-        && openvpn_base64_encode(dgst, dgstlen, &in_b64) > 0)
+    int bencret = openvpn_base64_encode(dgst, dgstlen, &in_b64);
+
+    if (management && bencret > 0)
     {
-        out_b64 = management_query_pk_sig(management, in_b64);
+        out_b64 = management_query_pk_sig(management, in_b64, algorithm);
+
     }
     if (out_b64)
     {
@@ -1164,18 +1194,19 @@ get_sig_from_man(const unsigned char *dgst, unsigned int dgstlen,
 
 /* sign arbitrary data */
 static int
-rsa_priv_enc(int flen, const unsigned char *from, unsigned char *to, RSA *rsa, int padding)
+rsa_priv_enc(int flen, const unsigned char *from, unsigned char *to, RSA *rsa,
+             int padding)
 {
     unsigned int len = RSA_size(rsa);
     int ret = -1;
 
-    if (padding != RSA_PKCS1_PADDING)
+    if (padding != RSA_PKCS1_PADDING && padding != RSA_NO_PADDING)
     {
         RSAerr(RSA_F_RSA_OSSL_PRIVATE_ENCRYPT, RSA_R_UNKNOWN_PADDING_TYPE);
         return -1;
     }
 
-    ret = get_sig_from_man(from, flen, to, len);
+    ret = get_sig_from_man(from, flen, to, len, get_rsa_padding_name (padding));
 
     return (ret == len) ? ret : -1;
 }
@@ -1271,7 +1302,12 @@ ecdsa_sign(int type, const unsigned char *dgst, int dgstlen, unsigned char *sig,
            unsigned int *siglen, const BIGNUM *kinv, const BIGNUM *r, EC_KEY *ec)
 {
     int capacity = ECDSA_size(ec);
-    int len = get_sig_from_man(dgst, dgstlen, sig, capacity);
+    /*
+     * ECDSA does not seem to have proper constants for paddings since
+     * there are only signatures without padding at the moment, use
+     * a generic ECDSA for the moment
+     */
+    int len = get_sig_from_man(dgst, dgstlen, sig, capacity, "ECDSA");
 
     if (len > 0)
     {

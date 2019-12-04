@@ -31,7 +31,7 @@
 #include "socket.h"
 #include "mroute.h"
 
-#define MANAGEMENT_VERSION                      2
+#define MANAGEMENT_VERSION                      3
 #define MANAGEMENT_N_PASSWORD_RETRIES           3
 #define MANAGEMENT_LOG_HISTORY_INITIAL_SIZE   100
 #define MANAGEMENT_ECHO_BUFFER_SIZE           100
@@ -341,12 +341,14 @@ struct management *management_init(void);
 #ifdef MANAGEMENT_PF
 #define MF_CLIENT_PF         (1<<7)
 #endif
-#define MF_UNIX_SOCK       (1<<8)
-#define MF_EXTERNAL_KEY    (1<<9)
-#define MF_UP_DOWN          (1<<10)
-#define MF_QUERY_REMOTE     (1<<11)
-#define MF_QUERY_PROXY      (1<<12)
-#define MF_EXTERNAL_CERT    (1<<13)
+#define MF_UNIX_SOCK                (1<<8)
+#define MF_EXTERNAL_KEY             (1<<9)
+#define MF_EXTERNAL_KEY_NOPADDING   (1<<10)
+#define MF_EXTERNAL_KEY_PKCS1PAD    (1<<11)
+#define MF_UP_DOWN                  (1<<12)
+#define MF_QUERY_REMOTE             (1<<13)
+#define MF_QUERY_PROXY              (1<<14)
+#define MF_EXTERNAL_CERT            (1<<15)
 
 bool management_open(struct management *man,
                      const char *addr,
@@ -430,7 +432,8 @@ void management_learn_addr(struct management *management,
 
 #endif
 
-char *management_query_pk_sig(struct management *man, const char *b64_data);
+char *management_query_pk_sig(struct management *man, const char *b64_data,
+                              const char *algorithm);
 
 char *management_query_cert(struct management *man, const char *cert_name);
 

@@ -2708,10 +2708,16 @@ Allow management interface to override
 directives (client\-only).
 .\"*********************************************************
 .TP
-.B \-\-management\-external\-key
+.B \-\-management\-external\-key [nopadding] [pkcs1]
 Allows usage for external private key file instead of
 .B \-\-key
-option (client\-only).
+option (client\-only). The optional parameters
+.B nopadding
+and
+.B pkcs1
+signal support for different padding algorithms. See
+doc/mangement-notes.txt for a complete description of this
+feature.
 .\"*********************************************************
 .TP
 .B \-\-management\-external\-cert certificate\-hint
