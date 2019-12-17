@@ -39,6 +39,7 @@ typedef enum {
     msg_del_block_dns,
     msg_register_dns,
     msg_enable_dhcp,
+    msg_register_ring_buffers
 } message_type_t;
 
 typedef struct {
@@ -116,5 +117,14 @@ typedef struct {
     message_header_t header;
     interface_t iface;
 } enable_dhcp_message_t;
+
+typedef struct {
+    message_header_t header;
+    HANDLE device;
+    HANDLE send_ring_handle;
+    HANDLE receive_ring_handle;
+    HANDLE send_tail_moved;
+    HANDLE receive_tail_moved;
+} register_ring_buffers_message_t;
 
 #endif /* ifndef OPENVPN_MSG_H_ */

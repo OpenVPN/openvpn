@@ -43,13 +43,15 @@
 #include "openvpn-msg.h"
 #include "validate.h"
 #include "block_dns.h"
+#include "ring_buffer.h"
 
 #define IO_TIMEOUT  2000 /*ms*/
 
-#define ERROR_OPENVPN_STARTUP  0x20000000
-#define ERROR_STARTUP_DATA     0x20000001
-#define ERROR_MESSAGE_DATA     0x20000002
-#define ERROR_MESSAGE_TYPE     0x20000003
+#define ERROR_OPENVPN_STARTUP        0x20000000
+#define ERROR_STARTUP_DATA           0x20000001
+#define ERROR_MESSAGE_DATA           0x20000002
+#define ERROR_MESSAGE_TYPE           0x20000003
+#define ERROR_REGISTER_RING_BUFFERS  0x20000004
 
 static SERVICE_STATUS_HANDLE service;
 static SERVICE_STATUS status = { .dwServiceType = SERVICE_WIN32_SHARE_PROCESS };
@@ -58,6 +60,7 @@ static settings_t settings;
 static HANDLE rdns_semaphore = NULL;
 #define RDNS_TIMEOUT 600  /* seconds to wait for the semaphore */
 
+#define TUN_IOCTL_REGISTER_RINGS CTL_CODE(51820U, 0x970U, METHOD_BUFFERED, FILE_READ_DATA | FILE_WRITE_DATA)
 
 openvpn_service_t interactive_service = {
     interactive,
@@ -99,6 +102,14 @@ typedef struct {
     int metric_v4;
     int metric_v6;
 } block_dns_data_t;
+
+typedef struct {
+    HANDLE send_ring_handle;
+    HANDLE receive_ring_handle;
+    HANDLE send_tail_moved;
+    HANDLE receive_tail_moved;
+    HANDLE device;
+} ring_buffer_handles_t;
 
 
 static DWORD
@@ -154,6 +165,26 @@ CloseHandleEx(LPHANDLE handle)
     return INVALID_HANDLE_VALUE;
 }
 
+static HANDLE
+OvpnUnmapViewOfFile(LPHANDLE handle)
+{
+    if (handle && *handle && *handle != INVALID_HANDLE_VALUE)
+    {
+        UnmapViewOfFile(*handle);
+        *handle = INVALID_HANDLE_VALUE;
+    }
+    return INVALID_HANDLE_VALUE;
+}
+
+static void
+CloseRingBufferHandles(ring_buffer_handles_t *ring_buffer_handles)
+{
+    CloseHandleEx(&ring_buffer_handles->device);
+    CloseHandleEx(&ring_buffer_handles->receive_tail_moved);
+    CloseHandleEx(&ring_buffer_handles->send_tail_moved);
+    OvpnUnmapViewOfFile(&ring_buffer_handles->send_ring_handle);
+    OvpnUnmapViewOfFile(&ring_buffer_handles->receive_ring_handle);
+}
 
 static HANDLE
 InitOverlapped(LPOVERLAPPED overlapped)
@@ -1198,8 +1229,95 @@ HandleEnableDHCPMessage(const enable_dhcp_message_t *dhcp)
     return err;
 }
 
+static DWORD
+OvpnDuplicateHandle(HANDLE ovpn_proc, HANDLE orig_handle, HANDLE* new_handle)
+{
+    DWORD err = ERROR_SUCCESS;
+
+    if (!DuplicateHandle(ovpn_proc, orig_handle, GetCurrentProcess(), new_handle, 0, FALSE, DUPLICATE_SAME_ACCESS))
+    {
+        err = GetLastError();
+        MsgToEventLog(M_SYSERR, TEXT("Could not duplicate handle"));
+        return err;
+    }
+
+    return err;
+}
+
+static DWORD
+DuplicateAndMapRing(HANDLE ovpn_proc, HANDLE orig_handle, HANDLE *new_handle, struct tun_ring **ring)
+{
+    DWORD err = ERROR_SUCCESS;
+
+    err = OvpnDuplicateHandle(ovpn_proc, orig_handle, new_handle);
+    if (err != ERROR_SUCCESS)
+    {
+        return err;
+    }
+    *ring = (struct tun_ring *)MapViewOfFile(*new_handle, FILE_MAP_ALL_ACCESS, 0, 0, sizeof(struct tun_ring));
+    if (*ring == NULL)
+    {
+        err = GetLastError();
+        MsgToEventLog(M_SYSERR, TEXT("Could not map shared memory"));
+        return err;
+    }
+
+    return err;
+}
+
+static DWORD
+HandleRegisterRingBuffers(const register_ring_buffers_message_t *rrb, HANDLE ovpn_proc,
+                          ring_buffer_handles_t *ring_buffer_handles)
+{
+    DWORD err = 0;
+    struct tun_ring *send_ring;
+    struct tun_ring *receive_ring;
+
+    CloseRingBufferHandles(ring_buffer_handles);
+
+    err = OvpnDuplicateHandle(ovpn_proc, rrb->device, &ring_buffer_handles->device);
+    if (err != ERROR_SUCCESS)
+    {
+        return err;
+    }
+
+    err = DuplicateAndMapRing(ovpn_proc, rrb->send_ring_handle, &ring_buffer_handles->send_ring_handle, &send_ring);
+    if (err != ERROR_SUCCESS)
+    {
+        return err;
+    }
+
+    err = DuplicateAndMapRing(ovpn_proc, rrb->receive_ring_handle, &ring_buffer_handles->receive_ring_handle, &receive_ring);
+    if (err != ERROR_SUCCESS)
+    {
+        return err;
+    }
+
+    err = OvpnDuplicateHandle(ovpn_proc, rrb->send_tail_moved, &ring_buffer_handles->send_tail_moved);
+    if (err != ERROR_SUCCESS)
+    {
+        return err;
+    }
+
+    err = OvpnDuplicateHandle(ovpn_proc, rrb->receive_tail_moved, &ring_buffer_handles->receive_tail_moved);
+    if (err != ERROR_SUCCESS)
+    {
+        return err;
+    }
+
+    if (!register_ring_buffers(ring_buffer_handles->device, send_ring, receive_ring,
+                               ring_buffer_handles->send_tail_moved, ring_buffer_handles->receive_tail_moved))
+    {
+        MsgToEventLog(M_SYSERR, TEXT("Could not register ring buffers"));
+        err = ERROR_REGISTER_RING_BUFFERS;
+    }
+
+    return err;
+}
+
 static VOID
-HandleMessage(HANDLE pipe, DWORD bytes, DWORD count, LPHANDLE events, undo_lists_t *lists)
+HandleMessage(HANDLE pipe, HANDLE ovpn_proc, ring_buffer_handles_t *ring_buffer_handles,
+              DWORD bytes, DWORD count, LPHANDLE events, undo_lists_t *lists)
 {
     DWORD read;
     union {
@@ -1210,6 +1328,7 @@ HandleMessage(HANDLE pipe, DWORD bytes, DWORD count, LPHANDLE events, undo_lists
         block_dns_message_t block_dns;
         dns_cfg_message_t dns;
         enable_dhcp_message_t dhcp;
+        register_ring_buffers_message_t rrb;
     } msg;
     ack_message_t ack = {
         .header = {
@@ -1274,6 +1393,13 @@ HandleMessage(HANDLE pipe, DWORD bytes, DWORD count, LPHANDLE events, undo_lists
             if (msg.header.size == sizeof(msg.dhcp))
             {
                 ack.error_number = HandleEnableDHCPMessage(&msg.dhcp);
+            }
+            break;
+
+        case msg_register_ring_buffers:
+            if (msg.header.size == sizeof(msg.rrb))
+            {
+                ack.error_number = HandleRegisterRingBuffers(&msg.rrb, ovpn_proc, ring_buffer_handles);
             }
             break;
 
@@ -1360,6 +1486,7 @@ RunOpenvpn(LPVOID p)
     WCHAR *cmdline = NULL;
     size_t cmdline_size;
     undo_lists_t undo_lists;
+    ring_buffer_handles_t ring_buffer_handles;
 
     SECURITY_ATTRIBUTES inheritable = {
         .nLength = sizeof(inheritable),
@@ -1380,6 +1507,7 @@ RunOpenvpn(LPVOID p)
     ZeroMemory(&startup_info, sizeof(startup_info));
     ZeroMemory(&undo_lists, sizeof(undo_lists));
     ZeroMemory(&proc_info, sizeof(proc_info));
+    ZeroMemory(&ring_buffer_handles, sizeof(ring_buffer_handles));
 
     if (!GetStartupData(pipe, &sud))
     {
@@ -1611,7 +1739,7 @@ RunOpenvpn(LPVOID p)
             break;
         }
 
-        HandleMessage(ovpn_pipe, bytes, 1, &exit_event, &undo_lists);
+        HandleMessage(ovpn_pipe, proc_info.hProcess, &ring_buffer_handles, bytes, 1, &exit_event, &undo_lists);
     }
 
     WaitForSingleObject(proc_info.hProcess, IO_TIMEOUT);
@@ -1638,6 +1766,7 @@ out:
     free(cmdline);
     DestroyEnvironmentBlock(user_env);
     FreeStartupData(&sud);
+    CloseRingBufferHandles(&ring_buffer_handles);
     CloseHandleEx(&proc_info.hProcess);
     CloseHandleEx(&proc_info.hThread);
     CloseHandleEx(&stdin_read);

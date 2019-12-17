@@ -115,6 +115,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\openvpn\ring_buffer.c" />
     <ClCompile Include="automatic.c" />
     <ClCompile Include="common.c" />
     <ClCompile Include="interactive.c" />
@@ -123,6 +124,7 @@
     <ClCompile Include="..\openvpn\block_dns.c" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\openvpn\ring_buffer.h" />
     <ClInclude Include="service.h" />
     <ClInclude Include="validate.h" />
     <ClInclude Include="..\openvpn\block_dns.h" />

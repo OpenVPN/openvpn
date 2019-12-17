@@ -39,6 +39,7 @@
 #include "proto.h"
 #include "misc.h"
 #include "networking.h"
+#include "ring_buffer.h"
 
 #ifdef _WIN32
 #define WINTUN_COMPONENT_ID "wintun"
@@ -183,6 +184,8 @@ struct tuntap
     bool wintun; /* true if wintun is used instead of tap-windows6 */
     int standby_iter;
 
+    HANDLE wintun_send_ring_handle;
+    HANDLE wintun_receive_ring_handle;
     struct tun_ring *wintun_send_ring;
     struct tun_ring *wintun_receive_ring;
 #else  /* ifdef _WIN32 */

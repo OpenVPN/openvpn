@@ -325,53 +325,7 @@ bool send_msg_iservice(HANDLE pipe, const void *data, size_t size,
 int
 openvpn_execve(const struct argv *a, const struct env_set *es, const unsigned int flags);
 
-/*
- * Values below are taken from Wireguard Windows client
- * https://github.com/WireGuard/wireguard-go/blob/master/tun/wintun/ring_windows.go#L14
- */
-#define WINTUN_RING_CAPACITY 0x800000
-#define WINTUN_RING_TRAILING_BYTES 0x10000
-#define WINTUN_MAX_PACKET_SIZE 0xffff
-#define WINTUN_PACKET_ALIGN 4
-
-struct tun_ring
-{
-    volatile ULONG head;
-    volatile ULONG tail;
-    volatile LONG alertable;
-    UCHAR data[WINTUN_RING_CAPACITY + WINTUN_RING_TRAILING_BYTES];
-};
-
-struct tun_register_rings
-{
-    struct
-    {
-        ULONG ring_size;
-        struct tun_ring *ring;
-        HANDLE tail_moved;
-    } send, receive;
-};
-
-struct TUN_PACKET_HEADER
-{
-    uint32_t size;
-};
-
-struct TUN_PACKET
-{
-    uint32_t size;
-    UCHAR data[WINTUN_MAX_PACKET_SIZE];
-};
-
-#define TUN_IOCTL_REGISTER_RINGS CTL_CODE(51820U, 0x970U, METHOD_BUFFERED, FILE_READ_DATA | FILE_WRITE_DATA)
-
 bool impersonate_as_system();
-
-bool register_ring_buffers(HANDLE device,
-                           struct tun_ring *send_ring,
-                           struct tun_ring *receive_ring,
-                           HANDLE send_tail_moved,
-                           HANDLE receive_tail_moved);
 
 #endif /* ifndef OPENVPN_WIN32_H */
 #endif /* ifdef _WIN32 */

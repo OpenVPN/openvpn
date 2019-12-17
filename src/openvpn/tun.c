@@ -779,17 +779,29 @@ init_tun_post(struct tuntap *tt,
 
     if (tt->wintun)
     {
-        tt->wintun_send_ring = malloc(sizeof(struct tun_ring));
-        tt->wintun_receive_ring = malloc(sizeof(struct tun_ring));
-        if ((tt->wintun_send_ring == NULL) || (tt->wintun_receive_ring == NULL))
+        tt->wintun_send_ring_handle = CreateFileMapping(INVALID_HANDLE_VALUE, NULL,
+                                                        PAGE_READWRITE,
+                                                        0,
+                                                        sizeof(struct tun_ring),
+                                                        NULL);
+        tt->wintun_receive_ring_handle = CreateFileMapping(INVALID_HANDLE_VALUE,
+                                                           NULL,
+                                                           PAGE_READWRITE,
+                                                           0,
+                                                           sizeof(struct tun_ring),
+                                                           NULL);
+        if ((tt->wintun_send_ring_handle == NULL) || (tt->wintun_receive_ring_handle == NULL))
         {
             msg(M_FATAL, "Cannot allocate memory for ring buffer");
         }
-        ZeroMemory(tt->wintun_send_ring, sizeof(struct tun_ring));
-        ZeroMemory(tt->wintun_receive_ring, sizeof(struct tun_ring));
 
         tt->rw_handle.read = CreateEvent(NULL, FALSE, FALSE, NULL);
         tt->rw_handle.write = CreateEvent(NULL, FALSE, FALSE, NULL);
+
+        if ((tt->rw_handle.read == NULL) || (tt->rw_handle.write == NULL))
+        {
+            msg(M_FATAL, "Cannot create events for ring buffer");
+        }
     }
     else
     {
@@ -5604,6 +5616,44 @@ register_dns_service(const struct tuntap *tt)
     gc_free(&gc);
 }
 
+static void
+service_register_ring_buffers(const struct tuntap *tt)
+{
+    HANDLE msg_channel = tt->options.msg_channel;
+    ack_message_t ack;
+    struct gc_arena gc = gc_new();
+
+    register_ring_buffers_message_t msg = {
+        .header = {
+            msg_register_ring_buffers,
+            sizeof(register_ring_buffers_message_t),
+            0
+        },
+        .device = tt->hand,
+        .send_ring_handle = tt->wintun_send_ring_handle,
+        .receive_ring_handle = tt->wintun_receive_ring_handle,
+        .send_tail_moved = tt->rw_handle.read,
+        .receive_tail_moved = tt->rw_handle.write
+    };
+
+    if (!send_msg_iservice(msg_channel, &msg, sizeof(msg), &ack, "Register ring buffers"))
+    {
+        gc_free(&gc);
+        return;
+    }
+    else if (ack.error_number != NO_ERROR)
+    {
+        msg(M_FATAL, "Register ring buffers failed using service: %s [status=0x%x]",
+            strerror_win32(ack.error_number, &gc), ack.error_number);
+    }
+    else
+    {
+        msg(M_INFO, "Ring buffers registered via service");
+    }
+
+    gc_free(&gc);
+}
+
 void
 fork_register_dns_action(struct tuntap *tt)
 {
@@ -6198,9 +6248,20 @@ open_tun(const char *dev, const char *dev_type, const char *dev_node, struct tun
 
     if (tt->wintun)
     {
+        tt->wintun_send_ring = (struct tun_ring *)MapViewOfFile(tt->wintun_send_ring_handle,
+                                                                FILE_MAP_ALL_ACCESS,
+                                                                0,
+                                                                0,
+                                                                sizeof(struct tun_ring));
+        tt->wintun_receive_ring = (struct tun_ring *)MapViewOfFile(tt->wintun_receive_ring_handle,
+                                                                   FILE_MAP_ALL_ACCESS,
+                                                                   0,
+                                                                   0,
+                                                                   sizeof(struct tun_ring));
+
         if (tt->options.msg_channel)
         {
-            /* TODO */
+            service_register_ring_buffers(tt);
         }
         else
         {
@@ -6365,13 +6426,12 @@ close_tun(struct tuntap *tt, openvpn_net_ctx_t *ctx)
     {
         CloseHandle(tt->rw_handle.read);
         CloseHandle(tt->rw_handle.write);
+        UnmapViewOfFile(tt->wintun_send_ring);
+        UnmapViewOfFile(tt->wintun_receive_ring);
+        CloseHandle(tt->wintun_send_ring_handle);
+        CloseHandle(tt->wintun_receive_ring_handle);
     }
 
-    free(tt->wintun_receive_ring);
-    free(tt->wintun_send_ring);
-
-    tt->wintun_receive_ring = NULL;
-    tt->wintun_send_ring = NULL;
 
     clear_tuntap(tt);
     free(tt);

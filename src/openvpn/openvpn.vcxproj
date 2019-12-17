@@ -181,6 +181,7 @@
     <ClCompile Include="ps.c" />
     <ClCompile Include="push.c" />
     <ClCompile Include="reliable.c" />
+    <ClCompile Include="ring_buffer.c" />
     <ClCompile Include="route.c" />
     <ClCompile Include="run_command.c" />
     <ClCompile Include="schedule.c" />
@@ -265,6 +266,7 @@
     <ClInclude Include="push.h" />
     <ClInclude Include="pushlist.h" />
     <ClInclude Include="reliable.h" />
+    <ClInclude Include="ring_buffer.h" />
     <ClInclude Include="route.h" />
     <ClInclude Include="run_command.h" />
     <ClInclude Include="schedule.h" />
