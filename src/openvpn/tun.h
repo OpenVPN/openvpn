@@ -182,6 +182,9 @@ struct tuntap
 
     bool wintun; /* true if wintun is used instead of tap-windows6 */
     int standby_iter;
+
+    struct tun_ring *wintun_send_ring;
+    struct tun_ring *wintun_receive_ring;
 #else  /* ifdef _WIN32 */
     int fd; /* file descriptor for TUN/TAP dev */
 #endif
@@ -210,6 +213,20 @@ tuntap_defined(const struct tuntap *tt)
     return tt && tt->fd >= 0;
 #endif
 }
+
+#ifdef _WIN32
+inline bool
+tuntap_is_wintun(struct tuntap *tt)
+{
+    return tt && tt->wintun;
+}
+
+inline bool
+tuntap_ring_empty(struct tuntap *tt)
+{
+    return tuntap_is_wintun(tt) && (tt->wintun_send_ring->head == tt->wintun_send_ring->tail);
+}
+#endif
 
 /*
  * Function prototypes
@@ -478,10 +495,158 @@ read_tun_buffered(struct tuntap *tt, struct buffer *buf)
     return tun_finalize(tt->hand, &tt->reads, buf);
 }
 
+static inline ULONG
+wintun_ring_packet_align(ULONG size)
+{
+    return (size + (WINTUN_PACKET_ALIGN - 1)) & ~(WINTUN_PACKET_ALIGN - 1);
+}
+
+static inline ULONG
+wintun_ring_wrap(ULONG value)
+{
+    return value & (WINTUN_RING_CAPACITY - 1);
+}
+
+static inline void
+read_wintun(struct tuntap *tt, struct buffer* buf)
+{
+    struct tun_ring *ring = tt->wintun_send_ring;
+    ULONG head = ring->head;
+    ULONG tail = ring->tail;
+    ULONG content_len;
+    struct TUN_PACKET *packet;
+    ULONG aligned_packet_size;
+
+    *buf = tt->reads.buf_init;
+    buf->len = 0;
+
+    if ((head >= WINTUN_RING_CAPACITY) || (tail >= WINTUN_RING_CAPACITY))
+    {
+        msg(M_INFO, "Wintun: ring capacity exceeded");
+        buf->len = -1;
+        return;
+    }
+
+    if (head == tail)
+    {
+        /* nothing to read */
+        return;
+    }
+
+    content_len = wintun_ring_wrap(tail - head);
+    if (content_len < sizeof(struct TUN_PACKET_HEADER))
+    {
+        msg(M_INFO, "Wintun: incomplete packet header in send ring");
+        buf->len = -1;
+        return;
+    }
+
+    packet = (struct TUN_PACKET *) &ring->data[head];
+    if (packet->size > WINTUN_MAX_PACKET_SIZE)
+    {
+        msg(M_INFO, "Wintun: packet too big in send ring");
+        buf->len = -1;
+        return;
+    }
+
+    aligned_packet_size = wintun_ring_packet_align(sizeof(struct TUN_PACKET_HEADER) + packet->size);
+    if (aligned_packet_size > content_len)
+    {
+        msg(M_INFO, "Wintun: incomplete packet in send ring");
+        buf->len = -1;
+        return;
+    }
+
+    buf_write(buf, packet->data, packet->size);
+
+    head = wintun_ring_wrap(head + aligned_packet_size);
+    ring->head = head;
+}
+
+static inline bool
+is_ip_packet_valid(const struct buffer *buf)
+{
+    const struct openvpn_iphdr* ih = (const struct openvpn_iphdr *)BPTR(buf);
+
+    if (OPENVPN_IPH_GET_VER(ih->version_len) == 4)
+    {
+        if (BLEN(buf) < sizeof(struct openvpn_iphdr))
+        {
+            return false;
+        }
+    }
+    else if (OPENVPN_IPH_GET_VER(ih->version_len) == 6)
+    {
+        if (BLEN(buf) < sizeof(struct openvpn_ipv6hdr))
+        {
+            return false;
+        }
+    }
+    else
+    {
+        return false;
+    }
+
+    return true;
+}
+
+static inline int
+write_wintun(struct tuntap *tt, struct buffer *buf)
+{
+    struct tun_ring *ring = tt->wintun_receive_ring;
+    ULONG head = ring->head;
+    ULONG tail = ring->tail;
+    ULONG aligned_packet_size;
+    ULONG buf_space;
+    struct TUN_PACKET *packet;
+
+    /* wintun marks ring as corrupted (overcapacity) if it receives invalid IP packet */
+    if (!is_ip_packet_valid(buf))
+    {
+        msg(D_LOW, "write_wintun(): drop invalid IP packet");
+        return 0;
+    }
+
+    if ((head >= WINTUN_RING_CAPACITY) || (tail >= WINTUN_RING_CAPACITY))
+    {
+        msg(M_INFO, "write_wintun(): head/tail value is over capacity");
+        return -1;
+    }
+
+    aligned_packet_size = wintun_ring_packet_align(sizeof(struct TUN_PACKET_HEADER) + BLEN(buf));
+    buf_space = wintun_ring_wrap(head - tail - WINTUN_PACKET_ALIGN);
+    if (aligned_packet_size > buf_space)
+    {
+        msg(M_INFO, "write_wintun(): ring is full");
+        return 0;
+    }
+
+    /* copy packet size and data into ring */
+    packet = (struct TUN_PACKET* )&ring->data[tail];
+    packet->size = BLEN(buf);
+    memcpy(packet->data, BPTR(buf), BLEN(buf));
+
+    /* move ring tail */
+    ring->tail = wintun_ring_wrap(tail + aligned_packet_size);
+    if (ring->alertable != 0)
+    {
+        SetEvent(tt->rw_handle.write);
+    }
+
+    return BLEN(buf);
+}
+
 static inline int
 write_tun_buffered(struct tuntap *tt, struct buffer *buf)
 {
-    return tun_write_win32(tt, buf);
+    if (tt->wintun)
+    {
+        return write_wintun(tt, buf);
+    }
+    else
+    {
+        return tun_write_win32(tt, buf);
+    }
 }
 
 #else  /* ifdef _WIN32 */
@@ -544,7 +709,7 @@ tun_set(struct tuntap *tt,
             }
         }
 #ifdef _WIN32
-        if (rwflags & EVENT_READ)
+        if (!tt->wintun && (rwflags & EVENT_READ))
         {
             tun_read_queue(tt, 0);
         }

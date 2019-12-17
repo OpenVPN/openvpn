@@ -775,9 +775,27 @@ init_tun_post(struct tuntap *tt,
 #ifdef _WIN32
     overlapped_io_init(&tt->reads, frame, FALSE, true);
     overlapped_io_init(&tt->writes, frame, TRUE, true);
-    tt->rw_handle.read = tt->reads.overlapped.hEvent;
-    tt->rw_handle.write = tt->writes.overlapped.hEvent;
     tt->adapter_index = TUN_ADAPTER_INDEX_INVALID;
+
+    if (tt->wintun)
+    {
+        tt->wintun_send_ring = malloc(sizeof(struct tun_ring));
+        tt->wintun_receive_ring = malloc(sizeof(struct tun_ring));
+        if ((tt->wintun_send_ring == NULL) || (tt->wintun_receive_ring == NULL))
+        {
+            msg(M_FATAL, "Cannot allocate memory for ring buffer");
+        }
+        ZeroMemory(tt->wintun_send_ring, sizeof(struct tun_ring));
+        ZeroMemory(tt->wintun_receive_ring, sizeof(struct tun_ring));
+
+        tt->rw_handle.read = CreateEvent(NULL, FALSE, FALSE, NULL);
+        tt->rw_handle.write = CreateEvent(NULL, FALSE, FALSE, NULL);
+    }
+    else
+    {
+        tt->rw_handle.read = tt->reads.overlapped.hEvent;
+        tt->rw_handle.write = tt->writes.overlapped.hEvent;
+    }
 #endif
 }
 
@@ -6177,6 +6195,34 @@ open_tun(const char *dev, const char *dev_type, const char *dev_node, struct tun
             tt->ipapi_context_defined = true;
         }
     }
+
+    if (tt->wintun)
+    {
+        if (tt->options.msg_channel)
+        {
+            /* TODO */
+        }
+        else
+        {
+            if (!impersonate_as_system())
+            {
+                msg(M_FATAL, "ERROR:  Failed to impersonate as SYSTEM, make sure process is running under privileged account");
+            }
+            if (!register_ring_buffers(tt->hand,
+                                       tt->wintun_send_ring,
+                                       tt->wintun_receive_ring,
+                                       tt->rw_handle.read,
+                                       tt->rw_handle.write))
+            {
+                msg(M_FATAL, "ERROR:  Failed to register ring buffers: %lu", GetLastError());
+            }
+            if (!RevertToSelf())
+            {
+                msg(M_FATAL, "ERROR:  RevertToSelf error: %lu", GetLastError());
+            }
+        }
+    }
+
     /*netcmd_semaphore_release ();*/
     gc_free(&gc);
 }
@@ -6314,6 +6360,18 @@ close_tun(struct tuntap *tt, openvpn_net_ctx_t *ctx)
     {
         free(tt->actual_name);
     }
+
+    if (tt->wintun)
+    {
+        CloseHandle(tt->rw_handle.read);
+        CloseHandle(tt->rw_handle.write);
+    }
+
+    free(tt->wintun_receive_ring);
+    free(tt->wintun_send_ring);
+
+    tt->wintun_receive_ring = NULL;
+    tt->wintun_send_ring = NULL;
 
     clear_tuntap(tt);
     free(tt);

@@ -269,8 +269,25 @@ multi_tcp_wait(const struct context *c,
                struct multi_tcp *mtcp)
 {
     int status;
+    unsigned int *persistent = &mtcp->tun_rwflags;
     socket_set_listen_persistent(c->c2.link_socket, mtcp->es, MTCP_SOCKET);
-    tun_set(c->c1.tuntap, mtcp->es, EVENT_READ, MTCP_TUN, &mtcp->tun_rwflags);
+
+#ifdef _WIN32
+    if (tuntap_is_wintun(c->c1.tuntap))
+    {
+        if (!tuntap_ring_empty(c->c1.tuntap))
+        {
+            /* there is data in wintun ring buffer, read it immediately */
+            mtcp->esr[0].arg = MTCP_TUN;
+            mtcp->esr[0].rwflags = EVENT_READ;
+            mtcp->n_esr = 1;
+            return 1;
+        }
+        persistent = NULL;
+    }
+#endif
+    tun_set(c->c1.tuntap, mtcp->es, EVENT_READ, MTCP_TUN, persistent);
+
 #ifdef ENABLE_MANAGEMENT
     if (management)
     {

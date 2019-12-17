@@ -3016,10 +3016,10 @@ options_postprocess_mutate_invariant(struct options *options)
         options->ifconfig_noexec = false;
     }
 
-    /* for wintun kernel doesn't send DHCP requests, so use ipapi to set IP address and netmask */
+    /* for wintun kernel doesn't send DHCP requests, so use netsh to set IP address and netmask */
     if (options->wintun)
     {
-        options->tuntap_options.ip_win32_type = IPW32_SET_IPAPI;
+        options->tuntap_options.ip_win32_type = IPW32_SET_NETSH;
     }
 
     remap_redirect_gateway_flags(options);
