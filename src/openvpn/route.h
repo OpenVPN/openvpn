@@ -321,7 +321,8 @@ void setenv_routes(struct env_set *es, const struct route_list *rl);
 
 void setenv_routes_ipv6(struct env_set *es, const struct route_ipv6_list *rl6);
 
-
+bool do_route_ipv4_service(const bool add, const struct route_ipv4 *r,
+                           const struct tuntap *tt);
 
 bool is_special_addr(const char *addr_str);
 

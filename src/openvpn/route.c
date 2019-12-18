@@ -3019,7 +3019,7 @@ out:
     return ret;
 }
 
-static bool
+bool
 do_route_ipv4_service(const bool add, const struct route_ipv4 *r, const struct tuntap *tt)
 {
     DWORD if_index = windows_route_find_if_index(r, tt);
