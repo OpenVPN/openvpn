@@ -860,21 +860,6 @@ delete_route_connected_v6_net(struct tuntap *tt,
 }
 #endif /* if defined(_WIN32) || defined(TARGET_DARWIN) || defined(TARGET_NETBSD) || defined(TARGET_OPENBSD) */
 
-#if defined(_WIN32)
-void
-do_route_ipv4_service_tun(bool add, const struct tuntap *tt)
-{
-    struct route_ipv4 r4;
-    CLEAR(r4);
-    r4.network = tt->local & tt->remote_netmask;
-    r4.netmask = tt->remote_netmask;
-    r4.gateway = tt->local;
-    r4.metric = 0;                     /* connected route */
-    r4.flags = RT_DEFINED | RT_METRIC_DEFINED;
-    do_route_ipv4_service(add, &r4, tt);
-}
-#endif
-
 #if defined(TARGET_FREEBSD) || defined(TARGET_DRAGONFLY)  \
     || defined(TARGET_NETBSD) || defined(TARGET_OPENBSD)
 /* we can't use true subnet mode on tun on all platforms, as that
@@ -1406,7 +1391,6 @@ do_ifconfig_ipv4(struct tuntap *tt, const char *ifname, int tun_mtu,
         if (tt->options.msg_channel && tt->wintun)
         {
             do_address_service(true, AF_INET, tt);
-            do_route_ipv4_service_tun(true, tt);
             do_dns_service(true, AF_INET, tt);
         }
         else
@@ -6489,7 +6473,6 @@ close_tun(struct tuntap *tt, openvpn_net_ctx_t *ctx)
     {
         if (tt->options.msg_channel)
         {
-            do_route_ipv4_service_tun(false, tt);
             do_address_service(false, AF_INET, tt);
             do_dns_service(false, AF_INET, tt);
         }
