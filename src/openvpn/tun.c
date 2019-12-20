@@ -6195,7 +6195,6 @@ static void
 tun_open_device(struct tuntap *tt, const char *dev_node, const char **device_guid)
 {
     struct gc_arena gc = gc_new();
-    char tuntap_device_path[256];
     const struct tap_reg* tap_reg = get_tap_reg(&gc);
     const struct panel_reg* panel_reg = get_panel_reg(&gc);
     const struct device_instance_id_interface* device_instance_id_interface = get_device_instance_id_interface(&gc);
@@ -6208,31 +6207,34 @@ tun_open_device(struct tuntap *tt, const char *dev_node, const char **device_gui
      */
     if (dev_node)
     {
+        bool is_picked_device_wintun = false;
+
         /* Get the device GUID for the device specified with --dev-node. */
-        *device_guid = get_device_guid(dev_node, actual_buffer, sizeof(actual_buffer), NULL, tap_reg, panel_reg, &gc);
+        *device_guid = get_device_guid(dev_node, actual_buffer, sizeof(actual_buffer), &is_picked_device_wintun, tap_reg, panel_reg, &gc);
 
         if (!*device_guid)
         {
-            msg(M_FATAL, "TAP-Windows adapter '%s' not found", dev_node);
+            msg(M_FATAL, "Adapter '%s' not found", dev_node);
         }
 
-        /* Open Windows TAP-Windows adapter */
-        openvpn_snprintf(tuntap_device_path, sizeof(tuntap_device_path), "%s%s%s",
-                         USERMODEDEVICEDIR,
-                         *device_guid,
-                         TAP_WIN_SUFFIX);
-
-        tt->hand = CreateFile(tuntap_device_path,
-                              GENERIC_READ | GENERIC_WRITE,
-                              0,                /* was: FILE_SHARE_READ */
-                              0,
-                              OPEN_EXISTING,
-                              FILE_ATTRIBUTE_SYSTEM | FILE_FLAG_OVERLAPPED,
-                              0);
-
-        if (tt->hand == INVALID_HANDLE_VALUE)
+        if (tt->wintun)
         {
-            msg(M_ERR, "CreateFile failed on TAP device: %s", tuntap_device_path);
+            if (!is_picked_device_wintun)
+            {
+                msg(M_FATAL, "Adapter '%s' is TAP-Windows, Wintun expected. If you want to use this device, remove --windows-driver wintun.", dev_node);
+            }
+        }
+        else
+        {
+            if (is_picked_device_wintun)
+            {
+                msg(M_FATAL, "Adapter '%s' is Wintun, TAP-Windows expected. If you want to use this device, add --windows-driver wintun.", dev_node);
+            }
+        }
+
+        if (!tun_try_open_device(tt, *device_guid, device_instance_id_interface))
+        {
+            msg(M_FATAL, "Failed to open %s adapter: %s", tt->wintun ? "Wintun" : "TAP-Windows", dev_node);
         }
     }
     else
