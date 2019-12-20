@@ -4104,12 +4104,13 @@ get_unspecified_device_guid(const int device_number,
 
 /*
  * Lookup a --dev-node adapter name in the registry
- * returning the GUID and optional actual_name.
+ * returning the GUID and optional actual_name and device type
  */
 static const char *
 get_device_guid(const char *name,
                 char *actual_name,
                 int actual_name_size,
+                bool *wintun,
                 const struct tap_reg *tap_reg,
                 const struct panel_reg *panel_reg,
                 struct gc_arena *gc)
@@ -4145,6 +4146,10 @@ get_device_guid(const char *name,
         {
             buf_printf(&actual, "%s", name);
         }
+        if (wintun)
+        {
+            *wintun = tr->wintun;
+        }
         return BSTR(&ret);
     }
 
@@ -4154,6 +4159,10 @@ get_device_guid(const char *name,
         if (tr)
         {
             buf_printf(&actual, "%s", name);
+            if (wintun)
+            {
+                *wintun = tr->wintun;
+            }
             buf_printf(&ret, "%s", tr->guid);
             return BSTR(&ret);
         }
@@ -4838,7 +4847,7 @@ tap_allow_nonadmin_access(const char *dev_node)
     if (dev_node)
     {
         /* Get the device GUID for the device specified with --dev-node. */
-        device_guid = get_device_guid(dev_node, actual_buffer, sizeof(actual_buffer), tap_reg, panel_reg, &gc);
+        device_guid = get_device_guid(dev_node, actual_buffer, sizeof(actual_buffer), NULL, tap_reg, panel_reg, &gc);
 
         if (!device_guid)
         {
@@ -5412,7 +5421,7 @@ netsh_get_id(const char *dev_node, struct gc_arena *gc)
 
     if (dev_node)
     {
-        guid = get_device_guid(dev_node, BPTR(&actual), BCAP(&actual), tap_reg, panel_reg, gc);
+        guid = get_device_guid(dev_node, BPTR(&actual), BCAP(&actual), NULL, tap_reg, panel_reg, gc);
     }
     else
     {
@@ -6132,7 +6141,7 @@ tun_open_device(struct tuntap *tt, const char *dev_node, const char **device_gui
     if (dev_node)
     {
         /* Get the device GUID for the device specified with --dev-node. */
-        *device_guid = get_device_guid(dev_node, actual_buffer, sizeof(actual_buffer), tap_reg, panel_reg, &gc);
+        *device_guid = get_device_guid(dev_node, actual_buffer, sizeof(actual_buffer), NULL, tap_reg, panel_reg, &gc);
 
         if (!*device_guid)
         {
