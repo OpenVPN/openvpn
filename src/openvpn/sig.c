@@ -317,8 +317,11 @@ print_status(const struct context *c, struct status_output *so)
 #ifdef _WIN32
     if (tuntap_defined(c->c1.tuntap))
     {
-        status_printf(so, "TAP-WIN32 driver status,\"%s\"",
-                      tap_win_getinfo(c->c1.tuntap, &gc));
+        const char *extended_msg = tap_win_getinfo(c->c1.tuntap, &gc);
+        if (extended_msg)
+        {
+            status_printf(so, "TAP-WIN32 driver status,\"%s\"", extended_msg);
+        }
     }
 #endif
 

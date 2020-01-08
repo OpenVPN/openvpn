@@ -6411,7 +6411,7 @@ open_tun(const char *dev, const char *dev_type, const char *dev_node, struct tun
 const char *
 tap_win_getinfo(const struct tuntap *tt, struct gc_arena *gc)
 {
-    if (tt && tt->hand != NULL)
+    if (!tt->wintun)
     {
         struct buffer out = alloc_buf_gc(256, gc);
         DWORD len;
@@ -6429,7 +6429,7 @@ tap_win_getinfo(const struct tuntap *tt, struct gc_arena *gc)
 void
 tun_show_debug(struct tuntap *tt)
 {
-    if (tt && tt->hand != NULL)
+    if (!tt->wintun)
     {
         struct buffer out = alloc_buf(1024);
         DWORD len;
