@@ -854,7 +854,7 @@ init_options(struct options *o, const bool init_gc)
     o->tuntap_options.dhcp_masq_offset = 0;     /* use network address as internal DHCP server address */
     o->route_method = ROUTE_METHOD_ADAPTIVE;
     o->block_outside_dns = false;
-    o->wintun = false;
+    o->windows_driver = WINDOWS_DRIVER_TAP_WINDOWS6;
 #endif
     o->vlan_accept = VLAN_ALL;
     o->vlan_pvid = 1;
@@ -3002,7 +3002,7 @@ options_postprocess_mutate_invariant(struct options *options)
 
 #ifdef _WIN32
     /* when using wintun, kernel doesn't send DHCP requests, so use netsh to set IP address and netmask */
-    if (options->wintun)
+    if (options->windows_driver == WINDOWS_DRIVER_WINTUN)
     {
         options->tuntap_options.ip_win32_type = IPW32_SET_NETSH;
     }
@@ -4076,23 +4076,23 @@ foreign_option(struct options *o, char *argv[], int len, struct env_set *es)
  *
  * @param str       value of --windows-driver option
  * @param msglevel  msglevel to report parsing error
- * @return bool     true if --windows-driver is wintun, false otherwise
+ * @return enum windows_driver_type  driver type, WINDOWS_DRIVER_UNSPECIFIED on unknown --windows-driver value
  */
-static bool
+static enum windows_driver_type
 parse_windows_driver(const char *str, const int msglevel)
 {
     if (streq(str, "tap-windows6"))
     {
-        return false;
+        return WINDOWS_DRIVER_TAP_WINDOWS6;
     }
     else if (streq(str, "wintun"))
     {
-        return true;
+        return WINDOWS_DRIVER_WINTUN;
     }
     else
     {
         msg(msglevel, "--windows-driver must be tap-windows6 or wintun");
-        return false;
+        return WINDOWS_DRIVER_UNSPECIFIED;
     }
 }
 #endif
@@ -5367,7 +5367,7 @@ add_option(struct options *options,
     else if (streq(p[0], "windows-driver") && p[1] && !p[2])
     {
         VERIFY_PERMISSION(OPT_P_GENERAL);
-        options->wintun = parse_windows_driver(p[1], M_FATAL);
+        options->windows_driver = parse_windows_driver(p[1], M_FATAL);
     }
 #endif
     else if (streq(p[0], "dev-node") && p[1] && !p[2])

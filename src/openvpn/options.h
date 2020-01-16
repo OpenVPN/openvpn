@@ -634,7 +634,7 @@ struct options
     bool show_net_up;
     int route_method;
     bool block_outside_dns;
-    bool wintun;
+    enum windows_driver_type windows_driver;
 #endif
 
     bool use_peer_id;

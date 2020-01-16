@@ -43,6 +43,12 @@
 
 #ifdef _WIN32
 #define WINTUN_COMPONENT_ID "wintun"
+
+enum windows_driver_type {
+    WINDOWS_DRIVER_UNSPECIFIED,
+    WINDOWS_DRIVER_TAP_WINDOWS6,
+    WINDOWS_DRIVER_WINTUN
+};
 #endif
 
 #if defined(_WIN32) || defined(TARGET_ANDROID)
@@ -181,7 +187,7 @@ struct tuntap
      * ~0 if undefined */
     DWORD adapter_index;
 
-    bool wintun; /* true if wintun is used instead of tap-windows6 */
+    enum windows_driver_type windows_driver;
     int standby_iter;
 
     HANDLE wintun_send_ring_handle;
@@ -221,7 +227,7 @@ tuntap_defined(const struct tuntap *tt)
 inline bool
 tuntap_is_wintun(struct tuntap *tt)
 {
-    return tt && tt->wintun;
+    return tt && tt->windows_driver == WINDOWS_DRIVER_WINTUN;
 }
 
 inline bool
@@ -365,7 +371,7 @@ route_order(void)
 struct tap_reg
 {
     const char *guid;
-    bool wintun;
+    enum windows_driver_type windows_driver;
     struct tap_reg *next;
 };
 
@@ -642,7 +648,7 @@ write_wintun(struct tuntap *tt, struct buffer *buf)
 static inline int
 write_tun_buffered(struct tuntap *tt, struct buffer *buf)
 {
-    if (tt->wintun)
+    if (tt->windows_driver == WINDOWS_DRIVER_WINTUN)
     {
         return write_wintun(tt, buf);
     }
@@ -712,7 +718,7 @@ tun_set(struct tuntap *tt,
             }
         }
 #ifdef _WIN32
-        if (!tt->wintun && (rwflags & EVENT_READ))
+        if (tt->windows_driver == WINDOWS_DRIVER_TAP_WINDOWS6 && (rwflags & EVENT_READ))
         {
             tun_read_queue(tt, 0);
         }

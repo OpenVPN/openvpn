@@ -1734,7 +1734,7 @@ do_init_tun(struct context *c)
                             &c->net_ctx);
 
 #ifdef _WIN32
-    c->c1.tuntap->wintun = c->options.wintun;
+    c->c1.tuntap->windows_driver = c->options.windows_driver;
 #endif
 
     init_tun_post(c->c1.tuntap,
