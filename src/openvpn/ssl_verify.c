@@ -402,9 +402,19 @@ verify_peer_cert(const struct tls_options *opt, openvpn_x509_cert_t *peer_cert,
         }
         else
         {
-            msg(D_HANDSHAKE, "VERIFY X509NAME ERROR: %s, must be %s",
-                subject, opt->verify_x509_name);
-            return FAILURE;             /* Reject connection */
+            bool verfified_with_alt_names = opt->verify_x509_type == VERIFY_X509_SUBJECT_RDN &&
+                    x509v3_is_host_in_alternative_names(peer_cert, opt->verify_x509_name);
+
+            if (verfified_with_alt_names)
+            {
+                msg(D_HANDSHAKE, "VERIFY X509NAME OK (ALTERNATIVE): %s", opt->verify_x509_name);
+            }
+            else
+            {
+                msg(D_HANDSHAKE, "VERIFY X509NAME ERROR: %s, must be %s",
+                    subject, opt->verify_x509_name);
+                return FAILURE;             /* Reject connection */
+            }
         }
     }
 

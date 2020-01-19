@@ -268,4 +268,9 @@ result_t x509_write_pem(FILE *peercert_file, openvpn_x509_cert_t *peercert);
  */
 bool tls_verify_crl_missing(const struct tls_options *opt);
 
+/**
+ * Return true iff {host} was found in {cert} Subject Alternative Names DNS or IP entries.
+ */
+bool x509v3_is_host_in_alternative_names(openvpn_x509_cert_t *cert, const char* host);
+
 #endif /* SSL_VERIFY_BACKEND_H_ */

@@ -364,6 +364,45 @@ err:
     return subject;
 }
 
+bool
+x509v3_is_host_in_alternative_names(X509 *cert, const char* host)
+{
+    GENERAL_NAMES* altnames = X509_get_ext_d2i(cert, NID_subject_alt_name, NULL, NULL);
+    if (altnames == NULL)
+    {
+        return false;
+    }
+
+    int n = sk_GENERAL_NAME_num(altnames);
+    for (int i = 0; i < n; i++)
+    {
+        GENERAL_NAME* altname = sk_GENERAL_NAME_value(altnames, i);
+        ASN1_STRING *altname_asn1 = NULL;
+        if (altname->type == GEN_DNS)
+        {
+            altname_asn1 = altname->d.dNSName;
+        }
+        else if (altname->type == GEN_IPADD)
+        {
+            altname_asn1 = altname->d.iPAddress;
+        }
+
+        if (altname_asn1 != NULL)
+        {
+            char* altname_cstr = NULL;
+            if (ASN1_STRING_to_UTF8((unsigned char **)&altname_cstr, altname_asn1) >= 0) {
+                bool match = strcmp(host, altname_cstr) == 0;
+                OPENSSL_free(altname_cstr);
+                if (match)
+                {
+                    return true;
+                }
+            }
+        }
+    }
+    return false;
+}
+
 
 /*
  * x509-track implementation -- save X509 fields to environment,
