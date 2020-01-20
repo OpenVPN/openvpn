@@ -390,31 +390,33 @@ verify_peer_cert(const struct tls_options *opt, openvpn_x509_cert_t *peer_cert,
     /* verify X509 name or username against --verify-x509-[user]name */
     if (opt->verify_x509_type != VERIFY_X509_NONE)
     {
-        if ( (opt->verify_x509_type == VERIFY_X509_SUBJECT_DN
+        bool match;
+        if (opt->verify_x509_type == VERIFY_X509_SAN)
+        {
+            bool have_alt_names;
+            match = x509v3_is_host_in_alternative_names(peer_cert, opt->verify_x509_name, &have_alt_names)
+                    || (!have_alt_names && strcmp(opt->verify_x509_name, common_name) == 0);
+        }
+        else
+        {
+            match = (opt->verify_x509_type == VERIFY_X509_SUBJECT_DN
               && strcmp(opt->verify_x509_name, subject) == 0)
              || (opt->verify_x509_type == VERIFY_X509_SUBJECT_RDN
                  && strcmp(opt->verify_x509_name, common_name) == 0)
              || (opt->verify_x509_type == VERIFY_X509_SUBJECT_RDN_PREFIX
                  && strncmp(opt->verify_x509_name, common_name,
-                            strlen(opt->verify_x509_name)) == 0) )
+                            strlen(opt->verify_x509_name)) == 0);
+        }
+
+        if (match)
         {
-            msg(D_HANDSHAKE, "VERIFY X509NAME OK: %s", subject);
+            msg(D_HANDSHAKE, "VERIFY X509NAME OK: %s", opt->verify_x509_name);
         }
         else
         {
-            bool verfified_with_alt_names = opt->verify_x509_type == VERIFY_X509_SUBJECT_RDN &&
-                    x509v3_is_host_in_alternative_names(peer_cert, opt->verify_x509_name);
-
-            if (verfified_with_alt_names)
-            {
-                msg(D_HANDSHAKE, "VERIFY X509NAME OK (ALTERNATIVE): %s", opt->verify_x509_name);
-            }
-            else
-            {
-                msg(D_HANDSHAKE, "VERIFY X509NAME ERROR: %s, must be %s",
-                    subject, opt->verify_x509_name);
-                return FAILURE;             /* Reject connection */
-            }
+            msg(D_HANDSHAKE, "VERIFY X509NAME ERROR: %s, must be %s",
+                subject, opt->verify_x509_name);
+            return FAILURE;             /* Reject connection */
         }
     }
 

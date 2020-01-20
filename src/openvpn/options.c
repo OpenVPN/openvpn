@@ -8144,6 +8144,10 @@ add_option(struct options *options,
             {
                 type = VERIFY_X509_SUBJECT_RDN_PREFIX;
             }
+            else if (streq(p[2], "subject-alt-name"))
+            {
+                type = VERIFY_X509_SAN;
+            }
             else
             {
                 msg(msglevel, "unknown X.509 name type: %s", p[2]);

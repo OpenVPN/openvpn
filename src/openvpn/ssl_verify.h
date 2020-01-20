@@ -64,6 +64,7 @@ struct cert_hash_set {
 #define VERIFY_X509_SUBJECT_DN          1
 #define VERIFY_X509_SUBJECT_RDN         2
 #define VERIFY_X509_SUBJECT_RDN_PREFIX  3
+#define VERIFY_X509_SAN                 4
 
 #define TLS_AUTHENTICATION_SUCCEEDED  0
 #define TLS_AUTHENTICATION_FAILED     1

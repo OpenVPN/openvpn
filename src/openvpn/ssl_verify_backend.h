@@ -270,7 +270,9 @@ bool tls_verify_crl_missing(const struct tls_options *opt);
 
 /**
  * Return true iff {host} was found in {cert} Subject Alternative Names DNS or IP entries.
+ * If {has_alt_names} != NULL it'll return true iff Subject Alternative Names were defined
+ * for {cert}.
  */
-bool x509v3_is_host_in_alternative_names(openvpn_x509_cert_t *cert, const char* host);
+bool x509v3_is_host_in_alternative_names(openvpn_x509_cert_t *cert, const char *host, bool *has_alt_names);
 
 #endif /* SSL_VERIFY_BACKEND_H_ */

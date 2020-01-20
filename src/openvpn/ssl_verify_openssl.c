@@ -365,9 +365,13 @@ err:
 }
 
 bool
-x509v3_is_host_in_alternative_names(X509 *cert, const char* host)
+x509v3_is_host_in_alternative_names(X509 *cert, const char *host, bool *has_alt_names)
 {
     GENERAL_NAMES* altnames = X509_get_ext_d2i(cert, NID_subject_alt_name, NULL, NULL);
+    if (has_alt_names != NULL)
+    {
+        *has_alt_names = altnames != NULL;
+    }
     if (altnames == NULL)
     {
         return false;
@@ -402,7 +406,6 @@ x509v3_is_host_in_alternative_names(X509 *cert, const char* host)
     }
     return false;
 }
-
 
 /*
  * x509-track implementation -- save X509 fields to environment,
