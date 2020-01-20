@@ -662,7 +662,7 @@ static const char usage_message[] =
     "                  an explicit nsCertType designation t = 'client' | 'server'.\n"
     "--x509-track x  : Save peer X509 attribute x in environment for use by\n"
     "                  plugins and management interface.\n"
-#ifdef HAVE_EKM
+#ifdef HAVE_EXPORT_KEYING_MATERIAL
     "--keying-material-exporter label len : Save Exported Keying Material (RFC5705)\n"
     "                  of len bytes (min. 16 bytes) using label in environment for use by plugins.\n"
 #endif
@@ -8506,7 +8506,7 @@ add_option(struct options *options,
         options->use_peer_id = true;
         options->peer_id = atoi(p[1]);
     }
-#ifdef HAVE_EKM
+#ifdef HAVE_EXPORT_KEYING_MATERIAL
     else if (streq(p[0], "keying-material-exporter") && p[1] && p[2])
     {
         int ekm_length = positive_atoi(p[2]);

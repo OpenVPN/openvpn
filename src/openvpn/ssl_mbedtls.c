@@ -190,7 +190,7 @@ tls_ctx_initialised(struct tls_root_ctx *ctx)
     return ctx->initialised;
 }
 
-#ifdef HAVE_EKM
+#ifdef HAVE_EXPORT_KEYING_MATERIAL
 int mbedtls_ssl_export_keys_cb(void *p_expkey, const unsigned char *ms,
                                const unsigned char *kb, size_t maclen,
                                size_t keylen, size_t ivlen,
@@ -223,7 +223,7 @@ int mbedtls_ssl_export_keys_cb(void *p_expkey, const unsigned char *ms,
 
     return ret;
 }
-#endif /* HAVE_EKM */
+#endif /* HAVE_EXPORT_KEYING_MATERIAL */
 
 void
 key_state_export_keying_material(struct key_state_ssl *ssl,
@@ -1120,7 +1120,7 @@ key_state_ssl_init(struct key_state_ssl *ks_ssl,
         }
     }
 
-#if MBEDTLS_VERSION_NUMBER >= 0x02120000
+#if HAVE_EXPORT_KEYING_MATERIAL
     /* Initialize keying material exporter */
     if (session->opt->ekm_size)
     {

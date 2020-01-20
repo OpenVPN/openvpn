@@ -912,6 +912,13 @@ if test "${with_crypto_library}" = "openssl"; then
 		[have_crypto_aead_modes="no"; break]
 	)
 
+	have_export_keying_material="yes"
+	AC_CHECK_FUNCS(
+		[SSL_export_keying_material],
+		,
+		[have_export_keying_material="no"; break]
+	)
+
 	AC_CHECK_FUNCS(
 		[ \
 			HMAC_CTX_new \
@@ -1008,6 +1015,13 @@ elif test "${with_crypto_library}" = "mbedtls"; then
 		],
 		,
 		[have_crypto_aead_modes="no"; break]
+	)
+
+	have_export_keying_material="yes"
+	AC_CHECK_FUNCS(
+		[mbedtls_ssl_conf_export_keys_ext_cb],
+		,
+		[have_export_keying_material="no"; break]
 	)
 
 	CFLAGS="${saved_CFLAGS}"
@@ -1217,6 +1231,12 @@ test "${enable_strict_options}" = "yes" && AC_DEFINE([ENABLE_STRICT_OPTIONS_CHEC
 
 test "${enable_crypto_ofb_cfb}" = "yes" && AC_DEFINE([ENABLE_OFB_CFB_MODE], [1], [Enable OFB and CFB cipher modes])
 test "${have_crypto_aead_modes}" = "yes" && AC_DEFINE([HAVE_AEAD_CIPHER_MODES], [1], [Use crypto library])
+if test "${have_export_keying_material}" = "yes"; then
+	AC_DEFINE(
+		[HAVE_EXPORT_KEYING_MATERIAL], [1],
+		[Crypto library supports keying material exporter]
+	)
+fi
 OPTIONAL_CRYPTO_CFLAGS="${OPTIONAL_CRYPTO_CFLAGS} ${CRYPTO_CFLAGS}"
 OPTIONAL_CRYPTO_LIBS="${OPTIONAL_CRYPTO_LIBS} ${CRYPTO_LIBS}"
 

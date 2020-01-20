@@ -2931,7 +2931,7 @@ do_init_crypto_tls(struct context *c, const unsigned int flags)
     to.comp_options = options->comp;
 #endif
 
-#ifdef HAVE_EKM
+#ifdef HAVE_EXPORT_KEYING_MATERIAL
     if (options->keying_material_exporter_label)
     {
         to.ekm_size = options->keying_material_exporter_length;
@@ -2947,7 +2947,7 @@ do_init_crypto_tls(struct context *c, const unsigned int flags)
     {
         to.ekm_size = 0;
     }
-#endif /* HAVE_EKM */
+#endif /* HAVE_EXPORT_KEYING_MATERIAL */
 
     /* TLS handshake authentication (--tls-auth) */
     if (options->ce.tls_auth_file)
