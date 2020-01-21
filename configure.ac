@@ -906,17 +906,17 @@ if test "${with_crypto_library}" = "openssl"; then
 	fi
 
 	have_crypto_aead_modes="yes"
-	AC_CHECK_FUNCS(
+	AC_CHECK_FUNC(
 		[EVP_aes_256_gcm],
 		,
-		[have_crypto_aead_modes="no"; break]
+		[have_crypto_aead_modes="no"]
 	)
 
 	have_export_keying_material="yes"
-	AC_CHECK_FUNCS(
+	AC_CHECK_FUNC(
 		[SSL_export_keying_material],
 		,
-		[have_export_keying_material="no"; break]
+		[have_export_keying_material="no"]
 	)
 
 	AC_CHECK_FUNCS(
@@ -1018,10 +1018,10 @@ elif test "${with_crypto_library}" = "mbedtls"; then
 	)
 
 	have_export_keying_material="yes"
-	AC_CHECK_FUNCS(
+	AC_CHECK_FUNC(
 		[mbedtls_ssl_conf_export_keys_ext_cb],
 		,
-		[have_export_keying_material="no"; break]
+		[have_export_keying_material="no"]
 	)
 
 	CFLAGS="${saved_CFLAGS}"
