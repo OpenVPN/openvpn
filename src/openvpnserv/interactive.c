@@ -51,7 +51,6 @@
 #define ERROR_STARTUP_DATA           0x20000001
 #define ERROR_MESSAGE_DATA           0x20000002
 #define ERROR_MESSAGE_TYPE           0x20000003
-#define ERROR_REGISTER_RING_BUFFERS  0x20000004
 
 static SERVICE_STATUS_HANDLE service;
 static SERVICE_STATUS status = { .dwServiceType = SERVICE_WIN32_SHARE_PROCESS };
@@ -1280,8 +1279,8 @@ HandleRegisterRingBuffers(const register_ring_buffers_message_t *rrb, HANDLE ovp
     if (!register_ring_buffers(ring_buffer_handles->device, send_ring, receive_ring,
                                ring_buffer_handles->send_tail_moved, ring_buffer_handles->receive_tail_moved))
     {
+        err = GetLastError();
         MsgToEventLog(M_SYSERR, TEXT("Could not register ring buffers"));
-        err = ERROR_REGISTER_RING_BUFFERS;
     }
 
     return err;

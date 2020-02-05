@@ -5951,7 +5951,7 @@ tuntap_set_ip_addr(struct tuntap *tt,
 }
 
 static bool
-wintun_register_ring_buffer(struct tuntap *tt)
+wintun_register_ring_buffer(struct tuntap *tt, const char *device_guid)
 {
     bool ret = true;
 
@@ -5983,7 +5983,19 @@ wintun_register_ring_buffer(struct tuntap *tt)
                                    tt->rw_handle.read,
                                    tt->rw_handle.write))
         {
-            msg(M_NONFATAL, "Failed to register ring buffers: %lu", GetLastError());
+            switch (GetLastError())
+            {
+                case ERROR_ACCESS_DENIED:
+                    msg(M_FATAL, "Access denied registering ring buffers. Is this process run as SYSTEM?");
+                    break;
+
+                case ERROR_ALREADY_INITIALIZED:
+                    msg(M_NONFATAL, "Adapter %s is already in use", device_guid);
+                    break;
+
+                default:
+                    msg(M_NONFATAL | M_ERRNO, "Failed to register ring buffers");
+            }
             ret = false;
         }
         if (!RevertToSelf())
@@ -6205,7 +6217,7 @@ tun_try_open_device(struct tuntap *tt, const char *device_guid, const struct dev
     if (tt->windows_driver == WINDOWS_DRIVER_WINTUN)
     {
         /* Wintun adapter may be considered "open" after ring buffers are successfuly registered. */
-        if (!wintun_register_ring_buffer(tt))
+        if (!wintun_register_ring_buffer(tt, device_guid))
         {
             msg(D_TUNTAP_INFO, "Failed to register %s adapter ring buffers", device_guid);
             CloseHandle(tt->hand);

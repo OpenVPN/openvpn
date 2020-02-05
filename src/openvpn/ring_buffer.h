@@ -92,7 +92,7 @@ struct TUN_PACKET
  *                            that data is available for reading in send ring
  * @param receive_tail_moved  event set by openvpn to signal wintun
  *                            that data has been written to receive ring
- * @return                    true if registration is successful, false otherwise
+ * @return                    true if registration is successful, false otherwise - use GetLastError()
  */
 bool register_ring_buffers(HANDLE device,
                            struct tun_ring *send_ring,
