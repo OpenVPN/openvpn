@@ -224,13 +224,13 @@ tuntap_defined(const struct tuntap *tt)
 }
 
 #ifdef _WIN32
-inline bool
+static inline bool
 tuntap_is_wintun(struct tuntap *tt)
 {
     return tt && tt->windows_driver == WINDOWS_DRIVER_WINTUN;
 }
 
-inline bool
+static inline bool
 tuntap_ring_empty(struct tuntap *tt)
 {
     return tuntap_is_wintun(tt) && (tt->wintun_send_ring->head == tt->wintun_send_ring->tail);
