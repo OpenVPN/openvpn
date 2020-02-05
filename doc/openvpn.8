@@ -6265,6 +6265,10 @@ Specifies which tun driver to use. Values are
 (default) and
 .B wintun.
 This is Windows-only option.
+"wintun" requires
+.B \-\-dev tun
+and the OpenVPN process to run elevated, or be invoked using
+the Interactive Service.
 .\"*********************************************************
 .TP
 .B \-\-dhcp\-renew

@@ -2204,7 +2204,12 @@ options_postprocess_verify_ce(const struct options *options, const struct connec
     {
         msg(M_USAGE, "--dhcp-options requires --ip-win32 dynamic or adaptive");
     }
-#endif
+
+    if (options->windows_driver == WINDOWS_DRIVER_WINTUN && dev != DEV_TYPE_TUN)
+    {
+        msg(M_USAGE, "--windows-driver wintun requires --dev tun");
+    }
+#endif /* ifdef _WIN32 */
 
     /*
      * Check that protocol options make sense.
