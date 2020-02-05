@@ -196,7 +196,7 @@ struct tuntap
     struct tun_ring *wintun_receive_ring;
 #else  /* ifdef _WIN32 */
     int fd; /* file descriptor for TUN/TAP dev */
-#endif
+#endif /* ifdef _WIN32 */
 
 #ifdef TARGET_SOLARIS
     int ip_fd;
@@ -517,7 +517,7 @@ wintun_ring_wrap(ULONG value)
 }
 
 static inline void
-read_wintun(struct tuntap *tt, struct buffer* buf)
+read_wintun(struct tuntap *tt, struct buffer *buf)
 {
     struct tun_ring *ring = tt->wintun_send_ring;
     ULONG head = ring->head;
@@ -575,7 +575,7 @@ read_wintun(struct tuntap *tt, struct buffer* buf)
 static inline bool
 is_ip_packet_valid(const struct buffer *buf)
 {
-    const struct openvpn_iphdr* ih = (const struct openvpn_iphdr *)BPTR(buf);
+    const struct openvpn_iphdr *ih = (const struct openvpn_iphdr *)BPTR(buf);
 
     if (OPENVPN_IPH_GET_VER(ih->version_len) == 4)
     {
@@ -631,7 +631,7 @@ write_wintun(struct tuntap *tt, struct buffer *buf)
     }
 
     /* copy packet size and data into ring */
-    packet = (struct TUN_PACKET* )&ring->data[tail];
+    packet = (struct TUN_PACKET * )&ring->data[tail];
     packet->size = BLEN(buf);
     memcpy(packet->data, BPTR(buf), BLEN(buf));
 
