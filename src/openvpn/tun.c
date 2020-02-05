@@ -3692,11 +3692,19 @@ get_tap_reg(struct gc_arena *gc)
 
                 if (status == ERROR_SUCCESS && data_type == REG_SZ)
                 {
+                    /* Is this adapter supported? */
                     enum windows_driver_type windows_driver = WINDOWS_DRIVER_UNSPECIFIED;
+                    if (strcasecmp(component_id, TAP_WIN_COMPONENT_ID) == 0 ||
+                        strcasecmp(component_id, "root\\" TAP_WIN_COMPONENT_ID) == 0)
+                    {
+                        windows_driver = WINDOWS_DRIVER_TAP_WINDOWS6;
+                    }
+                    else if (strcasecmp(component_id, WINTUN_COMPONENT_ID) == 0)
+                    {
+                        windows_driver = WINDOWS_DRIVER_WINTUN;
+                    }
 
-                    if ((windows_driver = WINDOWS_DRIVER_TAP_WINDOWS6, !strcmp(component_id, TAP_WIN_COMPONENT_ID))
-                        || (windows_driver = WINDOWS_DRIVER_TAP_WINDOWS6, !strcmp(component_id, "root\\" TAP_WIN_COMPONENT_ID))
-                        || (windows_driver = WINDOWS_DRIVER_WINTUN, !strcmp(component_id, WINTUN_COMPONENT_ID)))
+                    if (windows_driver != WINDOWS_DRIVER_UNSPECIFIED)
                     {
                         struct tap_reg *reg;
                         ALLOC_OBJ_CLEAR_GC(reg, struct tap_reg, gc);
