@@ -5224,6 +5224,7 @@ netsh_ifconfig_options(const char *type,
     struct gc_arena gc = gc_new();
     struct argv argv = argv_new();
     bool delete_first = false;
+    bool is_dns = !strcmp(type, "dns");
 
     /* first check if we should delete existing DNS/WINS settings from TAP interface */
     if (test_first)
@@ -5267,6 +5268,14 @@ netsh_ifconfig_options(const char *type,
                             type,
                             flex_name,
                             print_in_addr_t(addr_list[i], 0, &gc));
+
+                /* disable slow address validation on Windows 7 and higher */
+                /* only for DNS */
+                if (is_dns && win32_version_info() >= WIN_7)
+                {
+                    argv_printf_cat(&argv, "%s", "validate=no");
+                }
+
                 netsh_command(&argv, 2, M_FATAL);
 
                 ++count;
