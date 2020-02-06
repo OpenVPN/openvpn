@@ -47,12 +47,11 @@ argv_extend(struct argv *a, const size_t newcap)
     {
         char **newargv;
         size_t i;
-        ALLOC_ARRAY_CLEAR(newargv, char *, newcap);
+        ALLOC_ARRAY_CLEAR_GC(newargv, char *, newcap, &a->gc);
         for (i = 0; i < a->argc; ++i)
         {
             newargv[i] = a->argv[i];
         }
-        free(a->argv);
         a->argv = newargv;
         a->capacity = newcap;
     }
@@ -64,6 +63,7 @@ argv_init(struct argv *a)
     a->capacity = 0;
     a->argc = 0;
     a->argv = NULL;
+    a->gc = gc_new();
     argv_extend(a, 8);
 }
 
@@ -78,24 +78,21 @@ argv_new(void)
 void
 argv_free(struct argv *a)
 {
-    size_t i;
-    for (i = 0; i < a->argc; ++i)
-    {
-        free(a->argv[i]);
-    }
-    free(a->argv);
+    gc_free(&a->gc);
 }
 
 static void
 argv_reset(struct argv *a)
 {
-    size_t i;
-    for (i = 0; i < a->argc; ++i)
+    if (a->argc)
     {
-        free(a->argv[i]);
-        a->argv[i] = NULL;
+        size_t i;
+        for (i = 0; i < a->argc; ++i)
+        {
+            a->argv[i] = NULL;
+        }
+        a->argc = 0;
     }
-    a->argc = 0;
 }
 
 static void
@@ -107,7 +104,7 @@ argv_grow(struct argv *a, const size_t add)
 }
 
 static void
-argv_append(struct argv *a, char *str)  /* str must have been malloced or be NULL */
+argv_append(struct argv *a, char *str)  /* str must have been gc_malloced or be NULL */
 {
     argv_grow(a, 1);
     a->argv[a->argc++] = str;
@@ -127,7 +124,7 @@ argv_clone(const struct argv *a, const size_t headroom)
     {
         for (size_t i = 0; i < a->argc; ++i)
         {
-            argv_append(&r, string_alloc(a->argv[i], NULL));
+            argv_append(&r, string_alloc(a->argv[i], &r.gc));
         }
     }
     return r;
@@ -138,7 +135,7 @@ argv_insert_head(const struct argv *a, const char *head)
 {
     struct argv r;
     r = argv_clone(a, 1);
-    r.argv[0] = string_alloc(head, NULL);
+    r.argv[0] = string_alloc(head, &r.gc);
     return r;
 }
 
@@ -222,7 +219,6 @@ argv_prep_format(const char *format, const char delim, size_t *count, struct gc_
 static bool
 argv_printf_arglist(struct argv *a, const char *format, va_list arglist)
 {
-    struct gc_arena gc = gc_new();
     const char delim = 0x1D;  /* ASCII Group Separator (GS) */
     bool res = false;
 
@@ -236,7 +232,7 @@ argv_printf_arglist(struct argv *a, const char *format, va_list arglist)
      *
      */
     size_t argc = a->argc;
-    char *f = argv_prep_format(format, delim, &argc, &gc);
+    char *f = argv_prep_format(format, delim, &argc, &a->gc);
     if (f == NULL)
     {
         goto out;
@@ -256,8 +252,8 @@ argv_printf_arglist(struct argv *a, const char *format, va_list arglist)
      *  Do the actual vsnprintf() operation, which expands the format
      *  string with the provided arguments.
      */
-    size_t size = len + 1;
-    char *buf = gc_malloc(size, false, &gc);
+    size_t size = adjust_power_of_2(len + 1);
+    char *buf = gc_malloc(size, false, &a->gc);
     len = vsnprintf(buf, size, f, arglist);
     if (len < 0 || len >= size)
     {
@@ -272,11 +268,11 @@ argv_printf_arglist(struct argv *a, const char *format, va_list arglist)
     while (end)
     {
         *end = '\0';
-        argv_append(a, string_alloc(buf, NULL));
+        argv_append(a, buf);
         buf = end + 1;
         end = strchr(buf, delim);
     }
-    argv_append(a, string_alloc(buf, NULL));
+    argv_append(a, buf);
 
     if (a->argc != argc)
     {
@@ -287,7 +283,6 @@ argv_printf_arglist(struct argv *a, const char *format, va_list arglist)
     res = true;
 
 out:
-    gc_free(&gc);
     return res;
 }
 
@@ -321,21 +316,18 @@ argv_parse_cmd(struct argv *a, const char *s)
 {
     argv_reset(a);
 
-    struct gc_arena gc = gc_new();
     char *parms[MAX_PARMS + 1] = { 0 };
-    int nparms = parse_line(s, parms, MAX_PARMS, "SCRIPT-ARGV", 0, D_ARGV_PARSE_CMD, &gc);
+    int nparms = parse_line(s, parms, MAX_PARMS, "SCRIPT-ARGV", 0, D_ARGV_PARSE_CMD, &a->gc);
     if (nparms)
     {
         int i;
         for (i = 0; i < nparms; ++i)
         {
-            argv_append(a, string_alloc(parms[i], NULL));
+            argv_append(a, parms[i]);
         }
     }
     else
     {
-        argv_append(a, string_alloc(s, NULL));
+        argv_append(a, string_alloc(s, &a->gc));
     }
-
-    gc_free(&gc);
 }

@@ -33,6 +33,7 @@
 #include "buffer.h"
 
 struct argv {
+    struct gc_arena gc;
     size_t capacity;
     size_t argc;
     char **argv;

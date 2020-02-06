@@ -118,6 +118,28 @@ argv_printf__empty_parameter__argc_correct(void **state)
 }
 
 static void
+argv_printf__long_args__data_correct(void **state)
+{
+    int i;
+    struct argv a = argv_new();
+    const char *args[] = {
+        "good_tools_have_good_names_even_though_it_might_impair_typing",
+        "--long-opt=looooooooooooooooooooooooooooooooooooooooooooooooong",
+        "--long-cat=loooooooooooooooooooooooooooooooooooooooooooooooooooonger",
+        "file_with_very_descriptive_filename_that_leaves_no_questions_open.jpg.exe"
+    };
+
+    argv_printf(&a, "%s %s %s %s", args[0], args[1], args[2], args[3]);
+    assert_int_equal(a.argc, 4);
+    for (i = 0; i < a.argc; i++)
+    {
+        assert_string_equal(a.argv[i], args[i]);
+    }
+
+    argv_free(&a);
+}
+
+static void
 argv_parse_cmd__command_string__argc_correct(void **state)
 {
     struct argv a = argv_new();
@@ -237,6 +259,7 @@ main(void)
         cmocka_unit_test(argv_printf__group_sep_in_arg__fail_no_ouput),
         cmocka_unit_test(argv_printf__combined_path_with_spaces__argc_correct),
         cmocka_unit_test(argv_printf__empty_parameter__argc_correct),
+        cmocka_unit_test(argv_printf__long_args__data_correct),
         cmocka_unit_test(argv_parse_cmd__command_string__argc_correct),
         cmocka_unit_test(argv_parse_cmd__command_and_extra_options__argc_correct),
         cmocka_unit_test(argv_printf_cat__used_twice__argc_correct),
