@@ -164,7 +164,7 @@ run_up_down(const char *command,
             msg(M_FATAL, "ERROR: up/down plugin call failed");
         }
 
-        argv_reset(&argv);
+        argv_free(&argv);
     }
 
     if (command)
@@ -177,7 +177,7 @@ run_up_down(const char *command,
                         ifconfig_local, ifconfig_remote, context);
         argv_msg(M_INFO, &argv);
         openvpn_run_script(&argv, es, S_FATAL, "--up/--down");
-        argv_reset(&argv);
+        argv_free(&argv);
     }
 
     gc_free(&gc);
@@ -843,15 +843,6 @@ init_static(void)
         gc_free(&gc);
     }
     return false;
-#endif
-
-#ifdef ARGV_TEST
-    {
-        void argv_test(void);
-
-        argv_test();
-        return false;
-    }
 #endif
 
 #ifdef PRNG_TEST
@@ -1696,7 +1687,7 @@ do_route(const struct options *options,
         setenv_str(es, "script_type", "route-up");
         argv_parse_cmd(&argv, options->route_script);
         openvpn_run_script(&argv, es, 0, "--route-up");
-        argv_reset(&argv);
+        argv_free(&argv);
     }
 
 #ifdef _WIN32

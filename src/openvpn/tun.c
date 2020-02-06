@@ -1046,7 +1046,7 @@ do_ifconfig_ipv6(struct tuntap *tt, const char *ifname, int tun_mtu,
 
 #if !defined(TARGET_LINUX)
     gc_free(&gc);
-    argv_reset(&argv);
+    argv_free(&argv);
 #endif
 }
 
@@ -1419,7 +1419,7 @@ do_ifconfig_ipv4(struct tuntap *tt, const char *ifname, int tun_mtu,
 
 #if !defined(TARGET_LINUX)
     gc_free(&gc);
-    argv_reset(&argv);
+    argv_free(&argv);
 #endif
 }
 
@@ -1999,7 +1999,7 @@ undo_ifconfig_ipv4(struct tuntap *tt, openvpn_net_ctx_t *ctx)
     argv_msg(M_INFO, &argv);
     openvpn_execve_check(&argv, NULL, 0, "Generic ip addr del failed");
 
-    argv_reset(&argv);
+    argv_free(&argv);
 #endif /* ifdef TARGET_LINUX */
 }
 
@@ -2023,7 +2023,7 @@ undo_ifconfig_ipv6(struct tuntap *tt, openvpn_net_ctx_t *ctx)
     argv_msg(M_INFO, &argv);
     openvpn_execve_check(&argv, NULL, 0, "Linux ip -6 addr del failed");
 
-    argv_reset(&argv);
+    argv_free(&argv);
     gc_free(&gc);
 #endif /* ifdef TARGET_LINUX */
 }
@@ -2316,7 +2316,7 @@ solaris_close_tun(struct tuntap *tt)
                      IFCONFIG_PATH, tt->actual_name );
         argv_msg(M_INFO, &argv);
         openvpn_execve_check(&argv, NULL, 0, "Solaris ifconfig inet6 unplumb failed");
-        argv_reset(&argv);
+        argv_free(&argv);
     }
 
     if (tt->ip_fd >= 0)
@@ -2401,7 +2401,7 @@ solaris_error_close(struct tuntap *tt, const struct env_set *es,
     openvpn_execve_check(&argv, es, 0, "Solaris ifconfig unplumb failed");
     close_tun(tt, NULL);
     msg(M_FATAL, "Solaris ifconfig failed");
-    argv_reset(&argv);
+    argv_free(&argv);
 }
 
 int
@@ -2489,7 +2489,7 @@ close_tun(struct tuntap *tt, openvpn_net_ctx_t *ctx)
     openvpn_execve_check(&argv, NULL, 0, "OpenBSD 'destroy tun interface' failed (non-critical)");
 
     free(tt);
-    argv_reset(&argv);
+    argv_free(&argv);
 }
 
 int
@@ -2575,7 +2575,7 @@ close_tun(struct tuntap *tt, openvpn_net_ctx_t *ctx)
     openvpn_execve_check(&argv, NULL, 0, "NetBSD 'destroy tun interface' failed (non-critical)");
 
     free(tt);
-    argv_reset(&argv);
+    argv_free(&argv);
 }
 
 static inline int
@@ -2716,7 +2716,7 @@ close_tun(struct tuntap *tt, openvpn_net_ctx_t *ctx)
                          "FreeBSD 'destroy tun interface' failed (non-critical)");
 
     free(tt);
-    argv_reset(&argv);
+    argv_free(&argv);
 }
 
 int
@@ -3081,7 +3081,7 @@ close_tun(struct tuntap *tt, openvpn_net_ctx_t *ctx)
 
     close_tun_generic(tt);
     free(tt);
-    argv_reset(&argv);
+    argv_free(&argv);
     gc_free(&gc);
 }
 
@@ -3185,7 +3185,7 @@ open_tun(const char *dev, const char *dev_type, const char *dev_node, struct tun
         env_set_add( es, "ODMDIR=/etc/objrepos" );
         openvpn_execve_check(&argv, es, S_FATAL, "AIX 'create tun interface' failed");
         env_set_destroy(es);
-        argv_reset(&argv);
+        argv_free(&argv);
     }
     else
     {
@@ -3236,7 +3236,7 @@ close_tun(struct tuntap *tt, openvpn_net_ctx_t *ctx)
 
     free(tt);
     env_set_destroy(es);
-    argv_reset(&argv);
+    argv_free(&argv);
 }
 
 int
@@ -5069,14 +5069,14 @@ ipconfig_register_dns(const struct env_set *es)
                 WIN_IPCONFIG_PATH_SUFFIX);
     argv_msg(D_TUNTAP_INFO, &argv);
     openvpn_execve_check(&argv, es, 0, err);
-    argv_reset(&argv);
+    argv_free(&argv);
 
     argv_printf(&argv, "%s%s /registerdns",
                 get_win_sys_path(),
                 WIN_IPCONFIG_PATH_SUFFIX);
     argv_msg(D_TUNTAP_INFO, &argv);
     openvpn_execve_check(&argv, es, 0, err);
-    argv_reset(&argv);
+    argv_free(&argv);
 
     netcmd_semaphore_release();
     msg(D_TUNTAP_INFO, "End ipconfig commands for register-dns...");
@@ -5201,7 +5201,7 @@ netsh_set_dns6_servers(const struct in6_addr *addr_list,
         netsh_command(&argv, 1, (i==0) ? M_FATAL : M_NONFATAL);
     }
 
-    argv_reset(&argv);
+    argv_free(&argv);
     gc_free(&gc);
 }
 
@@ -5273,7 +5273,7 @@ netsh_ifconfig_options(const char *type,
         }
     }
 
-    argv_reset(&argv);
+    argv_free(&argv);
     gc_free(&gc);
 }
 
@@ -5364,7 +5364,7 @@ netsh_ifconfig(const struct tuntap_options *to,
                                BOOL_CAST(flags & NI_TEST_FIRST));
     }
 
-    argv_reset(&argv);
+    argv_free(&argv);
     gc_free(&gc);
 }
 
@@ -5382,7 +5382,7 @@ netsh_enable_dhcp(const char *actual_name)
 
     netsh_command(&argv, 4, M_FATAL);
 
-    argv_reset(&argv);
+    argv_free(&argv);
 }
 
 /* Enable dhcp on tap adapter using iservice */
@@ -6481,7 +6481,7 @@ netsh_delete_address_dns(const struct tuntap *tt, bool ipv6, struct gc_arena *gc
                     tt->actual_name);
         netsh_command(&argv, 1, M_WARN);
     }
-    argv_reset(&argv);
+    argv_free(&argv);
 }
 
 void

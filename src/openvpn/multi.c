@@ -139,7 +139,7 @@ learn_address_script(const struct multi_context *m,
             msg(M_WARN, "WARNING: learn-address plugin call failed");
             ret = false;
         }
-        argv_reset(&argv);
+        argv_free(&argv);
     }
 
     if (m->top.options.learn_address_script)
@@ -156,7 +156,7 @@ learn_address_script(const struct multi_context *m,
         {
             ret = false;
         }
-        argv_reset(&argv);
+        argv_free(&argv);
     }
 
     gc_free(&gc);
@@ -592,7 +592,7 @@ multi_client_disconnect_script(struct multi_instance *mi)
             setenv_str(mi->context.c2.es, "script_type", "client-disconnect");
             argv_parse_cmd(&argv, mi->context.options.client_disconnect_script);
             openvpn_run_script(&argv, mi->context.c2.es, 0, "--client-disconnect");
-            argv_reset(&argv);
+            argv_free(&argv);
         }
 #ifdef MANAGEMENT_DEF_AUTH
         if (management)
@@ -1907,7 +1907,7 @@ multi_connection_established(struct multi_context *m, struct multi_instance *mi)
             }
 
 script_depr_failed:
-            argv_reset(&argv);
+            argv_free(&argv);
         }
 
         /* V2 callback, use a plugin_return struct for passing back return info */
@@ -1970,7 +1970,7 @@ script_depr_failed:
             }
 
 script_failed:
-            argv_reset(&argv);
+            argv_free(&argv);
         }
 
         /*

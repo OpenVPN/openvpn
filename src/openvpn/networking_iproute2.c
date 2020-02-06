@@ -28,6 +28,7 @@
 
 #include "syshead.h"
 
+#include "argv.h"
 #include "networking.h"
 #include "misc.h"
 #include "openvpn.h"
@@ -70,7 +71,7 @@ net_iface_up(openvpn_net_ctx_t *ctx, const char *iface, bool up)
     argv_msg(M_INFO, &argv);
     openvpn_execve_check(&argv, ctx->es, S_FATAL, "Linux ip link set failed");
 
-    argv_reset(&argv);
+    argv_free(&argv);
 
     return 0;
 }
@@ -101,7 +102,7 @@ net_addr_v4_add(openvpn_net_ctx_t *ctx, const char *iface,
     argv_msg(M_INFO, &argv);
     openvpn_execve_check(&argv, ctx->es, S_FATAL, "Linux ip addr add failed");
 
-    argv_reset(&argv);
+    argv_free(&argv);
 
     return 0;
 }
@@ -119,7 +120,7 @@ net_addr_v6_add(openvpn_net_ctx_t *ctx, const char *iface,
     openvpn_execve_check(&argv, ctx->es, S_FATAL,
                          "Linux ip -6 addr add failed");
 
-    argv_reset(&argv);
+    argv_free(&argv);
 
     return 0;
 }
@@ -137,7 +138,7 @@ net_addr_v4_del(openvpn_net_ctx_t *ctx, const char *iface,
     argv_msg(M_INFO, &argv);
     openvpn_execve_check(&argv, ctx->es, 0, "Linux ip addr del failed");
 
-    argv_reset(&argv);
+    argv_free(&argv);
 
     return 0;
 }
@@ -154,7 +155,7 @@ net_addr_v6_del(openvpn_net_ctx_t *ctx, const char *iface,
     argv_msg(M_INFO, &argv);
     openvpn_execve_check(&argv, ctx->es, 0, "Linux ip -6 addr del failed");
 
-    argv_reset(&argv);
+    argv_free(&argv);
 
     return 0;
 }
@@ -172,7 +173,7 @@ net_addr_ptp_v4_add(openvpn_net_ctx_t *ctx, const char *iface,
     argv_msg(M_INFO, &argv);
     openvpn_execve_check(&argv, ctx->es, S_FATAL, "Linux ip addr add failed");
 
-    argv_reset(&argv);
+    argv_free(&argv);
 
     return 0;
 }
@@ -190,7 +191,7 @@ net_addr_ptp_v4_del(openvpn_net_ctx_t *ctx, const char *iface,
     argv_msg(M_INFO, &argv);
     openvpn_execve_check(&argv, ctx->es, 0, "Linux ip addr del failed");
 
-    argv_reset(&argv);
+    argv_free(&argv);
 
     return 0;
 }
@@ -221,7 +222,7 @@ net_route_v4_add(openvpn_net_ctx_t *ctx, const in_addr_t *dst, int prefixlen,
     argv_msg(D_ROUTE, &argv);
     openvpn_execve_check(&argv, ctx->es, 0, "ERROR: Linux route add command failed");
 
-    argv_reset(&argv);
+    argv_free(&argv);
 
     return 0;
 }
@@ -250,7 +251,7 @@ net_route_v6_add(openvpn_net_ctx_t *ctx, const struct in6_addr *dst,
     argv_msg(D_ROUTE, &argv);
     openvpn_execve_check(&argv, ctx->es, 0, "ERROR: Linux route -6 add command failed");
 
-    argv_reset(&argv);
+    argv_free(&argv);
 
     return 0;
 }
@@ -271,7 +272,7 @@ net_route_v4_del(openvpn_net_ctx_t *ctx, const in_addr_t *dst, int prefixlen,
     argv_msg(D_ROUTE, &argv);
     openvpn_execve_check(&argv, ctx->es, 0, "ERROR: Linux route delete command failed");
 
-    argv_reset(&argv);
+    argv_free(&argv);
 
     return 0;
 }
@@ -300,7 +301,7 @@ net_route_v6_del(openvpn_net_ctx_t *ctx, const struct in6_addr *dst,
     argv_msg(D_ROUTE, &argv);
     openvpn_execve_check(&argv, ctx->es, 0, "ERROR: Linux route -6 del command failed");
 
-    argv_reset(&argv);
+    argv_free(&argv);
 
     return 0;
 }

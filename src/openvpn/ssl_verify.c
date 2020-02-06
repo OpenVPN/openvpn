@@ -488,7 +488,7 @@ verify_cert_call_plugin(const struct plugin_list *plugins, struct env_set *es,
 
         ret = plugin_call_ssl(plugins, OPENVPN_PLUGIN_TLS_VERIFY, &argv, NULL, es, cert_depth, cert);
 
-        argv_reset(&argv);
+        argv_free(&argv);
 
         if (ret == OPENVPN_PLUGIN_FUNC_SUCCESS)
         {
@@ -581,7 +581,7 @@ verify_cert_call_command(const char *verify_command, struct env_set *es,
 
 cleanup:
     gc_free(&gc);
-    argv_reset(&argv);
+    argv_free(&argv);
 
     if (ret)
     {
@@ -1129,7 +1129,7 @@ done:
         platform_unlink(tmp_file);
     }
 
-    argv_reset(&argv);
+    argv_free(&argv);
     gc_free(&gc);
     return ret;
 }

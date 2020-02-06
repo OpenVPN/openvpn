@@ -85,7 +85,7 @@ get_console_input_systemd(const char *prompt, const bool echo, char *input, cons
     }
     close(std_out);
 
-    argv_reset(&argv);
+    argv_free(&argv);
 
     return ret;
 }

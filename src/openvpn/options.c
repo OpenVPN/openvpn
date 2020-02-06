@@ -3349,7 +3349,7 @@ check_cmd_access(const char *command, const char *opt, const char *chroot)
         return_code = true;
     }
 
-    argv_reset(&argv);
+    argv_free(&argv);
 
     return return_code;
 }

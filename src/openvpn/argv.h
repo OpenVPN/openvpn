@@ -40,7 +40,7 @@ struct argv {
 
 struct argv argv_new(void);
 
-void argv_reset(struct argv *a);
+void argv_free(struct argv *a);
 
 const char *argv_str(const struct argv *a, struct gc_arena *gc, const unsigned int flags);
 

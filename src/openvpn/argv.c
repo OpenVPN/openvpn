@@ -41,34 +41,6 @@
 #include "options.h"
 
 static void
-argv_init(struct argv *a)
-{
-    a->capacity = 0;
-    a->argc = 0;
-    a->argv = NULL;
-}
-
-struct argv
-argv_new(void)
-{
-    struct argv ret;
-    argv_init(&ret);
-    return ret;
-}
-
-void
-argv_reset(struct argv *a)
-{
-    size_t i;
-    for (i = 0; i < a->argc; ++i)
-    {
-        free(a->argv[i]);
-    }
-    free(a->argv);
-    argv_init(a);
-}
-
-static void
 argv_extend(struct argv *a, const size_t newcap)
 {
     if (newcap > a->capacity)
@@ -84,6 +56,46 @@ argv_extend(struct argv *a, const size_t newcap)
         a->argv = newargv;
         a->capacity = newcap;
     }
+}
+
+static void
+argv_init(struct argv *a)
+{
+    a->capacity = 0;
+    a->argc = 0;
+    a->argv = NULL;
+    argv_extend(a, 8);
+}
+
+struct argv
+argv_new(void)
+{
+    struct argv ret;
+    argv_init(&ret);
+    return ret;
+}
+
+void
+argv_free(struct argv *a)
+{
+    size_t i;
+    for (i = 0; i < a->argc; ++i)
+    {
+        free(a->argv[i]);
+    }
+    free(a->argv);
+}
+
+static void
+argv_reset(struct argv *a)
+{
+    size_t i;
+    for (i = 0; i < a->argc; ++i)
+    {
+        free(a->argv[i]);
+        a->argv[i] = NULL;
+    }
+    a->argc = 0;
 }
 
 static void
@@ -133,14 +145,7 @@ argv_insert_head(const struct argv *a, const char *head)
 const char *
 argv_str(const struct argv *a, struct gc_arena *gc, const unsigned int flags)
 {
-    if (a->argv)
-    {
-        return print_argv((const char **)a->argv, gc, flags);
-    }
-    else
-    {
-        return "";
-    }
+    return print_argv((const char **)a->argv, gc, flags);
 }
 
 void
@@ -221,8 +226,6 @@ argv_printf_arglist(struct argv *a, const char *format, va_list arglist)
     const char delim = 0x1D;  /* ASCII Group Separator (GS) */
     bool res = false;
 
-    argv_extend(a, 1); /* ensure trailing NULL */
-
     /*
      * Prepare a format string which will be used by vsnprintf() later on.
      *
@@ -279,7 +282,6 @@ argv_printf_arglist(struct argv *a, const char *format, va_list arglist)
     {
         /* Someone snuck in a GS (0x1D), fail gracefully */
         argv_reset(a);
-        argv_extend(a, 1); /* ensure trailing NULL */
         goto out;
     }
     res = true;
@@ -318,7 +320,6 @@ void
 argv_parse_cmd(struct argv *a, const char *s)
 {
     argv_reset(a);
-    argv_extend(a, 1); /* ensure trailing NULL */
 
     struct gc_arena gc = gc_new();
     char *parms[MAX_PARMS + 1] = { 0 };

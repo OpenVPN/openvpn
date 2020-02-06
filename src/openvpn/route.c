@@ -1822,7 +1822,7 @@ done:
     {
         r->flags &= ~RT_ADDED;
     }
-    argv_reset(&argv);
+    argv_free(&argv);
     gc_free(&gc);
     /* release resources potentially allocated during route setup */
     net_ctx_reset(ctx);
@@ -2128,7 +2128,7 @@ done:
     {
         r6->flags &= ~RT_ADDED;
     }
-    argv_reset(&argv);
+    argv_free(&argv);
     gc_free(&gc);
     /* release resources potentially allocated during route setup */
     net_ctx_reset(ctx);
@@ -2322,7 +2322,7 @@ delete_route(struct route_ipv4 *r,
 
 done:
     r->flags &= ~RT_ADDED;
-    argv_reset(&argv);
+    argv_free(&argv);
     gc_free(&gc);
     /* release resources potentially allocated during route cleanup */
     net_ctx_reset(ctx);
@@ -2550,7 +2550,7 @@ delete_route_ipv6(const struct route_ipv6 *r6, const struct tuntap *tt,
     msg(M_FATAL, "Sorry, but I don't know how to do 'route ipv6' commands on this operating system.  Try putting your routes in a --route-down script");
 #endif /* if defined(TARGET_LINUX) */
 
-    argv_reset(&argv);
+    argv_free(&argv);
     gc_free(&gc);
     /* release resources potentially allocated during route cleanup */
     net_ctx_reset(ctx);
