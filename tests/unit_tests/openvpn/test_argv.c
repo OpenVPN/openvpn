@@ -9,6 +9,7 @@
 #include <setjmp.h>
 #include <cmocka.h>
 #include <assert.h>
+#include <stdbool.h>
 
 #include "argv.h"
 #include "buffer.h"
@@ -54,18 +55,64 @@ argv_printf_cat__multiple_spaces_in_format__parsed_as_one(void **state)
 }
 
 static void
+argv_printf__embedded_format_directive__replaced_in_output(void **state)
+{
+    struct argv a = argv_new();
+
+    argv_printf(&a, "<p1:%s>", PATH1);
+    assert_int_equal(a.argc, 1);
+    assert_string_equal(a.argv[0], "<p1:" PATH1 ">");
+
+    argv_reset(&a);
+}
+
+static void
+argv_printf__group_sep_in_arg__fail_no_ouput(void **state)
+{
+    struct argv a = argv_new();
+
+    assert_false(argv_printf(&a, "tool --do %s", "this\035--harmful"));
+    assert_int_equal(a.argc, 0);
+
+    argv_reset(&a);
+}
+
+static void
 argv_printf__combined_path_with_spaces__argc_correct(void **state)
 {
     struct argv a = argv_new();
 
-    argv_printf(&a, "%s%sc", PATH1, PATH2);
+    argv_printf(&a, "%s%s", PATH1, PATH2);
     assert_int_equal(a.argc, 1);
 
-    argv_printf(&a, "%s%sc %d", PATH1, PATH2, 42);
+    argv_printf(&a, "%s%s %d", PATH1, PATH2, 42);
     assert_int_equal(a.argc, 2);
 
-    argv_printf(&a, "foo %s%sc %s x y", PATH2, PATH1, "foo");
+    argv_printf(&a, "foo %s%s %s x y", PATH2, PATH1, "foo");
     assert_int_equal(a.argc, 5);
+
+    argv_reset(&a);
+}
+
+static void
+argv_printf__empty_parameter__argc_correct(void **state)
+{
+    struct argv a = argv_new();
+
+    argv_printf(&a, "%s", "");
+    assert_int_equal(a.argc, 1);
+
+    argv_printf(&a, "%s %s", PATH1, "");
+    assert_int_equal(a.argc, 2);
+
+    argv_printf(&a, "%s %s %s", PATH1, "", PARAM1);
+    assert_int_equal(a.argc, 3);
+
+    argv_printf(&a, "%s %s %s %s", PATH1, "", "", PARAM1);
+    assert_int_equal(a.argc, 4);
+
+    argv_printf(&a, "%s %s", "", PARAM1);
+    assert_int_equal(a.argc, 2);
 
     argv_reset(&a);
 }
@@ -113,7 +160,7 @@ argv_str__multiple_argv__correct_output(void **state)
     struct gc_arena gc = gc_new();
     const char *output;
 
-    argv_printf(&a, "%s%sc", PATH1, PATH2);
+    argv_printf(&a, "%s%s", PATH1, PATH2);
     argv_printf_cat(&a, "%s", PARAM1);
     argv_printf_cat(&a, "%s", PARAM2);
     argv_printf_cat(&a, "%d", -1);
@@ -172,7 +219,10 @@ main(void)
     const struct CMUnitTest tests[] = {
         cmocka_unit_test(argv_printf__multiple_spaces_in_format__parsed_as_one),
         cmocka_unit_test(argv_printf_cat__multiple_spaces_in_format__parsed_as_one),
+        cmocka_unit_test(argv_printf__embedded_format_directive__replaced_in_output),
+        cmocka_unit_test(argv_printf__group_sep_in_arg__fail_no_ouput),
         cmocka_unit_test(argv_printf__combined_path_with_spaces__argc_correct),
+        cmocka_unit_test(argv_printf__empty_parameter__argc_correct),
         cmocka_unit_test(argv_parse_cmd__command_string__argc_correct),
         cmocka_unit_test(argv_parse_cmd__command_and_extra_options__argc_correct),
         cmocka_unit_test(argv_printf_cat__used_twice__argc_correct),

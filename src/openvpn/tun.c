@@ -1027,7 +1027,7 @@ do_ifconfig_ipv6(struct tuntap *tt, const char *ifname, int tun_mtu,
 
         openvpn_snprintf(iface, sizeof(iface), "interface=%lu",
                          tt->adapter_index);
-        argv_printf(&argv, "%s%sc interface ipv6 set address %s %s store=active",
+        argv_printf(&argv, "%s%s interface ipv6 set address %s %s store=active",
                     get_win_sys_path(), NETSH_PATH_SUFFIX, iface,
                     ifconfig_ipv6_local);
         netsh_command(&argv, 4, M_FATAL);
@@ -5064,14 +5064,14 @@ ipconfig_register_dns(const struct env_set *es)
     msg(D_TUNTAP_INFO, "Start ipconfig commands for register-dns...");
     netcmd_semaphore_lock();
 
-    argv_printf(&argv, "%s%sc /flushdns",
+    argv_printf(&argv, "%s%s /flushdns",
                 get_win_sys_path(),
                 WIN_IPCONFIG_PATH_SUFFIX);
     argv_msg(D_TUNTAP_INFO, &argv);
     openvpn_execve_check(&argv, es, 0, err);
     argv_reset(&argv);
 
-    argv_printf(&argv, "%s%sc /registerdns",
+    argv_printf(&argv, "%s%s /registerdns",
                 get_win_sys_path(),
                 WIN_IPCONFIG_PATH_SUFFIX);
     argv_msg(D_TUNTAP_INFO, &argv);
@@ -5185,8 +5185,8 @@ netsh_set_dns6_servers(const struct in6_addr *addr_list,
     for (int i = 0; i < addr_len; ++i)
     {
         const char *fmt = (i == 0) ?
-                          "%s%sc interface ipv6 set dns %s static %s"
-                          : "%s%sc interface ipv6 add dns %s %s";
+                          "%s%s interface ipv6 set dns %s static %s"
+                          : "%s%s interface ipv6 add dns %s %s";
         argv_printf(&argv, fmt, get_win_sys_path(),
                     NETSH_PATH_SUFFIX, flex_name,
                     print_in6_addr(addr_list[i], 0, &gc));
@@ -5233,7 +5233,7 @@ netsh_ifconfig_options(const char *type,
     /* delete existing DNS/WINS settings from TAP interface */
     if (delete_first)
     {
-        argv_printf(&argv, "%s%sc interface ip delete %s %s all",
+        argv_printf(&argv, "%s%s interface ip delete %s %s all",
                     get_win_sys_path(),
                     NETSH_PATH_SUFFIX,
                     type,
@@ -5250,8 +5250,8 @@ netsh_ifconfig_options(const char *type,
             if (delete_first || !test_first || !ip_addr_member_of(addr_list[i], current))
             {
                 const char *fmt = count ?
-                                  "%s%sc interface ip add %s %s %s"
-                                  : "%s%sc interface ip set %s %s static %s";
+                                  "%s%s interface ip add %s %s %s"
+                                  : "%s%s interface ip set %s %s static %s";
 
                 argv_printf(&argv, fmt,
                             get_win_sys_path(),
@@ -5327,7 +5327,7 @@ netsh_ifconfig(const struct tuntap_options *to,
         else
         {
             /* example: netsh interface ip set address my-tap static 10.3.0.1 255.255.255.0 */
-            argv_printf(&argv, "%s%sc interface ip set address %s static %s %s",
+            argv_printf(&argv, "%s%s interface ip set address %s static %s %s",
                         get_win_sys_path(),
                         NETSH_PATH_SUFFIX,
                         flex_name,
@@ -5375,7 +5375,7 @@ netsh_enable_dhcp(const char *actual_name)
 
     /* example: netsh interface ip set address my-tap dhcp */
     argv_printf(&argv,
-                "%s%sc interface ip set address %s dhcp",
+                "%s%s interface ip set address %s dhcp",
                 get_win_sys_path(),
                 NETSH_PATH_SUFFIX,
                 actual_name);
@@ -6460,7 +6460,7 @@ netsh_delete_address_dns(const struct tuntap *tt, bool ipv6, struct gc_arena *gc
         ifconfig_ip_local = print_in_addr_t(tt->local, 0, gc);
     }
     argv_printf(&argv,
-                "%s%sc interface %s delete address %s %s store=active",
+                "%s%s interface %s delete address %s %s store=active",
                 get_win_sys_path(),
                 NETSH_PATH_SUFFIX,
                 ipv6 ? "ipv6" : "ipv4",
@@ -6474,7 +6474,7 @@ netsh_delete_address_dns(const struct tuntap *tt, bool ipv6, struct gc_arena *gc
     if (len > 0)
     {
         argv_printf(&argv,
-                    "%s%sc interface %s delete dns %s all",
+                    "%s%s interface %s delete dns %s all",
                     get_win_sys_path(),
                     NETSH_PATH_SUFFIX,
                     ipv6 ? "ipv6" : "ipv4",
