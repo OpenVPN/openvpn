@@ -389,14 +389,13 @@ ReturnOpenvpnOutput(HANDLE pipe, HANDLE ovpn_output, DWORD count, LPHANDLE event
 /*
  * Validate options against a white list. Also check the config_file is
  * inside the config_dir. The white list is defined in validate.c
- * Returns true on success
+ * Returns true on success, false on error with reason set in errmsg.
  */
 static BOOL
-ValidateOptions(HANDLE pipe, const WCHAR *workdir, const WCHAR *options)
+ValidateOptions(HANDLE pipe, const WCHAR *workdir, const WCHAR *options, WCHAR *errmsg, DWORD capacity)
 {
     WCHAR **argv;
     int argc;
-    WCHAR buf[256];
     BOOL ret = FALSE;
     int i;
     const WCHAR *msg1 = L"You have specified a config file location (%s relative to %s)"
@@ -411,8 +410,9 @@ ValidateOptions(HANDLE pipe, const WCHAR *workdir, const WCHAR *options)
 
     if (!argv)
     {
-        ReturnLastError(pipe, L"CommandLineToArgvW");
-        ReturnError(pipe, ERROR_STARTUP_DATA, L"Cannot validate options", 1, &exit_event);
+        openvpn_swprintf(errmsg, capacity,
+	                 L"Cannot validate options: CommandLineToArgvW failed with error = 0x%08x",
+	                 GetLastError());
         goto out;
     }
 
@@ -432,9 +432,8 @@ ValidateOptions(HANDLE pipe, const WCHAR *workdir, const WCHAR *options)
 
         if (!CheckOption(workdir, 2, argv_tmp, &settings))
         {
-            openvpn_swprintf(buf, _countof(buf), msg1, argv[0], workdir,
+            openvpn_swprintf(errmsg, capacity, msg1, argv[0], workdir,
                              settings.ovpn_admin_group);
-            ReturnError(pipe, ERROR_STARTUP_DATA, buf, 1, &exit_event);
         }
         goto out;
     }
@@ -450,15 +449,13 @@ ValidateOptions(HANDLE pipe, const WCHAR *workdir, const WCHAR *options)
         {
             if (wcscmp(L"--config", argv[i]) == 0 && argc-i > 1)
             {
-                openvpn_swprintf(buf, _countof(buf), msg1, argv[i+1], workdir,
+                openvpn_swprintf(errmsg, capacity, msg1, argv[i+1], workdir,
                                  settings.ovpn_admin_group);
-                ReturnError(pipe, ERROR_STARTUP_DATA, buf, 1, &exit_event);
             }
             else
             {
-                openvpn_swprintf(buf, _countof(buf), msg2, argv[i],
+                openvpn_swprintf(errmsg, capacity, msg2, argv[i],
                                  settings.ovpn_admin_group);
-                ReturnError(pipe, ERROR_STARTUP_DATA, buf, 1, &exit_event);
             }
             goto out;
         }
@@ -1487,6 +1484,7 @@ RunOpenvpn(LPVOID p)
     size_t cmdline_size;
     undo_lists_t undo_lists;
     ring_buffer_handles_t ring_buffer_handles;
+    WCHAR errmsg[512] = L"";
 
     SECURITY_ATTRIBUTES inheritable = {
         .nLength = sizeof(inheritable),
@@ -1580,10 +1578,17 @@ RunOpenvpn(LPVOID p)
         goto out;
     }
 
-    /* Check user is authorized or options are white-listed */
-    if (!IsAuthorizedUser(ovpn_user->User.Sid, imp_token, settings.ovpn_admin_group)
-        && !ValidateOptions(pipe, sud.directory, sud.options))
+    /*
+     * Only authorized users are allowed to use any command line options or
+     * have the config file in locations other than the global config directory.
+     *
+     * Check options are white-listed and config is in the global directory
+     * OR user is authorized to run any config.
+     */
+    if (!ValidateOptions(pipe, sud.directory, sud.options, errmsg, _countof(errmsg))
+        && !IsAuthorizedUser(ovpn_user->User.Sid, imp_token, settings.ovpn_admin_group))
     {
+        ReturnError(pipe, ERROR_STARTUP_DATA, errmsg, 1, &exit_event);
         goto out;
     }
 
