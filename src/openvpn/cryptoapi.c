@@ -51,6 +51,7 @@
 
 #include "buffer.h"
 #include "openssl_compat.h"
+#include "win32.h"
 
 /* MinGW w32api 3.17 is still incomplete when it comes to CryptoAPI while
  * MinGW32-w64 defines all macros used. This is a hack around that problem.
@@ -746,12 +747,13 @@ find_certificate_in_store(const char *cert_prop, HCERTSTORE cert_store)
     const void *find_param;
     unsigned char hash[255];
     CRYPT_HASH_BLOB blob = {.cbData = 0, .pbData = hash};
+    struct gc_arena gc = gc_new();
 
     if (!strncmp(cert_prop, "SUBJ:", 5))
     {
         /* skip the tag */
-        find_param = cert_prop + 5;
-        find_type = CERT_FIND_SUBJECT_STR_A;
+        find_param = wide_string(cert_prop + 5, &gc);
+        find_type = CERT_FIND_SUBJECT_STR_W;
     }
     else if (!strncmp(cert_prop, "THUMB:", 6))
     {
@@ -779,7 +781,7 @@ find_certificate_in_store(const char *cert_prop, HCERTSTORE cert_store)
             if (!*++p)  /* unexpected end of string */
             {
                 msg(M_WARN, "WARNING: cryptoapicert: error parsing <THUMB:%s>.", cert_prop);
-                return NULL;
+                goto out;
             }
             if (*p >= '0' && *p <= '9')
             {
@@ -803,7 +805,7 @@ find_certificate_in_store(const char *cert_prop, HCERTSTORE cert_store)
     }
     else {
         msg(M_WARN, "WARNING: cryptoapicert: unsupported certificate specification <%s>", cert_prop);
-        return NULL;
+        goto out;
     }
 
     while(true)
@@ -824,6 +826,8 @@ find_certificate_in_store(const char *cert_prop, HCERTSTORE cert_store)
             validity < 0 ? "not yet valid" : "that has expired");
     }
 
+out:
+    gc_free(&gc);
     return rv;
 }
 
