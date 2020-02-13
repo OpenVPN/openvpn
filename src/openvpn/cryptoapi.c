@@ -856,9 +856,9 @@ pkey_rsa_sign(EVP_PKEY_CTX *ctx, unsigned char *sig, size_t *siglen,
     EVP_MD *md = NULL;
     const wchar_t *alg = NULL;
 
-    int padding;
-    int hashlen;
-    int saltlen;
+    int padding = 0;
+    int hashlen = 0;
+    int saltlen = 0;
 
     pkey = EVP_PKEY_CTX_get0_pkey(ctx);
     if (pkey)
