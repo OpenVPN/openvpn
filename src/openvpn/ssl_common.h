@@ -290,6 +290,7 @@ struct tls_options
 
     const char *config_ciphername;
     const char *config_authname;
+    const char *config_ncp_ciphers;
     bool ncp_enabled;
 
     bool tls_crypt_v2;
