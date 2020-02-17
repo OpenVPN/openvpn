@@ -3117,6 +3117,11 @@ IV_NCP=2 \-\- negotiable ciphers, client supports
 pushed by the server, a value of 2 or greater indicates client
 supports AES\-GCM\-128 and AES\-GCM\-256.
 
+IV_CIPHERS=<ncp\-ciphers> \-\- the client pushes the list of configured
+ciphers with the
+\.B -\-\ncp\-ciphers
+option to the server.
+
 IV_GUI_VER=<gui_id> <version> \-\- the UI version of a UI if one is
 running, for example "de.blinkt.openvpn 0.5.47" for the
 Android app.
@@ -4374,7 +4379,8 @@ is a colon\-separated list of ciphers, and defaults to
 
 For servers, the first cipher from
 .B cipher_list
-will be pushed to clients that support cipher negotiation.
+that is also supported by the client will be pushed to clients
+that support cipher negotiation.
 
 Cipher negotiation is enabled in client\-server mode only.  I.e. if
 .B \-\-mode
@@ -4398,7 +4404,7 @@ NCP server (v2.4+) with "\-\-cipher BF\-CBC" and "\-\-ncp\-ciphers
 AES\-256\-GCM:AES\-256\-CBC" set can either specify "\-\-cipher BF\-CBC" or
 "\-\-cipher AES\-256\-CBC" and both will work.
 
-Note, for using NCP with a OpenVPN 2.4 server this list must include
+Note, for using NCP with a OpenVPN 2.4 peer this list must include
 the AES\-256\-GCM and AES\-128\-GCM ciphers.
 .\"*********************************************************
 .TP

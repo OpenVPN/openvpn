@@ -289,7 +289,6 @@ struct tls_options
     bool tcp_mode;
 
     const char *config_ciphername;
-    const char *config_authname;
     const char *config_ncp_ciphers;
     bool ncp_enabled;
 

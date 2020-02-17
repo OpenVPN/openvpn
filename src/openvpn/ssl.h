@@ -513,6 +513,40 @@ tls_get_peer_info(const struct tls_multi *multi)
 int tls_peer_info_ncp_ver(const char *peer_info);
 
 /**
+ * Iterates through the ciphers in server_list and return the first
+ * cipher that is also supported by the peer according to the IV_NCP
+ * and IV_CIPHER values in peer_info.
+ *
+ * We also accept a cipher that is the remote cipher of the client for
+ * "Poor man's NCP": Use peer cipher if it is an allowed (NCP) cipher.
+ * Allows non-NCP peers to upgrade their cipher individually.
+ *
+ * Make sure to call tls_session_update_crypto_params() after calling this
+ * function.
+ *
+ * @param gc   gc arena that is ONLY used to allocate the returned string
+ *
+ * @returns NULL if no common cipher is available, otherwise the best common
+ * cipher
+ */
+char *
+ncp_get_best_cipher(const char *server_list, const char *server_cipher,
+                    const char *peer_info, const char *remote_cipher,
+                    struct gc_arena *gc);
+
+
+/**
+ * Returns the support cipher list from the peer according to the IV_NCP
+ * and IV_CIPHER values in peer_info.
+ *
+ * @returns Either a string containing the ncp list that is either static
+ * or allocated via gc. If no information is available an empty string
+ * ("") is returned.
+ */
+const char *
+tls_peer_ncp_list(const char *peer_info, struct gc_arena *gc);
+
+/**
  * Check whether the ciphers in the supplied list are supported.
  *
  * @param list          Colon-separated list of ciphers

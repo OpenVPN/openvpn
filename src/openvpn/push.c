@@ -429,7 +429,7 @@ prepare_push_reply(struct context *c, struct gc_arena *gc,
     prepare_auth_token_push_reply(tls_multi, gc, push_list);
 
     /* Push cipher if client supports Negotiable Crypto Parameters */
-    if (tls_peer_info_ncp_ver(peer_info) >= 2 && o->ncp_enabled)
+    if (o->ncp_enabled)
     {
         /* if we have already created our key, we cannot *change* our own
          * cipher -> so log the fact and push the "what we have now" cipher
@@ -445,16 +445,29 @@ prepare_push_reply(struct context *c, struct gc_arena *gc,
         }
         else
         {
-            /* Push the first cipher from --ncp-ciphers to the client.
-             * TODO: actual negotiation, instead of server dictatorship. */
-            char *push_cipher = string_alloc(o->ncp_ciphers, &o->gc);
-            o->ciphername = strtok(push_cipher, ":");
+            /*
+             * Push the first cipher from --ncp-ciphers to the client that
+             * the client announces to be supporting.
+             */
+            char *push_cipher = ncp_get_best_cipher(o->ncp_ciphers, o->ciphername,
+                                                    peer_info,
+                                                    tls_multi->remote_ciphername,
+                                                    &o->gc);
+
+            if (push_cipher)
+            {
+                o->ciphername = push_cipher;
+            }
+            else
+            {
+                const char *peer_ciphers = tls_peer_ncp_list(peer_info, gc);
+                msg(M_INFO, "PUSH: No common cipher between server and client."
+                    "Expect this connection not to work. "
+                    "Server ncp-ciphers: '%s', client supported ciphers '%s'",
+                    o->ncp_ciphers, peer_ciphers);
+            }
         }
         push_option_fmt(gc, push_list, M_USAGE, "cipher %s", o->ciphername);
-    }
-    else if (o->ncp_enabled)
-    {
-        tls_poor_mans_ncp(o, tls_multi->remote_ciphername);
     }
 
     return true;

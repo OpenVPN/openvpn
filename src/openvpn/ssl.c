@@ -1934,6 +1934,85 @@ tls_item_in_cipher_list(const char *item, const char *list)
     return token != NULL;
 }
 
+const char *
+tls_peer_ncp_list(const char *peer_info, struct gc_arena *gc)
+{
+    /* Check if the peer sends the IV_CIPHERS list */
+    const char *ncp_ciphers_start;
+    if (peer_info && (ncp_ciphers_start = strstr(peer_info, "IV_CIPHERS=")))
+    {
+        ncp_ciphers_start += strlen("IV_CIPHERS=");
+        const char *ncp_ciphers_end = strstr(ncp_ciphers_start, "\n");
+        if (!ncp_ciphers_end)
+        {
+            /* IV_CIPHERS is at end of the peer_info list and no '\n'
+             * follows */
+            ncp_ciphers_end = ncp_ciphers_start + strlen(ncp_ciphers_start);
+        }
+
+        char *ncp_ciphers_peer = string_alloc(ncp_ciphers_start, gc);
+        /* NULL terminate the copy at the right position */
+        ncp_ciphers_peer[ncp_ciphers_end - ncp_ciphers_start] = '\0';
+        return ncp_ciphers_peer;
+
+    }
+    else if (tls_peer_info_ncp_ver(peer_info)>=2)
+    {
+        /* If the peer announces IV_NCP=2 then it supports the AES GCM
+         * ciphers */
+        return "AES-256-GCM:AES-128-GCM";
+    }
+    else
+    {
+        return "";
+    }
+}
+
+char *
+ncp_get_best_cipher(const char *server_list, const char *server_cipher,
+                    const char *peer_info,  const char *remote_cipher,
+                    struct gc_arena *gc)
+{
+    /*
+     * The gc of the parameter is tied to the VPN session, create a
+     * short lived gc arena that is only valid for the duration of
+     * this function
+     */
+    struct gc_arena gc_tmp = gc_new();
+
+    const char *peer_ncp_list = tls_peer_ncp_list(peer_info, &gc_tmp);
+    char *tmp_ciphers = string_alloc(server_list, &gc_tmp);
+
+    const char *token = strsep(&tmp_ciphers, ":");
+    while (token)
+    {
+        if (tls_item_in_cipher_list(token, peer_ncp_list)
+            || streq(token, remote_cipher))
+        {
+            break;
+        }
+        token = strsep(&tmp_ciphers, ":");
+    }
+    /* We have not found a common cipher, as a last resort check if the
+     * server cipher can be used
+     */
+    if (token == NULL
+        && (tls_item_in_cipher_list(server_cipher, peer_ncp_list)
+            || streq(server_cipher, remote_cipher)))
+    {
+        token = server_cipher;
+    }
+
+    char *ret = NULL;
+    if (token != NULL)
+    {
+        ret = string_alloc(token, gc);
+    }
+
+    gc_free(&gc_tmp);
+    return ret;
+}
+
 void
 tls_poor_mans_ncp(struct options *o, const char *remote_ciphername)
 {
@@ -2322,11 +2401,15 @@ push_peer_info(struct buffer *buf, struct tls_session *session)
 
         /* support for Negotiable Crypto Parameters */
         if (session->opt->ncp_enabled
-            && (session->opt->mode == MODE_SERVER || session->opt->pull)
-            && tls_item_in_cipher_list("AES-128-GCM", session->opt->config_ncp_ciphers)
-            && tls_item_in_cipher_list("AES-256-GCM", session->opt->config_ncp_ciphers))
+            && (session->opt->mode == MODE_SERVER || session->opt->pull))
         {
-            buf_printf(&out, "IV_NCP=2\n");
+            if (tls_item_in_cipher_list("AES-128-GCM", session->opt->config_ncp_ciphers)
+                && tls_item_in_cipher_list("AES-256-GCM", session->opt->config_ncp_ciphers))
+            {
+
+                buf_printf(&out, "IV_NCP=2\n");
+            }
+            buf_printf(&out, "IV_CIPHERS=%s\n", session->opt->config_ncp_ciphers);
         }
 
         /* push compression status */
@@ -2561,6 +2644,28 @@ error:
     return false;
 }
 
+/**
+ * Returns whether the client supports NCP either by
+ * announcing IV_NCP>=2 or the IV_CIPHERS list
+ */
+static bool
+tls_peer_supports_ncp(const char *peer_info)
+{
+    if (!peer_info)
+    {
+        return false;
+    }
+    else if (tls_peer_info_ncp_ver(peer_info) >= 2
+             || strstr(peer_info, "IV_CIPHERS="))
+    {
+        return true;
+    }
+    else
+    {
+        return false;
+    }
+}
+
 static bool
 key_method_2_read(struct buffer *buf, struct tls_multi *multi, struct tls_session *session)
 {
@@ -2633,7 +2738,7 @@ key_method_2_read(struct buffer *buf, struct tls_multi *multi, struct tls_sessio
     multi->remote_ciphername =
         options_string_extract_option(options, "cipher", NULL);
 
-    if (tls_peer_info_ncp_ver(multi->peer_info) < 2)
+    if (!tls_peer_supports_ncp(multi->peer_info))
     {
         /* Peer does not support NCP, but leave NCP enabled if the local and
          * remote cipher do not match to attempt 'poor-man's NCP'.

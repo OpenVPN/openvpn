@@ -2826,7 +2826,6 @@ do_init_crypto_tls(struct context *c, const unsigned int flags)
     to.replay_time = options->replay_time;
     to.tcp_mode = link_socket_proto_connection_oriented(options->ce.proto);
     to.config_ciphername = c->c1.ciphername;
-    to.config_authname = c->c1.authname;
     to.config_ncp_ciphers = options->ncp_ciphers;
     to.ncp_enabled = options->ncp_enabled;
     to.transition_window = options->transition_window;
