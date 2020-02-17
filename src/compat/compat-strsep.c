@@ -5,7 +5,8 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2011 - David Sommerseth <davids@redhat.com>
+ *  Copyright (C) 2019 Arne Schwabe <arne@rfc2549.org>
+ *  Copyright (C) 1992-2019 Free Software Foundation, Inc.
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -21,57 +22,40 @@
  *  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#ifndef COMPAT_H
-#define COMPAT_H
-
-#ifdef HAVE_WINSOCK2_H
-#include <winsock2.h>
-#endif
-
-#ifdef HAVE_WS2TCPIP_H
-#include <ws2tcpip.h>
-#endif
-
-#ifdef HAVE_SYS_TIME_H
-#include <sys/time.h>
-#endif
-
-#ifdef HAVE_SYS_SOCKET_H
-#include <sys/socket.h>
-#endif
-
-#ifndef HAVE_DIRNAME
-char *dirname(char *str);
-
-#endif /* HAVE_DIRNAME */
-
-#ifndef HAVE_BASENAME
-char *basename(char *str);
-
-#endif /* HAVE_BASENAME */
-
-#ifndef HAVE_GETTIMEOFDAY
-int gettimeofday(struct timeval *tv, void *tz);
-
-#endif
-
-#ifndef HAVE_DAEMON
-int daemon(int nochdir, int noclose);
-
-#endif
-
-#ifndef HAVE_INET_NTOP
-const char *inet_ntop(int af, const void *src, char *dst, socklen_t size);
-
-#endif
-
-#ifndef HAVE_INET_PTON
-int inet_pton(int af, const char *src, void *dst);
-
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#elif defined(_MSC_VER)
+#include "config-msvc.h"
 #endif
 
 #ifndef HAVE_STRSEP
-char* strsep(char **stringp, const char *delim);
-#endif
+#include <string.h>
 
-#endif /* COMPAT_H */
+/*
+ * Modified version based on the glibc
+ */
+char *
+strsep(char **stringp, const char *delim)
+{
+    char *begin, *end;
+    begin = *stringp;
+    if (begin == NULL)
+    {
+        return NULL;
+    }
+    /* Find the end of the token.  */
+    end = begin + strcspn(begin, delim);
+    if (*end)
+    {
+        /* Terminate the token and set *STRINGP past NUL character.  */
+        *end++ = '\0';
+        *stringp = end;
+    }
+    else
+    {
+        /* No more delimiters; this is the last token.  */
+        *stringp = NULL;
+    }
+    return begin;
+}
+#endif

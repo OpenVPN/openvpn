@@ -655,7 +655,7 @@ AC_CHECK_FUNCS([ \
 	ctime memset vsnprintf strdup \
 	setsid chdir putenv getpeername unlink \
 	chsize ftruncate execve getpeereid umask basename dirname access \
-	epoll_create \
+	epoll_create strsep \
 ])
 
 AC_CHECK_LIB(

@@ -102,6 +102,7 @@
     <ClCompile Include="compat-inet_pton.c" />
     <ClCompile Include="compat-daemon.c" />
     <ClCompile Include="compat-lz4.c" />
+    <ClCompile Include="compat-strsep.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="compat.h" />
