@@ -1468,7 +1468,7 @@ static DWORD WINAPI
 RunOpenvpn(LPVOID p)
 {
     HANDLE pipe = p;
-    HANDLE ovpn_pipe, svc_pipe;
+    HANDLE ovpn_pipe = NULL, svc_pipe = NULL;
     PTOKEN_USER svc_user = NULL, ovpn_user = NULL;
     HANDLE svc_token = NULL, imp_token = NULL, pri_token = NULL;
     HANDLE stdin_read = NULL, stdin_write = NULL;
