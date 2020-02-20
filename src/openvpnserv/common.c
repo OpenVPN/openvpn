@@ -118,8 +118,10 @@ GetOpenvpnSettings(settings_t *s)
     }
 
     /* The default value of REG_KEY is the install path */
-    if (GetRegString(key, NULL, install_path, sizeof(install_path), NULL) != ERROR_SUCCESS)
+    status = GetRegString(key, NULL, install_path, sizeof(install_path), NULL);
+    if (status != ERROR_SUCCESS)
     {
+        error = status;
         goto out;
     }
 
