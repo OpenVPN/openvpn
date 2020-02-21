@@ -272,6 +272,7 @@ ce_management_query_proxy(struct context *c)
             buf_printf(&out, ">PROXY:%u,%s,%s", (l ? l->current : 0) + 1,
                        (proto_is_udp(ce->proto) ? "UDP" : "TCP"), np(ce->remote));
             management_notify_generic(management, BSTR(&out));
+            management->persist.special_state_msg = BSTR(&out);
         }
         ce->flags |= CE_MAN_QUERY_PROXY;
         while (ce->flags & CE_MAN_QUERY_PROXY)
@@ -283,6 +284,7 @@ ce_management_query_proxy(struct context *c)
                 break;
             }
         }
+        management->persist.special_state_msg = NULL;
         gc_free(&gc);
     }
 
@@ -352,6 +354,7 @@ ce_management_query_remote(struct context *c)
         buf_printf(&out, ">REMOTE:%s,%s,%s", np(ce->remote), ce->remote_port,
                    proto2ascii(ce->proto, ce->af, false));
         management_notify_generic(management, BSTR(&out));
+        management->persist.special_state_msg = BSTR(&out);
 
         ce->flags &= ~(CE_MAN_QUERY_REMOTE_MASK << CE_MAN_QUERY_REMOTE_SHIFT);
         ce->flags |= (CE_MAN_QUERY_REMOTE_QUERY << CE_MAN_QUERY_REMOTE_SHIFT);
@@ -365,6 +368,7 @@ ce_management_query_remote(struct context *c)
                 break;
             }
         }
+        management->persist.special_state_msg = NULL;
     }
     gc_free(&gc);
 
