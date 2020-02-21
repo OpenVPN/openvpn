@@ -45,6 +45,7 @@
 #include "gremlin.h"
 #include "mstats.h"
 #include "ssl_verify.h"
+#include "ssl_ncp.h"
 #include "vlan.h"
 #include <inttypes.h>
 

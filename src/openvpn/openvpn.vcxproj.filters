@@ -243,6 +243,9 @@
     <ClCompile Include="ring_buffer.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="ssl_ncp.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="base64.h">
@@ -504,6 +507,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="ring_buffer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ssl_ncp.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

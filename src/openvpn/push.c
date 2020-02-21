@@ -33,6 +33,7 @@
 #include "options.h"
 #include "ssl.h"
 #include "ssl_verify.h"
+#include "ssl_ncp.h"
 #include "manage.h"
 
 #include "memdbg.h"

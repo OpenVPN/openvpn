@@ -45,6 +45,7 @@
 #include "shaper.h"
 #include "crypto.h"
 #include "ssl.h"
+#include "ssl_ncp.h"
 #include "options.h"
 #include "misc.h"
 #include "socket.h"

@@ -49,6 +49,7 @@
 #include "ping.h"
 #include "mstats.h"
 #include "ssl_verify.h"
+#include "ssl_ncp.h"
 #include "tls_crypt.h"
 #include "forward.h"
 #include "auth_token.h"
