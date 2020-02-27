@@ -29,7 +29,6 @@
 
 #include "syshead.h"
 
-#if P2MP_SERVER
 
 #include "integer.h"
 #include "list.h"
@@ -656,10 +655,3 @@ hash_func(const uint8_t *k, uint32_t length, uint32_t initval)
     /*-------------------------------------- report the result */
     return c;
 }
-
-#else  /* if P2MP_SERVER */
-static void
-dummy(void)
-{
-}
-#endif /* P2MP_SERVER */

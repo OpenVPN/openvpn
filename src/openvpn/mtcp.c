@@ -29,8 +29,6 @@
 
 #include "syshead.h"
 
-#if P2MP_SERVER
-
 #include "multi.h"
 #include "forward.h"
 
@@ -861,5 +859,3 @@ tunnel_server_tcp(struct context *top)
     multi_top_free(&multi);
     close_instance(top);
 }
-
-#endif /* if P2MP_SERVER */

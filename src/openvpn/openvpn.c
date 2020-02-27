@@ -305,12 +305,10 @@ openvpn_main(int argc, char *argv[])
                         tunnel_point_to_point(&c);
                         break;
 
-#if P2MP_SERVER
                     case MODE_SERVER:
                         tunnel_server(&c);
                         break;
 
-#endif
                     default:
                         ASSERT(0);
                 }

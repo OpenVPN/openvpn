@@ -190,12 +190,9 @@ struct context_1
     bool socks_proxy_owned;
 
 #if P2MP
-
-#if P2MP_SERVER
     /* persist --ifconfig-pool db to file */
     struct ifconfig_pool_persist *ifconfig_pool_persist;
     bool ifconfig_pool_persist_owned;
-#endif
 
     /* if client mode, hash of option strings we pulled from server */
     struct sha256_digest pulled_options_digest_save;
@@ -434,7 +431,6 @@ struct context_2
 
 #if P2MP
 
-#if P2MP_SERVER
     /* --ifconfig endpoints to be pushed to client */
     bool push_reply_deferred;
 #ifdef ENABLE_ASYNC_PUSH
@@ -458,7 +454,6 @@ struct context_2
 #define CAS_PARTIAL   3  /* at least one client-connect script/plugin
                           * succeeded while a later one in the chain failed */
     int context_auth;
-#endif /* if P2MP_SERVER */
 
     struct event_timeout push_request_interval;
     int n_sent_push_requests;

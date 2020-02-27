@@ -36,7 +36,6 @@
 
 #include "memdbg.h"
 
-#if P2MP_SERVER
 
 static const char *
 print_netmask(int netbits, struct gc_arena *gc)
@@ -139,7 +138,6 @@ verify_common_subnet(const char *opt, const in_addr_t a, const in_addr_t b, cons
     gc_free(&gc);
 }
 
-#endif /* if P2MP_SERVER */
 
 /*
  * Process server, server-bridge, and client helper
@@ -152,7 +150,6 @@ helper_client_server(struct options *o)
     struct gc_arena gc = gc_new();
 
 #if P2MP
-#if P2MP_SERVER
 
 /*
  * Get tun/tap/null device type
@@ -464,7 +461,6 @@ helper_client_server(struct options *o)
         }
     }
     else
-#endif /* P2MP_SERVER */
 
     /*
      * HELPER DIRECTIVE:
@@ -541,7 +537,6 @@ helper_keepalive(struct options *o)
             o->ping_send_timeout = o->keepalive_ping;
             o->ping_rec_timeout = o->keepalive_timeout;
         }
-#if P2MP_SERVER
         else if (o->mode == MODE_SERVER)
         {
             o->ping_rec_timeout_action = PING_RESTART;
@@ -550,7 +545,6 @@ helper_keepalive(struct options *o)
             push_option(o, print_str_int("ping", o->keepalive_ping, &o->gc), M_USAGE);
             push_option(o, print_str_int("ping-restart", o->keepalive_timeout, &o->gc), M_USAGE);
         }
-#endif
         else
         {
             ASSERT(0);
@@ -573,7 +567,6 @@ helper_keepalive(struct options *o)
 void
 helper_tcp_nodelay(struct options *o)
 {
-#if P2MP_SERVER
     if (o->server_flags & SF_TCP_NODELAY_HELPER)
     {
         if (o->mode == MODE_SERVER)
@@ -586,5 +579,4 @@ helper_tcp_nodelay(struct options *o)
             o->sockflags |= SF_TCP_NODELAY;
         }
     }
-#endif
 }

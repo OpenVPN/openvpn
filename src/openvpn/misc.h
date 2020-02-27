@@ -167,14 +167,11 @@ const char *sanitize_control_message(const char *str, struct gc_arena *gc);
 extern const char *iproute_path;
 #endif
 
-#if P2MP_SERVER
 /* helper to parse peer_info received from multi client, validate
  * (this is untrusted data) and put into environment */
 bool validate_peer_info_line(char *line);
 
 void output_peer_info_env(struct env_set *es, const char *peer_info);
-
-#endif /* P2MP_SERVER */
 
 /**
  * Returns the occurrences of 'delimiter' in a string +1

@@ -29,7 +29,6 @@
 
 #include "syshead.h"
 
-#if P2MP_SERVER
 
 #include "mroute.h"
 #include "proto.h"
@@ -614,10 +613,3 @@ mroute_helper_free(struct mroute_helper *mh)
 {
     free(mh);
 }
-
-#else  /* if P2MP_SERVER */
-static void
-dummy(void)
-{
-}
-#endif /* P2MP_SERVER */

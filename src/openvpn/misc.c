@@ -700,8 +700,6 @@ sanitize_control_message(const char *src, struct gc_arena *gc)
     return ret;
 }
 
-#if P2MP_SERVER
-
 /* helper to parse peer_info received from multi client, validate
  * (this is untrusted data) and put into environment
  */
@@ -784,4 +782,3 @@ get_num_elements(const char *string, char delimiter)
 
     return element_count;
 }
-#endif /* P2MP_SERVER */

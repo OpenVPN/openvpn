@@ -1063,13 +1063,11 @@ key_state_ssl_init(struct key_state_ssl *ks_ssl,
                                       ssl_ctx->priv_key));
 
     /* Initialise SSL verification */
-#if P2MP_SERVER
     if (session->opt->ssl_flags & SSLF_CLIENT_CERT_OPTIONAL)
     {
         mbedtls_ssl_conf_authmode(ks_ssl->ssl_config, MBEDTLS_SSL_VERIFY_OPTIONAL);
     }
     else if (!(session->opt->ssl_flags & SSLF_CLIENT_CERT_NOT_REQUIRED))
-#endif
     {
         mbedtls_ssl_conf_authmode(ks_ssl->ssl_config, MBEDTLS_SSL_VERIFY_REQUIRED);
     }

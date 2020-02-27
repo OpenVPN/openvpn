@@ -1351,11 +1351,9 @@ tls_multi_free(struct tls_multi *multi, bool clear)
 
     ASSERT(multi);
 
-#if P2MP_SERVER
     auth_set_client_reason(multi, NULL);
 
     free(multi->peer_info);
-#endif
 
     if (multi->locked_cn)
     {
@@ -2600,7 +2598,6 @@ key_method_2_read(struct buffer *buf, struct tls_multi *multi, struct tls_sessio
     username_status = read_string(buf, up->username, USER_PASS_LEN);
     password_status = read_string(buf, up->password, USER_PASS_LEN);
 
-#if P2MP_SERVER
     /* get peer info from control channel */
     free(multi->peer_info);
     multi->peer_info = read_string_alloc(buf);
@@ -2624,7 +2621,6 @@ key_method_2_read(struct buffer *buf, struct tls_multi *multi, struct tls_sessio
             session->opt->ncp_enabled = false;
         }
     }
-#endif /* if P2MP_SERVER */
 
     if (tls_session_user_pass_enabled(session))
     {

@@ -29,8 +29,6 @@
 
 #include "syshead.h"
 
-#if P2MP_SERVER
-
 #include "buffer.h"
 #include "misc.h"
 #include "crypto.h"
@@ -723,4 +721,3 @@ schedule_test(void)
 }
 
 #endif /* ifdef SCHEDULE_TEST */
-#endif /* if P2MP_SERVER */

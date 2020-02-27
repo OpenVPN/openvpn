@@ -2658,7 +2658,6 @@ do_init_tls_wrap_key(struct context *c)
 
 }
 
-#if P2MP_SERVER
 /*
  * Initialise the auth-token key context
  */
@@ -2674,7 +2673,6 @@ do_init_auth_token_key(struct context *c)
                            c->options.auth_token_secret_file,
                            c->options.auth_token_secret_file_inline);
 }
-#endif
 
 /*
  * Initialize the persistent component of OpenVPN's TLS mode,
@@ -2728,10 +2726,8 @@ do_init_crypto_tls_c1(struct context *c)
         /* initialize tls-auth/crypt/crypt-v2 key */
         do_init_tls_wrap_key(c);
 
-#if P2MP_SERVER
         /* initialise auth-token crypto support */
         do_init_auth_token_key(c);
-#endif
 
 #if 0 /* was: #if ENABLE_INLINE_FILES --  Note that enabling this code will break restarts */
         if (options->priv_key_file_inline)
@@ -2895,7 +2891,6 @@ do_init_crypto_tls(struct context *c, const unsigned int flags)
     to.mda_context = &c->c2.mda_context;
 #endif
 
-#if P2MP_SERVER
     to.auth_user_pass_verify_script = options->auth_user_pass_verify_script;
     to.auth_user_pass_verify_script_via_file = options->auth_user_pass_verify_script_via_file;
     to.tmp_dir = options->tmp_dir;
@@ -2908,7 +2903,6 @@ do_init_crypto_tls(struct context *c, const unsigned int flags)
     to.auth_token_lifetime = options->auth_token_lifetime;
     to.auth_token_call_auth = options->auth_token_call_auth;
     to.auth_token_key = c->c1.ks.auth_token_key;
-#endif
 
     to.x509_track = options->x509_track;
 
@@ -3218,7 +3212,6 @@ do_option_warnings(struct context *c)
         msg(M_WARN, "WARNING: using --pull/--client and --ifconfig together is probably not what you want");
     }
 
-#if P2MP_SERVER
     if (o->server_bridge_defined | o->server_bridge_proxy_dhcp)
     {
         msg(M_WARN, "NOTE: when bridging your LAN adapter with the TAP adapter, note that the new bridge adapter will often take on its own IP address that is different from what the LAN adapter was previously set to");
@@ -3239,7 +3232,6 @@ do_option_warnings(struct context *c)
             msg(M_WARN, "WARNING: --keepalive option is missing from server config");
         }
     }
-#endif /* if P2MP_SERVER */
 #endif /* if P2MP */
 
     if (!o->replay)
@@ -3735,20 +3727,17 @@ do_close_status_output(struct context *c)
 static void
 do_open_ifconfig_pool_persist(struct context *c)
 {
-#if P2MP_SERVER
     if (!c->c1.ifconfig_pool_persist && c->options.ifconfig_pool_persist_filename)
     {
         c->c1.ifconfig_pool_persist = ifconfig_pool_persist_init(c->options.ifconfig_pool_persist_filename,
                                                                  c->options.ifconfig_pool_persist_refresh_freq);
         c->c1.ifconfig_pool_persist_owned = true;
     }
-#endif
 }
 
 static void
 do_close_ifconfig_pool_persist(struct context *c)
 {
-#if P2MP_SERVER
     if (!(c->sig->signal_received == SIGUSR1))
     {
         if (c->c1.ifconfig_pool_persist && c->c1.ifconfig_pool_persist_owned)
@@ -3758,7 +3747,6 @@ do_close_ifconfig_pool_persist(struct context *c)
             c->c1.ifconfig_pool_persist_owned = false;
         }
     }
-#endif
 }
 
 /*
@@ -4604,9 +4592,7 @@ inherit_context_top(struct context *dest,
     /* detach c1 ownership */
     dest->c1.tuntap_owned = false;
     dest->c1.status_output_owned = false;
-#if P2MP_SERVER
     dest->c1.ifconfig_pool_persist_owned = false;
-#endif
 
     /* detach c2 ownership */
     dest->c2.event_set_owned = false;

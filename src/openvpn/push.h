@@ -52,7 +52,6 @@ void server_pushed_signal(struct context *c, const struct buffer *buffer, const 
 
 void incoming_push_message(struct context *c, const struct buffer *buffer);
 
-#if P2MP_SERVER
 void clone_push_list(struct options *o);
 
 void push_option(struct options *o, const char *opt, int msglevel);
@@ -78,6 +77,5 @@ void send_restart(struct context *c, const char *kill_msg);
  */
 void send_push_reply_auth_token(struct tls_multi *multi);
 
-#endif
 #endif /* if P2MP */
 #endif /* ifndef PUSH_H */

@@ -306,7 +306,6 @@ struct tls_options
     const char *tmp_dir;
     const char *auth_user_pass_file;
 
-#ifdef P2MP_SERVER
     bool auth_token_generate;   /**< Generate auth-tokens on successful
                                  * user/pass auth,seet via
                                  * options->auth_token_generate. */
@@ -314,7 +313,6 @@ struct tls_options
     unsigned int auth_token_lifetime;
 
     struct key_ctx auth_token_key;
-#endif
 
     /* use the client-config-dir as a positive authenticator */
     const char *client_config_dir_exclusive;
@@ -530,7 +528,6 @@ struct tls_multi
     time_t tas_last;
 #endif
 
-#ifdef P2MP_SERVER
     /*
      * An error message to send to client on AUTH_FAILED
      */
@@ -541,7 +538,6 @@ struct tls_multi
      * over control channel.
      */
     char *peer_info;
-#endif
     char *auth_token;    /**< If server sends a generated auth-token,
                           *   this is the token to use for future
                           *   user/pass authentications in this session.

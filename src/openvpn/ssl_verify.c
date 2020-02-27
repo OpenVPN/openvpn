@@ -1372,7 +1372,6 @@ verify_user_pass(struct user_pass *up, struct tls_multi *multi,
             set_common_name(session, up->username);
         }
 
-#if P2MP_SERVER
         if ((session->opt->auth_token_generate))
         {
             /*
@@ -1411,7 +1410,6 @@ verify_user_pass(struct user_pass *up, struct tls_multi *multi,
              */
             send_push_reply_auth_token(multi);
         }
-#endif
 #ifdef ENABLE_DEF_AUTH
         msg(D_HANDSHAKE, "TLS: Username/Password authentication %s for username '%s' %s",
             ks->auth_deferred ? "deferred" : "succeeded",

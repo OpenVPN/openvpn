@@ -404,7 +404,6 @@ struct options
 
 #if P2MP
 
-#if P2MP_SERVER
     /* the tmp dir is for now only used in the P2P server context */
     const char *tmp_dir;
     bool server_defined;
@@ -487,7 +486,6 @@ struct options
     char *port_share_port;
     const char *port_share_journal_dir;
 #endif
-#endif /* if P2MP_SERVER */
 
     bool client;
     bool pull; /* client pull of config options from server */
@@ -696,9 +694,7 @@ struct options
 
 #if P2MP
 #define PULL_DEFINED(opt) ((opt)->pull)
-#if P2MP_SERVER
 #define PUSH_DEFINED(opt) ((opt)->push_list)
-#endif
 #endif
 
 #ifndef PULL_DEFINED

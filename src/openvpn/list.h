@@ -33,8 +33,6 @@
  * client instances over various key spaces.
  */
 
-#if P2MP_SERVER
-
 /* define this to enable special list test mode */
 /*#define LIST_TEST*/
 
@@ -194,5 +192,4 @@ hash_remove(struct hash *hash, const void *key)
     return ret;
 }
 
-#endif /* P2MP_SERVER */
 #endif /* LIST */

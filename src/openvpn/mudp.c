@@ -29,8 +29,6 @@
 
 #include "syshead.h"
 
-#if P2MP_SERVER
-
 #include "multi.h"
 #include <inttypes.h>
 #include "forward.h"
@@ -384,4 +382,3 @@ tunnel_server_udp(struct context *top)
     tunnel_server_udp_single_threaded(top);
 }
 
-#endif /* if P2MP_SERVER */

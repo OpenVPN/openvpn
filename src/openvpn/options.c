@@ -410,7 +410,6 @@ static const char usage_message[] =
     "--vlan-accept tagged|untagged|all : Set VLAN tagging mode. Default is 'all'.\n"
     "--vlan-pvid v   : Sets the Port VLAN Identifier. Defaults to 1.\n"
 #if P2MP
-#if P2MP_SERVER
     "\n"
     "Multi-Client Server options (when --mode server is used):\n"
     "--server network netmask : Helper option to easily configure server mode.\n"
@@ -495,7 +494,6 @@ static const char usage_message[] =
     "                  sessions to a web server at host:port.  dir specifies an\n"
     "                  optional directory to write origin IP:port data.\n"
 #endif
-#endif /* if P2MP_SERVER */
     "\n"
     "Client options (when connecting to a multi-client server):\n"
     "--client         : Helper option to easily configure client mode.\n"
@@ -859,7 +857,6 @@ init_options(struct options *o, const bool init_gc)
 #endif
     o->vlan_accept = VLAN_ALL;
     o->vlan_pvid = 1;
-#if P2MP_SERVER
     o->real_hash_size = 256;
     o->virtual_hash_size = 256;
     o->n_bcast_buf = 256;
@@ -868,7 +865,6 @@ init_options(struct options *o, const bool init_gc)
     o->max_routes_per_client = 256;
     o->stale_routes_check_interval = 0;
     o->ifconfig_pool_persist_refresh_freq = 600;
-#endif
 #if P2MP
     o->scheduled_exit_interval = 5;
 #endif
@@ -906,7 +902,6 @@ init_options(struct options *o, const bool init_gc)
 #endif                  /* ENABLE_PKCS11 */
 
 /* P2MP server context features */
-#if P2MP_SERVER
     o->auth_token_generate = false;
 
     /* Set default --tmp-dir */
@@ -921,7 +916,6 @@ init_options(struct options *o, const bool init_gc)
         o->tmp_dir = "/tmp";
     }
 #endif /* _WIN32 */
-#endif /* P2MP_SERVER */
     o->allow_recursive_routing = false;
 }
 
@@ -1260,7 +1254,6 @@ show_p2mp_parms(const struct options *o)
 {
     struct gc_arena gc = gc_new();
 
-#if P2MP_SERVER
     msg(D_SHOW_PARMS, "  server_network = %s", print_in_addr_t(o->server_network, 0, &gc));
     msg(D_SHOW_PARMS, "  server_netmask = %s", print_in_addr_t(o->server_netmask, 0, &gc));
     msg(D_SHOW_PARMS, "  server_network_ipv6 = %s", print_in6_addr(o->server_network_ipv6, 0, &gc) );
@@ -1324,7 +1317,6 @@ show_p2mp_parms(const struct options *o)
     SHOW_BOOL(vlan_tagging);
     msg(D_SHOW_PARMS, "  vlan_accept = %s", print_vlan_accept(o->vlan_accept));
     SHOW_INT(vlan_pvid);
-#endif /* P2MP_SERVER */
 
     SHOW_BOOL(client);
     SHOW_BOOL(pull);
@@ -1334,8 +1326,6 @@ show_p2mp_parms(const struct options *o)
 }
 
 #endif /* ! ENABLE_SMALL */
-
-#if P2MP_SERVER
 
 static void
 option_iroute(struct options *o,
@@ -1384,7 +1374,6 @@ option_iroute_ipv6(struct options *o,
     ir->next = o->iroutes_ipv6;
     o->iroutes_ipv6 = ir;
 }
-#endif /* P2MP_SERVER */
 #endif /* P2MP */
 
 #ifndef ENABLE_SMALL
@@ -1422,9 +1411,7 @@ options_detach(struct options *o)
     gc_detach(&o->gc);
     o->routes = NULL;
     o->client_nat = NULL;
-#if P2MP_SERVER
     clone_push_list(o);
-#endif
 }
 
 void
@@ -2261,8 +2248,6 @@ options_postprocess_verify_ce(const struct options *options, const struct connec
         msg(M_USAGE, "TCP server mode allows at most one --remote address");
     }
 
-#if P2MP_SERVER
-
     /*
      * Check consistency of --mode server options.
      */
@@ -2516,7 +2501,6 @@ options_postprocess_verify_ce(const struct options *options, const struct connec
             msg(M_USAGE, "--vlan-tagging requires --mode server");
         }
     }
-#endif /* P2MP_SERVER */
 
     if (options->keysize)
     {
@@ -2830,7 +2814,6 @@ options_postprocess_mutate_ce(struct options *o, struct connection_entry *ce)
 {
     const int dev = dev_type_enum(o->dev, o->dev_type);
 
-#if P2MP_SERVER
     if (o->server_defined || o->server_bridge_defined || o->server_bridge_proxy_dhcp)
     {
         if (ce->proto == PROTO_TCP)
@@ -2838,7 +2821,7 @@ options_postprocess_mutate_ce(struct options *o, struct connection_entry *ce)
             ce->proto = PROTO_TCP_SERVER;
         }
     }
-#endif
+
 #if P2MP
     if (o->client)
     {
@@ -3028,15 +3011,12 @@ options_postprocess_mutate_invariant(struct options *options)
     }
 
     remap_redirect_gateway_flags(options);
-#endif /* ifdef _WIN32 */
 
-#if P2MP_SERVER
     /*
      * Check consistency of --mode server options.
      */
     if (options->mode == MODE_SERVER)
     {
-#ifdef _WIN32
         /*
          * We need to explicitly set --tap-sleep because
          * we do not schedule event timers in the top-level context.
@@ -3047,9 +3027,8 @@ options_postprocess_mutate_invariant(struct options *options)
             options->tuntap_options.tap_sleep = options->route_delay;
         }
         options->route_delay_defined = false;
-#endif
     }
-#endif
+#endif /* ifdef _WIN32 */
 
 #ifdef DEFAULT_PKCS11_MODULE
     /* If p11-kit is present on the system then load its p11-kit-proxy.so
@@ -3497,13 +3476,10 @@ options_postprocess_filechecks(struct options *options)
     /* ** Config related ** */
     errs |= check_file_access_chroot(options->chroot_dir, CHKACC_FILE, options->tls_export_cert,
                                      R_OK|W_OK|X_OK, "--tls-export-cert");
-#if P2MP_SERVER
     errs |= check_file_access_chroot(options->chroot_dir, CHKACC_FILE, options->client_config_dir,
                                      R_OK|X_OK, "--client-config-dir");
     errs |= check_file_access_chroot(options->chroot_dir, CHKACC_FILE, options->tmp_dir,
                                      R_OK|W_OK|X_OK, "Temporary directory (--tmp-dir)");
-
-#endif /* P2MP_SERVER */
 
     if (errs)
     {
@@ -5422,12 +5398,10 @@ add_option(struct options *options,
         {
             options->mode = MODE_POINT_TO_POINT;
         }
-#if P2MP_SERVER
         else if (streq(p[1], "server"))
         {
             options->mode = MODE_SERVER;
         }
-#endif
         else
         {
             msg(msglevel, "Bad --mode parameter: %s", p[1]);
@@ -6682,7 +6656,6 @@ add_option(struct options *options,
     }
 #endif
 #if P2MP
-#if P2MP_SERVER
     else if (streq(p[0], "server") && p[1] && p[2] && !p[4])
     {
         const int lev = M_WARN;
@@ -7234,7 +7207,6 @@ add_option(struct options *options,
         options->stale_routes_ageing_time  = ageing_time;
         options->stale_routes_check_interval = check_interval;
     }
-#endif /* P2MP_SERVER */
 
     else if (streq(p[0], "client") && !p[1])
     {
