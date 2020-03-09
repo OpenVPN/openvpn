@@ -57,7 +57,7 @@
  * Local constants
  */
 
-#define MSICA_INTERFACE_TICK_SIZE (16*1024) /** Amount of tick space to reserve for one TAP/TUN interface creation/deletition. */
+#define MSICA_ADAPTER_TICK_SIZE (16*1024) /** Amount of tick space to reserve for one TAP/TUN adapter creation/deletition. */
 
 
 /**
@@ -272,7 +272,7 @@ FindSystemInfo(_In_ MSIHANDLE hInstall)
 
 
 UINT __stdcall
-FindTAPInterfaces(_In_ MSIHANDLE hInstall)
+FindTAPAdapters(_In_ MSIHANDLE hInstall)
 {
 #ifdef _MSC_VER
 #pragma comment(linker, DLLEXP_EXPORT)
@@ -285,15 +285,15 @@ FindTAPInterfaces(_In_ MSIHANDLE hInstall)
 
     OPENVPNMSICA_SAVE_MSI_SESSION(hInstall);
 
-    /* Get all TUN/TAP network interfaces. */
-    struct tap_interface_node *pInterfaceList = NULL;
-    uiResult = tap_list_interfaces(NULL, NULL, &pInterfaceList, FALSE);
+    /* Get all TUN/TAP network adapters. */
+    struct tap_adapter_node *pAdapterList = NULL;
+    uiResult = tap_list_adapters(NULL, NULL, &pAdapterList, FALSE);
     if (uiResult != ERROR_SUCCESS)
     {
         goto cleanup_CoInitialize;
     }
 
-    /* Get IPv4/v6 info for all network interfaces. Actually, we're interested in link status only: up/down? */
+    /* Get IPv4/v6 info for all network adapters. Actually, we're interested in link status only: up/down? */
     PIP_ADAPTER_ADDRESSES pAdapterAdresses = NULL;
     ULONG ulAdapterAdressesSize = 16*1024;
     for (size_t iteration = 0; iteration < 2; iteration++)
@@ -302,7 +302,7 @@ FindTAPInterfaces(_In_ MSIHANDLE hInstall)
         if (pAdapterAdresses == NULL)
         {
             msg(M_NONFATAL, "%s: malloc(%u) failed", __FUNCTION__, ulAdapterAdressesSize);
-            uiResult = ERROR_OUTOFMEMORY; goto cleanup_tap_list_interfaces;
+            uiResult = ERROR_OUTOFMEMORY; goto cleanup_tap_list_adapters;
         }
 
         ULONG ulResult = GetAdaptersAddresses(
@@ -322,101 +322,101 @@ FindTAPInterfaces(_In_ MSIHANDLE hInstall)
         {
             SetLastError(ulResult); /* MSDN does not mention GetAdaptersAddresses() to set GetLastError(). But we do have an error code. Set last error manually. */
             msg(M_NONFATAL | M_ERRNO, "%s: GetAdaptersAddresses() failed", __FUNCTION__);
-            uiResult = ulResult; goto cleanup_tap_list_interfaces;
+            uiResult = ulResult; goto cleanup_tap_list_adapters;
         }
     }
 
-    if (pInterfaceList != NULL)
+    if (pAdapterList != NULL)
     {
-        /* Count interfaces. */
-        size_t interface_count = 0;
-        for (struct tap_interface_node *pInterface = pInterfaceList; pInterface; pInterface = pInterface->pNext)
+        /* Count adapters. */
+        size_t adapter_count = 0;
+        for (struct tap_adapter_node *pAdapter = pAdapterList; pAdapter; pAdapter = pAdapter->pNext)
         {
-            interface_count++;
+            adapter_count++;
         }
 
-        /* Prepare semicolon delimited list of TAP interface ID(s) and active TAP interface ID(s). */
+        /* Prepare semicolon delimited list of TAP adapter ID(s) and active TAP adapter ID(s). */
         LPTSTR
-            szTAPInterfaces     = (LPTSTR)malloc(interface_count * (38 /*GUID*/ + 1 /*separator/terminator*/) * sizeof(TCHAR)),
-            szTAPInterfacesTail = szTAPInterfaces;
-        if (szTAPInterfaces == NULL)
+            szTAPAdapters     = (LPTSTR)malloc(adapter_count * (38 /*GUID*/ + 1 /*separator/terminator*/) * sizeof(TCHAR)),
+            szTAPAdaptersTail = szTAPAdapters;
+        if (szTAPAdapters == NULL)
         {
-            msg(M_FATAL, "%s: malloc(%u) failed", __FUNCTION__, interface_count * (38 /*GUID*/ + 1 /*separator/terminator*/) * sizeof(TCHAR));
+            msg(M_FATAL, "%s: malloc(%u) failed", __FUNCTION__, adapter_count * (38 /*GUID*/ + 1 /*separator/terminator*/) * sizeof(TCHAR));
             uiResult = ERROR_OUTOFMEMORY; goto cleanup_pAdapterAdresses;
         }
 
         LPTSTR
-            szTAPInterfacesActive     = (LPTSTR)malloc(interface_count * (38 /*GUID*/ + 1 /*separator/terminator*/) * sizeof(TCHAR)),
-            szTAPInterfacesActiveTail = szTAPInterfacesActive;
-        if (szTAPInterfacesActive == NULL)
+            szTAPAdaptersActive     = (LPTSTR)malloc(adapter_count * (38 /*GUID*/ + 1 /*separator/terminator*/) * sizeof(TCHAR)),
+            szTAPAdaptersActiveTail = szTAPAdaptersActive;
+        if (szTAPAdaptersActive == NULL)
         {
-            msg(M_FATAL, "%s: malloc(%u) failed", __FUNCTION__, interface_count * (38 /*GUID*/ + 1 /*separator/terminator*/) * sizeof(TCHAR));
-            uiResult = ERROR_OUTOFMEMORY; goto cleanup_szTAPInterfaces;
+            msg(M_FATAL, "%s: malloc(%u) failed", __FUNCTION__, adapter_count * (38 /*GUID*/ + 1 /*separator/terminator*/) * sizeof(TCHAR));
+            uiResult = ERROR_OUTOFMEMORY; goto cleanup_szTAPAdapters;
         }
 
-        for (struct tap_interface_node *pInterface = pInterfaceList; pInterface; pInterface = pInterface->pNext)
+        for (struct tap_adapter_node *pAdapter = pAdapterList; pAdapter; pAdapter = pAdapter->pNext)
         {
-            /* Convert interface GUID to UTF-16 string. (LPOLESTR defaults to LPWSTR) */
-            LPOLESTR szInterfaceId = NULL;
-            StringFromIID((REFIID)&pInterface->guid, &szInterfaceId);
+            /* Convert adapter GUID to UTF-16 string. (LPOLESTR defaults to LPWSTR) */
+            LPOLESTR szAdapterId = NULL;
+            StringFromIID((REFIID)&pAdapter->guid, &szAdapterId);
 
-            /* Append to the list of TAP interface ID(s). */
-            if (szTAPInterfaces < szTAPInterfacesTail)
+            /* Append to the list of TAP adapter ID(s). */
+            if (szTAPAdapters < szTAPAdaptersTail)
             {
-                *(szTAPInterfacesTail++) = TEXT(';');
+                *(szTAPAdaptersTail++) = TEXT(';');
             }
-            memcpy(szTAPInterfacesTail, szInterfaceId, 38 * sizeof(TCHAR));
-            szTAPInterfacesTail += 38;
+            memcpy(szTAPAdaptersTail, szAdapterId, 38 * sizeof(TCHAR));
+            szTAPAdaptersTail += 38;
 
-            /* If this interface is active (connected), add it to the list of active TAP interface ID(s). */
+            /* If this adapter is active (connected), add it to the list of active TAP adapter ID(s). */
             for (PIP_ADAPTER_ADDRESSES p = pAdapterAdresses; p; p = p->Next)
             {
                 OLECHAR szId[38 /*GUID*/ + 1 /*terminator*/];
                 GUID guid;
                 if (MultiByteToWideChar(CP_ACP, MB_PRECOMPOSED, p->AdapterName, -1, szId, _countof(szId)) > 0
                     && SUCCEEDED(IIDFromString(szId, &guid))
-                    && memcmp(&guid, &pInterface->guid, sizeof(GUID)) == 0)
+                    && memcmp(&guid, &pAdapter->guid, sizeof(GUID)) == 0)
                 {
                     if (p->OperStatus == IfOperStatusUp)
                     {
-                        /* This TAP interface is active (connected). */
-                        if (szTAPInterfacesActive < szTAPInterfacesActiveTail)
+                        /* This TAP adapter is active (connected). */
+                        if (szTAPAdaptersActive < szTAPAdaptersActiveTail)
                         {
-                            *(szTAPInterfacesActiveTail++) = TEXT(';');
+                            *(szTAPAdaptersActiveTail++) = TEXT(';');
                         }
-                        memcpy(szTAPInterfacesActiveTail, szInterfaceId, 38 * sizeof(TCHAR));
-                        szTAPInterfacesActiveTail += 38;
+                        memcpy(szTAPAdaptersActiveTail, szAdapterId, 38 * sizeof(TCHAR));
+                        szTAPAdaptersActiveTail += 38;
                     }
                     break;
                 }
             }
-            CoTaskMemFree(szInterfaceId);
+            CoTaskMemFree(szAdapterId);
         }
-        szTAPInterfacesTail      [0] = 0;
-        szTAPInterfacesActiveTail[0] = 0;
+        szTAPAdaptersTail      [0] = 0;
+        szTAPAdaptersActiveTail[0] = 0;
 
-        /* Set Installer TAPINTERFACES property. */
-        uiResult = MsiSetProperty(hInstall, TEXT("TAPINTERFACES"), szTAPInterfaces);
+        /* Set Installer TAPADAPTERS property. */
+        uiResult = MsiSetProperty(hInstall, TEXT("TAPADAPTERS"), szTAPAdapters);
         if (uiResult != ERROR_SUCCESS)
         {
             SetLastError(uiResult); /* MSDN does not mention MsiSetProperty() to set GetLastError(). But we do have an error code. Set last error manually. */
-            msg(M_NONFATAL | M_ERRNO, "%s: MsiSetProperty(\"TAPINTERFACES\") failed", __FUNCTION__);
-            goto cleanup_szTAPInterfacesActive;
+            msg(M_NONFATAL | M_ERRNO, "%s: MsiSetProperty(\"TAPADAPTERS\") failed", __FUNCTION__);
+            goto cleanup_szTAPAdaptersActive;
         }
 
-        /* Set Installer ACTIVETAPINTERFACES property. */
-        uiResult = MsiSetProperty(hInstall, TEXT("ACTIVETAPINTERFACES"), szTAPInterfacesActive);
+        /* Set Installer ACTIVETAPADAPTERS property. */
+        uiResult = MsiSetProperty(hInstall, TEXT("ACTIVETAPADAPTERS"), szTAPAdaptersActive);
         if (uiResult != ERROR_SUCCESS)
         {
             SetLastError(uiResult); /* MSDN does not mention MsiSetProperty() to set GetLastError(). But we do have an error code. Set last error manually. */
-            msg(M_NONFATAL | M_ERRNO, "%s: MsiSetProperty(\"ACTIVETAPINTERFACES\") failed", __FUNCTION__);
-            goto cleanup_szTAPInterfacesActive;
+            msg(M_NONFATAL | M_ERRNO, "%s: MsiSetProperty(\"ACTIVETAPADAPTERS\") failed", __FUNCTION__);
+            goto cleanup_szTAPAdaptersActive;
         }
 
-cleanup_szTAPInterfacesActive:
-        free(szTAPInterfacesActive);
-cleanup_szTAPInterfaces:
-        free(szTAPInterfaces);
+cleanup_szTAPAdaptersActive:
+        free(szTAPAdaptersActive);
+cleanup_szTAPAdapters:
+        free(szTAPAdapters);
     }
     else
     {
@@ -425,8 +425,8 @@ cleanup_szTAPInterfaces:
 
 cleanup_pAdapterAdresses:
     free(pAdapterAdresses);
-cleanup_tap_list_interfaces:
-    tap_free_interface_list(pInterfaceList);
+cleanup_tap_list_adapters:
+    tap_free_adapter_list(pAdapterList);
 cleanup_CoInitialize:
     if (bIsCoInitialized)
     {
@@ -546,47 +546,47 @@ cleanup_CoInitialize:
 
 
 /**
- * Schedules interface creation.
+ * Schedules adapter creation.
  *
- * When the rollback is enabled, the interface deletition is scheduled on rollback.
+ * When the rollback is enabled, the adapter deletition is scheduled on rollback.
  *
- * @param seq           The argument sequence to pass to InstallTAPInterfaces custom action
+ * @param seq           The argument sequence to pass to InstallTAPAdapters custom action
  *
- * @param seqRollback   The argument sequence to pass to InstallTAPInterfacesRollback custom
+ * @param seqRollback   The argument sequence to pass to InstallTAPAdaptersRollback custom
  *                      action. NULL when rollback is disabled.
  *
- * @param szDisplayName  Interface display name.
+ * @param szDisplayName  Adapter display name.
  *
  * @param iTicks        Pointer to an integer that represents amount of work (on progress
- *                      indicator) the InstallTAPInterfaces will take. This function increments it
- *                      by MSICA_INTERFACE_TICK_SIZE for each interface to create.
+ *                      indicator) the InstallTAPAdapters will take. This function increments it
+ *                      by MSICA_ADAPTER_TICK_SIZE for each adapter to create.
  *
  * @return ERROR_SUCCESS on success; An error code otherwise
  */
 static DWORD
-schedule_interface_create(
+schedule_adapter_create(
     _Inout_ struct msica_arg_seq *seq,
     _Inout_opt_ struct msica_arg_seq *seqRollback,
     _In_z_ LPCTSTR szDisplayName,
     _Inout_ int *iTicks)
 {
-    /* Get all available network interfaces. */
-    struct tap_interface_node *pInterfaceList = NULL;
-    DWORD dwResult = tap_list_interfaces(NULL, NULL, &pInterfaceList, TRUE);
+    /* Get all available network adapters. */
+    struct tap_adapter_node *pAdapterList = NULL;
+    DWORD dwResult = tap_list_adapters(NULL, NULL, &pAdapterList, TRUE);
     if (dwResult != ERROR_SUCCESS)
     {
         return dwResult;
     }
 
-    /* Does interface exist? */
-    for (struct tap_interface_node *pInterfaceOther = pInterfaceList;; pInterfaceOther = pInterfaceOther->pNext)
+    /* Does adapter exist? */
+    for (struct tap_adapter_node *pAdapterOther = pAdapterList;; pAdapterOther = pAdapterOther->pNext)
     {
-        if (pInterfaceOther == NULL)
+        if (pAdapterOther == NULL)
         {
-            /* No interface with a same name found. */
+            /* No adapter with a same name found. */
             TCHAR szArgument[10 /*create=""|deleteN=""*/ + MAX_PATH /*szDisplayName*/ + 1 /*terminator*/];
 
-            /* InstallTAPInterfaces will create the interface. */
+            /* InstallTAPAdapters will create the adapter. */
             _stprintf_s(
                 szArgument, _countof(szArgument),
                 TEXT("create=\"%.*s\""),
@@ -595,7 +595,7 @@ schedule_interface_create(
 
             if (seqRollback)
             {
-                /* InstallTAPInterfacesRollback will delete the interface. */
+                /* InstallTAPAdaptersRollback will delete the adapter. */
                 _stprintf_s(
                     szArgument, _countof(szArgument),
                     TEXT("deleteN=\"%.*s\""),
@@ -603,132 +603,132 @@ schedule_interface_create(
                 msica_arg_seq_add_head(seqRollback, szArgument);
             }
 
-            *iTicks += MSICA_INTERFACE_TICK_SIZE;
+            *iTicks += MSICA_ADAPTER_TICK_SIZE;
             break;
         }
-        else if (_tcsicmp(szDisplayName, pInterfaceOther->szName) == 0)
+        else if (_tcsicmp(szDisplayName, pAdapterOther->szName) == 0)
         {
-            /* Interface with a same name found. */
-            for (LPCTSTR hwid = pInterfaceOther->szzHardwareIDs;; hwid += _tcslen(hwid) + 1)
+            /* Adapter with a same name found. */
+            for (LPCTSTR hwid = pAdapterOther->szzHardwareIDs;; hwid += _tcslen(hwid) + 1)
             {
                 if (hwid[0] == 0)
                 {
-                    /* This is not a TAP interface. */
-                    msg(M_NONFATAL, "%s: Interface with name \"%" PRIsLPTSTR "\" already exists", __FUNCTION__, pInterfaceOther->szName);
+                    /* This is not a TAP adapter. */
+                    msg(M_NONFATAL, "%s: Adapter with name \"%" PRIsLPTSTR "\" already exists", __FUNCTION__, pAdapterOther->szName);
                     dwResult = ERROR_ALREADY_EXISTS;
-                    goto cleanup_pInterfaceList;
+                    goto cleanup_pAdapterList;
                 }
                 else if (
                     _tcsicmp(hwid, TEXT(TAP_WIN_COMPONENT_ID)) == 0
                     || _tcsicmp(hwid, TEXT("root\\") TEXT(TAP_WIN_COMPONENT_ID)) == 0)
                 {
-                    /* This is a TAP-Windows6 interface. We already have what we want! */
+                    /* This is a TAP-Windows6 adapter. We already have what we want! */
                     break;
                 }
             }
-            break; /* Interface names are unique. There should be no other interface with this name. */
+            break; /* Adapter names are unique. There should be no other adapter with this name. */
         }
     }
 
-cleanup_pInterfaceList:
-    tap_free_interface_list(pInterfaceList);
+cleanup_pAdapterList:
+    tap_free_adapter_list(pAdapterList);
     return dwResult;
 }
 
 
 /**
- * Schedules interface deletion.
+ * Schedules adapter deletion.
  *
- * When the rollback is enabled, the interface deletition is scheduled as: disable in
- * UninstallTAPInterfaces, enable on rollback, delete on commit.
+ * When the rollback is enabled, the adapter deletition is scheduled as: disable in
+ * UninstallTAPAdapters, enable on rollback, delete on commit.
  *
- * When rollback is disabled, the interface deletition is scheduled as delete in
- * UninstallTAPInterfaces.
+ * When rollback is disabled, the adapter deletition is scheduled as delete in
+ * UninstallTAPAdapters.
  *
- * @param seq           The argument sequence to pass to UninstallTAPInterfaces custom action
+ * @param seq           The argument sequence to pass to UninstallTAPAdapters custom action
  *
- * @param seqCommit     The argument sequence to pass to UninstallTAPInterfacesCommit custom
+ * @param seqCommit     The argument sequence to pass to UninstallTAPAdaptersCommit custom
  *                      action. NULL when rollback is disabled.
  *
- * @param seqRollback   The argument sequence to pass to UninstallTAPInterfacesRollback custom
+ * @param seqRollback   The argument sequence to pass to UninstallTAPAdaptersRollback custom
  *                      action. NULL when rollback is disabled.
  *
- * @param szDisplayName  Interface display name.
+ * @param szDisplayName  Adapter display name.
  *
  * @param iTicks        Pointer to an integer that represents amount of work (on progress
- *                      indicator) the UninstallTAPInterfaces will take. This function increments
- *                      it by MSICA_INTERFACE_TICK_SIZE for each interface to delete.
+ *                      indicator) the UninstallTAPAdapters will take. This function increments
+ *                      it by MSICA_ADAPTER_TICK_SIZE for each adapter to delete.
  *
  * @return ERROR_SUCCESS on success; An error code otherwise
  */
 static DWORD
-schedule_interface_delete(
+schedule_adapter_delete(
     _Inout_ struct msica_arg_seq *seq,
     _Inout_opt_ struct msica_arg_seq *seqCommit,
     _Inout_opt_ struct msica_arg_seq *seqRollback,
     _In_z_ LPCTSTR szDisplayName,
     _Inout_ int *iTicks)
 {
-    /* Get available TUN/TAP interfaces. */
-    struct tap_interface_node *pInterfaceList = NULL;
-    DWORD dwResult = tap_list_interfaces(NULL, NULL, &pInterfaceList, FALSE);
+    /* Get available TUN/TAP adapters. */
+    struct tap_adapter_node *pAdapterList = NULL;
+    DWORD dwResult = tap_list_adapters(NULL, NULL, &pAdapterList, FALSE);
     if (dwResult != ERROR_SUCCESS)
     {
         return dwResult;
     }
 
-    /* Does interface exist? */
-    for (struct tap_interface_node *pInterface = pInterfaceList; pInterface != NULL; pInterface = pInterface->pNext)
+    /* Does adapter exist? */
+    for (struct tap_adapter_node *pAdapter = pAdapterList; pAdapter != NULL; pAdapter = pAdapter->pNext)
     {
-        if (_tcsicmp(szDisplayName, pInterface->szName) == 0)
+        if (_tcsicmp(szDisplayName, pAdapter->szName) == 0)
         {
-            /* Interface found. */
+            /* Adapter found. */
             TCHAR szArgument[8 /*disable=|enable=|delete=*/ + 38 /*{xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx}*/ + 1 /*terminator*/];
             if (seqCommit && seqRollback)
             {
-                /* UninstallTAPInterfaces will disable the interface. */
+                /* UninstallTAPAdapters will disable the adapter. */
                 _stprintf_s(
                     szArgument, _countof(szArgument),
                     TEXT("disable=") TEXT(PRIXGUID),
-                    PRIGUID_PARAM(pInterface->guid));
+                    PRIGUID_PARAM(pAdapter->guid));
                 msica_arg_seq_add_tail(seq, szArgument);
 
-                /* UninstallTAPInterfacesRollback will re-enable the interface. */
+                /* UninstallTAPAdaptersRollback will re-enable the adapter. */
                 _stprintf_s(
                     szArgument, _countof(szArgument),
                     TEXT("enable=") TEXT(PRIXGUID),
-                    PRIGUID_PARAM(pInterface->guid));
+                    PRIGUID_PARAM(pAdapter->guid));
                 msica_arg_seq_add_head(seqRollback, szArgument);
 
-                /* UninstallTAPInterfacesCommit will delete the interface. */
+                /* UninstallTAPAdaptersCommit will delete the adapter. */
                 _stprintf_s(
                     szArgument, _countof(szArgument),
                     TEXT("delete=") TEXT(PRIXGUID),
-                    PRIGUID_PARAM(pInterface->guid));
+                    PRIGUID_PARAM(pAdapter->guid));
                 msica_arg_seq_add_tail(seqCommit, szArgument);
             }
             else
             {
-                /* UninstallTAPInterfaces will delete the interface. */
+                /* UninstallTAPAdapters will delete the adapter. */
                 _stprintf_s(
                     szArgument, _countof(szArgument),
                     TEXT("delete=") TEXT(PRIXGUID),
-                    PRIGUID_PARAM(pInterface->guid));
+                    PRIGUID_PARAM(pAdapter->guid));
                 msica_arg_seq_add_tail(seq, szArgument);
             }
 
-            iTicks += MSICA_INTERFACE_TICK_SIZE;
-            break; /* Interface names are unique. There should be no other interface with this name. */
+            iTicks += MSICA_ADAPTER_TICK_SIZE;
+            break; /* Adapter names are unique. There should be no other adapter with this name. */
         }
     }
 
-    tap_free_interface_list(pInterfaceList);
+    tap_free_adapter_list(pAdapterList);
     return dwResult;
 }
 
 
 UINT __stdcall
-EvaluateTAPInterfaces(_In_ MSIHANDLE hInstall)
+EvaluateTAPAdapters(_In_ MSIHANDLE hInstall)
 {
 #ifdef _MSC_VER
 #pragma comment(linker, DLLEXP_EXPORT)
@@ -742,18 +742,18 @@ EvaluateTAPInterfaces(_In_ MSIHANDLE hInstall)
     OPENVPNMSICA_SAVE_MSI_SESSION(hInstall);
 
     struct msica_arg_seq
-        seqInstallTAPInterfaces,
-        seqInstallTAPInterfacesCommit,
-        seqInstallTAPInterfacesRollback,
-        seqUninstallTAPInterfaces,
-        seqUninstallTAPInterfacesCommit,
-        seqUninstallTAPInterfacesRollback;
-    msica_arg_seq_init(&seqInstallTAPInterfaces);
-    msica_arg_seq_init(&seqInstallTAPInterfacesCommit);
-    msica_arg_seq_init(&seqInstallTAPInterfacesRollback);
-    msica_arg_seq_init(&seqUninstallTAPInterfaces);
-    msica_arg_seq_init(&seqUninstallTAPInterfacesCommit);
-    msica_arg_seq_init(&seqUninstallTAPInterfacesRollback);
+        seqInstallTAPAdapters,
+        seqInstallTAPAdaptersCommit,
+        seqInstallTAPAdaptersRollback,
+        seqUninstallTAPAdapters,
+        seqUninstallTAPAdaptersCommit,
+        seqUninstallTAPAdaptersRollback;
+    msica_arg_seq_init(&seqInstallTAPAdapters);
+    msica_arg_seq_init(&seqInstallTAPAdaptersCommit);
+    msica_arg_seq_init(&seqInstallTAPAdaptersRollback);
+    msica_arg_seq_init(&seqUninstallTAPAdapters);
+    msica_arg_seq_init(&seqUninstallTAPAdaptersCommit);
+    msica_arg_seq_init(&seqUninstallTAPAdaptersRollback);
 
     /* Check rollback state. */
     bool bRollbackEnabled = MsiEvaluateCondition(hInstall, TEXT("RollbackDisabled")) != MSICONDITION_TRUE;
@@ -767,8 +767,8 @@ EvaluateTAPInterfaces(_In_ MSIHANDLE hInstall)
         goto cleanup_exec_seq;
     }
 
-    /* Check if TAPInterface table exists. If it doesn't exist, there's nothing to do. */
-    switch (MsiDatabaseIsTablePersistent(hDatabase, TEXT("TAPInterface")))
+    /* Check if TAPAdapter table exists. If it doesn't exist, there's nothing to do. */
+    switch (MsiDatabaseIsTablePersistent(hDatabase, TEXT("TAPAdapter")))
     {
         case MSICONDITION_FALSE:
         case MSICONDITION_TRUE: break;
@@ -778,9 +778,9 @@ EvaluateTAPInterfaces(_In_ MSIHANDLE hInstall)
             goto cleanup_hDatabase;
     }
 
-    /* Prepare a query to get a list/view of interfaces. */
+    /* Prepare a query to get a list/view of adapters. */
     MSIHANDLE hViewST = 0;
-    LPCTSTR szQuery = TEXT("SELECT `Interface`,`DisplayName`,`Condition`,`Component_` FROM `TAPInterface`");
+    LPCTSTR szQuery = TEXT("SELECT `Adapter`,`DisplayName`,`Condition`,`Component_` FROM `TAPAdapter`");
     uiResult = MsiDatabaseOpenView(hDatabase, szQuery, &hViewST);
     if (uiResult != ERROR_SUCCESS)
     {
@@ -826,7 +826,7 @@ EvaluateTAPInterfaces(_In_ MSIHANDLE hInstall)
 
         INSTALLSTATE iInstalled, iAction;
         {
-            /* Read interface component ID (`Component_` is field #4). */
+            /* Read adapter component ID (`Component_` is field #4). */
             LPTSTR szValue = NULL;
             uiResult = msi_get_record_string(hRecord, 4, &szValue);
             if (uiResult != ERROR_SUCCESS)
@@ -846,7 +846,7 @@ EvaluateTAPInterfaces(_In_ MSIHANDLE hInstall)
             free(szValue);
         }
 
-        /* Get interface display name (`DisplayName` is field #2). */
+        /* Get adapter display name (`DisplayName` is field #2). */
         LPTSTR szDisplayName = NULL;
         uiResult = msi_format_field(hInstall, hRecord, 2, &szDisplayName);
         if (uiResult != ERROR_SUCCESS)
@@ -863,7 +863,7 @@ EvaluateTAPInterfaces(_In_ MSIHANDLE hInstall)
 
             if (iAction >= INSTALLSTATE_LOCAL)
             {
-                /* Read and evaluate interface condition (`Condition` is field #3). */
+                /* Read and evaluate adapter condition (`Condition` is field #3). */
                 LPTSTR szValue = NULL;
                 uiResult = msi_get_record_string(hRecord, 3, &szValue);
                 if (uiResult != ERROR_SUCCESS)
@@ -895,10 +895,10 @@ EvaluateTAPInterfaces(_In_ MSIHANDLE hInstall)
 #endif
                 free(szValue);
 
-                /* Component is or should be installed. Schedule interface creation. */
-                if (schedule_interface_create(
-                        &seqInstallTAPInterfaces,
-                        bRollbackEnabled ? &seqInstallTAPInterfacesRollback : NULL,
+                /* Component is or should be installed. Schedule adapter creation. */
+                if (schedule_adapter_create(
+                        &seqInstallTAPAdapters,
+                        bRollbackEnabled ? &seqInstallTAPAdaptersRollback : NULL,
                         szDisplayNameEx,
                         &iTicks) != ERROR_SUCCESS)
                 {
@@ -908,15 +908,15 @@ EvaluateTAPInterfaces(_In_ MSIHANDLE hInstall)
             }
             else
             {
-                /* Component is installed, but should be degraded to advertised/removed. Schedule interface deletition.
+                /* Component is installed, but should be degraded to advertised/removed. Schedule adapter deletition.
                  *
-                 * Note: On interface removal (product is being uninstalled), we tolerate dwResult error.
+                 * Note: On adapter removal (product is being uninstalled), we tolerate dwResult error.
                  * Better a partial uninstallation than no uninstallation at all.
                  */
-                schedule_interface_delete(
-                    &seqUninstallTAPInterfaces,
-                    bRollbackEnabled ? &seqUninstallTAPInterfacesCommit : NULL,
-                    bRollbackEnabled ? &seqUninstallTAPInterfacesRollback : NULL,
+                schedule_adapter_delete(
+                    &seqUninstallTAPAdapters,
+                    bRollbackEnabled ? &seqUninstallTAPAdaptersCommit : NULL,
+                    bRollbackEnabled ? &seqUninstallTAPAdaptersRollback : NULL,
                     szDisplayNameEx,
                     &iTicks);
             }
@@ -943,12 +943,12 @@ cleanup_hRecord:
     }
 
     /* Store deferred custom action parameters. */
-    if ((uiResult = setup_sequence(hInstall, TEXT("InstallTAPInterfaces"          ), &seqInstallTAPInterfaces          )) != ERROR_SUCCESS
-        || (uiResult = setup_sequence(hInstall, TEXT("InstallTAPInterfacesCommit"    ), &seqInstallTAPInterfacesCommit    )) != ERROR_SUCCESS
-        || (uiResult = setup_sequence(hInstall, TEXT("InstallTAPInterfacesRollback"  ), &seqInstallTAPInterfacesRollback  )) != ERROR_SUCCESS
-        || (uiResult = setup_sequence(hInstall, TEXT("UninstallTAPInterfaces"        ), &seqUninstallTAPInterfaces        )) != ERROR_SUCCESS
-        || (uiResult = setup_sequence(hInstall, TEXT("UninstallTAPInterfacesCommit"  ), &seqUninstallTAPInterfacesCommit  )) != ERROR_SUCCESS
-        || (uiResult = setup_sequence(hInstall, TEXT("UninstallTAPInterfacesRollback"), &seqUninstallTAPInterfacesRollback)) != ERROR_SUCCESS)
+    if ((uiResult = setup_sequence(hInstall, TEXT("InstallTAPAdapters"          ), &seqInstallTAPAdapters          )) != ERROR_SUCCESS
+        || (uiResult = setup_sequence(hInstall, TEXT("InstallTAPAdaptersCommit"    ), &seqInstallTAPAdaptersCommit    )) != ERROR_SUCCESS
+        || (uiResult = setup_sequence(hInstall, TEXT("InstallTAPAdaptersRollback"  ), &seqInstallTAPAdaptersRollback  )) != ERROR_SUCCESS
+        || (uiResult = setup_sequence(hInstall, TEXT("UninstallTAPAdapters"        ), &seqUninstallTAPAdapters        )) != ERROR_SUCCESS
+        || (uiResult = setup_sequence(hInstall, TEXT("UninstallTAPAdaptersCommit"  ), &seqUninstallTAPAdaptersCommit  )) != ERROR_SUCCESS
+        || (uiResult = setup_sequence(hInstall, TEXT("UninstallTAPAdaptersRollback"), &seqUninstallTAPAdaptersRollback)) != ERROR_SUCCESS)
     {
         goto cleanup_hRecordProg;
     }
@@ -964,12 +964,12 @@ cleanup_hViewST:
 cleanup_hDatabase:
     MsiCloseHandle(hDatabase);
 cleanup_exec_seq:
-    msica_arg_seq_free(&seqInstallTAPInterfaces);
-    msica_arg_seq_free(&seqInstallTAPInterfacesCommit);
-    msica_arg_seq_free(&seqInstallTAPInterfacesRollback);
-    msica_arg_seq_free(&seqUninstallTAPInterfaces);
-    msica_arg_seq_free(&seqUninstallTAPInterfacesCommit);
-    msica_arg_seq_free(&seqUninstallTAPInterfacesRollback);
+    msica_arg_seq_free(&seqInstallTAPAdapters);
+    msica_arg_seq_free(&seqInstallTAPAdaptersCommit);
+    msica_arg_seq_free(&seqInstallTAPAdaptersRollback);
+    msica_arg_seq_free(&seqUninstallTAPAdapters);
+    msica_arg_seq_free(&seqUninstallTAPAdaptersCommit);
+    msica_arg_seq_free(&seqUninstallTAPAdaptersRollback);
     if (bIsCoInitialized)
     {
         CoUninitialize();
@@ -1052,13 +1052,13 @@ ProcessDeferredAction(_In_ MSIHANDLE hInstall)
 
         if (wcsncmp(szArg[i], L"create=", 7) == 0)
         {
-            /* Create an interface with a given name. */
+            /* Create an adapter with a given name. */
             LPCWSTR szName = szArg[i] + 7;
 
             {
-                /* Report the name of the interface to installer. */
+                /* Report the name of the adapter to installer. */
                 MSIHANDLE hRecord = MsiCreateRecord(3);
-                MsiRecordSetString(hRecord, 1, TEXT("Creating interface"));
+                MsiRecordSetString(hRecord, 1, TEXT("Creating adapter"));
                 MsiRecordSetString(hRecord, 2, szName);
                 int iResult = MsiProcessMessage(hInstall, INSTALLMESSAGE_ACTIONDATA, hRecord);
                 MsiCloseHandle(hRecord);
@@ -1069,27 +1069,27 @@ ProcessDeferredAction(_In_ MSIHANDLE hInstall)
                 }
             }
 
-            GUID guidInterface;
-            dwResult = tap_create_interface(NULL, NULL, NULL, &bRebootRequired, &guidInterface);
+            GUID guidAdapter;
+            dwResult = tap_create_adapter(NULL, NULL, NULL, &bRebootRequired, &guidAdapter);
             if (dwResult == ERROR_SUCCESS)
             {
-                /* Set interface name. */
-                dwResult = tap_set_interface_name(&guidInterface, szName);
+                /* Set adapter name. */
+                dwResult = tap_set_adapter_name(&guidAdapter, szName);
                 if (dwResult != ERROR_SUCCESS)
                 {
-                    tap_delete_interface(NULL, &guidInterface, &bRebootRequired);
+                    tap_delete_adapter(NULL, &guidAdapter, &bRebootRequired);
                 }
             }
         }
         else if (wcsncmp(szArg[i], L"deleteN=", 8) == 0)
         {
-            /* Delete the interface by name. */
+            /* Delete the adapter by name. */
             LPCWSTR szName = szArg[i] + 8;
 
             {
-                /* Report the name of the interface to installer. */
+                /* Report the name of the adapter to installer. */
                 MSIHANDLE hRecord = MsiCreateRecord(3);
-                MsiRecordSetString(hRecord, 1, TEXT("Deleting interface"));
+                MsiRecordSetString(hRecord, 1, TEXT("Deleting adapter"));
                 MsiRecordSetString(hRecord, 2, szName);
                 int iResult = MsiProcessMessage(hInstall, INSTALLMESSAGE_ACTIONDATA, hRecord);
                 MsiCloseHandle(hRecord);
@@ -1100,54 +1100,54 @@ ProcessDeferredAction(_In_ MSIHANDLE hInstall)
                 }
             }
 
-            /* Get available TUN/TAP interfaces. */
-            struct tap_interface_node *pInterfaceList = NULL;
-            dwResult = tap_list_interfaces(NULL, NULL, &pInterfaceList, FALSE);
+            /* Get available TUN/TAP adapters. */
+            struct tap_adapter_node *pAdapterList = NULL;
+            dwResult = tap_list_adapters(NULL, NULL, &pAdapterList, FALSE);
             if (dwResult == ERROR_SUCCESS)
             {
-                /* Does the interface exist? */
-                for (struct tap_interface_node *pInterface = pInterfaceList; pInterface != NULL; pInterface = pInterface->pNext)
+                /* Does the adapter exist? */
+                for (struct tap_adapter_node *pAdapter = pAdapterList; pAdapter != NULL; pAdapter = pAdapter->pNext)
                 {
-                    if (_tcsicmp(szName, pInterface->szName) == 0)
+                    if (_tcsicmp(szName, pAdapter->szName) == 0)
                     {
-                        /* Interface found. */
-                        dwResult = tap_delete_interface(NULL, &pInterface->guid, &bRebootRequired);
+                        /* Adapter found. */
+                        dwResult = tap_delete_adapter(NULL, &pAdapter->guid, &bRebootRequired);
                         break;
                     }
                 }
 
-                tap_free_interface_list(pInterfaceList);
+                tap_free_adapter_list(pAdapterList);
             }
         }
         else if (wcsncmp(szArg[i], L"delete=", 7) == 0)
         {
-            /* Delete the interface by GUID. */
+            /* Delete the adapter by GUID. */
             GUID guid;
             if (!parse_guid(szArg[i] + 7, &guid))
             {
                 goto invalid_argument;
             }
-            dwResult = tap_delete_interface(NULL, &guid, &bRebootRequired);
+            dwResult = tap_delete_adapter(NULL, &guid, &bRebootRequired);
         }
         else if (wcsncmp(szArg[i], L"enable=", 7) == 0)
         {
-            /* Enable the interface. */
+            /* Enable the adapter. */
             GUID guid;
             if (!parse_guid(szArg[i] + 7, &guid))
             {
                 goto invalid_argument;
             }
-            dwResult = tap_enable_interface(NULL, &guid, TRUE, &bRebootRequired);
+            dwResult = tap_enable_adapter(NULL, &guid, TRUE, &bRebootRequired);
         }
         else if (wcsncmp(szArg[i], L"disable=", 8) == 0)
         {
-            /* Disable the interface. */
+            /* Disable the adapter. */
             GUID guid;
             if (!parse_guid(szArg[i] + 8, &guid))
             {
                 goto invalid_argument;
             }
-            dwResult = tap_enable_interface(NULL, &guid, FALSE, &bRebootRequired);
+            dwResult = tap_enable_adapter(NULL, &guid, FALSE, &bRebootRequired);
         }
         else
         {
@@ -1161,7 +1161,7 @@ ProcessDeferredAction(_In_ MSIHANDLE hInstall)
         }
 
         /* Report progress and check for user cancellation. */
-        MsiRecordSetInteger(hRecordProg, 2, MSICA_INTERFACE_TICK_SIZE);
+        MsiRecordSetInteger(hRecordProg, 2, MSICA_ADAPTER_TICK_SIZE);
         if (MsiProcessMessage(hInstall, INSTALLMESSAGE_PROGRESS, hRecordProg) == IDCANCEL)
         {
             dwResult = ERROR_INSTALL_USEREXIT;

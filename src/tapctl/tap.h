@@ -1,5 +1,5 @@
 /*
- *  tapctl -- Utility to manipulate TUN/TAP interfaces on Windows
+ *  tapctl -- Utility to manipulate TUN/TAP adapters on Windows
  *            https://community.openvpn.net/openvpn/wiki/Tapctl
  *
  *  Copyright (C) 2018-2020 Simon Rozman <simon@rozman.si>
@@ -26,9 +26,9 @@
 
 
 /**
- * Creates a TUN/TAP interface.
+ * Creates a TUN/TAP adapter.
  *
- * @param hwndParent    A handle to the top-level window to use for any user interface that is
+ * @param hwndParent    A handle to the top-level window to use for any user adapter that is
  *                      related to non-device-specific actions (such as a select-device dialog
  *                      box that uses the global class driver list). This handle is optional
  *                      and can be NULL. If a specific top-level window is not required, set
@@ -44,106 +44,106 @@
  * @param pbRebootRequired  A pointer to a BOOL flag. If the device requires a system restart,
  *                      this flag is set to TRUE. Otherwise, the flag is left unmodified. This
  *                      allows the flag to be globally initialized to FALSE and reused for multiple
- *                      interface manipulations.
+ *                      adapter manipulations.
  *
- * @param pguidInterface  A pointer to GUID that receives network interface ID.
+ * @param pguidAdapter  A pointer to GUID that receives network adapter ID.
  *
  * @return ERROR_SUCCESS on success; Win32 error code otherwise
  **/
 DWORD
-tap_create_interface(
+tap_create_adapter(
     _In_opt_ HWND hwndParent,
     _In_opt_ LPCTSTR szDeviceDescription,
     _In_opt_ LPCTSTR szHwId,
     _Inout_ LPBOOL pbRebootRequired,
-    _Out_ LPGUID pguidInterface);
+    _Out_ LPGUID pguidAdapter);
 
 
 /**
- * Deletes an interface.
+ * Deletes an adapter.
  *
- * @param hwndParent    A handle to the top-level window to use for any user interface that is
+ * @param hwndParent    A handle to the top-level window to use for any user adapter that is
  *                      related to non-device-specific actions (such as a select-device dialog
  *                      box that uses the global class driver list). This handle is optional
  *                      and can be NULL. If a specific top-level window is not required, set
  *                      hwndParent to NULL.
  *
- * @param pguidInterface  A pointer to GUID that contains network interface ID.
+ * @param pguidAdapter  A pointer to GUID that contains network adapter ID.
  *
  * @param pbRebootRequired  A pointer to a BOOL flag. If the device requires a system restart,
  *                      this flag is set to TRUE. Otherwise, the flag is left unmodified. This
  *                      allows the flag to be globally initialized to FALSE and reused for multiple
- *                      interface manipulations.
+ *                      adapter manipulations.
  *
  * @return ERROR_SUCCESS on success; Win32 error code otherwise
  **/
 DWORD
-tap_delete_interface(
+tap_delete_adapter(
     _In_opt_ HWND hwndParent,
-    _In_ LPCGUID pguidInterface,
+    _In_ LPCGUID pguidAdapter,
     _Inout_ LPBOOL pbRebootRequired);
 
 
 /**
- * Enables or disables an interface.
+ * Enables or disables an adapter.
  *
- * @param hwndParent    A handle to the top-level window to use for any user interface that is
+ * @param hwndParent    A handle to the top-level window to use for any user adapter that is
  *                      related to non-device-specific actions (such as a select-device dialog
  *                      box that uses the global class driver list). This handle is optional
  *                      and can be NULL. If a specific top-level window is not required, set
  *                      hwndParent to NULL.
  *
- * @param pguidInterface  A pointer to GUID that contains network interface ID.
+ * @param pguidAdapter  A pointer to GUID that contains network adapter ID.
  *
  * @param bEnable       TRUE to enable; FALSE to disable
  *
  * @param pbRebootRequired  A pointer to a BOOL flag. If the device requires a system restart,
  *                      this flag is set to TRUE. Otherwise, the flag is left unmodified. This
  *                      allows the flag to be globally initialized to FALSE and reused for multiple
- *                      interface manipulations.
+ *                      adapter manipulations.
  *
  * @return ERROR_SUCCESS on success; Win32 error code otherwise
  **/
 DWORD
-tap_enable_interface(
+tap_enable_adapter(
     _In_opt_ HWND hwndParent,
-    _In_ LPCGUID pguidInterface,
+    _In_ LPCGUID pguidAdapter,
     _In_ BOOL bEnable,
     _Inout_ LPBOOL pbRebootRequired);
 
 
 /**
- * Sets interface name.
+ * Sets adapter name.
  *
- * @param pguidInterface  A pointer to GUID that contains network interface ID.
+ * @param pguidAdapter  A pointer to GUID that contains network adapter ID.
  *
- * @param szName        New interface name - must be unique
+ * @param szName        New adapter name - must be unique
  *
  * @return ERROR_SUCCESS on success; Win32 error code otherwise
  **/
 DWORD
-tap_set_interface_name(
-    _In_ LPCGUID pguidInterface,
+tap_set_adapter_name(
+    _In_ LPCGUID pguidAdapter,
     _In_ LPCTSTR szName);
 
 
 /**
- * Network interface list node
+ * Network adapter list node
  */
-struct tap_interface_node
+struct tap_adapter_node
 {
-    GUID guid;             /** Interface GUID */
+    GUID guid;             /** Adapter GUID */
     LPTSTR szzHardwareIDs; /** Device hardware ID(s) */
-    LPTSTR szName;         /** Interface name */
+    LPTSTR szName;         /** Adapter name */
 
-    struct tap_interface_node *pNext; /** Pointer to next interface */
+    struct tap_adapter_node *pNext; /** Pointer to next adapter */
 };
 
 
 /**
- * Creates a list of available network interfaces.
+ * Creates a list of available network adapters.
  *
- * @param hwndParent    A handle to the top-level window to use for any user interface that is
+ * @param hwndParent    A handle to the top-level window to use for any user adapter that is
  *                      related to non-device-specific actions (such as a select-device dialog
  *                      box that uses the global class driver list). This handle is optional
  *                      and can be NULL. If a specific top-level window is not required, set
@@ -153,30 +153,30 @@ struct tap_interface_node
  *                      of the device. This pointer is optional and can be NULL. Default value
  *                      is root\tap0901.
  *
- * @param ppInterfaceList  A pointer to the list to receive pointer to the first interface in
+ * @param ppAdapterList  A pointer to the list to receive pointer to the first adapter in
  *                      the list. After the list is no longer required, free it using
- *                      tap_free_interface_list().
+ *                      tap_free_adapter_list().
  *
- * @param bAll          When TRUE, all network interfaces found are added to the list. When
- *                      FALSE, only TUN/TAP interfaces found are added.
+ * @param bAll          When TRUE, all network adapters found are added to the list. When
+ *                      FALSE, only TUN/TAP adapters found are added.
  *
  * @return ERROR_SUCCESS on success; Win32 error code otherwise
  */
 DWORD
-tap_list_interfaces(
+tap_list_adapters(
     _In_opt_ HWND hwndParent,
     _In_opt_ LPCTSTR szHwId,
-    _Out_ struct tap_interface_node **ppInterfaceList,
+    _Out_ struct tap_adapter_node **ppAdapterList,
     _In_ BOOL bAll);
 
 
 /**
- * Frees a list of network interfaces.
+ * Frees a list of network adapters.
  *
- * @param pInterfaceList  A pointer to the first interface in the list to free.
+ * @param pAdapterList  A pointer to the first adapter in the list to free.
  */
 void
-tap_free_interface_list(
-    _In_ struct tap_interface_node *pInterfaceList);
+tap_free_adapter_list(
+    _In_ struct tap_adapter_node *pAdapterList);
 
 #endif /* ifndef TAP_H */

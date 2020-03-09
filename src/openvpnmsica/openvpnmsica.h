@@ -90,8 +90,9 @@ FindSystemInfo(_In_ MSIHANDLE hInstall);
 
 
 /**
- * Find existing TAP interfaces and set TAPINTERFACES property with semicolon delimited list
- * of installed TAP interface GUIDs.
+ * Find existing TAP adapters and set TAPADAPTERS and ACTIVETAPADAPTERS properties with
+ * semicolon delimited list of all installed TAP adapter GUIDs and active adapter GUIDs
+ * respectively.
  *
  * @param hInstall      Handle to the installation provided to the DLL custom action
  *
@@ -99,7 +100,7 @@ FindSystemInfo(_In_ MSIHANDLE hInstall);
  *         See: https://msdn.microsoft.com/en-us/library/windows/desktop/aa368072.aspx
  */
 DLLEXP_DECL UINT __stdcall
-FindTAPInterfaces(_In_ MSIHANDLE hInstall);
+FindTAPAdapters(_In_ MSIHANDLE hInstall);
 
 
 /**
@@ -128,8 +129,8 @@ StartOpenVPNGUI(_In_ MSIHANDLE hInstall);
 
 
 /**
- * Evaluate the TAPInterface table of the MSI package database and prepare a list of TAP
- * interfaces to install/remove.
+ * Evaluate the TAPAdapter table of the MSI package database and prepare a list of TAP
+ * adapters to install/remove.
  *
  * @param hInstall      Handle to the installation provided to the DLL custom action
  *
@@ -137,7 +138,7 @@ StartOpenVPNGUI(_In_ MSIHANDLE hInstall);
  *         See: https://msdn.microsoft.com/en-us/library/windows/desktop/aa368072.aspx
  */
 DLLEXP_DECL UINT __stdcall
-EvaluateTAPInterfaces(_In_ MSIHANDLE hInstall);
+EvaluateTAPAdapters(_In_ MSIHANDLE hInstall);
 
 
 /**
