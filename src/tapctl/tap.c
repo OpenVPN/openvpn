@@ -48,6 +48,28 @@ const static TCHAR szInterfaceRegKeyPathTemplate[] = TEXT("SYSTEM\\CurrentContro
 
 
 /**
+ * Function that performs a specific task on a device
+ *
+ * @param hDeviceInfoSet  A handle to a device information set that contains a device
+ *                      information element that represents the device.
+ *
+ * @param pDeviceInfoData  A pointer to an SP_DEVINFO_DATA structure that specifies the
+ *                      device information element in hDeviceInfoSet.
+ *
+ * @param pbRebootRequired  A pointer to a BOOL flag. If the device requires a system restart,
+ *                      this flag is set to TRUE. Otherwise, the flag is left unmodified. This
+ *                      allows the flag to be globally initialized to FALSE and reused for multiple
+ *                      interface manipulations.
+ *
+ * @return ERROR_SUCCESS on success; Win32 error code otherwise
+ **/
+typedef DWORD (*devop_func_t)(
+    _In_ HDEVINFO hDeviceInfoSet,
+    _In_ PSP_DEVINFO_DATA pDeviceInfoData,
+    _Inout_ LPBOOL pbRebootRequired);
+
+
+/**
  * Checks device install parameters if a system reboot is required.
  *
  * @param hDeviceInfoSet  A handle to a device information set that contains a device
@@ -91,6 +113,186 @@ check_reboot(
     }
 
     return ERROR_SUCCESS;
+}
+
+
+/**
+ * Deletes the device.
+ *
+ * @param hDeviceInfoSet  A handle to a device information set that contains a device
+ *                      information element that represents the device.
+ *
+ * @param pDeviceInfoData  A pointer to an SP_DEVINFO_DATA structure that specifies the
+ *                      device information element in hDeviceInfoSet.
+ *
+ * @param pbRebootRequired  A pointer to a BOOL flag. If the device requires a system restart,
+ *                      this flag is set to TRUE. Otherwise, the flag is left unmodified. This
+ *                      allows the flag to be globally initialized to FALSE and reused for multiple
+ *                      interface manipulations.
+ *
+ * @return ERROR_SUCCESS on success; Win32 error code otherwise
+ **/
+static DWORD
+delete_device(
+    _In_ HDEVINFO hDeviceInfoSet,
+    _In_ PSP_DEVINFO_DATA pDeviceInfoData,
+    _Inout_ LPBOOL pbRebootRequired)
+{
+    SP_REMOVEDEVICE_PARAMS params =
+    {
+        .ClassInstallHeader =
+        {
+            .cbSize = sizeof(SP_CLASSINSTALL_HEADER),
+            .InstallFunction = DIF_REMOVE,
+        },
+        .Scope = DI_REMOVEDEVICE_GLOBAL,
+        .HwProfile = 0,
+    };
+
+    /* Set class installer parameters for DIF_REMOVE. */
+    if (!SetupDiSetClassInstallParams(
+            hDeviceInfoSet,
+            pDeviceInfoData,
+            &params.ClassInstallHeader,
+            sizeof(SP_REMOVEDEVICE_PARAMS)))
+    {
+        DWORD dwResult = GetLastError();
+        msg(M_NONFATAL | M_ERRNO, "%s: SetupDiSetClassInstallParams failed", __FUNCTION__);
+        return dwResult;
+    }
+
+    /* Call appropriate class installer. */
+    if (!SetupDiCallClassInstaller(
+            DIF_REMOVE,
+            hDeviceInfoSet,
+            pDeviceInfoData))
+    {
+        DWORD dwResult = GetLastError();
+        msg(M_NONFATAL | M_ERRNO, "%s: SetupDiCallClassInstaller(DIF_REMOVE) failed", __FUNCTION__);
+        return dwResult;
+    }
+
+    /* Check if a system reboot is required. */
+    check_reboot(hDeviceInfoSet, pDeviceInfoData, pbRebootRequired);
+    return ERROR_SUCCESS;
+}
+
+
+/**
+ * Changes the device state.
+ *
+ * @param hDeviceInfoSet  A handle to a device information set that contains a device
+ *                      information element that represents the device.
+ *
+ * @param pDeviceInfoData  A pointer to an SP_DEVINFO_DATA structure that specifies the
+ *                      device information element in hDeviceInfoSet.
+ *
+ * @param bEnable       TRUE to enable the device; FALSE to disable.
+ *
+ * @param pbRebootRequired  A pointer to a BOOL flag. If the device requires a system restart,
+ *                      this flag is set to TRUE. Otherwise, the flag is left unmodified. This
+ *                      allows the flag to be globally initialized to FALSE and reused for multiple
+ *                      interface manipulations.
+ *
+ * @return ERROR_SUCCESS on success; Win32 error code otherwise
+ **/
+static DWORD
+change_device_state(
+    _In_ HDEVINFO hDeviceInfoSet,
+    _In_ PSP_DEVINFO_DATA pDeviceInfoData,
+    _In_ BOOL bEnable,
+    _Inout_ LPBOOL pbRebootRequired)
+{
+    SP_PROPCHANGE_PARAMS params =
+    {
+        .ClassInstallHeader =
+        {
+            .cbSize = sizeof(SP_CLASSINSTALL_HEADER),
+            .InstallFunction = DIF_PROPERTYCHANGE,
+        },
+        .StateChange = bEnable ? DICS_ENABLE : DICS_DISABLE,
+        .Scope = DICS_FLAG_GLOBAL,
+        .HwProfile = 0,
+    };
+
+    /* Set class installer parameters for DIF_PROPERTYCHANGE. */
+    if (!SetupDiSetClassInstallParams(
+            hDeviceInfoSet,
+            pDeviceInfoData,
+            &params.ClassInstallHeader,
+            sizeof(SP_PROPCHANGE_PARAMS)))
+    {
+        DWORD dwResult = GetLastError();
+        msg(M_NONFATAL | M_ERRNO, "%s: SetupDiSetClassInstallParams failed", __FUNCTION__);
+        return dwResult;
+    }
+
+    /* Call appropriate class installer. */
+    if (!SetupDiCallClassInstaller(
+            DIF_PROPERTYCHANGE,
+            hDeviceInfoSet,
+            pDeviceInfoData))
+    {
+        DWORD dwResult = GetLastError();
+        msg(M_NONFATAL | M_ERRNO, "%s: SetupDiCallClassInstaller(DIF_PROPERTYCHANGE) failed", __FUNCTION__);
+        return dwResult;
+    }
+
+    /* Check if a system reboot is required. */
+    check_reboot(hDeviceInfoSet, pDeviceInfoData, pbRebootRequired);
+    return ERROR_SUCCESS;
+}
+
+
+/**
+ * Enables the device.
+ *
+ * @param hDeviceInfoSet  A handle to a device information set that contains a device
+ *                      information element that represents the device.
+ *
+ * @param pDeviceInfoData  A pointer to an SP_DEVINFO_DATA structure that specifies the
+ *                      device information element in hDeviceInfoSet.
+ *
+ * @param pbRebootRequired  A pointer to a BOOL flag. If the device requires a system restart,
+ *                      this flag is set to TRUE. Otherwise, the flag is left unmodified. This
+ *                      allows the flag to be globally initialized to FALSE and reused for multiple
+ *                      interface manipulations.
+ *
+ * @return ERROR_SUCCESS on success; Win32 error code otherwise
+ **/
+static DWORD
+enable_device(
+    _In_ HDEVINFO hDeviceInfoSet,
+    _In_ PSP_DEVINFO_DATA pDeviceInfoData,
+    _Inout_ LPBOOL pbRebootRequired)
+{
+    return change_device_state(hDeviceInfoSet, pDeviceInfoData, TRUE, pbRebootRequired);
+}
+
+
+/**
+ * Disables the device.
+ *
+ * @param hDeviceInfoSet  A handle to a device information set that contains a device
+ *                      information element that represents the device.
+ *
+ * @param pDeviceInfoData  A pointer to an SP_DEVINFO_DATA structure that specifies the
+ *                      device information element in hDeviceInfoSet.
+ *
+ * @param pbRebootRequired  A pointer to a BOOL flag. If the device requires a system restart,
+ *                      this flag is set to TRUE. Otherwise, the flag is left unmodified. This
+ *                      allows the flag to be globally initialized to FALSE and reused for multiple
+ *                      interface manipulations.
+ *
+ * @return ERROR_SUCCESS on success; Win32 error code otherwise
+ **/
+static DWORD
+disable_device(
+    _In_ HDEVINFO hDeviceInfoSet,
+    _In_ PSP_DEVINFO_DATA pDeviceInfoData,
+    _Inout_ LPBOOL pbRebootRequired)
+{
+    return change_device_state(hDeviceInfoSet, pDeviceInfoData, FALSE, pbRebootRequired);
 }
 
 
@@ -754,10 +956,31 @@ cleanup_hDevInfoList:
 }
 
 
-DWORD
-tap_delete_interface(
+/**
+ * Performs a given task on an interface.
+ *
+ * @param hwndParent    A handle to the top-level window to use for any user interface that is
+ *                      related to non-device-specific actions (such as a select-device dialog
+ *                      box that uses the global class driver list). This handle is optional
+ *                      and can be NULL. If a specific top-level window is not required, set
+ *                      hwndParent to NULL.
+ *
+ * @param pguidInterface  A pointer to GUID that contains network interface ID.
+ *
+ * @param funcOperation  A pointer for the function to perform specific task on the interface.
+ *
+ * @param pbRebootRequired  A pointer to a BOOL flag. If the device requires a system restart,
+ *                      this flag is set to TRUE. Otherwise, the flag is left unmodified. This
+ *                      allows the flag to be globally initialized to FALSE and reused for multiple
+ *                      interface manipulations.
+ *
+ * @return ERROR_SUCCESS on success; Win32 error code otherwise
+ **/
+static DWORD
+execute_on_first_interface(
     _In_opt_ HWND hwndParent,
     _In_ LPCGUID pguidInterface,
+    _In_ devop_func_t funcOperation,
     _Inout_ LPBOOL pbRebootRequired)
 {
     DWORD dwResult;
@@ -831,44 +1054,7 @@ tap_delete_interface(
         /* Compare GUIDs. */
         if (memcmp(pguidInterface, &guidInterface, sizeof(GUID)) == 0)
         {
-            /* Remove the device. */
-            SP_REMOVEDEVICE_PARAMS removedevice_params =
-            {
-                .ClassInstallHeader =
-                {
-                    .cbSize = sizeof(SP_CLASSINSTALL_HEADER),
-                    .InstallFunction = DIF_REMOVE,
-                },
-                .Scope = DI_REMOVEDEVICE_GLOBAL,
-                .HwProfile = 0,
-            };
-
-            /* Set class installer parameters for DIF_REMOVE. */
-            if (!SetupDiSetClassInstallParams(
-                    hDevInfoList,
-                    &devinfo_data,
-                    &removedevice_params.ClassInstallHeader,
-                    sizeof(SP_REMOVEDEVICE_PARAMS)))
-            {
-                dwResult = GetLastError();
-                msg(M_NONFATAL, "%s: SetupDiSetClassInstallParams failed", __FUNCTION__);
-                goto cleanup_hDevInfoList;
-            }
-
-            /* Call appropriate class installer. */
-            if (!SetupDiCallClassInstaller(
-                    DIF_REMOVE,
-                    hDevInfoList,
-                    &devinfo_data))
-            {
-                dwResult = GetLastError();
-                msg(M_NONFATAL, "%s: SetupDiCallClassInstaller(DIF_REMOVE) failed", __FUNCTION__);
-                goto cleanup_hDevInfoList;
-            }
-
-            /* Check if a system reboot is required. */
-            check_reboot(hDevInfoList, &devinfo_data, pbRebootRequired);
-            dwResult = ERROR_SUCCESS;
+            dwResult = funcOperation(hDevInfoList, &devinfo_data, pbRebootRequired);
             break;
         }
     }
@@ -876,6 +1062,27 @@ tap_delete_interface(
 cleanup_hDevInfoList:
     SetupDiDestroyDeviceInfoList(hDevInfoList);
     return dwResult;
+}
+
+
+DWORD
+tap_delete_interface(
+    _In_opt_ HWND hwndParent,
+    _In_ LPCGUID pguidInterface,
+    _Inout_ LPBOOL pbRebootRequired)
+{
+    return execute_on_first_interface(hwndParent, pguidInterface, delete_device, pbRebootRequired);
+}
+
+
+DWORD
+tap_enable_interface(
+    _In_opt_ HWND hwndParent,
+    _In_ LPCGUID pguidInterface,
+    _In_ BOOL bEnable,
+    _Inout_ LPBOOL pbRebootRequired)
+{
+    return execute_on_first_interface(hwndParent, pguidInterface, bEnable ? enable_device : disable_device, pbRebootRequired);
 }
 
 

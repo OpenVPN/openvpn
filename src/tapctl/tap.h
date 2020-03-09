@@ -85,6 +85,34 @@ tap_delete_interface(
 
 
 /**
+ * Enables or disables an interface.
+ *
+ * @param hwndParent    A handle to the top-level window to use for any user interface that is
+ *                      related to non-device-specific actions (such as a select-device dialog
+ *                      box that uses the global class driver list). This handle is optional
+ *                      and can be NULL. If a specific top-level window is not required, set
+ *                      hwndParent to NULL.
+ *
+ * @param pguidInterface  A pointer to GUID that contains network interface ID.
+ *
+ * @param bEnable       TRUE to enable; FALSE to disable
+ *
+ * @param pbRebootRequired  A pointer to a BOOL flag. If the device requires a system restart,
+ *                      this flag is set to TRUE. Otherwise, the flag is left unmodified. This
+ *                      allows the flag to be globally initialized to FALSE and reused for multiple
+ *                      interface manipulations.
+ *
+ * @return ERROR_SUCCESS on success; Win32 error code otherwise
+ **/
+DWORD
+tap_enable_interface(
+    _In_opt_ HWND hwndParent,
+    _In_ LPCGUID pguidInterface,
+    _In_ BOOL bEnable,
+    _Inout_ LPBOOL pbRebootRequired);
+
+
+/**
  * Sets interface name.
  *
  * @param pguidInterface  A pointer to GUID that contains network interface ID.
