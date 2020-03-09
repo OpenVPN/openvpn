@@ -31,6 +31,7 @@
 #include <cfgmgr32.h>
 #include <objbase.h>
 #include <setupapi.h>
+#include <stdio.h>
 #include <tchar.h>
 
 #ifdef _MSC_VER

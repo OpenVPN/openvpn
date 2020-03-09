@@ -116,7 +116,7 @@
     <ClCompile Include="..\tapctl\tap.c" />
     <ClCompile Include="dllmain.c" />
     <ClCompile Include="msiex.c" />
-    <ClCompile Include="msica_op.c" />
+    <ClCompile Include="msica_arg.c" />
     <ClCompile Include="openvpnmsica.c" />
   </ItemGroup>
   <ItemGroup>
@@ -124,7 +124,7 @@
     <ClInclude Include="..\tapctl\error.h" />
     <ClInclude Include="..\tapctl\tap.h" />
     <ClInclude Include="msiex.h" />
-    <ClInclude Include="msica_op.h" />
+    <ClInclude Include="msica_arg.h" />
     <ClInclude Include="openvpnmsica.h" />
   </ItemGroup>
   <ItemGroup>

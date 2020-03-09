@@ -26,7 +26,7 @@
 #include <winsock2.h> /* Must be included _before_ <windows.h> */
 
 #include "openvpnmsica.h"
-#include "msica_op.h"
+#include "msica_arg.h"
 #include "msiex.h"
 
 #include "../tapctl/basic.h"
@@ -61,100 +61,32 @@
 
 
 /**
- * Cleanup actions
- */
-static const struct {
-    LPCTSTR szName;               /** Name of the cleanup action. This name is appended to the deferred custom action name (e.g. "InstallTAPInterfaces" >> "InstallTAPInterfacesCommit"). */
-    TCHAR szSuffix[3];            /** Two-character suffix to append to the cleanup operation sequence filename */
-} openvpnmsica_cleanup_action_seqs[MSICA_CLEANUP_ACTION_COUNT] =
-{
-    { TEXT("Commit"  ), TEXT("cm") }, /* MSICA_CLEANUP_ACTION_COMMIT   */
-    { TEXT("Rollback"), TEXT("rb") }, /* MSICA_CLEANUP_ACTION_ROLLBACK */
-};
-
-
-/**
- * Creates a new sequence file in the current user's temporary folder and sets MSI property
- * to its absolute path.
+ * Joins an argument sequence and sets it to the MSI property.
  *
  * @param hInstall      Handle to the installation provided to the DLL custom action
  *
- * @param szProperty    MSI property name to set to the absolute path of the sequence file.
+ * @param szProperty    MSI property name to set to the joined argument sequence.
  *
- * @param szFilename    String of minimum MAXPATH+1 characters where the zero-terminated
- *                      file absolute path is stored.
+ * @param seq           The argument sequence.
  *
  * @return ERROR_SUCCESS on success; An error code otherwise
  */
-static DWORD
-openvpnmsica_setup_sequence_filename(
+static UINT
+openvpnmsica_setup_sequence(
     _In_ MSIHANDLE hInstall,
     _In_z_ LPCTSTR szProperty,
-    _Out_z_cap_(MAXPATH + 1) LPTSTR szFilename)
+    _In_ struct msica_arg_seq *seq)
 {
-    DWORD dwResult;
-
-    if (szFilename == NULL)
+    UINT uiResult;
+    LPTSTR szSequence = msica_arg_seq_join(seq);
+    uiResult = MsiSetProperty(hInstall, szProperty, szSequence);
+    free(szSequence);
+    if (uiResult != ERROR_SUCCESS)
     {
-        return ERROR_BAD_ARGUMENTS;
-    }
-
-    /* Generate a random filename in the temporary folder. */
-    if (GetTempPath(MAX_PATH + 1, szFilename) == 0)
-    {
-        dwResult = GetLastError();
-        msg(M_NONFATAL | M_ERRNO, "%s: GetTempPath failed", __FUNCTION__);
-        return dwResult;
-    }
-    if (GetTempFileName(szFilename, szProperty, 0, szFilename) == 0)
-    {
-        dwResult = GetLastError();
-        msg(M_NONFATAL | M_ERRNO, "%s: GetTempFileName failed", __FUNCTION__);
-        return dwResult;
-    }
-
-    /* Store sequence filename to property for deferred custom action. */
-    dwResult = MsiSetProperty(hInstall, szProperty, szFilename);
-    if (dwResult != ERROR_SUCCESS)
-    {
-        SetLastError(dwResult); /* MSDN does not mention MsiSetProperty() to set GetLastError(). But we do have an error code. Set last error manually. */
+        SetLastError(uiResult); /* MSDN does not mention MsiSetProperty() to set GetLastError(). But we do have an error code. Set last error manually. */
         msg(M_NONFATAL | M_ERRNO, "%s: MsiSetProperty(\"%" PRIsLPTSTR "\") failed", __FUNCTION__, szProperty);
-        return dwResult;
+        return uiResult;
     }
-
-    /* Generate and store cleanup operation sequence filenames to properties. */
-    LPTSTR szExtension = PathFindExtension(szFilename);
-    TCHAR szFilenameEx[MAX_PATH + 1 /*dash*/ + 2 /*suffix*/ + 1 /*terminator*/];
-    size_t len_property_name = _tcslen(szProperty);
-    for (size_t i = 0; i < MSICA_CLEANUP_ACTION_COUNT; i++)
-    {
-        size_t len_action_name_z = _tcslen(openvpnmsica_cleanup_action_seqs[i].szName) + 1;
-        TCHAR *szPropertyEx = (TCHAR *)malloc((len_property_name + len_action_name_z) * sizeof(TCHAR));
-        if (szPropertyEx == NULL)
-        {
-            msg(M_FATAL, "%s: malloc(%u) failed", __FUNCTION__, (len_property_name + len_action_name_z) * sizeof(TCHAR));
-            return ERROR_OUTOFMEMORY;
-        }
-
-        memcpy(szPropertyEx, szProperty, len_property_name * sizeof(TCHAR));
-        memcpy(szPropertyEx + len_property_name, openvpnmsica_cleanup_action_seqs[i].szName, len_action_name_z * sizeof(TCHAR));
-        _stprintf_s(
-            szFilenameEx, _countof(szFilenameEx),
-            TEXT("%.*s-%.2s%s"),
-            (int)(szExtension - szFilename), szFilename,
-            openvpnmsica_cleanup_action_seqs[i].szSuffix,
-            szExtension);
-        dwResult = MsiSetProperty(hInstall, szPropertyEx, szFilenameEx);
-        if (dwResult != ERROR_SUCCESS)
-        {
-            SetLastError(dwResult); /* MSDN does not mention MsiSetProperty() to set GetLastError(). But we do have an error code. Set last error manually. */
-            msg(M_NONFATAL | M_ERRNO, "%s: MsiSetProperty(\"%" PRIsLPTSTR "\") failed", __FUNCTION__, szPropertyEx);
-            free(szPropertyEx);
-            return dwResult;
-        }
-        free(szPropertyEx);
-    }
-
     return ERROR_SUCCESS;
 }
 
@@ -613,6 +545,179 @@ cleanup_CoInitialize:
 }
 
 
+/**
+ * Schedules interface creation.
+ *
+ * When the rollback is enabled, the interface deletition is scheduled on rollback.
+ *
+ * @param seq           The argument sequence to pass to InstallTAPInterfaces custom action
+ *
+ * @param seqRollback   The argument sequence to pass to InstallTAPInterfacesRollback custom
+ *                      action. NULL when rollback is disabled.
+ *
+ * @param szDisplayName  Interface display name.
+ *
+ * @param iTicks        Pointer to an integer that represents amount of work (on progress
+ *                      indicator) the InstallTAPInterfaces will take. This function increments it
+ *                      by MSICA_INTERFACE_TICK_SIZE for each interface to create.
+ *
+ * @return ERROR_SUCCESS on success; An error code otherwise
+ */
+static DWORD
+openvpnmsica_schedule_interface_create(_Inout_ struct msica_arg_seq *seq, _Inout_opt_ struct msica_arg_seq *seqRollback, _In_z_ LPCTSTR szDisplayName, _Inout_ int *iTicks)
+{
+    /* Get all available network interfaces. */
+    struct tap_interface_node *pInterfaceList = NULL;
+    DWORD dwResult = tap_list_interfaces(NULL, NULL, &pInterfaceList, TRUE);
+    if (dwResult != ERROR_SUCCESS)
+    {
+        return dwResult;
+    }
+
+    /* Does interface exist? */
+    for (struct tap_interface_node *pInterfaceOther = pInterfaceList;; pInterfaceOther = pInterfaceOther->pNext)
+    {
+        if (pInterfaceOther == NULL)
+        {
+            /* No interface with a same name found. */
+            TCHAR szArgument[10 /*create=""|deleteN=""*/ + MAX_PATH /*szDisplayName*/ + 1 /*terminator*/];
+
+            /* InstallTAPInterfaces will create the interface. */
+            _stprintf_s(
+                szArgument, _countof(szArgument),
+                TEXT("create=\"%.*s\""),
+                MAX_PATH, szDisplayName);
+            msica_arg_seq_add_tail(seq, szArgument);
+
+            if (seqRollback)
+            {
+                /* InstallTAPInterfacesRollback will delete the interface. */
+                _stprintf_s(
+                    szArgument, _countof(szArgument),
+                    TEXT("deleteN=\"%.*s\""),
+                    MAX_PATH, szDisplayName);
+                msica_arg_seq_add_head(seqRollback, szArgument);
+            }
+
+            *iTicks += MSICA_INTERFACE_TICK_SIZE;
+            break;
+        }
+        else if (_tcsicmp(szDisplayName, pInterfaceOther->szName) == 0)
+        {
+            /* Interface with a same name found. */
+            for (LPCTSTR hwid = pInterfaceOther->szzHardwareIDs;; hwid += _tcslen(hwid) + 1)
+            {
+                if (hwid[0] == 0)
+                {
+                    /* This is not a TAP interface. */
+                    msg(M_NONFATAL, "%s: Interface with name \"%" PRIsLPTSTR "\" already exists", __FUNCTION__, pInterfaceOther->szName);
+                    dwResult = ERROR_ALREADY_EXISTS;
+                    goto cleanup_pInterfaceList;
+                }
+                else if (
+                    _tcsicmp(hwid, TEXT(TAP_WIN_COMPONENT_ID)) == 0
+                    || _tcsicmp(hwid, TEXT("root\\") TEXT(TAP_WIN_COMPONENT_ID)) == 0)
+                {
+                    /* This is a TAP-Windows6 interface. We already have what we want! */
+                    break;
+                }
+            }
+            break; /* Interface names are unique. There should be no other interface with this name. */
+        }
+    }
+
+cleanup_pInterfaceList:
+    tap_free_interface_list(pInterfaceList);
+    return dwResult;
+}
+
+
+/**
+ * Schedules interface deletion.
+ *
+ * When the rollback is enabled, the interface deletition is scheduled as: disable in
+ * UninstallTAPInterfaces, enable on rollback, delete on commit.
+ *
+ * When rollback is disabled, the interface deletition is scheduled as delete in
+ * UninstallTAPInterfaces.
+ *
+ * @param seq           The argument sequence to pass to UninstallTAPInterfaces custom action
+ *
+ * @param seqCommit     The argument sequence to pass to UninstallTAPInterfacesCommit custom
+ *                      action. NULL when rollback is disabled.
+ *
+ * @param seqRollback   The argument sequence to pass to UninstallTAPInterfacesRollback custom
+ *                      action. NULL when rollback is disabled.
+ *
+ * @param szDisplayName  Interface display name.
+ *
+ * @param iTicks        Pointer to an integer that represents amount of work (on progress
+ *                      indicator) the UninstallTAPInterfaces will take. This function increments
+ *                      it by MSICA_INTERFACE_TICK_SIZE for each interface to delete.
+ *
+ * @return ERROR_SUCCESS on success; An error code otherwise
+ */
+static DWORD
+openvpnmsica_schedule_interface_delete(_Inout_ struct msica_arg_seq *seq, _Inout_opt_ struct msica_arg_seq *seqCommit, _Inout_opt_ struct msica_arg_seq *seqRollback, _In_z_ LPCTSTR szDisplayName, _Inout_ int *iTicks)
+{
+    /* Get available TUN/TAP interfaces. */
+    struct tap_interface_node *pInterfaceList = NULL;
+    DWORD dwResult = tap_list_interfaces(NULL, NULL, &pInterfaceList, FALSE);
+    if (dwResult != ERROR_SUCCESS)
+    {
+        return dwResult;
+    }
+
+    /* Does interface exist? */
+    for (struct tap_interface_node *pInterface = pInterfaceList; pInterface != NULL; pInterface = pInterface->pNext)
+    {
+        if (_tcsicmp(szDisplayName, pInterface->szName) == 0)
+        {
+            /* Interface found. */
+            TCHAR szArgument[8 /*disable=|enable=|delete=*/ + 38 /*{xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx}*/ + 1 /*terminator*/];
+            if (seqCommit && seqRollback)
+            {
+                /* UninstallTAPInterfaces will disable the interface. */
+                _stprintf_s(
+                    szArgument, _countof(szArgument),
+                    TEXT("disable=") TEXT(PRIXGUID),
+                    PRIGUID_PARAM(pInterface->guid));
+                msica_arg_seq_add_tail(seq, szArgument);
+
+                /* UninstallTAPInterfacesRollback will re-enable the interface. */
+                _stprintf_s(
+                    szArgument, _countof(szArgument),
+                    TEXT("enable=") TEXT(PRIXGUID),
+                    PRIGUID_PARAM(pInterface->guid));
+                msica_arg_seq_add_head(seqRollback, szArgument);
+
+                /* UninstallTAPInterfacesCommit will delete the interface. */
+                _stprintf_s(
+                    szArgument, _countof(szArgument),
+                    TEXT("delete=") TEXT(PRIXGUID),
+                    PRIGUID_PARAM(pInterface->guid));
+                msica_arg_seq_add_tail(seqCommit, szArgument);
+            }
+            else
+            {
+                /* UninstallTAPInterfaces will delete the interface. */
+                _stprintf_s(
+                    szArgument, _countof(szArgument),
+                    TEXT("delete=") TEXT(PRIXGUID),
+                    PRIGUID_PARAM(pInterface->guid));
+                msica_arg_seq_add_tail(seq, szArgument);
+            }
+
+            iTicks += MSICA_INTERFACE_TICK_SIZE;
+            break; /* Interface names are unique. There should be no other interface with this name. */
+        }
+    }
+
+    tap_free_interface_list(pInterfaceList);
+    return dwResult;
+}
+
+
 UINT __stdcall
 EvaluateTAPInterfaces(_In_ MSIHANDLE hInstall)
 {
@@ -627,43 +732,30 @@ EvaluateTAPInterfaces(_In_ MSIHANDLE hInstall)
 
     OPENVPNMSICA_SAVE_MSI_SESSION(hInstall);
 
-    /* List of deferred custom actions EvaluateTAPInterfaces prepares operation sequence for. */
-    static const LPCTSTR szActionNames[] =
-    {
-        TEXT("InstallTAPInterfaces"),
-        TEXT("UninstallTAPInterfaces"),
-    };
-    struct msica_op_seq exec_seq[_countof(szActionNames)];
-    for (size_t i = 0; i < _countof(szActionNames); i++)
-    {
-        msica_op_seq_init(&exec_seq[i]);
-    }
+    struct msica_arg_seq
+        seqInstallTAPInterfaces,
+        seqInstallTAPInterfacesCommit,
+        seqInstallTAPInterfacesRollback,
+        seqUninstallTAPInterfaces,
+        seqUninstallTAPInterfacesCommit,
+        seqUninstallTAPInterfacesRollback;
+    msica_arg_seq_init(&seqInstallTAPInterfaces);
+    msica_arg_seq_init(&seqInstallTAPInterfacesCommit);
+    msica_arg_seq_init(&seqInstallTAPInterfacesRollback);
+    msica_arg_seq_init(&seqUninstallTAPInterfaces);
+    msica_arg_seq_init(&seqUninstallTAPInterfacesCommit);
+    msica_arg_seq_init(&seqUninstallTAPInterfacesRollback);
 
-    {
-        /* Check and store the rollback enabled state. */
-        TCHAR szValue[128];
-        DWORD dwLength = _countof(szValue);
-        bool enable_rollback = MsiGetProperty(hInstall, TEXT("RollbackDisabled"), szValue, &dwLength) == ERROR_SUCCESS ?
-                               _ttoi(szValue) || _totlower(szValue[0]) == TEXT('y') ? false : true :
-                               true;
-        for (size_t i = 0; i < _countof(szActionNames); i++)
-        {
-            msica_op_seq_add_tail(
-                &exec_seq[i],
-                msica_op_create_bool(
-                    msica_op_rollback_enable,
-                    0,
-                    NULL,
-                    enable_rollback));
-        }
-    }
+    /* Check rollback state. */
+    bool bRollbackEnabled = MsiEvaluateCondition(hInstall, TEXT("RollbackDisabled")) != MSICONDITION_TRUE;
 
     /* Open MSI database. */
     MSIHANDLE hDatabase = MsiGetActiveDatabase(hInstall);
     if (hDatabase == 0)
     {
         msg(M_NONFATAL, "%s: MsiGetActiveDatabase failed", __FUNCTION__);
-        uiResult = ERROR_INVALID_HANDLE; goto cleanup_exec_seq;
+        uiResult = ERROR_INVALID_HANDLE;
+        goto cleanup_exec_seq;
     }
 
     /* Check if TAPInterface table exists. If it doesn't exist, there's nothing to do. */
@@ -758,6 +850,8 @@ EvaluateTAPInterfaces(_In_ MSIHANDLE hInstall)
 
         if (iAction > INSTALLSTATE_BROKEN)
         {
+            int iTicks = 0;
+
             if (iAction >= INSTALLSTATE_LOCAL)
             {
                 /* Read and evaluate interface condition (`Condition` is field #3). */
@@ -793,29 +887,35 @@ EvaluateTAPInterfaces(_In_ MSIHANDLE hInstall)
                 free(szValue);
 
                 /* Component is or should be installed. Schedule interface creation. */
-                msica_op_seq_add_tail(
-                    &exec_seq[0],
-                    msica_op_create_string(
-                        msica_op_tap_interface_create,
-                        MSICA_INTERFACE_TICK_SIZE,
-                        NULL,
-                        szDisplayNameEx));
+                if (openvpnmsica_schedule_interface_create(
+                        &seqInstallTAPInterfaces,
+                        bRollbackEnabled ? &seqInstallTAPInterfacesRollback : NULL,
+                        szDisplayNameEx,
+                        &iTicks) != ERROR_SUCCESS)
+                {
+                    uiResult = ERROR_INSTALL_FAILED;
+                    goto cleanup_szDisplayName;
+                }
             }
             else
             {
-                /* Component is installed, but should be degraded to advertised/removed. Schedule interface deletition. */
-                msica_op_seq_add_tail(
-                    &exec_seq[1],
-                    msica_op_create_string(
-                        msica_op_tap_interface_delete_by_name,
-                        MSICA_INTERFACE_TICK_SIZE,
-                        NULL,
-                        szDisplayNameEx));
+                /* Component is installed, but should be degraded to advertised/removed. Schedule interface deletition.
+                 *
+                 * Note: On interface removal (product is being uninstalled), we tolerate dwResult error.
+                 * Better a partial uninstallation than no uninstallation at all.
+                 */
+                openvpnmsica_schedule_interface_delete(
+                    &seqUninstallTAPInterfaces,
+                    bRollbackEnabled ? &seqUninstallTAPInterfacesCommit : NULL,
+                    bRollbackEnabled ? &seqUninstallTAPInterfacesRollback : NULL,
+                    szDisplayNameEx,
+                    &iTicks);
             }
 
-            /* The amount of tick space to add for each interface to progress indicator. */
+            /* Arrange the amount of tick space to add to the progress indicator.
+             * Do this within the loop to poll for user cancellation. */
             MsiRecordSetInteger(hRecordProg, 1, 3 /* OP3 = Add ticks to the expected total number of progress of the progress bar */);
-            MsiRecordSetInteger(hRecordProg, 2, MSICA_INTERFACE_TICK_SIZE);
+            MsiRecordSetInteger(hRecordProg, 2, iTicks);
             if (MsiProcessMessage(hInstall, INSTALLMESSAGE_PROGRESS, hRecordProg) == IDCANCEL)
             {
                 uiResult = ERROR_INSTALL_USEREXIT;
@@ -833,59 +933,19 @@ cleanup_hRecord:
         }
     }
 
-    /*
-     * Write sequence files.
-     * The InstallTAPInterfaces and UninstallTAPInterfaces are deferred custom actions, thus all this information
-     * will be unavailable to them. Therefore save all required operations and their info to sequence files.
-     */
-    TCHAR szSeqFilename[_countof(szActionNames)][MAX_PATH + 1];
-    for (size_t i = 0; i < _countof(szActionNames); i++)
+    /* Store deferred custom action parameters. */
+    if ((uiResult = openvpnmsica_setup_sequence(hInstall, TEXT("InstallTAPInterfaces"          ), &seqInstallTAPInterfaces          )) != ERROR_SUCCESS
+        || (uiResult = openvpnmsica_setup_sequence(hInstall, TEXT("InstallTAPInterfacesCommit"    ), &seqInstallTAPInterfacesCommit    )) != ERROR_SUCCESS
+        || (uiResult = openvpnmsica_setup_sequence(hInstall, TEXT("InstallTAPInterfacesRollback"  ), &seqInstallTAPInterfacesRollback  )) != ERROR_SUCCESS
+        || (uiResult = openvpnmsica_setup_sequence(hInstall, TEXT("UninstallTAPInterfaces"        ), &seqUninstallTAPInterfaces        )) != ERROR_SUCCESS
+        || (uiResult = openvpnmsica_setup_sequence(hInstall, TEXT("UninstallTAPInterfacesCommit"  ), &seqUninstallTAPInterfacesCommit  )) != ERROR_SUCCESS
+        || (uiResult = openvpnmsica_setup_sequence(hInstall, TEXT("UninstallTAPInterfacesRollback"), &seqUninstallTAPInterfacesRollback)) != ERROR_SUCCESS)
     {
-        szSeqFilename[i][0] = 0;
-    }
-    for (size_t i = 0; i < _countof(szActionNames); i++)
-    {
-        uiResult = openvpnmsica_setup_sequence_filename(hInstall, szActionNames[i], szSeqFilename[i]);
-        if (uiResult != ERROR_SUCCESS)
-        {
-            goto cleanup_szSeqFilename;
-        }
-        HANDLE hSeqFile = CreateFile(
-            szSeqFilename[i],
-            GENERIC_WRITE,
-            FILE_SHARE_READ,
-            NULL,
-            CREATE_ALWAYS,
-            FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN,
-            NULL);
-        if (hSeqFile == INVALID_HANDLE_VALUE)
-        {
-            uiResult = GetLastError();
-            msg(M_NONFATAL | M_ERRNO, "%s: CreateFile(\"%.*" PRIsLPTSTR "\") failed", __FUNCTION__, _countof(szSeqFilename[i]), szSeqFilename[i]);
-            goto cleanup_szSeqFilename;
-        }
-        uiResult = msica_op_seq_save(&exec_seq[i], hSeqFile);
-        CloseHandle(hSeqFile);
-        if (uiResult != ERROR_SUCCESS)
-        {
-            goto cleanup_szSeqFilename;
-        }
+        goto cleanup_hRecordProg;
     }
 
     uiResult = ERROR_SUCCESS;
 
-cleanup_szSeqFilename:
-    if (uiResult != ERROR_SUCCESS)
-    {
-        /* Clean-up sequence files. */
-        for (size_t i = _countof(szActionNames); i--; )
-        {
-            if (szSeqFilename[i][0])
-            {
-                DeleteFile(szSeqFilename[i]);
-            }
-        }
-    }
 cleanup_hRecordProg:
     MsiCloseHandle(hRecordProg);
 cleanup_hViewST_close:
@@ -895,15 +955,38 @@ cleanup_hViewST:
 cleanup_hDatabase:
     MsiCloseHandle(hDatabase);
 cleanup_exec_seq:
-    for (size_t i = 0; i < _countof(szActionNames); i++)
-    {
-        msica_op_seq_free(&exec_seq[i]);
-    }
+    msica_arg_seq_free(&seqInstallTAPInterfaces);
+    msica_arg_seq_free(&seqInstallTAPInterfacesCommit);
+    msica_arg_seq_free(&seqInstallTAPInterfacesRollback);
+    msica_arg_seq_free(&seqUninstallTAPInterfaces);
+    msica_arg_seq_free(&seqUninstallTAPInterfacesCommit);
+    msica_arg_seq_free(&seqUninstallTAPInterfacesRollback);
     if (bIsCoInitialized)
     {
         CoUninitialize();
     }
     return uiResult;
+}
+
+
+/**
+ * Parses string encoded GUID.
+ *
+ * @param szArg         Zero terminated string where the GUID string starts
+ *
+ * @param guid          Pointer to GUID that receives parsed value
+ *
+ * @return TRUE on success; FALSE otherwise
+ */
+static BOOL
+openvpnmsica_parse_guid(_In_z_ LPCWSTR szArg, _Out_ GUID *guid)
+{
+    if (swscanf_s(szArg, _L(PRIXGUID), PRIGUID_PARAM_REF(*guid)) != 11)
+    {
+        msg(M_NONFATAL | M_ERRNO, "%s: swscanf_s(\"%ls\") failed", __FUNCTION__, szArg);
+        return FALSE;
+    }
+    return TRUE;
 }
 
 
@@ -923,158 +1006,172 @@ ProcessDeferredAction(_In_ MSIHANDLE hInstall)
 
     BOOL bIsCleanup = MsiGetMode(hInstall, MSIRUNMODE_COMMIT) || MsiGetMode(hInstall, MSIRUNMODE_ROLLBACK);
 
-    /* Get sequence filename and open the file. */
-    LPTSTR szSeqFilename = NULL;
-    uiResult = msi_get_string(hInstall, TEXT("CustomActionData"), &szSeqFilename);
+    /* Get sequence arguments. Always Unicode as CommandLineToArgvW() is available as Unicode-only. */
+    LPWSTR szSequence = NULL;
+    uiResult = msi_get_string(hInstall, L"CustomActionData", &szSequence);
     if (uiResult != ERROR_SUCCESS)
     {
         goto cleanup_CoInitialize;
     }
-    struct msica_op_seq seq = { .head = NULL, .tail = NULL };
+    int nArgs;
+    LPWSTR *szArg = CommandLineToArgvW(szSequence, &nArgs);
+    if (szArg == NULL)
     {
-        HANDLE hSeqFile = CreateFile(
-            szSeqFilename,
-            GENERIC_READ,
-            FILE_SHARE_READ,
-            NULL,
-            OPEN_EXISTING,
-            FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN,
-            NULL);
-        if (hSeqFile == INVALID_HANDLE_VALUE)
-        {
-            uiResult = GetLastError();
-            if (uiResult == ERROR_FILE_NOT_FOUND && bIsCleanup)
-            {
-                /*
-                 * Sequence file not found and this is rollback/commit action. Either of the following scenarios are possible:
-                 * - The delayed action failed to save the rollback/commit sequence to file. The delayed action performed cleanup itself. No further operation is required.
-                 * - Somebody removed the rollback/commit file between delayed action and rollback/commit action. No further operation is possible.
-                 */
-                uiResult = ERROR_SUCCESS;
-                goto cleanup_szSeqFilename;
-            }
-            msg(M_NONFATAL | M_ERRNO, "%s: CreateFile(\"%" PRIsLPTSTR "\") failed", __FUNCTION__, szSeqFilename);
-            goto cleanup_szSeqFilename;
-        }
-
-        /* Load sequence. */
-        uiResult = msica_op_seq_load(&seq, hSeqFile);
-        CloseHandle(hSeqFile);
-        if (uiResult != ERROR_SUCCESS)
-        {
-            goto cleanup_seq;
-        }
+        uiResult = GetLastError();
+        msg(M_NONFATAL | M_ERRNO, "%s: CommandLineToArgvW(\"%ls\") failed", __FUNCTION__, szSequence);
+        goto cleanup_szSequence;
     }
 
-    /* Prepare session context. */
-    struct msica_session session;
-    openvpnmsica_session_init(
-        &session,
-        hInstall,
-        bIsCleanup, /* In case of commit/rollback, continue sequence on error, to do as much cleanup as possible. */
-        false);
+    /* Tell the installer to use explicit progress messages. */
+    MSIHANDLE hRecordProg = MsiCreateRecord(3);
+    MsiRecordSetInteger(hRecordProg, 1, 1);
+    MsiRecordSetInteger(hRecordProg, 2, 1);
+    MsiRecordSetInteger(hRecordProg, 3, 0);
+    MsiProcessMessage(hInstall, INSTALLMESSAGE_PROGRESS, hRecordProg);
 
-    /* Execute sequence. */
-    uiResult = msica_op_seq_process(&seq, &session);
-    if (!bIsCleanup)
+    /* Prepare hRecordProg for progress messages. */
+    MsiRecordSetInteger(hRecordProg, 1, 2);
+    MsiRecordSetInteger(hRecordProg, 3, 0);
+
+    BOOL bRebootRequired = FALSE;
+
+    for (int i = 1 /*CommandLineToArgvW injects msiexec.exe as szArg[0]*/; i < nArgs; ++i)
     {
-        /*
-         * Save cleanup scripts of delayed action regardless of action's execution status.
-         * Rollback action MUST be scheduled in InstallExecuteSequence before this action! Otherwise cleanup won't be performed in case this action execution failed.
-         */
-        DWORD dwResultEx; /* Don't overwrite uiResult. */
-        LPCTSTR szExtension = PathFindExtension(szSeqFilename);
-        TCHAR szFilenameEx[MAX_PATH + 1 /*dash*/ + 2 /*suffix*/ + 1 /*terminator*/];
-        for (size_t i = 0; i < MSICA_CLEANUP_ACTION_COUNT; i++)
-        {
-            _stprintf_s(
-                szFilenameEx, _countof(szFilenameEx),
-                TEXT("%.*s-%.2s%s"),
-                (int)(szExtension - szSeqFilename), szSeqFilename,
-                openvpnmsica_cleanup_action_seqs[i].szSuffix,
-                szExtension);
+        DWORD dwResult = ERROR_SUCCESS;
 
-            /* After commit, delete rollback file. After rollback, delete commit file. */
-            msica_op_seq_add_tail(
-                &session.seq_cleanup[MSICA_CLEANUP_ACTION_COUNT - 1 - i],
-                msica_op_create_string(
-                    msica_op_file_delete,
-                    0,
-                    NULL,
-                    szFilenameEx));
-        }
-        for (size_t i = 0; i < MSICA_CLEANUP_ACTION_COUNT; i++)
+        if (wcsncmp(szArg[i], L"create=", 7) == 0)
         {
-            _stprintf_s(
-                szFilenameEx, _countof(szFilenameEx),
-                TEXT("%.*s-%.2s%s"),
-                (int)(szExtension - szSeqFilename), szSeqFilename,
-                openvpnmsica_cleanup_action_seqs[i].szSuffix,
-                szExtension);
+            /* Create an interface with a given name. */
+            LPCWSTR szName = szArg[i] + 7;
 
-            /* Save the cleanup sequence file. */
-            HANDLE hSeqFile = CreateFile(
-                szFilenameEx,
-                GENERIC_WRITE,
-                FILE_SHARE_READ,
-                NULL,
-                CREATE_ALWAYS,
-                FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN,
-                NULL);
-            if (hSeqFile == INVALID_HANDLE_VALUE)
             {
-                dwResultEx = GetLastError();
-                msg(M_NONFATAL | M_ERRNO, "%s: CreateFile(\"%.*" PRIsLPTSTR "\") failed", __FUNCTION__, _countof(szFilenameEx), szFilenameEx);
-                goto cleanup_session;
+                /* Report the name of the interface to installer. */
+                MSIHANDLE hRecord = MsiCreateRecord(3);
+                MsiRecordSetString(hRecord, 1, TEXT("Creating interface"));
+                MsiRecordSetString(hRecord, 2, szName);
+                int iResult = MsiProcessMessage(hInstall, INSTALLMESSAGE_ACTIONDATA, hRecord);
+                MsiCloseHandle(hRecord);
+                if (iResult == IDCANCEL)
+                {
+                    uiResult = ERROR_INSTALL_USEREXIT;
+                    goto cleanup;
+                }
             }
-            dwResultEx = msica_op_seq_save(&session.seq_cleanup[i], hSeqFile);
-            CloseHandle(hSeqFile);
-            if (dwResultEx != ERROR_SUCCESS)
+
+            GUID guidInterface;
+            dwResult = tap_create_interface(NULL, NULL, NULL, &bRebootRequired, &guidInterface);
+            if (dwResult == ERROR_SUCCESS)
             {
-                goto cleanup_session;
+                /* Set interface name. */
+                dwResult = tap_set_interface_name(&guidInterface, szName);
+                if (dwResult != ERROR_SUCCESS)
+                {
+                    tap_delete_interface(NULL, &guidInterface, &bRebootRequired);
+                }
             }
         }
-
-cleanup_session:
-        if (dwResultEx != ERROR_SUCCESS)
+        else if (wcsncmp(szArg[i], L"deleteN=", 8) == 0)
         {
-            /* The commit and/or rollback scripts were not written to file successfully. Perform the cleanup immediately. */
-            struct msica_session session_cleanup;
-            openvpnmsica_session_init(
-                &session_cleanup,
-                hInstall,
-                true,
-                false);
-            msica_op_seq_process(&session.seq_cleanup[MSICA_CLEANUP_ACTION_ROLLBACK], &session_cleanup);
+            /* Delete the interface by name. */
+            LPCWSTR szName = szArg[i] + 8;
 
-            szExtension = PathFindExtension(szSeqFilename);
-            for (size_t i = 0; i < MSICA_CLEANUP_ACTION_COUNT; i++)
             {
-                _stprintf_s(
-                    szFilenameEx, _countof(szFilenameEx),
-                    TEXT("%.*s-%.2s%s"),
-                    (int)(szExtension - szSeqFilename), szSeqFilename,
-                    openvpnmsica_cleanup_action_seqs[i].szSuffix,
-                    szExtension);
-                DeleteFile(szFilenameEx);
+                /* Report the name of the interface to installer. */
+                MSIHANDLE hRecord = MsiCreateRecord(3);
+                MsiRecordSetString(hRecord, 1, TEXT("Deleting interface"));
+                MsiRecordSetString(hRecord, 2, szName);
+                int iResult = MsiProcessMessage(hInstall, INSTALLMESSAGE_ACTIONDATA, hRecord);
+                MsiCloseHandle(hRecord);
+                if (iResult == IDCANCEL)
+                {
+                    uiResult = ERROR_INSTALL_USEREXIT;
+                    goto cleanup;
+                }
+            }
+
+            /* Get available TUN/TAP interfaces. */
+            struct tap_interface_node *pInterfaceList = NULL;
+            dwResult = tap_list_interfaces(NULL, NULL, &pInterfaceList, FALSE);
+            if (dwResult == ERROR_SUCCESS)
+            {
+                /* Does the interface exist? */
+                for (struct tap_interface_node *pInterface = pInterfaceList; pInterface != NULL; pInterface = pInterface->pNext)
+                {
+                    if (_tcsicmp(szName, pInterface->szName) == 0)
+                    {
+                        /* Interface found. */
+                        dwResult = tap_delete_interface(NULL, &pInterface->guid, &bRebootRequired);
+                        break;
+                    }
+                }
+
+                tap_free_interface_list(pInterfaceList);
             }
         }
-    }
-    else
-    {
-        /* No cleanup after cleanup support. */
-        uiResult = ERROR_SUCCESS;
+        else if (wcsncmp(szArg[i], L"delete=", 7) == 0)
+        {
+            /* Delete the interface by GUID. */
+            GUID guid;
+            if (!openvpnmsica_parse_guid(szArg[i] + 7, &guid))
+            {
+                goto invalid_argument;
+            }
+            dwResult = tap_delete_interface(NULL, &guid, &bRebootRequired);
+        }
+        else if (wcsncmp(szArg[i], L"enable=", 7) == 0)
+        {
+            /* Enable the interface. */
+            GUID guid;
+            if (!openvpnmsica_parse_guid(szArg[i] + 7, &guid))
+            {
+                goto invalid_argument;
+            }
+            dwResult = tap_enable_interface(NULL, &guid, TRUE, &bRebootRequired);
+        }
+        else if (wcsncmp(szArg[i], L"disable=", 8) == 0)
+        {
+            /* Disable the interface. */
+            GUID guid;
+            if (!openvpnmsica_parse_guid(szArg[i] + 8, &guid))
+            {
+                goto invalid_argument;
+            }
+            dwResult = tap_enable_interface(NULL, &guid, FALSE, &bRebootRequired);
+        }
+        else
+        {
+            goto invalid_argument;
+        }
+
+        if (dwResult != ERROR_SUCCESS && !bIsCleanup /* Ignore errors in case of commit/rollback to do as much work as possible. */)
+        {
+            uiResult = ERROR_INSTALL_FAILURE;
+            goto cleanup;
+        }
+
+        /* Report progress and check for user cancellation. */
+        MsiRecordSetInteger(hRecordProg, 2, MSICA_INTERFACE_TICK_SIZE);
+        if (MsiProcessMessage(hInstall, INSTALLMESSAGE_PROGRESS, hRecordProg) == IDCANCEL)
+        {
+            dwResult = ERROR_INSTALL_USEREXIT;
+            goto cleanup;
+        }
+
+        continue;
+
+invalid_argument:
+        msg(M_NONFATAL, "%s: Ignoring invalid argument: %ls", __FUNCTION__, szArg[i]);
     }
 
-    for (size_t i = MSICA_CLEANUP_ACTION_COUNT; i--; )
+cleanup:
+    if (bRebootRequired)
     {
-        msica_op_seq_free(&session.seq_cleanup[i]);
+        MsiSetMode(hInstall, MSIRUNMODE_REBOOTATEND, TRUE);
     }
-    DeleteFile(szSeqFilename);
-cleanup_seq:
-    msica_op_seq_free(&seq);
-cleanup_szSeqFilename:
-    free(szSeqFilename);
+    MsiCloseHandle(hRecordProg);
+    LocalFree(szArg);
+cleanup_szSequence:
+    free(szSequence);
 cleanup_CoInitialize:
     if (bIsCoInitialized)
     {
