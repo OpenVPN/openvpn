@@ -2,7 +2,7 @@
  *  openvpnmsica -- Custom Action DLL to provide OpenVPN-specific support to MSI packages
  *                  https://community.openvpn.net/openvpn/wiki/OpenVPNMSICA
  *
- *  Copyright (C) 2018 Simon Rozman <simon@rozman.si>
+ *  Copyright (C) 2018-2020 Simon Rozman <simon@rozman.si>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -752,6 +752,9 @@ EvaluateTAPInterfaces(_In_ MSIHANDLE hInstall)
         {
             goto cleanup_hRecord;
         }
+        /* `DisplayName` field type is [Filename](https://docs.microsoft.com/en-us/windows/win32/msi/filename), which is either "8.3|long name" or "8.3". */
+        LPTSTR szDisplayNameEx = _tcschr(szDisplayName, TEXT('|'));
+        szDisplayNameEx = szDisplayNameEx != NULL ? szDisplayNameEx + 1 : szDisplayName;
 
         if (iAction > INSTALLSTATE_BROKEN)
         {
@@ -796,7 +799,7 @@ EvaluateTAPInterfaces(_In_ MSIHANDLE hInstall)
                         msica_op_tap_interface_create,
                         MSICA_INTERFACE_TICK_SIZE,
                         NULL,
-                        szDisplayName));
+                        szDisplayNameEx));
             }
             else
             {
@@ -807,7 +810,7 @@ EvaluateTAPInterfaces(_In_ MSIHANDLE hInstall)
                         msica_op_tap_interface_delete_by_name,
                         MSICA_INTERFACE_TICK_SIZE,
                         NULL,
-                        szDisplayName));
+                        szDisplayNameEx));
             }
 
             /* The amount of tick space to add for each interface to progress indicator. */
