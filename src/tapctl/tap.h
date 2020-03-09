@@ -38,8 +38,7 @@
  *                      description of the device. This pointer is optional and can be NULL.
  *
  * @param szHwId        A pointer to a NULL-terminated string that supplies the hardware id
- *                      of the device. This pointer is optional and can be NULL. Default value
- *                      is root\tap0901.
+ *                      of the device (e.g. "root\\tap0901", "Wintun").
  *
  * @param pbRebootRequired  A pointer to a BOOL flag. If the device requires a system restart,
  *                      this flag is set to TRUE. Otherwise, the flag is left unmodified. This
@@ -54,7 +53,7 @@ DWORD
 tap_create_adapter(
     _In_opt_ HWND hwndParent,
     _In_opt_ LPCTSTR szDeviceDescription,
-    _In_opt_ LPCTSTR szHwId,
+    _In_ LPCTSTR szHwId,
     _Inout_ LPBOOL pbRebootRequired,
     _Out_ LPGUID pguidAdapter);
 
@@ -141,7 +140,7 @@ struct tap_adapter_node
 
 
 /**
- * Creates a list of available network adapters.
+ * Creates a list of existing network adapters.
  *
  * @param hwndParent    A handle to the top-level window to use for any user adapter that is
  *                      related to non-device-specific actions (such as a select-device dialog
@@ -150,15 +149,12 @@ struct tap_adapter_node
  *                      hwndParent to NULL.
  *
  * @param szHwId        A pointer to a NULL-terminated string that supplies the hardware id
- *                      of the device. This pointer is optional and can be NULL. Default value
- *                      is root\tap0901.
+ *                      of the device. This pointer is optional and can be NULL. When NULL,
+ *                      all network adapters found are added to the list.
  *
  * @param ppAdapterList  A pointer to the list to receive pointer to the first adapter in
  *                      the list. After the list is no longer required, free it using
  *                      tap_free_adapter_list().
- *
- * @param bAll          When TRUE, all network adapters found are added to the list. When
- *                      FALSE, only TUN/TAP adapters found are added.
  *
  * @return ERROR_SUCCESS on success; Win32 error code otherwise
  */
@@ -166,8 +162,7 @@ DWORD
 tap_list_adapters(
     _In_opt_ HWND hwndParent,
     _In_opt_ LPCTSTR szHwId,
-    _Out_ struct tap_adapter_node **ppAdapterList,
-    _In_ BOOL bAll);
+    _Out_ struct tap_adapter_node **ppAdapterList);
 
 
 /**

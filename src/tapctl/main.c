@@ -177,7 +177,7 @@ _tmain(int argc, LPCTSTR argv[])
     else if (_tcsicmp(argv[1], TEXT("create")) == 0)
     {
         LPCTSTR szName = NULL;
-        LPCTSTR szHwId = NULL;
+        LPCTSTR szHwId = TEXT("root\\") TEXT(TAP_WIN_COMPONENT_ID);
 
         /* Parse options. */
         for (int i = 2; i < argc; i++)
@@ -214,9 +214,9 @@ _tmain(int argc, LPCTSTR argv[])
 
         if (szName)
         {
-            /* Get the list of all available adapters. */
+            /* Get existing network adapters. */
             struct tap_adapter_node *pAdapterList = NULL;
-            dwResult = tap_list_adapters(NULL, szHwId, &pAdapterList, TRUE);
+            dwResult = tap_list_adapters(NULL, NULL, &pAdapterList);
             if (dwResult != ERROR_SUCCESS)
             {
                 _ftprintf(stderr, TEXT("Enumerating adapters failed (error 0x%x).\n"), dwResult);
@@ -271,7 +271,7 @@ create_delete_adapter:
     }
     else if (_tcsicmp(argv[1], TEXT("list")) == 0)
     {
-        LPCTSTR szHwId = NULL;
+        LPCTSTR szHwId = TEXT("root\\") TEXT(TAP_WIN_COMPONENT_ID);
 
         /* Parse options. */
         for (int i = 2; i < argc; i++)
@@ -286,9 +286,9 @@ create_delete_adapter:
             }
         }
 
-        /* Output list of TUN/TAP adapters. */
+        /* Output list of adapters with given hardware ID. */
         struct tap_adapter_node *pAdapterList = NULL;
-        DWORD dwResult = tap_list_adapters(NULL, szHwId, &pAdapterList, FALSE);
+        DWORD dwResult = tap_list_adapters(NULL, szHwId, &pAdapterList);
         if (dwResult != ERROR_SUCCESS)
         {
             _ftprintf(stderr, TEXT("Enumerating TUN/TAP adapters failed (error 0x%x).\n"), dwResult);
@@ -319,7 +319,7 @@ create_delete_adapter:
         {
             /* The argument failed to covert to GUID. Treat it as the adapter name. */
             struct tap_adapter_node *pAdapterList = NULL;
-            DWORD dwResult = tap_list_adapters(NULL, NULL, &pAdapterList, FALSE);
+            DWORD dwResult = tap_list_adapters(NULL, NULL, &pAdapterList);
             if (dwResult != ERROR_SUCCESS)
             {
                 _ftprintf(stderr, TEXT("Enumerating TUN/TAP adapters failed (error 0x%x).\n"), dwResult);

@@ -285,9 +285,9 @@ FindTUNTAPAdapters(_In_ MSIHANDLE hInstall)
 
     OPENVPNMSICA_SAVE_MSI_SESSION(hInstall);
 
-    /* Get all TUN/TAP network adapters. */
+    /* Get existing network adapters. */
     struct tap_adapter_node *pAdapterList = NULL;
-    uiResult = tap_list_adapters(NULL, NULL, &pAdapterList, FALSE);
+    uiResult = tap_list_adapters(NULL, NULL, &pAdapterList);
     if (uiResult != ERROR_SUCCESS)
     {
         goto cleanup_CoInitialize;
@@ -573,9 +573,9 @@ schedule_adapter_create(
     _In_z_ LPCTSTR szHardwareId,
     _Inout_ int *iTicks)
 {
-    /* Get all available network adapters. */
+    /* Get existing network adapters. */
     struct tap_adapter_node *pAdapterList = NULL;
-    DWORD dwResult = tap_list_adapters(NULL, NULL, &pAdapterList, TRUE);
+    DWORD dwResult = tap_list_adapters(NULL, NULL, &pAdapterList);
     if (dwResult != ERROR_SUCCESS)
     {
         return dwResult;
@@ -674,9 +674,9 @@ schedule_adapter_delete(
     _In_z_ LPCTSTR szHardwareId,
     _Inout_ int *iTicks)
 {
-    /* Get available adapters with given hardware ID. */
+    /* Get adapters with given hardware ID. */
     struct tap_adapter_node *pAdapterList = NULL;
-    DWORD dwResult = tap_list_adapters(NULL, szHardwareId, &pAdapterList, FALSE);
+    DWORD dwResult = tap_list_adapters(NULL, szHardwareId, &pAdapterList);
     if (dwResult != ERROR_SUCCESS)
     {
         return dwResult;
@@ -1125,9 +1125,9 @@ ProcessDeferredAction(_In_ MSIHANDLE hInstall)
                 }
             }
 
-            /* Get all available adapters. */
+            /* Get existing adapters. */
             struct tap_adapter_node *pAdapterList = NULL;
-            dwResult = tap_list_adapters(NULL, NULL, &pAdapterList, TRUE);
+            dwResult = tap_list_adapters(NULL, NULL, &pAdapterList);
             if (dwResult == ERROR_SUCCESS)
             {
                 /* Does the adapter exist? */

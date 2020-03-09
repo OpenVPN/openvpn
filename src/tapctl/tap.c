@@ -42,10 +42,51 @@
 
 const static GUID GUID_DEVCLASS_NET = { 0x4d36e972L, 0xe325, 0x11ce, { 0xbf, 0xc1, 0x08, 0x00, 0x2b, 0xe1, 0x03, 0x18 } };
 
-const static TCHAR szzDefaultHardwareIDs[] = TEXT("root\\") TEXT(TAP_WIN_COMPONENT_ID) TEXT("\0");
-
 const static TCHAR szAdapterRegKeyPathTemplate[] = TEXT("SYSTEM\\CurrentControlSet\\Control\\Network\\%") TEXT(PRIsLPOLESTR) TEXT("\\%") TEXT(PRIsLPOLESTR) TEXT("\\Connection");
 #define ADAPTER_REGKEY_PATH_MAX (_countof(TEXT("SYSTEM\\CurrentControlSet\\Control\\Network\\")) - 1 + 38 + _countof(TEXT("\\")) - 1 + 38 + _countof(TEXT("\\Connection")))
+
+
+/**
+ * Returns length of string of strings
+ *
+ * @param szz           Pointer to a string of strings (terminated by an empty string)
+ *
+ * @return Number of characters not counting the final zero terminator
+ **/
+static inline size_t
+_tcszlen(_In_z_ LPCTSTR szz)
+{
+    LPCTSTR s;
+    for (s = szz; s[0]; s += _tcslen(s) + 1)
+    {
+    }
+    return s - szz;
+}
+
+
+/**
+ * Checks if string is contained in the string of strings. Comparison is made case-insensitive.
+ *
+ * @param szzHay        Pointer to a string of strings (terminated by an empty string) we are
+ *                      looking in
+ *
+ * @param szNeedle      The string we are searching for
+ *
+ * @return Pointer to the string in szzHay that matches szNeedle is found; NULL otherwise
+ */
+static LPCTSTR
+_tcszistr(_In_z_ LPCTSTR szzHay, _In_z_ LPCTSTR szNeedle)
+{
+    for (LPCTSTR s = szzHay; s[0]; s += _tcslen(s) + 1)
+    {
+        if (_tcsicmp(s, szNeedle) == 0)
+        {
+            return s;
+        }
+    }
+
+    return NULL;
+}
 
 
 /**
@@ -628,43 +669,21 @@ get_device_reg_property(
 }
 
 
-/**
- * Returns length of list of strings
- *
- * @param str              Pointer to a list of strings terminated by an empty string.
- *
- * @return Number of characters not counting the final zero terminator
- **/
-static inline size_t
-_tcszlen(_In_ LPCTSTR str)
-{
-    LPCTSTR s;
-    for (s = str; s[0]; s += _tcslen(s) + 1)
-    {
-    }
-    return s - str;
-}
-
-
 DWORD
 tap_create_adapter(
     _In_opt_ HWND hwndParent,
     _In_opt_ LPCTSTR szDeviceDescription,
-    _In_opt_ LPCTSTR szHwId,
+    _In_ LPCTSTR szHwId,
     _Inout_ LPBOOL pbRebootRequired,
     _Out_ LPGUID pguidAdapter)
 {
     DWORD dwResult;
 
-    if (pbRebootRequired == NULL
+    if (szHwId == NULL
+        || pbRebootRequired == NULL
         || pguidAdapter == NULL)
     {
         return ERROR_BAD_ARGUMENTS;
-    }
-
-    if (szHwId == NULL)
-    {
-        szHwId = szzDefaultHardwareIDs;
     }
 
     /* Create an empty device info set for network adapter device class. */
@@ -818,29 +837,23 @@ tap_create_adapter(
             }
         }
 
-        /* Check the driver version first, since the check is trivial and will save us iterating over hardware IDs for any driver versioned prior our best match. */
-        if (dwlDriverVersion < drvinfo_data.DriverVersion)
+        /* Check the driver version and hardware ID. */
+        if (dwlDriverVersion < drvinfo_data.DriverVersion
+            && drvinfo_detail_data->HardwareID
+            && _tcszistr(drvinfo_detail_data->HardwareID, szHwId))
         {
-            /* Search the list of hardware IDs. */
-            for (LPTSTR szHwdID = drvinfo_detail_data->HardwareID; szHwdID && szHwdID[0]; szHwdID += _tcslen(szHwdID) + 1)
+            /* Newer version and matching hardware ID found. Select the driver. */
+            if (!SetupDiSetSelectedDriver(
+                    hDevInfoList,
+                    &devinfo_data,
+                    &drvinfo_data))
             {
-                if (_tcsicmp(szHwdID, szHwId) == 0)
-                {
-                    /* Matching hardware ID found. Select the driver. */
-                    if (!SetupDiSetSelectedDriver(
-                            hDevInfoList,
-                            &devinfo_data,
-                            &drvinfo_data))
-                    {
-                        /* Something is wrong with this driver. Skip it. */
-                        msg(M_WARN | M_ERRNO, "%s: SetupDiSetSelectedDriver(\"%hs\") failed", __FUNCTION__, drvinfo_data.Description);
-                        break;
-                    }
-
-                    dwlDriverVersion = drvinfo_data.DriverVersion;
-                    break;
-                }
+                /* Something is wrong with this driver. Skip it. */
+                msg(M_WARN | M_ERRNO, "%s: SetupDiSetSelectedDriver(\"%hs\") failed", __FUNCTION__, drvinfo_data.Description);
+                continue;
             }
+
+            dwlDriverVersion = drvinfo_data.DriverVersion;
         }
     }
     if (drvinfo_detail_data)
@@ -1167,19 +1180,13 @@ DWORD
 tap_list_adapters(
     _In_opt_ HWND hwndParent,
     _In_opt_ LPCTSTR szHwId,
-    _Out_ struct tap_adapter_node **ppAdapter,
-    _In_ BOOL bAll)
+    _Out_ struct tap_adapter_node **ppAdapter)
 {
     DWORD dwResult;
 
     if (ppAdapter == NULL)
     {
         return ERROR_BAD_ARGUMENTS;
-    }
-
-    if (szHwId == NULL)
-    {
-        szHwId = szzDefaultHardwareIDs;
     }
 
     /* Create a list of network devices. */
@@ -1253,7 +1260,7 @@ tap_list_adapters(
         /* Check that hardware ID is REG_SZ/REG_MULTI_SZ, and optionally if it matches ours. */
         if (dwDataType == REG_SZ)
         {
-            if (!bAll && _tcsicmp(szzDeviceHardwareIDs, szHwId) != 0)
+            if (szHwId && _tcsicmp(szzDeviceHardwareIDs, szHwId) != 0)
             {
                 /* This is not our device. Skip it. */
                 goto cleanup_szzDeviceHardwareIDs;
@@ -1261,21 +1268,10 @@ tap_list_adapters(
         }
         else if (dwDataType == REG_MULTI_SZ)
         {
-            if (!bAll)
+            if (szHwId && _tcszistr(szzDeviceHardwareIDs, szHwId) == NULL)
             {
-                for (LPTSTR szHwdID = szzDeviceHardwareIDs;; szHwdID += _tcslen(szHwdID) + 1)
-                {
-                    if (szHwdID[0] == 0)
-                    {
-                        /* This is not our device. Skip it. */
-                        goto cleanup_szzDeviceHardwareIDs;
-                    }
-                    else if (_tcsicmp(szHwdID, szHwId) == 0)
-                    {
-                        /* This is our device. */
-                        break;
-                    }
-                }
+                /* This is not our device. Skip it. */
+                goto cleanup_szzDeviceHardwareIDs;
             }
         }
         else
