@@ -2,7 +2,7 @@
  *  tapctl -- Utility to manipulate TUN/TAP interfaces on Windows
  *            https://community.openvpn.net/openvpn/wiki/Tapctl
  *
- *  Copyright (C) 2018 Simon Rozman <simon@rozman.si>
+ *  Copyright (C) 2018-2020 Simon Rozman <simon@rozman.si>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -41,10 +41,10 @@
  *                      of the device. This pointer is optional and can be NULL. Default value
  *                      is root\tap0901.
  *
- * @param pbRebootRequired  A pointer to a BOOL flag. If the interface installation requires
- *                      a system restart, this flag is set to TRUE. Otherwise, the flag is
- *                      left unmodified. This allows the flag to be globally initialized to
- *                      FALSE and reused for multiple interface installations.
+ * @param pbRebootRequired  A pointer to a BOOL flag. If the device requires a system restart,
+ *                      this flag is set to TRUE. Otherwise, the flag is left unmodified. This
+ *                      allows the flag to be globally initialized to FALSE and reused for multiple
+ *                      interface manipulations.
  *
  * @param pguidInterface  A pointer to GUID that receives network interface ID.
  *
@@ -70,10 +70,10 @@ tap_create_interface(
  *
  * @param pguidInterface  A pointer to GUID that contains network interface ID.
  *
- * @param pbRebootRequired  A pointer to a BOOL flag. If the interface installation requires
- *                      a system restart, this flag is set to TRUE. Otherwise, the flag is
- *                      left unmodified. This allows the flag to be globally initialized to
- *                      FALSE and reused for multiple interface installations.
+ * @param pbRebootRequired  A pointer to a BOOL flag. If the device requires a system restart,
+ *                      this flag is set to TRUE. Otherwise, the flag is left unmodified. This
+ *                      allows the flag to be globally initialized to FALSE and reused for multiple
+ *                      interface manipulations.
  *
  * @return ERROR_SUCCESS on success; Win32 error code otherwise
  **/

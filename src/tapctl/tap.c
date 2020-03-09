@@ -2,7 +2,7 @@
  *  tapctl -- Utility to manipulate TUN/TAP interfaces on Windows
  *            https://community.openvpn.net/openvpn/wiki/Tapctl
  *
- *  Copyright (C) 2018 Simon Rozman <simon@rozman.si>
+ *  Copyright (C) 2018-2020 Simon Rozman <simon@rozman.si>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -51,15 +51,15 @@ const static TCHAR szInterfaceRegKeyPathTemplate[] = TEXT("SYSTEM\\CurrentContro
  * Checks device install parameters if a system reboot is required.
  *
  * @param hDeviceInfoSet  A handle to a device information set that contains a device
- *                      information element that represents the device for which to
+ *                      information element that represents the device.
  *
  * @param pDeviceInfoData  A pointer to an SP_DEVINFO_DATA structure that specifies the
  *                      device information element in hDeviceInfoSet.
  *
- * @param pbRebootRequired  A pointer to a BOOL flag. If the interface installation requires
- *                      a system restart, this flag is set to TRUE. Otherwise, the flag is
- *                      left unmodified. This allows the flag to be globally initialized to
- *                      FALSE and reused for multiple interface installations.
+ * @param pbRebootRequired  A pointer to a BOOL flag. If the device requires a system restart,
+ *                      this flag is set to TRUE. Otherwise, the flag is left unmodified. This
+ *                      allows the flag to be globally initialized to FALSE and reused for multiple
+ *                      interface manipulations.
  *
  * @return ERROR_SUCCESS on success; Win32 error code otherwise
  **/
@@ -244,7 +244,7 @@ get_reg_string(
  * Returns network interface ID.
  *
  * @param hDeviceInfoSet  A handle to a device information set that contains a device
- *                      information element that represents the device for which to
+ *                      information element that represents the device.
  *
  * @param pDeviceInfoData  A pointer to an SP_DEVINFO_DATA structure that specifies the
  *                      device information element in hDeviceInfoSet.
@@ -330,8 +330,7 @@ get_net_interface_guid(
  * Returns a specified Plug and Play device property.
  *
  * @param hDeviceInfoSet  A handle to a device information set that contains a device
- *                      information element that represents the device for which to
- *                      retrieve a Plug and Play property.
+ *                      information element that represents the device.
  *
  * @param pDeviceInfoData  A pointer to an SP_DEVINFO_DATA structure that specifies the
  *                      device information element in hDeviceInfoSet.
