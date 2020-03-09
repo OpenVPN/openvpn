@@ -76,9 +76,17 @@ extern "C" {
 
 /**
  * Determines Windows information:
- * - Sets `DriverCertification` MSI property to "", "attsgn" or "whql"
- *   according to the driver certification required by the running version of
- *   Windows.
+ *
+ * - Sets `OPENVPNSERVICE` MSI property to PID of OpenVPN Service if running, or its EXE path if
+ *   configured for auto-start.
+ *
+ * - Finds existing TAP-Windows6 adapters and set TAPWINDOWS6ADAPTERS and
+ *   ACTIVETAPWINDOWS6ADAPTERS properties with semicolon delimited list of all installed adapter
+ *   GUIDs and active adapter GUIDs respectively.
+ *
+ * - Finds existing Wintun adapters and set WINTUNADAPTERS and ACTIVEWINTUNADAPTERS properties
+ *   with semicolon delimited list of all installed adapter GUIDs and active adapter GUIDs
+ *   respectively.
  *
  * @param hInstall      Handle to the installation provided to the DLL custom action
  *
@@ -87,20 +95,6 @@ extern "C" {
  */
 DLLEXP_DECL UINT __stdcall
 FindSystemInfo(_In_ MSIHANDLE hInstall);
-
-
-/**
- * Find existing TAP adapters and set TUNTAPADAPTERS and ACTIVETUNTAPADAPTERS properties with
- * semicolon delimited list of all installed TAP adapter GUIDs and active adapter GUIDs
- * respectively.
- *
- * @param hInstall      Handle to the installation provided to the DLL custom action
- *
- * @return ERROR_SUCCESS on success; An error code otherwise
- *         See: https://msdn.microsoft.com/en-us/library/windows/desktop/aa368072.aspx
- */
-DLLEXP_DECL UINT __stdcall
-FindTUNTAPAdapters(_In_ MSIHANDLE hInstall);
 
 
 /**

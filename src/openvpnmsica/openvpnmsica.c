@@ -248,49 +248,26 @@ cleanup_OpenSCManager:
 }
 
 
-UINT __stdcall
-FindSystemInfo(_In_ MSIHANDLE hInstall)
+static UINT
+find_adapters(
+    _In_ MSIHANDLE hInstall,
+    _In_z_ LPCTSTR szHardwareId,
+    _In_z_ LPCTSTR szAdaptersPropertyName,
+    _In_z_ LPCTSTR szActiveAdaptersPropertyName)
 {
-#ifdef _MSC_VER
-#pragma comment(linker, DLLEXP_EXPORT)
-#endif
-
-    debug_popup(TEXT(__FUNCTION__));
-
-    BOOL bIsCoInitialized = SUCCEEDED(CoInitialize(NULL));
-
-    OPENVPNMSICA_SAVE_MSI_SESSION(hInstall);
-
-    set_openvpnserv_state(hInstall);
-
-    if (bIsCoInitialized)
-    {
-        CoUninitialize();
-    }
-    return ERROR_SUCCESS;
-}
-
-
-UINT __stdcall
-FindTUNTAPAdapters(_In_ MSIHANDLE hInstall)
-{
-#ifdef _MSC_VER
-#pragma comment(linker, DLLEXP_EXPORT)
-#endif
-
-    debug_popup(TEXT(__FUNCTION__));
-
     UINT uiResult;
-    BOOL bIsCoInitialized = SUCCEEDED(CoInitialize(NULL));
 
-    OPENVPNMSICA_SAVE_MSI_SESSION(hInstall);
-
-    /* Get existing network adapters. */
+    /* Get network adapters with given hardware ID. */
     struct tap_adapter_node *pAdapterList = NULL;
-    uiResult = tap_list_adapters(NULL, NULL, &pAdapterList);
+    uiResult = tap_list_adapters(NULL, szHardwareId, &pAdapterList);
     if (uiResult != ERROR_SUCCESS)
     {
-        goto cleanup_CoInitialize;
+        return uiResult;
+    }
+    else if (pAdapterList == NULL)
+    {
+        /* No adapters - no fun. */
+        return ERROR_SUCCESS;
     }
 
     /* Get IPv4/v6 info for all network adapters. Actually, we're interested in link status only: up/down? */
@@ -302,7 +279,7 @@ FindTUNTAPAdapters(_In_ MSIHANDLE hInstall)
         if (pAdapterAdresses == NULL)
         {
             msg(M_NONFATAL, "%s: malloc(%u) failed", __FUNCTION__, ulAdapterAdressesSize);
-            uiResult = ERROR_OUTOFMEMORY; goto cleanup_tap_list_adapters;
+            uiResult = ERROR_OUTOFMEMORY; goto cleanup_pAdapterList;
         }
 
         ULONG ulResult = GetAdaptersAddresses(
@@ -322,117 +299,135 @@ FindTUNTAPAdapters(_In_ MSIHANDLE hInstall)
         {
             SetLastError(ulResult); /* MSDN does not mention GetAdaptersAddresses() to set GetLastError(). But we do have an error code. Set last error manually. */
             msg(M_NONFATAL | M_ERRNO, "%s: GetAdaptersAddresses() failed", __FUNCTION__);
-            uiResult = ulResult; goto cleanup_tap_list_adapters;
+            uiResult = ulResult; goto cleanup_pAdapterList;
         }
     }
 
-    if (pAdapterList != NULL)
+    /* Count adapters. */
+    size_t adapter_count = 0;
+    for (struct tap_adapter_node *pAdapter = pAdapterList; pAdapter; pAdapter = pAdapter->pNext)
     {
-        /* Count adapters. */
-        size_t adapter_count = 0;
-        for (struct tap_adapter_node *pAdapter = pAdapterList; pAdapter; pAdapter = pAdapter->pNext)
+        adapter_count++;
+    }
+
+    /* Prepare semicolon delimited list of TAP adapter ID(s) and active TAP adapter ID(s). */
+    LPTSTR
+        szAdapters     = (LPTSTR)malloc(adapter_count * (38 /*GUID*/ + 1 /*separator/terminator*/) * sizeof(TCHAR)),
+        szAdaptersTail = szAdapters;
+    if (szAdapters == NULL)
+    {
+        msg(M_FATAL, "%s: malloc(%u) failed", __FUNCTION__, adapter_count * (38 /*GUID*/ + 1 /*separator/terminator*/) * sizeof(TCHAR));
+        uiResult = ERROR_OUTOFMEMORY; goto cleanup_pAdapterAdresses;
+    }
+
+    LPTSTR
+        szAdaptersActive     = (LPTSTR)malloc(adapter_count * (38 /*GUID*/ + 1 /*separator/terminator*/) * sizeof(TCHAR)),
+        szAdaptersActiveTail = szAdaptersActive;
+    if (szAdaptersActive == NULL)
+    {
+        msg(M_FATAL, "%s: malloc(%u) failed", __FUNCTION__, adapter_count * (38 /*GUID*/ + 1 /*separator/terminator*/) * sizeof(TCHAR));
+        uiResult = ERROR_OUTOFMEMORY; goto cleanup_szAdapters;
+    }
+
+    for (struct tap_adapter_node *pAdapter = pAdapterList; pAdapter; pAdapter = pAdapter->pNext)
+    {
+        /* Convert adapter GUID to UTF-16 string. (LPOLESTR defaults to LPWSTR) */
+        LPOLESTR szAdapterId = NULL;
+        StringFromIID((REFIID)&pAdapter->guid, &szAdapterId);
+
+        /* Append to the list of TAP adapter ID(s). */
+        if (szAdapters < szAdaptersTail)
         {
-            adapter_count++;
+            *(szAdaptersTail++) = TEXT(';');
         }
+        memcpy(szAdaptersTail, szAdapterId, 38 * sizeof(TCHAR));
+        szAdaptersTail += 38;
 
-        /* Prepare semicolon delimited list of TAP adapter ID(s) and active TAP adapter ID(s). */
-        LPTSTR
-            szAdapters     = (LPTSTR)malloc(adapter_count * (38 /*GUID*/ + 1 /*separator/terminator*/) * sizeof(TCHAR)),
-            szAdaptersTail = szAdapters;
-        if (szAdapters == NULL)
+        /* If this adapter is active (connected), add it to the list of active TAP adapter ID(s). */
+        for (PIP_ADAPTER_ADDRESSES p = pAdapterAdresses; p; p = p->Next)
         {
-            msg(M_FATAL, "%s: malloc(%u) failed", __FUNCTION__, adapter_count * (38 /*GUID*/ + 1 /*separator/terminator*/) * sizeof(TCHAR));
-            uiResult = ERROR_OUTOFMEMORY; goto cleanup_pAdapterAdresses;
-        }
-
-        LPTSTR
-            szAdaptersActive     = (LPTSTR)malloc(adapter_count * (38 /*GUID*/ + 1 /*separator/terminator*/) * sizeof(TCHAR)),
-            szAdaptersActiveTail = szAdaptersActive;
-        if (szAdaptersActive == NULL)
-        {
-            msg(M_FATAL, "%s: malloc(%u) failed", __FUNCTION__, adapter_count * (38 /*GUID*/ + 1 /*separator/terminator*/) * sizeof(TCHAR));
-            uiResult = ERROR_OUTOFMEMORY; goto cleanup_szAdapters;
-        }
-
-        for (struct tap_adapter_node *pAdapter = pAdapterList; pAdapter; pAdapter = pAdapter->pNext)
-        {
-            /* Convert adapter GUID to UTF-16 string. (LPOLESTR defaults to LPWSTR) */
-            LPOLESTR szAdapterId = NULL;
-            StringFromIID((REFIID)&pAdapter->guid, &szAdapterId);
-
-            /* Append to the list of TAP adapter ID(s). */
-            if (szAdapters < szAdaptersTail)
+            OLECHAR szId[38 /*GUID*/ + 1 /*terminator*/];
+            GUID guid;
+            if (MultiByteToWideChar(CP_ACP, MB_PRECOMPOSED, p->AdapterName, -1, szId, _countof(szId)) > 0
+                && SUCCEEDED(IIDFromString(szId, &guid))
+                && memcmp(&guid, &pAdapter->guid, sizeof(GUID)) == 0)
             {
-                *(szAdaptersTail++) = TEXT(';');
-            }
-            memcpy(szAdaptersTail, szAdapterId, 38 * sizeof(TCHAR));
-            szAdaptersTail += 38;
-
-            /* If this adapter is active (connected), add it to the list of active TAP adapter ID(s). */
-            for (PIP_ADAPTER_ADDRESSES p = pAdapterAdresses; p; p = p->Next)
-            {
-                OLECHAR szId[38 /*GUID*/ + 1 /*terminator*/];
-                GUID guid;
-                if (MultiByteToWideChar(CP_ACP, MB_PRECOMPOSED, p->AdapterName, -1, szId, _countof(szId)) > 0
-                    && SUCCEEDED(IIDFromString(szId, &guid))
-                    && memcmp(&guid, &pAdapter->guid, sizeof(GUID)) == 0)
+                if (p->OperStatus == IfOperStatusUp)
                 {
-                    if (p->OperStatus == IfOperStatusUp)
+                    /* This TAP adapter is active (connected). */
+                    if (szAdaptersActive < szAdaptersActiveTail)
                     {
-                        /* This TAP adapter is active (connected). */
-                        if (szAdaptersActive < szAdaptersActiveTail)
-                        {
-                            *(szAdaptersActiveTail++) = TEXT(';');
-                        }
-                        memcpy(szAdaptersActiveTail, szAdapterId, 38 * sizeof(TCHAR));
-                        szAdaptersActiveTail += 38;
+                        *(szAdaptersActiveTail++) = TEXT(';');
                     }
-                    break;
+                    memcpy(szAdaptersActiveTail, szAdapterId, 38 * sizeof(TCHAR));
+                    szAdaptersActiveTail += 38;
                 }
+                break;
             }
-            CoTaskMemFree(szAdapterId);
         }
-        szAdaptersTail      [0] = 0;
-        szAdaptersActiveTail[0] = 0;
+        CoTaskMemFree(szAdapterId);
+    }
+    szAdaptersTail      [0] = 0;
+    szAdaptersActiveTail[0] = 0;
 
-        /* Set Installer TUNTAPADAPTERS property. */
-        uiResult = MsiSetProperty(hInstall, TEXT("TUNTAPADAPTERS"), szAdapters);
-        if (uiResult != ERROR_SUCCESS)
-        {
-            SetLastError(uiResult); /* MSDN does not mention MsiSetProperty() to set GetLastError(). But we do have an error code. Set last error manually. */
-            msg(M_NONFATAL | M_ERRNO, "%s: MsiSetProperty(\"TUNTAPADAPTERS\") failed", __FUNCTION__);
-            goto cleanup_szAdaptersActive;
-        }
-
-        /* Set Installer ACTIVETUNTAPADAPTERS property. */
-        uiResult = MsiSetProperty(hInstall, TEXT("ACTIVETUNTAPADAPTERS"), szAdaptersActive);
-        if (uiResult != ERROR_SUCCESS)
-        {
-            SetLastError(uiResult); /* MSDN does not mention MsiSetProperty() to set GetLastError(). But we do have an error code. Set last error manually. */
-            msg(M_NONFATAL | M_ERRNO, "%s: MsiSetProperty(\"ACTIVETUNTAPADAPTERS\") failed", __FUNCTION__);
-            goto cleanup_szAdaptersActive;
-        }
+    /* Set Installer properties. */
+    uiResult = MsiSetProperty(hInstall, szAdaptersPropertyName, szAdapters);
+    if (uiResult != ERROR_SUCCESS)
+    {
+        SetLastError(uiResult); /* MSDN does not mention MsiSetProperty() to set GetLastError(). But we do have an error code. Set last error manually. */
+        msg(M_NONFATAL | M_ERRNO, "%s: MsiSetProperty(\"%s\") failed", __FUNCTION__, szAdaptersPropertyName);
+        goto cleanup_szAdaptersActive;
+    }
+    uiResult = MsiSetProperty(hInstall, szActiveAdaptersPropertyName, szAdaptersActive);
+    if (uiResult != ERROR_SUCCESS)
+    {
+        SetLastError(uiResult); /* MSDN does not mention MsiSetProperty() to set GetLastError(). But we do have an error code. Set last error manually. */
+        msg(M_NONFATAL | M_ERRNO, "%s: MsiSetProperty(\"%s\") failed", __FUNCTION__, szActiveAdaptersPropertyName);
+        goto cleanup_szAdaptersActive;
+    }
 
 cleanup_szAdaptersActive:
-        free(szAdaptersActive);
+    free(szAdaptersActive);
 cleanup_szAdapters:
-        free(szAdapters);
-    }
-    else
-    {
-        uiResult = ERROR_SUCCESS;
-    }
-
+    free(szAdapters);
 cleanup_pAdapterAdresses:
     free(pAdapterAdresses);
-cleanup_tap_list_adapters:
+cleanup_pAdapterList:
     tap_free_adapter_list(pAdapterList);
-cleanup_CoInitialize:
+    return uiResult;
+}
+
+
+UINT __stdcall
+FindSystemInfo(_In_ MSIHANDLE hInstall)
+{
+#ifdef _MSC_VER
+#pragma comment(linker, DLLEXP_EXPORT)
+#endif
+
+    debug_popup(TEXT(__FUNCTION__));
+
+    BOOL bIsCoInitialized = SUCCEEDED(CoInitialize(NULL));
+
+    OPENVPNMSICA_SAVE_MSI_SESSION(hInstall);
+
+    set_openvpnserv_state(hInstall);
+    find_adapters(
+        hInstall,
+        TEXT("root\\") TEXT(TAP_WIN_COMPONENT_ID),
+        TEXT("TAPWINDOWS6ADAPTERS"),
+        TEXT("ACTIVETAPWINDOWS6ADAPTERS"));
+    find_adapters(
+        hInstall,
+        TEXT("Wintun"),
+        TEXT("WINTUNADAPTERS"),
+        TEXT("ACTIVEWINTUNADAPTERS"));
+
     if (bIsCoInitialized)
     {
         CoUninitialize();
     }
-    return uiResult;
+    return ERROR_SUCCESS;
 }
 
 
