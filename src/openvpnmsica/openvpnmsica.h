@@ -90,7 +90,7 @@ FindSystemInfo(_In_ MSIHANDLE hInstall);
 
 
 /**
- * Find existing TAP adapters and set TAPADAPTERS and ACTIVETAPADAPTERS properties with
+ * Find existing TAP adapters and set TUNTAPADAPTERS and ACTIVETUNTAPADAPTERS properties with
  * semicolon delimited list of all installed TAP adapter GUIDs and active adapter GUIDs
  * respectively.
  *
@@ -100,7 +100,7 @@ FindSystemInfo(_In_ MSIHANDLE hInstall);
  *         See: https://msdn.microsoft.com/en-us/library/windows/desktop/aa368072.aspx
  */
 DLLEXP_DECL UINT __stdcall
-FindTAPAdapters(_In_ MSIHANDLE hInstall);
+FindTUNTAPAdapters(_In_ MSIHANDLE hInstall);
 
 
 /**
@@ -129,7 +129,7 @@ StartOpenVPNGUI(_In_ MSIHANDLE hInstall);
 
 
 /**
- * Evaluate the TAPAdapter table of the MSI package database and prepare a list of TAP
+ * Evaluate the TUNTAPAdapter table of the MSI package database and prepare a list of TAP
  * adapters to install/remove.
  *
  * @param hInstall      Handle to the installation provided to the DLL custom action
@@ -138,7 +138,7 @@ StartOpenVPNGUI(_In_ MSIHANDLE hInstall);
  *         See: https://msdn.microsoft.com/en-us/library/windows/desktop/aa368072.aspx
  */
 DLLEXP_DECL UINT __stdcall
-EvaluateTAPAdapters(_In_ MSIHANDLE hInstall);
+EvaluateTUNTAPAdapters(_In_ MSIHANDLE hInstall);
 
 
 /**
