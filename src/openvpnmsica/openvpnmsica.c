@@ -251,7 +251,7 @@ cleanup_OpenSCManager:
 static UINT
 find_adapters(
     _In_ MSIHANDLE hInstall,
-    _In_z_ LPCTSTR szHardwareId,
+    _In_z_ LPCTSTR szzHardwareIDs,
     _In_z_ LPCTSTR szAdaptersPropertyName,
     _In_z_ LPCTSTR szActiveAdaptersPropertyName)
 {
@@ -259,7 +259,7 @@ find_adapters(
 
     /* Get network adapters with given hardware ID. */
     struct tap_adapter_node *pAdapterList = NULL;
-    uiResult = tap_list_adapters(NULL, szHardwareId, &pAdapterList);
+    uiResult = tap_list_adapters(NULL, szzHardwareIDs, &pAdapterList);
     if (uiResult != ERROR_SUCCESS)
     {
         return uiResult;
@@ -414,12 +414,12 @@ FindSystemInfo(_In_ MSIHANDLE hInstall)
     set_openvpnserv_state(hInstall);
     find_adapters(
         hInstall,
-        TEXT("root\\") TEXT(TAP_WIN_COMPONENT_ID),
+        TEXT("root\\") TEXT(TAP_WIN_COMPONENT_ID) TEXT("\0") TEXT(TAP_WIN_COMPONENT_ID) TEXT("\0"),
         TEXT("TAPWINDOWS6ADAPTERS"),
         TEXT("ACTIVETAPWINDOWS6ADAPTERS"));
     find_adapters(
         hInstall,
-        TEXT("Wintun"),
+        TEXT("Wintun") TEXT("\0"),
         TEXT("WINTUNADAPTERS"),
         TEXT("ACTIVEWINTUNADAPTERS"));
 
@@ -652,7 +652,7 @@ cleanup_pAdapterList:
  *
  * @param szDisplayName  Adapter display name
  *
- * @param szHardwareId  Adapter hardware ID
+ * @param szzHardwareIDs  String of strings with acceptable adapter hardware IDs
  *
  * @param iTicks        Pointer to an integer that represents amount of work (on progress
  *                      indicator) the UninstallTUNTAPAdapters will take. This function increments
@@ -666,12 +666,12 @@ schedule_adapter_delete(
     _Inout_opt_ struct msica_arg_seq *seqCommit,
     _Inout_opt_ struct msica_arg_seq *seqRollback,
     _In_z_ LPCTSTR szDisplayName,
-    _In_z_ LPCTSTR szHardwareId,
+    _In_z_ LPCTSTR szzHardwareIDs,
     _Inout_ int *iTicks)
 {
     /* Get adapters with given hardware ID. */
     struct tap_adapter_node *pAdapterList = NULL;
-    DWORD dwResult = tap_list_adapters(NULL, szHardwareId, &pAdapterList);
+    DWORD dwResult = tap_list_adapters(NULL, szzHardwareIDs, &pAdapterList);
     if (dwResult != ERROR_SUCCESS)
     {
         return dwResult;
@@ -858,11 +858,16 @@ EvaluateTUNTAPAdapters(_In_ MSIHANDLE hInstall)
         szDisplayNameEx = szDisplayNameEx != NULL ? szDisplayNameEx + 1 : szDisplayName;
 
         /* Get adapter hardware ID (`HardwareId` is field #5). */
-        LPTSTR szHardwareId = NULL;
-        uiResult = msi_get_record_string(hRecord, 5, &szHardwareId);
-        if (uiResult != ERROR_SUCCESS)
+        TCHAR szzHardwareIDs[0x100] = { 0 };
         {
-            goto cleanup_szDisplayName;
+            LPTSTR szHwId = NULL;
+            uiResult = msi_get_record_string(hRecord, 5, &szHwId);
+            if (uiResult != ERROR_SUCCESS)
+            {
+                goto cleanup_szDisplayName;
+            }
+            memcpy_s(szzHardwareIDs, sizeof(szzHardwareIDs) - 2*sizeof(TCHAR) /*requires double zero termination*/, szHwId, _tcslen(szHwId)*sizeof(TCHAR));
+            free(szHwId);
         }
 
         if (iAction > INSTALLSTATE_BROKEN)
@@ -876,7 +881,7 @@ EvaluateTUNTAPAdapters(_In_ MSIHANDLE hInstall)
                 uiResult = msi_get_record_string(hRecord, 3, &szValue);
                 if (uiResult != ERROR_SUCCESS)
                 {
-                    goto cleanup_szHardwareId;
+                    goto cleanup_szDisplayName;
                 }
 #ifdef __GNUC__
 /*
@@ -890,13 +895,13 @@ EvaluateTUNTAPAdapters(_In_ MSIHANDLE hInstall)
                 {
                     case MSICONDITION_FALSE:
                         free(szValue);
-                        goto cleanup_szHardwareId;
+                        goto cleanup_szDisplayName;
 
                     case MSICONDITION_ERROR:
                         uiResult = ERROR_INVALID_FIELD;
                         msg(M_NONFATAL | M_ERRNO, "%s: MsiEvaluateCondition(\"%" PRIsLPTSTR "\") failed", __FUNCTION__, szValue);
                         free(szValue);
-                        goto cleanup_szHardwareId;
+                        goto cleanup_szDisplayName;
                 }
 #ifdef __GNUC__
 #pragma GCC diagnostic pop
@@ -908,11 +913,11 @@ EvaluateTUNTAPAdapters(_In_ MSIHANDLE hInstall)
                         &seqInstall,
                         bRollbackEnabled ? &seqInstallRollback : NULL,
                         szDisplayNameEx,
-                        szHardwareId,
+                        szzHardwareIDs,
                         &iTicks) != ERROR_SUCCESS)
                 {
                     uiResult = ERROR_INSTALL_FAILED;
-                    goto cleanup_szHardwareId;
+                    goto cleanup_szDisplayName;
                 }
             }
             else
@@ -927,7 +932,7 @@ EvaluateTUNTAPAdapters(_In_ MSIHANDLE hInstall)
                     bRollbackEnabled ? &seqUninstallCommit : NULL,
                     bRollbackEnabled ? &seqUninstallRollback : NULL,
                     szDisplayNameEx,
-                    szHardwareId,
+                    szzHardwareIDs,
                     &iTicks);
             }
 
@@ -938,12 +943,10 @@ EvaluateTUNTAPAdapters(_In_ MSIHANDLE hInstall)
             if (MsiProcessMessage(hInstall, INSTALLMESSAGE_PROGRESS, hRecordProg) == IDCANCEL)
             {
                 uiResult = ERROR_INSTALL_USEREXIT;
-                goto cleanup_szHardwareId;
+                goto cleanup_szDisplayName;
             }
         }
 
-cleanup_szHardwareId:
-        free(szHardwareId);
 cleanup_szDisplayName:
         free(szDisplayName);
 cleanup_hRecord:

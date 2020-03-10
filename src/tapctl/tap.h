@@ -148,9 +148,9 @@ struct tap_adapter_node
  *                      and can be NULL. If a specific top-level window is not required, set
  *                      hwndParent to NULL.
  *
- * @param szHwId        A pointer to a NULL-terminated string that supplies the hardware id
- *                      of the device. This pointer is optional and can be NULL. When NULL,
- *                      all network adapters found are added to the list.
+ * @param szzHwIDs      A string of strings that supplies the list of hardware IDs of the device.
+ *                      This pointer is optional and can be NULL. When NULL, all network adapters
+ *                      found are added to the list.
  *
  * @param ppAdapterList  A pointer to the list to receive pointer to the first adapter in
  *                      the list. After the list is no longer required, free it using
@@ -161,7 +161,7 @@ struct tap_adapter_node
 DWORD
 tap_list_adapters(
     _In_opt_ HWND hwndParent,
-    _In_opt_ LPCTSTR szHwId,
+    _In_opt_ LPCTSTR szzHwIDs,
     _Out_ struct tap_adapter_node **ppAdapterList);
 
 

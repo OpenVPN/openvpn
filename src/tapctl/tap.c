@@ -1179,7 +1179,7 @@ cleanup_szAdapterId:
 DWORD
 tap_list_adapters(
     _In_opt_ HWND hwndParent,
-    _In_opt_ LPCTSTR szHwId,
+    _In_opt_ LPCTSTR szzHwIDs,
     _Out_ struct tap_adapter_node **ppAdapter)
 {
     DWORD dwResult;
@@ -1260,7 +1260,7 @@ tap_list_adapters(
         /* Check that hardware ID is REG_SZ/REG_MULTI_SZ, and optionally if it matches ours. */
         if (dwDataType == REG_SZ)
         {
-            if (szHwId && _tcsicmp(szzDeviceHardwareIDs, szHwId) != 0)
+            if (szzHwIDs && !_tcszistr(szzHwIDs, szzDeviceHardwareIDs))
             {
                 /* This is not our device. Skip it. */
                 goto cleanup_szzDeviceHardwareIDs;
@@ -1268,10 +1268,21 @@ tap_list_adapters(
         }
         else if (dwDataType == REG_MULTI_SZ)
         {
-            if (szHwId && _tcszistr(szzDeviceHardwareIDs, szHwId) == NULL)
+            if (szzHwIDs)
             {
-                /* This is not our device. Skip it. */
-                goto cleanup_szzDeviceHardwareIDs;
+                for (LPTSTR s = szzDeviceHardwareIDs;; s += _tcslen(s) + 1)
+                {
+                    if (s[0] == 0)
+                    {
+                        /* This is not our device. Skip it. */
+                        goto cleanup_szzDeviceHardwareIDs;
+                    }
+                    else if (_tcszistr(szzHwIDs, s))
+                    {
+                        /* This is our device. */
+                        break;
+                    }
+                }
             }
         }
         else
