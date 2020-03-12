@@ -6239,12 +6239,11 @@ tun_try_open_device(struct tuntap *tt, const char *device_guid, const struct dev
 }
 
 static void
-tun_open_device(struct tuntap *tt, const char *dev_node, const char **device_guid)
+tun_open_device(struct tuntap *tt, const char *dev_node, const char **device_guid, struct gc_arena *gc)
 {
-    struct gc_arena gc = gc_new();
-    const struct tap_reg *tap_reg = get_tap_reg(&gc);
-    const struct panel_reg *panel_reg = get_panel_reg(&gc);
-    const struct device_instance_id_interface *device_instance_id_interface = get_device_instance_id_interface(&gc);
+    const struct tap_reg *tap_reg = get_tap_reg(gc);
+    const struct panel_reg *panel_reg = get_panel_reg(gc);
+    const struct device_instance_id_interface *device_instance_id_interface = get_device_instance_id_interface(gc);
     char actual_buffer[256];
 
     at_least_one_tap_win(tap_reg);
@@ -6257,7 +6256,7 @@ tun_open_device(struct tuntap *tt, const char *dev_node, const char **device_gui
         enum windows_driver_type windows_driver = WINDOWS_DRIVER_UNSPECIFIED;
 
         /* Get the device GUID for the device specified with --dev-node. */
-        *device_guid = get_device_guid(dev_node, actual_buffer, sizeof(actual_buffer), &windows_driver, tap_reg, panel_reg, &gc);
+        *device_guid = get_device_guid(dev_node, actual_buffer, sizeof(actual_buffer), &windows_driver, tap_reg, panel_reg, gc);
 
         if (!*device_guid)
         {
@@ -6289,7 +6288,7 @@ tun_open_device(struct tuntap *tt, const char *dev_node, const char **device_gui
                                                        tap_reg,
                                                        panel_reg,
                                                        &windows_driver,
-                                                       &gc);
+                                                       gc);
 
             if (!*device_guid)
             {
@@ -6317,8 +6316,6 @@ next:
 
     msg(M_INFO, "%s device [%s] opened", print_windows_driver(tt->windows_driver), tt->actual_name);
     tt->adapter_index = get_adapter_index(*device_guid);
-
-    gc_free(&gc);
 }
 
 static void
@@ -6424,12 +6421,15 @@ open_tun(const char *dev, const char *dev_type, const char *dev_node, struct tun
         msg(M_FATAL|M_NOPREFIX, "Unknown virtual device type: '%s'", dev);
     }
 
-    tun_open_device(tt, dev_node, &device_guid);
+    struct gc_arena gc = gc_new(); /* used also for device_guid allocation */
+    tun_open_device(tt, dev_node, &device_guid, &gc);
 
     if (tt->windows_driver == WINDOWS_DRIVER_TAP_WINDOWS6)
     {
         tuntap_post_open(tt, device_guid);
     }
+
+    gc_free(&gc);
 
     /*netcmd_semaphore_release ();*/
 }
