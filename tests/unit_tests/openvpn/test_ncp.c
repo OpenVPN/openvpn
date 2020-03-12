@@ -47,12 +47,50 @@ const char *aes_ciphers = "AES-256-GCM:AES-128-GCM";
 static void
 test_check_ncp_ciphers_list(void **state)
 {
+    struct gc_arena gc = gc_new();
     bool have_chacha = cipher_kt_get("CHACHA20-POLY1305");
 
-    assert_true(tls_check_ncp_cipher_list(aes_ciphers));
-    assert_true(have_chacha == tls_check_ncp_cipher_list(bf_chacha));
-    assert_false(tls_check_ncp_cipher_list("vollbit"));
-    assert_false(tls_check_ncp_cipher_list("AES-256-GCM:vollbit"));
+
+
+    assert_string_equal(mutate_ncp_cipher_list(aes_ciphers, &gc), aes_ciphers);
+
+    if (have_chacha)
+    {
+        assert_string_equal(mutate_ncp_cipher_list(bf_chacha, &gc), bf_chacha);
+        assert_string_equal(mutate_ncp_cipher_list("BF-CBC:CHACHA20-POLY1305", &gc),
+                            bf_chacha);
+    }
+    else
+    {
+        assert_ptr_equal(mutate_ncp_cipher_list(bf_chacha, &gc), NULL);
+    }
+
+    /* For testing that with OpenSSL 1.1.0+ that also accepts ciphers in
+       a different spelling the normalised cipher output is the same */
+    bool have_chacha_mixed_case = cipher_kt_get("ChaCha20-Poly1305");
+    if (have_chacha_mixed_case)
+    {
+      assert_string_equal(mutate_ncp_cipher_list("BF-CBC:ChaCha20-Poly1305", &gc),
+			  bf_chacha);
+    }
+
+    assert_ptr_equal(mutate_ncp_cipher_list("vollbit", &gc), NULL);
+    assert_ptr_equal(mutate_ncp_cipher_list("AES-256-GCM:vollbit", &gc), NULL);
+    assert_ptr_equal(mutate_ncp_cipher_list("", &gc), NULL);
+
+    assert_ptr_equal(mutate_ncp_cipher_list(
+                         "ChaCha20-Poly1305:ChaCha20-Poly1305:ChaCha20-Poly1305:"
+                         "ChaCha20-Poly1305:ChaCha20-Poly1305:ChaCha20-Poly1305:"
+                         "ChaCha20-Poly1305", &gc), NULL);
+
+#ifdef ENABLE_CRYPTO_OPENSSL
+    assert_string_equal(mutate_ncp_cipher_list("id-aes128-GCM:id-aes256-GCM",
+                                               &gc), "AES-128-GCM:AES-256-GCM");
+#else
+    assert_string_equal(mutate_ncp_cipher_list("BLOWFISH-CBC",
+                                               &gc), "BF-CBC");
+#endif
+    gc_free(&gc);
 }
 
 static void
@@ -100,7 +138,7 @@ test_poor_man(void **state)
     struct gc_arena gc = gc_new();
     char *best_cipher;
 
-    const char *serverlist="CHACHA20_POLY1305:AES-128-GCM";
+    const char *serverlist = "CHACHA20_POLY1305:AES-128-GCM";
 
     best_cipher = ncp_get_best_cipher(serverlist, "BF-CBC",
                                       "IV_YOLO=NO\nIV_BAR=7",
@@ -130,7 +168,7 @@ test_ncp_best(void **state)
     struct gc_arena gc = gc_new();
     char *best_cipher;
 
-    const char *serverlist="CHACHA20_POLY1305:AES-128-GCM:AES-256-GCM";
+    const char *serverlist = "CHACHA20_POLY1305:AES-128-GCM:AES-256-GCM";
 
     best_cipher = ncp_get_best_cipher(serverlist, "BF-CBC",
                                       "IV_YOLO=NO\nIV_NCP=2\nIV_BAR=7",
@@ -166,7 +204,6 @@ test_ncp_best(void **state)
 
 
 
-
 const struct CMUnitTest ncp_tests[] = {
     cmocka_unit_test(test_check_ncp_ciphers_list),
     cmocka_unit_test(test_extract_client_ciphers),
@@ -175,7 +212,8 @@ const struct CMUnitTest ncp_tests[] = {
 };
 
 
-int main(void)
+int
+main(void)
 {
 #if defined(ENABLE_CRYPTO_OPENSSL)
     OpenSSL_add_all_algorithms();

@@ -87,15 +87,30 @@ tls_peer_ncp_list(const char *peer_info, struct gc_arena *gc);
  * Check whether the ciphers in the supplied list are supported.
  *
  * @param list          Colon-separated list of ciphers
+ * @parms gc            gc_arena to allocate the returned string
  *
- * @returns true iff all ciphers in list are supported.
+ * @returns             colon separated string of normalised (via
+ *                      translate_cipher_name_from_openvpn) and
+ *                      zero terminated string iff all ciphers
+ *                      in list are supported and the total length
+ *                      is short than MAX_NCP_CIPHERS_LENGTH. NULL
+ *                      otherwise.
  */
-bool tls_check_ncp_cipher_list(const char *list);
+char *
+mutate_ncp_cipher_list(const char *list, struct gc_arena *gc);
 
 /**
  * Return true iff item is present in the colon-separated zero-terminated
  * cipher list.
  */
 bool tls_item_in_cipher_list(const char *item, const char *list);
+
+/**
+ * The maximum length of a ncp-cipher string that is accepted.
+ *
+ * Since this list needs to be pushed as IV_CIPHERS, we are conservative
+ * about its length.
+ */
+#define MAX_NCP_CIPHERS_LENGTH 127
 
 #endif /* ifndef OPENVPN_SSL_NCP_H */

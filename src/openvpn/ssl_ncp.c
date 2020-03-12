@@ -91,27 +91,70 @@ tls_peer_supports_ncp(const char *peer_info)
     }
 }
 
-bool
-tls_check_ncp_cipher_list(const char *list)
+char *
+mutate_ncp_cipher_list(const char *list, struct gc_arena *gc)
 {
-    bool unsupported_cipher_found = false;
+    bool error_found = false;
 
-    ASSERT(list);
+    struct buffer new_list  = alloc_buf(MAX_NCP_CIPHERS_LENGTH);
 
     char *const tmp_ciphers = string_alloc(list, NULL);
     const char *token = strtok(tmp_ciphers, ":");
     while (token)
     {
-        if (!cipher_kt_get(translate_cipher_name_from_openvpn(token)))
+        /*
+         * Going through a roundtrip by using translate_cipher_name_from_openvpn
+         * and translate_cipher_name_to_openvpn also normalises the cipher name,
+         * e.g. replacing AeS-128-gCm with AES-128-GCM
+         */
+        const char *cipher_name = translate_cipher_name_from_openvpn(token);
+        const cipher_kt_t *ktc = cipher_kt_get(cipher_name);
+        if (!ktc)
         {
             msg(M_WARN, "Unsupported cipher in --ncp-ciphers: %s", token);
-            unsupported_cipher_found = true;
+            error_found = true;
+        }
+        else
+        {
+            const char *ovpn_cipher_name =
+                translate_cipher_name_to_openvpn(cipher_kt_name(ktc));
+
+            if (buf_len(&new_list)> 0)
+            {
+                /* The next if condition ensure there is always space for
+                 * a :
+                 */
+                buf_puts(&new_list, ":");
+            }
+
+            /* Ensure buffer has capacity for cipher name + : + \0 */
+            if (!(buf_forward_capacity(&new_list) >
+                  strlen(ovpn_cipher_name) + 2))
+            {
+                msg(M_WARN, "Length of --ncp-ciphers is over the "
+                    "limit of 127 chars");
+                error_found = true;
+            }
+            else
+            {
+                buf_puts(&new_list, ovpn_cipher_name);
+            }
         }
         token = strtok(NULL, ":");
     }
-    free(tmp_ciphers);
 
-    return 0 < strlen(list) && !unsupported_cipher_found;
+
+
+    char *ret = NULL;
+    if (!error_found && buf_len(&new_list) > 0)
+    {
+        buf_null_terminate(&new_list);
+        ret = string_alloc(buf_str(&new_list), gc);
+    }
+    free(tmp_ciphers);
+    free_buf(&new_list);
+
+    return ret;
 }
 
 bool
