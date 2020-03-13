@@ -474,7 +474,8 @@ void tls_update_remote_addr(struct tls_multi *multi,
 
 /**
  * Update TLS session crypto parameters (cipher and auth) and derive data
- * channel keys based on the supplied options.
+ * channel keys based on the supplied options. Does nothing if keys are already
+ * generated.
  *
  * @param session         The TLS session to update.
  * @param options         The options to use when updating session.
@@ -482,7 +483,7 @@ void tls_update_remote_addr(struct tls_multi *multi,
  *                        adjusted based on the selected cipher/auth).
  * @param frame_fragment  The fragment frame options.
  *
- * @return true if updating succeeded, false otherwise.
+ * @return true if updating succeeded or keys are already generated, false otherwise.
  */
 bool tls_session_update_crypto_params(struct tls_session *session,
                                       struct options *options,

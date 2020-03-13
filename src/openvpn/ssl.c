@@ -1956,6 +1956,12 @@ tls_session_update_crypto_params(struct tls_session *session,
                                  struct options *options, struct frame *frame,
                                  struct frame *frame_fragment)
 {
+    if (session->key[KS_PRIMARY].crypto_options.key_ctx_bi.initialized)
+    {
+        /* keys already generated, nothing to do */
+        return true;
+    }
+
     if (!session->opt->server
         && 0 != strcmp(options->ciphername, session->opt->config_ciphername)
         && !tls_item_in_cipher_list(options->ciphername, options->ncp_ciphers))
