@@ -3002,8 +3002,9 @@ options_postprocess_mutate_invariant(struct options *options)
     }
 
 #ifdef _WIN32
-    /* when using wintun, kernel doesn't send DHCP requests, so use netsh to set IP address and netmask */
-    if (options->windows_driver == WINDOWS_DRIVER_WINTUN)
+    /* when using wintun, kernel doesn't send DHCP requests, so don't use it */
+    if (options->windows_driver == WINDOWS_DRIVER_WINTUN
+        && (options->tuntap_options.ip_win32_type == IPW32_SET_DHCP_MASQ || options->tuntap_options.ip_win32_type == IPW32_SET_ADAPTIVE))
     {
         options->tuntap_options.ip_win32_type = IPW32_SET_NETSH;
     }
