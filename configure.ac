@@ -1328,11 +1328,25 @@ if test "${enable_plugin_auth_pam}" = "yes"; then
 fi
 
 if test "${enable_async_push}" = "yes"; then
-	AC_CHECK_HEADERS(
-		[sys/inotify.h],
-		AC_DEFINE([ENABLE_ASYNC_PUSH], [1], [Enable async push]),
-		AC_MSG_ERROR([inotify.h not found.])
-	)
+	case "$host" in
+		*-*-freebsd*)
+			PKG_CHECK_MODULES(
+				[OPTIONAL_INOTIFY],
+				[libinotify],
+				[
+					AC_DEFINE([HAVE_SYS_INOTIFY_H])
+					AC_DEFINE([ENABLE_ASYNC_PUSH], [1], [Enable async push])
+				]
+			)
+		;;
+		*)
+			AC_CHECK_HEADERS(
+				[sys/inotify.h],
+				AC_DEFINE([ENABLE_ASYNC_PUSH], [1], [Enable async push]),
+				AC_MSG_ERROR([inotify.h not found.])
+			)
+		;;
+	esac
 fi
 
 CONFIGURE_DEFINES="`set | grep '^enable_.*=' ; set | grep '^with_.*='`"
@@ -1359,6 +1373,8 @@ AC_SUBST([OPTIONAL_LZ4_LIBS])
 AC_SUBST([OPTIONAL_SYSTEMD_LIBS])
 AC_SUBST([OPTIONAL_PKCS11_HELPER_CFLAGS])
 AC_SUBST([OPTIONAL_PKCS11_HELPER_LIBS])
+AC_SUBST([OPTIONAL_INOTIFY_CFLAGS])
+AC_SUBST([OPTIONAL_INOTIFY_LIBS])
 
 AC_SUBST([PLUGIN_AUTH_PAM_CFLAGS])
 AC_SUBST([PLUGIN_AUTH_PAM_LIBS])
