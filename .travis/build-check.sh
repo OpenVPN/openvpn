@@ -6,14 +6,6 @@ if [ "${TRAVIS_OS_NAME}" = "windows" ]; then
 	MSBuild.exe openvpn.sln //p:Platform=x64 && exit 0
 fi
 
-if [ "${TRAVIS_OS_NAME}" = "linux" ]; then
-	export LD_LIBRARY_PATH="${PREFIX}/lib:${LD_LIBRARY_PATH:-}"
-fi
-
-if [ "${TRAVIS_OS_NAME}" = "osx"   ]; then
-	export DYLD_LIBRARY_PATH="${PREFIX}/lib:${DYLD_LIBRARY_PATH:-}"
-fi
-
 autoreconf -vi
 
 if [ -z ${CHOST+x} ]; then
@@ -21,7 +13,7 @@ if [ -z ${CHOST+x} ]; then
 		export EXTRA_CONFIG="${EXTRA_CONFIG:-} --enable-werror"
 	fi
 	./configure --with-crypto-library="${SSLLIB}" ${EXTRA_CONFIG:-} || (cat config.log && exit 1)
-	make -j$JOBS
+	make LDFLAGS="-Wl,-rpath,${PREFIX}/lib" -j$JOBS
 	src/openvpn/openvpn --version || true
 	if [ "${TRAVIS_OS_NAME}" = "linux" ]; then
 		ldd src/openvpn/openvpn;
