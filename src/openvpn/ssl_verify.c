@@ -44,6 +44,8 @@
 #ifdef ENABLE_CRYPTO_OPENSSL
 #include "ssl_verify_openssl.h"
 #endif
+#include "auth_token.h"
+#include "push.h"
 
 /** Maximum length of common name */
 #define TLS_USERNAME_LEN 64
@@ -62,28 +64,6 @@ setenv_untrusted(struct tls_session *session)
 {
     setenv_link_socket_actual(session->opt->es, "untrusted", &session->untrusted_addr, SA_IP_PORT);
 }
-
-
-/**
- *  Wipes the authentication token out of the memory, frees and cleans up related buffers and flags
- *
- *  @param multi  Pointer to a multi object holding the auth_token variables
- */
-static void
-wipe_auth_token(struct tls_multi *multi)
-{
-    if (multi)
-    {
-        if (multi->auth_token)
-        {
-            secure_memzero(multi->auth_token, AUTH_TOKEN_SIZE);
-            free(multi->auth_token);
-        }
-        multi->auth_token = NULL;
-        multi->auth_token_sent = false;
-    }
-}
-
 
 /*
  * Remove authenticated state from all sessions in the given tunnel
@@ -508,7 +488,7 @@ verify_cert_call_plugin(const struct plugin_list *plugins, struct env_set *es,
 
         ret = plugin_call_ssl(plugins, OPENVPN_PLUGIN_TLS_VERIFY, &argv, NULL, es, cert_depth, cert);
 
-        argv_reset(&argv);
+        argv_free(&argv);
 
         if (ret == OPENVPN_PLUGIN_FUNC_SUCCESS)
         {
@@ -601,7 +581,7 @@ verify_cert_call_command(const char *verify_command, struct env_set *es,
 
 cleanup:
     gc_free(&gc);
-    argv_reset(&argv);
+    argv_free(&argv);
 
     if (ret)
     {
@@ -823,9 +803,8 @@ cleanup:
 #define ACF_FAILED    3
 #endif
 
-#ifdef MANAGEMENT_DEF_AUTH
 void
-man_def_auth_set_client_reason(struct tls_multi *multi, const char *client_reason)
+auth_set_client_reason(struct tls_multi* multi, const char* client_reason)
 {
     if (multi->client_reason)
     {
@@ -834,10 +813,11 @@ man_def_auth_set_client_reason(struct tls_multi *multi, const char *client_reaso
     }
     if (client_reason && strlen(client_reason))
     {
-        /* FIXME: Last alloc will never be freed */
         multi->client_reason = string_alloc(client_reason, NULL);
     }
 }
+
+#ifdef MANAGEMENT_DEF_AUTH
 
 static inline unsigned int
 man_def_auth_test(const struct key_state *ks)
@@ -1042,7 +1022,7 @@ tls_authenticate_key(struct tls_multi *multi, const unsigned int mda_key_id, con
     if (multi)
     {
         int i;
-        man_def_auth_set_client_reason(multi, client_reason);
+        auth_set_client_reason(multi, client_reason);
         for (i = 0; i < KEY_SCAN_SIZE; ++i)
         {
             struct key_state *ks = multi->key_scan[i];
@@ -1072,7 +1052,8 @@ tls_authenticate_key(struct tls_multi *multi, const unsigned int mda_key_id, con
  * Verify the user name and password using a script
  */
 static bool
-verify_user_pass_script(struct tls_session *session, const struct user_pass *up)
+verify_user_pass_script(struct tls_session *session, struct tls_multi *multi,
+                        const struct user_pass *up)
 {
     struct gc_arena gc = gc_new();
     struct argv argv = argv_new();
@@ -1121,6 +1102,9 @@ verify_user_pass_script(struct tls_session *session, const struct user_pass *up)
         /* setenv client real IP address */
         setenv_untrusted(session);
 
+        /* add auth-token environment */
+        add_session_token_env(session, multi, up);
+
         /* format command line */
         argv_parse_cmd(&argv, session->opt->auth_user_pass_verify_script);
         argv_printf_cat(&argv, "%s", tmp_file);
@@ -1145,7 +1129,7 @@ done:
         platform_unlink(tmp_file);
     }
 
-    argv_reset(&argv);
+    argv_free(&argv);
     gc_free(&gc);
     return ret;
 }
@@ -1154,7 +1138,8 @@ done:
  * Verify the username and password using a plugin
  */
 static int
-verify_user_pass_plugin(struct tls_session *session, const struct user_pass *up)
+verify_user_pass_plugin(struct tls_session *session, struct tls_multi *multi,
+                        const struct user_pass *up)
 {
     int retval = OPENVPN_PLUGIN_FUNC_ERROR;
 #ifdef PLUGIN_DEF_AUTH
@@ -1174,13 +1159,15 @@ verify_user_pass_plugin(struct tls_session *session, const struct user_pass *up)
         /* setenv client real IP address */
         setenv_untrusted(session);
 
+        /* add auth-token environment */
+        add_session_token_env(session, multi, up);
 #ifdef PLUGIN_DEF_AUTH
         /* generate filename for deferred auth control file */
         if (!key_state_gen_auth_control_file(ks, session->opt))
         {
             msg(D_TLS_ERRORS, "TLS Auth Error (%s): "
                 "could not create deferred auth control file", __func__);
-            goto cleanup;
+            return retval;
         }
 #endif
 
@@ -1202,7 +1189,6 @@ verify_user_pass_plugin(struct tls_session *session, const struct user_pass *up)
         msg(D_TLS_ERRORS, "TLS Auth Error (verify_user_pass_plugin): peer provided a blank username");
     }
 
-cleanup:
     return retval;
 }
 
@@ -1217,7 +1203,9 @@ cleanup:
 #define KMDA_DEF     3
 
 static int
-verify_user_pass_management(struct tls_session *session, const struct user_pass *up)
+verify_user_pass_management(struct tls_session *session,
+                            struct tls_multi* multi,
+                            const struct user_pass *up)
 {
     int retval = KMDA_ERROR;
     struct key_state *ks = &session->key[KS_PRIMARY];      /* primary key */
@@ -1235,6 +1223,11 @@ verify_user_pass_management(struct tls_session *session, const struct user_pass 
         /* setenv client real IP address */
         setenv_untrusted(session);
 
+        /*
+         * if we are using auth-gen-token, send also the session id of auth gen token to
+         * allow the management to figure out if it is a new session or a continued one
+         */
+        add_session_token_env(session, multi, up);
         if (management)
         {
             management_notify_client_needing_auth(management, ks->mda_key_id, session->opt->mda_context, session->opt->es);
@@ -1252,6 +1245,7 @@ verify_user_pass_management(struct tls_session *session, const struct user_pass 
     return retval;
 }
 #endif /* ifdef MANAGEMENT_DEF_AUTH */
+
 
 /*
  * Main username/password verification entry point
@@ -1277,86 +1271,78 @@ verify_user_pass(struct user_pass *up, struct tls_multi *multi,
     string_mod_remap_name(up->username);
     string_mod(up->password, CC_PRINT, CC_CRLF, '_');
 
-    /* If server is configured with --auth-gen-token and we have an
-     * authentication token for this client, this authentication
+    /*
+     * If auth token succeeds we skip the auth
+     * methods unless otherwise specified
+     */
+    bool skip_auth = false;
+
+    /*
+     * If server is configured with --auth-gen-token and the client sends
+     * something that looks like an authentication token, this
      * round will be done internally using the token instead of
      * calling any external authentication modules.
      */
-    if (session->opt->auth_token_generate && multi->auth_token_sent
-        && NULL != multi->auth_token)
+    if (session->opt->auth_token_generate && is_auth_token(up->password))
     {
-        unsigned int ssl_flags = session->opt->ssl_flags;
-
-        /* Ensure that the username has not changed */
-        if (!tls_lock_username(multi, up->username))
+        multi->auth_token_state_flags = verify_auth_token(up, multi, session);
+        if (session->opt->auth_token_call_auth)
         {
-            /* auth-token cleared in tls_lock_username() on failure */
-            ks->authenticated = false;
-            return;
+            /*
+             * we do not care about the result here because it is
+             * the responsibility of the external authentication to
+             * decide what to do with the result
+             */
         }
-
-        /* If auth-token lifetime has been enabled,
-         * ensure the token has not expired
-         */
-        if (session->opt->auth_token_lifetime > 0
-            && (multi->auth_token_tstamp + session->opt->auth_token_lifetime) < now)
+        else if (multi->auth_token_state_flags == AUTH_TOKEN_HMAC_OK)
         {
-            msg(D_HANDSHAKE, "Auth-token for client expired\n");
-            wipe_auth_token(multi);
-            ks->authenticated = false;
-            return;
-        }
-
-        /* The core authentication of the token itself */
-        if (memcmp_constant_time(multi->auth_token, up->password,
-                                 strlen(multi->auth_token)) != 0)
-        {
-            ks->authenticated = false;
-            tls_deauthenticate(multi);
-
-            msg(D_TLS_ERRORS, "TLS Auth Error: Auth-token verification "
-                "failed for username '%s' %s", up->username,
-                (ssl_flags & SSLF_USERNAME_AS_COMMON_NAME) ? "[CN SET]" : "");
+            /*
+             * We do not want the EXPIRED or EMPTY USER flags here so check
+             * for equality with AUTH_TOKEN_HMAC_OK
+             */
+            msg(M_WARN, "TLS: Username/auth-token authentication "
+                        "succeeded for username '%s'",
+                up->username);
+              skip_auth = true;
         }
         else
         {
-            ks->authenticated = true;
-
-            if (ssl_flags & SSLF_USERNAME_AS_COMMON_NAME)
-            {
-                set_common_name(session, up->username);
-            }
-            msg(D_HANDSHAKE, "TLS: Username/auth-token authentication "
-                "succeeded for username '%s' %s",
-                up->username,
-                (ssl_flags & SSLF_USERNAME_AS_COMMON_NAME) ? "[CN SET]" : "");
+            wipe_auth_token(multi);
+            ks->authenticated = false;
+            msg(M_WARN, "TLS: Username/auth-token authentication "
+                        "failed for username '%s'", up->username);
+            return;
         }
-        return;
     }
-
     /* call plugin(s) and/or script */
+    if (!skip_auth)
+    {
 #ifdef MANAGEMENT_DEF_AUTH
-    if (man_def_auth == KMDA_DEF)
-    {
-        man_def_auth = verify_user_pass_management(session, up);
-    }
+        if (man_def_auth==KMDA_DEF)
+        {
+            man_def_auth = verify_user_pass_management(session, multi, up);
+        }
 #endif
-    if (plugin_defined(session->opt->plugins, OPENVPN_PLUGIN_AUTH_USER_PASS_VERIFY))
-    {
-        s1 = verify_user_pass_plugin(session, up);
-    }
-    if (session->opt->auth_user_pass_verify_script)
-    {
-        s2 = verify_user_pass_script(session, up);
+        if (plugin_defined(session->opt->plugins, OPENVPN_PLUGIN_AUTH_USER_PASS_VERIFY))
+        {
+            s1 = verify_user_pass_plugin(session, multi, up);
+        }
+
+        if (session->opt->auth_user_pass_verify_script)
+        {
+            s2 = verify_user_pass_script(session, multi, up);
+        }
     }
 
     /* check sizing of username if it will become our common name */
-    if ((session->opt->ssl_flags & SSLF_USERNAME_AS_COMMON_NAME) && strlen(up->username) > TLS_USERNAME_LEN)
+    if ((session->opt->ssl_flags & SSLF_USERNAME_AS_COMMON_NAME) &&
+         strlen(up->username)>TLS_USERNAME_LEN)
     {
-        msg(D_TLS_ERRORS, "TLS Auth Error: --username-as-common name specified and username is longer than the maximum permitted Common Name length of %d characters", TLS_USERNAME_LEN);
+        msg(D_TLS_ERRORS,
+                "TLS Auth Error: --username-as-common name specified and username is longer than the maximum permitted Common Name length of %d characters",
+                TLS_USERNAME_LEN);
         s1 = OPENVPN_PLUGIN_FUNC_ERROR;
     }
-
     /* auth succeeded? */
     if ((s1 == OPENVPN_PLUGIN_FUNC_SUCCESS
 #ifdef PLUGIN_DEF_AUTH
@@ -1381,35 +1367,51 @@ verify_user_pass(struct user_pass *up, struct tls_multi *multi,
             ks->auth_deferred = true;
         }
 #endif
-
-        if ((session->opt->auth_token_generate) && (NULL == multi->auth_token))
-        {
-            /* Server is configured with --auth-gen-token but no token has yet
-             * been generated for this client.  Generate one and save it.
-             */
-            uint8_t tok[AUTH_TOKEN_SIZE];
-
-            if (!rand_bytes(tok, AUTH_TOKEN_SIZE))
-            {
-                msg( M_FATAL, "Failed to get enough randomness for "
-                     "authentication token");
-            }
-
-            /* The token should be longer than the input when
-             * being base64 encoded
-             */
-            ASSERT(openvpn_base64_encode(tok, AUTH_TOKEN_SIZE,
-                                         &multi->auth_token) > AUTH_TOKEN_SIZE);
-            multi->auth_token_tstamp = now;
-            dmsg(D_SHOW_KEYS, "Generated token for client: %s",
-                 multi->auth_token);
-        }
-
         if ((session->opt->ssl_flags & SSLF_USERNAME_AS_COMMON_NAME))
         {
             set_common_name(session, up->username);
         }
 
+#if P2MP_SERVER
+        if ((session->opt->auth_token_generate))
+        {
+            /*
+             * If we accepted a (not expired) token, i.e.
+             * initial auth via token on new connection, we need
+             * to store the auth-token in multi->auth_token, so
+             * the initial timestamp and session id can be extracted from it
+             */
+            if (multi->auth_token && (multi->auth_token_state_flags & AUTH_TOKEN_HMAC_OK)
+                && !(multi->auth_token_state_flags & AUTH_TOKEN_EXPIRED))
+            {
+                multi->auth_token = strdup(up->password);
+            }
+
+            /*
+             * Server is configured with --auth-gen-token but no token has yet
+             * been generated for this client.  Generate one and save it.
+             */
+            generate_auth_token(up, multi);
+        }
+        /*
+         * Auth token already sent to client, update auth-token on client.
+         * The initial auth-token is sent as part of the push message, for this
+         * update we need to schedule an extra push message.
+         */
+        if (multi->auth_token_initial)
+        {
+            /*
+             * We do not explicitly schedule the sending of the
+             * control message here but control message are only
+             * postponed when the control channel  is not yet fully
+             * established and furthermore since this is called in
+             * the middle of authentication, there are other messages
+             * (new data channel keys) that are sent anyway and will
+             * trigger schedueling
+             */
+            send_push_reply_auth_token(multi);
+        }
+#endif
 #ifdef ENABLE_DEF_AUTH
         msg(D_HANDSHAKE, "TLS: Username/Password authentication %s for username '%s' %s",
             ks->auth_deferred ? "deferred" : "succeeded",

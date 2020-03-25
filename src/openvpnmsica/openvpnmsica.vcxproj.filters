@@ -27,7 +27,7 @@
     <ClCompile Include="openvpnmsica.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="msica_op.c">
+    <ClCompile Include="msica_arg.c">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\tapctl\tap.c">
@@ -41,7 +41,7 @@
     <ClInclude Include="msiex.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="msica_op.h">
+    <ClInclude Include="msica_arg.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\tapctl\tap.h">

@@ -49,8 +49,10 @@
 #include "ping.h"
 #include "mstats.h"
 #include "ssl_verify.h"
+#include "ssl_ncp.h"
 #include "tls_crypt.h"
 #include "forward.h"
+#include "auth_token.h"
 
 #include "memdbg.h"
 
@@ -163,7 +165,7 @@ run_up_down(const char *command,
             msg(M_FATAL, "ERROR: up/down plugin call failed");
         }
 
-        argv_reset(&argv);
+        argv_free(&argv);
     }
 
     if (command)
@@ -176,7 +178,7 @@ run_up_down(const char *command,
                         ifconfig_local, ifconfig_remote, context);
         argv_msg(M_INFO, &argv);
         openvpn_run_script(&argv, es, S_FATAL, "--up/--down");
-        argv_reset(&argv);
+        argv_free(&argv);
     }
 
     gc_free(&gc);
@@ -844,15 +846,6 @@ init_static(void)
     return false;
 #endif
 
-#ifdef ARGV_TEST
-    {
-        void argv_test(void);
-
-        argv_test();
-        return false;
-    }
-#endif
-
 #ifdef PRNG_TEST
     {
         struct gc_arena gc = gc_new();
@@ -1053,18 +1046,43 @@ bool
 do_genkey(const struct options *options)
 {
     /* should we disable paging? */
-    if (options->mlock && (options->genkey || options->tls_crypt_v2_genkey_file))
+    if (options->mlock && (options->genkey))
     {
         platform_mlockall(true);
     }
-    if (options->genkey)
+
+    /*
+     * We do not want user to use --genkey with --secret. In the transistion
+     * phase we for secret.
+     */
+    if (options->genkey && options->genkey_type != GENKEY_SECRET
+        && options->shared_secret_file)
+    {
+        msg(M_USAGE, "Using --genkey type with --secret filename is "
+            "not supported.  Use --genkey type filename instead.");
+    }
+    if (options->genkey && options->genkey_type == GENKEY_SECRET)
     {
         int nbits_written;
+        const char *genkey_filename = options->genkey_filename;
+        if (options->shared_secret_file && options->genkey_filename)
+        {
+            msg(M_USAGE, "You must provide a filename to either --genkey "
+                "or --secret, not both");
+        }
 
-        notnull(options->shared_secret_file,
-                "shared secret output file (--secret)");
+        /*
+         * Copy filename from shared_secret_file to genkey_filename to support
+         * the old --genkey --secret foo.file syntax.
+         */
+        if (options->shared_secret_file)
+        {
+            msg(M_WARN, "WARNING: Using --genkey --secret filename is "
+                "DEPRECATED.  Use --genkey secret filename instead.");
+            genkey_filename = options->shared_secret_file;
+        }
 
-        nbits_written = write_key_file(2, options->shared_secret_file);
+        nbits_written = write_key_file(2, genkey_filename);
         if (nbits_written < 0)
         {
             msg(M_FATAL, "Failed to write key file");
@@ -1075,30 +1093,33 @@ do_genkey(const struct options *options)
             options->shared_secret_file);
         return true;
     }
-    if (options->tls_crypt_v2_genkey_type)
+    else if (options->genkey && options->genkey_type == GENKEY_TLS_CRYPTV2_SERVER)
     {
-        if (!strcmp(options->tls_crypt_v2_genkey_type, "server"))
-        {
-            tls_crypt_v2_write_server_key_file(options->tls_crypt_v2_genkey_file);
-            return true;
-        }
-        if (options->tls_crypt_v2_genkey_type
-            && !strcmp(options->tls_crypt_v2_genkey_type, "client"))
-        {
-            if (!options->tls_crypt_v2_file)
-            {
-                msg(M_USAGE, "--tls-crypt-v2-genkey requires a server key to be set via --tls-crypt-v2 to create a client key");
-            }
-
-            tls_crypt_v2_write_client_key_file(options->tls_crypt_v2_genkey_file,
-                                               options->tls_crypt_v2_metadata, options->tls_crypt_v2_file,
-                                               options->tls_crypt_v2_inline);
-            return true;
-        }
-
-        msg(M_USAGE, "--tls-crypt-v2-genkey type should be \"client\" or \"server\"");
+        tls_crypt_v2_write_server_key_file(options->genkey_filename);
+        return true;
     }
-    return false;
+    else if (options->genkey && options->genkey_type == GENKEY_TLS_CRYPTV2_CLIENT)
+    {
+        if (!options->tls_crypt_v2_file)
+        {
+            msg(M_USAGE,
+                "--genkey tls-crypt-v2-client requires a server key to be set via --tls-crypt-v2 to create a client key");
+        }
+
+        tls_crypt_v2_write_client_key_file(options->genkey_filename,
+                                           options->genkey_extra_data, options->tls_crypt_v2_file,
+                                           options->tls_crypt_v2_inline);
+        return true;
+    }
+    else if (options->genkey && options->genkey_type == GENKEY_AUTH_TOKEN)
+    {
+        auth_token_write_server_key_file(options->genkey_filename);
+        return true;
+    }
+    else
+    {
+        return false;
+    }
 }
 
 /*
@@ -1463,7 +1484,8 @@ static void
 do_init_route_ipv6_list(const struct options *options,
                         struct route_ipv6_list *route_ipv6_list,
                         const struct link_socket_info *link_socket_info,
-                        struct env_set *es)
+                        struct env_set *es,
+                        openvpn_net_ctx_t *ctx)
 {
     const char *gw = NULL;
     int metric = -1;            /* no metric set */
@@ -1499,7 +1521,8 @@ do_init_route_ipv6_list(const struct options *options,
                              gw,
                              metric,
                              link_socket_current_remote_ipv6(link_socket_info),
-                             es))
+                             es,
+                             ctx))
     {
         /* copy routes to environment */
         setenv_routes_ipv6(es, route_ipv6_list);
@@ -1665,7 +1688,7 @@ do_route(const struct options *options,
         setenv_str(es, "script_type", "route-up");
         argv_parse_cmd(&argv, options->route_script);
         openvpn_run_script(&argv, es, 0, "--route-up");
-        argv_reset(&argv);
+        argv_free(&argv);
     }
 
 #ifdef _WIN32
@@ -1701,6 +1724,10 @@ do_init_tun(struct context *c)
                             !c->options.ifconfig_nowarn,
                             c->c2.es,
                             &c->net_ctx);
+
+#ifdef _WIN32
+    c->c1.tuntap->windows_driver = c->options.windows_driver;
+#endif
 
     init_tun_post(c->c1.tuntap,
                   &c->c2.frame,
@@ -1759,7 +1786,8 @@ do_open_tun(struct context *c)
     if (c->options.routes_ipv6 && c->c1.route_ipv6_list)
     {
         do_init_route_ipv6_list(&c->options, c->c1.route_ipv6_list,
-                                &c->c2.link_socket->info, c->c2.es);
+                                &c->c2.link_socket->info, c->c2.es,
+                                &c->net_ctx);
     }
 
     /* do ifconfig */
@@ -2307,9 +2335,18 @@ do_deferred_options(struct context *c, const unsigned int found)
         {
             tls_poor_mans_ncp(&c->options, c->c2.tls_multi->remote_ciphername);
         }
+        struct frame *frame_fragment = NULL;
+#ifdef ENABLE_FRAGMENT
+        if (c->options.ce.fragment)
+        {
+            frame_fragment = &c->c2.frame_fragment;
+        }
+#endif
+
         /* Do not regenerate keys if server sends an extra push reply */
         if (!session->key[KS_PRIMARY].crypto_options.key_ctx_bi.initialized
-            && !tls_session_update_crypto_params(session, &c->options, &c->c2.frame))
+            && !tls_session_update_crypto_params(session, &c->options, &c->c2.frame,
+                                                 frame_fragment))
         {
             msg(D_TLS_ERRORS, "OPTIONS ERROR: failed to import crypto options");
             return false;
@@ -2499,7 +2536,6 @@ init_crypto_pre(struct context *c, const unsigned int flags)
         rand_ctx_enable_prediction_resistance();
     }
 #endif
-
 }
 
 /*
@@ -2623,6 +2659,24 @@ do_init_tls_wrap_key(struct context *c)
 
 }
 
+#if P2MP_SERVER
+/*
+ * Initialise the auth-token key context
+ */
+static void
+do_init_auth_token_key(struct context *c)
+{
+    if (!c->options.auth_token_generate)
+    {
+        return;
+    }
+
+    auth_token_init_secret(&c->c1.ks.auth_token_key,
+                           c->options.auth_token_secret_file,
+                           c->options.auth_token_secret_file_inline);
+}
+#endif
+
 /*
  * Initialize the persistent component of OpenVPN's TLS mode,
  * which is preserved across SIGUSR1 resets.
@@ -2674,6 +2728,11 @@ do_init_crypto_tls_c1(struct context *c)
 
         /* initialize tls-auth/crypt/crypt-v2 key */
         do_init_tls_wrap_key(c);
+
+#if P2MP_SERVER
+        /* initialise auth-token crypto support */
+        do_init_auth_token_key(c);
+#endif
 
 #if 0 /* was: #if ENABLE_INLINE_FILES --  Note that enabling this code will break restarts */
         if (options->priv_key_file_inline)
@@ -2759,7 +2818,7 @@ do_init_crypto_tls(struct context *c, const unsigned int flags)
     to.replay_time = options->replay_time;
     to.tcp_mode = link_socket_proto_connection_oriented(options->ce.proto);
     to.config_ciphername = c->c1.ciphername;
-    to.config_authname = c->c1.authname;
+    to.config_ncp_ciphers = options->ncp_ciphers;
     to.ncp_enabled = options->ncp_enabled;
     to.transition_window = options->transition_window;
     to.handshake_window = options->handshake_window;
@@ -2848,6 +2907,8 @@ do_init_crypto_tls(struct context *c, const unsigned int flags)
     to.auth_user_pass_file = options->auth_user_pass_file;
     to.auth_token_generate = options->auth_token_generate;
     to.auth_token_lifetime = options->auth_token_lifetime;
+    to.auth_token_call_auth = options->auth_token_call_auth;
+    to.auth_token_key = c->c1.ks.auth_token_key;
 #endif
 
     to.x509_track = options->x509_track;
@@ -2862,7 +2923,7 @@ do_init_crypto_tls(struct context *c, const unsigned int flags)
     to.comp_options = options->comp;
 #endif
 
-#if defined(ENABLE_CRYPTO_OPENSSL) && OPENSSL_VERSION_NUMBER >= 0x10001000
+#ifdef HAVE_EXPORT_KEYING_MATERIAL
     if (options->keying_material_exporter_label)
     {
         to.ekm_size = options->keying_material_exporter_length;
@@ -2878,7 +2939,7 @@ do_init_crypto_tls(struct context *c, const unsigned int flags)
     {
         to.ekm_size = 0;
     }
-#endif
+#endif /* HAVE_EXPORT_KEYING_MATERIAL */
 
     /* TLS handshake authentication (--tls-auth) */
     if (options->ce.tls_auth_file)
@@ -3092,6 +3153,7 @@ do_init_frame(struct context *c)
      */
     c->c2.frame_fragment = c->c2.frame;
     frame_subtract_extra(&c->c2.frame_fragment, &c->c2.frame_fragment_omit);
+    c->c2.frame_fragment_initial = c->c2.frame_fragment;
 #endif
 
 #if defined(ENABLE_FRAGMENT) && defined(ENABLE_OCC)
@@ -4462,6 +4524,9 @@ inherit_context_child(struct context *dest,
     dest->c1.ciphername = src->c1.ciphername;
     dest->c1.authname = src->c1.authname;
     dest->c1.keysize = src->c1.keysize;
+
+    /* inherit auth-token */
+    dest->c1.ks.auth_token_key = src->c1.ks.auth_token_key;
 
     /* options */
     dest->options = src->options;

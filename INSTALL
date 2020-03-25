@@ -145,7 +145,7 @@ make check (Run all tests below)
 
 Test Crypto:
 
-./openvpn --genkey --secret key
+./openvpn --genkey secret key
 ./openvpn --test-crypto --secret key
 
 Test SSL/TLS negotiations (runs for 2 minutes):

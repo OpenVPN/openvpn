@@ -169,12 +169,26 @@ struct remote_list
     struct remote_entry *array[CONNECTION_LIST_SIZE];
 };
 
+enum vlan_acceptable_frames
+{
+    VLAN_ONLY_TAGGED,
+    VLAN_ONLY_UNTAGGED_OR_PRIORITY,
+    VLAN_ALL,
+};
+
 struct remote_host_store
 {
 #define RH_HOST_LEN 80
     char host[RH_HOST_LEN];
 #define RH_PORT_LEN 20
     char port[RH_PORT_LEN];
+};
+
+enum genkey_type {
+    GENKEY_SECRET,
+    GENKEY_TLS_CRYPTV2_CLIENT,
+    GENKEY_TLS_CRYPTV2_SERVER,
+    GENKEY_AUTH_TOKEN
 };
 
 /* Command line options */
@@ -207,6 +221,9 @@ struct options
     bool show_tls_ciphers;
     bool show_curves;
     bool genkey;
+    enum genkey_type genkey_type;
+    const char* genkey_filename;
+    const char* genkey_extra_data;
 
     /* Networking parms */
     int connect_retry_max;
@@ -459,7 +476,12 @@ struct options
     const char *auth_user_pass_verify_script;
     bool auth_user_pass_verify_script_via_file;
     bool auth_token_generate;
-    unsigned int auth_token_lifetime;
+    bool auth_token_gen_secret_file;
+    bool auth_token_call_auth;
+    int auth_token_lifetime;
+    const char *auth_token_secret_file;
+    const char *auth_token_secret_file_inline;
+
 #if PORT_SHARE
     char *port_share_host;
     char *port_share_port;
@@ -589,8 +611,6 @@ struct options
     const char *tls_crypt_v2_file;
     const char *tls_crypt_v2_inline;
 
-    const char *tls_crypt_v2_genkey_type;
-    const char *tls_crypt_v2_genkey_file;
     const char *tls_crypt_v2_metadata;
 
     const char *tls_crypt_v2_verify_script;
@@ -614,16 +634,21 @@ struct options
     bool show_net_up;
     int route_method;
     bool block_outside_dns;
+    enum windows_driver_type windows_driver;
 #endif
 
     bool use_peer_id;
     uint32_t peer_id;
 
-#if defined(ENABLE_CRYPTO_OPENSSL) && OPENSSL_VERSION_NUMBER >= 0x10001000
+#ifdef HAVE_EXPORT_KEYING_MATERIAL
     /* Keying Material Exporters [RFC 5705] */
     const char *keying_material_exporter_label;
     int keying_material_exporter_length;
 #endif
+
+    bool vlan_tagging;
+    enum vlan_acceptable_frames vlan_accept;
+    uint16_t vlan_pvid;
 
     struct pull_filter_list *pull_filter_list;
 

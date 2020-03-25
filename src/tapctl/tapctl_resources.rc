@@ -1,5 +1,5 @@
 /*
- *  tapctl -- Utility to manipulate TUN/TAP interfaces on Windows
+ *  tapctl -- Utility to manipulate TUN/TAP adapters on Windows
  *
  *  Copyright (C) 2018 Simon Rozman <simon@rozman.si>
  *
@@ -46,7 +46,7 @@ BEGIN
         BLOCK "040904b0"
         BEGIN
             VALUE "CompanyName", "The OpenVPN Project"
-            VALUE "FileDescription", "Utility to manipulate TUN/TAP interfaces on Windows"
+            VALUE "FileDescription", "Utility to manipulate TUN/TAP adapters on Windows"
             VALUE "FileVersion", PACKAGE_VERSION ".0"
             VALUE "InternalName", "OpenVPN"
             VALUE "LegalCopyright", "Copyright © The OpenVPN Project"

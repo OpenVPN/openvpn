@@ -586,7 +586,7 @@ plugin_call_item(const struct plugin *p,
                 p->so_pathname);
         }
 
-        argv_reset(&a);
+        argv_free(&a);
         gc_free(&gc);
     }
     return status;

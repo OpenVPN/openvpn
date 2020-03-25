@@ -58,7 +58,7 @@ static inline bool
 is_mac_mcast_maddr(const struct mroute_addr *addr)
 {
     return (addr->type & MR_ADDR_MASK) == MR_ADDR_ETHER
-           && is_mac_mcast_addr(addr->eth_addr);
+           && is_mac_mcast_addr(addr->ether.addr);
 }
 
 /*
@@ -247,11 +247,25 @@ mroute_extract_addr_ip(struct mroute_addr *src, struct mroute_addr *dest,
     return ret;
 }
 
+static void
+mroute_copy_ether_to_addr(struct mroute_addr *maddr,
+                          const uint8_t *ether_addr,
+                          uint16_t vid)
+{
+    maddr->type = MR_ADDR_ETHER;
+    maddr->netbits = 0;
+    maddr->len = OPENVPN_ETH_ALEN;
+    memcpy(maddr->ether.addr, ether_addr, OPENVPN_ETH_ALEN);
+    maddr->len += sizeof(vid);
+    maddr->ether.vid = vid;
+}
+
 unsigned int
 mroute_extract_addr_ether(struct mroute_addr *src,
                           struct mroute_addr *dest,
                           struct mroute_addr *esrc,
                           struct mroute_addr *edest,
+                          uint16_t vid,
                           const struct buffer *buf)
 {
     unsigned int ret = 0;
@@ -260,17 +274,11 @@ mroute_extract_addr_ether(struct mroute_addr *src,
         const struct openvpn_ethhdr *eth = (const struct openvpn_ethhdr *) BPTR(buf);
         if (src)
         {
-            src->type = MR_ADDR_ETHER;
-            src->netbits = 0;
-            src->len = 6;
-            memcpy(src->eth_addr, eth->source, sizeof(dest->eth_addr));
+            mroute_copy_ether_to_addr(src, eth->source, vid);
         }
         if (dest)
         {
-            dest->type = MR_ADDR_ETHER;
-            dest->netbits = 0;
-            dest->len = 6;
-            memcpy(dest->eth_addr, eth->dest, sizeof(dest->eth_addr));
+            mroute_copy_ether_to_addr(dest, eth->dest, vid);
 
             /* ethernet broadcast/multicast packet? */
             if (is_mac_mcast_addr(eth->dest))
@@ -285,18 +293,35 @@ mroute_extract_addr_ether(struct mroute_addr *src,
         if (esrc || edest)
         {
             struct buffer b = *buf;
-            if (buf_advance(&b, sizeof(struct openvpn_ethhdr)))
+            if (!buf_advance(&b, sizeof(struct openvpn_ethhdr)))
             {
-                switch (ntohs(eth->proto))
-                {
-                    case OPENVPN_ETH_P_IPV4:
-                        ret |= (mroute_extract_addr_ip(esrc, edest, &b) << MROUTE_SEC_SHIFT);
-                        break;
+                return 0;
+            }
 
-                    case OPENVPN_ETH_P_ARP:
-                        ret |= (mroute_extract_addr_arp(esrc, edest, &b) << MROUTE_SEC_SHIFT);
-                        break;
+            uint16_t proto = eth->proto;
+            if (proto == htons(OPENVPN_ETH_P_8021Q))
+            {
+                if (!buf_advance(&b, SIZE_ETH_TO_8021Q_HDR))
+                {
+                    /* It's an 802.1Q packet, but doesn't have a full header,
+                     * so something went wrong */
+                    return 0;
                 }
+
+                const struct openvpn_8021qhdr *tag;
+                tag = (const struct openvpn_8021qhdr *)BPTR(buf);
+                proto = tag->proto;
+            }
+
+            switch (ntohs(proto))
+            {
+                case OPENVPN_ETH_P_IPV4:
+                    ret |= (mroute_extract_addr_ip(esrc, edest, &b) << MROUTE_SEC_SHIFT);
+                    break;
+
+                case OPENVPN_ETH_P_ARP:
+                    ret |= (mroute_extract_addr_arp(esrc, edest, &b) << MROUTE_SEC_SHIFT);
+                    break;
             }
         }
 #endif
@@ -440,8 +465,9 @@ mroute_addr_print_ex(const struct mroute_addr *ma,
         switch (maddr.type & MR_ADDR_MASK)
         {
             case MR_ADDR_ETHER:
-                buf_printf(&out, "%s", format_hex_ex(ma->eth_addr,
-                                                     sizeof(ma->eth_addr), 0, 1, ":", gc));
+                buf_printf(&out, "%s", format_hex_ex(ma->ether.addr,
+                                                     sizeof(ma->ether.addr), 0, 1, ":", gc));
+                buf_printf(&out, "@%hu", ma->ether.vid);
                 break;
 
             case MR_ADDR_IPV4:

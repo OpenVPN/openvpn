@@ -40,6 +40,7 @@
 #include "mudp.h"
 #include "mtcp.h"
 #include "perf.h"
+#include "vlan.h"
 
 #define MULTI_PREFIX_MAX_LENGTH 256
 
@@ -620,6 +621,7 @@ multi_process_outgoing_tun(struct multi_context *m, const unsigned int mpp_flags
            mi->context.c2.to_tun.len);
 #endif
     set_prefix(mi);
+    vlan_process_outgoing_tun(m, mi);
     process_outgoing_tun(&mi->context);
     ret = multi_process_post(m, mi, mpp_flags);
     clear_prefix();

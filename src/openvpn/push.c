@@ -33,13 +33,16 @@
 #include "options.h"
 #include "ssl.h"
 #include "ssl_verify.h"
+#include "ssl_ncp.h"
 #include "manage.h"
 
 #include "memdbg.h"
 
 #if P2MP
 
+#ifdef P2MP_SERVER
 static char push_reply_cmd[] = "PUSH_REPLY";
+#endif
 
 /*
  * Auth username/password
@@ -287,11 +290,18 @@ incoming_push_message(struct context *c, const struct buffer *buffer)
     {
         if (c->options.mode == MODE_SERVER)
         {
+            struct frame *frame_fragment = NULL;
+#ifdef ENABLE_FRAGMENT
+            if (c->options.ce.fragment)
+            {
+                frame_fragment = &c->c2.frame_fragment;
+            }
+#endif
             struct tls_session *session = &c->c2.tls_multi->session[TM_ACTIVE];
             /* Do not regenerate keys if client send a second push request */
             if (!session->key[KS_PRIMARY].crypto_options.key_ctx_bi.initialized
                 && !tls_session_update_crypto_params(session, &c->options,
-                                                     &c->c2.frame))
+                                                     &c->c2.frame, frame_fragment))
             {
                 msg(D_TLS_ERRORS, "TLS Error: initializing data channel failed");
                 goto error;
@@ -324,6 +334,37 @@ send_push_request(struct context *c)
 }
 
 #if P2MP_SERVER
+/**
+ * Prepare push option for auth-token
+ * @param tls_multi     tls multi context of VPN tunnel
+ * @param gc            gc arena for allocating push options
+ * @param push_list     push list to where options are added
+ *
+ * @return true on success, false on failure.
+ */
+void
+prepare_auth_token_push_reply(struct tls_multi *tls_multi, struct gc_arena *gc,
+                              struct push_list *push_list)
+{
+    /*
+     * If server uses --auth-gen-token and we have an auth token
+     * to send to the client
+     */
+    if (tls_multi->auth_token)
+    {
+        push_option_fmt(gc, push_list, M_USAGE,
+                        "auth-token %s",
+                        tls_multi->auth_token);
+        if (!tls_multi->auth_token_initial)
+        {
+            /*
+             * Save the initial auth token for clients that ignore
+             * the updates to the token
+             */
+            tls_multi->auth_token_initial = strdup(tls_multi->auth_token);
+        }
+    }
+}
 
 /**
  * Prepare push options, based on local options and available peer info.
@@ -334,7 +375,7 @@ send_push_request(struct context *c)
  *
  * @return true on success, false on failure.
  */
-static bool
+bool
 prepare_push_reply(struct context *c, struct gc_arena *gc,
                    struct push_list *push_list)
 {
@@ -382,9 +423,14 @@ prepare_push_reply(struct context *c, struct gc_arena *gc,
             tls_multi->use_peer_id = true;
         }
     }
+    /*
+     * If server uses --auth-gen-token and we have an auth token
+     * to send to the client
+     */
+    prepare_auth_token_push_reply(tls_multi, gc, push_list);
 
     /* Push cipher if client supports Negotiable Crypto Parameters */
-    if (tls_peer_info_ncp_ver(peer_info) >= 2 && o->ncp_enabled)
+    if (o->ncp_enabled)
     {
         /* if we have already created our key, we cannot *change* our own
          * cipher -> so log the fact and push the "what we have now" cipher
@@ -400,27 +446,31 @@ prepare_push_reply(struct context *c, struct gc_arena *gc,
         }
         else
         {
-            /* Push the first cipher from --ncp-ciphers to the client.
-             * TODO: actual negotiation, instead of server dictatorship. */
-            char *push_cipher = string_alloc(o->ncp_ciphers, &o->gc);
-            o->ciphername = strtok(push_cipher, ":");
+            /*
+             * Push the first cipher from --ncp-ciphers to the client that
+             * the client announces to be supporting.
+             */
+            char *push_cipher = ncp_get_best_cipher(o->ncp_ciphers, o->ciphername,
+                                                    peer_info,
+                                                    tls_multi->remote_ciphername,
+                                                    &o->gc);
+
+            if (push_cipher)
+            {
+                o->ciphername = push_cipher;
+            }
+            else
+            {
+                const char *peer_ciphers = tls_peer_ncp_list(peer_info, gc);
+                msg(M_INFO, "PUSH: No common cipher between server and client."
+                    "Expect this connection not to work. "
+                    "Server ncp-ciphers: '%s', client supported ciphers '%s'",
+                    o->ncp_ciphers, peer_ciphers);
+            }
         }
         push_option_fmt(gc, push_list, M_USAGE, "cipher %s", o->ciphername);
     }
-    else if (o->ncp_enabled)
-    {
-        tls_poor_mans_ncp(o, tls_multi->remote_ciphername);
-    }
 
-    /* If server uses --auth-gen-token and we have an auth token
-     * to send to the client
-     */
-    if (false == tls_multi->auth_token_sent && NULL != tls_multi->auth_token)
-    {
-        push_option_fmt(gc, push_list, M_USAGE,
-                        "auth-token %s", tls_multi->auth_token);
-        tls_multi->auth_token_sent = true;
-    }
     return true;
 }
 
@@ -431,6 +481,7 @@ send_push_options(struct context *c, struct buffer *buf,
 {
     struct push_entry *e = push_list->head;
 
+    e = push_list->head;
     while (e)
     {
         if (e->enable)
@@ -463,7 +514,26 @@ send_push_options(struct context *c, struct buffer *buf,
     return true;
 }
 
-static bool
+void
+send_push_reply_auth_token(struct tls_multi *multi)
+{
+    struct gc_arena gc = gc_new();
+    struct push_list push_list = { 0 };
+
+    prepare_auth_token_push_reply(multi, &gc, &push_list);
+
+    /* prepare auth token should always add the auth-token option */
+    struct push_entry *e = push_list.head;
+    ASSERT(e && e->enable);
+
+    /* Construct a mimimal control channel push reply message */
+    struct buffer buf = alloc_buf_gc(PUSH_BUNDLE_SIZE, &gc);
+    buf_printf(&buf, "%s, %s", push_reply_cmd, e->option);
+    send_control_channel_string_dowork(multi, BSTR(&buf), D_PUSH);
+    gc_free(&gc);
+}
+
+bool
 send_push_reply(struct context *c, struct push_list *per_client_push_list)
 {
     struct gc_arena gc = gc_new();
@@ -677,10 +747,9 @@ process_incoming_push_request(struct context *c)
         else
         {
             /* per-client push options - peer-id, cipher, ifconfig, ipv6-ifconfig */
-            struct push_list push_list;
+            struct push_list push_list = { 0 };
             struct gc_arena gc = gc_new();
 
-            CLEAR(push_list);
             if (prepare_push_reply(c, &gc, &push_list)
                 && send_push_reply(c, &push_list))
             {

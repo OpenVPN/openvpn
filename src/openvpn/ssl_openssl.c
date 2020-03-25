@@ -76,12 +76,13 @@ int mydata_index; /* GLOBAL */
 void
 tls_init_lib(void)
 {
+#if (OPENSSL_VERSION_NUMBER < 0x10100000L && !defined(LIBRESSL_VERSION_NUMBER))
     SSL_library_init();
 #ifndef ENABLE_SMALL
     SSL_load_error_strings();
 #endif
     OpenSSL_add_all_algorithms();
-
+#endif
     mydata_index = SSL_get_ex_new_index(0, "struct session *", NULL, NULL, NULL);
     ASSERT(mydata_index >= 0);
 }
@@ -89,9 +90,11 @@ tls_init_lib(void)
 void
 tls_free_lib(void)
 {
+#if (OPENSSL_VERSION_NUMBER < 0x10100000L && !defined(LIBRESSL_VERSION_NUMBER))
     EVP_cleanup();
 #ifndef ENABLE_SMALL
     ERR_free_strings();
+#endif
 #endif
 }
 
@@ -157,7 +160,9 @@ key_state_export_keying_material(struct key_state_ssl *ssl,
         unsigned char *ekm = (unsigned char *) gc_malloc(size, true, &gc);
 
         if (SSL_export_keying_material(ssl->ssl, ekm, size,
-                                       session->opt->ekm_label, session->opt->ekm_label_size, NULL, 0, 0))
+                                       session->opt->ekm_label,
+                                       session->opt->ekm_label_size,
+                                       NULL, 0, 0))
         {
             unsigned int len = (size * 2) + 2;
 
@@ -212,7 +217,28 @@ int
 tls_version_max(void)
 {
 #if defined(TLS1_3_VERSION)
+    /* If this is defined we can safely assume TLS 1.3 support */
     return TLS_VER_1_3;
+#elif OPENSSL_VERSION_NUMBER >= 0x10100000L
+    /*
+     * If TLS_VER_1_3 is not defined, we were compiled against a version that
+     * did not support TLS 1.3.
+     *
+     * However, the library we are *linked* against might be OpenSSL 1.1.1
+     * and therefore supports TLS 1.3. This needs to be checked at runtime
+     * since we can be compiled against 1.1.0 and then the library can be
+     * upgraded to 1.1.1.
+     * We only need to check this for OpenSSL versions that can be
+     * upgraded to 1.1.1 without recompile (>= 1.1.0)
+     */
+    if (OpenSSL_version_num() >= 0x1010100fL)
+    {
+        return TLS_VER_1_3;
+    }
+    else
+    {
+        return TLS_VER_1_2;
+    }
 #elif defined(TLS1_2_VERSION) || defined(SSL_OP_NO_TLSv1_2)
     return TLS_VER_1_2;
 #elif defined(TLS1_1_VERSION) || defined(SSL_OP_NO_TLSv1_1)
@@ -238,12 +264,25 @@ openssl_tls_version(int ver)
     {
         return TLS1_2_VERSION;
     }
-#if defined(TLS1_3_VERSION)
     else if (ver == TLS_VER_1_3)
     {
+        /*
+         * Supporting the library upgraded to TLS1.3 without recompile
+         * is enough to support here with a simple constant that the same
+         * as in the TLS 1.3, so spec it is very unlikely that OpenSSL
+         * will change this constant
+         */
+#ifndef TLS1_3_VERSION
+        /*
+         * We do not want to define TLS_VER_1_3 if not defined
+         * since other parts of the code use the existance of this macro
+         * as proxy for TLS 1.3 support
+         */
+        return 0x0304;
+#else
         return TLS1_3_VERSION;
-    }
 #endif
+    }
     return 0;
 }
 
@@ -541,7 +580,7 @@ tls_ctx_check_cert_time(const struct tls_root_ctx *ctx)
         goto cleanup; /* Nothing to check if there is no certificate */
     }
 
-    ret = X509_cmp_time(X509_get_notBefore(cert), NULL);
+    ret = X509_cmp_time(X509_get0_notBefore(cert), NULL);
     if (ret == 0)
     {
         msg(D_TLS_DEBUG_MED, "Failed to read certificate notBefore field.");
@@ -551,7 +590,7 @@ tls_ctx_check_cert_time(const struct tls_root_ctx *ctx)
         msg(M_WARN, "WARNING: Your certificate is not yet valid!");
     }
 
-    ret = X509_cmp_time(X509_get_notAfter(cert), NULL);
+    ret = X509_cmp_time(X509_get0_notAfter(cert), NULL);
     if (ret == 0)
     {
         msg(D_TLS_DEBUG_MED, "Failed to read certificate notAfter field.");
@@ -634,10 +673,13 @@ tls_ctx_load_ecdh_params(struct tls_root_ctx *ctx, const char *curve_name
     else
     {
 #if OPENSSL_VERSION_NUMBER >= 0x10002000L
+#if (OPENSSL_VERSION_NUMBER < 0x10100000L && !defined(LIBRESSL_VERSION_NUMBER))
+
         /* OpenSSL 1.0.2 and newer can automatically handle ECDH parameter
          * loading */
         SSL_CTX_set_ecdh_auto(ctx->ctx, 1);
         return;
+#endif
 #else
         /* For older OpenSSL we have to extract the curve from key on our own */
         EC_KEY *eckey = NULL;
@@ -915,6 +957,10 @@ end:
             crypto_msg(M_FATAL, "Cannot load certificate file %s", cert_file);
         }
     }
+    else
+    {
+        crypto_print_openssl_errors(M_DEBUG);
+    }
 
     if (in != NULL)
     {
@@ -957,12 +1003,7 @@ tls_ctx_load_priv_file(struct tls_root_ctx *ctx, const char *priv_key_file,
     pkey = PEM_read_bio_PrivateKey(in, NULL,
                                    SSL_CTX_get_default_passwd_cb(ctx->ctx),
                                    SSL_CTX_get_default_passwd_cb_userdata(ctx->ctx));
-    if (!pkey)
-    {
-        goto end;
-    }
-
-    if (!SSL_CTX_use_PrivateKey(ssl_ctx, pkey))
+    if (!pkey || !SSL_CTX_use_PrivateKey(ssl_ctx, pkey))
     {
 #ifdef ENABLE_MANAGEMENT
         if (management && (ERR_GET_REASON(ERR_peek_error()) == EVP_R_BAD_DECRYPT))
@@ -1095,24 +1136,52 @@ openvpn_extkey_rsa_finish(RSA *rsa)
     return 1;
 }
 
-/* Pass the input hash in 'dgst' to management and get the signature back.
- * On input siglen contains the capacity of the buffer 'sig'.
- * On return signature is in sig.
- * Return value is signature length or -1 on error.
+/*
+ * Convert OpenSSL's constant to the strings used in the management
+ * interface query
+ */
+const char *
+get_rsa_padding_name (const int padding)
+{
+    switch (padding)
+    {
+        case RSA_PKCS1_PADDING:
+            return "RSA_PKCS1_PADDING";
+
+        case RSA_NO_PADDING:
+            return "RSA_NO_PADDING";
+
+        default:
+            return "UNKNOWN";
+    }
+}
+
+/**
+ * Pass the input hash in 'dgst' to management and get the signature back.
+  *
+ * @param dgst		hash to be signed
+ * @param dgstlen	len of data in dgst
+ * @param sig 		On successful return signature is in sig.
+ * @param siglen	length of buffer sig
+ * @param algorithm	padding/hashing algorithm for the signature
+ *
+ * @return 		signature length or -1 on error.
  */
 static int
 get_sig_from_man(const unsigned char *dgst, unsigned int dgstlen,
-                 unsigned char *sig, unsigned int siglen)
+                 unsigned char *sig, unsigned int siglen,
+                 const char *algorithm)
 {
     char *in_b64 = NULL;
     char *out_b64 = NULL;
     int len = -1;
 
-    /* convert 'dgst' to base64 */
-    if (management
-        && openvpn_base64_encode(dgst, dgstlen, &in_b64) > 0)
+    int bencret = openvpn_base64_encode(dgst, dgstlen, &in_b64);
+
+    if (management && bencret > 0)
     {
-        out_b64 = management_query_pk_sig(management, in_b64);
+        out_b64 = management_query_pk_sig(management, in_b64, algorithm);
+
     }
     if (out_b64)
     {
@@ -1126,18 +1195,19 @@ get_sig_from_man(const unsigned char *dgst, unsigned int dgstlen,
 
 /* sign arbitrary data */
 static int
-rsa_priv_enc(int flen, const unsigned char *from, unsigned char *to, RSA *rsa, int padding)
+rsa_priv_enc(int flen, const unsigned char *from, unsigned char *to, RSA *rsa,
+             int padding)
 {
     unsigned int len = RSA_size(rsa);
     int ret = -1;
 
-    if (padding != RSA_PKCS1_PADDING)
+    if (padding != RSA_PKCS1_PADDING && padding != RSA_NO_PADDING)
     {
         RSAerr(RSA_F_RSA_OSSL_PRIVATE_ENCRYPT, RSA_R_UNKNOWN_PADDING_TYPE);
         return -1;
     }
 
-    ret = get_sig_from_man(from, flen, to, len);
+    ret = get_sig_from_man(from, flen, to, len, get_rsa_padding_name (padding));
 
     return (ret == len) ? ret : -1;
 }
@@ -1233,7 +1303,12 @@ ecdsa_sign(int type, const unsigned char *dgst, int dgstlen, unsigned char *sig,
            unsigned int *siglen, const BIGNUM *kinv, const BIGNUM *r, EC_KEY *ec)
 {
     int capacity = ECDSA_size(ec);
-    int len = get_sig_from_man(dgst, dgstlen, sig, capacity);
+    /*
+     * ECDSA does not seem to have proper constants for paddings since
+     * there are only signatures without padding at the moment, use
+     * a generic ECDSA for the moment
+     */
+    int len = get_sig_from_man(dgst, dgstlen, sig, capacity, "ECDSA");
 
     if (len > 0)
     {
@@ -2009,7 +2084,8 @@ show_available_tls_ciphers_list(const char *cipher_list,
 #if defined(TLS1_3_VERSION)
     if (tls13)
     {
-        SSL_CTX_set_min_proto_version(tls_ctx.ctx, TLS1_3_VERSION);
+        SSL_CTX_set_min_proto_version(tls_ctx.ctx,
+                                      openssl_tls_version(TLS_VER_1_3));
         tls_ctx_restrict_ciphers_tls13(&tls_ctx, cipher_list);
     }
     else

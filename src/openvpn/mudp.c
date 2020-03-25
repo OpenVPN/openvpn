@@ -278,7 +278,12 @@ p2mp_iow_flags(const struct multi_context *m)
     {
         flags |= IOW_READ;
     }
-
+#ifdef _WIN32
+    if (tuntap_ring_empty(m->top.c1.tuntap))
+    {
+        flags &= ~IOW_READ_TUN;
+    }
+#endif
     return flags;
 }
 

@@ -289,7 +289,7 @@ struct tls_options
     bool tcp_mode;
 
     const char *config_ciphername;
-    const char *config_authname;
+    const char *config_ncp_ciphers;
     bool ncp_enabled;
 
     bool tls_crypt_v2;
@@ -298,7 +298,6 @@ struct tls_options
     /** TLS handshake wrapping state */
     struct tls_wrap_ctx tls_wrap;
 
-    /* frame parameters for TLS control channel */
     struct frame frame;
 
     /* used for username/password authentication */
@@ -306,9 +305,16 @@ struct tls_options
     bool auth_user_pass_verify_script_via_file;
     const char *tmp_dir;
     const char *auth_user_pass_file;
-    bool auth_token_generate;   /**< Generate auth-tokens on successful user/pass auth,
-                                 *   set via options->auth_token_generate. */
+
+#ifdef P2MP_SERVER
+    bool auth_token_generate;   /**< Generate auth-tokens on successful
+                                 * user/pass auth,seet via
+                                 * options->auth_token_generate. */
+    bool auth_token_call_auth; /**< always call normal authentication */
     unsigned int auth_token_lifetime;
+
+    struct key_ctx auth_token_key;
+#endif
 
     /* use the client-config-dir as a positive authenticator */
     const char *client_config_dir_exclusive;
@@ -368,10 +374,6 @@ struct tls_options
 #define KS_SIZE       2         /**< Size of the \c tls_session.key array. */
 /** @} name Index of key_state objects within a tls_session structure */
 /** @} addtogroup control_processor */
-
-#define AUTH_TOKEN_SIZE 32      /**< Size of server side generated auth tokens.
-                                 *   32 bytes == 256 bits
-                                 */
 
 /**
  * Security parameter state of a single session within a VPN tunnel.
@@ -469,7 +471,6 @@ struct tls_session
  */
 #define KEY_SCAN_SIZE 3
 
-
 /**
  * Security parameter state for a single VPN tunnel.
  * @ingroup control_processor
@@ -525,22 +526,44 @@ struct tls_multi
     struct cert_hash_set *locked_cert_hash_set;
 
 #ifdef ENABLE_DEF_AUTH
+    /* Time of last call to tls_authentication_status */
+    time_t tas_last;
+#endif
+
+#ifdef P2MP_SERVER
     /*
      * An error message to send to client on AUTH_FAILED
      */
     char *client_reason;
 
-    /* Time of last call to tls_authentication_status */
-    time_t tas_last;
-#endif
-
-#if P2MP_SERVER
     /*
      * A multi-line string of general-purpose info received from peer
      * over control channel.
      */
     char *peer_info;
 #endif
+    char *auth_token;    /**< If server sends a generated auth-token,
+                          *   this is the token to use for future
+                          *   user/pass authentications in this session.
+                          */
+    char *auth_token_initial;
+    /**< The first auth-token we sent to a client, for clients that do
+     * not update their auth-token (older OpenVPN3 core versions)
+     */
+#define  AUTH_TOKEN_HMAC_OK              (1<<0)
+    /**< Auth-token sent from client has valid hmac */
+#define  AUTH_TOKEN_EXPIRED              (1<<1)
+    /**< Auth-token sent from client has expired */
+#define  AUTH_TOKEN_VALID_EMPTYUSER      (1<<2)
+    /**<
+     * Auth-token is only valid for an empty username
+     * and not the username actually supplied from the client
+     *
+     * OpenVPN 3 clients sometimes wipes or replaces the username with a
+     * username hint from their config.
+     */
+    int auth_token_state_flags;
+    /**< The state of the auth-token sent from the client last time */
 
     /* For P_DATA_V2 */
     uint32_t peer_id;
@@ -548,13 +571,6 @@ struct tls_multi
 
     char *remote_ciphername;    /**< cipher specified in peer's config file */
 
-    char *auth_token;    /**< If server sends a generated auth-token,
-                          *   this is the token to use for future
-                          *   user/pass authentications in this session.
-                          */
-    time_t auth_token_tstamp; /**< timestamp of the generated token */
-    bool auth_token_sent; /**< If server uses --auth-gen-token and
-                           *   token has been sent to client */
     /*
      * Our session objects.
      */

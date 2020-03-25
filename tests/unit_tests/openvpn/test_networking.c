@@ -22,26 +22,20 @@ net__iface_mtu_set(int mtu)
 }
 
 static int
-net__addr_v4_add(const char *addr_str, int prefixlen, const char *brd_str)
+net__addr_v4_add(const char *addr_str, int prefixlen)
 {
-    in_addr_t addr, brd;
+    in_addr_t addr;
     int ret;
 
     ret = inet_pton(AF_INET, addr_str, &addr);
     if (ret != 1)
         return -1;
 
-    ret = inet_pton(AF_INET, brd_str, &brd);
-    if (ret != 1)
-        return -1;
-
     addr = ntohl(addr);
-    brd = ntohl(brd);
 
-    printf("CMD: ip addr add %s/%d brd %s dev %s\n", addr_str, prefixlen,
-           brd_str, iface);
+    printf("CMD: ip addr add %s/%d dev %s\n", addr_str, prefixlen, iface);
 
-    return net_addr_v4_add(NULL, iface, &addr, prefixlen, &brd);
+    return net_addr_v4_add(NULL, iface, &addr, prefixlen);
 }
 
 static int
@@ -198,7 +192,7 @@ main(int argc, char *argv[])
         case 1:
             return net__iface_mtu_set(1281);
         case 2:
-            return net__addr_v4_add("10.255.255.1", 24, "10.255.255.255");
+            return net__addr_v4_add("10.255.255.1", 24);
         case 3:
             return net__addr_v6_add("2001::1", 64);
         case 4:

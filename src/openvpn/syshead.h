@@ -39,6 +39,7 @@
 #ifdef _WIN32
 #include <windows.h>
 #include <winsock2.h>
+#include <tlhelp32.h>
 #define sleep(x) Sleep((x)*1000)
 #define random rand
 #define srandom srand
@@ -548,7 +549,6 @@ socket_defined(const socket_descriptor_t sd)
 #undef ENABLE_DEF_AUTH
 #endif
 
-/* Enable mbed TLS RNG prediction resistance support */
 #ifdef ENABLE_CRYPTO_MBEDTLS
 #define ENABLE_PREDICTION_RESISTANCE
 #endif /* ENABLE_CRYPTO_MBEDTLS */

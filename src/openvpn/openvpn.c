@@ -332,6 +332,7 @@ openvpn_main(int argc, char *argv[])
             env_set_destroy(c.es);
             uninit_options(&c.options);
             gc_reset(&c.gc);
+            net_ctx_free(&c.net_ctx);
         }
         while (c.sig->signal_received == SIGHUP);
     }

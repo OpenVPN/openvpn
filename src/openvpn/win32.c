@@ -1493,4 +1493,99 @@ send_msg_iservice(HANDLE pipe, const void *data, size_t size,
     return ret;
 }
 
+bool
+impersonate_as_system()
+{
+    HANDLE thread_token, process_snapshot, winlogon_process, winlogon_token, duplicated_token;
+    PROCESSENTRY32 entry;
+    BOOL ret;
+    DWORD pid = 0;
+    TOKEN_PRIVILEGES privileges;
+
+    CLEAR(entry);
+    CLEAR(privileges);
+
+    entry.dwSize = sizeof(PROCESSENTRY32);
+
+    privileges.PrivilegeCount = 1;
+    privileges.Privileges->Attributes = SE_PRIVILEGE_ENABLED;
+
+    if (!LookupPrivilegeValue(NULL, SE_DEBUG_NAME, &privileges.Privileges[0].Luid))
+    {
+        return false;
+    }
+
+    if (!ImpersonateSelf(SecurityImpersonation))
+    {
+        return false;
+    }
+
+    if (!OpenThreadToken(GetCurrentThread(), TOKEN_ADJUST_PRIVILEGES, FALSE, &thread_token))
+    {
+        RevertToSelf();
+        return false;
+    }
+    if (!AdjustTokenPrivileges(thread_token, FALSE, &privileges, sizeof(privileges), NULL, NULL))
+    {
+        CloseHandle(thread_token);
+        RevertToSelf();
+        return false;
+    }
+    CloseHandle(thread_token);
+
+    process_snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+    if (process_snapshot == INVALID_HANDLE_VALUE)
+    {
+        RevertToSelf();
+        return false;
+    }
+    for (ret = Process32First(process_snapshot, &entry); ret; ret = Process32Next(process_snapshot, &entry))
+    {
+        if (!_stricmp(entry.szExeFile, "winlogon.exe"))
+        {
+            pid = entry.th32ProcessID;
+            break;
+        }
+    }
+    CloseHandle(process_snapshot);
+    if (!pid)
+    {
+        RevertToSelf();
+        return false;
+    }
+
+    winlogon_process = OpenProcess(PROCESS_QUERY_INFORMATION, FALSE, pid);
+    if (!winlogon_process)
+    {
+        RevertToSelf();
+        return false;
+    }
+
+    if (!OpenProcessToken(winlogon_process, TOKEN_IMPERSONATE | TOKEN_DUPLICATE, &winlogon_token))
+    {
+        CloseHandle(winlogon_process);
+        RevertToSelf();
+        return false;
+    }
+    CloseHandle(winlogon_process);
+
+    if (!DuplicateToken(winlogon_token, SecurityImpersonation, &duplicated_token))
+    {
+        CloseHandle(winlogon_token);
+        RevertToSelf();
+        return false;
+    }
+    CloseHandle(winlogon_token);
+
+    if (!SetThreadToken(NULL, duplicated_token))
+    {
+        CloseHandle(duplicated_token);
+        RevertToSelf();
+        return false;
+    }
+    CloseHandle(duplicated_token);
+
+    return true;
+}
+
 #endif /* ifdef _WIN32 */

@@ -58,6 +58,9 @@
 
 #ifdef _WIN32
 
+const static GUID GUID_DEVCLASS_NET = { 0x4d36e972L, 0xe325, 0x11ce, { 0xbf, 0xc1, 0x08, 0x00, 0x2b, 0xe1, 0x03, 0x18 } };
+const static GUID GUID_DEVINTERFACE_NET = { 0xcac88484, 0x7515, 0x4c03, { 0x82, 0xe6, 0x71, 0xa8, 0x7a, 0xba, 0xc3, 0x61 } };
+
 /* #define SIMULATE_DHCP_FAILED */       /* simulate bad DHCP negotiation */
 
 #define NI_TEST_FIRST  (1<<0)
@@ -106,8 +109,8 @@ do_address_service(const bool add, const short family, const struct tuntap *tt)
 
     if (addr.family == AF_INET)
     {
-        addr.address.ipv4.s_addr = tt->local;
-        addr.prefix_len = 32;
+        addr.address.ipv4.s_addr = htonl(tt->local);
+        addr.prefix_len = netmask_to_netbits2(tt->adapter_netmask);
     }
     else
     {
@@ -136,13 +139,15 @@ out:
 }
 
 static bool
-do_dns6_service(bool add, const struct tuntap *tt)
+do_dns_service(bool add, const short family, const struct tuntap *tt)
 {
     bool ret = false;
     ack_message_t ack;
     struct gc_arena gc = gc_new();
     HANDLE pipe = tt->options.msg_channel;
-    int addr_len = add ? tt->options.dns6_len : 0;
+    int len = family == AF_INET6 ? tt->options.dns6_len : tt->options.dns_len;
+    int addr_len = add ? len : 0;
+    const char *ip_proto_name = family == AF_INET6 ? "IPv6" : "IPv4";
 
     if (addr_len == 0 && add) /* no addresses to add */
     {
@@ -157,7 +162,7 @@ do_dns6_service(bool add, const struct tuntap *tt)
         },
         .iface = { .index = tt->adapter_index, .name = "" },
         .domains = "",
-        .family = AF_INET6,
+        .family = family,
         .addr_len = addr_len
     };
 
@@ -169,17 +174,24 @@ do_dns6_service(bool add, const struct tuntap *tt)
     {
         addr_len = _countof(dns.addr);
         dns.addr_len = addr_len;
-        msg(M_WARN, "Number of IPv6 DNS addresses sent to service truncated to %d",
-            addr_len);
+        msg(M_WARN, "Number of %s DNS addresses sent to service truncated to %d",
+            ip_proto_name, addr_len);
     }
 
     for (int i = 0; i < addr_len; ++i)
     {
-        dns.addr[i].ipv6 = tt->options.dns6[i];
+        if (family == AF_INET6)
+        {
+            dns.addr[i].ipv6 = tt->options.dns6[i];
+        }
+        else
+        {
+            dns.addr[i].ipv4.s_addr = htonl(tt->options.dns[i]);
+        }
     }
 
-    msg(D_LOW, "%s IPv6 dns servers on '%s' (if_index = %d) using service",
-        (add ? "Setting" : "Deleting"), dns.iface.name, dns.iface.index);
+    msg(D_LOW, "%s %s dns servers on '%s' (if_index = %d) using service",
+        (add ? "Setting" : "Deleting"), ip_proto_name, dns.iface.name, dns.iface.index);
 
     if (!send_msg_iservice(pipe, &dns, sizeof(dns), &ack, "TUN"))
     {
@@ -188,13 +200,13 @@ do_dns6_service(bool add, const struct tuntap *tt)
 
     if (ack.error_number != NO_ERROR)
     {
-        msg(M_WARN, "TUN: %s IPv6 dns failed using service: %s [status=%u if_name=%s]",
-            (add ? "adding" : "deleting"), strerror_win32(ack.error_number, &gc),
+        msg(M_WARN, "TUN: %s %s dns failed using service: %s [status=%u if_name=%s]",
+            (add ? "adding" : "deleting"), ip_proto_name, strerror_win32(ack.error_number, &gc),
             ack.error_number, dns.iface.name);
         goto out;
     }
 
-    msg(M_INFO, "IPv6 dns servers %s using service", (add ? "set" : "deleted"));
+    msg(M_INFO, "%s dns servers %s using service", ip_proto_name, (add ? "set" : "deleted"));
     ret = true;
 
 out:
@@ -332,16 +344,6 @@ ifconfig_sanity_check(bool tun, in_addr_t addr, int topology)
         }
     }
     gc_free(&gc);
-}
-
-/*
- * For TAP-style devices, generate a broadcast address.
- */
-static in_addr_t
-generate_ifconfig_broadcast_addr(in_addr_t local,
-                                 in_addr_t netmask)
-{
-    return local | ~netmask;
 }
 
 /*
@@ -595,9 +597,7 @@ do_ifconfig_setenv(const struct tuntap *tt, struct env_set *es)
         }
         else
         {
-            const char *ifconfig_broadcast = print_in_addr_t(tt->broadcast, 0, &gc);
             setenv_str(es, "ifconfig_netmask", ifconfig_remote_netmask);
-            setenv_str(es, "ifconfig_broadcast", ifconfig_broadcast);
         }
     }
 
@@ -724,14 +724,6 @@ init_tun(const char *dev,        /* --dev option */
             }
         }
 
-        /*
-         * If TAP-style interface, generate broadcast address.
-         */
-        if (!tun)
-        {
-            tt->broadcast = generate_ifconfig_broadcast_addr(tt->local, tt->remote_netmask);
-        }
-
 #ifdef _WIN32
         /*
          * Make sure that both ifconfig addresses are part of the
@@ -792,10 +784,40 @@ init_tun_post(struct tuntap *tt,
 #ifdef _WIN32
     overlapped_io_init(&tt->reads, frame, FALSE, true);
     overlapped_io_init(&tt->writes, frame, TRUE, true);
-    tt->rw_handle.read = tt->reads.overlapped.hEvent;
-    tt->rw_handle.write = tt->writes.overlapped.hEvent;
     tt->adapter_index = TUN_ADAPTER_INDEX_INVALID;
-#endif
+
+    if (tt->windows_driver == WINDOWS_DRIVER_WINTUN)
+    {
+        tt->wintun_send_ring_handle = CreateFileMapping(INVALID_HANDLE_VALUE, NULL,
+                                                        PAGE_READWRITE,
+                                                        0,
+                                                        sizeof(struct tun_ring),
+                                                        NULL);
+        tt->wintun_receive_ring_handle = CreateFileMapping(INVALID_HANDLE_VALUE,
+                                                           NULL,
+                                                           PAGE_READWRITE,
+                                                           0,
+                                                           sizeof(struct tun_ring),
+                                                           NULL);
+        if ((tt->wintun_send_ring_handle == NULL) || (tt->wintun_receive_ring_handle == NULL))
+        {
+            msg(M_FATAL, "Cannot allocate memory for ring buffer");
+        }
+
+        tt->rw_handle.read = CreateEvent(NULL, FALSE, FALSE, NULL);
+        tt->rw_handle.write = CreateEvent(NULL, FALSE, FALSE, NULL);
+
+        if ((tt->rw_handle.read == NULL) || (tt->rw_handle.write == NULL))
+        {
+            msg(M_FATAL, "Cannot create events for ring buffer");
+        }
+    }
+    else
+    {
+        tt->rw_handle.read = tt->reads.overlapped.hEvent;
+        tt->rw_handle.write = tt->writes.overlapped.hEvent;
+    }
+#endif /* ifdef _WIN32 */
 }
 
 #if defined(_WIN32)    \
@@ -806,7 +828,7 @@ init_tun_post(struct tuntap *tt,
  * an extra call to "route add..."
  * -> helper function to simplify code below
  */
-void
+static void
 add_route_connected_v6_net(struct tuntap *tt,
                            const struct env_set *es)
 {
@@ -878,10 +900,7 @@ static void
 do_ifconfig_ipv6(struct tuntap *tt, const char *ifname, int tun_mtu,
                  const struct env_set *es, openvpn_net_ctx_t *ctx)
 {
-#if defined(TARGET_OPENBSD) || defined(TARGET_NETBSD) \
-    || defined(TARGET_DARWIN) || defined(TARGET_FREEBSD) \
-    || defined(TARGET_DRAGONFLY) || defined(TARGET_AIX) \
-    || defined(TARGET_SOLARIS) || defined(_WIN32)
+#if !defined(TARGET_LINUX)
     struct argv argv = argv_new();
     struct gc_arena gc = gc_new();
     const char *ifconfig_ipv6_local = print_in6_addr(tt->local_ipv6, 0, &gc);
@@ -907,7 +926,7 @@ do_ifconfig_ipv6(struct tuntap *tt, const char *ifname, int tun_mtu,
     char out6[64];
 
     openvpn_snprintf(out6, sizeof(out6), "%s/%d %d",
-                     ifconfig_ipv6_local,tt->netbits_ipv6, tun_mtu);
+                     ifconfig_ipv6_local, tt->netbits_ipv6, tun_mtu);
     management_android_control(management, "IFCONFIG6", out6);
 #elif defined(TARGET_SOLARIS)
     argv_printf(&argv, "%s %s inet6 unplumb", IFCONFIG_PATH, ifname);
@@ -940,15 +959,25 @@ do_ifconfig_ipv6(struct tuntap *tt, const char *ifname, int tun_mtu,
          * server will ignore the DHCPv6 packets anyway.  So we don't.
          */
 
-        /* static IPv6 addresses need to go to a subinterface (tap0:1) */
-        argv_printf(&argv, "%s %s inet6 addif %s/%d mtu %d up", IFCONFIG_PATH,
-                    ifname, ifconfig_ipv6_local, tt->netbits_ipv6, tun_mtu);
+        /* static IPv6 addresses need to go to a subinterface (tap0:1)
+         * and we cannot set an mtu here (must go to the "parent")
+         */
+        argv_printf(&argv, "%s %s inet6 addif %s/%d up", IFCONFIG_PATH,
+                    ifname, ifconfig_ipv6_local, tt->netbits_ipv6 );
     }
     argv_msg(M_INFO, &argv);
 
     if (!openvpn_execve_check(&argv, es, 0, "Solaris ifconfig IPv6 failed"))
     {
         solaris_error_close(tt, es, ifname, true);
+    }
+
+    if (tt->type != DEV_TYPE_TUN)
+    {
+        argv_printf(&argv, "%s %s inet6 mtu %d", IFCONFIG_PATH,
+                    ifname, tun_mtu);
+        argv_msg(M_INFO, &argv);
+        openvpn_execve_check(&argv, es, 0, "Solaris ifconfig IPv6 mtu failed");
     }
 #elif defined(TARGET_OPENBSD) || defined(TARGET_NETBSD) \
     || defined(TARGET_DARWIN) || defined(TARGET_FREEBSD) \
@@ -987,7 +1016,8 @@ do_ifconfig_ipv6(struct tuntap *tt, const char *ifname, int tun_mtu,
     else if (tt->options.msg_channel)
     {
         do_address_service(true, AF_INET6, tt);
-        do_dns6_service(true, tt);
+        add_route_connected_v6_net(tt, es);
+        do_dns_service(true, AF_INET6, tt);
     }
     else
     {
@@ -998,29 +1028,21 @@ do_ifconfig_ipv6(struct tuntap *tt, const char *ifname, int tun_mtu,
 
         openvpn_snprintf(iface, sizeof(iface), "interface=%lu",
                          tt->adapter_index);
-        argv_printf(&argv, "%s%sc interface ipv6 set address %s %s store=active",
+        argv_printf(&argv, "%s%s interface ipv6 set address %s %s store=active",
                     get_win_sys_path(), NETSH_PATH_SUFFIX, iface,
                     ifconfig_ipv6_local);
         netsh_command(&argv, 4, M_FATAL);
+        add_route_connected_v6_net(tt, es);
         /* set ipv6 dns servers if any are specified */
         netsh_set_dns6_servers(tt->options.dns6, tt->options.dns6_len, ifname);
-    }
-
-    /* explicit route needed */
-    if (tt->options.ip_win32_type != IPW32_SET_MANUAL)
-    {
-        add_route_connected_v6_net(tt, es);
     }
 #else /* platforms we have no IPv6 code for */
     msg(M_FATAL, "Sorry, but I don't know how to do IPv6 'ifconfig' commands on this operating system.  You should ifconfig your TUN/TAP device manually or use an --up script.");
 #endif /* outer "if defined(TARGET_xxx)" conditional */
 
-#if defined(TARGET_OPENBSD) || defined(TARGET_NETBSD) \
-    || defined(TARGET_DARWIN) || defined(TARGET_FREEBSD) \
-    || defined(TARGET_DRAGONFLY) || defined(TARGET_AIX) \
-    || defined(TARGET_SOLARIS) || defined(_WIN32)
+#if !defined(TARGET_LINUX)
     gc_free(&gc);
-    argv_reset(&argv);
+    argv_free(&argv);
 #endif
 }
 
@@ -1042,13 +1064,9 @@ do_ifconfig_ipv4(struct tuntap *tt, const char *ifname, int tun_mtu,
      */
     bool tun = is_tun_p2p(tt);
 
-#if defined(TARGET_OPENBSD) || defined(TARGET_NETBSD) \
-    || defined(TARGET_DARWIN) || defined(TARGET_FREEBSD) \
-    || defined(TARGET_DRAGONFLY) || defined(TARGET_AIX) \
-    || defined(TARGET_SOLARIS) || defined(_WIN32)
+#if !defined(TARGET_LINUX)
     const char *ifconfig_local = NULL;
     const char *ifconfig_remote_netmask = NULL;
-    const char *ifconfig_broadcast = NULL;
     struct argv argv = argv_new();
     struct gc_arena gc = gc_new();
 
@@ -1057,14 +1075,6 @@ do_ifconfig_ipv4(struct tuntap *tt, const char *ifname, int tun_mtu,
      */
     ifconfig_local = print_in_addr_t(tt->local, 0, &gc);
     ifconfig_remote_netmask = print_in_addr_t(tt->remote_netmask, 0, &gc);
-
-    /*
-     * If TAP-style device, generate broadcast address.
-     */
-    if (!tun)
-    {
-        ifconfig_broadcast = print_in_addr_t(tt->broadcast, 0, &gc);
-    }
 #endif
 
 #if defined(TARGET_LINUX)
@@ -1089,8 +1099,7 @@ do_ifconfig_ipv4(struct tuntap *tt, const char *ifname, int tun_mtu,
     else
     {
         if (net_addr_v4_add(ctx, ifname, &tt->local,
-                            netmask_to_netbits2(tt->remote_netmask),
-                            &tt->remote_netmask) < 0)
+                            netmask_to_netbits2(tt->remote_netmask)) < 0)
         {
             msg(M_FATAL, "Linux can't add IP to TAP interface %s", ifname);
         }
@@ -1149,7 +1158,7 @@ do_ifconfig_ipv4(struct tuntap *tt, const char *ifname, int tun_mtu,
     }
     else
     {
-        argv_printf(&argv, "%s %s %s netmask %s broadcast + up",
+        argv_printf(&argv, "%s %s %s netmask %s up",
                     IFCONFIG_PATH, ifname, ifconfig_local,
                     ifconfig_remote_netmask);
     }
@@ -1201,9 +1210,9 @@ do_ifconfig_ipv4(struct tuntap *tt, const char *ifname, int tun_mtu,
     }
     else
     {
-        argv_printf(&argv, "%s %s %s netmask %s mtu %d broadcast %s link0",
+        argv_printf(&argv, "%s %s %s netmask %s mtu %d link0",
                     IFCONFIG_PATH, ifname, ifconfig_local,
-                    ifconfig_remote_netmask, tun_mtu, ifconfig_broadcast);
+                    ifconfig_remote_netmask, tun_mtu);
     }
     argv_msg(M_INFO, &argv);
     openvpn_execve_check(&argv, es, S_FATAL, "OpenBSD ifconfig failed");
@@ -1243,9 +1252,9 @@ do_ifconfig_ipv4(struct tuntap *tt, const char *ifname, int tun_mtu,
          * so we don't need the "link0" extra parameter to specify we want to do
          * tunneling at the ethernet level
          */
-        argv_printf(&argv, "%s %s %s netmask %s mtu %d broadcast %s",
+        argv_printf(&argv, "%s %s %s netmask %s mtu %d",
                     IFCONFIG_PATH, ifname, ifconfig_local,
-                    ifconfig_remote_netmask, tun_mtu, ifconfig_broadcast);
+                    ifconfig_remote_netmask, tun_mtu);
     }
     argv_msg(M_INFO, &argv);
     openvpn_execve_check(&argv, es, S_FATAL, "NetBSD ifconfig failed");
@@ -1375,20 +1384,28 @@ do_ifconfig_ipv4(struct tuntap *tt, const char *ifname, int tun_mtu,
     {
         ASSERT(ifname != NULL);
 
-        switch (tt->options.ip_win32_type)
+        if (tt->options.msg_channel && tt->windows_driver == WINDOWS_DRIVER_WINTUN)
         {
-            case IPW32_SET_MANUAL:
-                msg(M_INFO,
-                    "******** NOTE:  Please manually set the IP/netmask of '%s' to %s/%s (if it is not already set)",
-                    ifname, ifconfig_local,
-                    print_in_addr_t(tt->adapter_netmask, 0, &gc));
-                break;
+            do_address_service(true, AF_INET, tt);
+            do_dns_service(true, AF_INET, tt);
+        }
+        else
+        {
+            switch (tt->options.ip_win32_type)
+            {
+                case IPW32_SET_MANUAL:
+                    msg(M_INFO,
+                        "******** NOTE:  Please manually set the IP/netmask of '%s' to %s/%s (if it is not already set)",
+                        ifname, ifconfig_local,
+                        print_in_addr_t(tt->adapter_netmask, 0, &gc));
+                    break;
 
-            case IPW32_SET_NETSH:
-                netsh_ifconfig(&tt->options, ifname, tt->local,
-                               tt->adapter_netmask, NI_IP_NETMASK|NI_OPTIONS);
+                case IPW32_SET_NETSH:
+                    netsh_ifconfig(&tt->options, ifname, tt->local,
+                                   tt->adapter_netmask, NI_IP_NETMASK|NI_OPTIONS);
 
-                break;
+                    break;
+            }
         }
     }
 
@@ -1396,12 +1413,9 @@ do_ifconfig_ipv4(struct tuntap *tt, const char *ifname, int tun_mtu,
     msg(M_FATAL, "Sorry, but I don't know how to do 'ifconfig' commands on this operating system.  You should ifconfig your TUN/TAP device manually or use an --up script.");
 #endif /* if defined(TARGET_LINUX) */
 
-#if defined(TARGET_OPENBSD) || defined(TARGET_NETBSD) \
-    || defined(TARGET_DARWIN) || defined(TARGET_FREEBSD) \
-    || defined(TARGET_DRAGONFLY) || defined(TARGET_AIX) \
-    || defined(TARGET_SOLARIS) || defined(_WIN32)
+#if !defined(TARGET_LINUX)
     gc_free(&gc);
-    argv_reset(&argv);
+    argv_free(&argv);
 #endif
 }
 
@@ -1435,6 +1449,9 @@ do_ifconfig(struct tuntap *tt, const char *ifname, int tun_mtu,
     {
         do_ifconfig_ipv6(tt, ifname, tun_mtu, es, ctx);
     }
+
+    /* release resources potentially allocated during interface setup */
+    net_ctx_free(ctx);
 }
 
 static void
@@ -1947,9 +1964,8 @@ tuncfg(const char *dev, const char *dev_type, const char *dev_node,
 
 #endif /* ENABLE_FEATURE_TUN_PERSIST */
 
-void
-undo_ifconfig_ipv4(struct tuntap *tt, struct gc_arena *gc,
-                   openvpn_net_ctx_t *ctx)
+static void
+undo_ifconfig_ipv4(struct tuntap *tt, openvpn_net_ctx_t *ctx)
 {
 #if defined(TARGET_LINUX)
     int netbits = netmask_to_netbits2(tt->remote_netmask);
@@ -1971,7 +1987,7 @@ undo_ifconfig_ipv4(struct tuntap *tt, struct gc_arena *gc,
                 tt->actual_name);
         }
     }
-#else  /* ifdef TARGET_LINUX */
+#else  /* ifndef TARGET_LINUX */
     struct argv argv = argv_new();
 
     argv_printf(&argv, "%s %s 0.0.0.0", IFCONFIG_PATH, tt->actual_name);
@@ -1979,13 +1995,12 @@ undo_ifconfig_ipv4(struct tuntap *tt, struct gc_arena *gc,
     argv_msg(M_INFO, &argv);
     openvpn_execve_check(&argv, NULL, 0, "Generic ip addr del failed");
 
-    argv_reset(&argv);
+    argv_free(&argv);
 #endif /* ifdef TARGET_LINUX */
 }
 
-void
-undo_ifconfig_ipv6(struct tuntap *tt, struct gc_arena *gc,
-                   openvpn_net_ctx_t *ctx)
+static void
+undo_ifconfig_ipv6(struct tuntap *tt, openvpn_net_ctx_t *ctx)
 {
 #if defined(TARGET_LINUX)
     if (net_addr_v6_del(ctx, tt->actual_name, &tt->local_ipv6,
@@ -1993,7 +2008,8 @@ undo_ifconfig_ipv6(struct tuntap *tt, struct gc_arena *gc,
     {
         msg(M_WARN, "Linux can't del IPv6 from iface %s", tt->actual_name);
     }
-#else  /* ifdef TARGET_LINUX */
+#else  /* ifndef TARGET_LINUX */
+    struct gc_arena gc = gc_new();
     const char *ifconfig_ipv6_local = print_in6_addr(tt->local_ipv6, 0, gc);
     struct argv argv = argv_new();
 
@@ -2003,7 +2019,8 @@ undo_ifconfig_ipv6(struct tuntap *tt, struct gc_arena *gc,
     argv_msg(M_INFO, &argv);
     openvpn_execve_check(&argv, NULL, 0, "Linux ip -6 addr del failed");
 
-    argv_reset(&argv);
+    argv_free(&argv);
+    gc_free(&gc);
 #endif /* ifdef TARGET_LINUX */
 }
 
@@ -2014,19 +2031,18 @@ close_tun(struct tuntap *tt, openvpn_net_ctx_t *ctx)
 
     if (tt->type != DEV_TYPE_NULL)
     {
-        struct gc_arena gc = gc_new();
-
         if (tt->did_ifconfig_setup)
         {
-            undo_ifconfig_ipv4(tt, &gc, ctx);
+            undo_ifconfig_ipv4(tt, ctx);
         }
 
         if (tt->did_ifconfig_ipv6_setup)
         {
-            undo_ifconfig_ipv6(tt, &gc, ctx);
+            undo_ifconfig_ipv6(tt, ctx);
         }
 
-        gc_free(&gc);
+        /* release resources potentially allocated during undo */
+        net_ctx_reset(ctx);
     }
 
     close_tun_generic(tt);
@@ -2296,7 +2312,7 @@ solaris_close_tun(struct tuntap *tt)
                      IFCONFIG_PATH, tt->actual_name );
         argv_msg(M_INFO, &argv);
         openvpn_execve_check(&argv, NULL, 0, "Solaris ifconfig inet6 unplumb failed");
-        argv_reset(&argv);
+        argv_free(&argv);
     }
 
     if (tt->ip_fd >= 0)
@@ -2381,7 +2397,7 @@ solaris_error_close(struct tuntap *tt, const struct env_set *es,
     openvpn_execve_check(&argv, es, 0, "Solaris ifconfig unplumb failed");
     close_tun(tt, NULL);
     msg(M_FATAL, "Solaris ifconfig failed");
-    argv_reset(&argv);
+    argv_free(&argv);
 }
 
 int
@@ -2469,7 +2485,7 @@ close_tun(struct tuntap *tt, openvpn_net_ctx_t *ctx)
     openvpn_execve_check(&argv, NULL, 0, "OpenBSD 'destroy tun interface' failed (non-critical)");
 
     free(tt);
-    argv_reset(&argv);
+    argv_free(&argv);
 }
 
 int
@@ -2555,7 +2571,7 @@ close_tun(struct tuntap *tt, openvpn_net_ctx_t *ctx)
     openvpn_execve_check(&argv, NULL, 0, "NetBSD 'destroy tun interface' failed (non-critical)");
 
     free(tt);
-    argv_reset(&argv);
+    argv_free(&argv);
 }
 
 static inline int
@@ -2696,7 +2712,7 @@ close_tun(struct tuntap *tt, openvpn_net_ctx_t *ctx)
                          "FreeBSD 'destroy tun interface' failed (non-critical)");
 
     free(tt);
-    argv_reset(&argv);
+    argv_free(&argv);
 }
 
 int
@@ -3061,7 +3077,7 @@ close_tun(struct tuntap *tt, openvpn_net_ctx_t *ctx)
 
     close_tun_generic(tt);
     free(tt);
-    argv_reset(&argv);
+    argv_free(&argv);
     gc_free(&gc);
 }
 
@@ -3165,7 +3181,7 @@ open_tun(const char *dev, const char *dev_type, const char *dev_node, struct tun
         env_set_add( es, "ODMDIR=/etc/objrepos" );
         openvpn_execve_check(&argv, es, S_FATAL, "AIX 'create tun interface' failed");
         env_set_destroy(es);
-        argv_reset(&argv);
+        argv_free(&argv);
     }
     else
     {
@@ -3216,7 +3232,7 @@ close_tun(struct tuntap *tt, openvpn_net_ctx_t *ctx)
 
     free(tt);
     env_set_destroy(es);
-    argv_reset(&argv);
+    argv_free(&argv);
 }
 
 int
@@ -3232,6 +3248,22 @@ read_tun(struct tuntap *tt, uint8_t *buf, int len)
 }
 
 #elif defined(_WIN32)
+
+static const char *
+print_windows_driver(enum windows_driver_type windows_driver)
+{
+    switch (windows_driver)
+    {
+        case WINDOWS_DRIVER_TAP_WINDOWS6:
+            return "tap-windows6";
+
+        case WINDOWS_DRIVER_WINTUN:
+            return "wintun";
+
+        default:
+            return "unspecified";
+    }
+}
 
 int
 tun_read_queue(struct tuntap *tt, int maxsize)
@@ -3444,7 +3476,123 @@ tun_finalize(
     return ret;
 }
 
-const struct tap_reg *
+static const struct device_instance_id_interface *
+get_device_instance_id_interface(struct gc_arena *gc)
+{
+    HDEVINFO dev_info_set;
+    DWORD err;
+    struct device_instance_id_interface *first = NULL;
+    struct device_instance_id_interface *last = NULL;
+
+    dev_info_set = SetupDiGetClassDevsEx(&GUID_DEVCLASS_NET, NULL, NULL, DIGCF_PRESENT, NULL, NULL, NULL);
+    if (dev_info_set == INVALID_HANDLE_VALUE)
+    {
+        err = GetLastError();
+        msg(M_FATAL, "Error [%u] opening device information set key: %s", (unsigned int)err, strerror_win32(err, gc));
+    }
+
+    for (DWORD i = 0;; ++i)
+    {
+        SP_DEVINFO_DATA device_info_data;
+        BOOL res;
+        HKEY dev_key;
+        char net_cfg_instance_id_string[] = "NetCfgInstanceId";
+        char net_cfg_instance_id[256];
+        char device_instance_id[256];
+        DWORD len;
+        DWORD data_type;
+        LONG status;
+        ULONG dev_interface_list_size;
+        CONFIGRET cr;
+        struct buffer dev_interface_list;
+
+        ZeroMemory(&device_info_data, sizeof(SP_DEVINFO_DATA));
+        device_info_data.cbSize = sizeof(SP_DEVINFO_DATA);
+        res = SetupDiEnumDeviceInfo(dev_info_set, i, &device_info_data);
+        if (!res)
+        {
+            if (GetLastError() == ERROR_NO_MORE_ITEMS)
+            {
+                break;
+            }
+            else
+            {
+                continue;
+            }
+        }
+
+        dev_key = SetupDiOpenDevRegKey(dev_info_set, &device_info_data, DICS_FLAG_GLOBAL, 0, DIREG_DRV, KEY_QUERY_VALUE);
+        if (dev_key == INVALID_HANDLE_VALUE)
+        {
+            continue;
+        }
+
+        len = sizeof(net_cfg_instance_id);
+        data_type = REG_SZ;
+        status = RegQueryValueEx(dev_key,
+                                 net_cfg_instance_id_string,
+                                 NULL,
+                                 &data_type,
+                                 net_cfg_instance_id,
+                                 &len);
+        if (status != ERROR_SUCCESS)
+        {
+            goto next;
+        }
+
+        len = sizeof(device_instance_id);
+        res = SetupDiGetDeviceInstanceId(dev_info_set, &device_info_data, device_instance_id, len, &len);
+        if (!res)
+        {
+            goto next;
+        }
+
+        cr = CM_Get_Device_Interface_List_Size(&dev_interface_list_size,
+                                               (LPGUID)&GUID_DEVINTERFACE_NET,
+                                               device_instance_id,
+                                               CM_GET_DEVICE_INTERFACE_LIST_PRESENT);
+
+        if (cr != CR_SUCCESS)
+        {
+            goto next;
+        }
+
+        dev_interface_list = alloc_buf_gc(dev_interface_list_size, gc);
+        cr = CM_Get_Device_Interface_List((LPGUID)&GUID_DEVINTERFACE_NET, device_instance_id,
+                                          BPTR(&dev_interface_list),
+                                          dev_interface_list_size,
+                                          CM_GET_DEVICE_INTERFACE_LIST_PRESENT);
+        if (cr != CR_SUCCESS)
+        {
+            goto next;
+        }
+
+        struct device_instance_id_interface *dev_if;
+        ALLOC_OBJ_CLEAR_GC(dev_if, struct device_instance_id_interface, gc);
+        dev_if->net_cfg_instance_id = string_alloc(net_cfg_instance_id, gc);
+        dev_if->device_interface_list = string_alloc(BSTR(&dev_interface_list), gc);
+
+        /* link into return list */
+        if (!first)
+        {
+            first = dev_if;
+        }
+        if (last)
+        {
+            last->next = dev_if;
+        }
+        last = dev_if;
+
+next:
+        RegCloseKey(dev_key);
+    }
+
+    SetupDiDestroyDeviceInfoList(dev_info_set);
+
+    return first;
+}
+
+static const struct tap_reg *
 get_tap_reg(struct gc_arena *gc)
 {
     HKEY adapter_key;
@@ -3540,12 +3688,24 @@ get_tap_reg(struct gc_arena *gc)
 
                 if (status == ERROR_SUCCESS && data_type == REG_SZ)
                 {
-                    if (!strcmp(component_id, TAP_WIN_COMPONENT_ID) ||
-                        !strcmp(component_id, "root\\" TAP_WIN_COMPONENT_ID))
+                    /* Is this adapter supported? */
+                    enum windows_driver_type windows_driver = WINDOWS_DRIVER_UNSPECIFIED;
+                    if (strcasecmp(component_id, TAP_WIN_COMPONENT_ID) == 0
+                        || strcasecmp(component_id, "root\\" TAP_WIN_COMPONENT_ID) == 0)
+                    {
+                        windows_driver = WINDOWS_DRIVER_TAP_WINDOWS6;
+                    }
+                    else if (strcasecmp(component_id, WINTUN_COMPONENT_ID) == 0)
+                    {
+                        windows_driver = WINDOWS_DRIVER_WINTUN;
+                    }
+
+                    if (windows_driver != WINDOWS_DRIVER_UNSPECIFIED)
                     {
                         struct tap_reg *reg;
                         ALLOC_OBJ_CLEAR_GC(reg, struct tap_reg, gc);
                         reg->guid = string_alloc(net_cfg_instance_id, gc);
+                        reg->windows_driver = windows_driver;
 
                         /* link into return list */
                         if (!first)
@@ -3569,7 +3729,7 @@ get_tap_reg(struct gc_arena *gc)
     return first;
 }
 
-const struct panel_reg *
+static const struct panel_reg *
 get_panel_reg(struct gc_arena *gc)
 {
     LONG status;
@@ -3776,7 +3936,7 @@ show_tap_win_adapters(int msglev, int warnlev)
     const struct tap_reg *tap_reg = get_tap_reg(&gc);
     const struct panel_reg *panel_reg = get_panel_reg(&gc);
 
-    msg(msglev, "Available TAP-WIN32 adapters [name, GUID]:");
+    msg(msglev, "Available TAP-WIN32 / Wintun adapters [name, GUID, driver]:");
 
     /* loop through each TAP-Windows adapter registry entry */
     for (tr = tap_reg; tr != NULL; tr = tr->next)
@@ -3788,7 +3948,7 @@ show_tap_win_adapters(int msglev, int warnlev)
         {
             if (!strcmp(tr->guid, pr->guid))
             {
-                msg(msglev, "'%s' %s", pr->name, tr->guid);
+                msg(msglev, "'%s' %s %s", pr->name, tr->guid, print_windows_driver(tr->windows_driver));
                 ++links;
             }
         }
@@ -3838,10 +3998,10 @@ show_tap_win_adapters(int msglev, int warnlev)
 }
 
 /*
- * Confirm that GUID is a TAP-Windows adapter.
+ * Lookup a TAP-Windows or Wintun adapter by GUID.
  */
-static bool
-is_tap_win(const char *guid, const struct tap_reg *tap_reg)
+static const struct tap_reg *
+get_adapter_by_guid(const char *guid, const struct tap_reg *tap_reg)
 {
     const struct tap_reg *tr;
 
@@ -3849,11 +4009,11 @@ is_tap_win(const char *guid, const struct tap_reg *tap_reg)
     {
         if (guid && !strcmp(tr->guid, guid))
         {
-            return true;
+            return tr;
         }
     }
 
-    return false;
+    return NULL;
 }
 
 static const char *
@@ -3872,16 +4032,16 @@ guid_to_name(const char *guid, const struct panel_reg *panel_reg)
     return NULL;
 }
 
-static const char *
-name_to_guid(const char *name, const struct tap_reg *tap_reg, const struct panel_reg *panel_reg)
+static const struct tap_reg *
+get_adapter_by_name(const char *name, const struct tap_reg *tap_reg, const struct panel_reg *panel_reg)
 {
     const struct panel_reg *pr;
 
     for (pr = panel_reg; pr != NULL; pr = pr->next)
     {
-        if (name && !strcmp(pr->name, name) && is_tap_win(pr->guid, tap_reg))
+        if (name && !strcmp(pr->name, name))
         {
-            return pr->guid;
+            return get_adapter_by_guid(pr->guid, tap_reg);
         }
     }
 
@@ -3893,7 +4053,7 @@ at_least_one_tap_win(const struct tap_reg *tap_reg)
 {
     if (!tap_reg)
     {
-        msg(M_FATAL, "There are no TAP-Windows adapters on this system.  You should be able to create a TAP-Windows adapter by going to Start -> All Programs -> TAP-Windows -> Utilities -> Add a new TAP-Windows virtual ethernet adapter.");
+        msg(M_FATAL, "There are no TAP-Windows nor Wintun adapters on this system.  You should be able to create an adapter by using tapctl.exe utility.");
     }
 }
 
@@ -3907,6 +4067,7 @@ get_unspecified_device_guid(const int device_number,
                             int actual_name_size,
                             const struct tap_reg *tap_reg_src,
                             const struct panel_reg *panel_reg_src,
+                            enum windows_driver_type *windows_driver,
                             struct gc_arena *gc)
 {
     const struct tap_reg *tap_reg = tap_reg_src;
@@ -3956,23 +4117,29 @@ get_unspecified_device_guid(const int device_number,
     /* Save GUID for return value */
     ret = alloc_buf_gc(256, gc);
     buf_printf(&ret, "%s", tap_reg->guid);
+    if (windows_driver != NULL)
+    {
+        *windows_driver = tap_reg->windows_driver;
+    }
     return BSTR(&ret);
 }
 
 /*
  * Lookup a --dev-node adapter name in the registry
- * returning the GUID and optional actual_name.
+ * returning the GUID and optional actual_name and device type
  */
 static const char *
 get_device_guid(const char *name,
                 char *actual_name,
                 int actual_name_size,
+                enum windows_driver_type *windows_driver,
                 const struct tap_reg *tap_reg,
                 const struct panel_reg *panel_reg,
                 struct gc_arena *gc)
 {
     struct buffer ret = alloc_buf_gc(256, gc);
     struct buffer actual = clear_buf();
+    const struct tap_reg *tr;
 
     /* Make sure we have at least one TAP adapter */
     if (!tap_reg)
@@ -3988,7 +4155,8 @@ get_device_guid(const char *name,
     }
 
     /* Check if GUID was explicitly specified as --dev-node parameter */
-    if (is_tap_win(name, tap_reg))
+    tr = get_adapter_by_guid(name, tap_reg);
+    if (tr)
     {
         const char *act = guid_to_name(name, panel_reg);
         buf_printf(&ret, "%s", name);
@@ -4000,16 +4168,24 @@ get_device_guid(const char *name,
         {
             buf_printf(&actual, "%s", name);
         }
+        if (windows_driver)
+        {
+            *windows_driver = tr->windows_driver;
+        }
         return BSTR(&ret);
     }
 
     /* Lookup TAP adapter in network connections list */
     {
-        const char *guid = name_to_guid(name, tap_reg, panel_reg);
-        if (guid)
+        tr = get_adapter_by_name(name, tap_reg, panel_reg);
+        if (tr)
         {
             buf_printf(&actual, "%s", name);
-            buf_printf(&ret, "%s", guid);
+            if (windows_driver)
+            {
+                *windows_driver = tr->windows_driver;
+            }
+            buf_printf(&ret, "%s", tr->guid);
             return BSTR(&ret);
         }
     }
@@ -4553,11 +4729,14 @@ get_adapter_index_flexible(const char *name)  /* actual name or GUID */
     {
         const struct tap_reg *tap_reg = get_tap_reg(&gc);
         const struct panel_reg *panel_reg = get_panel_reg(&gc);
-        const char *guid = name_to_guid(name, tap_reg, panel_reg);
-        index = get_adapter_index_method_1(guid);
-        if (index == TUN_ADAPTER_INDEX_INVALID)
+        const struct tap_reg *tr = get_adapter_by_name(name, tap_reg, panel_reg);
+        if (tr)
         {
-            index = get_adapter_index_method_2(guid);
+            index = get_adapter_index_method_1(tr->guid);
+            if (index == TUN_ADAPTER_INDEX_INVALID)
+            {
+                index = get_adapter_index_method_2(tr->guid);
+            }
         }
     }
     if (index == TUN_ADAPTER_INDEX_INVALID)
@@ -4690,7 +4869,7 @@ tap_allow_nonadmin_access(const char *dev_node)
     if (dev_node)
     {
         /* Get the device GUID for the device specified with --dev-node. */
-        device_guid = get_device_guid(dev_node, actual_buffer, sizeof(actual_buffer), tap_reg, panel_reg, &gc);
+        device_guid = get_device_guid(dev_node, actual_buffer, sizeof(actual_buffer), NULL, tap_reg, panel_reg, &gc);
 
         if (!device_guid)
         {
@@ -4733,6 +4912,7 @@ tap_allow_nonadmin_access(const char *dev_node)
                                                       sizeof(actual_buffer),
                                                       tap_reg,
                                                       panel_reg,
+                                                      NULL,
                                                       &gc);
 
             if (!device_guid)
@@ -4888,19 +5068,19 @@ ipconfig_register_dns(const struct env_set *es)
     msg(D_TUNTAP_INFO, "Start ipconfig commands for register-dns...");
     netcmd_semaphore_lock();
 
-    argv_printf(&argv, "%s%sc /flushdns",
+    argv_printf(&argv, "%s%s /flushdns",
                 get_win_sys_path(),
                 WIN_IPCONFIG_PATH_SUFFIX);
     argv_msg(D_TUNTAP_INFO, &argv);
     openvpn_execve_check(&argv, es, 0, err);
-    argv_reset(&argv);
+    argv_free(&argv);
 
-    argv_printf(&argv, "%s%sc /registerdns",
+    argv_printf(&argv, "%s%s /registerdns",
                 get_win_sys_path(),
                 WIN_IPCONFIG_PATH_SUFFIX);
     argv_msg(D_TUNTAP_INFO, &argv);
     openvpn_execve_check(&argv, es, 0, err);
-    argv_reset(&argv);
+    argv_free(&argv);
 
     netcmd_semaphore_release();
     msg(D_TUNTAP_INFO, "End ipconfig commands for register-dns...");
@@ -5009,8 +5189,8 @@ netsh_set_dns6_servers(const struct in6_addr *addr_list,
     for (int i = 0; i < addr_len; ++i)
     {
         const char *fmt = (i == 0) ?
-                          "%s%sc interface ipv6 set dns %s static %s"
-                          : "%s%sc interface ipv6 add dns %s %s";
+                          "%s%s interface ipv6 set dns %s static %s"
+                          : "%s%s interface ipv6 add dns %s %s";
         argv_printf(&argv, fmt, get_win_sys_path(),
                     NETSH_PATH_SUFFIX, flex_name,
                     print_in6_addr(addr_list[i], 0, &gc));
@@ -5025,7 +5205,7 @@ netsh_set_dns6_servers(const struct in6_addr *addr_list,
         netsh_command(&argv, 1, (i==0) ? M_FATAL : M_NONFATAL);
     }
 
-    argv_reset(&argv);
+    argv_free(&argv);
     gc_free(&gc);
 }
 
@@ -5040,6 +5220,7 @@ netsh_ifconfig_options(const char *type,
     struct gc_arena gc = gc_new();
     struct argv argv = argv_new();
     bool delete_first = false;
+    bool is_dns = !strcmp(type, "dns");
 
     /* first check if we should delete existing DNS/WINS settings from TAP interface */
     if (test_first)
@@ -5057,7 +5238,7 @@ netsh_ifconfig_options(const char *type,
     /* delete existing DNS/WINS settings from TAP interface */
     if (delete_first)
     {
-        argv_printf(&argv, "%s%sc interface ip delete %s %s all",
+        argv_printf(&argv, "%s%s interface ip delete %s %s all",
                     get_win_sys_path(),
                     NETSH_PATH_SUFFIX,
                     type,
@@ -5074,8 +5255,8 @@ netsh_ifconfig_options(const char *type,
             if (delete_first || !test_first || !ip_addr_member_of(addr_list[i], current))
             {
                 const char *fmt = count ?
-                                  "%s%sc interface ip add %s %s %s"
-                                  : "%s%sc interface ip set %s %s static %s";
+                                  "%s%s interface ip add %s %s %s"
+                                  : "%s%s interface ip set %s %s static %s";
 
                 argv_printf(&argv, fmt,
                             get_win_sys_path(),
@@ -5083,6 +5264,14 @@ netsh_ifconfig_options(const char *type,
                             type,
                             flex_name,
                             print_in_addr_t(addr_list[i], 0, &gc));
+
+                /* disable slow address validation on Windows 7 and higher */
+                /* only for DNS */
+                if (is_dns && win32_version_info() >= WIN_7)
+                {
+                    argv_printf_cat(&argv, "%s", "validate=no");
+                }
+
                 netsh_command(&argv, 2, M_FATAL);
 
                 ++count;
@@ -5097,7 +5286,7 @@ netsh_ifconfig_options(const char *type,
         }
     }
 
-    argv_reset(&argv);
+    argv_free(&argv);
     gc_free(&gc);
 }
 
@@ -5151,7 +5340,7 @@ netsh_ifconfig(const struct tuntap_options *to,
         else
         {
             /* example: netsh interface ip set address my-tap static 10.3.0.1 255.255.255.0 */
-            argv_printf(&argv, "%s%sc interface ip set address %s static %s %s",
+            argv_printf(&argv, "%s%s interface ip set address %s static %s %s",
                         get_win_sys_path(),
                         NETSH_PATH_SUFFIX,
                         flex_name,
@@ -5188,7 +5377,7 @@ netsh_ifconfig(const struct tuntap_options *to,
                                BOOL_CAST(flags & NI_TEST_FIRST));
     }
 
-    argv_reset(&argv);
+    argv_free(&argv);
     gc_free(&gc);
 }
 
@@ -5199,14 +5388,14 @@ netsh_enable_dhcp(const char *actual_name)
 
     /* example: netsh interface ip set address my-tap dhcp */
     argv_printf(&argv,
-                "%s%sc interface ip set address %s dhcp",
+                "%s%s interface ip set address %s dhcp",
                 get_win_sys_path(),
                 NETSH_PATH_SUFFIX,
                 actual_name);
 
     netsh_command(&argv, 4, M_FATAL);
 
-    argv_reset(&argv);
+    argv_free(&argv);
 }
 
 /* Enable dhcp on tap adapter using iservice */
@@ -5263,13 +5452,13 @@ netsh_get_id(const char *dev_node, struct gc_arena *gc)
 
     if (dev_node)
     {
-        guid = get_device_guid(dev_node, BPTR(&actual), BCAP(&actual), tap_reg, panel_reg, gc);
+        guid = get_device_guid(dev_node, BPTR(&actual), BCAP(&actual), NULL, tap_reg, panel_reg, gc);
     }
     else
     {
-        guid = get_unspecified_device_guid(0, BPTR(&actual), BCAP(&actual), tap_reg, panel_reg, gc);
+        guid = get_unspecified_device_guid(0, BPTR(&actual), BCAP(&actual), tap_reg, panel_reg, NULL, gc);
 
-        if (get_unspecified_device_guid(1, NULL, 0, tap_reg, panel_reg, gc)) /* ambiguous if more than one TAP-Windows adapter */
+        if (get_unspecified_device_guid(1, NULL, 0, tap_reg, panel_reg, NULL, gc)) /* ambiguous if more than one TAP-Windows adapter */
         {
             guid = NULL;
         }
@@ -5489,6 +5678,46 @@ register_dns_service(const struct tuntap *tt)
     gc_free(&gc);
 }
 
+static bool
+service_register_ring_buffers(const struct tuntap *tt)
+{
+    HANDLE msg_channel = tt->options.msg_channel;
+    ack_message_t ack;
+    bool ret = true;
+    struct gc_arena gc = gc_new();
+
+    register_ring_buffers_message_t msg = {
+        .header = {
+            msg_register_ring_buffers,
+            sizeof(register_ring_buffers_message_t),
+            0
+        },
+        .device = tt->hand,
+        .send_ring_handle = tt->wintun_send_ring_handle,
+        .receive_ring_handle = tt->wintun_receive_ring_handle,
+        .send_tail_moved = tt->rw_handle.read,
+        .receive_tail_moved = tt->rw_handle.write
+    };
+
+    if (!send_msg_iservice(msg_channel, &msg, sizeof(msg), &ack, "Register ring buffers"))
+    {
+        ret = false;
+    }
+    else if (ack.error_number != NO_ERROR)
+    {
+        msg(M_NONFATAL, "Register ring buffers failed using service: %s [status=0x%x]",
+            strerror_win32(ack.error_number, &gc), ack.error_number);
+        ret = false;
+    }
+    else
+    {
+        msg(M_INFO, "Ring buffers registered via service");
+    }
+
+    gc_free(&gc);
+    return ret;
+}
+
 void
 fork_register_dns_action(struct tuntap *tt)
 {
@@ -5537,15 +5766,642 @@ dhcp_masq_addr(const in_addr_t local, const in_addr_t netmask, const int offset)
     return htonl(dsa);
 }
 
+static void
+tuntap_get_version_info(const struct tuntap *tt)
+{
+    ULONG info[3];
+    DWORD len;
+    CLEAR(info);
+    if (DeviceIoControl(tt->hand, TAP_WIN_IOCTL_GET_VERSION,
+                        &info, sizeof(info),
+                        &info, sizeof(info), &len, NULL))
+    {
+        msg(D_TUNTAP_INFO, "TAP-Windows Driver Version %d.%d %s",
+            (int)info[0],
+            (int)info[1],
+            (info[2] ? "(DEBUG)" : ""));
+
+    }
+    if (!(info[0] == TAP_WIN_MIN_MAJOR && info[1] >= TAP_WIN_MIN_MINOR))
+    {
+        msg(M_FATAL, "ERROR:  This version of " PACKAGE_NAME " requires a TAP-Windows driver that is at least version %d.%d -- If you recently upgraded your " PACKAGE_NAME " distribution, a reboot is probably required at this point to get Windows to see the new driver.",
+            TAP_WIN_MIN_MAJOR,
+            TAP_WIN_MIN_MINOR);
+    }
+
+    /* usage of numeric constants is ugly, but this is really tied to
+     * *this* version of the driver
+     */
+    if (tt->type == DEV_TYPE_TUN
+        && info[0] == 9 && info[1] < 8)
+    {
+        msg(M_INFO, "WARNING:  Tap-Win32 driver version %d.%d does not support IPv6 in TUN mode. IPv6 will not work. Upgrade your Tap-Win32 driver.", (int)info[0], (int)info[1]);
+    }
+
+    /* tap driver 9.8 (2.2.0 and 2.2.1 release) is buggy
+     */
+    if (tt->type == DEV_TYPE_TUN
+        && info[0] == 9 && info[1] == 8)
+    {
+        msg(M_FATAL, "ERROR:  Tap-Win32 driver version %d.%d is buggy regarding small IPv4 packets in TUN mode. Upgrade your Tap-Win32 driver.", (int)info[0], (int)info[1]);
+    }
+}
+
+static void
+tuntap_get_mtu(struct tuntap *tt)
+{
+    ULONG mtu = 0;
+    DWORD len;
+    if (DeviceIoControl(tt->hand, TAP_WIN_IOCTL_GET_MTU,
+                        &mtu, sizeof(mtu),
+                        &mtu, sizeof(mtu), &len, NULL))
+    {
+        tt->post_open_mtu = (int)mtu;
+        msg(D_MTU_INFO, "TAP-Windows MTU=%d", (int)mtu);
+    }
+}
+
+static void
+tuntap_set_ip_addr(struct tuntap *tt,
+                   const char *device_guid,
+                   bool dhcp_masq_post)
+{
+    struct gc_arena gc = gc_new();
+    const DWORD index = tt->adapter_index;
+
+    /* flush arp cache */
+    if (index != TUN_ADAPTER_INDEX_INVALID)
+    {
+        DWORD status = -1;
+
+        if (tt->options.msg_channel)
+        {
+            ack_message_t ack;
+            flush_neighbors_message_t msg = {
+                .header = {
+                    msg_flush_neighbors,
+                    sizeof(flush_neighbors_message_t),
+                    0
+                },
+                .family = AF_INET,
+                .iface = {.index = index, .name = "" }
+            };
+
+            if (send_msg_iservice(tt->options.msg_channel, &msg, sizeof(msg),
+                                  &ack, "TUN"))
+            {
+                status = ack.error_number;
+            }
+        }
+        else
+        {
+            status = FlushIpNetTable(index);
+        }
+
+        if (status == NO_ERROR)
+        {
+            msg(M_INFO, "Successful ARP Flush on interface [%lu] %s",
+                index,
+                device_guid);
+        }
+        else if (status != -1)
+        {
+            msg(D_TUNTAP_INFO, "NOTE: FlushIpNetTable failed on interface [%lu] %s (status=%lu) : %s",
+                index,
+                device_guid,
+                status,
+                strerror_win32(status, &gc));
+        }
+    }
+
+    /*
+     * If the TAP-Windows driver is masquerading as a DHCP server
+     * make sure the TCP/IP properties for the adapter are
+     * set correctly.
+     */
+    if (dhcp_masq_post)
+    {
+        /* check dhcp enable status */
+        if (dhcp_status(index) == DHCP_STATUS_DISABLED)
+        {
+            msg(M_WARN, "WARNING: You have selected '--ip-win32 dynamic', which will not work unless the TAP-Windows TCP/IP properties are set to 'Obtain an IP address automatically'");
+        }
+
+        /* force an explicit DHCP lease renewal on TAP adapter? */
+        if (tt->options.dhcp_pre_release)
+        {
+            dhcp_release(tt);
+        }
+        if (tt->options.dhcp_renew)
+        {
+            dhcp_renew(tt);
+        }
+    }
+    else
+    {
+        fork_dhcp_action(tt);
+    }
+
+    if (tt->did_ifconfig_setup && tt->options.ip_win32_type == IPW32_SET_IPAPI)
+    {
+        DWORD status;
+        const char *error_suffix = "I am having trouble using the Windows 'IP helper API' to automatically set the IP address -- consider using other --ip-win32 methods (not 'ipapi')";
+
+        /* couldn't get adapter index */
+        if (index == TUN_ADAPTER_INDEX_INVALID)
+        {
+            msg(M_FATAL, "ERROR: unable to get adapter index for interface %s -- %s",
+                device_guid,
+                error_suffix);
+        }
+
+        /* check dhcp enable status */
+        if (dhcp_status(index) == DHCP_STATUS_DISABLED)
+        {
+            msg(M_WARN, "NOTE: You have selected (explicitly or by default) '--ip-win32 ipapi', which has a better chance of working correctly if the TAP-Windows TCP/IP properties are set to 'Obtain an IP address automatically'");
+        }
+
+        /* delete previously added IP addresses which were not
+         * correctly deleted */
+        delete_temp_addresses(index);
+
+        /* add a new IP address */
+        if ((status = AddIPAddress(htonl(tt->local),
+                                   htonl(tt->adapter_netmask),
+                                   index,
+                                   &tt->ipapi_context,
+                                   &tt->ipapi_instance)) == NO_ERROR)
+        {
+            msg(M_INFO, "Succeeded in adding a temporary IP/netmask of %s/%s to interface %s using the Win32 IP Helper API",
+                print_in_addr_t(tt->local, 0, &gc),
+                print_in_addr_t(tt->adapter_netmask, 0, &gc),
+                device_guid
+                );
+        }
+        else
+        {
+            msg(M_FATAL, "ERROR: AddIPAddress %s/%s failed on interface %s, index=%lu, status=%lu (windows error: '%s') -- %s",
+                print_in_addr_t(tt->local, 0, &gc),
+                print_in_addr_t(tt->adapter_netmask, 0, &gc),
+                device_guid,
+                index,
+                status,
+                strerror_win32(status, &gc),
+                error_suffix);
+        }
+        tt->ipapi_context_defined = true;
+    }
+
+    gc_free(&gc);
+}
+
+static bool
+wintun_register_ring_buffer(struct tuntap *tt, const char *device_guid)
+{
+    bool ret = true;
+
+    tt->wintun_send_ring = (struct tun_ring *)MapViewOfFile(tt->wintun_send_ring_handle,
+                                                            FILE_MAP_ALL_ACCESS,
+                                                            0,
+                                                            0,
+                                                            sizeof(struct tun_ring));
+
+    tt->wintun_receive_ring = (struct tun_ring *)MapViewOfFile(tt->wintun_receive_ring_handle,
+                                                               FILE_MAP_ALL_ACCESS,
+                                                               0,
+                                                               0,
+                                                               sizeof(struct tun_ring));
+
+    if (tt->options.msg_channel)
+    {
+        ret = service_register_ring_buffers(tt);
+    }
+    else
+    {
+        if (!impersonate_as_system())
+        {
+            msg(M_FATAL, "ERROR:  Failed to impersonate as SYSTEM, make sure process is running under privileged account");
+        }
+        if (!register_ring_buffers(tt->hand,
+                                   tt->wintun_send_ring,
+                                   tt->wintun_receive_ring,
+                                   tt->rw_handle.read,
+                                   tt->rw_handle.write))
+        {
+            switch (GetLastError())
+            {
+                case ERROR_ACCESS_DENIED:
+                    msg(M_FATAL, "Access denied registering ring buffers. Is this process run as SYSTEM?");
+                    break;
+
+                case ERROR_ALREADY_INITIALIZED:
+                    msg(M_NONFATAL, "Adapter %s is already in use", device_guid);
+                    break;
+
+                default:
+                    msg(M_NONFATAL | M_ERRNO, "Failed to register ring buffers");
+            }
+            ret = false;
+        }
+        if (!RevertToSelf())
+        {
+            msg(M_FATAL, "ERROR:  RevertToSelf error: %lu", GetLastError());
+        }
+    }
+
+    return ret;
+}
+
+static void
+tuntap_set_connected(const struct tuntap *tt)
+{
+    ULONG status = TRUE;
+    DWORD len;
+    if (!DeviceIoControl(tt->hand, TAP_WIN_IOCTL_SET_MEDIA_STATUS,
+                         &status, sizeof(status),
+                         &status, sizeof(status), &len, NULL))
+    {
+        msg(M_WARN, "WARNING: The TAP-Windows driver rejected a TAP_WIN_IOCTL_SET_MEDIA_STATUS DeviceIoControl call.");
+    }
+
+    int s = tt->options.tap_sleep;
+    if (s > 0)
+    {
+        msg(M_INFO, "Sleeping for %d seconds...", s);
+        management_sleep(s);
+    }
+}
+
+static void
+tuntap_set_ptp(const struct tuntap *tt)
+{
+    DWORD len;
+    struct gc_arena gc = gc_new();
+
+    if (!tt->did_ifconfig_setup && !tt->did_ifconfig_ipv6_setup)
+    {
+        msg(M_FATAL, "ERROR: --dev tun also requires --ifconfig");
+    }
+
+    /* send 0/0/0 to the TAP driver even if we have no IPv4 configured to
+     * ensure it is somehow initialized.
+     */
+    if (!tt->did_ifconfig_setup || tt->topology == TOP_SUBNET)
+    {
+        in_addr_t ep[3];
+        BOOL status;
+
+        ep[0] = htonl(tt->local);
+        ep[1] = htonl(tt->local & tt->remote_netmask);
+        ep[2] = htonl(tt->remote_netmask);
+
+        status = DeviceIoControl(tt->hand, TAP_WIN_IOCTL_CONFIG_TUN,
+                                 ep, sizeof(ep),
+                                 ep, sizeof(ep), &len, NULL);
+
+        if (tt->did_ifconfig_setup)
+        {
+            msg(status ? M_INFO : M_FATAL, "Set TAP-Windows TUN subnet mode network/local/netmask = %s/%s/%s [%s]",
+                print_in_addr_t(ep[1], IA_NET_ORDER, &gc),
+                print_in_addr_t(ep[0], IA_NET_ORDER, &gc),
+                print_in_addr_t(ep[2], IA_NET_ORDER, &gc),
+                status ? "SUCCEEDED" : "FAILED");
+        }
+        else
+        {
+            msg(status ? M_INFO : M_FATAL, "Set TAP-Windows TUN with fake IPv4 [%s]",
+                status ? "SUCCEEDED" : "FAILED");
+        }
+    }
+    else
+    {
+        in_addr_t ep[2];
+        ep[0] = htonl(tt->local);
+        ep[1] = htonl(tt->remote_netmask);
+
+        if (!DeviceIoControl(tt->hand, TAP_WIN_IOCTL_CONFIG_POINT_TO_POINT,
+                             ep, sizeof(ep),
+                             ep, sizeof(ep), &len, NULL))
+        {
+            msg(M_FATAL, "ERROR: The TAP-Windows driver rejected a DeviceIoControl call to set Point-to-Point mode, which is required for --dev tun");
+        }
+    }
+
+    gc_free(&gc);
+}
+
+static void
+tuntap_dhcp_mask(const struct tuntap *tt, const char *device_guid)
+{
+    struct gc_arena gc = gc_new();
+    DWORD len;
+    uint32_t ep[4];
+
+    /* We will answer DHCP requests with a reply to set IP/subnet to these values */
+    ep[0] = htonl(tt->local);
+    ep[1] = htonl(tt->adapter_netmask);
+
+    /* At what IP address should the DHCP server masquerade at? */
+    if (tt->type == DEV_TYPE_TUN)
+    {
+        if (tt->topology == TOP_SUBNET)
+        {
+            if (tt->options.dhcp_masq_custom_offset)
+            {
+                ep[2] = dhcp_masq_addr(tt->local, tt->remote_netmask, tt->options.dhcp_masq_offset);
+            }
+            else
+            {
+                ep[2] = dhcp_masq_addr(tt->local, tt->remote_netmask, -1);
+            }
+        }
+        else
+        {
+            ep[2] = htonl(tt->remote_netmask);
+        }
+    }
+    else
+    {
+        ASSERT(tt->type == DEV_TYPE_TAP);
+        ep[2] = dhcp_masq_addr(tt->local, tt->adapter_netmask, tt->options.dhcp_masq_custom_offset ? tt->options.dhcp_masq_offset : 0);
+    }
+
+    /* lease time in seconds */
+    ep[3] = (uint32_t)tt->options.dhcp_lease_time;
+
+    ASSERT(ep[3] > 0);
+
+#ifndef SIMULATE_DHCP_FAILED /* this code is disabled to simulate bad DHCP negotiation */
+    if (!DeviceIoControl(tt->hand, TAP_WIN_IOCTL_CONFIG_DHCP_MASQ,
+                         ep, sizeof(ep),
+                         ep, sizeof(ep), &len, NULL))
+    {
+        msg(M_FATAL, "ERROR: The TAP-Windows driver rejected a DeviceIoControl call to set TAP_WIN_IOCTL_CONFIG_DHCP_MASQ mode");
+    }
+
+    msg(M_INFO, "Notified TAP-Windows driver to set a DHCP IP/netmask of %s/%s on interface %s [DHCP-serv: %s, lease-time: %d]",
+        print_in_addr_t(tt->local, 0, &gc),
+        print_in_addr_t(tt->adapter_netmask, 0, &gc),
+        device_guid,
+        print_in_addr_t(ep[2], IA_NET_ORDER, &gc),
+        ep[3]
+        );
+
+    /* user-supplied DHCP options capability */
+    if (tt->options.dhcp_options)
+    {
+        struct buffer buf = alloc_buf(256);
+        if (build_dhcp_options_string(&buf, &tt->options))
+        {
+            msg(D_DHCP_OPT, "DHCP option string: %s", format_hex(BPTR(&buf), BLEN(&buf), 0, &gc));
+            if (!DeviceIoControl(tt->hand, TAP_WIN_IOCTL_CONFIG_DHCP_SET_OPT,
+                                 BPTR(&buf), BLEN(&buf),
+                                 BPTR(&buf), BLEN(&buf), &len, NULL))
+            {
+                msg(M_FATAL, "ERROR: The TAP-Windows driver rejected a TAP_WIN_IOCTL_CONFIG_DHCP_SET_OPT DeviceIoControl call");
+            }
+        }
+        else
+        {
+            msg(M_WARN, "DHCP option string not set due to error");
+        }
+        free_buf(&buf);
+    }
+#endif /* ifndef SIMULATE_DHCP_FAILED */
+
+    gc_free(&gc);
+}
+
+static bool
+tun_try_open_device(struct tuntap *tt, const char *device_guid, const struct device_instance_id_interface *device_instance_id_interface)
+{
+    const char *path = NULL;
+    char tuntap_device_path[256];
+
+    if (tt->windows_driver == WINDOWS_DRIVER_WINTUN)
+    {
+        const struct device_instance_id_interface *dev_if;
+
+        /* Open Wintun adapter */
+        for (dev_if = device_instance_id_interface; dev_if != NULL; dev_if = dev_if->next)
+        {
+            if (strcmp(dev_if->net_cfg_instance_id, device_guid) == 0)
+            {
+                path = dev_if->device_interface_list;
+                break;
+            }
+        }
+        if (path == NULL)
+        {
+            return false;
+        }
+    }
+    else
+    {
+        /* Open TAP-Windows adapter */
+        openvpn_snprintf(tuntap_device_path, sizeof(tuntap_device_path), "%s%s%s",
+                         USERMODEDEVICEDIR,
+                         device_guid,
+                         TAP_WIN_SUFFIX);
+        path = tuntap_device_path;
+    }
+
+    tt->hand = CreateFile(path,
+                          GENERIC_READ | GENERIC_WRITE,
+                          0,         /* was: FILE_SHARE_READ */
+                          0,
+                          OPEN_EXISTING,
+                          FILE_ATTRIBUTE_SYSTEM | FILE_FLAG_OVERLAPPED,
+                          0);
+    if (tt->hand == INVALID_HANDLE_VALUE)
+    {
+        msg(D_TUNTAP_INFO, "CreateFile failed on %s device: %s", print_windows_driver(tt->windows_driver), path);
+        return false;
+    }
+
+    if (tt->windows_driver == WINDOWS_DRIVER_WINTUN)
+    {
+        /* Wintun adapter may be considered "open" after ring buffers are successfuly registered. */
+        if (!wintun_register_ring_buffer(tt, device_guid))
+        {
+            msg(D_TUNTAP_INFO, "Failed to register %s adapter ring buffers", device_guid);
+            CloseHandle(tt->hand);
+            tt->hand = NULL;
+            return false;
+        }
+    }
+
+    return true;
+}
+
+static void
+tun_open_device(struct tuntap *tt, const char *dev_node, const char **device_guid, struct gc_arena *gc)
+{
+    const struct tap_reg *tap_reg = get_tap_reg(gc);
+    const struct panel_reg *panel_reg = get_panel_reg(gc);
+    const struct device_instance_id_interface *device_instance_id_interface = get_device_instance_id_interface(gc);
+    char actual_buffer[256];
+
+    at_least_one_tap_win(tap_reg);
+
+    /*
+     * Lookup the device name in the registry, using the --dev-node high level name.
+     */
+    if (dev_node)
+    {
+        enum windows_driver_type windows_driver = WINDOWS_DRIVER_UNSPECIFIED;
+
+        /* Get the device GUID for the device specified with --dev-node. */
+        *device_guid = get_device_guid(dev_node, actual_buffer, sizeof(actual_buffer), &windows_driver, tap_reg, panel_reg, gc);
+
+        if (!*device_guid)
+        {
+            msg(M_FATAL, "Adapter '%s' not found", dev_node);
+        }
+
+        if (tt->windows_driver != windows_driver)
+        {
+            msg(M_FATAL, "Adapter '%s' is using %s driver, %s expected. If you want to use this device, adjust --windows-driver.",
+                dev_node, print_windows_driver(windows_driver), print_windows_driver(tt->windows_driver));
+        }
+
+        if (!tun_try_open_device(tt, *device_guid, device_instance_id_interface))
+        {
+            msg(M_FATAL, "Failed to open %s adapter: %s", print_windows_driver(tt->windows_driver), dev_node);
+        }
+    }
+    else
+    {
+        int device_number = 0;
+
+        /* Try opening all TAP devices until we find one available */
+        while (true)
+        {
+            enum windows_driver_type windows_driver = WINDOWS_DRIVER_UNSPECIFIED;
+            *device_guid = get_unspecified_device_guid(device_number,
+                                                       actual_buffer,
+                                                       sizeof(actual_buffer),
+                                                       tap_reg,
+                                                       panel_reg,
+                                                       &windows_driver,
+                                                       gc);
+
+            if (!*device_guid)
+            {
+                msg(M_FATAL, "All %s adapters on this system are currently in use.", print_windows_driver(tt->windows_driver));
+            }
+
+            if (tt->windows_driver != windows_driver)
+            {
+                goto next;
+            }
+
+            if (tun_try_open_device(tt, *device_guid, device_instance_id_interface))
+            {
+                break;
+            }
+
+next:
+            device_number++;
+        }
+    }
+
+    /* translate high-level device name into a device instance
+     * GUID using the registry */
+    tt->actual_name = string_alloc(actual_buffer, NULL);
+
+    msg(M_INFO, "%s device [%s] opened", print_windows_driver(tt->windows_driver), tt->actual_name);
+    tt->adapter_index = get_adapter_index(*device_guid);
+}
+
+static void
+tuntap_set_ip_props(const struct tuntap *tt, bool *dhcp_masq, bool *dhcp_masq_post)
+{
+    if (tt->options.ip_win32_type == IPW32_SET_DHCP_MASQ)
+    {
+        /*
+         * If adapter is set to non-DHCP, set to DHCP mode.
+         */
+        if (dhcp_status(tt->adapter_index) == DHCP_STATUS_DISABLED)
+        {
+            /* try using the service if available, else directly execute netsh */
+            if (tt->options.msg_channel)
+            {
+                service_enable_dhcp(tt);
+            }
+            else
+            {
+                netsh_enable_dhcp(tt->actual_name);
+            }
+        }
+        *dhcp_masq = true;
+        *dhcp_masq_post = true;
+    }
+    else if (tt->options.ip_win32_type == IPW32_SET_ADAPTIVE)
+    {
+        /*
+         * If adapter is set to non-DHCP, use netsh right away.
+         */
+        if (dhcp_status(tt->adapter_index) != DHCP_STATUS_ENABLED)
+        {
+            netsh_ifconfig(&tt->options,
+                           tt->actual_name,
+                           tt->local,
+                           tt->adapter_netmask,
+                           NI_TEST_FIRST | NI_IP_NETMASK | NI_OPTIONS);
+        }
+        else
+        {
+            *dhcp_masq = true;
+        }
+    }
+}
+
+static void
+tuntap_post_open(struct tuntap *tt, const char *device_guid)
+{
+    bool dhcp_masq = false;
+    bool dhcp_masq_post = false;
+
+    /* get driver version info */
+    tuntap_get_version_info(tt);
+
+    /* get driver MTU */
+    tuntap_get_mtu(tt);
+
+    /*
+     * Preliminaries for setting TAP-Windows adapter TCP/IP
+     * properties via --ip-win32 dynamic or --ip-win32 adaptive.
+     */
+    if (tt->did_ifconfig_setup)
+    {
+        tuntap_set_ip_props(tt, &dhcp_masq, &dhcp_masq_post);
+    }
+
+    /* set point-to-point mode if TUN device */
+    if (tt->type == DEV_TYPE_TUN)
+    {
+        tuntap_set_ptp(tt);
+    }
+
+    /* should we tell the TAP-Windows driver to masquerade as a DHCP server as a means
+     * of setting the adapter address? */
+    if (dhcp_masq)
+    {
+        tuntap_dhcp_mask(tt, device_guid);
+    }
+
+    /* set driver media status to 'connected' */
+    tuntap_set_connected(tt);
+
+    /* possibly use IP Helper API to set IP address on adapter */
+    tuntap_set_ip_addr(tt, device_guid, dhcp_masq_post);
+}
+
 void
 open_tun(const char *dev, const char *dev_type, const char *dev_node, struct tuntap *tt)
 {
-    struct gc_arena gc = gc_new();
-    char device_path[256];
     const char *device_guid = NULL;
-    DWORD len;
-    bool dhcp_masq = false;
-    bool dhcp_masq_post = false;
 
     /*netcmd_semaphore_lock ();*/
 
@@ -5554,501 +6410,30 @@ open_tun(const char *dev, const char *dev_type, const char *dev_node, struct tun
     if (tt->type == DEV_TYPE_NULL)
     {
         open_null(tt);
-        gc_free(&gc);
         return;
     }
-    else if (tt->type == DEV_TYPE_TAP || tt->type == DEV_TYPE_TUN)
-    {
-    }
-    else
+    else if (tt->type != DEV_TYPE_TAP && tt->type != DEV_TYPE_TUN)
     {
         msg(M_FATAL|M_NOPREFIX, "Unknown virtual device type: '%s'", dev);
     }
 
-    /*
-     * Lookup the device name in the registry, using the --dev-node high level name.
-     */
+    struct gc_arena gc = gc_new(); /* used also for device_guid allocation */
+    tun_open_device(tt, dev_node, &device_guid, &gc);
+
+    if (tt->windows_driver == WINDOWS_DRIVER_TAP_WINDOWS6)
     {
-        const struct tap_reg *tap_reg = get_tap_reg(&gc);
-        const struct panel_reg *panel_reg = get_panel_reg(&gc);
-        char actual_buffer[256];
-
-        at_least_one_tap_win(tap_reg);
-
-        if (dev_node)
-        {
-            /* Get the device GUID for the device specified with --dev-node. */
-            device_guid = get_device_guid(dev_node, actual_buffer, sizeof(actual_buffer), tap_reg, panel_reg, &gc);
-
-            if (!device_guid)
-            {
-                msg(M_FATAL, "TAP-Windows adapter '%s' not found", dev_node);
-            }
-
-            /* Open Windows TAP-Windows adapter */
-            openvpn_snprintf(device_path, sizeof(device_path), "%s%s%s",
-                             USERMODEDEVICEDIR,
-                             device_guid,
-                             TAP_WIN_SUFFIX);
-
-            tt->hand = CreateFile(
-                device_path,
-                GENERIC_READ | GENERIC_WRITE,
-                0,                /* was: FILE_SHARE_READ */
-                0,
-                OPEN_EXISTING,
-                FILE_ATTRIBUTE_SYSTEM | FILE_FLAG_OVERLAPPED,
-                0
-                );
-
-            if (tt->hand == INVALID_HANDLE_VALUE)
-            {
-                msg(M_ERR, "CreateFile failed on TAP device: %s", device_path);
-            }
-        }
-        else
-        {
-            int device_number = 0;
-
-            /* Try opening all TAP devices until we find one available */
-            while (true)
-            {
-                device_guid = get_unspecified_device_guid(device_number,
-                                                          actual_buffer,
-                                                          sizeof(actual_buffer),
-                                                          tap_reg,
-                                                          panel_reg,
-                                                          &gc);
-
-                if (!device_guid)
-                {
-                    msg(M_FATAL, "All TAP-Windows adapters on this system are currently in use.");
-                }
-
-                /* Open Windows TAP-Windows adapter */
-                openvpn_snprintf(device_path, sizeof(device_path), "%s%s%s",
-                                 USERMODEDEVICEDIR,
-                                 device_guid,
-                                 TAP_WIN_SUFFIX);
-
-                tt->hand = CreateFile(
-                    device_path,
-                    GENERIC_READ | GENERIC_WRITE,
-                    0,                /* was: FILE_SHARE_READ */
-                    0,
-                    OPEN_EXISTING,
-                    FILE_ATTRIBUTE_SYSTEM | FILE_FLAG_OVERLAPPED,
-                    0
-                    );
-
-                if (tt->hand == INVALID_HANDLE_VALUE)
-                {
-                    msg(D_TUNTAP_INFO, "CreateFile failed on TAP device: %s", device_path);
-                }
-                else
-                {
-                    break;
-                }
-
-                device_number++;
-            }
-        }
-
-        /* translate high-level device name into a device instance
-         * GUID using the registry */
-        tt->actual_name = string_alloc(actual_buffer, NULL);
+        tuntap_post_open(tt, device_guid);
     }
 
-    msg(M_INFO, "TAP-WIN32 device [%s] opened: %s", tt->actual_name, device_path);
-    tt->adapter_index = get_adapter_index(device_guid);
-
-    /* get driver version info */
-    {
-        ULONG info[3];
-        CLEAR(info);
-        if (DeviceIoControl(tt->hand, TAP_WIN_IOCTL_GET_VERSION,
-                            &info, sizeof(info),
-                            &info, sizeof(info), &len, NULL))
-        {
-            msg(D_TUNTAP_INFO, "TAP-Windows Driver Version %d.%d %s",
-                (int) info[0],
-                (int) info[1],
-                (info[2] ? "(DEBUG)" : ""));
-
-        }
-        if (!(info[0] == TAP_WIN_MIN_MAJOR && info[1] >= TAP_WIN_MIN_MINOR))
-        {
-            msg(M_FATAL, "ERROR:  This version of " PACKAGE_NAME " requires a TAP-Windows driver that is at least version %d.%d -- If you recently upgraded your " PACKAGE_NAME " distribution, a reboot is probably required at this point to get Windows to see the new driver.",
-                TAP_WIN_MIN_MAJOR,
-                TAP_WIN_MIN_MINOR);
-        }
-
-        /* usage of numeric constants is ugly, but this is really tied to
-         * *this* version of the driver
-         */
-        if (tt->type == DEV_TYPE_TUN
-            && info[0] == 9 && info[1] < 8)
-        {
-            msg( M_INFO, "WARNING:  Tap-Win32 driver version %d.%d does not support IPv6 in TUN mode. IPv6 will not work. Upgrade your Tap-Win32 driver.", (int) info[0], (int) info[1] );
-        }
-
-        /* tap driver 9.8 (2.2.0 and 2.2.1 release) is buggy
-         */
-        if (tt->type == DEV_TYPE_TUN
-            && info[0] == 9 && info[1] == 8)
-        {
-            msg( M_FATAL, "ERROR:  Tap-Win32 driver version %d.%d is buggy regarding small IPv4 packets in TUN mode. Upgrade your Tap-Win32 driver.", (int) info[0], (int) info[1] );
-        }
-    }
-
-    /* get driver MTU */
-    {
-        ULONG mtu;
-        if (DeviceIoControl(tt->hand, TAP_WIN_IOCTL_GET_MTU,
-                            &mtu, sizeof(mtu),
-                            &mtu, sizeof(mtu), &len, NULL))
-        {
-            tt->post_open_mtu = (int) mtu;
-            msg(D_MTU_INFO, "TAP-Windows MTU=%d", (int) mtu);
-        }
-    }
-
-    /*
-     * Preliminaries for setting TAP-Windows adapter TCP/IP
-     * properties via --ip-win32 dynamic or --ip-win32 adaptive.
-     */
-    if (tt->did_ifconfig_setup)
-    {
-        if (tt->options.ip_win32_type == IPW32_SET_DHCP_MASQ)
-        {
-            /*
-             * If adapter is set to non-DHCP, set to DHCP mode.
-             */
-            if (dhcp_status(tt->adapter_index) == DHCP_STATUS_DISABLED)
-            {
-                /* try using the service if available, else directly execute netsh */
-                if (tt->options.msg_channel)
-                {
-                    service_enable_dhcp(tt);
-                }
-                else
-                {
-                    netsh_enable_dhcp(tt->actual_name);
-                }
-            }
-            dhcp_masq = true;
-            dhcp_masq_post = true;
-        }
-        else if (tt->options.ip_win32_type == IPW32_SET_ADAPTIVE)
-        {
-            /*
-             * If adapter is set to non-DHCP, use netsh right away.
-             */
-            if (dhcp_status(tt->adapter_index) != DHCP_STATUS_ENABLED)
-            {
-                netsh_ifconfig(&tt->options,
-                               tt->actual_name,
-                               tt->local,
-                               tt->adapter_netmask,
-                               NI_TEST_FIRST|NI_IP_NETMASK|NI_OPTIONS);
-            }
-            else
-            {
-                dhcp_masq = true;
-            }
-        }
-    }
-
-    /* set point-to-point mode if TUN device */
-
-    if (tt->type == DEV_TYPE_TUN)
-    {
-        if (!tt->did_ifconfig_setup && !tt->did_ifconfig_ipv6_setup)
-        {
-            msg(M_FATAL, "ERROR: --dev tun also requires --ifconfig");
-        }
-
-        /* send 0/0/0 to the TAP driver even if we have no IPv4 configured to
-         * ensure it is somehow initialized.
-         */
-        if (!tt->did_ifconfig_setup || tt->topology == TOP_SUBNET)
-        {
-            in_addr_t ep[3];
-            BOOL status;
-
-            ep[0] = htonl(tt->local);
-            ep[1] = htonl(tt->local & tt->remote_netmask);
-            ep[2] = htonl(tt->remote_netmask);
-
-            status = DeviceIoControl(tt->hand, TAP_WIN_IOCTL_CONFIG_TUN,
-                                     ep, sizeof(ep),
-                                     ep, sizeof(ep), &len, NULL);
-
-            if (tt->did_ifconfig_setup)
-            {
-                msg(status ? M_INFO : M_FATAL, "Set TAP-Windows TUN subnet mode network/local/netmask = %s/%s/%s [%s]",
-                    print_in_addr_t(ep[1], IA_NET_ORDER, &gc),
-                    print_in_addr_t(ep[0], IA_NET_ORDER, &gc),
-                    print_in_addr_t(ep[2], IA_NET_ORDER, &gc),
-                    status ? "SUCCEEDED" : "FAILED");
-            }
-            else
-            {
-                msg(status ? M_INFO : M_FATAL, "Set TAP-Windows TUN with fake IPv4 [%s]",
-                    status ? "SUCCEEDED" : "FAILED");
-            }
-        }
-        else
-        {
-
-            in_addr_t ep[2];
-            ep[0] = htonl(tt->local);
-            ep[1] = htonl(tt->remote_netmask);
-
-            if (!DeviceIoControl(tt->hand, TAP_WIN_IOCTL_CONFIG_POINT_TO_POINT,
-                                 ep, sizeof(ep),
-                                 ep, sizeof(ep), &len, NULL))
-            {
-                msg(M_FATAL, "ERROR: The TAP-Windows driver rejected a DeviceIoControl call to set Point-to-Point mode, which is required for --dev tun");
-            }
-        }
-    }
-
-    /* should we tell the TAP-Windows driver to masquerade as a DHCP server as a means
-     * of setting the adapter address? */
-    if (dhcp_masq)
-    {
-        uint32_t ep[4];
-
-        /* We will answer DHCP requests with a reply to set IP/subnet to these values */
-        ep[0] = htonl(tt->local);
-        ep[1] = htonl(tt->adapter_netmask);
-
-        /* At what IP address should the DHCP server masquerade at? */
-        if (tt->type == DEV_TYPE_TUN)
-        {
-            if (tt->topology == TOP_SUBNET)
-            {
-                if (tt->options.dhcp_masq_custom_offset)
-                {
-                    ep[2] = dhcp_masq_addr(tt->local, tt->remote_netmask, tt->options.dhcp_masq_offset);
-                }
-                else
-                {
-                    ep[2] = dhcp_masq_addr(tt->local, tt->remote_netmask, -1);
-                }
-            }
-            else
-            {
-                ep[2] = htonl(tt->remote_netmask);
-            }
-        }
-        else
-        {
-            ASSERT(tt->type == DEV_TYPE_TAP);
-            ep[2] = dhcp_masq_addr(tt->local, tt->adapter_netmask, tt->options.dhcp_masq_custom_offset ? tt->options.dhcp_masq_offset : 0);
-        }
-
-        /* lease time in seconds */
-        ep[3] = (uint32_t) tt->options.dhcp_lease_time;
-
-        ASSERT(ep[3] > 0);
-
-#ifndef SIMULATE_DHCP_FAILED /* this code is disabled to simulate bad DHCP negotiation */
-        if (!DeviceIoControl(tt->hand, TAP_WIN_IOCTL_CONFIG_DHCP_MASQ,
-                             ep, sizeof(ep),
-                             ep, sizeof(ep), &len, NULL))
-        {
-            msg(M_FATAL, "ERROR: The TAP-Windows driver rejected a DeviceIoControl call to set TAP_WIN_IOCTL_CONFIG_DHCP_MASQ mode");
-        }
-
-        msg(M_INFO, "Notified TAP-Windows driver to set a DHCP IP/netmask of %s/%s on interface %s [DHCP-serv: %s, lease-time: %d]",
-            print_in_addr_t(tt->local, 0, &gc),
-            print_in_addr_t(tt->adapter_netmask, 0, &gc),
-            device_guid,
-            print_in_addr_t(ep[2], IA_NET_ORDER, &gc),
-            ep[3]
-            );
-
-        /* user-supplied DHCP options capability */
-        if (tt->options.dhcp_options)
-        {
-            struct buffer buf = alloc_buf(256);
-            if (build_dhcp_options_string(&buf, &tt->options))
-            {
-                msg(D_DHCP_OPT, "DHCP option string: %s", format_hex(BPTR(&buf), BLEN(&buf), 0, &gc));
-                if (!DeviceIoControl(tt->hand, TAP_WIN_IOCTL_CONFIG_DHCP_SET_OPT,
-                                     BPTR(&buf), BLEN(&buf),
-                                     BPTR(&buf), BLEN(&buf), &len, NULL))
-                {
-                    msg(M_FATAL, "ERROR: The TAP-Windows driver rejected a TAP_WIN_IOCTL_CONFIG_DHCP_SET_OPT DeviceIoControl call");
-                }
-            }
-            else
-            {
-                msg(M_WARN, "DHCP option string not set due to error");
-            }
-            free_buf(&buf);
-        }
-#endif /* ifndef SIMULATE_DHCP_FAILED */
-    }
-
-    /* set driver media status to 'connected' */
-    {
-        ULONG status = TRUE;
-        if (!DeviceIoControl(tt->hand, TAP_WIN_IOCTL_SET_MEDIA_STATUS,
-                             &status, sizeof(status),
-                             &status, sizeof(status), &len, NULL))
-        {
-            msg(M_WARN, "WARNING: The TAP-Windows driver rejected a TAP_WIN_IOCTL_SET_MEDIA_STATUS DeviceIoControl call.");
-        }
-    }
-
-    /* possible wait for adapter to come up */
-    {
-        int s = tt->options.tap_sleep;
-        if (s > 0)
-        {
-            msg(M_INFO, "Sleeping for %d seconds...", s);
-            management_sleep(s);
-        }
-    }
-
-    /* possibly use IP Helper API to set IP address on adapter */
-    {
-        const DWORD index = tt->adapter_index;
-
-        /* flush arp cache */
-        if (index != TUN_ADAPTER_INDEX_INVALID)
-        {
-            DWORD status = -1;
-
-            if (tt->options.msg_channel)
-            {
-                ack_message_t ack;
-                flush_neighbors_message_t msg = {
-                    .header = {
-                        msg_flush_neighbors,
-                        sizeof(flush_neighbors_message_t),
-                        0
-                    },
-                    .family = AF_INET,
-                    .iface = { .index = index, .name = "" }
-                };
-
-                if (send_msg_iservice(tt->options.msg_channel, &msg, sizeof(msg),
-                                      &ack, "TUN"))
-                {
-                    status = ack.error_number;
-                }
-            }
-            else
-            {
-                status = FlushIpNetTable(index);
-            }
-
-            if (status == NO_ERROR)
-            {
-                msg(M_INFO, "Successful ARP Flush on interface [%lu] %s",
-                    index,
-                    device_guid);
-            }
-            else if (status != -1)
-            {
-                msg(D_TUNTAP_INFO, "NOTE: FlushIpNetTable failed on interface [%lu] %s (status=%lu) : %s",
-                    index,
-                    device_guid,
-                    status,
-                    strerror_win32(status, &gc));
-            }
-        }
-
-        /*
-         * If the TAP-Windows driver is masquerading as a DHCP server
-         * make sure the TCP/IP properties for the adapter are
-         * set correctly.
-         */
-        if (dhcp_masq_post)
-        {
-            /* check dhcp enable status */
-            if (dhcp_status(index) == DHCP_STATUS_DISABLED)
-            {
-                msg(M_WARN, "WARNING: You have selected '--ip-win32 dynamic', which will not work unless the TAP-Windows TCP/IP properties are set to 'Obtain an IP address automatically'");
-            }
-
-            /* force an explicit DHCP lease renewal on TAP adapter? */
-            if (tt->options.dhcp_pre_release)
-            {
-                dhcp_release(tt);
-            }
-            if (tt->options.dhcp_renew)
-            {
-                dhcp_renew(tt);
-            }
-        }
-        else
-        {
-            fork_dhcp_action(tt);
-        }
-
-        if (tt->did_ifconfig_setup && tt->options.ip_win32_type == IPW32_SET_IPAPI)
-        {
-            DWORD status;
-            const char *error_suffix = "I am having trouble using the Windows 'IP helper API' to automatically set the IP address -- consider using other --ip-win32 methods (not 'ipapi')";
-
-            /* couldn't get adapter index */
-            if (index == TUN_ADAPTER_INDEX_INVALID)
-            {
-                msg(M_FATAL, "ERROR: unable to get adapter index for interface %s -- %s",
-                    device_guid,
-                    error_suffix);
-            }
-
-            /* check dhcp enable status */
-            if (dhcp_status(index) == DHCP_STATUS_DISABLED)
-            {
-                msg(M_WARN, "NOTE: You have selected (explicitly or by default) '--ip-win32 ipapi', which has a better chance of working correctly if the TAP-Windows TCP/IP properties are set to 'Obtain an IP address automatically'");
-            }
-
-            /* delete previously added IP addresses which were not
-             * correctly deleted */
-            delete_temp_addresses(index);
-
-            /* add a new IP address */
-            if ((status = AddIPAddress(htonl(tt->local),
-                                       htonl(tt->adapter_netmask),
-                                       index,
-                                       &tt->ipapi_context,
-                                       &tt->ipapi_instance)) == NO_ERROR)
-            {
-                msg(M_INFO, "Succeeded in adding a temporary IP/netmask of %s/%s to interface %s using the Win32 IP Helper API",
-                    print_in_addr_t(tt->local, 0, &gc),
-                    print_in_addr_t(tt->adapter_netmask, 0, &gc),
-                    device_guid
-                    );
-            }
-            else
-            {
-                msg(M_FATAL, "ERROR: AddIPAddress %s/%s failed on interface %s, index=%lu, status=%lu (windows error: '%s') -- %s",
-                    print_in_addr_t(tt->local, 0, &gc),
-                    print_in_addr_t(tt->adapter_netmask, 0, &gc),
-                    device_guid,
-                    index,
-                    status,
-                    strerror_win32(status, &gc),
-                    error_suffix);
-            }
-            tt->ipapi_context_defined = true;
-        }
-    }
-    /*netcmd_semaphore_release ();*/
     gc_free(&gc);
+
+    /*netcmd_semaphore_release ();*/
 }
 
 const char *
 tap_win_getinfo(const struct tuntap *tt, struct gc_arena *gc)
 {
-    if (tt && tt->hand != NULL)
+    if (tt->windows_driver == WINDOWS_DRIVER_TAP_WINDOWS6)
     {
         struct buffer out = alloc_buf_gc(256, gc);
         DWORD len;
@@ -6066,7 +6451,7 @@ tap_win_getinfo(const struct tuntap *tt, struct gc_arena *gc)
 void
 tun_show_debug(struct tuntap *tt)
 {
-    if (tt && tt->hand != NULL)
+    if (tt->windows_driver == WINDOWS_DRIVER_TAP_WINDOWS6)
     {
         struct buffer out = alloc_buf(1024);
         DWORD len;
@@ -6081,6 +6466,55 @@ tun_show_debug(struct tuntap *tt)
     }
 }
 
+static void
+netsh_delete_address_dns(const struct tuntap *tt, bool ipv6, struct gc_arena *gc)
+{
+    const char *ifconfig_ip_local;
+    struct argv argv = argv_new();
+
+    /* delete ipvX dns servers if any were set */
+    int len = ipv6 ? tt->options.dns6_len : tt->options.dns_len;
+    if (len > 0)
+    {
+        argv_printf(&argv,
+                    "%s%s interface %s delete dns %s all",
+                    get_win_sys_path(),
+                    NETSH_PATH_SUFFIX,
+                    ipv6 ? "ipv6" : "ipv4",
+                    tt->actual_name);
+        netsh_command(&argv, 1, M_WARN);
+    }
+
+    if (ipv6)
+    {
+        delete_route_connected_v6_net(tt, NULL);
+    }
+
+    /* "store=active" is needed in Windows 8(.1) to delete the
+     * address we added (pointed out by Cedric Tabary).
+     */
+
+    /* netsh interface ipvX delete address \"%s\" %s */
+    if (ipv6)
+    {
+        ifconfig_ip_local = print_in6_addr(tt->local_ipv6, 0, gc);
+    }
+    else
+    {
+        ifconfig_ip_local = print_in_addr_t(tt->local, 0, gc);
+    }
+    argv_printf(&argv,
+                "%s%s interface %s delete address %s %s store=active",
+                get_win_sys_path(),
+                NETSH_PATH_SUFFIX,
+                ipv6 ? "ipv6" : "ipv4",
+                tt->actual_name,
+                ifconfig_ip_local);
+    netsh_command(&argv, 1, M_WARN);
+
+    argv_free(&argv);
+}
+
 void
 close_tun(struct tuntap *tt, openvpn_net_ctx_t *ctx)
 {
@@ -6090,52 +6524,38 @@ close_tun(struct tuntap *tt, openvpn_net_ctx_t *ctx)
 
     if (tt->did_ifconfig_ipv6_setup)
     {
-        /* remove route pointing to interface */
-        delete_route_connected_v6_net(tt, NULL);
-
-        if (tt->options.msg_channel)
+        if (tt->options.ip_win32_type == IPW32_SET_MANUAL)
         {
-            do_address_service(false, AF_INET6, tt);
+            /* We didn't do ifconfig. */
+        }
+        else if (tt->options.msg_channel)
+        {
             if (tt->options.dns6_len > 0)
             {
-                do_dns6_service(false, tt);
+                do_dns_service(false, AF_INET6, tt);
             }
+            delete_route_connected_v6_net(tt, NULL);
+            do_address_service(false, AF_INET6, tt);
         }
         else
         {
-            const char *ifconfig_ipv6_local;
-            struct argv argv = argv_new();
-
-            /* "store=active" is needed in Windows 8(.1) to delete the
-             * address we added (pointed out by Cedric Tabary).
-             */
-
-            /* netsh interface ipv6 delete address \"%s\" %s */
-            ifconfig_ipv6_local = print_in6_addr(tt->local_ipv6, 0,  &gc);
-            argv_printf(&argv,
-                        "%s%sc interface ipv6 delete address %s %s store=active",
-                        get_win_sys_path(),
-                        NETSH_PATH_SUFFIX,
-                        tt->actual_name,
-                        ifconfig_ipv6_local);
-
-            netsh_command(&argv, 1, M_WARN);
-
-            /* delete ipv6 dns servers if any were set */
-            if (tt->options.dns6_len > 0)
-            {
-                argv_printf(&argv,
-                            "%s%sc interface ipv6 delete dns %s all",
-                            get_win_sys_path(),
-                            NETSH_PATH_SUFFIX,
-                            tt->actual_name);
-                netsh_command(&argv, 1, M_WARN);
-            }
-            argv_reset(&argv);
+            netsh_delete_address_dns(tt, true, &gc);
         }
     }
 #if 1
-    if (tt->ipapi_context_defined)
+    if (tt->windows_driver == WINDOWS_DRIVER_WINTUN)
+    {
+        if (tt->options.msg_channel)
+        {
+            do_address_service(false, AF_INET, tt);
+            do_dns_service(false, AF_INET, tt);
+        }
+        else
+        {
+            netsh_delete_address_dns(tt, false, &gc);
+        }
+    }
+    else if (tt->ipapi_context_defined)
     {
         DWORD status;
         if ((status = DeleteIPAddress(tt->ipapi_context)) != NO_ERROR)
@@ -6146,7 +6566,7 @@ close_tun(struct tuntap *tt, openvpn_net_ctx_t *ctx)
                 strerror_win32(status, &gc));
         }
     }
-#endif
+#endif /* if 1 */
 
     dhcp_release(tt);
 
@@ -6178,6 +6598,17 @@ close_tun(struct tuntap *tt, openvpn_net_ctx_t *ctx)
     {
         free(tt->actual_name);
     }
+
+    if (tt->windows_driver == WINDOWS_DRIVER_WINTUN)
+    {
+        CloseHandle(tt->rw_handle.read);
+        CloseHandle(tt->rw_handle.write);
+        UnmapViewOfFile(tt->wintun_send_ring);
+        UnmapViewOfFile(tt->wintun_receive_ring);
+        CloseHandle(tt->wintun_send_ring_handle);
+        CloseHandle(tt->wintun_receive_ring_handle);
+    }
+
 
     clear_tuntap(tt);
     free(tt);

@@ -1093,6 +1093,9 @@ process_incoming_link_part1(struct context *c, struct link_socket_info *lsi, boo
                 if (is_hard_reset(opcode, c->options.key_method))
                 {
                     c->c2.frame = c->c2.frame_initial;
+#ifdef ENABLE_FRAGMENT
+                    c->c2.frame_fragment = c->c2.frame_fragment_initial;
+#endif
                 }
 
                 interval_action(&c->c2.tmp_int);
@@ -1253,9 +1256,25 @@ read_incoming_tun(struct context *c)
     perf_push(PERF_READ_IN_TUN);
 
     c->c2.buf = c->c2.buffers->read_tun_buf;
-#ifdef TUN_PASS_BUFFER
-    read_tun_buffered(c->c1.tuntap, &c->c2.buf);
-#else
+
+#ifdef _WIN32
+    if (c->c1.tuntap->windows_driver == WINDOWS_DRIVER_WINTUN)
+    {
+        read_wintun(c->c1.tuntap, &c->c2.buf);
+        if (c->c2.buf.len == -1)
+        {
+            register_signal(c, SIGHUP, "tun-abort");
+            c->persist.restart_sleep_seconds = 1;
+            msg(M_INFO, "Wintun read error, restarting");
+            perf_pop();
+            return;
+        }
+    }
+    else
+    {
+        read_tun_buffered(c->c1.tuntap, &c->c2.buf);
+    }
+#else  /* ifdef _WIN32 */
     ASSERT(buf_init(&c->c2.buf, FRAME_HEADROOM(&c->c2.frame)));
     ASSERT(buf_safe(&c->c2.buf, MAX_RW_SIZE_TUN(&c->c2.frame)));
     c->c2.buf.len = read_tun(c->c1.tuntap, BPTR(&c->c2.buf), MAX_RW_SIZE_TUN(&c->c2.frame));
@@ -1874,7 +1893,7 @@ process_outgoing_tun(struct context *c)
                                 &c->c2.n_trunc_tun_write);
 #endif
 
-#ifdef TUN_PASS_BUFFER
+#ifdef _WIN32
         size = write_tun_buffered(c->c1.tuntap, &c->c2.to_tun);
 #else
         size = write_tun(c->c1.tuntap, BPTR(&c->c2.to_tun), BLEN(&c->c2.to_tun));
@@ -2095,6 +2114,17 @@ io_wait_dowork(struct context *c, const unsigned int flags)
     {
         tuntap |= EVENT_READ;
     }
+
+#ifdef _WIN32
+    if (tuntap_is_wintun(c->c1.tuntap))
+    {
+        /*
+         * With wintun we are only interested in read event. Ring buffer is
+         * always ready for write, so we don't do wait.
+         */
+        tuntap = EVENT_READ;
+    }
+#endif
 
     /*
      * Configure event wait based on socket, tuntap flags.

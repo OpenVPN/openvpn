@@ -28,6 +28,7 @@
 
 #include "syshead.h"
 
+#include "argv.h"
 #include "networking.h"
 #include "misc.h"
 #include "openvpn.h"
@@ -43,8 +44,21 @@ net_ctx_init(struct context *c, openvpn_net_ctx_t *ctx)
     ctx->es = NULL;
     if (c)
         ctx->es = c->es;
+    ctx->gc = gc_new();
 
     return 0;
+}
+
+void
+net_ctx_reset(openvpn_net_ctx_t *ctx)
+{
+    gc_reset(&ctx->gc);
+}
+
+void
+net_ctx_free(openvpn_net_ctx_t *ctx)
+{
+    gc_free(&ctx->gc);
 }
 
 int
@@ -57,7 +71,7 @@ net_iface_up(openvpn_net_ctx_t *ctx, const char *iface, bool up)
     argv_msg(M_INFO, &argv);
     openvpn_execve_check(&argv, ctx->es, S_FATAL, "Linux ip link set failed");
 
-    argv_reset(&argv);
+    argv_free(&argv);
 
     return 0;
 }
@@ -77,23 +91,18 @@ net_iface_mtu_set(openvpn_net_ctx_t *ctx, const char *iface, uint32_t mtu)
 
 int
 net_addr_v4_add(openvpn_net_ctx_t *ctx, const char *iface,
-                const in_addr_t *addr, int prefixlen,
-                const in_addr_t *broadcast)
+                const in_addr_t *addr, int prefixlen)
 {
     struct argv argv = argv_new();
 
-    char *addr_str = (char *)print_in_addr_t(*addr, 0, NULL);
-    char *brd_str = (char *)print_in_addr_t(*broadcast, 0, NULL);
+    const char *addr_str = print_in_addr_t(*addr, 0, &ctx->gc);
 
-    argv_printf(&argv, "%s addr add dev %s %s/%d broadcast %s", iproute_path,
-                iface, addr_str, prefixlen, brd_str);
+    argv_printf(&argv, "%s addr add dev %s %s/%d", iproute_path, iface,
+                addr_str, prefixlen);
     argv_msg(M_INFO, &argv);
     openvpn_execve_check(&argv, ctx->es, S_FATAL, "Linux ip addr add failed");
 
-    free(addr_str);
-    free(brd_str);
-
-    argv_reset(&argv);
+    argv_free(&argv);
 
     return 0;
 }
@@ -103,7 +112,7 @@ net_addr_v6_add(openvpn_net_ctx_t *ctx, const char *iface,
                 const struct in6_addr *addr, int prefixlen)
 {
     struct argv argv = argv_new();
-    char *addr_str = (char *)print_in6_addr(*addr, 0, NULL);
+    char *addr_str = (char *)print_in6_addr(*addr, 0, &ctx->gc);
 
     argv_printf(&argv, "%s -6 addr add %s/%d dev %s", iproute_path, addr_str,
                 prefixlen, iface);
@@ -111,9 +120,7 @@ net_addr_v6_add(openvpn_net_ctx_t *ctx, const char *iface,
     openvpn_execve_check(&argv, ctx->es, S_FATAL,
                          "Linux ip -6 addr add failed");
 
-    free(addr_str);
-
-    argv_reset(&argv);
+    argv_free(&argv);
 
     return 0;
 }
@@ -123,7 +130,7 @@ net_addr_v4_del(openvpn_net_ctx_t *ctx, const char *iface,
                 const in_addr_t *addr, int prefixlen)
 {
     struct argv argv = argv_new();
-    char *addr_str = (char *)print_in_addr_t(*addr, 0, NULL);
+    const char *addr_str = print_in_addr_t(*addr, 0, &ctx->gc);
 
     argv_printf(&argv, "%s addr del dev %s %s/%d", iproute_path, iface,
                 addr_str, prefixlen);
@@ -131,9 +138,7 @@ net_addr_v4_del(openvpn_net_ctx_t *ctx, const char *iface,
     argv_msg(M_INFO, &argv);
     openvpn_execve_check(&argv, ctx->es, 0, "Linux ip addr del failed");
 
-    free(addr_str);
-
-    argv_reset(&argv);
+    argv_free(&argv);
 
     return 0;
 }
@@ -143,16 +148,14 @@ net_addr_v6_del(openvpn_net_ctx_t *ctx, const char *iface,
                 const struct in6_addr *addr, int prefixlen)
 {
     struct argv argv = argv_new();
-    char *addr_str = (char *)print_in6_addr(*addr, 0, NULL);
+    char *addr_str = (char *)print_in6_addr(*addr, 0, &ctx->gc);
 
     argv_printf(&argv, "%s -6 addr del %s/%d dev %s", iproute_path,
                 addr_str, prefixlen, iface);
     argv_msg(M_INFO, &argv);
     openvpn_execve_check(&argv, ctx->es, 0, "Linux ip -6 addr del failed");
 
-    free(addr_str);
-
-    argv_reset(&argv);
+    argv_free(&argv);
 
     return 0;
 }
@@ -162,18 +165,15 @@ net_addr_ptp_v4_add(openvpn_net_ctx_t *ctx, const char *iface,
                     const in_addr_t *local, const in_addr_t *remote)
 {
     struct argv argv = argv_new();
-    char *local_str = (char *)print_in_addr_t(*local, 0, NULL);
-    char *remote_str = (char *)print_in_addr_t(*remote, 0, NULL);
+    const char *local_str = print_in_addr_t(*local, 0, &ctx->gc);
+    const char *remote_str = print_in_addr_t(*remote, 0, &ctx->gc);
 
     argv_printf(&argv, "%s addr add dev %s local %s peer %s", iproute_path,
                 iface, local_str, remote_str);
     argv_msg(M_INFO, &argv);
     openvpn_execve_check(&argv, ctx->es, S_FATAL, "Linux ip addr add failed");
 
-    free(local_str);
-    free(remote_str);
-
-    argv_reset(&argv);
+    argv_free(&argv);
 
     return 0;
 }
@@ -183,18 +183,15 @@ net_addr_ptp_v4_del(openvpn_net_ctx_t *ctx, const char *iface,
                     const in_addr_t *local, const in_addr_t *remote)
 {
     struct argv argv = argv_new();
-    char *local_str = (char *)print_in_addr_t(*local, 0, NULL);
-    char *remote_str = (char *)print_in_addr_t(*remote, 0, NULL);
+    const char *local_str = print_in_addr_t(*local, 0, &ctx->gc);
+    const char *remote_str = print_in_addr_t(*remote, 0, &ctx->gc);
 
     argv_printf(&argv, "%s addr del dev %s local %s peer %s", iproute_path,
                 iface, local_str, remote_str);
     argv_msg(M_INFO, &argv);
     openvpn_execve_check(&argv, ctx->es, 0, "Linux ip addr del failed");
 
-    free(local_str);
-    free(remote_str);
-
-    argv_reset(&argv);
+    argv_free(&argv);
 
     return 0;
 }
@@ -205,7 +202,7 @@ net_route_v4_add(openvpn_net_ctx_t *ctx, const in_addr_t *dst, int prefixlen,
                  int metric)
 {
     struct argv argv = argv_new();
-    char *dst_str = (char *)print_in_addr_t(*dst, 0, NULL);
+    const char *dst_str = print_in_addr_t(*dst, 0, &ctx->gc);
 
     argv_printf(&argv, "%s route add %s/%d", iproute_path, dst_str, prefixlen);
 
@@ -217,19 +214,15 @@ net_route_v4_add(openvpn_net_ctx_t *ctx, const in_addr_t *dst, int prefixlen,
 
     if (gw)
     {
-        char *gw_str = (char *)print_in_addr_t(*gw, 0, NULL);
+        const char *gw_str = print_in_addr_t(*gw, 0, &ctx->gc);
 
         argv_printf_cat(&argv, "via %s", gw_str);
-
-        free(gw_str);
     }
 
     argv_msg(D_ROUTE, &argv);
     openvpn_execve_check(&argv, ctx->es, 0, "ERROR: Linux route add command failed");
 
-    free(dst_str);
-
-    argv_reset(&argv);
+    argv_free(&argv);
 
     return 0;
 }
@@ -240,18 +233,16 @@ net_route_v6_add(openvpn_net_ctx_t *ctx, const struct in6_addr *dst,
                  uint32_t table, int metric)
 {
     struct argv argv = argv_new();
-    char *dst_str = (char *)print_in6_addr(*dst, 0, NULL);
+    char *dst_str = (char *)print_in6_addr(*dst, 0, &ctx->gc);
 
     argv_printf(&argv, "%s -6 route add %s/%d dev %s", iproute_path, dst_str,
                 prefixlen, iface);
 
     if (gw)
     {
-        char *gw_str = (char *)print_in6_addr(*gw, 0, NULL);
+        char *gw_str = (char *)print_in6_addr(*gw, 0, &ctx->gc);
 
         argv_printf_cat(&argv, "via %s", gw_str);
-
-        free(gw_str);
     }
 
     if (metric > 0)
@@ -260,9 +251,7 @@ net_route_v6_add(openvpn_net_ctx_t *ctx, const struct in6_addr *dst,
     argv_msg(D_ROUTE, &argv);
     openvpn_execve_check(&argv, ctx->es, 0, "ERROR: Linux route -6 add command failed");
 
-    free(dst_str);
-
-    argv_reset(&argv);
+    argv_free(&argv);
 
     return 0;
 }
@@ -273,7 +262,7 @@ net_route_v4_del(openvpn_net_ctx_t *ctx, const in_addr_t *dst, int prefixlen,
                  int metric)
 {
     struct argv argv = argv_new();
-    char *dst_str = (char *)print_in_addr_t(*dst, 0, NULL);
+    const char *dst_str = print_in_addr_t(*dst, 0, &ctx->gc);
 
     argv_printf(&argv, "%s route del %s/%d", iproute_path, dst_str, prefixlen);
 
@@ -283,9 +272,7 @@ net_route_v4_del(openvpn_net_ctx_t *ctx, const in_addr_t *dst, int prefixlen,
     argv_msg(D_ROUTE, &argv);
     openvpn_execve_check(&argv, ctx->es, 0, "ERROR: Linux route delete command failed");
 
-    free(dst_str);
-
-    argv_reset(&argv);
+    argv_free(&argv);
 
     return 0;
 }
@@ -296,18 +283,16 @@ net_route_v6_del(openvpn_net_ctx_t *ctx, const struct in6_addr *dst,
                  uint32_t table, int metric)
 {
     struct argv argv = argv_new();
-    char *dst_str = (char *)print_in6_addr(*dst, 0, NULL);
+    char *dst_str = (char *)print_in6_addr(*dst, 0, &ctx->gc);
 
     argv_printf(&argv, "%s -6 route del %s/%d dev %s", iproute_path, dst_str,
                 prefixlen, iface);
 
     if (gw)
     {
-        char *gw_str = (char *)print_in6_addr(*gw, 0, NULL);
+        char *gw_str = (char *)print_in6_addr(*gw, 0, &ctx->gc);
 
         argv_printf_cat(&argv, "via %s", gw_str);
-
-        free(gw_str);
     }
 
     if (metric > 0)
@@ -316,16 +301,14 @@ net_route_v6_del(openvpn_net_ctx_t *ctx, const struct in6_addr *dst,
     argv_msg(D_ROUTE, &argv);
     openvpn_execve_check(&argv, ctx->es, 0, "ERROR: Linux route -6 del command failed");
 
-    free(dst_str);
-
-    argv_reset(&argv);
+    argv_free(&argv);
 
     return 0;
 }
 
 int
 net_route_v4_best_gw(openvpn_net_ctx_t *ctx, const in_addr_t *dst,
-                     int prefixlen, in_addr_t *best_gw, char *best_iface)
+                     in_addr_t *best_gw, char *best_iface)
 {
     best_iface[0] = '\0';
 
@@ -375,10 +358,10 @@ net_route_v4_best_gw(openvpn_net_ctx_t *ctx, const in_addr_t *dst,
 
 /*
  * The following function is not implemented in the iproute backend as it
- * already uses netlink in route.c.
+ * uses the sitnl implementation from networking_sitnl.c.
  *
  * int
- * net_route_v6_best_gw(const struct in6_addr *dst, int prefixlen,
+ * net_route_v6_best_gw(const struct in6_addr *dst,
  *                      struct in6_addr *best_gw, char *best_iface)
  */
 

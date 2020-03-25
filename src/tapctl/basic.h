@@ -23,12 +23,20 @@
 #define BASIC_H
 
 #ifdef _UNICODE
-#define PRIsLPTSTR "ls"
-#define PRIsLPOLESTR  "ls"
+#define PRIsLPTSTR      "ls"
+#define PRIsLPOLESTR    "ls"
 #else
-#define PRIsLPTSTR "s"
-#define PRIsLPOLESTR  "ls"
+#define PRIsLPTSTR      "s"
+#define PRIsLPOLESTR    "ls"
 #endif
+#define PRIXGUID        "{%08lX-%04hX-%04hX-%02hhX%02hhX-%02hhX%02hhX%02hhX%02hhX%02hhX%02hhX}"
+#define PRIGUID_PARAM(g) \
+    (g).Data1, (g).Data2, (g).Data3, (g).Data4[0], (g).Data4[1], (g).Data4[2], (g).Data4[3], (g).Data4[4], (g).Data4[5], (g).Data4[6], (g).Data4[7]
+#define PRIGUID_PARAM_REF(g) \
+    &(g).Data1, &(g).Data2, &(g).Data3, &(g).Data4[0], &(g).Data4[1], &(g).Data4[2], &(g).Data4[3], &(g).Data4[4], &(g).Data4[5], &(g).Data4[6], &(g).Data4[7]
+
+#define __L(q)          L ## q
+#define _L(q)           __L(q)
 
 #ifndef _In_
 #define _In_
@@ -41,6 +49,9 @@
 #endif
 #ifndef _Inout_
 #define _Inout_
+#endif
+#ifndef _Inout_opt_
+#define _Inout_opt_
 #endif
 #ifndef _Out_
 #define _Out_

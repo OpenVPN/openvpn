@@ -2708,10 +2708,16 @@ Allow management interface to override
 directives (client\-only).
 .\"*********************************************************
 .TP
-.B \-\-management\-external\-key
+.B \-\-management\-external\-key [nopadding] [pkcs1]
 Allows usage for external private key file instead of
 .B \-\-key
-option (client\-only).
+option (client\-only). The optional parameters
+.B nopadding
+and
+.B pkcs1
+signal support for different padding algorithms. See
+doc/mangement-notes.txt for a complete description of this
+feature.
 .\"*********************************************************
 .TP
 .B \-\-management\-external\-cert certificate\-hint
@@ -3111,6 +3117,11 @@ IV_NCP=2 \-\- negotiable ciphers, client supports
 pushed by the server, a value of 2 or greater indicates client
 supports AES\-GCM\-128 and AES\-GCM\-256.
 
+IV_CIPHERS=<ncp\-ciphers> \-\- the client pushes the list of configured
+ciphers with the
+\.B -\-\ncp\-ciphers
+option to the server.
+
 IV_GUI_VER=<gui_id> <version> \-\- the UI version of a UI if one is
 running, for example "de.blinkt.openvpn 0.5.47" for the
 Android app.
@@ -3440,7 +3451,8 @@ without needing to restart the server.
 
 The following
 options are legal in a client\-specific context:
-.B \-\-push, \-\-push\-reset, \-\-push\-remove, \-\-iroute, \-\-ifconfig\-push,
+.B \-\-push, \-\-push\-reset, \-\-push\-remove, \-\-iroute,
+.B \-\-ifconfig\-push, \-\-vlan\-pvid
 and
 .B \-\-config.
 .\"*********************************************************
@@ -3710,7 +3722,7 @@ For a sample script that performs PAM authentication, see
 in the OpenVPN source distribution.
 .\"*********************************************************
 .TP
-.B \-\-auth\-gen\-token [lifetime]
+.B \-\-auth\-gen\-token [lifetime] [external-auth]
 After successful user/password authentication, the OpenVPN
 server will with this option generate a temporary
 authentication token and push that to client.  On the following
@@ -3719,6 +3731,9 @@ of the users password.  On the server side the server will do
 the token authentication internally and it will NOT do any
 additional authentications against configured external
 user/password authentication mechanisms.
+
+The tokens implemented by this mechanism include a initial timestamp
+and a renew timestamp and are secured by HMAC.
 
 The
 .B lifetime
@@ -3730,6 +3745,51 @@ This feature is useful for environments which is configured
 to use One Time Passwords (OTP) as part of the user/password
 authentications and that authentication mechanism does not
 implement any auth\-token support.
+
+When the external-auth keyword is present the normal authentication
+method will always be called even if auth-token succeeds. Normally other
+authentications method are skipped if auth-token verification suceeds or
+fails.
+
+This option postpones this decision to the external authentication methods
+and check the validity of the account and do other checks.
+
+In this mode the environment will have a session_id variable
+that hold the session id from auth-gen-token. Also a environment
+variable session_state is present. This variable tells whether the
+auth-token has succeeded or not. It can have the following values:
+
+ - Initial:                    No token from client.
+ - Authenticated:              Token is valid and not expired
+ - Expired:                    Token is valid but has expired
+ - Invalid                     Token is invalid (failed HMAC or wrong length)
+ - AuthenticatedEmptyUser/ExpiredEmptyUser
+   The token is not valid with the username send from the client
+   but would be valid (or expired) if we assume an empty username was used
+   instead. These two cases are a workaround for behaviour in OpenVPN3. If
+   this workaround is not needed these two cases should be handled in the
+   same way as Invalid.
+
+.B Warning:
+Use this feature only if you want your authentication method called on
+every verification. Since the external authentication is called it needs
+to also indicate a success or failure of the authentication. It is strongly
+recommended to return an authentication failure in the case of the
+Invalid/Expired auth-token with the external-auth option unless the client
+could authenticate in another acceptable way (e.g. client certificate),
+otherwise returning success will lead to authentication bypass (as does
+returning success on a wrong password from a script).
+
+.\"*********************************************************
+.TP
+.B \-\-auth\-gen\-token\-secret [file]
+Specifies a file that hold a secret for the HMAC used in
+.B \-\-auth\-gen\-token
+If not present OpenVPN will generate a random secret on startup. This file
+should be used if auth-token should valid after restarting a server or if
+client should be able to roam between multiple OpenVPN server with their
+auth\-token.
+
 .\"*********************************************************
 .TP
 .B \-\-opt\-verify
@@ -3859,6 +3919,103 @@ Each generated file will be automatically deleted when the proxied
 connection is torn down.
 
 Not implemented on Windows.
+.\"*********************************************************
+.TP
+.B \-\-vlan\-tagging
+Server-only option. Turns the OpenVPN server instance into a switch that
+understands VLAN\-tagging, based on IEEE 802.1Q.
+
+The server TAP device and each of the connecting clients is seen as a port of the
+switch. All client ports are in untagged mode and the server TAP device is
+VLAN-tagged, untagged or accepts both, depending on the
+.B \-\-vlan\-accept setting.
+
+Ethernet frames with a prepended 802.1Q tag are called "tagged". If the VLAN
+Identifier (VID) field in such a tag is non-zero, the frame is called
+"VLAN\-tagged". If the VID is zero, but the Priority Control Point (PCP) field
+is non\-zero, the frame is called "prio\-tagged". If there is no 802.1Q tag, the
+frame is "untagged".
+
+Using the
+.B \-\-vlan\-pvid v
+option once per client (see \-\-client\-config\-dir), each port can be associated
+with a certain VID. Packets
+can only be forwarded between ports having the same VID. Therefore, clients
+with differing VIDs are completely separated from one\-another, even if
+.B \-\-client\-to\-client
+is activated.
+
+The packet filtering takes place in the OpenVPN server. Clients should not
+have any VLAN tagging configuration applied.
+
+The
+.B \-\-vlan\-tagging
+option is off by default. While turned off, OpenVPN
+accepts any Ethernet frame and does not perform any special processing
+for VLAN\-tagged packets.
+
+The option can only be activated in
+.B \-\-dev tap mode.
+
+.\"*********************************************************
+.TP
+.B \-\-vlan\-accept all | tagged | untagged
+Configure the VLAN tagging policy for the server TAP device. The following modes
+are available:
+
+.B tagged
+\-\- Admit only VLAN\-tagged frames.
+Only VLAN\-tagged packets are accepted, while untagged or priority\-tagged
+packets are dropped when entering the server TAP device.
+
+.br
+.B untagged
+\-\- Admit only untagged and prio\-tagged frames.
+.br
+VLAN\-tagged packets are not accepted, while untagged or priority\-tagged
+packets entering the server TAP device are tagged with the value configured
+for the global
+.B \-\-vlan\-pvid
+setting.
+.br
+.B all
+(default) \-\- Admit all frames.
+.br
+All packets are admitted and then treated like untagged or tagged mode
+respectively.
+
+(Note: Some vendors refer to switch ports running in
+.B tagged
+mode as "trunk ports" and switch ports running in
+.B untagged
+mode as "access ports".)
+
+Packets forwarded from clients to the server are VLAN\-tagged
+with the originating client's PVID, unless the VID matches the
+global \-\-vlan\-pvid, in which case the tag is removed.
+
+If no PVID is configured for a given client (see \-\-vlan\-pvid) packets
+are tagged with 1 by default.
+.\"*********************************************************
+.TP
+.B \-\-vlan\-pvid v
+Specifies which VLAN identifier a "port" is associated with. Only valid when
+\fB\-\-vlan\-tagging\fR is speficied.
+
+In the client context, the setting specifies which VLAN ID a client is
+associated with. In the global context, the VLAN ID of the server TAP device is set.
+The latter only makes sense for
+.B \-\-vlan\-accept untagged
+and
+.B \-\-vlan\-accept all
+modes.
+
+Valid values for
+.B v
+go from 1 through to 4094. The global value defaults to 1. If no \-\-vlan\-pvid
+is specified in the client context, the global value is inherited.
+
+In some switch implementations, the PVID is also referred to as "Native VLAN".
 .\"*********************************************************
 .SS Client Mode
 Use client mode when connecting to an OpenVPN server
@@ -4222,7 +4379,8 @@ is a colon\-separated list of ciphers, and defaults to
 
 For servers, the first cipher from
 .B cipher_list
-will be pushed to clients that support cipher negotiation.
+that is also supported by the client will be pushed to clients
+that support cipher negotiation.
 
 Cipher negotiation is enabled in client\-server mode only.  I.e. if
 .B \-\-mode
@@ -4246,6 +4404,8 @@ NCP server (v2.4+) with "\-\-cipher BF\-CBC" and "\-\-ncp\-ciphers
 AES\-256\-GCM:AES\-256\-CBC" set can either specify "\-\-cipher BF\-CBC" or
 "\-\-cipher AES\-256\-CBC" and both will work.
 
+Note, for using NCP with a OpenVPN 2.4 peer this list must include
+the AES\-256\-GCM and AES\-128\-GCM ciphers.
 .\"*********************************************************
 .TP
 .B \-\-ncp\-disable
@@ -5244,7 +5404,7 @@ Use client\-specific tls\-crypt keys.
 For clients,
 .B keyfile
 is a client\-specific tls\-crypt key.  Such a key can be generated using the
-.B \-\-tls\-crypt\-v2\-genkey
+.B \-\-genkey tls\-crypt\-v2\-client
 option.
 
 For servers,
@@ -5252,7 +5412,7 @@ For servers,
 is used to unwrap client\-specific keys supplied by the client during connection
 setup.  This key must be the same as the key used to generate the
 client\-specific key (see
-.B \-\-tls\-crypt\-v2\-genkey\fR).
+.B \-\-genkey tls\-crypt\-v2\-client\fR).
 
 On servers, this option can be used together with the
 .B \-\-tls\-auth
@@ -5260,36 +5420,6 @@ or
 .B \-\-tls\-crypt
 option.  In that case, the server will detect whether the client is using
 client\-specific keys, and automatically select the right mode.
-.\"*********************************************************
-.TP
-.B \-\-tls\-crypt\-v2\-genkey client|server keyfile [metadata]
-
-If the first parameter equals "server", generate a \-\-tls\-crypt\-v2 server
-key and store the key in
-.B keyfile\fR.
-
-
-If the first parameter equals "client", generate a \-\-tls\-crypt\-v2 client
-key, and store the key in
-.B keyfile\fR.
-
-If supplied, include the supplied
-.B metadata
-in the wrapped client key.  This metadata must be supplied in base64\-encoded
-form.  The metadata must be at most 735 bytes long (980 bytes in base64).
-
-If no metadata is supplied, OpenVPN will use a 64\-bit unix timestamp
-representing the current time in UTC, encoded in network order, as metadata for
-the generated key.
-
-A tls\-crypt\-v2 client key is wrapped using a server key.  To generate a
-client key, the user must therefore supply the server key using the
-.B \-\-tls\-crypt\-v2
-option.
-
-Servers can use
-.B \-\-tls\-crypt\-v2\-verify
-to specify a metadata verification command.
 .\"*********************************************************
 .TP
 .B \-\-tls\-crypt\-v2\-verify cmd
@@ -5747,26 +5877,74 @@ Show all available elliptic curves to use with the
 .B \-\-ecdh\-curve
 option.
 .\"*********************************************************
-.SS Generate a random key:
-Used only for non\-TLS static key encryption mode.
+.SS Generating key material:
 .\"*********************************************************
 .TP
-.B \-\-genkey file
+.B \-\-genkey keytype keyfile
 (Standalone)
-Generate a random key to be used as a shared secret, for use with the
+Generate a key to be used of the type keytype. if keyfile is left out or empty
+the key will be output on stdout. See the following sections for the different keytypes.
+
+.\"*********************************************************
+.TP
+.B \-\-genkey secret|tls\-crypt|tls\-auth keyfile
+Generate a shared secret, for use with the
 .B \-\-secret
 ,
-.B \-\-tls-auth
+.B \-\-tls\-auth
 or
-.B \-\-tls-crypt
+.B \-\-tls\-crypt
 options.  Stores the key in
 .B file\fR.
+All three variants (secret, tls-crypt, and tls-auth) generate the same type of
+key. The aliases are added for convenience.
 
 If using this for
 .B \-\-secret
 , this file must be shared with the peer over a pre\-existing secure channel
 such as
 .BR scp (1)\fR.
+.\"*********************************************************
+.TP
+.B \-\-genkey tls\-crypt\-v2\-server keyfile
+
+Generate a \-\-tls\-crypt\-v2 server key and store the key in
+.B keyfile\fR.
+
+.TP
+.B \-\-genkey tls\-crypt\-v2\-client keyfile [metadata]
+
+Generate a \-\-tls\-crypt\-v2 client key, and store the key in
+.B keyfile\fR.
+
+If supplied, include the supplied
+.B metadata
+in the wrapped client key.  This metadata must be supplied in base64\-encoded
+form.  The metadata must be at most 735 bytes long (980 bytes in base64).
+
+If no metadata is supplied, OpenVPN will use a 64\-bit unix timestamp
+representing the current time in UTC, encoded in network order, as metadata for
+the generated key.
+
+A tls\-crypt\-v2 client key is wrapped using a server key.  To generate a
+client key, the user must therefore supply the server key using the
+.B \-\-tls\-crypt\-v2
+option.
+
+Servers can use
+.B \-\-tls\-crypt\-v2\-verify
+to specify a metadata verification command.
+.\"*********************************************************
+.TP
+.B \-\-genkey auth\-token [keyfile]
+Generate a new secret that can be used
+with
+.B \-\-auth\-gen\-token\-secret
+
+.B Note:
+this file should be kept secret to the server as anyone
+that access to this file will be to generate auth tokens
+that the OpenVPN server will accept as valid.
 .\"*********************************************************
 .SS TUN/TAP persistent tunnel config mode:
 Available with Linux 2.4.7+.  These options comprise a standalone mode
@@ -6079,6 +6257,18 @@ or
 (not suitable for Windows XP) to ignore said error.
 Note that pushing unknown options from server does not trigger
 fatal errors.
+.\"*********************************************************
+.TP
+.B \-\-windows\-driver
+Specifies which tun driver to use. Values are
+.B tap-windows6
+(default) and
+.B wintun.
+This is Windows-only option.
+"wintun" requires
+.B \-\-dev tun
+and the OpenVPN process to run elevated, or be invoked using
+the Interactive Service.
 .\"*********************************************************
 .TP
 .B \-\-dhcp\-renew
@@ -6979,6 +7169,7 @@ X509_1_C=KG
 OpenVPN allows including files in the main configuration for the
 .B \-\-ca, \-\-cert, \-\-dh, \-\-extra\-certs, \-\-key, \-\-pkcs12, \-\-secret,
 .B \-\-crl\-verify, \-\-http\-proxy\-user\-pass, \-\-tls\-auth,
+.B \-\-auth\-gen\-token\-secret
 .B \-\-tls\-crypt,
 and
 .B \-\-tls\-crypt-v2
@@ -7191,7 +7382,7 @@ First build a static key on bob.
 .IP
 .B openvpn \-\-genkey \-\-secret key
 .LP
-This command will build a random key file called
+This command will build a key file called
 .B key
 (in ascii format).
 Now copy

@@ -45,6 +45,7 @@
 #include "shaper.h"
 #include "crypto.h"
 #include "ssl.h"
+#include "ssl_ncp.h"
 #include "options.h"
 #include "misc.h"
 #include "socket.h"
@@ -53,6 +54,7 @@
 #include "win32.h"
 #include "push.h"
 #include "pool.h"
+#include "proto.h"
 #include "helper.h"
 #include "manage.h"
 #include "forward.h"
@@ -404,6 +406,9 @@ static const char usage_message[] =
     "--plugin m [str]: Load plug-in module m passing str as an argument\n"
     "                  to its initialization function.\n"
 #endif
+    "--vlan-tagging  : Enable 802.1Q-based VLAN tagging.\n"
+    "--vlan-accept tagged|untagged|all : Set VLAN tagging mode. Default is 'all'.\n"
+    "--vlan-pvid v   : Sets the Port VLAN Identifier. Defaults to 1.\n"
 #if P2MP
 #if P2MP_SERVER
     "\n"
@@ -600,7 +605,8 @@ static const char usage_message[] =
     "                  Windows Certificate System Store.\n"
 #endif
     "--tls-cipher l  : A list l of allowable TLS ciphers separated by : (optional).\n"
-    "                : Use --show-tls to see a list of supported TLS ciphers.\n"
+    "--tls-ciphersuites l: A list of allowed TLS 1.3 cipher suites seperated by : (optional)\n"
+    "                : Use --show-tls to see a list of supported TLS ciphers (suites).\n"
     "--tls-cert-profile p : Set the allowed certificate crypto algorithm profile\n"
     "                  (default=legacy).\n"
     "--tls-timeout n : Packet retransmit timeout on TLS control channel\n"
@@ -632,9 +638,11 @@ static const char usage_message[] =
     "                  For servers: use key to decrypt client-specific keys.  For\n"
     "                  key generation (--tls-crypt-v2-genkey): use key to\n"
     "                  encrypt generated client-specific key.  (See --tls-crypt.)\n"
-    "--tls-crypt-v2-genkey client|server keyfile [base64 metadata]: Generate a\n"
-    "                  fresh tls-crypt-v2 client or server key, and store to\n"
+    "--genkey tls-crypt-v2-client [keyfile] [base64 metadata]: Generate a\n"
+    "                  fresh tls-crypt-v2 client key, and store to\n"
     "                  keyfile.  If supplied, include metadata in wrapped key.\n"
+    "--genkey tls-crypt-v2-server [keyfile] [base64 metadata]: Generate a\n"
+    "                  fresh tls-crypt-v2 server key, and store to keyfile\n"
     "--tls-crypt-v2-verify cmd : Run command cmd to verify the metadata of the\n"
     "                  client-supplied tls-crypt-v2 client key\n"
     "--askpass [file]: Get PEM password from controlling tty before we daemonize.\n"
@@ -655,7 +663,7 @@ static const char usage_message[] =
     "                  an explicit nsCertType designation t = 'client' | 'server'.\n"
     "--x509-track x  : Save peer X509 attribute x in environment for use by\n"
     "                  plugins and management interface.\n"
-#if defined(ENABLE_CRYPTO_OPENSSL) && OPENSSL_VERSION_NUMBER >= 0x10001000
+#ifdef HAVE_EXPORT_KEYING_MATERIAL
     "--keying-material-exporter label len : Save Exported Keying Material (RFC5705)\n"
     "                  of len bytes (min. 16 bytes) using label in environment for use by plugins.\n"
 #endif
@@ -742,9 +750,10 @@ static const char usage_message[] =
     "                       optional parameter controls the initial state of ex.\n"
     "--show-net-up   : Show " PACKAGE_NAME "'s view of routing table and net adapter list\n"
     "                  after TAP adapter is up and routes have been added.\n"
-#ifdef _WIN32
+    "--windows-driver   : Which tun driver to use?\n"
+    "                     tap-windows6 (default)\n"
+    "                     wintun\n"
     "--block-outside-dns   : Block DNS on other network adapters to prevent DNS leaks\n"
-#endif
     "Windows Standalone Options:\n"
     "\n"
     "--show-adapters : Show all TAP-Windows adapters.\n"
@@ -754,8 +763,9 @@ static const char usage_message[] =
     "                                 to access TAP adapter.\n"
 #endif /* ifdef _WIN32 */
     "\n"
-    "Generate a new key (for use with --secret, --tls-auth or --tls-crypt):\n"
-    "--genkey file   : Generate a new random key and write to file.\n"
+    "Generate a new key :\n"
+    "--genkey secret file   : Generate a new random key of type and write to file\n"
+    "                         (for use with --secret, --tls-auth or --tls-crypt)."
 #ifdef ENABLE_FEATURE_TUN_PERSIST
     "\n"
     "Tun/tap config mode (available with linux 2.4+):\n"
@@ -845,7 +855,10 @@ init_options(struct options *o, const bool init_gc)
     o->tuntap_options.dhcp_masq_offset = 0;     /* use network address as internal DHCP server address */
     o->route_method = ROUTE_METHOD_ADAPTIVE;
     o->block_outside_dns = false;
+    o->windows_driver = WINDOWS_DRIVER_TAP_WINDOWS6;
 #endif
+    o->vlan_accept = VLAN_ALL;
+    o->vlan_pvid = 1;
 #if P2MP_SERVER
     o->real_hash_size = 256;
     o->virtual_hash_size = 256;
@@ -1221,6 +1234,21 @@ dhcp_option_address_parse(const char *name, const char *parm, in_addr_t *array, 
 
 #endif /* if defined(_WIN32) || defined(TARGET_ANDROID) */
 
+static const char *
+print_vlan_accept(enum vlan_acceptable_frames mode)
+{
+    switch (mode)
+    {
+        case VLAN_ONLY_TAGGED:
+            return "tagged";
+        case VLAN_ONLY_UNTAGGED_OR_PRIORITY:
+            return "untagged";
+        case VLAN_ALL:
+            return "all";
+    }
+    return NULL;
+}
+
 #if P2MP
 
 #ifndef ENABLE_SMALL
@@ -1286,10 +1314,14 @@ show_p2mp_parms(const struct options *o)
     SHOW_BOOL(auth_user_pass_verify_script_via_file);
     SHOW_BOOL(auth_token_generate);
     SHOW_INT(auth_token_lifetime);
+    SHOW_STR(auth_token_secret_file);
 #if PORT_SHARE
     SHOW_STR(port_share_host);
     SHOW_STR(port_share_port);
 #endif
+    SHOW_BOOL(vlan_tagging);
+    msg(D_SHOW_PARMS, "  vlan_accept = %s", print_vlan_accept (o->vlan_accept));
+    SHOW_INT(vlan_pvid);
 #endif /* P2MP_SERVER */
 
     SHOW_BOOL(client);
@@ -1526,6 +1558,7 @@ show_settings(const struct options *o)
     SHOW_BOOL(show_digests);
     SHOW_BOOL(show_engines);
     SHOW_BOOL(genkey);
+    SHOW_STR(genkey_filename);
     SHOW_STR(key_pass_file);
     SHOW_BOOL(show_tls_ciphers);
 
@@ -1746,8 +1779,6 @@ show_settings(const struct options *o)
     SHOW_BOOL(push_peer_info);
     SHOW_BOOL(tls_exit);
 
-    SHOW_STR(tls_crypt_v2_genkey_type);
-    SHOW_STR(tls_crypt_v2_genkey_file);
     SHOW_STR(tls_crypt_v2_metadata);
 
 #ifdef ENABLE_PKCS11
@@ -2142,6 +2173,16 @@ options_postprocess_verify_ce(const struct options *options, const struct connec
 
 #endif /* ifdef ENABLE_MANAGEMENT */
 
+#if  defined(ENABLE_MANAGEMENT)
+    if ((tls_version_max() >= TLS_VER_1_3)
+        && (options->management_flags & MF_EXTERNAL_KEY)
+        && !(options->management_flags & (MF_EXTERNAL_KEY_NOPADDING))
+        )
+    {
+        msg(M_ERR, "management-external-key with OpenSSL 1.1.1 requires "
+            "the nopadding argument/support");
+    }
+#endif
     /*
      * Windows-specific options.
      */
@@ -2164,7 +2205,12 @@ options_postprocess_verify_ce(const struct options *options, const struct connec
     {
         msg(M_USAGE, "--dhcp-options requires --ip-win32 dynamic or adaptive");
     }
-#endif
+
+    if (options->windows_driver == WINDOWS_DRIVER_WINTUN && dev != DEV_TYPE_TUN)
+    {
+        msg(M_USAGE, "--windows-driver wintun requires --dev tun");
+    }
+#endif /* ifdef _WIN32 */
 
     /*
      * Check that protocol options make sense.
@@ -2230,7 +2276,7 @@ options_postprocess_verify_ce(const struct options *options, const struct connec
         }
         if (options->pull_filter_list)
         {
-            msg(M_USAGE, "--pull-filter cannot be used with --mode server");
+            msg(M_WARN, "--pull-filter ignored for --mode server");
         }
         if (!(proto_is_udp(ce->proto) || ce->proto == PROTO_TCP_SERVER))
         {
@@ -2334,7 +2380,11 @@ options_postprocess_verify_ce(const struct options *options, const struct connec
         {
             msg(M_USAGE, "--mode server requires --key-method 2");
         }
-
+        if (options->auth_token_generate && !options->renegotiate_seconds)
+        {
+            msg(M_USAGE, "--auth-gen-token needs a non-infinite "
+                "--renegotiate_seconds setting");
+        }
         {
             const bool ccnr = (options->auth_user_pass_verify_script
                                || PLUGIN_OPTION_LIST(options)
@@ -2351,6 +2401,22 @@ options_postprocess_verify_ce(const struct options *options, const struct connec
             if ((options->ssl_flags & SSLF_AUTH_USER_PASS_OPTIONAL) && !ccnr)
             {
                 msg(M_USAGE, "--auth-user-pass-optional %s", postfix);
+            }
+        }
+
+        if (options->vlan_tagging && dev != DEV_TYPE_TAP)
+        {
+            msg(M_USAGE, "--vlan-tagging must be used with --dev tap");
+        }
+        if (!options->vlan_tagging)
+        {
+            if (options->vlan_accept != defaults.vlan_accept)
+            {
+                msg(M_USAGE, "--vlan-accept requires --vlan-tagging");
+            }
+            if (options->vlan_pvid != defaults.vlan_pvid)
+            {
+                msg(M_USAGE, "--vlan-pvid requires --vlan-tagging");
             }
         }
     }
@@ -2441,6 +2507,11 @@ options_postprocess_verify_ce(const struct options *options, const struct connec
         if (options->stale_routes_check_interval)
         {
             msg(M_USAGE, "--stale-routes-check requires --mode server");
+        }
+
+        if (options->vlan_tagging)
+        {
+            msg(M_USAGE, "--vlan-tagging requires --mode server");
         }
     }
 #endif /* P2MP_SERVER */
@@ -2689,10 +2760,6 @@ options_postprocess_verify_ce(const struct options *options, const struct connec
         {
             msg(M_USAGE, "--tls-crypt-v2, --tls-auth and --tls-crypt are mutually exclusive in client mode");
         }
-        if (options->genkey && options->tls_crypt_v2_genkey_type)
-        {
-            msg(M_USAGE, "--genkey and --tls-crypt-v2-genkey are mutually exclusive");
-        }
     }
     else
     {
@@ -2822,6 +2889,24 @@ options_postprocess_mutate_ce(struct options *o, struct connection_entry *ce)
 #endif
     }
 
+    /* our socks code is not fully IPv6 enabled yet (TCP works, UDP not)
+     * so fall back to IPv4-only (trac #1221)
+     */
+    if (ce->socks_proxy_server && proto_is_udp(ce->proto) && ce->af != AF_INET)
+    {
+        if (ce->af == AF_INET6)
+        {
+            msg(M_INFO, "WARNING: '--proto udp6' is not compatible with "
+                "'--socks-proxy' today.  Forcing IPv4 mode." );
+        }
+        else
+        {
+            msg(M_INFO, "NOTICE: dual-stack mode for '--proto udp' does not "
+                "work correctly with '--socks-proxy' today.  Forcing IPv4." );
+        }
+        ce->af = AF_INET;
+    }
+
     /*
      * Set MTU defaults
      */
@@ -2922,9 +3007,18 @@ options_postprocess_mutate_invariant(struct options *options)
     }
 
 #ifdef _WIN32
+    /* when using wintun, kernel doesn't send DHCP requests, so use netsh to set IP address and netmask */
+    if (options->windows_driver == WINDOWS_DRIVER_WINTUN)
+    {
+        options->tuntap_options.ip_win32_type = IPW32_SET_NETSH;
+    }
+
     if ((dev == DEV_TYPE_TUN || dev == DEV_TYPE_TAP) && !options->route_delay_defined)
     {
-        if (options->mode == MODE_POINT_TO_POINT)
+        /* delay may only be necessary when we perform DHCP handshake */
+        const bool dhcp = (options->tuntap_options.ip_win32_type == IPW32_SET_DHCP_MASQ)
+                          || (options->tuntap_options.ip_win32_type == IPW32_SET_ADAPTIVE);
+        if ((options->mode == MODE_POINT_TO_POINT) && dhcp)
         {
             options->route_delay_defined = true;
             options->route_delay = 5; /* Vista sometimes has a race without this */
@@ -2938,7 +3032,7 @@ options_postprocess_mutate_invariant(struct options *options)
     }
 
     remap_redirect_gateway_flags(options);
-#endif
+#endif /* ifdef _WIN32 */
 
 #if P2MP_SERVER
     /*
@@ -3261,7 +3355,7 @@ check_cmd_access(const char *command, const char *opt, const char *chroot)
         return_code = true;
     }
 
-    argv_reset(&argv);
+    argv_free(&argv);
 
     return return_code;
 }
@@ -3320,8 +3414,8 @@ options_postprocess_filechecks(struct options *options)
     }
 
     errs |= check_file_access(CHKACC_FILE|CHKACC_INLINE|CHKACC_PRIVATE,
-                              options->tls_crypt_v2_genkey_file, R_OK,
-                              "--tls-crypt-v2-genkey");
+                              options->genkey_filename, R_OK,
+                              "--genkey");
     errs |= check_file_access(CHKACC_FILE|CHKACC_INLINE|CHKACC_PRIVATE,
                               options->shared_secret_file, R_OK, "--secret");
 
@@ -3981,6 +4075,33 @@ foreign_option(struct options *o, char *argv[], int len, struct env_set *es)
         gc_free(&gc);
     }
 }
+
+#ifdef _WIN32
+/**
+ * Parses --windows-driver config option
+ *
+ * @param str       value of --windows-driver option
+ * @param msglevel  msglevel to report parsing error
+ * @return enum windows_driver_type  driver type, WINDOWS_DRIVER_UNSPECIFIED on unknown --windows-driver value
+ */
+static enum windows_driver_type
+parse_windows_driver(const char *str, const int msglevel)
+{
+    if (streq(str, "tap-windows6"))
+    {
+        return WINDOWS_DRIVER_TAP_WINDOWS6;
+    }
+    else if (streq(str, "wintun"))
+    {
+        return WINDOWS_DRIVER_WINTUN;
+    }
+    else
+    {
+        msg(msglevel, "--windows-driver must be tap-windows6 or wintun");
+        return WINDOWS_DRIVER_UNSPECIFIED;
+    }
+}
+#endif
 
 /*
  * parse/print topology coding
@@ -5014,7 +5135,7 @@ add_option(struct options *options,
         }
         net_ctx_init(NULL, &net_ctx);
         get_default_gateway(&rgi, &net_ctx);
-        get_default_gateway_ipv6(&rgi6, &remote);
+        get_default_gateway_ipv6(&rgi6, &remote, &net_ctx);
         print_default_gateway(M_INFO, &rgi, &rgi6);
         openvpn_exit(OPENVPN_EXIT_STATUS_GOOD); /* exit point */
     }
@@ -5140,9 +5261,33 @@ add_option(struct options *options,
         options->management_write_peer_info_file = p[1];
     }
 #ifdef ENABLE_MANAGEMENT
-    else if (streq(p[0], "management-external-key") && !p[1])
+    else if (streq(p[0], "management-external-key"))
     {
         VERIFY_PERMISSION(OPT_P_GENERAL);
+        for (int j = 1; j < MAX_PARMS && p[j] != NULL; ++j)
+        {
+            if (streq(p[j], "nopadding"))
+            {
+                options->management_flags |= MF_EXTERNAL_KEY_NOPADDING;
+            }
+            else if (streq(p[j], "pkcs1"))
+            {
+                options->management_flags |= MF_EXTERNAL_KEY_PKCS1PAD;
+            }
+            else
+            {
+                msg(msglevel, "Unknown management-external-key flag: %s", p[j]);
+            }
+        }
+        /*
+         * When no option is present, assume that only PKCS1
+         * padding is supported
+         */
+        if (!(options->management_flags
+              &(MF_EXTERNAL_KEY_NOPADDING | MF_EXTERNAL_KEY_PKCS1PAD)))
+        {
+            options->management_flags |= MF_EXTERNAL_KEY_PKCS1PAD;
+        }
         options->management_flags |= MF_EXTERNAL_KEY;
     }
     else if (streq(p[0], "management-external-cert") && p[1] && !p[2])
@@ -5224,6 +5369,13 @@ add_option(struct options *options,
         VERIFY_PERMISSION(OPT_P_GENERAL);
         options->dev_type = p[1];
     }
+#ifdef _WIN32
+    else if (streq(p[0], "windows-driver") && p[1] && !p[2])
+    {
+        VERIFY_PERMISSION(OPT_P_GENERAL);
+        options->windows_driver = parse_windows_driver(p[1], M_FATAL);
+    }
+#endif
     else if (streq(p[0], "dev-node") && p[1] && !p[2])
     {
         VERIFY_PERMISSION(OPT_P_GENERAL);
@@ -6767,11 +6919,34 @@ add_option(struct options *options,
                         &options->auth_user_pass_verify_script,
                         p[1], "auth-user-pass-verify", true);
     }
-    else if (streq(p[0], "auth-gen-token"))
+    else if (streq(p[0], "auth-gen-token") && !p[3])
     {
         VERIFY_PERMISSION(OPT_P_GENERAL);
         options->auth_token_generate = true;
         options->auth_token_lifetime = p[1] ? positive_atoi(p[1]) : 0;
+        if (p[2])
+        {
+            if (streq(p[2], "external-auth"))
+            {
+                options->auth_token_call_auth = true;
+            }
+            else
+            {
+                msg(msglevel, "Invalid argument to auth-gen-token: %s", p[2]);
+            }
+        }
+
+    }
+    else if (streq(p[0], "auth-gen-token-secret") && p[1] && (!p[2]
+                                                              || (p[2] && streq(p[1], INLINE_FILE_TAG))))
+    {
+        VERIFY_PERMISSION(OPT_P_GENERAL);
+        options->auth_token_secret_file = p[1];
+
+        if (streq(p[1], INLINE_FILE_TAG) && p[2])
+        {
+            options->auth_token_secret_file_inline = p[2];
+        }
     }
     else if (streq(p[0], "client-connect") && p[1])
     {
@@ -7521,13 +7696,46 @@ add_option(struct options *options,
         }
         options->shared_secret_file = p[1];
     }
-    else if (streq(p[0], "genkey") && !p[2])
+    else if (streq(p[0], "genkey") && !p[4])
     {
         VERIFY_PERMISSION(OPT_P_GENERAL);
         options->genkey = true;
-        if (p[1])
+        if (!p[1])
         {
-            options->shared_secret_file = p[1];
+            options->genkey_type = GENKEY_SECRET;
+        }
+        else
+        {
+            if (streq(p[1], "secret") || streq(p[1], "tls-auth") ||
+                streq(p[1], "tls-crypt"))
+            {
+                options->genkey_type = GENKEY_SECRET;
+            }
+            else if (streq(p[1], "tls-crypt-v2-server"))
+            {
+                options->genkey_type = GENKEY_TLS_CRYPTV2_SERVER;
+            }
+            else if (streq(p[1], "tls-crypt-v2-client"))
+            {
+                options->genkey_type = GENKEY_TLS_CRYPTV2_CLIENT;
+                if (p[3])
+                {
+                    options->genkey_extra_data = p[3];
+                }
+            }
+            else if (streq(p[1], "auth-token"))
+            {
+                options->genkey_type = GENKEY_AUTH_TOKEN;
+            }
+            else
+            {
+                msg(msglevel, "unknown --genkey type: %s", p[1]);
+            }
+
+        }
+        if (p[2])
+        {
+            options->genkey_filename = p[2];
         }
     }
     else if (streq(p[0], "auth") && p[1] && !p[2])
@@ -8125,16 +8333,6 @@ add_option(struct options *options,
             options->ce.tls_crypt_v2_file = p[1];
         }
     }
-    else if (streq(p[0], "tls-crypt-v2-genkey") && p[2] && !p[4])
-    {
-        VERIFY_PERMISSION(OPT_P_GENERAL);
-        options->tls_crypt_v2_genkey_type = p[1];
-        options->tls_crypt_v2_genkey_file = p[2];
-        if (p[3])
-        {
-            options->tls_crypt_v2_metadata = p[3];
-        }
-    }
     else if (streq(p[0], "tls-crypt-v2-verify") && p[1] && !p[2])
     {
         VERIFY_PERMISSION(OPT_P_GENERAL);
@@ -8314,7 +8512,7 @@ add_option(struct options *options,
         options->use_peer_id = true;
         options->peer_id = atoi(p[1]);
     }
-#if defined(ENABLE_CRYPTO_OPENSSL) && OPENSSL_VERSION_NUMBER >= 0x10001000
+#ifdef HAVE_EXPORT_KEYING_MATERIAL
     else if (streq(p[0], "keying-material-exporter") && p[1] && p[2])
     {
         int ekm_length = positive_atoi(p[2]);
@@ -8341,6 +8539,45 @@ add_option(struct options *options,
     {
         VERIFY_PERMISSION(OPT_P_GENERAL);
         options->allow_recursive_routing = true;
+    }
+    else if (streq(p[0], "vlan-tagging") && !p[1])
+    {
+        VERIFY_PERMISSION(OPT_P_GENERAL);
+        options->vlan_tagging = true;
+    }
+    else if (streq(p[0], "vlan-accept") && p[1] && !p[2])
+    {
+        VERIFY_PERMISSION(OPT_P_GENERAL);
+        if (streq(p[1], "tagged"))
+        {
+            options->vlan_accept = VLAN_ONLY_TAGGED;
+        }
+        else if (streq(p[1], "untagged"))
+        {
+            options->vlan_accept = VLAN_ONLY_UNTAGGED_OR_PRIORITY;
+        }
+        else if (streq(p[1], "all"))
+        {
+            options->vlan_accept = VLAN_ALL;
+        }
+        else
+        {
+            msg(msglevel, "--vlan-accept must be 'tagged', 'untagged' or 'all'");
+            goto err;
+        }
+    }
+    else if (streq(p[0], "vlan-pvid") && p[1] && !p[2])
+    {
+        VERIFY_PERMISSION(OPT_P_GENERAL|OPT_P_INSTANCE);
+        options->vlan_pvid = positive_atoi(p[1]);
+        if (options->vlan_pvid < OPENVPN_8021Q_MIN_VID
+            || options->vlan_pvid > OPENVPN_8021Q_MAX_VID)
+        {
+            msg(msglevel,
+                "the parameter of --vlan-pvid parameters must be >= %u and <= %u",
+                OPENVPN_8021Q_MIN_VID, OPENVPN_8021Q_MAX_VID);
+            goto err;
+        }
     }
     else
     {

@@ -544,7 +544,7 @@ tls_crypt_v2_verify_metadata(const struct tls_wrap_ctx *ctx,
 
     ret = openvpn_run_script(&argv, es, 0, "--tls-crypt-v2-verify");
 
-    argv_reset(&argv);
+    argv_free(&argv);
     env_set_destroy(es);
 
     if (!platform_unlink(tmp_file))

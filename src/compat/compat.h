@@ -70,4 +70,8 @@ int inet_pton(int af, const char *src, void *dst);
 
 #endif
 
+#ifndef HAVE_STRSEP
+char* strsep(char **stringp, const char *delim);
+#endif
+
 #endif /* COMPAT_H */

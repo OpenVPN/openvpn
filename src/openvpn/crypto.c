@@ -736,6 +736,17 @@ crypto_max_overhead(void)
            +max_int(OPENVPN_MAX_HMAC_SIZE, OPENVPN_AEAD_TAG_LENGTH);
 }
 
+static void warn_insecure_key_type(const char* ciphername, const cipher_kt_t *cipher)
+{
+    if (cipher_kt_insecure(cipher))
+    {
+        msg(M_WARN, "WARNING: INSECURE cipher (%s) with block size less than 128"
+                    " bit (%d bit).  This allows attacks like SWEET32.  Mitigate by "
+                    "using a --cipher with a larger block size (e.g. AES-256-CBC).",
+            ciphername, cipher_kt_block_size(cipher)*8);
+    }
+}
+
 /*
  * Build a struct key_type.
  */
@@ -778,6 +789,10 @@ init_key_type(struct key_type *kt, const char *ciphername,
         if (OPENVPN_MAX_CIPHER_BLOCK_SIZE < cipher_kt_block_size(kt->cipher))
         {
             msg(M_FATAL, "Cipher '%s' not allowed: block size too big.", ciphername);
+        }
+        if (warn)
+        {
+            warn_insecure_key_type(ciphername, kt->cipher);
         }
     }
     else
@@ -831,9 +846,10 @@ init_key_ctx(struct key_ctx *ctx, const struct key *key,
         cipher_ctx_init(ctx->cipher, key->cipher, kt->cipher_length,
                         kt->cipher, enc);
 
+        const char* ciphername = translate_cipher_name_to_openvpn(cipher_kt_name(kt->cipher));
         msg(D_HANDSHAKE, "%s: Cipher '%s' initialized with %d bit key",
             prefix,
-            translate_cipher_name_to_openvpn(cipher_kt_name(kt->cipher)),
+            ciphername,
             kt->cipher_length *8);
 
         dmsg(D_SHOW_KEYS, "%s: CIPHER KEY: %s", prefix,
@@ -841,13 +857,7 @@ init_key_ctx(struct key_ctx *ctx, const struct key *key,
         dmsg(D_CRYPTO_DEBUG, "%s: CIPHER block_size=%d iv_size=%d",
              prefix, cipher_kt_block_size(kt->cipher),
              cipher_kt_iv_size(kt->cipher));
-        if (cipher_kt_insecure(kt->cipher))
-        {
-            msg(M_WARN, "WARNING: INSECURE cipher with block size less than 128"
-                " bit (%d bit).  This allows attacks like SWEET32.  Mitigate by "
-                "using a --cipher with a larger block size (e.g. AES-256-CBC).",
-                cipher_kt_block_size(kt->cipher)*8);
-        }
+        warn_insecure_key_type(ciphername, kt->cipher);
     }
     if (kt->digest && kt->hmac_length > 0)
     {
@@ -895,7 +905,6 @@ free_key_ctx(struct key_ctx *ctx)
 {
     if (ctx->cipher)
     {
-        cipher_ctx_cleanup(ctx->cipher);
         cipher_ctx_free(ctx->cipher);
         ctx->cipher = NULL;
     }
@@ -1493,7 +1502,7 @@ must_have_n_keys(const char *filename, const char *option, const struct key2 *ke
 #ifdef ENABLE_SMALL
         msg(M_FATAL, "Key file '%s' used in --%s contains insufficient key material [keys found=%d required=%d]", filename, option, key2->n, n);
 #else
-        msg(M_FATAL, "Key file '%s' used in --%s contains insufficient key material [keys found=%d required=%d] -- try generating a new key file with '" PACKAGE " --genkey --secret [file]', or use the existing key file in bidirectional mode by specifying --%s without a key direction parameter", filename, option, key2->n, n, option);
+        msg(M_FATAL, "Key file '%s' used in --%s contains insufficient key material [keys found=%d required=%d] -- try generating a new key file with '" PACKAGE " --genkey secret [file]', or use the existing key file in bidirectional mode by specifying --%s without a key direction parameter", filename, option, key2->n, n, option);
 #endif
     }
 }
@@ -1890,6 +1899,24 @@ cleanup:
     buf_clear(&server_key_pem);
     gc_free(&gc);
     return;
+}
+
+bool
+generate_ephemeral_key(struct buffer *key, const char *key_name)
+{
+    const int len = BCAP(key);
+
+    msg(M_INFO, "Using random %s.", key_name);
+
+    if (!rand_bytes(BEND(key), len))
+    {
+        msg(M_WARN, "ERROR: could not generate random key");
+        return false;
+    }
+
+    buf_inc_len(key, len);
+
+    return true;
 }
 
 bool

@@ -25,6 +25,8 @@
 #ifndef OPENVPN_WIN32_H
 #define OPENVPN_WIN32_H
 
+#include <winioctl.h>
+
 #include "mtu.h"
 #include "openvpn-msg.h"
 #include "argv.h"
@@ -322,6 +324,8 @@ bool send_msg_iservice(HANDLE pipe, const void *data, size_t size,
  */
 int
 openvpn_execve(const struct argv *a, const struct env_set *es, const unsigned int flags);
+
+bool impersonate_as_system();
 
 #endif /* ifndef OPENVPN_WIN32_H */
 #endif /* ifdef _WIN32 */

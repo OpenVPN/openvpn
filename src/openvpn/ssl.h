@@ -431,6 +431,8 @@ void ssl_purge_auth(const bool auth_user_pass_only);
 
 void ssl_set_auth_token(const char *token);
 
+bool ssl_clean_auth_token(void);
+
 #ifdef ENABLE_MANAGEMENT
 /*
  * ssl_get_auth_challenge will parse the server-pushed auth-failed
@@ -438,8 +440,6 @@ void ssl_set_auth_token(const char *token);
  * auth_challenge_info struct.
  */
 void ssl_purge_auth_challenge(void);
-
-bool ssl_clean_auth_token(void);
 
 void ssl_put_auth_challenge(const char *cr_str);
 
@@ -476,24 +476,18 @@ void tls_update_remote_addr(struct tls_multi *multi,
  * Update TLS session crypto parameters (cipher and auth) and derive data
  * channel keys based on the supplied options.
  *
- * @param session       The TLS session to update.
- * @param options       The options to use when updating session.
- * @param frame         The frame options for this session (frame overhead is
- *                      adjusted based on the selected cipher/auth).
+ * @param session         The TLS session to update.
+ * @param options         The options to use when updating session.
+ * @param frame           The frame options for this session (frame overhead is
+ *                        adjusted based on the selected cipher/auth).
+ * @param frame_fragment  The fragment frame options.
  *
  * @return true if updating succeeded, false otherwise.
  */
 bool tls_session_update_crypto_params(struct tls_session *session,
-                                      struct options *options, struct frame *frame);
-
-/**
- * "Poor man's NCP": Use peer cipher if it is an allowed (NCP) cipher.
- * Allows non-NCP peers to upgrade their cipher individually.
- *
- * Make sure to call tls_session_update_crypto_params() after calling this
- * function.
- */
-void tls_poor_mans_ncp(struct options *o, const char *remote_ciphername);
+                                      struct options *options,
+                                      struct frame *frame,
+                                      struct frame *frame_fragment);
 
 #ifdef MANAGEMENT_DEF_AUTH
 static inline char *
@@ -502,28 +496,6 @@ tls_get_peer_info(const struct tls_multi *multi)
     return multi->peer_info;
 }
 #endif
-
-/**
- * Return the Negotiable Crypto Parameters version advertised in the peer info
- * string, or 0 if none specified.
- */
-int tls_peer_info_ncp_ver(const char *peer_info);
-
-/**
- * Check whether the ciphers in the supplied list are supported.
- *
- * @param list          Colon-separated list of ciphers
- *
- * @returns true iff all ciphers in list are supported.
- */
-bool tls_check_ncp_cipher_list(const char *list);
-
-/**
- * Return true iff item is present in the colon-separated zero-terminated
- * cipher list.
- */
-bool tls_item_in_cipher_list(const char *item, const char *list);
-
 
 /*
  * inline functions

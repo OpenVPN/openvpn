@@ -816,6 +816,7 @@ actual private key. When the SSL protocol needs to perform a sign
 operation, the data to be signed will be sent to the management interface
 via a notification as follows:
 
+>PK_SIGN:[BASE64_DATA],[ALG] (if client announces support for management version > 2)
 >PK_SIGN:[BASE64_DATA] (if client announces support for management version > 1)
 >RSA_SIGN:[BASE64_DATA] (only older clients will be prompted like this)
 
@@ -823,7 +824,7 @@ The management interface client should then create an appropriate signature of
 the (decoded) BASE64_DATA using the private key and return the SSL signature as
 follows:
 
-pk-sig   (or rsa-sig)
+pk-sig (or rsa-sig)
 [BASE64_SIG_LINE]
 .
 .
@@ -833,12 +834,26 @@ END
 Base 64 encoded output of RSA_private_encrypt for RSA or ECDSA_sign()
 for EC using OpenSSL or mbedtls_pk_sign() using mbed TLS will provide a
 correct signature.
+The rsa-sig interface expects PKCS1 padded signatures for RSA keys
+(RSA_PKCS1_PADDING). EC signatures are always unpadded.
 
 This capability is intended to allow the use of arbitrary cryptographic
 service providers with OpenVPN via the management interface.
 
 New and updated clients are expected to use the version command to announce
 a version > 1 and handle '>PK_SIGN' prompt and respond with 'pk-sig'.
+
+The signature algorithm is indicated in the PK_SIGN request only if the
+management client-version is > 2.  In particular, to support TLS1.3 and
+TLS1.2 using OpenSSL 1.1.1, unpadded signature support is required  and this
+can be indicated in the signing request only if the client version is > 2"
+
+The currently defined padding algorithms are:
+
+ - RSA_PKCS1_PADDING  -  PKCS1 padding and RSA signature
+ - RSA_NO_PADDING     -  No padding may be added for the signature
+ - ECDSA              -  EC signature.
+
 
 COMMAND -- certificate (OpenVPN 2.4 or higher)
 ----------------------------------------------

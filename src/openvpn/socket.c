@@ -1175,7 +1175,7 @@ socket_do_listen(socket_descriptor_t sd,
         ASSERT(local);
         msg(M_INFO, "Listening for incoming TCP connection on %s",
             print_sockaddr(local->ai_addr, &gc));
-        if (listen(sd, 1))
+        if (listen(sd, 32))
         {
             msg(M_ERR, "TCP: listen() failed");
         }
@@ -2471,7 +2471,7 @@ link_socket_connection_initiated(const struct buffer *buf,
         {
             msg(M_WARN, "WARNING: ipchange plugin call failed");
         }
-        argv_reset(&argv);
+        argv_free(&argv);
     }
 
     /* Process --ipchange option */
@@ -2481,7 +2481,7 @@ link_socket_connection_initiated(const struct buffer *buf,
         setenv_str(es, "script_type", "ipchange");
         ipchange_fmt(true, &argv, info, &gc);
         openvpn_run_script(&argv, es, 0, "--ipchange");
-        argv_reset(&argv);
+        argv_free(&argv);
     }
 
     gc_free(&gc);

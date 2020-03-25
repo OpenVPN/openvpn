@@ -38,17 +38,17 @@
  * If raw tunnel packet is IPv<X>, return true and increment
  * buffer offset to start of IP header.
  */
-static
-bool
-is_ipv_X( int tunnel_type, struct buffer *buf, int ip_ver )
+static bool
+is_ipv_X(int tunnel_type, struct buffer *buf, int ip_ver)
 {
     int offset;
+    uint16_t proto;
     const struct openvpn_iphdr *ih;
 
     verify_align_4(buf);
     if (tunnel_type == DEV_TYPE_TUN)
     {
-        if (BLEN(buf) < (int) sizeof(struct openvpn_iphdr))
+        if (BLEN(buf) < sizeof(struct openvpn_iphdr))
         {
             return false;
         }
@@ -57,24 +57,46 @@ is_ipv_X( int tunnel_type, struct buffer *buf, int ip_ver )
     else if (tunnel_type == DEV_TYPE_TAP)
     {
         const struct openvpn_ethhdr *eh;
-        if (BLEN(buf) < (int)(sizeof(struct openvpn_ethhdr)
-                              + sizeof(struct openvpn_iphdr)))
+        if (BLEN(buf) < (sizeof(struct openvpn_ethhdr)
+                         + sizeof(struct openvpn_iphdr)))
         {
             return false;
         }
-        eh = (const struct openvpn_ethhdr *) BPTR(buf);
-        if (ntohs(eh->proto) != (ip_ver == 6 ? OPENVPN_ETH_P_IPV6 : OPENVPN_ETH_P_IPV4))
-        {
-            return false;
-        }
+        eh = (const struct openvpn_ethhdr *)BPTR(buf);
+
+        /* start by assuming this is a standard Eth fram */
+        proto = eh->proto;
         offset = sizeof(struct openvpn_ethhdr);
+
+        /* if this is a 802.1q frame, parse the header using the according
+         * format
+         */
+        if (proto == htons(OPENVPN_ETH_P_8021Q))
+        {
+            const struct openvpn_8021qhdr *evh;
+            if (BLEN(buf) < (sizeof(struct openvpn_ethhdr)
+                             + sizeof(struct openvpn_iphdr)))
+            {
+                return false;
+            }
+
+            evh = (const struct openvpn_8021qhdr *)BPTR(buf);
+
+            proto = evh->proto;
+            offset = sizeof(struct openvpn_8021qhdr);
+        }
+
+        if (ntohs(proto) != (ip_ver == 6 ? OPENVPN_ETH_P_IPV6 : OPENVPN_ETH_P_IPV4))
+        {
+            return false;
+        }
     }
     else
     {
         return false;
     }
 
-    ih = (const struct openvpn_iphdr *) (BPTR(buf) + offset);
+    ih = (const struct openvpn_iphdr *)(BPTR(buf) + offset);
 
     /* IP version is stored in the same bits for IPv4 or IPv6 header */
     if (OPENVPN_IPH_GET_VER(ih->version_len) == ip_ver)

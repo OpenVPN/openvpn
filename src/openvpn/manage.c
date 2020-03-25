@@ -2736,7 +2736,9 @@ env_filter_match(const char *env_str, const int env_filter_level)
         "ifconfig_pool_netmask=",
         "time_duration=",
         "bytes_sent=",
-        "bytes_received="
+        "bytes_received=",
+        "session_id=",
+        "session_state="
     };
 
     if (env_filter_level == 0)
@@ -3639,18 +3641,30 @@ management_query_multiline_flatten(struct management *man,
 
 char *
 /* returns allocated base64 signature */
-management_query_pk_sig(struct management *man,
-                        const char *b64_data)
+management_query_pk_sig(struct management *man, const char *b64_data,
+                        const char *algorithm)
 {
     const char *prompt = "PK_SIGN";
     const char *desc = "pk-sign";
+    struct buffer buf_data = alloc_buf(strlen(b64_data) + strlen(algorithm) + 20);
+
     if (man->connection.client_version <= 1)
     {
         prompt = "RSA_SIGN";
         desc = "rsa-sign";
     }
-    return management_query_multiline_flatten(man, b64_data, prompt, desc,
-                                              &man->connection.ext_key_state, &man->connection.ext_key_input);
+
+    buf_write(&buf_data, b64_data, (int) strlen(b64_data));
+    if (man->connection.client_version > 2)
+    {
+        buf_write(&buf_data, ",", (int) strlen(","));
+        buf_write(&buf_data, algorithm, (int) strlen(algorithm));
+    }
+    char* ret = management_query_multiline_flatten(man,
+            (char *)buf_bptr(&buf_data), prompt, desc,
+            &man->connection.ext_key_state, &man->connection.ext_key_input);
+    free_buf(&buf_data);
+    return ret;
 }
 
 char *

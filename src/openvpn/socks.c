@@ -414,6 +414,10 @@ recv_socks_reply(socket_descriptor_t sd,
     {
         memcpy(&addr->addr.in4.sin_addr, buf + 4, sizeof(addr->addr.in4.sin_addr));
         memcpy(&addr->addr.in4.sin_port, buf + 8, sizeof(addr->addr.in4.sin_port));
+        struct gc_arena gc = gc_new();
+        msg(M_INFO, "SOCKS proxy wants us to send UDP to %s",
+            print_openvpn_sockaddr(addr, &gc));
+        gc_free(&gc);
     }
 
 

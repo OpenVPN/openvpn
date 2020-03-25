@@ -306,6 +306,7 @@ case "$host" in
 		AC_DEFINE([TARGET_SOLARIS], [1], [Are we running on Solaris?])
 		AC_DEFINE_UNQUOTED([TARGET_PREFIX], ["S"], [Target prefix])
 		CPPFLAGS="$CPPFLAGS -D_XPG4_2"
+		test -x /bin/bash && SHELL="/bin/bash"
 		;;
 	*-*-openbsd*)
 		AC_DEFINE([TARGET_OPENBSD], [1], [Are we running on OpenBSD?])
@@ -323,8 +324,6 @@ case "$host" in
 		AC_DEFINE([TARGET_DARWIN], [1], [Are we running on Mac OS X?])
 		AC_DEFINE_UNQUOTED([TARGET_PREFIX], ["M"], [Target prefix])
 		have_tap_header="yes"
-		dnl some Mac OS X tendering (we use vararg macros...)
-		CPPFLAGS="$CPPFLAGS -no-cpp-precomp"
 		ac_cv_type_struct_in_pktinfo=no
 		;;
 	*-mingw*)
@@ -656,7 +655,7 @@ AC_CHECK_FUNCS([ \
 	ctime memset vsnprintf strdup \
 	setsid chdir putenv getpeername unlink \
 	chsize ftruncate execve getpeereid umask basename dirname access \
-	epoll_create \
+	epoll_create strsep \
 ])
 
 AC_CHECK_LIB(
@@ -907,10 +906,17 @@ if test "${with_crypto_library}" = "openssl"; then
 	fi
 
 	have_crypto_aead_modes="yes"
-	AC_CHECK_FUNCS(
+	AC_CHECK_FUNC(
 		[EVP_aes_256_gcm],
 		,
-		[have_crypto_aead_modes="no"; break]
+		[have_crypto_aead_modes="no"]
+	)
+
+	have_export_keying_material="yes"
+	AC_CHECK_FUNC(
+		[SSL_export_keying_material],
+		,
+		[have_export_keying_material="no"]
 	)
 
 	AC_CHECK_FUNCS(
@@ -921,10 +927,13 @@ if test "${with_crypto_library}" = "openssl"; then
 			EVP_MD_CTX_new \
 			EVP_MD_CTX_free \
 			EVP_MD_CTX_reset \
+			EVP_CIPHER_CTX_reset \
 			OpenSSL_version \
 			SSL_CTX_get_default_passwd_cb \
 			SSL_CTX_get_default_passwd_cb_userdata \
 			SSL_CTX_set_security_level \
+			X509_get0_notBefore \
+			X509_get0_notAfter \
 			X509_get0_pubkey \
 			X509_STORE_get0_objects \
 			X509_OBJECT_free \
@@ -1006,6 +1015,13 @@ elif test "${with_crypto_library}" = "mbedtls"; then
 		],
 		,
 		[have_crypto_aead_modes="no"; break]
+	)
+
+	have_export_keying_material="yes"
+	AC_CHECK_FUNC(
+		[mbedtls_ssl_conf_export_keys_ext_cb],
+		,
+		[have_export_keying_material="no"]
 	)
 
 	CFLAGS="${saved_CFLAGS}"
@@ -1215,6 +1231,12 @@ test "${enable_strict_options}" = "yes" && AC_DEFINE([ENABLE_STRICT_OPTIONS_CHEC
 
 test "${enable_crypto_ofb_cfb}" = "yes" && AC_DEFINE([ENABLE_OFB_CFB_MODE], [1], [Enable OFB and CFB cipher modes])
 test "${have_crypto_aead_modes}" = "yes" && AC_DEFINE([HAVE_AEAD_CIPHER_MODES], [1], [Use crypto library])
+if test "${have_export_keying_material}" = "yes"; then
+	AC_DEFINE(
+		[HAVE_EXPORT_KEYING_MATERIAL], [1],
+		[Crypto library supports keying material exporter]
+	)
+fi
 OPTIONAL_CRYPTO_CFLAGS="${OPTIONAL_CRYPTO_CFLAGS} ${CRYPTO_CFLAGS}"
 OPTIONAL_CRYPTO_LIBS="${OPTIONAL_CRYPTO_LIBS} ${CRYPTO_LIBS}"
 
@@ -1273,14 +1295,18 @@ if test "${enable_pkcs11}" = "yes"; then
 	)
 fi
 
+# When testing a compiler option, we add -Werror to force
+# an error when the option is unsupported. This is not
+# required for gcc, but some compilers such as clang needs it.
 AC_DEFUN([ACL_CHECK_ADD_COMPILE_FLAGS], [
     old_cflags="$CFLAGS"
-    CFLAGS="$1 $CFLAGS"
-    AC_MSG_CHECKING([whether the compiler acceppts $1])
-    AC_COMPILE_IFELSE([AC_LANG_PROGRAM()], [AC_MSG_RESULT([yes])],
+    CFLAGS="$1 -Werror $CFLAGS"
+    AC_MSG_CHECKING([whether the compiler accepts $1])
+    AC_COMPILE_IFELSE([AC_LANG_PROGRAM()], [AC_MSG_RESULT([yes])]; CFLAGS="$1 $old_cflags",
         [AC_MSG_RESULT([no]); CFLAGS="$old_cflags"])]
 )
 
+ACL_CHECK_ADD_COMPILE_FLAGS([-Wno-stringop-truncation])
 ACL_CHECK_ADD_COMPILE_FLAGS([-Wno-unused-function])
 ACL_CHECK_ADD_COMPILE_FLAGS([-Wno-unused-parameter])
 ACL_CHECK_ADD_COMPILE_FLAGS([-Wall])
@@ -1313,11 +1339,25 @@ if test "${enable_plugin_auth_pam}" = "yes"; then
 fi
 
 if test "${enable_async_push}" = "yes"; then
-	AC_CHECK_HEADERS(
-		[sys/inotify.h],
-		AC_DEFINE([ENABLE_ASYNC_PUSH], [1], [Enable async push]),
-		AC_MSG_ERROR([inotify.h not found.])
-	)
+	case "$host" in
+		*-*-freebsd*)
+			PKG_CHECK_MODULES(
+				[OPTIONAL_INOTIFY],
+				[libinotify],
+				[
+					AC_DEFINE([HAVE_SYS_INOTIFY_H])
+					AC_DEFINE([ENABLE_ASYNC_PUSH], [1], [Enable async push])
+				]
+			)
+		;;
+		*)
+			AC_CHECK_HEADERS(
+				[sys/inotify.h],
+				AC_DEFINE([ENABLE_ASYNC_PUSH], [1], [Enable async push]),
+				AC_MSG_ERROR([inotify.h not found.])
+			)
+		;;
+	esac
 fi
 
 CONFIGURE_DEFINES="`set | grep '^enable_.*=' ; set | grep '^with_.*='`"
@@ -1344,6 +1384,8 @@ AC_SUBST([OPTIONAL_LZ4_LIBS])
 AC_SUBST([OPTIONAL_SYSTEMD_LIBS])
 AC_SUBST([OPTIONAL_PKCS11_HELPER_CFLAGS])
 AC_SUBST([OPTIONAL_PKCS11_HELPER_LIBS])
+AC_SUBST([OPTIONAL_INOTIFY_CFLAGS])
+AC_SUBST([OPTIONAL_INOTIFY_LIBS])
 
 AC_SUBST([PLUGIN_AUTH_PAM_CFLAGS])
 AC_SUBST([PLUGIN_AUTH_PAM_LIBS])

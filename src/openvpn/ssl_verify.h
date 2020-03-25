@@ -224,18 +224,23 @@ struct x509_track
 #ifdef MANAGEMENT_DEF_AUTH
 bool tls_authenticate_key(struct tls_multi *multi, const unsigned int mda_key_id, const bool auth, const char *client_reason);
 
-void man_def_auth_set_client_reason(struct tls_multi *multi, const char *client_reason);
+#endif
 
+#ifdef P2MP_SERVER
+/**
+ * Sets the reason why authentication of a client failed. This be will send to the client
+ * when the AUTH_FAILED message is sent
+ * An example would be "SESSION: Token expired"
+ * @param multi             The multi tls struct
+ * @param client_reason     The string to send to the client as part of AUTH_FAILED
+ */
+void auth_set_client_reason(struct tls_multi* multi, const char* client_reason);
 #endif
 
 static inline const char *
 tls_client_reason(struct tls_multi *multi)
 {
-#ifdef ENABLE_DEF_AUTH
     return multi->client_reason;
-#else
-    return NULL;
-#endif
 }
 
 /** Remove any X509_ env variables from env_set es */

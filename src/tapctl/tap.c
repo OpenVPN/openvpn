@@ -1,8 +1,8 @@
 /*
- *  tapctl -- Utility to manipulate TUN/TAP interfaces on Windows
+ *  tapctl -- Utility to manipulate TUN/TAP adapters on Windows
  *            https://community.openvpn.net/openvpn/wiki/Tapctl
  *
- *  Copyright (C) 2018 Simon Rozman <simon@rozman.si>
+ *  Copyright (C) 2018-2020 Simon Rozman <simon@rozman.si>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -31,6 +31,7 @@
 #include <cfgmgr32.h>
 #include <objbase.h>
 #include <setupapi.h>
+#include <stdio.h>
 #include <tchar.h>
 
 #ifdef _MSC_VER
@@ -41,25 +42,88 @@
 
 const static GUID GUID_DEVCLASS_NET = { 0x4d36e972L, 0xe325, 0x11ce, { 0xbf, 0xc1, 0x08, 0x00, 0x2b, 0xe1, 0x03, 0x18 } };
 
-const static TCHAR szzHardwareIDs[] = TEXT("root\\") TEXT(TAP_WIN_COMPONENT_ID) TEXT("\0");
+const static TCHAR szAdapterRegKeyPathTemplate[] = TEXT("SYSTEM\\CurrentControlSet\\Control\\Network\\%") TEXT(PRIsLPOLESTR) TEXT("\\%") TEXT(PRIsLPOLESTR) TEXT("\\Connection");
+#define ADAPTER_REGKEY_PATH_MAX (_countof(TEXT("SYSTEM\\CurrentControlSet\\Control\\Network\\")) - 1 + 38 + _countof(TEXT("\\")) - 1 + 38 + _countof(TEXT("\\Connection")))
 
-const static TCHAR szInterfaceRegKeyPathTemplate[] = TEXT("SYSTEM\\CurrentControlSet\\Control\\Network\\%") TEXT(PRIsLPOLESTR) TEXT("\\%") TEXT(PRIsLPOLESTR) TEXT("\\Connection");
-#define INTERFACE_REGKEY_PATH_MAX (_countof(TEXT("SYSTEM\\CurrentControlSet\\Control\\Network\\")) - 1 + 38 + _countof(TEXT("\\")) - 1 + 38 + _countof(TEXT("\\Connection")))
+
+/**
+ * Returns length of string of strings
+ *
+ * @param szz           Pointer to a string of strings (terminated by an empty string)
+ *
+ * @return Number of characters not counting the final zero terminator
+ **/
+static inline size_t
+_tcszlen(_In_z_ LPCTSTR szz)
+{
+    LPCTSTR s;
+    for (s = szz; s[0]; s += _tcslen(s) + 1)
+    {
+    }
+    return s - szz;
+}
+
+
+/**
+ * Checks if string is contained in the string of strings. Comparison is made case-insensitive.
+ *
+ * @param szzHay        Pointer to a string of strings (terminated by an empty string) we are
+ *                      looking in
+ *
+ * @param szNeedle      The string we are searching for
+ *
+ * @return Pointer to the string in szzHay that matches szNeedle is found; NULL otherwise
+ */
+static LPCTSTR
+_tcszistr(_In_z_ LPCTSTR szzHay, _In_z_ LPCTSTR szNeedle)
+{
+    for (LPCTSTR s = szzHay; s[0]; s += _tcslen(s) + 1)
+    {
+        if (_tcsicmp(s, szNeedle) == 0)
+        {
+            return s;
+        }
+    }
+
+    return NULL;
+}
+
+
+/**
+ * Function that performs a specific task on a device
+ *
+ * @param hDeviceInfoSet  A handle to a device information set that contains a device
+ *                      information element that represents the device.
+ *
+ * @param pDeviceInfoData  A pointer to an SP_DEVINFO_DATA structure that specifies the
+ *                      device information element in hDeviceInfoSet.
+ *
+ * @param pbRebootRequired  A pointer to a BOOL flag. If the device requires a system restart,
+ *                      this flag is set to TRUE. Otherwise, the flag is left unmodified. This
+ *                      allows the flag to be globally initialized to FALSE and reused for multiple
+ *                      adapter manipulations.
+ *
+ * @return ERROR_SUCCESS on success; Win32 error code otherwise
+ **/
+typedef DWORD (*devop_func_t)(
+    _In_ HDEVINFO hDeviceInfoSet,
+    _In_ PSP_DEVINFO_DATA pDeviceInfoData,
+    _Inout_ LPBOOL pbRebootRequired);
 
 
 /**
  * Checks device install parameters if a system reboot is required.
  *
  * @param hDeviceInfoSet  A handle to a device information set that contains a device
- *                      information element that represents the device for which to
+ *                      information element that represents the device.
  *
  * @param pDeviceInfoData  A pointer to an SP_DEVINFO_DATA structure that specifies the
  *                      device information element in hDeviceInfoSet.
  *
- * @param pbRebootRequired  A pointer to a BOOL flag. If the interface installation requires
- *                      a system restart, this flag is set to TRUE. Otherwise, the flag is
- *                      left unmodified. This allows the flag to be globally initialized to
- *                      FALSE and reused for multiple interface installations.
+ * @param pbRebootRequired  A pointer to a BOOL flag. If the device requires a system restart,
+ *                      this flag is set to TRUE. Otherwise, the flag is left unmodified. This
+ *                      allows the flag to be globally initialized to FALSE and reused for multiple
+ *                      adapter manipulations.
  *
  * @return ERROR_SUCCESS on success; Win32 error code otherwise
  **/
@@ -91,6 +155,186 @@ check_reboot(
     }
 
     return ERROR_SUCCESS;
+}
+
+
+/**
+ * Deletes the device.
+ *
+ * @param hDeviceInfoSet  A handle to a device information set that contains a device
+ *                      information element that represents the device.
+ *
+ * @param pDeviceInfoData  A pointer to an SP_DEVINFO_DATA structure that specifies the
+ *                      device information element in hDeviceInfoSet.
+ *
+ * @param pbRebootRequired  A pointer to a BOOL flag. If the device requires a system restart,
+ *                      this flag is set to TRUE. Otherwise, the flag is left unmodified. This
+ *                      allows the flag to be globally initialized to FALSE and reused for multiple
+ *                      adapter manipulations.
+ *
+ * @return ERROR_SUCCESS on success; Win32 error code otherwise
+ **/
+static DWORD
+delete_device(
+    _In_ HDEVINFO hDeviceInfoSet,
+    _In_ PSP_DEVINFO_DATA pDeviceInfoData,
+    _Inout_ LPBOOL pbRebootRequired)
+{
+    SP_REMOVEDEVICE_PARAMS params =
+    {
+        .ClassInstallHeader =
+        {
+            .cbSize = sizeof(SP_CLASSINSTALL_HEADER),
+            .InstallFunction = DIF_REMOVE,
+        },
+        .Scope = DI_REMOVEDEVICE_GLOBAL,
+        .HwProfile = 0,
+    };
+
+    /* Set class installer parameters for DIF_REMOVE. */
+    if (!SetupDiSetClassInstallParams(
+            hDeviceInfoSet,
+            pDeviceInfoData,
+            &params.ClassInstallHeader,
+            sizeof(SP_REMOVEDEVICE_PARAMS)))
+    {
+        DWORD dwResult = GetLastError();
+        msg(M_NONFATAL | M_ERRNO, "%s: SetupDiSetClassInstallParams failed", __FUNCTION__);
+        return dwResult;
+    }
+
+    /* Call appropriate class installer. */
+    if (!SetupDiCallClassInstaller(
+            DIF_REMOVE,
+            hDeviceInfoSet,
+            pDeviceInfoData))
+    {
+        DWORD dwResult = GetLastError();
+        msg(M_NONFATAL | M_ERRNO, "%s: SetupDiCallClassInstaller(DIF_REMOVE) failed", __FUNCTION__);
+        return dwResult;
+    }
+
+    /* Check if a system reboot is required. */
+    check_reboot(hDeviceInfoSet, pDeviceInfoData, pbRebootRequired);
+    return ERROR_SUCCESS;
+}
+
+
+/**
+ * Changes the device state.
+ *
+ * @param hDeviceInfoSet  A handle to a device information set that contains a device
+ *                      information element that represents the device.
+ *
+ * @param pDeviceInfoData  A pointer to an SP_DEVINFO_DATA structure that specifies the
+ *                      device information element in hDeviceInfoSet.
+ *
+ * @param bEnable       TRUE to enable the device; FALSE to disable.
+ *
+ * @param pbRebootRequired  A pointer to a BOOL flag. If the device requires a system restart,
+ *                      this flag is set to TRUE. Otherwise, the flag is left unmodified. This
+ *                      allows the flag to be globally initialized to FALSE and reused for multiple
+ *                      adapter manipulations.
+ *
+ * @return ERROR_SUCCESS on success; Win32 error code otherwise
+ **/
+static DWORD
+change_device_state(
+    _In_ HDEVINFO hDeviceInfoSet,
+    _In_ PSP_DEVINFO_DATA pDeviceInfoData,
+    _In_ BOOL bEnable,
+    _Inout_ LPBOOL pbRebootRequired)
+{
+    SP_PROPCHANGE_PARAMS params =
+    {
+        .ClassInstallHeader =
+        {
+            .cbSize = sizeof(SP_CLASSINSTALL_HEADER),
+            .InstallFunction = DIF_PROPERTYCHANGE,
+        },
+        .StateChange = bEnable ? DICS_ENABLE : DICS_DISABLE,
+        .Scope = DICS_FLAG_GLOBAL,
+        .HwProfile = 0,
+    };
+
+    /* Set class installer parameters for DIF_PROPERTYCHANGE. */
+    if (!SetupDiSetClassInstallParams(
+            hDeviceInfoSet,
+            pDeviceInfoData,
+            &params.ClassInstallHeader,
+            sizeof(SP_PROPCHANGE_PARAMS)))
+    {
+        DWORD dwResult = GetLastError();
+        msg(M_NONFATAL | M_ERRNO, "%s: SetupDiSetClassInstallParams failed", __FUNCTION__);
+        return dwResult;
+    }
+
+    /* Call appropriate class installer. */
+    if (!SetupDiCallClassInstaller(
+            DIF_PROPERTYCHANGE,
+            hDeviceInfoSet,
+            pDeviceInfoData))
+    {
+        DWORD dwResult = GetLastError();
+        msg(M_NONFATAL | M_ERRNO, "%s: SetupDiCallClassInstaller(DIF_PROPERTYCHANGE) failed", __FUNCTION__);
+        return dwResult;
+    }
+
+    /* Check if a system reboot is required. */
+    check_reboot(hDeviceInfoSet, pDeviceInfoData, pbRebootRequired);
+    return ERROR_SUCCESS;
+}
+
+
+/**
+ * Enables the device.
+ *
+ * @param hDeviceInfoSet  A handle to a device information set that contains a device
+ *                      information element that represents the device.
+ *
+ * @param pDeviceInfoData  A pointer to an SP_DEVINFO_DATA structure that specifies the
+ *                      device information element in hDeviceInfoSet.
+ *
+ * @param pbRebootRequired  A pointer to a BOOL flag. If the device requires a system restart,
+ *                      this flag is set to TRUE. Otherwise, the flag is left unmodified. This
+ *                      allows the flag to be globally initialized to FALSE and reused for multiple
+ *                      adapter manipulations.
+ *
+ * @return ERROR_SUCCESS on success; Win32 error code otherwise
+ **/
+static DWORD
+enable_device(
+    _In_ HDEVINFO hDeviceInfoSet,
+    _In_ PSP_DEVINFO_DATA pDeviceInfoData,
+    _Inout_ LPBOOL pbRebootRequired)
+{
+    return change_device_state(hDeviceInfoSet, pDeviceInfoData, TRUE, pbRebootRequired);
+}
+
+
+/**
+ * Disables the device.
+ *
+ * @param hDeviceInfoSet  A handle to a device information set that contains a device
+ *                      information element that represents the device.
+ *
+ * @param pDeviceInfoData  A pointer to an SP_DEVINFO_DATA structure that specifies the
+ *                      device information element in hDeviceInfoSet.
+ *
+ * @param pbRebootRequired  A pointer to a BOOL flag. If the device requires a system restart,
+ *                      this flag is set to TRUE. Otherwise, the flag is left unmodified. This
+ *                      allows the flag to be globally initialized to FALSE and reused for multiple
+ *                      adapter manipulations.
+ *
+ * @return ERROR_SUCCESS on success; Win32 error code otherwise
+ **/
+static DWORD
+disable_device(
+    _In_ HDEVINFO hDeviceInfoSet,
+    _In_ PSP_DEVINFO_DATA pDeviceInfoData,
+    _Inout_ LPBOOL pbRebootRequired)
+{
+    return change_device_state(hDeviceInfoSet, pDeviceInfoData, FALSE, pbRebootRequired);
 }
 
 
@@ -241,10 +485,10 @@ get_reg_string(
 
 
 /**
- * Returns network interface ID.
+ * Returns network adapter ID.
  *
  * @param hDeviceInfoSet  A handle to a device information set that contains a device
- *                      information element that represents the device for which to
+ *                      information element that represents the device.
  *
  * @param pDeviceInfoData  A pointer to an SP_DEVINFO_DATA structure that specifies the
  *                      device information element in hDeviceInfoSet.
@@ -254,20 +498,20 @@ get_reg_string(
  *                      attempts to read NetCfgInstanceId value from registry. A 1sec sleep
  *                      is inserted between retry attempts.
  *
- * @param pguidInterface  A pointer to GUID that receives network interface ID.
+ * @param pguidAdapter  A pointer to GUID that receives network adapter ID.
  *
  * @return ERROR_SUCCESS on success; Win32 error code otherwise
  **/
 static DWORD
-get_net_interface_guid(
+get_net_adapter_guid(
     _In_ HDEVINFO hDeviceInfoSet,
     _In_ PSP_DEVINFO_DATA pDeviceInfoData,
     _In_ int iNumAttempts,
-    _Out_ LPGUID pguidInterface)
+    _Out_ LPGUID pguidAdapter)
 {
     DWORD dwResult = ERROR_BAD_ARGUMENTS;
 
-    if (pguidInterface == NULL || iNumAttempts < 1)
+    if (pguidAdapter == NULL || iNumAttempts < 1)
     {
         return ERROR_BAD_ARGUMENTS;
     }
@@ -316,7 +560,7 @@ get_net_interface_guid(
             break;
         }
 
-        dwResult = SUCCEEDED(CLSIDFromString(szCfgGuidString, (LPCLSID)pguidInterface)) ? ERROR_SUCCESS : ERROR_INVALID_DATA;
+        dwResult = SUCCEEDED(CLSIDFromString(szCfgGuidString, (LPCLSID)pguidAdapter)) ? ERROR_SUCCESS : ERROR_INVALID_DATA;
         free(szCfgGuidString);
         break;
     }
@@ -330,8 +574,7 @@ get_net_interface_guid(
  * Returns a specified Plug and Play device property.
  *
  * @param hDeviceInfoSet  A handle to a device information set that contains a device
- *                      information element that represents the device for which to
- *                      retrieve a Plug and Play property.
+ *                      information element that represents the device.
  *
  * @param pDeviceInfoData  A pointer to an SP_DEVINFO_DATA structure that specifies the
  *                      device information element in hDeviceInfoSet.
@@ -426,35 +669,19 @@ get_device_reg_property(
 }
 
 
-/**
- * Returns length of list of strings
- *
- * @param str              Pointer to a list of strings terminated by an empty string.
- *
- * @return Number of characters not counting the final zero terminator
- **/
-static inline size_t
-_tcszlen(_In_ LPCTSTR str)
-{
-    LPCTSTR s;
-    for (s = str; s[0]; s += _tcslen(s) + 1)
-    {
-    }
-    return s - str;
-}
-
-
 DWORD
-tap_create_interface(
+tap_create_adapter(
     _In_opt_ HWND hwndParent,
     _In_opt_ LPCTSTR szDeviceDescription,
+    _In_ LPCTSTR szHwId,
     _Inout_ LPBOOL pbRebootRequired,
-    _Out_ LPGUID pguidInterface)
+    _Out_ LPGUID pguidAdapter)
 {
     DWORD dwResult;
 
-    if (pbRebootRequired == NULL
-        || pguidInterface == NULL)
+    if (szHwId == NULL
+        || pbRebootRequired == NULL
+        || pguidAdapter == NULL)
     {
         return ERROR_BAD_ARGUMENTS;
     }
@@ -512,7 +739,7 @@ tap_create_interface(
             hDevInfoList,
             &devinfo_data,
             SPDRP_HARDWAREID,
-            (const BYTE *)szzHardwareIDs, sizeof(szzHardwareIDs)))
+            (const BYTE *)szHwId, (DWORD)((_tcslen(szHwId) + 1) * sizeof(TCHAR))))
     {
         dwResult = GetLastError();
         msg(M_NONFATAL, "%s: SetupDiSetDeviceRegistryProperty failed", __FUNCTION__);
@@ -610,29 +837,23 @@ tap_create_interface(
             }
         }
 
-        /* Check the driver version first, since the check is trivial and will save us iterating over hardware IDs for any driver versioned prior our best match. */
-        if (dwlDriverVersion < drvinfo_data.DriverVersion)
+        /* Check the driver version and hardware ID. */
+        if (dwlDriverVersion < drvinfo_data.DriverVersion
+            && drvinfo_detail_data->HardwareID
+            && _tcszistr(drvinfo_detail_data->HardwareID, szHwId))
         {
-            /* Search the list of hardware IDs. */
-            for (LPTSTR szHwdID = drvinfo_detail_data->HardwareID; szHwdID && szHwdID[0]; szHwdID += _tcslen(szHwdID) + 1)
+            /* Newer version and matching hardware ID found. Select the driver. */
+            if (!SetupDiSetSelectedDriver(
+                    hDevInfoList,
+                    &devinfo_data,
+                    &drvinfo_data))
             {
-                if (_tcsicmp(szHwdID, szzHardwareIDs) == 0)
-                {
-                    /* Matching hardware ID found. Select the driver. */
-                    if (!SetupDiSetSelectedDriver(
-                            hDevInfoList,
-                            &devinfo_data,
-                            &drvinfo_data))
-                    {
-                        /* Something is wrong with this driver. Skip it. */
-                        msg(M_WARN | M_ERRNO, "%s: SetupDiSetSelectedDriver(\"%hs\") failed", __FUNCTION__, drvinfo_data.Description);
-                        break;
-                    }
-
-                    dwlDriverVersion = drvinfo_data.DriverVersion;
-                    break;
-                }
+                /* Something is wrong with this driver. Skip it. */
+                msg(M_WARN | M_ERRNO, "%s: SetupDiSetSelectedDriver(\"%hs\") failed", __FUNCTION__, drvinfo_data.Description);
+                continue;
             }
+
+            dwlDriverVersion = drvinfo_data.DriverVersion;
         }
     }
     if (drvinfo_detail_data)
@@ -643,7 +864,7 @@ tap_create_interface(
     if (dwlDriverVersion == 0)
     {
         dwResult = ERROR_NOT_FOUND;
-        msg(M_NONFATAL, "%s: No driver for device \"%" PRIsLPTSTR "\" installed.", __FUNCTION__, szzHardwareIDs);
+        msg(M_NONFATAL, "%s: No driver for device \"%" PRIsLPTSTR "\" installed.", __FUNCTION__, szHwId);
         goto cleanup_DriverInfoList;
     }
 
@@ -668,7 +889,7 @@ tap_create_interface(
         msg(M_WARN | M_ERRNO, "%s: SetupDiCallClassInstaller(DIF_REGISTER_COINSTALLERS) failed", __FUNCTION__);
     }
 
-    /* Install interfaces if any. */
+    /* Install adapters if any. */
     if (!SetupDiCallClassInstaller(
             DIF_INSTALLINTERFACES,
             hDevInfoList,
@@ -692,13 +913,13 @@ tap_create_interface(
     /* Check if a system reboot is required. (Ignore errors) */
     check_reboot(hDevInfoList, &devinfo_data, pbRebootRequired);
 
-    /* Get network interface ID from registry. Retry for max 30sec. */
-    dwResult = get_net_interface_guid(hDevInfoList, &devinfo_data, 30, pguidInterface);
+    /* Get network adapter ID from registry. Retry for max 30sec. */
+    dwResult = get_net_adapter_guid(hDevInfoList, &devinfo_data, 30, pguidAdapter);
 
 cleanup_remove_device:
     if (dwResult != ERROR_SUCCESS)
     {
-        /* The interface was installed. But, the interface ID was unobtainable. Clean-up. */
+        /* The adapter was installed. But, the adapter ID was unobtainable. Clean-up. */
         SP_REMOVEDEVICE_PARAMS removedevice_params =
         {
             .ClassInstallHeader =
@@ -749,15 +970,36 @@ cleanup_hDevInfoList:
 }
 
 
-DWORD
-tap_delete_interface(
+/**
+ * Performs a given task on an adapter.
+ *
+ * @param hwndParent    A handle to the top-level window to use for any user adapter that is
+ *                      related to non-device-specific actions (such as a select-device dialog
+ *                      box that uses the global class driver list). This handle is optional
+ *                      and can be NULL. If a specific top-level window is not required, set
+ *                      hwndParent to NULL.
+ *
+ * @param pguidAdapter  A pointer to GUID that contains network adapter ID.
+ *
+ * @param funcOperation  A pointer for the function to perform specific task on the adapter.
+ *
+ * @param pbRebootRequired  A pointer to a BOOL flag. If the device requires a system restart,
+ *                      this flag is set to TRUE. Otherwise, the flag is left unmodified. This
+ *                      allows the flag to be globally initialized to FALSE and reused for multiple
+ *                      adapter manipulations.
+ *
+ * @return ERROR_SUCCESS on success; Win32 error code otherwise
+ **/
+static DWORD
+execute_on_first_adapter(
     _In_opt_ HWND hwndParent,
-    _In_ LPCGUID pguidInterface,
+    _In_ LPCGUID pguidAdapter,
+    _In_ devop_func_t funcOperation,
     _Inout_ LPBOOL pbRebootRequired)
 {
     DWORD dwResult;
 
-    if (pguidInterface == NULL)
+    if (pguidAdapter == NULL)
     {
         return ERROR_BAD_ARGUMENTS;
     }
@@ -799,10 +1041,10 @@ tap_delete_interface(
         {
             if (GetLastError() == ERROR_NO_MORE_ITEMS)
             {
-                LPOLESTR szInterfaceId = NULL;
-                StringFromIID((REFIID)pguidInterface, &szInterfaceId);
-                msg(M_NONFATAL, "%s: Interface %" PRIsLPOLESTR " not found", __FUNCTION__, szInterfaceId);
-                CoTaskMemFree(szInterfaceId);
+                LPOLESTR szAdapterId = NULL;
+                StringFromIID((REFIID)pguidAdapter, &szAdapterId);
+                msg(M_NONFATAL, "%s: Adapter %" PRIsLPOLESTR " not found", __FUNCTION__, szAdapterId);
+                CoTaskMemFree(szAdapterId);
                 dwResult = ERROR_FILE_NOT_FOUND;
                 goto cleanup_hDevInfoList;
             }
@@ -814,9 +1056,9 @@ tap_delete_interface(
             }
         }
 
-        /* Get interface GUID. */
-        GUID guidInterface;
-        dwResult = get_net_interface_guid(hDevInfoList, &devinfo_data, 1, &guidInterface);
+        /* Get adapter GUID. */
+        GUID guidAdapter;
+        dwResult = get_net_adapter_guid(hDevInfoList, &devinfo_data, 1, &guidAdapter);
         if (dwResult != ERROR_SUCCESS)
         {
             /* Something is wrong with this device. Skip it. */
@@ -824,46 +1066,9 @@ tap_delete_interface(
         }
 
         /* Compare GUIDs. */
-        if (memcmp(pguidInterface, &guidInterface, sizeof(GUID)) == 0)
+        if (memcmp(pguidAdapter, &guidAdapter, sizeof(GUID)) == 0)
         {
-            /* Remove the device. */
-            SP_REMOVEDEVICE_PARAMS removedevice_params =
-            {
-                .ClassInstallHeader =
-                {
-                    .cbSize = sizeof(SP_CLASSINSTALL_HEADER),
-                    .InstallFunction = DIF_REMOVE,
-                },
-                .Scope = DI_REMOVEDEVICE_GLOBAL,
-                .HwProfile = 0,
-            };
-
-            /* Set class installer parameters for DIF_REMOVE. */
-            if (!SetupDiSetClassInstallParams(
-                    hDevInfoList,
-                    &devinfo_data,
-                    &removedevice_params.ClassInstallHeader,
-                    sizeof(SP_REMOVEDEVICE_PARAMS)))
-            {
-                dwResult = GetLastError();
-                msg(M_NONFATAL, "%s: SetupDiSetClassInstallParams failed", __FUNCTION__);
-                goto cleanup_hDevInfoList;
-            }
-
-            /* Call appropriate class installer. */
-            if (!SetupDiCallClassInstaller(
-                    DIF_REMOVE,
-                    hDevInfoList,
-                    &devinfo_data))
-            {
-                dwResult = GetLastError();
-                msg(M_NONFATAL, "%s: SetupDiCallClassInstaller(DIF_REMOVE) failed", __FUNCTION__);
-                goto cleanup_hDevInfoList;
-            }
-
-            /* Check if a system reboot is required. */
-            check_reboot(hDevInfoList, &devinfo_data, pbRebootRequired);
-            dwResult = ERROR_SUCCESS;
+            dwResult = funcOperation(hDevInfoList, &devinfo_data, pbRebootRequired);
             break;
         }
     }
@@ -875,13 +1080,34 @@ cleanup_hDevInfoList:
 
 
 DWORD
-tap_set_interface_name(
-    _In_ LPCGUID pguidInterface,
+tap_delete_adapter(
+    _In_opt_ HWND hwndParent,
+    _In_ LPCGUID pguidAdapter,
+    _Inout_ LPBOOL pbRebootRequired)
+{
+    return execute_on_first_adapter(hwndParent, pguidAdapter, delete_device, pbRebootRequired);
+}
+
+
+DWORD
+tap_enable_adapter(
+    _In_opt_ HWND hwndParent,
+    _In_ LPCGUID pguidAdapter,
+    _In_ BOOL bEnable,
+    _Inout_ LPBOOL pbRebootRequired)
+{
+    return execute_on_first_adapter(hwndParent, pguidAdapter, bEnable ? enable_device : disable_device, pbRebootRequired);
+}
+
+
+DWORD
+tap_set_adapter_name(
+    _In_ LPCGUID pguidAdapter,
     _In_ LPCTSTR szName)
 {
     DWORD dwResult;
 
-    if (pguidInterface == NULL || szName == NULL)
+    if (pguidAdapter == NULL || szName == NULL)
     {
         return ERROR_BAD_ARGUMENTS;
     }
@@ -890,19 +1116,19 @@ tap_set_interface_name(
     LPOLESTR szDevClassNetId = NULL;
     StringFromIID((REFIID)&GUID_DEVCLASS_NET, &szDevClassNetId);
 
-    /* Get the interface GUID as string. */
-    LPOLESTR szInterfaceId = NULL;
-    StringFromIID((REFIID)pguidInterface, &szInterfaceId);
+    /* Get the adapter GUID as string. */
+    LPOLESTR szAdapterId = NULL;
+    StringFromIID((REFIID)pguidAdapter, &szAdapterId);
 
     /* Render registry key path. */
-    TCHAR szRegKey[INTERFACE_REGKEY_PATH_MAX];
+    TCHAR szRegKey[ADAPTER_REGKEY_PATH_MAX];
     _stprintf_s(
         szRegKey, _countof(szRegKey),
-        szInterfaceRegKeyPathTemplate,
+        szAdapterRegKeyPathTemplate,
         szDevClassNetId,
-        szInterfaceId);
+        szAdapterId);
 
-    /* Open network interface registry key. */
+    /* Open network adapter registry key. */
     HKEY hKey = NULL;
     dwResult = RegOpenKeyEx(
         HKEY_LOCAL_MACHINE,
@@ -914,10 +1140,10 @@ tap_set_interface_name(
     {
         SetLastError(dwResult); /* MSDN does not mention RegOpenKeyEx() to set GetLastError(). But we do have an error code. Set last error manually. */
         msg(M_NONFATAL | M_ERRNO, "%s: RegOpenKeyEx(HKLM, \"%" PRIsLPTSTR "\") failed", __FUNCTION__, szRegKey);
-        goto cleanup_szInterfaceId;
+        goto cleanup_szAdapterId;
     }
 
-    /* Set the interface name. */
+    /* Set the adapter name. */
     size_t sizeName = ((_tcslen(szName) + 1) * sizeof(TCHAR));
 #ifdef _WIN64
     if (sizeName > DWORD_MAX)
@@ -943,22 +1169,22 @@ tap_set_interface_name(
 
 cleanup_hKey:
     RegCloseKey(hKey);
-cleanup_szInterfaceId:
-    CoTaskMemFree(szInterfaceId);
+cleanup_szAdapterId:
+    CoTaskMemFree(szAdapterId);
     CoTaskMemFree(szDevClassNetId);
     return dwResult;
 }
 
 
 DWORD
-tap_list_interfaces(
+tap_list_adapters(
     _In_opt_ HWND hwndParent,
-    _Out_ struct tap_interface_node **ppInterface,
-    _In_ BOOL bAll)
+    _In_opt_ LPCTSTR szHwId,
+    _Out_ struct tap_adapter_node **ppAdapter)
 {
     DWORD dwResult;
 
-    if (ppInterface == NULL)
+    if (ppAdapter == NULL)
     {
         return ERROR_BAD_ARGUMENTS;
     }
@@ -993,8 +1219,8 @@ tap_list_interfaces(
     StringFromIID((REFIID)&GUID_DEVCLASS_NET, &szDevClassNetId);
 
     /* Iterate. */
-    *ppInterface = NULL;
-    struct tap_interface_node *pInterfaceTail = NULL;
+    *ppAdapter = NULL;
+    struct tap_adapter_node *pAdapterTail = NULL;
     for (DWORD dwIndex = 0;; dwIndex++)
     {
         /* Get the device from the list. */
@@ -1034,7 +1260,7 @@ tap_list_interfaces(
         /* Check that hardware ID is REG_SZ/REG_MULTI_SZ, and optionally if it matches ours. */
         if (dwDataType == REG_SZ)
         {
-            if (!bAll && _tcsicmp(szzDeviceHardwareIDs, szzHardwareIDs) != 0)
+            if (szHwId && _tcsicmp(szzDeviceHardwareIDs, szHwId) != 0)
             {
                 /* This is not our device. Skip it. */
                 goto cleanup_szzDeviceHardwareIDs;
@@ -1042,21 +1268,10 @@ tap_list_interfaces(
         }
         else if (dwDataType == REG_MULTI_SZ)
         {
-            if (!bAll)
+            if (szHwId && _tcszistr(szzDeviceHardwareIDs, szHwId) == NULL)
             {
-                for (LPTSTR szHwdID = szzDeviceHardwareIDs;; szHwdID += _tcslen(szHwdID) + 1)
-                {
-                    if (szHwdID[0] == 0)
-                    {
-                        /* This is not our device. Skip it. */
-                        goto cleanup_szzDeviceHardwareIDs;
-                    }
-                    else if (_tcsicmp(szHwdID, szzHardwareIDs) == 0)
-                    {
-                        /* This is our device. */
-                        break;
-                    }
-                }
+                /* This is not our device. Skip it. */
+                goto cleanup_szzDeviceHardwareIDs;
             }
         }
         else
@@ -1065,28 +1280,28 @@ tap_list_interfaces(
             goto cleanup_szzDeviceHardwareIDs;
         }
 
-        /* Get interface GUID. */
-        GUID guidInterface;
-        dwResult = get_net_interface_guid(hDevInfoList, &devinfo_data, 1, &guidInterface);
+        /* Get adapter GUID. */
+        GUID guidAdapter;
+        dwResult = get_net_adapter_guid(hDevInfoList, &devinfo_data, 1, &guidAdapter);
         if (dwResult != ERROR_SUCCESS)
         {
             /* Something is wrong with this device. Skip it. */
             goto cleanup_szzDeviceHardwareIDs;
         }
 
-        /* Get the interface GUID as string. */
-        LPOLESTR szInterfaceId = NULL;
-        StringFromIID((REFIID)&guidInterface, &szInterfaceId);
+        /* Get the adapter GUID as string. */
+        LPOLESTR szAdapterId = NULL;
+        StringFromIID((REFIID)&guidAdapter, &szAdapterId);
 
         /* Render registry key path. */
-        TCHAR szRegKey[INTERFACE_REGKEY_PATH_MAX];
+        TCHAR szRegKey[ADAPTER_REGKEY_PATH_MAX];
         _stprintf_s(
             szRegKey, _countof(szRegKey),
-            szInterfaceRegKeyPathTemplate,
+            szAdapterRegKeyPathTemplate,
             szDevClassNetId,
-            szInterfaceId);
+            szAdapterId);
 
-        /* Open network interface registry key. */
+        /* Open network adapter registry key. */
         HKEY hKey = NULL;
         dwResult = RegOpenKeyEx(
             HKEY_LOCAL_MACHINE,
@@ -1098,10 +1313,10 @@ tap_list_interfaces(
         {
             SetLastError(dwResult); /* MSDN does not mention RegOpenKeyEx() to set GetLastError(). But we do have an error code. Set last error manually. */
             msg(M_WARN | M_ERRNO, "%s: RegOpenKeyEx(HKLM, \"%" PRIsLPTSTR "\") failed", __FUNCTION__, szRegKey);
-            goto cleanup_szInterfaceId;
+            goto cleanup_szAdapterId;
         }
 
-        /* Read interface name. */
+        /* Read adapter name. */
         LPTSTR szName = NULL;
         dwResult = get_reg_string(
             hKey,
@@ -1110,42 +1325,42 @@ tap_list_interfaces(
         if (dwResult != ERROR_SUCCESS)
         {
             SetLastError(dwResult);
-            msg(M_WARN | M_ERRNO, "%s: Cannot determine %" PRIsLPOLESTR " interface name", __FUNCTION__, szInterfaceId);
+            msg(M_WARN | M_ERRNO, "%s: Cannot determine %" PRIsLPOLESTR " adapter name", __FUNCTION__, szAdapterId);
             goto cleanup_hKey;
         }
 
         /* Append to the list. */
         size_t hwid_size = (_tcszlen(szzDeviceHardwareIDs) + 1) * sizeof(TCHAR);
         size_t name_size = (_tcslen(szName) + 1) * sizeof(TCHAR);
-        struct tap_interface_node *node = (struct tap_interface_node *)malloc(sizeof(struct tap_interface_node) + hwid_size + name_size);
+        struct tap_adapter_node *node = (struct tap_adapter_node *)malloc(sizeof(struct tap_adapter_node) + hwid_size + name_size);
         if (node == NULL)
         {
-            msg(M_FATAL, "%s: malloc(%u) failed", __FUNCTION__, sizeof(struct tap_interface_node) + hwid_size + name_size);
+            msg(M_FATAL, "%s: malloc(%u) failed", __FUNCTION__, sizeof(struct tap_adapter_node) + hwid_size + name_size);
             dwResult = ERROR_OUTOFMEMORY; goto cleanup_szName;
         }
 
-        memcpy(&node->guid, &guidInterface, sizeof(GUID));
+        memcpy(&node->guid, &guidAdapter, sizeof(GUID));
         node->szzHardwareIDs = (LPTSTR)(node + 1);
         memcpy(node->szzHardwareIDs, szzDeviceHardwareIDs, hwid_size);
         node->szName = (LPTSTR)((LPBYTE)node->szzHardwareIDs + hwid_size);
         memcpy(node->szName, szName, name_size);
         node->pNext = NULL;
-        if (pInterfaceTail)
+        if (pAdapterTail)
         {
-            pInterfaceTail->pNext = node;
-            pInterfaceTail = node;
+            pAdapterTail->pNext = node;
+            pAdapterTail = node;
         }
         else
         {
-            *ppInterface = pInterfaceTail = node;
+            *ppAdapter = pAdapterTail = node;
         }
 
 cleanup_szName:
         free(szName);
 cleanup_hKey:
         RegCloseKey(hKey);
-cleanup_szInterfaceId:
-        CoTaskMemFree(szInterfaceId);
+cleanup_szAdapterId:
+        CoTaskMemFree(szAdapterId);
 cleanup_szzDeviceHardwareIDs:
         free(szzDeviceHardwareIDs);
     }
@@ -1160,16 +1375,16 @@ cleanup_hDevInfoList:
 
 
 void
-tap_free_interface_list(
-    _In_ struct tap_interface_node *pInterfaceList)
+tap_free_adapter_list(
+    _In_ struct tap_adapter_node *pAdapterList)
 {
     /* Iterate over all nodes of the list. */
-    while (pInterfaceList)
+    while (pAdapterList)
     {
-        struct tap_interface_node *node = pInterfaceList;
-        pInterfaceList = pInterfaceList->pNext;
+        struct tap_adapter_node *node = pAdapterList;
+        pAdapterList = pAdapterList->pNext;
 
-        /* Free the interface node. */
+        /* Free the adapter node. */
         free(node);
     }
 }
