@@ -3741,6 +3741,15 @@ argument defines how long the generated token is valid.  The
 lifetime is defined in seconds.  If lifetime is not set
 or it is set to 0, the token will never expire.
 
+The token will expire either after the configured lifetime of the token 
+is reached or after not being renewed for more than 2 *
+.B reneg\-sec
+seconds.  Clients will be sent renewed tokens on every
+TLS renogiation to keep the client's token updated.  This is done
+to invalidate a token if a client is disconnected for a sufficently long
+time, while at the same time permitting much longer token lifetimes for 
+active clients.
+
 This feature is useful for environments which is configured
 to use One Time Passwords (OTP) as part of the user/password
 authentications and that authentication mechanism does not
