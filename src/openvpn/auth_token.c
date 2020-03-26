@@ -121,7 +121,7 @@ add_session_token_env(struct tls_session *session, struct tls_multi *multi,
      */
 
     char session_id[AUTH_TOKEN_SESSION_ID_LEN*2] = {0};
-    memcpy(session_id, session_id_source + sizeof(SESSION_ID_PREFIX),
+    memcpy(session_id, session_id_source + strlen(SESSION_ID_PREFIX),
            AUTH_TOKEN_SESSION_ID_LEN*8/6);
 
     setenv_str(session->opt->es, "session_id", session_id);
