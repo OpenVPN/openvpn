@@ -261,6 +261,22 @@ get_user_pass_cr(struct user_pass *up,
             {
                 strncpy(up->password, password_buf, USER_PASS_LEN);
             }
+            /* The auth-file does not have the password: get both username
+             * and password from the management interface if possible.
+             * Otherwise set to read password from console.
+             */
+#if defined(ENABLE_MANAGEMENT)
+            else if (management
+                     && (flags & GET_USER_PASS_MANAGEMENT)
+                     && management_query_user_pass_enabled(management))
+            {
+                msg(D_LOW, "No password found in %s authfile '%s'. Querying the management interface", prefix, auth_file);
+                if (!auth_user_pass_mgmt(up, prefix, flags, auth_challenge))
+                {
+                    return false;
+                }
+            }
+#endif
             else
             {
                 password_from_stdin = 1;
