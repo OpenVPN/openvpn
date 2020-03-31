@@ -48,7 +48,7 @@
 #include <signal.h>
 #include <syslog.h>
 #include "utils.h"
-
+#include <arpa/inet.h>
 #include <openvpn-plugin.h>
 
 #define DEBUG(verb) ((verb) >= 4)
@@ -115,7 +115,7 @@ struct user_pass {
     char password[128];
     char common_name[128];
     char response[128];
-    char remote[128];
+    char remote[INET6_ADDRSTRLEN];
 
     const struct name_value_list *name_value_list;
 };
@@ -518,7 +518,11 @@ openvpn_plugin_func_v1(openvpn_plugin_handle_t handle, const int type, const cha
         const char *username = get_env("username", envp);
         const char *password = get_env("password", envp);
         const char *common_name = get_env("common_name", envp) ? get_env("common_name", envp) : "";
-        const char *remote = get_env("untrusted_ip", envp) ? get_env("untrusted_ip", envp) : get_env("untrusted_ip6", envp);
+        const char *remote = get_env("untrusted_ip6", envp);
+        
+        if (remote == NULL){ 
+                remote = get_env("untrusted_ip", envp); //if Null, try to take ipv4 if not set ipv6
+        }
 
         if (username && strlen(username) > 0 && password)
         {
