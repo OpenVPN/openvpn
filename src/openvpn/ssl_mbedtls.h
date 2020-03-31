@@ -109,9 +109,9 @@ struct tls_root_ctx {
 };
 
 struct key_state_ssl {
-    mbedtls_ssl_config ssl_config;      /**< mbedTLS global ssl config */
+    mbedtls_ssl_config *ssl_config;     /**< mbedTLS global ssl config */
     mbedtls_ssl_context *ctx;           /**< mbedTLS connection context */
-    bio_ctx bio_ctx;
+    bio_ctx *bio_ctx;
 
     /** Keying material exporter cache (RFC 5705). */
     uint8_t *exported_key_material;
