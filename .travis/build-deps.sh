@@ -91,8 +91,9 @@ build_mbedtls () {
 
 download_openssl () {
     if [ ! -f "download-cache/openssl-${OPENSSL_VERSION}.tar.gz" ]; then
+        MAJOR=`echo $OPENSSL_VERSION | sed -e 's/\([0-9.]*\).*/\1/'`
         wget -P download-cache/ \
-            "https://www.openssl.org/source/openssl-${OPENSSL_VERSION}.tar.gz"
+             "https://www.openssl.org/source/old/${MAJOR}/openssl-${OPENSSL_VERSION}.tar.gz"
     fi
 }
 
