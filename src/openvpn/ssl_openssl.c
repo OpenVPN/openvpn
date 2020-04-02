@@ -881,24 +881,36 @@ tls_ctx_load_cryptoapi(struct tls_root_ctx *ctx, const char *cryptoapi_cert)
 #endif /* ENABLE_CRYPTOAPI */
 
 static void
-tls_ctx_add_extra_certs(struct tls_root_ctx *ctx, BIO *bio)
+tls_ctx_add_extra_certs(struct tls_root_ctx *ctx, BIO *bio, bool optional)
 {
     X509 *cert;
-    for (;; )
+    while (true)
     {
         cert = NULL;
-        if (!PEM_read_bio_X509(bio, &cert, NULL, NULL)) /* takes ownership of cert */
+        if (!PEM_read_bio_X509(bio, &cert, NULL, NULL))
         {
-            break;
-        }
-        if (!cert)
-        {
+            /*  a PEM_R_NO_START_LINE "Error" indicates that no certificate
+             *  is found in the buffer.  If loading more certificates is
+             *  optional, break without raising an error
+             */
+            if (optional
+                && ERR_GET_REASON(ERR_peek_error()) == PEM_R_NO_START_LINE)
+            {
+                /* remove that error from error stack */
+                (void)ERR_get_error();
+                break;
+            }
+
+            /* Otherwise, bail out with error */
             crypto_msg(M_FATAL, "Error reading extra certificate");
         }
+        /* takes ownership of cert like a set1 method */
         if (SSL_CTX_add_extra_chain_cert(ctx->ctx, cert) != 1)
         {
             crypto_msg(M_FATAL, "Error adding extra certificate");
         }
+        /* We loaded at least one certificate, so loading more is optional */
+        optional = true;
     }
 }
 
@@ -942,7 +954,7 @@ tls_ctx_load_cert_file(struct tls_root_ctx *ctx, const char *cert_file,
     ret = SSL_CTX_use_certificate(ctx->ctx, x);
     if (ret)
     {
-        tls_ctx_add_extra_certs(ctx, in);
+        tls_ctx_add_extra_certs(ctx, in, true);
     }
 
 end:
@@ -1663,7 +1675,7 @@ tls_ctx_load_extra_certs(struct tls_root_ctx *ctx, const char *extra_certs_file,
     }
     else
     {
-        tls_ctx_add_extra_certs(ctx, in);
+        tls_ctx_add_extra_certs(ctx, in, false);
     }
 
     BIO_free(in);
