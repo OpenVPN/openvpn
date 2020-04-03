@@ -664,7 +664,7 @@ tls_crypt_v2_write_client_key_file(const char *filename,
                 (int)strlen(b64_metadata), TLS_CRYPT_V2_MAX_B64_METADATA_LEN);
         }
         ASSERT(buf_write(&metadata, &TLS_CRYPT_METADATA_TYPE_USER, 1));
-        int decoded_len = openvpn_base64_decode(b64_metadata, BPTR(&metadata),
+        int decoded_len = openvpn_base64_decode(b64_metadata, BEND(&metadata),
                                                 BCAP(&metadata));
         if (decoded_len < 0)
         {
