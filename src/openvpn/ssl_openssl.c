@@ -1023,7 +1023,6 @@ void
 backend_tls_ctx_reload_crl(struct tls_root_ctx *ssl_ctx, const char *crl_file,
                            const char *crl_inline)
 {
-    X509_CRL *crl = NULL;
     BIO *in = NULL;
 
     X509_STORE *store = SSL_CTX_get_cert_store(ssl_ctx->ctx);
@@ -1064,21 +1063,39 @@ backend_tls_ctx_reload_crl(struct tls_root_ctx *ssl_ctx, const char *crl_file,
         goto end;
     }
 
-    crl = PEM_read_bio_X509_CRL(in, NULL, NULL, NULL);
-    if (crl == NULL)
+    int num_crls_loaded = 0;
+    while (true)
     {
-        msg(M_WARN, "CRL: cannot read CRL from file %s", crl_file);
-        goto end;
-    }
+        X509_CRL *crl = PEM_read_bio_X509_CRL(in, NULL, NULL, NULL);
+        if (crl == NULL)
+        {
+            /*
+             * PEM_R_NO_START_LINE can be considered equivalent to EOF.
+             */
+            bool eof = ERR_GET_REASON(ERR_peek_error()) == PEM_R_NO_START_LINE;
+            /* but warn if no CRLs have been loaded */
+            if (num_crls_loaded > 0 && eof)
+            {
+                /* remove that error from error stack */
+                (void)ERR_get_error();
+                break;
+            }
 
-    if (!X509_STORE_add_crl(store, crl))
-    {
-        msg(M_WARN, "CRL: cannot add %s to store", crl_file);
-        goto end;
-    }
+            crypto_msg(M_WARN, "CRL: cannot read CRL from file %s", crl_file);
+            break;
+        }
 
+        if (!X509_STORE_add_crl(store, crl))
+        {
+            X509_CRL_free(crl);
+            crypto_msg(M_WARN, "CRL: cannot add %s to store", crl_file);
+            break;
+        }
+        X509_CRL_free(crl);
+        num_crls_loaded++;
+    }
+    msg(M_INFO, "CRL: loaded %d CRLs from file %s", num_crls_loaded, crl_file);
 end:
-    X509_CRL_free(crl);
     BIO_free(in);
 }
 
