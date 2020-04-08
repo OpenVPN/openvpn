@@ -1,0 +1,89 @@
+<html>
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  </head>
+  <body>
+    <div class="moz-cite-prefix">On 2020-04-07 5:38 p.m., Selva Nair
+      wrote:<br>
+    </div>
+    <blockquote type="cite"
+cite="mid:CAKuzo_jnLbC9RKv0OuAYzwppFTW6R2N0co1BO-ZFhihw4+qoGQ@mail.gmail.com">
+      <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+      <div dir="ltr">
+        <div dir="ltr">Hi,</div>
+        <br>
+        <div class="gmail_quote">
+          <div dir="ltr" class="gmail_attr">On Tue, Apr 7, 2020 at 2:15
+            PM Colin Ryan &lt;<a href="mailto:colinr@caveo.ca"
+              moz-do-not-send="true">colinr@caveo.ca</a>&gt; wrote:<br>
+          </div>
+          <blockquote class="gmail_quote" style="margin:0px 0px 0px
+            0.8ex;border-left:1px solid
+            rgb(204,204,204);padding-left:1ex">Folks,<br>
+            <br>
+            I'm working with GUI-11 and all is fine. However I'd like to
+            have the <br>
+            default GUI configuration for my users be silent (i.e.not
+            have the <br>
+            status log window open up with the password dialog)<br>
+            <br>
+            <br>
+            I realize there is the silent_connect registry entry that is
+            in the HKCU <br>
+            registry hive and If I write to this it works, when the
+            installer is <br>
+            also the admin account (i.e. most home user cases).<br>
+          </blockquote>
+          <div><br>
+          </div>
+          <div>This option is meant to be set by the user from the
+            settings</div>
+          <div>menu. That's why its in HKCU.</div>
+          <div><br>
+          </div>
+          <div>I have low priority TODO item to have some of these
+            options in HKLM as</div>
+          <div>well as a default that users can override. Not yet
+            implemented.</div>
+          <div><br>
+          </div>
+          <div>Some options you have are:</div>
+          <div>(i) Add --silent_connection 1 as an option to the GUI
+            shortcut. This shortcut</div>
+          <div>is common for all users (in Users\Public\Publc Desktop on
+            Windows 10).</div>
+          <div><br>
+          </div>
+          <div>(ii) Use Active Setup to add the required registry entry
+            in HKCU when</div>
+          <div>the user logs in the next time. I do not recommend this
+            as we want the</div>
+          <div>flexibility for changing these entries in future
+            releases, if required. So</div>
+          <div>treat it as a place where the GUI persists user's
+            settings to be changed</div>
+          <div>only via the UI.</div>
+          <div><br>
+          </div>
+          <div>Also, (i) is easier to do.</div>
+          <div><br>
+          </div>
+          <div>Selva</div>
+        </div>
+      </div>
+    </blockquote>
+    <p><br>
+    </p>
+    <p>Thanks Selva,</p>
+    <p>I had already looked at the Active Setup thing based upon hints
+      your existing NSIS installer. I agree for my purposes (i) will
+      suffice...</p>
+    <p><br>
+    </p>
+    <p>Thank you</p>
+    <p><br>
+    </p>
+    <p>Colin<br>
+    </p>
+  </body>
+</html>
