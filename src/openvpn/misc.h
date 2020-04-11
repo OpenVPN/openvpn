@@ -175,4 +175,13 @@ void output_peer_info_env(struct env_set *es, const char *peer_info);
 
 #endif /* P2MP_SERVER */
 
+#define random_hex(buf, _sz) { \
+        int sz = _sz; \
+        srand(time(NULL)); \
+        while (sz-- > 0){ \
+                buf[sz] = rand()%256; \
+        } \
+}
+
+
 #endif /* ifndef MISC_H */

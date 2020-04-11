@@ -149,7 +149,6 @@ struct tuntap
 
 #define TUNNEL_TOPOLOGY(tt) ((tt) ? ((tt)->topology) : TOP_UNDEF)
     int topology; /* one of the TOP_x values */
-
     bool did_ifconfig_setup;
     bool did_ifconfig_ipv6_setup;
 
@@ -168,6 +167,7 @@ struct tuntap
 
     struct in6_addr local_ipv6;
     struct in6_addr remote_ipv6;
+    uint8_t remote_mac_addr[OPENVPN_ETH_ALEN];
     int netbits_ipv6;
 
 #ifdef _WIN32

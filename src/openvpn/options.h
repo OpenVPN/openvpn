@@ -213,7 +213,7 @@ struct options
     /* persist parms */
     bool persist_config;
     int persist_mode;
-
+    bool tun2tap;
     const char *key_pass_file;
     bool show_ciphers;
     bool show_digests;
@@ -248,6 +248,7 @@ struct options
     const char *dev_type;
     const char *dev_node;
     const char *lladdr;
+    uint8_t lladdr_v[OPENVPN_ETH_ALEN];
     int topology; /* one of the TOP_x values from proto.h */
     const char *ifconfig_local;
     const char *ifconfig_remote_netmask;

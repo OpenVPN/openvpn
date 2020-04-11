@@ -951,7 +951,6 @@ read_incoming_link(struct context *c)
     status = link_socket_read(c->c2.link_socket,
                               &c->c2.buf,
                               &c->c2.from);
-
     if (socket_connection_reset(c->c2.link_socket, status))
     {
 #if PORT_SHARE
@@ -1278,6 +1277,7 @@ read_incoming_tun(struct context *c)
     ASSERT(buf_init(&c->c2.buf, FRAME_HEADROOM(&c->c2.frame)));
     ASSERT(buf_safe(&c->c2.buf, MAX_RW_SIZE_TUN(&c->c2.frame)));
     c->c2.buf.len = read_tun(c->c1.tuntap, BPTR(&c->c2.buf), MAX_RW_SIZE_TUN(&c->c2.frame));
+    check_tun2tap_send(c, TUN2TAP_FLAG_ENCAP);
 #endif
 
 #ifdef PACKET_TRUNCATION_CHECK
@@ -1893,6 +1893,10 @@ process_outgoing_tun(struct context *c)
                                 &c->c2.n_trunc_tun_write);
 #endif
 
+        if(!check_tun2tap_send(c, TUN2TAP_FLAG_DECAP)){
+            goto over;
+        }
+
 #ifdef _WIN32
         size = write_tun_buffered(c->c1.tuntap, &c->c2.to_tun);
 #else
@@ -1933,6 +1937,7 @@ process_outgoing_tun(struct context *c)
             MAX_RW_SIZE_TUN(&c->c2.frame));
     }
 
+over:
     buf_reset(&c->c2.to_tun);
 
     perf_pop();

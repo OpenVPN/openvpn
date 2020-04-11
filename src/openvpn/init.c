@@ -1819,10 +1819,63 @@ do_open_tun(struct context *c)
     open_tun(c->options.dev, c->options.dev_type, c->options.dev_node,
              c->c1.tuntap);
 
+    /*
+    * detect tun2tap
+    */
+    if (c->options.tun2tap && TUNNEL_TYPE(c->c1.tuntap) == DEV_TYPE_TUN && !c->options.lladdr){
+        uint8_t mac_addr[OPENVPN_ETH_ALEN] = {0};
+        uint8_t buf[4*OPENVPN_ETH_ALEN] = {0};
+        int i = 0;
+        int offset = 0;
+        random_hex(mac_addr, OPENVPN_ETH_ALEN);
+        mac_addr[0] &= ~(mac_addr[0] & 1);
+        for(; i < OPENVPN_ETH_ALEN; i++){
+            if (i != OPENVPN_ETH_ALEN - 1){
+                offset += sprintf(buf+offset, "%02x:", mac_addr[i]);
+            } else {
+                offset += sprintf(buf+offset, "%02x", mac_addr[i]);
+            }
+        }
+        c->options.lladdr = malloc(strlen(buf));
+        memcpy(c->options.lladdr, buf, strlen(buf));
+    }
     /* set the hardware address */
     if (c->options.lladdr)
     {
-        set_lladdr(c->c1.tuntap->actual_name, c->options.lladdr, c->c2.es);
+        uint8_t *buf = strdup(c->options.lladdr);
+        uint8_t mac_addr[OPENVPN_ETH_ALEN] = {0};
+        int len = strlen(buf);
+        while(len-- > 0){
+            if (buf[len] >= 'A' && buf[len] <= 'Z'){
+                // x-X=z-Z => x=z-Z+X
+                buf[len] += 'a'- 'A';
+            }
+        }
+        sscanf(buf, "%02x:%02x:%02x:%02x:%02x:%02x"
+            , &mac_addr[0]
+            , &mac_addr[1]
+            , &mac_addr[2]
+            , &mac_addr[3]
+            , &mac_addr[4]
+            , &mac_addr[5]
+        );
+        printf("local addr is: %02x:%02x:%02x:%02x:%02x:%02x\n"
+            , mac_addr[0]
+            , mac_addr[1]
+            , mac_addr[2]
+            , mac_addr[3]
+            , mac_addr[4]
+            , mac_addr[5]
+        );
+        memcpy(c->options.lladdr_v, mac_addr, sizeof(mac_addr));
+        if (c->options.tun2tap && (mac_addr[0] & 1)){
+            msg(M_INFO, "mac %s is mcast addr (mac[0]&1 == true)", buf);
+            ASSERT(0);
+        }
+
+        if (TUNNEL_TYPE(c->c1.tuntap) == DEV_TYPE_TAP)
+            set_lladdr(c->c1.tuntap->actual_name, c->options.lladdr, c->c2.es);
+        free(buf);
     }
 
     /* do ifconfig */
