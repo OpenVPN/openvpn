@@ -296,7 +296,8 @@ int openvpn_connect(socket_descriptor_t sd,
 /*
  * Initialize link_socket object.
  */
-
+/* *INDENT-OFF* uncrustify misparses this function declarion because of
+ * embedded #if/#endif tell it to skip this section */
 void
 link_socket_init_phase1(struct link_socket *sock,
                         const char *local_host,
@@ -327,6 +328,7 @@ link_socket_init_phase1(struct link_socket *sock,
                         int mark,
                         struct event_timeout *server_poll_timeout,
                         unsigned int sockflags);
+/* Reenable uncrustify *INDENT-ON* */
 
 void link_socket_init_phase2(struct link_socket *sock,
                              const struct frame *frame,

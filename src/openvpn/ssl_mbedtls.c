@@ -209,10 +209,10 @@ int mbedtls_ssl_export_keys_cb(void *p_expkey, const unsigned char *ms,
     memcpy(client_server_random + 32, server_random, 32);
 
     const size_t ms_len = sizeof(ks_ssl->ctx->session->master);
-    int ret = mbedtls_ssl_tls_prf(
-            tls_prf_type, ms, ms_len, session->opt->ekm_label,
-            client_server_random, sizeof(client_server_random),
-            ks_ssl->exported_key_material, session->opt->ekm_size);
+    int ret = mbedtls_ssl_tls_prf(tls_prf_type, ms, ms_len,
+                                  session->opt->ekm_label, client_server_random,
+                                  sizeof(client_server_random), ks_ssl->exported_key_material,
+                                  session->opt->ekm_size);
 
     if (!mbed_ok(ret))
     {
