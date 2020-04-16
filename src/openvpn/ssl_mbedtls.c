@@ -289,33 +289,22 @@ void
 tls_ctx_restrict_ciphers(struct tls_root_ctx *ctx, const char *ciphers)
 {
     char *tmp_ciphers, *tmp_ciphers_orig, *token;
-    int i, cipher_count;
-    int ciphers_len;
 
     if (NULL == ciphers)
     {
         return; /* Nothing to do */
-
     }
-    ciphers_len = strlen(ciphers);
 
     ASSERT(NULL != ctx);
-    ASSERT(0 != ciphers_len);
 
     /* Get number of ciphers */
-    for (i = 0, cipher_count = 1; i < ciphers_len; i++)
-    {
-        if (ciphers[i] == ':')
-        {
-            cipher_count++;
-        }
-    }
+    int cipher_count = get_num_elements(ciphers, ':');
 
     /* Allocate an array for them */
     ALLOC_ARRAY_CLEAR(ctx->allowed_ciphers, int, cipher_count+1)
 
     /* Parse allowed ciphers, getting IDs */
-    i = 0;
+    int i = 0;
     tmp_ciphers_orig = tmp_ciphers = string_alloc(ciphers, NULL);
 
     token = strtok(tmp_ciphers, ":");
