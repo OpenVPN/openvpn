@@ -321,6 +321,56 @@ Maintainer-visible changes
   i386/i686 builds on RHEL5.
 
 
+Version 2.4.9
+=============
+This is primarily a maintenance release with minor bugfixes and improvements.
+
+New features
+------------
+- Allow unicode search string in --cryptoapicert option (Windows)
+
+User visible changes
+--------------------
+- Skip expired certificates in Windows certificate store (Windows) (trac #966)
+
+- OpenSSL: Fix --crl-verify not loading multiple CRLs in one file (trac #623)
+
+- When using "--auth-user-pass file" with just a username and no password
+  in the file, OpenVPN now queries the management interface (if active)
+  for the credentials.  Previously it would query the console for the 
+  password, and fail if no console available (normal case on Windows)
+  (trac #757)
+
+- Swap the order of checks for validating interactive service user
+  (Windows: check config location before querying domain controller for
+  group membership, which can be slow)
+
+
+Bug fixes
+---------
+- fix condition where a client's session could "float" to a new IP address
+  that is not authorized ("fix illegal client float").
+
+  This can be used to disrupt service to a freshly connected client (no
+  session keys negotiated yet).  It can not be used to inject or steal 
+  VPN traffic.  CVE-2020-11810, trac #1272).
+
+- fix combination of async push (deferred auth) and NCP (trac #1259)
+
+- Fix OpenSSL 1.1.1 not using auto elliptic curve selection (trac #1228)
+
+- Fix OpenSSL error stack handling of tls_ctx_add_extra_certs
+
+- mbedTLS: Make sure TLS session survives move (trac #880)
+
+- Fix OpenSSL private key passphrase notices
+
+- Fix building with --enable-async-push in FreeBSD (trac #1256)
+
+- Fix broken fragmentation logic when using NCP (trac #1140)
+
+
+
 Version 2.4.8
 =============
 This is primarily a maintenance release with minor bugfixes and improvements.
