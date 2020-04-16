@@ -3660,9 +3660,9 @@ management_query_pk_sig(struct management *man, const char *b64_data,
         buf_write(&buf_data, ",", (int) strlen(","));
         buf_write(&buf_data, algorithm, (int) strlen(algorithm));
     }
-    char* ret = management_query_multiline_flatten(man,
-            (char *)buf_bptr(&buf_data), prompt, desc,
-            &man->connection.ext_key_state, &man->connection.ext_key_input);
+    char *ret = management_query_multiline_flatten(man,
+                                                   (char *)buf_bptr(&buf_data), prompt, desc,
+                                                   &man->connection.ext_key_state, &man->connection.ext_key_input);
     free_buf(&buf_data);
     return ret;
 }

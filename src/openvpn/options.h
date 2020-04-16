@@ -222,8 +222,8 @@ struct options
     bool show_curves;
     bool genkey;
     enum genkey_type genkey_type;
-    const char* genkey_filename;
-    const char* genkey_extra_data;
+    const char *genkey_filename;
+    const char *genkey_extra_data;
 
     /* Networking parms */
     int connect_retry_max;

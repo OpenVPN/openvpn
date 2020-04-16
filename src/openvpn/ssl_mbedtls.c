@@ -191,12 +191,13 @@ tls_ctx_initialised(struct tls_root_ctx *ctx)
 }
 
 #ifdef HAVE_EXPORT_KEYING_MATERIAL
-int mbedtls_ssl_export_keys_cb(void *p_expkey, const unsigned char *ms,
-                               const unsigned char *kb, size_t maclen,
-                               size_t keylen, size_t ivlen,
-                               const unsigned char client_random[32],
-                               const unsigned char server_random[32],
-                               mbedtls_tls_prf_types tls_prf_type)
+int
+mbedtls_ssl_export_keys_cb(void *p_expkey, const unsigned char *ms,
+                           const unsigned char *kb, size_t maclen,
+                           size_t keylen, size_t ivlen,
+                           const unsigned char client_random[32],
+                           const unsigned char server_random[32],
+                           mbedtls_tls_prf_types tls_prf_type)
 {
     struct tls_session *session = p_expkey;
     struct key_state_ssl *ks_ssl = &session->key[KS_PRIMARY].ks_ssl;
@@ -1115,7 +1116,7 @@ key_state_ssl_init(struct key_state_ssl *ks_ssl,
     if (session->opt->ekm_size)
     {
         mbedtls_ssl_conf_export_keys_ext_cb(ks_ssl->ssl_config,
-                mbedtls_ssl_export_keys_cb, session);
+                                            mbedtls_ssl_export_keys_cb, session);
     }
 #endif
 

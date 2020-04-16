@@ -466,7 +466,7 @@ ssl_set_auth_token(const char *token)
  * Cleans an auth token and checks if it was active
  */
 bool
-ssl_clean_auth_token (void)
+ssl_clean_auth_token(void)
 {
     bool wasdefined = auth_token.defined;
     purge_user_pass(&auth_token, true);
@@ -2015,7 +2015,7 @@ tls_session_update_crypto_params(struct tls_session *session,
     {
         frame_remove_from_extra_frame(frame_fragment, crypto_max_overhead());
         crypto_adjust_frame_parameters(frame_fragment, &session->opt->key_type,
-	                               options->replay, packet_id_long_form);
+                                       options->replay, packet_id_long_form);
         frame_set_mtu_dynamic(frame_fragment, options->ce.fragment, SET_MTU_UPPER_BOUND);
         frame_print(frame_fragment, D_MTU_INFO, "Fragmentation MTU parms");
     }
@@ -2411,7 +2411,9 @@ key_method_2_write(struct buffer *buf, struct tls_session *session)
          * username/password
          */
         if (auth_token.defined)
+        {
             up = &auth_token;
+        }
 
         if (!write_string(buf, up->username, -1))
         {

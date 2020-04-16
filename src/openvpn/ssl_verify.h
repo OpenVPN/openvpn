@@ -234,7 +234,8 @@ bool tls_authenticate_key(struct tls_multi *multi, const unsigned int mda_key_id
  * @param multi             The multi tls struct
  * @param client_reason     The string to send to the client as part of AUTH_FAILED
  */
-void auth_set_client_reason(struct tls_multi* multi, const char* client_reason);
+void auth_set_client_reason(struct tls_multi *multi, const char *client_reason);
+
 #endif
 
 static inline const char *

@@ -736,13 +736,14 @@ crypto_max_overhead(void)
            +max_int(OPENVPN_MAX_HMAC_SIZE, OPENVPN_AEAD_TAG_LENGTH);
 }
 
-static void warn_insecure_key_type(const char* ciphername, const cipher_kt_t *cipher)
+static void
+warn_insecure_key_type(const char *ciphername, const cipher_kt_t *cipher)
 {
     if (cipher_kt_insecure(cipher))
     {
         msg(M_WARN, "WARNING: INSECURE cipher (%s) with block size less than 128"
-                    " bit (%d bit).  This allows attacks like SWEET32.  Mitigate by "
-                    "using a --cipher with a larger block size (e.g. AES-256-CBC).",
+            " bit (%d bit).  This allows attacks like SWEET32.  Mitigate by "
+            "using a --cipher with a larger block size (e.g. AES-256-CBC).",
             ciphername, cipher_kt_block_size(cipher)*8);
     }
 }
@@ -846,7 +847,7 @@ init_key_ctx(struct key_ctx *ctx, const struct key *key,
         cipher_ctx_init(ctx->cipher, key->cipher, kt->cipher_length,
                         kt->cipher, enc);
 
-        const char* ciphername = translate_cipher_name_to_openvpn(cipher_kt_name(kt->cipher));
+        const char *ciphername = translate_cipher_name_to_openvpn(cipher_kt_name(kt->cipher));
         msg(D_HANDSHAKE, "%s: Cipher '%s' initialized with %d bit key",
             prefix,
             ciphername,

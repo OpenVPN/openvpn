@@ -146,7 +146,7 @@ auth_user_pass_mgmt(struct user_pass *up, const char *prefix, const unsigned int
     }
     return true;
 }
-#endif
+#endif /* ifdef ENABLE_MANAGEMENT */
 
 /*
  * Get and store a username/password

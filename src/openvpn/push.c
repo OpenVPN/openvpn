@@ -72,19 +72,19 @@ receive_auth_failed(struct context *c, const struct buffer *buffer)
         {
             switch (auth_retry_get())
             {
-            case AR_NONE:
-                c->sig->signal_received = SIGTERM; /* SOFT-SIGTERM -- Auth failure error */
-                break;
+                case AR_NONE:
+                    c->sig->signal_received = SIGTERM; /* SOFT-SIGTERM -- Auth failure error */
+                    break;
 
-            case AR_INTERACT:
-                ssl_purge_auth(false);
+                case AR_INTERACT:
+                    ssl_purge_auth(false);
 
-            case AR_NOINTERACT:
-                c->sig->signal_received = SIGUSR1; /* SOFT-SIGUSR1 -- Auth failure error */
-                break;
+                case AR_NOINTERACT:
+                    c->sig->signal_received = SIGUSR1; /* SOFT-SIGUSR1 -- Auth failure error */
+                    break;
 
-            default:
-                ASSERT(0);
+                default:
+                    ASSERT(0);
             }
             c->sig->signal_text = "auth-failure";
         }

@@ -803,12 +803,13 @@ find_certificate_in_store(const char *cert_prop, HCERTSTORE cert_store)
         }
         blob.cbData = i;
     }
-    else {
+    else
+    {
         msg(M_WARN, "WARNING: cryptoapicert: unsupported certificate specification <%s>", cert_prop);
         goto out;
     }
 
-    while(true)
+    while (true)
     {
         int validity = 1;
         /* this frees previous rv, if not NULL */

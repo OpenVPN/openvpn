@@ -23,6 +23,6 @@
 #define NETWORKING_SITNL_H_
 
 typedef char openvpn_net_iface_t;
-typedef void * openvpn_net_ctx_t;
+typedef void *openvpn_net_ctx_t;
 
 #endif /* NETWORKING_SITNL_H_ */

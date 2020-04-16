@@ -43,7 +43,9 @@ net_ctx_init(struct context *c, openvpn_net_ctx_t *ctx)
 {
     ctx->es = NULL;
     if (c)
+    {
         ctx->es = c->es;
+    }
     ctx->gc = gc_new();
 
     return 0;
@@ -207,10 +209,14 @@ net_route_v4_add(openvpn_net_ctx_t *ctx, const in_addr_t *dst, int prefixlen,
     argv_printf(&argv, "%s route add %s/%d", iproute_path, dst_str, prefixlen);
 
     if (metric > 0)
+    {
         argv_printf_cat(&argv, "metric %d", metric);
+    }
 
     if (iface)
+    {
         argv_printf_cat(&argv, "dev %s", iface);
+    }
 
     if (gw)
     {
@@ -246,7 +252,9 @@ net_route_v6_add(openvpn_net_ctx_t *ctx, const struct in6_addr *dst,
     }
 
     if (metric > 0)
+    {
         argv_printf_cat(&argv, "metric %d", metric);
+    }
 
     argv_msg(D_ROUTE, &argv);
     openvpn_execve_check(&argv, ctx->es, 0, "ERROR: Linux route -6 add command failed");
@@ -267,7 +275,9 @@ net_route_v4_del(openvpn_net_ctx_t *ctx, const in_addr_t *dst, int prefixlen,
     argv_printf(&argv, "%s route del %s/%d", iproute_path, dst_str, prefixlen);
 
     if (metric > 0)
+    {
         argv_printf_cat(&argv, "metric %d", metric);
+    }
 
     argv_msg(D_ROUTE, &argv);
     openvpn_execve_check(&argv, ctx->es, 0, "ERROR: Linux route delete command failed");
@@ -296,7 +306,9 @@ net_route_v6_del(openvpn_net_ctx_t *ctx, const struct in6_addr *dst,
     }
 
     if (metric > 0)
+    {
         argv_printf_cat(&argv, "metric %d", metric);
+    }
 
     argv_msg(D_ROUTE, &argv);
     openvpn_execve_check(&argv, ctx->es, 0, "ERROR: Linux route -6 del command failed");
@@ -314,7 +326,9 @@ net_route_v4_best_gw(openvpn_net_ctx_t *ctx, const in_addr_t *dst,
 
     FILE *fp = fopen("/proc/net/route", "r");
     if (!fp)
+    {
         return -1;
+    }
 
     char line[256];
     int count = 0;
