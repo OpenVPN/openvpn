@@ -1093,7 +1093,7 @@ do_ifconfig_ipv4(struct tuntap *tt, const char *ifname, int tun_mtu,
         if (net_addr_ptp_v4_add(ctx, ifname, &tt->local,
                                 &tt->remote_netmask) < 0)
         {
-            msg(M_FATAL, "Linux can't add IP to TUN interface %s", ifname);
+            msg(M_FATAL, "Linux can't add IP to interface %s", ifname);
         }
     }
     else
@@ -1101,7 +1101,7 @@ do_ifconfig_ipv4(struct tuntap *tt, const char *ifname, int tun_mtu,
         if (net_addr_v4_add(ctx, ifname, &tt->local,
                             netmask_to_netbits2(tt->remote_netmask)) < 0)
         {
-            msg(M_FATAL, "Linux can't add IP to TAP interface %s", ifname);
+            msg(M_FATAL, "Linux can't add IP to interface %s", ifname);
         }
     }
 #elif defined(TARGET_ANDROID)
@@ -1970,7 +1970,7 @@ undo_ifconfig_ipv4(struct tuntap *tt, openvpn_net_ctx_t *ctx)
         if (net_addr_ptp_v4_del(ctx, tt->actual_name, &tt->local,
                                 &tt->remote_netmask) < 0)
         {
-            msg(M_WARN, "Linux can't del IP from TUN iface %s",
+            msg(M_WARN, "Linux can't del IP from iface %s",
                 tt->actual_name);
         }
     }
@@ -1978,7 +1978,7 @@ undo_ifconfig_ipv4(struct tuntap *tt, openvpn_net_ctx_t *ctx)
     {
         if (net_addr_v4_del(ctx, tt->actual_name, &tt->local, netbits) < 0)
         {
-            msg(M_WARN, "Linux can't del IP from TAP iface %s",
+            msg(M_WARN, "Linux can't del IP from iface %s",
                 tt->actual_name);
         }
     }
