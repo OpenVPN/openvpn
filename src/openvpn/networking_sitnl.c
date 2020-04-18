@@ -717,7 +717,7 @@ sitnl_addr_set(int cmd, uint32_t flags, int ifindex, sa_family_t af_family,
     }
 
     ret = sitnl_send(&req.n, 0, 0, NULL, NULL);
-    if ((ret < 0) && (errno == EEXIST))
+    if (ret == -EEXIST)
     {
         ret = 0;
     }
@@ -858,7 +858,7 @@ sitnl_route_set(int cmd, uint32_t flags, int ifindex, sa_family_t af_family,
     }
 
     ret = sitnl_send(&req.n, 0, 0, NULL, NULL);
-    if ((ret < 0) && (errno == EEXIST))
+    if (ret == -EEXIST)
     {
         ret = 0;
     }
