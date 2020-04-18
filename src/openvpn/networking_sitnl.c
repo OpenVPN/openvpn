@@ -365,9 +365,9 @@ sitnl_send(struct nlmsghdr *payload, pid_t peer, unsigned int groups,
                     }
                     else
                     {
-                        msg(M_WARN, "%s: rtnl: generic error: %s",
-                            __func__, strerror(-err->error));
-                        ret = -err->error;
+                        msg(M_WARN, "%s: rtnl: generic error (%d): %s",
+                            __func__, err->error, strerror(-err->error));
+                        ret = err->error;
                     }
                 }
                 goto out;
