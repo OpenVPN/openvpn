@@ -3421,9 +3421,6 @@ options_postprocess_filechecks(struct options *options)
     }
 
     errs |= check_file_access(CHKACC_FILE|CHKACC_INLINE|CHKACC_PRIVATE,
-                              options->genkey_filename, R_OK,
-                              "--genkey");
-    errs |= check_file_access(CHKACC_FILE|CHKACC_INLINE|CHKACC_PRIVATE,
                               options->shared_secret_file, R_OK, "--secret");
 
     errs |= check_file_access(CHKACC_DIRPATH|CHKACC_FILEXSTWR,
