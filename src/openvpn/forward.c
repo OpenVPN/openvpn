@@ -1894,8 +1894,9 @@ process_outgoing_tun(struct context *c)
                                 &c->c2.n_trunc_tun_write);
 #endif
 
-        if(!check_tun2tap_send(c, TUN2TAP_FLAG_DECAP)){
-            goto over;
+        if (!check_tun2tap_send(c, TUN2TAP_FLAG_DECAP))
+        {
+            goto cleanup;
         }
 
 #ifdef _WIN32
@@ -1938,7 +1939,7 @@ process_outgoing_tun(struct context *c)
             MAX_RW_SIZE_TUN(&c->c2.frame));
     }
 
-over:
+cleanup:
     buf_reset(&c->c2.to_tun);
 
     perf_pop();
