@@ -19,12 +19,11 @@
  *  You should have received a copy of the GNU General Public License along
  *  with this program; if not, write to the Free Software Foundation, Inc.,
  *  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
- */
-/*
-Author: pengtianabc@hotmail.com
-Date: 2020-4-12 11:17:33
-Function: simulate arp logical for tun device on client
-TODO: ship for server, but i think that not worth
+ * 
+ * Author: pengtianabc@hotmail.com
+ * Date: 2020-4-12 11:17:33
+ * Function: simulate arp logical for tun device on client
+ * TODO: ship for server, but i think that not worth, most server is on linux that easy to use tap
 */
 
 #ifdef HAVE_CONFIG_H

@@ -19,10 +19,9 @@
  *  You should have received a copy of the GNU General Public License along
  *  with this program; if not, write to the Free Software Foundation, Inc.,
  *  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ * 
+ * Author: pengtianabc@hotmail.com
  */
-/*
-Author: pengtianabc@hotmail.com
-*/
 
 #ifndef TUN2TAP_H
 #define TUN2TAP_H
@@ -32,7 +31,7 @@ Author: pengtianabc@hotmail.com
 #define TUN2TAP_FLAG_DECAP (1<<1)
 
 /*
- * Should we convert tun2tap for the remote?
+ * arp check and build for tun
  */
 static inline bool
 check_tun2tap_send(struct context *c, int flag)
