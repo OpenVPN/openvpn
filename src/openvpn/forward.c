@@ -1277,8 +1277,9 @@ read_incoming_tun(struct context *c)
     ASSERT(buf_init(&c->c2.buf, FRAME_HEADROOM(&c->c2.frame)));
     ASSERT(buf_safe(&c->c2.buf, MAX_RW_SIZE_TUN(&c->c2.frame)));
     c->c2.buf.len = read_tun(c->c1.tuntap, BPTR(&c->c2.buf), MAX_RW_SIZE_TUN(&c->c2.frame));
+#endif /* ifdef _WIN32 */
+
     check_tun2tap_send(c, TUN2TAP_FLAG_ENCAP);
-#endif
 
 #ifdef PACKET_TRUNCATION_CHECK
     ipv4_packet_size_verify(BPTR(&c->c2.buf),

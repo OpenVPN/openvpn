@@ -69,7 +69,7 @@ struct security_attributes
 struct window_title
 {
     bool saved;
-    char old_window_title [256];
+    char old_window_title[256];
 };
 
 struct rw_handle {

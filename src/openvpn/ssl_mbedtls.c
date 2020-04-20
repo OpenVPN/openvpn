@@ -191,12 +191,13 @@ tls_ctx_initialised(struct tls_root_ctx *ctx)
 }
 
 #ifdef HAVE_EXPORT_KEYING_MATERIAL
-int mbedtls_ssl_export_keys_cb(void *p_expkey, const unsigned char *ms,
-                               const unsigned char *kb, size_t maclen,
-                               size_t keylen, size_t ivlen,
-                               const unsigned char client_random[32],
-                               const unsigned char server_random[32],
-                               mbedtls_tls_prf_types tls_prf_type)
+int
+mbedtls_ssl_export_keys_cb(void *p_expkey, const unsigned char *ms,
+                           const unsigned char *kb, size_t maclen,
+                           size_t keylen, size_t ivlen,
+                           const unsigned char client_random[32],
+                           const unsigned char server_random[32],
+                           mbedtls_tls_prf_types tls_prf_type)
 {
     struct tls_session *session = p_expkey;
     struct key_state_ssl *ks_ssl = &session->key[KS_PRIMARY].ks_ssl;
@@ -209,10 +210,10 @@ int mbedtls_ssl_export_keys_cb(void *p_expkey, const unsigned char *ms,
     memcpy(client_server_random + 32, server_random, 32);
 
     const size_t ms_len = sizeof(ks_ssl->ctx->session->master);
-    int ret = mbedtls_ssl_tls_prf(
-            tls_prf_type, ms, ms_len, session->opt->ekm_label,
-            client_server_random, sizeof(client_server_random),
-            ks_ssl->exported_key_material, session->opt->ekm_size);
+    int ret = mbedtls_ssl_tls_prf(tls_prf_type, ms, ms_len,
+                                  session->opt->ekm_label, client_server_random,
+                                  sizeof(client_server_random), ks_ssl->exported_key_material,
+                                  session->opt->ekm_size);
 
     if (!mbed_ok(ret))
     {
@@ -289,33 +290,22 @@ void
 tls_ctx_restrict_ciphers(struct tls_root_ctx *ctx, const char *ciphers)
 {
     char *tmp_ciphers, *tmp_ciphers_orig, *token;
-    int i, cipher_count;
-    int ciphers_len;
 
     if (NULL == ciphers)
     {
         return; /* Nothing to do */
-
     }
-    ciphers_len = strlen(ciphers);
 
     ASSERT(NULL != ctx);
-    ASSERT(0 != ciphers_len);
 
     /* Get number of ciphers */
-    for (i = 0, cipher_count = 1; i < ciphers_len; i++)
-    {
-        if (ciphers[i] == ':')
-        {
-            cipher_count++;
-        }
-    }
+    int cipher_count = get_num_elements(ciphers, ':');
 
     /* Allocate an array for them */
     ALLOC_ARRAY_CLEAR(ctx->allowed_ciphers, int, cipher_count+1)
 
     /* Parse allowed ciphers, getting IDs */
-    i = 0;
+    int i = 0;
     tmp_ciphers_orig = tmp_ciphers = string_alloc(ciphers, NULL);
 
     token = strtok(tmp_ciphers, ":");
@@ -1126,7 +1116,7 @@ key_state_ssl_init(struct key_state_ssl *ks_ssl,
     if (session->opt->ekm_size)
     {
         mbedtls_ssl_conf_export_keys_ext_cb(ks_ssl->ssl_config,
-                mbedtls_ssl_export_keys_cb, session);
+                                            mbedtls_ssl_export_keys_cb, session);
     }
 #endif
 

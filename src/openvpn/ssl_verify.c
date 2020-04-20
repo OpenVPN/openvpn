@@ -804,7 +804,7 @@ cleanup:
 #endif
 
 void
-auth_set_client_reason(struct tls_multi* multi, const char* client_reason)
+auth_set_client_reason(struct tls_multi *multi, const char *client_reason)
 {
     if (multi->client_reason)
     {
@@ -1204,7 +1204,7 @@ verify_user_pass_plugin(struct tls_session *session, struct tls_multi *multi,
 
 static int
 verify_user_pass_management(struct tls_session *session,
-                            struct tls_multi* multi,
+                            struct tls_multi *multi,
                             const struct user_pass *up)
 {
     int retval = KMDA_ERROR;
@@ -1301,16 +1301,16 @@ verify_user_pass(struct user_pass *up, struct tls_multi *multi,
              * for equality with AUTH_TOKEN_HMAC_OK
              */
             msg(M_WARN, "TLS: Username/auth-token authentication "
-                        "succeeded for username '%s'",
+                "succeeded for username '%s'",
                 up->username);
-              skip_auth = true;
+            skip_auth = true;
         }
         else
         {
             wipe_auth_token(multi);
             ks->authenticated = false;
             msg(M_WARN, "TLS: Username/auth-token authentication "
-                        "failed for username '%s'", up->username);
+                "failed for username '%s'", up->username);
             return;
         }
     }
@@ -1335,12 +1335,12 @@ verify_user_pass(struct user_pass *up, struct tls_multi *multi,
     }
 
     /* check sizing of username if it will become our common name */
-    if ((session->opt->ssl_flags & SSLF_USERNAME_AS_COMMON_NAME) &&
-         strlen(up->username)>TLS_USERNAME_LEN)
+    if ((session->opt->ssl_flags & SSLF_USERNAME_AS_COMMON_NAME)
+        && strlen(up->username)>TLS_USERNAME_LEN)
     {
         msg(D_TLS_ERRORS,
-                "TLS Auth Error: --username-as-common name specified and username is longer than the maximum permitted Common Name length of %d characters",
-                TLS_USERNAME_LEN);
+            "TLS Auth Error: --username-as-common name specified and username is longer than the maximum permitted Common Name length of %d characters",
+            TLS_USERNAME_LEN);
         s1 = OPENVPN_PLUGIN_FUNC_ERROR;
     }
     /* auth succeeded? */

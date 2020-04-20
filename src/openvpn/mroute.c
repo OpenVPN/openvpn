@@ -324,7 +324,7 @@ mroute_extract_addr_ether(struct mroute_addr *src,
                     break;
             }
         }
-#endif
+#endif /* ifdef ENABLE_PF */
     }
     return ret;
 }

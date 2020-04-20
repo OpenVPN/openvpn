@@ -2152,7 +2152,7 @@ delete_route(struct route_ipv4 *r,
 #if !defined(TARGET_ANDROID)
     const char *gateway;
 #endif
-#else
+#else  /* if !defined(TARGET_LINUX) */
     int metric;
 #endif
     int is_local_route;

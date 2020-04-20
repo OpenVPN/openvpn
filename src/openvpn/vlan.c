@@ -58,7 +58,7 @@ static void
 vlanhdr_set_vid(struct openvpn_8021qhdr *hdr, const uint16_t vid)
 {
     hdr->pcp_cfi_vid = (hdr->pcp_cfi_vid & ~OPENVPN_8021Q_MASK_VID)
-                        | (htons(vid) & OPENVPN_8021Q_MASK_VID);
+                       | (htons(vid) & OPENVPN_8021Q_MASK_VID);
 }
 
 /*
@@ -135,7 +135,7 @@ vlan_decapsulate(const struct context *c, struct buffer *buf)
                 goto drop;
             }
 
-            /* vid == 0 means prio-tagged packet: don't drop and fall-through */
+        /* vid == 0 means prio-tagged packet: don't drop and fall-through */
         case VLAN_ONLY_TAGGED:
         case VLAN_ALL:
             /* tagged frame can be accepted: extract vid and strip encapsulation */

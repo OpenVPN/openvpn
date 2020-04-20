@@ -58,4 +58,4 @@ strsep(char **stringp, const char *delim)
     }
     return begin;
 }
-#endif
+#endif /* ifndef HAVE_STRSEP */

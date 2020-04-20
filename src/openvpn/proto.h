@@ -67,7 +67,7 @@ struct openvpn_ethhdr
 struct openvpn_8021qhdr
 {
     uint8_t dest[OPENVPN_ETH_ALEN];     /* destination ethernet addr */
-    uint8_t source[OPENVPN_ETH_ALEN];   /* source ethernet addr	*/
+    uint8_t source[OPENVPN_ETH_ALEN];   /* source ethernet addr */
 
     uint16_t tpid;                      /* 802.1Q Tag Protocol Identifier */
 #define OPENVPN_8021Q_MASK_PCP htons(0xE000) /* mask PCP out of pcp_cfi_vid */

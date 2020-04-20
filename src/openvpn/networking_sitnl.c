@@ -365,9 +365,9 @@ sitnl_send(struct nlmsghdr *payload, pid_t peer, unsigned int groups,
                     }
                     else
                     {
-                        msg(M_WARN, "%s: rtnl: generic error: %s",
-                            __func__, strerror(-err->error));
-                        ret = -err->error;
+                        msg(M_WARN, "%s: rtnl: generic error (%d): %s",
+                            __func__, err->error, strerror(-err->error));
+                        ret = err->error;
                     }
                 }
                 goto out;
@@ -717,7 +717,7 @@ sitnl_addr_set(int cmd, uint32_t flags, int ifindex, sa_family_t af_family,
     }
 
     ret = sitnl_send(&req.n, 0, 0, NULL, NULL);
-    if ((ret < 0) && (errno == EEXIST))
+    if (ret == -EEXIST)
     {
         ret = 0;
     }
@@ -858,7 +858,7 @@ sitnl_route_set(int cmd, uint32_t flags, int ifindex, sa_family_t af_family,
     }
 
     ret = sitnl_send(&req.n, 0, 0, NULL, NULL);
-    if ((ret < 0) && (errno == EEXIST))
+    if (ret == -EEXIST)
     {
         ret = 0;
     }

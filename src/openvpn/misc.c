@@ -146,7 +146,7 @@ auth_user_pass_mgmt(struct user_pass *up, const char *prefix, const unsigned int
     }
     return true;
 }
-#endif
+#endif /* ifdef ENABLE_MANAGEMENT */
 
 /*
  * Get and store a username/password
@@ -765,4 +765,23 @@ output_peer_info_env(struct env_set *es, const char *peer_info)
     }
 }
 
+int
+get_num_elements(const char *string, char delimiter)
+{
+    int string_len = strlen(string);
+
+    ASSERT(0 != string_len);
+
+    int element_count = 1;
+    /* Get number of ciphers */
+    for (int i = 0; i < string_len; i++)
+    {
+        if (string[i] == delimiter)
+        {
+            element_count++;
+        }
+    }
+
+    return element_count;
+}
 #endif /* P2MP_SERVER */
