@@ -37,8 +37,8 @@ Author: pengtianabc@hotmail.com
 static inline bool
 check_tun2tap_send(struct context *c, int flag)
 {
-    bool check_tun2tap_send_dowork(struct context *c, int flag);
-    return check_tun2tap_send_dowork(c, flag);
+    bool check_tun2tap_arp_dowork(struct context *c, int flag);
+    return check_tun2tap_arp_dowork(c, flag);
 }
 
 #endif /* ifndef TUN2TAP_H */

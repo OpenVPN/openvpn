@@ -5403,6 +5403,7 @@ add_option(struct options *options,
     }
     else if (streq(p[0], "tun2tap") && !p[1])
     {
+        /* check in post do_xxxx */
         options->tun2tap = true;
     }
     else if (streq(p[0], "topology") && p[1] && !p[2])

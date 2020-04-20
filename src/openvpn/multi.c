@@ -2667,9 +2667,6 @@ multi_process_incoming_link(struct multi_context *m, struct multi_instance *inst
             }
             else if (TUNNEL_TYPE(m->top.c1.tuntap) == DEV_TYPE_TAP || m->top.options.tun2tap)
             {
-                if (m->top.options.tun2tap){
-                    printf("pesudo tap dev\n");
-                }
                 uint16_t vid = 0;
 #ifdef ENABLE_PF
                 struct mroute_addr edest;

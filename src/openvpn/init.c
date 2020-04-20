@@ -1123,6 +1123,19 @@ do_genkey(const struct options *options)
 }
 
 /*
+* post check for tun2tap
+*/
+void
+do_check_tun2tap(const struct options *options)
+{
+    if (options && options->tun2tap && options->dev != DEV_TYPE_TUN)
+    {
+         msg(M_FATAL|M_OPTERR,
+                "options --tun2tap should only be used in tun mode");
+    }
+}
+
+/*
  * Persistent TUN/TAP device management mode?
  */
 bool
@@ -1827,8 +1840,12 @@ do_open_tun(struct context *c)
         uint8_t buf[4*OPENVPN_ETH_ALEN] = {0};
         int i = 0;
         int offset = 0;
-        random_hex(mac_addr, OPENVPN_ETH_ALEN);
-        mac_addr[0] &= ~(mac_addr[0] & 1);
+        ASSERT(rand_bytes(mac_addr, OPENVPN_ETH_ALEN));
+        /* magic mac addr: 00:cc:xx:xx:xx:xx */
+        mac_addr[0] = 0;
+        mac_addr[1] = 0;
+        mac_addr[2] = 'c';
+        mac_addr[3] = 'c';
         for(; i < OPENVPN_ETH_ALEN; i++){
             if (i != OPENVPN_ETH_ALEN - 1){
                 offset += sprintf(buf+offset, "%02x:", mac_addr[i]);
@@ -1847,7 +1864,7 @@ do_open_tun(struct context *c)
         int len = strlen(buf);
         while(len-- > 0){
             if (buf[len] >= 'A' && buf[len] <= 'Z'){
-                // x-X=z-Z => x=z-Z+X
+                /* x-X=z-Z => x=z-Z+X */
                 buf[len] += 'a'- 'A';
             }
         }
@@ -1859,7 +1876,7 @@ do_open_tun(struct context *c)
             , &mac_addr[4]
             , &mac_addr[5]
         );
-        printf("local addr is: %02x:%02x:%02x:%02x:%02x:%02x\n"
+        dmsg(D_TUN2TAP, "local addr is: %02x:%02x:%02x:%02x:%02x:%02x"
             , mac_addr[0]
             , mac_addr[1]
             , mac_addr[2]
@@ -1872,7 +1889,7 @@ do_open_tun(struct context *c)
             msg(M_INFO, "mac %s is mcast addr (mac[0]&1 == true)", buf);
             ASSERT(0);
         }
-
+        /* set_lladdr is use command to set mac address for interface, we cant set mac for tun device */
         if (TUNNEL_TYPE(c->c1.tuntap) == DEV_TYPE_TAP)
             set_lladdr(c->c1.tuntap->actual_name, c->options.lladdr, c->c2.es);
         free(buf);

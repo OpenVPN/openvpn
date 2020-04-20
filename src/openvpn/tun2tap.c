@@ -34,25 +34,15 @@ TODO: ship for server, but i think that not worth
 #endif
 
 #include "syshead.h"
-// #include "openvpn.h"
 #include "tun2tap.h"
 
 #include "memdbg.h"
 
-static inline void dump_hex(const uint8_t *buf, int len, char *name){
-        int i = 0;
-        printf("===buf name:%s, len:%d==\n", name, len);
-        for(; i < len; i++){
-                printf("%02x", buf[i]);
-        }
-        printf("\n======================\n");
-}
-
 /*
- * Should we handle arp to the remote?
+ * arp check and build for tun
  */
 bool
-check_tun2tap_send_dowork(struct context *c, int flag)
+check_tun2tap_arp_dowork(struct context *c, int flag)
 {
     int ret = true;
     if (!c->options.tun2tap){
@@ -60,7 +50,7 @@ check_tun2tap_send_dowork(struct context *c, int flag)
     }
     if (TUN2TAP_FLAG_ENCAP == flag){
         dmsg(D_TUN2TAP, "TUN2TAP: encap data from tun");
-        // read from tun, check and send arp to link
+        /* read from tun, check and send arp to link */
         if ( BLEN(&c->c2.buf) >= sizeof(struct openvpn_iphdr)){
             struct openvpn_ethhdr hdr = {0};
             struct openvpn_iphdr *ip_hdr = BPTR(&c->c2.buf);
@@ -68,10 +58,11 @@ check_tun2tap_send_dowork(struct context *c, int flag)
             int v = OPENVPN_IPH_GET_VER(ip_hdr->version_len);
             memcpy(hdr.dest, c->c1.tuntap->remote_mac_addr, OPENVPN_ETH_ALEN);
             memcpy(hdr.source, c->options.lladdr_v, OPENVPN_ETH_ALEN);
-            
+            /* 
+            * if client send the first packet to server after connected, remote_mac_addr is zero
+            * so we build a arp request to replace this packet.
+            */
             if (0 == memcmp(hdr.dest, "\x00\x00\x00\x00\x00\x00", sizeof("\x00\x00\x00\x00\x00\x00") - 1)){
-                // build request
-                // overwirte arp to buf
                 struct openvpn_arp arp = { 0 };
                 arp.mac_addr_type = htons(0x0001);
                 arp.proto_addr_type = htons(0x0800);
@@ -89,9 +80,7 @@ check_tun2tap_send_dowork(struct context *c, int flag)
                     arp.ip_dest = ip_hdr->daddr;
                     break;
                 case 6: 
-                    // hdr.proto = htons(OPENVPN_ETH_P_IPV6);
-                    // memcpy(&arp.ip_src, &ipv6_hdr->saddr, sizeof(ipv6_hdr->saddr));
-                    // memcpy(&arp.ip_dest, &ipv6_hdr->daddr, sizeof(ipv6_hdr->daddr));
+                    /* do nothing, arp has been removed in ipv6 */
                 default:
                     break;
                 }
@@ -111,37 +100,13 @@ check_tun2tap_send_dowork(struct context *c, int flag)
                 }
                 ASSERT(buf_write_prepend(&c->c2.buf, &hdr, sizeof(hdr)));
             }
-            dmsg(D_TUN2TAP, "dest addr is: %02x:%02x:%02x:%02x:%02x:%02x"
-                , hdr.dest[0]
-                , hdr.dest[1]
-                , hdr.dest[2]
-                , hdr.dest[3]
-                , hdr.dest[4]
-                , hdr.dest[5]
-            );
-            dmsg(D_TUN2TAP, "source addr is: %02x:%02x:%02x:%02x:%02x:%02x"
-                , hdr.source[0]
-                , hdr.source[1]
-                , hdr.source[2]
-                , hdr.source[3]
-                , hdr.source[4]
-                , hdr.source[5]
-            );
         }
     } else if (TUN2TAP_FLAG_DECAP == flag){
         dmsg(D_TUN2TAP, "TUN2TAP: decap data to tun");
-        // will write to tun, check is arp request, and save remote addr
+        /* will write to tun, check is arp request, and save remote addr */
         if (BLEN(&c->c2.buf) >= sizeof(struct openvpn_ethhdr)){
             struct openvpn_ethhdr *hdr = (struct openvpn_ethhdr *) BPTR(&c->c2.buf);
             memcpy(c->c1.tuntap->remote_mac_addr, hdr->source, OPENVPN_ETH_ALEN);
-            dmsg(D_TUN2TAP, "saved remote mac: %02x:%02x:%02x:%02x:%02x:%02x"
-                    , c->c1.tuntap->remote_mac_addr[0]
-                    , c->c1.tuntap->remote_mac_addr[1]
-                    , c->c1.tuntap->remote_mac_addr[2]
-                    , c->c1.tuntap->remote_mac_addr[3]
-                    , c->c1.tuntap->remote_mac_addr[4]
-                    , c->c1.tuntap->remote_mac_addr[5]
-            );
             if (hdr->proto == htons(OPENVPN_ETH_P_ARP)){
                 if (BLEN(&c->c2.buf) >= sizeof(struct openvpn_ethhdr) + sizeof(struct openvpn_arp)){
                     struct openvpn_arp *arp_in = (struct openvpn_arp *)(BPTR(&c->c2.buf) + sizeof(struct openvpn_ethhdr));
@@ -151,8 +116,9 @@ check_tun2tap_send_dowork(struct context *c, int flag)
                         ret = false;
                     } else if (arp_in->arp_command == htons(ARP_REQUEST) ){
                         if (arp_in->ip_dest == htonl(c->c1.tuntap->local)){
-                            // build reply
-                            // write arp to link
+                            /*
+                            * build reply and write arp to link
+                            */
                             struct openvpn_ethhdr hdr_out = {
                                 .proto=htons(OPENVPN_ETH_P_ARP)
                             };
@@ -169,11 +135,8 @@ check_tun2tap_send_dowork(struct context *c, int flag)
                             arp_out.ip_src = arp_in->ip_dest;
                             arp_out.ip_dest = arp_in->ip_src;
                             buf_clear(&c->c2.buf);
-                            // dump_hex(BPTR(&c->c2.buf), BLEN(&c->c2.buf), "after clear");
                             buf_write(&c->c2.buf, &hdr_out, sizeof(hdr_out));
-                            // dump_hex(BPTR(&c->c2.buf), BLEN(&c->c2.buf), "after write ether");
                             buf_write(&c->c2.buf, &arp_out, sizeof(arp_out));
-                            // dump_hex(BPTR(&c->c2.buf), BLEN(&c->c2.buf), "after write arp");
                             encrypt_sign(c, true);
                             dmsg(D_TUN2TAP, "TUN2TAP: build arp reply success");
                         } else {
