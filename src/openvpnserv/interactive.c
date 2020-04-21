@@ -1286,6 +1286,29 @@ HandleRegisterRingBuffers(const register_ring_buffers_message_t *rrb, HANDLE ovp
     return err;
 }
 
+static DWORD
+HandleMTUMessage(const set_mtu_message_t *mtu)
+{
+    DWORD err = 0;
+    MIB_IPINTERFACE_ROW ipiface;
+    InitializeIpInterfaceEntry(&ipiface);
+    ipiface.Family = mtu->family;
+    ipiface.InterfaceIndex = mtu->iface.index;
+    err = GetIpInterfaceEntry(&ipiface);
+    if (err != NO_ERROR)
+    {
+        return err;
+    }
+    if (mtu->family == AF_INET)
+    {
+        ipiface.SitePrefixLength = 0;
+    }
+    ipiface.NlMtu = mtu->mtu;
+
+    err = SetIpInterfaceEntry(&ipiface);
+    return err;
+}
+
 static VOID
 HandleMessage(HANDLE pipe, HANDLE ovpn_proc, ring_buffer_handles_t *ring_buffer_handles,
               DWORD bytes, DWORD count, LPHANDLE events, undo_lists_t *lists)
@@ -1300,6 +1323,7 @@ HandleMessage(HANDLE pipe, HANDLE ovpn_proc, ring_buffer_handles_t *ring_buffer_
         dns_cfg_message_t dns;
         enable_dhcp_message_t dhcp;
         register_ring_buffers_message_t rrb;
+        set_mtu_message_t mtu;
     } msg;
     ack_message_t ack = {
         .header = {
@@ -1371,6 +1395,13 @@ HandleMessage(HANDLE pipe, HANDLE ovpn_proc, ring_buffer_handles_t *ring_buffer_
             if (msg.header.size == sizeof(msg.rrb))
             {
                 ack.error_number = HandleRegisterRingBuffers(&msg.rrb, ovpn_proc, ring_buffer_handles);
+            }
+            break;
+
+        case msg_set_mtu:
+            if (msg.header.size == sizeof(msg.mtu))
+            {
+                ack.error_number = HandleMTUMessage(&msg.mtu);
             }
             break;
 

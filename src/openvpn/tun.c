@@ -73,6 +73,10 @@ static void netsh_ifconfig(const struct tuntap_options *to,
                            const in_addr_t netmask,
                            const unsigned int flags);
 
+static void windows_set_mtu(const int iface_index,
+                            const short family,
+                            const int mtu);
+
 static void netsh_set_dns6_servers(const struct in6_addr *addr_list,
                                    const int addr_len,
                                    const char *flex_name);
@@ -208,6 +212,47 @@ do_dns_service(bool add, const short family, const struct tuntap *tt)
 
     msg(M_INFO, "%s dns servers %s using service", ip_proto_name, (add ? "set" : "deleted"));
     ret = true;
+
+out:
+    gc_free(&gc);
+    return ret;
+}
+
+static bool
+do_set_mtu_service(const struct tuntap *tt, const short family, const int mtu)
+{
+    DWORD len;
+    bool ret = false;
+    ack_message_t ack;
+    struct gc_arena gc = gc_new();
+    HANDLE pipe = tt->options.msg_channel;
+    const char *family_name = (family == AF_INET6) ? "IPv6" : "IPv4";
+    set_mtu_message_t mtu_msg = {
+        .header = {
+            msg_set_mtu,
+            sizeof(set_mtu_message_t),
+            0
+        },
+        .iface = {.index = tt->adapter_index,.name = tt->actual_name },
+        .mtu = mtu,
+        .family = family
+    };
+
+    if (!send_msg_iservice(pipe, &mtu_msg, sizeof(mtu_msg), &ack, "Set_mtu"))
+    {
+        goto out;
+    }
+
+    if (ack.error_number != NO_ERROR)
+    {
+        msg(M_NONFATAL, "TUN: setting %s mtu using service failed: %s [status=%u if_index=%d]",
+            family_name, strerror_win32(ack.error_number, &gc), ack.error_number, mtu_msg.iface.index);
+    }
+    else
+    {
+        msg(M_INFO, "%s MTU set to %d on interface %d using service", family_name, mtu, mtu_msg.iface.index);
+        ret = true;
+    }
 
 out:
     gc_free(&gc);
@@ -1018,6 +1063,7 @@ do_ifconfig_ipv6(struct tuntap *tt, const char *ifname, int tun_mtu,
         do_address_service(true, AF_INET6, tt);
         add_route_connected_v6_net(tt, es);
         do_dns_service(true, AF_INET6, tt);
+        do_set_mtu_service(tt, AF_INET6, tun_mtu);
     }
     else
     {
@@ -1035,6 +1081,7 @@ do_ifconfig_ipv6(struct tuntap *tt, const char *ifname, int tun_mtu,
         add_route_connected_v6_net(tt, es);
         /* set ipv6 dns servers if any are specified */
         netsh_set_dns6_servers(tt->options.dns6, tt->options.dns6_len, ifname);
+        windows_set_mtu(tt->adapter_index, AF_INET6, tun_mtu);
     }
 #else /* platforms we have no IPv6 code for */
     msg(M_FATAL, "Sorry, but I don't know how to do IPv6 'ifconfig' commands on this operating system.  You should ifconfig your TUN/TAP device manually or use an --up script.");
@@ -1403,6 +1450,14 @@ do_ifconfig_ipv4(struct tuntap *tt, const char *ifname, int tun_mtu,
     {
         netsh_ifconfig(&tt->options, ifname, tt->local,
                        tt->adapter_netmask, NI_IP_NETMASK|NI_OPTIONS);
+    }
+    if (tt->options.msg_channel)
+    {
+        do_set_mtu_service(tt, AF_INET, tun_mtu);
+    }
+    else
+    {
+        windows_set_mtu(tt->adapter_index, AF_INET, tun_mtu);
     }
 #else  /* if defined(TARGET_LINUX) */
     msg(M_FATAL, "Sorry, but I don't know how to do 'ifconfig' commands on this operating system.  You should ifconfig your TUN/TAP device manually or use an --up script.");
@@ -5431,6 +5486,40 @@ out:
     gc_free(&gc);
     return ret;
 }
+
+static void
+windows_set_mtu(const int iface_index, const short family,
+                const int mtu)
+{
+    DWORD err = 0;
+    struct gc_arena gc = gc_new();
+    MIB_IPINTERFACE_ROW ipiface;
+    InitializeIpInterfaceEntry(&ipiface);
+    const char *family_name = (family == AF_INET6) ? "IPv6" : "IPv4";
+    ipiface.Family = family;
+    ipiface.InterfaceIndex = iface_index;
+    err = GetIpInterfaceEntry(&ipiface);
+    if (err == NO_ERROR)
+    {
+        if (family == AF_INET)
+        {
+            ipiface.SitePrefixLength = 0;
+        }
+        ipiface.NlMtu = mtu;
+        err = SetIpInterfaceEntry(&ipiface);
+    }
+
+    if (err != NO_ERROR)
+    {
+        msg(M_WARN, "TUN: Setting %s mtu failed: %s [status=%u if_index=%d]",
+            family_name, strerror_win32(err, &gc), err, iface_index);
+    }
+    else
+    {
+        msg(M_INFO, "Successfully set %s mtu on interface %d", family_name, iface_index);
+    }
+}
+
 
 /*
  * Return a TAP name for netsh commands.
