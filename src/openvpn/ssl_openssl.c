@@ -110,6 +110,11 @@ tls_ctx_server_new(struct tls_root_ctx *ctx)
     {
         crypto_msg(M_FATAL, "SSL_CTX_new SSLv23_server_method");
     }
+    if (ERR_peek_error() != 0)
+    {
+        crypto_msg(M_WARN, "Warning: TLS server context initialisation "
+                   "has warnings.");
+    }
 }
 
 void
@@ -122,6 +127,11 @@ tls_ctx_client_new(struct tls_root_ctx *ctx)
     if (ctx->ctx == NULL)
     {
         crypto_msg(M_FATAL, "SSL_CTX_new SSLv23_client_method");
+    }
+    if (ERR_peek_error() != 0)
+    {
+        crypto_msg(M_WARN, "Warning: TLS client context initialisation "
+                   "has warnings.");
     }
 }
 
