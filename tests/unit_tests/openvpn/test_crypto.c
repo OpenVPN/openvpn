@@ -44,7 +44,8 @@
 static const char testtext[] = "Dummy text to test PEM encoding";
 
 static void
-crypto_pem_encode_decode_loopback(void **state) {
+crypto_pem_encode_decode_loopback(void **state)
+{
     struct gc_arena gc = gc_new();
     struct buffer src_buf;
     buf_set_read(&src_buf, (void *)testtext, sizeof(testtext));
@@ -69,7 +70,8 @@ crypto_pem_encode_decode_loopback(void **state) {
 }
 
 int
-main(void) {
+main(void)
+{
     const struct CMUnitTest tests[] = {
         cmocka_unit_test(crypto_pem_encode_decode_loopback),
     };

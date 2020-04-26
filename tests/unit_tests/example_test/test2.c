@@ -8,13 +8,15 @@
 
 
 static void
-test_true(void **state) {
+test_true(void **state)
+{
     (void) state;
 }
 
 
 int
-main(void) {
+main(void)
+{
     const struct CMUnitTest tests[] = {
         cmocka_unit_test(test_true),
     };
