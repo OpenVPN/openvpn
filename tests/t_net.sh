@@ -33,15 +33,13 @@ LAST_STATE=$((${#GET_STATE[@]} - 1))
 reload_dummy()
 {
     $RUN_SUDO ip link del $IFACE
-    $RUN_SUDO ip link add $IFACE type dummy
+    $RUN_SUDO ip link add $IFACE address 00:11:22:33:44:55 type dummy
     $RUN_SUDO ip link set dev $IFACE state up
 
     if [ $? -ne 0 ]; then
         echo "can't create interface $IFACE"
         exit 1
     fi
-
-    $RUN_SUDO ip link set dev $IFACE address 00:11:22:33:44:55
 }
 
 run_test()
