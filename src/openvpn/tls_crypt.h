@@ -108,14 +108,14 @@
  * Initialize a key_ctx_bi structure for use with --tls-crypt.
  *
  * @param key           The key context to initialize
- * @param key_file      The file to read the key from (or the inline tag to
- *                      indicate and inline key).
- * @param key_inline    Array containing (zero-terminated) inline key, or NULL
- *                      if not used.
+ * @param key_file      The file to read the key from or the key itself if
+ *                      key_inline is true.
+ * @param key_inline    True if key_file contains an inline key, False
+ *                      otherwise.
  * @param tls_server    Must be set to true is this is a TLS server instance.
  */
 void tls_crypt_init_key(struct key_ctx_bi *key, const char *key_file,
-                        const char *key_inline, bool tls_server);
+                        bool key_inline, bool tls_server);
 
 /**
  * Returns the maximum overhead (in bytes) added to the destination buffer by
@@ -162,11 +162,14 @@ bool tls_crypt_unwrap(const struct buffer *src, struct buffer *dst,
  * @param key           Key structure to be initialized.  Must be non-NULL.
  * @parem encrypt       If true, initialize the key structure for encryption,
  *                      otherwise for decryption.
- * @param key_file      File path of the key file to load, or INLINE tag.
- * @param key_inline    Inline key file contents (or NULL if not inline).
+ * @param key_file      File path of the key file to load or the key itself if
+ *                      key_inline is true.
+ * @param key_inline    True if key_file contains an inline key, False
+ *                      otherwise.
+ *
  */
 void tls_crypt_v2_init_server_key(struct key_ctx *key_ctx, bool encrypt,
-                                  const char *key_file, const char *key_inline);
+                                  const char *key_file, bool key_inline);
 
 /**
  * Initialize a tls-crypt-v2 client key.
@@ -176,13 +179,14 @@ void tls_crypt_v2_init_server_key(struct key_ctx *key_ctx, bool encrypt,
  * @param wrapped_key_buf   Returns buffer containing the wrapped key that will
  *                          be sent to the server when connecting.  Caller must
  *                          free this buffer when no longer needed.
- * @param key_file          File path of the key file to load, or INLINE tag.
- * @param key_inline        Inline key file contents (or NULL if not inline).
+ * @param key_file          File path of the key file to load or the key itself
+ *                          if key_inline is true.
+ * @param key_inline        True if key_file contains an inline key, False
+ *                          otherwise.
  */
 void tls_crypt_v2_init_client_key(struct key_ctx_bi *key,
                                   struct buffer *wrapped_key_buf,
-                                  const char *key_file,
-                                  const char *key_inline);
+                                  const char *key_file, bool key_inline);
 
 /**
  * Extract a tls-crypt-v2 client key from a P_CONTROL_HARD_RESET_CLIENT_V3
@@ -210,15 +214,14 @@ void tls_crypt_v2_write_server_key_file(const char *filename);
  *
  * @param filename          Filename of the client key file to create.
  * @param b64_metadata      Base64 metadata to be included in the client key.
- * @param server_key_file   File path of the server key to use for wrapping the
- *                          client key, or INLINE tag.
- * @param server_key_inline Inline server key file contents (or NULL if not
- *                          inline).
+ * @param key_file          File path of the server key to use for wrapping the
+ *                          client key or the key itself if key_inline is true.
+ * @param key_inline        True if key_file contains an inline key, False
+ *                          otherwise.
  */
 void tls_crypt_v2_write_client_key_file(const char *filename,
                                         const char *b64_metadata,
-                                        const char *key_file,
-                                        const char *key_inline);
+                                        const char *key_file, bool key_inline);
 
 /** @} */
 

@@ -135,7 +135,7 @@ auth_token_write_server_key_file(const char *filename)
 
 void
 auth_token_init_secret(struct key_ctx *key_ctx, const char *key_file,
-                       const char *key_inline)
+                       bool key_inline)
 {
     struct key_type kt = auth_token_kt();
 

@@ -558,7 +558,7 @@ tls_version_parse(const char *vstr, const char *extra)
  */
 static void
 tls_ctx_reload_crl(struct tls_root_ctx *ssl_ctx, const char *crl_file,
-                   const char *crl_file_inline)
+                   bool crl_file_inline)
 {
     /* if something goes wrong with stat(), we'll store 0 as mtime */
     platform_stat_t crl_stat = {0};
@@ -665,7 +665,7 @@ init_ssl(const struct options *options, struct tls_root_ctx *new_ctx)
     {
         char *cert = management_query_cert(management,
                                            options->management_certificate);
-        tls_ctx_load_cert_file(new_ctx, INLINE_FILE_TAG, cert);
+        tls_ctx_load_cert_file(new_ctx, cert, true);
         free(cert);
     }
 #endif

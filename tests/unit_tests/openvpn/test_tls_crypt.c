@@ -568,8 +568,7 @@ test_tls_crypt_v2_write_client_key_file(void **state)
     expect_string(__wrap_buffer_read_from_file, filename, filename);
     will_return(__wrap_buffer_read_from_file, test_client_key);
 
-    tls_crypt_v2_write_client_key_file(filename, NULL, INLINE_FILE_TAG,
-                                       test_server_key);
+    tls_crypt_v2_write_client_key_file(filename, NULL, test_server_key, true);
 }
 
 static void
@@ -587,8 +586,8 @@ test_tls_crypt_v2_write_client_key_file_metadata(void **state)
     expect_string(__wrap_buffer_read_from_file, filename, filename);
     will_return(__wrap_buffer_read_from_file, test_client_key_metadata);
 
-    tls_crypt_v2_write_client_key_file(filename, b64metadata, INLINE_FILE_TAG,
-                                       test_server_key);
+    tls_crypt_v2_write_client_key_file(filename, b64metadata, test_server_key,
+                                       true);
 }
 
 int

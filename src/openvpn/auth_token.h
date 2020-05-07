@@ -74,7 +74,7 @@ verify_auth_token(struct user_pass *up, struct tls_multi *multi,
  */
 void
 auth_token_init_secret(struct key_ctx *key_ctx, const char *key_file,
-                       const char *key_inline);
+                       bool key_inline);
 
 
 /**

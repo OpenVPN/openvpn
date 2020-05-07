@@ -1108,7 +1108,7 @@ do_genkey(const struct options *options)
 
         tls_crypt_v2_write_client_key_file(options->genkey_filename,
                                            options->genkey_extra_data, options->tls_crypt_v2_file,
-                                           options->tls_crypt_v2_inline);
+                                           options->tls_crypt_v2_file_inline);
         return true;
     }
     else if (options->genkey && options->genkey_type == GENKEY_AUTH_TOKEN)
@@ -2633,7 +2633,8 @@ do_init_tls_wrap_key(struct context *c)
     {
         tls_crypt_init_key(&c->c1.ks.tls_wrap_key,
                            options->ce.tls_crypt_file,
-                           options->ce.tls_crypt_inline, options->tls_server);
+                           options->ce.tls_crypt_file_inline,
+                           options->tls_server);
     }
 
     /* tls-crypt with client-specific keys (--tls-crypt-v2) */
@@ -2643,14 +2644,14 @@ do_init_tls_wrap_key(struct context *c)
         {
             tls_crypt_v2_init_server_key(&c->c1.ks.tls_crypt_v2_server_key,
                                          true, options->ce.tls_crypt_v2_file,
-                                         options->ce.tls_crypt_v2_inline);
+                                         options->ce.tls_crypt_v2_file_inline);
         }
         else
         {
             tls_crypt_v2_init_client_key(&c->c1.ks.tls_wrap_key,
                                          &c->c1.ks.tls_crypt_v2_wkc,
                                          options->ce.tls_crypt_v2_file,
-                                         options->ce.tls_crypt_v2_inline);
+                                         options->ce.tls_crypt_v2_file_inline);
         }
     }
 

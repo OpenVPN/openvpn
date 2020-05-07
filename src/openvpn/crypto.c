@@ -1184,27 +1184,38 @@ test_crypto(struct crypto_options *co, struct frame *frame)
     gc_free(&gc);
 }
 
+const char *
+print_key_filename(const char *str, bool is_inline)
+{
+    if (is_inline)
+    {
+        return INLINE_FILE_TAG;
+    }
+
+    return np(str);
+}
+
 void
 crypto_read_openvpn_key(const struct key_type *key_type,
-                        struct key_ctx_bi *ctx, const char *key_file, const char *key_inline,
-                        const int key_direction, const char *key_name, const char *opt_name)
+                        struct key_ctx_bi *ctx, const char *key_file,
+                        bool key_inline, const int key_direction,
+                        const char *key_name, const char *opt_name)
 {
     struct key2 key2;
     struct key_direction_state kds;
+    unsigned int flags = RKF_MUST_SUCCEED;
 
     if (key_inline)
     {
-        read_key_file(&key2, key_inline, RKF_MUST_SUCCEED|RKF_INLINE);
+        flags |= RKF_INLINE;
     }
-    else
-    {
-        read_key_file(&key2, key_file, RKF_MUST_SUCCEED);
-    }
+    read_key_file(&key2, key_file, flags);
 
     if (key2.n != 2)
     {
         msg(M_ERR, "File '%s' does not have OpenVPN Static Key format.  Using "
-            "free-form passphrase file is not supported anymore.", key_file);
+            "free-form passphrase file is not supported anymore.",
+            print_key_filename(key_file, key_inline));
     }
 
     /* check for and fix highly unlikely key problems */
@@ -1238,7 +1249,6 @@ read_key_file(struct key2 *key2, const char *file, const unsigned int flags)
     struct buffer in;
     int size;
     uint8_t hex_byte[3] = {0, 0, 0};
-    const char *error_filename = file;
 
     /* parse info */
     const unsigned char *cp;
@@ -1276,7 +1286,6 @@ read_key_file(struct key2 *key2, const char *file, const unsigned int flags)
     {
         size = strlen(file) + 1;
         buf_set_read(&in, (const uint8_t *)file, size);
-        error_filename = INLINE_FILE_TAG;
     }
     else /* 'file' is a filename which refers to a file containing the ascii key */
     {
@@ -1372,7 +1381,9 @@ read_key_file(struct key2 *key2, const char *file, const unsigned int flags)
                 {
                     msg(M_FATAL,
                         (isprint(c) ? printable_char_fmt : unprintable_char_fmt),
-                        c, line_num, error_filename, count, onekeylen, keylen);
+                        c, line_num,
+                        print_key_filename(file, flags & RKF_INLINE), count,
+                        onekeylen, keylen);
                 }
             }
             ++line_index;
@@ -1393,13 +1404,15 @@ read_key_file(struct key2 *key2, const char *file, const unsigned int flags)
         if (!key2->n)
         {
             msg(M_FATAL, "Insufficient key material or header text not found in file '%s' (%d/%d/%d bytes found/min/max)",
-                error_filename, count, onekeylen, keylen);
+                print_key_filename(file, flags & RKF_INLINE), count, onekeylen,
+                keylen);
         }
 
         if (state != PARSE_FINISHED)
         {
             msg(M_FATAL, "Footer text not found in file '%s' (%d/%d/%d bytes found/min/max)",
-                error_filename, count, onekeylen, keylen);
+                print_key_filename(file, flags & RKF_INLINE), count, onekeylen,
+                keylen);
         }
     }
 
@@ -1922,13 +1935,13 @@ generate_ephemeral_key(struct buffer *key, const char *key_name)
 
 bool
 read_pem_key_file(struct buffer *key, const char *pem_name,
-                  const char *key_file, const char *key_inline)
+                  const char *key_file, bool key_inline)
 {
     bool ret = false;
     struct buffer key_pem = { 0 };
     struct gc_arena gc = gc_new();
 
-    if (strcmp(key_file, INLINE_FILE_TAG))
+    if (!key_inline)
     {
         key_pem = buffer_read_from_file(key_file, &gc);
         if (!buf_valid(&key_pem))
@@ -1940,7 +1953,7 @@ read_pem_key_file(struct buffer *key, const char *pem_name,
     }
     else
     {
-        buf_set_read(&key_pem, (const void *)key_inline, strlen(key_inline) + 1);
+        buf_set_read(&key_pem, (const void *)key_file, strlen(key_file) + 1);
     }
 
     if (!crypto_pem_decode(pem_name, key, &key_pem))
@@ -1951,7 +1964,7 @@ read_pem_key_file(struct buffer *key, const char *pem_name,
 
     ret = true;
 cleanup:
-    if (strcmp(key_file, INLINE_FILE_TAG))
+    if (!key_inline)
     {
         buf_clear(&key_pem);
     }

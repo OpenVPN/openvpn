@@ -341,7 +341,7 @@ auth_token_test_random_keys(void **state)
     ctx->multi.auth_token = strdup(random_token);
 
     free_key_ctx(&ctx->multi.opt.auth_token_key);
-    auth_token_init_secret(&ctx->multi.opt.auth_token_key, INLINE_FILE_TAG, random_key);
+    auth_token_init_secret(&ctx->multi.opt.auth_token_key, random_key, true);
 
     /* Zero the hmac part to ensure we have a newly generated token */
     zerohmac(ctx->multi.auth_token);
@@ -361,12 +361,12 @@ auth_token_test_key_load(void **state)
     struct test_context *ctx = (struct test_context *) *state;
 
     free_key_ctx(&ctx->multi.opt.auth_token_key);
-    auth_token_init_secret(&ctx->multi.opt.auth_token_key, INLINE_FILE_TAG, zeroinline);
+    auth_token_init_secret(&ctx->multi.opt.auth_token_key, zeroinline, true);
     strcpy(ctx->up.password, now0key0);
     assert_true(verify_auth_token(&ctx->up, &ctx->multi, &ctx->session));
 
     free_key_ctx(&ctx->multi.opt.auth_token_key);
-    auth_token_init_secret(&ctx->multi.opt.auth_token_key, INLINE_FILE_TAG, allx01inline);
+    auth_token_init_secret(&ctx->multi.opt.auth_token_key, allx01inline, true);
     assert_false(verify_auth_token(&ctx->up, &ctx->multi, &ctx->session));
 }
 
