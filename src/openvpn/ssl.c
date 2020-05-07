@@ -2323,7 +2323,7 @@ push_peer_info(struct buffer *buf, struct tls_session *session)
             }
 
             char hostname[64];
-            gethostname(hostname, 63)
+            gethostname(hostname, 63);
             buf_printf(&out, "IV_HOSTNAME=%s\n", hostname );
 
             buf_printf(&out, "IV_SSL=%s\n", get_ssl_library_version() );
