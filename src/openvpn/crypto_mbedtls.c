@@ -239,10 +239,12 @@ crypto_pem_encode(const char *name, struct buffer *dst,
         return false;
     }
 
+    /* We set the size buf to out_len-1 to NOT include the 0 byte that
+     * mbedtls_pem_write_buffer in its length calculation */
     *dst = alloc_buf_gc(out_len, gc);
     if (!mbed_ok(mbedtls_pem_write_buffer(header, footer, BPTR(src), BLEN(src),
                                           BPTR(dst), BCAP(dst), &out_len))
-        || !buf_inc_len(dst, out_len))
+        || !buf_inc_len(dst, out_len-1))
     {
         CLEAR(*dst);
         return false;
@@ -259,11 +261,6 @@ crypto_pem_decode(const char *name, struct buffer *dst,
     char header[1000+1] = { 0 };
     char footer[1000+1] = { 0 };
 
-    if (*(BLAST(src)) != '\0')
-    {
-        msg(M_WARN, "PEM decode error: source buffer not null-terminated");
-        return false;
-    }
     if (!openvpn_snprintf(header, sizeof(header), "-----BEGIN %s-----", name))
     {
         return false;
@@ -273,9 +270,16 @@ crypto_pem_decode(const char *name, struct buffer *dst,
         return false;
     }
 
+    /* mbed TLS requires the src to be null-terminated */
+    /* allocate a new buffer to avoid modifying the src buffer */
+    struct gc_arena gc = gc_new();
+    struct buffer input = alloc_buf_gc(BLEN(src) + 1, &gc);
+    buf_copy(&input, src);
+    buf_null_terminate(&input);
+
     size_t use_len = 0;
     mbedtls_pem_context ctx = { 0 };
-    bool ret = mbed_ok(mbedtls_pem_read_buffer(&ctx, header, footer, BPTR(src),
+    bool ret = mbed_ok(mbedtls_pem_read_buffer(&ctx, header, footer, BPTR(&input),
                                                NULL, 0, &use_len));
     if (ret && !buf_write(dst, ctx.buf, ctx.buflen))
     {
@@ -284,6 +288,7 @@ crypto_pem_decode(const char *name, struct buffer *dst,
     }
 
     mbedtls_pem_free(&ctx);
+    gc_free(&gc);
     return ret;
 }
 

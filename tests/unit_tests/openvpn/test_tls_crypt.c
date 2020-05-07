@@ -548,7 +548,8 @@ test_tls_crypt_v2_write_server_key_file(void **state)
     const char *filename = "testfilename.key";
 
     expect_string(__wrap_buffer_write_file, filename, filename);
-    expect_string(__wrap_buffer_write_file, pem, test_server_key);
+    expect_memory(__wrap_buffer_write_file, pem, test_server_key,
+                  strlen(test_server_key));
     will_return(__wrap_buffer_write_file, true);
 
     tls_crypt_v2_write_server_key_file(filename);
@@ -561,7 +562,8 @@ test_tls_crypt_v2_write_client_key_file(void **state)
 
     /* Test writing the client key */
     expect_string(__wrap_buffer_write_file, filename, filename);
-    expect_string(__wrap_buffer_write_file, pem, test_client_key);
+    expect_memory(__wrap_buffer_write_file, pem, test_client_key,
+                  strlen(test_client_key));
     will_return(__wrap_buffer_write_file, true);
 
     /* Key generation re-reads the created file as a sanity check */
@@ -579,7 +581,8 @@ test_tls_crypt_v2_write_client_key_file_metadata(void **state)
 
     /* Test writing the client key */
     expect_string(__wrap_buffer_write_file, filename, filename);
-    expect_string(__wrap_buffer_write_file, pem, test_client_key_metadata);
+    expect_memory(__wrap_buffer_write_file, pem, test_client_key_metadata,
+                strlen(test_client_key_metadata));
     will_return(__wrap_buffer_write_file, true);
 
     /* Key generation re-reads the created file as a sanity check */

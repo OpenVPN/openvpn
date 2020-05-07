@@ -1491,7 +1491,7 @@ write_key_file(const int nkeys, const char *filename)
     /* write key file to stdout if no filename given */
     if (!filename || strcmp(filename, "")==0)
     {
-        printf("%s\n", BPTR(&out));
+        printf("%.*s\n", BLEN(&out), BPTR(&out));
     }
     /* write key file, now formatted in out, to file */
     else if (!buffer_write_file(filename, &out))
@@ -1900,7 +1900,7 @@ write_pem_key_file(const char *filename, const char *pem_name)
 
     if (!filename || strcmp(filename, "")==0)
     {
-        printf("%s\n", BPTR(&server_key_pem));
+        printf("%.*s", BLEN(&server_key_pem), BPTR(&server_key_pem));
     }
     else if (!buffer_write_file(filename, &server_key_pem))
     {
