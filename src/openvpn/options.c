@@ -8324,22 +8324,16 @@ add_option(struct options *options,
     }
     else if (streq(p[0], "tls-crypt-v2") && p[1] && !p[3])
     {
-        VERIFY_PERMISSION(OPT_P_GENERAL|OPT_P_CONNECTION);
+        VERIFY_PERMISSION(OPT_P_GENERAL|OPT_P_CONNECTION|OPT_P_INLINE);
         if (permission_mask & OPT_P_GENERAL)
         {
-            if (streq(p[1], INLINE_FILE_TAG) && p[2])
-            {
-                options->tls_crypt_v2_file_inline = p[2];
-            }
             options->tls_crypt_v2_file = p[1];
+            options->tls_crypt_v2_file_inline = is_inline;
         }
         else if (permission_mask & OPT_P_CONNECTION)
         {
-            if (streq(p[1], INLINE_FILE_TAG) && p[2])
-            {
-                options->ce.tls_crypt_v2_file_inline = p[2];
-            }
             options->ce.tls_crypt_v2_file = p[1];
+            options->ce.tls_crypt_v2_file_inline = is_inline;
         }
     }
     else if (streq(p[0], "tls-crypt-v2-verify") && p[1] && !p[2])
