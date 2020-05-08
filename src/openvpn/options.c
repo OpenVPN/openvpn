@@ -2936,6 +2936,7 @@ options_postprocess_mutate_ce(struct options *o, struct connection_entry *ce)
             }
 
             ce->tls_auth_file = (char *)in.data;
+            ce->tls_auth_file_inline = true;
         }
 
         if (ce->tls_crypt_file && !ce->tls_crypt_file_inline)
@@ -2948,6 +2949,7 @@ options_postprocess_mutate_ce(struct options *o, struct connection_entry *ce)
             }
 
             ce->tls_crypt_file = (char *)in.data;
+            ce->tls_crypt_file_inline = true;
         }
     }
 }
