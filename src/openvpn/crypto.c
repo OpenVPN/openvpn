@@ -1189,7 +1189,7 @@ print_key_filename(const char *str, bool is_inline)
 {
     if (is_inline)
     {
-        return INLINE_FILE_TAG;
+        return "[[INLINE]]";
     }
 
     return np(str);
