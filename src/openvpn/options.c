@@ -6981,16 +6981,12 @@ add_option(struct options *options,
         }
 
     }
-    else if (streq(p[0], "auth-gen-token-secret") && p[1] && (!p[2]
-                                                              || (p[2] && streq(p[1], INLINE_FILE_TAG))))
+    else if (streq(p[0], "auth-gen-token-secret") && p[1] && !p[2])
     {
-        VERIFY_PERMISSION(OPT_P_GENERAL);
+        VERIFY_PERMISSION(OPT_P_GENERAL|OPT_P_INLINE);
         options->auth_token_secret_file = p[1];
+        options->auth_token_secret_file_inline = is_inline;
 
-        if (streq(p[1], INLINE_FILE_TAG) && p[2])
-        {
-            options->auth_token_secret_file_inline = p[2];
-        }
     }
     else if (streq(p[0], "client-connect") && p[1])
     {
