@@ -697,14 +697,14 @@ tls_crypt_v2_write_client_key_file(const char *filename,
         goto cleanup;
     }
 
-    const char *client_filename = filename;
-    const char *client_inline = NULL;
+    const char *client_file = filename;
+    bool client_inline = false;
 
     if (!filename || streq(filename, ""))
     {
         printf("%s\n", BPTR(&client_key_pem));
-        client_filename = INLINE_FILE_TAG;
-        client_inline = (const char *)BPTR(&client_key_pem);
+        client_file = (const char *)BPTR(&client_key_pem);
+        client_inline = true;
     }
     else if (!buffer_write_file(filename, &client_key_pem))
     {
@@ -717,7 +717,7 @@ tls_crypt_v2_write_client_key_file(const char *filename,
     struct buffer test_wrapped_client_key;
     msg(D_GENKEY, "Testing client-side key loading...");
     tls_crypt_v2_init_client_key(&test_client_key, &test_wrapped_client_key,
-                                 client_filename, client_inline);
+                                 client_file, client_inline);
     free_key_ctx_bi(&test_client_key);
 
     /* Sanity check: unwrap and load client key (as "server") */
