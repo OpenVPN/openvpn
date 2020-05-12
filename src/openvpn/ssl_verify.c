@@ -1380,15 +1380,16 @@ verify_user_pass(struct user_pass *up, struct tls_multi *multi,
              * to store the auth-token in multi->auth_token, so
              * the initial timestamp and session id can be extracted from it
              */
-            if (multi->auth_token && (multi->auth_token_state_flags & AUTH_TOKEN_HMAC_OK)
+            if (!multi->auth_token
+                && (multi->auth_token_state_flags & AUTH_TOKEN_HMAC_OK)
                 && !(multi->auth_token_state_flags & AUTH_TOKEN_EXPIRED))
             {
                 multi->auth_token = strdup(up->password);
             }
 
             /*
-             * Server is configured with --auth-gen-token but no token has yet
-             * been generated for this client.  Generate one and save it.
+             * Server is configured with --auth-gen-token. Generate or renew
+             * the token.
              */
             generate_auth_token(up, multi);
         }
@@ -1396,6 +1397,9 @@ verify_user_pass(struct user_pass *up, struct tls_multi *multi,
          * Auth token already sent to client, update auth-token on client.
          * The initial auth-token is sent as part of the push message, for this
          * update we need to schedule an extra push message.
+         *
+         * Otherwise the auth-token get pushed out as part of the "normal"
+         * push-reply
          */
         if (multi->auth_token_initial)
         {
