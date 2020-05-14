@@ -28,8 +28,6 @@
 #ifndef MULTI_H
 #define MULTI_H
 
-#if P2MP_SERVER
-
 #include "init.h"
 #include "forward.h"
 #include "mroute.h"
@@ -652,5 +650,4 @@ multi_set_pending(struct multi_context *m, struct multi_instance *mi)
     m->pending = mi;
 }
 
-#endif /* P2MP_SERVER */
 #endif /* MULTI_H */

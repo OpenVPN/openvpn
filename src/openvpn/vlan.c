@@ -30,8 +30,6 @@
 
 #include "syshead.h"
 
-#if P2MP_SERVER
-
 #include "multi.h"
 #include "options.h"
 #include "vlan.h"
@@ -333,5 +331,3 @@ vlan_process_outgoing_tun(struct multi_context *m, struct multi_instance *mi)
         vlan_encapsulate(&mi->context, &mi->context.c2.to_tun);
     }
 }
-
-#endif /* P2MP_SERVER */

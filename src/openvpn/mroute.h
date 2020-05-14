@@ -24,8 +24,6 @@
 #ifndef MROUTE_H
 #define MROUTE_H
 
-#if P2MP_SERVER
-
 #include "buffer.h"
 #include "list.h"
 #include "route.h"
@@ -270,5 +268,4 @@ mroute_addr_reset(struct mroute_addr *ma)
     ma->type = MR_ADDR_NONE;
 }
 
-#endif /* P2MP_SERVER */
 #endif /* MROUTE_H */

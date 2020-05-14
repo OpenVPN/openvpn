@@ -35,8 +35,6 @@
  * a ping or scheduling a TLS renegotiation.
  */
 
-#if P2MP_SERVER
-
 /* define to enable a special test mode */
 /*#define SCHEDULE_TEST*/
 
@@ -136,5 +134,4 @@ schedule_get_earliest_wakeup(struct schedule *s,
     return ret;
 }
 
-#endif /* if P2MP_SERVER */
 #endif /* ifndef SCHEDULE_H */

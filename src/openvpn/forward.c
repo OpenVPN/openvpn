@@ -682,7 +682,6 @@ encrypt_sign(struct context *c, bool comp_frag)
     const uint8_t *orig_buf = c->c2.buf.data;
     struct crypto_options *co = NULL;
 
-#if P2MP_SERVER
     /*
      * Drop non-TLS outgoing packet if client-connect script/plugin
      * has not yet succeeded.
@@ -691,7 +690,6 @@ encrypt_sign(struct context *c, bool comp_frag)
     {
         c->c2.buf.len = 0;
     }
-#endif
 
     if (comp_frag)
     {
@@ -1110,7 +1108,7 @@ process_incoming_link_part1(struct context *c, struct link_socket_info *lsi, boo
         {
             co = &c->c2.crypto_options;
         }
-#if P2MP_SERVER
+
         /*
          * Drop non-TLS packet if client-connect script/plugin has not
          * yet succeeded.
@@ -1119,7 +1117,6 @@ process_incoming_link_part1(struct context *c, struct link_socket_info *lsi, boo
         {
             c->c2.buf.len = 0;
         }
-#endif
 
         /* authenticate and decrypt the incoming packet */
         decrypt_status = openvpn_decrypt(&c->c2.buf, c->c2.buffers->decrypt_buf,

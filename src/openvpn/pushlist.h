@@ -21,7 +21,7 @@
  *  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#if !defined(PUSHLIST_H) && P2MP && P2MP_SERVER
+#if !defined(PUSHLIST_H) && P2MP
 #define PUSHLIST_H
 
 /* parameters to be pushed to peer */
@@ -37,5 +37,4 @@ struct push_list {
     struct push_entry *tail;
 };
 
-
-#endif
+#endif /* if !defined(PUSHLIST_H) && P2MP */

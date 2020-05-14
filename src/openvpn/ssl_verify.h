@@ -226,7 +226,6 @@ bool tls_authenticate_key(struct tls_multi *multi, const unsigned int mda_key_id
 
 #endif
 
-#ifdef P2MP_SERVER
 /**
  * Sets the reason why authentication of a client failed. This be will send to the client
  * when the AUTH_FAILED message is sent
@@ -235,8 +234,6 @@ bool tls_authenticate_key(struct tls_multi *multi, const unsigned int mda_key_id
  * @param client_reason     The string to send to the client as part of AUTH_FAILED
  */
 void auth_set_client_reason(struct tls_multi *multi, const char *client_reason);
-
-#endif
 
 static inline const char *
 tls_client_reason(struct tls_multi *multi)

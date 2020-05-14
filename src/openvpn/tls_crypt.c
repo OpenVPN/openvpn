@@ -79,7 +79,7 @@ tls_crypt_buf_overhead(void)
 
 void
 tls_crypt_init_key(struct key_ctx_bi *key, const char *key_file,
-                   const char *key_inline, bool tls_server)
+                   bool key_inline, bool tls_server)
 {
     const int key_direction = tls_server ?
                               KEY_DIRECTION_NORMAL : KEY_DIRECTION_INVERSE;
@@ -295,7 +295,7 @@ tls_crypt_v2_load_client_key(struct key_ctx_bi *key, const struct key2 *key2,
 
 void
 tls_crypt_v2_init_client_key(struct key_ctx_bi *key, struct buffer *wkc_buf,
-                             const char *key_file, const char *key_inline)
+                             const char *key_file, bool key_inline)
 {
     struct buffer client_key = alloc_buf(TLS_CRYPT_V2_CLIENT_KEY_LEN
                                          + TLS_CRYPT_V2_MAX_WKC_LEN);
@@ -320,7 +320,7 @@ tls_crypt_v2_init_client_key(struct key_ctx_bi *key, struct buffer *wkc_buf,
 
 void
 tls_crypt_v2_init_server_key(struct key_ctx *key_ctx, bool encrypt,
-                             const char *key_file, const char *key_inline)
+                             const char *key_file, bool key_inline)
 {
     struct key srv_key;
     struct buffer srv_key_buf;
@@ -638,7 +638,7 @@ void
 tls_crypt_v2_write_client_key_file(const char *filename,
                                    const char *b64_metadata,
                                    const char *server_key_file,
-                                   const char *server_key_inline)
+                                   bool server_key_inline)
 {
     struct gc_arena gc = gc_new();
     struct key_ctx server_key = { 0 };
@@ -697,14 +697,14 @@ tls_crypt_v2_write_client_key_file(const char *filename,
         goto cleanup;
     }
 
-    const char *client_filename = filename;
-    const char *client_inline = NULL;
+    const char *client_file = filename;
+    bool client_inline = false;
 
     if (!filename || streq(filename, ""))
     {
         printf("%s\n", BPTR(&client_key_pem));
-        client_filename = INLINE_FILE_TAG;
-        client_inline = (const char *)BPTR(&client_key_pem);
+        client_file = (const char *)BPTR(&client_key_pem);
+        client_inline = true;
     }
     else if (!buffer_write_file(filename, &client_key_pem))
     {
@@ -717,7 +717,7 @@ tls_crypt_v2_write_client_key_file(const char *filename,
     struct buffer test_wrapped_client_key;
     msg(D_GENKEY, "Testing client-side key loading...");
     tls_crypt_v2_init_client_key(&test_client_key, &test_wrapped_client_key,
-                                 client_filename, client_inline);
+                                 client_file, client_inline);
     free_key_ctx_bi(&test_client_key);
 
     /* Sanity check: unwrap and load client key (as "server") */

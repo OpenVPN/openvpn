@@ -611,12 +611,12 @@ make_arg_copy(char **p, struct gc_arena *gc)
 }
 
 const char **
-make_extended_arg_array(char **p, struct gc_arena *gc)
+make_extended_arg_array(char **p, bool is_inline, struct gc_arena *gc)
 {
     const int argc = string_array_len((const char **)p);
-    if (!strcmp(p[0], INLINE_FILE_TAG) && argc == 2)
+    if (is_inline)
     {
-        return make_inline_array(p[1], gc);
+        return make_inline_array(p[0], gc);
     }
     else if (argc == 0)
     {
@@ -700,8 +700,6 @@ sanitize_control_message(const char *src, struct gc_arena *gc)
     return ret;
 }
 
-#if P2MP_SERVER
-
 /* helper to parse peer_info received from multi client, validate
  * (this is untrusted data) and put into environment
  */
@@ -784,4 +782,3 @@ get_num_elements(const char *string, char delimiter)
 
     return element_count;
 }
-#endif /* P2MP_SERVER */

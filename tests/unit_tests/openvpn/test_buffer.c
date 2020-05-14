@@ -63,7 +63,8 @@ struct test_buffer_list_aggregate_ctx {
     struct buffer_list *empty_buffers;
 };
 
-static int test_buffer_list_setup(void **state)
+static int
+test_buffer_list_setup(void **state)
 {
     struct test_buffer_list_aggregate_ctx *ctx  = calloc(1, sizeof(*ctx));
     ctx->empty = buffer_list_new(0);
@@ -86,7 +87,8 @@ static int test_buffer_list_setup(void **state)
     return 0;
 }
 
-static int test_buffer_list_teardown(void **state)
+static int
+test_buffer_list_teardown(void **state)
 {
     struct test_buffer_list_aggregate_ctx *ctx = *state;
 

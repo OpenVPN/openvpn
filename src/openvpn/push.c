@@ -40,9 +40,7 @@
 
 #if P2MP
 
-#ifdef P2MP_SERVER
 static char push_reply_cmd[] = "PUSH_REPLY";
-#endif
 
 /*
  * Auth username/password
@@ -179,7 +177,6 @@ server_pushed_signal(struct context *c, const struct buffer *buffer, const bool 
     }
 }
 
-#if P2MP_SERVER
 /**
  * Add an option to the given push list by providing a format string.
  *
@@ -245,8 +242,6 @@ send_restart(struct context *c, const char *kill_msg)
     schedule_exit(c, c->options.scheduled_exit_interval, SIGTERM);
     send_control_channel_string(c, kill_msg ? kill_msg : "RESTART", D_PUSH);
 }
-
-#endif /* if P2MP_SERVER */
 
 /*
  * Push/Pull
@@ -331,7 +326,6 @@ send_push_request(struct context *c)
     }
 }
 
-#if P2MP_SERVER
 /**
  * Prepare push option for auth-token
  * @param tls_multi     tls multi context of VPN tunnel
@@ -650,7 +644,7 @@ clone_push_list(struct options *o)
 void
 push_options(struct options *o, char **p, int msglevel, struct gc_arena *gc)
 {
-    const char **argv = make_extended_arg_array(p, gc);
+    const char **argv = make_extended_arg_array(p, false, gc);
     char *opt = print_argv(argv, gc, 0);
     push_option(o, opt, msglevel);
 }
@@ -716,9 +710,7 @@ push_remove_option(struct options *o, const char *p)
         }
     }
 }
-#endif /* if P2MP_SERVER */
 
-#if P2MP_SERVER
 int
 process_incoming_push_request(struct context *c)
 {
@@ -764,7 +756,6 @@ process_incoming_push_request(struct context *c)
 
     return ret;
 }
-#endif /* if P2MP_SERVER */
 
 static void
 push_update_digest(md_ctx_t *ctx, struct buffer *buf, const struct options *opt)
@@ -796,15 +787,12 @@ process_incoming_push_msg(struct context *c,
     int ret = PUSH_MSG_ERROR;
     struct buffer buf = *buffer;
 
-#if P2MP_SERVER
     if (buf_string_compare_advance(&buf, "PUSH_REQUEST"))
     {
         ret = process_incoming_push_request(c);
     }
-    else
-#endif
-
-    if (honor_received_options && buf_string_compare_advance(&buf, "PUSH_REPLY"))
+    else if (honor_received_options
+             && buf_string_compare_advance(&buf, "PUSH_REPLY"))
     {
         const uint8_t ch = buf_read_u8(&buf);
         if (ch == ',')
@@ -856,7 +844,6 @@ process_incoming_push_msg(struct context *c,
     return ret;
 }
 
-#if P2MP_SERVER
 
 /*
  * Remove iroutes from the push_list.
@@ -919,7 +906,5 @@ remove_iroutes_from_push_route_list(struct options *o)
         gc_free(&gc);
     }
 }
-
-#endif /* if P2MP_SERVER */
 
 #endif /* if P2MP */

@@ -89,12 +89,6 @@ typedef unsigned long ptr_type;
 #define PUSH_REQUEST_INTERVAL 5
 
 /*
- * A sort of pseudo-filename for data provided inline within
- * the configuration file.
- */
-#define INLINE_FILE_TAG "[[INLINE]]"
-
-/*
  * Script security warning
  */
 #define SCRIPT_SECURITY_WARNING "WARNING: External program may not be called unless '--script-security 2' or higher is enabled. See --help text or man page for detailed info."

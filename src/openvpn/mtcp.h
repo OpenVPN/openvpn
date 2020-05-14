@@ -28,8 +28,6 @@
 #ifndef MTCP_H
 #define MTCP_H
 
-#if P2MP_SERVER
-
 #include "event.h"
 
 /*
@@ -75,5 +73,4 @@ void tunnel_server_tcp(struct context *top);
 
 void multi_tcp_delete_event(struct multi_tcp *mtcp, event_t event);
 
-#endif /* if P2MP_SERVER */
 #endif /* ifndef MTCP_H */

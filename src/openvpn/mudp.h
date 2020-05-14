@@ -28,8 +28,6 @@
 #ifndef MUDP_H
 #define MUDP_H
 
-#if P2MP_SERVER
-
 struct context;
 struct multi_context;
 
@@ -66,5 +64,4 @@ void tunnel_server_udp(struct context *top);
  */
 struct multi_instance *multi_get_create_instance_udp(struct multi_context *m, bool *floated);
 
-#endif
-#endif
+#endif /* ifndef MUDP_H */

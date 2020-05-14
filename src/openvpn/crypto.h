@@ -444,13 +444,15 @@ generate_ephemeral_key(struct buffer *key, const char *pem_name);
  * Read key material from a PEM encoded files into the key structure
  * @param key           the key structure that will hold the key material
  * @param pem_name      the name used in the pem encoding start/end lines
- * @param key_file      name of the file to read
- * @param key_inline    a string holding the data in case of an inline key
+ * @param key_file      name of the file to read or the key itself if
+ *                      key_inline is true
+ * @param key_inline    True if key_file contains an inline key, False
+ *                      otherwise.
  * @return              true if reading into key was successful
  */
 bool
 read_pem_key_file(struct buffer *key, const char *pem_name,
-                  const char *key_file, const char *key_inline);
+                  const char *key_file, bool key_inline);
 
 /* Minimum length of the nonce used by the PRNG */
 #define NONCE_SECRET_LEN_MIN 16
@@ -517,8 +519,9 @@ void key2_print(const struct key2 *k,
                 const char *prefix1);
 
 void crypto_read_openvpn_key(const struct key_type *key_type,
-                             struct key_ctx_bi *ctx, const char *key_file, const char *key_inline,
-                             const int key_direction, const char *key_name, const char *opt_name);
+                             struct key_ctx_bi *ctx, const char *key_file,
+                             bool key_inline, const int key_direction,
+                             const char *key_name, const char *opt_name);
 
 /*
  * Inline functions
@@ -528,26 +531,24 @@ void crypto_read_openvpn_key(const struct key_type *key_type,
  * As memcmp(), but constant-time.
  * Returns 0 when data is equal, non-zero otherwise.
  */
-static inline int
-memcmp_constant_time(const void *a, const void *b, size_t size)
-{
-    const uint8_t *a1 = a;
-    const uint8_t *b1 = b;
-    int ret = 0;
-    size_t i;
-
-    for (i = 0; i < size; i++)
-    {
-        ret |= *a1++ ^ *b1++;
-    }
-
-    return ret;
-}
+int memcmp_constant_time(const void *a, const void *b, size_t size);
 
 static inline bool
 key_ctx_bi_defined(const struct key_ctx_bi *key)
 {
     return key->encrypt.cipher || key->encrypt.hmac || key->decrypt.cipher || key->decrypt.hmac;
 }
+
+/**
+ * To be used when printing a string that may contain inline data.
+ *
+ * If "is_inline" is true, return the inline tag.
+ * If "is_inline" is false and "str" is not NULL, return "str".
+ * Return the constant string "[NULL]" otherwise.
+ *
+ * @param str       the original string to return when is_inline is false
+ * @param is_inline true when str contains an inline data of some sort
+ */
+const char *print_key_filename(const char *str, bool is_inline);
 
 #endif /* CRYPTO_H */

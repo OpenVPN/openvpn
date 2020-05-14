@@ -34,8 +34,8 @@
  *
  * Format of the auth-token (before base64 encode)
  *
- * session id(12 bytes)|uint64 timestamp (4 bytes)|
- * uint64 timestamp (4 bytes)|sha256-hmac(32 bytes)
+ * session id(12 bytes)|uint64 timestamp (8 bytes)|
+ * uint64 timestamp (8 bytes)|sha256-hmac(32 bytes)
  *
  * The first timestamp is the time the token was initially created and is used to
  * determine the maximum renewable time of the token. We always include this even
@@ -45,14 +45,19 @@
  * to determine if this token has been renewed in the acceptable time range
  * (2 * renogiation timeout)
  *
- * The session is a random string of 12 byte (or 16 in base64) that is not used by
- * OpenVPN itself but kept intact so that external logging/managment can track the
- * session multiple reconnects/servers
+ * The session id is a random string of 12 byte (or 16 in base64) that is not
+ * used by OpenVPN itself but kept intact so that external logging/managment
+ * can track the session multiple reconnects/servers. It is delibrately chosen
+ * be a multiple of 3 bytes to have a base64 encoding without padding.
  *
  * The hmac is calculated over the username contactinated with the
  * raw auth-token bytes to include authentication of the username in the token
  *
- * we prepend the session id with SESS_ID_ before sending it to the client
+ * We encode the auth-token with base64 and then prepend "SESS_ID_" before
+ * sending it to the client.
+ *
+ * This function will free() an existing multi->auth_token and keep the
+ * existing initial timestamp and session id contained in that token.
  */
 void
 generate_auth_token(const struct user_pass *up, struct tls_multi *multi);
@@ -74,7 +79,7 @@ verify_auth_token(struct user_pass *up, struct tls_multi *multi,
  */
 void
 auth_token_init_secret(struct key_ctx *key_ctx, const char *key_file,
-                       const char *key_inline);
+                       bool key_inline);
 
 
 /**
