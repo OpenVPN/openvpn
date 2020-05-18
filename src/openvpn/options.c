@@ -2253,6 +2253,9 @@ options_postprocess_verify_ce(const struct options *options, const struct connec
      */
     if (options->mode == MODE_SERVER)
     {
+#ifdef TARGET_ANDROID
+        msg(M_FATAL, "--mode server not supported on Android");
+#endif
         if (!(dev == DEV_TYPE_TUN || dev == DEV_TYPE_TAP))
         {
             msg(M_USAGE, "--mode server only works with --dev tun or --dev tap");
