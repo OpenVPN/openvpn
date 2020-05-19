@@ -164,6 +164,7 @@ struct management_callback
     int (*kill_by_addr) (void *arg, const in_addr_t addr, const int port);
     void (*delete_event) (void *arg, event_t event);
     int (*n_clients) (void *arg);
+    bool (*send_cc_message) (void *arg, const char *message, const char *parameter);
 #ifdef MANAGEMENT_DEF_AUTH
     bool (*kill_by_cid)(void *arg, const unsigned long cid, const char *kill_msg);
     bool (*client_auth) (void *arg,

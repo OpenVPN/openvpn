@@ -291,6 +291,44 @@ ce_management_query_proxy(struct context *c)
     return ret;
 }
 
+/**
+ * This method sends a custom control channel message
+ *
+ * This will write the control message
+ *
+ *  command parm1,parm2,..
+ *  .
+ * to the control channel.
+ *
+ * @param arg           The context struct
+ * @param command       The command being sent
+ * @param parameters    the parameters to the command
+ * @return              if sending was successful
+ */
+static bool
+management_callback_send_cc_message(void *arg,
+                                    const char *command,
+                                    const char *parameters)
+{
+    struct context *c = (struct context *) arg;
+    size_t len = strlen(command) + 1 + sizeof(parameters) + 1;
+    if (len > PUSH_BUNDLE_SIZE)
+    {
+        return false;
+    }
+
+    struct gc_arena gc = gc_new();
+    struct buffer buf = alloc_buf_gc(len, &gc);
+    ASSERT(buf_printf(&buf, "%s", command));
+    if (parameters)
+    {
+        ASSERT(buf_printf(&buf, ",%s", parameters));
+    }
+    bool status = send_control_channel_string(c, BSTR(&buf), D_PUSH);
+
+    gc_free(&gc);
+    return status;
+}
 
 static bool
 management_callback_remote_cmd(void *arg, const char **p)
@@ -3973,6 +4011,7 @@ init_management_callback_p2p(struct context *c)
         cb.show_net = management_show_net_callback;
         cb.proxy_cmd = management_callback_proxy_cmd;
         cb.remote_cmd = management_callback_remote_cmd;
+        cb.send_cc_message = management_callback_send_cc_message;
 #ifdef TARGET_ANDROID
         cb.network_change = management_callback_network_change;
 #endif

@@ -75,6 +75,7 @@ man_help(void)
     msg(M_CLIENT, "auth-retry t           : Auth failure retry mode (none,interact,nointeract).");
     msg(M_CLIENT, "bytecount n            : Show bytes in/out, update every n secs (0=off).");
     msg(M_CLIENT, "echo [on|off] [N|all]  : Like log, but only show messages in echo buffer.");
+    msg(M_CLIENT, "cr-response response   : Send a challenge response answer via CR_RESPONSE to server");
     msg(M_CLIENT, "exit|quit              : Close management session.");
     msg(M_CLIENT, "forget-passwords       : Forget passwords entered so far.");
     msg(M_CLIENT, "help                   : Print this message.");
@@ -779,6 +780,27 @@ man_net(struct management *man)
     }
 }
 
+static void
+man_send_cc_message(struct management *man, const char *message, const char *parameters)
+{
+    if (man->persist.callback.send_cc_message)
+    {
+        const bool status = (*man->persist.callback.send_cc_message)
+                                (man->persist.callback.arg, message, parameters);
+        if (status)
+        {
+            msg(M_CLIENT, "SUCCESS: command succeeded");
+        }
+        else
+        {
+            msg(M_CLIENT, "ERROR: command failed");
+        }
+    }
+    else
+    {
+        msg(M_CLIENT, "ERROR: This command is not supported by the current daemon mode");
+    }
+}
 #ifdef ENABLE_PKCS11
 
 static void
@@ -1144,7 +1166,15 @@ man_load_stats(struct management *man)
 }
 
 #define MN_AT_LEAST (1<<0)
-
+/**
+ * Checks if the correct number of arguments to a management command are present
+ * and otherwise prints an error and returns false.
+ *
+ * @param p         pointer to the parameter array
+ * @param n         number of arguments required
+ * @param flags     if MN_AT_LEAST require at least n parameters and not exactly n
+ * @return          Return whether p has n (or at least n) parameters
+ */
 static bool
 man_need(struct management *man, const char **p, const int n, unsigned int flags)
 {
@@ -1458,6 +1488,13 @@ man_dispatch_command(struct management *man, struct status_output *so, const cha
         if (man_need(man, p, 2, 0))
         {
             man_query_need_str(man, p[1], p[2]);
+        }
+    }
+    else if (streq(p[0], "cr-response"))
+    {
+        if (man_need(man, p, 1, 0))
+        {
+            man_send_cc_message(man, "CR_RESPONSE", p[1]);
         }
     }
     else if (streq(p[0], "net"))

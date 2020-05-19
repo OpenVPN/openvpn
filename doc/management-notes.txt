@@ -806,6 +806,20 @@ To accept connecting to the host and port directly, use this command:
 
   proxy NONE
 
+COMMAND -- cr-response (OpenVPN 2.5 or higher)
+-------------------------------------------------
+Provides support for sending responses a challenge/response
+query via INFOMSG,CR_TEXT. The response should be base64 encoded:
+
+  cr-response SGFsbG8gV2VsdCE=
+
+The document is intended to be used after the client received a
+CR_TEXT challenge (see send-pending-auth section). The answer is
+the answer to the challenge and depends on the challenge itself
+for a TOTP challenge this would the number encoded as base64 or
+just a string for a challenge like "what day is it today?".
+
+
 COMMAND -- pk-sig (OpenVPN 2.5 or higher, management version > 1)
 COMMAND -- rsa-sig (OpenVPN 2.3 or higher, management version <= 1)
 -----------------------------------------------------------------
