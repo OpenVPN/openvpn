@@ -177,6 +177,38 @@ server_pushed_signal(struct context *c, const struct buffer *buffer, const bool 
     }
 }
 
+void
+server_pushed_info(struct context *c, const struct buffer *buffer,
+                   const int adv)
+{
+    const char *m = "";
+    struct buffer buf = *buffer;
+
+    if (buf_advance(&buf, adv) && buf_read_u8(&buf) == ',' && BLEN(&buf))
+    {
+        m = BSTR(&buf);
+    }
+
+#ifdef ENABLE_MANAGEMENT
+    struct gc_arena gc;
+    if (management)
+    {
+        gc = gc_new();
+
+        /*
+         * We use >INFOMSG here instead of plain >INFO since INFO is used to
+         * for management greeting and we don't want to confuse the client
+         */
+        struct buffer out = alloc_buf_gc(256, &gc);
+        buf_printf(&out, ">%s:%s", "INFOMSG", m);
+        management_notify_generic(management, BSTR(&out));
+
+        gc_free(&gc);
+    }
+    #endif
+    msg(D_PUSH, "Info command was pushed by server ('%s')", m);
+}
+
 /**
  * Add an option to the given push list by providing a format string.
  *

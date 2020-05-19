@@ -50,6 +50,9 @@ void receive_auth_failed(struct context *c, const struct buffer *buffer);
 
 void server_pushed_signal(struct context *c, const struct buffer *buffer, const bool restart, const int adv);
 
+void server_pushed_info(struct context *c, const struct buffer *buffer,
+                        const int adv);
+
 void incoming_push_message(struct context *c, const struct buffer *buffer);
 
 void clone_push_list(struct options *o);

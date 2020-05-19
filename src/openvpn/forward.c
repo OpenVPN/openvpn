@@ -395,6 +395,14 @@ check_incoming_control_channel_dowork(struct context *c)
             {
                 server_pushed_signal(c, &buf, false, 4);
             }
+            else if (buf_string_match_head_str(&buf, "INFO_PRE"))
+            {
+                server_pushed_info(c, &buf, 8);
+            }
+            else if (buf_string_match_head_str(&buf, "INFO"))
+            {
+                server_pushed_info(c, &buf, 4);
+            }
             else
             {
                 msg(D_PUSH_ERRORS, "WARNING: Received unknown control message: %s", BSTR(&buf));
