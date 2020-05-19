@@ -592,6 +592,92 @@ interface to approve client connections.
 CID,KID -- client ID and Key ID.  See documentation for ">CLIENT:"
 notification for more info.
 
+COMMAND -- client-pending-auth  (OpenVPN 2.5 or higher)
+----------------------------------------------------
+
+Instruct OpenVPN server to send AUTH_PENDING and INFO_PRE message
+to signal a pending authenticating to the client. A pending auth means
+that the connecting requires extra authentication like a one time
+password or doing a single sign one via web.
+
+    client-pending-auth {CID} {EXTRA}
+
+The server will send AUTH_PENDING and INFO_PRE,{EXTRA} to the client.
+The client is expected to inform the user that authentication is pending and
+display the extra information. For the format of EXTRA see below
+For the OpenVPN server this is stateless operation and needs to be
+followed by a client-deny/client-auth[-nt] command (that is the result of the
+out of band authentication).
+
+Before issuing a client-pending-auth to a client instead of a
+client-auth/client-deny, the server should check the IV_SSO
+environment variable if the method is support. The currently
+defined method are crtext for challenge/response using text
+(e.g. TOTP), openurl and proxy_url for opening an URL in the client to
+continue authentication. A client supporting the first two methods would
+set
+
+    setenv IV_SSO openurl,crtext
+
+The variable name IV_SSO is historic as AUTH_PENDING was first used
+to signal single sign on support. To keep compatiblity with existing
+implementations the name IV_SSO is kept in lieu of a better name.
+
+openurl
+========
+For a web based extra authentication (like for
+SSO/SAML) EXTRA should be
+
+    OPEN_URL:url
+
+and client should ask to the user to open the URL to continue.
+
+The space in a control message is limited, so this url should be kept
+short to avoid issues. If a loger url is required a URL that redirects
+to the longer URL should be sent instead.
+
+url_proxy
+========
+To avoid issues with OpenVPN connection persist-tun and not able
+to reach the web server, a variant of openurl via a HTTPS
+Proxy exists. The client should announce url_proxy in its IV_SSO
+and parse the PROXY_URL message. The format is
+
+    PROXY_URL:<proxy>:<proxy_port>:<proxyuser_base64>:<proxy_password_base64>:url
+
+The proxy should be a literal IPv4 address or IPv6 address in [] to avoid
+ambiguity in parsing. A literal IP address is preferred as DNS might not be 
+available when the client needs to open the url. The IP address will usually
+be the address that client uses to connect to the VPN server. For dual-homed
+VPN servers, the server should respond with the same address that the client
+connects to.
+
+This address is also usually excluded from being redirected over the VPN
+by a host route. If the platform (like Android) uses another way of protecting
+the VPN connection routing loops the client needs to also exclude the
+connection to the proxy in the same manner.
+
+Should another IP be used, then the VPN configuration should include a route
+statement to exclude that route from being routed over the VPN.
+
+crtext
+=======
+
+The format of EXTRA is similar to the already used two step authentication
+described in Challenge/Response Protocol section of this document. Since
+most of the fields are not necessary or can be infered only the <flags>
+and <challgenge_text> fields are used:
+
+    CR_TEXT:<flags>:<challenge_text>
+
+<flags>: a series of optional, comma-separated flags:
+ E : echo the response when the user types it.
+ R : a response is required.
+
+<challenge_text>: the challenge text to be shown to the user.
+
+
+
 COMMAND -- client-deny  (OpenVPN 2.1 or higher)
 -----------------------------------------------
 

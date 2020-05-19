@@ -70,6 +70,13 @@ void remove_iroutes_from_push_route_list(struct options *o);
 
 void send_auth_failed(struct context *c, const char *client_reason);
 
+/**
+ * Sends the auth pending control messages to a client. See
+ * doc/management-notes.txt under client-pending-auth for
+ * more details on message format
+ */
+bool send_auth_pending_messages(struct context *c, const char *extra);
+
 void send_restart(struct context *c, const char *kill_msg);
 
 /**

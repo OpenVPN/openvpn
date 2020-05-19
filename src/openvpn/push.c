@@ -265,6 +265,30 @@ send_auth_failed(struct context *c, const char *client_reason)
     gc_free(&gc);
 }
 
+bool
+send_auth_pending_messages(struct context *c, const char* extra)
+{
+    send_control_channel_string(c, "AUTH_PENDING", D_PUSH);
+
+    static const char info_pre[] = "INFO_PRE,";
+
+
+    size_t len = strlen(extra)+1 + sizeof(info_pre);
+    if (len > PUSH_BUNDLE_SIZE)
+    {
+        return false;
+    }
+    struct gc_arena gc = gc_new();
+
+    struct buffer buf = alloc_buf_gc(len, &gc);
+    buf_printf(&buf, info_pre);
+    buf_printf(&buf, "%s", extra);
+    send_control_channel_string(c, BSTR(&buf), D_PUSH);
+
+    gc_free(&gc);
+    return true;
+}
+
 /*
  * Send restart message from server to client.
  */
