@@ -2908,7 +2908,7 @@ management_notify_generic(struct management *man, const char *str)
 #ifdef MANAGEMENT_DEF_AUTH
 
 static void
-man_output_peer_info_env(struct management *man, struct man_def_auth_context *mdac)
+man_output_peer_info_env(struct management *man, const struct man_def_auth_context *mdac)
 {
     char line[256];
     if (man->persist.callback.get_peer_info)
@@ -2955,6 +2955,32 @@ management_notify_client_needing_auth(struct management *management,
         }
         man_output_env(es, true, management->connection.env_filter_level, "CLIENT");
         mdac->flags |= DAF_INITIAL_AUTH;
+    }
+}
+
+void
+management_notify_client_cr_response(unsigned mda_key_id,
+                                     const struct man_def_auth_context *mdac,
+                                     const struct env_set *es,
+                                     const char *response)
+{
+    struct gc_arena gc;
+    if (management)
+    {
+        gc = gc_new();
+
+        struct buffer out = alloc_buf_gc(256, &gc);
+        msg(M_CLIENT, ">CLIENT:CR_RESPONSE,%lu,%u,%s",
+            mdac->cid, mda_key_id, response);
+        man_output_extra_env(management, "CLIENT");
+        if (management->connection.env_filter_level>0)
+        {
+            man_output_peer_info_env(management, mdac);
+        }
+        man_output_env(es, true, management->connection.env_filter_level, "CLIENT");
+        management_notify_generic(management, BSTR(&out));
+
+        gc_free(&gc);
     }
 }
 

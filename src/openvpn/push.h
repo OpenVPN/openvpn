@@ -53,6 +53,8 @@ void server_pushed_signal(struct context *c, const struct buffer *buffer, const 
 void server_pushed_info(struct context *c, const struct buffer *buffer,
                         const int adv);
 
+void receive_cr_response(struct context *c, const struct buffer *buffer);
+
 void incoming_push_message(struct context *c, const struct buffer *buffer);
 
 void clone_push_list(struct options *o);

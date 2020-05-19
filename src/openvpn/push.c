@@ -209,6 +209,28 @@ server_pushed_info(struct context *c, const struct buffer *buffer,
     msg(D_PUSH, "Info command was pushed by server ('%s')", m);
 }
 
+void
+receive_cr_response(struct context *c, const struct buffer *buffer)
+{
+    struct buffer buf = *buffer;
+    const char *m = "";
+
+    if (buf_advance(&buf, 11) && buf_read_u8(&buf) == ',' && BLEN(&buf))
+    {
+        m = BSTR(&buf);
+    }
+#ifdef MANAGEMENT_DEF_AUTH
+    struct tls_session *session = &c->c2.tls_multi->session[TM_ACTIVE];
+    struct man_def_auth_context *mda = session->opt->mda_context;
+    struct env_set *es = session->opt->es;
+    int key_id = session->key[KS_PRIMARY].key_id;
+
+
+    management_notify_client_cr_response(key_id, mda, es, m);
+#endif
+    msg(D_PUSH, "CR response was sent by client ('%s')", m);
+}
+
 /**
  * Add an option to the given push list by providing a format string.
  *

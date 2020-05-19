@@ -1094,6 +1094,34 @@ CLIENT notification types:
 
     >CLIENT:ADDRESS,{CID},{ADDR},{PRI}
 
+(5) Text based challenge/Response
+
+   >CLIENT:CR_RESPONSE,{CID},{KID},{response_base64}
+   >CLIENT:ENV,name1=val1
+   >CLIENT:ENV,name2=val2
+   >CLIENT:ENV,...
+   >CLIENT:ENV,END
+
+   Using the cr-response command on the client side will trigger this
+   message on the server side.
+
+   CR_RESPONSE notification. The >CR_RESPONSE fulfils the same purpose as the
+   CRV1 response in the traditional challenge/response. See that section
+   below for more details. Since this still uses the same cid as the original
+   response, we do not use the username and opaque session data in this
+   response but only contains the actual response.
+
+   It is important to note that OpenVPN2 merely passes the authentication
+   information and does not do any further checks. (E.g. if a CR was issued
+   before or if multiple CR responses were sent from the client or if
+   data has a valid base64 encoding)
+
+   This interface should be be sufficient for almost all challenge/response
+   system that can be implemented with a single round and base64 encoding the
+   response. Mechanisms that need multiple rounds or more complex answers
+   should implement a different response type than CR_RESPONSE.
+
+
 Variables:
 
 CID --  Client ID, numerical ID for each connecting client, sequence = 0,1,2,...

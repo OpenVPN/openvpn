@@ -434,6 +434,11 @@ void management_learn_addr(struct management *management,
                            const struct mroute_addr *addr,
                            const bool primary);
 
+void management_notify_client_cr_response(unsigned mda_key_id,
+                                          const struct man_def_auth_context *mdac,
+                                          const struct env_set *es,
+                                          const char *response);
+
 #endif
 
 char *management_query_pk_sig(struct management *man, const char *b64_data,

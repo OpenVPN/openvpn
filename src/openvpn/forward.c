@@ -403,6 +403,10 @@ check_incoming_control_channel_dowork(struct context *c)
             {
                 server_pushed_info(c, &buf, 4);
             }
+            else if (buf_string_match_head_str(&buf, "CR_RESPONSE"))
+            {
+                receive_cr_response(c, &buf);
+            }
             else
             {
                 msg(D_PUSH_ERRORS, "WARNING: Received unknown control message: %s", BSTR(&buf));
