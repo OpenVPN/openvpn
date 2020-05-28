@@ -107,4 +107,16 @@ cipher_kt_var_key_size(const cipher_kt_t *cipher)
     return EVP_CIPHER_flags(cipher) & EVP_CIPH_VARIABLE_LENGTH;
 }
 
+/**
+ * Load a key file from an engine
+ *
+ * @param file	The engine file to load
+ * @param ui	The UI method for the password prompt
+ * @param data	The data to pass to the UI method
+ *
+ * @return	The private key if successful or NULL if not
+ */
+EVP_PKEY *
+engine_load_key(const char *file, SSL_CTX *ctx);
+
 #endif /* CRYPTO_OPENSSL_H_ */
