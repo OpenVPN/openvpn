@@ -174,10 +174,11 @@ helper_client_server(struct options *o)
      */
     if (o->server_ipv6_defined)
     {
-        if (!o->server_defined)
+        if (o->client)
         {
-            msg(M_USAGE, "--server-ipv6 must be used together with --server");
+            msg(M_USAGE, "--server-ipv6 and --client cannot be used together");
         }
+
         if (o->server_flags & SF_NOPOOL)
         {
             msg( M_USAGE, "--server-ipv6 is incompatible with 'nopool' option" );
@@ -186,6 +187,9 @@ helper_client_server(struct options *o)
         {
             msg( M_USAGE, "--server-ipv6 already defines an ifconfig-ipv6-pool, so you can't also specify --ifconfig-pool explicitly");
         }
+
+        o->mode = MODE_SERVER;
+        o->tls_server = true;
 
         /* local ifconfig is "base address + 1" and "+2" */
         o->ifconfig_ipv6_local =
