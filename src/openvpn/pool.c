@@ -183,7 +183,7 @@ ifconfig_pool_init(int type, in_addr_t start, in_addr_t end,
     if (pool->ipv6)
     {
         pool->base_ipv6 = ipv6_base;
-        pool->size_ipv6 = ipv6_netbits>96 ? ( 1<<(128-ipv6_netbits) )
+        pool->size_ipv6 = ipv6_netbits > 112 ? (1 << (128 - ipv6_netbits))
                           : IFCONFIG_POOL_MAX;
 
         msg( D_IFCONFIG_POOL, "IFCONFIG POOL IPv6: (IPv4) size=%d, size_ipv6=%d, netbits=%d, base_ipv6=%s",
