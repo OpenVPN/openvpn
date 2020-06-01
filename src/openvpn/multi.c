@@ -388,7 +388,8 @@ multi_init(struct multi_context *m, struct context *t, bool tcp_mode, int thread
      * differently based on whether a tun or tap style
      * tunnel.
      */
-    if (t->options.ifconfig_pool_defined)
+    if (t->options.ifconfig_pool_defined
+        || t->options.ifconfig_ipv6_pool_defined)
     {
         int pool_type = IFCONFIG_POOL_INDIV;
 
@@ -397,7 +398,8 @@ multi_init(struct multi_context *m, struct context *t, bool tcp_mode, int thread
             pool_type = IFCONFIG_POOL_30NET;
         }
 
-        m->ifconfig_pool = ifconfig_pool_init(pool_type,
+        m->ifconfig_pool = ifconfig_pool_init(t->options.ifconfig_pool_defined,
+                                              pool_type,
                                               t->options.ifconfig_pool_start,
                                               t->options.ifconfig_pool_end,
                                               t->options.duplicate_cn,
@@ -1495,7 +1497,9 @@ multi_select_virtual_addr(struct multi_context *m, struct multi_instance *mi)
             const int tunnel_topology = TUNNEL_TOPOLOGY(mi->context.c1.tuntap);
 
             msg( M_INFO, "MULTI_sva: pool returned IPv4=%s, IPv6=%s",
-                 print_in_addr_t( remote, 0, &gc ),
+                 (mi->context.options.ifconfig_pool_defined
+                  ? print_in_addr_t(remote, 0, &gc)
+                  : "(Not enabled)"),
                  (mi->context.options.ifconfig_ipv6_pool_defined
                   ? print_in6_addr( remote_ipv6, 0, &gc )
                   : "(Not enabled)") );

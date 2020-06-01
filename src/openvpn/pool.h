@@ -52,6 +52,7 @@ struct ifconfig_pool
 {
     bool duplicate_cn;
     struct {
+        bool enabled;
         enum pool_type type;
         in_addr_t base;
         int size;
@@ -72,7 +73,12 @@ struct ifconfig_pool_persist
 
 typedef int ifconfig_pool_handle;
 
-struct ifconfig_pool *ifconfig_pool_init(enum pool_type type, in_addr_t start, in_addr_t end, const bool duplicate_cn, const bool ipv6_pool, const struct in6_addr ipv6_base, const int ipv6_netbits );
+struct ifconfig_pool *ifconfig_pool_init(const bool ipv4_pool,
+                                         enum pool_type type, in_addr_t start,
+                                         in_addr_t end, const bool duplicate_cn,
+                                         const bool ipv6_pool,
+                                         const struct in6_addr ipv6_base,
+                                         const int ipv6_netbits);
 
 void ifconfig_pool_free(struct ifconfig_pool *pool);
 
