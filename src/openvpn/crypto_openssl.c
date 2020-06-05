@@ -273,12 +273,7 @@ cipher_name_cmp(const void *a, const void *b)
     const EVP_CIPHER *const *cipher_a = a;
     const EVP_CIPHER *const *cipher_b = b;
 
-    const char *cipher_name_a =
-        translate_cipher_name_to_openvpn(EVP_CIPHER_name(*cipher_a));
-    const char *cipher_name_b =
-        translate_cipher_name_to_openvpn(EVP_CIPHER_name(*cipher_b));
-
-    return strcmp(cipher_name_a, cipher_name_b);
+    return strcmp(cipher_kt_name(*cipher_a), cipher_kt_name(*cipher_b));
 }
 
 void
@@ -620,7 +615,9 @@ cipher_kt_name(const EVP_CIPHER *cipher_kt)
     {
         return "[null-cipher]";
     }
-    return EVP_CIPHER_name(cipher_kt);
+
+    const char *name = EVP_CIPHER_name(cipher_kt);
+    return translate_cipher_name_to_openvpn(name);
 }
 
 int
@@ -651,7 +648,7 @@ cipher_kt_block_size(const EVP_CIPHER *cipher)
 
     int block_size = EVP_CIPHER_block_size(cipher);
 
-    orig_name = cipher_kt_name(cipher);
+    orig_name = EVP_CIPHER_name(cipher);
     if (!orig_name)
     {
         goto cleanup;

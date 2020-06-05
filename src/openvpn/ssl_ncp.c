@@ -116,8 +116,7 @@ mutate_ncp_cipher_list(const char *list, struct gc_arena *gc)
         }
         else
         {
-            const char *ovpn_cipher_name =
-                translate_cipher_name_to_openvpn(cipher_kt_name(ktc));
+            const char *ovpn_cipher_name = cipher_kt_name(ktc);
 
             if (buf_len(&new_list)> 0)
             {

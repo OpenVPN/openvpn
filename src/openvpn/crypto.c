@@ -847,7 +847,7 @@ init_key_ctx(struct key_ctx *ctx, const struct key *key,
         cipher_ctx_init(ctx->cipher, key->cipher, kt->cipher_length,
                         kt->cipher, enc);
 
-        const char *ciphername = translate_cipher_name_to_openvpn(cipher_kt_name(kt->cipher));
+        const char *ciphername = cipher_kt_name(kt->cipher);
         msg(D_HANDSHAKE, "%s: Cipher '%s' initialized with %d bit key",
             prefix,
             ciphername,
@@ -1810,7 +1810,7 @@ print_cipher(const cipher_kt_t *cipher)
                                " by default" : "";
 
     printf("%s  (%d bit key%s, ",
-           translate_cipher_name_to_openvpn(cipher_kt_name(cipher)),
+           cipher_kt_name(cipher),
            cipher_kt_key_size(cipher) * 8, var_key_size);
 
     if (cipher_kt_block_size(cipher) == 1)

@@ -237,6 +237,8 @@ const cipher_kt_t *cipher_kt_get(const char *ciphername);
 
 /**
  * Retrieve a string describing the cipher (e.g. \c AES-128-CBC).
+ * The returned name is normalised to the OpenVPN config name in case the
+ * name differs from the name used by the crypto library.
  *
  * @param cipher_kt     Static cipher parameters
  *
