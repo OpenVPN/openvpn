@@ -763,7 +763,7 @@ init_key_type(struct key_type *kt, const char *ciphername,
     CLEAR(*kt);
     if (strcmp(ciphername, "none") != 0)
     {
-        kt->cipher = cipher_kt_get(translate_cipher_name_from_openvpn(ciphername));
+        kt->cipher = cipher_kt_get(ciphername);
         if (!kt->cipher)
         {
             msg(M_FATAL, "Cipher %s not supported", ciphername);

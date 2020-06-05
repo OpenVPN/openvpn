@@ -465,6 +465,7 @@ cipher_kt_get(const char *ciphername)
 
     ASSERT(ciphername);
 
+    ciphername = translate_cipher_name_from_openvpn(ciphername);
     cipher = mbedtls_cipher_info_from_string(ciphername);
 
     if (NULL == cipher)

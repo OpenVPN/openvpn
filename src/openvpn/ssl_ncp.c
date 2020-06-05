@@ -103,12 +103,12 @@ mutate_ncp_cipher_list(const char *list, struct gc_arena *gc)
     while (token)
     {
         /*
-         * Going through a roundtrip by using translate_cipher_name_from_openvpn
-         * and translate_cipher_name_to_openvpn also normalises the cipher name,
+         * Going through a roundtrip by using cipher_kt_get/cipher_kt_name
+         * (and translate_cipher_name_from_openvpn/
+         * translate_cipher_name_to_openvpn) also normalises the cipher name,
          * e.g. replacing AeS-128-gCm with AES-128-GCM
          */
-        const char *cipher_name = translate_cipher_name_from_openvpn(token);
-        const cipher_kt_t *ktc = cipher_kt_get(cipher_name);
+        const cipher_kt_t *ktc = cipher_kt_get(token);
         if (!ktc)
         {
             msg(M_WARN, "Unsupported cipher in --ncp-ciphers: %s", token);

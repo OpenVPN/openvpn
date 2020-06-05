@@ -587,6 +587,7 @@ cipher_kt_get(const char *ciphername)
 
     ASSERT(ciphername);
 
+    ciphername = translate_cipher_name_from_openvpn(ciphername);
     cipher = EVP_get_cipherbyname(ciphername);
 
     if (NULL == cipher)
