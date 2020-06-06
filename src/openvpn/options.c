@@ -2346,9 +2346,12 @@ options_postprocess_verify_ce(const struct options *options, const struct connec
         {
             msg(M_USAGE, "--up-delay cannot be used with --mode server");
         }
-        if (!options->ifconfig_pool_defined && options->ifconfig_pool_persist_filename)
+        if (!options->ifconfig_pool_defined
+            && !options->ifconfig_ipv6_pool_defined
+            && options->ifconfig_pool_persist_filename)
         {
-            msg(M_USAGE, "--ifconfig-pool-persist must be used with --ifconfig-pool");
+            msg(M_USAGE,
+                "--ifconfig-pool-persist must be used with --ifconfig-pool or --ifconfig-ipv6-pool");
         }
         if (options->ifconfig_ipv6_pool_defined && !options->ifconfig_ipv6_local)
         {
