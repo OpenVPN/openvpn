@@ -43,6 +43,7 @@
 #include "crypto_backend.h"
 #include "openssl_compat.h"
 
+#include <openssl/conf.h>
 #include <openssl/des.h>
 #include <openssl/err.h>
 #include <openssl/evp.h>
