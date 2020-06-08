@@ -6718,9 +6718,12 @@ add_option(struct options *options,
             msg(msglevel, "error parsing --server-ipv6 parameter");
             goto err;
         }
-        if (netbits < 64 || netbits > 112)
+        if (netbits < 64 || netbits > 124)
         {
-            msg( msglevel, "--server-ipv6 settings: only /64../112 supported right now (not /%d)", netbits );
+            msg(msglevel,
+                "--server-ipv6 settings: network must be between /64 and /124 (not /%d)",
+                netbits);
+
             goto err;
         }
         options->server_ipv6_defined = true;
@@ -6840,9 +6843,11 @@ add_option(struct options *options,
             msg(msglevel, "error parsing --ifconfig-ipv6-pool parameters");
             goto err;
         }
-        if (netbits < 64 || netbits > 112)
+        if (netbits < 64 || netbits > 124)
         {
-            msg( msglevel, "--ifconfig-ipv6-pool settings: only /64../112 supported right now (not /%d)", netbits );
+            msg(msglevel,
+                "--ifconfig-ipv6-pool settings: network must be between /64 and /124 (not /%d)",
+                netbits);
             goto err;
         }
 

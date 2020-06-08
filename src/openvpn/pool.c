@@ -207,6 +207,12 @@ ifconfig_pool_init(const bool ipv4_pool, enum pool_type type, in_addr_t start,
                 ASSERT(0);
         }
 
+        if (pool->ipv4.size < 2)
+        {
+            msg(M_FATAL, "IPv4 pool size is too small (%d), must be at least 2",
+                pool->ipv4.size);
+        }
+
         msg(D_IFCONFIG_POOL, "IFCONFIG POOL IPv4: base=%s size=%d",
             print_in_addr_t(pool->ipv4.base, 0, &gc), pool->ipv4.size);
     }
@@ -244,6 +250,12 @@ ifconfig_pool_init(const bool ipv4_pool, enum pool_type type, in_addr_t start,
         pool->ipv6.size = ipv6_netbits > 112
                           ? (1 << (128 - ipv6_netbits)) - base
                           : IFCONFIG_POOL_MAX;
+
+        if (pool->ipv6.size < 2)
+        {
+            msg(M_FATAL, "IPv6 pool size is too small (%d), must be at least 2",
+                pool->ipv6.size);
+        }
 
         msg(D_IFCONFIG_POOL, "IFCONFIG POOL IPv6: base=%s size=%d netbits=%d",
             print_in6_addr(pool->ipv6.base, 0, &gc), pool->ipv6.size,

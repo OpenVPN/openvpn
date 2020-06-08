@@ -198,12 +198,17 @@ helper_client_server(struct options *o)
             print_in6_addr( add_in6_addr( o->server_network_ipv6, 2), 0, &o->gc );
         o->ifconfig_ipv6_netbits = o->server_netbits_ipv6;
 
-        /* pool starts at "base address + 0x1000" - leave enough room */
-        ASSERT( o->server_netbits_ipv6 <= 112 );        /* want 16 bits */
+        /* basic sanity check */
+        ASSERT(o->server_netbits_ipv6 >= 64 && o->server_netbits_ipv6 <= 124);
 
         o->ifconfig_ipv6_pool_defined = true;
-        o->ifconfig_ipv6_pool_base =
-            add_in6_addr( o->server_network_ipv6, 0x1000 );
+        /* For large enough pools we keep the original behaviour of adding
+         * 0x1000 when computing the base.
+         *
+         * Smaller pools can't get that far, therefore we just increase by 2
+         */
+        o->ifconfig_ipv6_pool_base = add_in6_addr(o->server_network_ipv6,
+                                                  o->server_netbits_ipv6 < 112 ? 0x1000 : 2);
         o->ifconfig_ipv6_pool_netbits = o->server_netbits_ipv6;
 
         push_option( o, "tun-ipv6", M_USAGE );
