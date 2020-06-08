@@ -6542,6 +6542,18 @@ add_option(struct options *options,
         int j;
         VERIFY_PERMISSION(OPT_P_ROUTE);
         rol_check_alloc(options);
+
+        if (options->routes->flags & RG_ENABLE)
+        {
+            msg(M_WARN,
+                "WARNING: You have specified redirect-gateway and "
+                "redirect-private at the same time (or the same option "
+                "multiple times). This is not well supported and may lead to "
+                "unexpected results");
+        }
+
+        options->routes->flags |= RG_ENABLE;
+
         if (streq(p[0], "redirect-gateway"))
         {
             options->routes->flags |= RG_REROUTE_GW;
@@ -6579,7 +6591,7 @@ add_option(struct options *options,
             }
             else if (streq(p[j], "!ipv4"))
             {
-                options->routes->flags &= ~RG_REROUTE_GW;
+                options->routes->flags &= ~(RG_REROUTE_GW | RG_ENABLE);
             }
             else
             {
@@ -6591,7 +6603,6 @@ add_option(struct options *options,
         /* we need this here to handle pushed --redirect-gateway */
         remap_redirect_gateway_flags(options);
 #endif
-        options->routes->flags |= RG_ENABLE;
     }
     else if (streq(p[0], "block-ipv6") && !p[1])
     {
