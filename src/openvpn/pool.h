@@ -55,13 +55,12 @@ struct ifconfig_pool
         bool enabled;
         enum pool_type type;
         in_addr_t base;
-        int size;
     } ipv4;
     struct {
         bool enabled;
         struct in6_addr base;
-        unsigned int size;
     } ipv6;
+    int size;
     struct ifconfig_pool_entry *list;
 };
 
