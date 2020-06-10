@@ -34,7 +34,6 @@
 #include "error.h"
 #include "socket.h"
 #include "otime.h"
-#include "options.h"
 
 #include "memdbg.h"
 
