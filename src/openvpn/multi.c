@@ -1504,36 +1504,40 @@ multi_select_virtual_addr(struct multi_context *m, struct multi_instance *mi)
                   ? print_in6_addr( remote_ipv6, 0, &gc )
                   : "(Not enabled)") );
 
-            /* set push_ifconfig_remote_netmask from pool ifconfig address(es) */
-            mi->context.c2.push_ifconfig_local = remote;
-            if (tunnel_type == DEV_TYPE_TAP || (tunnel_type == DEV_TYPE_TUN && tunnel_topology == TOP_SUBNET))
+            if (mi->context.options.ifconfig_pool_defined)
             {
-                mi->context.c2.push_ifconfig_remote_netmask = mi->context.options.ifconfig_pool_netmask;
-                if (!mi->context.c2.push_ifconfig_remote_netmask)
+                /* set push_ifconfig_remote_netmask from pool ifconfig address(es) */
+                mi->context.c2.push_ifconfig_local = remote;
+                if (tunnel_type == DEV_TYPE_TAP || (tunnel_type == DEV_TYPE_TUN && tunnel_topology == TOP_SUBNET))
                 {
-                    mi->context.c2.push_ifconfig_remote_netmask = mi->context.c1.tuntap->remote_netmask;
+                    mi->context.c2.push_ifconfig_remote_netmask = mi->context.options.ifconfig_pool_netmask;
+                    if (!mi->context.c2.push_ifconfig_remote_netmask)
+                    {
+                        mi->context.c2.push_ifconfig_remote_netmask = mi->context.c1.tuntap->remote_netmask;
+                    }
                 }
-            }
-            else if (tunnel_type == DEV_TYPE_TUN)
-            {
-                if (tunnel_topology == TOP_P2P)
+                else if (tunnel_type == DEV_TYPE_TUN)
                 {
-                    mi->context.c2.push_ifconfig_remote_netmask = mi->context.c1.tuntap->local;
+                    if (tunnel_topology == TOP_P2P)
+                    {
+                        mi->context.c2.push_ifconfig_remote_netmask = mi->context.c1.tuntap->local;
+                    }
+                    else if (tunnel_topology == TOP_NET30)
+                    {
+                        mi->context.c2.push_ifconfig_remote_netmask = local;
+                    }
                 }
-                else if (tunnel_topology == TOP_NET30)
-                {
-                    mi->context.c2.push_ifconfig_remote_netmask = local;
-                }
-            }
 
-            if (mi->context.c2.push_ifconfig_remote_netmask)
-            {
-                mi->context.c2.push_ifconfig_defined = true;
-            }
-            else
-            {
-                msg(D_MULTI_ERRORS, "MULTI: no --ifconfig-pool netmask parameter is available to push to %s",
-                    multi_instance_string(mi, false, &gc));
+                if (mi->context.c2.push_ifconfig_remote_netmask)
+                {
+                    mi->context.c2.push_ifconfig_defined = true;
+                }
+                else
+                {
+                    msg(D_MULTI_ERRORS,
+                        "MULTI: no --ifconfig-pool netmask parameter is available to push to %s",
+                        multi_instance_string(mi, false, &gc));
+                }
             }
 
             if (mi->context.options.ifconfig_ipv6_pool_defined)
