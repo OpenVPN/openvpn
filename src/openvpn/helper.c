@@ -359,6 +359,14 @@ helper_client_server(struct options *o)
             }
 
             push_option(o, print_opt_topology(topology, &o->gc), M_USAGE);
+
+            if (topology == TOP_NET30 && !(o->server_flags & SF_NOPOOL))
+            {
+                msg(M_WARN, "WARNING: --topology net30 support for server "
+                    "configs with IPv4 pools will be removed in a future "
+                    "release. Please migrate to --topology subnet as soon "
+                    "as possible.");
+            }
         }
         else if (dev == DEV_TYPE_TAP)
         {
