@@ -2,6 +2,9 @@ AUTOMAKE_OPTIONS = foreign
 
 check_LTLIBRARIES = libtestengine.la
 conffiles = openssl.cnf
+EXTRA_DIST = \
+	openssl.cnf.in \
+	check_engine_keys.sh
 
 TESTS_ENVIRONMENT = srcdir="$(abs_srcdir)"; \
 	builddir="$(abs_builddir)"; \
@@ -12,8 +15,11 @@ TESTS_ENVIRONMENT = srcdir="$(abs_srcdir)"; \
 TESTS = check_engine_keys.sh
 check_engine_keys.sh: $(conffiles)
 
-clean-local:
-	rm -f $(conffiles)
+CLEANFILES = \
+	client.key \
+	passwd \
+	log.txt \
+	$(conffiles)
 
 $(builddir)/openssl.cnf: $(srcdir)/openssl.cnf.in
 	sed "s|ABSBUILDDIR|$(abs_builddir)|" < $< > $@
