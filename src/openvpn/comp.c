@@ -127,7 +127,7 @@ void
 comp_add_to_extra_buffer(struct frame *frame)
 {
     /* Leave room for compression buffer to expand in worst case scenario
-     * where data is totally uncompressible */
+     * where data is totally incompressible */
     frame_add_to_extra_buffer(frame, COMP_EXTRA_BUFFER(EXPANDED_SIZE(frame)));
 }
 

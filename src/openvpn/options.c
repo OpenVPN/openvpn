@@ -357,9 +357,10 @@ static const char usage_message[] =
 #endif
 #if defined(USE_COMP)
     "--compress alg  : Use compression algorithm alg\n"
+    "--allow-compression: Specify whether compression should be allowed\n"
 #if defined(ENABLE_LZO)
     "--comp-lzo      : Use LZO compression -- may add up to 1 byte per\n"
-    "                  packet for uncompressible data.\n"
+    "                  packet for incompressible data.\n"
     "--comp-noadapt  : Don't use adaptive compression when --comp-lzo\n"
     "                  is specified.\n"
 #endif
@@ -4978,11 +4979,11 @@ options_string_import(struct options *options,
 #if P2MP
 
 #define VERIFY_PERMISSION(mask) {                                            \
-    if (!verify_permission(p[0], file, line, (mask), permission_mask,        \
-                           option_types_found, msglevel, options, is_inline))\
-    {                                                                        \
-        goto err;                                                            \
-    }                                                                        \
+        if (!verify_permission(p[0], file, line, (mask), permission_mask,        \
+                               option_types_found, msglevel, options, is_inline)) \
+        {                                                                        \
+            goto err;                                                            \
+        }                                                                        \
 }
 
 static bool
@@ -5113,6 +5114,25 @@ set_user_script(struct options *options,
 
     }
 #endif
+}
+
+static void
+show_compression_warning(struct compress_options *info)
+{
+    if (comp_non_stub_enabled(info))
+    {
+        /*
+         * Check if already displayed the strong warning and enabled full
+         * compression
+         */
+        if (!(info->flags & COMP_F_ALLOW_COMPRESS))
+        {
+            msg(M_WARN, "WARNING: Compression for receiving enabled. "
+                "Compression has been used in the past to break encryption. "
+                "Sent packets are not compressed unless \"allow-compression yes\" "
+                "is also set.");
+        }
+    }
 }
 
 static void
@@ -7606,29 +7626,80 @@ add_option(struct options *options,
     }
 #endif
 #if defined(USE_COMP)
+    else if (streq(p[0], "allow-compression") && p[1] && !p[2])
+    {
+        VERIFY_PERMISSION(OPT_P_GENERAL);
+
+        if (streq(p[1], "no"))
+        {
+            options->comp.flags =
+                COMP_F_ALLOW_STUB_ONLY|COMP_F_ADVERTISE_STUBS_ONLY;
+            if (comp_non_stub_enabled(&options->comp))
+            {
+                msg(msglevel, "'--allow-compression no' conflicts with "
+                    " enabling compression");
+            }
+        }
+        else if (options->comp.flags & COMP_F_ALLOW_STUB_ONLY)
+        {
+            /* Also printed on a push to hint at configuration problems */
+            msg(msglevel, "Cannot set allow-compression to '%s' "
+                "after set to 'no'", p[1]);
+            goto err;
+        }
+        else if (streq(p[1], "asym"))
+        {
+            options->comp.flags &= ~COMP_F_ALLOW_COMPRESS;
+        }
+        else if (streq(p[1], "yes"))
+        {
+            msg(M_WARN, "WARNING: Compression for sending and receiving enabled. Compression has "
+                "been used in the past to break encryption. Allowing compression allows "
+                "attacks that break encryption. Using \"--allow-compression yes\" is "
+                "strongly discouraged for common usage. See --compress in the manual "
+                "page for more information ");
+
+            options->comp.flags |= COMP_F_ALLOW_COMPRESS;
+        }
+        else
+        {
+            msg(msglevel, "bad allow-compression option: %s -- "
+                "must be 'yes', 'no', or 'asym'", p[1]);
+            goto err;
+        }
+    }
     else if (streq(p[0], "comp-lzo") && !p[2])
     {
         VERIFY_PERMISSION(OPT_P_COMP);
 
+        /* All lzo variants do not use swap */
+        options->comp.flags &= ~COMP_F_SWAP;
 #if defined(ENABLE_LZO)
         if (p[1] && streq(p[1], "no"))
 #endif
         {
             options->comp.alg = COMP_ALG_STUB;
-            options->comp.flags = 0;
+            options->comp.flags &= ~COMP_F_ADAPTIVE;
         }
 #if defined(ENABLE_LZO)
+        else if (options->comp.flags & COMP_F_ALLOW_STUB_ONLY)
+        {
+            /* Also printed on a push to hint at configuration problems */
+            msg(msglevel, "Cannot set comp-lzo to '%s', "
+                "allow-compression is set to 'no'", p[1]);
+            goto err;
+        }
         else if (p[1])
         {
             if (streq(p[1], "yes"))
             {
                 options->comp.alg = COMP_ALG_LZO;
-                options->comp.flags = 0;
+                options->comp.flags &= ~COMP_F_ADAPTIVE;
             }
             else if (streq(p[1], "adaptive"))
             {
                 options->comp.alg = COMP_ALG_LZO;
-                options->comp.flags = COMP_F_ADAPTIVE;
+                options->comp.flags |= COMP_F_ADAPTIVE;
             }
             else
             {
@@ -7639,12 +7710,17 @@ add_option(struct options *options,
         else
         {
             options->comp.alg = COMP_ALG_LZO;
-            options->comp.flags = COMP_F_ADAPTIVE;
+            options->comp.flags |= COMP_F_ADAPTIVE;
         }
+        show_compression_warning(&options->comp);
 #endif /* if defined(ENABLE_LZO) */
     }
     else if (streq(p[0], "comp-noadapt") && !p[1])
     {
+        /*
+         * We do not need to check here if we allow compression since
+         * it only modifies a flag if compression is enabled
+         */
         VERIFY_PERMISSION(OPT_P_COMP);
         options->comp.flags &= ~COMP_F_ADAPTIVE;
     }
@@ -7656,30 +7732,36 @@ add_option(struct options *options,
             if (streq(p[1], "stub"))
             {
                 options->comp.alg = COMP_ALG_STUB;
-                options->comp.flags = (COMP_F_SWAP|COMP_F_ADVERTISE_STUBS_ONLY);
+                options->comp.flags |= (COMP_F_SWAP|COMP_F_ADVERTISE_STUBS_ONLY);
             }
             else if (streq(p[1], "stub-v2"))
             {
                 options->comp.alg = COMP_ALGV2_UNCOMPRESSED;
-                options->comp.flags = COMP_F_ADVERTISE_STUBS_ONLY;
+                options->comp.flags |= COMP_F_ADVERTISE_STUBS_ONLY;
+            }
+            else if (options->comp.flags & COMP_F_ALLOW_STUB_ONLY)
+            {
+                /* Also printed on a push to hint at configuration problems */
+                msg(msglevel, "Cannot set compress to '%s', "
+                    "allow-compression is set to 'no'", p[1]);
+                goto err;
             }
 #if defined(ENABLE_LZO)
             else if (streq(p[1], "lzo"))
             {
                 options->comp.alg = COMP_ALG_LZO;
-                options->comp.flags = 0;
+                options->comp.flags &= ~(COMP_F_ADAPTIVE | COMP_F_SWAP);
             }
 #endif
 #if defined(ENABLE_LZ4)
             else if (streq(p[1], "lz4"))
             {
                 options->comp.alg = COMP_ALG_LZ4;
-                options->comp.flags = COMP_F_SWAP;
+                options->comp.flags |= COMP_F_SWAP;
             }
             else if (streq(p[1], "lz4-v2"))
             {
                 options->comp.alg = COMP_ALGV2_LZ4;
-                options->comp.flags = 0;
             }
 #endif
             else
@@ -7691,8 +7773,9 @@ add_option(struct options *options,
         else
         {
             options->comp.alg = COMP_ALG_STUB;
-            options->comp.flags = COMP_F_SWAP;
+            options->comp.flags |= COMP_F_SWAP;
         }
+        show_compression_warning(&options->comp);
     }
 #endif /* USE_COMP */
     else if (streq(p[0], "show-ciphers") && !p[1])

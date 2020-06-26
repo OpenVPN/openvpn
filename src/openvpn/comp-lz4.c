@@ -70,8 +70,9 @@ do_lz4_compress(struct buffer *buf,
 {
     /*
      * In order to attempt compression, length must be at least COMPRESS_THRESHOLD.
+     * and asymmetric compression must be disabled
      */
-    if (buf->len >= COMPRESS_THRESHOLD)
+    if (buf->len >= COMPRESS_THRESHOLD && (compctx->flags & COMP_F_ALLOW_COMPRESS))
     {
         const size_t ps = PAYLOAD_SIZE(frame);
         int zlen_max = ps + COMP_EXTRA_BUFFER(ps);

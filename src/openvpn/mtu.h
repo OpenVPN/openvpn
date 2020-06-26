@@ -45,7 +45,7 @@
  *      ifconfig $1 10.1.0.2 pointopoint 10.1.0.1 mtu 1450
  *
  *    Compression overflow bytes is the worst-case size expansion that would be
- *    expected if we tried to compress mtu + extra_frame bytes of uncompressible data.
+ *    expected if we tried to compress mtu + extra_frame bytes of incompressible data.
  */
 
 /*

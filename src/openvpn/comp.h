@@ -52,10 +52,12 @@
  */
 
 /* Compression flags */
-#define COMP_F_ADAPTIVE   (1<<0) /* COMP_ALG_LZO only */
-#define COMP_F_ASYM       (1<<1) /* only downlink is compressed, not uplink */
-#define COMP_F_SWAP       (1<<2) /* initial command byte is swapped with last byte in buffer to preserve payload alignment */
+#define COMP_F_ADAPTIVE             (1<<0) /* COMP_ALG_LZO only */
+#define COMP_F_ALLOW_COMPRESS       (1<<1) /* not only downlink is compressed but also uplink */
+#define COMP_F_SWAP                 (1<<2) /* initial command byte is swapped with last byte in buffer to preserve payload alignment */
 #define COMP_F_ADVERTISE_STUBS_ONLY (1<<3) /* tell server that we only support compression stubs */
+#define COMP_F_ALLOW_STUB_ONLY      (1<<4) /* Only accept stub compression, even with COMP_F_ADVERTISE_STUBS_ONLY
+                                            * we still accept other compressions to be pushed */
 
 
 /*
@@ -186,6 +188,14 @@ static inline bool
 comp_enabled(const struct compress_options *info)
 {
     return info->alg != COMP_ALG_UNDEF;
+}
+
+static inline bool
+comp_non_stub_enabled(const struct compress_options *info)
+{
+    return info->alg != COMP_ALGV2_UNCOMPRESSED
+           && info->alg != COMP_ALG_STUB
+           && info->alg != COMP_ALG_UNDEF;
 }
 
 static inline bool

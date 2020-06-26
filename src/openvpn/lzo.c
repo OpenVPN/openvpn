@@ -123,7 +123,7 @@ lzo_compress_uninit(struct compress_context *compctx)
 static inline bool
 lzo_compression_enabled(struct compress_context *compctx)
 {
-    if (compctx->flags & COMP_F_ASYM)
+    if (!(compctx->flags & COMP_F_ALLOW_COMPRESS))
     {
         return false;
     }
