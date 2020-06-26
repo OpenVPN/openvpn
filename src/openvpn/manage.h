@@ -439,7 +439,7 @@ void management_notify_client_cr_response(unsigned mda_key_id,
                                           const struct env_set *es,
                                           const char *response);
 
-#endif
+#endif /* ifdef MANAGEMENT_DEF_AUTH */
 
 char *management_query_pk_sig(struct management *man, const char *b64_data,
                               const char *algorithm);

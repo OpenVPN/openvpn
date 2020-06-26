@@ -130,8 +130,8 @@ time_string(time_t t, int usec, bool show_usec, struct gc_arena *gc)
     struct tm *tm = localtime(&t);
 
     buf_printf(&out, "%04d-%02d-%02d %02d:%02d:%02d",
-                tm->tm_year+1900, tm->tm_mon+1, tm->tm_mday,
-                tm->tm_hour, tm->tm_min, tm->tm_sec);
+               tm->tm_year+1900, tm->tm_mon+1, tm->tm_mday,
+               tm->tm_hour, tm->tm_min, tm->tm_sec);
 
     if (show_usec && tv.tv_usec)
     {

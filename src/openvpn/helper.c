@@ -478,7 +478,6 @@ helper_client_server(struct options *o)
         }
     }
     else
-
     /*
      * HELPER DIRECTIVE:
      *

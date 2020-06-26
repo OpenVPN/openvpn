@@ -1930,7 +1930,8 @@ tls_session_generate_data_channel_keys(struct tls_session *session)
     const struct session_id *server_sid = !session->opt->server ?
                                           &ks->session_id_remote : &session->session_id;
 
-    if (!ks->authenticated) {
+    if (!ks->authenticated)
+    {
         msg(D_TLS_ERRORS, "TLS Error: key_state not authenticated");
         goto cleanup;
     }

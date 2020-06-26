@@ -110,11 +110,11 @@ cipher_kt_var_key_size(const cipher_kt_t *cipher)
 /**
  * Load a key file from an engine
  *
- * @param file	The engine file to load
- * @param ui	The UI method for the password prompt
- * @param data	The data to pass to the UI method
+ * @param file  The engine file to load
+ * @param ui    The UI method for the password prompt
+ * @param data  The data to pass to the UI method
  *
- * @return	The private key if successful or NULL if not
+ * @return      The private key if successful or NULL if not
  */
 EVP_PKEY *
 engine_load_key(const char *file, SSL_CTX *ctx);

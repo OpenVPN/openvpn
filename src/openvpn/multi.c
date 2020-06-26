@@ -3320,8 +3320,8 @@ management_kill_by_cid(void *arg, const unsigned long cid, const char *kill_msg)
 
 static bool
 management_client_pending_auth(void *arg,
-        const unsigned long cid,
-        const char *extra)
+                               const unsigned long cid,
+                               const char *extra)
 {
     struct multi_context *m = (struct multi_context *) arg;
     struct multi_instance *mi = lookup_by_cid(m, cid);

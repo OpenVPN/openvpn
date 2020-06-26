@@ -288,7 +288,7 @@ send_auth_failed(struct context *c, const char *client_reason)
 }
 
 bool
-send_auth_pending_messages(struct context *c, const char* extra)
+send_auth_pending_messages(struct context *c, const char *extra)
 {
     send_control_channel_string(c, "AUTH_PENDING", D_PUSH);
 

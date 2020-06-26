@@ -1083,7 +1083,8 @@ ui_reader(UI *ui, UI_STRING *uis)
 {
     SSL_CTX *ctx = UI_get0_user_data(ui);
 
-    if (UI_get_string_type(uis) == UIT_PROMPT) {
+    if (UI_get_string_type(uis) == UIT_PROMPT)
+    {
         pem_password_cb *cb = SSL_CTX_get_default_passwd_cb(ctx);
         void *d = SSL_CTX_get_default_passwd_cb_userdata(ctx);
         char password[64];
@@ -1105,14 +1106,17 @@ engine_load_key(const char *file, SSL_CTX *ctx)
     EVP_PKEY *pkey;
 
     if (!engine_persist)
+    {
         return NULL;
+    }
 
     /* this will print out the error from BIO_read */
     crypto_msg(M_INFO, "PEM_read_bio failed, now trying engine method to load private key");
 
     ui = UI_create_method("openvpn");
-    if (!ui) {
-	crypto_msg(M_FATAL, "Engine UI creation failed");
+    if (!ui)
+    {
+        crypto_msg(M_FATAL, "Engine UI creation failed");
         return NULL;
     }
 
@@ -1122,13 +1126,15 @@ engine_load_key(const char *file, SSL_CTX *ctx)
     pkey = ENGINE_load_private_key(engine_persist, file, ui, ctx);
     ENGINE_finish(engine_persist);
     if (!pkey)
-	crypto_msg(M_FATAL, "Engine could not load key file");
+    {
+        crypto_msg(M_FATAL, "Engine could not load key file");
+    }
 
     UI_destroy_method(ui);
     return pkey;
-#else
+#else  /* if HAVE_OPENSSL_ENGINE */
     return NULL;
-#endif
+#endif /* if HAVE_OPENSSL_ENGINE */
 }
 
 #endif /* ENABLE_CRYPTO_OPENSSL */

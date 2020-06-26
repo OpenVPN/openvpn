@@ -310,20 +310,20 @@ ifconfig_pool_acquire(struct ifconfig_pool *pool, in_addr_t *local, in_addr_t *r
             switch (pool->ipv4.type)
             {
                 case IFCONFIG_POOL_30NET:
-                    {
-                        in_addr_t b = pool->ipv4.base + (i << 2);
-                        *local = b + 1;
-                        *remote = b + 2;
-                        break;
-                    }
+                {
+                    in_addr_t b = pool->ipv4.base + (i << 2);
+                    *local = b + 1;
+                    *remote = b + 2;
+                    break;
+                }
 
                 case IFCONFIG_POOL_INDIV:
-                    {
-                        in_addr_t b = pool->ipv4.base + i;
-                        *local = 0;
-                        *remote = b;
-                        break;
-                    }
+                {
+                    in_addr_t b = pool->ipv4.base + i;
+                    *local = 0;
+                    *remote = b;
+                    break;
+                }
 
                 default:
                     ASSERT(0);
@@ -683,7 +683,9 @@ ifconfig_pool_read(struct ifconfig_pool_persist *persist, struct ifconfig_pool *
                      * was not valid
                      */
                     if (h < 0)
+                    {
                         h = h6;
+                    }
                 }
             }
 
