@@ -10,6 +10,8 @@
 #
 #   git config blame.ignoreRevsFile .git-blame-ignore-revs
 
+# Uncrustify 2020/06... (engine, pool, SSO)
+c1ff8f247f91c88a2df5502eeedf42857f9a6831
 
 # Uncrustify the tests/unit_tests/ part of our tree.
 da1574ef7826d73f01e120cbd1ba40ce39a305b7
