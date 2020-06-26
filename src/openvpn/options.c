@@ -7276,7 +7276,7 @@ add_option(struct options *options,
 #ifdef _WIN32
         VERIFY_PERMISSION(OPT_P_GENERAL);
         HANDLE process = GetCurrentProcess();
-        HANDLE handle = (HANDLE) atoi(p[1]);
+        HANDLE handle = (HANDLE) atoll(p[1]);
         if (!DuplicateHandle(process, handle, process, &options->msg_channel, 0,
                              FALSE, DUPLICATE_CLOSE_SOURCE | DUPLICATE_SAME_ACCESS))
         {

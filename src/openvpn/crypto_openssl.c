@@ -315,7 +315,8 @@ show_available_ciphers(void)
         }
     }
 
-    qsort(cipher_list, num_ciphers, sizeof(*cipher_list), cipher_name_cmp);
+    /* cast to non-const to prevent warning */
+    qsort((EVP_CIPHER *)cipher_list, num_ciphers, sizeof(*cipher_list), cipher_name_cmp);
 
     for (i = 0; i < num_ciphers; i++)
     {

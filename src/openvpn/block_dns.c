@@ -109,9 +109,6 @@ DEFINE_GUID(
 
 static WCHAR *FIREWALL_NAME = L"OpenVPN";
 
-VOID NETIOAPI_API_
-InitializeIpInterfaceEntry(PMIB_IPINTERFACE_ROW Row);
-
 /*
  * Default msg handler does nothing
  */

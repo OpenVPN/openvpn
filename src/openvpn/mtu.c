@@ -174,8 +174,8 @@ set_mtu_discover_type(int sd, int mtu_type, sa_family_t proto_af)
         {
 #if defined(HAVE_SETSOCKOPT) && defined(IP_MTU_DISCOVER)
             case AF_INET:
-                if (setsockopt
-                        (sd, IPPROTO_IP, IP_MTU_DISCOVER, &mtu_type, sizeof(mtu_type)))
+                if (setsockopt(sd, IPPROTO_IP, IP_MTU_DISCOVER,
+                               (void *) &mtu_type, sizeof(mtu_type)))
                 {
                     msg(M_ERR, "Error setting IP_MTU_DISCOVER type=%d on TCP/UDP socket",
                         mtu_type);
@@ -185,8 +185,8 @@ set_mtu_discover_type(int sd, int mtu_type, sa_family_t proto_af)
 #endif
 #if defined(HAVE_SETSOCKOPT) && defined(IPV6_MTU_DISCOVER)
             case AF_INET6:
-                if (setsockopt
-                        (sd, IPPROTO_IPV6, IPV6_MTU_DISCOVER, &mtu_type, sizeof(mtu_type)))
+                if (setsockopt(sd, IPPROTO_IPV6, IPV6_MTU_DISCOVER,
+                               (void *) &mtu_type, sizeof(mtu_type)))
                 {
                     msg(M_ERR, "Error setting IPV6_MTU_DISCOVER type=%d on TCP6/UDP6 socket",
                         mtu_type);

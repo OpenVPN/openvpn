@@ -233,10 +233,11 @@ do_set_mtu_service(const struct tuntap *tt, const short family, const int mtu)
             sizeof(set_mtu_message_t),
             0
         },
-        .iface = {.index = tt->adapter_index,.name = tt->actual_name },
+        .iface = {.index = tt->adapter_index},
         .mtu = mtu,
         .family = family
     };
+    strncpynt(mtu_msg.iface.name, tt->actual_name, sizeof(mtu_msg.iface.name));
 
     if (!send_msg_iservice(pipe, &mtu_msg, sizeof(mtu_msg), &ack, "Set_mtu"))
     {
@@ -889,8 +890,7 @@ add_route_connected_v6_net(struct tuntap *tt,
 }
 
 void
-delete_route_connected_v6_net(struct tuntap *tt,
-                              const struct env_set *es)
+delete_route_connected_v6_net(const struct tuntap *tt)
 {
     struct route_ipv6 r6;
 
@@ -901,7 +901,7 @@ delete_route_connected_v6_net(struct tuntap *tt,
     r6.metric  = 0;                     /* connected route */
     r6.flags   = RT_DEFINED | RT_ADDED | RT_METRIC_DEFINED;
     route_ipv6_clear_host_bits(&r6);
-    delete_route_ipv6(&r6, tt, 0, es, NULL);
+    delete_route_ipv6(&r6, tt, 0, NULL, NULL);
 }
 #endif /* if defined(_WIN32) || defined(TARGET_DARWIN) || defined(TARGET_NETBSD) || defined(TARGET_OPENBSD) */
 
@@ -6572,7 +6572,7 @@ netsh_delete_address_dns(const struct tuntap *tt, bool ipv6, struct gc_arena *gc
 
     if (ipv6)
     {
-        delete_route_connected_v6_net(tt, NULL);
+        delete_route_connected_v6_net(tt);
     }
 
     /* "store=active" is needed in Windows 8(.1) to delete the
@@ -6619,7 +6619,7 @@ close_tun(struct tuntap *tt, openvpn_net_ctx_t *ctx)
             {
                 do_dns_service(false, AF_INET6, tt);
             }
-            delete_route_connected_v6_net(tt, NULL);
+            delete_route_connected_v6_net(tt);
             do_address_service(false, AF_INET6, tt);
         }
         else

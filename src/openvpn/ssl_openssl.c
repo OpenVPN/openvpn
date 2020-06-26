@@ -2115,7 +2115,7 @@ print_details(struct key_state_ssl *ks_ssl, const char *prefix)
 void
 show_available_tls_ciphers_list(const char *cipher_list,
                                 const char *tls_cert_profile,
-                                const bool tls13)
+                                bool tls13)
 {
     struct tls_root_ctx tls_ctx;
 
