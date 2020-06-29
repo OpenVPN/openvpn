@@ -844,9 +844,6 @@ init_options(struct options *o, const bool init_gc)
 #ifdef ENABLE_FEATURE_TUN_PERSIST
     o->persist_mode = 1;
 #endif
-#ifdef TARGET_LINUX
-    o->tuntap_options.txqueuelen = 100;
-#endif
 #ifdef _WIN32
 #if 0
     o->tuntap_options.ip_win32_type = IPW32_SET_ADAPTIVE;
