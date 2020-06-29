@@ -238,6 +238,10 @@ do_set_mtu_service(const struct tuntap *tt, const short family, const int mtu)
         .family = family
     };
     strncpynt(mtu_msg.iface.name, tt->actual_name, sizeof(mtu_msg.iface.name));
+    if (family == AF_INET6 && mtu < 1280)
+    {
+        msg(M_INFO, "NOTE: IPv6 interface MTU < 1280 conflicts with IETF standards and might not work");
+    }
 
     if (!send_msg_iservice(pipe, &mtu_msg, sizeof(mtu_msg), &ack, "Set_mtu"))
     {
@@ -5498,6 +5502,11 @@ windows_set_mtu(const int iface_index, const short family,
     const char *family_name = (family == AF_INET6) ? "IPv6" : "IPv4";
     ipiface.Family = family;
     ipiface.InterfaceIndex = iface_index;
+    if (family == AF_INET6 && mtu < 1280)
+    {
+        msg(M_INFO, "NOTE: IPv6 interface MTU < 1280 conflicts with IETF standards and might not work");
+    }
+
     err = GetIpInterfaceEntry(&ipiface);
     if (err == NO_ERROR)
     {
