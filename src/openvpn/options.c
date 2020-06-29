@@ -294,6 +294,9 @@ static const char usage_message[] =
 #if defined(TARGET_LINUX) && HAVE_DECL_SO_MARK
     "--mark value    : Mark encrypted packets being sent with value. The mark value\n"
     "                  can be matched in policy routing and packetfilter rules.\n"
+    "--bind-dev dev  : Bind to the given device when making connection to a peer or\n"
+    "                  listening for connections. This allows sending encrypted packets\n"
+    "                  via a VRF present on the system.\n"
 #endif
     "--txqueuelen n  : Set the tun/tap TX queue length to n (Linux only).\n"
 #ifdef ENABLE_MEMSTATS
@@ -6084,6 +6087,13 @@ add_option(struct options *options,
             }
         }
     }
+#ifdef TARGET_LINUX
+    else if (streq (p[0], "bind-dev") && p[1])
+    {
+        VERIFY_PERMISSION (OPT_P_SOCKFLAGS);
+        options->bind_dev = p[1];
+    }
+#endif
     else if (streq(p[0], "txqueuelen") && p[1] && !p[2])
     {
         VERIFY_PERMISSION(OPT_P_GENERAL);
