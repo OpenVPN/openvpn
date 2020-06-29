@@ -352,6 +352,7 @@ struct options
 
     /* mark value */
     int mark;
+    char *bind_dev;
 
     /* socket flags */
     unsigned int sockflags;

@@ -3445,6 +3445,7 @@ do_init_socket_1(struct context *c, const int mode)
                             c->options.rcvbuf,
                             c->options.sndbuf,
                             c->options.mark,
+                            c->options.bind_dev,
                             &c->c2.server_poll_interval,
                             sockflags);
 }
