@@ -21,8 +21,8 @@ CLEANFILES = \
 	log.txt \
 	$(conffiles)
 
-$(builddir)/openssl.cnf: $(srcdir)/openssl.cnf.in
-	sed "s|ABSBUILDDIR|$(abs_builddir)|" < $< > $@
+openssl.cnf: $(srcdir)/openssl.cnf.in
+	sed "s|ABSBUILDDIR|$(abs_builddir)|" < $(srcdir)/openssl.cnf.in > $@
 
 libtestengine_la_SOURCES = libtestengine.c
 libtestengine_la_LDFLAGS = @TEST_LDFLAGS@ -rpath /lib -shrext .so
