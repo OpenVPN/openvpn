@@ -227,6 +227,24 @@ _pkcs11_openvpn_token_prompt(
     }
 }
 
+struct user_pass token_pass; /* GLOBAL */
+
+void pkcs11_password_setup(const char* key_pin_file) {
+    char prompt[1024];
+    token_pass.defined = false;
+    token_pass.nocache = true;
+
+    if (!strlen(token_pass.password))
+    {
+        get_user_pass(
+                &token_pass,
+                key_pin_file,
+                UP_TYPE_PRIVATE_KEY,
+                GET_USER_PASS_MANAGEMENT|GET_USER_PASS_PASSWORD_ONLY
+                );
+    }
+}
+
 static
 PKCS11H_BOOL
 _pkcs11_openvpn_pin_prompt(
@@ -238,7 +256,6 @@ _pkcs11_openvpn_pin_prompt(
     const size_t pin_max
     )
 {
-    struct user_pass token_pass;
     char prompt[1024];
 
     (void)global_data;
@@ -253,6 +270,7 @@ _pkcs11_openvpn_pin_prompt(
     token_pass.nocache = true;
 
     if (
+        !strlen(token_pass.password) &&
         !get_user_pass(
             &token_pass,
             NULL,
