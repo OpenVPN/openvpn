@@ -1722,11 +1722,10 @@ multi_client_connect_post_plugin(struct multi_context *m,
 static void
 multi_client_connect_mda(struct multi_context *m,
                          struct multi_instance *mi,
-                         const struct buffer_list *config,
                          unsigned int option_permissions_mask,
                          unsigned int *option_types_found)
 {
-    if (config)
+    if (mi->cc_config)
     {
         struct buffer_entry *be;
 
@@ -1986,7 +1985,7 @@ script_failed:
 #ifdef MANAGEMENT_DEF_AUTH
         if (cc_succeeded && mi->cc_config)
         {
-            multi_client_connect_mda(m, mi, mi->cc_config, option_permissions_mask, &option_types_found);
+            multi_client_connect_mda(m, mi, option_permissions_mask, &option_types_found);
             ++cc_succeeded_count;
         }
 #endif
