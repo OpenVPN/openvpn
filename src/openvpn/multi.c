@@ -1729,7 +1729,7 @@ multi_client_connect_mda(struct multi_context *m,
     {
         struct buffer_entry *be;
 
-        for (be = config->head; be != NULL; be = be->next)
+        for (be = mi->cc_config->head; be != NULL; be = be->next)
         {
             const char *opt = BSTR(&be->buf);
             options_string_import(&mi->context.options,
