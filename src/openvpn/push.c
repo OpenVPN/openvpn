@@ -803,7 +803,7 @@ process_incoming_push_request(struct context *c)
         send_auth_failed(c, client_reason);
         ret = PUSH_MSG_AUTH_FAILURE;
     }
-    else if (!c->c2.push_reply_deferred && c->c2.context_auth == CAS_SUCCEEDED)
+    else if (c->c2.context_auth == CAS_SUCCEEDED)
     {
         time_t now;
 
