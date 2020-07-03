@@ -75,7 +75,6 @@ struct deferred_signal_schedule_entry
 struct multi_instance {
     struct schedule_entry se;  /* this must be the first element of the structure */
     struct gc_arena gc;
-    bool defined;
     bool halt;
     int refcount;
     int route_count;           /* number of routes (including cached routes) owned by this instance */
@@ -97,14 +96,12 @@ struct multi_instance {
     in_addr_t reporting_addr;     /* IP address shown in status listing */
     struct in6_addr reporting_addr_ipv6; /* IPv6 address in status listing */
 
-    bool did_open_context;
     bool did_real_hash;
     bool did_iter;
 #ifdef MANAGEMENT_DEF_AUTH
     bool did_cid_hash;
     struct buffer_list *cc_config;
 #endif
-    bool connection_established_flag;
     bool did_iroutes;
     int n_clients_delta; /* added to multi_context.n_clients when instance is closed */
 

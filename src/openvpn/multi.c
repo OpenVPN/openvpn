@@ -574,7 +574,7 @@ multi_client_disconnect_setenv(struct multi_instance *mi)
 static void
 multi_client_disconnect_script(struct multi_instance *mi)
 {
-    if ((mi->context.c2.context_auth == CAS_SUCCEEDED && mi->connection_established_flag)
+    if (mi->context.c2.context_auth == CAS_SUCCEEDED
         || mi->context.c2.context_auth == CAS_PARTIAL)
     {
         multi_client_disconnect_setenv(mi);
@@ -686,10 +686,7 @@ multi_close_instance(struct multi_context *m,
 
     multi_client_disconnect_script(mi);
 
-    if (mi->did_open_context)
-    {
-        close_context(&mi->context, SIGTERM, CC_GC_FREE);
-    }
+    close_context(&mi->context, SIGTERM, CC_GC_FREE);
 
     multi_tcp_instance_specific_free(mi);
 
@@ -788,7 +785,6 @@ multi_create_instance(struct multi_context *m, const struct mroute_addr *real)
         generate_prefix(mi);
     }
 
-    mi->did_open_context = true;
     inherit_context_child(&mi->context, &m->top);
     if (IS_SIG(&mi->context))
     {
@@ -2089,9 +2085,6 @@ script_failed:
             mi->context.c2.context_auth = cc_succeeded_count ? CAS_PARTIAL : CAS_FAILED;
         }
 
-        /* set flag so we don't get called again */
-        mi->connection_established_flag = true;
-
         /* increment number of current authenticated clients */
         ++m->n_clients;
         update_mstat_n_clients(m->n_clients);
@@ -2395,7 +2388,8 @@ multi_process_post(struct multi_context *m, struct multi_instance *mi, const uns
         {
             /* connection is "established" when SSL/TLS key negotiation succeeds
              * and (if specified) auth user/pass succeeds */
-            if (!mi->connection_established_flag && CONNECTION_ESTABLISHED(&mi->context))
+            if (mi->context.c2.context_auth == CAS_PENDING
+                && CONNECTION_ESTABLISHED(&mi->context))
             {
                 multi_connection_established(m, mi);
             }
@@ -3349,7 +3343,7 @@ management_client_auth(void *arg,
         {
             if (auth)
             {
-                if (!mi->connection_established_flag)
+                if (mi->context.c2.context_auth == CAS_PENDING)
                 {
                     set_cc_config(mi, cc_config);
                     cc_config_owned = false;
@@ -3361,7 +3355,7 @@ management_client_auth(void *arg,
                 {
                     msg(D_MULTI_LOW, "MULTI: connection rejected: %s, CLI:%s", reason, np(client_reason));
                 }
-                if (mi->connection_established_flag)
+                if (mi->context.c2.context_auth != CAS_PENDING)
                 {
                     send_auth_failed(&mi->context, client_reason); /* mid-session reauth failed */
                     multi_schedule_context_wakeup(m, mi);
