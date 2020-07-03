@@ -1099,6 +1099,43 @@ tap_enable_adapter(
     return execute_on_first_adapter(hwndParent, pguidAdapter, bEnable ? enable_device : disable_device, pbRebootRequired);
 }
 
+/* stripped version of ExecCommand in interactive.c */
+static DWORD
+ExecCommand(const WCHAR* cmdline)
+{
+    DWORD exit_code;
+    STARTUPINFOW si;
+    PROCESS_INFORMATION pi;
+    DWORD proc_flags = CREATE_NO_WINDOW | CREATE_UNICODE_ENVIRONMENT;
+    WCHAR* cmdline_dup = NULL;
+
+    ZeroMemory(&si, sizeof(si));
+    ZeroMemory(&pi, sizeof(pi));
+
+    si.cb = sizeof(si);
+
+    /* CreateProcess needs a modifiable cmdline: make a copy */
+    cmdline_dup = _wcsdup(cmdline);
+    if (cmdline_dup && CreateProcessW(NULL, cmdline_dup, NULL, NULL, FALSE,
+        proc_flags, NULL, NULL, &si, &pi))
+    {
+        WaitForSingleObject(pi.hProcess, INFINITE);
+        if (!GetExitCodeProcess(pi.hProcess, &exit_code))
+        {
+            exit_code = GetLastError();
+        }
+
+        CloseHandle(pi.hProcess);
+        CloseHandle(pi.hThread);
+    }
+    else
+    {
+        exit_code = GetLastError();
+    }
+
+    free(cmdline_dup);
+    return exit_code;
+}
 
 DWORD
 tap_set_adapter_name(
@@ -1134,7 +1171,7 @@ tap_set_adapter_name(
         HKEY_LOCAL_MACHINE,
         szRegKey,
         0,
-        KEY_SET_VALUE,
+        KEY_QUERY_VALUE,
         &hKey);
     if (dwResult != ERROR_SUCCESS)
     {
@@ -1143,27 +1180,30 @@ tap_set_adapter_name(
         goto cleanup_szAdapterId;
     }
 
-    /* Set the adapter name. */
-    size_t sizeName = ((_tcslen(szName) + 1) * sizeof(TCHAR));
-#ifdef _WIN64
-    if (sizeName > DWORD_MAX)
-    {
-        dwResult = ERROR_BAD_ARGUMENTS;
-        msg(M_NONFATAL, "%s: string too big (size %u).", __FUNCTION__, sizeName);
-        goto cleanup_hKey;
-    }
-#endif
-    dwResult = RegSetKeyValue(
-        hKey,
-        NULL,
-        TEXT("Name"),
-        REG_SZ,
-        szName,
-        (DWORD)sizeName);
+    LPTSTR szOldName = NULL;
+    dwResult = get_reg_string(hKey, TEXT("Name"), &szOldName);
     if (dwResult != ERROR_SUCCESS)
     {
-        SetLastError(dwResult); /* MSDN does not mention RegSetKeyValue() to set GetLastError(). But we do have an error code. Set last error manually. */
-        msg(M_NONFATAL | M_ERRNO, "%s: RegSetKeyValue(\"Name\") failed", __FUNCTION__);
+        SetLastError(dwResult);
+        msg(M_NONFATAL | M_ERRNO, "%s: Error reading adapter name", __FUNCTION__);
+        goto cleanup_hKey;
+    }
+
+    /* rename adapter via netsh call */
+    const TCHAR* szFmt = _T("netsh interface set interface name=\"%s\" newname=\"%s\"");
+    size_t ncmdline = _tcslen(szFmt) + _tcslen(szOldName) + _tcslen(szName) + 1;
+    WCHAR* szCmdLine = malloc(ncmdline * sizeof(TCHAR));
+    _stprintf_s(szCmdLine, ncmdline, szFmt, szOldName, szName);
+
+    free(szOldName);
+
+    dwResult = ExecCommand(szCmdLine);
+    free(szCmdLine);
+
+    if (dwResult != ERROR_SUCCESS)
+    {
+        SetLastError(dwResult);
+        msg(M_NONFATAL | M_ERRNO, "%s: Error renaming adapter", __FUNCTION__);
         goto cleanup_hKey;
     }
 
