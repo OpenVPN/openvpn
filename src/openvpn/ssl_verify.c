@@ -78,7 +78,7 @@ tls_deauthenticate(struct tls_multi *multi)
         {
             for (int j = 0; j < KS_SIZE; ++j)
             {
-                multi->session[i].key[j].authenticated = false;
+                multi->session[i].key[j].authenticated = KS_AUTH_FALSE;
             }
         }
     }
@@ -950,7 +950,7 @@ tls_authentication_status(struct tls_multi *multi, const int latency)
             if (DECRYPT_KEY_ENABLED(multi, ks))
             {
                 active = true;
-                if (ks->authenticated)
+                if (ks->authenticated != KS_AUTH_FALSE)
                 {
 #ifdef ENABLE_DEF_AUTH
                     unsigned int s1 = ACF_DISABLED;
@@ -967,7 +967,7 @@ tls_authentication_status(struct tls_multi *multi, const int latency)
                         case ACF_SUCCEEDED:
                         case ACF_DISABLED:
                             success = true;
-                            ks->auth_deferred = false;
+                            ks->authenticated = KS_AUTH_TRUE;
                             break;
 
                         case ACF_UNDEFINED:
@@ -978,7 +978,7 @@ tls_authentication_status(struct tls_multi *multi, const int latency)
                             break;
 
                         case ACF_FAILED:
-                            ks->authenticated = false;
+                            ks->authenticated = KS_AUTH_FALSE;
                             break;
 
                         default:
@@ -1308,7 +1308,7 @@ verify_user_pass(struct user_pass *up, struct tls_multi *multi,
         else
         {
             wipe_auth_token(multi);
-            ks->authenticated = false;
+            ks->authenticated = KS_AUTH_FALSE;
             msg(M_WARN, "TLS: Username/auth-token authentication "
                 "failed for username '%s'", up->username);
             return;
@@ -1354,17 +1354,17 @@ verify_user_pass(struct user_pass *up, struct tls_multi *multi,
 #endif
         && tls_lock_username(multi, up->username))
     {
-        ks->authenticated = true;
+        ks->authenticated = KS_AUTH_TRUE;
 #ifdef PLUGIN_DEF_AUTH
         if (s1 == OPENVPN_PLUGIN_FUNC_DEFERRED)
         {
-            ks->auth_deferred = true;
+            ks->authenticated = KS_AUTH_DEFERRED;
         }
 #endif
 #ifdef MANAGEMENT_DEF_AUTH
         if (man_def_auth != KMDA_UNDEF)
         {
-            ks->auth_deferred = true;
+            ks->authenticated = KS_AUTH_DEFERRED;
         }
 #endif
         if ((session->opt->ssl_flags & SSLF_USERNAME_AS_COMMON_NAME))
@@ -1416,7 +1416,7 @@ verify_user_pass(struct user_pass *up, struct tls_multi *multi,
         }
 #ifdef ENABLE_DEF_AUTH
         msg(D_HANDSHAKE, "TLS: Username/Password authentication %s for username '%s' %s",
-            ks->auth_deferred ? "deferred" : "succeeded",
+            (ks->authenticated == KS_AUTH_DEFERRED) ? "deferred" : "succeeded",
             up->username,
             (session->opt->ssl_flags & SSLF_USERNAME_AS_COMMON_NAME) ? "[CN SET]" : "");
 #else
@@ -1428,6 +1428,7 @@ verify_user_pass(struct user_pass *up, struct tls_multi *multi,
     }
     else
     {
+        ks->authenticated = KS_AUTH_FALSE;
         msg(D_TLS_ERRORS, "TLS Auth Error: Auth Username/Password verification failed for peer");
     }
 }
@@ -1444,7 +1445,7 @@ verify_final_auth_checks(struct tls_multi *multi, struct tls_session *session)
     }
 
     /* Don't allow the CN to change once it's been locked */
-    if (ks->authenticated && multi->locked_cn)
+    if (ks->authenticated != KS_AUTH_FALSE && multi->locked_cn)
     {
         const char *cn = session->common_name;
         if (cn && strcmp(cn, multi->locked_cn))
@@ -1460,7 +1461,7 @@ verify_final_auth_checks(struct tls_multi *multi, struct tls_session *session)
     }
 
     /* Don't allow the cert hashes to change once they have been locked */
-    if (ks->authenticated && multi->locked_cert_hash_set)
+    if (ks->authenticated != KS_AUTH_FALSE && multi->locked_cert_hash_set)
     {
         const struct cert_hash_set *chs = session->cert_hash_set;
         if (chs && !cert_hash_compare(chs, multi->locked_cert_hash_set))
@@ -1474,7 +1475,7 @@ verify_final_auth_checks(struct tls_multi *multi, struct tls_session *session)
     }
 
     /* verify --client-config-dir based authentication */
-    if (ks->authenticated && session->opt->client_config_dir_exclusive)
+    if (ks->authenticated != KS_AUTH_FALSE && session->opt->client_config_dir_exclusive)
     {
         struct gc_arena gc = gc_new();
 
@@ -1483,7 +1484,7 @@ verify_final_auth_checks(struct tls_multi *multi, struct tls_session *session)
                                              cn, &gc);
         if (!cn || !strcmp(cn, CCD_DEFAULT) || !platform_test_file(path))
         {
-            ks->authenticated = false;
+            ks->authenticated = KS_AUTH_FALSE;
             wipe_auth_token(multi);
             msg(D_TLS_ERRORS, "TLS Auth Error: --client-config-dir authentication failed for common name '%s' file='%s'",
                 session->common_name,

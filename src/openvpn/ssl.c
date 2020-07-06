@@ -1930,7 +1930,7 @@ tls_session_generate_data_channel_keys(struct tls_session *session)
     const struct session_id *server_sid = !session->opt->server ?
                                           &ks->session_id_remote : &session->session_id;
 
-    if (!ks->authenticated)
+    if (ks->authenticated == KS_AUTH_FALSE)
     {
         msg(D_TLS_ERRORS, "TLS Error: key_state not authenticated");
         goto cleanup;
@@ -2466,7 +2466,7 @@ key_method_2_write(struct buffer *buf, struct tls_session *session)
     if (session->opt->server && !(session->opt->ncp_enabled
                                   && session->opt->mode == MODE_SERVER && ks->key_id <= 0))
     {
-        if (ks->authenticated)
+        if (ks->authenticated != KS_AUTH_FALSE)
         {
             if (!tls_session_generate_data_channel_keys(session))
             {
@@ -2536,7 +2536,7 @@ key_method_1_read(struct buffer *buf, struct tls_session *session)
                  &session->opt->key_type, OPENVPN_OP_DECRYPT,
                  "Data Channel Decrypt");
     secure_memzero(&key, sizeof(key));
-    ks->authenticated = true;
+    ks->authenticated = KS_AUTH_TRUE;
     return true;
 
 error:
@@ -2594,7 +2594,7 @@ key_method_2_read(struct buffer *buf, struct tls_multi *multi, struct tls_sessio
         goto error;
     }
 
-    ks->authenticated = false;
+    ks->authenticated = KS_AUTH_FALSE;
 
     /* always extract username + password fields from buf, even if not
      * authenticating for it, because otherwise we can't get at the
@@ -2652,14 +2652,14 @@ key_method_2_read(struct buffer *buf, struct tls_multi *multi, struct tls_sessio
                 "TLS Error: Certificate verification failed (key-method 2)");
             goto error;
         }
-        ks->authenticated = true;
+        ks->authenticated = KS_AUTH_TRUE;
     }
 
     /* clear username and password from memory */
     secure_memzero(up, sizeof(*up));
 
     /* Perform final authentication checks */
-    if (ks->authenticated)
+    if (ks->authenticated != KS_AUTH_FALSE)
     {
         verify_final_auth_checks(multi, session);
     }
@@ -2673,7 +2673,7 @@ key_method_2_read(struct buffer *buf, struct tls_multi *multi, struct tls_sessio
         if (session->opt->ssl_flags & SSLF_OPT_VERIFY)
         {
             msg(D_TLS_ERRORS, "Option inconsistency warnings triggering disconnect due to --opt-verify");
-            ks->authenticated = false;
+            ks->authenticated = KS_AUTH_FALSE;
         }
     }
 #endif
@@ -2684,13 +2684,14 @@ key_method_2_read(struct buffer *buf, struct tls_multi *multi, struct tls_sessio
      * Call OPENVPN_PLUGIN_TLS_FINAL plugin if defined, for final
      * veto opportunity over authentication decision.
      */
-    if (ks->authenticated && plugin_defined(session->opt->plugins, OPENVPN_PLUGIN_TLS_FINAL))
+    if ((ks->authenticated != KS_AUTH_FALSE)
+        && plugin_defined(session->opt->plugins, OPENVPN_PLUGIN_TLS_FINAL))
     {
         key_state_export_keying_material(&ks->ks_ssl, session);
 
         if (plugin_call(session->opt->plugins, OPENVPN_PLUGIN_TLS_FINAL, NULL, NULL, session->opt->es) != OPENVPN_PLUGIN_FUNC_SUCCESS)
         {
-            ks->authenticated = false;
+            ks->authenticated = KS_AUTH_FALSE;
         }
 
         setenv_del(session->opt->es, "exported_keying_material");
@@ -3394,10 +3395,7 @@ tls_pre_decrypt(struct tls_multi *multi,
                  */
                 if (DECRYPT_KEY_ENABLED(multi, ks)
                     && key_id == ks->key_id
-                    && ks->authenticated
-#ifdef ENABLE_DEF_AUTH
-                    && !ks->auth_deferred
-#endif
+                    && (ks->authenticated == KS_AUTH_TRUE)
                     && (floated || link_socket_actual_match(from, &ks->remote_addr)))
                 {
                     if (!ks->crypto_options.key_ctx_bi.initialized)
@@ -3946,11 +3944,8 @@ tls_pre_encrypt(struct tls_multi *multi,
         {
             struct key_state *ks = multi->key_scan[i];
             if (ks->state >= S_ACTIVE
-                && ks->authenticated
+                && (ks->authenticated == KS_AUTH_TRUE)
                 && ks->crypto_options.key_ctx_bi.initialized
-#ifdef ENABLE_DEF_AUTH
-                && !ks->auth_deferred
-#endif
                 )
             {
                 if (!ks_select)

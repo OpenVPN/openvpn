@@ -127,6 +127,12 @@ struct key_source2 {
     struct key_source server;   /**< Random provided by server. */
 };
 
+enum ks_auth_state {
+  KS_AUTH_FALSE,
+  KS_AUTH_TRUE,
+  KS_AUTH_DEFERRED
+};
+
 /**
  * Security parameter state of one TLS and data channel %key session.
  * @ingroup control_processor
@@ -185,12 +191,11 @@ struct key_state
     /*
      * If bad username/password, TLS connection will come up but 'authenticated' will be false.
      */
-    bool authenticated;
+    enum ks_auth_state authenticated;
     time_t auth_deferred_expire;
 
 #ifdef ENABLE_DEF_AUTH
     /* If auth_deferred is true, authentication is being deferred */
-    bool auth_deferred;
 #ifdef MANAGEMENT_DEF_AUTH
     unsigned int mda_key_id;
     unsigned int mda_status;
