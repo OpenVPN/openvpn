@@ -4326,7 +4326,7 @@ usage_version(void)
     msg(M_INFO|M_NOPREFIX, "special build: %s", CONFIGURE_SPECIAL_BUILD);
 #endif
 #endif
-    openvpn_exit(OPENVPN_EXIT_STATUS_USAGE); /* exit point */
+    openvpn_exit(OPENVPN_EXIT_STATUS_GOOD);
 }
 
 void
