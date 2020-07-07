@@ -743,6 +743,7 @@ openvpn_exit(const int status)
 #ifdef _WIN32
         uninit_win32();
 #endif
+        remove_pid_file();
 
         close_syslog();
 

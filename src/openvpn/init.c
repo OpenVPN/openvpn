@@ -58,6 +58,7 @@
 
 
 static struct context *static_context; /* GLOBAL */
+static const char *saved_pid_file_name; /* GLOBAL */
 
 /*
  * Crypto initialization flags
@@ -4686,6 +4687,47 @@ close_context(struct context *c, int sig, unsigned int flags)
         context_gc_free(c);
     }
 }
+
+/* Write our PID to a file */
+void
+write_pid_file(const char *filename, const char *chroot_dir)
+{
+    if (filename)
+    {
+        unsigned int pid = 0;
+        FILE *fp = platform_fopen(filename, "w");
+        if (!fp)
+        {
+            msg(M_ERR, "Open error on pid file %s", filename);
+            return;
+        }
+
+        pid = platform_getpid();
+        fprintf(fp, "%u\n", pid);
+        if (fclose(fp))
+        {
+            msg(M_ERR, "Close error on pid file %s", filename);
+        }
+
+        /* remember file name so it can be deleted "out of context" later */
+        /* (the chroot case is more complex and not handled today) */
+        if (!chroot_dir)
+        {
+            saved_pid_file_name = strdup(filename);
+        }
+    }
+}
+
+/* remove PID file on exit, called from openvpn_exit() */
+void
+remove_pid_file(void)
+{
+    if (saved_pid_file_name)
+    {
+        platform_unlink(saved_pid_file_name);
+    }
+}
+
 
 /*
  * Do a loopback test
