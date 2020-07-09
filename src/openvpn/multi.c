@@ -2352,12 +2352,12 @@ multi_process_post(struct multi_context *m, struct multi_instance *mi, const uns
     if (!IS_SIG(&mi->context) && ((flags & MPP_PRE_SELECT) || ((flags & MPP_CONDITIONAL_PRE_SELECT) && !ANY_OUT(&mi->context))))
     {
 #if defined(ENABLE_ASYNC_PUSH) && defined(ENABLE_DEF_AUTH)
-        bool was_authenticated = false;
+        bool was_unauthenticated = true;
         struct key_state *ks = NULL;
         if (mi->context.c2.tls_multi)
         {
             ks = &mi->context.c2.tls_multi->session[TM_ACTIVE].key[KS_PRIMARY];
-            was_authenticated = ks->authenticated;
+            was_unauthenticated = (ks->authenticated == KS_AUTH_FALSE);
         }
 #endif
 
@@ -2366,7 +2366,13 @@ multi_process_post(struct multi_context *m, struct multi_instance *mi, const uns
         pre_select(&mi->context);
 
 #if defined(ENABLE_ASYNC_PUSH) && defined(ENABLE_DEF_AUTH)
-        if (ks && ks->auth_control_file && ks->auth_deferred && !was_authenticated)
+        /*
+         * if we see the state transition from unauthenticated to deferred
+         * and an auth_control_file, we assume it got just added and add
+         * inotify watch to that file
+         */
+        if (ks && ks->auth_control_file && was_unauthenticated
+            && (ks->authenticated == KS_AUTH_DEFERRED))
         {
             /* watch acf file */
             long watch_descriptor = inotify_add_watch(m->top.c2.inotify_fd, ks->auth_control_file, IN_CLOSE_WRITE | IN_ONESHOT);

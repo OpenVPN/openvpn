@@ -127,10 +127,23 @@ struct key_source2 {
     struct key_source server;   /**< Random provided by server. */
 };
 
+
+/**
+ * This reflects the (server side) authentication state after the TLS
+ * session has been established and key_method_2_read is called. If async auth
+ * is enabled the state will first move to KS_AUTH_DEFERRED before eventually
+ * being set to KS_AUTH_TRUE or KS_AUTH_FALSE
+ * Only KS_AUTH_TRUE is fully authenticated
+ */
 enum ks_auth_state {
-  KS_AUTH_FALSE,
-  KS_AUTH_TRUE,
-  KS_AUTH_DEFERRED
+  KS_AUTH_FALSE,              /**< Key state is not authenticated  */
+  KS_AUTH_DEFERRED,           /**< Key state authentication is being deferred,
+                                * by async auth */
+  KS_AUTH_TRUE                /**< Key state is authenticated. TLS and user/pass
+                                * succeeded. This includes AUTH_PENDING/OOB
+                                * authentication as those hold the
+                                * connection artificially in KS_AUTH_DEFERRED
+                                */
 };
 
 /**
@@ -194,8 +207,6 @@ struct key_state
     enum ks_auth_state authenticated;
     time_t auth_deferred_expire;
 
-#ifdef ENABLE_DEF_AUTH
-    /* If auth_deferred is true, authentication is being deferred */
 #ifdef MANAGEMENT_DEF_AUTH
     unsigned int mda_key_id;
     unsigned int mda_status;
@@ -204,7 +215,6 @@ struct key_state
     unsigned int auth_control_status;
     time_t acf_last_mod;
     char *auth_control_file;
-#endif
 #endif
 };
 

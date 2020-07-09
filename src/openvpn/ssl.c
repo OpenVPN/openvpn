@@ -2466,7 +2466,7 @@ key_method_2_write(struct buffer *buf, struct tls_session *session)
     if (session->opt->server && !(session->opt->ncp_enabled
                                   && session->opt->mode == MODE_SERVER && ks->key_id <= 0))
     {
-        if (ks->authenticated != KS_AUTH_FALSE)
+        if (ks->authenticated > KS_AUTH_FALSE)
         {
             if (!tls_session_generate_data_channel_keys(session))
             {
@@ -2659,7 +2659,7 @@ key_method_2_read(struct buffer *buf, struct tls_multi *multi, struct tls_sessio
     secure_memzero(up, sizeof(*up));
 
     /* Perform final authentication checks */
-    if (ks->authenticated != KS_AUTH_FALSE)
+    if (ks->authenticated > KS_AUTH_FALSE)
     {
         verify_final_auth_checks(multi, session);
     }
@@ -2684,7 +2684,7 @@ key_method_2_read(struct buffer *buf, struct tls_multi *multi, struct tls_sessio
      * Call OPENVPN_PLUGIN_TLS_FINAL plugin if defined, for final
      * veto opportunity over authentication decision.
      */
-    if ((ks->authenticated != KS_AUTH_FALSE)
+    if ((ks->authenticated > KS_AUTH_FALSE)
         && plugin_defined(session->opt->plugins, OPENVPN_PLUGIN_TLS_FINAL))
     {
         key_state_export_keying_material(&ks->ks_ssl, session);
@@ -2715,6 +2715,7 @@ key_method_2_read(struct buffer *buf, struct tls_multi *multi, struct tls_sessio
     return true;
 
 error:
+    ks->authenticated = KS_AUTH_FALSE;
     secure_memzero(ks->key_src, sizeof(*ks->key_src));
     if (up)
     {
