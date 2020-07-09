@@ -2376,6 +2376,8 @@ do_deferred_options(struct context *c, const unsigned int found)
         }
         else if (c->options.ncp_enabled)
         {
+            /* If the server did not push a --cipher, we will switch to the
+             * remote cipher if it is in our ncp-ciphers list */
             tls_poor_mans_ncp(&c->options, c->c2.tls_multi->remote_ciphername);
         }
         struct frame *frame_fragment = NULL;

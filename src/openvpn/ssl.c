@@ -1985,6 +1985,13 @@ tls_session_update_crypto_params(struct tls_session *session,
             options->keysize = 0;
         }
     }
+    else
+    {
+      /* Very hacky workaround and quick fix for frame calculation
+       * different when adjusting frame size when the original and new cipher
+       * are identical to avoid a regression with client without NCP */
+        return tls_session_generate_data_channel_keys(session);
+    }
 
     init_key_type(&session->opt->key_type, options->ciphername,
                   options->authname, options->keysize, true, true);
@@ -2462,8 +2469,7 @@ key_method_2_write(struct buffer *buf, struct tls_session *session)
      * generation is postponed until after the pull/push, so we can process pushed
      * cipher directives.
      */
-    if (session->opt->server && !(session->opt->ncp_enabled
-                                  && session->opt->mode == MODE_SERVER && ks->key_id <= 0))
+    if (session->opt->server && !(session->opt->mode == MODE_SERVER && ks->key_id <= 0))
     {
         if (ks->authenticated > KS_AUTH_FALSE)
         {
@@ -2614,18 +2620,6 @@ key_method_2_read(struct buffer *buf, struct tls_multi *multi, struct tls_sessio
     free(multi->remote_ciphername);
     multi->remote_ciphername =
         options_string_extract_option(options, "cipher", NULL);
-
-    if (!tls_peer_supports_ncp(multi->peer_info))
-    {
-        /* Peer does not support NCP, but leave NCP enabled if the local and
-         * remote cipher do not match to attempt 'poor-man's NCP'.
-         */
-        if (multi->remote_ciphername == NULL
-            || 0 == strcmp(multi->remote_ciphername, multi->opt.config_ciphername))
-        {
-            session->opt->ncp_enabled = false;
-        }
-    }
 
     if (tls_session_user_pass_enabled(session))
     {
