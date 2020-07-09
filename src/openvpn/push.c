@@ -855,6 +855,63 @@ push_update_digest(md_ctx_t *ctx, struct buffer *buf, const struct options *opt)
     }
 }
 
+static int
+process_incoming_push_reply(struct context *c,
+                            unsigned int permission_mask,
+                            unsigned int *option_types_found,
+                            struct buffer *buf)
+{
+    int ret = PUSH_MSG_ERROR;
+    const uint8_t ch = buf_read_u8(buf);
+    if (ch == ',')
+    {
+        struct buffer buf_orig = (*buf);
+        if (!c->c2.pulled_options_digest_init_done)
+        {
+            c->c2.pulled_options_state = md_ctx_new();
+            md_ctx_init(c->c2.pulled_options_state, md_kt_get("SHA256"));
+            c->c2.pulled_options_digest_init_done = true;
+        }
+        if (!c->c2.did_pre_pull_restore)
+        {
+            pre_pull_restore(&c->options, &c->c2.gc);
+            c->c2.did_pre_pull_restore = true;
+        }
+        if (apply_push_options(&c->options,
+                               buf,
+                               permission_mask,
+                               option_types_found,
+                               c->c2.es))
+        {
+            push_update_digest(c->c2.pulled_options_state, &buf_orig,
+                               &c->options);
+            switch (c->options.push_continuation)
+            {
+                case 0:
+                case 1:
+                    md_ctx_final(c->c2.pulled_options_state,
+                                 c->c2.pulled_options_digest.digest);
+                    md_ctx_cleanup(c->c2.pulled_options_state);
+                    md_ctx_free(c->c2.pulled_options_state);
+                    c->c2.pulled_options_state = NULL;
+                    c->c2.pulled_options_digest_init_done = false;
+                    ret = PUSH_MSG_REPLY;
+                    break;
+
+                case 2:
+                    ret = PUSH_MSG_CONTINUATION;
+                    break;
+            }
+        }
+    }
+    else if (ch == '\0')
+    {
+        ret = PUSH_MSG_REPLY;
+    }
+    /* show_settings (&c->options); */
+    return ret;
+}
+
 int
 process_incoming_push_msg(struct context *c,
                           const struct buffer *buffer,
@@ -862,64 +919,22 @@ process_incoming_push_msg(struct context *c,
                           unsigned int permission_mask,
                           unsigned int *option_types_found)
 {
-    int ret = PUSH_MSG_ERROR;
     struct buffer buf = *buffer;
 
     if (buf_string_compare_advance(&buf, "PUSH_REQUEST"))
     {
-        ret = process_incoming_push_request(c);
+        return process_incoming_push_request(c);
     }
     else if (honor_received_options
              && buf_string_compare_advance(&buf, "PUSH_REPLY"))
     {
-        const uint8_t ch = buf_read_u8(&buf);
-        if (ch == ',')
-        {
-            struct buffer buf_orig = buf;
-            if (!c->c2.pulled_options_digest_init_done)
-            {
-                c->c2.pulled_options_state = md_ctx_new();
-                md_ctx_init(c->c2.pulled_options_state, md_kt_get("SHA256"));
-                c->c2.pulled_options_digest_init_done = true;
-            }
-            if (!c->c2.did_pre_pull_restore)
-            {
-                pre_pull_restore(&c->options, &c->c2.gc);
-                c->c2.did_pre_pull_restore = true;
-            }
-            if (apply_push_options(&c->options,
-                                   &buf,
-                                   permission_mask,
-                                   option_types_found,
-                                   c->c2.es))
-            {
-                push_update_digest(c->c2.pulled_options_state, &buf_orig,
-                                   &c->options);
-                switch (c->options.push_continuation)
-                {
-                    case 0:
-                    case 1:
-                        md_ctx_final(c->c2.pulled_options_state, c->c2.pulled_options_digest.digest);
-                        md_ctx_cleanup(c->c2.pulled_options_state);
-                        md_ctx_free(c->c2.pulled_options_state);
-                        c->c2.pulled_options_state = NULL;
-                        c->c2.pulled_options_digest_init_done = false;
-                        ret = PUSH_MSG_REPLY;
-                        break;
-
-                    case 2:
-                        ret = PUSH_MSG_CONTINUATION;
-                        break;
-                }
-            }
-        }
-        else if (ch == '\0')
-        {
-            ret = PUSH_MSG_REPLY;
-        }
-        /* show_settings (&c->options); */
+        return process_incoming_push_reply(c, permission_mask,
+                                           option_types_found, &buf);
     }
-    return ret;
+    else
+    {
+        return PUSH_MSG_ERROR;
+    }
 }
 
 
