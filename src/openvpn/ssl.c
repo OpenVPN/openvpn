@@ -1231,11 +1231,10 @@ lame_duck_must_die(const struct tls_session *session, interval_t *wakeup)
     const struct key_state *lame = &session->key[KS_LAME_DUCK];
     if (lame->state >= S_INITIAL)
     {
-        const time_t local_now = now;
         ASSERT(lame->must_die); /* a lame duck key must always have an expiration */
-        if (local_now < lame->must_die)
+        if (now < lame->must_die)
         {
-            compute_earliest_wakeup(wakeup, lame->must_die - local_now);
+            compute_earliest_wakeup(wakeup, lame->must_die - now);
             return false;
         }
         else
