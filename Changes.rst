@@ -13,6 +13,24 @@ ChaCha20-Poly1305 cipher support
     Added support for using the ChaCha20-Poly1305 cipher in the OpenVPN data
     channel.
 
+Improved Data channel cipher negotiation
+    OpenVPN clients will now signal all supported ciphers from the
+    ``ncp-ciphers`` option to the server via ``IV_CIPHERS``. OpenVPN
+    servers will select the first common cipher from the ``ncp-ciphers``
+    list instead of blindly pushing the first cipher of the list. This
+    allows to use a configuration like
+    ``ncp-ciphers ChaCha20-Poly1305:AES-256-GCM`` on the server that
+    prefers ChaCha20-Poly1305 but uses it only if the client supports it.
+
+Deprecated features
+-------------------
+For an up-to-date list of all deprecated options, see this wiki page:
+https://community.openvpn.net/openvpn/wiki/DeprecatedOptions
+
+- ``ncp-disable`` has been deprecated
+    With the improved and matured data channel cipher negotiation, the use
+    of ``ncp-disable`` should not be necessary anymore.
+
 
 Overview of changes in 2.4
 ==========================

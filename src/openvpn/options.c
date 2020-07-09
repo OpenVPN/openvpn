@@ -545,7 +545,7 @@ static const char usage_message[] =
     "                  (default=%s).\n"
     "                  Set alg=none to disable encryption.\n"
     "--ncp-ciphers list : List of ciphers that are allowed to be negotiated.\n"
-    "--ncp-disable   : Disable cipher negotiation.\n"
+    "--ncp-disable   : (DEPRECATED) Disable cipher negotiation.\n"
     "--prng alg [nsl] : For PRNG, use digest algorithm alg, and\n"
     "                   nonce_secret_len=nsl.  Set alg=none to disable PRNG.\n"
 #ifdef HAVE_EVP_CIPHER_CTX_SET_KEY_LENGTH
@@ -7904,6 +7904,9 @@ add_option(struct options *options,
     {
         VERIFY_PERMISSION(OPT_P_GENERAL|OPT_P_INSTANCE);
         options->ncp_enabled = false;
+        msg(M_WARN, "DEPRECATED OPTION: ncp-disable. Disabling dynamic "
+                    "cipher negotiation is a deprecated debug feature that "
+                    "will be removed in OpenVPN 2.6");
     }
     else if (streq(p[0], "prng") && p[1] && !p[3])
     {
