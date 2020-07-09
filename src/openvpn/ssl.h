@@ -89,13 +89,6 @@
 #define TLS_MULTI_HORIZON 2     /* call tls_multi_process frequently for n seconds after
                                  * every packet sent/received action */
 
-/*
- * The SSL/TLS worker thread will wait at most this many seconds for the
- * interprocess communication pipe to the main thread to be ready to accept
- * writes.
- */
-#define TLS_MULTI_THREAD_SEND_TIMEOUT 5
-
 /* Interval that tls_multi_process should call tls_authentication_status */
 #define TLS_MULTI_AUTH_STATUS_INTERVAL 10
 
