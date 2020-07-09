@@ -359,28 +359,9 @@ incoming_push_message(struct context *c, const struct buffer *buffer)
         }
         event_timeout_clear(&c->c2.push_request_interval);
     }
-    else if (status == PUSH_MSG_REQUEST)
-    {
-        if (c->options.mode == MODE_SERVER)
-        {
-            struct frame *frame_fragment = NULL;
-#ifdef ENABLE_FRAGMENT
-            if (c->options.ce.fragment)
-            {
-                frame_fragment = &c->c2.frame_fragment;
-            }
-#endif
-            struct tls_session *session = &c->c2.tls_multi->session[TM_ACTIVE];
-            if (!tls_session_update_crypto_params(session, &c->options,
-                                                  &c->c2.frame, frame_fragment))
-            {
-                msg(D_TLS_ERRORS, "TLS Error: initializing data channel failed");
-                goto error;
-            }
-        }
-    }
 
     goto cleanup;
+
 error:
     register_signal(c, SIGUSR1, "process-push-msg-failed");
 cleanup:
@@ -748,7 +729,6 @@ process_incoming_push_request(struct context *c)
 {
     int ret = PUSH_MSG_ERROR;
 
-    c->c2.push_request_received = true;
     if (tls_authentication_status(c->c2.tls_multi, 0) == TLS_AUTHENTICATION_FAILED || c->c2.context_auth == CAS_FAILED)
     {
         const char *client_reason = tls_client_reason(c->c2.tls_multi);
@@ -875,6 +855,7 @@ process_incoming_push_msg(struct context *c,
 
     if (buf_string_compare_advance(&buf, "PUSH_REQUEST"))
     {
+        c->c2.push_request_received = true;
         return process_incoming_push_request(c);
     }
     else if (honor_received_options

@@ -1843,6 +1843,30 @@ multi_client_set_protocol_options(struct context *c)
     }
 }
 
+/**
+ * Generates the data channel keys
+ */
+static bool
+multi_client_generate_tls_keys(struct context *c)
+{
+    struct frame *frame_fragment = NULL;
+#ifdef ENABLE_FRAGMENT
+    if (c->options.ce.fragment)
+    {
+        frame_fragment = &c->c2.frame_fragment;
+    }
+#endif
+    struct tls_session *session = &c->c2.tls_multi->session[TM_ACTIVE];
+    if (!tls_session_update_crypto_params(session, &c->options,
+                                          &c->c2.frame, frame_fragment))
+    {
+        msg(D_TLS_ERRORS, "TLS Error: initializing data channel failed");
+        register_signal(c, SIGUSR1, "process-push-msg-failed");
+        return false;
+    }
+
+    return true;
+}
 
 /*
  * Called as soon as the SSL/TLS connection authenticates.
@@ -2149,7 +2173,13 @@ script_failed:
         /* authentication complete, calculate dynamic client specific options */
         multi_client_set_protocol_options(&mi->context);
 
-        /* send push reply if ready*/
+        /* Generate data channel keys */
+        if (!multi_client_generate_tls_keys(&mi->context))
+        {
+            mi->context.c2.context_auth = CAS_FAILED;
+        }
+
+        /* send push reply if ready */
         if (mi->context.c2.push_request_received)
         {
             process_incoming_push_request(&mi->context);
@@ -2205,28 +2235,6 @@ multi_process_file_closed(struct multi_context *m, const unsigned int mpp_flags)
             {
                 /* continue authentication, perform NCP negotiation and send push_reply */
                 multi_process_post(m, mi, mpp_flags);
-
-                /* With NCP and deferred authentication, we perform cipher negotiation and
-                 * data channel keys generation on incoming push request, assuming that auth
-                 * succeeded. When auth succeeds in between push requests and async push is used,
-                 * we send push reply immediately. Above multi_process_post() call performs
-                 * NCP negotiation and here we do keys generation. */
-
-                struct context *c = &mi->context;
-                struct frame *frame_fragment = NULL;
-#ifdef ENABLE_FRAGMENT
-                if (c->options.ce.fragment)
-                {
-                    frame_fragment = &c->c2.frame_fragment;
-                }
-#endif
-                struct tls_session *session = &c->c2.tls_multi->session[TM_ACTIVE];
-                if (!tls_session_update_crypto_params(session, &c->options,
-                                                      &c->c2.frame, frame_fragment))
-                {
-                    msg(D_TLS_ERRORS, "TLS Error: initializing data channel failed");
-                    register_signal(c, SIGUSR1, "init-data-channel-failed");
-                }
             }
             else
             {
