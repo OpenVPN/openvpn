@@ -432,9 +432,7 @@ struct context_2
 #if P2MP
 
     /* --ifconfig endpoints to be pushed to client */
-#ifdef ENABLE_ASYNC_PUSH
     bool push_request_received;
-#endif
     bool push_ifconfig_defined;
     time_t sent_push_reply_expiry;
     in_addr_t push_ifconfig_local;

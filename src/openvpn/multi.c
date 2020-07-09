@@ -824,8 +824,8 @@ multi_create_instance(struct multi_context *m, const struct mroute_addr *real)
     mi->did_cid_hash = true;
 #endif
 
-#ifdef ENABLE_ASYNC_PUSH
     mi->context.c2.push_request_received = false;
+#ifdef ENABLE_ASYNC_PUSH
     mi->inotify_watch = -1;
 #endif
 
@@ -1772,6 +1772,78 @@ multi_client_connect_setenv(struct multi_context *m,
     gc_free(&gc);
 }
 
+/**
+ * Calculates the options that depend on the client capabilities
+ * based on local options and available peer info
+ * - choosen cipher
+ * - peer id
+ */
+static void
+multi_client_set_protocol_options(struct context *c)
+{
+
+    const char *optstr = NULL;
+    struct tls_multi *tls_multi = c->c2.tls_multi;
+    const char *const peer_info = tls_multi->peer_info;
+    struct options *o = &c->options;
+
+    /* Send peer-id if client supports it */
+    optstr = peer_info ? strstr(peer_info, "IV_PROTO=") : NULL;
+    if (optstr)
+    {
+        int proto = 0;
+        int r = sscanf(optstr, "IV_PROTO=%d", &proto);
+        if ((r == 1) && (proto >= 2))
+        {
+            tls_multi->use_peer_id = true;
+        }
+    }
+
+    /* Select cipher if client supports Negotiable Crypto Parameters */
+    if (o->ncp_enabled)
+    {
+        /* if we have already created our key, we cannot *change* our own
+         * cipher -> so log the fact and push the "what we have now" cipher
+         * (so the client is always told what we expect it to use)
+         */
+        const struct tls_session *session = &tls_multi->session[TM_ACTIVE];
+        if (session->key[KS_PRIMARY].crypto_options.key_ctx_bi.initialized)
+        {
+            msg( M_INFO, "PUSH: client wants to negotiate cipher (NCP), but "
+                 "server has already generated data channel keys, "
+                 "re-sending previously negotiated cipher '%s'",
+                 o->ciphername );
+        }
+        else
+        {
+            /*
+             * Push the first cipher from --ncp-ciphers to the client that
+             * the client announces to be supporting.
+             */
+            char *push_cipher = ncp_get_best_cipher(o->ncp_ciphers, o->ciphername,
+                                                    peer_info,
+                                                    tls_multi->remote_ciphername,
+                                                    &o->gc);
+
+            if (push_cipher)
+            {
+                o->ciphername = push_cipher;
+            }
+            else
+            {
+                struct gc_arena gc = gc_new();
+                const char *peer_ciphers = tls_peer_ncp_list(peer_info, &gc);
+                msg(M_INFO, "PUSH: No common cipher between server and client."
+                    "Expect this connection not to work. "
+                    "Server ncp-ciphers: '%s', client supported ciphers '%s'",
+                    o->ncp_ciphers, peer_ciphers);
+                gc_free(&gc);
+            }
+        }
+    }
+}
+
+
 /*
  * Called as soon as the SSL/TLS connection authenticates.
  *
@@ -2074,13 +2146,14 @@ script_failed:
         /* set context-level authentication flag */
         mi->context.c2.context_auth = CAS_SUCCEEDED;
 
-#ifdef ENABLE_ASYNC_PUSH
-        /* authentication complete, send push reply */
+        /* authentication complete, calculate dynamic client specific options */
+        multi_client_set_protocol_options(&mi->context);
+
+        /* send push reply if ready*/
         if (mi->context.c2.push_request_received)
         {
             process_incoming_push_request(&mi->context);
         }
-#endif
     }
     else
     {

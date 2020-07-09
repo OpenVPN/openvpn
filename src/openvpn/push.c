@@ -437,7 +437,7 @@ prepare_auth_token_push_reply(struct tls_multi *tls_multi, struct gc_arena *gc,
 }
 
 /**
- * Prepare push options, based on local options and available peer info.
+ * Prepare push options, based on local options
  *
  * @param context       context structure storing data for VPN tunnel
  * @param gc            gc arena for allocating push options
@@ -449,9 +449,7 @@ bool
 prepare_push_reply(struct context *c, struct gc_arena *gc,
                    struct push_list *push_list)
 {
-    const char *optstr = NULL;
     struct tls_multi *tls_multi = c->c2.tls_multi;
-    const char *const peer_info = tls_multi->peer_info;
     struct options *o = &c->options;
 
     /* ipv6 */
@@ -480,18 +478,10 @@ prepare_push_reply(struct context *c, struct gc_arena *gc,
                                         0, gc));
     }
 
-    /* Send peer-id if client supports it */
-    optstr = peer_info ? strstr(peer_info, "IV_PROTO=") : NULL;
-    if (optstr)
+    if (tls_multi->use_peer_id)
     {
-        int proto = 0;
-        int r = sscanf(optstr, "IV_PROTO=%d", &proto);
-        if ((r == 1) && (proto >= 2))
-        {
-            push_option_fmt(gc, push_list, M_USAGE, "peer-id %d",
-                            tls_multi->peer_id);
-            tls_multi->use_peer_id = true;
-        }
+        push_option_fmt(gc, push_list, M_USAGE, "peer-id %d",
+                        tls_multi->peer_id);
     }
     /*
      * If server uses --auth-gen-token and we have an auth token
@@ -499,47 +489,11 @@ prepare_push_reply(struct context *c, struct gc_arena *gc,
      */
     prepare_auth_token_push_reply(tls_multi, gc, push_list);
 
-    /* Push cipher if client supports Negotiable Crypto Parameters */
-    if (o->ncp_enabled)
-    {
-        /* if we have already created our key, we cannot *change* our own
-         * cipher -> so log the fact and push the "what we have now" cipher
-         * (so the client is always told what we expect it to use)
-         */
-        const struct tls_session *session = &tls_multi->session[TM_ACTIVE];
-        if (session->key[KS_PRIMARY].crypto_options.key_ctx_bi.initialized)
-        {
-            msg( M_INFO, "PUSH: client wants to negotiate cipher (NCP), but "
-                 "server has already generated data channel keys, "
-                 "re-sending previously negotiated cipher '%s'",
-                 o->ciphername );
-        }
-        else
-        {
-            /*
-             * Push the first cipher from --ncp-ciphers to the client that
-             * the client announces to be supporting.
-             */
-            char *push_cipher = ncp_get_best_cipher(o->ncp_ciphers, o->ciphername,
-                                                    peer_info,
-                                                    tls_multi->remote_ciphername,
-                                                    &o->gc);
-
-            if (push_cipher)
-            {
-                o->ciphername = push_cipher;
-            }
-            else
-            {
-                const char *peer_ciphers = tls_peer_ncp_list(peer_info, gc);
-                msg(M_INFO, "PUSH: No common cipher between server and client."
-                    "Expect this connection not to work. "
-                    "Server ncp-ciphers: '%s', client supported ciphers '%s'",
-                    o->ncp_ciphers, peer_ciphers);
-            }
-        }
-        push_option_fmt(gc, push_list, M_USAGE, "cipher %s", o->ciphername);
-    }
+    /*
+     * Push the selected cipher, at this point the cipher has been
+     * already negotiated and been fixed
+     */
+    push_option_fmt(gc, push_list, M_USAGE, "cipher %s", o->ciphername);
 
     return true;
 }
@@ -794,9 +748,7 @@ process_incoming_push_request(struct context *c)
 {
     int ret = PUSH_MSG_ERROR;
 
-#ifdef ENABLE_ASYNC_PUSH
     c->c2.push_request_received = true;
-#endif
     if (tls_authentication_status(c->c2.tls_multi, 0) == TLS_AUTHENTICATION_FAILED || c->c2.context_auth == CAS_FAILED)
     {
         const char *client_reason = tls_client_reason(c->c2.tls_multi);
