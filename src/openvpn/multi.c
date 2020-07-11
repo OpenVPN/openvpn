@@ -2170,7 +2170,7 @@ multi_client_connect_early_setup(struct multi_context *m,
  * Try to source a dynamic config file from the
  * --client-config-dir directory.
  */
-enum client_connect_return
+static enum client_connect_return
 multi_client_connect_source_ccd(struct multi_context *m,
                                 struct multi_instance *mi,
                                 unsigned int *option_types_found)

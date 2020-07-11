@@ -62,6 +62,7 @@ struct deferred_signal_schedule_entry
     struct timeval wakeup;
 };
 
+
 /**
  * Server-mode state structure for one single VPN tunnel.
  *

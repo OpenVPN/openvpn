@@ -210,6 +210,21 @@ struct context_1
 #endif
 };
 
+
+/* client authentication state, CAS_SUCCEEDED must be 0 since
+ * non multi code path still checks this variable but does not initialise it
+ * so the code depends on zero initialisation */
+enum client_connect_status {
+    CAS_SUCCEEDED=0,
+    CAS_PENDING,
+    CAS_FAILED,
+    CAS_PARTIAL,        /**< Variant of CAS_FAILED: at least one
+                         * client-connect script/plugin succeeded
+                         * while a later one in the chain failed
+                         * (we still need cleanup compared to FAILED)
+                         */
+};
+
 /**
  * Level 2 %context containing state that is reset on both \c SIGHUP and
  * \c SIGUSR1 restarts.
@@ -444,13 +459,8 @@ struct context_2
     int push_ifconfig_ipv6_netbits;
     struct in6_addr push_ifconfig_ipv6_remote;
 
-    /* client authentication state, CAS_SUCCEEDED must be 0 */
-#define CAS_SUCCEEDED 0
-#define CAS_PENDING   1
-#define CAS_FAILED    2
-#define CAS_PARTIAL   3  /* at least one client-connect script/plugin
-                          * succeeded while a later one in the chain failed */
-    int context_auth;
+
+    enum client_connect_status context_auth;
 
     struct event_timeout push_request_interval;
     int n_sent_push_requests;
