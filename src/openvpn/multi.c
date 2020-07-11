@@ -2159,6 +2159,12 @@ multi_client_connect_early_setup(struct multi_context *m,
 
     /* reset pool handle to null */
     mi->vaddr_handle = -1;
+
+    /* do --client-connect setenvs */
+    multi_select_virtual_addr(m, mi);
+
+    multi_client_connect_setenv(m, mi);
+
 }
 
 /**
@@ -2204,6 +2210,13 @@ multi_client_connect_source_ccd(struct multi_context *m,
                                   CLIENT_CONNECT_OPT_MASK,
                                   option_types_found,
                                   mi->context.c2.es);
+            /*
+             * Select a virtual address from either --ifconfig-push in
+             * --client-config-dir file or --ifconfig-pool.
+             */
+            multi_select_virtual_addr(m, mi);
+
+            multi_client_connect_setenv(m, mi);
         }
         gc_free(&gc);
     }
@@ -2244,15 +2257,6 @@ multi_connection_established(struct multi_context *m, struct multi_instance *mi)
     multi_client_connect_early_setup(m, mi);
 
     multi_client_connect_source_ccd(m, mi, &option_types_found);
-
-    /*
-     * Select a virtual address from either --ifconfig-push in
-     * --client-config-dir file or --ifconfig-pool.
-     */
-    multi_select_virtual_addr(m, mi);
-
-    /* do --client-connect setenvs */
-    multi_client_connect_setenv(m, mi);
 
     multi_client_connect_call_plugin_v1(m, mi, &option_types_found,
                                         &cc_succeeded,
