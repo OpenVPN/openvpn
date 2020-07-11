@@ -2552,6 +2552,32 @@ multi_schedule_context_wakeup(struct multi_context *m, struct multi_instance *mi
                        compute_wakeup_sigma(&mi->context.c2.timeval));
 }
 
+#if defined(ENABLE_ASYNC_PUSH) && defined(ENABLE_DEF_AUTH)
+static void
+add_inotify_file_watch(struct multi_context *m, struct multi_instance *mi,
+                       int inotify_fd, const char *file)
+{
+    /* watch acf file */
+    long watch_descriptor = inotify_add_watch(inotify_fd, file,
+                                              IN_CLOSE_WRITE | IN_ONESHOT);
+    if (watch_descriptor >= 0)
+    {
+        if (mi->inotify_watch != -1)
+        {
+            hash_remove(m->inotify_watchers,
+                        (void *) (unsigned long)mi->inotify_watch);
+        }
+        hash_add(m->inotify_watchers, (const uintptr_t *)watch_descriptor,
+                 mi, true);
+        mi->inotify_watch = watch_descriptor;
+    }
+    else
+    {
+        msg(M_NONFATAL | M_ERRNO, "MULTI: inotify_add_watch error");
+    }
+}
+#endif /* if defined(ENABLE_ASYNC_PUSH) && defined(ENABLE_DEF_AUTH) */
+
 /*
  * Figure instance-specific timers, convert
  * earliest to absolute time in mi->wakeup,
@@ -2589,21 +2615,8 @@ multi_process_post(struct multi_context *m, struct multi_instance *mi, const uns
         if (ks && ks->auth_control_file && was_unauthenticated
             && (ks->authenticated == KS_AUTH_DEFERRED))
         {
-            /* watch acf file */
-            long watch_descriptor = inotify_add_watch(m->top.c2.inotify_fd, ks->auth_control_file, IN_CLOSE_WRITE | IN_ONESHOT);
-            if (watch_descriptor >= 0)
-            {
-                if (mi->inotify_watch != -1)
-                {
-                    hash_remove(m->inotify_watchers, (void *) (unsigned long)mi->inotify_watch);
-                }
-                hash_add(m->inotify_watchers, (const uintptr_t *)watch_descriptor, mi, true);
-                mi->inotify_watch = watch_descriptor;
-            }
-            else
-            {
-                msg(M_NONFATAL | M_ERRNO, "MULTI: inotify_add_watch error");
-            }
+            add_inotify_file_watch(m, mi, m->top.c2.inotify_fd,
+                                   ks->auth_control_file);
         }
 #endif
 
