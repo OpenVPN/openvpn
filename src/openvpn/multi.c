@@ -2173,15 +2173,30 @@ multi_client_connect_source_ccd(struct multi_context *m,
     if (mi->context.options.client_config_dir)
     {
         struct gc_arena gc = gc_new();
-        const char *ccd_file;
+        const char *ccd_file = NULL;
 
-        ccd_file = platform_gen_path(mi->context.options.client_config_dir,
-                                     tls_common_name(mi->context.c2.tls_multi,
-                                                     false),
-                                     &gc);
+        const char *ccd_client =
+            platform_gen_path(mi->context.options.client_config_dir,
+                              tls_common_name(mi->context.c2.tls_multi, false),
+                              &gc);
+
+        const char *ccd_default =
+            platform_gen_path(mi->context.options.client_config_dir,
+                              CCD_DEFAULT, &gc);
+
 
         /* try common-name file */
-        if (platform_test_file(ccd_file))
+        if (platform_test_file(ccd_client))
+        {
+            ccd_file = ccd_client;
+        }
+        /* try default file */
+        else if (platform_test_file(ccd_default))
+        {
+            ccd_file = ccd_default;
+        }
+
+        if (ccd_file)
         {
             options_server_import(&mi->context.options,
                                   ccd_file,
@@ -2189,22 +2204,6 @@ multi_client_connect_source_ccd(struct multi_context *m,
                                   CLIENT_CONNECT_OPT_MASK,
                                   option_types_found,
                                   mi->context.c2.es);
-        }
-        else /* try default file */
-        {
-            ccd_file = platform_gen_path(mi->context.options.client_config_dir,
-                                         CCD_DEFAULT,
-                                         &gc);
-
-            if (platform_test_file(ccd_file))
-            {
-                options_server_import(&mi->context.options,
-                                      ccd_file,
-                                      D_IMPORT_ERRORS|M_OPTERR,
-                                      CLIENT_CONNECT_OPT_MASK,
-                                      option_types_found,
-                                      mi->context.c2.es);
-            }
         }
         gc_free(&gc);
     }
