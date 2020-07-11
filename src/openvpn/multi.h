@@ -623,7 +623,9 @@ multi_process_outgoing_tun(struct multi_context *m, const unsigned int mpp_flags
     return ret;
 }
 
-
+#define CLIENT_CONNECT_OPT_MASK (OPT_P_INSTANCE | OPT_P_INHERIT   \
+                                 |OPT_P_PUSH | OPT_P_TIMER | OPT_P_CONFIG   \
+                                 |OPT_P_ECHO | OPT_P_COMP | OPT_P_SOCKFLAGS)
 
 static inline bool
 multi_process_outgoing_link_dowork(struct multi_context *m, struct multi_instance *mi, const unsigned int mpp_flags)
