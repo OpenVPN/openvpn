@@ -2248,6 +2248,10 @@ cc_check_return(int *cc_succeeded_count,
     }
 }
 
+typedef enum client_connect_return (*multi_client_connect_handler)
+    (struct multi_context *m, struct multi_instance *mi,
+     unsigned int *option_types_found);
+
 /*
  * Called as soon as the SSL/TLS connection is authenticated.
  *
@@ -2275,7 +2279,17 @@ multi_connection_established(struct multi_context *m, struct multi_instance *mi)
     {
         return;
     }
-    unsigned int option_types_found = 0;
+
+        multi_client_connect_handler handlers[] = {
+            multi_client_connect_source_ccd,
+            multi_client_connect_call_plugin_v1,
+            multi_client_connect_call_plugin_v2,
+            multi_client_connect_call_script,
+            multi_client_connect_mda,
+            NULL
+        };
+
+        unsigned int option_types_found = 0;
 
     int cc_succeeded = true;     /* client connect script status */
     int cc_succeeded_count = 0;
@@ -2283,31 +2297,9 @@ multi_connection_established(struct multi_context *m, struct multi_instance *mi)
 
     multi_client_connect_early_setup(m, mi);
 
-    ret = multi_client_connect_source_ccd(m, mi, &option_types_found);
-    cc_succeeded = cc_check_return(&cc_succeeded_count, ret);
-
-    if (cc_succeeded)
+    for (int i = 0; cc_succeeded && handlers[i]; i++)
     {
-        ret = multi_client_connect_call_plugin_v1(m, mi, &option_types_found);
-        cc_succeeded = cc_check_return(&cc_succeeded_count, ret);
-    }
-
-    if (cc_succeeded)
-    {
-        ret = multi_client_connect_call_plugin_v2(m, mi, &option_types_found);
-        cc_succeeded = cc_check_return(&cc_succeeded_count, ret);
-    }
-
-
-    if (cc_succeeded)
-    {
-        ret = multi_client_connect_call_script(m, mi, &option_types_found);
-        cc_succeeded = cc_check_return(&cc_succeeded_count, ret);
-    }
-
-    if (cc_succeeded)
-    {
-        ret = multi_client_connect_mda(m, mi, &option_types_found);
+        ret = handlers[i](m, mi, &option_types_found);
         cc_succeeded = cc_check_return(&cc_succeeded_count, ret);
     }
 
