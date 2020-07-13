@@ -1833,10 +1833,19 @@ multi_client_set_protocol_options(struct context *c)
             {
                 struct gc_arena gc = gc_new();
                 const char *peer_ciphers = tls_peer_ncp_list(peer_info, &gc);
-                msg(M_INFO, "PUSH: No common cipher between server and client."
-                    "Expect this connection not to work. "
-                    "Server ncp-ciphers: '%s', client supported ciphers '%s'",
-                    o->ncp_ciphers, peer_ciphers);
+                if (strlen(peer_ciphers) > 0)
+                {
+                    msg(M_INFO, "PUSH: No common cipher between server and "
+                        "client. Expect this connection not to work. Server "
+                        "ncp-ciphers: '%s', client supported ciphers '%s'",
+                        o->ncp_ciphers, peer_ciphers);
+                }
+                else
+                {
+                    msg(M_INFO, "No NCP data received from peer, falling back "
+                        "to --cipher '%s'. Peer reports in OCC --cipher '%s'",
+                        o->ciphername, np(tls_multi->remote_ciphername));
+                }
                 gc_free(&gc);
             }
         }

@@ -225,6 +225,12 @@ ncp_get_best_cipher(const char *server_list, const char *server_cipher,
 
     const char *peer_ncp_list = tls_peer_ncp_list(peer_info, &gc_tmp);
 
+    /* non-NCP client without OCC?  "assume nothing" */
+    if (remote_cipher == NULL)
+    {
+        remote_cipher = "";
+    }
+
     char *tmp_ciphers = string_alloc(server_list, &gc_tmp);
 
     const char *token = strsep(&tmp_ciphers, ":");
