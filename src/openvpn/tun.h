@@ -112,6 +112,12 @@ struct tuntap_options {
     in_addr_t nbdd[N_DHCP_ADDR];
     int nbdd_len;
 
+#define N_SEARCH_LIST_LEN 10 /* Max # of entries in domin-search list */
+
+    /* SEARCH (119), MacOS, Linux, Win10 1809+ */
+    const char *domain_search_list[N_SEARCH_LIST_LEN];
+    int domain_search_list_len;
+
     /* DISABLE_NBT (43, Vendor option 001) */
     bool disable_nbt;
 

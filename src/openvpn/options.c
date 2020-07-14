@@ -729,6 +729,7 @@ static const char usage_message[] =
     "                    which allow multiple addresses,\n"
     "                    --dhcp-option must be repeated.\n"
     "                    DOMAIN name : Set DNS suffix\n"
+    "                    DOMAIN-SEARCH entry : Add entry to DNS domain search list\n"
     "                    DNS addr    : Set domain name server address(es) (IPv4 and IPv6)\n"
     "                    NTP         : Set NTP server address(es)\n"
     "                    NBDD        : Set NBDD server address(es)\n"
@@ -1145,6 +1146,16 @@ parse_hash_fingerprint(const char *str, int nbytes, int msglevel, struct gc_aren
 #ifndef ENABLE_SMALL
 
 static void
+show_dhcp_option_list(const char *name, const char * const*array, int len)
+{
+    int i;
+    for (i = 0; i < len; ++i)
+    {
+        msg(D_SHOW_PARMS, "  %s[%d] = %s", name, i, array[i] );
+    }
+}
+
+static void
 show_dhcp_option_addrs(const char *name, const in_addr_t *array, int len)
 {
     struct gc_arena gc = gc_new();
@@ -1179,6 +1190,7 @@ show_tuntap_options(const struct tuntap_options *o)
     show_dhcp_option_addrs("WINS", o->wins, o->wins_len);
     show_dhcp_option_addrs("NTP", o->ntp, o->ntp_len);
     show_dhcp_option_addrs("NBDD", o->nbdd, o->nbdd_len);
+    show_dhcp_option_list("DOMAIN-SEARCH", o->domain_search_list, o->domain_search_list_len);
 }
 
 #endif /* ifndef ENABLE_SMALL */
@@ -7459,6 +7471,18 @@ add_option(struct options *options,
         else if (streq(p[1], "NBDD") && p[2])
         {
             dhcp_option_address_parse("NBDD", p[2], o->nbdd, &o->nbdd_len, msglevel);
+        }
+        else if (streq(p[1], "DOMAIN-SEARCH") && p[2])
+        {
+            if (o->domain_search_list_len < N_SEARCH_LIST_LEN)
+            {
+                o->domain_search_list[o->domain_search_list_len++] = p[2];
+            }
+            else
+            {
+                msg(msglevel, "--dhcp-option %s: maximum of %d search entries can be specified",
+                    p[1], N_SEARCH_LIST_LEN);
+            }
         }
         else if (streq(p[1], "DISABLE-NBT") && !p[2])
         {

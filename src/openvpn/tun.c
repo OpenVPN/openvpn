@@ -5673,6 +5673,75 @@ write_dhcp_str(struct buffer *buf, const int type, const char *str, bool *error)
     buf_write(buf, str, len);
 }
 
+/*
+ * RFC3397 states that multiple searchdomains are encoded as follows:
+ *  - at start the length of the entire option is given
+ *  - each subdomain is preceded by its length
+ *  - each searchdomain is separated by a NUL character
+ * e.g. if you want "openvpn.net" and "duckduckgo.com" then you end up with
+ *  0x1D  0x7 openvpn 0x3 net 0x00 0x0A duckduckgo 0x3 com 0x00
+ */
+static void
+write_dhcp_search_str(struct buffer *buf, const int type, const char * const *str_array,
+                      int array_len, bool *error)
+{
+    char         tmp_buf[256];
+    int          i;
+    int          len = 0;
+    int          label_length_pos;
+
+    for (i=0; i < array_len; i++)
+    {
+        const char  *ptr = str_array[i];
+
+        if (strlen(ptr) + len + 1 > sizeof(tmp_buf))
+        {
+            *error = true;
+            msg(M_WARN, "write_dhcp_search_str: temp buffer overflow building DHCP options");
+            return;
+        }
+        /* Loop over all subdomains separated by a dot and replace the dot
+           with the length of the subdomain */
+
+        /* label_length_pos points to the byte to be replaced by the length
+         * of the following domain label */
+        label_length_pos = len++;
+
+        while (true)
+        {
+            if (*ptr == '.' || *ptr == '\0' )
+            {
+                tmp_buf[label_length_pos] = (len-label_length_pos)-1;
+                label_length_pos = len;
+                if (*ptr == '\0')
+                {
+                    break;
+                }
+            }
+            tmp_buf[len++] = *ptr++;
+        }
+        /* And close off with an extra NUL char */
+        tmp_buf[len++] = 0;
+    }
+
+    if (!buf_safe(buf, 2 + len))
+    {
+        *error = true;
+        msg(M_WARN, "write_search_dhcp_str: buffer overflow building DHCP options");
+        return;
+    }
+    if (len > 255)
+    {
+        *error = true;
+        msg(M_WARN, "write_dhcp_search_str: search domain string must be <= 255 bytes");
+        return;
+    }
+
+    buf_write_u8(buf, type);
+    buf_write_u8(buf, len);
+    buf_write(buf, tmp_buf, len);
+}
+
 static bool
 build_dhcp_options_string(struct buffer *buf, const struct tuntap_options *o)
 {
@@ -5696,6 +5765,13 @@ build_dhcp_options_string(struct buffer *buf, const struct tuntap_options *o)
     write_dhcp_u32_array(buf, 44, (uint32_t *)o->wins, o->wins_len, &error);
     write_dhcp_u32_array(buf, 42, (uint32_t *)o->ntp, o->ntp_len, &error);
     write_dhcp_u32_array(buf, 45, (uint32_t *)o->nbdd, o->nbdd_len, &error);
+
+    if (o->domain_search_list_len > 0)
+    {
+        write_dhcp_search_str(buf, 119, o->domain_search_list,
+                                        o->domain_search_list_len,
+                                       &error);
+    }
 
     /* the MS DHCP server option 'Disable Netbios-over-TCP/IP
      * is implemented as vendor option 001, value 002.
