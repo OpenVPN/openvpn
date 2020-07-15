@@ -2003,23 +2003,23 @@ cleanup:
 static bool
 multi_client_generate_tls_keys(struct context *c)
 {
-  struct frame *frame_fragment = NULL;
+    struct frame *frame_fragment = NULL;
 #ifdef ENABLE_FRAGMENT
-  if (c->options.ce.fragment)
+    if (c->options.ce.fragment)
     {
-      frame_fragment = &c->c2.frame_fragment;
+        frame_fragment = &c->c2.frame_fragment;
     }
 #endif
-  struct tls_session *session = &c->c2.tls_multi->session[TM_ACTIVE];
-  if (!tls_session_update_crypto_params(session, &c->options,
-                                        &c->c2.frame, frame_fragment))
+    struct tls_session *session = &c->c2.tls_multi->session[TM_ACTIVE];
+    if (!tls_session_update_crypto_params(session, &c->options,
+                                          &c->c2.frame, frame_fragment))
     {
-      msg(D_TLS_ERRORS, "TLS Error: initializing data channel failed");
-      register_signal(c, SIGUSR1, "process-push-msg-failed");
-      return false;
+        msg(D_TLS_ERRORS, "TLS Error: initializing data channel failed");
+        register_signal(c, SIGUSR1, "process-push-msg-failed");
+        return false;
     }
 
-  return true;
+    return true;
 }
 
 static void
