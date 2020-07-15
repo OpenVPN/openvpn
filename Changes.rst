@@ -22,6 +22,9 @@ Improved Data channel cipher negotiation
     ``ncp-ciphers ChaCha20-Poly1305:AES-256-GCM`` on the server that
     prefers ChaCha20-Poly1305 but uses it only if the client supports it.
 
+Asynchronous (deferred) authentication support for auth-pam plugin.
+    See src/plugins/auth-pam/README.auth-pam for details.
+
 Deprecated features
 -------------------
 For an up-to-date list of all deprecated options, see this wiki page:
