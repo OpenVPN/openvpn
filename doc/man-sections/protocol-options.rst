@@ -60,9 +60,7 @@ configured in a compatible way between both the local and remote side.
 
   The ``algorithm`` parameter may be :code:`lzo`, :code:`lz4`, or empty.
   LZO and LZ4 are different compression algorithms, with LZ4 generally
-  offering the best performance with least CPU usage. For backwards
-  compatibility with OpenVPN versions before v2.4, use :code:`lzo` (which
-  is identical to the older option ``--comp-lzo yes``).
+  offering the best performance with least CPU usage.
 
   If the ``algorithm`` parameter is empty, compression will be turned off,
   but the packet framing for compression will still be enabled, allowing a
@@ -79,8 +77,9 @@ configured in a compatible way between both the local and remote side.
   *not* enable compression.
 
 --comp-lzo mode
-  *DEPRECATED* This option will be removed in a future OpenVPN release.
-  Use the newer ``--compress`` instead.
+  **DEPRECATED** Enable LZO compression algorithm.  Compression is
+  generally not recommended.  VPN tunnels which uses compression are
+  suspectible to the VORALCE attack vector.
 
   Use LZO compression -- may add up to 1 byte per packet for incompressible
   data. ``mode`` may be :code:`yes`, :code:`no`, or :code:`adaptive`
@@ -106,9 +105,9 @@ configured in a compatible way between both the local and remote side.
   link, the second sets the client side.
 
 --comp-noadapt
-  When used in conjunction with ``--comp-lzo``, this option will disable
-  OpenVPN's adaptive compression algorithm. Normally, adaptive compression
-  is enabled with ``--comp-lzo``.
+  **DEPRECATED** When used in conjunction with ``--comp-lzo``, this option
+  will disable OpenVPN's adaptive compression algorithm. Normally, adaptive
+  compression is enabled with ``--comp-lzo``.
 
   Adaptive compression tries to optimize the case where you have
   compression enabled, but you are sending predominantly incompressible
