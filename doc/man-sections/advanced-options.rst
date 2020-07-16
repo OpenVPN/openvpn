@@ -103,4 +103,5 @@ used when debugging or testing out special usage scenarios.
 
 --txqueuelen n
   *(Linux only)* Set the TX queue length on the TUN/TAP interface.
-  Currently defaults to 100.
+  Currently defaults to operating system default.
+
