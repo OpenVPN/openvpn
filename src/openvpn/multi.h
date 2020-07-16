@@ -62,6 +62,18 @@ struct deferred_signal_schedule_entry
     struct timeval wakeup;
 };
 
+/**
+ * Detached client connection state.  This is the state that is tracked while
+ * the client connect hooks are executed.
+ */
+struct client_connect_defer_state
+{
+    /* Index of currently executed handler.  */
+    int cur_handler_index;
+    /* Remember which option classes where processed for delayed option
+     * handling. */
+    unsigned int option_types_found;
+};
 
 /**
  * Server-mode state structure for one single VPN tunnel.
@@ -108,7 +120,7 @@ struct multi_instance {
 
     struct context context;     /**< The context structure storing state
                                  *   for this VPN tunnel. */
-
+    struct client_connect_defer_state client_connect_defer_state;
 #ifdef ENABLE_ASYNC_PUSH
     int inotify_watch; /* watch descriptor for acf */
 #endif
@@ -195,6 +207,7 @@ enum client_connect_return
 {
     CC_RET_FAILED,
     CC_RET_SUCCEEDED,
+    CC_RET_DEFERRED,
     CC_RET_SKIPPED
 };
 

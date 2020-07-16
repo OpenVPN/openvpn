@@ -217,6 +217,8 @@ struct context_1
 enum client_connect_status {
     CAS_SUCCEEDED=0,
     CAS_PENDING,
+    CAS_PENDING_DEFERRED,
+    CAS_PENDING_DEFERRED_PARTIAL,   /**< at least handler succeeded, no result yet*/
     CAS_FAILED,
     CAS_PARTIAL,        /**< Variant of CAS_FAILED: at least one
                          * client-connect script/plugin succeeded
@@ -224,6 +226,13 @@ enum client_connect_status {
                          * (we still need cleanup compared to FAILED)
                          */
 };
+
+static inline bool
+is_cas_pending(enum client_connect_status cas)
+{
+    return cas == CAS_PENDING || cas == CAS_PENDING_DEFERRED
+           || cas == CAS_PENDING_DEFERRED_PARTIAL;
+}
 
 /**
  * Level 2 %context containing state that is reset on both \c SIGHUP and
