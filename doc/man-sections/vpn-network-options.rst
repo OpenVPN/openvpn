@@ -5,6 +5,10 @@ Options in this section relates to configuration of the virtual tun/tap
 network interface, including setting the VPN IP address and network
 routing.
 
+--bind-dev device
+  (Linux only) Set ``device`` to bind the server socket to a
+  `Virtual Routing and Forwarding`_ device
+
 --block-ipv6
   On the client, instead of sending IPv6 packets over the VPN tunnel, all
   IPv6 packets are answered with an ICMPv6 no route host message. On the

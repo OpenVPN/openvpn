@@ -36,6 +36,7 @@ dist_doc_DATA = \
 	man-sections/server-options.rst \
 	man-sections/tls-options.rst \
 	man-sections/unsupported-options.rst \
+	man-sections/virtual-routing-and-forwarding.rst \
 	man-sections/vpn-network-options.rst \
 	man-sections/windows-options.rst
 

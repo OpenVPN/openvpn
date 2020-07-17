@@ -7,3 +7,4 @@ network adapter* (tun/tap device).
 
 .. include:: link-options.rst
 .. include:: vpn-network-options.rst
+.. include:: virtual-routing-and-forwarding.rst
