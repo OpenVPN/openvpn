@@ -822,7 +822,6 @@ process_coarse_timers(struct context *c)
     }
 #endif
 
-#ifdef ENABLE_OCC
     /* Should we send an OCC_REQUEST message? */
     check_send_occ_req(c);
 
@@ -834,7 +833,6 @@ process_coarse_timers(struct context *c)
     {
         process_explicit_exit_notification_timer_wakeup(c);
     }
-#endif
 
     /* Should we ping the remote? */
     check_ping_send(c);
@@ -983,14 +981,12 @@ read_incoming_link(struct context *c)
             }
             else
             {
-#ifdef ENABLE_OCC
                 if (event_timeout_defined(&c->c2.explicit_exit_notification_interval))
                 {
                     msg(D_STREAM_ERRORS, "Connection reset during exit notification period, ignoring [%d]", status);
                     management_sleep(1);
                 }
                 else
-#endif
                 {
                     register_signal(c, SIGUSR1, "connection-reset"); /* SOFT-SIGUSR1 -- TCP connection reset */
                     msg(D_STREAM_ERRORS, "Connection reset, restarting [%d]", status);
@@ -1214,13 +1210,11 @@ process_incoming_link_part2(struct context *c, struct link_socket_info *lsi, con
             c->c2.buf.len = 0; /* drop packet */
         }
 
-#ifdef ENABLE_OCC
         /* Did we just receive an OCC packet? */
         if (is_occ_msg(&c->c2.buf))
         {
             process_received_occ_msg(c);
         }
-#endif
 
         buffer_turnover(orig_buf, &c->c2.to_tun, &c->c2.buf, &c->c2.buffers->read_link_buf);
 
@@ -1992,10 +1986,8 @@ pre_select(struct context *c)
     /* check for incoming configuration info on the control channel */
     check_incoming_control_channel(c);
 
-#ifdef ENABLE_OCC
     /* Should we send an OCC message? */
     check_send_occ_msg(c);
-#endif
 
 #ifdef ENABLE_FRAGMENT
     /* Should we deliver a datagram fragment to remote? */

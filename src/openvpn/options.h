@@ -262,9 +262,7 @@ struct options
 
     int proto_force;
 
-#ifdef ENABLE_OCC
     bool mtu_test;
-#endif
 
 #ifdef ENABLE_MEMSTATS
     char *memstats_fn;
@@ -375,10 +373,8 @@ struct options
     bool allow_pull_fqdn; /* as a client, allow server to push a FQDN for certain parameters */
     struct client_nat_option_list *client_nat;
 
-#ifdef ENABLE_OCC
     /* Enable options consistency check between peers */
     bool occ;
-#endif
 
 #ifdef ENABLE_MANAGEMENT
     const char *management_addr;
@@ -755,8 +751,6 @@ void show_settings(const struct options *o);
 
 bool string_defined_equal(const char *s1, const char *s2);
 
-#ifdef ENABLE_OCC
-
 const char *options_string_version(const char *s, struct gc_arena *gc);
 
 char *options_string(const struct options *o,
@@ -773,8 +767,6 @@ void options_warning_safe(char *actual, const char *expected, size_t actual_n);
 bool options_cmp_equal(char *actual, const char *expected);
 
 void options_warning(char *actual, const char *expected);
-
-#endif
 
 /**
  * Given an OpenVPN options string, extract the value of an option.

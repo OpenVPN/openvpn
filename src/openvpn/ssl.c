@@ -64,21 +64,6 @@
 
 #include "memdbg.h"
 
-#ifndef ENABLE_OCC
-static const char ssl_default_options_string[] = "V0 UNDEF";
-#endif
-
-
-static inline const char *
-local_options_string(const struct tls_session *session)
-{
-#ifdef ENABLE_OCC
-    return session->opt->local_options;
-#else
-    return ssl_default_options_string;
-#endif
-}
-
 #ifdef MEASURE_TLS_HANDSHAKE_STATS
 
 static int tls_handshake_success; /* GLOBAL */
@@ -1313,11 +1298,9 @@ tls_multi_init_set_options(struct tls_multi *multi,
                            const char *local,
                            const char *remote)
 {
-#ifdef ENABLE_OCC
     /* initialize options string */
     multi->opt.local_options = local;
     multi->opt.remote_options = remote;
-#endif
 }
 
 /*
@@ -2337,7 +2320,7 @@ key_method_2_write(struct buffer *buf, struct tls_session *session)
 
     /* write options string */
     {
-        if (!write_string(buf, local_options_string(session), TLS_OPTIONS_LEN))
+        if (!write_string(buf, session->opt->local_options, TLS_OPTIONS_LEN))
         {
             goto error;
         }
@@ -2534,7 +2517,6 @@ key_method_2_read(struct buffer *buf, struct tls_multi *multi, struct tls_sessio
         verify_final_auth_checks(multi, session);
     }
 
-#ifdef ENABLE_OCC
     /* check options consistency */
     if (!session->opt->disable_occ
         && !options_cmp_equal(options, session->opt->remote_options))
@@ -2546,7 +2528,6 @@ key_method_2_read(struct buffer *buf, struct tls_multi *multi, struct tls_sessio
             ks->authenticated = KS_AUTH_FALSE;
         }
     }
-#endif
 
     buf_clear(buf);
 

@@ -320,7 +320,6 @@ struct context_2
     struct event_timeout inactivity_interval;
     int inactivity_bytes;
 
-#ifdef ENABLE_OCC
     /* the option strings must match across peers */
     char *options_string_local;
     char *options_string_remote;
@@ -328,7 +327,6 @@ struct context_2
     int occ_op;                 /* INIT to -1 */
     int occ_n_tries;
     struct event_timeout occ_interval;
-#endif
 
     /*
      * Keep track of maximum packet size received so far
@@ -340,13 +338,12 @@ struct context_2
     int max_send_size_local;    /* max packet size sent */
     int max_send_size_remote;   /* max packet size sent by remote */
 
-#ifdef ENABLE_OCC
+
     /* remote wants us to send back a load test packet of this size */
     int occ_mtu_load_size;
 
     struct event_timeout occ_mtu_load_test_interval;
     int occ_mtu_load_n_tries;
-#endif
 
     /*
      * TLS-mode crypto objects.
@@ -433,13 +430,11 @@ struct context_2
     /* indicates that the do_up_delay function has run */
     bool do_up_ran;
 
-#ifdef ENABLE_OCC
     /* indicates that we have received a SIGTERM when
      * options->explicit_exit_notification is enabled,
      * but we have not exited yet */
     time_t explicit_exit_notification_time_wait;
     struct event_timeout explicit_exit_notification_interval;
-#endif
 
     /* environmental variables to pass to scripts */
     struct env_set *es;

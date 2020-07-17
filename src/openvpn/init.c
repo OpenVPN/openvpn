@@ -1419,7 +1419,6 @@ do_init_timers(struct context *c, bool deferred)
         /* initialize connection establishment timer */
         event_timeout_init(&c->c2.wait_for_connect, 1, now);
 
-#ifdef ENABLE_OCC
         /* initialize occ timers */
 
         if (c->options.occ
@@ -1433,7 +1432,6 @@ do_init_timers(struct context *c, bool deferred)
         {
             event_timeout_init(&c->c2.occ_mtu_load_test_interval, OCC_MTU_LOAD_INTERVAL_SECONDS, now);
         }
-#endif
 
         /* initialize packet_id persistence timer */
         if (c->options.packet_id_file)
@@ -2279,7 +2277,6 @@ do_deferred_options(struct context *c, const unsigned int found)
         msg(D_PUSH, "OPTIONS IMPORT: timers and/or timeouts modified");
     }
 
-#ifdef ENABLE_OCC
     if (found & OPT_P_EXPLICIT_NOTIFY)
     {
         if (!proto_is_udp(c->options.ce.proto) && c->options.ce.explicit_exit_notification)
@@ -2292,7 +2289,6 @@ do_deferred_options(struct context *c, const unsigned int found)
             msg(D_PUSH, "OPTIONS IMPORT: explicit notify parm(s) modified");
         }
     }
-#endif
 
 #ifdef USE_COMP
     if (found & OPT_P_COMP)
@@ -2901,9 +2897,7 @@ do_init_crypto_tls(struct context *c, const unsigned int flags)
         to.xmit_hold = true;
     }
 
-#ifdef ENABLE_OCC
     to.disable_occ = !options->occ;
-#endif
 
     to.verify_command = options->tls_verify;
     to.verify_export_cert = options->tls_export_cert;
@@ -3193,7 +3187,7 @@ do_init_frame(struct context *c)
     c->c2.frame_fragment_initial = c->c2.frame_fragment;
 #endif
 
-#if defined(ENABLE_FRAGMENT) && defined(ENABLE_OCC)
+#if defined(ENABLE_FRAGMENT)
     /*
      * MTU advisories
      */
@@ -3478,7 +3472,6 @@ do_print_data_channel_mtu_parms(struct context *c)
 #endif
 }
 
-#ifdef ENABLE_OCC
 /*
  * Get local and remote options compatibility strings.
  */
@@ -3510,7 +3503,6 @@ do_compute_occ_strings(struct context *c)
 
     gc_free(&gc);
 }
-#endif /* ifdef ENABLE_OCC */
 
 /*
  * These things can only be executed once per program instantiation.
@@ -3586,7 +3578,6 @@ do_close_tls(struct context *c)
         c->c2.tls_multi = NULL;
     }
 
-#ifdef ENABLE_OCC
     /* free options compatibility strings */
     if (c->c2.options_string_local)
     {
@@ -3597,7 +3588,6 @@ do_close_tls(struct context *c)
         free(c->c2.options_string_remote);
     }
     c->c2.options_string_local = c->c2.options_string_remote = NULL;
-#endif
 
     if (c->c2.pulled_options_state)
     {
@@ -4256,13 +4246,11 @@ init_instance(struct context *c, const struct env_set *env, const unsigned int f
         do_open_ifconfig_pool_persist(c);
     }
 
-#ifdef ENABLE_OCC
     /* reset OCC state */
     if (c->mode == CM_P2P || child)
     {
         c->c2.occ_op = occ_reset_op();
     }
-#endif
 
     /* our wait-for-i/o objects, different for posix vs. win32 */
     if (c->mode == CM_P2P)
@@ -4362,13 +4350,11 @@ init_instance(struct context *c, const struct env_set *env, const unsigned int f
     /* print MTU info */
     do_print_data_channel_mtu_parms(c);
 
-#ifdef ENABLE_OCC
     /* get local and remote options compatibility strings */
     if (c->mode == CM_P2P || child)
     {
         do_compute_occ_strings(c);
     }
-#endif
 
     /* initialize output speed limiter */
     if (c->mode == CM_P2P)

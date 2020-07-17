@@ -570,11 +570,6 @@ socket_defined(const socket_descriptor_t sd)
 #endif
 
 /*
- * Should we include OCC (options consistency check) code?
- */
-#define ENABLE_OCC
-
-/*
  * Should we include NTLM proxy functionality
  */
 #define NTLM 1

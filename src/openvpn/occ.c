@@ -29,8 +29,6 @@
 
 #include "syshead.h"
 
-#ifdef ENABLE_OCC
-
 #include "occ.h"
 #include "forward.h"
 #include "memdbg.h"
@@ -424,10 +422,3 @@ process_received_occ_msg(struct context *c)
     }
     c->c2.buf.len = 0; /* don't pass packet on */
 }
-
-#else  /* ifdef ENABLE_OCC */
-static void
-dummy(void)
-{
-}
-#endif /* ifdef ENABLE_OCC */

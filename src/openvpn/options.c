@@ -277,9 +277,7 @@ static const char usage_message[] =
     "                  'no'    -- Never send DF (Don't Fragment) frames\n"
     "                  'maybe' -- Use per-route hints\n"
     "                  'yes'   -- Always DF (Don't Fragment)\n"
-#ifdef ENABLE_OCC
     "--mtu-test      : Empirically measure and report MTU.\n"
-#endif
 #ifdef ENABLE_FRAGMENT
     "--fragment max  : Enable internal datagram fragmentation so that no UDP\n"
     "                  datagrams are sent which are larger than max bytes.\n"
@@ -350,9 +348,7 @@ static const char usage_message[] =
     "--status file n : Write operational status to file every n seconds.\n"
     "--status-version [n] : Choose the status file format version number.\n"
     "                  Currently, n can be 1, 2, or 3 (default=1).\n"
-#ifdef ENABLE_OCC
     "--disable-occ   : Disable options consistency check between peers.\n"
-#endif
 #ifdef ENABLE_DEBUG
     "--gremlin mask  : Special stress testing mode (for debugging only).\n"
 #endif
@@ -517,10 +513,8 @@ static const char usage_message[] =
     "--allow-recursive-routing : When this option is set, OpenVPN will not drop\n"
     "                  incoming tun packets with same destination as host.\n"
 #endif /* if P2MP */
-#ifdef ENABLE_OCC
     "--explicit-exit-notify [n] : On exit/restart, send exit signal to\n"
     "                  server/remote. n = # of retries, default=1.\n"
-#endif
     "\n"
     "Data Channel Encryption Options (must be compatible between peers):\n"
     "(These options are meaningful for both Static Key & TLS-mode)\n"
@@ -827,9 +821,7 @@ init_options(struct options *o, const bool init_gc)
     o->resolve_retry_seconds = RESOLV_RETRY_INFINITE;
     o->resolve_in_advance = false;
     o->proto_force = -1;
-#ifdef ENABLE_OCC
     o->occ = true;
-#endif
 #ifdef ENABLE_MANAGEMENT
     o->management_log_history_cache = 250;
     o->management_echo_buffer_size = 100;
@@ -1482,9 +1474,7 @@ show_connection_entry(const struct connection_entry *o)
 #endif
     SHOW_INT(mssfix);
 
-#ifdef ENABLE_OCC
     SHOW_INT(explicit_exit_notification);
-#endif
 
     SHOW_STR_INLINE(tls_auth_file);
     SHOW_PARM(key_direction, keydirection2ascii(o->key_direction, false, true),
@@ -1578,9 +1568,7 @@ show_settings(const struct options *o)
 #ifdef ENABLE_FEATURE_SHAPER
     SHOW_INT(shaper);
 #endif
-#ifdef ENABLE_OCC
     SHOW_INT(mtu_test);
-#endif
 
     SHOW_BOOL(mlock);
 
@@ -1632,9 +1620,7 @@ show_settings(const struct options *o)
     SHOW_INT(status_file_version);
     SHOW_INT(status_file_update_freq);
 
-#ifdef ENABLE_OCC
     SHOW_BOOL(occ);
-#endif
     SHOW_INT(rcvbuf);
     SHOW_INT(sndbuf);
 #if defined(TARGET_LINUX) && HAVE_DECL_SO_MARK
@@ -2078,12 +2064,10 @@ options_postprocess_verify_ce(const struct options *options, const struct connec
         msg(M_USAGE, "only one of --tun-mtu or --link-mtu may be defined (note that --ifconfig implies --link-mtu %d)", LINK_MTU_DEFAULT);
     }
 
-#ifdef ENABLE_OCC
     if (!proto_is_udp(ce->proto) && options->mtu_test)
     {
         msg(M_USAGE, "--mtu-test only makes sense with --proto udp");
     }
-#endif
 
     /* will we be pulling options from server? */
 #if P2MP
@@ -2216,12 +2200,10 @@ options_postprocess_verify_ce(const struct options *options, const struct connec
     }
 #endif
 
-#ifdef ENABLE_OCC
     if (!proto_is_udp(ce->proto) && ce->explicit_exit_notification)
     {
         msg(M_USAGE, "--explicit-exit-notify can only be used with --proto udp");
     }
-#endif
 
     if (!ce->remote && ce->proto == PROTO_TCP_CLIENT)
     {
@@ -3586,9 +3568,6 @@ pre_pull_restore(struct options *o, struct gc_arena *gc)
 }
 
 #endif /* if P2MP */
-
-#ifdef ENABLE_OCC
-
 /**
  * Calculate the link-mtu to advertise to our peer.  The actual value is not
  * relevant, because we will possibly perform data channel cipher negotiation
@@ -3618,7 +3597,6 @@ calc_options_string_link_mtu(const struct options *o, const struct frame *frame)
     }
     return link_mtu;
 }
-
 /*
  * Build an options string to represent data channel encryption options.
  * This string must match exactly between peers.  The keysize is checked
@@ -4025,8 +4003,6 @@ options_string_version(const char *s, struct gc_arena *gc)
     strncpynt((char *) BPTR(&out), s, 3);
     return BSTR(&out);
 }
-
-#endif /* ENABLE_OCC */
 
 char *
 options_string_extract_option(const char *options_string,const char *opt_name,
@@ -6027,13 +6003,11 @@ add_option(struct options *options,
         VERIFY_PERMISSION(OPT_P_MTU|OPT_P_CONNECTION);
         options->ce.mtu_discover_type = translate_mtu_discover_type_name(p[1]);
     }
-#ifdef ENABLE_OCC
     else if (streq(p[0], "mtu-test") && !p[1])
     {
         VERIFY_PERMISSION(OPT_P_GENERAL);
         options->mtu_test = true;
     }
-#endif
     else if (streq(p[0], "nice") && p[1] && !p[2])
     {
         VERIFY_PERMISSION(OPT_P_NICE);
@@ -6344,7 +6318,6 @@ add_option(struct options *options,
         VERIFY_PERMISSION(OPT_P_TIMER);
         options->ping_timer_remote = true;
     }
-#ifdef ENABLE_OCC
     else if (streq(p[0], "explicit-exit-notify") && !p[2])
     {
         VERIFY_PERMISSION(OPT_P_GENERAL|OPT_P_CONNECTION|OPT_P_EXPLICIT_NOTIFY);
@@ -6357,7 +6330,6 @@ add_option(struct options *options,
             options->ce.explicit_exit_notification = 1;
         }
     }
-#endif
     else if (streq(p[0], "persist-tun") && !p[1])
     {
         VERIFY_PERMISSION(OPT_P_PERSIST);
@@ -6681,13 +6653,11 @@ add_option(struct options *options,
         }
 
     }
-#ifdef ENABLE_OCC
     else if (streq(p[0], "disable-occ") && !p[1])
     {
         VERIFY_PERMISSION(OPT_P_GENERAL);
         options->occ = false;
     }
-#endif
 #if P2MP
     else if (streq(p[0], "server") && p[1] && p[2] && !p[4])
     {

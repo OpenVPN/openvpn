@@ -24,8 +24,6 @@
 #ifndef OCC_H
 #define OCC_H
 
-#ifdef ENABLE_OCC
-
 #include "forward.h"
 
 /* OCC_STRING_SIZE must be set to sizeof (occ_magic) */
@@ -155,5 +153,4 @@ check_send_occ_msg(struct context *c)
     }
 }
 
-#endif /* ifdef ENABLE_OCC */
 #endif /* ifndef OCC_H */

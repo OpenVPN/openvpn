@@ -254,19 +254,15 @@ struct tls_options
     /* if true, don't xmit until first packet from peer is received */
     bool xmit_hold;
 
-#ifdef ENABLE_OCC
     /* local and remote options strings
      * that must match between client and server */
     const char *local_options;
     const char *remote_options;
-#endif
 
     /* from command line */
     bool replay;
     bool single_session;
-#ifdef ENABLE_OCC
     bool disable_occ;
-#endif
     int mode;
     bool pull;
     int push_peer_info_detail;
