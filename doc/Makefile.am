@@ -31,6 +31,7 @@ dist_doc_DATA = \
 	man-sections/plugin-options.rst \
 	man-sections/protocol-options.rst \
 	man-sections/proxy-options.rst \
+	man-sections/renegotiation.rst \
 	man-sections/signals.rst \
 	man-sections/script-options.rst \
 	man-sections/server-options.rst \
