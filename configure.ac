@@ -54,7 +54,9 @@ m4_define([serial_tests], [
                 awk '{split ($NF,a,"."); if (a[1] == 1 && a[2] >= 12) { print "serial-tests" }}'
     ])
 ])
-AM_INIT_AUTOMAKE(foreign serial_tests) dnl NB: Do not [quote] this parameter.
+# This foreign option prevents autoreconf from overriding our COPYING and
+# INSTALL targets:
+AM_INIT_AUTOMAKE(foreign serial_tests 1.9) dnl NB: Do not [quote] this parameter.
 AC_CANONICAL_HOST
 AC_USE_SYSTEM_EXTENSIONS
 
