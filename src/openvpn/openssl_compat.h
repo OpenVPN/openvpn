@@ -271,20 +271,6 @@ EVP_PKEY_get0_EC_KEY(EVP_PKEY *pkey)
 }
 #endif
 
-#if !defined(HAVE_EVP_PKEY_ID)
-/**
- * Get the PKEY type
- *
- * @param pkey                Public key object
- * @return                    The key type
- */
-static inline int
-EVP_PKEY_id(const EVP_PKEY *pkey)
-{
-    return pkey ? pkey->type : EVP_PKEY_NONE;
-}
-#endif
-
 #if !defined(HAVE_EVP_PKEY_GET0_DSA)
 /**
  * Get the DSA object of a public key

@@ -164,7 +164,6 @@ key_state_export_keying_material(struct key_state_ssl *ssl,
 {
     if (session->opt->ekm_size > 0)
     {
-#if (OPENSSL_VERSION_NUMBER >= 0x10001000)
         unsigned int size = session->opt->ekm_size;
         struct gc_arena gc = gc_new();
         unsigned char *ekm = (unsigned char *) gc_malloc(size, true, &gc);
@@ -188,7 +187,6 @@ key_state_export_keying_material(struct key_state_ssl *ssl,
             setenv_del(session->opt->es, "exported_keying_material");
         }
         gc_free(&gc);
-#endif /* if (OPENSSL_VERSION_NUMBER >= 0x10001000) */
     }
 }
 
@@ -559,7 +557,7 @@ tls_ctx_set_cert_profile(struct tls_root_ctx *ctx, const char *profile)
 #else  /* ifdef HAVE_SSL_CTX_SET_SECURITY_LEVEL */
     if (profile)
     {
-        msg(M_WARN, "WARNING: OpenSSL 1.0.1 does not support --tls-cert-profile"
+        msg(M_WARN, "WARNING: OpenSSL 1.0.2 does not support --tls-cert-profile"
             ", ignoring user-set profile: '%s'", profile);
     }
 #endif /* ifdef HAVE_SSL_CTX_SET_SECURITY_LEVEL */
@@ -573,19 +571,11 @@ tls_ctx_check_cert_time(const struct tls_root_ctx *ctx)
 
     ASSERT(ctx);
 
-#if (OPENSSL_VERSION_NUMBER >= 0x10002000L && !defined(LIBRESSL_VERSION_NUMBER)) \
-    || LIBRESSL_VERSION_NUMBER >= 0x2070000fL
-    /* OpenSSL 1.0.2 and up */
     cert = SSL_CTX_get0_certificate(ctx->ctx);
-#else
-    /* OpenSSL 1.0.1 and earlier need an SSL object to get at the certificate */
-    SSL *ssl = SSL_new(ctx->ctx);
-    cert = SSL_get_certificate(ssl);
-#endif
 
     if (cert == NULL)
     {
-        goto cleanup; /* Nothing to check if there is no certificate */
+        return; /* Nothing to check if there is no certificate */
     }
 
     ret = X509_cmp_time(X509_get0_notBefore(cert), NULL);
@@ -607,13 +597,6 @@ tls_ctx_check_cert_time(const struct tls_root_ctx *ctx)
     {
         msg(M_WARN, "WARNING: Your certificate has expired!");
     }
-
-cleanup:
-#if OPENSSL_VERSION_NUMBER < 0x10002000L \
-    || (defined(LIBRESSL_VERSION_NUMBER) && LIBRESSL_VERSION_NUMBER < 0x2070000fL)
-    SSL_free(ssl);
-#endif
-    return;
 }
 
 void
@@ -680,7 +663,6 @@ tls_ctx_load_ecdh_params(struct tls_root_ctx *ctx, const char *curve_name
     }
     else
     {
-#if OPENSSL_VERSION_NUMBER >= 0x10002000L
 #if (OPENSSL_VERSION_NUMBER < 0x10100000L && !defined(LIBRESSL_VERSION_NUMBER))
 
         /* OpenSSL 1.0.2 and newer can automatically handle ECDH parameter
@@ -691,29 +673,6 @@ tls_ctx_load_ecdh_params(struct tls_root_ctx *ctx, const char *curve_name
          * so do nothing */
 #endif
         return;
-#else  /* if OPENSSL_VERSION_NUMBER >= 0x10002000L */
-        /* For older OpenSSL we have to extract the curve from key on our own */
-        EC_KEY *eckey = NULL;
-        const EC_GROUP *ecgrp = NULL;
-        EVP_PKEY *pkey = NULL;
-
-        /* Little hack to get private key ref from SSL_CTX, yay OpenSSL... */
-        SSL *ssl = SSL_new(ctx->ctx);
-        if (!ssl)
-        {
-            crypto_msg(M_FATAL, "SSL_new failed");
-        }
-        pkey = SSL_get_privatekey(ssl);
-        SSL_free(ssl);
-
-        msg(D_TLS_DEBUG, "Extracting ECDH curve from private key");
-
-        if (pkey != NULL && (eckey = EVP_PKEY_get1_EC_KEY(pkey)) != NULL
-            && (ecgrp = EC_KEY_get0_group(eckey)) != NULL)
-        {
-            nid = EC_GROUP_get_curve_name(ecgrp);
-        }
-#endif /* if OPENSSL_VERSION_NUMBER >= 0x10002000L */
     }
 
     /* Translate NID back to name , just for kicks */
@@ -1462,15 +1421,7 @@ tls_ctx_use_management_external_key(struct tls_root_ctx *ctx)
 
     ASSERT(NULL != ctx);
 
-#if (OPENSSL_VERSION_NUMBER >= 0x10002000L && !defined(LIBRESSL_VERSION_NUMBER)) \
-    || LIBRESSL_VERSION_NUMBER >= 0x2070000fL
-    /* OpenSSL 1.0.2 and up */
     X509 *cert = SSL_CTX_get0_certificate(ctx->ctx);
-#else
-    /* OpenSSL 1.0.1 and earlier need an SSL object to get at the certificate */
-    SSL *ssl = SSL_new(ctx->ctx);
-    X509 *cert = SSL_get_certificate(ssl);
-#endif
 
     ASSERT(NULL != cert);
 
@@ -1510,13 +1461,6 @@ tls_ctx_use_management_external_key(struct tls_root_ctx *ctx)
 
     ret = 0;
 cleanup:
-#if OPENSSL_VERSION_NUMBER < 0x10002000L \
-    || (defined(LIBRESSL_VERSION_NUMBER) && LIBRESSL_VERSION_NUMBER < 0x2070000fL)
-    if (ssl)
-    {
-        SSL_free(ssl);
-    }
-#endif
     if (ret)
     {
         crypto_msg(M_FATAL, "Cannot enable SSL external private key capability");

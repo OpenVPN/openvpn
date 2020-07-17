@@ -1108,7 +1108,7 @@ key_state_ssl_init(struct key_state_ssl *ks_ssl,
         }
     }
 
-#if HAVE_EXPORT_KEYING_MATERIAL
+#ifdef HAVE_EXPORT_KEYING_MATERIAL
     /* Initialize keying material exporter */
     if (session->opt->ekm_size)
     {

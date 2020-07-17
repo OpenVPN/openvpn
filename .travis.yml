@@ -35,10 +35,6 @@ jobs:
       env: SSLLIB="openssl" RUN_COVERITY="1"
       os: linux
       compiler: gcc
-    - name: gcc | openssl-1.0.1u
-      env: SSLLIB="openssl" OPENSSL_VERSION="1.0.1u"
-      os: linux
-      compiler: gcc
     - name: gcc | openssl-1.1.1d
       env: SSLLIB="openssl" OPENSSL_VERSION="1.1.1d"
       os: linux
@@ -87,10 +83,6 @@ jobs:
       env: SSLLIB="mbedtls"
       os: osx
       compiler: clang
-    - name: mingw64 | openssl-1.0.1u
-      env: SSLLIB="openssl" CHOST=x86_64-w64-mingw32 OPENSSL_VERSION="1.0.1u"
-      os: linux
-      compiler: ": Win64 build only"
     - name: mingw64 | openssl-1.1.1d
       env: SSLLIB="openssl" CHOST=x86_64-w64-mingw32 OPENSSL_VERSION="1.1.1d"
       os: linux

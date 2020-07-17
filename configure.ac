@@ -848,7 +848,7 @@ if test "${with_crypto_library}" = "openssl"; then
 		# if the user did not explicitly specify flags, try to autodetect
 		PKG_CHECK_MODULES(
 			[OPENSSL],
-			[openssl >= 1.0.1],
+			[openssl >= 1.0.2],
 			[have_openssl="yes"],
 			[] # If this fails, we will do another test next
 		)
@@ -863,7 +863,7 @@ if test "${with_crypto_library}" = "openssl"; then
 	# If pkgconfig check failed or OPENSSL_CFLAGS/OPENSSL_LIBS env vars
 	# are used, check the version directly in the OpenSSL include file
 	if test "${have_openssl}" != "yes"; then
-		AC_MSG_CHECKING([additionally if OpenSSL is available and version >= 1.0.1])
+		AC_MSG_CHECKING([additionally if OpenSSL is available and version >= 1.0.2])
 		AC_COMPILE_IFELSE(
 			[AC_LANG_PROGRAM(
 				[[
@@ -871,7 +871,7 @@ if test "${with_crypto_library}" = "openssl"; then
 				]],
 				[[
 /*	     Version encoding: MNNFFPPS - see opensslv.h for details */
-#if OPENSSL_VERSION_NUMBER < 0x10001000L
+#if OPENSSL_VERSION_NUMBER < 0x10002000L
 #error OpenSSL too old
 #endif
 				]]
@@ -914,12 +914,9 @@ if test "${with_crypto_library}" = "openssl"; then
 		[have_crypto_aead_modes="no"]
 	)
 
+	# All supported OpenSSL version (>= 1.0.2)
+	# have this feature
 	have_export_keying_material="yes"
-	AC_CHECK_FUNC(
-		[SSL_export_keying_material],
-		,
-		[have_export_keying_material="no"]
-	)
 
 	AC_CHECK_FUNCS(
 		[ \
@@ -940,7 +937,6 @@ if test "${with_crypto_library}" = "openssl"; then
 			X509_STORE_get0_objects \
 			X509_OBJECT_free \
 			X509_OBJECT_get_type \
-			EVP_PKEY_id \
 			EVP_PKEY_get0_RSA \
 			EVP_PKEY_get0_DSA \
 			EVP_PKEY_get0_EC_KEY \

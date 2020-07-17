@@ -45,6 +45,10 @@ User-visible Changes
   client-disconnect-script is now called immediately. Previously it
   was called, when the VPN session was terminated.
 
+- Support for building with OpenSSL 1.0.1 has been removed. The minimum
+  supported OpenSSL version is now 1.0.2.
+
+
 Overview of changes in 2.4
 ==========================
 

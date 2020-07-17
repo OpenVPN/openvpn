@@ -8670,7 +8670,7 @@ add_option(struct options *options,
         options->keying_material_exporter_label = p[1];
         options->keying_material_exporter_length = ekm_length;
     }
-#endif /* if defined(ENABLE_CRYPTO_OPENSSL) && OPENSSL_VERSION_NUMBER >= 0x10001000 */
+#endif /* HAVE_EXPORT_KEYING_MATERIAL */
     else if (streq(p[0], "allow-recursive-routing") && !p[1])
     {
         VERIFY_PERMISSION(OPT_P_GENERAL);

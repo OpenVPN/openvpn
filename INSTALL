@@ -71,12 +71,13 @@ REQUIRES:
   (1) TUN and/or TAP driver to allow user-space programs to control
       a virtual point-to-point IP or Ethernet device.  See
       TUN/TAP Driver Configuration section below for more info.
-
-OPTIONAL (but recommended):
-  (1) OpenSSL library, necessary for encryption, version 1.0.1 or higher
+  (2) OpenSSL library, necessary for encryption, version 1.0.2 or higher
       required, available from http://www.openssl.org/
-  (2) mbed TLS library, an alternative for encryption, version 2.0 or higher
+      or
+  (3) mbed TLS library, an alternative for encryption, version 2.0 or higher
       required, available from https://tls.mbed.org/
+
+OPTIONAL:
   (3) LZO real-time compression library, required for link compression,
       available from http://www.oberhumer.com/opensource/lzo/
       OpenBSD users can use ports or packages to install lzo, but remember
