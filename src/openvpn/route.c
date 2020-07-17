@@ -3436,7 +3436,7 @@ struct rtmsg {
 #else  /* if defined(TARGET_SOLARIS) */
 #define NEXTADDR(w, u) \
     if (rtm_addrs & (w)) { \
-        l = ROUNDUP( ((struct sockaddr *)&(u))->sa_len); memmove(cp, &(u), l); cp += l; \
+        l = ((struct sockaddr *)&(u))->sa_len; memmove(cp, &(u), l); cp += ROUNDUP(l); \
     }
 
 #define ADVANCE(x, n) (x += ROUNDUP((n)->sa_len))
