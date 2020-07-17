@@ -472,9 +472,15 @@ prepare_push_reply(struct context *c, struct gc_arena *gc,
 
     /*
      * Push the selected cipher, at this point the cipher has been
-     * already negotiated and been fixed
+     * already negotiated and been fixed.
+     *
+     * We avoid pushing the cipher to clients not supporting NCP
+     * to avoid error messages in their logs
      */
-    push_option_fmt(gc, push_list, M_USAGE, "cipher %s", o->ciphername);
+    if (tls_peer_supports_ncp(c->c2.tls_multi->peer_info))
+    {
+        push_option_fmt(gc, push_list, M_USAGE, "cipher %s", o->ciphername);
+    }
 
     return true;
 }
