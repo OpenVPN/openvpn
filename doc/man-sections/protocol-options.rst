@@ -62,7 +62,7 @@ configured in a compatible way between both the local and remote side.
   The default is :code:`BF-CBC`, an abbreviation for Blowfish in Cipher
   Block Chaining mode. When cipher negotiation (NCP) is allowed,
   OpenVPN 2.4 and newer on both client and server side will automatically
-  upgrade to :code:`AES-256-GCM`.  See ``--ncp-ciphers`` and
+  upgrade to :code:`AES-256-GCM`.  See ``--data-ciphers`` and
   ``--ncp-disable`` for more details on NCP.
 
   Using :code:`BF-CBC` is no longer recommended, because of its 64-bit
@@ -169,7 +169,7 @@ configured in a compatible way between both the local and remote side.
   non-standard key lengths, and a larger key may offer no real guarantee
   of greater security, or may even reduce security.
 
---ncp-ciphers cipher-list
+--data-ciphers cipher-list
   Restrict the allowed ciphers to be negotiated to the ciphers in
   ``cipher-list``. ``cipher-list`` is a colon-separated list of ciphers,
   and defaults to :code:`AES-256-GCM:AES-128-GCM`.
@@ -189,9 +189,9 @@ configured in a compatible way between both the local and remote side.
   Additionally, to allow for more smooth transition, if NCP is enabled,
   OpenVPN will inherit the cipher of the peer if that cipher is different
   from the local ``--cipher`` setting, but the peer cipher is one of the
-  ciphers specified in ``--ncp-ciphers``. E.g. a non-NCP client (<=v2.3,
+  ciphers specified in ``--data-ciphers``. E.g. a non-NCP client (<=v2.3,
   or with --ncp-disabled set) connecting to a NCP server (v2.4+) with
-  ``--cipher BF-CBC`` and ``--ncp-ciphers AES-256-GCM:AES-256-CBC`` set can
+  ``--cipher BF-CBC`` and ``--data-ciphers AES-256-GCM:AES-256-CBC`` set can
   either specify ``--cipher BF-CBC`` or ``--cipher AES-256-CBC`` and both
   will work.
 
@@ -200,6 +200,9 @@ configured in a compatible way between both the local and remote side.
 
   This list is restricted to be 127 chars long after conversion to OpenVPN
   ciphers.
+
+  This option was called ``ncp-ciphers`` in OpenVPN 2.4 but has been renamed
+  to ``data-ciphers`` in OpenVPN 2.5 to more accurately reflect its meaning.
 
 --ncp-disable
   Disable "Negotiable Crypto Parameters". This completely disables cipher

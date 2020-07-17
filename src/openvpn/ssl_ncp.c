@@ -111,7 +111,7 @@ mutate_ncp_cipher_list(const char *list, struct gc_arena *gc)
         const cipher_kt_t *ktc = cipher_kt_get(token);
         if (!ktc)
         {
-            msg(M_WARN, "Unsupported cipher in --ncp-ciphers: %s", token);
+            msg(M_WARN, "Unsupported cipher in --data-ciphers: %s", token);
             error_found = true;
         }
         else
@@ -130,7 +130,7 @@ mutate_ncp_cipher_list(const char *list, struct gc_arena *gc)
             if (!(buf_forward_capacity(&new_list) >
                   strlen(ovpn_cipher_name) + 2))
             {
-                msg(M_WARN, "Length of --ncp-ciphers is over the "
+                msg(M_WARN, "Length of --data-ciphers is over the "
                     "limit of 127 chars");
                 error_found = true;
             }

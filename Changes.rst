@@ -14,12 +14,19 @@ ChaCha20-Poly1305 cipher support
     channel.
 
 Improved Data channel cipher negotiation
+    The option ``ncp-ciphers`` has been renamed to ``data-ciphers``.
+    The old name is still accepted. The change in name signals that
+    ``data-ciphers`` is the preferred way to configure data channel
+    ciphers and the data prefix is chosen to avoid the ambiguity that
+    exists with ``--cipher`` for the data cipher and ``tls-cipher``
+    for the TLS ciphers.
+
     OpenVPN clients will now signal all supported ciphers from the
-    ``ncp-ciphers`` option to the server via ``IV_CIPHERS``. OpenVPN
-    servers will select the first common cipher from the ``ncp-ciphers``
+    ``data-ciphers`` option to the server via ``IV_CIPHERS``. OpenVPN
+    servers will select the first common cipher from the ``data-ciphers``
     list instead of blindly pushing the first cipher of the list. This
     allows to use a configuration like
-    ``ncp-ciphers ChaCha20-Poly1305:AES-256-GCM`` on the server that
+    ``data-ciphers ChaCha20-Poly1305:AES-256-GCM`` on the server that
     prefers ChaCha20-Poly1305 but uses it only if the client supports it.
 
 Asynchronous (deferred) authentication support for auth-pam plugin.

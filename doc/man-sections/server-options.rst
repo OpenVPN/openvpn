@@ -479,8 +479,8 @@ fast hardware. SSL/TLS authentication must be used in this mode.
         *AES-GCM-128* and *AES-GCM-256*.
 
   :code:`IV_CIPHERS=<ncp-ciphers>`
-        The client pushes the list of configured ciphers with the
-        ``--ciphers`` option to the server.
+        The client announces the list of supported ciphers configured with the
+        ``--data-ciphers`` option to the server.
 
   :code:`IV_GUI_VER=<gui_id> <version>`
         The UI version of a UI if one is running, for example

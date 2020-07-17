@@ -1824,7 +1824,7 @@ multi_client_set_protocol_options(struct context *c)
         else
         {
             /*
-             * Push the first cipher from --ncp-ciphers to the client that
+             * Push the first cipher from --data-ciphers to the client that
              * the client announces to be supporting.
              */
             char *push_cipher = ncp_get_best_cipher(o->ncp_ciphers, o->ciphername,
@@ -1844,7 +1844,7 @@ multi_client_set_protocol_options(struct context *c)
                 {
                     msg(M_INFO, "PUSH: No common cipher between server and "
                         "client. Expect this connection not to work. Server "
-                        "ncp-ciphers: '%s', client supported ciphers '%s'",
+                        "data-ciphers: '%s', client supported ciphers '%s'",
                         o->ncp_ciphers, peer_ciphers);
                 }
                 else
