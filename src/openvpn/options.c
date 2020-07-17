@@ -8012,11 +8012,6 @@ add_option(struct options *options,
         VERIFY_PERMISSION(OPT_P_GENERAL);
         options->mute_replay_warnings = true;
     }
-    else if (streq(p[0], "no-iv") && !p[1])
-    {
-        msg(msglevel,
-            "--no-iv is no longer supported. Remove it from client and server configs.");
-    }
     else if (streq(p[0], "replay-persist") && p[1] && !p[2])
     {
         VERIFY_PERMISSION(OPT_P_GENERAL);

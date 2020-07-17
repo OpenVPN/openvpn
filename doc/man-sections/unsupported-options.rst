@@ -19,7 +19,7 @@ longer supported
 
 --no-iv
   Removed in OpenVPN 2.5.  This option should not be used as it weakens the
-  VPN tunnel security.
+  VPN tunnel security.  This has been a NOOP option since OpenVPN 2.4.
 
 --no-replay
   Removed in OpenVPN 2.5.  This option should not be used as it weakens the

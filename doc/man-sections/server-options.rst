@@ -399,7 +399,7 @@ fast hardware. SSL/TLS authentication must be used in this mode.
   ``link-mtu``, ``tun-mtu``, ``proto``, ``ifconfig``,
   ``comp-lzo``, ``fragment``, ``keydir``, ``cipher``,
   ``auth``, ``keysize``, ``secret``, ``no-replay``,
-  ``no-iv``, ``tls-auth``, ``key-method``, ``tls-server``
+  ``tls-auth``, ``key-method``, ``tls-server``
   and ``tls-client``.
 
   This option requires that ``--disable-occ`` NOT be used.
