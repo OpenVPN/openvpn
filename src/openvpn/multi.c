@@ -2111,35 +2111,47 @@ multi_client_connect_call_plugin_v2(struct multi_context *m,
                                     bool deferred,
                                     unsigned int *option_types_found)
 {
-    if (deferred)
-    {
-        return CC_RET_FAILED;
-    }
     enum client_connect_return ret = CC_RET_SKIPPED;
 #ifdef ENABLE_PLUGIN
     ASSERT(m);
     ASSERT(mi);
     ASSERT(option_types_found);
 
+    int call = deferred ? OPENVPN_PLUGIN_CLIENT_CONNECT_DEFER_V2 :
+               OPENVPN_PLUGIN_CLIENT_CONNECT_V2;
     /* V2 callback, use a plugin_return struct for passing back return info */
-    if (plugin_defined(mi->context.plugins, OPENVPN_PLUGIN_CLIENT_CONNECT_V2))
+    if (plugin_defined(mi->context.plugins, call))
     {
         struct plugin_return pr;
 
         plugin_return_init(&pr);
 
-        if (plugin_call(mi->context.plugins, OPENVPN_PLUGIN_CLIENT_CONNECT_V2,
-                        NULL, &pr, mi->context.c2.es)
-            != OPENVPN_PLUGIN_FUNC_SUCCESS)
-        {
-            msg(M_WARN, "WARNING: client-connect-v2 plugin call failed");
-            ret = CC_RET_FAILED;
-        }
-        else
+        int plug_ret = plugin_call(mi->context.plugins, call,
+                                   NULL, &pr, mi->context.c2.es);
+        if (plug_ret == OPENVPN_PLUGIN_FUNC_SUCCESS)
         {
             multi_client_connect_post_plugin(m, mi, &pr, option_types_found);
             ret = CC_RET_SUCCEEDED;
         }
+        else if (plug_ret == OPENVPN_PLUGIN_FUNC_DEFERRED)
+        {
+            ret = CC_RET_DEFERRED;
+            if (!(plugin_defined(mi->context.plugins,
+                                 OPENVPN_PLUGIN_CLIENT_CONNECT_DEFER_V2)))
+            {
+                msg(M_WARN, "A plugin that defers from the "
+                    "OPENVPN_PLUGIN_CLIENT_CONNECT_V2 call must also "
+                    "declare support for "
+                    "OPENVPN_PLUGIN_CLIENT_CONNECT_DEFER_V2");
+                ret = CC_RET_FAILED;
+            }
+        }
+        else
+        {
+            msg(M_WARN, "WARNING: client-connect-v2 plugin call failed");
+            ret = CC_RET_FAILED;
+        }
+
 
         plugin_return_free(&pr);
     }

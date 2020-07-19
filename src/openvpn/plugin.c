@@ -107,6 +107,9 @@ plugin_type_name(const int type)
         case OPENVPN_PLUGIN_CLIENT_CONNECT_DEFER:
             return "PLUGIN_CLIENT_CONNECT_DEFER";
 
+        case OPENVPN_PLUGIN_CLIENT_CONNECT_DEFER_V2:
+            return "PLUGIN_CLIENT_CONNECT_DEFER_V2";
+
         case OPENVPN_PLUGIN_CLIENT_DISCONNECT:
             return "PLUGIN_CLIENT_DISCONNECT";
 

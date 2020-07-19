@@ -130,7 +130,8 @@ extern "C" {
 #define OPENVPN_PLUGIN_ENABLE_PF                11
 #define OPENVPN_PLUGIN_ROUTE_PREDOWN            12
 #define OPENVPN_PLUGIN_CLIENT_CONNECT_DEFER     13
-#define OPENVPN_PLUGIN_N                        14
+#define OPENVPN_PLUGIN_CLIENT_CONNECT_DEFER_V2  14
+#define OPENVPN_PLUGIN_N                        15
 
 /*
  * Build a mask out of a set of plug-in types.
