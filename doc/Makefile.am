@@ -15,7 +15,11 @@ MAINTAINERCLEANFILES = \
 SUBDIRS = doxygen
 
 dist_doc_DATA = \
-	management-notes.txt openvpn.8.rst \
+	management-notes.txt
+
+dist_noinst_DATA = \
+	README.plugins interactive-service-notes.rst \
+	openvpn.8.rst \
 	man-sections/advanced-options.rst \
 	man-sections/client-options.rst \
 	man-sections/connection-profiles.rst \
@@ -40,9 +44,6 @@ dist_doc_DATA = \
 	man-sections/virtual-routing-and-forwarding.rst \
 	man-sections/vpn-network-options.rst \
 	man-sections/windows-options.rst
-
-dist_noinst_DATA = \
-	README.plugins interactive-service-notes.rst
 
 openvpn.8 :
 if HAVE_PYDOCUTILS
