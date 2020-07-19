@@ -73,6 +73,18 @@ struct client_connect_defer_state
     /* Remember which option classes where processed for delayed option
      * handling. */
     unsigned int option_types_found;
+
+    /**
+     * The temporary file name that contains the return status of the
+     * client-connect script if it exits with defer as status
+     */
+    char *deferred_ret_file;
+
+    /**
+     * The temporary file name that contains the config directives
+     * returned by the client-connect script
+     */
+    char *config_file;
 };
 
 /**
