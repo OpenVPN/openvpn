@@ -220,11 +220,6 @@ enum client_connect_status {
     CAS_PENDING_DEFERRED,
     CAS_PENDING_DEFERRED_PARTIAL,   /**< at least handler succeeded, no result yet*/
     CAS_FAILED,
-    CAS_PARTIAL,        /**< Variant of CAS_FAILED: at least one
-                         * client-connect script/plugin succeeded
-                         * while a later one in the chain failed
-                         * (we still need cleanup compared to FAILED)
-                         */
 };
 
 static inline bool

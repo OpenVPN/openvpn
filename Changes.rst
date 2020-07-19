@@ -38,6 +38,13 @@ https://community.openvpn.net/openvpn/wiki/DeprecatedOptions
   This option was made into a NOOP option with OpenVPN 2.4.  This has now
   been completely removed.
 
+User-visible Changes
+--------------------
+- If multiple connect handlers are used (client-connect, ccd, connect
+  plugin) and one of the handler succeeds but a subsequent fails, the
+  client-disconnect-script is now called immediately. Previously it
+  was called, when the VPN session was terminated.
+
 Overview of changes in 2.4
 ==========================
 

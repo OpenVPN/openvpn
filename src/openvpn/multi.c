@@ -574,35 +574,30 @@ multi_client_disconnect_setenv(struct multi_instance *mi)
 static void
 multi_client_disconnect_script(struct multi_instance *mi)
 {
-    if (mi->context.c2.context_auth == CAS_SUCCEEDED
-        || mi->context.c2.context_auth == CAS_PARTIAL)
+    multi_client_disconnect_setenv(mi);
+
+    if (plugin_defined(mi->context.plugins, OPENVPN_PLUGIN_CLIENT_DISCONNECT))
     {
-        multi_client_disconnect_setenv(mi);
-
-        if (plugin_defined(mi->context.plugins, OPENVPN_PLUGIN_CLIENT_DISCONNECT))
+        if (plugin_call(mi->context.plugins, OPENVPN_PLUGIN_CLIENT_DISCONNECT, NULL, NULL, mi->context.c2.es) != OPENVPN_PLUGIN_FUNC_SUCCESS)
         {
-            if (plugin_call(mi->context.plugins, OPENVPN_PLUGIN_CLIENT_DISCONNECT, NULL, NULL, mi->context.c2.es) != OPENVPN_PLUGIN_FUNC_SUCCESS)
-            {
-                msg(M_WARN, "WARNING: client-disconnect plugin call failed");
-            }
+            msg(M_WARN, "WARNING: client-disconnect plugin call failed");
         }
-
-        if (mi->context.options.client_disconnect_script)
-        {
-            struct argv argv = argv_new();
-            setenv_str(mi->context.c2.es, "script_type", "client-disconnect");
-            argv_parse_cmd(&argv, mi->context.options.client_disconnect_script);
-            openvpn_run_script(&argv, mi->context.c2.es, 0, "--client-disconnect");
-            argv_free(&argv);
-        }
-#ifdef MANAGEMENT_DEF_AUTH
-        if (management)
-        {
-            management_notify_client_close(management, &mi->context.c2.mda_context, mi->context.c2.es);
-        }
-#endif
-
     }
+
+    if (mi->context.options.client_disconnect_script)
+    {
+        struct argv argv = argv_new();
+        setenv_str(mi->context.c2.es, "script_type", "client-disconnect");
+        argv_parse_cmd(&argv, mi->context.options.client_disconnect_script);
+        openvpn_run_script(&argv, mi->context.c2.es, 0, "--client-disconnect");
+        argv_free(&argv);
+    }
+#ifdef MANAGEMENT_DEF_AUTH
+    if (management)
+    {
+        management_notify_client_close(management, &mi->context.c2.mda_context, mi->context.c2.es);
+    }
+#endif
 }
 
 void
@@ -683,8 +678,10 @@ multi_close_instance(struct multi_context *m,
 #ifdef MANAGEMENT_DEF_AUTH
     set_cc_config(mi, NULL);
 #endif
-
-    multi_client_disconnect_script(mi);
+    if (mi->context.c2.context_auth == CAS_SUCCEEDED)
+    {
+        multi_client_disconnect_script(mi);
+    }
 
     close_context(&mi->context, SIGTERM, CC_GC_FREE);
 
@@ -2375,16 +2372,14 @@ multi_connection_established(struct multi_context *m, struct multi_instance *mi)
     }
     else
     {
-        /* set context-level authentication flag to failed but remember
-         * if had a handler succeed (for cleanup) */
+        /* run the disconnect script if we had a connect script that
+         * did not fail */
         if (mi->context.c2.context_auth == CAS_PENDING_DEFERRED_PARTIAL)
         {
-            mi->context.c2.context_auth = CAS_PARTIAL;
+            multi_client_disconnect_script(mi);
         }
-        else
-        {
-            mi->context.c2.context_auth = CAS_FAILED;
-        }
+
+        mi->context.c2.context_auth = CAS_FAILED;
     }
 
     /* increment number of current authenticated clients */
