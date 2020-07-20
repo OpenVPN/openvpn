@@ -424,9 +424,6 @@ static const char usage_message[] =
     "                  client instance.\n"
     "--ifconfig-pool start-IP end-IP [netmask] : Set aside a pool of subnets\n"
     "                  to be dynamically allocated to connecting clients.\n"
-    "--ifconfig-pool-linear : (DEPRECATED) Use individual addresses rather \n"
-    "                  than /30 subnets\n in tun mode.  Not compatible with\n"
-    "                  Windows clients.\n"
     "--ifconfig-pool-persist file [seconds] : Persist/unpersist ifconfig-pool\n"
     "                  data to file, at seconds intervals (default=600).\n"
     "                  If seconds=0, file will be treated as read-only.\n"
@@ -6860,12 +6857,6 @@ add_option(struct options *options,
         {
             options->ifconfig_pool_persist_refresh_freq = positive_atoi(p[2]);
         }
-    }
-    else if (streq(p[0], "ifconfig-pool-linear") && !p[1])
-    {
-        VERIFY_PERMISSION(OPT_P_GENERAL);
-        options->topology = TOP_P2P;
-        msg(M_WARN, "DEPRECATED OPTION: --ifconfig-pool-linear, use --topology p2p instead");
     }
     else if (streq(p[0], "ifconfig-ipv6-pool") && p[1] && !p[2])
     {
