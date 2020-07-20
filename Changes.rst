@@ -32,6 +32,11 @@ Improved Data channel cipher negotiation
 Asynchronous (deferred) authentication support for auth-pam plugin.
     See src/plugins/auth-pam/README.auth-pam for details.
 
+Deferred client-connect
+    The ``--client-connect`` option and the connect plugin API allow
+    asynchronous/deferred return of the configuration file in the same way
+    as the auth-plugin.
+
 Faster connection setup
     A client will signal in the ``IV_PROTO`` variable that it is in pull
     mode. This allows the server to push the configuration options to

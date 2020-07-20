@@ -137,6 +137,13 @@ SCRIPT HOOKS
   returns a non-zero error status, it will cause the client to be
   disconnected.
 
+  If a ``--client-connect`` wants to defer the generating of the
+  configuration then the script needs to use the
+  :code:`client_connect_deferred_file` and
+  :code:`client_connect_config_file` environment variables, and write
+  status accordingly into these files.  See the `Environmental Variables`_
+  section for more details.
+
 --client-disconnect cmd
   Like ``--client-connect`` but called on client instance shutdown. Will
   not be called unless the ``--client-connect`` script and plugins (if
@@ -511,6 +518,35 @@ instances.
 :code:`bytes_sent`
     Total number of bytes sent to client during VPN session. Set prior to
     execution of the ``--client-disconnect`` script.
+
+:code:`client_connect_config_file`
+    The path to the configuration file that should be written to by the
+    ``--client-connect`` script (optional, if per-session configuration
+    is desired).  This is the same file name as passed via command line
+    argument on the call to the ``--client-connect`` script.
+
+:code:`client_connect_deferred_file`
+    This file can be optionally written to in order to to communicate a
+    status code of the ``--client-connect`` script or plgin.  Only the
+    first character in the file is relevant.  It must be either :code:`1`
+    to indicate normal script execution, :code:`0` indicates an error (in
+    the same way that a non zero exit status does) or :code:`2` to indicate
+    that the script deferred returning the config file.
+
+    For deferred (background) handling, the script or plugin MUST write
+    :code:`2` to the file to indicate the deferral and then return with
+    exit code :code:`0` to signal ``deferred handler started OK``.
+
+    A background process or similar must then take care of writing the
+    configuration to the file indicated by the
+    :code:`client_connect_config_file` environment variable and when
+    finished, write the a :code:`1` to this file (or :code:`0` in case of
+    an error).
+
+    The absence of any character in the file when the script finishes
+    executing is interpreted the same as :code:`1`. This allows scripts
+    that are not written to support the defer mechanism to be used
+    unmodified.
 
 :code:`common_name`
     The X509 common name of an authenticated client. Set prior to execution

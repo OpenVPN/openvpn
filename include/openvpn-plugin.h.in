@@ -557,12 +557,21 @@ OPENVPN_PLUGIN_DEF openvpn_plugin_handle_t OPENVPN_PLUGIN_FUNC(openvpn_plugin_op
  * OPENVPN_PLUGIN_FUNC_SUCCESS on success, OPENVPN_PLUGIN_FUNC_ERROR on failure
  *
  * In addition, OPENVPN_PLUGIN_FUNC_DEFERRED may be returned by
- * OPENVPN_PLUGIN_AUTH_USER_PASS_VERIFY.  This enables asynchronous
- * authentication where the plugin (or one of its agents) may indicate
- * authentication success/failure some number of seconds after the return
- * of the OPENVPN_PLUGIN_AUTH_USER_PASS_VERIFY handler by writing a single
- * char to the file named by auth_control_file in the environmental variable
- * list (envp).
+ * OPENVPN_PLUGIN_AUTH_USER_PASS_VERIFY, OPENVPN_PLUGIN_CLIENT_CONNECT and
+ * OPENVPN_PLUGIN_CLIENT_CONNECT_V2. This enables asynchronous
+ * authentication or client connect  where the plugin (or one of its agents)
+ * may indicate authentication success/failure or client configuration some
+ * number of seconds after the return of the function handler.
+ * For OPENVPN_PLUGIN_AUTH_USER_PASS_VERIFY and OPENVPN_PLUGIN_CLIENT_CONNECT
+ * this is done by writing a single char to the file named by
+ * auth_control_file/client_connect_deferred_file
+ * in the environmental variable list (envp).
+ *
+ * In addition the OPENVPN_PLUGIN_CLIENT_CONNECT_DEFER and
+ * OPENVPN_PLUGIN_CLIENT_CONNECT_DEFER_V2 are called when OpenVPN tries to
+ * get the deferred result. For a V2 call implementing this function is
+ * required as information is not passed by files. For the normal version
+ * the call is optional.
  *
  * first char of auth_control_file:
  * '0' -- indicates auth failure

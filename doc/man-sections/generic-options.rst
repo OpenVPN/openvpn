@@ -394,11 +394,14 @@ which mode OpenVPN is configured as.
 
   This directory will be used by in the following cases:
 
-  * ``--client-connect`` scripts to dynamically generate client-specific
-    configuration files.
+  * ``--client-connect`` scripts and :code:`OPENVPN_PLUGIN_CLIENT_CONNECT`
+    plug-in hook to dynamically generate client-specific configuration
+    :code:`client_connect_config_file` and return success/failure via
+    :code:`client_connect_deferred_file` when using deferred client connect
+    method
 
-  * :code:`OPENVPN_PLUGIN_AUTH_USER_PASS_VERIFY` plugin hook to return
-    success/failure via ``auth_control_file`` when using deferred auth
+  * :code:`OPENVPN_PLUGIN_AUTH_USER_PASS_VERIFY` plug-in hooks returns
+    success/failure via :code:`auth_control_file` when using deferred auth
     method
 
   * :code:`OPENVPN_PLUGIN_ENABLE_PF` plugin hook to pass filtering rules
