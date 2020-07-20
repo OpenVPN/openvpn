@@ -64,7 +64,6 @@ static void
 openvpn_encrypt_aead(struct buffer *buf, struct buffer work,
                      struct crypto_options *opt)
 {
-#ifdef HAVE_AEAD_CIPHER_MODES
     struct gc_arena gc;
     int outlen = 0;
     const struct key_ctx *ctx = &opt->key_ctx_bi.encrypt;
@@ -152,9 +151,6 @@ err:
     buf->len = 0;
     gc_free(&gc);
     return;
-#else /* HAVE_AEAD_CIPHER_MODES */
-    ASSERT(0);
-#endif /* ifdef HAVE_AEAD_CIPHER_MODES */
 }
 
 static void
@@ -361,7 +357,6 @@ openvpn_decrypt_aead(struct buffer *buf, struct buffer work,
                      struct crypto_options *opt, const struct frame *frame,
                      const uint8_t *ad_start)
 {
-#ifdef HAVE_AEAD_CIPHER_MODES
     static const char error_prefix[] = "AEAD Decrypt error";
     struct packet_id_net pin = { 0 };
     const struct key_ctx *ctx = &opt->key_ctx_bi.decrypt;
@@ -482,10 +477,6 @@ error_exit:
     buf->len = 0;
     gc_free(&gc);
     return false;
-#else /* HAVE_AEAD_CIPHER_MODES */
-    ASSERT(0);
-    return false;
-#endif /* ifdef HAVE_AEAD_CIPHER_MODES */
 }
 
 /*
@@ -1104,7 +1095,6 @@ test_crypto(struct crypto_options *co, struct frame *frame)
     /* init work */
     ASSERT(buf_init(&work, FRAME_HEADROOM(frame)));
 
-#ifdef HAVE_AEAD_CIPHER_MODES
     /* init implicit IV */
     {
         const cipher_kt_t *cipher =
@@ -1126,7 +1116,6 @@ test_crypto(struct crypto_options *co, struct frame *frame)
             co->key_ctx_bi.decrypt.implicit_iv_len = impl_iv_len;
         }
     }
-#endif /* ifdef HAVE_AEAD_CIPHER_MODES */
 
     msg(M_INFO, "Entering " PACKAGE_NAME " crypto self-test mode.");
     for (i = 1; i <= TUN_MTU_SIZE(frame); ++i)

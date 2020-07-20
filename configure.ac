@@ -907,11 +907,10 @@ if test "${with_crypto_library}" = "openssl"; then
 		AC_DEFINE([HAVE_OPENSSL_ENGINE], [1], [OpenSSL engine support available])
 	fi
 
-	have_crypto_aead_modes="yes"
 	AC_CHECK_FUNC(
 		[EVP_aes_256_gcm],
 		,
-		[have_crypto_aead_modes="no"]
+		[AC_MSG_ERROR([OpenSSL check for AES-256-GCM support failed])]
 	)
 
 	# All supported OpenSSL version (>= 1.0.2)
@@ -1005,14 +1004,13 @@ elif test "${with_crypto_library}" = "mbedtls"; then
 		[AC_MSG_ERROR([mbed TLS 2.y.z required])]
 	)
 
-	have_crypto_aead_modes="yes"
 	AC_CHECK_FUNCS(
 		[ \
 			mbedtls_cipher_write_tag \
 			mbedtls_cipher_check_tag \
 		],
 		,
-		[have_crypto_aead_modes="no"; break]
+		[AC_MSG_ERROR([mbed TLS check for AEAD support failed])]
 	)
 
 	have_export_keying_material="yes"
@@ -1227,7 +1225,6 @@ test "${enable_pf}" = "yes" && AC_DEFINE([ENABLE_PF], [1], [Enable internal pack
 test "${enable_strict_options}" = "yes" && AC_DEFINE([ENABLE_STRICT_OPTIONS_CHECK], [1], [Enable strict options check between peers])
 
 test "${enable_crypto_ofb_cfb}" = "yes" && AC_DEFINE([ENABLE_OFB_CFB_MODE], [1], [Enable OFB and CFB cipher modes])
-test "${have_crypto_aead_modes}" = "yes" && AC_DEFINE([HAVE_AEAD_CIPHER_MODES], [1], [Use crypto library])
 if test "${have_export_keying_material}" = "yes"; then
 	AC_DEFINE(
 		[HAVE_EXPORT_KEYING_MATERIAL], [1],

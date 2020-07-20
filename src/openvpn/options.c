@@ -104,9 +104,7 @@ const char title_string[] =
     " [MH/RECVDA]"
 #endif
 #endif
-#ifdef HAVE_AEAD_CIPHER_MODES
     " [AEAD]"
-#endif
     " built on " __DATE__
 ;
 
@@ -871,11 +869,7 @@ init_options(struct options *o, const bool init_gc)
     o->scheduled_exit_interval = 5;
 #endif
     o->ciphername = "BF-CBC";
-#ifdef HAVE_AEAD_CIPHER_MODES /* IV_NCP=2 requires GCM support */
     o->ncp_enabled = true;
-#else
-    o->ncp_enabled = false;
-#endif
     o->ncp_ciphers = "AES-256-GCM:AES-128-GCM";
     o->authname = "SHA1";
     o->prng_hash = "SHA1";
