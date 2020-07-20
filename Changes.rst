@@ -38,6 +38,10 @@ https://community.openvpn.net/openvpn/wiki/DeprecatedOptions
   This option was made into a NOOP option with OpenVPN 2.4.  This has now
   been completely removed.
 
+- ``--client-cert-not-required`` has been removed
+  This option will now cause server configurations to not start.  Use
+  ``--verify-client-cert none`` instead.
+
 - ``--ifconfig-pool-linear`` has been removed
   This option is removed.  Use ``--topology p2p`` instead.
 

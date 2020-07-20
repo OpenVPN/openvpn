@@ -60,7 +60,7 @@ is to be answered with the constant value "mydomain.com":
 The following OpenVPN directives can also influence
 the operation of this plugin:
 
-  client-cert-not-required
+  verify-client-cert none
   username-as-common-name
   static-challenge
 

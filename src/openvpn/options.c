@@ -441,8 +441,6 @@ static const char usage_message[] =
     "                  Only valid in a client-specific config file.\n"
     "--disable       : Client is disabled.\n"
     "                  Only valid in a client-specific config file.\n"
-    "--client-cert-not-required : (DEPRECATED) Don't require client certificate, client\n"
-    "                  will authenticate using username/password.\n"
     "--verify-client-cert [none|optional|require] : perform no, optional or\n"
     "                  mandatory client certificate verification.\n"
     "                  Default is to require the client to supply a certificate.\n"
@@ -2470,7 +2468,7 @@ options_postprocess_verify_ce(const struct options *options, const struct connec
         }
         if (options->ssl_flags & (SSLF_CLIENT_CERT_NOT_REQUIRED|SSLF_CLIENT_CERT_OPTIONAL))
         {
-            msg(M_USAGE, "--client-cert-not-required and --verify-client-cert require --mode server");
+            msg(M_USAGE, "--verify-client-cert requires --mode server");
         }
         if (options->ssl_flags & SSLF_USERNAME_AS_COMMON_NAME)
         {
@@ -2543,7 +2541,7 @@ options_postprocess_verify_ce(const struct options *options, const struct connec
     if (options->ssl_flags & (SSLF_CLIENT_CERT_NOT_REQUIRED|SSLF_CLIENT_CERT_OPTIONAL))
     {
         msg(M_WARN, "WARNING: POTENTIALLY DANGEROUS OPTION "
-            "--verify-client-cert none|optional (or --client-cert-not-required) "
+            "--verify-client-cert none|optional "
             "may accept clients which do not present a certificate");
     }
 
@@ -6938,8 +6936,7 @@ add_option(struct options *options,
     else if (streq(p[0], "client-cert-not-required") && !p[1])
     {
         VERIFY_PERMISSION(OPT_P_GENERAL);
-        options->ssl_flags |= SSLF_CLIENT_CERT_NOT_REQUIRED;
-        msg(M_WARN, "DEPRECATED OPTION: --client-cert-not-required, use --verify-client-cert instead");
+        msg(M_FATAL, "REMOVED OPTION: --client-cert-not-required, use '--verify-client-cert none' instead");
     }
     else if (streq(p[0], "verify-client-cert") && !p[2])
     {
