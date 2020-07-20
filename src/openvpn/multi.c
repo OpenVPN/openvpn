@@ -2171,11 +2171,17 @@ multi_client_connect_script_deferred(struct multi_context *m,
         ret = CC_RET_DEFERRED;
     }
 
-    if (ret != CC_RET_DEFERRED)
+    if (ret == CC_RET_SUCCEEDED)
     {
         ccs_delete_deferred_ret_file(mi);
         multi_client_connect_post(m, mi, ccs->config_file,
                                   option_types_found);
+        ccs_delete_config_file(mi);
+    }
+    if (ret == CC_RET_FAILED)
+    {
+        msg(M_INFO, "MULTI: deferred --client-connect script returned CC_RET_FAILED");
+        ccs_delete_deferred_ret_file(mi);
         ccs_delete_config_file(mi);
     }
     return ret;
