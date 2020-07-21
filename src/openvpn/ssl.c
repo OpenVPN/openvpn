@@ -2223,7 +2223,18 @@ push_peer_info(struct buffer *buf, struct tls_session *session)
 #endif
 
         /* support for P_DATA_V2 */
-        buf_printf(&out, "IV_PROTO=2\n");
+        int iv_proto = IV_PROTO_DATA_V2;
+
+        /* support for receiving push_reply before sending
+         * push request, also signal that the client wants
+         * to get push-reply messages without without requiring a round
+         * trip for a push request message*/
+        if(session->opt->pull)
+        {
+            iv_proto |= IV_PROTO_REQUEST_PUSH;
+        }
+
+        buf_printf(&out, "IV_PROTO=%d\n", iv_proto);
 
         /* support for Negotiable Crypto Parameters */
         if (session->opt->ncp_enabled

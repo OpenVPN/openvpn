@@ -464,8 +464,14 @@ fast hardware. SSL/TLS authentication must be used in this mode.
   :code:`IV_LZ4=1`
         If the client supports LZ4 compressions.
 
-  :code:`IV_PROTO=2`
-        If the client supports peer-id floating mechanism
+  :code:`IV_PROTO`
+    Details about protocol extensions that the peer supports. The
+    variable is a bitfield and the bits are defined as follows
+    (starting a bit 0 for the first (unused) bit:
+
+    - bit 1: The peer supports peer-id floating mechanism
+    - bit 2: The client expects a push-reply and the server may
+      send this reply without waiting for a push-request first.
 
   :code:`IV_NCP=2`
         Negotiable ciphers, client supports ``--cipher`` pushed by

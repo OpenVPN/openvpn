@@ -101,6 +101,22 @@
 /* Maximum length of OCC options string passed as part of auth handshake */
 #define TLS_OPTIONS_LEN 512
 
+/* Definitions of the bits in the IV_PROTO bitfield
+ *
+ * In older OpenVPN versions this used in a comparison
+ * IV_PROTO >= 2 to determine if DATA_V2 is supported.
+ * Therefore any client announcing any of the flags must
+ * also announce IV_PROTO_DATA_V2. We also treat bit 0
+ * as reserved for this reason */
+
+/** Support P_DATA_V2 */
+#define IV_PROTO_DATA_V2        (1<<1)
+
+/** Assume client will send a push request and server does not need
+ * to wait for a push-request to send a push-reply */
+#define IV_PROTO_REQUEST_PUSH   (1<<2)
+
+
 /* Default field in X509 to be username */
 #define X509_USERNAME_FIELD_DEFAULT "CN"
 

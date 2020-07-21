@@ -1792,10 +1792,18 @@ multi_client_set_protocol_options(struct context *c)
     {
         int proto = 0;
         int r = sscanf(optstr, "IV_PROTO=%d", &proto);
-        if ((r == 1) && (proto >= 2))
+        if (r == 1)
         {
-            tls_multi->use_peer_id = true;
+            if (proto & IV_PROTO_DATA_V2)
+            {
+                tls_multi->use_peer_id = true;
+            }
+            if (proto & IV_PROTO_REQUEST_PUSH)
+            {
+                c->c2.push_request_received = true;
+            }
         }
+
     }
 
     /* Select cipher if client supports Negotiable Crypto Parameters */
