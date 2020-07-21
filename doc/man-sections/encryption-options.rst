@@ -27,9 +27,9 @@ SSL Library information
   (Standalone) Show currently available hardware-based crypto acceleration
   engines supported by the OpenSSL library.
 
---show-curves
-  (Standalone) Show all available elliptic curves to use with the
-  ``--ecdh-curve`` option.
+--show-groups
+  (Standalone) Show all available elliptic curves/groups to use with the
+  ``--ecdh-curve`` and ``tls-groups`` options.
 
 Generating key material
 -----------------------

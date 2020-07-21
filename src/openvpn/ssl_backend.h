@@ -199,6 +199,16 @@ void tls_ctx_restrict_ciphers_tls13(struct tls_root_ctx *ctx, const char *cipher
 void tls_ctx_set_cert_profile(struct tls_root_ctx *ctx, const char *profile);
 
 /**
+ * Set the (elliptic curve) group allowed for signatures and
+ * key exchange.
+ *
+ * @param ctx       TLS context to restrict, must be valid.
+ * @param groups    List of groups that will be allowed, in priority,
+ *                  separated by :
+ */
+void tls_ctx_set_tls_groups(struct tls_root_ctx *ctx, const char *groups);
+
+/**
  * Check our certificate notBefore and notAfter fields, and warn if the cert is
  * either not yet valid or has expired.  Note that this is a non-fatal error,
  * since we compare against the system time, which might be incorrect.

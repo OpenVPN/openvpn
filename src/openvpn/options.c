@@ -7998,7 +7998,7 @@ add_option(struct options *options,
         VERIFY_PERMISSION(OPT_P_GENERAL);
         options->show_tls_ciphers = true;
     }
-    else if (streq(p[0], "show-curves") && !p[1])
+    else if ((streq(p[0], "show-curves") || streq(p[0], "show-groups")) && !p[1])
     {
         VERIFY_PERMISSION(OPT_P_GENERAL);
         options->show_curves = true;
@@ -8006,6 +8006,9 @@ add_option(struct options *options,
     else if (streq(p[0], "ecdh-curve") && p[1] && !p[2])
     {
         VERIFY_PERMISSION(OPT_P_GENERAL);
+        msg(M_WARN, "Consider setting groups/curves preference with "
+            "tls-groups instead of forcing a specific curve with "
+            "ecdh-curve.");
         options->ecdh_curve = p[1];
     }
     else if (streq(p[0], "tls-server") && !p[1])
@@ -8175,6 +8178,11 @@ add_option(struct options *options,
     {
         VERIFY_PERMISSION(OPT_P_GENERAL);
         options->cipher_list_tls13 = p[1];
+    }
+    else if (streq(p[0], "tls-groups") && p[1] && !p[2])
+    {
+        VERIFY_PERMISSION(OPT_P_GENERAL);
+        options->tls_groups = p[1];
     }
     else if (streq(p[0], "crl-verify") && p[1] && ((p[2] && streq(p[2], "dir"))
                                                    || !p[2]))

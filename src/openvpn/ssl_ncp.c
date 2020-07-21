@@ -233,15 +233,14 @@ ncp_get_best_cipher(const char *server_list, const char *server_cipher,
 
     char *tmp_ciphers = string_alloc(server_list, &gc_tmp);
 
-    const char *token = strsep(&tmp_ciphers, ":");
-    while (token)
+    const char *token;
+    while ((token = strsep(&tmp_ciphers, ":")))
     {
         if (tls_item_in_cipher_list(token, peer_ncp_list)
             || streq(token, remote_cipher))
         {
             break;
         }
-        token = strsep(&tmp_ciphers, ":");
     }
     /* We have not found a common cipher, as a last resort check if the
      * server cipher can be used

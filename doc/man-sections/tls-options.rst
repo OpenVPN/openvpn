@@ -338,6 +338,31 @@ certificates and keys: https://github.com/OpenVPN/easy-rsa
   Use ``--tls-crypt`` instead if you want to use the key file to not only
   authenticate, but also encrypt the TLS control channel.
 
+--tls-groups list
+    A list of allowable groups/curves in order of preference.
+
+    Set the allowed elliptic curves/groups for the TLS session.
+    These groups are allowed to be used in signatures and key exchange.
+
+    mbedTLS currently allows all known curves per default.
+
+    OpenSSL 1.1+ restricts the list per default to
+    ::
+
+      "X25519:secp256r1:X448:secp521r1:secp384r1".
+
+    If you use certificates that use non-standard curves, you
+    might need to add them here. If you do not force the ecdh curve
+    by using ``--ecdh-curve``, the groups for ecdh will also be picked
+    from this list.
+
+    OpenVPN maps the curve name `secp256r1` to `prime256v1` to allow
+    specifying the same tls-groups option for mbedTLS and OpenSSL.
+
+    Warning: this option not only affects elliptic curve certificates
+    but also the key exchange in TLS 1.3 and using this option improperly
+    will disable TLS 1.3.
+
 --tls-cert-profile profile
   Set the allowed cryptographic algorithms for certificates according to
   ``profile``.
@@ -368,7 +393,7 @@ certificates and keys: https://github.com/OpenVPN/easy-rsa
   OpenVPN will migrate to 'preferred' as default in the future. Please
   ensure that your keys already comply.
 
-*WARNING:* ``--tls-ciphers`` and ``--tls-ciphersuites``
+*WARNING:* ``--tls-ciphers``, ``--tls-ciphersuites`` and ``tls-groups``
     These options are expert features, which - if used correctly - can
     improve the security of your VPN connection. But it is also easy to
     unwittingly use them to carefully align a gun with your foot, or just

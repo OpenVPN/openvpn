@@ -929,6 +929,7 @@ if test "${with_crypto_library}" = "openssl"; then
 			OpenSSL_version \
 			SSL_CTX_get_default_passwd_cb \
 			SSL_CTX_get_default_passwd_cb_userdata \
+			SSL_CTX_set1_groups \
 			SSL_CTX_set_security_level \
 			X509_get0_notBefore \
 			X509_get0_notAfter \

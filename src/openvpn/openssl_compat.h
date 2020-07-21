@@ -183,6 +183,12 @@ SSL_CTX_get_default_passwd_cb(SSL_CTX *ctx)
 }
 #endif
 
+/* This function is implemented as macro, so the configure check for the
+ * function may fail, so we check for both variants here */
+#if !defined(HAVE_SSL_CTX_SET1_GROUPS) && !defined(SSL_CTX_set1_groups)
+#define SSL_CTX_set1_groups SSL_CTX_set1_curves
+#endif
+
 #if !defined(HAVE_X509_GET0_PUBKEY)
 /**
  * Get the public key from a X509 certificate

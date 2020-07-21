@@ -615,6 +615,12 @@ init_ssl(const struct options *options, struct tls_root_ctx *new_ctx)
     tls_ctx_restrict_ciphers(new_ctx, options->cipher_list);
     tls_ctx_restrict_ciphers_tls13(new_ctx, options->cipher_list_tls13);
 
+    /* Set the allow groups/curves for TLS if we want to override them */
+    if (options->tls_groups)
+    {
+        tls_ctx_set_tls_groups(new_ctx, options->tls_groups);
+    }
+
     if (!tls_ctx_set_options(new_ctx, options->ssl_flags))
     {
         goto err;
