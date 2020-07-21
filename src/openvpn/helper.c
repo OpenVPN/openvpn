@@ -490,11 +490,6 @@ helper_client_server(struct options *o)
      */
     if (o->client)
     {
-        if (o->key_method != 2)
-        {
-            msg(M_USAGE, "--client requires --key-method 2");
-        }
-
         o->pull = true;
         o->tls_client = true;
     }

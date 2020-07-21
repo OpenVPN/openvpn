@@ -1100,7 +1100,7 @@ process_incoming_link_part1(struct context *c, struct link_socket_info *lsi, boo
                                 floated, &ad_start))
             {
                 /* Restore pre-NCP frame parameters */
-                if (is_hard_reset(opcode, c->options.key_method))
+                if (is_hard_reset_method2(opcode))
                 {
                     c->c2.frame = c->c2.frame_initial;
 #ifdef ENABLE_FRAGMENT

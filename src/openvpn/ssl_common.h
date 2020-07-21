@@ -262,7 +262,6 @@ struct tls_options
 #endif
 
     /* from command line */
-    int key_method;
     bool replay;
     bool single_session;
 #ifdef ENABLE_OCC

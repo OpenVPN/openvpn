@@ -131,11 +131,7 @@ S_ACTIVE                                                            S_ACTIVE
  * control_processor Control Channel Processor module's\endlink \c
  * tls_process() function and control the %key generation and exchange
  * process as follows:
- * - %Key method 1:
- *   - \c key_method_1_write(): generate random material locally, and load
- *     as "sending" keys.
- *   - \c key_method_1_read(): read random material received from remote
- *     peer, and load as "receiving" keys.
+ * - %Key method 1 has been removed in OpenVPN 2.5
  * - %Key method 2:
  *   - \c key_method_2_write(): generate random material locally, and if
  *     in server mode generate %key expansion.

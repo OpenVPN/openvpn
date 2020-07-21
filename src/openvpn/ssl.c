@@ -855,23 +855,12 @@ print_key_id(struct tls_multi *multi, struct gc_arena *gc)
 }
 
 bool
-is_hard_reset(int op, int key_method)
+is_hard_reset_method2(int op)
 {
-    if (!key_method || key_method == 1)
+    if (op == P_CONTROL_HARD_RESET_CLIENT_V2 || op == P_CONTROL_HARD_RESET_SERVER_V2
+        || op == P_CONTROL_HARD_RESET_CLIENT_V3)
     {
-        if (op == P_CONTROL_HARD_RESET_CLIENT_V1 || op == P_CONTROL_HARD_RESET_SERVER_V1)
-        {
-            return true;
-        }
-    }
-
-    if (!key_method || key_method >= 2)
-    {
-        if (op == P_CONTROL_HARD_RESET_CLIENT_V2 || op == P_CONTROL_HARD_RESET_SERVER_V2
-            || op == P_CONTROL_HARD_RESET_CLIENT_V3)
-        {
-            return true;
-        }
+        return true;
     }
 
     return false;
@@ -1091,23 +1080,14 @@ tls_session_init(struct tls_multi *multi, struct tls_session *session)
     }
 
     /* Are we a TLS server or client? */
-    ASSERT(session->opt->key_method >= 1);
-    if (session->opt->key_method == 1)
+    if (session->opt->server)
     {
-        session->initial_opcode = session->opt->server ?
-                                  P_CONTROL_HARD_RESET_SERVER_V1 : P_CONTROL_HARD_RESET_CLIENT_V1;
+        session->initial_opcode = P_CONTROL_HARD_RESET_SERVER_V2;
     }
-    else /* session->opt->key_method >= 2 */
+    else
     {
-        if (session->opt->server)
-        {
-            session->initial_opcode = P_CONTROL_HARD_RESET_SERVER_V2;
-        }
-        else
-        {
-            session->initial_opcode = session->opt->tls_crypt_v2 ?
-                                      P_CONTROL_HARD_RESET_CLIENT_V3 : P_CONTROL_HARD_RESET_CLIENT_V2;
-        }
+        session->initial_opcode = session->opt->tls_crypt_v2 ?
+                                  P_CONTROL_HARD_RESET_CLIENT_V3 : P_CONTROL_HARD_RESET_CLIENT_V2;
     }
 
     /* Initialize control channel authentication parameters */
@@ -2219,52 +2199,6 @@ read_string_alloc(struct buffer *buf)
     return str;
 }
 
-/*
- * Handle the reading and writing of key data to and from
- * the TLS control channel (cleartext).
- */
-
-static bool
-key_method_1_write(struct buffer *buf, struct tls_session *session)
-{
-    struct key key;
-    struct key_state *ks = &session->key[KS_PRIMARY];      /* primary key */
-
-    ASSERT(session->opt->key_method == 1);
-    ASSERT(buf_init(buf, 0));
-
-    generate_key_random(&key, &session->opt->key_type);
-    if (!check_key(&key, &session->opt->key_type))
-    {
-        msg(D_TLS_ERRORS, "TLS Error: Bad encrypting key generated");
-        return false;
-    }
-
-    if (!write_key(&key, &session->opt->key_type, buf))
-    {
-        msg(D_TLS_ERRORS, "TLS Error: write_key failed");
-        return false;
-    }
-
-    init_key_ctx(&ks->crypto_options.key_ctx_bi.encrypt, &key,
-                 &session->opt->key_type, OPENVPN_OP_ENCRYPT,
-                 "Data Channel Encrypt");
-    secure_memzero(&key, sizeof(key));
-
-    /* send local options string */
-    {
-        const char *local_options = local_options_string(session);
-        const int optlen = strlen(local_options) + 1;
-        if (!buf_write(buf, local_options, optlen))
-        {
-            msg(D_TLS_ERRORS, "TLS Error: KM1 write options failed");
-            return false;
-        }
-    }
-
-    return true;
-}
-
 static bool
 push_peer_info(struct buffer *buf, struct tls_session *session)
 {
@@ -2372,12 +2306,15 @@ error:
     return ret;
 }
 
+/**
+ * Handle the writing of key data, peer-info, username/password, OCC
+ * to the TLS control channel (cleartext).
+ */
 static bool
 key_method_2_write(struct buffer *buf, struct tls_session *session)
 {
     struct key_state *ks = &session->key[KS_PRIMARY];      /* primary key */
 
-    ASSERT(session->opt->key_method == 2);
     ASSERT(buf_init(buf, 0));
 
     /* write a uint32 0 */
@@ -2387,7 +2324,7 @@ key_method_2_write(struct buffer *buf, struct tls_session *session)
     }
 
     /* write key_method + flags */
-    if (!buf_write_u8(buf, (session->opt->key_method & KEY_METHOD_MASK)))
+    if (!buf_write_u8(buf, KEY_METHOD_2))
     {
         goto error;
     }
@@ -2489,73 +2426,15 @@ error:
     return false;
 }
 
-static bool
-key_method_1_read(struct buffer *buf, struct tls_session *session)
-{
-    int status;
-    struct key key;
-    struct key_state *ks = &session->key[KS_PRIMARY];      /* primary key */
-
-    ASSERT(session->opt->key_method == 1);
-
-    if (!session->verified)
-    {
-        msg(D_TLS_ERRORS,
-            "TLS Error: Certificate verification failed (key-method 1)");
-        goto error;
-    }
-
-    status = read_key(&key, &session->opt->key_type, buf);
-    if (status != 1)
-    {
-        msg(D_TLS_ERRORS,
-            "TLS Error: Error reading data channel key from plaintext buffer");
-        goto error;
-    }
-
-    if (!check_key(&key, &session->opt->key_type))
-    {
-        msg(D_TLS_ERRORS, "TLS Error: Bad decrypting key received from peer");
-        goto error;
-    }
-
-    if (buf->len < 1)
-    {
-        msg(D_TLS_ERRORS, "TLS Error: Missing options string");
-        goto error;
-    }
-
-#ifdef ENABLE_OCC
-    /* compare received remote options string
-     * with our locally computed options string */
-    if (!session->opt->disable_occ
-        && !options_cmp_equal_safe((char *) BPTR(buf), session->opt->remote_options, buf->len))
-    {
-        options_warning_safe((char *) BPTR(buf), session->opt->remote_options, buf->len);
-    }
-#endif
-
-    buf_clear(buf);
-
-    init_key_ctx(&ks->crypto_options.key_ctx_bi.decrypt, &key,
-                 &session->opt->key_type, OPENVPN_OP_DECRYPT,
-                 "Data Channel Decrypt");
-    secure_memzero(&key, sizeof(key));
-    ks->authenticated = KS_AUTH_TRUE;
-    return true;
-
-error:
-    buf_clear(buf);
-    secure_memzero(&key, sizeof(key));
-    return false;
-}
-
+/**
+ * Handle reading key data, peer-info, username/password, OCC
+ * from the TLS control channel (cleartext).
+ */
 static bool
 key_method_2_read(struct buffer *buf, struct tls_multi *multi, struct tls_session *session)
 {
     struct key_state *ks = &session->key[KS_PRIMARY];      /* primary key */
 
-    int key_method_flags;
     bool username_status, password_status;
 
     struct gc_arena gc = gc_new();
@@ -2564,8 +2443,6 @@ key_method_2_read(struct buffer *buf, struct tls_multi *multi, struct tls_sessio
 
     /* allocate temporary objects */
     ALLOC_ARRAY_CLEAR_GC(options, char, TLS_OPTIONS_LEN, &gc);
-
-    ASSERT(session->opt->key_method == 2);
 
     /* discard leading uint32 */
     if (!buf_advance(buf, 4))
@@ -2576,7 +2453,7 @@ key_method_2_read(struct buffer *buf, struct tls_multi *multi, struct tls_sessio
     }
 
     /* get key method */
-    key_method_flags = buf_read_u8(buf);
+    int key_method_flags = buf_read_u8(buf);
     if ((key_method_flags & KEY_METHOD_MASK) != 2)
     {
         msg(D_TLS_ERRORS,
@@ -2986,23 +2863,9 @@ tls_process(struct tls_multi *multi,
         if (!buf->len && ((ks->state == S_START && !session->opt->server)
                           || (ks->state == S_GOT_KEY && session->opt->server)))
         {
-            if (session->opt->key_method == 1)
+            if (!key_method_2_write(buf, session))
             {
-                if (!key_method_1_write(buf, session))
-                {
-                    goto error;
-                }
-            }
-            else if (session->opt->key_method == 2)
-            {
-                if (!key_method_2_write(buf, session))
-                {
-                    goto error;
-                }
-            }
-            else
-            {
-                ASSERT(0);
+                goto error;
             }
 
             state_change = true;
@@ -3016,23 +2879,9 @@ tls_process(struct tls_multi *multi,
             && ((ks->state == S_SENT_KEY && !session->opt->server)
                 || (ks->state == S_START && session->opt->server)))
         {
-            if (session->opt->key_method == 1)
+            if (!key_method_2_read(buf, multi, session))
             {
-                if (!key_method_1_read(buf, session))
-                {
-                    goto error;
-                }
-            }
-            else if (session->opt->key_method == 2)
-            {
-                if (!key_method_2_read(buf, multi, session))
-                {
-                    goto error;
-                }
-            }
-            else
-            {
-                ASSERT(0);
+                goto error;
             }
 
             state_change = true;
@@ -3446,6 +3295,11 @@ tls_pre_decrypt(struct tls_multi *multi,
             /* verify legal opcode */
             if (op < P_FIRST_OPCODE || op > P_LAST_OPCODE)
             {
+                if (op == P_CONTROL_HARD_RESET_CLIENT_V1
+                    || op == P_CONTROL_HARD_RESET_SERVER_V1)
+                {
+                    msg(D_TLS_ERRORS, "Peer tried unsupported key-method 1");
+                }
                 msg(D_TLS_ERRORS,
                     "TLS Error: unknown opcode received from %s op=%d",
                     print_link_socket_actual(from, &gc), op);
@@ -3453,14 +3307,12 @@ tls_pre_decrypt(struct tls_multi *multi,
             }
 
             /* hard reset ? */
-            if (is_hard_reset(op, 0))
+            if (is_hard_reset_method2(op))
             {
                 /* verify client -> server or server -> client connection */
-                if (((op == P_CONTROL_HARD_RESET_CLIENT_V1
-                      || op == P_CONTROL_HARD_RESET_CLIENT_V2
+                if (((op == P_CONTROL_HARD_RESET_CLIENT_V2
                       || op == P_CONTROL_HARD_RESET_CLIENT_V3) && !multi->opt.server)
-                    || ((op == P_CONTROL_HARD_RESET_SERVER_V1
-                         || op == P_CONTROL_HARD_RESET_SERVER_V2) && multi->opt.server))
+                    || ((op == P_CONTROL_HARD_RESET_SERVER_V2) && multi->opt.server))
                 {
                     msg(D_TLS_ERRORS,
                         "TLS Error: client->client or server->server connection attempted from %s",
@@ -3522,21 +3374,13 @@ tls_pre_decrypt(struct tls_multi *multi,
             }
 
             /*
-             * Initial packet received.
+             * Hard reset and session id does not match any session in
+             * multi->session: Possible initial packet
              */
-
-            if (i == TM_SIZE && is_hard_reset(op, 0))
+            if (i == TM_SIZE && is_hard_reset_method2(op))
             {
                 struct tls_session *session = &multi->session[TM_ACTIVE];
                 struct key_state *ks = &session->key[KS_PRIMARY];
-
-                if (!is_hard_reset(op, multi->opt.key_method))
-                {
-                    msg(D_TLS_ERRORS, "TLS ERROR: initial packet local/remote key_method mismatch, local key_method=%d, op=%s",
-                        multi->opt.key_method,
-                        packet_opcode_name(op));
-                    goto error;
-                }
 
                 /*
                  * If we have no session currently in progress, the initial packet will
@@ -3577,7 +3421,11 @@ tls_pre_decrypt(struct tls_multi *multi,
                 }
             }
 
-            if (i == TM_SIZE && is_hard_reset(op, 0))
+            /*
+             * If we detected new session in the last if block, i has
+             * changed to TM_ACTIVE, so check the condition again.
+             */
+            if (i == TM_SIZE && is_hard_reset_method2(op))
             {
                 /*
                  * No match with existing sessions,
@@ -3594,14 +3442,6 @@ tls_pre_decrypt(struct tls_multi *multi,
                     msg(D_TLS_ERRORS,
                         "TLS Error: Cannot accept new session request from %s due to session context expire or --single-session [2]",
                         print_link_socket_actual(from, &gc));
-                    goto error;
-                }
-
-                if (!is_hard_reset(op, multi->opt.key_method))
-                {
-                    msg(D_TLS_ERRORS, "TLS ERROR: new session local/remote key_method mismatch, local key_method=%d, op=%s",
-                        multi->opt.key_method,
-                        packet_opcode_name(op));
                     goto error;
                 }
 

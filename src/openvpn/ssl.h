@@ -66,8 +66,10 @@
 /* indicates key_method >= 2 and client-specific tls-crypt key */
 #define P_CONTROL_HARD_RESET_CLIENT_V3 10    /* initial key from client, forget previous state */
 
-/* define the range of legal opcodes */
-#define P_FIRST_OPCODE                 1
+/* define the range of legal opcodes
+ * Since we do no longer support key-method 1 we consider
+ * the v1 op codes invalid */
+#define P_FIRST_OPCODE                 3
 #define P_LAST_OPCODE                  10
 
 /*
@@ -102,11 +104,7 @@
 /* Default field in X509 to be username */
 #define X509_USERNAME_FIELD_DEFAULT "CN"
 
-/*
- * Range of key exchange methods
- */
-#define KEY_METHOD_MIN 1
-#define KEY_METHOD_MAX 2
+#define KEY_METHOD_2  2
 
 /* key method taken from lower 4 bits */
 #define KEY_METHOD_MASK 0x0F
@@ -578,12 +576,11 @@ void show_tls_performance_stats(void);
 void extract_x509_field_test(void);
 
 /**
- * Given a key_method, return true if opcode represents the required form of
- * hard_reset.
+ * Given a key_method, return true if opcode represents the one of the
+ * hard_reset op codes for key-method 2
  *
- * If key_method == 0, return true if any form of hard reset is used.
  */
-bool is_hard_reset(int op, int key_method);
+bool is_hard_reset_method2(int op);
 
 void delayed_auth_pass_purge(void);
 

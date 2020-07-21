@@ -876,7 +876,6 @@ init_options(struct options *o, const bool init_gc)
 #ifdef ENABLE_PREDICTION_RESISTANCE
     o->use_prediction_resistance = false;
 #endif
-    o->key_method = 2;
     o->tls_timeout = 2;
     o->renegotiate_bytes = -1;
     o->renegotiate_seconds = 3600;
@@ -1714,7 +1713,6 @@ show_settings(const struct options *o)
 
     SHOW_BOOL(tls_server);
     SHOW_BOOL(tls_client);
-    SHOW_INT(key_method);
     SHOW_STR_INLINE(ca_file);
     SHOW_STR(ca_path);
     SHOW_STR(dh_file);
@@ -2375,10 +2373,6 @@ options_postprocess_verify_ce(const struct options *options, const struct connec
         {
             msg(M_USAGE, "--ccd-exclusive must be used with --client-config-dir");
         }
-        if (options->key_method != 2)
-        {
-            msg(M_USAGE, "--mode server requires --key-method 2");
-        }
         if (options->auth_token_generate && !options->renegotiate_seconds)
         {
             msg(M_USAGE, "--auth-gen-token needs a non-infinite "
@@ -2543,13 +2537,6 @@ options_postprocess_verify_ce(const struct options *options, const struct connec
         msg(M_WARN, "WARNING: POTENTIALLY DANGEROUS OPTION "
             "--verify-client-cert none|optional "
             "may accept clients which do not present a certificate");
-    }
-
-    if (options->key_method == 1)
-    {
-        msg(M_WARN, "WARNING: --key-method 1 is deprecated and will be removed "
-            "in OpenVPN 2.5.  By default --key-method 2 will be used if not set "
-            "in the configuration file, which is the recommended approach.");
     }
 
     const int tls_version_max =
@@ -2793,7 +2780,6 @@ options_postprocess_verify_ce(const struct options *options, const struct connec
         MUST_BE_UNDEF(push_peer_info);
         MUST_BE_UNDEF(tls_exit);
         MUST_BE_UNDEF(crl_file);
-        MUST_BE_UNDEF(key_method);
         MUST_BE_UNDEF(ns_cert_type);
         MUST_BE_UNDEF(remote_cert_ku[0]);
         MUST_BE_UNDEF(remote_cert_eku);
@@ -3822,10 +3808,7 @@ options_string(const struct options *o,
              * tls-auth/tls-crypt does not match.  Removing tls-auth here would
              * break stuff, so leaving that in place. */
 
-            if (o->key_method > 1)
-            {
-                buf_printf(&out, ",key-method %d", o->key_method);
-            }
+            buf_printf(&out, ",key-method %d", KEY_METHOD_2);
         }
 
         if (remote)
@@ -8455,22 +8438,6 @@ add_option(struct options *options,
     {
         VERIFY_PERMISSION(OPT_P_GENERAL);
         options->tls_crypt_v2_verify_script = p[1];
-    }
-    else if (streq(p[0], "key-method") && p[1] && !p[2])
-    {
-        int key_method;
-
-        VERIFY_PERMISSION(OPT_P_GENERAL);
-        key_method = atoi(p[1]);
-        if (key_method < KEY_METHOD_MIN || key_method > KEY_METHOD_MAX)
-        {
-            msg(msglevel, "key_method parameter (%d) must be >= %d and <= %d",
-                key_method,
-                KEY_METHOD_MIN,
-                KEY_METHOD_MAX);
-            goto err;
-        }
-        options->key_method = key_method;
     }
     else if (streq(p[0], "x509-track") && p[1] && !p[2])
     {

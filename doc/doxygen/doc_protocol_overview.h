@@ -150,7 +150,7 @@
  *
  * @subsection network_protocol_control_plaintext Structure of plaintext control channel messages
  *
- *  - %Key method 1:
+ *  - %Key method 1 (support removed in OpenVPN 2.5):
  *     - Cipher %key length in bytes (1 byte).
  *     - Cipher %key (n bytes).
  *     - HMAC %key length in bytes (1 byte).
