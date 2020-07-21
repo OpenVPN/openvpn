@@ -76,10 +76,6 @@ if [ -r "${top_builddir}"/t_client.rc ]; then
     . "${top_builddir}"/t_client.rc
 elif [ -r "${srcdir}"/t_client.rc ]; then
     . "${srcdir}"/t_client.rc
-else
-    echo "$0: cannot find 't_client.rc' in build dir ('${top_builddir}')" >&2
-    echo "$0: or source directory ('${srcdir}'). SKIPPING TEST." >&2
-    exit 77
 fi
 
 if [ ! -x "$openvpn" ]; then
@@ -117,18 +113,18 @@ else
 
     if [ -z "$RUN_SUDO" ]
     then
-        echo "$0: this test must run be as root, or RUN_SUDO=... " >&2
-        echo "      must be set correctly in 't_client.rc'. SKIP." >&2
-        exit 77
+        echo "$0: no RUN_SUDO=... in t_client.rc or environment, defaulting to 'sudo'." >&2
+        echo "      if that does not work, set RUN_SUDO= correctly for your system." >&2
+        RUN_SUDO="sudo"
+    fi
+
+    # check that we can run the unit-test binary with sudo
+    if $RUN_SUDO $UNIT_TEST test
+    then
+        echo "$0: $RUN_SUDO $UNIT_TEST succeeded, good."
     else
-        # check that we can run the unit-test binary with sudo
-	    if $RUN_SUDO $UNIT_TEST test
-        then
-	        echo "$0: $RUN_SUDO $UNIT_TEST succeeded, good."
-        else
-	        echo "$0: $RUN_SUDO $UNIT_TEST failed, cannot go on. SKIP." >&2
-	        exit 77
-        fi
+        echo "$0: $RUN_SUDO $UNIT_TEST failed, cannot go on. SKIP." >&2
+        exit 77
     fi
 fi
 
