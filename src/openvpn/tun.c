@@ -1038,6 +1038,29 @@ do_ifconfig_ipv6(struct tuntap *tt, const char *ifname, int tun_mtu,
     openvpn_execve_check(&argv, es, S_FATAL,
                          "generic BSD ifconfig inet6 failed");
 
+#if defined(TARGET_FREEBSD) && __FreeBSD_version >= 1200000
+    /* On FreeBSD 12 and up, there is ipv6_activate_all_interfaces="YES"
+     * in rc.conf, which is not set by default.  If it is *not* set,
+     * "all new interfaces that are not already up" are configured by
+     * devd + /etc/pccard_ether as "inet6 ifdisabled".
+     *
+     * The "is this interface already up?" test is a non-zero time window
+     * which we manage to hit with our ifconfig often enough to cause
+     * frequent fails in the openvpn test environment.
+     *
+     * Thus: assume that the system might interfere, wait for things to
+     * settle (it's a very short time window), and remove -ifdisable again.
+     *
+     * See: https://bugs.freebsd.org/bugzilla/show_bug.cgi?id=248172
+     */
+    sleep(1);
+    argv_printf(&argv, "%s %s inet6 -ifdisabled", IFCONFIG_PATH, ifname);
+    argv_msg(M_INFO, &argv);
+
+    openvpn_execve_check(&argv, es, S_FATAL,
+                         "FreeBSD BSD 'ifconfig inet6 -ifdisabled' failed");
+#endif
+
 #if defined(TARGET_OPENBSD) || defined(TARGET_NETBSD) \
     || defined(TARGET_DARWIN)
     /* and, hooray, we explicitly need to add a route... */
