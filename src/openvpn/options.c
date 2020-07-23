@@ -5802,6 +5802,8 @@ add_option(struct options *options,
     }
     else if (streq(p[0], "inetd") && !p[3])
     {
+        msg(M_WARN, "DEPRECATED OPTION: --inetd mode is deprecated "
+                    "and will be removed in OpenVPN 2.6");
         VERIFY_PERMISSION(OPT_P_GENERAL);
         if (!options->inetd)
         {

@@ -34,6 +34,11 @@ https://community.openvpn.net/openvpn/wiki/DeprecatedOptions
     With the improved and matured data channel cipher negotiation, the use
     of ``ncp-disable`` should not be necessary anymore.
 
+- ``inetd`` has been deprecated
+  This is a very limited and not-well-tested way to run OpenVPN, on TCP
+  and TAP mode only, which complicates the code quite a bit for little gain.
+  To be removed in OpenVPN 2.6 (unless users protest).
+
 - ``no-iv`` has been removed
   This option was made into a NOOP option with OpenVPN 2.4.  This has now
   been completely removed.
