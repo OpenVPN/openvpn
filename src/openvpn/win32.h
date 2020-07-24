@@ -298,10 +298,12 @@ bool win_wfp_block_dns(const NET_IFINDEX index, const HANDLE msg_channel);
 
 bool win_wfp_uninit(const NET_IFINDEX index, const HANDLE msg_channel);
 
-#define WIN_XP 0
+#define WIN_XP    0
 #define WIN_VISTA 1
-#define WIN_7 2
-#define WIN_8 3
+#define WIN_7     2
+#define WIN_8     3
+#define WIN_8_1   4
+#define WIN_10    5
 
 int win32_version_info(void);
 

@@ -18,6 +18,10 @@
 
 #define _WIN32_WINNT_WINBLUE    0x0603
 
+#ifndef _WIN32_WINNT_WINTHRESHOLD
+#define _WIN32_WINNT_WINTHRESHOLD    0x0A00 // Windows 10
+#endif
+
 VERSIONHELPERAPI
 IsWindowsVersionOrGreater(WORD major, WORD minor, WORD servpack)
 {
@@ -93,6 +97,12 @@ VERSIONHELPERAPI
 IsWindows8Point1OrGreater(void)
 {
     return IsWindowsVersionOrGreater(HIBYTE(_WIN32_WINNT_WINBLUE), LOBYTE(_WIN32_WINNT_WINBLUE), 0);
+}
+
+VERSIONHELPERAPI
+IsWindows10OrGreater()
+{
+    return IsWindowsVersionOrGreater(HIBYTE(_WIN32_WINNT_WINTHRESHOLD), LOBYTE(_WIN32_WINNT_WINTHRESHOLD), 0);
 }
 
 VERSIONHELPERAPI

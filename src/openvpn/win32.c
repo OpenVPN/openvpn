@@ -1417,10 +1417,18 @@ win32_version_info(void)
     {
         return WIN_7;
     }
-    else
+
+    if (!IsWindows8Point1OrGreater())
     {
         return WIN_8;
     }
+
+    if (!IsWindows10OrGreater())
+    {
+        return WIN_8_1;
+    }
+
+    return WIN_10;
 }
 
 bool
@@ -1458,7 +1466,15 @@ win32_version_string(struct gc_arena *gc, bool add_name)
             break;
 
         case WIN_8:
-            buf_printf(&out, "6.2%s", add_name ? " (Windows 8 or greater)" : "");
+            buf_printf(&out, "6.2%s", add_name ? " (Windows 8)" : "");
+            break;
+
+        case WIN_8_1:
+            buf_printf(&out, "6.3%s", add_name ? " (Windows 8.1)" : "");
+            break;
+
+        case WIN_10:
+            buf_printf(&out, "10.0%s", add_name ? " (Windows 10 or greater)" : "");
             break;
 
         default:
