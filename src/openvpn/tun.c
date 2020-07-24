@@ -6148,35 +6148,10 @@ wintun_register_ring_buffer(struct tuntap *tt, const char *device_guid)
     }
     else
     {
-        if (!impersonate_as_system())
-        {
-            msg(M_FATAL, "ERROR:  Failed to impersonate as SYSTEM, make sure process is running under privileged account");
-        }
-        if (!register_ring_buffers(tt->hand,
-                                   tt->wintun_send_ring,
-                                   tt->wintun_receive_ring,
-                                   tt->rw_handle.read,
-                                   tt->rw_handle.write))
-        {
-            switch (GetLastError())
-            {
-                case ERROR_ACCESS_DENIED:
-                    msg(M_FATAL, "Access denied registering ring buffers. Is this process run as SYSTEM?");
-                    break;
-
-                case ERROR_ALREADY_INITIALIZED:
-                    msg(M_NONFATAL, "Adapter %s is already in use", device_guid);
-                    break;
-
-                default:
-                    msg(M_NONFATAL | M_ERRNO, "Failed to register ring buffers");
-            }
-            ret = false;
-        }
-        if (!RevertToSelf())
-        {
-            msg(M_FATAL, "ERROR:  RevertToSelf error: %lu", GetLastError());
-        }
+        msg(M_FATAL, "ERROR:  Wintun requires SYSTEM privileges and therefore "
+                     "should be used with interactive service. If you want to "
+                     "use openvpn from command line, you need to do SYSTEM "
+                     "elevation yourself (for example with psexec).");
     }
 
     return ret;

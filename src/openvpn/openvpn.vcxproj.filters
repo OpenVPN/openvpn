@@ -240,9 +240,6 @@
     <ClCompile Include="vlan.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="ring_buffer.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="ssl_ncp.c">
       <Filter>Source Files</Filter>
     </ClCompile>
