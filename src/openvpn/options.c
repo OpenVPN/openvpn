@@ -2050,6 +2050,11 @@ options_postprocess_verify_ce(const struct options *options, const struct connec
         msg(M_USAGE, "--inetd nowait only makes sense in --dev tap mode");
     }
 
+    if (options->inetd)
+    {
+        msg(M_WARN, "DEPRECATED OPTION: --inetd mode is deprecated "
+                    "and will be removed in OpenVPN 2.6");
+    }
 
     if (options->lladdr && dev != DEV_TYPE_TAP)
     {
@@ -5802,8 +5807,6 @@ add_option(struct options *options,
     }
     else if (streq(p[0], "inetd") && !p[3])
     {
-        msg(M_WARN, "DEPRECATED OPTION: --inetd mode is deprecated "
-                    "and will be removed in OpenVPN 2.6");
         VERIFY_PERMISSION(OPT_P_GENERAL);
         if (!options->inetd)
         {
