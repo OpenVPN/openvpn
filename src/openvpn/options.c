@@ -7867,6 +7867,11 @@ add_option(struct options *options,
             && p[1] && !p[2])
     {
         VERIFY_PERMISSION(OPT_P_GENERAL|OPT_P_INSTANCE);
+        if (streq(p[0], "ncp-ciphers"))
+        {
+            msg(M_INFO, "Note: Treating option '--ncp-ciphers' as "
+                        " '--data-ciphers' (renamed in OpenVPN 2.5).");
+        }
         options->ncp_ciphers = p[1];
     }
     else if (streq(p[0], "ncp-disable") && !p[1])
