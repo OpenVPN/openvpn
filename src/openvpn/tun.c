@@ -2950,14 +2950,16 @@ utun_open_helper(struct ctl_info ctlInfo, int utunnum)
 
     if (fd < 0)
     {
-        msg(M_INFO | M_ERRNO, "Opening utun (socket(SYSPROTO_CONTROL))");
+        msg(M_INFO | M_ERRNO, "Opening utun%d failed (socket(SYSPROTO_CONTROL))",
+            utunnum);
         return -2;
     }
 
     if (ioctl(fd, CTLIOCGINFO, &ctlInfo) == -1)
     {
         close(fd);
-        msg(M_INFO | M_ERRNO, "Opening utun (ioctl(CTLIOCGINFO))");
+        msg(M_INFO | M_ERRNO, "Opening utun%d failed (ioctl(CTLIOCGINFO))",
+            utunnum);
         return -2;
     }
 
@@ -2975,7 +2977,8 @@ utun_open_helper(struct ctl_info ctlInfo, int utunnum)
 
     if (connect(fd, (struct sockaddr *)&sc, sizeof(sc)) < 0)
     {
-        msg(M_INFO | M_ERRNO, "Opening utun (connect(AF_SYS_CONTROL))");
+        msg(M_INFO | M_ERRNO, "Opening utun%d failed (connect(AF_SYS_CONTROL))",
+            utunnum);
         close(fd);
         return -1;
     }
