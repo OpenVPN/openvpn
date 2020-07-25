@@ -358,6 +358,7 @@ incoming_push_message(struct context *c, const struct buffer *buffer)
             }
         }
         event_timeout_clear(&c->c2.push_request_interval);
+        event_timeout_clear(&c->c2.wait_for_connect);
     }
 
     goto cleanup;

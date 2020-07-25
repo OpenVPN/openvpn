@@ -425,6 +425,9 @@ check_push_request_dowork(struct context *c)
  *
  * Options like --up-delay need to be triggered by this function which
  * checks for connection establishment.
+ *
+ * Note: The process_incoming_push_reply currently assumes that this function
+ * only sets up the pull request timer when pull is enabled.
  */
 void
 check_connection_established(struct context *c)

@@ -25,6 +25,14 @@ Improved Data channel cipher negotiation
 Asynchronous (deferred) authentication support for auth-pam plugin.
     See src/plugins/auth-pam/README.auth-pam for details.
 
+Faster connection setup
+    A client will signal in the ``IV_PROTO`` variable that it is in pull
+    mode. This allows the server to push the configuration options to
+    the client without waiting for a ``PULL_REQUEST`` message. The feature
+    is automatically enabled if both client and server support it and
+    significantly reduces the connection setup time by avoiding one
+    extra packet round-trip and 1s of internal event delays.
+
 Deprecated features
 -------------------
 For an up-to-date list of all deprecated options, see this wiki page:
@@ -59,6 +67,10 @@ User-visible Changes
 
 - Support for building with OpenSSL 1.0.1 has been removed. The minimum
   supported OpenSSL version is now 1.0.2.
+
+- The GET_CONFIG management state is omitted if the server pushes
+  the client configuration almost immediately as result of the
+  faster connection setup feature.
 
 
 Overview of changes in 2.4
