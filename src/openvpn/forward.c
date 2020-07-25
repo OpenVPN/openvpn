@@ -139,21 +139,6 @@ check_incoming_control_channel(struct context *c)
 }
 
 /*
- * Options like --up-delay need to be triggered by this function which
- * checks for connection establishment.
- */
-static inline void
-check_connection_established(struct context *c)
-{
-    void check_connection_established_dowork(struct context *c);
-
-    if (event_timeout_defined(&c->c2.wait_for_connect))
-    {
-        check_connection_established_dowork(c);
-    }
-}
-
-/*
  * Should we add routes?
  */
 static inline void
@@ -437,43 +422,45 @@ check_push_request_dowork(struct context *c)
 
 /*
  * Things that need to happen immediately after connection initiation should go here.
+ *
+ * Options like --up-delay need to be triggered by this function which
+ * checks for connection establishment.
  */
 void
-check_connection_established_dowork(struct context *c)
+check_connection_established(struct context *c)
 {
-    if (event_timeout_trigger(&c->c2.wait_for_connect, &c->c2.timeval, ETT_DEFAULT))
-    {
-        if (CONNECTION_ESTABLISHED(c))
-        {
-#if P2MP
-            /* if --pull was specified, send a push request to server */
-            if (c->c2.tls_multi && c->options.pull)
-            {
-#ifdef ENABLE_MANAGEMENT
-                if (management)
-                {
-                    management_set_state(management,
-                                         OPENVPN_STATE_GET_CONFIG,
-                                         NULL,
-                                         NULL,
-                                         NULL,
-                                         NULL,
-                                         NULL);
-                }
-#endif
-                /* fire up push request right away (already 1s delayed) */
-                event_timeout_init(&c->c2.push_request_interval, 0, now);
-                reset_coarse_timers(c);
-            }
-            else
-#endif /* if P2MP */
-            {
-                do_up(c, false, 0);
-            }
 
-            event_timeout_clear(&c->c2.wait_for_connect);
+    if (CONNECTION_ESTABLISHED(c))
+    {
+#if P2MP
+        /* if --pull was specified, send a push request to server */
+        if (c->c2.tls_multi && c->options.pull)
+        {
+#ifdef ENABLE_MANAGEMENT
+            if (management)
+            {
+                management_set_state(management,
+                                     OPENVPN_STATE_GET_CONFIG,
+                                     NULL,
+                                     NULL,
+                                     NULL,
+                                     NULL,
+                                     NULL);
+            }
+#endif
+            /* fire up push request right away (already 1s delayed) */
+            event_timeout_init(&c->c2.push_request_interval, 0, now);
+            reset_coarse_timers(c);
         }
+        else
+#endif /* if P2MP */
+        {
+            do_up(c, false, 0);
+        }
+
+        event_timeout_clear(&c->c2.wait_for_connect);
     }
+
 }
 
 bool
@@ -777,8 +764,10 @@ process_coarse_timers(struct context *c)
     check_status_file(c);
 
     /* process connection establishment items */
-    check_connection_established(c);
-
+    if (event_timeout_trigger(&c->c2.wait_for_connect, &c->c2.timeval, ETT_DEFAULT))
+    {
+        check_connection_established(c);
+    }
 #if P2MP
     /* see if we should send a push_request in response to --pull */
     check_push_request(c);

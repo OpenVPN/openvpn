@@ -88,7 +88,7 @@ void check_fragment_dowork(struct context *c);
 
 #endif /* ENABLE_FRAGMENT */
 
-void check_connection_established_dowork(struct context *c);
+void check_connection_established(struct context *c);
 
 void check_add_routes_dowork(struct context *c);
 
