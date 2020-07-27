@@ -2065,8 +2065,6 @@ multi_client_connect_call_plugin_v1(struct multi_context *m,
                                    &argv, NULL, mi->context.c2.es);
         if (plug_ret == OPENVPN_PLUGIN_FUNC_SUCCESS)
         {
-            multi_client_connect_post(m, mi, ccs->config_file,
-                                      option_types_found);
             ret = CC_RET_SUCCEEDED;
         }
         else if (plug_ret == OPENVPN_PLUGIN_FUNC_DEFERRED)
@@ -2099,6 +2097,13 @@ multi_client_connect_call_plugin_v1(struct multi_context *m,
         else if (ret == CC_RET_SUCCEEDED && file_ret == CC_RET_DEFERRED)
         {
             ret = CC_RET_DEFERRED;
+        }
+
+        /* if we still think we have succeeded, do postprocessing */
+        if (ret == CC_RET_SUCCEEDED)
+        {
+            multi_client_connect_post(m, mi, ccs->config_file,
+                                      option_types_found);
         }
 cleanup:
         argv_free(&argv);
