@@ -149,8 +149,9 @@ show_available_ciphers(void)
 #ifndef ENABLE_SMALL
     printf("The following ciphers and cipher modes are available for use\n"
            "with " PACKAGE_NAME ".  Each cipher shown below may be used as a\n"
-           "parameter to the --cipher option.  Using a CBC or GCM mode is\n"
-           "recommended.  In static key mode only CBC mode is allowed.\n\n");
+           "parameter to the --data-ciphers (or --cipher) option.  Using a\n"
+           "GCM or CBC mode is recommended.  In static key mode only CBC\n"
+           "mode is allowed.\n\n");
 #endif
 
     while (*ciphers != 0)

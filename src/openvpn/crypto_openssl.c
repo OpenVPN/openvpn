@@ -287,11 +287,11 @@ show_available_ciphers(void)
     size_t num_ciphers = 0;
 #ifndef ENABLE_SMALL
     printf("The following ciphers and cipher modes are available for use\n"
-           "with " PACKAGE_NAME ".  Each cipher shown below may be use as a\n"
-           "parameter to the --cipher option.  The default key size is\n"
-           "shown as well as whether or not it can be changed with the\n"
-           "--keysize directive.  Using a CBC or GCM mode is recommended.\n"
-           "In static key mode only CBC mode is allowed.\n\n");
+           "with " PACKAGE_NAME ".  Each cipher shown below may be used as a\n"
+           "parameter to the --data-ciphers (or --cipher) option.  The\n"
+           "default key size is shown as well as whether or not it can be\n"
+           "changed with the --keysize directive.  Using a GCM or CBC mode\n"
+           "is recommended.  In static key mode only CBC mode is allowed.\n\n");
 #endif
 
     for (nid = 0; nid < 10000; ++nid)
