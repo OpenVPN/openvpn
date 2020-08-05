@@ -68,6 +68,7 @@ verify_callback(void *session_obj, mbedtls_x509_crt *cert, int cert_depth,
         int ret = 0;
         char errstr[512] = { 0 };
         char *subject = x509_get_subject(cert, &gc);
+        char *serial = backend_x509_get_serial(cert, &gc);
 
         ret = mbedtls_x509_crt_verify_info(errstr, sizeof(errstr)-1, "", *flags);
         if (ret <= 0 && !openvpn_snprintf(errstr, sizeof(errstr),
@@ -82,8 +83,8 @@ verify_callback(void *session_obj, mbedtls_x509_crt *cert, int cert_depth,
 
         if (subject)
         {
-            msg(D_TLS_ERRORS, "VERIFY ERROR: depth=%d, subject=%s: %s",
-                cert_depth, subject, errstr);
+            msg(D_TLS_ERRORS, "VERIFY ERROR: depth=%d, subject=%s, serial=%s: %s",
+                cert_depth, subject, serial ? serial : "<not available>", errstr);
         }
         else
         {
