@@ -5085,6 +5085,7 @@ set_user_script(struct options *options,
 #endif
 }
 
+#ifdef USE_COMP
 static void
 show_compression_warning(struct compress_options *info)
 {
@@ -5103,6 +5104,7 @@ show_compression_warning(struct compress_options *info)
         }
     }
 }
+#endif
 
 static void
 add_option(struct options *options,
