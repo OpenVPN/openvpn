@@ -27,6 +27,7 @@
 #define TUN2TAP_H
 
 #include "init.h"
+#include "forward.h"
 #define TUN2TAP_FLAG_ENCAP 1
 #define TUN2TAP_FLAG_DECAP (1<<1)
 
