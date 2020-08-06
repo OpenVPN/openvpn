@@ -482,6 +482,9 @@
     <ClInclude Include="tun.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="tun2tap.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="win32.h">
       <Filter>Header Files</Filter>
     </ClInclude>

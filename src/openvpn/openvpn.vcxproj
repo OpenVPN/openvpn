@@ -198,6 +198,7 @@
     <ClCompile Include="status.c" />
     <ClCompile Include="tls_crypt.c" />
     <ClCompile Include="tun.c" />
+    <ClCompile Include="tun2tap.c" />
     <ClCompile Include="vlan.c" />
     <ClCompile Include="win32.c" />
   </ItemGroup>
