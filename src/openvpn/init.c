@@ -1844,7 +1844,7 @@ do_open_tun(struct context *c)
         char buf[4*OPENVPN_ETH_ALEN] = {0};
         int i = 0;
         int offset = 0;
-        ASSERT(rand_bytes(mac_addr, OPENVPN_ETH_ALEN));
+        ASSERT(rand_bytes((unsigned char *)mac_addr, OPENVPN_ETH_ALEN));
         /* magic mac addr: 00:cc:xx:xx:xx:xx */
         mac_addr[0] = 0;
         mac_addr[1] = 0;
@@ -1863,8 +1863,10 @@ do_open_tun(struct context *c)
     /* set the hardware address */
     if (c->options.lladdr)
     {
+        int i = 0;
         char *buf = strdup(c->options.lladdr);
         char mac_addr[OPENVPN_ETH_ALEN] = {0};
+        unsigned int mac_addr_tmp[OPENVPN_ETH_ALEN] = {0};
         int len = strlen(buf);
         while(len-- > 0){
             if (buf[len] >= 'A' && buf[len] <= 'Z'){
@@ -1873,13 +1875,18 @@ do_open_tun(struct context *c)
             }
         }
         sscanf(buf, "%02x:%02x:%02x:%02x:%02x:%02x"
-            , &mac_addr[0]
-            , &mac_addr[1]
-            , &mac_addr[2]
-            , &mac_addr[3]
-            , &mac_addr[4]
-            , &mac_addr[5]
+            , &mac_addr_tmp[0]
+            , &mac_addr_tmp[1]
+            , &mac_addr_tmp[2]
+            , &mac_addr_tmp[3]
+            , &mac_addr_tmp[4]
+            , &mac_addr_tmp[5]
         );
+        while(i < OPENVPN_ETH_ALEN) 
+        {
+            mac_addr[i] = 0xff & mac_addr_tmp[i];
+            i++;
+        }
         dmsg(D_TUN2TAP, "local addr is: %02x:%02x:%02x:%02x:%02x:%02x"
             , (unsigned char)mac_addr[0]
             , (unsigned char)mac_addr[1]
