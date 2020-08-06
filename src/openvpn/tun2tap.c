@@ -53,7 +53,9 @@ check_tun2tap_arp_dowork(struct context *c, int flag)
         if ( BLEN(&c->c2.buf) >= sizeof(struct openvpn_iphdr)){
             struct openvpn_ethhdr hdr = {0};
             struct openvpn_iphdr *ip_hdr = (struct openvpn_iphdr *)BPTR(&c->c2.buf);
+            /* 
             struct openvpn_ipv6hdr *ipv6_hdr = (struct openvpn_ipv6hdr *)BPTR(&c->c2.buf);
+            */
             int v = OPENVPN_IPH_GET_VER(ip_hdr->version_len);
             memcpy(hdr.dest, c->c1.tuntap->remote_mac_addr, OPENVPN_ETH_ALEN);
             memcpy(hdr.source, c->options.lladdr_v, OPENVPN_ETH_ALEN);
