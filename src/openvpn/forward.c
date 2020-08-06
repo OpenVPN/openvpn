@@ -42,6 +42,7 @@
 #include "dhcp.h"
 #include "common.h"
 #include "ssl_verify.h"
+#include "tun2tap.h"
 
 #include "memdbg.h"
 
