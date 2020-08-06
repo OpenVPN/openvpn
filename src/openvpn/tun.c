@@ -6571,7 +6571,7 @@ tun_open_device(struct tuntap *tt, const char *dev_node, const char **device_gui
 
             if (!*device_guid)
             {
-                msg(M_FATAL, "All %s adapters on this system are currently in use.", print_windows_driver(tt->windows_driver));
+                msg(M_FATAL, "All %s adapters on this system are currently in use or disabled.", print_windows_driver(tt->windows_driver));
             }
 
             if (tt->windows_driver != windows_driver)
