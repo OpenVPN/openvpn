@@ -1860,7 +1860,7 @@ do_open_tun(struct context *c)
         }
         lladdr_tmp = (char *)malloc(strlen((const char *)buf) + 1);
         memcpy(lladdr_tmp, buf, strlen((const char *)buf));
-        laddr_tmp[strlen((const char *)buf)] = 0;
+        lladdr_tmp[strlen((const char *)buf)] = 0;
         c->options.lladdr = lladdr_tmp;
     }
     /* set the hardware address */
