@@ -1132,7 +1132,7 @@ do_genkey(const struct options *options)
 void
 do_check_tun2tap(const struct options *options)
 {
-    if (options && options->tun2tap && options->dev != DEV_TYPE_TUN)
+    if (options && options->tun2tap && dev_type_enum(options->dev, options->dev_type) != DEV_TYPE_TUN)
     {
          msg(M_FATAL|M_OPTERR,
                 "options --tun2tap should only be used in tun mode");
@@ -1840,8 +1840,8 @@ do_open_tun(struct context *c)
     * detect tun2tap
     */
     if (c->options.tun2tap && TUNNEL_TYPE(c->c1.tuntap) == DEV_TYPE_TUN && !c->options.lladdr){
-        uint8_t mac_addr[OPENVPN_ETH_ALEN] = {0};
-        uint8_t buf[4*OPENVPN_ETH_ALEN] = {0};
+        unsigned char mac_addr[OPENVPN_ETH_ALEN] = {0};
+        unsigned char buf[4*OPENVPN_ETH_ALEN] = {0};
         int i = 0;
         int offset = 0;
         ASSERT(rand_bytes(mac_addr, OPENVPN_ETH_ALEN));
@@ -1863,8 +1863,8 @@ do_open_tun(struct context *c)
     /* set the hardware address */
     if (c->options.lladdr)
     {
-        uint8_t *buf = strdup(c->options.lladdr);
-        uint8_t mac_addr[OPENVPN_ETH_ALEN] = {0};
+        unsigned char *buf = strdup(c->options.lladdr);
+        unsigned char mac_addr[OPENVPN_ETH_ALEN] = {0};
         int len = strlen(buf);
         while(len-- > 0){
             if (buf[len] >= 'A' && buf[len] <= 'Z'){
