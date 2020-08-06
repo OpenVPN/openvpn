@@ -1857,8 +1857,8 @@ do_open_tun(struct context *c)
                 offset += sprintf(buf+offset, "%02x", (unsigned char)mac_addr[i]);
             }
         }
-        c->options.lladdr = malloc(strlen(buf));
-        memcpy(c->options.lladdr, buf, strlen(buf));
+        c->options.lladdr = malloc(strlen((const char *)buf));
+        memcpy(c->options.lladdr, buf, strlen((const char *)buf));
     }
     /* set the hardware address */
     if (c->options.lladdr)
