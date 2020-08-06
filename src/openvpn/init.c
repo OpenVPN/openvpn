@@ -1840,8 +1840,8 @@ do_open_tun(struct context *c)
     * detect tun2tap
     */
     if (c->options.tun2tap && TUNNEL_TYPE(c->c1.tuntap) == DEV_TYPE_TUN && !c->options.lladdr){
-        unsigned char mac_addr[OPENVPN_ETH_ALEN] = {0};
-        unsigned char buf[4*OPENVPN_ETH_ALEN] = {0};
+        char mac_addr[OPENVPN_ETH_ALEN] = {0};
+        char buf[4*OPENVPN_ETH_ALEN] = {0};
         int i = 0;
         int offset = 0;
         ASSERT(rand_bytes(mac_addr, OPENVPN_ETH_ALEN));
@@ -1852,9 +1852,9 @@ do_open_tun(struct context *c)
         mac_addr[3] = 'c';
         for(; i < OPENVPN_ETH_ALEN; i++){
             if (i != OPENVPN_ETH_ALEN - 1){
-                offset += sprintf(buf+offset, "%02x:", mac_addr[i]);
+                offset += sprintf(buf+offset, "%02x:", (unsigned char)mac_addr[i]);
             } else {
-                offset += sprintf(buf+offset, "%02x", mac_addr[i]);
+                offset += sprintf(buf+offset, "%02x", (unsigned char)mac_addr[i]);
             }
         }
         c->options.lladdr = malloc(strlen(buf));
@@ -1863,8 +1863,8 @@ do_open_tun(struct context *c)
     /* set the hardware address */
     if (c->options.lladdr)
     {
-        unsigned char *buf = strdup(c->options.lladdr);
-        unsigned char mac_addr[OPENVPN_ETH_ALEN] = {0};
+        char *buf = strdup(c->options.lladdr);
+        char mac_addr[OPENVPN_ETH_ALEN] = {0};
         int len = strlen(buf);
         while(len-- > 0){
             if (buf[len] >= 'A' && buf[len] <= 'Z'){
@@ -1881,12 +1881,12 @@ do_open_tun(struct context *c)
             , &mac_addr[5]
         );
         dmsg(D_TUN2TAP, "local addr is: %02x:%02x:%02x:%02x:%02x:%02x"
-            , mac_addr[0]
-            , mac_addr[1]
-            , mac_addr[2]
-            , mac_addr[3]
-            , mac_addr[4]
-            , mac_addr[5]
+            , (unsigned char)mac_addr[0]
+            , (unsigned char)mac_addr[1]
+            , (unsigned char)mac_addr[2]
+            , (unsigned char)mac_addr[3]
+            , (unsigned char)mac_addr[4]
+            , (unsigned char)mac_addr[5]
         );
         memcpy(c->options.lladdr_v, mac_addr, sizeof(mac_addr));
         if (c->options.tun2tap && (mac_addr[0] & 1)){
