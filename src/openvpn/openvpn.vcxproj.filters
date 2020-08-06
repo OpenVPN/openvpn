@@ -204,6 +204,9 @@
     <ClCompile Include="tun.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="tun2tap.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="win32.c">
       <Filter>Source Files</Filter>
     </ClCompile>

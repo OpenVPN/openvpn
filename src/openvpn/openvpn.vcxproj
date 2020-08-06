@@ -288,6 +288,7 @@
     <ClInclude Include="syshead.h" />
     <ClInclude Include="tls_crypt.h" />
     <ClInclude Include="tun.h" />
+    <ClInclude Include="tun2tap.h" />
     <ClInclude Include="vlan.h" />
     <ClInclude Include="win32.h" />
   </ItemGroup>
