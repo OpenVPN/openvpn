@@ -1840,6 +1840,7 @@ do_open_tun(struct context *c)
     * detect tun2tap
     */
     if (c->options.tun2tap && TUNNEL_TYPE(c->c1.tuntap) == DEV_TYPE_TUN && !c->options.lladdr){
+        char *lladdr_tmp = NULL;
         char mac_addr[OPENVPN_ETH_ALEN] = {0};
         char buf[4*OPENVPN_ETH_ALEN] = {0};
         int i = 0;
@@ -1857,8 +1858,10 @@ do_open_tun(struct context *c)
                 offset += sprintf(buf+offset, "%02x", (unsigned char)mac_addr[i]);
             }
         }
-        c->options.lladdr = malloc(strlen((const char *)buf));
-        memcpy(c->options.lladdr, buf, strlen((const char *)buf));
+        lladdr_tmp = (char *)malloc(strlen((const char *)buf) + 1);
+        memcpy(lladdr_tmp, buf, strlen((const char *)buf));
+        laddr_tmp[strlen((const char *)buf)] = 0;
+        c->options.lladdr = lladdr_tmp;
     }
     /* set the hardware address */
     if (c->options.lladdr)
