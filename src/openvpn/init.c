@@ -2365,16 +2365,9 @@ do_deferred_options(struct context *c, const unsigned int found)
     /* process (potentially pushed) crypto options */
     if (c->options.pull)
     {
-        struct tls_session *session = &c->c2.tls_multi->session[TM_ACTIVE];
-        if (found & OPT_P_NCP)
+        if (!check_pull_client_ncp(c, found))
         {
-            msg(D_PUSH, "OPTIONS IMPORT: data channel crypto options modified");
-        }
-        else if (c->options.ncp_enabled)
-        {
-            /* If the server did not push a --cipher, we will switch to the
-             * remote cipher if it is in our ncp-ciphers list */
-            tls_poor_mans_ncp(&c->options, c->c2.tls_multi->remote_ciphername);
+            return false;
         }
         struct frame *frame_fragment = NULL;
 #ifdef ENABLE_FRAGMENT
@@ -2384,6 +2377,7 @@ do_deferred_options(struct context *c, const unsigned int found)
         }
 #endif
 
+        struct tls_session *session = &c->c2.tls_multi->session[TM_ACTIVE];
         if (!tls_session_update_crypto_params(session, &c->options, &c->c2.frame,
                                               frame_fragment))
         {
@@ -2757,9 +2751,13 @@ do_init_crypto_tls_c1(struct context *c)
 #endif /* if P2MP */
         }
 
+        /* Do not warn if we only have BF-CBC in options->ciphername
+         * because it is still the default cipher */
+        bool warn = !streq(options->ciphername, "BF-CBC")
+             || options->enable_ncp_fallback;
         /* Get cipher & hash algorithms */
         init_key_type(&c->c1.ks.key_type, options->ciphername, options->authname,
-                      options->keysize, true, true);
+                      options->keysize, true, warn);
 
         /* Initialize PRNG with config-specified digest */
         prng_init(options->prng_hash, options->prng_nonce_secret_len);

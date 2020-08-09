@@ -48,6 +48,7 @@
 #include "common.h"
 
 #include "ssl_ncp.h"
+#include "openvpn.h"
 
 /**
  * Return the Negotiable Crypto Parameters version advertised in the peer info
@@ -211,9 +212,8 @@ tls_peer_ncp_list(const char *peer_info, struct gc_arena *gc)
 }
 
 char *
-ncp_get_best_cipher(const char *server_list, const char *server_cipher,
-                    const char *peer_info,  const char *remote_cipher,
-                    struct gc_arena *gc)
+ncp_get_best_cipher(const char *server_list, const char *peer_info,
+                    const char *remote_cipher, struct gc_arena *gc)
 {
     /*
      * The gc of the parameter is tied to the VPN session, create a
@@ -226,7 +226,10 @@ ncp_get_best_cipher(const char *server_list, const char *server_cipher,
     const char *peer_ncp_list = tls_peer_ncp_list(peer_info, &gc_tmp);
 
     /* non-NCP client without OCC?  "assume nothing" */
-    if (remote_cipher == NULL)
+    /* For client doing the newer version of NCP (that send IV_CIPHER)
+     * we cannot assume that they will accept remote_cipher */
+    if (remote_cipher == NULL ||
+        (peer_info && strstr(peer_info, "IV_CIPHERS=")))
     {
         remote_cipher = "";
     }
@@ -242,15 +245,6 @@ ncp_get_best_cipher(const char *server_list, const char *server_cipher,
             break;
         }
     }
-    /* We have not found a common cipher, as a last resort check if the
-     * server cipher can be used
-     */
-    if (token == NULL
-        && (tls_item_in_cipher_list(server_cipher, peer_ncp_list)
-            || streq(server_cipher, remote_cipher)))
-    {
-        token = server_cipher;
-    }
 
     char *ret = NULL;
     if (token != NULL)
@@ -262,16 +256,75 @@ ncp_get_best_cipher(const char *server_list, const char *server_cipher,
     return ret;
 }
 
-void
+/**
+ * "Poor man's NCP": Use peer cipher if it is an allowed (NCP) cipher.
+ * Allows non-NCP peers to upgrade their cipher individually.
+ *
+ * Returns true if we switched to the peer's cipher
+ *
+ * Make sure to call tls_session_update_crypto_params() after calling this
+ * function.
+ */
+static bool
 tls_poor_mans_ncp(struct options *o, const char *remote_ciphername)
 {
-    if (o->ncp_enabled && remote_ciphername
+    if (remote_ciphername
         && 0 != strcmp(o->ciphername, remote_ciphername))
     {
         if (tls_item_in_cipher_list(remote_ciphername, o->ncp_ciphers))
         {
             o->ciphername = string_alloc(remote_ciphername, &o->gc);
             msg(D_TLS_DEBUG_LOW, "Using peer cipher '%s'", o->ciphername);
+            return true;
         }
+    }
+    return false;
+}
+
+bool
+check_pull_client_ncp(struct context *c, const int found)
+{
+    if (found & OPT_P_NCP)
+    {
+        msg(D_PUSH, "OPTIONS IMPORT: data channel crypto options modified");
+        return true;
+    }
+
+    if (!c->options.ncp_enabled)
+    {
+        return true;
+    }
+    /* If the server did not push a --cipher, we will switch to the
+     * remote cipher if it is in our ncp-ciphers list */
+    bool useremotecipher = tls_poor_mans_ncp(&c->options,
+                                             c->c2.tls_multi->remote_ciphername);
+
+
+    /* We could not figure out the peer's cipher but we have fallback
+     * enabled */
+    if (!useremotecipher && c->options.enable_ncp_fallback)
+    {
+        return true;
+    }
+
+    /* We failed negotiation, give appropiate error message */
+    if (c->c2.tls_multi->remote_ciphername)
+    {
+        msg(D_TLS_ERRORS, "OPTIONS ERROR: failed to negotiate "
+            "cipher with server.  Add the server's "
+            "cipher ('%s') to --data-ciphers (currently '%s') if "
+            "you want to connect to this server.",
+            c->c2.tls_multi->remote_ciphername,
+            c->options.ncp_ciphers);
+        return false;
+
+    }
+    else
+    {
+        msg(D_TLS_ERRORS, "OPTIONS ERROR: failed to negotiate "
+            "cipher with server. Configure "
+            "--data-ciphers-fallback if you want to connect "
+            "to this server.");
+        return false;
     }
 }

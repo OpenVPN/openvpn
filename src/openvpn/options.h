@@ -503,6 +503,8 @@ struct options
     bool shared_secret_file_inline;
     int key_direction;
     const char *ciphername;
+    bool enable_ncp_fallback;      /**< If defined fall back to
+                                    * ciphername if NCP fails */
     bool ncp_enabled;
     const char *ncp_ciphers;
     const char *authname;

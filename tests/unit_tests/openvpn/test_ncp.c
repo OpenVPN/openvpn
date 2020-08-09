@@ -139,24 +139,35 @@ test_poor_man(void **state)
     char *best_cipher;
 
     const char *serverlist = "CHACHA20_POLY1305:AES-128-GCM";
+    const char *serverlistbfcbc = "CHACHA20_POLY1305:AES-128-GCM:BF-CBC";
 
-    best_cipher = ncp_get_best_cipher(serverlist, "BF-CBC",
+    best_cipher = ncp_get_best_cipher(serverlist,
+                                      "IV_YOLO=NO\nIV_BAR=7",
+                                      "BF-CBC", &gc);
+
+    assert_ptr_equal(best_cipher, NULL);
+
+
+    best_cipher = ncp_get_best_cipher(serverlistbfcbc,
                                       "IV_YOLO=NO\nIV_BAR=7",
                                       "BF-CBC", &gc);
 
     assert_string_equal(best_cipher, "BF-CBC");
 
-    best_cipher = ncp_get_best_cipher(serverlist, "BF-CBC",
+
+    best_cipher = ncp_get_best_cipher(serverlist,
                                       "IV_NCP=1\nIV_BAR=7",
                                       "AES-128-GCM", &gc);
 
     assert_string_equal(best_cipher, "AES-128-GCM");
 
-    best_cipher = ncp_get_best_cipher(serverlist, "BF-CBC",
-                                      NULL,
+    best_cipher = ncp_get_best_cipher(serverlist, NULL,
                                       "AES-128-GCM", &gc);
 
     assert_string_equal(best_cipher, "AES-128-GCM");
+
+    best_cipher = ncp_get_best_cipher(serverlist, NULL,NULL, &gc);
+    assert_ptr_equal(best_cipher, NULL);
 
     gc_free(&gc);
 }
@@ -170,29 +181,27 @@ test_ncp_best(void **state)
 
     const char *serverlist = "CHACHA20_POLY1305:AES-128-GCM:AES-256-GCM";
 
-    best_cipher = ncp_get_best_cipher(serverlist, "BF-CBC",
+    best_cipher = ncp_get_best_cipher(serverlist,
                                       "IV_YOLO=NO\nIV_NCP=2\nIV_BAR=7",
                                       "BF-CBC", &gc);
 
     assert_string_equal(best_cipher, "AES-128-GCM");
 
     /* Best cipher is in --cipher of client */
-    best_cipher = ncp_get_best_cipher(serverlist, "BF-CBC",
-                                      "IV_NCP=2\nIV_BAR=7",
+    best_cipher = ncp_get_best_cipher(serverlist, "IV_NCP=2\nIV_BAR=7",
                                       "CHACHA20_POLY1305", &gc);
 
     assert_string_equal(best_cipher, "CHACHA20_POLY1305");
 
     /* Best cipher is in --cipher of client */
-    best_cipher = ncp_get_best_cipher(serverlist, "BF-CBC",
-                                      "IV_CIPHERS=AES-128-GCM",
+    best_cipher = ncp_get_best_cipher(serverlist, "IV_CIPHERS=AES-128-GCM",
                                       "AES-256-CBC", &gc);
 
 
     assert_string_equal(best_cipher, "AES-128-GCM");
 
     /* IV_NCP=2 should be ignored if IV_CIPHERS is sent */
-    best_cipher = ncp_get_best_cipher(serverlist, "BF-CBC",
+    best_cipher = ncp_get_best_cipher(serverlist,
                                       "IV_FOO=7\nIV_CIPHERS=AES-256-GCM\nIV_NCP=2",
                                       "AES-256-CBC", &gc);
 

@@ -40,14 +40,17 @@
 bool
 tls_peer_supports_ncp(const char *peer_info);
 
+/* forward declaration to break include dependency loop */
+struct context;
+
 /**
- * "Poor man's NCP": Use peer cipher if it is an allowed (NCP) cipher.
- * Allows non-NCP peers to upgrade their cipher individually.
+ * Checks whether the cipher negotiation is in an acceptable state
+ * and we continue to connect or should abort.
  *
- * Make sure to call tls_session_update_crypto_params() after calling this
- * function.
+ * @return  Wether the client NCP process suceeded or failed
  */
-void tls_poor_mans_ncp(struct options *o, const char *remote_ciphername);
+bool
+check_pull_client_ncp(struct context *c, int found);
 
 /**
  * Iterates through the ciphers in server_list and return the first
@@ -67,9 +70,8 @@ void tls_poor_mans_ncp(struct options *o, const char *remote_ciphername);
  * cipher
  */
 char *
-ncp_get_best_cipher(const char *server_list, const char *server_cipher,
-                    const char *peer_info, const char *remote_cipher,
-                    struct gc_arena *gc);
+ncp_get_best_cipher(const char *server_list, const char *peer_info,
+                    const char *remote_cipher, struct gc_arena *gc);
 
 
 /**
