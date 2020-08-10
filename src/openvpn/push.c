@@ -330,15 +330,12 @@ incoming_push_message(struct context *c, const struct buffer *buffer)
 {
     struct gc_arena gc = gc_new();
     unsigned int option_types_found = 0;
-    int status;
 
     msg(D_PUSH, "PUSH: Received control message: '%s'", sanitize_control_message(BSTR(buffer), &gc));
 
-    status = process_incoming_push_msg(c,
-                                       buffer,
-                                       c->options.pull,
-                                       pull_permission_mask(c),
-                                       &option_types_found);
+    int status = process_incoming_push_msg(c, buffer, c->options.pull,
+                                           pull_permission_mask(c),
+                                           &option_types_found);
 
     if (status == PUSH_MSG_ERROR)
     {
@@ -866,7 +863,7 @@ process_incoming_push_msg(struct context *c,
         return process_incoming_push_request(c);
     }
     else if (honor_received_options
-             && buf_string_compare_advance(&buf, "PUSH_REPLY"))
+             && buf_string_compare_advance(&buf, push_reply_cmd))
     {
         return process_incoming_push_reply(c, permission_mask,
                                            option_types_found, &buf);
