@@ -75,6 +75,7 @@ placed in a configuration file.
 .. include:: man-sections/client-options.rst
 .. include:: man-sections/server-options.rst
 .. include:: man-sections/encryption-options.rst
+.. include:: man-sections/cipher-negotiation.rst
 .. include:: man-sections/network-config.rst
 .. include:: man-sections/script-options.rst
 .. include:: man-sections/management-options.rst

@@ -29,6 +29,29 @@ Improved Data channel cipher negotiation
     ``data-ciphers ChaCha20-Poly1305:AES-256-GCM`` on the server that
     prefers ChaCha20-Poly1305 but uses it only if the client supports it.
 
+    See the data channel negotiation section in the manual for more details.
+
+Removal of BF-CBC support in default configuration:
+    By default OpenVPN 2.5 will only accept AES-256-GCM and AES-128-GCM as
+    data ciphers. OpenVPN 2.4 allows AES-256-GCM,AES-128-GCM and BF-CBC when
+    no --cipher and --ncp-cipher options are present. Accepting BF-CBC can be
+    enabled by adding
+
+        data-ciphers AES-256-GCM:AES-128-GCM:BF-CBC
+
+    and when you need to support very old peers also
+
+        data-ciphers-fallback BF-CBC
+
+    To offer backwards compatibility with older configs an *explicit*
+
+        cipher BF-CBC
+
+    in the configuration will be automatically translated into adding BF-CBC
+    to the data-ciphers option and setting data-ciphers-fallback to BF-CBC
+    (as in the example commands above). We strongly recommend to switching
+    away from BF-CBC to a more secure cipher.
+
 Asynchronous (deferred) authentication support for auth-pam plugin.
     See src/plugins/auth-pam/README.auth-pam for details.
 
