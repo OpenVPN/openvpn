@@ -7,6 +7,7 @@ language: c
 env:
   global:
     - JOBS=3
+    - RUN_SUDO="false"
     - PREFIX="${HOME}/opt"
     - TAP_WINDOWS_VERSION=9.23.3
     - LZO_VERSION=2.10
