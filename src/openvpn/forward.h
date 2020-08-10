@@ -77,9 +77,9 @@ void check_tls_errors_nco(struct context *c);
 #if P2MP
 void check_incoming_control_channel_dowork(struct context *c);
 
-void check_scheduled_exit_dowork(struct context *c);
+void check_scheduled_exit(struct context *c);
 
-void check_push_request_dowork(struct context *c);
+void check_push_request(struct context *c);
 
 #endif /* P2MP */
 
@@ -90,13 +90,13 @@ void check_fragment_dowork(struct context *c);
 
 void check_connection_established(struct context *c);
 
-void check_add_routes_dowork(struct context *c);
+void check_add_routes(struct context *c);
 
-void check_inactivity_timeout_dowork(struct context *c);
+void check_inactivity_timeout(struct context *c);
 
-void check_server_poll_timeout_dowork(struct context *c);
+void check_server_poll_timeout(struct context *c);
 
-void check_status_file_dowork(struct context *c);
+void check_status_file(struct context *c);
 
 void io_wait_dowork(struct context *c, const unsigned int flags);
 

@@ -69,8 +69,6 @@ struct status_output *status_open(const char *filename,
                                   const struct virtual_output *vout,
                                   const unsigned int flags);
 
-bool status_trigger_tv(struct status_output *so, struct timeval *tv);
-
 bool status_trigger(struct status_output *so);
 
 void status_reset(struct status_output *so);
