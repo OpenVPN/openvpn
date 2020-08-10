@@ -1772,6 +1772,28 @@ multi_client_connect_setenv(struct multi_context *m,
 }
 
 /**
+ * Extracts the IV_PROTO variable and returns its value or 0
+ * if it cannot be extracted.
+ *
+ */
+static unsigned int
+extract_iv_proto(const char *peer_info)
+{
+
+    const char *optstr = peer_info ? strstr(peer_info, "IV_PROTO=") : NULL;
+    if (optstr)
+    {
+        int proto = 0;
+        int r = sscanf(optstr, "IV_PROTO=%d", &proto);
+        if (r == 1 && proto > 0)
+        {
+            return proto;
+        }
+    }
+    return 0;
+}
+
+/**
  * Calculates the options that depend on the client capabilities
  * based on local options and available peer info
  * - choosen cipher
@@ -1780,30 +1802,19 @@ multi_client_connect_setenv(struct multi_context *m,
 static bool
 multi_client_set_protocol_options(struct context *c)
 {
-
-    const char *optstr = NULL;
     struct tls_multi *tls_multi = c->c2.tls_multi;
     const char *const peer_info = tls_multi->peer_info;
     struct options *o = &c->options;
 
-    /* Send peer-id if client supports it */
-    optstr = peer_info ? strstr(peer_info, "IV_PROTO=") : NULL;
-    if (optstr)
-    {
-        int proto = 0;
-        int r = sscanf(optstr, "IV_PROTO=%d", &proto);
-        if (r == 1)
-        {
-            if (proto & IV_PROTO_DATA_V2)
-            {
-                tls_multi->use_peer_id = true;
-            }
-            if (proto & IV_PROTO_REQUEST_PUSH)
-            {
-                c->c2.push_request_received = true;
-            }
-        }
 
+    unsigned int proto = extract_iv_proto(peer_info);
+    if (proto & IV_PROTO_DATA_V2)
+    {
+        tls_multi->use_peer_id = true;
+    }
+    if (proto & IV_PROTO_REQUEST_PUSH)
+    {
+        c->c2.push_request_received = true;
     }
 
     /* Select cipher if client supports Negotiable Crypto Parameters */
