@@ -68,7 +68,7 @@ extern counter_type link_read_bytes_global;
 
 extern counter_type link_write_bytes_global;
 
-void check_tls_dowork(struct context *c);
+void check_tls(struct context *c);
 
 void check_tls_errors_co(struct context *c);
 

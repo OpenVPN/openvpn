@@ -78,30 +78,12 @@ show_wait_status(struct context *c)
 #endif /* ifdef ENABLE_DEBUG */
 
 /*
- * Does TLS session need service?
- */
-static inline void
-check_tls(struct context *c)
-{
-    void check_tls_dowork(struct context *c);
-
-    if (c->c2.tls_multi)
-    {
-        check_tls_dowork(c);
-    }
-}
-
-/*
  * TLS errors are fatal in TCP mode.
  * Also check for --tls-exit trigger.
  */
 static inline void
 check_tls_errors(struct context *c)
 {
-    void check_tls_errors_co(struct context *c);
-
-    void check_tls_errors_nco(struct context *c);
-
     if (c->c2.tls_multi && c->c2.tls_exit_signal)
     {
         if (link_socket_connection_oriented(c->c2.link_socket))
@@ -157,7 +139,7 @@ context_reschedule_sec(struct context *c, int sec)
  *
  */
 void
-check_tls_dowork(struct context *c)
+check_tls(struct context *c)
 {
     interval_t wakeup = BIG_TIMEOUT;
 
@@ -1852,8 +1834,11 @@ pre_select(struct context *c)
         return;
     }
 
-    /* Does TLS need service? */
-    check_tls(c);
+    /* If tls is enabled, do tls control channel packet processing. */
+    if (c->c2.tls_multi)
+    {
+        check_tls(c);
+    }
 
     /* In certain cases, TLS errors will require a restart */
     check_tls_errors(c);
