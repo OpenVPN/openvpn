@@ -122,21 +122,6 @@ check_tls_errors(struct context *c)
 }
 
 /*
- * Check for possible incoming configuration
- * messages on the control channel.
- */
-static inline void
-check_incoming_control_channel(struct context *c)
-{
-#if P2MP
-    if (tls_test_payload_len(c->c2.tls_multi) > 0)
-    {
-        check_incoming_control_channel_dowork(c);
-    }
-#endif
-}
-
-/*
  * Set our wakeup to 0 seconds, so we will be rescheduled
  * immediately.
  */
@@ -222,61 +207,61 @@ check_tls_errors_nco(struct context *c)
  * messages on the control channel.
  */
 void
-check_incoming_control_channel_dowork(struct context *c)
+check_incoming_control_channel(struct context *c)
 {
-    const int len = tls_test_payload_len(c->c2.tls_multi);
-    if (len)
+    int len = tls_test_payload_len(c->c2.tls_multi);
+    /* We should only be called with len >0 */
+    ASSERT(len > 0);
+
+    struct gc_arena gc = gc_new();
+    struct buffer buf = alloc_buf_gc(len, &gc);
+    if (tls_rec_payload(c->c2.tls_multi, &buf))
     {
-        struct gc_arena gc = gc_new();
-        struct buffer buf = alloc_buf_gc(len, &gc);
-        if (tls_rec_payload(c->c2.tls_multi, &buf))
+        /* force null termination of message */
+        buf_null_terminate(&buf);
+
+        /* enforce character class restrictions */
+        string_mod(BSTR(&buf), CC_PRINT, CC_CRLF, 0);
+
+        if (buf_string_match_head_str(&buf, "AUTH_FAILED"))
         {
-            /* force null termination of message */
-            buf_null_terminate(&buf);
-
-            /* enforce character class restrictions */
-            string_mod(BSTR(&buf), CC_PRINT, CC_CRLF, 0);
-
-            if (buf_string_match_head_str(&buf, "AUTH_FAILED"))
-            {
-                receive_auth_failed(c, &buf);
-            }
-            else if (buf_string_match_head_str(&buf, "PUSH_"))
-            {
-                incoming_push_message(c, &buf);
-            }
-            else if (buf_string_match_head_str(&buf, "RESTART"))
-            {
-                server_pushed_signal(c, &buf, true, 7);
-            }
-            else if (buf_string_match_head_str(&buf, "HALT"))
-            {
-                server_pushed_signal(c, &buf, false, 4);
-            }
-            else if (buf_string_match_head_str(&buf, "INFO_PRE"))
-            {
-                server_pushed_info(c, &buf, 8);
-            }
-            else if (buf_string_match_head_str(&buf, "INFO"))
-            {
-                server_pushed_info(c, &buf, 4);
-            }
-            else if (buf_string_match_head_str(&buf, "CR_RESPONSE"))
-            {
-                receive_cr_response(c, &buf);
-            }
-            else
-            {
-                msg(D_PUSH_ERRORS, "WARNING: Received unknown control message: %s", BSTR(&buf));
-            }
+            receive_auth_failed(c, &buf);
+        }
+        else if (buf_string_match_head_str(&buf, "PUSH_"))
+        {
+            incoming_push_message(c, &buf);
+        }
+        else if (buf_string_match_head_str(&buf, "RESTART"))
+        {
+            server_pushed_signal(c, &buf, true, 7);
+        }
+        else if (buf_string_match_head_str(&buf, "HALT"))
+        {
+            server_pushed_signal(c, &buf, false, 4);
+        }
+        else if (buf_string_match_head_str(&buf, "INFO_PRE"))
+        {
+            server_pushed_info(c, &buf, 8);
+        }
+        else if (buf_string_match_head_str(&buf, "INFO"))
+        {
+            server_pushed_info(c, &buf, 4);
+        }
+        else if (buf_string_match_head_str(&buf, "CR_RESPONSE"))
+        {
+            receive_cr_response(c, &buf);
         }
         else
         {
-            msg(D_PUSH_ERRORS, "WARNING: Receive control message failed");
+            msg(D_PUSH_ERRORS, "WARNING: Received unknown control message: %s", BSTR(&buf));
         }
-
-        gc_free(&gc);
     }
+    else
+    {
+        msg(D_PUSH_ERRORS, "WARNING: Receive control message failed");
+    }
+
+    gc_free(&gc);
 }
 
 /*
@@ -1877,8 +1862,14 @@ pre_select(struct context *c)
         return;
     }
 
-    /* check for incoming configuration info on the control channel */
-    check_incoming_control_channel(c);
+#if P2MP
+    /* check for incoming control messages on the control channel like
+     * push request/reply, or authentication failure and 2FA messages */
+    if (tls_test_payload_len(c->c2.tls_multi) > 0)
+    {
+        check_incoming_control_channel(c);
+    }
+#endif
 
     /* Should we send an OCC message? */
     check_send_occ_msg(c);

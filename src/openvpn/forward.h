@@ -75,7 +75,7 @@ void check_tls_errors_co(struct context *c);
 void check_tls_errors_nco(struct context *c);
 
 #if P2MP
-void check_incoming_control_channel_dowork(struct context *c);
+void check_incoming_control_channel(struct context *c);
 
 void check_scheduled_exit(struct context *c);
 
