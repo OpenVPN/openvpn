@@ -129,30 +129,12 @@ static inline void
 check_incoming_control_channel(struct context *c)
 {
 #if P2MP
-    void check_incoming_control_channel_dowork(struct context *c);
-
     if (tls_test_payload_len(c->c2.tls_multi) > 0)
     {
         check_incoming_control_channel_dowork(c);
     }
 #endif
 }
-
-#ifdef ENABLE_FRAGMENT
-/*
- * Should we deliver a datagram fragment to remote?
- */
-static inline void
-check_fragment(struct context *c)
-{
-    void check_fragment_dowork(struct context *c);
-
-    if (c->c2.fragment)
-    {
-        check_fragment_dowork(c);
-    }
-}
-#endif
 
 /*
  * Set our wakeup to 0 seconds, so we will be rescheduled
@@ -520,7 +502,7 @@ check_status_file(struct context *c)
  * Should we deliver a datagram fragment to remote?
  */
 void
-check_fragment_dowork(struct context *c)
+check_fragment(struct context *c)
 {
     struct link_socket_info *lsi = get_link_socket_info(c);
 
@@ -1903,7 +1885,10 @@ pre_select(struct context *c)
 
 #ifdef ENABLE_FRAGMENT
     /* Should we deliver a datagram fragment to remote? */
-    check_fragment(c);
+    if (c->c2.fragment)
+    {
+        check_fragment(c);
+    }
 #endif
 
     /* Update random component of timeout */

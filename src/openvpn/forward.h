@@ -84,7 +84,7 @@ void check_push_request(struct context *c);
 #endif /* P2MP */
 
 #ifdef ENABLE_FRAGMENT
-void check_fragment_dowork(struct context *c);
+void check_fragment(struct context *c);
 
 #endif /* ENABLE_FRAGMENT */
 
