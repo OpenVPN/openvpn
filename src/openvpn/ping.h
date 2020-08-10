@@ -43,7 +43,12 @@ is_ping_msg(const struct buffer *buf)
     return buf_string_match(buf, ping_string, PING_STRING_SIZE);
 }
 
-void check_ping_restart_dowork(struct context *c);
+/**
+ * Trigger the correct signal on a --ping timeout
+ * depending if --ping-exit is set (SIGTERM) or not
+ * (SIGUSR1)
+ */
+void trigger_ping_timeout_signal(struct context *c);
 
 void check_ping_send_dowork(struct context *c);
 
@@ -54,8 +59,6 @@ void check_ping_send_dowork(struct context *c);
 static inline void
 check_ping_restart(struct context *c)
 {
-    void check_ping_restart_dowork(struct context *c);
-
     if (c->options.ping_rec_timeout
         && event_timeout_trigger(&c->c2.ping_rec_interval,
                                  &c->c2.timeval,
@@ -63,7 +66,7 @@ check_ping_restart(struct context *c)
                                   || link_socket_actual_defined(&c->c1.link_socket_addr.actual))
                                  ? ETT_DEFAULT : 15))
     {
-        check_ping_restart_dowork(c);
+        trigger_ping_timeout_signal(c);
     }
 }
 
@@ -73,8 +76,6 @@ check_ping_restart(struct context *c)
 static inline void
 check_ping_send(struct context *c)
 {
-    void check_ping_send_dowork(struct context *c);
-
     if (c->options.ping_send_timeout
         && event_timeout_trigger(&c->c2.ping_send_interval,
                                  &c->c2.timeval,
