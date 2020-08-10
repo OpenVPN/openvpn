@@ -700,8 +700,14 @@ process_coarse_timers(struct context *c)
 }
 
 static void
-check_coarse_timers_dowork(struct context *c)
+check_coarse_timers(struct context *c)
 {
+    if (now < c->c2.coarse_timer_wakeup)
+    {
+        context_reschedule_sec(c, c->c2.coarse_timer_wakeup - now);
+        return;
+    }
+
     const struct timeval save = c->c2.timeval;
     c->c2.timeval.tv_sec = BIG_TIMEOUT;
     c->c2.timeval.tv_usec = 0;
@@ -714,20 +720,6 @@ check_coarse_timers_dowork(struct context *c)
     if (c->c2.timeval.tv_sec > save.tv_sec)
     {
         c->c2.timeval = save;
-    }
-}
-
-static inline void
-check_coarse_timers(struct context *c)
-{
-    const time_t local_now = now;
-    if (local_now >= c->c2.coarse_timer_wakeup)
-    {
-        check_coarse_timers_dowork(c);
-    }
-    else
-    {
-        context_reschedule_sec(c, c->c2.coarse_timer_wakeup - local_now);
     }
 }
 
