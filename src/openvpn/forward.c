@@ -679,7 +679,11 @@ process_coarse_timers(struct context *c)
 #endif
 
 #ifdef PLUGIN_PF
-    pf_check_reload(c);
+    if (c->c2.pf.enabled
+        && event_timeout_trigger(&c->c2.pf.reload, &c->c2.timeval, ETT_DEFAULT))
+    {
+        pf_check_reload(c);
+    }
 #endif
 
     /* process --route options */

@@ -547,9 +547,7 @@ pf_check_reload(struct context *c)
     const int wakeup_transition = 60;
     bool reloaded = false;
 
-    if (c->c2.pf.enabled
-        && c->c2.pf.filename
-        && event_timeout_trigger(&c->c2.pf.reload, &c->c2.timeval, ETT_DEFAULT))
+    if (c->c2.pf.filename)
     {
         platform_stat_t s;
         if (!platform_stat(c->c2.pf.filename, &s))
