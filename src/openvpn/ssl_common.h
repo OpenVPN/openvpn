@@ -64,8 +64,7 @@
  *      material.
  *   -# \c S_GOT_KEY, have received remote part of \c key_source2 random
  *      material.
- *   -# \c S_ACTIVE, normal operation during remaining handshake window.
- *   -# \c S_NORMAL_OP, normal operation.
+ *   -# \c S_ACTIVE, normal operation
  *
  * Servers follow the same order, except for \c S_SENT_KEY and \c
  * S_GOT_KEY being reversed, because the server first receives the
@@ -94,9 +93,9 @@
                                  *   immediately after negotiation has
                                  *   completed while still within the
                                  *   handshake window. */
-/* ready to exchange data channel packets */
-#define S_NORMAL_OP       7     /**< Normal operational \c key_state
-                                 *   state. */
+/* Note that earlier versions also had a S_OP_NORMAL state that was
+ * virtually identical with S_ACTIVE and the code still assumes everything
+ * >= S_ACTIVE to be fully operational */
 /** @} name Control channel negotiation states */
 /** @} addtogroup control_processor */
 

@@ -755,9 +755,6 @@ state_name(int state)
         case S_ACTIVE:
             return "S_ACTIVE";
 
-        case S_NORMAL_OP:
-            return "S_NORMAL_OP";
-
         case S_ERROR:
             return "S_ERROR";
 
@@ -2705,21 +2702,12 @@ tls_process(struct tls_multi *multi,
         }
 
         /* Are we timed out on receive? */
-        if (now >= ks->must_negotiate)
+        if (now >= ks->must_negotiate && ks->state < S_ACTIVE)
         {
-            if (ks->state < S_ACTIVE)
-            {
-                msg(D_TLS_ERRORS,
-                    "TLS Error: TLS key negotiation failed to occur within %d seconds (check your network connectivity)",
-                    session->opt->handshake_window);
-                goto error;
-            }
-            else /* assume that ks->state == S_ACTIVE */
-            {
-                dmsg(D_TLS_DEBUG_MED, "STATE S_NORMAL_OP");
-                ks->state = S_NORMAL_OP;
-                ks->must_negotiate = 0;
-            }
+            msg(D_TLS_ERRORS,
+                "TLS Error: TLS key negotiation failed to occur within %d seconds (check your network connectivity)",
+                session->opt->handshake_window);
+            goto error;
         }
 
         /* Wait for Initial Handshake ACK */
@@ -2759,6 +2747,8 @@ tls_process(struct tls_multi *multi,
                 }
                 state_change = true;
                 ks->state = S_ACTIVE;
+                /* Cancel negotiation timeout */
+                ks->must_negotiate = 0;
                 INCR_SUCCESS;
 
                 /* Set outgoing address for data channel packets */
