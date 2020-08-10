@@ -1177,9 +1177,9 @@ process_incoming_link_part2(struct context *c, struct link_socket_info *lsi, con
          *
          * Also, update the persisted version of our packet-id.
          */
-        if (!TLS_MODE(c))
+        if (!TLS_MODE(c) && c->c2.buf.len > 0)
         {
-            link_socket_set_outgoing_addr(&c->c2.buf, lsi, &c->c2.from, NULL, c->c2.es);
+            link_socket_set_outgoing_addr(lsi, &c->c2.from, NULL, c->c2.es);
         }
 
         /* reset packet received timer */

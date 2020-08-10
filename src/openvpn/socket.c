@@ -2450,8 +2450,7 @@ ipchange_fmt(const bool include_cmd, struct argv *argv, const struct link_socket
 }
 
 void
-link_socket_connection_initiated(const struct buffer *buf,
-                                 struct link_socket_info *info,
+link_socket_connection_initiated(struct link_socket_info *info,
                                  const struct link_socket_actual *act,
                                  const char *common_name,
                                  struct env_set *es)

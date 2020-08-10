@@ -2762,7 +2762,7 @@ tls_process(struct tls_multi *multi,
                 INCR_SUCCESS;
 
                 /* Set outgoing address for data channel packets */
-                link_socket_set_outgoing_addr(NULL, to_link_socket_info, &ks->remote_addr, session->common_name, session->opt->es);
+                link_socket_set_outgoing_addr(to_link_socket_info, &ks->remote_addr, session->common_name, session->opt->es);
 
                 /* Flush any payload packets that were buffered before our state transitioned to S_ACTIVE */
                 flush_payload_buffer(ks);
