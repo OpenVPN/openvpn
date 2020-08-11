@@ -103,6 +103,9 @@ configured in a compatible way between both the local and remote side.
   ``lzo`` and ``lz4`` compression support via *IV_* variables to the
   server.
 
+  Note: the :code:`stub` (or empty) option is NOT compatible with the older
+  option ``--comp-lzo no``.
+
   ***Security Considerations***
 
   Compression and encryption is a tricky combination. If an attacker knows
