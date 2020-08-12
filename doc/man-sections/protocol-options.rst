@@ -222,8 +222,8 @@ configured in a compatible way between both the local and remote side.
     (typically used on routers or other embedded devices).
 
 --ncp-disable
-  Disable "Negotiable Crypto Parameters". This completely disables cipher
-  negotiation.
+  **DEPRECATED** Disable "Negotiable Crypto Parameters". This completely
+  disables cipher negotiation.
 
 --secret args
   Enable Static Key encryption mode (non-TLS). Use pre-shared secret
