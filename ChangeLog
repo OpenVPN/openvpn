@@ -1,5 +1,899 @@
 OpenVPN Change Log
-Copyright (C) 2002-2018 OpenVPN Inc <sales@openvpn.net>
+Copyright (C) 2002-2020 OpenVPN Inc <sales@openvpn.net>
+
+2020.08.12 -- Version 2.5_beta1
+
+Adam Ciarcin?ski (1):
+      Fix subnet topology on NetBSD.
+
+Antonio Quartulli (113):
+      attempt to add IPv6 route even when no IPv6 address was configured
+      fix redirect-gateway behaviour when an IPv4 default route does not exist
+      CRL: use time_t instead of struct timespec to store last mtime
+      ignore remote-random-hostname if a numeric host is provided
+      Ignore auth-nocache for auth-user-pass if auth-token is pushed
+      crypto: correct typ0 in error message
+      use M_ERRNO instead of explicitly printing errno
+      don't print errno twice
+      ntlm: avoid useless cast
+      ntlm: unwrap multiple function calls
+      route: improve error message
+      management: preserve wait_for_push field when asking for user/pass
+      tls-crypt: avoid warnings when --disable-crypto is used
+      ntlm: convert binary buffers to uint8_t *
+      ntlm: restyle compressed multiple function calls
+      ntlm: improve code style and readability
+      OpenSSL: remove unreachable call to SSL_CTX_get0_privatekey()
+      make function declarations C99 compliant
+      remove unused functions
+      use NULL instead of 0 when assigning pointers
+      add missing static attribute to functions
+      ntlm: avoid breaking anti-aliasing rules
+      remove the --disable-multi config switch
+      rename mroute_extract_addr_ipv4 to mroute_extract_addr_ip
+      route: avoid definition of unused variables in certain configurations
+      fix a couple of typ0s in comments and strings
+      fragment.c: simplify boolean expression
+      tcp-server: ensure AF family is propagated to child context
+      Remove ENABLE_CRYPTO
+      Remove option to disable crypto engine
+      Remove ENABLE_PUSH_PEER_INFO
+      Remove SSL_LIB_VER_STR
+      Remove MD5SUM
+      reload HTTP proxy credentials when moving to the next connection profile
+      Allow learning iroutes with network made up of all 0s (only if netbits < 8)
+      mbedtls: fix typ0 in comment
+      manpage: fix simple typ0
+      pool: restyle ipv4/ipv6 members to improve readability
+      pool: convert pool 'type' to enum
+      tun: ensure gc and argv are properly handled
+      tun: always pass a valid tt pointer
+      tun: get rid of tt->did_ifconfig member
+      tun: ensure interface can be configured with IPv6 only
+      add support for %lu in argv_printf and prevent ASSERT
+      windows: properly configure TAP driver when no IPv4 is configured
+      socket: make stream_buf_* functions static
+      crypto: always reload tls-auth/crypt key contexts
+      make tls-auth and tls-crypt per-connection-block options
+      pf: restyle pf_c2c/addr_test() to make them 'struct context' agnostic
+      merge *-inline.h files with their main header
+      ensure function declarations are compiled with their definitions
+      buffer_list: add functions documentation
+      ifconfig-ipv6(-push): allow using hostnames
+      tls-crypt: properly cast time_t to uint64_t
+      implement platform generic networking API
+      implement networking API for iproute2
+      introduce sitnl: Simplified Interface To NetLink
+      tun.c: use new networking API to handle tun interface on Linux
+      travis.yml: add test for iproute2 net implementation
+      route.c: use new networking API to handle routing table on Linux
+      unit tests: implement test for sitnl
+      t_net.sh: make bash dep explicit and run only if SITNL is compiled
+      t_net.sh: properly perform sudo check and print test steps
+      route.c: fix windows build by removing mismatching function parameter
+      t_net.sh: fixes for the networking test script
+      route.c: use sitnl to implement get_default_gateway_ipv6()
+      networking/best_gw: remove useless prefixlen parameter
+      sitnl: harden strncpy() by forcing arguments to have the same length
+      mbedtls: fix segfault by calling mbedtls_cipher_free() in cipher_ctx_free()
+      networking: extend API for better memory management
+      tun.c: undo_ifconfig_ipv4/6 remove useless gc argument
+      networking_sitnl.c: uncrustify file
+      route.c: simplify ifdef logic
+      t_net.sh: wait for NO-CARRIER bit to settle before starting test
+      t_net.sh: execute sleep after checking exit code of previous command
+      maddr: create helper function to populate maddr object from eth_addr
+      VLAN: add basic VLAN tagging support
+      maddr: export VLAN ID from client context to maddr object
+      VLAN: filter multicast and client-to-client unicast traffic
+      is_ipv_X: add support for parsing IP header inside a 802.1q frame
+      VLAN: implement support for forwarding only pre-tagged VLAN packets
+      VLAN: allow forwarding tagged and untagged packets on the server TAP device
+      VLAN: add documentation to manpage
+      socks: use the right function when printing struct openvpn_sockaddr
+      add -Wno-stringop-truncation to CFLAGS on linux
+      get rid of 'broadcast' argument when configuring the tun device
+      auth_token_kt: ensure key_type object is initialized
+      auth.c: make cast explicit in the crypto API
+      travis: compile with -Werror on Linux
+      travis: fix CFLAGS assignment error and add -Werror only when compiling on Linux for Linux
+      sitnl: fix failure reporting by keeping error negative
+      sitnl: fix TUN/TAP confusion in error messages
+      sitnl: fix ignoring EEXIST when sending a netlink command
+      t_net.sh: use dummy interface instead of tun
+      remove bogus file check on --genkey argument
+      t_net.sh: assign MAC address directly during interface creation
+      convert *_inline attributes to bool
+      options: fix inlining auth-gen-token-secret file
+      tls-crypt-v2: fix testing of inline key
+      get rid of INLINE_FILE_TAG constant
+      pool: prevent IPv6 pools to be larger than 2^16 addresses
+      pool: allow to configure an IPv6-only ifconfig-pool
+      allow usage of --server-ipv6 even when no --server is specified
+      pool: add support for ifconfig-pool-persist with IPv6 only
+      route: warn on IPv4 routes installation when no IPv4 is configured
+      options: enable IPv4 redirection logic only if really required
+      ipv6-pool: get rid of size constraint
+      pool: remove useless 'options.h' include
+      multi: skip IPv4 logic in multi_select_virtual_addr() if no pool is configured
+      multi.c: use mi->cc_config instead of config variable
+      options: don't leak inline'd key material in logfile
+      t_net.sh: drop hard dependency on t_client.rc
+      travis: don't run t_net.sh test
+
+Arne Schwabe (124):
+      Set tls-cipher restriction before loading certificates
+      Print ec bit details, refuse management-external-key if key is not RSA
+      Replace buffer backed strings for management_android_control with simple stack variables
+      Treat dhcp-option DNS6 and DNS identical
+      show the right string for key-direction
+      Add MTU to Android IFCONFIG6 control command
+      Properly free tuntap struct on android when emulating persist-tun
+      Add OpenSSL compat definition for RSA_meth_set_sign
+      Skip error about ioctl(SIOCGIFCONF) failed on Android
+      Factor out convert_tls_list_to_openssl method
+      Remove AUTO_USERID feature
+      Remove MANAGMENT_EXTERNAL_KEY, MANAGMENT_IN_EXTRA, ENABLE_CLIENT_CR
+      Add support for tls-ciphersuites for TLS 1.3
+      Add better support for showing TLS 1.3 ciphersuites in --show-tls
+      Use right function to set TLS1.3 restrictions in show-tls
+      Refuse mbed TLS external key with non RSA certificates
+      Add message explaining early TLS client hello failure
+      Add tls-crypt-v2 to the list of supported inline options
+      Implement block-ipv6
+      Fallback to password authentication when auth-token fails
+      Fix loading inline tls-crypt-v2 keys with mbed TLS
+      Refactor tls_crypt_v2_write_server_key_file into crypto.c
+      Add send_control_channel_string_dowork variant
+      Rename tls_crypt_v2_read_keyfile into generic pem_read_key_file
+      Fix poll.h logic in syshead.h
+      Write key to stdout if filename is not given
+      Implement --genkey type keyfile syntax and migrate tls-crypt-v2
+      Add generate_ephemeral_key that allows a random ephermal key
+      Remove -no-cpp-precomp flag from Darwin builds
+      Fix check if iface name is set
+      Adjust Android code after sitnl patch merge
+      Rewrite auth-token-gen to be based on HMAC based tokens
+      Implement a permanent session id in auth-token
+      Sent indication that a session is expired to clients
+      Implement unit tests for auth-gen-token
+      Make tls_version_max return the actual maximum version
+      Add support for OpenSSL TLS 1.3 when using management-external-key
+      Document tls-ciphersuites also in --help output
+      Only announce IV_NCP=2 when we are willing to support these ciphers
+      Add strsep compat function
+      Implement dynamic NCP negotiation
+      Warn about insecure ciphers also in init_key_type
+      Move NCP related function into a seperate file and add unit tests
+      Normalise ncp-ciphers option and restrict it to 127 bytes
+      Fetch OpenSSL versions via source/old links
+      Fix OpenSSL error stack handling of tls_ctx_add_extra_certs
+      Fix off-by-one in tls-crypt-v2 client wrapping with custom metadata
+      Fix OpenSSL 1.1.1 not using auto elliptic curve selection
+      Refactor counting number of element in a : delimited list into function
+      Minor style change to improve code style
+      Another round of uncrustify code cleanup.
+      Fix tls_ctx_client/server_new leaving error on OpenSSL error stack
+      Add tls-crypt-v2 test writing metadata
+      Use crypto library functions for const time memcmp when possible
+      Fix session id in env missing first byte
+      Document reneweal mechanic of auth-token in manual
+      Fix session id and initial timestamp not being preserved
+      Do not write extra 0 byte for --gen-key with auth-token/tls-crypt-v2
+      Refuse server mode on Android
+      Add .git-blame-ignore-revs with reformat commits
+      Make cipher_kt_name always return normalised cipher name
+      Make cipher_kt_get also accept OpenVPN config cipher name
+      Implement parsing and sending INFO and INFO_PRE control messages
+      Implement support for signalling IV_SSO to server
+      Implement sending response to challenge via CR_RESPONSE
+      Implement sending AUTH_PENDING challenges to clients
+      Implement forwarding client CR_RESPONSE messages to management
+      Add unit test for cipher name translations
+      Make compression asymmetric by default and add warnings
+      Reformat files using uncrustify
+      Remove parameter config from multi_client_connect_mda
+      Remove push_reply_deferred variable
+      Remove did_open_context, defined and connection_established_flag
+      merge key_state->authenticated and key_state->auth_deferred
+      Simplify multi_connection_established.
+      Deprecate ncp-disable and add improved ncp to Changes.rst
+      Make key_state->authenticated more state machine like
+      Extract process_incoming_push_reply from process_incoming_push_msg
+      Removed unused definition
+      Code cleanup: remove superflous variable
+      Move protocol option negotiation from push_prepare to new function
+      Generate data channel keys after connect options have been parsed
+      Cleanup: Remove special case code for old poor man's NCP.
+      Allow changing fallback cipher from ccd files/client-connect
+      client-connect: Change cas_context from int to enum
+      client-connect: Move adding inotify watch into its own function
+      reformat multi_client_generate_tls_keys according to uncrustify
+      client-connect: Add CC_RET_DEFERRED and cope with deferred client-connect
+      Remove CAS_PARTIAL state
+      client-connect: Use inotify for the deferred client-connect status file
+      client-connect: Implement deferred connect support for plugin API v2
+      Drop support for OpenSSL 1.0.1
+      Require AEAD support in the crypto library
+      Remove key-method 1
+      Remove ENABLE_OCC #define
+      Implement tls-groups option to specify eliptic curves/groups
+      Avoid sending --cipher to clients not supporting NCP
+      Indicate that a client is in pull mode in IV_PROTO
+      Deprecate --inetd
+      Include utun device number in utun error messages
+      Simplify calling logic of check_connection_established_dowork
+      Avoid sending push request after receving push reply
+      Rename ncp-ciphers to data-ciphers
+      Add a note that ncp-ciphers is replaced by data-ciphers
+      client-connect: Add documentation for the deferred client connect feature
+      Rework NCP compability logic and drop BF-CBC support by default
+      Document different behaviour of dynamic cipher negotiation
+      Minor cleanup in push.c
+      Clean up a number of leftover C89 initialisations in ssl.c
+      Remove buf argument from link_socket_set_outgoing_addr
+      Remove a number of check/do_work wrapper calls from coarse_timers
+      Split pf_check_reload check and check timer in process_coarse_timers
+      Rename check_ping_restart_dowork to trigger_ping_timeout_signal
+      Eliminate check_fragment function
+      Eliminate check_incoming_control_channel wrapper function
+      Eliminate check_tls wrapper function
+      Merge check_coarse_timers and check_coarse_timers_dowork
+      Skip existing interfaces on opening the first available utun on macOS
+      Move parsing IV_PROTO to separate function
+      Remove S_OP_NORMAL key state.
+      Document comp-lzo no and compress being incompatible
+      Refactor/Reformat tls_pre_decrypt
+      Cleanup tls_pre_decrypt_lite and tls_pre_encrypt
+      Improve sections about older OpenVPN clients in cipher-negotiation.rst
+
+Bertrand Bonnefoy-Claudet (1):
+      Fix typo in error message: "optione" -> "option"
+
+Christian Ehrhardt (1):
+      systemd: extend CapabilityBoundingSet for auth_pam
+
+Christian Hesse (7):
+      man: fix formatting for alternative option
+      systemd: Use automake tools to install unit files
+      systemd: Do not race on RuntimeDirectory
+      systemd: Add more security feature for systemd units
+      Clean up plugin path handling
+      plugin: Remove GNUism in openvpn-plugin.h generation
+      fix typo in notification message
+
+Christopher Schenk (3):
+      Set the correct mtu on windows based systems
+      Log a note if someone wants to set a MTU below 1280 on IPv6
+      Unified success messages for setting mtu
+
+Conrad Hoffmann (2):
+      Use provided env vars in up/down script.
+      Document down-root plugin usage in client.down
+
+David Sommerseth (64):
+      docs: Further enhance the documentation related to SWEET32
+      man: Remove references to no longer present IV_RGI6 peer-info
+      build: Ensure Changes.rst is shipped and installed as a doc file
+      management: >REMOTE operation would overwrite ce change indicator
+      management: Remove a redundant #ifdef block
+      git: Merge .gitignore files into a single file
+      systemd: Move the READY=1 signalling to an earlier point
+      dev-tools: Simple tool which automates rebasing LZ4 compat library
+      dev-tools: lz4-rebaser tool carried a typo
+      plugin: Improve the handling of default plug-in directory
+      cleanup: Remove faulty env processing functions
+      auth-token: Ensure tokens are always wiped on de-auth
+      docs: Fixed man-page warnings discoverd by rpmlint
+      Make --cipher/--auth none more explicit on the risks
+      Require minimum OpenSSL 1.0.1
+      Fix broken ./configure on systems without openssl.pc
+      plugin: Fix documentation typo for type_mask
+      plugin: Export secure_memzero() to plug-ins
+      crypto: Enable SHA256 fingerprint checking in --verify-hash
+      copyright: Update GPLv2 license texts
+      dev-tools: Script generating the source releases in an automated fashion
+      auth-token with auth-nocache fix broke --disable-crypto builds
+      doc: The CRL processing is not a deprecated feature
+      cleanup: Move write_pid() to where it is being used
+      contrib: Remove keychain-mcd code
+      cleanup: Move init_random_seed() to where it is being used
+      Highlight deprecated features
+      Use consistent version references
+      docs: Replace all PolarSSL references to mbed TLS
+      systemd: Ensure systemd shuts down OpenVPN in a proper way
+      systemd: Enable systemd's auto-restart feature for server profiles
+      lz4: Move towards a newer LZ4 API
+      lz4: Fix confused version check
+      lz4: Fix broken builds when pkg-config is not present but system library is
+      Remove references to keychain-mcd in Changes.rst
+      lz4: Rebase compat-lz4 against upstream v1.7.5
+      systemd: Add and ship README.systemd
+      Update copyright to include 2018 plus company name change
+      man: Add .TQ groff support macro
+      man: Reword --management to prefer unix sockets over TCP
+      management: Warn if TCP port is used without password
+      plugin: Export base64 encode and decode functions
+      build: Fix build warnings related to get_random()
+      build: Fix another compile warning in console_systemd.c
+      cleanup: Remove RPM openvpn.spec build approach
+      docs: Update INSTALL
+      build: Package missing mock_msg.h
+      auth-token: Fix building with --disable-server
+      auth-token: Fix compiler complaints with --disable-management
+      Improve the comments related to auth-token-hmac patches
+      Documented all the argv related code with minor refactoring
+      build: Remove --disable-server from ./configure
+      options: Fix failing inline tls-auth/crypt with persist-key
+      options: Restore --tls-crypt-v2 inline file capability
+      doc/man: convert openvpn.8 to split-up .rst files
+      doc/man: Mark compression options as deprecated
+      doc/man: Adopt compression documentation
+      doc/man: Documentation for --bind-dev / VRFs on Linux
+      doc/man: Add misssing renegotiation.rst to Makefile.am
+      Remove --no-iv
+      doc/man: Do not install man *.rst files
+      travis: Fix make distcheck failure
+      Remove --ifconfig-pool-linear
+      Remove --client-cert-not-required
+
+Domagoj Pensa (2):
+      Fix linking issues on MinGW
+      Skip DNS address validation
+
+Emmanuel Deloget (20):
+      OpenSSL: check for the SSL reason, not the full error
+      OpenSSL: don't use direct access to the internal of X509_STORE_CTX
+      OpenSSL: don't use direct access to the internal of SSL_CTX
+      OpenSSL: don't use direct access to the internal of X509_STORE
+      OpenSSL: don't use direct access to the internal of X509_OBJECT
+      OpenSSL: don't use direct access to the internal of RSA_METHOD
+      OpenSSL: SSLeay symbols are no longer available in OpenSSL 1.1
+      OpenSSL: use EVP_CipherInit_ex() instead of EVP_CipherInit()
+      OpenSSL: don't use direct access to the internal of X509
+      OpenSSL: don't use direct access to the internal of EVP_PKEY
+      OpenSSL: don't use direct access to the internal of RSA
+      OpenSSL: don't use direct access to the internal of DSA
+      OpenSSL: force meth->name as non-const when we free() it
+      OpenSSL: don't use direct access to the internal of EVP_MD_CTX
+      OpenSSL: don't use direct access to the internal of EVP_CIPHER_CTX
+      OpenSSL: don't use direct access to the internal of HMAC_CTX
+      OpenSSL: remove pre-1.1 function from the OpenSSL compat interface
+      OpenSSL: remove EVP_CIPHER_CTX_new() from the compat layer
+      OpenSSL: remove EVP_CIPHER_CTX_free() from the compat layer
+      OpenSSL: check EVP_PKEY key types before returning the pkey
+
+Eric Thorpe (1):
+      Fix Building Using MSVC
+
+Fabian Knittel (7):
+      client-connect: Split multi_connection_established into separate functions
+      client-connect: Refactor multi_client_connect_source_ccd
+      client-connect: Move multi_client_connect_setenv into early_setup
+      client-connect: Refactor to use return values instead of modifying a passed-in flag
+      client-connect: Refactor client-connect handling to calling a bunch of hooks in a loop
+      client-connect: Add deferred support to the client-connect script handler
+      client-connect: Add deferred support to the client-connect v1 plugin handler
+
+Gert Doering (50):
+      Remove IV_RGI6=1 peer-info signalling.
+      Add openssl_compat.h to openvpn_SOURCES
+      Fix '--dev null'
+      Fix installation of IPv6 host route to VPN server when using iservice.
+      Make ENABLE_OCC no longer depend on !ENABLE_SMALL
+      Fix NCP behaviour on TLS reconnect.
+      Remove erroneous limitation on max number of args for --plugin
+      proxy.c refactoring: remove always-NULL gc parameter
+      Fix edge case with clients failing to set up cipher on empty PUSH_REPLY.
+      Fix potential 1-byte overread in TCP option parsing.
+      Fix remotely-triggerable ASSERT() on malformed IPv6 packet.
+      Update Changes.rst with relevant info for 2.4.3 release.
+      Remove warning on pushed tun-ipv6 option.
+      Fix removal of on-link prefix on windows with netsh
+      Fix potential double-free() in Interactive Service (CVE-2018-9336)
+      Add %d, %u and %lu tests to test_argv unit tests.
+      Extend push-remove to also handle 'ifconfig'.
+      Print lzo_init() return code in case of errors
+      Uncrustify sample-plugin sources according to code style
+      uncrustify openvpnserv/ sources
+      uncrustify openvpn/ sources
+      Add 'printing of port number' to mroute_addr_print_ex() for v4-mapped v6.
+      Stop complaining about IPv6 routes without gateway address.
+      Copy one byte less in strncpynt()
+      Remove cmocka submodule, rely on system-wide installation instead.
+      Increase listen() backlog queue to 32
+      repair tap mode on OpenSolaris/OpenIndiana
+      Fix IPv6 routes on tap interfaces on OpenSolaris/OpenIndiana
+      OpenSolaris/OpenIllumos: use /bin/bash if available for test scripts.
+      Force combinationation of --socks-proxy and --proto UDP to use IPv4.
+      Uncrustify the tests/unit_tests/ part of our tree.
+      Change client side of t_lpback.sh configs to use inline material.
+      Simplify pool size handling, fix possible array overrun on pool reading.
+      Change timestamps in file-based logging to ISO 8601 time format.
+      Depreciation warning for --topology net30 on servers with IPv4 pools.
+      Convert plugin/auth-pam.c from stderr logging to plugin_log().
+      Add c1ff8f247f91c88a2df5502eeedf42857f9a6831 (engine, pool, SSO) to .git-blame-ignore-revs
+      Linux: do not change --txqueuelen OS default if not configured.
+      Fix 'engine' unit test on FreeBSD (specifically 'not GNU make')
+      t_client.sh: correctly report all failed instances in summary
+      Remove --writepid file on program exit.
+      Handle connecting clients without NCP or OCC without crashing.
+      Add deferred authentication support to plugin-auth-pam
+      Separate handling of non-deferred return values for client-connect-scripts.
+      Repair --inetd
+      Fix sequence of events for async plugin v1 handler.
+      Abort client-connect handler loop after first handler sets 'disable'.
+      Add depreciation notice for --ncp-disable to protocol-options.rst
+      Changes.rst updates in preparation to 2.5_beta1
+      Preparing release 2.5_beta1
+
+Gert van Dijk (7):
+      Warn that DH config option is only meaningful in a tls-server context
+      Add generated openvpn.doxyfile to .gitignore
+      manpage: improve description of --status and --status-version
+      Add negotiated cipher to status file format 2 and 3
+      Minor reliability layer documentation fixes
+      Make second parameter to reliable_send_purge() const
+      Remove unneeded newline in debug message in reliable.c
+
+Gisle Vanem (2):
+      Crash in options.c
+      Wrong FILETYPE in .rc files
+
+Guido Vranken (6):
+      refactor my_strupr
+      Fix 2 memory leaks in proxy authentication routine
+      Fix memory leak in add_option() for option 'connection'
+      Ensure option array p[] is always NULL-terminated
+      Fix a null-pointer dereference in establish_http_proxy_passthru()
+      Prevent two kinds of stack buffer OOB reads and a crash for invalid input data
+
+Heiko Hund (3):
+      re-implement argv_printf_*()
+      argv: do fewer memory re-allocations
+      Add gc_arena to struct argv to save allocations
+
+Hilko Bengen (1):
+      Do not set pkcs11-helper 'safe fork mode'
+
+Hristo Venev (1):
+      Fix extract_x509_field_ssl for external objects, v2
+
+Ilya Shipitsin (18):
+      Resolve several travis-ci issues
+      github: Add PR template with contributor related information
+      travis-ci: add 'make distcheck' to test scenario, V2
+      travis-ci: remove unused files
+      v4, travis-ci: add 2 mingw "build only" configurations
+      travis-ci: added gcc and clang openssl-1.1.0 builds
+      travis-ci: update openssl to 1.0.2l, update mbedtls to 2.5.1
+      travis-ci: update pkcs11-helper to 1.22
+      travis-ci: add brew cache, remove ccache
+      travis-ci: modify openssl build script to support openssl-1.1.0
+      travis-ci: cleanup, refactor, upgrade ssl libraries
+      travis-ci: add "linux-ppc64le" to build matrix
+      travis-ci: change trusty image to xenial
+      travis-ci: update osx to xcode9.4 and modernize brew management
+      configure.ac: fix compile-time error in argv_testdriver
+      travis-ci: fix osx builds
+      travis-ci: update components versions
+      travis-ci: add arm64, s390x builds.
+
+James Bekkema (2):
+      Resolves small IV_GUI_VER typo in the documentation.
+      Adds support for setting the default IPv6 gateway for routes using the route-ipv6-gateway option.
+
+James Bottomley (7):
+      autoconf: Fix engine checks for openssl 1.1
+      openssl: add engine method for loading the key
+      crypto_openssl: add initialization to pick up local configuration
+      crypto_openssl: add include for openssl/conf.h
+      Add unit tests for engine keys
+      Fix make distcheck for new engine key unit test
+      engine-key tests: make check_engine_keys.sh work with --enable-small
+
+Jan Just Keijser (1):
+      Added support for DHCP option 119 (dns search suffix list) for Windows.
+
+Jeremie Courreges-Anglas (5):
+      Cast time_t to long long in order to print it.
+      Print time_t as long long and suseconds_t as long
+      Cast and print another suseconds_t as long
+      Use long long to format time_t-related environment variables
+      Fix build with LibreSSL
+
+Jeremy Evans (1):
+      Switch assertion failure to returning false
+
+Jonathan K. Bullard (1):
+      Clarify and expand management interface documentation
+
+Jonathan Tooker (1):
+      Fix various spelling mistakes
+
+Joost Rijneveld (1):
+      Make return code external tls key match docs
+
+Jérémie Courrèges-Anglas (2):
+      Fix an unaligned access on OpenBSD/sparc64
+      Missing include for socket-flags TCP_NODELAY on OpenBSD
+
+Kyle Evans (1):
+      tests/t_lpback.sh: Switch sed(1) to POSIX-compatible regex.
+
+Lev Stipakov (46):
+      win: support for Visual Studio 2017
+      Refactor NCP-negotiable options handling
+      init.c: refine functions names and description
+      openvpnserv: clarify return values type
+      crypto.h: remove unused function declaration
+      interactive.c: fix usage of potentially uninitialized variable
+      options.c: fix broken unary minus usage
+      Introduce openvpn_swprintf() with nul termination guarantee
+      Wrap openvpn_swprintf into Windows define
+      test_tls_crypt.c: fix global-buffer-overflow found by AddressSanitizer
+      crypto_openssl.c: fix heap-buffer-overflow found by AddressSanitizer
+      Fix various compiler warnings
+      Fix broken fragment/mssfix with NCP
+      crypto.c: fix Visual Studio build
+      tun.h: change tun_set() return value type to void
+      tun.h: remove TUN_PASS_BUFFER define
+      tapctl: add optional 'hardware id' parameter
+      vcxproj: add missing source files
+      push.c: fix Visual Studio build
+      Visual Studio: make it easier to build with VS
+      msvc: OpenSSL 1.1.x support
+      travis: add Visual Studio build
+      Visual Studio: upgrade project files to VS2019
+      wintun: add --windows-driver config option
+      wintun: implement opening wintun device
+      travis: bump MSVC to 2019
+      travis: bump clang version
+      wintun: ring buffers based I/O
+      wintun: interactive service support
+      wintun: set adapter properties via interactive service
+      wintun: clear adapter settings on tun close
+      tun.c: refactor open_tun() implementation
+      tun.c: do not add/remove on-link IPv4 route on tun open/close
+      options.c: do not force route delay when not using DHCP
+      configure.ac: simplify AC_CHECK_FUNCS statements
+      cryptoapi.c: fix run-time check failure in msvc debugger
+      interactive.c: remove unused function
+      tun.c: fix 'use after free' error
+      Fix building with --enable-async-push in FreeBSD
+      Fix broken async push with NCP is used
+      Fix illegal client float (CVE-2020-11810)
+      msvc: fix various level2 warnings
+      tap.c: fix adapter renaming
+      Improve Windows version detection with manifest
+      wintun: remove SYSTEM elevation hack
+      Fix compilation with --disable-lzo and --disable-lz4
+
+Matthias Andree (3):
+      Make openvpn-plugin.h self-contained again.
+      Merge Makefile.am's AUTOMAKE_OPTIONS into configure.ac's AM_INIT_AUTOMAKE.
+      Fix stack buffer overruns in NEXTADDR() macro:
+
+Maxim Plotnikov (1):
+      OpenSSL: Fix --crl-verify not loading multiple CRLs in one file
+
+Maximilian Wilhelm (1):
+      Add --bind-dev option.
+
+Michal Soltys (1):
+      man: correct the description of --capath and --crl-verify regarding CRLs
+
+Mykola Baibuz (1):
+      Fix typo in NTLM proxy debug message
+
+Olivier Wahrenberger (1):
+      Fix building with LibreSSL 2.5.1 by cleaning a hack.
+
+Richard Bonhomme (3):
+      man: Corrections to doc/openvpn.8
+      Ignore --pull-filter for --mode server
+      doc/man: Update --txqueuelen default setting (Now OS default)
+
+Richard van den Berg via Openvpn-devel (1):
+      Fix error message when using RHEL init script
+
+Rosen Penev (2):
+      Remove wrong poll.h include
+      openssl: Fix compilation without deprecated OpenSSL 1.1 APIs
+
+Samy Mahmoudi (1):
+      man: correct a --redirection-gateway option flag
+
+Santtu Lakkala (1):
+      Fix OpenSSL private key passphrase notices
+
+Selva Nair (55):
+      Fix push options digest update
+      Always release dhcp address in close_tun() on Windows.
+      Add a check for -Wl, --wrap support in linker
+      Fix user's group membership check in interactive service to work with domains
+      In auth-pam plugin clear the password after use
+      Pass correct buffer size to GetModuleFileNameW()
+      Check whether in pull_mode before warning about previous connection blocks
+      Avoid illegal memory access when malformed data is read from the pipe
+      Fix missing check for return value of malloc'd buffer
+      Return NULL if GetAdaptersInfo fails
+      Use RSA_meth_free instead of free
+      Bring cryptoapi.c upto speed with openssl 1.1
+      Add SSL_CTX_get_max_proto_version() not in openssl 1.0
+      TLS v1.2 support for cryptoapicert -- RSA only
+      Refactor ssl_openssl.c in prep for external EC key support
+      Refactor get_interface_metric to return metric and auto flag separately
+      Add management client version
+      Prompt for signature using '>PK_SIGN' if the client supports it
+      Allow external EC key through --management-external-key
+      Ensure strings read from registry are null-terminated
+      Make most registry values optional
+      Use lowest metric interface when multiple interfaces match a route
+      Move code to free cd to a function CAPI_DATA_free()
+      Disable external ec key support when building with libressl
+      Adapt to RegGetValue brokenness in Windows 7
+      Fix format spec errors in Windows builds
+      Move setting private key to a function in prep for EC support
+      Support EC certificates with cryptoapicert
+      Delete the IPv6 route to the "connected" network on tun close
+      Management: warn about password only when the option is in use
+      Avoid overflow in wakeup time computation
+      Replace M_DEBUG with D_LOW as the former is too verbose
+      Correct the declaration of handle in 'struct openvpn_plugin_args_open_return'
+      Parse static challenge response in auth-pam plugin
+      Bump version of openvpn plugin argument structs to 5
+      Accept empty password and/or response in auth-pam plugin
+      Pass the hash without the DigestInfo header to NCryptSignHash()
+      Move get system directory to a separate function
+      Enable dhcp on tap adapter using interactive service
+      Refactor sending commands to interactive service
+      Declare Windows version of openvpn_execve() before use
+      White-list pull-filter and script-security in interactive service
+      Move OpenSSL vs CNG signature digest type mapping to a function
+      Handle PSS padding in cryptoapicert
+      Better error message when script fails due to script-security setting
+      Correct the return value of cryptoapi RSA signature callbacks
+      Fix ACL_CHECK_ADD_COMPILE_FLAGS to work with clang
+      Swap the order of checks for validating interactive service user
+      Skip expired certificates in Windows certificate store
+      Allow unicode search string in --cryptoapicert option
+      Fix possibly uninitialized return value in GetOpenvpnSettings()
+      Fix possible access of uninitialized pipe handles
+      Move querying username/password from management to a function
+      When auth-user-pass file has no password query the management interface (if available).
+      Persist management-query-remote and proxy prompts
+
+Simon Matter (2):
+      Fix segfault when using crypto lib without AES-256-CTR or SHA256
+      Add per session pseudo-random jitter to --reneg-sec intervals
+
+Simon Rozman (67):
+      Local functions are not supported in MSVC. Bummer.
+      Mixing wide and regular strings in concatenations is not allowed in MSVC.
+      RtlIpv6AddressToStringW() and RtlIpv4AddressToStringW() require mstcpip.h
+      Simplify iphlpapi.dll API calls
+      Fix local #include to use quoted form
+      Document ">PASSWORD:Auth-Token" real-time message
+      Fix typo in "verb" command examples
+      Uniform swprintf() across MinGW and MSVC compilers
+      MSVC meta files added to .gitignore list
+      openvpnserv: Review MSVC down-casting warnings
+      openvpnserv: Add support for multi-instances
+      Document missing OpenVPN states
+      Add Interactive Service developer documentation
+      Change quoted to angled form when #including external .h files
+      Signed/unsigned warnings of MSVC resolved
+      Reference msvc-generate from compat to assure correct build order
+      msvc: Move common project settings to reusable property sheets
+      msvc: Unify Unicode/MultiByte string setting across all cfg|plat
+      Introduce tapctl.exe utility and openvpnmsica.dll MSI CA
+      Set output name to libopenvpnmsica.dll in MSVC builds too
+      Prevent __stdcall name mangling of MSVC
+      Define _WIN32_WINNT=_WIN32_WINNT_VISTA in MSVC
+      Add MSI custom action for reliable Windows 10 detection
+      Detect TAP interfaces with root-enumerated hardware ID
+      Change C++ to C comments
+      Make MSI custom action debug pop-up more informative
+      Delete TAP interface before the TAP driver is uninstalled
+      Add detection of active VPN connections for MSI packages
+      Add a MSI custom actions to close and relaunch OpenVPN GUI
+      Make DriverCertification MSI property public
+      Extend FindSystemInfo custom action to detect OpenVPNService state
+      Uncrustify tapctl and openvpnmsica
+      Strip _stdcall suffixes (@nn) for 32-bit builds
+      Detect missing TAP driver and bail out gracefully
+      Disambiguate thread local storage references from TLS
+      Add NULL checks
+      Add user manual and developer notes URL for tapctl.exe
+      Refactor OpenVPNService state detection code
+      Add developer notes URL for openvpnmsica.dll
+      Limit tapctl.exe and openvpnmsica.dll to TAP-Windows6 adapters only
+      msvc: Add vlan.c/h
+      tun.c: make Windows device lookup functions more general
+      tun.c: upgrade get_device_guid() to return the Windows driver type
+      tun.c: make wintun_register_ring_buffer() non-fatal on failures
+      wintun: register ring buffers when iterating adapters
+      wintun: add support for --dev-node
+      tun.c: reword the at_least_one_tap_win() error
+      wintun: stop sending TAP-Windows6 ioctls to NDIS device
+      wintun: refactor code to use enum driver type
+      tun.c: refactor driver detection and make it case-insensitive
+      tun.c: uncrustify
+      wintun: check for conflicting options
+      openvpnmsica: Remove required Windows driver certification detection
+      openvpnmsica: Fix TAPInterface.DisplayName field interpretation
+      tapctl: Update documentation
+      wintun: upgrade error message in case of ring registration failure
+      tun.c: reorder IPv6 ifconfig on Windows
+      tapctl: Add functions for enabling/disabling adapters
+      openvpnmsica: Revise MSI custom actions interop
+      openvpnmsica: Simplify static function names
+      openvpnmsica, tapctl: "interface" => "adapter"
+      openvpnmsica: "TAP" => "TUN/TAP"
+      openvpnmsica: Extend to support arbitrary HWID network adapters
+      openvpnmsica, tapctl: Revise default hardware ID management
+      openvpnmsica: Merge FindTUNTAPAdapters into FindSystemInfo
+      tapctl: Support multiple hardware IDs
+      tun.c: revise the IPv4 ifconfig flow on Windows
+
+Stefan Strogin (1):
+      Use correct ifdefs for LibreSSL support
+
+Steffan Karger (122):
+      Document that RSA_SIGN can also request TLS 1.2 signatures
+      man: encourage user to read on about --tls-crypt
+      Textual fixes for Changes.rst
+      Remove deprecated --no-iv option
+      More broadly enforce Allman style and braces-around-conditionals
+      Use SHA256 for the internal digest, instead of MD5
+      OpenSSL: 1.1 fallout - fix configure on old autoconf
+      Fix types in WIN32 socket_listen_accept()
+      Remove duplicate X509 env variables
+      Fix non-C99-compliant builds: don't use const size_t as array length
+      Deprecate --ns-cert-type
+      Be less picky about keyUsage extensions
+      cleanup: merge packet_id_alloc_outgoing() into packet_id_write()
+      Don't run packet_id unit tests for --disable-crypto builds
+      Fix Changes.rst layout
+      Fix memory leak in x509_verify_cert_ku()
+      mbedtls: correctly check return value in pkcs11_certificate_dn()
+      Restore pre-NCP frame parameters for new sessions
+      Always clear username/password from memory on error
+      Document tls-crypt security considerations in man page
+      Don't assert out on receiving too-large control packets (CVE-2017-7478)
+      Drop packets instead of assert out if packet id rolls over (CVE-2017-7479)
+      Log the negotiated (NCP) cipher
+      Avoid a 1 byte overcopy in x509_get_subject (ssl_verify_openssl.c)
+      Skip tls-crypt unit tests if required crypto mode not supported
+      openssl: fix overflow check for long --tls-cipher option
+      Add a DSA test key/cert pair to sample-keys
+      Fix mbedtls fingerprint calculation
+      mbedtls: fix --x509-track post-authentication remote DoS (CVE-2017-7522)
+      mbedtls: require C-string compatible types for --x509-username-field
+      Fix remote-triggerable memory leaks (CVE-2017-7521)
+      Restrict --x509-alt-username extension types
+      Fix potential double-free in --x509-alt-username (CVE-2017-7521)
+      Fix typo in extract_x509_extension() debug message
+      init_key_ctx: key and iv arguments can (now) be const
+      Move adjust_power_of_2() to integer.h
+      Undo cipher push in client options state if cipher is rejected
+      Remove strerror_ts()
+      Move openvpn_sleep() to manage.c
+      fixup: also change missed openvpn_sleep() occurrences
+      Always use default keysize for NCP'd ciphers
+      Move create_temp_file() out of #ifdef ENABLE_CRYPTO
+      sample-plugins: fix ASN1_STRING_to_UTF8 return value checks
+      Deprecate --keysize
+      Move run_up_down() to init.c
+      tls-crypt: introduce tls_crypt_kt()
+      crypto: create function to initialize encrypt and decrypt key
+      Add coverity static analysis to Travis CI config
+      tls-crypt: don't leak memory for incorrect tls-crypt messages
+      travis: reorder matrix to speed up build
+      Fix bounds check in read_key()
+      buffer_list_aggregate_separator(): add unit tests
+      doxygen: add make target and use relative paths
+      Simplify and inline clear_buf()
+      Add --tls-cert-profile option.
+      pf: clean up temporary files if plugin init fails
+      pf: reject client if PF plugin is configured, but init fails
+      Don't throw fatal errors from create_temp_file()
+      create_temp_file/gen_path: prevent memory leak if gc == NULL
+      Use P_DATA_V2 for server->client packets too
+      Fix memory leak in buffer unit tests
+      travis: use clang's -fsanitize=address to catch more bugs
+      Don't throw fatal errors from verify_cert_export_cert()
+      buffer_list_aggregate_separator(): update list size after aggregating
+      buffer_list_aggregate_separator(): don't exceed max_len
+      buffer_list_aggregate_separator(): prevent 0-byte malloc
+      Fix types around buffer_list_push(_data)
+      ssl_openssl: fix compiler warning by removing getbio() wrapper
+      Fix --tls-version-min and --tls-version-max for OpenSSL 1.1+
+      Add support for TLS 1.3 in --tls-version-{min, max}
+      tls_ctx_set_tls_versions: move verify_flags to where it is used
+      Plug memory leak if push is interrupted
+      Log pre-handshake packet drops using D_MULTI_DROPPED
+      Enable stricter compiler warnings by default
+      reliable: remove reliable_unique_retry()
+      Get rid of ax_check_compile_flag.m4
+      mbedtls: don't use API deprecated in mbed 2.7
+      Warn if tls-version-max < tls-version-min
+      Check for more data in control channel
+      Move env helper functions into their own module/file
+      man: add security considerations to --compress section
+      openssl: don't use deprecated SSLEAY/SSLeay symbols
+      openssl: add missing #include statements
+      Move file-related functions from misc.c to platform.c
+      Move execve/run_script helper functions to run_command.c
+      Add crypto_pem_{encode,decode}()
+      Introduce buffer_write_file()
+      mbedtls: print warning if random personalisation fails
+      Fix memory leak after sighup
+      Remove unused void_ptr_hash_function and void_ptr_compare_function
+      Do not load certificate from tls_ctx_use_external_private_key()
+      mbedtls: make external signing code generic
+      mbedtls: remove dependency on mbedtls pkcs11 module
+      Fix memory leak in SSL_CTX_use_certificate
+      travis: add OpenSSL 1.1 Windows build
+      Fix use-after-free in tls_ctx_use_management_external_key
+      Simplify --genkey option syntax
+      Don't print OCC warnings about 'key-method', 'keydir' and 'tls-auth'
+      Add support for CHACHA20-POLY1305 in the data channel
+      List ChaCha20-Poly1305 as stream cipher
+      mbedtls: don't print unsupported ciphers in insecure cipher list
+      Fix mbedtls unit tests
+      buffer_list_aggregate_separator(): simplify code
+      tls-crypt-v2: add specification to doc/
+      tls-crypt-v2: generate tls-crypt-v2 keys
+      tls-crypt-v2: add unwrap_client_key
+      tls-crypt-v2: add P_CONTROL_HARD_RESET_CLIENT_V3 opcode
+      tls-crypt-v2: implement tls-crypt-v2 handshake
+      tls-crypt-v2: add script hook to verify metadata
+      tls-crypt-v2: clarify --tls-crypt-v2-genkey man page section
+      tls-crypt-v2: fix client reconnect bug
+      Remove deprecated --compat-x509-names and --no-name-remapping
+      Extend tls-crypt-v2 unit tests
+      Fix tls-auth/crypt in connection blocks with --persist-key
+      cmocka: use relative paths
+      tests: remove dependency on base64
+      configure.ac: add lzo CFLAGS/LIBS to the test flags
+      Update sample configs to use modern cipher, remove static key examples
+      mbedtls: add RFC 5705 keying material exporter support
+      Move keying material exporter check from syshead.h to configure.ac
+      Make openvpn --version exit with exit code 0
+      Gently push users towards --data-ciphers in --show-ciphers output
+
+Steven McDonald (1):
+      Fix gateway detection with OpenBSD routing domains
+
+Szilárd Pfeiffer (1):
+      OpenSSL: Always set SSL_OP_CIPHER_SERVER_PREFERENCE flag
+
+Thomas Quinot (1):
+      Fix documentation of tls-verify script argument
+
+Thomas Veerman via Openvpn-devel (1):
+      Fix socks_proxy_port pointing to invalid data
+
+Tom van Leeuwen (1):
+      mbedTLS: Make sure TLS session survives move
+
+ValdikSS (1):
+      Set a low interface metric for tap adapter when block-outside-dns is in use
+
+Vladislav Grishenko (1):
+      Log serial number of revoked certificate
+
+WGH (1):
+      docs: Add reference to X509_LOOKUP_hash_dir(3)
+
+hashiz (1):
+      Fix '--bind ipv6only'
+
+tincanteksup (1):
+      Correct error message for --tls-crypt-v2-genkey client
+
 
 2016.12.16 -- Version 2.4_rc2
 David Sommerseth (9):
