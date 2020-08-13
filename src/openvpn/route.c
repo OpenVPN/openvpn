@@ -3429,7 +3429,7 @@ struct rtmsg {
 #if defined(TARGET_SOLARIS)
 #define NEXTADDR(w, u) \
     if (rtm_addrs & (w)) { \
-        l = ROUNDUP(sizeof(u)); memmove(cp, &(u), l); cp += l; \
+        l = sizeof(u); memmove(cp, &(u), l); cp += ROUNDUP(l); \
     }
 
 #define ADVANCE(x, n) (x += ROUNDUP(sizeof(struct sockaddr_in)))
