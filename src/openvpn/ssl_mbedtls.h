@@ -82,6 +82,15 @@ struct external_context {
     void *sign_ctx;
 };
 
+/** struct to cache TLS secrets for keying material exporter (RFC 5705).
+ * The constants (64 and 48) are inherent to TLS version and
+ * the whole keying material export will likely change when they change */
+struct tls_key_cache {
+    unsigned char client_server_random[64];
+    mbedtls_tls_prf_types tls_prf_type;
+    unsigned char master_secret[48];
+};
+
 /**
  * Structure that wraps the TLS context. Contents differ depending on the
  * SSL library used.
@@ -114,8 +123,7 @@ struct key_state_ssl {
     mbedtls_ssl_context *ctx;           /**< mbedTLS connection context */
     bio_ctx *bio_ctx;
 
-    /** Keying material exporter cache (RFC 5705). */
-    uint8_t *exported_key_material;
+    struct tls_key_cache tls_key_cache;
 
 };
 

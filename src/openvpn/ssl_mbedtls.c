@@ -206,51 +206,54 @@ mbedtls_ssl_export_keys_cb(void *p_expkey, const unsigned char *ms,
 {
     struct tls_session *session = p_expkey;
     struct key_state_ssl *ks_ssl = &session->key[KS_PRIMARY].ks_ssl;
-    unsigned char client_server_random[64];
+    struct tls_key_cache *cache = &ks_ssl->tls_key_cache;
 
-    ks_ssl->exported_key_material = gc_malloc(session->opt->ekm_size,
-                                              true, NULL);
+    static_assert(sizeof(ks_ssl->ctx->session->master)
+                    == sizeof(cache->master_secret), "master size mismatch");
 
-    memcpy(client_server_random, client_random, 32);
-    memcpy(client_server_random + 32, server_random, 32);
+    memcpy(cache->client_server_random, client_random, 32);
+    memcpy(cache->client_server_random + 32, server_random, 32);
+    memcpy(cache->master_secret, ms, sizeof(cache->master_secret));
+    cache->tls_prf_type = tls_prf_type;
 
-    const size_t ms_len = sizeof(ks_ssl->ctx->session->master);
-    int ret = mbedtls_ssl_tls_prf(tls_prf_type, ms, ms_len,
-                                  session->opt->ekm_label, client_server_random,
-                                  sizeof(client_server_random), ks_ssl->exported_key_material,
-                                  session->opt->ekm_size);
+    return true;
+}
 
-    if (!mbed_ok(ret))
+unsigned char *
+key_state_export_keying_material(struct tls_session *session,
+                                 const char* label, size_t label_size,
+                                 size_t ekm_size,
+                                 struct gc_arena *gc)
+{
+    ASSERT(strlen(label) == label_size);
+
+    struct tls_key_cache *cache = &session->key[KS_PRIMARY].ks_ssl.tls_key_cache;
+
+    /* If the type is NONE, we either have no cached secrets or
+     * there is no PRF, in both cases we cannot generate key material */
+    if (cache->tls_prf_type == MBEDTLS_SSL_TLS_PRF_NONE)
     {
-        secure_memzero(ks_ssl->exported_key_material, session->opt->ekm_size);
+        return NULL;
     }
 
-    secure_memzero(client_server_random, sizeof(client_server_random));
+    unsigned char *ekm = (unsigned char *) gc_malloc(ekm_size, true, gc);
+    int ret = mbedtls_ssl_tls_prf(cache->tls_prf_type, cache->master_secret,
+                                  sizeof(cache->master_secret),
+                                  label, cache->client_server_random,
+                                  sizeof(cache->client_server_random),
+                                  ekm, ekm_size);
 
-    return ret;
+    if (mbed_ok(ret))
+    {
+        return ekm;
+    }
+    else
+    {
+        secure_memzero(ekm, session->opt->ekm_size);
+        return  NULL;
+    }
 }
 #endif /* HAVE_EXPORT_KEYING_MATERIAL */
-
-void
-key_state_export_keying_material(struct key_state_ssl *ssl,
-                                 struct tls_session *session)
-{
-    if (ssl->exported_key_material)
-    {
-        unsigned int size = session->opt->ekm_size;
-        struct gc_arena gc = gc_new();
-        unsigned int len = (size * 2) + 2;
-
-        const char *key = format_hex_ex(ssl->exported_key_material,
-                                        size, len, 0, NULL, &gc);
-        setenv_str(session->opt->es, "exported_keying_material", key);
-
-        dmsg(D_TLS_DEBUG_MED, "%s: exported keying material: %s",
-             __func__, key);
-        gc_free(&gc);
-    }
-}
-
 
 bool
 tls_ctx_set_options(struct tls_root_ctx *ctx, unsigned int ssl_flags)
@@ -1178,7 +1181,7 @@ key_state_ssl_free(struct key_state_ssl *ks_ssl)
 {
     if (ks_ssl)
     {
-        free(ks_ssl->exported_key_material);
+        CLEAR(ks_ssl->tls_key_cache);
 
         if (ks_ssl->ctx)
         {

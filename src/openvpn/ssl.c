@@ -2412,6 +2412,40 @@ error:
     return false;
 }
 
+static void
+export_user_keying_material(struct key_state_ssl *ssl,
+                            struct tls_session *session)
+{
+    if (session->opt->ekm_size > 0)
+    {
+        unsigned int size = session->opt->ekm_size;
+        struct gc_arena gc = gc_new();
+
+        unsigned char *ekm;
+        if ((ekm = key_state_export_keying_material(session,
+                                                    session->opt->ekm_label,
+                                                    session->opt->ekm_label_size,
+                                                    session->opt->ekm_size,
+                                                    &gc)))
+        {
+            unsigned int len = (size * 2) + 2;
+
+            const char *key = format_hex_ex(ekm, size, len, 0, NULL, &gc);
+            setenv_str(session->opt->es, "exported_keying_material", key);
+
+            dmsg(D_TLS_DEBUG_MED, "%s: exported keying material: %s",
+                 __func__, key);
+            secure_memzero(ekm, size);
+        }
+        else
+        {
+            msg(M_WARN, "WARNING: Export keying material failed!");
+            setenv_del(session->opt->es, "exported_keying_material");
+        }
+        gc_free(&gc);
+    }
+}
+
 /**
  * Handle reading key data, peer-info, username/password, OCC
  * from the TLS control channel (cleartext).
@@ -2541,7 +2575,7 @@ key_method_2_read(struct buffer *buf, struct tls_multi *multi, struct tls_sessio
     if ((ks->authenticated > KS_AUTH_FALSE)
         && plugin_defined(session->opt->plugins, OPENVPN_PLUGIN_TLS_FINAL))
     {
-        key_state_export_keying_material(&ks->ks_ssl, session);
+        export_user_keying_material(&ks->ks_ssl, session);
 
         if (plugin_call(session->opt->plugins, OPENVPN_PLUGIN_TLS_FINAL, NULL, NULL, session->opt->es) != OPENVPN_PLUGIN_FUNC_SUCCESS)
         {
