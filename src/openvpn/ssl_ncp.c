@@ -296,13 +296,14 @@ check_pull_client_ncp(struct context *c, const int found)
     }
     /* If the server did not push a --cipher, we will switch to the
      * remote cipher if it is in our ncp-ciphers list */
-    bool useremotecipher = tls_poor_mans_ncp(&c->options,
-                                             c->c2.tls_multi->remote_ciphername);
-
+    if(tls_poor_mans_ncp(&c->options, c->c2.tls_multi->remote_ciphername))
+    {
+        return true;
+    }
 
     /* We could not figure out the peer's cipher but we have fallback
      * enabled */
-    if (!useremotecipher && c->options.enable_ncp_fallback)
+    if (!c->c2.tls_multi->remote_ciphername && c->options.enable_ncp_fallback)
     {
         return true;
     }
