@@ -38,7 +38,7 @@ options to avoid this behaviour.
 OpenVPN 3 clients
 -----------------
 Clients based on the OpenVPN 3.x library (https://github.com/openvpn/openvpn3/)
-do not have a configurable ``--ncp-ciphers`` or ``--data-cipher`` option. Instead
+do not have a configurable ``--ncp-ciphers`` or ``--data-ciphers`` option. Instead
 these clients will announce support for all their supported AEAD ciphers
 (`AES-256-GCM`, `AES-128-GCM` and in newer versions also `Chacha20-Poly1305`).
 
@@ -90,7 +90,7 @@ version. The default was never changed to ensure backwards compatibility.
 In OpenVPN 2.5 this behaviour has now been changed so that if the ``--cipher``
 is not explicitly set it does not allow the weak ``BF-CBC`` cipher any more
 and needs to explicitly added as ``--cipher BFC-CBC`` or added to
-``-data-ciphers``.
+``--data-ciphers``.
 
 We strongly recommend to switching away from BF-CBC to a
 more secure cipher as soon as possible instead.
