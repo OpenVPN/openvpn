@@ -34,7 +34,7 @@ Improved Data channel cipher negotiation
 Removal of BF-CBC support in default configuration:
     By default OpenVPN 2.5 will only accept AES-256-GCM and AES-128-GCM as
     data ciphers. OpenVPN 2.4 allows AES-256-GCM,AES-128-GCM and BF-CBC when
-    no --cipher and --ncp-cipher options are present. Accepting BF-CBC can be
+    no --cipher and --ncp-ciphers options are present. Accepting BF-CBC can be
     enabled by adding
 
         data-ciphers AES-256-GCM:AES-128-GCM:BF-CBC
@@ -101,7 +101,7 @@ Linux VRF support
 TLS 1.3 support
     TLS 1.3 support has been added to OpenVPN.  Currently, this requires
     OpenSSL 1.1.1+.
-    The options ``--tls-cipher-suites`` and ``--tls-groups`` have been
+    The options ``--tls-ciphersuites`` and ``--tls-groups`` have been
     added to fine tune TLS protocol options.  Most of the improvements
     were also backported to OpenVPN 2.4 as part of the maintainance
     releases.
@@ -112,7 +112,7 @@ Support setting DHCP search domain
     wintun support yet).  Other platforms need to support this via ``--up``
     script (Linux) or GUI (OSX/Tunnelblick).
 
-per-client changing of ``--data-cipher`` or ``data-ciphers-fallback``
+per-client changing of ``--data-ciphers`` or ``data-ciphers-fallback``
     from client-connect script/dir (NOTE: this only changes preference of
     ciphers for NCP, but can not override what the client announces as
     "willing to accept")
@@ -213,9 +213,9 @@ User-visible Changes
   the client configuration almost immediately as result of the
   faster connection setup feature.
 
-- ``--compression`` is nowadays considered risky, because attacks exist
+- ``--compress`` is nowadays considered risky, because attacks exist
   leveraging compression-inside-crypto to reveal plaintext (VORACLE).  So
-  by default, ``--compression xxx`` will now accept incoming compressed
+  by default, ``--compress xxx`` will now accept incoming compressed
   packets (for compatibility with peers that have not been upgraded yet),
   but will not use compression outgoing packets.  This can be controlled with
   the new option ``--allow-compression yes|no|asym``.
