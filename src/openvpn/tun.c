@@ -6158,12 +6158,32 @@ wintun_register_ring_buffer(struct tuntap *tt, const char *device_guid)
     }
     else
     {
-        msg(M_FATAL, "ERROR:  Wintun requires SYSTEM privileges and therefore "
-                     "should be used with interactive service. If you want to "
-                     "use openvpn from command line, you need to do SYSTEM "
-                     "elevation yourself (for example with psexec).");
-    }
+        if (!register_ring_buffers(tt->hand,
+                                   tt->wintun_send_ring,
+                                   tt->wintun_receive_ring,
+                                   tt->rw_handle.read,
+                                   tt->rw_handle.write))
+        {
+            switch (GetLastError())
+            {
+                case ERROR_ACCESS_DENIED:
+                    msg(M_FATAL, "ERROR:  Wintun requires SYSTEM privileges and therefore "
+                                 "should be used with interactive service. If you want to "
+                                 "use openvpn from command line, you need to do SYSTEM "
+                                 "elevation yourself (for example with psexec).");
+                    break;
 
+                case ERROR_ALREADY_INITIALIZED:
+                    msg(M_NONFATAL, "Adapter %s is already in use", device_guid);
+                    break;
+
+                default:
+                    msg(M_NONFATAL | M_ERRNO, "Failed to register ring buffers");
+            }
+            ret = false;
+        }
+
+    }
     return ret;
 }
 
