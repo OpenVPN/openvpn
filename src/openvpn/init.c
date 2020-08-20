@@ -312,7 +312,7 @@ management_callback_send_cc_message(void *arg,
                                     const char *parameters)
 {
     struct context *c = (struct context *) arg;
-    size_t len = strlen(command) + 1 + sizeof(parameters) + 1;
+    size_t len = strlen(command) + 1 + strlen(parameters) + 1;
     if (len > PUSH_BUNDLE_SIZE)
     {
         return false;
