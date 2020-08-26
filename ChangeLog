@@ -1,6 +1,29 @@
 OpenVPN Change Log
 Copyright (C) 2002-2020 OpenVPN Inc <sales@openvpn.net>
 
+2020.08.26 -- Version 2.5_beta2
+
+Arne Schwabe (1):
+      Fix client's poor man NCP fallback
+
+Eric Thorpe (1):
+      Fixes a bug in management_callback_send_cc_message, should be strlen instead of sizeof
+
+Gert Doering (2):
+      Fix stack overflow in OpenSolaris NEXTADDR()
+      Workaround FreeBSD 12+ race condition on tun/tap open with IPv6.
+
+Lev Stipakov (1):
+      tun.c: enable using wintun driver under SYSTEM
+
+Magnus Kroken (2):
+      doc: fix typos in cipher-negotiation.rst
+      Changes.rst: fix mistyped option names
+
+Selva Nair (1):
+      Improve the documentation for --dhcp-option
+
+
 2020.08.12 -- Version 2.5_beta1
 
 Adam Ciarcin?ski (1):
