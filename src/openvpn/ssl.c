@@ -2311,7 +2311,17 @@ push_peer_info(struct buffer *buf, struct tls_session *session)
         if (session->opt->ncp_enabled
             && (session->opt->mode == MODE_SERVER || session->opt->pull))
         {
+            /* We keep announcing IV_NCP=2 in OpenVPN 2.4 even though it is
+             * technically wrong to ensure not to break 2.4 setups on a
+             * minor release */
             buf_printf(&out, "IV_NCP=2\n");
+            buf_printf(&out, "IV_CIPHERS=%s", session->opt->config_ncp_ciphers);
+            if (!tls_item_in_cipher_list(session->opt->config_ciphername,
+                                         session->opt->config_ncp_ciphers))
+            {
+                buf_printf(&out, ":%s", session->opt->config_ciphername);
+            }
+            buf_printf(&out, "\n");
         }
 
         /* push compression status */
