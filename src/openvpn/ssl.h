@@ -527,6 +527,29 @@ bool tls_check_ncp_cipher_list(const char *list);
  */
 bool tls_item_in_cipher_list(const char *item, const char *list);
 
+/**
+ * Check whether the ciphers in the supplied list are supported.
+ *
+ * @param list          Colon-separated list of ciphers
+ * @parms gc            gc_arena to allocate the returned string
+ *
+ * @returns             colon separated string of normalised (via
+ *                      translate_cipher_name_from_openvpn) and
+ *                      zero terminated string iff all ciphers
+ *                      in list are supported and the total length
+ *                      is short than MAX_NCP_CIPHERS_LENGTH. NULL
+ *                      otherwise.
+ */
+char *
+mutate_ncp_cipher_list(const char *list, struct gc_arena *gc);
+
+/**
+ * The maximum length of a ncp-cipher string that is accepted.
+ *
+ * Since this list needs to be pushed as IV_CIPHERS, we are conservative
+ * about its length.
+ */
+#define MAX_NCP_CIPHERS_LENGTH 127
 
 /*
  * inline functions

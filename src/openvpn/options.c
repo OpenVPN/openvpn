@@ -2982,6 +2982,15 @@ options_postprocess_mutate(struct options *o)
 
     options_postprocess_mutate_invariant(o);
 
+    if (o->ncp_enabled)
+    {
+        o->ncp_ciphers = mutate_ncp_cipher_list(o->ncp_ciphers, &o->gc);
+        if (o->ncp_ciphers == NULL)
+        {
+            msg(M_USAGE, "NCP cipher list contains unsupported ciphers or is too long.");
+        }
+    }
+
     if (o->remote_list && !o->connection_list)
     {
         /*
