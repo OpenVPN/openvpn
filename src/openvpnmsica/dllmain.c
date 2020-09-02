@@ -193,6 +193,6 @@ x_msg_va(const unsigned int flags, const char *format, va_list arglist)
         }
     }
 
-    MsiProcessMessage(s->hInstall, INSTALLMESSAGE_ERROR, hRecordProg);
+    MsiProcessMessage(s->hInstall, (flags & M_WARN) ? INSTALLMESSAGE_INFO : INSTALLMESSAGE_ERROR, hRecordProg);
     MsiCloseHandle(hRecordProg);
 }

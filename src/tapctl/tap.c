@@ -1063,9 +1063,12 @@ ExecCommand(const WCHAR* cmdline)
 DWORD
 tap_set_adapter_name(
     _In_ LPCGUID pguidAdapter,
-    _In_ LPCTSTR szName)
+    _In_ LPCTSTR szName,
+    _In_ BOOL bSilent)
 {
     DWORD dwResult;
+    int msg_flag = bSilent ? M_WARN : M_NONFATAL;
+    msg_flag |= M_ERRNO;
 
     if (pguidAdapter == NULL || szName == NULL)
     {
@@ -1099,7 +1102,7 @@ tap_set_adapter_name(
     if (dwResult != ERROR_SUCCESS)
     {
         SetLastError(dwResult); /* MSDN does not mention RegOpenKeyEx() to set GetLastError(). But we do have an error code. Set last error manually. */
-        msg(M_NONFATAL | M_ERRNO, "%s: RegOpenKeyEx(HKLM, \"%" PRIsLPTSTR "\") failed", __FUNCTION__, szRegKey);
+        msg(msg_flag, "%s: RegOpenKeyEx(HKLM, \"%" PRIsLPTSTR "\") failed", __FUNCTION__, szRegKey);
         goto cleanup_szAdapterId;
     }
 
@@ -1108,7 +1111,7 @@ tap_set_adapter_name(
     if (dwResult != ERROR_SUCCESS)
     {
         SetLastError(dwResult);
-        msg(M_NONFATAL | M_ERRNO, "%s: Error reading adapter name", __FUNCTION__);
+        msg(msg_flag, "%s: Error reading adapter name", __FUNCTION__);
         goto cleanup_hKey;
     }
 
@@ -1126,7 +1129,7 @@ tap_set_adapter_name(
     if (dwResult != ERROR_SUCCESS)
     {
         SetLastError(dwResult);
-        msg(M_NONFATAL | M_ERRNO, "%s: Error renaming adapter", __FUNCTION__);
+        msg(msg_flag, "%s: Error renaming adapter", __FUNCTION__);
         goto cleanup_hKey;
     }
 
