@@ -237,7 +237,7 @@ _tmain(int argc, LPCTSTR argv[])
             }
 
             /* Rename the adapter. */
-            dwResult = tap_set_adapter_name(&guidAdapter, szName);
+            dwResult = tap_set_adapter_name(&guidAdapter, szName, FALSE);
             if (dwResult != ERROR_SUCCESS)
             {
                 StringFromIID((REFIID)&guidAdapter, &szAdapterId);
