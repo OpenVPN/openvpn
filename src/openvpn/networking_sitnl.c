@@ -345,6 +345,13 @@ sitnl_send(struct nlmsghdr *payload, pid_t peer, unsigned int groups,
  *               continue;
  *           }
  */
+
+            if (h->nlmsg_type == NLMSG_DONE)
+            {
+                ret = 0;
+                goto out;
+            }
+
             if (h->nlmsg_type == NLMSG_ERROR)
             {
                 err = (struct nlmsgerr *)NLMSG_DATA(h);
@@ -360,7 +367,11 @@ sitnl_send(struct nlmsghdr *payload, pid_t peer, unsigned int groups,
                         ret = 0;
                         if (cb)
                         {
-                            ret = cb(h, arg_cb);
+                            int r = cb(h, arg_cb);
+                            if (r <= 0)
+                            {
+                                ret = r;
+                            }
                         }
                     }
                     else
@@ -375,8 +386,12 @@ sitnl_send(struct nlmsghdr *payload, pid_t peer, unsigned int groups,
 
             if (cb)
             {
-                ret = cb(h, arg_cb);
-                goto out;
+                int r = cb(h, arg_cb);
+                if (r <= 0)
+                {
+                    ret = r;
+                    goto out;
+                }
             }
             else
             {
@@ -410,6 +425,7 @@ typedef struct {
     int addr_size;
     inet_address_t gw;
     char iface[IFNAMSIZ];
+    bool default_only;
 } route_res_t;
 
 static int
@@ -420,6 +436,12 @@ sitnl_route_save(struct nlmsghdr *n, void *arg)
     struct rtattr *rta = RTM_RTA(r);
     int len = n->nlmsg_len - NLMSG_LENGTH(sizeof(*r));
     unsigned int ifindex = 0;
+
+    /* filter-out non-zero dst prefixes */
+    if (res->default_only && r->rtm_dst_len != 0)
+    {
+        return 1;
+    }
 
     while (RTA_OK(rta, len))
     {
@@ -477,11 +499,25 @@ sitnl_route_best_gw(sa_family_t af_family, const inet_address_t *dst,
     {
         case AF_INET:
             res.addr_size = sizeof(in_addr_t);
-            req.n.nlmsg_flags |= NLM_F_DUMP;
+            /*
+             * kernel can't return 0.0.0.0/8 host route, dump all
+             * the routes and filter for 0.0.0.0/0 in cb()
+             */
+            if (!dst || !dst->ipv4)
+            {
+                req.n.nlmsg_flags |= NLM_F_DUMP;
+                res.default_only = true;
+            }
+            else
+            {
+                req.r.rtm_dst_len = 32;
+            }
             break;
 
         case AF_INET6:
             res.addr_size = sizeof(struct in6_addr);
+            /* kernel can return ::/128 host route */
+            req.r.rtm_dst_len = 128;
             break;
 
         default:
