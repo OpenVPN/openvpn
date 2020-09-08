@@ -1141,8 +1141,8 @@ create_socket(struct link_socket *sock, struct addrinfo *addr)
 #if defined(TARGET_LINUX)
     if (sock->bind_dev)
     {
-        msg (M_INFO, "Using bind-dev %s", sock->bind_dev);
-        if (setsockopt (sock->sd, SOL_SOCKET, SO_BINDTODEVICE, sock->bind_dev, strlen (sock->bind_dev) + 1) != 0)
+        msg(M_INFO, "Using bind-dev %s", sock->bind_dev);
+        if (setsockopt(sock->sd, SOL_SOCKET, SO_BINDTODEVICE, sock->bind_dev, strlen(sock->bind_dev) + 1) != 0)
         {
             msg(M_WARN|M_ERRNO, "WARN: setsockopt SO_BINDTODEVICE=%s failed", sock->bind_dev);
         }
@@ -2030,8 +2030,14 @@ phase2_inetd(struct link_socket *sock, const struct frame *frame,
             }
             else
             {
-                msg(M_WARN, "inetd(%s): getsockname(%d) failed, using AF_INET",
+                int saved_errno = errno;
+                msg(M_WARN|M_ERRNO, "inetd(%s): getsockname(%d) failed, using AF_INET",
                     proto2ascii(sock->info.proto, sock->info.af, false), (int)sock->sd);
+                /* if not called with a socket on stdin, --inetd cannot work */
+                if (saved_errno == ENOTSOCK)
+                {
+                    msg(M_FATAL, "ERROR: socket required for --inetd operation");
+                }
             }
         }
 #else  /* ifdef HAVE_GETSOCKNAME */
@@ -2047,7 +2053,6 @@ phase2_inetd(struct link_socket *sock, const struct frame *frame,
                                  false,
                                  sock->inetd == INETD_NOWAIT,
                                  signal_received);
-
     }
     ASSERT(!remote_changed);
 }
