@@ -60,8 +60,8 @@ that is part of your local subnet for either of the tunnel endpoints,
 you will get a weird feedback loop.
 
 
-Example 1: A simple tunnel without security
--------------------------------------------
+Example 1: A simple tunnel without security (not recommended)
+-------------------------------------------------------------
 
 On bob:
 ::
@@ -92,31 +92,41 @@ The ``--verb 9`` option will produce verbose output, similar to the
 quietly.
 
 
-Example 2: A tunnel with static-key security (i.e. using a pre-shared secret)
------------------------------------------------------------------------------
+Example 2: A tunnel with self-signed certificates and fingerprint
+-----------------------------------------------------------------
 
-First build a static key on bob.
+First build a self-signed certificate on bob and display its fingerprint.
 ::
 
-   openvpn --genkey --secret key
+   openssl req -x509 -newkey ec:<(openssl ecparam -name secp384r1) -keyout bob.pem -out bob.pem -nodes -sha256 -days 3650 -subj '/CN=bob'
+   openssl x509 -noout -sha256 -fingerprint -in bob.pem
 
-This command will build a key file called ``key`` (in ascii format). Now
-copy ``key`` to ``alice.example.com`` over a secure medium such as by using
-the ``scp``\(1) program.
+and the same on alice:
+::
+
+   openssl req -x509 -newkey ec:<(openssl ecparam -name secp384r1) -keyout alice.pem -out alice.pem -nodes -sha256 -days 3650 -subj '/CN=alice'
+   openssl x509 -noout -sha256 -fingerprint -in alice.pem
+
+
+These commands will build a text file called ``bob.pem`` or ``alice.pem`` (in ascii format)
+that contain both self-signed certificate and key and show the fingerprint of the certificates.
+Transfer the fingerprints  over a secure medium such as by using
+the ``scp``\(1) or ``ssh``\(1) program.
 
 On bob:
 ::
 
-   openvpn --remote alice.example.com --dev tun1  \
-            --ifconfig 10.4.0.1 10.4.0.2 --verb 5 \
-            --secret key
+   openvpn --ifconfig 10.4.0.1 10.4.0.2 --tls-server --dev tun --dh none \
+           --cert bob.pem --key bob.pem --cipher AES-256-GCM \
+           --peer-fingerprint "$fingerprint_of_alices_cert"
 
 On alice:
 ::
 
-   openvpn --remote bob.example.com --dev tun1   \
-           --ifconfig 10.4.0.2 10.4.0.1 --verb 5 \
-           --secret key
+   openvpn --remote bob.example.com --tls-client --dev tun1   \
+           --ifconfig 10.4.0.2 10.4.0.1 --cipher AES-256-GCM  \
+           --cert alice.pem --key alice.pem
+           --peer-fingerprint "$fingerprint_of_bobs_cert"
 
 Now verify the tunnel is working by pinging across the tunnel.
 
@@ -130,9 +140,11 @@ On alice:
 
    ping 10.4.0.1
 
+Note: This example use a elliptic curve (`secp384`), which allows
+``--dh`` to be set to ``none``.
 
-Example 3: A tunnel with full TLS-based security
-------------------------------------------------
+Example 3: A tunnel with full PKI and TLS-based security
+--------------------------------------------------------
 
 For this test, we will designate ``bob`` as the TLS client and ``alice``
 as the TLS server.

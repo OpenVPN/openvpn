@@ -612,6 +612,10 @@ If the option is inlined, ``algo`` is always :code:`SHA256`.
     11:22:33:44:55:66:77:88:99:aa:bb:cc:dd:ee:ff:00:11:22:33:44:55:66:77:88:99:aa:bb:cc:dd:ee:ff:00
     </peer-fingerprint>
 
+  When the ``--peer-fingerprint`` option is used, specifying a CA with ``--ca`` or ``--capath`` is
+  optional. This allows the he ``--peer-fingerprint`` to be used as alternative to a PKI with
+  self-signed certificates for small setups. See the examples section for such a setup.
+
 --verify-x509-name args
   Accept connections only if a host's X.509 name is equal to **name.** The
   remote host must also pass all other tests of verification.
