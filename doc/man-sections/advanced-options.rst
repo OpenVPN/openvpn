@@ -11,8 +11,11 @@ Standalone Debug Options
      --show-gateway
      --show-gateway IPv6-target
 
-  If an IPv6 target address is passed as argument, the IPv6 route for this
-  host is reported.
+  For IPv6 this queries the route towards ::/128, or the specified IPv6
+  target address if passed as argument.
+  For IPv4 on Linux, Windows, MacOS and BSD it looks for a 0.0.0.0/0 route.
+  If there are more specific routes, the result will not always be matching
+  the route of the IPv4 packets to the VPN gateway.
 
 
 Advanced Expert Options
