@@ -92,6 +92,12 @@ openvpn_plugin_open_v3(const int version,
 {
     struct plugin *plugin = calloc(1, sizeof(*plugin));
 
+    if (plugin == NULL)
+    {
+        printf("PLUGIN: allocating memory for context failed\n");
+        return OPENVPN_PLUGIN_FUNC_ERROR;
+    }
+
     plugin->type = get_env("remote_1", args->envp) ? CLIENT : SERVER;
     plugin->log  = args->callbacks->plugin_log;
 
