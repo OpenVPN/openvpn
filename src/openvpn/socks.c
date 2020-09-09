@@ -312,7 +312,7 @@ recv_socks_reply(socket_descriptor_t sd,
     char atyp = '\0';
     int alen = 0;
     int len = 0;
-    char buf[22];
+    char buf[270];		/* 4 + alen(max 256) + 2 */
     const int timeout_sec = 5;
 
     if (addr != NULL)
@@ -381,7 +381,10 @@ recv_socks_reply(socket_descriptor_t sd,
                     break;
 
                 case '\x03':    /* DOMAINNAME */
-                    alen = (unsigned char) c;
+                    /* RFC 1928, section 5: 1 byte length, <n> bytes name,
+                     * so the total "address length" is (length+1)
+                     */
+                    alen = (unsigned char) c + 1;
                     break;
 
                 case '\x04':    /* IP V6 */
@@ -451,7 +454,7 @@ establish_socks_proxy_passthru(struct socks_proxy_info *p,
                                const char *servname,    /* openvpn server port */
                                volatile int *signal_received)
 {
-    char buf[128];
+    char buf[270];
     size_t len;
 
     if (!socks_handshake(p, sd, signal_received))
