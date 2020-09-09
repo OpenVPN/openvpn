@@ -2069,6 +2069,11 @@ open_tun(const char *dev, const char *dev_type, const char *dev_node, struct tun
 
 #ifdef ENABLE_FEATURE_TUN_PERSIST
 
+/* TUNSETGROUP appeared in 2.6.23 */
+#ifndef TUNSETGROUP
+# define TUNSETGROUP   _IOW('T', 206, int)
+#endif
+
 void
 tuncfg(const char *dev, const char *dev_type, const char *dev_node, int persist_mode, const char *username, const char *groupname, const struct tuntap_options *options)
 {
@@ -2106,7 +2111,7 @@ tuncfg(const char *dev, const char *dev_type, const char *dev_node, int persist_
         }
         else if (ioctl(tt->fd, TUNSETGROUP, platform_state_group.gr->gr_gid) < 0)
         {
-            msg(M_ERR, "Cannot ioctl TUNSETOWNER(%s) %s", groupname, dev);
+            msg(M_ERR, "Cannot ioctl TUNSETGROUP(%s) %s", groupname, dev);
         }
     }
     close_tun(tt);
