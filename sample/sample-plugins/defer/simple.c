@@ -141,6 +141,11 @@ openvpn_plugin_open_v1(unsigned int *type_mask, const char *argv[], const char *
      * Allocate our context
      */
     context = (struct plugin_context *) calloc(1, sizeof(struct plugin_context));
+    if (context == NULL)
+    {
+        printf("PLUGIN: allocating memory for context failed\n");
+        return NULL;
+    }
 
     context->test_deferred_auth = atoi_null0(get_env("test_deferred_auth", envp));
     printf("TEST_DEFERRED_AUTH %d\n", context->test_deferred_auth);
