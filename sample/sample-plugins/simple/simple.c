@@ -80,6 +80,11 @@ openvpn_plugin_open_v1(unsigned int *type_mask, const char *argv[], const char *
      * Allocate our context
      */
     context = (struct plugin_context *) calloc(1, sizeof(struct plugin_context));
+    if (context == NULL)
+    {
+        printf("PLUGIN: allocating memory for context failed\n");
+        return NULL;
+    }
 
     /*
      * Set the username/password we will require.
