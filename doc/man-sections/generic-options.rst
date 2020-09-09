@@ -230,6 +230,13 @@ which mode OpenVPN is configured as.
   The downside of using ``--mlock`` is that it will reduce the amount of
   physical memory available to other applications.
 
+  The limit on how much memory can be locked and how that limit
+  is enforced are OS-dependent. On Linux the default limit that an
+  unprivileged process may lock (RLIMIT_MEMLOCK) is low, and if
+  privileges are dropped later, future memory allocations will very
+  likely fail. The limit can be increased using ulimit or systemd
+  directives depending on how OpenVPN is started.
+
 --nice n
   Change process priority after initialization (``n`` greater than 0 is
   lower priority, ``n`` less than zero is higher priority).
