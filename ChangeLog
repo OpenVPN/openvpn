@@ -1,6 +1,23 @@
 OpenVPN Change Log
 Copyright (C) 2002-2020 OpenVPN Inc <sales@openvpn.net>
 
+2020.09.10 -- Version 2.5_beta4
+
+Gert Doering (3):
+      Document that --push-remove is generally more suitable than --push-reset
+      Fix error detection / abort in --inetd corner case.
+      Fix TUNSETGROUP compatibility with very old Linux systems.
+
+Lev Stipakov (1):
+      openvpnmsica: make adapter renaming non-fatal
+
+Selva Nair (1):
+      In tap.c use DiInstallDevice to install the driver on a new adapter
+
+Vladislav Grishenko (1):
+      Fix best gateway selection over netlink
+
+
 2020.08.31 -- Version 2.5_beta3
 
 Arne Schwabe (1):
