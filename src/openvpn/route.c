@@ -323,6 +323,10 @@ init_route(struct route_ipv4 *r,
 
     if (get_special_addr(rl, ro->network, (in_addr_t *) &special.s_addr, &status))
     {
+        if (!status)
+        {
+            goto fail;
+        }
         special.s_addr = htonl(special.s_addr);
         ret = openvpn_getaddrinfo(0, inet_ntoa(special), NULL, 0, NULL,
                                   AF_INET, network_list);
@@ -619,7 +623,7 @@ init_route_list(struct route_list *rl,
 
     rl->flags = opt->flags;
 
-    if (remote_host)
+    if (remote_host != IPV4_INVALID_ADDR)
     {
         rl->spec.remote_host = remote_host;
         rl->spec.flags |= RTSA_REMOTE_HOST;
