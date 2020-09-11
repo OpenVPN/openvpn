@@ -639,6 +639,19 @@ fast hardware. SSL/TLS authentication must be used in this mode.
     mode server
     tls-server
 
+--server-ipv6 args
+  Convenience-function to enable a number of IPv6 related options at once,
+  namely ``--ifconfig-ipv6``, ``--ifconfig-ipv6-pool`` and
+  ``--push tun-ipv6``.
+
+  Valid syntax:
+  ::
+
+     server-ipv6 ipv6addr/bits
+
+  Pushing of the ``--tun-ipv6`` directive is done for older clients which
+  require an explicit ``--tun-ipv6`` in their configuration.
+
 --stale-routes-check args
   Remove routes which haven't had activity for ``n`` seconds (i.e. the ageing
   time).  This check is run every ``t`` seconds (i.e. check interval).
