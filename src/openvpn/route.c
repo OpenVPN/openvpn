@@ -49,6 +49,10 @@
 #include <linux/rtnetlink.h>            /* RTM_GETROUTE etc. */
 #endif
 
+#if defined(TARGET_NETBSD)
+#include <net/route.h>			/* RT_ROUNDUP(), RT_ADVANCE() */
+#endif
+
 #ifdef _WIN32
 #include "openvpn-msg.h"
 
@@ -3412,10 +3416,14 @@ struct rtmsg {
 
 /* the route socket code is identical for all 4 supported BSDs and for
  * MacOS X (Darwin), with one crucial difference: when going from
- * 32 bit to 64 bit, the BSDs increased the structure size but kept
+ * 32 bit to 64 bit, FreeBSD/OpenBSD increased the structure size but kept
  * source code compatibility by keeping the use of "long", while
  * MacOS X decided to keep binary compatibility by *changing* the API
  * to use "uint32_t", thus 32 bit on all OS X variants
+ *
+ * NetBSD does the MacOS way of "fixed number of bits, no matter if
+ * 32 or 64 bit OS", but chose uint64_t.  For maximum portability, we
+ * just use the OS RT_ROUNDUP() macro, which is guaranteed to be correct.
  *
  * We used to have a large amount of duplicate code here which really
  * differed only in this (long) vs. (uint32_t) - IMHO, worse than
@@ -3425,6 +3433,8 @@ struct rtmsg {
 #if defined(TARGET_DARWIN)
 #define ROUNDUP(a) \
     ((a) > 0 ? (1 + (((a) - 1) | (sizeof(uint32_t) - 1))) : sizeof(uint32_t))
+#elif defined(TARGET_NETBSD)
+#define ROUNDUP(a) RT_ROUNDUP(a)
 #else
 #define ROUNDUP(a) \
     ((a) > 0 ? (1 + (((a) - 1) | (sizeof(long) - 1))) : sizeof(long))
@@ -3733,7 +3743,7 @@ get_default_gateway_ipv6(struct route_ipv6_gateway_info *rgi6,
     }
     if (write(sockfd, (char *)&m_rtmsg, l) < 0)
     {
-        msg(M_WARN, "GDG6: problem writing to routing socket");
+        msg(M_WARN|M_ERRNO, "GDG6: problem writing to routing socket");
         goto done;
     }
 
