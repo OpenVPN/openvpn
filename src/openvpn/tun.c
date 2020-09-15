@@ -115,11 +115,17 @@ do_address_service(const bool add, const short family, const struct tuntap *tt)
     {
         addr.address.ipv4.s_addr = htonl(tt->local);
         addr.prefix_len = netmask_to_netbits2(tt->adapter_netmask);
+        msg(D_IFCONFIG, "INET address service: %s %s/%d",
+            add ? "add" : "remove",
+            print_in_addr_t(tt->local, 0, &gc), addr.prefix_len);
     }
     else
     {
         addr.address.ipv6 = tt->local_ipv6;
-        addr.prefix_len = tt->netbits_ipv6;
+        addr.prefix_len = (tt->type == DEV_TYPE_TUN) ? 128 : tt->netbits_ipv6;
+        msg(D_IFCONFIG, "INET6 address service: %s %s/%d",
+            add ? "add" : "remove",
+            print_in6_addr(tt->local_ipv6, 0, &gc), addr.prefix_len);
     }
 
     if (!send_msg_iservice(pipe, &addr, sizeof(addr), &ack, "TUN"))
@@ -1088,24 +1094,36 @@ do_ifconfig_ipv6(struct tuntap *tt, const char *ifname, int tun_mtu,
     else if (tt->options.msg_channel)
     {
         do_address_service(true, AF_INET6, tt);
-        add_route_connected_v6_net(tt, es);
+        if (tt->type == DEV_TYPE_TUN)
+        {
+            add_route_connected_v6_net(tt, es);
+        }
         do_dns_service(true, AF_INET6, tt);
         do_set_mtu_service(tt, AF_INET6, tun_mtu);
     }
     else
     {
         /* example: netsh interface ipv6 set address interface=42
-         *                  2001:608:8003::d store=active
+         *                  2001:608:8003::d/bits store=active
          */
         char iface[64];
 
+        /* in TUN mode, we only simulate a subnet, so the interface
+         * is configured with /128 + a route to fe80::8.  In TAP mode,
+         * the correct netbits must be set, and no on-link route
+         */
+        int netbits = (tt->type == DEV_TYPE_TUN) ? 128 : tt->netbits_ipv6;
+
         openvpn_snprintf(iface, sizeof(iface), "interface=%lu",
                          tt->adapter_index);
-        argv_printf(&argv, "%s%s interface ipv6 set address %s %s store=active",
+        argv_printf(&argv, "%s%s interface ipv6 set address %s %s/%d store=active",
                     get_win_sys_path(), NETSH_PATH_SUFFIX, iface,
-                    ifconfig_ipv6_local);
+                    ifconfig_ipv6_local, netbits);
         netsh_command(&argv, 4, M_FATAL);
-        add_route_connected_v6_net(tt, es);
+        if (tt->type == DEV_TYPE_TUN)
+        {
+            add_route_connected_v6_net(tt, es);
+        }
         /* set ipv6 dns servers if any are specified */
         netsh_set_dns6_servers(tt->options.dns6, tt->options.dns6_len, ifname);
         windows_set_mtu(tt->adapter_index, AF_INET6, tun_mtu);
@@ -6688,7 +6706,7 @@ netsh_delete_address_dns(const struct tuntap *tt, bool ipv6, struct gc_arena *gc
         netsh_command(&argv, 1, M_WARN);
     }
 
-    if (ipv6)
+    if (ipv6 && tt->type == DEV_TYPE_TUN)
     {
         delete_route_connected_v6_net(tt);
     }
