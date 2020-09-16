@@ -1433,6 +1433,7 @@ AC_CONFIG_FILES([
 	doc/doxygen/Makefile
 	doc/doxygen/openvpn.doxyfile
 	include/Makefile
+	sample/sample-plugins/Makefile
 	src/Makefile
 	src/compat/Makefile
 	src/openvpn/Makefile
