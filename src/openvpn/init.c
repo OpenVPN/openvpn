@@ -500,6 +500,17 @@ next_connection_entry(struct context *c)
                  */
                 if (!c->options.persist_remote_ip)
                 {
+                    /* Connection entry addrinfo objects might have been
+                     * resolved earlier but the entry itself might have been
+                     * skipped by management on the previous loop.
+                     * If so, clear the addrinfo objects as close_instance does
+                     */
+                    if (c->c1.link_socket_addr.remote_list)
+                    {
+                        clear_remote_addrlist(&c->c1.link_socket_addr,
+                                              !c->options.resolve_in_advance);
+                    }
+
                     /* close_instance should have cleared the addrinfo objects */
                     ASSERT(c->c1.link_socket_addr.current_remote == NULL);
                     ASSERT(c->c1.link_socket_addr.remote_list == NULL);
