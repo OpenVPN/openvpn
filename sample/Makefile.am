@@ -12,6 +12,9 @@
 MAINTAINERCLEANFILES = \
 	$(srcdir)/Makefile.in
 
+DISTCLEANFILES = \
+       $(builddir)/sample-plugins/Makefile
+
 EXTRA_DIST = \
 	sample-plugins \
 	sample-config-files \
