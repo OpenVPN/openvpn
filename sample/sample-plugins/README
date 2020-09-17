@@ -13,6 +13,12 @@ log/log_v3.c    -- A variant of log/log.c, which makes use of the
                    OpenVPN plug-in v3 API.  This will also log even more
                    information related to certificates in use.
 
+* client-connect (and logging)
+client-connect/sample-client-connect -- demonstrate how to use the
+                   CLIENT_CONNECT and CLIENT_CONNECT_V2 hooks to achieve
+                   "per client configuration / logging / ..." actions,
+                   both in synchronous and async/deferred mode
+
 * cryptography related
 simple/base64.c -- Example using the OpenVPN exported base64 encode/decode
                    functions
