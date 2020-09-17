@@ -224,6 +224,24 @@ ifconfig_pool_init(const bool ipv4_pool, enum pool_type type, in_addr_t start,
         }
 
         pool->ipv6.base = ipv6_base;
+
+        /* if a pool starts at a base address that has all-zero in the
+         * host part, that first IPv6 address must not be assigned to
+         * clients because it is not usable (subnet anycast address).
+         * Start with 1, then.
+         *
+         * NOTE: this will also (mis-)fire for something like
+         *    ifconfig-ipv6-pool 2001:db8:0:1:1234::0/64
+         * as we only check the rightmost 32 bits of the host part.  So be it.
+         */
+        if (base == 0)
+        {
+            msg(D_IFCONFIG_POOL, "IFCONFIG POOL IPv6: incrementing pool start "
+                "to avoid ::0 assignment");
+            base++;
+            pool->ipv6.base.s6_addr[15]++;
+        }
+
         pool_ipv6_size = ipv6_netbits >= 112
                           ? (1 << (128 - ipv6_netbits)) - base
                           : IFCONFIG_POOL_MAX;

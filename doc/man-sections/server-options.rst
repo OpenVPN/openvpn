@@ -204,7 +204,8 @@ fast hardware. SSL/TLS authentication must be used in this mode.
      ifconfig-ipv6-pool ipv6addr/bits
 
   The pool starts at ``ipv6addr`` and matches the offset determined from
-  the start of the IPv4 pool.
+  the start of the IPv4 pool.  If the host part of the given IPv6
+  address is ``0``, the pool starts at ``ipv6addr`` +1.
 
 --ifconfig-pool-persist args
   Persist/unpersist ifconfig-pool data to ``file``, at ``seconds``
