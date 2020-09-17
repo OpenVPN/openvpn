@@ -11,7 +11,8 @@ PLUGINS = \
 	keying-material-exporter-demo/keyingmaterialexporter \
 	log/log log/log_v3 \
 	simple/base64 \
-	simple/simple
+	simple/simple \
+	client-connect/sample-client-connect
 
 # All the plugins to build - rewritten with .so extension
 all : $(foreach var, $(PLUGINS), $(var).so)
