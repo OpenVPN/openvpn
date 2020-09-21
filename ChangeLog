@@ -1,6 +1,37 @@
 OpenVPN Change Log
 Copyright (C) 2002-2020 OpenVPN Inc <sales@openvpn.net>
 
+2020.09.21 -- Version 2.5_rc1
+
+David Sommerseth (4):
+      man: Add missing --server-ipv6
+      man: Improve --remote entry
+      sample-plugins: Partially autotoolize the sample-plugins build
+      build: Fix make distclean/distcheck
+
+Gert Doering (10):
+      Fix handling of 'route remote_host' for IPv6 transport case.
+      Replace 'echo -n' with 'printf' in tests/t_lpback.sh
+      Fix description of --client-disconnect calling convention in manpage.
+      Handle NULL returns from calloc() in sample plugins.
+      Fix --show-gateway for IPv6 on NetBSD/i386.
+      socks.c: fix alen for DOMAIN type addresses, bump up buffer sizes
+      Fix netbits setting (in TAP mode) for IPv6 on Windows.
+      If IPv6 pool specification sets pool start to ::0 address, increment.
+      Add demo plugin that excercises "CLIENT_CONNECT" and "CLIENT_CONNECT_V2" paths
+      Fix combination of --dev tap and --topology subnet across multiple platforms.
+
+Lev Stipakov (1):
+      msvc: better support for 32bit architecture
+
+Selva Nair (2):
+      Add a remark on dropping privileges when --mlock is used
+      Allow --dhcp-option in config file when windows-driver is wintun
+
+Vladislav Grishenko (1):
+      Fix fatal error at switching remotes (#629)
+
+
 2020.09.10 -- Version 2.5_beta4
 
 Gert Doering (3):
