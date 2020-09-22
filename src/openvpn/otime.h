@@ -84,6 +84,7 @@ update_time(void)
     openvpn_gettimeofday(&tv, NULL);
 #else
     update_now(time(NULL));
+    now_usec = 0;
 #endif
 }
 
