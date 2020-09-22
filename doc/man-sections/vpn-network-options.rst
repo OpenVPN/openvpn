@@ -114,6 +114,10 @@ routing.
   :code:`DOMAIN` ``name``
         Set Connection-specific DNS Suffix to :code:`name`.
 
+  :code:`ADAPTER_DOMAIN_SUFFIX` ``name``
+        Alias to :code:`DOMAIN`. This is a compatibility option, it
+        should not be used in new deployments.
+
   :code:`DOMAIN-SEARCH` ``name``
         Add :code:`name` to the domain search list.
         Repeat this option to add more entries. Up to
