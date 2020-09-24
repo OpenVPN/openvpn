@@ -3646,7 +3646,8 @@ do_close_link_socket(struct context *c)
           && ( (c->options.persist_remote_ip)
                ||
                ( c->sig->source != SIG_SOURCE_HARD
-                 && ((c->c1.link_socket_addr.current_remote && c->c1.link_socket_addr.current_remote->ai_next)
+                 && ((c->c1.link_socket_addr.current_remote
+                      && c->c1.link_socket_addr.current_remote->ai_next)
                      || c->options.no_advance))
                )))
     {

@@ -1983,7 +1983,8 @@ connection_entry_load_re(struct connection_entry *ce, const struct remote_entry 
 }
 
 static void
-options_postprocess_verify_ce(const struct options *options, const struct connection_entry *ce)
+options_postprocess_verify_ce(const struct options *options,
+                              const struct connection_entry *ce)
 {
     struct options defaults;
     int dev = DEV_TYPE_UNDEF;
@@ -2011,7 +2012,9 @@ options_postprocess_verify_ce(const struct options *options, const struct connec
      */
     if (ce->proto == PROTO_TCP)
     {
-        msg(M_USAGE, "--proto tcp is ambiguous in this context.  Please specify --proto tcp-server or --proto tcp-client");
+        msg(M_USAGE,
+            "--proto tcp is ambiguous in this context. Please specify "
+            "--proto tcp-server or --proto tcp-client");
     }
 
     /*
@@ -2051,8 +2054,9 @@ options_postprocess_verify_ce(const struct options *options, const struct connec
 
     if (options->inetd)
     {
-        msg(M_WARN, "DEPRECATED OPTION: --inetd mode is deprecated "
-            "and will be removed in OpenVPN 2.6");
+        msg(M_WARN,
+            "DEPRECATED OPTION: --inetd mode is deprecated and will be removed "
+            "in OpenVPN 2.6");
     }
 
     if (options->lladdr && dev != DEV_TYPE_TAP)
@@ -2065,7 +2069,9 @@ options_postprocess_verify_ce(const struct options *options, const struct connec
      */
     if (options->ce.tun_mtu_defined && options->ce.link_mtu_defined)
     {
-        msg(M_USAGE, "only one of --tun-mtu or --link-mtu may be defined (note that --ifconfig implies --link-mtu %d)", LINK_MTU_DEFAULT);
+        msg(M_USAGE,
+            "only one of --tun-mtu or --link-mtu may be defined (note that "
+            "--ifconfig implies --link-mtu %d)", LINK_MTU_DEFAULT);
     }
 
     if (!proto_is_udp(ce->proto) && options->mtu_test)
@@ -2092,18 +2098,23 @@ options_postprocess_verify_ce(const struct options *options, const struct connec
     if (string_defined_equal(ce->remote, options->ifconfig_local)
         || string_defined_equal(ce->remote, options->ifconfig_remote_netmask))
     {
-        msg(M_USAGE, "--local and --remote addresses must be distinct from --ifconfig addresses");
+        msg(M_USAGE,
+            "--local and --remote addresses must be distinct from --ifconfig "
+            "addresses");
     }
 
     if (string_defined_equal(ce->local, options->ifconfig_local)
         || string_defined_equal(ce->local, options->ifconfig_remote_netmask))
     {
-        msg(M_USAGE, "--local addresses must be distinct from --ifconfig addresses");
+        msg(M_USAGE,
+            "--local addresses must be distinct from --ifconfig addresses");
     }
 
-    if (string_defined_equal(options->ifconfig_local, options->ifconfig_remote_netmask))
+    if (string_defined_equal(options->ifconfig_local,
+                             options->ifconfig_remote_netmask))
     {
-        msg(M_USAGE, "local and remote/netmask --ifconfig addresses must be different");
+        msg(M_USAGE,
+            "local and remote/netmask --ifconfig addresses must be different");
     }
 
     if (ce->bind_defined && !ce->bind_local)
@@ -2113,12 +2124,14 @@ options_postprocess_verify_ce(const struct options *options, const struct connec
 
     if (ce->local && !ce->bind_local)
     {
-        msg(M_USAGE, "--local and --nobind don't make sense when used together");
+        msg(M_USAGE,
+            "--local and --nobind don't make sense when used together");
     }
 
     if (ce->local_port_defined && !ce->bind_local)
     {
-        msg(M_USAGE, "--lport and --nobind don't make sense when used together");
+        msg(M_USAGE,
+            "--lport and --nobind don't make sense when used together");
     }
 
     if (!ce->remote && !ce->bind_local)
@@ -2207,7 +2220,8 @@ options_postprocess_verify_ce(const struct options *options, const struct connec
 
     if (!proto_is_udp(ce->proto) && ce->explicit_exit_notification)
     {
-        msg(M_USAGE, "--explicit-exit-notify can only be used with --proto udp");
+        msg(M_USAGE,
+            "--explicit-exit-notify can only be used with --proto udp");
     }
 
     if (!ce->remote && ce->proto == PROTO_TCP_CLIENT)
@@ -2217,16 +2231,21 @@ options_postprocess_verify_ce(const struct options *options, const struct connec
 
     if ((ce->http_proxy_options) && ce->proto != PROTO_TCP_CLIENT)
     {
-        msg(M_USAGE, "--http-proxy MUST be used in TCP Client mode (i.e. --proto tcp-client)");
+        msg(M_USAGE,
+            "--http-proxy MUST be used in TCP Client mode (i.e. --proto "
+            "tcp-client)");
     }
+
     if ((ce->http_proxy_options) && !ce->http_proxy_options->server)
     {
-        msg(M_USAGE, "--http-proxy not specified but other http proxy options present");
+        msg(M_USAGE,
+            "--http-proxy not specified but other http proxy options present");
     }
 
     if (ce->http_proxy_options && ce->socks_proxy_server)
     {
-        msg(M_USAGE, "--http-proxy can not be used together with --socks-proxy");
+        msg(M_USAGE,
+            "--http-proxy can not be used together with --socks-proxy");
     }
 
     if (ce->socks_proxy_server && ce->proto == PROTO_TCP_SERVER)
@@ -2292,8 +2311,9 @@ options_postprocess_verify_ce(const struct options *options, const struct connec
         {
             msg(M_USAGE, "--socks-proxy cannot be used with --mode server");
         }
-        /* <connection> blocks force to have a remote embedded, so we check for the
-         * --remote and bail out if it  is present */
+        /* <connection> blocks force to have a remote embedded, so we check
+         * for the --remote and bail out if it is present
+         */
         if (options->connection_list->len >1
             || options->connection_list->array[0]->remote)
         {
@@ -2310,12 +2330,15 @@ options_postprocess_verify_ce(const struct options *options, const struct connec
         }
         if (options->ipchange)
         {
-            msg(M_USAGE, "--ipchange cannot be used with --mode server (use --client-connect instead)");
+            msg(M_USAGE,
+                "--ipchange cannot be used with --mode server (use "
+                "--client-connect instead)");
         }
         if (!(proto_is_dgram(ce->proto) || ce->proto == PROTO_TCP_SERVER))
         {
-            msg(M_USAGE, "--mode server currently only supports "
-                "--proto udp or --proto tcp-server or --proto tcp6-server");
+            msg(M_USAGE,
+                "--mode server currently only supports --proto udp or --proto "
+                "tcp-server or --proto tcp6-server");
         }
         if (!proto_is_udp(ce->proto) && (options->cf_max || options->cf_per))
         {
@@ -2817,12 +2840,14 @@ options_postprocess_mutate_ce(struct options *o, struct connection_entry *ce)
     }
 #endif
 
-    if (ce->proto == PROTO_TCP_CLIENT && !ce->local && !ce->local_port_defined && !ce->bind_defined)
+    if (ce->proto == PROTO_TCP_CLIENT && !ce->local
+        && !ce->local_port_defined && !ce->bind_defined)
     {
         ce->bind_local = false;
     }
 
-    if (ce->proto == PROTO_UDP && ce->socks_proxy_server && !ce->local && !ce->local_port_defined && !ce->bind_defined)
+    if (ce->proto == PROTO_UDP && ce->socks_proxy_server && !ce->local
+        && !ce->local_port_defined && !ce->bind_defined)
     {
         ce->bind_local = false;
     }
@@ -2832,7 +2857,9 @@ options_postprocess_mutate_ce(struct options *o, struct connection_entry *ce)
         ce->local_port = NULL;
     }
 
-    /* if protocol forcing is enabled, disable all protocols except for the forced one */
+    /* if protocol forcing is enabled, disable all protocols
+     * except for the forced one
+     */
     if (o->proto_force >= 0 && o->proto_force != ce->proto)
     {
         ce->flags |= CE_DISABLED;
@@ -5690,7 +5717,9 @@ add_option(struct options *options,
                 const sa_family_t af = ascii2af(p[3]);
                 if (proto < 0)
                 {
-                    msg(msglevel, "remote: bad protocol associated with host %s: '%s'", p[1], p[3]);
+                    msg(msglevel,
+                        "remote: bad protocol associated with host %s: '%s'",
+                        p[1], p[3]);
                     goto err;
                 }
                 re.proto = proto;
@@ -6210,7 +6239,8 @@ add_option(struct options *options,
         af = ascii2af(p[1]);
         if (proto < 0)
         {
-            msg(msglevel, "Bad protocol: '%s'.  Allowed protocols with --proto option: %s",
+            msg(msglevel,
+                "Bad protocol: '%s'. Allowed protocols with --proto option: %s",
                 p[1],
                 proto2ascii_all(&gc));
             goto err;
