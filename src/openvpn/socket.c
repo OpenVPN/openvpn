@@ -378,7 +378,8 @@ do_preresolve(struct context *c)
         /* HTTP remote hostname does not need to be resolved */
         if (!ce->http_proxy_options)
         {
-            status = do_preresolve_host(c, remote, ce->remote_port, ce->af, flags);
+            status = do_preresolve_host(c, remote, ce->remote_port,
+                                        ce->af, flags);
             if (status != 0)
             {
                 goto err;
@@ -417,7 +418,8 @@ do_preresolve(struct context *c)
         {
             flags |= GETADDR_PASSIVE;
             flags &= ~GETADDR_RANDOMIZE;
-            status = do_preresolve_host(c, ce->local, ce->local_port, ce->af, flags);
+            status = do_preresolve_host(c, ce->local, ce->local_port,
+                                        ce->af, flags);
             if (status != 0)
             {
                 goto err;
@@ -526,7 +528,9 @@ openvpn_getaddrinfo(unsigned int flags,
         if ((flags & GETADDR_MENTION_RESOLVE_RETRY)
             && !resolve_retry_seconds)
         {
-            fmt = "RESOLVE: Cannot resolve host address: %s:%s (%s) (I would have retried this name query if you had specified the --resolv-retry option.)";
+            fmt = "RESOLVE: Cannot resolve host address: %s:%s (%s) "
+                  "(I would have retried this name query if you had "
+                  "specified the --resolv-retry option.)";
         }
 
         if (!(flags & GETADDR_RESOLVE) || status == EAI_FAIL)
@@ -558,11 +562,13 @@ openvpn_getaddrinfo(unsigned int flags,
         while (true)
         {
 #ifndef _WIN32
+            /* force resolv.conf reload */
             res_init();
 #endif
             /* try hostname lookup */
             hints.ai_flags &= ~AI_NUMERICHOST;
-            dmsg(D_SOCKET_DEBUG, "GETADDRINFO flags=0x%04x ai_family=%d ai_socktype=%d",
+            dmsg(D_SOCKET_DEBUG,
+                 "GETADDRINFO flags=0x%04x ai_family=%d ai_socktype=%d",
                  flags, hints.ai_family, hints.ai_socktype);
             status = getaddrinfo(hostname, servname, &hints, res);
 
@@ -573,7 +579,9 @@ openvpn_getaddrinfo(unsigned int flags,
                 {
                     if (*signal_received == SIGUSR1) /* ignore SIGUSR1 */
                     {
-                        msg(level, "RESOLVE: Ignored SIGUSR1 signal received during DNS resolution attempt");
+                        msg(level,
+                            "RESOLVE: Ignored SIGUSR1 signal received during "
+                            "DNS resolution attempt");
                         *signal_received = 0;
                     }
                     else
@@ -634,7 +642,9 @@ openvpn_getaddrinfo(unsigned int flags,
         /* IP address parse succeeded */
         if (flags & GETADDR_RANDOMIZE)
         {
-            msg(M_WARN, "WARNING: ignoring --remote-random-hostname because the hostname is an IP address");
+            msg(M_WARN,
+                "WARNING: ignoring --remote-random-hostname because the "
+                "hostname is an IP address");
         }
     }
 
@@ -1802,7 +1812,8 @@ resolve_remote(struct link_socket *sock,
                 sock->info.lsa->remote_list = ai;
                 sock->info.lsa->current_remote = ai;
 
-                dmsg(D_SOCKET_DEBUG, "RESOLVE_REMOTE flags=0x%04x phase=%d rrs=%d sig=%d status=%d",
+                dmsg(D_SOCKET_DEBUG,
+                     "RESOLVE_REMOTE flags=0x%04x phase=%d rrs=%d sig=%d status=%d",
                      flags,
                      phase,
                      retry,
@@ -3155,22 +3166,22 @@ struct proto_names {
 
 /* Indexed by PROTO_x */
 static const struct proto_names proto_names[] = {
-    {"proto-uninitialized",        "proto-NONE", AF_UNSPEC, PROTO_NONE},
+    {"proto-uninitialized", "proto-NONE", AF_UNSPEC, PROTO_NONE},
     /* try IPv4 and IPv6 (client), bind dual-stack (server) */
-    {"udp",        "UDP", AF_UNSPEC, PROTO_UDP},
-    {"tcp-server", "TCP_SERVER", AF_UNSPEC, PROTO_TCP_SERVER},
-    {"tcp-client", "TCP_CLIENT", AF_UNSPEC, PROTO_TCP_CLIENT},
-    {"tcp",        "TCP", AF_UNSPEC, PROTO_TCP},
+    {"udp",         "UDP", AF_UNSPEC, PROTO_UDP},
+    {"tcp-server",  "TCP_SERVER", AF_UNSPEC, PROTO_TCP_SERVER},
+    {"tcp-client",  "TCP_CLIENT", AF_UNSPEC, PROTO_TCP_CLIENT},
+    {"tcp",         "TCP", AF_UNSPEC, PROTO_TCP},
     /* force IPv4 */
-    {"udp4",       "UDPv4", AF_INET, PROTO_UDP},
-    {"tcp4-server","TCPv4_SERVER", AF_INET, PROTO_TCP_SERVER},
-    {"tcp4-client","TCPv4_CLIENT", AF_INET, PROTO_TCP_CLIENT},
-    {"tcp4",       "TCPv4", AF_INET, PROTO_TCP},
+    {"udp4",        "UDPv4", AF_INET, PROTO_UDP},
+    {"tcp4-server", "TCPv4_SERVER", AF_INET, PROTO_TCP_SERVER},
+    {"tcp4-client", "TCPv4_CLIENT", AF_INET, PROTO_TCP_CLIENT},
+    {"tcp4",        "TCPv4", AF_INET, PROTO_TCP},
     /* force IPv6 */
-    {"udp6","UDPv6", AF_INET6, PROTO_UDP},
-    {"tcp6-server","TCPv6_SERVER", AF_INET6, PROTO_TCP_SERVER},
-    {"tcp6-client","TCPv6_CLIENT", AF_INET6, PROTO_TCP_CLIENT},
-    {"tcp6","TCPv6", AF_INET6, PROTO_TCP},
+    {"udp6",        "UDPv6", AF_INET6, PROTO_UDP},
+    {"tcp6-server", "TCPv6_SERVER", AF_INET6, PROTO_TCP_SERVER},
+    {"tcp6-client", "TCPv6_CLIENT", AF_INET6, PROTO_TCP_CLIENT},
+    {"tcp6",        "TCPv6", AF_INET6, PROTO_TCP},
 };
 
 bool
@@ -3182,6 +3193,7 @@ proto_is_net(int proto)
     }
     return proto != PROTO_NONE;
 }
+
 bool
 proto_is_dgram(int proto)
 {
