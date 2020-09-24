@@ -6706,6 +6706,16 @@ netsh_delete_address_dns(const struct tuntap *tt, bool ipv6, struct gc_arena *gc
         netsh_command(&argv, 1, M_WARN);
     }
 
+    if (!ipv6 && tt->options.wins_len > 0)
+    {
+        argv_printf(&argv,
+                    "%s%s interface ipv4 delete winsservers %lu all",
+                    get_win_sys_path(),
+                    NETSH_PATH_SUFFIX,
+                    tt->adapter_index);
+        netsh_command(&argv, 1, M_WARN);
+    }
+
     if (ipv6 && tt->type == DEV_TYPE_TUN)
     {
         delete_route_connected_v6_net(tt);
