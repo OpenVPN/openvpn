@@ -248,7 +248,7 @@ cleanup_OpenSCManager:
 }
 
 
-static UINT
+static void
 find_adapters(
     _In_ MSIHANDLE hInstall,
     _In_z_ LPCTSTR szzHardwareIDs,
@@ -262,12 +262,12 @@ find_adapters(
     uiResult = tap_list_adapters(NULL, szzHardwareIDs, &pAdapterList);
     if (uiResult != ERROR_SUCCESS)
     {
-        return uiResult;
+        return;
     }
     else if (pAdapterList == NULL)
     {
         /* No adapters - no fun. */
-        return ERROR_SUCCESS;
+        return;
     }
 
     /* Get IPv4/v6 info for all network adapters. Actually, we're interested in link status only: up/down? */
@@ -394,7 +394,6 @@ cleanup_pAdapterAdresses:
     free(pAdapterAdresses);
 cleanup_pAdapterList:
     tap_free_adapter_list(pAdapterList);
-    return uiResult;
 }
 
 
