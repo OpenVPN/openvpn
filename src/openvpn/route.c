@@ -1987,25 +1987,24 @@ add_route_ipv6(struct route_ipv6 *r6, const struct tuntap *tt,
     }
     else
     {
-        struct buffer out = alloc_buf_gc(64, &gc);
+        DWORD adapter_index;
         if (r6->adapter_index)          /* vpn server special route */
         {
-            buf_printf(&out, "interface=%lu", r6->adapter_index );
+            adapter_index = r6->adapter_index;
             gateway_needed = true;
         }
         else
         {
-            buf_printf(&out, "interface=%lu", tt->adapter_index );
+            adapter_index = tt->adapter_index;
         }
-        device = buf_bptr(&out);
 
-        /* netsh interface ipv6 add route 2001:db8::/32 MyTunDevice */
-        argv_printf(&argv, "%s%s interface ipv6 add route %s/%d %s",
+        /* netsh interface ipv6 add route 2001:db8::/32 42 */
+        argv_printf(&argv, "%s%s interface ipv6 add route %s/%d %lu",
                     get_win_sys_path(),
                     NETSH_PATH_SUFFIX,
                     network,
                     r6->netbits,
-                    device);
+                    adapter_index);
 
         /* next-hop depends on TUN or TAP mode:
          * - in TAP mode, we use the "real" next-hop
@@ -2431,25 +2430,24 @@ delete_route_ipv6(const struct route_ipv6 *r6, const struct tuntap *tt,
     }
     else
     {
-        struct buffer out = alloc_buf_gc(64, &gc);
+        DWORD adapter_index;
         if (r6->adapter_index)          /* vpn server special route */
         {
-            buf_printf(&out, "interface=%lu", r6->adapter_index );
+            adapter_index = r6->adapter_index;
             gateway_needed = true;
         }
         else
         {
-            buf_printf(&out, "interface=%lu", tt->adapter_index );
+            adapter_index = tt->adapter_index;
         }
-        device = buf_bptr(&out);
 
-        /* netsh interface ipv6 delete route 2001:db8::/32 MyTunDevice */
-        argv_printf(&argv, "%s%s interface ipv6 delete route %s/%d %s",
+        /* netsh interface ipv6 delete route 2001:db8::/32 42 */
+        argv_printf(&argv, "%s%s interface ipv6 delete route %s/%d %lu",
                     get_win_sys_path(),
                     NETSH_PATH_SUFFIX,
                     network,
                     r6->netbits,
-                    device);
+                    adapter_index);
 
         /* next-hop depends on TUN or TAP mode:
          * - in TAP mode, we use the "real" next-hop
