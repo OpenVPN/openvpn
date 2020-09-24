@@ -5281,7 +5281,6 @@ ip_addr_member_of(const in_addr_t addr, const IP_ADDR_STRING *ias)
  * Set the ipv6 dns servers on the specified interface.
  * The list of dns servers currently set on the interface
  * are cleared first.
- * No action is taken if number of addresses (addr_len) < 1.
  */
 static void
 netsh_set_dns6_servers(const struct in6_addr *addr_list,
@@ -5290,6 +5289,13 @@ netsh_set_dns6_servers(const struct in6_addr *addr_list,
 {
     struct gc_arena gc = gc_new();
     struct argv argv = argv_new();
+
+    /* delete existing DNS settings from TAP interface */
+    argv_printf(&argv, "%s%s interface ipv6 delete dns %lu all",
+                get_win_sys_path(),
+                NETSH_PATH_SUFFIX,
+                adapter_index);
+    netsh_command(&argv, 2, M_FATAL);
 
     for (int i = 0; i < addr_len; ++i)
     {
