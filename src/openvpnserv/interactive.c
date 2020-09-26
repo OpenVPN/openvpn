@@ -91,6 +91,7 @@ typedef enum {
     block_dns,
     undo_dns4,
     undo_dns6,
+    undo_domain,
     _undo_type_max
 } undo_type_t;
 typedef list_item_t *undo_lists_t[_undo_type_max];
@@ -562,6 +563,24 @@ InterfaceLuid(const char *iface_name, PNET_LUID luid)
         status = ERROR_OUTOFMEMORY;
     }
     return status;
+}
+
+static DWORD
+ConvertInterfaceNameToIndex(const wchar_t *ifname, NET_IFINDEX *index)
+{
+   NET_LUID luid;
+   DWORD err;
+
+   err = ConvertInterfaceAliasToLuid(ifname, &luid);
+   if (err == ERROR_SUCCESS)
+   {
+       err = ConvertInterfaceLuidToIndex(&luid, index);
+   }
+   if (err != ERROR_SUCCESS)
+   {
+       MsgToEventLog(M_ERR, L"Failed to find interface index for <%s>", ifname);
+   }
+   return err;
 }
 
 static BOOL
@@ -1057,6 +1076,53 @@ out:
     return err;
 }
 
+/**
+ * Run command: wmic nicconfig (InterfaceIndex=$if_index) call $action ($data)
+ * @param  if_index    "index of interface"
+ * @param  action      e.g., "SetDNSDomain"
+ * @param  data        data if required for action
+ *                     - a single word for SetDNSDomain, empty or NULL to delete
+ *                     - comma separated values for a list
+ */
+static DWORD
+wmic_nicconfig_cmd(const wchar_t *action, const NET_IFINDEX if_index,
+                   const wchar_t *data)
+{
+    DWORD err = 0;
+    wchar_t argv0[MAX_PATH];
+    wchar_t *cmdline = NULL;
+    int timeout = 10000; /* in msec */
+
+    swprintf(argv0, _countof(argv0), L"%s\\%s", get_win_sys_path(), L"wbem\\wmic.exe");
+    argv0[_countof(argv0) - 1] = L'\0';
+
+    const wchar_t *fmt;
+    /* comma separated list must be enclosed in parenthesis */
+    if (data && wcschr(data, L','))
+    {
+       fmt = L"wmic nicconfig where (InterfaceIndex=%ld) call %s (%s)";
+    }
+    else
+    {
+       fmt = L"wmic nicconfig where (InterfaceIndex=%ld) call %s %s";
+    }
+
+    size_t ncmdline = wcslen(fmt) + 20 + wcslen(action) /* max 20 for ifindex */
+                    + (data ? wcslen(data) + 1 : 1);
+    cmdline = malloc(ncmdline*sizeof(wchar_t));
+    if (!cmdline)
+    {
+        return ERROR_OUTOFMEMORY;
+    }
+
+    openvpn_sntprintf(cmdline, ncmdline, fmt, if_index, action,
+                      data? data : L"");
+    err = ExecCommand(argv0, cmdline, timeout);
+
+    free(cmdline);
+    return err;
+}
+
 /* Delete all IPv4 or IPv6 dns servers for an interface */
 static DWORD
 DeleteDNS(short family, wchar_t *if_name)
@@ -1079,6 +1145,54 @@ CmpWString(LPVOID item, LPVOID str)
     return (wcscmp(item, str) == 0) ? TRUE : FALSE;
 }
 
+/**
+ * Set interface specific DNS domain suffix
+ * @param  if_name    name of the the interface
+ * @param  domain     a single domain name
+ * @param  lists      pointer to the undo lists. If NULL
+ *                    undo lists are not altered.
+ * Will delete the currently set value if domain is empty.
+ */
+static DWORD
+SetDNSDomain(const wchar_t *if_name, const char *domain, undo_lists_t *lists)
+{
+   NET_IFINDEX if_index;
+
+   DWORD err  = ConvertInterfaceNameToIndex(if_name, &if_index);
+   if (err != ERROR_SUCCESS)
+   {
+       return err;
+   }
+
+   wchar_t *wdomain = utf8to16(domain); /* utf8 to wide-char */
+   if (!wdomain)
+   {
+       return ERROR_OUTOFMEMORY;
+   }
+
+   /* free undo list if previously set */
+   if (lists)
+   {
+       free(RemoveListItem(&(*lists)[undo_domain], CmpWString, (void *)if_name));
+   }
+
+   err = wmic_nicconfig_cmd(L"SetDNSDomain", if_index, wdomain);
+
+   /* Add to undo list if domain is non-empty */
+   if (err == 0 && wdomain[0] && lists)
+   {
+        wchar_t *tmp_name = wcsdup(if_name);
+        if (!tmp_name || AddListItem(&(*lists)[undo_domain], tmp_name))
+        {
+            free(tmp_name);
+            err = ERROR_OUTOFMEMORY;
+        }
+   }
+
+   free(wdomain);
+   return err;
+}
+
 static DWORD
 HandleDNSConfigMessage(const dns_cfg_message_t *msg, undo_lists_t *lists)
 {
@@ -1096,6 +1210,13 @@ HandleDNSConfigMessage(const dns_cfg_message_t *msg, undo_lists_t *lists)
     if (!msg->iface.name[0]) /* interface name is required */
     {
         return ERROR_MESSAGE_DATA;
+    }
+
+    /* use a non-const reference with limited scope to enforce null-termination of strings from client */
+    {
+        dns_cfg_message_t *msgptr = (dns_cfg_message_t *) msg;
+        msgptr->iface.name[_countof(msg->iface.name)-1] = '\0';
+        msgptr->domains[_countof(msg->domains)-1] = '\0';
     }
 
     wchar_t *wide_name = utf8to16(msg->iface.name); /* utf8 to wide-char */
@@ -1117,9 +1238,14 @@ HandleDNSConfigMessage(const dns_cfg_message_t *msg, undo_lists_t *lists)
         free(RemoveListItem(&(*lists)[undo_type], CmpWString, wide_name));
     }
 
-    if (msg->header.type == msg_del_dns_cfg) /* job done */
+    if (msg->header.type == msg_del_dns_cfg)
     {
-        goto out;
+        if (msg->domains[0])
+        {
+            /* setting an empty domain removes any previous value */
+            err = SetDNSDomain(wide_name, "", lists);
+        }
+        goto out;  /* job done */
     }
 
     for (int i = 0; i < addr_len; ++i)
@@ -1142,6 +1268,8 @@ HandleDNSConfigMessage(const dns_cfg_message_t *msg, undo_lists_t *lists)
          */
     }
 
+    err = 0;
+
     if (msg->addr_len > 0)
     {
         wchar_t *tmp_name = wcsdup(wide_name);
@@ -1154,7 +1282,10 @@ HandleDNSConfigMessage(const dns_cfg_message_t *msg, undo_lists_t *lists)
         }
     }
 
-    err = 0;
+    if (msg->domains[0])
+    {
+        err = SetDNSDomain(wide_name, msg->domains, lists);
+    }
 
 out:
     free(wide_name);
@@ -1443,6 +1574,10 @@ Undo(undo_lists_t *lists)
 
                 case undo_dns6:
                     DeleteDNS(AF_INET6, item->data);
+                    break;
+
+                case undo_domain:
+                    SetDNSDomain(item->data, "", NULL);
                     break;
 
                 case block_dns:
