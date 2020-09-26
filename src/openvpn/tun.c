@@ -149,6 +149,61 @@ out:
 }
 
 static bool
+do_dns_domain_service(bool add, const struct tuntap *tt)
+{
+    bool ret = false;
+    ack_message_t ack;
+    struct gc_arena gc = gc_new();
+    HANDLE pipe = tt->options.msg_channel;
+
+    if (!tt->options.domain) /* no  domain to add or delete */
+    {
+        return true;
+    }
+
+    /* Use dns_cfg_msg with addr_len = 0 for setting only the DOMAIN */
+    dns_cfg_message_t dns = {
+        .header = {
+            (add ? msg_add_dns_cfg : msg_del_dns_cfg),
+            sizeof(dns_cfg_message_t),
+            0
+        },
+        .iface = { .index = tt->adapter_index, .name = "" },
+        .domains = "",      /* set below */
+        .family = AF_INET,  /* unused */
+        .addr_len = 0       /* add/delete only the domain, not DNS servers */
+    };
+
+    strncpynt(dns.iface.name, tt->actual_name, sizeof(dns.iface.name));
+    strncpynt(dns.domains, tt->options.domain, sizeof(dns.domains));
+    /* truncation of domain name is not checked as it can't happen
+     * with 512 bytes room in dns.domains.
+     */
+
+    msg(D_LOW, "%s dns domain on '%s' (if_index = %d) using service",
+            (add ? "Setting" : "Deleting"), dns.iface.name, dns.iface.index);
+    if (!send_msg_iservice(pipe, &dns, sizeof(dns), &ack, "TUN"))
+    {
+        goto out;
+    }
+
+    if (ack.error_number != NO_ERROR)
+    {
+        msg(M_WARN, "TUN: %s dns domain failed using service: %s [status=%u if_name=%s]",
+            (add ? "adding" : "deleting"), strerror_win32(ack.error_number, &gc),
+            ack.error_number, dns.iface.name);
+        goto out;
+    }
+
+    msg(M_INFO, "DNS domain %s using service", (add ? "set" : "deleted"));
+    ret = true;
+
+out:
+    gc_free(&gc);
+    return ret;
+}
+
+static bool
 do_dns_service(bool add, const short family, const struct tuntap *tt)
 {
     bool ret = false;
@@ -164,6 +219,7 @@ do_dns_service(bool add, const short family, const struct tuntap *tt)
         return true;
     }
 
+    /* Use dns_cfg_msg with domain = "" for setting only the DNS servers */
     dns_cfg_message_t dns = {
         .header = {
             (add ? msg_add_dns_cfg : msg_del_dns_cfg),
@@ -1100,6 +1156,11 @@ do_ifconfig_ipv6(struct tuntap *tt, const char *ifname, int tun_mtu,
         }
         do_dns_service(true, AF_INET6, tt);
         do_set_mtu_service(tt, AF_INET6, tun_mtu);
+        /* If IPv4 is not enabled, set DNS domain here */
+        if (!tt->did_ifconfig_setup)
+        {
+           do_dns_domain_service(true, tt);
+        }
     }
     else
     {
@@ -1485,6 +1546,7 @@ do_ifconfig_ipv4(struct tuntap *tt, const char *ifname, int tun_mtu,
     {
         do_address_service(true, AF_INET, tt);
         do_dns_service(true, AF_INET, tt);
+        do_dns_domain_service(true, tt);
     }
     else if (tt->options.ip_win32_type == IPW32_SET_NETSH)
     {
@@ -6761,6 +6823,11 @@ close_tun(struct tuntap *tt, openvpn_net_ctx_t *ctx)
         }
         else if (tt->options.msg_channel)
         {
+            /* If IPv4 is not enabled, delete DNS domain here */
+            if (!tt->did_ifconfig_setup)
+            {
+                do_dns_domain_service(false, tt);
+            }
             if (tt->options.dns6_len > 0)
             {
                 do_dns_service(false, AF_INET6, tt);
@@ -6786,6 +6853,7 @@ close_tun(struct tuntap *tt, openvpn_net_ctx_t *ctx)
         }
         else if (tt->options.msg_channel)
         {
+            do_dns_domain_service(false, tt);
             do_dns_service(false, AF_INET, tt);
             do_address_service(false, AF_INET, tt);
         }
