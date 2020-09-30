@@ -1,6 +1,25 @@
 OpenVPN Change Log
 Copyright (C) 2002-2020 OpenVPN Inc <sales@openvpn.net>
 
+2020.09.30 -- Version 2.5_rc2
+
+Lev Stipakov (1):
+      Alias ADAPTER_DOMAIN_SUFFIX to DOMAIN
+
+Selva Nair (2):
+      Set DNS Domain using iservice
+      Improve documentation of --username-as-common-name
+
+Simon Rozman (4):
+      netsh: Specify interfaces by index rather than name
+      netsh: Clear existing IPv6 DNS servers before configuring new ones
+      netsh: Delete WINS servers on TUN close
+      openvpnmsica: Simplify find_adapters() to void return
+
+Vladislav Grishenko (1):
+      Fix update_time() and openvpn_gettimeofday() coexistence
+
+
 2020.09.21 -- Version 2.5_rc1
 
 David Sommerseth (4):
