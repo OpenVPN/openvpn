@@ -1479,6 +1479,13 @@ setenv_route_ipv6(struct env_set *es, const struct route_ipv6 *r6, int i)
 
         buf_printf( &name2, "route_ipv6_gateway_%d", i );
         setenv_str( es, BSTR(&name2), print_in6_addr( r6->gateway, 0, &gc ));
+
+        if (r6->flags & RT_METRIC_DEFINED)
+        {
+            struct buffer name3 = alloc_buf_gc( 256, &gc );
+            buf_printf( &name3, "route_ipv6_metric_%d", i) ;
+            setenv_int( es, BSTR(&name3), r6->metric);
+        }
     }
     gc_free(&gc);
 }
