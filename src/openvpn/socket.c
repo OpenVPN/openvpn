@@ -1480,14 +1480,14 @@ openvpn_connect(socket_descriptor_t sd,
             struct pollfd fds[1];
             fds[0].fd = sd;
             fds[0].events = POLLOUT;
-            status = poll(fds, 1, 0);
+            status = poll(fds, 1, (connect_timeout > 0) ? 1000 : 0);
 #else
             fd_set writes;
             struct timeval tv;
 
             FD_ZERO(&writes);
             openvpn_fd_set(sd, &writes);
-            tv.tv_sec = 0;
+            tv.tv_sec = (connect_timeout > 0) ? 1 : 0;
             tv.tv_usec = 0;
 
             status = select(sd + 1, NULL, &writes, NULL, &tv);
@@ -1517,7 +1517,7 @@ openvpn_connect(socket_descriptor_t sd,
 #endif
                     break;
                 }
-                management_sleep(1);
+                management_sleep(0);
                 continue;
             }
 
