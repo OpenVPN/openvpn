@@ -1011,13 +1011,9 @@ redirect_default_route_to_vpn(struct route_list *rl, const struct tuntap *tt,
          * - we are connecting to a non-IPv4 remote host (i.e. we use IPv6)
          */
         else if (!(rl->rgi.flags & RGI_ADDR_DEFINED) && !local
-                 && (rl->spec.remote_host != IPV4_INVALID_ADDR))
+                 && (rl->spec.flags & RTSA_REMOTE_HOST))
         {
             msg(M_WARN, "%s Cannot read current default gateway from system", err);
-        }
-        else if (!(rl->spec.flags & RTSA_REMOTE_HOST))
-        {
-            msg(M_WARN, "%s Cannot obtain current remote host address", err);
         }
         else
         {
@@ -1041,7 +1037,8 @@ redirect_default_route_to_vpn(struct route_list *rl, const struct tuntap *tt,
                 /* route remote host to original default gateway */
                 /* if remote_host is not ipv4 (ie: ipv6), just skip
                  * adding this special /32 route */
-                if (rl->spec.remote_host != IPV4_INVALID_ADDR)
+                if ((rl->spec.flags & RTSA_REMOTE_HOST)
+                    && rl->spec.remote_host != IPV4_INVALID_ADDR)
                 {
                     add_route3(rl->spec.remote_host,
                                IPV4_NETMASK_HOST,
