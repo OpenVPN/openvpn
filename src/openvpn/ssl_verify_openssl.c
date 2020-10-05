@@ -269,6 +269,21 @@ backend_x509_get_username(char *common_name, int cn_len,
             return FAILURE;
         }
     }
+    else if (strcmp(LN_serialNumber, x509_username_field) == 0)
+    {
+        ASN1_INTEGER *asn1_i = X509_get_serialNumber(peer_cert);
+        struct gc_arena gc = gc_new();
+        char *serial = format_hex_ex(asn1_i->data, asn1_i->length,
+                                     0, 1 | FHE_CAPS, NULL, &gc);
+
+        if (!serial || cn_len <= strlen(serial)+2)
+        {
+            gc_free(&gc);
+            return FAILURE;
+        }
+        openvpn_snprintf(common_name, cn_len, "0x%s", serial);
+        gc_free(&gc);
+    }
     else
 #endif
     if (FAILURE == extract_x509_field_ssl(X509_get_subject_name(peer_cert),

@@ -645,7 +645,6 @@ verify_cert(struct tls_session *session, openvpn_x509_cert_t *cert, int cert_dep
 {
     result_t ret = FAILURE;
     char *subject = NULL;
-    char common_name[TLS_USERNAME_LEN+1] = {0}; /* null-terminated */
     const struct tls_options *opt;
     struct gc_arena gc = gc_new();
 
@@ -668,19 +667,47 @@ verify_cert(struct tls_session *session, openvpn_x509_cert_t *cert, int cert_dep
     string_replace_leading(subject, '-', '_');
 
     /* extract the username (default is CN) */
-    if (SUCCESS != backend_x509_get_username(common_name, sizeof(common_name),
-                                             opt->x509_username_field, cert))
+    struct buffer buf = alloc_buf_gc(256, &gc);
+    for (int i = 0; opt->x509_username_field[i] != NULL; i++)
     {
-        if (!cert_depth)
+        char username[TLS_USERNAME_LEN+1] = {0}; /* null-terminated */
+
+        if (SUCCESS != backend_x509_get_username(username, sizeof(username),
+                                                 opt->x509_username_field[i], cert))
         {
-            msg(D_TLS_ERRORS, "VERIFY ERROR: could not extract %s from X509 "
-                "subject string ('%s') -- note that the username length is "
-                "limited to %d characters",
-                opt->x509_username_field,
-                subject,
-                TLS_USERNAME_LEN);
-            goto cleanup;
+            if (!cert_depth)
+            {
+                msg(D_TLS_ERRORS, "VERIFY ERROR: could not extract %s from X509 "
+                    "subject string ('%s') -- note that the field length is "
+                    "limited to %d characters",
+                    opt->x509_username_field[i],
+                    subject,
+                    TLS_USERNAME_LEN);
+                goto cleanup;
+            }
+            break;
         }
+        if (!buf_printf(&buf, i ? "_%s" : "%s", username))
+        {
+            if (!cert_depth)
+            {
+                msg(D_TLS_ERRORS, "VERIFY ERROR: could not append %s from X509 "
+                    "certificate -- note that the username length is "
+                    "limited to %d characters",
+                    opt->x509_username_field[i],
+                    buf.capacity - 1);
+                goto cleanup;
+            }
+            break;
+        }
+    }
+
+    char *common_name = BSTR(&buf);
+    if (!common_name)
+    {
+        msg(D_TLS_ERRORS, "VERIFY ERROR: depth=%d, could not extract X509 "
+            "username string from certificate", cert_depth);
+        goto cleanup;
     }
 
     /* enforce character class restrictions in common name */

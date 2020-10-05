@@ -632,20 +632,23 @@ certificates and keys: https://github.com/OpenVPN/easy-rsa
   options can be defined to track multiple attributes.
 
 --x509-username-field args
-  Field in the X.509 certificate subject to be used as the username
-  (default :code:`CN`).
+  Fields in the X.509 certificate subject to be used as the username
+  (default :code:`CN`). If multiple fields are specified their values
+  will be concatenated into the one username using :code:`_` symbol
+  as a separator.
 
   Valid syntax:
   ::
 
-     x509-username-field [ext:]fieldname
+     x509-username-field [ext:]fieldname [[ext:]fieldname...]
 
-  Typically, this option is specified with **fieldname** as
+  Typically, this option is specified with **fieldname** arguments as
   either of the following:
   ::
 
      x509-username-field emailAddress
      x509-username-field ext:subjectAltName
+     x509-username-field CN serialNumber
 
   The first example uses the value of the :code:`emailAddress` attribute
   in the certificate's Subject field as the username. The second example
@@ -653,16 +656,22 @@ certificates and keys: https://github.com/OpenVPN/easy-rsa
   ``fieldname`` :code:`subjectAltName` be searched for an rfc822Name
   (email) field to be used as the username. In cases where there are
   multiple email addresses in :code:`ext:fieldname`, the last occurrence
-  is chosen.
+  is chosen. The last example uses the value of the :code:`CN` attribute
+  in the Subject field, combined with the :code:`_` separator and the
+  hexadecimal representation of the certificate's :code:`serialNumber`.
 
   When this option is used, the ``--verify-x509-name`` option will match
   against the chosen ``fieldname`` instead of the Common Name.
 
   Only the :code:`subjectAltName` and :code:`issuerAltName` X.509
-  extensions are supported.
+  extensions and :code:`serialNumber` X.509 attribute are supported.
 
   **Please note:** This option has a feature which will convert an
   all-lowercase ``fieldname`` to uppercase characters, e.g.,
   :code:`ou` -> :code:`OU`. A mixed-case ``fieldname`` or one having the
   :code:`ext:` prefix will be left as-is. This automatic upcasing feature is
   deprecated and will be removed in a future release.
+
+  Non-compliant symbols are being replaced with the :code:`_` symbol, same as
+  the field separator, so concatenating multiple fields with such or :code:`_`
+  symbols can potentially lead to username collisions.

@@ -876,7 +876,7 @@ init_options(struct options *o, const bool init_gc)
     o->tls_cert_profile = NULL;
     o->ecdh_curve = NULL;
 #ifdef ENABLE_X509ALTUSERNAME
-    o->x509_username_field = X509_USERNAME_FIELD_DEFAULT;
+    o->x509_username_field[0] = X509_USERNAME_FIELD_DEFAULT;
 #endif
 #ifdef ENABLE_PKCS11
     o->pkcs11_pin_cache_period = -1;
@@ -8539,41 +8539,44 @@ add_option(struct options *options,
         x509_track_add(&options->x509_track, p[1], msglevel, &options->gc);
     }
 #ifdef ENABLE_X509ALTUSERNAME
-    else if (streq(p[0], "x509-username-field") && p[1] && !p[2])
+    else if (streq(p[0], "x509-username-field") && p[1])
     {
-        /* This option used to automatically upcase the fieldname passed as the
-         * option argument, e.g., "ou" became "OU". Now, this "helpfulness" is
+        /* This option used to automatically upcase the fieldnames passed as the
+         * option arguments, e.g., "ou" became "OU". Now, this "helpfulness" is
          * fine-tuned by only upcasing Subject field attribute names which consist
          * of all lower-case characters. Mixed-case attributes such as
          * "emailAddress" are left as-is. An option parameter having the "ext:"
          * prefix for matching X.509v3 extended fields will also remain unchanged.
          */
-        char *s = p[1];
-
         VERIFY_PERMISSION(OPT_P_GENERAL);
-        if (strncmp("ext:", s, 4) != 0)
+        for (size_t j = 1; j < MAX_PARMS && p[j] != NULL; ++j)
         {
-            size_t i = 0;
-            while (s[i] && !isupper(s[i]))
+            char *s = p[j];
+
+            if (strncmp("ext:", s, 4) != 0)
             {
-                i++;
-            }
-            if (strlen(s) == i)
-            {
-                while ((*s = toupper(*s)) != '\0')
+                size_t i = 0;
+                while (s[i] && !isupper(s[i]))
                 {
-                    s++;
+                    i++;
                 }
-                msg(M_WARN, "DEPRECATED FEATURE: automatically upcased the "
-                    "--x509-username-field parameter to '%s'; please update your"
-                    "configuration", p[1]);
+                if (strlen(s) == i)
+                {
+                    while ((*s = toupper(*s)) != '\0')
+                    {
+                        s++;
+                    }
+                    msg(M_WARN, "DEPRECATED FEATURE: automatically upcased the "
+                        "--x509-username-field parameter to '%s'; please update your"
+                        "configuration", p[j]);
+                }
             }
+            else if (!x509_username_field_ext_supported(s+4))
+            {
+                msg(msglevel, "Unsupported x509-username-field extension: %s", s);
+            }
+            options->x509_username_field[j-1] = p[j];
         }
-        else if (!x509_username_field_ext_supported(s+4))
-        {
-            msg(msglevel, "Unsupported x509-username-field extension: %s", s);
-        }
-        options->x509_username_field = p[1];
     }
 #endif /* ENABLE_X509ALTUSERNAME */
 #ifdef ENABLE_PKCS11

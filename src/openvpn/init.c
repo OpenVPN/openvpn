@@ -2916,14 +2916,14 @@ do_init_crypto_tls(struct context *c, const unsigned int flags)
     to.crl_file_inline = options->crl_file_inline;
     to.ssl_flags = options->ssl_flags;
     to.ns_cert_type = options->ns_cert_type;
-    memmove(to.remote_cert_ku, options->remote_cert_ku, sizeof(to.remote_cert_ku));
+    memcpy(to.remote_cert_ku, options->remote_cert_ku, sizeof(to.remote_cert_ku));
     to.remote_cert_eku = options->remote_cert_eku;
     to.verify_hash = options->verify_hash;
     to.verify_hash_algo = options->verify_hash_algo;
 #ifdef ENABLE_X509ALTUSERNAME
-    to.x509_username_field = (char *) options->x509_username_field;
+    memcpy(to.x509_username_field, options->x509_username_field, sizeof(to.x509_username_field));
 #else
-    to.x509_username_field = X509_USERNAME_FIELD_DEFAULT;
+    to.x509_username_field[0] = X509_USERNAME_FIELD_DEFAULT;
 #endif
     to.es = c->c2.es;
     to.net_ctx = &c->net_ctx;

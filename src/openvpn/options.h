@@ -584,8 +584,8 @@ struct options
     int handshake_window;
 
 #ifdef ENABLE_X509ALTUSERNAME
-    /* Field used to be the username in X509 cert. */
-    char *x509_username_field;
+    /* Field list used to be the username in X509 cert. */
+    char *x509_username_field[MAX_PARMS];
 #endif
 
     /* Old key allowed to live n seconds after new key goes active */

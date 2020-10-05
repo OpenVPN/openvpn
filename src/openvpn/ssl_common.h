@@ -284,7 +284,11 @@ struct tls_options
     const char *remote_cert_eku;
     uint8_t *verify_hash;
     hash_algo_type verify_hash_algo;
-    char *x509_username_field;
+#ifdef ENABLE_X509ALTUSERNAME
+    char *x509_username_field[MAX_PARMS];
+#else
+    char *x509_username_field[2];
+#endif
 
     /* allow openvpn config info to be
      * passed over control channel */
