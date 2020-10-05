@@ -1238,10 +1238,18 @@ possibly_become_daemon(const struct options *options)
     {
         ASSERT(!options->inetd);
         /* Don't chdir immediately, but the end of the init sequence, if needed */
+
+#if defined(__APPLE__) && defined(__clang__)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+#endif
         if (daemon(1, options->log) < 0)
         {
             msg(M_ERR, "daemon() failed or unsupported");
         }
+#if defined(__APPLE__) && defined(__clang__)
+#pragma clang diagnostic pop
+#endif
         restore_signal_state();
         if (options->log)
         {
