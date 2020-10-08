@@ -2484,6 +2484,14 @@ key_method_2_read(struct buffer *buf, struct tls_multi *multi, struct tls_sessio
     multi->remote_ciphername =
         options_string_extract_option(options, "cipher", NULL);
 
+    /* In OCC we send '[null-cipher]' instead 'none' */
+    if (multi->remote_ciphername
+        && strcmp(multi->remote_ciphername, "[null-cipher]") == 0)
+    {
+        free(multi->remote_ciphername);
+        multi->remote_ciphername = string_alloc("none", NULL);
+    }
+
     if (tls_session_user_pass_enabled(session))
     {
         /* Perform username/password authentication */
