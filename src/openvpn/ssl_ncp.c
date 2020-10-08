@@ -110,7 +110,15 @@ mutate_ncp_cipher_list(const char *list, struct gc_arena *gc)
          * e.g. replacing AeS-128-gCm with AES-128-GCM
          */
         const cipher_kt_t *ktc = cipher_kt_get(token);
-        if (!ktc)
+        if (strcmp(token, "none") == 0)
+        {
+            msg(M_WARN, "WARNING: cipher 'none' specified for --data-ciphers. "
+                        "This allows negotiation of NO encryption and "
+                        "tunnelled data WILL then be transmitted in clear text "
+                        "over the network! "
+                        "PLEASE DO RECONSIDER THIS SETTING!");
+        }
+        if (!ktc && strcmp(token, "none") != 0)
         {
             msg(M_WARN, "Unsupported cipher in --data-ciphers: %s", token);
             error_found = true;
@@ -118,6 +126,12 @@ mutate_ncp_cipher_list(const char *list, struct gc_arena *gc)
         else
         {
             const char *ovpn_cipher_name = cipher_kt_name(ktc);
+            if (ktc == NULL)
+            {
+                /* NULL resolves to [null-cipher] but we need none for
+                 * data-ciphers */
+                ovpn_cipher_name = "none";
+            }
 
             if (buf_len(&new_list)> 0)
             {

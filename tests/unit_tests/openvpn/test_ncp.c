@@ -50,7 +50,9 @@ test_check_ncp_ciphers_list(void **state)
     struct gc_arena gc = gc_new();
     bool have_chacha = cipher_kt_get("CHACHA20-POLY1305");
 
-
+    assert_string_equal(mutate_ncp_cipher_list("none", &gc), "none");
+    assert_string_equal(mutate_ncp_cipher_list("AES-256-GCM:none", &gc),
+                        "AES-256-GCM:none");
 
     assert_string_equal(mutate_ncp_cipher_list(aes_ciphers, &gc), aes_ciphers);
 
@@ -139,7 +141,7 @@ test_poor_man(void **state)
     char *best_cipher;
 
     const char *serverlist = "CHACHA20_POLY1305:AES-128-GCM";
-    const char *serverlistbfcbc = "CHACHA20_POLY1305:AES-128-GCM:BF-CBC";
+    const char *serverlistbfcbc = "CHACHA20_POLY1305:AES-128-GCM:BF-CBC:none";
 
     best_cipher = ncp_get_best_cipher(serverlist,
                                       "IV_YOLO=NO\nIV_BAR=7",
@@ -165,6 +167,14 @@ test_poor_man(void **state)
                                       "AES-128-GCM", &gc);
 
     assert_string_equal(best_cipher, "AES-128-GCM");
+
+    best_cipher = ncp_get_best_cipher(serverlist, NULL,
+                                      "none", &gc);
+    assert_ptr_equal(best_cipher, NULL);
+
+    best_cipher = ncp_get_best_cipher(serverlistbfcbc, NULL,
+                                      "none", &gc);
+    assert_string_equal(best_cipher, "none");
 
     best_cipher = ncp_get_best_cipher(serverlist, NULL,NULL, &gc);
     assert_ptr_equal(best_cipher, NULL);
