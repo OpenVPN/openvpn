@@ -158,26 +158,23 @@ tls_ctx_initialised(struct tls_root_ctx *ctx)
     return NULL != ctx->ctx;
 }
 
-unsigned char*
+bool
 key_state_export_keying_material(struct tls_session *session,
                                  const char* label, size_t label_size,
-                                 size_t ekm_size,
-                                 struct gc_arena *gc)
+                                 void *ekm, size_t ekm_size)
 
 {
-    unsigned char *ekm = (unsigned char *) gc_malloc(ekm_size, true, gc);
-
     SSL* ssl = session->key[KS_PRIMARY].ks_ssl.ssl;
 
     if (SSL_export_keying_material(ssl, ekm, ekm_size, label,
                                    label_size, NULL, 0, 0) == 1)
     {
-        return ekm;
+        return true;
     }
     else
     {
         secure_memzero(ekm, ekm_size);
-        return NULL;
+        return false;
     }
 }
 

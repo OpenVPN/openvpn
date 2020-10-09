@@ -1786,23 +1786,14 @@ init_key_contexts(struct key_ctx_bi *key,
 static bool
 generate_key_expansion_tls_export(struct tls_session *session, struct key2 *key2)
 {
-    struct gc_arena gc = gc_new();
-    unsigned char *key2data;
-
-    key2data = key_state_export_keying_material(session,
-                                                EXPORT_KEY_DATA_LABEL,
-                                                strlen(EXPORT_KEY_DATA_LABEL),
-                                                sizeof(key2->keys),
-                                                &gc);
-    if (!key2data)
+    if (!key_state_export_keying_material(session, EXPORT_KEY_DATA_LABEL,
+                                          strlen(EXPORT_KEY_DATA_LABEL),
+                                          key2->keys, sizeof(key2->keys)))
     {
         return false;
     }
-    memcpy(key2->keys, key2data, sizeof(key2->keys));
-    secure_memzero(key2data, sizeof(key2->keys));
     key2->n = 2;
 
-    gc_free(&gc);
     return true;
 }
 
@@ -2499,12 +2490,11 @@ export_user_keying_material(struct key_state_ssl *ssl,
         unsigned int size = session->opt->ekm_size;
         struct gc_arena gc = gc_new();
 
-        unsigned char *ekm;
-        if ((ekm = key_state_export_keying_material(session,
-                                                    session->opt->ekm_label,
-                                                    session->opt->ekm_label_size,
-                                                    session->opt->ekm_size,
-                                                    &gc)))
+        unsigned char *ekm = gc_malloc(session->opt->ekm_size, true, &gc);
+        if (key_state_export_keying_material(session,
+                                             session->opt->ekm_label,
+                                             session->opt->ekm_label_size,
+                                             ekm, session->opt->ekm_size))
         {
             unsigned int len = (size * 2) + 2;
 

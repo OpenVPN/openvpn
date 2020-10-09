@@ -219,11 +219,10 @@ mbedtls_ssl_export_keys_cb(void *p_expkey, const unsigned char *ms,
     return true;
 }
 
-unsigned char *
+bool
 key_state_export_keying_material(struct tls_session *session,
                                  const char* label, size_t label_size,
-                                 size_t ekm_size,
-                                 struct gc_arena *gc)
+                                 void *ekm, size_t ekm_size)
 {
     ASSERT(strlen(label) == label_size);
 
@@ -233,10 +232,9 @@ key_state_export_keying_material(struct tls_session *session,
      * there is no PRF, in both cases we cannot generate key material */
     if (cache->tls_prf_type == MBEDTLS_SSL_TLS_PRF_NONE)
     {
-        return NULL;
+        return false;
     }
 
-    unsigned char *ekm = (unsigned char *) gc_malloc(ekm_size, true, gc);
     int ret = mbedtls_ssl_tls_prf(cache->tls_prf_type, cache->master_secret,
                                   sizeof(cache->master_secret),
                                   label, cache->client_server_random,
@@ -245,12 +243,12 @@ key_state_export_keying_material(struct tls_session *session,
 
     if (mbed_ok(ret))
     {
-        return ekm;
+        return true;
     }
     else
     {
         secure_memzero(ekm, session->opt->ekm_size);
-        return  NULL;
+        return  false;
     }
 }
 #else
