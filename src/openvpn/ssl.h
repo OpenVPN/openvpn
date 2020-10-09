@@ -116,6 +116,8 @@
  * to wait for a push-request to send a push-reply */
 #define IV_PROTO_REQUEST_PUSH   (1<<2)
 
+/** Supports key derivation via TLS key material exporter [RFC5705] */
+#define IV_PROTO_TLS_KEY_EXPORT (1<<3)
 
 /* Default field in X509 to be username */
 #define X509_USERNAME_FIELD_DEFAULT "CN"

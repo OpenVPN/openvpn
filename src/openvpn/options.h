@@ -648,6 +648,9 @@ struct options
     /* Useful when packets sent by openvpn itself are not subject
      * to the routing tables that would move packets into the tunnel. */
     bool allow_recursive_routing;
+
+    /* Use RFC5705 key export to generate data channel keys */
+    bool data_channel_use_ekm;
 };
 
 #define streq(x, y) (!strcmp((x), (y)))

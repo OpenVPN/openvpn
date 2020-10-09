@@ -1,3 +1,14 @@
+Overview of changes in 2.6
+==========================
+
+
+New features
+------------
+Keying Material Exporters (RFC 5705) based key generation
+    As part of the cipher negotiation OpenVPN will automatically prefer
+    the RFC5705 based key material generation to the current custom
+    OpenVPN PRF. This feature requires OpenSSL or mbed TLS 2.18+.
+
 Overview of changes in 2.5
 ==========================
 

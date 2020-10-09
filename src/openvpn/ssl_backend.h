@@ -389,6 +389,7 @@ void key_state_ssl_free(struct key_state_ssl *ks_ssl);
 void backend_tls_ctx_reload_crl(struct tls_root_ctx *ssl_ctx,
                                 const char *crl_file, bool crl_inline);
 
+#define EXPORT_KEY_DATA_LABEL       "EXPORTER-OpenVPN-datakeys"
 /**
  * Keying Material Exporters [RFC 5705] allows additional keying material to be
  * derived from existing TLS channel. This exported keying material can then be

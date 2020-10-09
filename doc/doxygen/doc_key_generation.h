@@ -58,6 +58,12 @@
  *
  * @subsection key_generation_method_2 Key method 2
  *
+ * There are two methods for generating key data when using key method 2
+ * the first is OpenVPN's traditional approach that exchanges random
+ * data and uses a PRF and the other is using the RFC5705 keying material
+ * exporter to generate the key material. For both methods the random
+ * data is exchange but only used in the traditional method.
+ *
  * -# The client generates random material in the following amounts:
  *    - Pre-master secret: 48 bytes
  *    - Client's PRF seed for master secret: 32 bytes
@@ -73,8 +79,12 @@
  *    server's random material.
  *
  * %Key method 2 %key expansion is performed by the \c
- * generate_key_expansion() function.  Please refer to its source code for
- * details of the %key expansion process.
+ * generate_key_expansion_openvpn_prf() function.  Please refer to its source
+ * code for details of the %key expansion process.
+ *
+ * When the client sends the IV_PROTO_TLS_KEY_EXPORT flag and the server replies
+ * with `key-derivation tls-ekm` the RFC5705 key material exporter with the
+ * label EXPORTER-OpenVPN-datakeys is used for the key data.
  *
  * @subsection key_generation_random Source of random material
  *

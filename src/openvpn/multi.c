@@ -1817,6 +1817,10 @@ multi_client_set_protocol_options(struct context *c)
         c->c2.push_request_received = true;
     }
 
+#ifdef HAVE_EXPORT_KEYING_MATERIAL
+    o->data_channel_use_ekm = (proto & IV_PROTO_TLS_KEY_EXPORT);
+#endif
+
     /* Select cipher if client supports Negotiable Crypto Parameters */
     if (!o->ncp_enabled)
     {

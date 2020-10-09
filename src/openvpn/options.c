@@ -7979,6 +7979,20 @@ add_option(struct options *options,
         }
         options->ncp_ciphers = p[1];
     }
+    else if (streq(p[0], "key-derivation") && p[1])
+    {
+        VERIFY_PERMISSION(OPT_P_NCP)
+#ifdef HAVE_EXPORT_KEYING_MATERIAL
+        if (streq(p[1], "tls-ekm"))
+        {
+            options->data_channel_use_ekm = true;
+        }
+        else
+#endif
+        {
+            msg(msglevel, "Unknown key-derivation method %s", p[1]);
+        }
+    }
     else if (streq(p[0], "ncp-disable") && !p[1])
     {
         VERIFY_PERMISSION(OPT_P_GENERAL|OPT_P_INSTANCE);
@@ -8706,6 +8720,11 @@ add_option(struct options *options,
             msg(msglevel, "Keying material exporter label must begin with "
                 "\"EXPORTER\"");
             goto err;
+        }
+        if (streq(p[1], EXPORT_KEY_DATA_LABEL))
+        {
+            msg(msglevel, "Keying material exporter label must not be '"
+                EXPORT_KEY_DATA_LABEL "'.");
         }
         if (ekm_length < 16 || ekm_length > 4095)
         {

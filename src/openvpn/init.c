@@ -687,6 +687,7 @@ restore_ncp_options(struct context *c)
     c->options.ciphername = c->c1.ciphername;
     c->options.authname = c->c1.authname;
     c->options.keysize = c->c1.keysize;
+    c->options.data_channel_use_ekm = false;
 }
 
 void

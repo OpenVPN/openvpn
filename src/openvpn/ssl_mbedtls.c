@@ -1168,11 +1168,8 @@ key_state_ssl_init(struct key_state_ssl *ks_ssl,
 
 #ifdef HAVE_EXPORT_KEYING_MATERIAL
     /* Initialize keying material exporter */
-    if (session->opt->ekm_size)
-    {
-        mbedtls_ssl_conf_export_keys_ext_cb(ks_ssl->ssl_config,
-                                            mbedtls_ssl_export_keys_cb, session);
-    }
+    mbedtls_ssl_conf_export_keys_ext_cb(ks_ssl->ssl_config,
+                                        mbedtls_ssl_export_keys_cb, session);
 #endif
 
     /* Initialise SSL context */

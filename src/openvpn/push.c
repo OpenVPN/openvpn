@@ -479,7 +479,10 @@ prepare_push_reply(struct context *c, struct gc_arena *gc,
     {
         push_option_fmt(gc, push_list, M_USAGE, "cipher %s", o->ciphername);
     }
-
+    if (o->data_channel_use_ekm)
+    {
+        push_option_fmt(gc, push_list, M_USAGE, "key-derivation tls-ekm");
+    }
     return true;
 }
 

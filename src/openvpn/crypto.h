@@ -254,6 +254,10 @@ struct crypto_options
 #define CO_MUTE_REPLAY_WARNINGS (1<<2)
     /**< Bit-flag indicating not to display
      *   replay warnings. */
+#define CO_USE_TLS_KEY_MATERIAL_EXPORT  (1<<3)
+    /**< Bit-flag indicating that data channel key derivation
+     * is done using TLS keying material export [RFC5705]
+     */
     unsigned int flags;         /**< Bit-flags determining behavior of
                                  *   security operation functions. */
 };
