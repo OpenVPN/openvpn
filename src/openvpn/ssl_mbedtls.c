@@ -252,14 +252,13 @@ key_state_export_keying_material(struct tls_session *session,
     }
 }
 #else
-unsigned char*
+bool
 key_state_export_keying_material(struct tls_session *session,
                                  const char* label, size_t label_size,
-                                 size_t ekm_size,
-                                 struct gc_arena *gc)
+                                 void *ekm, size_t ekm_size)
 {
     /* Dummy function to avoid ifdefs in the common code */
-    return NULL;
+    return false;
 }
 #endif /* HAVE_EXPORT_KEYING_MATERIAL */
 
