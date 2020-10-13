@@ -1098,6 +1098,9 @@ verify_user_pass_script(struct tls_session *session, struct tls_multi *multi,
     /* Set environmental variables prior to calling script */
     setenv_str(session->opt->es, "script_type", "user-pass-verify");
 
+    /* format command line */
+    argv_parse_cmd(&argv, session->opt->auth_user_pass_verify_script);
+
     if (session->opt->auth_user_pass_verify_script_via_file)
     {
         struct status_output *so;
@@ -1115,6 +1118,8 @@ verify_user_pass_script(struct tls_session *session, struct tls_multi *multi,
                     tmp_file);
                 goto done;
             }
+            /* pass temp file name to script */
+            argv_printf_cat(&argv, "%s", tmp_file);
         }
         else
         {
@@ -1126,10 +1131,6 @@ verify_user_pass_script(struct tls_session *session, struct tls_multi *multi,
     {
         setenv_str(session->opt->es, "password", up->password);
     }
-
-    /* format command line */
-    argv_parse_cmd(&argv, session->opt->auth_user_pass_verify_script);
-    argv_printf_cat(&argv, "%s", tmp_file);
 
     /* call command */
     ret = openvpn_run_script(&argv, session->opt->es, 0,
