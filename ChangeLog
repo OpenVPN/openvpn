@@ -1,6 +1,32 @@
 OpenVPN Change Log
 Copyright (C) 2002-2020 OpenVPN Inc <sales@openvpn.net>
 
+2020.10.15 -- Version 2.5_rc3
+Arne Schwabe (2):
+      Allow 'none' cipher being specified in --data-ciphers
+      Add function for common env setting of verify user/pass calls
+
+David Sommerseth (1):
+      compat/lz4: Update to v1.9.2
+
+Gert Doering (2):
+      Fix redirecting of IPv4 default gateway if connecting over IPv6.
+      Avoid passing NULL to argv_printf_cat() in temp_file error case.
+
+Jan Seeger (1):
+      Added 'route_ipv6_metric_NN' environment variable for IPv6 route metric.
+
+Richard Bonhomme (1):
+      Improve error msg when all TAP adapters are in use 'or disabled'
+
+Steffan Karger (1):
+      networking_iproute2: fix memory leak in net_iface_mtu_set()
+
+Vladislav Grishenko (2):
+      Selectively reformat too long lines
+      Speedup TCP remote hosts connections
+
+
 2020.09.30 -- Version 2.5_rc2
 
 Lev Stipakov (1):
