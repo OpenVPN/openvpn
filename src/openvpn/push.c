@@ -219,7 +219,7 @@ receive_cr_response(struct context *c, const struct buffer *buffer)
     {
         m = BSTR(&buf);
     }
-#ifdef MANAGEMENT_DEF_AUTH
+#ifdef ENABLE_MANAGEMENT
     struct tls_session *session = &c->c2.tls_multi->session[TM_ACTIVE];
     struct man_def_auth_context *mda = session->opt->mda_context;
     struct env_set *es = session->opt->es;

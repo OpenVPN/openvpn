@@ -206,15 +206,13 @@ struct key_state
     enum ks_auth_state authenticated;
     time_t auth_deferred_expire;
 
-#ifdef MANAGEMENT_DEF_AUTH
+#ifdef ENABLE_MANAGEMENT
     unsigned int mda_key_id;
     unsigned int mda_status;
 #endif
-#ifdef PLUGIN_DEF_AUTH
     unsigned int auth_control_status;
     time_t acf_last_mod;
     char *auth_control_file;
-#endif
 };
 
 /** Control channel wrapping (--tls-auth/--tls-crypt) context */
@@ -353,7 +351,7 @@ struct tls_options
 #define SSLF_TLS_VERSION_MAX_MASK     0xF  /* (uses bit positions 10 to 13) */
     unsigned int ssl_flags;
 
-#ifdef MANAGEMENT_DEF_AUTH
+#ifdef ENABLE_MANAGEMENT
     struct man_def_auth_context *mda_context;
 #endif
 
@@ -536,10 +534,8 @@ struct tls_multi
     char *locked_username;
     struct cert_hash_set *locked_cert_hash_set;
 
-#ifdef ENABLE_DEF_AUTH
     /* Time of last call to tls_authentication_status */
     time_t tas_last;
-#endif
 
     /*
      * An error message to send to client on AUTH_FAILED

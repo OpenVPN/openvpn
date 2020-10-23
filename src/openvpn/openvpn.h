@@ -479,7 +479,7 @@ struct context_2
     struct pf_context pf;
 #endif
 
-#ifdef MANAGEMENT_DEF_AUTH
+#ifdef ENABLE_MANAGEMENT
     struct man_def_auth_context mda_context;
 #endif
 

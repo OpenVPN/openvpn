@@ -40,7 +40,6 @@
 /*
  * Management-interface-based deferred authentication
  */
-#ifdef MANAGEMENT_DEF_AUTH
 struct man_def_auth_context {
     unsigned long cid;
 
@@ -53,7 +52,6 @@ struct man_def_auth_context {
 
     time_t bytecount_last_update;
 };
-#endif
 
 /*
  * Manage build-up of command line
@@ -165,7 +163,6 @@ struct management_callback
     void (*delete_event) (void *arg, event_t event);
     int (*n_clients) (void *arg);
     bool (*send_cc_message) (void *arg, const char *message, const char *parameter);
-#ifdef MANAGEMENT_DEF_AUTH
     bool (*kill_by_cid)(void *arg, const unsigned long cid, const char *kill_msg);
     bool (*client_auth) (void *arg,
                          const unsigned long cid,
@@ -178,7 +175,6 @@ struct management_callback
                                  const unsigned long cid,
                                  const char *url);
     char *(*get_peer_info) (void *arg, const unsigned long cid);
-#endif
 #ifdef MANAGEMENT_PF
     bool (*client_pf)(void *arg,
                       const unsigned long cid,
@@ -287,10 +283,8 @@ struct man_connection {
 #define IEC_PK_SIGN     5
     int in_extra_cmd;
     struct buffer_list *in_extra;
-#ifdef MANAGEMENT_DEF_AUTH
     unsigned long in_extra_cid;
     unsigned int in_extra_kid;
-#endif
 #define EKS_UNDEF   0
 #define EKS_SOLICIT 1
 #define EKS_INPUT   2
@@ -339,9 +333,7 @@ struct management *management_init(void);
 #define MF_SIGNAL            (1<<3)
 #define MF_FORGET_DISCONNECT (1<<4)
 #define MF_CONNECT_AS_CLIENT (1<<5)
-#ifdef MANAGEMENT_DEF_AUTH
 #define MF_CLIENT_AUTH       (1<<6)
-#endif
 #ifdef MANAGEMENT_PF
 #define MF_CLIENT_PF         (1<<7)
 #endif
@@ -415,7 +407,6 @@ void management_notify(struct management *man, const char *severity, const char 
 
 void management_notify_generic(struct management *man, const char *str);
 
-#ifdef MANAGEMENT_DEF_AUTH
 void management_notify_client_needing_auth(struct management *management,
                                            const unsigned int auth_id,
                                            struct man_def_auth_context *mdac,
@@ -438,8 +429,6 @@ void management_notify_client_cr_response(unsigned mda_key_id,
                                           const struct man_def_auth_context *mdac,
                                           const struct env_set *es,
                                           const char *response);
-
-#endif /* ifdef MANAGEMENT_DEF_AUTH */
 
 char *management_query_pk_sig(struct management *man, const char *b64_data,
                               const char *algorithm);
@@ -478,13 +467,11 @@ management_enable_pf(const struct management *man)
 }
 #endif
 
-#ifdef MANAGEMENT_DEF_AUTH
 static inline bool
 management_enable_def_auth(const struct management *man)
 {
     return man && BOOL_CAST(man->settings.flags & MF_CLIENT_AUTH);
 }
-#endif
 
 /*
  * OpenVPN tells the management layer what state it's in
@@ -582,8 +569,6 @@ management_bytes_in(struct management *man, const int size)
     }
 }
 
-#ifdef MANAGEMENT_DEF_AUTH
-
 void man_bytecount_output_server(struct management *man,
                                  const counter_type *bytes_in_total,
                                  const counter_type *bytes_out_total,
@@ -602,8 +587,6 @@ management_bytes_server(struct management *man,
         man_bytecount_output_server(man, bytes_in_total, bytes_out_total, mdac);
     }
 }
-
-#endif /* MANAGEMENT_DEF_AUTH */
 
 #endif /* ifdef ENABLE_MANAGEMENT */
 

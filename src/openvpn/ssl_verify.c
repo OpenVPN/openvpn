@@ -829,14 +829,12 @@ cleanup:
 * user/password authentication.
 *************************************************************************** */
 
-#ifdef ENABLE_DEF_AUTH
 /* key_state_test_auth_control_file return values,
  * NOTE: acf_merge indexing depends on these values */
 #define ACF_UNDEFINED 0
 #define ACF_SUCCEEDED 1
 #define ACF_DISABLED  2
 #define ACF_FAILED    3
-#endif
 
 void
 auth_set_client_reason(struct tls_multi *multi, const char *client_reason)
@@ -850,7 +848,7 @@ auth_set_client_reason(struct tls_multi *multi, const char *client_reason)
     }
 }
 
-#ifdef MANAGEMENT_DEF_AUTH
+#ifdef ENABLE_MANAGEMENT
 
 static inline unsigned int
 man_def_auth_test(const struct key_state *ks)
@@ -864,9 +862,8 @@ man_def_auth_test(const struct key_state *ks)
         return ACF_DISABLED;
     }
 }
-#endif /* ifdef MANAGEMENT_DEF_AUTH */
+#endif /* ifdef ENABLE_MANAGEMENT */
 
-#ifdef PLUGIN_DEF_AUTH
 
 /*
  * auth_control_file functions
@@ -929,8 +926,6 @@ key_state_test_auth_control_file(struct key_state *ks)
     return ACF_DISABLED;
 }
 
-#endif /* ifdef PLUGIN_DEF_AUTH */
-
 /*
  * Return current session authentication state.  Return
  * value is TLS_AUTHENTICATION_x.
@@ -943,7 +938,6 @@ tls_authentication_status(struct tls_multi *multi, const int latency)
     bool success = false;
     bool active = false;
 
-#ifdef ENABLE_DEF_AUTH
     static const unsigned char acf_merge[] =
     {
         ACF_UNDEFINED, /* s1=ACF_UNDEFINED s2=ACF_UNDEFINED */
@@ -963,19 +957,16 @@ tls_authentication_status(struct tls_multi *multi, const int latency)
         ACF_FAILED,  /* s1=ACF_FAILED    s2=ACF_DISABLED */
         ACF_FAILED   /* s1=ACF_FAILED    s2=ACF_FAILED */
     };
-#endif /* ENABLE_DEF_AUTH */
 
     if (multi)
     {
         int i;
 
-#ifdef ENABLE_DEF_AUTH
         if (latency && multi->tas_last && multi->tas_last + latency >= now)
         {
             return TLS_AUTHENTICATION_UNDEFINED;
         }
         multi->tas_last = now;
-#endif /* ENABLE_DEF_AUTH */
 
         for (i = 0; i < KEY_SCAN_SIZE; ++i)
         {
@@ -985,15 +976,12 @@ tls_authentication_status(struct tls_multi *multi, const int latency)
                 active = true;
                 if (ks->authenticated > KS_AUTH_FALSE)
                 {
-#ifdef ENABLE_DEF_AUTH
                     unsigned int s1 = ACF_DISABLED;
                     unsigned int s2 = ACF_DISABLED;
-#ifdef PLUGIN_DEF_AUTH
                     s1 = key_state_test_auth_control_file(ks);
-#endif /* PLUGIN_DEF_AUTH */
-#ifdef MANAGEMENT_DEF_AUTH
+#ifdef ENABLE_MANAGEMENT
                     s2 = man_def_auth_test(ks);
-#endif /* MANAGEMENT_DEF_AUTH */
+#endif
                     ASSERT(s1 < 4 && s2 < 4);
                     switch (acf_merge[(s1<<2) + s2])
                     {
@@ -1017,9 +1005,6 @@ tls_authentication_status(struct tls_multi *multi, const int latency)
                         default:
                             ASSERT(0);
                     }
-#else /* !ENABLE_DEF_AUTH */
-                    success = true;
-#endif /* ENABLE_DEF_AUTH */
                 }
             }
         }
@@ -1043,7 +1028,7 @@ tls_authentication_status(struct tls_multi *multi, const int latency)
     }
 }
 
-#ifdef MANAGEMENT_DEF_AUTH
+#ifdef ENABLE_MANAGEMENT
 /*
  * For deferred auth, this is where the management interface calls (on server)
  * to indicate auth failure/success.
@@ -1068,7 +1053,7 @@ tls_authenticate_key(struct tls_multi *multi, const unsigned int mda_key_id, con
     }
     return ret;
 }
-#endif /* ifdef MANAGEMENT_DEF_AUTH */
+#endif /* ifdef ENABLE_MANAGEMENT */
 
 
 /* ****************************************************************************
@@ -1157,14 +1142,11 @@ verify_user_pass_plugin(struct tls_session *session, struct tls_multi *multi,
                         const struct user_pass *up)
 {
     int retval = OPENVPN_PLUGIN_FUNC_ERROR;
-#ifdef PLUGIN_DEF_AUTH
     struct key_state *ks = &session->key[KS_PRIMARY];      /* primary key */
-#endif
 
     /* set password in private env space */
     setenv_str(session->opt->es, "password", up->password);
 
-#ifdef PLUGIN_DEF_AUTH
     /* generate filename for deferred auth control file */
     if (!key_state_gen_auth_control_file(ks, session->opt))
     {
@@ -1172,18 +1154,15 @@ verify_user_pass_plugin(struct tls_session *session, struct tls_multi *multi,
             "could not create deferred auth control file", __func__);
         return retval;
     }
-#endif
 
     /* call command */
     retval = plugin_call(session->opt->plugins, OPENVPN_PLUGIN_AUTH_USER_PASS_VERIFY, NULL, NULL, session->opt->es);
 
-#ifdef PLUGIN_DEF_AUTH
     /* purge auth control filename (and file itself) for non-deferred returns */
     if (retval != OPENVPN_PLUGIN_FUNC_DEFERRED)
     {
         key_state_rm_auth_control_file(ks);
     }
-#endif
 
     setenv_del(session->opt->es, "password");
 
@@ -1191,9 +1170,9 @@ verify_user_pass_plugin(struct tls_session *session, struct tls_multi *multi,
 }
 
 
-#ifdef MANAGEMENT_DEF_AUTH
+#ifdef ENABLE_MANAGEMENT
 /*
- * MANAGEMENT_DEF_AUTH internal ssl_verify.c status codes
+ * management deferred internal ssl_verify.c status codes
  */
 #define KMDA_ERROR   0
 #define KMDA_SUCCESS 1
@@ -1222,7 +1201,7 @@ verify_user_pass_management(struct tls_session *session,
 
     return retval;
 }
-#endif /* ifdef MANAGEMENT_DEF_AUTH */
+#endif /* ifdef ENABLE_MANAGEMENT */
 
 static bool
 set_verify_user_pass_env(struct user_pass *up, struct tls_multi *multi,
@@ -1267,7 +1246,7 @@ verify_user_pass(struct user_pass *up, struct tls_multi *multi,
     bool s2 = true;
     struct key_state *ks = &session->key[KS_PRIMARY];      /* primary key */
 
-#ifdef MANAGEMENT_DEF_AUTH
+#ifdef ENABLE_MANAGEMENT
     int man_def_auth = KMDA_UNDEF;
 
     if (management_enable_def_auth(management))
@@ -1334,7 +1313,7 @@ verify_user_pass(struct user_pass *up, struct tls_multi *multi,
     /* call plugin(s) and/or script */
     if (!skip_auth)
     {
-#ifdef MANAGEMENT_DEF_AUTH
+#ifdef ENABLE_MANAGEMENT
         if (man_def_auth==KMDA_DEF)
         {
             man_def_auth = verify_user_pass_management(session, multi, up);
@@ -1362,23 +1341,19 @@ verify_user_pass(struct user_pass *up, struct tls_multi *multi,
     }
     /* auth succeeded? */
     if ((s1 == OPENVPN_PLUGIN_FUNC_SUCCESS
-#ifdef PLUGIN_DEF_AUTH
          || s1 == OPENVPN_PLUGIN_FUNC_DEFERRED
-#endif
          ) && s2
-#ifdef MANAGEMENT_DEF_AUTH
+#ifdef ENABLE_MANAGEMENT
         && man_def_auth != KMDA_ERROR
 #endif
         && tls_lock_username(multi, up->username))
     {
         ks->authenticated = KS_AUTH_TRUE;
-#ifdef PLUGIN_DEF_AUTH
         if (s1 == OPENVPN_PLUGIN_FUNC_DEFERRED)
         {
             ks->authenticated = KS_AUTH_DEFERRED;
         }
-#endif
-#ifdef MANAGEMENT_DEF_AUTH
+#ifdef ENABLE_MANAGEMENT
         if (man_def_auth != KMDA_UNDEF)
         {
             ks->authenticated = KS_AUTH_DEFERRED;

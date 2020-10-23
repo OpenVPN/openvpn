@@ -123,7 +123,7 @@ struct multi_instance {
 
     bool did_real_hash;
     bool did_iter;
-#ifdef MANAGEMENT_DEF_AUTH
+#ifdef ENABLE_MANAGEMENT
     bool did_cid_hash;
     struct buffer_list *cc_config;
 #endif
@@ -185,7 +185,7 @@ struct multi_context {
     int status_file_version;
     int n_clients; /* current number of authenticated clients */
 
-#ifdef MANAGEMENT_DEF_AUTH
+#ifdef ENABLE_MANAGEMENT
     struct hash *cid_hash;
     unsigned long cid_counter;
 #endif

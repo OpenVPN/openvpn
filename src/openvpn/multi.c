@@ -69,7 +69,7 @@ id(struct multi_instance *mi)
 }
 #endif
 
-#ifdef MANAGEMENT_DEF_AUTH
+#ifdef ENABLE_MANAGEMENT
 static void
 set_cc_config(struct multi_instance *mi, struct buffer_list *cc_config)
 {
@@ -249,7 +249,7 @@ reap_buckets_per_pass(int n_buckets)
     return constrain_int(n_buckets / REAP_DIVISOR, REAP_MIN, REAP_MAX);
 }
 
-#ifdef MANAGEMENT_DEF_AUTH
+#ifdef ENABLE_MANAGEMENT
 
 static uint32_t
 cid_hash_function(const void *key, uint32_t iv)
@@ -339,7 +339,7 @@ multi_init(struct multi_context *m, struct context *t, bool tcp_mode, int thread
                         mroute_addr_hash_function,
                         mroute_addr_compare_function);
 
-#ifdef MANAGEMENT_DEF_AUTH
+#ifdef ENABLE_MANAGEMENT
     m->cid_hash = hash_init(t->options.real_hash_size,
                             0,
                             cid_hash_function,
@@ -589,7 +589,7 @@ multi_client_disconnect_script(struct multi_instance *mi)
         openvpn_run_script(&argv, mi->context.c2.es, 0, "--client-disconnect");
         argv_free(&argv);
     }
-#ifdef MANAGEMENT_DEF_AUTH
+#ifdef ENABLE_MANAGEMENT
     if (management)
     {
         management_notify_client_close(management, &mi->context.c2.mda_context, mi->context.c2.es);
@@ -634,7 +634,7 @@ multi_close_instance(struct multi_context *m,
         {
             ASSERT(hash_remove(m->iter, &mi->real));
         }
-#ifdef MANAGEMENT_DEF_AUTH
+#ifdef ENABLE_MANAGEMENT
         if (mi->did_cid_hash)
         {
             ASSERT(hash_remove(m->cid_hash, &mi->context.c2.mda_context.cid));
@@ -672,7 +672,7 @@ multi_close_instance(struct multi_context *m,
         mbuf_dereference_instance(m->mbuf, mi);
     }
 
-#ifdef MANAGEMENT_DEF_AUTH
+#ifdef ENABLE_MANAGEMENT
     set_cc_config(mi, NULL);
 #endif
     if (mi->context.c2.context_auth == CAS_SUCCEEDED)
@@ -728,7 +728,7 @@ multi_uninit(struct multi_context *m)
             hash_free(m->hash);
             hash_free(m->vhash);
             hash_free(m->iter);
-#ifdef MANAGEMENT_DEF_AUTH
+#ifdef ENABLE_MANAGEMENT
             hash_free(m->cid_hash);
 #endif
             m->hash = NULL;
@@ -810,7 +810,7 @@ multi_create_instance(struct multi_context *m, const struct mroute_addr *real)
     }
     mi->did_iter = true;
 
-#ifdef MANAGEMENT_DEF_AUTH
+#ifdef ENABLE_MANAGEMENT
     do
     {
         mi->context.c2.mda_context.cid = m->cid_counter++;
@@ -941,7 +941,7 @@ multi_print_status(struct multi_context *m, struct status_output *so, const int 
                 if (!mi->halt)
                 {
                     status_printf(so, "CLIENT_LIST%c%s%c%s%c%s%c%s%c" counter_format "%c" counter_format "%c%s%c%u%c%s%c"
-#ifdef MANAGEMENT_DEF_AUTH
+#ifdef ENABLE_MANAGEMENT
                                   "%lu"
 #else
                                   ""
@@ -956,7 +956,7 @@ multi_print_status(struct multi_context *m, struct status_output *so, const int 
                                   sep, time_string(mi->created, 0, false, &gc),
                                   sep, (unsigned int)mi->created,
                                   sep, tls_username(mi->context.c2.tls_multi, false),
-#ifdef MANAGEMENT_DEF_AUTH
+#ifdef ENABLE_MANAGEMENT
                                   sep, mi->context.c2.mda_context.cid,
 #else
                                   sep,
@@ -1249,7 +1249,7 @@ multi_learn_in_addr_t(struct multi_context *m,
 
     {
         struct multi_instance *owner = multi_learn_addr(m, mi, &addr, 0);
-#ifdef MANAGEMENT_DEF_AUTH
+#ifdef ENABLE_MANAGEMENT
         if (management && owner)
         {
             management_learn_addr(management, &mi->context.c2.mda_context, &addr, primary);
@@ -1282,7 +1282,7 @@ multi_learn_in6_addr(struct multi_context *m,
 
     {
         struct multi_instance *owner = multi_learn_addr(m, mi, &addr, 0);
-#ifdef MANAGEMENT_DEF_AUTH
+#ifdef ENABLE_MANAGEMENT
         if (management && owner)
         {
             management_learn_addr(management, &mi->context.c2.mda_context, &addr, primary);
@@ -1713,7 +1713,7 @@ multi_client_connect_mda(struct multi_context *m,
     /* We never return CC_RET_DEFERRED */
     ASSERT(!deferred);
     enum client_connect_return ret = CC_RET_SKIPPED;
-#ifdef MANAGEMENT_DEF_AUTH
+#ifdef ENABLE_MANAGEMENT
     if (mi->cc_config)
     {
         struct buffer_entry *be;
@@ -1739,7 +1739,7 @@ multi_client_connect_mda(struct multi_context *m,
 
         ret = CC_RET_SUCCEEDED;
     }
-#endif /* ifdef MANAGEMENT_DEF_AUTH */
+#endif /* ifdef ENABLE_MANAGEMENT */
     return ret;
 }
 
@@ -2696,7 +2696,7 @@ multi_connection_established(struct multi_context *m, struct multi_instance *mi)
     update_mstat_n_clients(m->n_clients);
     --mi->n_clients_delta;
 
-#ifdef MANAGEMENT_DEF_AUTH
+#ifdef ENABLE_MANAGEMENT
     if (management)
     {
         management_connection_established(management,
@@ -2919,7 +2919,7 @@ multi_schedule_context_wakeup(struct multi_context *m, struct multi_instance *mi
                        compute_wakeup_sigma(&mi->context.c2.timeval));
 }
 
-#if defined(ENABLE_ASYNC_PUSH) && defined(ENABLE_DEF_AUTH)
+#if defined(ENABLE_ASYNC_PUSH)
 static void
 add_inotify_file_watch(struct multi_context *m, struct multi_instance *mi,
                        int inotify_fd, const char *file)
@@ -2943,7 +2943,7 @@ add_inotify_file_watch(struct multi_context *m, struct multi_instance *mi,
         msg(M_NONFATAL | M_ERRNO, "MULTI: inotify_add_watch error");
     }
 }
-#endif /* if defined(ENABLE_ASYNC_PUSH) && defined(ENABLE_DEF_AUTH) */
+#endif /* if defined(ENABLE_ASYNC_PUSH) */
 
 /*
  * Figure instance-specific timers, convert
@@ -2959,7 +2959,7 @@ multi_process_post(struct multi_context *m, struct multi_instance *mi, const uns
 
     if (!IS_SIG(&mi->context) && ((flags & MPP_PRE_SELECT) || ((flags & MPP_CONDITIONAL_PRE_SELECT) && !ANY_OUT(&mi->context))))
     {
-#if defined(ENABLE_ASYNC_PUSH) && defined(ENABLE_DEF_AUTH)
+#if defined(ENABLE_ASYNC_PUSH)
         bool was_unauthenticated = true;
         struct key_state *ks = NULL;
         if (mi->context.c2.tls_multi)
@@ -2973,7 +2973,7 @@ multi_process_post(struct multi_context *m, struct multi_instance *mi, const uns
          * to_link packets (such as ping or TLS control) */
         pre_select(&mi->context);
 
-#if defined(ENABLE_ASYNC_PUSH) && defined(ENABLE_DEF_AUTH)
+#if defined(ENABLE_ASYNC_PUSH)
         /*
          * if we see the state transition from unauthenticated to deferred
          * and an auth_control_file, we assume it got just added and add
@@ -2996,7 +2996,7 @@ multi_process_post(struct multi_context *m, struct multi_instance *mi, const uns
             {
                 multi_connection_established(m, mi);
             }
-#if defined(ENABLE_ASYNC_PUSH) && defined(ENABLE_DEF_AUTH)
+#if defined(ENABLE_ASYNC_PUSH)
             if (is_cas_pending(mi->context.c2.context_auth)
                 && mi->client_connect_defer_state.deferred_ret_file)
             {
@@ -3108,7 +3108,7 @@ multi_process_float(struct multi_context *m, struct multi_instance *mi)
     ASSERT(hash_add(m->hash, &mi->real, mi, false));
     ASSERT(hash_add(m->iter, &mi->real, mi, false));
 
-#ifdef MANAGEMENT_DEF_AUTH
+#ifdef ENABLE_MANAGEMENT
     ASSERT(hash_add(m->cid_hash, &mi->context.c2.mda_context.cid, mi, true));
 #endif
 
@@ -3882,7 +3882,7 @@ management_delete_event(void *arg, event_t event)
 
 #endif /* ifdef ENABLE_MANAGEMENT */
 
-#ifdef MANAGEMENT_DEF_AUTH
+#ifdef ENABLE_MANAGEMENT
 
 static struct multi_instance *
 lookup_by_cid(struct multi_context *m, const unsigned long cid)
@@ -3996,7 +3996,7 @@ management_get_peer_info(void *arg, const unsigned long cid)
     return ret;
 }
 
-#endif /* ifdef MANAGEMENT_DEF_AUTH */
+#endif /* ifdef ENABLE_MANAGEMENT */
 
 #ifdef MANAGEMENT_PF
 static bool
@@ -4034,12 +4034,10 @@ init_management_callback_multi(struct multi_context *m)
         cb.kill_by_addr = management_callback_kill_by_addr;
         cb.delete_event = management_delete_event;
         cb.n_clients = management_callback_n_clients;
-#ifdef MANAGEMENT_DEF_AUTH
         cb.kill_by_cid = management_kill_by_cid;
         cb.client_auth = management_client_auth;
         cb.client_pending_auth = management_client_pending_auth;
         cb.get_peer_info = management_get_peer_info;
-#endif
 #ifdef MANAGEMENT_PF
         cb.client_pf = management_client_pf;
 #endif

@@ -937,7 +937,7 @@ key_state_init(struct tls_session *session, struct key_state *ks)
 
     ks->crypto_options.pid_persist = NULL;
 
-#ifdef MANAGEMENT_DEF_AUTH
+#ifdef ENABLE_MANAGEMENT
     ks->mda_key_id = session->opt->mda_context->mda_key_id_counter++;
 #endif
 }
@@ -1005,7 +1005,7 @@ tls_session_user_pass_enabled(struct tls_session *session)
 {
     return (session->opt->auth_user_pass_verify_script
             || plugin_defined(session->opt->plugins, OPENVPN_PLUGIN_AUTH_USER_PASS_VERIFY)
-#ifdef MANAGEMENT_DEF_AUTH
+#ifdef ENABLE_MANAGEMENT
             || management_enable_def_auth(management)
 #endif
             );

@@ -2943,7 +2943,7 @@ do_init_crypto_tls(struct context *c, const unsigned int flags)
 
     to.plugins = c->plugins;
 
-#ifdef MANAGEMENT_DEF_AUTH
+#ifdef ENABLE_MANAGEMENT
     to.mda_context = &c->c2.mda_context;
 #endif
 
@@ -4490,7 +4490,7 @@ close_instance(struct context *c)
         /* close TUN/TAP device */
         do_close_tun(c, false);
 
-#ifdef MANAGEMENT_DEF_AUTH
+#ifdef ENABLE_MANAGEMENT
         if (management)
         {
             management_notify_client_close(management, &c->c2.mda_context, NULL);

@@ -100,7 +100,6 @@ man_help(void)
     msg(M_CLIENT, "pkcs11-id-count        : Get number of available PKCS#11 identities.");
     msg(M_CLIENT, "pkcs11-id-get index    : Get PKCS#11 identity at index.");
 #endif
-#ifdef MANAGEMENT_DEF_AUTH
     msg(M_CLIENT, "client-auth CID KID    : Authenticate client-id/key-id CID/KID (MULTILINE)");
     msg(M_CLIENT, "client-auth-nt CID KID : Authenticate client-id/key-id CID/KID");
     msg(M_CLIENT, "client-deny CID KID R [CR] : Deny auth client-id/key-id CID/KID with log reason");
@@ -111,7 +110,6 @@ man_help(void)
     msg(M_CLIENT, "env-filter [level]     : Set env-var filter level");
 #ifdef MANAGEMENT_PF
     msg(M_CLIENT, "client-pf CID          : Define packet filter for client CID (MULTILINE)");
-#endif
 #endif
     msg(M_CLIENT, "rsa-sig                : Enter a signature in response to >RSA_SIGN challenge");
     msg(M_CLIENT, "                         Enter signature base64 on subsequent lines followed by END");
@@ -483,8 +481,6 @@ man_bytecount_output_client(struct management *man)
     man->connection.bytecount_last_update = now;
 }
 
-#ifdef MANAGEMENT_DEF_AUTH
-
 void
 man_bytecount_output_server(struct management *man,
                             const counter_type *bytes_in_total,
@@ -499,8 +495,6 @@ man_bytecount_output_server(struct management *man,
     msg(M_CLIENT, ">BYTECOUNT_CLI:%lu,%s,%s", mdac->cid, in, out);
     mdac->bytecount_last_update = now;
 }
-
-#endif
 
 static void
 man_kill(struct management *man, const char *victim)
@@ -874,10 +868,8 @@ in_extra_reset(struct man_connection *mc, const int mode)
         if (mode != IER_NEW)
         {
             mc->in_extra_cmd = IEC_UNDEF;
-#ifdef MANAGEMENT_DEF_AUTH
             mc->in_extra_cid = 0;
             mc->in_extra_kid = 0;
-#endif
         }
         if (mc->in_extra)
         {
@@ -896,7 +888,6 @@ in_extra_dispatch(struct management *man)
 {
     switch (man->connection.in_extra_cmd)
     {
-#ifdef MANAGEMENT_DEF_AUTH
         case IEC_CLIENT_AUTH:
             if (man->persist.callback.client_auth)
             {
@@ -924,7 +915,6 @@ in_extra_dispatch(struct management *man)
             }
             break;
 
-#endif /* ifdef MANAGEMENT_DEF_AUTH */
 #ifdef MANAGEMENT_PF
         case IEC_CLIENT_PF:
             if (man->persist.callback.client_pf)
@@ -966,8 +956,6 @@ in_extra_dispatch(struct management *man)
     }
     in_extra_reset(&man->connection, IER_RESET);
 }
-
-#ifdef MANAGEMENT_DEF_AUTH
 
 static bool
 parse_cid(const char *str, unsigned long *cid)
@@ -1147,7 +1135,6 @@ man_client_pf(struct management *man, const char *cid_str)
 }
 
 #endif /* MANAGEMENT_PF */
-#endif /* MANAGEMENT_DEF_AUTH */
 
 static void
 man_pk_sig(struct management *man, const char *cmd_name)
@@ -1331,7 +1318,6 @@ man_dispatch_command(struct management *man, struct status_output *so, const cha
     {
         msg(M_CLIENT, "SUCCESS: pid=%d", platform_getpid());
     }
-#ifdef MANAGEMENT_DEF_AUTH
     else if (streq(p[0], "nclients"))
     {
         man_client_n_clients(man);
@@ -1345,7 +1331,6 @@ man_dispatch_command(struct management *man, struct status_output *so, const cha
         }
         man_env_filter(man, level);
     }
-#endif
     else if (streq(p[0], "signal"))
     {
         if (man_need(man, p, 1, 0))
@@ -1545,7 +1530,6 @@ man_dispatch_command(struct management *man, struct status_output *so, const cha
             man_bytecount(man, atoi(p[1]));
         }
     }
-#ifdef MANAGEMENT_DEF_AUTH
     else if (streq(p[0], "client-kill"))
     {
         if (man_need(man, p, 1, MN_AT_LEAST))
@@ -1590,7 +1574,6 @@ man_dispatch_command(struct management *man, struct status_output *so, const cha
         }
     }
 #endif
-#endif /* ifdef MANAGEMENT_DEF_AUTH */
     else if (streq(p[0], "rsa-sig"))
     {
         man_pk_sig(man, "rsa-sig");
@@ -2892,8 +2875,6 @@ management_notify_generic(struct management *man, const char *str)
     msg(M_CLIENT, "%s", str);
 }
 
-#ifdef MANAGEMENT_DEF_AUTH
-
 static void
 man_output_peer_info_env(struct management *man, const struct man_def_auth_context *mdac)
 {
@@ -3011,8 +2992,6 @@ management_learn_addr(struct management *management,
     }
     gc_free(&gc);
 }
-
-#endif /* MANAGEMENT_DEF_AUTH */
 
 void
 management_echo(struct management *man, const char *string, const bool pull)

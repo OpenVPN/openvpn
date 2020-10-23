@@ -722,7 +722,7 @@ struct options
 #define PLUGIN_OPTION_LIST(opt) (NULL)
 #endif
 
-#ifdef MANAGEMENT_DEF_AUTH
+#ifdef ENABLE_MANAGEMENT
 #define MAN_CLIENT_AUTH_ENABLED(opt) ((opt)->management_flags & MF_CLIENT_AUTH)
 #else
 #define MAN_CLIENT_AUTH_ENABLED(opt) (false)

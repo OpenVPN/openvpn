@@ -880,9 +880,7 @@ process_incoming_link_part1(struct context *c, struct link_socket_info *lsi, boo
         if (management)
         {
             management_bytes_in(management, c->c2.buf.len);
-#ifdef MANAGEMENT_DEF_AUTH
             management_bytes_server(management, &c->c2.link_read_bytes, &c->c2.link_write_bytes, &c->c2.mda_context);
-#endif
         }
 #endif
     }
@@ -1642,9 +1640,7 @@ process_outgoing_link(struct context *c)
                 if (management)
                 {
                     management_bytes_out(management, size);
-#ifdef MANAGEMENT_DEF_AUTH
                     management_bytes_server(management, &c->c2.link_read_bytes, &c->c2.link_write_bytes, &c->c2.mda_context);
-#endif
                 }
 #endif
             }

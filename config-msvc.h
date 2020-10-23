@@ -2,7 +2,6 @@
 
 #define CONFIGURE_DEFINES "N/A"
 
-#define ENABLE_DEF_AUTH 1
 #define ENABLE_PF 1
 #define ENABLE_CRYPTO_OPENSSL 1
 #define ENABLE_DEBUG 1

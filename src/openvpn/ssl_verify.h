@@ -221,7 +221,7 @@ struct x509_track
 /*
  * TODO: document
  */
-#ifdef MANAGEMENT_DEF_AUTH
+#ifdef ENABLE_MANAGEMENT
 bool tls_authenticate_key(struct tls_multi *multi, const unsigned int mda_key_id, const bool auth, const char *client_reason);
 
 #endif

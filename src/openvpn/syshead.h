@@ -530,19 +530,6 @@ socket_defined(const socket_descriptor_t sd)
 #define PORT_SHARE 0
 #endif
 
-/*
- * Enable deferred authentication?
- */
-#if defined(ENABLE_DEF_AUTH) && defined(ENABLE_PLUGIN)
-#define PLUGIN_DEF_AUTH
-#endif
-#if defined(ENABLE_DEF_AUTH) && defined(ENABLE_MANAGEMENT)
-#define MANAGEMENT_DEF_AUTH
-#endif
-#if !defined(PLUGIN_DEF_AUTH) && !defined(MANAGEMENT_DEF_AUTH)
-#undef ENABLE_DEF_AUTH
-#endif
-
 #ifdef ENABLE_CRYPTO_MBEDTLS
 #define ENABLE_PREDICTION_RESISTANCE
 #endif /* ENABLE_CRYPTO_MBEDTLS */
@@ -553,7 +540,7 @@ socket_defined(const socket_descriptor_t sd)
 #if defined(ENABLE_PF) && defined(ENABLE_PLUGIN) && defined(HAVE_STAT)
 #define PLUGIN_PF
 #endif
-#if defined(ENABLE_PF) && defined(MANAGEMENT_DEF_AUTH)
+#if defined(ENABLE_PF) && defined(ENABLE_MANAGEMENT)
 #define MANAGEMENT_PF
 #endif
 #if !defined(PLUGIN_PF) && !defined(MANAGEMENT_PF)
