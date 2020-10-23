@@ -3186,7 +3186,7 @@ tls_multi_process(struct tls_multi *multi,
      * verification failed.  A semi-trusted session can forward data on the
      * TLS control channel but not on the tunnel channel.
      */
-    if (DECRYPT_KEY_ENABLED(multi, &multi->session[TM_UNTRUSTED].key[KS_PRIMARY]))
+    if (TLS_AUTHENTICATED(multi, &multi->session[TM_UNTRUSTED].key[KS_PRIMARY]))
     {
         move_session(multi, TM_ACTIVE, TM_UNTRUSTED, true);
         msg(D_TLS_DEBUG_LOW, "TLS: tls_multi_process: untrusted session promoted to %strusted",
@@ -3271,7 +3271,7 @@ handle_data_channel_packet(struct tls_multi *multi,
          * passive side is the server which only listens for the connections, the
          * active side is the client which initiates connections).
          */
-        if (DECRYPT_KEY_ENABLED(multi, ks)
+        if (TLS_AUTHENTICATED(multi, ks)
             && key_id == ks->key_id
             && (ks->authenticated == KS_AUTH_TRUE)
             && (floated || link_socket_actual_match(from, &ks->remote_addr)))
@@ -3598,7 +3598,7 @@ tls_pre_decrypt(struct tls_multi *multi,
          * Remote is requesting a key renegotiation
          */
         if (op == P_CONTROL_SOFT_RESET_V1
-            && DECRYPT_KEY_ENABLED(multi, ks))
+            && TLS_AUTHENTICATED(multi, ks))
         {
             if (!read_control_auth(buf, &session->tls_wrap, from,
                                    session->opt))

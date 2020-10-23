@@ -946,7 +946,7 @@ tls_authentication_status(struct tls_multi *multi, const int latency)
     for (int i = 0; i < KEY_SCAN_SIZE; ++i)
     {
         struct key_state *ks = get_key_scan(multi, i);
-        if (DECRYPT_KEY_ENABLED(multi, ks))
+        if (TLS_AUTHENTICATED(multi, ks))
         {
             active++;
             if (ks->authenticated > KS_AUTH_FALSE)

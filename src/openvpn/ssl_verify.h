@@ -95,15 +95,22 @@ enum tls_auth_status
 enum tls_auth_status
 tls_authentication_status(struct tls_multi *multi, const int latency);
 
-/** Check whether the \a ks \c key_state is ready to receive data channel
- *   packets.
+/** Check whether the \a ks \c key_state has finished the key exchange part
+ *  of the OpenVPN hand shake. This is that the key_method_2read/write
+ *  handshakes have been completed and certificate verification have
+ *  been completed.
+ *
+ * connect/deferred auth might still pending. Also data-channel keys might
+ * not have been created since they are delayed until PUSH_REPLY for NCP
+ * clients.
+ *
  *   @ingroup data_crypto
  *
  *   If true, it is safe to assume that this session has been authenticated
  *   by TLS.
  *
  *   @note This macro only works if S_SENT_KEY + 1 == S_GOT_KEY. */
-#define DECRYPT_KEY_ENABLED(multi, ks) ((ks)->state >= (S_GOT_KEY - (multi)->opt.server))
+#define TLS_AUTHENTICATED(multi, ks) ((ks)->state >= (S_GOT_KEY - (multi)->opt.server))
 
 /**
  * Remove the given key state's auth control file, if it exists.
