@@ -499,14 +499,6 @@ bool tls_session_update_crypto_params(struct tls_session *session,
                                       struct frame *frame,
                                       struct frame *frame_fragment);
 
-#ifdef MANAGEMENT_DEF_AUTH
-static inline char *
-tls_get_peer_info(const struct tls_multi *multi)
-{
-    return multi->peer_info;
-}
-#endif
-
 /*
  * inline functions
  */

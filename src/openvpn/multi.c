@@ -3993,7 +3993,7 @@ management_get_peer_info(void *arg, const unsigned long cid)
 
     if (mi)
     {
-        ret = tls_get_peer_info(mi->context.c2.tls_multi);
+        ret = mi->context.c2.tls_multi->peer_info;
     }
 
     return ret;
