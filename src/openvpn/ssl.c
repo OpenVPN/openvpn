@@ -764,6 +764,22 @@ state_name(int state)
 }
 
 static const char *
+ks_auth_name(enum ks_auth_state auth)
+{
+    switch (auth)
+    {
+        case KS_AUTH_TRUE:
+            return "KS_AUTH_TRUE";
+        case KS_AUTH_DEFERRED:
+            return "KS_AUTH_DEFERRED";
+        case KS_AUTH_FALSE:
+            return "KS_AUTH_FALSE";
+        default:
+            return "KS_????";
+    }
+}
+
+static const char *
 packet_opcode_name(int op)
 {
     switch (op)
@@ -833,8 +849,9 @@ print_key_id(struct tls_multi *multi, struct gc_arena *gc)
     for (int i = 0; i < KEY_SCAN_SIZE; ++i)
     {
         struct key_state *ks = get_key_scan(multi, i);
-        buf_printf(&out, " [key#%d state=%s id=%d sid=%s]", i,
-                   state_name(ks->state), ks->key_id,
+        buf_printf(&out, " [key#%d state=%s auth=%s id=%d sid=%s]", i,
+                   state_name(ks->state), ks_auth_name(ks->authenticated),
+                   ks->key_id,
                    session_id_print(&ks->session_id_remote, gc));
     }
 
@@ -3301,8 +3318,10 @@ handle_data_channel_packet(struct tls_multi *multi,
     }
 
     msg(D_TLS_ERRORS,
-        "TLS Error: local/remote TLS keys are out of sync: %s [%d]",
-        print_link_socket_actual(from, &gc), key_id);
+        "TLS Error: local/remote TLS keys are out of sync: %s "
+        "(received key id: %d, known key ids: %s)",
+        print_link_socket_actual(from, &gc), key_id,
+        print_key_id(multi, &gc));
 
 done:
     tls_clear_error();
