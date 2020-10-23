@@ -969,27 +969,11 @@ key_state_free(struct key_state *ks, bool clear)
     free_buf(&ks->ack_write_buf);
     buffer_list_free(ks->paybuf);
 
-    if (ks->send_reliable)
-    {
-        reliable_free(ks->send_reliable);
-        free(ks->send_reliable);
-    }
+    reliable_free(ks->send_reliable);
+    reliable_free(ks->rec_reliable);
 
-    if (ks->rec_reliable)
-    {
-        reliable_free(ks->rec_reliable);
-        free(ks->rec_reliable);
-    }
-
-    if (ks->rec_ack)
-    {
-        free(ks->rec_ack);
-    }
-
-    if (ks->key_src)
-    {
-        free(ks->key_src);
-    }
+    free(ks->rec_ack);
+    free(ks->key_src);
 
     packet_id_free(&ks->crypto_options.packet_id);
 

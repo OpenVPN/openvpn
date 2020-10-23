@@ -192,7 +192,9 @@ bool reliable_ack_write(struct reliable_ack *ack,
 void reliable_init(struct reliable *rel, int buf_size, int offset, int array_size, bool hold);
 
 /**
- * Free allocated memory associated with a reliable structure.
+ * Free allocated memory associated with a reliable structure and the pointer
+ * itself.
+ * Does nothing if rel is NULL.
  *
  * @param rel The reliable structured to clean up.
  */

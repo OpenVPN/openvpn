@@ -326,12 +326,17 @@ reliable_init(struct reliable *rel, int buf_size, int offset, int array_size, bo
 void
 reliable_free(struct reliable *rel)
 {
+    if (!rel)
+    {
+        return;
+    }
     int i;
     for (i = 0; i < rel->size; ++i)
     {
         struct reliable_entry *e = &rel->array[i];
         free_buf(&e->buf);
     }
+    free(rel);
 }
 
 /* no active buffers? */
