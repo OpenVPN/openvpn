@@ -155,7 +155,14 @@ check_tls(struct context *c)
         }
         else if (tmp_status == TLSMP_KILL)
         {
-            register_signal(c, SIGTERM, "auth-control-exit");
+            if (c->options.mode == MODE_SERVER)
+            {
+                send_auth_failed(c, c->c2.tls_multi->client_reason);
+            }
+            else
+            {
+                register_signal(c, SIGTERM, "auth-control-exit");
+            }
         }
 
         interval_future_trigger(&c->c2.tmp_int, wakeup);
