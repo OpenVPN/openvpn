@@ -1216,9 +1216,6 @@ tls_multi_init(struct tls_options *tls_options)
     ret->key_scan[1] = &ret->session[TM_ACTIVE].key[KS_LAME_DUCK];
     ret->key_scan[2] = &ret->session[TM_LAME_DUCK].key[KS_LAME_DUCK];
 
-    /* By default not use P_DATA_V2 */
-    ret->use_peer_id = false;
-
     return ret;
 }
 
