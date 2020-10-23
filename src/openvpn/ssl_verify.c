@@ -926,85 +926,55 @@ key_state_test_auth_control_file(struct key_state *ks)
     return ACF_DISABLED;
 }
 
-/*
- * Return current session authentication state.  Return
- * value is TLS_AUTHENTICATION_x.
- */
-
-int
+enum tls_auth_status
 tls_authentication_status(struct tls_multi *multi, const int latency)
 {
     bool deferred = false;
+
+    /* at least one valid key has successfully completed authentication */
     bool success = false;
-    bool active = false;
 
-    static const unsigned char acf_merge[] =
+    /* at least one key is enabled for decryption */
+    int active = 0;
+
+    if (latency && multi->tas_last + latency >= now)
     {
-        ACF_UNDEFINED, /* s1=ACF_UNDEFINED s2=ACF_UNDEFINED */
-        ACF_UNDEFINED, /* s1=ACF_UNDEFINED s2=ACF_SUCCEEDED */
-        ACF_UNDEFINED, /* s1=ACF_UNDEFINED s2=ACF_DISABLED */
-        ACF_FAILED,  /* s1=ACF_UNDEFINED s2=ACF_FAILED */
-        ACF_UNDEFINED, /* s1=ACF_SUCCEEDED s2=ACF_UNDEFINED */
-        ACF_SUCCEEDED, /* s1=ACF_SUCCEEDED s2=ACF_SUCCEEDED */
-        ACF_SUCCEEDED, /* s1=ACF_SUCCEEDED s2=ACF_DISABLED */
-        ACF_FAILED,  /* s1=ACF_SUCCEEDED s2=ACF_FAILED */
-        ACF_UNDEFINED, /* s1=ACF_DISABLED  s2=ACF_UNDEFINED */
-        ACF_SUCCEEDED, /* s1=ACF_DISABLED  s2=ACF_SUCCEEDED */
-        ACF_DISABLED, /* s1=ACF_DISABLED  s2=ACF_DISABLED */
-        ACF_FAILED,  /* s1=ACF_DISABLED  s2=ACF_FAILED */
-        ACF_FAILED,  /* s1=ACF_FAILED    s2=ACF_UNDEFINED */
-        ACF_FAILED,  /* s1=ACF_FAILED    s2=ACF_SUCCEEDED */
-        ACF_FAILED,  /* s1=ACF_FAILED    s2=ACF_DISABLED */
-        ACF_FAILED   /* s1=ACF_FAILED    s2=ACF_FAILED */
-    };
+        return TLS_AUTHENTICATION_UNDEFINED;
+    }
+    multi->tas_last = now;
 
-    if (multi)
+    for (int i = 0; i < KEY_SCAN_SIZE; ++i)
     {
-        int i;
-
-        if (latency && multi->tas_last && multi->tas_last + latency >= now)
+        struct key_state *ks = get_key_scan(multi, i);
+        if (DECRYPT_KEY_ENABLED(multi, ks))
         {
-            return TLS_AUTHENTICATION_UNDEFINED;
-        }
-        multi->tas_last = now;
-
-        for (i = 0; i < KEY_SCAN_SIZE; ++i)
-        {
-            struct key_state *ks = get_key_scan(multi, i);
-            if (DECRYPT_KEY_ENABLED(multi, ks))
+            active++;
+            if (ks->authenticated > KS_AUTH_FALSE)
             {
-                active = true;
-                if (ks->authenticated > KS_AUTH_FALSE)
-                {
-                    unsigned int s1 = ACF_DISABLED;
-                    unsigned int s2 = ACF_DISABLED;
-                    s1 = key_state_test_auth_control_file(ks);
+                unsigned int s1 = ACF_DISABLED;
+                unsigned int s2 = ACF_DISABLED;
+                s1 = key_state_test_auth_control_file(ks);
 #ifdef ENABLE_MANAGEMENT
-                    s2 = man_def_auth_test(ks);
+                s2 = man_def_auth_test(ks);
 #endif
-                    ASSERT(s1 < 4 && s2 < 4);
-                    switch (acf_merge[(s1<<2) + s2])
+                ASSERT(s1 < 4 && s2 < 4);
+
+                if (s1 == ACF_FAILED || s2 == ACF_FAILED)
+                {
+                    ks->authenticated = KS_AUTH_FALSE;
+                }
+                else if (s1 == ACF_UNDEFINED || s2 == ACF_UNDEFINED)
+                {
+                    if (now < ks->auth_deferred_expire)
                     {
-                        case ACF_SUCCEEDED:
-                        case ACF_DISABLED:
-                            success = true;
-                            ks->authenticated = KS_AUTH_TRUE;
-                            break;
-
-                        case ACF_UNDEFINED:
-                            if (now < ks->auth_deferred_expire)
-                            {
-                                deferred = true;
-                            }
-                            break;
-
-                        case ACF_FAILED:
-                            ks->authenticated = KS_AUTH_FALSE;
-                            break;
-
-                        default:
-                            ASSERT(0);
+                        deferred = true;
                     }
+                }
+                else
+                {
+                    /* s1 and s2 are either ACF_DISABLED or ACF_SUCCEDED */
+                    success = true;
+                    ks->authenticated = KS_AUTH_TRUE;
                 }
             }
         }
@@ -1018,12 +988,16 @@ tls_authentication_status(struct tls_multi *multi, const int latency)
     {
         return TLS_AUTHENTICATION_SUCCEEDED;
     }
-    else if (!active || deferred)
+    else if (active == 0 || deferred)
     {
+        /* We have a deferred authentication and no currently active key
+         * (first auth, no renegotiation)  */
         return TLS_AUTHENTICATION_DEFERRED;
     }
     else
     {
+        /* at least one key is active but none is fully authenticated (!success)
+         * and all active are either failed authed or expired deferred auth */
         return TLS_AUTHENTICATION_FAILED;
     }
 }

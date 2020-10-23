@@ -65,18 +65,35 @@ struct cert_hash_set {
 #define VERIFY_X509_SUBJECT_RDN         2
 #define VERIFY_X509_SUBJECT_RDN_PREFIX  3
 
-#define TLS_AUTHENTICATION_SUCCEEDED  0
-#define TLS_AUTHENTICATION_FAILED     1
-#define TLS_AUTHENTICATION_DEFERRED   2
-#define TLS_AUTHENTICATION_UNDEFINED  3
+enum tls_auth_status
+{
+    TLS_AUTHENTICATION_SUCCEEDED=0,
+    TLS_AUTHENTICATION_FAILED=1,
+    TLS_AUTHENTICATION_DEFERRED=2,
+    TLS_AUTHENTICATION_UNDEFINED=3
+};
 
-/*
- * Return current session authentication state.  Return
- * value is TLS_AUTHENTICATION_x.
+/**
+ * Return current session authentication state of the tls_multi structure
+ * This will return TLS_AUTHENTICATION_SUCCEEDED only if the session is
+ * fully authenicated, i.e. VPN traffic is allowed over it.
  *
- * TODO: document this function
+ * Checks the status of all active keys and checks if the deferred
+ * authentication has succeeded.
+ *
+ * As a side effect this function will also transition ks->authenticated
+ * from KS_AUTH_DEFERRED to KS_AUTH_FALSE/KS_AUTH_TRUE if the deferred
+ * authentication has succeeded after last call.
+ *
+ * @param   latency     if not null,  return TLS_AUTHENTICATION_UNDEFINED if
+ *                      the last call for this multi struct has been less
+ *                      than latency seconds ago
+ * @param   multi       the tls_multi struct to operate on
+ *
+ * @return              Current authentication status of the tls_multi
  */
-int tls_authentication_status(struct tls_multi *multi, const int latency);
+enum tls_auth_status
+tls_authentication_status(struct tls_multi *multi, const int latency);
 
 /** Check whether the \a ks \c key_state is ready to receive data channel
  *   packets.
