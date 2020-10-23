@@ -937,6 +937,9 @@ tls_authentication_status(struct tls_multi *multi, const int latency)
     /* at least one key is enabled for decryption */
     int active = 0;
 
+    /* at least one key already failed authentication */
+    bool failed_auth = false;
+
     if (latency && multi->tas_last + latency >= now)
     {
         return TLS_AUTHENTICATION_UNDEFINED;
@@ -949,7 +952,11 @@ tls_authentication_status(struct tls_multi *multi, const int latency)
         if (TLS_AUTHENTICATED(multi, ks))
         {
             active++;
-            if (ks->authenticated > KS_AUTH_FALSE)
+            if (ks->authenticated == KS_AUTH_FALSE)
+            {
+                failed_auth = true;
+            }
+            else
             {
                 unsigned int s1 = ACF_DISABLED;
                 unsigned int s2 = ACF_DISABLED;
@@ -962,6 +969,7 @@ tls_authentication_status(struct tls_multi *multi, const int latency)
                 if (s1 == ACF_FAILED || s2 == ACF_FAILED)
                 {
                     ks->authenticated = KS_AUTH_FALSE;
+                    failed_auth = true;
                 }
                 else if (s1 == ACF_UNDEFINED || s2 == ACF_UNDEFINED)
                 {
@@ -981,10 +989,19 @@ tls_authentication_status(struct tls_multi *multi, const int latency)
     }
 
 #if 0
-    dmsg(D_TLS_ERRORS, "TAS: a=%d s=%d d=%d", active, success, deferred);
+    dmsg(D_TLS_ERRORS, "TAS: a=%d s=%d d=%d f=%d", active, success, deferred, failed_auth);
 #endif
-
-    if (success)
+    if (failed_auth)
+    {
+        /* We have at least one session that failed authentication. There
+         * might be still another session with valid keys.
+         * Although our protocol allows keeping the VPN session alive
+         * with the other session (and we actually did that in earlier
+         * version, this behaviour is really strange from a user (admin)
+         * experience */
+        return TLS_AUTHENTICATION_FAILED;
+    }
+    else if (success)
     {
         return TLS_AUTHENTICATION_SUCCEEDED;
     }

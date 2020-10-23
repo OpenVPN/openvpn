@@ -3960,17 +3960,9 @@ management_client_auth(void *arg,
                     cc_config_owned = false;
                 }
             }
-            else
+            else if (reason)
             {
-                if (reason)
-                {
-                    msg(D_MULTI_LOW, "MULTI: connection rejected: %s, CLI:%s", reason, np(client_reason));
-                }
-                if (!is_cas_pending(mi->context.c2.context_auth))
-                {
-                    send_auth_failed(&mi->context, client_reason); /* mid-session reauth failed */
-                    multi_schedule_context_wakeup(m, mi);
-                }
+                msg(D_MULTI_LOW, "MULTI: connection rejected: %s, CLI:%s", reason, np(client_reason));
             }
         }
     }
