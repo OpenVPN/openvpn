@@ -229,10 +229,7 @@ multi_tcp_free(struct multi_tcp *mtcp)
     if (mtcp)
     {
         event_free(mtcp->es);
-        if (mtcp->esr)
-        {
-            free(mtcp->esr);
-        }
+        free(mtcp->esr);
         free(mtcp);
     }
 }

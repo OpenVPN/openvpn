@@ -1105,10 +1105,7 @@ tls_session_free(struct tls_session *session, bool clear)
         key_state_free(&session->key[i], false);
     }
 
-    if (session->common_name)
-    {
-        free(session->common_name);
-    }
+    free(session->common_name);
 
     cert_hash_free(session->cert_hash_set);
 
@@ -1300,16 +1297,8 @@ tls_multi_free(struct tls_multi *multi, bool clear)
     auth_set_client_reason(multi, NULL);
 
     free(multi->peer_info);
-
-    if (multi->locked_cn)
-    {
-        free(multi->locked_cn);
-    }
-
-    if (multi->locked_username)
-    {
-        free(multi->locked_username);
-    }
+    free(multi->locked_cn);
+    free(multi->locked_username);
 
     cert_hash_free(multi->locked_cert_hash_set);
 

@@ -366,10 +366,7 @@ get_proxy_authenticate(socket_descriptor_t sd,
 static void
 store_proxy_authenticate(struct http_proxy_info *p, char *data)
 {
-    if (p->proxy_authenticate)
-    {
-        free(p->proxy_authenticate);
-    }
+    free(p->proxy_authenticate);
     p->proxy_authenticate = data;
 }
 

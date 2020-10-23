@@ -103,10 +103,7 @@ packet_id_free(struct packet_id *p)
     if (p)
     {
         dmsg(D_PID_DEBUG, "PID packet_id_free");
-        if (p->rec.seq_list)
-        {
-            free(p->rec.seq_list);
-        }
+        free(p->rec.seq_list);
         CLEAR(*p);
     }
 }

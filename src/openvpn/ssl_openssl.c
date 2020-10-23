@@ -144,10 +144,7 @@ void
 tls_ctx_free(struct tls_root_ctx *ctx)
 {
     ASSERT(NULL != ctx);
-    if (NULL != ctx->ctx)
-    {
-        SSL_CTX_free(ctx->ctx);
-    }
+    SSL_CTX_free(ctx->ctx);
     ctx->ctx = NULL;
 }
 
@@ -978,14 +975,8 @@ end:
         crypto_print_openssl_errors(M_DEBUG);
     }
 
-    if (in != NULL)
-    {
-        BIO_free(in);
-    }
-    if (x)
-    {
-        X509_free(x);
-    }
+    BIO_free(in);
+    X509_free(x);
 }
 
 int
@@ -1044,14 +1035,8 @@ tls_ctx_load_priv_file(struct tls_root_ctx *ctx, const char *priv_key_file,
     ret = 0;
 
 end:
-    if (pkey)
-    {
-        EVP_PKEY_free(pkey);
-    }
-    if (in)
-    {
-        BIO_free(in);
-    }
+    EVP_PKEY_free(pkey);
+    BIO_free(in);
     return ret;
 }
 
@@ -1312,12 +1297,9 @@ err:
     {
         RSA_free(rsa);
     }
-    else
+    else if (rsa_meth)
     {
-        if (rsa_meth)
-        {
-            RSA_meth_free(rsa_meth);
-        }
+        RSA_meth_free(rsa_meth);
     }
     return 0;
 }
@@ -1441,14 +1423,8 @@ tls_ctx_use_external_ec_key(struct tls_root_ctx *ctx, EVP_PKEY *pkey)
 
 err:
     /* Reach here only when ec and privkey can be independenly freed */
-    if (privkey)
-    {
-        EVP_PKEY_free(privkey);
-    }
-    if (ec)
-    {
-        EC_KEY_free(ec);
-    }
+    EVP_PKEY_free(privkey);
+    EC_KEY_free(ec);
     return 0;
 }
 #endif /* OPENSSL_VERSION_NUMBER > 1.1.0 dev && !defined(OPENSSL_NO_EC) */
@@ -1645,10 +1621,7 @@ tls_ctx_load_ca(struct tls_root_ctx *ctx, const char *ca_file,
             }
         }
 
-        if (in)
-        {
-            BIO_free(in);
-        }
+        BIO_free(in);
     }
 
     /* Set a store for certs (CA & CRL) with a lookup on the "capath" hash directory */

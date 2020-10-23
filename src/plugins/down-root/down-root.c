@@ -238,10 +238,7 @@ free_context(struct down_root_context *context)
 {
     if (context)
     {
-        if (context->command)
-        {
-            free(context->command);
-        }
+        free(context->command);
         free(context);
     }
 }

@@ -173,10 +173,7 @@ openvpn_plugin_open_v3(const int v3structver,
     return OPENVPN_PLUGIN_FUNC_SUCCESS;
 
 error:
-    if (context)
-    {
-        free(context);
-    }
+    free(context);
     return OPENVPN_PLUGIN_FUNC_ERROR;
 }
 

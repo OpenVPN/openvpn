@@ -372,11 +372,7 @@ x509_get_subject(X509 *cert, struct gc_arena *gc)
     subject[subject_mem->length] = '\0';
 
 err:
-    if (subject_bio)
-    {
-        BIO_free(subject_bio);
-    }
-
+    BIO_free(subject_bio);
     return subject;
 }
 

@@ -138,53 +138,31 @@ tls_ctx_free(struct tls_root_ctx *ctx)
     if (ctx)
     {
         mbedtls_pk_free(ctx->priv_key);
-        if (ctx->priv_key)
-        {
-            free(ctx->priv_key);
-        }
+        free(ctx->priv_key);
 
         mbedtls_x509_crt_free(ctx->ca_chain);
-        if (ctx->ca_chain)
-        {
-            free(ctx->ca_chain);
-        }
+        free(ctx->ca_chain);
 
         mbedtls_x509_crt_free(ctx->crt_chain);
-        if (ctx->crt_chain)
-        {
-            free(ctx->crt_chain);
-        }
+        free(ctx->crt_chain);
 
         mbedtls_dhm_free(ctx->dhm_ctx);
-        if (ctx->dhm_ctx)
-        {
-            free(ctx->dhm_ctx);
-        }
+        free(ctx->dhm_ctx);
 
         mbedtls_x509_crl_free(ctx->crl);
-        if (ctx->crl)
-        {
-            free(ctx->crl);
-        }
+        free(ctx->crl);
 
 #if defined(ENABLE_PKCS11)
         pkcs11h_certificate_freeCertificate(ctx->pkcs11_cert);
 #endif
 
-        if (ctx->allowed_ciphers)
-        {
-            free(ctx->allowed_ciphers);
-        }
+        free(ctx->allowed_ciphers);
 
-        if (ctx->groups)
-        {
-            free(ctx->groups);
-        }
+        free(ctx->groups);
 
         CLEAR(*ctx);
 
         ctx->initialised = false;
-
     }
 }
 

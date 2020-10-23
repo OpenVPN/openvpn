@@ -3597,14 +3597,9 @@ do_close_tls(struct context *c)
     }
 
     /* free options compatibility strings */
-    if (c->c2.options_string_local)
-    {
-        free(c->c2.options_string_local);
-    }
-    if (c->c2.options_string_remote)
-    {
-        free(c->c2.options_string_remote);
-    }
+    free(c->c2.options_string_local);
+    free(c->c2.options_string_remote);
+
     c->c2.options_string_local = c->c2.options_string_remote = NULL;
 
     if (c->c2.pulled_options_state)

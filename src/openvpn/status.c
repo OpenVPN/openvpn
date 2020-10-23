@@ -203,10 +203,8 @@ status_close(struct status_output *so)
                 ret = false;
             }
         }
-        if (so->filename)
-        {
-            free(so->filename);
-        }
+        free(so->filename);
+
         if (buf_defined(&so->read_buf))
         {
             free_buf(&so->read_buf);

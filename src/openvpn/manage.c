@@ -826,14 +826,8 @@ man_pkcs11_id_get(struct management *man, const int index)
         msg(M_CLIENT, ">PKCS11ID-ENTRY:'%d'", index);
     }
 
-    if (id != NULL)
-    {
-        free(id);
-    }
-    if (base64 != NULL)
-    {
-        free(base64);
-    }
+    free(id);
+    free(base64);
 }
 
 #endif /* ifdef ENABLE_PKCS11 */
@@ -2613,10 +2607,7 @@ man_connection_close(struct management *man)
 {
     struct man_connection *mc = &man->connection;
 
-    if (mc->es)
-    {
-        event_free(mc->es);
-    }
+    event_free(mc->es);
 #ifdef _WIN32
     net_event_win32_close(&mc->ne32);
 #endif
@@ -2629,14 +2620,10 @@ man_connection_close(struct management *man)
     {
         man_close_socket(man, mc->sd_cli);
     }
-    if (mc->in)
-    {
-        command_line_free(mc->in);
-    }
-    if (mc->out)
-    {
-        buffer_list_free(mc->out);
-    }
+
+    command_line_free(mc->in);
+    buffer_list_free(mc->out);
+
     in_extra_reset(&man->connection, IER_RESET);
     buffer_list_free(mc->ext_key_input);
     man_connection_clear(mc);
@@ -3896,6 +3883,10 @@ command_line_reset(struct command_line *cl)
 void
 command_line_free(struct command_line *cl)
 {
+    if (!cl)
+    {
+        return;
+    }
     command_line_reset(cl);
     free_buf(&cl->buf);
     free_buf(&cl->residual);
@@ -4015,10 +4006,8 @@ log_entry_print(const struct log_entry *e, unsigned int flags, struct gc_arena *
 static void
 log_entry_free_contents(struct log_entry *e)
 {
-    if (e->string)
-    {
-        free((char *)e->string);
-    }
+    /* Cast away constness of const char* */
+    free((char *)e->string);
     CLEAR(*e);
 }
 

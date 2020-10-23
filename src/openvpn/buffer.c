@@ -184,10 +184,7 @@ buf_assign(struct buffer *dest, const struct buffer *src)
 void
 free_buf(struct buffer *buf)
 {
-    if (buf->data)
-    {
-        free(buf->data);
-    }
+    free(buf->data);
     CLEAR(*buf);
 }
 

@@ -488,11 +488,8 @@ close_syslog(void)
     {
         closelog();
         use_syslog = false;
-        if (pgmname_syslog)
-        {
-            free(pgmname_syslog);
-            pgmname_syslog = NULL;
-        }
+        free(pgmname_syslog);
+        pgmname_syslog = NULL;
     }
 #endif
 }

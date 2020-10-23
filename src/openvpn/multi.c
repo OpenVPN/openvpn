@@ -73,10 +73,7 @@ id(struct multi_instance *mi)
 static void
 set_cc_config(struct multi_instance *mi, struct buffer_list *cc_config)
 {
-    if (mi->cc_config)
-    {
-        buffer_list_free(mi->cc_config);
-    }
+    buffer_list_free(mi->cc_config);
     mi->cc_config = cc_config;
 }
 #endif
@@ -4016,10 +4013,7 @@ management_client_pf(void *arg,
         ret = pf_load_from_buffer_list(&mi->context, pf_config);
     }
 
-    if (pf_config)
-    {
-        buffer_list_free(pf_config);
-    }
+    buffer_list_free(pf_config);
     return ret;
 }
 #endif /* ifdef MANAGEMENT_PF */

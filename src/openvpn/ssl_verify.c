@@ -841,11 +841,9 @@ cleanup:
 void
 auth_set_client_reason(struct tls_multi *multi, const char *client_reason)
 {
-    if (multi->client_reason)
-    {
-        free(multi->client_reason);
-        multi->client_reason = NULL;
-    }
+    free(multi->client_reason);
+    multi->client_reason = NULL;
+
     if (client_reason && strlen(client_reason))
     {
         multi->client_reason = string_alloc(client_reason, NULL);

@@ -1835,10 +1835,8 @@ close_tun_generic(struct tuntap *tt)
     {
         close(tt->fd);
     }
-    if (tt->actual_name)
-    {
-        free(tt->actual_name);
-    }
+
+    free(tt->actual_name);
     clear_tuntap(tt);
 }
 #endif /* !_WIN32 */
@@ -2522,10 +2520,7 @@ close_tun(struct tuntap *tt, openvpn_net_ctx_t *ctx)
 
     solaris_close_tun(tt);
 
-    if (tt->actual_name)
-    {
-        free(tt->actual_name);
-    }
+    free(tt->actual_name);
 
     clear_tuntap(tt);
     free(tt);
@@ -6901,10 +6896,7 @@ close_tun(struct tuntap *tt, openvpn_net_ctx_t *ctx)
         }
     }
 
-    if (tt->actual_name)
-    {
-        free(tt->actual_name);
-    }
+    free(tt->actual_name);
 
     if (tt->windows_driver == WINDOWS_DRIVER_WINTUN)
     {
