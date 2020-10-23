@@ -1093,7 +1093,10 @@ tls_session_init(struct tls_multi *multi, struct tls_session *session)
  * @param session      - A pointer to the \c tls_session structure to be
  *                       cleaned up.
  * @param clear        - Whether the memory allocated for the \a session
- *                       object should be overwritten with 0s.
+ *                       object should be overwritten with 0s. This
+ *                       implicitly sets many states to 0/false,
+ *                       e.g. the validity of the keys in the structure
+ *
  */
 static void
 tls_session_free(struct tls_session *session, bool clear)
@@ -1102,6 +1105,9 @@ tls_session_free(struct tls_session *session, bool clear)
 
     for (size_t i = 0; i < KS_SIZE; ++i)
     {
+        /* we don't need clear=true for this call since
+         * the structs are part of session and get cleared
+         * as part of session */
         key_state_free(&session->key[i], false);
     }
 
