@@ -970,7 +970,7 @@ tls_authentication_status(struct tls_multi *multi, const int latency)
 
         for (i = 0; i < KEY_SCAN_SIZE; ++i)
         {
-            struct key_state *ks = multi->key_scan[i];
+            struct key_state *ks = get_key_scan(multi, i);
             if (DECRYPT_KEY_ENABLED(multi, ks))
             {
                 active = true;
@@ -1043,7 +1043,7 @@ tls_authenticate_key(struct tls_multi *multi, const unsigned int mda_key_id, con
         auth_set_client_reason(multi, client_reason);
         for (i = 0; i < KEY_SCAN_SIZE; ++i)
         {
-            struct key_state *ks = multi->key_scan[i];
+            struct key_state *ks = get_key_scan(multi, i);
             if (ks->mda_key_id == mda_key_id)
             {
                 ks->mda_status = auth ? ACF_SUCCEEDED : ACF_FAILED;

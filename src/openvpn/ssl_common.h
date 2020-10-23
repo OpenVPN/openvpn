@@ -501,11 +501,6 @@ struct tls_multi
     /* const options and config info */
     struct tls_options opt;
 
-    struct key_state *key_scan[KEY_SCAN_SIZE];
-    /**< List of \c key_state objects in the
-     *   order they should be scanned by data
-     *   channel modules. */
-
     /*
      * used by tls_pre_encrypt to communicate the encrypt key
      * to tls_post_encrypt()
@@ -584,5 +579,24 @@ struct tls_multi
      *   representing control channel
      *   sessions with the remote peer. */
 };
+
+/**  gets an item  of \c key_state objects in the
+ *   order they should be scanned by data
+ *   channel modules. */
+static inline struct key_state *
+get_key_scan(struct tls_multi *multi, int index)
+{
+    switch (index)
+    {
+        case 0:
+            return &multi->session[TM_ACTIVE].key[KS_PRIMARY];
+        case 1:
+            return &multi->session[TM_ACTIVE].key[KS_LAME_DUCK];
+        case 2:
+            return &multi->session[TM_LAME_DUCK].key[KS_LAME_DUCK];
+        default:
+            ASSERT(false);
+    }
+}
 
 #endif /* SSL_COMMON_H_ */

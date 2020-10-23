@@ -832,7 +832,7 @@ print_key_id(struct tls_multi *multi, struct gc_arena *gc)
 
     for (int i = 0; i < KEY_SCAN_SIZE; ++i)
     {
-        struct key_state *ks = multi->key_scan[i];
+        struct key_state *ks = get_key_scan(multi, i);
         buf_printf(&out, " [key#%d state=%s id=%d sid=%s]", i,
                    state_name(ks->state), ks->key_id,
                    session_id_print(&ks->session_id_remote, gc));
@@ -1209,12 +1209,6 @@ tls_multi_init(struct tls_options *tls_options)
 
     /* get command line derived options */
     ret->opt = *tls_options;
-
-    /* set up list of keys to be scanned by data channel encrypt and decrypt routines */
-    ASSERT(SIZE(ret->key_scan) == 3);
-    ret->key_scan[0] = &ret->session[TM_ACTIVE].key[KS_PRIMARY];
-    ret->key_scan[1] = &ret->session[TM_ACTIVE].key[KS_LAME_DUCK];
-    ret->key_scan[2] = &ret->session[TM_LAME_DUCK].key[KS_LAME_DUCK];
 
     return ret;
 }
@@ -3182,9 +3176,9 @@ tls_multi_process(struct tls_multi *multi,
      */
     if (error)
     {
-        for (int i = 0; i < (int) SIZE(multi->key_scan); ++i)
+        for (int i = 0; i < KEY_SCAN_SIZE; ++i)
         {
-            if (multi->key_scan[i]->state >= S_ACTIVE)
+            if (get_key_scan(multi, i)->state >= S_ACTIVE)
             {
                 goto nohard;
             }
@@ -3199,9 +3193,9 @@ nohard:
         const int throw_level = GREMLIN_CONNECTION_FLOOD_LEVEL(multi->opt.gremlin);
         if (throw_level)
         {
-            for (int i = 0; i < (int) SIZE(multi->key_scan); ++i)
+            for (int i = 0; i < KEY_SCAN_SIZE; ++i)
             {
-                if (multi->key_scan[i]->state >= throw_level)
+                if (get_key_scan(multi, i)->state >= throw_level)
                 {
                     ++multi->n_hard_errors;
                     ++multi->n_soft_errors;
@@ -3239,7 +3233,7 @@ handle_data_channel_packet(struct tls_multi *multi,
     /* data channel packet */
     for (int i = 0; i < KEY_SCAN_SIZE; ++i)
     {
-        struct key_state *ks = multi->key_scan[i];
+        struct key_state *ks = get_key_scan(multi, i);
 
         /*
          * This is the basic test of TLS state compatibility between a local OpenVPN
@@ -3848,7 +3842,7 @@ tls_pre_encrypt(struct tls_multi *multi,
     struct key_state *ks_select = NULL;
     for (int i = 0; i < KEY_SCAN_SIZE; ++i)
     {
-        struct key_state *ks = multi->key_scan[i];
+        struct key_state *ks = get_key_scan(multi, i);
         if (ks->state >= S_ACTIVE
             && (ks->authenticated == KS_AUTH_TRUE)
             && ks->crypto_options.key_ctx_bi.initialized
