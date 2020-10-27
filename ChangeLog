@@ -1,6 +1,9 @@
 OpenVPN Change Log
 Copyright (C) 2002-2020 OpenVPN Inc <sales@openvpn.net>
 
+2020.10.27 -- Version 2.5.0
+      (no changes relative to v2.5_rc3)
+
 2020.10.15 -- Version 2.5_rc3
 Arne Schwabe (2):
       Allow 'none' cipher being specified in --data-ciphers
