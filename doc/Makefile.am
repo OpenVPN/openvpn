@@ -67,10 +67,11 @@ dist_html_DATA = openvpn.8.html
 CLEANFILES = \
 	 openvpn.8 openvpn.8.html
 
+endif
+
 if WIN32
 else
 dist_man_MANS = openvpn.8
-endif
 endif
 
 dist-hook : openvpn.8 openvpn.8.html
