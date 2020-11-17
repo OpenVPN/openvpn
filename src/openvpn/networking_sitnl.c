@@ -596,28 +596,6 @@ net_route_v6_best_gw(openvpn_net_ctx_t *ctx, const struct in6_addr *dst,
 }
 
 #ifdef ENABLE_SITNL
-
-int
-net_ctx_init(struct context *c, openvpn_net_ctx_t *ctx)
-{
-    (void)c;
-    (void)ctx;
-
-    return 0;
-}
-
-void
-net_ctx_reset(openvpn_net_ctx_t *ctx)
-{
-    (void)ctx;
-}
-
-void
-net_ctx_free(openvpn_net_ctx_t *ctx)
-{
-    (void)ctx;
-}
-
 int
 net_route_v4_best_gw(openvpn_net_ctx_t *ctx, const in_addr_t *dst,
                      in_addr_t *best_gw, char *best_iface)
