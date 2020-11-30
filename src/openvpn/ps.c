@@ -983,14 +983,38 @@ is_openvpn_protocol(const struct buffer *buf)
     const int len = BLEN(buf);
     if (len >= 3)
     {
-        return p[0] == 0
-               && p[1] >= 14
-               && (p[2] == (P_CONTROL_HARD_RESET_CLIENT_V2 << P_OPCODE_SHIFT)
-                   || p[2] == (P_CONTROL_HARD_RESET_CLIENT_V3 << P_OPCODE_SHIFT));
+        int plen = (p[0] << 8) | p[1];
+
+        if (p[2] == (P_CONTROL_HARD_RESET_CLIENT_V3 << P_OPCODE_SHIFT))
+        {
+            /* WKc is at least 290 byte (not including metadata):
+             *
+             * 16 bit len + 256 bit HMAC + 2048 bit Kc = 2320 bit
+             *
+             * This is increased by the normal length of client handshake +
+             * tls-crypt overhead (32)
+             *
+             * For metadata tls-crypt-v2.txt does not explicitly specify
+             * an upper limit but we also have TLS_CRYPT_V2_MAX_WKC_LEN
+             * as 1024 bytes. We err on the safe side with 255 extra overhead
+             *
+             * We don't do the 2 byte check for tls-crypt-v2 because it is very
+             * unrealistic to have only 2 bytes available.
+             */
+            return  (plen >= 336 && plen < (1024 + 255));
+        }
+        else
+        {
+            /* For non tls-crypt2 we assume the packet length to valid between
+             * 14 and 255 */
+            return plen >= 14 && plen <= 255
+                   && (p[2] == (P_CONTROL_HARD_RESET_CLIENT_V2 << P_OPCODE_SHIFT));
+        }
     }
     else if (len >= 2)
     {
-        return p[0] == 0 && p[1] >= 14;
+        int plen = (p[0] << 8) | p[1];
+        return plen >= 14 && plen <= 255;
     }
     else
     {
