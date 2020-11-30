@@ -510,10 +510,15 @@ void
 set_auth_token(struct user_pass *up, struct user_pass *tk, const char *token)
 {
 
-    if (token && strlen(token) && up && up->defined)
+    if (strlen(token) && (up->defined || tk->defined))
     {
+        /* auth-token has no password, so it needs the username
+         * either already set or copied from up */
         strncpynt(tk->password, token, USER_PASS_LEN);
-        strncpynt(tk->username, up->username, USER_PASS_LEN);
+        if (up->defined)
+        {
+            strncpynt(tk->username, up->username, USER_PASS_LEN);
+        }
         tk->defined = true;
     }
 
