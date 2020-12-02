@@ -434,8 +434,6 @@ ssl_set_auth_nocache(void)
 {
     passbuf.nocache = true;
     auth_user_pass.nocache = true;
-    /* wait for push-reply, because auth-token may still need the username */
-    auth_user_pass.wait_for_push = true;
 }
 
 /*
@@ -2358,14 +2356,15 @@ key_method_2_write(struct buffer *buf, struct tls_session *session)
         }
         /* if auth-nocache was specified, the auth_user_pass object reaches
          * a "complete" state only after having received the push-reply
-         * message.
+         * message. The push message might contain an auth-token that needs
+         * the username of auth_user_pass.
          *
          * For this reason, skip the purge operation here if no push-reply
          * message has been received yet.
          *
          * This normally happens upon first negotiation only.
          */
-        if (!auth_user_pass.wait_for_push)
+        if (!session->opt->pull)
         {
             purge_user_pass(&auth_user_pass, false);
         }
@@ -4104,8 +4103,7 @@ done:
 }
 
 void
-delayed_auth_pass_purge(void)
+ssl_clean_user_pass(void)
 {
-    auth_user_pass.wait_for_push = false;
     purge_user_pass(&auth_user_pass, false);
 }

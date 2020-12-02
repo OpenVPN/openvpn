@@ -64,7 +64,6 @@ struct user_pass
 {
     bool defined;
     bool nocache;
-    bool wait_for_push; /* true if this object is waiting for a push-reply */
 
 /* max length of username/password */
 #ifdef ENABLE_PKCS11
