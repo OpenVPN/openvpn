@@ -3503,7 +3503,6 @@ management_query_user_pass(struct management *man,
         {
             /* preserve caller's settings */
             man->connection.up_query.nocache = up->nocache;
-            man->connection.up_query.wait_for_push = up->wait_for_push;
             *up = man->connection.up_query;
         }
         secure_memzero(&man->connection.up_query, sizeof(man->connection.up_query));

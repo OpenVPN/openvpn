@@ -627,7 +627,10 @@ void extract_x509_field_test(void);
  */
 bool is_hard_reset(int op, int key_method);
 
-void delayed_auth_pass_purge(void);
+/**
+ * Cleans the saved user/password unless auth-nocache is in use.
+ */
+void ssl_clean_user_pass(void);
 
 
 /*

@@ -1538,7 +1538,7 @@ initialization_sequence_completed(struct context *c, const unsigned int flags)
      */
     if (c->options.mode == MODE_POINT_TO_POINT)
     {
-        delayed_auth_pass_purge();
+        ssl_clean_user_pass();
     }
 #endif /* ENABLE_CRYPTO */
 
