@@ -1983,6 +1983,23 @@ connection_entry_load_re(struct connection_entry *ce, const struct remote_entry 
 }
 
 static void
+connection_entry_preload_key(const char **key_file, bool *key_inline,
+                             struct gc_arena *gc)
+{
+    if (key_file && *key_file && !(*key_inline))
+    {
+        struct buffer in = buffer_read_from_file(*key_file, gc);
+        if (!buf_valid(&in))
+        {
+            msg(M_FATAL, "Cannot pre-load keyfile (%s)", *key_file);
+        }
+
+        *key_file = (const char *) in.data;
+        *key_inline = true;
+    }
+}
+
+static void
 options_postprocess_verify_ce(const struct options *options,
                               const struct connection_entry *ce)
 {
@@ -2933,36 +2950,17 @@ options_postprocess_mutate_ce(struct options *o, struct connection_entry *ce)
         ce->tls_crypt_v2_file_inline = o->tls_crypt_v2_file_inline;
     }
 
-    /* pre-cache tls-auth/crypt key file if persist-key was specified and keys
-     * were not already embedded in the config file
+    /* Pre-cache tls-auth/crypt(-v2) key file if persist-key was specified and
+     * keys were not already embedded in the config file.
      */
     if (o->persist_key)
     {
-        if (ce->tls_auth_file && !ce->tls_auth_file_inline)
-        {
-            struct buffer in = buffer_read_from_file(ce->tls_auth_file, &o->gc);
-            if (!buf_valid(&in))
-            {
-                msg(M_FATAL, "Cannot pre-load tls-auth keyfile (%s)",
-                    ce->tls_auth_file);
-            }
-
-            ce->tls_auth_file = (char *)in.data;
-            ce->tls_auth_file_inline = true;
-        }
-
-        if (ce->tls_crypt_file && !ce->tls_crypt_file_inline)
-        {
-            struct buffer in = buffer_read_from_file(ce->tls_crypt_file, &o->gc);
-            if (!buf_valid(&in))
-            {
-                msg(M_FATAL, "Cannot pre-load tls-crypt keyfile (%s)",
-                    ce->tls_crypt_file);
-            }
-
-            ce->tls_crypt_file = (char *)in.data;
-            ce->tls_crypt_file_inline = true;
-        }
+        connection_entry_preload_key(&ce->tls_auth_file,
+                                     &ce->tls_auth_file_inline, &o->gc);
+        connection_entry_preload_key(&ce->tls_crypt_file,
+                                     &ce->tls_crypt_file_inline, &o->gc);
+        connection_entry_preload_key(&ce->tls_crypt_v2_file,
+                                     &ce->tls_crypt_v2_file_inline, &o->gc);
     }
 }
 
