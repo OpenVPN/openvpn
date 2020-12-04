@@ -151,9 +151,9 @@ AC_ARG_ENABLE(
 
 AC_ARG_ENABLE(
 	[iproute2],
-	[AS_HELP_STRING([--enable-iproute2], [enable support for iproute2 @<:@default=no@:>@])],
+	[AS_HELP_STRING([--disable-iproute2], [disable support for iproute2 @<:@default=yes@:>@])],
 	,
-	[enable_iproute2="no"]
+	[enable_iproute2="yes"]
 )
 
 AC_ARG_ENABLE(
