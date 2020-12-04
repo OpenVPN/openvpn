@@ -28,8 +28,21 @@ typedef char openvpn_net_iface_t;
 
 #ifdef ENABLE_SITNL
 #include "networking_sitnl.h"
-#elif ENABLE_IPROUTE
+#endif /* ENABLE_SITNL */
+#if ENABLE_IPROUTE
 #include "networking_iproute2.h"
+#endif /* ENABLE_IPROUTE */
+
+#if defined(ENABLE_IPROUTE) || defined(ENABLE_SITNL)
+typedef union {
+#if ENABLE_SITNL
+    openvpn_net_sitnl_ctx_t sitnl;
+#endif /* ENABLE_SITNL */
+#if ENABLE_IPROUTE
+    openvpn_net_iproute2_ctx_t iproute2;
+#endif /* ENABLE_IPROUTE */
+} openvpn_net_ctx_t;
+
 #else
 /* define mock types to ensure code builds on any platform */
 typedef void *openvpn_net_ctx_t;
@@ -51,7 +64,7 @@ net_ctx_free(openvpn_net_ctx_t *ctx)
 {
     (void)ctx;
 }
-#endif /* ifdef ENABLE_SITNL */
+#endif /* ENABLE_SITNL || ENABLE_IPROUTE */
 
 #if defined(ENABLE_SITNL) || defined(ENABLE_IPROUTE)
 
