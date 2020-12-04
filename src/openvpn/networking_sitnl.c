@@ -1277,6 +1277,6 @@ net_route_v6_del(openvpn_net_ctx_t *ctx, const struct in6_addr *dst,
                            table, metric);
 }
 
-#endif /* !ENABLE_SITNL */
+#endif /* ENABLE_SITNL */
 
 #endif /* TARGET_LINUX */
