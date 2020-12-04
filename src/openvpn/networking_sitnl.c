@@ -543,8 +543,8 @@ err:
 
 /* used by iproute2 implementation too */
 int
-net_route_v6_best_gw(openvpn_net_ctx_t *ctx, const struct in6_addr *dst,
-                     struct in6_addr *best_gw, char *best_iface)
+net_sitnl_route_v6_best_gw(openvpn_net_ctx_t *ctx, const struct in6_addr *dst,
+                           struct in6_addr *best_gw, char *best_iface)
 {
     inet_address_t dst_v6 = {0};
     char buf[INET6_ADDRSTRLEN];
@@ -573,8 +573,8 @@ net_route_v6_best_gw(openvpn_net_ctx_t *ctx, const struct in6_addr *dst,
 
 #ifdef ENABLE_SITNL
 
-int
-net_ctx_init(struct context *c, openvpn_net_ctx_t *ctx)
+static int
+net_sitnl_ctx_init(struct context *c, openvpn_net_ctx_t *ctx)
 {
     (void)c;
     (void)ctx;
@@ -582,21 +582,21 @@ net_ctx_init(struct context *c, openvpn_net_ctx_t *ctx)
     return 0;
 }
 
-void
-net_ctx_reset(openvpn_net_ctx_t *ctx)
+static void
+net_sitnl_ctx_reset(openvpn_net_ctx_t *ctx)
 {
     (void)ctx;
 }
 
-void
-net_ctx_free(openvpn_net_ctx_t *ctx)
+static void
+net_sitnl_ctx_free(openvpn_net_ctx_t *ctx)
 {
     (void)ctx;
 }
 
-int
-net_route_v4_best_gw(openvpn_net_ctx_t *ctx, const in_addr_t *dst,
-                     in_addr_t *best_gw, char *best_iface)
+static int
+net_sitnl_route_v4_best_gw(openvpn_net_ctx_t *ctx, const in_addr_t *dst,
+                          in_addr_t *best_gw, char *best_iface)
 {
     inet_address_t dst_v4 = {0};
     char buf[INET_ADDRSTRLEN];
@@ -625,8 +625,8 @@ net_route_v4_best_gw(openvpn_net_ctx_t *ctx, const in_addr_t *dst,
     return ret;
 }
 
-int
-net_iface_up(openvpn_net_ctx_t *ctx, const char *iface, bool up)
+static int
+net_sitnl_iface_up(openvpn_net_ctx_t *ctx, const char *iface, bool up)
 {
     struct sitnl_link_req req;
     int ifindex;
@@ -668,9 +668,9 @@ net_iface_up(openvpn_net_ctx_t *ctx, const char *iface, bool up)
     return sitnl_send(&req.n, 0, 0, NULL, NULL);
 }
 
-int
-net_iface_mtu_set(openvpn_net_ctx_t *ctx, const char *iface,
-                  uint32_t mtu)
+static int
+net_sitnl_iface_mtu_set(openvpn_net_ctx_t *ctx, const char *iface,
+                              uint32_t mtu)
 {
     struct sitnl_link_req req;
     int ifindex, ret = -1;
@@ -970,9 +970,9 @@ sitnl_addr_del(sa_family_t af_family, const char *iface, inet_address_t *addr,
                           prefixlen);
 }
 
-int
-net_addr_v4_add(openvpn_net_ctx_t *ctx, const char *iface,
-                const in_addr_t *addr, int prefixlen)
+static int
+net_sitnl_addr_v4_add(openvpn_net_ctx_t *ctx, const char *iface,
+                      const in_addr_t *addr, int prefixlen)
 {
     inet_address_t addr_v4 = { 0 };
     char buf[INET_ADDRSTRLEN];
@@ -990,9 +990,9 @@ net_addr_v4_add(openvpn_net_ctx_t *ctx, const char *iface,
     return sitnl_addr_add(AF_INET, iface, &addr_v4, prefixlen);
 }
 
-int
-net_addr_v6_add(openvpn_net_ctx_t *ctx, const char *iface,
-                const struct in6_addr *addr, int prefixlen)
+static int
+net_sitnl_addr_v6_add(openvpn_net_ctx_t *ctx, const char *iface,
+                      const struct in6_addr *addr, int prefixlen)
 {
     inet_address_t addr_v6 = { 0 };
     char buf[INET6_ADDRSTRLEN];
@@ -1010,9 +1010,9 @@ net_addr_v6_add(openvpn_net_ctx_t *ctx, const char *iface,
     return sitnl_addr_add(AF_INET6, iface, &addr_v6, prefixlen);
 }
 
-int
-net_addr_v4_del(openvpn_net_ctx_t *ctx, const char *iface,
-                const in_addr_t *addr, int prefixlen)
+static int
+net_sitnl_addr_v4_del(openvpn_net_ctx_t *ctx, const char *iface,
+                      const in_addr_t *addr, int prefixlen)
 {
     inet_address_t addr_v4 = { 0 };
     char buf[INET_ADDRSTRLEN];
@@ -1030,8 +1030,8 @@ net_addr_v4_del(openvpn_net_ctx_t *ctx, const char *iface,
     return sitnl_addr_del(AF_INET, iface, &addr_v4, prefixlen);
 }
 
-int
-net_addr_v6_del(openvpn_net_ctx_t *ctx, const char *iface,
+static int
+net_sitnl_addr_v6_del(openvpn_net_ctx_t *ctx, const char *iface,
                 const struct in6_addr *addr, int prefixlen)
 {
     inet_address_t addr_v6 = { 0 };
@@ -1050,9 +1050,9 @@ net_addr_v6_del(openvpn_net_ctx_t *ctx, const char *iface,
     return sitnl_addr_del(AF_INET6, iface, &addr_v6, prefixlen);
 }
 
-int
-net_addr_ptp_v4_add(openvpn_net_ctx_t *ctx, const char *iface,
-                    const in_addr_t *local, const in_addr_t *remote)
+static int
+net_sitnl_addr_ptp_v4_add(openvpn_net_ctx_t *ctx, const char *iface,
+                          const in_addr_t *local, const in_addr_t *remote)
 {
     inet_address_t local_v4 = { 0 };
     inet_address_t remote_v4 = { 0 };
@@ -1078,9 +1078,9 @@ net_addr_ptp_v4_add(openvpn_net_ctx_t *ctx, const char *iface,
     return sitnl_addr_ptp_add(AF_INET, iface, &local_v4, &remote_v4);
 }
 
-int
-net_addr_ptp_v4_del(openvpn_net_ctx_t *ctx, const char *iface,
-                    const in_addr_t *local, const in_addr_t *remote)
+static int
+net_sitnl_addr_ptp_v4_del(openvpn_net_ctx_t *ctx, const char *iface,
+                          const in_addr_t *local, const in_addr_t *remote)
 {
     inet_address_t local_v4 = { 0 };
     char buf[INET6_ADDRSTRLEN];
@@ -1132,10 +1132,10 @@ sitnl_route_add(const char *iface, sa_family_t af_family, const void *dst,
                            RTPROT_BOOT, RTN_UNICAST);
 }
 
-int
-net_route_v4_add(openvpn_net_ctx_t *ctx, const in_addr_t *dst, int prefixlen,
-                 const in_addr_t *gw, const char *iface,
-                 uint32_t table, int metric)
+static int
+net_sitnl_route_v4_add(openvpn_net_ctx_t *ctx, const in_addr_t *dst,
+                       int prefixlen, const in_addr_t *gw, const char *iface,
+                       uint32_t table, int metric)
 {
     in_addr_t *dst_ptr = NULL, *gw_ptr = NULL;
     in_addr_t dst_be = 0, gw_be = 0;
@@ -1163,10 +1163,10 @@ net_route_v4_add(openvpn_net_ctx_t *ctx, const in_addr_t *dst, int prefixlen,
                            metric);
 }
 
-int
-net_route_v6_add(openvpn_net_ctx_t *ctx, const struct in6_addr *dst,
-                 int prefixlen, const struct in6_addr *gw,
-                 const char *iface, uint32_t table, int metric)
+static int
+net_sitnl_route_v6_add(openvpn_net_ctx_t *ctx, const struct in6_addr *dst,
+                       int prefixlen, const struct in6_addr *gw,
+                       const char *iface, uint32_t table, int metric)
 {
     inet_address_t dst_v6 = { 0 };
     inet_address_t gw_v6 = { 0 };
@@ -1219,10 +1219,10 @@ sitnl_route_del(const char *iface, sa_family_t af_family, inet_address_t *dst,
                            gw, table, metric, RT_SCOPE_NOWHERE, 0, 0);
 }
 
-int
-net_route_v4_del(openvpn_net_ctx_t *ctx, const in_addr_t *dst, int prefixlen,
-                 const in_addr_t *gw, const char *iface, uint32_t table,
-                 int metric)
+static int
+net_sitnl_route_v4_del(openvpn_net_ctx_t *ctx, const in_addr_t *dst,
+                       int prefixlen, const in_addr_t *gw, const char *iface,
+                       uint32_t table, int metric)
 {
     inet_address_t dst_v4 = { 0 };
     inet_address_t gw_v4 = { 0 };
@@ -1248,10 +1248,10 @@ net_route_v4_del(openvpn_net_ctx_t *ctx, const in_addr_t *dst, int prefixlen,
                            metric);
 }
 
-int
-net_route_v6_del(openvpn_net_ctx_t *ctx, const struct in6_addr *dst,
-                 int prefixlen, const struct in6_addr *gw,
-                 const char *iface, uint32_t table, int metric)
+static int
+net_sitnl_route_v6_del(openvpn_net_ctx_t *ctx, const struct in6_addr *dst,
+                       int prefixlen, const struct in6_addr *gw,
+                       const char *iface, uint32_t table, int metric)
 {
     inet_address_t dst_v6 = { 0 };
     inet_address_t gw_v6 = { 0 };
@@ -1275,6 +1275,128 @@ net_route_v6_del(openvpn_net_ctx_t *ctx, const struct in6_addr *dst,
 
     return sitnl_route_del(iface, AF_INET6, &dst_v6, prefixlen, &gw_v6,
                            table, metric);
+}
+
+int
+net_ctx_init(struct context *c, openvpn_net_ctx_t *ctx)
+{
+    return net_sitnl_ctx_init(c, ctx);
+}
+
+void
+net_ctx_reset(openvpn_net_ctx_t *ctx)
+{
+    net_sitnl_ctx_reset(ctx);
+}
+
+void
+net_ctx_free(openvpn_net_ctx_t *ctx) {
+    net_sitnl_ctx_free(ctx);
+}
+
+int
+net_iface_up(openvpn_net_ctx_t *ctx, const openvpn_net_iface_t *iface, bool up)
+{
+    return net_sitnl_iface_up(ctx, iface, up);
+}
+
+int
+net_iface_mtu_set(openvpn_net_ctx_t *ctx, const openvpn_net_iface_t *iface,
+                  uint32_t mtu)
+{
+    return net_sitnl_iface_mtu_set(ctx, iface, mtu);
+}
+int
+net_addr_v4_add(openvpn_net_ctx_t *ctx, const openvpn_net_iface_t *iface,
+                const in_addr_t *addr, int prefixlen)
+{
+    return net_sitnl_addr_v4_add(ctx, iface, addr, prefixlen);
+}
+
+int
+net_addr_v6_add(openvpn_net_ctx_t *ctx, const openvpn_net_iface_t *iface,
+                const struct in6_addr *addr, int prefixlen)
+{
+    return net_sitnl_addr_v6_add(ctx, iface, addr, prefixlen);
+}
+
+int
+net_addr_v4_del(openvpn_net_ctx_t *ctx, const openvpn_net_iface_t *iface,
+                const in_addr_t *addr, int prefixlen)
+{
+    return net_sitnl_addr_v4_del(ctx, iface, addr, prefixlen);
+}
+
+int
+net_addr_v6_del(openvpn_net_ctx_t *ctx, const openvpn_net_iface_t *iface,
+                const struct in6_addr *addr, int prefixlen)
+{
+    return net_sitnl_addr_v6_del(ctx, iface, addr, prefixlen);
+}
+
+int
+net_addr_ptp_v4_add(openvpn_net_ctx_t *ctx, const openvpn_net_iface_t *iface,
+                    const in_addr_t *local, const in_addr_t *remote)
+{
+    return net_sitnl_addr_ptp_v4_add(ctx, iface, local, remote);
+}
+
+int
+net_addr_ptp_v4_del(openvpn_net_ctx_t *ctx, const openvpn_net_iface_t *iface,
+                    const in_addr_t *local, const in_addr_t *remote)
+{
+    return net_sitnl_addr_ptp_v4_del(ctx, iface, local, remote);
+}
+
+int
+net_route_v4_add(openvpn_net_ctx_t *ctx, const in_addr_t *dst, int prefixlen,
+                 const in_addr_t *gw, const openvpn_net_iface_t *iface,
+                 uint32_t table, int metric)
+{
+    return net_sitnl_route_v4_add(ctx, dst, prefixlen, gw, iface, table,
+                                  metric);
+}
+
+int
+net_route_v6_add(openvpn_net_ctx_t *ctx, const struct in6_addr *dst,
+                 int prefixlen, const struct in6_addr *gw,
+                 const openvpn_net_iface_t *iface, uint32_t table,
+                 int metric)
+{
+    return net_sitnl_route_v6_add(ctx, dst, prefixlen, gw, iface, table,
+                                  metric);
+}
+
+int
+net_route_v4_del(openvpn_net_ctx_t *ctx, const in_addr_t *dst, int prefixlen,
+                 const in_addr_t *gw, const openvpn_net_iface_t *iface,
+                 uint32_t table, int metric)
+{
+    return net_sitnl_route_v4_del(ctx, dst, prefixlen, gw, iface, table,
+                                  metric);
+}
+
+int
+net_route_v6_del(openvpn_net_ctx_t *ctx, const struct in6_addr *dst,
+                 int prefixlen, const struct in6_addr *gw,
+                 const openvpn_net_iface_t *iface, uint32_t table, int metric)
+{
+    return net_sitnl_route_v6_del(ctx, dst, prefixlen, gw, iface, table,
+                                  metric);
+}
+
+int
+net_route_v4_best_gw(openvpn_net_ctx_t *ctx, const in_addr_t *dst,
+                     in_addr_t *best_gw, char *best_iface)
+{
+    return net_sitnl_route_v4_best_gw(ctx, dst, best_gw, best_iface);
+}
+
+int
+net_route_v6_best_gw(openvpn_net_ctx_t *ctx, const struct in6_addr *dst,
+                     struct in6_addr *best_gw, char *best_iface)
+{
+    return net_sitnl_route_v6_best_gw(ctx, dst, best_gw, best_iface);
 }
 
 #endif /* ENABLE_SITNL */
