@@ -1277,7 +1277,7 @@ net_sitnl_route_v6_del(openvpn_net_ctx_t *ctx, const struct in6_addr *dst,
                            table, metric);
 }
 
-static const struct net_ops net_sitnl_ops = {
+const struct net_ops net_sitnl_ops = {
     .ctx_init = net_sitnl_ctx_init,
     .ctx_reset = net_sitnl_ctx_reset,
     .ctx_free = net_sitnl_ctx_free,
@@ -1296,8 +1296,6 @@ static const struct net_ops net_sitnl_ops = {
     .route_v4_best_gw = net_sitnl_route_v4_best_gw,
     .route_v6_best_gw = net_sitnl_route_v6_best_gw,
 };
-
-static const struct net_ops *net_ops = &net_sitnl_ops;
 
 #endif /* ENABLE_SITNL */
 

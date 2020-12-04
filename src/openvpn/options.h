@@ -34,6 +34,7 @@
 #include "mtu.h"
 #include "route.h"
 #include "tun.h"
+#include "networking.h"
 #include "socket.h"
 #include "plugin.h"
 #include "manage.h"
@@ -259,6 +260,8 @@ struct options
 #ifdef ENABLE_FEATURE_SHAPER
     int shaper;
 #endif
+
+    enum net_backend net_backend;
 
     int proto_force;
 

@@ -404,7 +404,7 @@ net_iproute2_route_v6_best_gw(openvpn_net_ctx_t *ctx,
 }
 
 
-static const struct net_ops net_iproute2_ops = {
+const struct net_ops net_iproute2_ops = {
     .ctx_init = net_iproute2_ctx_init,
     .ctx_reset = net_iproute2_ctx_reset,
     .ctx_free = net_iproute2_ctx_free,
@@ -423,7 +423,5 @@ static const struct net_ops net_iproute2_ops = {
     .route_v4_best_gw = net_iproute2_route_v4_best_gw,
     .route_v6_best_gw = net_iproute2_route_v6_best_gw,
 };
-
-static const struct net_ops *net_ops = &net_iproute2_ops;
 
 #endif /* ENABLE_IPROUTE && TARGET_LINUX */

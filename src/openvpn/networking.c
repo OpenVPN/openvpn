@@ -27,7 +27,35 @@
 #ifdef TARGET_LINUX
 #if defined(ENABLE_IPROUTE) || defined(ENABLE_SITNL)
 
+/* TODO Why is 'error.h' not enough? */
+#include <stdio.h>
+#include <stdarg.h>
+#include "error.h"
 #include "networking.h"
+
+static const struct net_ops *net_ops;
+
+void
+net_init(enum net_backend backend)
+{
+    switch (backend)
+    {
+#ifdef ENABLE_SITNL
+        case NET_BACKEND_SITNL:
+            net_ops = &net_sitnl_ops;
+            break;
+#endif
+#ifdef ENABLE_IPROUTE
+        case NET_BACKEND_IPROUTE:
+            net_ops = &net_iproute2_ops;
+            break;
+#endif
+        default:
+            msg(M_FATAL, "fatal error in net_init: backend=%d", backend);
+            break;
+    }
+}
+
 
 int
 net_ctx_init(struct context *c, openvpn_net_ctx_t *ctx)

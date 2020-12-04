@@ -23,6 +23,20 @@
 
 #include "syshead.h"
 
+enum net_backend
+{
+#ifdef ENABLE_SITNL
+    NET_BACKEND_SITNL,
+#endif
+#ifdef ENABLE_IPROUTE
+    NET_BACKEND_IPROUTE,
+#endif
+    NET_BACKEND_NONE,
+};
+
+/* First compiled value will 0 and so the default implementation */
+#define NET_BACKEND_DEFAULT ((enum net_backend)0)
+
 struct context;
 typedef char openvpn_net_iface_t;
 
@@ -46,6 +60,12 @@ typedef union {
 #else
 /* define mock types to ensure code builds on any platform */
 typedef void *openvpn_net_ctx_t;
+
+static inline void
+net_init(enum net_backend backend)
+{
+    (void)backend;
+}
 
 static inline int
 net_ctx_init(struct context *c, openvpn_net_ctx_t *ctx)
@@ -116,6 +136,15 @@ struct net_ops {
                             struct in6_addr *best_gw,
                             openvpn_net_iface_t *best_iface);
 };
+
+
+/**
+ * Initialize the networking backend
+ *
+ * @param backend   networking stack backend
+ */
+void
+net_init(enum net_backend backend);
 
 /**
  * Initialize the platform specific context object

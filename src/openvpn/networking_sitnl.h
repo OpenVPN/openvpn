@@ -24,4 +24,6 @@
 
 typedef void *openvpn_net_sitnl_ctx_t;
 
+extern const struct net_ops net_sitnl_ops;
+
 #endif /* NETWORKING_SITNL_H_ */

@@ -32,4 +32,6 @@ struct openvpn_net_iproute2_ctx
 
 typedef struct openvpn_net_iproute2_ctx openvpn_net_iproute2_ctx_t;
 
+extern const struct net_ops net_iproute2_ops;
+
 #endif /* NETWORKING_IP_H_ */
