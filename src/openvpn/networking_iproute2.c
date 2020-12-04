@@ -404,75 +404,97 @@ net_iproute2_route_v6_best_gw(openvpn_net_ctx_t *ctx,
 }
 
 
+static const struct net_ops net_iproute2_ops = {
+    .ctx_init = net_iproute2_ctx_init,
+    .ctx_reset = net_iproute2_ctx_reset,
+    .ctx_free = net_iproute2_ctx_free,
+    .iface_up = net_iproute2_iface_up,
+    .iface_mtu_set = net_iproute2_iface_mtu_set,
+    .addr_v4_add = net_iproute2_addr_v4_add,
+    .addr_v6_add = net_iproute2_addr_v6_add,
+    .addr_v4_del = net_iproute2_addr_v4_del,
+    .addr_v6_del = net_iproute2_addr_v6_del,
+    .addr_ptp_v4_add = net_iproute2_addr_ptp_v4_add,
+    .addr_ptp_v4_del = net_iproute2_addr_ptp_v4_del,
+    .route_v4_add = net_iproute2_route_v4_add,
+    .route_v6_add = net_iproute2_route_v6_add,
+    .route_v4_del = net_iproute2_route_v4_del,
+    .route_v6_del = net_iproute2_route_v6_del,
+    .route_v4_best_gw = net_iproute2_route_v4_best_gw,
+    .route_v6_best_gw = net_iproute2_route_v6_best_gw,
+};
+
+static const struct net_ops *net_ops = &net_iproute2_ops;
+
 int
 net_ctx_init(struct context *c, openvpn_net_ctx_t *ctx)
 {
-    return net_iproute2_ctx_init(c, ctx);
+    return net_ops->ctx_init(c, ctx);
 }
 
 void
 net_ctx_reset(openvpn_net_ctx_t *ctx)
 {
-    net_iproute2_ctx_reset(ctx);
+    net_ops->ctx_reset(ctx);
 }
 
 void
 net_ctx_free(openvpn_net_ctx_t *ctx) {
-    net_iproute2_ctx_free(ctx);
+    net_ops->ctx_free(ctx);
 }
 
 int
 net_iface_up(openvpn_net_ctx_t *ctx, const openvpn_net_iface_t *iface, bool up)
 {
-    return net_iproute2_iface_up(ctx, iface, up);
+    return net_ops->iface_up(ctx, iface, up);
 }
 
 int
 net_iface_mtu_set(openvpn_net_ctx_t *ctx, const openvpn_net_iface_t *iface,
                   uint32_t mtu)
 {
-    return net_iproute2_iface_mtu_set(ctx, iface, mtu);
+    return net_ops->iface_mtu_set(ctx, iface, mtu);
 }
 int
 net_addr_v4_add(openvpn_net_ctx_t *ctx, const openvpn_net_iface_t *iface,
                 const in_addr_t *addr, int prefixlen)
 {
-    return net_iproute2_addr_v4_add(ctx, iface, addr, prefixlen);
+    return net_ops->addr_v4_add(ctx, iface, addr, prefixlen);
 }
 
 int
 net_addr_v6_add(openvpn_net_ctx_t *ctx, const openvpn_net_iface_t *iface,
                 const struct in6_addr *addr, int prefixlen)
 {
-    return net_iproute2_addr_v6_add(ctx, iface, addr, prefixlen);
+    return net_ops->addr_v6_add(ctx, iface, addr, prefixlen);
 }
 
 int
 net_addr_v4_del(openvpn_net_ctx_t *ctx, const openvpn_net_iface_t *iface,
                 const in_addr_t *addr, int prefixlen)
 {
-    return net_iproute2_addr_v4_del(ctx, iface, addr, prefixlen);
+    return net_ops->addr_v4_del(ctx, iface, addr, prefixlen);
 }
 
 int
 net_addr_v6_del(openvpn_net_ctx_t *ctx, const openvpn_net_iface_t *iface,
                 const struct in6_addr *addr, int prefixlen)
 {
-    return net_iproute2_addr_v6_del(ctx, iface, addr, prefixlen);
+    return net_ops->addr_v6_del(ctx, iface, addr, prefixlen);
 }
 
 int
 net_addr_ptp_v4_add(openvpn_net_ctx_t *ctx, const openvpn_net_iface_t *iface,
                     const in_addr_t *local, const in_addr_t *remote)
 {
-    return net_iproute2_addr_ptp_v4_add(ctx, iface, local, remote);
+    return net_ops->addr_ptp_v4_add(ctx, iface, local, remote);
 }
 
 int
 net_addr_ptp_v4_del(openvpn_net_ctx_t *ctx, const openvpn_net_iface_t *iface,
                     const in_addr_t *local, const in_addr_t *remote)
 {
-    return net_iproute2_addr_ptp_v4_del(ctx, iface, local, remote);
+    return net_ops->addr_ptp_v4_del(ctx, iface, local, remote);
 }
 
 int
@@ -480,8 +502,7 @@ net_route_v4_add(openvpn_net_ctx_t *ctx, const in_addr_t *dst, int prefixlen,
                  const in_addr_t *gw, const openvpn_net_iface_t *iface,
                  uint32_t table, int metric)
 {
-    return net_iproute2_route_v4_add(ctx, dst, prefixlen, gw, iface, table,
-                                     metric);
+    return net_ops->route_v4_add(ctx, dst, prefixlen, gw, iface, table, metric);
 }
 
 int
@@ -490,8 +511,7 @@ net_route_v6_add(openvpn_net_ctx_t *ctx, const struct in6_addr *dst,
                  const openvpn_net_iface_t *iface, uint32_t table,
                  int metric)
 {
-    return net_iproute2_route_v6_add(ctx, dst, prefixlen, gw, iface, table,
-                                     metric);
+    return net_ops->route_v6_add(ctx, dst, prefixlen, gw, iface, table, metric);
 }
 
 int
@@ -499,8 +519,7 @@ net_route_v4_del(openvpn_net_ctx_t *ctx, const in_addr_t *dst, int prefixlen,
                  const in_addr_t *gw, const openvpn_net_iface_t *iface,
                  uint32_t table, int metric)
 {
-    return net_iproute2_route_v4_del(ctx, dst, prefixlen, gw, iface, table,
-                                     metric);
+    return net_ops->route_v4_del(ctx, dst, prefixlen, gw, iface, table, metric);
 }
 
 int
@@ -508,22 +527,21 @@ net_route_v6_del(openvpn_net_ctx_t *ctx, const struct in6_addr *dst,
                  int prefixlen, const struct in6_addr *gw,
                  const openvpn_net_iface_t *iface, uint32_t table, int metric)
 {
-    return net_iproute2_route_v6_del(ctx, dst, prefixlen, gw, iface, table,
-                                     metric);
+    return net_ops->route_v6_del(ctx, dst, prefixlen, gw, iface, table, metric);
 }
 
 int
 net_route_v4_best_gw(openvpn_net_ctx_t *ctx, const in_addr_t *dst,
                      in_addr_t *best_gw, char *best_iface)
 {
-    return net_iproute2_route_v4_best_gw(ctx, dst, best_gw, best_iface);
+    return net_ops->route_v4_best_gw(ctx, dst, best_gw, best_iface);
 }
 
 int
 net_route_v6_best_gw(openvpn_net_ctx_t *ctx, const struct in6_addr *dst,
                      struct in6_addr *best_gw, char *best_iface)
 {
-    return net_iproute2_route_v6_best_gw(ctx, dst, best_gw, best_iface);
+    return net_ops->route_v6_best_gw(ctx, dst, best_gw, best_iface);
 }
 
 #endif /* ENABLE_IPROUTE && TARGET_LINUX */

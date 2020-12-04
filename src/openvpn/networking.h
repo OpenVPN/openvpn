@@ -69,6 +69,55 @@ net_ctx_free(openvpn_net_ctx_t *ctx)
 #if defined(ENABLE_SITNL) || defined(ENABLE_IPROUTE)
 
 /**
+ * Networking implementation functions
+ */
+struct net_ops {
+    int (*ctx_init)(struct context *c, openvpn_net_ctx_t *ctx);
+    void (*ctx_reset)(openvpn_net_ctx_t *ctx);
+    void (*ctx_free)(openvpn_net_ctx_t *ctx);
+    int (*iface_up)(openvpn_net_ctx_t *ctx,
+                        const openvpn_net_iface_t *iface, bool up);
+    int (*iface_mtu_set)(openvpn_net_ctx_t *ctx,
+                        const openvpn_net_iface_t *iface, uint32_t mtu);
+    int (*addr_v4_add)(openvpn_net_ctx_t *ctx, const openvpn_net_iface_t *iface,
+                       const in_addr_t *addr, int prefixlen);
+    int (*addr_v6_add)(openvpn_net_ctx_t *ctx, const openvpn_net_iface_t *iface,
+                       const struct in6_addr *addr, int prefixlen);
+    int (*addr_v4_del)(openvpn_net_ctx_t *ctx, const openvpn_net_iface_t *iface,
+                       const in_addr_t *addr, int prefixlen);
+    int (*addr_v6_del)(openvpn_net_ctx_t *ctx, const openvpn_net_iface_t *iface,
+                       const struct in6_addr *addr, int prefixlen);
+    int (*addr_ptp_v4_add)(openvpn_net_ctx_t *ctx,
+                           const openvpn_net_iface_t *iface,
+                           const in_addr_t *local, const in_addr_t *remote);
+    int (*addr_ptp_v4_del)(openvpn_net_ctx_t *ctx,
+                           const openvpn_net_iface_t *iface,
+                           const in_addr_t *local, const in_addr_t *remote);
+    int (*route_v4_add)(openvpn_net_ctx_t *ctx, const in_addr_t *dst,
+                        int prefixlen, const in_addr_t *gw,
+                        const openvpn_net_iface_t *iface, uint32_t table,
+                        int metric);
+    int (*route_v6_add)(openvpn_net_ctx_t *ctx, const struct in6_addr *dst,
+                        int prefixlen, const struct in6_addr *gw,
+                        const openvpn_net_iface_t *iface, uint32_t table,
+                        int metric);
+    int (*route_v4_del)(openvpn_net_ctx_t *ctx, const in_addr_t *dst,
+                        int prefixlen, const in_addr_t *gw,
+                        const openvpn_net_iface_t *iface, uint32_t table,
+                        int metric);
+    int (*route_v6_del)(openvpn_net_ctx_t *ctx, const struct in6_addr *dst,
+                        int prefixlen, const struct in6_addr *gw,
+                        const openvpn_net_iface_t *iface, uint32_t table,
+                        int metric);
+    int (*route_v4_best_gw)(openvpn_net_ctx_t *ctx, const in_addr_t *dst,
+                            in_addr_t *best_gw,
+                            openvpn_net_iface_t *best_iface);
+    int (*route_v6_best_gw)(openvpn_net_ctx_t *ctx, const struct in6_addr *dst,
+                            struct in6_addr *best_gw,
+                            openvpn_net_iface_t *best_iface);
+};
+
+/**
  * Initialize the platform specific context object
  *
  * @param c         openvpn generic context
