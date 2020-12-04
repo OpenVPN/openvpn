@@ -24,6 +24,7 @@
 #include "syshead.h"
 
 struct context;
+typedef char openvpn_net_iface_t;
 
 #ifdef ENABLE_SITNL
 #include "networking_sitnl.h"
@@ -32,7 +33,6 @@ struct context;
 #else
 /* define mock types to ensure code builds on any platform */
 typedef void *openvpn_net_ctx_t;
-typedef void *openvpn_net_iface_t;
 
 static inline int
 net_ctx_init(struct context *c, openvpn_net_ctx_t *ctx)
