@@ -85,7 +85,7 @@ openvpn_SOURCES = \
 	multi.c multi.h \
 	networking_iproute2.c networking_iproute2.h \
 	networking_sitnl.c networking_sitnl.h \
-	networking.h \
+	networking.c networking.h \
 	ntlm.c ntlm.h \
 	occ.c occ.h \
 	openssl_compat.h \
