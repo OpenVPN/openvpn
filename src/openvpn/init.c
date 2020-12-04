@@ -1943,9 +1943,9 @@ do_open_tun(struct context *c)
     ret = true;
     static_context = c;
 #ifndef TARGET_ANDROID
-}
-else
-{
+    }
+    else
+    {
     msg(M_INFO, "Preserving previous TUN/TAP instance: %s",
         c->c1.tuntap->actual_name);
 
