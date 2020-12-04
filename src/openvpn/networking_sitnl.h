@@ -22,6 +22,8 @@
 #ifndef NETWORKING_SITNL_H_
 #define NETWORKING_SITNL_H_
 
-typedef void *openvpn_net_ctx_t;
+typedef void *openvpn_net_sitnl_ctx_t;
+
+typedef openvpn_net_sitnl_ctx_t openvpn_net_ctx_t;
 
 #endif /* NETWORKING_SITNL_H_ */

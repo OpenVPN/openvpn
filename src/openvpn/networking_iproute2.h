@@ -24,12 +24,14 @@
 
 #include "env_set.h"
 
-struct openvpn_net_ctx
+struct openvpn_net_iproute2_ctx
 {
     struct env_set *es;
     struct gc_arena gc;
 };
 
-typedef struct openvpn_net_ctx openvpn_net_ctx_t;
+typedef struct openvpn_net_iproute2_ctx openvpn_net_iproute2_ctx_t;
+
+typedef openvpn_net_iproute2_ctx_t openvpn_net_ctx_t;
 
 #endif /* NETWORKING_IP_H_ */
