@@ -4446,7 +4446,8 @@ in_src_get(const struct in_src *is, char *line, const int size)
 }
 
 static char *
-read_inline_file(struct in_src *is, const char *close_tag, struct gc_arena *gc)
+read_inline_file(struct in_src *is, const char *close_tag,
+                 int *num_lines, struct gc_arena *gc)
 {
     char line[OPTION_LINE_SIZE];
     struct buffer buf = alloc_buf(8*OPTION_LINE_SIZE);
@@ -4455,6 +4456,7 @@ read_inline_file(struct in_src *is, const char *close_tag, struct gc_arena *gc)
 
     while (in_src_get(is, line, sizeof(line)))
     {
+        (*num_lines)++;
         char *line_ptr = line;
         /* Remove leading spaces */
         while (isspace(*line_ptr))
@@ -4488,10 +4490,11 @@ read_inline_file(struct in_src *is, const char *close_tag, struct gc_arena *gc)
     return ret;
 }
 
-static bool
+static int
 check_inline_file(struct in_src *is, char *p[], struct gc_arena *gc)
 {
-    bool ret = false;
+    int num_inline_lines = 0;
+
     if (p[0] && !p[1])
     {
         char *arg = p[0];
@@ -4503,16 +4506,15 @@ check_inline_file(struct in_src *is, char *p[], struct gc_arena *gc)
             p[1] = string_alloc(INLINE_FILE_TAG, gc);
             close_tag = alloc_buf(strlen(p[0]) + 4);
             buf_printf(&close_tag, "</%s>", p[0]);
-            p[2] = read_inline_file(is, BSTR(&close_tag), gc);
+            p[2] = read_inline_file(is, BSTR(&close_tag), &num_inline_lines, gc);
             p[3] = NULL;
             free_buf(&close_tag);
-            ret = true;
         }
     }
-    return ret;
+    return num_inline_lines;
 }
 
-static bool
+static int
 check_inline_file_via_fp(FILE *fp, char *p[], struct gc_arena *gc)
 {
     struct in_src is;
@@ -4521,7 +4523,7 @@ check_inline_file_via_fp(FILE *fp, char *p[], struct gc_arena *gc)
     return check_inline_file(&is, p, gc);
 }
 
-static bool
+static int
 check_inline_file_via_buf(struct buffer *multiline, char *p[], struct gc_arena *gc)
 {
     struct in_src is;
@@ -4591,8 +4593,9 @@ read_config_file(struct options *options,
                 if (parse_line(line + offset, p, SIZE(p)-1, file, line_num, msglevel, &options->gc))
                 {
                     bypass_doubledash(&p[0]);
-                    check_inline_file_via_fp(fp, p, &options->gc);
+                    int lines_inline = check_inline_file_via_fp(fp, p, &options->gc);
                     add_option(options, p, file, line_num, level, msglevel, permission_mask, option_types_found, es);
+                    line_num += lines_inline;
                 }
             }
             if (fp != stdin)
@@ -4636,8 +4639,9 @@ read_config_string(const char *prefix,
         if (parse_line(line, p, SIZE(p)-1, prefix, line_num, msglevel, &options->gc))
         {
             bypass_doubledash(&p[0]);
-            check_inline_file_via_buf(&multiline, p, &options->gc);
+            int lines_inline = check_inline_file_via_buf(&multiline, p, &options->gc);
             add_option(options, p, prefix, line_num, 0, msglevel, permission_mask, option_types_found, es);
+            line_num += lines_inline;
         }
         CLEAR(p);
     }
