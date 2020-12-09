@@ -321,6 +321,61 @@ Maintainer-visible changes
   i386/i686 builds on RHEL5.
 
 
+Version 2.4.10
+=============
+This is primarily a maintenance release with minor bugfixes and improvements.
+
+New features
+------------
+ - OpenVPN client will now announce the acceptable ciphers to the server
+   (IV_CIPHER=...), so NCP cipher negotiation works better
+
+ - Parse static challenge response in auth-pam plugin
+
+ - Accept empty password and/or response in auth-pam plugin
+
+ - Log serial number of revoked certificate
+
+
+User visible changes
+--------------------
+ - Windows: Swap the order of checks for validating interactive service user
+   (faster start if connection to the DC is slow, but local information is
+   sufficient to determine privileges)
+
+
+Bug fixes
+---------
+ - Fix tls_ctx_client/server_new leaving error on OpenSSL error stack
+
+ - Fix auth-token not being updated if auth-nocache is set
+   (this should fix all remaining client-side bugs for the combination
+   "auth-nocache in client-config" + "auth-token in use on the server")
+
+ - Fix stack overflow in OpenSolaris and *BSD NEXTADDR()
+
+ - Fix error detection / abort in --inetd corner case (#350)
+
+ - Fix TUNSETGROUP compatibility with very old Linux systems (#1152)
+
+ - Fix handling of 'route remote_host' for IPv6 transport case
+   (#1247 and #1332)
+
+ - Fix --show-gateway for IPv6 on NetBSD/i386 (#734)
+
+ - A number of documentation improvements / clarification fixes.
+
+ - Fix line number reporting on config file errors after <inline> segments
+   (#1325)
+
+ - Fix fatal error at switching remotes (#629)
+
+ - socks.c: fix alen for DOMAIN type addresses, bump up buffer sizes (#848)
+
+ - Switch "ks->authenticated" assertion failure to returning false (#1270)
+
+
+
 Version 2.4.9
 =============
 This is primarily a maintenance release with minor bugfixes and improvements.

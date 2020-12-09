@@ -1,6 +1,52 @@
 OpenVPN Change Log
 Copyright (C) 2002-2018 OpenVPN Inc <sales@openvpn.net>
 
+2020.12.09 -- Version 2.4.10
+
+Antonio Quartulli (1):
+      pool: prevent IPv6 pools to be larger than 2^16 addresses
+
+Arne Schwabe (5):
+      Fix tls_ctx_client/server_new leaving error on OpenSSL error stack
+      Normalise ncp-ciphers option and restrict it to 127 bytes
+      Also announce IV_CIPHERS as client in OpenVPN 2.4
+      Fix auth-token not being updated if auth-nocache is set
+      Remove auth_user_pass.wait_for_push variable
+
+David Sommerseth (1):
+      compat/lz4: Update to v1.9.2
+
+Gert Doering (12):
+      Fix stack overflow in OpenSolaris NEXTADDR()
+      Document that --push-remove is generally more suitable than --push-reset
+      Fix error detection / abort in --inetd corner case.
+      Fix TUNSETGROUP compatibility with very old Linux systems.
+      Fix handling of 'route remote_host' for IPv6 transport case.
+      Fix description of --client-disconnect calling convention in manpage.
+      Handle NULL returns from calloc() in sample plugins.
+      Fix --show-gateway for IPv6 on NetBSD/i386.
+      socks.c: fix alen for DOMAIN type addresses, bump up buffer sizes
+      Fix redirecting of IPv4 default gateway if connecting over IPv6.
+      Change travis build scripts to use https when fetching prerequisites.
+      Fix line number reporting on config file errors after <inline> segments
+
+Jeremy Evans (1):
+      Switch assertion failure to returning false
+
+Matthias Andree (1):
+      Fix stack buffer overruns in NEXTADDR() macro:
+
+Selva Nair (3):
+      Parse static challenge response in auth-pam plugin
+      Accept empty password and/or response in auth-pam plugin
+      Persist management-query-remote and proxy prompts
+
+Vladislav Grishenko (2):
+      Log serial number of revoked certificate
+      Fix fatal error at switching remotes (#629)
+
+
+
 2020.04.16 -- Version 2.4.9
 Antonio Quartulli (1):
       socks: use the right function when printing struct openvpn_sockaddr
