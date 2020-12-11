@@ -3962,7 +3962,7 @@ options_warning_safe_scan2(const int msglevel,
     if (strprefix(p1, "key-method ")
         || strprefix(p1, "keydir ")
         || strprefix(p1, "proto ")
-        || strprefix(p1, "tls-auth ")
+        || streq(p1, "tls-auth")
         || strprefix(p1, "tun-ipv6")
         || strprefix(p1, "cipher "))
     {
