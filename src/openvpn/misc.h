@@ -32,19 +32,12 @@
 #include "buffer.h"
 #include "platform.h"
 
-/* socket descriptor passed by inetd/xinetd server to us */
-#define INETD_SOCKET_DESCRIPTOR 0
-
 /* forward declarations */
 struct plugin_list;
 
 
 /* Set standard file descriptors to /dev/null */
 void set_std_files_to_null(bool stdin_only);
-
-/* dup inetd/xinetd socket descriptor and save */
-extern int inetd_socket_descriptor;
-void save_inetd_socket_descriptor(void);
 
 /* Make arrays of strings */
 

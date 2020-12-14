@@ -324,8 +324,6 @@ static const char usage_message[] =
     "                  as the program name to the system logger.\n"
     "--syslog [name] : Output to syslog, but do not become a daemon.\n"
     "                  See --daemon above for a description of the 'name' parm.\n"
-    "--inetd [name] ['wait'|'nowait'] : Run as an inetd or xinetd server.\n"
-    "                  See --daemon above for a description of the 'name' parm.\n"
     "--log file      : Output log to file which is created/truncated on open.\n"
     "--log-append file : Append log to file, or create file if nonexistent.\n"
     "--suppress-timestamps : Don't log timestamps to stdout/stderr.\n"
@@ -1603,7 +1601,6 @@ show_settings(const struct options *o)
     SHOW_BOOL(up_restart);
     SHOW_BOOL(up_delay);
     SHOW_BOOL(daemon);
-    SHOW_INT(inetd);
     SHOW_BOOL(log);
     SHOW_BOOL(suppress_timestamps);
     SHOW_BOOL(machine_readable_output);
@@ -2032,48 +2029,6 @@ options_postprocess_verify_ce(const struct options *options,
             "--proto tcp-server or --proto tcp-client");
     }
 
-    /*
-     * Sanity check on daemon/inetd modes
-     */
-
-    if (options->daemon && options->inetd)
-    {
-        msg(M_USAGE, "only one of --daemon or --inetd may be specified");
-    }
-
-    if (options->inetd && (ce->local || ce->remote))
-    {
-        msg(M_USAGE, "--local or --remote cannot be used with --inetd");
-    }
-
-    if (options->inetd && ce->proto == PROTO_TCP_CLIENT)
-    {
-        msg(M_USAGE, "--proto tcp-client cannot be used with --inetd");
-    }
-
-    if (options->inetd == INETD_NOWAIT && ce->proto != PROTO_TCP_SERVER)
-    {
-        msg(M_USAGE, "--inetd nowait can only be used with --proto tcp-server");
-    }
-
-    if (options->inetd == INETD_NOWAIT
-        && !(options->tls_server || options->tls_client))
-    {
-        msg(M_USAGE, "--inetd nowait can only be used in TLS mode");
-    }
-
-    if (options->inetd == INETD_NOWAIT && dev != DEV_TYPE_TAP)
-    {
-        msg(M_USAGE, "--inetd nowait only makes sense in --dev tap mode");
-    }
-
-    if (options->inetd)
-    {
-        msg(M_WARN,
-            "DEPRECATED OPTION: --inetd mode is deprecated and will be removed "
-            "in OpenVPN 2.6");
-    }
-
     if (options->lladdr && dev != DEV_TYPE_TAP)
     {
         msg(M_USAGE, "--lladdr can only be used in --dev tap mode");
@@ -2338,10 +2293,6 @@ options_postprocess_verify_ce(const struct options *options,
         if (options->shaper)
         {
             msg(M_USAGE, "--shaper cannot be used with --mode server");
-        }
-        if (options->inetd)
-        {
-            msg(M_USAGE, "--inetd cannot be used with --mode server");
         }
         if (options->ipchange)
         {
@@ -2983,18 +2934,7 @@ options_postprocess_mutate_invariant(struct options *options)
 {
 #ifdef _WIN32
     const int dev = dev_type_enum(options->dev, options->dev_type);
-#endif
 
-    /*
-     * In forking TCP server mode, you don't need to ifconfig
-     * the tap device (the assumption is that it will be bridged).
-     */
-    if (options->inetd == INETD_NOWAIT)
-    {
-        options->ifconfig_noexec = true;
-    }
-
-#ifdef _WIN32
     /* when using wintun, kernel doesn't send DHCP requests, so don't use it */
     if (options->windows_driver == WINDOWS_DRIVER_WINTUN
         && (options->tuntap_options.ip_win32_type == IPW32_SET_DHCP_MASQ || options->tuntap_options.ip_win32_type == IPW32_SET_ADAPTIVE))
@@ -5894,67 +5834,6 @@ add_option(struct options *options,
                 msg(M_WARN, "WARNING: Multiple --daemon directives specified, ignoring --daemon %s. (Note that initscripts sometimes add their own --daemon directive.)", p[1]);
                 goto err;
             }
-        }
-    }
-    else if (streq(p[0], "inetd") && !p[3])
-    {
-        VERIFY_PERMISSION(OPT_P_GENERAL);
-        if (!options->inetd)
-        {
-            int z;
-            const char *name = NULL;
-            const char *opterr = "when --inetd is used with two parameters, one of them must be 'wait' or 'nowait' and the other must be a daemon name to use for system logging";
-
-            options->inetd = -1;
-
-            for (z = 1; z <= 2; ++z)
-            {
-                if (p[z])
-                {
-                    if (streq(p[z], "wait"))
-                    {
-                        if (options->inetd != -1)
-                        {
-                            msg(msglevel, "%s", opterr);
-                            goto err;
-                        }
-                        else
-                        {
-                            options->inetd = INETD_WAIT;
-                        }
-                    }
-                    else if (streq(p[z], "nowait"))
-                    {
-                        if (options->inetd != -1)
-                        {
-                            msg(msglevel, "%s", opterr);
-                            goto err;
-                        }
-                        else
-                        {
-                            options->inetd = INETD_NOWAIT;
-                        }
-                    }
-                    else
-                    {
-                        if (name != NULL)
-                        {
-                            msg(msglevel, "%s", opterr);
-                            goto err;
-                        }
-                        name = p[z];
-                    }
-                }
-            }
-
-            /* default */
-            if (options->inetd == -1)
-            {
-                options->inetd = INETD_WAIT;
-            }
-
-            save_inetd_socket_descriptor();
-            open_syslog(name, true);
         }
     }
     else if (streq(p[0], "log") && p[1] && !p[2])

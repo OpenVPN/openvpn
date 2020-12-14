@@ -9,6 +9,13 @@ Keying Material Exporters (RFC 5705) based key generation
     the RFC5705 based key material generation to the current custom
     OpenVPN PRF. This feature requires OpenSSL or mbed TLS 2.18+.
 
+Deprecated features
+-------------------
+``inetd`` has been removed
+    This was a very limited and not-well-tested way to run OpenVPN, on TCP
+    and TAP mode only.
+
+
 Overview of changes in 2.5
 ==========================
 

@@ -834,23 +834,15 @@ read_incoming_link(struct context *c)
 #endif
         {
             /* received a disconnect from a connection-oriented protocol */
-            if (c->options.inetd)
+            if (event_timeout_defined(&c->c2.explicit_exit_notification_interval))
             {
-                register_signal(c, SIGTERM, "connection-reset-inetd");
-                msg(D_STREAM_ERRORS, "Connection reset, inetd/xinetd exit [%d]", status);
+                msg(D_STREAM_ERRORS, "Connection reset during exit notification period, ignoring [%d]", status);
+                management_sleep(1);
             }
             else
             {
-                if (event_timeout_defined(&c->c2.explicit_exit_notification_interval))
-                {
-                    msg(D_STREAM_ERRORS, "Connection reset during exit notification period, ignoring [%d]", status);
-                    management_sleep(1);
-                }
-                else
-                {
-                    register_signal(c, SIGUSR1, "connection-reset"); /* SOFT-SIGUSR1 -- TCP connection reset */
-                    msg(D_STREAM_ERRORS, "Connection reset, restarting [%d]", status);
-                }
+                register_signal(c, SIGUSR1, "connection-reset"); /* SOFT-SIGUSR1 -- TCP connection reset */
+                msg(D_STREAM_ERRORS, "Connection reset, restarting [%d]", status);
             }
         }
         perf_pop();

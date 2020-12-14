@@ -366,10 +366,6 @@ the local and the remote host.
   Persist replay-protection state across sessions using ``file`` to save
   and reload the state.
 
-  This option will strengthen protection against replay attacks,
-  especially when you are using OpenVPN in a dynamic context (such as with
-  ``--inetd``) when OpenVPN sessions are frequently started and stopped.
-
   This option will keep a disk copy of the current replay protection state
   (i.e. the most recent packet timestamp and sequence number received from
   the remote peer), so that if an OpenVPN session is stopped and

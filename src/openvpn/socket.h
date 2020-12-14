@@ -188,11 +188,6 @@ struct link_socket
     struct cached_dns_entry *dns_cache;
     bool bind_local;
 
-#define INETD_NONE   0
-#define INETD_WAIT   1
-#define INETD_NOWAIT 2
-    int inetd;
-
 #define LS_MODE_DEFAULT           0
 #define LS_MODE_TCP_LISTEN        1
 #define LS_MODE_TCP_ACCEPT_FROM   2
@@ -318,7 +313,6 @@ link_socket_init_phase1(struct link_socket *sock,
 #endif
                         bool bind_local,
                         bool remote_float,
-                        int inetd,
                         struct link_socket_addr *lsa,
                         const char *ipchange_command,
                         const struct plugin_list *plugins,

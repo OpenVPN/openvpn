@@ -62,7 +62,7 @@ static int mute_category;   /* GLOBAL */
  * Output mode priorities are as follows:
  *
  *  (1) --log-x overrides everything
- *  (2) syslog is used if --daemon or --inetd is defined and not --log-x
+ *  (2) syslog is used if --daemon is defined and not --log-x
  *  (3) if OPENVPN_DEBUG_COMMAND_LINE is defined, output
  *      to constant logfile name.
  *  (4) Output to stdout.
@@ -476,7 +476,7 @@ open_syslog(const char *pgmname, bool stdio_to_null)
         }
     }
 #else  /* if SYSLOG_CAPABILITY */
-    msg(M_WARN, "Warning on use of --daemon/--inetd: this operating system lacks daemon logging features, therefore when I become a daemon, I won't be able to log status or error messages");
+    msg(M_WARN, "Warning on use of --daemon: this operating system lacks daemon logging features, therefore when I become a daemon, I won't be able to log status or error messages");
 #endif
 }
 

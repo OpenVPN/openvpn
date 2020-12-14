@@ -76,26 +76,6 @@ set_std_files_to_null(bool stdin_only)
 }
 
 /*
- *  dup inetd/xinetd socket descriptor and save
- */
-
-int inetd_socket_descriptor = SOCKET_UNDEFINED; /* GLOBAL */
-
-void
-save_inetd_socket_descriptor(void)
-{
-    inetd_socket_descriptor = INETD_SOCKET_DESCRIPTOR;
-#if defined(HAVE_DUP) && defined(HAVE_DUP2)
-    /* use handle passed by inetd/xinetd */
-    if ((inetd_socket_descriptor = dup(INETD_SOCKET_DESCRIPTOR)) < 0)
-    {
-        msg(M_ERR, "INETD_SOCKET_DESCRIPTOR dup(%d) failed", INETD_SOCKET_DESCRIPTOR);
-    }
-    set_std_files_to_null(true);
-#endif
-}
-
-/*
  * Prepend a random string to hostname to prevent DNS caching.
  * For example, foo.bar.gov would be modified to <random-chars>.foo.bar.gov.
  * Of course, this requires explicit support in the DNS server (wildcard).

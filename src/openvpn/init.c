@@ -1236,7 +1236,6 @@ possibly_become_daemon(const struct options *options)
 
     if (options->daemon)
     {
-        ASSERT(!options->inetd);
         /* Don't chdir immediately, but the end of the init sequence, if needed */
 
 #if defined(__APPLE__) && defined(__clang__)
@@ -3449,7 +3448,6 @@ do_init_socket_1(struct context *c, const int mode)
 #endif
                             c->options.ce.bind_local,
                             c->options.ce.remote_float,
-                            c->options.inetd,
                             &c->c1.link_socket_addr,
                             c->options.ipchange,
                             c->plugins,
@@ -3549,23 +3547,6 @@ do_init_first_time(struct context *c)
 
         /* should we change scheduling priority? */
         platform_nice(c->options.nice);
-    }
-}
-
-/*
- * If xinetd/inetd mode, don't allow restart.
- */
-static void
-do_close_check_if_restart_permitted(struct context *c)
-{
-    if (c->options.inetd
-        && (c->sig->signal_received == SIGHUP
-            || c->sig->signal_received == SIGUSR1))
-    {
-        c->sig->signal_received = SIGTERM;
-        msg(M_INFO,
-            PACKAGE_NAME
-            " started by inetd/xinetd cannot restart... Exiting.");
     }
 }
 
@@ -4462,9 +4443,6 @@ close_instance(struct context *c)
         || c->mode == CM_CHILD_UDP
         || c->mode == CM_TOP)
     {
-        /* if xinetd/inetd mode, don't allow restart */
-        do_close_check_if_restart_permitted(c);
-
 #ifdef USE_COMP
         if (c->c2.comp_context)
         {

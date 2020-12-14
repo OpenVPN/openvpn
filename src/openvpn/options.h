@@ -319,9 +319,6 @@ struct options
 
     int remap_sigusr1;
 
-    /* inetd modes defined in socket.h */
-    int inetd;
-
     bool log;
     bool suppress_timestamps;
     bool machine_readable_output;

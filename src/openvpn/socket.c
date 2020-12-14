@@ -1894,7 +1894,6 @@ link_socket_init_phase1(struct link_socket *sock,
 #endif
                         bool bind_local,
                         bool remote_float,
-                        int inetd,
                         struct link_socket_addr *lsa,
                         const char *ipchange_command,
                         const struct plugin_list *plugins,
@@ -1917,7 +1916,6 @@ link_socket_init_phase1(struct link_socket *sock,
     sock->http_proxy = http_proxy;
     sock->socks_proxy = socks_proxy;
     sock->bind_local = bind_local;
-    sock->inetd = inetd;
     sock->resolve_retry_seconds = resolve_retry_seconds;
     sock->mtu_discover_type = mtu_discover_type;
 
@@ -1946,7 +1944,6 @@ link_socket_init_phase1(struct link_socket *sock,
     {
         ASSERT(accept_from);
         ASSERT(sock->info.proto == PROTO_TCP_SERVER);
-        ASSERT(!sock->inetd);
         sock->sd = accept_from->sd;
         /* inherit (possibly guessed) info AF from parent context */
         sock->info.af = accept_from->info.af;
@@ -1956,7 +1953,6 @@ link_socket_init_phase1(struct link_socket *sock,
     if (sock->http_proxy)
     {
         ASSERT(sock->info.proto == PROTO_TCP_CLIENT);
-        ASSERT(!sock->inetd);
 
         /* the proxy server */
         sock->remote_host = http_proxy->options.server;
@@ -1969,8 +1965,6 @@ link_socket_init_phase1(struct link_socket *sock,
     /* or in Socks proxy mode? */
     else if (sock->socks_proxy)
     {
-        ASSERT(!sock->inetd);
-
         /* the proxy server */
         sock->remote_host = socks_proxy->server;
         sock->remote_port = socks_proxy->port;
@@ -1998,15 +1992,7 @@ link_socket_init_phase1(struct link_socket *sock,
         }
     }
 
-    /* were we started by inetd or xinetd? */
-    if (sock->inetd)
-    {
-        ASSERT(sock->info.proto != PROTO_TCP_CLIENT);
-        ASSERT(socket_defined(inetd_socket_descriptor));
-        sock->sd = inetd_socket_descriptor;
-        set_cloexec(sock->sd);          /* not created by create_socket*() */
-    }
-    else if (mode != LS_MODE_TCP_ACCEPT_FROM)
+    if (mode != LS_MODE_TCP_ACCEPT_FROM)
     {
         if (sock->bind_local)
         {
@@ -2014,58 +2000,6 @@ link_socket_init_phase1(struct link_socket *sock,
         }
         resolve_remote(sock, 1, NULL, NULL);
     }
-}
-
-static
-void
-phase2_inetd(struct link_socket *sock, const struct frame *frame,
-             const char *remote_dynamic, volatile int *signal_received)
-{
-    bool remote_changed = false;
-
-    if (sock->info.proto == PROTO_TCP_SERVER)
-    {
-        /* AF_INET as default (and fallback) for inetd */
-        sock->info.lsa->actual.dest.addr.sa.sa_family = AF_INET;
-#ifdef HAVE_GETSOCKNAME
-        {
-            /* inetd: hint family type for dest = local's */
-            struct openvpn_sockaddr local_addr;
-            socklen_t addrlen = sizeof(local_addr);
-            if (getsockname(sock->sd, &local_addr.addr.sa, &addrlen) == 0)
-            {
-                sock->info.lsa->actual.dest.addr.sa.sa_family = local_addr.addr.sa.sa_family;
-                dmsg(D_SOCKET_DEBUG, "inetd(%s): using sa_family=%d from getsockname(%d)",
-                     proto2ascii(sock->info.proto, sock->info.af, false),
-                     local_addr.addr.sa.sa_family, (int)sock->sd);
-            }
-            else
-            {
-                int saved_errno = errno;
-                msg(M_WARN|M_ERRNO, "inetd(%s): getsockname(%d) failed, using AF_INET",
-                    proto2ascii(sock->info.proto, sock->info.af, false), (int)sock->sd);
-                /* if not called with a socket on stdin, --inetd cannot work */
-                if (saved_errno == ENOTSOCK)
-                {
-                    msg(M_FATAL, "ERROR: socket required for --inetd operation");
-                }
-            }
-        }
-#else  /* ifdef HAVE_GETSOCKNAME */
-        msg(M_WARN, "inetd(%s): this OS does not provide the getsockname() "
-            "function, using AF_INET",
-            proto2ascii(sock->info.proto, false));
-#endif /* ifdef HAVE_GETSOCKNAME */
-        sock->sd =
-            socket_listen_accept(sock->sd,
-                                 &sock->info.lsa->actual,
-                                 remote_dynamic,
-                                 sock->info.lsa->bind_local,
-                                 false,
-                                 sock->inetd == INETD_NOWAIT,
-                                 signal_received);
-    }
-    ASSERT(!remote_changed);
 }
 
 static void
@@ -2094,11 +2028,7 @@ linksock_print_addr(struct link_socket *sock)
     const int msglevel = (sock->mode == LS_MODE_TCP_ACCEPT_FROM) ? D_INIT_MEDIUM : M_INFO;
 
     /* print local address */
-    if (sock->inetd)
-    {
-        msg(msglevel, "%s link local: [inetd]", proto2ascii(sock->info.proto, sock->info.af, true));
-    }
-    else if (sock->bind_local)
+    if (sock->bind_local)
     {
         sa_family_t ai_family = sock->info.lsa->actual.dest.addr.sa.sa_family;
         /* Socket is always bound on the first matching address,
@@ -2287,85 +2217,72 @@ link_socket_init_phase2(struct link_socket *sock,
         remote_dynamic = sock->remote_host;
     }
 
-    /* were we started by inetd or xinetd? */
-    if (sock->inetd)
+    /* Second chance to resolv/create socket */
+    resolve_remote(sock, 2, &remote_dynamic,  &sig_info->signal_received);
+
+    /* If a valid remote has been found, create the socket with its addrinfo */
+    if (sock->info.lsa->current_remote)
     {
-        phase2_inetd(sock, frame, remote_dynamic,  &sig_info->signal_received);
-        if (sig_info->signal_received)
+        create_socket(sock, sock->info.lsa->current_remote);
+    }
+
+    /* If socket has not already been created create it now */
+    if (sock->sd == SOCKET_UNDEFINED)
+    {
+        /* If we have no --remote and have still not figured out the
+         * protocol family to use we will use the first of the bind */
+
+        if (sock->bind_local  && !sock->remote_host && sock->info.lsa->bind_local)
         {
-            goto done;
+            /* Warn if this is because neither v4 or v6 was specified
+             * and we should not connect a remote */
+            if (sock->info.af == AF_UNSPEC)
+            {
+                msg(M_WARN, "Could not determine IPv4/IPv6 protocol. Using %s",
+                    addr_family_name(sock->info.lsa->bind_local->ai_family));
+                sock->info.af = sock->info.lsa->bind_local->ai_family;
+            }
+
+            create_socket(sock, sock->info.lsa->bind_local);
         }
+    }
+
+    /* Socket still undefined, give a warning and abort connection */
+    if (sock->sd == SOCKET_UNDEFINED)
+    {
+        msg(M_WARN, "Could not determine IPv4/IPv6 protocol");
+        sig_info->signal_received = SIGUSR1;
+        goto done;
+    }
+
+    if (sig_info->signal_received)
+    {
+        goto done;
+    }
+
+    if (sock->info.proto == PROTO_TCP_SERVER)
+    {
+        phase2_tcp_server(sock, remote_dynamic,
+                          &sig_info->signal_received);
+    }
+    else if (sock->info.proto == PROTO_TCP_CLIENT)
+    {
+        phase2_tcp_client(sock, sig_info);
 
     }
-    else
+    else if (sock->info.proto == PROTO_UDP && sock->socks_proxy)
     {
-        /* Second chance to resolv/create socket */
-        resolve_remote(sock, 2, &remote_dynamic,  &sig_info->signal_received);
-
-        /* If a valid remote has been found, create the socket with its addrinfo */
-        if (sock->info.lsa->current_remote)
-        {
-            create_socket(sock, sock->info.lsa->current_remote);
-        }
-
-        /* If socket has not already been created create it now */
-        if (sock->sd == SOCKET_UNDEFINED)
-        {
-            /* If we have no --remote and have still not figured out the
-             * protocol family to use we will use the first of the bind */
-
-            if (sock->bind_local  && !sock->remote_host && sock->info.lsa->bind_local)
-            {
-                /* Warn if this is because neither v4 or v6 was specified
-                 * and we should not connect a remote */
-                if (sock->info.af == AF_UNSPEC)
-                {
-                    msg(M_WARN, "Could not determine IPv4/IPv6 protocol. Using %s",
-                        addr_family_name(sock->info.lsa->bind_local->ai_family));
-                    sock->info.af = sock->info.lsa->bind_local->ai_family;
-                }
-
-                create_socket(sock, sock->info.lsa->bind_local);
-            }
-        }
-
-        /* Socket still undefined, give a warning and abort connection */
-        if (sock->sd == SOCKET_UNDEFINED)
-        {
-            msg(M_WARN, "Could not determine IPv4/IPv6 protocol");
-            sig_info->signal_received = SIGUSR1;
-            goto done;
-        }
-
-        if (sig_info->signal_received)
-        {
-            goto done;
-        }
-
-        if (sock->info.proto == PROTO_TCP_SERVER)
-        {
-            phase2_tcp_server(sock, remote_dynamic,
-                              &sig_info->signal_received);
-        }
-        else if (sock->info.proto == PROTO_TCP_CLIENT)
-        {
-            phase2_tcp_client(sock, sig_info);
-
-        }
-        else if (sock->info.proto == PROTO_UDP && sock->socks_proxy)
-        {
-            phase2_socks_client(sock, sig_info);
-        }
+        phase2_socks_client(sock, sig_info);
+    }
 #ifdef TARGET_ANDROID
-        if (sock->sd != -1)
-        {
-            protect_fd_nonlocal(sock->sd, &sock->info.lsa->actual.dest.addr.sa);
-        }
+    if (sock->sd != -1)
+    {
+        protect_fd_nonlocal(sock->sd, &sock->info.lsa->actual.dest.addr.sa);
+    }
 #endif
-        if (sig_info->signal_received)
-        {
-            goto done;
-        }
+    if (sig_info->signal_received)
+    {
+        goto done;
     }
 
     phase2_set_socket_flags(sock);
