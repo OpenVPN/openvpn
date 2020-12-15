@@ -5240,7 +5240,6 @@ ipconfig_register_dns(const struct env_set *es)
                 WIN_IPCONFIG_PATH_SUFFIX);
     argv_msg(D_TUNTAP_INFO, &argv);
     openvpn_execve_check(&argv, es, 0, err);
-    argv_free(&argv);
 
     argv_printf(&argv, "%s%s /registerdns",
                 get_win_sys_path(),
