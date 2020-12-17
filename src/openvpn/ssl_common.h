@@ -596,6 +596,7 @@ get_key_scan(struct tls_multi *multi, int index)
             return &multi->session[TM_LAME_DUCK].key[KS_LAME_DUCK];
         default:
             ASSERT(false);
+            return NULL; /* NOTREACHED */
     }
 }
 
