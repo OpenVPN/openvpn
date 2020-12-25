@@ -21,7 +21,8 @@ routing.
   For this option to make sense you actually have to route traffic to the
   tun interface. The following example config block would send all IPv6
   traffic to OpenVPN and answer all requests with no route to host,
-  effectively blocking IPv6.
+  effectively blocking IPv6 (to avoid IPv6 connections from dual-stacked
+  clients leaking around IPv4-only VPN services).
 
   **Client config**
     ::
@@ -37,6 +38,12 @@ routing.
        --push "ifconfig-ipv6 fd15:53b6:dead::2/64 fd15:53b6:dead::1"
        --push "redirect-gateway ipv6"
        --block-ipv6
+
+  Note: this option does not influence traffic sent from the server
+  towards the client (neither on the server nor on the client side).
+  This is not seen as necessary, as such traffic can be most easily
+  avoided by not configuring IPv6 on the server tun, or setting up a
+  server-side firewall rule.
 
 --dev device
   TUN/TAP virtual network device which can be :code:`tunX`, :code:`tapX`,
