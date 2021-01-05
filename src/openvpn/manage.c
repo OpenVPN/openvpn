@@ -2102,7 +2102,7 @@ man_io_error(struct management *man, const char *prefix)
 static ssize_t
 man_send_with_fd(int fd, void *ptr, size_t nbytes, int flags, int sendfd)
 {
-    struct msghdr msg;
+    struct msghdr msg = { 0 };
     struct iovec iov[1];
 
     union {
@@ -2134,7 +2134,7 @@ man_send_with_fd(int fd, void *ptr, size_t nbytes, int flags, int sendfd)
 static ssize_t
 man_recv_with_fd(int fd, void *ptr, size_t nbytes, int flags, int *recvfd)
 {
-    struct msghdr msghdr;
+    struct msghdr msghdr = { 0 };
     struct iovec iov[1];
     ssize_t n;
 
