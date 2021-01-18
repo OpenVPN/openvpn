@@ -5306,13 +5306,14 @@ add_option(struct options *options,
         }
         if (good)
         {
-#if 0
-            /* removed for now since ECHO can potentially include
-             * security-sensitive strings */
-            msg(M_INFO, "%s:%s",
-                pull_mode ? "ECHO-PULL" : "ECHO",
-                BSTR(&string));
-#endif
+            /* only message-related ECHO are logged, since other ECHOs
+             * can potentially include security-sensitive strings */
+            if (strncmp(p[1], "msg", 3) == 0)
+            {
+                msg(M_INFO, "%s:%s",
+                    pull_mode ? "ECHO-PULL" : "ECHO",
+                    BSTR(&string));
+            }
 #ifdef ENABLE_MANAGEMENT
             if (management)
             {

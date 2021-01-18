@@ -137,6 +137,16 @@ history while simultaneously activating real-time updates:
 The size of the echo buffer is currently hardcoded to 100
 messages.
 
+
+Generally speaking, the OpenVPN Core does not understand echo
+messages at all (so a cooperating GUI and Server can use this
+mechanism for arbitrary information transport).
+
+This said, a few echo commands have been agreed upon between the
+community maintained OpenVPN Windows GUI and Tunnelblick for MacOS,
+and documentation of these can be found in doc/gui-notes.txt.
+
+
 COMMAND -- exit, quit
 ---------------------
 

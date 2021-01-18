@@ -15,7 +15,7 @@ MAINTAINERCLEANFILES = \
 SUBDIRS = doxygen
 
 dist_doc_DATA = \
-	management-notes.txt
+	management-notes.txt gui-notes.txt
 
 dist_noinst_DATA = \
 	README.plugins interactive-service-notes.rst \
