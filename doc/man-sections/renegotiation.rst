@@ -35,7 +35,7 @@ separate ephemeral encryption key which is rotated at regular intervals.
   pseudo-uniform-randomized between ``min`` and ``max``.
 
   With the default value of :code:`3600` this results in an effective per
-  session value in the range of :code:`3240`..:code:`3600` seconds for
+  session value in the range of :code:`3240` .. :code:`3600` seconds for
   servers, or just 3600 for clients.
 
   When using dual-factor authentication, note that this default value may

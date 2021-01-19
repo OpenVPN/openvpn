@@ -422,12 +422,12 @@ certificates and keys: https://github.com/OpenVPN/easy-rsa
   :code:`DEFAULT:!EXP:!LOW:!MEDIUM:!kDH:!kECDH:!DSS:!PSK:!SRP:!kRSA` when
   using OpenSSL.
 
-  The default for `--tls-ciphersuites` is to use the crypto library's
-  default.
-
 --tls-ciphersuites l
   Same as ``--tls-cipher`` but for TLS 1.3 and up. mbed TLS has no
   TLS 1.3 support yet and only the ``--tls-cipher`` setting is used.
+
+  The default for `--tls-ciphersuites` is to use the crypto library's
+  default.
 
 --tls-client
   Enable TLS and assume client role during TLS handshake.
