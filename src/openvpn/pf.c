@@ -639,8 +639,17 @@ pf_init_context(struct context *c)
         }
         if (!c->c2.pf.enabled)
         {
-            msg(M_WARN, "WARNING: failed to init PF plugin, rejecting client.");
-            register_signal(c, SIGUSR1, "plugin-pf-init-failed");
+            /* At some point in openvpn history, this code just printed a
+             * warning and signalled itself (SIGUSR1, "plugin-pf-init-failed")
+             * to terminate the client instance.  This got broken at one of
+             * the client auth state refactorings (leading to SIGSEGV crashes)
+             * and due to "pf will be removed anyway" reasons the easiest way
+             * to prevent crashes is to REQUIRE that plugins succeed - so if
+             * the plugin fails, we cleanly abort OpenVPN
+             *
+             * see also: https://community.openvpn.net/openvpn/ticket/1377
+             */
+            msg(M_FATAL, "FATAL: failed to init PF plugin, must succeed.");
             return;
         }
     }
