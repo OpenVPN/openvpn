@@ -670,12 +670,12 @@ OPENVPN_PLUGIN_DEF int OPENVPN_PLUGIN_FUNC(openvpn_plugin_open_v3)
  * ARGUMENTS
  *
  * version : fixed value, defines the API version of the OpenVPN plug-in API.  The plug-in
- *           should validate that this value is matching the OPENVPN_PLUGIN_VERSION value.
+ *           should validate that this value is matching the OPENVPN_PLUGINv3_STRUCTVER
+ *           value.
  *
- * handle : the openvpn_plugin_handle_t value which was returned by
- *          openvpn_plugin_open.
+ * arguments : Structure with all arguments available to the plug-in.
  *
- * return_list : used to return data back to OpenVPN.
+ * retptr :    used to return data back to OpenVPN.
  *
  * RETURN VALUE
  *
@@ -736,8 +736,8 @@ OPENVPN_PLUGIN_DEF int OPENVPN_PLUGIN_FUNC(openvpn_plugin_open_v3)
  * A given client or subnet rule applies to both incoming and outgoing
  * packets.
  *
- * See plugin/defer/simple.c for an example on using asynchronous
- * authentication and client-specific packet filtering.
+ * See sample/sample-plugins/defer/simple.c for an example on using
+ * asynchronous authentication and client-specific packet filtering.
  */
 OPENVPN_PLUGIN_DEF int OPENVPN_PLUGIN_FUNC(openvpn_plugin_func_v3)
     (const int version,
