@@ -299,6 +299,7 @@ check_connection_established(struct context *c)
             }
 #endif
             /* fire up push request right away (already 1s delayed) */
+            c->c2.push_request_timeout = now + c->options.handshake_window;
             event_timeout_init(&c->c2.push_request_interval, 0, now);
             reset_coarse_timers(c);
         }

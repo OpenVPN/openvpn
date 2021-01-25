@@ -200,6 +200,9 @@ certificates and keys: https://github.com/OpenVPN/easy-rsa
   will still use our expiring key for up to ``--tran-window`` seconds to
   maintain continuity of transmission of tunnel data.
 
+  The ``--hand-window`` parameter also controls the amount of time that
+  the OpenVPN client repeats the pull request until it times out.
+
 --key file
   Local peer's private key in .pem format. Use the private key which was
   generated when you built your peer's certificate (see ``--cert file``

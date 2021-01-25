@@ -462,7 +462,7 @@ struct context_2
     enum client_connect_status context_auth;
 
     struct event_timeout push_request_interval;
-    int n_sent_push_requests;
+    time_t push_request_timeout;
     bool did_pre_pull_restore;
 
     /* hash of pulled options, so we can compare when options change */

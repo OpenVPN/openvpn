@@ -369,14 +369,17 @@ cleanup:
 bool
 send_push_request(struct context *c)
 {
-    const int max_push_requests = c->options.handshake_window / PUSH_REQUEST_INTERVAL;
-    if (++c->c2.n_sent_push_requests <= max_push_requests)
+    struct tls_session *session = &c->c2.tls_multi->session[TM_ACTIVE];
+    struct key_state *ks = &session->key[KS_PRIMARY];
+
+    if (c->c2.push_request_timeout > now)
     {
         return send_control_channel_string(c, "PUSH_REQUEST", D_PUSH);
     }
     else
     {
-        msg(D_STREAM_ERRORS, "No reply from server after sending %d push requests", max_push_requests);
+        msg(D_STREAM_ERRORS, "No reply from server to push requests in %ds",
+            (int)(now - ks->established));
         c->sig->signal_received = SIGUSR1; /* SOFT-SIGUSR1 -- server-pushed connection reset */
         c->sig->signal_text = "no-push-reply";
         return false;
