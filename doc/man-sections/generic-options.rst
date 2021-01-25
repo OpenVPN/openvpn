@@ -409,7 +409,8 @@ which mode OpenVPN is configured as.
 
   * :code:`OPENVPN_PLUGIN_AUTH_USER_PASS_VERIFY` plug-in hooks returns
     success/failure via :code:`auth_control_file` when using deferred auth
-    method
+    method and pending authentification via :code:`pending_auth_file`.
+
 
   * :code:`OPENVPN_PLUGIN_ENABLE_PF` plugin hook to pass filtering rules
     via ``pf_file``

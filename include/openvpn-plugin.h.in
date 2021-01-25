@@ -567,6 +567,14 @@ OPENVPN_PLUGIN_DEF openvpn_plugin_handle_t OPENVPN_PLUGIN_FUNC(openvpn_plugin_op
  * auth_control_file/client_connect_deferred_file
  * in the environmental variable list (envp).
  *
+ * Additionally the auth_pending_file can be written, which causes the openvpn
+ * server to send a pending auth request to the client. See doc/management.txt
+ * for more details on this authentication mechanism. The format of the
+ * auth_pending_file is
+ * line 1: timeout in seconds
+ * line 2: Pending auth method the client needs to support (e.g. openurl)
+ * line 3: EXTRA (e.g. OPEN_URL:http://www.example.com)
+ *
  * In addition the OPENVPN_PLUGIN_CLIENT_CONNECT_DEFER and
  * OPENVPN_PLUGIN_CLIENT_CONNECT_DEFER_V2 are called when OpenVPN tries to
  * get the deferred result. For a V2 call implementing this function is

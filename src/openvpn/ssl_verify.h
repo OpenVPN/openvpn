@@ -117,7 +117,7 @@ tls_authentication_status(struct tls_multi *multi, const int latency);
  *
  * @param ks    The key state the remove the file for
  */
-void key_state_rm_auth_control_file(struct key_state *ks);
+void key_state_rm_auth_control_files(struct key_state *ks);
 
 /**
  * Frees the given set of certificate hashes.

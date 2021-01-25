@@ -865,13 +865,129 @@ man_def_auth_test(const struct key_state *ks)
 }
 #endif /* ifdef ENABLE_MANAGEMENT */
 
-
-/*
- * auth_control_file functions
+/**
+ *  Removes auth_pending file from the file system
+ *  and key_state structure
  */
+static void
+key_state_rm_auth_pending_file(struct key_state *ks)
+{
+    if (ks && ks->auth_pending_file)
+    {
+        platform_unlink(ks->auth_pending_file);
+        free(ks->auth_pending_file);
+        ks->auth_pending_file = NULL;
+    }
+}
 
+/**
+ * Check peer_info if the client supports the requested pending auth method
+ */
+static bool
+check_auth_pending_method(const char *peer_info, const char *method)
+{
+    struct gc_arena gc = gc_new();
+
+    char *iv_sso = extract_var_peer_info(peer_info, "IV_SSO=", &gc);
+    if (!iv_sso)
+    {
+        gc_free(&gc);
+        return false;
+    }
+
+    const char *client_method = strtok(iv_sso, ",");
+    bool supported = false;
+
+    while (client_method)
+    {
+        if (0 == strcmp(client_method, method))
+        {
+            supported = true;
+            break;
+        }
+        client_method = strtok(NULL, ":");
+    }
+
+    gc_free(&gc);
+    return supported;
+}
+
+/**
+ *  Checks if the deferred state should also send auth pending
+ *  request to the client. Also removes the auth_pending control file
+ *
+ *  @returns true   if file was either processed sucessfully or did not
+ *                  exist at all
+ *  @returns false  The file had an invlaid format or another error occured
+ */
+static bool
+key_state_check_auth_pending_file(struct key_state *ks,
+                                  struct tls_multi *multi)
+{
+    bool ret = true;
+    if (ks && ks->auth_pending_file)
+    {
+        struct buffer_list *lines = buffer_list_file(ks->auth_pending_file,
+                                                     1024);
+        if (lines && lines->head)
+        {
+            /* Must have at least three lines. further lines are ignored for
+             * forward compatibility */
+            if (!lines->head || !lines->head->next || !lines->head->next->next)
+            {
+                msg(M_WARN, "auth pending control file is not at least "
+                            "three lines long.");
+                buffer_list_free(lines);
+                return false;
+            }
+            struct buffer *timeout_buf = &lines->head->buf;
+            struct buffer *iv_buf = &lines->head->next->buf;
+            struct buffer *extra_buf = &lines->head->next->next->buf;
+
+            /* Remove newline chars at the end of the lines */
+            buf_chomp(timeout_buf);
+            buf_chomp(iv_buf);
+            buf_chomp(extra_buf);
+
+            long timeout = strtol(BSTR(timeout_buf), NULL, 10);
+            if (timeout == 0)
+            {
+                msg(M_WARN, "could not parse auth pending file timeout");
+                buffer_list_free(lines);
+                return false;
+            }
+
+            const char* pending_method = BSTR(iv_buf);
+            if (!check_auth_pending_method(multi->peer_info, pending_method))
+            {
+                char buf[128];
+                openvpn_snprintf(buf, sizeof(buf),
+                                 "Authentication failed, required pending auth "
+                                 "method '%s' not supported", pending_method);
+                auth_set_client_reason(multi, buf);
+                msg(M_INFO, "Client does not supported auth pending method "
+                            "'%s'", pending_method);
+                ret = false;
+            }
+            else
+            {
+                send_auth_pending_messages(multi, BSTR(extra_buf), timeout);
+            }
+        }
+
+        buffer_list_free(lines);
+    }
+    key_state_rm_auth_pending_file(ks);
+    return ret;
+}
+
+
+/**
+ *  Removes auth_pending and auth_control files from file system
+ *  and key_state structure
+ */
 void
-key_state_rm_auth_control_file(struct key_state *ks)
+key_state_rm_auth_control_files(struct key_state *ks)
 {
     if (ks && ks->auth_control_file)
     {
@@ -879,23 +995,34 @@ key_state_rm_auth_control_file(struct key_state *ks)
         free(ks->auth_control_file);
         ks->auth_control_file = NULL;
     }
+    key_state_rm_auth_pending_file(ks);
 }
 
+/**
+ * Generates and creates the control files used for deferred authentification
+ * in the temporary directory.
+ *
+ * @return  true if file creation was successful
+ */
 static bool
-key_state_gen_auth_control_file(struct key_state *ks, const struct tls_options *opt)
+key_state_gen_auth_control_files(struct key_state *ks, const struct tls_options *opt)
 {
     struct gc_arena gc = gc_new();
 
-    key_state_rm_auth_control_file(ks);
+    key_state_rm_auth_control_files(ks);
     const char *acf = platform_create_temp_file(opt->tmp_dir, "acf", &gc);
-    if (acf)
+    const char *apf = platform_create_temp_file(opt->tmp_dir, "apf", &gc);
+
+    if (acf && apf)
     {
         ks->auth_control_file = string_alloc(acf, NULL);
+        ks->auth_pending_file = string_alloc(apf, NULL);
         setenv_str(opt->es, "auth_control_file", ks->auth_control_file);
+        setenv_str(opt->es, "auth_pending_file", ks->auth_pending_file);
     }
 
     gc_free(&gc);
-    return acf;
+    return (acf && apf);
 }
 
 static unsigned int
@@ -1140,7 +1267,7 @@ verify_user_pass_plugin(struct tls_session *session, struct tls_multi *multi,
     setenv_str(session->opt->es, "password", up->password);
 
     /* generate filename for deferred auth control file */
-    if (!key_state_gen_auth_control_file(ks, session->opt))
+    if (!key_state_gen_auth_control_files(ks, session->opt))
     {
         msg(D_TLS_ERRORS, "TLS Auth Error (%s): "
             "could not create deferred auth control file", __func__);
@@ -1150,10 +1277,20 @@ verify_user_pass_plugin(struct tls_session *session, struct tls_multi *multi,
     /* call command */
     retval = plugin_call(session->opt->plugins, OPENVPN_PLUGIN_AUTH_USER_PASS_VERIFY, NULL, NULL, session->opt->es);
 
-    /* purge auth control filename (and file itself) for non-deferred returns */
-    if (retval != OPENVPN_PLUGIN_FUNC_DEFERRED)
+    if (retval == OPENVPN_PLUGIN_FUNC_DEFERRED)
     {
-        key_state_rm_auth_control_file(ks);
+        /* Check if the plugin has written the pending auth control
+         * file and send the pending auth to the client */
+        if(!key_state_check_auth_pending_file(ks, multi))
+        {
+            retval = OPENVPN_PLUGIN_FUNC_ERROR;
+            key_state_rm_auth_control_files(ks);
+        }
+    }
+    else
+    {
+        /* purge auth control filename (and file itself) for non-deferred returns */
+        key_state_rm_auth_control_files(ks);
     }
 
     setenv_del(session->opt->es, "password");
@@ -1224,7 +1361,7 @@ set_verify_user_pass_env(struct user_pass *up, struct tls_multi *multi,
     }
 }
 
-/*
+/**
  * Main username/password verification entry point
  *
  * Will set session->ks[KS_PRIMARY].authenticated according to
