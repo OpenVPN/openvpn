@@ -89,5 +89,14 @@ void send_restart(struct context *c, const char *kill_msg);
  */
 void send_push_reply_auth_token(struct tls_multi *multi);
 
+/**
+ * Parses an AUTH_PENDING message and if in pull mode extends the timeout
+ *
+ * @param c             The context struct
+ * @param buffer        Buffer containing the control message with AUTH_PENDING
+ */
+void
+receive_auth_pending(struct context *c, const struct buffer *buffer);
+
 #endif /* if P2MP */
 #endif /* ifndef PUSH_H */

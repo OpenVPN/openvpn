@@ -232,6 +232,62 @@ receive_cr_response(struct context *c, const struct buffer *buffer)
 }
 
 /**
+ * Parse the keyword for the AUTH_PENDING request
+ * @param buffer                buffer containing the keywords, the buffer's
+ *                              content will be modified by this function
+ * @param server_timeout        timeout pushed by the server or unchanged
+ *                              if the server does not push a timeout
+ */
+static void
+parse_auth_pending_keywords(const struct buffer *buffer,
+                            unsigned int *server_timeout)
+{
+    struct buffer buf = *buffer;
+
+    /* does the buffer start with "AUTH_PENDING," ? */
+    if (!buf_advance(&buf, strlen("AUTH_PENDING"))
+        || !(buf_read_u8(&buf) == ',') || !BLEN(&buf))
+    {
+        return;
+    }
+
+    /* parse the keywords in the same way that push options are parsed */
+    char line[OPTION_LINE_SIZE];
+
+    while (buf_parse(&buf, ',', line, sizeof(line)))
+    {
+        if (sscanf(line, "timeout %u", server_timeout) != 1)
+        {
+            msg(D_PUSH, "ignoring AUTH_PENDING parameter: %s", line);
+        }
+    }
+}
+
+void
+receive_auth_pending(struct context *c, const struct buffer *buffer)
+{
+    if (!c->options.pull)
+        return;
+
+    /* Cap the increase at the maximum time we are willing stay in the
+     * pending authentication state */
+    unsigned int max_timeout = max_uint(c->options.renegotiate_seconds/2,
+                               c->options.handshake_window);
+
+    /* try to parse parameter keywords, default to hand-winow timeout if the
+     * server does not supply a timeout */
+    unsigned int server_timeout = c->options.handshake_window;
+    parse_auth_pending_keywords(buffer, &server_timeout);
+
+    msg(D_PUSH, "AUTH_PENDING received, extending handshake timeout from %us "
+                "to %us", c->options.handshake_window,
+                min_uint(max_timeout, server_timeout));
+
+    struct key_state *ks = &c->c2.tls_multi->session[TM_ACTIVE].key[KS_PRIMARY];
+    c->c2.push_request_timeout = ks->established + min_uint(max_timeout, server_timeout);
+}
+
+/**
  * Add an option to the given push list by providing a format string.
  *
  * The string added to the push options is allocated in o->gc, so the caller
@@ -372,7 +428,17 @@ send_push_request(struct context *c)
     struct tls_session *session = &c->c2.tls_multi->session[TM_ACTIVE];
     struct key_state *ks = &session->key[KS_PRIMARY];
 
-    if (c->c2.push_request_timeout > now)
+    /* We timeout here under two conditions:
+     * a) we reached the hard limit of push_request_timeout
+     * b) we have not seen anything from the server in hand_window time
+     *
+     * for non auth-pending scenario, push_request_timeout is the same as
+     * hand_window timeout. For b) every PUSH_REQUEST is a acknowledged by
+     * the server by a P_ACK_V1 packet that reset the keepalive timer
+     */
+
+    if (c->c2.push_request_timeout > now
+        && (now - ks->peer_last_packet) < c->options.handshake_window)
     {
         return send_control_channel_string(c, "PUSH_REQUEST", D_PUSH);
     }

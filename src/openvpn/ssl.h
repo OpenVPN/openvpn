@@ -119,6 +119,9 @@
 /** Supports key derivation via TLS key material exporter [RFC5705] */
 #define IV_PROTO_TLS_KEY_EXPORT (1<<3)
 
+/** Supports signaling keywords with AUTH_PENDING, e.g. timeout=xy */
+#define IV_PROTO_AUTH_PENDING_KW (1<<4)
+
 /* Default field in X509 to be username */
 #define X509_USERNAME_FIELD_DEFAULT "CN"
 

@@ -240,6 +240,10 @@ check_incoming_control_channel(struct context *c)
         {
             receive_cr_response(c, &buf);
         }
+        else if (buf_string_match_head_str(&buf, "AUTH_PENDING"))
+        {
+            receive_auth_pending(c, &buf);
+        }
         else
         {
             msg(D_PUSH_ERRORS, "WARNING: Received unknown control message: %s", BSTR(&buf));
@@ -299,7 +303,12 @@ check_connection_established(struct context *c)
             }
 #endif
             /* fire up push request right away (already 1s delayed) */
-            c->c2.push_request_timeout = now + c->options.handshake_window;
+            /* We might receive a AUTH_PENDING request before we armed this
+             * timer. In that case we don't change the value */
+            if (c->c2.push_request_timeout < now)
+            {
+                c->c2.push_request_timeout = now + c->options.handshake_window;
+            }
             event_timeout_init(&c->c2.push_request_interval, 0, now);
             reset_coarse_timers(c);
         }

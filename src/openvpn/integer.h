@@ -39,6 +39,31 @@
 /*
  * min/max functions
  */
+static inline unsigned int
+max_uint(unsigned int x, unsigned int y)
+{
+    if (x > y)
+    {
+        return x;
+    }
+    else
+    {
+        return y;
+    }
+}
+
+static inline unsigned int
+min_uint(unsigned int x, unsigned int y)
+{
+    if (x < y)
+    {
+        return x;
+    }
+    else
+    {
+        return y;
+    }
+}
 
 static inline int
 max_int(int x, int y)

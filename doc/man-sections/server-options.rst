@@ -442,6 +442,10 @@ fast hardware. SSL/TLS authentication must be used in this mode.
     - bit 1: The peer supports peer-id floating mechanism
     - bit 2: The client expects a push-reply and the server may
       send this reply without waiting for a push-request first.
+    - bit 3: The client is capable of doing key derivation using
+      RFC5705 key material exporter.
+    - bit 4: The client is capable of accepting additional arguments
+      to the `AUTH_PENDING` message.
 
   :code:`IV_NCP=2`
         Negotiable ciphers, client supports ``--cipher`` pushed by

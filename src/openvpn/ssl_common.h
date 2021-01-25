@@ -178,6 +178,7 @@ struct key_state
     time_t established;         /* when our state went S_ACTIVE */
     time_t must_negotiate;      /* key negotiation times out if not finished before this time */
     time_t must_die;            /* this object is destroyed at this time */
+    time_t peer_last_packet;    /* Last time we received a packet in this control session */
 
     int initial_opcode;         /* our initial P_ opcode */
     struct session_id session_id_remote; /* peer's random session ID */

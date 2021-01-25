@@ -610,14 +610,30 @@ to signal a pending authenticating to the client. A pending auth means
 that the connecting requires extra authentication like a one time
 password or doing a single sign one via web.
 
-    client-pending-auth {CID} {EXTRA}
+    client-pending-auth {CID} {EXTRA} {TIMEOUT}
 
-The server will send AUTH_PENDING and INFO_PRE,{EXTRA} to the client.
-The client is expected to inform the user that authentication is pending and
-display the extra information. For the format of EXTRA see below
-For the OpenVPN server this is stateless operation and needs to be
-followed by a client-deny/client-auth[-nt] command (that is the result of the
-out of band authentication).
+The server will send AUTH_PENDING and INFO_PRE,{EXTRA} to the client. If the
+client supports accepting keywords to AUTH_PENDING (announced via IV_PROTO),
+TIMEOUT parameter will be also be announced to the client to allow it to modify
+its own timeout. The client is expected to inform the user that authentication
+is pending and display the extra information and also show the user the
+remaining time to complete the auth if applicable.
+
+Receiving an AUTH_PENDING message will make the client change its timeout to
+the timeout proposed by the server, even if the timeout is shorter.
+If the client does not receive a packet from the server for hand-window the
+connection times out regardless of the timeout. This ensures that the connection
+still times out relatively quickly in case of network problems. The client will
+continously send PULL_REQUEST messages to the server until the timeout is reached.
+This message also triggers an ACK message from the server that resets the
+hand-window based timeout.
+
+Both client and server limit the maximum timeout to the smaller value of half the
+--tls-reneg minimum time and --hand-window time (defaults to 60s).
+
+For the format of EXTRA see below. For the OpenVPN server this is a stateless
+operation and needs to be followed by a client-deny/client-auth[-nt] command
+(that is the result of the out of band authentication).
 
 Before issuing a client-pending-auth to a client instead of a
 client-auth/client-deny, the server should check the IV_SSO
@@ -630,7 +646,7 @@ set
     setenv IV_SSO openurl,crtext
 
 The variable name IV_SSO is historic as AUTH_PENDING was first used
-to signal single sign on support. To keep compatiblity with existing
+to signal single sign on support. To keep compatibility with existing
 implementations the name IV_SSO is kept in lieu of a better name.
 
 openurl
@@ -645,6 +661,11 @@ and client should ask to the user to open the URL to continue.
 The space in a control message is limited, so this url should be kept
 short to avoid issues. If a loger url is required a URL that redirects
 to the longer URL should be sent instead.
+
+A complete documentation how URLs should be handled on the client is available
+in the openvpn3 repository:
+
+https://github.com/OpenVPN/openvpn3/blob/master/doc/webauth.md
 
 url_proxy
 ========
