@@ -169,6 +169,9 @@ man_state_name(const int state)
         case OPENVPN_STATE_TCP_CONNECT:
             return "TCP_CONNECT";
 
+        case OPENVPN_STATE_AUTH_PENDING:
+            return "AUTH_PENDING";
+
         default:
             return "?";
     }

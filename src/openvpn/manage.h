@@ -492,6 +492,8 @@ management_enable_def_auth(const struct management *man)
 #define OPENVPN_STATE_GET_CONFIG    9  /* Downloading configuration from server */
 #define OPENVPN_STATE_RESOLVE       10 /* DNS lookup */
 #define OPENVPN_STATE_TCP_CONNECT   11 /* Connecting to TCP server */
+#define OPENVPN_STATE_AUTH_PENDING  12 /* Waiting in auth-pending mode
+                                        * technically variant of GET_CONFIG */
 
 #define OPENVPN_STATE_CLIENT_BASE   7  /* Base index of client-only states */
 

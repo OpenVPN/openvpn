@@ -248,11 +248,29 @@ parse_auth_pending_keywords(const struct buffer *buffer,
     if (!buf_advance(&buf, strlen("AUTH_PENDING"))
         || !(buf_read_u8(&buf) == ',') || !BLEN(&buf))
     {
+#ifdef ENABLE_MANAGEMENT
+        if (management)
+        {
+            management_set_state(management, OPENVPN_STATE_AUTH_PENDING,
+                                 "", NULL, NULL, NULL, NULL);
+        }
+#endif
+
         return;
     }
 
     /* parse the keywords in the same way that push options are parsed */
     char line[OPTION_LINE_SIZE];
+
+#ifdef ENABLE_MANAGEMENT
+    /* Need to do the management notification with the keywords before
+     * buf_parse is called, as it will insert \0 bytes into the buffer */
+    if (management)
+    {
+        management_set_state(management, OPENVPN_STATE_AUTH_PENDING,
+                             BSTR(&buf), NULL, NULL, NULL, NULL);
+    }
+#endif
 
     while (buf_parse(&buf, ',', line, sizeof(line)))
     {
