@@ -240,6 +240,40 @@ platform_system_ok(int stat)
 #endif
 }
 
+#ifdef _WIN32
+int
+platform_ret_code(int stat)
+{
+    if (stat >= 0 && stat < 255)
+    {
+        return stat;
+    }
+    else
+    {
+        return -1;
+    }
+}
+#else
+int
+platform_ret_code(int stat)
+{
+    if (!WIFEXITED(stat) || stat == -1)
+    {
+        return -1;
+    }
+
+    int status = WEXITSTATUS(stat);
+    if (status >= 0 && status < 255)
+    {
+        return status;
+    }
+    else
+    {
+        return -1;
+    }
+}
+#endif
+
 int
 platform_access(const char *path, int mode)
 {

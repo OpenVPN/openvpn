@@ -42,18 +42,25 @@ int script_security(void);
 void script_security_set(int level);
 
 /* openvpn_execve flags */
-#define S_SCRIPT (1<<0)
-#define S_FATAL  (1<<1)
+#define S_SCRIPT    (1<<0)
+#define S_FATAL     (1<<1)
+/** Instead of returning 1/0 for success/fail,
+ * return exit code when between 0 and 255 and -1 otherwise */
+#define S_EXITCODE  (1<<2)
 
 /* wrapper around the execve() call */
 int openvpn_popen(const struct argv *a,  const struct env_set *es);
 
 bool openvpn_execve_allowed(const unsigned int flags);
 
-bool openvpn_execve_check(const struct argv *a, const struct env_set *es,
+int openvpn_execve_check(const struct argv *a, const struct env_set *es,
                           const unsigned int flags, const char *error_message);
 
-static inline bool
+/**
+ * Will run a script and return the exit code of the script if between
+ * 0 and 255, -1 otherwise
+ */
+static inline int
 openvpn_run_script(const struct argv *a, const struct env_set *es,
                    const unsigned int flags, const char *hook)
 {

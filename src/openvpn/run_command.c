@@ -191,27 +191,35 @@ openvpn_execve(const struct argv *a, const struct env_set *es, const unsigned in
 /*
  * Wrapper around openvpn_execve
  */
-bool
+int
 openvpn_execve_check(const struct argv *a, const struct env_set *es, const unsigned int flags, const char *error_message)
 {
     struct gc_arena gc = gc_new();
     const int stat = openvpn_execve(a, es, flags);
     int ret = false;
 
-    if (platform_system_ok(stat))
+    if (flags & S_EXITCODE)
     {
-        ret = true;
-    }
-    else
-    {
-        if (error_message)
+        ret = platform_ret_code(stat);
+        if (ret != -1)
         {
-            msg(((flags & S_FATAL) ? M_FATAL : M_WARN), "%s: %s",
-                error_message,
-                system_error_message(stat, &gc));
+            goto done;
         }
     }
+    else if (platform_system_ok(stat))
+    {
+        ret = true;
+        goto done;
+    }
+    if (error_message)
+    {
+        msg(((flags & S_FATAL) ? M_FATAL : M_WARN), "%s: %s",
+            error_message,
+            system_error_message(stat, &gc));
+    }
+done:
     gc_free(&gc);
+
     return ret;
 }
 
