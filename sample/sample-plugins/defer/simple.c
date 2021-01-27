@@ -423,16 +423,21 @@ tls_final(struct plugin_context *context, struct plugin_per_client_context *pcc,
 }
 
 OPENVPN_EXPORT int
-openvpn_plugin_func_v2(openvpn_plugin_handle_t handle,
-                       const int type,
-                       const char *argv[],
-                       const char *envp[],
-                       void *per_client_context,
-                       struct openvpn_plugin_string_list **return_list)
+openvpn_plugin_func_v3(const int v3structver,
+                       struct openvpn_plugin_args_func_in const *args,
+                       struct openvpn_plugin_args_func_return *ret)
 {
-    struct plugin_context *context = (struct plugin_context *) handle;
-    struct plugin_per_client_context *pcc = (struct plugin_per_client_context *) per_client_context;
-    switch (type)
+    /* Check API compatibility -- struct version 5 or higher needed */
+    if (v3structver < 5)
+    {
+        fprintf(stderr, "%s: this plugin is incompatible with the running version of OpenVPN\n", MODULE);
+        return OPENVPN_PLUGIN_FUNC_ERROR;
+    }
+    const char **argv = args->argv;
+    const char **envp = args->envp;
+    struct plugin_context *context = (struct plugin_context *) args->handle;
+    struct plugin_per_client_context *pcc = (struct plugin_per_client_context *) args->per_client_context;
+    switch (args->type)
     {
         case OPENVPN_PLUGIN_UP:
             plugin_log(PLOG_NOTE, MODULE, "OPENVPN_PLUGIN_UP");
