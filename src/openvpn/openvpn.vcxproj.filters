@@ -204,6 +204,9 @@
     <ClCompile Include="tun.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="tun2tap.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="win32.c">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -474,6 +477,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="tun.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="tun2tap.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="win32.h">

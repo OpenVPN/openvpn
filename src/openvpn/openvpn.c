@@ -213,6 +213,9 @@ openvpn_main(int argc, char *argv[])
                 break;
             }
 
+            /* check tun2tap for tun mode */
+            do_check_tun2tap(&c.options);
+
             /* tun/tap persist command? */
             if (do_persist_tuntap(&c.options, &c.net_ctx))
             {

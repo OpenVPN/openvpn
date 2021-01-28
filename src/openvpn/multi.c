@@ -292,7 +292,7 @@ void
 multi_init(struct multi_context *m, struct context *t, bool tcp_mode, int thread_mode)
 {
     int dev = DEV_TYPE_UNDEF;
-
+    
     msg(D_MULTI_LOW, "MULTI: multi_init called, r=%d v=%d",
         t->options.real_hash_size,
         t->options.virtual_hash_size);
@@ -3190,7 +3190,7 @@ multi_process_incoming_link(struct multi_context *m, struct multi_instance *inst
             }
             perf_pop();
 
-            if (TUNNEL_TYPE(m->top.c1.tuntap) == DEV_TYPE_TUN)
+            if (TUNNEL_TYPE(m->top.c1.tuntap) == DEV_TYPE_TUN && !m->top.options.tun2tap)
             {
                 /* extract packet source and dest addresses */
                 mroute_flags = mroute_extract_addr_from_packet(&src,
@@ -3268,7 +3268,7 @@ multi_process_incoming_link(struct multi_context *m, struct multi_instance *inst
                 }
 #endif
             }
-            else if (TUNNEL_TYPE(m->top.c1.tuntap) == DEV_TYPE_TAP)
+            else if (TUNNEL_TYPE(m->top.c1.tuntap) == DEV_TYPE_TAP || m->top.options.tun2tap)
             {
                 uint16_t vid = 0;
 #ifdef ENABLE_PF

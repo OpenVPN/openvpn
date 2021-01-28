@@ -2074,9 +2074,9 @@ options_postprocess_verify_ce(const struct options *options,
             "in OpenVPN 2.6");
     }
 
-    if (options->lladdr && dev != DEV_TYPE_TAP)
+    if (options->lladdr && (dev == DEV_TYPE_TUN && !options->tun2tap) && dev != DEV_TYPE_TAP)
     {
-        msg(M_USAGE, "--lladdr can only be used in --dev tap mode");
+        msg(M_USAGE, "--lladdr can only be used in --dev tap mode or tun2tap");
     }
 
     /*
@@ -5527,6 +5527,11 @@ add_option(struct options *options,
             msg(msglevel, "lladdr parm '%s' must be a MAC address", p[1]);
             goto err;
         }
+    }
+    else if (streq(p[0], "tun2tap") && !p[1])
+    {
+        /* check in post do_xxxx */
+        options->tun2tap = true;
     }
     else if (streq(p[0], "topology") && p[1] && !p[2])
     {

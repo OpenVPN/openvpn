@@ -56,6 +56,8 @@ bool print_openssl_info(const struct options *options);
 
 bool do_genkey(const struct options *options);
 
+void do_check_tun2tap(const struct options *options);
+
 bool do_persist_tuntap(const struct options *options, openvpn_net_ctx_t *ctx);
 
 bool possibly_become_daemon(const struct options *options);
