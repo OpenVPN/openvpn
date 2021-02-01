@@ -69,12 +69,18 @@ static plugin_log_t plugin_log = NULL;
  * Constants indicating minimum API and struct versions by the functions
  * in this plugin.  Consult openvpn-plugin.h, look for:
  * OPENVPN_PLUGIN_VERSION and OPENVPN_PLUGINv3_STRUCTVER
+ *
+ * Strictly speaking, this sample code only requires plugin_log, a feature
+ * of structver version 1.  However, '1' lines up with ancient versions
+ * of openvpn that are past end-of-support.  As such, we are requiring
+ * structver '5' here to indicate a desire for modern openvpn, rather
+ * than a need for any particular feature found in structver beyond '1'.
  */
 #define OPENVPN_PLUGIN_VERSION_MIN 3
 #define OPENVPN_PLUGIN_STRUCTVER_MIN 5
 
 /*
-* Our context, where we keep our state.
+ * Our context, where we keep our state.
  */
 
 struct plugin_context {
@@ -160,7 +166,6 @@ openvpn_plugin_open_v3(const int v3structver,
     const char **envp = args->envp;       /* environment variables */
     struct plugin_context *context;
 
-    /* Check API compatibility -- struct version 5 or higher needed */
     if (v3structver < OPENVPN_PLUGIN_STRUCTVER_MIN)
     {
         fprintf(stderr, "%s: this plugin is incompatible with the running version of OpenVPN\n", MODULE);
@@ -442,7 +447,6 @@ openvpn_plugin_func_v3(const int v3structver,
                        struct openvpn_plugin_args_func_in const *args,
                        struct openvpn_plugin_args_func_return *ret)
 {
-    /* Check API compatibility -- struct version 5 or higher needed */
     if (v3structver < OPENVPN_PLUGIN_STRUCTVER_MIN)
     {
         fprintf(stderr, "%s: this plugin is incompatible with the running version of OpenVPN\n", MODULE);
