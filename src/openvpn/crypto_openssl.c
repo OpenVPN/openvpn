@@ -954,7 +954,10 @@ md_ctx_init(EVP_MD_CTX *ctx, const EVP_MD *kt)
     ASSERT(NULL != ctx && NULL != kt);
 
     EVP_MD_CTX_init(ctx);
-    EVP_DigestInit(ctx, kt);
+    if (!EVP_DigestInit(ctx, kt))
+    {
+        crypto_msg(M_FATAL, "EVP_DigestInit failed");
+    }
 }
 
 void
@@ -1011,7 +1014,10 @@ hmac_ctx_init(HMAC_CTX *ctx, const uint8_t *key, int key_len,
     ASSERT(NULL != kt && NULL != ctx);
 
     HMAC_CTX_reset(ctx);
-    HMAC_Init_ex(ctx, key, key_len, kt, NULL);
+    if (!HMAC_Init_ex(ctx, key, key_len, kt, NULL))
+    {
+        crypto_msg(M_FATAL, "HMAC_Init_ex failed");
+    }
 
     /* make sure we used a big enough key */
     ASSERT(HMAC_size(ctx) <= key_len);
@@ -1032,7 +1038,10 @@ hmac_ctx_size(const HMAC_CTX *ctx)
 void
 hmac_ctx_reset(HMAC_CTX *ctx)
 {
-    HMAC_Init_ex(ctx, NULL, 0, NULL, NULL);
+    if (!HMAC_Init_ex(ctx, NULL, 0, NULL, NULL))
+    {
+        crypto_msg(M_FATAL, "HMAC_Init_ex failed");
+    }
 }
 
 void
