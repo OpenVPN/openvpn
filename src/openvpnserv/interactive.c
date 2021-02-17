@@ -1104,7 +1104,7 @@ wmic_nicconfig_cmd(const wchar_t *action, const NET_IFINDEX if_index,
     }
     else
     {
-       fmt = L"wmic nicconfig where (InterfaceIndex=%ld) call %s %s";
+       fmt = L"wmic nicconfig where (InterfaceIndex=%ld) call %s \"%s\"";
     }
 
     size_t ncmdline = wcslen(fmt) + 20 + wcslen(action) /* max 20 for ifindex */
