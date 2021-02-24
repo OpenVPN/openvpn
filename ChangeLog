@@ -1,6 +1,49 @@
 OpenVPN Change Log
 Copyright (C) 2002-2020 OpenVPN Inc <sales@openvpn.net>
 
+2021.02.24 -- Version 2.5.1
+
+Arne Schwabe (5):
+      Fix auth-token not being updated if auth-nocache is set
+      Remove auth_user_pass.wait_for_push variable
+      Fix port-share option with TLS-Crypt v2
+      Zero initialise msghdr prior to calling sendmesg
+      Fix tls-auth mismatch OCC message when tls-cryptv2 is used.
+
+David Sommerseth (1):
+      build: Fix missing install of man page in certain environments
+
+Domagoj Pensa (3):
+      Fix too early argv freeing when registering DNS
+      Remove 1 second delay before running netsh
+      Skip DHCP renew with Wintun adapter
+
+Gert Doering (6):
+      Change travis build scripts to use https when fetching prerequisites.
+      Fix line number reporting on config file errors after <inline> segments
+      Clarify --block-ipv6 intent and direction.
+      Document common uses of 'echo' directive, re-enable logging for 'echo'.
+      Make OPENVPN_PLUGIN_ENABLE_PF failures FATAL
+      clean up / rewrite sample-plugins/defer/simple.c
+
+Greg Cox (5):
+      Fix naming error in sample-plugins/defer/simple.c
+      Documentation fixes around openvpn_plugin_func_v3 in openvpn-plugin.h.in
+      Update openvpn_plugin_func_v2 to _v3 in sample-plugins/defer/simple.c
+      More explicit versioning compatibility in sample-plugins/defer/simple.c
+      Explain structver usage in sample defer plugin.
+
+Richard Bonhomme (1):
+      Man page sections corrections
+
+Selva Nair (1):
+      Quote the domain name argument passed to the wmic command
+
+Steffan Karger (2):
+      tls-crypt-v2: fix server memory leak
+      tls-crypt-v2: also preload tls-crypt-v2 keys (if --persist-key)
+
+
 2020.10.27 -- Version 2.5.0
       (no changes relative to v2.5_rc3)
 

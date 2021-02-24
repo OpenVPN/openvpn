@@ -1,5 +1,75 @@
-Overview of changes in 2.5
-==========================
+Overview of changes in 2.5.1
+============================
+
+New features
+------------
+- "echo msg" support, to enable the server to pushed messages that are
+  then displayed by the client-side GUI.  See doc/gui-notes.txt and
+  doc/management-notes.txt.
+
+  Supported by the Windows GUI shipped in 2.5.1, not yet supported by
+  Tunnelblick and the Android GUI.
+
+User-visible Changes
+--------------------
+- make OPENVPN_PLUGIN_ENABLE_PF plugin failures FATAL - if a plugin offers
+  to set the "openvpn packet filter", and returns a failure when requested
+  to, OpenVPN 2.5.0 would crash trying to clean up not-yet-initialized
+  structure members.  Since PF is going away in 2.6.0, this is just turning
+  the crash into a well-defined program abort, and no further effort has
+  been spent in rewriting the PF plugin error handling (see trac #1377).
+
+Documentation
+-------------
+- rework sample-plugins/defer/simple.c - this is an extensive rewrite
+  of the plugin to bring code quality to acceptable standards and add
+  documentation on the various plugin API aspects.  Since it's just
+  example code, filed under "Documentation", not under "Bugfix".
+
+- various man page improvements.
+
+- clarify ``--block-ipv6`` intent and direction
+
+Bugfixes
+--------
+- fix installation of openvpn.8 manpage on systems without docutils.
+
+- Windows: fix DNS search list setup for domains with "-" chars.
+
+- Fix tls-auth mismatch OCC message when tls-cryptv2 is used.
+
+- Windows: Skip DHCP renew with Wintun adapter (Wintun does not support
+  DHCP, so this was just causing an - harmless - error and needless delay).
+
+- Windows: Remove 1 second delay before running netsh - speeds up
+  interface init for wintun setups not using the interactive service.
+
+- Windows: Fix too early argv freeing when registering DNS - this would
+  cause a client side crash on Windows if ``register-dns`` is used,
+  and the interactive service is not used.
+
+- Android: Zero initialise msghdr prior to calling sendmesg.
+
+- Fix line number reporting on config file errors after <inline> segments
+  (see Trac #1325).
+
+- Fix port-share option with TLS-Crypt v2.
+
+- tls-crypt-v2: also preload tls-crypt-v2 keys (if --persist-key), otherwise
+  dropping privs on the server would fail.
+
+- tls-crypt-v2: fix server memory leak (about 600 bytes per connecting
+  client with tls-crypt-v2)
+
+- rework handling of server-pushed ``--auth-token`` in combination with
+  ``--auth-nocache`` on reconnection / TLS renegotiation events.  This
+  used to "forget" to update new incoming token after a reconnection event
+  (leading to failure to reauth some time later) and now works in all
+  tested cases.
+
+
+Overview of changes in 2.5.0
+============================
 
 New features
 ------------
