@@ -48,6 +48,7 @@
 #include "common.h"
 
 #include "ssl_ncp.h"
+#include "ssl_util.h"
 #include "openvpn.h"
 
 /**
@@ -195,23 +196,10 @@ const char *
 tls_peer_ncp_list(const char *peer_info, struct gc_arena *gc)
 {
     /* Check if the peer sends the IV_CIPHERS list */
-    const char *ncp_ciphers_start;
-    if (peer_info && (ncp_ciphers_start = strstr(peer_info, "IV_CIPHERS=")))
+    const char *iv_ciphers = extract_var_peer_info(peer_info,"IV_CIPHERS=", gc);
+    if (iv_ciphers)
     {
-        ncp_ciphers_start += strlen("IV_CIPHERS=");
-        const char *ncp_ciphers_end = strstr(ncp_ciphers_start, "\n");
-        if (!ncp_ciphers_end)
-        {
-            /* IV_CIPHERS is at end of the peer_info list and no '\n'
-             * follows */
-            ncp_ciphers_end = ncp_ciphers_start + strlen(ncp_ciphers_start);
-        }
-
-        char *ncp_ciphers_peer = string_alloc(ncp_ciphers_start, gc);
-        /* NULL terminate the copy at the right position */
-        ncp_ciphers_peer[ncp_ciphers_end - ncp_ciphers_start] = '\0';
-        return ncp_ciphers_peer;
-
+        return iv_ciphers;
     }
     else if (tls_peer_info_ncp_ver(peer_info)>=2)
     {

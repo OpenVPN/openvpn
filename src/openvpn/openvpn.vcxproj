@@ -212,6 +212,7 @@
     <ClCompile Include="ssl.c" />
     <ClCompile Include="ssl_openssl.c" />
     <ClCompile Include="ssl_ncp.c" />
+    <ClCompile Include="ssl_util.c" />
     <ClCompile Include="ssl_verify.c" />
     <ClCompile Include="ssl_verify_openssl.c" />
     <ClCompile Include="status.c" />
@@ -300,6 +301,7 @@
     <ClInclude Include="ssl_common.h" />
     <ClInclude Include="ssl_ncp.h" />
     <ClInclude Include="ssl_openssl.h" />
+    <ClInclude Include="ssl_util.h" />
     <ClInclude Include="ssl_verify.h" />
     <ClInclude Include="ssl_verify_backend.h" />
     <ClInclude Include="ssl_verify_openssl.h" />

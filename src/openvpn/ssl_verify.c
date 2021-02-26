@@ -46,6 +46,7 @@
 #endif
 #include "auth_token.h"
 #include "push.h"
+#include "ssl_util.h"
 
 /** Maximum length of common name */
 #define TLS_USERNAME_LEN 64
