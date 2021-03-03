@@ -361,25 +361,56 @@ send_auth_failed(struct context *c, const char *client_reason)
     gc_free(&gc);
 }
 
+
 bool
-send_auth_pending_messages(struct context *c, const char *extra)
+send_auth_pending_messages(struct context *c, const char *extra,
+                           unsigned int timeout)
 {
-    send_control_channel_string(c, "AUTH_PENDING", D_PUSH);
+    struct tls_multi *tls_multi = c->c2.tls_multi;
+    struct key_state *ks = &tls_multi->session[TM_ACTIVE].key[KS_PRIMARY];
 
     static const char info_pre[] = "INFO_PRE,";
 
+    const char *const peer_info = tls_multi->peer_info;
+    unsigned int proto = extract_iv_proto(peer_info);
 
-    size_t len = strlen(extra)+1 + sizeof(info_pre);
+
+    /* Calculate the maximum timeout and subtract the time we already waited */
+    unsigned int max_timeout = max_uint(tls_multi->opt.renegotiate_seconds/2,
+                                        tls_multi->opt.handshake_window);
+    max_timeout = max_timeout - (now - ks->initial);
+    timeout = min_uint(max_timeout, timeout);
+
+    struct gc_arena gc = gc_new();
+    if ((proto & IV_PROTO_AUTH_PENDING_KW) == 0)
+    {
+        send_control_channel_string(c, "AUTH_PENDING", D_PUSH);
+    }
+    else
+    {
+        static const char auth_pre[] = "AUTH_PENDING,timeout ";
+        // Assume a worst case of 8 byte uint64 in decimal which
+        // needs 20 bytes
+        size_t len = 20 + 1 + sizeof(auth_pre);
+        struct buffer buf = alloc_buf_gc(len, &gc);
+        buf_printf(&buf, auth_pre);
+        buf_printf(&buf, "%u", timeout);
+        send_control_channel_string(c, BSTR(&buf), D_PUSH);
+    }
+
+    size_t len = strlen(extra) + 1 + sizeof(info_pre);
     if (len > PUSH_BUNDLE_SIZE)
     {
+        gc_free(&gc);
         return false;
     }
-    struct gc_arena gc = gc_new();
 
     struct buffer buf = alloc_buf_gc(len, &gc);
     buf_printf(&buf, info_pre);
     buf_printf(&buf, "%s", extra);
     send_control_channel_string(c, BSTR(&buf), D_PUSH);
+
+    ks->auth_deferred_expire = now + timeout;
 
     gc_free(&gc);
     return true;
@@ -1026,6 +1057,22 @@ remove_iroutes_from_push_route_list(struct options *o)
 
         gc_free(&gc);
     }
+}
+
+unsigned int
+extract_iv_proto(const char *peer_info)
+{
+    const char *optstr = peer_info ? strstr(peer_info, "IV_PROTO=") : NULL;
+    if (optstr)
+    {
+        int proto = 0;
+        int r = sscanf(optstr, "IV_PROTO=%d", &proto);
+        if (r == 1 && proto > 0)
+        {
+            return proto;
+        }
+    }
+    return 0;
 }
 
 #endif /* if P2MP */

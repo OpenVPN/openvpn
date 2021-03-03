@@ -173,7 +173,8 @@ struct management_callback
                          struct buffer_list *cc_config); /* ownership transferred */
     bool (*client_pending_auth) (void *arg,
                                  const unsigned long cid,
-                                 const char *url);
+                                 const char *extra,
+                                 unsigned int timeout);
     char *(*get_peer_info) (void *arg, const unsigned long cid);
 #ifdef MANAGEMENT_PF
     bool (*client_pf)(void *arg,

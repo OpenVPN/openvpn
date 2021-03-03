@@ -975,15 +975,15 @@ parse_cid(const char *str, unsigned long *cid)
 }
 
 static bool
-parse_kid(const char *str, unsigned int *kid)
+parse_uint(const char *str, const char* what, unsigned int *uint)
 {
-    if (sscanf(str, "%u", kid) == 1)
+    if (sscanf(str, "%u", uint) == 1)
     {
         return true;
     }
     else
     {
-        msg(M_CLIENT, "ERROR: cannot parse KID");
+        msg(M_CLIENT, "ERROR: cannot parse %s", what);
         return false;
     }
 }
@@ -998,15 +998,18 @@ parse_kid(const char *str, unsigned int *kid)
  *                      the information of the additional steps
  */
 static void
-man_client_pending_auth(struct management *man, const char *cid_str, const char *extra)
+man_client_pending_auth(struct management *man, const char *cid_str,
+                        const char *extra, const char *timeout_str)
 {
     unsigned long cid = 0;
-    if (parse_cid(cid_str, &cid))
+    unsigned int timeout = 0;
+    if (parse_cid(cid_str, &cid)
+        && parse_uint(timeout_str, "TIMEOUT", &timeout))
     {
         if (man->persist.callback.client_pending_auth)
         {
             bool ret = (*man->persist.callback.client_pending_auth)
-                           (man->persist.callback.arg, cid, extra);
+                           (man->persist.callback.arg, cid, extra, timeout);
 
             if (ret)
             {
@@ -1032,7 +1035,7 @@ man_client_auth(struct management *man, const char *cid_str, const char *kid_str
     mc->in_extra_cid = 0;
     mc->in_extra_kid = 0;
     if (parse_cid(cid_str, &mc->in_extra_cid)
-        && parse_kid(kid_str, &mc->in_extra_kid))
+        && parse_uint(kid_str, "KID", &mc->in_extra_kid))
     {
         mc->in_extra_cmd = IEC_CLIENT_AUTH;
         in_extra_reset(mc, IER_NEW);
@@ -1048,7 +1051,7 @@ man_client_deny(struct management *man, const char *cid_str, const char *kid_str
 {
     unsigned long cid = 0;
     unsigned int kid = 0;
-    if (parse_cid(cid_str, &cid) && parse_kid(kid_str, &kid))
+    if (parse_cid(cid_str, &cid) && parse_uint(kid_str, "KID", &kid))
     {
         if (man->persist.callback.client_auth)
         {
@@ -1563,9 +1566,9 @@ man_dispatch_command(struct management *man, struct status_output *so, const cha
     }
     else if (streq(p[0], "client-pending-auth"))
     {
-        if (man_need(man, p, 2, 0))
+        if (man_need(man, p, 3, 0))
         {
-            man_client_pending_auth(man, p[1], p[2]);
+            man_client_pending_auth(man, p[1], p[2], p[3]);
         }
     }
 #ifdef MANAGEMENT_PF

@@ -1769,28 +1769,6 @@ multi_client_connect_setenv(struct multi_context *m,
 }
 
 /**
- * Extracts the IV_PROTO variable and returns its value or 0
- * if it cannot be extracted.
- *
- */
-static unsigned int
-extract_iv_proto(const char *peer_info)
-{
-
-    const char *optstr = peer_info ? strstr(peer_info, "IV_PROTO=") : NULL;
-    if (optstr)
-    {
-        int proto = 0;
-        int r = sscanf(optstr, "IV_PROTO=%d", &proto);
-        if (r == 1 && proto > 0)
-        {
-            return proto;
-        }
-    }
-    return 0;
-}
-
-/**
  * Calculates the options that depend on the client capabilities
  * based on local options and available peer info
  * - choosen cipher
@@ -3918,14 +3896,15 @@ management_kill_by_cid(void *arg, const unsigned long cid, const char *kill_msg)
 static bool
 management_client_pending_auth(void *arg,
                                const unsigned long cid,
-                               const char *extra)
+                               const char *extra,
+                               unsigned int timeout)
 {
     struct multi_context *m = (struct multi_context *) arg;
     struct multi_instance *mi = lookup_by_cid(m, cid);
     if (mi)
     {
         /* sends INFO_PRE and AUTH_PENDING messages to client */
-        bool ret = send_auth_pending_messages(&mi->context, extra);
+        bool ret = send_auth_pending_messages(&mi->context, extra, timeout);
         multi_schedule_context_wakeup(m, mi);
         return ret;
     }
