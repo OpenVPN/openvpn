@@ -147,6 +147,9 @@ SCRIPT HOOKS
   :code:`auth_control_file or further defer it. See ``--auth-user-pass-verify``
   for details.
 
+  For a sample script that implement TOTP (RFC 6238) based two-factor
+  authentication, see :code:`sample-scripts/totpauth.py`.
+
 --client-connect cmd
   Run command ``cmd`` on client connection.
 
