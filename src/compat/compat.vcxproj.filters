@@ -30,6 +30,9 @@
     <ClCompile Include="compat-strsep.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="compat-dco_get_overlapped_result.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="compat.h">

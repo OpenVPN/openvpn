@@ -144,7 +144,7 @@ AC_ARG_ENABLE(
 
 AC_ARG_ENABLE(
 	[dco],
-	[AS_HELP_STRING([--enable-dco], [enable data channel offload support using ovpn-dco kernel module @<:@default=no@:>@])],
+	[AS_HELP_STRING([--enable-dco], [enable data channel offload support using the ovpn-dco kernel module (always enabled on Windows) @<:@default=no@:>@])],
 	,
 	[enable_dco="no"]
 )
@@ -328,6 +328,7 @@ case "$host" in
 		;;
 	*-mingw*)
 		AC_DEFINE([TARGET_WIN32], [1], [Are we running WIN32?])
+		AC_DEFINE([ENABLE_DCO], [1], [DCO is always enabled on Windows])
 		AC_DEFINE_UNQUOTED([TARGET_PREFIX], ["W"], [Target prefix])
 		CPPFLAGS="${CPPFLAGS} -DWIN32_LEAN_AND_MEAN"
 		CPPFLAGS="${CPPFLAGS} -DNTDDI_VERSION=NTDDI_VISTA -D_WIN32_WINNT=_WIN32_WINNT_VISTA"
@@ -773,18 +774,24 @@ if test "$enable_dco" = "yes"; then
 dnl
 dnl Include generic netlink library used to talk to ovpn-dco
 dnl
+	case "$host" in
+		*-*-linux*)
+			PKG_CHECK_MODULES([LIBNL_GENL],
+					  [libnl-genl-3.0 >= 3.2.29],
+					  [have_libnl="yes"],
+					  [AC_MSG_ERROR([libnl-genl-3.0 package not found or too old. Is the development package and pkg-config installed? Must be version 3.4.0 or newer])]
+			)
 
-	PKG_CHECK_MODULES([LIBNL_GENL],
-			  [libnl-genl-3.0 >= 3.2.29],
-			  [have_libnl="yes"],
-			  [AC_MSG_ERROR([libnl-genl-3.0 package not found or too old. Is the development package and pkg-config installed? Must be version 3.4.0 or newer])]
-	)
+			CFLAGS="${CFLAGS} ${LIBNL_GENL_CFLAGS}"
+			LIBS="${LIBS} ${LIBNL_GENL_LIBS}"
+			AC_DEFINE(ENABLE_DCO, 1, [Enable data channel offload for Linux])
+			AC_MSG_NOTICE([Enabled ovpn-dco support for Linux])
+		;;
 
-	CFLAGS="${CFLAGS} ${LIBNL_GENL_CFLAGS}"
-	LIBS="${LIBS} ${LIBNL_GENL_LIBS}"
-
-	AC_DEFINE(ENABLE_DCO, 1, [Enable shared data channel offload])
-	AC_MSG_NOTICE([Enabled ovpn-dco support for Linux])
+		*-mingw*)
+			AC_MSG_NOTICE([NOTE: --enable-dco ignored on Windows because it's always enabled])
+		;;
+	esac
 fi
 
 if test "${with_crypto_library}" = "openssl"; then

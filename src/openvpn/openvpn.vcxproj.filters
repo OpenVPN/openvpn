@@ -258,6 +258,9 @@
     <ClCompile Include="xkey_provider.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="dco_win.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="base64.h">
@@ -384,6 +387,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="multi.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="networking_windco.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="ntlm.h">
@@ -534,6 +540,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="xkey_common.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="dco_win.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

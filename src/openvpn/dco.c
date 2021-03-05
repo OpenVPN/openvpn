@@ -422,6 +422,25 @@ dco_check_option_conflict_ce(const struct connection_entry *ce, int msglevel)
     return false;
 }
 
+static bool
+dco_check_option_conflict_platform(int msglevel, const struct options *o)
+{
+#if defined(_WIN32)
+    if (o->mode == MODE_SERVER)
+    {
+        msg(msglevel, "Only client and p2p data channel offload is supported "
+                      "with ovpn-dco-win.");
+        return true;
+    }
+    if (o->persist_tun)
+    {
+        msg(msglevel, "--persist-tun is not supported with ovpn-dco-win.");
+        return true;
+    }
+#endif
+    return false;
+}
+
 bool
 dco_check_option_conflict(int msglevel, const struct options *o)
 {
@@ -436,6 +455,11 @@ dco_check_option_conflict(int msglevel, const struct options *o)
         return true;
     }
 
+    if (dco_check_option_conflict_platform(msglevel, o))
+    {
+        return true;
+    }
+
     if (dev_type_enum(o->dev, o->dev_type) != DEV_TYPE_TUN)
     {
         msg(msglevel, "Note: dev-type not tun, disabling data channel offload.");
@@ -444,7 +468,7 @@ dco_check_option_conflict(int msglevel, const struct options *o)
 
     /* At this point the ciphers have already been normalised */
     if (o->enable_ncp_fallback
-        && !tls_item_in_cipher_list(o->ciphername, DCO_SUPPORTED_CIPHERS))
+        && !tls_item_in_cipher_list(o->ciphername, dco_get_supported_ciphers()))
     {
         msg(msglevel, "Note: --data-cipher-fallback with cipher '%s' "
                       "disables data channel offload.", o->ciphername);
@@ -498,7 +522,7 @@ dco_check_option_conflict(int msglevel, const struct options *o)
     const char *token;
     while ((token = strsep(&tmp_ciphers, ":")))
     {
-        if (!tls_item_in_cipher_list(token, DCO_SUPPORTED_CIPHERS))
+        if (!tls_item_in_cipher_list(token, dco_get_supported_ciphers()))
         {
             msg(msglevel, "Note: cipher '%s' in --data-ciphers is not supported "
                 "by ovpn-dco, disabling data channel offload.", token);

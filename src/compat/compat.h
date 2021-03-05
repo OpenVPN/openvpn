@@ -62,4 +62,10 @@ char *strsep(char **stringp, const char *delim);
 
 #endif
 
+#if defined(__MINGW32__) && !defined(__MINGW64__)
+BOOL dco_get_overlapped_result(HANDLE handle, OVERLAPPED* ov, DWORD* transferred, DWORD delay_millisec, BOOL unused);
+#else
+#define dco_get_overlapped_result GetOverlappedResultEx
+#endif
+
 #endif /* COMPAT_H */

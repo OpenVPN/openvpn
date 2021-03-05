@@ -181,6 +181,11 @@ void dco_update_keys(dco_context_t *dco, struct tls_multi *multi);
 bool dco_available(int msglevel);
 
 /**
+ * Returns list of colon-separated ciphers supported by platform
+ */
+const char *dco_get_supported_ciphers();
+
+/**
  * Installs a DCO in the main event loop
  */
 void dco_event_set(dco_context_t *dco, struct event_set *es, void *arg);

@@ -879,4 +879,10 @@ dco_event_set(dco_context_t *dco, struct event_set *es, void *arg)
     }
 }
 
+const char *
+dco_get_supported_ciphers()
+{
+    return "AES-128-GCM:AES-256-GCM:AES-192-GCM:CHACHA20-POLY1305";
+}
+
 #endif /* defined(ENABLE_DCO) && defined(TARGET_LINUX) */

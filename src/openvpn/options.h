@@ -876,24 +876,19 @@ void options_string_import(struct options *options,
 
 bool key_is_external(const struct options *options);
 
-#if defined(ENABLE_DCO)
-
 /**
  * Returns whether the current configuration has dco enabled.
  */
 static inline bool
 dco_enabled(const struct options *o)
 {
+#if defined(_WIN32)
+    return o->windows_driver == WINDOWS_DRIVER_WINDCO;
+#elif defined(ENABLE_DCO)
     return !o->tuntap_options.disable_dco;
-}
-
 #else
-
-static inline bool
-dco_enabled(const struct options *o)
-{
     return false;
+#endif /* defined(_WIN32) */
 }
 
-#endif
 #endif /* ifndef OPTIONS_H */

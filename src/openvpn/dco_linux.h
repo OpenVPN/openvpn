@@ -36,7 +36,6 @@ typedef enum ovpn_cipher_alg dco_cipher_t;
 
 #define DCO_IROUTE_METRIC   100
 #define DCO_DEFAULT_METRIC  200
-#define DCO_SUPPORTED_CIPHERS "AES-128-GCM:AES-256-GCM:AES-192-GCM:CHACHA20-POLY1305"
 
 typedef struct
 {

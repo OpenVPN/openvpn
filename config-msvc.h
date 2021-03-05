@@ -87,3 +87,5 @@ typedef uint16_t in_port_t;
 #ifdef HAVE_CONFIG_MSVC_LOCAL_H
 #include <config-msvc-local.h>
 #endif
+
+#define ENABLE_DCO 1
