@@ -38,6 +38,7 @@
 #include <cmocka.h>
 
 #include "crypto.h"
+#include "ssl_backend.h"
 
 #include "mock_msg.h"
 
@@ -136,12 +137,43 @@ crypto_translate_cipher_names(void **state)
     test_cipher_names("id-aes256-GCM", "AES-256-GCM");
 }
 
+
+static uint8_t good_prf[32] = {0xd9, 0x8c, 0x85, 0x18, 0xc8, 0x5e, 0x94, 0x69,
+                               0x27, 0x91, 0x6a, 0xcf, 0xc2, 0xd5, 0x92, 0xfb,
+                               0xb1, 0x56, 0x7e, 0x4b, 0x4b, 0x14, 0x59, 0xe6,
+                               0xa9, 0x04, 0xac, 0x2d, 0xda, 0xb7, 0x2d, 0x67};
+static void
+crypto_test_tls_prf(void **state)
+{
+    const char *seedstr = "Quis aute iure reprehenderit in voluptate "
+                          "velit esse cillum dolore";
+    const unsigned char *seed = (const unsigned char *)seedstr;
+    const size_t seed_len = strlen(seedstr);
+
+
+
+
+    const char* ipsumlorem = "Lorem ipsum dolor sit amet, consectetur "
+                             "adipisici elit, sed eiusmod tempor incidunt ut "
+                             "labore et dolore magna aliqua.";
+
+    const unsigned char *secret = (const unsigned char *) ipsumlorem;
+    size_t secret_len = strlen((const char *)secret);
+
+
+    uint8_t out[32];
+    ssl_tls1_PRF(seed, seed_len, secret, secret_len, out, sizeof(out));
+
+    assert_memory_equal(good_prf, out, sizeof(out));
+}
+
 int
 main(void)
 {
     const struct CMUnitTest tests[] = {
         cmocka_unit_test(crypto_pem_encode_decode_loopback),
         cmocka_unit_test(crypto_translate_cipher_names),
+        cmocka_unit_test(crypto_test_tls_prf)
     };
 
 #if defined(ENABLE_CRYPTO_OPENSSL)
