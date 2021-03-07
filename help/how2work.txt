@@ -1,0 +1,18 @@
+A Virtual Private Network, or VPN is a set of technologies which are used to link computers to create a private network. Another network is used to carry the data, which is encrypted. The carrier network will see the packets of data which it routes. To the users of the VPN, it will look like the computers were directly connected to each other.
+
+
+Common usage scenario of a VPN: Connect different offices, let users connect from remote sites
+The VPN model can guarantee the following:
+
+Confidentiality: The carrier network will route the data, but it will be unable to decrypt it.
+Sender authentication: People need to authenticate themselves, to be able to use the network.
+Message integrity: Messages transported across the network cannot be changed easily while they are in transport. When a message was changed, it is possible to detect this.
+In a business context, VPNs are often used to connect different office locations, or to allow people working from outside the company network to access its resources. People can use their computer to connect to their work network and see work websites that cannot be seen on the normal internet.
+
+Similarly, the encryption process allows VPN to offers anonymity by hiding the user and making it very hard for anyone to track them. As a result, VPN helps make one's online activities on the web anonymous and undecipherable.<
+
+VPN is often used to access websites that are blocked in some countries, like China. Many people also use a VPN to protect their internet activity while using public WiFi.
+
+VPN can also be used to connect corporate offices to the larger branch offices, also known as site-to-site VPN. This is because direct network connections are impractical between offices that are physically distant. Common VPN protocols include OpenVPN, Cisco AnyConnect, and IPsec.
+
+Source: https://simple.m.wikipedia.org/wiki/Virtual_private_network#:~:text=A%20Virtual%20Private%20Network%2C%20or,of%20data%20which%20it%20routes.
