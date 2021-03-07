@@ -120,5 +120,3 @@ int client(int ip, int port, int targetip)
 	return 0; 
 }
 #endif
-
-/* Source code of socket: https://www.geeksforgeeks.org/socket-programming-cc/amp/*/
