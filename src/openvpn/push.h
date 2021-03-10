@@ -78,7 +78,7 @@ void send_auth_failed(struct context *c, const char *client_reason);
  * more details on message format
  */
 bool
-send_auth_pending_messages(struct context *c, const char *extra,
+send_auth_pending_messages(struct tls_multi *tls_multi, const char *extra,
                            unsigned int timeout);
 
 void send_restart(struct context *c, const char *kill_msg);

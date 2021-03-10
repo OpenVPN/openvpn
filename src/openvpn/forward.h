@@ -317,6 +317,15 @@ bool
 send_control_channel_string_dowork(struct tls_multi *multi,
                                    const char *str, int msglevel);
 
+
+/**
+ * Reschedule tls_multi_process.
+ * NOTE: in multi-client mode, usually calling the function is
+ * insufficient to reschedule the client instance object unless
+ * multi_schedule_context_wakeup(m, mi) is also called.
+ */
+void reschedule_multi_process(struct context *c);
+
 #define PIPV4_PASSTOS                   (1<<0)
 #define PIP_MSSFIX                      (1<<1)         /* v4 and v6 */
 #define PIP_OUTGOING                    (1<<2)

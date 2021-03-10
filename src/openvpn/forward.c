@@ -342,6 +342,12 @@ send_control_channel_string_dowork(struct tls_multi *multi,
     return stat;
 }
 
+void reschedule_multi_process(struct context *c)
+{
+    interval_action(&c->c2.tmp_int);
+    context_immediate_reschedule(c); /* ZERO-TIMEOUT */
+}
+
 bool
 send_control_channel_string(struct context *c, const char *str, int msglevel)
 {
@@ -349,15 +355,8 @@ send_control_channel_string(struct context *c, const char *str, int msglevel)
     {
         bool ret = send_control_channel_string_dowork(c->c2.tls_multi,
                                                       str, msglevel);
-        /*
-         * Reschedule tls_multi_process.
-         * NOTE: in multi-client mode, usually the below two statements are
-         * insufficient to reschedule the client instance object unless
-         * multi_schedule_context_wakeup(m, mi) is also called.
-         */
+        reschedule_multi_process(c);
 
-        interval_action(&c->c2.tmp_int);
-        context_immediate_reschedule(c); /* ZERO-TIMEOUT */
         return ret;
     }
     return true;

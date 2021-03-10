@@ -3904,7 +3904,9 @@ management_client_pending_auth(void *arg,
     if (mi)
     {
         /* sends INFO_PRE and AUTH_PENDING messages to client */
-        bool ret = send_auth_pending_messages(&mi->context, extra, timeout);
+        bool ret = send_auth_pending_messages(mi->context.c2.tls_multi, extra,
+                                              timeout);
+        reschedule_multi_process(&mi->context);
         multi_schedule_context_wakeup(m, mi);
         return ret;
     }
