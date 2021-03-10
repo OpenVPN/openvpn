@@ -237,6 +237,13 @@ which mode OpenVPN is configured as.
   likely fail. The limit can be increased using ulimit or systemd
   directives depending on how OpenVPN is started.
 
+  If the platform has the getrlimit(2) system call, OpenVPN will check
+  for the amount of mlock-able memory before calling mlockall(2), and
+  tries to increase the limit to 100 MB if less than this is configured.
+  100 Mb is somewhat arbitrary - it is enough for a moderately-sized
+  OpenVPN deployment, but the memory usage might go beyond that if the
+  number of concurrent clients is high.
+
 --nice n
   Change process priority after initialization (``n`` greater than 0 is
   lower priority, ``n`` less than zero is higher priority).

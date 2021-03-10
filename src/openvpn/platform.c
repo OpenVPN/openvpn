@@ -193,6 +193,35 @@ void
 platform_mlockall(bool print_msg)
 {
 #ifdef HAVE_MLOCKALL
+
+#if defined(HAVE_GETRLIMIT) && defined(RLIMIT_MEMLOCK)
+#define MIN_LOCKED_MEM_MB 100
+    struct rlimit rl;
+    if (getrlimit(RLIMIT_MEMLOCK, &rl) < 0)
+    {
+        msg(M_WARN | M_ERRNO, "WARNING: getrlimit(RLIMIT_MEMLOCK) failed");
+    }
+    else
+    {
+        msg(M_INFO, "mlock: MEMLOCK limit: soft=%ld KB, hard=%ld KB",
+            ((long int) rl.rlim_cur) / 1024, ((long int) rl.rlim_max) / 1024);
+        if (rl.rlim_cur < MIN_LOCKED_MEM_MB*1024*1024)
+        {
+            msg(M_INFO, "mlock: RLIMIT_MEMLOCK < %d MB, increase limit",
+                MIN_LOCKED_MEM_MB);
+            rl.rlim_cur = MIN_LOCKED_MEM_MB*1024*1024;
+            if (rl.rlim_max < rl.rlim_cur)
+            {
+                rl.rlim_max = rl.rlim_cur;
+            }
+            if (setrlimit(RLIMIT_MEMLOCK, &rl) < 0)
+            {
+                msg(M_FATAL | M_ERRNO, "ERROR: setrlimit() failed");
+            }
+        }
+    }
+#endif
+
     if (mlockall(MCL_CURRENT | MCL_FUTURE))
     {
         msg(M_WARN | M_ERRNO, "WARNING: mlockall call failed");

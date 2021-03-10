@@ -15,6 +15,11 @@ Compatibility with OpenSSL in FIPS mode
     requirements/recommendation of FIPS 140-2. This just allows OpenVPN
     to be run on a system that be configured OpenSSL in FIPS mode.
 
+``mlock`` will now check if enough memlock-able memory has been reserved,
+    and if less than 100MB RAM are available, use setrlimit() to upgrade
+    the limit.  See Trac #1390.  Not available on OpenSolaris.
+
+
 Deprecated features
 -------------------
 ``inetd`` has been removed

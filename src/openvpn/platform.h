@@ -48,6 +48,10 @@
 #include <stdio.h>
 #endif
 
+#ifdef HAVE_GETRLIMIT
+#include <sys/resource.h>
+#endif
+
 #include "basic.h"
 #include "buffer.h"
 
