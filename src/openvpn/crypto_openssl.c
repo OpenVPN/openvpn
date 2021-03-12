@@ -1195,7 +1195,7 @@ tls1_P_hash(const EVP_MD *md, const unsigned char *sec,
     EVP_MD_CTX ctx, ctx_tmp, ctx_init;
     EVP_PKEY *mac_key;
     unsigned char A1[EVP_MAX_MD_SIZE];
-    size_t A1_len;
+    size_t A1_len = EVP_MAX_MD_SIZE;
     int ret = false;
 
     chunk = EVP_MD_size(md);
@@ -1249,6 +1249,7 @@ tls1_P_hash(const EVP_MD *md, const unsigned char *sec,
 
         if (olen > chunk)
         {
+            j = olen;
             if (!EVP_DigestSignFinal(&ctx, out, &j))
             {
                 goto err;
@@ -1263,6 +1264,7 @@ tls1_P_hash(const EVP_MD *md, const unsigned char *sec,
         }
         else
         {
+            A1_len = EVP_MAX_MD_SIZE;
             /* last one */
             if (!EVP_DigestSignFinal(&ctx, A1, &A1_len))
             {
