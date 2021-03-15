@@ -6772,6 +6772,46 @@ netsh_delete_address_dns(const struct tuntap *tt, bool ipv6, struct gc_arena *gc
     argv_free(&argv);
 }
 
+static
+void close_tun_handle(struct tuntap* tt)
+{
+    const char* adaptertype = print_windows_driver(tt->windows_driver);
+    if (tt->hand != NULL)
+    {
+        dmsg(D_WIN32_IO_LOW, "Attempting CancelIO on %s adapter", adaptertype);
+        if (!CancelIo(tt->hand))
+        {
+            msg(M_WARN | M_ERRNO, "Warning: CancelIO failed on %s adapter", adaptertype);
+        }
+    }
+
+    dmsg(D_WIN32_IO_LOW, "Attempting close of overlapped read event on %s adapter", adaptertype);
+    overlapped_io_close(&tt->reads);
+
+    dmsg(D_WIN32_IO_LOW, "Attempting close of overlapped write event on %s adapter", adaptertype);
+    overlapped_io_close(&tt->writes);
+
+    if (tt->hand != NULL)
+    {
+        dmsg(D_WIN32_IO_LOW, "Attempting CloseHandle on %s adapter", adaptertype);
+        if (!CloseHandle(tt->hand))
+        {
+            msg(M_WARN | M_ERRNO, "Warning: CloseHandle failed on %s adapter", adaptertype);
+        }
+        tt->hand = NULL;
+    }
+
+    if (tt->windows_driver == WINDOWS_DRIVER_WINTUN)
+    {
+        CloseHandle(tt->rw_handle.read);
+        CloseHandle(tt->rw_handle.write);
+        UnmapViewOfFile(tt->wintun_send_ring);
+        UnmapViewOfFile(tt->wintun_receive_ring);
+        CloseHandle(tt->wintun_send_ring_handle);
+        CloseHandle(tt->wintun_receive_ring_handle);
+    }
+}
+
 void
 close_tun(struct tuntap *tt, openvpn_net_ctx_t *ctx)
 {
@@ -6841,42 +6881,9 @@ close_tun(struct tuntap *tt, openvpn_net_ctx_t *ctx)
 
     dhcp_release(tt);
 
-    if (tt->hand != NULL)
-    {
-        dmsg(D_WIN32_IO_LOW, "Attempting CancelIO on TAP-Windows adapter");
-        if (!CancelIo(tt->hand))
-        {
-            msg(M_WARN | M_ERRNO, "Warning: CancelIO failed on TAP-Windows adapter");
-        }
-    }
-
-    dmsg(D_WIN32_IO_LOW, "Attempting close of overlapped read event on TAP-Windows adapter");
-    overlapped_io_close(&tt->reads);
-
-    dmsg(D_WIN32_IO_LOW, "Attempting close of overlapped write event on TAP-Windows adapter");
-    overlapped_io_close(&tt->writes);
-
-    if (tt->hand != NULL)
-    {
-        dmsg(D_WIN32_IO_LOW, "Attempting CloseHandle on TAP-Windows adapter");
-        if (!CloseHandle(tt->hand))
-        {
-            msg(M_WARN | M_ERRNO, "Warning: CloseHandle failed on TAP-Windows adapter");
-        }
-    }
+    close_tun_handle(tt);
 
     free(tt->actual_name);
-
-    if (tt->windows_driver == WINDOWS_DRIVER_WINTUN)
-    {
-        CloseHandle(tt->rw_handle.read);
-        CloseHandle(tt->rw_handle.write);
-        UnmapViewOfFile(tt->wintun_send_ring);
-        UnmapViewOfFile(tt->wintun_receive_ring);
-        CloseHandle(tt->wintun_send_ring_handle);
-        CloseHandle(tt->wintun_receive_ring_handle);
-    }
-
 
     clear_tuntap(tt);
     free(tt);
