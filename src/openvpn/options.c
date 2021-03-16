@@ -6008,6 +6008,12 @@ add_option(struct options *options,
     {
         VERIFY_PERMISSION(OPT_P_MESSAGES);
         options->verbosity = positive_atoi(p[1]);
+        if (options->verbosity >= (D_TLS_DEBUG_MED & M_DEBUG_LEVEL))
+        {
+            /* We pass this flag to the SSL library to avoid
+             * mbed TLS always generating debug level logging */
+            options->ssl_flags |= SSLF_TLS_DEBUG_ENABLED;
+        }
 #if !defined(ENABLE_DEBUG) && !defined(ENABLE_SMALL)
         /* Warn when a debug verbosity is supplied when built without debug support */
         if (options->verbosity >= 7)

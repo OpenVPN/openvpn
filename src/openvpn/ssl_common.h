@@ -347,6 +347,7 @@ struct tls_options
 #define SSLF_TLS_VERSION_MIN_MASK     0xF  /* (uses bit positions 6 to 9) */
 #define SSLF_TLS_VERSION_MAX_SHIFT    10
 #define SSLF_TLS_VERSION_MAX_MASK     0xF  /* (uses bit positions 10 to 13) */
+#define SSLF_TLS_DEBUG_ENABLED        (1<<14)
     unsigned int ssl_flags;
 
 #ifdef MANAGEMENT_DEF_AUTH
