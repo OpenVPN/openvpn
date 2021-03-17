@@ -1110,7 +1110,7 @@ if test "$enable_lz4" = "yes" && test "$enable_comp_stub" = "no"; then
 		    AC_MSG_RESULT([ok])
 		    have_lz4="yes"
 		],
-		[AC_MSG_RESULT([system LZ4 library is too old])]
+		[AC_MSG_ERROR([system LZ4 library is too old])]
 	    )
 	fi
     fi
@@ -1128,8 +1128,7 @@ if test "$enable_lz4" = "yes" && test "$enable_comp_stub" = "no"; then
     fi
 
     if test "${have_lz4}" != "yes" ; then
-	AC_MSG_RESULT([		usable LZ4 library or header not found, using version in src/compat/compat-lz4.*])
-	AC_DEFINE([NEED_COMPAT_LZ4], [1], [use copy of LZ4 source in compat/])
+	AC_MSG_ERROR([No compatible LZ4 compression library found. Consider --disable-lz4])
 	LZ4_LIBS=""
     fi
     OPTIONAL_LZ4_CFLAGS="${LZ4_CFLAGS}"
