@@ -79,6 +79,10 @@ struct options_pre_pull
     const char* authname;
     int keysize;
 
+    int ping_send_timeout;
+    int ping_rec_timeout;
+    int ping_rec_timeout_action;
+
     int foreign_option_index;
 };
 
