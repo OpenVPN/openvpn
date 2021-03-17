@@ -145,6 +145,13 @@ enum ks_auth_state {
                                 */
 };
 
+struct auth_deferred_status
+{
+    char *auth_control_file;
+    char *auth_pending_file;
+    unsigned int auth_control_status;
+};
+
 /**
  * Security parameter state of one TLS and data channel %key session.
  * @ingroup control_processor
@@ -212,10 +219,9 @@ struct key_state
     unsigned int mda_key_id;
     unsigned int mda_status;
 #endif
-    unsigned int auth_control_status;
     time_t acf_last_mod;
-    char *auth_control_file;
-    char *auth_pending_file;
+
+    struct auth_deferred_status plugin_auth;
 };
 
 /** Control channel wrapping (--tls-auth/--tls-crypt) context */

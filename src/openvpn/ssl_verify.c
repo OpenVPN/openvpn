@@ -885,13 +885,13 @@ man_def_auth_test(const struct key_state *ks)
  *  and key_state structure
  */
 static void
-key_state_rm_auth_pending_file(struct key_state *ks)
+key_state_rm_auth_pending_file(struct auth_deferred_status *ads)
 {
-    if (ks && ks->auth_pending_file)
+    if (ads && ads->auth_pending_file)
     {
-        platform_unlink(ks->auth_pending_file);
-        free(ks->auth_pending_file);
-        ks->auth_pending_file = NULL;
+        platform_unlink(ads->auth_pending_file);
+        free(ads->auth_pending_file);
+        ads->auth_pending_file = NULL;
     }
 }
 
@@ -936,13 +936,13 @@ check_auth_pending_method(const char *peer_info, const char *method)
  *  @returns false  The file had an invlaid format or another error occured
  */
 static bool
-key_state_check_auth_pending_file(struct key_state *ks,
+key_state_check_auth_pending_file(struct auth_deferred_status *ads,
                                   struct tls_multi *multi)
 {
     bool ret = true;
-    if (ks && ks->auth_pending_file)
+    if (ads->auth_pending_file)
     {
-        struct buffer_list *lines = buffer_list_file(ks->auth_pending_file,
+        struct buffer_list *lines = buffer_list_file(ads->auth_pending_file,
                                                      1024);
         if (lines && lines->head)
         {
@@ -992,7 +992,7 @@ key_state_check_auth_pending_file(struct key_state *ks,
 
         buffer_list_free(lines);
     }
-    key_state_rm_auth_pending_file(ks);
+    key_state_rm_auth_pending_file(ads);
     return ret;
 }
 
@@ -1002,15 +1002,15 @@ key_state_check_auth_pending_file(struct key_state *ks,
  *  and key_state structure
  */
 void
-key_state_rm_auth_control_files(struct key_state *ks)
+key_state_rm_auth_control_files(struct auth_deferred_status *ads)
 {
-    if (ks && ks->auth_control_file)
+    if (ads->auth_control_file)
     {
-        platform_unlink(ks->auth_control_file);
-        free(ks->auth_control_file);
-        ks->auth_control_file = NULL;
+        platform_unlink(ads->auth_control_file);
+        free(ads->auth_control_file);
+        ads->auth_control_file = NULL;
     }
-    key_state_rm_auth_pending_file(ks);
+    key_state_rm_auth_pending_file(ads);
 }
 
 /**
@@ -1020,20 +1020,21 @@ key_state_rm_auth_control_files(struct key_state *ks)
  * @return  true if file creation was successful
  */
 static bool
-key_state_gen_auth_control_files(struct key_state *ks, const struct tls_options *opt)
+key_state_gen_auth_control_files(struct auth_deferred_status *ads,
+                                 const struct tls_options *opt)
 {
     struct gc_arena gc = gc_new();
 
-    key_state_rm_auth_control_files(ks);
+    key_state_rm_auth_control_files(ads);
     const char *acf = platform_create_temp_file(opt->tmp_dir, "acf", &gc);
     const char *apf = platform_create_temp_file(opt->tmp_dir, "apf", &gc);
 
     if (acf && apf)
     {
-        ks->auth_control_file = string_alloc(acf, NULL);
-        ks->auth_pending_file = string_alloc(apf, NULL);
-        setenv_str(opt->es, "auth_control_file", ks->auth_control_file);
-        setenv_str(opt->es, "auth_pending_file", ks->auth_pending_file);
+        ads->auth_control_file = string_alloc(acf, NULL);
+        ads->auth_pending_file = string_alloc(apf, NULL);
+        setenv_str(opt->es, "auth_control_file", ads->auth_control_file);
+        setenv_str(opt->es, "auth_pending_file", ads->auth_pending_file);
     }
 
     gc_free(&gc);
@@ -1041,14 +1042,14 @@ key_state_gen_auth_control_files(struct key_state *ks, const struct tls_options 
 }
 
 static unsigned int
-key_state_test_auth_control_file(struct key_state *ks)
+key_state_test_auth_control_file(struct auth_deferred_status *ads)
 {
-    if (ks && ks->auth_control_file)
+    if (ads->auth_control_file)
     {
-        unsigned int ret = ks->auth_control_status;
+        unsigned int ret = ads->auth_control_status;
         if (ret == ACF_UNDEFINED)
         {
-            FILE *fp = fopen(ks->auth_control_file, "r");
+            FILE *fp = fopen(ads->auth_control_file, "r");
             if (fp)
             {
                 const int c = fgetc(fp);
@@ -1061,7 +1062,7 @@ key_state_test_auth_control_file(struct key_state *ks)
                     ret = ACF_FAILED;
                 }
                 fclose(fp);
-                ks->auth_control_status = ret;
+                ads->auth_control_status = ret;
             }
         }
         return ret;
@@ -1103,7 +1104,7 @@ tls_authentication_status(struct tls_multi *multi, const int latency)
             {
                 unsigned int s1 = ACF_DISABLED;
                 unsigned int s2 = ACF_DISABLED;
-                s1 = key_state_test_auth_control_file(ks);
+                s1 = key_state_test_auth_control_file(&ks->plugin_auth);
 #ifdef ENABLE_MANAGEMENT
                 s2 = man_def_auth_test(ks);
 #endif
@@ -1282,7 +1283,7 @@ verify_user_pass_plugin(struct tls_session *session, struct tls_multi *multi,
     setenv_str(session->opt->es, "password", up->password);
 
     /* generate filename for deferred auth control file */
-    if (!key_state_gen_auth_control_files(ks, session->opt))
+    if (!key_state_gen_auth_control_files(&ks->plugin_auth, session->opt))
     {
         msg(D_TLS_ERRORS, "TLS Auth Error (%s): "
             "could not create deferred auth control file", __func__);
@@ -1296,16 +1297,16 @@ verify_user_pass_plugin(struct tls_session *session, struct tls_multi *multi,
     {
         /* Check if the plugin has written the pending auth control
          * file and send the pending auth to the client */
-        if(!key_state_check_auth_pending_file(ks, multi))
+        if(!key_state_check_auth_pending_file(&ks->plugin_auth, multi))
         {
             retval = OPENVPN_PLUGIN_FUNC_ERROR;
-            key_state_rm_auth_control_files(ks);
+            key_state_rm_auth_control_files(&ks->plugin_auth);
         }
     }
     else
     {
         /* purge auth control filename (and file itself) for non-deferred returns */
-        key_state_rm_auth_control_files(ks);
+        key_state_rm_auth_control_files(&ks->plugin_auth);
     }
 
     setenv_del(session->opt->es, "password");
