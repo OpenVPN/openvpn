@@ -569,7 +569,8 @@ socket_defined(const socket_descriptor_t sd)
 /*
  * Do we have CryptoAPI capability?
  */
-#if defined(_WIN32) && defined(ENABLE_CRYPTO_OPENSSL)
+#if defined(_WIN32) && defined(ENABLE_CRYPTO_OPENSSL) && \
+        !defined(ENABLE_CRYPTO_WOLFSSL)
 #define ENABLE_CRYPTOAPI
 #endif
 
