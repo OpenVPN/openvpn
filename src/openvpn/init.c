@@ -668,28 +668,6 @@ uninit_proxy(struct context *c)
     uninit_proxy_dowork(c);
 }
 
-/*
- * Saves the initial state of NCP-regotiable
- * options into a storage which persists over SIGUSR1.
- */
-static void
-save_ncp_options(struct context *c)
-{
-    c->c1.ciphername = c->options.ciphername;
-    c->c1.authname = c->options.authname;
-    c->c1.keysize = c->options.keysize;
-}
-
-/* Restores NCP-negotiable options to original values */
-static void
-restore_ncp_options(struct context *c)
-{
-    c->options.ciphername = c->c1.ciphername;
-    c->options.authname = c->c1.authname;
-    c->options.keysize = c->c1.keysize;
-    c->options.data_channel_use_ekm = false;
-}
-
 void
 context_init_1(struct context *c)
 {
@@ -698,8 +676,6 @@ context_init_1(struct context *c)
     packet_id_persist_init(&c->c1.pid_persist);
 
     init_connection_list(c);
-
-    save_ncp_options(c);
 
 #if defined(ENABLE_PKCS11)
     if (c->first_time)
@@ -2868,8 +2844,8 @@ do_init_crypto_tls(struct context *c, const unsigned int flags)
     to.replay_window = options->replay_window;
     to.replay_time = options->replay_time;
     to.tcp_mode = link_socket_proto_connection_oriented(options->ce.proto);
-    to.config_ciphername = c->c1.ciphername;
-    to.config_ncp_ciphers = options->ncp_ciphers;
+    to.config_ciphername = c->options.ciphername;
+    to.config_ncp_ciphers = c->options.ncp_ciphers;
     to.ncp_enabled = options->ncp_enabled;
     to.transition_window = options->transition_window;
     to.handshake_window = options->handshake_window;
@@ -4467,8 +4443,6 @@ close_instance(struct context *c)
         /* free key schedules */
         do_close_free_key_schedule(c, (c->mode == CM_P2P || c->mode == CM_TOP));
 
-        restore_ncp_options(c);
-
         /* close TCP/UDP connection */
         do_close_link_socket(c);
 
@@ -4539,9 +4513,9 @@ inherit_context_child(struct context *dest,
     dest->c1.ks.tls_auth_key_type = src->c1.ks.tls_auth_key_type;
     dest->c1.ks.tls_crypt_v2_server_key = src->c1.ks.tls_crypt_v2_server_key;
     /* inherit pre-NCP ciphers */
-    dest->c1.ciphername = src->c1.ciphername;
-    dest->c1.authname = src->c1.authname;
-    dest->c1.keysize = src->c1.keysize;
+    dest->options.ciphername = src->options.ciphername;
+    dest->options.authname = src->options.authname;
+    dest->options.keysize = src->options.keysize;
 
     /* inherit auth-token */
     dest->c1.ks.auth_token_key = src->c1.ks.auth_token_key;

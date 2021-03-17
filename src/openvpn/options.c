@@ -3606,7 +3606,13 @@ pre_pull_save(struct options *o)
             o->pre_pull->client_nat = clone_client_nat_option_list(o->client_nat, &o->gc);
             o->pre_pull->client_nat_defined = true;
         }
+
+        /* NCP related options that can be overwritten by a push */
+        o->pre_pull->ciphername = o->ciphername;
+        o->pre_pull->authname = o->authname;
+        o->pre_pull->keysize = o->keysize;
     }
+
 }
 
 void
@@ -3652,10 +3658,15 @@ pre_pull_restore(struct options *o, struct gc_arena *gc)
         }
 
         o->foreign_option_index = pp->foreign_option_index;
+
+        o->ciphername = pp->ciphername;
+        o->authname = pp->authname;
+        o->keysize = pp->keysize;
     }
 
     o->push_continuation = 0;
     o->push_option_types_found = 0;
+    o->data_channel_use_ekm = false;
 }
 
 #endif /* if P2MP */
