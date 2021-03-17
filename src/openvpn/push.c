@@ -930,11 +930,6 @@ process_incoming_push_reply(struct context *c,
             md_ctx_init(c->c2.pulled_options_state, md_kt_get("SHA256"));
             c->c2.pulled_options_digest_init_done = true;
         }
-        if (!c->c2.did_pre_pull_restore)
-        {
-            pre_pull_restore(&c->options, &c->c2.gc);
-            c->c2.did_pre_pull_restore = true;
-        }
         if (apply_push_options(&c->options,
                                buf,
                                permission_mask,

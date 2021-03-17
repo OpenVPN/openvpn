@@ -463,7 +463,6 @@ struct context_2
 
     struct event_timeout push_request_interval;
     time_t push_request_timeout;
-    bool did_pre_pull_restore;
 
     /* hash of pulled options, so we can compare when options change */
     bool pulled_options_digest_init_done;
