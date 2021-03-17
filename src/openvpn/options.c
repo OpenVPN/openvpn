@@ -3597,6 +3597,11 @@ pre_pull_save(struct options *o)
             o->pre_pull->client_nat = clone_client_nat_option_list(o->client_nat, &o->gc);
             o->pre_pull->client_nat_defined = true;
         }
+
+        /* Ping related options should be reset to the config values on reconnect */
+        o->pre_pull->ping_rec_timeout = o->ping_rec_timeout;
+        o->pre_pull->ping_rec_timeout_action = o->ping_rec_timeout_action;
+        o->pre_pull->ping_send_timeout = o->ping_send_timeout;
     }
 }
 
@@ -3643,6 +3648,10 @@ pre_pull_restore(struct options *o, struct gc_arena *gc)
         }
 
         o->foreign_option_index = pp->foreign_option_index;
+
+        o->ping_rec_timeout = pp->ping_rec_timeout;
+        o->ping_rec_timeout_action = pp->ping_rec_timeout_action;
+        o->ping_send_timeout = pp->ping_send_timeout;
     }
 
     o->push_continuation = 0;

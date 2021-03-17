@@ -75,6 +75,10 @@ struct options_pre_pull
     bool client_nat_defined;
     struct client_nat_option_list *client_nat;
 
+    int ping_send_timeout;
+    int ping_rec_timeout;
+    int ping_rec_timeout_action;
+
     int foreign_option_index;
 };
 
