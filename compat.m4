@@ -64,6 +64,22 @@ ifdef(
 		AC_DEFUN([AC_TYPE_UINT64_T], [])
 	]
 )
+ifdef(
+	[PKG_CHECK_VAR],
+	,
+	[
+		AC_DEFUN([PKG_CHECK_VAR],
+		[AC_REQUIRE([PKG_PROG_PKG_CONFIG])
+		AC_ARG_VAR([$1], [value of $3 for $2, overriding pkg-config])
+
+		_PKG_CONFIG([$1], [variable="][$3]["], [$2])
+		AS_VAR_COPY([$1], [pkg_cv_][$1])
+
+		AS_VAR_IF([$1], [""], [$5], [$4])
+		])
+	]
+)
+
 if test -z "${docdir}"; then
 	docdir="\$(datadir)/doc/\$(PACKAGE_NAME)"
 	AC_SUBST([docdir])
