@@ -51,6 +51,7 @@
 
 
 #include "crypto_backend.h"
+#include "ssl_util.h"
 
 /*#define MULTI_DEBUG_EVENT_LOOP*/
 

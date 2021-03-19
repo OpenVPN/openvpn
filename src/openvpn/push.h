@@ -91,16 +91,6 @@ void send_restart(struct context *c, const char *kill_msg);
  */
 void send_push_reply_auth_token(struct tls_multi *multi);
 
-
-/**
- * Extracts the IV_PROTO variable and returns its value or 0
- * if it cannot be extracted.
- *
- * @param peer_info     peer info string to search for IV_PROTO
- */
-unsigned int
-extract_iv_proto(const char *peer_info);
-
 /**
  * Parses an AUTH_PENDING message and if in pull mode extends the timeout
  *

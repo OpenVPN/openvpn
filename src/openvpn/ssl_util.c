@@ -59,3 +59,19 @@ extract_var_peer_info(const char *peer_info, const char *var,
     var_value[var_end - var_start] = '\0';
     return var_value;
 }
+
+unsigned int
+extract_iv_proto(const char *peer_info)
+{
+    const char *optstr = peer_info ? strstr(peer_info, "IV_PROTO=") : NULL;
+    if (optstr)
+    {
+        int proto = 0;
+        int r = sscanf(optstr, "IV_PROTO=%d", &proto);
+        if (r == 1 && proto > 0)
+        {
+            return proto;
+        }
+    }
+    return 0;
+}

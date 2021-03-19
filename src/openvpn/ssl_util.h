@@ -46,4 +46,12 @@ extract_var_peer_info(const char *peer_info,
                       const char *var,
                       struct gc_arena *gc);
 
+/**
+ * Extracts the IV_PROTO variable and returns its value or 0
+ * if it cannot be extracted.
+ *
+ * @param peer_info     peer info string to search for IV_PROTO
+ */
+unsigned int
+extract_iv_proto(const char *peer_info);
 #endif

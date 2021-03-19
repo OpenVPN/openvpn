@@ -37,6 +37,7 @@
 #include "manage.h"
 
 #include "memdbg.h"
+#include "ssl_util.h"
 
 #if P2MP
 
@@ -1057,21 +1058,4 @@ remove_iroutes_from_push_route_list(struct options *o)
         gc_free(&gc);
     }
 }
-
-unsigned int
-extract_iv_proto(const char *peer_info)
-{
-    const char *optstr = peer_info ? strstr(peer_info, "IV_PROTO=") : NULL;
-    if (optstr)
-    {
-        int proto = 0;
-        int r = sscanf(optstr, "IV_PROTO=%d", &proto);
-        if (r == 1 && proto > 0)
-        {
-            return proto;
-        }
-    }
-    return 0;
-}
-
 #endif /* if P2MP */
