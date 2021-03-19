@@ -3659,7 +3659,7 @@ get_device_instance_id_interface(struct gc_arena *gc)
         BOOL res;
         HKEY dev_key;
         char net_cfg_instance_id_string[] = "NetCfgInstanceId";
-        char net_cfg_instance_id[256];
+        BYTE net_cfg_instance_id[256];
         char device_instance_id[256];
         DWORD len;
         DWORD data_type;
@@ -3721,7 +3721,7 @@ get_device_instance_id_interface(struct gc_arena *gc)
 
         dev_interface_list = alloc_buf_gc(dev_interface_list_size, gc);
         cr = CM_Get_Device_Interface_List((LPGUID)&GUID_DEVINTERFACE_NET, device_instance_id,
-                                          BPTR(&dev_interface_list),
+                                          BSTR(&dev_interface_list),
                                           dev_interface_list_size,
                                           CM_GET_DEVICE_INTERFACE_LIST_PRESENT);
         if (cr != CR_SUCCESS)
@@ -3731,7 +3731,7 @@ get_device_instance_id_interface(struct gc_arena *gc)
 
         struct device_instance_id_interface *dev_if;
         ALLOC_OBJ_CLEAR_GC(dev_if, struct device_instance_id_interface, gc);
-        dev_if->net_cfg_instance_id = string_alloc(net_cfg_instance_id, gc);
+        dev_if->net_cfg_instance_id = (unsigned char *)string_alloc((char *)net_cfg_instance_id, gc);
         dev_if->device_interface_list = string_alloc(BSTR(&dev_interface_list), gc);
 
         /* link into return list */
@@ -3784,7 +3784,7 @@ get_tap_reg(struct gc_arena *gc)
         char component_id_string[] = "ComponentId";
         char component_id[256];
         char net_cfg_instance_id_string[] = "NetCfgInstanceId";
-        char net_cfg_instance_id[256];
+        BYTE net_cfg_instance_id[256];
         DWORD data_type;
 
         len = sizeof(enum_name);
@@ -3829,7 +3829,7 @@ get_tap_reg(struct gc_arena *gc)
                 component_id_string,
                 NULL,
                 &data_type,
-                component_id,
+                (LPBYTE)component_id,
                 &len);
 
             if (status != ERROR_SUCCESS || data_type != REG_SZ)
@@ -3866,7 +3866,7 @@ get_tap_reg(struct gc_arena *gc)
                     {
                         struct tap_reg *reg;
                         ALLOC_OBJ_CLEAR_GC(reg, struct tap_reg, gc);
-                        reg->guid = string_alloc(net_cfg_instance_id, gc);
+                        reg->guid = string_alloc((char *)net_cfg_instance_id, gc);
                         reg->windows_driver = windows_driver;
 
                         /* link into return list */
@@ -4225,7 +4225,7 @@ at_least_one_tap_win(const struct tap_reg *tap_reg)
  */
 static const char *
 get_unspecified_device_guid(const int device_number,
-                            char *actual_name,
+                            uint8_t *actual_name,
                             int actual_name_size,
                             const struct tap_reg *tap_reg_src,
                             const struct panel_reg *panel_reg_src,
@@ -4292,7 +4292,7 @@ get_unspecified_device_guid(const int device_number,
  */
 static const char *
 get_device_guid(const char *name,
-                char *actual_name,
+                uint8_t *actual_name,
                 int actual_name_size,
                 enum windows_driver_type *windows_driver,
                 const struct tap_reg *tap_reg,
@@ -5023,7 +5023,7 @@ tap_allow_nonadmin_access(const char *dev_node)
     const struct panel_reg *panel_reg = get_panel_reg(&gc);
     const char *device_guid = NULL;
     HANDLE hand;
-    char actual_buffer[256];
+    uint8_t actual_buffer[256];
     char device_path[256];
 
     at_least_one_tap_win(tap_reg);
@@ -5673,9 +5673,9 @@ netsh_get_id(const char *dev_node, struct gc_arena *gc)
     {
         return "NULL";     /* not found */
     }
-    else if (strcmp(BPTR(&actual), "NULL"))
+    else if (strcmp(BSTR(&actual), "NULL"))
     {
-        return BPTR(&actual); /* control panel name */
+        return BSTR(&actual); /* control panel name */
     }
     else
     {
@@ -6462,7 +6462,7 @@ tun_try_open_device(struct tuntap *tt, const char *device_guid, const struct dev
         /* Open Wintun adapter */
         for (dev_if = device_instance_id_interface; dev_if != NULL; dev_if = dev_if->next)
         {
-            if (strcmp(dev_if->net_cfg_instance_id, device_guid) == 0)
+            if (strcmp((const char *)dev_if->net_cfg_instance_id, device_guid) == 0)
             {
                 path = dev_if->device_interface_list;
                 break;
@@ -6517,7 +6517,7 @@ tun_open_device(struct tuntap *tt, const char *dev_node, const char **device_gui
     const struct tap_reg *tap_reg = get_tap_reg(gc);
     const struct panel_reg *panel_reg = get_panel_reg(gc);
     const struct device_instance_id_interface *device_instance_id_interface = get_device_instance_id_interface(gc);
-    char actual_buffer[256];
+    uint8_t actual_buffer[256];
 
     at_least_one_tap_win(tap_reg);
 
@@ -6585,7 +6585,7 @@ next:
 
     /* translate high-level device name into a device instance
      * GUID using the registry */
-    tt->actual_name = string_alloc(actual_buffer, NULL);
+    tt->actual_name = string_alloc((const char*)actual_buffer, NULL);
 
     msg(M_INFO, "%s device [%s] opened", print_windows_driver(tt->windows_driver), tt->actual_name);
     tt->adapter_index = get_adapter_index(*device_guid);

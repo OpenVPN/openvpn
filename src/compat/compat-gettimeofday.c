@@ -102,7 +102,8 @@ gettimeofday(struct timeval *tv, void *tz)
         bt = 1;
     }
 
-    tv->tv_sec = (long)last_sec = (long)sec;
+    last_sec = sec;
+    tv->tv_sec = (long)sec;
     tv->tv_usec = (last_msec = msec) * 1000;
 
     if (bt && !bt_last)

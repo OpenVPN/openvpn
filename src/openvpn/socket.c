@@ -3547,7 +3547,7 @@ socket_recv_queue(struct link_socket *sock, int maxsize)
         }
 
         /* Win32 docs say it's okay to allocate the wsabuf on the stack */
-        wsabuf[0].buf = BPTR(&sock->reads.buf);
+        wsabuf[0].buf = BSTR(&sock->reads.buf);
         wsabuf[0].len = maxsize ? maxsize : BLEN(&sock->reads.buf);
 
         /* check for buffer overflow */
@@ -3648,7 +3648,7 @@ socket_send_queue(struct link_socket *sock, struct buffer *buf, const struct lin
         ASSERT(buf_copy(&sock->writes.buf, buf));
 
         /* Win32 docs say it's okay to allocate the wsabuf on the stack */
-        wsabuf[0].buf = BPTR(&sock->writes.buf);
+        wsabuf[0].buf = BSTR(&sock->writes.buf);
         wsabuf[0].len = BLEN(&sock->writes.buf);
 
         /* the overlapped write will signal this event on I/O completion */

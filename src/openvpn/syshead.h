@@ -365,9 +365,9 @@
 
 #ifdef _WIN32
 /* Missing declarations for MinGW 32. */
-/* #if !defined(__MINGW64_VERSION_MAJOR) || __MINGW64_VERSION_MAJOR < 2 */
+#if defined(__MINGW32__)
 typedef int MIB_TCP_STATE;
-/* #endif */
+#endif
 #include <naptypes.h>
 #include <ntddndis.h>
 #include <iphlpapi.h>
