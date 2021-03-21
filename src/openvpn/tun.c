@@ -85,8 +85,6 @@ static void netsh_command(const struct argv *a, int n, int msglevel);
 
 static const char *netsh_get_id(const char *dev_node, struct gc_arena *gc);
 
-static DWORD get_adapter_index_flexible(const char *name);
-
 static bool
 do_address_service(const bool add, const short family, const struct tuntap *tt)
 {
@@ -4874,38 +4872,6 @@ get_adapter_index(const char *guid)
     {
         msg(M_INFO, "NOTE: could not get adapter index for %s", guid);
     }
-    return index;
-}
-
-static DWORD
-get_adapter_index_flexible(const char *name)  /* actual name or GUID */
-{
-    struct gc_arena gc = gc_new();
-    DWORD index;
-    index = get_adapter_index_method_1(name);
-    if (index == TUN_ADAPTER_INDEX_INVALID)
-    {
-        index = get_adapter_index_method_2(name);
-    }
-    if (index == TUN_ADAPTER_INDEX_INVALID)
-    {
-        const struct tap_reg *tap_reg = get_tap_reg(&gc);
-        const struct panel_reg *panel_reg = get_panel_reg(&gc);
-        const struct tap_reg *tr = get_adapter_by_name(name, tap_reg, panel_reg);
-        if (tr)
-        {
-            index = get_adapter_index_method_1(tr->guid);
-            if (index == TUN_ADAPTER_INDEX_INVALID)
-            {
-                index = get_adapter_index_method_2(tr->guid);
-            }
-        }
-    }
-    if (index == TUN_ADAPTER_INDEX_INVALID)
-    {
-        msg(M_INFO, "NOTE: could not get adapter index for name/GUID '%s'", name);
-    }
-    gc_free(&gc);
     return index;
 }
 
