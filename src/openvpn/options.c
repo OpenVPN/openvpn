@@ -1078,12 +1078,24 @@ string_substitute(const char *src, int from, int to, struct gc_arena *gc)
     return ret;
 }
 
-static uint8_t *
+/**
+ * Parses a hexstring and checks if the string has the correct length. Return
+ * a verify_hash_list containing the parsed hash string.
+ *
+ * @param   str         String to check/parse
+ * @param   nbytes      Number of bytes expected in the hexstr (e.g. 20 for SHA1)
+ * @param   msglevel    message level to use when printing warnings/errors
+ * @param   gc          The returned object will be allocated in this gc
+ */
+static struct verify_hash_list *
 parse_hash_fingerprint(const char *str, int nbytes, int msglevel, struct gc_arena *gc)
 {
     int i;
     const char *cp = str;
-    uint8_t *ret = (uint8_t *) gc_malloc(nbytes, true, gc);
+
+    struct verify_hash_list *ret;
+    ALLOC_OBJ_CLEAR_GC(ret, struct verify_hash_list, gc);
+
     char term = 1;
     int byte;
     char bs[3];
@@ -1102,7 +1114,7 @@ parse_hash_fingerprint(const char *str, int nbytes, int msglevel, struct gc_aren
         {
             msg(msglevel, "format error in hash fingerprint hex byte: %s", str);
         }
-        ret[i] = (uint8_t)byte;
+        ret->hash[i] = (uint8_t)byte;
         term = *cp++;
         if (term != ':' && term != 0)
         {
@@ -1120,6 +1132,50 @@ parse_hash_fingerprint(const char *str, int nbytes, int msglevel, struct gc_aren
     return ret;
 }
 
+/**
+ * Parses a string consisting of multiple lines of hexstrings and checks if each
+ * string has the correct length. Empty lines are ignored. Returns
+ * a linked list of (possibly) multiple verify_hash_list objects.
+ *
+ * @param   str         String to check/parse
+ * @param   nbytes      Number of bytes expected in the hexstring (e.g. 20 for SHA1)
+ * @param   msglevel    message level to use when printing warnings/errors
+ * @param   gc          The returned list items will be allocated in this gc
+ */
+static struct verify_hash_list *
+parse_hash_fingerprint_multiline(const char *str, int nbytes, int msglevel,
+                                 struct gc_arena *gc)
+{
+    struct gc_arena gc_temp = gc_new();
+    char *lines = string_alloc(str, &gc_temp);
+
+    struct verify_hash_list *ret = NULL;
+
+    const char *line;
+    while ((line = strsep(&lines, "\n")))
+    {
+        /* skip empty lines */
+        if (strlen(line) == 0)
+        {
+            continue;
+        }
+
+        struct verify_hash_list *hash = parse_hash_fingerprint(line, nbytes,
+                                                               msglevel, gc);
+
+        if (!hash)
+        {
+            gc_free(&gc_temp);
+            return NULL;
+        }
+
+        hash->next = ret;
+        ret = hash;
+    }
+    gc_free(&gc_temp);
+
+    return ret;
+}
 #ifdef _WIN32
 
 #ifndef ENABLE_SMALL
@@ -8063,22 +8119,45 @@ add_option(struct options *options,
     }
     else if (streq(p[0], "verify-hash") && p[1] && !p[3])
     {
-        VERIFY_PERMISSION(OPT_P_GENERAL);
+        VERIFY_PERMISSION(OPT_P_GENERAL|OPT_P_INLINE);
+        options->verify_hash_algo = MD_SHA256;
 
-        if (!p[2] || (p[2] && streq(p[2], "SHA1")))
+        int digest_len = SHA256_DIGEST_LENGTH;
+
+        if ((!p[2] && !is_inline) || (p[2] && streq(p[2], "SHA1")))
         {
-            options->verify_hash = parse_hash_fingerprint(p[1], SHA_DIGEST_LENGTH, msglevel, &options->gc);
             options->verify_hash_algo = MD_SHA1;
+            msg(M_WARN, "DEPRECATED FEATURE: Usage of SHA1 fingerprints for "
+                "verify-hash is deprecated. You should switch to SHA256.");
+            options->verify_hash_algo = MD_SHA1;
+            digest_len = SHA_DIGEST_LENGTH;
         }
-        else if (p[2] && streq(p[2], "SHA256"))
+        else if (p[2] && !streq(p[2], "SHA256"))
         {
-            options->verify_hash = parse_hash_fingerprint(p[1], SHA256_DIGEST_LENGTH, msglevel, &options->gc);
-            options->verify_hash_algo = MD_SHA256;
+            msg(msglevel, "invalid or unsupported hashing algorithm: %s "
+                          "(only SHA1 and SHA256 are valid)", p[2]);
+            goto err;
+        }
+
+        struct verify_hash_list *newlist;
+        newlist = parse_hash_fingerprint_multiline(p[1], digest_len,
+                                                   msglevel, &options->gc);
+
+        /* Append the new list to the end of our current list */
+        if (!options->verify_hash)
+        {
+            options->verify_hash = newlist;
         }
         else
         {
-            msg(msglevel, "invalid or unsupported hashing algorithm: %s  (only SHA1 and SHA256 are valid)", p[2]);
-            goto err;
+            /* since both the old and new list can have multiple entries
+             * we need to go to the end of one of them to concatenate them  */
+            struct verify_hash_list *listend = options->verify_hash;
+            while (listend->next)
+            {
+                listend = listend->next;
+            }
+            listend->next = newlist;
         }
     }
 #ifdef ENABLE_CRYPTOAPI

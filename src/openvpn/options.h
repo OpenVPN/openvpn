@@ -191,6 +191,14 @@ enum genkey_type {
     GENKEY_AUTH_TOKEN
 };
 
+struct verify_hash_list
+{
+    /* We support SHA256 and SHA1 fingerpint. In the case of using the
+     * deprecated SHA1, only the first 20 bytes of each list item are used */
+    uint8_t hash[SHA256_DIGEST_LENGTH];
+    struct verify_hash_list *next;
+};
+
 /* Command line options */
 struct options
 {
@@ -550,7 +558,7 @@ struct options
     int ns_cert_type; /* set to 0, NS_CERT_CHECK_SERVER, or NS_CERT_CHECK_CLIENT */
     unsigned remote_cert_ku[MAX_PARMS];
     const char *remote_cert_eku;
-    uint8_t *verify_hash;
+    struct verify_hash_list *verify_hash;
     hash_algo_type verify_hash_algo;
     unsigned int ssl_flags; /* set to SSLF_x flags from ssl.h */
 

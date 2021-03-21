@@ -582,6 +582,16 @@ certificates and keys: https://github.com/OpenVPN/easy-rsa
   The ``algo`` flag can be either :code:`SHA1` or :code:`SHA256`. If not
   provided, it defaults to :code:`SHA1`.
 
+  This option can also be inlined
+  ::
+
+    <verify-hash>
+    00:11:22:33:44:55:66:77:88:99:aa:bb:cc:dd:ee:ff:00:11:22:33:44:55:66:77:88:99:aa:bb:cc:dd:ee:ff
+    11:22:33:44:55:66:77:88:99:aa:bb:cc:dd:ee:ff:00:11:22:33:44:55:66:77:88:99:aa:bb:cc:dd:ee:ff:00
+    </verify-hash>
+
+If the option is inlined, ``algo`` is always :code:`SHA256`.
+
 --verify-x509-name args
   Accept connections only if a host's X.509 name is equal to **name.** The
   remote host must also pass all other tests of verification.

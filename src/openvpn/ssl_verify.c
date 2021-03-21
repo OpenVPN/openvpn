@@ -748,9 +748,21 @@ verify_cert(struct tls_session *session, openvpn_x509_cert_t *cert, int cert_dep
                 goto cleanup;
         }
 
-        if (memcmp(BPTR(&ca_hash), opt->verify_hash, BLEN(&ca_hash)))
+        struct verify_hash_list *current_hash = opt->verify_hash;
+
+        while (current_hash)
         {
-            msg(D_TLS_ERRORS, "TLS Error: level-1 certificate hash verification failed");
+            if (memcmp_constant_time(BPTR(&ca_hash), current_hash->hash,
+                                     BLEN(&ca_hash)) == 0)
+            {
+                break;
+            }
+            current_hash = current_hash->next;
+        }
+
+        if (!current_hash)
+        {
+            msg(D_TLS_ERRORS, "TLS Error: --tls-verify certificate hash verification failed");
             goto cleanup;
         }
     }
