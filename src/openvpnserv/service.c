@@ -61,14 +61,14 @@ CmdInstallServices()
     TCHAR path[512];
     int i, ret = _service_max;
 
-    if (GetModuleFileName(NULL, path + 1, 510) == 0)
+    if (GetModuleFileName(NULL, path + 1, _countof(path) - 2) == 0)
     {
         _tprintf(TEXT("Unable to install service - %s\n"), GetLastErrorText());
         return 1;
     }
 
     path[0] = TEXT('\"');
-    _tcscat(path, TEXT("\""));
+    _tcscat_s(path, _countof(path), TEXT("\""));
 
     svc_ctl_mgr = OpenSCManager(NULL, NULL, SC_MANAGER_CONNECT | SC_MANAGER_CREATE_SERVICE);
     if (svc_ctl_mgr == NULL)

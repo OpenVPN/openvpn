@@ -137,7 +137,7 @@ modext(LPTSTR dest, size_t size, LPCTSTR src, LPCTSTR newext)
 
     if (size > 0 && (_tcslen(src) + 1) <= size)
     {
-        _tcscpy(dest, src);
+        _tcscpy_s(dest, size, src);
         dest [size - 1] = TEXT('\0');
         i = _tcslen(dest);
         while (i-- > 0)
@@ -154,8 +154,8 @@ modext(LPTSTR dest, size_t size, LPCTSTR src, LPCTSTR newext)
         }
         if (_tcslen(dest) + _tcslen(newext) + 2 <= size)
         {
-            _tcscat(dest, TEXT("."));
-            _tcscat(dest, newext);
+            _tcscat_s(dest, size, TEXT("."));
+            _tcscat_s(dest, size, newext);
             return true;
         }
         dest[0] = TEXT('\0');
@@ -271,7 +271,7 @@ ServiceStartAutomatic(DWORD dwArgc, LPTSTR *lpszArgv)
         BOOL more_files;
         TCHAR find_string[MAX_PATH];
 
-        openvpn_sntprintf(find_string, MAX_PATH, TEXT("%s\\*"), settings.config_dir);
+        openvpn_sntprintf(find_string, _countof(find_string), TEXT("%s\\*"), settings.config_dir);
 
         find_handle = FindFirstFile(find_string, &find_obj);
         if (find_handle == INVALID_HANDLE_VALUE)

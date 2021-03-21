@@ -37,7 +37,7 @@ openvpn_vsntprintf(LPTSTR str, size_t size, LPCTSTR format, va_list arglist)
     int len = -1;
     if (size > 0)
     {
-        len = _vsntprintf(str, size, format, arglist);
+        len = _vsntprintf_s(str, size, _TRUNCATE, format, arglist);
         str[size - 1] = 0;
     }
     return (len >= 0 && (size_t)len < size);
@@ -311,7 +311,7 @@ get_win_sys_path(void)
 
     if (!GetSystemDirectoryW(win_sys_path, _countof(win_sys_path)))
     {
-        wcsncpy(win_sys_path, default_sys_path, _countof(win_sys_path));
+        wcscpy_s(win_sys_path, _countof(win_sys_path), default_sys_path);
         win_sys_path[_countof(win_sys_path) - 1] = L'\0';
     }
 

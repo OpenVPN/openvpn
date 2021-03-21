@@ -1067,7 +1067,7 @@ netsh_dns_cmd(const wchar_t *action, const wchar_t *proto, const wchar_t *if_nam
 
     if (IsWindows7OrGreater())
     {
-        wcsncat(cmdline, L" validate=no", ncmdline - wcslen(cmdline) - 1);
+        wcscat_s(cmdline, ncmdline, L" validate=no");
     }
     err = ExecCommand(argv0, cmdline, timeout);
 
