@@ -899,7 +899,7 @@ ExecCommand(const WCHAR *argv0, const WCHAR *cmdline, DWORD timeout)
     si.cb = sizeof(si);
 
     /* CreateProcess needs a modifiable cmdline: make a copy */
-    cmdline_dup = wcsdup(cmdline);
+    cmdline_dup = _wcsdup(cmdline);
     if (cmdline_dup && CreateProcessW(argv0, cmdline_dup, NULL, NULL, FALSE,
                                       proc_flags, NULL, NULL, &si, &pi) )
     {
@@ -1181,7 +1181,7 @@ SetDNSDomain(const wchar_t *if_name, const char *domain, undo_lists_t *lists)
    /* Add to undo list if domain is non-empty */
    if (err == 0 && wdomain[0] && lists)
    {
-        wchar_t *tmp_name = wcsdup(if_name);
+        wchar_t *tmp_name = _wcsdup(if_name);
         if (!tmp_name || AddListItem(&(*lists)[undo_domain], tmp_name))
         {
             free(tmp_name);
@@ -1272,7 +1272,7 @@ HandleDNSConfigMessage(const dns_cfg_message_t *msg, undo_lists_t *lists)
 
     if (msg->addr_len > 0)
     {
-        wchar_t *tmp_name = wcsdup(wide_name);
+        wchar_t *tmp_name = _wcsdup(wide_name);
         if (!tmp_name || AddListItem(&(*lists)[undo_type], tmp_name))
         {
             free(tmp_name);
